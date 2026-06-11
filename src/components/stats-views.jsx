@@ -23,6 +23,27 @@ import {
 } from '../utils/studentProgressionLadder.js';
 import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
 import { useSession } from '../contexts/SessionContext.jsx';
+import {
+  computeTotalValidated,
+  computeTotalPending,
+  computeActiveStudents,
+  computeMaxDone,
+  rankIcon,
+  rankClass,
+  computeCompletionRate,
+  decorateRanks,
+  isProfileAheadOfTasks,
+  isProfileBehindTasks,
+  computeTasksRemaining,
+  estimateDataUrlBytes,
+  validatePseudo,
+  validateEmail,
+  validateDescription,
+  formatObservationAuthor,
+  formatObservationDate,
+  deriveProfileType,
+  resolveProfileEndpoint,
+} from '../utils/statsHelpers.js';
 
 function StudentStats({ student }) {
   const { isN3Affiliated = false } = useSession();
@@ -47,11 +68,6 @@ function StudentStats({ student }) {
   );
 
   const { stats, assignments } = data;
-  const defaultIconBySlug = {
-    eleve_novice: '🪨',
-    eleve_avance: '🌿',
-    eleve_chevronne: '🏆',
-  };
   const rawSteps = Array.isArray(data?.progression?.steps) && data.progression.steps.length > 0
     ? data.progression.steps
     : [
@@ -59,11 +75,7 @@ function StudentStats({ student }) {
       { roleSlug: 'eleve_avance', min: 5, label: 'n3beur avancé' },
       { roleSlug: 'eleve_chevronne', min: 10, label: 'n3beur chevronné' },
     ];
-  const RANKS = sortProgressionSteps(rawSteps).map((step, i) => ({
-    ...step,
-    color: i === 0 ? '#94a3b8' : i === 1 ? '#52b788' : '#1a4731',
-    icon: String(step.emoji || '').trim() || defaultIconBySlug[String(step.roleSlug || '').toLowerCase()] || '🌿',
-  }));
+  const RANKS = decorateRanks(sortProgressionSteps(rawSteps));
   const autoProgressionEnabled = data?.progression?.autoProgressionEnabled !== false;
   const taskTierSlug = resolveTaskTierSlug(stats.done, RANKS);
   const taskTier = findProgressionStep(RANKS, taskTierSlug) || RANKS[0];
@@ -83,18 +95,10 @@ function StudentStats({ student }) {
   const actualIndex = getProgressionStepIndex(RANKS, actualSlug);
   const nextRank = getNextProgressionStep(RANKS, taskTierSlug);
   const progressPct = computeProgressPercent(stats.done, taskTier, nextRank);
-  const profileAheadOfTasks =
-    autoProgressionEnabled
-    && actualIndex >= 0
-    && taskTierIndex >= 0
-    && actualIndex > taskTierIndex;
-  const profileBehindOfTasks =
-    autoProgressionEnabled
-    && actualIndex >= 0
-    && taskTierIndex >= 0
-    && actualIndex < taskTierIndex;
+  const profileAheadOfTasks = isProfileAheadOfTasks(autoProgressionEnabled, actualIndex, taskTierIndex);
+  const profileBehindOfTasks = isProfileBehindTasks(autoProgressionEnabled, actualIndex, taskTierIndex);
   const showTaskObjective = profileAheadOfTasks || profileBehindOfTasks;
-  const tasksRemaining = nextRank ? Math.max(0, nextRank.min - stats.done) : 0;
+  const tasksRemaining = computeTasksRemaining(stats.done, nextRank);
 
   return (
     <div className="fade-in">
@@ -230,16 +234,7 @@ function StudentProfileEditor({ student, onUpdated, onClose, maps = [] }) {
   const fallbackDisplayName = String(student?.display_name || student?.displayName || student?.email || 'Utilisateur').trim();
   const displayFirstName = String(student?.first_name || '').trim() || fallbackDisplayName;
   const displayLastName = String(student?.last_name || '').trim();
-  const profileType = (() => {
-    const roleSlug = String(student?.auth?.roleSlug || '').toLowerCase();
-    if (roleSlug === 'admin') return 'admin';
-    if (roleSlug.startsWith('prof')) return roleTerms.teacherShort;
-    if (roleSlug.startsWith('eleve')) return roleTerms.studentSingular;
-    const userType = String(student?.auth?.userType || student?.user_type || '').toLowerCase();
-    if (userType === 'teacher' || userType === 'user') return roleTerms.teacherShort;
-    if (userType === 'student') return roleTerms.studentSingular;
-    return roleTerms.studentSingular;
-  })();
+  const profileType = deriveProfileType(student, roleTerms);
 
   const [pseudo, setPseudo] = useState(student?.pseudo || '');
   const [email, setEmail] = useState(student?.email || '');
@@ -272,13 +267,6 @@ function StudentProfileEditor({ student, onUpdated, onClose, maps = [] }) {
   const galleryInputRef = useRef(null);
   const cameraInputRef = useRef(null);
 
-  const estimateDataUrlBytes = (dataUrl) => {
-    const payload = String(dataUrl || '').split(',')[1] || '';
-    if (!payload) return 0;
-    const padding = payload.endsWith('==') ? 2 : (payload.endsWith('=') ? 1 : 0);
-    return Math.floor((payload.length * 3) / 4) - padding;
-  };
-
   const onAvatarSelected = async (file) => {
     if (!file) return;
     if (!String(file.type || '').startsWith('image/')) {
@@ -308,15 +296,12 @@ function StudentProfileEditor({ student, onUpdated, onClose, maps = [] }) {
     setErr('');
     setOkMsg('');
     if (!currentPassword) return setErr('Mot de passe actuel requis');
-    if (pseudo.trim() && !/^[A-Za-z0-9_.-]{3,30}$/.test(pseudo.trim())) {
-      return setErr('Pseudo invalide (3-30 caractères, lettres/chiffres/._-)');
-    }
-    if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      return setErr('Email invalide');
-    }
-    if (description.trim().length > 300) {
-      return setErr('Description trop longue (max 300 caractères)');
-    }
+    const pseudoErr = validatePseudo(pseudo);
+    if (pseudoErr) return setErr(pseudoErr);
+    const emailErr = validateEmail(email);
+    if (emailErr) return setErr(emailErr);
+    const descErr = validateDescription(description);
+    if (descErr) return setErr(descErr);
 
     setLoading(true);
     try {
@@ -331,10 +316,7 @@ function StudentProfileEditor({ student, onUpdated, onClose, maps = [] }) {
       if (avatarData) payload.avatarData = avatarData;
       if (removeAvatar) payload.removeAvatar = true;
 
-      const roleSlug = String(student?.auth?.roleSlug || '').toLowerCase();
-      const userType = String(student?.auth?.userType || student?.user_type || '').toLowerCase();
-      const isTeacherLike = roleSlug === 'admin' || roleSlug.startsWith('prof') || userType === 'teacher' || userType === 'user';
-      const endpoint = isTeacherLike ? '/api/auth/me/profile' : `/api/students/${student.id}/profile`;
+      const endpoint = resolveProfileEndpoint(student);
       const updated = await api(endpoint, 'PATCH', payload);
       onUpdated(updated);
       setPseudo(updated?.pseudo || '');
@@ -568,13 +550,10 @@ function TeacherStats() {
     `${s.first_name} ${s.last_name}`.toLowerCase().includes(search.toLowerCase())
   );
 
-  const maxDone = Math.max(...data.map(s => s.stats.done), 1);
-  const rankIcon = i => i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}.`;
-  const rankClass = i => i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
-
-  const totalValidated = data.reduce((s, d) => s + d.stats.done, 0);
-  const totalPending = data.reduce((s, d) => s + d.stats.pending, 0);
-  const activeStudents = data.filter(d => d.stats.total > 0).length;
+  const maxDone = computeMaxDone(data);
+  const totalValidated = computeTotalValidated(data);
+  const totalPending = computeTotalPending(data);
+  const activeStudents = computeActiveStudents(data);
   const siteSpecies = Number(site?.plant_species_observed ?? 0);
   const siteObsEvents = Number(site?.plant_observation_events ?? 0);
   const siteTutorials = Number(site?.tutorials_read ?? 0);
@@ -653,11 +632,9 @@ function TeacherStats() {
           {observations.length > 0 && (
             <div style={{ maxHeight: 280, overflow: 'auto', border: '1px solid #e5e7eb', borderRadius: 10, padding: 8, background: '#f8fafc' }}>
               {observations.map((entry) => {
-                const studentName = `${entry.first_name || ''} ${entry.last_name || ''}`.trim() || 'n3beur';
+                const studentName = formatObservationAuthor(entry);
                 const zoneLabel = String(entry.zone_name || '').trim();
-                const dateLabel = entry.created_at
-                  ? new Date(entry.created_at).toLocaleString('fr-FR')
-                  : '';
+                const dateLabel = formatObservationDate(entry.created_at);
                 return (
                   <div key={entry.id} style={{ padding: '8px 6px', borderBottom: '1px solid #e2e8f0' }}>
                     <div style={{ fontSize: '.82rem', color: '#374151' }}>
@@ -684,9 +661,7 @@ function TeacherStats() {
           </div>
           : filtered.map((s) => {
             const realRank = data.findIndex(d => d.id === s.id);
-            const completionRate = s.stats.total > 0
-              ? Math.round((s.stats.done / s.stats.total) * 100)
-              : 0;
+            const completionRate = computeCompletionRate(s.stats.done, s.stats.total);
             return (
               <div key={s.id} className="lb-row" style={{ gap: 8 }}>
                 <div className={`lb-rank ${rankClass(realRank)}`}>{rankIcon(realRank)}</div>
