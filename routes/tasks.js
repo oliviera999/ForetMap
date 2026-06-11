@@ -42,14 +42,24 @@ const {
   normalizeImportTaskStatus,
 } = require('../lib/tasks/taskImport');
 const { parseOptionalForetAuth } = require('../lib/auth/jwtPipeline');
+const {
+  parseTaskDangerLevelFromClient,
+  parseTaskDifficultyLevelFromClient,
+  parseTaskImportanceLevelFromClient,
+  taskDangerLevelForResponse,
+  taskDifficultyLevelForResponse,
+  taskImportanceLevelForResponse,
+} = require('../lib/tasks/taskFieldLevels');
+const {
+  normalizeTaskLivingBeingsInput,
+  serializeTaskLivingBeingsForDb,
+  attachTaskLivingBeingsApiFields,
+} = require('../lib/tasks/taskLivingBeings');
 
 const router = express.Router();
 const MAX_TASK_REFERENTS = 15;
 
 const ALLOWED_TASK_STATUSES = new Set(['available', 'in_progress', 'done', 'validated', 'proposed', 'on_hold']);
-const ALLOWED_TASK_DANGER_LEVELS = new Set(['safe', 'potential_danger', 'dangerous', 'very_dangerous']);
-const ALLOWED_TASK_DIFFICULTY_LEVELS = new Set(['easy', 'medium', 'hard', 'very_hard']);
-const ALLOWED_TASK_IMPORTANCE_LEVELS = new Set(['not_important', 'low', 'medium', 'high', 'absolute']);
 
 function asTrimmedString(value) {
   if (value == null) return '';
@@ -64,84 +74,6 @@ function normalizeOptionalString(value) {
 function resolveTaskMapId(task) {
   if (!task) return null;
   return task.map_id_resolved || task.map_id || task.zone_map_id || task.marker_map_id || task.project_map_id || null;
-}
-
-/** Entrée client : absent / vide / null → non renseigné (null SQL) ; valeur invalide → { error }. */
-function parseTaskDangerLevelFromClient(value) {
-  if (value === undefined || value === null) return { level: null };
-  const raw = asTrimmedString(value).toLowerCase();
-  if (!raw) return { level: null };
-  if (ALLOWED_TASK_DANGER_LEVELS.has(raw)) return { level: raw };
-  return { error: 'Niveau de danger invalide' };
-}
-
-function parseTaskDifficultyLevelFromClient(value) {
-  if (value === undefined || value === null) return { level: null };
-  const raw = asTrimmedString(value).toLowerCase();
-  if (!raw) return { level: null };
-  if (ALLOWED_TASK_DIFFICULTY_LEVELS.has(raw)) return { level: raw };
-  return { error: 'Niveau de difficulté invalide' };
-}
-
-function parseTaskImportanceLevelFromClient(value) {
-  if (value === undefined || value === null) return { level: null };
-  const raw = asTrimmedString(value).toLowerCase();
-  if (!raw) return { level: null };
-  if (ALLOWED_TASK_IMPORTANCE_LEVELS.has(raw)) return { level: raw };
-  return { error: "Degré d'importance invalide" };
-}
-
-/** Valeur BDD → clé API ou null (jamais de défaut implicite). */
-function taskDangerLevelForResponse(value) {
-  if (value == null) return null;
-  const raw = asTrimmedString(value).toLowerCase();
-  if (!raw) return null;
-  return ALLOWED_TASK_DANGER_LEVELS.has(raw) ? raw : null;
-}
-
-function taskDifficultyLevelForResponse(value) {
-  if (value == null) return null;
-  const raw = asTrimmedString(value).toLowerCase();
-  if (!raw) return null;
-  return ALLOWED_TASK_DIFFICULTY_LEVELS.has(raw) ? raw : null;
-}
-
-function taskImportanceLevelForResponse(value) {
-  if (value == null) return null;
-  const raw = asTrimmedString(value).toLowerCase();
-  if (!raw) return null;
-  return ALLOWED_TASK_IMPORTANCE_LEVELS.has(raw) ? raw : null;
-}
-
-/** Liste de noms d’êtres vivants (catalogue biodiversité), comme zones/repères. */
-function normalizeTaskLivingBeingsInput(input, fallback = '') {
-  const base = Array.isArray(input)
-    ? input
-    : typeof input === 'string' && input.trim()
-      ? (() => {
-        try {
-          const parsed = JSON.parse(input);
-          if (Array.isArray(parsed)) return parsed;
-        } catch (_) {
-          /* ignore */
-        }
-        return input.split(',');
-      })()
-      : [];
-  const cleaned = [...new Set(base.map((v) => String(v || '').trim()).filter(Boolean))];
-  if (cleaned.length === 0 && fallback && String(fallback).trim()) return [String(fallback).trim()];
-  return cleaned;
-}
-
-function serializeTaskLivingBeingsForDb(input) {
-  const arr = normalizeTaskLivingBeingsInput(input, '');
-  return arr.length ? JSON.stringify(arr) : null;
-}
-
-function attachTaskLivingBeingsApiFields(task) {
-  if (!task) return;
-  task.living_beings_list = normalizeTaskLivingBeingsInput(task.living_beings, '');
-  delete task.living_beings;
 }
 
 const MAX_TASK_IMAGE_BYTES = 4 * 1024 * 1024;
