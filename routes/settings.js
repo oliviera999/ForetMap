@@ -3,6 +3,7 @@ const path = require('path');
 const { queryAll, queryOne, execute } = require('../database');
 const { requirePermission } = require('../middleware/requireTeacher');
 const { logRouteError, respondInternalError } = require('../lib/routeLog');
+const asyncHandler = require('../lib/asyncHandler');
 const { z, validate } = require('../lib/validate');
 const { logAudit } = require('./audit');
 const { invalidateMapsListCache } = require('./maps');
@@ -69,36 +70,28 @@ async function listMaps() {
   }
 }
 
-router.get('/public', async (req, res) => {
-  try {
-    const settings = await getSettings('public');
-    res.json({ settings: settings.nested });
-  } catch (e) {
-    respondInternalError(res, req, e);
-  }
-});
+router.get('/public', asyncHandler(async (req, res) => {
+  const settings = await getSettings('public');
+  res.json({ settings: settings.nested });
+}));
 
 router.get(
   '/admin',
   requirePermission('admin.settings.read', { needsElevation: true }),
-  async (req, res) => {
-    try {
-      const [settingsRows, maps] = await Promise.all([
-        listAdminSettings(),
-        listMaps(),
-      ]);
-      res.json({
-        settings: settingsRows,
-        maps: maps.map((row) => ({
-          ...row,
-          map_image_url: normalizeMapImageUrl(row.id, row.map_image_url),
-          is_active: !!row.is_active,
-        })),
-      });
-    } catch (e) {
-      respondInternalError(res, req, e);
-    }
-  }
+  asyncHandler(async (req, res) => {
+    const [settingsRows, maps] = await Promise.all([
+      listAdminSettings(),
+      listMaps(),
+    ]);
+    res.json({
+      settings: settingsRows,
+      maps: maps.map((row) => ({
+        ...row,
+        map_image_url: normalizeMapImageUrl(row.id, row.map_image_url),
+        is_active: !!row.is_active,
+      })),
+    });
+  })
 );
 
 router.put(
@@ -241,51 +234,43 @@ router.put(
 router.post(
   '/admin/maps/:id/image',
   requirePermission('admin.settings.write', { needsElevation: true }),
-  async (req, res) => {
-    try {
-      const map = await getMapById(req.params.id);
-      if (!map) return res.status(404).json({ error: 'Carte introuvable' });
-      const imageData = String(req.body?.image_data || '').trim();
-      if (!imageData) return res.status(400).json({ error: 'image_data requis' });
-      const filename = `${map.id}-${Date.now()}.jpg`;
-      const relativePath = path.join('maps', filename).replace(/\\/g, '/');
-      saveBase64ToDisk(relativePath, imageData);
-      const nextUrl = `/uploads/${relativePath}`;
-      const oldUrl = String(map.map_image_url || '').trim();
-      await execute('UPDATE maps SET map_image_url = ? WHERE id = ?', [nextUrl, map.id]);
-      if (oldUrl.startsWith('/uploads/maps/')) {
-        deleteFile(oldUrl.replace('/uploads/', ''));
-      }
-      invalidateMapsListCache();
-      await logAudit('settings_map_image_update', 'map', map.id, 'Image de plan changée', {
-        req,
-        payload: { map_id: map.id, map_image_url: nextUrl },
-      });
-      const updated = await getMapById(map.id);
-      res.json({
-        ...updated,
-        map_image_url: normalizeMapImageUrl(updated.id, updated.map_image_url),
-        is_active: !!updated.is_active,
-      });
-    } catch (e) {
-      respondInternalError(res, req, e);
+  asyncHandler(async (req, res) => {
+    const map = await getMapById(req.params.id);
+    if (!map) return res.status(404).json({ error: 'Carte introuvable' });
+    const imageData = String(req.body?.image_data || '').trim();
+    if (!imageData) return res.status(400).json({ error: 'image_data requis' });
+    const filename = `${map.id}-${Date.now()}.jpg`;
+    const relativePath = path.join('maps', filename).replace(/\\/g, '/');
+    saveBase64ToDisk(relativePath, imageData);
+    const nextUrl = `/uploads/${relativePath}`;
+    const oldUrl = String(map.map_image_url || '').trim();
+    await execute('UPDATE maps SET map_image_url = ? WHERE id = ?', [nextUrl, map.id]);
+    if (oldUrl.startsWith('/uploads/maps/')) {
+      deleteFile(oldUrl.replace('/uploads/', ''));
     }
-  }
+    invalidateMapsListCache();
+    await logAudit('settings_map_image_update', 'map', map.id, 'Image de plan changée', {
+      req,
+      payload: { map_id: map.id, map_image_url: nextUrl },
+    });
+    const updated = await getMapById(map.id);
+    res.json({
+      ...updated,
+      map_image_url: normalizeMapImageUrl(updated.id, updated.map_image_url),
+      is_active: !!updated.is_active,
+    });
+  })
 );
 
 router.get(
   '/admin/media-library',
   requirePermission('admin.settings.read', { needsElevation: true }),
   validate({ query: settingsMediaQuerySchema }),
-  async (req, res) => {
-    try {
-      const limit = req.validatedQuery?.limit;
-      const items = listMediaLibraryItems(Number.isFinite(limit) ? limit : 300, { app: 'foretmap' });
-      res.json({ items });
-    } catch (e) {
-      respondInternalError(res, req, e);
-    }
-  }
+  asyncHandler(async (req, res) => {
+    const limit = req.validatedQuery?.limit;
+    const items = listMediaLibraryItems(Number.isFinite(limit) ? limit : 300, { app: 'foretmap' });
+    res.json({ items });
+  })
 );
 
 router.post(
@@ -388,25 +373,21 @@ router.get(
   '/admin/system/logs',
   requirePermission('admin.settings.read', { needsElevation: true }),
   validate({ query: settingsLogsQuerySchema }),
-  async (req, res) => {
-    try {
-      const settings = await getSettings('admin');
-      if (!settings.flat['ops.allow_remote_logs']) {
-        return res.status(403).json({ error: 'Consultation des logs désactivée' });
-      }
-      const n = req.validatedQuery.lines;
-      const entries = tailLogLines(n);
-      res.json({
-        ok: true,
-        returned: entries.length,
-        bufferLines: getBufferedLineCount(),
-        bufferMax: getMaxLines(),
-        entries,
-      });
-    } catch (e) {
-      respondInternalError(res, req, e);
+  asyncHandler(async (req, res) => {
+    const settings = await getSettings('admin');
+    if (!settings.flat['ops.allow_remote_logs']) {
+      return res.status(403).json({ error: 'Consultation des logs désactivée' });
     }
-  }
+    const n = req.validatedQuery.lines;
+    const entries = tailLogLines(n);
+    res.json({
+      ok: true,
+      returned: entries.length,
+      bufferLines: getBufferedLineCount(),
+      bufferMax: getMaxLines(),
+      entries,
+    });
+  })
 );
 
 router.get(
@@ -425,48 +406,40 @@ router.get(
 router.get(
   '/admin/system/oauth-debug',
   requirePermission('admin.settings.read', { needsElevation: true }),
-  async (req, res) => {
-    try {
-      const frontendOrigin = String(process.env.FRONTEND_ORIGIN || process.env.PASSWORD_RESET_BASE_URL || `${req.protocol}://${req.get('host')}`);
-      const redirectUri = String(process.env.GOOGLE_OAUTH_REDIRECT_URI || `${req.protocol}://${req.get('host')}/api/auth/google/callback`);
-      res.json({
-        ok: true,
-        runtime: {
-          nodeEnv: process.env.NODE_ENV || null,
-          host: req.get('host') || null,
-          protocol: req.protocol || null,
-        },
-        oauth: {
-          googleClientIdSet: !!String(process.env.GOOGLE_OAUTH_CLIENT_ID || '').trim(),
-          googleClientSecretSet: !!String(process.env.GOOGLE_OAUTH_CLIENT_SECRET || '').trim(),
-          resolvedFrontendOrigin: frontendOrigin,
-          resolvedGoogleRedirectUri: redirectUri,
-          allowedDomains: String(process.env.GOOGLE_OAUTH_ALLOWED_DOMAINS || ''),
-          allowedEmails: String(process.env.GOOGLE_OAUTH_ALLOWED_EMAILS || ''),
-        },
-      });
-    } catch (e) {
-      respondInternalError(res, req, e);
-    }
-  }
+  asyncHandler(async (req, res) => {
+    const frontendOrigin = String(process.env.FRONTEND_ORIGIN || process.env.PASSWORD_RESET_BASE_URL || `${req.protocol}://${req.get('host')}`);
+    const redirectUri = String(process.env.GOOGLE_OAUTH_REDIRECT_URI || `${req.protocol}://${req.get('host')}/api/auth/google/callback`);
+    res.json({
+      ok: true,
+      runtime: {
+        nodeEnv: process.env.NODE_ENV || null,
+        host: req.get('host') || null,
+        protocol: req.protocol || null,
+      },
+      oauth: {
+        googleClientIdSet: !!String(process.env.GOOGLE_OAUTH_CLIENT_ID || '').trim(),
+        googleClientSecretSet: !!String(process.env.GOOGLE_OAUTH_CLIENT_SECRET || '').trim(),
+        resolvedFrontendOrigin: frontendOrigin,
+        resolvedGoogleRedirectUri: redirectUri,
+        allowedDomains: String(process.env.GOOGLE_OAUTH_ALLOWED_DOMAINS || ''),
+        allowedEmails: String(process.env.GOOGLE_OAUTH_ALLOWED_EMAILS || ''),
+      },
+    });
+  })
 );
 
 router.post(
   '/admin/system/restart',
   requirePermission('admin.settings.secrets.write', { needsElevation: true }),
-  async (req, res) => {
-    try {
-      const settings = await getSettings('admin');
-      if (!settings.flat['ops.allow_remote_restart']) {
-        return res.status(403).json({ error: 'Redémarrage distant désactivé' });
-      }
-      await logAudit('settings_system_restart', 'system', 'node-process', 'Redémarrage demandé via GUI admin', { req });
-      res.json({ ok: true, message: 'Redémarrage dans 1s' });
-      setTimeout(() => process.exit(0), 1000);
-    } catch (e) {
-      respondInternalError(res, req, e);
+  asyncHandler(async (req, res) => {
+    const settings = await getSettings('admin');
+    if (!settings.flat['ops.allow_remote_restart']) {
+      return res.status(403).json({ error: 'Redémarrage distant désactivé' });
     }
-  }
+    await logAudit('settings_system_restart', 'system', 'node-process', 'Redémarrage demandé via GUI admin', { req });
+    res.json({ ok: true, message: 'Redémarrage dans 1s' });
+    setTimeout(() => process.exit(0), 1000);
+  })
 );
 
 module.exports = router;
