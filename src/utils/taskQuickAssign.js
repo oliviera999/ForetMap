@@ -61,3 +61,26 @@ export function quickAssignHint(task, selectedIds, teacherStudents) {
   if (toAdd.length > 0) parts.push(`Inscrire ${toAdd.length} n3beur${toAdd.length > 1 ? 's' : ''}`);
   return parts.join(' · ');
 }
+
+/**
+ * Message de bilan d'une affectation rapide (retraits/inscriptions réussis et échoués) — pur.
+ * @param {{ removeOk?: number, addOk?: number, removeFail?: number, addFail?: number,
+ *           firstError?: string, taskTitle?: string }} p
+ * @returns {string}
+ */
+export function buildQuickAssignSummary({
+  removeOk = 0, addOk = 0, removeFail = 0, addFail = 0, firstError = '', taskTitle = '',
+} = {}) {
+  const bits = [];
+  if (removeOk > 0) bits.push(`${removeOk} retrait${removeOk > 1 ? 's' : ''}`);
+  if (addOk > 0) bits.push(`${addOk} inscription${addOk > 1 ? 's' : ''}`);
+  const errBits = [];
+  if (removeFail > 0) errBits.push(`${removeFail} retrait${removeFail > 1 ? 's' : ''}`);
+  if (addFail > 0) errBits.push(`${addFail} inscription${addFail > 1 ? 's' : ''}`);
+  if (bits.length > 0 && errBits.length > 0) {
+    return `${bits.join(', ')} — échec : ${errBits.join(', ')}${firstError ? ` (${firstError})` : ''}`;
+  }
+  if (bits.length > 0) return `${bits.join(', ')} sur « ${taskTitle} »`;
+  if (firstError) return `Aucune mise à jour : ${firstError}`;
+  return 'Aucun changement appliqué — déjà à jour.';
+}
