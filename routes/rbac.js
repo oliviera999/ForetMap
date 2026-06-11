@@ -18,6 +18,8 @@ async function emitStudentsWithPrimaryRole(roleId) {
   }
 }
 const { logRouteError, respondInternalError } = require('../lib/routeLog');
+const asyncHandler = require('../lib/asyncHandler');
+const { rethrowSlugConflict } = require('../lib/slugConflict');
 const { logAudit } = require('./audit');
 
 const router = express.Router();
@@ -249,35 +251,31 @@ router.post(
 router.get(
   '/profiles',
   requirePermission('admin.roles.manage', { needsElevation: true }),
-  async (req, res) => {
-    try {
-      const rolesWithProgression = await queryAll(
-        'SELECT id, slug, display_name, emoji, min_done_tasks, display_order, `rank` AS `rank`, is_system, forum_participate, context_comment_participate, max_concurrent_tasks FROM roles ORDER BY display_order ASC, `rank` DESC, id ASC'
-      );
-      const perms = await queryAll('SELECT `key`, label, description FROM permissions ORDER BY `key` ASC');
-      const rolePerms = await queryAll(
-        'SELECT role_id, permission_key, requires_elevation FROM role_permissions ORDER BY role_id ASC, permission_key ASC'
-      );
-      const map = new Map();
-      for (const row of rolePerms) {
-        if (!map.has(row.role_id)) map.set(row.role_id, []);
-        map.get(row.role_id).push({
-          key: row.permission_key,
-          requires_elevation: !!row.requires_elevation,
-        });
-      }
-      const rolesPayload = rolesWithProgression
-        .map((r) => ({ ...r, permissions: map.get(r.id) || [] }))
-        .map((r) => ({ ...r, catalog: perms }));
-      const progressionByValidatedTasksEnabled = await getSettingValue('rbac.progression_by_validated_tasks', true);
-      res.json({
-        roles: rolesPayload,
-        progressionByValidatedTasksEnabled: !!progressionByValidatedTasksEnabled,
+  asyncHandler(async (req, res) => {
+    const rolesWithProgression = await queryAll(
+      'SELECT id, slug, display_name, emoji, min_done_tasks, display_order, `rank` AS `rank`, is_system, forum_participate, context_comment_participate, max_concurrent_tasks FROM roles ORDER BY display_order ASC, `rank` DESC, id ASC'
+    );
+    const perms = await queryAll('SELECT `key`, label, description FROM permissions ORDER BY `key` ASC');
+    const rolePerms = await queryAll(
+      'SELECT role_id, permission_key, requires_elevation FROM role_permissions ORDER BY role_id ASC, permission_key ASC'
+    );
+    const map = new Map();
+    for (const row of rolePerms) {
+      if (!map.has(row.role_id)) map.set(row.role_id, []);
+      map.get(row.role_id).push({
+        key: row.permission_key,
+        requires_elevation: !!row.requires_elevation,
       });
-    } catch (e) {
-      respondInternalError(res, req, e);
     }
-  }
+    const rolesPayload = rolesWithProgression
+      .map((r) => ({ ...r, permissions: map.get(r.id) || [] }))
+      .map((r) => ({ ...r, catalog: perms }));
+    const progressionByValidatedTasksEnabled = await getSettingValue('rbac.progression_by_validated_tasks', true);
+    res.json({
+      roles: rolesPayload,
+      progressionByValidatedTasksEnabled: !!progressionByValidatedTasksEnabled,
+    });
+  })
 );
 
 router.patch(
@@ -308,56 +306,54 @@ router.patch(
 router.post(
   '/profiles',
   requirePermission('admin.roles.manage', { needsElevation: true }),
-  async (req, res) => {
+  asyncHandler(async (req, res) => {
+    const slug = String(req.body?.slug || '').trim().toLowerCase().replace(/[^a-z0-9_]+/g, '_').replace(/^_+|_+$/g, '');
+    const displayName = String(req.body?.display_name || '').trim();
+    const rank = Number.isFinite(parseInt(req.body?.rank, 10)) ? parseInt(req.body.rank, 10) : 100;
+    const emoji = normalizeRoleEmoji(req.body?.emoji);
+    const minDoneTasks = parseOptionalNonNegativeInt(req.body?.min_done_tasks, null);
+    const displayOrder = parseOptionalNonNegativeInt(req.body?.display_order, 0);
+    let maxConcurrentTasks = null;
+    if (Object.prototype.hasOwnProperty.call(req.body || {}, 'max_concurrent_tasks')
+      || Object.prototype.hasOwnProperty.call(req.body || {}, 'maxConcurrentTasks')) {
+      if (!canConfigureStudentTierForumContext(slug, rank)) {
+        return res.status(400).json({
+          error:
+            'max_concurrent_tasks : réservé aux profils n3beur (slug eleve_* ou rang strictement inférieur à celui du n3boss, hors admin, prof, visiteur)',
+        });
+      }
+      const rawMct = Object.prototype.hasOwnProperty.call(req.body || {}, 'max_concurrent_tasks')
+        ? req.body.max_concurrent_tasks
+        : req.body.maxConcurrentTasks;
+      const parsed = rawMct === undefined ? null : parseOptionalMaxConcurrentTasks(rawMct);
+      if (Number.isNaN(parsed)) {
+        return res.status(400).json({ error: 'max_concurrent_tasks invalide (0–99, vide ou null pour hériter du réglage global)' });
+      }
+      maxConcurrentTasks = parsed;
+    }
+    if (!slug || !displayName) return res.status(400).json({ error: 'slug et display_name requis' });
+    const reservedCreate = reservedRoleSlugError(slug);
+    if (reservedCreate) return res.status(400).json({ error: reservedCreate });
+    if (Number.isNaN(minDoneTasks)) return res.status(400).json({ error: 'min_done_tasks invalide (entier >= 0)' });
+    if (Number.isNaN(displayOrder)) return res.status(400).json({ error: 'display_order invalide (entier >= 0)' });
+    if (STUDENT_ROLE_SLUG_RE.test(slug) && (emoji == null || minDoneTasks == null)) {
+      return res.status(400).json({ error: 'Un profil n3beur doit définir emoji et min_done_tasks' });
+    }
     try {
-      const slug = String(req.body?.slug || '').trim().toLowerCase().replace(/[^a-z0-9_]+/g, '_').replace(/^_+|_+$/g, '');
-      const displayName = String(req.body?.display_name || '').trim();
-      const rank = Number.isFinite(parseInt(req.body?.rank, 10)) ? parseInt(req.body.rank, 10) : 100;
-      const emoji = normalizeRoleEmoji(req.body?.emoji);
-      const minDoneTasks = parseOptionalNonNegativeInt(req.body?.min_done_tasks, null);
-      const displayOrder = parseOptionalNonNegativeInt(req.body?.display_order, 0);
-      let maxConcurrentTasks = null;
-      if (Object.prototype.hasOwnProperty.call(req.body || {}, 'max_concurrent_tasks')
-        || Object.prototype.hasOwnProperty.call(req.body || {}, 'maxConcurrentTasks')) {
-        if (!canConfigureStudentTierForumContext(slug, rank)) {
-          return res.status(400).json({
-            error:
-              'max_concurrent_tasks : réservé aux profils n3beur (slug eleve_* ou rang strictement inférieur à celui du n3boss, hors admin, prof, visiteur)',
-          });
-        }
-        const rawMct = Object.prototype.hasOwnProperty.call(req.body || {}, 'max_concurrent_tasks')
-          ? req.body.max_concurrent_tasks
-          : req.body.maxConcurrentTasks;
-        const parsed = rawMct === undefined ? null : parseOptionalMaxConcurrentTasks(rawMct);
-        if (Number.isNaN(parsed)) {
-          return res.status(400).json({ error: 'max_concurrent_tasks invalide (0–99, vide ou null pour hériter du réglage global)' });
-        }
-        maxConcurrentTasks = parsed;
-      }
-      if (!slug || !displayName) return res.status(400).json({ error: 'slug et display_name requis' });
-      const reservedCreate = reservedRoleSlugError(slug);
-      if (reservedCreate) return res.status(400).json({ error: reservedCreate });
-      if (Number.isNaN(minDoneTasks)) return res.status(400).json({ error: 'min_done_tasks invalide (entier >= 0)' });
-      if (Number.isNaN(displayOrder)) return res.status(400).json({ error: 'display_order invalide (entier >= 0)' });
-      if (STUDENT_ROLE_SLUG_RE.test(slug) && (emoji == null || minDoneTasks == null)) {
-        return res.status(400).json({ error: 'Un profil n3beur doit définir emoji et min_done_tasks' });
-      }
       await execute(
         'INSERT INTO roles (slug, display_name, emoji, min_done_tasks, display_order, `rank`, is_system, max_concurrent_tasks) VALUES (?, ?, ?, ?, ?, ?, 0, ?)',
         [slug, displayName, emoji, minDoneTasks, displayOrder ?? 0, rank, maxConcurrentTasks]
       );
-      const role = await queryOne(
-        'SELECT id, slug, display_name, emoji, min_done_tasks, display_order, `rank` AS `rank`, is_system, forum_participate, context_comment_participate, max_concurrent_tasks FROM roles WHERE slug = ? LIMIT 1',
-        [slug]
-      );
-      logAudit('rbac_create_profile', 'role', role?.id || null, slug, { req });
-      res.status(201).json(role);
     } catch (e) {
-      logRouteError(e, req);
-      if (e && (e.errno === 1062 || e.code === 'ER_DUP_ENTRY')) return res.status(409).json({ error: 'Slug déjà utilisé' });
-      respondInternalError(res, req, e);
+      rethrowSlugConflict(e);
     }
-  }
+    const role = await queryOne(
+      'SELECT id, slug, display_name, emoji, min_done_tasks, display_order, `rank` AS `rank`, is_system, forum_participate, context_comment_participate, max_concurrent_tasks FROM roles WHERE slug = ? LIMIT 1',
+      [slug]
+    );
+    logAudit('rbac_create_profile', 'role', role?.id || null, slug, { req });
+    res.status(201).json(role);
+  })
 );
 
 router.post(
@@ -461,239 +457,219 @@ router.post(
 router.patch(
   '/profiles/:id',
   requirePermission('admin.roles.manage', { needsElevation: true }),
-  async (req, res) => {
-    try {
-      const role = await queryOne('SELECT id FROM roles WHERE id = ?', [req.params.id]);
-      if (!role) return res.status(404).json({ error: 'Profil introuvable' });
-      const existing = await queryOne(
-        'SELECT slug, display_name, emoji, min_done_tasks, display_order, `rank` AS `rank`, COALESCE(forum_participate, 1) AS forum_participate, COALESCE(context_comment_participate, 1) AS context_comment_participate, max_concurrent_tasks FROM roles WHERE id = ?',
-        [role.id]
-      );
-      const b = req.body != null && typeof req.body === 'object' && !Array.isArray(req.body) ? req.body : {};
-      const hasAnyPatchField = Object.keys(b).some((k) => PROFILE_PATCH_KEYS.has(k));
-      const hasDisplayName = Object.prototype.hasOwnProperty.call(b, 'display_name');
-      const hasRank = Object.prototype.hasOwnProperty.call(b, 'rank');
-      const hasEmoji = Object.prototype.hasOwnProperty.call(b, 'emoji');
-      const hasMinDoneTasks = Object.prototype.hasOwnProperty.call(b, 'min_done_tasks');
-      const hasDisplayOrder = Object.prototype.hasOwnProperty.call(b, 'display_order');
-      const hasForumParticipate =
-        Object.prototype.hasOwnProperty.call(b, 'forum_participate')
-        || Object.prototype.hasOwnProperty.call(b, 'forumParticipate');
-      const hasContextCommentParticipate =
-        Object.prototype.hasOwnProperty.call(b, 'context_comment_participate')
-        || Object.prototype.hasOwnProperty.call(b, 'contextCommentParticipate');
-      const hasMaxConcurrentTasks =
-        Object.prototype.hasOwnProperty.call(b, 'max_concurrent_tasks')
-        || Object.prototype.hasOwnProperty.call(b, 'maxConcurrentTasks');
-      const canForumContext = canConfigureStudentTierForumContext(existing.slug, existing.rank);
-      if (!hasAnyPatchField) {
-        return res.status(400).json({ error: 'Aucun champ de profil fourni' });
-      }
-      if ((hasForumParticipate || hasContextCommentParticipate) && !canForumContext) {
-        return res.status(400).json({
-          error:
-            'Forum et commentaires contextuels ne s’appliquent qu’aux profils n3beur (slug eleve_* ou palier avec rang inférieur à celui du n3boss)',
-        });
-      }
-      if (hasMaxConcurrentTasks && !canForumContext) {
-        return res.status(400).json({
-          error:
-            'Le plafond d’inscriptions aux tâches ne s’applique qu’aux profils n3beur (slug eleve_* ou palier avec rang inférieur à celui du n3boss)',
-        });
-      }
-      const displayName = hasDisplayName ? String(b.display_name || '').trim() : existing.display_name;
-      const rank = hasRank ? parseInt(b.rank, 10) : existing.rank;
-      const emoji = hasEmoji ? normalizeRoleEmoji(b.emoji) : existing.emoji;
-      const minDoneTasks = hasMinDoneTasks
-        ? parseOptionalNonNegativeInt(b.min_done_tasks, null)
-        : existing.min_done_tasks;
-      const displayOrder = hasDisplayOrder
-        ? parseOptionalNonNegativeInt(b.display_order, existing.display_order ?? 0)
-        : (existing.display_order ?? 0);
-      let forumParticipate = Number(existing.forum_participate) !== 0 ? 1 : 0;
-      let contextCommentParticipate = Number(existing.context_comment_participate) !== 0 ? 1 : 0;
-      if (hasForumParticipate) {
-        const v = Object.prototype.hasOwnProperty.call(b, 'forum_participate') ? b.forum_participate : b.forumParticipate;
-        forumParticipate = v ? 1 : 0;
-      }
-      if (hasContextCommentParticipate) {
-        const v = Object.prototype.hasOwnProperty.call(b, 'context_comment_participate')
-          ? b.context_comment_participate
-          : b.contextCommentParticipate;
-        contextCommentParticipate = v ? 1 : 0;
-      }
-      let maxConcurrentTasksVal = existing.max_concurrent_tasks;
-      if (hasMaxConcurrentTasks) {
-        const rawMct = Object.prototype.hasOwnProperty.call(b, 'max_concurrent_tasks')
-          ? b.max_concurrent_tasks
-          : b.maxConcurrentTasks;
-        maxConcurrentTasksVal = parseOptionalMaxConcurrentTasks(rawMct);
-        if (Number.isNaN(maxConcurrentTasksVal)) {
-          return res.status(400).json({ error: 'max_concurrent_tasks invalide (0–99, vide ou null pour hériter du réglage global)' });
-        }
-      }
-      if (!displayName) return res.status(400).json({ error: 'display_name requis' });
-      if (!Number.isFinite(rank)) return res.status(400).json({ error: 'rank invalide' });
-      if (Number.isNaN(minDoneTasks)) return res.status(400).json({ error: 'min_done_tasks invalide (entier >= 0)' });
-      if (Number.isNaN(displayOrder)) return res.status(400).json({ error: 'display_order invalide (entier >= 0)' });
-      if (STUDENT_ROLE_SLUG_RE.test(existing.slug) && (emoji == null || minDoneTasks == null)) {
-        return res.status(400).json({ error: 'Un profil n3beur doit définir emoji et min_done_tasks' });
-      }
-      await execute(
-        'UPDATE roles SET display_name = ?, emoji = ?, min_done_tasks = ?, display_order = ?, `rank` = ?, forum_participate = ?, context_comment_participate = ?, max_concurrent_tasks = ?, updated_at = NOW() WHERE id = ?',
-        [displayName, emoji, minDoneTasks, displayOrder, rank, forumParticipate, contextCommentParticipate, maxConcurrentTasksVal, role.id]
-      );
-      const updated = await queryOne(
-        'SELECT id, slug, display_name, emoji, min_done_tasks, display_order, `rank` AS `rank`, is_system, forum_participate, context_comment_participate, max_concurrent_tasks FROM roles WHERE id = ?',
-        [role.id]
-      );
-      logAudit('rbac_update_profile', 'role', role.id, updated?.slug || String(role.id), { req });
-      if (canForumContext && (hasForumParticipate || hasContextCommentParticipate)) {
-        await emitStudentsWithPrimaryRole(role.id);
-      }
-      res.json(updated);
-    } catch (e) {
-      respondInternalError(res, req, e);
+  asyncHandler(async (req, res) => {
+    const role = await queryOne('SELECT id FROM roles WHERE id = ?', [req.params.id]);
+    if (!role) return res.status(404).json({ error: 'Profil introuvable' });
+    const existing = await queryOne(
+      'SELECT slug, display_name, emoji, min_done_tasks, display_order, `rank` AS `rank`, COALESCE(forum_participate, 1) AS forum_participate, COALESCE(context_comment_participate, 1) AS context_comment_participate, max_concurrent_tasks FROM roles WHERE id = ?',
+      [role.id]
+    );
+    const b = req.body != null && typeof req.body === 'object' && !Array.isArray(req.body) ? req.body : {};
+    const hasAnyPatchField = Object.keys(b).some((k) => PROFILE_PATCH_KEYS.has(k));
+    const hasDisplayName = Object.prototype.hasOwnProperty.call(b, 'display_name');
+    const hasRank = Object.prototype.hasOwnProperty.call(b, 'rank');
+    const hasEmoji = Object.prototype.hasOwnProperty.call(b, 'emoji');
+    const hasMinDoneTasks = Object.prototype.hasOwnProperty.call(b, 'min_done_tasks');
+    const hasDisplayOrder = Object.prototype.hasOwnProperty.call(b, 'display_order');
+    const hasForumParticipate =
+      Object.prototype.hasOwnProperty.call(b, 'forum_participate')
+      || Object.prototype.hasOwnProperty.call(b, 'forumParticipate');
+    const hasContextCommentParticipate =
+      Object.prototype.hasOwnProperty.call(b, 'context_comment_participate')
+      || Object.prototype.hasOwnProperty.call(b, 'contextCommentParticipate');
+    const hasMaxConcurrentTasks =
+      Object.prototype.hasOwnProperty.call(b, 'max_concurrent_tasks')
+      || Object.prototype.hasOwnProperty.call(b, 'maxConcurrentTasks');
+    const canForumContext = canConfigureStudentTierForumContext(existing.slug, existing.rank);
+    if (!hasAnyPatchField) {
+      return res.status(400).json({ error: 'Aucun champ de profil fourni' });
     }
-  }
+    if ((hasForumParticipate || hasContextCommentParticipate) && !canForumContext) {
+      return res.status(400).json({
+        error:
+          'Forum et commentaires contextuels ne s’appliquent qu’aux profils n3beur (slug eleve_* ou palier avec rang inférieur à celui du n3boss)',
+      });
+    }
+    if (hasMaxConcurrentTasks && !canForumContext) {
+      return res.status(400).json({
+        error:
+          'Le plafond d’inscriptions aux tâches ne s’applique qu’aux profils n3beur (slug eleve_* ou palier avec rang inférieur à celui du n3boss)',
+      });
+    }
+    const displayName = hasDisplayName ? String(b.display_name || '').trim() : existing.display_name;
+    const rank = hasRank ? parseInt(b.rank, 10) : existing.rank;
+    const emoji = hasEmoji ? normalizeRoleEmoji(b.emoji) : existing.emoji;
+    const minDoneTasks = hasMinDoneTasks
+      ? parseOptionalNonNegativeInt(b.min_done_tasks, null)
+      : existing.min_done_tasks;
+    const displayOrder = hasDisplayOrder
+      ? parseOptionalNonNegativeInt(b.display_order, existing.display_order ?? 0)
+      : (existing.display_order ?? 0);
+    let forumParticipate = Number(existing.forum_participate) !== 0 ? 1 : 0;
+    let contextCommentParticipate = Number(existing.context_comment_participate) !== 0 ? 1 : 0;
+    if (hasForumParticipate) {
+      const v = Object.prototype.hasOwnProperty.call(b, 'forum_participate') ? b.forum_participate : b.forumParticipate;
+      forumParticipate = v ? 1 : 0;
+    }
+    if (hasContextCommentParticipate) {
+      const v = Object.prototype.hasOwnProperty.call(b, 'context_comment_participate')
+        ? b.context_comment_participate
+        : b.contextCommentParticipate;
+      contextCommentParticipate = v ? 1 : 0;
+    }
+    let maxConcurrentTasksVal = existing.max_concurrent_tasks;
+    if (hasMaxConcurrentTasks) {
+      const rawMct = Object.prototype.hasOwnProperty.call(b, 'max_concurrent_tasks')
+        ? b.max_concurrent_tasks
+        : b.maxConcurrentTasks;
+      maxConcurrentTasksVal = parseOptionalMaxConcurrentTasks(rawMct);
+      if (Number.isNaN(maxConcurrentTasksVal)) {
+        return res.status(400).json({ error: 'max_concurrent_tasks invalide (0–99, vide ou null pour hériter du réglage global)' });
+      }
+    }
+    if (!displayName) return res.status(400).json({ error: 'display_name requis' });
+    if (!Number.isFinite(rank)) return res.status(400).json({ error: 'rank invalide' });
+    if (Number.isNaN(minDoneTasks)) return res.status(400).json({ error: 'min_done_tasks invalide (entier >= 0)' });
+    if (Number.isNaN(displayOrder)) return res.status(400).json({ error: 'display_order invalide (entier >= 0)' });
+    if (STUDENT_ROLE_SLUG_RE.test(existing.slug) && (emoji == null || minDoneTasks == null)) {
+      return res.status(400).json({ error: 'Un profil n3beur doit définir emoji et min_done_tasks' });
+    }
+    await execute(
+      'UPDATE roles SET display_name = ?, emoji = ?, min_done_tasks = ?, display_order = ?, `rank` = ?, forum_participate = ?, context_comment_participate = ?, max_concurrent_tasks = ?, updated_at = NOW() WHERE id = ?',
+      [displayName, emoji, minDoneTasks, displayOrder, rank, forumParticipate, contextCommentParticipate, maxConcurrentTasksVal, role.id]
+    );
+    const updated = await queryOne(
+      'SELECT id, slug, display_name, emoji, min_done_tasks, display_order, `rank` AS `rank`, is_system, forum_participate, context_comment_participate, max_concurrent_tasks FROM roles WHERE id = ?',
+      [role.id]
+    );
+    logAudit('rbac_update_profile', 'role', role.id, updated?.slug || String(role.id), { req });
+    if (canForumContext && (hasForumParticipate || hasContextCommentParticipate)) {
+      await emitStudentsWithPrimaryRole(role.id);
+    }
+    res.json(updated);
+  })
 );
 
 router.put(
   '/profiles/:id/permissions',
   requirePermission('admin.roles.manage', { needsElevation: true }),
-  async (req, res) => {
-    try {
-      const role = await queryOne('SELECT id FROM roles WHERE id = ?', [req.params.id]);
-      if (!role) return res.status(404).json({ error: 'Profil introuvable' });
-      const entries = Array.isArray(req.body?.permissions) ? req.body.permissions : [];
-      await withTransaction(async (tx) => {
-        await tx.execute('DELETE FROM role_permissions WHERE role_id = ?', [role.id]);
-        for (const item of entries) {
-          const key = String(item?.key || '').trim();
-          if (!key) continue;
-          const p = await tx.queryOne('SELECT `key` FROM permissions WHERE `key` = ? LIMIT 1', [key]);
-          if (!p) continue;
-          await tx.execute(
-            'INSERT INTO role_permissions (role_id, permission_key, requires_elevation) VALUES (?, ?, ?)',
-            [role.id, key, item?.requires_elevation ? 1 : 0]
-          );
-        }
-      });
-      logAudit('rbac_update_profile_permissions', 'role', role.id, `permissions=${entries.length}`, { req });
-      res.json({ ok: true });
-    } catch (e) {
-      respondInternalError(res, req, e);
-    }
-  }
+  asyncHandler(async (req, res) => {
+    const role = await queryOne('SELECT id FROM roles WHERE id = ?', [req.params.id]);
+    if (!role) return res.status(404).json({ error: 'Profil introuvable' });
+    const entries = Array.isArray(req.body?.permissions) ? req.body.permissions : [];
+    await withTransaction(async (tx) => {
+      await tx.execute('DELETE FROM role_permissions WHERE role_id = ?', [role.id]);
+      for (const item of entries) {
+        const key = String(item?.key || '').trim();
+        if (!key) continue;
+        const p = await tx.queryOne('SELECT `key` FROM permissions WHERE `key` = ? LIMIT 1', [key]);
+        if (!p) continue;
+        await tx.execute(
+          'INSERT INTO role_permissions (role_id, permission_key, requires_elevation) VALUES (?, ?, ?)',
+          [role.id, key, item?.requires_elevation ? 1 : 0]
+        );
+      }
+    });
+    logAudit('rbac_update_profile_permissions', 'role', role.id, `permissions=${entries.length}`, { req });
+    res.json({ ok: true });
+  })
 );
 
 router.put(
   '/profiles/:id/pin',
   requirePermission('admin.roles.manage', { needsElevation: true }),
-  async (req, res) => {
-    try {
-      const role = await queryOne('SELECT id FROM roles WHERE id = ?', [req.params.id]);
-      if (!role) return res.status(404).json({ error: 'Profil introuvable' });
-      const pin = String(req.body?.pin || '').trim();
-      if (!/^\d{4,12}$/.test(pin)) return res.status(400).json({ error: 'PIN invalide (4 à 12 chiffres)' });
-      const pinHash = await bcrypt.hash(pin, 10);
-      await execute(
-        'INSERT INTO role_pin_secrets (role_id, pin_hash) VALUES (?, ?) ON DUPLICATE KEY UPDATE pin_hash = VALUES(pin_hash), updated_at = NOW()',
-        [role.id, pinHash]
-      );
-      logAudit('rbac_update_profile_pin', 'role', role.id, 'PIN mis à jour', { req });
-      res.json({ ok: true });
-    } catch (e) {
-      respondInternalError(res, req, e);
-    }
-  }
+  asyncHandler(async (req, res) => {
+    const role = await queryOne('SELECT id FROM roles WHERE id = ?', [req.params.id]);
+    if (!role) return res.status(404).json({ error: 'Profil introuvable' });
+    const pin = String(req.body?.pin || '').trim();
+    if (!/^\d{4,12}$/.test(pin)) return res.status(400).json({ error: 'PIN invalide (4 à 12 chiffres)' });
+    const pinHash = await bcrypt.hash(pin, 10);
+    await execute(
+      'INSERT INTO role_pin_secrets (role_id, pin_hash) VALUES (?, ?) ON DUPLICATE KEY UPDATE pin_hash = VALUES(pin_hash), updated_at = NOW()',
+      [role.id, pinHash]
+    );
+    logAudit('rbac_update_profile_pin', 'role', role.id, 'PIN mis à jour', { req });
+    res.json({ ok: true });
+  })
 );
 
 router.get(
   '/users',
   requirePermission('admin.users.assign_roles', { needsElevation: true }),
-  async (req, res) => {
-    try {
-      const users = await queryAll(
-        `SELECT u.id, u.user_type,
-                u.first_name, u.last_name, u.pseudo, u.description, u.affiliation,
-                COALESCE(NULLIF(u.display_name, ''), NULLIF(CONCAT(COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, '')), ''), u.email, u.pseudo, u.id) AS display_name,
-                u.email, ur.role_id, r.slug AS role_slug, r.display_name AS role_display_name,
-                COALESCE(r.forum_participate, 1) AS forum_participate,
-                COALESCE(r.context_comment_participate, 1) AS context_comment_participate
-           FROM users u
-      LEFT JOIN user_roles ur ON ur.user_type = u.user_type AND ur.user_id = u.id AND ur.is_primary = 1
-      LEFT JOIN roles r ON r.id = ur.role_id
-       ORDER BY u.user_type ASC, display_name ASC`
-      );
-      res.json(
-        users.map((u) => ({
-          id: u.id,
-          user_type: u.user_type,
-          display_name: u.display_name,
-          first_name: jsonTextField(u.first_name),
-          last_name: jsonTextField(u.last_name),
-          pseudo: jsonTextField(u.pseudo),
-          email: jsonTextField(u.email),
-          description: jsonTextField(u.description),
-          affiliation: u.user_type === 'student' ? (jsonTextField(u.affiliation) || 'both') : null,
-          role_id: u.role_id,
-          role_slug: u.role_slug,
-          role_display_name: u.role_display_name,
-          forum_participate: u.user_type === 'student' ? Number(u.forum_participate) !== 0 : true,
-          context_comment_participate: u.user_type === 'student' ? Number(u.context_comment_participate) !== 0 : true,
-        }))
-      );
-    } catch (e) {
-      respondInternalError(res, req, e);
-    }
-  }
-);
-
-router.get(
-  '/users/:userType/:userId',
-  requirePermission('admin.users.assign_roles', { needsElevation: true }),
-  async (req, res) => {
-    try {
-      const resolved = await resolveRbacSubjectForMutation(req.params.userType, req.params.userId);
-      if (!resolved.ok) return res.status(resolved.status).json({ error: resolved.error });
-      const { user: u, resolvedUserType, resolvedUserId } = resolved;
-      const rj = await queryOne(
-        `SELECT ur.role_id, r.slug AS role_slug, r.display_name AS role_display_name,
-                COALESCE(r.forum_participate, 1) AS forum_participate,
-                COALESCE(r.context_comment_participate, 1) AS context_comment_participate
-           FROM user_roles ur
-           LEFT JOIN roles r ON r.id = ur.role_id
-          WHERE ur.user_type = ? AND ur.user_id = ? AND ur.is_primary = 1 LIMIT 1`,
-        [resolvedUserType, resolvedUserId]
-      );
-      const displayName =
-        (u.display_name && String(u.display_name).trim())
-        || `${u.first_name || ''} ${u.last_name || ''}`.trim()
-        || u.email
-        || u.pseudo
-        || u.id;
-      res.json({
+  asyncHandler(async (req, res) => {
+    const users = await queryAll(
+      `SELECT u.id, u.user_type,
+              u.first_name, u.last_name, u.pseudo, u.description, u.affiliation,
+              COALESCE(NULLIF(u.display_name, ''), NULLIF(CONCAT(COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, '')), ''), u.email, u.pseudo, u.id) AS display_name,
+              u.email, ur.role_id, r.slug AS role_slug, r.display_name AS role_display_name,
+              COALESCE(r.forum_participate, 1) AS forum_participate,
+              COALESCE(r.context_comment_participate, 1) AS context_comment_participate
+         FROM users u
+    LEFT JOIN user_roles ur ON ur.user_type = u.user_type AND ur.user_id = u.id AND ur.is_primary = 1
+    LEFT JOIN roles r ON r.id = ur.role_id
+     ORDER BY u.user_type ASC, display_name ASC`
+    );
+    res.json(
+      users.map((u) => ({
         id: u.id,
         user_type: u.user_type,
-        display_name: displayName,
+        display_name: u.display_name,
         first_name: jsonTextField(u.first_name),
         last_name: jsonTextField(u.last_name),
         pseudo: jsonTextField(u.pseudo),
         email: jsonTextField(u.email),
         description: jsonTextField(u.description),
-        affiliation: resolvedUserType === 'student' ? (jsonTextField(u.affiliation) || 'both') : null,
-        role_id: rj?.role_id ?? null,
-        role_slug: rj?.role_slug ?? null,
-        role_display_name: rj?.role_display_name ?? null,
-        forum_participate: resolvedUserType === 'student' ? Number(rj?.forum_participate) !== 0 : true,
-        context_comment_participate:
-          resolvedUserType === 'student' ? Number(rj?.context_comment_participate) !== 0 : true,
-      });
-    } catch (e) {
-      respondInternalError(res, req, e);
-    }
-  }
+        affiliation: u.user_type === 'student' ? (jsonTextField(u.affiliation) || 'both') : null,
+        role_id: u.role_id,
+        role_slug: u.role_slug,
+        role_display_name: u.role_display_name,
+        forum_participate: u.user_type === 'student' ? Number(u.forum_participate) !== 0 : true,
+        context_comment_participate: u.user_type === 'student' ? Number(u.context_comment_participate) !== 0 : true,
+      }))
+    );
+  })
+);
+
+router.get(
+  '/users/:userType/:userId',
+  requirePermission('admin.users.assign_roles', { needsElevation: true }),
+  asyncHandler(async (req, res) => {
+    const resolved = await resolveRbacSubjectForMutation(req.params.userType, req.params.userId);
+    if (!resolved.ok) return res.status(resolved.status).json({ error: resolved.error });
+    const { user: u, resolvedUserType, resolvedUserId } = resolved;
+    const rj = await queryOne(
+      `SELECT ur.role_id, r.slug AS role_slug, r.display_name AS role_display_name,
+              COALESCE(r.forum_participate, 1) AS forum_participate,
+              COALESCE(r.context_comment_participate, 1) AS context_comment_participate
+         FROM user_roles ur
+         LEFT JOIN roles r ON r.id = ur.role_id
+        WHERE ur.user_type = ? AND ur.user_id = ? AND ur.is_primary = 1 LIMIT 1`,
+      [resolvedUserType, resolvedUserId]
+    );
+    const displayName =
+      (u.display_name && String(u.display_name).trim())
+      || `${u.first_name || ''} ${u.last_name || ''}`.trim()
+      || u.email
+      || u.pseudo
+      || u.id;
+    res.json({
+      id: u.id,
+      user_type: u.user_type,
+      display_name: displayName,
+      first_name: jsonTextField(u.first_name),
+      last_name: jsonTextField(u.last_name),
+      pseudo: jsonTextField(u.pseudo),
+      email: jsonTextField(u.email),
+      description: jsonTextField(u.description),
+      affiliation: resolvedUserType === 'student' ? (jsonTextField(u.affiliation) || 'both') : null,
+      role_id: rj?.role_id ?? null,
+      role_slug: rj?.role_slug ?? null,
+      role_display_name: rj?.role_display_name ?? null,
+      forum_participate: resolvedUserType === 'student' ? Number(rj?.forum_participate) !== 0 : true,
+      context_comment_participate:
+        resolvedUserType === 'student' ? Number(rj?.context_comment_participate) !== 0 : true,
+    });
+  })
 );
 
 router.patch(
@@ -912,41 +888,37 @@ router.patch(
 router.put(
   '/users/:userType/:userId/role',
   requirePermission('admin.users.assign_roles', { needsElevation: true }),
-  async (req, res) => {
-    try {
-      const roleId = parseInt(req.body?.role_id, 10);
-      if (!Number.isFinite(roleId) || roleId <= 0) return res.status(400).json({ error: 'role_id invalide' });
-      const role = await queryOne('SELECT id FROM roles WHERE id = ?', [roleId]);
-      if (!role) return res.status(404).json({ error: 'Profil introuvable' });
-      const resolved = await resolveRbacSubjectForMutation(req.params.userType, req.params.userId);
-      if (!resolved.ok) return res.status(resolved.status).json({ error: resolved.error });
-      const { resolvedUserType, resolvedUserId: resolvedLegacyUserId } = resolved;
+  asyncHandler(async (req, res) => {
+    const roleId = parseInt(req.body?.role_id, 10);
+    if (!Number.isFinite(roleId) || roleId <= 0) return res.status(400).json({ error: 'role_id invalide' });
+    const role = await queryOne('SELECT id FROM roles WHERE id = ?', [roleId]);
+    if (!role) return res.status(404).json({ error: 'Profil introuvable' });
+    const resolved = await resolveRbacSubjectForMutation(req.params.userType, req.params.userId);
+    if (!resolved.ok) return res.status(resolved.status).json({ error: resolved.error });
+    const { resolvedUserType, resolvedUserId: resolvedLegacyUserId } = resolved;
 
-      const currentRole = await getPrimaryRoleForUser(resolvedUserType, resolvedLegacyUserId);
-      const nextRole = await queryOne('SELECT slug FROM roles WHERE id = ? LIMIT 1', [roleId]);
-      const leavingAdmin = currentRole?.slug === 'admin' && nextRole?.slug !== 'admin';
-      if (leavingAdmin) {
-        const adminCountRow = await queryOne(
-          `SELECT COUNT(*) AS c
-             FROM user_roles ur
-             INNER JOIN roles r ON r.id = ur.role_id
-            WHERE ur.is_primary = 1 AND ur.user_type = 'teacher' AND r.slug = 'admin'`
-        );
-        const adminCount = Number(adminCountRow?.c || 0);
-        if (adminCount <= 1) {
-          return res.status(409).json({ error: 'Action refusée: dernier administrateur actif' });
-        }
+    const currentRole = await getPrimaryRoleForUser(resolvedUserType, resolvedLegacyUserId);
+    const nextRole = await queryOne('SELECT slug FROM roles WHERE id = ? LIMIT 1', [roleId]);
+    const leavingAdmin = currentRole?.slug === 'admin' && nextRole?.slug !== 'admin';
+    if (leavingAdmin) {
+      const adminCountRow = await queryOne(
+        `SELECT COUNT(*) AS c
+           FROM user_roles ur
+           INNER JOIN roles r ON r.id = ur.role_id
+          WHERE ur.is_primary = 1 AND ur.user_type = 'teacher' AND r.slug = 'admin'`
+      );
+      const adminCount = Number(adminCountRow?.c || 0);
+      if (adminCount <= 1) {
+        return res.status(409).json({ error: 'Action refusée: dernier administrateur actif' });
       }
-      await setPrimaryRole(resolvedUserType, resolvedLegacyUserId, roleId);
-      logAudit('rbac_assign_role', 'role', String(roleId), `${resolvedUserType}:${resolvedLegacyUserId}`, {
-        req,
-        payload: { user_type: resolvedUserType, user_id: resolvedLegacyUserId, role_id: roleId },
-      });
-      res.json({ ok: true });
-    } catch (e) {
-      respondInternalError(res, req, e);
     }
-  }
+    await setPrimaryRole(resolvedUserType, resolvedLegacyUserId, roleId);
+    logAudit('rbac_assign_role', 'role', String(roleId), `${resolvedUserType}:${resolvedLegacyUserId}`, {
+      req,
+      payload: { user_type: resolvedUserType, user_id: resolvedLegacyUserId, role_id: roleId },
+    });
+    res.json({ ok: true });
+  })
 );
 
 module.exports = router;
