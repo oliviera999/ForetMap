@@ -47,13 +47,11 @@ import {
   EMPTY_PLANT_FORM,
   extractPlantForm,
 } from '../utils/plantFormValues.js';
-import {
-  pickPlantnetVernacularName,
-  prefillPhotoSlotKey,
-} from '../utils/biodivPlantForm.js';
+import { prefillPhotoSlotKey } from '../utils/biodivPlantForm.js';
 import { groupPrefillPhotosByField } from '../utils/plantPrefillHelpers.js';
 import { buildPlantnetIdentifyImages, filterNonEmptyIdentifySlots, derivePlantnetNameUpdate } from '../utils/plantnetIdentify.js';
 import { applyPrefillToForm } from '../utils/plantPrefillApply.js';
+import { PlantnetPredictionsList } from './biodiv/PlantnetPredictionsList.jsx';
 import { PlantSummaryBadges, PlantEcosystemHumanLead } from './biodiv/PlantSummaryBlocks.jsx';
 import { PlantBiodivHeroPhoto, PlantMetaSections } from './biodiv/PlantMetaSections.jsx';
 import { PlantCatalogFilterPanel } from './biodiv/PlantCatalogFilterPanel.jsx';
@@ -701,45 +699,12 @@ function PlantEditForm({ title, form, setForm, onSave, onCancel, saving, plantId
           {identifyError && (
             <p style={{ margin: 0, color: '#a94442' }}>{identifyError}</p>
           )}
-          {identifyPredictions.length > 0 && (
-            <div style={{ display: 'grid', gap: 6 }}>
-              <strong>Propositions</strong>
-              {identifyPredictions.map((p, idx) => {
-                const label = String(p.scientificName || p.scientificNameWithoutAuthor || '').trim() || `Taxon ${idx + 1}`;
-                const scorePct = p.score != null && Number.isFinite(Number(p.score)) ? Math.round(Number(p.score) * 1000) / 10 : null;
-                const vern = pickPlantnetVernacularName(p.commonNames);
-                return (
-                  <div
-                    key={`pn-id-${idx}-${label}`}
-                    style={{
-                      display: 'flex',
-                      flexWrap: 'wrap',
-                      gap: 8,
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '6px 8px',
-                      borderRadius: 8,
-                      border: '1px solid #e6e6e6',
-                      background: '#fff',
-                    }}
-                  >
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ fontWeight: 600 }}>{label}{scorePct != null ? ` — ${scorePct} %` : ''}</div>
-                      {vern && <div style={{ color: '#555', marginTop: 2 }}>{vern}</div>}
-                    </div>
-                    <button
-                      type="button"
-                      className="btn btn-ghost btn-sm"
-                      disabled={saving || identifyLoading || identifyApplying}
-                      onClick={() => applyIdentifyPrediction(p)}
-                    >
-                      {identifyApplying ? 'Import des photos…' : 'Utiliser pour le formulaire'}
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+          <PlantnetPredictionsList
+            predictions={identifyPredictions}
+            applying={identifyApplying}
+            disabled={saving || identifyLoading || identifyApplying}
+            onApply={applyIdentifyPrediction}
+          />
         </div>
       </details>
       <details className="plant-more" style={{ marginBottom: 8 }}>
