@@ -22,6 +22,10 @@ if (!fs.existsSync(sqlitePath)) {
 const Database = require('better-sqlite3');
 const mysql = require('mysql2/promise');
 const { saveBase64ToDisk } = require('../lib/uploads');
+const {
+  normalizeSqliteMarkerRow,
+  normalizeSqliteZoneRow,
+} = require('../lib/legacyZoneShapeConvert');
 
 const sqlite = new Database(sqlitePath, { readonly: true });
 
@@ -52,20 +56,27 @@ async function main() {
     }
     await conn.query('SET FOREIGN_KEY_CHECKS = 1');
 
-    // ─── zones ───
+    // ─── zones (carte foret, polygones % + living_beings) ───
     const zones = sqlite.prepare('SELECT * FROM zones').all();
+    let zonesInserted = 0;
     for (const z of zones) {
+      const row = normalizeSqliteZoneRow(z, { mapId: 'foret' });
+      if (!row) {
+        console.warn('zone ignorée (géométrie invalide):', z.id, z.name);
+        continue;
+      }
       await conn.execute(
-        `INSERT INTO zones (id, name, x, y, width, height, current_plant, stage, special, shape, points, color, description)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO zones (id, map_id, name, x, y, width, height, current_plant, living_beings, stage, special, shape, points, color, description)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
-          z.id, z.name, z.x, z.y, z.width, z.height,
-          z.current_plant ?? '', z.stage ?? 'empty', z.special ? 1 : 0, z.shape ?? 'rect',
-          z.points ?? null, z.color ?? '#86efac80', z.description ?? ''
+          row.id, row.map_id, row.name, row.x, row.y, row.width, row.height,
+          row.current_plant, row.living_beings, row.stage, row.special, row.shape,
+          row.points, row.color, row.description,
         ]
       );
+      zonesInserted += 1;
     }
-    console.log('zones:', zones.length);
+    console.log('zones:', zonesInserted, '/', zones.length);
 
     // ─── zone_history ───
     const zoneHistory = sqlite.prepare('SELECT * FROM zone_history').all();
@@ -157,19 +168,26 @@ async function main() {
     }
     console.log('zone_photos:', zonePhotos.length);
 
-    // ─── map_markers ───
+    // ─── map_markers (carte foret) ───
     const mapMarkers = sqlite.prepare('SELECT * FROM map_markers').all();
+    let markersInserted = 0;
     for (const m of mapMarkers) {
+      const row = normalizeSqliteMarkerRow(m, { mapId: 'foret' });
+      if (!row) {
+        console.warn('repère ignoré (coordonnées invalides):', m.id, m.label);
+        continue;
+      }
       await conn.execute(
-        `INSERT INTO map_markers (id, x_pct, y_pct, label, plant_name, note, emoji, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO map_markers (id, map_id, x_pct, y_pct, label, plant_name, living_beings, note, emoji, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
-          m.id, m.x_pct, m.y_pct, m.label, m.plant_name ?? '', m.note ?? '',
-          m.emoji ?? '🌱', m.created_at ?? null
+          row.id, row.map_id, row.x_pct, row.y_pct, row.label, row.plant_name,
+          row.living_beings, row.note, row.emoji, row.created_at,
         ]
       );
+      markersInserted += 1;
     }
-    console.log('map_markers:', mapMarkers.length);
+    console.log('map_markers:', markersInserted, '/', mapMarkers.length);
 
     console.log('\nMigration SQLite → MySQL terminée.');
   } finally {
