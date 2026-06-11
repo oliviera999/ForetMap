@@ -44,7 +44,6 @@ import {
   taskEffectiveStatus,
   projectStatusLabel,
   normalizeProjectUiStatus,
-  taskHasLocation,
   tutorialPickerLocationIds,
   tutorialPickerHasLocation,
   tutorialPickerLinkedToSameMap,
@@ -57,6 +56,7 @@ import {
   toQuickAssignStudentId,
 } from '../utils/taskDisplayHelpers.js';
 import { quickAssignDelta, quickAssignCanApply, quickAssignHint, buildQuickAssignSummary } from '../utils/taskQuickAssign.js';
+import { taskEffectiveMapId, taskMatchesFilters } from '../utils/taskFilters.js';
 
 function TasksView({
   maps = [],
@@ -302,7 +302,6 @@ function TasksView({
     return map ? map.label : mapId;
   };
 
-  const taskEffectiveMapId = (task) => task.map_id_resolved || task.map_id || task.zone_map_id || task.marker_map_id || null;
 
   const tasksForLocationPicker = useMemo(() => tasks.filter((t) => {
     const taskMapId = taskEffectiveMapId(t);
@@ -673,33 +672,11 @@ function TasksView({
     }
   };
 
-  const applyFilters = list => list.filter(t => {
-    const taskMapId = taskEffectiveMapId(t);
-    if (filterMap === 'active' && taskMapId !== activeMapId && taskMapId != null) return false;
-    if (filterMap !== 'active' && filterMap !== 'all' && taskMapId !== filterMap && taskMapId != null) return false;
-    if (filterText && !t.title.toLowerCase().includes(filterText.toLowerCase()) &&
-      !(t.description || '').toLowerCase().includes(filterText.toLowerCase())) return false;
-    if (filterZone && !taskHasLocation(t, filterZone)) return false;
-    if (filterStatus) {
-      const eff = taskEffectiveStatus(t);
-      let matches = eff === filterStatus;
-      if (filterStatus === 'validated') {
-        matches = eff === 'validated' || eff === 'project_validated';
-      } else if (filterStatus === 'on_hold') {
-        matches = eff === 'on_hold';
-      } else if (filterStatus === 'project_completed') {
-        matches = eff === 'project_completed';
-      } else if (filterStatus === 'project_validated') {
-        matches = eff === 'project_validated';
-      }
-      if (!matches) return false;
-    }
-    if (filterProject && t.project_id !== filterProject) return false;
-    if (filterGroupId && String(t.group_id || '') !== String(filterGroupId)) return false;
-    if (filterUrgentCategory === 'urgent' && !isTaskUrgentCategory(t)) return false;
-    if (filterUrgentCategory === 'non_urgent' && isTaskUrgentCategory(t)) return false;
-    return true;
-  });
+  const applyFilters = list => list.filter((t) => taskMatchesFilters(
+    t,
+    { filterMap, filterText, filterZone, filterStatus, filterProject, filterGroupId, filterUrgentCategory },
+    activeMapId,
+  ));
 
   const visibleProjects = taskProjects
     .filter((p) => {
