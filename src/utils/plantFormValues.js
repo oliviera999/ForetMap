@@ -37,3 +37,53 @@ export function mergePlantPhotoFieldValue(prevValue, newUrl, position) {
   if (position === 'prepend') return [url, ...existing].join('\n');
   return [...existing, url].join('\n');
 }
+
+/** Formulaire « fiche plante » vierge (toutes les colonnes du modèle, valeurs vides). */
+export const EMPTY_PLANT_FORM = {
+  name: '',
+  emoji: '🌱',
+  description: '',
+  second_name: '',
+  scientific_name: '',
+  group_1: '',
+  group_2: '',
+  group_3: '',
+  group_4: '',
+  habitat: '',
+  photo: '',
+  nutrition: '',
+  agroecosystem_category: '',
+  longevity: '',
+  remark_1: '',
+  remark_2: '',
+  remark_3: '',
+  reproduction: '',
+  size: '',
+  sources: '',
+  ideal_temperature_c: '',
+  optimal_ph: '',
+  ecosystem_role: '',
+  geographic_origin: '',
+  human_utility: '',
+  harvest_part: '',
+  planting_recommendations: '',
+  preferred_nutrients: '',
+  photo_species: '',
+  photo_leaf: '',
+  photo_flower: '',
+  photo_fruit: '',
+  photo_harvest_part: '',
+};
+
+/**
+ * Construit les valeurs de formulaire à partir d'une fiche plante : chaque champ du modèle
+ * est normalisé (`-`/vides → ''), l'emoji retombe sur '🌱' si absent.
+ */
+export function extractPlantForm(plant = {}) {
+  const form = { ...EMPTY_PLANT_FORM };
+  Object.keys(form).forEach((k) => {
+    form[k] = normalizedPlantValue(plant[k]);
+  });
+  if (!form.emoji) form.emoji = '🌱';
+  return form;
+}

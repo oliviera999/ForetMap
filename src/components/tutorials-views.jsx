@@ -4,7 +4,6 @@ import { useOverlayHistoryBack } from '../hooks/useOverlayHistoryBack';
 import { TutorialReadAcknowledgeButton, fetchTutorialReadIds } from './TutorialReadAcknowledge';
 import { TutorialPreviewModal, tutorialPreviewPayload } from './TutorialPreviewModal';
 import { ContextComments } from './context-comments';
-import { orderedLivingBeingsForForm, formatLivingBeingsListLine } from '../utils/livingBeings';
 import { DialogShell } from './DialogShell';
 import { MarkdownContent } from './MarkdownContent.jsx';
 import { MarkdownTextarea } from './MarkdownTextarea.jsx';
@@ -13,14 +12,13 @@ import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
 import { useSession } from '../contexts/SessionContext.jsx';
 import { useData } from '../contexts/DataContext.jsx';
 import { fileToDataUrl } from '../utils/fileToDataUrl.js';
-import { sortTutorialsByOrder, moveIndex, linkedTaskStatusLabel } from '../utils/tutorialListHelpers.js';
-
-function tutorialZonePickLabel(z) {
-  const line = formatLivingBeingsListLine(
-    orderedLivingBeingsForForm(z.living_beings_list || z.living_beings, z.current_plant),
-  );
-  return line ? `${z.name} — ${line}` : z.name;
-}
+import {
+  sortTutorialsByOrder,
+  moveIndex,
+  linkedTaskStatusLabel,
+  tutorialZonePickLabel,
+  createInitialTutorialForm,
+} from '../utils/tutorialListHelpers.js';
 
 function downloadUrl(url) {
   const a = document.createElement('a');
@@ -76,23 +74,6 @@ function TutorialLinkedTasksModal({ state, onClose }) {
   );
 }
 
-function initialForm() {
-  return {
-    id: null,
-    title: '',
-    summary: '',
-    type: 'html',
-    html_content: '',
-    source_url: '',
-    source_file_path: '',
-    sort_order: 0,
-    is_active: true,
-    map_id: '',
-    zone_ids: [],
-    marker_ids: [],
-  };
-}
-
 function TutorialsView({
   isTeacher,
   onRefresh,
@@ -108,7 +89,7 @@ function TutorialsView({
   const [statusFilter, setStatusFilter] = useState('all');
   const [toast, setToast] = useState('');
   const [showEditor, setShowEditor] = useState(false);
-  const [form, setForm] = useState(initialForm());
+  const [form, setForm] = useState(createInitialTutorialForm());
   const [saving, setSaving] = useState(false);
   const [preview, setPreview] = useState(null);
   const [showReorder, setShowReorder] = useState(false);
@@ -255,7 +236,7 @@ function TutorialsView({
   };
 
   const beginCreate = () => {
-    setForm({ ...initialForm(), map_id: activeMapId || '' });
+    setForm({ ...createInitialTutorialForm(), map_id: activeMapId || '' });
     setShowEditor(true);
   };
 
@@ -335,7 +316,7 @@ function TutorialsView({
       else await api('/api/tutorials', 'POST', payload);
       await onRefresh?.();
       setShowEditor(false);
-      setForm(initialForm());
+      setForm(createInitialTutorialForm());
       setToast(form.id ? 'Tutoriel mis à jour ✓' : 'Tutoriel ajouté ✓');
       setTimeout(() => setToast(''), 2500);
     } catch (e) {
