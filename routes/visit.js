@@ -7,6 +7,7 @@ const { v4: uuidv4 } = require('uuid');
 const { queryAll, queryOne, execute, withTransaction } = require('../database');
 const { requirePermission, JWT_SECRET, authenticate, hasPermission } = require('../middleware/requireTeacher');
 const { logRouteError } = require('../lib/routeLog');
+const asyncHandler = require('../lib/asyncHandler');
 const { emitGardenChanged } = require('../lib/realtime');
 const { saveBase64ToDisk, getAbsolutePath, deleteFile } = require('../lib/uploads');
 const { zoneMapPhotoImageUrl, markerMapPhotoImageUrl, resolveMapPhotoThumbUrl } = require('../lib/uploadsPublicUrls');
@@ -681,9 +682,8 @@ function ratioPct(numerator, denominator) {
   return Number(((numerator / denominator) * 100).toFixed(1));
 }
 
-router.get('/stats', requirePermission('stats.read.all'), async (req, res) => {
-  try {
-    await cleanupAnonymousSeen();
+router.get('/stats', requirePermission('stats.read.all'), asyncHandler(async (req, res) => {
+  await cleanupAnonymousSeen();
 
     const activeRow = await queryOne(
       `SELECT
@@ -771,15 +771,10 @@ router.get('/stats', requirePermission('stats.read.all'), async (req, res) => {
         },
       },
     });
-  } catch (err) {
-    logRouteError(err, req);
-    return res.status(500).json({ error: 'Erreur serveur' });
-  }
-});
+}));
 
-router.get('/content', async (req, res) => {
-  try {
-    const mapId = await resolveVisitMapId(req.query.map_id);
+router.get('/content', asyncHandler(async (req, res) => {
+  const mapId = await resolveVisitMapId(req.query.map_id);
     if (!mapId) return res.status(400).json({ error: 'map_id requis' });
     if (!(await mapExists(mapId))) return res.status(400).json({ error: 'Carte introuvable' });
 
@@ -918,16 +913,12 @@ router.get('/content', async (req, res) => {
       tutorials,
     };
     res.json(payload);
-  } catch (err) {
-    logRouteError(err, req);
-    res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });
-  }
-});
+}));
 
 router.get(
   '/mascot-packs/:packId/assets/:filename',
   authenticate,
-  async (req, res) => {
+  asyncHandler(async (req, res) => {
     try {
       const packId = String(req.params.packId || '').trim();
       const filename = sanitizeMascotPackAssetFilename(req.params.filename);
@@ -952,15 +943,14 @@ router.get(
         if (err && !res.headersSent) res.status(404).json({ error: 'Fichier introuvable' });
       });
     } catch (err) {
-      logRouteError(err, req);
       const mapped = mapVisitMascotPackSqlError(err);
       if (mapped) return jsonVisitMascotPackError(res, req, mapped.status, mapped.body);
-      return res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });
+      throw err;
     }
-  },
+  }),
 );
 
-router.get('/mascot-packs', requirePermission('visit.manage', { needsElevation: true }), async (req, res) => {
+router.get('/mascot-packs', requirePermission('visit.manage', { needsElevation: true }), asyncHandler(async (req, res) => {
   try {
     const mapId = await resolveVisitMapId(req.query.map_id);
     if (!mapId) return res.status(400).json({ error: 'map_id requis' });
@@ -978,14 +968,13 @@ router.get('/mascot-packs', requirePermission('visit.manage', { needsElevation: 
       allowed_catalog_ids: listVisitMascotCatalogTemplateIds(),
     });
   } catch (err) {
-    logRouteError(err, req);
     const mapped = mapVisitMascotPackSqlError(err);
     if (mapped) return jsonVisitMascotPackError(res, req, mapped.status, mapped.body);
-    res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });
+    throw err;
   }
-});
+}));
 
-router.post('/mascot-packs', requirePermission('visit.manage', { needsElevation: true }), async (req, res) => {
+router.post('/mascot-packs', requirePermission('visit.manage', { needsElevation: true }), asyncHandler(async (req, res) => {
   try {
     const mapId = String(req.body.map_id || '').trim();
     if (!mapId) return res.status(400).json({ error: 'map_id requis' });
@@ -1064,14 +1053,13 @@ router.post('/mascot-packs', requirePermission('visit.manage', { needsElevation:
     const row = await queryOne('SELECT * FROM visit_mascot_packs WHERE id = ? LIMIT 1', [packUuid]);
     res.status(201).json(serializeVisitMascotPackRow(row));
   } catch (err) {
-    logRouteError(err, req);
     const mapped = mapVisitMascotPackSqlError(err);
     if (mapped) return jsonVisitMascotPackError(res, req, mapped.status, mapped.body);
-    res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });
+    throw err;
   }
-});
+}));
 
-router.put('/mascot-packs/:id', requirePermission('visit.manage', { needsElevation: true }), async (req, res) => {
+router.put('/mascot-packs/:id', requirePermission('visit.manage', { needsElevation: true }), asyncHandler(async (req, res) => {
   try {
     const packId = String(req.params.id || '').trim();
     if (!/^[0-9a-f-]{36}$/i.test(packId)) return res.status(400).json({ error: 'Pack invalide' });
@@ -1115,14 +1103,13 @@ router.put('/mascot-packs/:id', requirePermission('visit.manage', { needsElevati
     const row = await queryOne('SELECT * FROM visit_mascot_packs WHERE id = ? LIMIT 1', [packId]);
     res.json(serializeVisitMascotPackRow(row));
   } catch (err) {
-    logRouteError(err, req);
     const mapped = mapVisitMascotPackSqlError(err);
     if (mapped) return jsonVisitMascotPackError(res, req, mapped.status, mapped.body);
-    res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });
+    throw err;
   }
-});
+}));
 
-router.delete('/mascot-packs/:id', requirePermission('visit.manage', { needsElevation: true }), async (req, res) => {
+router.delete('/mascot-packs/:id', requirePermission('visit.manage', { needsElevation: true }), asyncHandler(async (req, res) => {
   try {
     const packId = String(req.params.id || '').trim();
     if (!/^[0-9a-f-]{36}$/i.test(packId)) return res.status(400).json({ error: 'Pack invalide' });
@@ -1132,17 +1119,16 @@ router.delete('/mascot-packs/:id', requirePermission('visit.manage', { needsElev
     await execute('DELETE FROM visit_mascot_packs WHERE id = ?', [packId]);
     res.json({ ok: true });
   } catch (err) {
-    logRouteError(err, req);
     const mapped = mapVisitMascotPackSqlError(err);
     if (mapped) return jsonVisitMascotPackError(res, req, mapped.status, mapped.body);
-    res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });
+    throw err;
   }
-});
+}));
 
 router.get(
   '/mascot-packs/:id/assets',
   requirePermission('visit.manage', { needsElevation: true }),
-  async (req, res) => {
+  asyncHandler(async (req, res) => {
     try {
       const packId = String(req.params.id || '').trim();
       if (!/^[0-9a-f-]{36}$/i.test(packId)) return res.status(400).json({ error: 'Pack invalide' });
@@ -1155,18 +1141,17 @@ router.get(
       }));
       res.json({ pack_id: packId, assets });
     } catch (err) {
-      logRouteError(err, req);
       const mapped = mapVisitMascotPackSqlError(err);
       if (mapped) return jsonVisitMascotPackError(res, req, mapped.status, mapped.body);
-      res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });
+      throw err;
     }
-  },
+  }),
 );
 
 router.post(
   '/mascot-packs/:id/assets',
   requirePermission('visit.manage', { needsElevation: true }),
-  async (req, res) => {
+  asyncHandler(async (req, res) => {
     try {
       const packId = String(req.params.id || '').trim();
       if (!/^[0-9a-f-]{36}$/i.test(packId)) return res.status(400).json({ error: 'Pack invalide' });
@@ -1188,18 +1173,17 @@ router.post(
       const publicUrl = `/api/visit/mascot-packs/${packId}/assets/${encodeURIComponent(filename)}`;
       res.status(201).json({ ok: true, url: publicUrl, filename });
     } catch (err) {
-      logRouteError(err, req);
       const mapped = mapVisitMascotPackSqlError(err);
       if (mapped) return jsonVisitMascotPackError(res, req, mapped.status, mapped.body);
-      res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });
+      throw err;
     }
-  },
+  }),
 );
 
 router.delete(
   '/mascot-packs/:id/assets/:filename',
   requirePermission('visit.manage', { needsElevation: true }),
-  async (req, res) => {
+  asyncHandler(async (req, res) => {
     try {
       const packId = String(req.params.id || '').trim();
       const filename = sanitizeMascotPackAssetFilename(req.params.filename);
@@ -1212,19 +1196,18 @@ router.delete(
       deleteFile(rel);
       res.json({ ok: true });
     } catch (err) {
-      logRouteError(err, req);
       const mapped = mapVisitMascotPackSqlError(err);
       if (mapped) return jsonVisitMascotPackError(res, req, mapped.status, mapped.body);
-      res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });
+      throw err;
     }
-  },
+  }),
 );
 
 /** PNG bibliothèque sprites (public si la ligne existe — utilisé par les packs publiés). */
 router.get(
   '/mascot-assets',
   requirePermission('visit.manage', { needsElevation: true }),
-  async (req, res) => {
+  asyncHandler(async (req, res) => {
     try {
       const publicAssets = listPublicMascotStaticAssets().map((url, idx) => ({
         id: `public:${idx}:${url}`,
@@ -1279,17 +1262,16 @@ router.get(
         },
       });
     } catch (err) {
-      logRouteError(err, req);
       const mapped = mapVisitMascotPackSqlError(err) || mapVisitMascotSpriteLibSqlError(err);
       if (mapped) return jsonVisitMascotPackError(res, req, mapped.status, mapped.body);
-      return res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });
+      throw err;
     }
-  },
+  }),
 );
 
 router.get(
   '/mascot-sprite-library/:mapId/assets/:filename',
-  async (req, res) => {
+  asyncHandler(async (req, res) => {
     try {
       const mapId = String(req.params.mapId || '').trim();
       const filename = sanitizeMascotPackAssetFilename(req.params.filename);
@@ -1309,18 +1291,17 @@ router.get(
         if (err && !res.headersSent) res.status(404).json({ error: 'Fichier introuvable' });
       });
     } catch (err) {
-      logRouteError(err, req);
       const mapped = mapVisitMascotSpriteLibSqlError(err);
       if (mapped) return jsonVisitMascotPackError(res, req, mapped.status, mapped.body);
-      return res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });
+      throw err;
     }
-  },
+  }),
 );
 
 router.get(
   '/mascot-sprite-library/:mapId/assets',
   requirePermission('visit.manage', { needsElevation: true }),
-  async (req, res) => {
+  asyncHandler(async (req, res) => {
     try {
       const mapId = String(req.params.mapId || '').trim();
       if (!visitMascotSpriteLibraryRelativeDir(mapId)) {
@@ -1342,18 +1323,17 @@ router.get(
       }));
       res.json({ map_id: mapId, assets });
     } catch (err) {
-      logRouteError(err, req);
       const mapped = mapVisitMascotSpriteLibSqlError(err);
       if (mapped) return jsonVisitMascotPackError(res, req, mapped.status, mapped.body);
-      res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });
+      throw err;
     }
-  },
+  }),
 );
 
 router.post(
   '/mascot-sprite-library/:mapId/assets',
   requirePermission('visit.manage', { needsElevation: true }),
-  async (req, res) => {
+  asyncHandler(async (req, res) => {
     try {
       const mapId = String(req.params.mapId || '').trim();
       if (!visitMascotSpriteLibraryRelativeDir(mapId)) {
@@ -1396,18 +1376,17 @@ router.post(
       const publicUrl = `/api/visit/mascot-sprite-library/${mapId}/assets/${encodeURIComponent(filename)}`;
       res.status(201).json({ ok: true, url: publicUrl, filename });
     } catch (err) {
-      logRouteError(err, req);
       const mapped = mapVisitMascotSpriteLibSqlError(err);
       if (mapped) return jsonVisitMascotPackError(res, req, mapped.status, mapped.body);
-      res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });
+      throw err;
     }
-  },
+  }),
 );
 
 router.delete(
   '/mascot-sprite-library/:mapId/assets/:filename',
   requirePermission('visit.manage', { needsElevation: true }),
-  async (req, res) => {
+  asyncHandler(async (req, res) => {
     try {
       const mapId = String(req.params.mapId || '').trim();
       const filename = sanitizeMascotPackAssetFilename(req.params.filename);
@@ -1424,17 +1403,15 @@ router.delete(
       await execute('DELETE FROM visit_mascot_sprite_library WHERE id = ?', [row.id]);
       res.json({ ok: true });
     } catch (err) {
-      logRouteError(err, req);
       const mapped = mapVisitMascotSpriteLibSqlError(err);
       if (mapped) return jsonVisitMascotPackError(res, req, mapped.status, mapped.body);
-      res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });
+      throw err;
     }
-  },
+  }),
 );
 
-router.get('/sync/options', requirePermission('visit.manage', { needsElevation: true }), async (req, res) => {
-  try {
-    const mapId = await resolveVisitMapId(req.query.map_id);
+router.get('/sync/options', requirePermission('visit.manage', { needsElevation: true }), asyncHandler(async (req, res) => {
+  const mapId = await resolveVisitMapId(req.query.map_id);
     if (!mapId) return res.status(400).json({ error: 'map_id requis' });
     if (!(await mapExists(mapId))) return res.status(400).json({ error: 'Carte introuvable' });
 
@@ -1482,16 +1459,11 @@ router.get('/sync/options', requirePermission('visit.manage', { needsElevation: 
         },
       },
     });
-  } catch (err) {
-    logRouteError(err, req);
-    return res.status(500).json({ error: 'Erreur serveur' });
-  }
-});
+}));
 
-router.post('/sync', requirePermission('visit.manage', { needsElevation: true }), async (req, res) => {
-  try {
-    const mapId = await resolveVisitMapId(req.body.map_id);
-    const direction = String(req.body.direction || '').trim();
+router.post('/sync', requirePermission('visit.manage', { needsElevation: true }), asyncHandler(async (req, res) => {
+  const mapId = await resolveVisitMapId(req.body.map_id);
+  const direction = String(req.body.direction || '').trim();
     if (!mapId) return res.status(400).json({ error: 'map_id requis' });
     if (!(await mapExists(mapId))) return res.status(400).json({ error: 'Carte introuvable' });
     if (direction !== 'map_to_visit' && direction !== 'visit_to_map') {
@@ -1605,11 +1577,7 @@ router.post('/sync', requirePermission('visit.manage', { needsElevation: true })
         markers: importedMarkers,
       },
     });
-  } catch (err) {
-    logRouteError(err, req);
-    return res.status(500).json({ error: 'Erreur serveur' });
-  }
-});
+}));
 
 /**
  * Réaligne toute la couche visite (zones + repères) sur la carte pour un plan :
@@ -1617,9 +1585,8 @@ router.post('/sync', requirePermission('visit.manage', { needsElevation: true })
  * en réinjectant pour chaque id conservé les champs éditoriaux et l’ordre issus de l’ancienne visite.
  * Les cibles visite disparues (ids hors carte) sont retirées avec nettoyage médias / progression.
  */
-router.post('/rebuild-from-map', requirePermission('visit.manage', { needsElevation: true }), async (req, res) => {
-  try {
-    const mapId = await resolveVisitMapId(req.body.map_id);
+router.post('/rebuild-from-map', requirePermission('visit.manage', { needsElevation: true }), asyncHandler(async (req, res) => {
+  const mapId = await resolveVisitMapId(req.body.map_id);
     if (!mapId) return res.status(400).json({ error: 'map_id requis' });
     if (!(await mapExists(mapId))) return res.status(400).json({ error: 'Carte introuvable' });
 
@@ -1785,16 +1752,11 @@ router.post('/rebuild-from-map', requirePermission('visit.manage', { needsElevat
       removed: { zones: removedZoneIds.length, markers: removedMarkerIds.length },
       imported: { zones: importedZones, markers: importedMarkers },
     });
-  } catch (err) {
-    logRouteError(err, req);
-    return res.status(500).json({ error: 'Erreur serveur' });
-  }
-});
+}));
 
-router.get('/progress', authenticate, async (req, res) => {
-  try {
-    const auth = req.auth;
-    const queryStudentId = String(req.query.student_id || '').trim();
+router.get('/progress', authenticate, asyncHandler(async (req, res) => {
+  const auth = req.auth;
+  const queryStudentId = String(req.query.student_id || '').trim();
 
     if (auth && auth.userType === 'student') {
       const sid = String(auth.userId);
@@ -1832,15 +1794,10 @@ router.get('/progress', authenticate, async (req, res) => {
       mode: 'anonymous',
       seen: rows.map((r) => ({ target_type: r.target_type, target_id: r.target_id })),
     });
-  } catch (err) {
-    logRouteError(err, req);
-    res.status(500).json({ error: 'Erreur serveur' });
-  }
-});
+}));
 
-router.post('/seen', authenticate, async (req, res) => {
-  try {
-    const targetType = sanitizeTargetType(req.body.target_type);
+router.post('/seen', authenticate, asyncHandler(async (req, res) => {
+  const targetType = sanitizeTargetType(req.body.target_type);
     const targetId = sanitizeTargetId(req.body.target_id);
     const seen = req.body.seen !== false;
     const bodyStudentId = String(req.body.student_id || '').trim();
@@ -1897,17 +1854,12 @@ router.post('/seen', authenticate, async (req, res) => {
       );
     }
     return res.json({ ok: true, mode: 'anonymous' });
-  } catch (err) {
-    logRouteError(err, req);
-    res.status(500).json({ error: 'Erreur serveur' });
-  }
-});
+}));
 
-router.post('/zones', requirePermission('visit.manage', { needsElevation: true }), async (req, res) => {
-  try {
-    const mapId = await resolveVisitMapId(req.body.map_id);
-    const name = String(req.body.name || '').trim();
-    const points = normalizePoints(req.body.points);
+router.post('/zones', requirePermission('visit.manage', { needsElevation: true }), asyncHandler(async (req, res) => {
+  const mapId = await resolveVisitMapId(req.body.map_id);
+  const name = String(req.body.name || '').trim();
+  const points = normalizePoints(req.body.points);
     if (!mapId || !(await mapExists(mapId))) return res.status(400).json({ error: 'Carte introuvable' });
     if (!name) return res.status(400).json({ error: 'Nom de zone requis' });
     if (!points) return res.status(400).json({ error: 'Polygone invalide (min 3 points)' });
@@ -1934,15 +1886,10 @@ router.post('/zones', requirePermission('visit.manage', { needsElevation: true }
     );
     const row = await queryOne('SELECT * FROM visit_zones WHERE id = ?', [id]);
     res.status(201).json(row);
-  } catch (err) {
-    logRouteError(err, req);
-    res.status(500).json({ error: 'Erreur serveur' });
-  }
-});
+}));
 
-router.put('/zones/:id', requirePermission('visit.manage', { needsElevation: true }), async (req, res) => {
-  try {
-    const zoneId = String(req.params.id || '').trim();
+router.put('/zones/:id', requirePermission('visit.manage', { needsElevation: true }), asyncHandler(async (req, res) => {
+  const zoneId = String(req.params.id || '').trim();
     if (!zoneId) return res.status(400).json({ error: 'Zone invalide' });
     const exists = await queryOne('SELECT * FROM visit_zones WHERE id = ? LIMIT 1', [zoneId]);
     if (!exists) return res.status(404).json({ error: 'Zone introuvable' });
@@ -1988,15 +1935,10 @@ router.put('/zones/:id', requirePermission('visit.manage', { needsElevation: tru
     );
     const row = await queryOne('SELECT * FROM visit_zones WHERE id = ?', [zoneId]);
     res.json(row);
-  } catch (err) {
-    logRouteError(err, req);
-    res.status(500).json({ error: 'Erreur serveur' });
-  }
-});
+}));
 
-router.delete('/zones/:id', requirePermission('visit.manage', { needsElevation: true }), async (req, res) => {
-  try {
-    const zoneId = String(req.params.id || '').trim();
+router.delete('/zones/:id', requirePermission('visit.manage', { needsElevation: true }), asyncHandler(async (req, res) => {
+  const zoneId = String(req.params.id || '').trim();
     if (!zoneId) return res.status(400).json({ error: 'Zone invalide' });
     await deleteVisitMediaFilesForTarget('zone', zoneId);
     await execute('DELETE FROM visit_zones WHERE id = ?', [zoneId]);
@@ -2004,18 +1946,13 @@ router.delete('/zones/:id', requirePermission('visit.manage', { needsElevation: 
     await execute(`DELETE FROM visit_seen_students WHERE target_type = 'zone' AND target_id = ?`, [zoneId]);
     await execute(`DELETE FROM visit_seen_anonymous WHERE target_type = 'zone' AND target_id = ?`, [zoneId]);
     res.json({ ok: true });
-  } catch (err) {
-    logRouteError(err, req);
-    res.status(500).json({ error: 'Erreur serveur' });
-  }
-});
+}));
 
-router.post('/markers', requirePermission('visit.manage', { needsElevation: true }), async (req, res) => {
-  try {
-    const mapId = await resolveVisitMapId(req.body.map_id);
-    const label = String(req.body.label || '').trim();
-    const x = normalizeCoord(req.body.x_pct);
-    const y = normalizeCoord(req.body.y_pct);
+router.post('/markers', requirePermission('visit.manage', { needsElevation: true }), asyncHandler(async (req, res) => {
+  const mapId = await resolveVisitMapId(req.body.map_id);
+  const label = String(req.body.label || '').trim();
+  const x = normalizeCoord(req.body.x_pct);
+  const y = normalizeCoord(req.body.y_pct);
     if (!mapId || !(await mapExists(mapId))) return res.status(400).json({ error: 'Carte introuvable' });
     if (!label) return res.status(400).json({ error: 'Nom du repère requis' });
     if (x == null || y == null) return res.status(400).json({ error: 'Position repère invalide' });
@@ -2044,15 +1981,10 @@ router.post('/markers', requirePermission('visit.manage', { needsElevation: true
     );
     const row = await queryOne('SELECT * FROM visit_markers WHERE id = ?', [id]);
     res.status(201).json(row);
-  } catch (err) {
-    logRouteError(err, req);
-    res.status(500).json({ error: 'Erreur serveur' });
-  }
-});
+}));
 
-router.put('/markers/:id', requirePermission('visit.manage', { needsElevation: true }), async (req, res) => {
-  try {
-    const markerId = String(req.params.id || '').trim();
+router.put('/markers/:id', requirePermission('visit.manage', { needsElevation: true }), asyncHandler(async (req, res) => {
+  const markerId = String(req.params.id || '').trim();
     if (!markerId) return res.status(400).json({ error: 'Repère invalide' });
     const exists = await queryOne('SELECT * FROM visit_markers WHERE id = ? LIMIT 1', [markerId]);
     if (!exists) return res.status(404).json({ error: 'Repère introuvable' });
@@ -2102,15 +2034,10 @@ router.put('/markers/:id', requirePermission('visit.manage', { needsElevation: t
     );
     const row = await queryOne('SELECT * FROM visit_markers WHERE id = ?', [markerId]);
     res.json(row);
-  } catch (err) {
-    logRouteError(err, req);
-    res.status(500).json({ error: 'Erreur serveur' });
-  }
-});
+}));
 
-router.delete('/markers/:id', requirePermission('visit.manage', { needsElevation: true }), async (req, res) => {
-  try {
-    const markerId = String(req.params.id || '').trim();
+router.delete('/markers/:id', requirePermission('visit.manage', { needsElevation: true }), asyncHandler(async (req, res) => {
+  const markerId = String(req.params.id || '').trim();
     if (!markerId) return res.status(400).json({ error: 'Repère invalide' });
     await deleteVisitMediaFilesForTarget('marker', markerId);
     await execute('DELETE FROM visit_markers WHERE id = ?', [markerId]);
@@ -2118,15 +2045,10 @@ router.delete('/markers/:id', requirePermission('visit.manage', { needsElevation
     await execute(`DELETE FROM visit_seen_students WHERE target_type = 'marker' AND target_id = ?`, [markerId]);
     await execute(`DELETE FROM visit_seen_anonymous WHERE target_type = 'marker' AND target_id = ?`, [markerId]);
     res.json({ ok: true });
-  } catch (err) {
-    logRouteError(err, req);
-    res.status(500).json({ error: 'Erreur serveur' });
-  }
-});
+}));
 
-router.put('/media/reorder', requirePermission('visit.manage', { needsElevation: true }), async (req, res) => {
-  try {
-    const targetType = sanitizeTargetType(req.body?.target_type);
+router.put('/media/reorder', requirePermission('visit.manage', { needsElevation: true }), asyncHandler(async (req, res) => {
+  const targetType = sanitizeTargetType(req.body?.target_type);
     const targetId = sanitizeTargetId(req.body?.target_id);
     const raw = req.body?.ordered_ids ?? req.body?.photo_ids;
     if (!targetType || !targetId) {
@@ -2175,32 +2097,22 @@ router.put('/media/reorder', requirePermission('visit.manage', { needsElevation:
       emitGardenChanged({ reason: 'reorder_visit_media', mapId: mapRow.map_id, targetType, targetId });
     }
     res.json({ ok: true });
-  } catch (err) {
-    logRouteError(err, req);
-    res.status(500).json({ error: 'Erreur serveur' });
-  }
-});
+}));
 
-router.get('/media/:id/data', async (req, res) => {
-  try {
-    const mediaId = Number(req.params.id);
-    if (!Number.isFinite(mediaId) || mediaId <= 0) return res.status(400).json({ error: 'Photo invalide' });
-    const row = await queryOne('SELECT image_path FROM visit_media WHERE id = ? LIMIT 1', [mediaId]);
-    if (!row?.image_path) return res.status(404).json({ error: 'Image introuvable' });
-    const absolutePath = getAbsolutePath(row.image_path);
-    return res.sendFile(absolutePath, (err) => {
-      if (err && !res.headersSent) res.status(404).json({ error: 'Fichier introuvable' });
-    });
-  } catch (err) {
-    logRouteError(err, req);
-    res.status(500).json({ error: 'Erreur serveur' });
-  }
-});
+router.get('/media/:id/data', asyncHandler(async (req, res) => {
+  const mediaId = Number(req.params.id);
+  if (!Number.isFinite(mediaId) || mediaId <= 0) return res.status(400).json({ error: 'Photo invalide' });
+  const row = await queryOne('SELECT image_path FROM visit_media WHERE id = ? LIMIT 1', [mediaId]);
+  if (!row?.image_path) return res.status(404).json({ error: 'Image introuvable' });
+  const absolutePath = getAbsolutePath(row.image_path);
+  return res.sendFile(absolutePath, (err) => {
+    if (err && !res.headersSent) res.status(404).json({ error: 'Fichier introuvable' });
+  });
+}));
 
-router.post('/media', requirePermission('visit.manage', { needsElevation: true }), async (req, res) => {
+router.post('/media', requirePermission('visit.manage', { needsElevation: true }), asyncHandler(async (req, res) => {
   let insertedId = null;
-  try {
-    const targetType = sanitizeTargetType(req.body.target_type);
+  const targetType = sanitizeTargetType(req.body.target_type);
     const targetId = sanitizeTargetId(req.body.target_id);
     const imageDataRaw = req.body.image_data;
     const imageData =
@@ -2254,15 +2166,10 @@ router.post('/media', requirePermission('visit.manage', { needsElevation: true }
     }
     const row = await queryOne('SELECT * FROM visit_media WHERE id = ?', [insertedId]);
     res.status(201).json(serializeVisitMedia(row));
-  } catch (err) {
-    logRouteError(err, req);
-    res.status(500).json({ error: 'Erreur serveur' });
-  }
-});
+}));
 
-router.put('/media/:id', requirePermission('visit.manage', { needsElevation: true }), async (req, res) => {
-  try {
-    const mediaId = Number(req.params.id);
+router.put('/media/:id', requirePermission('visit.manage', { needsElevation: true }), asyncHandler(async (req, res) => {
+  const mediaId = Number(req.params.id);
     if (!Number.isFinite(mediaId) || mediaId <= 0) return res.status(400).json({ error: 'Photo invalide' });
     const exists = await queryOne('SELECT * FROM visit_media WHERE id = ? LIMIT 1', [mediaId]);
     if (!exists) return res.status(404).json({ error: 'Photo introuvable' });
@@ -2313,29 +2220,19 @@ router.put('/media/:id', requirePermission('visit.manage', { needsElevation: tru
     }
     const row = await queryOne('SELECT * FROM visit_media WHERE id = ?', [mediaId]);
     res.json(serializeVisitMedia(row));
-  } catch (err) {
-    logRouteError(err, req);
-    res.status(500).json({ error: 'Erreur serveur' });
-  }
-});
+}));
 
-router.delete('/media/:id', requirePermission('visit.manage', { needsElevation: true }), async (req, res) => {
-  try {
-    const mediaId = Number(req.params.id);
-    if (!Number.isFinite(mediaId) || mediaId <= 0) return res.status(400).json({ error: 'Photo invalide' });
-    const row = await queryOne('SELECT image_path FROM visit_media WHERE id = ? LIMIT 1', [mediaId]);
-    if (row?.image_path) deleteFile(row.image_path);
-    await execute('DELETE FROM visit_media WHERE id = ?', [mediaId]);
-    res.json({ ok: true });
-  } catch (err) {
-    logRouteError(err, req);
-    res.status(500).json({ error: 'Erreur serveur' });
-  }
-});
+router.delete('/media/:id', requirePermission('visit.manage', { needsElevation: true }), asyncHandler(async (req, res) => {
+  const mediaId = Number(req.params.id);
+  if (!Number.isFinite(mediaId) || mediaId <= 0) return res.status(400).json({ error: 'Photo invalide' });
+  const row = await queryOne('SELECT image_path FROM visit_media WHERE id = ? LIMIT 1', [mediaId]);
+  if (row?.image_path) deleteFile(row.image_path);
+  await execute('DELETE FROM visit_media WHERE id = ?', [mediaId]);
+  res.json({ ok: true });
+}));
 
-router.put('/tutorials', requirePermission('visit.manage', { needsElevation: true }), async (req, res) => {
-  try {
-    const mapId = await resolveVisitMapId(req.body.map_id);
+router.put('/tutorials', requirePermission('visit.manage', { needsElevation: true }), asyncHandler(async (req, res) => {
+  const mapId = await resolveVisitMapId(req.body.map_id);
     if (!mapId) return res.status(400).json({ error: 'map_id requis' });
     if (!(await mapExists(mapId))) return res.status(400).json({ error: 'Carte introuvable' });
     const ids = Array.isArray(req.body.tutorial_ids) ? req.body.tutorial_ids : [];
@@ -2358,10 +2255,6 @@ router.put('/tutorials', requirePermission('visit.manage', { needsElevation: tru
       [mapId]
     );
     res.json(rows);
-  } catch (err) {
-    logRouteError(err, req);
-    res.status(500).json({ error: 'Erreur serveur' });
-  }
-});
+}));
 
 module.exports = router;
