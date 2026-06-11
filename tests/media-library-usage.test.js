@@ -12,6 +12,8 @@ const {
   collectUsageFromRows,
   usageMapToObject,
   buildSelectColumns,
+  conventionLocationsForItem,
+  collectConventionUsage,
   GL_SOURCES,
 } = require('../lib/mediaLibraryUsage');
 
@@ -127,4 +129,59 @@ test('buildSelectColumns ne sélectionne que les colonnes présentes', () => {
   const cols = new Set(['id', 'title', 'map_image_url']); // sans story_markdown ni theme_json
   const selected = buildSelectColumns(glSource('gl_chapters'), cols);
   assert.deepStrictEqual(selected, ['id', 'title', 'map_image_url']);
+});
+
+test('conventionLocationsForItem — scènes de récit, feuillets, plateaux, biomes, intro', () => {
+  const recit = conventionLocationsForItem({
+    stableKey: 'recit_02-chap2_la-dune',
+    mediaType: 'image',
+  });
+  assert.strictEqual(recit.length, 1);
+  assert.strictEqual(recit[0].label, 'Histoire — chapitre 2');
+  assert.strictEqual(recit[0].field, 'scène de récit');
+
+  const prologue = conventionLocationsForItem({ stableKey: 'recit_00-prologue_la-boite' });
+  assert.strictEqual(prologue[0].label, 'Histoire — prologue');
+
+  const feuillet = conventionLocationsForItem({ stableKey: 'recit_feuillet-action_ep-v-03_scene' });
+  assert.strictEqual(feuillet[0].label, 'Feuillet de Sélène ep-v-03');
+
+  const board = conventionLocationsForItem({ stableKey: 'plateau-3_landes', mediaType: 'image' });
+  assert.strictEqual(board[0].label, 'Plateau 3');
+  assert.strictEqual(board[0].field, 'fond de plateau');
+
+  const music = conventionLocationsForItem({ stableKey: 'plateau-3_landes', mediaType: 'audio' });
+  assert.strictEqual(music[0].field, 'musique d’ambiance');
+
+  const biome = conventionLocationsForItem({ stableKey: 'biome_jungle', mediaType: 'image' });
+  assert.strictEqual(biome.length, 1);
+  assert.ok(biome[0].label.startsWith('Biome '));
+
+  const intro = conventionLocationsForItem({ stableKey: 'intro_01_la-boite' });
+  assert.ok(intro.some((loc) => loc.label === 'Intro Gnomes & Licornes'));
+
+  // typo récit : aucun emplacement convention (sera signalée par l'audit)
+  assert.deepStrictEqual(conventionLocationsForItem({ stableKey: 'recit_1-chap1_typo' }), []);
+  assert.deepStrictEqual(conventionLocationsForItem({ stableKey: '' }), []);
+});
+
+test('collectConventionUsage — un média conventionnel n’est plus « Inutilisée »', () => {
+  const items = [
+    { relativePath: 'media-library/image/2026/06/scene.png', stableKey: 'recit_01-chap1_le-carnet', mediaType: 'image' },
+    { relativePath: 'media-library/image/2026/06/autre.png', stableKey: 'photo_libre', mediaType: 'image' },
+  ];
+  const usageMap = new Map();
+  collectConventionUsage(items, usageMap);
+  const usage = usageMapToObject(usageMap);
+
+  const scene = usage['media-library/image/2026/06/scene.png'];
+  assert.strictEqual(scene.count, 1);
+  assert.deepStrictEqual(scene.locations[0], {
+    app: 'gl',
+    kind: 'Convention médiathèque',
+    label: 'Histoire — chapitre 1',
+    field: 'scène de récit',
+    id: 'recit_01-chap1_le-carnet',
+  });
+  assert.strictEqual(usage['media-library/image/2026/06/autre.png'], undefined);
 });

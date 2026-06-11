@@ -143,6 +143,91 @@ test('auditGlMediaKeys — branche les scènes de récit de chapitre (recit_0N-c
   }
 });
 
+test('collision de clé stable — avertissement à l’upload (dernier import gagnant)', () => {
+  const first = saveMediaFromBuffer(TINY_PNG, 'image/png', 'GL_recit_01-chap1_doublon.png', { skipManifestSync: true });
+  const second = saveMediaFromBuffer(TINY_PNG, 'image/png', 'GL_recit_01-chap1_doublon.png', { skipManifestSync: true });
+  try {
+    const collision = (second.assetWarnings || []).find((w) => w.type === 'stable_key_collision');
+    assert.ok(collision, 'le second upload doit signaler la collision');
+    assert.strictEqual(collision.stableKey, 'recit_01-chap1_doublon');
+    assert.strictEqual(collision.previousRelativePath, first.relativePath);
+    // le premier upload, lui, ne signale rien
+    assert.ok(!(first.assetWarnings || []).some((w) => w.type === 'stable_key_collision'));
+    // la clé résout vers le dernier fichier importé
+    assert.strictEqual(
+      resolveMediaByStableKey('recit_01-chap1_doublon')?.relativePath,
+      second.relativePath,
+    );
+  } finally {
+    cleanupSaved([first, second]);
+  }
+});
+
+test('métas de scène (légende / ordre / couverture) — édition, tri et persistance', () => {
+  const { listChapterRecitScenes, updateChapterSceneMeta } = require('../lib/glChapterScenes');
+  const files = [
+    { fileName: 'GL_recit_02-chap2_aaa.png', buffer: TINY_PNG, mime: 'image/png' },
+    { fileName: 'GL_recit_02-chap2_bbb.png', buffer: TINY_PNG, mime: 'image/png' },
+    { fileName: 'GL_recit_02-chap2_ccc.png', buffer: TINY_PNG, mime: 'image/png' },
+  ];
+  const saved = files.map((f) => saveMediaFromBuffer(f.buffer, f.mime, f.fileName, { skipManifestSync: true }));
+  syncAssetManifests();
+  try {
+    // sans méta : tri alphabétique
+    let scenes = listChapterRecitScenes(2);
+    assert.deepStrictEqual(
+      scenes.map((s) => s.stableKey),
+      ['recit_02-chap2_aaa', 'recit_02-chap2_bbb', 'recit_02-chap2_ccc'],
+    );
+
+    // ordre explicite : ccc passe devant
+    updateChapterSceneMeta('recit_02-chap2_ccc', { order: 1, caption: 'La traversée' });
+    scenes = listChapterRecitScenes(2);
+    assert.strictEqual(scenes[0].stableKey, 'recit_02-chap2_ccc');
+    assert.strictEqual(scenes[0].caption, 'La traversée');
+
+    // couverture exclusive par chapitre
+    updateChapterSceneMeta('recit_02-chap2_aaa', { cover: true });
+    updateChapterSceneMeta('recit_02-chap2_bbb', { cover: true });
+    scenes = listChapterRecitScenes(2);
+    assert.deepStrictEqual(
+      scenes.filter((s) => s.cover).map((s) => s.stableKey),
+      ['recit_02-chap2_bbb'],
+    );
+
+    // les métas survivent à un ré-import du même fichier (clé identique)
+    const reuploaded = saveMediaFromBuffer(TINY_PNG, 'image/png', 'GL_recit_02-chap2_ccc.png', { skipManifestSync: true });
+    saved.push(reuploaded);
+    scenes = listChapterRecitScenes(2);
+    const ccc = scenes.find((s) => s.stableKey === 'recit_02-chap2_ccc');
+    assert.strictEqual(ccc.caption, 'La traversée');
+    assert.strictEqual(ccc.order, 1);
+
+    // clé hors convention refusée
+    assert.throws(
+      () => updateChapterSceneMeta('biome_jungle', { caption: 'x' }),
+      /convention/,
+    );
+  } finally {
+    cleanupSaved(saved);
+  }
+});
+
+test('auditGlMediaKeys — signale les clés récit suspectes (typos)', () => {
+  const saved = [
+    saveMediaFromBuffer(TINY_PNG, 'image/png', 'GL_recit_1-chap1_typo.png', { skipManifestSync: true }),
+    saveMediaFromBuffer(TINY_PNG, 'image/png', 'GL_recit_01-chap1_valide.png', { skipManifestSync: true }),
+  ];
+  syncAssetManifests();
+  try {
+    const report = auditGlMediaKeys(loadMediaKeyIndex());
+    assert.ok(report.suspectRecitKeys.includes('recit_1-chap1_typo'));
+    assert.ok(!report.suspectRecitKeys.includes('recit_01-chap1_valide'));
+  } finally {
+    cleanupSaved(saved);
+  }
+});
+
 test('deriveMediaStableKey — cohérence noms importés images.zip', () => {
   assert.strictEqual(
     deriveMediaStableKey('GL_plateau-1_tropiques-africains.jpg'),

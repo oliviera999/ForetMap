@@ -2,6 +2,7 @@ import { describe, test, expect } from 'vitest';
 import {
   chapterIllustrationPrefix,
   chapterIllustrationKeys,
+  sortChapterScenes,
 } from '../../src/gl/assets/index.js';
 
 describe('chapterIllustrationPrefix', () => {
@@ -40,5 +41,33 @@ describe('chapterIllustrationKeys (manifest embarqué)', () => {
   test('numéro absent → liste vide', () => {
     expect(chapterIllustrationKeys(null)).toEqual([]);
     expect(chapterIllustrationKeys(9)).toEqual([]);
+  });
+});
+
+describe('sortChapterScenes', () => {
+  test('recitOrder croissant d’abord, puis ordre des clés', () => {
+    const scenes = [
+      { key: 'recit_01-chap1_aaa', order: null },
+      { key: 'recit_01-chap1_zzz', order: 1 },
+      { key: 'recit_01-chap1_mmm', order: 10 },
+      { key: 'recit_01-chap1_bbb', order: null },
+    ];
+    expect(sortChapterScenes(scenes).map((s) => s.key)).toEqual([
+      'recit_01-chap1_zzz',
+      'recit_01-chap1_mmm',
+      'recit_01-chap1_aaa',
+      'recit_01-chap1_bbb',
+    ]);
+  });
+
+  test('sans ordre explicite → ordre alphabétique (comportement historique)', () => {
+    const scenes = [
+      { key: 'recit_01-chap1_b' },
+      { key: 'recit_01-chap1_a' },
+    ];
+    expect(sortChapterScenes(scenes).map((s) => s.key)).toEqual([
+      'recit_01-chap1_a',
+      'recit_01-chap1_b',
+    ]);
   });
 });

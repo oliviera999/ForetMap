@@ -15,6 +15,16 @@ npm run gl:audit:media-keys      # vérifie les clés vs slugs attendus
 
 Sprites à alpha (`app_*`, `embleme_*`) : versionner dans `public/gl/sprites/` (PNG/WebP).
 
+### Scènes de récit des chapitres (`GL_recit_0N-chapN_*`)
+
+Une image nommée `GL_recit_0N-chapN_<titre>.png` (ou `GL_recit_00-prologue_<titre>.png`) est **automatiquement liée au chapitre N** : galerie de l'onglet **Histoire**, couverture de la **Biocénose**, repli du fond de plateau. Aucune liaison en base — la clé suffit. Convention partagée client/serveur : `src/gl/utils/glChapterRecitConvention.js`.
+
+- **Ordre** : par défaut alphabétique sur la clé (conseil : segment numérique `GL_recit_01-chap1_010_<titre>.png`). Modifiable sans renommer via **Contenus → Chapitres → Scènes de récit** (champ Ordre, méta `recitOrder` dans `_keys.json`).
+- **Légende / alt** et **couverture** : éditables au même endroit (`recitCaption`, `recitCover` ; une seule couverture par chapitre). Les métas survivent au ré-import d'un fichier homonyme.
+- **Intercalage dans le texte** : `![légende](scene:N)` dans le markdown de l'Histoire insère la N-ième scène à cet endroit ; les scènes intercalées quittent la galerie de fin.
+- **Visibilité admin** : ces médias apparaissent « Utilisée · Histoire — chapitre N » dans la médiathèque ; l'audit (**Contenus → Bibliothèque → Audit des conventions**, ou `npm run gl:audit:media-keys`) signale les clés `recit_*` mal nommées (typos), invisibles en jeu.
+- **Collisions** : ré-importer un fichier au même nom re-pointe la clé vers le nouveau fichier (dernier import gagnant) — un avertissement est renvoyé à l'upload.
+
 ## Intro cinématique (écran de lancement)
 
 - Assets statiques extraits du bundle hors-ligne : `public/gl/intro/` (commande `npm run gl:intro:debundle` depuis le fichier `Intro Gnomes & Licornes (hors-ligne).html`).

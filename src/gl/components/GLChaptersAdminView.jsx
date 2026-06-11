@@ -17,6 +17,7 @@ import { brandToCssVars, mergeBrandWithChapterTheme, normalizeChapterTheme } fro
 import { GLButton } from './ui/GLButton.jsx';
 import { GL_SPELL_CATEGORY_LABELS } from '../utils/glSpellFieldLabels.js';
 import { GLChaptersImportExportPanel } from './admin/GLChaptersImportExportPanel.jsx';
+import { GLChapterScenesAdminPanel } from './admin/GLChapterScenesAdminPanel.jsx';
 
 const EMPTY_CHAPTER_THEME = { colors: {} };
 
@@ -695,6 +696,11 @@ export function GLChaptersAdminView() {
                 onChange={(event) => setChapterForm({ ...chapterForm, storyMarkdown: event.target.value })}
                 imageLegend="Images de l'histoire"
               />
+              <span className="gl-hint">
+                Astuce : <code>![légende](scene:N)</code> intercale la N-ième scène de récit du chapitre
+                (médiathèque <code>GL_recit_0N-chapN_*</code>) dans le texte ; les autres scènes restent en
+                galerie de fin.
+              </span>
             </label>
             <label>
               Biotope (markdown)
@@ -749,6 +755,19 @@ export function GLChaptersAdminView() {
                 markers={markers}
                 zoneMusicEnabled={isModuleEnabled(glModules, 'zoneMusicEnabled')}
                 onReload={loadDetail}
+                onInfo={(message) => {
+                  setInfo(message);
+                  setError('');
+                }}
+                onError={(message) => {
+                  setError(message);
+                  setInfo('');
+                }}
+              />
+
+              <h3>Scènes de récit (médiathèque)</h3>
+              <GLChapterScenesAdminPanel
+                plateauNumber={chapterForm.plateauNumber === '' ? null : Number(chapterForm.plateauNumber)}
                 onInfo={(message) => {
                   setInfo(message);
                   setError('');
