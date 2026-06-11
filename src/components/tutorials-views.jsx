@@ -4,7 +4,6 @@ import { useOverlayHistoryBack } from '../hooks/useOverlayHistoryBack';
 import { TutorialReadAcknowledgeButton, fetchTutorialReadIds } from './TutorialReadAcknowledge';
 import { TutorialPreviewModal, tutorialPreviewPayload } from './TutorialPreviewModal';
 import { ContextComments } from './context-comments';
-import { orderedLivingBeingsForForm, formatLivingBeingsListLine } from '../utils/livingBeings';
 import { DialogShell } from './DialogShell';
 import { MarkdownContent } from './MarkdownContent.jsx';
 import { MarkdownTextarea } from './MarkdownTextarea.jsx';
@@ -13,29 +12,13 @@ import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
 import { useSession } from '../contexts/SessionContext.jsx';
 import { useData } from '../contexts/DataContext.jsx';
 import { fileToDataUrl } from '../utils/fileToDataUrl.js';
-
-function tutorialZonePickLabel(z) {
-  const line = formatLivingBeingsListLine(
-    orderedLivingBeingsForForm(z.living_beings_list || z.living_beings, z.current_plant),
-  );
-  return line ? `${z.name} — ${line}` : z.name;
-}
-
-function sortTutorialsByOrder(list) {
-  return [...list].sort(
-    (a, b) =>
-      (Number(a.sort_order) || 0) - (Number(b.sort_order) || 0) ||
-      String(a.title || '').localeCompare(String(b.title || ''), 'fr')
-  );
-}
-
-function moveIndex(arr, from, to) {
-  if (from === to || from < 0 || to < 0 || from >= arr.length || to >= arr.length) return arr;
-  const next = [...arr];
-  const [item] = next.splice(from, 1);
-  next.splice(to, 0, item);
-  return next;
-}
+import {
+  tutorialZonePickLabel,
+  sortTutorialsByOrder,
+  moveIndex,
+  linkedTaskStatusLabel,
+  initialTutorialForm,
+} from '../utils/tutorialHelpers.js';
 
 function downloadUrl(url) {
   const a = document.createElement('a');
@@ -44,20 +27,6 @@ function downloadUrl(url) {
   document.body.appendChild(a);
   a.click();
   a.remove();
-}
-
-const LINKED_TASK_STATUS_LABELS = {
-  available: 'À faire',
-  in_progress: 'En cours',
-  done: 'Terminée',
-  validated: 'Validée',
-  proposed: 'Proposée',
-  on_hold: 'En attente',
-};
-
-function linkedTaskStatusLabel(status) {
-  const s = String(status || '').toLowerCase();
-  return LINKED_TASK_STATUS_LABELS[s] || status || '—';
 }
 
 function TutorialLinkedTasksModal({ state, onClose }) {
@@ -105,23 +74,6 @@ function TutorialLinkedTasksModal({ state, onClose }) {
   );
 }
 
-function initialForm() {
-  return {
-    id: null,
-    title: '',
-    summary: '',
-    type: 'html',
-    html_content: '',
-    source_url: '',
-    source_file_path: '',
-    sort_order: 0,
-    is_active: true,
-    map_id: '',
-    zone_ids: [],
-    marker_ids: [],
-  };
-}
-
 function TutorialsView({
   isTeacher,
   onRefresh,
@@ -137,7 +89,7 @@ function TutorialsView({
   const [statusFilter, setStatusFilter] = useState('all');
   const [toast, setToast] = useState('');
   const [showEditor, setShowEditor] = useState(false);
-  const [form, setForm] = useState(initialForm());
+  const [form, setForm] = useState(initialTutorialForm());
   const [saving, setSaving] = useState(false);
   const [preview, setPreview] = useState(null);
   const [showReorder, setShowReorder] = useState(false);
@@ -284,7 +236,7 @@ function TutorialsView({
   };
 
   const beginCreate = () => {
-    setForm({ ...initialForm(), map_id: activeMapId || '' });
+    setForm({ ...initialTutorialForm(), map_id: activeMapId || '' });
     setShowEditor(true);
   };
 
@@ -364,7 +316,7 @@ function TutorialsView({
       else await api('/api/tutorials', 'POST', payload);
       await onRefresh?.();
       setShowEditor(false);
-      setForm(initialForm());
+      setForm(initialTutorialForm());
       setToast(form.id ? 'Tutoriel mis à jour ✓' : 'Tutoriel ajouté ✓');
       setTimeout(() => setToast(''), 2500);
     } catch (e) {
