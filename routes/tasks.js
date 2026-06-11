@@ -9,6 +9,7 @@ const {
 } = require('../middleware/requireTeacher');
 const { saveBase64ToDisk, getAbsolutePath, deleteFile, writeBufferToDisk } = require('../lib/uploads');
 const { logRouteError } = require('../lib/routeLog');
+const asyncHandler = require('../lib/asyncHandler');
 const logger = require('../lib/logger');
 const { logAudit } = require('./audit');
 const { emitTasksChanged } = require('../lib/realtime');
@@ -948,8 +949,7 @@ async function resolveStudentActionContext(req, payload = {}, permissionKey) {
   return { errorStatus: 400, error: 'Identifiant n3beur requis' };
 }
 
-router.get('/', async (req, res) => {
-  try {
+router.get('/', asyncHandler(async (req, res) => {
     const auth = await parseOptionalAuth(req);
     const mapId = req.query.map_id ? String(req.query.map_id).trim() : '';
     const projectId = req.query.project_id ? String(req.query.project_id).trim() : '';
@@ -1064,13 +1064,9 @@ router.get('/', async (req, res) => {
       }
     }
     res.json(enriched);
-  } catch (e) {
-    respondInternalError(res, req, e);
-  }
-});
+}));
 
-router.post('/reorder-project', requirePermission('tasks.manage', { needsElevation: true }), async (req, res) => {
-  try {
+router.post('/reorder-project', requirePermission('tasks.manage', { needsElevation: true }), asyncHandler(async (req, res) => {
     const projectId = normalizeOptionalId(req.body?.project_id);
     const orderedTaskIdsInput = normalizeIdArray(req.body?.task_ids);
     if (!projectId) return res.status(400).json({ error: 'Projet requis' });
@@ -1133,13 +1129,9 @@ router.post('/reorder-project', requirePermission('tasks.manage', { needsElevati
     });
     emitTasksChanged({ reason: 'reorder_project_tasks', projectId, mapId });
     res.json({ success: true, project_id: projectId, ordered_task_ids: orderedTaskIds });
-  } catch (e) {
-    respondInternalError(res, req, e);
-  }
-});
+}));
 
-router.get('/referent-candidates', requirePermission('tasks.manage', { needsElevation: true }), async (req, res) => {
-  try {
+router.get('/referent-candidates', requirePermission('tasks.manage', { needsElevation: true }), asyncHandler(async (req, res) => {
     const [scopedStudentIds, scopedTeacherIds] = await Promise.all([
       getScopedAssignableStudentIds(req.auth),
       getScopedTeacherIds(req.auth),
@@ -1178,26 +1170,18 @@ router.get('/referent-candidates', requirePermission('tasks.manage', { needsElev
     });
     students.sort((a, b) => labelForSort(a).localeCompare(labelForSort(b), 'fr', { sensitivity: 'base' }));
     res.json([...teachers, ...students]);
-  } catch (e) {
-    respondInternalError(res, req, e);
-  }
-});
+}));
 
-router.get('/:id/image', async (req, res) => {
-  try {
+router.get('/:id/image', asyncHandler(async (req, res) => {
     const row = await queryOne('SELECT image_path FROM tasks WHERE id = ?', [req.params.id]);
     if (!row?.image_path) return res.status(404).json({ error: 'Aucune image' });
     const absolutePath = getAbsolutePath(row.image_path);
     return res.sendFile(absolutePath, (err) => {
       if (err && !res.headersSent) res.status(404).json({ error: 'Fichier introuvable' });
     });
-  } catch (e) {
-    respondInternalError(res, req, e);
-  }
-});
+}));
 
-router.get('/:id', async (req, res) => {
-  try {
+router.get('/:id', asyncHandler(async (req, res) => {
     const task = await getTaskWithAssignments(req.params.id);
     if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
     const authOne = await parseOptionalAuth(req);
@@ -1209,13 +1193,9 @@ router.get('/:id', async (req, res) => {
       }
     }
     res.json(task);
-  } catch (e) {
-    respondInternalError(res, req, e);
-  }
-});
+}));
 
-router.get('/import/template', requirePermission('tasks.manage', { needsElevation: true }), async (req, res) => {
-  try {
+router.get('/import/template', requirePermission('tasks.manage', { needsElevation: true }), asyncHandler(async (req, res) => {
     const format = asTrimmedString(req.query?.format || 'csv').toLowerCase();
     if (format === 'xlsx') {
       const buffer = await buildImportTemplateXlsxBuffer();
@@ -1230,10 +1210,7 @@ router.get('/import/template', requirePermission('tasks.manage', { needsElevatio
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', 'attachment; filename="foretmap-modele-taches-projets.csv"');
     res.send(csv);
-  } catch (e) {
-    respondInternalError(res, req, e);
-  }
-});
+}));
 
 router.post('/import', requirePermission('tasks.manage', { needsElevation: true }), async (req, res) => {
   try {
@@ -1260,8 +1237,7 @@ router.post('/import', requirePermission('tasks.manage', { needsElevation: true 
   }
 });
 
-router.post('/', requirePermission('tasks.manage', { needsElevation: true }), async (req, res) => {
-  try {
+router.post('/', requirePermission('tasks.manage', { needsElevation: true }), asyncHandler(async (req, res) => {
     const {
       title,
       description,
@@ -1375,13 +1351,9 @@ router.post('/', requirePermission('tasks.manage', { needsElevation: true }), as
     emitTasksChanged({ reason: 'create_task', taskId: id, projectId: projectValidation.projectId || null, mapId: projectValidation.mapId });
     await syncTaskProjectCompletionForProjects([projectValidation.projectId]);
     res.status(201).json(task);
-  } catch (e) {
-    respondInternalError(res, req, e);
-  }
-});
+}));
 
-router.post('/proposals', async (req, res) => {
-  try {
+router.post('/proposals', asyncHandler(async (req, res) => {
     const {
       title,
       description,
@@ -1502,10 +1474,7 @@ router.post('/proposals', async (req, res) => {
     });
     emitTasksChanged({ reason: 'propose_task', taskId: id, mapId: resolveTaskMapId(task) });
     res.status(201).json(task);
-  } catch (e) {
-    respondInternalError(res, req, e);
-  }
-});
+}));
 
 router.put('/:id', async (req, res) => {
   try {
@@ -1801,8 +1770,7 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-router.delete('/:id', requirePermission('tasks.manage', { needsElevation: true }), async (req, res) => {
-  try {
+router.delete('/:id', requirePermission('tasks.manage', { needsElevation: true }), asyncHandler(async (req, res) => {
     const task = await queryOne('SELECT * FROM tasks WHERE id = ?', [req.params.id]);
     if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
     if (task.image_path) deleteFile(task.image_path);
@@ -1816,13 +1784,9 @@ router.delete('/:id', requirePermission('tasks.manage', { needsElevation: true }
       : null;
     await syncTaskProjectCompletionForProjects([delProjectId]);
     res.json({ success: true });
-  } catch (e) {
-    respondInternalError(res, req, e);
-  }
-});
+}));
 
-router.post('/:id/assign', async (req, res) => {
-  try {
+router.post('/:id/assign', asyncHandler(async (req, res) => {
     const task = await getTaskWithAssignments(req.params.id);
     if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
     if (task.status === 'validated') return res.status(400).json({ error: 'Tâche déjà validée' });
@@ -1896,13 +1860,9 @@ router.post('/:id/assign', async (req, res) => {
     emitTasksChanged({ reason: 'assign', taskId: task.id, mapId: resolveTaskMapId(updated) });
     await syncTaskProjectCompletionForProjects([updated.project_id]);
     res.json(updated);
-  } catch (e) {
-    respondInternalError(res, req, e);
-  }
-});
+}));
 
-router.post('/:id/assign-group', requirePermission('tasks.assign.group', { needsElevation: true }), async (req, res) => {
-  try {
+router.post('/:id/assign-group', requirePermission('tasks.assign.group', { needsElevation: true }), asyncHandler(async (req, res) => {
     const task = await getTaskWithAssignments(req.params.id);
     if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
     if (task.status === 'validated') return res.status(400).json({ error: 'Tâche déjà validée' });
@@ -1953,13 +1913,9 @@ router.post('/:id/assign-group', requirePermission('tasks.assign.group', { needs
     emitTasksChanged({ reason: 'assign_group', taskId: task.id, mapId: resolveTaskMapId(updated) });
     await syncTaskProjectCompletionForProjects([updated.project_id]);
     return res.json({ task: updated, assigned, skipped, considered: students.length });
-  } catch (e) {
-    return respondInternalError(res, req, e);
-  }
-});
+}));
 
-router.post('/:id/done', async (req, res) => {
-  try {
+router.post('/:id/done', asyncHandler(async (req, res) => {
     const task = await queryOne('SELECT * FROM tasks WHERE id = ?', [req.params.id]);
     if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
     const completionMode = normalizeTaskCompletionMode(task.completion_mode) || 'single_done';
@@ -2042,13 +1998,9 @@ router.post('/:id/done', async (req, res) => {
     emitTasksChanged({ reason: 'done', taskId: task.id, mapId: resolveTaskMapId(updated) });
     await syncTaskProjectCompletionForProjects([updated.project_id]);
     res.json(updated);
-  } catch (e) {
-    respondInternalError(res, req, e);
-  }
-});
+}));
 
-router.get('/:id/logs', async (req, res) => {
-  try {
+router.get('/:id/logs', asyncHandler(async (req, res) => {
     const auth = await parseOptionalAuth(req);
     if (isVisitorRole(auth)) {
       return res.status(403).json({ error: 'Accès refusé aux journaux de tâche pour le profil visiteur' });
@@ -2065,13 +2017,9 @@ router.get('/:id/logs', async (req, res) => {
         image_url: l.image_path ? `${baseUrl}/${l.id}/image` : null,
       }))
     );
-  } catch (e) {
-    respondInternalError(res, req, e);
-  }
-});
+}));
 
-router.get('/:id/logs/:logId/image', async (req, res) => {
-  try {
+router.get('/:id/logs/:logId/image', asyncHandler(async (req, res) => {
     const log = await queryOne('SELECT image_path FROM task_logs WHERE id = ? AND task_id = ?', [req.params.logId, req.params.id]);
     if (!log) return res.status(404).json({ error: 'Log introuvable' });
     if (log.image_path) {
@@ -2081,13 +2029,9 @@ router.get('/:id/logs/:logId/image', async (req, res) => {
       });
     }
     res.status(404).json({ error: 'Aucune image' });
-  } catch (e) {
-    respondInternalError(res, req, e);
-  }
-});
+}));
 
-router.delete('/:id/logs/:logId', requirePermission('tasks.manage', { needsElevation: true }), async (req, res) => {
-  try {
+router.delete('/:id/logs/:logId', requirePermission('tasks.manage', { needsElevation: true }), asyncHandler(async (req, res) => {
     const log = await queryOne('SELECT * FROM task_logs WHERE id = ? AND task_id = ?', [req.params.logId, req.params.id]);
     const taskForLog = await queryOne('SELECT map_id FROM tasks WHERE id = ?', [req.params.id]);
     if (!log) return res.status(404).json({ error: 'Rapport introuvable' });
@@ -2104,13 +2048,9 @@ router.delete('/:id/logs/:logId', requirePermission('tasks.manage', { needsEleva
     logAudit('delete_log', 'task_log', req.params.logId, `Tâche ${req.params.id}`, { req });
     emitTasksChanged({ reason: 'delete_log', taskId: req.params.id, mapId: resolveTaskMapId(taskForLog) });
     res.json({ success: true });
-  } catch (e) {
-    respondInternalError(res, req, e);
-  }
-});
+}));
 
-router.post('/:id/validate', requirePermission('tasks.validate', { needsElevation: true }), async (req, res) => {
-  try {
+router.post('/:id/validate', requirePermission('tasks.validate', { needsElevation: true }), asyncHandler(async (req, res) => {
     const task = await queryOne('SELECT * FROM tasks WHERE id = ?', [req.params.id]);
     if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
     const currentStatus = normalizeTaskStatusForRead(task.status);
@@ -2131,10 +2071,7 @@ router.post('/:id/validate', requirePermission('tasks.validate', { needsElevatio
     emitTasksChanged({ reason: 'validate', taskId: task.id, mapId: resolveTaskMapId(updated) });
     await syncTaskProjectCompletionForProjects([task.project_id]);
     res.json(updated);
-  } catch (e) {
-    respondInternalError(res, req, e);
-  }
-});
+}));
 
 /** Même modèle que POST assign, avec identité n3beur vérifiée (session ou permission n3boss). */
 router.post('/:id/unassign', async (req, res) => {
