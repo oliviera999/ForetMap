@@ -111,6 +111,10 @@ test.describe.serial('mascotte visite (comportement carte)', () => {
   let entrancePct = { x_pct: 22, y_pct: 18 };
 
   test.beforeEach(async ({ page }) => {
+    // [#54] beforeEach lourd (inscription + login + bascule prof + seed + nav +
+    // peinture mascotte) : ses attentes internes vont jusqu'à 90s, > le timeout
+    // test de 60s → timeout de hook flaky sous charge CI. On aligne le budget.
+    test.setTimeout(120_000);
     seededIds = null;
     teacherToken = '';
     seededSuffix = '';
@@ -194,6 +198,8 @@ test.describe.serial('mascotte visite (prefers-reduced-motion)', () => {
   let teacherToken = '';
 
   test.beforeEach(async ({ page }) => {
+    // [#54] beforeEach lourd : budget aligné sur les attentes internes (cf. ci-dessus).
+    test.setTimeout(120_000);
     await page.emulateMedia({ reducedMotion: 'reduce' });
     seededIds = null;
     teacherToken = '';
@@ -230,6 +236,8 @@ test.describe.serial('mascotte visite (sélecteur prof)', () => {
   let teacherToken = '';
 
   test.beforeEach(async ({ page }) => {
+    // [#54] beforeEach lourd : budget aligné sur les attentes internes (cf. ci-dessus).
+    test.setTimeout(120_000);
     seededIds = null;
     teacherToken = '';
     await loginAsNewStudent(page);
