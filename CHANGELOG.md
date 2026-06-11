@@ -10,6 +10,11 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ### Import carte (fork SQLite)
 
 - **Export zones/repères forêt** : conversion fork SQLite → SQL MySQL (`lib/legacyZoneShapeConvert.js`, `lib/sqliteGardenSqlExport.js`, `npm run export:sqlite-garden`) — polygones %, `living_beings` depuis `cultures`, `map_id=foret` ; fichier exemple `data/import/foret-comestible-garden.sql` ; migration `migrate:sqlite-to-mysql` alignée ; tests `tests/legacy-zone-shape-convert.test.js` ; devDep `better-sqlite3`.
+- **Correctif sûreté import carte** : le SQL généré n'abaisse plus `FOREIGN_KEY_CHECKS`, encapsule l'import dans une transaction et nettoie explicitement les liaisons tâches/projets/tutoriels/visite avant remplacement des zones/repères.
+
+### Auth / sécurité
+
+- **Correctif élévation legacy** : `POST /api/auth/teacher` vérifie désormais le PIN du rôle RBAC courant réhydraté depuis la base, empêchant l'utilisation d'un JWT non expiré portant un ancien `roleId`.
 
 ### Performance & sécurité (audit optimisation — `docs/AUDIT_OPTIMISATION.md`, items O1-O14)
 
