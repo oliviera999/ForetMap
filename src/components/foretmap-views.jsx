@@ -43,7 +43,6 @@ import { fileToDataUrl } from '../utils/fileToDataUrl.js';
 import {
   normalizedPlantValue,
   isGenericPotagerLabel,
-  parseLinkCandidates,
   mergePlantPhotoFieldValue,
   EMPTY_PLANT_FORM,
   extractPlantForm,
@@ -54,6 +53,7 @@ import {
 } from '../utils/biodivPlantForm.js';
 import { groupPrefillPhotosByField } from '../utils/plantPrefillHelpers.js';
 import { buildPlantnetIdentifyImages, filterNonEmptyIdentifySlots, derivePlantnetNameUpdate } from '../utils/plantnetIdentify.js';
+import { applyPrefillToForm } from '../utils/plantPrefillApply.js';
 import { PlantSummaryBadges, PlantEcosystemHumanLead } from './biodiv/PlantSummaryBlocks.jsx';
 import { PlantBiodivHeroPhoto, PlantMetaSections } from './biodiv/PlantMetaSections.jsx';
 import { PlantCatalogFilterPanel } from './biodiv/PlantCatalogFilterPanel.jsx';
@@ -543,63 +543,15 @@ function PlantEditForm({ title, form, setForm, onSave, onCancel, saving, plantId
 
   const applyPrefill = () => {
     if (!prefillResult) return;
-    setForm((prev) => {
-      const next = { ...prev };
-      for (const key of SPECIES_PREFILL_FIELDS) {
-        if (!selectedFields[key]) continue;
-        const value = String(prefillResult?.fields?.[key] || '').trim();
-        if (!value) continue;
-        const hasCurrentValue = String(prev?.[key] || '').trim().length > 0;
-        if (!hasCurrentValue || overwriteFilled) {
-          next[key] = value;
-        }
-      }
-
-      const mergedSources = parseLinkCandidates(next.sources);
-      const picked = [];
-      for (const [slotKey, sel] of Object.entries(prefillPhotoSelections || {})) {
-        if (!sel?.checked) continue;
-        const colon = slotKey.lastIndexOf(':');
-        if (colon <= 0) continue;
-        const sourceField = slotKey.slice(0, colon);
-        const idx = Number(slotKey.slice(colon + 1));
-        if (!Number.isFinite(idx)) continue;
-        const options = groupedPrefillPhotos[sourceField] || [];
-        const selected = options[idx];
-        if (!selected?.url) continue;
-        const assignTo = PHOTO_FIELD_KEYS.has(sel.assignTo) ? sel.assignTo : sourceField;
-        picked.push({ assignTo, url: selected.url, source_url: selected.source_url });
-      }
-      picked.sort((a, b) => a.assignTo.localeCompare(b.assignTo) || String(a.url).localeCompare(String(b.url)));
-      const byTarget = new Map();
-      for (const row of picked) {
-        if (!byTarget.has(row.assignTo)) byTarget.set(row.assignTo, []);
-        byTarget.get(row.assignTo).push(row);
-      }
-      for (const [targetField, rows] of byTarget) {
-        const urls = [...new Set(rows.map((r) => r.url).filter(Boolean))];
-        if (urls.length === 0) continue;
-        const existing = parseLinkCandidates(next[targetField]);
-        if (existing.length === 0 || overwriteFilled) {
-          next[targetField] = urls.join('\n');
-        } else {
-          const merged = [...existing];
-          for (const u of urls) {
-            if (!merged.includes(u)) merged.push(u);
-          }
-          next[targetField] = merged.join('\n');
-        }
-        for (const row of rows) {
-          if (row.source_url && !mergedSources.includes(row.source_url)) {
-            mergedSources.push(row.source_url);
-          }
-        }
-      }
-      if (mergedSources.length > 0) {
-        next.sources = mergedSources.join('\n');
-      }
-      return next;
-    });
+    setForm((prev) => applyPrefillToForm(prev, {
+      prefillResult,
+      selectedFields,
+      prefillPhotoSelections,
+      groupedPrefillPhotos,
+      overwriteFilled,
+      speciesPrefillFields: SPECIES_PREFILL_FIELDS,
+      photoFieldKeys: PHOTO_FIELD_KEYS,
+    }));
     onToast?.('Pré-saisie appliquée au formulaire ✓');
   };
 
