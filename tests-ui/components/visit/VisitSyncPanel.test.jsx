@@ -28,6 +28,15 @@ afterEach(() => {
   alertSpy.mockRestore();
 });
 
+/** Attend que l'effet de présélection ait coché toutes les cases (il court APRÈS le rendu des options). */
+async function waitForPreselection() {
+  await waitFor(() => {
+    const boxes = screen.getAllByRole('checkbox');
+    expect(boxes.length).toBeGreaterThan(0);
+    expect(boxes.every((c) => c.checked)).toBe(true);
+  });
+}
+
 describe('VisitSyncPanel', () => {
   test('non enseignant → ne rend rien', () => {
     const { container } = render(<VisitSyncPanel isTeacher={false} mapId={3} />);
@@ -41,15 +50,15 @@ describe('VisitSyncPanel', () => {
     expect(api).toHaveBeenCalledWith('/api/visit/sync/options?map_id=3');
     expect(await screen.findByText('Zones (2)')).toBeInTheDocument();
     expect(screen.getByText('Repères (1)')).toBeInTheDocument();
-    const checkboxes = screen.getAllByRole('checkbox');
-    expect(checkboxes).toHaveLength(3);
-    expect(checkboxes.every((c) => c.checked)).toBe(true);
+    expect(screen.getAllByRole('checkbox')).toHaveLength(3);
+    await waitForPreselection();
   });
 
   test('décocher une zone puis « Tout cocher » la recoche', async () => {
     api.mockResolvedValue(OPTIONS);
     render(<VisitSyncPanel isTeacher mapId={3} />);
     await screen.findByText('Zones (2)');
+    await waitForPreselection();
     const vergerCb = screen.getByLabelText('Verger', { exact: false });
     fireEvent.click(vergerCb);
     expect(vergerCb.checked).toBe(false);
@@ -64,6 +73,7 @@ describe('VisitSyncPanel', () => {
     const onSynced = vi.fn();
     render(<VisitSyncPanel isTeacher mapId={3} onSynced={onSynced} />);
     await screen.findByText('Zones (2)');
+    await waitForPreselection();
     fireEvent.click(screen.getByText('Lancer l’import sélectionné'));
     await waitFor(() => {
       expect(api).toHaveBeenCalledWith('/api/visit/sync', 'POST', {
