@@ -62,6 +62,7 @@ import {
   prefillPhotoSlotKey,
   findFirstBiodivHeroPhotoCandidate,
 } from '../utils/biodivPlantForm.js';
+import { isVegetalCatalogEntry, groupPlantLocationsByMap } from '../utils/plantCatalogHelpers.js';
 import { parseZonePointsJson, computeBiodivMapFitRect } from '../utils/biodivMapGeometry.js';
 
 // ── INTERACTIVE MAP ──────────────────────────────────────────────────────────
@@ -317,12 +318,6 @@ async function fetchCommonsCategoryPreview(urlValue) {
   const first = pages[0];
   const info = first?.imageinfo?.[0];
   return info?.thumburl || info?.url || null;
-}
-
-/** Groupe (taxon) 1 catalogue type « Végétal (Chlorobiontes) » — nutrition souvent redondante (autotrophe). */
-function isVegetalCatalogEntry(plant) {
-  const g1 = (normalizedPlantValue(plant.group_1) || '').toLowerCase();
-  return g1.includes('végétal');
 }
 
 function PlantSummaryBadges({ plant }) {
@@ -2310,24 +2305,6 @@ function ObservationNotebook({ student, onForceLogout = null }) {
 }
 
 // ── Mini-cartes emplacement (zones / repères) sur les fiches biodiversité ─────
-function groupPlantLocationsByMap(zoneList, markerList) {
-  const map = new Map();
-  const ensure = (mapId) => {
-    const id = mapId && String(mapId).trim() ? String(mapId).trim() : 'foret';
-    if (!map.has(id)) map.set(id, { zones: [], markers: [] });
-    return id;
-  };
-  for (const z of zoneList || []) {
-    const id = ensure(z.map_id);
-    map.get(id).zones.push(z);
-  }
-  for (const m of markerList || []) {
-    const id = ensure(m.map_id);
-    map.get(id).markers.push(m);
-  }
-  return map;
-}
-
 function BiodivLocationMapBlock({ mapId, maps, zones, markers }) {
   const activeMap = maps.find((m) => m.id === mapId);
   const candidates = useMemo(() => buildMapImageCandidates(activeMap), [activeMap]);
