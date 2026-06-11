@@ -4,6 +4,7 @@ const { v4: uuidv4 } = require('uuid');
 const path = require('path');
 const fs = require('fs');
 const logger = require('./lib/logger');
+const rbacCache = require('./lib/rbacCache');
 const { inlineLegacyTutorialHtmlToDb } = require('./lib/inlineLegacyTutorialHtml');
 
 /** Errnos MySQL souvent attendus lors de migrations idempotentes (table/colonne/index déjà présents ou legacy absent). */
@@ -95,6 +96,7 @@ async function queryOne(sql, params = []) {
  */
 async function execute(sql, params = []) {
   const [result] = await pool.execute(sql, params);
+  rbacCache.maybeInvalidateFromSql(sql);
   return {
     insertId: result.insertId,
     affectedRows: result.affectedRows,
@@ -116,6 +118,7 @@ async function withTransaction(work) {
       },
       execute: async (sql, params = []) => {
         const [result] = await conn.execute(sql, params);
+        rbacCache.maybeInvalidateFromSql(sql);
         return {
           insertId: result.insertId,
           affectedRows: result.affectedRows,
