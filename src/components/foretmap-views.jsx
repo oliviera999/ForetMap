@@ -54,52 +54,20 @@ import {
   isGenericPotagerLabel,
   parseLinkCandidates,
   mergePlantPhotoFieldValue,
+  EMPTY_PLANT_FORM,
+  extractPlantForm,
 } from '../utils/plantFormValues.js';
 import {
   pickPlantnetVernacularName,
   prefillPhotoSlotKey,
   findFirstBiodivHeroPhotoCandidate,
 } from '../utils/biodivPlantForm.js';
+import { isVegetalCatalogEntry, groupPlantLocationsByMap } from '../utils/plantCatalogHelpers.js';
 import { parseZonePointsJson, computeBiodivMapFitRect } from '../utils/biodivMapGeometry.js';
 
 // ── INTERACTIVE MAP ──────────────────────────────────────────────────────────
 
 
-const EMPTY_PLANT_FORM = {
-  name: '',
-  emoji: '🌱',
-  description: '',
-  second_name: '',
-  scientific_name: '',
-  group_1: '',
-  group_2: '',
-  group_3: '',
-  group_4: '',
-  habitat: '',
-  photo: '',
-  nutrition: '',
-  agroecosystem_category: '',
-  longevity: '',
-  remark_1: '',
-  remark_2: '',
-  remark_3: '',
-  reproduction: '',
-  size: '',
-  sources: '',
-  ideal_temperature_c: '',
-  optimal_ph: '',
-  ecosystem_role: '',
-  geographic_origin: '',
-  human_utility: '',
-  harvest_part: '',
-  planting_recommendations: '',
-  preferred_nutrients: '',
-  photo_species: '',
-  photo_leaf: '',
-  photo_flower: '',
-  photo_fruit: '',
-  photo_harvest_part: '',
-};
 const PLANTS_IMPORT_TEMPLATE_HEADERS = [
   'name',
   'emoji',
@@ -303,15 +271,6 @@ const PLANT_PHOTO_FIELD_OPTIONS = [
   { key: 'photo', label: 'Photo (générale)' },
 ];
 
-function extractPlantForm(plant = {}) {
-  const form = { ...EMPTY_PLANT_FORM };
-  Object.keys(form).forEach((k) => {
-    form[k] = normalizedPlantValue(plant[k]);
-  });
-  if (!form.emoji) form.emoji = '🌱';
-  return form;
-}
-
 /**
  * Ordre des champs pour les images envoyées à Pl@ntNet : la 1re image = illustration principale (`photo`),
  * les suivantes = autres cases photo du formulaire.
@@ -359,12 +318,6 @@ async function fetchCommonsCategoryPreview(urlValue) {
   const first = pages[0];
   const info = first?.imageinfo?.[0];
   return info?.thumburl || info?.url || null;
-}
-
-/** Groupe (taxon) 1 catalogue type « Végétal (Chlorobiontes) » — nutrition souvent redondante (autotrophe). */
-function isVegetalCatalogEntry(plant) {
-  const g1 = (normalizedPlantValue(plant.group_1) || '').toLowerCase();
-  return g1.includes('végétal');
 }
 
 function PlantSummaryBadges({ plant }) {
@@ -2352,24 +2305,6 @@ function ObservationNotebook({ student, onForceLogout = null }) {
 }
 
 // ── Mini-cartes emplacement (zones / repères) sur les fiches biodiversité ─────
-function groupPlantLocationsByMap(zoneList, markerList) {
-  const map = new Map();
-  const ensure = (mapId) => {
-    const id = mapId && String(mapId).trim() ? String(mapId).trim() : 'foret';
-    if (!map.has(id)) map.set(id, { zones: [], markers: [] });
-    return id;
-  };
-  for (const z of zoneList || []) {
-    const id = ensure(z.map_id);
-    map.get(id).zones.push(z);
-  }
-  for (const m of markerList || []) {
-    const id = ensure(m.map_id);
-    map.get(id).markers.push(m);
-  }
-  return map;
-}
-
 function BiodivLocationMapBlock({ mapId, maps, zones, markers }) {
   const activeMap = maps.find((m) => m.id === mapId);
   const candidates = useMemo(() => buildMapImageCandidates(activeMap), [activeMap]);
