@@ -1,5 +1,5 @@
 import React from 'react';
-import { renderMarkdownToSafeHtml } from '../../utils/markdown.js';
+import { renderMarkdownToSafeHtml } from '../../utils/markdownRender.js';
 
 function formatWhen(createdAt) {
   try {

@@ -3,8 +3,8 @@ import { apiGL } from '../services/apiGL.js';
 import {
   applyJournalEmbed,
   applyMarkdownHtmlImage,
-  renderMarkdownToSafeHtml,
 } from '../../utils/markdown.js';
+import { renderMarkdownToSafeHtml } from '../../utils/markdownRender.js';
 import { compressImageWithPreset, isLikelyImageFile } from '../../utils/image.js';
 import { GLButton } from './ui/GLButton.jsx';
 import { GLPlayerJournalEmbedPicker } from './GLPlayerJournalEmbedPicker.jsx';

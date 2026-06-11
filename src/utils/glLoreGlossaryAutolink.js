@@ -1,7 +1,7 @@
 /**
  * Auto-liens glossaire lore GL (séparé du glossaire SVT).
  */
-import { renderMarkdownToSafeHtml } from './markdown.js';
+import { renderMarkdownToSafeHtml } from './markdownRender.js';
 
 const SKIP_TAGS = new Set(['a', 'button', 'code', 'pre', 'script', 'style', 'img', 'aside']);
 

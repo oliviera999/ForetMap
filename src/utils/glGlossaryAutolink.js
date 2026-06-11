@@ -1,7 +1,7 @@
 /**
  * Auto-liens glossaire GL dans texte / HTML markdown.
  */
-import { renderMarkdownToSafeHtml, sanitizeRichHtml } from './markdown.js';
+import { renderMarkdownToSafeHtml, sanitizeRichHtml } from './markdownRender.js';
 
 const SKIP_TAGS = new Set(['a', 'button', 'code', 'pre', 'script', 'style', 'img', 'aside']);
 
