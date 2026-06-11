@@ -14,6 +14,7 @@ const {
   hydrateAuthFromTokenClaims,
 } = require('../middleware/requireTeacher');
 const { logRouteError } = require('../lib/routeLog');
+const asyncHandler = require('../lib/asyncHandler');
 const logger = require('../lib/logger');
 const { emitStudentsChanged } = require('../lib/realtime');
 const { sendPasswordResetEmail } = require('../lib/mailer');
@@ -556,121 +557,117 @@ router.post('/register', async (req, res) => {
   }
 });
 
-router.post('/login', async (req, res) => {
-  try {
-    const { password } = req.body;
-    const identifier = normalizeOptionalString(req.body?.identifier);
-    if (!password || !identifier) return res.status(400).json({ error: 'Identifiant (email ou pseudo) et mot de passe requis' });
-    await ensureTeacherSeedFromEnv();
+router.post('/login', asyncHandler(async (req, res) => {
+  const { password } = req.body;
+  const identifier = normalizeOptionalString(req.body?.identifier);
+  if (!password || !identifier) return res.status(400).json({ error: 'Identifiant (email ou pseudo) et mot de passe requis' });
+  await ensureTeacherSeedFromEnv();
 
-    const account = await resolveLoginAccountByIdentifier(identifier);
+  const account = await resolveLoginAccountByIdentifier(identifier);
 
-    if (!account) {
-      await logSecurityEvent('auth.login', {
-        req,
-        result: 'failure',
-        reason: 'account_not_found',
-        payload: { identifier },
-      });
-      logger.warn(
-        { requestId: req.requestId, event: 'auth_login_failure', reason: 'account_not_found' },
-        'Échec connexion (compte introuvable)'
-      );
-      return res.status(401).json({ error: 'Identifiant ou mot de passe incorrect' });
-    }
-    if (!account.password_hash) {
-      await logSecurityEvent('auth.login', {
-        req,
-        actorUserType: account.user_type,
-        actorUserId: account.id,
-        targetType: account.user_type,
-        targetId: account.id,
-        result: 'failure',
-        reason: 'password_not_set',
-      });
-      logger.warn(
-        { requestId: req.requestId, event: 'auth_login_failure', reason: 'password_not_set', userType: account.user_type },
-        'Échec connexion (mot de passe non défini)'
-      );
-      return res.status(401).json({ error: 'Ce compte n\'a pas de mot de passe. Contactez le prof.' });
-    }
-
-    if (account.is_active != null && !Number(account.is_active)) {
-      await logSecurityEvent('auth.login', {
-        req,
-        actorUserType: account.user_type,
-        actorUserId: account.id,
-        targetType: account.user_type,
-        targetId: account.id,
-        result: 'failure',
-        reason: 'account_inactive',
-      });
-      logger.warn(
-        { requestId: req.requestId, event: 'auth_login_failure', reason: 'account_inactive', userType: account.user_type },
-        'Échec connexion (compte inactif)'
-      );
-      return res.status(401).json({ error: 'Compte inactif' });
-    }
-
-    const ok = await bcrypt.compare(password, account.password_hash);
-    if (!ok) {
-      await logSecurityEvent('auth.login', {
-        req,
-        actorUserType: account.user_type,
-        actorUserId: account.id,
-        targetType: account.user_type,
-        targetId: account.id,
-        result: 'failure',
-        reason: 'password_invalid',
-      });
-      logger.warn(
-        { requestId: req.requestId, event: 'auth_login_failure', reason: 'password_invalid', userType: account.user_type },
-        'Échec connexion (mot de passe incorrect)'
-      );
-      return res.status(401).json({ error: 'Identifiant ou mot de passe incorrect' });
-    }
-
-    const userType = await resolveLoginUserType(account);
-    const preferredRole = userType === 'teacher' || userType === 'user' ? 'prof' : 'eleve_novice';
-    await ensurePrimaryRole(userType, account.id, preferredRole);
-    if (userType === 'student') {
-      const primary = await getPrimaryRoleForUser('student', account.id);
-      if (primary && String(primary.slug || '').toLowerCase() === 'visiteur') {
-        const noviceRole = await queryOne("SELECT id FROM roles WHERE slug = 'eleve_novice' LIMIT 1");
-        if (noviceRole?.id) await setPrimaryRole('student', account.id, noviceRole.id);
-      }
-    }
-    await execute('UPDATE users SET last_seen = ?, updated_at = NOW() WHERE id = ?', [new Date().toISOString(), account.id]);
-    let session = await buildSessionPayload(userType, account.id, false);
-    if (!session && userType !== 'teacher') {
-      session = await buildSessionPayload('teacher', account.id, false);
-    }
-    if (!session && userType !== 'student') {
-      session = await buildSessionPayload('student', account.id, false);
-    }
-    if (!session) {
-      return res.status(403).json({ error: 'Aucun profil attribué' });
-    }
-    const token = session ? await signAuthToken(session.tokenPayload, false) : null;
+  if (!account) {
     await logSecurityEvent('auth.login', {
       req,
-      actorUserType: session.tokenPayload.userType,
-      actorUserId: account.id,
-      targetType: session.tokenPayload.userType,
-      targetId: account.id,
-      payload: { via: 'identifier' },
+      result: 'failure',
+      reason: 'account_not_found',
+      payload: { identifier },
     });
-    const safeUser = { ...account };
-    delete safeUser.password_hash;
-    res.json({
-      ...safeUser,
-      authToken: token,
-      auth: session ? exposeAuth(session.tokenPayload) : null,
-    });
-  } catch (e) {
-    respondInternalError(res, req, e);
+    logger.warn(
+      { requestId: req.requestId, event: 'auth_login_failure', reason: 'account_not_found' },
+      'Échec connexion (compte introuvable)'
+    );
+    return res.status(401).json({ error: 'Identifiant ou mot de passe incorrect' });
   }
-});
+  if (!account.password_hash) {
+    await logSecurityEvent('auth.login', {
+      req,
+      actorUserType: account.user_type,
+      actorUserId: account.id,
+      targetType: account.user_type,
+      targetId: account.id,
+      result: 'failure',
+      reason: 'password_not_set',
+    });
+    logger.warn(
+      { requestId: req.requestId, event: 'auth_login_failure', reason: 'password_not_set', userType: account.user_type },
+      'Échec connexion (mot de passe non défini)'
+    );
+    return res.status(401).json({ error: 'Ce compte n\'a pas de mot de passe. Contactez le prof.' });
+  }
+
+  if (account.is_active != null && !Number(account.is_active)) {
+    await logSecurityEvent('auth.login', {
+      req,
+      actorUserType: account.user_type,
+      actorUserId: account.id,
+      targetType: account.user_type,
+      targetId: account.id,
+      result: 'failure',
+      reason: 'account_inactive',
+    });
+    logger.warn(
+      { requestId: req.requestId, event: 'auth_login_failure', reason: 'account_inactive', userType: account.user_type },
+      'Échec connexion (compte inactif)'
+    );
+    return res.status(401).json({ error: 'Compte inactif' });
+  }
+
+  const ok = await bcrypt.compare(password, account.password_hash);
+  if (!ok) {
+    await logSecurityEvent('auth.login', {
+      req,
+      actorUserType: account.user_type,
+      actorUserId: account.id,
+      targetType: account.user_type,
+      targetId: account.id,
+      result: 'failure',
+      reason: 'password_invalid',
+    });
+    logger.warn(
+      { requestId: req.requestId, event: 'auth_login_failure', reason: 'password_invalid', userType: account.user_type },
+      'Échec connexion (mot de passe incorrect)'
+    );
+    return res.status(401).json({ error: 'Identifiant ou mot de passe incorrect' });
+  }
+
+  const userType = await resolveLoginUserType(account);
+  const preferredRole = userType === 'teacher' || userType === 'user' ? 'prof' : 'eleve_novice';
+  await ensurePrimaryRole(userType, account.id, preferredRole);
+  if (userType === 'student') {
+    const primary = await getPrimaryRoleForUser('student', account.id);
+    if (primary && String(primary.slug || '').toLowerCase() === 'visiteur') {
+      const noviceRole = await queryOne("SELECT id FROM roles WHERE slug = 'eleve_novice' LIMIT 1");
+      if (noviceRole?.id) await setPrimaryRole('student', account.id, noviceRole.id);
+    }
+  }
+  await execute('UPDATE users SET last_seen = ?, updated_at = NOW() WHERE id = ?', [new Date().toISOString(), account.id]);
+  let session = await buildSessionPayload(userType, account.id, false);
+  if (!session && userType !== 'teacher') {
+    session = await buildSessionPayload('teacher', account.id, false);
+  }
+  if (!session && userType !== 'student') {
+    session = await buildSessionPayload('student', account.id, false);
+  }
+  if (!session) {
+    return res.status(403).json({ error: 'Aucun profil attribué' });
+  }
+  const token = session ? await signAuthToken(session.tokenPayload, false) : null;
+  await logSecurityEvent('auth.login', {
+    req,
+    actorUserType: session.tokenPayload.userType,
+    actorUserId: account.id,
+    targetType: session.tokenPayload.userType,
+    targetId: account.id,
+    payload: { via: 'identifier' },
+  });
+  const safeUser = { ...account };
+  delete safeUser.password_hash;
+  res.json({
+    ...safeUser,
+    authToken: token,
+    auth: session ? exposeAuth(session.tokenPayload) : null,
+  });
+}));
 
 router.get('/google/start', async (req, res) => {
   const mode = normalizeOAuthMode(req.query?.mode);
@@ -847,163 +844,143 @@ router.get('/google/callback', async (req, res) => {
   }
 });
 
-router.post('/forgot-password', async (req, res) => {
-  try {
-    const email = normalizeEmail(req.body?.email ?? req.body?.mail);
-    if (!email || !EMAIL_RE.test(email)) {
-      return res.json({ ok: true, message: 'Si un compte existe, un email de réinitialisation a été envoyé.' });
-    }
-    const student = await queryOne(
-      "SELECT id, first_name, last_name, email, password_hash FROM users WHERE user_type = 'student' AND LOWER(email)=LOWER(?) LIMIT 1",
-      [email]
-    );
-    if (student && student.password_hash) {
-      const token = await createPasswordResetToken('student', student.id);
-      await sendPasswordResetEmail({
-        to: student.email,
-        displayName: `${student.first_name || ''} ${student.last_name || ''}`.trim() || 'n3beur',
-        resetUrl: makeResetUrl('student', token),
-        roleLabel: 'n3beur',
-      });
-      await logSecurityEvent('auth.password_reset.request.student', {
-        req,
-        actorUserType: 'student',
-        actorUserId: student.id,
-        targetType: 'student',
-        targetId: student.id,
-      });
-    }
-    res.json({ ok: true, message: 'Si un compte existe, un email de réinitialisation a été envoyé.' });
-  } catch (e) {
-    respondInternalError(res, req, e);
+router.post('/forgot-password', asyncHandler(async (req, res) => {
+  const email = normalizeEmail(req.body?.email ?? req.body?.mail);
+  if (!email || !EMAIL_RE.test(email)) {
+    return res.json({ ok: true, message: 'Si un compte existe, un email de réinitialisation a été envoyé.' });
   }
-});
-
-router.post('/reset-password', async (req, res) => {
-  try {
-    const token = normalizeOptionalString(req.body?.token);
-    const password = req.body?.password;
-    if (!token || !password) return res.status(400).json({ error: 'Champs requis' });
-    const minPasswordLen = await getPasswordMinLength();
-    if (String(password).length < minPasswordLen) {
-      return res.status(400).json({ error: `Mot de passe trop court (min ${minPasswordLen} caractères)` });
-    }
-    const studentId = await consumePasswordResetToken('student', token);
-    if (!studentId) return res.status(400).json({ error: 'Token invalide ou expiré' });
-    const hash = await bcrypt.hash(password, 10);
-    await execute("UPDATE users SET password_hash = ? WHERE id = ? AND user_type = 'student'", [hash, studentId]);
-    await logSecurityEvent('auth.password_reset.confirm.student', {
+  const student = await queryOne(
+    "SELECT id, first_name, last_name, email, password_hash FROM users WHERE user_type = 'student' AND LOWER(email)=LOWER(?) LIMIT 1",
+    [email]
+  );
+  if (student && student.password_hash) {
+    const token = await createPasswordResetToken('student', student.id);
+    await sendPasswordResetEmail({
+      to: student.email,
+      displayName: `${student.first_name || ''} ${student.last_name || ''}`.trim() || 'n3beur',
+      resetUrl: makeResetUrl('student', token),
+      roleLabel: 'n3beur',
+    });
+    await logSecurityEvent('auth.password_reset.request.student', {
       req,
       actorUserType: 'student',
-      actorUserId: studentId,
+      actorUserId: student.id,
       targetType: 'student',
-      targetId: studentId,
+      targetId: student.id,
     });
-    res.json({ ok: true });
-  } catch (e) {
-    respondInternalError(res, req, e);
   }
-});
+  res.json({ ok: true, message: 'Si un compte existe, un email de réinitialisation a été envoyé.' });
+}));
+
+router.post('/reset-password', asyncHandler(async (req, res) => {
+  const token = normalizeOptionalString(req.body?.token);
+  const password = req.body?.password;
+  if (!token || !password) return res.status(400).json({ error: 'Champs requis' });
+  const minPasswordLen = await getPasswordMinLength();
+  if (String(password).length < minPasswordLen) {
+    return res.status(400).json({ error: `Mot de passe trop court (min ${minPasswordLen} caractères)` });
+  }
+  const studentId = await consumePasswordResetToken('student', token);
+  if (!studentId) return res.status(400).json({ error: 'Token invalide ou expiré' });
+  const hash = await bcrypt.hash(password, 10);
+  await execute("UPDATE users SET password_hash = ? WHERE id = ? AND user_type = 'student'", [hash, studentId]);
+  await logSecurityEvent('auth.password_reset.confirm.student', {
+    req,
+    actorUserType: 'student',
+    actorUserId: studentId,
+    targetType: 'student',
+    targetId: studentId,
+  });
+  res.json({ ok: true });
+}));
 
 router.post('/teacher/login', async (req, res) => {
   return res.status(410).json({ error: 'Endpoint supprimé. Utilisez /api/auth/login.' });
 });
 
-router.post('/teacher/forgot-password', async (req, res) => {
-  try {
-    await ensureTeacherSeedFromEnv();
-    const email = normalizeEmail(req.body?.email);
-    if (!email || !EMAIL_RE.test(email)) {
-      return res.json({ ok: true, message: 'Si un compte existe, un email de réinitialisation a été envoyé.' });
-    }
-    const teacher = await queryOne(
-      "SELECT id, email, is_active FROM users WHERE user_type = 'teacher' AND LOWER(email)=LOWER(?) LIMIT 1",
-      [email]
-    );
-    if (teacher && teacher.is_active) {
-      const token = await createPasswordResetToken('teacher', teacher.id);
-      await sendPasswordResetEmail({
-        to: teacher.email,
-        displayName: 'n3boss',
-        resetUrl: makeResetUrl('teacher', token),
-        roleLabel: 'n3boss',
-      });
-      await logSecurityEvent('auth.password_reset.request.teacher', {
-        req,
-        actorUserType: 'teacher',
-        actorUserId: teacher.id,
-        targetType: 'teacher',
-        targetId: teacher.id,
-      });
-    }
-    res.json({ ok: true, message: 'Si un compte existe, un email de réinitialisation a été envoyé.' });
-  } catch (e) {
-    respondInternalError(res, req, e);
+router.post('/teacher/forgot-password', asyncHandler(async (req, res) => {
+  await ensureTeacherSeedFromEnv();
+  const email = normalizeEmail(req.body?.email);
+  if (!email || !EMAIL_RE.test(email)) {
+    return res.json({ ok: true, message: 'Si un compte existe, un email de réinitialisation a été envoyé.' });
   }
-});
-
-router.post('/teacher/reset-password', async (req, res) => {
-  try {
-    const token = normalizeOptionalString(req.body?.token);
-    const password = req.body?.password;
-    if (!token || !password) return res.status(400).json({ error: 'Champs requis' });
-    const minPasswordLen = await getPasswordMinLength();
-    if (String(password).length < minPasswordLen) {
-      return res.status(400).json({ error: `Mot de passe trop court (min ${minPasswordLen} caractères)` });
-    }
-    const teacherId = await consumePasswordResetToken('teacher', token);
-    if (!teacherId) return res.status(400).json({ error: 'Token invalide ou expiré' });
-    const hash = await bcrypt.hash(password, 10);
-    const now = new Date().toISOString();
-    await execute("UPDATE users SET password_hash = ?, updated_at = NOW() WHERE id = ? AND user_type = 'teacher'", [hash, teacherId]);
-    await logSecurityEvent('auth.password_reset.confirm.teacher', {
+  const teacher = await queryOne(
+    "SELECT id, email, is_active FROM users WHERE user_type = 'teacher' AND LOWER(email)=LOWER(?) LIMIT 1",
+    [email]
+  );
+  if (teacher && teacher.is_active) {
+    const token = await createPasswordResetToken('teacher', teacher.id);
+    await sendPasswordResetEmail({
+      to: teacher.email,
+      displayName: 'n3boss',
+      resetUrl: makeResetUrl('teacher', token),
+      roleLabel: 'n3boss',
+    });
+    await logSecurityEvent('auth.password_reset.request.teacher', {
       req,
       actorUserType: 'teacher',
-      actorUserId: teacherId,
+      actorUserId: teacher.id,
       targetType: 'teacher',
-      targetId: teacherId,
+      targetId: teacher.id,
     });
-    res.json({ ok: true });
-  } catch (e) {
-    respondInternalError(res, req, e);
   }
-});
+  res.json({ ok: true, message: 'Si un compte existe, un email de réinitialisation a été envoyé.' });
+}));
 
-router.post('/elevate', requireAuth, async (req, res) => {
-  try {
-    const allowPinElevation = await getSettingValue('security.allow_pin_elevation', true);
-    if (!allowPinElevation) return res.status(403).json({ error: 'Élévation PIN désactivée' });
-    const pin = normalizeOptionalString(req.body?.pin);
-    if (!pin) return res.status(400).json({ error: 'PIN requis' });
-    if (!req.auth?.roleId) return res.status(401).json({ error: 'Session invalide' });
+router.post('/teacher/reset-password', asyncHandler(async (req, res) => {
+  const token = normalizeOptionalString(req.body?.token);
+  const password = req.body?.password;
+  if (!token || !password) return res.status(400).json({ error: 'Champs requis' });
+  const minPasswordLen = await getPasswordMinLength();
+  if (String(password).length < minPasswordLen) {
+    return res.status(400).json({ error: `Mot de passe trop court (min ${minPasswordLen} caractères)` });
+  }
+  const teacherId = await consumePasswordResetToken('teacher', token);
+  if (!teacherId) return res.status(400).json({ error: 'Token invalide ou expiré' });
+  const hash = await bcrypt.hash(password, 10);
+  const now = new Date().toISOString();
+  await execute("UPDATE users SET password_hash = ?, updated_at = NOW() WHERE id = ? AND user_type = 'teacher'", [hash, teacherId]);
+  await logSecurityEvent('auth.password_reset.confirm.teacher', {
+    req,
+    actorUserType: 'teacher',
+    actorUserId: teacherId,
+    targetType: 'teacher',
+    targetId: teacherId,
+  });
+  res.json({ ok: true });
+}));
 
-    const ok = await verifyRolePin(req.auth.roleId, pin);
-    await execute(
-      'INSERT INTO elevation_audit (user_type, user_id, role_id, success, reason) VALUES (?, ?, ?, ?, ?)',
-      [req.auth.userType, req.auth.userId, req.auth.roleId, ok ? 1 : 0, ok ? 'ok' : 'pin_invalid']
+router.post('/elevate', requireAuth, asyncHandler(async (req, res) => {
+  const allowPinElevation = await getSettingValue('security.allow_pin_elevation', true);
+  if (!allowPinElevation) return res.status(403).json({ error: 'Élévation PIN désactivée' });
+  const pin = normalizeOptionalString(req.body?.pin);
+  if (!pin) return res.status(400).json({ error: 'PIN requis' });
+  if (!req.auth?.roleId) return res.status(401).json({ error: 'Session invalide' });
+
+  const ok = await verifyRolePin(req.auth.roleId, pin);
+  await execute(
+    'INSERT INTO elevation_audit (user_type, user_id, role_id, success, reason) VALUES (?, ?, ?, ?, ?)',
+    [req.auth.userType, req.auth.userId, req.auth.roleId, ok ? 1 : 0, ok ? 'ok' : 'pin_invalid']
+  );
+  if (!ok) {
+    logger.warn(
+      { requestId: req.requestId, event: 'auth_elevate_failure', reason: 'pin_invalid', userType: req.auth.userType },
+      'Élévation PIN refusée'
     );
-    if (!ok) {
-      logger.warn(
-        { requestId: req.requestId, event: 'auth_elevate_failure', reason: 'pin_invalid', userType: req.auth.userType },
-        'Élévation PIN refusée'
-      );
-      return res.status(401).json({ error: 'PIN incorrect' });
-    }
-
-    const session = await buildSessionPayload(req.auth.userType, req.auth.userId, true);
-    if (!session) return res.status(403).json({ error: 'Aucun profil attribué' });
-    const token = await signAuthToken(session.tokenPayload, true);
-    await logAudit('auth_elevate', 'auth', req.auth.userId, `Élévation ${req.auth.userType}`, {
-      req,
-      actorUserType: req.auth.userType,
-      actorUserId: req.auth.userId,
-      payload: { role_id: req.auth.roleId, elevated: true },
-    });
-    res.json({ token, auth: exposeAuth(session.tokenPayload) });
-  } catch (e) {
-    respondInternalError(res, req, e);
+    return res.status(401).json({ error: 'PIN incorrect' });
   }
-});
+
+  const session = await buildSessionPayload(req.auth.userType, req.auth.userId, true);
+  if (!session) return res.status(403).json({ error: 'Aucun profil attribué' });
+  const token = await signAuthToken(session.tokenPayload, true);
+  await logAudit('auth_elevate', 'auth', req.auth.userId, `Élévation ${req.auth.userType}`, {
+    req,
+    actorUserType: req.auth.userType,
+    actorUserId: req.auth.userId,
+    payload: { role_id: req.auth.roleId, elevated: true },
+  });
+  res.json({ token, auth: exposeAuth(session.tokenPayload) });
+}));
 
 // Compatibilité historique: "mode prof via PIN".
 // Désormais, ce endpoint exige d'être déjà connecté puis élève la session.
