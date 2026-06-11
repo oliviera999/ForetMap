@@ -84,7 +84,7 @@ describe('sqliteGardenSqlExport', () => {
     assert.equal(sqlString('a\nb'), "'a\\nb'");
   });
 
-  it('génère un SQL avec DELETE et INSERT', () => {
+  it('génère un SQL transactionnel avec nettoyage des dépendances avant INSERT', () => {
     const Database = require('better-sqlite3');
     const sqlite = new Database(':memory:');
     sqlite.exec(`
@@ -109,8 +109,15 @@ describe('sqliteGardenSqlExport', () => {
     sqlite.close();
     assert.equal(counts.zones, 1);
     assert.equal(counts.markers, 1);
+    assert.match(sql, /START TRANSACTION;/);
+    assert.doesNotMatch(sql, /FOREIGN_KEY_CHECKS\s*=\s*0/);
+    assert.match(sql, /UPDATE tasks t INNER JOIN zones z ON z\.id = t\.zone_id SET t\.zone_id = NULL WHERE z\.map_id = 'foret'/);
+    assert.match(sql, /DELETE tz FROM task_zones tz INNER JOIN zones z ON z\.id = tz\.zone_id WHERE z\.map_id = 'foret'/);
+    assert.match(sql, /DELETE tm FROM task_markers tm INNER JOIN map_markers m ON m\.id = tm\.marker_id WHERE m\.map_id = 'foret'/);
+    assert.match(sql, /DELETE vss FROM visit_seen_students vss INNER JOIN visit_zones vz ON vz\.id = vss\.target_id WHERE vss\.target_type = 'zone' AND vz\.map_id = 'foret'/);
     assert.match(sql, /DELETE FROM zones WHERE map_id = 'foret'/);
     assert.match(sql, /INSERT INTO zones/);
     assert.match(sql, /INSERT INTO map_markers/);
+    assert.match(sql, /COMMIT;/);
   });
 });
