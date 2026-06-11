@@ -35,7 +35,9 @@ export function GLChapterIllustration({
 
 /**
  * Galerie de toutes les scènes de récit liées au chapitre (médiathèque).
- * Rien si aucune ressource conventionnelle n'est trouvée.
+ * Rien si aucune ressource conventionnelle n'est trouvée. Les clés listées
+ * dans `excludeKeys` (scènes déjà intercalées dans le texte via `scene:N`)
+ * sont écartées. La légende (`recitCaption`) sert de figcaption et d'alt.
  */
 export function GLChapterScenes({
   chapterNumber,
@@ -43,18 +45,26 @@ export function GLChapterScenes({
   className = '',
   figureClassName = '',
   imgClassName = '',
+  excludeKeys = [],
 }) {
   const assetsReady = useGlAssetsReady();
-  const scenes = useMemo(
-    () => (assetsReady && chapterNumber != null ? chapterIllustrations(chapterNumber) : []),
-    [chapterNumber, assetsReady],
-  );
+  const scenes = useMemo(() => {
+    if (!assetsReady || chapterNumber == null) return [];
+    const excluded = new Set(Array.isArray(excludeKeys) ? excludeKeys : []);
+    return chapterIllustrations(chapterNumber).filter((scene) => !excluded.has(scene.key));
+  }, [chapterNumber, assetsReady, excludeKeys]);
   if (!scenes.length) return null;
   return (
     <div className={className || undefined}>
       {scenes.map((scene) => (
         <figure key={scene.key} className={figureClassName || undefined}>
-          <img src={scene.url} alt={alt} loading="lazy" className={imgClassName || undefined} />
+          <img
+            src={scene.url}
+            alt={scene.caption || alt}
+            loading="lazy"
+            className={imgClassName || undefined}
+          />
+          {scene.caption ? <figcaption>{scene.caption}</figcaption> : null}
         </figure>
       ))}
     </div>

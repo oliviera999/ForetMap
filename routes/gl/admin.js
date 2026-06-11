@@ -30,6 +30,12 @@ const {
   executeMediaLibraryDeleteRequest,
 } = require('../../lib/mediaLibrary');
 const { collectMediaLibraryUsage } = require('../../lib/mediaLibraryUsage');
+const { loadMediaKeyIndex } = require('../../lib/glAssetManifest');
+const { auditGlMediaKeys } = require('../../lib/glMediaKeysAudit');
+const {
+  listChapterRecitScenes,
+  updateChapterSceneMeta,
+} = require('../../lib/glChapterScenes');
 const {
   INTRO_SETTINGS_KEY,
   loadDefaultIntroConfig,
@@ -887,6 +893,48 @@ router.get('/media-library', requireGlPermission('gl.content.manage'), async (re
 router.get('/media-library/usage', requireGlPermission('gl.content.manage'), async (_req, res) => {
   const usage = await collectMediaLibraryUsage({ queryAll }, { app: 'gl' });
   return res.json({ usage });
+});
+
+// Audit des conventions médiathèque (équivalent admin de scripts/audit-gl-media-keys.mjs) :
+// ressources requises manquantes, clés récit suspectes (typos), clés non branchées.
+router.get('/media-library/audit', requireGlPermission('gl.content.manage'), async (_req, res) => {
+  const report = auditGlMediaKeys(loadMediaKeyIndex());
+  return res.json({ report });
+});
+
+// Scènes de récit conventionnelles d'un chapitre (0 = prologue), avec métas.
+router.get('/media-library/chapter-scenes', requireGlPermission('gl.content.manage'), async (req, res) => {
+  const chapterNumber = Number(req.query?.chapter);
+  if (!Number.isInteger(chapterNumber) || chapterNumber < 0 || chapterNumber > 5) {
+    return res.status(400).json({ error: 'Paramètre chapter requis (0–5)' });
+  }
+  return res.json({ chapter: chapterNumber, scenes: listChapterRecitScenes(chapterNumber) });
+});
+
+// Métas éditoriales d'une scène de récit : légende, ordre d'affichage, couverture.
+router.patch('/media-library/scene-meta', requireGlPermission('gl.content.manage'), async (req, res) => {
+  try {
+    const stableKey = String(req.body?.stable_key || req.body?.stableKey || '').trim();
+    if (!stableKey) return res.status(400).json({ error: 'stable_key requis' });
+    const patch = {};
+    if ('caption' in (req.body || {})) patch.caption = req.body.caption;
+    if ('order' in (req.body || {})) patch.order = req.body.order;
+    if ('cover' in (req.body || {})) patch.cover = req.body.cover === true;
+    const scene = updateChapterSceneMeta(stableKey, patch);
+    await logAudit(
+      'media_scene_meta_update',
+      'gl_media_library',
+      stableKey,
+      'Mise à jour méta scène de récit (médiathèque GL)',
+      { req, payload: patch }
+    );
+    return res.json({ scene });
+  } catch (err) {
+    if (Number.isFinite(err?.status)) {
+      return res.status(err.status).json({ error: err.message || 'Mise à jour impossible' });
+    }
+    throw err;
+  }
 });
 
 router.post('/media-library', requireGlPermission('gl.content.manage'), async (req, res) => {

@@ -74,6 +74,8 @@ export function GLContentLibraryView({ onOpenSubTab }) {
   const [analysisEntries, setAnalysisEntries] = useState([]);
   const [selectedKeys, setSelectedKeys] = useState(new Set());
   const [mediaReloadKey, setMediaReloadKey] = useState(0);
+  const [auditReport, setAuditReport] = useState(null);
+  const [auditBusy, setAuditBusy] = useState(false);
 
   const selectedFiles = useMemo(() => fileRows.map((row) => row.file), [fileRows]);
 
@@ -114,11 +116,29 @@ export function GLContentLibraryView({ onOpenSubTab }) {
   };
 
   const uploadMediaLibrary = async (mediaData, options = {}) => {
-    await apiGL('/api/gl/admin/media-library', 'POST', {
+    const saved = await apiGL('/api/gl/admin/media-library', 'POST', {
       media_data: mediaData,
       original_name: options.originalName || null,
     });
-    setMsg('Média ajouté à la bibliothèque');
+    const warnings = Array.isArray(saved?.assetWarnings)
+      ? saved.assetWarnings.map((w) => w.message).filter(Boolean)
+      : [];
+    setMsg(warnings.length
+      ? `Média ajouté à la bibliothèque — ⚠ ${warnings.join(' · ')}`
+      : 'Média ajouté à la bibliothèque');
+  };
+
+  const runConventionAudit = async () => {
+    setAuditBusy(true);
+    setErr('');
+    try {
+      const data = await apiGL('/api/gl/admin/media-library/audit');
+      setAuditReport(data?.report || null);
+    } catch (e) {
+      setErr(e.message || 'Audit impossible');
+    } finally {
+      setAuditBusy(false);
+    }
   };
 
   const deleteMediaLibrary = async (relativePath) => {
@@ -358,6 +378,64 @@ export function GLContentLibraryView({ onOpenSubTab }) {
           enableGalleryBulkActions
           manageHint="Clique sur une miniature pour copier l’URL. Chaque média indique s’il est utilisé et où. Cochez plusieurs médias pour les supprimer en lot, ou videz la bibliothèque si besoin."
         />
+      </section>
+
+      <section className="gl-content-library__section">
+        <h3>Audit des conventions</h3>
+        <p className="gl-hint">
+          Vérifie les liaisons par nom de fichier (plateaux, biomes, feuillets, scènes de récit, intro, audio) :
+          ressources requises manquantes et clés <code>recit_*</code> mal nommées (invisibles en jeu).
+        </p>
+        <GLButton type="button" disabled={auditBusy} onClick={runConventionAudit}>
+          {auditBusy ? 'Audit en cours…' : 'Lancer l’audit'}
+        </GLButton>
+        {auditReport ? (
+          <div className="gl-content-library__report">
+            <p className="gl-hint">
+              {auditReport.keyCount} clé(s) en médiathèque · {auditReport.ok?.length || 0} branchée(s) ·{' '}
+              {auditReport.unwired?.length || 0} sans lien code automatique.
+            </p>
+            {Array.isArray(auditReport.suspectRecitKeys) && auditReport.suspectRecitKeys.length > 0 ? (
+              <div>
+                <p className="gl-error">
+                  ⚠ {auditReport.suspectRecitKeys.length} clé(s) récit suspecte(s) — typo probable, ces images
+                  ne s’affichent dans aucun chapitre :
+                </p>
+                <ul className="gl-content-library__warnings">
+                  {auditReport.suspectRecitKeys.map((key) => (
+                    <li key={key}><code>{key}</code></li>
+                  ))}
+                </ul>
+              </div>
+            ) : (
+              <p className="gl-success">Aucune clé récit suspecte.</p>
+            )}
+            {Array.isArray(auditReport.missing) && auditReport.missing.length > 0 ? (
+              <div>
+                <p className="gl-error">✗ {auditReport.missing.length} ressource(s) requise(s) manquante(s) :</p>
+                <ul className="gl-content-library__warnings">
+                  {auditReport.missing.map((row) => (
+                    <li key={`${row.category}-${row.ref}`}>
+                      [{row.category}] {row.ref} → <code>{row.slug}</code>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : (
+              <p className="gl-success">Toutes les ressources requises sont présentes.</p>
+            )}
+            {Array.isArray(auditReport.ok) && auditReport.ok.some((row) => row.category === 'chapitre-recit') ? (
+              <p className="gl-hint">
+                Scènes de récit branchées :{' '}
+                {auditReport.ok
+                  .filter((row) => row.category === 'chapitre-recit')
+                  .map((row) => row.ref)
+                  .join(', ')}
+                {' '}— détail par chapitre dans Contenus → Chapitres.
+              </p>
+            ) : null}
+          </div>
+        ) : null}
       </section>
 
       <section className="gl-content-library__section">

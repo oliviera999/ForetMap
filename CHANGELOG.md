@@ -7,6 +7,17 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### GL — scènes de récit des chapitres (répartition automatique des images de l'Histoire)
+
+- **Convention partagée** : préfixes `recit_0N-chapN_*` / `recit_00-prologue_*` centralisés dans `src/gl/utils/glChapterRecitConvention.js` (une seule source client + serveur : resolver assets, audit, scanner d'usage) ; bornes de chapitres en constantes (`GL_CHAPTER_RECIT_MIN/MAX`).
+- **Visibilité admin (anti-suppression accidentelle)** : le scanner d'usage médiathèque détecte désormais les liaisons **par convention** (scènes de récit → « Histoire — chapitre N », feuillets de Sélène, fonds/musiques de plateau, biomes, clés intro) — ces médias ne s'affichent plus « Inutilisée » (`lib/mediaLibraryUsage.js`, `conventionLocationsForItem`/`collectConventionUsage`).
+- **Audit dans l'admin** : `GET /api/gl/admin/media-library/audit` + section **Audit des conventions** (Contenus → Bibliothèque) — ressources requises manquantes et **clés `recit_*` suspectes** (typos rendant l'image invisible en jeu, `findSuspectRecitKeys`, aussi dans `npm run gl:audit:media-keys`).
+- **Métas éditoriales de scène** (sans renommer les fichiers) : légende (`recitCaption`, alt + figcaption), ordre d'affichage (`recitOrder`), couverture explicite (`recitCover`, exclusive par chapitre — illustre la Biocénose et le repli plateau) stockées dans `_keys.json` ; panneau **Contenus → Chapitres → Scènes de récit** (aperçus + édition), API `GET /api/gl/admin/media-library/chapter-scenes?chapter=N`, `PATCH /api/gl/admin/media-library/scene-meta` ; métas préservées au ré-import d'un fichier homonyme (`lib/glChapterScenes.js`, `updateMediaKeyMeta`).
+- **Intercalage dans le récit** : syntaxe `![légende](scene:N)` dans le markdown de l'Histoire — la N-ième scène conventionnelle est insérée dans le texte et quitte la galerie de fin (`src/gl/utils/glStorySceneRefs.js`, `GLHistoryView`, prop `excludeKeys` de `GLChapterScenes`).
+- **Collisions de clé stable** : un upload qui ré-pointe une clé existante vers un autre fichier renvoie un avertissement `stable_key_collision` (affiché dans la bibliothèque) au lieu d'écraser en silence.
+- **Manifestes runtime** : fetch en `no-cache` (revalidation ETag, réutilisation du cache navigateur) au lieu de `no-store` ; un échec réseau ne fige plus la session sur le repli embarqué (retry au montage suivant).
+- Tests : `tests-ui/gl/glChapterRecitConvention.test.js`, `tests-ui/gl/glStorySceneRefs.test.js`, extensions `tests-ui/gl/glChapterIllustration.test.js` (tri), `tests/media-library-usage.test.js` (usage convention), `tests/gl-media-chapter-link.test.js` (collision, métas, typos). Doc `data/gl/README.md`.
+
 ### Import carte (fork SQLite)
 
 - **Export zones/repères forêt** : conversion fork SQLite → SQL MySQL (`lib/legacyZoneShapeConvert.js`, `lib/sqliteGardenSqlExport.js`, `npm run export:sqlite-garden`) — polygones %, `living_beings` depuis `cultures`, `map_id=foret` ; fichier exemple `data/import/foret-comestible-garden.sql` ; migration `migrate:sqlite-to-mysql` alignée ; tests `tests/legacy-zone-shape-convert.test.js` ; devDep `better-sqlite3`.
