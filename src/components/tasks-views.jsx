@@ -56,6 +56,7 @@ import {
   teacherCollectiveAssigneeLoadKey,
   toQuickAssignStudentId,
 } from '../utils/taskDisplayHelpers.js';
+import { quickAssignDelta, quickAssignCanApply, quickAssignHint, buildQuickAssignSummary } from '../utils/taskQuickAssign.js';
 
 function TasksView({
   maps = [],
@@ -852,55 +853,19 @@ function TasksView({
   const sectionListClass = viewMode === 'tiles'
     ? 'tasks-grid'
     : (viewMode === 'condensed' ? 'tasks-condensed' : 'tasks-list');
-  /** Inscriptions à ajouter / retirer (liste n3beurs chargée côté n3boss) pour l’affectation rapide. */
-  const teacherQuickAssignDelta = useCallback((task, selectedIds) => {
-    const idSet = new Set((selectedIds || []).map(String));
-    const toAdd = teacherStudents.filter(
-      (s) => idSet.has(String(s.id)) && !isStudentAlreadyAssignedToTask(task, s)
-    );
-    const toRemove = teacherStudents.filter(
-      (s) => !idSet.has(String(s.id)) && isStudentAlreadyAssignedToTask(task, s)
-    );
-    return { toAdd, toRemove };
-  }, [teacherStudents]);
-  const teacherQuickAssignCanApply = useCallback((task, selectedIds) => {
-    if (!isTeacher || !task) return false;
-    const { toAdd, toRemove } = teacherQuickAssignDelta(task, selectedIds);
-    if (toAdd.length === 0 && toRemove.length === 0) return false;
-    const te = taskEffectiveStatus(task);
-    if (te === 'on_hold' || te === 'project_completed' || te === 'project_validated') return false;
-    if (toRemove.length > 0 && (task.status === 'done' || task.status === 'validated')) return false;
-    if (toAdd.length > 0) {
-      if (task.status === 'proposed' || task.status === 'done' || task.status === 'validated') return false;
-      const slotsAfterRemovals = getAvailableSlots(task) + toRemove.length;
-      if (toAdd.length > slotsAfterRemovals) return false;
-    }
-    return true;
-  }, [isTeacher, teacherQuickAssignDelta]);
-  const quickAssignHint = useCallback((task, selectedIds) => {
-    if (!task) return "Cette tâche n’est pas dispo ici";
-    const te = taskEffectiveStatus(task);
-    if (te === 'on_hold') return "Patience : tâche ou projet en pause";
-    if (te === 'project_completed') return "Projet terminé : inscriptions fermées";
-    if (te === 'project_validated') return "Projet validé : inscriptions fermées";
-    const { toAdd, toRemove } = teacherQuickAssignDelta(task, selectedIds);
-    if (toAdd.length === 0 && toRemove.length === 0) return "Coche ou décoche des n3beurs pour ajuster l’équipe sur la mission";
-    if (toRemove.length > 0 && (task.status === 'done' || task.status === 'validated')) {
-      return "Mission déjà bouclée : on ne retire plus les inscrits";
-    }
-    if (toAdd.length > 0) {
-      if (task.status === 'proposed') return "Idée encore en discussion : inscriptions pas encore ouvertes";
-      if (task.status === 'done' || task.status === 'validated') return "C’est déjà plié pour celle-ci";
-      const slotsAfterRemovals = getAvailableSlots(task) + toRemove.length;
-      if (toAdd.length > slotsAfterRemovals) {
-        return `Pas assez de places (max. ${slotsAfterRemovals} après retrait${toRemove.length > 1 ? 's' : ''})`;
-      }
-    }
-    const parts = [];
-    if (toRemove.length > 0) parts.push(`Retirer ${toRemove.length} n3beur${toRemove.length > 1 ? 's' : ''}`);
-    if (toAdd.length > 0) parts.push(`Inscrire ${toAdd.length} n3beur${toAdd.length > 1 ? 's' : ''}`);
-    return parts.join(' · ');
-  }, [teacherQuickAssignDelta]);
+  /** Délègue à la logique pure `taskQuickAssign` (delta / applicabilité / message), testée à part. */
+  const teacherQuickAssignDelta = useCallback(
+    (task, selectedIds) => quickAssignDelta(task, selectedIds, teacherStudents),
+    [teacherStudents],
+  );
+  const teacherQuickAssignCanApply = useCallback(
+    (task, selectedIds) => quickAssignCanApply(task, selectedIds, teacherStudents, isTeacher),
+    [isTeacher, teacherStudents],
+  );
+  const quickAssignHintCb = useCallback(
+    (task, selectedIds) => quickAssignHint(task, selectedIds, teacherStudents),
+    [teacherStudents],
+  );
   const runTeacherQuickAssign = useCallback((task, selectedIds) => withLoad(`${task.id}assign_teacher_quick`, async () => {
     const { toAdd, toRemove } = teacherQuickAssignDelta(task, selectedIds);
     if (toAdd.length === 0 && toRemove.length === 0) {
@@ -943,21 +908,14 @@ function TasksView({
         if (String(e.message || '').toLowerCase().includes('plus de place')) break;
       }
     }
-    const bits = [];
-    if (removeOk > 0) bits.push(`${removeOk} retrait${removeOk > 1 ? 's' : ''}`);
-    if (addOk > 0) bits.push(`${addOk} inscription${addOk > 1 ? 's' : ''}`);
-    const errBits = [];
-    if (removeFail > 0) errBits.push(`${removeFail} retrait${removeFail > 1 ? 's' : ''}`);
-    if (addFail > 0) errBits.push(`${addFail} inscription${addFail > 1 ? 's' : ''}`);
-    if (bits.length > 0 && errBits.length > 0) {
-      setToast(`${bits.join(', ')} — échec : ${errBits.join(', ')}${firstRemoveError || firstAddError ? ` (${firstRemoveError || firstAddError})` : ''}`);
-    } else if (bits.length > 0) {
-      setToast(`${bits.join(', ')} sur « ${task.title} »`);
-    } else if (firstRemoveError || firstAddError) {
-      setToast(`Aucune mise à jour : ${firstRemoveError || firstAddError}`);
-    } else {
-      setToast('Aucun changement appliqué — déjà à jour.');
-    }
+    setToast(buildQuickAssignSummary({
+      removeOk,
+      addOk,
+      removeFail,
+      addFail,
+      firstError: firstRemoveError || firstAddError,
+      taskTitle: task.title,
+    }));
     setQuickAssignTaskId(null);
     setQuickAssignStudentIds([]);
   }), [withLoad, teacherQuickAssignDelta]);
@@ -989,7 +947,7 @@ function TasksView({
     quickAssignUserEditedRef,
     teacherQuickAssignDelta,
     teacherQuickAssignCanApply,
-    quickAssignHint,
+    quickAssignHint: quickAssignHintCb,
     assign,
     assignGroupToTask,
     groupOptions,
@@ -1036,7 +994,7 @@ function TasksView({
     loadingTeacherStudents,
     teacherQuickAssignDelta,
     teacherQuickAssignCanApply,
-    quickAssignHint,
+    quickAssignHintCb,
     assign,
     assignGroupToTask,
     groupOptions,
