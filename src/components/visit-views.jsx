@@ -21,6 +21,7 @@ import { normalizeEditorialBlocks } from '../utils/visitEditorialBlocks.js';
 import { VisitSyncPanel } from './visit/VisitSyncPanel.jsx';
 import { VisitEditorPanel } from './visit/VisitEditorPanel.jsx';
 import { computeVisitMascotStartPct } from '../utils/visitMascotPlacement.js';
+import { computeVisitCartographyProgress, computeVisitNetworkStatusLabel } from '../utils/visitProgress.js';
 import {
   shouldShowVisitMapMascot as computeShowVisitMapMascot,
   getVisitMascotVisibilityReason,
@@ -368,23 +369,10 @@ function VisitView({
   const showVisitMapTutorialsSection = isTeacher && !teacherPreviewAsStudent;
 
   /** Zones affichées sur le plan (polygone valide) + repères : aligné sur ce que l’utilisateur peut parcourir sur la carte courante. */
-  const visitCartographyProgress = useMemo(() => {
-    const zones = content.zones || [];
-    const markers = content.markers || [];
-    let total = 0;
-    let seenCount = 0;
-    for (const z of zones) {
-      if (parsePctPoints(z.points).length < 3) continue;
-      total += 1;
-      if (seen.has(itemSeenKey('zone', z.id))) seenCount += 1;
-    }
-    for (const m of markers) {
-      total += 1;
-      if (seen.has(itemSeenKey('marker', m.id))) seenCount += 1;
-    }
-    const pct = total > 0 ? Math.min(100, Math.round((seenCount / total) * 100)) : 0;
-    return { total, seenCount, pct };
-  }, [content.zones, content.markers, seen]);
+  const visitCartographyProgress = useMemo(
+    () => computeVisitCartographyProgress(content.zones, content.markers, seen),
+    [content.zones, content.markers, seen],
+  );
 
   /** Bandeau carte : ouverture du premier tutoriel « présentation » (tous les profils en navigation). */
   const showVisitPresentationButton = mode === 'view' && !!visitPresentationTutorial;
@@ -395,16 +383,10 @@ function VisitView({
     && visitCartographyProgress.seenCount === 0
     && !prefersReducedMotion;
 
-  const visitNetworkStatusLabel = useMemo(() => {
-    if (!isOnline) return 'Hors ligne — consultation locale';
-    if (syncStatus === 'syncing') return 'Synchronisation en cours…';
-    if (pendingSyncCount > 0) {
-      return `${pendingSyncCount} action${pendingSyncCount > 1 ? 's' : ''} en attente de sync.`;
-    }
-    if (syncStatus === 'error') return 'Synchronisation en attente';
-    if (syncStatus === 'synced') return 'Synchronisé';
-    return null;
-  }, [isOnline, syncStatus, pendingSyncCount]);
+  const visitNetworkStatusLabel = useMemo(
+    () => computeVisitNetworkStatusLabel(isOnline, syncStatus, pendingSyncCount),
+    [isOnline, syncStatus, pendingSyncCount],
+  );
 
   /** Mascotte : zones/repères visibles, total parcourable, ou tutoriels du plan (évite plan « vide » côté API alors que la visite est animée). */
   const showVisitMapMascot = computeShowVisitMapMascot(
