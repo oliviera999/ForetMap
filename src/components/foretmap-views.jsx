@@ -56,45 +56,26 @@ import {
   mergePlantPhotoFieldValue,
 } from '../utils/plantFormValues.js';
 import { parseZonePointsJson, computeBiodivMapFitRect } from '../utils/biodivMapGeometry.js';
+import {
+  newPlantnetIdentifySlot,
+  pickPlantnetVernacularName,
+  PLANTNET_IDENTIFY_ORGAN_OPTIONS,
+} from '../utils/plantnetHelpers.js';
+import {
+  EMPTY_PLANT_FORM,
+  isVegetalCatalogEntry,
+  extractPlantForm,
+  groupPlantLocationsByMap,
+  prefillPhotoSlotKey,
+} from '../utils/plantCatalogHelpers.js';
+import {
+  fetchCommonsCategoryPreview,
+  findFirstBiodivHeroPhotoCandidate,
+} from '../utils/plantCommonsPreview.js';
 
 // ── INTERACTIVE MAP ──────────────────────────────────────────────────────────
 
 
-const EMPTY_PLANT_FORM = {
-  name: '',
-  emoji: '🌱',
-  description: '',
-  second_name: '',
-  scientific_name: '',
-  group_1: '',
-  group_2: '',
-  group_3: '',
-  group_4: '',
-  habitat: '',
-  photo: '',
-  nutrition: '',
-  agroecosystem_category: '',
-  longevity: '',
-  remark_1: '',
-  remark_2: '',
-  remark_3: '',
-  reproduction: '',
-  size: '',
-  sources: '',
-  ideal_temperature_c: '',
-  optimal_ph: '',
-  ecosystem_role: '',
-  geographic_origin: '',
-  human_utility: '',
-  harvest_part: '',
-  planting_recommendations: '',
-  preferred_nutrients: '',
-  photo_species: '',
-  photo_leaf: '',
-  photo_flower: '',
-  photo_fruit: '',
-  photo_harvest_part: '',
-};
 const PLANTS_IMPORT_TEMPLATE_HEADERS = [
   'name',
   'emoji',
@@ -265,38 +246,8 @@ const SPECIES_PREFILL_SOURCE_CHECKBOXES = [
   { id: 'openai', label: 'OpenAI' },
 ];
 
-/** Organes Pl@ntNet pour `POST /api/plants/plantnet-identify` (alignés sur l’API v2). */
-const PLANTNET_IDENTIFY_ORGAN_OPTIONS = [
-  { id: 'auto', label: 'Auto' },
-  { id: 'leaf', label: 'Feuille' },
-  { id: 'flower', label: 'Fleur' },
-  { id: 'fruit', label: 'Fruit' },
-  { id: 'bark', label: 'Écorce' },
-  { id: 'habit', label: 'Port / habitude' },
-  { id: 'branch', label: 'Branche' },
-  { id: 'seed', label: 'Graine' },
-  { id: 'bud', label: 'Bourgeon' },
-  { id: 'scan', label: 'Scan' },
-  { id: 'sheet', label: 'Planche' },
-  { id: 'other', label: 'Autre' },
-  { id: 'drawing', label: 'Dessin' },
-  { id: 'anatomy', label: 'Anatomie' },
-  { id: 'aerial', label: 'Vue aérienne' },
-];
 
-function newPlantnetIdentifySlot() {
-  return { key: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`, organ: 'auto', imageData: '', fileName: '' };
-}
 
-function pickPlantnetVernacularName(commonNames) {
-  const list = Array.isArray(commonNames) ? commonNames.map((x) => String(x || '').trim()).filter(Boolean) : [];
-  if (!list.length) return '';
-  const frHint = (s) => /[àâäéèêëïîôùûüçœæ]/i.test(s) || /\b(l'|d'|de la |des |le |la |les |du |au )\b/i.test(` ${s} `);
-  const scored = list.map((s) => ({ s, score: frHint(s) ? 2 : 0 }));
-  scored.sort((a, b) => b.score - a.score);
-  if (scored[0].score > 0) return scored[0].s;
-  return list[0];
-}
 
 /** Champs photo du formulaire (ordre affichage upload + menu pré-saisie). */
 const PLANT_PHOTO_FIELD_OPTIONS = [
@@ -308,34 +259,8 @@ const PLANT_PHOTO_FIELD_OPTIONS = [
   { key: 'photo', label: 'Photo (générale)' },
 ];
 
-function prefillPhotoSlotKey(field, idx) {
-  return `${String(field).trim()}:${Number(idx)}`;
-}
 
-/** Champs candidats pour la vignette « photo principale » sous la description (ordre de priorité). */
-const BIODIV_HERO_PHOTO_KEYS = ['photo', 'photo_species'];
 
-function findFirstBiodivHeroPhotoCandidate(plant) {
-  for (const key of BIODIV_HERO_PHOTO_KEYS) {
-    const entries = parseLinkCandidates(plant[key]).filter((e) => isHttpLink(e) || isLocalUploadsPath(e));
-    for (const entry of entries) {
-      if (isLikelyDirectImageUrl(entry)) return { kind: 'direct', src: entry };
-      const fileSrc = commonsFilePageToDisplaySrc(entry);
-      if (fileSrc) return { kind: 'direct', src: fileSrc };
-      if (parseCommonsCategoryFromUrl(entry)) return { kind: 'category', categoryUrl: entry };
-    }
-  }
-  return null;
-}
-
-function extractPlantForm(plant = {}) {
-  const form = { ...EMPTY_PLANT_FORM };
-  Object.keys(form).forEach((k) => {
-    form[k] = normalizedPlantValue(plant[k]);
-  });
-  if (!form.emoji) form.emoji = '🌱';
-  return form;
-}
 
 /**
  * Ordre des champs pour les images envoyées à Pl@ntNet : la 1re image = illustration principale (`photo`),
@@ -363,34 +288,7 @@ function downloadCsvTemplate(headers, filename) {
   URL.revokeObjectURL(url);
 }
 
-async function fetchCommonsCategoryPreview(urlValue) {
-  const categoryTitle = parseCommonsCategoryFromUrl(urlValue);
-  if (!categoryTitle) return null;
-  const endpoint = new URL('https://commons.wikimedia.org/w/api.php');
-  endpoint.searchParams.set('action', 'query');
-  endpoint.searchParams.set('format', 'json');
-  endpoint.searchParams.set('origin', '*');
-  endpoint.searchParams.set('generator', 'categorymembers');
-  endpoint.searchParams.set('gcmtype', 'file');
-  endpoint.searchParams.set('gcmtitle', categoryTitle);
-  endpoint.searchParams.set('gcmlimit', '1');
-  endpoint.searchParams.set('prop', 'imageinfo');
-  endpoint.searchParams.set('iiprop', 'url');
-  endpoint.searchParams.set('iiurlwidth', '1200');
-  const res = await fetch(endpoint.toString());
-  if (!res.ok) return null;
-  const data = await res.json();
-  const pages = data?.query?.pages ? Object.values(data.query.pages) : [];
-  const first = pages[0];
-  const info = first?.imageinfo?.[0];
-  return info?.thumburl || info?.url || null;
-}
 
-/** Groupe (taxon) 1 catalogue type « Végétal (Chlorobiontes) » — nutrition souvent redondante (autotrophe). */
-function isVegetalCatalogEntry(plant) {
-  const g1 = (normalizedPlantValue(plant.group_1) || '').toLowerCase();
-  return g1.includes('végétal');
-}
 
 function PlantSummaryBadges({ plant }) {
   const chips = [];
@@ -2376,24 +2274,6 @@ function ObservationNotebook({ student, onForceLogout = null }) {
   );
 }
 
-// ── Mini-cartes emplacement (zones / repères) sur les fiches biodiversité ─────
-function groupPlantLocationsByMap(zoneList, markerList) {
-  const map = new Map();
-  const ensure = (mapId) => {
-    const id = mapId && String(mapId).trim() ? String(mapId).trim() : 'foret';
-    if (!map.has(id)) map.set(id, { zones: [], markers: [] });
-    return id;
-  };
-  for (const z of zoneList || []) {
-    const id = ensure(z.map_id);
-    map.get(id).zones.push(z);
-  }
-  for (const m of markerList || []) {
-    const id = ensure(m.map_id);
-    map.get(id).markers.push(m);
-  }
-  return map;
-}
 
 function BiodivLocationMapBlock({ mapId, maps, zones, markers }) {
   const activeMap = maps.find((m) => m.id === mapId);
