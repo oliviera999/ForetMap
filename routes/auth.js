@@ -14,6 +14,7 @@ const {
   hydrateAuthFromTokenClaims,
 } = require('../middleware/requireTeacher');
 const { logRouteError } = require('../lib/routeLog');
+const asyncHandler = require('../lib/asyncHandler');
 const logger = require('../lib/logger');
 const { emitStudentsChanged } = require('../lib/realtime');
 const { sendPasswordResetEmail } = require('../lib/mailer');
@@ -303,12 +304,7 @@ function exposeAuth(auth) {
   return base;
 }
 
-function respondInternalError(res, req, err, message = 'Erreur serveur') {
-  logRouteError(err, req);
-  return res.status(500).json({ error: message });
-}
-
-router.get('/me', requireAuth, async (req, res) => {
+router.get('/me', requireAuth, asyncHandler(async (req, res) => {
   const body = { auth: exposeAuth(req.auth) };
   try {
     const tokenIn = parseBearerToken(req);
@@ -366,12 +362,11 @@ router.get('/me', requireAuth, async (req, res) => {
     }
   }
   res.json(body);
-});
+}));
 
-router.patch('/me/profile', requireAuth, async (req, res) => {
-  try {
-    const body = req.body || {};
-    if (!body.currentPassword) return res.status(400).json({ error: 'Mot de passe actuel requis' });
+router.patch('/me/profile', requireAuth, asyncHandler(async (req, res) => {
+  const body = req.body || {};
+  if (!body.currentPassword) return res.status(400).json({ error: 'Mot de passe actuel requis' });
 
     const auth = req.auth || {};
     const account = await queryOne('SELECT * FROM users WHERE id = ? LIMIT 1', [auth.userId]);
@@ -480,14 +475,10 @@ router.patch('/me/profile', requireAuth, async (req, res) => {
       emitStudentsChanged({ reason: 'student_profile_update', studentId: account.id });
     }
     res.json({ ...updated, password_hash: undefined });
-  } catch (e) {
-    respondInternalError(res, req, e);
-  }
-});
+}));
 
-router.post('/register', async (req, res) => {
-  try {
-    const allowReg = await getSettingValue('ui.auth.allow_register', true);
+router.post('/register', asyncHandler(async (req, res) => {
+  const allowReg = await getSettingValue('ui.auth.allow_register', true);
     if (!allowReg) return res.status(403).json({ error: 'La création de compte est désactivée.' });
     const { firstName, lastName, password } = req.body;
     const pseudo = normalizeOptionalString(req.body?.pseudo);
@@ -551,16 +542,12 @@ router.post('/register', async (req, res) => {
       authToken: token,
       auth: session ? exposeAuth(session.tokenPayload) : null,
     });
-  } catch (e) {
-    respondInternalError(res, req, e);
-  }
-});
+}));
 
-router.post('/login', async (req, res) => {
-  try {
-    const { password } = req.body;
-    const identifier = normalizeOptionalString(req.body?.identifier);
-    if (!password || !identifier) return res.status(400).json({ error: 'Identifiant (email ou pseudo) et mot de passe requis' });
+router.post('/login', asyncHandler(async (req, res) => {
+  const { password } = req.body;
+  const identifier = normalizeOptionalString(req.body?.identifier);
+  if (!password || !identifier) return res.status(400).json({ error: 'Identifiant (email ou pseudo) et mot de passe requis' });
     await ensureTeacherSeedFromEnv();
 
     const account = await resolveLoginAccountByIdentifier(identifier);
@@ -667,12 +654,9 @@ router.post('/login', async (req, res) => {
       authToken: token,
       auth: session ? exposeAuth(session.tokenPayload) : null,
     });
-  } catch (e) {
-    respondInternalError(res, req, e);
-  }
-});
+}));
 
-router.get('/google/start', async (req, res) => {
+router.get('/google/start', asyncHandler(async (req, res) => {
   const mode = normalizeOAuthMode(req.query?.mode);
   const googleEnabled = await getSettingValue('integration.google.enabled', true);
   const allowStudent = await getSettingValue('ui.auth.allow_google_student', true);
@@ -710,7 +694,7 @@ router.get('/google/start', async (req, res) => {
     include_granted_scopes: 'true',
   });
   return res.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`);
-});
+}));
 
 router.get('/google/callback', async (req, res) => {
   const googleEnabled = await getSettingValue('integration.google.enabled', true);
@@ -847,9 +831,8 @@ router.get('/google/callback', async (req, res) => {
   }
 });
 
-router.post('/forgot-password', async (req, res) => {
-  try {
-    const email = normalizeEmail(req.body?.email ?? req.body?.mail);
+router.post('/forgot-password', asyncHandler(async (req, res) => {
+  const email = normalizeEmail(req.body?.email ?? req.body?.mail);
     if (!email || !EMAIL_RE.test(email)) {
       return res.json({ ok: true, message: 'Si un compte existe, un email de réinitialisation a été envoyé.' });
     }
@@ -874,14 +857,10 @@ router.post('/forgot-password', async (req, res) => {
       });
     }
     res.json({ ok: true, message: 'Si un compte existe, un email de réinitialisation a été envoyé.' });
-  } catch (e) {
-    respondInternalError(res, req, e);
-  }
-});
+}));
 
-router.post('/reset-password', async (req, res) => {
-  try {
-    const token = normalizeOptionalString(req.body?.token);
+router.post('/reset-password', asyncHandler(async (req, res) => {
+  const token = normalizeOptionalString(req.body?.token);
     const password = req.body?.password;
     if (!token || !password) return res.status(400).json({ error: 'Champs requis' });
     const minPasswordLen = await getPasswordMinLength();
@@ -900,18 +879,14 @@ router.post('/reset-password', async (req, res) => {
       targetId: studentId,
     });
     res.json({ ok: true });
-  } catch (e) {
-    respondInternalError(res, req, e);
-  }
-});
+}));
 
 router.post('/teacher/login', async (req, res) => {
   return res.status(410).json({ error: 'Endpoint supprimé. Utilisez /api/auth/login.' });
 });
 
-router.post('/teacher/forgot-password', async (req, res) => {
-  try {
-    await ensureTeacherSeedFromEnv();
+router.post('/teacher/forgot-password', asyncHandler(async (req, res) => {
+  await ensureTeacherSeedFromEnv();
     const email = normalizeEmail(req.body?.email);
     if (!email || !EMAIL_RE.test(email)) {
       return res.json({ ok: true, message: 'Si un compte existe, un email de réinitialisation a été envoyé.' });
@@ -937,14 +912,10 @@ router.post('/teacher/forgot-password', async (req, res) => {
       });
     }
     res.json({ ok: true, message: 'Si un compte existe, un email de réinitialisation a été envoyé.' });
-  } catch (e) {
-    respondInternalError(res, req, e);
-  }
-});
+}));
 
-router.post('/teacher/reset-password', async (req, res) => {
-  try {
-    const token = normalizeOptionalString(req.body?.token);
+router.post('/teacher/reset-password', asyncHandler(async (req, res) => {
+  const token = normalizeOptionalString(req.body?.token);
     const password = req.body?.password;
     if (!token || !password) return res.status(400).json({ error: 'Champs requis' });
     const minPasswordLen = await getPasswordMinLength();
@@ -964,14 +935,10 @@ router.post('/teacher/reset-password', async (req, res) => {
       targetId: teacherId,
     });
     res.json({ ok: true });
-  } catch (e) {
-    respondInternalError(res, req, e);
-  }
-});
+}));
 
-router.post('/elevate', requireAuth, async (req, res) => {
-  try {
-    const allowPinElevation = await getSettingValue('security.allow_pin_elevation', true);
+router.post('/elevate', requireAuth, asyncHandler(async (req, res) => {
+  const allowPinElevation = await getSettingValue('security.allow_pin_elevation', true);
     if (!allowPinElevation) return res.status(403).json({ error: 'Élévation PIN désactivée' });
     const pin = normalizeOptionalString(req.body?.pin);
     if (!pin) return res.status(400).json({ error: 'PIN requis' });
@@ -1000,16 +967,12 @@ router.post('/elevate', requireAuth, async (req, res) => {
       payload: { role_id: req.auth.roleId, elevated: true },
     });
     res.json({ token, auth: exposeAuth(session.tokenPayload) });
-  } catch (e) {
-    respondInternalError(res, req, e);
-  }
-});
+}));
 
 // Compatibilité historique: "mode prof via PIN".
 // Désormais, ce endpoint exige d'être déjà connecté puis élève la session.
-router.post('/teacher', async (req, res) => {
-  try {
-    const allowPinElevation = await getSettingValue('security.allow_pin_elevation', true);
+router.post('/teacher', asyncHandler(async (req, res) => {
+  const allowPinElevation = await getSettingValue('security.allow_pin_elevation', true);
     if (!allowPinElevation) return res.status(403).json({ error: 'Élévation PIN désactivée' });
     const pin = normalizeOptionalString(req.body?.pin);
     if (!pin) return res.status(400).json({ error: 'PIN requis' });
@@ -1046,14 +1009,10 @@ router.post('/teacher', async (req, res) => {
       return res.json({ token, auth: exposeAuth(session.tokenPayload) });
     }
     return res.status(401).json({ error: 'Token requis avant élévation PIN' });
-  } catch (e) {
-    respondInternalError(res, req, e);
-  }
-});
+}));
 
-router.post('/admin/impersonate', requirePermission('admin.impersonate'), async (req, res) => {
-  try {
-    const targetUserType = normalizeOptionalString(req.body?.userType)?.toLowerCase();
+router.post('/admin/impersonate', requirePermission('admin.impersonate'), asyncHandler(async (req, res) => {
+  const targetUserType = normalizeOptionalString(req.body?.userType)?.toLowerCase();
     const rawId = req.body?.userId;
     const targetUserId = rawId == null ? '' : String(rawId).trim();
     if (!['student', 'teacher'].includes(targetUserType)) {
@@ -1119,14 +1078,10 @@ router.post('/admin/impersonate', requirePermission('admin.impersonate'), async 
       auth: exposeAuth(hydrated),
       profile,
     });
-  } catch (e) {
-    respondInternalError(res, req, e);
-  }
-});
+}));
 
-router.post('/admin/impersonate/stop', requireAuth, async (req, res) => {
-  try {
-    if (!req.auth?.impersonating || !req.auth?.impersonatedBy) {
+router.post('/admin/impersonate/stop', requireAuth, asyncHandler(async (req, res) => {
+  if (!req.auth?.impersonating || !req.auth?.impersonatedBy) {
       return res.status(400).json({ error: 'Aucune prise de contrôle en cours' });
     }
     const tokenIn = parseBearerToken(req);
@@ -1162,10 +1117,7 @@ router.post('/admin/impersonate/stop', requireAuth, async (req, res) => {
     });
 
     res.json({ authToken: token, auth: exposeAuth(hydrated) });
-  } catch (e) {
-    respondInternalError(res, req, e);
-  }
-});
+}));
 
 router.__setGoogleOAuthHooks = function setGoogleOAuthHooks({ exchangeCode, verifyIdToken } = {}) {
   googleOAuthHooks.exchangeCode = typeof exchangeCode === 'function' ? exchangeCode : null;

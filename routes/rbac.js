@@ -17,7 +17,8 @@ async function emitStudentsWithPrimaryRole(roleId) {
     emitStudentsChanged({ reason: 'role_forum_context_participation', studentId: row.user_id });
   }
 }
-const { logRouteError, respondInternalError } = require('../lib/routeLog');
+const { logRouteError } = require('../lib/routeLog');
+const asyncHandler = require('../lib/asyncHandler');
 const { logAudit } = require('./audit');
 
 const router = express.Router();
@@ -145,9 +146,8 @@ async function getPasswordMinLength() {
 router.post(
   '/users',
   requirePermission('users.create', { needsElevation: true }),
-  async (req, res) => {
-    try {
-      const actorRoleSlug = String(req.auth?.roleSlug || '').trim().toLowerCase();
+  asyncHandler(async (req, res) => {
+    const actorRoleSlug = String(req.auth?.roleSlug || '').trim().toLowerCase();
       if (!['prof', 'admin'].includes(actorRoleSlug)) {
         return res.status(403).json({ error: 'Seuls les profils prof/admin peuvent créer des utilisateurs' });
       }
@@ -240,20 +240,16 @@ router.post(
         role_slug: role.slug,
         role_display_name: role.display_name,
       });
-    } catch (e) {
-      respondInternalError(res, req, e);
-    }
-  }
+  })
 );
 
 router.get(
   '/profiles',
   requirePermission('admin.roles.manage', { needsElevation: true }),
-  async (req, res) => {
-    try {
-      const rolesWithProgression = await queryAll(
-        'SELECT id, slug, display_name, emoji, min_done_tasks, display_order, `rank` AS `rank`, is_system, forum_participate, context_comment_participate, max_concurrent_tasks FROM roles ORDER BY display_order ASC, `rank` DESC, id ASC'
-      );
+  asyncHandler(async (req, res) => {
+    const rolesWithProgression = await queryAll(
+      'SELECT id, slug, display_name, emoji, min_done_tasks, display_order, `rank` AS `rank`, is_system, forum_participate, context_comment_participate, max_concurrent_tasks FROM roles ORDER BY display_order ASC, `rank` DESC, id ASC'
+    );
       const perms = await queryAll('SELECT `key`, label, description FROM permissions ORDER BY `key` ASC');
       const rolePerms = await queryAll(
         'SELECT role_id, permission_key, requires_elevation FROM role_permissions ORDER BY role_id ASC, permission_key ASC'
@@ -274,10 +270,7 @@ router.get(
         roles: rolesPayload,
         progressionByValidatedTasksEnabled: !!progressionByValidatedTasksEnabled,
       });
-    } catch (e) {
-      respondInternalError(res, req, e);
-    }
-  }
+  })
 );
 
 router.patch(
@@ -308,9 +301,8 @@ router.patch(
 router.post(
   '/profiles',
   requirePermission('admin.roles.manage', { needsElevation: true }),
-  async (req, res) => {
-    try {
-      const slug = String(req.body?.slug || '').trim().toLowerCase().replace(/[^a-z0-9_]+/g, '_').replace(/^_+|_+$/g, '');
+  asyncHandler(async (req, res) => {
+    const slug = String(req.body?.slug || '').trim().toLowerCase().replace(/[^a-z0-9_]+/g, '_').replace(/^_+|_+$/g, '');
       const displayName = String(req.body?.display_name || '').trim();
       const rank = Number.isFinite(parseInt(req.body?.rank, 10)) ? parseInt(req.body.rank, 10) : 100;
       const emoji = normalizeRoleEmoji(req.body?.emoji);
@@ -342,30 +334,29 @@ router.post(
       if (STUDENT_ROLE_SLUG_RE.test(slug) && (emoji == null || minDoneTasks == null)) {
         return res.status(400).json({ error: 'Un profil n3beur doit définir emoji et min_done_tasks' });
       }
-      await execute(
-        'INSERT INTO roles (slug, display_name, emoji, min_done_tasks, display_order, `rank`, is_system, max_concurrent_tasks) VALUES (?, ?, ?, ?, ?, ?, 0, ?)',
-        [slug, displayName, emoji, minDoneTasks, displayOrder ?? 0, rank, maxConcurrentTasks]
-      );
+      try {
+        await execute(
+          'INSERT INTO roles (slug, display_name, emoji, min_done_tasks, display_order, `rank`, is_system, max_concurrent_tasks) VALUES (?, ?, ?, ?, ?, ?, 0, ?)',
+          [slug, displayName, emoji, minDoneTasks, displayOrder ?? 0, rank, maxConcurrentTasks]
+        );
+      } catch (e) {
+        if (e && (e.errno === 1062 || e.code === 'ER_DUP_ENTRY')) return res.status(409).json({ error: 'Slug déjà utilisé' });
+        throw e;
+      }
       const role = await queryOne(
         'SELECT id, slug, display_name, emoji, min_done_tasks, display_order, `rank` AS `rank`, is_system, forum_participate, context_comment_participate, max_concurrent_tasks FROM roles WHERE slug = ? LIMIT 1',
         [slug]
       );
       logAudit('rbac_create_profile', 'role', role?.id || null, slug, { req });
       res.status(201).json(role);
-    } catch (e) {
-      logRouteError(e, req);
-      if (e && (e.errno === 1062 || e.code === 'ER_DUP_ENTRY')) return res.status(409).json({ error: 'Slug déjà utilisé' });
-      respondInternalError(res, req, e);
-    }
-  }
+  })
 );
 
 router.post(
   '/profiles/:id/duplicate',
   requirePermission('admin.roles.manage', { needsElevation: true }),
-  async (req, res) => {
-    try {
-      const sourceId = parseInt(req.params.id, 10);
+  asyncHandler(async (req, res) => {
+    const sourceId = parseInt(req.params.id, 10);
       if (!Number.isFinite(sourceId) || sourceId <= 0) {
         return res.status(400).json({ error: 'id de profil invalide' });
       }
@@ -409,11 +400,16 @@ router.post(
         return res.status(400).json({ error: 'Un profil n3beur doit définir emoji et min_done_tasks (source incompatible ou slug eleve_* sans données)' });
       }
 
-      await execute(
-        `INSERT INTO roles (slug, display_name, emoji, min_done_tasks, display_order, \`rank\`, is_system, forum_participate, context_comment_participate, max_concurrent_tasks)
-         VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?)`,
-        [slug, displayName, emoji, minDoneTasks, displayOrder ?? 0, rank, forumParticipate, contextCommentParticipate, maxConcurrentTasks]
-      );
+      try {
+        await execute(
+          `INSERT INTO roles (slug, display_name, emoji, min_done_tasks, display_order, \`rank\`, is_system, forum_participate, context_comment_participate, max_concurrent_tasks)
+           VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?)`,
+          [slug, displayName, emoji, minDoneTasks, displayOrder ?? 0, rank, forumParticipate, contextCommentParticipate, maxConcurrentTasks]
+        );
+      } catch (e) {
+        if (e && (e.errno === 1062 || e.code === 'ER_DUP_ENTRY')) return res.status(409).json({ error: 'Slug déjà utilisé' });
+        throw e;
+      }
       const newRole = await queryOne(
         'SELECT id, slug, display_name, emoji, min_done_tasks, display_order, `rank` AS `rank`, is_system, forum_participate, context_comment_participate, max_concurrent_tasks FROM roles WHERE slug = ? LIMIT 1',
         [slug]
@@ -450,20 +446,14 @@ router.post(
       }
       logAudit('rbac_duplicate_profile', 'role', newRole.id, `from=${sourceId} slug=${slug}`, { req });
       res.status(201).json(newRole);
-    } catch (e) {
-      logRouteError(e, req);
-      if (e && (e.errno === 1062 || e.code === 'ER_DUP_ENTRY')) return res.status(409).json({ error: 'Slug déjà utilisé' });
-      respondInternalError(res, req, e);
-    }
-  }
+  })
 );
 
 router.patch(
   '/profiles/:id',
   requirePermission('admin.roles.manage', { needsElevation: true }),
-  async (req, res) => {
-    try {
-      const role = await queryOne('SELECT id FROM roles WHERE id = ?', [req.params.id]);
+  asyncHandler(async (req, res) => {
+    const role = await queryOne('SELECT id FROM roles WHERE id = ?', [req.params.id]);
       if (!role) return res.status(404).json({ error: 'Profil introuvable' });
       const existing = await queryOne(
         'SELECT slug, display_name, emoji, min_done_tasks, display_order, `rank` AS `rank`, COALESCE(forum_participate, 1) AS forum_participate, COALESCE(context_comment_participate, 1) AS context_comment_participate, max_concurrent_tasks FROM roles WHERE id = ?',
@@ -552,18 +542,14 @@ router.patch(
         await emitStudentsWithPrimaryRole(role.id);
       }
       res.json(updated);
-    } catch (e) {
-      respondInternalError(res, req, e);
-    }
-  }
+  })
 );
 
 router.put(
   '/profiles/:id/permissions',
   requirePermission('admin.roles.manage', { needsElevation: true }),
-  async (req, res) => {
-    try {
-      const role = await queryOne('SELECT id FROM roles WHERE id = ?', [req.params.id]);
+  asyncHandler(async (req, res) => {
+    const role = await queryOne('SELECT id FROM roles WHERE id = ?', [req.params.id]);
       if (!role) return res.status(404).json({ error: 'Profil introuvable' });
       const entries = Array.isArray(req.body?.permissions) ? req.body.permissions : [];
       await withTransaction(async (tx) => {
@@ -581,18 +567,14 @@ router.put(
       });
       logAudit('rbac_update_profile_permissions', 'role', role.id, `permissions=${entries.length}`, { req });
       res.json({ ok: true });
-    } catch (e) {
-      respondInternalError(res, req, e);
-    }
-  }
+  })
 );
 
 router.put(
   '/profiles/:id/pin',
   requirePermission('admin.roles.manage', { needsElevation: true }),
-  async (req, res) => {
-    try {
-      const role = await queryOne('SELECT id FROM roles WHERE id = ?', [req.params.id]);
+  asyncHandler(async (req, res) => {
+    const role = await queryOne('SELECT id FROM roles WHERE id = ?', [req.params.id]);
       if (!role) return res.status(404).json({ error: 'Profil introuvable' });
       const pin = String(req.body?.pin || '').trim();
       if (!/^\d{4,12}$/.test(pin)) return res.status(400).json({ error: 'PIN invalide (4 à 12 chiffres)' });
@@ -603,18 +585,14 @@ router.put(
       );
       logAudit('rbac_update_profile_pin', 'role', role.id, 'PIN mis à jour', { req });
       res.json({ ok: true });
-    } catch (e) {
-      respondInternalError(res, req, e);
-    }
-  }
+  })
 );
 
 router.get(
   '/users',
   requirePermission('admin.users.assign_roles', { needsElevation: true }),
-  async (req, res) => {
-    try {
-      const users = await queryAll(
+  asyncHandler(async (req, res) => {
+    const users = await queryAll(
         `SELECT u.id, u.user_type,
                 u.first_name, u.last_name, u.pseudo, u.description, u.affiliation,
                 COALESCE(NULLIF(u.display_name, ''), NULLIF(CONCAT(COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, '')), ''), u.email, u.pseudo, u.id) AS display_name,
@@ -644,18 +622,14 @@ router.get(
           context_comment_participate: u.user_type === 'student' ? Number(u.context_comment_participate) !== 0 : true,
         }))
       );
-    } catch (e) {
-      respondInternalError(res, req, e);
-    }
-  }
+  })
 );
 
 router.get(
   '/users/:userType/:userId',
   requirePermission('admin.users.assign_roles', { needsElevation: true }),
-  async (req, res) => {
-    try {
-      const resolved = await resolveRbacSubjectForMutation(req.params.userType, req.params.userId);
+  asyncHandler(async (req, res) => {
+    const resolved = await resolveRbacSubjectForMutation(req.params.userType, req.params.userId);
       if (!resolved.ok) return res.status(resolved.status).json({ error: resolved.error });
       const { user: u, resolvedUserType, resolvedUserId } = resolved;
       const rj = await queryOne(
@@ -690,22 +664,18 @@ router.get(
         context_comment_participate:
           resolvedUserType === 'student' ? Number(rj?.context_comment_participate) !== 0 : true,
       });
-    } catch (e) {
-      respondInternalError(res, req, e);
-    }
-  }
+  })
 );
 
 router.patch(
   '/users/:userType/:userId',
   requirePermission('admin.users.assign_roles', { needsElevation: true }),
-  async (req, res) => {
-    try {
-      const resolved = await resolveRbacSubjectForMutation(req.params.userType, req.params.userId);
-      if (!resolved.ok) return res.status(resolved.status).json({ error: resolved.error });
-      const { user, resolvedUserType, resolvedUserId } = resolved;
+  asyncHandler(async (req, res) => {
+    const resolved = await resolveRbacSubjectForMutation(req.params.userType, req.params.userId);
+    if (!resolved.ok) return res.status(resolved.status).json({ error: resolved.error });
+    const { user, resolvedUserType, resolvedUserId } = resolved;
 
-      const actorRoleSlug = String(req.auth?.roleSlug || '').trim().toLowerCase();
+    const actorRoleSlug = String(req.auth?.roleSlug || '').trim().toLowerCase();
       const targetPrimary = await getPrimaryRoleForUser(resolvedUserType, resolvedUserId);
       if (targetPrimary?.slug === 'admin' && actorRoleSlug !== 'admin') {
         return res.status(403).json({ error: 'Seul un administrateur peut modifier un autre administrateur' });
@@ -903,18 +873,14 @@ router.patch(
         context_comment_participate:
           resolvedUserType === 'student' ? Number(roleJoin?.context_comment_participate) !== 0 : true,
       });
-    } catch (e) {
-      respondInternalError(res, req, e);
-    }
-  }
+  })
 );
 
 router.put(
   '/users/:userType/:userId/role',
   requirePermission('admin.users.assign_roles', { needsElevation: true }),
-  async (req, res) => {
-    try {
-      const roleId = parseInt(req.body?.role_id, 10);
+  asyncHandler(async (req, res) => {
+    const roleId = parseInt(req.body?.role_id, 10);
       if (!Number.isFinite(roleId) || roleId <= 0) return res.status(400).json({ error: 'role_id invalide' });
       const role = await queryOne('SELECT id FROM roles WHERE id = ?', [roleId]);
       if (!role) return res.status(404).json({ error: 'Profil introuvable' });
@@ -943,10 +909,7 @@ router.put(
         payload: { user_type: resolvedUserType, user_id: resolvedLegacyUserId, role_id: roleId },
       });
       res.json({ ok: true });
-    } catch (e) {
-      respondInternalError(res, req, e);
-    }
-  }
+  })
 );
 
 module.exports = router;
