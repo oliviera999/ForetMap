@@ -53,6 +53,7 @@ import {
   prefillPhotoSlotKey,
 } from '../utils/biodivPlantForm.js';
 import { groupPrefillPhotosByField } from '../utils/plantPrefillHelpers.js';
+import { buildPlantnetIdentifyImages, filterNonEmptyIdentifySlots, derivePlantnetNameUpdate } from '../utils/plantnetIdentify.js';
 import { PlantSummaryBadges, PlantEcosystemHumanLead } from './biodiv/PlantSummaryBlocks.jsx';
 import { PlantBiodivHeroPhoto, PlantMetaSections } from './biodiv/PlantMetaSections.jsx';
 import { PlantCatalogFilterPanel } from './biodiv/PlantCatalogFilterPanel.jsx';
@@ -374,9 +375,7 @@ function PlantEditForm({ title, form, setForm, onSave, onCancel, saving, plantId
   };
 
   const runPlantnetIdentify = async () => {
-    const images = identifySlots
-      .filter((r) => String(r.imageData || '').trim().length > 0)
-      .map((r) => ({ organ: r.organ || 'auto', imageData: r.imageData }));
+    const images = buildPlantnetIdentifyImages(identifySlots);
     if (images.length === 0) {
       onToast?.('Ajoute au moins une photo (1 à 5).');
       return;
@@ -405,16 +404,9 @@ function PlantEditForm({ title, form, setForm, onSave, onCancel, saving, plantId
 
   const applyIdentifyPrediction = async (pred) => {
     if (!pred || typeof pred !== 'object') return;
-    const sci = String(pred.scientificName || pred.scientificNameWithoutAuthor || '').trim();
-    const vern = pickPlantnetVernacularName(pred.commonNames);
-    const nameGuess = vern || String(pred.scientificNameWithoutAuthor || '').trim();
-    setForm((f) => ({
-      ...f,
-      scientific_name: sci.slice(0, 200) || f.scientific_name,
-      name: (nameGuess && nameGuess.slice(0, 200)) || f.name,
-    }));
+    setForm((f) => ({ ...f, ...derivePlantnetNameUpdate(pred, f) }));
 
-    const slots = identifySlots.filter((r) => String(r.imageData || '').trim().length > 0);
+    const slots = filterNonEmptyIdentifySlots(identifySlots);
     if (slots.length === 0) {
       onToast?.('Nom mis à jour — ajoute des photos d’identification pour les importer dans la fiche.');
       return;
