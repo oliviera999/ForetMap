@@ -852,10 +852,7 @@ function VisitView({
   /** Prof : ouvre l’onglet dédié « Packs mascotte » dans l’app principale. */
   onOpenMascotPackStudioTab,
   /** Carte source : mêmes IDs que la visite — pour biodiversité / tutos comme en mode carte. */
-  mapZones = [],
   mapMarkers = [],
-  /** Catalogue tutoriels (liens lieu + missions), distinct de la sélection `visit_tutorials`. */
-  catalogTutorials = [],
   onOpenPlantCatalogPreview = null,
   profileVisitMascotId = null,
   requireGuestMascotChoice = false,
@@ -863,7 +860,8 @@ function VisitView({
 }) {
   const publicSettings = usePublicSettings();
   const { isN3Affiliated = false, canParticipateContextComments = true } = useSession();
-  const { tasks = [], plants = [] } = useData();
+  // zones/tutorials sont lus depuis DataContext (hors Provider → {}, les défauts [] s'appliquent).
+  const { tasks = [], plants = [], zones: mapZones = [], tutorials: catalogTutorials = [] } = useData();
   const contextCommentsEnabled = publicSettings?.modules?.context_comments_enabled !== false;
   const configuredLocationEmojis = String(
     publicSettings?.ui?.map?.location_emojis

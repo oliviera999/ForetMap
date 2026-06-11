@@ -1911,9 +1911,7 @@ function App() {
                   onForceLogout={forceLogout}
                   onOpenMascotPackStudioTab={openMascotPackStudioTab}
                   profileVisitMascotId={currentUser?.visit_mascot_catalog_id || null}
-                  mapZones={zones}
                   mapMarkers={markers}
-                  catalogTutorials={tutorials}
                   onOpenPlantCatalogPreview={openPlantCatalogPreviewById}
                 />
                 </TabSuspense>
@@ -2036,9 +2034,7 @@ function App() {
                     initialMapId={activeMapId}
                     onForceLogout={forceLogout}
                   profileVisitMascotId={studentForUi?.visit_mascot_catalog_id || null}
-                    mapZones={zones}
                     mapMarkers={markers}
-                    catalogTutorials={tutorials}
                     onOpenPlantCatalogPreview={openPlantCatalogPreviewById}
                   />
                   </TabSuspense>

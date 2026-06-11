@@ -7,9 +7,10 @@ import React, { createContext, useContext } from 'react';
  * Porte uniquement les valeurs à RHS unique vérifié : `zones`, `markers`, `plants`, `tasks`,
  * `tutorials`, `taskProjects`, `activeMapId`. **Exclus volontairement** :
  *  - `maps` — deux variantes selon le consommateur (`visibleMaps` filtré par affiliation vs `maps`
- *    complet pour les éditeurs de profil) → reste en props ;
- *  - `VisitView` — relie ces valeurs à d'autres noms de props (`mapZones`/`catalogTutorials`…) et
- *    son `initialMapId` n'est pas `activeMapId` en mode invité → reste en props.
+ *    complet pour les éditeurs de profil) → reste en props.
+ *
+ * `VisitView` lit `zones`/`tutorials` depuis ce contexte (internes : `mapZones`/`catalogTutorials`)
+ * via O5-lot5 ; `initialMapId` et `mapMarkers` restent en props car distincts selon le contexte.
  *
  * `useData()` renvoie un objet vide gelé hors `Provider` (le retour invité d'`App` reste hors
  * Provider) : les consommateurs déstructurent avec `= []` / `= 'foret'`, identiques aux défauts de
