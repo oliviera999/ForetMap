@@ -67,6 +67,7 @@ import {
 import { useOverlayHistoryBack } from './hooks/useOverlayHistoryBack';
 import { abandonAllOverlays, pushOverlayClose } from './utils/overlayHistory';
 import { AutoProfilePromotionModal } from './components/AutoProfilePromotionModal.jsx';
+import { TeacherTopTabs } from './components/app/TeacherTopTabs.jsx';
 import { DialogShell } from './components/DialogShell';
 import { PublicSettingsProvider } from './contexts/PublicSettingsContext.jsx';
 import { SessionProvider } from './contexts/SessionContext.jsx';
@@ -1660,55 +1661,22 @@ function App() {
 
       {effectiveIsTeacher ? (
         <div className={`main teacher-main app-main-shell app-main-shell--teacher ${useWideMain ? 'main--wide' : ''} ${mapChromeCompactVisible ? 'teacher-main--map-visible' : ''} ${useSplitMapTasks ? 'main--maptasks-split' : ''}`}>
-          <div className="top-tabs app-tabs-surface">
-            {shouldUseDesktopSplit && (
-              <button className={`top-tab ${tab === 'maptasks' ? 'active' : ''}`} onClick={() => setTab('maptasks')}>
-                {mapTasksSplitLabel}{teacherPendingValidationCount > 0 ? ` (${teacherPendingValidationCount} à valider)` : ''}
-              </button>
-            )}
-            <button className={`top-tab ${tab === 'map' ? 'active' : ''}`} onClick={() => setTab('map')}>🗺️ Carte & Zones</button>
-            <button className={`top-tab ${tab === 'tasks' || (mergeTasksTutoNav && tab === 'tuto') ? 'active' : ''}`} onClick={() => setTab('tasks')}>
-              {tasksTabLabel}{teacherPendingValidationCount > 0 ? ` (${teacherPendingValidationCount} à valider)` : ''}
-            </button>
-            <button className={`top-tab ${tab === 'plants' ? 'active' : ''}`} onClick={() => setTab('plants')}>🌱 Biodiversité</button>
-            {publicSettings?.modules?.tutorials_enabled !== false && !mergeTasksTutoNav && (
-              <button className={`top-tab ${tab === 'tuto' ? 'active' : ''}`} onClick={() => setTab('tuto')}>📘 Tuto</button>
-            )}
-            {canAccessForum && <button className={`top-tab ${tab === 'forum' ? 'active' : ''}`} onClick={() => setTab('forum')}>💬 Forum</button>}
-            {publicSettings?.modules?.stats_enabled !== false && (
-              <button className={`top-tab ${tab === 'stats' ? 'active' : ''}`} onClick={() => setTab('stats')}>📊 Stats</button>
-            )}
-            {publicSettings?.modules?.visit_enabled !== false && (
-              <button className={`top-tab ${tab === 'visit' ? 'active' : ''}`} onClick={() => setTab('visit')}>🧭 Visite</button>
-            )}
-            {publicSettings?.modules?.visit_enabled !== false && (
-              <button className={`top-tab ${tab === 'mascot_packs' ? 'active' : ''}`} onClick={() => setTab('mascot_packs')}>🎨 Packs mascotte</button>
-            )}
-            <button className={`top-tab ${tab === 'media_library' ? 'active' : ''}`} onClick={() => setTab('media_library')}>
-              🗂️ Médiathèque
-            </button>
-            {(
-              hasPermissionInRole('admin.roles.manage')
-              || hasPermissionInRole('admin.users.assign_roles')
-              || hasPermissionInRole('stats.export')
-              || hasPermissionInRole('students.import')
-              || hasPermissionInRole('students.delete')
-              || hasPermissionInRole('users.create')
-            ) && (
-              <button className={`top-tab ${tab === 'profiles' ? 'active' : ''}`} onClick={() => setTab('profiles')}>
-                🛡️ {isN3Affiliated ? 'n3boss & utilisateurs' : 'Profils & utilisateurs'}
-              </button>
-            )}
-            {hasPermissionInRole('admin.settings.read') && (
-              <button className={`top-tab ${tab === 'settings' ? 'active' : ''}`} onClick={() => setTab('settings')}>
-                ⚙️ Paramètres
-              </button>
-            )}
-            {hasPermission('audit.read') && (
-              <button className={`top-tab ${tab === 'audit' ? 'active' : ''}`} onClick={() => setTab('audit')}>📜 Audit</button>
-            )}
-            <button className={`top-tab ${tab === 'about' ? 'active' : ''}`} onClick={() => setTab('about')}>ℹ️ À propos</button>
-          </div>
+          <TeacherTopTabs
+            tab={tab}
+            onTabChange={setTab}
+            shouldUseDesktopSplit={shouldUseDesktopSplit}
+            mapTasksSplitLabel={mapTasksSplitLabel}
+            tasksTabLabel={tasksTabLabel}
+            teacherPendingValidationCount={teacherPendingValidationCount}
+            mergeTasksTutoNav={mergeTasksTutoNav}
+            tutorialsModuleEnabled={tutorialsModuleEnabled}
+            statsEnabled={publicSettings?.modules?.stats_enabled !== false}
+            visitEnabled={publicSettings?.modules?.visit_enabled !== false}
+            canAccessForum={canAccessForum}
+            isN3Affiliated={isN3Affiliated}
+            hasPermission={hasPermission}
+            hasPermissionInRole={hasPermissionInRole}
+          />
           {loading ? (
             <div className="loader" style={{ height: '60vh' }}>
               <div className="loader-leaf">🌿</div>
