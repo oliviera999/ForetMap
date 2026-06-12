@@ -47,7 +47,11 @@ import {
   extractPlantForm,
 } from '../utils/plantFormValues.js';
 import { prefillPhotoSlotKey } from '../utils/biodivPlantForm.js';
-import { groupPrefillPhotosByField } from '../utils/plantPrefillHelpers.js';
+import {
+  groupPrefillPhotosByField,
+  buildPrefillFieldSelection,
+  buildInitialPrefillPhotoSelections,
+} from '../utils/plantPrefillHelpers.js';
 import { applyPrefillToForm } from '../utils/plantPrefillApply.js';
 import { PlantnetIdentifyPanel } from './biodiv/PlantnetIdentifyPanel.jsx';
 import { PlantSummaryBadges, PlantEcosystemHumanLead } from './biodiv/PlantSummaryBlocks.jsx';
@@ -333,34 +337,11 @@ function PlantEditForm({ title, form, setForm, onSave, onCancel, saving, plantId
       }
       const data = await api(`/api/plants/autofill?${hintParams.toString()}`);
       setPrefillResult(data || null);
-
-      const latest = formRef.current || {};
-      const nextFields = {};
-      for (const key of SPECIES_PREFILL_FIELDS) {
-        const value = String(data?.fields?.[key] || '').trim();
-        if (!value) continue;
-        const hasCurrentValue = String(latest?.[key] || '').trim().length > 0;
-        nextFields[key] = overwriteFilled ? true : !hasCurrentValue;
-      }
-      setSelectedFields(nextFields);
-
-      const photosByField = {};
-      for (const photo of data?.photos || []) {
-        const field = String(photo?.field || '').trim();
-        if (!field) continue;
-        if (!photosByField[field]) photosByField[field] = [];
-        photosByField[field].push(photo);
-      }
-      const nextPhotoSel = {};
-      for (const [field, list] of Object.entries(photosByField)) {
-        (list || []).forEach((_, idx) => {
-          const slot = prefillPhotoSlotKey(field, idx);
-          const defaultTarget = PHOTO_FIELD_KEYS.has(field) ? field : 'photo_species';
-          // Propositions visibles par défaut ; l’utilisateur coche pour ajouter sans remplacer les photos déjà présentes.
-          nextPhotoSel[slot] = { checked: false, assignTo: defaultTarget };
-        });
-      }
-      setPrefillPhotoSelections(nextPhotoSel);
+      setSelectedFields(buildPrefillFieldSelection(data, formRef.current || {}, {
+        overwriteFilled,
+        speciesPrefillFields: SPECIES_PREFILL_FIELDS,
+      }));
+      setPrefillPhotoSelections(buildInitialPrefillPhotoSelections(data?.photos, PHOTO_FIELD_KEYS));
     } catch (e) {
       setPrefillResult(null);
       setPrefillError(e?.message || 'Erreur de pré-saisie');
