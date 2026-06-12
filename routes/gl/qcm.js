@@ -21,6 +21,8 @@ const {
   matchGlossaryTermsForSpecies,
 } = require('../../lib/glGlossaryMatch');
 const { normalizeOptionalString } = require('../../lib/shared/httpHelpers');
+const { validate } = require('../../lib/validate');
+const { glQcmPoolPreviewQuerySchema } = require('../../lib/glQuerySchemas');
 const { parseBiomeSlugsFromQuery, loadBiomesForChapterIds } = require('../../lib/glChapterBiomes');
 const { previewQuestionPool } = require('../../lib/glMarkerQuestionPool');
 const { normalizeQuestionPool } = require('../../lib/glMarkerEventConfig');
@@ -130,19 +132,14 @@ function parseCsvQuery(value) {
   return raw.split(',').map((s) => s.trim()).filter(Boolean);
 }
 
-function parseDifficulteQuery(value) {
-  if (value == null || value === '') return null;
-  const n = Number(value);
-  if (!Number.isFinite(n)) return null;
-  const i = Math.floor(n);
-  if (i < 1 || i > 5) return null;
-  return i;
-}
-
 /** GET /api/gl/qcm/pool-preview — aperçu pool questions pour config repère (admin). */
-router.get('/qcm/pool-preview', requireGlPermission('gl.content.manage'), async (req, res) => {
+// O7 — chapterId/difficulteMin/difficulteMax via le schéma partagé glQcmPoolPreviewQuerySchema
+// (coercition permissive, jamais de 400 issu du schéma) ; le 400 « biomeSlugs ou chapterId
+// requis » historique reste décidé par le handler, condition inchangée. Les filtres texte/CSV
+// restent lus manuellement sur req.query.
+router.get('/qcm/pool-preview', requireGlPermission('gl.content.manage'), validate({ query: glQcmPoolPreviewQuerySchema }), async (req, res) => {
   let biomeSlugs = parseBiomeSlugsFromQuery(req.query);
-  const chapterId = req.query?.chapterId != null ? Number(req.query.chapterId) : null;
+  const chapterId = req.validatedQuery?.chapterId;
   if (chapterId != null && Number.isFinite(chapterId)) {
     const biomesMap = await loadBiomesForChapterIds({ queryAll }, [chapterId]);
     const chapterBiomes = biomesMap.get(chapterId) || [];
@@ -158,8 +155,8 @@ router.get('/qcm/pool-preview', requireGlPermission('gl.content.manage'), async 
     biomeSlugs,
     categorieSlugs: parseCsvQuery(req.query?.categorieSlugs || req.query?.categorieSlug),
     niveaux: parseCsvQuery(req.query?.niveaux || req.query?.niveau),
-    difficulteMin: parseDifficulteQuery(req.query?.difficulteMin),
-    difficulteMax: parseDifficulteQuery(req.query?.difficulteMax),
+    difficulteMin: req.validatedQuery?.difficulteMin,
+    difficulteMax: req.validatedQuery?.difficulteMax,
     searchQuery: normalizeOptionalString(req.query?.q) || '',
     selectedQuestionCodes: parseCsvQuery(req.query?.selectedQuestionCodes),
   });
@@ -343,4 +340,5 @@ module.exports = {
   loadGlossaryLookup,
   presentQuestion,
   verifyPresentationAnswer,
+  glQcmPoolPreviewQuerySchema, // exporté pour test no-DB du contrat O7
 };
