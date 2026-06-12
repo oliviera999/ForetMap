@@ -18,7 +18,14 @@ import {
   linkedTaskStatusLabel,
   tutorialZonePickLabel,
   createInitialTutorialForm,
+  filterAndSortTutorials,
 } from '../utils/tutorialListHelpers.js';
+import {
+  toggleTutorialFormLocation,
+  applyTutorialFormMapChange,
+  tutorialFormFromDetail,
+  buildTutorialSavePayload,
+} from '../utils/tutorialFormHelpers.js';
 
 function downloadUrl(url) {
   const a = document.createElement('a');
@@ -146,20 +153,10 @@ function TutorialsView({
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    const arr = tutorials.filter((t) => {
-      if (typeFilter !== 'all' && t.type !== typeFilter) return false;
-      if (statusFilter === 'active' && !t.is_active) return false;
-      if (statusFilter === 'archived' && t.is_active) return false;
-      if (!q) return true;
-      return (
-        String(t.title || '').toLowerCase().includes(q) ||
-        String(t.summary || '').toLowerCase().includes(q)
-      );
-    });
-    return sortTutorialsByOrder(arr);
-  }, [tutorials, search, typeFilter, statusFilter]);
+  const filtered = useMemo(
+    () => filterAndSortTutorials(tutorials, { search, typeFilter, statusFilter }),
+    [tutorials, search, typeFilter, statusFilter]
+  );
 
   const openReorder = useCallback(() => {
     setReorderDraft(sortTutorialsByOrder(tutorials));
@@ -241,49 +238,17 @@ function TutorialsView({
   };
 
   const toggleZoneId = (zoneId) => {
-    const id = String(zoneId || '').trim();
-    if (!id) return;
-    setForm((f) => {
-      const cur = [...new Set((f.zone_ids || []).map(String))];
-      const has = cur.includes(id);
-      return { ...f, zone_ids: has ? cur.filter((x) => x !== id) : [...cur, id] };
-    });
+    setForm((f) => toggleTutorialFormLocation(f, 'zone_ids', zoneId));
   };
 
   const toggleMarkerId = (markerId) => {
-    const id = String(markerId || '').trim();
-    if (!id) return;
-    setForm((f) => {
-      const cur = [...new Set((f.marker_ids || []).map(String))];
-      const has = cur.includes(id);
-      return { ...f, marker_ids: has ? cur.filter((x) => x !== id) : [...cur, id] };
-    });
+    setForm((f) => toggleTutorialFormLocation(f, 'marker_ids', markerId));
   };
 
   const beginEdit = async (row) => {
     try {
       const detail = await api(`/api/tutorials/${row.id}?include_content=1&include_inactive=1`);
-      const zids = (detail.zone_ids || []).map((id) => String(id || '').trim()).filter(Boolean);
-      const mids = (detail.marker_ids || []).map((id) => String(id || '').trim()).filter(Boolean);
-      const inferMap =
-        (detail.zones_linked && detail.zones_linked[0]?.map_id)
-        || (detail.markers_linked && detail.markers_linked[0]?.map_id)
-        || activeMapId
-        || '';
-      setForm({
-        id: detail.id,
-        title: detail.title || '',
-        summary: detail.summary || '',
-        type: detail.type || 'html',
-        html_content: detail.html_content || '',
-        source_url: detail.source_url || '',
-        source_file_path: detail.source_file_path || '',
-        sort_order: detail.sort_order || 0,
-        is_active: detail.is_active !== false,
-        map_id: inferMap,
-        zone_ids: zids,
-        marker_ids: mids,
-      });
+      setForm(tutorialFormFromDetail(detail, activeMapId));
       setShowEditor(true);
     } catch (e) {
       if (e instanceof AccountDeletedError) onForceLogout?.();
@@ -299,18 +264,7 @@ function TutorialsView({
       return;
     }
     setSaving(true);
-    const payload = {
-      title: form.title.trim(),
-      summary: form.summary || '',
-      type: form.type,
-      html_content: form.type === 'html' ? (form.html_content || null) : null,
-      source_url: form.type === 'link' ? (form.source_url || null) : null,
-      source_file_path: form.source_file_path || null,
-      sort_order: Number(form.sort_order) || 0,
-      is_active: !!form.is_active,
-      zone_ids: [...new Set((form.zone_ids || []).map((id) => String(id || '').trim()).filter(Boolean))],
-      marker_ids: [...new Set((form.marker_ids || []).map((id) => String(id || '').trim()).filter(Boolean))],
-    };
+    const payload = buildTutorialSavePayload(form);
     try {
       if (form.id) await api(`/api/tutorials/${form.id}`, 'PUT', payload);
       else await api('/api/tutorials', 'POST', payload);
@@ -514,18 +468,7 @@ function TutorialsView({
               value={form.map_id || ''}
               onChange={(e) => {
                 const next = e.target.value;
-                setForm((f) => ({
-                  ...f,
-                  map_id: next,
-                  zone_ids: (f.zone_ids || []).filter((zid) => {
-                    const z = zones.find((zz) => String(zz.id) === String(zid));
-                    return z && (!next || z.map_id === next);
-                  }),
-                  marker_ids: (f.marker_ids || []).filter((mid) => {
-                    const mk = markers.find((mm) => String(mm.id) === String(mid));
-                    return mk && (!next || mk.map_id === next);
-                  }),
-                }));
+                setForm((f) => applyTutorialFormMapChange(f, next, zones, markers));
               }}>
               <option value="">Toutes les cartes</option>
               {maps.map((mp) => (
