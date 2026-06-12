@@ -9,12 +9,6 @@ import {
   stripLeadingMarkerEmoji,
 } from '../constants/emojis';
 
-import { useHelp } from '../hooks/useHelp';
-import { HelpPanel } from './HelpPanel';
-import { Tooltip } from './Tooltip';
-
-import { HELP_PANELS, HELP_TOOLTIPS, resolveRoleText } from '../constants/help';
-
 import { resolveMapOverlayTypography } from '../utils/mapOverlayTypography';
 
 import { TASK_VISUAL_LABEL } from '../utils/taskEnrollment.js';
@@ -30,7 +24,6 @@ import {
   offsetDuplicateZonePoints,
 } from '../utils/zoneEditGeometry.js';
 import { orderedLivingBeingsForForm } from '../utils/livingBeings';
-import { getContentText } from '../utils/content';
 import { buildMapImageCandidates } from '../utils/mapImageCandidates';
 
 import { taskLocationIds, tutorialLocationIds } from '../utils/mapLocationContext';
@@ -54,6 +47,7 @@ import { PhotoGallery } from './map/PhotoGallery.jsx';
 import { LocationTutorialPreviewList } from './map/mapModalShared.jsx';
 import { ZoneInfoModal } from './map/ZoneInfoModal.jsx';
 import { MarkerModal } from './map/MarkerModal.jsx';
+import { MapViewToolbar } from './map/MapViewToolbar.jsx';
 import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
 import { useSession } from '../contexts/SessionContext.jsx';
 import { useData } from '../contexts/DataContext.jsx';
@@ -735,26 +729,6 @@ function MapView({ maps = [], onMapChange, isTeacher, student, canSelfAssignTask
   const cursor = mode === 'view' ? 'grab' : mode === 'draw-zone' ? 'crosshair' : mode === 'edit-points' ? 'default' : 'cell';
   const mobileInteractionsActive = mapInteractionEnabled || committed.s > 1.05;
   const canManageMarkerPositions = !!isTeacher;
-  const {
-    isHelpEnabled,
-    showContextHints,
-    pulseUnseenPanels,
-    hasSeenSection,
-    markSectionSeen,
-    trackPanelOpen,
-    trackPanelDismiss,
-  } = useHelp({ publicSettings, isTeacher });
-  const helpMap = HELP_PANELS.map;
-  const helpHintPrefix = getContentText(publicSettings, 'help.hint_prefix', 'Astuce :');
-  const helpPanelTitlePrefix = getContentText(publicSettings, 'help.panel_title_prefix', '💡');
-  const helpPanelCloseCta = getContentText(publicSettings, 'help.panel_close_cta', 'Fermer');
-  const helpPanelDismissCta = getContentText(publicSettings, 'help.panel_dismiss_cta', 'Ne plus afficher');
-  const mapQuickTip = getContentText(
-    publicSettings,
-    'help.map_quick_tip',
-    'Clique une zone ou un repère puis ouvre ? pour les actions guidées.'
-  );
-  const tooltipText = (entry) => resolveRoleText(entry, isTeacher);
 
   return (
     <div className={`map-view-root ${embedded ? 'map-view-root--embedded' : 'map-view-root--solo'}`}>
@@ -835,148 +809,35 @@ function MapView({ maps = [], onMapChange, isTeacher, student, canSelfAssignTask
           onDelete={() => setPendingMarker(null)} />
       )}
 
-      <div className="map-view-toolbar" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 12px',
-        background: 'white', borderBottom: '1.5px solid var(--mint)', flexShrink: 0, minHeight: 50 }}>
-        {maps.length > 1 && (
-          maps.length > 4 ? (
-            <select
-              className="map-switch-select"
-              value={activeMapId}
-              onChange={(event) => onMapChange?.(event.target.value)}
-              aria-label="Sélection de carte active"
-            >
-              {maps.map((mp) => (
-                <option key={mp.id} value={mp.id}>
-                  {mp.label}
-                </option>
-              ))}
-            </select>
-          ) : (
-            <div className="map-switch-inline" style={{ display: 'flex', gap: 3, background: 'var(--parchment)', borderRadius: 10, padding: 3 }}>
-              {maps.map((mp) => (
-                <button key={mp.id}
-                  style={{ background: activeMapId === mp.id ? 'var(--forest)' : 'transparent', color: activeMapId === mp.id ? 'white' : 'var(--soil)',
-                    border: 'none', borderRadius: 8, padding: '7px 11px', cursor: 'pointer',
-                    fontFamily: 'DM Sans,sans-serif', fontSize: '.82rem', fontWeight: 700, whiteSpace: 'nowrap' }}
-                  onClick={() => onMapChange?.(mp.id)}>
-                  {mp.label}
-                </button>
-              ))}
-            </div>
-          )
-        )}
-
-        <div style={{ display: 'flex', gap: 3, background: 'var(--parchment)', borderRadius: 10, padding: 3 }}>
-          {[['view', '🖐️ Nav'],
-            ...(isTeacher && mode !== 'edit-points' ? [
-              ['draw-zone', `🖊️ Zone${mode === 'draw-zone' && drawPoints.length > 0 ? ` (${drawPoints.length})` : ''}`],
-              ['add-marker', '📍 Repère'],
-            ] : [])
-          ].map(([m, label]) => (
-            <button key={m}
-              style={{ background: mode === m ? 'var(--forest)' : 'transparent', color: mode === m ? 'white' : 'var(--soil)',
-                border: 'none', borderRadius: 8, padding: '7px 11px', cursor: 'pointer',
-                fontFamily: 'DM Sans,sans-serif', fontSize: '.82rem', fontWeight: 600,
-                transition: 'all .15s', whiteSpace: 'nowrap' }}
-              onClick={() => { setMode(p => p === m && m !== 'view' ? 'view' : m); if (m === 'view') { setDrawPoints([]); discardEditPointsSession(); } }}>
-              {label}
-            </button>
-          ))}
-        </div>
-
-        {isTeacher && mode === 'draw-zone' && drawPoints.length > 0 && (
-          <div style={{ display: 'flex', gap: 4 }}>
-            {drawPoints.length >= 3 && <button className="btn btn-secondary btn-sm" onClick={finishZone}>✅ Terminer</button>}
-            <button className="btn btn-ghost btn-sm" onClick={undoPoint}>↩ Undo</button>
-            <button className="btn btn-danger btn-sm" onClick={cancelDraw}>✕</button>
-          </div>
-        )}
-        {mode === 'edit-points' && (
-          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-            <span style={{ fontSize: '.8rem', color: 'var(--leaf)', fontWeight: 700,
-              background: '#f0fdf4', padding: '5px 10px', borderRadius: 8, border: '1px solid var(--mint)' }}>
-              ✏️ {editZone?.name}
-            </span>
-            <button type="button" className="btn btn-ghost btn-sm" disabled={!editCanUndo} onClick={undoEditPoints} title="Annuler la dernière modification (Ctrl+Z ou Cmd+Z)">↩ Annuler</button>
-            <button className="btn btn-primary btn-sm" onClick={saveEditPoints}>💾 Sauver</button>
-            <button className="btn btn-ghost btn-sm" onClick={() => { setMode('view'); discardEditPointsSession(); }}>✕</button>
-          </div>
-        )}
-
-        <div style={{ marginLeft: 'auto', display: 'flex', gap: 4, alignItems: 'center' }}>
-          {canManageMarkerPositions && (
-            <button
-              aria-label={markerPositionUnlocked ? 'Verrouiller la position des repères' : 'Déverrouiller la position des repères'}
-              onClick={toggleMarkerPositionLock}
-              style={{ background: markerPositionUnlocked ? '#ecfdf3' : 'transparent', border: '1.5px solid var(--mint)',
-                color: markerPositionUnlocked ? '#166534' : 'var(--forest)', borderRadius: 8, padding: '6px 10px',
-                cursor: 'pointer', fontSize: '.78rem', fontWeight: 700, minHeight: 36 }}>
-              {markerPositionUnlocked ? '🔓 Repères' : '🔒 Repères'}
-            </button>
-          )}
-          {isCoarsePointer && mode === 'view' && (
-            <Tooltip text={tooltipText(HELP_TOOLTIPS.map.toggleGestures)}>
-              <button
-                className={`map-gesture-toggle ${mobileInteractionsActive ? 'is-on' : ''}`}
-                onClick={toggleMapInteraction}
-                aria-label={mobileInteractionsActive ? 'Désactiver les gestes carte' : 'Activer les gestes carte'}>
-                {mobileInteractionsActive ? '🔓 Gestes' : '🔒 Gestes'}
-              </button>
-            </Tooltip>
-          )}
-          <Tooltip text={tooltipText(HELP_TOOLTIPS.map.toggleLabels)}>
-            <button
-              aria-label={showLabels ? 'Masquer les noms' : 'Afficher les noms'}
-              onClick={() => setShowLabels(l => !l)}
-              style={{ background: showLabels ? 'var(--mint)' : 'transparent', border: '1.5px solid var(--mint)',
-                color: 'var(--forest)', borderRadius: 8, padding: '6px 10px', cursor: 'pointer', fontSize: '.9rem' }}
-            >
-              🏷️
-            </button>
-          </Tooltip>
-          <div style={{ display: 'flex', background: 'var(--parchment)', borderRadius: 10, padding: 3, gap: 2 }}>
-            {[
-              ['＋', 1.28, HELP_TOOLTIPS.map.zoomIn, 'Zoomer la carte'],
-              ['－', 0.78, HELP_TOOLTIPS.map.zoomOut, 'Dézoomer la carte'],
-              ['⊡', 0, HELP_TOOLTIPS.map.zoomReset, 'Recentrer la carte'],
-            ].map(([label, factor, helpEntry, ariaLabel]) => (
-              <Tooltip key={label} text={tooltipText(helpEntry)}>
-                <button onClick={() => {
-                  if (factor === 0) { fitMap(); return; }
-                  const c = containerRef.current; if (!c) return;
-                  const mx = c.clientWidth / 2;
-                  const my = c.clientHeight / 2;
-                  const ns = factor > 1 ? Math.min(tx.current.s * factor, 6) : Math.max(tx.current.s * factor, 0.15);
-                  animateZoomTowardScale(ns, mx, my);
-                }}
-                aria-label={ariaLabel}
-                style={{ background: 'transparent', border: 'none', color: 'var(--soil)',
-                  padding: '6px 10px', cursor: 'pointer', fontSize: '1rem', borderRadius: 7 }}>{label}</button>
-              </Tooltip>
-            ))}
-          </div>
-          {isHelpEnabled && (
-            <HelpPanel
-              sectionId="map"
-              title={helpMap.title}
-              entries={helpMap.items}
-              isTeacher={isTeacher}
-              isPulsing={pulseUnseenPanels && !hasSeenSection('map')}
-              panelTitlePrefix={helpPanelTitlePrefix}
-              closeButtonText={helpPanelCloseCta}
-              dismissButtonText={helpPanelDismissCta}
-              onMarkSeen={markSectionSeen}
-              onOpen={trackPanelOpen}
-              onDismiss={trackPanelDismiss}
-            />
-          )}
-        </div>
-      </div>
-      {isHelpEnabled && showContextHints && mapQuickTip ? (
-        <p className="section-sub" style={{ margin: '8px 12px 0' }}>
-          <strong>{helpHintPrefix}</strong> {mapQuickTip}
-        </p>
-      ) : null}
+      <MapViewToolbar
+        maps={maps}
+        activeMapId={activeMapId}
+        onMapChange={onMapChange}
+        mode={mode}
+        isTeacher={isTeacher}
+        drawPointsCount={drawPoints.length}
+        onModeButtonClick={(m) => { setMode(p => p === m && m !== 'view' ? 'view' : m); if (m === 'view') { setDrawPoints([]); discardEditPointsSession(); } }}
+        onFinishZone={finishZone}
+        onUndoPoint={undoPoint}
+        onCancelDraw={cancelDraw}
+        editZoneName={editZone?.name}
+        editCanUndo={editCanUndo}
+        onUndoEditPoints={undoEditPoints}
+        onSaveEditPoints={saveEditPoints}
+        onExitEditPoints={() => { setMode('view'); discardEditPointsSession(); }}
+        canManageMarkerPositions={canManageMarkerPositions}
+        markerPositionUnlocked={markerPositionUnlocked}
+        onToggleMarkerPositionLock={toggleMarkerPositionLock}
+        isCoarsePointer={isCoarsePointer}
+        mobileInteractionsActive={mobileInteractionsActive}
+        onToggleMapInteraction={toggleMapInteraction}
+        showLabels={showLabels}
+        onToggleLabels={() => setShowLabels(l => !l)}
+        containerRef={containerRef}
+        txRef={tx}
+        fitMap={fitMap}
+        animateZoomTowardScale={animateZoomTowardScale}
+      />
 
       <div
         ref={mapLayoutOuterRef}
