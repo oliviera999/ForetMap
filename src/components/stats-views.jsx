@@ -5,9 +5,15 @@ import { getDicebearAvatarUrl, getStudentAvatarUrl } from '../utils/avatar';
 import { getRoleTerms } from '../utils/n3-terminology';
 import { StudentAvatar } from './student-avatar';
 import { compressImageWithPreset } from '../utils/image';
-import { buildAffiliationSelectOptions } from '../utils/affiliationSelectOptions';
 import { MarkdownTextarea } from './MarkdownTextarea.jsx';
-import { getVisitMascotCatalog } from '../utils/visitMascotCatalog.js';
+import {
+  estimateDataUrlBytes,
+  deriveProfileTypeLabel,
+  profileUpdateEndpoint,
+  buildProfileAffiliationOptions,
+  buildVisitMascotOptions,
+  validateProfileEditorFields,
+} from '../utils/studentProfileFields.js';
 import { useHelp } from '../hooks/useHelp';
 import { HelpPanel } from './HelpPanel';
 import { HELP_PANELS } from '../constants/help';
@@ -188,37 +194,21 @@ function StudentProfileEditor({ student, onUpdated, onClose, maps = [] }) {
   const fallbackDisplayName = String(student?.display_name || student?.displayName || student?.email || 'Utilisateur').trim();
   const displayFirstName = String(student?.first_name || '').trim() || fallbackDisplayName;
   const displayLastName = String(student?.last_name || '').trim();
-  const profileType = (() => {
-    const roleSlug = String(student?.auth?.roleSlug || '').toLowerCase();
-    if (roleSlug === 'admin') return 'admin';
-    if (roleSlug.startsWith('prof')) return roleTerms.teacherShort;
-    if (roleSlug.startsWith('eleve')) return roleTerms.studentSingular;
-    const userType = String(student?.auth?.userType || student?.user_type || '').toLowerCase();
-    if (userType === 'teacher' || userType === 'user') return roleTerms.teacherShort;
-    if (userType === 'student') return roleTerms.studentSingular;
-    return roleTerms.studentSingular;
-  })();
+  const profileType = deriveProfileTypeLabel(student, roleTerms);
 
   const [pseudo, setPseudo] = useState(student?.pseudo || '');
   const [email, setEmail] = useState(student?.email || '');
   const [description, setDescription] = useState(student?.description || '');
   const [affiliation, setAffiliation] = useState(student?.affiliation || 'both');
   const [visitMascotCatalogId, setVisitMascotCatalogId] = useState(student?.visit_mascot_catalog_id || '');
-  const affiliationSelectOptions = useMemo(() => {
-    const base = buildAffiliationSelectOptions(maps);
-    const a = String(affiliation || student?.affiliation || 'both').toLowerCase();
-    if (base.some((o) => o.value === a)) return base;
-    return [...base, { value: a, label: `${a} (valeur en base)` }];
-  }, [maps, affiliation, student?.affiliation]);
-  const visitMascotOptions = useMemo(() => {
-    const allowedRaw = publicSettings?.visit?.mascot?.allowed_ids;
-    const allowedIds = Array.isArray(allowedRaw)
-      ? allowedRaw.map((id) => String(id || '').trim()).filter(Boolean)
-      : [];
-    const base = getVisitMascotCatalog();
-    if (!allowedIds.length) return base;
-    return base.filter((m) => allowedIds.includes(String(m?.id || '').trim()));
-  }, [publicSettings?.visit?.mascot?.allowed_ids]);
+  const affiliationSelectOptions = useMemo(
+    () => buildProfileAffiliationOptions(maps, affiliation, student?.affiliation),
+    [maps, affiliation, student?.affiliation]
+  );
+  const visitMascotOptions = useMemo(
+    () => buildVisitMascotOptions(publicSettings?.visit?.mascot?.allowed_ids),
+    [publicSettings?.visit?.mascot?.allowed_ids]
+  );
   const [avatarPreview, setAvatarPreview] = useState(getStudentAvatarUrl(student));
   const [avatarData, setAvatarData] = useState(null);
   const [removeAvatar, setRemoveAvatar] = useState(false);
@@ -229,13 +219,6 @@ function StudentProfileEditor({ student, onUpdated, onClose, maps = [] }) {
   const [okMsg, setOkMsg] = useState('');
   const galleryInputRef = useRef(null);
   const cameraInputRef = useRef(null);
-
-  const estimateDataUrlBytes = (dataUrl) => {
-    const payload = String(dataUrl || '').split(',')[1] || '';
-    if (!payload) return 0;
-    const padding = payload.endsWith('==') ? 2 : (payload.endsWith('=') ? 1 : 0);
-    return Math.floor((payload.length * 3) / 4) - padding;
-  };
 
   const onAvatarSelected = async (file) => {
     if (!file) return;
@@ -265,16 +248,8 @@ function StudentProfileEditor({ student, onUpdated, onClose, maps = [] }) {
   const save = async () => {
     setErr('');
     setOkMsg('');
-    if (!currentPassword) return setErr('Mot de passe actuel requis');
-    if (pseudo.trim() && !/^[A-Za-z0-9_.-]{3,30}$/.test(pseudo.trim())) {
-      return setErr('Pseudo invalide (3-30 caractères, lettres/chiffres/._-)');
-    }
-    if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      return setErr('Email invalide');
-    }
-    if (description.trim().length > 300) {
-      return setErr('Description trop longue (max 300 caractères)');
-    }
+    const validationError = validateProfileEditorFields({ pseudo, email, description, currentPassword });
+    if (validationError) return setErr(validationError);
 
     setLoading(true);
     try {
@@ -289,11 +264,7 @@ function StudentProfileEditor({ student, onUpdated, onClose, maps = [] }) {
       if (avatarData) payload.avatarData = avatarData;
       if (removeAvatar) payload.removeAvatar = true;
 
-      const roleSlug = String(student?.auth?.roleSlug || '').toLowerCase();
-      const userType = String(student?.auth?.userType || student?.user_type || '').toLowerCase();
-      const isTeacherLike = roleSlug === 'admin' || roleSlug.startsWith('prof') || userType === 'teacher' || userType === 'user';
-      const endpoint = isTeacherLike ? '/api/auth/me/profile' : `/api/students/${student.id}/profile`;
-      const updated = await api(endpoint, 'PATCH', payload);
+      const updated = await api(profileUpdateEndpoint(student), 'PATCH', payload);
       onUpdated(updated);
       setPseudo(updated?.pseudo || '');
       setEmail(updated?.email || '');
