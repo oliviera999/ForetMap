@@ -1,8 +1,10 @@
-import { describe, test, expect } from 'vitest';
+import { describe, test, expect, vi } from 'vitest';
 import {
   computeQuickAssignDelta,
   canApplyQuickAssign,
   quickAssignHintText,
+  executeQuickAssignPlan,
+  quickAssignOutcomeToast,
 } from '../../src/utils/taskQuickAssign.js';
 
 const STUDENTS = [
@@ -115,5 +117,85 @@ describe('quickAssignHintText', () => {
   test('résumé du delta (retraits puis inscriptions, pluriels)', () => {
     const t = task({ required_students: 3, assignments: [{ student_id: '3' }] });
     expect(quickAssignHintText(t, ['1', '2'], STUDENTS)).toBe('Retirer 1 n3beur · Inscrire 2 n3beurs');
+  });
+});
+
+describe('executeQuickAssignPlan', () => {
+  test('retraits puis inscriptions : appels API dans l’ordre, compteurs corrects', async () => {
+    const calls = [];
+    const apiCall = vi.fn(async (path, method, body) => { calls.push({ path, method, body }); });
+    const t = task({ required_students: 3, assignments: [{ student_id: '3' }] });
+    const outcome = await executeQuickAssignPlan(apiCall, t, {
+      toAdd: [STUDENTS[0], STUDENTS[1]],
+      toRemove: [STUDENTS[2]],
+    });
+    expect(outcome).toEqual({
+      removeOk: 1, removeFail: 0, firstRemoveError: '', addOk: 2, addFail: 0, firstAddError: '',
+    });
+    expect(calls.map((c) => c.path)).toEqual([
+      '/api/tasks/t1/unassign',
+      '/api/tasks/t1/assign',
+      '/api/tasks/t1/assign',
+    ]);
+    expect(calls[0].body).toEqual({ firstName: 'Zoé', lastName: 'Petit', studentId: 3 });
+    expect(calls[1].body).toEqual({ firstName: 'Léa', lastName: 'Martin', studentId: 1 });
+  });
+
+  test('s’arrête d’inscrire quand il n’y a plus de place (places + retraits réussis)', async () => {
+    const apiCall = vi.fn(async () => {});
+    // 2 places, 2 inscrits → 0 dispo ; 1 retrait libère 1 place pour 1 seul ajout.
+    const t = task({ required_students: 2, assignments: [{ student_id: '2' }, { student_id: '3' }] });
+    const outcome = await executeQuickAssignPlan(apiCall, t, {
+      toAdd: [STUDENTS[0], { id: 4, first_name: 'Max', last_name: 'Roux' }],
+      toRemove: [STUDENTS[2]],
+    });
+    expect(outcome.addOk).toBe(1);
+    expect(apiCall).toHaveBeenCalledTimes(2); // 1 unassign + 1 assign
+  });
+
+  test('compte les échecs sans interrompre, garde la première erreur, stoppe sur « plus de place »', async () => {
+    const apiCall = vi.fn()
+      .mockRejectedValueOnce(new Error('retrait interdit'))
+      .mockResolvedValueOnce({})
+      .mockRejectedValueOnce(new Error('Plus de place sur cette tâche'));
+    const t = task({ required_students: 4, assignments: [{ student_id: '3' }] });
+    const outcome = await executeQuickAssignPlan(apiCall, t, {
+      toAdd: [STUDENTS[0], STUDENTS[1], { id: 4, first_name: 'Max', last_name: 'Roux' }],
+      toRemove: [STUDENTS[2]],
+    });
+    expect(outcome).toEqual({
+      removeOk: 0,
+      removeFail: 1,
+      firstRemoveError: 'retrait interdit',
+      addOk: 1,
+      addFail: 1,
+      firstAddError: 'Plus de place sur cette tâche',
+    });
+    // L'erreur « plus de place » interrompt la boucle : pas de 4e appel.
+    expect(apiCall).toHaveBeenCalledTimes(3);
+  });
+});
+
+describe('quickAssignOutcomeToast', () => {
+  const t = task({ title: 'Pailler les fraisiers' });
+
+  test('succès seul : résumé avec le titre de la tâche (pluriels)', () => {
+    expect(quickAssignOutcomeToast(t, { removeOk: 2, addOk: 1 }))
+      .toBe('2 retraits, 1 inscription sur « Pailler les fraisiers »');
+  });
+
+  test('succès + échecs : détaille les deux avec la première erreur', () => {
+    expect(quickAssignOutcomeToast(t, {
+      removeOk: 1, addOk: 0, removeFail: 0, addFail: 2, firstAddError: 'Plus de place',
+    })).toBe('1 retrait — échec : 2 inscriptions (Plus de place)');
+  });
+
+  test('échecs seuls : « Aucune mise à jour » avec la première erreur', () => {
+    expect(quickAssignOutcomeToast(t, { removeFail: 1, firstRemoveError: 'Boom' }))
+      .toBe('Aucune mise à jour : Boom');
+  });
+
+  test('rien à signaler : message neutre', () => {
+    expect(quickAssignOutcomeToast(t, {})).toBe('Aucun changement appliqué — déjà à jour.');
   });
 });

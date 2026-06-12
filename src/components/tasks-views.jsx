@@ -36,15 +36,15 @@ import { TaskImportPanel } from './tasks/TaskImportPanel.jsx';
 import { TaskTutorialsAtFocusBlock } from './tasks/TaskTutorialsAtFocusBlock.jsx';
 import { TaskFiltersBar } from './tasks/TaskFiltersBar.jsx';
 import { TasksViewHeader } from './tasks/TasksViewHeader.jsx';
-import {
-  getAvailableSlots,
-  isStudentAlreadyAssignedToTask,
-} from '../utils/taskComputations.js';
+import { isStudentAlreadyAssignedToTask } from '../utils/taskComputations.js';
 import {
   computeQuickAssignDelta,
   canApplyQuickAssign,
   quickAssignHintText,
+  executeQuickAssignPlan,
+  quickAssignOutcomeToast,
 } from '../utils/taskQuickAssign.js';
+import { computeReorderedProjectTaskIds } from '../utils/taskDragReorder.js';
 import {
   taskEffectiveMapId,
   taskMapIdMatchesFilter,
@@ -358,19 +358,7 @@ function TasksView({
       if (sourceProjectId !== targetProjectId) {
         await api(`/api/tasks/${dragTaskId}`, 'PUT', { project_id: targetProjectId });
       }
-      const targetIdsWithoutDragged = tasks
-        .filter((task) => String(task.id) !== dragTaskId && String(task.project_id || '').trim() === targetProjectId)
-        .map((task) => String(task.id));
-      let insertAt = targetIdsWithoutDragged.length;
-      if (beforeTaskId) {
-        const idx = targetIdsWithoutDragged.indexOf(beforeTaskId);
-        if (idx >= 0) insertAt = idx;
-      }
-      const orderedTaskIds = [
-        ...targetIdsWithoutDragged.slice(0, insertAt),
-        dragTaskId,
-        ...targetIdsWithoutDragged.slice(insertAt),
-      ];
+      const orderedTaskIds = computeReorderedProjectTaskIds(tasks, dragTaskId, targetProjectId, beforeTaskId);
       await api('/api/tasks/reorder-project', 'POST', {
         project_id: targetProjectId,
         task_ids: orderedTaskIds,
@@ -698,57 +686,8 @@ function TasksView({
       setToast('Rien à faire : tout était déjà comme prévu.');
       return;
     }
-    let removeOk = 0;
-    let removeFail = 0;
-    let firstRemoveError = '';
-    for (const targetStudent of toRemove) {
-      try {
-        await api(`/api/tasks/${task.id}/unassign`, 'POST', {
-          firstName: targetStudent.first_name,
-          lastName: targetStudent.last_name,
-          studentId: targetStudent.id,
-        });
-        removeOk += 1;
-      } catch (e) {
-        removeFail += 1;
-        if (!firstRemoveError) firstRemoveError = e.message || 'Erreur inconnue';
-      }
-    }
-    let slotsRemaining = getAvailableSlots(task) + removeOk;
-    let addOk = 0;
-    let addFail = 0;
-    let firstAddError = '';
-    for (const targetStudent of toAdd) {
-      if (slotsRemaining <= 0) break;
-      try {
-        await api(`/api/tasks/${task.id}/assign`, 'POST', {
-          firstName: targetStudent.first_name,
-          lastName: targetStudent.last_name,
-          studentId: targetStudent.id,
-        });
-        addOk += 1;
-        slotsRemaining -= 1;
-      } catch (e) {
-        addFail += 1;
-        if (!firstAddError) firstAddError = e.message || 'Erreur inconnue';
-        if (String(e.message || '').toLowerCase().includes('plus de place')) break;
-      }
-    }
-    const bits = [];
-    if (removeOk > 0) bits.push(`${removeOk} retrait${removeOk > 1 ? 's' : ''}`);
-    if (addOk > 0) bits.push(`${addOk} inscription${addOk > 1 ? 's' : ''}`);
-    const errBits = [];
-    if (removeFail > 0) errBits.push(`${removeFail} retrait${removeFail > 1 ? 's' : ''}`);
-    if (addFail > 0) errBits.push(`${addFail} inscription${addFail > 1 ? 's' : ''}`);
-    if (bits.length > 0 && errBits.length > 0) {
-      setToast(`${bits.join(', ')} — échec : ${errBits.join(', ')}${firstRemoveError || firstAddError ? ` (${firstRemoveError || firstAddError})` : ''}`);
-    } else if (bits.length > 0) {
-      setToast(`${bits.join(', ')} sur « ${task.title} »`);
-    } else if (firstRemoveError || firstAddError) {
-      setToast(`Aucune mise à jour : ${firstRemoveError || firstAddError}`);
-    } else {
-      setToast('Aucun changement appliqué — déjà à jour.');
-    }
+    const outcome = await executeQuickAssignPlan(api, task, { toAdd, toRemove });
+    setToast(quickAssignOutcomeToast(task, outcome));
     setQuickAssignTaskId(null);
     setQuickAssignStudentIds([]);
   }), [withLoad, teacherQuickAssignDelta]);

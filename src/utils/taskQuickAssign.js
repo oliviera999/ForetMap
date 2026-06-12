@@ -1,10 +1,10 @@
 /**
  * Logique pure de l'affectation rapide n3boss (panneau « Inscrire des n3beurs »).
  *
- * Extraite de `tasks-views.jsx` (O6) : calcul du delta inscriptions/retraits, faisabilité
- * et message d'aide — sans React ni I/O, testable unitairement
- * (`tests-ui/utils/taskQuickAssign.test.js`). Les appels API (`runTeacherQuickAssign`)
- * restent dans `TasksView`.
+ * Extraite de `tasks-views.jsx` (O6) : calcul du delta inscriptions/retraits, faisabilité,
+ * message d'aide et résumé d'exécution — sans React, testable unitairement
+ * (`tests-ui/utils/taskQuickAssign.test.js`). `executeQuickAssignPlan` reçoit le client
+ * API en injection (`apiCall`) : aucune dépendance directe aux services côté util.
  */
 
 import { getAvailableSlots, isStudentAlreadyAssignedToTask } from './taskComputations.js';
@@ -62,4 +62,67 @@ export function quickAssignHintText(task, selectedIds, teacherStudents) {
   if (toRemove.length > 0) parts.push(`Retirer ${toRemove.length} n3beur${toRemove.length > 1 ? 's' : ''}`);
   if (toAdd.length > 0) parts.push(`Inscrire ${toAdd.length} n3beur${toAdd.length > 1 ? 's' : ''}`);
   return parts.join(' · ');
+}
+
+/**
+ * Exécute le plan d'affectation rapide : retraits d'abord (ils libèrent des places),
+ * puis inscriptions tant qu'il reste des places. Les erreurs sont comptées sans
+ * interrompre le lot (sauf « plus de place », qui stoppe les inscriptions).
+ * `apiCall(path, method, body)` est injecté — retourne les compteurs pour le toast.
+ */
+export async function executeQuickAssignPlan(apiCall, task, { toAdd, toRemove }) {
+  let removeOk = 0;
+  let removeFail = 0;
+  let firstRemoveError = '';
+  for (const targetStudent of toRemove) {
+    try {
+      await apiCall(`/api/tasks/${task.id}/unassign`, 'POST', {
+        firstName: targetStudent.first_name,
+        lastName: targetStudent.last_name,
+        studentId: targetStudent.id,
+      });
+      removeOk += 1;
+    } catch (e) {
+      removeFail += 1;
+      if (!firstRemoveError) firstRemoveError = e.message || 'Erreur inconnue';
+    }
+  }
+  let slotsRemaining = getAvailableSlots(task) + removeOk;
+  let addOk = 0;
+  let addFail = 0;
+  let firstAddError = '';
+  for (const targetStudent of toAdd) {
+    if (slotsRemaining <= 0) break;
+    try {
+      await apiCall(`/api/tasks/${task.id}/assign`, 'POST', {
+        firstName: targetStudent.first_name,
+        lastName: targetStudent.last_name,
+        studentId: targetStudent.id,
+      });
+      addOk += 1;
+      slotsRemaining -= 1;
+    } catch (e) {
+      addFail += 1;
+      if (!firstAddError) firstAddError = e.message || 'Erreur inconnue';
+      if (String(e.message || '').toLowerCase().includes('plus de place')) break;
+    }
+  }
+  return { removeOk, removeFail, firstRemoveError, addOk, addFail, firstAddError };
+}
+
+/** Message de toast résumant l'issue du quick-assign (réussites, échecs partiels, rien à faire). */
+export function quickAssignOutcomeToast(task, outcome) {
+  const { removeOk = 0, removeFail = 0, firstRemoveError = '', addOk = 0, addFail = 0, firstAddError = '' } = outcome || {};
+  const bits = [];
+  if (removeOk > 0) bits.push(`${removeOk} retrait${removeOk > 1 ? 's' : ''}`);
+  if (addOk > 0) bits.push(`${addOk} inscription${addOk > 1 ? 's' : ''}`);
+  const errBits = [];
+  if (removeFail > 0) errBits.push(`${removeFail} retrait${removeFail > 1 ? 's' : ''}`);
+  if (addFail > 0) errBits.push(`${addFail} inscription${addFail > 1 ? 's' : ''}`);
+  if (bits.length > 0 && errBits.length > 0) {
+    return `${bits.join(', ')} — échec : ${errBits.join(', ')}${firstRemoveError || firstAddError ? ` (${firstRemoveError || firstAddError})` : ''}`;
+  }
+  if (bits.length > 0) return `${bits.join(', ')} sur « ${task.title} »`;
+  if (firstRemoveError || firstAddError) return `Aucune mise à jour : ${firstRemoveError || firstAddError}`;
+  return 'Aucun changement appliqué — déjà à jour.';
 }
