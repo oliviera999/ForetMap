@@ -7,9 +7,7 @@ import { useDialogA11y } from '../hooks/useDialogA11y';
 import { useOverlayHistoryBack } from '../hooks/useOverlayHistoryBack';
 import { useHelp } from '../hooks/useHelp';
 
-import { HelpPanel } from './HelpPanel';
-
-import { HELP_PANELS, resolveRoleText } from '../constants/help';
+import { resolveRoleText } from '../constants/help';
 import { getContentText } from '../utils/content';
 import { TutorialPreviewModal, tutorialPreviewPayload } from './TutorialPreviewModal';
 import { fetchTutorialReadIds } from './TutorialReadAcknowledge';
@@ -37,6 +35,7 @@ import { TaskProjectsBlock } from './tasks/TaskProjectsBlock.jsx';
 import { TaskImportPanel } from './tasks/TaskImportPanel.jsx';
 import { TaskTutorialsAtFocusBlock } from './tasks/TaskTutorialsAtFocusBlock.jsx';
 import { TaskFiltersBar } from './tasks/TaskFiltersBar.jsx';
+import { TasksViewHeader } from './tasks/TasksViewHeader.jsx';
 import {
   getAvailableSlots,
   isStudentAlreadyAssignedToTask,
@@ -154,7 +153,6 @@ function TasksView({
   } = useHelp({ publicSettings, isTeacher });
   const contextCommentsEnabled = publicSettings?.modules?.context_comments_enabled !== false;
   const tutorialsModuleEnabled = publicSettings?.modules?.tutorials_enabled !== false;
-  const helpTasks = HELP_PANELS.tasks;
   const helpHintPrefix = getContentText(publicSettings, 'help.hint_prefix', 'Astuce :');
   const helpPanelTitlePrefix = getContentText(publicSettings, 'help.panel_title_prefix', '💡');
   const helpPanelCloseCta = getContentText(publicSettings, 'help.panel_close_cta', 'Fermer');
@@ -934,93 +932,30 @@ function TasksView({
         </DialogShell>
       )}
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-        <h2 className="section-title">✅ Tâches</h2>
-        {isTeacher && (
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            {isHelpEnabled && (
-              <HelpPanel
-                sectionId="tasks"
-                title={helpTasks.title}
-                entries={helpTasks.items}
-                isTeacher={isTeacher}
-                isPulsing={pulseUnseenPanels && !hasSeenSection('tasks')}
-                panelTitlePrefix={helpPanelTitlePrefix}
-                closeButtonText={helpPanelCloseCta}
-                dismissButtonText={helpPanelDismissCta}
-                onMarkSeen={markSectionSeen}
-                onOpen={trackPanelOpen}
-                onDismiss={trackPanelDismiss}
-              />
-            )}
-            <button
-              type="button"
-              className="btn btn-ghost btn-sm"
-              onClick={() => { setEditProject(null); setShowProjectForm(true); }}
-            >
-              + Projet
-            </button>
-            <button
-              type="button"
-              className="btn btn-primary btn-sm"
-              onClick={() => {
-                setNewTaskDefaultProjectId(null);
-                setEditTask(null);
-                setDuplicateTask(null);
-                setShowForm(true);
-              }}
-            >
-              + Nouvelle tâche
-            </button>
-          </div>
-        )}
-        {!isTeacher && (
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            {isHelpEnabled && (
-              <HelpPanel
-                sectionId="tasks"
-                title={helpTasks.title}
-                entries={helpTasks.items}
-                isTeacher={isTeacher}
-                isPulsing={pulseUnseenPanels && !hasSeenSection('tasks')}
-                panelTitlePrefix={helpPanelTitlePrefix}
-                closeButtonText={helpPanelCloseCta}
-                dismissButtonText={helpPanelDismissCta}
-                onMarkSeen={markSectionSeen}
-                onOpen={trackPanelOpen}
-                onDismiss={trackPanelDismiss}
-              />
-            )}
-            {canSelfAssignTasks && (
-              <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setNewTaskDefaultProjectId(null); setShowProposalForm(true); }}>+ Proposer</button>
-            )}
-          </div>
-        )}
-      </div>
-      <p className="section-sub">{isTeacher ? 'Piloter les missions, valider les retours et traiter les idées du terrain' : (canSelfAssignTasks ? "Choisis une mission ou propose la tienne, tout le monde peut la lire. Il faut t'inscrire seulement au moment où tu commences la mission pour de vrai." : 'Tu consultes la liste en lecture seule')}</p>
-      {isHelpEnabled && showContextHints && tasksQuickTip ? (
-        <p className="section-sub" style={{ marginTop: 6 }}>
-          <strong>{helpHintPrefix}</strong> {tasksQuickTip}
-        </p>
-      ) : null}
-      {!isTeacher && student && Number(student.taskEnrollment?.maxActiveAssignments) > 0 && (
-        <p
-          className="section-sub"
-          style={{
-            marginTop: 6,
-            padding: '8px 12px',
-            borderRadius: 10,
-            background: student.taskEnrollment?.atLimit ? '#fef3c7' : '#f0fdf4',
-            color: student.taskEnrollment?.atLimit ? '#92400e' : '#166534',
-            fontSize: '.88rem',
-            lineHeight: 1.45,
-          }}
-        >
-          {student.taskEnrollment?.atLimit
-            ? `Tu es déjà sur le paquet max de missions en cours (${student.taskEnrollment.currentActiveAssignments}/${student.taskEnrollment.maxActiveAssignments}, pas encore validées) : libère une place ou attends qu’une mission soit cochée côté n3boss.`
-            : `Missions actives pour toi : ${student.taskEnrollment.currentActiveAssignments}/${student.taskEnrollment.maxActiveAssignments} (en attente de validation n3boss, toutes cartes).`}
-        </p>
-      )}
+      <TasksViewHeader
+        isTeacher={isTeacher}
+        canSelfAssignTasks={canSelfAssignTasks}
+        student={student}
+        isHelpEnabled={isHelpEnabled}
+        showContextHints={showContextHints}
+        pulseUnseenPanels={pulseUnseenPanels}
+        hasSeenSection={hasSeenSection}
+        markSectionSeen={markSectionSeen}
+        trackPanelOpen={trackPanelOpen}
+        trackPanelDismiss={trackPanelDismiss}
+        helpPanelTitlePrefix={helpPanelTitlePrefix}
+        helpPanelCloseCta={helpPanelCloseCta}
+        helpPanelDismissCta={helpPanelDismissCta}
+        helpHintPrefix={helpHintPrefix}
+        tasksQuickTip={tasksQuickTip}
+        setEditProject={setEditProject}
+        setShowProjectForm={setShowProjectForm}
+        setNewTaskDefaultProjectId={setNewTaskDefaultProjectId}
+        setEditTask={setEditTask}
+        setDuplicateTask={setDuplicateTask}
+        setShowForm={setShowForm}
+        setShowProposalForm={setShowProposalForm}
+      />
       {isTeacher && <TaskImportPanel setToast={setToast} onRefresh={onRefresh} />}
 
       <TaskFiltersBar
