@@ -21,11 +21,7 @@ import { DeleteUserConfirmModal } from './profiles/DeleteUserConfirmModal.jsx';
 import { CreateUserPanel } from './profiles/CreateUserPanel.jsx';
 import { StudentImportPanel } from './profiles/StudentImportPanel.jsx';
 import { StudentDeletePanel } from './profiles/StudentDeletePanel.jsx';
-import { ProfilesRoleList } from './profiles/ProfilesRoleList.jsx';
-import { ProfilesPermissionRows } from './profiles/ProfilesPermissionRows.jsx';
-import { ProfilesUserAssignmentList } from './profiles/ProfilesUserAssignmentList.jsx';
-import { ProfilesRoleQuickConfig } from './profiles/ProfilesRoleQuickConfig.jsx';
-import { ProfilesRoleProgressionConfig } from './profiles/ProfilesRoleProgressionConfig.jsx';
+import { ProfilesRbacAdminSection } from './profiles/ProfilesRbacAdminSection.jsx';
 import {
   isN3beurTierConfigurableProfile as isN3beurTierConfigurableRole,
   sortRolesForDisplay,
@@ -784,89 +780,45 @@ function ProfilesAdminView({ onImpersonationApplied, maps = [] }) {
       />
 
       {canManageProfiles && (
-        <>
-          <div className="profiles-admin-grid">
-            <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 12 }}>
-              <ProfilesRoleList
-                roles={sortedRoles}
-                loading={loading}
-                selectedRoleId={selectedRoleId}
-                canEditRoleDefinition={canEditRoleDefinition}
-                onCreate={createRoleProfile}
-                onSelect={setSelectedRoleId}
-                onReorder={reorderRole}
-                onEditDetails={saveRoleDetails}
-                onDuplicate={duplicateRoleProfile}
-              />
-              {selectedRole && (
-                <ProfilesRoleQuickConfig
-                  role={selectedRole}
-                  roleEmoji={roleEmoji}
-                  onRoleEmojiChange={setRoleEmoji}
-                  onSaveEmoji={saveProfileEmoji}
-                  pin={pin}
-                  onPinChange={setPin}
-                  onSavePin={savePin}
-                  loading={loading}
-                  roleTerms={roleTerms}
-                />
-              )}
-            </div>
-
-            <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 12 }}>
-              <h3 style={{ marginTop: 0 }}>Permissions</h3>
-              {!selectedRole && <p style={{ margin: 0 }}>Choisis un profil dans la liste.</p>}
-              {selectedRole && (
-                <>
-                  <ProfilesRoleProgressionConfig
-                    role={selectedRole}
-                    loading={loading}
-                    roleTerms={roleTerms}
-                    isTier={isN3beurTierConfigurableProfile}
-                    canEditRoleDefinition={canEditRoleDefinition}
-                    progressionEnabled={progressionByTasksEnabled}
-                    onToggleProgression={toggleProgressionByValidatedTasks}
-                    minDoneTasks={roleMinDoneTasks}
-                    onMinDoneTasksChange={setRoleMinDoneTasks}
-                    onSaveMinDoneThreshold={saveStudentMinDoneThreshold}
-                    proposeEntry={tasksProposeEntry}
-                    onTogglePermission={togglePermission}
-                    onTogglePermissionElevation={togglePermissionElevation}
-                    onSetForumParticipate={setRoleForumParticipate}
-                    onSetContextCommentParticipate={setRoleContextCommentParticipate}
-                    maxConcurrentTasks={roleMaxConcurrentTasks}
-                    onMaxConcurrentChange={setRoleMaxConcurrentTasks}
-                    onSaveMaxConcurrent={saveMaxConcurrentTasks}
-                  />
-                  <ProfilesPermissionRows
-                    catalog={catalog}
-                    rolePermissions={selectedRole.permissions}
-                    loading={loading}
-                    hideTasksPropose={isN3beurTierConfigurableProfile}
-                    onToggle={togglePermission}
-                    onToggleElevation={togglePermissionElevation}
-                  />
-                </>
-              )}
-            </div>
-          </div>
-
-          <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 12, marginTop: 12 }}>
-            <h3 style={{ marginTop: 0 }}>Attribution des profils</h3>
-            <p style={{ margin: '0 0 10px', fontSize: '.78rem', color: '#64748b', lineHeight: 1.45 }}>
-              Choisir le profil principal définit notamment forum et commentaires contextuels (réglés par profil dans la colonne de gauche, section Permissions). L’attribution peut exiger une session élevée (PIN) selon les droits du compte administrateur. Utilisez « Modifier » pour changer prénom, nom, pseudo, email, description, affiliation ou mot de passe.
-            </p>
-            <ProfilesUserAssignmentList
-              users={users}
-              roles={sortedRoles}
-              loading={loading}
-              editUserLoadState={editUserLoadState}
-              isAdmin={isAdmin}
-              onAssignRole={assignRole}
-              onOpenEditUser={openEditUser}
-            />
-          </div>
-        </>
+        <ProfilesRbacAdminSection
+          roles={sortedRoles}
+          catalog={catalog}
+          users={users}
+          loading={loading}
+          roleTerms={roleTerms}
+          selectedRole={selectedRole}
+          selectedRoleId={selectedRoleId}
+          canEditRoleDefinition={canEditRoleDefinition}
+          isAdmin={isAdmin}
+          isN3beurTier={isN3beurTierConfigurableProfile}
+          progressionByTasksEnabled={progressionByTasksEnabled}
+          tasksProposeEntry={tasksProposeEntry}
+          roleEmoji={roleEmoji}
+          pin={pin}
+          roleMinDoneTasks={roleMinDoneTasks}
+          roleMaxConcurrentTasks={roleMaxConcurrentTasks}
+          editUserLoadState={editUserLoadState}
+          onCreateRole={createRoleProfile}
+          onSelectRole={setSelectedRoleId}
+          onReorderRole={reorderRole}
+          onEditRoleDetails={saveRoleDetails}
+          onDuplicateRole={duplicateRoleProfile}
+          onRoleEmojiChange={setRoleEmoji}
+          onSaveEmoji={saveProfileEmoji}
+          onPinChange={setPin}
+          onSavePin={savePin}
+          onToggleProgression={toggleProgressionByValidatedTasks}
+          onMinDoneTasksChange={setRoleMinDoneTasks}
+          onSaveMinDoneThreshold={saveStudentMinDoneThreshold}
+          onTogglePermission={togglePermission}
+          onTogglePermissionElevation={togglePermissionElevation}
+          onSetForumParticipate={setRoleForumParticipate}
+          onSetContextCommentParticipate={setRoleContextCommentParticipate}
+          onMaxConcurrentChange={setRoleMaxConcurrentTasks}
+          onSaveMaxConcurrent={saveMaxConcurrentTasks}
+          onAssignRole={assignRole}
+          onOpenEditUser={openEditUser}
+        />
       )}
 
       {canManageProfiles && <GroupsAdminView />}
