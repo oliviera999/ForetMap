@@ -29,6 +29,9 @@ import {
   sortRolesForDisplay,
   deriveProfilesCapabilities,
   normalizeRoleEditFields,
+  buildRoleReorderPatches,
+  parseMaxConcurrentTasksLimit,
+  parseMinDoneTasksThreshold,
 } from '../utils/profilesRbacHelpers.js';
 import {
   promptRoleDetailsPatch,
@@ -179,20 +182,12 @@ function ProfilesAdminView({ onImpersonationApplied, maps = [] }) {
   const sortedRoles = useMemo(() => sortRolesForDisplay(roles), [roles]);
 
   const reorderRole = async (roleId, direction) => {
-    const idx = sortedRoles.findIndex((r) => Number(r.id) === Number(roleId));
-    if (idx < 0) return;
-    const newIdx = idx + direction;
-    if (newIdx < 0 || newIdx >= sortedRoles.length) return;
-    const arr = [...sortedRoles];
-    [arr[idx], arr[newIdx]] = [arr[newIdx], arr[idx]];
-    const nextOrders = arr.map((r, i) => ({ id: r.id, display_order: i }));
+    const patches = buildRoleReorderPatches(sortedRoles, roleId, direction);
+    if (!patches) return;
     setLoading(true);
     setErr('');
     try {
-      for (const { id, display_order } of nextOrders) {
-        if (id == null || display_order === undefined) continue;
-        const prev = sortedRoles.find((x) => Number(x.id) === Number(id));
-        if (Number(prev?.display_order) === display_order) continue;
+      for (const { id, display_order } of patches) {
         await api(`/api/rbac/profiles/${id}`, 'PATCH', { display_order });
       }
       setMsg('Ordre des profils mis à jour');
@@ -255,34 +250,16 @@ function ProfilesAdminView({ onImpersonationApplied, maps = [] }) {
 
   const saveMaxConcurrentTasks = async () => {
     if (!selectedRole) return;
-    const raw = String(roleMaxConcurrentTasks || '').trim();
-    if (raw === '') {
-      setLoading(true);
-      setErr('');
-      try {
-        await api(`/api/rbac/profiles/${selectedRole.id}`, 'PATCH', { max_concurrent_tasks: null });
-        setMsg('Plafond d’inscriptions : héritage du réglage global (Paramètres n3boss) enregistré');
-        await load();
-      } catch (e) {
-        setErr(e.message || 'Erreur enregistrement du plafond');
-      }
-      setLoading(false);
-      return;
-    }
-    const n = parseInt(raw, 10);
-    if (!Number.isFinite(n) || n < 0 || n > 99) {
-      setErr('Plafond invalide : entier entre 0 et 99 (0 = pas de limite pour ce profil), ou champ vide pour hériter du réglage global');
+    const parsed = parseMaxConcurrentTasksLimit(roleMaxConcurrentTasks);
+    if (parsed.error) {
+      setErr(parsed.error);
       return;
     }
     setLoading(true);
     setErr('');
     try {
-      await api(`/api/rbac/profiles/${selectedRole.id}`, 'PATCH', { max_concurrent_tasks: n });
-      setMsg(
-        n === 0
-          ? 'Pas de limite d’inscriptions pour ce profil (0) : enregistré.'
-          : `Plafond d’inscriptions simultanées : ${n} tâche(s) non validée(s) — enregistré.`
-      );
+      await api(`/api/rbac/profiles/${selectedRole.id}`, 'PATCH', { max_concurrent_tasks: parsed.value });
+      setMsg(parsed.message);
       await load();
     } catch (e) {
       setErr(e.message || 'Erreur enregistrement du plafond');
@@ -291,22 +268,17 @@ function ProfilesAdminView({ onImpersonationApplied, maps = [] }) {
   };
 
   const saveStudentMinDoneThreshold = async () => {
-    if (!selectedRole) return;
-    const s = String(selectedRole.slug || '').trim().toLowerCase();
-    if (s === 'admin' || s === 'prof' || s === 'visiteur') return;
-    if (!/^eleve_/i.test(String(selectedRole.slug || ''))) {
-      const r = Number(selectedRole.rank);
-      if (!Number.isFinite(r) || r >= 400) return;
-    }
-    const parsed = roleMinDoneTasks.trim() === '' ? NaN : parseInt(roleMinDoneTasks, 10);
-    if (!Number.isFinite(parsed) || parsed < 0) {
-      setErr('Seuil invalide : indiquez un entier ≥ 0');
+    /* Même règle que la garde historique admin/prof/visiteur + rang : seuls les paliers n3beur ont un seuil. */
+    if (!selectedRole || !isN3beurTierConfigurableProfile) return;
+    const parsed = parseMinDoneTasksThreshold(roleMinDoneTasks);
+    if (parsed.error) {
+      setErr(parsed.error);
       return;
     }
     setLoading(true);
     setErr('');
     try {
-      await api(`/api/rbac/profiles/${selectedRole.id}`, 'PATCH', { min_done_tasks: parsed });
+      await api(`/api/rbac/profiles/${selectedRole.id}`, 'PATCH', { min_done_tasks: parsed.value });
       setMsg('Nombre de tâches validées requis pour ce niveau enregistré');
       await load();
     } catch (e) {
