@@ -36,6 +36,14 @@ import {
   canApplyQuickAssign,
   quickAssignHintText,
 } from '../utils/taskQuickAssign.js';
+import {
+  taskEffectiveMapId,
+  taskMapIdMatchesFilter,
+  collectUsedLocationIds,
+  focusMapIdForLocationFilter,
+  tutorialLocationIdsAfterLink,
+  tutorialLocationIdsAfterUnlink,
+} from '../utils/taskLocationPicker.js';
 
 import {
   formatTaskActionError,
@@ -50,7 +58,6 @@ import {
   projectStatusLabel,
   normalizeProjectUiStatus,
   taskHasLocation,
-  tutorialPickerLocationIds,
   tutorialPickerHasLocation,
   tutorialPickerLinkedToSameMap,
   dedupeTutorialsByIdForTasks,
@@ -306,14 +313,10 @@ function TasksView({
     return map ? map.label : mapId;
   };
 
-  const taskEffectiveMapId = (task) => task.map_id_resolved || task.map_id || task.zone_map_id || task.marker_map_id || null;
-
-  const tasksForLocationPicker = useMemo(() => tasks.filter((t) => {
-    const taskMapId = taskEffectiveMapId(t);
-    if (filterMap === 'active' && taskMapId !== activeMapId && taskMapId != null) return false;
-    if (filterMap !== 'active' && filterMap !== 'all' && taskMapId !== filterMap && taskMapId != null) return false;
-    return true;
-  }), [tasks, filterMap, activeMapId]);
+  const tasksForLocationPicker = useMemo(
+    () => tasks.filter((t) => taskMapIdMatchesFilter(taskEffectiveMapId(t), filterMap, activeMapId)),
+    [tasks, filterMap, activeMapId]
+  );
 
   const withLoad = useCallback(async (id, fn) => {
     setLoading(l => ({ ...l, [id]: true }));
@@ -425,15 +428,7 @@ function TasksView({
   const linkTutorialAtFocus = (tutorialId) => withLoad(`tuto-link-${tutorialId}`, async () => {
     const tu = (tutorials || []).find((x) => Number(x.id) === Number(tutorialId));
     if (!tu || !filterZone) return;
-    const { zoneIds: zi, markerIds: mi } = tutorialPickerLocationIds(tu);
-    const [kind, rawId] = String(filterZone).split(':');
-    let zoneIds = [...zi];
-    let markerIds = [...mi];
-    if (kind === 'zone' && rawId) {
-      zoneIds = [...new Set([...zi.map(String), String(rawId).trim()])];
-    } else if (kind === 'marker' && rawId) {
-      markerIds = [...new Set([...mi.map(String), String(rawId).trim()])];
-    }
+    const { zoneIds, markerIds } = tutorialLocationIdsAfterLink(tu, filterZone);
     await api(`/api/tutorials/${tutorialId}`, 'PUT', { zone_ids: zoneIds, marker_ids: markerIds });
     setQuickTutoLinkId('');
     setToast('Tutoriel lié à ce lieu ✓');
@@ -441,15 +436,7 @@ function TasksView({
 
   const unlinkTutorialAtFocus = (tuRow) => withLoad(`tuto-unlink-${tuRow.id}`, async () => {
     if (!filterZone) return;
-    const { zoneIds: zi, markerIds: mi } = tutorialPickerLocationIds(tuRow);
-    const [kind, rawId] = String(filterZone).split(':');
-    let zoneIds = [...zi];
-    let markerIds = [...mi];
-    if (kind === 'zone' && rawId) {
-      zoneIds = zi.filter((id) => String(id) !== String(rawId));
-    } else if (kind === 'marker' && rawId) {
-      markerIds = mi.filter((id) => String(id) !== String(rawId));
-    }
+    const { zoneIds, markerIds } = tutorialLocationIdsAfterUnlink(tuRow, filterZone);
     await api(`/api/tutorials/${tuRow.id}`, 'PUT', { zone_ids: zoneIds, marker_ids: markerIds });
     setToast('Tutoriel dissocié de ce lieu ✓');
   });
@@ -678,9 +665,7 @@ function TasksView({
   };
 
   const applyFilters = list => list.filter(t => {
-    const taskMapId = taskEffectiveMapId(t);
-    if (filterMap === 'active' && taskMapId !== activeMapId && taskMapId != null) return false;
-    if (filterMap !== 'active' && filterMap !== 'all' && taskMapId !== filterMap && taskMapId != null) return false;
+    if (!taskMapIdMatchesFilter(taskEffectiveMapId(t), filterMap, activeMapId)) return false;
     if (filterText && !t.title.toLowerCase().includes(filterText.toLowerCase()) &&
       !(t.description || '').toLowerCase().includes(filterText.toLowerCase())) return false;
     if (filterZone && !taskHasLocation(t, filterZone)) return false;
@@ -795,46 +780,20 @@ function TasksView({
     return d !== null && d <= 3 && d >= -2;
   }).sort(compareTasksByImportanceThenDueDate) : [];
 
-  const usedZoneIds = new Set();
-  const usedMarkerIds = new Set();
-  for (const t of tasksForLocationPicker) {
-    (t.zone_ids || []).forEach((id) => usedZoneIds.add(id));
-    if (t.zone_id) usedZoneIds.add(t.zone_id);
-    (t.marker_ids || []).forEach((id) => usedMarkerIds.add(id));
-    if (t.marker_id) usedMarkerIds.add(t.marker_id);
-  }
-  if (tutorialsModuleEnabled) {
-    for (const tu of tutorials || []) {
-      if (!isTeacher && tu.is_active === false) continue;
-      for (const zid of tu.zone_ids || []) {
-        const z = zones.find((zz) => String(zz.id) === String(zid));
-        if (!z) continue;
-        if (filterMap === 'active' && z.map_id !== activeMapId) continue;
-        if (filterMap !== 'active' && filterMap !== 'all' && z.map_id !== filterMap) continue;
-        usedZoneIds.add(zid);
-      }
-      for (const mid of tu.marker_ids || []) {
-        const m = markers.find((mm) => String(mm.id) === String(mid));
-        if (!m) continue;
-        if (filterMap === 'active' && m.map_id !== activeMapId) continue;
-        if (filterMap !== 'active' && filterMap !== 'all' && m.map_id !== filterMap) continue;
-        usedMarkerIds.add(mid);
-      }
-    }
-  }
-  const usedZones = [...usedZoneIds];
-  const usedMarkers = [...usedMarkerIds];
+  const { usedZones, usedMarkers } = collectUsedLocationIds({
+    tasksForLocationPicker,
+    tutorials,
+    zones,
+    markers,
+    filterMap,
+    activeMapId,
+    tutorialsModuleEnabled,
+    isTeacher,
+  });
 
   const focusMapIdForTutorials = useMemo(() => {
     if (!filterZone || !tutorialsModuleEnabled) return null;
-    const [kind, rawId] = String(filterZone).split(':');
-    if (kind === 'zone' && rawId) {
-      return zones.find((z) => String(z.id) === String(rawId))?.map_id ?? activeMapId;
-    }
-    if (kind === 'marker' && rawId) {
-      return markers.find((m) => String(m.id) === String(rawId))?.map_id ?? activeMapId;
-    }
-    return zones.find((z) => String(z.id) === String(filterZone))?.map_id ?? activeMapId;
+    return focusMapIdForLocationFilter(filterZone, zones, markers, activeMapId);
   }, [filterZone, zones, markers, tutorialsModuleEnabled, activeMapId]);
 
   const linkedTutorialsAtFocus = useMemo(() => {
