@@ -54,3 +54,13 @@ export const PHOTO_FIELD_KEYS = new Set([
   'photo_fruit',
   'photo_harvest_part',
 ]);
+
+/** Champs photo du formulaire (ordre affichage upload + menu pré-saisie). */
+export const PLANT_PHOTO_FIELD_OPTIONS = [
+  { key: 'photo_species', label: 'Photo espèce' },
+  { key: 'photo_leaf', label: 'Photo feuille' },
+  { key: 'photo_flower', label: 'Photo fleur' },
+  { key: 'photo_fruit', label: 'Photo fruit' },
+  { key: 'photo_harvest_part', label: 'Photo partie récoltée' },
+  { key: 'photo', label: 'Photo (générale)' },
+];
