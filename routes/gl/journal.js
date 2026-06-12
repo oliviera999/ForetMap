@@ -6,12 +6,24 @@ const { requireGlAuth } = require('../../middleware/requireGlAuth');
 const { normalizeEventRow } = require('../../lib/glGameEvents');
 const { canAccessGlGame } = require('../../lib/glGameAccess');
 const { presentJournalEvent, buildTeamsById } = require('../../lib/glJournalPresent');
+const { z, validate } = require('../../lib/validate');
 
 const router = express.Router();
 
 router.use(requireGlAuth);
 
-router.get('/games/:id', async (req, res) => {
+// O7 — query du journal : coercition permissive (jamais de 400 pour une query invalide)
+// reproduisant exactement l'ancienne lecture manuelle :
+//   teamFilter = req.query.teamId != null ? Number(teamId) : null (NaN conservé, filtré en aval)
+//   limit      = Math.min(500, Math.max(1, Number(limit) || 100))
+const journalGameQuerySchema = z
+  .object({ teamId: z.unknown().optional(), limit: z.unknown().optional() })
+  .transform((q) => ({
+    teamFilter: q.teamId != null ? Number(q.teamId) : null,
+    limit: Math.min(500, Math.max(1, Number(q.limit) || 100)),
+  }));
+
+router.get('/games/:id', validate({ query: journalGameQuerySchema }), async (req, res) => {
   const gameId = Number(req.params.id);
   if (!Number.isFinite(gameId)) return res.status(400).json({ error: 'Identifiant de partie invalide' });
   const game = await queryOne('SELECT id FROM gl_games WHERE id = ? LIMIT 1', [gameId]);
@@ -20,8 +32,7 @@ router.get('/games/:id', async (req, res) => {
     return res.status(403).json({ error: 'Accès refusé à cette partie' });
   }
 
-  const teamFilter = req.query?.teamId != null ? Number(req.query.teamId) : null;
-  const limit = Math.min(500, Math.max(1, Number(req.query?.limit) || 100));
+  const { teamFilter, limit } = req.validatedQuery;
 
   const rows = teamFilter != null && Number.isFinite(teamFilter)
     ? await queryAll(
@@ -62,3 +73,4 @@ router.get('/games/:id', async (req, res) => {
 });
 
 module.exports = router;
+module.exports.journalGameQuerySchema = journalGameQuerySchema; // exporté pour test no-DB du contrat O7
