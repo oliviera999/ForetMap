@@ -15,10 +15,10 @@ import { useOverlayHistoryBack } from '../hooks/useOverlayHistoryBack';
 import { computeMapImageContainRect } from '../utils/mapImageFit';
 import { buildMapImageCandidates } from '../utils/mapImageCandidates';
 import { parseVisitZonePoints as parsePctPoints, visitZoneCentroidPct } from '../utils/visitMapGeometry.js';
-import { VisitSyncPanel } from './visit/VisitSyncPanel.jsx';
 import { VisitDetailPanel } from './visit/VisitDetailPanel.jsx';
 import { VisitTutorialsSection } from './visit/VisitTutorialsSection.jsx';
 import { VisitMapChrome } from './visit/VisitMapChrome.jsx';
+import { VisitProfToolsPanel } from './visit/VisitProfToolsPanel.jsx';
 import { computeVisitMascotStartPct } from '../utils/visitMascotPlacement.js';
 import {
   shouldShowVisitMapMascot as computeShowVisitMapMascot,
@@ -1586,76 +1586,25 @@ function VisitView({
       ) : null}
 
       {isTeacher && !teacherPreviewAsStudent && (
-        <details className="visit-prof-tools">
-          <summary className="visit-prof-tools__summary">Outils et synchronisation visite</summary>
-          <div className="visit-prof-tools__body">
-            {!visitMapImageReady && !loading && (
-              <p className="section-sub visit-map-image-hint" style={{ margin: '0 0 8px' }}>
-                Chargement du plan… Les outils zone et repère sont disponibles une fois l’image affichée (coordonnées précises).
-              </p>
-            )}
-            <div className="visit-map-switch">
-              <button type="button" className={`btn btn-sm ${mode === 'view' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => { setMode('view'); setDrawPoints([]); }}>
-                🖐️ Navigation
-              </button>
-              <button
-                type="button"
-                className={`btn btn-sm ${mode === 'draw-zone' ? 'btn-primary' : 'btn-ghost'}`}
-                disabled={!visitMapImageReady}
-                title={!visitMapImageReady ? 'Disponible dès que le plan est chargé.' : undefined}
-                onClick={() => setMode('draw-zone')}
-              >
-                🖊️ Zone visite
-              </button>
-              <button
-                type="button"
-                className={`btn btn-sm ${mode === 'add-marker' ? 'btn-primary' : 'btn-ghost'}`}
-                disabled={!visitMapImageReady}
-                title={!visitMapImageReady ? 'Disponible dès que le plan est chargé.' : undefined}
-                onClick={() => setMode('add-marker')}
-              >
-                📍 Repère visite
-              </button>
-              {mode === 'draw-zone' && (
-                <>
-                  <button type="button" className="btn btn-secondary btn-sm" disabled={drawPoints.length < 3 || creating} onClick={createZoneFromPoints}>
-                    ✅ Terminer zone ({drawPoints.length})
-                  </button>
-                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => setDrawPoints((prev) => prev.slice(0, -1))}>
-                    ↩️ Retirer point
-                  </button>
-                  <button type="button" className="btn btn-danger btn-sm" onClick={() => setDrawPoints([])}>
-                    ✕ Annuler
-                  </button>
-                </>
-              )}
-            </div>
-            <VisitSyncPanel
-              isTeacher={isTeacher}
-              mapId={mapId}
-              onSynced={loadData}
-              onForceLogout={onForceLogout}
-            />
-            {typeof onOpenMascotPackStudioTab === 'function' ? (
-              <section className="visit-mascot-preview-card" aria-label="Studio packs mascotte">
-                <div>
-                  <h3>🧩 Studio packs mascotte</h3>
-                  <p className="section-sub" style={{ marginBottom: 8 }}>
-                    L’édition complète des mascottes (packs, bibliothèque, comportements) est centralisée
-                    dans l’onglet dédié.
-                  </p>
-                  <button
-                    type="button"
-                    className="btn btn-secondary btn-sm"
-                    onClick={onOpenMascotPackStudioTab}
-                  >
-                    Ouvrir l’onglet Packs mascotte
-                  </button>
-                </div>
-              </section>
-            ) : null}
-          </div>
-        </details>
+        <VisitProfToolsPanel
+          isTeacher={isTeacher}
+          loading={loading}
+          visitMapImageReady={visitMapImageReady}
+          mode={mode}
+          onSetMode={(nextMode) => {
+            setMode(nextMode);
+            if (nextMode === 'view') setDrawPoints([]);
+          }}
+          drawPointsCount={drawPoints.length}
+          creating={creating}
+          onCreateZone={createZoneFromPoints}
+          onUndoDrawPoint={() => setDrawPoints((prev) => prev.slice(0, -1))}
+          onClearDrawPoints={() => setDrawPoints([])}
+          mapId={mapId}
+          onSynced={loadData}
+          onForceLogout={onForceLogout}
+          onOpenMascotPackStudioTab={onOpenMascotPackStudioTab}
+        />
       )}
     </div>
     </>
