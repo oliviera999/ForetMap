@@ -1,17 +1,15 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 
-import { api, API, getAuthToken, AccountDeletedError } from '../services/api';
+import { api, AccountDeletedError } from '../services/api';
 import { daysUntil } from '../utils/badges';
 import { getRoleTerms } from '../utils/n3-terminology';
 import { useDialogA11y } from '../hooks/useDialogA11y';
 import { useOverlayHistoryBack } from '../hooks/useOverlayHistoryBack';
 import { useHelp } from '../hooks/useHelp';
 
-import { HelpPanel } from './HelpPanel';
-
-import { HELP_PANELS, resolveRoleText } from '../constants/help';
+import { resolveRoleText } from '../constants/help';
 import { getContentText } from '../utils/content';
-import { TutorialPreviewModal, tutorialPreviewPayload, tutorialPreviewCanEmbed } from './TutorialPreviewModal';
+import { TutorialPreviewModal, tutorialPreviewPayload } from './TutorialPreviewModal';
 import { fetchTutorialReadIds } from './TutorialReadAcknowledge';
 import { DialogShell } from './DialogShell';
 
@@ -21,16 +19,37 @@ import {
   safeLocalStorageSetItem,
 } from '../utils/browserStorage.js';
 import { TimedToast } from '../shared/components/TimedToast.jsx';
-import { isTaskUrgentCategory, TEACHER_STATUS_ACTIONS, TASK_STATUS_FILTER_OPTIONS } from './tasks/taskViewHelpers.js';
+import { TEACHER_STATUS_ACTIONS } from './tasks/taskViewHelpers.js';
+import {
+  isTaskUrgentCategory,
+  applyTaskFilters,
+  sortedVisibleProjects,
+  partitionTasksByEffectiveStatus,
+  studentUrgentDueTasks,
+} from '../utils/taskSectioning.js';
 import { LogModal, TaskLogsViewer } from './tasks/TaskLogModals.jsx';
 import { TaskProjectFormModal } from './tasks/TaskProjectFormModal.jsx';
 import { TaskFormModal } from './tasks/TaskFormModal.jsx';
 import { TaskTileCard } from './tasks/TaskTileCard.jsx';
 import { TaskProjectsBlock } from './tasks/TaskProjectsBlock.jsx';
+import { TaskImportPanel } from './tasks/TaskImportPanel.jsx';
+import { TaskTutorialsAtFocusBlock } from './tasks/TaskTutorialsAtFocusBlock.jsx';
+import { TaskFiltersBar } from './tasks/TaskFiltersBar.jsx';
+import { TasksViewHeader } from './tasks/TasksViewHeader.jsx';
 import {
   getAvailableSlots,
   isStudentAlreadyAssignedToTask,
 } from '../utils/taskComputations.js';
+import {
+  computeQuickAssignDelta,
+  canApplyQuickAssign,
+  quickAssignHintText,
+} from '../utils/taskQuickAssign.js';
+import {
+  taskEffectiveMapId,
+  taskMapIdMatchesFilter,
+  collectUsedLocationIds,
+} from '../utils/taskLocationPicker.js';
 
 import {
   formatTaskActionError,
@@ -42,16 +61,8 @@ import { useData } from '../contexts/DataContext.jsx';
 import {
   compareTasksByImportanceThenDueDate,
   taskEffectiveStatus,
-  projectStatusLabel,
   normalizeProjectUiStatus,
-  taskHasLocation,
-  tutorialPickerLocationIds,
-  tutorialPickerHasLocation,
-  tutorialPickerLinkedToSameMap,
-  dedupeTutorialsByIdForTasks,
-  tutorialRefsFromTasksAtLocationFilter,
 } from '../utils/taskListHelpers.js';
-import { fileToDataUrl } from '../utils/fileToDataUrl.js';
 import {
   teacherCollectiveAssigneeLoadKey,
   toQuickAssignStudentId,
@@ -116,10 +127,6 @@ function TasksView({
     if (saved === 'condensed') return 'condensed';
     return 'tiles';
   });
-  const [importFile, setImportFile] = useState(null);
-  const [importDryRun, setImportDryRun] = useState(false);
-  const [importing, setImporting] = useState(false);
-  const [importReport, setImportReport] = useState(null);
   const [teacherStudents, setTeacherStudents] = useState([]);
   const [groupOptions, setGroupOptions] = useState([]);
   const [referentCandidates, setReferentCandidates] = useState([]);
@@ -146,8 +153,6 @@ function TasksView({
   } = useHelp({ publicSettings, isTeacher });
   const contextCommentsEnabled = publicSettings?.modules?.context_comments_enabled !== false;
   const tutorialsModuleEnabled = publicSettings?.modules?.tutorials_enabled !== false;
-  const helpTasks = HELP_PANELS.tasks;
-  const helpGroupFilters = HELP_PANELS.groupFilters;
   const helpHintPrefix = getContentText(publicSettings, 'help.hint_prefix', 'Astuce :');
   const helpPanelTitlePrefix = getContentText(publicSettings, 'help.panel_title_prefix', '💡');
   const helpPanelCloseCta = getContentText(publicSettings, 'help.panel_close_cta', 'Fermer');
@@ -158,7 +163,6 @@ function TasksView({
     'Filtre d abord par carte ou groupe, puis traite les retours en attente.'
   );
   const tooltipText = useCallback((entry) => resolveRoleText(entry, isTeacher), [isTeacher]);
-  const [quickTutoLinkId, setQuickTutoLinkId] = useState('');
   const [tasksTutorialPreview, setTasksTutorialPreview] = useState(null);
   const [tasksTutorialReadIds, setTasksTutorialReadIds] = useState(() => new Set());
   const openTasksTutorialPreview = useCallback((tu) => {
@@ -295,20 +299,10 @@ function TasksView({
     onTaskFormOverlayOpenChange?.(false);
   }, [onTaskFormOverlayOpenChange]);
 
-  const mapLabelById = (mapId) => {
-    if (!mapId) return 'Globale';
-    const map = maps.find(m => m.id === mapId);
-    return map ? map.label : mapId;
-  };
-
-  const taskEffectiveMapId = (task) => task.map_id_resolved || task.map_id || task.zone_map_id || task.marker_map_id || null;
-
-  const tasksForLocationPicker = useMemo(() => tasks.filter((t) => {
-    const taskMapId = taskEffectiveMapId(t);
-    if (filterMap === 'active' && taskMapId !== activeMapId && taskMapId != null) return false;
-    if (filterMap !== 'active' && filterMap !== 'all' && taskMapId !== filterMap && taskMapId != null) return false;
-    return true;
-  }), [tasks, filterMap, activeMapId]);
+  const tasksForLocationPicker = useMemo(
+    () => tasks.filter((t) => taskMapIdMatchesFilter(taskEffectiveMapId(t), filterMap, activeMapId)),
+    [tasks, filterMap, activeMapId]
+  );
 
   const withLoad = useCallback(async (id, fn) => {
     setLoading(l => ({ ...l, [id]: true }));
@@ -416,38 +410,6 @@ function TasksView({
       setToast(who !== 'cet élève' ? `Part de ${who} marquée terminée ✓` : 'Part marquée terminée ✓');
     });
   }, [withLoad]);
-
-  const linkTutorialAtFocus = (tutorialId) => withLoad(`tuto-link-${tutorialId}`, async () => {
-    const tu = (tutorials || []).find((x) => Number(x.id) === Number(tutorialId));
-    if (!tu || !filterZone) return;
-    const { zoneIds: zi, markerIds: mi } = tutorialPickerLocationIds(tu);
-    const [kind, rawId] = String(filterZone).split(':');
-    let zoneIds = [...zi];
-    let markerIds = [...mi];
-    if (kind === 'zone' && rawId) {
-      zoneIds = [...new Set([...zi.map(String), String(rawId).trim()])];
-    } else if (kind === 'marker' && rawId) {
-      markerIds = [...new Set([...mi.map(String), String(rawId).trim()])];
-    }
-    await api(`/api/tutorials/${tutorialId}`, 'PUT', { zone_ids: zoneIds, marker_ids: markerIds });
-    setQuickTutoLinkId('');
-    setToast('Tutoriel lié à ce lieu ✓');
-  });
-
-  const unlinkTutorialAtFocus = (tuRow) => withLoad(`tuto-unlink-${tuRow.id}`, async () => {
-    if (!filterZone) return;
-    const { zoneIds: zi, markerIds: mi } = tutorialPickerLocationIds(tuRow);
-    const [kind, rawId] = String(filterZone).split(':');
-    let zoneIds = [...zi];
-    let markerIds = [...mi];
-    if (kind === 'zone' && rawId) {
-      zoneIds = zi.filter((id) => String(id) !== String(rawId));
-    } else if (kind === 'marker' && rawId) {
-      markerIds = mi.filter((id) => String(id) !== String(rawId));
-    }
-    await api(`/api/tutorials/${tuRow.id}`, 'PUT', { zone_ids: zoneIds, marker_ids: markerIds });
-    setToast('Tutoriel dissocié de ce lieu ✓');
-  });
 
   const assign = useCallback(t => withLoad(t.id + 'assign', async () => {
     await api(`/api/tasks/${t.id}/assign`, 'POST', {
@@ -621,96 +583,19 @@ function TasksView({
     });
   };
 
-  const downloadImportTemplate = async (format) => {
-    try {
-      const token = getAuthToken();
-      const headers = new Headers();
-      if (token) headers.set('Authorization', 'Bearer ' + token);
-      const res = await fetch(`${API}/api/tasks/import/template?format=${encodeURIComponent(format)}`, { headers });
-      if (!res.ok) throw new Error('Téléchargement impossible');
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = format === 'xlsx'
-        ? 'foretmap-modele-taches-projets.xlsx'
-        : 'foretmap-modele-taches-projets.csv';
-      link.click();
-      URL.revokeObjectURL(url);
-    } catch (e) {
-      setToast('Zut, le modèle ne part pas : ' + (e.message || 'inconnue'));
-    }
-  };
-
-  const runImportTasksProjects = async () => {
-    if (!importFile) {
-      setToast('Choisis d’abord un fichier CSV ou XLSX, stp.');
-      return;
-    }
-    setImporting(true);
-    setImportReport(null);
-    try {
-      const fileDataBase64 = await fileToDataUrl(importFile);
-      const result = await api('/api/tasks/import', 'POST', {
-        fileName: importFile.name,
-        fileDataBase64,
-        dryRun: importDryRun,
-      });
-      setImportReport(result?.report || null);
-      if (importDryRun) {
-        setToast('Simulation terminée — regarde le rapport ci-dessous ✓');
-      } else {
-        const createdProjects = Number(result?.report?.totals?.created_projects || 0);
-        const createdTasks = Number(result?.report?.totals?.created_tasks || 0);
-        setToast(`Import OK : ${createdProjects} projet(s), ${createdTasks} tâche(s) — la forêt grossit !`);
-        await onRefresh();
-      }
-    } catch (e) {
-      setToast('Import bloqué : ' + (e.message || 'inconnue'));
-    } finally {
-      setImporting(false);
-    }
-  };
-
-  const applyFilters = list => list.filter(t => {
-    const taskMapId = taskEffectiveMapId(t);
-    if (filterMap === 'active' && taskMapId !== activeMapId && taskMapId != null) return false;
-    if (filterMap !== 'active' && filterMap !== 'all' && taskMapId !== filterMap && taskMapId != null) return false;
-    if (filterText && !t.title.toLowerCase().includes(filterText.toLowerCase()) &&
-      !(t.description || '').toLowerCase().includes(filterText.toLowerCase())) return false;
-    if (filterZone && !taskHasLocation(t, filterZone)) return false;
-    if (filterStatus) {
-      const eff = taskEffectiveStatus(t);
-      let matches = eff === filterStatus;
-      if (filterStatus === 'validated') {
-        matches = eff === 'validated' || eff === 'project_validated';
-      } else if (filterStatus === 'on_hold') {
-        matches = eff === 'on_hold';
-      } else if (filterStatus === 'project_completed') {
-        matches = eff === 'project_completed';
-      } else if (filterStatus === 'project_validated') {
-        matches = eff === 'project_validated';
-      }
-      if (!matches) return false;
-    }
-    if (filterProject && t.project_id !== filterProject) return false;
-    if (filterGroupId && String(t.group_id || '') !== String(filterGroupId)) return false;
-    if (filterUrgentCategory === 'urgent' && !isTaskUrgentCategory(t)) return false;
-    if (filterUrgentCategory === 'non_urgent' && isTaskUrgentCategory(t)) return false;
-    return true;
-  });
-
-  const visibleProjects = taskProjects
-    .filter((p) => {
-      if (filterMap === 'all') return true;
-      if (filterMap === 'active') return p.map_id === activeMapId;
-      return p.map_id === filterMap;
-    })
-    .slice()
-    .sort((a, b) => String(a.title || '').localeCompare(String(b.title || ''), 'fr'));
+  const visibleProjects = sortedVisibleProjects(taskProjects, filterMap, activeMapId);
   const activeProjects = visibleProjects.filter((p) => normalizeProjectUiStatus(p.status) !== 'validated');
   const validatedProjects = visibleProjects.filter((p) => normalizeProjectUiStatus(p.status) === 'validated');
-  const allFiltered = applyFilters(tasks);
+  const allFiltered = applyTaskFilters(tasks, {
+    filterMap,
+    activeMapId,
+    filterText,
+    filterZone,
+    filterStatus,
+    filterProject,
+    filterGroupId,
+    filterUrgentCategory,
+  });
   const urgentCategoryTasks = useMemo(
     () => allFiltered.filter(isTaskUrgentCategory).sort(compareTasksByImportanceThenDueDate),
     [allFiltered]
@@ -742,14 +627,9 @@ function TasksView({
     && taskEffectiveStatus(t) !== 'validated'
     && isStudentAssignedToTask(t, student)
   ));
-  const available = regularFiltered.filter(t => taskEffectiveStatus(t) === 'available');
-  const inProgress = regularFiltered.filter(t => taskEffectiveStatus(t) === 'in_progress');
-  const done = regularFiltered.filter(t => taskEffectiveStatus(t) === 'done');
-  const validated = regularFiltered.filter(t => taskEffectiveStatus(t) === 'validated');
-  const proposed = regularFiltered.filter(t => taskEffectiveStatus(t) === 'proposed');
-  const onHold = regularFiltered.filter((t) => taskEffectiveStatus(t) === 'on_hold');
-  const projectCompletedTasks = regularFiltered.filter((t) => taskEffectiveStatus(t) === 'project_completed');
-  const projectValidatedTasks = regularFiltered.filter((t) => taskEffectiveStatus(t) === 'project_validated');
+  const {
+    available, inProgress, done, validated, proposed, onHold,
+  } = partitionTasksByEffectiveStatus(regularFiltered);
   const hasStudentFilters = !isTeacher && (
     !!filterText
     || !!filterZone
@@ -783,124 +663,35 @@ function TasksView({
     [regularFiltered, student]
   );
 
-  const urgentTasks = !isTeacher ? regularFiltered.filter(t => {
-    const effective = taskEffectiveStatus(t);
-    if (effective === 'validated' || effective === 'done' || effective === 'on_hold' || effective === 'project_completed' || effective === 'project_validated') return false;
-    const d = daysUntil(t.due_date);
-    return d !== null && d <= 3 && d >= -2;
-  }).sort(compareTasksByImportanceThenDueDate) : [];
+  const urgentTasks = !isTeacher ? studentUrgentDueTasks(regularFiltered) : [];
 
-  const usedZoneIds = new Set();
-  const usedMarkerIds = new Set();
-  for (const t of tasksForLocationPicker) {
-    (t.zone_ids || []).forEach((id) => usedZoneIds.add(id));
-    if (t.zone_id) usedZoneIds.add(t.zone_id);
-    (t.marker_ids || []).forEach((id) => usedMarkerIds.add(id));
-    if (t.marker_id) usedMarkerIds.add(t.marker_id);
-  }
-  if (tutorialsModuleEnabled) {
-    for (const tu of tutorials || []) {
-      if (!isTeacher && tu.is_active === false) continue;
-      for (const zid of tu.zone_ids || []) {
-        const z = zones.find((zz) => String(zz.id) === String(zid));
-        if (!z) continue;
-        if (filterMap === 'active' && z.map_id !== activeMapId) continue;
-        if (filterMap !== 'active' && filterMap !== 'all' && z.map_id !== filterMap) continue;
-        usedZoneIds.add(zid);
-      }
-      for (const mid of tu.marker_ids || []) {
-        const m = markers.find((mm) => String(mm.id) === String(mid));
-        if (!m) continue;
-        if (filterMap === 'active' && m.map_id !== activeMapId) continue;
-        if (filterMap !== 'active' && filterMap !== 'all' && m.map_id !== filterMap) continue;
-        usedMarkerIds.add(mid);
-      }
-    }
-  }
-  const usedZones = [...usedZoneIds];
-  const usedMarkers = [...usedMarkerIds];
+  const { usedZones, usedMarkers } = collectUsedLocationIds({
+    tasksForLocationPicker,
+    tutorials,
+    zones,
+    markers,
+    filterMap,
+    activeMapId,
+    tutorialsModuleEnabled,
+    isTeacher,
+  });
 
-  const focusMapIdForTutorials = useMemo(() => {
-    if (!filterZone || !tutorialsModuleEnabled) return null;
-    const [kind, rawId] = String(filterZone).split(':');
-    if (kind === 'zone' && rawId) {
-      return zones.find((z) => String(z.id) === String(rawId))?.map_id ?? activeMapId;
-    }
-    if (kind === 'marker' && rawId) {
-      return markers.find((m) => String(m.id) === String(rawId))?.map_id ?? activeMapId;
-    }
-    return zones.find((z) => String(z.id) === String(filterZone))?.map_id ?? activeMapId;
-  }, [filterZone, zones, markers, tutorialsModuleEnabled, activeMapId]);
-
-  const linkedTutorialsAtFocus = useMemo(() => {
-    if (!filterZone || !tutorialsModuleEnabled) return [];
-    const fromLocation = (tutorials || []).filter((tu) => tutorialPickerHasLocation(tu, filterZone));
-    const fromTasks = tutorialRefsFromTasksAtLocationFilter(filterZone, tasks, tutorials || []);
-    const merged = dedupeTutorialsByIdForTasks([...fromLocation, ...fromTasks]);
-    if (isTeacher) return merged;
-    return merged.filter((tu) => tu.is_active !== false);
-  }, [filterZone, tutorials, tutorialsModuleEnabled, isTeacher, tasks]);
-
-  const assignableTutorialsAtFocus = useMemo(() => {
-    if (!filterZone || !isTeacher || !tutorialsModuleEnabled || !focusMapIdForTutorials) return [];
-    return (tutorials || []).filter((tu) => (
-      tu.is_active !== false
-      && !tutorialPickerHasLocation(tu, filterZone)
-      && tutorialPickerLinkedToSameMap(tu, focusMapIdForTutorials)
-    ));
-  }, [filterZone, tutorials, isTeacher, tutorialsModuleEnabled, focusMapIdForTutorials]);
   const sectionListClass = viewMode === 'tiles'
     ? 'tasks-grid'
     : (viewMode === 'condensed' ? 'tasks-condensed' : 'tasks-list');
   /** Inscriptions à ajouter / retirer (liste n3beurs chargée côté n3boss) pour l’affectation rapide. */
-  const teacherQuickAssignDelta = useCallback((task, selectedIds) => {
-    const idSet = new Set((selectedIds || []).map(String));
-    const toAdd = teacherStudents.filter(
-      (s) => idSet.has(String(s.id)) && !isStudentAlreadyAssignedToTask(task, s)
-    );
-    const toRemove = teacherStudents.filter(
-      (s) => !idSet.has(String(s.id)) && isStudentAlreadyAssignedToTask(task, s)
-    );
-    return { toAdd, toRemove };
-  }, [teacherStudents]);
-  const teacherQuickAssignCanApply = useCallback((task, selectedIds) => {
-    if (!isTeacher || !task) return false;
-    const { toAdd, toRemove } = teacherQuickAssignDelta(task, selectedIds);
-    if (toAdd.length === 0 && toRemove.length === 0) return false;
-    const te = taskEffectiveStatus(task);
-    if (te === 'on_hold' || te === 'project_completed' || te === 'project_validated') return false;
-    if (toRemove.length > 0 && (task.status === 'done' || task.status === 'validated')) return false;
-    if (toAdd.length > 0) {
-      if (task.status === 'proposed' || task.status === 'done' || task.status === 'validated') return false;
-      const slotsAfterRemovals = getAvailableSlots(task) + toRemove.length;
-      if (toAdd.length > slotsAfterRemovals) return false;
-    }
-    return true;
-  }, [isTeacher, teacherQuickAssignDelta]);
-  const quickAssignHint = useCallback((task, selectedIds) => {
-    if (!task) return "Cette tâche n’est pas dispo ici";
-    const te = taskEffectiveStatus(task);
-    if (te === 'on_hold') return "Patience : tâche ou projet en pause";
-    if (te === 'project_completed') return "Projet terminé : inscriptions fermées";
-    if (te === 'project_validated') return "Projet validé : inscriptions fermées";
-    const { toAdd, toRemove } = teacherQuickAssignDelta(task, selectedIds);
-    if (toAdd.length === 0 && toRemove.length === 0) return "Coche ou décoche des n3beurs pour ajuster l’équipe sur la mission";
-    if (toRemove.length > 0 && (task.status === 'done' || task.status === 'validated')) {
-      return "Mission déjà bouclée : on ne retire plus les inscrits";
-    }
-    if (toAdd.length > 0) {
-      if (task.status === 'proposed') return "Idée encore en discussion : inscriptions pas encore ouvertes";
-      if (task.status === 'done' || task.status === 'validated') return "C’est déjà plié pour celle-ci";
-      const slotsAfterRemovals = getAvailableSlots(task) + toRemove.length;
-      if (toAdd.length > slotsAfterRemovals) {
-        return `Pas assez de places (max. ${slotsAfterRemovals} après retrait${toRemove.length > 1 ? 's' : ''})`;
-      }
-    }
-    const parts = [];
-    if (toRemove.length > 0) parts.push(`Retirer ${toRemove.length} n3beur${toRemove.length > 1 ? 's' : ''}`);
-    if (toAdd.length > 0) parts.push(`Inscrire ${toAdd.length} n3beur${toAdd.length > 1 ? 's' : ''}`);
-    return parts.join(' · ');
-  }, [teacherQuickAssignDelta]);
+  const teacherQuickAssignDelta = useCallback(
+    (task, selectedIds) => computeQuickAssignDelta(task, selectedIds, teacherStudents),
+    [teacherStudents]
+  );
+  const teacherQuickAssignCanApply = useCallback(
+    (task, selectedIds) => !!isTeacher && canApplyQuickAssign(task, selectedIds, teacherStudents),
+    [isTeacher, teacherStudents]
+  );
+  const quickAssignHint = useCallback(
+    (task, selectedIds) => quickAssignHintText(task, selectedIds, teacherStudents),
+    [teacherStudents]
+  );
   const runTeacherQuickAssign = useCallback((task, selectedIds) => withLoad(`${task.id}assign_teacher_quick`, async () => {
     const { toAdd, toRemove } = teacherQuickAssignDelta(task, selectedIds);
     if (toAdd.length === 0 && toRemove.length === 0) {
@@ -1141,392 +932,86 @@ function TasksView({
         </DialogShell>
       )}
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-        <h2 className="section-title">✅ Tâches</h2>
-        {isTeacher && (
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            {isHelpEnabled && (
-              <HelpPanel
-                sectionId="tasks"
-                title={helpTasks.title}
-                entries={helpTasks.items}
-                isTeacher={isTeacher}
-                isPulsing={pulseUnseenPanels && !hasSeenSection('tasks')}
-                panelTitlePrefix={helpPanelTitlePrefix}
-                closeButtonText={helpPanelCloseCta}
-                dismissButtonText={helpPanelDismissCta}
-                onMarkSeen={markSectionSeen}
-                onOpen={trackPanelOpen}
-                onDismiss={trackPanelDismiss}
-              />
-            )}
-            <button
-              type="button"
-              className="btn btn-ghost btn-sm"
-              onClick={() => { setEditProject(null); setShowProjectForm(true); }}
-            >
-              + Projet
-            </button>
-            <button
-              type="button"
-              className="btn btn-primary btn-sm"
-              onClick={() => {
-                setNewTaskDefaultProjectId(null);
-                setEditTask(null);
-                setDuplicateTask(null);
-                setShowForm(true);
-              }}
-            >
-              + Nouvelle tâche
-            </button>
-          </div>
-        )}
-        {!isTeacher && (
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            {isHelpEnabled && (
-              <HelpPanel
-                sectionId="tasks"
-                title={helpTasks.title}
-                entries={helpTasks.items}
-                isTeacher={isTeacher}
-                isPulsing={pulseUnseenPanels && !hasSeenSection('tasks')}
-                panelTitlePrefix={helpPanelTitlePrefix}
-                closeButtonText={helpPanelCloseCta}
-                dismissButtonText={helpPanelDismissCta}
-                onMarkSeen={markSectionSeen}
-                onOpen={trackPanelOpen}
-                onDismiss={trackPanelDismiss}
-              />
-            )}
-            {canSelfAssignTasks && (
-              <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setNewTaskDefaultProjectId(null); setShowProposalForm(true); }}>+ Proposer</button>
-            )}
-          </div>
-        )}
-      </div>
-      <p className="section-sub">{isTeacher ? 'Piloter les missions, valider les retours et traiter les idées du terrain' : (canSelfAssignTasks ? "Choisis une mission ou propose la tienne, tout le monde peut la lire. Il faut t'inscrire seulement au moment où tu commences la mission pour de vrai." : 'Tu consultes la liste en lecture seule')}</p>
-      {isHelpEnabled && showContextHints && tasksQuickTip ? (
-        <p className="section-sub" style={{ marginTop: 6 }}>
-          <strong>{helpHintPrefix}</strong> {tasksQuickTip}
-        </p>
-      ) : null}
-      {!isTeacher && student && Number(student.taskEnrollment?.maxActiveAssignments) > 0 && (
-        <p
-          className="section-sub"
-          style={{
-            marginTop: 6,
-            padding: '8px 12px',
-            borderRadius: 10,
-            background: student.taskEnrollment?.atLimit ? '#fef3c7' : '#f0fdf4',
-            color: student.taskEnrollment?.atLimit ? '#92400e' : '#166534',
-            fontSize: '.88rem',
-            lineHeight: 1.45,
-          }}
-        >
-          {student.taskEnrollment?.atLimit
-            ? `Tu es déjà sur le paquet max de missions en cours (${student.taskEnrollment.currentActiveAssignments}/${student.taskEnrollment.maxActiveAssignments}, pas encore validées) : libère une place ou attends qu’une mission soit cochée côté n3boss.`
-            : `Missions actives pour toi : ${student.taskEnrollment.currentActiveAssignments}/${student.taskEnrollment.maxActiveAssignments} (en attente de validation n3boss, toutes cartes).`}
-        </p>
-      )}
-      {isTeacher && (
-        <details className="plant-more" style={{ marginBottom: 10 }}>
-          <summary>Import tâches/projets (CSV / XLSX)</summary>
-          <div style={{ display: 'grid', gap: 8, marginTop: 10 }}>
-            <p style={{ margin: 0, fontSize: '.85rem', color: '#6b7280' }}>
-              Le fichier peut contenir des lignes de type <strong>project</strong> et <strong>task</strong>.
-            </p>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-              <button className="btn btn-ghost btn-sm" onClick={() => downloadImportTemplate('csv')} disabled={importing}>
-                📄 Modèle CSV
-              </button>
-              <button className="btn btn-ghost btn-sm" onClick={() => downloadImportTemplate('xlsx')} disabled={importing}>
-                📗 Modèle XLSX
-              </button>
-            </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
-              <input
-                type="file"
-                accept=".csv,.xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv"
-                onChange={(e) => {
-                  setImportFile(e.target.files?.[0] || null);
-                  setImportReport(null);
-                }}
-              />
-              <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '.85rem', color: '#374151' }}>
-                <input
-                  type="checkbox"
-                  checked={importDryRun}
-                  onChange={(e) => setImportDryRun(e.target.checked)}
-                />
-                Simulation (sans création)
-              </label>
-              <button className="btn btn-primary btn-sm" onClick={runImportTasksProjects} disabled={importing}>
-                {importing ? 'Import...' : 'Importer'}
-              </button>
-            </div>
-            {importFile && (
-              <p style={{ margin: 0, fontSize: '.8rem', color: '#6b7280' }}>
-                Fichier sélectionné: <strong>{importFile.name}</strong>
-              </p>
-            )}
-            {importReport && (
-              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: 10 }}>
-                <div style={{ fontSize: '.85rem', color: '#1f2937', marginBottom: 4 }}>
-                  Reçues: <strong>{importReport?.totals?.received || 0}</strong> ·
-                  Valides: <strong>{importReport?.totals?.valid || 0}</strong> ·
-                  Projets créés: <strong>{importReport?.totals?.created_projects || 0}</strong> ·
-                  Tâches créées: <strong>{importReport?.totals?.created_tasks || 0}</strong> ·
-                  Déjà existants: <strong>{importReport?.totals?.skipped_existing || 0}</strong> ·
-                  Invalides: <strong>{importReport?.totals?.skipped_invalid || 0}</strong>
-                </div>
-                {Array.isArray(importReport?.errors) && importReport.errors.length > 0 && (
-                  <div style={{ maxHeight: 120, overflow: 'auto', fontSize: '.8rem', color: '#991b1b' }}>
-                    {importReport.errors.slice(0, 15).map((item, idx) => (
-                      <div key={`${item.row}-${item.field}-${idx}`}>
-                        Ligne {item.row} ({item.field}): {item.error}
-                      </div>
-                    ))}
-                    {importReport.errors.length > 15 && (
-                      <div>... {importReport.errors.length - 15} erreur(s) supplémentaire(s)</div>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </details>
-      )}
+      <TasksViewHeader
+        isTeacher={isTeacher}
+        canSelfAssignTasks={canSelfAssignTasks}
+        student={student}
+        isHelpEnabled={isHelpEnabled}
+        showContextHints={showContextHints}
+        pulseUnseenPanels={pulseUnseenPanels}
+        hasSeenSection={hasSeenSection}
+        markSectionSeen={markSectionSeen}
+        trackPanelOpen={trackPanelOpen}
+        trackPanelDismiss={trackPanelDismiss}
+        helpPanelTitlePrefix={helpPanelTitlePrefix}
+        helpPanelCloseCta={helpPanelCloseCta}
+        helpPanelDismissCta={helpPanelDismissCta}
+        helpHintPrefix={helpHintPrefix}
+        tasksQuickTip={tasksQuickTip}
+        setEditProject={setEditProject}
+        setShowProjectForm={setShowProjectForm}
+        setNewTaskDefaultProjectId={setNewTaskDefaultProjectId}
+        setEditTask={setEditTask}
+        setDuplicateTask={setDuplicateTask}
+        setShowForm={setShowForm}
+        setShowProposalForm={setShowProposalForm}
+      />
+      {isTeacher && <TaskImportPanel setToast={setToast} onRefresh={onRefresh} />}
 
-      <div className="task-filters">
-        <div className="tasks-view-switch" role="group" aria-label="Mode d'affichage des tâches">
-          <button
-            className={`btn btn-sm ${viewMode === 'tiles' ? 'btn-primary' : 'btn-ghost'}`}
-            onClick={() => setViewMode('tiles')}
-            type="button"
-          >
-            🧩 Tuiles
-          </button>
-          <button
-            className={`btn btn-sm ${viewMode === 'list' ? 'btn-primary' : 'btn-ghost'}`}
-            onClick={() => setViewMode('list')}
-            type="button"
-          >
-            📄 Liste
-          </button>
-          <button
-            className={`btn btn-sm ${viewMode === 'condensed' ? 'btn-primary' : 'btn-ghost'}`}
-            onClick={() => setViewMode('condensed')}
-            type="button"
-          >
-            📋 Condensé
-          </button>
-        </div>
-        <select value={filterMap} onChange={e => setFilterMap(e.target.value)}>
-          <option value="active">Carte active ({mapLabelById(activeMapId)})</option>
-          <option value="all">Toutes cartes</option>
-          {maps.map(mp => <option key={mp.id} value={mp.id}>{mp.label}</option>)}
-        </select>
-        <input value={filterText} onChange={e => setFilterText(e.target.value)}
-          placeholder="🔍 Rechercher une tâche..." />
-        <select
-          value={filterZone}
-          onChange={(e) => {
-            const v = e.target.value;
-            setFilterZone(v);
-            if (!v) {
-              onMapLocationFocusChange?.(null);
-            } else {
-              const colon = v.indexOf(':');
-              if (colon > 0) {
-                const k = v.slice(0, colon);
-                const idPart = v.slice(colon + 1);
-                if ((k === 'zone' || k === 'marker') && idPart) {
-                  onMapLocationFocusChange?.({ kind: k, id: idPart });
-                } else {
-                  onMapLocationFocusChange?.(null);
-                }
-              } else {
-                onMapLocationFocusChange?.(null);
-              }
-            }
-          }}
-        >
-          <option value="">Toutes les zones</option>
-          {usedZones.map(zId => {
-            const z = zones.find(zz => zz.id === zId);
-            return <option key={`zone:${zId}`} value={`zone:${zId}`}>{z ? z.name : zId}</option>;
-          })}
-          {usedMarkers.length > 0 && <option value="" disabled>-- Repères --</option>}
-          {usedMarkers.map((mId) => {
-            const marker = markers.find((mm) => mm.id === mId);
-            const markerLabel = marker ? `${marker.emoji ? `${marker.emoji} ` : '📍 '}${marker.label}` : `📍 ${mId}`;
-            return <option key={`marker:${mId}`} value={`marker:${mId}`}>{markerLabel}</option>;
-          })}
-        </select>
-        <select value={filterProject} onChange={e => setFilterProject(e.target.value)}>
-          <option value="">Tous les projets</option>
-          {taskProjects
-            .filter((p) => {
-              if (filterMap === 'all') return true;
-              if (filterMap === 'active') return p.map_id === activeMapId;
-              return p.map_id === filterMap;
-            })
-            .map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.title}{projectStatusLabel(p.status)}
-              </option>
-            ))}
-        </select>
-        {isTeacher && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <select value={filterGroupId} onChange={(e) => setFilterGroupId(e.target.value)} aria-label="Filtrer les tâches par groupe">
-              <option value="">Tous les groupes</option>
-              {groupOptions.map((g) => (
-                <option key={g.id} value={g.id}>{g.name}</option>
-              ))}
-            </select>
-            {isHelpEnabled && (
-              <HelpPanel
-                sectionId="tasks-group-filter"
-                title={helpGroupFilters.title}
-                entries={helpGroupFilters.items}
-                isTeacher={isTeacher}
-                isPulsing={pulseUnseenPanels && !hasSeenSection('tasks-group-filter')}
-                panelTitlePrefix={helpPanelTitlePrefix}
-                closeButtonText={helpPanelCloseCta}
-                dismissButtonText={helpPanelDismissCta}
-                onMarkSeen={markSectionSeen}
-                onOpen={trackPanelOpen}
-                onDismiss={trackPanelDismiss}
-              />
-            )}
-          </div>
-        )}
-        <select
-          value={filterUrgentCategory}
-          onChange={(e) => setFilterUrgentCategory(e.target.value)}
-          aria-label="Filtrer par catégorie urgent"
-        >
-          <option value="">Toutes les catégories</option>
-          <option value="urgent">Urgent ! uniquement</option>
-          <option value="non_urgent">Hors urgent</option>
-        </select>
-        <select
-          value={filterStatus}
-          onChange={(e) => {
-            setFilterStatus(e.target.value);
-            setHasTouchedStatusFilter(true);
-          }}
-        >
-          <option value="">Tous les statuts</option>
-          {TASK_STATUS_FILTER_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>{opt.label}</option>
-          ))}
-        </select>
-      </div>
+      <TaskFiltersBar
+        viewMode={viewMode}
+        setViewMode={setViewMode}
+        filterMap={filterMap}
+        setFilterMap={setFilterMap}
+        maps={maps}
+        activeMapId={activeMapId}
+        filterText={filterText}
+        setFilterText={setFilterText}
+        filterZone={filterZone}
+        setFilterZone={setFilterZone}
+        onMapLocationFocusChange={onMapLocationFocusChange}
+        usedZones={usedZones}
+        usedMarkers={usedMarkers}
+        zones={zones}
+        markers={markers}
+        filterProject={filterProject}
+        setFilterProject={setFilterProject}
+        taskProjects={taskProjects}
+        isTeacher={isTeacher}
+        filterGroupId={filterGroupId}
+        setFilterGroupId={setFilterGroupId}
+        groupOptions={groupOptions}
+        isHelpEnabled={isHelpEnabled}
+        pulseUnseenPanels={pulseUnseenPanels}
+        hasSeenSection={hasSeenSection}
+        markSectionSeen={markSectionSeen}
+        trackPanelOpen={trackPanelOpen}
+        trackPanelDismiss={trackPanelDismiss}
+        helpPanelTitlePrefix={helpPanelTitlePrefix}
+        helpPanelCloseCta={helpPanelCloseCta}
+        helpPanelDismissCta={helpPanelDismissCta}
+        filterUrgentCategory={filterUrgentCategory}
+        setFilterUrgentCategory={setFilterUrgentCategory}
+        filterStatus={filterStatus}
+        setFilterStatus={setFilterStatus}
+        setHasTouchedStatusFilter={setHasTouchedStatusFilter}
+      />
 
       {filterZone && tutorialsModuleEnabled && (
-        <div className="tasks-section" style={{ marginTop: 14, marginBottom: 8 }}>
-          <div className="tasks-section-title">📘 Tutoriels pour ce lieu</div>
-          {isTeacher && (
-            <>
-              <div style={{ marginTop: 8 }}>
-                {linkedTutorialsAtFocus.length === 0 ? (
-                  <p style={{ color: '#999', fontSize: '.85rem', margin: 0 }}>Aucun tutoriel lié à ce lieu.</p>
-                ) : (
-                  linkedTutorialsAtFocus.map((tu) => (
-                    <div key={tu.id} className="history-item" style={{ alignItems: 'center' }}>
-                      <span>{tu.title}{tu.is_active === false ? ' (archivé)' : ''}</span>
-                      {tutorialPickerHasLocation(tu, filterZone) ? (
-                        <button
-                          type="button"
-                          className="btn btn-ghost btn-sm"
-                          disabled={!!loading[`tuto-unlink-${tu.id}`]}
-                          onClick={() => unlinkTutorialAtFocus(tu)}
-                        >
-                          Délier
-                        </button>
-                      ) : (
-                        <span style={{ fontSize: '.72rem', color: '#64748b', flexShrink: 0 }}>via mission</span>
-                      )}
-                    </div>
-                  ))
-                )}
-              </div>
-              <div className="field" style={{ marginTop: 12 }}>
-                <label htmlFor="tasks-view-tuto-link">Lier un tutoriel existant</label>
-                <select
-                  id="tasks-view-tuto-link"
-                  value={quickTutoLinkId}
-                  onChange={(e) => setQuickTutoLinkId(e.target.value)}
-                >
-                  <option value="">— Choisir un tutoriel —</option>
-                  {assignableTutorialsAtFocus.map((tu) => (
-                    <option key={tu.id} value={String(tu.id)}>{tu.title}</option>
-                  ))}
-                </select>
-              </div>
-              <button
-                type="button"
-                className="btn btn-primary btn-sm"
-                style={{ marginTop: 8 }}
-                disabled={!quickTutoLinkId || !!loading[`tuto-link-${quickTutoLinkId}`]}
-                onClick={() => linkTutorialAtFocus(quickTutoLinkId)}
-              >
-                🔗 Lier le tutoriel
-              </button>
-            </>
-          )}
-          {!isTeacher && (
-            <div style={{ marginTop: 8, display: 'grid', gap: 12 }}>
-              {linkedTutorialsAtFocus.length === 0 ? (
-                <p style={{ color: '#999', fontSize: '.85rem', margin: 0 }}>Aucun tutoriel lié à ce lieu.</p>
-              ) : (
-                linkedTutorialsAtFocus.map((tu) => {
-                  const [fk, fid] = String(filterZone).split(':');
-                  const otherZones = (tu.zones_linked || []).filter((z) => !(fk === 'zone' && String(z.id) === String(fid)));
-                  const otherMarkers = (tu.markers_linked || []).filter((mk) => !(fk === 'marker' && String(mk.id) === String(fid)));
-                  return (
-                    <div
-                      key={tu.id}
-                      style={{
-                        border: '1px solid rgba(0,0,0,.08)',
-                        borderRadius: 10,
-                        padding: '12px 14px',
-                        background: 'var(--parchment)',
-                      }}
-                    >
-                      <div style={{ fontWeight: 700, color: 'var(--forest)' }}>{tu.title}</div>
-                      {tu.summary && (
-                        <p style={{ margin: '8px 0 0', fontSize: '.82rem', color: '#555', lineHeight: 1.45 }}>{tu.summary}</p>
-                      )}
-                      {otherZones.length > 0 && (
-                        <p style={{ margin: '10px 0 0', fontSize: '.76rem', color: '#64748b' }}>
-                          <strong>Autres zones</strong> : {otherZones.map((z) => z.name).join(', ')}
-                        </p>
-                      )}
-                      {otherMarkers.length > 0 && (
-                        <p style={{ margin: '6px 0 0', fontSize: '.76rem', color: '#64748b' }}>
-                          <strong>Repères</strong> : {otherMarkers.map((m) => `${m.emoji ? `${m.emoji} ` : ''}${m.label}`).join(', ')}
-                        </p>
-                      )}
-                      {tutorialPreviewCanEmbed(tu) ? (
-                        <button
-                          type="button"
-                          className="btn btn-primary btn-sm"
-                          style={{ marginTop: 10 }}
-                          onClick={() => openTasksTutorialPreview(tu)}
-                        >
-                          📖 Consulter
-                        </button>
-                      ) : null}
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          )}
-        </div>
+        <TaskTutorialsAtFocusBlock
+          isTeacher={isTeacher}
+          filterZone={filterZone}
+          tutorialsModuleEnabled={tutorialsModuleEnabled}
+          tutorials={tutorials}
+          tasks={tasks}
+          zones={zones}
+          markers={markers}
+          activeMapId={activeMapId}
+          loading={loading}
+          withLoad={withLoad}
+          setToast={setToast}
+          openTasksTutorialPreview={openTasksTutorialPreview}
+        />
       )}
 
       {!isTeacher && urgentTasks.length > 0 && (

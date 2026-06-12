@@ -3,9 +3,16 @@ const { queryAll, queryOne, execute } = require('../database');
 const { requireAuth } = require('../middleware/requireTeacher');
 const { saveBase64ToDisk, getAbsolutePath, deleteFile } = require('../lib/uploads');
 const asyncHandler = require('../lib/asyncHandler');
+const { z, validate } = require('../lib/validate');
 const { canAccessStudentId, getScopedStudentIds } = require('../lib/groupScope');
 
 const router = express.Router();
+
+// O7 — `group_id` de la liste prof (`/all`) : coercition permissive (jamais de 400 pour une
+// query invalide) reproduisant exactement `String(req.query?.group_id || '').trim()`.
+const observationsAllQuerySchema = z
+  .object({ group_id: z.unknown().optional() })
+  .transform((q) => ({ groupId: String(q.group_id || '').trim() }));
 
 function isTeacherRequest(req) {
   const perms = Array.isArray(req.auth?.permissions) ? req.auth.permissions : [];
@@ -45,12 +52,12 @@ router.get('/student/:studentId', requireAuth, asyncHandler(async (req, res) => 
 }));
 
 // Toutes les observations (prof)
-router.get('/all', requireAuth, asyncHandler(async (req, res) => {
+router.get('/all', requireAuth, validate({ query: observationsAllQuerySchema }), asyncHandler(async (req, res) => {
   const perms = Array.isArray(req.auth?.permissions) ? req.auth.permissions : [];
   const canReadAll = perms.includes('observations.read.all');
   const canReadGroup = perms.includes('observations.read.group');
   if (!canReadAll && !canReadGroup) return res.status(403).json({ error: 'Permission insuffisante' });
-  const requestedGroupId = String(req.query?.group_id || '').trim();
+  const requestedGroupId = req.validatedQuery.groupId;
   const scope = await getScopedStudentIds(req.auth, { groupId: requestedGroupId || null });
   if (scope.unauthorizedGroup) return res.status(403).json({ error: 'Groupe hors périmètre' });
   const rows = await queryAll(
@@ -167,3 +174,4 @@ router.delete('/:id', requireAuth, asyncHandler(async (req, res) => {
 }));
 
 module.exports = router;
+module.exports.observationsAllQuerySchema = observationsAllQuerySchema; // exporté pour test no-DB du contrat O7

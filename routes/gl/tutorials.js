@@ -4,6 +4,7 @@ const express = require('express');
 const { queryAll, queryOne, execute } = require('../../database');
 const { requireGlAuth, requireGlPermission } = require('../../middleware/requireGlAuth');
 const { normalizeOptionalString } = require('../../lib/shared/httpHelpers');
+const { z, validate } = require('../../lib/validate');
 const {
   buildReaderKey,
   listLearningAcks,
@@ -13,6 +14,16 @@ const {
 const db = { queryAll, queryOne, execute };
 
 const router = express.Router();
+
+// O7 — `chapterId` : coercition permissive reproduisant l'ancien
+// `req.query?.chapterId != null ? Number(...) : null` + filtre `Number.isFinite(chapterId)` :
+// fini → filtre par chapitre, absent/non numérique → null (liste complète) — jamais de 400.
+const glTutorialsListQuerySchema = z.object({
+  chapterId: z.preprocess(
+    (v) => (v == null ? null : Number(v)),
+    z.number().finite().nullable().catch(null)
+  ),
+});
 
 const MIN_TITLE = 3;
 const MAX_TITLE = 200;
@@ -24,8 +35,8 @@ function normalizeSlug(value) {
   return raw.replace(/[^a-z0-9._-]+/g, '-').replace(/^-+|-+$/g, '');
 }
 
-router.get('/', requireGlAuth, async (req, res) => {
-  const chapterId = req.query?.chapterId != null ? Number(req.query.chapterId) : null;
+router.get('/', requireGlAuth, validate({ query: glTutorialsListQuerySchema }), async (req, res) => {
+  const chapterId = req.validatedQuery?.chapterId;
   const rows = Number.isFinite(chapterId)
     ? await queryAll(
       `SELECT id, slug, title, chapter_id, marker_id, order_index, is_published, updated_at
@@ -122,3 +133,4 @@ router.delete('/:id', requireGlPermission('gl.content.manage'), async (req, res)
 });
 
 module.exports = router;
+module.exports.glTutorialsListQuerySchema = glTutorialsListQuerySchema; // exporté pour test no-DB du contrat O7
