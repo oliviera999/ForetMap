@@ -149,7 +149,15 @@ test('GET /api/gl/admin/glossary/export round-trip ré-importable', async () => 
 test('GET /api/gl/admin/qcm/export round-trip ré-importable', async () => {
   const biomeSlug = `test_export_${stamp}`.slice(0, 40);
   const catSlug = `cat_export_${stamp}`.slice(0, 40);
-  const qCode = `QCM${String(stamp).slice(-4).padStart(4, '0')}`;
+  // Contraintes du code : (a) format QCM<digits> sans zéro de tête — l'export
+  // écrit un id numérique extrait via ^QCM(\d+)$ et la relecture reconstruit
+  // QCM<Number(id)> (round-trip) ; (b) un suffixe à 4 chiffres recyclait toutes
+  // les 10 s et pouvait collisionner avec QCM0001 (gl-marker-present-question)
+  // ou la passe précédente de la suite (la CI relance les tests en coverage
+  // sans réinitialiser la DB) — l'ON DUPLICATE KEY rattachait alors le code à
+  // un autre biome et l'export filtré ne le contenait plus. D'où QCM1 + 8
+  // chiffres de stamp : round-trip exact et unicité entre passes.
+  const qCode = `QCM1${String(stamp).slice(-8)}`;
 
   await execute(
     `INSERT INTO gl_biomes (slug, nom, order_index, created_at, updated_at)

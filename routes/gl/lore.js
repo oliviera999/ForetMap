@@ -74,6 +74,8 @@ const {
 const { previewLoreQuestionPool } = require('../../lib/glMarkerLoreQuestionPool');
 const { normalizeLoreQuestionPool } = require('../../lib/glMarkerEventConfig');
 const { normalizeOptionalString } = require('../../lib/shared/httpHelpers');
+const { validate } = require('../../lib/validate');
+const { glQcmPoolPreviewQuerySchema } = require('../../lib/glQuerySchemas');
 
 const router = express.Router();
 const db = { queryAll, queryOne, execute };
@@ -594,15 +596,6 @@ function parseCsvQuery(value) {
   return raw.split(',').map((s) => s.trim()).filter(Boolean);
 }
 
-function parseDifficulteQuery(value) {
-  if (value == null || value === '') return null;
-  const n = Number(value);
-  if (!Number.isFinite(n)) return null;
-  const i = Math.floor(n);
-  if (i < 1 || i > 5) return null;
-  return i;
-}
-
 const LORE_QUESTION_SELECT = `
   SELECT question_code, chapitre_slug, categorie_slug, numero_dans_categorie, tier_lore, question,
          choix_a, choix_b, choix_c, choix_d, choix_e,
@@ -699,8 +692,11 @@ router.get('/qcm/questions', requireGlPermission('gl.read'), async (req, res) =>
 });
 
 /** GET /api/gl/lore/qcm/pool-preview */
-router.get('/qcm/pool-preview', requireGlPermission('gl.content.manage'), async (req, res) => {
-  const chapterId = req.query?.chapterId != null ? Number(req.query.chapterId) : null;
+// O7 — chapterId/difficulteMin/difficulteMax via le schéma partagé glQcmPoolPreviewQuerySchema
+// (coercition permissive, jamais de 400 issu du schéma, même contrat que qcm/pool-preview) ;
+// les nombreux filtres texte/CSV restent lus manuellement sur req.query, inchangés.
+router.get('/qcm/pool-preview', requireGlPermission('gl.content.manage'), validate({ query: glQcmPoolPreviewQuerySchema }), async (req, res) => {
+  const chapterId = req.validatedQuery?.chapterId;
   let chapterPlateauNumber = null;
   if (chapterId != null && Number.isFinite(chapterId)) {
     const chapter = await queryOne(
@@ -716,8 +712,8 @@ router.get('/qcm/pool-preview', requireGlPermission('gl.content.manage'), async 
     categorieSlugs: parseCsvQuery(req.query?.categorieSlugs || req.query?.categorieSlug),
     tierLore: parseCsvQuery(req.query?.tierLore),
     niveaux: parseCsvQuery(req.query?.niveaux || req.query?.niveau),
-    difficulteMin: parseDifficulteQuery(req.query?.difficulteMin),
-    difficulteMax: parseDifficulteQuery(req.query?.difficulteMax),
+    difficulteMin: req.validatedQuery?.difficulteMin,
+    difficulteMax: req.validatedQuery?.difficulteMax,
     searchQuery: normalizeOptionalString(req.query?.q) || '',
     selectedQuestionCodes: parseCsvQuery(req.query?.selectedQuestionCodes),
   });
@@ -885,4 +881,7 @@ router.post('/admin/qcm/import', requireGlPermission('gl.content.manage'), async
   }
 });
 
-module.exports = { router };
+module.exports = {
+  router,
+  glQcmPoolPreviewQuerySchema, // exporté pour test no-DB du contrat O7
+};

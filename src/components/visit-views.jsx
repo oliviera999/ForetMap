@@ -19,6 +19,8 @@ import { VisitDetailPanel } from './visit/VisitDetailPanel.jsx';
 import { VisitTutorialsSection } from './visit/VisitTutorialsSection.jsx';
 import { VisitMapChrome } from './visit/VisitMapChrome.jsx';
 import { VisitProfToolsPanel } from './visit/VisitProfToolsPanel.jsx';
+import { VisitGuestMascotOnboarding } from './visit/VisitGuestMascotOnboarding.jsx';
+import { VisitMapZoomControls } from './visit/VisitMapZoomControls.jsx';
 import { computeVisitMascotStartPct } from '../utils/visitMascotPlacement.js';
 import {
   shouldShowVisitMapMascot as computeShowVisitMapMascot,
@@ -46,6 +48,11 @@ import { resolveMascotDialogLine } from '../utils/visitMascotDialogApply.js';
 import { VISIT_MASCOT_STATE } from '../utils/visitMascotState.js';
 import { loadVisitMascotPositionPct, saveVisitMascotPositionPct } from '../utils/visitMascotPositionPersistence.js';
 import { itemSeenKey } from '../utils/visitMediaGallery.js';
+import {
+  parseVisitMascotAllowedIds,
+  computeVisitCartographyProgress,
+  buildVisitNetworkStatusLabel,
+} from '../utils/visitViewStatus.js';
 import {
   visitZoneSvgTextUniformYTransform,
   clampVisitMascotPctForViewport,
@@ -99,17 +106,10 @@ function VisitView({
     [configuredLocationEmojis]
   );
   const roleTerms = getRoleTerms(isN3Affiliated);
-  const visitMascotAllowedIds = useMemo(() => {
-    const raw = publicSettings?.visit?.mascot?.allowed_ids;
-    if (Array.isArray(raw)) return raw.map((id) => String(id || '').trim()).filter(Boolean);
-    if (typeof raw === 'string') {
-      return raw
-        .split(/[,\n;]+/g)
-        .map((id) => String(id || '').trim())
-        .filter(Boolean);
-    }
-    return [];
-  }, [publicSettings?.visit?.mascot?.allowed_ids]);
+  const visitMascotAllowedIds = useMemo(
+    () => parseVisitMascotAllowedIds(publicSettings?.visit?.mascot?.allowed_ids),
+    [publicSettings?.visit?.mascot?.allowed_ids]
+  );
   const visitMascotDefaultId = String(publicSettings?.visit?.mascot?.default_id || '').trim() || 'renard2-cut-spritesheet';
   const visitTitle = getContentText(publicSettings, 'visit.title', '🧭 Visite de la carte');
   const helpHintPrefix = getContentText(publicSettings, 'help.hint_prefix', 'Astuce :');
@@ -205,7 +205,6 @@ function VisitView({
     trackPanelDismiss,
   } = useHelp({ publicSettings, isTeacher });
   const isGuestPublicVisit = !student && typeof onBackToAuth === 'function';
-  const [guestMascotChoiceOpen, setGuestMascotChoiceOpen] = useState(() => isGuestPublicVisit && requireGuestMascotChoice);
   const closeVisitSelection = useCallback(() => {
     if (visitDetailPanelAfterMoveTimeoutRef.current) {
       clearTimeout(visitDetailPanelAfterMoveTimeoutRef.current);
@@ -236,10 +235,6 @@ function VisitView({
     allowedMascotIds: visitMascotAllowedIds,
     defaultMascotId: visitMascotDefaultId,
   });
-
-  useEffect(() => {
-    setGuestMascotChoiceOpen(isGuestPublicVisit && requireGuestMascotChoice);
-  }, [isGuestPublicVisit, requireGuestMascotChoice]);
 
   const VISIT_IMMERSION_LS_KEY = 'foretmap_visit_immersion';
   const VISIT_TEACHER_PREVIEW_LS_KEY = 'foretmap_visit_teacher_preview_student';
@@ -277,23 +272,10 @@ function VisitView({
   const showVisitMapTutorialsSection = isTeacher && !teacherPreviewAsStudent;
 
   /** Zones affichées sur le plan (polygone valide) + repères : aligné sur ce que l’utilisateur peut parcourir sur la carte courante. */
-  const visitCartographyProgress = useMemo(() => {
-    const zones = content.zones || [];
-    const markers = content.markers || [];
-    let total = 0;
-    let seenCount = 0;
-    for (const z of zones) {
-      if (parsePctPoints(z.points).length < 3) continue;
-      total += 1;
-      if (seen.has(itemSeenKey('zone', z.id))) seenCount += 1;
-    }
-    for (const m of markers) {
-      total += 1;
-      if (seen.has(itemSeenKey('marker', m.id))) seenCount += 1;
-    }
-    const pct = total > 0 ? Math.min(100, Math.round((seenCount / total) * 100)) : 0;
-    return { total, seenCount, pct };
-  }, [content.zones, content.markers, seen]);
+  const visitCartographyProgress = useMemo(
+    () => computeVisitCartographyProgress(content.zones, content.markers, seen),
+    [content.zones, content.markers, seen]
+  );
 
   /** Bandeau carte : ouverture du premier tutoriel « présentation » (tous les profils en navigation). */
   const showVisitPresentationButton = mode === 'view' && !!visitPresentationTutorial;
@@ -304,16 +286,10 @@ function VisitView({
     && visitCartographyProgress.seenCount === 0
     && !prefersReducedMotion;
 
-  const visitNetworkStatusLabel = useMemo(() => {
-    if (!isOnline) return 'Hors ligne — consultation locale';
-    if (syncStatus === 'syncing') return 'Synchronisation en cours…';
-    if (pendingSyncCount > 0) {
-      return `${pendingSyncCount} action${pendingSyncCount > 1 ? 's' : ''} en attente de sync.`;
-    }
-    if (syncStatus === 'error') return 'Synchronisation en attente';
-    if (syncStatus === 'synced') return 'Synchronisé';
-    return null;
-  }, [isOnline, syncStatus, pendingSyncCount]);
+  const visitNetworkStatusLabel = useMemo(
+    () => buildVisitNetworkStatusLabel(isOnline, syncStatus, pendingSyncCount),
+    [isOnline, syncStatus, pendingSyncCount]
+  );
 
   /** Mascotte : zones/repères visibles, total parcourable, ou tutoriels du plan (évite plan « vide » côté API alors que la visite est animée). */
   const showVisitMapMascot = computeShowVisitMapMascot(
@@ -1184,57 +1160,14 @@ function VisitView({
           onClose={() => setVisitMediaLightbox(null)}
         />
       )}
-      {guestMascotChoiceOpen && (
-        <div className="visit-mascot-onboarding" role="dialog" aria-modal="true" aria-label="Choix de la mascotte">
-          <div className="visit-mascot-onboarding__card">
-            <p className="visit-mascot-onboarding__eyebrow">Bienvenue dans la visite</p>
-            <h3>Choisis ta mascotte guide</h3>
-            <p>
-              Avant de commencer, sélectionne ton compagnon de balade. Tu pourras le changer plus tard pendant la visite.
-            </p>
-            <div className="visit-mascot-onboarding__grid" role="list">
-              {visitMascotOptions.map((mascot) => {
-                const isActive = visitMascotId === mascot.id;
-                return (
-                  <button
-                    key={mascot.id}
-                    type="button"
-                    role="listitem"
-                    className={`visit-mascot-onboarding__option${isActive ? ' is-active' : ''}`}
-                    onClick={() => onChangeVisitMascotId(mascot.id)}
-                    aria-pressed={isActive}
-                  >
-                    <span className="visit-mascot-onboarding__preview" aria-hidden="true">
-                      <VisitMapMascotRenderer
-                        mascotId={mascot.id}
-                        state={VISIT_MASCOT_STATE.IDLE}
-                        extraCatalogEntries={visitMascotCatalogExtras}
-                      />
-                    </span>
-                    <span className="visit-mascot-onboarding__label">{mascot.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-            <div className="visit-mascot-onboarding__actions">
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={() => {
-                  setGuestMascotChoiceOpen(false);
-                  onGuestMascotChoiceDone?.();
-                }}
-                disabled={visitMascotOptions.length === 0}
-              >
-                Commencer la visite
-              </button>
-              {!visitMascotOptions.length ? (
-                <span className="section-sub">Aucune mascotte disponible pour l’instant.</span>
-              ) : null}
-            </div>
-          </div>
-        </div>
-      )}
+      <VisitGuestMascotOnboarding
+        requested={isGuestPublicVisit && requireGuestMascotChoice}
+        mascotId={visitMascotId}
+        mascotOptions={visitMascotOptions}
+        onChangeMascotId={onChangeVisitMascotId}
+        extraCatalogEntries={visitMascotCatalogExtras}
+        onDone={onGuestMascotChoiceDone}
+      />
       <div className="visit-grid visit-grid--map-forward">
         <div className="visit-map-card">
           <VisitMapChrome
@@ -1495,41 +1428,11 @@ function VisitView({
                 })}
               </div>
             </div>
-            <div className="visit-map-controls">
-              <button
-                type="button"
-                className="visit-map-ctrl"
-                aria-label="Zoomer la carte de visite"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  zoomFromCenterAnimated(1.2);
-                }}
-              >
-                ＋
-              </button>
-              <button
-                type="button"
-                className="visit-map-ctrl"
-                aria-label="Dézoomer la carte de visite"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  zoomFromCenterAnimated(0.84);
-                }}
-              >
-                －
-              </button>
-              <button
-                type="button"
-                className="visit-map-ctrl"
-                aria-label="Recentrer la carte de visite"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  resetMapTransform();
-                }}
-              >
-                ⊡
-              </button>
-            </div>
+            <VisitMapZoomControls
+              onZoomIn={() => zoomFromCenterAnimated(1.2)}
+              onZoomOut={() => zoomFromCenterAnimated(0.84)}
+              onReset={resetMapTransform}
+            />
           </div>
           {!selected ? (
             <p className="visit-map-empty-hint section-sub">{visitEmptySelection}</p>

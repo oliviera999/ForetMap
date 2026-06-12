@@ -127,6 +127,30 @@ function parsePct(value) {
 }
 
 const { normalizeOptionalString } = require('../../lib/shared/httpHelpers');
+const { z, validate } = require('../../lib/validate');
+
+// O7 — query friction-free (coercition permissive, jamais de 400 issu du schéma) :
+// `classId` (GET /games) et `teamId` (GET /games/:id/feuillet-zones/presented) reproduisent
+// l'ancien `parseId` (Number fini → n, sinon null) ; `status` reproduit
+// `normalizeOptionalString` (trim, '' → null). Les 400 historiques (« classId invalide »,
+// « status invalide », « teamId requis pour le MJ ») restent décidés par les handlers,
+// conditions inchangées.
+const glGamesListQuerySchema = z.object({
+  classId: z.preprocess(
+    (v) => (v == null ? null : Number(v)),
+    z.number().finite().nullable().catch(null)
+  ),
+  status: z.preprocess(
+    (v) => normalizeOptionalString(v),
+    z.string().nullable().catch(null)
+  ),
+});
+const glGamesFeuilletPresentedQuerySchema = z.object({
+  teamId: z.preprocess(
+    (v) => (v == null ? null : Number(v)),
+    z.number().finite().nullable().catch(null)
+  ),
+});
 
 async function getPlayerGameMembership(gameId, playerId) {
   return queryOne(
@@ -389,9 +413,9 @@ router.get('/gameplay-settings', requireGlAuth, async (_req, res) => {
   });
 });
 
-router.get('/games', requireGlPermission('gl.game.manage'), async (req, res) => {
-  const classId = req.query?.classId == null ? null : parseId(req.query.classId);
-  const status = normalizeOptionalString(req.query?.status);
+router.get('/games', requireGlPermission('gl.game.manage'), validate({ query: glGamesListQuerySchema }), async (req, res) => {
+  const classId = req.validatedQuery?.classId;
+  const status = req.validatedQuery?.status;
   if (req.query?.classId != null && !classId) {
     return res.status(400).json({ error: 'classId invalide' });
   }
@@ -1722,14 +1746,14 @@ router.post('/games/:id/zones/:zoneId/present-content', requireGlAuth, async (re
 });
 
 /** GET /api/gl/games/:id/feuillet-zones/presented — zones feuillets déjà lues par équipe. */
-router.get('/games/:id/feuillet-zones/presented', requireGlAuth, async (req, res) => {
+router.get('/games/:id/feuillet-zones/presented', requireGlAuth, validate({ query: glGamesFeuilletPresentedQuerySchema }), async (req, res) => {
   const gameId = parseId(req.params.id);
   if (!gameId) return res.status(400).json({ error: 'Identifiant de partie invalide' });
 
   const allowed = await canAccessGlGame(req.glAuth, gameId);
   if (!allowed) return res.status(403).json({ error: 'Accès partie refusé' });
 
-  let teamId = req.query?.teamId != null ? parseId(req.query.teamId) : null;
+  let teamId = req.validatedQuery?.teamId;
   if (req.glAuth.userType === 'gl_player') {
     const membership = await getPlayerGameMembership(gameId, req.glAuth.userId);
     if (!membership?.team_id) return res.status(403).json({ error: 'Joueur non rattaché à une équipe' });
@@ -1995,3 +2019,6 @@ router.delete('/games/:id/spell-casts/drafts/:draftId', requireSpellCastPermissi
 });
 
 module.exports = router;
+// exportés pour test no-DB du contrat O7
+module.exports.glGamesListQuerySchema = glGamesListQuerySchema;
+module.exports.glGamesFeuilletPresentedQuerySchema = glGamesFeuilletPresentedQuerySchema;

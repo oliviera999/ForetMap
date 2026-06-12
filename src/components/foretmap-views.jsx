@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { api, AccountDeletedError } from '../services/api';
 import { SPECIAL_EMOJI, SPECIAL_DESC, TREE_LEGEND, TREE_DOTS } from '../constants/garden';
-import { PLANT_EMOJIS } from '../constants/emojis';
-import { compressImage, compressImageWithPreset } from '../utils/image';
+import { compressImage } from '../utils/image';
 import { useHelp } from '../hooks/useHelp';
 import { TaskFormModal, TasksView, LogModal, TaskLogsViewer } from './tasks-views';
 import {
@@ -37,15 +36,14 @@ import { TimedToast } from '../shared/components/TimedToast.jsx';
 import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
 import { useSession } from '../contexts/SessionContext.jsx';
 import { useData } from '../contexts/DataContext.jsx';
-import { fileToDataUrl } from '../utils/fileToDataUrl.js';
 import {
   normalizedPlantValue,
   isGenericPotagerLabel,
   EMPTY_PLANT_FORM,
   extractPlantForm,
 } from '../utils/plantFormValues.js';
-import { PlantnetIdentifyPanel } from './biodiv/PlantnetIdentifyPanel.jsx';
-import { PlantPrefillPanel } from './biodiv/PlantPrefillPanel.jsx';
+import { PlantEditForm } from './biodiv/PlantEditForm.jsx';
+import { PlantImportPanel } from './biodiv/PlantImportPanel.jsx';
 import { PlantSummaryBadges, PlantEcosystemHumanLead } from './biodiv/PlantSummaryBlocks.jsx';
 import { PlantBiodivHeroPhoto, PlantMetaSections } from './biodiv/PlantMetaSections.jsx';
 import { PlantCatalogFilterPanel } from './biodiv/PlantCatalogFilterPanel.jsx';
@@ -53,262 +51,10 @@ import {
   PlantBiodiversityCatalogPreviewCard,
   PlantCatalogPreviewModal,
 } from './biodiv/PlantCatalogPreview.jsx';
-import { PLANT_PHOTO_FIELD_OPTIONS } from '../constants/plantMetaSections.js';
 import { PlantLocationPreviewMaps } from './biodiv/BiodivLocationMaps.jsx';
 
 // ── INTERACTIVE MAP ──────────────────────────────────────────────────────────
 
-
-const PLANTS_IMPORT_TEMPLATE_HEADERS = [
-  'name',
-  'emoji',
-  'description',
-  'scientific_name',
-  'group_1',
-  'sources',
-  'photo',
-];
-const PLANTS_IMPORT_TEMPLATE_HEADERS_FULL = [
-  'name',
-  'emoji',
-  'description',
-  'second_name',
-  'scientific_name',
-  'group_1',
-  'group_2',
-  'group_3',
-  'group_4',
-  'habitat',
-  'photo',
-  'nutrition',
-  'agroecosystem_category',
-  'longevity',
-  'remark_1',
-  'remark_2',
-  'remark_3',
-  'reproduction',
-  'size',
-  'sources',
-  'ideal_temperature_c',
-  'optimal_ph',
-  'ecosystem_role',
-  'geographic_origin',
-  'human_utility',
-  'harvest_part',
-  'planting_recommendations',
-  'preferred_nutrients',
-  'photo_species',
-  'photo_leaf',
-  'photo_flower',
-  'photo_fruit',
-  'photo_harvest_part',
-];
-
-function downloadCsvTemplate(headers, filename) {
-  const csv = `${headers.join(',')}\n`;
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
-}
-
-
-// ── PLANT EDIT FORM (outside PlantManager to avoid remount on every keystroke) ──
-function PlantEditForm({ title, form, setForm, onSave, onCancel, saving, plantId, onToast, onEnsurePlantId = null }) {
-  const set = k => e => setForm(f => ({...f, [k]: e.target.value}));
-  const [uploadingField, setUploadingField] = useState('');
-
-  const photoFields = PLANT_PHOTO_FIELD_OPTIONS;
-
-  const uploadPhoto = async (field, file) => {
-    if (!file) return;
-    let targetId = plantId;
-    if (!targetId && typeof onEnsurePlantId === 'function') {
-      targetId = await onEnsurePlantId();
-      if (!targetId) return;
-    } else if (!targetId) {
-      onToast?.('Crée d\'abord la fiche, puis ajoute les photos.');
-      return;
-    }
-    setUploadingField(field);
-    try {
-      const imageData = await compressImageWithPreset(file, 'plant');
-      const position = field === 'photo' ? 'prepend' : 'append';
-      const result = await api(`/api/plants/${targetId}/photo-upload`, 'POST', { field, imageData, position });
-      setForm((prev) => ({ ...prev, [field]: result?.plant?.[field] || result?.url || prev[field] }));
-      onToast?.('Photo importée ✓');
-    } catch (e) {
-      onToast?.('Erreur import photo : ' + e.message);
-    } finally {
-      setUploadingField('');
-    }
-  };
-
-  /** Galerie : plusieurs fichiers → champs photo suivants dans l’ordre (photo espèce → … → partie récoltée). */
-  const uploadPhotosFromGallery = async (startFieldKey, fileList) => {
-    const files = Array.from(fileList || []).filter((f) => f?.size);
-    if (!files.length) return;
-    const startIdx = photoFields.findIndex((f) => f.key === startFieldKey);
-    if (startIdx < 0) return;
-
-    let targetId = plantId;
-    if (!targetId && typeof onEnsurePlantId === 'function') {
-      targetId = await onEnsurePlantId();
-      if (!targetId) return;
-    } else if (!targetId) {
-      onToast?.('Crée d\'abord la fiche, puis ajoute les photos.');
-      return;
-    }
-
-    setUploadingField(startFieldKey);
-    let ok = 0;
-    let skipped = 0;
-    try {
-      for (let i = 0; i < files.length; i++) {
-        const slotIdx = startIdx + i;
-        if (slotIdx >= photoFields.length) {
-          skipped = files.length - i;
-          break;
-        }
-        const fld = photoFields[slotIdx].key;
-        try {
-          const imageData = await compressImageWithPreset(files[i], 'plant');
-          const result = await api(`/api/plants/${targetId}/photo-upload`, 'POST', { field: fld, imageData, position: 'append' });
-          setForm((prev) => ({ ...prev, [fld]: result?.plant?.[fld] || result?.url || prev[fld] }));
-          ok += 1;
-        } catch (e) {
-          onToast?.(`Erreur import (${photoFields[slotIdx].label}) : ${e.message}`);
-        }
-      }
-      if (skipped > 0) {
-        onToast?.(`${skipped} photo(s) non importée(s) — plus de champ disponible après « ${photoFields[startIdx].label} ».`);
-      }
-      if (ok === 1 && skipped === 0) {
-        onToast?.('Photo importée ✓');
-      } else if (ok > 1) {
-        onToast?.(`${ok} photos importées ✓`);
-      }
-    } finally {
-      setUploadingField('');
-    }
-  };
-
-  return (
-    <div className="plant-edit-form fade-in">
-      <h4>{title}</h4>
-      <div className="field"><label>Emoji</label>
-        <div className="emoji-row">
-          {PLANT_EMOJIS.map(e => (
-            <button key={e} className={`emoji-btn ${form.emoji === e ? 'sel' : ''}`}
-              onClick={() => setForm(f => ({...f, emoji: e}))}>{e}</button>
-          ))}
-        </div>
-        <input value={form.emoji} onChange={set('emoji')} placeholder="ou colle un emoji" style={{marginTop:6}}/>
-      </div>
-      <div className="field"><label>Nom *</label>
-        <input value={form.name} onChange={set('name')} placeholder="Ex: Aubergine"/>
-      </div>
-      <PlantnetIdentifyPanel
-        saving={saving}
-        plantId={plantId}
-        onEnsurePlantId={onEnsurePlantId}
-        setForm={setForm}
-        onToast={onToast}
-      />
-      <PlantPrefillPanel form={form} setForm={setForm} saving={saving} onToast={onToast} />
-      <div className="field"><label>Description d'identification</label>
-        <MarkdownTextarea value={form.description} onChange={set('description')} rows={3}
-          placeholder="Comment reconnaître cet être vivant ? Feuilles, taille, odeur..."/>
-      </div>
-      <div className="plant-form-grid">
-        <div className="field"><label>Nom scientifique</label><input value={form.scientific_name} onChange={set('scientific_name')} placeholder="Ex: Solanum lycopersicum"/></div>
-        <div className="field"><label>Deuxième nom</label><input value={form.second_name} onChange={set('second_name')} placeholder="Nom alternatif"/></div>
-        <div className="field"><label>Habitat</label><input value={form.habitat} onChange={set('habitat')} placeholder="Aquarium, potager..."/></div>
-        <div className="field"><label>Catégorie agrosystème</label><input value={form.agroecosystem_category} onChange={set('agroecosystem_category')} placeholder="Producteur primaire..."/></div>
-        <div className="field"><label>Nutrition</label><input value={form.nutrition} onChange={set('nutrition')} placeholder="Autotrophe, omnivore..."/></div>
-        <div className="field"><label>Longévité</label><input value={form.longevity} onChange={set('longevity')} placeholder="Annuelle, vivace..."/></div>
-        <div className="field"><label>Taille</label><input value={form.size} onChange={set('size')} placeholder="Ex: 30-80 cm"/></div>
-        <div className="field"><label>Reproduction</label><input value={form.reproduction} onChange={set('reproduction')} placeholder="Sexuée, bouturage..."/></div>
-        <div className="field"><label>Température idéale (°C)</label><input value={form.ideal_temperature_c} onChange={set('ideal_temperature_c')} placeholder="Ex: 18-24"/></div>
-        <div className="field"><label>pH optimal</label><input value={form.optimal_ph} onChange={set('optimal_ph')} placeholder="Ex: 6,0-7,0"/></div>
-        <div className="field"><label>Origine géographique</label><input value={form.geographic_origin} onChange={set('geographic_origin')} placeholder="Ex: Bassin méditerranéen"/></div>
-        <div className="field"><label>Partie à récolter</label><input value={form.harvest_part} onChange={set('harvest_part')} placeholder="Feuilles, fruits..."/></div>
-        <div className="field"><label>Groupe (taxon) 1</label><input value={form.group_1} onChange={set('group_1')} placeholder="Végétal / Animal..."/></div>
-        <div className="field"><label>Groupe (taxon) 2</label><input value={form.group_2} onChange={set('group_2')} placeholder="Angiosperme..."/></div>
-        <div className="field"><label>Groupe (taxon) 3</label><input value={form.group_3} onChange={set('group_3')} placeholder="Famille..."/></div>
-        <div className="field"><label>Groupe (taxon) 4</label><input value={form.group_4} onChange={set('group_4')} placeholder="Famille (végétal) ou genre (animal)"/></div>
-      </div>
-      <div className="field"><label>Rôle dans l'écosystème</label><MarkdownTextarea value={form.ecosystem_role} onChange={set('ecosystem_role')} rows={2} placeholder="Fonction écologique principale"/></div>
-      <div className="field"><label>Utilité pour l'être humain</label><MarkdownTextarea value={form.human_utility} onChange={set('human_utility')} rows={2} placeholder="Usages alimentaires, pédagogiques..."/></div>
-      <div className="field"><label>Recommandations de plantation</label><MarkdownTextarea value={form.planting_recommendations} onChange={set('planting_recommendations')} rows={2} placeholder="Semis, exposition, espacement..."/></div>
-      <div className="field"><label>Nutriments préférés</label><MarkdownTextarea value={form.preferred_nutrients} onChange={set('preferred_nutrients')} rows={2} placeholder="Azote, phosphore, potassium..."/></div>
-      <div className="field"><label>Sources</label><MarkdownTextarea value={form.sources} onChange={set('sources')} rows={2} placeholder="URL ou références, séparées par virgules"/></div>
-      <p className="section-sub" style={{ marginTop: -4, marginBottom: 10 }}>
-        Photos : utiliser uniquement des liens directs vers image (`.jpg`, `.png`, `.webp`, etc.) ou `.../wiki/Special:FilePath/...`.
-      </p>
-      <div className="plant-form-grid">
-        {photoFields.map((field) => (
-          <div className="field" key={field.key}>
-            <label>{field.label} (URL directe)</label>
-            <input
-              value={form[field.key]}
-              onChange={set(field.key)}
-              placeholder="https://.../image.jpg ou /uploads/..."
-            />
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 6 }}>
-              <label className="btn btn-ghost btn-sm" style={{ cursor: 'pointer' }}>
-                {uploadingField === field.key ? 'Envoi…' : '📁 Galerie'}
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  style={{ display: 'none' }}
-                  disabled={saving || uploadingField === field.key}
-                  onChange={(e) => {
-                    disarmNativeFilePickerGuard();
-                    const list = e.target.files;
-                    e.target.value = '';
-                    void uploadPhotosFromGallery(field.key, list);
-                  }}
-                />
-              </label>
-              <label className="btn btn-ghost btn-sm" style={{ cursor: 'pointer' }}>
-                {uploadingField === field.key ? 'Envoi…' : '📸 Appareil photo'}
-                <input
-                  type="file"
-                  accept="image/*"
-                  capture="environment"
-                  style={{ display: 'none' }}
-                  disabled={saving || uploadingField === field.key}
-                  onChange={(e) => {
-                    disarmNativeFilePickerGuard();
-                    const file = e.target.files?.[0];
-                    e.target.value = '';
-                    uploadPhoto(field.key, file);
-                  }}
-                />
-              </label>
-            </div>
-          </div>
-        ))}
-      </div>
-      <div className="plant-form-grid">
-        <div className="field"><label>Remarque 1</label><input value={form.remark_1} onChange={set('remark_1')} placeholder="Optionnel"/></div>
-        <div className="field"><label>Remarque 2</label><input value={form.remark_2} onChange={set('remark_2')} placeholder="Optionnel"/></div>
-        <div className="field"><label>Remarque 3</label><input value={form.remark_3} onChange={set('remark_3')} placeholder="Optionnel"/></div>
-      </div>
-      <div style={{display:'flex',gap:8}}>
-        <button className="btn btn-primary btn-sm" onClick={onSave} disabled={saving}>{saving ? '...' : '💾 Sauvegarder'}</button>
-        <button className="btn btn-ghost btn-sm" onClick={onCancel}>Annuler</button>
-      </div>
-    </div>
-  );
-}
 
 // ── FILTRES CATALOGUE BIODIVERSITÉ (élève + prof) ─────────────────────────────
 // ── PLANT MANAGER (teacher) ───────────────────────────────────────────────────
@@ -332,13 +78,6 @@ function PlantManager({
   const [group3, setGroup3] = useState('');
   const [habitatFilter, setHabitatFilter] = useState('');
   const [agroFilter, setAgroFilter] = useState('');
-  const [importSource, setImportSource] = useState('file');
-  const [importStrategy, setImportStrategy] = useState('upsert_name');
-  const [importFile, setImportFile] = useState(null);
-  const [gsheetUrl, setGsheetUrl] = useState('');
-  const [importing, setImporting] = useState(false);
-  const [confirmReplaceAll, setConfirmReplaceAll] = useState(false);
-  const [importReport, setImportReport] = useState(null);
   const [plantObservationCounts, setPlantObservationCounts] = useState(() => ({}));
   const { isHelpEnabled, hasSeenSection, markSectionSeen, trackPanelOpen, trackPanelDismiss } = useHelp({ publicSettings, isTeacher: true });
   const tooltipText = (entry) => resolveRoleText(entry, true);
@@ -434,46 +173,6 @@ function PlantManager({
     } catch(e) { setToast('Erreur : ' + e.message); }
   };
 
-  const runImport = async ({ dryRun }) => {
-    if (importSource === 'file' && !importFile) {
-      setToast('Choisis un fichier CSV/XLSX.');
-      return;
-    }
-    if (importSource === 'gsheet' && !gsheetUrl.trim()) {
-      setToast('Saisis une URL Google Sheet.');
-      return;
-    }
-    if (!dryRun && importStrategy === 'replace_all' && !confirmReplaceAll) {
-      setToast('Confirme le remplacement complet avant import.');
-      return;
-    }
-
-    setImporting(true);
-    try {
-      const payload = {
-        sourceType: importSource,
-        strategy: importStrategy,
-        dryRun,
-      };
-      if (importSource === 'file') {
-        payload.fileName = importFile.name;
-        payload.fileDataBase64 = await fileToDataUrl(importFile);
-      } else {
-        payload.gsheetUrl = gsheetUrl.trim();
-      }
-      const data = await api('/api/plants/import', 'POST', payload);
-      setImportReport(data?.report || null);
-      if (!dryRun) {
-        await onRefresh();
-        setToast('Import biodiversité terminé ✓');
-      }
-    } catch (e) {
-      setToast('Erreur import : ' + e.message);
-    } finally {
-      setImporting(false);
-    }
-  };
-
   return (
     <div>
       {toast && <TimedToast msg={toast} onDone={() => setToast(null)} />}
@@ -519,105 +218,7 @@ function PlantManager({
         setAgro={setAgroFilter}
       />
 
-      <details className="plant-more" style={{ marginBottom: 10 }}>
-        <summary>Import biodiversité (CSV, Excel, Google Sheet)</summary>
-        <div style={{ display: 'grid', gap: 8, marginTop: 10 }}>
-          <div className="plant-form-grid">
-            <div className="field">
-              <label>Source</label>
-              <select value={importSource} onChange={(e) => setImportSource(e.target.value)} style={{ background: 'white' }}>
-                <option value="file">Fichier CSV/XLSX</option>
-                <option value="gsheet">URL Google Sheet</option>
-              </select>
-            </div>
-            <div className="field">
-              <label>Stratégie d'import</label>
-              <select value={importStrategy} onChange={(e) => setImportStrategy(e.target.value)} style={{ background: 'white' }}>
-                <option value="upsert_name">Mettre à jour si même nom, sinon créer</option>
-                <option value="insert_only">Créer uniquement, ignorer les doublons</option>
-                <option value="replace_all">Remplacer entièrement le catalogue</option>
-              </select>
-            </div>
-          </div>
-
-          {importSource === 'file' ? (
-            <div className="field">
-              <label>Fichier d'import</label>
-              <input
-                type="file"
-                accept=".csv,.xlsx,.xls"
-                onChange={(e) => setImportFile(e.target.files?.[0] || null)}
-              />
-              {importFile && <small style={{ color: '#666' }}>{importFile.name}</small>}
-            </div>
-          ) : (
-            <div className="field">
-              <label>URL Google Sheet</label>
-              <input
-                value={gsheetUrl}
-                onChange={(e) => setGsheetUrl(e.target.value)}
-                placeholder="https://docs.google.com/spreadsheets/d/.../edit#gid=0"
-              />
-            </div>
-          )}
-
-          {importStrategy === 'replace_all' && (
-            <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: '.85rem', color: '#7a3a3a' }}>
-              <input
-                type="checkbox"
-                checked={confirmReplaceAll}
-                onChange={(e) => setConfirmReplaceAll(e.target.checked)}
-              />
-              Je confirme le remplacement complet de la base biodiversité.
-            </label>
-          )}
-
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <button
-              className="btn btn-ghost btn-sm"
-              onClick={() => downloadCsvTemplate(PLANTS_IMPORT_TEMPLATE_HEADERS, 'plants-import-template-vierge.csv')}
-              disabled={importing}>
-              Télécharger template vierge
-            </button>
-            <button
-              className="btn btn-ghost btn-sm"
-              onClick={() => downloadCsvTemplate(PLANTS_IMPORT_TEMPLATE_HEADERS_FULL, 'plants-import-template-complet.csv')}
-              disabled={importing}>
-              Télécharger template complet
-            </button>
-            <button className="btn btn-ghost btn-sm" onClick={() => runImport({ dryRun: true })} disabled={importing}>
-              {importing ? 'Analyse...' : 'Analyser (prévisualisation)'}
-            </button>
-            <button className="btn btn-primary btn-sm" onClick={() => runImport({ dryRun: false })} disabled={importing}>
-              {importing ? 'Import...' : 'Lancer l\'import'}
-            </button>
-          </div>
-
-          {importReport && (
-            <div style={{ background: '#f8fafc', border: '1px solid #e5e7eb', borderRadius: 10, padding: 10 }}>
-              <div style={{ fontWeight: 700, color: 'var(--forest)', marginBottom: 6 }}>Rapport d'import</div>
-              <div style={{ fontSize: '.85rem', color: '#444', lineHeight: 1.6 }}>
-                Reçues: {importReport?.totals?.received ?? 0} · Valides: {importReport?.totals?.valid ?? 0} ·
-                Créées: {importReport?.totals?.created ?? 0} · Mises à jour: {importReport?.totals?.updated ?? 0} ·
-                Ignorées (doublon): {importReport?.totals?.skipped_existing ?? 0} ·
-                Ignorées (invalides): {importReport?.totals?.skipped_invalid ?? 0}
-              </div>
-              {Array.isArray(importReport?.errors) && importReport.errors.length > 0 && (
-                <div style={{ marginTop: 8 }}>
-                  <div style={{ fontSize: '.8rem', fontWeight: 700, color: '#a94442' }}>Erreurs (max 10 affichées)</div>
-                  <ul style={{ margin: '4px 0 0 16px', padding: 0 }}>
-                    {importReport.errors.slice(0, 10).map((err, idx) => (
-                      <li key={`import-err-${idx}`} style={{ fontSize: '.8rem', color: '#a94442' }}>
-                        Ligne {err.row} · {err.field}: {err.error}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      </details>
+      <PlantImportPanel setToast={setToast} onRefresh={onRefresh} />
 
       {showAdd && (
         <PlantEditForm
