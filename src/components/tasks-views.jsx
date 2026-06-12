@@ -10,7 +10,6 @@ import { getContentText } from '../utils/content';
 import { TutorialPreviewModal, tutorialPreviewPayload } from './TutorialPreviewModal';
 import { fetchTutorialReadIds } from './TutorialReadAcknowledge';
 
-import { isStudentAssignedToTask } from '../utils/task-assignments';
 import {
   safeLocalStorageGetItem,
   safeLocalStorageSetItem,
@@ -24,6 +23,13 @@ import {
   partitionTasksByEffectiveStatus,
   studentUrgentDueTasks,
 } from '../utils/taskSectioning.js';
+import {
+  hasActiveStudentFilters,
+  studentOwnProposals,
+  studentActiveAssignedTasks,
+  excludeTasksById,
+  recentlyValidatedAssignedTasks,
+} from '../utils/taskStudentSections.js';
 import { LogModal, TaskLogsViewer } from './tasks/TaskLogModals.jsx';
 import { TaskProjectFormModal } from './tasks/TaskProjectFormModal.jsx';
 import { TaskFormModal } from './tasks/TaskFormModal.jsx';
@@ -601,50 +607,29 @@ function TasksView({
     () => allFilteredWithoutUrgent.filter((t) => !isTaskInVisibleProject(t)),
     [allFilteredWithoutUrgent, visibleProjectIds]
   );
-  const myProposals = allFiltered.filter((t) => (
-    !isTeacher
-    && t.status === 'proposed'
-    && student
-    && String(t.proposed_by_student_id || '') === String(student.id || '')
-  ));
-  const myTasks = regularFiltered.filter((t) => (
-    student
-    && taskEffectiveStatus(t) !== 'validated'
-    && isStudentAssignedToTask(t, student)
-  ));
+  const myProposals = isTeacher ? [] : studentOwnProposals(allFiltered, student);
+  const myTasks = useMemo(
+    () => studentActiveAssignedTasks(regularFiltered, student),
+    [regularFiltered, student]
+  );
   const {
     available, inProgress, done, validated, proposed, onHold,
   } = partitionTasksByEffectiveStatus(regularFiltered);
-  const hasStudentFilters = !isTeacher && (
-    !!filterText
-    || !!filterZone
-    || !!filterProject
-    || !!filterStatus
-    || !!filterUrgentCategory
-    || hasTouchedStatusFilter
-    || filterMap !== 'active'
-  );
-  const showStudentFilteredResults = !isTeacher && hasStudentFilters;
-  const availableNotMine = useMemo(
-    () => available.filter((t) => !myTasks.some((m) => m.id === t.id)),
-    [available, myTasks]
-  );
-  const inProgressNotMine = useMemo(
-    () => inProgress.filter((t) => !myTasks.some((m) => m.id === t.id)),
-    [inProgress, myTasks]
-  );
-  const doneNotMine = useMemo(
-    () => done.filter((t) => !myTasks.some((m) => m.id === t.id)),
-    [done, myTasks]
-  );
-  const onHoldNotMine = useMemo(
-    () => onHold.filter((t) => !myTasks.some((m) => m.id === t.id)),
-    [onHold, myTasks]
-  );
+  const showStudentFilteredResults = !isTeacher && hasActiveStudentFilters({
+    filterText,
+    filterZone,
+    filterProject,
+    filterStatus,
+    filterUrgentCategory,
+    hasTouchedStatusFilter,
+    filterMap,
+  });
+  const availableNotMine = useMemo(() => excludeTasksById(available, myTasks), [available, myTasks]);
+  const inProgressNotMine = useMemo(() => excludeTasksById(inProgress, myTasks), [inProgress, myTasks]);
+  const doneNotMine = useMemo(() => excludeTasksById(done, myTasks), [done, myTasks]);
+  const onHoldNotMine = useMemo(() => excludeTasksById(onHold, myTasks), [onHold, myTasks]);
   const recentlyValidatedForStudent = useMemo(
-    () => regularFiltered.filter((t) => (
-      taskEffectiveStatus(t) === 'validated' && student && isStudentAssignedToTask(t, student)
-    )),
+    () => recentlyValidatedAssignedTasks(regularFiltered, student),
     [regularFiltered, student]
   );
 
