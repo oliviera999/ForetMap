@@ -4,6 +4,9 @@ import {
   sortRolesForDisplay,
   deriveProfilesCapabilities,
   normalizeRoleEditFields,
+  buildRoleReorderPatches,
+  parseMaxConcurrentTasksLimit,
+  parseMinDoneTasksThreshold,
 } from '../../src/utils/profilesRbacHelpers.js';
 
 describe('isN3beurTierConfigurableProfile', () => {
@@ -107,5 +110,86 @@ describe('normalizeRoleEditFields', () => {
     expect(normalizeRoleEditFields({ max_concurrent_tasks: 3 }).maxConcurrentTasks).toBe('3');
     expect(normalizeRoleEditFields({ max_concurrent_tasks: '' }).maxConcurrentTasks).toBe('');
     expect(normalizeRoleEditFields({ max_concurrent_tasks: null }).maxConcurrentTasks).toBe('');
+  });
+});
+
+describe('buildRoleReorderPatches', () => {
+  const roles = [
+    { id: 1, display_order: 0 },
+    { id: 2, display_order: 1 },
+    { id: 3, display_order: 2 },
+  ];
+  test('descendre un profil échange les deux positions concernées seulement', () => {
+    expect(buildRoleReorderPatches(roles, 1, +1)).toEqual([
+      { id: 2, display_order: 0 },
+      { id: 1, display_order: 1 },
+    ]);
+  });
+  test('monter un profil', () => {
+    expect(buildRoleReorderPatches(roles, 3, -1)).toEqual([
+      { id: 3, display_order: 1 },
+      { id: 2, display_order: 2 },
+    ]);
+  });
+  test('hors liste ou en bord de liste → null ; entrée non mutée', () => {
+    expect(buildRoleReorderPatches(roles, 99, +1)).toBeNull();
+    expect(buildRoleReorderPatches(roles, 1, -1)).toBeNull();
+    expect(buildRoleReorderPatches(roles, 3, +1)).toBeNull();
+    expect(roles.map((r) => r.id)).toEqual([1, 2, 3]);
+  });
+  test('renvoie aussi les corrections des positions désynchronisées (display_order ≠ index)', () => {
+    const desync = [
+      { id: 1, display_order: 5 },
+      { id: 2, display_order: 1 },
+      { id: 3, display_order: 2 },
+    ];
+    expect(buildRoleReorderPatches(desync, 2, +1)).toEqual([
+      { id: 1, display_order: 0 },
+      { id: 3, display_order: 1 },
+      { id: 2, display_order: 2 },
+    ]);
+  });
+  test('ignore les profils sans id', () => {
+    const withNull = [{ id: 1, display_order: 0 }, { id: null, display_order: 1 }];
+    expect(buildRoleReorderPatches(withNull, 1, +1)).toEqual([{ id: 1, display_order: 1 }]);
+  });
+});
+
+describe('parseMaxConcurrentTasksLimit', () => {
+  test('vide → héritage du réglage global (value null) avec message dédié', () => {
+    expect(parseMaxConcurrentTasksLimit('')).toEqual({
+      value: null,
+      message: 'Plafond d’inscriptions : héritage du réglage global (Paramètres n3boss) enregistré',
+    });
+    expect(parseMaxConcurrentTasksLimit('   ').value).toBeNull();
+  });
+  test('0 → pas de limite ; 1..99 → message avec la valeur', () => {
+    expect(parseMaxConcurrentTasksLimit('0')).toEqual({
+      value: 0,
+      message: 'Pas de limite d’inscriptions pour ce profil (0) : enregistré.',
+    });
+    expect(parseMaxConcurrentTasksLimit(' 7 ')).toEqual({
+      value: 7,
+      message: 'Plafond d’inscriptions simultanées : 7 tâche(s) non validée(s) — enregistré.',
+    });
+  });
+  test('hors bornes ou non numérique → erreur', () => {
+    for (const raw of ['-1', '100', 'abc']) {
+      expect(parseMaxConcurrentTasksLimit(raw)).toEqual({
+        error: 'Plafond invalide : entier entre 0 et 99 (0 = pas de limite pour ce profil), ou champ vide pour hériter du réglage global',
+      });
+    }
+  });
+});
+
+describe('parseMinDoneTasksThreshold', () => {
+  test('entier ≥ 0 accepté (espaces tolérés)', () => {
+    expect(parseMinDoneTasksThreshold('0')).toEqual({ value: 0 });
+    expect(parseMinDoneTasksThreshold(' 12 ')).toEqual({ value: 12 });
+  });
+  test('vide, négatif ou non numérique → erreur', () => {
+    for (const raw of ['', '   ', '-3', 'abc']) {
+      expect(parseMinDoneTasksThreshold(raw)).toEqual({ error: 'Seuil invalide : indiquez un entier ≥ 0' });
+    }
   });
 });
