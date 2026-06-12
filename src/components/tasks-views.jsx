@@ -51,6 +51,11 @@ import {
 } from '../utils/taskQuickAssign.js';
 import { computeReorderedProjectTaskIds } from '../utils/taskDragReorder.js';
 import {
+  prepareTaskSavePayload,
+  executeInitialAssignments,
+  initialAssignmentsToast,
+} from '../utils/taskSaveAssignments.js';
+import {
   taskEffectiveMapId,
   taskMapIdMatchesFilter,
   collectUsedLocationIds,
@@ -480,13 +485,7 @@ function TasksView({
   }, [withLoad]);
 
   const saveTask = async form => {
-    const { assign_student_ids: rawAssignIds = [], ...taskPayload } = form || {};
-    const assignStudentIds = [...new Set((rawAssignIds || []).map((id) => String(id || '').trim()).filter(Boolean))];
-    const minPlaces = assignStudentIds.length;
-    if (minPlaces > 0) {
-      const cur = Math.max(1, Number.parseInt(taskPayload.required_students, 10) || 1);
-      taskPayload.required_students = Math.max(cur, minPlaces);
-    }
+    const { taskPayload, assignStudentIds } = prepareTaskSavePayload(form);
     if (editTask && !duplicateTask) {
       await api(`/api/tasks/${editTask.id}`, 'PUT', taskPayload);
       await onRefresh();
@@ -497,27 +496,8 @@ function TasksView({
       ...(isTeacher && filterGroupId && !taskPayload.group_id ? { group_id: filterGroupId } : {}),
     });
     if (assignStudentIds.length > 0 && created?.id) {
-      let ok = 0;
-      for (const sid of assignStudentIds) {
-        const assignee = teacherStudents.find((s) => String(s.id) === String(sid));
-        if (!assignee) continue;
-        await api(`/api/tasks/${created.id}/assign`, 'POST', {
-          firstName: assignee.first_name,
-          lastName: assignee.last_name,
-          studentId: assignee.id,
-        });
-        ok += 1;
-      }
-      if (ok === 0) {
-        setToast('Tâche créée — impossible d’inscrire tout de suite (comptes introuvables dans la liste chargée).');
-      } else if (ok === 1) {
-        const one = teacherStudents.find((s) => String(s.id) === String(assignStudentIds[0]));
-        setToast(`Tâche créée et ${one?.first_name || 'n3beur'} inscrit(e) ✓`);
-      } else if (ok < assignStudentIds.length) {
-        setToast(`Tâche créée : ${ok} inscription(s) sur ${assignStudentIds.length} — certains comptes manquaient dans la liste.`);
-      } else {
-        setToast(`Tâche créée : ${ok} n3beur(s) inscrit(s) — bien joué ! ✓`);
-      }
+      const ok = await executeInitialAssignments(api, created.id, assignStudentIds, teacherStudents);
+      setToast(initialAssignmentsToast(ok, assignStudentIds, teacherStudents));
     }
     await onRefresh();
   };
