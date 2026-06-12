@@ -912,30 +912,25 @@ router.get('/import/template', requirePermission('tasks.manage', { needsElevatio
   res.send(csv);
 }));
 
-router.post('/import', requirePermission('tasks.manage', { needsElevation: true }), async (req, res) => {
-  try {
-    const dryRun = !!req.body?.dryRun;
-    const { report } = await executeTasksProjectsImport({
-      body: req.body || {},
-      dryRun,
-      queryAll,
-      execute,
-      uuidv4,
-      onAudit: (totals) => {
-        logAudit('tasks_projects_import', 'task', null, `Import ${totals.created_projects} projet(s) / ${totals.created_tasks} tâche(s)`, {
-          req,
-          payload: { report: totals },
-        });
-      },
-      emitTasksChanged,
-      syncTaskProjectCompletionForProjects,
-    });
-    res.json({ report });
-  } catch (e) {
-    if (e.status === 400) return res.status(400).json({ error: e.message });
-    respondInternalError(res, req, e);
-  }
-});
+router.post('/import', requirePermission('tasks.manage', { needsElevation: true }), asyncHandler(async (req, res) => {
+  const dryRun = !!req.body?.dryRun;
+  const { report } = await executeTasksProjectsImport({
+    body: req.body || {},
+    dryRun,
+    queryAll,
+    execute,
+    uuidv4,
+    onAudit: (totals) => {
+      logAudit('tasks_projects_import', 'task', null, `Import ${totals.created_projects} projet(s) / ${totals.created_tasks} tâche(s)`, {
+        req,
+        payload: { report: totals },
+      });
+    },
+    emitTasksChanged,
+    syncTaskProjectCompletionForProjects,
+  });
+  res.json({ report });
+}));
 
 router.post('/', requirePermission('tasks.manage', { needsElevation: true }), async (req, res) => {
   try {
