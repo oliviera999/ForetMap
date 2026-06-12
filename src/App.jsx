@@ -68,6 +68,7 @@ import { useOverlayHistoryBack } from './hooks/useOverlayHistoryBack';
 import { abandonAllOverlays, pushOverlayClose } from './utils/overlayHistory';
 import { AutoProfilePromotionModal } from './components/AutoProfilePromotionModal.jsx';
 import { TeacherTopTabs } from './components/app/TeacherTopTabs.jsx';
+import { StudentBottomNav } from './components/app/StudentBottomNav.jsx';
 import { DialogShell } from './components/DialogShell';
 import { PublicSettingsProvider } from './contexts/PublicSettingsContext.jsx';
 import { SessionProvider } from './contexts/SessionContext.jsx';
@@ -1906,63 +1907,19 @@ function App() {
               </>
             )}
           </div>
-          <nav className="bottom-nav">
-            {canAccessStudentMapTasks && shouldUseDesktopSplit && (
-              <button className={`nav-btn ${tab === 'maptasks' ? 'active' : ''}`} onClick={() => setTab('maptasks')}>
-                <span className="nav-icon">🗺️</span>
-                {tutorialsModuleEnabled ? 'Cartes & tâches · tuto' : 'Cartes & tâches'}{studentActiveAssignedTasksCount > 0 && ` (${studentActiveAssignedTasksCount})`}
-              </button>
-            )}
-            {canAccessStudentMapTasks && (
-              <button className={`nav-btn ${tab === 'map' ? 'active' : ''}`} onClick={() => setTab('map')}>
-                <span className="nav-icon">🗺️</span> Carte
-              </button>
-            )}
-            {canAccessStudentMapTasks && (
-              mergeTasksTutoNav ? (
-                <button className={`nav-btn ${tab === 'tasks' || tab === 'tuto' ? 'active' : ''}`} type="button" onClick={() => setTab('tasks')}>
-                  <span className="nav-icon">✅</span>
-                  Tâches&tuto{studentActiveAssignedTasksCount > 0 && ` (${studentActiveAssignedTasksCount})`}
-                </button>
-              ) : (
-                <button className={`nav-btn ${tab === 'tasks' ? 'active' : ''}`} type="button" onClick={() => setTab('tasks')}>
-                  <span className="nav-icon">✅</span>
-                  {tutorialsModuleEnabled ? 'Tâches · tuto' : 'Tâches'}{studentActiveAssignedTasksCount > 0 && ` (${studentActiveAssignedTasksCount})`}
-                </button>
-              )
-            )}
-            <button className={`nav-btn ${tab === 'plants' ? 'active' : ''}`} onClick={() => setTab('plants')}>
-              <span className="nav-icon">🌱</span> Biodiversité
-            </button>
-            {publicSettings?.modules?.tutorials_enabled !== false && !mergeTasksTutoNav && (
-              <button className={`nav-btn ${tab === 'tuto' ? 'active' : ''}`} type="button" onClick={() => setTab('tuto')}>
-                <span className="nav-icon">📘</span> Tuto
-              </button>
-            )}
-            {canViewGeneralStats && (
-              <button className={`nav-btn ${tab === 'stats' ? 'active' : ''}`} onClick={() => setTab('stats')}>
-                <span className="nav-icon">📊</span> Stats
-              </button>
-            )}
-            {publicSettings?.modules?.observations_enabled !== false && (
-              <button className={`nav-btn ${tab === 'notebook' ? 'active' : ''}`} onClick={() => setTab('notebook')}>
-                <span className="nav-icon">📓</span> Carnet
-              </button>
-            )}
-            {publicSettings?.modules?.visit_enabled !== false && (
-              <button className={`nav-btn ${tab === 'visit' ? 'active' : ''}`} onClick={() => setTab('visit')}>
-                <span className="nav-icon">🧭</span> Visite
-              </button>
-            )}
-            {canAccessForum && (
-              <button className={`nav-btn ${tab === 'forum' ? 'active' : ''}`} onClick={() => setTab('forum')}>
-                <span className="nav-icon">💬</span> Forum
-              </button>
-            )}
-            <button className={`nav-btn ${tab === 'about' ? 'active' : ''}`} onClick={() => setTab('about')}>
-              <span className="nav-icon">ℹ️</span> À propos
-            </button>
-          </nav>
+          <StudentBottomNav
+            tab={tab}
+            onTabChange={setTab}
+            canAccessStudentMapTasks={canAccessStudentMapTasks}
+            shouldUseDesktopSplit={shouldUseDesktopSplit}
+            tutorialsModuleEnabled={tutorialsModuleEnabled}
+            mergeTasksTutoNav={mergeTasksTutoNav}
+            studentActiveAssignedTasksCount={studentActiveAssignedTasksCount}
+            canViewGeneralStats={canViewGeneralStats}
+            observationsEnabled={publicSettings?.modules?.observations_enabled !== false}
+            visitEnabled={publicSettings?.modules?.visit_enabled !== false}
+            canAccessForum={canAccessForum}
+          />
         </>
       )}
       <footer className="app-footer">{appFooterVersionPrefix} {appVersion != null ? appVersion : '…'}</footer>
