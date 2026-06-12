@@ -149,7 +149,12 @@ test('GET /api/gl/admin/glossary/export round-trip ré-importable', async () => 
 test('GET /api/gl/admin/qcm/export round-trip ré-importable', async () => {
   const biomeSlug = `test_export_${stamp}`.slice(0, 40);
   const catSlug = `cat_export_${stamp}`.slice(0, 40);
-  const qCode = `QCM${String(stamp).slice(-4).padStart(4, '0')}`;
+  // 9 chiffres : un suffixe à 4 chiffres recyclait toutes les 10 s et pouvait
+  // collisionner avec QCM0001 (gl-marker-present-question) ou le run précédent
+  // de la même suite (la CI relance les tests en coverage sans réinitialiser la
+  // DB) — l'ON DUPLICATE KEY rattachait alors le code à un autre biome et
+  // l'export filtré ne le contenait plus.
+  const qCode = `Q${String(stamp).slice(-9)}`;
 
   await execute(
     `INSERT INTO gl_biomes (slug, nom, order_index, created_at, updated_at)
