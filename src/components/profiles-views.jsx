@@ -30,6 +30,11 @@ import {
   deriveProfilesCapabilities,
   normalizeRoleEditFields,
 } from '../utils/profilesRbacHelpers.js';
+import {
+  promptRoleDetailsPatch,
+  promptNewRoleProfile,
+  promptDuplicateRoleProfile,
+} from '../utils/profilesRolePrompts.js';
 
 function ProfilesAdminView({ onImpersonationApplied, maps = [] }) {
   const publicSettings = usePublicSettings();
@@ -213,40 +218,16 @@ function ProfilesAdminView({ onImpersonationApplied, maps = [] }) {
   }, [selectedRole]);
 
   const saveRoleDetails = async (role) => {
-    const displayName = window.prompt('Nom du profil', role.display_name || '');
-    if (!displayName || !displayName.trim()) return;
-    const emojiInput = window.prompt('Emoji du profil', (roleEmoji || role.emoji || '').trim());
-    if (emojiInput == null) return;
-    const minDoneInput = window.prompt(
-      'Niveau requis (nombre de tâches validées)',
-      roleMinDoneTasks || (role.min_done_tasks == null ? '' : String(role.min_done_tasks))
-    );
-    if (minDoneInput == null) return;
-    const displayOrderInput = window.prompt(
-      "Ordre d'affichage (entier >= 0, plus petit = plus haut)",
-      roleDisplayOrder || String(role.display_order ?? 0)
-    );
-    if (displayOrderInput == null) return;
-    const parsedMinDone = minDoneInput.trim() === '' ? null : parseInt(minDoneInput, 10);
-    const parsedDisplayOrder = parseInt(displayOrderInput, 10);
-    if (minDoneInput.trim() !== '' && (!Number.isFinite(parsedMinDone) || parsedMinDone < 0)) {
-      setErr('Niveau requis invalide (entier >= 0)');
-      return;
-    }
-    if (!Number.isFinite(parsedDisplayOrder) || parsedDisplayOrder < 0) {
-      setErr("Ordre d'affichage invalide (entier >= 0)");
+    const result = promptRoleDetailsPatch(role, { roleEmoji, roleMinDoneTasks, roleDisplayOrder });
+    if (!result) return;
+    if (result.error) {
+      setErr(result.error);
       return;
     }
     setLoading(true);
     setErr('');
     try {
-      await api(`/api/rbac/profiles/${role.id}`, 'PATCH', {
-        display_name: displayName.trim(),
-        rank: role.rank,
-        emoji: emojiInput.trim() || null,
-        min_done_tasks: parsedMinDone,
-        display_order: parsedDisplayOrder,
-      });
+      await api(`/api/rbac/profiles/${role.id}`, 'PATCH', result.payload);
       setMsg('Profil mis à jour');
       await load();
     } catch (e) {
@@ -357,55 +338,16 @@ function ProfilesAdminView({ onImpersonationApplied, maps = [] }) {
   };
 
   const createRoleProfile = async () => {
-    const slug = window.prompt(
-      'Slug technique du profil (ex. eleve_mentor, n3boss_lycee). Réservés et interdits : admin, prof, visiteur, eleve_novice, eleve_avance, eleve_chevronne. Le nom affiché peut être « Admin » ou « n3boss » avec un autre slug.',
-      ''
-    );
-    if (!slug || !slug.trim()) return;
-    const displayName = window.prompt('Nom du profil', slug.trim());
-    if (!displayName || !displayName.trim()) return;
-    const emojiInput = window.prompt("Emoji du profil (obligatoire pour un profil n3beur)", '');
-    if (emojiInput == null) return;
-    const minDoneInput = window.prompt(
-      'Niveau requis pour atteindre ce profil (nombre de tâches validées)',
-      ''
-    );
-    if (minDoneInput == null) return;
-    const displayOrderInput = window.prompt(
-      "Ordre d'affichage (entier >= 0, plus petit = plus haut)",
-      '100'
-    );
-    if (displayOrderInput == null) return;
-    const normalizedSlug = slug.trim().toLowerCase();
-    const parsedMinDone = minDoneInput.trim() === '' ? null : parseInt(minDoneInput, 10);
-    const parsedDisplayOrder = parseInt(displayOrderInput, 10);
-    if (normalizedSlug.startsWith('eleve_') && !emojiInput.trim()) {
-      setErr('Un profil n3beur doit avoir un emoji');
-      return;
-    }
-    if (normalizedSlug.startsWith('eleve_') && parsedMinDone == null) {
-      setErr('Un profil n3beur doit avoir un niveau requis');
-      return;
-    }
-    if (minDoneInput.trim() !== '' && (!Number.isFinite(parsedMinDone) || parsedMinDone < 0)) {
-      setErr('Niveau requis invalide (entier >= 0)');
-      return;
-    }
-    if (!Number.isFinite(parsedDisplayOrder) || parsedDisplayOrder < 0) {
-      setErr("Ordre d'affichage invalide (entier >= 0)");
+    const result = promptNewRoleProfile();
+    if (!result) return;
+    if (result.error) {
+      setErr(result.error);
       return;
     }
     setLoading(true);
     setErr('');
     try {
-      const created = await api('/api/rbac/profiles', 'POST', {
-        slug: normalizedSlug,
-        display_name: displayName.trim(),
-        rank: 150,
-        emoji: emojiInput.trim() || null,
-        min_done_tasks: parsedMinDone,
-        display_order: parsedDisplayOrder,
-      });
+      const created = await api('/api/rbac/profiles', 'POST', result.payload);
       setMsg('Profil créé');
       await load();
       if (created?.id != null) setSelectedRoleId(created.id);
@@ -417,26 +359,13 @@ function ProfilesAdminView({ onImpersonationApplied, maps = [] }) {
 
   const duplicateRoleProfile = async (role) => {
     if (!role?.id) return;
-    const suggestedSlug = `${String(role.slug || 'profil').replace(/[^a-z0-9_]+/gi, '_')}_copie`;
-    const slugInput = window.prompt(
-      'Slug technique (unique). Ne pas utiliser : admin, prof, visiteur, eleve_novice, eleve_avance, eleve_chevronne — préférez ex. prof_copie_lycee. Le nom affiché est demandé ensuite.',
-      suggestedSlug
-    );
-    if (!slugInput || !slugInput.trim()) return;
-    const displayNameInput = window.prompt(
-      'Nom affiché du nouveau profil',
-      `${role.display_name || slugInput.trim()} (copie)`
-    );
-    if (!displayNameInput || !displayNameInput.trim()) return;
-    const normalizedSlug = slugInput.trim().toLowerCase();
+    const result = promptDuplicateRoleProfile(role);
+    if (!result) return;
     setLoading(true);
     setErr('');
     try {
-      const created = await api(`/api/rbac/profiles/${role.id}/duplicate`, 'POST', {
-        slug: normalizedSlug,
-        display_name: displayNameInput.trim(),
-      });
-      setMsg(`Profil dupliqué : ${created.display_name || normalizedSlug}`);
+      const created = await api(`/api/rbac/profiles/${role.id}/duplicate`, 'POST', result.payload);
+      setMsg(`Profil dupliqué : ${created.display_name || result.payload.slug}`);
       await load();
       if (created?.id != null) setSelectedRoleId(created.id);
     } catch (e) {
