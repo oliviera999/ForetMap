@@ -22,6 +22,7 @@ import { VisitSyncPanel } from './visit/VisitSyncPanel.jsx';
 import { VisitEditorPanel } from './visit/VisitEditorPanel.jsx';
 import { computeVisitMascotStartPct } from '../utils/visitMascotPlacement.js';
 import { computeVisitCartographyProgress, computeVisitNetworkStatusLabel } from '../utils/visitProgress.js';
+import { parseVisitMascotAllowedIds, resolveVisitMascotDefaultId } from '../utils/visitMascotSettings.js';
 import {
   shouldShowVisitMapMascot as computeShowVisitMapMascot,
   getVisitMascotVisibilityReason,
@@ -188,18 +189,11 @@ function VisitView({
     [configuredLocationEmojis]
   );
   const roleTerms = getRoleTerms(isN3Affiliated);
-  const visitMascotAllowedIds = useMemo(() => {
-    const raw = publicSettings?.visit?.mascot?.allowed_ids;
-    if (Array.isArray(raw)) return raw.map((id) => String(id || '').trim()).filter(Boolean);
-    if (typeof raw === 'string') {
-      return raw
-        .split(/[,\n;]+/g)
-        .map((id) => String(id || '').trim())
-        .filter(Boolean);
-    }
-    return [];
-  }, [publicSettings?.visit?.mascot?.allowed_ids]);
-  const visitMascotDefaultId = String(publicSettings?.visit?.mascot?.default_id || '').trim() || 'renard2-cut-spritesheet';
+  const visitMascotAllowedIds = useMemo(
+    () => parseVisitMascotAllowedIds(publicSettings?.visit?.mascot?.allowed_ids),
+    [publicSettings?.visit?.mascot?.allowed_ids],
+  );
+  const visitMascotDefaultId = resolveVisitMascotDefaultId(publicSettings?.visit?.mascot?.default_id);
   const visitTitle = getContentText(publicSettings, 'visit.title', '🧭 Visite de la carte');
   const helpHintPrefix = getContentText(publicSettings, 'help.hint_prefix', 'Astuce :');
   const helpPanelTitlePrefix = getContentText(publicSettings, 'help.panel_title_prefix', '💡');
