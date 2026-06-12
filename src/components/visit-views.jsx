@@ -19,6 +19,7 @@ import { VisitDetailPanel } from './visit/VisitDetailPanel.jsx';
 import { VisitTutorialsSection } from './visit/VisitTutorialsSection.jsx';
 import { VisitMapChrome } from './visit/VisitMapChrome.jsx';
 import { VisitProfToolsPanel } from './visit/VisitProfToolsPanel.jsx';
+import { VisitGuestMascotOnboarding } from './visit/VisitGuestMascotOnboarding.jsx';
 import { computeVisitMascotStartPct } from '../utils/visitMascotPlacement.js';
 import {
   shouldShowVisitMapMascot as computeShowVisitMapMascot,
@@ -203,7 +204,6 @@ function VisitView({
     trackPanelDismiss,
   } = useHelp({ publicSettings, isTeacher });
   const isGuestPublicVisit = !student && typeof onBackToAuth === 'function';
-  const [guestMascotChoiceOpen, setGuestMascotChoiceOpen] = useState(() => isGuestPublicVisit && requireGuestMascotChoice);
   const closeVisitSelection = useCallback(() => {
     if (visitDetailPanelAfterMoveTimeoutRef.current) {
       clearTimeout(visitDetailPanelAfterMoveTimeoutRef.current);
@@ -234,10 +234,6 @@ function VisitView({
     allowedMascotIds: visitMascotAllowedIds,
     defaultMascotId: visitMascotDefaultId,
   });
-
-  useEffect(() => {
-    setGuestMascotChoiceOpen(isGuestPublicVisit && requireGuestMascotChoice);
-  }, [isGuestPublicVisit, requireGuestMascotChoice]);
 
   const VISIT_IMMERSION_LS_KEY = 'foretmap_visit_immersion';
   const VISIT_TEACHER_PREVIEW_LS_KEY = 'foretmap_visit_teacher_preview_student';
@@ -1163,57 +1159,14 @@ function VisitView({
           onClose={() => setVisitMediaLightbox(null)}
         />
       )}
-      {guestMascotChoiceOpen && (
-        <div className="visit-mascot-onboarding" role="dialog" aria-modal="true" aria-label="Choix de la mascotte">
-          <div className="visit-mascot-onboarding__card">
-            <p className="visit-mascot-onboarding__eyebrow">Bienvenue dans la visite</p>
-            <h3>Choisis ta mascotte guide</h3>
-            <p>
-              Avant de commencer, sélectionne ton compagnon de balade. Tu pourras le changer plus tard pendant la visite.
-            </p>
-            <div className="visit-mascot-onboarding__grid" role="list">
-              {visitMascotOptions.map((mascot) => {
-                const isActive = visitMascotId === mascot.id;
-                return (
-                  <button
-                    key={mascot.id}
-                    type="button"
-                    role="listitem"
-                    className={`visit-mascot-onboarding__option${isActive ? ' is-active' : ''}`}
-                    onClick={() => onChangeVisitMascotId(mascot.id)}
-                    aria-pressed={isActive}
-                  >
-                    <span className="visit-mascot-onboarding__preview" aria-hidden="true">
-                      <VisitMapMascotRenderer
-                        mascotId={mascot.id}
-                        state={VISIT_MASCOT_STATE.IDLE}
-                        extraCatalogEntries={visitMascotCatalogExtras}
-                      />
-                    </span>
-                    <span className="visit-mascot-onboarding__label">{mascot.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-            <div className="visit-mascot-onboarding__actions">
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={() => {
-                  setGuestMascotChoiceOpen(false);
-                  onGuestMascotChoiceDone?.();
-                }}
-                disabled={visitMascotOptions.length === 0}
-              >
-                Commencer la visite
-              </button>
-              {!visitMascotOptions.length ? (
-                <span className="section-sub">Aucune mascotte disponible pour l’instant.</span>
-              ) : null}
-            </div>
-          </div>
-        </div>
-      )}
+      <VisitGuestMascotOnboarding
+        requested={isGuestPublicVisit && requireGuestMascotChoice}
+        mascotId={visitMascotId}
+        mascotOptions={visitMascotOptions}
+        onChangeMascotId={onChangeVisitMascotId}
+        extraCatalogEntries={visitMascotCatalogExtras}
+        onDone={onGuestMascotChoiceDone}
+      />
       <div className="visit-grid visit-grid--map-forward">
         <div className="visit-map-card">
           <VisitMapChrome
