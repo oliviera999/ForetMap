@@ -9,15 +9,15 @@ import { HelpPanel } from './HelpPanel';
 import { HELP_PANELS } from '../constants/help';
 import { getContentText } from '../utils/content';
 import { resolveMapOverlayTypography } from '../utils/mapOverlayTypography';
-import { TutorialReadAcknowledgeButton, fetchTutorialReadIds } from './TutorialReadAcknowledge';
+import { fetchTutorialReadIds } from './TutorialReadAcknowledge';
 import { TutorialPreviewModal, tutorialPreviewPayload, tutorialPreviewCanEmbed } from './TutorialPreviewModal';
-import { ContextComments } from './context-comments';
 import { useOverlayHistoryBack } from '../hooks/useOverlayHistoryBack';
 import { computeMapImageContainRect } from '../utils/mapImageFit';
 import { buildMapImageCandidates } from '../utils/mapImageCandidates';
 import { parseVisitZonePoints as parsePctPoints, visitZoneCentroidPct } from '../utils/visitMapGeometry.js';
 import { VisitSyncPanel } from './visit/VisitSyncPanel.jsx';
 import { VisitDetailPanel } from './visit/VisitDetailPanel.jsx';
+import { VisitTutorialsSection } from './visit/VisitTutorialsSection.jsx';
 import { computeVisitMascotStartPct } from '../utils/visitMascotPlacement.js';
 import {
   shouldShowVisitMapMascot as computeShowVisitMapMascot,
@@ -153,8 +153,6 @@ function VisitView({
     loadVisitSeenQueue().length > 0 ? 'pending' : 'idle'
   ));
   const visitSeenFlushInFlightRef = useRef(false);
-  const [tutorialSelection, setTutorialSelection] = useState([]);
-  const [savingTutorials, setSavingTutorials] = useState(false);
   const [tutorialReadIds, setTutorialReadIds] = useState(() => new Set());
   const [visitTutorialPreview, setVisitTutorialPreview] = useState(null);
   const [visitMediaLightbox, setVisitMediaLightbox] = useState(null);
@@ -528,7 +526,6 @@ function VisitView({
           }
           : { zones: [], markers: [], tutorials: [], mascot_packs: [], map_id: requestedMapId };
       setContent(visitPayload);
-      setTutorialSelection((visitPayload.tutorials || []).map((t) => t.id));
       const { seen: progressSeen } = safeVisitProgressPayload(progressBody);
       const nextSeen = applyVisitSeenQueueToSet(
         new Set(progressSeen.map((r) => itemSeenKey(r.target_type, r.target_id)))
@@ -1175,19 +1172,6 @@ function VisitView({
     };
   }, [loading]);
 
-  const saveTutorialSelection = async () => {
-    setSavingTutorials(true);
-    try {
-      await api('/api/visit/tutorials', 'PUT', { map_id: mapId, tutorial_ids: tutorialSelection });
-      await loadData();
-    } catch (err) {
-      if (err instanceof AccountDeletedError) onForceLogout?.();
-      else alert(err.message || 'Erreur sauvegarde tutoriels');
-    } finally {
-      setSavingTutorials(false);
-    }
-  };
-
   useEffect(() => {
     if (!selected || visitMediaLightbox || visitTutorialPreview) return undefined;
     const onKey = (e) => {
@@ -1196,82 +1180,6 @@ function VisitView({
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [selected, visitMediaLightbox, visitTutorialPreview, closeVisitSelection]);
-
-  const visitTutorialsBody = (
-    <>
-      {isTeacher && (
-        <div className="visit-tutorial-picker">
-          <p>Choisir les tutoriels affichés en visite (indépendamment des zones/repères) :</p>
-          <div className="visit-tutorial-picker-list">
-            {availableTutorials.map((t) => (
-              <label key={t.id}>
-                <input
-                  type="checkbox"
-                  checked={tutorialSelection.includes(t.id)}
-                  onChange={(e) => {
-                    setTutorialSelection((prev) => (
-                      e.target.checked
-                        ? [...new Set([...prev, t.id])]
-                        : prev.filter((id) => id !== t.id)
-                    ));
-                  }}
-                />
-                {' '}{t.title}
-              </label>
-            ))}
-          </div>
-          <button className="btn btn-secondary btn-sm" onClick={saveTutorialSelection} disabled={savingTutorials}>
-            {savingTutorials ? 'Sauvegarde...' : '💾 Enregistrer la sélection des tutos'}
-          </button>
-        </div>
-      )}
-      {(content.tutorials || []).length === 0 ? (
-        <p className="section-sub">{visitTutorialsEmpty}</p>
-      ) : (
-        <div className="tuto-grid">
-          {(content.tutorials || []).map((t) => (
-            <article key={t.id} className="tuto-card">
-              <div className="tuto-card-head">
-                <h3>{t.title}</h3>
-                <span className="task-chip">{String(t.type || 'html').toUpperCase()}</span>
-              </div>
-              {t.summary && <p>{t.summary}</p>}
-              <div className="task-actions">
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-sm"
-                  disabled={!tutorialPreviewCanEmbed(t)}
-                  title={!tutorialPreviewCanEmbed(t) ? 'Aperçu indisponible pour ce tutoriel' : undefined}
-                  onClick={() => setVisitTutorialPreview(tutorialPreviewPayload(t))}
-                >
-                  👁️ Lire
-                </button>
-                <button type="button" className="btn btn-primary btn-sm" onClick={() => window.open(`/api/tutorials/${t.id}/download/pdf`, '_blank', 'noopener,noreferrer')}>
-                  ⬇️ PDF
-                </button>
-                <TutorialReadAcknowledgeButton
-                  tutorialId={t.id}
-                  tutorialTitle={t.title}
-                  isRead={tutorialReadIds.has(Number(t.id))}
-                  onAcknowledged={(id) => setTutorialReadIds((prev) => new Set([...prev, id]))}
-                  onForceLogout={onForceLogout}
-                />
-              </div>
-              {contextCommentsEnabled && student?.id && (
-                <ContextComments
-                  contextType="tutorial"
-                  contextId={String(t.id)}
-                  title="Commentaires sur ce tutoriel"
-                  placeholder="Question ou retour sur ce tutoriel…"
-                  canParticipateContextComments={canParticipateContextComments}
-                />
-              )}
-            </article>
-          ))}
-        </div>
-      )}
-    </>
-  );
 
   if (loading) {
     return (
@@ -1831,21 +1739,23 @@ function VisitView({
       ) : null}
 
       {showVisitMapTutorialsSection ? (
-        visitImmersion ? (
-          <details className="visit-tutorials-disclosure" data-testid="visit-map-tutorials-section">
-            <summary className="visit-tutorials-disclosure__summary">{visitTutorialsTitle}</summary>
-            <div className="visit-tutorials-disclosure__body">
-              <section className="visit-tutorials visit-tutorials--in-disclosure">
-                {visitTutorialsBody}
-              </section>
-            </div>
-          </details>
-        ) : (
-          <section className="visit-tutorials" data-testid="visit-map-tutorials-section">
-            <h3>{visitTutorialsTitle}</h3>
-            {visitTutorialsBody}
-          </section>
-        )
+        <VisitTutorialsSection
+          visitImmersion={visitImmersion}
+          title={visitTutorialsTitle}
+          emptyText={visitTutorialsEmpty}
+          isTeacher={isTeacher}
+          availableTutorials={availableTutorials}
+          tutorials={content.tutorials || []}
+          mapId={mapId}
+          onSaved={loadData}
+          onForceLogout={onForceLogout}
+          tutorialReadIds={tutorialReadIds}
+          onTutorialAcknowledged={(id) => setTutorialReadIds((prev) => new Set([...prev, id]))}
+          onOpenTutorialPreview={setVisitTutorialPreview}
+          contextCommentsEnabled={contextCommentsEnabled}
+          studentId={student?.id}
+          canParticipateContextComments={canParticipateContextComments}
+        />
       ) : null}
 
       {isTeacher && !teacherPreviewAsStudent && (
