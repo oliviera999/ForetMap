@@ -13,6 +13,8 @@ import {
   mergeRbacUserRowsForEdit,
   isLikelyApiUserPayload,
   buildUserEditInitialFields,
+  validateUserIdentityFields,
+  buildUserEditPatchPayload,
 } from '../utils/profilesUserFields.js';
 import { UserEditModal } from './profiles/UserEditModal.jsx';
 import { DeleteUserConfirmModal } from './profiles/DeleteUserConfirmModal.jsx';
@@ -495,38 +497,30 @@ function ProfilesAdminView({ onImpersonationApplied, maps = [] }) {
 
   const saveEditUser = async () => {
     if (!editingUser) return;
-    if (!editFirstName.trim() || !editLastName.trim()) {
-      setErr('Prénom et nom sont requis');
-      return;
-    }
-    if (editPseudo.trim() && !/^[A-Za-z0-9_.-]{3,30}$/.test(editPseudo.trim())) {
-      setErr('Pseudo invalide (3-30 caractères, lettres/chiffres/._-)');
-      return;
-    }
-    if (editEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editEmail.trim())) {
-      setErr('Email invalide');
-      return;
-    }
-    if (editDescription.trim().length > 300) {
-      setErr('Description trop longue (max 300 caractères)');
+    const fieldError = validateUserIdentityFields({
+      firstName: editFirstName,
+      lastName: editLastName,
+      pseudo: editPseudo,
+      email: editEmail,
+      description: editDescription,
+    });
+    if (fieldError) {
+      setErr(fieldError);
       return;
     }
     setEditLoading(true);
     setErr('');
     try {
-      const payload = {
-        first_name: editFirstName.trim(),
-        last_name: editLastName.trim(),
-        pseudo: editPseudo.trim() || null,
-        email: editEmail.trim() || null,
-        description: editDescription.trim() || null,
-      };
-      if (editingUser.user_type === 'student') {
-        payload.affiliation = editAffiliation;
-      }
-      if (editPassword.trim()) {
-        payload.password = editPassword;
-      }
+      const payload = buildUserEditPatchPayload({
+        firstName: editFirstName,
+        lastName: editLastName,
+        pseudo: editPseudo,
+        email: editEmail,
+        description: editDescription,
+        affiliation: editAffiliation,
+        password: editPassword,
+        isStudent: editingUser.user_type === 'student',
+      });
       await api(
         `/api/rbac/users/${String(editingUser.user_type || '').toLowerCase()}/${encodeURIComponent(String(editingUser.id))}`,
         'PATCH',
@@ -587,20 +581,17 @@ function ProfilesAdminView({ onImpersonationApplied, maps = [] }) {
   };
 
   const createUser = async () => {
-    if (!createFirstName.trim() || !createLastName.trim() || !createPassword) {
-      setErr('Prénom, nom et mot de passe sont requis');
-      return;
-    }
-    if (createPseudo.trim() && !/^[A-Za-z0-9_.-]{3,30}$/.test(createPseudo.trim())) {
-      setErr('Pseudo invalide (3-30 caractères, lettres/chiffres/._-)');
-      return;
-    }
-    if (createEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(createEmail.trim())) {
-      setErr('Email invalide');
-      return;
-    }
-    if (createDescription.trim().length > 300) {
-      setErr('Description trop longue (max 300 caractères)');
+    const fieldError = validateUserIdentityFields({
+      firstName: createFirstName,
+      lastName: createLastName,
+      pseudo: createPseudo,
+      email: createEmail,
+      description: createDescription,
+      password: createPassword,
+      requirePassword: true,
+    });
+    if (fieldError) {
+      setErr(fieldError);
       return;
     }
     if (createRole === 'admin' && !isAdmin) {
