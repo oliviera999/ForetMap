@@ -20,6 +20,7 @@ import { VisitTutorialsSection } from './visit/VisitTutorialsSection.jsx';
 import { VisitMapChrome } from './visit/VisitMapChrome.jsx';
 import { VisitProfToolsPanel } from './visit/VisitProfToolsPanel.jsx';
 import { VisitGuestMascotOnboarding } from './visit/VisitGuestMascotOnboarding.jsx';
+import { VisitMapZoomControls } from './visit/VisitMapZoomControls.jsx';
 import { computeVisitMascotStartPct } from '../utils/visitMascotPlacement.js';
 import {
   shouldShowVisitMapMascot as computeShowVisitMapMascot,
@@ -1427,41 +1428,11 @@ function VisitView({
                 })}
               </div>
             </div>
-            <div className="visit-map-controls">
-              <button
-                type="button"
-                className="visit-map-ctrl"
-                aria-label="Zoomer la carte de visite"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  zoomFromCenterAnimated(1.2);
-                }}
-              >
-                ＋
-              </button>
-              <button
-                type="button"
-                className="visit-map-ctrl"
-                aria-label="Dézoomer la carte de visite"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  zoomFromCenterAnimated(0.84);
-                }}
-              >
-                －
-              </button>
-              <button
-                type="button"
-                className="visit-map-ctrl"
-                aria-label="Recentrer la carte de visite"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  resetMapTransform();
-                }}
-              >
-                ⊡
-              </button>
-            </div>
+            <VisitMapZoomControls
+              onZoomIn={() => zoomFromCenterAnimated(1.2)}
+              onZoomOut={() => zoomFromCenterAnimated(0.84)}
+              onReset={resetMapTransform}
+            />
           </div>
           {!selected ? (
             <p className="visit-map-empty-hint section-sub">{visitEmptySelection}</p>
