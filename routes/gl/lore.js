@@ -74,7 +74,7 @@ const {
 const { previewLoreQuestionPool } = require('../../lib/glMarkerLoreQuestionPool');
 const { normalizeLoreQuestionPool } = require('../../lib/glMarkerEventConfig');
 const { normalizeOptionalString } = require('../../lib/shared/httpHelpers');
-const { validate } = require('../../lib/validate');
+const { z, validate } = require('../../lib/validate');
 const { glQcmPoolPreviewQuerySchema } = require('../../lib/glQuerySchemas');
 
 const router = express.Router();
@@ -83,6 +83,21 @@ const db = { queryAll, queryOne, execute };
 function parseId(value) {
   return parseGlId(value);
 }
+
+// O7 — `gameId`/`teamId` de GET /feuillets et GET /feuillets/:code : coercition permissive
+// (jamais de 400 issu du schéma) reproduisant exactement l'ancien `parseId` (Number fini
+// strictement positif → entier tronqué — y compris '0.5' → 0 —, sinon null ; absent → null).
+// Le préprocesseur EST parseId : l'enveloppe zod ne restreint rien de plus (le catch est une
+// ceinture de sécurité). Les filtres texte/CSV (`biomeSlugs`, `liasse`) restent lus
+// manuellement sur req.query, inchangés.
+const glLoreFeuilletIdQueryValue = z.preprocess(
+  (v) => parseId(v),
+  z.number().nullable().catch(null)
+);
+const glLoreFeuilletQuerySchema = z.object({
+  gameId: glLoreFeuilletIdQueryValue,
+  teamId: glLoreFeuilletIdQueryValue,
+});
 
 function resolveLoreSettings(gameRow, gameplaySettings) {
   return {
@@ -101,12 +116,12 @@ function resolveLoreSettings(gameRow, gameplaySettings) {
 }
 
 /** GET /api/gl/lore/feuillets */
-router.get('/feuillets', requireGlAuth, async (req, res) => {
+router.get('/feuillets', requireGlAuth, validate({ query: glLoreFeuilletQuerySchema }), async (req, res) => {
   const modules = await getGlModulesSettings();
   if (!modules.loreCarnetEnabled) return res.status(404).json({ error: 'Module carnet désactivé' });
 
-  const gameId = parseId(req.query?.gameId);
-  const teamId = parseId(req.query?.teamId);
+  const gameId = req.validatedQuery?.gameId;
+  const teamId = req.validatedQuery?.teamId;
   const biomeSlugs = parseBiomeSlugsFromQuery(req.query?.biomeSlugs);
   const liasse = String(req.query?.liasse || '').trim();
 
@@ -141,13 +156,13 @@ router.get('/feuillets', requireGlAuth, async (req, res) => {
 });
 
 /** GET /api/gl/lore/feuillets/:code */
-router.get('/feuillets/:code', requireGlAuth, async (req, res) => {
+router.get('/feuillets/:code', requireGlAuth, validate({ query: glLoreFeuilletQuerySchema }), async (req, res) => {
   const modules = await getGlModulesSettings();
   if (!modules.loreCarnetEnabled) return res.status(404).json({ error: 'Module carnet désactivé' });
 
   const code = String(req.params.code || '').trim();
-  const gameId = parseId(req.query?.gameId);
-  const teamId = parseId(req.query?.teamId);
+  const gameId = req.validatedQuery?.gameId;
+  const teamId = req.validatedQuery?.teamId;
   const row = await queryOne(`SELECT ${FEUILLET_SELECT} FROM gl_lore_feuillets f WHERE f.feuillet_code = ? LIMIT 1`, [code]);
   if (!row || row.statut !== 'actif') return res.status(404).json({ error: 'Feuillet introuvable' });
 
@@ -884,4 +899,5 @@ router.post('/admin/qcm/import', requireGlPermission('gl.content.manage'), async
 module.exports = {
   router,
   glQcmPoolPreviewQuerySchema, // exporté pour test no-DB du contrat O7
+  glLoreFeuilletQuerySchema, // exporté pour test no-DB du contrat O7
 };

@@ -85,6 +85,23 @@ const { z, validate } = require('../../lib/validate');
 // absent/non numérique, comme l'ancien `Number.isFinite(Number(x)) ? x : 300`) — jamais de 400.
 const glAdminMediaQuerySchema = z.object({ limit: z.coerce.number().optional().catch(undefined) });
 
+// O7 — `classId` de GET /players et GET /players/export : coercition permissive reproduisant
+// exactement l'ancienne lecture manuelle (`req.query?.classId ? Number(...) : null`, NaN/Infinity
+// conservés et filtrés en aval comme avant) — jamais de 400 issu du schéma. Le 400 historique
+// « classId invalide » de l'export reste décidé par le handler, condition inchangée
+// (`classId != null && !Number.isFinite(classId)` ; pour `''`, l'ancien `Number('') === 0` et le
+// nouveau `null` suivent la même branche : pas de 400, pas de filtre).
+const glAdminPlayersQuerySchema = z
+  .object({ classId: z.unknown().optional() })
+  .transform((q) => ({ classId: q.classId ? Number(q.classId) : null }));
+
+// O7 — `chapter` de GET /media-library/chapter-scenes : coercition permissive reproduisant
+// exactement l'ancien `Number(req.query?.chapter)` (NaN conservé) ; le 400 historique
+// « Paramètre chapter requis (0–5) » reste décidé par le handler, condition inchangée.
+const glAdminChapterScenesQuerySchema = z
+  .object({ chapter: z.unknown().optional() })
+  .transform((q) => ({ chapter: Number(q.chapter) }));
+
 /** Clé complète (ex. modules.zone_music_enabled) même si req.params.key est tronqué. */
 function resolveSettingsKey(req) {
   const paramKey = normalizeOptionalString(req.params.key);
@@ -277,8 +294,8 @@ router.delete('/classes/:id', requireGlPermission('gl.players.manage'), async (r
   return res.json({ ok: true });
 });
 
-router.get('/players', requireGlPermission('gl.players.manage'), async (req, res) => {
-  const classId = req.query?.classId ? Number(req.query.classId) : null;
+router.get('/players', requireGlPermission('gl.players.manage'), validate({ query: glAdminPlayersQuerySchema }), async (req, res) => {
+  const classId = req.validatedQuery?.classId;
   const rows = classId
     ? await queryAll(
       `SELECT p.id, p.class_id, p.team_id, p.first_name, p.last_name, p.pseudo, p.email,
@@ -676,8 +693,8 @@ router.post('/players/import', requireGlPermission('gl.players.manage'), async (
   });
 });
 
-router.get('/players/export', requireGlPermission('gl.players.manage'), async (req, res) => {
-  const classId = req.query?.classId == null ? null : Number(req.query.classId);
+router.get('/players/export', requireGlPermission('gl.players.manage'), validate({ query: glAdminPlayersQuerySchema }), async (req, res) => {
+  const classId = req.validatedQuery?.classId;
   if (classId != null && !Number.isFinite(classId)) {
     return res.status(400).json({ error: 'classId invalide' });
   }
@@ -913,8 +930,8 @@ router.get('/media-library/audit', requireGlPermission('gl.content.manage'), asy
 });
 
 // Scènes de récit conventionnelles d'un chapitre (0 = prologue), avec métas.
-router.get('/media-library/chapter-scenes', requireGlPermission('gl.content.manage'), async (req, res) => {
-  const chapterNumber = Number(req.query?.chapter);
+router.get('/media-library/chapter-scenes', requireGlPermission('gl.content.manage'), validate({ query: glAdminChapterScenesQuerySchema }), async (req, res) => {
+  const chapterNumber = req.validatedQuery?.chapter;
   if (!Number.isInteger(chapterNumber) || chapterNumber < 0 || chapterNumber > 5) {
     return res.status(400).json({ error: 'Paramètre chapter requis (0–5)' });
   }
@@ -1038,3 +1055,5 @@ router.post('/content-library/apply', requireGlPermission('gl.content.manage'), 
 
 module.exports = router;
 module.exports.glAdminMediaQuerySchema = glAdminMediaQuerySchema; // exporté pour test no-DB du contrat O7
+module.exports.glAdminPlayersQuerySchema = glAdminPlayersQuerySchema; // exporté pour test no-DB du contrat O7
+module.exports.glAdminChapterScenesQuerySchema = glAdminChapterScenesQuerySchema; // exporté pour test no-DB du contrat O7

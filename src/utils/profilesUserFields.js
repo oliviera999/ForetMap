@@ -2,6 +2,65 @@
 // Extraits de profiles-views.jsx (O6) — comportement strictement identique.
 
 const EDIT_EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PSEUDO_RE = /^[A-Za-z0-9_.-]{3,30}$/;
+
+/**
+ * Valide les champs communs des formulaires création/édition de compte (admin Profils).
+ * `requirePassword` : true pour la création (mot de passe obligatoire avec prénom/nom).
+ * Renvoie le message d'erreur à afficher, ou `null` si tout est valide.
+ */
+export function validateUserIdentityFields({
+  firstName = '',
+  lastName = '',
+  pseudo = '',
+  email = '',
+  description = '',
+  password = '',
+  requirePassword = false,
+} = {}) {
+  if (requirePassword) {
+    if (!firstName.trim() || !lastName.trim() || !password) return 'Prénom, nom et mot de passe sont requis';
+  } else if (!firstName.trim() || !lastName.trim()) {
+    return 'Prénom et nom sont requis';
+  }
+  if (pseudo.trim() && !PSEUDO_RE.test(pseudo.trim())) {
+    return 'Pseudo invalide (3-30 caractères, lettres/chiffres/._-)';
+  }
+  if (email.trim() && !EDIT_EMAIL_RE.test(email.trim())) {
+    return 'Email invalide';
+  }
+  if (description.trim().length > 300) {
+    return 'Description trop longue (max 300 caractères)';
+  }
+  return null;
+}
+
+/**
+ * Construit le corps du `PATCH /api/rbac/users/:type/:id` du formulaire d'édition :
+ * champs trimés (vides → null), affiliation seulement pour un n3beur (student),
+ * mot de passe seulement s'il est saisi (non trimé dans le payload, comme avant).
+ */
+export function buildUserEditPatchPayload({
+  firstName = '',
+  lastName = '',
+  pseudo = '',
+  email = '',
+  description = '',
+  affiliation = 'both',
+  password = '',
+  isStudent = false,
+} = {}) {
+  const payload = {
+    first_name: firstName.trim(),
+    last_name: lastName.trim(),
+    pseudo: pseudo.trim() || null,
+    email: email.trim() || null,
+    description: description.trim() || null,
+  };
+  if (isStudent) payload.affiliation = affiliation;
+  if (password.trim()) payload.password = password;
+  return payload;
+}
 
 /** Lit un champ utilisateur quelle que soit la casse des clés (snake_case / camelCase) ou Buffer éventuel. */
 export function pickUserField(obj, ...logicalNames) {
