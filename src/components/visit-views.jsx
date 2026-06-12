@@ -33,6 +33,7 @@ import {
   safeVisitProgressPayload,
 } from '../utils/visitProgressClient.js';
 import { wheelZoomScaleFactor } from '../utils/mapWheelZoom';
+import { clampVisitMapTransform, zoomVisitTransformToScale } from '../utils/visitMapTransform.js';
 import { pointToContainedRectPct } from '../shared/pct-map/pctMapPointer.js';
 import VisitMapMascotRenderer from './VisitMapMascotRenderer.jsx';
 import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
@@ -394,15 +395,7 @@ function VisitView({
   const clampTransform = useCallback((next, rectLike = null) => {
     const stage = stageRef.current;
     const rect = rectLike || (stage ? stage.getBoundingClientRect() : null);
-    const safeScale = Math.max(1, Math.min(6, Number(next?.s) || 1));
-    if (!rect || !rect.width || !rect.height || safeScale <= 1) {
-      return { x: 0, y: 0, s: safeScale };
-    }
-    const minX = rect.width * (1 - safeScale);
-    const minY = rect.height * (1 - safeScale);
-    const x = Math.min(0, Math.max(minX, Number(next?.x) || 0));
-    const y = Math.min(0, Math.max(minY, Number(next?.y) || 0));
-    return { x, y, s: safeScale };
+    return clampVisitMapTransform(next, rect);
   }, []);
 
   const cancelVisitZoomAnim = useCallback(() => {
@@ -417,18 +410,10 @@ function VisitView({
     if (!stage) return;
     const rect = stage.getBoundingClientRect();
     if (!rect.width || !rect.height) return;
-    setMapTransform((prev) => {
-      const nextScale = Math.max(1, Math.min(6, prev.s * factor));
-      const px = clientX - rect.left;
-      const py = clientY - rect.top;
-      const next = {
-        s: nextScale,
-        x: px - (px - prev.x) * (nextScale / prev.s),
-        y: py - (py - prev.y) * (nextScale / prev.s),
-      };
-      return clampTransform(next, rect);
-    });
-  }, [clampTransform]);
+    setMapTransform((prev) => (
+      zoomVisitTransformToScale(prev, clientX - rect.left, clientY - rect.top, prev.s * factor, rect)
+    ));
+  }, []);
 
   /** Boutons +/− : interpolation courte ; molette : `wheelZoomScaleFactor`. */
   const zoomFromCenterAnimated = useCallback((factor) => {
@@ -440,12 +425,7 @@ function VisitView({
     const px = rect.width / 2;
     const py = rect.height / 2;
     const start = { ...mapTransformRef.current };
-    const nextScale = Math.max(1, Math.min(6, start.s * factor));
-    const target = clampTransform({
-      s: nextScale,
-      x: px - (px - start.x) * (nextScale / start.s),
-      y: py - (py - start.y) * (nextScale / start.s),
-    }, rect);
+    const target = zoomVisitTransformToScale(start, px, py, start.s * factor, rect);
 
     if (prefersReducedMotion) {
       setMapTransform(target);
@@ -454,8 +434,6 @@ function VisitView({
 
     const duration = 200;
     const fromS = start.s;
-    const fromX = start.x;
-    const fromY = start.y;
     const toS = target.s;
     const t0 = performance.now();
     const easeOutCubic = (u) => 1 - (1 - u) ** 3;
@@ -463,12 +441,7 @@ function VisitView({
       const t = Math.min(1, (now - t0) / duration);
       const u = easeOutCubic(t);
       const curS = fromS + (toS - fromS) * u;
-      const cur = clampTransform({
-        s: curS,
-        x: px - (px - fromX) * (curS / fromS),
-        y: py - (py - fromY) * (curS / fromS),
-      }, rect);
-      setMapTransform(cur);
+      setMapTransform(zoomVisitTransformToScale(start, px, py, curS, rect));
       if (t < 1) {
         visitZoomAnimRafRef.current = requestAnimationFrame(step);
       } else {
@@ -477,7 +450,7 @@ function VisitView({
       }
     };
     visitZoomAnimRafRef.current = requestAnimationFrame(step);
-  }, [clampTransform, prefersReducedMotion, cancelVisitZoomAnim]);
+  }, [prefersReducedMotion, cancelVisitZoomAnim]);
 
   const resetMapTransform = useCallback(() => {
     cancelVisitZoomAnim();
@@ -1107,12 +1080,14 @@ function VisitView({
     const t1 = event.touches[1];
     const dist = Math.hypot(t0.clientX - t1.clientX, t0.clientY - t1.clientY);
     const rect = stage.getBoundingClientRect();
-    const nextScale = Math.max(1, Math.min(6, pinchRef.current.startScale * (dist / Math.max(1, pinchRef.current.dist))));
-    const next = clampTransform({
-      s: nextScale,
-      x: pinchRef.current.midX - (pinchRef.current.midX - pinchRef.current.startX) * (nextScale / pinchRef.current.startScale),
-      y: pinchRef.current.midY - (pinchRef.current.midY - pinchRef.current.startY) * (nextScale / pinchRef.current.startScale),
-    }, rect);
+    const pinch = pinchRef.current;
+    const next = zoomVisitTransformToScale(
+      { x: pinch.startX, y: pinch.startY, s: pinch.startScale },
+      pinch.midX,
+      pinch.midY,
+      pinch.startScale * (dist / Math.max(1, pinch.dist)),
+      rect,
+    );
     setMapTransform(next);
     event.preventDefault();
   };
