@@ -21,11 +21,10 @@ import {
   safeLocalStorageSetItem,
 } from '../utils/browserStorage.js';
 import { TimedToast } from '../shared/components/TimedToast.jsx';
-import { TEACHER_STATUS_ACTIONS, TASK_STATUS_FILTER_OPTIONS } from './tasks/taskViewHelpers.js';
+import { TEACHER_STATUS_ACTIONS } from './tasks/taskViewHelpers.js';
 import {
   isTaskUrgentCategory,
   applyTaskFilters,
-  filterProjectsByMapChoice,
   sortedVisibleProjects,
   partitionTasksByEffectiveStatus,
   studentUrgentDueTasks,
@@ -37,6 +36,7 @@ import { TaskTileCard } from './tasks/TaskTileCard.jsx';
 import { TaskProjectsBlock } from './tasks/TaskProjectsBlock.jsx';
 import { TaskImportPanel } from './tasks/TaskImportPanel.jsx';
 import { TaskTutorialsAtFocusBlock } from './tasks/TaskTutorialsAtFocusBlock.jsx';
+import { TaskFiltersBar } from './tasks/TaskFiltersBar.jsx';
 import {
   getAvailableSlots,
   isStudentAlreadyAssignedToTask,
@@ -62,7 +62,6 @@ import { useData } from '../contexts/DataContext.jsx';
 import {
   compareTasksByImportanceThenDueDate,
   taskEffectiveStatus,
-  projectStatusLabel,
   normalizeProjectUiStatus,
 } from '../utils/taskListHelpers.js';
 import {
@@ -156,7 +155,6 @@ function TasksView({
   const contextCommentsEnabled = publicSettings?.modules?.context_comments_enabled !== false;
   const tutorialsModuleEnabled = publicSettings?.modules?.tutorials_enabled !== false;
   const helpTasks = HELP_PANELS.tasks;
-  const helpGroupFilters = HELP_PANELS.groupFilters;
   const helpHintPrefix = getContentText(publicSettings, 'help.hint_prefix', 'Astuce :');
   const helpPanelTitlePrefix = getContentText(publicSettings, 'help.panel_title_prefix', '💡');
   const helpPanelCloseCta = getContentText(publicSettings, 'help.panel_close_cta', 'Fermer');
@@ -302,12 +300,6 @@ function TasksView({
   useEffect(() => () => {
     onTaskFormOverlayOpenChange?.(false);
   }, [onTaskFormOverlayOpenChange]);
-
-  const mapLabelById = (mapId) => {
-    if (!mapId) return 'Globale';
-    const map = maps.find(m => m.id === mapId);
-    return map ? map.label : mapId;
-  };
 
   const tasksForLocationPicker = useMemo(
     () => tasks.filter((t) => taskMapIdMatchesFilter(taskEffectiveMapId(t), filterMap, activeMapId)),
@@ -1031,128 +1023,44 @@ function TasksView({
       )}
       {isTeacher && <TaskImportPanel setToast={setToast} onRefresh={onRefresh} />}
 
-      <div className="task-filters">
-        <div className="tasks-view-switch" role="group" aria-label="Mode d'affichage des tâches">
-          <button
-            className={`btn btn-sm ${viewMode === 'tiles' ? 'btn-primary' : 'btn-ghost'}`}
-            onClick={() => setViewMode('tiles')}
-            type="button"
-          >
-            🧩 Tuiles
-          </button>
-          <button
-            className={`btn btn-sm ${viewMode === 'list' ? 'btn-primary' : 'btn-ghost'}`}
-            onClick={() => setViewMode('list')}
-            type="button"
-          >
-            📄 Liste
-          </button>
-          <button
-            className={`btn btn-sm ${viewMode === 'condensed' ? 'btn-primary' : 'btn-ghost'}`}
-            onClick={() => setViewMode('condensed')}
-            type="button"
-          >
-            📋 Condensé
-          </button>
-        </div>
-        <select value={filterMap} onChange={e => setFilterMap(e.target.value)}>
-          <option value="active">Carte active ({mapLabelById(activeMapId)})</option>
-          <option value="all">Toutes cartes</option>
-          {maps.map(mp => <option key={mp.id} value={mp.id}>{mp.label}</option>)}
-        </select>
-        <input value={filterText} onChange={e => setFilterText(e.target.value)}
-          placeholder="🔍 Rechercher une tâche..." />
-        <select
-          value={filterZone}
-          onChange={(e) => {
-            const v = e.target.value;
-            setFilterZone(v);
-            if (!v) {
-              onMapLocationFocusChange?.(null);
-            } else {
-              const colon = v.indexOf(':');
-              if (colon > 0) {
-                const k = v.slice(0, colon);
-                const idPart = v.slice(colon + 1);
-                if ((k === 'zone' || k === 'marker') && idPart) {
-                  onMapLocationFocusChange?.({ kind: k, id: idPart });
-                } else {
-                  onMapLocationFocusChange?.(null);
-                }
-              } else {
-                onMapLocationFocusChange?.(null);
-              }
-            }
-          }}
-        >
-          <option value="">Toutes les zones</option>
-          {usedZones.map(zId => {
-            const z = zones.find(zz => zz.id === zId);
-            return <option key={`zone:${zId}`} value={`zone:${zId}`}>{z ? z.name : zId}</option>;
-          })}
-          {usedMarkers.length > 0 && <option value="" disabled>-- Repères --</option>}
-          {usedMarkers.map((mId) => {
-            const marker = markers.find((mm) => mm.id === mId);
-            const markerLabel = marker ? `${marker.emoji ? `${marker.emoji} ` : '📍 '}${marker.label}` : `📍 ${mId}`;
-            return <option key={`marker:${mId}`} value={`marker:${mId}`}>{markerLabel}</option>;
-          })}
-        </select>
-        <select value={filterProject} onChange={e => setFilterProject(e.target.value)}>
-          <option value="">Tous les projets</option>
-          {filterProjectsByMapChoice(taskProjects, filterMap, activeMapId)
-            .map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.title}{projectStatusLabel(p.status)}
-              </option>
-            ))}
-        </select>
-        {isTeacher && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <select value={filterGroupId} onChange={(e) => setFilterGroupId(e.target.value)} aria-label="Filtrer les tâches par groupe">
-              <option value="">Tous les groupes</option>
-              {groupOptions.map((g) => (
-                <option key={g.id} value={g.id}>{g.name}</option>
-              ))}
-            </select>
-            {isHelpEnabled && (
-              <HelpPanel
-                sectionId="tasks-group-filter"
-                title={helpGroupFilters.title}
-                entries={helpGroupFilters.items}
-                isTeacher={isTeacher}
-                isPulsing={pulseUnseenPanels && !hasSeenSection('tasks-group-filter')}
-                panelTitlePrefix={helpPanelTitlePrefix}
-                closeButtonText={helpPanelCloseCta}
-                dismissButtonText={helpPanelDismissCta}
-                onMarkSeen={markSectionSeen}
-                onOpen={trackPanelOpen}
-                onDismiss={trackPanelDismiss}
-              />
-            )}
-          </div>
-        )}
-        <select
-          value={filterUrgentCategory}
-          onChange={(e) => setFilterUrgentCategory(e.target.value)}
-          aria-label="Filtrer par catégorie urgent"
-        >
-          <option value="">Toutes les catégories</option>
-          <option value="urgent">Urgent ! uniquement</option>
-          <option value="non_urgent">Hors urgent</option>
-        </select>
-        <select
-          value={filterStatus}
-          onChange={(e) => {
-            setFilterStatus(e.target.value);
-            setHasTouchedStatusFilter(true);
-          }}
-        >
-          <option value="">Tous les statuts</option>
-          {TASK_STATUS_FILTER_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>{opt.label}</option>
-          ))}
-        </select>
-      </div>
+      <TaskFiltersBar
+        viewMode={viewMode}
+        setViewMode={setViewMode}
+        filterMap={filterMap}
+        setFilterMap={setFilterMap}
+        maps={maps}
+        activeMapId={activeMapId}
+        filterText={filterText}
+        setFilterText={setFilterText}
+        filterZone={filterZone}
+        setFilterZone={setFilterZone}
+        onMapLocationFocusChange={onMapLocationFocusChange}
+        usedZones={usedZones}
+        usedMarkers={usedMarkers}
+        zones={zones}
+        markers={markers}
+        filterProject={filterProject}
+        setFilterProject={setFilterProject}
+        taskProjects={taskProjects}
+        isTeacher={isTeacher}
+        filterGroupId={filterGroupId}
+        setFilterGroupId={setFilterGroupId}
+        groupOptions={groupOptions}
+        isHelpEnabled={isHelpEnabled}
+        pulseUnseenPanels={pulseUnseenPanels}
+        hasSeenSection={hasSeenSection}
+        markSectionSeen={markSectionSeen}
+        trackPanelOpen={trackPanelOpen}
+        trackPanelDismiss={trackPanelDismiss}
+        helpPanelTitlePrefix={helpPanelTitlePrefix}
+        helpPanelCloseCta={helpPanelCloseCta}
+        helpPanelDismissCta={helpPanelDismissCta}
+        filterUrgentCategory={filterUrgentCategory}
+        setFilterUrgentCategory={setFilterUrgentCategory}
+        filterStatus={filterStatus}
+        setFilterStatus={setFilterStatus}
+        setHasTouchedStatusFilter={setHasTouchedStatusFilter}
+      />
 
       {filterZone && tutorialsModuleEnabled && (
         <TaskTutorialsAtFocusBlock
