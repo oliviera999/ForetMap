@@ -79,6 +79,11 @@ function normalizeBiomeSlugFilter(value) {
 }
 
 const { normalizeOptionalString } = require('../../lib/shared/httpHelpers');
+const { z, validate } = require('../../lib/validate');
+
+// O7 — `limit` de la médiathèque GL : coercition permissive (repli sur 300 côté handler si
+// absent/non numérique, comme l'ancien `Number.isFinite(Number(x)) ? x : 300`) — jamais de 400.
+const glAdminMediaQuerySchema = z.object({ limit: z.coerce.number().optional().catch(undefined) });
 
 /** Clé complète (ex. modules.zone_music_enabled) même si req.params.key est tronqué. */
 function resolveSettingsKey(req) {
@@ -884,11 +889,16 @@ router.post('/content/intro/reset', requireGlPermission('gl.content.manage'), as
   return res.json(normalized);
 });
 
-router.get('/media-library', requireGlPermission('gl.content.manage'), async (req, res) => {
-  const limitRaw = Number(req.query?.limit);
-  const items = listMediaLibraryItems(Number.isFinite(limitRaw) ? limitRaw : 300, { app: 'gl' });
-  return res.json({ items });
-});
+router.get(
+  '/media-library',
+  requireGlPermission('gl.content.manage'),
+  validate({ query: glAdminMediaQuerySchema }),
+  async (req, res) => {
+    const limit = req.validatedQuery?.limit;
+    const items = listMediaLibraryItems(Number.isFinite(limit) ? limit : 300, { app: 'gl' });
+    return res.json({ items });
+  }
+);
 
 router.get('/media-library/usage', requireGlPermission('gl.content.manage'), async (_req, res) => {
   const usage = await collectMediaLibraryUsage({ queryAll }, { app: 'gl' });
@@ -1027,3 +1037,4 @@ router.post('/content-library/apply', requireGlPermission('gl.content.manage'), 
 });
 
 module.exports = router;
+module.exports.glAdminMediaQuerySchema = glAdminMediaQuerySchema; // exporté pour test no-DB du contrat O7

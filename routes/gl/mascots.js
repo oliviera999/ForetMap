@@ -18,26 +18,41 @@ function sanitizeFilename(value) {
 }
 
 const { normalizeOptionalString } = require('../../lib/shared/httpHelpers');
+const { z, validate } = require('../../lib/validate');
+
+// O7 — query friction-free (coercition permissive, jamais de 400) :
+// `gameId` reproduit l'ancien `Number(raw)` gardé par `Number.isFinite(gameId) && gameId > 0`
+// (sinon : pas de chargement des assignations) ;
+// `chapterId` reproduit l'ancien `raw != null ? Number(raw) : null` + branche `Number.isFinite`.
+const glMascotsCatalogQuerySchema = z.object({
+  gameId: z.preprocess(
+    (v) => (v == null ? null : Number(v)),
+    z.number().finite().positive().nullable().catch(null)
+  ),
+});
+const glMascotsChapterQuerySchema = z.object({
+  chapterId: z.preprocess(
+    (v) => (v == null ? null : Number(v)),
+    z.number().finite().nullable().catch(null)
+  ),
+});
 
 function toAssetUrl(relativePath) {
   return `/uploads/${String(relativePath).replace(/\\/g, '/')}`;
 }
 
 /** GET /api/gl/mascots — catalogue complet (auth GL requise, joueur ou MJ). */
-router.get('/', requireGlAuth, async (req, res) => {
+router.get('/', requireGlAuth, validate({ query: glMascotsCatalogQuerySchema }), async (req, res) => {
   const catalog = await getGlUnifiedMascotCatalog();
   let assignments = [];
-  const gameIdRaw = req.query?.gameId;
-  if (gameIdRaw != null) {
-    const gameId = Number(gameIdRaw);
-    if (Number.isFinite(gameId) && gameId > 0) {
-      assignments = await queryAll(
-        `SELECT team_id, mascot_id
-           FROM gl_mascot_assignments
-          WHERE game_id = ?`,
-        [gameId]
-      );
-    }
+  const gameId = req.validatedQuery?.gameId;
+  if (gameId != null) {
+    assignments = await queryAll(
+      `SELECT team_id, mascot_id
+         FROM gl_mascot_assignments
+        WHERE game_id = ?`,
+      [gameId]
+    );
   }
   return res.json({ mascots: catalog, assignments });
 });
@@ -110,8 +125,8 @@ router.post('/assign', requireGlPermission('gl.team.manage'), async (req, res) =
   return res.status(200).json({ assignment: row, mascot });
 });
 
-router.get('/packs', requireGlPermission('gl.content.manage'), async (req, res) => {
-  const chapterId = req.query?.chapterId != null ? Number(req.query.chapterId) : null;
+router.get('/packs', requireGlPermission('gl.content.manage'), validate({ query: glMascotsChapterQuerySchema }), async (req, res) => {
+  const chapterId = req.validatedQuery?.chapterId;
   const rows = Number.isFinite(chapterId)
     ? await queryAll(
       `SELECT id, chapter_id, name, version, payload_json, updated_at
@@ -306,8 +321,8 @@ router.delete('/packs/:id/assets/:filename', requireGlPermission('gl.content.man
   return res.json({ ok: true });
 });
 
-router.get('/sprite-library', requireGlPermission('gl.content.manage'), async (req, res) => {
-  const chapterId = req.query?.chapterId != null ? Number(req.query.chapterId) : null;
+router.get('/sprite-library', requireGlPermission('gl.content.manage'), validate({ query: glMascotsChapterQuerySchema }), async (req, res) => {
+  const chapterId = req.validatedQuery?.chapterId;
   const rows = Number.isFinite(chapterId)
     ? await queryAll(
       `SELECT id, chapter_id, filename, mime_type, asset_path, created_at
@@ -388,3 +403,6 @@ router.delete('/sprite-library/:id', requireGlPermission('gl.content.manage'), a
 });
 
 module.exports = router;
+// exportés pour test no-DB du contrat O7
+module.exports.glMascotsCatalogQuerySchema = glMascotsCatalogQuerySchema;
+module.exports.glMascotsChapterQuerySchema = glMascotsChapterQuerySchema;

@@ -1,5 +1,5 @@
 import React, {
-  useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState,
+  useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState,
 } from 'react';
 import { api, AccountDeletedError, isLikelyNetworkTransportFailure } from '../services/api';
 import { MARKER_EMOJIS, parseEmojiListSetting, detectLeadingMarkerEmoji, stripLeadingMarkerEmoji } from '../constants/emojis';
@@ -9,17 +9,16 @@ import { HelpPanel } from './HelpPanel';
 import { HELP_PANELS } from '../constants/help';
 import { getContentText } from '../utils/content';
 import { resolveMapOverlayTypography } from '../utils/mapOverlayTypography';
-import { TutorialReadAcknowledgeButton, fetchTutorialReadIds } from './TutorialReadAcknowledge';
+import { fetchTutorialReadIds } from './TutorialReadAcknowledge';
 import { TutorialPreviewModal, tutorialPreviewPayload, tutorialPreviewCanEmbed } from './TutorialPreviewModal';
-import { ContextComments } from './context-comments';
-import { MarkdownContent } from './MarkdownContent.jsx';
 import { useOverlayHistoryBack } from '../hooks/useOverlayHistoryBack';
 import { computeMapImageContainRect } from '../utils/mapImageFit';
 import { buildMapImageCandidates } from '../utils/mapImageCandidates';
 import { parseVisitZonePoints as parsePctPoints, visitZoneCentroidPct } from '../utils/visitMapGeometry.js';
-import { normalizeEditorialBlocks } from '../utils/visitEditorialBlocks.js';
-import { VisitSyncPanel } from './visit/VisitSyncPanel.jsx';
-import { VisitEditorPanel } from './visit/VisitEditorPanel.jsx';
+import { VisitDetailPanel } from './visit/VisitDetailPanel.jsx';
+import { VisitTutorialsSection } from './visit/VisitTutorialsSection.jsx';
+import { VisitMapChrome } from './visit/VisitMapChrome.jsx';
+import { VisitProfToolsPanel } from './visit/VisitProfToolsPanel.jsx';
 import { computeVisitMascotStartPct } from '../utils/visitMascotPlacement.js';
 import {
   shouldShowVisitMapMascot as computeShowVisitMapMascot,
@@ -35,44 +34,24 @@ import {
   safeVisitProgressPayload,
 } from '../utils/visitProgressClient.js';
 import { wheelZoomScaleFactor } from '../utils/mapWheelZoom';
+import { clampVisitMapTransform, zoomVisitTransformToScale } from '../utils/visitMapTransform.js';
 import { pointToContainedRectPct } from '../shared/pct-map/pctMapPointer.js';
 import VisitMapMascotRenderer from './VisitMapMascotRenderer.jsx';
 import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
 import { useSession } from '../contexts/SessionContext.jsx';
 import { useData } from '../contexts/DataContext.jsx';
 
-/** Diagramme circulaire de progression visite (viewBox carré, cercle centré). */
-const VISIT_PROGRESS_DONUT_VB = 40;
-const VISIT_PROGRESS_DONUT_R = 14;
-const VISIT_PROGRESS_DONUT_STROKE = 3;
-const VISIT_PROGRESS_DONUT_C = 2 * Math.PI * VISIT_PROGRESS_DONUT_R;
 import { buildVisitMascotCatalogExtrasFromContent } from '../utils/visitMascotPackExtras.js';
 import { resolveMascotDialogLine } from '../utils/visitMascotDialogApply.js';
 import { VISIT_MASCOT_STATE } from '../utils/visitMascotState.js';
 import { loadVisitMascotPositionPct, saveVisitMascotPositionPct } from '../utils/visitMascotPositionPersistence.js';
-import {
-  itemSeenKey,
-  visitMediaGalleryThumbDisplaySrc,
-  visitMediaGalleryLightboxSrc,
-} from '../utils/visitMediaGallery.js';
+import { itemSeenKey } from '../utils/visitMediaGallery.js';
 import {
   visitZoneSvgTextUniformYTransform,
   clampVisitMascotPctForViewport,
 } from '../utils/visitMascotGeometry.js';
 import useVisitMascotStateMachine from '../hooks/useVisitMascotStateMachine.js';
-import {
-  Lightbox,
-  BiodiversitySpeciesOpenLinks,
-  LocationTutorialPreviewList,
-  LivingBeingsCatalogPanel,
-} from './map-views';
-import { orderedLivingBeingsForForm } from '../utils/livingBeings';
-import {
-  tutorialLocationIds,
-  tutorialsFromTasksAtLocation,
-  livingBeingNamesFromTasksAtLocation,
-  dedupeTutorialsById,
-} from '../utils/mapLocationContext';
+import { Lightbox } from './map-views';
 import {
   safeLocalStorageGetItem,
   safeLocalStorageSetItem,
@@ -82,73 +61,6 @@ const VISIT_MAP_MASCOT_MOVE_MS = 560;
 const VISIT_MAP_MASCOT_HAPPY_MS = 1800;
 const VISIT_MASCOT_DIALOG_MS = 2600;
 const VISIT_MASCOT_DIALOG_MOVE_COOLDOWN_MS = 4200;
-
-/** Vignette cliquable : aperçu sans rognage (CSS `object-fit: contain`) + lightbox plein écran. */
-function VisitMediaGalleryThumb({ media, onOpenLightbox }) {
-  const srcThumb = visitMediaGalleryThumbDisplaySrc(media);
-  const srcFull = visitMediaGalleryLightboxSrc(media);
-  if (!srcThumb || !srcFull) return null;
-  const cap = String(media?.caption || '').trim();
-  return (
-    <figure>
-      <button
-        type="button"
-        className="visit-media-gallery__open"
-        onClick={() => onOpenLightbox({ src: srcFull, caption: cap })}
-        aria-label={cap ? `Agrandir la photo : ${cap}` : 'Agrandir la photo'}
-      >
-        <img src={srcThumb} alt="" loading="lazy" decoding="async" />
-      </button>
-      {cap ? <figcaption>{media.caption}</figcaption> : null}
-    </figure>
-  );
-}
-
-function VisitEditorialRenderer({ blocks, selectedVisitMedia, onOpenLightbox }) {
-  const mediaById = useMemo(() => {
-    const m = new Map();
-    for (const media of selectedVisitMedia || []) {
-      const id = Number(media?.id);
-      if (!Number.isFinite(id) || id <= 0) continue;
-      m.set(id, media);
-    }
-    return m;
-  }, [selectedVisitMedia]);
-  return (
-    <div className="visit-editorial">
-      {blocks.map((block) => {
-        if (block.type === 'heading') {
-          return <h4 key={block.id} className={`visit-editorial-heading visit-editorial-heading--h${block.level || 3}`}>{block.text}</h4>;
-        }
-        if (block.type === 'paragraph') {
-          return (
-            <div key={block.id} className="visit-editorial-paragraph">
-              <MarkdownContent>{block.markdown}</MarkdownContent>
-            </div>
-          );
-        }
-        if (block.type === 'image') {
-          const images = (block.media_ids || []).map((id) => mediaById.get(Number(id))).filter(Boolean);
-          if (!images.length) return null;
-          return (
-            <div
-              key={block.id}
-              className={`visit-editorial-image ${images.length === 1 ? 'visit-editorial-image--single' : 'visit-editorial-image--multi'} visit-editorial-image--${block.size || 'md'} visit-editorial-image--${block.align || 'center'}`}
-            >
-              <div className="visit-media-gallery">
-                {images.map((media) => (
-                  <VisitMediaGalleryThumb key={`${block.id}-${media.id}`} media={media} onOpenLightbox={onOpenLightbox} />
-                ))}
-              </div>
-              {block.caption ? <p className="visit-editorial-image__caption">{block.caption}</p> : null}
-            </div>
-          );
-        }
-        return null;
-      })}
-    </div>
-  );
-}
 
 function pointToPct(event, stageEl, transform = { x: 0, y: 0, s: 1 }, fit = null) {
   return pointToContainedRectPct(event, stageEl, transform, fit, { clamp: true, decimals: 2 });
@@ -238,8 +150,6 @@ function VisitView({
     loadVisitSeenQueue().length > 0 ? 'pending' : 'idle'
   ));
   const visitSeenFlushInFlightRef = useRef(false);
-  const [tutorialSelection, setTutorialSelection] = useState([]);
-  const [savingTutorials, setSavingTutorials] = useState(false);
   const [tutorialReadIds, setTutorialReadIds] = useState(() => new Set());
   const [visitTutorialPreview, setVisitTutorialPreview] = useState(null);
   const [visitMediaLightbox, setVisitMediaLightbox] = useState(null);
@@ -331,7 +241,6 @@ function VisitView({
     setGuestMascotChoiceOpen(isGuestPublicVisit && requireGuestMascotChoice);
   }, [isGuestPublicVisit, requireGuestMascotChoice]);
 
-  const visitDetailPanelTitleId = useId();
   const VISIT_IMMERSION_LS_KEY = 'foretmap_visit_immersion';
   const VISIT_TEACHER_PREVIEW_LS_KEY = 'foretmap_visit_teacher_preview_student';
   const VISIT_COMFORTABLE_READING_LS_KEY = 'foretmap_visit_comfortable_reading';
@@ -482,15 +391,7 @@ function VisitView({
   const clampTransform = useCallback((next, rectLike = null) => {
     const stage = stageRef.current;
     const rect = rectLike || (stage ? stage.getBoundingClientRect() : null);
-    const safeScale = Math.max(1, Math.min(6, Number(next?.s) || 1));
-    if (!rect || !rect.width || !rect.height || safeScale <= 1) {
-      return { x: 0, y: 0, s: safeScale };
-    }
-    const minX = rect.width * (1 - safeScale);
-    const minY = rect.height * (1 - safeScale);
-    const x = Math.min(0, Math.max(minX, Number(next?.x) || 0));
-    const y = Math.min(0, Math.max(minY, Number(next?.y) || 0));
-    return { x, y, s: safeScale };
+    return clampVisitMapTransform(next, rect);
   }, []);
 
   const cancelVisitZoomAnim = useCallback(() => {
@@ -505,18 +406,10 @@ function VisitView({
     if (!stage) return;
     const rect = stage.getBoundingClientRect();
     if (!rect.width || !rect.height) return;
-    setMapTransform((prev) => {
-      const nextScale = Math.max(1, Math.min(6, prev.s * factor));
-      const px = clientX - rect.left;
-      const py = clientY - rect.top;
-      const next = {
-        s: nextScale,
-        x: px - (px - prev.x) * (nextScale / prev.s),
-        y: py - (py - prev.y) * (nextScale / prev.s),
-      };
-      return clampTransform(next, rect);
-    });
-  }, [clampTransform]);
+    setMapTransform((prev) => (
+      zoomVisitTransformToScale(prev, clientX - rect.left, clientY - rect.top, prev.s * factor, rect)
+    ));
+  }, []);
 
   /** Boutons +/− : interpolation courte ; molette : `wheelZoomScaleFactor`. */
   const zoomFromCenterAnimated = useCallback((factor) => {
@@ -528,12 +421,7 @@ function VisitView({
     const px = rect.width / 2;
     const py = rect.height / 2;
     const start = { ...mapTransformRef.current };
-    const nextScale = Math.max(1, Math.min(6, start.s * factor));
-    const target = clampTransform({
-      s: nextScale,
-      x: px - (px - start.x) * (nextScale / start.s),
-      y: py - (py - start.y) * (nextScale / start.s),
-    }, rect);
+    const target = zoomVisitTransformToScale(start, px, py, start.s * factor, rect);
 
     if (prefersReducedMotion) {
       setMapTransform(target);
@@ -542,8 +430,6 @@ function VisitView({
 
     const duration = 200;
     const fromS = start.s;
-    const fromX = start.x;
-    const fromY = start.y;
     const toS = target.s;
     const t0 = performance.now();
     const easeOutCubic = (u) => 1 - (1 - u) ** 3;
@@ -551,12 +437,7 @@ function VisitView({
       const t = Math.min(1, (now - t0) / duration);
       const u = easeOutCubic(t);
       const curS = fromS + (toS - fromS) * u;
-      const cur = clampTransform({
-        s: curS,
-        x: px - (px - fromX) * (curS / fromS),
-        y: py - (py - fromY) * (curS / fromS),
-      }, rect);
-      setMapTransform(cur);
+      setMapTransform(zoomVisitTransformToScale(start, px, py, curS, rect));
       if (t < 1) {
         visitZoomAnimRafRef.current = requestAnimationFrame(step);
       } else {
@@ -565,7 +446,7 @@ function VisitView({
       }
     };
     visitZoomAnimRafRef.current = requestAnimationFrame(step);
-  }, [clampTransform, prefersReducedMotion, cancelVisitZoomAnim]);
+  }, [prefersReducedMotion, cancelVisitZoomAnim]);
 
   const resetMapTransform = useCallback(() => {
     cancelVisitZoomAnim();
@@ -614,7 +495,6 @@ function VisitView({
           }
           : { zones: [], markers: [], tutorials: [], mascot_packs: [], map_id: requestedMapId };
       setContent(visitPayload);
-      setTutorialSelection((visitPayload.tutorials || []).map((t) => t.id));
       const { seen: progressSeen } = safeVisitProgressPayload(progressBody);
       const nextSeen = applyVisitSeenQueueToSet(
         new Set(progressSeen.map((r) => itemSeenKey(r.target_type, r.target_id)))
@@ -1196,12 +1076,14 @@ function VisitView({
     const t1 = event.touches[1];
     const dist = Math.hypot(t0.clientX - t1.clientX, t0.clientY - t1.clientY);
     const rect = stage.getBoundingClientRect();
-    const nextScale = Math.max(1, Math.min(6, pinchRef.current.startScale * (dist / Math.max(1, pinchRef.current.dist))));
-    const next = clampTransform({
-      s: nextScale,
-      x: pinchRef.current.midX - (pinchRef.current.midX - pinchRef.current.startX) * (nextScale / pinchRef.current.startScale),
-      y: pinchRef.current.midY - (pinchRef.current.midY - pinchRef.current.startY) * (nextScale / pinchRef.current.startScale),
-    }, rect);
+    const pinch = pinchRef.current;
+    const next = zoomVisitTransformToScale(
+      { x: pinch.startX, y: pinch.startY, s: pinch.startScale },
+      pinch.midX,
+      pinch.midY,
+      pinch.startScale * (dist / Math.max(1, pinch.dist)),
+      rect,
+    );
     setMapTransform(next);
     event.preventDefault();
   };
@@ -1261,104 +1143,6 @@ function VisitView({
     };
   }, [loading]);
 
-  const saveTutorialSelection = async () => {
-    setSavingTutorials(true);
-    try {
-      await api('/api/visit/tutorials', 'PUT', { map_id: mapId, tutorial_ids: tutorialSelection });
-      await loadData();
-    } catch (err) {
-      if (err instanceof AccountDeletedError) onForceLogout?.();
-      else alert(err.message || 'Erreur sauvegarde tutoriels');
-    } finally {
-      setSavingTutorials(false);
-    }
-  };
-
-  const selectedVisitMedia = selected ? (selected.visit_media || []) : [];
-  const selectedEditorialBlocks = normalizeEditorialBlocks(selected?.visit_editorial_blocks || []);
-  const hasEditorialBlocks = selectedEditorialBlocks.length > 0;
-  const firstVisitPhoto = selectedVisitMedia[0] || null;
-  const restVisitPhotos = selectedVisitMedia.slice(1);
-  const mapExtraPhotos = selected && Array.isArray(selected.map_extra_photos) ? selected.map_extra_photos : [];
-  const visitDetailsTextTrim =
-    selected && selected.visit_details_text ? String(selected.visit_details_text).trim() : '';
-  const showVisitDetailsBlock = !!(
-    visitDetailsTextTrim ||
-    (selected && restVisitPhotos.length > 0) ||
-    mapExtraPhotos.length > 0
-  );
-
-  /** Biodiversité et tutoriels liés au lieu (aligné sur les panneaux zone/repère de la carte). */
-  const visitLocationAside = useMemo(() => {
-    if (!selected || !selectedType) {
-      return {
-        showBiodiversity: false,
-        showTutos: false,
-        primaryLivingNames: [],
-        livingBeingsOnlyOnTasks: [],
-        tutorialListForPreview: [],
-        locationKind: 'zone',
-      };
-    }
-    const catalog = catalogTutorials || [];
-    const taskList = tasks || [];
-    if (selectedType === 'zone') {
-      const mapZone = (mapZones || []).find(
-        (z) => String(z.id) === String(selected.id) && String(z.map_id || '') === String(mapId),
-      );
-      const zoneSpecial = !!mapZone?.special;
-      const primaryLivingNames = mapZone
-        ? orderedLivingBeingsForForm(mapZone.living_beings_list || mapZone.living_beings, mapZone.current_plant)
-        : [];
-      const livingFromTasks = livingBeingNamesFromTasksAtLocation('zone', selected.id, taskList);
-      const livingBeingsOnlyOnTasks = livingFromTasks.filter((n) => !primaryLivingNames.includes(n));
-      const showBiodiversity = !zoneSpecial && (primaryLivingNames.length > 0 || livingBeingsOnlyOnTasks.length > 0);
-      const linkedTutorialsDirect = catalog.filter((tu) => (
-        tutorialLocationIds(tu).zoneIds.some((id) => String(id) === String(selected.id))
-      ));
-      const tutorialsFromTasksHere = tutorialsFromTasksAtLocation('zone', selected.id, taskList, catalog);
-      const linkedTutorialsAll = dedupeTutorialsById([...linkedTutorialsDirect, ...tutorialsFromTasksHere]);
-      const linkedTutorialsVisible = isTeacher
-        ? linkedTutorialsAll
-        : linkedTutorialsAll.filter((tu) => tu.is_active !== false);
-      const tutorialListForPreview = isTeacher ? linkedTutorialsAll : linkedTutorialsVisible;
-      return {
-        showBiodiversity,
-        showTutos: tutorialListForPreview.length > 0,
-        primaryLivingNames,
-        livingBeingsOnlyOnTasks,
-        tutorialListForPreview,
-        locationKind: 'zone',
-      };
-    }
-    const mapMarker = (mapMarkers || []).find(
-      (m) => String(m.id) === String(selected.id) && String(m.map_id || '') === String(mapId),
-    );
-    const primaryLivingNames = mapMarker
-      ? orderedLivingBeingsForForm(mapMarker.living_beings_list || mapMarker.living_beings, mapMarker.plant_name)
-      : [];
-    const livingFromTasks = livingBeingNamesFromTasksAtLocation('marker', selected.id, taskList);
-    const livingBeingsOnlyOnTasks = livingFromTasks.filter((n) => !primaryLivingNames.includes(n));
-    const showBiodiversity = primaryLivingNames.length > 0 || livingBeingsOnlyOnTasks.length > 0;
-    const linkedTutorialsDirect = catalog.filter((tu) => (
-      tutorialLocationIds(tu).markerIds.some((id) => String(id) === String(selected.id))
-    ));
-    const tutorialsFromTasksHere = tutorialsFromTasksAtLocation('marker', selected.id, taskList, catalog);
-    const linkedTutorialsAll = dedupeTutorialsById([...linkedTutorialsDirect, ...tutorialsFromTasksHere]);
-    const linkedTutorialsVisible = isTeacher
-      ? linkedTutorialsAll
-      : linkedTutorialsAll.filter((tu) => tu.is_active !== false);
-    const tutorialListForPreview = isTeacher ? linkedTutorialsAll : linkedTutorialsVisible;
-    return {
-      showBiodiversity,
-      showTutos: tutorialListForPreview.length > 0,
-      primaryLivingNames,
-      livingBeingsOnlyOnTasks,
-      tutorialListForPreview,
-      locationKind: 'marker',
-    };
-  }, [selected, selectedType, mapId, mapZones, mapMarkers, tasks, catalogTutorials, isTeacher]);
-
   useEffect(() => {
     if (!selected || visitMediaLightbox || visitTutorialPreview) return undefined;
     const onKey = (e) => {
@@ -1367,82 +1151,6 @@ function VisitView({
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [selected, visitMediaLightbox, visitTutorialPreview, closeVisitSelection]);
-
-  const visitTutorialsBody = (
-    <>
-      {isTeacher && (
-        <div className="visit-tutorial-picker">
-          <p>Choisir les tutoriels affichés en visite (indépendamment des zones/repères) :</p>
-          <div className="visit-tutorial-picker-list">
-            {availableTutorials.map((t) => (
-              <label key={t.id}>
-                <input
-                  type="checkbox"
-                  checked={tutorialSelection.includes(t.id)}
-                  onChange={(e) => {
-                    setTutorialSelection((prev) => (
-                      e.target.checked
-                        ? [...new Set([...prev, t.id])]
-                        : prev.filter((id) => id !== t.id)
-                    ));
-                  }}
-                />
-                {' '}{t.title}
-              </label>
-            ))}
-          </div>
-          <button className="btn btn-secondary btn-sm" onClick={saveTutorialSelection} disabled={savingTutorials}>
-            {savingTutorials ? 'Sauvegarde...' : '💾 Enregistrer la sélection des tutos'}
-          </button>
-        </div>
-      )}
-      {(content.tutorials || []).length === 0 ? (
-        <p className="section-sub">{visitTutorialsEmpty}</p>
-      ) : (
-        <div className="tuto-grid">
-          {(content.tutorials || []).map((t) => (
-            <article key={t.id} className="tuto-card">
-              <div className="tuto-card-head">
-                <h3>{t.title}</h3>
-                <span className="task-chip">{String(t.type || 'html').toUpperCase()}</span>
-              </div>
-              {t.summary && <p>{t.summary}</p>}
-              <div className="task-actions">
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-sm"
-                  disabled={!tutorialPreviewCanEmbed(t)}
-                  title={!tutorialPreviewCanEmbed(t) ? 'Aperçu indisponible pour ce tutoriel' : undefined}
-                  onClick={() => setVisitTutorialPreview(tutorialPreviewPayload(t))}
-                >
-                  👁️ Lire
-                </button>
-                <button type="button" className="btn btn-primary btn-sm" onClick={() => window.open(`/api/tutorials/${t.id}/download/pdf`, '_blank', 'noopener,noreferrer')}>
-                  ⬇️ PDF
-                </button>
-                <TutorialReadAcknowledgeButton
-                  tutorialId={t.id}
-                  tutorialTitle={t.title}
-                  isRead={tutorialReadIds.has(Number(t.id))}
-                  onAcknowledged={(id) => setTutorialReadIds((prev) => new Set([...prev, id]))}
-                  onForceLogout={onForceLogout}
-                />
-              </div>
-              {contextCommentsEnabled && student?.id && (
-                <ContextComments
-                  contextType="tutorial"
-                  contextId={String(t.id)}
-                  title="Commentaires sur ce tutoriel"
-                  placeholder="Question ou retour sur ce tutoriel…"
-                  canParticipateContextComments={canParticipateContextComments}
-                />
-              )}
-            </article>
-          ))}
-        </div>
-      )}
-    </>
-  );
 
   if (loading) {
     return (
@@ -1529,190 +1237,46 @@ function VisitView({
       )}
       <div className="visit-grid visit-grid--map-forward">
         <div className="visit-map-card">
-          <div className="visit-map-card__chrome">
-            <div className="visit-map-card__chrome-top">
-              <div className="visit-map-card__chrome-title-line">
-                <h2 className="section-title visit-map-card__title">{visitTitle}</h2>
-                {showVisitPresentationButton ? (
-                  <button
-                    type="button"
-                    className={`btn btn-sm btn-primary visit-map-card__presentation-btn${visitPresentationInvitePulse ? ' visit-map-card__presentation-btn--invite' : ''}`}
-                    data-testid="visit-presentation-link"
-                    data-invite-pulse={visitPresentationInvitePulse ? '1' : '0'}
-                    onClick={() => setVisitTutorialPreview(tutorialPreviewPayload(visitPresentationTutorial))}
-                  >
-                    Présentation du lieu
-                  </button>
-                ) : null}
-              </div>
-              <div className="visit-map-card__chrome-actions">
-                {mode === 'view' && visitNetworkStatusLabel ? (
-                  <span
-                    className={`visit-network-status${!isOnline ? ' visit-network-status--offline' : ''}${pendingSyncCount > 0 || syncStatus === 'error' ? ' visit-network-status--pending' : ''}${syncStatus === 'syncing' ? ' visit-network-status--syncing' : ''}`}
-                    data-testid="visit-network-status"
-                    data-online={isOnline ? '1' : '0'}
-                    data-sync={syncStatus}
-                    data-pending={String(pendingSyncCount)}
-                    role="status"
-                    aria-live="polite"
-                  >
-                    {visitNetworkStatusLabel}
-                  </span>
-                ) : null}
-                <button
-                  type="button"
-                  className={`btn btn-sm ${visitImmersion ? 'btn-primary' : 'btn-ghost'}`}
-                  onClick={() => setVisitImmersion((v) => !v)}
-                  aria-pressed={visitImmersion}
-                >
-                  {visitImmersion ? 'Quitter le plein plan' : 'Plein plan'}
-                </button>
-                {isTeacher ? (
-                  <button
-                    type="button"
-                    data-testid="visit-teacher-preview-toggle"
-                    className={`btn btn-sm ${teacherPreviewAsStudent ? 'btn-primary' : 'btn-ghost'}`}
-                    onClick={() => setTeacherPreviewAsStudent((v) => !v)}
-                    aria-pressed={teacherPreviewAsStudent}
-                  >
-                    {teacherPreviewAsStudent ? 'Retour édition prof' : 'Aperçu comme élève'}
-                  </button>
-                ) : null}
-                {visitMascotOptions.length > 0 ? (
-                  <label
-                    className="visit-mascot-picker visit-mascot-picker--visit-chrome"
-                    data-testid="visit-mascot-picker"
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 6,
-                      fontSize: '0.85rem',
-                      marginLeft: 4,
-                    }}
-                  >
-                    <span className="section-sub" style={{ whiteSpace: 'nowrap' }}>Mascotte</span>
-                    <select
-                      className="form-select"
-                      style={{ minWidth: 140, maxWidth: 220 }}
-                      value={visitMascotId}
-                      onChange={(e) => onChangeVisitMascotId(e.target.value)}
-                      aria-label="Choisir la mascotte affichée sur le plan"
-                    >
-                      {visitMascotOptions.map((m) => (
-                        <option key={m.id} value={m.id}>{m.label}</option>
-                      ))}
-                    </select>
-                  </label>
-                ) : null}
-                {visitCartographyProgress.total > 0 ? (
-                  <div className="visit-progress visit-progress--donut visit-progress--chrome-inline">
-                    <div
-                      className="visit-progress-donut"
-                      role="progressbar"
-                      aria-valuemin={0}
-                      aria-valuemax={100}
-                      aria-valuenow={visitCartographyProgress.pct}
-                      aria-label={`Parcours sur la carte : ${visitCartographyProgress.pct} % des zones et repères marqués comme vus (${visitCartographyProgress.seenCount} sur ${visitCartographyProgress.total}).`}
-                      title={`${visitCartographyProgress.pct} % — ${visitCartographyProgress.seenCount} / ${visitCartographyProgress.total} vus`}
-                      data-testid="visit-progress-donut"
-                    >
-                      <svg
-                        className="visit-progress-donut__svg"
-                        viewBox={`0 0 ${VISIT_PROGRESS_DONUT_VB} ${VISIT_PROGRESS_DONUT_VB}`}
-                        aria-hidden="true"
-                      >
-                        <circle
-                          className="visit-progress-donut__track"
-                          fill="none"
-                          strokeWidth={VISIT_PROGRESS_DONUT_STROKE}
-                          cx={VISIT_PROGRESS_DONUT_VB / 2}
-                          cy={VISIT_PROGRESS_DONUT_VB / 2}
-                          r={VISIT_PROGRESS_DONUT_R}
-                        />
-                        <circle
-                          className="visit-progress-donut__arc"
-                          fill="none"
-                          strokeWidth={VISIT_PROGRESS_DONUT_STROKE}
-                          strokeLinecap="round"
-                          cx={VISIT_PROGRESS_DONUT_VB / 2}
-                          cy={VISIT_PROGRESS_DONUT_VB / 2}
-                          r={VISIT_PROGRESS_DONUT_R}
-                          transform={`rotate(-90 ${VISIT_PROGRESS_DONUT_VB / 2} ${VISIT_PROGRESS_DONUT_VB / 2})`}
-                          strokeDasharray={VISIT_PROGRESS_DONUT_C}
-                          strokeDashoffset={VISIT_PROGRESS_DONUT_C * (1 - visitCartographyProgress.pct / 100)}
-                        />
-                      </svg>
-                      <span className="visit-progress-donut__label" aria-hidden="true">
-                        <span className="visit-progress-donut__value">{visitCartographyProgress.pct}</span>
-                        <span className="visit-progress-donut__pct-sign">%</span>
-                      </span>
-                    </div>
-                  </div>
-                ) : null}
-                {isHelpEnabled ? (
-                  <HelpPanel
-                    sectionId="visit"
-                    title={HELP_PANELS.visit.title}
-                    entries={HELP_PANELS.visit.items}
-                    isTeacher={isTeacher}
-                    isPulsing={pulseUnseenPanels && !hasSeenSection('visit')}
-                    panelTitlePrefix={helpPanelTitlePrefix}
-                    closeButtonText={helpPanelCloseCta}
-                    dismissButtonText={helpPanelDismissCta}
-                    onMarkSeen={markSectionSeen}
-                    onOpen={trackPanelOpen}
-                    onDismiss={trackPanelDismiss}
-                  />
-                ) : null}
-                {!student && onBackToAuth ? (
-                  <button type="button" className="btn btn-ghost btn-sm" onClick={onBackToAuth}>↩ Retour connexion</button>
-                ) : null}
-              </div>
-            </div>
-            {maps.length > 1 && (
-              <div className="visit-map-card__chrome-maps">
-                <div className="visit-map-switch visit-map-switch--embedded">
-                  {maps.length > 4 ? (
-                    <select
-                      className="visit-map-switch-select"
-                      value={mapId}
-                      onChange={(event) => setMapId(event.target.value)}
-                      aria-label="Sélection de carte visite"
-                    >
-                      {maps.map((m) => (
-                        <option key={m.id} value={m.id}>
-                          {m.label}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    maps.map((m) => (
-                      <button
-                        key={m.id}
-                        type="button"
-                        className={`btn btn-sm ${mapId === m.id ? 'btn-primary' : 'btn-ghost'}`}
-                        onClick={() => setMapId(m.id)}
-                      >
-                        {m.label}
-                      </button>
-                    ))
-                  )}
-                </div>
-              </div>
-            )}
-            {visitCartographyProgress.total === 0 ? (
-              <p className="visit-progress-empty visit-progress-empty--below-chrome section-sub">
-                {maps.length > 1
-                  ? 'Aucune zone ni repère sur cette carte. Choisis une autre carte ci-dessus si besoin.'
-                  : 'Aucune zone ni repère sur cette carte pour l’instant.'}
-              </p>
+          <VisitMapChrome
+            title={visitTitle}
+            showPresentationButton={showVisitPresentationButton}
+            presentationInvitePulse={visitPresentationInvitePulse}
+            onOpenPresentation={() => setVisitTutorialPreview(tutorialPreviewPayload(visitPresentationTutorial))}
+            networkStatusLabel={mode === 'view' ? visitNetworkStatusLabel : null}
+            isOnline={isOnline}
+            syncStatus={syncStatus}
+            pendingSyncCount={pendingSyncCount}
+            visitImmersion={visitImmersion}
+            onToggleImmersion={() => setVisitImmersion((v) => !v)}
+            isTeacher={isTeacher}
+            teacherPreviewAsStudent={teacherPreviewAsStudent}
+            onToggleTeacherPreview={() => setTeacherPreviewAsStudent((v) => !v)}
+            visitMascotId={visitMascotId}
+            visitMascotOptions={visitMascotOptions}
+            onChangeVisitMascotId={onChangeVisitMascotId}
+            cartographyProgress={visitCartographyProgress}
+            helpPanelSlot={isHelpEnabled ? (
+              <HelpPanel
+                sectionId="visit"
+                title={HELP_PANELS.visit.title}
+                entries={HELP_PANELS.visit.items}
+                isTeacher={isTeacher}
+                isPulsing={pulseUnseenPanels && !hasSeenSection('visit')}
+                panelTitlePrefix={helpPanelTitlePrefix}
+                closeButtonText={helpPanelCloseCta}
+                dismissButtonText={helpPanelDismissCta}
+                onMarkSeen={markSectionSeen}
+                onOpen={trackPanelOpen}
+                onDismiss={trackPanelDismiss}
+              />
             ) : null}
-            {isHelpEnabled && showContextHints && visitQuickTip ? (
-              <p className="visit-progress-empty visit-progress-empty--below-chrome section-sub">
-                <strong>{helpHintPrefix}</strong> {visitQuickTip}
-              </p>
-            ) : null}
-          </div>
+            onBackToAuth={!student && onBackToAuth ? onBackToAuth : null}
+            maps={maps}
+            mapId={mapId}
+            onSelectMapId={setMapId}
+            quickTipPrefix={helpHintPrefix}
+            quickTipText={isHelpEnabled && showContextHints && visitQuickTip ? visitQuickTip : null}
+          />
           <div
             ref={stageRef}
             className="visit-map-stage"
@@ -1974,251 +1538,73 @@ function VisitView({
       </div>
 
       {selected ? (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby={visitDetailPanelTitleId}
-          data-testid="visit-detail-panel"
-          className={`visit-detail-panel${comfortableReading ? ' visit-detail-panel--comfortable' : ''} visit-detail-panel--tone-paper`}
-        >
-          <div className="visit-detail-panel__handle" aria-hidden="true" />
-          <div className="visit-detail-panel__head">
-            <h3 id={visitDetailPanelTitleId} className="visit-detail-panel__title">
-              {selectedType === 'zone' ? selected.name : selected.label}
-            </h3>
-            <button
-              type="button"
-              className={`btn btn-ghost btn-sm ${comfortableReading ? 'is-active' : ''}`}
-              aria-pressed={comfortableReading}
-              title="Basculer le mode lecture confortable"
-              onClick={() => setComfortableReading((v) => !v)}
-            >
-              Aa
-            </button>
-            <button type="button" className="btn btn-ghost btn-sm" onClick={closeVisitSelection}>
-              Fermer
-            </button>
-          </div>
-          <div className="visit-detail-panel__body visit-selection-aside">
-              {selected.visit_subtitle && <p className="visit-subtitle">{selected.visit_subtitle}</p>}
-              {selected.map_lead_photo?.image_url && (
-                <div className="visit-media-gallery visit-media-gallery--lead">
-                  <VisitMediaGalleryThumb
-                    media={{
-                      image_url: selected.map_lead_photo.image_url,
-                      caption: selected.map_lead_photo.caption,
-                    }}
-                    onOpenLightbox={setVisitMediaLightbox}
-                  />
-                </div>
-              )}
-              {hasEditorialBlocks ? (
-                <VisitEditorialRenderer
-                  blocks={selectedEditorialBlocks}
-                  selectedVisitMedia={selectedVisitMedia}
-                  onOpenLightbox={setVisitMediaLightbox}
-                />
-              ) : (
-                <>
-                  {selected.visit_short_description && <MarkdownContent>{selected.visit_short_description}</MarkdownContent>}
-                  {firstVisitPhoto && (
-                    <div className="visit-media-gallery visit-media-gallery--lead">
-                      <VisitMediaGalleryThumb media={firstVisitPhoto} onOpenLightbox={setVisitMediaLightbox} />
-                    </div>
-                  )}
-                  {showVisitDetailsBlock && (
-                    <details className="visit-details">
-                      <summary>{selected.visit_details_title || 'Détails'}</summary>
-                      {(restVisitPhotos.length > 0 || mapExtraPhotos.length > 0) && (
-                        <div className="visit-media-gallery visit-media-gallery--details-extra">
-                          {restVisitPhotos.map((m) => (
-                            <VisitMediaGalleryThumb key={m.id} media={m} onOpenLightbox={setVisitMediaLightbox} />
-                          ))}
-                          {mapExtraPhotos.map((ph) => (
-                            <VisitMediaGalleryThumb
-                              key={`map-extra-${ph.id}`}
-                              media={{ image_url: ph.image_url, thumb_url: ph.thumb_url, caption: ph.caption }}
-                              onOpenLightbox={setVisitMediaLightbox}
-                            />
-                          ))}
-                        </div>
-                      )}
-                      {visitDetailsTextTrim ? <MarkdownContent className="visit-details__body">{selected.visit_details_text}</MarkdownContent> : null}
-                    </details>
-                  )}
-                </>
-              )}
-              {visitLocationAside.showBiodiversity && (
-                <details className="visit-details">
-                  <summary>Biodiversité</summary>
-                  <div className="visit-details__section">
-                    {visitLocationAside.primaryLivingNames.length > 0 && (
-                      <div className={`visit-details__subsection${visitLocationAside.livingBeingsOnlyOnTasks.length ? ' visit-details__subsection--with-gap' : ''}`}>
-                        {(visitLocationAside.primaryLivingNames.length > 1
-                          || visitLocationAside.livingBeingsOnlyOnTasks.length > 0) ? (
-                          <h4 className="visit-details__h4">
-                            {visitLocationAside.locationKind === 'zone' ? 'Sur cette zone' : 'Sur ce repère'}
-                          </h4>
-                          ) : null}
-                        {onOpenPlantCatalogPreview ? (
-                          <BiodiversitySpeciesOpenLinks
-                            plants={plants}
-                            names={visitLocationAside.primaryLivingNames}
-                            showHeading={false}
-                            onOpenPlant={onOpenPlantCatalogPreview}
-                          />
-                        ) : (
-                          <LivingBeingsCatalogPanel
-                            plants={plants}
-                            names={visitLocationAside.primaryLivingNames}
-                            showHeading={false}
-                          />
-                        )}
-                      </div>
-                    )}
-                    {visitLocationAside.livingBeingsOnlyOnTasks.length > 0 && (
-                      <div>
-                        <h4 className="visit-details__h4">
-                          Également dans les missions
-                        </h4>
-                        {onOpenPlantCatalogPreview ? (
-                          <BiodiversitySpeciesOpenLinks
-                            plants={plants}
-                            names={visitLocationAside.livingBeingsOnlyOnTasks}
-                            showHeading={false}
-                            sectionTitle="Également dans les missions"
-                            onOpenPlant={onOpenPlantCatalogPreview}
-                          />
-                        ) : (
-                          <LivingBeingsCatalogPanel
-                            plants={plants}
-                            names={visitLocationAside.livingBeingsOnlyOnTasks}
-                            showHeading={false}
-                          />
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </details>
-              )}
-              {visitLocationAside.showTutos && (
-                <details className="visit-details">
-                  <summary>Tuto</summary>
-                  <div className="visit-details__section">
-                    <LocationTutorialPreviewList
-                      tutorials={visitLocationAside.tutorialListForPreview}
-                      locationKind={visitLocationAside.locationKind}
-                      locationId={selected.id}
-                      onOpenTutorialPreview={setVisitTutorialPreview}
-                    />
-                  </div>
-                </details>
-              )}
-              <button className="btn btn-primary btn-sm" disabled={savingSeen} onClick={onToggleSeen}>
-                {seen.has(itemSeenKey(selectedType, selected.id)) ? '✅ Marqué comme vu' : '🔴 Marquer comme vu'}
-              </button>
-              <VisitEditorPanel
-                selected={selected}
-                selectedType={selectedType}
-                onSaved={loadData}
-                onForceLogout={onForceLogout}
-                isTeacher={isTeacher && !teacherPreviewAsStudent}
-                roleTerms={roleTerms}
-                markerEmojis={markerEmojis}
-              />
-          </div>
-        </div>
+        <VisitDetailPanel
+          selected={selected}
+          selectedType={selectedType}
+          onClose={closeVisitSelection}
+          comfortableReading={comfortableReading}
+          onToggleComfortableReading={() => setComfortableReading((v) => !v)}
+          onOpenLightbox={setVisitMediaLightbox}
+          onOpenTutorialPreview={setVisitTutorialPreview}
+          seen={seen}
+          savingSeen={savingSeen}
+          onToggleSeen={onToggleSeen}
+          plants={plants}
+          onOpenPlantCatalogPreview={onOpenPlantCatalogPreview}
+          mapId={mapId}
+          mapZones={mapZones}
+          mapMarkers={mapMarkers}
+          tasks={tasks}
+          catalogTutorials={catalogTutorials}
+          isTeacher={isTeacher}
+          canEditVisit={isTeacher && !teacherPreviewAsStudent}
+          onSaved={loadData}
+          onForceLogout={onForceLogout}
+          roleTerms={roleTerms}
+          markerEmojis={markerEmojis}
+        />
       ) : null}
 
       {showVisitMapTutorialsSection ? (
-        visitImmersion ? (
-          <details className="visit-tutorials-disclosure" data-testid="visit-map-tutorials-section">
-            <summary className="visit-tutorials-disclosure__summary">{visitTutorialsTitle}</summary>
-            <div className="visit-tutorials-disclosure__body">
-              <section className="visit-tutorials visit-tutorials--in-disclosure">
-                {visitTutorialsBody}
-              </section>
-            </div>
-          </details>
-        ) : (
-          <section className="visit-tutorials" data-testid="visit-map-tutorials-section">
-            <h3>{visitTutorialsTitle}</h3>
-            {visitTutorialsBody}
-          </section>
-        )
+        <VisitTutorialsSection
+          visitImmersion={visitImmersion}
+          title={visitTutorialsTitle}
+          emptyText={visitTutorialsEmpty}
+          isTeacher={isTeacher}
+          availableTutorials={availableTutorials}
+          tutorials={content.tutorials || []}
+          mapId={mapId}
+          onSaved={loadData}
+          onForceLogout={onForceLogout}
+          tutorialReadIds={tutorialReadIds}
+          onTutorialAcknowledged={(id) => setTutorialReadIds((prev) => new Set([...prev, id]))}
+          onOpenTutorialPreview={setVisitTutorialPreview}
+          contextCommentsEnabled={contextCommentsEnabled}
+          studentId={student?.id}
+          canParticipateContextComments={canParticipateContextComments}
+        />
       ) : null}
 
       {isTeacher && !teacherPreviewAsStudent && (
-        <details className="visit-prof-tools">
-          <summary className="visit-prof-tools__summary">Outils et synchronisation visite</summary>
-          <div className="visit-prof-tools__body">
-            {!visitMapImageReady && !loading && (
-              <p className="section-sub visit-map-image-hint" style={{ margin: '0 0 8px' }}>
-                Chargement du plan… Les outils zone et repère sont disponibles une fois l’image affichée (coordonnées précises).
-              </p>
-            )}
-            <div className="visit-map-switch">
-              <button type="button" className={`btn btn-sm ${mode === 'view' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => { setMode('view'); setDrawPoints([]); }}>
-                🖐️ Navigation
-              </button>
-              <button
-                type="button"
-                className={`btn btn-sm ${mode === 'draw-zone' ? 'btn-primary' : 'btn-ghost'}`}
-                disabled={!visitMapImageReady}
-                title={!visitMapImageReady ? 'Disponible dès que le plan est chargé.' : undefined}
-                onClick={() => setMode('draw-zone')}
-              >
-                🖊️ Zone visite
-              </button>
-              <button
-                type="button"
-                className={`btn btn-sm ${mode === 'add-marker' ? 'btn-primary' : 'btn-ghost'}`}
-                disabled={!visitMapImageReady}
-                title={!visitMapImageReady ? 'Disponible dès que le plan est chargé.' : undefined}
-                onClick={() => setMode('add-marker')}
-              >
-                📍 Repère visite
-              </button>
-              {mode === 'draw-zone' && (
-                <>
-                  <button type="button" className="btn btn-secondary btn-sm" disabled={drawPoints.length < 3 || creating} onClick={createZoneFromPoints}>
-                    ✅ Terminer zone ({drawPoints.length})
-                  </button>
-                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => setDrawPoints((prev) => prev.slice(0, -1))}>
-                    ↩️ Retirer point
-                  </button>
-                  <button type="button" className="btn btn-danger btn-sm" onClick={() => setDrawPoints([])}>
-                    ✕ Annuler
-                  </button>
-                </>
-              )}
-            </div>
-            <VisitSyncPanel
-              isTeacher={isTeacher}
-              mapId={mapId}
-              onSynced={loadData}
-              onForceLogout={onForceLogout}
-            />
-            {typeof onOpenMascotPackStudioTab === 'function' ? (
-              <section className="visit-mascot-preview-card" aria-label="Studio packs mascotte">
-                <div>
-                  <h3>🧩 Studio packs mascotte</h3>
-                  <p className="section-sub" style={{ marginBottom: 8 }}>
-                    L’édition complète des mascottes (packs, bibliothèque, comportements) est centralisée
-                    dans l’onglet dédié.
-                  </p>
-                  <button
-                    type="button"
-                    className="btn btn-secondary btn-sm"
-                    onClick={onOpenMascotPackStudioTab}
-                  >
-                    Ouvrir l’onglet Packs mascotte
-                  </button>
-                </div>
-              </section>
-            ) : null}
-          </div>
-        </details>
+        <VisitProfToolsPanel
+          isTeacher={isTeacher}
+          loading={loading}
+          visitMapImageReady={visitMapImageReady}
+          mode={mode}
+          onSetMode={(nextMode) => {
+            setMode(nextMode);
+            if (nextMode === 'view') setDrawPoints([]);
+          }}
+          drawPointsCount={drawPoints.length}
+          creating={creating}
+          onCreateZone={createZoneFromPoints}
+          onUndoDrawPoint={() => setDrawPoints((prev) => prev.slice(0, -1))}
+          onClearDrawPoints={() => setDrawPoints([])}
+          mapId={mapId}
+          onSynced={loadData}
+          onForceLogout={onForceLogout}
+          onOpenMascotPackStudioTab={onOpenMascotPackStudioTab}
+        />
       )}
     </div>
     </>

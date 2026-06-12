@@ -13,11 +13,24 @@ const {
   serializeZonePopoverRow,
 } = require('../../lib/glZoneContent');
 
+const { z, validate } = require('../../lib/validate');
+
 const router = express.Router();
 
 const MIN_LABEL = 1;
 const MAX_LABEL = 180;
 const MAX_POINTS = 200;
+
+// O7 — `chapterId` de GET /zones : coercition permissive reproduisant l'ancien
+// `req.query?.chapterId != null ? Number(...) : null` (absent → null, non numérique → NaN
+// remplacé par null via catch). Le schéma ne rejette jamais ; le 400 « chapterId requis »
+// historique reste décidé par le handler quand la valeur n'est pas un nombre fini.
+const glKingdomZonesQuerySchema = z.object({
+  chapterId: z.preprocess(
+    (v) => (v == null ? null : Number(v)),
+    z.number().finite().nullable().catch(null)
+  ),
+});
 
 const { normalizeOptionalString } = require('../../lib/shared/httpHelpers');
 
@@ -63,8 +76,8 @@ function mapZoneRow(row) {
   };
 }
 
-router.get('/zones', requireGlAuth, async (req, res) => {
-  const chapterId = req.query?.chapterId != null ? Number(req.query.chapterId) : null;
+router.get('/zones', requireGlAuth, validate({ query: glKingdomZonesQuerySchema }), async (req, res) => {
+  const chapterId = req.validatedQuery?.chapterId;
   if (chapterId == null || !Number.isFinite(chapterId)) {
     return res.status(400).json({ error: 'chapterId requis' });
   }
@@ -181,3 +194,4 @@ router.delete('/zones/:id', requireGlPermission('gl.content.manage'), async (req
 });
 
 module.exports = router;
+module.exports.glKingdomZonesQuerySchema = glKingdomZonesQuerySchema; // exporté pour test no-DB du contrat O7

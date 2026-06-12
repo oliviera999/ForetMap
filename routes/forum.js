@@ -4,6 +4,7 @@ const { queryAll, queryOne, execute } = require('../database');
 const { requireAuth, requirePermission } = require('../middleware/requireTeacher');
 const { logRouteError } = require('../lib/routeLog');
 const asyncHandler = require('../lib/asyncHandler');
+const { z, validate } = require('../lib/validate');
 const { emitForumChanged } = require('../lib/realtime');
 const { getSettingValue } = require('../lib/settings');
 const { logAudit } = require('./audit');
@@ -34,6 +35,16 @@ const DEFAULT_PAGE_SIZE = 20;
 const MAX_PAGE_SIZE = 50;
 const THREAD_COOLDOWN_MS = 10_000;
 const POST_COOLDOWN_MS = 5_000;
+
+// O7 — pagination des listes du forum : coercition permissive (jamais de 400 pour une query
+// invalide) reproduisant exactement `parsePageQuery` : `page` ≥ 1 (repli 1), `page_size`
+// borné à MAX_PAGE_SIZE (repli DEFAULT_PAGE_SIZE), `offset` dérivé.
+const forumPageQuerySchema = z
+  .object({ page: z.unknown().optional(), page_size: z.unknown().optional() })
+  .transform((q) => parsePageQuery(q, {
+    defaultPageSize: DEFAULT_PAGE_SIZE,
+    maxPageSize: MAX_PAGE_SIZE,
+  }));
 const {
   getAllowedReactionSet,
   normalizeEmoji,
@@ -160,16 +171,13 @@ router.use((req, res, next) => {
   return next();
 });
 
-router.get('/threads', asyncHandler(async (req, res) => {
+router.get('/threads', validate({ query: forumPageQuerySchema }), asyncHandler(async (req, res) => {
   const requestedGroupId = normalizeId(req.query?.group_id);
   const visibleGroupIds = await resolveForumVisibleGroupIds(req.auth);
   if (requestedGroupId && Array.isArray(visibleGroupIds) && !visibleGroupIds.includes(requestedGroupId)) {
     return res.status(403).json({ error: 'Groupe hors périmètre' });
   }
-  const { page, pageSize, offset } = parsePageQuery(req.query, {
-    defaultPageSize: DEFAULT_PAGE_SIZE,
-    maxPageSize: MAX_PAGE_SIZE,
-  });
+  const { page, pageSize, offset } = req.validatedQuery;
   const sqlLimit = Math.max(1, Number(pageSize) || DEFAULT_PAGE_SIZE);
   const sqlOffset = Math.max(0, Number(offset) || 0);
   if (Array.isArray(visibleGroupIds) && !visibleGroupIds.length && !requestedGroupId) {
@@ -282,12 +290,9 @@ router.post('/threads', asyncHandler(async (req, res) => {
   res.status(201).json({ thread, first_post_id: postId });
 }));
 
-router.get('/threads/:id', asyncHandler(async (req, res) => {
+router.get('/threads/:id', validate({ query: forumPageQuerySchema }), asyncHandler(async (req, res) => {
   const actor = getActor(req.auth);
-  const { page, pageSize, offset } = parsePageQuery(req.query, {
-    defaultPageSize: DEFAULT_PAGE_SIZE,
-    maxPageSize: MAX_PAGE_SIZE,
-  });
+  const { page, pageSize, offset } = req.validatedQuery;
   const sqlLimit = Math.max(1, Number(pageSize) || DEFAULT_PAGE_SIZE);
   const sqlOffset = Math.max(0, Number(offset) || 0);
   const thread = await loadThreadThreadSafe(req.params.id);
@@ -557,3 +562,4 @@ router.delete('/posts/:id', asyncHandler(async (req, res) => {
 }));
 
 module.exports = router;
+module.exports.forumPageQuerySchema = forumPageQuerySchema; // exporté pour test no-DB du contrat O7

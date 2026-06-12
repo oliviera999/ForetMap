@@ -1,8 +1,3 @@
-/** Tâche marquée « importance absolue » (affichage urgence). */
-export function isTaskUrgentCategory(task) {
-  return String(task?.importance_level || '').trim().toLowerCase() === 'absolute';
-}
-
 /** Actions de changement de statut côté n3boss (partagé TasksView / TaskTileCard). */
 export const TEACHER_STATUS_ACTIONS = [
   { value: 'in_progress', label: 'En cours', icon: '⚙️' },
