@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { useOverlayHistoryBack } from '../hooks/useOverlayHistoryBack';
 import { api, AccountDeletedError } from '../services/api';
 import { SPECIAL_EMOJI, SPECIAL_DESC, TREE_LEGEND, TREE_DOTS } from '../constants/garden';
 import { PLANT_EMOJIS } from '../constants/emojis';
@@ -32,7 +31,6 @@ import {
   plantLinkedToMapZone,
 } from '../utils/plantFilters';
 import { armNativeFilePickerGuard, disarmNativeFilePickerGuard } from '../utils/overlayHistory';
-import { DialogShell } from './DialogShell';
 import { MarkdownContent } from './MarkdownContent.jsx';
 import { MarkdownTextarea } from './MarkdownTextarea.jsx';
 import { TimedToast } from '../shared/components/TimedToast.jsx';
@@ -51,6 +49,10 @@ import { PlantPrefillPanel } from './biodiv/PlantPrefillPanel.jsx';
 import { PlantSummaryBadges, PlantEcosystemHumanLead } from './biodiv/PlantSummaryBlocks.jsx';
 import { PlantBiodivHeroPhoto, PlantMetaSections } from './biodiv/PlantMetaSections.jsx';
 import { PlantCatalogFilterPanel } from './biodiv/PlantCatalogFilterPanel.jsx';
+import {
+  PlantBiodiversityCatalogPreviewCard,
+  PlantCatalogPreviewModal,
+} from './biodiv/PlantCatalogPreview.jsx';
 import { PLANT_PHOTO_FIELD_OPTIONS } from '../constants/plantMetaSections.js';
 import { PlantLocationPreviewMaps } from './biodiv/BiodivLocationMaps.jsx';
 
@@ -987,181 +989,6 @@ function ObservationNotebook({ student, onForceLogout = null }) {
           ))
       }
     </div>
-  );
-}
-
-/**
- * Carte fiche biodiversité (lecture seule), même contenu que le catalogue élève — réutilisée dans le viewer et la modale d’aperçu (comme les tutoriels).
- */
-function PlantBiodiversityCatalogPreviewCard({
-  plant,
-  zones = [],
-  markers = [],
-  maps = [],
-  myObservationCount = 0,
-  siteObservationCount = 0,
-  onObservationAcknowledged = null,
-  contextCommentsEnabled = true,
-  canParticipateContextComments = true,
-  onForceLogout = null,
-  showContextComments = true,
-  dataBiodivPlantId = null,
-}) {
-  if (!plant) return null;
-  const pZones = zones.filter((z) => plantLinkedToMapZone(plant, z));
-  const pMarkers = markers.filter((m) => plantLinkedToMapMarker(plant, m));
-  const hasMapLink = pZones.length > 0 || pMarkers.length > 0;
-  const dataAttr = dataBiodivPlantId != null && dataBiodivPlantId !== ''
-    ? { 'data-biodiv-plant-id': dataBiodivPlantId }
-    : {};
-  return (
-    <article className="biodiv-card fade-in" {...dataAttr}>
-      <div className="biodiv-card-head">
-        <div className="biodiv-card-title-wrap">
-          <span className="biodiv-emoji">{plant.emoji}</span>
-          <div className="biodiv-card-title-content">
-            <h3>{plant.name}</h3>
-            <p className="plant-scientific">
-              {normalizedPlantValue(plant.scientific_name) || 'Nom scientifique non renseigne'}
-            </p>
-          </div>
-        </div>
-        {normalizedPlantValue(plant.group_2) && (
-          <span className="task-chip">{plant.group_2}</span>
-        )}
-      </div>
-
-      <div className="biodiv-card-body">
-        {plant.description ? (
-          <MarkdownContent className="plant-row-desc">{plant.description}</MarkdownContent>
-        ) : (
-          <p className="plant-row-desc"><em style={{ color: '#bbb' }}>Pas de description</em></p>
-        )}
-        <PlantBiodivHeroPhoto plant={plant} />
-        <PlantEcosystemHumanLead plant={plant} />
-        <CatalogRemarksSection plant={plant} />
-        <div className="task-meta">
-          {normalizedPlantValue(plant.habitat) && !isGenericPotagerLabel(plant.habitat) && (
-            <span className="task-chip">🏡 {plant.habitat}</span>
-          )}
-          {normalizedPlantValue(plant.agroecosystem_category) && !isGenericPotagerLabel(plant.agroecosystem_category) && (
-            <span className="task-chip">🌍 {plant.agroecosystem_category}</span>
-          )}
-        </div>
-        <PlantSummaryBadges plant={plant} />
-        <PlantMetaSections plant={plant} />
-        {hasMapLink ? (
-          <div>
-            <div style={{ fontSize: '.74rem', fontWeight: 700, color: '#aaa', textTransform: 'uppercase', marginBottom: 4 }}>Sur la carte</div>
-            <PlantLocationPreviewMaps maps={maps} zones={pZones} markers={pMarkers} />
-            <div style={{ fontSize: '.74rem', fontWeight: 700, color: '#aaa', textTransform: 'uppercase', margin: '10px 0 4px' }}>Zones et repères</div>
-            <div className="plant-zones">
-              {pZones.map((z) => (
-                <span key={`zone-${z.id}`} className="plant-zone-chip">📍 {z.name}</span>
-              ))}
-              {pMarkers.map((m) => (
-                <span key={`marker-${m.id}`} className="plant-zone-chip">📌 {m.label?.trim() ? m.label : 'Repère'}</span>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <p style={{ fontSize: '.82rem', color: '#bbb', fontStyle: 'italic' }}>Pas encore associé à une zone ni à un repère sur la carte</p>
-        )}
-        <div className="plant-discovery-ack-row" style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
-          <PlantSpeciesDiscoveryAcknowledgeButton
-            plantId={plant.id}
-            speciesName={plant.name}
-            myObservationCount={myObservationCount}
-            siteObservationCount={siteObservationCount}
-            offerPlantCommentAfterObservation={contextCommentsEnabled && canParticipateContextComments}
-            onAcknowledged={(id, next) => {
-              onObservationAcknowledged?.(id, next);
-            }}
-            onForceLogout={onForceLogout}
-          />
-        </div>
-        {showContextComments && contextCommentsEnabled && (
-          <ContextComments
-            contextType="plant"
-            contextId={String(plant.id)}
-            title="Commentaires sur cette fiche"
-            placeholder="Remarque ou question sur cet être vivant…"
-            canParticipateContextComments={canParticipateContextComments}
-          />
-        )}
-      </div>
-    </article>
-  );
-}
-
-/** Aperçu plein écran (portal) d’une fiche catalogue — même principe que `TutorialPreviewModal`. */
-function PlantCatalogPreviewModal({
-  plant,
-  maps = [],
-  onClose,
-  onForceLogout = null,
-}) {
-  const publicSettings = usePublicSettings();
-  const { canParticipateContextComments = true } = useSession();
-  const { zones = [], markers = [] } = useData();
-  useOverlayHistoryBack(!!plant, onClose);
-  const contextCommentsEnabled = publicSettings?.modules?.context_comments_enabled !== false;
-  const [obs, setObs] = useState({ my: 0, site: 0 });
-
-  useEffect(() => {
-    if (!plant?.id) {
-      setObs({ my: 0, site: 0 });
-      return undefined;
-    }
-    let cancelled = false;
-    (async () => {
-      const map = await fetchPlantObservationCounts([plant.id]);
-      const row = map[String(plant.id)] || map[plant.id];
-      if (cancelled || !row) return;
-      setObs({
-        my: Number(row.my_observation_count) || 0,
-        site: Number(row.site_observation_count) || 0,
-      });
-    })();
-    return () => { cancelled = true; };
-  }, [plant?.id]);
-
-  if (!plant) return null;
-  return (
-    <DialogShell
-      open={!!plant}
-      onClose={onClose}
-      overlayClassName="modal-overlay modal-overlay--tuto-preview"
-      dialogClassName="log-modal tuto-preview-modal"
-      ariaLabelledBy="plant-catalog-preview-title"
-      closeOnOverlay
-    >
-      <div className="tuto-preview-modal__head">
-        <button type="button" className="modal-close" onClick={onClose} aria-label="Fermer l’aperçu">✕</button>
-        <h3 id="plant-catalog-preview-title">🌱 {plant.name}</h3>
-      </div>
-      <div className="tuto-preview-modal__body tuto-preview-modal__body--biodiv-scroll">
-        <PlantBiodiversityCatalogPreviewCard
-          plant={plant}
-          zones={zones}
-          markers={markers}
-          maps={maps}
-          myObservationCount={obs.my}
-          siteObservationCount={obs.site}
-          onObservationAcknowledged={(_id, next) => {
-            setObs({
-              my: Number(next.my_observation_count) || 0,
-              site: Number(next.site_observation_count) || 0,
-            });
-          }}
-          contextCommentsEnabled={contextCommentsEnabled}
-          canParticipateContextComments={canParticipateContextComments}
-          onForceLogout={onForceLogout}
-          showContextComments
-          dataBiodivPlantId={null}
-        />
-      </div>
-    </DialogShell>
   );
 }
 
