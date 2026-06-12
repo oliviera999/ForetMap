@@ -18,6 +18,7 @@ import { getRoleTerms } from '../utils/n3-terminology';
 import { getContentText } from '../utils/content';
 import { DialogShell } from './DialogShell';
 import { buildAffiliationSelectOptions } from '../utils/affiliationSelectOptions';
+import { getAuthSubmitError } from '../utils/authRegisterValidation.js';
 
 function startGoogleAuth(mode) {
   const safeMode = mode === 'teacher' ? 'teacher' : 'student';
@@ -382,26 +383,12 @@ function AuthScreen({ onLogin, appVersion, onVisitGuest, uiSettings, isN3Affilia
   const submit = async () => {
     setInfo('');
     setErr('');
-    if (mode === 'login' && (!identifier.trim() || !pass)) return setErr('Identifiant et mot de passe requis');
-    if (mode === 'register' && !allowRegister) return setErr('Inscriptions désactivées');
-    if (mode === 'register' && (!first.trim() || !last.trim() || !pass)) return setErr('Tous les champs sont requis');
-    if (mode === 'register' && pass !== pass2) return setErr('Les mots de passe ne correspondent pas');
-    if (mode === 'register' && pass.length < 4) return setErr('Mot de passe trop court (min 4 caractères)');
-    if (mode === 'register' && pseudo.trim() && !/^[A-Za-z0-9_.-]{3,30}$/.test(pseudo.trim())) {
-      return setErr('Pseudo invalide (3-30 caractères, lettres/chiffres/._-)');
-    }
-    if (mode === 'register' && email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      return setErr('Email invalide');
-    }
-    if (mode === 'register' && description.trim().length > 300) {
-      return setErr('Description trop longue (max 300 caractères)');
-    }
-    if (mode === 'register' && !affiliation) {
-      return setErr('Choisis ton espace (cartes proposées dans la liste)');
-    }
-    if (mode === 'register' && !affiliationOptions.some((o) => o.value === affiliation)) {
-      return setErr('Choix d’espace invalide');
-    }
+    const validationError = getAuthSubmitError({
+      mode, identifier, pass, pass2, allowRegister,
+      first, last, pseudo, email, description,
+      affiliation, affiliationOptions,
+    });
+    if (validationError) return setErr(validationError);
     setLoading(true);
     try {
       const endpoint = mode === 'login' ? '/api/auth/login' : '/api/auth/register';
