@@ -3,8 +3,23 @@ import { io } from 'socket.io-client';
 import { withAppBase } from '../services/api.js';
 import { useGLSession } from './hooks/useGLSession.js';
 import { apiGL } from './services/apiGL.js';
-import { GL_TAB_STORAGE_KEY, GL_PLAYER_TABS, GL_ADMIN_EXTRA_TABS, GL_VALID_TABS } from './constants/app-runtime.js';
+import { GL_TAB_STORAGE_KEY } from './constants/app-runtime.js';
 import { GL_MODULE_DEFAULTS, normalizeGlModules, isModuleEnabled } from './constants/modules.js';
+import {
+  readStoredGlTab,
+  isGlAdminRole,
+  defaultTabForGlAuth,
+  toGameViewModel,
+  parseGlOauthHash,
+  filterGlTabs,
+} from './utils/glAppShellHelpers.js';
+import {
+  GL_DEFAULT_GAMEPLAY,
+  computeCanRequestAction,
+  computeCanSpellCast,
+  computePlayerVitality,
+  findPlayerMascotId,
+} from './utils/glGameplayRules.js';
 import { GLAuthView } from './components/GLAuthView.jsx';
 import { GLTopBar, GL_TAB_ID_PREFIX, GL_TABPANEL_ID_PREFIX } from './components/GLTopBar.jsx';
 import { useGlCompactNav } from './hooks/useGlCompactNav.js';
@@ -66,69 +81,16 @@ import {
   glImpersonationBannerCopy,
 } from './utils/glStaffView.js';
 
-const DEFAULT_GAMEPLAY = {
-  turnsEnabled: false,
-  narrationEnabled: false,
-  playerActionsEnabled: false,
-  scoringEnabled: false,
-  vitalityEnabled: false,
-  defaultHealthPoints: 3,
-  defaultPowerPoints: 3,
-  spellCastEnabled: false,
-  spellCastContributionMode: 'both',
-  spellCastTeamScope: 'any_team',
-  spellCastMjOnly: false,
-  qcmMjOnly: false,
-};
-
-function decodeBase64UrlJson(value) {
-  try {
-    const normalized = String(value || '').replace(/-/g, '+').replace(/_/g, '/');
-    const padded = normalized + '='.repeat((4 - (normalized.length % 4)) % 4);
-    return JSON.parse(atob(padded));
-  } catch (_) {
-    return null;
-  }
-}
-
-function readStoredTab() {
-  try {
-    const raw = String(localStorage.getItem(GL_TAB_STORAGE_KEY) || '').trim();
-    if (GL_VALID_TABS.has(raw)) return raw;
-  } catch (_) {
-    // noop
-  }
-  return 'world';
-}
-
-function isAdminRole(auth) {
-  return auth?.userType === 'gl_admin';
-}
-
-function defaultTabForAuth(auth) {
-  return isAdminRole(auth) ? 'mj' : 'maps';
-}
-
-function toGameViewModel(raw) {
-  if (!raw) return null;
-  const game = raw?.game || null;
-  const teams = Array.isArray(raw?.teams) ? raw.teams : [];
-  const markers = Array.isArray(raw?.markers) ? raw.markers : [];
-  const scores = raw?.scores || {};
-  const pendingActions = Array.isArray(raw?.pendingActions) ? raw.pendingActions : [];
-  return { game, teams, markers, scores, pendingActions, events: raw?.events || [] };
-}
-
 export function AppGL() {
   const { session, auth, token, updateSession, logout } = useGLSession();
   const compactNav = useGlCompactNav();
   const learningProgress = useGlLearningProgress(token);
-  const [tab, setTab] = useState(() => readStoredTab());
+  const [tab, setTab] = useState(() => readStoredGlTab());
   const [chapters, setChapters] = useState([]);
   const [classes, setClasses] = useState([]);
   const [activeGameId, setActiveGameId] = useState(null);
   const [gameState, setGameState] = useState(null);
-  const [gameplaySettings, setGameplaySettings] = useState(DEFAULT_GAMEPLAY);
+  const [gameplaySettings, setGameplaySettings] = useState(GL_DEFAULT_GAMEPLAY);
   const [selectedTeamId, setSelectedTeamId] = useState(null);
   const [narrationToast, setNarrationToast] = useState(null); // { text, ts }
   const [turnToast, setTurnToast] = useState(null); // { teamId, ts }
@@ -222,7 +184,7 @@ export function AppGL() {
     setGlossaryFocusCode(null);
   }, []);
 
-  const isAdmin = isAdminRole(auth);
+  const isAdmin = isGlAdminRole(auth);
   const appVersion = useAppVersion();
   const isImpersonating = !!auth?.impersonating;
   const isStaff = isGlStaffAuth(auth);
@@ -317,55 +279,33 @@ export function AppGL() {
 
   useEffect(() => {
     const hashRaw = window.location.hash.startsWith('#') ? window.location.hash.slice(1) : '';
-    if (!hashRaw) return;
-    const hashParams = new URLSearchParams(hashRaw);
-    const oauthPayload = hashParams.get('oauth');
-    const oauthError = hashParams.get('oauth_error');
-    if (!oauthPayload && !oauthError) return;
+    const oauthResult = parseGlOauthHash(hashRaw);
+    if (!oauthResult) return;
 
     const cleanUrl = `${window.location.pathname}${window.location.search}`;
     window.history.replaceState({}, document.title, cleanUrl);
 
-    if (oauthError) {
-      setOauthNotice({ error: oauthError });
+    if (oauthResult.kind === 'error') {
+      setOauthNotice({ error: oauthResult.code });
       return;
     }
-    const payload = decodeBase64UrlJson(oauthPayload);
-    if (payload?.type === 'gl_staff' && payload?.token) {
-      const nextAuth = payload.auth || null;
-      updateSession({ token: payload.token, auth: nextAuth });
-      setTab(defaultTabForAuth(nextAuth));
-      setOauthNotice({ success: true });
-      setError('');
-      return;
-    }
-    if (payload?.type === 'gl_player' && payload?.token) {
-      const nextAuth = payload.auth || null;
-      updateSession({ token: payload.token, auth: nextAuth });
-      setTab(defaultTabForAuth(nextAuth));
+    if (oauthResult.kind === 'session') {
+      updateSession({ token: oauthResult.token, auth: oauthResult.auth });
+      setTab(defaultTabForGlAuth(oauthResult.auth));
       setOauthNotice({ success: true });
       setError('');
       return;
     }
     setOauthNotice({ error: 'oauth_invalid_payload' });
   }, [updateSession]);
-  const tabs = useMemo(() => {
-    const playerTabs = GL_PLAYER_TABS.filter((tab) => {
-      if (tab.id === 'history') return isModuleEnabled(modules, 'journalEnabled');
-      if (tab.id === 'tutorials') return isModuleEnabled(modules, 'tutorialsEnabled');
-      if (tab.id === 'forum') return isModuleEnabled(modules, 'forumEnabled');
-      if (tab.id === 'market') {
-        return isModuleEnabled(modules, 'marketEnabled') && !!gameplaySettings.vitalityEnabled;
-      }
-      if (tab.id === 'journal') return isModuleEnabled(modules, 'journalEnabled');
-      if (tab.id === 'my-journal') return isModuleEnabled(modules, 'playerJournalEnabled');
-      if (tab.id === 'selene-carnet') return isModuleEnabled(modules, 'loreCarnetEnabled');
-      if (tab.id === 'lore-glossary') return isModuleEnabled(modules, 'loreGlossaryEnabled');
-      return true;
-    });
-    const adminTabs = GL_ADMIN_EXTRA_TABS;
-    return showStaffAdminUi ? [...playerTabs, ...adminTabs] : playerTabs;
-  }, [showStaffAdminUi, modules, gameplaySettings.vitalityEnabled]);
+  const tabs = useMemo(
+    () => filterGlTabs({
+      modules,
+      vitalityEnabled: gameplaySettings.vitalityEnabled,
+      showStaffAdminUi,
+    }),
+    [showStaffAdminUi, modules, gameplaySettings.vitalityEnabled]
+  );
 
   useEffect(() => {
     try {
@@ -377,7 +317,7 @@ export function AppGL() {
 
   useEffect(() => {
     if (!tabs.some((current) => current.id === tab)) {
-      setTab(defaultTabForAuth(auth));
+      setTab(defaultTabForGlAuth(auth));
     }
   }, [tabs, tab, auth]);
 
@@ -386,7 +326,7 @@ export function AppGL() {
     try {
       const data = await apiGL('/api/gl/gameplay-settings');
       const next = data?.settings || {};
-      setGameplaySettings({ ...DEFAULT_GAMEPLAY, ...next });
+      setGameplaySettings({ ...GL_DEFAULT_GAMEPLAY, ...next });
     } catch (_) {
       // toggles silencieusement défaut
     }
@@ -436,7 +376,7 @@ export function AppGL() {
       }
       setGlViewMode('native');
       updateSession({ token: payload.authToken, auth: payload.auth });
-      setTab(defaultTabForAuth(payload.auth));
+      setTab(defaultTabForGlAuth(payload.auth));
       setError('');
     } catch (err) {
       setError(err.message || 'Impossible de quitter la prise de contrôle');
@@ -648,31 +588,28 @@ export function AppGL() {
     return value != null ? Number(value) : null;
   }, [gameState]);
 
-  const canRequestAction = useMemo(() => {
-    if (showStaffAdminUi || !gameplaySettings.playerActionsEnabled) return false;
-    const myTeamId = auth?.teamId != null ? Number(auth.teamId) : null;
-    if (myTeamId == null) return false;
-    if (gameplaySettings.turnsEnabled && currentTeamId != null && currentTeamId !== myTeamId) return false;
-    return true;
-  }, [showStaffAdminUi, gameplaySettings, auth, currentTeamId]);
+  const canRequestAction = useMemo(
+    () => computeCanRequestAction({ showStaffAdminUi, gameplaySettings, auth, currentTeamId }),
+    [showStaffAdminUi, gameplaySettings, auth, currentTeamId]
+  );
 
   const markerArrivalEnabled = useMemo(() => {
     if (showStaffAdminUi) return true;
     return !gameplaySettings.qcmMjOnly;
   }, [showStaffAdminUi, gameplaySettings.qcmMjOnly]);
 
-  const canSpellCast = useMemo(() => {
-    const moduleOn = isModuleEnabled(modules, 'spellCastEnabled')
-      || gameplaySettings.spellCastEnabled === true;
-    if (!moduleOn || !gameplaySettings.vitalityEnabled) return false;
-    if (!gameState?.game?.id || gameState?.game?.status !== 'live') return false;
-    if (gameplaySettings.spellCastMjOnly && !showStaffAdminUi) return false;
-    if (gameplaySettings.turnsEnabled && currentTeamId != null) {
-      const myTeamId = auth?.teamId != null ? Number(auth.teamId) : null;
-      if (showsPlayerChrome && myTeamId != null && currentTeamId !== myTeamId) return false;
-    }
-    return true;
-  }, [modules, gameplaySettings, gameState, auth, currentTeamId, showsPlayerChrome, showStaffAdminUi]);
+  const canSpellCast = useMemo(
+    () => computeCanSpellCast({
+      modules,
+      gameplaySettings,
+      gameState,
+      auth,
+      currentTeamId,
+      showsPlayerChrome,
+      showStaffAdminUi,
+    }),
+    [modules, gameplaySettings, gameState, auth, currentTeamId, showsPlayerChrome, showStaffAdminUi]
+  );
 
   const spellCast = useGLSpellCast({
     token,
@@ -698,31 +635,21 @@ export function AppGL() {
     currentTeamId,
   });
 
-  const playerMascotId = useMemo(() => {
-    if (!showsPlayerChrome) return null;
-    const myTeamId = auth?.teamId != null ? Number(auth.teamId) : null;
-    if (myTeamId == null || !Array.isArray(gameState?.teams)) return null;
-    const team = gameState.teams.find((t) => Number(t.id) === myTeamId);
-    return team?.mascot_id || null;
-  }, [showsPlayerChrome, auth, gameState]);
+  const playerMascotId = useMemo(
+    () => findPlayerMascotId({ showsPlayerChrome, auth, teams: gameState?.teams }),
+    [showsPlayerChrome, auth, gameState]
+  );
 
-  const playerVitality = useMemo(() => {
-    if (!showsPlayerChrome || !gameplaySettings.vitalityEnabled) return null;
-    const playerId = auth?.userId != null ? Number(auth.userId) : null;
-    if (playerId == null) return null;
-    const fromGame = gameState?.vitality?.byPlayerId?.[playerId];
-    if (fromGame) {
-      return { health: fromGame.health, power: fromGame.power };
-    }
-    const profile = glProfile || {};
-    if (profile.health_points != null || profile.power_points != null) {
-      return {
-        health: Number(profile.health_points) || 0,
-        power: Number(profile.power_points) || 0,
-      };
-    }
-    return null;
-  }, [showsPlayerChrome, gameplaySettings.vitalityEnabled, auth, gameState, glProfile]);
+  const playerVitality = useMemo(
+    () => computePlayerVitality({
+      showsPlayerChrome,
+      vitalityEnabled: gameplaySettings.vitalityEnabled,
+      auth,
+      gameState,
+      profile: glProfile,
+    }),
+    [showsPlayerChrome, gameplaySettings.vitalityEnabled, auth, gameState, glProfile]
+  );
 
   const notifications = useGLNotificationCenter();
   useEffect(() => {
@@ -752,7 +679,7 @@ export function AppGL() {
         appVersion={appVersion}
         onLogin={(data) => {
           updateSession({ token: data.authToken, auth: data.auth });
-          setTab(defaultTabForAuth(data?.auth));
+          setTab(defaultTabForGlAuth(data?.auth));
           setError('');
           setOauthNotice(null);
         }}
@@ -788,7 +715,7 @@ export function AppGL() {
         glViewMode={glViewMode}
         onGlViewModeNative={() => {
           setGlViewMode('native');
-          setTab(defaultTabForAuth(auth));
+          setTab(defaultTabForGlAuth(auth));
         }}
         onGlViewModePlayer={() => {
           setGlViewMode('player');
