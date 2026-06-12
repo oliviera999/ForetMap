@@ -13,14 +13,7 @@ import { HelpPanel } from './HelpPanel';
 import { HELP_PANELS } from '../constants/help';
 import { StatCard, StatsSummaryGrid } from '../shared/components/StatsSummaryGrid.jsx';
 import { TimedToast } from '../shared/components/TimedToast.jsx';
-import {
-  sortProgressionSteps,
-  resolveTaskTierSlug,
-  findProgressionStep,
-  getNextProgressionStep,
-  getProgressionStepIndex,
-  computeProgressPercent,
-} from '../utils/studentProgressionLadder.js';
+import { deriveStudentProgressionView } from '../utils/studentStatsProgression.js';
 import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
 import { useSession } from '../contexts/SessionContext.jsx';
 
@@ -47,54 +40,19 @@ function StudentStats({ student }) {
   );
 
   const { stats, assignments } = data;
-  const defaultIconBySlug = {
-    eleve_novice: '🪨',
-    eleve_avance: '🌿',
-    eleve_chevronne: '🏆',
-  };
-  const rawSteps = Array.isArray(data?.progression?.steps) && data.progression.steps.length > 0
-    ? data.progression.steps
-    : [
-      { roleSlug: 'eleve_novice', min: 0, label: 'n3beur novice' },
-      { roleSlug: 'eleve_avance', min: 5, label: 'n3beur avancé' },
-      { roleSlug: 'eleve_chevronne', min: 10, label: 'n3beur chevronné' },
-    ];
-  const RANKS = sortProgressionSteps(rawSteps).map((step, i) => ({
-    ...step,
-    color: i === 0 ? '#94a3b8' : i === 1 ? '#52b788' : '#1a4731',
-    icon: String(step.emoji || '').trim() || defaultIconBySlug[String(step.roleSlug || '').toLowerCase()] || '🌿',
-  }));
-  const autoProgressionEnabled = data?.progression?.autoProgressionEnabled !== false;
-  const taskTierSlug = resolveTaskTierSlug(stats.done, RANKS);
-  const taskTier = findProgressionStep(RANKS, taskTierSlug) || RANKS[0];
-  const taskTierIndex = getProgressionStepIndex(RANKS, taskTierSlug);
-  const actualSlug = String(data?.progression?.roleSlug || '').toLowerCase();
-  const actualTier =
-    findProgressionStep(RANKS, actualSlug)
-    || (data?.progression?.roleDisplayName
-      ? {
-        roleSlug: actualSlug,
-        min: taskTier.min,
-        label: data.progression.roleDisplayName,
-        icon: String(data?.progression?.roleEmoji || '').trim() || taskTier.icon,
-        color: taskTier.color,
-      }
-      : taskTier);
-  const actualIndex = getProgressionStepIndex(RANKS, actualSlug);
-  const nextRank = getNextProgressionStep(RANKS, taskTierSlug);
-  const progressPct = computeProgressPercent(stats.done, taskTier, nextRank);
-  const profileAheadOfTasks =
-    autoProgressionEnabled
-    && actualIndex >= 0
-    && taskTierIndex >= 0
-    && actualIndex > taskTierIndex;
-  const profileBehindOfTasks =
-    autoProgressionEnabled
-    && actualIndex >= 0
-    && taskTierIndex >= 0
-    && actualIndex < taskTierIndex;
-  const showTaskObjective = profileAheadOfTasks || profileBehindOfTasks;
-  const tasksRemaining = nextRank ? Math.max(0, nextRank.min - stats.done) : 0;
+  const {
+    ranks: RANKS,
+    autoProgressionEnabled,
+    taskTier,
+    taskTierIndex,
+    actualTier,
+    nextRank,
+    progressPct,
+    profileAheadOfTasks,
+    profileBehindOfTasks,
+    showTaskObjective,
+    tasksRemaining,
+  } = deriveStudentProgressionView(data?.progression, stats.done);
 
   return (
     <div className="fade-in">
