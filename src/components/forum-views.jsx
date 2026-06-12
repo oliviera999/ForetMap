@@ -4,30 +4,15 @@ import { formatDateTimeFr } from '../utils/datetime-fr';
 import { AttachmentImagesPicker, UserContentImagesGrid } from './attachment-images-picker';
 import { MarkdownContent } from './MarkdownContent.jsx';
 import { MarkdownTextarea } from './MarkdownTextarea.jsx';
+import {
+  DEFAULT_REACTION_EMOJIS,
+  forumPageCount,
+  isForumModerator,
+  parseReactionEmojiList,
+} from '../utils/forumHelpers.js';
 
 const THREAD_PAGE_SIZE = 20;
 const POST_PAGE_SIZE = 50;
-const DEFAULT_REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '😡', '🔥', '👏'];
-
-function parseReactionEmojiList(rawValue) {
-  const raw = String(rawValue || '').trim();
-  if (!raw) return [...DEFAULT_REACTION_EMOJIS];
-  const tokens = raw
-    .replace(/,/g, ' ')
-    .split(/\s+/)
-    .map((item) => String(item || '').trim())
-    .filter(Boolean)
-    .filter((item) => item.length <= 16);
-  const unique = [...new Set(tokens)].slice(0, 24);
-  return unique.length > 0 ? unique : [...DEFAULT_REACTION_EMOJIS];
-}
-
-function isModerator(authClaims) {
-  const roleSlug = String(authClaims?.roleSlug || '').toLowerCase();
-  if (roleSlug === 'admin' || roleSlug === 'prof') return true;
-  const perms = Array.isArray(authClaims?.permissions) ? authClaims.permissions : [];
-  return perms.includes('teacher.access');
-}
 
 function ForumView({ authClaims, canParticipateForum = true }) {
   const [threads, setThreads] = useState([]);
@@ -56,7 +41,7 @@ function ForumView({ authClaims, canParticipateForum = true }) {
 
   const threadDetailRequestSeqRef = useRef(0);
 
-  const canModerate = useMemo(() => isModerator(authClaims), [authClaims]);
+  const canModerate = useMemo(() => isForumModerator(authClaims), [authClaims]);
   const canUseForumActions = canParticipateForum || canModerate;
   const currentUserType = String(authClaims?.userType || '').toLowerCase();
   const currentUserId = String(authClaims?.canonicalUserId || authClaims?.userId || '');
@@ -235,8 +220,8 @@ function ForumView({ authClaims, canParticipateForum = true }) {
     }
   };
 
-  const threadPages = Math.max(1, Math.ceil(threadsTotal / THREAD_PAGE_SIZE));
-  const postPages = Math.max(1, Math.ceil(postsTotal / POST_PAGE_SIZE));
+  const threadPages = forumPageCount(threadsTotal, THREAD_PAGE_SIZE);
+  const postPages = forumPageCount(postsTotal, POST_PAGE_SIZE);
   const firstReactionEmoji = reactionEmojis[0] || '👍';
 
   return (
