@@ -18,6 +18,7 @@ import { parseVisitZonePoints as parsePctPoints, visitZoneCentroidPct } from '..
 import { VisitSyncPanel } from './visit/VisitSyncPanel.jsx';
 import { VisitDetailPanel } from './visit/VisitDetailPanel.jsx';
 import { VisitTutorialsSection } from './visit/VisitTutorialsSection.jsx';
+import { VisitMapChrome } from './visit/VisitMapChrome.jsx';
 import { computeVisitMascotStartPct } from '../utils/visitMascotPlacement.js';
 import {
   shouldShowVisitMapMascot as computeShowVisitMapMascot,
@@ -40,11 +41,6 @@ import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
 import { useSession } from '../contexts/SessionContext.jsx';
 import { useData } from '../contexts/DataContext.jsx';
 
-/** Diagramme circulaire de progression visite (viewBox carré, cercle centré). */
-const VISIT_PROGRESS_DONUT_VB = 40;
-const VISIT_PROGRESS_DONUT_R = 14;
-const VISIT_PROGRESS_DONUT_STROKE = 3;
-const VISIT_PROGRESS_DONUT_C = 2 * Math.PI * VISIT_PROGRESS_DONUT_R;
 import { buildVisitMascotCatalogExtrasFromContent } from '../utils/visitMascotPackExtras.js';
 import { resolveMascotDialogLine } from '../utils/visitMascotDialogApply.js';
 import { VISIT_MASCOT_STATE } from '../utils/visitMascotState.js';
@@ -1241,190 +1237,46 @@ function VisitView({
       )}
       <div className="visit-grid visit-grid--map-forward">
         <div className="visit-map-card">
-          <div className="visit-map-card__chrome">
-            <div className="visit-map-card__chrome-top">
-              <div className="visit-map-card__chrome-title-line">
-                <h2 className="section-title visit-map-card__title">{visitTitle}</h2>
-                {showVisitPresentationButton ? (
-                  <button
-                    type="button"
-                    className={`btn btn-sm btn-primary visit-map-card__presentation-btn${visitPresentationInvitePulse ? ' visit-map-card__presentation-btn--invite' : ''}`}
-                    data-testid="visit-presentation-link"
-                    data-invite-pulse={visitPresentationInvitePulse ? '1' : '0'}
-                    onClick={() => setVisitTutorialPreview(tutorialPreviewPayload(visitPresentationTutorial))}
-                  >
-                    Présentation du lieu
-                  </button>
-                ) : null}
-              </div>
-              <div className="visit-map-card__chrome-actions">
-                {mode === 'view' && visitNetworkStatusLabel ? (
-                  <span
-                    className={`visit-network-status${!isOnline ? ' visit-network-status--offline' : ''}${pendingSyncCount > 0 || syncStatus === 'error' ? ' visit-network-status--pending' : ''}${syncStatus === 'syncing' ? ' visit-network-status--syncing' : ''}`}
-                    data-testid="visit-network-status"
-                    data-online={isOnline ? '1' : '0'}
-                    data-sync={syncStatus}
-                    data-pending={String(pendingSyncCount)}
-                    role="status"
-                    aria-live="polite"
-                  >
-                    {visitNetworkStatusLabel}
-                  </span>
-                ) : null}
-                <button
-                  type="button"
-                  className={`btn btn-sm ${visitImmersion ? 'btn-primary' : 'btn-ghost'}`}
-                  onClick={() => setVisitImmersion((v) => !v)}
-                  aria-pressed={visitImmersion}
-                >
-                  {visitImmersion ? 'Quitter le plein plan' : 'Plein plan'}
-                </button>
-                {isTeacher ? (
-                  <button
-                    type="button"
-                    data-testid="visit-teacher-preview-toggle"
-                    className={`btn btn-sm ${teacherPreviewAsStudent ? 'btn-primary' : 'btn-ghost'}`}
-                    onClick={() => setTeacherPreviewAsStudent((v) => !v)}
-                    aria-pressed={teacherPreviewAsStudent}
-                  >
-                    {teacherPreviewAsStudent ? 'Retour édition prof' : 'Aperçu comme élève'}
-                  </button>
-                ) : null}
-                {visitMascotOptions.length > 0 ? (
-                  <label
-                    className="visit-mascot-picker visit-mascot-picker--visit-chrome"
-                    data-testid="visit-mascot-picker"
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 6,
-                      fontSize: '0.85rem',
-                      marginLeft: 4,
-                    }}
-                  >
-                    <span className="section-sub" style={{ whiteSpace: 'nowrap' }}>Mascotte</span>
-                    <select
-                      className="form-select"
-                      style={{ minWidth: 140, maxWidth: 220 }}
-                      value={visitMascotId}
-                      onChange={(e) => onChangeVisitMascotId(e.target.value)}
-                      aria-label="Choisir la mascotte affichée sur le plan"
-                    >
-                      {visitMascotOptions.map((m) => (
-                        <option key={m.id} value={m.id}>{m.label}</option>
-                      ))}
-                    </select>
-                  </label>
-                ) : null}
-                {visitCartographyProgress.total > 0 ? (
-                  <div className="visit-progress visit-progress--donut visit-progress--chrome-inline">
-                    <div
-                      className="visit-progress-donut"
-                      role="progressbar"
-                      aria-valuemin={0}
-                      aria-valuemax={100}
-                      aria-valuenow={visitCartographyProgress.pct}
-                      aria-label={`Parcours sur la carte : ${visitCartographyProgress.pct} % des zones et repères marqués comme vus (${visitCartographyProgress.seenCount} sur ${visitCartographyProgress.total}).`}
-                      title={`${visitCartographyProgress.pct} % — ${visitCartographyProgress.seenCount} / ${visitCartographyProgress.total} vus`}
-                      data-testid="visit-progress-donut"
-                    >
-                      <svg
-                        className="visit-progress-donut__svg"
-                        viewBox={`0 0 ${VISIT_PROGRESS_DONUT_VB} ${VISIT_PROGRESS_DONUT_VB}`}
-                        aria-hidden="true"
-                      >
-                        <circle
-                          className="visit-progress-donut__track"
-                          fill="none"
-                          strokeWidth={VISIT_PROGRESS_DONUT_STROKE}
-                          cx={VISIT_PROGRESS_DONUT_VB / 2}
-                          cy={VISIT_PROGRESS_DONUT_VB / 2}
-                          r={VISIT_PROGRESS_DONUT_R}
-                        />
-                        <circle
-                          className="visit-progress-donut__arc"
-                          fill="none"
-                          strokeWidth={VISIT_PROGRESS_DONUT_STROKE}
-                          strokeLinecap="round"
-                          cx={VISIT_PROGRESS_DONUT_VB / 2}
-                          cy={VISIT_PROGRESS_DONUT_VB / 2}
-                          r={VISIT_PROGRESS_DONUT_R}
-                          transform={`rotate(-90 ${VISIT_PROGRESS_DONUT_VB / 2} ${VISIT_PROGRESS_DONUT_VB / 2})`}
-                          strokeDasharray={VISIT_PROGRESS_DONUT_C}
-                          strokeDashoffset={VISIT_PROGRESS_DONUT_C * (1 - visitCartographyProgress.pct / 100)}
-                        />
-                      </svg>
-                      <span className="visit-progress-donut__label" aria-hidden="true">
-                        <span className="visit-progress-donut__value">{visitCartographyProgress.pct}</span>
-                        <span className="visit-progress-donut__pct-sign">%</span>
-                      </span>
-                    </div>
-                  </div>
-                ) : null}
-                {isHelpEnabled ? (
-                  <HelpPanel
-                    sectionId="visit"
-                    title={HELP_PANELS.visit.title}
-                    entries={HELP_PANELS.visit.items}
-                    isTeacher={isTeacher}
-                    isPulsing={pulseUnseenPanels && !hasSeenSection('visit')}
-                    panelTitlePrefix={helpPanelTitlePrefix}
-                    closeButtonText={helpPanelCloseCta}
-                    dismissButtonText={helpPanelDismissCta}
-                    onMarkSeen={markSectionSeen}
-                    onOpen={trackPanelOpen}
-                    onDismiss={trackPanelDismiss}
-                  />
-                ) : null}
-                {!student && onBackToAuth ? (
-                  <button type="button" className="btn btn-ghost btn-sm" onClick={onBackToAuth}>↩ Retour connexion</button>
-                ) : null}
-              </div>
-            </div>
-            {maps.length > 1 && (
-              <div className="visit-map-card__chrome-maps">
-                <div className="visit-map-switch visit-map-switch--embedded">
-                  {maps.length > 4 ? (
-                    <select
-                      className="visit-map-switch-select"
-                      value={mapId}
-                      onChange={(event) => setMapId(event.target.value)}
-                      aria-label="Sélection de carte visite"
-                    >
-                      {maps.map((m) => (
-                        <option key={m.id} value={m.id}>
-                          {m.label}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    maps.map((m) => (
-                      <button
-                        key={m.id}
-                        type="button"
-                        className={`btn btn-sm ${mapId === m.id ? 'btn-primary' : 'btn-ghost'}`}
-                        onClick={() => setMapId(m.id)}
-                      >
-                        {m.label}
-                      </button>
-                    ))
-                  )}
-                </div>
-              </div>
-            )}
-            {visitCartographyProgress.total === 0 ? (
-              <p className="visit-progress-empty visit-progress-empty--below-chrome section-sub">
-                {maps.length > 1
-                  ? 'Aucune zone ni repère sur cette carte. Choisis une autre carte ci-dessus si besoin.'
-                  : 'Aucune zone ni repère sur cette carte pour l’instant.'}
-              </p>
+          <VisitMapChrome
+            title={visitTitle}
+            showPresentationButton={showVisitPresentationButton}
+            presentationInvitePulse={visitPresentationInvitePulse}
+            onOpenPresentation={() => setVisitTutorialPreview(tutorialPreviewPayload(visitPresentationTutorial))}
+            networkStatusLabel={mode === 'view' ? visitNetworkStatusLabel : null}
+            isOnline={isOnline}
+            syncStatus={syncStatus}
+            pendingSyncCount={pendingSyncCount}
+            visitImmersion={visitImmersion}
+            onToggleImmersion={() => setVisitImmersion((v) => !v)}
+            isTeacher={isTeacher}
+            teacherPreviewAsStudent={teacherPreviewAsStudent}
+            onToggleTeacherPreview={() => setTeacherPreviewAsStudent((v) => !v)}
+            visitMascotId={visitMascotId}
+            visitMascotOptions={visitMascotOptions}
+            onChangeVisitMascotId={onChangeVisitMascotId}
+            cartographyProgress={visitCartographyProgress}
+            helpPanelSlot={isHelpEnabled ? (
+              <HelpPanel
+                sectionId="visit"
+                title={HELP_PANELS.visit.title}
+                entries={HELP_PANELS.visit.items}
+                isTeacher={isTeacher}
+                isPulsing={pulseUnseenPanels && !hasSeenSection('visit')}
+                panelTitlePrefix={helpPanelTitlePrefix}
+                closeButtonText={helpPanelCloseCta}
+                dismissButtonText={helpPanelDismissCta}
+                onMarkSeen={markSectionSeen}
+                onOpen={trackPanelOpen}
+                onDismiss={trackPanelDismiss}
+              />
             ) : null}
-            {isHelpEnabled && showContextHints && visitQuickTip ? (
-              <p className="visit-progress-empty visit-progress-empty--below-chrome section-sub">
-                <strong>{helpHintPrefix}</strong> {visitQuickTip}
-              </p>
-            ) : null}
-          </div>
+            onBackToAuth={!student && onBackToAuth ? onBackToAuth : null}
+            maps={maps}
+            mapId={mapId}
+            onSelectMapId={setMapId}
+            quickTipPrefix={helpHintPrefix}
+            quickTipText={isHelpEnabled && showContextHints && visitQuickTip ? visitQuickTip : null}
+          />
           <div
             ref={stageRef}
             className="visit-map-stage"
