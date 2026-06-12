@@ -276,53 +276,39 @@ router.get(
 router.post(
   '/admin/media-library',
   requirePermission('admin.settings.write', { needsElevation: true }),
-  async (req, res) => {
-    try {
-      const mediaData = String(req.body?.media_data || '').trim();
-      if (!mediaData) return res.status(400).json({ error: 'media_data requis' });
-      const originalName = String(req.body?.original_name || req.body?.originalName || '').trim() || null;
-      const saved = saveMediaFromDataUrl(mediaData, { originalName, app: 'foretmap' });
-      await logAudit('settings_media_upload', 'media', saved.relativePath, 'Média uploadé', {
-        req,
-        payload: {
-          media_type: saved.mediaType,
-          mime_type: saved.mimeType,
-          size: saved.size,
-          url: saved.url,
-        },
-      });
-      res.status(201).json(saved);
-    } catch (e) {
-      if (Number.isFinite(e?.status)) {
-        return res.status(e.status).json({ error: e.message || 'Upload média refusé' });
-      }
-      return respondInternalError(res, req, e);
-    }
-  }
+  asyncHandler(async (req, res) => {
+    const mediaData = String(req.body?.media_data || '').trim();
+    if (!mediaData) return res.status(400).json({ error: 'media_data requis' });
+    const originalName = String(req.body?.original_name || req.body?.originalName || '').trim() || null;
+    const saved = saveMediaFromDataUrl(mediaData, { originalName, app: 'foretmap' });
+    await logAudit('settings_media_upload', 'media', saved.relativePath, 'Média uploadé', {
+      req,
+      payload: {
+        media_type: saved.mediaType,
+        mime_type: saved.mimeType,
+        size: saved.size,
+        url: saved.url,
+      },
+    });
+    res.status(201).json(saved);
+  })
 );
 
 router.delete(
   '/admin/media-library',
   requirePermission('admin.settings.write', { needsElevation: true }),
-  async (req, res) => {
-    try {
-      const payload = executeMediaLibraryDeleteRequest(req.body || {});
-      await logAudit('settings_media_delete', 'media', 'bulk', 'Média(s) supprimé(s)', {
-        req,
-        payload: {
-          deleted: payload.deleted,
-          failed: payload.failed,
-          total: payload.total,
-        },
-      });
-      res.json(payload);
-    } catch (e) {
-      if (Number.isFinite(e?.status)) {
-        return res.status(e.status).json({ error: e.message || 'Suppression média refusée' });
-      }
-      return respondInternalError(res, req, e);
-    }
-  }
+  asyncHandler(async (req, res) => {
+    const payload = executeMediaLibraryDeleteRequest(req.body || {});
+    await logAudit('settings_media_delete', 'media', 'bulk', 'Média(s) supprimé(s)', {
+      req,
+      payload: {
+        deleted: payload.deleted,
+        failed: payload.failed,
+        total: payload.total,
+      },
+    });
+    res.json(payload);
+  })
 );
 
 router.get(
