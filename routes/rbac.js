@@ -359,99 +359,101 @@ router.post(
 router.post(
   '/profiles/:id/duplicate',
   requirePermission('admin.roles.manage', { needsElevation: true }),
-  async (req, res) => {
+  asyncHandler(async (req, res) => {
+    const sourceId = parseInt(req.params.id, 10);
+    if (!Number.isFinite(sourceId) || sourceId <= 0) {
+      return res.status(400).json({ error: 'id de profil invalide' });
+    }
+    const source = await queryOne(
+      `SELECT id, slug, display_name, emoji, min_done_tasks, display_order, \`rank\` AS \`rank\`,
+              COALESCE(forum_participate, 1) AS forum_participate,
+              COALESCE(context_comment_participate, 1) AS context_comment_participate,
+              max_concurrent_tasks
+         FROM roles WHERE id = ?`,
+      [sourceId]
+    );
+    if (!source) return res.status(404).json({ error: 'Profil introuvable' });
+
+    const slug = String(req.body?.slug || '')
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9_]+/g, '_')
+      .replace(/^_+|_+$/g, '');
+    const displayNameRaw = req.body?.display_name;
+    const displayName =
+      displayNameRaw != null && String(displayNameRaw).trim()
+        ? String(displayNameRaw).trim()
+        : `${source.display_name} (copie)`;
+    const rank = Number.isFinite(parseInt(source.rank, 10)) ? parseInt(source.rank, 10) : 100;
+    const emoji = normalizeRoleEmoji(source.emoji);
+    const minDoneTasks = parseOptionalNonNegativeInt(source.min_done_tasks, null);
+    const displayOrder = parseOptionalNonNegativeInt(source.display_order, 0);
+    const forumParticipate = Number(source.forum_participate) !== 0 ? 1 : 0;
+    const contextCommentParticipate = Number(source.context_comment_participate) !== 0 ? 1 : 0;
+    const maxConcurrentTasks =
+      source.max_concurrent_tasks != null && source.max_concurrent_tasks !== ''
+        ? source.max_concurrent_tasks
+        : null;
+
+    if (!slug || !displayName) return res.status(400).json({ error: 'slug requis ; display_name ne peut pas être vide' });
+    const reservedDup = reservedRoleSlugError(slug);
+    if (reservedDup) return res.status(400).json({ error: reservedDup });
+    if (Number.isNaN(minDoneTasks)) return res.status(400).json({ error: 'min_done_tasks source invalide' });
+    if (Number.isNaN(displayOrder)) return res.status(400).json({ error: 'display_order source invalide' });
+    if (STUDENT_ROLE_SLUG_RE.test(slug) && (emoji == null || minDoneTasks == null)) {
+      return res.status(400).json({ error: 'Un profil n3beur doit définir emoji et min_done_tasks (source incompatible ou slug eleve_* sans données)' });
+    }
+
+    // Catch SCOPÉ sur le seul INSERT dup-prone du handler (roles.slug UNIQUE) : un conflit
+    // d'unicité est relancé en erreur `.status=409` rendue telle quelle par le handler central.
     try {
-      const sourceId = parseInt(req.params.id, 10);
-      if (!Number.isFinite(sourceId) || sourceId <= 0) {
-        return res.status(400).json({ error: 'id de profil invalide' });
-      }
-      const source = await queryOne(
-        `SELECT id, slug, display_name, emoji, min_done_tasks, display_order, \`rank\` AS \`rank\`,
-                COALESCE(forum_participate, 1) AS forum_participate,
-                COALESCE(context_comment_participate, 1) AS context_comment_participate,
-                max_concurrent_tasks
-           FROM roles WHERE id = ?`,
-        [sourceId]
-      );
-      if (!source) return res.status(404).json({ error: 'Profil introuvable' });
-
-      const slug = String(req.body?.slug || '')
-        .trim()
-        .toLowerCase()
-        .replace(/[^a-z0-9_]+/g, '_')
-        .replace(/^_+|_+$/g, '');
-      const displayNameRaw = req.body?.display_name;
-      const displayName =
-        displayNameRaw != null && String(displayNameRaw).trim()
-          ? String(displayNameRaw).trim()
-          : `${source.display_name} (copie)`;
-      const rank = Number.isFinite(parseInt(source.rank, 10)) ? parseInt(source.rank, 10) : 100;
-      const emoji = normalizeRoleEmoji(source.emoji);
-      const minDoneTasks = parseOptionalNonNegativeInt(source.min_done_tasks, null);
-      const displayOrder = parseOptionalNonNegativeInt(source.display_order, 0);
-      const forumParticipate = Number(source.forum_participate) !== 0 ? 1 : 0;
-      const contextCommentParticipate = Number(source.context_comment_participate) !== 0 ? 1 : 0;
-      const maxConcurrentTasks =
-        source.max_concurrent_tasks != null && source.max_concurrent_tasks !== ''
-          ? source.max_concurrent_tasks
-          : null;
-
-      if (!slug || !displayName) return res.status(400).json({ error: 'slug requis ; display_name ne peut pas être vide' });
-      const reservedDup = reservedRoleSlugError(slug);
-      if (reservedDup) return res.status(400).json({ error: reservedDup });
-      if (Number.isNaN(minDoneTasks)) return res.status(400).json({ error: 'min_done_tasks source invalide' });
-      if (Number.isNaN(displayOrder)) return res.status(400).json({ error: 'display_order source invalide' });
-      if (STUDENT_ROLE_SLUG_RE.test(slug) && (emoji == null || minDoneTasks == null)) {
-        return res.status(400).json({ error: 'Un profil n3beur doit définir emoji et min_done_tasks (source incompatible ou slug eleve_* sans données)' });
-      }
-
       await execute(
         `INSERT INTO roles (slug, display_name, emoji, min_done_tasks, display_order, \`rank\`, is_system, forum_participate, context_comment_participate, max_concurrent_tasks)
          VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?)`,
         [slug, displayName, emoji, minDoneTasks, displayOrder ?? 0, rank, forumParticipate, contextCommentParticipate, maxConcurrentTasks]
       );
-      const newRole = await queryOne(
-        'SELECT id, slug, display_name, emoji, min_done_tasks, display_order, `rank` AS `rank`, is_system, forum_participate, context_comment_participate, max_concurrent_tasks FROM roles WHERE slug = ? LIMIT 1',
-        [slug]
-      );
-      if (!newRole?.id) {
-        logRouteError(new Error('Profil dupliqué introuvable après insertion'), req);
-        return res.status(500).json({ error: 'Profil dupliqué introuvable après insertion' });
-      }
-
-      const sourcePerms = await queryAll(
-        'SELECT permission_key, requires_elevation FROM role_permissions WHERE role_id = ? ORDER BY permission_key ASC',
-        [sourceId]
-      );
-      // Ne conserve que les permissions encore presentes au catalogue (resolues en UNE requete au
-      // lieu d'un SELECT par cle), puis les copie en UNE requete multi-valeurs (au lieu d'une boucle N+1).
-      const sourceKeys = sourcePerms.map((row) => row.permission_key);
-      const validKeys = new Set();
-      if (sourceKeys.length > 0) {
-        const catalogRows = await queryAll(
-          `SELECT \`key\` FROM permissions WHERE \`key\` IN (${sourceKeys.map(() => '?').join(',')})`,
-          sourceKeys
-        );
-        for (const row of catalogRows) validKeys.add(row.key);
-      }
-      const permsToCopy = sourcePerms.filter((row) => validKeys.has(row.permission_key));
-      if (permsToCopy.length > 0) {
-        const placeholders = permsToCopy.map(() => '(?, ?, ?)').join(', ');
-        const params = [];
-        for (const row of permsToCopy) params.push(newRole.id, row.permission_key, row.requires_elevation ? 1 : 0);
-        await execute(
-          `INSERT INTO role_permissions (role_id, permission_key, requires_elevation) VALUES ${placeholders}`,
-          params
-        );
-      }
-      logAudit('rbac_duplicate_profile', 'role', newRole.id, `from=${sourceId} slug=${slug}`, { req });
-      res.status(201).json(newRole);
     } catch (e) {
-      logRouteError(e, req);
-      if (e && (e.errno === 1062 || e.code === 'ER_DUP_ENTRY')) return res.status(409).json({ error: 'Slug déjà utilisé' });
-      respondInternalError(res, req, e);
+      rethrowSlugConflict(e);
     }
-  }
+    const newRole = await queryOne(
+      'SELECT id, slug, display_name, emoji, min_done_tasks, display_order, `rank` AS `rank`, is_system, forum_participate, context_comment_participate, max_concurrent_tasks FROM roles WHERE slug = ? LIMIT 1',
+      [slug]
+    );
+    if (!newRole?.id) {
+      logRouteError(new Error('Profil dupliqué introuvable après insertion'), req);
+      return res.status(500).json({ error: 'Profil dupliqué introuvable après insertion' });
+    }
+
+    const sourcePerms = await queryAll(
+      'SELECT permission_key, requires_elevation FROM role_permissions WHERE role_id = ? ORDER BY permission_key ASC',
+      [sourceId]
+    );
+    // Ne conserve que les permissions encore presentes au catalogue (resolues en UNE requete au
+    // lieu d'un SELECT par cle), puis les copie en UNE requete multi-valeurs (au lieu d'une boucle N+1).
+    // NB : cette copie n'est PAS dup-prone — PRIMARY KEY (role_id, permission_key), lignes sources
+    // uniques par construction et role_id fraîchement créé (aucune ligne existante).
+    const sourceKeys = sourcePerms.map((row) => row.permission_key);
+    const validKeys = new Set();
+    if (sourceKeys.length > 0) {
+      const catalogRows = await queryAll(
+        `SELECT \`key\` FROM permissions WHERE \`key\` IN (${sourceKeys.map(() => '?').join(',')})`,
+        sourceKeys
+      );
+      for (const row of catalogRows) validKeys.add(row.key);
+    }
+    const permsToCopy = sourcePerms.filter((row) => validKeys.has(row.permission_key));
+    if (permsToCopy.length > 0) {
+      const placeholders = permsToCopy.map(() => '(?, ?, ?)').join(', ');
+      const params = [];
+      for (const row of permsToCopy) params.push(newRole.id, row.permission_key, row.requires_elevation ? 1 : 0);
+      await execute(
+        `INSERT INTO role_permissions (role_id, permission_key, requires_elevation) VALUES ${placeholders}`,
+        params
+      );
+    }
+    logAudit('rbac_duplicate_profile', 'role', newRole.id, `from=${sourceId} slug=${slug}`, { req });
+    res.status(201).json(newRole);
+  })
 );
 
 router.patch(
