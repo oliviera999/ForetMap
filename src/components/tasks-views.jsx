@@ -31,6 +31,11 @@ import {
   getAvailableSlots,
   isStudentAlreadyAssignedToTask,
 } from '../utils/taskComputations.js';
+import {
+  computeQuickAssignDelta,
+  canApplyQuickAssign,
+  quickAssignHintText,
+} from '../utils/taskQuickAssign.js';
 
 import {
   formatTaskActionError,
@@ -853,54 +858,18 @@ function TasksView({
     ? 'tasks-grid'
     : (viewMode === 'condensed' ? 'tasks-condensed' : 'tasks-list');
   /** Inscriptions à ajouter / retirer (liste n3beurs chargée côté n3boss) pour l’affectation rapide. */
-  const teacherQuickAssignDelta = useCallback((task, selectedIds) => {
-    const idSet = new Set((selectedIds || []).map(String));
-    const toAdd = teacherStudents.filter(
-      (s) => idSet.has(String(s.id)) && !isStudentAlreadyAssignedToTask(task, s)
-    );
-    const toRemove = teacherStudents.filter(
-      (s) => !idSet.has(String(s.id)) && isStudentAlreadyAssignedToTask(task, s)
-    );
-    return { toAdd, toRemove };
-  }, [teacherStudents]);
-  const teacherQuickAssignCanApply = useCallback((task, selectedIds) => {
-    if (!isTeacher || !task) return false;
-    const { toAdd, toRemove } = teacherQuickAssignDelta(task, selectedIds);
-    if (toAdd.length === 0 && toRemove.length === 0) return false;
-    const te = taskEffectiveStatus(task);
-    if (te === 'on_hold' || te === 'project_completed' || te === 'project_validated') return false;
-    if (toRemove.length > 0 && (task.status === 'done' || task.status === 'validated')) return false;
-    if (toAdd.length > 0) {
-      if (task.status === 'proposed' || task.status === 'done' || task.status === 'validated') return false;
-      const slotsAfterRemovals = getAvailableSlots(task) + toRemove.length;
-      if (toAdd.length > slotsAfterRemovals) return false;
-    }
-    return true;
-  }, [isTeacher, teacherQuickAssignDelta]);
-  const quickAssignHint = useCallback((task, selectedIds) => {
-    if (!task) return "Cette tâche n’est pas dispo ici";
-    const te = taskEffectiveStatus(task);
-    if (te === 'on_hold') return "Patience : tâche ou projet en pause";
-    if (te === 'project_completed') return "Projet terminé : inscriptions fermées";
-    if (te === 'project_validated') return "Projet validé : inscriptions fermées";
-    const { toAdd, toRemove } = teacherQuickAssignDelta(task, selectedIds);
-    if (toAdd.length === 0 && toRemove.length === 0) return "Coche ou décoche des n3beurs pour ajuster l’équipe sur la mission";
-    if (toRemove.length > 0 && (task.status === 'done' || task.status === 'validated')) {
-      return "Mission déjà bouclée : on ne retire plus les inscrits";
-    }
-    if (toAdd.length > 0) {
-      if (task.status === 'proposed') return "Idée encore en discussion : inscriptions pas encore ouvertes";
-      if (task.status === 'done' || task.status === 'validated') return "C’est déjà plié pour celle-ci";
-      const slotsAfterRemovals = getAvailableSlots(task) + toRemove.length;
-      if (toAdd.length > slotsAfterRemovals) {
-        return `Pas assez de places (max. ${slotsAfterRemovals} après retrait${toRemove.length > 1 ? 's' : ''})`;
-      }
-    }
-    const parts = [];
-    if (toRemove.length > 0) parts.push(`Retirer ${toRemove.length} n3beur${toRemove.length > 1 ? 's' : ''}`);
-    if (toAdd.length > 0) parts.push(`Inscrire ${toAdd.length} n3beur${toAdd.length > 1 ? 's' : ''}`);
-    return parts.join(' · ');
-  }, [teacherQuickAssignDelta]);
+  const teacherQuickAssignDelta = useCallback(
+    (task, selectedIds) => computeQuickAssignDelta(task, selectedIds, teacherStudents),
+    [teacherStudents]
+  );
+  const teacherQuickAssignCanApply = useCallback(
+    (task, selectedIds) => !!isTeacher && canApplyQuickAssign(task, selectedIds, teacherStudents),
+    [isTeacher, teacherStudents]
+  );
+  const quickAssignHint = useCallback(
+    (task, selectedIds) => quickAssignHintText(task, selectedIds, teacherStudents),
+    [teacherStudents]
+  );
   const runTeacherQuickAssign = useCallback((task, selectedIds) => withLoad(`${task.id}assign_teacher_quick`, async () => {
     const { toAdd, toRemove } = teacherQuickAssignDelta(task, selectedIds);
     if (toAdd.length === 0 && toRemove.length === 0) {
