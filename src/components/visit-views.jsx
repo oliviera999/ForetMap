@@ -66,13 +66,7 @@ import {
   LocationTutorialPreviewList,
   LivingBeingsCatalogPanel,
 } from './map-views';
-import { orderedLivingBeingsForForm } from '../utils/livingBeings';
-import {
-  tutorialLocationIds,
-  tutorialsFromTasksAtLocation,
-  livingBeingNamesFromTasksAtLocation,
-  dedupeTutorialsById,
-} from '../utils/mapLocationContext';
+import { computeVisitLocationAside } from '../utils/visitLocationAside.js';
 import {
   safeLocalStorageGetItem,
   safeLocalStorageSetItem,
@@ -1289,75 +1283,12 @@ function VisitView({
   );
 
   /** Biodiversité et tutoriels liés au lieu (aligné sur les panneaux zone/repère de la carte). */
-  const visitLocationAside = useMemo(() => {
-    if (!selected || !selectedType) {
-      return {
-        showBiodiversity: false,
-        showTutos: false,
-        primaryLivingNames: [],
-        livingBeingsOnlyOnTasks: [],
-        tutorialListForPreview: [],
-        locationKind: 'zone',
-      };
-    }
-    const catalog = catalogTutorials || [];
-    const taskList = tasks || [];
-    if (selectedType === 'zone') {
-      const mapZone = (mapZones || []).find(
-        (z) => String(z.id) === String(selected.id) && String(z.map_id || '') === String(mapId),
-      );
-      const zoneSpecial = !!mapZone?.special;
-      const primaryLivingNames = mapZone
-        ? orderedLivingBeingsForForm(mapZone.living_beings_list || mapZone.living_beings, mapZone.current_plant)
-        : [];
-      const livingFromTasks = livingBeingNamesFromTasksAtLocation('zone', selected.id, taskList);
-      const livingBeingsOnlyOnTasks = livingFromTasks.filter((n) => !primaryLivingNames.includes(n));
-      const showBiodiversity = !zoneSpecial && (primaryLivingNames.length > 0 || livingBeingsOnlyOnTasks.length > 0);
-      const linkedTutorialsDirect = catalog.filter((tu) => (
-        tutorialLocationIds(tu).zoneIds.some((id) => String(id) === String(selected.id))
-      ));
-      const tutorialsFromTasksHere = tutorialsFromTasksAtLocation('zone', selected.id, taskList, catalog);
-      const linkedTutorialsAll = dedupeTutorialsById([...linkedTutorialsDirect, ...tutorialsFromTasksHere]);
-      const linkedTutorialsVisible = isTeacher
-        ? linkedTutorialsAll
-        : linkedTutorialsAll.filter((tu) => tu.is_active !== false);
-      const tutorialListForPreview = isTeacher ? linkedTutorialsAll : linkedTutorialsVisible;
-      return {
-        showBiodiversity,
-        showTutos: tutorialListForPreview.length > 0,
-        primaryLivingNames,
-        livingBeingsOnlyOnTasks,
-        tutorialListForPreview,
-        locationKind: 'zone',
-      };
-    }
-    const mapMarker = (mapMarkers || []).find(
-      (m) => String(m.id) === String(selected.id) && String(m.map_id || '') === String(mapId),
-    );
-    const primaryLivingNames = mapMarker
-      ? orderedLivingBeingsForForm(mapMarker.living_beings_list || mapMarker.living_beings, mapMarker.plant_name)
-      : [];
-    const livingFromTasks = livingBeingNamesFromTasksAtLocation('marker', selected.id, taskList);
-    const livingBeingsOnlyOnTasks = livingFromTasks.filter((n) => !primaryLivingNames.includes(n));
-    const showBiodiversity = primaryLivingNames.length > 0 || livingBeingsOnlyOnTasks.length > 0;
-    const linkedTutorialsDirect = catalog.filter((tu) => (
-      tutorialLocationIds(tu).markerIds.some((id) => String(id) === String(selected.id))
-    ));
-    const tutorialsFromTasksHere = tutorialsFromTasksAtLocation('marker', selected.id, taskList, catalog);
-    const linkedTutorialsAll = dedupeTutorialsById([...linkedTutorialsDirect, ...tutorialsFromTasksHere]);
-    const linkedTutorialsVisible = isTeacher
-      ? linkedTutorialsAll
-      : linkedTutorialsAll.filter((tu) => tu.is_active !== false);
-    const tutorialListForPreview = isTeacher ? linkedTutorialsAll : linkedTutorialsVisible;
-    return {
-      showBiodiversity,
-      showTutos: tutorialListForPreview.length > 0,
-      primaryLivingNames,
-      livingBeingsOnlyOnTasks,
-      tutorialListForPreview,
-      locationKind: 'marker',
-    };
-  }, [selected, selectedType, mapId, mapZones, mapMarkers, tasks, catalogTutorials, isTeacher]);
+  const visitLocationAside = useMemo(
+    () => computeVisitLocationAside(selected, selectedType, {
+      mapId, mapZones, mapMarkers, tasks, catalogTutorials, isTeacher,
+    }),
+    [selected, selectedType, mapId, mapZones, mapMarkers, tasks, catalogTutorials, isTeacher],
+  );
 
   useEffect(() => {
     if (!selected || visitMediaLightbox || visitTutorialPreview) return undefined;
