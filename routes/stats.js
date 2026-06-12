@@ -2,10 +2,28 @@ const express = require('express');
 const { queryAll, queryOne } = require('../database');
 const { requireAuth } = require('../middleware/requireTeacher');
 const asyncHandler = require('../lib/asyncHandler');
+const { z, validate } = require('../lib/validate');
 const { getStudentProgressionConfig, syncStudentPrimaryRoleFromProgress } = require('../lib/rbac');
 const { getScopedStudentIds, canAccessStudentId } = require('../lib/groupScope');
 
 const router = express.Router();
+
+// O7 — périmètre des stats agrégées (`/all`, `/export`) : coercition permissive (jamais de 400
+// pour une query invalide) reproduisant exactement l'ancienne lecture manuelle :
+//   group_id/subgroup_id → String(x || '').trim() ; map_id/project_id → transmis tels quels ou null.
+const statsScopeQuerySchema = z
+  .object({
+    group_id: z.unknown().optional(),
+    subgroup_id: z.unknown().optional(),
+    map_id: z.unknown().optional(),
+    project_id: z.unknown().optional(),
+  })
+  .transform((q) => ({
+    groupId: String(q.group_id || '').trim(),
+    subgroupId: String(q.subgroup_id || '').trim(),
+    mapId: q.map_id || null,
+    projectId: q.project_id || null,
+  }));
 
 /** Concurrence max pour agrégations « un SELECT par élève » (évite ER_CON_COUNT_ERROR ; > séquentiel pour l’UI prof). */
 const STATS_STUDENT_AGG_CONCURRENCY = (() => {
@@ -191,19 +209,18 @@ router.get('/me/:studentId', requireAuth, asyncHandler(async (req, res) => {
   res.json(data);
 }));
 
-router.get('/all', requireAuth, asyncHandler(async (req, res) => {
+router.get('/all', requireAuth, validate({ query: statsScopeQuerySchema }), asyncHandler(async (req, res) => {
   const perms = Array.isArray(req.auth?.permissions) ? req.auth.permissions : [];
   const canReadAll = perms.includes('stats.read.all');
   const canReadGroup = perms.includes('stats.read.group');
   if (!canReadAll && !canReadGroup) {
     return res.status(403).json({ error: 'Permission insuffisante' });
   }
-  const requestedGroupId = String(req.query?.group_id || '').trim();
-  const requestedSubgroupId = String(req.query?.subgroup_id || '').trim();
+  const { groupId: requestedGroupId, subgroupId: requestedSubgroupId, mapId, projectId } = req.validatedQuery;
   const scope = await getScopedStudentIds(req.auth, {
     groupId: requestedSubgroupId || requestedGroupId || null,
-    mapId: req.query?.map_id || null,
-    projectId: req.query?.project_id || null,
+    mapId,
+    projectId,
   });
   if (scope.unauthorizedGroup) {
     return res.status(403).json({ error: 'Groupe hors périmètre' });
@@ -264,16 +281,15 @@ router.get('/all', requireAuth, asyncHandler(async (req, res) => {
 }));
 
 // Export CSV des stats n3beurs (n3boss uniquement)
-router.get('/export', requireAuth, asyncHandler(async (req, res) => {
+router.get('/export', requireAuth, validate({ query: statsScopeQuerySchema }), asyncHandler(async (req, res) => {
   const perms = Array.isArray(req.auth?.permissions) ? req.auth.permissions : [];
   const canExport = perms.includes('stats.export');
   if (!canExport) return res.status(403).json({ error: 'Permission insuffisante' });
-  const requestedGroupId = String(req.query?.group_id || '').trim();
-  const requestedSubgroupId = String(req.query?.subgroup_id || '').trim();
+  const { groupId: requestedGroupId, subgroupId: requestedSubgroupId, mapId, projectId } = req.validatedQuery;
   const scope = await getScopedStudentIds(req.auth, {
     groupId: requestedSubgroupId || requestedGroupId || null,
-    mapId: req.query?.map_id || null,
-    projectId: req.query?.project_id || null,
+    mapId,
+    projectId,
   });
   if (scope.unauthorizedGroup) {
     return res.status(403).json({ error: 'Groupe hors périmètre' });
@@ -353,3 +369,4 @@ router.get('/export', requireAuth, asyncHandler(async (req, res) => {
 }));
 
 module.exports = router;
+module.exports.statsScopeQuerySchema = statsScopeQuerySchema; // exporté pour test no-DB du contrat O7
