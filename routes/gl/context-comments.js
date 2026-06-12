@@ -15,6 +15,7 @@ const {
   normalizeOptionalString,
   parsePageQuery,
 } = require('../../lib/shared/httpHelpers');
+const { z, validate } = require('../../lib/validate');
 const {
   AUTO_BODY_WITH_PHOTOS: CORE_AUTO_BODY_WITH_PHOTOS,
   getAllowedReactionSet,
@@ -45,6 +46,28 @@ function normalizeContextType(value) {
   const t = String(value || '').trim().toLowerCase();
   return ALLOWED_CONTEXT_TYPES.has(t) ? t : '';
 }
+
+// O7 — query de GET / : coercition permissive (jamais de 400 issu du schéma) reproduisant
+// exactement l'ancienne lecture manuelle : `contextType` via normalizeContextType (type
+// inconnu → ''), `contextId` via normalizeOptionalString (vide → null), pagination via
+// parsePageQuery (`page` ≥ 1, `page_size` borné [1, MAX_PAGE_SIZE], `offset` dérivé).
+// Les 400 « contextType invalide » / « contextId requis » restent décidés par le handler
+// (contrat historique inchangé) — le schéma, lui, ne rejette jamais.
+const glContextCommentsListQuerySchema = z
+  .object({
+    contextType: z.unknown().optional(),
+    contextId: z.unknown().optional(),
+    page: z.unknown().optional(),
+    page_size: z.unknown().optional(),
+  })
+  .transform((q) => ({
+    contextType: normalizeContextType(q.contextType),
+    contextId: normalizeOptionalString(q.contextId),
+    ...parsePageQuery(q, {
+      defaultPageSize: DEFAULT_PAGE_SIZE,
+      maxPageSize: MAX_PAGE_SIZE,
+    }),
+  }));
 
 async function contextExists(contextType, contextId) {
   if (contextType === 'gl_chapter') {
@@ -79,21 +102,15 @@ function canModerate(auth) {
 
 router.use(requireGlAuth);
 
-router.get('/', async (req, res) => {
+router.get('/', validate({ query: glContextCommentsListQuerySchema }), async (req, res) => {
   try {
     const actor = getActor(req.glAuth);
-    const contextType = normalizeContextType(req.query?.contextType);
-    const contextId = normalizeOptionalString(req.query?.contextId);
+    const { contextType, contextId, page, pageSize, offset } = req.validatedQuery;
     if (!contextType) return res.status(400).json({ error: 'contextType invalide' });
     if (!contextId) return res.status(400).json({ error: 'contextId requis' });
     if (!(await contextExists(contextType, contextId))) {
       return res.status(404).json({ error: 'Contexte introuvable' });
     }
-
-    const { page, pageSize, offset } = parsePageQuery(req.query, {
-      defaultPageSize: DEFAULT_PAGE_SIZE,
-      maxPageSize: MAX_PAGE_SIZE,
-    });
     const { items, total } = await listContextComments(contextType, contextId, {
       includeAuthorDisplayName: false,
       pageSize,
@@ -248,3 +265,4 @@ router.post('/:id/report', async (req, res) => {
 });
 
 module.exports = router;
+module.exports.glContextCommentsListQuerySchema = glContextCommentsListQuerySchema; // exporté pour test no-DB du contrat O7
