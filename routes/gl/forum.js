@@ -4,6 +4,7 @@ const express = require('express');
 const { queryAll, queryOne, execute } = require('../../database');
 const { requireGlAuth } = require('../../middleware/requireGlAuth');
 const { normalizeOptionalString, parsePageQuery } = require('../../lib/shared/httpHelpers');
+const { z, validate } = require('../../lib/validate');
 
 const router = express.Router();
 
@@ -14,17 +15,25 @@ const MAX_BODY = 4000;
 const DEFAULT_PAGE_SIZE = 20;
 const MAX_PAGE_SIZE = 50;
 
+// O7 — pagination de GET /threads : coercition permissive (jamais de 400 pour une query
+// invalide) reproduisant exactement `parsePageQuery` : `page` ≥ 1 (repli 1), `page_size`
+// borné à [1, MAX_PAGE_SIZE] (repli DEFAULT_PAGE_SIZE), `offset` dérivé. `pageSize`/`offset`
+// étant interpolés dans le SQL (LIMIT/OFFSET), ces bornes garantissent des entiers sûrs.
+const glForumPageQuerySchema = z
+  .object({ page: z.unknown().optional(), page_size: z.unknown().optional() })
+  .transform((q) => parsePageQuery(q, {
+    defaultPageSize: DEFAULT_PAGE_SIZE,
+    maxPageSize: MAX_PAGE_SIZE,
+  }));
+
 function canModerate(auth) {
   return String(auth?.userType || '').toLowerCase() === 'gl_admin';
 }
 
 router.use(requireGlAuth);
 
-router.get('/threads', async (req, res) => {
-  const { page, pageSize, offset } = parsePageQuery(req.query, {
-    defaultPageSize: DEFAULT_PAGE_SIZE,
-    maxPageSize: MAX_PAGE_SIZE,
-  });
+router.get('/threads', validate({ query: glForumPageQuerySchema }), async (req, res) => {
+  const { page, pageSize, offset } = req.validatedQuery;
   const totalRow = await queryOne('SELECT COUNT(*) AS c FROM gl_forum_threads WHERE is_deleted = 0');
   const total = Number(totalRow?.c || 0);
   const rows = await queryAll(
@@ -137,3 +146,4 @@ router.delete('/posts/:id', async (req, res) => {
 });
 
 module.exports = router;
+module.exports.glForumPageQuerySchema = glForumPageQuerySchema; // exporté pour test no-DB du contrat O7
