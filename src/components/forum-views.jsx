@@ -1,9 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api, toggleForumPostReaction } from '../services/api';
 import { formatDateTimeFr } from '../utils/datetime-fr';
-import { AttachmentImagesPicker, UserContentImagesGrid } from './attachment-images-picker';
-import { MarkdownContent } from './MarkdownContent.jsx';
+import { AttachmentImagesPicker } from './attachment-images-picker';
 import { MarkdownTextarea } from './MarkdownTextarea.jsx';
+import { ForumPostCard } from './forum/ForumPostCard.jsx';
 import {
   DEFAULT_REACTION_EMOJIS,
   forumPageCount,
@@ -370,96 +370,24 @@ function ForumView({ authClaims, canParticipateForum = true }) {
 
               <div className="forum-post-list">
                 {detailLoading && <p className="forum-muted">Chargement…</p>}
-                {!detailLoading && posts.map((p) => {
-                  const isOwner = p.author_user_type === currentUserType && p.author_user_id === currentUserId;
-                  const canDelete = canModerate || (canUseForumActions && isOwner);
-                  const reactionsExpanded = !!expandedReactionsByPost[p.id];
-                  return (
-                    <article key={p.id} className={`forum-post ${p.is_deleted ? 'is-deleted' : ''}`}>
-                      <div className="forum-post-head">
-                        <strong>{p.author_display_name}</strong>
-                        <span>{formatDateTimeFr(p.created_at)}</span>
-                      </div>
-                      {p.is_deleted ? (
-                        <p className="forum-post-body">[message supprimé]</p>
-                      ) : (
-                        <MarkdownContent className="forum-post-body">{p.body}</MarkdownContent>
-                      )}
-                      {!p.is_deleted && <UserContentImagesGrid urls={p.image_urls} />}
-                      {!p.is_deleted && (canUseForumActions ? (
-                        <div className={`message-reactions-row ${reactionsExpanded ? 'expanded' : 'compact'}`}>
-                          {!reactionsExpanded ? (
-                            <button
-                              type="button"
-                              className="message-reaction-chip message-reaction-chip--toggle"
-                              onClick={() => setExpandedReactionsByPost((prev) => ({ ...prev, [p.id]: true }))}
-                              title="Afficher toutes les réactions"
-                            >
-                              <span>{firstReactionEmoji}</span>
-                            </button>
-                          ) : (
-                            <>
-                              {reactionEmojis.map((emoji) => {
-                                const item = (p.reactions || []).find((r) => r.emoji === emoji);
-                                const count = Number(item?.count || 0);
-                                const mine = !!item?.reacted_by_me;
-                                return (
-                                  <button
-                                    key={`${p.id}-${emoji}`}
-                                    type="button"
-                                    className={`message-reaction-chip ${mine ? 'active' : ''}`}
-                                    onClick={() => handleReactPost(p.id, emoji)}
-                                    title={`Réagir avec ${emoji}`}
-                                  >
-                                    <span>{emoji}</span>
-                                    {count > 0 && <span>{count}</span>}
-                                  </button>
-                                );
-                              })}
-                              <button
-                                type="button"
-                                className="message-reaction-chip message-reaction-chip--toggle"
-                                onClick={() => setExpandedReactionsByPost((prev) => ({ ...prev, [p.id]: false }))}
-                                title="Réduire les réactions"
-                              >
-                                <span>▾</span>
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      ) : (
-                        (p.reactions || []).some((r) => Number(r.count) > 0) && (
-                          <div className="message-reactions-row compact" style={{ opacity: 0.85 }}>
-                            {(p.reactions || []).filter((r) => Number(r.count) > 0).map((r) => (
-                              <span key={`${p.id}-${r.emoji}`} className="message-reaction-chip" style={{ cursor: 'default' }}>
-                                <span>{r.emoji}</span>
-                                <span>{r.count}</span>
-                              </span>
-                            ))}
-                          </div>
-                        )
-                      ))}
-                      {!p.is_deleted && canUseForumActions && (
-                        <div className="forum-post-actions">
-                          {canDelete && (
-                            <button type="button" className="btn btn-ghost btn-sm" onClick={() => handleDeletePost(p.id)}>
-                              Supprimer
-                            </button>
-                          )}
-                          <input
-                            value={reportReasonByPost[p.id] || ''}
-                            onChange={(e) => setReportReasonByPost((prev) => ({ ...prev, [p.id]: e.target.value }))}
-                            placeholder="Motif de signalement"
-                            maxLength={500}
-                          />
-                          <button type="button" className="btn btn-secondary btn-sm" onClick={() => handleReportPost(p.id)}>
-                            Signaler
-                          </button>
-                        </div>
-                      )}
-                    </article>
-                  );
-                })}
+                {!detailLoading && posts.map((p) => (
+                  <ForumPostCard
+                    key={p.id}
+                    post={p}
+                    canModerate={canModerate}
+                    canUseForumActions={canUseForumActions}
+                    isOwner={p.author_user_type === currentUserType && p.author_user_id === currentUserId}
+                    reactionEmojis={reactionEmojis}
+                    firstReactionEmoji={firstReactionEmoji}
+                    reactionsExpanded={!!expandedReactionsByPost[p.id]}
+                    reportReason={reportReasonByPost[p.id] || ''}
+                    onSetReactionsExpanded={(postId, expanded) => setExpandedReactionsByPost((prev) => ({ ...prev, [postId]: expanded }))}
+                    onReact={handleReactPost}
+                    onDelete={handleDeletePost}
+                    onReportReasonChange={(postId, value) => setReportReasonByPost((prev) => ({ ...prev, [postId]: value }))}
+                    onReport={handleReportPost}
+                  />
+                ))}
               </div>
 
               {canUseForumActions && (
