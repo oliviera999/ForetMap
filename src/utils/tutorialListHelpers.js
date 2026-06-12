@@ -51,6 +51,25 @@ export function moveIndex(arr, from, to) {
   return next;
 }
 
+/**
+ * Filtre la liste des tutoriels (type, statut actif/archivé, recherche texte sur titre + résumé,
+ * insensible à la casse) puis la trie par `sort_order`. Ne mute pas l'entrée.
+ */
+export function filterAndSortTutorials(tutorials, { search = '', typeFilter = 'all', statusFilter = 'all' } = {}) {
+  const q = String(search || '').trim().toLowerCase();
+  const arr = (tutorials || []).filter((t) => {
+    if (typeFilter !== 'all' && t.type !== typeFilter) return false;
+    if (statusFilter === 'active' && !t.is_active) return false;
+    if (statusFilter === 'archived' && t.is_active) return false;
+    if (!q) return true;
+    return (
+      String(t.title || '').toLowerCase().includes(q) ||
+      String(t.summary || '').toLowerCase().includes(q)
+    );
+  });
+  return sortTutorialsByOrder(arr);
+}
+
 const LINKED_TASK_STATUS_LABELS = {
   available: 'À faire',
   in_progress: 'En cours',

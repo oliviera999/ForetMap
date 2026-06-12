@@ -8,13 +8,16 @@
 //   inutilisé) — null/'' → null, non fini → null, Math.floor, hors [1;5] → null.
 // Le schéma ne rejette jamais ; les ~20 filtres texte/CSV restent lus manuellement sur
 // req.query (hors périmètre du schéma).
+// Vérifie aussi `gameId`/`teamId` de GET /feuillets et GET /feuillets/:code
+// (glLoreFeuilletQuerySchema) : ex-`parseId`/`parseGlId` (Number fini > 0 → entier tronqué,
+// sinon null), `biomeSlugs`/`liasse` restant lus manuellement.
 const test = require('node:test');
 const assert = require('node:assert');
 const { validate } = require('../lib/validate');
-const { glQcmPoolPreviewQuerySchema } = require('../routes/gl/lore');
+const { glQcmPoolPreviewQuerySchema, glLoreFeuilletQuerySchema } = require('../routes/gl/lore');
 const shared = require('../lib/glQuerySchemas');
 
-function runQuery(query) {
+function runSchema(schema, query) {
   const req = { query };
   let nextCalled = false;
   const res = {
@@ -22,8 +25,12 @@ function runQuery(query) {
     status(c) { this.statusCode = c; return this; },
     json() { return this; },
   };
-  validate({ query: glQcmPoolPreviewQuerySchema })(req, res, () => { nextCalled = true; });
+  validate({ query: schema })(req, res, () => { nextCalled = true; });
   return { nextCalled, status: res.statusCode, validated: req.validatedQuery };
+}
+
+function runQuery(query) {
+  return runSchema(glQcmPoolPreviewQuerySchema, query);
 }
 
 // Ré-implémentations indépendantes de la logique historique.
@@ -87,4 +94,51 @@ test('difficulteMin/difficulteMax : équivalence exacte avec parseDifficulteQuer
   assert.strictEqual(runQuery({ difficulteMax: '' }).validated.difficulteMax, null);
   assert.strictEqual(runQuery({ difficulteMax: ['1', '2'] }).validated.difficulteMax, null);
   assert.strictEqual(runQuery({ difficulteMax: ['4'] }).validated.difficulteMax, 4); // Number(['4']) === 4, comme avant
+});
+
+// Ré-implémentation indépendante de l'ancien parseId/parseGlId de lib/glTeamContext.js.
+function legacyParseGlId(value) {
+  const n = Number(value);
+  return Number.isFinite(n) && n > 0 ? Math.trunc(n) : null;
+}
+
+test('GET /feuillets(/:code) — gameId/teamId : équivalence exacte avec parseId historique, jamais de 400 issu du schéma', () => {
+  const cases = [undefined, '', '  ', 'abc', '0', '3', '-1', '2.5', '2.9', '999999', 'Infinity', '-Infinity', '0.5', '12abc', ['1', '2'], ['4']];
+  for (const rawGameId of cases) {
+    for (const rawTeamId of cases) {
+      const query = {};
+      if (rawGameId !== undefined) query.gameId = rawGameId;
+      if (rawTeamId !== undefined) query.teamId = rawTeamId;
+      const { nextCalled, status, validated } = runSchema(glLoreFeuilletQuerySchema, query);
+      const label = `gameId=${JSON.stringify(rawGameId)} teamId=${JSON.stringify(rawTeamId)}`;
+      assert.strictEqual(nextCalled, true, `${label} ne doit jamais être rejeté par le schéma`);
+      assert.strictEqual(status, 200, label);
+      // Ancienne logique : parseId(req.query?.gameId) / parseId(req.query?.teamId).
+      assert.strictEqual(validated.gameId, legacyParseGlId(rawGameId), `gameId pour ${label}`);
+      assert.strictEqual(validated.teamId, legacyParseGlId(rawTeamId), `teamId pour ${label}`);
+      // Branche historique du chargement de progression : `if (gameId && teamId)`.
+      assert.strictEqual(
+        Boolean(validated.gameId && validated.teamId),
+        Boolean(legacyParseGlId(rawGameId) && legacyParseGlId(rawTeamId)),
+        `branche progression pour ${label}`
+      );
+    }
+  }
+});
+
+test('GET /feuillets(/:code) — gameId/teamId : bornes et replis notables conservés', () => {
+  const one = (raw) => runSchema(glLoreFeuilletQuerySchema, raw === undefined ? {} : { gameId: raw }).validated.gameId;
+  // Absent / vide / non numérique / zéro / négatif / Infinity → null (pas de progression chargée).
+  assert.strictEqual(one(undefined), null);
+  assert.strictEqual(one(''), null); // Number('') === 0, non > 0
+  assert.strictEqual(one('abc'), null);
+  assert.strictEqual(one('0'), null);
+  assert.strictEqual(one('-1'), null);
+  assert.strictEqual(one('Infinity'), null);
+  assert.strictEqual(one(['1', '2']), null); // Number(['1','2']) → NaN
+  // Décimal → troncature (Math.trunc), comme l'ancien parseGlId.
+  assert.strictEqual(one('2.9'), 2);
+  // '0.5' : parseGlId teste n > 0 AVANT troncature → Math.trunc(0.5) === 0 (falsy en aval),
+  // valeur conservée à l'identique (pas repliée sur null).
+  assert.strictEqual(one('0.5'), 0);
 });

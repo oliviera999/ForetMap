@@ -13,23 +13,29 @@ import {
   mergeRbacUserRowsForEdit,
   isLikelyApiUserPayload,
   buildUserEditInitialFields,
+  validateUserIdentityFields,
+  buildUserEditPatchPayload,
 } from '../utils/profilesUserFields.js';
 import { UserEditModal } from './profiles/UserEditModal.jsx';
 import { DeleteUserConfirmModal } from './profiles/DeleteUserConfirmModal.jsx';
 import { CreateUserPanel } from './profiles/CreateUserPanel.jsx';
 import { StudentImportPanel } from './profiles/StudentImportPanel.jsx';
 import { StudentDeletePanel } from './profiles/StudentDeletePanel.jsx';
-import { ProfilesRoleList } from './profiles/ProfilesRoleList.jsx';
-import { ProfilesPermissionRows } from './profiles/ProfilesPermissionRows.jsx';
-import { ProfilesUserAssignmentList } from './profiles/ProfilesUserAssignmentList.jsx';
-import { ProfilesRoleQuickConfig } from './profiles/ProfilesRoleQuickConfig.jsx';
-import { ProfilesRoleProgressionConfig } from './profiles/ProfilesRoleProgressionConfig.jsx';
+import { ProfilesRbacAdminSection } from './profiles/ProfilesRbacAdminSection.jsx';
 import {
   isN3beurTierConfigurableProfile as isN3beurTierConfigurableRole,
   sortRolesForDisplay,
   deriveProfilesCapabilities,
   normalizeRoleEditFields,
+  buildRoleReorderPatches,
+  parseMaxConcurrentTasksLimit,
+  parseMinDoneTasksThreshold,
 } from '../utils/profilesRbacHelpers.js';
+import {
+  promptRoleDetailsPatch,
+  promptNewRoleProfile,
+  promptDuplicateRoleProfile,
+} from '../utils/profilesRolePrompts.js';
 
 function ProfilesAdminView({ onImpersonationApplied, maps = [] }) {
   const publicSettings = usePublicSettings();
@@ -174,20 +180,12 @@ function ProfilesAdminView({ onImpersonationApplied, maps = [] }) {
   const sortedRoles = useMemo(() => sortRolesForDisplay(roles), [roles]);
 
   const reorderRole = async (roleId, direction) => {
-    const idx = sortedRoles.findIndex((r) => Number(r.id) === Number(roleId));
-    if (idx < 0) return;
-    const newIdx = idx + direction;
-    if (newIdx < 0 || newIdx >= sortedRoles.length) return;
-    const arr = [...sortedRoles];
-    [arr[idx], arr[newIdx]] = [arr[newIdx], arr[idx]];
-    const nextOrders = arr.map((r, i) => ({ id: r.id, display_order: i }));
+    const patches = buildRoleReorderPatches(sortedRoles, roleId, direction);
+    if (!patches) return;
     setLoading(true);
     setErr('');
     try {
-      for (const { id, display_order } of nextOrders) {
-        if (id == null || display_order === undefined) continue;
-        const prev = sortedRoles.find((x) => Number(x.id) === Number(id));
-        if (Number(prev?.display_order) === display_order) continue;
+      for (const { id, display_order } of patches) {
         await api(`/api/rbac/profiles/${id}`, 'PATCH', { display_order });
       }
       setMsg('Ordre des profils mis à jour');
@@ -213,40 +211,16 @@ function ProfilesAdminView({ onImpersonationApplied, maps = [] }) {
   }, [selectedRole]);
 
   const saveRoleDetails = async (role) => {
-    const displayName = window.prompt('Nom du profil', role.display_name || '');
-    if (!displayName || !displayName.trim()) return;
-    const emojiInput = window.prompt('Emoji du profil', (roleEmoji || role.emoji || '').trim());
-    if (emojiInput == null) return;
-    const minDoneInput = window.prompt(
-      'Niveau requis (nombre de tâches validées)',
-      roleMinDoneTasks || (role.min_done_tasks == null ? '' : String(role.min_done_tasks))
-    );
-    if (minDoneInput == null) return;
-    const displayOrderInput = window.prompt(
-      "Ordre d'affichage (entier >= 0, plus petit = plus haut)",
-      roleDisplayOrder || String(role.display_order ?? 0)
-    );
-    if (displayOrderInput == null) return;
-    const parsedMinDone = minDoneInput.trim() === '' ? null : parseInt(minDoneInput, 10);
-    const parsedDisplayOrder = parseInt(displayOrderInput, 10);
-    if (minDoneInput.trim() !== '' && (!Number.isFinite(parsedMinDone) || parsedMinDone < 0)) {
-      setErr('Niveau requis invalide (entier >= 0)');
-      return;
-    }
-    if (!Number.isFinite(parsedDisplayOrder) || parsedDisplayOrder < 0) {
-      setErr("Ordre d'affichage invalide (entier >= 0)");
+    const result = promptRoleDetailsPatch(role, { roleEmoji, roleMinDoneTasks, roleDisplayOrder });
+    if (!result) return;
+    if (result.error) {
+      setErr(result.error);
       return;
     }
     setLoading(true);
     setErr('');
     try {
-      await api(`/api/rbac/profiles/${role.id}`, 'PATCH', {
-        display_name: displayName.trim(),
-        rank: role.rank,
-        emoji: emojiInput.trim() || null,
-        min_done_tasks: parsedMinDone,
-        display_order: parsedDisplayOrder,
-      });
+      await api(`/api/rbac/profiles/${role.id}`, 'PATCH', result.payload);
       setMsg('Profil mis à jour');
       await load();
     } catch (e) {
@@ -274,34 +248,16 @@ function ProfilesAdminView({ onImpersonationApplied, maps = [] }) {
 
   const saveMaxConcurrentTasks = async () => {
     if (!selectedRole) return;
-    const raw = String(roleMaxConcurrentTasks || '').trim();
-    if (raw === '') {
-      setLoading(true);
-      setErr('');
-      try {
-        await api(`/api/rbac/profiles/${selectedRole.id}`, 'PATCH', { max_concurrent_tasks: null });
-        setMsg('Plafond d’inscriptions : héritage du réglage global (Paramètres n3boss) enregistré');
-        await load();
-      } catch (e) {
-        setErr(e.message || 'Erreur enregistrement du plafond');
-      }
-      setLoading(false);
-      return;
-    }
-    const n = parseInt(raw, 10);
-    if (!Number.isFinite(n) || n < 0 || n > 99) {
-      setErr('Plafond invalide : entier entre 0 et 99 (0 = pas de limite pour ce profil), ou champ vide pour hériter du réglage global');
+    const parsed = parseMaxConcurrentTasksLimit(roleMaxConcurrentTasks);
+    if (parsed.error) {
+      setErr(parsed.error);
       return;
     }
     setLoading(true);
     setErr('');
     try {
-      await api(`/api/rbac/profiles/${selectedRole.id}`, 'PATCH', { max_concurrent_tasks: n });
-      setMsg(
-        n === 0
-          ? 'Pas de limite d’inscriptions pour ce profil (0) : enregistré.'
-          : `Plafond d’inscriptions simultanées : ${n} tâche(s) non validée(s) — enregistré.`
-      );
+      await api(`/api/rbac/profiles/${selectedRole.id}`, 'PATCH', { max_concurrent_tasks: parsed.value });
+      setMsg(parsed.message);
       await load();
     } catch (e) {
       setErr(e.message || 'Erreur enregistrement du plafond');
@@ -310,22 +266,17 @@ function ProfilesAdminView({ onImpersonationApplied, maps = [] }) {
   };
 
   const saveStudentMinDoneThreshold = async () => {
-    if (!selectedRole) return;
-    const s = String(selectedRole.slug || '').trim().toLowerCase();
-    if (s === 'admin' || s === 'prof' || s === 'visiteur') return;
-    if (!/^eleve_/i.test(String(selectedRole.slug || ''))) {
-      const r = Number(selectedRole.rank);
-      if (!Number.isFinite(r) || r >= 400) return;
-    }
-    const parsed = roleMinDoneTasks.trim() === '' ? NaN : parseInt(roleMinDoneTasks, 10);
-    if (!Number.isFinite(parsed) || parsed < 0) {
-      setErr('Seuil invalide : indiquez un entier ≥ 0');
+    /* Même règle que la garde historique admin/prof/visiteur + rang : seuls les paliers n3beur ont un seuil. */
+    if (!selectedRole || !isN3beurTierConfigurableProfile) return;
+    const parsed = parseMinDoneTasksThreshold(roleMinDoneTasks);
+    if (parsed.error) {
+      setErr(parsed.error);
       return;
     }
     setLoading(true);
     setErr('');
     try {
-      await api(`/api/rbac/profiles/${selectedRole.id}`, 'PATCH', { min_done_tasks: parsed });
+      await api(`/api/rbac/profiles/${selectedRole.id}`, 'PATCH', { min_done_tasks: parsed.value });
       setMsg('Nombre de tâches validées requis pour ce niveau enregistré');
       await load();
     } catch (e) {
@@ -357,55 +308,16 @@ function ProfilesAdminView({ onImpersonationApplied, maps = [] }) {
   };
 
   const createRoleProfile = async () => {
-    const slug = window.prompt(
-      'Slug technique du profil (ex. eleve_mentor, n3boss_lycee). Réservés et interdits : admin, prof, visiteur, eleve_novice, eleve_avance, eleve_chevronne. Le nom affiché peut être « Admin » ou « n3boss » avec un autre slug.',
-      ''
-    );
-    if (!slug || !slug.trim()) return;
-    const displayName = window.prompt('Nom du profil', slug.trim());
-    if (!displayName || !displayName.trim()) return;
-    const emojiInput = window.prompt("Emoji du profil (obligatoire pour un profil n3beur)", '');
-    if (emojiInput == null) return;
-    const minDoneInput = window.prompt(
-      'Niveau requis pour atteindre ce profil (nombre de tâches validées)',
-      ''
-    );
-    if (minDoneInput == null) return;
-    const displayOrderInput = window.prompt(
-      "Ordre d'affichage (entier >= 0, plus petit = plus haut)",
-      '100'
-    );
-    if (displayOrderInput == null) return;
-    const normalizedSlug = slug.trim().toLowerCase();
-    const parsedMinDone = minDoneInput.trim() === '' ? null : parseInt(minDoneInput, 10);
-    const parsedDisplayOrder = parseInt(displayOrderInput, 10);
-    if (normalizedSlug.startsWith('eleve_') && !emojiInput.trim()) {
-      setErr('Un profil n3beur doit avoir un emoji');
-      return;
-    }
-    if (normalizedSlug.startsWith('eleve_') && parsedMinDone == null) {
-      setErr('Un profil n3beur doit avoir un niveau requis');
-      return;
-    }
-    if (minDoneInput.trim() !== '' && (!Number.isFinite(parsedMinDone) || parsedMinDone < 0)) {
-      setErr('Niveau requis invalide (entier >= 0)');
-      return;
-    }
-    if (!Number.isFinite(parsedDisplayOrder) || parsedDisplayOrder < 0) {
-      setErr("Ordre d'affichage invalide (entier >= 0)");
+    const result = promptNewRoleProfile();
+    if (!result) return;
+    if (result.error) {
+      setErr(result.error);
       return;
     }
     setLoading(true);
     setErr('');
     try {
-      const created = await api('/api/rbac/profiles', 'POST', {
-        slug: normalizedSlug,
-        display_name: displayName.trim(),
-        rank: 150,
-        emoji: emojiInput.trim() || null,
-        min_done_tasks: parsedMinDone,
-        display_order: parsedDisplayOrder,
-      });
+      const created = await api('/api/rbac/profiles', 'POST', result.payload);
       setMsg('Profil créé');
       await load();
       if (created?.id != null) setSelectedRoleId(created.id);
@@ -417,26 +329,13 @@ function ProfilesAdminView({ onImpersonationApplied, maps = [] }) {
 
   const duplicateRoleProfile = async (role) => {
     if (!role?.id) return;
-    const suggestedSlug = `${String(role.slug || 'profil').replace(/[^a-z0-9_]+/gi, '_')}_copie`;
-    const slugInput = window.prompt(
-      'Slug technique (unique). Ne pas utiliser : admin, prof, visiteur, eleve_novice, eleve_avance, eleve_chevronne — préférez ex. prof_copie_lycee. Le nom affiché est demandé ensuite.',
-      suggestedSlug
-    );
-    if (!slugInput || !slugInput.trim()) return;
-    const displayNameInput = window.prompt(
-      'Nom affiché du nouveau profil',
-      `${role.display_name || slugInput.trim()} (copie)`
-    );
-    if (!displayNameInput || !displayNameInput.trim()) return;
-    const normalizedSlug = slugInput.trim().toLowerCase();
+    const result = promptDuplicateRoleProfile(role);
+    if (!result) return;
     setLoading(true);
     setErr('');
     try {
-      const created = await api(`/api/rbac/profiles/${role.id}/duplicate`, 'POST', {
-        slug: normalizedSlug,
-        display_name: displayNameInput.trim(),
-      });
-      setMsg(`Profil dupliqué : ${created.display_name || normalizedSlug}`);
+      const created = await api(`/api/rbac/profiles/${role.id}/duplicate`, 'POST', result.payload);
+      setMsg(`Profil dupliqué : ${created.display_name || result.payload.slug}`);
       await load();
       if (created?.id != null) setSelectedRoleId(created.id);
     } catch (e) {
@@ -594,38 +493,30 @@ function ProfilesAdminView({ onImpersonationApplied, maps = [] }) {
 
   const saveEditUser = async () => {
     if (!editingUser) return;
-    if (!editFirstName.trim() || !editLastName.trim()) {
-      setErr('Prénom et nom sont requis');
-      return;
-    }
-    if (editPseudo.trim() && !/^[A-Za-z0-9_.-]{3,30}$/.test(editPseudo.trim())) {
-      setErr('Pseudo invalide (3-30 caractères, lettres/chiffres/._-)');
-      return;
-    }
-    if (editEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editEmail.trim())) {
-      setErr('Email invalide');
-      return;
-    }
-    if (editDescription.trim().length > 300) {
-      setErr('Description trop longue (max 300 caractères)');
+    const fieldError = validateUserIdentityFields({
+      firstName: editFirstName,
+      lastName: editLastName,
+      pseudo: editPseudo,
+      email: editEmail,
+      description: editDescription,
+    });
+    if (fieldError) {
+      setErr(fieldError);
       return;
     }
     setEditLoading(true);
     setErr('');
     try {
-      const payload = {
-        first_name: editFirstName.trim(),
-        last_name: editLastName.trim(),
-        pseudo: editPseudo.trim() || null,
-        email: editEmail.trim() || null,
-        description: editDescription.trim() || null,
-      };
-      if (editingUser.user_type === 'student') {
-        payload.affiliation = editAffiliation;
-      }
-      if (editPassword.trim()) {
-        payload.password = editPassword;
-      }
+      const payload = buildUserEditPatchPayload({
+        firstName: editFirstName,
+        lastName: editLastName,
+        pseudo: editPseudo,
+        email: editEmail,
+        description: editDescription,
+        affiliation: editAffiliation,
+        password: editPassword,
+        isStudent: editingUser.user_type === 'student',
+      });
       await api(
         `/api/rbac/users/${String(editingUser.user_type || '').toLowerCase()}/${encodeURIComponent(String(editingUser.id))}`,
         'PATCH',
@@ -686,20 +577,17 @@ function ProfilesAdminView({ onImpersonationApplied, maps = [] }) {
   };
 
   const createUser = async () => {
-    if (!createFirstName.trim() || !createLastName.trim() || !createPassword) {
-      setErr('Prénom, nom et mot de passe sont requis');
-      return;
-    }
-    if (createPseudo.trim() && !/^[A-Za-z0-9_.-]{3,30}$/.test(createPseudo.trim())) {
-      setErr('Pseudo invalide (3-30 caractères, lettres/chiffres/._-)');
-      return;
-    }
-    if (createEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(createEmail.trim())) {
-      setErr('Email invalide');
-      return;
-    }
-    if (createDescription.trim().length > 300) {
-      setErr('Description trop longue (max 300 caractères)');
+    const fieldError = validateUserIdentityFields({
+      firstName: createFirstName,
+      lastName: createLastName,
+      pseudo: createPseudo,
+      email: createEmail,
+      description: createDescription,
+      password: createPassword,
+      requirePassword: true,
+    });
+    if (fieldError) {
+      setErr(fieldError);
       return;
     }
     if (createRole === 'admin' && !isAdmin) {
@@ -892,89 +780,45 @@ function ProfilesAdminView({ onImpersonationApplied, maps = [] }) {
       />
 
       {canManageProfiles && (
-        <>
-          <div className="profiles-admin-grid">
-            <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 12 }}>
-              <ProfilesRoleList
-                roles={sortedRoles}
-                loading={loading}
-                selectedRoleId={selectedRoleId}
-                canEditRoleDefinition={canEditRoleDefinition}
-                onCreate={createRoleProfile}
-                onSelect={setSelectedRoleId}
-                onReorder={reorderRole}
-                onEditDetails={saveRoleDetails}
-                onDuplicate={duplicateRoleProfile}
-              />
-              {selectedRole && (
-                <ProfilesRoleQuickConfig
-                  role={selectedRole}
-                  roleEmoji={roleEmoji}
-                  onRoleEmojiChange={setRoleEmoji}
-                  onSaveEmoji={saveProfileEmoji}
-                  pin={pin}
-                  onPinChange={setPin}
-                  onSavePin={savePin}
-                  loading={loading}
-                  roleTerms={roleTerms}
-                />
-              )}
-            </div>
-
-            <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 12 }}>
-              <h3 style={{ marginTop: 0 }}>Permissions</h3>
-              {!selectedRole && <p style={{ margin: 0 }}>Choisis un profil dans la liste.</p>}
-              {selectedRole && (
-                <>
-                  <ProfilesRoleProgressionConfig
-                    role={selectedRole}
-                    loading={loading}
-                    roleTerms={roleTerms}
-                    isTier={isN3beurTierConfigurableProfile}
-                    canEditRoleDefinition={canEditRoleDefinition}
-                    progressionEnabled={progressionByTasksEnabled}
-                    onToggleProgression={toggleProgressionByValidatedTasks}
-                    minDoneTasks={roleMinDoneTasks}
-                    onMinDoneTasksChange={setRoleMinDoneTasks}
-                    onSaveMinDoneThreshold={saveStudentMinDoneThreshold}
-                    proposeEntry={tasksProposeEntry}
-                    onTogglePermission={togglePermission}
-                    onTogglePermissionElevation={togglePermissionElevation}
-                    onSetForumParticipate={setRoleForumParticipate}
-                    onSetContextCommentParticipate={setRoleContextCommentParticipate}
-                    maxConcurrentTasks={roleMaxConcurrentTasks}
-                    onMaxConcurrentChange={setRoleMaxConcurrentTasks}
-                    onSaveMaxConcurrent={saveMaxConcurrentTasks}
-                  />
-                  <ProfilesPermissionRows
-                    catalog={catalog}
-                    rolePermissions={selectedRole.permissions}
-                    loading={loading}
-                    hideTasksPropose={isN3beurTierConfigurableProfile}
-                    onToggle={togglePermission}
-                    onToggleElevation={togglePermissionElevation}
-                  />
-                </>
-              )}
-            </div>
-          </div>
-
-          <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 12, marginTop: 12 }}>
-            <h3 style={{ marginTop: 0 }}>Attribution des profils</h3>
-            <p style={{ margin: '0 0 10px', fontSize: '.78rem', color: '#64748b', lineHeight: 1.45 }}>
-              Choisir le profil principal définit notamment forum et commentaires contextuels (réglés par profil dans la colonne de gauche, section Permissions). L’attribution peut exiger une session élevée (PIN) selon les droits du compte administrateur. Utilisez « Modifier » pour changer prénom, nom, pseudo, email, description, affiliation ou mot de passe.
-            </p>
-            <ProfilesUserAssignmentList
-              users={users}
-              roles={sortedRoles}
-              loading={loading}
-              editUserLoadState={editUserLoadState}
-              isAdmin={isAdmin}
-              onAssignRole={assignRole}
-              onOpenEditUser={openEditUser}
-            />
-          </div>
-        </>
+        <ProfilesRbacAdminSection
+          roles={sortedRoles}
+          catalog={catalog}
+          users={users}
+          loading={loading}
+          roleTerms={roleTerms}
+          selectedRole={selectedRole}
+          selectedRoleId={selectedRoleId}
+          canEditRoleDefinition={canEditRoleDefinition}
+          isAdmin={isAdmin}
+          isN3beurTier={isN3beurTierConfigurableProfile}
+          progressionByTasksEnabled={progressionByTasksEnabled}
+          tasksProposeEntry={tasksProposeEntry}
+          roleEmoji={roleEmoji}
+          pin={pin}
+          roleMinDoneTasks={roleMinDoneTasks}
+          roleMaxConcurrentTasks={roleMaxConcurrentTasks}
+          editUserLoadState={editUserLoadState}
+          onCreateRole={createRoleProfile}
+          onSelectRole={setSelectedRoleId}
+          onReorderRole={reorderRole}
+          onEditRoleDetails={saveRoleDetails}
+          onDuplicateRole={duplicateRoleProfile}
+          onRoleEmojiChange={setRoleEmoji}
+          onSaveEmoji={saveProfileEmoji}
+          onPinChange={setPin}
+          onSavePin={savePin}
+          onToggleProgression={toggleProgressionByValidatedTasks}
+          onMinDoneTasksChange={setRoleMinDoneTasks}
+          onSaveMinDoneThreshold={saveStudentMinDoneThreshold}
+          onTogglePermission={togglePermission}
+          onTogglePermissionElevation={togglePermissionElevation}
+          onSetForumParticipate={setRoleForumParticipate}
+          onSetContextCommentParticipate={setRoleContextCommentParticipate}
+          onMaxConcurrentChange={setRoleMaxConcurrentTasks}
+          onSaveMaxConcurrent={saveMaxConcurrentTasks}
+          onAssignRole={assignRole}
+          onOpenEditUser={openEditUser}
+        />
       )}
 
       {canManageProfiles && <GroupsAdminView />}

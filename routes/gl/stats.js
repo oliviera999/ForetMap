@@ -6,21 +6,34 @@ const { requireGlAuth, requireGlPermission } = require('../../middleware/require
 const { getGameplaySettings } = require('../../lib/glSettings');
 const { buildClassStats, buildPlayerStats } = require('../../lib/glPlayerStats');
 const { logRouteError, respondInternalError } = require('../../lib/routeLog');
+const { z, validate } = require('../../lib/validate');
 
 const router = express.Router();
 const db = { queryOne, queryAll };
+
+// O7 — `class_id` de GET /class : coercition permissive (jamais de 400 issu du schéma)
+// reproduisant exactement l'ancien début de resolveClassIdForAuth :
+// `String(raw || '').trim()` puis Number si non vide (NaN conservé — il part en lookup DB et
+// échoue comme avant), sinon null (→ replis token / joueur / première classe active).
+const glStatsClassQuerySchema = z
+  .object({ class_id: z.unknown().optional() })
+  .transform((q) => {
+    const requested = String(q.class_id || '').trim();
+    return { class_id: requested ? Number(requested) : null };
+  });
 
 async function resolveVitalityEnabled() {
   const settings = await getGameplaySettings();
   return settings.vitalityEnabled === true;
 }
 
+// `requestedClassId` : nombre déjà coercé par glStatsClassQuerySchema (null = non demandé,
+// NaN possible et envoyé au lookup comme avant — aucune ligne → null → 400 du handler).
 async function resolveClassIdForAuth(auth, requestedClassId) {
-  const requested = String(requestedClassId || '').trim();
-  if (requested) {
+  if (requestedClassId != null) {
     const row = await queryOne(
       'SELECT id FROM gl_classes WHERE id = ? AND is_active = 1 LIMIT 1',
-      [Number(requested)]
+      [requestedClassId]
     );
     return row ? Number(row.id) : null;
   }
@@ -67,9 +80,9 @@ router.get('/me', requireGlAuth, async (req, res) => {
 });
 
 /** GET /api/gl/stats/class?class_id= — statistiques collectives d'une classe (MJ/admin). */
-router.get('/class', requireGlPermission('gl.players.manage'), async (req, res) => {
+router.get('/class', requireGlPermission('gl.players.manage'), validate({ query: glStatsClassQuerySchema }), async (req, res) => {
   try {
-    const classId = await resolveClassIdForAuth(req.glAuth, req.query?.class_id);
+    const classId = await resolveClassIdForAuth(req.glAuth, req.validatedQuery?.class_id);
     if (!classId) {
       return res.status(400).json({ error: 'Classe introuvable ou non spécifiée' });
     }
@@ -83,3 +96,4 @@ router.get('/class', requireGlPermission('gl.players.manage'), async (req, res) 
 });
 
 module.exports = router;
+module.exports.glStatsClassQuerySchema = glStatsClassQuerySchema; // exporté pour test no-DB du contrat O7
