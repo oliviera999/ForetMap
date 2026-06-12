@@ -31,6 +31,7 @@ import { LogModal, TaskLogsViewer } from './tasks/TaskLogModals.jsx';
 import { TaskProjectFormModal } from './tasks/TaskProjectFormModal.jsx';
 import { TaskFormModal } from './tasks/TaskFormModal.jsx';
 import { TaskTileCard } from './tasks/TaskTileCard.jsx';
+import { TaskTileSection } from './tasks/TaskTileSection.jsx';
 import { TaskProjectsBlock } from './tasks/TaskProjectsBlock.jsx';
 import { TaskImportPanel } from './tasks/TaskImportPanel.jsx';
 import { TaskTutorialsAtFocusBlock } from './tasks/TaskTutorialsAtFocusBlock.jsx';
@@ -972,34 +973,21 @@ function TasksView({
         </div>
       )}
 
-      {urgentCategoryTasks.length > 0 && (
-        <div className="tasks-section">
-          <div className="tasks-section-title">🚨 Urgent ! ({urgentCategoryTasks.length})</div>
-          <div className={sectionListClass}>{urgentCategoryTasks.map((t, idx) => <TaskTileCard key={t.id} {...taskTileProps} t={t} index={idx} />)}</div>
-        </div>
-      )}
+      <TaskTileSection
+        title={`🚨 Urgent ! (${urgentCategoryTasks.length})`}
+        tasks={urgentCategoryTasks}
+        sectionListClass={sectionListClass}
+        taskTileProps={taskTileProps}
+      />
 
-      {!isTeacher && myTasks.length > 0 && (
-        <div className="tasks-section">
-          <div className="tasks-section-title">🧩 Mes tâches</div>
-          <div className={sectionListClass}>{myTasks.map((t, idx) => <TaskTileCard key={t.id} {...taskTileProps} t={t} index={idx} />)}</div>
-        </div>
+      {!isTeacher && (
+        <TaskTileSection title="🧩 Mes tâches" tasks={myTasks} sectionListClass={sectionListClass} taskTileProps={taskTileProps} />
       )}
 
       {isTeacher ? (
         <>
-          {inProgress.length > 0 && (
-            <div className="tasks-section">
-              <div className="tasks-section-title">⚙️ En cours</div>
-              <div className={sectionListClass}>{inProgress.map((t, idx) => <TaskTileCard key={t.id} {...taskTileProps} t={t} index={idx} />)}</div>
-            </div>
-          )}
-          {available.length > 0 && (
-            <div className="tasks-section">
-              <div className="tasks-section-title">🔥 À faire</div>
-              <div className={sectionListClass}>{available.map((t, idx) => <TaskTileCard key={t.id} {...taskTileProps} t={t} index={idx} />)}</div>
-            </div>
-          )}
+          <TaskTileSection title="⚙️ En cours" tasks={inProgress} sectionListClass={sectionListClass} taskTileProps={taskTileProps} />
+          <TaskTileSection title="🔥 À faire" tasks={available} sectionListClass={sectionListClass} taskTileProps={taskTileProps} />
           <TaskProjectsBlock
             visibleProjects={activeProjects}
             allFiltered={allFilteredWithoutUrgent}
@@ -1027,41 +1015,37 @@ function TasksView({
             onProjectTaskDragOver={registerProjectDropHint}
             onDropTaskToProject={dropTaskToProject}
           />
-          {proposed.length > 0 && (
-            <div className="tasks-section">
-              <div className="tasks-section-title">💡 Propositions {roleTerms.studentPlural} ({proposed.length})</div>
-              <div className={sectionListClass}>{proposed.map((t, idx) => <TaskTileCard key={t.id} {...taskTileProps} t={t} index={idx} />)}</div>
-            </div>
-          )}
-          {done.length > 0 && (
-            <div className="tasks-section">
-              <div className="tasks-section-title">⏳ En attente de validation ({done.length})</div>
-              <div className={sectionListClass}>{done.map((t, idx) => <TaskTileCard key={t.id} {...taskTileProps} t={t} index={idx} />)}</div>
-            </div>
-          )}
-          {onHold.length > 0 && (
-            <div className="tasks-section">
-              <div className="tasks-section-title">⏸️ En attente ({onHold.length})</div>
-              <div className={sectionListClass}>{onHold.map((t, idx) => <TaskTileCard key={t.id} {...taskTileProps} t={t} index={idx} />)}</div>
-            </div>
-          )}
-          {validated.length > 0 && (
-            <div className="tasks-section">
-              <div className="tasks-section-title">✅ Validées</div>
-              <div className={sectionListClass}>{validated.map((t, idx) => <TaskTileCard key={t.id} {...taskTileProps} t={t} index={idx} />)}</div>
-            </div>
-          )}
+          <TaskTileSection
+            title={`💡 Propositions ${roleTerms.studentPlural} (${proposed.length})`}
+            tasks={proposed}
+            sectionListClass={sectionListClass}
+            taskTileProps={taskTileProps}
+          />
+          <TaskTileSection
+            title={`⏳ En attente de validation (${done.length})`}
+            tasks={done}
+            sectionListClass={sectionListClass}
+            taskTileProps={taskTileProps}
+          />
+          <TaskTileSection
+            title={`⏸️ En attente (${onHold.length})`}
+            tasks={onHold}
+            sectionListClass={sectionListClass}
+            taskTileProps={taskTileProps}
+          />
+          <TaskTileSection title="✅ Validées" tasks={validated} sectionListClass={sectionListClass} taskTileProps={taskTileProps} />
         </>
       ) : (
         <>
           {showStudentFilteredResults ? (
             <>
-              <div className="tasks-section">
-                <div className="tasks-section-title">
-                  🔎 Résultats filtrés ({regularFiltered.length})
-                </div>
-                <div className={sectionListClass}>{regularFiltered.map((t, idx) => <TaskTileCard key={t.id} {...taskTileProps} t={t} index={idx} />)}</div>
-              </div>
+              <TaskTileSection
+                title={`🔎 Résultats filtrés (${regularFiltered.length})`}
+                tasks={regularFiltered}
+                sectionListClass={sectionListClass}
+                taskTileProps={taskTileProps}
+                showWhenEmpty
+              />
               <TaskProjectsBlock
             visibleProjects={activeProjects}
             allFiltered={allFilteredWithoutUrgent}
@@ -1092,24 +1076,24 @@ function TasksView({
             </>
           ) : (
             <>
-              {inProgressNotMine.length > 0 && (
-              <div className="tasks-section">
-                <div className="tasks-section-title">⚙️ En cours (déjà prises)</div>
-                <div className={sectionListClass}>{inProgressNotMine.map((t, idx) => <TaskTileCard key={t.id} {...taskTileProps} t={t} index={idx} />)}</div>
-              </div>
-              )}
-              {availableNotMine.length > 0 && (
-            <div className="tasks-section">
-              <div className="tasks-section-title">🔥 Tâches à faire</div>
-              <div className={sectionListClass}>{availableNotMine.map((t, idx) => <TaskTileCard key={t.id} {...taskTileProps} t={t} index={idx} />)}</div>
-            </div>
-          )}
-              {myProposals.length > 0 && (
-              <div className="tasks-section">
-                <div className="tasks-section-title">💡 Mes propositions ({myProposals.length})</div>
-                <div className={sectionListClass}>{myProposals.map((t, idx) => <TaskTileCard key={t.id} {...taskTileProps} t={t} index={idx} />)}</div>
-              </div>
-              )}
+              <TaskTileSection
+                title="⚙️ En cours (déjà prises)"
+                tasks={inProgressNotMine}
+                sectionListClass={sectionListClass}
+                taskTileProps={taskTileProps}
+              />
+              <TaskTileSection
+                title="🔥 Tâches à faire"
+                tasks={availableNotMine}
+                sectionListClass={sectionListClass}
+                taskTileProps={taskTileProps}
+              />
+              <TaskTileSection
+                title={`💡 Mes propositions (${myProposals.length})`}
+                tasks={myProposals}
+                sectionListClass={sectionListClass}
+                taskTileProps={taskTileProps}
+              />
               <TaskProjectsBlock
             visibleProjects={activeProjects}
             allFiltered={allFilteredWithoutUrgent}
@@ -1137,24 +1121,24 @@ function TasksView({
             onProjectTaskDragOver={registerProjectDropHint}
             onDropTaskToProject={dropTaskToProject}
           />
-              {doneNotMine.length > 0 && (
-              <div className="tasks-section">
-                <div className="tasks-section-title">⏳ En attente de validation</div>
-                <div className={sectionListClass}>{doneNotMine.map((t, idx) => <TaskTileCard key={t.id} {...taskTileProps} t={t} index={idx} />)}</div>
-              </div>
-              )}
-              {onHoldNotMine.length > 0 && (
-              <div className="tasks-section">
-                <div className="tasks-section-title">⏸️ En attente</div>
-                <div className={sectionListClass}>{onHoldNotMine.map((t, idx) => <TaskTileCard key={t.id} {...taskTileProps} t={t} index={idx} />)}</div>
-              </div>
-              )}
-              {recentlyValidatedForStudent.length > 0 && (
-              <div className="tasks-section">
-                <div className="tasks-section-title">✅ Récemment validées</div>
-                <div className={sectionListClass}>{recentlyValidatedForStudent.map((t, idx) => <TaskTileCard key={t.id} {...taskTileProps} t={t} index={idx} />)}</div>
-              </div>
-              )}
+              <TaskTileSection
+                title="⏳ En attente de validation"
+                tasks={doneNotMine}
+                sectionListClass={sectionListClass}
+                taskTileProps={taskTileProps}
+              />
+              <TaskTileSection
+                title="⏸️ En attente"
+                tasks={onHoldNotMine}
+                sectionListClass={sectionListClass}
+                taskTileProps={taskTileProps}
+              />
+              <TaskTileSection
+                title="✅ Récemment validées"
+                tasks={recentlyValidatedForStudent}
+                sectionListClass={sectionListClass}
+                taskTileProps={taskTileProps}
+              />
             </>
           )}
         </>
