@@ -3,6 +3,7 @@ const { v4: uuidv4 } = require('uuid');
 const { queryAll, queryOne, execute } = require('../database');
 const { requireAuth } = require('../middleware/requireTeacher');
 const asyncHandler = require('../lib/asyncHandler');
+const { z, validate } = require('../lib/validate');
 const { logRouteError } = require('../lib/routeLog');
 const { logAudit } = require('./audit');
 const { emitContextCommentsChanged } = require('../lib/realtime');
@@ -51,6 +52,28 @@ function normalizeContextType(value) {
   const type = String(value || '').trim().toLowerCase();
   return ALLOWED_CONTEXT_TYPES.has(type) ? type : '';
 }
+
+// O7 — query de GET / : coercition permissive (jamais de 400 issu du schéma) reproduisant
+// exactement l'ancienne lecture manuelle : `contextType` via normalizeContextType (type
+// inconnu → ''), `contextId` via normalizeOptionalString (vide → null), pagination via
+// parsePageQuery (`page` ≥ 1, `page_size` borné [1, MAX_PAGE_SIZE], `offset` dérivé).
+// Les 400 « contextType invalide » / « contextId requis » restent décidés par le handler
+// (contrat historique inchangé) — le schéma, lui, ne rejette jamais.
+const contextCommentsListQuerySchema = z
+  .object({
+    contextType: z.unknown().optional(),
+    contextId: z.unknown().optional(),
+    page: z.unknown().optional(),
+    page_size: z.unknown().optional(),
+  })
+  .transform((q) => ({
+    contextType: normalizeContextType(q.contextType),
+    contextId: normalizeOptionalString(q.contextId),
+    ...parsePageQuery(q, {
+      defaultPageSize: DEFAULT_PAGE_SIZE,
+      maxPageSize: MAX_PAGE_SIZE,
+    }),
+  }));
 
 function getActor(auth) {
   const userType = String(auth?.userType || '').trim().toLowerCase();
@@ -158,19 +181,14 @@ router.use((req, res, next) => {
   return next();
 });
 
-router.get('/', asyncHandler(async (req, res) => {
+router.get('/', validate({ query: contextCommentsListQuerySchema }), asyncHandler(async (req, res) => {
   const actor = getActor(req.auth);
-  const contextType = normalizeContextType(req.query?.contextType);
-  const contextId = normalizeOptionalString(req.query?.contextId);
+  const { contextType, contextId, page, pageSize, offset } = req.validatedQuery;
   if (!contextType) return res.status(400).json({ error: 'contextType invalide (task|project|zone|marker|plant|tutorial)' });
   if (!contextId) return res.status(400).json({ error: 'contextId requis' });
   if (!(await contextExists(contextType, contextId))) {
     return res.status(404).json({ error: 'Contexte introuvable' });
   }
-  const { page, pageSize, offset } = parsePageQuery(req.query, {
-    defaultPageSize: DEFAULT_PAGE_SIZE,
-    maxPageSize: MAX_PAGE_SIZE,
-  });
   const sqlLimit = Math.max(1, Number(pageSize) || DEFAULT_PAGE_SIZE);
   const sqlOffset = Math.max(0, Number(offset) || 0);
   const { items, total } = await listContextComments(contextType, contextId, {
@@ -375,3 +393,4 @@ router.post('/:id/report', asyncHandler(async (req, res) => {
 }));
 
 module.exports = router;
+module.exports.contextCommentsListQuerySchema = contextCommentsListQuerySchema; // exporté pour test no-DB du contrat O7
