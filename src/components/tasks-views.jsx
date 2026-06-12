@@ -21,7 +21,15 @@ import {
   safeLocalStorageSetItem,
 } from '../utils/browserStorage.js';
 import { TimedToast } from '../shared/components/TimedToast.jsx';
-import { isTaskUrgentCategory, TEACHER_STATUS_ACTIONS, TASK_STATUS_FILTER_OPTIONS } from './tasks/taskViewHelpers.js';
+import { TEACHER_STATUS_ACTIONS, TASK_STATUS_FILTER_OPTIONS } from './tasks/taskViewHelpers.js';
+import {
+  isTaskUrgentCategory,
+  applyTaskFilters,
+  filterProjectsByMapChoice,
+  sortedVisibleProjects,
+  partitionTasksByEffectiveStatus,
+  studentUrgentDueTasks,
+} from '../utils/taskSectioning.js';
 import { LogModal, TaskLogsViewer } from './tasks/TaskLogModals.jsx';
 import { TaskProjectFormModal } from './tasks/TaskProjectFormModal.jsx';
 import { TaskFormModal } from './tasks/TaskFormModal.jsx';
@@ -56,7 +64,6 @@ import {
   taskEffectiveStatus,
   projectStatusLabel,
   normalizeProjectUiStatus,
-  taskHasLocation,
 } from '../utils/taskListHelpers.js';
 import {
   teacherCollectiveAssigneeLoadKey,
@@ -586,43 +593,19 @@ function TasksView({
     });
   };
 
-  const applyFilters = list => list.filter(t => {
-    if (!taskMapIdMatchesFilter(taskEffectiveMapId(t), filterMap, activeMapId)) return false;
-    if (filterText && !t.title.toLowerCase().includes(filterText.toLowerCase()) &&
-      !(t.description || '').toLowerCase().includes(filterText.toLowerCase())) return false;
-    if (filterZone && !taskHasLocation(t, filterZone)) return false;
-    if (filterStatus) {
-      const eff = taskEffectiveStatus(t);
-      let matches = eff === filterStatus;
-      if (filterStatus === 'validated') {
-        matches = eff === 'validated' || eff === 'project_validated';
-      } else if (filterStatus === 'on_hold') {
-        matches = eff === 'on_hold';
-      } else if (filterStatus === 'project_completed') {
-        matches = eff === 'project_completed';
-      } else if (filterStatus === 'project_validated') {
-        matches = eff === 'project_validated';
-      }
-      if (!matches) return false;
-    }
-    if (filterProject && t.project_id !== filterProject) return false;
-    if (filterGroupId && String(t.group_id || '') !== String(filterGroupId)) return false;
-    if (filterUrgentCategory === 'urgent' && !isTaskUrgentCategory(t)) return false;
-    if (filterUrgentCategory === 'non_urgent' && isTaskUrgentCategory(t)) return false;
-    return true;
-  });
-
-  const visibleProjects = taskProjects
-    .filter((p) => {
-      if (filterMap === 'all') return true;
-      if (filterMap === 'active') return p.map_id === activeMapId;
-      return p.map_id === filterMap;
-    })
-    .slice()
-    .sort((a, b) => String(a.title || '').localeCompare(String(b.title || ''), 'fr'));
+  const visibleProjects = sortedVisibleProjects(taskProjects, filterMap, activeMapId);
   const activeProjects = visibleProjects.filter((p) => normalizeProjectUiStatus(p.status) !== 'validated');
   const validatedProjects = visibleProjects.filter((p) => normalizeProjectUiStatus(p.status) === 'validated');
-  const allFiltered = applyFilters(tasks);
+  const allFiltered = applyTaskFilters(tasks, {
+    filterMap,
+    activeMapId,
+    filterText,
+    filterZone,
+    filterStatus,
+    filterProject,
+    filterGroupId,
+    filterUrgentCategory,
+  });
   const urgentCategoryTasks = useMemo(
     () => allFiltered.filter(isTaskUrgentCategory).sort(compareTasksByImportanceThenDueDate),
     [allFiltered]
@@ -654,14 +637,9 @@ function TasksView({
     && taskEffectiveStatus(t) !== 'validated'
     && isStudentAssignedToTask(t, student)
   ));
-  const available = regularFiltered.filter(t => taskEffectiveStatus(t) === 'available');
-  const inProgress = regularFiltered.filter(t => taskEffectiveStatus(t) === 'in_progress');
-  const done = regularFiltered.filter(t => taskEffectiveStatus(t) === 'done');
-  const validated = regularFiltered.filter(t => taskEffectiveStatus(t) === 'validated');
-  const proposed = regularFiltered.filter(t => taskEffectiveStatus(t) === 'proposed');
-  const onHold = regularFiltered.filter((t) => taskEffectiveStatus(t) === 'on_hold');
-  const projectCompletedTasks = regularFiltered.filter((t) => taskEffectiveStatus(t) === 'project_completed');
-  const projectValidatedTasks = regularFiltered.filter((t) => taskEffectiveStatus(t) === 'project_validated');
+  const {
+    available, inProgress, done, validated, proposed, onHold,
+  } = partitionTasksByEffectiveStatus(regularFiltered);
   const hasStudentFilters = !isTeacher && (
     !!filterText
     || !!filterZone
@@ -695,12 +673,7 @@ function TasksView({
     [regularFiltered, student]
   );
 
-  const urgentTasks = !isTeacher ? regularFiltered.filter(t => {
-    const effective = taskEffectiveStatus(t);
-    if (effective === 'validated' || effective === 'done' || effective === 'on_hold' || effective === 'project_completed' || effective === 'project_validated') return false;
-    const d = daysUntil(t.due_date);
-    return d !== null && d <= 3 && d >= -2;
-  }).sort(compareTasksByImportanceThenDueDate) : [];
+  const urgentTasks = !isTeacher ? studentUrgentDueTasks(regularFiltered) : [];
 
   const { usedZones, usedMarkers } = collectUsedLocationIds({
     tasksForLocationPicker,
@@ -1126,12 +1099,7 @@ function TasksView({
         </select>
         <select value={filterProject} onChange={e => setFilterProject(e.target.value)}>
           <option value="">Tous les projets</option>
-          {taskProjects
-            .filter((p) => {
-              if (filterMap === 'all') return true;
-              if (filterMap === 'active') return p.map_id === activeMapId;
-              return p.map_id === filterMap;
-            })
+          {filterProjectsByMapChoice(taskProjects, filterMap, activeMapId)
             .map((p) => (
               <option key={p.id} value={p.id}>
                 {p.title}{projectStatusLabel(p.status)}
