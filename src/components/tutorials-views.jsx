@@ -6,8 +6,8 @@ import { TutorialPreviewModal, tutorialPreviewPayload } from './TutorialPreviewM
 import { ContextComments } from './context-comments';
 import { DialogShell } from './DialogShell';
 import { MarkdownContent } from './MarkdownContent.jsx';
-import { MarkdownTextarea } from './MarkdownTextarea.jsx';
 import { FixedToast } from '../shared/components/FixedToast.jsx';
+import { TutorialEditorPanel } from './tutorials/TutorialEditorPanel.jsx';
 import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
 import { useSession } from '../contexts/SessionContext.jsx';
 import { useData } from '../contexts/DataContext.jsx';
@@ -16,16 +16,10 @@ import {
   sortTutorialsByOrder,
   moveIndex,
   linkedTaskStatusLabel,
-  tutorialZonePickLabel,
   createInitialTutorialForm,
   filterAndSortTutorials,
 } from '../utils/tutorialListHelpers.js';
-import {
-  toggleTutorialFormLocation,
-  applyTutorialFormMapChange,
-  tutorialFormFromDetail,
-  buildTutorialSavePayload,
-} from '../utils/tutorialFormHelpers.js';
+import { tutorialFormFromDetail, buildTutorialSavePayload } from '../utils/tutorialFormHelpers.js';
 
 function downloadUrl(url) {
   const a = document.createElement('a');
@@ -151,7 +145,10 @@ function TutorialsView({
     };
   }, [tutorials]);
 
-  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+  const showToast = (message, ms = 2500) => {
+    setToast(message);
+    setTimeout(() => setToast(''), ms);
+  };
 
   const filtered = useMemo(
     () => filterAndSortTutorials(tutorials, { search, typeFilter, statusFilter }),
@@ -217,32 +214,9 @@ function TutorialsView({
     setPreview(tutorialPreviewPayload(t));
   };
 
-  const onFileHtml = async (ev) => {
-    const file = ev.target.files?.[0];
-    ev.target.value = '';
-    if (!file) return;
-    try {
-      const text = await file.text();
-      setForm((f) => ({ ...f, html_content: text, type: 'html' }));
-      setToast('Fichier HTML chargé ✓');
-      setTimeout(() => setToast(''), 2000);
-    } catch {
-      setToast('Impossible de lire le fichier HTML');
-      setTimeout(() => setToast(''), 2000);
-    }
-  };
-
   const beginCreate = () => {
     setForm({ ...createInitialTutorialForm(), map_id: activeMapId || '' });
     setShowEditor(true);
-  };
-
-  const toggleZoneId = (zoneId) => {
-    setForm((f) => toggleTutorialFormLocation(f, 'zone_ids', zoneId));
-  };
-
-  const toggleMarkerId = (markerId) => {
-    setForm((f) => toggleTutorialFormLocation(f, 'marker_ids', markerId));
   };
 
   const beginEdit = async (row) => {
@@ -281,9 +255,6 @@ function TutorialsView({
       setSaving(false);
     }
   };
-
-  const selectableZones = zones.filter((z) => !z.special && (!form.map_id || z.map_id === form.map_id));
-  const selectableMarkers = markers.filter((m) => !form.map_id || m.map_id === form.map_id);
 
   const archiveTutorial = async (row) => {
     if (!confirm(`Archiver "${row.title}" ?`)) return;
@@ -445,127 +416,17 @@ function TutorialsView({
       </div>
 
       {isTeacher && showEditor && (
-        <div className="plant-edit-form fade-in tuto-editor">
-          <h4>{form.id ? 'Modifier le tutoriel' : 'Nouveau tutoriel'}</h4>
-          <div className="field"><label>Titre *</label><input value={form.title} onChange={set('title')} /></div>
-          <div className="field"><label>Résumé</label><MarkdownTextarea rows={2} value={form.summary} onChange={set('summary')} /></div>
-          <div className="row">
-            <div className="field">
-              <label>Type</label>
-              <select value={form.type} onChange={set('type')}>
-                <option value="html">HTML</option>
-                <option value="link">Lien</option>
-              </select>
-            </div>
-            <div className="field">
-              <label>Ordre</label>
-              <input type="number" min="0" value={form.sort_order} onChange={set('sort_order')} />
-            </div>
-          </div>
-          <div className="field">
-            <label>Carte (filtre zones / repères)</label>
-            <select
-              value={form.map_id || ''}
-              onChange={(e) => {
-                const next = e.target.value;
-                setForm((f) => applyTutorialFormMapChange(f, next, zones, markers));
-              }}>
-              <option value="">Toutes les cartes</option>
-              {maps.map((mp) => (
-                <option key={mp.id} value={mp.id}>{mp.label}</option>
-              ))}
-            </select>
-            <p style={{ fontSize: '.78rem', color: '#666', margin: '6px 0 0', lineHeight: 1.4 }}>
-              Lieux choisis : pastille violette sur la carte et détail dans la fiche zone ou repère.
-            </p>
-          </div>
-          <div className="field"><label>Zones et repères sur la carte (optionnel)</label>
-            <div className="task-form-pick-list">
-              {selectableZones.length === 0 && selectableMarkers.length === 0 ? (
-                <p className="task-form-pick-empty">Aucune zone ni repère pour ce filtre.</p>
-              ) : (
-                <>
-                  {selectableZones.length > 0 && (
-                    <>
-                      {selectableMarkers.length > 0 && (
-                        <div className="task-form-pick-subheading" aria-hidden="true">Zones</div>
-                      )}
-                      {selectableZones.map((z) => (
-                        <label key={z.id} className="task-form-pick-item">
-                          <input
-                            type="checkbox"
-                            className="task-form-pick-checkbox"
-                            checked={(form.zone_ids || []).map(String).includes(String(z.id))}
-                            onChange={() => toggleZoneId(z.id)}
-                          />
-                          <span className="task-form-pick-text">{tutorialZonePickLabel(z)}</span>
-                        </label>
-                      ))}
-                    </>
-                  )}
-                  {selectableMarkers.length > 0 && (
-                    <>
-                      {selectableZones.length > 0 && (
-                        <div className="task-form-pick-subheading" aria-hidden="true">Repères</div>
-                      )}
-                      {selectableMarkers.map((m) => (
-                        <label key={m.id} className="task-form-pick-item">
-                          <input
-                            type="checkbox"
-                            className="task-form-pick-checkbox"
-                            checked={(form.marker_ids || []).map(String).includes(String(m.id))}
-                            onChange={() => toggleMarkerId(m.id)}
-                          />
-                          <span className="task-form-pick-text">{m.emoji} {m.label}</span>
-                        </label>
-                      ))}
-                    </>
-                  )}
-                </>
-              )}
-            </div>
-          </div>
-          {form.id && (
-            <div className="field">
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <input
-                  type="checkbox"
-                  checked={!!form.is_active}
-                  onChange={e => setForm((f) => ({ ...f, is_active: e.target.checked }))}
-                />
-                Tutoriel actif
-              </label>
-            </div>
-          )}
-          {form.type === 'html' && (
-            <>
-              <div className="field">
-                <label>Contenu HTML</label>
-                <textarea rows={8} value={form.html_content} onChange={set('html_content')} placeholder="<h1>Mon tuto</h1>" />
-              </div>
-              <div className="field">
-                <label>Ou fichier statique (chemin /tutos/...)</label>
-                <input value={form.source_file_path} onChange={set('source_file_path')} placeholder="/tutos/fiche-exemple.html" />
-              </div>
-              <label className="btn btn-ghost btn-sm" style={{ width: 'fit-content', cursor: 'pointer' }}>
-                Importer un fichier HTML
-                <input type="file" accept=".html,text/html" style={{ display: 'none' }} onChange={onFileHtml} />
-              </label>
-            </>
-          )}
-          {form.type === 'link' && (
-            <div className="field">
-              <label>URL</label>
-              <input value={form.source_url} onChange={set('source_url')} placeholder="https://..." />
-            </div>
-          )}
-          <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-            <button className="btn btn-primary btn-sm" disabled={saving} onClick={save}>
-              {saving ? 'Sauvegarde...' : '💾 Enregistrer'}
-            </button>
-            <button className="btn btn-ghost btn-sm" onClick={() => setShowEditor(false)}>Annuler</button>
-          </div>
-        </div>
+        <TutorialEditorPanel
+          form={form}
+          setForm={setForm}
+          saving={saving}
+          maps={maps}
+          zones={zones}
+          markers={markers}
+          onSave={save}
+          onCancel={() => setShowEditor(false)}
+          onToast={showToast}
+        />
       )}
 
       {filtered.length === 0 ? (
