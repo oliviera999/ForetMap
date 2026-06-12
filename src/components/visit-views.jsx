@@ -1,5 +1,5 @@
 import React, {
-  useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState,
+  useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState,
 } from 'react';
 import { api, AccountDeletedError, isLikelyNetworkTransportFailure } from '../services/api';
 import { MARKER_EMOJIS, parseEmojiListSetting, detectLeadingMarkerEmoji, stripLeadingMarkerEmoji } from '../constants/emojis';
@@ -12,14 +12,12 @@ import { resolveMapOverlayTypography } from '../utils/mapOverlayTypography';
 import { TutorialReadAcknowledgeButton, fetchTutorialReadIds } from './TutorialReadAcknowledge';
 import { TutorialPreviewModal, tutorialPreviewPayload, tutorialPreviewCanEmbed } from './TutorialPreviewModal';
 import { ContextComments } from './context-comments';
-import { MarkdownContent } from './MarkdownContent.jsx';
 import { useOverlayHistoryBack } from '../hooks/useOverlayHistoryBack';
 import { computeMapImageContainRect } from '../utils/mapImageFit';
 import { buildMapImageCandidates } from '../utils/mapImageCandidates';
 import { parseVisitZonePoints as parsePctPoints, visitZoneCentroidPct } from '../utils/visitMapGeometry.js';
-import { normalizeEditorialBlocks } from '../utils/visitEditorialBlocks.js';
 import { VisitSyncPanel } from './visit/VisitSyncPanel.jsx';
-import { VisitEditorPanel } from './visit/VisitEditorPanel.jsx';
+import { VisitDetailPanel } from './visit/VisitDetailPanel.jsx';
 import { computeVisitMascotStartPct } from '../utils/visitMascotPlacement.js';
 import {
   shouldShowVisitMapMascot as computeShowVisitMapMascot,
@@ -50,23 +48,13 @@ import { buildVisitMascotCatalogExtrasFromContent } from '../utils/visitMascotPa
 import { resolveMascotDialogLine } from '../utils/visitMascotDialogApply.js';
 import { VISIT_MASCOT_STATE } from '../utils/visitMascotState.js';
 import { loadVisitMascotPositionPct, saveVisitMascotPositionPct } from '../utils/visitMascotPositionPersistence.js';
-import {
-  itemSeenKey,
-  visitMediaGalleryThumbDisplaySrc,
-  visitMediaGalleryLightboxSrc,
-} from '../utils/visitMediaGallery.js';
+import { itemSeenKey } from '../utils/visitMediaGallery.js';
 import {
   visitZoneSvgTextUniformYTransform,
   clampVisitMascotPctForViewport,
 } from '../utils/visitMascotGeometry.js';
 import useVisitMascotStateMachine from '../hooks/useVisitMascotStateMachine.js';
-import {
-  Lightbox,
-  BiodiversitySpeciesOpenLinks,
-  LocationTutorialPreviewList,
-  LivingBeingsCatalogPanel,
-} from './map-views';
-import { computeVisitLocationAside } from '../utils/visitLocationAside.js';
+import { Lightbox } from './map-views';
 import {
   safeLocalStorageGetItem,
   safeLocalStorageSetItem,
@@ -76,73 +64,6 @@ const VISIT_MAP_MASCOT_MOVE_MS = 560;
 const VISIT_MAP_MASCOT_HAPPY_MS = 1800;
 const VISIT_MASCOT_DIALOG_MS = 2600;
 const VISIT_MASCOT_DIALOG_MOVE_COOLDOWN_MS = 4200;
-
-/** Vignette cliquable : aperçu sans rognage (CSS `object-fit: contain`) + lightbox plein écran. */
-function VisitMediaGalleryThumb({ media, onOpenLightbox }) {
-  const srcThumb = visitMediaGalleryThumbDisplaySrc(media);
-  const srcFull = visitMediaGalleryLightboxSrc(media);
-  if (!srcThumb || !srcFull) return null;
-  const cap = String(media?.caption || '').trim();
-  return (
-    <figure>
-      <button
-        type="button"
-        className="visit-media-gallery__open"
-        onClick={() => onOpenLightbox({ src: srcFull, caption: cap })}
-        aria-label={cap ? `Agrandir la photo : ${cap}` : 'Agrandir la photo'}
-      >
-        <img src={srcThumb} alt="" loading="lazy" decoding="async" />
-      </button>
-      {cap ? <figcaption>{media.caption}</figcaption> : null}
-    </figure>
-  );
-}
-
-function VisitEditorialRenderer({ blocks, selectedVisitMedia, onOpenLightbox }) {
-  const mediaById = useMemo(() => {
-    const m = new Map();
-    for (const media of selectedVisitMedia || []) {
-      const id = Number(media?.id);
-      if (!Number.isFinite(id) || id <= 0) continue;
-      m.set(id, media);
-    }
-    return m;
-  }, [selectedVisitMedia]);
-  return (
-    <div className="visit-editorial">
-      {blocks.map((block) => {
-        if (block.type === 'heading') {
-          return <h4 key={block.id} className={`visit-editorial-heading visit-editorial-heading--h${block.level || 3}`}>{block.text}</h4>;
-        }
-        if (block.type === 'paragraph') {
-          return (
-            <div key={block.id} className="visit-editorial-paragraph">
-              <MarkdownContent>{block.markdown}</MarkdownContent>
-            </div>
-          );
-        }
-        if (block.type === 'image') {
-          const images = (block.media_ids || []).map((id) => mediaById.get(Number(id))).filter(Boolean);
-          if (!images.length) return null;
-          return (
-            <div
-              key={block.id}
-              className={`visit-editorial-image ${images.length === 1 ? 'visit-editorial-image--single' : 'visit-editorial-image--multi'} visit-editorial-image--${block.size || 'md'} visit-editorial-image--${block.align || 'center'}`}
-            >
-              <div className="visit-media-gallery">
-                {images.map((media) => (
-                  <VisitMediaGalleryThumb key={`${block.id}-${media.id}`} media={media} onOpenLightbox={onOpenLightbox} />
-                ))}
-              </div>
-              {block.caption ? <p className="visit-editorial-image__caption">{block.caption}</p> : null}
-            </div>
-          );
-        }
-        return null;
-      })}
-    </div>
-  );
-}
 
 function pointToPct(event, stageEl, transform = { x: 0, y: 0, s: 1 }, fit = null) {
   return pointToContainedRectPct(event, stageEl, transform, fit, { clamp: true, decimals: 2 });
@@ -325,7 +246,6 @@ function VisitView({
     setGuestMascotChoiceOpen(isGuestPublicVisit && requireGuestMascotChoice);
   }, [isGuestPublicVisit, requireGuestMascotChoice]);
 
-  const visitDetailPanelTitleId = useId();
   const VISIT_IMMERSION_LS_KEY = 'foretmap_visit_immersion';
   const VISIT_TEACHER_PREVIEW_LS_KEY = 'foretmap_visit_teacher_preview_student';
   const VISIT_COMFORTABLE_READING_LS_KEY = 'foretmap_visit_comfortable_reading';
@@ -1268,28 +1188,6 @@ function VisitView({
     }
   };
 
-  const selectedVisitMedia = selected ? (selected.visit_media || []) : [];
-  const selectedEditorialBlocks = normalizeEditorialBlocks(selected?.visit_editorial_blocks || []);
-  const hasEditorialBlocks = selectedEditorialBlocks.length > 0;
-  const firstVisitPhoto = selectedVisitMedia[0] || null;
-  const restVisitPhotos = selectedVisitMedia.slice(1);
-  const mapExtraPhotos = selected && Array.isArray(selected.map_extra_photos) ? selected.map_extra_photos : [];
-  const visitDetailsTextTrim =
-    selected && selected.visit_details_text ? String(selected.visit_details_text).trim() : '';
-  const showVisitDetailsBlock = !!(
-    visitDetailsTextTrim ||
-    (selected && restVisitPhotos.length > 0) ||
-    mapExtraPhotos.length > 0
-  );
-
-  /** Biodiversité et tutoriels liés au lieu (aligné sur les panneaux zone/repère de la carte). */
-  const visitLocationAside = useMemo(
-    () => computeVisitLocationAside(selected, selectedType, {
-      mapId, mapZones, mapMarkers, tasks, catalogTutorials, isTeacher,
-    }),
-    [selected, selectedType, mapId, mapZones, mapMarkers, tasks, catalogTutorials, isTeacher],
-  );
-
   useEffect(() => {
     if (!selected || visitMediaLightbox || visitTutorialPreview) return undefined;
     const onKey = (e) => {
@@ -1905,160 +1803,31 @@ function VisitView({
       </div>
 
       {selected ? (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby={visitDetailPanelTitleId}
-          data-testid="visit-detail-panel"
-          className={`visit-detail-panel${comfortableReading ? ' visit-detail-panel--comfortable' : ''} visit-detail-panel--tone-paper`}
-        >
-          <div className="visit-detail-panel__handle" aria-hidden="true" />
-          <div className="visit-detail-panel__head">
-            <h3 id={visitDetailPanelTitleId} className="visit-detail-panel__title">
-              {selectedType === 'zone' ? selected.name : selected.label}
-            </h3>
-            <button
-              type="button"
-              className={`btn btn-ghost btn-sm ${comfortableReading ? 'is-active' : ''}`}
-              aria-pressed={comfortableReading}
-              title="Basculer le mode lecture confortable"
-              onClick={() => setComfortableReading((v) => !v)}
-            >
-              Aa
-            </button>
-            <button type="button" className="btn btn-ghost btn-sm" onClick={closeVisitSelection}>
-              Fermer
-            </button>
-          </div>
-          <div className="visit-detail-panel__body visit-selection-aside">
-              {selected.visit_subtitle && <p className="visit-subtitle">{selected.visit_subtitle}</p>}
-              {selected.map_lead_photo?.image_url && (
-                <div className="visit-media-gallery visit-media-gallery--lead">
-                  <VisitMediaGalleryThumb
-                    media={{
-                      image_url: selected.map_lead_photo.image_url,
-                      caption: selected.map_lead_photo.caption,
-                    }}
-                    onOpenLightbox={setVisitMediaLightbox}
-                  />
-                </div>
-              )}
-              {hasEditorialBlocks ? (
-                <VisitEditorialRenderer
-                  blocks={selectedEditorialBlocks}
-                  selectedVisitMedia={selectedVisitMedia}
-                  onOpenLightbox={setVisitMediaLightbox}
-                />
-              ) : (
-                <>
-                  {selected.visit_short_description && <MarkdownContent>{selected.visit_short_description}</MarkdownContent>}
-                  {firstVisitPhoto && (
-                    <div className="visit-media-gallery visit-media-gallery--lead">
-                      <VisitMediaGalleryThumb media={firstVisitPhoto} onOpenLightbox={setVisitMediaLightbox} />
-                    </div>
-                  )}
-                  {showVisitDetailsBlock && (
-                    <details className="visit-details">
-                      <summary>{selected.visit_details_title || 'Détails'}</summary>
-                      {(restVisitPhotos.length > 0 || mapExtraPhotos.length > 0) && (
-                        <div className="visit-media-gallery visit-media-gallery--details-extra">
-                          {restVisitPhotos.map((m) => (
-                            <VisitMediaGalleryThumb key={m.id} media={m} onOpenLightbox={setVisitMediaLightbox} />
-                          ))}
-                          {mapExtraPhotos.map((ph) => (
-                            <VisitMediaGalleryThumb
-                              key={`map-extra-${ph.id}`}
-                              media={{ image_url: ph.image_url, thumb_url: ph.thumb_url, caption: ph.caption }}
-                              onOpenLightbox={setVisitMediaLightbox}
-                            />
-                          ))}
-                        </div>
-                      )}
-                      {visitDetailsTextTrim ? <MarkdownContent className="visit-details__body">{selected.visit_details_text}</MarkdownContent> : null}
-                    </details>
-                  )}
-                </>
-              )}
-              {visitLocationAside.showBiodiversity && (
-                <details className="visit-details">
-                  <summary>Biodiversité</summary>
-                  <div className="visit-details__section">
-                    {visitLocationAside.primaryLivingNames.length > 0 && (
-                      <div className={`visit-details__subsection${visitLocationAside.livingBeingsOnlyOnTasks.length ? ' visit-details__subsection--with-gap' : ''}`}>
-                        {(visitLocationAside.primaryLivingNames.length > 1
-                          || visitLocationAside.livingBeingsOnlyOnTasks.length > 0) ? (
-                          <h4 className="visit-details__h4">
-                            {visitLocationAside.locationKind === 'zone' ? 'Sur cette zone' : 'Sur ce repère'}
-                          </h4>
-                          ) : null}
-                        {onOpenPlantCatalogPreview ? (
-                          <BiodiversitySpeciesOpenLinks
-                            plants={plants}
-                            names={visitLocationAside.primaryLivingNames}
-                            showHeading={false}
-                            onOpenPlant={onOpenPlantCatalogPreview}
-                          />
-                        ) : (
-                          <LivingBeingsCatalogPanel
-                            plants={plants}
-                            names={visitLocationAside.primaryLivingNames}
-                            showHeading={false}
-                          />
-                        )}
-                      </div>
-                    )}
-                    {visitLocationAside.livingBeingsOnlyOnTasks.length > 0 && (
-                      <div>
-                        <h4 className="visit-details__h4">
-                          Également dans les missions
-                        </h4>
-                        {onOpenPlantCatalogPreview ? (
-                          <BiodiversitySpeciesOpenLinks
-                            plants={plants}
-                            names={visitLocationAside.livingBeingsOnlyOnTasks}
-                            showHeading={false}
-                            sectionTitle="Également dans les missions"
-                            onOpenPlant={onOpenPlantCatalogPreview}
-                          />
-                        ) : (
-                          <LivingBeingsCatalogPanel
-                            plants={plants}
-                            names={visitLocationAside.livingBeingsOnlyOnTasks}
-                            showHeading={false}
-                          />
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </details>
-              )}
-              {visitLocationAside.showTutos && (
-                <details className="visit-details">
-                  <summary>Tuto</summary>
-                  <div className="visit-details__section">
-                    <LocationTutorialPreviewList
-                      tutorials={visitLocationAside.tutorialListForPreview}
-                      locationKind={visitLocationAside.locationKind}
-                      locationId={selected.id}
-                      onOpenTutorialPreview={setVisitTutorialPreview}
-                    />
-                  </div>
-                </details>
-              )}
-              <button className="btn btn-primary btn-sm" disabled={savingSeen} onClick={onToggleSeen}>
-                {seen.has(itemSeenKey(selectedType, selected.id)) ? '✅ Marqué comme vu' : '🔴 Marquer comme vu'}
-              </button>
-              <VisitEditorPanel
-                selected={selected}
-                selectedType={selectedType}
-                onSaved={loadData}
-                onForceLogout={onForceLogout}
-                isTeacher={isTeacher && !teacherPreviewAsStudent}
-                roleTerms={roleTerms}
-                markerEmojis={markerEmojis}
-              />
-          </div>
-        </div>
+        <VisitDetailPanel
+          selected={selected}
+          selectedType={selectedType}
+          onClose={closeVisitSelection}
+          comfortableReading={comfortableReading}
+          onToggleComfortableReading={() => setComfortableReading((v) => !v)}
+          onOpenLightbox={setVisitMediaLightbox}
+          onOpenTutorialPreview={setVisitTutorialPreview}
+          seen={seen}
+          savingSeen={savingSeen}
+          onToggleSeen={onToggleSeen}
+          plants={plants}
+          onOpenPlantCatalogPreview={onOpenPlantCatalogPreview}
+          mapId={mapId}
+          mapZones={mapZones}
+          mapMarkers={mapMarkers}
+          tasks={tasks}
+          catalogTutorials={catalogTutorials}
+          isTeacher={isTeacher}
+          canEditVisit={isTeacher && !teacherPreviewAsStudent}
+          onSaved={loadData}
+          onForceLogout={onForceLogout}
+          roleTerms={roleTerms}
+          markerEmojis={markerEmojis}
+        />
       ) : null}
 
       {showVisitMapTutorialsSection ? (
