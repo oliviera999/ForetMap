@@ -17,12 +17,11 @@ import { HELP_PANELS, HELP_TOOLTIPS, resolveRoleText } from '../constants/help';
 
 import { resolveMapOverlayTypography } from '../utils/mapOverlayTypography';
 
-import { taskEffectiveStatus } from '../utils/taskListHelpers.js';
+import { TASK_VISUAL_LABEL } from '../utils/taskEnrollment.js';
 import {
-  taskVisualStatus,
-  mergeTaskVisualStatus,
-  TASK_VISUAL_LABEL,
-} from '../utils/taskEnrollment.js';
+  computeTaskVisualByLocation,
+  computeTutorialCountByLocation,
+} from '../utils/mapLocationBadges.js';
 import {
   clampEditZonePct,
   clampEditPts,
@@ -34,12 +33,7 @@ import { orderedLivingBeingsForForm } from '../utils/livingBeings';
 import { getContentText } from '../utils/content';
 import { buildMapImageCandidates } from '../utils/mapImageCandidates';
 
-import {
-  taskLocationIds,
-  tutorialLocationIds,
-  isTaskDetachedFromLocation,
-  taskLinkedTutorialRefs,
-} from '../utils/mapLocationContext';
+import { taskLocationIds, tutorialLocationIds } from '../utils/mapLocationContext';
 import { TutorialPreviewModal } from './TutorialPreviewModal';
 import { fetchTutorialReadIds } from './TutorialReadAcknowledge';
 
@@ -186,75 +180,15 @@ function MapView({ maps = [], onMapChange, isTeacher, student, canSelfAssignTask
     defaultMascotId: visitMascotDefaultId,
     mascotDialogSettings: publicSettings?.visit?.mascot?.dialog,
   });
-  const { zoneTaskVisualById, markerTaskVisualById } = useMemo(() => {
-    const zoneMap = new Map();
-    const markerMap = new Map();
-    for (const t of tasks || []) {
-      if (isTaskDetachedFromLocation(t)) continue;
-      const visual = taskVisualStatus(taskEffectiveStatus(t));
-      if (!visual) continue;
-      const { zoneIds, markerIds } = taskLocationIds(t);
-      zoneIds.forEach((id) => {
-        zoneMap.set(id, mergeTaskVisualStatus(zoneMap.get(id), visual));
-      });
-      markerIds.forEach((id) => {
-        markerMap.set(id, mergeTaskVisualStatus(markerMap.get(id), visual));
-      });
-    }
-    return { zoneTaskVisualById: zoneMap, markerTaskVisualById: markerMap };
-  }, [tasks]);
+  const { zoneTaskVisualById, markerTaskVisualById } = useMemo(
+    () => computeTaskVisualByLocation(tasks),
+    [tasks],
+  );
 
-  const { zoneTutorialCountById, markerTutorialCountById } = useMemo(() => {
-    const zoneMap = new Map();
-    const markerMap = new Map();
-    const bumpZone = (zidRaw, delta = 1) => {
-      const z = zones.find((zz) => String(zz.id) === String(zidRaw));
-      if (!z || z.map_id !== activeMapId) return;
-      const key = z.id;
-      zoneMap.set(key, (zoneMap.get(key) || 0) + delta);
-    };
-    const bumpMarker = (midRaw, delta = 1) => {
-      const mk = markers.find((mm) => String(mm.id) === String(midRaw));
-      if (!mk || mk.map_id !== activeMapId) return;
-      const key = mk.id;
-      markerMap.set(key, (markerMap.get(key) || 0) + delta);
-    };
-    for (const tu of tutorials || []) {
-      if (tu.is_active === false) continue;
-      const { zoneIds, markerIds } = tutorialLocationIds(tu);
-      for (const zid of zoneIds) bumpZone(zid, 1);
-      for (const mid of markerIds) bumpMarker(mid, 1);
-    }
-    const pairSeen = new Set();
-    for (const t of tasks || []) {
-      if (isTaskDetachedFromLocation(t)) continue;
-      const tuRefs = taskLinkedTutorialRefs(t, tutorials || []);
-      if (!tuRefs.length) continue;
-      const { zoneIds: tZones, markerIds: tMarkers } = taskLocationIds(t);
-      for (const tu of tuRefs) {
-        if (tu.is_active === false) continue;
-        const direct = tutorialLocationIds(tu);
-        const directZoneStr = new Set(direct.zoneIds.map((x) => String(x)));
-        const directMarkerStr = new Set(direct.markerIds.map((x) => String(x)));
-        const tid = String(tu.id);
-        for (const zid of tZones) {
-          if (directZoneStr.has(String(zid))) continue;
-          const k = `z:${String(zid)}:tu:${tid}`;
-          if (pairSeen.has(k)) continue;
-          pairSeen.add(k);
-          bumpZone(zid, 1);
-        }
-        for (const mid of tMarkers) {
-          if (directMarkerStr.has(String(mid))) continue;
-          const k = `m:${String(mid)}:tu:${tid}`;
-          if (pairSeen.has(k)) continue;
-          pairSeen.add(k);
-          bumpMarker(mid, 1);
-        }
-      }
-    }
-    return { zoneTutorialCountById: zoneMap, markerTutorialCountById: markerMap };
-  }, [tutorials, zones, markers, activeMapId, tasks]);
+  const { zoneTutorialCountById, markerTutorialCountById } = useMemo(
+    () => computeTutorialCountByLocation({ tutorials, tasks, zones, markers, activeMapId }),
+    [tutorials, zones, markers, activeMapId, tasks],
+  );
 
   useEffect(() => {
     let cancelled = false;
