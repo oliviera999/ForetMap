@@ -3,15 +3,12 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { api, AccountDeletedError } from '../services/api';
 import { daysUntil } from '../utils/badges';
 import { getRoleTerms } from '../utils/n3-terminology';
-import { useDialogA11y } from '../hooks/useDialogA11y';
-import { useOverlayHistoryBack } from '../hooks/useOverlayHistoryBack';
 import { useHelp } from '../hooks/useHelp';
 
 import { resolveRoleText } from '../constants/help';
 import { getContentText } from '../utils/content';
 import { TutorialPreviewModal, tutorialPreviewPayload } from './TutorialPreviewModal';
 import { fetchTutorialReadIds } from './TutorialReadAcknowledge';
-import { DialogShell } from './DialogShell';
 
 import { isStudentAssignedToTask } from '../utils/task-assignments';
 import {
@@ -31,20 +28,22 @@ import { LogModal, TaskLogsViewer } from './tasks/TaskLogModals.jsx';
 import { TaskProjectFormModal } from './tasks/TaskProjectFormModal.jsx';
 import { TaskFormModal } from './tasks/TaskFormModal.jsx';
 import { TaskTileCard } from './tasks/TaskTileCard.jsx';
+import { TaskTileSection } from './tasks/TaskTileSection.jsx';
+import { TaskConfirmDialog } from './tasks/TaskConfirmDialog.jsx';
 import { TaskProjectsBlock } from './tasks/TaskProjectsBlock.jsx';
 import { TaskImportPanel } from './tasks/TaskImportPanel.jsx';
 import { TaskTutorialsAtFocusBlock } from './tasks/TaskTutorialsAtFocusBlock.jsx';
 import { TaskFiltersBar } from './tasks/TaskFiltersBar.jsx';
 import { TasksViewHeader } from './tasks/TasksViewHeader.jsx';
-import {
-  getAvailableSlots,
-  isStudentAlreadyAssignedToTask,
-} from '../utils/taskComputations.js';
+import { isStudentAlreadyAssignedToTask } from '../utils/taskComputations.js';
 import {
   computeQuickAssignDelta,
   canApplyQuickAssign,
   quickAssignHintText,
+  executeQuickAssignPlan,
+  quickAssignOutcomeToast,
 } from '../utils/taskQuickAssign.js';
+import { computeReorderedProjectTaskIds } from '../utils/taskDragReorder.js';
 import {
   taskEffectiveMapId,
   taskMapIdMatchesFilter,
@@ -140,8 +139,6 @@ function TasksView({
   /** Payload de drag & drop actif (prof/admin) pour déplacer / réordonner les tâches dans un projet. */
   const [taskDragPayload, setTaskDragPayload] = useState(null);
   const [taskDropHint, setTaskDropHint] = useState({ projectId: '', beforeTaskId: '' });
-  const confirmDialogRef = useDialogA11y(() => setConfirmTask(null));
-  useOverlayHistoryBack(!!confirmTask, () => setConfirmTask(null));
   const {
     isHelpEnabled,
     showContextHints,
@@ -358,19 +355,7 @@ function TasksView({
       if (sourceProjectId !== targetProjectId) {
         await api(`/api/tasks/${dragTaskId}`, 'PUT', { project_id: targetProjectId });
       }
-      const targetIdsWithoutDragged = tasks
-        .filter((task) => String(task.id) !== dragTaskId && String(task.project_id || '').trim() === targetProjectId)
-        .map((task) => String(task.id));
-      let insertAt = targetIdsWithoutDragged.length;
-      if (beforeTaskId) {
-        const idx = targetIdsWithoutDragged.indexOf(beforeTaskId);
-        if (idx >= 0) insertAt = idx;
-      }
-      const orderedTaskIds = [
-        ...targetIdsWithoutDragged.slice(0, insertAt),
-        dragTaskId,
-        ...targetIdsWithoutDragged.slice(insertAt),
-      ];
+      const orderedTaskIds = computeReorderedProjectTaskIds(tasks, dragTaskId, targetProjectId, beforeTaskId);
       await api('/api/tasks/reorder-project', 'POST', {
         project_id: targetProjectId,
         task_ids: orderedTaskIds,
@@ -698,57 +683,8 @@ function TasksView({
       setToast('Rien à faire : tout était déjà comme prévu.');
       return;
     }
-    let removeOk = 0;
-    let removeFail = 0;
-    let firstRemoveError = '';
-    for (const targetStudent of toRemove) {
-      try {
-        await api(`/api/tasks/${task.id}/unassign`, 'POST', {
-          firstName: targetStudent.first_name,
-          lastName: targetStudent.last_name,
-          studentId: targetStudent.id,
-        });
-        removeOk += 1;
-      } catch (e) {
-        removeFail += 1;
-        if (!firstRemoveError) firstRemoveError = e.message || 'Erreur inconnue';
-      }
-    }
-    let slotsRemaining = getAvailableSlots(task) + removeOk;
-    let addOk = 0;
-    let addFail = 0;
-    let firstAddError = '';
-    for (const targetStudent of toAdd) {
-      if (slotsRemaining <= 0) break;
-      try {
-        await api(`/api/tasks/${task.id}/assign`, 'POST', {
-          firstName: targetStudent.first_name,
-          lastName: targetStudent.last_name,
-          studentId: targetStudent.id,
-        });
-        addOk += 1;
-        slotsRemaining -= 1;
-      } catch (e) {
-        addFail += 1;
-        if (!firstAddError) firstAddError = e.message || 'Erreur inconnue';
-        if (String(e.message || '').toLowerCase().includes('plus de place')) break;
-      }
-    }
-    const bits = [];
-    if (removeOk > 0) bits.push(`${removeOk} retrait${removeOk > 1 ? 's' : ''}`);
-    if (addOk > 0) bits.push(`${addOk} inscription${addOk > 1 ? 's' : ''}`);
-    const errBits = [];
-    if (removeFail > 0) errBits.push(`${removeFail} retrait${removeFail > 1 ? 's' : ''}`);
-    if (addFail > 0) errBits.push(`${addFail} inscription${addFail > 1 ? 's' : ''}`);
-    if (bits.length > 0 && errBits.length > 0) {
-      setToast(`${bits.join(', ')} — échec : ${errBits.join(', ')}${firstRemoveError || firstAddError ? ` (${firstRemoveError || firstAddError})` : ''}`);
-    } else if (bits.length > 0) {
-      setToast(`${bits.join(', ')} sur « ${task.title} »`);
-    } else if (firstRemoveError || firstAddError) {
-      setToast(`Aucune mise à jour : ${firstRemoveError || firstAddError}`);
-    } else {
-      setToast('Aucun changement appliqué — déjà à jour.');
-    }
+    const outcome = await executeQuickAssignPlan(api, task, { toAdd, toRemove });
+    setToast(quickAssignOutcomeToast(task, outcome));
     setQuickAssignTaskId(null);
     setQuickAssignStudentIds([]);
   }), [withLoad, teacherQuickAssignDelta]);
@@ -847,6 +783,34 @@ function TasksView({
     onOpenBiodiversityFromTaskName,
   ]);
 
+  /** Props communes aux quatre rendus de TaskProjectsBlock (projets actifs ×3 + projets validés). */
+  const taskProjectsBlockProps = {
+    allFiltered: allFilteredWithoutUrgent,
+    sectionListClass,
+    isTeacher,
+    maps,
+    contextCommentsEnabled,
+    canParticipateContextComments,
+    setEditProject,
+    setShowProjectForm,
+    setNewTaskDefaultProjectId,
+    setEditTask,
+    setDuplicateTask,
+    setShowForm,
+    setShowProposalForm,
+    setProjectStatus,
+    validateProject,
+    duplicateProject,
+    deleteProject,
+    loading,
+    taskTileProps,
+    openTasksTutorialPreview,
+    taskDragPayload,
+    taskDropHint,
+    onProjectTaskDragOver: registerProjectDropHint,
+    onDropTaskToProject: dropTaskToProject,
+  };
+
   return (
     <div className="tasks-view fade-in">
       {toast && <TimedToast msg={toast} onDone={() => setToast(null)} />}
@@ -910,27 +874,7 @@ function TasksView({
       )}
       {logsTask && <TaskLogsViewer task={logsTask} onClose={() => setLogsTask(null)} />}
 
-      {confirmTask && (
-        <DialogShell
-          open={!!confirmTask}
-          onClose={() => setConfirmTask(null)}
-          overlayClassName="modal-overlay"
-          dialogClassName="log-modal fade-in"
-          dialogStyle={{ paddingBottom: 'calc(20px + var(--safe-bottom))' }}
-          ariaLabel="Confirmation d'action"
-          closeOnOverlay
-          dialogRef={confirmDialogRef}
-        >
-            <h3 style={{ marginBottom: 8 }}>Confirmation</h3>
-            <p style={{ fontSize: '.95rem', color: '#444', marginBottom: 20, lineHeight: 1.5 }}>{confirmTask.label}</p>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button className="btn btn-danger" style={{ flex: 1 }} onClick={async () => {
-                const a = confirmTask.action; setConfirmTask(null); await a();
-              }}>Confirmer</button>
-              <button className="btn btn-ghost" style={{ flex: 1 }} onClick={() => setConfirmTask(null)}>Annuler</button>
-            </div>
-        </DialogShell>
-      )}
+      <TaskConfirmDialog confirmTask={confirmTask} onClose={() => setConfirmTask(null)} />
 
       <TasksViewHeader
         isTeacher={isTeacher}
@@ -1033,220 +977,102 @@ function TasksView({
         </div>
       )}
 
-      {urgentCategoryTasks.length > 0 && (
-        <div className="tasks-section">
-          <div className="tasks-section-title">🚨 Urgent ! ({urgentCategoryTasks.length})</div>
-          <div className={sectionListClass}>{urgentCategoryTasks.map((t, idx) => <TaskTileCard key={t.id} {...taskTileProps} t={t} index={idx} />)}</div>
-        </div>
-      )}
+      <TaskTileSection
+        title={`🚨 Urgent ! (${urgentCategoryTasks.length})`}
+        tasks={urgentCategoryTasks}
+        sectionListClass={sectionListClass}
+        taskTileProps={taskTileProps}
+      />
 
-      {!isTeacher && myTasks.length > 0 && (
-        <div className="tasks-section">
-          <div className="tasks-section-title">🧩 Mes tâches</div>
-          <div className={sectionListClass}>{myTasks.map((t, idx) => <TaskTileCard key={t.id} {...taskTileProps} t={t} index={idx} />)}</div>
-        </div>
+      {!isTeacher && (
+        <TaskTileSection title="🧩 Mes tâches" tasks={myTasks} sectionListClass={sectionListClass} taskTileProps={taskTileProps} />
       )}
 
       {isTeacher ? (
         <>
-          {inProgress.length > 0 && (
-            <div className="tasks-section">
-              <div className="tasks-section-title">⚙️ En cours</div>
-              <div className={sectionListClass}>{inProgress.map((t, idx) => <TaskTileCard key={t.id} {...taskTileProps} t={t} index={idx} />)}</div>
-            </div>
-          )}
-          {available.length > 0 && (
-            <div className="tasks-section">
-              <div className="tasks-section-title">🔥 À faire</div>
-              <div className={sectionListClass}>{available.map((t, idx) => <TaskTileCard key={t.id} {...taskTileProps} t={t} index={idx} />)}</div>
-            </div>
-          )}
-          <TaskProjectsBlock
-            visibleProjects={activeProjects}
-            allFiltered={allFilteredWithoutUrgent}
+          <TaskTileSection title="⚙️ En cours" tasks={inProgress} sectionListClass={sectionListClass} taskTileProps={taskTileProps} />
+          <TaskTileSection title="🔥 À faire" tasks={available} sectionListClass={sectionListClass} taskTileProps={taskTileProps} />
+          <TaskProjectsBlock {...taskProjectsBlockProps} visibleProjects={activeProjects} />
+          <TaskTileSection
+            title={`💡 Propositions ${roleTerms.studentPlural} (${proposed.length})`}
+            tasks={proposed}
             sectionListClass={sectionListClass}
-            isTeacher={isTeacher}
-            maps={maps}
-            contextCommentsEnabled={contextCommentsEnabled}
-            canParticipateContextComments={canParticipateContextComments}
-            setEditProject={setEditProject}
-            setShowProjectForm={setShowProjectForm}
-            setNewTaskDefaultProjectId={setNewTaskDefaultProjectId}
-            setEditTask={setEditTask}
-            setDuplicateTask={setDuplicateTask}
-            setShowForm={setShowForm}
-            setShowProposalForm={setShowProposalForm}
-            setProjectStatus={setProjectStatus}
-            validateProject={validateProject}
-            duplicateProject={duplicateProject}
-            deleteProject={deleteProject}
-            loading={loading}
             taskTileProps={taskTileProps}
-            openTasksTutorialPreview={openTasksTutorialPreview}
-            taskDragPayload={taskDragPayload}
-            taskDropHint={taskDropHint}
-            onProjectTaskDragOver={registerProjectDropHint}
-            onDropTaskToProject={dropTaskToProject}
           />
-          {proposed.length > 0 && (
-            <div className="tasks-section">
-              <div className="tasks-section-title">💡 Propositions {roleTerms.studentPlural} ({proposed.length})</div>
-              <div className={sectionListClass}>{proposed.map((t, idx) => <TaskTileCard key={t.id} {...taskTileProps} t={t} index={idx} />)}</div>
-            </div>
-          )}
-          {done.length > 0 && (
-            <div className="tasks-section">
-              <div className="tasks-section-title">⏳ En attente de validation ({done.length})</div>
-              <div className={sectionListClass}>{done.map((t, idx) => <TaskTileCard key={t.id} {...taskTileProps} t={t} index={idx} />)}</div>
-            </div>
-          )}
-          {onHold.length > 0 && (
-            <div className="tasks-section">
-              <div className="tasks-section-title">⏸️ En attente ({onHold.length})</div>
-              <div className={sectionListClass}>{onHold.map((t, idx) => <TaskTileCard key={t.id} {...taskTileProps} t={t} index={idx} />)}</div>
-            </div>
-          )}
-          {validated.length > 0 && (
-            <div className="tasks-section">
-              <div className="tasks-section-title">✅ Validées</div>
-              <div className={sectionListClass}>{validated.map((t, idx) => <TaskTileCard key={t.id} {...taskTileProps} t={t} index={idx} />)}</div>
-            </div>
-          )}
+          <TaskTileSection
+            title={`⏳ En attente de validation (${done.length})`}
+            tasks={done}
+            sectionListClass={sectionListClass}
+            taskTileProps={taskTileProps}
+          />
+          <TaskTileSection
+            title={`⏸️ En attente (${onHold.length})`}
+            tasks={onHold}
+            sectionListClass={sectionListClass}
+            taskTileProps={taskTileProps}
+          />
+          <TaskTileSection title="✅ Validées" tasks={validated} sectionListClass={sectionListClass} taskTileProps={taskTileProps} />
         </>
       ) : (
         <>
           {showStudentFilteredResults ? (
             <>
-              <div className="tasks-section">
-                <div className="tasks-section-title">
-                  🔎 Résultats filtrés ({regularFiltered.length})
-                </div>
-                <div className={sectionListClass}>{regularFiltered.map((t, idx) => <TaskTileCard key={t.id} {...taskTileProps} t={t} index={idx} />)}</div>
-              </div>
-              <TaskProjectsBlock
-            visibleProjects={activeProjects}
-            allFiltered={allFilteredWithoutUrgent}
-            sectionListClass={sectionListClass}
-            isTeacher={isTeacher}
-            maps={maps}
-            contextCommentsEnabled={contextCommentsEnabled}
-            canParticipateContextComments={canParticipateContextComments}
-            setEditProject={setEditProject}
-            setShowProjectForm={setShowProjectForm}
-            setNewTaskDefaultProjectId={setNewTaskDefaultProjectId}
-            setEditTask={setEditTask}
-            setDuplicateTask={setDuplicateTask}
-            setShowForm={setShowForm}
-            setShowProposalForm={setShowProposalForm}
-            setProjectStatus={setProjectStatus}
-            validateProject={validateProject}
-            duplicateProject={duplicateProject}
-            deleteProject={deleteProject}
-            loading={loading}
-            taskTileProps={taskTileProps}
-            openTasksTutorialPreview={openTasksTutorialPreview}
-            taskDragPayload={taskDragPayload}
-            taskDropHint={taskDropHint}
-            onProjectTaskDragOver={registerProjectDropHint}
-            onDropTaskToProject={dropTaskToProject}
-          />
+              <TaskTileSection
+                title={`🔎 Résultats filtrés (${regularFiltered.length})`}
+                tasks={regularFiltered}
+                sectionListClass={sectionListClass}
+                taskTileProps={taskTileProps}
+                showWhenEmpty
+              />
+              <TaskProjectsBlock {...taskProjectsBlockProps} visibleProjects={activeProjects} />
             </>
           ) : (
             <>
-              {inProgressNotMine.length > 0 && (
-              <div className="tasks-section">
-                <div className="tasks-section-title">⚙️ En cours (déjà prises)</div>
-                <div className={sectionListClass}>{inProgressNotMine.map((t, idx) => <TaskTileCard key={t.id} {...taskTileProps} t={t} index={idx} />)}</div>
-              </div>
-              )}
-              {availableNotMine.length > 0 && (
-            <div className="tasks-section">
-              <div className="tasks-section-title">🔥 Tâches à faire</div>
-              <div className={sectionListClass}>{availableNotMine.map((t, idx) => <TaskTileCard key={t.id} {...taskTileProps} t={t} index={idx} />)}</div>
-            </div>
-          )}
-              {myProposals.length > 0 && (
-              <div className="tasks-section">
-                <div className="tasks-section-title">💡 Mes propositions ({myProposals.length})</div>
-                <div className={sectionListClass}>{myProposals.map((t, idx) => <TaskTileCard key={t.id} {...taskTileProps} t={t} index={idx} />)}</div>
-              </div>
-              )}
-              <TaskProjectsBlock
-            visibleProjects={activeProjects}
-            allFiltered={allFilteredWithoutUrgent}
-            sectionListClass={sectionListClass}
-            isTeacher={isTeacher}
-            maps={maps}
-            contextCommentsEnabled={contextCommentsEnabled}
-            canParticipateContextComments={canParticipateContextComments}
-            setEditProject={setEditProject}
-            setShowProjectForm={setShowProjectForm}
-            setNewTaskDefaultProjectId={setNewTaskDefaultProjectId}
-            setEditTask={setEditTask}
-            setDuplicateTask={setDuplicateTask}
-            setShowForm={setShowForm}
-            setShowProposalForm={setShowProposalForm}
-            setProjectStatus={setProjectStatus}
-            validateProject={validateProject}
-            duplicateProject={duplicateProject}
-            deleteProject={deleteProject}
-            loading={loading}
-            taskTileProps={taskTileProps}
-            openTasksTutorialPreview={openTasksTutorialPreview}
-            taskDragPayload={taskDragPayload}
-            taskDropHint={taskDropHint}
-            onProjectTaskDragOver={registerProjectDropHint}
-            onDropTaskToProject={dropTaskToProject}
-          />
-              {doneNotMine.length > 0 && (
-              <div className="tasks-section">
-                <div className="tasks-section-title">⏳ En attente de validation</div>
-                <div className={sectionListClass}>{doneNotMine.map((t, idx) => <TaskTileCard key={t.id} {...taskTileProps} t={t} index={idx} />)}</div>
-              </div>
-              )}
-              {onHoldNotMine.length > 0 && (
-              <div className="tasks-section">
-                <div className="tasks-section-title">⏸️ En attente</div>
-                <div className={sectionListClass}>{onHoldNotMine.map((t, idx) => <TaskTileCard key={t.id} {...taskTileProps} t={t} index={idx} />)}</div>
-              </div>
-              )}
-              {recentlyValidatedForStudent.length > 0 && (
-              <div className="tasks-section">
-                <div className="tasks-section-title">✅ Récemment validées</div>
-                <div className={sectionListClass}>{recentlyValidatedForStudent.map((t, idx) => <TaskTileCard key={t.id} {...taskTileProps} t={t} index={idx} />)}</div>
-              </div>
-              )}
+              <TaskTileSection
+                title="⚙️ En cours (déjà prises)"
+                tasks={inProgressNotMine}
+                sectionListClass={sectionListClass}
+                taskTileProps={taskTileProps}
+              />
+              <TaskTileSection
+                title="🔥 Tâches à faire"
+                tasks={availableNotMine}
+                sectionListClass={sectionListClass}
+                taskTileProps={taskTileProps}
+              />
+              <TaskTileSection
+                title={`💡 Mes propositions (${myProposals.length})`}
+                tasks={myProposals}
+                sectionListClass={sectionListClass}
+                taskTileProps={taskTileProps}
+              />
+              <TaskProjectsBlock {...taskProjectsBlockProps} visibleProjects={activeProjects} />
+              <TaskTileSection
+                title="⏳ En attente de validation"
+                tasks={doneNotMine}
+                sectionListClass={sectionListClass}
+                taskTileProps={taskTileProps}
+              />
+              <TaskTileSection
+                title="⏸️ En attente"
+                tasks={onHoldNotMine}
+                sectionListClass={sectionListClass}
+                taskTileProps={taskTileProps}
+              />
+              <TaskTileSection
+                title="✅ Récemment validées"
+                tasks={recentlyValidatedForStudent}
+                sectionListClass={sectionListClass}
+                taskTileProps={taskTileProps}
+              />
             </>
           )}
         </>
       )}
 
       <TaskProjectsBlock
+        {...taskProjectsBlockProps}
         visibleProjects={validatedProjects}
-        allFiltered={allFilteredWithoutUrgent}
-        sectionListClass={sectionListClass}
-        isTeacher={isTeacher}
-        maps={maps}
-        contextCommentsEnabled={contextCommentsEnabled}
-        canParticipateContextComments={canParticipateContextComments}
-        setEditProject={setEditProject}
-        setShowProjectForm={setShowProjectForm}
-        setNewTaskDefaultProjectId={setNewTaskDefaultProjectId}
-        setEditTask={setEditTask}
-        setDuplicateTask={setDuplicateTask}
-        setShowForm={setShowForm}
-        setShowProposalForm={setShowProposalForm}
-        setProjectStatus={setProjectStatus}
-        validateProject={validateProject}
-        duplicateProject={duplicateProject}
-        deleteProject={deleteProject}
-        loading={loading}
-        taskTileProps={taskTileProps}
-        openTasksTutorialPreview={openTasksTutorialPreview}
-        taskDragPayload={taskDragPayload}
-        taskDropHint={taskDropHint}
-        onProjectTaskDragOver={registerProjectDropHint}
-        onDropTaskToProject={dropTaskToProject}
         sectionTitle={`✅ Projets validés (${validatedProjects.length})`}
       />
 

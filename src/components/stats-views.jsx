@@ -5,22 +5,23 @@ import { getDicebearAvatarUrl, getStudentAvatarUrl } from '../utils/avatar';
 import { getRoleTerms } from '../utils/n3-terminology';
 import { StudentAvatar } from './student-avatar';
 import { compressImageWithPreset } from '../utils/image';
-import { buildAffiliationSelectOptions } from '../utils/affiliationSelectOptions';
 import { MarkdownTextarea } from './MarkdownTextarea.jsx';
-import { getVisitMascotCatalog } from '../utils/visitMascotCatalog.js';
+import {
+  estimateDataUrlBytes,
+  deriveProfileTypeLabel,
+  profileUpdateEndpoint,
+  buildProfileAffiliationOptions,
+  buildVisitMascotOptions,
+  validateProfileEditorFields,
+} from '../utils/studentProfileFields.js';
 import { useHelp } from '../hooks/useHelp';
 import { HelpPanel } from './HelpPanel';
 import { HELP_PANELS } from '../constants/help';
 import { StatCard, StatsSummaryGrid } from '../shared/components/StatsSummaryGrid.jsx';
 import { TimedToast } from '../shared/components/TimedToast.jsx';
-import {
-  sortProgressionSteps,
-  resolveTaskTierSlug,
-  findProgressionStep,
-  getNextProgressionStep,
-  getProgressionStepIndex,
-  computeProgressPercent,
-} from '../utils/studentProgressionLadder.js';
+import { TeacherObservationsPanel } from './stats/TeacherObservationsPanel.jsx';
+import { TeacherLeaderboard } from './stats/TeacherLeaderboard.jsx';
+import { deriveStudentProgressionView } from '../utils/studentStatsProgression.js';
 import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
 import { useSession } from '../contexts/SessionContext.jsx';
 
@@ -47,54 +48,19 @@ function StudentStats({ student }) {
   );
 
   const { stats, assignments } = data;
-  const defaultIconBySlug = {
-    eleve_novice: '🪨',
-    eleve_avance: '🌿',
-    eleve_chevronne: '🏆',
-  };
-  const rawSteps = Array.isArray(data?.progression?.steps) && data.progression.steps.length > 0
-    ? data.progression.steps
-    : [
-      { roleSlug: 'eleve_novice', min: 0, label: 'n3beur novice' },
-      { roleSlug: 'eleve_avance', min: 5, label: 'n3beur avancé' },
-      { roleSlug: 'eleve_chevronne', min: 10, label: 'n3beur chevronné' },
-    ];
-  const RANKS = sortProgressionSteps(rawSteps).map((step, i) => ({
-    ...step,
-    color: i === 0 ? '#94a3b8' : i === 1 ? '#52b788' : '#1a4731',
-    icon: String(step.emoji || '').trim() || defaultIconBySlug[String(step.roleSlug || '').toLowerCase()] || '🌿',
-  }));
-  const autoProgressionEnabled = data?.progression?.autoProgressionEnabled !== false;
-  const taskTierSlug = resolveTaskTierSlug(stats.done, RANKS);
-  const taskTier = findProgressionStep(RANKS, taskTierSlug) || RANKS[0];
-  const taskTierIndex = getProgressionStepIndex(RANKS, taskTierSlug);
-  const actualSlug = String(data?.progression?.roleSlug || '').toLowerCase();
-  const actualTier =
-    findProgressionStep(RANKS, actualSlug)
-    || (data?.progression?.roleDisplayName
-      ? {
-        roleSlug: actualSlug,
-        min: taskTier.min,
-        label: data.progression.roleDisplayName,
-        icon: String(data?.progression?.roleEmoji || '').trim() || taskTier.icon,
-        color: taskTier.color,
-      }
-      : taskTier);
-  const actualIndex = getProgressionStepIndex(RANKS, actualSlug);
-  const nextRank = getNextProgressionStep(RANKS, taskTierSlug);
-  const progressPct = computeProgressPercent(stats.done, taskTier, nextRank);
-  const profileAheadOfTasks =
-    autoProgressionEnabled
-    && actualIndex >= 0
-    && taskTierIndex >= 0
-    && actualIndex > taskTierIndex;
-  const profileBehindOfTasks =
-    autoProgressionEnabled
-    && actualIndex >= 0
-    && taskTierIndex >= 0
-    && actualIndex < taskTierIndex;
-  const showTaskObjective = profileAheadOfTasks || profileBehindOfTasks;
-  const tasksRemaining = nextRank ? Math.max(0, nextRank.min - stats.done) : 0;
+  const {
+    ranks: RANKS,
+    autoProgressionEnabled,
+    taskTier,
+    taskTierIndex,
+    actualTier,
+    nextRank,
+    progressPct,
+    profileAheadOfTasks,
+    profileBehindOfTasks,
+    showTaskObjective,
+    tasksRemaining,
+  } = deriveStudentProgressionView(data?.progression, stats.done);
 
   return (
     <div className="fade-in">
@@ -230,37 +196,21 @@ function StudentProfileEditor({ student, onUpdated, onClose, maps = [] }) {
   const fallbackDisplayName = String(student?.display_name || student?.displayName || student?.email || 'Utilisateur').trim();
   const displayFirstName = String(student?.first_name || '').trim() || fallbackDisplayName;
   const displayLastName = String(student?.last_name || '').trim();
-  const profileType = (() => {
-    const roleSlug = String(student?.auth?.roleSlug || '').toLowerCase();
-    if (roleSlug === 'admin') return 'admin';
-    if (roleSlug.startsWith('prof')) return roleTerms.teacherShort;
-    if (roleSlug.startsWith('eleve')) return roleTerms.studentSingular;
-    const userType = String(student?.auth?.userType || student?.user_type || '').toLowerCase();
-    if (userType === 'teacher' || userType === 'user') return roleTerms.teacherShort;
-    if (userType === 'student') return roleTerms.studentSingular;
-    return roleTerms.studentSingular;
-  })();
+  const profileType = deriveProfileTypeLabel(student, roleTerms);
 
   const [pseudo, setPseudo] = useState(student?.pseudo || '');
   const [email, setEmail] = useState(student?.email || '');
   const [description, setDescription] = useState(student?.description || '');
   const [affiliation, setAffiliation] = useState(student?.affiliation || 'both');
   const [visitMascotCatalogId, setVisitMascotCatalogId] = useState(student?.visit_mascot_catalog_id || '');
-  const affiliationSelectOptions = useMemo(() => {
-    const base = buildAffiliationSelectOptions(maps);
-    const a = String(affiliation || student?.affiliation || 'both').toLowerCase();
-    if (base.some((o) => o.value === a)) return base;
-    return [...base, { value: a, label: `${a} (valeur en base)` }];
-  }, [maps, affiliation, student?.affiliation]);
-  const visitMascotOptions = useMemo(() => {
-    const allowedRaw = publicSettings?.visit?.mascot?.allowed_ids;
-    const allowedIds = Array.isArray(allowedRaw)
-      ? allowedRaw.map((id) => String(id || '').trim()).filter(Boolean)
-      : [];
-    const base = getVisitMascotCatalog();
-    if (!allowedIds.length) return base;
-    return base.filter((m) => allowedIds.includes(String(m?.id || '').trim()));
-  }, [publicSettings?.visit?.mascot?.allowed_ids]);
+  const affiliationSelectOptions = useMemo(
+    () => buildProfileAffiliationOptions(maps, affiliation, student?.affiliation),
+    [maps, affiliation, student?.affiliation]
+  );
+  const visitMascotOptions = useMemo(
+    () => buildVisitMascotOptions(publicSettings?.visit?.mascot?.allowed_ids),
+    [publicSettings?.visit?.mascot?.allowed_ids]
+  );
   const [avatarPreview, setAvatarPreview] = useState(getStudentAvatarUrl(student));
   const [avatarData, setAvatarData] = useState(null);
   const [removeAvatar, setRemoveAvatar] = useState(false);
@@ -271,13 +221,6 @@ function StudentProfileEditor({ student, onUpdated, onClose, maps = [] }) {
   const [okMsg, setOkMsg] = useState('');
   const galleryInputRef = useRef(null);
   const cameraInputRef = useRef(null);
-
-  const estimateDataUrlBytes = (dataUrl) => {
-    const payload = String(dataUrl || '').split(',')[1] || '';
-    if (!payload) return 0;
-    const padding = payload.endsWith('==') ? 2 : (payload.endsWith('=') ? 1 : 0);
-    return Math.floor((payload.length * 3) / 4) - padding;
-  };
 
   const onAvatarSelected = async (file) => {
     if (!file) return;
@@ -307,16 +250,8 @@ function StudentProfileEditor({ student, onUpdated, onClose, maps = [] }) {
   const save = async () => {
     setErr('');
     setOkMsg('');
-    if (!currentPassword) return setErr('Mot de passe actuel requis');
-    if (pseudo.trim() && !/^[A-Za-z0-9_.-]{3,30}$/.test(pseudo.trim())) {
-      return setErr('Pseudo invalide (3-30 caractères, lettres/chiffres/._-)');
-    }
-    if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      return setErr('Email invalide');
-    }
-    if (description.trim().length > 300) {
-      return setErr('Description trop longue (max 300 caractères)');
-    }
+    const validationError = validateProfileEditorFields({ pseudo, email, description, currentPassword });
+    if (validationError) return setErr(validationError);
 
     setLoading(true);
     try {
@@ -331,11 +266,7 @@ function StudentProfileEditor({ student, onUpdated, onClose, maps = [] }) {
       if (avatarData) payload.avatarData = avatarData;
       if (removeAvatar) payload.removeAvatar = true;
 
-      const roleSlug = String(student?.auth?.roleSlug || '').toLowerCase();
-      const userType = String(student?.auth?.userType || student?.user_type || '').toLowerCase();
-      const isTeacherLike = roleSlug === 'admin' || roleSlug.startsWith('prof') || userType === 'teacher' || userType === 'user';
-      const endpoint = isTeacherLike ? '/api/auth/me/profile' : `/api/students/${student.id}/profile`;
-      const updated = await api(endpoint, 'PATCH', payload);
+      const updated = await api(profileUpdateEndpoint(student), 'PATCH', payload);
       onUpdated(updated);
       setPseudo(updated?.pseudo || '');
       setEmail(updated?.email || '');
@@ -564,14 +495,6 @@ function TeacherStats() {
   if (students === null) return <div className="loader" style={{ height: '60vh' }}><div className="loader-leaf">🌿</div><p>Chargement...</p></div>;
 
   const data = students;
-  const filtered = data.filter(s =>
-    `${s.first_name} ${s.last_name}`.toLowerCase().includes(search.toLowerCase())
-  );
-
-  const maxDone = Math.max(...data.map(s => s.stats.done), 1);
-  const rankIcon = i => i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}.`;
-  const rankClass = i => i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
-
   const totalValidated = data.reduce((s, d) => s + d.stats.done, 0);
   const totalPending = data.reduce((s, d) => s + d.stats.pending, 0);
   const activeStudents = data.filter(d => d.stats.total > 0).length;
@@ -631,157 +554,15 @@ function TeacherStats() {
         </select>
       </div>
 
-      <details className="plant-more" style={{ marginBottom: 14 }}>
-        <summary>📓 Observations des {roleTerms.studentPlural} (max 100)</summary>
-        <div style={{ marginTop: 10, display: 'grid', gap: 8 }}>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-            <button
-              type="button"
-              className="btn btn-secondary btn-sm"
-              onClick={loadObservations}
-              disabled={obsLoading}
-            >
-              {obsLoading ? 'Chargement…' : 'Charger les observations'}
-            </button>
-          </div>
-          {obsError && <div className="auth-error">⚠️ {obsError}</div>}
-          {!obsError && !obsLoading && observations.length === 0 && (
-            <p style={{ margin: 0, fontSize: '.84rem', color: '#6b7280' }}>
-              Aucune observation chargée (clique sur le bouton pour rafraîchir).
-            </p>
-          )}
-          {observations.length > 0 && (
-            <div style={{ maxHeight: 280, overflow: 'auto', border: '1px solid #e5e7eb', borderRadius: 10, padding: 8, background: '#f8fafc' }}>
-              {observations.map((entry) => {
-                const studentName = `${entry.first_name || ''} ${entry.last_name || ''}`.trim() || 'n3beur';
-                const zoneLabel = String(entry.zone_name || '').trim();
-                const dateLabel = entry.created_at
-                  ? new Date(entry.created_at).toLocaleString('fr-FR')
-                  : '';
-                return (
-                  <div key={entry.id} style={{ padding: '8px 6px', borderBottom: '1px solid #e2e8f0' }}>
-                    <div style={{ fontSize: '.82rem', color: '#374151' }}>
-                      <strong>{studentName}</strong>
-                      {zoneLabel ? ` · ${zoneLabel}` : ''}
-                      {dateLabel ? ` · ${dateLabel}` : ''}
-                    </div>
-                    <div style={{ fontSize: '.82rem', color: '#4b5563', marginTop: 4, whiteSpace: 'pre-wrap' }}>
-                      {String(entry.content || '').trim() || '—'}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </details>
+      <TeacherObservationsPanel
+        roleTerms={roleTerms}
+        observations={observations}
+        obsLoading={obsLoading}
+        obsError={obsError}
+        onLoad={loadObservations}
+      />
 
-      <div className="leaderboard">
-        {filtered.length === 0
-          ? <div className="empty" style={{ padding: 32 }}>
-            <div className="empty-icon">👤</div>
-            <p>{search ? `Aucun ${roleTerms.studentSingular} ne correspond à ta recherche` : `Aucun ${roleTerms.studentSingular} dans le classement pour l’instant`}</p>
-          </div>
-          : filtered.map((s) => {
-            const realRank = data.findIndex(d => d.id === s.id);
-            const completionRate = s.stats.total > 0
-              ? Math.round((s.stats.done / s.stats.total) * 100)
-              : 0;
-            return (
-              <div key={s.id} className="lb-row" style={{ gap: 8 }}>
-                <div className={`lb-rank ${rankClass(realRank)}`}>{rankIcon(realRank)}</div>
-                <StudentAvatar student={s} size={30} style={{ border: '1px solid #ddd' }} />
-                <div className="lb-name" style={{ flex: 1, minWidth: 0 }}>
-                  <strong>{s.first_name} {s.last_name}</strong>
-                  {s.pseudo && (
-                    <div className="lb-pseudo" style={{ fontSize: '.72rem', color: '#4b5563', marginTop: 1 }}>
-                      @{s.pseudo}
-                    </div>
-                  )}
-                  {s.description && (
-                    <div
-                      className="lb-description"
-                      style={{
-                        fontSize: '.72rem',
-                        color: '#6b7280',
-                        marginTop: 2,
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        maxWidth: 220,
-                      }}
-                      title={s.description}
-                    >
-                      {s.description}
-                    </div>
-                  )}
-                  {s?.progression?.roleDisplayName && (
-                    <div className="lb-profile-badge-wrap" style={{ marginTop: 2 }}>
-                      <span className="lb-profile-badge" style={{
-                        display: 'inline-block',
-                        fontSize: '.7rem',
-                        fontWeight: 600,
-                        padding: '2px 8px',
-                        borderRadius: 999,
-                        background: '#ecfdf5',
-                        color: '#065f46',
-                        border: '1px solid #a7f3d0',
-                      }}
-                      >
-                        Profil : {s.progression.roleEmoji ? `${s.progression.roleEmoji} ` : ''}{s.progression.roleDisplayName}
-                      </span>
-                    </div>
-                  )}
-                  <small>
-                    {s.last_seen
-                      ? `Vu le ${new Date(s.last_seen).toLocaleDateString('fr-FR')}`
-                      : 'Jamais connecté'}
-                  </small>
-                </div>
-                <div className="lb-stats" style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0, flexWrap: 'wrap', justifyContent: 'flex-end', maxWidth: '100%' }}>
-                  <div className="lb-stat lb-stat-done">
-                    <div className="lb-stat-num" style={{ color: 'var(--sage)' }}>{s.stats.done}</div>
-                    <div className="lb-stat-label">✅</div>
-                  </div>
-                  <div className="lb-stat lb-stat-submitted">
-                    <div className="lb-stat-num" style={{ color: '#6366f1' }}>{s.stats.submitted}</div>
-                    <div className="lb-stat-label">📋</div>
-                  </div>
-                  <div className="lb-stat lb-stat-pending">
-                    <div className="lb-stat-num" style={{ color: '#f59e0b' }}>{s.stats.pending}</div>
-                    <div className="lb-stat-label">⏳</div>
-                  </div>
-                  <div className="lb-stat lb-stat-total">
-                    <div className="lb-stat-num">{s.stats.total}</div>
-                    <div className="lb-stat-label">total</div>
-                  </div>
-                  <div className="lb-stat lb-stat-rate" title="Part des tâches validées sur le total des tâches prises">
-                    <div className="lb-stat-num" style={{ color: '#0f766e' }}>{completionRate}%</div>
-                    <div className="lb-stat-label">🎯</div>
-                  </div>
-                  <div className="lb-stat" title="Espèces distinctes observées (fiches plantes)">
-                    <div className="lb-stat-num" style={{ color: '#15803d' }}>{Number(s.stats?.plant_species_observed ?? 0)}</div>
-                    <div className="lb-stat-label">🌿</div>
-                  </div>
-                  <div className="lb-stat" title="Nombre d’observations sur les fiches plantes (toutes espèces)">
-                    <div className="lb-stat-num" style={{ color: '#0369a1' }}>{Number(s.stats?.plant_observation_events ?? 0)}</div>
-                    <div className="lb-stat-label">🔭</div>
-                  </div>
-                  <div className="lb-stat" title="Tutoriels marqués comme lus">
-                    <div className="lb-stat-num" style={{ color: '#7c3aed' }}>{Number(s.stats?.tutorials_read ?? 0)}</div>
-                    <div className="lb-stat-label">📖</div>
-                  </div>
-                  <div style={{ width: 60, display: 'none' }} className="lb-bar-desktop">
-                    <div className="lb-bar-bg">
-                      <div className="lb-bar-fill" style={{ width: `${(s.stats.done / maxDone) * 100}%` }} />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          })
-        }
-      </div>
+      <TeacherLeaderboard students={data} search={search} roleTerms={roleTerms} />
     </div>
   );
 }
