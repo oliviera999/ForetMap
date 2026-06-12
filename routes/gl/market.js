@@ -17,8 +17,17 @@ const {
   cancelTrade,
 } = require('../../lib/glMarket');
 const { parsePageQuery } = require('../../lib/shared/httpHelpers');
+const { z, validate } = require('../../lib/validate');
 
 const router = express.Router();
+
+// O7 — pagination de GET /trades : coercition permissive (jamais de 400 pour une query
+// invalide) reproduisant exactement `parsePageQuery` : `page` ≥ 1 (repli 1), `page_size`
+// borné à [1, 50] (repli 20), `offset` dérivé (non utilisé par le handler, qui transmet
+// page/pageSize à listTradesForPlayer).
+const glMarketTradesQuerySchema = z
+  .object({ page: z.unknown().optional(), page_size: z.unknown().optional() })
+  .transform((q) => parsePageQuery(q, { defaultPageSize: 20, maxPageSize: 50 }));
 
 router.use(requireGlAuth);
 router.use(requireGlMarket);
@@ -49,9 +58,9 @@ router.get('/classmates', async (req, res, next) => {
   }
 });
 
-router.get('/trades', async (req, res, next) => {
+router.get('/trades', validate({ query: glMarketTradesQuerySchema }), async (req, res, next) => {
   try {
-    const { page, pageSize } = parsePageQuery(req.query, { defaultPageSize: 20, maxPageSize: 50 });
+    const { page, pageSize } = req.validatedQuery;
     const data = await listTradesForPlayer(playerIdFromReq(req), { page, pageSize });
     return res.json(data);
   } catch (err) {
@@ -167,3 +176,4 @@ router.post('/trades/:id/cancel', async (req, res, next) => {
 });
 
 module.exports = router;
+module.exports.glMarketTradesQuerySchema = glMarketTradesQuerySchema; // exporté pour test no-DB du contrat O7
