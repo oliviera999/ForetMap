@@ -3,15 +3,12 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { api, AccountDeletedError } from '../services/api';
 import { daysUntil } from '../utils/badges';
 import { getRoleTerms } from '../utils/n3-terminology';
-import { useDialogA11y } from '../hooks/useDialogA11y';
-import { useOverlayHistoryBack } from '../hooks/useOverlayHistoryBack';
 import { useHelp } from '../hooks/useHelp';
 
 import { resolveRoleText } from '../constants/help';
 import { getContentText } from '../utils/content';
 import { TutorialPreviewModal, tutorialPreviewPayload } from './TutorialPreviewModal';
 import { fetchTutorialReadIds } from './TutorialReadAcknowledge';
-import { DialogShell } from './DialogShell';
 
 import { isStudentAssignedToTask } from '../utils/task-assignments';
 import {
@@ -32,6 +29,7 @@ import { TaskProjectFormModal } from './tasks/TaskProjectFormModal.jsx';
 import { TaskFormModal } from './tasks/TaskFormModal.jsx';
 import { TaskTileCard } from './tasks/TaskTileCard.jsx';
 import { TaskTileSection } from './tasks/TaskTileSection.jsx';
+import { TaskConfirmDialog } from './tasks/TaskConfirmDialog.jsx';
 import { TaskProjectsBlock } from './tasks/TaskProjectsBlock.jsx';
 import { TaskImportPanel } from './tasks/TaskImportPanel.jsx';
 import { TaskTutorialsAtFocusBlock } from './tasks/TaskTutorialsAtFocusBlock.jsx';
@@ -141,8 +139,6 @@ function TasksView({
   /** Payload de drag & drop actif (prof/admin) pour déplacer / réordonner les tâches dans un projet. */
   const [taskDragPayload, setTaskDragPayload] = useState(null);
   const [taskDropHint, setTaskDropHint] = useState({ projectId: '', beforeTaskId: '' });
-  const confirmDialogRef = useDialogA11y(() => setConfirmTask(null));
-  useOverlayHistoryBack(!!confirmTask, () => setConfirmTask(null));
   const {
     isHelpEnabled,
     showContextHints,
@@ -787,6 +783,34 @@ function TasksView({
     onOpenBiodiversityFromTaskName,
   ]);
 
+  /** Props communes aux quatre rendus de TaskProjectsBlock (projets actifs ×3 + projets validés). */
+  const taskProjectsBlockProps = {
+    allFiltered: allFilteredWithoutUrgent,
+    sectionListClass,
+    isTeacher,
+    maps,
+    contextCommentsEnabled,
+    canParticipateContextComments,
+    setEditProject,
+    setShowProjectForm,
+    setNewTaskDefaultProjectId,
+    setEditTask,
+    setDuplicateTask,
+    setShowForm,
+    setShowProposalForm,
+    setProjectStatus,
+    validateProject,
+    duplicateProject,
+    deleteProject,
+    loading,
+    taskTileProps,
+    openTasksTutorialPreview,
+    taskDragPayload,
+    taskDropHint,
+    onProjectTaskDragOver: registerProjectDropHint,
+    onDropTaskToProject: dropTaskToProject,
+  };
+
   return (
     <div className="tasks-view fade-in">
       {toast && <TimedToast msg={toast} onDone={() => setToast(null)} />}
@@ -850,27 +874,7 @@ function TasksView({
       )}
       {logsTask && <TaskLogsViewer task={logsTask} onClose={() => setLogsTask(null)} />}
 
-      {confirmTask && (
-        <DialogShell
-          open={!!confirmTask}
-          onClose={() => setConfirmTask(null)}
-          overlayClassName="modal-overlay"
-          dialogClassName="log-modal fade-in"
-          dialogStyle={{ paddingBottom: 'calc(20px + var(--safe-bottom))' }}
-          ariaLabel="Confirmation d'action"
-          closeOnOverlay
-          dialogRef={confirmDialogRef}
-        >
-            <h3 style={{ marginBottom: 8 }}>Confirmation</h3>
-            <p style={{ fontSize: '.95rem', color: '#444', marginBottom: 20, lineHeight: 1.5 }}>{confirmTask.label}</p>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button className="btn btn-danger" style={{ flex: 1 }} onClick={async () => {
-                const a = confirmTask.action; setConfirmTask(null); await a();
-              }}>Confirmer</button>
-              <button className="btn btn-ghost" style={{ flex: 1 }} onClick={() => setConfirmTask(null)}>Annuler</button>
-            </div>
-        </DialogShell>
-      )}
+      <TaskConfirmDialog confirmTask={confirmTask} onClose={() => setConfirmTask(null)} />
 
       <TasksViewHeader
         isTeacher={isTeacher}
@@ -988,33 +992,7 @@ function TasksView({
         <>
           <TaskTileSection title="⚙️ En cours" tasks={inProgress} sectionListClass={sectionListClass} taskTileProps={taskTileProps} />
           <TaskTileSection title="🔥 À faire" tasks={available} sectionListClass={sectionListClass} taskTileProps={taskTileProps} />
-          <TaskProjectsBlock
-            visibleProjects={activeProjects}
-            allFiltered={allFilteredWithoutUrgent}
-            sectionListClass={sectionListClass}
-            isTeacher={isTeacher}
-            maps={maps}
-            contextCommentsEnabled={contextCommentsEnabled}
-            canParticipateContextComments={canParticipateContextComments}
-            setEditProject={setEditProject}
-            setShowProjectForm={setShowProjectForm}
-            setNewTaskDefaultProjectId={setNewTaskDefaultProjectId}
-            setEditTask={setEditTask}
-            setDuplicateTask={setDuplicateTask}
-            setShowForm={setShowForm}
-            setShowProposalForm={setShowProposalForm}
-            setProjectStatus={setProjectStatus}
-            validateProject={validateProject}
-            duplicateProject={duplicateProject}
-            deleteProject={deleteProject}
-            loading={loading}
-            taskTileProps={taskTileProps}
-            openTasksTutorialPreview={openTasksTutorialPreview}
-            taskDragPayload={taskDragPayload}
-            taskDropHint={taskDropHint}
-            onProjectTaskDragOver={registerProjectDropHint}
-            onDropTaskToProject={dropTaskToProject}
-          />
+          <TaskProjectsBlock {...taskProjectsBlockProps} visibleProjects={activeProjects} />
           <TaskTileSection
             title={`💡 Propositions ${roleTerms.studentPlural} (${proposed.length})`}
             tasks={proposed}
@@ -1046,33 +1024,7 @@ function TasksView({
                 taskTileProps={taskTileProps}
                 showWhenEmpty
               />
-              <TaskProjectsBlock
-            visibleProjects={activeProjects}
-            allFiltered={allFilteredWithoutUrgent}
-            sectionListClass={sectionListClass}
-            isTeacher={isTeacher}
-            maps={maps}
-            contextCommentsEnabled={contextCommentsEnabled}
-            canParticipateContextComments={canParticipateContextComments}
-            setEditProject={setEditProject}
-            setShowProjectForm={setShowProjectForm}
-            setNewTaskDefaultProjectId={setNewTaskDefaultProjectId}
-            setEditTask={setEditTask}
-            setDuplicateTask={setDuplicateTask}
-            setShowForm={setShowForm}
-            setShowProposalForm={setShowProposalForm}
-            setProjectStatus={setProjectStatus}
-            validateProject={validateProject}
-            duplicateProject={duplicateProject}
-            deleteProject={deleteProject}
-            loading={loading}
-            taskTileProps={taskTileProps}
-            openTasksTutorialPreview={openTasksTutorialPreview}
-            taskDragPayload={taskDragPayload}
-            taskDropHint={taskDropHint}
-            onProjectTaskDragOver={registerProjectDropHint}
-            onDropTaskToProject={dropTaskToProject}
-          />
+              <TaskProjectsBlock {...taskProjectsBlockProps} visibleProjects={activeProjects} />
             </>
           ) : (
             <>
@@ -1094,33 +1046,7 @@ function TasksView({
                 sectionListClass={sectionListClass}
                 taskTileProps={taskTileProps}
               />
-              <TaskProjectsBlock
-            visibleProjects={activeProjects}
-            allFiltered={allFilteredWithoutUrgent}
-            sectionListClass={sectionListClass}
-            isTeacher={isTeacher}
-            maps={maps}
-            contextCommentsEnabled={contextCommentsEnabled}
-            canParticipateContextComments={canParticipateContextComments}
-            setEditProject={setEditProject}
-            setShowProjectForm={setShowProjectForm}
-            setNewTaskDefaultProjectId={setNewTaskDefaultProjectId}
-            setEditTask={setEditTask}
-            setDuplicateTask={setDuplicateTask}
-            setShowForm={setShowForm}
-            setShowProposalForm={setShowProposalForm}
-            setProjectStatus={setProjectStatus}
-            validateProject={validateProject}
-            duplicateProject={duplicateProject}
-            deleteProject={deleteProject}
-            loading={loading}
-            taskTileProps={taskTileProps}
-            openTasksTutorialPreview={openTasksTutorialPreview}
-            taskDragPayload={taskDragPayload}
-            taskDropHint={taskDropHint}
-            onProjectTaskDragOver={registerProjectDropHint}
-            onDropTaskToProject={dropTaskToProject}
-          />
+              <TaskProjectsBlock {...taskProjectsBlockProps} visibleProjects={activeProjects} />
               <TaskTileSection
                 title="⏳ En attente de validation"
                 tasks={doneNotMine}
@@ -1145,31 +1071,8 @@ function TasksView({
       )}
 
       <TaskProjectsBlock
+        {...taskProjectsBlockProps}
         visibleProjects={validatedProjects}
-        allFiltered={allFilteredWithoutUrgent}
-        sectionListClass={sectionListClass}
-        isTeacher={isTeacher}
-        maps={maps}
-        contextCommentsEnabled={contextCommentsEnabled}
-        canParticipateContextComments={canParticipateContextComments}
-        setEditProject={setEditProject}
-        setShowProjectForm={setShowProjectForm}
-        setNewTaskDefaultProjectId={setNewTaskDefaultProjectId}
-        setEditTask={setEditTask}
-        setDuplicateTask={setDuplicateTask}
-        setShowForm={setShowForm}
-        setShowProposalForm={setShowProposalForm}
-        setProjectStatus={setProjectStatus}
-        validateProject={validateProject}
-        duplicateProject={duplicateProject}
-        deleteProject={deleteProject}
-        loading={loading}
-        taskTileProps={taskTileProps}
-        openTasksTutorialPreview={openTasksTutorialPreview}
-        taskDragPayload={taskDragPayload}
-        taskDropHint={taskDropHint}
-        onProjectTaskDragOver={registerProjectDropHint}
-        onDropTaskToProject={dropTaskToProject}
         sectionTitle={`✅ Projets validés (${validatedProjects.length})`}
       />
 
