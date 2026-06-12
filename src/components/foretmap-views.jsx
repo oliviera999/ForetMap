@@ -39,6 +39,11 @@ import { useSession } from '../contexts/SessionContext.jsx';
 import { useData } from '../contexts/DataContext.jsx';
 import { fileToDataUrl } from '../utils/fileToDataUrl.js';
 import {
+  filterNonEmptyFiles,
+  planGalleryPhotoSlots,
+  galleryUploadToastMessages,
+} from '../utils/plantPhotoGallery.js';
+import {
   normalizedPlantValue,
   isGenericPotagerLabel,
   EMPTY_PLANT_FORM,
@@ -151,10 +156,10 @@ function PlantEditForm({ title, form, setForm, onSave, onCancel, saving, plantId
 
   /** Galerie : plusieurs fichiers → champs photo suivants dans l’ordre (photo espèce → … → partie récoltée). */
   const uploadPhotosFromGallery = async (startFieldKey, fileList) => {
-    const files = Array.from(fileList || []).filter((f) => f?.size);
+    const files = filterNonEmptyFiles(fileList);
     if (!files.length) return;
-    const startIdx = photoFields.findIndex((f) => f.key === startFieldKey);
-    if (startIdx < 0) return;
+    const plan = planGalleryPhotoSlots(photoFields, startFieldKey, files.length);
+    if (!plan) return;
 
     let targetId = plantId;
     if (!targetId && typeof onEnsurePlantId === 'function') {
@@ -167,31 +172,19 @@ function PlantEditForm({ title, form, setForm, onSave, onCancel, saving, plantId
 
     setUploadingField(startFieldKey);
     let ok = 0;
-    let skipped = 0;
     try {
-      for (let i = 0; i < files.length; i++) {
-        const slotIdx = startIdx + i;
-        if (slotIdx >= photoFields.length) {
-          skipped = files.length - i;
-          break;
-        }
-        const fld = photoFields[slotIdx].key;
+      for (const { fileIndex, fieldKey, label } of plan.assignments) {
         try {
-          const imageData = await compressImageWithPreset(files[i], 'plant');
-          const result = await api(`/api/plants/${targetId}/photo-upload`, 'POST', { field: fld, imageData, position: 'append' });
-          setForm((prev) => ({ ...prev, [fld]: result?.plant?.[fld] || result?.url || prev[fld] }));
+          const imageData = await compressImageWithPreset(files[fileIndex], 'plant');
+          const result = await api(`/api/plants/${targetId}/photo-upload`, 'POST', { field: fieldKey, imageData, position: 'append' });
+          setForm((prev) => ({ ...prev, [fieldKey]: result?.plant?.[fieldKey] || result?.url || prev[fieldKey] }));
           ok += 1;
         } catch (e) {
-          onToast?.(`Erreur import (${photoFields[slotIdx].label}) : ${e.message}`);
+          onToast?.(`Erreur import (${label}) : ${e.message}`);
         }
       }
-      if (skipped > 0) {
-        onToast?.(`${skipped} photo(s) non importée(s) — plus de champ disponible après « ${photoFields[startIdx].label} ».`);
-      }
-      if (ok === 1 && skipped === 0) {
-        onToast?.('Photo importée ✓');
-      } else if (ok > 1) {
-        onToast?.(`${ok} photos importées ✓`);
+      for (const msg of galleryUploadToastMessages({ ok, skipped: plan.skipped, startLabel: plan.startLabel })) {
+        onToast?.(msg);
       }
     } finally {
       setUploadingField('');
