@@ -47,6 +47,11 @@ import { VISIT_MASCOT_STATE } from '../utils/visitMascotState.js';
 import { loadVisitMascotPositionPct, saveVisitMascotPositionPct } from '../utils/visitMascotPositionPersistence.js';
 import { itemSeenKey } from '../utils/visitMediaGallery.js';
 import {
+  parseVisitMascotAllowedIds,
+  computeVisitCartographyProgress,
+  buildVisitNetworkStatusLabel,
+} from '../utils/visitViewStatus.js';
+import {
   visitZoneSvgTextUniformYTransform,
   clampVisitMascotPctForViewport,
 } from '../utils/visitMascotGeometry.js';
@@ -99,17 +104,10 @@ function VisitView({
     [configuredLocationEmojis]
   );
   const roleTerms = getRoleTerms(isN3Affiliated);
-  const visitMascotAllowedIds = useMemo(() => {
-    const raw = publicSettings?.visit?.mascot?.allowed_ids;
-    if (Array.isArray(raw)) return raw.map((id) => String(id || '').trim()).filter(Boolean);
-    if (typeof raw === 'string') {
-      return raw
-        .split(/[,\n;]+/g)
-        .map((id) => String(id || '').trim())
-        .filter(Boolean);
-    }
-    return [];
-  }, [publicSettings?.visit?.mascot?.allowed_ids]);
+  const visitMascotAllowedIds = useMemo(
+    () => parseVisitMascotAllowedIds(publicSettings?.visit?.mascot?.allowed_ids),
+    [publicSettings?.visit?.mascot?.allowed_ids]
+  );
   const visitMascotDefaultId = String(publicSettings?.visit?.mascot?.default_id || '').trim() || 'renard2-cut-spritesheet';
   const visitTitle = getContentText(publicSettings, 'visit.title', '🧭 Visite de la carte');
   const helpHintPrefix = getContentText(publicSettings, 'help.hint_prefix', 'Astuce :');
@@ -277,23 +275,10 @@ function VisitView({
   const showVisitMapTutorialsSection = isTeacher && !teacherPreviewAsStudent;
 
   /** Zones affichées sur le plan (polygone valide) + repères : aligné sur ce que l’utilisateur peut parcourir sur la carte courante. */
-  const visitCartographyProgress = useMemo(() => {
-    const zones = content.zones || [];
-    const markers = content.markers || [];
-    let total = 0;
-    let seenCount = 0;
-    for (const z of zones) {
-      if (parsePctPoints(z.points).length < 3) continue;
-      total += 1;
-      if (seen.has(itemSeenKey('zone', z.id))) seenCount += 1;
-    }
-    for (const m of markers) {
-      total += 1;
-      if (seen.has(itemSeenKey('marker', m.id))) seenCount += 1;
-    }
-    const pct = total > 0 ? Math.min(100, Math.round((seenCount / total) * 100)) : 0;
-    return { total, seenCount, pct };
-  }, [content.zones, content.markers, seen]);
+  const visitCartographyProgress = useMemo(
+    () => computeVisitCartographyProgress(content.zones, content.markers, seen),
+    [content.zones, content.markers, seen]
+  );
 
   /** Bandeau carte : ouverture du premier tutoriel « présentation » (tous les profils en navigation). */
   const showVisitPresentationButton = mode === 'view' && !!visitPresentationTutorial;
@@ -304,16 +289,10 @@ function VisitView({
     && visitCartographyProgress.seenCount === 0
     && !prefersReducedMotion;
 
-  const visitNetworkStatusLabel = useMemo(() => {
-    if (!isOnline) return 'Hors ligne — consultation locale';
-    if (syncStatus === 'syncing') return 'Synchronisation en cours…';
-    if (pendingSyncCount > 0) {
-      return `${pendingSyncCount} action${pendingSyncCount > 1 ? 's' : ''} en attente de sync.`;
-    }
-    if (syncStatus === 'error') return 'Synchronisation en attente';
-    if (syncStatus === 'synced') return 'Synchronisé';
-    return null;
-  }, [isOnline, syncStatus, pendingSyncCount]);
+  const visitNetworkStatusLabel = useMemo(
+    () => buildVisitNetworkStatusLabel(isOnline, syncStatus, pendingSyncCount),
+    [isOnline, syncStatus, pendingSyncCount]
+  );
 
   /** Mascotte : zones/repères visibles, total parcourable, ou tutoriels du plan (évite plan « vide » côté API alors que la visite est animée). */
   const showVisitMapMascot = computeShowVisitMapMascot(
