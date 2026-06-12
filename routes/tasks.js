@@ -1769,46 +1769,42 @@ router.post('/:id/validate', requirePermission('tasks.validate', { needsElevatio
 }));
 
 /** Même modèle que POST assign, avec identité n3beur vérifiée (session ou permission n3boss). */
-router.post('/:id/unassign', async (req, res) => {
-  try {
-    const task = await getTaskWithAssignments(req.params.id);
-    if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
-    if (task.status === 'done' || task.status === 'validated') {
-      return res.status(400).json({ error: 'Impossible de quitter une tâche déjà terminée' });
-    }
-
-    const action = await resolveStudentActionContext(req, req.body || {}, 'tasks.unassign_self');
-    if (action.error) {
-      return res.status(action.errorStatus || 400).json({ error: action.error, ...(action.deleted ? { deleted: true } : {}) });
-    }
-
-    if (action.studentId) {
-      await execute(
-        'DELETE FROM task_assignments WHERE task_id = ? AND (student_id = ? OR (student_first_name = ? AND student_last_name = ?))',
-        [task.id, action.studentId, action.firstName, action.lastName]
-      );
-    } else {
-      await execute(
-        'DELETE FROM task_assignments WHERE task_id = ? AND student_first_name = ? AND student_last_name = ?',
-        [task.id, action.firstName, action.lastName]
-      );
-    }
-    const recalculated = await recalculateTaskStatus(task);
-    const newStatus = recalculated?.status || normalizeTaskStatusForRead(task.status);
-
-    const updated = await getTaskWithAssignments(task.id);
-    logAudit('unassign_task', 'task', task.id, `${action.firstName} ${action.lastName}`, {
-      req,
-      actorUserType: action.actorUserType,
-      actorUserId: action.actorUserId,
-      payload: { student_id: action.studentId || null, status: newStatus },
-    });
-    emitTasksChanged({ reason: 'unassign', taskId: task.id, mapId: resolveTaskMapId(updated) });
-    await syncTaskProjectCompletionForProjects([updated.project_id]);
-    res.json(updated);
-  } catch (err) {
-    respondInternalError(res, req, err, 'Erreur lors du retrait');
+router.post('/:id/unassign', asyncHandler(async (req, res) => {
+  const task = await getTaskWithAssignments(req.params.id);
+  if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
+  if (task.status === 'done' || task.status === 'validated') {
+    return res.status(400).json({ error: 'Impossible de quitter une tâche déjà terminée' });
   }
-});
+
+  const action = await resolveStudentActionContext(req, req.body || {}, 'tasks.unassign_self');
+  if (action.error) {
+    return res.status(action.errorStatus || 400).json({ error: action.error, ...(action.deleted ? { deleted: true } : {}) });
+  }
+
+  if (action.studentId) {
+    await execute(
+      'DELETE FROM task_assignments WHERE task_id = ? AND (student_id = ? OR (student_first_name = ? AND student_last_name = ?))',
+      [task.id, action.studentId, action.firstName, action.lastName]
+    );
+  } else {
+    await execute(
+      'DELETE FROM task_assignments WHERE task_id = ? AND student_first_name = ? AND student_last_name = ?',
+      [task.id, action.firstName, action.lastName]
+    );
+  }
+  const recalculated = await recalculateTaskStatus(task);
+  const newStatus = recalculated?.status || normalizeTaskStatusForRead(task.status);
+
+  const updated = await getTaskWithAssignments(task.id);
+  logAudit('unassign_task', 'task', task.id, `${action.firstName} ${action.lastName}`, {
+    req,
+    actorUserType: action.actorUserType,
+    actorUserId: action.actorUserId,
+    payload: { student_id: action.studentId || null, status: newStatus },
+  });
+  emitTasksChanged({ reason: 'unassign', taskId: task.id, mapId: resolveTaskMapId(updated) });
+  await syncTaskProjectCompletionForProjects([updated.project_id]);
+  res.json(updated);
+}));
 
 module.exports = router;
