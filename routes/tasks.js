@@ -912,277 +912,264 @@ router.get('/import/template', requirePermission('tasks.manage', { needsElevatio
   res.send(csv);
 }));
 
-router.post('/import', requirePermission('tasks.manage', { needsElevation: true }), async (req, res) => {
-  try {
-    const dryRun = !!req.body?.dryRun;
-    const { report } = await executeTasksProjectsImport({
-      body: req.body || {},
-      dryRun,
-      queryAll,
-      execute,
-      uuidv4,
-      onAudit: (totals) => {
-        logAudit('tasks_projects_import', 'task', null, `Import ${totals.created_projects} projet(s) / ${totals.created_tasks} tâche(s)`, {
-          req,
-          payload: { report: totals },
-        });
-      },
-      emitTasksChanged,
-      syncTaskProjectCompletionForProjects,
-    });
-    res.json({ report });
-  } catch (e) {
-    if (e.status === 400) return res.status(400).json({ error: e.message });
-    respondInternalError(res, req, e);
-  }
-});
+router.post('/import', requirePermission('tasks.manage', { needsElevation: true }), asyncHandler(async (req, res) => {
+  const dryRun = !!req.body?.dryRun;
+  const { report } = await executeTasksProjectsImport({
+    body: req.body || {},
+    dryRun,
+    queryAll,
+    execute,
+    uuidv4,
+    onAudit: (totals) => {
+      logAudit('tasks_projects_import', 'task', null, `Import ${totals.created_projects} projet(s) / ${totals.created_tasks} tâche(s)`, {
+        req,
+        payload: { report: totals },
+      });
+    },
+    emitTasksChanged,
+    syncTaskProjectCompletionForProjects,
+  });
+  res.json({ report });
+}));
 
-router.post('/', requirePermission('tasks.manage', { needsElevation: true }), async (req, res) => {
-  try {
-    const {
+router.post('/', requirePermission('tasks.manage', { needsElevation: true }), asyncHandler(async (req, res) => {
+  const {
+    title,
+    description,
+    zone_id,
+    marker_id,
+    zone_ids,
+    marker_ids,
+    tutorial_ids,
+    referent_user_ids,
+    map_id,
+    project_id,
+    start_date,
+    due_date,
+    required_students,
+    recurrence,
+    completion_mode,
+    danger_level,
+    difficulty_level,
+    importance_level,
+    group_id,
+    living_beings,
+    imageData,
+  } = req.body;
+  if (!title) return res.status(400).json({ error: 'Titre requis' });
+
+  let decodedTaskImage = null;
+  if (Object.prototype.hasOwnProperty.call(req.body || {}, 'imageData') && imageData != null && String(imageData).trim()) {
+    decodedTaskImage = decodeTaskImageBuffer(imageData);
+    if (decodedTaskImage.error) return res.status(400).json({ error: decodedTaskImage.error });
+  }
+
+  let zIds = normalizeIdArray(zone_ids);
+  let mIds = normalizeIdArray(marker_ids);
+  if (!zIds.length && zone_id) zIds = [String(zone_id).trim()].filter(Boolean);
+  if (!mIds.length && marker_id) mIds = [String(marker_id).trim()].filter(Boolean);
+
+  const explicitMap = map_id !== undefined ? map_id : null;
+  const loc = await validateTaskLocations(zIds, mIds, explicitMap);
+  if (loc.error) return res.status(400).json({ error: loc.error });
+  const projectValidation = await validateTaskProject(normalizeOptionalId(project_id), loc.mapId);
+  if (projectValidation.error) return res.status(400).json({ error: projectValidation.error });
+  const tutorialIds = normalizeTutorialIdArray(tutorial_ids);
+  const tutorialValidation = await validateTutorialIds(tutorialIds);
+  if (tutorialValidation.error) return res.status(400).json({ error: tutorialValidation.error });
+  const referentIds = normalizeIdArray(referent_user_ids);
+  const referentValidation = await validateReferentUserIds(referentIds);
+  if (referentValidation.error) return res.status(400).json({ error: referentValidation.error });
+
+  const reqStudents = sanitizeRequiredStudents(required_students);
+  const completionMode = normalizeTaskCompletionMode(completion_mode);
+  if (!completionMode) return res.status(400).json({ error: 'Mode de validation invalide' });
+  const parsedDanger = parseTaskDangerLevelFromClient(danger_level);
+  if (parsedDanger.error) return res.status(400).json({ error: parsedDanger.error });
+  const parsedDifficulty = parseTaskDifficultyLevelFromClient(difficulty_level);
+  if (parsedDifficulty.error) return res.status(400).json({ error: parsedDifficulty.error });
+  const parsedImportance = parseTaskImportanceLevelFromClient(importance_level);
+  if (parsedImportance.error) return res.status(400).json({ error: parsedImportance.error });
+  const livingDb = Object.prototype.hasOwnProperty.call(req.body || {}, 'living_beings')
+    ? serializeTaskLivingBeingsForDb(living_beings)
+    : null;
+  const normalizedGroupId = normalizeOptionalId(group_id);
+  const id = uuidv4();
+  await execute(
+    'INSERT INTO tasks (id, title, description, map_id, project_id, group_id, zone_id, marker_id, start_date, due_date, required_students, completion_mode, danger_level, difficulty_level, importance_level, living_beings, recurrence, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    [
+      id,
       title,
-      description,
-      zone_id,
-      marker_id,
-      zone_ids,
-      marker_ids,
-      tutorial_ids,
-      referent_user_ids,
-      map_id,
-      project_id,
-      start_date,
-      due_date,
-      required_students,
-      recurrence,
-      completion_mode,
-      danger_level,
-      difficulty_level,
-      importance_level,
-      group_id,
-      living_beings,
-      imageData,
-    } = req.body;
-    if (!title) return res.status(400).json({ error: 'Titre requis' });
-
-    let decodedTaskImage = null;
-    if (Object.prototype.hasOwnProperty.call(req.body || {}, 'imageData') && imageData != null && String(imageData).trim()) {
-      decodedTaskImage = decodeTaskImageBuffer(imageData);
-      if (decodedTaskImage.error) return res.status(400).json({ error: decodedTaskImage.error });
-    }
-
-    let zIds = normalizeIdArray(zone_ids);
-    let mIds = normalizeIdArray(marker_ids);
-    if (!zIds.length && zone_id) zIds = [String(zone_id).trim()].filter(Boolean);
-    if (!mIds.length && marker_id) mIds = [String(marker_id).trim()].filter(Boolean);
-
-    const explicitMap = map_id !== undefined ? map_id : null;
-    const loc = await validateTaskLocations(zIds, mIds, explicitMap);
-    if (loc.error) return res.status(400).json({ error: loc.error });
-    const projectValidation = await validateTaskProject(normalizeOptionalId(project_id), loc.mapId);
-    if (projectValidation.error) return res.status(400).json({ error: projectValidation.error });
-    const tutorialIds = normalizeTutorialIdArray(tutorial_ids);
-    const tutorialValidation = await validateTutorialIds(tutorialIds);
-    if (tutorialValidation.error) return res.status(400).json({ error: tutorialValidation.error });
-    const referentIds = normalizeIdArray(referent_user_ids);
-    const referentValidation = await validateReferentUserIds(referentIds);
-    if (referentValidation.error) return res.status(400).json({ error: referentValidation.error });
-
-    const reqStudents = sanitizeRequiredStudents(required_students);
-    const completionMode = normalizeTaskCompletionMode(completion_mode);
-    if (!completionMode) return res.status(400).json({ error: 'Mode de validation invalide' });
-    const parsedDanger = parseTaskDangerLevelFromClient(danger_level);
-    if (parsedDanger.error) return res.status(400).json({ error: parsedDanger.error });
-    const parsedDifficulty = parseTaskDifficultyLevelFromClient(difficulty_level);
-    if (parsedDifficulty.error) return res.status(400).json({ error: parsedDifficulty.error });
-    const parsedImportance = parseTaskImportanceLevelFromClient(importance_level);
-    if (parsedImportance.error) return res.status(400).json({ error: parsedImportance.error });
-    const livingDb = Object.prototype.hasOwnProperty.call(req.body || {}, 'living_beings')
-      ? serializeTaskLivingBeingsForDb(living_beings)
-      : null;
-    const normalizedGroupId = normalizeOptionalId(group_id);
-    const id = uuidv4();
-    await execute(
-      'INSERT INTO tasks (id, title, description, map_id, project_id, group_id, zone_id, marker_id, start_date, due_date, required_students, completion_mode, danger_level, difficulty_level, importance_level, living_beings, recurrence, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [
-        id,
-        title,
-        description || '',
-        projectValidation.mapId,
-        projectValidation.projectId,
-        normalizedGroupId,
-        zIds[0] || null,
-        mIds[0] || null,
-        start_date || null,
-        due_date || null,
-        reqStudents,
-        completionMode,
-        parsedDanger.level,
-        parsedDifficulty.level,
-        parsedImportance.level,
-        livingDb,
-        recurrence || null,
-        new Date().toISOString(),
-      ]
-    );
-    await setTaskZones(id, zIds);
-    await setTaskMarkers(id, mIds);
-    await setTaskTutorials(id, tutorialIds);
-    await setTaskReferents(id, referentValidation.userIds);
-    await syncLegacyLocationColumns(id, zIds, mIds);
-    if (decodedTaskImage) {
-      const rel = `tasks/${id}.${decodedTaskImage.ext}`;
+      description || '',
+      projectValidation.mapId,
+      projectValidation.projectId,
+      normalizedGroupId,
+      zIds[0] || null,
+      mIds[0] || null,
+      start_date || null,
+      due_date || null,
+      reqStudents,
+      completionMode,
+      parsedDanger.level,
+      parsedDifficulty.level,
+      parsedImportance.level,
+      livingDb,
+      recurrence || null,
+      new Date().toISOString(),
+    ]
+  );
+  await setTaskZones(id, zIds);
+  await setTaskMarkers(id, mIds);
+  await setTaskTutorials(id, tutorialIds);
+  await setTaskReferents(id, referentValidation.userIds);
+  await syncLegacyLocationColumns(id, zIds, mIds);
+  if (decodedTaskImage) {
+    const rel = `tasks/${id}.${decodedTaskImage.ext}`;
+    try {
+      writeBufferToDisk(rel, decodedTaskImage.buffer);
+      await execute('UPDATE tasks SET image_path = ? WHERE id = ?', [rel, id]);
+    } catch (imgErr) {
       try {
-        writeBufferToDisk(rel, decodedTaskImage.buffer);
-        await execute('UPDATE tasks SET image_path = ? WHERE id = ?', [rel, id]);
-      } catch (imgErr) {
-        try {
-          deleteFile(rel);
-        } catch (_) {
-          /* ignore */
-        }
-        await execute('DELETE FROM tasks WHERE id = ?', [id]);
-        throw imgErr;
+        deleteFile(rel);
+      } catch (_) {
+        /* ignore */
       }
+      await execute('DELETE FROM tasks WHERE id = ?', [id]);
+      throw imgErr;
     }
-    const task = await getTaskWithAssignments(id);
-    logAudit('create_task', 'task', id, title, {
-      req,
-      payload: { map_id: projectValidation.mapId, project_id: projectValidation.projectId || null },
-    });
-    emitTasksChanged({ reason: 'create_task', taskId: id, projectId: projectValidation.projectId || null, mapId: projectValidation.mapId });
-    await syncTaskProjectCompletionForProjects([projectValidation.projectId]);
-    res.status(201).json(task);
-  } catch (e) {
-    respondInternalError(res, req, e);
   }
-});
+  const task = await getTaskWithAssignments(id);
+  logAudit('create_task', 'task', id, title, {
+    req,
+    payload: { map_id: projectValidation.mapId, project_id: projectValidation.projectId || null },
+  });
+  emitTasksChanged({ reason: 'create_task', taskId: id, projectId: projectValidation.projectId || null, mapId: projectValidation.mapId });
+  await syncTaskProjectCompletionForProjects([projectValidation.projectId]);
+  res.status(201).json(task);
+}));
 
-router.post('/proposals', async (req, res) => {
-  try {
-    const {
-      title,
-      description,
-      zone_id,
-      marker_id,
-      zone_ids,
-      marker_ids,
-      map_id,
-      start_date,
-      due_date,
-      required_students,
-      firstName,
-      lastName,
-      studentId,
-      profilePin,
-      danger_level,
-      difficulty_level,
-      importance_level,
-      living_beings,
-    } = req.body || {};
-    if (!title || !String(title).trim()) return res.status(400).json({ error: 'Titre requis' });
-    if (!firstName || !lastName) return res.status(400).json({ error: 'Nom requis' });
-    if (!studentId) return res.status(400).json({ error: 'Identifiant n3beur requis' });
+router.post('/proposals', asyncHandler(async (req, res) => {
+  const {
+    title,
+    description,
+    zone_id,
+    marker_id,
+    zone_ids,
+    marker_ids,
+    map_id,
+    start_date,
+    due_date,
+    required_students,
+    firstName,
+    lastName,
+    studentId,
+    profilePin,
+    danger_level,
+    difficulty_level,
+    importance_level,
+    living_beings,
+  } = req.body || {};
+  if (!title || !String(title).trim()) return res.status(400).json({ error: 'Titre requis' });
+  if (!firstName || !lastName) return res.status(400).json({ error: 'Nom requis' });
+  if (!studentId) return res.status(400).json({ error: 'Identifiant n3beur requis' });
 
-    const authProposal = await parseOptionalAuth(req);
-    if (authProposal?.userType === 'student' && isVisitorRole(authProposal)) {
-      return res.status(403).json({ error: 'Le profil visiteur ne permet pas cette action.' });
-    }
+  const authProposal = await parseOptionalAuth(req);
+  if (authProposal?.userType === 'student' && isVisitorRole(authProposal)) {
+    return res.status(403).json({ error: 'Le profil visiteur ne permet pas cette action.' });
+  }
 
-    const student = await queryOne("SELECT id FROM users WHERE user_type = 'student' AND id = ?", [studentId]);
-    if (!student) return res.status(401).json({ error: 'Compte supprimé', deleted: true });
-    const permission = await ensureStudentPermission({ studentId, permissionKey: 'tasks.propose', profilePin });
-    if (!permission.ok) return res.status(403).json({ error: permission.error });
+  const student = await queryOne("SELECT id FROM users WHERE user_type = 'student' AND id = ?", [studentId]);
+  if (!student) return res.status(401).json({ error: 'Compte supprimé', deleted: true });
+  const permission = await ensureStudentPermission({ studentId, permissionKey: 'tasks.propose', profilePin });
+  if (!permission.ok) return res.status(403).json({ error: permission.error });
 
-    let zIds = normalizeIdArray(zone_ids);
-    let mIds = normalizeIdArray(marker_ids);
-    if (!zIds.length && zone_id) zIds = [String(zone_id).trim()].filter(Boolean);
-    if (!mIds.length && marker_id) mIds = [String(marker_id).trim()].filter(Boolean);
+  let zIds = normalizeIdArray(zone_ids);
+  let mIds = normalizeIdArray(marker_ids);
+  if (!zIds.length && zone_id) zIds = [String(zone_id).trim()].filter(Boolean);
+  if (!mIds.length && marker_id) mIds = [String(marker_id).trim()].filter(Boolean);
 
-    const explicitMap = map_id !== undefined ? map_id : null;
-    const loc = await validateTaskLocations(zIds, mIds, explicitMap);
-    if (loc.error) return res.status(400).json({ error: loc.error });
-    const reqStudents = sanitizeRequiredStudents(required_students);
-    const proposalDangerParsed = parseTaskDangerLevelFromClient(danger_level);
-    if (proposalDangerParsed.error) return res.status(400).json({ error: proposalDangerParsed.error });
-    const proposalDifficultyParsed = parseTaskDifficultyLevelFromClient(difficulty_level);
-    if (proposalDifficultyParsed.error) return res.status(400).json({ error: proposalDifficultyParsed.error });
-    const proposalImportanceParsed = parseTaskImportanceLevelFromClient(importance_level);
-    if (proposalImportanceParsed.error) return res.status(400).json({ error: proposalImportanceParsed.error });
+  const explicitMap = map_id !== undefined ? map_id : null;
+  const loc = await validateTaskLocations(zIds, mIds, explicitMap);
+  if (loc.error) return res.status(400).json({ error: loc.error });
+  const reqStudents = sanitizeRequiredStudents(required_students);
+  const proposalDangerParsed = parseTaskDangerLevelFromClient(danger_level);
+  if (proposalDangerParsed.error) return res.status(400).json({ error: proposalDangerParsed.error });
+  const proposalDifficultyParsed = parseTaskDifficultyLevelFromClient(difficulty_level);
+  if (proposalDifficultyParsed.error) return res.status(400).json({ error: proposalDifficultyParsed.error });
+  const proposalImportanceParsed = parseTaskImportanceLevelFromClient(importance_level);
+  if (proposalImportanceParsed.error) return res.status(400).json({ error: proposalImportanceParsed.error });
 
-    let proposalDecodedImage = null;
-    const bodyProposal = req.body || {};
-    if (Object.prototype.hasOwnProperty.call(bodyProposal, 'imageData') && bodyProposal.imageData != null && String(bodyProposal.imageData).trim()) {
-      proposalDecodedImage = decodeTaskImageBuffer(bodyProposal.imageData);
-      if (proposalDecodedImage.error) return res.status(400).json({ error: proposalDecodedImage.error });
-    }
+  let proposalDecodedImage = null;
+  const bodyProposal = req.body || {};
+  if (Object.prototype.hasOwnProperty.call(bodyProposal, 'imageData') && bodyProposal.imageData != null && String(bodyProposal.imageData).trim()) {
+    proposalDecodedImage = decodeTaskImageBuffer(bodyProposal.imageData);
+    if (proposalDecodedImage.error) return res.status(400).json({ error: proposalDecodedImage.error });
+  }
 
-    const id = uuidv4();
-    const proposer = `${String(firstName).trim()} ${String(lastName).trim()}`.trim();
-    const baseDescription = description ? String(description).trim() : '';
-    const finalDescription = [baseDescription, proposer ? `Proposition n3beur: ${proposer}` : '']
-      .filter(Boolean)
-      .join('\n\n');
-    const proposalLivingDb = Object.prototype.hasOwnProperty.call(req.body || {}, 'living_beings')
-      ? serializeTaskLivingBeingsForDb(living_beings)
-      : null;
-    await execute(
-      `INSERT INTO tasks (
-        id, title, description, map_id, project_id, zone_id, marker_id,
-        start_date, due_date, required_students, completion_mode, danger_level, difficulty_level, importance_level, living_beings, status, recurrence, created_at
-      ) VALUES (?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        id,
-        String(title).trim(),
-        finalDescription,
-        loc.mapId,
-        zIds[0] || null,
-        mIds[0] || null,
-        start_date || null,
-        due_date || null,
-        reqStudents,
-        'single_done',
-        proposalDangerParsed.level,
-        proposalDifficultyParsed.level,
-        proposalImportanceParsed.level,
-        proposalLivingDb,
-        'proposed',
-        null,
-        new Date().toISOString(),
-      ]
-    );
-    await setTaskZones(id, zIds);
-    await setTaskMarkers(id, mIds);
-    await setTaskTutorials(id, []);
-    await setTaskReferents(id, []);
-    await syncLegacyLocationColumns(id, zIds, mIds);
-    if (proposalDecodedImage) {
-      const rel = `tasks/${id}.${proposalDecodedImage.ext}`;
+  const id = uuidv4();
+  const proposer = `${String(firstName).trim()} ${String(lastName).trim()}`.trim();
+  const baseDescription = description ? String(description).trim() : '';
+  const finalDescription = [baseDescription, proposer ? `Proposition n3beur: ${proposer}` : '']
+    .filter(Boolean)
+    .join('\n\n');
+  const proposalLivingDb = Object.prototype.hasOwnProperty.call(req.body || {}, 'living_beings')
+    ? serializeTaskLivingBeingsForDb(living_beings)
+    : null;
+  await execute(
+    `INSERT INTO tasks (
+      id, title, description, map_id, project_id, zone_id, marker_id,
+      start_date, due_date, required_students, completion_mode, danger_level, difficulty_level, importance_level, living_beings, status, recurrence, created_at
+    ) VALUES (?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      id,
+      String(title).trim(),
+      finalDescription,
+      loc.mapId,
+      zIds[0] || null,
+      mIds[0] || null,
+      start_date || null,
+      due_date || null,
+      reqStudents,
+      'single_done',
+      proposalDangerParsed.level,
+      proposalDifficultyParsed.level,
+      proposalImportanceParsed.level,
+      proposalLivingDb,
+      'proposed',
+      null,
+      new Date().toISOString(),
+    ]
+  );
+  await setTaskZones(id, zIds);
+  await setTaskMarkers(id, mIds);
+  await setTaskTutorials(id, []);
+  await setTaskReferents(id, []);
+  await syncLegacyLocationColumns(id, zIds, mIds);
+  if (proposalDecodedImage) {
+    const rel = `tasks/${id}.${proposalDecodedImage.ext}`;
+    try {
+      writeBufferToDisk(rel, proposalDecodedImage.buffer);
+      await execute('UPDATE tasks SET image_path = ? WHERE id = ?', [rel, id]);
+    } catch (imgErr) {
       try {
-        writeBufferToDisk(rel, proposalDecodedImage.buffer);
-        await execute('UPDATE tasks SET image_path = ? WHERE id = ?', [rel, id]);
-      } catch (imgErr) {
-        try {
-          deleteFile(rel);
-        } catch (_) {
-          /* ignore */
-        }
-        await execute('DELETE FROM tasks WHERE id = ?', [id]);
-        throw imgErr;
+        deleteFile(rel);
+      } catch (_) {
+        /* ignore */
       }
+      await execute('DELETE FROM tasks WHERE id = ?', [id]);
+      throw imgErr;
     }
-    const task = await getTaskWithAssignments(id);
-    logAudit('propose_task', 'task', id, `${String(title).trim()} (${proposer})`, {
-      req,
-      actorUserType: 'student',
-      actorUserId: studentId,
-      payload: { proposer, student_id: studentId, required_students: reqStudents },
-    });
-    emitTasksChanged({ reason: 'propose_task', taskId: id, mapId: resolveTaskMapId(task) });
-    res.status(201).json(task);
-  } catch (e) {
-    respondInternalError(res, req, e);
   }
-});
+  const task = await getTaskWithAssignments(id);
+  logAudit('propose_task', 'task', id, `${String(title).trim()} (${proposer})`, {
+    req,
+    actorUserType: 'student',
+    actorUserId: studentId,
+    payload: { proposer, student_id: studentId, required_students: reqStudents },
+  });
+  emitTasksChanged({ reason: 'propose_task', taskId: id, mapId: resolveTaskMapId(task) });
+  res.status(201).json(task);
+}));
 
 router.put('/:id', async (req, res) => {
   try {
@@ -1623,94 +1610,90 @@ router.post('/:id/assign-group', requirePermission('tasks.assign.group', { needs
   return res.json({ task: updated, assigned, skipped, considered: students.length });
 }));
 
-router.post('/:id/done', async (req, res) => {
-  try {
-    const task = await queryOne('SELECT * FROM tasks WHERE id = ?', [req.params.id]);
-    if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
-    const completionMode = normalizeTaskCompletionMode(task.completion_mode) || 'single_done';
+router.post('/:id/done', asyncHandler(async (req, res) => {
+  const task = await queryOne('SELECT * FROM tasks WHERE id = ?', [req.params.id]);
+  if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
+  const completionMode = normalizeTaskCompletionMode(task.completion_mode) || 'single_done';
 
-    const { comment, imageData } = req.body || {};
-    const action = await resolveStudentActionContext(req, req.body || {}, 'tasks.done_self');
-    if (action.error) {
-      return res.status(action.errorStatus || 400).json({ error: action.error, ...(action.deleted ? { deleted: true } : {}) });
-    }
-
-    const assignment = action.studentId
-      ? await queryOne(
-        `SELECT id, done_at
-           FROM task_assignments
-          WHERE task_id = ?
-            AND (student_id = ? OR (student_first_name = ? AND student_last_name = ?))
-          ORDER BY assigned_at DESC
-          LIMIT 1`,
-        [task.id, action.studentId, action.firstName, action.lastName]
-      )
-      : await queryOne(
-        `SELECT id, done_at
-           FROM task_assignments
-          WHERE task_id = ?
-            AND student_first_name = ?
-            AND student_last_name = ?
-          ORDER BY assigned_at DESC
-          LIMIT 1`,
-        [task.id, action.firstName, action.lastName]
-      );
-    if (!assignment) {
-      return res.status(400).json({ error: 'Tu dois être inscrit à cette tâche avant de la terminer' });
-    }
-
-    if (comment || imageData) {
-      const result = await execute(
-        'INSERT INTO task_logs (task_id, student_id, student_first_name, student_last_name, comment, image_path, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
-        [task.id, action.studentId || null, action.firstName, action.lastName, comment || '', null, new Date().toISOString()]
-      );
-      const logId = result.insertId;
-      if (imageData) {
-        const relativePath = `task-logs/${task.id}_${logId}.jpg`;
-        try {
-          saveBase64ToDisk(relativePath, imageData);
-        } catch (fileErr) {
-          await execute('DELETE FROM task_logs WHERE id = ?', [logId]);
-          throw fileErr;
-        }
-        await execute('UPDATE task_logs SET image_path = ? WHERE id = ?', [relativePath, logId]);
-      }
-    }
-
-    if (completionMode === 'all_assignees_done') {
-      if (!assignment.done_at) {
-        await execute(
-          'UPDATE task_assignments SET done_at = ? WHERE id = ?',
-          [new Date().toISOString(), assignment.id]
-        );
-      }
-      await recalculateTaskStatus({
-        id: task.id,
-        status: task.status,
-        completion_mode: completionMode,
-      });
-    } else {
-      await execute("UPDATE tasks SET status = 'done' WHERE id = ?", [task.id]);
-    }
-    const updated = await getTaskWithAssignments(task.id);
-    logAudit('done_task', 'task', task.id, `${action.firstName} ${action.lastName}`.trim(), {
-      req,
-      actorUserType: action.actorUserType,
-      actorUserId: action.actorUserId,
-      payload: {
-        student_id: action.studentId || null,
-        with_comment: !!comment,
-        with_image: !!imageData,
-        completion_mode: completionMode,
-      },
-    });
-    emitTasksChanged({ reason: 'done', taskId: task.id, mapId: resolveTaskMapId(updated) });
-    await syncTaskProjectCompletionForProjects([updated.project_id]);
-    res.json(updated);
-  } catch (e) {
-    respondInternalError(res, req, e);
+  const { comment, imageData } = req.body || {};
+  const action = await resolveStudentActionContext(req, req.body || {}, 'tasks.done_self');
+  if (action.error) {
+    return res.status(action.errorStatus || 400).json({ error: action.error, ...(action.deleted ? { deleted: true } : {}) });
   }
-});
+
+  const assignment = action.studentId
+    ? await queryOne(
+      `SELECT id, done_at
+         FROM task_assignments
+        WHERE task_id = ?
+          AND (student_id = ? OR (student_first_name = ? AND student_last_name = ?))
+        ORDER BY assigned_at DESC
+        LIMIT 1`,
+      [task.id, action.studentId, action.firstName, action.lastName]
+    )
+    : await queryOne(
+      `SELECT id, done_at
+         FROM task_assignments
+        WHERE task_id = ?
+          AND student_first_name = ?
+          AND student_last_name = ?
+        ORDER BY assigned_at DESC
+        LIMIT 1`,
+      [task.id, action.firstName, action.lastName]
+    );
+  if (!assignment) {
+    return res.status(400).json({ error: 'Tu dois être inscrit à cette tâche avant de la terminer' });
+  }
+
+  if (comment || imageData) {
+    const result = await execute(
+      'INSERT INTO task_logs (task_id, student_id, student_first_name, student_last_name, comment, image_path, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [task.id, action.studentId || null, action.firstName, action.lastName, comment || '', null, new Date().toISOString()]
+    );
+    const logId = result.insertId;
+    if (imageData) {
+      const relativePath = `task-logs/${task.id}_${logId}.jpg`;
+      try {
+        saveBase64ToDisk(relativePath, imageData);
+      } catch (fileErr) {
+        await execute('DELETE FROM task_logs WHERE id = ?', [logId]);
+        throw fileErr;
+      }
+      await execute('UPDATE task_logs SET image_path = ? WHERE id = ?', [relativePath, logId]);
+    }
+  }
+
+  if (completionMode === 'all_assignees_done') {
+    if (!assignment.done_at) {
+      await execute(
+        'UPDATE task_assignments SET done_at = ? WHERE id = ?',
+        [new Date().toISOString(), assignment.id]
+      );
+    }
+    await recalculateTaskStatus({
+      id: task.id,
+      status: task.status,
+      completion_mode: completionMode,
+    });
+  } else {
+    await execute("UPDATE tasks SET status = 'done' WHERE id = ?", [task.id]);
+  }
+  const updated = await getTaskWithAssignments(task.id);
+  logAudit('done_task', 'task', task.id, `${action.firstName} ${action.lastName}`.trim(), {
+    req,
+    actorUserType: action.actorUserType,
+    actorUserId: action.actorUserId,
+    payload: {
+      student_id: action.studentId || null,
+      with_comment: !!comment,
+      with_image: !!imageData,
+      completion_mode: completionMode,
+    },
+  });
+  emitTasksChanged({ reason: 'done', taskId: task.id, mapId: resolveTaskMapId(updated) });
+  await syncTaskProjectCompletionForProjects([updated.project_id]);
+  res.json(updated);
+}));
 
 router.get('/:id/logs', asyncHandler(async (req, res) => {
   const auth = await parseOptionalAuth(req);
@@ -1743,28 +1726,24 @@ router.get('/:id/logs/:logId/image', asyncHandler(async (req, res) => {
   res.status(404).json({ error: 'Aucune image' });
 }));
 
-router.delete('/:id/logs/:logId', requirePermission('tasks.manage', { needsElevation: true }), async (req, res) => {
-  try {
-    const log = await queryOne('SELECT * FROM task_logs WHERE id = ? AND task_id = ?', [req.params.logId, req.params.id]);
-    const taskForLog = await queryOne('SELECT map_id FROM tasks WHERE id = ?', [req.params.id]);
-    if (!log) return res.status(404).json({ error: 'Rapport introuvable' });
-    if (log.image_path) {
-      const fs = require('fs');
-      const absPath = getAbsolutePath(log.image_path);
-      try {
-        fs.unlinkSync(absPath);
-      } catch (_) {
-        /* fichier absent */
-      }
+router.delete('/:id/logs/:logId', requirePermission('tasks.manage', { needsElevation: true }), asyncHandler(async (req, res) => {
+  const log = await queryOne('SELECT * FROM task_logs WHERE id = ? AND task_id = ?', [req.params.logId, req.params.id]);
+  const taskForLog = await queryOne('SELECT map_id FROM tasks WHERE id = ?', [req.params.id]);
+  if (!log) return res.status(404).json({ error: 'Rapport introuvable' });
+  if (log.image_path) {
+    const fs = require('fs');
+    const absPath = getAbsolutePath(log.image_path);
+    try {
+      fs.unlinkSync(absPath);
+    } catch (_) {
+      /* fichier absent */
     }
-    await execute('DELETE FROM task_logs WHERE id = ?', [req.params.logId]);
-    logAudit('delete_log', 'task_log', req.params.logId, `Tâche ${req.params.id}`, { req });
-    emitTasksChanged({ reason: 'delete_log', taskId: req.params.id, mapId: resolveTaskMapId(taskForLog) });
-    res.json({ success: true });
-  } catch (e) {
-    respondInternalError(res, req, e);
   }
-});
+  await execute('DELETE FROM task_logs WHERE id = ?', [req.params.logId]);
+  logAudit('delete_log', 'task_log', req.params.logId, `Tâche ${req.params.id}`, { req });
+  emitTasksChanged({ reason: 'delete_log', taskId: req.params.id, mapId: resolveTaskMapId(taskForLog) });
+  res.json({ success: true });
+}));
 
 router.post('/:id/validate', requirePermission('tasks.validate', { needsElevation: true }), asyncHandler(async (req, res) => {
   const task = await queryOne('SELECT * FROM tasks WHERE id = ?', [req.params.id]);
@@ -1790,46 +1769,42 @@ router.post('/:id/validate', requirePermission('tasks.validate', { needsElevatio
 }));
 
 /** Même modèle que POST assign, avec identité n3beur vérifiée (session ou permission n3boss). */
-router.post('/:id/unassign', async (req, res) => {
-  try {
-    const task = await getTaskWithAssignments(req.params.id);
-    if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
-    if (task.status === 'done' || task.status === 'validated') {
-      return res.status(400).json({ error: 'Impossible de quitter une tâche déjà terminée' });
-    }
-
-    const action = await resolveStudentActionContext(req, req.body || {}, 'tasks.unassign_self');
-    if (action.error) {
-      return res.status(action.errorStatus || 400).json({ error: action.error, ...(action.deleted ? { deleted: true } : {}) });
-    }
-
-    if (action.studentId) {
-      await execute(
-        'DELETE FROM task_assignments WHERE task_id = ? AND (student_id = ? OR (student_first_name = ? AND student_last_name = ?))',
-        [task.id, action.studentId, action.firstName, action.lastName]
-      );
-    } else {
-      await execute(
-        'DELETE FROM task_assignments WHERE task_id = ? AND student_first_name = ? AND student_last_name = ?',
-        [task.id, action.firstName, action.lastName]
-      );
-    }
-    const recalculated = await recalculateTaskStatus(task);
-    const newStatus = recalculated?.status || normalizeTaskStatusForRead(task.status);
-
-    const updated = await getTaskWithAssignments(task.id);
-    logAudit('unassign_task', 'task', task.id, `${action.firstName} ${action.lastName}`, {
-      req,
-      actorUserType: action.actorUserType,
-      actorUserId: action.actorUserId,
-      payload: { student_id: action.studentId || null, status: newStatus },
-    });
-    emitTasksChanged({ reason: 'unassign', taskId: task.id, mapId: resolveTaskMapId(updated) });
-    await syncTaskProjectCompletionForProjects([updated.project_id]);
-    res.json(updated);
-  } catch (err) {
-    respondInternalError(res, req, err, 'Erreur lors du retrait');
+router.post('/:id/unassign', asyncHandler(async (req, res) => {
+  const task = await getTaskWithAssignments(req.params.id);
+  if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
+  if (task.status === 'done' || task.status === 'validated') {
+    return res.status(400).json({ error: 'Impossible de quitter une tâche déjà terminée' });
   }
-});
+
+  const action = await resolveStudentActionContext(req, req.body || {}, 'tasks.unassign_self');
+  if (action.error) {
+    return res.status(action.errorStatus || 400).json({ error: action.error, ...(action.deleted ? { deleted: true } : {}) });
+  }
+
+  if (action.studentId) {
+    await execute(
+      'DELETE FROM task_assignments WHERE task_id = ? AND (student_id = ? OR (student_first_name = ? AND student_last_name = ?))',
+      [task.id, action.studentId, action.firstName, action.lastName]
+    );
+  } else {
+    await execute(
+      'DELETE FROM task_assignments WHERE task_id = ? AND student_first_name = ? AND student_last_name = ?',
+      [task.id, action.firstName, action.lastName]
+    );
+  }
+  const recalculated = await recalculateTaskStatus(task);
+  const newStatus = recalculated?.status || normalizeTaskStatusForRead(task.status);
+
+  const updated = await getTaskWithAssignments(task.id);
+  logAudit('unassign_task', 'task', task.id, `${action.firstName} ${action.lastName}`, {
+    req,
+    actorUserType: action.actorUserType,
+    actorUserId: action.actorUserId,
+    payload: { student_id: action.studentId || null, status: newStatus },
+  });
+  emitTasksChanged({ reason: 'unassign', taskId: task.id, mapId: resolveTaskMapId(updated) });
+  await syncTaskProjectCompletionForProjects([updated.project_id]);
+  res.json(updated);
+}));
 
 module.exports = router;
