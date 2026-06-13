@@ -69,6 +69,7 @@ import { abandonAllOverlays, pushOverlayClose } from './utils/overlayHistory';
 import { AutoProfilePromotionModal } from './components/AutoProfilePromotionModal.jsx';
 import { TeacherTopTabs } from './components/app/TeacherTopTabs.jsx';
 import { StudentBottomNav } from './components/app/StudentBottomNav.jsx';
+import { RolePreviewBanners } from './components/app/RolePreviewBanners.jsx';
 import { DialogShell } from './components/DialogShell';
 import { PublicSettingsProvider } from './contexts/PublicSettingsContext.jsx';
 import { SessionProvider } from './contexts/SessionContext.jsx';
@@ -1619,46 +1620,13 @@ function App() {
         </div>
       </header>
 
-      {authClaims?.impersonating && (
-        <div className="role-preview-banner role-preview-banner--impersonation fade-in" role="status">
-          <span className="role-preview-banner__icon" aria-hidden>👤</span>
-          <div className="role-preview-banner__text" style={{ flex: '1 1 200px' }}>
-            <strong>Prise de contrôle (admin)</strong>
-            <span>
-              Tu navigues avec l’identité de{' '}
-              <strong>{String(authClaims?.roleDisplayName || 'utilisateur').trim()}</strong>
-              {authClaims?.userType === 'student' ? ' (n3beur)' : authClaims?.userType === 'teacher' ? ' (n3boss)' : ''}.
-              Les actions sont enregistrées pour ce compte.
-            </span>
-          </div>
-          <div className="impersonation-banner-actions">
-            <Tooltip text={helpText(HELP_TOOLTIPS.header.impersonationStop)}>
-              <button type="button" className="btn btn-primary btn-sm" onClick={() => { stopAdminImpersonation(); }}>
-                Revenir à mon compte admin
-              </button>
-            </Tooltip>
-          </div>
-        </div>
-      )}
-
-      {isTeacher && roleViewMode === 'student' && (
-        <div className="role-preview-banner fade-in" role="status">
-          <span className="role-preview-banner__icon" aria-hidden>🎓</span>
-          <div className="role-preview-banner__text">
-            <strong>Vue n3beur (aperçu)</strong>
-            <span>Navigation en bas, écrans comme un n3beur (sans les onglets n3boss du haut). Tes vrais droits n3boss restent actifs côté serveur.</span>
-          </div>
-        </div>
-      )}
-      {isTeacher && roleViewMode === 'teacher' && (
-        <div className="role-preview-banner role-preview-banner--teacher fade-in" role="status">
-          <span className="role-preview-banner__icon" aria-hidden>🧑‍🏫</span>
-          <div className="role-preview-banner__text">
-            <strong>Vue n3boss (aperçu)</strong>
-            <span>Interface un peu épurée (moins de boutons admin visibles). Tes permissions réelles s’appliquent toujours quand tu agis.</span>
-          </div>
-        </div>
-      )}
+      <RolePreviewBanners
+        authClaims={authClaims}
+        isTeacher={isTeacher}
+        roleViewMode={roleViewMode}
+        helpText={helpText}
+        onStopImpersonation={stopAdminImpersonation}
+      />
 
       {effectiveIsTeacher ? (
         <div className={`main teacher-main app-main-shell app-main-shell--teacher ${useWideMain ? 'main--wide' : ''} ${mapChromeCompactVisible ? 'teacher-main--map-visible' : ''} ${useSplitMapTasks ? 'main--maptasks-split' : ''}`}>
