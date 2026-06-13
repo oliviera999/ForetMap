@@ -18,6 +18,7 @@ import {
   GLSpellCastSpellPicker,
   GLSpellCastTeamPicker,
 } from './spell-cast/GLSpellCastPickers.jsx';
+import { GLSpellCastFooter } from './spell-cast/GLSpellCastFooter.jsx';
 
 const CLOSE_MS = 200;
 
@@ -342,32 +343,15 @@ export function GLSpellCastWizard({
           </div>
         ) : null}
 
-        <footer className="gl-spell-cast-panel__footer">
-          {step === 'fund' ? (
-            <>
-              <GLButton
-                type="button"
-                variant="ghost"
-                disabled={spellCast?.busy || fundLoading}
-                onClick={handleCancelDraft}
-              >
-                Annuler le brouillon
-              </GLButton>
-              <GLButton
-                type="button"
-                variant="primary"
-                disabled={!readyLocal || spellCast?.busy || fundLoading || !spellCast?.draft}
-                onClick={handleLaunch}
-              >
-                Lancer le sortilège
-              </GLButton>
-            </>
-          ) : (
-            <GLButton type="button" variant="ghost" onClick={requestClose}>
-              Fermer
-            </GLButton>
-          )}
-        </footer>
+        <GLSpellCastFooter
+          step={step}
+          busy={spellCast?.busy}
+          fundLoading={fundLoading}
+          canLaunch={readyLocal && !!spellCast?.draft}
+          onCancelDraft={handleCancelDraft}
+          onLaunch={handleLaunch}
+          onClose={requestClose}
+        />
       </div>
     </div>,
     document.body,
