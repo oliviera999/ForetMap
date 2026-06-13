@@ -1,81 +1,28 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { apiGL } from '../services/apiGL.js';
 import {
-  defaultEventConfigForQuestion,
-  normalizeEventConfig,
   normalizeQuestionPool,
   normalizeLoreQuestionPool,
 } from '../../utils/glMarkerEventConfig.js';
+import {
+  EVENT_TYPE_OPTIONS,
+  TIER_LORE_OPTIONS,
+  formFromMarker,
+  buildEventConfigFromForm,
+  emptyPoolForSet,
+  patchPoolForSet,
+  effectiveBiomeSlugs as computeEffectiveBiomeSlugs,
+  chapterBiomeSlugsFrom,
+  buildAdditionalBiomeOptions,
+  buildCategoryOptions,
+  buildLoreScopeOptions,
+  buildNiveauOptions,
+  toggleSelectedCode as toggleCodeInList,
+  normalizeFixedCode,
+} from '../utils/glMarkerEventEditorForm.js';
 import { GLMultiCheckDropdown } from './GLMultiCheckDropdown.jsx';
 import { GLMarkerQuestionList } from './GLMarkerQuestionList.jsx';
 import { GLMarkerEffectsEditor } from './GLMarkerEffectsEditor.jsx';
-
-const EVENT_TYPE_OPTIONS = [
-  { value: 'start', label: 'Départ', enabled: true },
-  { value: 'question', label: 'Question (QCM)', enabled: true },
-  { value: 'event', label: 'Événement', enabled: true },
-  { value: 'souffle', label: 'Souffle', enabled: true },
-  { value: 'trame', label: 'Trame', enabled: true },
-  { value: 'challenge', label: 'Défi', enabled: true },
-  { value: 'shortcut', label: 'Raccourci', enabled: true },
-  { value: 'frontier', label: 'Frontière', enabled: true },
-  { value: 'finish', label: 'Arrivée', enabled: true },
-  { value: 'story', label: 'Histoire', enabled: true },
-  { value: 'point', label: 'Point d\'intérêt', enabled: true },
-  { value: 'narration', label: 'Narration', enabled: true },
-  { value: 'behavior', label: 'Comportement', enabled: true },
-];
-
-const DEFAULT_NIVEAUX = ['base', 'approfondissement', 'avance'];
-
-function emptyQuestionForm() {
-  const base = defaultEventConfigForQuestion();
-  return {
-    eventType: 'question',
-    questionSet: base.question.set || 'biome',
-    questionMode: base.question.mode,
-    fixedQuestionCode: base.question.fixedQuestionCode || '',
-    pool: { ...base.question.pool },
-  };
-}
-
-function formFromMarker(marker) {
-  if (!marker) return emptyQuestionForm();
-  const eventType = String(marker.event_type || '').trim().toLowerCase();
-  const cfg = normalizeEventConfig(marker.event_config) || defaultEventConfigForQuestion();
-  const question = cfg.question || defaultEventConfigForQuestion().question;
-  return {
-    eventType: eventType === 'quiz' ? 'question' : (eventType || 'question'),
-    questionSet: question.set || 'biome',
-    questionMode: question.mode,
-    fixedQuestionCode: question.fixedQuestionCode || '',
-    pool: { ...question.pool },
-  };
-}
-
-function buildEventConfigFromForm(form, effectsDraft = null) {
-  const pool = form.questionSet === 'lore'
-    ? normalizeLoreQuestionPool(form.pool)
-    : normalizeQuestionPool(form.pool);
-  const base = form.eventType === 'question'
-    ? normalizeEventConfig({
-      version: 2,
-      question: {
-        set: form.questionSet || 'biome',
-        mode: form.questionMode,
-        fixedQuestionCode: form.fixedQuestionCode || null,
-        pool,
-      },
-    })
-    : null;
-  if (!effectsDraft?.effects && !effectsDraft?.eventMeta) return base;
-  return normalizeEventConfig({
-    version: 2,
-    ...(base?.question ? { question: base.question } : {}),
-    ...(effectsDraft.effects ? { effects: effectsDraft.effects } : {}),
-    ...(effectsDraft.eventMeta ? { eventMeta: effectsDraft.eventMeta } : {}),
-  });
-}
 
 export function GLMarkerEventEditor({
   marker,
@@ -95,7 +42,7 @@ export function GLMarkerEventEditor({
   const isLoreSet = form.questionSet === 'lore';
 
   const chapterBiomeSlugs = useMemo(
-    () => (Array.isArray(chapterBiomes) ? chapterBiomes.map((b) => b.slug).filter(Boolean) : []),
+    () => chapterBiomeSlugsFrom(chapterBiomes),
     [chapterBiomes]
   );
 
@@ -137,16 +84,10 @@ export function GLMarkerEventEditor({
     return () => { cancelled = true; };
   }, [isLoreSet]);
 
-  const effectiveBiomeSlugs = useMemo(() => {
-    const pool = normalizeQuestionPool(form.pool);
-    if (pool.biomeMode === 'chapter') return chapterBiomeSlugs;
-    const extra = pool.biomeSlugs || [];
-    const merged = [...chapterBiomeSlugs];
-    for (const slug of extra) {
-      if (!merged.includes(slug)) merged.push(slug);
-    }
-    return merged;
-  }, [form.pool, chapterBiomeSlugs]);
+  const effectiveBiomeSlugs = useMemo(
+    () => computeEffectiveBiomeSlugs(form.pool, chapterBiomeSlugs),
+    [form.pool, chapterBiomeSlugs]
+  );
 
   const loadPoolPreview = useCallback(async () => {
     if (form.eventType !== 'question') return;
@@ -208,30 +149,16 @@ export function GLMarkerEventEditor({
   }, [form.eventType, loadPoolPreview]);
 
   const additionalBiomeOptions = useMemo(
-    () => allBiomes
-      .filter((biome) => !chapterBiomeSlugs.includes(biome.slug))
-      .map((biome) => ({
-        value: biome.slug,
-        label: biome.nom || biome.slug,
-      })),
+    () => buildAdditionalBiomeOptions(allBiomes, chapterBiomeSlugs),
     [allBiomes, chapterBiomeSlugs]
   );
 
   const categoryOptions = useMemo(
-    () => categories.map((cat) => ({
-      value: cat.slug,
-      label: `${cat.emoji ? `${cat.emoji} ` : ''}${cat.nom || cat.slug}`,
-    })),
+    () => buildCategoryOptions(categories),
     [categories]
   );
 
-  const niveauOptions = useMemo(() => {
-    const set = new Set(DEFAULT_NIVEAUX);
-    for (const item of poolItems) {
-      if (item.niveau) set.add(item.niveau);
-    }
-    return Array.from(set).sort().map((n) => ({ value: n, label: n }));
-  }, [poolItems]);
+  const niveauOptions = useMemo(() => buildNiveauOptions(poolItems), [poolItems]);
 
   function patchForm(patch) {
     setForm((prev) => ({ ...prev, ...patch }));
@@ -240,9 +167,7 @@ export function GLMarkerEventEditor({
   function patchPool(patch) {
     setForm((prev) => ({
       ...prev,
-      pool: prev.questionSet === 'lore'
-        ? normalizeLoreQuestionPool({ ...prev.pool, ...patch })
-        : normalizeQuestionPool({ ...prev.pool, ...patch }),
+      pool: patchPoolForSet(prev.pool, prev.questionSet, patch),
     }));
   }
 
@@ -251,35 +176,22 @@ export function GLMarkerEventEditor({
       ...prev,
       questionSet: nextSet,
       fixedQuestionCode: '',
-      pool: nextSet === 'lore' ? { chapitreMode: 'chapter', chapitreSlugs: [], categorieSlugs: [], tierLore: [], niveaux: [], difficulteMin: null, difficulteMax: null, searchQuery: '', selectedQuestionCodes: [] } : { biomeMode: 'chapter', biomeSlugs: [], categorieSlugs: [], niveaux: [], difficulteMin: null, difficulteMax: null, searchQuery: '', selectedQuestionCodes: [] },
+      pool: emptyPoolForSet(nextSet),
     }));
   }
 
   const loreScopeOptions = useMemo(
-    () => loreScopes.map((scope) => ({
-      value: scope.slug,
-      label: scope.nom || scope.slug,
-    })),
+    () => buildLoreScopeOptions(loreScopes),
     [loreScopes]
   );
 
-  const tierLoreOptions = useMemo(() => ([
-    { value: 'cle', label: 'Clé' },
-    { value: 'recit', label: 'Récit' },
-  ]), []);
+  const tierLoreOptions = TIER_LORE_OPTIONS;
 
   function toggleSelectedCode(code) {
-    const upper = String(code || '').trim().toUpperCase();
-    if (!upper) return;
-    setForm((prev) => {
-      const current = prev.pool.selectedQuestionCodes || [];
-      const has = current.includes(upper);
-      const next = has ? current.filter((c) => c !== upper) : [...current, upper];
-      return {
-        ...prev,
-        pool: { ...prev.pool, selectedQuestionCodes: next },
-      };
-    });
+    setForm((prev) => ({
+      ...prev,
+      pool: { ...prev.pool, selectedQuestionCodes: toggleCodeInList(prev.pool.selectedQuestionCodes, code) },
+    }));
   }
 
   function selectAllPool() {
@@ -287,7 +199,7 @@ export function GLMarkerEventEditor({
   }
 
   function selectFixedQuestion(code) {
-    patchForm({ fixedQuestionCode: String(code || '').trim().toUpperCase() });
+    patchForm({ fixedQuestionCode: normalizeFixedCode(code) });
   }
 
   return (
