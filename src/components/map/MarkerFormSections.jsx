@@ -107,17 +107,22 @@ export function MarkerVisitImageBuilder({
   onUpdateImageBlock,
   onRemoveImageBlock,
   onAssociatePhoto,
+  // Textes ajustables pour mutualiser le constructeur entre repère et zone (O6) ;
+  // valeurs par défaut alignées sur le modal de repère pour ne rien changer côté MarkerModal.
+  introText = 'Choisis des photos déjà associées au repère, ou associe d’abord une photo de l’onglet Photos.',
+  photoImportHeading = 'Photos liées à ce repère',
+  pickerEmptyHint = 'Aucune photo visite — onglet Photos ou associe une photo repère ci-dessus.',
 }) {
   return (
     <div className="visit-editorial-builder">
       <h5>Bloc images (visite)</h5>
-      <p className="section-sub">Choisis des photos déjà associées au repère, ou associe d’abord une photo de l’onglet Photos.</p>
+      <p className="section-sub">{introText}</p>
       <div className="visit-editorial-builder__actions">
         <button type="button" className="btn btn-ghost btn-sm" onClick={onAddImageBlock}>+ Bloc image</button>
       </div>
       <VisitEditorialMapPhotoImportList
         photos={markerPhotoOptions}
-        heading="Photos liées à ce repère"
+        heading={photoImportHeading}
         onAssociate={onAssociatePhoto}
       />
       <div className="visit-editorial-builder__list">
@@ -135,7 +140,7 @@ export function MarkerVisitImageBuilder({
                 mediaList={visitMediaOptions}
                 selectedIds={block.media_ids || []}
                 onChange={(ids) => onUpdateImageBlock(block.id, { media_ids: ids })}
-                emptyHint="Aucune photo visite — onglet Photos ou associe une photo repère ci-dessus."
+                emptyHint={pickerEmptyHint}
               />
               <div className="visit-editorial-builder__image-meta">
                 <select value={block.size || 'md'} onChange={(e) => onUpdateImageBlock(block.id, { size: e.target.value })}>

@@ -1,26 +1,27 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { MARKER_EMOJIS, ZONE_NAME_PREFIX_EMOJI_MAX_CHARS, clampEmojiInput, detectLeadingMarkerEmoji, stripLeadingMarkerEmoji } from '../../constants/emojis';
+import { MARKER_EMOJIS, ZONE_NAME_PREFIX_EMOJI_MAX_CHARS, detectLeadingMarkerEmoji, stripLeadingMarkerEmoji } from '../../constants/emojis';
 import { ZONE_COLORS } from '../../constants/garden';
 import { useDialogA11y } from '../../hooks/useDialogA11y';
 import { useOverlayHistoryBack } from '../../hooks/useOverlayHistoryBack';
 import { api } from '../../services/api';
 import { TimedToast } from '../../shared/components/TimedToast.jsx';
-import { TaskDifficultyAndRiskChips, stageBadge } from '../../utils/badges';
+import { stageBadge } from '../../utils/badges';
 import { nextLivingBeingsFromMultiSelect, orderedLivingBeingsForForm } from '../../utils/livingBeings';
 import { dedupeTutorialsById, isTaskDetachedFromLocation, livingBeingNamesFromTasksAtLocation, taskLocationIds, tutorialLocationIds, tutorialsFromTasksAtLocation } from '../../utils/mapLocationContext';
-import { isStudentAssignedToTask } from '../../utils/task-assignments';
-import { canStudentAssignTask, taskEnrollmentMeta } from '../../utils/taskEnrollment.js';
-import { mergeDefaultVisitMediaImageBlocks, normalizeVisitEditorialBlocksForSave, parseVisitEditorialBlocksFromJson } from '../../utils/visitEditorialBlocks.js';
+import { canStudentAssignTask } from '../../utils/taskEnrollment.js';
+import { parseVisitEditorialBlocksFromJson } from '../../utils/visitEditorialBlocks.js';
+import { buildZoneName, buildZonePayload, computeZoneVisitImageBlocks, zoneTaskMapId } from '../../utils/zoneModalForm.js';
 import { DialogShell } from '../DialogShell';
 import { MarkdownContent } from '../MarkdownContent.jsx';
 import { MarkdownTextarea } from '../MarkdownTextarea.jsx';
-import { tutorialPreviewCanEmbed, tutorialPreviewPayload } from '../TutorialPreviewModal';
-import { VisitEditorialMapPhotoImportList, VisitEditorialMediaIdPicker } from '../VisitEditorialPhotoUi.jsx';
 import { ContextComments } from '../context-comments';
 import { BiodiversitySpeciesOpenLinks, LivingBeingsCatalogPanel } from './LivingBeingsCatalogPanel.jsx';
+import { MarkerVisitImageBuilder } from './MarkerFormSections.jsx';
 import { PhotoGallery } from './PhotoGallery.jsx';
 import { ZoneOrMarkerEmojiField } from './ZoneOrMarkerEmojiField.jsx';
-import { LocationTutorialPreviewList, TaskEnrollmentLegend, tutorialLinkedToSameMap } from './mapModalShared.jsx';
+import { ZoneTasksStudentPanel, ZoneTasksTeacherPanel } from './ZoneTasksPanel.jsx';
+import { ZoneTutorialsStudentPanel, ZoneTutorialsTeacherPanel } from './ZoneTutorialsPanel.jsx';
+import { LocationTutorialPreviewList, tutorialLinkedToSameMap } from './mapModalShared.jsx';
 
 function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student, canSelfAssignTasks = true, canEnrollOnTasks, markerEmojis = MARKER_EMOJIS, emojiParsingList = MARKER_EMOJIS, contextCommentsEnabled = true, canParticipateContextComments = true, onClose, onUpdate, onDelete, onDuplicate, onEditPoints, onLinkTask, onUnlinkTask, onAssignTasks, onLinkTutorial, onUnlinkTutorial, onNavigateToTasksForLocation = null, onOpenTutorialPreview = null, onOpenPlantCatalogPreview = null }) {
   const canEnroll = canEnrollOnTasks !== undefined ? canEnrollOnTasks : canSelfAssignTasks;
@@ -58,7 +59,6 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
   const zoneTitleDisplay = zone.special
     ? (zone.name || '')
     : (stripLeadingMarkerEmoji(zone.name || '', emojiParsingList) || zone.name || '');
-  const taskMapId = (t) => t.map_id_resolved || t.map_id || t.zone_map_id || t.marker_map_id || null;
   const linkedTasks = (tasks || []).filter((t) => (
     taskLocationIds(t).zoneIds.some((id) => String(id) === String(zone.id)) && !isTaskDetachedFromLocation(t)
   ));
@@ -66,7 +66,7 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
   const assignableTasks = (tasks || []).filter((t) => {
     if (linkedTasks.some((lt) => lt.id === t.id)) return false;
     if (isTaskDetachedFromLocation(t)) return false;
-    const mapId = taskMapId(t);
+    const mapId = zoneTaskMapId(t);
     return mapId === zone.map_id || mapId == null;
   });
   const showTasksTab = isTeacher || (!!student && linkedTasks.length > 0);
@@ -145,37 +145,7 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
   }, [zone.id, zone.map_id]);
 
   useEffect(() => {
-    const fromJson = parseVisitEditorialBlocksFromJson(zone.visit_body_json);
-    const trimmedBody = zone.visit_body_json == null ? '' : String(zone.visit_body_json).trim();
-    const imageBlocksFromJson = fromJson.filter((b) => b.type === 'image');
-    if (!trimmedBody) {
-      setVisitEditorialBlocks(
-        visitMediaOptions
-          .map((media, i) => {
-            const mediaId = Number(media?.id);
-            if (!Number.isFinite(mediaId) || mediaId <= 0) return null;
-            return {
-              id: `default-img-${mediaId}`,
-              type: 'image',
-              media_ids: [mediaId],
-              layout: 'single',
-              size: i === 0 ? 'lg' : 'md',
-              align: 'center',
-              caption: String(media?.caption || '').trim(),
-            };
-          })
-          .filter(Boolean),
-      );
-      return;
-    }
-    const hasImageBlock = imageBlocksFromJson.length > 0;
-    if (!hasImageBlock && visitMediaOptions.length > 0) {
-      setVisitEditorialBlocks(
-        mergeDefaultVisitMediaImageBlocks(imageBlocksFromJson, visitMediaOptions).filter((b) => b.type === 'image'),
-      );
-      return;
-    }
-    setVisitEditorialBlocks(imageBlocksFromJson);
+    setVisitEditorialBlocks(computeZoneVisitImageBlocks(zone.visit_body_json, visitMediaOptions));
   }, [zone.visit_body_json, zone.id, visitMediaOptions]);
 
   useEffect(() => {
@@ -183,30 +153,17 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
   }, [studentAssignableTasks]);
 
   const save = async () => {
-    const cleanName = stripLeadingMarkerEmoji(zoneName, emojiParsingList);
-    if (!cleanName) {
+    const name = buildZoneName(zoneName, zoneEmoji, { markerEmojis, emojiParsingList });
+    if (!name) {
       setToast('Nom requis');
       return;
     }
-    const prefixEmoji = clampEmojiInput(
-      (zoneEmoji || '').trim() || markerEmojis[0] || '📍',
-      ZONE_NAME_PREFIX_EMOJI_MAX_CHARS,
-    );
     setSaving(true);
     try {
-      await onUpdate(zone.id, {
-        name: `${prefixEmoji} ${cleanName}`.trim(),
-        current_plant: '',
-        living_beings: livingBeings,
-        stage,
-        color: zoneColor,
-        description: desc,
-        visit_subtitle: visitSubtitle,
-        visit_short_description: visitShortDesc,
-        visit_details_title: visitDetailsTitle,
-        visit_details_text: visitDetailsText,
-        visit_editorial_blocks: normalizeVisitEditorialBlocksForSave(visitEditorialBlocks),
-      });
+      await onUpdate(zone.id, buildZonePayload(name, {
+        livingBeings, stage, zoneColor, desc,
+        visitSubtitle, visitShortDesc, visitDetailsTitle, visitDetailsText,
+      }, visitEditorialBlocks));
       setToast('Sauvegardé ✓');
       setTab('info');
     } catch (e) { setToast('Erreur'); }
@@ -508,51 +465,18 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
             <div className="field"><label>Détails dépliables (visite)</label>
               <MarkdownTextarea value={visitDetailsText} onChange={(e) => setVisitDetailsText(e.target.value)} rows={4} placeholder="Contenu du panneau repliable" />
             </div>
-            <div className="visit-editorial-builder">
-              <h5>Bloc images (visite)</h5>
-              <p className="section-sub">Choisis des photos déjà associées à la zone, ou associe d’abord une photo de l’onglet Photos.</p>
-              <div className="visit-editorial-builder__actions">
-                <button type="button" className="btn btn-ghost btn-sm" onClick={addImageBlock}>+ Bloc image</button>
-              </div>
-              <VisitEditorialMapPhotoImportList
-                photos={zonePhotoOptions}
-                heading="Photos liées à cette zone"
-                onAssociate={attachZonePhotoToVisit}
-              />
-              <div className="visit-editorial-builder__list">
-                {imageBlocks.map((block) => (
-                  <div key={block.id} className="visit-editorial-builder__item">
-                    <div className="visit-editorial-builder__head">
-                      <strong>Image(s)</strong>
-                      <div className="visit-editorial-builder__head-actions">
-                        <button type="button" className="btn btn-danger btn-sm" onClick={() => removeImageBlock(block.id)}>Suppr.</button>
-                      </div>
-                    </div>
-                    <div className="visit-editorial-builder__image">
-                      <label>Photos du bloc (1 ou 2)</label>
-                      <VisitEditorialMediaIdPicker
-                        mediaList={visitMediaOptions}
-                        selectedIds={block.media_ids || []}
-                        onChange={(ids) => updateImageBlock(block.id, { media_ids: ids })}
-                        emptyHint="Aucune photo visite — onglet Photos ou associe une photo zone ci-dessus."
-                      />
-                      <div className="visit-editorial-builder__image-meta">
-                        <select value={block.size || 'md'} onChange={(e) => updateImageBlock(block.id, { size: e.target.value })}>
-                          <option value="sm">Compact</option>
-                          <option value="md">Normal</option>
-                          <option value="lg">Large</option>
-                        </select>
-                      </div>
-                      <input
-                        value={block.caption || ''}
-                        onChange={(e) => updateImageBlock(block.id, { caption: e.target.value })}
-                        placeholder="Légende (optionnel)"
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <MarkerVisitImageBuilder
+              imageBlocks={imageBlocks}
+              visitMediaOptions={visitMediaOptions}
+              markerPhotoOptions={zonePhotoOptions}
+              onAddImageBlock={addImageBlock}
+              onUpdateImageBlock={updateImageBlock}
+              onRemoveImageBlock={removeImageBlock}
+              onAssociatePhoto={attachZonePhotoToVisit}
+              introText="Choisis des photos déjà associées à la zone, ou associe d’abord une photo de l’onglet Photos."
+              photoImportHeading="Photos liées à cette zone"
+              pickerEmptyHint="Aucune photo visite — onglet Photos ou associe une photo zone ci-dessus."
+            />
             <div className="field"><label htmlFor="zone-edit-emoji-custom">Emoji de zone</label>
               <ZoneOrMarkerEmojiField
                 id="zone-edit-emoji-custom"
@@ -593,230 +517,72 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
           </div>
         )}
         {tab === 'tasks' && isTeacher && (
-          <div className="fade-in">
-            <div style={{ marginTop: 12 }}>
-              {linkedTasks.length === 0 ? (
-                <p style={{ color: '#999', fontSize: '.85rem' }}>Aucune tâche liée à cette zone.</p>
-              ) : linkedTasks.map((t) => (
-                <div key={t.id} className="history-item" style={{ alignItems: 'center' }}>
-                  <span>{t.title}</span>
-                  <button className="btn btn-ghost btn-sm"
-                    onClick={async () => {
-                      await onUnlinkTask?.(t);
-                      setToast('Tâche dissociée');
-                    }}>
-                    Délier
-                  </button>
-                </div>
-              ))}
-            </div>
-            <div className="field" style={{ marginTop: 14 }}><label>Lier une tâche existante</label>
-              <select value={linkTaskId} onChange={e => setLinkTaskId(e.target.value)}>
-                <option value="">— Choisir une tâche —</option>
-                {assignableTasks.map(t => <option key={t.id} value={t.id}>{t.title}</option>)}
-              </select>
-            </div>
-            <button className="btn btn-primary btn-full" disabled={!linkTaskId}
-              onClick={async () => {
-                await onLinkTask?.(linkTaskId);
-                setLinkTaskId('');
-                setToast('Tâche liée à la zone ✓');
-              }}>
-              🔗 Lier la tâche
-            </button>
-          </div>
+          <ZoneTasksTeacherPanel
+            linkedTasks={linkedTasks}
+            assignableTasks={assignableTasks}
+            linkTaskId={linkTaskId}
+            onChangeLinkTaskId={setLinkTaskId}
+            onUnlinkTask={async (t) => {
+              await onUnlinkTask?.(t);
+              setToast('Tâche dissociée');
+            }}
+            onLinkTask={async (id) => {
+              await onLinkTask?.(id);
+              setLinkTaskId('');
+              setToast('Tâche liée à la zone ✓');
+            }}
+          />
         )}
         {tab === 'tasks' && !isTeacher && (
-          <div className="fade-in">
-            {linkedTasks.length === 0 ? (
-              <p style={{ color: '#999', fontSize: '.85rem' }}>Aucune tâche liée à cette zone.</p>
-            ) : (
-              <>
-                <TaskEnrollmentLegend />
-                <p style={{ color: '#666', fontSize: '.84rem', marginBottom: 10 }}>
-                  {canSelfAssignTasks
-                    ? 'Sélectionne une ou plusieurs tâches puis inscris-toi directement.'
-                    : 'Profil visiteur : consultation en lecture seule.'}
-                </p>
-                {canSelfAssignTasks && Number(student?.taskEnrollment?.maxActiveAssignments) > 0 && (
-                  <p style={{ fontSize: '.78rem', color: student?.taskEnrollment?.atLimit ? '#92400e' : '#166534', marginBottom: 10, lineHeight: 1.45 }}>
-                    {student.taskEnrollment?.atLimit
-                      ? `Limite atteinte (${student.taskEnrollment.currentActiveAssignments}/${student.taskEnrollment.maxActiveAssignments} tâches actives). Retire-toi d’une tâche ou attends une validation.`
-                      : `Tâches actives : ${student.taskEnrollment.currentActiveAssignments}/${student.taskEnrollment.maxActiveAssignments} (non validées, toutes cartes).`}
-                  </p>
-                )}
-                <div style={{ display: 'grid', gap: 8 }}>
-                  {linkedTasks.map((t) => {
-                    const canAssign = canStudentAssignTask(t, student);
-                    const isMine = isStudentAssignedToTask(t, student);
-                    const meta = taskEnrollmentMeta(t, student);
-                    const checked = selectedTaskIds.includes(t.id);
-                    return (
-                      <label key={t.id} style={{
-                        display: 'flex',
-                        alignItems: 'flex-start',
-                        gap: 10,
-                        border: '1px solid rgba(0,0,0,.08)',
-                        borderRadius: 10,
-                        padding: '10px 12px',
-                        background: checked ? '#f0fdf4' : 'var(--parchment)',
-                        cursor: canAssign ? 'pointer' : 'default',
-                        opacity: canAssign || isMine ? 1 : 0.72,
-                      }}>
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          disabled={!canEnroll || !canAssign || assigning}
-                          onChange={() => {
-                            if (!canEnroll || !canAssign) return;
-                            setSelectedTaskIds((prev) => (
-                              prev.includes(t.id) ? prev.filter((id) => id !== t.id) : [...prev, t.id]
-                            ));
-                          }} />
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontWeight: 700, color: 'var(--forest)', fontSize: '.9rem' }}>{t.title}</div>
-                          <div style={{ marginTop: 4, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                            <span className="task-chip" style={{ color: meta.tone, borderColor: meta.border, background: meta.bg }}>
-                              <span style={{ marginRight: 4, opacity: .8 }}>{meta.dot}</span>{meta.label}
-                            </span>
-                            <TaskDifficultyAndRiskChips task={t} />
-                          </div>
-                        </div>
-                      </label>
-                    );
-                  })}
-                </div>
-                <button
-                  className="btn btn-primary btn-full"
-                  style={{ marginTop: 12 }}
-                  disabled={!canEnroll || assigning || selectedTaskIds.length === 0}
-                  onClick={async () => {
-                    if (!onAssignTasks || selectedTaskIds.length === 0) return;
-                    setAssigning(true);
-                    const result = await onAssignTasks(selectedTaskIds);
-                    if (result.failedCount > 0) {
-                      const ok = result.assignedCount > 0 ? `${result.assignedCount} tâche(s) prise(s). ` : '';
-                      setToast(`${ok}${result.failedCount} échec(s) : ${result.firstError || 'erreur inconnue'}`);
-                    } else {
-                      setToast(`${result.assignedCount} tâche(s) prise(s) en charge ✓`);
-                    }
-                    setSelectedTaskIds([]);
-                    setAssigning(false);
-                  }}>
-                  {assigning ? 'Inscription...' : `✋ M'inscrire à ${selectedTaskIds.length || '...'} tâche(s)`}
-                </button>
-              </>
-            )}
-          </div>
+          <ZoneTasksStudentPanel
+            linkedTasks={linkedTasks}
+            student={student}
+            canSelfAssignTasks={canSelfAssignTasks}
+            canEnroll={canEnroll}
+            selectedTaskIds={selectedTaskIds}
+            assigning={assigning}
+            onToggleTask={(id) => setSelectedTaskIds((prev) => (
+              prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+            ))}
+            onAssign={async () => {
+              if (!onAssignTasks || selectedTaskIds.length === 0) return;
+              setAssigning(true);
+              const result = await onAssignTasks(selectedTaskIds);
+              if (result.failedCount > 0) {
+                const ok = result.assignedCount > 0 ? `${result.assignedCount} tâche(s) prise(s). ` : '';
+                setToast(`${ok}${result.failedCount} échec(s) : ${result.firstError || 'erreur inconnue'}`);
+              } else {
+                setToast(`${result.assignedCount} tâche(s) prise(s) en charge ✓`);
+              }
+              setSelectedTaskIds([]);
+              setAssigning(false);
+            }}
+          />
         )}
         {tab === 'tutorials' && isTeacher && (
-          <div className="fade-in">
-            <div style={{ marginTop: 12 }}>
-              {linkedTutorialsDirect.length === 0 && tutorialsOnlyViaTasks.length === 0 ? (
-                <p style={{ color: '#999', fontSize: '.85rem' }}>Aucun tutoriel lié à cette zone.</p>
-              ) : (
-                <>
-                  {linkedTutorialsDirect.length === 0 ? null : linkedTutorialsDirect.map((tu) => (
-                    <div key={tu.id} className="history-item" style={{ alignItems: 'center' }}>
-                      <span>{tu.title}{tu.is_active === false ? ' (archivé)' : ''}</span>
-                      <button
-                        type="button"
-                        className="btn btn-ghost btn-sm"
-                        onClick={async () => {
-                          await onUnlinkTutorial?.(tu);
-                          setToast('Tutoriel dissocié');
-                        }}>
-                        Délier
-                      </button>
-                    </div>
-                  ))}
-                  {tutorialsOnlyViaTasks.length > 0 && (
-                    <div style={{ marginTop: linkedTutorialsDirect.length ? 16 : 0 }}>
-                      <p style={{ fontSize: '.78rem', color: '#64748b', margin: '0 0 8px', lineHeight: 1.45 }}>
-                        Rattachés aux missions sur ce lieu (pour les retirer, modifie la tâche concernée).
-                      </p>
-                      {tutorialsOnlyViaTasks.map((tu) => (
-                        <div key={`task-tu-${tu.id}`} className="history-item" style={{ alignItems: 'center' }}>
-                          <span>{tu.title}{tu.is_active === false ? ' (archivé)' : ''}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-            <div className="field" style={{ marginTop: 14 }}><label>Lier un tutoriel à cette zone</label>
-              <select value={linkTutorialId} onChange={(e) => setLinkTutorialId(e.target.value)}>
-                <option value="">— Choisir un tutoriel —</option>
-                {assignableTutorials.map((tu) => (
-                  <option key={tu.id} value={String(tu.id)}>{tu.title}</option>
-                ))}
-              </select>
-              <p style={{ fontSize: '.74rem', color: '#64748b', margin: '6px 0 0', lineHeight: 1.4 }}>
-                Tu peux lier plusieurs tutoriels en répétant l’opération pour chaque fiche.
-              </p>
-            </div>
-            <button
-              type="button"
-              className="btn btn-primary btn-full"
-              disabled={!linkTutorialId}
-              onClick={async () => {
-                await onLinkTutorial?.(linkTutorialId);
-                setLinkTutorialId('');
-                setToast('Tutoriel lié à la zone ✓');
-              }}>
-              🔗 Lier le tutoriel
-            </button>
-          </div>
+          <ZoneTutorialsTeacherPanel
+            linkedTutorialsDirect={linkedTutorialsDirect}
+            tutorialsOnlyViaTasks={tutorialsOnlyViaTasks}
+            assignableTutorials={assignableTutorials}
+            linkTutorialId={linkTutorialId}
+            onChangeLinkTutorialId={setLinkTutorialId}
+            onUnlinkTutorial={async (tu) => {
+              await onUnlinkTutorial?.(tu);
+              setToast('Tutoriel dissocié');
+            }}
+            onLinkTutorial={async (id) => {
+              await onLinkTutorial?.(id);
+              setLinkTutorialId('');
+              setToast('Tutoriel lié à la zone ✓');
+            }}
+          />
         )}
         {tab === 'tutorials' && !isTeacher && (
-          <div className="fade-in">
-            {linkedTutorialsVisible.length === 0 ? (
-              <p style={{ color: '#999', fontSize: '.85rem' }}>Aucun tutoriel lié à cette zone.</p>
-            ) : (
-              <div style={{ display: 'grid', gap: 12 }}>
-                {linkedTutorialsVisible.map((tu) => {
-                  const otherZones = (tu.zones_linked || []).filter((z) => z.id !== zone.id);
-                  const markers = tu.markers_linked || [];
-                  return (
-                    <div
-                      key={tu.id}
-                      style={{
-                        border: '1px solid rgba(0,0,0,.08)',
-                        borderRadius: 10,
-                        padding: '12px 14px',
-                        background: 'var(--parchment)',
-                      }}>
-                      <div style={{ fontWeight: 700, color: 'var(--forest)' }}>{tu.title}</div>
-                      {tu.summary && (
-                        <p style={{ margin: '8px 0 0', fontSize: '.82rem', color: '#555', lineHeight: 1.45 }}>{tu.summary}</p>
-                      )}
-                      {otherZones.length > 0 && (
-                        <p style={{ margin: '10px 0 0', fontSize: '.76rem', color: '#64748b' }}>
-                          <strong>Autres zones</strong> : {otherZones.map((z) => z.name).join(', ')}
-                        </p>
-                      )}
-                      {markers.length > 0 && (
-                        <p style={{ margin: '6px 0 0', fontSize: '.76rem', color: '#64748b' }}>
-                          <strong>Repères</strong> : {markers.map((m) => m.label).join(', ')}
-                        </p>
-                      )}
-                      {tutorialPreviewCanEmbed(tu) && onOpenTutorialPreview ? (
-                        <button
-                          type="button"
-                          className="btn btn-primary btn-sm"
-                          style={{ marginTop: 10 }}
-                          onClick={() => onOpenTutorialPreview(tutorialPreviewPayload(tu))}
-                        >
-                          📖 Consulter
-                        </button>
-                      ) : null}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+          <ZoneTutorialsStudentPanel
+            tutorials={linkedTutorialsVisible}
+            zoneId={zone.id}
+            onOpenTutorialPreview={onOpenTutorialPreview}
+          />
         )}
     </DialogShell>
   );
