@@ -14,73 +14,16 @@ import {
   EMPTY_APPEARANCE_FORM,
   appearanceFormFromMarker,
   appearanceDefaultsForEventType,
-  appearanceToPayload,
 } from './GLMarkerAppearanceEditor.jsx';
 import { glImageFrameToStyle, normalizeGlImageFrame } from '../../utils/glImageFrame.js';
 import { defaultEventConfigForQuestion } from '../../utils/glMarkerEventConfig.js';
 import { GLButton } from './ui/GLButton.jsx';
-import { resolveMarkerAppearance } from '../../utils/glMarkerAppearance.js';
-
-const EMPTY_MARKER_FORM = {
-  label: '',
-  xPct: 50,
-  yPct: 50,
-  description: '',
-  orderIndex: 0,
-  sousBiomeSlug: '',
-  effetMecanique: '',
-};
-
-function toFormFromMarker(marker) {
-  if (!marker) return EMPTY_MARKER_FORM;
-  return {
-    label: marker.label || '',
-    xPct: Number(marker.x_pct ?? 50),
-    yPct: Number(marker.y_pct ?? 50),
-    description: marker.description || '',
-    orderIndex: Number(marker.order_index || 0),
-    sousBiomeSlug: marker.sous_biome_slug || '',
-    effetMecanique: marker.effet_mecanique || '',
-  };
-}
-
-function toMarkerPayload(form, eventDraft, appearanceForm) {
-  return {
-    label: String(form.label || '').trim(),
-    xPct: Number(form.xPct),
-    yPct: Number(form.yPct),
-    eventType: String(eventDraft?.eventType || 'question').trim(),
-    description: String(form.description || '').trim(),
-    orderIndex: Number(form.orderIndex) || 0,
-    sousBiomeSlug: String(form.sousBiomeSlug || '').trim() || null,
-    effetMecanique: String(form.effetMecanique || '').trim() || null,
-    eventConfig: eventDraft?.eventConfig || defaultEventConfigForQuestion(),
-    ...appearanceToPayload(appearanceForm),
-  };
-}
-
-function MarkerListVisual({ marker }) {
-  const appearance = resolveMarkerAppearance(marker);
-  if (appearance.displayMode === 'emoji' && appearance.emoji) {
-    return (
-      <span className="gl-markers-list__visual foretmap-emoji-text-mixed" aria-hidden>
-        {appearance.emoji}
-        {' '}
-      </span>
-    );
-  }
-  if (appearance.displayMode === 'icon' && appearance.iconUrl) {
-    return (
-      <img
-        className="gl-markers-list__visual gl-markers-list__visual--icon"
-        src={appearance.iconUrl}
-        alt=""
-        aria-hidden
-      />
-    );
-  }
-  return null;
-}
+import { GLChapterMarkerListVisual } from './GLChapterMarkerListVisual.jsx';
+import {
+  EMPTY_MARKER_FORM,
+  toFormFromMarker,
+  toMarkerPayload,
+} from '../utils/glChapterMapStudioForm.js';
 
 export function GLChapterMapStudio({
   chapterId,
@@ -422,7 +365,7 @@ export function GLChapterMapStudio({
               disabled={zoneEditActive}
               onClick={() => selectMarker(marker)}
             >
-              <MarkerListVisual marker={marker} />
+              <GLChapterMarkerListVisual marker={marker} />
               <strong>{marker.label}</strong>
               {' '}
               —
