@@ -103,4 +103,40 @@ describe('MarkerVisitImageBuilder', () => {
     fireEvent.click(screen.getByText('Suppr.'));
     expect(onRemove).toHaveBeenCalledWith('b1');
   });
+
+  const PHOTOS = [{ id: 1, image_url: 'http://x/1.jpg', caption: '' }];
+
+  test('textes par défaut alignés sur le repère', () => {
+    render(
+      <MarkerVisitImageBuilder
+        imageBlocks={[]}
+        visitMediaOptions={[]}
+        markerPhotoOptions={PHOTOS}
+        onAddImageBlock={() => {}}
+        onUpdateImageBlock={() => {}}
+        onRemoveImageBlock={() => {}}
+        onAssociatePhoto={() => {}}
+      />,
+    );
+    expect(screen.getByText('Photos liées à ce repère')).toBeTruthy();
+  });
+
+  test('textes surchargeables pour mutualiser le constructeur côté zone', () => {
+    render(
+      <MarkerVisitImageBuilder
+        imageBlocks={[]}
+        visitMediaOptions={[]}
+        markerPhotoOptions={PHOTOS}
+        onAddImageBlock={() => {}}
+        onUpdateImageBlock={() => {}}
+        onRemoveImageBlock={() => {}}
+        onAssociatePhoto={() => {}}
+        introText="Intro zone"
+        photoImportHeading="Photos liées à cette zone"
+        pickerEmptyHint="Hint zone"
+      />,
+    );
+    expect(screen.getByText('Photos liées à cette zone')).toBeTruthy();
+    expect(screen.getByText('Intro zone')).toBeTruthy();
+  });
 });
