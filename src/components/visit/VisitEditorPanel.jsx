@@ -2,8 +2,6 @@ import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { api, AccountDeletedError } from '../../services/api';
 import { compressImage } from '../../utils/image';
 import { MARKER_EMOJIS, detectLeadingMarkerEmoji, stripLeadingMarkerEmoji } from '../../constants/emojis';
-import { Tooltip } from '../Tooltip';
-import { HELP_TOOLTIPS, resolveRoleText } from '../../constants/help';
 import { MarkdownTextarea } from '../MarkdownTextarea.jsx';
 import {
   normalizeEditorialBlocks,
@@ -13,17 +11,14 @@ import {
   moveEditorialBlockById,
   removeEditorialBlockById,
 } from '../../utils/visitEditorialBlocks.js';
-import { visitMediaImgSrc, reorderVisitMediaRows } from '../../utils/visitMediaGallery.js';
 import { VisitEditorialBuilder } from './VisitEditorialBuilder.jsx';
-import { VisitEditorialMapPhotoImportList } from '../VisitEditorialPhotoUi.jsx';
+import { VisitMediaEditor } from './VisitMediaEditor.jsx';
 
 /**
  * Panneau d'édition visite (zone / repère) réservé enseignant, extrait de `visit-views.jsx` (O6).
  * Édite titres/textes/blocs éditoriaux, gère les photos (upload, URL, association carte,
  * réordonnancement par glisser-déposer) et la suppression de l'élément. Déplacement pur.
  */
-const FORETMAP_VISIT_MEDIA_DRAG_MIME = 'application/x-foretmap-visit-media-id';
-
 export function VisitEditorPanel({ selected, selectedType, onSaved, onForceLogout, isTeacher, roleTerms, markerEmojis = MARKER_EMOJIS }) {
   const [form, setForm] = useState({
     title: '',
@@ -43,7 +38,6 @@ export function VisitEditorPanel({ selected, selectedType, onSaved, onForceLogou
   const mediaFileRef = useRef(null);
   const [mediaReorderBusy, setMediaReorderBusy] = useState(false);
   const [editorialBlocks, setEditorialBlocks] = useState([]);
-  const tooltipText = (entry) => resolveRoleText(entry, true);
 
   const sortedVisitMedia = useMemo(() => {
     const arr = [...(selected?.visit_media || [])];
@@ -364,98 +358,24 @@ export function VisitEditorPanel({ selected, selectedType, onSaved, onForceLogou
         🗑️ Supprimer
       </button>
 
-      <div className="visit-media-editor">
-        <h5>🖼️ Photos</h5>
-        <p style={{ fontSize: '.76rem', color: '#64748b', margin: '0 0 10px', lineHeight: 1.45 }}>
-          Envoi d’image (comme sur la carte) ou lien URL (ex. Wikimedia, fichier déjà sur le serveur).
-          {sortedVisitMedia.length > 1 ? ' Plusieurs photos : glisser-déposer une ligne pour réordonner.' : ''}
-        </p>
-        <VisitEditorialMapPhotoImportList
-          photos={mapAssociatedPhotos}
-          heading="Photos déjà associées à ce lieu (carte)"
-          onAssociate={attachMapPhotoToVisitMedia}
-        />
-        <div className="field">
-          <label>Légende (optionnel)</label>
-          <input value={mediaCaption} onChange={(e) => setMediaCaption(e.target.value)} />
-        </div>
-        <input ref={mediaFileRef} type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={addMediaFromFile} />
-        <button
-          type="button"
-          className="btn btn-secondary btn-sm btn-full"
-          style={{ marginBottom: 10 }}
-          disabled={mediaUploading}
-          onClick={() => mediaFileRef.current?.click()}
-        >
-          {mediaUploading ? 'Envoi...' : '📷 Ajouter des photos (fichiers, sélection multiple)'}
-        </button>
-        <div className="field">
-          <label>URL image</label>
-          <input value={mediaUrl} onChange={(e) => setMediaUrl(e.target.value)} placeholder="https://… ou /uploads/…" />
-        </div>
-        <button className="btn btn-secondary btn-sm" disabled={mediaSaving || !mediaUrl.trim()} onClick={addMedia}>
-          {mediaSaving ? 'Ajout...' : '+ Ajouter depuis URL'}
-        </button>
-        <div className="visit-media-list" style={{ opacity: mediaReorderBusy ? 0.65 : 1, pointerEvents: mediaReorderBusy ? 'none' : undefined }}>
-          {sortedVisitMedia.map((m) => (
-            <div
-              key={m.id}
-              className={`visit-media-row${sortedVisitMedia.length > 1 ? ' visit-media-row--reorder' : ''}`}
-              draggable={sortedVisitMedia.length > 1}
-              onDragStart={(e) => {
-                if (sortedVisitMedia.length < 2) return;
-                e.dataTransfer.setData(FORETMAP_VISIT_MEDIA_DRAG_MIME, String(m.id));
-                e.dataTransfer.effectAllowed = 'move';
-              }}
-              onDragOver={(e) => {
-                if (sortedVisitMedia.length < 2) return;
-                e.preventDefault();
-                e.dataTransfer.dropEffect = 'move';
-              }}
-              onDrop={(e) => {
-                if (sortedVisitMedia.length < 2) return;
-                e.preventDefault();
-                const dragId = Number(e.dataTransfer.getData(FORETMAP_VISIT_MEDIA_DRAG_MIME));
-                if (!Number.isFinite(dragId) || dragId === m.id) return;
-                const next = reorderVisitMediaRows(sortedVisitMedia, dragId, m.id);
-                void persistVisitMediaReorder(next);
-              }}
-              style={{ display: 'flex', alignItems: 'center', gap: 8 }}
-            >
-              {m.image_url ? (
-                <img
-                  src={visitMediaImgSrc(m)}
-                  alt=""
-                  style={{ width: 44, height: 44, objectFit: 'cover', borderRadius: 6, flexShrink: 0 }}
-                />
-              ) : null}
-              <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {m.caption || m.image_url || `#${m.id}`}
-              </span>
-              <button
-                type="button"
-                className="btn btn-ghost btn-sm"
-                aria-label="Modifier la légende"
-                onMouseDown={(ev) => ev.stopPropagation()}
-                onClick={() => editMediaCaption(m)}
-              >
-                ✏️
-              </button>
-              <Tooltip text={tooltipText(HELP_TOOLTIPS.visit.mediaDelete)}>
-                <button
-                  type="button"
-                  className="btn btn-danger btn-sm"
-                  aria-label="Supprimer la photo"
-                  onMouseDown={(ev) => ev.stopPropagation()}
-                  onClick={() => deleteMedia(m.id)}
-                >
-                  🗑️
-                </button>
-              </Tooltip>
-            </div>
-          ))}
-        </div>
-      </div>
+      <VisitMediaEditor
+        sortedVisitMedia={sortedVisitMedia}
+        mapAssociatedPhotos={mapAssociatedPhotos}
+        mediaUrl={mediaUrl}
+        onMediaUrlChange={setMediaUrl}
+        mediaCaption={mediaCaption}
+        onMediaCaptionChange={setMediaCaption}
+        mediaSaving={mediaSaving}
+        mediaUploading={mediaUploading}
+        mediaReorderBusy={mediaReorderBusy}
+        mediaFileRef={mediaFileRef}
+        onAddFromFile={addMediaFromFile}
+        onAddFromUrl={addMedia}
+        onAssociateMapPhoto={attachMapPhotoToVisitMedia}
+        onEditCaption={editMediaCaption}
+        onDeleteMedia={deleteMedia}
+        onReorder={persistVisitMediaReorder}
+      />
     </div>
   );
 }

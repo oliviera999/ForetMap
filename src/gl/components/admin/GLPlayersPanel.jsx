@@ -1,5 +1,4 @@
 import React, { useMemo, useState } from 'react';
-import { DialogShell } from '../../../components/DialogShell.jsx';
 import { apiGL } from '../../services/apiGL.js';
 import { GLBadge } from '../ui/GLBadge.jsx';
 import { GLButton } from '../ui/GLButton.jsx';
@@ -7,10 +6,13 @@ import { GLDataList } from '../ui/GLDataList.jsx';
 import { GLField } from '../ui/GLField.jsx';
 import { GLInput } from '../ui/GLInput.jsx';
 import { GLSelect } from '../ui/GLSelect.jsx';
-
-function toBool(value) {
-  return !!Number(value);
-}
+import {
+  toBool,
+  buildClassesById,
+  playerClassName,
+  playerDisplayName,
+} from '../../utils/glPlayersPanel.js';
+import { GLPlayerResetPasswordModal } from './GLPlayerResetPasswordModal.jsx';
 
 export function GLPlayersPanel({
   classes,
@@ -38,11 +40,7 @@ export function GLPlayersPanel({
     passwordMustReset: false,
   });
 
-  const classesById = useMemo(() => {
-    const next = new Map();
-    for (const cls of classes) next.set(Number(cls.id), cls);
-    return next;
-  }, [classes]);
+  const classesById = useMemo(() => buildClassesById(classes), [classes]);
 
   async function createPlayer(event) {
     event.preventDefault();
@@ -247,8 +245,8 @@ export function GLPlayersPanel({
         emptyLabel="Aucun joueur."
         rows={players.map((player) => {
           const isEditing = editId === Number(player.id);
-          const className = classesById.get(Number(player.class_id))?.name || player.class_name || '—';
-          const displayName = `${player.first_name || ''} ${player.last_name || ''}`.trim() || '—';
+          const className = playerClassName(player, classesById);
+          const displayName = playerDisplayName(player);
           const actionButtons = isEditing ? (
             <>
               <GLButton type="button" onClick={saveEdit} disabled={busy}>Enregistrer</GLButton>
@@ -313,41 +311,16 @@ export function GLPlayersPanel({
         })}
       />
 
-      <DialogShell
-        open={!!resetPlayer}
+      <GLPlayerResetPasswordModal
+        player={resetPlayer}
+        passwordValue={resetPasswordValue}
+        onPasswordChange={setResetPasswordValue}
         onClose={() => {
           setResetPlayer(null);
           setResetPasswordValue('');
         }}
-        overlayClassName="fm-modal-overlay"
-        dialogClassName="fm-modal-panel animate-pop gl-action-modal-body"
-        ariaLabel="Réinitialiser mot de passe joueur"
-      >
-        <h4>Réinitialiser {resetPlayer?.pseudo}</h4>
-        <GLField label="Nouveau mot de passe">
-          <GLInput
-            type="password"
-            value={resetPasswordValue}
-            onChange={(event) => setResetPasswordValue(event.target.value)}
-            autoComplete="new-password"
-          />
-        </GLField>
-        <div className="gl-inline-actions">
-          <GLButton type="button" onClick={() => resetPlayerPassword(resetPlayer)}>
-            Valider
-          </GLButton>
-          <GLButton
-            type="button"
-            variant="secondary"
-            onClick={() => {
-              setResetPlayer(null);
-              setResetPasswordValue('');
-            }}
-          >
-            Annuler
-          </GLButton>
-        </div>
-      </DialogShell>
+        onSubmit={resetPlayerPassword}
+      />
     </section>
   );
 }
