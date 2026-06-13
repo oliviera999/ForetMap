@@ -17,6 +17,7 @@ import { brandToCssVars, mergeBrandWithChapterTheme } from '../../utils/glBrandT
 import { GLButton } from './ui/GLButton.jsx';
 import { GLChaptersImportExportPanel } from './admin/GLChaptersImportExportPanel.jsx';
 import { GLChapterScenesAdminPanel } from './admin/GLChapterScenesAdminPanel.jsx';
+import { GLChapterSpellsFieldset } from './admin/GLChapterSpellsFieldset.jsx';
 import {
   EMPTY_CHAPTER_FORM,
   allSpellCodesFrom,
@@ -446,96 +447,15 @@ export function GLChaptersAdminView() {
                 })}
               </ul>
             </fieldset>
-            <fieldset className="gl-fieldset">
-              <legend>Sorts du chapitre (grimoire)</legend>
-              <p className="gl-hint">
-                Cochez les sorts disponibles pour ce chapitre en partie (onglet Sortilèges).
-              </p>
-              <div className="gl-inline-actions gl-inline-actions--wrap">
-                <GLButton
-                  type="button"
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => selectAllSpells(allSpellCodes)}
-                  disabled={allSpellCodes.length === 0}
-                >
-                  Tout cocher
-                </GLButton>
-                <GLButton
-                  type="button"
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => setSpellCodes([])}
-                  disabled={chapterForm.spellCodes.length === 0}
-                >
-                  Tout décocher
-                </GLButton>
-              </div>
-              {chapterForm.spellCodes.length > 0 ? (
-                <p className="gl-hint">
-                  {chapterForm.spellCodes.length}
-                  {' '}
-                  sort(s) sélectionné(s).
-                </p>
-              ) : (
-                <p className="gl-hint">Aucun sort sélectionné.</p>
-              )}
-              {spellsByCategory.length === 0 ? (
-                <p className="gl-hint">
-                  Catalogue vide — importez des sorts dans Contenus → Sortilèges.
-                </p>
-              ) : (
-                spellsByCategory.map((group) => {
-                  const groupCodes = group.spells.map((s) => s.spell_code);
-                  const allInGroup = groupCodes.every((c) => chapterForm.spellCodes.includes(c));
-                  return (
-                    <div key={group.slug} className="gl-chapter-spells-group">
-                      <div className="gl-inline-actions gl-inline-actions--wrap">
-                        <strong>{group.nom}</strong>
-                        <GLButton
-                          type="button"
-                          size="sm"
-                          variant="secondary"
-                          onClick={() => (
-                            allInGroup
-                              ? deselectAllSpells(groupCodes)
-                              : selectAllSpells(groupCodes)
-                          )}
-                        >
-                          {allInGroup ? 'Tout décocher' : 'Tout cocher'}
-                          {' '}
-                          (
-                          {group.spells.length}
-                          )
-                        </GLButton>
-                      </div>
-                      <ul className="gl-chapter-spells-options">
-                        {group.spells.map((spell) => {
-                          const code = spell.spell_code;
-                          const checked = chapterForm.spellCodes.includes(code);
-                          return (
-                            <li key={code}>
-                              <label>
-                                <input
-                                  type="checkbox"
-                                  checked={checked}
-                                  onChange={(event) => toggleSpellCode(code, event.target.checked)}
-                                />
-                                <span aria-hidden="true">{spell.emoji || '✨'}</span>
-                                {' '}
-                                {spell.nom}
-                                {' '}
-                                <span className="gl-hint">({code})</span>
-                              </label>
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    </div>
-                  );
-                })
-              )}
-            </fieldset>
+            <GLChapterSpellsFieldset
+              spellsByCategory={spellsByCategory}
+              allSpellCodes={allSpellCodes}
+              selectedCodes={chapterForm.spellCodes}
+              onToggleSpell={toggleSpellCode}
+              onSelectAll={selectAllSpells}
+              onDeselectAll={deselectAllSpells}
+              onClearAll={() => setSpellCodes([])}
+            />
             <GLImageSourceField
               label="Image de carte"
               url={chapterForm.mapImageUrl}
