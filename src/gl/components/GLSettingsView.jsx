@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { apiGL } from '../services/apiGL.js';
 import { GLBrandHub } from './GLBrandHub.jsx';
 import { GLBrandEditor } from './GLBrandEditor.jsx';
+import { GLGameplayTogglesList } from './settings/GLGameplayTogglesList.jsx';
+import { GLGameplayPresetsPanel } from './settings/GLGameplayPresetsPanel.jsx';
 import { GLButton } from './ui/GLButton.jsx';
 import { GLField } from './ui/GLField.jsx';
 import { GLInput } from './ui/GLInput.jsx';
@@ -187,53 +189,19 @@ export function GLSettingsView() {
         standard puis complet selon la séance.
       </p>
 
-      <div className="gl-gameplay-presets">
-        <h4>Profils de séance</h4>
-        <p className="gl-hint">
-          Applique en un clic une combinaison de réglages gameplay. Les modules (sortilèges, forum, etc.)
-          et le re-déclenchement des questions sur repère ne sont pas modifiés.
-        </p>
-        <ul className="gl-gameplay-presets-list">
-          {GAMEPLAY_PRESETS.map((preset) => (
-            <li key={preset.id} className="gl-gameplay-preset-card">
-              <div className="gl-gameplay-preset-head">
-                <strong>{preset.label}</strong>
-                <GLButton
-                  type="button"
-                  size="sm"
-                  disabled={applyingPresetId !== ''}
-                  loading={applyingPresetId === preset.id}
-                  onClick={() => applyGameplayPreset(preset)}
-                >
-                  Appliquer
-                </GLButton>
-              </div>
-              <p className="gl-hint">{preset.description}</p>
-            </li>
-          ))}
-        </ul>
-      </div>
+      <GLGameplayPresetsPanel
+        presets={GAMEPLAY_PRESETS}
+        applyingPresetId={applyingPresetId}
+        onApply={applyGameplayPreset}
+      />
 
-      <ul className="gl-gameplay-toggles">
-        {GAMEPLAY_TOGGLES.map((toggle) => {
-          const current = readGameplayFlag(settings, toggle.key);
-          const saving = savingKey === toggle.key;
-          return (
-            <li key={toggle.key} className="gl-gameplay-toggle">
-              <label>
-                <input
-                  type="checkbox"
-                  checked={current}
-                  disabled={saving}
-                  onChange={(event) => toggleGameplayFlag(toggle.key, event.target.checked)}
-                />
-                <span className="gl-gameplay-toggle-label">{toggle.label}</span>
-              </label>
-              <span className="gl-gameplay-toggle-hint">{toggle.hint}</span>
-            </li>
-          );
-        })}
-      </ul>
+      <GLGameplayTogglesList
+        toggles={GAMEPLAY_TOGGLES}
+        isChecked={readGameplayFlag}
+        settings={settings}
+        savingKey={savingKey}
+        onToggle={toggleGameplayFlag}
+      />
 
       <div className="gl-vitality-defaults gl-form">
         <h4>Valeurs initiales (nouveaux joueurs)</h4>
@@ -510,26 +478,13 @@ export function GLSettingsView() {
       <p className="gl-hint">
         Ces drapeaux activent/désactivent les modules GL côté interface.
       </p>
-      <ul className="gl-gameplay-toggles">
-        {MODULE_TOGGLES.map((toggle) => {
-          const current = readGameplayFlag(settings, toggle.key);
-          const saving = savingKey === toggle.key;
-          return (
-            <li key={toggle.key} className="gl-gameplay-toggle">
-              <label>
-                <input
-                  type="checkbox"
-                  checked={current}
-                  disabled={saving}
-                  onChange={(event) => toggleGameplayFlag(toggle.key, event.target.checked)}
-                />
-                <span className="gl-gameplay-toggle-label">{toggle.label}</span>
-              </label>
-              <span className="gl-gameplay-toggle-hint">{toggle.hint}</span>
-            </li>
-          );
-        })}
-      </ul>
+      <GLGameplayTogglesList
+        toggles={MODULE_TOGGLES}
+        isChecked={readGameplayFlag}
+        settings={settings}
+        savingKey={savingKey}
+        onToggle={toggleGameplayFlag}
+      />
 
       <details>
         <summary>État brut des réglages</summary>
