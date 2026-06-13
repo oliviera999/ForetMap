@@ -1,11 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { MAP_MARKER_EMOJI_MAX_CHARS, MARKER_EMOJIS } from '../../constants/emojis';
+import { MARKER_EMOJIS } from '../../constants/emojis';
 import { useDialogA11y } from '../../hooks/useDialogA11y';
 import { useOverlayHistoryBack } from '../../hooks/useOverlayHistoryBack';
 import { api } from '../../services/api';
 import { TimedToast } from '../../shared/components/TimedToast.jsx';
 import { TaskDifficultyAndRiskChips } from '../../utils/badges';
-import { nextLivingBeingsFromMultiSelect, orderedLivingBeingsForForm } from '../../utils/livingBeings';
+import { orderedLivingBeingsForForm } from '../../utils/livingBeings';
 import { dedupeTutorialsById, isTaskDetachedFromLocation, livingBeingNamesFromTasksAtLocation, taskLocationIds, tutorialLocationIds, tutorialsFromTasksAtLocation } from '../../utils/mapLocationContext';
 import { buildMarkerPayload, computeMarkerVisitImageBlocks, markerFormFromMarker, markerTaskMapId } from '../../utils/markerModalForm.js';
 import { isStudentAssignedToTask } from '../../utils/task-assignments';
@@ -13,13 +13,11 @@ import { canStudentAssignTask, taskEnrollmentMeta } from '../../utils/taskEnroll
 import { parseVisitEditorialBlocksFromJson } from '../../utils/visitEditorialBlocks.js';
 import { DialogShell } from '../DialogShell';
 import { MarkdownContent } from '../MarkdownContent.jsx';
-import { MarkdownTextarea } from '../MarkdownTextarea.jsx';
 import { tutorialPreviewCanEmbed, tutorialPreviewPayload } from '../TutorialPreviewModal';
-import { VisitEditorialMapPhotoImportList, VisitEditorialMediaIdPicker } from '../VisitEditorialPhotoUi.jsx';
 import { ContextComments } from '../context-comments';
 import { BiodiversitySpeciesOpenLinks, LivingBeingsCatalogPanel } from './LivingBeingsCatalogPanel.jsx';
+import { MarkerCommonFormFields, MarkerEmojiField, MarkerVisitImageBuilder } from './MarkerFormSections.jsx';
 import { PhotoGallery } from './PhotoGallery.jsx';
-import { ZoneOrMarkerEmojiField } from './ZoneOrMarkerEmojiField.jsx';
 import { LocationTutorialPreviewList, TaskEnrollmentLegend, tutorialLinkedToSameMap } from './mapModalShared.jsx';
 
 function MarkerModal({
@@ -261,72 +259,8 @@ function MarkerModal({
           </div>
           {isTeacher ? (
             <>
-              <div className="field"><label>Nom du repère *</label>
-                <input value={form.label} onChange={set('label')} placeholder="Ex: Olivier n°10" />
-              </div>
-              <div className="field"><label>Êtres vivants</label>
-                <p style={{ fontSize: '.76rem', color: '#64748b', margin: '0 0 8px', lineHeight: 1.45 }}>
-                  Ctrl / Cmd + clic pour plusieurs ; l’ordre choisi est conservé.
-                </p>
-                <select
-                  multiple
-                  size={Math.min(10, Math.max(4, plants.length + 1))}
-                  value={form.living_beings}
-                  onChange={(e) => {
-                    const picked = Array.from(e.target.selectedOptions).map((opt) => opt.value);
-                    setForm((f) => ({
-                      ...f,
-                      living_beings: nextLivingBeingsFromMultiSelect(f.living_beings, picked, plants),
-                    }));
-                  }}>
-                  {plants.map(p => <option key={p.id} value={p.name}>{p.emoji} {p.name}</option>)}
-                </select>
-              </div>
-              {form.living_beings.length > 0 && (
-                <LivingBeingsCatalogPanel plants={plants} names={form.living_beings} showHeading={false} />
-              )}
-              <div className="field"><label>Description</label>
-                <MarkdownTextarea value={form.note} onChange={set('note')} rows={3}
-                  placeholder="Observations, entretien..." />
-              </div>
-              <p style={{ fontSize: '.78rem', color: '#64748b', margin: '0 0 10px', lineHeight: 1.45 }}>
-                Textes ci-dessous : même contenu qu’en mode visite (sous-titre, accroche, bloc dépliable).
-              </p>
-              <div className="field"><label>Sous-titre (visite)</label>
-                <input value={form.visit_subtitle} onChange={set('visit_subtitle')} placeholder="Optionnel" />
-              </div>
-              <div className="field"><label>Description courte (visite)</label>
-                <MarkdownTextarea value={form.visit_short_description} onChange={set('visit_short_description')} rows={2} placeholder="Texte d’accroche sous le titre" />
-              </div>
-              <div className="field"><label>Titre du bloc dépliable (visite)</label>
-                <input value={form.visit_details_title} onChange={set('visit_details_title')} placeholder="Détails" />
-              </div>
-              <div className="field"><label>Détails dépliables (visite)</label>
-                <MarkdownTextarea value={form.visit_details_text} onChange={set('visit_details_text')} rows={4} placeholder="Contenu du panneau repliable" />
-              </div>
-              <div className="field"><label htmlFor="marker-new-emoji-custom">Emoji du repère (optionnel)</label>
-                <ZoneOrMarkerEmojiField
-                  id="marker-new-emoji-custom"
-                  value={form.emoji}
-                  onChange={(v) => setForm((f) => ({ ...f, emoji: v }))}
-                  maxLen={MAP_MARKER_EMOJI_MAX_CHARS}
-                  allowNone
-                />
-                <div style={{
-                  display: 'flex', gap: 6, flexWrap: 'wrap', maxHeight: 180, overflowY: 'auto', paddingRight: 2,
-                  WebkitOverflowScrolling: 'touch', touchAction: 'pan-y',
-                }}>
-                  {markerEmojis.map((emoji) => (
-                    <button
-                      type="button"
-                      key={emoji}
-                      className={`emoji-btn ${form.emoji === emoji ? 'sel' : ''}`}
-                      onClick={() => setForm((f) => ({ ...f, emoji }))}>
-                      {emoji}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              <MarkerCommonFormFields form={form} setForm={setForm} plants={plants} set={set} />
+              <MarkerEmojiField id="marker-new-emoji-custom" form={form} setForm={setForm} markerEmojis={markerEmojis} />
               <button className="btn btn-primary btn-full" style={{ marginTop: 8 }} onClick={saveNew} disabled={saving}>
                 {saving ? '...' : '📍 Placer'}
               </button>
@@ -760,117 +694,17 @@ function MarkerModal({
         )}
         {tab === 'edit' && isTeacher && (
           <div className="fade-in">
-            <div className="field"><label>Nom du repère *</label>
-              <input value={form.label} onChange={set('label')} placeholder="Ex: Olivier n°10" />
-            </div>
-            <div className="field"><label>Êtres vivants</label>
-              <p style={{ fontSize: '.76rem', color: '#64748b', margin: '0 0 8px', lineHeight: 1.45 }}>
-                Ctrl / Cmd + clic pour plusieurs ; l’ordre choisi est conservé.
-              </p>
-              <select
-                multiple
-                size={Math.min(10, Math.max(4, plants.length + 1))}
-                value={form.living_beings}
-                onChange={(e) => {
-                  const picked = Array.from(e.target.selectedOptions).map((opt) => opt.value);
-                  setForm((f) => ({
-                    ...f,
-                    living_beings: nextLivingBeingsFromMultiSelect(f.living_beings, picked, plants),
-                  }));
-                }}>
-                {plants.map(p => <option key={p.id} value={p.name}>{p.emoji} {p.name}</option>)}
-              </select>
-            </div>
-            {form.living_beings.length > 0 && (
-              <LivingBeingsCatalogPanel plants={plants} names={form.living_beings} showHeading={false} />
-            )}
-            <div className="field"><label>Description</label>
-              <MarkdownTextarea value={form.note} onChange={set('note')} rows={3}
-                placeholder="Observations, entretien..." />
-            </div>
-            <p style={{ fontSize: '.78rem', color: '#64748b', margin: '0 0 10px', lineHeight: 1.45 }}>
-              Textes ci-dessous : même contenu qu’en mode visite (sous-titre, accroche, bloc dépliable).
-            </p>
-            <div className="field"><label>Sous-titre (visite)</label>
-              <input value={form.visit_subtitle} onChange={set('visit_subtitle')} placeholder="Optionnel" />
-            </div>
-            <div className="field"><label>Description courte (visite)</label>
-              <MarkdownTextarea value={form.visit_short_description} onChange={set('visit_short_description')} rows={2} placeholder="Texte d’accroche sous le titre" />
-            </div>
-            <div className="field"><label>Titre du bloc dépliable (visite)</label>
-              <input value={form.visit_details_title} onChange={set('visit_details_title')} placeholder="Détails" />
-            </div>
-            <div className="field"><label>Détails dépliables (visite)</label>
-              <MarkdownTextarea value={form.visit_details_text} onChange={set('visit_details_text')} rows={4} placeholder="Contenu du panneau repliable" />
-            </div>
-            <div className="visit-editorial-builder">
-              <h5>Bloc images (visite)</h5>
-              <p className="section-sub">Choisis des photos déjà associées au repère, ou associe d’abord une photo de l’onglet Photos.</p>
-              <div className="visit-editorial-builder__actions">
-                <button type="button" className="btn btn-ghost btn-sm" onClick={addImageBlock}>+ Bloc image</button>
-              </div>
-              <VisitEditorialMapPhotoImportList
-                photos={markerPhotoOptions}
-                heading="Photos liées à ce repère"
-                onAssociate={attachMarkerPhotoToVisit}
-              />
-              <div className="visit-editorial-builder__list">
-                {imageBlocks.map((block) => (
-                  <div key={block.id} className="visit-editorial-builder__item">
-                    <div className="visit-editorial-builder__head">
-                      <strong>Image(s)</strong>
-                      <div className="visit-editorial-builder__head-actions">
-                        <button type="button" className="btn btn-danger btn-sm" onClick={() => removeImageBlock(block.id)}>Suppr.</button>
-                      </div>
-                    </div>
-                    <div className="visit-editorial-builder__image">
-                      <label>Photos du bloc (1 ou 2)</label>
-                      <VisitEditorialMediaIdPicker
-                        mediaList={visitMediaOptions}
-                        selectedIds={block.media_ids || []}
-                        onChange={(ids) => updateImageBlock(block.id, { media_ids: ids })}
-                        emptyHint="Aucune photo visite — onglet Photos ou associe une photo repère ci-dessus."
-                      />
-                      <div className="visit-editorial-builder__image-meta">
-                        <select value={block.size || 'md'} onChange={(e) => updateImageBlock(block.id, { size: e.target.value })}>
-                          <option value="sm">Compact</option>
-                          <option value="md">Normal</option>
-                          <option value="lg">Large</option>
-                        </select>
-                      </div>
-                      <input
-                        value={block.caption || ''}
-                        onChange={(e) => updateImageBlock(block.id, { caption: e.target.value })}
-                        placeholder="Légende (optionnel)"
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="field"><label htmlFor="marker-edit-emoji-custom">Emoji du repère (optionnel)</label>
-              <ZoneOrMarkerEmojiField
-                id="marker-edit-emoji-custom"
-                value={form.emoji}
-                onChange={(v) => setForm((f) => ({ ...f, emoji: v }))}
-                maxLen={MAP_MARKER_EMOJI_MAX_CHARS}
-                allowNone
-              />
-              <div style={{
-                display: 'flex', gap: 6, flexWrap: 'wrap', maxHeight: 180, overflowY: 'auto', paddingRight: 2,
-                WebkitOverflowScrolling: 'touch', touchAction: 'pan-y',
-              }}>
-                {markerEmojis.map((emoji) => (
-                  <button
-                    type="button"
-                    key={emoji}
-                    className={`emoji-btn ${form.emoji === emoji ? 'sel' : ''}`}
-                    onClick={() => setForm((f) => ({ ...f, emoji }))}>
-                    {emoji}
-                  </button>
-                ))}
-              </div>
-            </div>
+            <MarkerCommonFormFields form={form} setForm={setForm} plants={plants} set={set} />
+            <MarkerVisitImageBuilder
+              imageBlocks={imageBlocks}
+              visitMediaOptions={visitMediaOptions}
+              markerPhotoOptions={markerPhotoOptions}
+              onAddImageBlock={addImageBlock}
+              onUpdateImageBlock={updateImageBlock}
+              onRemoveImageBlock={removeImageBlock}
+              onAssociatePhoto={attachMarkerPhotoToVisit}
+            />
+            <MarkerEmojiField id="marker-edit-emoji-custom" form={form} setForm={setForm} markerEmojis={markerEmojis} />
             <button className="btn btn-primary btn-full" onClick={saveEdit} disabled={saving}>
               {saving ? '...' : '💾 Sauvegarder'}
             </button>
