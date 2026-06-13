@@ -3,18 +3,19 @@ import React, {
 } from 'react';
 import { api, AccountDeletedError, withAppBase } from '../services/api';
 import MascotPackWysiwygEditor from './MascotPackWysiwygEditor.jsx';
-import VisitMapMascotRenderer from './VisitMapMascotRenderer.jsx';
 import {
   clonePackDeep,
   parsePackJson,
   stringifyPack,
-  serverMascotPackAssetsPrefix,
-  serverMascotSpriteLibraryAssetsPrefix,
-  MASCOT_PACK_FALLBACK_SILHOUETTES,
 } from '../utils/mascotPackEditorModel.js';
-import { validateMascotPackV1 } from '../utils/mascotPack.js';
-import { isSpriteLibraryPreviewableUrl, estimateStateDurationMs } from '../utils/visitMascotPackTiming.js';
-import { buildVisitMascotCatalogExtrasFromContent } from '../utils/visitMascotPackExtras.js';
+import {
+  getPackStrictValidation,
+  computeEditorWarnings,
+  filterGlobalAssets,
+  insertAssetUrlIntoPackState,
+} from '../utils/visitMascotPackManager.js';
+import PackBehaviorDetailTable from './mascot/PackBehaviorDetailTable.jsx';
+import { isSpriteLibraryPreviewableUrl } from '../utils/visitMascotPackTiming.js';
 import { getVisitMascotCatalog } from '../utils/visitMascotCatalog.js';
 import { VISIT_MASCOT_STATE } from '../utils/visitMascotState.js';
 import {
@@ -29,7 +30,7 @@ import {
 } from '../utils/visitMascotInteractionEvents.js';
 import VisitMascotDialogEditor from './VisitMascotDialogEditor.jsx';
 import VisitMascotDialogStudioView from './VisitMascotDialogStudioView.jsx';
-import useVisitMascotStateMachine from '../hooks/useVisitMascotStateMachine.js';
+import VisitMascotStudioPreviewSection from './mascot/VisitMascotStudioPreviewSection.jsx';
 
 /** @param {string} url */
 const RIGHT_TABS = [
@@ -60,182 +61,6 @@ const VISIT_STATE_LABELS = {
   [VISIT_MASCOT_STATE.ANGRY]: 'Fâchée',
   [VISIT_MASCOT_STATE.SURPRISE]: 'Surprise',
 };
-
-/**
- * @param {Record<string, unknown>} pack
- * @param {string} packId
- * @param {string} mapId
- */
-function getPackStrictValidation(pack, packId, mapId) {
-  const allowedFramesBasePrefixes = ['/assets/mascots/'];
-  const packPrefix = serverMascotPackAssetsPrefix(packId);
-  if (packPrefix) allowedFramesBasePrefixes.push(packPrefix);
-  const libraryPrefix = serverMascotSpriteLibraryAssetsPrefix(mapId);
-  if (libraryPrefix) allowedFramesBasePrefixes.push(libraryPrefix);
-  return validateMascotPackV1(pack, { allowedFramesBasePrefixes });
-}
-
-/** @param {{ pack: Record<string, unknown> }} props */
-function PackBehaviorDetailTable({ pack }) {
-  const validated = useMemo(() => validateMascotPackV1(pack, { relaxAssetPrefix: true }), [pack]);
-  if (!validated.ok) {
-    return <p className="section-sub text-danger">Pack invalide pour la fiche — corrigez le JSON ou l’éditeur.</p>;
-  }
-  const states = Object.keys(validated.pack.stateFrames || {}).sort();
-  const ver = Number(validated.pack.mascotPackVersion) === 2 ? 2 : 1;
-  return (
-    <div className="visit-mascot-pack-detail">
-      <p className="section-sub" style={{ fontSize: '0.85rem' }}>
-        Version pack <strong>{ver}</strong>
-        {' · '}
-        <code>framesBase</code> {String(validated.pack.framesBase || '')}
-        {' · '}
-        {validated.pack.frameWidth}×{validated.pack.frameHeight}
-        {validated.pack.displayScale != null ? ` · échelle ${validated.pack.displayScale}` : ''}
-        {' · '}
-        silhouette <code>{String(validated.pack.fallbackSilhouette || '')}</code>
-      </p>
-      {validated.pack.stateAliases && Object.keys(validated.pack.stateAliases).length > 0 ? (
-        <p className="section-sub" style={{ fontSize: '0.82rem' }}>
-          Alias :{' '}
-          {Object.entries(validated.pack.stateAliases).map(([a, t]) => `${a}→${t}`).join(', ')}
-        </p>
-      ) : null}
-      <div style={{ overflowX: 'auto' }}>
-        <table className="visit-mascot-pack-detail-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
-          <thead>
-            <tr style={{ textAlign: 'left', borderBottom: '1px solid rgba(26,71,49,0.2)' }}>
-              <th style={{ padding: '6px 8px' }}>État</th>
-              <th style={{ padding: '6px 8px' }}>Images</th>
-              <th style={{ padding: '6px 8px' }}>fps</th>
-              <th style={{ padding: '6px 8px' }}>frameDwellMs</th>
-              <th style={{ padding: '6px 8px' }}>Durée estimée</th>
-            </tr>
-          </thead>
-          <tbody>
-            {states.map((st) => {
-              const spec = validated.pack.stateFrames[st];
-              const n = Array.isArray(spec?.files) ? spec.files.length : (Array.isArray(spec?.srcs) ? spec.srcs.length : 0);
-              const dwell = Array.isArray(spec?.frameDwellMs) ? spec.frameDwellMs.join(', ') : '—';
-              const dur = estimateStateDurationMs(validated.pack, st);
-              return (
-                <tr key={st} style={{ borderBottom: '1px solid rgba(26,71,49,0.08)' }}>
-                  <td style={{ padding: '6px 8px' }}><code>{st}</code></td>
-                  <td style={{ padding: '6px 8px' }}>{n}</td>
-                  <td style={{ padding: '6px 8px' }}>{spec?.fps != null ? String(spec.fps) : '—'}</td>
-                  <td style={{ padding: '6px 8px', maxWidth: 220, wordBreak: 'break-all' }}>{dwell}</td>
-                  <td style={{ padding: '6px 8px' }}>{dur != null ? `${dur} ms` : '—'}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
-
-/** @param {{ packs: Array<{ catalog_id: string, label: string, pack: object }>, mapId: string, onForceLogout?: () => void }} props */
-function VisitMascotStudioPreviewSection({ packs, mapId, onForceLogout }) {
-  const extras = useMemo(
-    () => buildVisitMascotCatalogExtrasFromContent(
-      packs.map((p) => ({ catalog_id: p.catalog_id, label: p.label, pack: p.pack })),
-    ),
-    [packs],
-  );
-  const visitMascotOptions = useMemo(
-    () => [...getVisitMascotCatalog(), ...extras],
-    [extras],
-  );
-  const {
-    visitMascotId,
-    visitMascotPreviewState,
-    visitMascotPreviewStateOptions,
-    onChangeVisitMascotId,
-    setVisitMascotPreviewState,
-  } = useVisitMascotStateMachine({
-    walking: false,
-    happy: false,
-    extraCatalogEntries: extras,
-  });
-  const visitMascotPreviewBodyMotionClass = useMemo(() => {
-    const s = visitMascotPreviewState;
-    if (s === VISIT_MASCOT_STATE.WALKING || s === VISIT_MASCOT_STATE.RUNNING) {
-      return 'visit-mascot-preview-body--motion-walk';
-    }
-    if (
-      s === VISIT_MASCOT_STATE.HAPPY
-      || s === VISIT_MASCOT_STATE.CELEBRATE
-      || s === VISIT_MASCOT_STATE.HAPPY_JUMP
-      || s === VISIT_MASCOT_STATE.SPIN
-    ) {
-      return 'visit-mascot-preview-body--motion-happy';
-    }
-    return 'visit-mascot-preview-body--motion-idle';
-  }, [visitMascotPreviewState]);
-
-  return (
-    <section className="visit-mascot-preview-card" aria-label="Aperçu de la mascotte">
-      <p className="section-sub" style={{ fontSize: '0.82rem' }}>
-        Carte <strong>{mapId}</strong> — packs chargés (y compris brouillons) pour prévisualiser les mascottes serveur.
-      </p>
-      <div className="visit-mascot-preview-actions" style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
-        <button
-          type="button"
-          className={`btn btn-sm ${visitMascotPreviewState === VISIT_MASCOT_STATE.IDLE ? 'btn-primary' : 'btn-ghost'}`}
-          onClick={() => setVisitMascotPreviewState(VISIT_MASCOT_STATE.IDLE)}
-        >
-          Idle
-        </button>
-        <button
-          type="button"
-          className={`btn btn-sm ${visitMascotPreviewState === VISIT_MASCOT_STATE.WALKING ? 'btn-primary' : 'btn-ghost'}`}
-          onClick={() => setVisitMascotPreviewState(VISIT_MASCOT_STATE.WALKING)}
-        >
-          Marche
-        </button>
-        <button
-          type="button"
-          className={`btn btn-sm ${visitMascotPreviewState === VISIT_MASCOT_STATE.HAPPY ? 'btn-primary' : 'btn-ghost'}`}
-          onClick={() => setVisitMascotPreviewState(VISIT_MASCOT_STATE.HAPPY)}
-        >
-          Heureuse
-        </button>
-        {visitMascotPreviewStateOptions
-          .filter((entry) => ![VISIT_MASCOT_STATE.IDLE, VISIT_MASCOT_STATE.WALKING, VISIT_MASCOT_STATE.HAPPY].includes(entry.state))
-          .map((entry) => (
-            <button
-              key={entry.state}
-              type="button"
-              className={`btn btn-sm ${visitMascotPreviewState === entry.state ? 'btn-primary' : 'btn-ghost'}`}
-              onClick={() => setVisitMascotPreviewState(entry.state)}
-            >
-              {entry.icon} {entry.label}
-            </button>
-          ))}
-      </div>
-      <label className="visit-mascot-picker" style={{ display: 'block', marginBottom: 10 }}>
-        <span>Mascotte</span>
-        <select value={visitMascotId} onChange={(e) => onChangeVisitMascotId(e.target.value)}>
-          {visitMascotOptions.map((m) => (
-            <option key={m.id} value={m.id}>{m.label}</option>
-          ))}
-        </select>
-      </label>
-      <div
-        className={`visit-mascot-preview-body ${visitMascotPreviewBodyMotionClass}`}
-        aria-hidden="true"
-        style={{ minHeight: 200 }}
-      >
-        <VisitMapMascotRenderer
-          mascotState={visitMascotPreviewState}
-          mascotId={visitMascotId}
-          extraCatalogEntries={extras}
-        />
-      </div>
-    </section>
-  );
-}
 
 /**
  * Gestionnaire GUI des packs mascotte serveur (prof élevé, par carte).
@@ -380,20 +205,7 @@ export default function VisitMascotPackManager({
     if (!selectedId) return { ok: false, error: null };
     return getPackStrictValidation(sanitizeMascotPackDraft(editorPack), selectedId, String(mapId || '').trim());
   }, [editorPack, selectedId, mapId]);
-  const editorWarnings = useMemo(() => {
-    const warnings = [];
-    const silhouette = String(editorPack?.fallbackSilhouette || '').trim();
-    if (silhouette && !MASCOT_PACK_FALLBACK_SILHOUETTES.includes(silhouette)) {
-      warnings.push(`Silhouette « ${silhouette} » inconnue.`);
-    }
-    const stateFrames = editorPack?.stateFrames && typeof editorPack.stateFrames === 'object'
-      ? editorPack.stateFrames
-      : {};
-    if (!stateFrames?.idle) {
-      warnings.push('État recommandé manquant: ajoutez un état « idle » pour un fallback visuel fiable.');
-    }
-    return warnings;
-  }, [editorPack]);
+  const editorWarnings = useMemo(() => computeEditorWarnings(editorPack), [editorPack]);
 
   const setActionErrorWithDetails = useCallback((message, details) => {
     const issues = extractMascotPackValidationIssues(details);
@@ -719,51 +531,15 @@ export default function VisitMascotPackManager({
     setEditorTab('workspace');
   }, [mapId]);
 
-  const libraryFilteredAssets = useMemo(() => {
-    const q = String(globalAssetSearch || '').trim().toLowerCase();
-    if (!q) return globalAssets;
-    return globalAssets.filter((a) => {
-      const hay = [
-        a?.filename,
-        a?.url,
-        a?.source,
-        a?.map_id,
-        a?.pack_catalog_id,
-        a?.pack_label,
-      ].map((x) => String(x || '').toLowerCase()).join(' ');
-      return hay.includes(q);
-    });
-  }, [globalAssets, globalAssetSearch]);
+  const libraryFilteredAssets = useMemo(
+    () => filterGlobalAssets(globalAssets, globalAssetSearch),
+    [globalAssets, globalAssetSearch],
+  );
 
   const insertGlobalAssetIntoState = useCallback((assetUrl) => {
-    const state = String(globalTargetState || '').trim() || 'idle';
     const url = String(assetUrl || '').trim();
     if (!url) return;
-    setEditorPack((prev) => {
-      const next = { ...(prev || {}) };
-      const sf = next.stateFrames && typeof next.stateFrames === 'object' ? { ...next.stateFrames } : {};
-      const cur = sf[state] && typeof sf[state] === 'object' ? { ...sf[state] } : {};
-      let srcs = [];
-      if (Array.isArray(cur.srcs) && cur.srcs.length > 0) {
-        srcs = cur.srcs.map((u) => String(u || '').trim()).filter(Boolean);
-      } else if (Array.isArray(cur.files) && cur.files.length > 0) {
-        const base = String(next.framesBase || '').trim();
-        const normalizedBase = base.endsWith('/') ? base : (base ? `${base}/` : '');
-        srcs = cur.files
-          .map((f) => `${normalizedBase}${String(f || '').replace(/^\//, '')}`)
-          .map((u) => String(u || '').trim())
-          .filter(Boolean);
-      }
-      if (!srcs.includes(url)) srcs.push(url);
-      sf[state] = {
-        ...cur,
-        srcs,
-        fps: Math.max(1, Number(cur.fps) || 8),
-      };
-      delete sf[state].files;
-      next.stateFrames = sf;
-      return next;
-    });
+    setEditorPack((prev) => insertAssetUrlIntoPackState(prev, globalTargetState, url));
     setEditorTab('workspace');
   }, [globalTargetState]);
 
