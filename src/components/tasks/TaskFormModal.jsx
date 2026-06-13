@@ -3,36 +3,25 @@ import { withAppBase } from '../../services/api';
 import { compressImageWithPreset, isLikelyImageFile } from '../../utils/image';
 import { getRoleTerms } from '../../utils/n3-terminology';
 import { useDialogA11y } from '../../hooks/useDialogA11y';
-import { armNativeFilePickerGuard, disarmNativeFilePickerGuard } from '../../utils/overlayHistory';
-import { orderedLivingBeingsForForm, nextLivingBeingsFromMultiSelect } from '../../utils/livingBeings';
+import { disarmNativeFilePickerGuard } from '../../utils/overlayHistory';
+import { nextLivingBeingsFromMultiSelect } from '../../utils/livingBeings';
 import { DialogShell } from '../DialogShell';
 import { MarkdownTextarea } from '../MarkdownTextarea.jsx';
+import { TaskFormImageField } from './TaskFormImageField.jsx';
+import { TaskFormReferentsField } from './TaskFormReferentsField.jsx';
 import {
   zonePickDisplayName,
   initialLocationIds,
   initialLinkedObjectIds,
   normalizeTutorialIds,
+  referentCandidateLabel,
+  initialTaskFormMapId,
+  buildInitialTaskForm,
+  buildTaskSavePayload,
 } from '../../utils/taskFormHelpers.js';
-import { currentLocalDateOnly, projectStatusLabel } from '../../utils/taskListHelpers.js';
-import { getCompletionMode } from '../../utils/taskComputations.js';
+import { projectStatusLabel } from '../../utils/taskListHelpers.js';
 
 const var_alert = 'var(--alert)';
-
-function referentCandidateLabel(c) {
-  const dn = String(c?.display_name || '').trim();
-  if (dn) return dn;
-  return `${String(c?.first_name || '').trim()} ${String(c?.last_name || '').trim()}`.trim() || String(c?.id || '');
-}
-
-function referentRoleHint(c, terms) {
-  const slug = String(c?.primary_role_slug || '').toLowerCase();
-  if (c?.user_type === 'teacher') {
-    if (slug === 'admin') return 'Admin';
-    if (slug === 'prof') return terms?.teacherSingular ? terms.teacherSingular : 'n3boss';
-    return 'Équipe';
-  }
-  return terms?.studentSingular ? terms.studentSingular : 'n3beur';
-}
 
 function TaskFormModal({
   zones,
@@ -61,9 +50,7 @@ function TaskFormModal({
   const defaultProjectForNew = !editTask && !isProposal && defaultProjectId
     ? taskProjects.find((p) => String(p.id || '').trim() === String(defaultProjectId || '').trim())
     : null;
-  const initialMapId = editTask
-    ? (editTask.map_id_resolved || editTask.map_id || editTask.zone_map_id || editTask.marker_map_id || null)
-    : (defaultProjectForNew?.map_id || activeMapId);
+  const initialMapId = initialTaskFormMapId(editTask, defaultProjectForNew, activeMapId);
   const initialZoneIds = (() => {
     const ids = initialLocationIds(editTask, 'zone_ids', 'zone_id');
     return ids.length ? ids : initialLinkedObjectIds(editTask, 'zones_linked');
@@ -72,33 +59,14 @@ function TaskFormModal({
     const ids = initialLocationIds(editTask, 'marker_ids', 'marker_id');
     return ids.length ? ids : initialLinkedObjectIds(editTask, 'markers_linked');
   })();
-  const [form, setForm] = useState(editTask ? {
-    title: isDuplicate ? `${editTask.title} (copie)` : editTask.title, description: editTask.description || '',
-    map_id: initialMapId || '',
-    zone_ids: initialZoneIds,
-    marker_ids: initialMarkerIds,
-    tutorial_ids: normalizeTutorialIds(initialLocationIds(editTask, 'tutorial_ids', 'tutorial_id')),
-    referent_user_ids: editTask && Array.isArray(editTask.referent_user_ids)
-      ? [...new Set(editTask.referent_user_ids.map((id) => String(id || '').trim()).filter(Boolean))]
-      : [],
-    project_id: editTask.project_id || '',
-    start_date: isDuplicate ? currentLocalDateOnly() : (editTask.start_date || ''),
-    due_date: editTask.due_date || '',
-    required_students: editTask.required_students || 1,
-    completion_mode: getCompletionMode(editTask),
-    danger_level: editTask.danger_level != null && editTask.danger_level !== '' ? editTask.danger_level : '',
-    difficulty_level: editTask.difficulty_level != null && editTask.difficulty_level !== '' ? editTask.difficulty_level : '',
-    importance_level: editTask.importance_level != null && editTask.importance_level !== '' ? editTask.importance_level : '',
-    recurrence: editTask.recurrence || '',
-    living_beings: orderedLivingBeingsForForm(editTask.living_beings_list || editTask.living_beings, ''),
-    assign_student_ids: []
-  } : {
-    title: '', description: '', map_id: initialMapId || '',
-    zone_ids: [], marker_ids: [], tutorial_ids: [], referent_user_ids: [], living_beings: [],
-    project_id: defaultProjectForNew ? String(defaultProjectForNew.id) : '',
-    start_date: '', due_date: '', required_students: 1, completion_mode: 'single_done', danger_level: '', difficulty_level: '', importance_level: '', recurrence: '',
-    assign_student_ids: []
-  });
+  const [form, setForm] = useState(() => buildInitialTaskForm({
+    editTask,
+    isDuplicate,
+    initialMapId,
+    initialZoneIds,
+    initialMarkerIds,
+    defaultProjectForNew,
+  }));
   const [taskImageData, setTaskImageData] = useState(null);
   const [taskImagePreview, setTaskImagePreview] = useState(() => (
     editTask && !isDuplicate && editTask.image_url ? withAppBase(editTask.image_url) : null
@@ -260,43 +228,16 @@ function TaskFormModal({
 
   const submit = async () => {
     if (!form.title.trim()) return setErr('Le titre est requis');
-    const mapFromLinks = () => {
-      for (const id of form.zone_ids) {
-        const z = zones.find((zz) => String(zz.id || '').trim() === String(id || '').trim());
-        if (z?.map_id) return z.map_id;
-      }
-      for (const id of form.marker_ids) {
-        const m = markers.find((mm) => String(mm.id || '').trim() === String(id || '').trim());
-        if (m?.map_id) return m.map_id;
-      }
-      return form.map_id || null;
-    };
-    const normalizedReferentIds = [...new Set((form.referent_user_ids || []).map((id) => String(id || '').trim()).filter(Boolean))];
-    const payload = {
-      title: form.title.trim(),
-      description: form.description || '',
-      map_id: form.map_id || null,
-      zone_ids: [...new Set(form.zone_ids.map((id) => String(id || '').trim()).filter(Boolean))],
-      marker_ids: [...new Set(form.marker_ids.map((id) => String(id || '').trim()).filter(Boolean))],
-      tutorial_ids: normalizedTutorialIds,
-      referent_user_ids: normalizedReferentIds,
-      project_id: form.project_id || null,
-      start_date: form.start_date || null,
-      due_date: form.due_date || null,
-      required_students: form.required_students,
-      completion_mode: form.completion_mode || 'single_done',
-      danger_level: form.danger_level ? form.danger_level : null,
-      difficulty_level: form.difficulty_level ? form.difficulty_level : null,
-      importance_level: form.importance_level ? form.importance_level : null,
-      recurrence: form.recurrence || null,
-      living_beings: [...new Set((form.living_beings || []).map((n) => String(n || '').trim()).filter(Boolean))],
-      assign_student_ids: [...new Set((form.assign_student_ids || []).map((id) => String(id || '').trim()).filter(Boolean))],
-    };
-    if (!payload.map_id && (payload.zone_ids.length || payload.marker_ids.length)) {
-      payload.map_id = mapFromLinks();
-    }
-    if (taskImageData) payload.imageData = taskImageData;
-    else if (editTask && !isDuplicate && taskImageRemoved) payload.remove_task_image = true;
+    const payload = buildTaskSavePayload({
+      form,
+      zones,
+      markers,
+      normalizedTutorialIds,
+      taskImageData,
+      editTask,
+      isDuplicate,
+      taskImageRemoved,
+    });
     setSaving(true);
     try { await onSave(payload); onClose(); }
     catch (e) { setErr(e.message); setSaving(false); }
@@ -401,71 +342,14 @@ function TaskFormModal({
         {err && <p style={{ color: var_alert, marginBottom: 12, fontSize: '.85rem' }}>{err}</p>}
         <div className="field"><label htmlFor="task-form-title">Titre *</label><input id="task-form-title" value={form.title} onChange={set('title')} placeholder="Ex: Arroser les tomates" /></div>
         <div className="field"><label htmlFor="task-form-description">Description</label><MarkdownTextarea id="task-form-description" aria-label="Description" value={form.description} onChange={set('description')} rows={2} placeholder="Instructions détaillées..." /></div>
-        <div className="field">
-          <label>Photo illustrative (optionnel)</label>
-          <p style={{ fontSize: '.8rem', color: '#555', margin: '0 0 8px', lineHeight: 1.45 }}>
-            Depuis la galerie ou l’appareil photo : lieu, outil, plante… (JPEG/PNG/WebP, compressée à l’envoi)
-          </p>
-          {!taskImagePreview ? (
-            <div
-              className={`img-upload-area img-upload-area--split${taskImageBusy ? ' is-busy' : ''}`}
-              role="group"
-              aria-label="Photo illustrative : galerie ou appareil photo"
-              style={taskImageBusy ? { opacity: 0.7, pointerEvents: 'none' } : undefined}
-            >
-              <div style={{ fontSize: '2rem', marginBottom: 6 }}>📷</div>
-              <div style={{ fontSize: '.85rem', color: '#888', marginBottom: 10 }}>
-                {taskImageBusy ? 'Traitement…' : 'Galerie ou appareil photo'}
-              </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-sm"
-                  disabled={taskImageBusy}
-                  onClick={() => {
-                    if (taskImageBusy) return;
-                    if (taskImageGalleryInputRef.current) taskImageGalleryInputRef.current.value = '';
-                    armNativeFilePickerGuard();
-                    taskImageGalleryInputRef.current?.click();
-                  }}
-                >
-                  📁 Choisir une photo
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-sm"
-                  disabled={taskImageBusy}
-                  onClick={() => {
-                    if (taskImageBusy) return;
-                    if (taskImageCameraInputRef.current) taskImageCameraInputRef.current.value = '';
-                    armNativeFilePickerGuard();
-                    taskImageCameraInputRef.current?.click();
-                  }}
-                >
-                  📸 Prendre une photo
-                </button>
-              </div>
-              <input
-                ref={taskImageGalleryInputRef}
-                type="file"
-                accept="image/*"
-                onChange={onTaskImageFile}
-              />
-              <input
-                ref={taskImageCameraInputRef}
-                type="file"
-                accept="image/*"
-                capture="environment"
-                onChange={onTaskImageFile}
-              />
-            </div>
-          ) : (
-            <div className="img-preview-wrap">
-              <img src={taskImagePreview} className="img-preview" alt="Aperçu photo tâche" />
-              <button type="button" className="img-remove" onClick={clearTaskImage} aria-label="Retirer la photo">✕</button>
-            </div>
-          )}
-        </div>
+        <TaskFormImageField
+          preview={taskImagePreview}
+          busy={taskImageBusy}
+          galleryInputRef={taskImageGalleryInputRef}
+          cameraInputRef={taskImageCameraInputRef}
+          onFile={onTaskImageFile}
+          onClear={clearTaskImage}
+        />
         <div className="row">
           <div className="field"><label>Carte</label>
             <select value={form.map_id} onChange={set('map_id')}>
@@ -610,90 +494,18 @@ function TaskFormModal({
           </div>
         )}
         {!isProposal && (
-          <div className="field">
-            <label>Référents (optionnel)</label>
-            <p style={{ fontSize: '.8rem', color: '#555', margin: '0 0 8px', lineHeight: 1.45 }}>
-              Elles figurent sur la fiche : les {terms.studentPlural} savent vers qui se tourner en cas de question.
-            </p>
-            {referentCandidates.length > 0 && (
-              <div style={{ display: 'grid', gap: 8, marginBottom: 8 }}>
-                <input
-                  value={referentSearch}
-                  onChange={(e) => setReferentSearch(e.target.value)}
-                  placeholder="🔍 Filtrer par nom…"
-                />
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: '.8rem', color: '#666' }}>
-                    {selectedReferentCount} sélectionné{selectedReferentCount > 1 ? 's' : ''}
-                  </span>
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-sm"
-                    onClick={() => setForm((f) => ({ ...f, referent_user_ids: [] }))}
-                  >
-                    Effacer les référents
-                  </button>
-                </div>
-              </div>
-            )}
-            <div className="task-form-pick-list">
-              {referentCandidates.length === 0 ? (
-                <p className="task-form-pick-empty">Chargement de la liste des utilisateurs ou aucun compte actif.</p>
-              ) : (
-                <>
-                  {filteredTeacherReferents.length > 0 && (
-                    <>
-                      <div className="task-form-pick-subheading" aria-hidden="true">Équipe pédagogique</div>
-                      {filteredTeacherReferents.map((c) => {
-                        const cid = String(c.id || '').trim();
-                        return (
-                          <label key={cid} className="task-form-pick-item">
-                            <input
-                              type="checkbox"
-                              className="task-form-pick-checkbox"
-                              checked={(form.referent_user_ids || []).includes(cid)}
-                              onChange={() => toggleReferentUserId(cid)}
-                            />
-                            <span className="task-form-pick-text">
-                              👤 {referentCandidateLabel(c)}
-                              <span style={{ opacity: 0.75, fontSize: '.78rem' }}> — {referentRoleHint(c, terms)}</span>
-                            </span>
-                          </label>
-                        );
-                      })}
-                    </>
-                  )}
-                  {filteredStudentReferents.length > 0 && (
-                    <>
-                      <div className="task-form-pick-subheading" aria-hidden="true">
-                        {terms.studentPlural.charAt(0).toUpperCase() + terms.studentPlural.slice(1)}
-                      </div>
-                      {filteredStudentReferents.map((c) => {
-                        const cid = String(c.id || '').trim();
-                        return (
-                          <label key={cid} className="task-form-pick-item">
-                            <input
-                              type="checkbox"
-                              className="task-form-pick-checkbox"
-                              checked={(form.referent_user_ids || []).includes(cid)}
-                              onChange={() => toggleReferentUserId(cid)}
-                            />
-                            <span className="task-form-pick-text">
-                              👤 {referentCandidateLabel(c)}
-                              <span style={{ opacity: 0.75, fontSize: '.78rem' }}> — {referentRoleHint(c, terms)}</span>
-                            </span>
-                          </label>
-                        );
-                      })}
-                    </>
-                  )}
-                  {filteredTeacherReferents.length === 0 && filteredStudentReferents.length === 0 && (
-                    <p className="task-form-pick-empty">Aucun résultat pour ce filtre.</p>
-                  )}
-                </>
-              )}
-            </div>
-          </div>
+          <TaskFormReferentsField
+            terms={terms}
+            candidates={referentCandidates}
+            search={referentSearch}
+            onSearchChange={setReferentSearch}
+            selectedCount={selectedReferentCount}
+            filteredTeacher={filteredTeacherReferents}
+            filteredStudent={filteredStudentReferents}
+            selectedIds={form.referent_user_ids}
+            onToggle={toggleReferentUserId}
+            onClear={() => setForm((f) => ({ ...f, referent_user_ids: [] }))}
+          />
         )}
         <div className="row">
           <div className="field"><label>{terms.studentPlural.charAt(0).toUpperCase() + terms.studentPlural.slice(1)} requis</label>

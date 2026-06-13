@@ -13,40 +13,19 @@ import { glImageFrameToStyle, normalizeGlImageFrame } from '../../utils/glImageF
 import { GLRichTextEditor } from './ui/GLRichTextEditor.jsx';
 import { GLBrandColorEditor } from './GLBrandColorEditor.jsx';
 import { normalizeBrand } from '../hooks/useGLBrandTheme.js';
-import { brandToCssVars, mergeBrandWithChapterTheme, normalizeChapterTheme } from '../../utils/glBrandTheme.js';
+import { brandToCssVars, mergeBrandWithChapterTheme } from '../../utils/glBrandTheme.js';
 import { GLButton } from './ui/GLButton.jsx';
-import { GL_SPELL_CATEGORY_LABELS } from '../utils/glSpellFieldLabels.js';
 import { GLChaptersImportExportPanel } from './admin/GLChaptersImportExportPanel.jsx';
 import { GLChapterScenesAdminPanel } from './admin/GLChapterScenesAdminPanel.jsx';
-
-const EMPTY_CHAPTER_THEME = { colors: {} };
-
-const EMPTY_CHAPTER_FORM = {
-  slug: '',
-  title: '',
-  biome: '',
-  biomeSlugs: [],
-  spellCodes: [],
-  mapImageUrl: '',
-  storyMarkdown: '',
-  biotopeMarkdown: '',
-  biocenoseMarkdown: '',
-  sortilegesMarkdown: '',
-  orderIndex: 0,
-  plateauNumber: '',
-  mapImageFrame: normalizeGlImageFrame(null, 'chapter-map'),
-  theme: { ...EMPTY_CHAPTER_THEME },
-};
-
-function moveBiomeSlug(slugs, slug, direction) {
-  const list = [...slugs];
-  const index = list.indexOf(slug);
-  if (index < 0) return list;
-  const target = index + direction;
-  if (target < 0 || target >= list.length) return list;
-  [list[index], list[target]] = [list[target], list[index]];
-  return list;
-}
+import { GLChapterSpellsFieldset } from './admin/GLChapterSpellsFieldset.jsx';
+import { GLChapterBiomesFieldset } from './admin/GLChapterBiomesFieldset.jsx';
+import {
+  EMPTY_CHAPTER_FORM,
+  allSpellCodesFrom,
+  chapterDetailToForm,
+  chapterFormToPayload,
+  groupSpellsByCategory,
+} from '../utils/glChapterAdminForm.js';
 
 export function GLChaptersAdminView() {
   const [chapters, setChapters] = useState([]);
@@ -105,26 +84,7 @@ export function GLChaptersAdminView() {
     try {
       const data = await apiGL(`/api/gl/chapters/${encodeURIComponent(slug)}`);
       setDetail(data);
-      setChapterForm({
-        slug: data.chapter.slug,
-        title: data.chapter.title || '',
-        biome: data.chapter.biome || '',
-        biomeSlugs: Array.isArray(data.chapter.biomes)
-          ? data.chapter.biomes.map((b) => b.slug)
-          : [],
-        spellCodes: Array.isArray(data.chapter.spells)
-          ? data.chapter.spells.map((s) => s.spell_code)
-          : [],
-        mapImageUrl: data.chapter.map_image_url || '',
-        mapImageFrame: normalizeGlImageFrame(data.chapter.map_image_frame, 'chapter-map'),
-        storyMarkdown: data.chapter.story_markdown || '',
-        biotopeMarkdown: data.chapter.biotope_markdown || '',
-        biocenoseMarkdown: data.chapter.biocenose_markdown || '',
-        sortilegesMarkdown: data.chapter.sortileges_markdown || '',
-        orderIndex: Number(data.chapter.order_index || 0),
-        plateauNumber: data.chapter.plateau_number != null ? String(data.chapter.plateau_number) : '',
-        theme: normalizeChapterTheme(data.chapter.theme),
-      });
+      setChapterForm(chapterDetailToForm(data));
       setSelectedId(Number(data.chapter.id));
       clearPendingMapImage();
     } catch (err) {
@@ -171,13 +131,7 @@ export function GLChaptersAdminView() {
     event.preventDefault();
     setError('');
     setInfo('');
-    const payload = {
-      ...chapterForm,
-      mapImageFrame: normalizeGlImageFrame(chapterForm.mapImageFrame, 'chapter-map'),
-      theme: normalizeChapterTheme(chapterForm.theme),
-      orderIndex: Number(chapterForm.orderIndex) || 0,
-      plateauNumber: chapterForm.plateauNumber === '' ? null : Number(chapterForm.plateauNumber),
-    };
+    const payload = chapterFormToPayload(chapterForm);
     try {
       let chapterId = selectedId;
       if (selectedId) {
@@ -292,26 +246,9 @@ export function GLChaptersAdminView() {
 
   const markers = useMemo(() => (Array.isArray(detail?.markers) ? detail.markers : []), [detail]);
 
-  const spellsByCategory = useMemo(() => {
-    const map = new Map();
-    for (const spell of spellCatalog) {
-      const slug = String(spell.category_slug || 'autre');
-      if (!map.has(slug)) {
-        map.set(slug, {
-          slug,
-          nom: GL_SPELL_CATEGORY_LABELS[slug] || spell.category_nom || slug,
-          spells: [],
-        });
-      }
-      map.get(slug).spells.push(spell);
-    }
-    return [...map.values()].sort((a, b) => a.nom.localeCompare(b.nom, 'fr'));
-  }, [spellCatalog]);
+  const spellsByCategory = useMemo(() => groupSpellsByCategory(spellCatalog), [spellCatalog]);
 
-  const allSpellCodes = useMemo(
-    () => spellCatalog.map((s) => String(s.spell_code || '').trim()).filter(Boolean),
-    [spellCatalog]
-  );
+  const allSpellCodes = useMemo(() => allSpellCodesFrom(spellCatalog), [spellCatalog]);
 
   function setSpellCodes(next) {
     setChapterForm((prev) => ({ ...prev, spellCodes: next }));
@@ -425,181 +362,20 @@ export function GLChaptersAdminView() {
                 Texte affiché dans l’histoire ; indépendant du catalogue espèces ci-dessous.
               </span>
             </label>
-            <fieldset className="gl-chapter-biomes-fieldset">
-              <legend>Biomes (catalogue espèces)</legend>
-              <p className="gl-hint">
-                Sélection multiple : alimente la biocénose, le glossaire et les tirages QCM du chapitre.
-              </p>
-              {chapterForm.biomeSlugs.length > 0 ? (
-                <ol className="gl-chapter-biomes-selected">
-                  {chapterForm.biomeSlugs.map((slug) => {
-                    const biome = biomes.find((b) => b.slug === slug);
-                    return (
-                      <li key={slug}>
-                        <span>
-                          {biome?.nom || slug}
-                          {biome?.species_count != null ? ` (${biome.species_count} esp.)` : ''}
-                        </span>
-                        <span className="gl-inline-actions">
-                          <GLButton
-                            type="button"
-                            size="sm"
-                            variant="secondary"
-                            onClick={() => setChapterForm({
-                              ...chapterForm,
-                              biomeSlugs: moveBiomeSlug(chapterForm.biomeSlugs, slug, -1),
-                            })}
-                          >
-                            ↑
-                          </GLButton>
-                          <GLButton
-                            type="button"
-                            size="sm"
-                            variant="secondary"
-                            onClick={() => setChapterForm({
-                              ...chapterForm,
-                              biomeSlugs: moveBiomeSlug(chapterForm.biomeSlugs, slug, 1),
-                            })}
-                          >
-                            ↓
-                          </GLButton>
-                          <GLButton
-                            type="button"
-                            size="sm"
-                            variant="secondary"
-                            onClick={() => setChapterForm({
-                              ...chapterForm,
-                              biomeSlugs: chapterForm.biomeSlugs.filter((s) => s !== slug),
-                            })}
-                          >
-                            Retirer
-                          </GLButton>
-                        </span>
-                      </li>
-                    );
-                  })}
-                </ol>
-              ) : (
-                <p className="gl-hint">Aucun biome catalogue sélectionné.</p>
-              )}
-              <ul className="gl-chapter-biomes-options">
-                {biomes.map((biome) => {
-                  const checked = chapterForm.biomeSlugs.includes(biome.slug);
-                  return (
-                    <li key={biome.slug}>
-                      <label>
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          onChange={(event) => {
-                            const next = event.target.checked
-                              ? [...chapterForm.biomeSlugs, biome.slug]
-                              : chapterForm.biomeSlugs.filter((s) => s !== biome.slug);
-                            setChapterForm({ ...chapterForm, biomeSlugs: next });
-                          }}
-                        />
-                        {biome.nom}
-                        {' '}
-                        (
-                        {biome.species_count || 0}
-                        {' '}
-                        esp.)
-                      </label>
-                    </li>
-                  );
-                })}
-              </ul>
-            </fieldset>
-            <fieldset className="gl-fieldset">
-              <legend>Sorts du chapitre (grimoire)</legend>
-              <p className="gl-hint">
-                Cochez les sorts disponibles pour ce chapitre en partie (onglet Sortilèges).
-              </p>
-              <div className="gl-inline-actions gl-inline-actions--wrap">
-                <GLButton
-                  type="button"
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => selectAllSpells(allSpellCodes)}
-                  disabled={allSpellCodes.length === 0}
-                >
-                  Tout cocher
-                </GLButton>
-                <GLButton
-                  type="button"
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => setSpellCodes([])}
-                  disabled={chapterForm.spellCodes.length === 0}
-                >
-                  Tout décocher
-                </GLButton>
-              </div>
-              {chapterForm.spellCodes.length > 0 ? (
-                <p className="gl-hint">
-                  {chapterForm.spellCodes.length}
-                  {' '}
-                  sort(s) sélectionné(s).
-                </p>
-              ) : (
-                <p className="gl-hint">Aucun sort sélectionné.</p>
-              )}
-              {spellsByCategory.length === 0 ? (
-                <p className="gl-hint">
-                  Catalogue vide — importez des sorts dans Contenus → Sortilèges.
-                </p>
-              ) : (
-                spellsByCategory.map((group) => {
-                  const groupCodes = group.spells.map((s) => s.spell_code);
-                  const allInGroup = groupCodes.every((c) => chapterForm.spellCodes.includes(c));
-                  return (
-                    <div key={group.slug} className="gl-chapter-spells-group">
-                      <div className="gl-inline-actions gl-inline-actions--wrap">
-                        <strong>{group.nom}</strong>
-                        <GLButton
-                          type="button"
-                          size="sm"
-                          variant="secondary"
-                          onClick={() => (
-                            allInGroup
-                              ? deselectAllSpells(groupCodes)
-                              : selectAllSpells(groupCodes)
-                          )}
-                        >
-                          {allInGroup ? 'Tout décocher' : 'Tout cocher'}
-                          {' '}
-                          (
-                          {group.spells.length}
-                          )
-                        </GLButton>
-                      </div>
-                      <ul className="gl-chapter-spells-options">
-                        {group.spells.map((spell) => {
-                          const code = spell.spell_code;
-                          const checked = chapterForm.spellCodes.includes(code);
-                          return (
-                            <li key={code}>
-                              <label>
-                                <input
-                                  type="checkbox"
-                                  checked={checked}
-                                  onChange={(event) => toggleSpellCode(code, event.target.checked)}
-                                />
-                                <span aria-hidden="true">{spell.emoji || '✨'}</span>
-                                {' '}
-                                {spell.nom}
-                                {' '}
-                                <span className="gl-hint">({code})</span>
-                              </label>
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    </div>
-                  );
-                })
-              )}
-            </fieldset>
+            <GLChapterBiomesFieldset
+              biomes={biomes}
+              selectedSlugs={chapterForm.biomeSlugs}
+              onChange={(nextSlugs) => setChapterForm({ ...chapterForm, biomeSlugs: nextSlugs })}
+            />
+            <GLChapterSpellsFieldset
+              spellsByCategory={spellsByCategory}
+              allSpellCodes={allSpellCodes}
+              selectedCodes={chapterForm.spellCodes}
+              onToggleSpell={toggleSpellCode}
+              onSelectAll={selectAllSpells}
+              onDeselectAll={deselectAllSpells}
+              onClearAll={() => setSpellCodes([])}
+            />
             <GLImageSourceField
               label="Image de carte"
               url={chapterForm.mapImageUrl}
