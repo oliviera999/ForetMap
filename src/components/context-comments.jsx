@@ -9,9 +9,9 @@ import {
   toggleContextCommentReaction,
 } from '../services/api';
 import { formatDateTimeFr } from '../utils/datetime-fr';
-import { AttachmentImagesPicker, UserContentImagesGrid } from './attachment-images-picker';
+import { UserContentImagesGrid } from './attachment-images-picker';
 import { MarkdownContent } from './MarkdownContent.jsx';
-import { MarkdownTextarea } from './MarkdownTextarea.jsx';
+import { ContextCommentForm } from './context-comments/ContextCommentForm.jsx';
 import {
   DEFAULT_REACTION_EMOJIS,
   canModerate,
@@ -256,25 +256,16 @@ function ContextComments({
       {isOpen && (
         <div className="context-comments-body">
           {canUseCommentActions ? (
-            <form className="context-comments-form" onSubmit={submit}>
-              <MarkdownTextarea
-                value={body}
-                onChange={(e) => setBody(e.target.value)}
-                rows={2}
-                maxLength={4000}
-                placeholder={placeholder}
-                required={pendingImages.length === 0}
-              />
-              <AttachmentImagesPicker
-                value={pendingImages}
-                onChange={setPendingImages}
-                disabled={submitting}
-                onNotify={(msg) => setToast(msg)}
-              />
-              <button type="submit" className="btn btn-secondary btn-sm" disabled={submitting}>
-                {submitting ? 'Envoi...' : 'Publier'}
-              </button>
-            </form>
+            <ContextCommentForm
+              body={body}
+              onBodyChange={setBody}
+              pendingImages={pendingImages}
+              onPendingImagesChange={setPendingImages}
+              placeholder={placeholder}
+              submitting={submitting}
+              onSubmit={submit}
+              onNotify={(msg) => setToast(msg)}
+            />
           ) : (
             <p className="forum-muted" style={{ margin: '0 0 10px', lineHeight: 1.5, fontSize: '.85rem' }}>
               Lecture seule : tu peux consulter les commentaires ; la publication n’est pas activée sur ton compte.
