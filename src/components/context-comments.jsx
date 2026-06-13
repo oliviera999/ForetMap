@@ -8,10 +8,8 @@ import {
   reportContextComment,
   toggleContextCommentReaction,
 } from '../services/api';
-import { formatDateTimeFr } from '../utils/datetime-fr';
-import { UserContentImagesGrid } from './attachment-images-picker';
-import { MarkdownContent } from './MarkdownContent.jsx';
 import { ContextCommentForm } from './context-comments/ContextCommentForm.jsx';
+import { ContextCommentItem } from './context-comments/ContextCommentItem.jsx';
 import {
   DEFAULT_REACTION_EMOJIS,
   canModerate,
@@ -275,98 +273,26 @@ function ContextComments({
           <div className="context-comments-list">
             {loading && <p className="forum-muted">Chargement…</p>}
             {!loading && items.length === 0 && <p className="forum-muted">Aucun commentaire pour l’instant.</p>}
-            {items.map((item) => {
-              const isOwner = item.author_user_type === currentUserType && item.author_user_id === currentUserId;
-              const canDelete = allowModeration || (canUseCommentActions && isOwner);
-              const reactionsExpanded = !!expandedReactionsByComment[item.id];
-              return (
-                <article key={item.id} className={`context-comment-item ${item.is_deleted ? 'is-deleted' : ''}`}>
-                  <div className="context-comment-head">
-                    <strong>{item.author_display_name}</strong>
-                    <span>{formatDateTimeFr(item.created_at)}</span>
-                  </div>
-                  {item.is_deleted ? (
-                    <p className="context-comment-body">[commentaire supprimé]</p>
-                  ) : (
-                    <MarkdownContent className="context-comment-body">{item.body}</MarkdownContent>
-                  )}
-                  {!item.is_deleted && (
-                    <UserContentImagesGrid urls={item.image_urls} />
-                  )}
-                  {!item.is_deleted && (canUseCommentActions ? (
-                    <div className={`message-reactions-row ${reactionsExpanded ? 'expanded' : 'compact'}`}>
-                      {!reactionsExpanded ? (
-                        <button
-                          type="button"
-                          className="message-reaction-chip message-reaction-chip--toggle"
-                          onClick={() => setExpandedReactionsByComment((prev) => ({ ...prev, [item.id]: true }))}
-                          title="Afficher toutes les réactions"
-                        >
-                          <span>{firstReactionEmoji}</span>
-                        </button>
-                      ) : (
-                        <>
-                          {reactionEmojis.map((emoji) => {
-                            const reaction = (item.reactions || []).find((r) => r.emoji === emoji);
-                            const count = Number(reaction?.count || 0);
-                            const mine = !!reaction?.reacted_by_me;
-                            return (
-                              <button
-                                key={`${item.id}-${emoji}`}
-                                type="button"
-                                className={`message-reaction-chip ${mine ? 'active' : ''}`}
-                                onClick={() => react(item.id, emoji)}
-                                title={`Réagir avec ${emoji}`}
-                              >
-                                <span>{emoji}</span>
-                                {count > 0 && <span>{count}</span>}
-                              </button>
-                            );
-                          })}
-                          <button
-                            type="button"
-                            className="message-reaction-chip message-reaction-chip--toggle"
-                            onClick={() => setExpandedReactionsByComment((prev) => ({ ...prev, [item.id]: false }))}
-                            title="Réduire les réactions"
-                          >
-                            <span>▾</span>
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  ) : (
-                    (item.reactions || []).some((r) => Number(r.count) > 0) && (
-                      <div className="message-reactions-row compact" style={{ opacity: 0.85 }}>
-                        {(item.reactions || []).filter((r) => Number(r.count) > 0).map((r) => (
-                          <span key={`${item.id}-${r.emoji}`} className="message-reaction-chip" style={{ cursor: 'default' }}>
-                            <span>{r.emoji}</span>
-                            <span>{r.count}</span>
-                          </span>
-                        ))}
-                      </div>
-                    )
-                  ))}
-                  {!item.is_deleted && canUseCommentActions && (
-                    <div className="context-comment-actions">
-                      {canDelete && (
-                        <button type="button" className="btn btn-ghost btn-sm" onClick={() => remove(item.id)}>
-                          Supprimer
-                        </button>
-                      )}
-                      <input
-                        value={reportReasonById[item.id] || ''}
-                        onChange={(e) => setReportReasonById((prev) => ({ ...prev, [item.id]: e.target.value }))}
-                        placeholder="Motif de signalement"
-                        maxLength={500}
-                      />
-                      <button type="button" className="btn btn-secondary btn-sm" onClick={() => report(item.id)}>
-                        Signaler
-                      </button>
-                    </div>
-                  )}
-                </article>
-              );
-            })}
+            {items.map((item) => (
+              <ContextCommentItem
+                key={item.id}
+                item={item}
+                currentUserType={currentUserType}
+                currentUserId={currentUserId}
+                allowModeration={allowModeration}
+                canUseCommentActions={canUseCommentActions}
+                reactionEmojis={reactionEmojis}
+                firstReactionEmoji={firstReactionEmoji}
+                reactionsExpanded={!!expandedReactionsByComment[item.id]}
+                onExpandReactions={() => setExpandedReactionsByComment((prev) => ({ ...prev, [item.id]: true }))}
+                onCollapseReactions={() => setExpandedReactionsByComment((prev) => ({ ...prev, [item.id]: false }))}
+                onReact={react}
+                onRemove={remove}
+                reportReason={reportReasonById[item.id] || ''}
+                onReportReasonChange={(id, value) => setReportReasonById((prev) => ({ ...prev, [id]: value }))}
+                onReport={report}
+              />
+            ))}
           </div>
 
           <div className="context-comments-pager">
