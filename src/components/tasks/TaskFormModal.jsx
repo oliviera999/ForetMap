@@ -8,13 +8,13 @@ import { nextLivingBeingsFromMultiSelect } from '../../utils/livingBeings';
 import { DialogShell } from '../DialogShell';
 import { MarkdownTextarea } from '../MarkdownTextarea.jsx';
 import { TaskFormImageField } from './TaskFormImageField.jsx';
+import { TaskFormReferentsField } from './TaskFormReferentsField.jsx';
 import {
   zonePickDisplayName,
   initialLocationIds,
   initialLinkedObjectIds,
   normalizeTutorialIds,
   referentCandidateLabel,
-  referentRoleHint,
   initialTaskFormMapId,
   buildInitialTaskForm,
   buildTaskSavePayload,
@@ -494,90 +494,18 @@ function TaskFormModal({
           </div>
         )}
         {!isProposal && (
-          <div className="field">
-            <label>Référents (optionnel)</label>
-            <p style={{ fontSize: '.8rem', color: '#555', margin: '0 0 8px', lineHeight: 1.45 }}>
-              Elles figurent sur la fiche : les {terms.studentPlural} savent vers qui se tourner en cas de question.
-            </p>
-            {referentCandidates.length > 0 && (
-              <div style={{ display: 'grid', gap: 8, marginBottom: 8 }}>
-                <input
-                  value={referentSearch}
-                  onChange={(e) => setReferentSearch(e.target.value)}
-                  placeholder="🔍 Filtrer par nom…"
-                />
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: '.8rem', color: '#666' }}>
-                    {selectedReferentCount} sélectionné{selectedReferentCount > 1 ? 's' : ''}
-                  </span>
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-sm"
-                    onClick={() => setForm((f) => ({ ...f, referent_user_ids: [] }))}
-                  >
-                    Effacer les référents
-                  </button>
-                </div>
-              </div>
-            )}
-            <div className="task-form-pick-list">
-              {referentCandidates.length === 0 ? (
-                <p className="task-form-pick-empty">Chargement de la liste des utilisateurs ou aucun compte actif.</p>
-              ) : (
-                <>
-                  {filteredTeacherReferents.length > 0 && (
-                    <>
-                      <div className="task-form-pick-subheading" aria-hidden="true">Équipe pédagogique</div>
-                      {filteredTeacherReferents.map((c) => {
-                        const cid = String(c.id || '').trim();
-                        return (
-                          <label key={cid} className="task-form-pick-item">
-                            <input
-                              type="checkbox"
-                              className="task-form-pick-checkbox"
-                              checked={(form.referent_user_ids || []).includes(cid)}
-                              onChange={() => toggleReferentUserId(cid)}
-                            />
-                            <span className="task-form-pick-text">
-                              👤 {referentCandidateLabel(c)}
-                              <span style={{ opacity: 0.75, fontSize: '.78rem' }}> — {referentRoleHint(c, terms)}</span>
-                            </span>
-                          </label>
-                        );
-                      })}
-                    </>
-                  )}
-                  {filteredStudentReferents.length > 0 && (
-                    <>
-                      <div className="task-form-pick-subheading" aria-hidden="true">
-                        {terms.studentPlural.charAt(0).toUpperCase() + terms.studentPlural.slice(1)}
-                      </div>
-                      {filteredStudentReferents.map((c) => {
-                        const cid = String(c.id || '').trim();
-                        return (
-                          <label key={cid} className="task-form-pick-item">
-                            <input
-                              type="checkbox"
-                              className="task-form-pick-checkbox"
-                              checked={(form.referent_user_ids || []).includes(cid)}
-                              onChange={() => toggleReferentUserId(cid)}
-                            />
-                            <span className="task-form-pick-text">
-                              👤 {referentCandidateLabel(c)}
-                              <span style={{ opacity: 0.75, fontSize: '.78rem' }}> — {referentRoleHint(c, terms)}</span>
-                            </span>
-                          </label>
-                        );
-                      })}
-                    </>
-                  )}
-                  {filteredTeacherReferents.length === 0 && filteredStudentReferents.length === 0 && (
-                    <p className="task-form-pick-empty">Aucun résultat pour ce filtre.</p>
-                  )}
-                </>
-              )}
-            </div>
-          </div>
+          <TaskFormReferentsField
+            terms={terms}
+            candidates={referentCandidates}
+            search={referentSearch}
+            onSearchChange={setReferentSearch}
+            selectedCount={selectedReferentCount}
+            filteredTeacher={filteredTeacherReferents}
+            filteredStudent={filteredStudentReferents}
+            selectedIds={form.referent_user_ids}
+            onToggle={toggleReferentUserId}
+            onClear={() => setForm((f) => ({ ...f, referent_user_ids: [] }))}
+          />
         )}
         <div className="row">
           <div className="field"><label>{terms.studentPlural.charAt(0).toUpperCase() + terms.studentPlural.slice(1)} requis</label>
