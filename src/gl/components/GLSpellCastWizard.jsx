@@ -14,6 +14,10 @@ import {
   buildContributionsSavePayload,
 } from '../utils/glSpellCastRules.js';
 import { GLSpellCastRosterSection } from './spell-cast/GLSpellCastRosterSection.jsx';
+import {
+  GLSpellCastSpellPicker,
+  GLSpellCastTeamPicker,
+} from './spell-cast/GLSpellCastPickers.jsx';
 
 const CLOSE_MS = 200;
 
@@ -170,6 +174,17 @@ export function GLSpellCastWizard({
     await beginFundDraft({ spell: activeSpellCode, teamId: Number(teamId) });
   }
 
+  function handlePickSpell(code) {
+    setPickSpellCode(code);
+    onPickSpell?.(code);
+    staffDraftStartedRef.current = false;
+    if (isStaff) {
+      beginFundDraft({ spell: code, teamId: selectedTeamId ?? currentTeamId });
+    } else {
+      setStep('team');
+    }
+  }
+
   function updateContrib(playerIdTarget, field, rawValue) {
     const n = Math.max(0, Math.floor(Number(rawValue) || 0));
     setLocalContribs((prev) => prev.map((row) => (
@@ -290,55 +305,19 @@ export function GLSpellCastWizard({
         ) : null}
 
         {showSpellPick ? (
-          <div className="gl-spell-cast-panel__body">
-            <p className="gl-hint">Choisissez un sortilège du chapitre :</p>
-            <div className="gl-spell-cast-spell-pick">
-              {(chapterSpells || []).map((s) => (
-                <button
-                  key={s.spell_code}
-                  type="button"
-                  className="gl-spell-tile gl-spell-tile--pick"
-                  onClick={() => {
-                    const code = String(s.spell_code);
-                    setPickSpellCode(code);
-                    onPickSpell?.(code);
-                    staffDraftStartedRef.current = false;
-                    if (isStaff) {
-                      beginFundDraft({ spell: code, teamId: selectedTeamId ?? currentTeamId });
-                    } else {
-                      setStep('team');
-                    }
-                  }}
-                >
-                  <span className="gl-spell-tile__emoji" aria-hidden="true">{s.emoji || '✨'}</span>
-                  <span className="gl-spell-tile__name">{s.nom || s.spell_code}</span>
-                </button>
-              ))}
-            </div>
-          </div>
+          <GLSpellCastSpellPicker
+            chapterSpells={chapterSpells}
+            onPick={handlePickSpell}
+          />
         ) : null}
 
         {showTeamPick ? (
-          <div className="gl-spell-cast-panel__body">
-            <p className="gl-hint">Quelle équipe lance ce sortilège ?</p>
-            {selectableTeams.length === 0 ? (
-              <p className="gl-hint">Aucune équipe disponible pour vous dans cette partie.</p>
-            ) : (
-              <div className="gl-spell-cast-teams">
-                {selectableTeams.map((team) => (
-                  <GLButton
-                    key={team.id}
-                    type="button"
-                    variant={Number(selectedTeamId) === Number(team.id) ? 'primary' : 'secondary'}
-                    disabled={spellCast?.busy || fundLoading}
-                    onClick={() => handleSelectTeam(team.id)}
-                  >
-                    {team.name || `Équipe ${team.id}`}
-                  </GLButton>
-                ))}
-              </div>
-            )}
-          </div>
+          <GLSpellCastTeamPicker
+            teams={selectableTeams}
+            selectedTeamId={selectedTeamId}
+            busy={spellCast?.busy || fundLoading}
+            onSelectTeam={handleSelectTeam}
+          />
         ) : null}
 
         {showFund ? (
