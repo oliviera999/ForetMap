@@ -2,101 +2,25 @@ import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 
 import { createPortal } from 'react-dom';
 import { useDialogA11y } from '../../hooks/useDialogA11y.js';
 import { GLButton } from './ui/GLButton.jsx';
-import { GLInput } from './ui/GLInput.jsx';
 import {
   buildLocalContributions,
-  canEditContributionRow,
   filterSelectableTeams,
   formatPlayerLabel,
   formatSpellCost,
-  groupRosterByTeam,
   isSpellCastReady,
   needsOtherPlayerConfirm,
   resolveSpellCastInitialStep,
   sumContributionTotals,
   buildContributionsSavePayload,
 } from '../utils/glSpellCastRules.js';
+import { GLSpellCastRosterSection } from './spell-cast/GLSpellCastRosterSection.jsx';
+import {
+  GLSpellCastSpellPicker,
+  GLSpellCastTeamPicker,
+} from './spell-cast/GLSpellCastPickers.jsx';
+import { GLSpellCastFooter } from './spell-cast/GLSpellCastFooter.jsx';
 
 const CLOSE_MS = 200;
-
-function ProgressBar({ label, current, required, emoji }) {
-  if (!required || required <= 0) return null;
-  const pct = Math.min(100, Math.round((current / required) * 100));
-  return (
-    <div className="gl-spell-cast-progress">
-      <div className="gl-spell-cast-progress__label">
-        <span>{label}</span>
-        <span>
-          {current}
-          /
-          {required}
-          {' '}
-          {emoji}
-        </span>
-      </div>
-      <div className="gl-spell-cast-progress__track" aria-hidden="true">
-        <div className="gl-spell-cast-progress__fill" style={{ width: `${pct}%` }} />
-      </div>
-    </div>
-  );
-}
-
-function RosterPlayerRow({
-  player,
-  row,
-  required,
-  editable,
-  busy,
-  onUpdateContrib,
-  onContribBlur,
-}) {
-  return (
-    <li className="gl-spell-cast-roster__row">
-      <div className="gl-spell-cast-roster__identity">
-        <strong>{formatPlayerLabel(player)}</strong>
-        <span className="gl-spell-cast-roster__balance">
-          ❤️
-          {player.healthPoints}
-          {' '}
-          · 💎
-          {player.powerPoints}
-        </span>
-      </div>
-      <div className="gl-spell-cast-roster__inputs">
-        {required.gems > 0 ? (
-          <label className="gl-spell-cast-roster__field">
-            <span className="gl-visually-hidden">Gemmes pour</span>
-            <span aria-hidden="true">💎</span>
-            <GLInput
-              type="number"
-              min={0}
-              max={player.powerPoints}
-              disabled={!editable || busy}
-              value={row.gems}
-              onChange={(e) => onUpdateContrib(player.playerId, 'gems', e.target.value)}
-              onBlur={(e) => onContribBlur(player.playerId, 'gems', e.target.value)}
-            />
-          </label>
-        ) : null}
-        {required.hearts > 0 ? (
-          <label className="gl-spell-cast-roster__field">
-            <span className="gl-visually-hidden">Cœurs pour</span>
-            <span aria-hidden="true">❤️</span>
-            <GLInput
-              type="number"
-              min={0}
-              max={player.healthPoints}
-              disabled={!editable || busy}
-              value={row.hearts}
-              onChange={(e) => onUpdateContrib(player.playerId, 'hearts', e.target.value)}
-              onBlur={(e) => onContribBlur(player.playerId, 'hearts', e.target.value)}
-            />
-          </label>
-        ) : null}
-      </div>
-    </li>
-  );
-}
 
 export function GLSpellCastWizard({
   open = false,
@@ -152,11 +76,6 @@ export function GLSpellCastWizard({
       isStaff,
     }),
     [teams, teamScope, playerTeamId, currentTeamId, turnsEnabled, isStaff],
-  );
-
-  const rosterGroups = useMemo(
-    () => groupRosterByTeam(spellCast?.draft?.roster || []),
-    [spellCast?.draft?.roster],
   );
 
   const beginFundDraft = useCallback(async ({ spell, teamId }) => {
@@ -256,6 +175,17 @@ export function GLSpellCastWizard({
     await beginFundDraft({ spell: activeSpellCode, teamId: Number(teamId) });
   }
 
+  function handlePickSpell(code) {
+    setPickSpellCode(code);
+    onPickSpell?.(code);
+    staffDraftStartedRef.current = false;
+    if (isStaff) {
+      beginFundDraft({ spell: code, teamId: selectedTeamId ?? currentTeamId });
+    } else {
+      setStep('team');
+    }
+  }
+
   function updateContrib(playerIdTarget, field, rawValue) {
     const n = Math.max(0, Math.floor(Number(rawValue) || 0));
     setLocalContribs((prev) => prev.map((row) => (
@@ -332,7 +262,6 @@ export function GLSpellCastWizard({
   const showFund = step === 'fund' && (spellCast?.draft || fundLoading || spellCast?.busy);
   const spellName = spellCast?.draft?.spell?.nom || activeSpell?.nom || activeSpellCode || 'Sortilège';
   const spellEmoji = spellCast?.draft?.spell?.emoji || activeSpell?.emoji || '✨';
-  const rosterEmpty = spellCast?.draft && (spellCast.draft.roster || []).length === 0;
 
   return createPortal(
     <div
@@ -377,55 +306,19 @@ export function GLSpellCastWizard({
         ) : null}
 
         {showSpellPick ? (
-          <div className="gl-spell-cast-panel__body">
-            <p className="gl-hint">Choisissez un sortilège du chapitre :</p>
-            <div className="gl-spell-cast-spell-pick">
-              {(chapterSpells || []).map((s) => (
-                <button
-                  key={s.spell_code}
-                  type="button"
-                  className="gl-spell-tile gl-spell-tile--pick"
-                  onClick={() => {
-                    const code = String(s.spell_code);
-                    setPickSpellCode(code);
-                    onPickSpell?.(code);
-                    staffDraftStartedRef.current = false;
-                    if (isStaff) {
-                      beginFundDraft({ spell: code, teamId: selectedTeamId ?? currentTeamId });
-                    } else {
-                      setStep('team');
-                    }
-                  }}
-                >
-                  <span className="gl-spell-tile__emoji" aria-hidden="true">{s.emoji || '✨'}</span>
-                  <span className="gl-spell-tile__name">{s.nom || s.spell_code}</span>
-                </button>
-              ))}
-            </div>
-          </div>
+          <GLSpellCastSpellPicker
+            chapterSpells={chapterSpells}
+            onPick={handlePickSpell}
+          />
         ) : null}
 
         {showTeamPick ? (
-          <div className="gl-spell-cast-panel__body">
-            <p className="gl-hint">Quelle équipe lance ce sortilège ?</p>
-            {selectableTeams.length === 0 ? (
-              <p className="gl-hint">Aucune équipe disponible pour vous dans cette partie.</p>
-            ) : (
-              <div className="gl-spell-cast-teams">
-                {selectableTeams.map((team) => (
-                  <GLButton
-                    key={team.id}
-                    type="button"
-                    variant={Number(selectedTeamId) === Number(team.id) ? 'primary' : 'secondary'}
-                    disabled={spellCast?.busy || fundLoading}
-                    onClick={() => handleSelectTeam(team.id)}
-                  >
-                    {team.name || `Équipe ${team.id}`}
-                  </GLButton>
-                ))}
-              </div>
-            )}
-          </div>
+          <GLSpellCastTeamPicker
+            teams={selectableTeams}
+            selectedTeamId={selectedTeamId}
+            busy={spellCast?.busy || fundLoading}
+            onSelectTeam={handleSelectTeam}
+          />
         ) : null}
 
         {showFund ? (
@@ -434,88 +327,31 @@ export function GLSpellCastWizard({
               <p className="gl-hint" role="status">Chargement des contributeurs…</p>
             ) : null}
             {spellCast?.draft ? (
-              <>
-                <ProgressBar
-                  label="Gemmes"
-                  current={totals.gems}
-                  required={required.gems}
-                  emoji="💎"
-                />
-                <ProgressBar
-                  label="Cœurs"
-                  current={totals.hearts}
-                  required={required.hearts}
-                  emoji="❤️"
-                />
-                {rosterEmpty ? (
-                  <p className="gl-hint">
-                    Aucun joueur assigné aux équipes de cette partie.
-                    {' '}
-                    Assignez les joueurs depuis la console MJ (onglet Équipes / roster).
-                  </p>
-                ) : (
-                  rosterGroups.map((group) => (
-                    <section key={group.teamId} className="gl-spell-cast-roster-group">
-                      <h3 className="gl-spell-cast-roster-group__title">{group.teamName}</h3>
-                      <ul className="gl-spell-cast-roster">
-                        {group.players.map((player) => {
-                          const row = localContribs.find(
-                            (r) => Number(r.playerId) === Number(player.playerId),
-                          ) || { gems: 0, hearts: 0 };
-                          const editable = canEditContributionRow({
-                            contributionMode,
-                            actorPlayerId: playerId,
-                            targetPlayerId: player.playerId,
-                            isStaff,
-                          });
-                          return (
-                            <RosterPlayerRow
-                              key={player.playerId}
-                              player={player}
-                              row={row}
-                              required={required}
-                              editable={editable}
-                              busy={spellCast.busy}
-                              onUpdateContrib={updateContrib}
-                              onContribBlur={handleContribBlur}
-                            />
-                          );
-                        })}
-                      </ul>
-                    </section>
-                  ))
-                )}
-              </>
+              <GLSpellCastRosterSection
+                draft={spellCast.draft}
+                required={required}
+                totals={totals}
+                localContribs={localContribs}
+                contributionMode={contributionMode}
+                playerId={playerId}
+                isStaff={isStaff}
+                busy={spellCast.busy}
+                onUpdateContrib={updateContrib}
+                onContribBlur={handleContribBlur}
+              />
             ) : null}
           </div>
         ) : null}
 
-        <footer className="gl-spell-cast-panel__footer">
-          {step === 'fund' ? (
-            <>
-              <GLButton
-                type="button"
-                variant="ghost"
-                disabled={spellCast?.busy || fundLoading}
-                onClick={handleCancelDraft}
-              >
-                Annuler le brouillon
-              </GLButton>
-              <GLButton
-                type="button"
-                variant="primary"
-                disabled={!readyLocal || spellCast?.busy || fundLoading || !spellCast?.draft}
-                onClick={handleLaunch}
-              >
-                Lancer le sortilège
-              </GLButton>
-            </>
-          ) : (
-            <GLButton type="button" variant="ghost" onClick={requestClose}>
-              Fermer
-            </GLButton>
-          )}
-        </footer>
+        <GLSpellCastFooter
+          step={step}
+          busy={spellCast?.busy}
+          fundLoading={fundLoading}
+          canLaunch={readyLocal && !!spellCast?.draft}
+          onCancelDraft={handleCancelDraft}
+          onLaunch={handleLaunch}
+          onClose={requestClose}
+        />
       </div>
     </div>,
     document.body,

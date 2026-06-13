@@ -12,54 +12,17 @@ import {
 } from '../../utils/contentLibraryClient.js';
 import { MediaLibraryMenu } from '../../../components/MediaLibraryMenu.jsx';
 import { GLButton } from '../ui/GLButton.jsx';
+import { GLContentLibraryAuditPanel } from './GLContentLibraryAuditPanel.jsx';
+import { GLContentLibraryAnalysisTable } from './GLContentLibraryAnalysisTable.jsx';
+import {
+  FILE_STATUS_LABEL,
+  canUseClipboard,
+  createFileRow,
+  entryKey,
+} from '../../utils/glContentLibraryDisplay.js';
 
 const TINY_PNG_DATA_URL =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO6pJkQAAAAASUVORK5CYII=';
-
-const FILE_STATUS_LABEL = {
-  pending: 'En attente',
-  uploading: 'Envoi',
-  analyzing: 'Analyse',
-  ok: 'OK',
-  error: 'Erreur',
-};
-
-function canUseClipboard() {
-  return typeof navigator !== 'undefined' && !!navigator.clipboard?.writeText;
-}
-
-function previewSummary(entry) {
-  if (!entry?.preview) return '—';
-  if (entry.kind === 'media') {
-    return `${entry.preview.mediaType || 'média'} → ${entry.preview.relativePath || entry.preview.url || ''}`;
-  }
-  const totals = entry.preview;
-  if (totals.valid != null) {
-    return `${totals.valid}/${totals.received || '?'} ligne(s) valide(s)`;
-  }
-  if (totals.upserted != null) {
-    return `${totals.upserted} élément(s) prêt(s)`;
-  }
-  if (totals.feuillets) {
-    return `${totals.feuillets.upserted || 0} feuillet(s), ${totals.plateaux?.upserted || 0} plateau(x)`;
-  }
-  return 'Analyse OK';
-}
-
-function kindBadgeClass(kind) {
-  if (kind === 'media') return 'gl-content-library-kind gl-content-library-kind--media';
-  if (kind === 'unknown' || kind === 'unsupported') return 'gl-content-library-kind gl-content-library-kind--unknown';
-  return 'gl-content-library-kind gl-content-library-kind--catalog';
-}
-
-function createFileRow(file) {
-  return {
-    file,
-    status: 'pending',
-    progress: 0,
-    error: null,
-  };
-}
 
 export function GLContentLibraryView({ onOpenSubTab }) {
   const fileInputRef = useRef(null);
@@ -161,10 +124,6 @@ export function GLContentLibraryView({ onOpenSubTab }) {
       setErr(e.message || 'Copie impossible');
     }
   };
-
-  function entryKey(entry, index) {
-    return `${entry.fileName}:${index}`;
-  }
 
   function toggleEntry(key, checked) {
     setSelectedKeys((prev) => {
@@ -380,63 +339,7 @@ export function GLContentLibraryView({ onOpenSubTab }) {
         />
       </section>
 
-      <section className="gl-content-library__section">
-        <h3>Audit des conventions</h3>
-        <p className="gl-hint">
-          Vérifie les liaisons par nom de fichier (plateaux, biomes, feuillets, scènes de récit, intro, audio) :
-          ressources requises manquantes et clés <code>recit_*</code> mal nommées (invisibles en jeu).
-        </p>
-        <GLButton type="button" disabled={auditBusy} onClick={runConventionAudit}>
-          {auditBusy ? 'Audit en cours…' : 'Lancer l’audit'}
-        </GLButton>
-        {auditReport ? (
-          <div className="gl-content-library__report">
-            <p className="gl-hint">
-              {auditReport.keyCount} clé(s) en médiathèque · {auditReport.ok?.length || 0} branchée(s) ·{' '}
-              {auditReport.unwired?.length || 0} sans lien code automatique.
-            </p>
-            {Array.isArray(auditReport.suspectRecitKeys) && auditReport.suspectRecitKeys.length > 0 ? (
-              <div>
-                <p className="gl-error">
-                  ⚠ {auditReport.suspectRecitKeys.length} clé(s) récit suspecte(s) — typo probable, ces images
-                  ne s’affichent dans aucun chapitre :
-                </p>
-                <ul className="gl-content-library__warnings">
-                  {auditReport.suspectRecitKeys.map((key) => (
-                    <li key={key}><code>{key}</code></li>
-                  ))}
-                </ul>
-              </div>
-            ) : (
-              <p className="gl-success">Aucune clé récit suspecte.</p>
-            )}
-            {Array.isArray(auditReport.missing) && auditReport.missing.length > 0 ? (
-              <div>
-                <p className="gl-error">✗ {auditReport.missing.length} ressource(s) requise(s) manquante(s) :</p>
-                <ul className="gl-content-library__warnings">
-                  {auditReport.missing.map((row) => (
-                    <li key={`${row.category}-${row.ref}`}>
-                      [{row.category}] {row.ref} → <code>{row.slug}</code>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ) : (
-              <p className="gl-success">Toutes les ressources requises sont présentes.</p>
-            )}
-            {Array.isArray(auditReport.ok) && auditReport.ok.some((row) => row.category === 'chapitre-recit') ? (
-              <p className="gl-hint">
-                Scènes de récit branchées :{' '}
-                {auditReport.ok
-                  .filter((row) => row.category === 'chapitre-recit')
-                  .map((row) => row.ref)
-                  .join(', ')}
-                {' '}— détail par chapitre dans Contenus → Chapitres.
-              </p>
-            ) : null}
-          </div>
-        ) : null}
-      </section>
+      <GLContentLibraryAuditPanel report={auditReport} busy={auditBusy} onRun={runConventionAudit} />
 
       <section className="gl-content-library__section">
         <h3>Import en masse</h3>
@@ -528,68 +431,13 @@ export function GLContentLibraryView({ onOpenSubTab }) {
           )}
         </div>
 
-        {analysisEntries.length > 0 ? (
-          <div className="gl-content-library__report">
-            <table className="gl-content-library__table">
-              <thead>
-                <tr>
-                  <th />
-                  <th>Fichier</th>
-                  <th>Nature</th>
-                  <th>Résumé (dry-run)</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {analysisEntries.map((entry, index) => {
-                  const key = entryKey(entry, index);
-                  const warnings = Array.isArray(entry.warnings) ? entry.warnings : [];
-                  return (
-                    <tr key={key}>
-                      <td>
-                        <input
-                          type="checkbox"
-                          checked={selectedKeys.has(key)}
-                          disabled={busy || !entry.canApply || !!entry.error}
-                          onChange={(event) => toggleEntry(key, event.target.checked)}
-                        />
-                      </td>
-                      <td>
-                        <strong>{entry.sourceFileName || entry.fileName}</strong>
-                        <div className="gl-hint">{formatBytesLabel(entry.size || 0)}</div>
-                      </td>
-                      <td>
-                        <span className={kindBadgeClass(entry.kind)}>{entry.kindLabel || entry.kind}</span>
-                        {entry.mediaType ? <span className="gl-hint"> ({entry.mediaType})</span> : null}
-                      </td>
-                      <td>
-                        {entry.error ? <span className="gl-error">{entry.error}</span> : previewSummary(entry)}
-                        {warnings.length ? (
-                          <ul className="gl-content-library__warnings">
-                            {warnings.map((warning) => (
-                              <li key={warning}>{warning}</li>
-                            ))}
-                          </ul>
-                        ) : null}
-                      </td>
-                      <td>
-                        {entry.subTab && onOpenSubTab ? (
-                          <button
-                            type="button"
-                            className="btn btn-secondary btn-sm"
-                            onClick={() => onOpenSubTab(entry.subTab)}
-                          >
-                            Ouvrir {entry.kindLabel}
-                          </button>
-                        ) : null}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        ) : null}
+        <GLContentLibraryAnalysisTable
+          entries={analysisEntries}
+          selectedKeys={selectedKeys}
+          busy={busy}
+          onToggle={toggleEntry}
+          onOpenSubTab={onOpenSubTab}
+        />
       </section>
     </div>
   );
