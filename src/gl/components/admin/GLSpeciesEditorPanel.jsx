@@ -5,67 +5,18 @@ import {
   GL_SPECIES_FIELD_LABELS,
   GL_SPECIES_TYPE_LABELS,
 } from '../../utils/glSpeciesFieldLabels.js';
+import {
+  EMPTY_FORM,
+  TEXTAREA_FIELDS,
+  filterSpeciesItems,
+  formToPayload,
+  speciesToForm,
+} from '../../utils/glSpeciesEditorForm.js';
 import { GLButton } from '../ui/GLButton.jsx';
 import { GLField } from '../ui/GLField.jsx';
 import { GLInput } from '../ui/GLInput.jsx';
 import { GLSelect } from '../ui/GLSelect.jsx';
 import { GLTextarea } from '../ui/GLTextarea.jsx';
-
-const TEXTAREA_FIELDS = new Set([
-  'role_ecologique',
-  'adaptations_cles',
-  'regime_alimentaire',
-  'reproduction',
-  'observation_terrain',
-  'description_courte',
-  'anecdote',
-]);
-
-const EMPTY_FORM = {
-  species_code: '',
-  biome_slug: '',
-  type: 'faune',
-  nom_commun: '',
-  nom_scientifique: '',
-  groupe: '',
-  famille: '',
-  statut_iucn: '',
-  endemique: '',
-  role_ecologique: '',
-  adaptations_cles: '',
-  taille_adulte: '',
-  poids_adulte: '',
-  regime_alimentaire: '',
-  longevite: '',
-  reproduction: '',
-  observation_terrain: '',
-  description_courte: '',
-  anecdote: '',
-  present_dans_qcm: '',
-  mots_cles: '',
-  wikipedia_title: '',
-  wikipedia_url: '',
-  photo_url: '',
-  photo_credit: '',
-  photo_licence: '',
-  photo_licence_url: '',
-  statut: 'actif',
-};
-
-function speciesToForm(species) {
-  if (!species) return { ...EMPTY_FORM };
-  const next = { ...EMPTY_FORM };
-  for (const key of Object.keys(EMPTY_FORM)) {
-    next[key] = species[key] != null ? String(species[key]) : '';
-  }
-  return next;
-}
-
-function formToPayload(form) {
-  const payload = { ...form };
-  if (!payload.species_code.trim()) delete payload.species_code;
-  return payload;
-}
 
 function SpeciesField({ fieldKey, value, onChange, disabled }) {
   const label = GL_SPECIES_FIELD_LABELS[fieldKey] || fieldKey;
@@ -120,18 +71,10 @@ export function GLSpeciesEditorPanel() {
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
 
-  const filteredItems = useMemo(() => {
-    let list = items;
-    if (filterType) list = list.filter((row) => row.type === filterType);
-    if (filterQ.trim()) {
-      const needle = filterQ.trim().toLowerCase();
-      list = list.filter((row) => {
-        const hay = `${row.nom_commun} ${row.species_code}`.toLowerCase();
-        return hay.includes(needle);
-      });
-    }
-    return list;
-  }, [items, filterType, filterQ]);
+  const filteredItems = useMemo(
+    () => filterSpeciesItems(items, { type: filterType, q: filterQ }),
+    [items, filterType, filterQ],
+  );
 
   const loadBiomes = useCallback(async () => {
     const list = await apiGL('/api/gl/biomes');
