@@ -161,7 +161,7 @@ function listVisitMascotSpriteLibraryFilenamesFromDisk(mapId) {
 }
 
 function listPublicMascotStaticAssets() {
-  const root = path.join(__dirname, '..', 'public', 'assets', 'mascots');
+  const root = path.join(__dirname, '..', '..', 'public', 'assets', 'mascots');
   if (!fs.existsSync(root)) return [];
   /** @type {string[]} */
   const out = [];
@@ -182,7 +182,7 @@ function listPublicMascotStaticAssets() {
       if (!entry.isFile()) continue;
       const lower = String(entry.name || '').toLowerCase();
       if (!/\.(png|jpg|jpeg|webp|gif|svg|riv)$/i.test(lower)) continue;
-      const rel = path.relative(path.join(__dirname, '..', 'public'), abs).replace(/\\/g, '/');
+      const rel = path.relative(path.join(__dirname, '..', '..', 'public'), abs).replace(/\\/g, '/');
       if (!rel || rel.startsWith('..')) continue;
       out.push(`/${rel.replace(/^\/+/, '')}`);
     }
