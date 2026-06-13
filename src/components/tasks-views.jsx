@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 
 import { api, AccountDeletedError } from '../services/api';
-import { daysUntil } from '../utils/badges';
 import { getRoleTerms } from '../utils/n3-terminology';
 import { useHelp } from '../hooks/useHelp';
 
@@ -10,7 +9,6 @@ import { getContentText } from '../utils/content';
 import { TutorialPreviewModal, tutorialPreviewPayload } from './TutorialPreviewModal';
 import { fetchTutorialReadIds } from './TutorialReadAcknowledge';
 
-import { isStudentAssignedToTask } from '../utils/task-assignments';
 import {
   safeLocalStorageGetItem,
   safeLocalStorageSetItem,
@@ -22,13 +20,20 @@ import {
   applyTaskFilters,
   sortedVisibleProjects,
   partitionTasksByEffectiveStatus,
-  studentUrgentDueTasks,
 } from '../utils/taskSectioning.js';
+import {
+  hasActiveStudentFilters,
+  studentOwnProposals,
+  studentActiveAssignedTasks,
+  excludeTasksById,
+  recentlyValidatedAssignedTasks,
+} from '../utils/taskStudentSections.js';
 import { LogModal, TaskLogsViewer } from './tasks/TaskLogModals.jsx';
 import { TaskProjectFormModal } from './tasks/TaskProjectFormModal.jsx';
 import { TaskFormModal } from './tasks/TaskFormModal.jsx';
 import { TaskTileCard } from './tasks/TaskTileCard.jsx';
 import { TaskTileSection } from './tasks/TaskTileSection.jsx';
+import { TaskUrgencyBanner } from './tasks/TaskUrgencyBanner.jsx';
 import { TaskConfirmDialog } from './tasks/TaskConfirmDialog.jsx';
 import { TaskProjectsBlock } from './tasks/TaskProjectsBlock.jsx';
 import { TaskImportPanel } from './tasks/TaskImportPanel.jsx';
@@ -44,6 +49,11 @@ import {
   quickAssignOutcomeToast,
 } from '../utils/taskQuickAssign.js';
 import { computeReorderedProjectTaskIds } from '../utils/taskDragReorder.js';
+import {
+  prepareTaskSavePayload,
+  executeInitialAssignments,
+  initialAssignmentsToast,
+} from '../utils/taskSaveAssignments.js';
 import {
   taskEffectiveMapId,
   taskMapIdMatchesFilter,
@@ -474,13 +484,7 @@ function TasksView({
   }, [withLoad]);
 
   const saveTask = async form => {
-    const { assign_student_ids: rawAssignIds = [], ...taskPayload } = form || {};
-    const assignStudentIds = [...new Set((rawAssignIds || []).map((id) => String(id || '').trim()).filter(Boolean))];
-    const minPlaces = assignStudentIds.length;
-    if (minPlaces > 0) {
-      const cur = Math.max(1, Number.parseInt(taskPayload.required_students, 10) || 1);
-      taskPayload.required_students = Math.max(cur, minPlaces);
-    }
+    const { taskPayload, assignStudentIds } = prepareTaskSavePayload(form);
     if (editTask && !duplicateTask) {
       await api(`/api/tasks/${editTask.id}`, 'PUT', taskPayload);
       await onRefresh();
@@ -491,27 +495,8 @@ function TasksView({
       ...(isTeacher && filterGroupId && !taskPayload.group_id ? { group_id: filterGroupId } : {}),
     });
     if (assignStudentIds.length > 0 && created?.id) {
-      let ok = 0;
-      for (const sid of assignStudentIds) {
-        const assignee = teacherStudents.find((s) => String(s.id) === String(sid));
-        if (!assignee) continue;
-        await api(`/api/tasks/${created.id}/assign`, 'POST', {
-          firstName: assignee.first_name,
-          lastName: assignee.last_name,
-          studentId: assignee.id,
-        });
-        ok += 1;
-      }
-      if (ok === 0) {
-        setToast('Tâche créée — impossible d’inscrire tout de suite (comptes introuvables dans la liste chargée).');
-      } else if (ok === 1) {
-        const one = teacherStudents.find((s) => String(s.id) === String(assignStudentIds[0]));
-        setToast(`Tâche créée et ${one?.first_name || 'n3beur'} inscrit(e) ✓`);
-      } else if (ok < assignStudentIds.length) {
-        setToast(`Tâche créée : ${ok} inscription(s) sur ${assignStudentIds.length} — certains comptes manquaient dans la liste.`);
-      } else {
-        setToast(`Tâche créée : ${ok} n3beur(s) inscrit(s) — bien joué ! ✓`);
-      }
+      const ok = await executeInitialAssignments(api, created.id, assignStudentIds, teacherStudents);
+      setToast(initialAssignmentsToast(ok, assignStudentIds, teacherStudents));
     }
     await onRefresh();
   };
@@ -601,54 +586,31 @@ function TasksView({
     () => allFilteredWithoutUrgent.filter((t) => !isTaskInVisibleProject(t)),
     [allFilteredWithoutUrgent, visibleProjectIds]
   );
-  const myProposals = allFiltered.filter((t) => (
-    !isTeacher
-    && t.status === 'proposed'
-    && student
-    && String(t.proposed_by_student_id || '') === String(student.id || '')
-  ));
-  const myTasks = regularFiltered.filter((t) => (
-    student
-    && taskEffectiveStatus(t) !== 'validated'
-    && isStudentAssignedToTask(t, student)
-  ));
+  const myProposals = isTeacher ? [] : studentOwnProposals(allFiltered, student);
+  const myTasks = useMemo(
+    () => studentActiveAssignedTasks(regularFiltered, student),
+    [regularFiltered, student]
+  );
   const {
     available, inProgress, done, validated, proposed, onHold,
   } = partitionTasksByEffectiveStatus(regularFiltered);
-  const hasStudentFilters = !isTeacher && (
-    !!filterText
-    || !!filterZone
-    || !!filterProject
-    || !!filterStatus
-    || !!filterUrgentCategory
-    || hasTouchedStatusFilter
-    || filterMap !== 'active'
-  );
-  const showStudentFilteredResults = !isTeacher && hasStudentFilters;
-  const availableNotMine = useMemo(
-    () => available.filter((t) => !myTasks.some((m) => m.id === t.id)),
-    [available, myTasks]
-  );
-  const inProgressNotMine = useMemo(
-    () => inProgress.filter((t) => !myTasks.some((m) => m.id === t.id)),
-    [inProgress, myTasks]
-  );
-  const doneNotMine = useMemo(
-    () => done.filter((t) => !myTasks.some((m) => m.id === t.id)),
-    [done, myTasks]
-  );
-  const onHoldNotMine = useMemo(
-    () => onHold.filter((t) => !myTasks.some((m) => m.id === t.id)),
-    [onHold, myTasks]
-  );
+  const showStudentFilteredResults = !isTeacher && hasActiveStudentFilters({
+    filterText,
+    filterZone,
+    filterProject,
+    filterStatus,
+    filterUrgentCategory,
+    hasTouchedStatusFilter,
+    filterMap,
+  });
+  const availableNotMine = useMemo(() => excludeTasksById(available, myTasks), [available, myTasks]);
+  const inProgressNotMine = useMemo(() => excludeTasksById(inProgress, myTasks), [inProgress, myTasks]);
+  const doneNotMine = useMemo(() => excludeTasksById(done, myTasks), [done, myTasks]);
+  const onHoldNotMine = useMemo(() => excludeTasksById(onHold, myTasks), [onHold, myTasks]);
   const recentlyValidatedForStudent = useMemo(
-    () => regularFiltered.filter((t) => (
-      taskEffectiveStatus(t) === 'validated' && student && isStudentAssignedToTask(t, student)
-    )),
+    () => recentlyValidatedAssignedTasks(regularFiltered, student),
     [regularFiltered, student]
   );
-
-  const urgentTasks = !isTeacher ? studentUrgentDueTasks(regularFiltered) : [];
 
   const { usedZones, usedMarkers } = collectUsedLocationIds({
     tasksForLocationPicker,
@@ -958,24 +920,7 @@ function TasksView({
         />
       )}
 
-      {!isTeacher && urgentTasks.length > 0 && (
-        <div className="urgency-banner">
-          <h4>🔥 Échéances proches</h4>
-          {urgentTasks.slice(0, 5).map(t => {
-            const d = daysUntil(t.due_date);
-            const label = d < 0 ? `Retard ${-d}j` : d === 0 ? "Aujourd'hui" : d === 1 ? 'Demain' : `${d} jours`;
-            return (
-              <div key={t.id} className="urgency-item">
-                <span className="urgency-days">{label}</span>
-                <span style={{ flex: 1, color: 'var(--forest)', fontWeight: 500 }}>{t.title}</span>
-                {(t.zones_linked?.[0]?.name || t.zone_name) && (
-                  <span style={{ fontSize: '.76rem', color: '#aaa' }}>{t.zones_linked?.[0]?.name || t.zone_name}</span>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
+      <TaskUrgencyBanner isTeacher={isTeacher} tasks={regularFiltered} />
 
       <TaskTileSection
         title={`🚨 Urgent ! (${urgentCategoryTasks.length})`}
