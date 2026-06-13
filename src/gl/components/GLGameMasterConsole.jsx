@@ -13,6 +13,12 @@ import {
   gameLifecycleAction,
   gameStatusTone,
 } from '../utils/glGameStatus.js';
+import {
+  EMPTY_GAME_EDIT_FORM,
+  buildGameEditPayload,
+  formatGameTimestamp,
+  gameToEditForm,
+} from '../utils/glGameEditForm.js';
 
 const GLGameMasterConsoleParties = lazy(() => import('./mj/GLGameMasterConsoleParties.jsx'));
 const GLGameMasterConsoleTeams = lazy(() => import('./mj/GLGameMasterConsoleTeams.jsx'));
@@ -20,15 +26,6 @@ const GLGameMasterConsoleLive = lazy(() => import('./mj/GLGameMasterConsoleLive.
 
 function MjSectionFallback() {
   return <p className="gl-hint">Chargement de la section…</p>;
-}
-
-function formatTimestamp(value) {
-  if (!value) return '';
-  try {
-    return new Date(value).toLocaleTimeString();
-  } catch (_) {
-    return '';
-  }
 }
 
 const DEFAULT_TEAM_FORM = {
@@ -57,16 +54,7 @@ export function GLGameMasterConsole({
   const [createName, setCreateName] = useState('Partie découverte');
   const [createChapterId, setCreateChapterId] = useState('');
   const [createClassId, setCreateClassId] = useState('');
-  const [editGameForm, setEditGameForm] = useState({
-    name: '',
-    chapterId: '',
-    classId: '',
-    zoneContentRetrigger: '',
-    loreFeuilletRetrigger: '',
-    loreEffacementEnabled: '',
-    loreGemmeCostsEnabled: '',
-    loreHeartRewardsEnabled: '',
-  });
+  const [editGameForm, setEditGameForm] = useState({ ...EMPTY_GAME_EDIT_FORM });
   const [narration, setNarration] = useState('');
   const [narrationImageUrl, setNarrationImageUrl] = useState('');
   const [scoreDelta, setScoreDelta] = useState(1);
@@ -158,16 +146,7 @@ export function GLGameMasterConsole({
 
   useEffect(() => {
     if (!game?.id) return;
-    setEditGameForm({
-      name: game.name || '',
-      chapterId: game.chapter_id != null ? String(game.chapter_id) : '',
-      classId: game.class_id != null ? String(game.class_id) : '',
-      zoneContentRetrigger: game.zone_content_retrigger != null ? String(game.zone_content_retrigger) : '',
-      loreFeuilletRetrigger: game.lore_feuillet_retrigger != null ? String(game.lore_feuillet_retrigger) : '',
-      loreEffacementEnabled: game.lore_effacement_enabled == null ? '' : (game.lore_effacement_enabled ? '1' : '0'),
-      loreGemmeCostsEnabled: game.lore_gemme_costs_enabled == null ? '' : (game.lore_gemme_costs_enabled ? '1' : '0'),
-      loreHeartRewardsEnabled: game.lore_heart_rewards_enabled == null ? '' : (game.lore_heart_rewards_enabled ? '1' : '0'),
-    });
+    setEditGameForm(gameToEditForm(game));
   }, [game?.id, game?.name, game?.chapter_id, game?.class_id, game?.zone_content_retrigger,
     game?.lore_feuillet_retrigger, game?.lore_effacement_enabled,
     game?.lore_gemme_costs_enabled, game?.lore_heart_rewards_enabled]);
@@ -295,24 +274,7 @@ export function GLGameMasterConsole({
     setBusy(true);
     setActionError('');
     try {
-      const payload = { name: editGameForm.name };
-      if (canEditGameChapter(gameStatus) && editGameForm.chapterId) {
-        payload.chapterId = Number(editGameForm.chapterId);
-      }
-      if (canEditGameClass(gameStatus) && editGameForm.classId) {
-        payload.classId = Number(editGameForm.classId);
-      }
-      payload.zoneContentRetrigger = editGameForm.zoneContentRetrigger || null;
-      payload.loreFeuilletRetrigger = editGameForm.loreFeuilletRetrigger || null;
-      if (editGameForm.loreEffacementEnabled !== '') {
-        payload.loreEffacementEnabled = editGameForm.loreEffacementEnabled === '1';
-      }
-      if (editGameForm.loreGemmeCostsEnabled !== '') {
-        payload.loreGemmeCostsEnabled = editGameForm.loreGemmeCostsEnabled === '1';
-      }
-      if (editGameForm.loreHeartRewardsEnabled !== '') {
-        payload.loreHeartRewardsEnabled = editGameForm.loreHeartRewardsEnabled === '1';
-      }
+      const payload = buildGameEditPayload(editGameForm, gameStatus);
       const updated = await apiGL(`/api/gl/games/${game.id}`, 'PUT', payload);
       onGameStateChange(updated);
       showSuccess('Partie mise à jour.');
@@ -926,7 +888,7 @@ export function GLGameMasterConsole({
             showFailure={showFailure}
             onGoToParties={() => setMjSection('parties')}
             busy={busy}
-            formatTimestamp={formatTimestamp}
+            formatTimestamp={formatGameTimestamp}
           />
         )}
       </Suspense>
