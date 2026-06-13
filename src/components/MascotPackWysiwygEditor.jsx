@@ -11,6 +11,15 @@ import {
   serverMascotSpriteLibraryAssetsPrefix,
 } from '../utils/mascotPackEditorModel.js';
 import {
+  appendFileToStateFrames,
+  computePackMediaWarnings,
+  removeFrameAt,
+  resolveFrameUrl,
+  resolveSrcPreviewUrl,
+  sanitizeClientFilename,
+  swapFrames,
+} from '../utils/mascotPackEditorFrames.js';
+import {
   extractMascotPackValidationIssues,
   sanitizeMascotPackDraft,
   toMascotPackIssueLines,
@@ -33,31 +42,6 @@ const STATE_LABELS = {
   [VISIT_MASCOT_STATE.ANGRY]: 'Fâchée',
   [VISIT_MASCOT_STATE.SURPRISE]: 'Surprise',
 };
-
-/** @param {string} name */
-function sanitizeClientFilename(name) {
-  const raw = String(name || '').replace(/^.*[\\/]/, '').trim();
-  const base = raw.replace(/[^a-zA-Z0-9._-]+/g, '-').toLowerCase().replace(/^-+|-+$/g, '') || 'frame';
-  return base.toLowerCase().endsWith('.png') ? base : `${base}.png`;
-}
-
-/** @param {Record<string, unknown>} pack @param {string} rel */
-function resolveFrameUrl(pack, rel) {
-  const s = String(rel || '').trim();
-  if (!s) return '';
-  if (s.startsWith('blob:') || s.startsWith('http://') || s.startsWith('https://')) return s;
-  let base = String(pack.framesBase || '').trim();
-  if (!base.endsWith('/')) base = `${base}/`;
-  return withAppBase(`${base}${s.replace(/^\//, '')}`);
-}
-
-/** @param {string} raw */
-function resolveSrcPreviewUrl(raw) {
-  const s = String(raw || '').trim();
-  if (!s) return '';
-  if (s.startsWith('blob:') || s.startsWith('data:') || s.startsWith('http://') || s.startsWith('https://')) return s;
-  return withAppBase(s);
-}
 
 /**
  * @param {{
@@ -159,33 +143,10 @@ export default function MascotPackWysiwygEditor({
     patchPack({ stateFrames: next });
   }, [patchPack]);
 
-  const packWarnings = useMemo(() => {
-    const warnings = [];
-    const silhouette = String(pack?.fallbackSilhouette || '').trim();
-    if (silhouette && !MASCOT_PACK_FALLBACK_SILHOUETTES.includes(silhouette)) {
-      warnings.push(`Silhouette « ${silhouette} » inconnue: un fallback par défaut sera utilisé.`);
-    }
-    const prefix = serverMascotPackAssetsPrefix(packUuid);
-    const base = String(pack?.framesBase || '').trim();
-    const normalizedBase = base.endsWith('/') ? base : `${base}/`;
-    if (prefix && normalizedBase.startsWith(prefix)) {
-      const available = new Set(assets.map((a) => String(a?.filename || '').trim()).filter(Boolean));
-      const referenced = new Set();
-      for (const spec of Object.values(stateFrames || {})) {
-        if (!spec || typeof spec !== 'object') continue;
-        const files = Array.isArray(spec.files) ? spec.files : [];
-        for (const file of files) {
-          const name = String(file || '').trim();
-          if (name) referenced.add(name);
-        }
-      }
-      const missing = [...referenced].filter((f) => !available.has(f));
-      if (missing.length > 0) {
-        warnings.push(`Fichiers référencés absents de la médiathèque serveur: ${missing.slice(0, 6).join(', ')}${missing.length > 6 ? '…' : ''}.`);
-      }
-    }
-    return warnings;
-  }, [pack, packUuid, assets, stateFrames]);
+  const packWarnings = useMemo(
+    () => computePackMediaWarnings(pack, packUuid, assets, stateFrames),
+    [pack, packUuid, assets, stateFrames],
+  );
 
   const updateStateEntry = useCallback((stateKey, spec) => {
     const next = { ...stateFrames };
@@ -195,15 +156,8 @@ export default function MascotPackWysiwygEditor({
   }, [stateFrames, setStateFrames]);
 
   const appendFileToState = useCallback((stateKey, filename) => {
-    const cur = stateFrames[stateKey];
-    const base = cur && typeof cur === 'object' ? { ...cur } : { fps: 8 };
-    const files = Array.isArray(base.files) ? [...base.files] : [];
-    if (files.includes(filename)) return;
-    files.push(filename);
-    const next = { ...base, files };
-    delete next.srcs;
-    updateStateEntry(stateKey, next);
-  }, [stateFrames, updateStateEntry]);
+    setStateFrames(appendFileToStateFrames(stateFrames, stateKey, filename));
+  }, [stateFrames, setStateFrames]);
 
   const onAddLibraryToTarget = useCallback((filename) => {
     if (!filename) return;
@@ -548,21 +502,7 @@ export default function MascotPackWysiwygEditor({
                               className="btn btn-ghost btn-sm"
                               disabled={idx === 0}
                               onClick={() => {
-                                const nextFiles = [...files];
-                                [nextFiles[idx - 1], nextFiles[idx]] = [nextFiles[idx], nextFiles[idx - 1]];
-                                const nextDwell = dwell.length === files.length
-                                  ? (() => {
-                                    const d = [...dwell];
-                                    [d[idx - 1], d[idx]] = [d[idx], d[idx - 1]];
-                                    return d;
-                                  })()
-                                  : undefined;
-                                updateStateEntry(stateKey, {
-                                  ...spec,
-                                  files: nextFiles,
-                                  fps,
-                                  ...(nextDwell ? { frameDwellMs: nextDwell } : {}),
-                                });
+                                updateStateEntry(stateKey, swapFrames(spec, files, dwell, fps, idx - 1, idx));
                               }}
                             >
                               Monter
@@ -572,21 +512,7 @@ export default function MascotPackWysiwygEditor({
                               className="btn btn-ghost btn-sm"
                               disabled={idx >= files.length - 1}
                               onClick={() => {
-                                const nextFiles = [...files];
-                                [nextFiles[idx], nextFiles[idx + 1]] = [nextFiles[idx + 1], nextFiles[idx]];
-                                const nextDwell = dwell.length === files.length
-                                  ? (() => {
-                                    const d = [...dwell];
-                                    [d[idx], d[idx + 1]] = [d[idx + 1], d[idx]];
-                                    return d;
-                                  })()
-                                  : undefined;
-                                updateStateEntry(stateKey, {
-                                  ...spec,
-                                  files: nextFiles,
-                                  fps,
-                                  ...(nextDwell ? { frameDwellMs: nextDwell } : {}),
-                                });
+                                updateStateEntry(stateKey, swapFrames(spec, files, dwell, fps, idx, idx + 1));
                               }}
                             >
                               Descendre
@@ -595,17 +521,7 @@ export default function MascotPackWysiwygEditor({
                               type="button"
                               className="btn btn-danger btn-sm"
                               onClick={() => {
-                                const nextFiles = files.filter((_, i) => i !== idx);
-                                let nextDwell = dwell;
-                                if (dwell.length === files.length) {
-                                  nextDwell = dwell.filter((_, i) => i !== idx);
-                                }
-                                updateStateEntry(stateKey, {
-                                  ...spec,
-                                  files: nextFiles,
-                                  fps,
-                                  ...(nextDwell.length ? { frameDwellMs: nextDwell } : {}),
-                                });
+                                updateStateEntry(stateKey, removeFrameAt(spec, files, dwell, fps, idx));
                               }}
                             >
                               Retirer
