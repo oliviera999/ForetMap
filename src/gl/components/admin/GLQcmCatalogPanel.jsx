@@ -5,17 +5,9 @@ import { GLButton } from '../ui/GLButton.jsx';
 import { GLField } from '../ui/GLField.jsx';
 import { GLInput } from '../ui/GLInput.jsx';
 import { GLSelect } from '../ui/GLSelect.jsx';
-import { GLQcmFeedbackBlock } from '../GLQcmFeedbackBlock.jsx';
-import { hasQcmAnswerFeedback } from '../../utils/glQcmDisplay.js';
-
-async function fileToDataUrl(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result || ''));
-    reader.onerror = () => reject(new Error('Lecture du fichier impossible'));
-    reader.readAsDataURL(file);
-  });
-}
+import { GLQcmPreviewModal } from './GLQcmPreviewModal.jsx';
+import { fileToDataUrl } from '../../../utils/fileToDataUrl.js';
+import { buildExportQuery, buildQuestionsListQuery } from '../../utils/glQcmCatalogPanel.js';
 
 export function GLQcmCatalogPanel({
   title,
@@ -74,11 +66,7 @@ export function GLQcmCatalogPanel({
   }
 
   function downloadExport() {
-    const params = new URLSearchParams();
-    if (exportStatut === 'all') params.set('statut', 'all');
-    if (scopeSlug.trim()) params.set(scopeQueryKey, scopeSlug.trim());
-    if (categorieSlug.trim()) params.set('categorieSlug', categorieSlug.trim());
-    const query = params.toString();
+    const query = buildExportQuery({ exportStatut, scopeQueryKey, scopeSlug, categorieSlug });
     return runDownload(
       `${adminBasePath}/export${query ? `?${query}` : ''}`,
       exportFilename,
@@ -97,11 +85,8 @@ export function GLQcmCatalogPanel({
 
   const loadList = useCallback(async () => {
     try {
-      const params = new URLSearchParams();
-      if (scopeSlug.trim()) params.set(scopeQueryKey, scopeSlug.trim());
-      if (categorieSlug.trim()) params.set('categorieSlug', categorieSlug.trim());
-      if (search.trim()) params.set('q', search.trim());
-      const data = await apiGL(`${questionsListPath}?${params.toString()}`);
+      const query = buildQuestionsListQuery({ scopeQueryKey, scopeSlug, categorieSlug, search });
+      const data = await apiGL(`${questionsListPath}?${query}`);
       setItems(Array.isArray(data?.items) ? data.items : []);
       setError('');
     } catch (err) {
@@ -275,56 +260,19 @@ export function GLQcmCatalogPanel({
         ) : null}
       </div>
 
-      {previewCode ? (
-        <div className="gl-qcm-modal gl-qcm-modal--inline" role="dialog" aria-label="Aperçu QCM">
-          <div className="gl-qcm-modal__body">
-            <h4>Aperçu — {previewCode}</h4>
-            {presentLoading ? <p className="gl-hint">Chargement…</p> : null}
-            {hasQcmAnswerFeedback(feedback) ? (
-              <>
-                <GLQcmFeedbackBlock result={feedback} />
-                <div className="gl-inline-actions">
-                  <GLButton type="button" onClick={reloadPresentation}>Nouvelle présentation</GLButton>
-                  <GLButton type="button" variant="ghost" onClick={() => { setPreviewCode(null); setFeedback(null); }}>
-                    Fermer
-                  </GLButton>
-                </div>
-              </>
-            ) : (
-              <>
-                {presentation?.question ? <p className="gl-qcm-modal__question">{presentation.question}</p> : null}
-                {presentation?.choices?.length ? (
-                  <div className="gl-qcm-modal__choices">
-                    {presentation.choices.map((choice) => (
-                      <label key={choice.id} className="gl-qcm-choice">
-                        <input
-                          type="radio"
-                          name="preview-choice"
-                          checked={selectedChoiceId === choice.id}
-                          onChange={() => setSelectedChoiceId(choice.id)}
-                        />
-                        <span>{choice.text}</span>
-                      </label>
-                    ))}
-                  </div>
-                ) : null}
-                <div className="gl-inline-actions">
-                  <GLButton type="button" onClick={reloadPresentation}>Re-mélanger</GLButton>
-                  <GLButton
-                    type="button"
-                    onClick={submitPreviewAnswer}
-                    disabled={answerLoading || selectedChoiceId == null}
-                  >
-                    Valider
-                  </GLButton>
-                  <GLButton type="button" variant="ghost" onClick={() => setPreviewCode(null)}>Fermer</GLButton>
-                </div>
-                {feedback?.error ? <p className="gl-error">{feedback.error}</p> : null}
-              </>
-            )}
-          </div>
-        </div>
-      ) : null}
+      <GLQcmPreviewModal
+        previewCode={previewCode}
+        presentLoading={presentLoading}
+        answerLoading={answerLoading}
+        presentation={presentation}
+        feedback={feedback}
+        selectedChoiceId={selectedChoiceId}
+        onReload={reloadPresentation}
+        onSelectChoice={setSelectedChoiceId}
+        onSubmitAnswer={submitPreviewAnswer}
+        onClose={() => setPreviewCode(null)}
+        onCloseFromFeedback={() => { setPreviewCode(null); setFeedback(null); }}
+      />
     </section>
   );
 }
