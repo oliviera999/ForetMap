@@ -5,11 +5,10 @@ import { useDialogA11y } from '../../hooks/useDialogA11y';
 import { useOverlayHistoryBack } from '../../hooks/useOverlayHistoryBack';
 import { api } from '../../services/api';
 import { TimedToast } from '../../shared/components/TimedToast.jsx';
-import { TaskDifficultyAndRiskChips, stageBadge } from '../../utils/badges';
+import { stageBadge } from '../../utils/badges';
 import { nextLivingBeingsFromMultiSelect, orderedLivingBeingsForForm } from '../../utils/livingBeings';
 import { dedupeTutorialsById, isTaskDetachedFromLocation, livingBeingNamesFromTasksAtLocation, taskLocationIds, tutorialLocationIds, tutorialsFromTasksAtLocation } from '../../utils/mapLocationContext';
-import { isStudentAssignedToTask } from '../../utils/task-assignments';
-import { canStudentAssignTask, taskEnrollmentMeta } from '../../utils/taskEnrollment.js';
+import { canStudentAssignTask } from '../../utils/taskEnrollment.js';
 import { parseVisitEditorialBlocksFromJson } from '../../utils/visitEditorialBlocks.js';
 import { buildZoneName, buildZonePayload, computeZoneVisitImageBlocks, zoneTaskMapId } from '../../utils/zoneModalForm.js';
 import { DialogShell } from '../DialogShell';
@@ -20,8 +19,9 @@ import { BiodiversitySpeciesOpenLinks, LivingBeingsCatalogPanel } from './Living
 import { MarkerVisitImageBuilder } from './MarkerFormSections.jsx';
 import { PhotoGallery } from './PhotoGallery.jsx';
 import { ZoneOrMarkerEmojiField } from './ZoneOrMarkerEmojiField.jsx';
+import { ZoneTasksStudentPanel, ZoneTasksTeacherPanel } from './ZoneTasksPanel.jsx';
 import { ZoneTutorialsStudentPanel, ZoneTutorialsTeacherPanel } from './ZoneTutorialsPanel.jsx';
-import { LocationTutorialPreviewList, TaskEnrollmentLegend, tutorialLinkedToSameMap } from './mapModalShared.jsx';
+import { LocationTutorialPreviewList, tutorialLinkedToSameMap } from './mapModalShared.jsx';
 
 function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student, canSelfAssignTasks = true, canEnrollOnTasks, markerEmojis = MARKER_EMOJIS, emojiParsingList = MARKER_EMOJIS, contextCommentsEnabled = true, canParticipateContextComments = true, onClose, onUpdate, onDelete, onDuplicate, onEditPoints, onLinkTask, onUnlinkTask, onAssignTasks, onLinkTutorial, onUnlinkTutorial, onNavigateToTasksForLocation = null, onOpenTutorialPreview = null, onOpenPlantCatalogPreview = null }) {
   const canEnroll = canEnrollOnTasks !== undefined ? canEnrollOnTasks : canSelfAssignTasks;
@@ -517,121 +517,47 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
           </div>
         )}
         {tab === 'tasks' && isTeacher && (
-          <div className="fade-in">
-            <div style={{ marginTop: 12 }}>
-              {linkedTasks.length === 0 ? (
-                <p style={{ color: '#999', fontSize: '.85rem' }}>Aucune tâche liée à cette zone.</p>
-              ) : linkedTasks.map((t) => (
-                <div key={t.id} className="history-item" style={{ alignItems: 'center' }}>
-                  <span>{t.title}</span>
-                  <button className="btn btn-ghost btn-sm"
-                    onClick={async () => {
-                      await onUnlinkTask?.(t);
-                      setToast('Tâche dissociée');
-                    }}>
-                    Délier
-                  </button>
-                </div>
-              ))}
-            </div>
-            <div className="field" style={{ marginTop: 14 }}><label>Lier une tâche existante</label>
-              <select value={linkTaskId} onChange={e => setLinkTaskId(e.target.value)}>
-                <option value="">— Choisir une tâche —</option>
-                {assignableTasks.map(t => <option key={t.id} value={t.id}>{t.title}</option>)}
-              </select>
-            </div>
-            <button className="btn btn-primary btn-full" disabled={!linkTaskId}
-              onClick={async () => {
-                await onLinkTask?.(linkTaskId);
-                setLinkTaskId('');
-                setToast('Tâche liée à la zone ✓');
-              }}>
-              🔗 Lier la tâche
-            </button>
-          </div>
+          <ZoneTasksTeacherPanel
+            linkedTasks={linkedTasks}
+            assignableTasks={assignableTasks}
+            linkTaskId={linkTaskId}
+            onChangeLinkTaskId={setLinkTaskId}
+            onUnlinkTask={async (t) => {
+              await onUnlinkTask?.(t);
+              setToast('Tâche dissociée');
+            }}
+            onLinkTask={async (id) => {
+              await onLinkTask?.(id);
+              setLinkTaskId('');
+              setToast('Tâche liée à la zone ✓');
+            }}
+          />
         )}
         {tab === 'tasks' && !isTeacher && (
-          <div className="fade-in">
-            {linkedTasks.length === 0 ? (
-              <p style={{ color: '#999', fontSize: '.85rem' }}>Aucune tâche liée à cette zone.</p>
-            ) : (
-              <>
-                <TaskEnrollmentLegend />
-                <p style={{ color: '#666', fontSize: '.84rem', marginBottom: 10 }}>
-                  {canSelfAssignTasks
-                    ? 'Sélectionne une ou plusieurs tâches puis inscris-toi directement.'
-                    : 'Profil visiteur : consultation en lecture seule.'}
-                </p>
-                {canSelfAssignTasks && Number(student?.taskEnrollment?.maxActiveAssignments) > 0 && (
-                  <p style={{ fontSize: '.78rem', color: student?.taskEnrollment?.atLimit ? '#92400e' : '#166534', marginBottom: 10, lineHeight: 1.45 }}>
-                    {student.taskEnrollment?.atLimit
-                      ? `Limite atteinte (${student.taskEnrollment.currentActiveAssignments}/${student.taskEnrollment.maxActiveAssignments} tâches actives). Retire-toi d’une tâche ou attends une validation.`
-                      : `Tâches actives : ${student.taskEnrollment.currentActiveAssignments}/${student.taskEnrollment.maxActiveAssignments} (non validées, toutes cartes).`}
-                  </p>
-                )}
-                <div style={{ display: 'grid', gap: 8 }}>
-                  {linkedTasks.map((t) => {
-                    const canAssign = canStudentAssignTask(t, student);
-                    const isMine = isStudentAssignedToTask(t, student);
-                    const meta = taskEnrollmentMeta(t, student);
-                    const checked = selectedTaskIds.includes(t.id);
-                    return (
-                      <label key={t.id} style={{
-                        display: 'flex',
-                        alignItems: 'flex-start',
-                        gap: 10,
-                        border: '1px solid rgba(0,0,0,.08)',
-                        borderRadius: 10,
-                        padding: '10px 12px',
-                        background: checked ? '#f0fdf4' : 'var(--parchment)',
-                        cursor: canAssign ? 'pointer' : 'default',
-                        opacity: canAssign || isMine ? 1 : 0.72,
-                      }}>
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          disabled={!canEnroll || !canAssign || assigning}
-                          onChange={() => {
-                            if (!canEnroll || !canAssign) return;
-                            setSelectedTaskIds((prev) => (
-                              prev.includes(t.id) ? prev.filter((id) => id !== t.id) : [...prev, t.id]
-                            ));
-                          }} />
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontWeight: 700, color: 'var(--forest)', fontSize: '.9rem' }}>{t.title}</div>
-                          <div style={{ marginTop: 4, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                            <span className="task-chip" style={{ color: meta.tone, borderColor: meta.border, background: meta.bg }}>
-                              <span style={{ marginRight: 4, opacity: .8 }}>{meta.dot}</span>{meta.label}
-                            </span>
-                            <TaskDifficultyAndRiskChips task={t} />
-                          </div>
-                        </div>
-                      </label>
-                    );
-                  })}
-                </div>
-                <button
-                  className="btn btn-primary btn-full"
-                  style={{ marginTop: 12 }}
-                  disabled={!canEnroll || assigning || selectedTaskIds.length === 0}
-                  onClick={async () => {
-                    if (!onAssignTasks || selectedTaskIds.length === 0) return;
-                    setAssigning(true);
-                    const result = await onAssignTasks(selectedTaskIds);
-                    if (result.failedCount > 0) {
-                      const ok = result.assignedCount > 0 ? `${result.assignedCount} tâche(s) prise(s). ` : '';
-                      setToast(`${ok}${result.failedCount} échec(s) : ${result.firstError || 'erreur inconnue'}`);
-                    } else {
-                      setToast(`${result.assignedCount} tâche(s) prise(s) en charge ✓`);
-                    }
-                    setSelectedTaskIds([]);
-                    setAssigning(false);
-                  }}>
-                  {assigning ? 'Inscription...' : `✋ M'inscrire à ${selectedTaskIds.length || '...'} tâche(s)`}
-                </button>
-              </>
-            )}
-          </div>
+          <ZoneTasksStudentPanel
+            linkedTasks={linkedTasks}
+            student={student}
+            canSelfAssignTasks={canSelfAssignTasks}
+            canEnroll={canEnroll}
+            selectedTaskIds={selectedTaskIds}
+            assigning={assigning}
+            onToggleTask={(id) => setSelectedTaskIds((prev) => (
+              prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+            ))}
+            onAssign={async () => {
+              if (!onAssignTasks || selectedTaskIds.length === 0) return;
+              setAssigning(true);
+              const result = await onAssignTasks(selectedTaskIds);
+              if (result.failedCount > 0) {
+                const ok = result.assignedCount > 0 ? `${result.assignedCount} tâche(s) prise(s). ` : '';
+                setToast(`${ok}${result.failedCount} échec(s) : ${result.firstError || 'erreur inconnue'}`);
+              } else {
+                setToast(`${result.assignedCount} tâche(s) prise(s) en charge ✓`);
+              }
+              setSelectedTaskIds([]);
+              setAssigning(false);
+            }}
+          />
         )}
         {tab === 'tutorials' && isTeacher && (
           <ZoneTutorialsTeacherPanel
