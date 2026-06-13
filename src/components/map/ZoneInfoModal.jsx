@@ -15,12 +15,12 @@ import { buildZoneName, buildZonePayload, computeZoneVisitImageBlocks, zoneTaskM
 import { DialogShell } from '../DialogShell';
 import { MarkdownContent } from '../MarkdownContent.jsx';
 import { MarkdownTextarea } from '../MarkdownTextarea.jsx';
-import { tutorialPreviewCanEmbed, tutorialPreviewPayload } from '../TutorialPreviewModal';
 import { ContextComments } from '../context-comments';
 import { BiodiversitySpeciesOpenLinks, LivingBeingsCatalogPanel } from './LivingBeingsCatalogPanel.jsx';
 import { MarkerVisitImageBuilder } from './MarkerFormSections.jsx';
 import { PhotoGallery } from './PhotoGallery.jsx';
 import { ZoneOrMarkerEmojiField } from './ZoneOrMarkerEmojiField.jsx';
+import { ZoneTutorialsStudentPanel, ZoneTutorialsTeacherPanel } from './ZoneTutorialsPanel.jsx';
 import { LocationTutorialPreviewList, TaskEnrollmentLegend, tutorialLinkedToSameMap } from './mapModalShared.jsx';
 
 function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student, canSelfAssignTasks = true, canEnrollOnTasks, markerEmojis = MARKER_EMOJIS, emojiParsingList = MARKER_EMOJIS, contextCommentsEnabled = true, canParticipateContextComments = true, onClose, onUpdate, onDelete, onDuplicate, onEditPoints, onLinkTask, onUnlinkTask, onAssignTasks, onLinkTutorial, onUnlinkTutorial, onNavigateToTasksForLocation = null, onOpenTutorialPreview = null, onOpenPlantCatalogPreview = null }) {
@@ -634,113 +634,29 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
           </div>
         )}
         {tab === 'tutorials' && isTeacher && (
-          <div className="fade-in">
-            <div style={{ marginTop: 12 }}>
-              {linkedTutorialsDirect.length === 0 && tutorialsOnlyViaTasks.length === 0 ? (
-                <p style={{ color: '#999', fontSize: '.85rem' }}>Aucun tutoriel lié à cette zone.</p>
-              ) : (
-                <>
-                  {linkedTutorialsDirect.length === 0 ? null : linkedTutorialsDirect.map((tu) => (
-                    <div key={tu.id} className="history-item" style={{ alignItems: 'center' }}>
-                      <span>{tu.title}{tu.is_active === false ? ' (archivé)' : ''}</span>
-                      <button
-                        type="button"
-                        className="btn btn-ghost btn-sm"
-                        onClick={async () => {
-                          await onUnlinkTutorial?.(tu);
-                          setToast('Tutoriel dissocié');
-                        }}>
-                        Délier
-                      </button>
-                    </div>
-                  ))}
-                  {tutorialsOnlyViaTasks.length > 0 && (
-                    <div style={{ marginTop: linkedTutorialsDirect.length ? 16 : 0 }}>
-                      <p style={{ fontSize: '.78rem', color: '#64748b', margin: '0 0 8px', lineHeight: 1.45 }}>
-                        Rattachés aux missions sur ce lieu (pour les retirer, modifie la tâche concernée).
-                      </p>
-                      {tutorialsOnlyViaTasks.map((tu) => (
-                        <div key={`task-tu-${tu.id}`} className="history-item" style={{ alignItems: 'center' }}>
-                          <span>{tu.title}{tu.is_active === false ? ' (archivé)' : ''}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-            <div className="field" style={{ marginTop: 14 }}><label>Lier un tutoriel à cette zone</label>
-              <select value={linkTutorialId} onChange={(e) => setLinkTutorialId(e.target.value)}>
-                <option value="">— Choisir un tutoriel —</option>
-                {assignableTutorials.map((tu) => (
-                  <option key={tu.id} value={String(tu.id)}>{tu.title}</option>
-                ))}
-              </select>
-              <p style={{ fontSize: '.74rem', color: '#64748b', margin: '6px 0 0', lineHeight: 1.4 }}>
-                Tu peux lier plusieurs tutoriels en répétant l’opération pour chaque fiche.
-              </p>
-            </div>
-            <button
-              type="button"
-              className="btn btn-primary btn-full"
-              disabled={!linkTutorialId}
-              onClick={async () => {
-                await onLinkTutorial?.(linkTutorialId);
-                setLinkTutorialId('');
-                setToast('Tutoriel lié à la zone ✓');
-              }}>
-              🔗 Lier le tutoriel
-            </button>
-          </div>
+          <ZoneTutorialsTeacherPanel
+            linkedTutorialsDirect={linkedTutorialsDirect}
+            tutorialsOnlyViaTasks={tutorialsOnlyViaTasks}
+            assignableTutorials={assignableTutorials}
+            linkTutorialId={linkTutorialId}
+            onChangeLinkTutorialId={setLinkTutorialId}
+            onUnlinkTutorial={async (tu) => {
+              await onUnlinkTutorial?.(tu);
+              setToast('Tutoriel dissocié');
+            }}
+            onLinkTutorial={async (id) => {
+              await onLinkTutorial?.(id);
+              setLinkTutorialId('');
+              setToast('Tutoriel lié à la zone ✓');
+            }}
+          />
         )}
         {tab === 'tutorials' && !isTeacher && (
-          <div className="fade-in">
-            {linkedTutorialsVisible.length === 0 ? (
-              <p style={{ color: '#999', fontSize: '.85rem' }}>Aucun tutoriel lié à cette zone.</p>
-            ) : (
-              <div style={{ display: 'grid', gap: 12 }}>
-                {linkedTutorialsVisible.map((tu) => {
-                  const otherZones = (tu.zones_linked || []).filter((z) => z.id !== zone.id);
-                  const markers = tu.markers_linked || [];
-                  return (
-                    <div
-                      key={tu.id}
-                      style={{
-                        border: '1px solid rgba(0,0,0,.08)',
-                        borderRadius: 10,
-                        padding: '12px 14px',
-                        background: 'var(--parchment)',
-                      }}>
-                      <div style={{ fontWeight: 700, color: 'var(--forest)' }}>{tu.title}</div>
-                      {tu.summary && (
-                        <p style={{ margin: '8px 0 0', fontSize: '.82rem', color: '#555', lineHeight: 1.45 }}>{tu.summary}</p>
-                      )}
-                      {otherZones.length > 0 && (
-                        <p style={{ margin: '10px 0 0', fontSize: '.76rem', color: '#64748b' }}>
-                          <strong>Autres zones</strong> : {otherZones.map((z) => z.name).join(', ')}
-                        </p>
-                      )}
-                      {markers.length > 0 && (
-                        <p style={{ margin: '6px 0 0', fontSize: '.76rem', color: '#64748b' }}>
-                          <strong>Repères</strong> : {markers.map((m) => m.label).join(', ')}
-                        </p>
-                      )}
-                      {tutorialPreviewCanEmbed(tu) && onOpenTutorialPreview ? (
-                        <button
-                          type="button"
-                          className="btn btn-primary btn-sm"
-                          style={{ marginTop: 10 }}
-                          onClick={() => onOpenTutorialPreview(tutorialPreviewPayload(tu))}
-                        >
-                          📖 Consulter
-                        </button>
-                      ) : null}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+          <ZoneTutorialsStudentPanel
+            tutorials={linkedTutorialsVisible}
+            zoneId={zone.id}
+            onOpenTutorialPreview={onOpenTutorialPreview}
+          />
         )}
     </DialogShell>
   );
