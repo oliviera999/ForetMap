@@ -5,8 +5,7 @@ import { GLButton } from '../ui/GLButton.jsx';
 import { GLField } from '../ui/GLField.jsx';
 import { GLInput } from '../ui/GLInput.jsx';
 import { GLSelect } from '../ui/GLSelect.jsx';
-import { GLQcmFeedbackBlock } from '../GLQcmFeedbackBlock.jsx';
-import { hasQcmAnswerFeedback } from '../../utils/glQcmDisplay.js';
+import { GLQcmPreviewModal } from './GLQcmPreviewModal.jsx';
 import { fileToDataUrl } from '../../../utils/fileToDataUrl.js';
 import { buildExportQuery, buildQuestionsListQuery } from '../../utils/glQcmCatalogPanel.js';
 
@@ -261,56 +260,19 @@ export function GLQcmCatalogPanel({
         ) : null}
       </div>
 
-      {previewCode ? (
-        <div className="gl-qcm-modal gl-qcm-modal--inline" role="dialog" aria-label="Aperçu QCM">
-          <div className="gl-qcm-modal__body">
-            <h4>Aperçu — {previewCode}</h4>
-            {presentLoading ? <p className="gl-hint">Chargement…</p> : null}
-            {hasQcmAnswerFeedback(feedback) ? (
-              <>
-                <GLQcmFeedbackBlock result={feedback} />
-                <div className="gl-inline-actions">
-                  <GLButton type="button" onClick={reloadPresentation}>Nouvelle présentation</GLButton>
-                  <GLButton type="button" variant="ghost" onClick={() => { setPreviewCode(null); setFeedback(null); }}>
-                    Fermer
-                  </GLButton>
-                </div>
-              </>
-            ) : (
-              <>
-                {presentation?.question ? <p className="gl-qcm-modal__question">{presentation.question}</p> : null}
-                {presentation?.choices?.length ? (
-                  <div className="gl-qcm-modal__choices">
-                    {presentation.choices.map((choice) => (
-                      <label key={choice.id} className="gl-qcm-choice">
-                        <input
-                          type="radio"
-                          name="preview-choice"
-                          checked={selectedChoiceId === choice.id}
-                          onChange={() => setSelectedChoiceId(choice.id)}
-                        />
-                        <span>{choice.text}</span>
-                      </label>
-                    ))}
-                  </div>
-                ) : null}
-                <div className="gl-inline-actions">
-                  <GLButton type="button" onClick={reloadPresentation}>Re-mélanger</GLButton>
-                  <GLButton
-                    type="button"
-                    onClick={submitPreviewAnswer}
-                    disabled={answerLoading || selectedChoiceId == null}
-                  >
-                    Valider
-                  </GLButton>
-                  <GLButton type="button" variant="ghost" onClick={() => setPreviewCode(null)}>Fermer</GLButton>
-                </div>
-                {feedback?.error ? <p className="gl-error">{feedback.error}</p> : null}
-              </>
-            )}
-          </div>
-        </div>
-      ) : null}
+      <GLQcmPreviewModal
+        previewCode={previewCode}
+        presentLoading={presentLoading}
+        answerLoading={answerLoading}
+        presentation={presentation}
+        feedback={feedback}
+        selectedChoiceId={selectedChoiceId}
+        onReload={reloadPresentation}
+        onSelectChoice={setSelectedChoiceId}
+        onSubmitAnswer={submitPreviewAnswer}
+        onClose={() => setPreviewCode(null)}
+        onCloseFromFeedback={() => { setPreviewCode(null); setFeedback(null); }}
+      />
     </section>
   );
 }
