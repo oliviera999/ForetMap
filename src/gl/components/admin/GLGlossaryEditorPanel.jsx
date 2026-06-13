@@ -6,65 +6,13 @@ import { GLInput } from '../ui/GLInput.jsx';
 import { GLSelect } from '../ui/GLSelect.jsx';
 import { GLTextarea } from '../ui/GLTextarea.jsx';
 import { GLMultiCheckDropdown } from '../GLMultiCheckDropdown.jsx';
-
-const EMPTY_FORM = {
-  glossary_code: '',
-  terme: '',
-  variantes: '',
-  categorie: 'ecologie',
-  niveau: 'base',
-  definition_courte: '',
-  definition_complete: '',
-  exemple: '',
-  etymologie: '',
-  present_dans_qcm: '',
-  illustration_idee: '',
-  all_biomes: true,
-  biome_slugs: [],
-  termes_lies: '',
-  statut: 'actif',
-};
-
-function termToForm(term) {
-  if (!term) return { ...EMPTY_FORM };
-  return {
-    glossary_code: term.glossary_code || '',
-    terme: term.terme || '',
-    variantes: term.variantes || '',
-    categorie: term.categorie || 'ecologie',
-    niveau: term.niveau || 'base',
-    definition_courte: term.definition_courte || '',
-    definition_complete: term.definition_complete || '',
-    exemple: term.exemple || '',
-    etymologie: term.etymologie || '',
-    present_dans_qcm: term.present_dans_qcm || '',
-    illustration_idee: term.illustration_idee || '',
-    all_biomes: !!term.all_biomes,
-    biome_slugs: Array.isArray(term.biome_slugs) ? [...term.biome_slugs] : [],
-    termes_lies: Array.isArray(term.related_codes) ? term.related_codes.join(', ') : '',
-    statut: term.statut || 'actif',
-  };
-}
-
-function formToPayload(form) {
-  return {
-    glossary_code: form.glossary_code.trim() || undefined,
-    terme: form.terme,
-    variantes: form.variantes,
-    categorie: form.categorie,
-    niveau: form.niveau,
-    definition_courte: form.definition_courte,
-    definition_complete: form.definition_complete,
-    exemple: form.exemple,
-    etymologie: form.etymologie,
-    present_dans_qcm: form.present_dans_qcm,
-    illustration_idee: form.illustration_idee,
-    all_biomes: form.all_biomes,
-    biome_slugs: form.all_biomes ? [] : form.biome_slugs,
-    termes_lies: form.termes_lies,
-    statut: form.statut,
-  };
-}
+import {
+  EMPTY_FORM,
+  termToForm,
+  formToPayload,
+  buildBiomeOptions,
+  filterGlossaryItems,
+} from '../../utils/glGlossaryEditorForm.js';
 
 export function GLGlossaryEditorPanel() {
   const [meta, setMeta] = useState({ categories: [], niveaux: [], biomes: [] });
@@ -77,23 +25,12 @@ export function GLGlossaryEditorPanel() {
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
 
-  const biomeOptions = useMemo(
-    () => (meta.biomes || []).map((b) => ({ value: b.slug, label: b.nom || b.slug })),
-    [meta.biomes]
-  );
+  const biomeOptions = useMemo(() => buildBiomeOptions(meta.biomes), [meta.biomes]);
 
-  const filteredItems = useMemo(() => {
-    let list = items;
-    if (filterCategorie) list = list.filter((row) => row.categorie === filterCategorie);
-    if (filterQ.trim()) {
-      const needle = filterQ.trim().toLowerCase();
-      list = list.filter((row) => {
-        const hay = `${row.terme} ${row.glossary_code} ${row.definition_courte || ''}`.toLowerCase();
-        return hay.includes(needle);
-      });
-    }
-    return list;
-  }, [items, filterCategorie, filterQ]);
+  const filteredItems = useMemo(
+    () => filterGlossaryItems(items, { filterCategorie, filterQ }),
+    [items, filterCategorie, filterQ]
+  );
 
   const loadMeta = useCallback(async () => {
     const data = await apiGL('/api/gl/admin/glossary/meta');
