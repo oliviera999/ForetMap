@@ -23,6 +23,7 @@ import {
 import { GLAuthView } from './components/GLAuthView.jsx';
 import { GLTopBar, GL_TAB_ID_PREFIX, GL_TABPANEL_ID_PREFIX } from './components/GLTopBar.jsx';
 import { useGlCompactNav } from './hooks/useGlCompactNav.js';
+import { useGLOverlays } from './hooks/useGLOverlays.js';
 import { GLWorldView } from './components/GLWorldView.jsx';
 import { GLRulesView } from './components/GLRulesView.jsx';
 import { GLSpellsView } from './components/GLSpellsView.jsx';
@@ -99,8 +100,7 @@ export function AppGL() {
   const [modules, setModules] = useState(GL_MODULE_DEFAULTS);
   const [glProfile, setGlProfile] = useState(null);
   const [glConfig, setGlConfig] = useState({});
-  const [showProfile, setShowProfile] = useState(false);
-  const [showPlayerStats, setShowPlayerStats] = useState(false);
+  const { showProfile, setShowProfile, showPlayerStats, setShowPlayerStats } = useGLOverlays();
   const [glossaryFocusCode, setGlossaryFocusCode] = useState(null);
   const [glossaryPopoverCode, setGlossaryPopoverCode] = useState(null);
   const [loreGlossaryPopoverCode, setLoreGlossaryPopoverCode] = useState(null);
