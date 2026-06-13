@@ -8,11 +8,14 @@ import {
   clonePackDeep,
   parsePackJson,
   stringifyPack,
-  serverMascotPackAssetsPrefix,
-  serverMascotSpriteLibraryAssetsPrefix,
-  MASCOT_PACK_FALLBACK_SILHOUETTES,
 } from '../utils/mascotPackEditorModel.js';
 import { validateMascotPackV1 } from '../utils/mascotPack.js';
+import {
+  getPackStrictValidation,
+  computeEditorWarnings,
+  filterGlobalAssets,
+  insertAssetUrlIntoPackState,
+} from '../utils/visitMascotPackManager.js';
 import { isSpriteLibraryPreviewableUrl, estimateStateDurationMs } from '../utils/visitMascotPackTiming.js';
 import { buildVisitMascotCatalogExtrasFromContent } from '../utils/visitMascotPackExtras.js';
 import { getVisitMascotCatalog } from '../utils/visitMascotCatalog.js';
@@ -60,20 +63,6 @@ const VISIT_STATE_LABELS = {
   [VISIT_MASCOT_STATE.ANGRY]: 'Fâchée',
   [VISIT_MASCOT_STATE.SURPRISE]: 'Surprise',
 };
-
-/**
- * @param {Record<string, unknown>} pack
- * @param {string} packId
- * @param {string} mapId
- */
-function getPackStrictValidation(pack, packId, mapId) {
-  const allowedFramesBasePrefixes = ['/assets/mascots/'];
-  const packPrefix = serverMascotPackAssetsPrefix(packId);
-  if (packPrefix) allowedFramesBasePrefixes.push(packPrefix);
-  const libraryPrefix = serverMascotSpriteLibraryAssetsPrefix(mapId);
-  if (libraryPrefix) allowedFramesBasePrefixes.push(libraryPrefix);
-  return validateMascotPackV1(pack, { allowedFramesBasePrefixes });
-}
 
 /** @param {{ pack: Record<string, unknown> }} props */
 function PackBehaviorDetailTable({ pack }) {
@@ -380,20 +369,7 @@ export default function VisitMascotPackManager({
     if (!selectedId) return { ok: false, error: null };
     return getPackStrictValidation(sanitizeMascotPackDraft(editorPack), selectedId, String(mapId || '').trim());
   }, [editorPack, selectedId, mapId]);
-  const editorWarnings = useMemo(() => {
-    const warnings = [];
-    const silhouette = String(editorPack?.fallbackSilhouette || '').trim();
-    if (silhouette && !MASCOT_PACK_FALLBACK_SILHOUETTES.includes(silhouette)) {
-      warnings.push(`Silhouette « ${silhouette} » inconnue.`);
-    }
-    const stateFrames = editorPack?.stateFrames && typeof editorPack.stateFrames === 'object'
-      ? editorPack.stateFrames
-      : {};
-    if (!stateFrames?.idle) {
-      warnings.push('État recommandé manquant: ajoutez un état « idle » pour un fallback visuel fiable.');
-    }
-    return warnings;
-  }, [editorPack]);
+  const editorWarnings = useMemo(() => computeEditorWarnings(editorPack), [editorPack]);
 
   const setActionErrorWithDetails = useCallback((message, details) => {
     const issues = extractMascotPackValidationIssues(details);
@@ -719,51 +695,15 @@ export default function VisitMascotPackManager({
     setEditorTab('workspace');
   }, [mapId]);
 
-  const libraryFilteredAssets = useMemo(() => {
-    const q = String(globalAssetSearch || '').trim().toLowerCase();
-    if (!q) return globalAssets;
-    return globalAssets.filter((a) => {
-      const hay = [
-        a?.filename,
-        a?.url,
-        a?.source,
-        a?.map_id,
-        a?.pack_catalog_id,
-        a?.pack_label,
-      ].map((x) => String(x || '').toLowerCase()).join(' ');
-      return hay.includes(q);
-    });
-  }, [globalAssets, globalAssetSearch]);
+  const libraryFilteredAssets = useMemo(
+    () => filterGlobalAssets(globalAssets, globalAssetSearch),
+    [globalAssets, globalAssetSearch],
+  );
 
   const insertGlobalAssetIntoState = useCallback((assetUrl) => {
-    const state = String(globalTargetState || '').trim() || 'idle';
     const url = String(assetUrl || '').trim();
     if (!url) return;
-    setEditorPack((prev) => {
-      const next = { ...(prev || {}) };
-      const sf = next.stateFrames && typeof next.stateFrames === 'object' ? { ...next.stateFrames } : {};
-      const cur = sf[state] && typeof sf[state] === 'object' ? { ...sf[state] } : {};
-      let srcs = [];
-      if (Array.isArray(cur.srcs) && cur.srcs.length > 0) {
-        srcs = cur.srcs.map((u) => String(u || '').trim()).filter(Boolean);
-      } else if (Array.isArray(cur.files) && cur.files.length > 0) {
-        const base = String(next.framesBase || '').trim();
-        const normalizedBase = base.endsWith('/') ? base : (base ? `${base}/` : '');
-        srcs = cur.files
-          .map((f) => `${normalizedBase}${String(f || '').replace(/^\//, '')}`)
-          .map((u) => String(u || '').trim())
-          .filter(Boolean);
-      }
-      if (!srcs.includes(url)) srcs.push(url);
-      sf[state] = {
-        ...cur,
-        srcs,
-        fps: Math.max(1, Number(cur.fps) || 8),
-      };
-      delete sf[state].files;
-      next.stateFrames = sf;
-      return next;
-    });
+    setEditorPack((prev) => insertAssetUrlIntoPackState(prev, globalTargetState, url));
     setEditorTab('workspace');
   }, [globalTargetState]);
 
