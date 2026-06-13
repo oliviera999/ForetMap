@@ -15,6 +15,7 @@ import {
 } from './services/api';
 import { useForetmapRealtime } from './hooks/useForetmapRealtime';
 import { useNotificationCenter } from './hooks/useNotificationCenter';
+import { usePwaInstall } from './hooks/usePwaInstall';
 import { RT_PROF_TOOLTIPS } from './constants/realtime';
 import { NOTIFICATION_CATEGORY, NOTIFICATION_LEVEL } from './constants/notifications';
 import { HELP_TOOLTIPS, resolveRoleText } from './constants/help';
@@ -79,7 +80,6 @@ import {
   resolveOauthErrorMessage,
   decodeBase64UrlJson,
   readStoredTab,
-  detectIosDevice,
   pickVisibleMapId,
   shouldUseDesktopSplitLayout,
 } from './utils/appShellHelpers';
@@ -132,13 +132,13 @@ function App() {
   const [publicSettingsReady, setPublicSettingsReady] = useState(false);
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth || 0);
   const [isTabVisible, setIsTabVisible] = useState(() => document.visibilityState !== 'hidden');
-  const [deferredInstallPrompt, setDeferredInstallPrompt] = useState(null);
-  const [showIosInstallHint, setShowIosInstallHint] = useState(false);
-  const [isStandaloneMode, setIsStandaloneMode] = useState(() => {
-    const displayStandalone = window.matchMedia && window.matchMedia('(display-mode: standalone)').matches;
-    const iosStandalone = window.navigator.standalone === true;
-    return displayStandalone || iosStandalone;
-  });
+  const {
+    deferredInstallPrompt,
+    showIosInstallHint,
+    isStandaloneMode,
+    handleInstallClick,
+    setShowIosInstallHint,
+  } = usePwaInstall({ onToast: setToast });
   const failCountRef = useRef(0);
   const prevTabForPollingRef = useRef(tab);
   const viewportResizeRafRef = useRef(null);
@@ -148,7 +148,6 @@ function App() {
   const initialFetchDoneRef = useRef(false);
   /** Incrémenté après succès modale PIN / login prof : déclenche un `fetchAll` sans s’accrocher à chaque changement de `authClaims`. */
   const [pinSuccessFetchAllTick, setPinSuccessFetchAllTick] = useState(0);
-  const isIosDevice = useMemo(() => detectIosDevice(), []);
 
   const effectiveRoleContext = useMemo(() => {
     const roleSlug = String(authClaims?.roleSlug || '').toLowerCase();
@@ -309,70 +308,6 @@ function App() {
       }
     } catch (_) {}
   }, []);
-
-  useEffect(() => {
-    const displayModeQuery = window.matchMedia ? window.matchMedia('(display-mode: standalone)') : null;
-    const updateStandaloneState = () => {
-      const displayStandalone = displayModeQuery ? displayModeQuery.matches : false;
-      const iosStandalone = window.navigator.standalone === true;
-      setIsStandaloneMode(displayStandalone || iosStandalone);
-    };
-    updateStandaloneState();
-    if (!displayModeQuery) return undefined;
-    if (typeof displayModeQuery.addEventListener === 'function') {
-      displayModeQuery.addEventListener('change', updateStandaloneState);
-      return () => displayModeQuery.removeEventListener('change', updateStandaloneState);
-    }
-    if (typeof displayModeQuery.addListener === 'function') {
-      displayModeQuery.addListener(updateStandaloneState);
-      return () => displayModeQuery.removeListener(updateStandaloneState);
-    }
-    return undefined;
-  }, []);
-
-  useEffect(() => {
-    const onBeforeInstallPrompt = (event) => {
-      event.preventDefault();
-      setDeferredInstallPrompt(event);
-    };
-    const onAppInstalled = () => {
-      setDeferredInstallPrompt(null);
-      setShowIosInstallHint(false);
-      setToast('Application installée sur cet appareil.');
-    };
-    window.addEventListener('beforeinstallprompt', onBeforeInstallPrompt);
-    window.addEventListener('appinstalled', onAppInstalled);
-    return () => {
-      window.removeEventListener('beforeinstallprompt', onBeforeInstallPrompt);
-      window.removeEventListener('appinstalled', onAppInstalled);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!isIosDevice || isStandaloneMode) {
-      setShowIosInstallHint(false);
-      return;
-    }
-    const dismissed = safeLocalStorageGetItem(IOS_INSTALL_HINT_DISMISSED_KEY, null) === '1';
-    setShowIosInstallHint(!dismissed);
-  }, [isIosDevice, isStandaloneMode]);
-
-  const handleInstallClick = useCallback(async () => {
-    if (!deferredInstallPrompt) return;
-    try {
-      await deferredInstallPrompt.prompt();
-      const result = await deferredInstallPrompt.userChoice;
-      if (result?.outcome === 'accepted') {
-        setToast('Installation en cours...');
-      } else {
-        setToast('Installation annulée.');
-      }
-    } catch (_) {
-      setToast('Installation impossible sur ce navigateur.');
-    } finally {
-      setDeferredInstallPrompt(null);
-    }
-  }, [deferredInstallPrompt]);
 
   // Called from anywhere when a 401-deleted is detected
   const forceLogout = useCallback(() => {
