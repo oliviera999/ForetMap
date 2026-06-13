@@ -7,15 +7,8 @@ import { GLInput } from '../ui/GLInput.jsx';
 import { GLSelect } from '../ui/GLSelect.jsx';
 import { GLQcmFeedbackBlock } from '../GLQcmFeedbackBlock.jsx';
 import { hasQcmAnswerFeedback } from '../../utils/glQcmDisplay.js';
-
-async function fileToDataUrl(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result || ''));
-    reader.onerror = () => reject(new Error('Lecture du fichier impossible'));
-    reader.readAsDataURL(file);
-  });
-}
+import { fileToDataUrl } from '../../../utils/fileToDataUrl.js';
+import { buildExportQuery, buildQuestionsListQuery } from '../../utils/glQcmCatalogPanel.js';
 
 export function GLQcmCatalogPanel({
   title,
@@ -74,11 +67,7 @@ export function GLQcmCatalogPanel({
   }
 
   function downloadExport() {
-    const params = new URLSearchParams();
-    if (exportStatut === 'all') params.set('statut', 'all');
-    if (scopeSlug.trim()) params.set(scopeQueryKey, scopeSlug.trim());
-    if (categorieSlug.trim()) params.set('categorieSlug', categorieSlug.trim());
-    const query = params.toString();
+    const query = buildExportQuery({ exportStatut, scopeQueryKey, scopeSlug, categorieSlug });
     return runDownload(
       `${adminBasePath}/export${query ? `?${query}` : ''}`,
       exportFilename,
@@ -97,11 +86,8 @@ export function GLQcmCatalogPanel({
 
   const loadList = useCallback(async () => {
     try {
-      const params = new URLSearchParams();
-      if (scopeSlug.trim()) params.set(scopeQueryKey, scopeSlug.trim());
-      if (categorieSlug.trim()) params.set('categorieSlug', categorieSlug.trim());
-      if (search.trim()) params.set('q', search.trim());
-      const data = await apiGL(`${questionsListPath}?${params.toString()}`);
+      const query = buildQuestionsListQuery({ scopeQueryKey, scopeSlug, categorieSlug, search });
+      const data = await apiGL(`${questionsListPath}?${query}`);
       setItems(Array.isArray(data?.items) ? data.items : []);
       setError('');
     } catch (err) {
