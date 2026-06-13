@@ -5,58 +5,19 @@ import {
   GL_SPELL_FIELD_LABELS,
   GL_SPELL_STATUT_LABELS,
 } from '../../utils/glSpellFieldLabels.js';
+import {
+  EMPTY_FORM,
+  FORM_FIELDS,
+  TEXTAREA_FIELDS,
+  filterSpells,
+  formToPayload,
+  spellToForm,
+} from '../../utils/glSpellsEditorForm.js';
 import { GLButton } from '../ui/GLButton.jsx';
 import { GLField } from '../ui/GLField.jsx';
 import { GLInput } from '../ui/GLInput.jsx';
 import { GLSelect } from '../ui/GLSelect.jsx';
 import { GLTextarea } from '../ui/GLTextarea.jsx';
-
-const TEXTAREA_FIELDS = new Set(['effet_court', 'effet_detaille', 'notes_pedagogiques']);
-
-const EMPTY_FORM = {
-  spell_code: '',
-  category_slug: '',
-  nom: '',
-  emoji: '',
-  cout_gemmes: '0',
-  cout_coeurs: '0',
-  cout_total_eq: '',
-  portee: '',
-  cible: '',
-  timing: '',
-  effet_court: '',
-  effet_detaille: '',
-  limite_usage: '',
-  cumul: '',
-  statut: 'officiel',
-  source: '',
-  notes_pedagogiques: '',
-  cree_le: '',
-};
-
-function spellToForm(spell) {
-  if (!spell) return { ...EMPTY_FORM };
-  const next = { ...EMPTY_FORM };
-  for (const key of Object.keys(EMPTY_FORM)) {
-    if (key === 'cout_gemmes' || key === 'cout_coeurs') {
-      next[key] = spell[key] != null ? String(spell[key]) : '0';
-    } else {
-      next[key] = spell[key] != null ? String(spell[key]) : '';
-    }
-  }
-  if (spell.cree_le) next.cree_le = String(spell.cree_le).slice(0, 10);
-  return next;
-}
-
-function formToPayload(form) {
-  return {
-    ...form,
-    cout_gemmes: Number(form.cout_gemmes) || 0,
-    cout_coeurs: Number(form.cout_coeurs) || 0,
-    spell_code: form.spell_code.trim() || undefined,
-    id: form.spell_code.trim() || undefined,
-  };
-}
 
 function SpellField({ fieldKey, value, onChange, disabled }) {
   const label = GL_SPELL_FIELD_LABELS[fieldKey] || fieldKey;
@@ -104,14 +65,6 @@ function SpellField({ fieldKey, value, onChange, disabled }) {
   );
 }
 
-const FORM_FIELDS = [
-  'spell_code', 'category_slug', 'nom', 'emoji',
-  'cout_gemmes', 'cout_coeurs', 'cout_total_eq',
-  'portee', 'cible', 'timing',
-  'effet_court', 'effet_detaille', 'limite_usage', 'cumul',
-  'statut', 'source', 'notes_pedagogiques', 'cree_le',
-];
-
 export function GLSpellsEditorPanel() {
   const [categories, setCategories] = useState([]);
   const [categorySlug, setCategorySlug] = useState('');
@@ -123,14 +76,7 @@ export function GLSpellsEditorPanel() {
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
 
-  const filteredItems = useMemo(() => {
-    if (!filterQ.trim()) return items;
-    const needle = filterQ.trim().toLowerCase();
-    return items.filter((row) => {
-      const hay = `${row.nom} ${row.spell_code}`.toLowerCase();
-      return hay.includes(needle);
-    });
-  }, [items, filterQ]);
+  const filteredItems = useMemo(() => filterSpells(items, filterQ), [items, filterQ]);
 
   const loadCategories = useCallback(async () => {
     const list = await apiGL('/api/gl/spell-categories');
