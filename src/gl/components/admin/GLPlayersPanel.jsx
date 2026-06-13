@@ -1,5 +1,4 @@
 import React, { useMemo, useState } from 'react';
-import { DialogShell } from '../../../components/DialogShell.jsx';
 import { apiGL } from '../../services/apiGL.js';
 import { GLBadge } from '../ui/GLBadge.jsx';
 import { GLButton } from '../ui/GLButton.jsx';
@@ -13,6 +12,7 @@ import {
   playerClassName,
   playerDisplayName,
 } from '../../utils/glPlayersPanel.js';
+import { GLPlayerResetPasswordModal } from './GLPlayerResetPasswordModal.jsx';
 
 export function GLPlayersPanel({
   classes,
@@ -311,41 +311,16 @@ export function GLPlayersPanel({
         })}
       />
 
-      <DialogShell
-        open={!!resetPlayer}
+      <GLPlayerResetPasswordModal
+        player={resetPlayer}
+        passwordValue={resetPasswordValue}
+        onPasswordChange={setResetPasswordValue}
         onClose={() => {
           setResetPlayer(null);
           setResetPasswordValue('');
         }}
-        overlayClassName="fm-modal-overlay"
-        dialogClassName="fm-modal-panel animate-pop gl-action-modal-body"
-        ariaLabel="Réinitialiser mot de passe joueur"
-      >
-        <h4>Réinitialiser {resetPlayer?.pseudo}</h4>
-        <GLField label="Nouveau mot de passe">
-          <GLInput
-            type="password"
-            value={resetPasswordValue}
-            onChange={(event) => setResetPasswordValue(event.target.value)}
-            autoComplete="new-password"
-          />
-        </GLField>
-        <div className="gl-inline-actions">
-          <GLButton type="button" onClick={() => resetPlayerPassword(resetPlayer)}>
-            Valider
-          </GLButton>
-          <GLButton
-            type="button"
-            variant="secondary"
-            onClick={() => {
-              setResetPlayer(null);
-              setResetPasswordValue('');
-            }}
-          >
-            Annuler
-          </GLButton>
-        </div>
-      </DialogShell>
+        onSubmit={resetPlayerPassword}
+      />
     </section>
   );
 }
