@@ -7,7 +7,7 @@ const { canAccessGlGame } = require('../../lib/glGameAccess');
 const { getGameplaySettings, getGlModulesSettings, LORE_SPOILER_LEVELS } = require('../../lib/glSettings');
 const { parseBiomeSlugsFromQuery, normalizeBiomeSlugList } = require('../../lib/glChapterBiomes');
 const { sendXlsxAttachment, wrapXlsxRoute } = require('../../lib/glXlsxAttachment');
-const { parseGlId, resolveTeamContext } = require('../../lib/glTeamContext');
+const { resolveTeamContext } = require('../../lib/glTeamContext');
 const { recordFeuilletEvent } = require('../../lib/glLoreFeuilletEvents');
 const {
   FEUILLET_SELECT,
@@ -19,8 +19,6 @@ const {
 } = require('../../lib/glLoreFeuillets');
 const {
   canPresentFeuillet,
-  resolveLoreFeuilletRetrigger,
-  resolveLoreBoolSetting,
 } = require('../../lib/glLoreFeuilletRetrigger');
 const {
   applyFeuilletVitalityEffects,
@@ -53,7 +51,6 @@ const {
   LORE_NIVEAU_LABELS,
   filterLoreGlossaryList,
   buildLoreGlossaryLookupMap,
-  matchLoreGlossaryTermsForText,
 } = require('../../lib/glLoreGlossaryMatch');
 const {
   resolveImportRows: resolveQcmLoreImportRows,
@@ -61,7 +58,6 @@ const {
   buildQcmLoreTemplateWorkbook,
   buildQcmLoreExportWorkbook,
   loadQcmLoreExportRows,
-  combineKeywords: combineLoreQcmKeywords,
   MAX_IMPORT_ROWS: QCM_LORE_MAX_IMPORT_ROWS,
 } = require('../../lib/glQcmLoreImport');
 const {
@@ -76,13 +72,18 @@ const { normalizeLoreQuestionPool } = require('../../lib/glMarkerEventConfig');
 const { normalizeOptionalString } = require('../../lib/shared/httpHelpers');
 const { z, validate } = require('../../lib/validate');
 const { glQcmPoolPreviewQuerySchema } = require('../../lib/glQuerySchemas');
+const {
+  parseId,
+  resolveLoreSettings,
+  normalizeLoreQuestionCode,
+  normalizeChapitreSlug,
+  parseCsvQuery,
+  LORE_QUESTION_SELECT,
+  enrichLoreQuestionWithGlossary,
+} = require('../../lib/gl/loreRouteHelpers');
 
 const router = express.Router();
 const db = { queryAll, queryOne, execute };
-
-function parseId(value) {
-  return parseGlId(value);
-}
 
 // O7 — `gameId`/`teamId` de GET /feuillets et GET /feuillets/:code : coercition permissive
 // (jamais de 400 issu du schéma) reproduisant exactement l'ancien `parseId` (Number fini
@@ -98,22 +99,6 @@ const glLoreFeuilletQuerySchema = z.object({
   gameId: glLoreFeuilletIdQueryValue,
   teamId: glLoreFeuilletIdQueryValue,
 });
-
-function resolveLoreSettings(gameRow, gameplaySettings) {
-  return {
-    retrigger: resolveLoreFeuilletRetrigger(gameRow, gameplaySettings),
-    effacementEnabled: resolveLoreBoolSetting(
-      gameRow, 'lore_effacement_enabled', gameplaySettings, 'loreEffacementEnabled', true
-    ),
-    gemmeCostsEnabled: resolveLoreBoolSetting(
-      gameRow, 'lore_gemme_costs_enabled', gameplaySettings, 'loreGemmeCostsEnabled', true
-    ),
-    heartRewardsEnabled: resolveLoreBoolSetting(
-      gameRow, 'lore_heart_rewards_enabled', gameplaySettings, 'loreHeartRewardsEnabled', true
-    ),
-    spoilerMaxLevel: gameplaySettings.loreSpoilerMaxLevel || 'recit',
-  };
-}
 
 /** GET /api/gl/lore/feuillets */
 router.get('/feuillets', requireGlAuth, validate({ query: glLoreFeuilletQuerySchema }), async (req, res) => {
@@ -594,43 +579,12 @@ router.post('/admin/glossary/import', requireGlPermission('gl.content.manage'), 
   }
 });
 
-function normalizeLoreQuestionCode(value) {
-  const s = String(value || '').trim().toUpperCase();
-  return s.length > 0 ? s : null;
-}
-
-function normalizeChapitreSlug(value) {
-  if (value == null) return null;
-  const s = String(value).trim().toLowerCase();
-  return s.length > 0 ? s : null;
-}
-
-function parseCsvQuery(value) {
-  const raw = normalizeOptionalString(value);
-  if (!raw) return [];
-  return raw.split(',').map((s) => s.trim()).filter(Boolean);
-}
-
-const LORE_QUESTION_SELECT = `
-  SELECT question_code, chapitre_slug, categorie_slug, numero_dans_categorie, tier_lore, question,
-         choix_a, choix_b, choix_c, choix_d, choix_e,
-         reponse_correcte, reponse_texte, niveau, difficulte, difficulte_label,
-         notes_pedagogiques, source_lore, tags, mots_cles, statut,
-         feedback_correct, feedback_a, feedback_b, feedback_c, feedback_d, feedback_e
-    FROM gl_qcm_lore_questions
-`;
-
 async function loadLoreGlossaryLookupForQcm() {
   const rows = await queryAll(
     `SELECT lore_code, terme, variantes, categorie, definition_courte, niveau
        FROM gl_lore_glossary_terms WHERE statut = 'actif'`
   );
   return buildLoreGlossaryLookupMap(rows);
-}
-
-async function enrichLoreQuestionWithGlossary(questionRow, glossaryByKey) {
-  if (!questionRow) return [];
-  return matchLoreGlossaryTermsForText(combineLoreQcmKeywords(questionRow), glossaryByKey);
 }
 
 async function loadActiveLoreQuestionRow(code) {
