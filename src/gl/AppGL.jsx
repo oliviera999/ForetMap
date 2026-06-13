@@ -57,6 +57,7 @@ const GLJournalView = lazy(() => import('./components/GLJournalView.jsx').then((
 const GLPlayerJournalView = lazy(() => import('./components/GLPlayerJournalView.jsx').then((m) => ({ default: m.GLPlayerJournalView })));
 import { GLNotificationsCenter } from './components/GLNotificationsCenter.jsx';
 import { GLButton } from './components/ui/GLButton.jsx';
+import { GLAppBanners } from './components/GLAppBanners.jsx';
 import { GLHelpPanel } from './components/GLHelpPanel.jsx';
 import { GLProfileModal } from './components/GLProfileModal.jsx';
 import { GLStatsView } from './components/GLStatsView.jsx';
@@ -69,7 +70,6 @@ import { pickZoneAtPct } from '../utils/glZoneAtPct.js';
 import { getRuntimeFeuilletZonesForPlateau } from './data/glFeuilletZonesBundle.js';
 import { isFeuilletZoneEditMode } from './utils/glFeuilletZoneEditMode.js';
 import { useGLZoneMusic, readStoredMuted, writeStoredMuted } from './hooks/useGLZoneMusic.js';
-import { FixedToast } from '../shared/components/FixedToast.jsx';
 import { usePrefersReducedMotion } from './hooks/usePrefersReducedMotion.js';
 import { useAppVersion } from '../hooks/useAppVersion.js';
 import { useGlLearningProgress } from './hooks/useGlLearningProgress.js';
@@ -733,49 +733,15 @@ export function AppGL() {
         appVersion={appVersion}
       />
 
-      {error ? <div className="gl-error-banner">{error}</div> : null}
-
-      {isStaffPlayerPreview ? (
-        <div className="role-preview-banner fade-in" role="status">
-          <span className="role-preview-banner__icon" aria-hidden>🎮</span>
-          <div className="role-preview-banner__text">
-            <strong>Vue joueur (aperçu)</strong>
-            <span>
-              Navigation limitée aux onglets joueur. Tes droits MJ/admin restent actifs côté serveur.
-            </span>
-          </div>
-        </div>
-      ) : null}
-
-      {isImpersonating && impersonationBanner ? (
-        <div className="role-preview-banner role-preview-banner--impersonation fade-in" role="status">
-          <span className="role-preview-banner__icon" aria-hidden>👤</span>
-          <div className="role-preview-banner__text" style={{ flex: '1 1 200px' }}>
-            <strong>{impersonationBanner.title}</strong>
-            <span>
-              Tu navigues avec l’identité de <strong>{String(auth?.displayName || 'joueur')}</strong>.
-              Les actions sont enregistrées pour ce compte.
-            </span>
-          </div>
-          <div className="impersonation-banner-actions">
-            <GLButton type="button" size="sm" onClick={() => { stopGlImpersonation(); }}>
-              {impersonationBanner.stopLabel}
-            </GLButton>
-          </div>
-        </div>
-      ) : null}
-
-      {narrationToast ? (
-        <div className="gl-narration-banner fade-in" role="status">
-          <strong>Narration du MJ :</strong> {narrationToast.text}
-        </div>
-      ) : null}
-
-      {turnToast ? (
-        <FixedToast className="fm-toast--turn gl-turn-toast">
-          C’est au tour de <strong>{turnToastTeam?.name || `équipe #${turnToast.teamId}`}</strong>.
-        </FixedToast>
-      ) : null}
+      <GLAppBanners
+        error={error}
+        isStaffPlayerPreview={isStaffPlayerPreview}
+        impersonationBanner={isImpersonating ? impersonationBanner : null}
+        impersonatedDisplayName={auth?.displayName}
+        onStopImpersonation={stopGlImpersonation}
+        narrationText={narrationToast?.text}
+        turnTeamLabel={turnToast ? (turnToastTeam?.name || `équipe #${turnToast.teamId}`) : null}
+      />
 
       <main className="gl-main" id="gl-main-content">
         <div
