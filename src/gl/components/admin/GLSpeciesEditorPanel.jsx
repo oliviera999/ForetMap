@@ -1,13 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { apiGL } from '../../services/apiGL.js';
-import {
-  GL_SPECIES_DETAIL_SECTIONS,
-  GL_SPECIES_FIELD_LABELS,
-  GL_SPECIES_TYPE_LABELS,
-} from '../../utils/glSpeciesFieldLabels.js';
+import { GL_SPECIES_DETAIL_SECTIONS } from '../../utils/glSpeciesFieldLabels.js';
 import {
   EMPTY_FORM,
-  TEXTAREA_FIELDS,
   filterSpeciesItems,
   formToPayload,
   speciesToForm,
@@ -16,48 +11,7 @@ import { GLButton } from '../ui/GLButton.jsx';
 import { GLField } from '../ui/GLField.jsx';
 import { GLInput } from '../ui/GLInput.jsx';
 import { GLSelect } from '../ui/GLSelect.jsx';
-import { GLTextarea } from '../ui/GLTextarea.jsx';
-
-function SpeciesField({ fieldKey, value, onChange, disabled }) {
-  const label = GL_SPECIES_FIELD_LABELS[fieldKey] || fieldKey;
-  if (fieldKey === 'type') {
-    return (
-      <GLField label={label}>
-        <GLSelect value={value} onChange={(e) => onChange(fieldKey, e.target.value)} disabled={disabled} required>
-          <option value="faune">{GL_SPECIES_TYPE_LABELS.faune}</option>
-          <option value="flore">{GL_SPECIES_TYPE_LABELS.flore}</option>
-        </GLSelect>
-      </GLField>
-    );
-  }
-  if (fieldKey === 'statut') {
-    return (
-      <GLField label={label}>
-        <GLSelect value={value} onChange={(e) => onChange(fieldKey, e.target.value)} disabled={disabled}>
-          <option value="actif">Actif</option>
-          <option value="inactif">Inactif</option>
-        </GLSelect>
-      </GLField>
-    );
-  }
-  if (TEXTAREA_FIELDS.has(fieldKey)) {
-    return (
-      <GLField label={label}>
-        <GLTextarea value={value} onChange={(e) => onChange(fieldKey, e.target.value)} rows={3} disabled={disabled} />
-      </GLField>
-    );
-  }
-  return (
-    <GLField label={label}>
-      <GLInput
-        value={value}
-        onChange={(e) => onChange(fieldKey, e.target.value)}
-        disabled={disabled}
-        required={fieldKey === 'nom_commun'}
-      />
-    </GLField>
-  );
-}
+import { GLSpeciesField } from './GLSpeciesField.jsx';
 
 export function GLSpeciesEditorPanel() {
   const [biomes, setBiomes] = useState([]);
@@ -249,7 +203,7 @@ export function GLSpeciesEditorPanel() {
           <form className="gl-form" onSubmit={saveSpecies}>
             <h4>Identification</h4>
             {coreFields.map((key) => (
-              <SpeciesField
+              <GLSpeciesField
                 key={key}
                 fieldKey={key}
                 value={form[key]}
@@ -257,13 +211,13 @@ export function GLSpeciesEditorPanel() {
                 disabled={key === 'species_code' && Boolean(selectedCode)}
               />
             ))}
-            <SpeciesField fieldKey="statut" value={form.statut} onChange={setField} />
+            <GLSpeciesField fieldKey="statut" value={form.statut} onChange={setField} />
 
             {GL_SPECIES_DETAIL_SECTIONS.filter((s) => s.id !== 'reference').map((section) => (
               <details key={section.id} open={section.id === 'ecologie'}>
                 <summary>{section.title}</summary>
                 {section.fields.map((key) => (
-                  <SpeciesField key={key} fieldKey={key} value={form[key]} onChange={setField} />
+                  <GLSpeciesField key={key} fieldKey={key} value={form[key]} onChange={setField} />
                 ))}
               </details>
             ))}
