@@ -7,10 +7,12 @@ import { GLDataList } from '../ui/GLDataList.jsx';
 import { GLField } from '../ui/GLField.jsx';
 import { GLInput } from '../ui/GLInput.jsx';
 import { GLSelect } from '../ui/GLSelect.jsx';
-
-function toBool(value) {
-  return !!Number(value);
-}
+import {
+  toBool,
+  buildClassesById,
+  playerClassName,
+  playerDisplayName,
+} from '../../utils/glPlayersPanel.js';
 
 export function GLPlayersPanel({
   classes,
@@ -38,11 +40,7 @@ export function GLPlayersPanel({
     passwordMustReset: false,
   });
 
-  const classesById = useMemo(() => {
-    const next = new Map();
-    for (const cls of classes) next.set(Number(cls.id), cls);
-    return next;
-  }, [classes]);
+  const classesById = useMemo(() => buildClassesById(classes), [classes]);
 
   async function createPlayer(event) {
     event.preventDefault();
@@ -247,8 +245,8 @@ export function GLPlayersPanel({
         emptyLabel="Aucun joueur."
         rows={players.map((player) => {
           const isEditing = editId === Number(player.id);
-          const className = classesById.get(Number(player.class_id))?.name || player.class_name || '—';
-          const displayName = `${player.first_name || ''} ${player.last_name || ''}`.trim() || '—';
+          const className = playerClassName(player, classesById);
+          const displayName = playerDisplayName(player);
           const actionButtons = isEditing ? (
             <>
               <GLButton type="button" onClick={saveEdit} disabled={busy}>Enregistrer</GLButton>
