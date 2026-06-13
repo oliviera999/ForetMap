@@ -1,112 +1,17 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { apiGL } from '../../services/apiGL.js';
+import { GL_SPECIES_DETAIL_SECTIONS } from '../../utils/glSpeciesFieldLabels.js';
 import {
-  GL_SPECIES_DETAIL_SECTIONS,
-  GL_SPECIES_FIELD_LABELS,
-  GL_SPECIES_TYPE_LABELS,
-} from '../../utils/glSpeciesFieldLabels.js';
+  EMPTY_FORM,
+  filterSpeciesItems,
+  formToPayload,
+  speciesToForm,
+} from '../../utils/glSpeciesEditorForm.js';
 import { GLButton } from '../ui/GLButton.jsx';
 import { GLField } from '../ui/GLField.jsx';
 import { GLInput } from '../ui/GLInput.jsx';
 import { GLSelect } from '../ui/GLSelect.jsx';
-import { GLTextarea } from '../ui/GLTextarea.jsx';
-
-const TEXTAREA_FIELDS = new Set([
-  'role_ecologique',
-  'adaptations_cles',
-  'regime_alimentaire',
-  'reproduction',
-  'observation_terrain',
-  'description_courte',
-  'anecdote',
-]);
-
-const EMPTY_FORM = {
-  species_code: '',
-  biome_slug: '',
-  type: 'faune',
-  nom_commun: '',
-  nom_scientifique: '',
-  groupe: '',
-  famille: '',
-  statut_iucn: '',
-  endemique: '',
-  role_ecologique: '',
-  adaptations_cles: '',
-  taille_adulte: '',
-  poids_adulte: '',
-  regime_alimentaire: '',
-  longevite: '',
-  reproduction: '',
-  observation_terrain: '',
-  description_courte: '',
-  anecdote: '',
-  present_dans_qcm: '',
-  mots_cles: '',
-  wikipedia_title: '',
-  wikipedia_url: '',
-  photo_url: '',
-  photo_credit: '',
-  photo_licence: '',
-  photo_licence_url: '',
-  statut: 'actif',
-};
-
-function speciesToForm(species) {
-  if (!species) return { ...EMPTY_FORM };
-  const next = { ...EMPTY_FORM };
-  for (const key of Object.keys(EMPTY_FORM)) {
-    next[key] = species[key] != null ? String(species[key]) : '';
-  }
-  return next;
-}
-
-function formToPayload(form) {
-  const payload = { ...form };
-  if (!payload.species_code.trim()) delete payload.species_code;
-  return payload;
-}
-
-function SpeciesField({ fieldKey, value, onChange, disabled }) {
-  const label = GL_SPECIES_FIELD_LABELS[fieldKey] || fieldKey;
-  if (fieldKey === 'type') {
-    return (
-      <GLField label={label}>
-        <GLSelect value={value} onChange={(e) => onChange(fieldKey, e.target.value)} disabled={disabled} required>
-          <option value="faune">{GL_SPECIES_TYPE_LABELS.faune}</option>
-          <option value="flore">{GL_SPECIES_TYPE_LABELS.flore}</option>
-        </GLSelect>
-      </GLField>
-    );
-  }
-  if (fieldKey === 'statut') {
-    return (
-      <GLField label={label}>
-        <GLSelect value={value} onChange={(e) => onChange(fieldKey, e.target.value)} disabled={disabled}>
-          <option value="actif">Actif</option>
-          <option value="inactif">Inactif</option>
-        </GLSelect>
-      </GLField>
-    );
-  }
-  if (TEXTAREA_FIELDS.has(fieldKey)) {
-    return (
-      <GLField label={label}>
-        <GLTextarea value={value} onChange={(e) => onChange(fieldKey, e.target.value)} rows={3} disabled={disabled} />
-      </GLField>
-    );
-  }
-  return (
-    <GLField label={label}>
-      <GLInput
-        value={value}
-        onChange={(e) => onChange(fieldKey, e.target.value)}
-        disabled={disabled}
-        required={fieldKey === 'nom_commun'}
-      />
-    </GLField>
-  );
-}
+import { GLSpeciesField } from './GLSpeciesField.jsx';
 
 export function GLSpeciesEditorPanel() {
   const [biomes, setBiomes] = useState([]);
@@ -120,18 +25,10 @@ export function GLSpeciesEditorPanel() {
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
 
-  const filteredItems = useMemo(() => {
-    let list = items;
-    if (filterType) list = list.filter((row) => row.type === filterType);
-    if (filterQ.trim()) {
-      const needle = filterQ.trim().toLowerCase();
-      list = list.filter((row) => {
-        const hay = `${row.nom_commun} ${row.species_code}`.toLowerCase();
-        return hay.includes(needle);
-      });
-    }
-    return list;
-  }, [items, filterType, filterQ]);
+  const filteredItems = useMemo(
+    () => filterSpeciesItems(items, { type: filterType, q: filterQ }),
+    [items, filterType, filterQ],
+  );
 
   const loadBiomes = useCallback(async () => {
     const list = await apiGL('/api/gl/biomes');
@@ -306,7 +203,7 @@ export function GLSpeciesEditorPanel() {
           <form className="gl-form" onSubmit={saveSpecies}>
             <h4>Identification</h4>
             {coreFields.map((key) => (
-              <SpeciesField
+              <GLSpeciesField
                 key={key}
                 fieldKey={key}
                 value={form[key]}
@@ -314,13 +211,13 @@ export function GLSpeciesEditorPanel() {
                 disabled={key === 'species_code' && Boolean(selectedCode)}
               />
             ))}
-            <SpeciesField fieldKey="statut" value={form.statut} onChange={setField} />
+            <GLSpeciesField fieldKey="statut" value={form.statut} onChange={setField} />
 
             {GL_SPECIES_DETAIL_SECTIONS.filter((s) => s.id !== 'reference').map((section) => (
               <details key={section.id} open={section.id === 'ecologie'}>
                 <summary>{section.title}</summary>
                 {section.fields.map((key) => (
-                  <SpeciesField key={key} fieldKey={key} value={form[key]} onChange={setField} />
+                  <GLSpeciesField key={key} fieldKey={key} value={form[key]} onChange={setField} />
                 ))}
               </details>
             ))}
