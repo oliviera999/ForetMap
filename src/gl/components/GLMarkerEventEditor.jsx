@@ -20,7 +20,7 @@ import {
   toggleSelectedCode as toggleCodeInList,
   normalizeFixedCode,
 } from '../utils/glMarkerEventEditorForm.js';
-import { GLMultiCheckDropdown } from './GLMultiCheckDropdown.jsx';
+import { GLMarkerQuestionPoolFilters } from './GLMarkerQuestionPoolFilters.jsx';
 import { GLMarkerQuestionList } from './GLMarkerQuestionList.jsx';
 import { GLMarkerEffectsEditor } from './GLMarkerEffectsEditor.jsx';
 
@@ -264,130 +264,17 @@ export function GLMarkerEventEditor({
             </label>
           </fieldset>
 
-          {isLoreSet ? (
-            <>
-              <label>
-                Chapitres lore du pool
-                <select
-                  value={form.pool.chapitreMode || 'chapter'}
-                  onChange={(event) => patchPool({ chapitreMode: event.target.value })}
-                >
-                  <option value="chapter">Chapitre courant + transversal (tous)</option>
-                  <option value="custom">Scopes personnalisés</option>
-                </select>
-              </label>
-              {form.pool.chapitreMode === 'custom' ? (
-                <GLMultiCheckDropdown
-                  label="Scopes chapitre lore"
-                  options={loreScopeOptions}
-                  selectedValues={form.pool.chapitreSlugs || []}
-                  onChange={(values) => patchPool({ chapitreSlugs: values })}
-                  emptyLabel="Tous + chapitre courant"
-                  allSelectedLabel="Tous les scopes"
-                />
-              ) : (
-                <p className="gl-hint">
-                  Inclut automatiquement les questions « tous » et le scope lié au plateau du chapitre (ex. ch3).
-                </p>
-              )}
-            </>
-          ) : (
-            <>
-          <label>
-            Biomes du pool
-            <select
-              value={form.pool.biomeMode}
-              onChange={(event) => patchPool({ biomeMode: event.target.value })}
-            >
-              <option value="chapter">Biomes du chapitre (défaut)</option>
-              <option value="custom">Chapitre + biomes additionnels</option>
-            </select>
-          </label>
-
-          {form.pool.biomeMode === 'custom' ? (
-            <div className="gl-marker-event-biomes">
-              <p className="gl-hint">
-                Biomes du chapitre :
-                {' '}
-                {chapterBiomeSlugs.length ? chapterBiomeSlugs.join(', ') : 'aucun'}
-              </p>
-              <GLMultiCheckDropdown
-                label="Biomes additionnels"
-                options={additionalBiomeOptions}
-                selectedValues={form.pool.biomeSlugs || []}
-                onChange={(values) => patchPool({ biomeSlugs: values })}
-                emptyLabel="Aucun biome additionnel"
-                allSelectedLabel="Tous les biomes additionnels"
-              />
-            </div>
-          ) : null}
-            </>
-          )}
-
-          <div className="gl-marker-event-filters">
-            <GLMultiCheckDropdown
-              label={isLoreSet ? 'Catégories lore' : 'Catégories QCM'}
-              options={categoryOptions}
-              selectedValues={form.pool.categorieSlugs || []}
-              onChange={(values) => patchPool({ categorieSlugs: values })}
-              emptyLabel="Toutes les catégories"
-              allSelectedLabel="Toutes les catégories"
-            />
-            {isLoreSet ? (
-              <GLMultiCheckDropdown
-                label="Tier lore"
-                options={tierLoreOptions}
-                selectedValues={form.pool.tierLore || []}
-                onChange={(values) => patchPool({ tierLore: values })}
-                emptyLabel="Tous les tiers"
-                allSelectedLabel="Tous les tiers"
-              />
-            ) : null}
-            <GLMultiCheckDropdown
-              label="Niveaux"
-              options={niveauOptions}
-              selectedValues={form.pool.niveaux || []}
-              onChange={(values) => patchPool({ niveaux: values })}
-              emptyLabel="Tous les niveaux"
-              allSelectedLabel="Tous les niveaux"
-            />
-          </div>
-
-          <div className="gl-marker-event-difficulte">
-            <label>
-              Difficulté min
-              <input
-                type="number"
-                min="1"
-                max="5"
-                value={form.pool.difficulteMin ?? ''}
-                onChange={(event) => patchPool({
-                  difficulteMin: event.target.value === '' ? null : Number(event.target.value),
-                })}
-              />
-            </label>
-            <label>
-              Difficulté max
-              <input
-                type="number"
-                min="1"
-                max="5"
-                value={form.pool.difficulteMax ?? ''}
-                onChange={(event) => patchPool({
-                  difficulteMax: event.target.value === '' ? null : Number(event.target.value),
-                })}
-              />
-            </label>
-          </div>
-
-          <label>
-            Recherche (libellé, tags, mots-clés)
-            <input
-              type="search"
-              value={form.pool.searchQuery || ''}
-              onChange={(event) => patchPool({ searchQuery: event.target.value })}
-            />
-          </label>
+          <GLMarkerQuestionPoolFilters
+            pool={form.pool}
+            isLoreSet={isLoreSet}
+            chapterBiomeSlugs={chapterBiomeSlugs}
+            loreScopeOptions={loreScopeOptions}
+            additionalBiomeOptions={additionalBiomeOptions}
+            categoryOptions={categoryOptions}
+            tierLoreOptions={tierLoreOptions}
+            niveauOptions={niveauOptions}
+            onPatchPool={patchPool}
+          />
 
           {form.questionMode === 'fixed' ? (
             <p className="gl-hint gl-marker-event-fixed-hint">
