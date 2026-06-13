@@ -13,40 +13,18 @@ import { glImageFrameToStyle, normalizeGlImageFrame } from '../../utils/glImageF
 import { GLRichTextEditor } from './ui/GLRichTextEditor.jsx';
 import { GLBrandColorEditor } from './GLBrandColorEditor.jsx';
 import { normalizeBrand } from '../hooks/useGLBrandTheme.js';
-import { brandToCssVars, mergeBrandWithChapterTheme, normalizeChapterTheme } from '../../utils/glBrandTheme.js';
+import { brandToCssVars, mergeBrandWithChapterTheme } from '../../utils/glBrandTheme.js';
 import { GLButton } from './ui/GLButton.jsx';
-import { GL_SPELL_CATEGORY_LABELS } from '../utils/glSpellFieldLabels.js';
 import { GLChaptersImportExportPanel } from './admin/GLChaptersImportExportPanel.jsx';
 import { GLChapterScenesAdminPanel } from './admin/GLChapterScenesAdminPanel.jsx';
-
-const EMPTY_CHAPTER_THEME = { colors: {} };
-
-const EMPTY_CHAPTER_FORM = {
-  slug: '',
-  title: '',
-  biome: '',
-  biomeSlugs: [],
-  spellCodes: [],
-  mapImageUrl: '',
-  storyMarkdown: '',
-  biotopeMarkdown: '',
-  biocenoseMarkdown: '',
-  sortilegesMarkdown: '',
-  orderIndex: 0,
-  plateauNumber: '',
-  mapImageFrame: normalizeGlImageFrame(null, 'chapter-map'),
-  theme: { ...EMPTY_CHAPTER_THEME },
-};
-
-function moveBiomeSlug(slugs, slug, direction) {
-  const list = [...slugs];
-  const index = list.indexOf(slug);
-  if (index < 0) return list;
-  const target = index + direction;
-  if (target < 0 || target >= list.length) return list;
-  [list[index], list[target]] = [list[target], list[index]];
-  return list;
-}
+import {
+  EMPTY_CHAPTER_FORM,
+  allSpellCodesFrom,
+  chapterDetailToForm,
+  chapterFormToPayload,
+  groupSpellsByCategory,
+  moveBiomeSlug,
+} from '../utils/glChapterAdminForm.js';
 
 export function GLChaptersAdminView() {
   const [chapters, setChapters] = useState([]);
@@ -105,26 +83,7 @@ export function GLChaptersAdminView() {
     try {
       const data = await apiGL(`/api/gl/chapters/${encodeURIComponent(slug)}`);
       setDetail(data);
-      setChapterForm({
-        slug: data.chapter.slug,
-        title: data.chapter.title || '',
-        biome: data.chapter.biome || '',
-        biomeSlugs: Array.isArray(data.chapter.biomes)
-          ? data.chapter.biomes.map((b) => b.slug)
-          : [],
-        spellCodes: Array.isArray(data.chapter.spells)
-          ? data.chapter.spells.map((s) => s.spell_code)
-          : [],
-        mapImageUrl: data.chapter.map_image_url || '',
-        mapImageFrame: normalizeGlImageFrame(data.chapter.map_image_frame, 'chapter-map'),
-        storyMarkdown: data.chapter.story_markdown || '',
-        biotopeMarkdown: data.chapter.biotope_markdown || '',
-        biocenoseMarkdown: data.chapter.biocenose_markdown || '',
-        sortilegesMarkdown: data.chapter.sortileges_markdown || '',
-        orderIndex: Number(data.chapter.order_index || 0),
-        plateauNumber: data.chapter.plateau_number != null ? String(data.chapter.plateau_number) : '',
-        theme: normalizeChapterTheme(data.chapter.theme),
-      });
+      setChapterForm(chapterDetailToForm(data));
       setSelectedId(Number(data.chapter.id));
       clearPendingMapImage();
     } catch (err) {
@@ -171,13 +130,7 @@ export function GLChaptersAdminView() {
     event.preventDefault();
     setError('');
     setInfo('');
-    const payload = {
-      ...chapterForm,
-      mapImageFrame: normalizeGlImageFrame(chapterForm.mapImageFrame, 'chapter-map'),
-      theme: normalizeChapterTheme(chapterForm.theme),
-      orderIndex: Number(chapterForm.orderIndex) || 0,
-      plateauNumber: chapterForm.plateauNumber === '' ? null : Number(chapterForm.plateauNumber),
-    };
+    const payload = chapterFormToPayload(chapterForm);
     try {
       let chapterId = selectedId;
       if (selectedId) {
@@ -292,26 +245,9 @@ export function GLChaptersAdminView() {
 
   const markers = useMemo(() => (Array.isArray(detail?.markers) ? detail.markers : []), [detail]);
 
-  const spellsByCategory = useMemo(() => {
-    const map = new Map();
-    for (const spell of spellCatalog) {
-      const slug = String(spell.category_slug || 'autre');
-      if (!map.has(slug)) {
-        map.set(slug, {
-          slug,
-          nom: GL_SPELL_CATEGORY_LABELS[slug] || spell.category_nom || slug,
-          spells: [],
-        });
-      }
-      map.get(slug).spells.push(spell);
-    }
-    return [...map.values()].sort((a, b) => a.nom.localeCompare(b.nom, 'fr'));
-  }, [spellCatalog]);
+  const spellsByCategory = useMemo(() => groupSpellsByCategory(spellCatalog), [spellCatalog]);
 
-  const allSpellCodes = useMemo(
-    () => spellCatalog.map((s) => String(s.spell_code || '').trim()).filter(Boolean),
-    [spellCatalog]
-  );
+  const allSpellCodes = useMemo(() => allSpellCodesFrom(spellCatalog), [spellCatalog]);
 
   function setSpellCodes(next) {
     setChapterForm((prev) => ({ ...prev, spellCodes: next }));
