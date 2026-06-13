@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 
 import { api, AccountDeletedError } from '../services/api';
-import { daysUntil } from '../utils/badges';
 import { getRoleTerms } from '../utils/n3-terminology';
 import { useHelp } from '../hooks/useHelp';
 
@@ -21,7 +20,6 @@ import {
   applyTaskFilters,
   sortedVisibleProjects,
   partitionTasksByEffectiveStatus,
-  studentUrgentDueTasks,
 } from '../utils/taskSectioning.js';
 import {
   hasActiveStudentFilters,
@@ -35,6 +33,7 @@ import { TaskProjectFormModal } from './tasks/TaskProjectFormModal.jsx';
 import { TaskFormModal } from './tasks/TaskFormModal.jsx';
 import { TaskTileCard } from './tasks/TaskTileCard.jsx';
 import { TaskTileSection } from './tasks/TaskTileSection.jsx';
+import { TaskUrgencyBanner } from './tasks/TaskUrgencyBanner.jsx';
 import { TaskConfirmDialog } from './tasks/TaskConfirmDialog.jsx';
 import { TaskProjectsBlock } from './tasks/TaskProjectsBlock.jsx';
 import { TaskImportPanel } from './tasks/TaskImportPanel.jsx';
@@ -613,8 +612,6 @@ function TasksView({
     [regularFiltered, student]
   );
 
-  const urgentTasks = !isTeacher ? studentUrgentDueTasks(regularFiltered) : [];
-
   const { usedZones, usedMarkers } = collectUsedLocationIds({
     tasksForLocationPicker,
     tutorials,
@@ -923,24 +920,7 @@ function TasksView({
         />
       )}
 
-      {!isTeacher && urgentTasks.length > 0 && (
-        <div className="urgency-banner">
-          <h4>🔥 Échéances proches</h4>
-          {urgentTasks.slice(0, 5).map(t => {
-            const d = daysUntil(t.due_date);
-            const label = d < 0 ? `Retard ${-d}j` : d === 0 ? "Aujourd'hui" : d === 1 ? 'Demain' : `${d} jours`;
-            return (
-              <div key={t.id} className="urgency-item">
-                <span className="urgency-days">{label}</span>
-                <span style={{ flex: 1, color: 'var(--forest)', fontWeight: 500 }}>{t.title}</span>
-                {(t.zones_linked?.[0]?.name || t.zone_name) && (
-                  <span style={{ fontSize: '.76rem', color: '#aaa' }}>{t.zones_linked?.[0]?.name || t.zone_name}</span>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
+      <TaskUrgencyBanner isTeacher={isTeacher} tasks={regularFiltered} />
 
       <TaskTileSection
         title={`🚨 Urgent ! (${urgentCategoryTasks.length})`}
