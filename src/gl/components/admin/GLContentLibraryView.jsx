@@ -13,13 +13,12 @@ import {
 import { MediaLibraryMenu } from '../../../components/MediaLibraryMenu.jsx';
 import { GLButton } from '../ui/GLButton.jsx';
 import { GLContentLibraryAuditPanel } from './GLContentLibraryAuditPanel.jsx';
+import { GLContentLibraryAnalysisTable } from './GLContentLibraryAnalysisTable.jsx';
 import {
   FILE_STATUS_LABEL,
   canUseClipboard,
   createFileRow,
   entryKey,
-  kindBadgeClass,
-  previewSummary,
 } from '../../utils/glContentLibraryDisplay.js';
 
 const TINY_PNG_DATA_URL =
@@ -432,68 +431,13 @@ export function GLContentLibraryView({ onOpenSubTab }) {
           )}
         </div>
 
-        {analysisEntries.length > 0 ? (
-          <div className="gl-content-library__report">
-            <table className="gl-content-library__table">
-              <thead>
-                <tr>
-                  <th />
-                  <th>Fichier</th>
-                  <th>Nature</th>
-                  <th>Résumé (dry-run)</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {analysisEntries.map((entry, index) => {
-                  const key = entryKey(entry, index);
-                  const warnings = Array.isArray(entry.warnings) ? entry.warnings : [];
-                  return (
-                    <tr key={key}>
-                      <td>
-                        <input
-                          type="checkbox"
-                          checked={selectedKeys.has(key)}
-                          disabled={busy || !entry.canApply || !!entry.error}
-                          onChange={(event) => toggleEntry(key, event.target.checked)}
-                        />
-                      </td>
-                      <td>
-                        <strong>{entry.sourceFileName || entry.fileName}</strong>
-                        <div className="gl-hint">{formatBytesLabel(entry.size || 0)}</div>
-                      </td>
-                      <td>
-                        <span className={kindBadgeClass(entry.kind)}>{entry.kindLabel || entry.kind}</span>
-                        {entry.mediaType ? <span className="gl-hint"> ({entry.mediaType})</span> : null}
-                      </td>
-                      <td>
-                        {entry.error ? <span className="gl-error">{entry.error}</span> : previewSummary(entry)}
-                        {warnings.length ? (
-                          <ul className="gl-content-library__warnings">
-                            {warnings.map((warning) => (
-                              <li key={warning}>{warning}</li>
-                            ))}
-                          </ul>
-                        ) : null}
-                      </td>
-                      <td>
-                        {entry.subTab && onOpenSubTab ? (
-                          <button
-                            type="button"
-                            className="btn btn-secondary btn-sm"
-                            onClick={() => onOpenSubTab(entry.subTab)}
-                          >
-                            Ouvrir {entry.kindLabel}
-                          </button>
-                        ) : null}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        ) : null}
+        <GLContentLibraryAnalysisTable
+          entries={analysisEntries}
+          selectedKeys={selectedKeys}
+          busy={busy}
+          onToggle={toggleEntry}
+          onOpenSubTab={onOpenSubTab}
+        />
       </section>
     </div>
   );
