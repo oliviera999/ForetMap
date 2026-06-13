@@ -1,7 +1,7 @@
 import React, {
   useCallback, useEffect, useMemo, useState,
 } from 'react';
-import { api, AccountDeletedError, withAppBase } from '../services/api';
+import { api, AccountDeletedError } from '../services/api';
 import MascotPackWysiwygEditor from './MascotPackWysiwygEditor.jsx';
 import {
   clonePackDeep,
@@ -15,24 +15,21 @@ import {
   insertAssetUrlIntoPackState,
 } from '../utils/visitMascotPackManager.js';
 import PackBehaviorDetailTable from './mascot/PackBehaviorDetailTable.jsx';
-import { isSpriteLibraryPreviewableUrl } from '../utils/visitMascotPackTiming.js';
 import { getVisitMascotCatalog } from '../utils/visitMascotCatalog.js';
-import { VISIT_MASCOT_STATE } from '../utils/visitMascotState.js';
 import {
   extractMascotPackValidationIssues,
   sanitizeMascotPackDraft,
-  toMascotPackIssueLines,
 } from '../utils/mascotPackValidationUi.js';
 import {
-  VISIT_MASCOT_INTERACTION_EVENT_KEYS,
-  VISIT_MASCOT_INTERACTION_LABELS,
   DEFAULT_VISIT_MASCOT_INTERACTION_PROFILE,
 } from '../utils/visitMascotInteractionEvents.js';
 import VisitMascotDialogEditor from './VisitMascotDialogEditor.jsx';
 import VisitMascotDialogStudioView from './VisitMascotDialogStudioView.jsx';
 import VisitMascotStudioPreviewSection from './mascot/VisitMascotStudioPreviewSection.jsx';
+import MascotPackListAside from './mascot/MascotPackListAside.jsx';
+import MascotAssetsLibraryPanel from './mascot/MascotAssetsLibraryPanel.jsx';
+import MascotInteractionProfileEditor from './mascot/MascotInteractionProfileEditor.jsx';
 
-/** @param {string} url */
 const RIGHT_TABS = [
   { id: 'workspace', label: 'Édition guidée' },
   { id: 'json', label: 'JSON' },
@@ -45,22 +42,6 @@ const STUDIO_MODES = [
   { id: 'packs', label: 'Packs' },
   { id: 'dialogues', label: 'Dialogues' },
 ];
-
-const VISIT_STATE_LABELS = {
-  [VISIT_MASCOT_STATE.IDLE]: 'Repos',
-  [VISIT_MASCOT_STATE.WALKING]: 'Marche',
-  [VISIT_MASCOT_STATE.HAPPY]: 'Joyeuse',
-  [VISIT_MASCOT_STATE.RUNNING]: 'Course',
-  [VISIT_MASCOT_STATE.HAPPY_JUMP]: 'Saut joyeux',
-  [VISIT_MASCOT_STATE.SPIN]: 'Rotation',
-  [VISIT_MASCOT_STATE.INSPECT]: 'Inspection',
-  [VISIT_MASCOT_STATE.MAP_READ]: 'Lecture carte',
-  [VISIT_MASCOT_STATE.CELEBRATE]: 'Célébration',
-  [VISIT_MASCOT_STATE.TALK]: 'Dialogue',
-  [VISIT_MASCOT_STATE.ALERT]: 'Alerte',
-  [VISIT_MASCOT_STATE.ANGRY]: 'Fâchée',
-  [VISIT_MASCOT_STATE.SURPRISE]: 'Surprise',
-};
 
 /**
  * Gestionnaire GUI des packs mascotte serveur (prof élevé, par carte).
@@ -583,175 +564,34 @@ export default function VisitMascotPackManager({
         <VisitMascotDialogStudioView onForceLogout={onForceLogout} />
       ) : (
       <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 16, alignItems: 'stretch', flex: 1 }}>
-      <aside
-        style={{
-          flex: '0 0 280px',
-          minWidth: 240,
-          borderRight: '1px solid rgba(26,71,49,0.15)',
-          paddingRight: 12,
-        }}
-      >
-        <h2 style={{ fontSize: '1.05rem', marginTop: 0 }}>Packs mascotte</h2>
-        <p className="section-sub" style={{ fontSize: '0.82rem', marginBottom: 10 }}>
-          Carte : <strong>{mapTitle}</strong>
-          <br />
-          Les packs <strong>publiés</strong> apparaissent sur la visite (sélecteur mascotte).
-          <br />
-          Les <strong>modèles intégrés</strong> (SPR0UT, Renard 2, …) ne se modifient pas directement : utilisez
-          {' '}<strong>Éditer sur cette carte</strong> pour ouvrir une copie modifiable (sprites, comportements).
-        </p>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
-          <button
-            type="button"
-            className="btn btn-primary btn-sm"
-            disabled={actionBusy}
-            onClick={() => void onNewDraft()}
-          >
-            Nouveau brouillon
-          </button>
-          <div style={{ width: '100%' }}>
-            <p className="section-sub" style={{ fontSize: '0.78rem', margin: '4px 0 6px' }}>Modèles intégrés (catalogue)</p>
-            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 8, maxHeight: 220, overflowY: 'auto' }}>
-              {catalogModelOptions.map((opt) => {
-                const linkedPack = findPackForCatalogModel(opt.id);
-                return (
-                  <li key={opt.id} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    <button
-                      type="button"
-                      className={`btn btn-sm ${selectedCatalogModelId === opt.id ? 'btn-primary' : 'btn-ghost'}`}
-                      style={{ width: '100%', textAlign: 'left', justifyContent: 'flex-start' }}
-                      aria-pressed={selectedCatalogModelId === opt.id}
-                      onClick={() => setSelectedCatalogModelId(opt.id)}
-                      disabled={actionBusy}
-                    >
-                      {opt.label}
-                      {linkedPack ? (
-                        <span style={{ display: 'block', fontSize: '0.72rem', opacity: 0.85, fontWeight: 400 }}>
-                          Copie sur carte : {linkedPack.label || linkedPack.catalog_id}
-                        </span>
-                      ) : null}
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-secondary btn-sm"
-                      style={{ width: '100%' }}
-                      disabled={actionBusy}
-                      onClick={() => void openCatalogModelForEdit(opt.id)}
-                      title={linkedPack
-                        ? 'Ouvrir la copie modifiable déjà créée pour cette carte'
-                        : 'Créer puis ouvrir une copie modifiable de ce modèle'}
-                    >
-                      {linkedPack ? 'Éditer la copie' : 'Éditer sur cette carte'}
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-          <button
-            type="button"
-            className="btn btn-ghost btn-sm"
-            disabled={actionBusy || !selectedCatalogModelId}
-            onClick={() => void onNewFromCatalog()}
-            title="Créer un second pack indépendant depuis le modèle sélectionné"
-          >
-            Nouvelle copie depuis ce modèle
-          </button>
-          <button type="button" className="btn btn-ghost btn-sm" disabled={actionBusy} onClick={() => void onRefresh()}>
-            Actualiser
-          </button>
-        </div>
-        {selectedId ? (
-          <button
-            type="button"
-            className="btn btn-ghost btn-sm"
-            style={{ marginBottom: 10 }}
-            disabled={actionBusy}
-            onClick={() => void onDuplicateSelected()}
-          >
-            Dupliquer le pack sélectionné
-          </button>
-        ) : null}
-        {listError ? (
-          <p className="text-danger" role="alert" style={{ fontSize: '0.85rem' }}>{listError}</p>
-        ) : null}
-        {loading ? <p className="section-sub">Chargement…</p> : null}
-        {!loading && packs.length === 0 ? (
-          <p className="section-sub">
-            Aucun pack pour la carte <strong>{mapTitle}</strong> — créez un brouillon
-            {' '}ou changez de carte dans l’onglet studio.
-          </p>
-        ) : null}
-        <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-          {packs.map((p) => (
-            <li key={p.id} style={{ marginBottom: 8 }}>
-              <button
-                type="button"
-                className={`btn btn-sm ${selectedId === p.id ? 'btn-primary' : 'btn-ghost'}`}
-                style={{ width: '100%', textAlign: 'left', justifyContent: 'flex-start' }}
-                aria-pressed={selectedId === p.id}
-                aria-label={`Ouvrir le pack ${p.label || p.catalog_id}`}
-                onClick={() => setSelectedId(p.id)}
-              >
-                <span style={{ display: 'block', fontWeight: 600 }}>{p.label || p.catalog_id}</span>
-                <span style={{ display: 'block', fontSize: '0.75rem', opacity: 0.85 }}>
-                  {p.is_published ? 'Publié' : 'Brouillon'}
-                  {' · v'}
-                  {Number(p.pack?.mascotPackVersion) === 2 ? '2' : '1'}
-                  {' · '}
-                  {p.catalog_id}
-                </span>
-              </button>
-            </li>
-          ))}
-        </ul>
-        {selectedId ? (
-          <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <label>
-              <span className="section-sub" style={{ fontSize: '0.75rem', display: 'block', marginBottom: 4 }}>Libellé (liste)</span>
-              <input
-                className="form-input"
-                value={labelDraft}
-                onChange={(ev) => setLabelDraft(ev.target.value)}
-                placeholder="Nom du pack"
-              />
-            </label>
-            <button type="button" className="btn btn-primary btn-sm" disabled={actionBusy} onClick={() => void onSave()}>
-              Enregistrer sur le serveur
-            </button>
-            <button type="button" className="btn btn-ghost btn-sm" disabled={actionBusy} onClick={() => void onTogglePublish()}>
-              {selectedRow?.is_published ? 'Retirer de la visite publique' : 'Publier sur la visite'}
-            </button>
-            {selectedValidation.ok ? (
-              <p className="section-sub" style={{ fontSize: '0.78rem', margin: '2px 0 0' }}>
-                Validation prête pour sauvegarde/publication.
-              </p>
-            ) : (
-              <p className="text-danger" style={{ fontSize: '0.78rem', margin: '2px 0 0' }}>
-                Pack invalide: corrigez les erreurs avant publication.
-              </p>
-            )}
-            {editorWarnings.length > 0 ? (
-              <ul style={{ margin: 0, paddingLeft: 16, fontSize: '0.78rem' }}>
-                {editorWarnings.map((w) => <li key={w}>{w}</li>)}
-              </ul>
-            ) : null}
-            <button type="button" className="btn btn-danger btn-sm" disabled={actionBusy} onClick={() => void onDelete()}>
-              Supprimer…
-            </button>
-          </div>
-        ) : null}
-        {actionError ? (
-          <div className="text-danger" role="alert" style={{ fontSize: '0.82rem', marginTop: 10 }}>
-            <p style={{ margin: 0 }}>{actionError}</p>
-            {actionIssues.length > 0 ? (
-              <ul style={{ margin: '6px 0 0', paddingLeft: 16 }}>
-                {toMascotPackIssueLines(actionIssues).map((line) => <li key={line}>{line}</li>)}
-              </ul>
-            ) : null}
-          </div>
-        ) : null}
-      </aside>
+      <MascotPackListAside
+        mapTitle={mapTitle}
+        actionBusy={actionBusy}
+        catalogModelOptions={catalogModelOptions}
+        selectedCatalogModelId={selectedCatalogModelId}
+        onSelectCatalogModel={setSelectedCatalogModelId}
+        findPackForCatalogModel={findPackForCatalogModel}
+        onNewDraft={() => void onNewDraft()}
+        onOpenCatalogModelForEdit={(id) => void openCatalogModelForEdit(id)}
+        onNewFromCatalog={() => void onNewFromCatalog()}
+        onRefresh={() => void onRefresh()}
+        onDuplicateSelected={() => void onDuplicateSelected()}
+        listError={listError}
+        loading={loading}
+        packs={packs}
+        selectedId={selectedId}
+        onSelectPack={setSelectedId}
+        selectedRow={selectedRow}
+        labelDraft={labelDraft}
+        onLabelDraftChange={setLabelDraft}
+        onSave={() => void onSave()}
+        onTogglePublish={() => void onTogglePublish()}
+        onDelete={() => void onDelete()}
+        selectedValidation={selectedValidation}
+        editorWarnings={editorWarnings}
+        actionError={actionError}
+        actionIssues={actionIssues}
+      />
       <div style={{ flex: '1 1 420px', minWidth: 300 }}>
         {!selectedId ? (
           <div className="section-sub">
@@ -838,253 +678,31 @@ export default function VisitMascotPackManager({
               </div>
             ) : null}
             {editorTab === 'workspace' ? (
-              <div>
-                <section style={{ marginBottom: 16 }}>
-                  <h3 style={{ marginTop: 0, fontSize: '0.95rem' }}>Bibliothèque de la carte</h3>
-                  <p className="section-sub" style={{ fontSize: '0.82rem' }}>
-                    PNG partagés pour cette carte. Utilisez « Définir framesBase sur la bibliothèque » puis des noms relatifs dans chaque état.
-                  </p>
-                  <button type="button" className="btn btn-secondary btn-sm" style={{ marginRight: 8 }} onClick={() => void loadLibrary()}>
-                    Actualiser la liste
-                  </button>
-                  <button type="button" className="btn btn-primary btn-sm" onClick={setFramesBaseToLibrary}>
-                    Définir framesBase sur la bibliothèque
-                  </button>
-                  <label className="btn btn-ghost btn-sm" style={{ marginLeft: 8, cursor: 'pointer' }}>
-                    Importer PNG…
-                    <input type="file" accept="image/png" style={{ display: 'none' }} onChange={(e) => void onLibUpload(e)} />
-                  </label>
-                  {libMessage ? <p className="section-sub" style={{ marginTop: 8 }}>{libMessage}</p> : null}
-                  {libLoading ? <p className="section-sub">Chargement…</p> : null}
-                  {libAssets.length === 0 && !libLoading ? (
-                    <p className="section-sub" style={{ marginTop: 10 }}>Aucun PNG dans la bibliothèque pour cette carte.</p>
-                  ) : null}
-                  {libAssets.length > 0 ? (
-                    <ul className="mascot-pack-wysiwyg__asset-grid" style={{ marginTop: 12 }} aria-label="Sprites de la bibliothèque carte">
-                      {libAssets.map((a) => (
-                        <li key={a.filename} className="mascot-pack-wysiwyg__asset-card">
-                          <div
-                            className="mascot-pack-wysiwyg__asset-thumb"
-                            style={{ cursor: 'default' }}
-                            title={a.filename}
-                          >
-                            <img
-                              src={withAppBase(a.url)}
-                              alt={`Aperçu ${a.filename}`}
-                              loading="lazy"
-                              decoding="async"
-                            />
-                          </div>
-                          <div className="mascot-pack-wysiwyg__asset-name">
-                            <code>{a.filename}</code>
-                          </div>
-                          <div className="mascot-pack-wysiwyg__asset-actions">
-                            <button type="button" className="btn btn-danger btn-sm" onClick={() => void onLibDelete(a.filename)}>
-                              Supprimer
-                            </button>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : null}
-                </section>
-
-                <section>
-                  <h3 style={{ marginTop: 0, fontSize: '0.95rem' }}>Tous les assets mascotte du site</h3>
-                  <p className="section-sub" style={{ fontSize: '0.82rem' }}>
-                    Vue globale : catalogue statique + assets des packs + bibliothèques cartes, sans dépendre de la mascotte en cours d’édition.
-                  </p>
-                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 8 }}>
-                    <button type="button" className="btn btn-secondary btn-sm" onClick={() => void loadGlobalAssets()}>
-                      Actualiser assets site
-                    </button>
-                    <input
-                      className="form-input"
-                      style={{ minWidth: 220 }}
-                      placeholder="Filtrer (nom, map, source, URL)…"
-                      value={globalAssetSearch}
-                      onChange={(e) => setGlobalAssetSearch(e.target.value)}
-                    />
-                    <label className="section-sub" style={{ fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                      Insérer dans état
-                      <select
-                        className="form-select"
-                        value={globalTargetState}
-                        onChange={(e) => setGlobalTargetState(e.target.value)}
-                      >
-                        {Object.values(VISIT_MASCOT_STATE).map((st) => (
-                          <option key={st} value={st}>{VISIT_STATE_LABELS[st] || st} ({st})</option>
-                        ))}
-                      </select>
-                    </label>
-                  </div>
-                  {globalAssetsMessage ? <p className="section-sub" style={{ marginTop: 8 }}>{globalAssetsMessage}</p> : null}
-                  {globalAssetsLoading ? <p className="section-sub">Chargement assets globaux…</p> : null}
-                  <div style={{ maxHeight: 330, overflow: 'auto', border: '1px solid rgba(26,71,49,0.12)', borderRadius: 8 }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
-                      <thead>
-                        <tr style={{ textAlign: 'left', borderBottom: '1px solid rgba(26,71,49,0.18)' }}>
-                          <th style={{ padding: '6px 8px', width: 76 }}>Aperçu</th>
-                          <th style={{ padding: '6px 8px' }}>Source</th>
-                          <th style={{ padding: '6px 8px' }}>Fichier</th>
-                          <th style={{ padding: '6px 8px' }}>URL</th>
-                          <th style={{ padding: '6px 8px' }}>Action</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {libraryFilteredAssets.map((asset) => (
-                          <tr key={asset.id} style={{ borderBottom: '1px solid rgba(26,71,49,0.08)' }}>
-                            <td style={{ padding: '6px 8px', verticalAlign: 'middle' }}>
-                              {isSpriteLibraryPreviewableUrl(asset.url) ? (
-                                <img
-                                  src={withAppBase(asset.url)}
-                                  alt=""
-                                  width={56}
-                                  height={56}
-                                  loading="lazy"
-                                  decoding="async"
-                                  style={{
-                                    display: 'block',
-                                    width: 56,
-                                    height: 56,
-                                    objectFit: 'contain',
-                                    borderRadius: 6,
-                                    background: 'rgba(248,250,245,0.95)',
-                                    border: '1px solid rgba(26,71,49,0.12)',
-                                  }}
-                                />
-                              ) : (
-                                <span className="section-sub" title="Pas d’aperçu pour ce type de fichier">—</span>
-                              )}
-                            </td>
-                            <td style={{ padding: '6px 8px' }}>
-                              <code>{asset.source}</code>
-                              {asset.map_id ? <span>{` · ${asset.map_id}`}</span> : null}
-                            </td>
-                            <td style={{ padding: '6px 8px' }}>
-                              <code>{asset.filename || '—'}</code>
-                            </td>
-                            <td style={{ padding: '6px 8px', maxWidth: 320, wordBreak: 'break-all' }}>
-                              <code>{asset.url}</code>
-                            </td>
-                            <td style={{ padding: '6px 8px', whiteSpace: 'nowrap' }}>
-                              <button
-                                type="button"
-                                className="btn btn-ghost btn-sm"
-                                onClick={() => void navigator.clipboard.writeText(asset.url || '')}
-                              >
-                                Copier URL
-                              </button>
-                              <button
-                                type="button"
-                                className="btn btn-secondary btn-sm"
-                                style={{ marginLeft: 6 }}
-                                onClick={() => insertGlobalAssetIntoState(asset.url)}
-                              >
-                                Utiliser
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                        {!globalAssetsLoading && libraryFilteredAssets.length === 0 ? (
-                          <tr>
-                            <td colSpan={5} style={{ padding: '10px 8px' }} className="section-sub">
-                              Aucun asset trouvé pour ce filtre.
-                            </td>
-                          </tr>
-                        ) : null}
-                      </tbody>
-                    </table>
-                  </div>
-                </section>
-              </div>
+              <MascotAssetsLibraryPanel
+                libAssets={libAssets}
+                libLoading={libLoading}
+                libMessage={libMessage}
+                onReloadLibrary={() => void loadLibrary()}
+                onSetFramesBaseToLibrary={setFramesBaseToLibrary}
+                onLibUpload={(e) => void onLibUpload(e)}
+                onLibDelete={(filename) => void onLibDelete(filename)}
+                globalAssetsLoading={globalAssetsLoading}
+                globalAssetsMessage={globalAssetsMessage}
+                filteredAssets={libraryFilteredAssets}
+                globalAssetSearch={globalAssetSearch}
+                onGlobalAssetSearchChange={setGlobalAssetSearch}
+                globalTargetState={globalTargetState}
+                onGlobalTargetStateChange={setGlobalTargetState}
+                onReloadGlobalAssets={() => void loadGlobalAssets()}
+                onInsertGlobalAsset={insertGlobalAssetIntoState}
+              />
             ) : null}
             {editorTab === 'interaction' ? (
-              <div>
-                <p className="section-sub" style={{ fontSize: '0.82rem', marginBottom: 10 }}>
-                  Réactions de la mascotte sur la carte (pack v2). Les valeurs par défaut reproduisent le comportement historique.
-                </p>
-                {Number(editorPack.mascotPackVersion) !== 2 ? (
-                  <button type="button" className="btn btn-primary btn-sm" onClick={() => upgradePackToV2('interaction')}>
-                    Passer ce pack en version 2 (profil d’interaction)
-                  </button>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                    {VISIT_MASCOT_INTERACTION_EVENT_KEYS.map((key) => {
-                      const def = DEFAULT_VISIT_MASCOT_INTERACTION_PROFILE[key] || { mode: 'none' };
-                      const prof = editorPack.interactionProfile && typeof editorPack.interactionProfile === 'object'
-                        ? editorPack.interactionProfile[key]
-                        : null;
-                      const mode = prof?.mode || def.mode || 'none';
-                      return (
-                        <div key={key} style={{ border: '1px solid rgba(26,71,49,0.12)', borderRadius: 8, padding: 10 }}>
-                          <strong style={{ fontSize: '0.88rem' }}>{VISIT_MASCOT_INTERACTION_LABELS[key] || key}</strong>
-                          <div style={{ marginTop: 6, display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
-                            <label>
-                              Mode{' '}
-                              <select
-                                className="form-select"
-                                value={mode}
-                                onChange={(e) => {
-                                  const m = e.target.value;
-                                  if (m === 'none') patchInteractionRule(key, { mode: 'none' });
-                                  else if (m === 'happy') patchInteractionRule(key, { mode: 'happy' });
-                                  else patchInteractionRule(key, {
-                                    mode: 'transient',
-                                    state: def.mode === 'transient' ? def.state : 'idle',
-                                    durationMs: def.mode === 'transient' ? def.durationMs : 1500,
-                                  });
-                                }}
-                              >
-                                <option value="transient">Animation (transitoire)</option>
-                                <option value="happy">Joyeux (overlay court)</option>
-                                <option value="none">Désactivé</option>
-                              </select>
-                            </label>
-                            {mode === 'transient' ? (
-                              <>
-                                <label>
-                                  État{' '}
-                                  <select
-                                    className="form-select"
-                                    value={String(prof?.state || (def.mode === 'transient' ? def.state : 'idle') || 'idle')}
-                                    onChange={(e) => patchInteractionRule(key, {
-                                      mode: 'transient',
-                                      state: e.target.value,
-                                      durationMs: prof?.durationMs ?? def.durationMs,
-                                    })}
-                                  >
-                                    {Object.values(VISIT_MASCOT_STATE).map((st) => (
-                                      <option key={st} value={st}>{VISIT_STATE_LABELS[st] || st} ({st})</option>
-                                    ))}
-                                  </select>
-                                </label>
-                                <label>
-                                  Durée ms{' '}
-                                  <input
-                                    className="form-input"
-                                    type="number"
-                                    min={300}
-                                    max={60000}
-                                    style={{ width: 100 }}
-                                    value={prof?.durationMs != null ? Number(prof.durationMs) : (def.durationMs != null ? Number(def.durationMs) : '')}
-                                    placeholder="1500"
-                                    onChange={(e) => patchInteractionRule(key, {
-                                      mode: 'transient',
-                                      state: prof?.state || (def.mode === 'transient' ? def.state : 'idle'),
-                                      durationMs: e.target.value === '' ? undefined : Number(e.target.value),
-                                    })}
-                                  />
-                                </label>
-                              </>
-                            ) : null}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
+              <MascotInteractionProfileEditor
+                pack={editorPack}
+                onUpgradeToV2={() => upgradePackToV2('interaction')}
+                onPatchRule={patchInteractionRule}
+              />
             ) : null}
             {editorTab === 'dialog' ? (
               <div>
