@@ -18,13 +18,13 @@ import { GLButton } from './ui/GLButton.jsx';
 import { GLChaptersImportExportPanel } from './admin/GLChaptersImportExportPanel.jsx';
 import { GLChapterScenesAdminPanel } from './admin/GLChapterScenesAdminPanel.jsx';
 import { GLChapterSpellsFieldset } from './admin/GLChapterSpellsFieldset.jsx';
+import { GLChapterBiomesFieldset } from './admin/GLChapterBiomesFieldset.jsx';
 import {
   EMPTY_CHAPTER_FORM,
   allSpellCodesFrom,
   chapterDetailToForm,
   chapterFormToPayload,
   groupSpellsByCategory,
-  moveBiomeSlug,
 } from '../utils/glChapterAdminForm.js';
 
 export function GLChaptersAdminView() {
@@ -362,91 +362,11 @@ export function GLChaptersAdminView() {
                 Texte affiché dans l’histoire ; indépendant du catalogue espèces ci-dessous.
               </span>
             </label>
-            <fieldset className="gl-chapter-biomes-fieldset">
-              <legend>Biomes (catalogue espèces)</legend>
-              <p className="gl-hint">
-                Sélection multiple : alimente la biocénose, le glossaire et les tirages QCM du chapitre.
-              </p>
-              {chapterForm.biomeSlugs.length > 0 ? (
-                <ol className="gl-chapter-biomes-selected">
-                  {chapterForm.biomeSlugs.map((slug) => {
-                    const biome = biomes.find((b) => b.slug === slug);
-                    return (
-                      <li key={slug}>
-                        <span>
-                          {biome?.nom || slug}
-                          {biome?.species_count != null ? ` (${biome.species_count} esp.)` : ''}
-                        </span>
-                        <span className="gl-inline-actions">
-                          <GLButton
-                            type="button"
-                            size="sm"
-                            variant="secondary"
-                            onClick={() => setChapterForm({
-                              ...chapterForm,
-                              biomeSlugs: moveBiomeSlug(chapterForm.biomeSlugs, slug, -1),
-                            })}
-                          >
-                            ↑
-                          </GLButton>
-                          <GLButton
-                            type="button"
-                            size="sm"
-                            variant="secondary"
-                            onClick={() => setChapterForm({
-                              ...chapterForm,
-                              biomeSlugs: moveBiomeSlug(chapterForm.biomeSlugs, slug, 1),
-                            })}
-                          >
-                            ↓
-                          </GLButton>
-                          <GLButton
-                            type="button"
-                            size="sm"
-                            variant="secondary"
-                            onClick={() => setChapterForm({
-                              ...chapterForm,
-                              biomeSlugs: chapterForm.biomeSlugs.filter((s) => s !== slug),
-                            })}
-                          >
-                            Retirer
-                          </GLButton>
-                        </span>
-                      </li>
-                    );
-                  })}
-                </ol>
-              ) : (
-                <p className="gl-hint">Aucun biome catalogue sélectionné.</p>
-              )}
-              <ul className="gl-chapter-biomes-options">
-                {biomes.map((biome) => {
-                  const checked = chapterForm.biomeSlugs.includes(biome.slug);
-                  return (
-                    <li key={biome.slug}>
-                      <label>
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          onChange={(event) => {
-                            const next = event.target.checked
-                              ? [...chapterForm.biomeSlugs, biome.slug]
-                              : chapterForm.biomeSlugs.filter((s) => s !== biome.slug);
-                            setChapterForm({ ...chapterForm, biomeSlugs: next });
-                          }}
-                        />
-                        {biome.nom}
-                        {' '}
-                        (
-                        {biome.species_count || 0}
-                        {' '}
-                        esp.)
-                      </label>
-                    </li>
-                  );
-                })}
-              </ul>
-            </fieldset>
+            <GLChapterBiomesFieldset
+              biomes={biomes}
+              selectedSlugs={chapterForm.biomeSlugs}
+              onChange={(nextSlugs) => setChapterForm({ ...chapterForm, biomeSlugs: nextSlugs })}
+            />
             <GLChapterSpellsFieldset
               spellsByCategory={spellsByCategory}
               allSpellCodes={allSpellCodes}
