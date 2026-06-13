@@ -50,15 +50,11 @@ const { resolveStudentAffiliationForPersist } = require('../lib/studentAffiliati
 const { resolveOAuthPublicOrigin, resolveOAuthRedirectUri } = require('../lib/oauthPublicUrl');
 
 const router = express.Router();
-const MAX_DESCRIPTION_LEN = 300;
 const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
-const PSEUDO_RE = /^[A-Za-z0-9_.-]{3,30}$/;
 const PASSWORD_RESET_TTL_MINUTES = 60;
 const OAUTH_STATE_COOKIE = 'foretmap_oauth_state';
 const OAUTH_MODE_COOKIE = 'foretmap_oauth_mode';
 const OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
-const GOOGLE_ALLOWED_DOMAINS_DEFAULT = ['pedagolyautey.org', 'lyceelyautey.org'];
-const GOOGLE_ALLOWED_EMAILS_DEFAULT = ['oliv.arn.lau@gmail.com'];
 const googleOidcClient = new OAuth2Client();
 const googleOAuthHooks = {
   exchangeCode: null,
@@ -66,29 +62,22 @@ const googleOAuthHooks = {
 };
 
 const { normalizeOptionalString } = require('../lib/shared/httpHelpers');
-
-function normalizeEmail(value) {
-  const email = normalizeOptionalString(value);
-  return email ? email.toLowerCase() : null;
-}
-
-function detectAvatarExtension(dataUrl) {
-  const m = /^data:image\/(png|jpe?g|webp);base64,/i.exec(dataUrl || '');
-  if (!m) return null;
-  const raw = String(m[1]).toLowerCase();
-  return raw === 'jpeg' ? 'jpg' : raw;
-}
-
-function parseCsvLowercaseSet(raw, defaults = []) {
-  const value = String(raw || '').trim();
-  if (!value) return new Set(defaults.map((v) => String(v).trim().toLowerCase()).filter(Boolean));
-  return new Set(
-    value
-      .split(',')
-      .map((v) => v.trim().toLowerCase())
-      .filter(Boolean)
-  );
-}
+const {
+  GOOGLE_ALLOWED_DOMAINS_DEFAULT,
+  GOOGLE_ALLOWED_EMAILS_DEFAULT,
+  normalizeEmail,
+  detectAvatarExtension,
+  parseCsvLowercaseSet,
+  normalizeOAuthMode,
+  googleOauthConfigured,
+  splitDisplayName,
+  isGoogleEmailAllowed,
+  buildOAuthFrontendRedirect,
+  buildOAuthFrontendErrorRedirect,
+  validateProfileInput,
+  normalizeVisitMascotPreference,
+  exposeAuth,
+} = require('../lib/authRouteHelpers');
 
 function readCookie(req, name) {
   const header = req?.headers?.cookie;
@@ -105,10 +94,6 @@ function makeGoogleOAuthState() {
   return crypto.randomBytes(24).toString('hex');
 }
 
-function normalizeOAuthMode(value) {
-  return String(value || '').toLowerCase() === 'teacher' ? 'teacher' : 'student';
-}
-
 function getGoogleOauthConfig(req) {
   const clientId = normalizeOptionalString(process.env.GOOGLE_OAUTH_CLIENT_ID);
   const clientSecret = normalizeOptionalString(process.env.GOOGLE_OAUTH_CLIENT_SECRET);
@@ -121,10 +106,6 @@ function getGoogleOauthConfig(req) {
   const allowedDomains = parseCsvLowercaseSet(process.env.GOOGLE_OAUTH_ALLOWED_DOMAINS, GOOGLE_ALLOWED_DOMAINS_DEFAULT);
   const allowedEmails = parseCsvLowercaseSet(process.env.GOOGLE_OAUTH_ALLOWED_EMAILS, GOOGLE_ALLOWED_EMAILS_DEFAULT);
   return { clientId, clientSecret, redirectUri, frontendOrigin, allowedDomains, allowedEmails };
-}
-
-function googleOauthConfigured(cfg) {
-  return !!(cfg?.clientId && cfg?.clientSecret && cfg?.redirectUri);
 }
 
 async function exchangeGoogleCode({ code, clientId, clientSecret, redirectUri }) {
@@ -153,60 +134,6 @@ async function verifyGoogleIdToken({ idToken, audience }) {
   }
   const ticket = await googleOidcClient.verifyIdToken({ idToken, audience });
   return ticket.getPayload() || null;
-}
-
-function splitDisplayName(name) {
-  const value = normalizeOptionalString(name);
-  if (!value) return { firstName: 'Google', lastName: 'Utilisateur' };
-  const parts = value.split(/\s+/).filter(Boolean);
-  if (parts.length <= 1) return { firstName: parts[0], lastName: 'Utilisateur' };
-  return {
-    firstName: parts.slice(0, -1).join(' '),
-    lastName: parts[parts.length - 1],
-  };
-}
-
-function isGoogleEmailAllowed(email, hd, allowedDomains, allowedEmails) {
-  if (!email) return false;
-  if (allowedEmails.has(email)) return true;
-  const domain = String(email.split('@')[1] || '').toLowerCase();
-  if (domain && allowedDomains.has(domain)) return true;
-  const hostedDomain = normalizeOptionalString(hd)?.toLowerCase();
-  if (hostedDomain && hostedDomain === domain && allowedDomains.has(hostedDomain)) return true;
-  return false;
-}
-
-function encodeOAuthPayload(payload) {
-  return Buffer.from(JSON.stringify(payload), 'utf8').toString('base64url');
-}
-
-function buildOAuthFrontendRedirect(frontendOrigin, payload) {
-  const base = String(frontendOrigin || '').replace(/\/+$/, '');
-  return `${base}/#oauth=${encodeURIComponent(encodeOAuthPayload(payload))}`;
-}
-
-function buildOAuthFrontendErrorRedirect(frontendOrigin, code, mode) {
-  const base = String(frontendOrigin || '').replace(/\/+$/, '');
-  return `${base}/#oauth_error=${encodeURIComponent(code)}&mode=${encodeURIComponent(normalizeOAuthMode(mode))}`;
-}
-
-function validateProfileInput({ pseudo, email, description }) {
-  if (pseudo != null && !PSEUDO_RE.test(pseudo)) {
-    return 'Pseudo invalide (3-30 caractères, lettres/chiffres/._-)';
-  }
-  if (email != null && !EMAIL_RE.test(email)) {
-    return 'Email invalide';
-  }
-  if (description != null && description.length > MAX_DESCRIPTION_LEN) {
-    return `Description trop longue (max ${MAX_DESCRIPTION_LEN} caractères)`;
-  }
-  return null;
-}
-
-function normalizeVisitMascotPreference(value) {
-  if (value == null) return null;
-  const s = String(value).trim();
-  return s.length > 0 ? s : null;
 }
 
 let seedTeacherChecked = false;
@@ -276,32 +203,6 @@ async function resolveLoginUserType(user) {
   if (primary?.user_type) return String(primary.user_type).toLowerCase();
   if (explicit) return explicit;
   return 'student';
-}
-
-function exposeAuth(auth) {
-  if (!auth || auth.userType == null || auth.userId == null) {
-    return {};
-  }
-  const base = {
-    userType: auth.userType,
-    userId: auth.userId,
-    canonicalUserId: auth.canonicalUserId || null,
-    roleId: auth.roleId,
-    roleSlug: auth.roleSlug,
-    roleDisplayName: auth.roleDisplayName,
-    permissions: auth.permissions,
-    elevated: !!auth.elevated,
-    nativePrivileged: !!auth.nativePrivileged,
-  };
-  if (auth.impersonating && auth.impersonatedBy) {
-    base.impersonating = true;
-    base.impersonatedBy = {
-      userType: auth.impersonatedBy.userType,
-      userId: auth.impersonatedBy.userId,
-      canonicalUserId: auth.impersonatedBy.canonicalUserId || null,
-    };
-  }
-  return base;
 }
 
 function respondInternalError(res, req, err, message = 'Erreur serveur') {
