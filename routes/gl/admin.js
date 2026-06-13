@@ -6,7 +6,6 @@ const { logAudit } = require('../audit');
 const {
   invalidateGameplayCache,
   invalidateModulesCache,
-  MODULE_KEYS,
   MARKER_QUESTION_RETRIGGER_VALUES,
   LORE_SPOILER_LEVELS,
   SPELL_CAST_CONTRIBUTION_MODES,
@@ -72,14 +71,19 @@ const {
 
 const router = express.Router();
 
-function normalizeBiomeSlugFilter(value) {
-  if (value == null) return null;
-  const s = String(value).trim();
-  return s.length > 0 ? s : null;
-}
-
 const { normalizeOptionalString } = require('../../lib/shared/httpHelpers');
 const { z, validate } = require('../../lib/validate');
+const {
+  normalizeBiomeSlugFilter,
+  normalizePseudo,
+  normalizePassword,
+  parseOptionalBoolean,
+  buildGeneratedPassword,
+  PLAYER_EMAIL_RE,
+  normalizePlayerEmail,
+  ALLOWED_MODULE_SETTINGS,
+  ALLOWED_GAMEPLAY_SETTINGS,
+} = require('../../lib/gl/adminRouteHelpers');
 
 // O7 — `limit` de la médiathèque GL : coercition permissive (repli sur 300 côté handler si
 // absent/non numérique, comme l'ancien `Number.isFinite(Number(x)) ? x : 300`) — jamais de 400.
@@ -122,43 +126,6 @@ function resolveSettingsKey(req) {
   return paramKey;
 }
 
-function normalizePseudo(value) {
-  const pseudo = normalizeOptionalString(value);
-  return pseudo ? pseudo.toLowerCase() : null;
-}
-
-function normalizePassword(value) {
-  const password = normalizeOptionalString(value);
-  if (!password) return null;
-  return password;
-}
-
-function parseOptionalBoolean(value) {
-  if (value == null) return null;
-  if (typeof value === 'boolean') return value;
-  if (typeof value === 'number') {
-    if (value === 1) return true;
-    if (value === 0) return false;
-  }
-  if (typeof value === 'string') {
-    const normalized = value.trim().toLowerCase();
-    if (normalized === 'true' || normalized === '1') return true;
-    if (normalized === 'false' || normalized === '0') return false;
-  }
-  return undefined;
-}
-
-function buildGeneratedPassword() {
-  return `gl-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
-}
-
-const PLAYER_EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-function normalizePlayerEmail(value) {
-  const email = normalizeOptionalString(value);
-  return email ? email.toLowerCase() : null;
-}
-
 async function ensureEmailAvailable(email, excludedPlayerId = null) {
   if (!email) return true;
   const existing = excludedPlayerId
@@ -172,30 +139,6 @@ async function ensureEmailAvailable(email, excludedPlayerId = null) {
     );
   return !existing;
 }
-
-const ALLOWED_MODULE_SETTINGS = new Set(MODULE_KEYS);
-const ALLOWED_GAMEPLAY_SETTINGS = new Set([
-  'gameplay.turns_enabled',
-  'gameplay.narration_enabled',
-  'gameplay.player_actions_enabled',
-  'gameplay.scoring_enabled',
-  'gameplay.marker_question_retrigger',
-  'gameplay.zone_content_retrigger',
-  'gameplay.vitality_enabled',
-  'gameplay.default_health_points',
-  'gameplay.default_power_points',
-  'gameplay.spell_cast_contribution_mode',
-  'gameplay.spell_cast_team_scope',
-  'gameplay.spell_cast_mj_only',
-  'gameplay.qcm_mj_only',
-  'gameplay.player_journal_max_chars',
-  'gameplay.player_journal_max_assets',
-  'gameplay.lore_feuillet_retrigger',
-  'gameplay.lore_effacement_enabled',
-  'gameplay.lore_gemme_costs_enabled',
-  'gameplay.lore_heart_rewards_enabled',
-  'gameplay.lore_spoiler_max_level',
-]);
 
 async function ensureClassExists(classId) {
   const row = await queryOne(
