@@ -1,69 +1,17 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { apiGL } from '../../services/apiGL.js';
 import {
-  GL_SPELL_CATEGORY_LABELS,
-  GL_SPELL_FIELD_LABELS,
-  GL_SPELL_STATUT_LABELS,
-} from '../../utils/glSpellFieldLabels.js';
-import {
   EMPTY_FORM,
   FORM_FIELDS,
-  TEXTAREA_FIELDS,
   filterSpells,
   formToPayload,
   spellToForm,
 } from '../../utils/glSpellsEditorForm.js';
+import { GLSpellFormField } from './GLSpellFormField.jsx';
 import { GLButton } from '../ui/GLButton.jsx';
 import { GLField } from '../ui/GLField.jsx';
 import { GLInput } from '../ui/GLInput.jsx';
 import { GLSelect } from '../ui/GLSelect.jsx';
-import { GLTextarea } from '../ui/GLTextarea.jsx';
-
-function SpellField({ fieldKey, value, onChange, disabled }) {
-  const label = GL_SPELL_FIELD_LABELS[fieldKey] || fieldKey;
-  if (fieldKey === 'category_slug') {
-    return (
-      <GLField label={label}>
-        <GLSelect value={value} onChange={(e) => onChange(fieldKey, e.target.value)} disabled={disabled} required>
-          <option value="">—</option>
-          {Object.entries(GL_SPELL_CATEGORY_LABELS).map(([slug, nom]) => (
-            <option key={slug} value={slug}>{nom}</option>
-          ))}
-        </GLSelect>
-      </GLField>
-    );
-  }
-  if (fieldKey === 'statut') {
-    return (
-      <GLField label={label}>
-        <GLSelect value={value} onChange={(e) => onChange(fieldKey, e.target.value)} disabled={disabled}>
-          {Object.entries(GL_SPELL_STATUT_LABELS).map(([val, lab]) => (
-            <option key={val} value={val}>{lab}</option>
-          ))}
-        </GLSelect>
-      </GLField>
-    );
-  }
-  if (TEXTAREA_FIELDS.has(fieldKey)) {
-    return (
-      <GLField label={label}>
-        <GLTextarea value={value} onChange={(e) => onChange(fieldKey, e.target.value)} rows={3} disabled={disabled} />
-      </GLField>
-    );
-  }
-  return (
-    <GLField label={label}>
-      <GLInput
-        value={value}
-        onChange={(e) => onChange(fieldKey, e.target.value)}
-        disabled={disabled}
-        required={fieldKey === 'nom'}
-        type={fieldKey === 'cout_gemmes' || fieldKey === 'cout_coeurs' ? 'number' : 'text'}
-        min={fieldKey === 'cout_gemmes' || fieldKey === 'cout_coeurs' ? 0 : undefined}
-      />
-    </GLField>
-  );
-}
 
 export function GLSpellsEditorPanel() {
   const [categories, setCategories] = useState([]);
@@ -238,7 +186,7 @@ export function GLSpellsEditorPanel() {
         <div>
           <form className="gl-form" onSubmit={saveSpell}>
             {FORM_FIELDS.map((key) => (
-              <SpellField
+              <GLSpellFormField
                 key={key}
                 fieldKey={key}
                 value={form[key]}
