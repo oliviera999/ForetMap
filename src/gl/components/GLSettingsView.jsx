@@ -2,80 +2,24 @@ import React, { useEffect, useState } from 'react';
 import { apiGL } from '../services/apiGL.js';
 import { GLBrandHub } from './GLBrandHub.jsx';
 import { GLBrandEditor } from './GLBrandEditor.jsx';
+import { GLGameplayTogglesList } from './settings/GLGameplayTogglesList.jsx';
+import { GLGameplayPresetsPanel } from './settings/GLGameplayPresetsPanel.jsx';
+import { GLSpellCastSettings } from './settings/GLSpellCastSettings.jsx';
 import { GLButton } from './ui/GLButton.jsx';
 import { GLField } from './ui/GLField.jsx';
 import { GLInput } from './ui/GLInput.jsx';
 import { GLSurface } from './ui/GLSurface.jsx';
 import { normalizeBrand } from '../hooks/useGLBrandTheme.js';
 import { GAMEPLAY_PRESETS } from '../constants/gameplayPresets.js';
-
-const GAMEPLAY_TOGGLES = [
-  {
-    key: 'gameplay.turns_enabled',
-    camel: 'turnsEnabled',
-    label: 'Tours de jeu',
-    hint: 'Active la rotation des équipes (mode standard).',
-  },
-  {
-    key: 'gameplay.narration_enabled',
-    camel: 'narrationEnabled',
-    label: 'Narration MJ',
-    hint: 'Le MJ peut envoyer un message narratif aux joueurs (mode standard).',
-  },
-  {
-    key: 'gameplay.player_actions_enabled',
-    camel: 'playerActionsEnabled',
-    label: 'Actions joueurs',
-    hint: 'Les joueurs peuvent proposer une action que le MJ valide (mode complet).',
-  },
-  {
-    key: 'gameplay.scoring_enabled',
-    camel: 'scoringEnabled',
-    label: 'Score par équipe',
-    hint: 'Tableau de score et bonus à la validation des actions (mode complet).',
-  },
-  {
-    key: 'gameplay.vitality_enabled',
-    camel: 'vitalityEnabled',
-    label: 'Points de vie et de pouvoir',
-    hint: 'PV (❤️) et points de pouvoir (💎) persistants par joueur, gérés par le MJ.',
-  },
-];
-
-const MODULE_TOGGLES = [
-  { key: 'modules.mascot_packs_enabled', label: 'Studio mascottes', hint: 'Affiche la gestion mascottes/packs.' },
-  { key: 'modules.context_comments_enabled', label: 'Commentaires contextuels', hint: 'Prépare le module commentaires GL.' },
-  { key: 'modules.forum_enabled', label: 'Forum', hint: 'Prépare le module forum GL.' },
-  { key: 'modules.notifications_enabled', label: 'Notifications', hint: 'Prépare le centre de notifications GL.' },
-  { key: 'modules.tutorials_enabled', label: 'Tutoriels', hint: 'Prépare le module tutoriels GL.' },
-  { key: 'modules.help_enabled', label: 'Aide contextuelle', hint: 'Prépare l’onboarding GL.' },
-  { key: 'modules.intro_enabled', label: 'Intro cinématique', hint: 'Écran d’introduction avant la connexion (1ère visite + lien « Revoir l’intro »).' },
-  { key: 'modules.journal_enabled', label: 'Journal/Histoire', hint: 'Affiche l’onglet Histoire et la timeline évènements de partie.' },
-  { key: 'modules.player_journal_enabled', label: 'Mon journal (carnet personnel)', hint: 'Carnet éditable par chaque joueur (texte, images, encarts).' },
-  { key: 'modules.zone_music_enabled', label: 'Musique des zones', hint: 'Ambiance sonore par zone sur la carte de jeu (fondus en transition). Les zones se définissent dans Contenus → Chapitres.' },
-  { key: 'modules.market_enabled', label: 'Marché', hint: 'Échanges de cœurs et gemmes entre joueurs de la classe (nécessite la vitalité).' },
-  { key: 'modules.spell_cast_enabled', label: 'Lancement de sortilèges', hint: 'Assistant MJ : pool multi-équipes (gemmes/cœurs). Activer aussi la vitalité et « MJ only » pour réserver le lancement au staff.' },
-  { key: 'modules.virtual_dice_enabled', label: 'Dés virtuels', hint: 'Bouton et lanceur de dés D6 sur la carte de jeu (jusqu’à 5 dés).' },
-  { key: 'modules.lore_carnet_enabled', label: 'Carnet de Sélène', hint: 'Feuillets narratifs, découverte par zone et onglet carnet.' },
-  { key: 'modules.lore_glossary_enabled', label: 'Lexique du lore', hint: 'Glossaire narratif distinct du glossaire SVT.' },
-];
-
-const SPELL_CAST_CONTRIBUTION_OPTIONS = [
-  { value: 'both', label: 'Les deux (soi + répartition équipe avec confirmation)' },
-  { value: 'coordinator', label: 'Coordinateur (une personne répartit pour toute l’équipe)' },
-  { value: 'self_only', label: 'Chaque joueur saisit uniquement sa contribution' },
-];
-
-const SPELL_CAST_TEAM_SCOPE_OPTIONS = [
-  { value: 'any_team', label: 'Toutes les équipes de la partie' },
-  { value: 'own_team', label: 'Uniquement son équipe' },
-  { value: 'mj_any', label: 'Joueur : son équipe · MJ : toutes les équipes' },
-];
-
-function readGameplayFlag(settings, key) {
-  const value = settings?.[key];
-  return value === true || value === 'true';
-}
+import {
+  GAMEPLAY_TOGGLES,
+  MODULE_TOGGLES,
+  readGameplayFlag,
+  readSelectSetting,
+  settingsToIdentityFields,
+  areVitalityValuesValid,
+  gameplayPresetChanges,
+} from '../utils/glSettingsForm.js';
 
 export function GLSettingsView() {
   const [settings, setSettings] = useState({});
@@ -96,17 +40,12 @@ export function GLSettingsView() {
       const data = await apiGL('/api/gl/admin/settings');
       const next = data?.settings || {};
       setSettings(next);
-      setTitle(String(next['platform.title'] || 'Gnomes & Licornes'));
-      setSubtitle(String(next['platform.subtitle'] || ''));
+      const identity = settingsToIdentityFields(next);
+      setTitle(identity.title);
+      setSubtitle(identity.subtitle);
       setBrandDraft(normalizeBrand(next['platform.brand'] || {}));
-      const rawHealth = next['gameplay.default_health_points'];
-      const rawPower = next['gameplay.default_power_points'];
-      setDefaultHealthPoints(String(
-        typeof rawHealth === 'number' ? rawHealth : (Number(rawHealth) || 3)
-      ));
-      setDefaultPowerPoints(String(
-        typeof rawPower === 'number' ? rawPower : (Number(rawPower) || 3)
-      ));
+      setDefaultHealthPoints(identity.defaultHealthPoints);
+      setDefaultPowerPoints(identity.defaultPowerPoints);
       setError('');
     } catch (err) {
       setError(err.message || 'Chargement impossible');
@@ -156,12 +95,21 @@ export function GLSettingsView() {
     }
   }
 
+  async function saveSetting(key, value) {
+    setSavingKey(key);
+    try {
+      await apiGL(`/api/gl/admin/settings/${key}`, 'PUT', { value });
+      await load();
+    } catch (err) {
+      setError(err.message || 'Enregistrement impossible');
+    } finally {
+      setSavingKey('');
+    }
+  }
+
   async function applyGameplayPreset(preset) {
     if (!preset?.settings) return;
-    const changes = Object.entries(preset.settings).filter(([key, value]) => {
-      const current = readGameplayFlag(settings, key);
-      return current !== value;
-    });
+    const changes = gameplayPresetChanges(settings, preset);
     if (changes.length === 0) {
       setSuccessMessage(`Profil « ${preset.label} » déjà actif.`);
       setError('');
@@ -252,53 +200,19 @@ export function GLSettingsView() {
         standard puis complet selon la séance.
       </p>
 
-      <div className="gl-gameplay-presets">
-        <h4>Profils de séance</h4>
-        <p className="gl-hint">
-          Applique en un clic une combinaison de réglages gameplay. Les modules (sortilèges, forum, etc.)
-          et le re-déclenchement des questions sur repère ne sont pas modifiés.
-        </p>
-        <ul className="gl-gameplay-presets-list">
-          {GAMEPLAY_PRESETS.map((preset) => (
-            <li key={preset.id} className="gl-gameplay-preset-card">
-              <div className="gl-gameplay-preset-head">
-                <strong>{preset.label}</strong>
-                <GLButton
-                  type="button"
-                  size="sm"
-                  disabled={applyingPresetId !== ''}
-                  loading={applyingPresetId === preset.id}
-                  onClick={() => applyGameplayPreset(preset)}
-                >
-                  Appliquer
-                </GLButton>
-              </div>
-              <p className="gl-hint">{preset.description}</p>
-            </li>
-          ))}
-        </ul>
-      </div>
+      <GLGameplayPresetsPanel
+        presets={GAMEPLAY_PRESETS}
+        applyingPresetId={applyingPresetId}
+        onApply={applyGameplayPreset}
+      />
 
-      <ul className="gl-gameplay-toggles">
-        {GAMEPLAY_TOGGLES.map((toggle) => {
-          const current = readGameplayFlag(settings, toggle.key);
-          const saving = savingKey === toggle.key;
-          return (
-            <li key={toggle.key} className="gl-gameplay-toggle">
-              <label>
-                <input
-                  type="checkbox"
-                  checked={current}
-                  disabled={saving}
-                  onChange={(event) => toggleGameplayFlag(toggle.key, event.target.checked)}
-                />
-                <span className="gl-gameplay-toggle-label">{toggle.label}</span>
-              </label>
-              <span className="gl-gameplay-toggle-hint">{toggle.hint}</span>
-            </li>
-          );
-        })}
-      </ul>
+      <GLGameplayTogglesList
+        toggles={GAMEPLAY_TOGGLES}
+        isChecked={readGameplayFlag}
+        settings={settings}
+        savingKey={savingKey}
+        onToggle={toggleGameplayFlag}
+      />
 
       <div className="gl-vitality-defaults gl-form">
         <h4>Valeurs initiales (nouveaux joueurs)</h4>
@@ -332,8 +246,7 @@ export function GLSettingsView() {
             onClick={async () => {
               const health = Number(defaultHealthPoints);
               const power = Number(defaultPowerPoints);
-              if (!Number.isInteger(health) || health < 0 || health > 99
-                || !Number.isInteger(power) || power < 0 || power > 99) {
+              if (!areVitalityValuesValid(health, power)) {
                 setError('Les valeurs initiales doivent être des entiers entre 0 et 99.');
                 return;
               }
@@ -375,7 +288,7 @@ export function GLSettingsView() {
         <label>
           Re-déclenchement des questions sur repère
           <select
-            value={String(settings['gameplay.marker_question_retrigger'] || 'every_arrival').replace(/^"|"$/g, '')}
+            value={readSelectSetting(settings, 'gameplay.marker_question_retrigger', 'every_arrival')}
             disabled={savingKey === 'gameplay.marker_question_retrigger'}
             onChange={async (event) => {
               const next = event.target.value;
@@ -401,7 +314,7 @@ export function GLSettingsView() {
         <label>
           Re-déclenchement des popovers de zone
           <select
-            value={String(settings['gameplay.zone_content_retrigger'] || 'once_per_game').replace(/^"|"$/g, '')}
+            value={readSelectSetting(settings, 'gameplay.zone_content_retrigger', 'once_per_game')}
             disabled={savingKey === 'gameplay.zone_content_retrigger'}
             onChange={async (event) => {
               const next = event.target.value;
@@ -428,7 +341,7 @@ export function GLSettingsView() {
         <label>
           Re-déclenchement des feuillets
           <select
-            value={String(settings['gameplay.lore_feuillet_retrigger'] || 'once_per_team').replace(/^"|"$/g, '')}
+            value={readSelectSetting(settings, 'gameplay.lore_feuillet_retrigger', 'once_per_team')}
             disabled={savingKey === 'gameplay.lore_feuillet_retrigger'}
             onChange={async (event) => {
               setSavingKey('gameplay.lore_feuillet_retrigger');
@@ -450,7 +363,7 @@ export function GLSettingsView() {
         <label>
           Plafond spoiler glossaire lore
           <select
-            value={String(settings['gameplay.lore_spoiler_max_level'] || 'recit').replace(/^"|"$/g, '')}
+            value={readSelectSetting(settings, 'gameplay.lore_spoiler_max_level', 'recit')}
             disabled={savingKey === 'gameplay.lore_spoiler_max_level'}
             onChange={async (event) => {
               setSavingKey('gameplay.lore_spoiler_max_level');
@@ -496,106 +409,23 @@ export function GLSettingsView() {
         ))}
       </div>
 
-      <div className="gl-spell-cast-settings gl-form">
-        <h4>Lancement de sortilèges</h4>
-        <label>
-          Mode de contribution
-          <select
-            value={String(settings['gameplay.spell_cast_contribution_mode'] || 'both').replace(/^"|"$/g, '')}
-            disabled={savingKey === 'gameplay.spell_cast_contribution_mode'}
-            onChange={async (event) => {
-              setSavingKey('gameplay.spell_cast_contribution_mode');
-              try {
-                await apiGL('/api/gl/admin/settings/gameplay.spell_cast_contribution_mode', 'PUT', { value: event.target.value });
-                await load();
-              } catch (err) {
-                setError(err.message || 'Enregistrement impossible');
-              } finally {
-                setSavingKey('');
-              }
-            }}
-          >
-            {SPELL_CAST_CONTRIBUTION_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Équipes pouvant lancer
-          <select
-            value={String(settings['gameplay.spell_cast_team_scope'] || 'any_team').replace(/^"|"$/g, '')}
-            disabled={savingKey === 'gameplay.spell_cast_team_scope'}
-            onChange={async (event) => {
-              setSavingKey('gameplay.spell_cast_team_scope');
-              try {
-                await apiGL('/api/gl/admin/settings/gameplay.spell_cast_team_scope', 'PUT', { value: event.target.value });
-                await load();
-              } catch (err) {
-                setError(err.message || 'Enregistrement impossible');
-              } finally {
-                setSavingKey('');
-              }
-            }}
-          >
-            {SPELL_CAST_TEAM_SCOPE_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
-            ))}
-          </select>
-        </label>
-        <label className="gl-gameplay-toggle-row">
-          <input
-            type="checkbox"
-            checked={readGameplayFlag(settings, 'gameplay.spell_cast_mj_only')}
-            disabled={savingKey === 'gameplay.spell_cast_mj_only'}
-            onChange={async (event) => {
-              setSavingKey('gameplay.spell_cast_mj_only');
-              try {
-                await apiGL('/api/gl/admin/settings/gameplay.spell_cast_mj_only', 'PUT', {
-                  value: event.target.checked,
-                });
-                await load();
-              } catch (err) {
-                setError(err.message || 'Enregistrement impossible');
-              } finally {
-                setSavingKey('');
-              }
-            }}
-          />
-          <span>Seul le MJ peut lancer les sortilèges</span>
-        </label>
-        <p className="gl-hint">
-          Si activé, les joueurs consultent le catalogue mais ne peuvent pas ouvrir l&apos;assistant de lancement
-          (réservé au MJ sur la console / carte).
-        </p>
-        <p className="gl-hint">
-          Activez aussi le module « Lancement de sortilèges » ci-dessous et la vitalité (gemmes / cœurs).
-        </p>
-      </div>
+      <GLSpellCastSettings
+        settings={settings}
+        savingKey={savingKey}
+        onSaveSetting={saveSetting}
+      />
 
       <h3>Modules GL</h3>
       <p className="gl-hint">
         Ces drapeaux activent/désactivent les modules GL côté interface.
       </p>
-      <ul className="gl-gameplay-toggles">
-        {MODULE_TOGGLES.map((toggle) => {
-          const current = readGameplayFlag(settings, toggle.key);
-          const saving = savingKey === toggle.key;
-          return (
-            <li key={toggle.key} className="gl-gameplay-toggle">
-              <label>
-                <input
-                  type="checkbox"
-                  checked={current}
-                  disabled={saving}
-                  onChange={(event) => toggleGameplayFlag(toggle.key, event.target.checked)}
-                />
-                <span className="gl-gameplay-toggle-label">{toggle.label}</span>
-              </label>
-              <span className="gl-gameplay-toggle-hint">{toggle.hint}</span>
-            </li>
-          );
-        })}
-      </ul>
+      <GLGameplayTogglesList
+        toggles={MODULE_TOGGLES}
+        isChecked={readGameplayFlag}
+        settings={settings}
+        savingKey={savingKey}
+        onToggle={toggleGameplayFlag}
+      />
 
       <details>
         <summary>État brut des réglages</summary>
