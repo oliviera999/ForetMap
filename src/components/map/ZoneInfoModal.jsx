@@ -16,9 +16,9 @@ import { DialogShell } from '../DialogShell';
 import { MarkdownContent } from '../MarkdownContent.jsx';
 import { MarkdownTextarea } from '../MarkdownTextarea.jsx';
 import { tutorialPreviewCanEmbed, tutorialPreviewPayload } from '../TutorialPreviewModal';
-import { VisitEditorialMapPhotoImportList, VisitEditorialMediaIdPicker } from '../VisitEditorialPhotoUi.jsx';
 import { ContextComments } from '../context-comments';
 import { BiodiversitySpeciesOpenLinks, LivingBeingsCatalogPanel } from './LivingBeingsCatalogPanel.jsx';
+import { MarkerVisitImageBuilder } from './MarkerFormSections.jsx';
 import { PhotoGallery } from './PhotoGallery.jsx';
 import { ZoneOrMarkerEmojiField } from './ZoneOrMarkerEmojiField.jsx';
 import { LocationTutorialPreviewList, TaskEnrollmentLegend, tutorialLinkedToSameMap } from './mapModalShared.jsx';
@@ -465,51 +465,18 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
             <div className="field"><label>Détails dépliables (visite)</label>
               <MarkdownTextarea value={visitDetailsText} onChange={(e) => setVisitDetailsText(e.target.value)} rows={4} placeholder="Contenu du panneau repliable" />
             </div>
-            <div className="visit-editorial-builder">
-              <h5>Bloc images (visite)</h5>
-              <p className="section-sub">Choisis des photos déjà associées à la zone, ou associe d’abord une photo de l’onglet Photos.</p>
-              <div className="visit-editorial-builder__actions">
-                <button type="button" className="btn btn-ghost btn-sm" onClick={addImageBlock}>+ Bloc image</button>
-              </div>
-              <VisitEditorialMapPhotoImportList
-                photos={zonePhotoOptions}
-                heading="Photos liées à cette zone"
-                onAssociate={attachZonePhotoToVisit}
-              />
-              <div className="visit-editorial-builder__list">
-                {imageBlocks.map((block) => (
-                  <div key={block.id} className="visit-editorial-builder__item">
-                    <div className="visit-editorial-builder__head">
-                      <strong>Image(s)</strong>
-                      <div className="visit-editorial-builder__head-actions">
-                        <button type="button" className="btn btn-danger btn-sm" onClick={() => removeImageBlock(block.id)}>Suppr.</button>
-                      </div>
-                    </div>
-                    <div className="visit-editorial-builder__image">
-                      <label>Photos du bloc (1 ou 2)</label>
-                      <VisitEditorialMediaIdPicker
-                        mediaList={visitMediaOptions}
-                        selectedIds={block.media_ids || []}
-                        onChange={(ids) => updateImageBlock(block.id, { media_ids: ids })}
-                        emptyHint="Aucune photo visite — onglet Photos ou associe une photo zone ci-dessus."
-                      />
-                      <div className="visit-editorial-builder__image-meta">
-                        <select value={block.size || 'md'} onChange={(e) => updateImageBlock(block.id, { size: e.target.value })}>
-                          <option value="sm">Compact</option>
-                          <option value="md">Normal</option>
-                          <option value="lg">Large</option>
-                        </select>
-                      </div>
-                      <input
-                        value={block.caption || ''}
-                        onChange={(e) => updateImageBlock(block.id, { caption: e.target.value })}
-                        placeholder="Légende (optionnel)"
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <MarkerVisitImageBuilder
+              imageBlocks={imageBlocks}
+              visitMediaOptions={visitMediaOptions}
+              markerPhotoOptions={zonePhotoOptions}
+              onAddImageBlock={addImageBlock}
+              onUpdateImageBlock={updateImageBlock}
+              onRemoveImageBlock={removeImageBlock}
+              onAssociatePhoto={attachZonePhotoToVisit}
+              introText="Choisis des photos déjà associées à la zone, ou associe d’abord une photo de l’onglet Photos."
+              photoImportHeading="Photos liées à cette zone"
+              pickerEmptyHint="Aucune photo visite — onglet Photos ou associe une photo zone ci-dessus."
+            />
             <div className="field"><label htmlFor="zone-edit-emoji-custom">Emoji de zone</label>
               <ZoneOrMarkerEmojiField
                 id="zone-edit-emoji-custom"
