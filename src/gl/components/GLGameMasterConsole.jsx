@@ -2,33 +2,25 @@ import React, { useCallback, useEffect, useMemo, useState, Suspense, lazy } from
 import { apiGL } from '../services/apiGL.js';
 import { GLBadge } from './ui/GLBadge.jsx';
 import { GLButton } from './ui/GLButton.jsx';
-import { GLField } from './ui/GLField.jsx';
-import { GLInput } from './ui/GLInput.jsx';
-import { GLSelect } from './ui/GLSelect.jsx';
 import { useGLMascotCatalog } from '../context/GLMascotCatalogContext.jsx';
 import {
-  canEditGameChapter,
-  canEditGameClass,
   formatGameStatus,
-  gameLifecycleAction,
   gameStatusTone,
 } from '../utils/glGameStatus.js';
+import {
+  EMPTY_GAME_EDIT_FORM,
+  buildGameEditPayload,
+  formatGameTimestamp,
+  gameToEditForm,
+} from '../utils/glGameEditForm.js';
 
+const GLGameMasterConsoleActiveGameBanner = lazy(() => import('./mj/GLGameMasterConsoleActiveGameBanner.jsx'));
 const GLGameMasterConsoleParties = lazy(() => import('./mj/GLGameMasterConsoleParties.jsx'));
 const GLGameMasterConsoleTeams = lazy(() => import('./mj/GLGameMasterConsoleTeams.jsx'));
 const GLGameMasterConsoleLive = lazy(() => import('./mj/GLGameMasterConsoleLive.jsx'));
 
 function MjSectionFallback() {
   return <p className="gl-hint">Chargement de la section…</p>;
-}
-
-function formatTimestamp(value) {
-  if (!value) return '';
-  try {
-    return new Date(value).toLocaleTimeString();
-  } catch (_) {
-    return '';
-  }
 }
 
 const DEFAULT_TEAM_FORM = {
@@ -57,16 +49,7 @@ export function GLGameMasterConsole({
   const [createName, setCreateName] = useState('Partie découverte');
   const [createChapterId, setCreateChapterId] = useState('');
   const [createClassId, setCreateClassId] = useState('');
-  const [editGameForm, setEditGameForm] = useState({
-    name: '',
-    chapterId: '',
-    classId: '',
-    zoneContentRetrigger: '',
-    loreFeuilletRetrigger: '',
-    loreEffacementEnabled: '',
-    loreGemmeCostsEnabled: '',
-    loreHeartRewardsEnabled: '',
-  });
+  const [editGameForm, setEditGameForm] = useState({ ...EMPTY_GAME_EDIT_FORM });
   const [narration, setNarration] = useState('');
   const [narrationImageUrl, setNarrationImageUrl] = useState('');
   const [scoreDelta, setScoreDelta] = useState(1);
@@ -158,16 +141,7 @@ export function GLGameMasterConsole({
 
   useEffect(() => {
     if (!game?.id) return;
-    setEditGameForm({
-      name: game.name || '',
-      chapterId: game.chapter_id != null ? String(game.chapter_id) : '',
-      classId: game.class_id != null ? String(game.class_id) : '',
-      zoneContentRetrigger: game.zone_content_retrigger != null ? String(game.zone_content_retrigger) : '',
-      loreFeuilletRetrigger: game.lore_feuillet_retrigger != null ? String(game.lore_feuillet_retrigger) : '',
-      loreEffacementEnabled: game.lore_effacement_enabled == null ? '' : (game.lore_effacement_enabled ? '1' : '0'),
-      loreGemmeCostsEnabled: game.lore_gemme_costs_enabled == null ? '' : (game.lore_gemme_costs_enabled ? '1' : '0'),
-      loreHeartRewardsEnabled: game.lore_heart_rewards_enabled == null ? '' : (game.lore_heart_rewards_enabled ? '1' : '0'),
-    });
+    setEditGameForm(gameToEditForm(game));
   }, [game?.id, game?.name, game?.chapter_id, game?.class_id, game?.zone_content_retrigger,
     game?.lore_feuillet_retrigger, game?.lore_effacement_enabled,
     game?.lore_gemme_costs_enabled, game?.lore_heart_rewards_enabled]);
@@ -295,24 +269,7 @@ export function GLGameMasterConsole({
     setBusy(true);
     setActionError('');
     try {
-      const payload = { name: editGameForm.name };
-      if (canEditGameChapter(gameStatus) && editGameForm.chapterId) {
-        payload.chapterId = Number(editGameForm.chapterId);
-      }
-      if (canEditGameClass(gameStatus) && editGameForm.classId) {
-        payload.classId = Number(editGameForm.classId);
-      }
-      payload.zoneContentRetrigger = editGameForm.zoneContentRetrigger || null;
-      payload.loreFeuilletRetrigger = editGameForm.loreFeuilletRetrigger || null;
-      if (editGameForm.loreEffacementEnabled !== '') {
-        payload.loreEffacementEnabled = editGameForm.loreEffacementEnabled === '1';
-      }
-      if (editGameForm.loreGemmeCostsEnabled !== '') {
-        payload.loreGemmeCostsEnabled = editGameForm.loreGemmeCostsEnabled === '1';
-      }
-      if (editGameForm.loreHeartRewardsEnabled !== '') {
-        payload.loreHeartRewardsEnabled = editGameForm.loreHeartRewardsEnabled === '1';
-      }
+      const payload = buildGameEditPayload(editGameForm, gameStatus);
       const updated = await apiGL(`/api/gl/games/${game.id}`, 'PUT', payload);
       onGameStateChange(updated);
       showSuccess('Partie mise à jour.');
@@ -655,160 +612,22 @@ export function GLGameMasterConsole({
       ) : null}
 
       {game?.id ? (
-        <div className={`gl-active-game-banner is-status-${String(gameStatus || 'draft').toLowerCase()}`}>
-          <div className="gl-active-game-banner-head">
-            <div>
-              <h3 className="gl-active-game-banner-title">{game.name || `Partie #${game.id}`}</h3>
-              <div className="gl-active-game-banner-meta">
-                <span>#{game.id}</span>
-                <span>{activeClassLabel}</span>
-                <span>{activeChapterTitle}</span>
-                <span>{teams.length} équipe{teams.length > 1 ? 's' : ''}</span>
-              </div>
-            </div>
-            <GLBadge tone={gameStatusTone(gameStatus)}>{formatGameStatus(gameStatus)}</GLBadge>
-          </div>
-          <div className="gl-inline-actions">
-            <GLButton
-              type="button"
-              size="sm"
-              onClick={() => setStatus('start')}
-              disabled={busy || !gameLifecycleAction(gameStatus, 'start')}
-            >
-              Démarrer
-            </GLButton>
-            <GLButton
-              type="button"
-              size="sm"
-              variant="secondary"
-              onClick={() => setStatus('pause')}
-              disabled={busy || !gameLifecycleAction(gameStatus, 'pause')}
-            >
-              Pause
-            </GLButton>
-            <GLButton
-              type="button"
-              size="sm"
-              variant="danger"
-              onClick={() => setStatus('end')}
-              disabled={busy || !gameLifecycleAction(gameStatus, 'end')}
-            >
-              Terminer
-            </GLButton>
-          </div>
-          <form className="gl-form" onSubmit={saveGameEdits}>
-            <div className="gl-admin-grid-2">
-              <GLField label="Nom de partie">
-                <GLInput
-                  value={editGameForm.name}
-                  onChange={(event) => setEditGameForm((prev) => ({ ...prev, name: event.target.value }))}
-                  required
-                />
-              </GLField>
-              <GLField label="Chapitre">
-                <GLSelect
-                  value={editGameForm.chapterId}
-                  onChange={(event) => setEditGameForm((prev) => ({ ...prev, chapterId: event.target.value }))}
-                  disabled={!canEditGameChapter(gameStatus)}
-                >
-                  <option value="">Choisir</option>
-                  {chapters.map((chapter) => (
-                    <option key={chapter.id} value={chapter.id}>{chapter.title}</option>
-                  ))}
-                </GLSelect>
-              </GLField>
-              <GLField label="Classe">
-                <GLSelect
-                  value={editGameForm.classId}
-                  onChange={(event) => setEditGameForm((prev) => ({ ...prev, classId: event.target.value }))}
-                  disabled={!canEditGameClass(gameStatus)}
-                >
-                  <option value="">Choisir</option>
-                  {activeClasses.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.name}
-                      {item.school ? ` (${item.school})` : ''}
-                    </option>
-                  ))}
-                </GLSelect>
-              </GLField>
-              <GLField label="Popover zones (cette partie)">
-                <GLSelect
-                  value={editGameForm.zoneContentRetrigger}
-                  onChange={(event) => setEditGameForm((prev) => ({
-                    ...prev,
-                    zoneContentRetrigger: event.target.value,
-                  }))}
-                >
-                  <option value="">Hériter des réglages globaux</option>
-                  <option value="every_arrival">À chaque entrée ou traversée</option>
-                  <option value="once_per_team">Une fois par équipe et zone</option>
-                  <option value="once_per_game">Une fois par zone (toute la partie)</option>
-                </GLSelect>
-              </GLField>
-              <GLField label="Feuillets Sélène (cette partie)">
-                <GLSelect
-                  value={editGameForm.loreFeuilletRetrigger}
-                  onChange={(event) => setEditGameForm((prev) => ({
-                    ...prev,
-                    loreFeuilletRetrigger: event.target.value,
-                  }))}
-                >
-                  <option value="">Hériter des réglages globaux</option>
-                  <option value="every_arrival">À chaque entrée ou traversée</option>
-                  <option value="once_per_team">Une fois par équipe</option>
-                  <option value="once_per_game">Une fois par partie</option>
-                </GLSelect>
-              </GLField>
-              <GLField label="Effacement feuillets">
-                <GLSelect
-                  value={editGameForm.loreEffacementEnabled}
-                  onChange={(event) => setEditGameForm((prev) => ({
-                    ...prev,
-                    loreEffacementEnabled: event.target.value,
-                  }))}
-                >
-                  <option value="">Hériter plateforme</option>
-                  <option value="1">Activé</option>
-                  <option value="0">Désactivé</option>
-                </GLSelect>
-              </GLField>
-              <GLField label="Coûts gemmes (feuillets)">
-                <GLSelect
-                  value={editGameForm.loreGemmeCostsEnabled}
-                  onChange={(event) => setEditGameForm((prev) => ({
-                    ...prev,
-                    loreGemmeCostsEnabled: event.target.value,
-                  }))}
-                >
-                  <option value="">Hériter plateforme</option>
-                  <option value="1">Activé</option>
-                  <option value="0">Désactivé</option>
-                </GLSelect>
-              </GLField>
-              <GLField label="Gains cœurs (feuillets)">
-                <GLSelect
-                  value={editGameForm.loreHeartRewardsEnabled}
-                  onChange={(event) => setEditGameForm((prev) => ({
-                    ...prev,
-                    loreHeartRewardsEnabled: event.target.value,
-                  }))}
-                >
-                  <option value="">Hériter plateforme</option>
-                  <option value="1">Activé</option>
-                  <option value="0">Désactivé</option>
-                </GLSelect>
-              </GLField>
-            </div>
-            {!canEditGameChapter(gameStatus) ? (
-              <p className="gl-hint">Chapitre modifiable uniquement en brouillon ou pause.</p>
-            ) : null}
-            {!canEditGameClass(gameStatus) ? (
-              <p className="gl-hint">Classe modifiable uniquement en brouillon (sans joueurs assignés).</p>
-            ) : null}
-            <GLButton type="submit" disabled={busy}>Enregistrer la partie</GLButton>
-          </form>
-        </div>
+        <Suspense fallback={<MjSectionFallback />}>
+          <GLGameMasterConsoleActiveGameBanner
+            game={game}
+            gameStatus={gameStatus}
+            activeClassLabel={activeClassLabel}
+            activeChapterTitle={activeChapterTitle}
+            teams={teams}
+            chapters={chapters}
+            activeClasses={activeClasses}
+            editGameForm={editGameForm}
+            setEditGameForm={setEditGameForm}
+            setStatus={setStatus}
+            saveGameEdits={saveGameEdits}
+            busy={busy}
+          />
+        </Suspense>
       ) : null}
 
       <nav className="gl-subtabs" role="tablist" aria-label="Sections console MJ">
@@ -926,7 +745,7 @@ export function GLGameMasterConsole({
             showFailure={showFailure}
             onGoToParties={() => setMjSection('parties')}
             busy={busy}
-            formatTimestamp={formatTimestamp}
+            formatTimestamp={formatGameTimestamp}
           />
         )}
       </Suspense>

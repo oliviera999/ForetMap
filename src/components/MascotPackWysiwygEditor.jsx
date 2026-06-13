@@ -11,53 +11,19 @@ import {
   serverMascotSpriteLibraryAssetsPrefix,
 } from '../utils/mascotPackEditorModel.js';
 import {
+  appendFileToStateFrames,
+  computePackMediaWarnings,
+  sanitizeClientFilename,
+} from '../utils/mascotPackEditorFrames.js';
+import {
   extractMascotPackValidationIssues,
   sanitizeMascotPackDraft,
   toMascotPackIssueLines,
 } from '../utils/mascotPackValidationUi.js';
 import MascotPackPreviewPanel from './MascotPackPreviewPanel.jsx';
-
-const STATE_OPTIONS = Object.values(VISIT_MASCOT_STATE).sort();
-const STATE_LABELS = {
-  [VISIT_MASCOT_STATE.IDLE]: 'Repos',
-  [VISIT_MASCOT_STATE.WALKING]: 'Marche',
-  [VISIT_MASCOT_STATE.HAPPY]: 'Joyeuse',
-  [VISIT_MASCOT_STATE.RUNNING]: 'Course',
-  [VISIT_MASCOT_STATE.HAPPY_JUMP]: 'Saut joyeux',
-  [VISIT_MASCOT_STATE.SPIN]: 'Rotation',
-  [VISIT_MASCOT_STATE.INSPECT]: 'Inspection',
-  [VISIT_MASCOT_STATE.MAP_READ]: 'Lecture carte',
-  [VISIT_MASCOT_STATE.CELEBRATE]: 'Célébration',
-  [VISIT_MASCOT_STATE.TALK]: 'Dialogue',
-  [VISIT_MASCOT_STATE.ALERT]: 'Alerte',
-  [VISIT_MASCOT_STATE.ANGRY]: 'Fâchée',
-  [VISIT_MASCOT_STATE.SURPRISE]: 'Surprise',
-};
-
-/** @param {string} name */
-function sanitizeClientFilename(name) {
-  const raw = String(name || '').replace(/^.*[\\/]/, '').trim();
-  const base = raw.replace(/[^a-zA-Z0-9._-]+/g, '-').toLowerCase().replace(/^-+|-+$/g, '') || 'frame';
-  return base.toLowerCase().endsWith('.png') ? base : `${base}.png`;
-}
-
-/** @param {Record<string, unknown>} pack @param {string} rel */
-function resolveFrameUrl(pack, rel) {
-  const s = String(rel || '').trim();
-  if (!s) return '';
-  if (s.startsWith('blob:') || s.startsWith('http://') || s.startsWith('https://')) return s;
-  let base = String(pack.framesBase || '').trim();
-  if (!base.endsWith('/')) base = `${base}/`;
-  return withAppBase(`${base}${s.replace(/^\//, '')}`);
-}
-
-/** @param {string} raw */
-function resolveSrcPreviewUrl(raw) {
-  const s = String(raw || '').trim();
-  if (!s) return '';
-  if (s.startsWith('blob:') || s.startsWith('data:') || s.startsWith('http://') || s.startsWith('https://')) return s;
-  return withAppBase(s);
-}
+import MascotPackStateEditor from './mascot/MascotPackStateEditor.jsx';
+import StateAliasesEditor from './mascot/StateAliasesEditor.jsx';
+import { STATE_OPTIONS, STATE_LABELS } from '../constants/mascotStateLabels.js';
 
 /**
  * @param {{
@@ -159,33 +125,10 @@ export default function MascotPackWysiwygEditor({
     patchPack({ stateFrames: next });
   }, [patchPack]);
 
-  const packWarnings = useMemo(() => {
-    const warnings = [];
-    const silhouette = String(pack?.fallbackSilhouette || '').trim();
-    if (silhouette && !MASCOT_PACK_FALLBACK_SILHOUETTES.includes(silhouette)) {
-      warnings.push(`Silhouette « ${silhouette} » inconnue: un fallback par défaut sera utilisé.`);
-    }
-    const prefix = serverMascotPackAssetsPrefix(packUuid);
-    const base = String(pack?.framesBase || '').trim();
-    const normalizedBase = base.endsWith('/') ? base : `${base}/`;
-    if (prefix && normalizedBase.startsWith(prefix)) {
-      const available = new Set(assets.map((a) => String(a?.filename || '').trim()).filter(Boolean));
-      const referenced = new Set();
-      for (const spec of Object.values(stateFrames || {})) {
-        if (!spec || typeof spec !== 'object') continue;
-        const files = Array.isArray(spec.files) ? spec.files : [];
-        for (const file of files) {
-          const name = String(file || '').trim();
-          if (name) referenced.add(name);
-        }
-      }
-      const missing = [...referenced].filter((f) => !available.has(f));
-      if (missing.length > 0) {
-        warnings.push(`Fichiers référencés absents de la médiathèque serveur: ${missing.slice(0, 6).join(', ')}${missing.length > 6 ? '…' : ''}.`);
-      }
-    }
-    return warnings;
-  }, [pack, packUuid, assets, stateFrames]);
+  const packWarnings = useMemo(
+    () => computePackMediaWarnings(pack, packUuid, assets, stateFrames),
+    [pack, packUuid, assets, stateFrames],
+  );
 
   const updateStateEntry = useCallback((stateKey, spec) => {
     const next = { ...stateFrames };
@@ -195,15 +138,8 @@ export default function MascotPackWysiwygEditor({
   }, [stateFrames, setStateFrames]);
 
   const appendFileToState = useCallback((stateKey, filename) => {
-    const cur = stateFrames[stateKey];
-    const base = cur && typeof cur === 'object' ? { ...cur } : { fps: 8 };
-    const files = Array.isArray(base.files) ? [...base.files] : [];
-    if (files.includes(filename)) return;
-    files.push(filename);
-    const next = { ...base, files };
-    delete next.srcs;
-    updateStateEntry(stateKey, next);
-  }, [stateFrames, updateStateEntry]);
+    setStateFrames(appendFileToStateFrames(stateFrames, stateKey, filename));
+  }, [stateFrames, setStateFrames]);
 
   const onAddLibraryToTarget = useCallback((filename) => {
     if (!filename) return;
@@ -487,283 +423,18 @@ export default function MascotPackWysiwygEditor({
           const spec = active && stateFrames[stateKey] && typeof stateFrames[stateKey] === 'object'
             ? stateFrames[stateKey]
             : {};
-          const hasSrcMode = Object.prototype.hasOwnProperty.call(spec, 'srcs');
-          const hasFileMode = Object.prototype.hasOwnProperty.call(spec, 'files');
-          const useSrcs = hasSrcMode && !hasFileMode;
-          const files = Array.isArray(spec.files) ? spec.files.map(String) : [];
-          const srcs = Array.isArray(spec.srcs) ? spec.srcs.map(String) : [];
-          const fps = Number(spec.fps) || 8;
-          const dwell = Array.isArray(spec.frameDwellMs) ? spec.frameDwellMs.map((n) => Number(n) || 100) : [];
-
           return (
-            <details key={stateKey} className="mascot-pack-wysiwyg__state" open={active}>
-              <summary className="mascot-pack-wysiwyg__state-summary">
-                <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }} onClick={(ev) => ev.preventDefault()}>
-                  <input
-                    type="checkbox"
-                    checked={active}
-                    onChange={(ev) => toggleState(stateKey, ev.target.checked)}
-                  />
-                  <strong>{STATE_LABELS[stateKey] || stateKey} <span className="section-sub" style={{ fontSize: '0.78rem' }}>({stateKey})</span></strong>
-                </label>
-              </summary>
-              {active ? (
-                <div className="mascot-pack-wysiwyg__state-body">
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                    <input
-                      type="radio"
-                      name={`mode-${stateKey}`}
-                      checked={!useSrcs}
-                      onChange={() => {
-                        const next = { ...spec, files: files.length ? files : [], fps };
-                        delete next.srcs;
-                        updateStateEntry(stateKey, next);
-                      }}
-                    />
-                    Fichiers relatifs (framesBase)
-                  </label>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                    <input
-                      type="radio"
-                      name={`mode-${stateKey}`}
-                      checked={useSrcs}
-                      onChange={() => {
-                        const next = { ...spec, srcs: srcs.length ? srcs : [], fps };
-                        delete next.files;
-                        updateStateEntry(stateKey, next);
-                      }}
-                    />
-                    URLs absolues (srcs) — dev / blob
-                  </label>
-
-                  {!useSrcs ? (
-                    <ul className="mascot-pack-wysiwyg__frame-list">
-                      {files.map((f, idx) => (
-                        <li key={`${f}-${idx}`} className="mascot-pack-wysiwyg__frame-row">
-                          <img className="mascot-pack-wysiwyg__frame-thumb" src={resolveFrameUrl(pack, f)} alt="" loading="lazy" />
-                          <code className="mascot-pack-wysiwyg__frame-name">{f}</code>
-                          <div className="mascot-pack-wysiwyg__frame-move">
-                            <button
-                              type="button"
-                              className="btn btn-ghost btn-sm"
-                              disabled={idx === 0}
-                              onClick={() => {
-                                const nextFiles = [...files];
-                                [nextFiles[idx - 1], nextFiles[idx]] = [nextFiles[idx], nextFiles[idx - 1]];
-                                const nextDwell = dwell.length === files.length
-                                  ? (() => {
-                                    const d = [...dwell];
-                                    [d[idx - 1], d[idx]] = [d[idx], d[idx - 1]];
-                                    return d;
-                                  })()
-                                  : undefined;
-                                updateStateEntry(stateKey, {
-                                  ...spec,
-                                  files: nextFiles,
-                                  fps,
-                                  ...(nextDwell ? { frameDwellMs: nextDwell } : {}),
-                                });
-                              }}
-                            >
-                              Monter
-                            </button>
-                            <button
-                              type="button"
-                              className="btn btn-ghost btn-sm"
-                              disabled={idx >= files.length - 1}
-                              onClick={() => {
-                                const nextFiles = [...files];
-                                [nextFiles[idx], nextFiles[idx + 1]] = [nextFiles[idx + 1], nextFiles[idx]];
-                                const nextDwell = dwell.length === files.length
-                                  ? (() => {
-                                    const d = [...dwell];
-                                    [d[idx], d[idx + 1]] = [d[idx + 1], d[idx]];
-                                    return d;
-                                  })()
-                                  : undefined;
-                                updateStateEntry(stateKey, {
-                                  ...spec,
-                                  files: nextFiles,
-                                  fps,
-                                  ...(nextDwell ? { frameDwellMs: nextDwell } : {}),
-                                });
-                              }}
-                            >
-                              Descendre
-                            </button>
-                            <button
-                              type="button"
-                              className="btn btn-danger btn-sm"
-                              onClick={() => {
-                                const nextFiles = files.filter((_, i) => i !== idx);
-                                let nextDwell = dwell;
-                                if (dwell.length === files.length) {
-                                  nextDwell = dwell.filter((_, i) => i !== idx);
-                                }
-                                updateStateEntry(stateKey, {
-                                  ...spec,
-                                  files: nextFiles,
-                                  fps,
-                                  ...(nextDwell.length ? { frameDwellMs: nextDwell } : {}),
-                                });
-                              }}
-                            >
-                              Retirer
-                            </button>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <div style={{ marginTop: 8 }}>
-                      {srcs.map((u, idx) => (
-                        <div key={idx} style={{ display: 'flex', gap: 8, marginBottom: 6 }}>
-                          {String(u || '').trim() ? (
-                            <img
-                              src={resolveSrcPreviewUrl(u)}
-                              alt={`Aperçu URL ${idx + 1}`}
-                              width={44}
-                              height={44}
-                              loading="lazy"
-                              decoding="async"
-                              onLoad={() => setSrcPreviewStatus((prev) => ({ ...prev, [`${stateKey}:${idx}`]: 'ok' }))}
-                              onError={() => setSrcPreviewStatus((prev) => ({ ...prev, [`${stateKey}:${idx}`]: 'error' }))}
-                              style={{
-                                width: 44,
-                                height: 44,
-                                objectFit: 'contain',
-                                borderRadius: 6,
-                                border: '1px solid rgba(26,71,49,0.18)',
-                                background: 'rgba(248,250,245,0.95)',
-                                flex: '0 0 auto',
-                              }}
-                            />
-                          ) : (
-                            <div
-                              aria-hidden="true"
-                              style={{
-                                width: 44,
-                                height: 44,
-                                borderRadius: 6,
-                                border: '1px dashed rgba(26,71,49,0.2)',
-                                background: 'rgba(248,250,245,0.55)',
-                                flex: '0 0 auto',
-                              }}
-                            />
-                          )}
-                          <input
-                            className="form-input"
-                            style={{ flex: 1 }}
-                            value={u}
-                            placeholder="https://… ou blob:…"
-                            onChange={(ev) => {
-                              const nextSrcs = [...srcs];
-                              nextSrcs[idx] = ev.target.value;
-                              updateStateEntry(stateKey, { ...spec, srcs: nextSrcs, fps });
-                            }}
-                          />
-                          <span
-                            className="section-sub"
-                            style={{
-                              fontSize: '0.74rem',
-                              alignSelf: 'center',
-                              minWidth: 74,
-                              textAlign: 'center',
-                            }}
-                            aria-live="polite"
-                          >
-                            {!String(u || '').trim()
-                              ? 'vide'
-                              : (srcPreviewStatus[`${stateKey}:${idx}`] === 'ok' ? 'chargée' : (srcPreviewStatus[`${stateKey}:${idx}`] === 'error' ? 'non trouvée' : 'test...'))}
-                          </span>
-                          <button
-                            type="button"
-                            className="btn btn-ghost btn-sm"
-                            onClick={() => {
-                              const nextSrcs = srcs.filter((_, i) => i !== idx);
-                              updateStateEntry(stateKey, { ...spec, srcs: nextSrcs, fps });
-                            }}
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      ))}
-                      <button
-                        type="button"
-                        className="btn btn-ghost btn-sm"
-                        onClick={() => updateStateEntry(stateKey, { ...spec, srcs: [...srcs, ''], fps })}
-                      >
-                        + URL
-                      </button>
-                      <p className="section-sub" style={{ fontSize: '0.76rem', marginTop: 6, marginBottom: 0 }}>
-                        Formats conseillés: <code>https://...</code>, <code>blob:...</code> ou URL de l’application (ex: <code>/api/visit/...</code>).
-                      </p>
-                    </div>
-                  )}
-
-                  <label style={{ display: 'block', marginTop: 10 }}>
-                    <span className="mascot-pack-wysiwyg__label">fps</span>
-                    <input
-                      type="number"
-                      className="form-input"
-                      style={{ maxWidth: 120 }}
-                      min={1}
-                      max={120}
-                      value={fps}
-                      onChange={(ev) => updateStateEntry(stateKey, {
-                        ...spec,
-                        ...(useSrcs ? { srcs } : { files }),
-                        fps: Number(ev.target.value) || 8,
-                      })}
-                    />
-                  </label>
-
-                  {!useSrcs && files.length > 0 ? (
-                    <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10 }}>
-                      <input
-                        type="checkbox"
-                        checked={dwell.length === files.length && dwell.length > 0}
-                        onChange={(ev) => {
-                          if (ev.target.checked) {
-                            updateStateEntry(stateKey, {
-                              ...spec,
-                              files,
-                              fps,
-                              frameDwellMs: files.map(() => Math.round(1000 / fps) || 100),
-                            });
-                          } else {
-                            const { frameDwellMs: _d, ...rest } = spec;
-                            updateStateEntry(stateKey, { ...rest, files, fps });
-                          }
-                        }}
-                      />
-                      Durées personnalisées (ms) par frame
-                    </label>
-                  ) : null}
-                  {!useSrcs && dwell.length === files.length && files.length > 0 ? (
-                    <div className="mascot-pack-wysiwyg__dwell-grid">
-                      {dwell.map((ms, idx) => (
-                        <label key={idx}>
-                          <span className="mascot-pack-wysiwyg__label">#{idx + 1}</span>
-                          <input
-                            type="number"
-                            className="form-input"
-                            min={16}
-                            max={60000}
-                            value={ms}
-                            onChange={(ev) => {
-                              const next = [...dwell];
-                              next[idx] = Number(ev.target.value) || 100;
-                              updateStateEntry(stateKey, { ...spec, files, fps, frameDwellMs: next });
-                            }}
-                          />
-                        </label>
-                      ))}
-                    </div>
-                  ) : null}
-                </div>
-              ) : null}
-            </details>
+            <MascotPackStateEditor
+              key={stateKey}
+              stateKey={stateKey}
+              active={active}
+              spec={spec}
+              pack={pack}
+              srcPreviewStatus={srcPreviewStatus}
+              setSrcPreviewStatus={setSrcPreviewStatus}
+              onToggleState={toggleState}
+              onUpdateStateEntry={updateStateEntry}
+            />
           );
         })}
       </section>
@@ -828,89 +499,6 @@ export default function MascotPackWysiwygEditor({
       ) : null}
 
       <MascotPackPreviewPanel validated={validated} />
-    </div>
-  );
-}
-
-/**
- * @param {{
- *   stateFrames: Record<string, unknown>,
- *   aliases: Record<string, string>,
- *   onChange: (next: Record<string, string>) => void,
- * }} props
- */
-function StateAliasesEditor({ stateFrames, aliases, onChange }) {
-  const keys = Object.keys(stateFrames || {});
-  const rows = useMemo(() => Object.entries(aliases || {}), [aliases]);
-
-  const addRow = () => {
-    const used = new Set(rows.map(([a]) => a));
-    const aliasKey = STATE_OPTIONS.find((s) => !used.has(s)) || STATE_OPTIONS[0];
-    const withFrames = keys.filter((k) => {
-      const sf = stateFrames[k];
-      if (!sf || typeof sf !== 'object') return false;
-      const f = /** @type {{ files?: unknown[], srcs?: unknown[] }} */ (sf);
-      return (Array.isArray(f.files) && f.files.length > 0)
-        || (Array.isArray(f.srcs) && f.srcs.length > 0);
-    });
-    const target = withFrames.includes(VISIT_MASCOT_STATE.IDLE)
-      ? VISIT_MASCOT_STATE.IDLE
-      : (withFrames[0] || VISIT_MASCOT_STATE.IDLE);
-    onChange({ ...aliases, [aliasKey]: target });
-  };
-
-  return (
-    <div>
-      {rows.length === 0 ? (
-        <p className="section-sub">Aucun alias.</p>
-      ) : (
-        <ul style={{ listStyle: 'none', padding: 0 }}>
-          {rows.map(([alias, target]) => (
-            <li key={alias} style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 8, alignItems: 'center' }}>
-              <select
-                className="form-select"
-                value={alias}
-                onChange={(ev) => {
-                  const next = { ...aliases };
-                  delete next[alias];
-                  next[ev.target.value] = target;
-                  onChange(next);
-                }}
-              >
-                {STATE_OPTIONS.map((s) => (
-                  <option key={s} value={s}>{STATE_LABELS[s] || s} ({s})</option>
-                ))}
-              </select>
-              <span>→</span>
-              <select
-                className="form-select"
-                value={target}
-                onChange={(ev) => {
-                  onChange({ ...aliases, [alias]: ev.target.value });
-                }}
-              >
-                {STATE_OPTIONS.map((s) => (
-                  <option key={s} value={s}>{STATE_LABELS[s] || s} ({s})</option>
-                ))}
-              </select>
-              <button
-                type="button"
-                className="btn btn-ghost btn-sm"
-                onClick={() => {
-                  const next = { ...aliases };
-                  delete next[alias];
-                  onChange(next);
-                }}
-              >
-                Supprimer
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-      <button type="button" className="btn btn-ghost btn-sm" onClick={addRow} disabled={rows.length >= STATE_OPTIONS.length}>
-        + Alias
-      </button>
     </div>
   );
 }
