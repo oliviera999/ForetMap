@@ -37,6 +37,20 @@ const {
   getPasswordMinLength,
   makeResetUrl,
 } = require('../../lib/passwordReset');
+const {
+  parseCsvLowercaseSet,
+  getGlRolePermissions,
+  exposeGlAuth,
+  googleOauthConfigured,
+  isGoogleEmailAllowed,
+  normalizeGlOAuthMode,
+  parseBoolJsonSetting,
+  buildGlOAuthFrontendErrorRedirect,
+  GL_STAFF_IMPERSONATE_ROLE_SLUGS,
+  canGlStaffImpersonate,
+  glStaffRoleSlugToDbRole,
+  isGlStaffDbRole,
+} = require('../../lib/gl/authRouteHelpers');
 
 const router = express.Router();
 
@@ -44,63 +58,11 @@ const GL_OAUTH_STATE_COOKIE = 'gl_oauth_state';
 const GL_OAUTH_MODE_COOKIE = 'gl_oauth_mode';
 const OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
 
-function parseCsvLowercaseSet(raw, defaults = []) {
-  const value = String(raw || '').trim();
-  if (!value) return new Set(defaults.map((v) => String(v).trim().toLowerCase()).filter(Boolean));
-  return new Set(
-    value
-      .split(',')
-      .map((v) => v.trim().toLowerCase())
-      .filter(Boolean)
-  );
-}
-
-function getGlRolePermissions(roleSlug) {
-  const role = String(roleSlug || '').toLowerCase();
-  if (role === 'admin' || role === 'mj') {
-    return [
-      'gl.read',
-      'gl.content.manage',
-      'gl.players.manage',
-      'gl.game.manage',
-      'gl.team.manage',
-      'gl.event.emit',
-      'gl.mascot.position',
-      'gl.settings.manage',
-    ];
-  }
-  return ['gl.read', 'gl.action.request'];
-}
-
 async function signGlToken(payload) {
   return signAuthToken({
     ...payload,
     product: 'gl',
   });
-}
-
-function exposeGlAuth(claims) {
-  const auth = {
-    product: 'gl',
-    userType: claims.userType,
-    userId: claims.userId,
-    roleSlug: claims.roleSlug,
-    displayName: claims.displayName || null,
-    classId: claims.classId || null,
-    teamId: claims.teamId || null,
-    gameId: claims.gameId || null,
-    permissions: claims.permissions || [],
-    passwordMustReset: !!claims.passwordMustReset,
-  };
-  if (claims.impersonating && claims.actorUserType && claims.actorUserId != null) {
-    auth.impersonating = true;
-    auth.impersonatedBy = {
-      userType: String(claims.actorUserType),
-      userId: String(claims.actorUserId),
-      roleSlug: String(claims.actorRoleSlug || ''),
-    };
-  }
-  return auth;
 }
 
 function buildGoogleConfig(req) {
@@ -123,20 +85,6 @@ function buildGoogleConfig(req) {
   return { clientId, clientSecret, redirectUri, frontendOrigin, allowedDomains, allowedEmails };
 }
 
-function googleOauthConfigured(cfg) {
-  return !!(cfg?.clientId && cfg?.clientSecret && cfg?.redirectUri);
-}
-
-function isGoogleEmailAllowed(email, hd, allowedDomains, allowedEmails) {
-  if (!email) return false;
-  if (allowedEmails.has(email)) return true;
-  const domain = String(email.split('@')[1] || '').toLowerCase();
-  if (domain && allowedDomains.has(domain)) return true;
-  const hostedDomain = normalizeOptionalString(hd)?.toLowerCase();
-  if (hostedDomain && hostedDomain === domain && allowedDomains.has(hostedDomain)) return true;
-  return false;
-}
-
 function readCookie(req, name) {
   const raw = String(req.headers?.cookie || '');
   const parts = raw.split(';').map((p) => p.trim());
@@ -147,13 +95,6 @@ function readCookie(req, name) {
     if (key === name) return decodeURIComponent(part.slice(idx + 1));
   }
   return null;
-}
-
-function normalizeGlOAuthMode(value) {
-  const raw = String(value || '').toLowerCase();
-  if (raw === 'player') return 'player';
-  if (raw === 'staff') return 'staff';
-  return 'auto';
 }
 
 const { resolveLoginAccountByIdentifier } = require('../../lib/identity');
@@ -221,26 +162,11 @@ async function attemptGlStaffPasswordLogin(identifier, password, { rejectStudent
   return { ok: true, session };
 }
 
-function parseBoolJsonSetting(rawValue, fallback = false) {
-  try {
-    if (rawValue == null) return fallback;
-    return JSON.parse(String(rawValue)) === true;
-  } catch (_) {
-    return fallback;
-  }
-}
-
 async function isForetmapLinkEnabled() {
   const row = await queryOne(
     "SELECT value_json FROM gl_settings WHERE `key` = 'platform.allow_player_link_foretmap' LIMIT 1"
   );
   return parseBoolJsonSetting(row?.value_json, false);
-}
-
-function buildGlOAuthFrontendErrorRedirect(frontendOrigin, code, mode) {
-  const base = String(frontendOrigin || '').replace(/\/+$/, '');
-  const modeParam = normalizeGlOAuthMode(mode) === 'player' ? '&oauth_mode=player' : '&oauth_mode=staff';
-  return `${base}/#oauth_error=${encodeURIComponent(code)}${modeParam}`;
 }
 
 async function resolveGlPlayerActiveMembership(playerId, preferredTeamId = null, preferredGameId = null) {
@@ -299,23 +225,6 @@ async function issueGlStaffSession(admin, glRole) {
   };
   const token = await signGlToken(claims);
   return { authToken: token, auth: exposeGlAuth(claims) };
-}
-
-const GL_STAFF_IMPERSONATE_ROLE_SLUGS = new Set(['gl_admin', 'gl_mj']);
-
-function canGlStaffImpersonate(auth) {
-  if (!auth || auth.impersonating) return false;
-  if (auth.userType !== 'gl_admin') return false;
-  return GL_STAFF_IMPERSONATE_ROLE_SLUGS.has(String(auth.roleSlug || '').toLowerCase());
-}
-
-function glStaffRoleSlugToDbRole(roleSlug) {
-  return String(roleSlug || '').toLowerCase() === 'gl_mj' ? 'mj' : 'admin';
-}
-
-function isGlStaffDbRole(role) {
-  const normalized = String(role || '').toLowerCase();
-  return normalized === 'admin' || normalized === 'mj';
 }
 
 async function completeGlGoogleOAuth({ cfg, payload, mode }) {
