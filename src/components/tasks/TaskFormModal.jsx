@@ -3,10 +3,11 @@ import { withAppBase } from '../../services/api';
 import { compressImageWithPreset, isLikelyImageFile } from '../../utils/image';
 import { getRoleTerms } from '../../utils/n3-terminology';
 import { useDialogA11y } from '../../hooks/useDialogA11y';
-import { armNativeFilePickerGuard, disarmNativeFilePickerGuard } from '../../utils/overlayHistory';
+import { disarmNativeFilePickerGuard } from '../../utils/overlayHistory';
 import { nextLivingBeingsFromMultiSelect } from '../../utils/livingBeings';
 import { DialogShell } from '../DialogShell';
 import { MarkdownTextarea } from '../MarkdownTextarea.jsx';
+import { TaskFormImageField } from './TaskFormImageField.jsx';
 import {
   zonePickDisplayName,
   initialLocationIds,
@@ -341,71 +342,14 @@ function TaskFormModal({
         {err && <p style={{ color: var_alert, marginBottom: 12, fontSize: '.85rem' }}>{err}</p>}
         <div className="field"><label htmlFor="task-form-title">Titre *</label><input id="task-form-title" value={form.title} onChange={set('title')} placeholder="Ex: Arroser les tomates" /></div>
         <div className="field"><label htmlFor="task-form-description">Description</label><MarkdownTextarea id="task-form-description" aria-label="Description" value={form.description} onChange={set('description')} rows={2} placeholder="Instructions détaillées..." /></div>
-        <div className="field">
-          <label>Photo illustrative (optionnel)</label>
-          <p style={{ fontSize: '.8rem', color: '#555', margin: '0 0 8px', lineHeight: 1.45 }}>
-            Depuis la galerie ou l’appareil photo : lieu, outil, plante… (JPEG/PNG/WebP, compressée à l’envoi)
-          </p>
-          {!taskImagePreview ? (
-            <div
-              className={`img-upload-area img-upload-area--split${taskImageBusy ? ' is-busy' : ''}`}
-              role="group"
-              aria-label="Photo illustrative : galerie ou appareil photo"
-              style={taskImageBusy ? { opacity: 0.7, pointerEvents: 'none' } : undefined}
-            >
-              <div style={{ fontSize: '2rem', marginBottom: 6 }}>📷</div>
-              <div style={{ fontSize: '.85rem', color: '#888', marginBottom: 10 }}>
-                {taskImageBusy ? 'Traitement…' : 'Galerie ou appareil photo'}
-              </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-sm"
-                  disabled={taskImageBusy}
-                  onClick={() => {
-                    if (taskImageBusy) return;
-                    if (taskImageGalleryInputRef.current) taskImageGalleryInputRef.current.value = '';
-                    armNativeFilePickerGuard();
-                    taskImageGalleryInputRef.current?.click();
-                  }}
-                >
-                  📁 Choisir une photo
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-sm"
-                  disabled={taskImageBusy}
-                  onClick={() => {
-                    if (taskImageBusy) return;
-                    if (taskImageCameraInputRef.current) taskImageCameraInputRef.current.value = '';
-                    armNativeFilePickerGuard();
-                    taskImageCameraInputRef.current?.click();
-                  }}
-                >
-                  📸 Prendre une photo
-                </button>
-              </div>
-              <input
-                ref={taskImageGalleryInputRef}
-                type="file"
-                accept="image/*"
-                onChange={onTaskImageFile}
-              />
-              <input
-                ref={taskImageCameraInputRef}
-                type="file"
-                accept="image/*"
-                capture="environment"
-                onChange={onTaskImageFile}
-              />
-            </div>
-          ) : (
-            <div className="img-preview-wrap">
-              <img src={taskImagePreview} className="img-preview" alt="Aperçu photo tâche" />
-              <button type="button" className="img-remove" onClick={clearTaskImage} aria-label="Retirer la photo">✕</button>
-            </div>
-          )}
-        </div>
+        <TaskFormImageField
+          preview={taskImagePreview}
+          busy={taskImageBusy}
+          galleryInputRef={taskImageGalleryInputRef}
+          cameraInputRef={taskImageCameraInputRef}
+          onFile={onTaskImageFile}
+          onClear={clearTaskImage}
+        />
         <div className="row">
           <div className="field"><label>Carte</label>
             <select value={form.map_id} onChange={set('map_id')}>
