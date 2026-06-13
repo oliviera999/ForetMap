@@ -4,6 +4,7 @@ import { GLBrandHub } from './GLBrandHub.jsx';
 import { GLBrandEditor } from './GLBrandEditor.jsx';
 import { GLGameplayTogglesList } from './settings/GLGameplayTogglesList.jsx';
 import { GLGameplayPresetsPanel } from './settings/GLGameplayPresetsPanel.jsx';
+import { GLSpellCastSettings } from './settings/GLSpellCastSettings.jsx';
 import { GLButton } from './ui/GLButton.jsx';
 import { GLField } from './ui/GLField.jsx';
 import { GLInput } from './ui/GLInput.jsx';
@@ -13,8 +14,6 @@ import { GAMEPLAY_PRESETS } from '../constants/gameplayPresets.js';
 import {
   GAMEPLAY_TOGGLES,
   MODULE_TOGGLES,
-  SPELL_CAST_CONTRIBUTION_OPTIONS,
-  SPELL_CAST_TEAM_SCOPE_OPTIONS,
   readGameplayFlag,
   readSelectSetting,
   settingsToIdentityFields,
@@ -90,6 +89,18 @@ export function GLSettingsView() {
       await load();
     } catch (err) {
       setSettings(previous);
+      setError(err.message || 'Enregistrement impossible');
+    } finally {
+      setSavingKey('');
+    }
+  }
+
+  async function saveSetting(key, value) {
+    setSavingKey(key);
+    try {
+      await apiGL(`/api/gl/admin/settings/${key}`, 'PUT', { value });
+      await load();
+    } catch (err) {
       setError(err.message || 'Enregistrement impossible');
     } finally {
       setSavingKey('');
@@ -398,81 +409,11 @@ export function GLSettingsView() {
         ))}
       </div>
 
-      <div className="gl-spell-cast-settings gl-form">
-        <h4>Lancement de sortilèges</h4>
-        <label>
-          Mode de contribution
-          <select
-            value={readSelectSetting(settings, 'gameplay.spell_cast_contribution_mode', 'both')}
-            disabled={savingKey === 'gameplay.spell_cast_contribution_mode'}
-            onChange={async (event) => {
-              setSavingKey('gameplay.spell_cast_contribution_mode');
-              try {
-                await apiGL('/api/gl/admin/settings/gameplay.spell_cast_contribution_mode', 'PUT', { value: event.target.value });
-                await load();
-              } catch (err) {
-                setError(err.message || 'Enregistrement impossible');
-              } finally {
-                setSavingKey('');
-              }
-            }}
-          >
-            {SPELL_CAST_CONTRIBUTION_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Équipes pouvant lancer
-          <select
-            value={readSelectSetting(settings, 'gameplay.spell_cast_team_scope', 'any_team')}
-            disabled={savingKey === 'gameplay.spell_cast_team_scope'}
-            onChange={async (event) => {
-              setSavingKey('gameplay.spell_cast_team_scope');
-              try {
-                await apiGL('/api/gl/admin/settings/gameplay.spell_cast_team_scope', 'PUT', { value: event.target.value });
-                await load();
-              } catch (err) {
-                setError(err.message || 'Enregistrement impossible');
-              } finally {
-                setSavingKey('');
-              }
-            }}
-          >
-            {SPELL_CAST_TEAM_SCOPE_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
-            ))}
-          </select>
-        </label>
-        <label className="gl-gameplay-toggle-row">
-          <input
-            type="checkbox"
-            checked={readGameplayFlag(settings, 'gameplay.spell_cast_mj_only')}
-            disabled={savingKey === 'gameplay.spell_cast_mj_only'}
-            onChange={async (event) => {
-              setSavingKey('gameplay.spell_cast_mj_only');
-              try {
-                await apiGL('/api/gl/admin/settings/gameplay.spell_cast_mj_only', 'PUT', {
-                  value: event.target.checked,
-                });
-                await load();
-              } catch (err) {
-                setError(err.message || 'Enregistrement impossible');
-              } finally {
-                setSavingKey('');
-              }
-            }}
-          />
-          <span>Seul le MJ peut lancer les sortilèges</span>
-        </label>
-        <p className="gl-hint">
-          Si activé, les joueurs consultent le catalogue mais ne peuvent pas ouvrir l&apos;assistant de lancement
-          (réservé au MJ sur la console / carte).
-        </p>
-        <p className="gl-hint">
-          Activez aussi le module « Lancement de sortilèges » ci-dessous et la vitalité (gemmes / cœurs).
-        </p>
-      </div>
+      <GLSpellCastSettings
+        settings={settings}
+        savingKey={savingKey}
+        onSaveSetting={saveSetting}
+      />
 
       <h3>Modules GL</h3>
       <p className="gl-hint">
