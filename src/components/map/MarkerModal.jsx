@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { MAP_MARKER_EMOJI_MAX_CHARS, MARKER_EMOJIS, clampEmojiInput } from '../../constants/emojis';
+import { MAP_MARKER_EMOJI_MAX_CHARS, MARKER_EMOJIS } from '../../constants/emojis';
 import { useDialogA11y } from '../../hooks/useDialogA11y';
 import { useOverlayHistoryBack } from '../../hooks/useOverlayHistoryBack';
 import { api } from '../../services/api';
@@ -7,9 +7,10 @@ import { TimedToast } from '../../shared/components/TimedToast.jsx';
 import { TaskDifficultyAndRiskChips } from '../../utils/badges';
 import { nextLivingBeingsFromMultiSelect, orderedLivingBeingsForForm } from '../../utils/livingBeings';
 import { dedupeTutorialsById, isTaskDetachedFromLocation, livingBeingNamesFromTasksAtLocation, taskLocationIds, tutorialLocationIds, tutorialsFromTasksAtLocation } from '../../utils/mapLocationContext';
+import { buildMarkerPayload, computeMarkerVisitImageBlocks, markerFormFromMarker, markerTaskMapId } from '../../utils/markerModalForm.js';
 import { isStudentAssignedToTask } from '../../utils/task-assignments';
 import { canStudentAssignTask, taskEnrollmentMeta } from '../../utils/taskEnrollment.js';
-import { mergeDefaultVisitMediaImageBlocks, normalizeVisitEditorialBlocksForSave, parseVisitEditorialBlocksFromJson } from '../../utils/visitEditorialBlocks.js';
+import { parseVisitEditorialBlocksFromJson } from '../../utils/visitEditorialBlocks.js';
 import { DialogShell } from '../DialogShell';
 import { MarkdownContent } from '../MarkdownContent.jsx';
 import { MarkdownTextarea } from '../MarkdownTextarea.jsx';
@@ -53,16 +54,7 @@ function MarkerModal({
   useOverlayHistoryBack(true, onClose);
   const isNew = !marker.id;
   const [tab, setTab] = useState('tasks');
-  const [form, setForm] = useState({
-    label: marker.label || '',
-    living_beings: orderedLivingBeingsForForm(marker.living_beings_list || marker.living_beings, marker.plant_name),
-    note: marker.note || '',
-    emoji: String(marker.emoji ?? '').trim(),
-    visit_subtitle: marker.visit_subtitle || '',
-    visit_short_description: marker.visit_short_description || '',
-    visit_details_title: marker.visit_details_title || 'Détails',
-    visit_details_text: marker.visit_details_text || '',
-  });
+  const [form, setForm] = useState(() => markerFormFromMarker(marker));
   const [saving, setSaving] = useState(false);
   const [linkTaskId, setLinkTaskId] = useState('');
   const [linkTutorialId, setLinkTutorialId] = useState('');
@@ -75,7 +67,6 @@ function MarkerModal({
   const [markerPhotoOptions, setMarkerPhotoOptions] = useState([]);
   const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
 
-  const taskMapId = (t) => t.map_id_resolved || t.map_id || t.zone_map_id || t.marker_map_id || null;
   const linkedTasks = (tasks || []).filter((t) => (
     taskLocationIds(t).markerIds.some((id) => String(id) === String(marker.id)) && !isTaskDetachedFromLocation(t)
   ));
@@ -83,7 +74,7 @@ function MarkerModal({
   const assignableTasks = (tasks || []).filter((t) => {
     if (linkedTasks.some((lt) => lt.id === t.id)) return false;
     if (isTaskDetachedFromLocation(t)) return false;
-    const mapId = taskMapId(t);
+    const mapId = markerTaskMapId(t);
     return mapId === marker.map_id || mapId == null;
   });
   const linkedTutorialsDirect = (tutorials || []).filter((tu) => (
@@ -128,16 +119,10 @@ function MarkerModal({
   }, [studentAssignableTasks]);
 
   useEffect(() => {
-    setForm({
-      label: marker.label || '',
-      living_beings: orderedLivingBeingsForForm(marker.living_beings_list || marker.living_beings, marker.plant_name),
-      note: marker.note || '',
-      emoji: marker.emoji || '🌱',
-      visit_subtitle: marker.visit_subtitle || '',
-      visit_short_description: marker.visit_short_description || '',
-      visit_details_title: marker.visit_details_title || 'Détails',
-      visit_details_text: marker.visit_details_text || '',
-    });
+    setForm(markerFormFromMarker(marker, { defaultEmoji: '🌱' }));
+    // Déps volontairement au niveau des champs lus (réinitialise seulement sur changement réel,
+    // pas sur une nouvelle identité d'objet `marker` au re-rendu parent).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     marker.id,
     marker.label,
@@ -185,58 +170,10 @@ function MarkerModal({
 
   useEffect(() => {
     if (isNew) return;
-    const fromJson = parseVisitEditorialBlocksFromJson(marker.visit_body_json);
-    const trimmedBody = marker.visit_body_json == null ? '' : String(marker.visit_body_json).trim();
-    const imageBlocksFromJson = fromJson.filter((b) => b.type === 'image');
-    if (!trimmedBody) {
-      setVisitEditorialBlocks(
-        visitMediaOptions
-          .map((media, i) => {
-            const mediaId = Number(media?.id);
-            if (!Number.isFinite(mediaId) || mediaId <= 0) return null;
-            return {
-              id: `default-img-${mediaId}`,
-              type: 'image',
-              media_ids: [mediaId],
-              layout: 'single',
-              size: i === 0 ? 'lg' : 'md',
-              align: 'center',
-              caption: String(media?.caption || '').trim(),
-            };
-          })
-          .filter(Boolean),
-      );
-      return;
-    }
-    const hasImageBlock = imageBlocksFromJson.length > 0;
-    if (!hasImageBlock && visitMediaOptions.length > 0) {
-      setVisitEditorialBlocks(
-        mergeDefaultVisitMediaImageBlocks(imageBlocksFromJson, visitMediaOptions).filter((b) => b.type === 'image'),
-      );
-      return;
-    }
-    setVisitEditorialBlocks(imageBlocksFromJson);
+    setVisitEditorialBlocks(computeMarkerVisitImageBlocks(marker.visit_body_json, visitMediaOptions));
   }, [isNew, marker.visit_body_json, marker.id, visitMediaOptions]);
 
-  const buildPayload = () => {
-    const living = form.living_beings;
-    const emojiVal = clampEmojiInput(
-      (form.emoji || '').trim(),
-      MAP_MARKER_EMOJI_MAX_CHARS,
-    );
-    return {
-      ...marker,
-      ...form,
-      emoji: emojiVal,
-      living_beings: living,
-      plant_name: '',
-      visit_subtitle: form.visit_subtitle,
-      visit_short_description: form.visit_short_description,
-      visit_details_title: form.visit_details_title,
-      visit_details_text: form.visit_details_text,
-      visit_editorial_blocks: normalizeVisitEditorialBlocksForSave(visitEditorialBlocks),
-    };
-  };
+  const buildPayload = () => buildMarkerPayload(marker, form, visitEditorialBlocks);
 
   const imageBlocks = useMemo(
     () => visitEditorialBlocks.filter((b) => b.type === 'image'),
