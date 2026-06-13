@@ -19,9 +19,6 @@ import { RT_PROF_TOOLTIPS } from './constants/realtime';
 import { NOTIFICATION_CATEGORY, NOTIFICATION_LEVEL } from './constants/notifications';
 import { HELP_TOOLTIPS, resolveRoleText } from './constants/help';
 import {
-  DESKTOP_SPLIT_MIN_WIDTH,
-  DESKTOP_SPLIT_MIN_MAP_PX,
-  DESKTOP_SPLIT_MIN_TASKS_PX,
   TAB_STORAGE_KEY,
   FETCH_ALL_AUTO_DEBOUNCE_MS,
   getFetchAllLoopAbortReason,
@@ -29,8 +26,6 @@ import {
   POLLING_COARSE_TABS,
   IOS_INSTALL_HINT_DISMISSED_KEY,
   GUEST_VISIT_MASCOT_CONFIRMED_KEY,
-  DEFAULT_VISIT_MASCOT_ALLOWED_IDS,
-  KNOWN_TAB_VALUES,
 } from './constants/app-runtime';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { TimedToast as Toast } from './shared/components/TimedToast.jsx';
@@ -72,90 +67,27 @@ import {
 import { useOverlayHistoryBack } from './hooks/useOverlayHistoryBack';
 import { abandonAllOverlays, pushOverlayClose } from './utils/overlayHistory';
 import { AutoProfilePromotionModal } from './components/AutoProfilePromotionModal.jsx';
+import { TeacherTopTabs } from './components/app/TeacherTopTabs.jsx';
+import { StudentBottomNav } from './components/app/StudentBottomNav.jsx';
 import { DialogShell } from './components/DialogShell';
 import { PublicSettingsProvider } from './contexts/PublicSettingsContext.jsx';
 import { SessionProvider } from './contexts/SessionContext.jsx';
 import { DataProvider } from './contexts/DataContext.jsx';
+import { DEFAULT_PUBLIC_SETTINGS, mergePublicSettings } from './utils/appPublicSettings';
+import {
+  resolveOauthErrorMessage,
+  decodeBase64UrlJson,
+  readStoredTab,
+  detectIosDevice,
+  pickVisibleMapId,
+  shouldUseDesktopSplitLayout,
+} from './utils/appShellHelpers';
 
-const OAUTH_ERROR_MESSAGES = {
-  oauth_not_configured: 'Connexion Google indisponible (configuration serveur incomplète).',
-  oauth_google_refused: 'Connexion Google annulée.',
-  oauth_invalid_state: 'Connexion Google invalide (session expirée).',
-  oauth_missing_code: 'Connexion Google impossible (code manquant).',
-  oauth_missing_id_token: 'Connexion Google impossible (token manquant).',
-  oauth_invalid_token: 'Connexion Google impossible (token invalide).',
-  oauth_claims_invalid: 'Connexion Google refusée (compte non vérifié).',
-  oauth_email_not_allowed: 'Adresse Google non autorisée pour ForetMap.',
-  oauth_teacher_inactive: 'Compte n3boss inactif.',
-  oauth_teacher_no_role: 'Aucun rôle n3boss attribué à ce compte.',
-  oauth_server_error: 'Erreur serveur pendant la connexion Google.',
-};
-
-function decodeBase64UrlJson(value) {
-  const normalized = String(value || '').replace(/-/g, '+').replace(/_/g, '/');
-  const padded = normalized + '='.repeat((4 - (normalized.length % 4)) % 4);
-  return JSON.parse(window.atob(padded));
-}
-
-function readStoredTab() {
-  const raw = String(safeLocalStorageGetItem(TAB_STORAGE_KEY, '') || '').trim().toLowerCase();
-  if (!raw) return 'map';
-  return KNOWN_TAB_VALUES.has(raw) ? raw : 'map';
-}
-
-function detectIosDevice() {
-  const ua = String(window.navigator.userAgent || '').toLowerCase();
-  return ua.includes('iphone') || ua.includes('ipad') || ua.includes('ipod');
-}
-
-function pickVisibleMapId(visibleMaps, preferredMapId = '') {
-  const preferred = String(preferredMapId || '').trim();
-  if (!Array.isArray(visibleMaps) || visibleMaps.length === 0) return '';
-  if (preferred && visibleMaps.some((map) => map.id === preferred)) return preferred;
-  return String(visibleMaps[0]?.id || '').trim();
-}
+const DEFAULT_MAPS = [];
 
 // ── APP ───────────────────────────────────────────────────────────────────────
 function App() {
   const initialSession = useMemo(() => getStoredSession(), []);
-  const DEFAULT_MAPS = useMemo(() => ([]), []);
-  const DEFAULT_PUBLIC_SETTINGS = useMemo(() => ({
-    auth: {
-      allow_register: true,
-      allow_google_student: true,
-      allow_google_teacher: true,
-      allow_guest_visit: true,
-      default_mode: 'login',
-      welcome_message: '',
-    },
-    map: {
-      default_map_student: 'foret',
-      default_map_teacher: 'foret',
-      default_map_visit: 'foret',
-      emoji_label_center_gap: 14,
-      overlay_emoji_size_percent: 100,
-      overlay_label_size_percent: 100,
-    },
-    modules: {
-      tutorials_enabled: true,
-      visit_enabled: true,
-      stats_enabled: true,
-      observations_enabled: true,
-      help_enabled: true,
-      forum_enabled: true,
-      context_comments_enabled: true,
-    },
-    help: {
-      show_context_hints: true,
-      pulse_unseen_panels: true,
-    },
-    visit: {
-      mascot: {
-        allowed_ids: DEFAULT_VISIT_MASCOT_ALLOWED_IDS,
-        default_id: 'renard2-cut-spritesheet',
-      },
-    },
-  }), []);
   const [student,    setStudent]    = useState(() => initialSession?.student || null);
   const studentRef = useRef(initialSession?.student || null);
   useEffect(() => {
@@ -269,7 +201,7 @@ function App() {
     window.history.replaceState({}, document.title, cleanUrl);
 
     if (oauthError) {
-      setToast(OAUTH_ERROR_MESSAGES[oauthError] || 'Connexion Google refusée.');
+      setToast(resolveOauthErrorMessage(oauthError));
       return;
     }
     try {
@@ -339,38 +271,7 @@ function App() {
     api('/api/settings/public')
       .then((d) => {
         if (!d?.settings) return;
-        setPublicSettings((prev) => {
-          const next = { ...prev, ...d.settings };
-          const ui = d.settings.ui;
-          if (ui && typeof ui === 'object') {
-            if (ui.modules && typeof ui.modules === 'object') {
-              next.modules = { ...prev.modules, ...ui.modules };
-            }
-            if (ui.help && typeof ui.help === 'object') {
-              next.help = { ...prev.help, ...ui.help };
-            }
-            if (ui.map && typeof ui.map === 'object') {
-              next.map = { ...prev.map, ...ui.map };
-            }
-            if (ui.auth && typeof ui.auth === 'object') {
-              next.auth = { ...prev.auth, ...ui.auth };
-            }
-            if (ui.visit && typeof ui.visit === 'object') {
-              next.visit = { ...prev.visit, ...ui.visit };
-            }
-          }
-          if (d.settings.visit?.mascot?.dialog) {
-            next.visit = {
-              ...next.visit,
-              mascot: {
-                ...(next.visit?.mascot || {}),
-                ...(d.settings.visit?.mascot || {}),
-                dialog: d.settings.visit.mascot.dialog,
-              },
-            };
-          }
-          return next;
-        });
+        setPublicSettings((prev) => mergePublicSettings(prev, d.settings));
       })
       .catch(() => {
         // Réglages publics non bloquants.
@@ -901,7 +802,7 @@ function App() {
     })();
     fetchAllRunPromiseRef.current = job;
     return job;
-  }, [DEFAULT_MAPS, forceLogout, mergeAuthMeResponse]);
+  }, [forceLogout, mergeAuthMeResponse]);
 
   useEffect(() => {
     if (pinSuccessFetchAllTick === 0) return;
@@ -1049,16 +950,7 @@ function App() {
   useOverlayHistoryBack(showStats && canOpenUserDialogs, () => setShowStats(false));
   useOverlayHistoryBack(showProfile && canOpenUserDialogs && !!profileTargetUser, () => setShowProfile(false));
 
-  const shouldUseDesktopSplit = useMemo(() => {
-    if (viewportWidth < DESKTOP_SPLIT_MIN_WIDTH) return false;
-    const pagePadding = 32;
-    const columnGap = 16;
-    const usableWidth = Math.max(0, viewportWidth - pagePadding);
-    const availableForColumns = Math.max(0, usableWidth - columnGap);
-    const mapWidth = availableForColumns * (1.25 / 2.25);
-    const tasksWidth = availableForColumns * (1 / 2.25);
-    return mapWidth >= DESKTOP_SPLIT_MIN_MAP_PX && tasksWidth >= DESKTOP_SPLIT_MIN_TASKS_PX;
-  }, [viewportWidth]);
+  const shouldUseDesktopSplit = useMemo(() => shouldUseDesktopSplitLayout(viewportWidth), [viewportWidth]);
   const isCombinedMapTasksTab = tab === 'maptasks';
   const useSplitMapTasks = shouldUseDesktopSplit && isCombinedMapTasksTab && canAccessStudentMapTasks;
   /** Ouvre l’onglet Tâches avec le filtre lieu (carte seule ; en split le filtre est déjà synchronisé au clic). */
@@ -1770,55 +1662,22 @@ function App() {
 
       {effectiveIsTeacher ? (
         <div className={`main teacher-main app-main-shell app-main-shell--teacher ${useWideMain ? 'main--wide' : ''} ${mapChromeCompactVisible ? 'teacher-main--map-visible' : ''} ${useSplitMapTasks ? 'main--maptasks-split' : ''}`}>
-          <div className="top-tabs app-tabs-surface">
-            {shouldUseDesktopSplit && (
-              <button className={`top-tab ${tab === 'maptasks' ? 'active' : ''}`} onClick={() => setTab('maptasks')}>
-                {mapTasksSplitLabel}{teacherPendingValidationCount > 0 ? ` (${teacherPendingValidationCount} à valider)` : ''}
-              </button>
-            )}
-            <button className={`top-tab ${tab === 'map' ? 'active' : ''}`} onClick={() => setTab('map')}>🗺️ Carte & Zones</button>
-            <button className={`top-tab ${tab === 'tasks' || (mergeTasksTutoNav && tab === 'tuto') ? 'active' : ''}`} onClick={() => setTab('tasks')}>
-              {tasksTabLabel}{teacherPendingValidationCount > 0 ? ` (${teacherPendingValidationCount} à valider)` : ''}
-            </button>
-            <button className={`top-tab ${tab === 'plants' ? 'active' : ''}`} onClick={() => setTab('plants')}>🌱 Biodiversité</button>
-            {publicSettings?.modules?.tutorials_enabled !== false && !mergeTasksTutoNav && (
-              <button className={`top-tab ${tab === 'tuto' ? 'active' : ''}`} onClick={() => setTab('tuto')}>📘 Tuto</button>
-            )}
-            {canAccessForum && <button className={`top-tab ${tab === 'forum' ? 'active' : ''}`} onClick={() => setTab('forum')}>💬 Forum</button>}
-            {publicSettings?.modules?.stats_enabled !== false && (
-              <button className={`top-tab ${tab === 'stats' ? 'active' : ''}`} onClick={() => setTab('stats')}>📊 Stats</button>
-            )}
-            {publicSettings?.modules?.visit_enabled !== false && (
-              <button className={`top-tab ${tab === 'visit' ? 'active' : ''}`} onClick={() => setTab('visit')}>🧭 Visite</button>
-            )}
-            {publicSettings?.modules?.visit_enabled !== false && (
-              <button className={`top-tab ${tab === 'mascot_packs' ? 'active' : ''}`} onClick={() => setTab('mascot_packs')}>🎨 Packs mascotte</button>
-            )}
-            <button className={`top-tab ${tab === 'media_library' ? 'active' : ''}`} onClick={() => setTab('media_library')}>
-              🗂️ Médiathèque
-            </button>
-            {(
-              hasPermissionInRole('admin.roles.manage')
-              || hasPermissionInRole('admin.users.assign_roles')
-              || hasPermissionInRole('stats.export')
-              || hasPermissionInRole('students.import')
-              || hasPermissionInRole('students.delete')
-              || hasPermissionInRole('users.create')
-            ) && (
-              <button className={`top-tab ${tab === 'profiles' ? 'active' : ''}`} onClick={() => setTab('profiles')}>
-                🛡️ {isN3Affiliated ? 'n3boss & utilisateurs' : 'Profils & utilisateurs'}
-              </button>
-            )}
-            {hasPermissionInRole('admin.settings.read') && (
-              <button className={`top-tab ${tab === 'settings' ? 'active' : ''}`} onClick={() => setTab('settings')}>
-                ⚙️ Paramètres
-              </button>
-            )}
-            {hasPermission('audit.read') && (
-              <button className={`top-tab ${tab === 'audit' ? 'active' : ''}`} onClick={() => setTab('audit')}>📜 Audit</button>
-            )}
-            <button className={`top-tab ${tab === 'about' ? 'active' : ''}`} onClick={() => setTab('about')}>ℹ️ À propos</button>
-          </div>
+          <TeacherTopTabs
+            tab={tab}
+            onTabChange={setTab}
+            shouldUseDesktopSplit={shouldUseDesktopSplit}
+            mapTasksSplitLabel={mapTasksSplitLabel}
+            tasksTabLabel={tasksTabLabel}
+            teacherPendingValidationCount={teacherPendingValidationCount}
+            mergeTasksTutoNav={mergeTasksTutoNav}
+            tutorialsModuleEnabled={tutorialsModuleEnabled}
+            statsEnabled={publicSettings?.modules?.stats_enabled !== false}
+            visitEnabled={publicSettings?.modules?.visit_enabled !== false}
+            canAccessForum={canAccessForum}
+            isN3Affiliated={isN3Affiliated}
+            hasPermission={hasPermission}
+            hasPermissionInRole={hasPermissionInRole}
+          />
           {loading ? (
             <div className="loader" style={{ height: '60vh' }}>
               <div className="loader-leaf">🌿</div>
@@ -2048,63 +1907,19 @@ function App() {
               </>
             )}
           </div>
-          <nav className="bottom-nav">
-            {canAccessStudentMapTasks && shouldUseDesktopSplit && (
-              <button className={`nav-btn ${tab === 'maptasks' ? 'active' : ''}`} onClick={() => setTab('maptasks')}>
-                <span className="nav-icon">🗺️</span>
-                {tutorialsModuleEnabled ? 'Cartes & tâches · tuto' : 'Cartes & tâches'}{studentActiveAssignedTasksCount > 0 && ` (${studentActiveAssignedTasksCount})`}
-              </button>
-            )}
-            {canAccessStudentMapTasks && (
-              <button className={`nav-btn ${tab === 'map' ? 'active' : ''}`} onClick={() => setTab('map')}>
-                <span className="nav-icon">🗺️</span> Carte
-              </button>
-            )}
-            {canAccessStudentMapTasks && (
-              mergeTasksTutoNav ? (
-                <button className={`nav-btn ${tab === 'tasks' || tab === 'tuto' ? 'active' : ''}`} type="button" onClick={() => setTab('tasks')}>
-                  <span className="nav-icon">✅</span>
-                  Tâches&tuto{studentActiveAssignedTasksCount > 0 && ` (${studentActiveAssignedTasksCount})`}
-                </button>
-              ) : (
-                <button className={`nav-btn ${tab === 'tasks' ? 'active' : ''}`} type="button" onClick={() => setTab('tasks')}>
-                  <span className="nav-icon">✅</span>
-                  {tutorialsModuleEnabled ? 'Tâches · tuto' : 'Tâches'}{studentActiveAssignedTasksCount > 0 && ` (${studentActiveAssignedTasksCount})`}
-                </button>
-              )
-            )}
-            <button className={`nav-btn ${tab === 'plants' ? 'active' : ''}`} onClick={() => setTab('plants')}>
-              <span className="nav-icon">🌱</span> Biodiversité
-            </button>
-            {publicSettings?.modules?.tutorials_enabled !== false && !mergeTasksTutoNav && (
-              <button className={`nav-btn ${tab === 'tuto' ? 'active' : ''}`} type="button" onClick={() => setTab('tuto')}>
-                <span className="nav-icon">📘</span> Tuto
-              </button>
-            )}
-            {canViewGeneralStats && (
-              <button className={`nav-btn ${tab === 'stats' ? 'active' : ''}`} onClick={() => setTab('stats')}>
-                <span className="nav-icon">📊</span> Stats
-              </button>
-            )}
-            {publicSettings?.modules?.observations_enabled !== false && (
-              <button className={`nav-btn ${tab === 'notebook' ? 'active' : ''}`} onClick={() => setTab('notebook')}>
-                <span className="nav-icon">📓</span> Carnet
-              </button>
-            )}
-            {publicSettings?.modules?.visit_enabled !== false && (
-              <button className={`nav-btn ${tab === 'visit' ? 'active' : ''}`} onClick={() => setTab('visit')}>
-                <span className="nav-icon">🧭</span> Visite
-              </button>
-            )}
-            {canAccessForum && (
-              <button className={`nav-btn ${tab === 'forum' ? 'active' : ''}`} onClick={() => setTab('forum')}>
-                <span className="nav-icon">💬</span> Forum
-              </button>
-            )}
-            <button className={`nav-btn ${tab === 'about' ? 'active' : ''}`} onClick={() => setTab('about')}>
-              <span className="nav-icon">ℹ️</span> À propos
-            </button>
-          </nav>
+          <StudentBottomNav
+            tab={tab}
+            onTabChange={setTab}
+            canAccessStudentMapTasks={canAccessStudentMapTasks}
+            shouldUseDesktopSplit={shouldUseDesktopSplit}
+            tutorialsModuleEnabled={tutorialsModuleEnabled}
+            mergeTasksTutoNav={mergeTasksTutoNav}
+            studentActiveAssignedTasksCount={studentActiveAssignedTasksCount}
+            canViewGeneralStats={canViewGeneralStats}
+            observationsEnabled={publicSettings?.modules?.observations_enabled !== false}
+            visitEnabled={publicSettings?.modules?.visit_enabled !== false}
+            canAccessForum={canAccessForum}
+          />
         </>
       )}
       <footer className="app-footer">{appFooterVersionPrefix} {appVersion != null ? appVersion : '…'}</footer>
