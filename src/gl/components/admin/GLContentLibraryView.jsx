@@ -12,54 +12,17 @@ import {
 } from '../../utils/contentLibraryClient.js';
 import { MediaLibraryMenu } from '../../../components/MediaLibraryMenu.jsx';
 import { GLButton } from '../ui/GLButton.jsx';
+import {
+  FILE_STATUS_LABEL,
+  canUseClipboard,
+  createFileRow,
+  entryKey,
+  kindBadgeClass,
+  previewSummary,
+} from '../../utils/glContentLibraryDisplay.js';
 
 const TINY_PNG_DATA_URL =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO6pJkQAAAAASUVORK5CYII=';
-
-const FILE_STATUS_LABEL = {
-  pending: 'En attente',
-  uploading: 'Envoi',
-  analyzing: 'Analyse',
-  ok: 'OK',
-  error: 'Erreur',
-};
-
-function canUseClipboard() {
-  return typeof navigator !== 'undefined' && !!navigator.clipboard?.writeText;
-}
-
-function previewSummary(entry) {
-  if (!entry?.preview) return '—';
-  if (entry.kind === 'media') {
-    return `${entry.preview.mediaType || 'média'} → ${entry.preview.relativePath || entry.preview.url || ''}`;
-  }
-  const totals = entry.preview;
-  if (totals.valid != null) {
-    return `${totals.valid}/${totals.received || '?'} ligne(s) valide(s)`;
-  }
-  if (totals.upserted != null) {
-    return `${totals.upserted} élément(s) prêt(s)`;
-  }
-  if (totals.feuillets) {
-    return `${totals.feuillets.upserted || 0} feuillet(s), ${totals.plateaux?.upserted || 0} plateau(x)`;
-  }
-  return 'Analyse OK';
-}
-
-function kindBadgeClass(kind) {
-  if (kind === 'media') return 'gl-content-library-kind gl-content-library-kind--media';
-  if (kind === 'unknown' || kind === 'unsupported') return 'gl-content-library-kind gl-content-library-kind--unknown';
-  return 'gl-content-library-kind gl-content-library-kind--catalog';
-}
-
-function createFileRow(file) {
-  return {
-    file,
-    status: 'pending',
-    progress: 0,
-    error: null,
-  };
-}
 
 export function GLContentLibraryView({ onOpenSubTab }) {
   const fileInputRef = useRef(null);
@@ -161,10 +124,6 @@ export function GLContentLibraryView({ onOpenSubTab }) {
       setErr(e.message || 'Copie impossible');
     }
   };
-
-  function entryKey(entry, index) {
-    return `${entry.fileName}:${index}`;
-  }
 
   function toggleEntry(key, checked) {
     setSelectedKeys((prev) => {
