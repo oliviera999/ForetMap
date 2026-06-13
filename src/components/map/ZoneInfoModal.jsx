@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { MARKER_EMOJIS, ZONE_NAME_PREFIX_EMOJI_MAX_CHARS, clampEmojiInput, detectLeadingMarkerEmoji, stripLeadingMarkerEmoji } from '../../constants/emojis';
+import { MARKER_EMOJIS, ZONE_NAME_PREFIX_EMOJI_MAX_CHARS, detectLeadingMarkerEmoji, stripLeadingMarkerEmoji } from '../../constants/emojis';
 import { ZONE_COLORS } from '../../constants/garden';
 import { useDialogA11y } from '../../hooks/useDialogA11y';
 import { useOverlayHistoryBack } from '../../hooks/useOverlayHistoryBack';
@@ -10,7 +10,8 @@ import { nextLivingBeingsFromMultiSelect, orderedLivingBeingsForForm } from '../
 import { dedupeTutorialsById, isTaskDetachedFromLocation, livingBeingNamesFromTasksAtLocation, taskLocationIds, tutorialLocationIds, tutorialsFromTasksAtLocation } from '../../utils/mapLocationContext';
 import { isStudentAssignedToTask } from '../../utils/task-assignments';
 import { canStudentAssignTask, taskEnrollmentMeta } from '../../utils/taskEnrollment.js';
-import { mergeDefaultVisitMediaImageBlocks, normalizeVisitEditorialBlocksForSave, parseVisitEditorialBlocksFromJson } from '../../utils/visitEditorialBlocks.js';
+import { parseVisitEditorialBlocksFromJson } from '../../utils/visitEditorialBlocks.js';
+import { buildZoneName, buildZonePayload, computeZoneVisitImageBlocks, zoneTaskMapId } from '../../utils/zoneModalForm.js';
 import { DialogShell } from '../DialogShell';
 import { MarkdownContent } from '../MarkdownContent.jsx';
 import { MarkdownTextarea } from '../MarkdownTextarea.jsx';
@@ -58,7 +59,6 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
   const zoneTitleDisplay = zone.special
     ? (zone.name || '')
     : (stripLeadingMarkerEmoji(zone.name || '', emojiParsingList) || zone.name || '');
-  const taskMapId = (t) => t.map_id_resolved || t.map_id || t.zone_map_id || t.marker_map_id || null;
   const linkedTasks = (tasks || []).filter((t) => (
     taskLocationIds(t).zoneIds.some((id) => String(id) === String(zone.id)) && !isTaskDetachedFromLocation(t)
   ));
@@ -66,7 +66,7 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
   const assignableTasks = (tasks || []).filter((t) => {
     if (linkedTasks.some((lt) => lt.id === t.id)) return false;
     if (isTaskDetachedFromLocation(t)) return false;
-    const mapId = taskMapId(t);
+    const mapId = zoneTaskMapId(t);
     return mapId === zone.map_id || mapId == null;
   });
   const showTasksTab = isTeacher || (!!student && linkedTasks.length > 0);
@@ -145,37 +145,7 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
   }, [zone.id, zone.map_id]);
 
   useEffect(() => {
-    const fromJson = parseVisitEditorialBlocksFromJson(zone.visit_body_json);
-    const trimmedBody = zone.visit_body_json == null ? '' : String(zone.visit_body_json).trim();
-    const imageBlocksFromJson = fromJson.filter((b) => b.type === 'image');
-    if (!trimmedBody) {
-      setVisitEditorialBlocks(
-        visitMediaOptions
-          .map((media, i) => {
-            const mediaId = Number(media?.id);
-            if (!Number.isFinite(mediaId) || mediaId <= 0) return null;
-            return {
-              id: `default-img-${mediaId}`,
-              type: 'image',
-              media_ids: [mediaId],
-              layout: 'single',
-              size: i === 0 ? 'lg' : 'md',
-              align: 'center',
-              caption: String(media?.caption || '').trim(),
-            };
-          })
-          .filter(Boolean),
-      );
-      return;
-    }
-    const hasImageBlock = imageBlocksFromJson.length > 0;
-    if (!hasImageBlock && visitMediaOptions.length > 0) {
-      setVisitEditorialBlocks(
-        mergeDefaultVisitMediaImageBlocks(imageBlocksFromJson, visitMediaOptions).filter((b) => b.type === 'image'),
-      );
-      return;
-    }
-    setVisitEditorialBlocks(imageBlocksFromJson);
+    setVisitEditorialBlocks(computeZoneVisitImageBlocks(zone.visit_body_json, visitMediaOptions));
   }, [zone.visit_body_json, zone.id, visitMediaOptions]);
 
   useEffect(() => {
@@ -183,30 +153,17 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
   }, [studentAssignableTasks]);
 
   const save = async () => {
-    const cleanName = stripLeadingMarkerEmoji(zoneName, emojiParsingList);
-    if (!cleanName) {
+    const name = buildZoneName(zoneName, zoneEmoji, { markerEmojis, emojiParsingList });
+    if (!name) {
       setToast('Nom requis');
       return;
     }
-    const prefixEmoji = clampEmojiInput(
-      (zoneEmoji || '').trim() || markerEmojis[0] || '📍',
-      ZONE_NAME_PREFIX_EMOJI_MAX_CHARS,
-    );
     setSaving(true);
     try {
-      await onUpdate(zone.id, {
-        name: `${prefixEmoji} ${cleanName}`.trim(),
-        current_plant: '',
-        living_beings: livingBeings,
-        stage,
-        color: zoneColor,
-        description: desc,
-        visit_subtitle: visitSubtitle,
-        visit_short_description: visitShortDesc,
-        visit_details_title: visitDetailsTitle,
-        visit_details_text: visitDetailsText,
-        visit_editorial_blocks: normalizeVisitEditorialBlocksForSave(visitEditorialBlocks),
-      });
+      await onUpdate(zone.id, buildZonePayload(name, {
+        livingBeings, stage, zoneColor, desc,
+        visitSubtitle, visitShortDesc, visitDetailsTitle, visitDetailsText,
+      }, visitEditorialBlocks));
       setToast('Sauvegardé ✓');
       setTab('info');
     } catch (e) { setToast('Erreur'); }
