@@ -13,10 +13,10 @@ import { canStudentAssignTask, taskEnrollmentMeta } from '../../utils/taskEnroll
 import { parseVisitEditorialBlocksFromJson } from '../../utils/visitEditorialBlocks.js';
 import { DialogShell } from '../DialogShell';
 import { MarkdownContent } from '../MarkdownContent.jsx';
-import { tutorialPreviewCanEmbed, tutorialPreviewPayload } from '../TutorialPreviewModal';
 import { ContextComments } from '../context-comments';
 import { BiodiversitySpeciesOpenLinks, LivingBeingsCatalogPanel } from './LivingBeingsCatalogPanel.jsx';
 import { MarkerCommonFormFields, MarkerEmojiField, MarkerVisitImageBuilder } from './MarkerFormSections.jsx';
+import { MarkerTutorialCardList } from './MarkerTutorialCardList.jsx';
 import { PhotoGallery } from './PhotoGallery.jsx';
 import { LocationTutorialPreviewList, TaskEnrollmentLegend, tutorialLinkedToSameMap } from './mapModalShared.jsx';
 
@@ -546,51 +546,11 @@ function MarkerModal({
         )}
         {tab === 'tutorials' && !isTeacher && (
           <div className="fade-in">
-            {linkedTutorialsVisible.length === 0 ? (
-              <p style={{ color: '#999', fontSize: '.85rem' }}>Aucun tutoriel lié à ce repère.</p>
-            ) : (
-              <div style={{ display: 'grid', gap: 12 }}>
-                {linkedTutorialsVisible.map((tu) => {
-                  const zones = tu.zones_linked || [];
-                  const otherMarkers = (tu.markers_linked || []).filter((mk) => mk.id !== marker.id);
-                  return (
-                    <div
-                      key={tu.id}
-                      style={{
-                        border: '1px solid rgba(0,0,0,.08)',
-                        borderRadius: 10,
-                        padding: '12px 14px',
-                        background: 'var(--parchment)',
-                      }}>
-                      <div style={{ fontWeight: 700, color: 'var(--forest)' }}>{tu.title}</div>
-                      {tu.summary && (
-                        <p style={{ margin: '8px 0 0', fontSize: '.82rem', color: '#555', lineHeight: 1.45 }}>{tu.summary}</p>
-                      )}
-                      {zones.length > 0 && (
-                        <p style={{ margin: '10px 0 0', fontSize: '.76rem', color: '#64748b' }}>
-                          <strong>Zones</strong> : {zones.map((z) => z.name).join(', ')}
-                        </p>
-                      )}
-                      {otherMarkers.length > 0 && (
-                        <p style={{ margin: '6px 0 0', fontSize: '.76rem', color: '#64748b' }}>
-                          <strong>Autres repères</strong> : {otherMarkers.map((m) => m.label).join(', ')}
-                        </p>
-                      )}
-                      {tutorialPreviewCanEmbed(tu) && onOpenTutorialPreview ? (
-                        <button
-                          type="button"
-                          className="btn btn-primary btn-sm"
-                          style={{ marginTop: 10 }}
-                          onClick={() => onOpenTutorialPreview(tutorialPreviewPayload(tu))}
-                        >
-                          📖 Consulter
-                        </button>
-                      ) : null}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+            <MarkerTutorialCardList
+              tutorials={linkedTutorialsVisible}
+              currentMarkerId={marker.id}
+              onOpenTutorialPreview={onOpenTutorialPreview}
+            />
           </div>
         )}
         {tab === 'info' && (
