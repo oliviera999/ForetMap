@@ -14,6 +14,7 @@ import {
   isElevatedJwt,
 } from './services/api';
 import { useForetmapRealtime } from './hooks/useForetmapRealtime';
+import { useOauthRedirectSession } from './hooks/useOauthRedirectSession';
 import { useNotificationCenter } from './hooks/useNotificationCenter';
 import { usePwaInstall } from './hooks/usePwaInstall';
 import { usePlantCatalogPreview } from './hooks/usePlantCatalogPreview';
@@ -79,8 +80,6 @@ import { SessionProvider } from './contexts/SessionContext.jsx';
 import { DataProvider } from './contexts/DataContext.jsx';
 import { DEFAULT_PUBLIC_SETTINGS, mergePublicSettings } from './utils/appPublicSettings';
 import {
-  resolveOauthErrorMessage,
-  decodeBase64UrlJson,
   readStoredTab,
   pickVisibleMapId,
 } from './utils/appShellHelpers';
@@ -188,69 +187,13 @@ function App() {
     return allowedRole && hasPermissionInRole('tutorials.manage');
   }, [effectiveRoleContext.roleSlug, hasPermissionInRole, authClaims?.nativePrivileged]);
 
-  useEffect(() => {
-    const hashRaw = window.location.hash.startsWith('#') ? window.location.hash.slice(1) : '';
-    if (!hashRaw) return;
-    const hashParams = new URLSearchParams(hashRaw);
-    const oauthPayload = hashParams.get('oauth');
-    const oauthError = hashParams.get('oauth_error');
-    if (!oauthPayload && !oauthError) return;
-
-    const cleanUrl = `${window.location.pathname}${window.location.search}`;
-    window.history.replaceState({}, document.title, cleanUrl);
-
-    if (oauthError) {
-      setToast(resolveOauthErrorMessage(oauthError));
-      return;
-    }
-    try {
-      const payload = decodeBase64UrlJson(oauthPayload);
-      if (payload?.type === 'teacher' && payload?.token) {
-        safeLocalStorageSetItem('foretmap_teacher_token', payload.token);
-        safeLocalStorageSetItem('foretmap_auth_token', payload.token);
-        saveStoredSession({
-          token: payload.token,
-          user: {
-            id: payload?.auth?.canonicalUserId || payload?.auth?.userId || null,
-            userType: 'teacher',
-            displayName: payload?.auth?.roleDisplayName || 'Utilisateur',
-            avatar_path: null,
-          },
-        });
-        setSessionUser(getStoredSession()?.user || null);
-        setAuthClaims(getAuthClaims());
-        setIsTeacher(true);
-        setToast('Connexion Google réussie.');
-        return;
-      }
-      if (payload?.type === 'student' && payload?.student) {
-        const nextStudent = payload.student;
-        if (nextStudent?.authToken) {
-          safeLocalStorageSetItem('foretmap_auth_token', nextStudent.authToken);
-        }
-        saveLegacyStudentSnapshot(nextStudent);
-        saveStoredSession({
-          token: nextStudent?.authToken || getStoredSession()?.token || null,
-          user: {
-            id: nextStudent?.auth?.canonicalUserId || nextStudent?.id || null,
-            userType: 'student',
-            displayName: nextStudent?.pseudo || `${nextStudent?.first_name || ''} ${nextStudent?.last_name || ''}`.trim() || 'Utilisateur',
-            email: nextStudent?.email || null,
-            avatar_path: nextStudent?.avatar_path ?? nextStudent?.avatarPath ?? null,
-          },
-          student: nextStudent,
-        });
-        setStudent(nextStudent);
-        setSessionUser(getStoredSession()?.user || null);
-        setIsTeacher(false);
-        setToast('Connexion Google réussie.');
-        return;
-      }
-      setToast('Réponse Google invalide.');
-    } catch (_) {
-      setToast('Réponse Google illisible.');
-    }
-  }, []);
+  useOauthRedirectSession({
+    onToast: setToast,
+    setSessionUser,
+    setAuthClaims,
+    setIsTeacher,
+    setStudent,
+  });
 
   useEffect(() => {
     safeLocalStorageSetItem('foretmap_active_map', activeMapId);
