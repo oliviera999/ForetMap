@@ -5,7 +5,6 @@ import { useDialogA11y } from '../../hooks/useDialogA11y';
 import { useOverlayHistoryBack } from '../../hooks/useOverlayHistoryBack';
 import { api } from '../../services/api';
 import { TimedToast } from '../../shared/components/TimedToast.jsx';
-import { stageBadge } from '../../utils/badges';
 import { nextLivingBeingsFromMultiSelect, orderedLivingBeingsForForm } from '../../utils/livingBeings';
 import { dedupeTutorialsById, isTaskDetachedFromLocation, livingBeingNamesFromTasksAtLocation, taskLocationIds, tutorialLocationIds, tutorialsFromTasksAtLocation } from '../../utils/mapLocationContext';
 import { canStudentAssignTask } from '../../utils/taskEnrollment.js';
@@ -18,6 +17,7 @@ import { ContextComments } from '../context-comments';
 import { BiodiversitySpeciesOpenLinks, LivingBeingsCatalogPanel } from './LivingBeingsCatalogPanel.jsx';
 import { MarkerVisitImageBuilder } from './MarkerFormSections.jsx';
 import { PhotoGallery } from './PhotoGallery.jsx';
+import { ZoneInfoModalHeader } from './ZoneInfoModalHeader.jsx';
 import { ZoneOrMarkerEmojiField } from './ZoneOrMarkerEmojiField.jsx';
 import { ZoneTasksStudentPanel, ZoneTasksTeacherPanel } from './ZoneTasksPanel.jsx';
 import { ZoneTutorialsStudentPanel, ZoneTutorialsTeacherPanel } from './ZoneTutorialsPanel.jsx';
@@ -227,38 +227,23 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
         {toast && <TimedToast msg={toast} onDone={() => setToast(null)} />}
         <button className="modal-close" onClick={onClose}>✕</button>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <h3 style={{ margin: 0, fontSize: '1.1rem' }}>{zone.name}</h3>
-            <div style={{ marginTop: 3 }}>{stageBadge(displayStage)}</div>
-          </div>
-          {isTeacher && !zone.special && (
-            <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-              {onDuplicate && (
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-sm"
-                  disabled={duplicating}
-                  title="Créer une copie sur la même carte (contour légèrement décalé)"
-                  onClick={async () => {
-                    setDuplicating(true);
-                    try {
-                      await onDuplicate(zone);
-                    } catch (_) {
-                      setToast('Duplication impossible');
-                    }
-                    setDuplicating(false);
-                  }}>
-                  {duplicating ? '…' : '📋 Copie'}
-                </button>
-              )}
-              <button type="button" className="btn btn-danger btn-sm"
-                onClick={() => { if (confirm(`Supprimer "${zone.name}" ?`)) { onDelete(zone.id); onClose(); } }}>
-                🗑️
-              </button>
-            </div>
-          )}
-        </div>
+        <ZoneInfoModalHeader
+          zone={zone}
+          displayStage={displayStage}
+          isTeacher={isTeacher}
+          duplicating={duplicating}
+          onDuplicate={onDuplicate ? async (z) => {
+            setDuplicating(true);
+            try {
+              await onDuplicate(z);
+            } finally {
+              setDuplicating(false);
+            }
+          } : null}
+          onDuplicateError={() => setToast('Duplication impossible')}
+          onDelete={onDelete}
+          onClose={onClose}
+        />
 
         <div style={{ display: 'flex', background: 'var(--parchment)', borderRadius: 10, padding: 3, marginBottom: 14, gap: 2 }}>
           {TABS.map(t => (
