@@ -34,9 +34,21 @@ const {
   buildTemplateWorkbookRows,
 } = require('../lib/studentRouteHelpers');
 
+const { z, validate } = require('../lib/validate');
+
 const router = express.Router();
 
 const { normalizeOptionalString } = require('../lib/shared/httpHelpers');
+
+// O7 — `POST /register` : remplace la validation manuelle `if (!studentId) -> 400 'studentId requis'`.
+// Le refine est au niveau racine (path vide) pour que `formatZodError` renvoie exactement
+// 'studentId requis' (sans préfixe de chemin). On reproduit `if (!studentId)` (rejette
+// undefined/null/''/0/false) ; les chaînes d'espaces restent acceptées ici puis sont normalisées
+// par `String(studentId || '').trim()` dans le handler (qui mène à un 403, pas un 400).
+const registerBodySchema = z
+  .object({ studentId: z.unknown().optional() })
+  .passthrough()
+  .refine((body) => !!(body && body.studentId), { message: 'studentId requis' });
 
 router.get('/import/template', requirePermission('students.import', { needsElevation: true }), asyncHandler(async (req, res) => {
   const format = asTrimmedString(req.query?.format || 'csv').toLowerCase();
@@ -231,9 +243,8 @@ router.post('/import', requirePermission('students.import', { needsElevation: tr
   }
 });
 
-router.post('/register', requireAuth, asyncHandler(async (req, res) => {
+router.post('/register', requireAuth, validate({ body: registerBodySchema }), asyncHandler(async (req, res) => {
   const { studentId } = req.body;
-  if (!studentId) return res.status(400).json({ error: 'studentId requis' });
   const askedStudentId = String(studentId || '').trim();
   const authStudentId = String(req.auth?.userType === 'student' ? req.auth.userId : '').trim();
   if (!authStudentId || authStudentId !== askedStudentId) {
@@ -527,3 +538,5 @@ router.delete('/:id', requirePermission('students.delete', { needsElevation: tru
 }));
 
 module.exports = router;
+// Exporté pour le test no-DB du contrat de validation O7.
+module.exports.registerBodySchema = registerBodySchema;
