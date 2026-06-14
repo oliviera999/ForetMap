@@ -78,11 +78,12 @@ import { DialogShell } from './components/DialogShell';
 import { PublicSettingsProvider } from './contexts/PublicSettingsContext.jsx';
 import { SessionProvider } from './contexts/SessionContext.jsx';
 import { DataProvider } from './contexts/DataContext.jsx';
-import { DEFAULT_PUBLIC_SETTINGS, mergePublicSettings } from './utils/appPublicSettings';
 import {
   readStoredTab,
   pickVisibleMapId,
 } from './utils/appShellHelpers';
+import { useAppBootstrap } from './hooks/useAppBootstrap';
+import { useTabNavigationGuards } from './hooks/useTabNavigationGuards';
 
 const DEFAULT_MAPS = [];
 
@@ -123,13 +124,11 @@ function App() {
   const [toast,      setToast]      = useState(null);
   const [profilePromotion, setProfilePromotion] = useState(null);
   const [sessionValidationError, setSessionValidationError] = useState(false);
-  const [appVersion, setAppVersion] = useState(null);
   const [refreshMs,  setRefreshMs]  = useState(DATA_REFRESH_INTERVAL_MS);
   const [serverDown, setServerDown] = useState(false);
   const [authClaims, setAuthClaims] = useState(() => getAuthClaims());
   const [roleViewMode, setRoleViewMode] = useState('native'); // native | student | teacher
-  const [publicSettings, setPublicSettings] = useState(DEFAULT_PUBLIC_SETTINGS);
-  const [publicSettingsReady, setPublicSettingsReady] = useState(false);
+  const { appVersion, publicSettings, publicSettingsReady } = useAppBootstrap();
   const { isTabVisible, shouldUseDesktopSplit } = useViewportLayout();
   const {
     deferredInstallPrompt,
@@ -202,26 +201,6 @@ function App() {
   useEffect(() => {
     safeLocalStorageSetItem(TAB_STORAGE_KEY, tab);
   }, [tab]);
-
-  useEffect(() => {
-    api('/api/version').then(d => setAppVersion(d.version)).catch(err => {
-      console.error('[ForetMap] version app', err);
-    });
-  }, []);
-
-  useEffect(() => {
-    api('/api/settings/public')
-      .then((d) => {
-        if (!d?.settings) return;
-        setPublicSettings((prev) => mergePublicSettings(prev, d.settings));
-      })
-      .catch(() => {
-        // Réglages publics non bloquants.
-      })
-      .finally(() => {
-        setPublicSettingsReady(true);
-      });
-  }, []);
 
   useEffect(() => {
     if (!publicSettingsReady) return;
@@ -877,35 +856,17 @@ function App() {
     fetchAll,
   ]);
 
-  useEffect(() => {
-    if (effectiveIsTeacher) return;
-    if (!canAccessStudentMapTasks && (tab === 'map' || tab === 'tasks' || tab === 'maptasks')) {
-      setTab('plants');
-    }
-  }, [effectiveIsTeacher, canAccessStudentMapTasks, tab]);
-
-  useEffect(() => {
-    if (tab === 'maptasks' && !shouldUseDesktopSplit) {
-      setTab('map');
-    }
-  }, [shouldUseDesktopSplit, tab]);
-
-  useEffect(() => {
-    if (tab === 'tuto' && publicSettings?.modules?.tutorials_enabled === false) setTab('map');
-    if (tab === 'stats' && publicSettings?.modules?.stats_enabled === false) setTab('map');
-    if (tab === 'stats' && publicSettings?.modules?.stats_enabled !== false && !canViewGeneralStats) setTab('map');
-    if (tab === 'visit' && publicSettings?.modules?.visit_enabled === false) setTab('map');
-    if (tab === 'mascot_packs' && publicSettings?.modules?.visit_enabled === false) setTab('map');
-    if (tab === 'notebook' && publicSettings?.modules?.observations_enabled === false) setTab('map');
-    if (tab === 'forum' && !canAccessForum) setTab('about');
-    if (tab === 'media_library' && !effectiveIsTeacher) setTab('about');
-  }, [tab, publicSettings?.modules?.tutorials_enabled, publicSettings?.modules?.stats_enabled, publicSettings?.modules?.visit_enabled, publicSettings?.modules?.observations_enabled, publicSettings?.modules?.forum_enabled, canAccessForum, canViewGeneralStats, effectiveIsTeacher]);
-
-  /** Avec une zone/repère au focus, l’onglet Tuto est fusionné avec Tâches (navigation vers la vue Tâches). */
-  useEffect(() => {
-    if (!mergeTasksTutoNav || tab !== 'tuto') return;
-    setTab('tasks');
-  }, [mergeTasksTutoNav, tab]);
+  useTabNavigationGuards({
+    tab,
+    setTab,
+    effectiveIsTeacher,
+    canAccessStudentMapTasks,
+    shouldUseDesktopSplit,
+    canAccessForum,
+    canViewGeneralStats,
+    mergeTasksTutoNav,
+    modules: publicSettings?.modules,
+  });
 
   // Auto-refresh adaptatif (ralenti quand le push est actif, ralenti en arrière-plan).
   const pollingIntervalMs = useMemo(() => {
