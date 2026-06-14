@@ -166,3 +166,19 @@ Lot livré en parallèle (5 agents, périmètres de fichiers disjoints), build +
   dans `routes/auth.js` et `routes/tasks.js`, désormais importé depuis `lib/routeLog`.
 - **O10** (`wip`) — `routes/visit.js` : sous-domaines `media` (photos) et `zones` (CRUD) extraits en
   sous-routeurs dédiés `routes/visit/media.js` et `routes/visit/zones.js` (chemins/middlewares inchangés).
+
+### Lot 2 — itération multi-agents (2026-06-14)
+
+Second lot en parallèle (5 agents, périmètres disjoints), build + Vitest verts
+(1 620 tests UI), lint sans erreur ; tests backend DB exécutés en CI. Avancées :
+
+- **O5** (`wip`) — 3ᵉ hook extrait d'`App.jsx` : `useOauthRedirectSession` (gestion du retour
+  de redirection OAuth Google : parsing du fragment `#oauth`/`#oauth_error`, nettoyage d'URL,
+  reconstitution de session prof/élève).
+- **O6** (`wip`) — `TaskFormTutorialsField` extrait de `TaskFormModal.jsx` + test UI ciblé.
+- **O7** (`wip`) — `routes/task-projects.js` : création de projet (`POST /`) validée via schéma
+  `zod`/`lib/validate` (réponses/statuts/ordre d'erreurs inchangés) + test DB-free.
+- **O8** (`wip`) — `routes/tutorials.js` migré vers `lib/asyncHandler` : 8 try/catch génériques
+  supprimés (erreurs 500 routées via le middleware central), logique catch spécifique (400) préservée.
+- **O10** (`wip`) — `routes/tasks.js` : sous-domaine `assignments` (assign/assign-group/done/unassign)
+  extrait en sous-routeur `routes/tasks/assignments.js` (chemins/middlewares inchangés).
