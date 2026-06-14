@@ -13,7 +13,7 @@ const {
   requirePermission,
   hydrateAuthFromTokenClaims,
 } = require('../middleware/requireTeacher');
-const { logRouteError } = require('../lib/routeLog');
+const { logRouteError, respondInternalError } = require('../lib/routeLog');
 const asyncHandler = require('../lib/asyncHandler');
 const logger = require('../lib/logger');
 const { emitStudentsChanged } = require('../lib/realtime');
@@ -203,11 +203,6 @@ async function resolveLoginUserType(user) {
   if (primary?.user_type) return String(primary.user_type).toLowerCase();
   if (explicit) return explicit;
   return 'student';
-}
-
-function respondInternalError(res, req, err, message = 'Erreur serveur') {
-  logRouteError(err, req);
-  return res.status(500).json({ error: message });
 }
 
 router.get('/me', requireAuth, async (req, res) => {
