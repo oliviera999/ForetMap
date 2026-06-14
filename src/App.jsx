@@ -16,6 +16,8 @@ import {
 import { useForetmapRealtime } from './hooks/useForetmapRealtime';
 import { useNotificationCenter } from './hooks/useNotificationCenter';
 import { usePwaInstall } from './hooks/usePwaInstall';
+import { usePlantCatalogPreview } from './hooks/usePlantCatalogPreview';
+import { useViewportLayout } from './hooks/useViewportLayout';
 import { RT_PROF_TOOLTIPS } from './constants/realtime';
 import { NOTIFICATION_CATEGORY, NOTIFICATION_LEVEL } from './constants/notifications';
 import { HELP_TOOLTIPS, resolveRoleText } from './constants/help';
@@ -81,7 +83,6 @@ import {
   decodeBase64UrlJson,
   readStoredTab,
   pickVisibleMapId,
-  shouldUseDesktopSplitLayout,
 } from './utils/appShellHelpers';
 
 const DEFAULT_MAPS = [];
@@ -130,8 +131,7 @@ function App() {
   const [roleViewMode, setRoleViewMode] = useState('native'); // native | student | teacher
   const [publicSettings, setPublicSettings] = useState(DEFAULT_PUBLIC_SETTINGS);
   const [publicSettingsReady, setPublicSettingsReady] = useState(false);
-  const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth || 0);
-  const [isTabVisible, setIsTabVisible] = useState(() => document.visibilityState !== 'hidden');
+  const { isTabVisible, shouldUseDesktopSplit } = useViewportLayout();
   const {
     deferredInstallPrompt,
     showIosInstallHint,
@@ -141,7 +141,6 @@ function App() {
   } = usePwaInstall({ onToast: setToast });
   const failCountRef = useRef(0);
   const prevTabForPollingRef = useRef(tab);
-  const viewportResizeRafRef = useRef(null);
   /** Promesse du chargement global en cours ; les appels suivants s’y accrochent et peuvent demander une nouvelle passe. */
   const fetchAllRunPromiseRef = useRef(null);
   const fetchAllPendingRef = useRef(false);
@@ -556,30 +555,6 @@ function App() {
   }, [authClaims?.roleSlug, authClaims?.userId, isTeacher]);
 
   useEffect(() => {
-    const onResize = () => {
-      if (viewportResizeRafRef.current != null) return;
-      viewportResizeRafRef.current = window.requestAnimationFrame(() => {
-        viewportResizeRafRef.current = null;
-        setViewportWidth(window.innerWidth || 0);
-      });
-    };
-    window.addEventListener('resize', onResize, { passive: true });
-    return () => {
-      window.removeEventListener('resize', onResize);
-      if (viewportResizeRafRef.current != null) {
-        window.cancelAnimationFrame(viewportResizeRafRef.current);
-        viewportResizeRafRef.current = null;
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    const onVisibilityChange = () => setIsTabVisible(document.visibilityState !== 'hidden');
-    document.addEventListener('visibilitychange', onVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', onVisibilityChange);
-  }, []);
-
-  useEffect(() => {
     const session = getStoredSession();
     if (!session?.token) return;
     api('/api/auth/me')
@@ -886,7 +861,6 @@ function App() {
   useOverlayHistoryBack(showStats && canOpenUserDialogs, () => setShowStats(false));
   useOverlayHistoryBack(showProfile && canOpenUserDialogs && !!profileTargetUser, () => setShowProfile(false));
 
-  const shouldUseDesktopSplit = useMemo(() => shouldUseDesktopSplitLayout(viewportWidth), [viewportWidth]);
   const isCombinedMapTasksTab = tab === 'maptasks';
   const useSplitMapTasks = shouldUseDesktopSplit && isCombinedMapTasksTab && canAccessStudentMapTasks;
   /** Ouvre l’onglet Tâches avec le filtre lieu (carte seule ; en split le filtre est déjà synchronisé au clic). */
@@ -898,13 +872,11 @@ function App() {
     setTab('tasks');
   }, [effectiveIsTeacher, canAccessStudentMapTasks, useSplitMapTasks]);
 
-  const [plantCatalogPreview, setPlantCatalogPreview] = useState(null);
-  const openPlantCatalogPreviewById = useCallback((plantId) => {
-    const id = Number(plantId);
-    if (!Number.isFinite(id) || id <= 0) return;
-    const p = (plants || []).find((x) => Number(x.id) === id);
-    if (p) setPlantCatalogPreview(p);
-  }, [plants]);
+  const {
+    plantCatalogPreview,
+    setPlantCatalogPreview,
+    openPlantCatalogPreviewById,
+  } = usePlantCatalogPreview(plants);
 
   const useWideMain = shouldUseDesktopSplit;
   const mapChromeCompactVisible = !loading && (useSplitMapTasks || (!useSplitMapTasks && tab === 'map'));
