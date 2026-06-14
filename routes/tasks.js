@@ -27,6 +27,7 @@ const {
 } = require('../lib/taskStatusRecalc');
 const {
   getScopedStudentIds,
+  getUserAccessibleGroupIds,
 } = require('../lib/groupScope');
 const {
   normalizeImportTaskStatus,
@@ -52,6 +53,7 @@ const {
   normalizeOptionalId,
   sameIdSet,
   enrichTaskRow,
+  referentPublicLabel,
 } = require('../lib/taskRouteHelpers');
 const {
   canReadAllAssignments,
@@ -716,6 +718,70 @@ router.post('/reorder-project', requirePermission('tasks.manage', { needsElevati
   });
   emitTasksChanged({ reason: 'reorder_project_tasks', projectId, mapId });
   res.json({ success: true, project_id: projectId, ordered_task_ids: orderedTaskIds });
+}));
+
+async function getScopedAssignableStudentIds(auth) {
+  const scope = await getScopedStudentIds(auth);
+  return scope.all ? null : scope.studentIds;
+}
+
+async function getScopedTeacherIds(auth) {
+  const perms = Array.isArray(auth?.permissions) ? auth.permissions : [];
+  const isAdmin = String(auth?.roleSlug || '').toLowerCase() === 'admin';
+  if (isAdmin || perms.includes('stats.read.all')) return null;
+  const groupIds = await getUserAccessibleGroupIds(auth, { includeDescendants: true });
+  if (!groupIds.length) return [];
+  const rows = await queryAll(
+    `SELECT DISTINCT gm.user_id
+       FROM group_members gm
+       INNER JOIN users u ON u.id = gm.user_id
+      WHERE gm.group_id IN (${groupIds.map(() => '?').join(',')})
+        AND u.user_type = 'teacher'
+        AND u.is_active = 1`,
+    groupIds
+  );
+  return rows.map((r) => String(r.user_id));
+}
+
+router.get('/referent-candidates', requirePermission('tasks.manage', { needsElevation: true }), asyncHandler(async (req, res) => {
+  const [scopedStudentIds, scopedTeacherIds] = await Promise.all([
+    getScopedAssignableStudentIds(req.auth),
+    getScopedTeacherIds(req.auth),
+  ]);
+  const rows = await queryAll(
+    `SELECT u.id, u.user_type, u.first_name, u.last_name, u.display_name, r.slug AS primary_role_slug
+       FROM users u
+       LEFT JOIN user_roles ur ON ur.user_id = u.id AND ur.user_type = u.user_type AND ur.is_primary = 1
+       LEFT JOIN roles r ON r.id = ur.role_id
+      WHERE u.is_active = 1 AND u.user_type IN ('teacher', 'student')`
+  );
+  function teacherTier(slug) {
+    const s = String(slug || '').toLowerCase();
+    if (s === 'admin') return 0;
+    if (s === 'prof') return 1;
+    return 2;
+  }
+  function labelForSort(row) {
+    return referentPublicLabel({ ...row, uid: row.id });
+  }
+  const teachers = rows.filter((r) => {
+    if (r.user_type !== 'teacher') return false;
+    if (scopedTeacherIds == null) return true;
+    return scopedTeacherIds.includes(String(r.id));
+  });
+  const students = rows.filter((r) => {
+    if (r.user_type !== 'student') return false;
+    if (scopedStudentIds == null) return true;
+    return scopedStudentIds.includes(String(r.id));
+  });
+  teachers.sort((a, b) => {
+    const ta = teacherTier(a.primary_role_slug);
+    const tb = teacherTier(b.primary_role_slug);
+    if (ta !== tb) return ta - tb;
+    return labelForSort(a).localeCompare(labelForSort(b), 'fr', { sensitivity: 'base' });
+  });
+  students.sort((a, b) => labelForSort(a).localeCompare(labelForSort(b), 'fr', { sensitivity: 'base' }));
+  res.json([...teachers, ...students]);
 }));
 
 router.get('/:id/image', asyncHandler(async (req, res) => {
