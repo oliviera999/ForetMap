@@ -50,17 +50,24 @@ const registerBodySchema = z
   .passthrough()
   .refine((body) => !!(body && body.studentId), { message: 'studentId requis' });
 
-router.get('/import/template', requirePermission('students.import', { needsElevation: true }), asyncHandler(async (req, res) => {
-  const format = asTrimmedString(req.query?.format || 'csv').toLowerCase();
+// O7 — `GET /import/template` : remplace la validation manuelle du paramètre `format`.
+// Reproduit exactement `asTrimmedString(req.query?.format || 'csv').toLowerCase()` (falsy → 'csv',
+// trim + lowercase) puis l'aiguillage `xlsx` / `csv` / sinon 400 'Format invalide (csv ou xlsx)'.
+// Le refine est au niveau racine pour que `formatZodError` renvoie le message exact sans préfixe
+// de chemin (comme l'ancien `res.status(400).json({ error: 'Format invalide (csv ou xlsx)' })`).
+const importTemplateQuerySchema = z
+  .object({ format: z.unknown().optional() })
+  .transform((q) => ({ format: asTrimmedString(q.format || 'csv').toLowerCase() }))
+  .refine((q) => q.format === 'csv' || q.format === 'xlsx', { message: 'Format invalide (csv ou xlsx)' });
+
+router.get('/import/template', requirePermission('students.import', { needsElevation: true }), validate({ query: importTemplateQuerySchema }), asyncHandler(async (req, res) => {
+  const format = req.validatedQuery.format;
   if (format === 'xlsx') {
     const aoa = jsonRowsToAoa(buildTemplateWorkbookRows(), TEMPLATE_COLUMNS);
     const buffer = await buildWorkbookBuffer([{ name: 'n3beurs', aoa }]);
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', 'attachment; filename="foretmap-modele-n3beurs.xlsx"');
     return res.send(buffer);
-  }
-  if (format !== 'csv') {
-    return res.status(400).json({ error: 'Format invalide (csv ou xlsx)' });
   }
 
   const BOM = '\uFEFF';
@@ -540,3 +547,4 @@ router.delete('/:id', requirePermission('students.delete', { needsElevation: tru
 module.exports = router;
 // Exporté pour le test no-DB du contrat de validation O7.
 module.exports.registerBodySchema = registerBodySchema;
+module.exports.importTemplateQuerySchema = importTemplateQuerySchema;
