@@ -97,6 +97,15 @@ testée), puis sous-composants JSX feuilles prop-driven (→ sous-dossiers dédi
   « tests » puis « coverage ») **sans réinitialiser la DB**. Tout test qui génère
   des identifiants à partir de `Date.now()` doit garantir l'unicité entre les deux
   passes (cf. fix `gl-content-import-export` lot du 12/06 : codes QCM élargis).
+- **Sous-routeurs O10 — piège des chemins relatifs `__dirname`** : un déplacement
+  byte-identique de handlers vers `routes/<x>/<sous>.js` **casse tout chemin
+  résolu au fichier** (`path.join(__dirname, '..', ...)`, `require` relatifs, `fs`).
+  Le nouveau fichier est plus profond d'un (ou deux) niveau(x) : `'../'` doit
+  devenir `'../../'` (ou `'../../../'`). La preuve d'identité des routes NE détecte
+  PAS ce bug (les chemins fs sont hors `router.stack`). Auditer systématiquement
+  `__dirname`/`require`/`fs` du bloc déplacé et **résoudre les chemins réels**
+  (`fs.existsSync`). Régression réelle : `listPublicMascotStaticAssets` cassée au
+  lot 17, rattrapée au lot 18.
 - **Rendements décroissants atteints sur le déplacement pur** : les composants
   restants non touchés sont soit petits/déjà serrés, soit des cœurs sensibles.
   Forcer des extractions y crée des feuilles à 15+ props couplées à l'état du parent,
