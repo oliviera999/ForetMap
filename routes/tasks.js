@@ -7,7 +7,7 @@ const {
   hydrateAuthFromTokenClaims,
 } = require('../middleware/requireTeacher');
 const { saveBase64ToDisk, getAbsolutePath, deleteFile, writeBufferToDisk } = require('../lib/uploads');
-const { logRouteError } = require('../lib/routeLog');
+const { respondInternalError } = require('../lib/routeLog');
 const asyncHandler = require('../lib/asyncHandler');
 const logger = require('../lib/logger');
 const { logAudit } = require('./audit');
@@ -565,16 +565,6 @@ async function ensureStudentPermission({ studentId, permissionKey, profilePin })
     return { ok: false, error: 'Permission insuffisante' };
   }
   return { ok: true, elevated: true };
-}
-
-function respondInternalError(res, req, err, message = 'Erreur serveur', opts = {}) {
-  logRouteError(err, req);
-  const body = { error: message };
-  if (opts.exposeDetail && err) {
-    body.debugDetail = String(err.message || '');
-    if (err.code != null) body.debugCode = String(err.code);
-  }
-  return res.status(500).json(body);
 }
 
 async function resolveStudentActionContext(req, payload = {}, permissionKey) {
