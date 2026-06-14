@@ -6,7 +6,7 @@ const {
   JWT_SECRET,
   hydrateAuthFromTokenClaims,
 } = require('../middleware/requireTeacher');
-const { saveBase64ToDisk, getAbsolutePath, deleteFile, writeBufferToDisk } = require('../lib/uploads');
+const { getAbsolutePath, deleteFile, writeBufferToDisk } = require('../lib/uploads');
 const { respondInternalError } = require('../lib/routeLog');
 const asyncHandler = require('../lib/asyncHandler');
 const logger = require('../lib/logger');
@@ -21,18 +21,12 @@ const {
   syncProgressionForValidatedTask,
 } = require('../lib/rbac');
 const {
-  countStudentActiveTaskAssignments,
-  getEffectiveMaxActiveTaskAssignments,
-} = require('../lib/studentTaskEnrollment');
-const {
   normalizeTaskStatusForRead,
   normalizeTaskCompletionMode,
   recalculateTaskStatusWithConn,
 } = require('../lib/taskStatusRecalc');
 const {
   getScopedStudentIds,
-  canAccessStudentId,
-  getUserAccessibleGroupIds,
 } = require('../lib/groupScope');
 const {
   normalizeImportTaskStatus,
@@ -57,16 +51,13 @@ const {
   normalizeTutorialIdArray,
   normalizeOptionalId,
   sameIdSet,
-  referentPublicLabel,
   enrichTaskRow,
-  trimName,
 } = require('../lib/taskRouteHelpers');
 const {
   canReadAllAssignments,
   canManageTasks,
   canValidateTasks,
   assertCanTeacherSetTaskStatus,
-  canRunTeacherStyleTaskStudentAction,
   isVisitorRole,
 } = require('../lib/taskAuthzHelpers');
 
@@ -269,29 +260,6 @@ async function fetchTaskListAssignments(auth, taskIds) {
     );
   }
   return [];
-}
-
-async function getScopedAssignableStudentIds(auth) {
-  const scope = await getScopedStudentIds(auth);
-  return scope.all ? null : scope.studentIds;
-}
-
-async function getScopedTeacherIds(auth) {
-  const perms = Array.isArray(auth?.permissions) ? auth.permissions : [];
-  const isAdmin = String(auth?.roleSlug || '').toLowerCase() === 'admin';
-  if (isAdmin || perms.includes('stats.read.all')) return null;
-  const groupIds = await getUserAccessibleGroupIds(auth, { includeDescendants: true });
-  if (!groupIds.length) return [];
-  const rows = await queryAll(
-    `SELECT DISTINCT gm.user_id
-       FROM group_members gm
-       INNER JOIN users u ON u.id = gm.user_id
-      WHERE gm.group_id IN (${groupIds.map(() => '?').join(',')})
-        AND u.user_type = 'teacher'
-        AND u.is_active = 1`,
-    groupIds
-  );
-  return rows.map((r) => String(r.user_id));
 }
 
 async function fetchTaskAssignmentAggregates(taskIds) {
@@ -567,73 +535,6 @@ async function ensureStudentPermission({ studentId, permissionKey, profilePin })
   return { ok: true, elevated: true };
 }
 
-async function resolveStudentActionContext(req, payload = {}, permissionKey) {
-  const auth = await parseOptionalAuth(req);
-  const profilePin = payload?.profilePin;
-  const providedStudentId = normalizeOptionalId(payload?.studentId);
-  const providedFirstName = trimName(payload?.firstName);
-  const providedLastName = trimName(payload?.lastName);
-  const isTeacherAction = canRunTeacherStyleTaskStudentAction(auth);
-
-  const byId = async (studentId) => queryOne(
-    "SELECT id, first_name, last_name FROM users WHERE user_type = 'student' AND id = ? LIMIT 1",
-    [studentId]
-  );
-
-  const pickNames = (student) => ({
-    firstName: providedFirstName || trimName(student?.first_name),
-    lastName: providedLastName || trimName(student?.last_name),
-  });
-
-  if (providedStudentId) {
-    const student = await byId(providedStudentId);
-    if (!student) return { errorStatus: 401, error: 'Compte supprimé', deleted: true };
-    if (!isTeacherAction) {
-      if (!(auth?.userType === 'student' && String(auth?.userId || '') === String(providedStudentId))) {
-        return { errorStatus: 403, error: 'Session n3beur requise' };
-      }
-      const permission = await ensureStudentPermission({ studentId: providedStudentId, permissionKey, profilePin });
-      if (!permission.ok) return { errorStatus: 403, error: permission.error };
-    }
-    if (isTeacherAction) {
-      const allowed = await canAccessStudentId(auth, providedStudentId);
-      if (!allowed) return { errorStatus: 403, error: 'n3beur hors périmètre de groupe' };
-    }
-    const names = pickNames(student);
-    if (!names.firstName || !names.lastName) return { errorStatus: 400, error: 'Nom requis' };
-    return {
-      auth,
-      studentId: String(providedStudentId),
-      firstName: names.firstName,
-      lastName: names.lastName,
-      actorUserType: isTeacherAction ? auth?.userType || null : 'student',
-      actorUserId: isTeacherAction ? auth?.userId || null : String(providedStudentId),
-    };
-  }
-
-  if (auth?.userType === 'student' && auth?.userId) {
-    const student = await byId(auth.userId);
-    if (!student) return { errorStatus: 401, error: 'Compte supprimé', deleted: true };
-    const permission = await ensureStudentPermission({ studentId: auth.userId, permissionKey, profilePin });
-    if (!permission.ok) return { errorStatus: 403, error: permission.error };
-    const names = pickNames(student);
-    if (!names.firstName || !names.lastName) return { errorStatus: 400, error: 'Nom requis' };
-    return {
-      auth,
-      studentId: String(auth.userId),
-      firstName: names.firstName,
-      lastName: names.lastName,
-      actorUserType: 'student',
-      actorUserId: String(auth.userId),
-    };
-  }
-
-  if (isTeacherAction && providedFirstName && providedLastName && !providedStudentId) {
-    return { errorStatus: 400, error: 'Identifiant n3beur requis (studentId obligatoire pour une action prof)' };
-  }
-
-  return { errorStatus: 400, error: 'Identifiant n3beur requis' };
-}
 
 router.get('/', asyncHandler(async (req, res) => {
   const auth = await parseOptionalAuth(req);
@@ -815,47 +716,6 @@ router.post('/reorder-project', requirePermission('tasks.manage', { needsElevati
   });
   emitTasksChanged({ reason: 'reorder_project_tasks', projectId, mapId });
   res.json({ success: true, project_id: projectId, ordered_task_ids: orderedTaskIds });
-}));
-
-router.get('/referent-candidates', requirePermission('tasks.manage', { needsElevation: true }), asyncHandler(async (req, res) => {
-  const [scopedStudentIds, scopedTeacherIds] = await Promise.all([
-    getScopedAssignableStudentIds(req.auth),
-    getScopedTeacherIds(req.auth),
-  ]);
-  const rows = await queryAll(
-    `SELECT u.id, u.user_type, u.first_name, u.last_name, u.display_name, r.slug AS primary_role_slug
-       FROM users u
-       LEFT JOIN user_roles ur ON ur.user_id = u.id AND ur.user_type = u.user_type AND ur.is_primary = 1
-       LEFT JOIN roles r ON r.id = ur.role_id
-      WHERE u.is_active = 1 AND u.user_type IN ('teacher', 'student')`
-  );
-  function teacherTier(slug) {
-    const s = String(slug || '').toLowerCase();
-    if (s === 'admin') return 0;
-    if (s === 'prof') return 1;
-    return 2;
-  }
-  function labelForSort(row) {
-    return referentPublicLabel({ ...row, uid: row.id });
-  }
-  const teachers = rows.filter((r) => {
-    if (r.user_type !== 'teacher') return false;
-    if (scopedTeacherIds == null) return true;
-    return scopedTeacherIds.includes(String(r.id));
-  });
-  const students = rows.filter((r) => {
-    if (r.user_type !== 'student') return false;
-    if (scopedStudentIds == null) return true;
-    return scopedStudentIds.includes(String(r.id));
-  });
-  teachers.sort((a, b) => {
-    const ta = teacherTier(a.primary_role_slug);
-    const tb = teacherTier(b.primary_role_slug);
-    if (ta !== tb) return ta - tb;
-    return labelForSort(a).localeCompare(labelForSort(b), 'fr', { sensitivity: 'base' });
-  });
-  students.sort((a, b) => labelForSort(a).localeCompare(labelForSort(b), 'fr', { sensitivity: 'base' }));
-  res.json([...teachers, ...students]);
 }));
 
 router.get('/:id/image', asyncHandler(async (req, res) => {
@@ -1430,220 +1290,6 @@ router.delete('/:id', requirePermission('tasks.manage', { needsElevation: true }
   res.json({ success: true });
 }));
 
-router.post('/:id/assign', asyncHandler(async (req, res) => {
-  const task = await getTaskWithAssignments(req.params.id);
-  if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
-  if (task.status === 'validated') return res.status(400).json({ error: 'Tâche déjà validée' });
-  if (task.status === 'on_hold') return res.status(400).json({ error: 'Tâche en attente : inscription indisponible' });
-  if (task.project_status === 'on_hold') {
-    return res.status(400).json({ error: 'Projet en attente : inscription indisponible' });
-  }
-  if (task.project_status === 'completed') {
-    return res.status(400).json({ error: 'Projet terminé : inscription indisponible' });
-  }
-  if (task.project_status === 'validated') {
-    return res.status(400).json({ error: 'Projet validé : inscription indisponible' });
-  }
-  if (isTaskBeforeStartDate(task)) return res.status(400).json({ error: 'Date de départ non atteinte : inscription indisponible' });
-
-  const action = await resolveStudentActionContext(req, req.body || {}, 'tasks.assign_self');
-  if (action.error) {
-    return res.status(action.errorStatus || 400).json({ error: action.error, ...(action.deleted ? { deleted: true } : {}) });
-  }
-
-  const already = task.assignments.find(
-    (a) => (
-      (action.studentId && a.student_id && String(a.student_id) === String(action.studentId))
-      || (
-        String(a.student_first_name || '').toLowerCase() === action.firstName.toLowerCase()
-        && String(a.student_last_name || '').toLowerCase() === action.lastName.toLowerCase()
-      )
-    )
-  );
-  if (already) return res.status(400).json({ error: 'Déjà assigné à cette tâche' });
-
-  if (action.actorUserType === 'student' && action.studentId) {
-    const maxActive = await getEffectiveMaxActiveTaskAssignments(action.studentId);
-    if (maxActive > 0) {
-      const current = await countStudentActiveTaskAssignments(
-        action.studentId,
-        action.firstName,
-        action.lastName
-      );
-      if (current >= maxActive) {
-        return res.status(400).json({
-          error:
-            `Limite atteinte : tu as déjà ${maxActive} tâche(s) active(s) (non validées par un n3boss). Retire-toi d’une tâche ou attends une validation.`,
-          code: 'TASK_ENROLLMENT_LIMIT',
-          maxActiveAssignments: maxActive,
-          currentActiveAssignments: current,
-        });
-      }
-    }
-  }
-
-  if (task.assignments.length >= task.required_students) {
-    return res.status(400).json({ error: 'Plus de place disponible sur cette tâche' });
-  }
-
-  await execute(
-    'INSERT INTO task_assignments (task_id, student_id, student_first_name, student_last_name, assigned_at) VALUES (?, ?, ?, ?, ?)',
-    [task.id, action.studentId || null, action.firstName, action.lastName, new Date().toISOString()]
-  );
-
-  const recalculated = await recalculateTaskStatus(task);
-  const newStatus = recalculated?.status || normalizeTaskStatusForRead(task.status);
-
-  const updated = await getTaskWithAssignments(task.id);
-  logAudit('assign_task', 'task', task.id, `${action.firstName} ${action.lastName}`, {
-    req,
-    actorUserType: action.actorUserType,
-    actorUserId: action.actorUserId,
-    payload: { student_id: action.studentId || null, status: newStatus },
-  });
-  emitTasksChanged({ reason: 'assign', taskId: task.id, mapId: resolveTaskMapId(updated) });
-  await syncTaskProjectCompletionForProjects([updated.project_id]);
-  res.json(updated);
-}));
-
-router.post('/:id/assign-group', requirePermission('tasks.assign.group', { needsElevation: true }), asyncHandler(async (req, res) => {
-  const task = await getTaskWithAssignments(req.params.id);
-  if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
-  if (task.status === 'validated') return res.status(400).json({ error: 'Tâche déjà validée' });
-  const groupId = normalizeOptionalId(req.body?.group_id);
-  if (!groupId) return res.status(400).json({ error: 'group_id requis' });
-  const scope = await getScopedStudentIds(req.auth, { groupId });
-  if (scope.unauthorizedGroup) return res.status(403).json({ error: 'Groupe hors périmètre' });
-  if (!scope.studentIds.length) return res.status(400).json({ error: 'Aucun n3beur dans ce groupe' });
-  const students = await queryAll(
-    `SELECT id, first_name, last_name
-       FROM users
-      WHERE user_type = 'student'
-        AND is_active = 1
-        AND id IN (${scope.studentIds.map(() => '?').join(',')})`,
-    scope.studentIds
-  );
-  const already = new Set((task.assignments || []).map((a) => String(a.student_id || '')));
-  const maxSlots = Math.max(0, Number(task.required_students || 1) - Number(task.assignments?.length || 0));
-  // Sélectionne (dans l'ordre) les n3beurs à affecter en préservant la sémantique de la boucle :
-  // `skipped` compte les déjà-affectés rencontrés AVANT que les créneaux soient pleins, puis on
-  // insère tout en UNE requête multi-valeurs (au lieu d'un INSERT par n3beur).
-  const toAssign = [];
-  let skipped = 0;
-  for (const student of students) {
-    if (already.has(String(student.id))) {
-      skipped += 1;
-      continue;
-    }
-    if (toAssign.length >= maxSlots) break;
-    toAssign.push(student);
-  }
-  const assigned = toAssign.length;
-  if (toAssign.length > 0) {
-    const assignedAt = new Date().toISOString();
-    const placeholders = toAssign.map(() => '(?, ?, ?, ?, ?)').join(', ');
-    const params = [];
-    for (const student of toAssign) {
-      params.push(task.id, student.id, student.first_name || '', student.last_name || '', assignedAt);
-    }
-    await execute(
-      `INSERT INTO task_assignments (task_id, student_id, student_first_name, student_last_name, assigned_at)
-       VALUES ${placeholders}`,
-      params
-    );
-  }
-  await recalculateTaskStatus(task);
-  const updated = await getTaskWithAssignments(task.id);
-  emitTasksChanged({ reason: 'assign_group', taskId: task.id, mapId: resolveTaskMapId(updated) });
-  await syncTaskProjectCompletionForProjects([updated.project_id]);
-  return res.json({ task: updated, assigned, skipped, considered: students.length });
-}));
-
-router.post('/:id/done', asyncHandler(async (req, res) => {
-  const task = await queryOne('SELECT * FROM tasks WHERE id = ?', [req.params.id]);
-  if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
-  const completionMode = normalizeTaskCompletionMode(task.completion_mode) || 'single_done';
-
-  const { comment, imageData } = req.body || {};
-  const action = await resolveStudentActionContext(req, req.body || {}, 'tasks.done_self');
-  if (action.error) {
-    return res.status(action.errorStatus || 400).json({ error: action.error, ...(action.deleted ? { deleted: true } : {}) });
-  }
-
-  const assignment = action.studentId
-    ? await queryOne(
-      `SELECT id, done_at
-         FROM task_assignments
-        WHERE task_id = ?
-          AND (student_id = ? OR (student_first_name = ? AND student_last_name = ?))
-        ORDER BY assigned_at DESC
-        LIMIT 1`,
-      [task.id, action.studentId, action.firstName, action.lastName]
-    )
-    : await queryOne(
-      `SELECT id, done_at
-         FROM task_assignments
-        WHERE task_id = ?
-          AND student_first_name = ?
-          AND student_last_name = ?
-        ORDER BY assigned_at DESC
-        LIMIT 1`,
-      [task.id, action.firstName, action.lastName]
-    );
-  if (!assignment) {
-    return res.status(400).json({ error: 'Tu dois être inscrit à cette tâche avant de la terminer' });
-  }
-
-  if (comment || imageData) {
-    const result = await execute(
-      'INSERT INTO task_logs (task_id, student_id, student_first_name, student_last_name, comment, image_path, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [task.id, action.studentId || null, action.firstName, action.lastName, comment || '', null, new Date().toISOString()]
-    );
-    const logId = result.insertId;
-    if (imageData) {
-      const relativePath = `task-logs/${task.id}_${logId}.jpg`;
-      try {
-        saveBase64ToDisk(relativePath, imageData);
-      } catch (fileErr) {
-        await execute('DELETE FROM task_logs WHERE id = ?', [logId]);
-        throw fileErr;
-      }
-      await execute('UPDATE task_logs SET image_path = ? WHERE id = ?', [relativePath, logId]);
-    }
-  }
-
-  if (completionMode === 'all_assignees_done') {
-    if (!assignment.done_at) {
-      await execute(
-        'UPDATE task_assignments SET done_at = ? WHERE id = ?',
-        [new Date().toISOString(), assignment.id]
-      );
-    }
-    await recalculateTaskStatus({
-      id: task.id,
-      status: task.status,
-      completion_mode: completionMode,
-    });
-  } else {
-    await execute("UPDATE tasks SET status = 'done' WHERE id = ?", [task.id]);
-  }
-  const updated = await getTaskWithAssignments(task.id);
-  logAudit('done_task', 'task', task.id, `${action.firstName} ${action.lastName}`.trim(), {
-    req,
-    actorUserType: action.actorUserType,
-    actorUserId: action.actorUserId,
-    payload: {
-      student_id: action.studentId || null,
-      with_comment: !!comment,
-      with_image: !!imageData,
-      completion_mode: completionMode,
-    },
-  });
-  emitTasksChanged({ reason: 'done', taskId: task.id, mapId: resolveTaskMapId(updated) });
-  await syncTaskProjectCompletionForProjects([updated.project_id]);
-  res.json(updated);
-}));
-
 router.post('/:id/validate', requirePermission('tasks.validate', { needsElevation: true }), asyncHandler(async (req, res) => {
   const task = await queryOne('SELECT * FROM tasks WHERE id = ?', [req.params.id]);
   if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
@@ -1667,45 +1313,8 @@ router.post('/:id/validate', requirePermission('tasks.validate', { needsElevatio
   res.json(updated);
 }));
 
-/** Même modèle que POST assign, avec identité n3beur vérifiée (session ou permission n3boss). */
-router.post('/:id/unassign', asyncHandler(async (req, res) => {
-  const task = await getTaskWithAssignments(req.params.id);
-  if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
-  if (task.status === 'done' || task.status === 'validated') {
-    return res.status(400).json({ error: 'Impossible de quitter une tâche déjà terminée' });
-  }
-
-  const action = await resolveStudentActionContext(req, req.body || {}, 'tasks.unassign_self');
-  if (action.error) {
-    return res.status(action.errorStatus || 400).json({ error: action.error, ...(action.deleted ? { deleted: true } : {}) });
-  }
-
-  if (action.studentId) {
-    await execute(
-      'DELETE FROM task_assignments WHERE task_id = ? AND (student_id = ? OR (student_first_name = ? AND student_last_name = ?))',
-      [task.id, action.studentId, action.firstName, action.lastName]
-    );
-  } else {
-    await execute(
-      'DELETE FROM task_assignments WHERE task_id = ? AND student_first_name = ? AND student_last_name = ?',
-      [task.id, action.firstName, action.lastName]
-    );
-  }
-  const recalculated = await recalculateTaskStatus(task);
-  const newStatus = recalculated?.status || normalizeTaskStatusForRead(task.status);
-
-  const updated = await getTaskWithAssignments(task.id);
-  logAudit('unassign_task', 'task', task.id, `${action.firstName} ${action.lastName}`, {
-    req,
-    actorUserType: action.actorUserType,
-    actorUserId: action.actorUserId,
-    payload: { student_id: action.studentId || null, status: newStatus },
-  });
-  emitTasksChanged({ reason: 'unassign', taskId: task.id, mapId: resolveTaskMapId(updated) });
-  await syncTaskProjectCompletionForProjects([updated.project_id]);
-  res.json(updated);
-}));
-
+// O10 — sous-domaine assignations (assign / assign-group / done / unassign) extrait en sous-routeur dédié (chemins inchangés).
+router.use(require('./tasks/assignments'));
 // O10 — sous-domaine import de tâches/projets extrait en sous-routeur dédié (chemins inchangés).
 router.use(require('./tasks/import'));
 // O10 — sous-domaine logs de tâches extrait en sous-routeur dédié (chemins inchangés).
