@@ -9,6 +9,7 @@ import { DialogShell } from '../DialogShell';
 import { MarkdownTextarea } from '../MarkdownTextarea.jsx';
 import { TaskFormImageField } from './TaskFormImageField.jsx';
 import { TaskFormReferentsField } from './TaskFormReferentsField.jsx';
+import { TaskFormTutorialsField } from './TaskFormTutorialsField.jsx';
 import {
   zonePickDisplayName,
   initialLocationIds,
@@ -443,55 +444,16 @@ function TaskFormModal({
           )}
         </div>
         {!isProposal && (
-          <div className="field"><label>Tutoriels associés (optionnel)</label>
-            {tutorials.length > 0 && (
-              <div style={{ display: 'grid', gap: 8, marginBottom: 8 }}>
-                <input
-                  value={tutorialSearch}
-                  onChange={(e) => setTutorialSearch(e.target.value)}
-                  placeholder="🔍 Rechercher un tutoriel..."
-                />
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: '.8rem', color: '#666' }}>
-                    {normalizedTutorialIds.length} sélectionné{normalizedTutorialIds.length > 1 ? 's' : ''}
-                  </span>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <button
-                      type="button"
-                      className="btn btn-ghost btn-sm"
-                      onClick={() => setForm((f) => ({ ...f, tutorial_ids: normalizeTutorialIds(tutorials.map((t) => t.id)) }))}
-                    >
-                      Tout sélectionner
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-ghost btn-sm"
-                      onClick={() => setForm((f) => ({ ...f, tutorial_ids: [] }))}
-                    >
-                      Effacer
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-            <div className="task-form-pick-list">
-              {tutorials.length === 0
-                ? <p className="task-form-pick-empty">Aucun tutoriel disponible.</p>
-                : filteredTutorials.length === 0
-                  ? <p className="task-form-pick-empty">Aucun tutoriel trouvé.</p>
-                  : filteredTutorials.map(t => (
-                  <label key={t.id} className="task-form-pick-item">
-                    <input
-                      type="checkbox"
-                      className="task-form-pick-checkbox"
-                      checked={normalizedTutorialIds.includes(Number.parseInt(t.id, 10))}
-                      onChange={() => toggleTutorialId(t.id)}
-                    />
-                    <span className="task-form-pick-text">📘 {t.title}</span>
-                  </label>
-                ))}
-            </div>
-          </div>
+          <TaskFormTutorialsField
+            tutorials={tutorials}
+            filteredTutorials={filteredTutorials}
+            search={tutorialSearch}
+            onSearchChange={setTutorialSearch}
+            selectedIds={form.tutorial_ids}
+            onToggle={toggleTutorialId}
+            onSelectAll={() => setForm((f) => ({ ...f, tutorial_ids: normalizeTutorialIds(tutorials.map((t) => t.id)) }))}
+            onClear={() => setForm((f) => ({ ...f, tutorial_ids: [] }))}
+          />
         )}
         {!isProposal && (
           <TaskFormReferentsField
