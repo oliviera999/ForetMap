@@ -142,6 +142,27 @@ Du plus sûr au plus risqué, chaque lot livré avec tests + doc + lint/build ve
 7. Structurel (O5, O6, O7, O8, O10) — incrémental, multi-commits.
 8. Décision produit puis migration (O4 `xlsx`).
 
-> **O4 (xlsx)** est marqué `differe` : il implique un choix entre SheetJS CDN (hors npm,
-> supply-chain à assumer) et `exceljs` (npm, réécriture de 14 modules avec API différente).
-> À trancher avant exécution pour éviter une régression sur les imports élèves/plantes.
+> **O4 (xlsx) — `done`.** Migration réalisée vers `exceljs` : tout le code applicatif
+> (lecture/écriture de tableaux, imports élèves/plantes/GL) passe désormais par
+> `lib/spreadsheet.js` (basé sur `exceljs`). Le paquet `xlsx@0.18.5` (CVE-2023-30533,
+> CVE-2024-22363) **n'est plus une dépendance de production** : il est confiné en
+> `devDependencies` et n'est plus utilisé que par des fixtures de tests
+> (`tests/*-import*.test.js`, `tests/spreadsheet-xlsx-equivalence.test.js`). L'exposition
+> runtime via uploads est donc neutralisée. *Reliquat optionnel à basse priorité* :
+> régénérer ces fixtures via `exceljs` pour retirer entièrement `xlsx` des `devDependencies`.
+
+## 6. Journal des lots — itération multi-agents (2026-06-14)
+
+Lot livré en parallèle (5 agents, périmètres de fichiers disjoints), build + Vitest verts
+(1 608 tests UI), lint sans erreur ; tests backend DB exécutés en CI. Avancées par recommandation :
+
+- **O4** (`done`) — note du §5 corrigée pour refléter la migration `exceljs` effective (cf. ci-dessus).
+- **O5** (`wip`) — extraction de deux concerns UI-state d'`App.jsx` en hooks dédiés :
+  `usePlantCatalogPreview` (aperçu fiche plante) et `useViewportLayout` (viewport + visibilité onglet + layout desktop).
+- **O6** (`wip`) — `MarkerTutorialCardList` extrait de `MarkerModal.jsx` + premier test UI ciblé sur ce composant.
+- **O7** (`wip`) — `routes/students.js` : validation `POST /register` et `GET /students/import/template`
+  migrée vers des schémas `zod` via `lib/validate` (réponses/statuts inchangés), + tests unitaires DB-free.
+- **O8** (`wip`) — déduplication de `respondInternalError` : suppression des définitions locales en double
+  dans `routes/auth.js` et `routes/tasks.js`, désormais importé depuis `lib/routeLog`.
+- **O10** (`wip`) — `routes/visit.js` : sous-domaines `media` (photos) et `zones` (CRUD) extraits en
+  sous-routeurs dédiés `routes/visit/media.js` et `routes/visit/zones.js` (chemins/middlewares inchangés).
