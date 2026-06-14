@@ -3,6 +3,7 @@ const { v4: uuidv4 } = require('uuid');
 const { queryAll, queryOne, execute, withTransaction } = require('../database');
 const { requirePermission } = require('../middleware/requireTeacher');
 const asyncHandler = require('../lib/asyncHandler');
+const { z, validate } = require('../lib/validate');
 const { emitTasksChanged } = require('../lib/realtime');
 const { logAudit } = require('./audit');
 
@@ -38,6 +39,28 @@ function normalizeTutorialIdArray(value) {
   }
   return out;
 }
+
+// O7 — Schéma zod du corps de POST / (création projet). Reproduit exactement la validation
+// manuelle : normalisation permissive de tous les champs, puis vérification des champs requis
+// dans l'ordre map_id → title → status (mêmes messages, statut 400 via lib/validate). Les
+// contrôles dépendants de la base (carte/zones/repères/tutoriels) restent dans le handler.
+const createProjectBodySchema = z
+  .object({})
+  .loose()
+  .transform((b) => ({
+    map_id: normalizeText(b.map_id),
+    title: normalizeText(b.title),
+    description: normalizeText(b.description) || null,
+    status: normalizeProjectStatusForApi(b.status, 'active'),
+    zone_ids: normalizeIdArray(b.zone_ids),
+    marker_ids: normalizeIdArray(b.marker_ids),
+    tutorial_ids: normalizeTutorialIdArray(b.tutorial_ids),
+  }))
+  .superRefine((d, ctx) => {
+    if (!d.map_id) ctx.addIssue({ code: 'custom', message: 'Carte requise', path: [] });
+    else if (!d.title) ctx.addIssue({ code: 'custom', message: 'Titre requis', path: [] });
+    else if (!d.status) ctx.addIssue({ code: 'custom', message: 'Statut projet invalide', path: [] });
+  });
 
 async function ensureMapExists(mapId) {
   const map = await queryOne('SELECT id FROM maps WHERE id = ?', [mapId]);
@@ -241,18 +264,9 @@ router.get('/', asyncHandler(async (req, res) => {
   res.json(await enrichProjects(rows));
 }));
 
-router.post('/', requirePermission('tasks.manage', { needsElevation: true }), asyncHandler(async (req, res) => {
-  const mapId = normalizeText(req.body.map_id);
-  const title = normalizeText(req.body.title);
-  const description = normalizeText(req.body.description) || null;
-  const status = normalizeProjectStatusForApi(req.body.status, 'active');
-  const zoneIds = normalizeIdArray(req.body.zone_ids);
-  const markerIds = normalizeIdArray(req.body.marker_ids);
-  const tutorialIds = normalizeTutorialIdArray(req.body.tutorial_ids);
+router.post('/', requirePermission('tasks.manage', { needsElevation: true }), validate({ body: createProjectBodySchema }), asyncHandler(async (req, res) => {
+  const { map_id: mapId, title, description, status, zone_ids: zoneIds, marker_ids: markerIds, tutorial_ids: tutorialIds } = req.body;
 
-  if (!mapId) return res.status(400).json({ error: 'Carte requise' });
-  if (!title) return res.status(400).json({ error: 'Titre requis' });
-  if (!status) return res.status(400).json({ error: 'Statut projet invalide' });
   if (!(await ensureMapExists(mapId))) return res.status(400).json({ error: 'Carte introuvable' });
 
   const loc = await validateProjectLinksForMap(mapId, zoneIds, markerIds);
@@ -530,3 +544,5 @@ router.post('/:id/duplicate', requirePermission('tasks.manage', { needsElevation
 }));
 
 module.exports = router;
+// Exporté pour les tests unitaires (sans base) du schéma de validation O7.
+module.exports.createProjectBodySchema = createProjectBodySchema;

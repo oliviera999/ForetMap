@@ -1,6 +1,9 @@
 # Dépendances
 node_modules/
 
+# Worktrees d'agents Claude Code (éphémères)
+.claude/worktrees/
+
 # Build frontend Vite
 deploy/
 
