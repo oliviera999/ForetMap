@@ -14,8 +14,11 @@ import {
   isElevatedJwt,
 } from './services/api';
 import { useForetmapRealtime } from './hooks/useForetmapRealtime';
+import { useOauthRedirectSession } from './hooks/useOauthRedirectSession';
 import { useNotificationCenter } from './hooks/useNotificationCenter';
 import { usePwaInstall } from './hooks/usePwaInstall';
+import { usePlantCatalogPreview } from './hooks/usePlantCatalogPreview';
+import { useViewportLayout } from './hooks/useViewportLayout';
 import { RT_PROF_TOOLTIPS } from './constants/realtime';
 import { NOTIFICATION_CATEGORY, NOTIFICATION_LEVEL } from './constants/notifications';
 import { HELP_TOOLTIPS, resolveRoleText } from './constants/help';
@@ -77,11 +80,8 @@ import { SessionProvider } from './contexts/SessionContext.jsx';
 import { DataProvider } from './contexts/DataContext.jsx';
 import { DEFAULT_PUBLIC_SETTINGS, mergePublicSettings } from './utils/appPublicSettings';
 import {
-  resolveOauthErrorMessage,
-  decodeBase64UrlJson,
   readStoredTab,
   pickVisibleMapId,
-  shouldUseDesktopSplitLayout,
 } from './utils/appShellHelpers';
 
 const DEFAULT_MAPS = [];
@@ -130,8 +130,7 @@ function App() {
   const [roleViewMode, setRoleViewMode] = useState('native'); // native | student | teacher
   const [publicSettings, setPublicSettings] = useState(DEFAULT_PUBLIC_SETTINGS);
   const [publicSettingsReady, setPublicSettingsReady] = useState(false);
-  const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth || 0);
-  const [isTabVisible, setIsTabVisible] = useState(() => document.visibilityState !== 'hidden');
+  const { isTabVisible, shouldUseDesktopSplit } = useViewportLayout();
   const {
     deferredInstallPrompt,
     showIosInstallHint,
@@ -141,7 +140,6 @@ function App() {
   } = usePwaInstall({ onToast: setToast });
   const failCountRef = useRef(0);
   const prevTabForPollingRef = useRef(tab);
-  const viewportResizeRafRef = useRef(null);
   /** Promesse du chargement global en cours ; les appels suivants s’y accrochent et peuvent demander une nouvelle passe. */
   const fetchAllRunPromiseRef = useRef(null);
   const fetchAllPendingRef = useRef(false);
@@ -189,69 +187,13 @@ function App() {
     return allowedRole && hasPermissionInRole('tutorials.manage');
   }, [effectiveRoleContext.roleSlug, hasPermissionInRole, authClaims?.nativePrivileged]);
 
-  useEffect(() => {
-    const hashRaw = window.location.hash.startsWith('#') ? window.location.hash.slice(1) : '';
-    if (!hashRaw) return;
-    const hashParams = new URLSearchParams(hashRaw);
-    const oauthPayload = hashParams.get('oauth');
-    const oauthError = hashParams.get('oauth_error');
-    if (!oauthPayload && !oauthError) return;
-
-    const cleanUrl = `${window.location.pathname}${window.location.search}`;
-    window.history.replaceState({}, document.title, cleanUrl);
-
-    if (oauthError) {
-      setToast(resolveOauthErrorMessage(oauthError));
-      return;
-    }
-    try {
-      const payload = decodeBase64UrlJson(oauthPayload);
-      if (payload?.type === 'teacher' && payload?.token) {
-        safeLocalStorageSetItem('foretmap_teacher_token', payload.token);
-        safeLocalStorageSetItem('foretmap_auth_token', payload.token);
-        saveStoredSession({
-          token: payload.token,
-          user: {
-            id: payload?.auth?.canonicalUserId || payload?.auth?.userId || null,
-            userType: 'teacher',
-            displayName: payload?.auth?.roleDisplayName || 'Utilisateur',
-            avatar_path: null,
-          },
-        });
-        setSessionUser(getStoredSession()?.user || null);
-        setAuthClaims(getAuthClaims());
-        setIsTeacher(true);
-        setToast('Connexion Google réussie.');
-        return;
-      }
-      if (payload?.type === 'student' && payload?.student) {
-        const nextStudent = payload.student;
-        if (nextStudent?.authToken) {
-          safeLocalStorageSetItem('foretmap_auth_token', nextStudent.authToken);
-        }
-        saveLegacyStudentSnapshot(nextStudent);
-        saveStoredSession({
-          token: nextStudent?.authToken || getStoredSession()?.token || null,
-          user: {
-            id: nextStudent?.auth?.canonicalUserId || nextStudent?.id || null,
-            userType: 'student',
-            displayName: nextStudent?.pseudo || `${nextStudent?.first_name || ''} ${nextStudent?.last_name || ''}`.trim() || 'Utilisateur',
-            email: nextStudent?.email || null,
-            avatar_path: nextStudent?.avatar_path ?? nextStudent?.avatarPath ?? null,
-          },
-          student: nextStudent,
-        });
-        setStudent(nextStudent);
-        setSessionUser(getStoredSession()?.user || null);
-        setIsTeacher(false);
-        setToast('Connexion Google réussie.');
-        return;
-      }
-      setToast('Réponse Google invalide.');
-    } catch (_) {
-      setToast('Réponse Google illisible.');
-    }
-  }, []);
+  useOauthRedirectSession({
+    onToast: setToast,
+    setSessionUser,
+    setAuthClaims,
+    setIsTeacher,
+    setStudent,
+  });
 
   useEffect(() => {
     safeLocalStorageSetItem('foretmap_active_map', activeMapId);
@@ -554,30 +496,6 @@ function App() {
   useEffect(() => {
     setRoleViewMode('native');
   }, [authClaims?.roleSlug, authClaims?.userId, isTeacher]);
-
-  useEffect(() => {
-    const onResize = () => {
-      if (viewportResizeRafRef.current != null) return;
-      viewportResizeRafRef.current = window.requestAnimationFrame(() => {
-        viewportResizeRafRef.current = null;
-        setViewportWidth(window.innerWidth || 0);
-      });
-    };
-    window.addEventListener('resize', onResize, { passive: true });
-    return () => {
-      window.removeEventListener('resize', onResize);
-      if (viewportResizeRafRef.current != null) {
-        window.cancelAnimationFrame(viewportResizeRafRef.current);
-        viewportResizeRafRef.current = null;
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    const onVisibilityChange = () => setIsTabVisible(document.visibilityState !== 'hidden');
-    document.addEventListener('visibilitychange', onVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', onVisibilityChange);
-  }, []);
 
   useEffect(() => {
     const session = getStoredSession();
@@ -886,7 +804,6 @@ function App() {
   useOverlayHistoryBack(showStats && canOpenUserDialogs, () => setShowStats(false));
   useOverlayHistoryBack(showProfile && canOpenUserDialogs && !!profileTargetUser, () => setShowProfile(false));
 
-  const shouldUseDesktopSplit = useMemo(() => shouldUseDesktopSplitLayout(viewportWidth), [viewportWidth]);
   const isCombinedMapTasksTab = tab === 'maptasks';
   const useSplitMapTasks = shouldUseDesktopSplit && isCombinedMapTasksTab && canAccessStudentMapTasks;
   /** Ouvre l’onglet Tâches avec le filtre lieu (carte seule ; en split le filtre est déjà synchronisé au clic). */
@@ -898,13 +815,11 @@ function App() {
     setTab('tasks');
   }, [effectiveIsTeacher, canAccessStudentMapTasks, useSplitMapTasks]);
 
-  const [plantCatalogPreview, setPlantCatalogPreview] = useState(null);
-  const openPlantCatalogPreviewById = useCallback((plantId) => {
-    const id = Number(plantId);
-    if (!Number.isFinite(id) || id <= 0) return;
-    const p = (plants || []).find((x) => Number(x.id) === id);
-    if (p) setPlantCatalogPreview(p);
-  }, [plants]);
+  const {
+    plantCatalogPreview,
+    setPlantCatalogPreview,
+    openPlantCatalogPreviewById,
+  } = usePlantCatalogPreview(plants);
 
   const useWideMain = shouldUseDesktopSplit;
   const mapChromeCompactVisible = !loading && (useSplitMapTasks || (!useSplitMapTasks && tab === 'map'));
