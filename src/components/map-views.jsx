@@ -31,6 +31,7 @@ import { TutorialPreviewModal } from './TutorialPreviewModal';
 import { fetchTutorialReadIds } from './TutorialReadAcknowledge';
 
 import { MapViewMascotOverlay } from './MapViewMascotOverlay.jsx';
+import { MapViewMarkerBubble } from './MapViewMarkerBubble.jsx';
 import useMapViewMascot from '../hooks/useMapViewMascot.js';
 import { useMapGestures } from '../hooks/useMapGestures.js';
 
@@ -915,11 +916,7 @@ function MapView({ maps = [], onMapChange, isTeacher, student, canSelfAssignTask
               ? ''
               : (markerTutorialCount === 1 ? '1 tutoriel lié' : `${markerTutorialCount} tutoriels liés`);
             const markerAriaLabel = [m.label || 'Repère', markerTaskLabel, markerTutorialLabel].filter(Boolean).join(' — ');
-            const markerEmojiSize = `${mapEmojiFontPx}px`;
-            const markerLabelFontSize = `${mapLabelFontPx}px`;
-            const markerStatusDotSize = isCoarsePointer ? 17 : 12;
-            const markerStatusDotBorder = isCoarsePointer ? 2 : 1.5;
-            const markerStatusDotOffset = isCoarsePointer ? -2 : -1;
+            const markerDraggable = isTeacher && markerPositionUnlocked;
             const openMarker = (e) => {
               e.stopPropagation();
               if (!moved.current) {
@@ -928,104 +925,26 @@ function MapView({ maps = [], onMapChange, isTeacher, student, canSelfAssignTask
               }
             };
             return (
-            <button key={m.id} className="map-bubble" type="button"
-              style={{ position: 'absolute', left: m.x_pct + '%', top: m.y_pct + '%',
-                transform: 'translate(-50%,-50%)', zIndex: 10, cursor: isTeacher && markerPositionUnlocked ? 'grab' : 'pointer',
-                border: 'none', background: 'transparent',
-                display: 'flex', flexDirection: 'column', alignItems: 'center',
-                justifyContent: isCoarsePointer ? 'center' : 'flex-start',
-                minWidth: isCoarsePointer ? 48 : undefined,
-                minHeight: isCoarsePointer ? 48 : undefined,
-                padding: isCoarsePointer ? 6 : 0,
-                boxSizing: 'border-box' }}
-              aria-label={markerAriaLabel}
-              title={markerAriaLabel}
-              onClick={openMarker}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  openMarker(e);
-                }
-              }}
-              onPointerDown={isTeacher && markerPositionUnlocked ? e => {
+            <MapViewMarkerBubble
+              key={m.id}
+              marker={m}
+              ariaLabel={markerAriaLabel}
+              showLabels={showLabels}
+              isCoarsePointer={isCoarsePointer}
+              draggable={markerDraggable}
+              emojiFontSize={`${mapEmojiFontPx}px`}
+              labelFontSize={`${mapLabelFontPx}px`}
+              labelMarginTop={markerLabelMarginTop}
+              taskVisual={markerTaskVisual}
+              taskLabel={markerTaskLabel}
+              tutorialCount={markerTutorialCount}
+              tutorialLabel={markerTutorialLabel}
+              onOpen={openMarker}
+              onPointerDown={markerDraggable ? e => {
                 e.stopPropagation();
                 beginMarkerDrag(m.id, e.currentTarget, e.pointerId);
               } : undefined}
-              onPointerUp={e => e.stopPropagation()}>
-              <div className="map-bubble-pin" style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                flexShrink: 0,
-                background: 'transparent', border: 'none', borderRadius: 0,
-                fontSize: markerEmojiSize,
-                lineHeight: 1,
-                minWidth: m.emoji ? undefined : 10,
-                minHeight: m.emoji ? undefined : 10,
-              }}>
-                {m.emoji ? (
-                  m.emoji
-                ) : (
-                  <span
-                    className="map-marker-no-emoji"
-                    aria-hidden
-                    style={{
-                      display: 'inline-block',
-                      width: 8,
-                      height: 8,
-                      borderRadius: '50%',
-                      background: '#1a4731',
-                      opacity: 0.55,
-                    }}
-                  />
-                )}
-                {markerTaskVisual && (
-                  <span
-                    className={`map-task-status-dot map-task-status-dot--${markerTaskVisual}`}
-                    role="img"
-                    aria-label={markerTaskLabel}
-                    title={markerTaskLabel}
-                    style={{
-                      width: markerStatusDotSize,
-                      height: markerStatusDotSize,
-                      borderWidth: markerStatusDotBorder,
-                      top: markerStatusDotOffset,
-                      right: markerStatusDotOffset,
-                    }}
-                  />
-                )}
-                {markerTutorialCount > 0 && (
-                  <span
-                    className="map-tutorial-marker-dot"
-                    role="img"
-                    aria-label={markerTutorialLabel}
-                    title={markerTutorialLabel}
-                    style={{
-                      width: Math.max(8, markerStatusDotSize - 3),
-                      height: Math.max(8, markerStatusDotSize - 3),
-                      borderWidth: markerStatusDotBorder,
-                      bottom: markerStatusDotOffset,
-                      left: markerStatusDotOffset,
-                      right: 'auto',
-                      top: 'auto',
-                    }}
-                  />
-                )}
-              </div>
-              {showLabels && (
-                <div style={{
-                  flexShrink: 0,
-                  marginTop: markerLabelMarginTop,
-                  background: 'transparent', color: '#1a4731', borderRadius: 0,
-                  padding: 0, fontSize: markerLabelFontSize, fontWeight: 700,
-                  fontFamily: 'DM Sans,sans-serif',
-                  lineHeight: 1,
-                  whiteSpace: 'nowrap', maxWidth: isCoarsePointer ? 128 : 96,
-                  overflow: 'hidden', textOverflow: 'ellipsis', pointerEvents: 'none',
-                  textAlign: 'center',
-                  textShadow: '0 0 2px rgba(255,255,255,.95), 0 0 6px rgba(255,255,255,.85), 0 1px 0 rgba(255,255,255,.92)' }}>
-                  {m.label}
-                </div>
-              )}
-            </button>
+            />
             );
           })}
           </div>
