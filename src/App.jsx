@@ -85,6 +85,7 @@ import { useSessionWindowSync } from './hooks/useSessionWindowSync';
 import { useToastNotificationBridge } from './hooks/useToastNotificationBridge';
 import { useRoleViewModeReset } from './hooks/useRoleViewModeReset';
 import { useAuthMeHydration } from './hooks/useAuthMeHydration';
+import { useDefaultActiveMapFromSettings } from './hooks/useDefaultActiveMapFromSettings';
 
 const DEFAULT_MAPS = [];
 
@@ -197,24 +198,13 @@ function App() {
 
   useAppStoragePersistence({ activeMapId, tab, onToast: setToast });
 
-  useEffect(() => {
-    if (!publicSettingsReady) return;
-    const storedMapId = String(safeLocalStorageGetItem('foretmap_active_map', '') || '').trim();
-    if (storedMapId) return;
-    const defaultMap = showPublicVisit
-      ? publicSettings?.map?.default_map_visit
-      : (effectiveIsTeacher ? publicSettings?.map?.default_map_teacher : publicSettings?.map?.default_map_student);
-    const nextMapId = String(defaultMap || '').trim();
-    if (!nextMapId) return;
-    setActiveMapId((prev) => (prev === nextMapId ? prev : nextMapId));
-  }, [
-    effectiveIsTeacher,
-    publicSettings?.map?.default_map_student,
-    publicSettings?.map?.default_map_teacher,
-    publicSettings?.map?.default_map_visit,
+  useDefaultActiveMapFromSettings({
     publicSettingsReady,
+    publicSettings,
+    effectiveIsTeacher,
     showPublicVisit,
-  ]);
+    setActiveMapId,
+  });
 
   // Called from anywhere when a 401-deleted is detected
   const forceLogout = useCallback(() => {
