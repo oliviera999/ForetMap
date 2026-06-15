@@ -11,8 +11,33 @@ const asyncHandler = require('../lib/asyncHandler');
 const { emitGardenChanged } = require('../lib/realtime');
 const { parseVisitEditorialBlocksInput, serializeVisitEditorialBlocks } = require('../lib/visitEditorialBlocks');
 const { resolveDefaultMapId } = require('../lib/settings');
+const { z, validate } = require('../lib/validate');
 
 const router = express.Router();
+
+// O7 — `PUT /:id/photos/reorder` : remplace la garde manuelle
+// `const raw = req.body?.photo_ids ?? req.body?.ordered_ids; if (!Array.isArray(raw)) -> 400`.
+// Le refine est au niveau racine (path vide) pour que `formatZodError` renvoie exactement le
+// message d'origine (sans préfixe de chemin) et tolère un corps null/undefined comme l'opérateur
+// `?.` d'origine. Le corps n'est PAS transformé : le handler continue de lire/coercer lui-même
+// `req.body?.photo_ids ?? req.body?.ordered_ids` (coercition permissive des éléments inchangée),
+// puis applique les vérifications métier restantes (longueur, appartenance, doublons).
+const reorderZonePhotosBodySchema = z
+  .object({ photo_ids: z.unknown().optional(), ordered_ids: z.unknown().optional() })
+  .passthrough()
+  .refine((body) => Array.isArray(body && (body.photo_ids ?? body.ordered_ids)), {
+    message: 'Liste photo_ids (ou ordered_ids) requise',
+  });
+
+// O7 — `POST /:id/photos` : remplace la garde manuelle `if (!image_data) -> 400 'Image requise'`.
+// Le refine est au niveau racine pour que `formatZodError` renvoie 'Image requise' tel quel et
+// tolère un corps null/undefined (déstructuration `const { image_data } = req.body` exigeait déjà
+// un corps objet). Le corps n'est PAS transformé : le handler continue de lire `req.body`
+// (image_data + caption) sans changement.
+const addZonePhotoBodySchema = z
+  .object({ image_data: z.unknown().optional() })
+  .passthrough()
+  .refine((body) => !!(body && body.image_data), { message: 'Image requise' });
 
 async function mapExists(mapId) {
   if (!mapId) return false;
@@ -221,7 +246,7 @@ router.get('/:id/photos', asyncHandler(async (req, res) => {
   res.json(photos.map((p) => serializeZonePhotoListRow(p, zoneId)));
 }));
 
-router.put('/:id/photos/reorder', requirePermission('zones.manage', { needsElevation: true }), asyncHandler(async (req, res) => {
+router.put('/:id/photos/reorder', requirePermission('zones.manage', { needsElevation: true }), validate({ body: reorderZonePhotosBodySchema }), asyncHandler(async (req, res) => {
   const zoneId = String(req.params.id || '').trim();
   const zone = await queryOne('SELECT id, map_id FROM zones WHERE id = ?', [zoneId]);
   if (!zone) return res.status(404).json({ error: 'Zone introuvable' });
@@ -265,7 +290,7 @@ router.get('/:id/photos/:pid/data', requireAuth, asyncHandler(async (req, res) =
   return res.status(404).json({ error: 'Aucune image' });
 }));
 
-router.post('/:id/photos', requirePermission('zones.manage', { needsElevation: true }), asyncHandler(async (req, res) => {
+router.post('/:id/photos', requirePermission('zones.manage', { needsElevation: true }), validate({ body: addZonePhotoBodySchema }), asyncHandler(async (req, res) => {
   let photoId = null;
   const zone = await queryOne('SELECT * FROM zones WHERE id=?', [req.params.id]);
   if (!zone) return res.status(404).json({ error: 'Zone introuvable' });
@@ -339,3 +364,6 @@ router.delete('/:id', requirePermission('zones.manage', { needsElevation: true }
 }));
 
 module.exports = router;
+// Exportés pour le test no-DB du contrat de validation O7.
+module.exports.reorderZonePhotosBodySchema = reorderZonePhotosBodySchema;
+module.exports.addZonePhotoBodySchema = addZonePhotoBodySchema;

@@ -14,6 +14,7 @@ const {
 } = require('../../lib/glZoneContent');
 
 const { z, validate } = require('../../lib/validate');
+const asyncHandler = require('../../lib/asyncHandler');
 
 const router = express.Router();
 
@@ -76,7 +77,7 @@ function mapZoneRow(row) {
   };
 }
 
-router.get('/zones', requireGlAuth, validate({ query: glKingdomZonesQuerySchema }), async (req, res) => {
+router.get('/zones', requireGlAuth, validate({ query: glKingdomZonesQuerySchema }), asyncHandler(async (req, res) => {
   const chapterId = req.validatedQuery?.chapterId;
   if (chapterId == null || !Number.isFinite(chapterId)) {
     return res.status(400).json({ error: 'chapterId requis' });
@@ -91,9 +92,9 @@ router.get('/zones', requireGlAuth, validate({ query: glKingdomZonesQuerySchema 
     [chapterId]
   );
   return res.json({ zones: rows.map(mapZoneRow) });
-});
+}));
 
-router.post('/zones', requireGlPermission('gl.content.manage'), async (req, res) => {
+router.post('/zones', requireGlPermission('gl.content.manage'), asyncHandler(async (req, res) => {
   const chapterId = Number(req.body?.chapterId);
   const label = normalizeOptionalString(req.body?.label);
   const description = normalizeOptionalString(req.body?.description);
@@ -130,9 +131,9 @@ router.post('/zones', requireGlPermission('gl.content.manage'), async (req, res)
   );
   const created = await queryOne('SELECT * FROM gl_kingdom_zones WHERE id = ? LIMIT 1', [result.insertId]);
   return res.status(201).json(mapZoneRow(created));
-});
+}));
 
-router.put('/zones/:id', requireGlPermission('gl.content.manage'), async (req, res) => {
+router.put('/zones/:id', requireGlPermission('gl.content.manage'), asyncHandler(async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isFinite(id)) return res.status(400).json({ error: 'Identifiant invalide' });
   const existing = await queryOne('SELECT id FROM gl_kingdom_zones WHERE id = ? LIMIT 1', [id]);
@@ -184,14 +185,14 @@ router.put('/zones/:id', requireGlPermission('gl.content.manage'), async (req, r
   );
   const updated = await queryOne('SELECT * FROM gl_kingdom_zones WHERE id = ? LIMIT 1', [id]);
   return res.json(mapZoneRow(updated));
-});
+}));
 
-router.delete('/zones/:id', requireGlPermission('gl.content.manage'), async (req, res) => {
+router.delete('/zones/:id', requireGlPermission('gl.content.manage'), asyncHandler(async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isFinite(id)) return res.status(400).json({ error: 'Identifiant invalide' });
   await execute('DELETE FROM gl_kingdom_zones WHERE id = ?', [id]);
   return res.json({ ok: true });
-});
+}));
 
 module.exports = router;
 module.exports.glKingdomZonesQuerySchema = glKingdomZonesQuerySchema; // exporté pour test no-DB du contrat O7
