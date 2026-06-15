@@ -10,6 +10,7 @@ import { TutorialPreviewModal, tutorialPreviewPayload } from './TutorialPreviewM
 import { fetchTutorialReadIds } from './TutorialReadAcknowledge';
 import { TasksEmptyState } from './TasksEmptyState.jsx';
 import { TasksTeacherSections } from './TasksTeacherSections.jsx';
+import { TasksStudentSections } from './TasksStudentSections.jsx';
 
 import {
   safeLocalStorageGetItem,
@@ -963,45 +964,18 @@ function TasksView({
               <TaskProjectsBlock {...taskProjectsBlockProps} visibleProjects={activeProjects} />
             </>
           ) : (
-            <>
-              <TaskTileSection
-                title="⚙️ En cours (déjà prises)"
-                tasks={inProgressNotMine}
-                sectionListClass={sectionListClass}
-                taskTileProps={taskTileProps}
-              />
-              <TaskTileSection
-                title="🔥 Tâches à faire"
-                tasks={availableNotMine}
-                sectionListClass={sectionListClass}
-                taskTileProps={taskTileProps}
-              />
-              <TaskTileSection
-                title={`💡 Mes propositions (${myProposals.length})`}
-                tasks={myProposals}
-                sectionListClass={sectionListClass}
-                taskTileProps={taskTileProps}
-              />
-              <TaskProjectsBlock {...taskProjectsBlockProps} visibleProjects={activeProjects} />
-              <TaskTileSection
-                title="⏳ En attente de validation"
-                tasks={doneNotMine}
-                sectionListClass={sectionListClass}
-                taskTileProps={taskTileProps}
-              />
-              <TaskTileSection
-                title="⏸️ En attente"
-                tasks={onHoldNotMine}
-                sectionListClass={sectionListClass}
-                taskTileProps={taskTileProps}
-              />
-              <TaskTileSection
-                title="✅ Récemment validées"
-                tasks={recentlyValidatedForStudent}
-                sectionListClass={sectionListClass}
-                taskTileProps={taskTileProps}
-              />
-            </>
+            <TasksStudentSections
+              inProgressNotMine={inProgressNotMine}
+              availableNotMine={availableNotMine}
+              myProposals={myProposals}
+              doneNotMine={doneNotMine}
+              onHoldNotMine={onHoldNotMine}
+              recentlyValidatedForStudent={recentlyValidatedForStudent}
+              activeProjects={activeProjects}
+              sectionListClass={sectionListClass}
+              taskTileProps={taskTileProps}
+              taskProjectsBlockProps={taskProjectsBlockProps}
+            />
           )}
         </>
       )}

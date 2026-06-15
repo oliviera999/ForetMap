@@ -199,6 +199,19 @@ Troisième lot en parallèle (5 agents, périmètres disjoints), build + Vitest 
 - **O10** (`wip`) — `routes/gl/games.js` : sous-domaine `markers` (present-question/present-arrival/apply-effects)
   extrait en sous-routeur `routes/gl/games/markers.js` (chemins/middlewares inchangés).
 
+### Lot 21 — structurel O10 + O6 + O5, multi-agents (2026-06-15)
+
+Vingt-et-unième lot (3 agents, base = `main` à jour). Build Vite vert, Vitest vert (1 716 tests UI, +7),
+lint sans erreur, require-smoke backend OK, union complète `gl/games*` (36) inchangée.
+
+- **O10** (`wip`) — `routes/gl/games.js` : sous-domaine **feuillet-zones** (`GET /games/:id/feuillet-zones/presented`,
+  `POST /games/:id/feuillet-zones/:zoneId/present`) extrait en sous-routeur `routes/gl/games/feuillet-zones.js`
+  (schéma O7 conservé côté games.js pour le test backend + copie auto-suffisante côté sous-routeur).
+- **O6** (`wip`) — `src/components/tasks-views.jsx` : `TasksStudentSections` (parcours élève par défaut —
+  sections En cours/À faire/Mes propositions/Validation/Validées) extrait + test (3 cas).
+- **O5** (`wip`) — `src/App.jsx` : hook `useStudentSessionRef` extrait (`useRef`+`useEffect` synchronisant
+  `studentRef` sur `student` ; ref renvoyée, écritures impératives existantes conservées) + test (4 cas).
+
 ### Lot 20 — O6 ×3 (agrégateurs, 3ᵉ passe), multi-agents (2026-06-15)
 
 Vingtième lot (3 agents O6, base = `main` à jour). Build Vite vert, Vitest vert (1 709 tests UI, +13),

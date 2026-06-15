@@ -86,6 +86,7 @@ import { useToastNotificationBridge } from './hooks/useToastNotificationBridge';
 import { useRoleViewModeReset } from './hooks/useRoleViewModeReset';
 import { useAuthMeHydration } from './hooks/useAuthMeHydration';
 import { useDefaultActiveMapFromSettings } from './hooks/useDefaultActiveMapFromSettings';
+import { useStudentSessionRef } from './hooks/useStudentSessionRef';
 
 const DEFAULT_MAPS = [];
 
@@ -93,10 +94,7 @@ const DEFAULT_MAPS = [];
 function App() {
   const initialSession = useMemo(() => getStoredSession(), []);
   const [student,    setStudent]    = useState(() => initialSession?.student || null);
-  const studentRef = useRef(initialSession?.student || null);
-  useEffect(() => {
-    studentRef.current = student;
-  }, [student]);
+  const studentRef = useStudentSessionRef(initialSession?.student || null, student);
   /** Pendant les modales de la vue Tâches : pas de rafraîchissement données (évite la perte du clavier virtuel mobile). */
   const pauseDataRefreshForTaskOverlaysRef = useRef(false);
   /** Instantané des paramètres lus par fetchAll (évite de recréer fetchAll à chaque rendu). */
@@ -260,7 +258,7 @@ function App() {
       student: merged,
     });
     setSessionUser(getStoredSession()?.user || null);
-  }, []);
+  }, [studentRef]);
 
   const handleAdminImpersonationApplied = useCallback((data) => {
     if (!data?.authToken) return;
@@ -305,7 +303,7 @@ function App() {
     setShowStats(false);
     setShowProfile(false);
     setToast('Prise de contrôle : vous voyez l’application comme l’utilisateur sélectionné.');
-  }, [updateStudentSession]);
+  }, [updateStudentSession, studentRef]);
 
   const stopAdminImpersonation = useCallback(async () => {
     try {
@@ -340,7 +338,7 @@ function App() {
     } catch (e) {
       setToast(e.message || 'Impossible de quitter la prise de contrôle');
     }
-  }, []);
+  }, [studentRef]);
 
   const mergeAuthMeResponse = useCallback((d, opts = {}) => {
     const { studentIdForMatch } = opts;
@@ -584,7 +582,7 @@ function App() {
     })();
     fetchAllRunPromiseRef.current = job;
     return job;
-  }, [forceLogout, mergeAuthMeResponse]);
+  }, [forceLogout, mergeAuthMeResponse, studentRef]);
 
   useEffect(() => {
     if (pinSuccessFetchAllTick === 0) return;
