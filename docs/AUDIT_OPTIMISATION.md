@@ -199,6 +199,21 @@ Troisième lot en parallèle (5 agents, périmètres disjoints), build + Vitest 
 - **O10** (`wip`) — `routes/gl/games.js` : sous-domaine `markers` (present-question/present-arrival/apply-effects)
   extrait en sous-routeur `routes/gl/games/markers.js` (chemins/middlewares inchangés).
 
+### Lot 23 — O6 gros modaux + O5, multi-agents (2026-06-15)
+
+Vingt-troisième lot (3 agents). **Réorientation vers les gros composants à logique réelle** (testabilité
+de vraie valeur, cf. point d'audit) plutôt que les snippets d'agrégateurs. Build Vite vert, Vitest vert
+(1 732 tests UI, +9), lint sans erreur. NB : la contribution `MarkerModalTabBar` a été **ré-appliquée
+proprement** à l'intégration (base de l'agent contaminée par un import fantôme `MarkerModalHeader` —
+écarté ; seule la barre d'onglets réelle conservée).
+
+- **O6** (`wip`) — `src/components/map/MarkerModal.jsx` (691 l.) : `MarkerModalTabBar` (barre d'onglets
+  Tâches/Tutoriels/Info/Photos/Modifier, présentationnel pur) extrait + test (4 cas).
+- **O6** (`wip`) — `src/components/tasks/TaskFormModal.jsx` (591 l.) : `TaskFormLevelsField` (ligne des 3
+  sélecteurs danger/difficulté/importance) extrait + test (5 cas).
+- **O5** (`wip`) — `src/App.jsx` : hook `useActiveMapVisibilityReconciler` extrait (réconciliation de
+  `activeMapId` avec les cartes visibles selon contexte ; miroir de `useDefaultActiveMapFromSettings`). Aucun état déplacé.
+
 ### Lot 22 — structurel O10 + O6 ×2, multi-agents (2026-06-15)
 
 Vingt-deuxième lot (3 agents, base = `main` à jour). Build Vite vert, Vitest vert (1 723 tests UI, +7),
