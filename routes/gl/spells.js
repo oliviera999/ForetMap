@@ -12,8 +12,44 @@ const {
   loadSpellsExportRows,
 } = require('../../lib/glSpellsImport');
 const { normalizeSpellCodeList, parseSpellCodesFromQuery } = require('../../lib/glChapterSpells');
+const { z, validate } = require('../../lib/validate');
 
 const router = express.Router();
+
+// O7 — query `GET /spells` : reproduit exactement l'ancienne validation manuelle
+// `const spellCodes = parseSpellCodesFromQuery(req.query); if (spellCodes.length === 0) -> 400`.
+// La vérification est portée au niveau racine (path vide) pour que `formatZodError` renvoie le
+// message tel quel (sans préfixe de chemin) et pour tolérer un query null/undefined comme
+// `parseSpellCodesFromQuery` (qui retourne []). Le query n'est PAS transformé : le handler refait
+// l'appel `parseSpellCodesFromQuery(req.query)` lui-même.
+const spellCodesQuerySchema = z.unknown().superRefine((q, ctx) => {
+  const spellCodes = parseSpellCodesFromQuery(q == null ? null : q);
+  if (spellCodes.length === 0) {
+    ctx.addIssue({
+      code: 'custom',
+      message: 'spellCodes requis (liste de codes séparés par des virgules)',
+      path: [],
+    });
+  }
+});
+
+// O7 — query `GET /admin/spells` : reproduit exactement `normalizeCategorySlug(req.query?.categorySlug)`
+// suivi de `if (!categorySlug) -> 400 'categorySlug requis'`. Refine au niveau racine (path vide)
+// pour préserver le message verbatim et tolérer un query null/undefined comme l'opérateur `?.`
+// d'origine. Le query n'est PAS transformé : le handler continue de lire/normaliser lui-même.
+const categorySlugQuerySchema = z.unknown().superRefine((q, ctx) => {
+  const slug = normalizeCategorySlug(q == null ? null : q.categorySlug);
+  if (!slug) ctx.addIssue({ code: 'custom', message: 'categorySlug requis', path: [] });
+});
+
+// O7 — param `:code` des routes sort (`GET /spells/:code`, `GET|PUT|DELETE /admin/spells/:code`) :
+// reproduit exactement `String(req.params.code || '').trim().toUpperCase()` suivi de
+// `if (!code) -> 400 'Code invalide'`. Refine au niveau racine (path vide) pour préserver le message
+// verbatim. Le param n'est PAS transformé : le handler refait le trim/upper lui-même.
+const spellCodeParamsSchema = z.unknown().superRefine((p, ctx) => {
+  const code = String((p == null ? '' : p.code) || '').trim().toUpperCase();
+  if (!code) ctx.addIssue({ code: 'custom', message: 'Code invalide', path: [] });
+});
 
 function normalizeCategorySlug(value) {
   if (value == null) return null;
@@ -81,7 +117,7 @@ router.get('/spell-categories', requireGlPermission('gl.read'), async (_req, res
 });
 
 /** GET /api/gl/spells?spellCodes=SL001,SL002 — sorts filtrés par codes chapitre. */
-router.get('/spells', requireGlPermission('gl.read'), async (req, res) => {
+router.get('/spells', requireGlPermission('gl.read'), validate({ query: spellCodesQuerySchema }), async (req, res) => {
   const spellCodes = parseSpellCodesFromQuery(req.query);
   if (spellCodes.length === 0) {
     return res.status(400).json({ error: 'spellCodes requis (liste de codes séparés par des virgules)' });
@@ -99,7 +135,7 @@ router.get('/spells', requireGlPermission('gl.read'), async (req, res) => {
 });
 
 /** GET /api/gl/spells/:code — détail sort (popover). */
-router.get('/spells/:code', requireGlPermission('gl.read'), async (req, res) => {
+router.get('/spells/:code', requireGlPermission('gl.read'), validate({ params: spellCodeParamsSchema }), async (req, res) => {
   const code = String(req.params.code || '').trim().toUpperCase();
   if (!code) return res.status(400).json({ error: 'Code invalide' });
   const spell = await loadAdminSpellDetail(code);
@@ -120,7 +156,7 @@ router.get('/admin/spells/next-code', requireGlPermission('gl.content.manage'), 
 });
 
 /** GET /api/gl/admin/spells — liste admin par catégorie. */
-router.get('/admin/spells', requireGlPermission('gl.content.manage'), async (req, res) => {
+router.get('/admin/spells', requireGlPermission('gl.content.manage'), validate({ query: categorySlugQuerySchema }), async (req, res) => {
   const categorySlug = normalizeCategorySlug(req.query?.categorySlug);
   if (!categorySlug) return res.status(400).json({ error: 'categorySlug requis' });
   const category = await queryOne(
@@ -246,7 +282,7 @@ router.post('/admin/spells/import', requireGlPermission('gl.content.manage'), as
 });
 
 /** GET /api/gl/admin/spells/:code */
-router.get('/admin/spells/:code', requireGlPermission('gl.content.manage'), async (req, res) => {
+router.get('/admin/spells/:code', requireGlPermission('gl.content.manage'), validate({ params: spellCodeParamsSchema }), async (req, res) => {
   const code = String(req.params.code || '').trim().toUpperCase();
   if (!code) return res.status(400).json({ error: 'Code invalide' });
   const spell = await loadAdminSpellDetail(code);
@@ -255,7 +291,7 @@ router.get('/admin/spells/:code', requireGlPermission('gl.content.manage'), asyn
 });
 
 /** PUT /api/gl/admin/spells/:code */
-router.put('/admin/spells/:code', requireGlPermission('gl.content.manage'), async (req, res) => {
+router.put('/admin/spells/:code', requireGlPermission('gl.content.manage'), validate({ params: spellCodeParamsSchema }), async (req, res) => {
   const code = String(req.params.code || '').trim().toUpperCase();
   if (!code) return res.status(400).json({ error: 'Code invalide' });
   try {
@@ -272,7 +308,7 @@ router.put('/admin/spells/:code', requireGlPermission('gl.content.manage'), asyn
 });
 
 /** DELETE /api/gl/admin/spells/:code */
-router.delete('/admin/spells/:code', requireGlPermission('gl.content.manage'), async (req, res) => {
+router.delete('/admin/spells/:code', requireGlPermission('gl.content.manage'), validate({ params: spellCodeParamsSchema }), async (req, res) => {
   const code = String(req.params.code || '').trim().toUpperCase();
   if (!code) return res.status(400).json({ error: 'Code invalide' });
   const existing = await queryOne(
@@ -294,3 +330,6 @@ router.delete('/admin/spells/:code', requireGlPermission('gl.content.manage'), a
 });
 
 module.exports = router;
+module.exports.spellCodesQuerySchema = spellCodesQuerySchema; // exporté pour test no-DB du contrat O7
+module.exports.categorySlugQuerySchema = categorySlugQuerySchema; // exporté pour test no-DB du contrat O7
+module.exports.spellCodeParamsSchema = spellCodeParamsSchema; // exporté pour test no-DB du contrat O7
