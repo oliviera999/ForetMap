@@ -39,6 +39,21 @@ const {
 const router = express.Router();
 
 const { normalizeOptionalString } = require('../lib/shared/httpHelpers');
+const { z, validate } = require('../lib/validate');
+
+// O7 — Schéma zod du corps de PUT /users/:userType/:userId/role. Reproduit exactement
+// l'ancienne validation manuelle `const roleId = parseInt(req.body?.role_id, 10);
+// if (!Number.isFinite(roleId) || roleId <= 0) ... 400 'role_id invalide'`.
+// La vérification est portée au niveau racine (path vide) pour que `formatZodError` renvoie le
+// message tel quel (sans préfixe de chemin) et pour tolérer un corps null/undefined comme
+// l'opérateur `?.` d'origine (parseInt(undefined, 10) → NaN → 400). Le corps n'est PAS
+// transformé : le handler continue de lire/parser `req.body?.role_id`.
+const assignRoleBodySchema = z.unknown().superRefine((b, ctx) => {
+  const roleId = parseInt(b && b.role_id, 10);
+  if (!Number.isFinite(roleId) || roleId <= 0) {
+    ctx.addIssue({ code: 'custom', message: 'role_id invalide', path: [] });
+  }
+});
 
 /** Résout teacher/student (ou alias user → type réel) pour les routes RBAC sur un compte. */
 async function resolveRbacSubjectForMutation(userTypeParam, userIdParam) {
@@ -818,9 +833,9 @@ router.patch(
 router.put(
   '/users/:userType/:userId/role',
   requirePermission('admin.users.assign_roles', { needsElevation: true }),
+  validate({ body: assignRoleBodySchema }),
   asyncHandler(async (req, res) => {
     const roleId = parseInt(req.body?.role_id, 10);
-    if (!Number.isFinite(roleId) || roleId <= 0) return res.status(400).json({ error: 'role_id invalide' });
     const role = await queryOne('SELECT id FROM roles WHERE id = ?', [roleId]);
     if (!role) return res.status(404).json({ error: 'Profil introuvable' });
     const resolved = await resolveRbacSubjectForMutation(req.params.userType, req.params.userId);
@@ -852,3 +867,5 @@ router.put(
 );
 
 module.exports = router;
+
+module.exports.assignRoleBodySchema = assignRoleBodySchema;

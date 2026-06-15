@@ -72,6 +72,7 @@ const {
 const router = express.Router();
 
 const { normalizeOptionalString } = require('../../lib/shared/httpHelpers');
+const asyncHandler = require('../../lib/asyncHandler');
 const { z, validate } = require('../../lib/validate');
 const {
   normalizeBiomeSlugFilter,
@@ -161,7 +162,7 @@ async function ensurePseudoAvailable(pseudo, excludedPlayerId = null) {
   return !existing;
 }
 
-router.get('/classes', requireGlPermission('gl.players.manage'), async (_req, res) => {
+router.get('/classes', requireGlPermission('gl.players.manage'), asyncHandler(async (_req, res) => {
   const rows = await queryAll(
     `SELECT c.id, c.name, c.school, c.is_active, c.created_at, c.updated_at, COUNT(p.id) AS players_count
        FROM gl_classes c
@@ -170,9 +171,9 @@ router.get('/classes', requireGlPermission('gl.players.manage'), async (_req, re
    ORDER BY c.id DESC`
   );
   return res.json(rows);
-});
+}));
 
-router.post('/classes', requireGlPermission('gl.players.manage'), async (req, res) => {
+router.post('/classes', requireGlPermission('gl.players.manage'), asyncHandler(async (req, res) => {
   const name = normalizeOptionalString(req.body?.name);
   const school = normalizeOptionalString(req.body?.school);
   if (!name) return res.status(400).json({ error: 'Nom de classe requis' });
@@ -182,9 +183,9 @@ router.post('/classes', requireGlPermission('gl.players.manage'), async (req, re
   );
   const created = await queryOne('SELECT * FROM gl_classes ORDER BY id DESC LIMIT 1');
   return res.status(201).json(created);
-});
+}));
 
-router.put('/classes/:id', requireGlPermission('gl.players.manage'), async (req, res) => {
+router.put('/classes/:id', requireGlPermission('gl.players.manage'), asyncHandler(async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isFinite(id)) return res.status(400).json({ error: 'Identifiant invalide' });
   const existing = await queryOne('SELECT id FROM gl_classes WHERE id = ? LIMIT 1', [id]);
@@ -210,9 +211,9 @@ router.put('/classes/:id', requireGlPermission('gl.players.manage'), async (req,
   );
   const updated = await queryOne('SELECT * FROM gl_classes WHERE id = ? LIMIT 1', [id]);
   return res.json(updated);
-});
+}));
 
-router.delete('/classes/:id', requireGlPermission('gl.players.manage'), async (req, res) => {
+router.delete('/classes/:id', requireGlPermission('gl.players.manage'), asyncHandler(async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isFinite(id)) return res.status(400).json({ error: 'Identifiant invalide' });
   const existing = await queryOne('SELECT id FROM gl_classes WHERE id = ? LIMIT 1', [id]);
@@ -235,9 +236,9 @@ router.delete('/classes/:id', requireGlPermission('gl.players.manage'), async (r
 
   await execute('DELETE FROM gl_classes WHERE id = ?', [id]);
   return res.json({ ok: true });
-});
+}));
 
-router.get('/players', requireGlPermission('gl.players.manage'), validate({ query: glAdminPlayersQuerySchema }), async (req, res) => {
+router.get('/players', requireGlPermission('gl.players.manage'), validate({ query: glAdminPlayersQuerySchema }), asyncHandler(async (req, res) => {
   const classId = req.validatedQuery?.classId;
   const rows = classId
     ? await queryAll(
@@ -257,9 +258,9 @@ router.get('/players', requireGlPermission('gl.players.manage'), validate({ quer
         ORDER BY p.id DESC`
     );
   return res.json(rows);
-});
+}));
 
-router.post('/players', requireGlPermission('gl.players.manage'), async (req, res) => {
+router.post('/players', requireGlPermission('gl.players.manage'), asyncHandler(async (req, res) => {
   const firstName = normalizeImportOptionalString(req.body?.firstName);
   const lastName = normalizeImportOptionalString(req.body?.lastName);
   const pseudo = normalizePseudo(req.body?.pseudo);
@@ -315,9 +316,9 @@ router.post('/players', requireGlPermission('gl.players.manage'), async (req, re
     [classId, pseudo]
   );
   return res.status(201).json(created);
-});
+}));
 
-router.put('/players/:id', requireGlPermission('gl.players.manage'), async (req, res) => {
+router.put('/players/:id', requireGlPermission('gl.players.manage'), asyncHandler(async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isFinite(id)) return res.status(400).json({ error: 'Identifiant invalide' });
   const existing = await queryOne('SELECT id, pseudo, class_id FROM gl_players WHERE id = ? LIMIT 1', [id]);
@@ -381,9 +382,9 @@ router.put('/players/:id', requireGlPermission('gl.players.manage'), async (req,
     [id]
   );
   return res.json(updated);
-});
+}));
 
-router.delete('/players/:id', requireGlPermission('gl.players.manage'), async (req, res) => {
+router.delete('/players/:id', requireGlPermission('gl.players.manage'), asyncHandler(async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isFinite(id)) return res.status(400).json({ error: 'Identifiant invalide' });
   const existing = await queryOne('SELECT id FROM gl_players WHERE id = ? LIMIT 1', [id]);
@@ -403,9 +404,9 @@ router.delete('/players/:id', requireGlPermission('gl.players.manage'), async (r
   await execute('DELETE FROM gl_team_members WHERE player_id = ?', [id]);
   await execute('DELETE FROM gl_players WHERE id = ?', [id]);
   return res.json({ ok: true });
-});
+}));
 
-router.post('/players/:id/reset-password', requireGlPermission('gl.players.manage'), async (req, res) => {
+router.post('/players/:id/reset-password', requireGlPermission('gl.players.manage'), asyncHandler(async (req, res) => {
   const id = Number(req.params.id);
   const password = normalizePassword(req.body?.password);
   if (!Number.isFinite(id)) return res.status(400).json({ error: 'Identifiant invalide' });
@@ -420,9 +421,9 @@ router.post('/players/:id/reset-password', requireGlPermission('gl.players.manag
     [hash, id]
   );
   return res.json({ ok: true });
-});
+}));
 
-router.post('/players/:id/reset-pin', requireGlPermission('gl.players.manage'), async (req, res) => {
+router.post('/players/:id/reset-pin', requireGlPermission('gl.players.manage'), asyncHandler(async (req, res) => {
   const id = Number(req.params.id);
   const password = normalizePassword(req.body?.pin) || normalizePassword(req.body?.password);
   if (!Number.isFinite(id)) return res.status(400).json({ error: 'Identifiant invalide' });
@@ -437,7 +438,7 @@ router.post('/players/:id/reset-pin', requireGlPermission('gl.players.manage'), 
     [hash, id]
   );
   return res.json({ ok: true });
-});
+}));
 
 router.get('/players/import/template', requireGlPermission('gl.players.manage'), wrapXlsxRoute(async (req, res) => {
   const format = String(req.query?.format || 'csv').toLowerCase();
@@ -520,7 +521,7 @@ router.get(
   })
 );
 
-router.post('/players/import', requireGlPermission('gl.players.manage'), async (req, res) => {
+router.post('/players/import', requireGlPermission('gl.players.manage'), asyncHandler(async (req, res) => {
   const dryRun = !!req.body?.dryRun;
   let parsedRows;
   try {
@@ -634,9 +635,9 @@ router.post('/players/import', requireGlPermission('gl.players.manage'), async (
       errors,
     },
   });
-});
+}));
 
-router.get('/players/export', requireGlPermission('gl.players.manage'), validate({ query: glAdminPlayersQuerySchema }), async (req, res) => {
+router.get('/players/export', requireGlPermission('gl.players.manage'), validate({ query: glAdminPlayersQuerySchema }), asyncHandler(async (req, res) => {
   const classId = req.validatedQuery?.classId;
   if (classId != null && !Number.isFinite(classId)) {
     return res.status(400).json({ error: 'classId invalide' });
@@ -670,9 +671,9 @@ router.get('/players/export', requireGlPermission('gl.players.manage'), validate
   res.setHeader('Content-Type', 'text/csv; charset=utf-8');
   res.setHeader('Content-Disposition', 'attachment; filename="foretmap-gl-joueurs.csv"');
   return res.send(csv);
-});
+}));
 
-router.get('/settings', requireGlPermission('gl.settings.manage'), async (_req, res) => {
+router.get('/settings', requireGlPermission('gl.settings.manage'), asyncHandler(async (_req, res) => {
   const rows = await queryAll('SELECT `key`, value_json, updated_at FROM gl_settings ORDER BY `key` ASC');
   const out = {};
   for (const row of rows) {
@@ -683,9 +684,9 @@ router.get('/settings', requireGlPermission('gl.settings.manage'), async (_req, 
     }
   }
   return res.json({ settings: out });
-});
+}));
 
-router.put('/settings/:key', requireGlPermission('gl.settings.manage'), async (req, res) => {
+router.put('/settings/:key', requireGlPermission('gl.settings.manage'), asyncHandler(async (req, res) => {
   const key = resolveSettingsKey(req);
   if (!key) return res.status(400).json({ error: 'Clé invalide' });
   let value = req.body?.value ?? null;
@@ -806,9 +807,9 @@ router.put('/settings/:key', requireGlPermission('gl.settings.manage'), async (r
     invalidateModulesCache();
   }
   return res.json({ ok: true });
-});
+}));
 
-router.get('/content', requireGlPermission('gl.content.manage'), async (_req, res) => {
+router.get('/content', requireGlPermission('gl.content.manage'), asyncHandler(async (_req, res) => {
   const rows = await queryAll(
     `SELECT slug, title, updated_by, updated_at
        FROM gl_content_pages
@@ -820,14 +821,14 @@ router.get('/content', requireGlPermission('gl.content.manage'), async (_req, re
     updatedBy: row.updated_by || null,
     updatedAt: row.updated_at || null,
   })));
-});
+}));
 
-router.get('/content/intro', requireGlPermission('gl.content.manage'), async (_req, res) => {
+router.get('/content/intro', requireGlPermission('gl.content.manage'), asyncHandler(async (_req, res) => {
   const config = await getIntroConfigFromDb();
   return res.json(config);
-});
+}));
 
-router.put('/content/intro', requireGlPermission('gl.content.manage'), async (req, res) => {
+router.put('/content/intro', requireGlPermission('gl.content.manage'), asyncHandler(async (req, res) => {
   const normalized = normalizeIntroConfig(req.body);
   await execute(
     `INSERT INTO gl_settings (\`key\`, value_json, updated_by, updated_at)
@@ -836,9 +837,9 @@ router.put('/content/intro', requireGlPermission('gl.content.manage'), async (re
     [INTRO_SETTINGS_KEY, JSON.stringify(normalized), req.glAuth.userId]
   );
   return res.json(normalized);
-});
+}));
 
-router.post('/content/intro/reset', requireGlPermission('gl.content.manage'), async (req, res) => {
+router.post('/content/intro/reset', requireGlPermission('gl.content.manage'), asyncHandler(async (req, res) => {
   const normalized = normalizeIntroConfig(loadDefaultIntroConfig());
   await execute(
     `INSERT INTO gl_settings (\`key\`, value_json, updated_by, updated_at)
@@ -847,42 +848,42 @@ router.post('/content/intro/reset', requireGlPermission('gl.content.manage'), as
     [INTRO_SETTINGS_KEY, JSON.stringify(normalized), req.glAuth.userId]
   );
   return res.json(normalized);
-});
+}));
 
 router.get(
   '/media-library',
   requireGlPermission('gl.content.manage'),
   validate({ query: glAdminMediaQuerySchema }),
-  async (req, res) => {
+  asyncHandler(async (req, res) => {
     const limit = req.validatedQuery?.limit;
     const items = listMediaLibraryItems(Number.isFinite(limit) ? limit : 300, { app: 'gl' });
     return res.json({ items });
-  }
+  })
 );
 
-router.get('/media-library/usage', requireGlPermission('gl.content.manage'), async (_req, res) => {
+router.get('/media-library/usage', requireGlPermission('gl.content.manage'), asyncHandler(async (_req, res) => {
   const usage = await collectMediaLibraryUsage({ queryAll }, { app: 'gl' });
   return res.json({ usage });
-});
+}));
 
 // Audit des conventions médiathèque (équivalent admin de scripts/audit-gl-media-keys.mjs) :
 // ressources requises manquantes, clés récit suspectes (typos), clés non branchées.
-router.get('/media-library/audit', requireGlPermission('gl.content.manage'), async (_req, res) => {
+router.get('/media-library/audit', requireGlPermission('gl.content.manage'), asyncHandler(async (_req, res) => {
   const report = auditGlMediaKeys(loadMediaKeyIndex());
   return res.json({ report });
-});
+}));
 
 // Scènes de récit conventionnelles d'un chapitre (0 = prologue), avec métas.
-router.get('/media-library/chapter-scenes', requireGlPermission('gl.content.manage'), validate({ query: glAdminChapterScenesQuerySchema }), async (req, res) => {
+router.get('/media-library/chapter-scenes', requireGlPermission('gl.content.manage'), validate({ query: glAdminChapterScenesQuerySchema }), asyncHandler(async (req, res) => {
   const chapterNumber = req.validatedQuery?.chapter;
   if (!Number.isInteger(chapterNumber) || chapterNumber < 0 || chapterNumber > 5) {
     return res.status(400).json({ error: 'Paramètre chapter requis (0–5)' });
   }
   return res.json({ chapter: chapterNumber, scenes: listChapterRecitScenes(chapterNumber) });
-});
+}));
 
 // Métas éditoriales d'une scène de récit : légende, ordre d'affichage, couverture.
-router.patch('/media-library/scene-meta', requireGlPermission('gl.content.manage'), async (req, res) => {
+router.patch('/media-library/scene-meta', requireGlPermission('gl.content.manage'), asyncHandler(async (req, res) => {
   try {
     const stableKey = String(req.body?.stable_key || req.body?.stableKey || '').trim();
     if (!stableKey) return res.status(400).json({ error: 'stable_key requis' });
@@ -905,9 +906,9 @@ router.patch('/media-library/scene-meta', requireGlPermission('gl.content.manage
     }
     throw err;
   }
-});
+}));
 
-router.post('/media-library', requireGlPermission('gl.content.manage'), async (req, res) => {
+router.post('/media-library', requireGlPermission('gl.content.manage'), asyncHandler(async (req, res) => {
   try {
     const mediaData = String(req.body?.media_data || '').trim();
     if (!mediaData) return res.status(400).json({ error: 'media_data requis' });
@@ -920,9 +921,9 @@ router.post('/media-library', requireGlPermission('gl.content.manage'), async (r
     }
     throw err;
   }
-});
+}));
 
-router.delete('/media-library', requireGlPermission('gl.content.manage'), async (req, res) => {
+router.delete('/media-library', requireGlPermission('gl.content.manage'), asyncHandler(async (req, res) => {
   try {
     const payload = executeMediaLibraryDeleteRequest(req.body || {});
     return res.json(payload);
@@ -932,9 +933,9 @@ router.delete('/media-library', requireGlPermission('gl.content.manage'), async 
     }
     throw err;
   }
-});
+}));
 
-router.post('/content-library/analyze', requireGlPermission('gl.content.manage'), contentLibraryUploadMiddleware, async (req, res) => {
+router.post('/content-library/analyze', requireGlPermission('gl.content.manage'), contentLibraryUploadMiddleware, asyncHandler(async (req, res) => {
   try {
     const uploadPayload = readAnalyzeUploadPayload(req);
     const payload = await analyzeContentLibraryBulk({ queryAll, execute }, uploadPayload);
@@ -959,13 +960,13 @@ router.post('/content-library/analyze', requireGlPermission('gl.content.manage')
     }
     throw err;
   }
-});
+}));
 
-router.get('/content-library/limits', requireGlPermission('gl.content.manage'), async (_req, res) => {
+router.get('/content-library/limits', requireGlPermission('gl.content.manage'), asyncHandler(async (_req, res) => {
   return res.json(getContentLibraryLimits());
-});
+}));
 
-router.post('/content-library/apply', requireGlPermission('gl.content.manage'), contentLibraryUploadMiddleware, async (req, res) => {
+router.post('/content-library/apply', requireGlPermission('gl.content.manage'), contentLibraryUploadMiddleware, asyncHandler(async (req, res) => {
   try {
     const uploadPayload = readApplyUploadPayload(req);
     const payload = await applyContentLibraryBulk(
@@ -994,7 +995,7 @@ router.post('/content-library/apply', requireGlPermission('gl.content.manage'), 
     }
     throw err;
   }
-});
+}));
 
 module.exports = router;
 module.exports.glAdminMediaQuerySchema = glAdminMediaQuerySchema; // exporté pour test no-DB du contrat O7
