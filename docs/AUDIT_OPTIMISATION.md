@@ -199,6 +199,18 @@ Troisième lot en parallèle (5 agents, périmètres disjoints), build + Vitest 
 - **O10** (`wip`) — `routes/gl/games.js` : sous-domaine `markers` (present-question/present-arrival/apply-effects)
   extrait en sous-routeur `routes/gl/games/markers.js` (chemins/middlewares inchangés).
 
+### Lot 18 — O6 ×3 (agrégateurs), multi-agents (2026-06-15)
+
+Dix-huitième lot en parallèle (3 agents O6, fichiers disjoints de la PR #146 en vol). Build Vite vert,
+Vitest vert (1 685 tests UI, +11), lint sans erreur. 2ᵉ extraction sur chacun des 3 agrégateurs.
+
+- **O6** (`wip`) — `src/components/visit-views.jsx` : `VisitDrawZonePreview` (aperçu SVG du polygone de
+  zone en cours de tracé — `polyline` + `circle` par point ; condition de rendu conservée dans le parent) + test (3 cas).
+- **O6** (`wip`) — `src/components/profiles-views.jsx` : `ProfilesAdminFeedback` (bannières erreur/succès
+  `.auth-error`/`.auth-success` de la vue Profils, dans `src/components/profiles/`) + test (5 cas).
+- **O6** (`wip`) — `src/components/tasks-views.jsx` : `TasksTeacherSections` (branche prof/admin de la vue
+  Tâches — sections En cours/À faire/Propositions/Validation/Validées composant `TaskTileSection`/`TaskProjectsBlock`) + test (3 cas).
+
 ### Lot 17 — structurel O10 + O6 + O5, multi-agents (2026-06-15)
 
 Dix-septième lot en parallèle (3 agents, fichiers disjoints de la PR #145 en vol). Build Vite vert,
