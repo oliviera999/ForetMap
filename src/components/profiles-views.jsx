@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { API, api, getAuthToken } from '../services/api';
 import { getRoleTerms } from '../utils/n3-terminology';
 import { useHelp } from '../hooks/useHelp';
-import { HelpPanel } from './HelpPanel';
 import { HELP_PANELS } from '../constants/help';
 import { buildAffiliationSelectOptions } from '../utils/affiliationSelectOptions';
 import { GroupsAdminView } from './groups-views.jsx';
@@ -22,6 +21,7 @@ import { CreateUserPanel } from './profiles/CreateUserPanel.jsx';
 import { StudentImportPanel } from './profiles/StudentImportPanel.jsx';
 import { StudentDeletePanel } from './profiles/StudentDeletePanel.jsx';
 import { ProfilesRbacAdminSection } from './profiles/ProfilesRbacAdminSection.jsx';
+import { ProfilesAdminHeader } from './profiles/ProfilesAdminHeader.jsx';
 import {
   isN3beurTierConfigurableProfile as isN3beurTierConfigurableRole,
   sortRolesForDisplay,
@@ -723,21 +723,14 @@ function ProfilesAdminView({ onImpersonationApplied, maps = [] }) {
 
   return (
     <div className="fade-in profiles-admin">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
-        <h2 className="section-title" style={{ marginBottom: 0 }}>🛡️ Profils & utilisateurs</h2>
-        {isHelpEnabled && (
-          <HelpPanel
-            sectionId="profiles"
-            title={helpProfiles.title}
-            entries={helpProfiles.items}
-            isTeacher
-            isPulsing={!hasSeenSection('profiles')}
-            onMarkSeen={markSectionSeen}
-            onOpen={trackPanelOpen}
-            onDismiss={trackPanelDismiss}
-          />
-        )}
-      </div>
+      <ProfilesAdminHeader
+        isHelpEnabled={isHelpEnabled}
+        helpProfiles={helpProfiles}
+        hasSeenSection={hasSeenSection}
+        onMarkSeen={markSectionSeen}
+        onOpen={trackPanelOpen}
+        onDismiss={trackPanelDismiss}
+      />
       <p className="section-sub">Gestion des profils, des comptes et des opérations {roleTerms.studentPlural} (création, import, export, suppression).</p>
       {err && !(editModalOpen && editUserLoadState === 'ready') && (
         <div className="auth-error">⚠️ {err}</div>
