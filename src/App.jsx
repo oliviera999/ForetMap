@@ -84,6 +84,7 @@ import { useAppStoragePersistence } from './hooks/useAppStoragePersistence';
 import { useSessionWindowSync } from './hooks/useSessionWindowSync';
 import { useToastNotificationBridge } from './hooks/useToastNotificationBridge';
 import { useRoleViewModeReset } from './hooks/useRoleViewModeReset';
+import { useAuthMeHydration } from './hooks/useAuthMeHydration';
 
 const DEFAULT_MAPS = [];
 
@@ -444,17 +445,7 @@ function App() {
     setRoleViewMode,
   });
 
-  useEffect(() => {
-    const session = getStoredSession();
-    if (!session?.token) return;
-    api('/api/auth/me')
-      .then((d) => {
-        mergeAuthMeResponse(d);
-      })
-      .catch(() => {
-        // Session absente/invalide: on laisse les états locaux existants.
-      });
-  }, [mergeAuthMeResponse]);
+  useAuthMeHydration({ mergeAuthMeResponse });
 
   fetchAllContextRef.current = {
     activeMapId,
