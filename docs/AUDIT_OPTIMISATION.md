@@ -199,6 +199,23 @@ Troisième lot en parallèle (5 agents, périmètres disjoints), build + Vitest 
 - **O10** (`wip`) — `routes/gl/games.js` : sous-domaine `markers` (present-question/present-arrival/apply-effects)
   extrait en sous-routeur `routes/gl/games/markers.js` (chemins/middlewares inchangés).
 
+### Lot 9 — sprint O7 + O8 multi-agents (2026-06-15)
+
+Neuvième lot en parallèle (4 agents, périmètres disjoints ; 1 no-op justifié). Vitest vert
+(1 652 tests UI), lint sans erreur (2 warnings `catch (_)` pré-existants), require-smoke OK, test
+DB-free vert (7 pass) ; inventaire des routes des 3 routeurs migrés **strictement identique
+avant/après** (anti-régression O8). Tests backend DB exécutés en CI. Avancées par recommandation :
+
+- **O8** (`wip`) — `routes/visit.js` : 8 handlers enveloppés dans `lib/asyncHandler` ; 8 catches
+  génériques supprimés ; 2 catches internes best-effort (`mascotPacks`, `JSON.parse`) préservés
+  (`logRouteError` conservé car encore utilisé). Inventaire des 8 routes inchangé.
+- **O8** (`wip`) — `routes/gl/stats.js` : 2 handlers enveloppés dans `lib/asyncHandler`, 2 catches
+  génériques supprimés (import `routeLog` retiré). Inventaire des 2 routes inchangé.
+- **O7** (`wip`) — `routes/gl/learning.js` : `POST /{species,glossary}/:code` et `POST /tutorials/:id`
+  validés via `zod`/`lib/validate` (gardes `:code`/`:id` + corps `confirm`, ordre body→params préservé) + test DB-free.
+- **O7** (`skip`) — `routes/tasks/assignments.js` : **no-op justifié** — toutes les gardes 400 sont
+  précédées d'un 404 DB ; ajouter un schéma zod réordonnerait 404→400 (comportement modifié). Laissé inchangé.
+
 ### Lot 8 — sprint O7 + O8 multi-agents (2026-06-15)
 
 Huitième lot en parallèle (4 agents, périmètres de fichiers strictement disjoints),
