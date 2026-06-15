@@ -5,8 +5,8 @@ const { queryOne, queryAll } = require('../../database');
 const { requireGlAuth, requireGlPermission } = require('../../middleware/requireGlAuth');
 const { getGameplaySettings } = require('../../lib/glSettings');
 const { buildClassStats, buildPlayerStats } = require('../../lib/glPlayerStats');
-const { logRouteError, respondInternalError } = require('../../lib/routeLog');
 const { z, validate } = require('../../lib/validate');
+const asyncHandler = require('../../lib/asyncHandler');
 
 const router = express.Router();
 const db = { queryOne, queryAll };
@@ -64,36 +64,26 @@ async function resolveClassIdForAuth(auth, requestedClassId) {
 }
 
 /** GET /api/gl/stats/me — statistiques du joueur connecté. */
-router.get('/me', requireGlAuth, async (req, res) => {
-  try {
-    if (req.glAuth.userType !== 'gl_player') {
-      return res.status(403).json({ error: 'Réservé aux joueurs GL' });
-    }
-    const vitalityEnabled = await resolveVitalityEnabled();
-    const data = await buildPlayerStats(db, req.glAuth.userId, { vitalityEnabled });
-    if (!data) return res.status(404).json({ error: 'Joueur introuvable' });
-    return res.json(data);
-  } catch (e) {
-    logRouteError(e, req, 'gl_stats_me');
-    return respondInternalError(res, req, e);
+router.get('/me', requireGlAuth, asyncHandler(async (req, res) => {
+  if (req.glAuth.userType !== 'gl_player') {
+    return res.status(403).json({ error: 'Réservé aux joueurs GL' });
   }
-});
+  const vitalityEnabled = await resolveVitalityEnabled();
+  const data = await buildPlayerStats(db, req.glAuth.userId, { vitalityEnabled });
+  if (!data) return res.status(404).json({ error: 'Joueur introuvable' });
+  return res.json(data);
+}));
 
 /** GET /api/gl/stats/class?class_id= — statistiques collectives d'une classe (MJ/admin). */
-router.get('/class', requireGlPermission('gl.players.manage'), validate({ query: glStatsClassQuerySchema }), async (req, res) => {
-  try {
-    const classId = await resolveClassIdForAuth(req.glAuth, req.validatedQuery?.class_id);
-    if (!classId) {
-      return res.status(400).json({ error: 'Classe introuvable ou non spécifiée' });
-    }
-    const vitalityEnabled = await resolveVitalityEnabled();
-    const data = await buildClassStats(db, classId, { vitalityEnabled });
-    return res.json(data);
-  } catch (e) {
-    logRouteError(e, req, 'gl_stats_class');
-    return respondInternalError(res, req, e);
+router.get('/class', requireGlPermission('gl.players.manage'), validate({ query: glStatsClassQuerySchema }), asyncHandler(async (req, res) => {
+  const classId = await resolveClassIdForAuth(req.glAuth, req.validatedQuery?.class_id);
+  if (!classId) {
+    return res.status(400).json({ error: 'Classe introuvable ou non spécifiée' });
   }
-});
+  const vitalityEnabled = await resolveVitalityEnabled();
+  const data = await buildClassStats(db, classId, { vitalityEnabled });
+  return res.json(data);
+}));
 
 module.exports = router;
 module.exports.glStatsClassQuerySchema = glStatsClassQuerySchema; // exporté pour test no-DB du contrat O7
