@@ -198,3 +198,19 @@ Troisième lot en parallèle (5 agents, périmètres disjoints), build + Vitest 
   d'erreur central pour les rejets async non gérés) ; les 9 `try/catch` à statut spécifique (400/404/409) préservés.
 - **O10** (`wip`) — `routes/gl/games.js` : sous-domaine `markers` (present-question/present-arrival/apply-effects)
   extrait en sous-routeur `routes/gl/games/markers.js` (chemins/middlewares inchangés).
+
+### Lot 4 — itération multi-agents (2026-06-15)
+
+Quatrième lot en parallèle (5 agents, périmètres disjoints), build + Vitest verts
+(1 652 tests UI), lint sans erreur ; tests backend DB exécutés en CI. Avancées :
+
+- **O5** (`wip`) — hook `useAppStoragePersistence` extrait d'`App.jsx` (persistance localStorage de
+  `activeMapId`/`tab` + consommation du flag `foretmap_sw_updated`).
+- **O6** (`wip`) — `PlantPrefillPanel.jsx` décomposé en 2 sous-composants présentationnels :
+  `PrefillPhotoCard` (carte photo proposée) et `PrefillSourcesSelector` (sélecteur de sources) + tests UI.
+- **O7** (`wip`) — `routes/rbac.js` : `PUT /users/:userType/:userId/role` validé via schéma `zod`/`lib/validate`
+  (réponse/statut/ordre inchangés) + test DB-free.
+- **O8** (`wip`) — `routes/gl/admin.js` : 28 handlers enveloppés dans `lib/asyncHandler` (chemin d'erreur
+  central) ; logique catch à statut spécifique (400/404, re-throw) préservée ; inventaire des routes inchangé.
+- **O10** (`wip`) — `routes/tasks.js` : sous-domaine `proposals` (`POST /proposals`, proposition de tâche élève)
+  extrait en sous-routeur `routes/tasks/proposals.js` (chemins/middlewares inchangés).
