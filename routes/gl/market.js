@@ -18,6 +18,7 @@ const {
 } = require('../../lib/glMarket');
 const { parsePageQuery } = require('../../lib/shared/httpHelpers');
 const { z, validate } = require('../../lib/validate');
+const asyncHandler = require('../../lib/asyncHandler');
 
 const router = express.Router();
 
@@ -47,28 +48,24 @@ function playerIdFromReq(req) {
   return Number(req.glAuth.userId);
 }
 
-router.get('/classmates', async (req, res, next) => {
+router.get('/classmates', asyncHandler(async (req, res) => {
   try {
     const items = await listClassmates(playerIdFromReq(req));
     return res.json({ items });
   } catch (err) {
     const mapped = resolveMarketError(err);
     if (mapped) return res.status(mapped.status).json({ error: mapped.error });
-    return next(err);
+    throw err;
   }
-});
+}));
 
-router.get('/trades', validate({ query: glMarketTradesQuerySchema }), async (req, res, next) => {
-  try {
-    const { page, pageSize } = req.validatedQuery;
-    const data = await listTradesForPlayer(playerIdFromReq(req), { page, pageSize });
-    return res.json(data);
-  } catch (err) {
-    return next(err);
-  }
-});
+router.get('/trades', validate({ query: glMarketTradesQuerySchema }), asyncHandler(async (req, res) => {
+  const { page, pageSize } = req.validatedQuery;
+  const data = await listTradesForPlayer(playerIdFromReq(req), { page, pageSize });
+  return res.json(data);
+}));
 
-router.post('/trades', async (req, res, next) => {
+router.post('/trades', asyncHandler(async (req, res) => {
   try {
     const peerPlayerId = Number(req.body?.peerPlayerId);
     if (!Number.isFinite(peerPlayerId) || peerPlayerId <= 0) {
@@ -78,15 +75,11 @@ router.post('/trades', async (req, res, next) => {
     emitGlMarketTradeChanged(trade.classId, { tradeId: trade.id, action: 'created' });
     return res.status(201).json(trade);
   } catch (err) {
-    try {
-      return handleMarketError(err, res);
-    } catch (e) {
-      return next(e);
-    }
+    return handleMarketError(err, res);
   }
-});
+}));
 
-router.get('/trades/:id', async (req, res, next) => {
+router.get('/trades/:id', asyncHandler(async (req, res) => {
   try {
     const tradeId = Number(req.params.id);
     if (!Number.isFinite(tradeId)) {
@@ -99,11 +92,11 @@ router.get('/trades/:id', async (req, res, next) => {
   } catch (err) {
     const mapped = resolveMarketError(err);
     if (mapped) return res.status(mapped.status).json({ error: mapped.error });
-    return next(err);
+    throw err;
   }
-});
+}));
 
-router.patch('/trades/:id/offer', async (req, res, next) => {
+router.patch('/trades/:id/offer', asyncHandler(async (req, res) => {
   try {
     const tradeId = Number(req.params.id);
     if (!Number.isFinite(tradeId)) {
@@ -118,11 +111,11 @@ router.patch('/trades/:id/offer', async (req, res, next) => {
   } catch (err) {
     const mapped = resolveMarketError(err);
     if (mapped) return res.status(mapped.status).json({ error: mapped.error });
-    return next(err);
+    throw err;
   }
-});
+}));
 
-router.patch('/trades/:id/accept', async (req, res, next) => {
+router.patch('/trades/:id/accept', asyncHandler(async (req, res) => {
   try {
     const tradeId = Number(req.params.id);
     if (!Number.isFinite(tradeId)) {
@@ -138,11 +131,11 @@ router.patch('/trades/:id/accept', async (req, res, next) => {
   } catch (err) {
     const mapped = resolveMarketError(err);
     if (mapped) return res.status(mapped.status).json({ error: mapped.error });
-    return next(err);
+    throw err;
   }
-});
+}));
 
-router.post('/trades/:id/messages', async (req, res, next) => {
+router.post('/trades/:id/messages', asyncHandler(async (req, res) => {
   try {
     const tradeId = Number(req.params.id);
     if (!Number.isFinite(tradeId)) {
@@ -155,11 +148,11 @@ router.post('/trades/:id/messages', async (req, res, next) => {
   } catch (err) {
     const mapped = resolveMarketError(err);
     if (mapped) return res.status(mapped.status).json({ error: mapped.error });
-    return next(err);
+    throw err;
   }
-});
+}));
 
-router.post('/trades/:id/cancel', async (req, res, next) => {
+router.post('/trades/:id/cancel', asyncHandler(async (req, res) => {
   try {
     const tradeId = Number(req.params.id);
     if (!Number.isFinite(tradeId)) {
@@ -171,9 +164,9 @@ router.post('/trades/:id/cancel', async (req, res, next) => {
   } catch (err) {
     const mapped = resolveMarketError(err);
     if (mapped) return res.status(mapped.status).json({ error: mapped.error });
-    return next(err);
+    throw err;
   }
-});
+}));
 
 module.exports = router;
 module.exports.glMarketTradesQuerySchema = glMarketTradesQuerySchema; // exporté pour test no-DB du contrat O7
