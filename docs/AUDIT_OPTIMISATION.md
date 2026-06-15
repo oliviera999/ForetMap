@@ -199,6 +199,19 @@ Troisième lot en parallèle (5 agents, périmètres disjoints), build + Vitest 
 - **O10** (`wip`) — `routes/gl/games.js` : sous-domaine `markers` (present-question/present-arrival/apply-effects)
   extrait en sous-routeur `routes/gl/games/markers.js` (chemins/middlewares inchangés).
 
+### Lot 16 — structurel O10 + O6 ×2, multi-agents (2026-06-15)
+
+Seizième lot en parallèle (3 agents, fichiers strictement disjoints de la PR #144 en vol pour éviter
+les conflits). Build Vite vert, Vitest vert (1 669 tests UI, +7), lint sans erreur, require-smoke backend OK.
+
+- **O10** (`wip`) — `routes/tasks.js` : `GET /:id/image` (service d'image de tâche) extrait en sous-routeur
+  `routes/tasks/media.js` (monté après `GET /:id` ; pas de shadowing : `/:id/image` 2 segments ≠ `/:id`).
+  **Union complète des routes `tasks*` inchangée (19)**, `getAbsolutePath` retiré de tasks.js (devenu inutile).
+- **O6** (`wip`) — `src/components/visit-views.jsx` : `VisitMapMarkerButton` (bouton de repère de visite
+  positionné sur le plan, présentationnel pur ; logique métier conservée dans le parent via `onClick`) extrait + test (4 cas).
+- **O6** (`wip`) — `src/components/profiles-views.jsx` : `ProfilesAdminHeader` (en-tête « Profils & utilisateurs »,
+  titre + panneau d'aide conditionnel) extrait dans `src/components/profiles/` + test (3 cas). Import `HelpPanel` inutile retiré.
+
 ### Lot 15 — structurel O10 + O6 + O5, multi-agents (2026-06-15)
 
 Quinzième lot en parallèle (3 agents, un par chantier, base = `main` à jour → cherry-picks propres).
