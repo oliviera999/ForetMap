@@ -199,6 +199,24 @@ Troisième lot en parallèle (5 agents, périmètres disjoints), build + Vitest 
 - **O10** (`wip`) — `routes/gl/games.js` : sous-domaine `markers` (present-question/present-arrival/apply-effects)
   extrait en sous-routeur `routes/gl/games/markers.js` (chemins/middlewares inchangés).
 
+### Lot 14 — structurel O10 + O6 + O5, multi-agents (2026-06-15)
+
+Quatorzième lot en parallèle (3 agents, un par chantier). Build Vite vert, Vitest vert (1 658 tests
+UI, +2), lint sans erreur, require-smoke backend OK. Lot 14 lancé pendant la CI du lot 13 : les agents
+ayant pour base `origin/main` (avant lot 13), l'intégration O10 (`games.js`) et O5 (`App.jsx`) a demandé
+une **résolution de conflits manuelle** (extraction roster ré-appliquée sur le `games.js` post-vitality ;
+imports de hooks fusionnés dans App.jsx) — union des routes et câblage vérifiés.
+
+- **O10** (`wip`) — `routes/gl/games.js` : sous-domaine **roster** (`GET /games/:id/roster`,
+  `POST /games/:id/roster/{assign,unassign}`) extrait en sous-routeur `routes/gl/games/roster.js`.
+  `assignPlayerToTeamTx` conservé (join-team), `unassignPlayerFromGameTx` déplacé. **Union des routes
+  inchangée (26)**. games.js descend ainsi sous l'effet cumulé vitality+roster.
+- **O6** (`wip`) — `src/components/tasks-views.jsx` : `TasksEmptyState` (état vide de la vue Tâches,
+  présentationnel pur, internalise la conditionnelle `count === 0`) extrait + test UI (2 cas).
+- **O5** (`wip`) — `src/App.jsx` : hook `useToastNotificationBridge` extrait (passerelle toast → centre
+  de notifications, `useEffect` isolé). Aucun état déplacé, import `NOTIFICATION_*` retiré, zéro orphelin.
+  Coexiste avec `useSessionWindowSync` (lot 13).
+
 ### Lot 13 — bascule structurelle O10 + O6 + O5, multi-agents (2026-06-15)
 
 Treizième lot en parallèle (3 agents, un par chantier structurel, périmètres disjoints).
