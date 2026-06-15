@@ -199,6 +199,22 @@ Troisième lot en parallèle (5 agents, périmètres disjoints), build + Vitest 
 - **O10** (`wip`) — `routes/gl/games.js` : sous-domaine `markers` (present-question/present-arrival/apply-effects)
   extrait en sous-routeur `routes/gl/games/markers.js` (chemins/middlewares inchangés).
 
+### Lot 8 — sprint O7 + O8 multi-agents (2026-06-15)
+
+Huitième lot en parallèle (4 agents, périmètres de fichiers strictement disjoints),
+sprint mécanique O7/O8. Vitest vert (1 652 tests UI), lint sans erreur (6 warnings unused/`catch (_)`
+pré-existants sur `main`), require-smoke OK, test DB-free vert (4 pass) ; inventaire des routes
+des 4 routeurs **strictement identique avant/après** (anti-régression O8). Tests backend DB
+exécutés en CI. Avancées par recommandation :
+
+- **O7** (`wip`) — `routes/zones.js` : `POST /:id/photos` et `PUT /:id/photos/reorder` validés via
+  `zod`/`lib/validate` (messages 400 verbatim conservés, calqués sur `routes/map.js`) + test DB-free.
+- **O8** (`wip`) — `routes/gl/qcm.js` : 10 handlers enveloppés dans `lib/asyncHandler` ; 4 catches à
+  statut 400 (présentation/réponse/import) préservés. Inventaire des 10 routes inchangé.
+- **O8** (`wip`) — `routes/gl/mascots.js` : 12 handlers enveloppés dans `lib/asyncHandler` ; 1 catch
+  best-effort (`JSON.parse` payload) préservé. Inventaire des 12 routes inchangé.
+- **O8** (`wip`) — `routes/gl/kingdom-map.js` : 4 handlers enveloppés dans `lib/asyncHandler`. Inventaire des 4 routes inchangé.
+
 ### Lot 7 — sprint O7 + O8 multi-agents (2026-06-15)
 
 Septième lot en parallèle (4 agents, périmètres de fichiers strictement disjoints),
