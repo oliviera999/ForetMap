@@ -5,6 +5,7 @@ const { queryAll, queryOne, execute } = require('../../database');
 const { requireGlAuth, requireGlPermission } = require('../../middleware/requireGlAuth');
 const { normalizeOptionalString } = require('../../lib/shared/httpHelpers');
 const { z, validate } = require('../../lib/validate');
+const asyncHandler = require('../../lib/asyncHandler');
 const {
   buildReaderKey,
   listLearningAcks,
@@ -35,7 +36,7 @@ function normalizeSlug(value) {
   return raw.replace(/[^a-z0-9._-]+/g, '-').replace(/^-+|-+$/g, '');
 }
 
-router.get('/', requireGlAuth, validate({ query: glTutorialsListQuerySchema }), async (req, res) => {
+router.get('/', requireGlAuth, validate({ query: glTutorialsListQuerySchema }), asyncHandler(async (req, res) => {
   const chapterId = req.validatedQuery?.chapterId;
   const rows = Number.isFinite(chapterId)
     ? await queryAll(
@@ -51,17 +52,17 @@ router.get('/', requireGlAuth, validate({ query: glTutorialsListQuerySchema }), 
         ORDER BY order_index ASC, id ASC`
     );
   return res.json({ tutorials: rows });
-});
+}));
 
-router.get('/me/read-ids', requireGlAuth, async (req, res) => {
+router.get('/me/read-ids', requireGlAuth, asyncHandler(async (req, res) => {
   const reader = buildReaderKey(req.glAuth);
   if (!reader) return res.json({ ids: [] });
   const rows = await listLearningAcks(db, reader, 'tutorial');
   const { tutorial_ids: ids } = groupLearningAcksByType(rows);
   return res.json({ ids });
-});
+}));
 
-router.get('/:idOrSlug', requireGlAuth, async (req, res) => {
+router.get('/:idOrSlug', requireGlAuth, asyncHandler(async (req, res) => {
   const idOrSlug = String(req.params.idOrSlug || '');
   const numeric = Number(idOrSlug);
   const row = Number.isFinite(numeric)
@@ -69,9 +70,9 @@ router.get('/:idOrSlug', requireGlAuth, async (req, res) => {
     : await queryOne('SELECT * FROM gl_tutorials WHERE slug = ? LIMIT 1', [idOrSlug]);
   if (!row) return res.status(404).json({ error: 'Tutoriel introuvable' });
   return res.json(row);
-});
+}));
 
-router.post('/', requireGlPermission('gl.content.manage'), async (req, res) => {
+router.post('/', requireGlPermission('gl.content.manage'), asyncHandler(async (req, res) => {
   const slug = normalizeSlug(req.body?.slug);
   const title = normalizeOptionalString(req.body?.title);
   const bodyMarkdown = normalizeOptionalString(req.body?.bodyMarkdown);
@@ -96,9 +97,9 @@ router.post('/', requireGlPermission('gl.content.manage'), async (req, res) => {
   );
   const created = await queryOne('SELECT * FROM gl_tutorials WHERE id = ? LIMIT 1', [result.insertId]);
   return res.status(201).json(created);
-});
+}));
 
-router.put('/:id', requireGlPermission('gl.content.manage'), async (req, res) => {
+router.put('/:id', requireGlPermission('gl.content.manage'), asyncHandler(async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isFinite(id)) return res.status(400).json({ error: 'Identifiant invalide' });
   const existing = await queryOne('SELECT id FROM gl_tutorials WHERE id = ? LIMIT 1', [id]);
@@ -123,14 +124,14 @@ router.put('/:id', requireGlPermission('gl.content.manage'), async (req, res) =>
   );
   const updated = await queryOne('SELECT * FROM gl_tutorials WHERE id = ? LIMIT 1', [id]);
   return res.json(updated);
-});
+}));
 
-router.delete('/:id', requireGlPermission('gl.content.manage'), async (req, res) => {
+router.delete('/:id', requireGlPermission('gl.content.manage'), asyncHandler(async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isFinite(id)) return res.status(400).json({ error: 'Identifiant invalide' });
   await execute('DELETE FROM gl_tutorials WHERE id = ?', [id]);
   return res.json({ ok: true });
-});
+}));
 
 module.exports = router;
 module.exports.glTutorialsListQuerySchema = glTutorialsListQuerySchema; // exporté pour test no-DB du contrat O7
