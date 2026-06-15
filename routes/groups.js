@@ -10,8 +10,20 @@ const {
   getAllGroups,
   getUserAccessibleGroupIds,
 } = require('../lib/groupScope');
+const { z, validate } = require('../lib/validate');
 
 const router = express.Router();
+
+// O7 — Garde d'autorisation extraite en middleware pour POST / : reproduit à l'identique la garde
+// `if (!canManageGroups(req.auth)) return res.status(403)...` qui ouvrait le handler, mais en amont
+// du middleware `validate`. Indispensable pour conserver l'ordre 403-avant-400 d'origine (un
+// non-manager au corps invalide reçoit toujours 403, jamais 400). Même message, même code.
+function requireGroupManagement(req, res, next) {
+  if (!canManageGroups(req.auth)) {
+    return res.status(403).json({ error: 'Permission insuffisante' });
+  }
+  return next();
+}
 
 /** Traduit un conflit d'unicité MySQL (slug déjà pris) en erreur HTTP 409 portée par `.status`. */
 function rethrowSlugConflict(err) {
@@ -42,6 +54,28 @@ function normalizeKind(value) {
 function uniqueStrings(values) {
   return [...new Set((values || []).map((v) => String(v || '').trim()).filter(Boolean))];
 }
+
+// O7 — Schéma zod du corps de POST / (création de groupe). Reproduit exactement la validation
+// manuelle : normalisation permissive de chaque champ (`normalizeSlug(slug || name)`, `name` trimé,
+// `description`/`parent_group_id` via `normalizeId`, `kind` via `normalizeKind`), puis les gardes 400
+// dans l'ordre d'origine — `!slug || !name` → 'slug et name requis', sinon `!kind` →
+// 'kind invalide (class|team|unit|club)'. Les messages restent au niveau racine (path vide) pour que
+// `formatZodError` les renvoie tels quels. La vérification d'existence du parent (dépendante de la
+// base) reste dans le handler, qui lit les champs normalisés depuis `req.body`.
+const createGroupBodySchema = z
+  .object({})
+  .loose()
+  .transform((b) => ({
+    slug: normalizeSlug(b.slug || b.name),
+    name: String(b.name || '').trim(),
+    description: normalizeId(b.description),
+    kind: normalizeKind(b.kind),
+    parent_group_id: normalizeId(b.parent_group_id),
+  }))
+  .superRefine((d, ctx) => {
+    if (!d.slug || !d.name) ctx.addIssue({ code: 'custom', message: 'slug et name requis', path: [] });
+    else if (!d.kind) ctx.addIssue({ code: 'custom', message: 'kind invalide (class|team|unit|club)', path: [] });
+  });
 
 async function fetchGroupMembers(groupIds) {
   if (!groupIds.length) return new Map();
@@ -155,17 +189,8 @@ router.get('/', asyncHandler(async (req, res) => {
   });
 }));
 
-router.post('/', asyncHandler(async (req, res) => {
-  if (!canManageGroups(req.auth)) {
-    return res.status(403).json({ error: 'Permission insuffisante' });
-  }
-  const slug = normalizeSlug(req.body?.slug || req.body?.name);
-  const name = String(req.body?.name || '').trim();
-  const description = normalizeId(req.body?.description);
-  const kind = normalizeKind(req.body?.kind);
-  const parentGroupId = normalizeId(req.body?.parent_group_id);
-  if (!slug || !name) return res.status(400).json({ error: 'slug et name requis' });
-  if (!kind) return res.status(400).json({ error: 'kind invalide (class|team|unit|club)' });
+router.post('/', requireGroupManagement, validate({ body: createGroupBodySchema }), asyncHandler(async (req, res) => {
+  const { slug, name, description, kind, parent_group_id: parentGroupId } = req.body;
   if (parentGroupId) {
     const parent = await queryOne('SELECT id FROM `groups` WHERE id = ? LIMIT 1', [parentGroupId]);
     if (!parent) return res.status(400).json({ error: 'parent_group_id introuvable' });
@@ -369,3 +394,5 @@ router.put('/:id/members', asyncHandler(async (req, res) => {
 }));
 
 module.exports = router;
+// Exporté pour le test no-DB du contrat de validation O7.
+module.exports.createGroupBodySchema = createGroupBodySchema;
