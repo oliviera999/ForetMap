@@ -20,7 +20,6 @@ import { usePwaInstall } from './hooks/usePwaInstall';
 import { usePlantCatalogPreview } from './hooks/usePlantCatalogPreview';
 import { useViewportLayout } from './hooks/useViewportLayout';
 import { RT_PROF_TOOLTIPS } from './constants/realtime';
-import { NOTIFICATION_CATEGORY, NOTIFICATION_LEVEL } from './constants/notifications';
 import { HELP_TOOLTIPS, resolveRoleText } from './constants/help';
 import {
   FETCH_ALL_AUTO_DEBOUNCE_MS,
@@ -83,6 +82,7 @@ import { useAppBootstrap } from './hooks/useAppBootstrap';
 import { useTabNavigationGuards } from './hooks/useTabNavigationGuards';
 import { useAppStoragePersistence } from './hooks/useAppStoragePersistence';
 import { useSessionWindowSync } from './hooks/useSessionWindowSync';
+import { useToastNotificationBridge } from './hooks/useToastNotificationBridge';
 
 const DEFAULT_MAPS = [];
 
@@ -909,16 +909,7 @@ function App() {
     publicSettings,
   });
 
-  useEffect(() => {
-    if (!toast) return;
-    addNotification({
-      key: `toast:${toast}`,
-      level: NOTIFICATION_LEVEL.INFO,
-      category: NOTIFICATION_CATEGORY.OPERATIONS,
-      title: 'Information',
-      message: String(toast),
-    });
-  }, [addNotification, toast]);
+  useToastNotificationBridge({ toast, addNotification });
 
   const openNotificationAction = useCallback((item) => {
     if (!item?.id) return;
