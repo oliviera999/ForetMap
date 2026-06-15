@@ -199,6 +199,21 @@ Troisième lot en parallèle (5 agents, périmètres disjoints), build + Vitest 
 - **O10** (`wip`) — `routes/gl/games.js` : sous-domaine `markers` (present-question/present-arrival/apply-effects)
   extrait en sous-routeur `routes/gl/games/markers.js` (chemins/middlewares inchangés).
 
+### Lot 15 — structurel O10 + O6 + O5, multi-agents (2026-06-15)
+
+Quinzième lot en parallèle (3 agents, un par chantier, base = `main` à jour → cherry-picks propres).
+Build Vite vert, Vitest vert (1 662 tests UI, +4), lint sans erreur, require-smoke backend OK.
+Union complète des routes `gl/games*` vérifiée (36, inchangée). Tests backend DB exécutés en CI.
+
+- **O10** (`wip`) — `routes/gl/games.js` : sous-domaine **teams** (`POST /games/:id/teams`,
+  `PUT|DELETE /games/:id/teams/:teamId`) extrait en sous-routeur `routes/gl/games/teams.js`
+  (monté via `router.use(require('./games/teams'))`). **Union complète inchangée (36)**, imports partagés conservés.
+- **O6** (`wip`) — `src/components/map-views.jsx` : `MapViewMascotOverlay` (calque mascotte de la carte,
+  positionnement %/transform/bulle de dialogue, présentationnel pur) extrait + test UI (4 cas).
+- **O5** (`wip`) — `src/App.jsx` : hook `useRoleViewModeReset` extrait (reset de `roleViewMode` à `native`
+  au changement d'identité effective). Aucun état déplacé, zéro orphelin ; les 3 autres `setRoleViewMode('native')`
+  (callbacks impersonation/retour rôle) conservés.
+
 ### Lot 14 — structurel O10 + O6 + O5, multi-agents (2026-06-15)
 
 Quatorzième lot en parallèle (3 agents, un par chantier). Build Vite vert, Vitest vert (1 658 tests

@@ -30,7 +30,7 @@ import { taskLocationIds, tutorialLocationIds } from '../utils/mapLocationContex
 import { TutorialPreviewModal } from './TutorialPreviewModal';
 import { fetchTutorialReadIds } from './TutorialReadAcknowledge';
 
-import VisitMapMascotRenderer from './VisitMapMascotRenderer.jsx';
+import { MapViewMascotOverlay } from './MapViewMascotOverlay.jsx';
 import useMapViewMascot from '../hooks/useMapViewMascot.js';
 import { useMapGestures } from '../hooks/useMapGestures.js';
 
@@ -894,31 +894,18 @@ function MapView({ maps = [], onMapChange, isTeacher, student, canSelfAssignTask
             </g>
           </svg>
 
-          {showMapMascot ? (
-            <div
-              className={`${mapMascotClassName}${embedded ? ' map-view-forest-mascot--embedded' : ''}`}
-              style={{ left: `${mapMascotRenderPct.xp}%`, top: `${mapMascotRenderPct.yp}%` }}
-              aria-hidden="true"
-            >
-              <div
-                className="visit-map-mascot-inner"
-                style={{
-                  transform: `translate(-50%, -100%) scale(${mapMascotFitScale}) scaleX(${mapMascotFaceRight ? 1 : -1})`,
-                  '--visit-mascot-dialog-x': mapMascotFaceRight ? 1 : -1,
-                }}
-              >
-                <VisitMapMascotRenderer
-                  mascotState={mapMascotAnimationState}
-                  mascotId={mapMascotId}
-                />
-                {mapMascotDialogVisible && mapMascotDialog ? (
-                  <div className="visit-map-mascot-dialog" role="status" aria-live="polite">
-                    {mapMascotDialog}
-                  </div>
-                ) : null}
-              </div>
-            </div>
-          ) : null}
+          <MapViewMascotOverlay
+            show={showMapMascot}
+            mascotClassName={mapMascotClassName}
+            embedded={embedded}
+            renderPct={mapMascotRenderPct}
+            fitScale={mapMascotFitScale}
+            faceRight={mapMascotFaceRight}
+            animationState={mapMascotAnimationState}
+            mascotId={mapMascotId}
+            dialogVisible={mapMascotDialogVisible}
+            dialog={mapMascotDialog}
+          />
 
           {markers.map((m) => {
             const markerTaskVisual = markerTaskVisualById.get(m.id);

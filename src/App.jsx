@@ -83,6 +83,7 @@ import { useTabNavigationGuards } from './hooks/useTabNavigationGuards';
 import { useAppStoragePersistence } from './hooks/useAppStoragePersistence';
 import { useSessionWindowSync } from './hooks/useSessionWindowSync';
 import { useToastNotificationBridge } from './hooks/useToastNotificationBridge';
+import { useRoleViewModeReset } from './hooks/useRoleViewModeReset';
 
 const DEFAULT_MAPS = [];
 
@@ -436,9 +437,12 @@ function App() {
     setToast,
   });
 
-  useEffect(() => {
-    setRoleViewMode('native');
-  }, [authClaims?.roleSlug, authClaims?.userId, isTeacher]);
+  useRoleViewModeReset({
+    roleSlug: authClaims?.roleSlug,
+    userId: authClaims?.userId,
+    isTeacher,
+    setRoleViewMode,
+  });
 
   useEffect(() => {
     const session = getStoredSession();
