@@ -23,7 +23,7 @@
     "marked": "^18.0.5",
     "multer": "^2.1.1",
     "mysql2": "^3.22.5",
-    "nodemailer": "^8.0.10",
+    "nodemailer": "^9.0.0",
     "on-finished": "^2.4.1",
     "pdfkit": "^0.19.0",
     "pino": "^10.3.1",
