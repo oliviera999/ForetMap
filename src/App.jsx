@@ -23,7 +23,6 @@ import { RT_PROF_TOOLTIPS } from './constants/realtime';
 import { NOTIFICATION_CATEGORY, NOTIFICATION_LEVEL } from './constants/notifications';
 import { HELP_TOOLTIPS, resolveRoleText } from './constants/help';
 import {
-  TAB_STORAGE_KEY,
   FETCH_ALL_AUTO_DEBOUNCE_MS,
   getFetchAllLoopAbortReason,
   DATA_REFRESH_INTERVAL_MS,
@@ -65,8 +64,6 @@ import {
   safeLocalStorageGetItem,
   safeLocalStorageRemoveItem,
   safeLocalStorageSetItem,
-  safeSessionStorageGetItem,
-  safeSessionStorageRemoveItem,
 } from './utils/browserStorage.js';
 import { useOverlayHistoryBack } from './hooks/useOverlayHistoryBack';
 import { abandonAllOverlays, pushOverlayClose } from './utils/overlayHistory';
@@ -84,6 +81,7 @@ import {
 } from './utils/appShellHelpers';
 import { useAppBootstrap } from './hooks/useAppBootstrap';
 import { useTabNavigationGuards } from './hooks/useTabNavigationGuards';
+import { useAppStoragePersistence } from './hooks/useAppStoragePersistence';
 
 const DEFAULT_MAPS = [];
 
@@ -194,13 +192,7 @@ function App() {
     setStudent,
   });
 
-  useEffect(() => {
-    safeLocalStorageSetItem('foretmap_active_map', activeMapId);
-  }, [activeMapId]);
-
-  useEffect(() => {
-    safeLocalStorageSetItem(TAB_STORAGE_KEY, tab);
-  }, [tab]);
+  useAppStoragePersistence({ activeMapId, tab, onToast: setToast });
 
   useEffect(() => {
     if (!publicSettingsReady) return;
@@ -220,15 +212,6 @@ function App() {
     publicSettingsReady,
     showPublicVisit,
   ]);
-
-  useEffect(() => {
-    try {
-      if (safeSessionStorageGetItem('foretmap_sw_updated', null) === '1') {
-        safeSessionStorageRemoveItem('foretmap_sw_updated');
-        setToast('Nouvelle version installée.');
-      }
-    } catch (_) {}
-  }, []);
 
   // Called from anywhere when a 401-deleted is detected
   const forceLogout = useCallback(() => {
