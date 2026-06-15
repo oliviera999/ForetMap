@@ -54,6 +54,7 @@ const {
   attachChapterSpells,
 } = require('../../lib/gl/chaptersRouteHelpers');
 const { z, validate } = require('../../lib/validate');
+const asyncHandler = require('../../lib/asyncHandler');
 
 const router = express.Router();
 
@@ -111,7 +112,7 @@ async function readChapterFull(slugOrId) {
 }
 
 /** GET /api/gl/chapters — liste publique des chapitres (sans markers). */
-router.get('/', requireGlPermission('gl.read'), async (_req, res) => {
+router.get('/', requireGlPermission('gl.read'), asyncHandler(async (_req, res) => {
   const rows = await queryAll(
     `SELECT c.id, c.slug, c.title, c.biome,
             c.map_image_url, c.map_image_frame_json, c.theme_json, c.plateau_number, c.order_index
@@ -133,10 +134,10 @@ router.get('/', requireGlPermission('gl.read'), async (_req, res) => {
     return item;
   });
   return res.json(items);
-});
+}));
 
 /** GET /api/gl/chapters/:slug — détail public d'un chapitre + markers. */
-router.get('/:slug', requireGlPermission('gl.read'), async (req, res) => {
+router.get('/:slug', requireGlPermission('gl.read'), asyncHandler(async (req, res) => {
   const slug = normalizeSlug(req.params.slug);
   if (!slug) return res.status(400).json({ error: 'Slug invalide' });
   const data = await readChapterFull(slug);
@@ -145,12 +146,12 @@ router.get('/:slug', requireGlPermission('gl.read'), async (req, res) => {
     chapter: data.chapter,
     markers: data.markers,
   });
-});
+}));
 
 /* ---------------------- Routes admin (gl.content.manage) ---------------------- */
 
 /** POST /api/gl/chapters/admin — crée un chapitre. */
-router.post('/admin', requireGlPermission('gl.content.manage'), async (req, res) => {
+router.post('/admin', requireGlPermission('gl.content.manage'), asyncHandler(async (req, res) => {
   const slug = normalizeSlug(req.body?.slug);
   const title = normalizeOptionalString(req.body?.title);
   if (!slug || !title) return res.status(400).json({ error: 'slug et title requis' });
@@ -207,10 +208,10 @@ router.post('/admin', requireGlPermission('gl.content.manage'), async (req, res)
   }
   const data = await readChapterFull(slug);
   return res.status(201).json(data);
-});
+}));
 
 /** PUT /api/gl/chapters/admin/:id — met à jour un chapitre. */
-router.put('/admin/:id', requireGlPermission('gl.content.manage'), validate({ params: idParamSchema }), async (req, res) => {
+router.put('/admin/:id', requireGlPermission('gl.content.manage'), validate({ params: idParamSchema }), asyncHandler(async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isFinite(id)) return res.status(400).json({ error: 'Identifiant invalide' });
   const biomeSlugs = parseBiomeSlugsFromBody(req.body);
@@ -304,10 +305,10 @@ router.put('/admin/:id', requireGlPermission('gl.content.manage'), validate({ pa
   const data = await readChapterFull(id);
   if (!data) return res.status(404).json({ error: 'Chapitre introuvable' });
   return res.json(data);
-});
+}));
 
 /** POST /api/gl/chapters/admin/:id/map-image — upload image carte chapitre. */
-router.post('/admin/:id/map-image', requireGlPermission('gl.content.manage'), validate({ params: idParamSchema }), async (req, res) => {
+router.post('/admin/:id/map-image', requireGlPermission('gl.content.manage'), validate({ params: idParamSchema }), asyncHandler(async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isFinite(id)) return res.status(400).json({ error: 'Identifiant invalide' });
   const chapter = await queryOne(
@@ -330,10 +331,10 @@ router.post('/admin/:id/map-image', requireGlPermission('gl.content.manage'), va
   const data = await readChapterFull(id);
   if (!data) return res.status(404).json({ error: 'Chapitre introuvable' });
   return res.json(data);
-});
+}));
 
 /** DELETE /api/gl/chapters/admin/:id — supprime un chapitre (refuse si lié à une partie). */
-router.delete('/admin/:id', requireGlPermission('gl.content.manage'), validate({ params: idParamSchema }), async (req, res) => {
+router.delete('/admin/:id', requireGlPermission('gl.content.manage'), validate({ params: idParamSchema }), asyncHandler(async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isFinite(id)) return res.status(400).json({ error: 'Identifiant invalide' });
   const linked = await queryOne(
@@ -343,10 +344,10 @@ router.delete('/admin/:id', requireGlPermission('gl.content.manage'), validate({
   if (linked) return res.status(409).json({ error: 'Chapitre lié à une partie : suppression refusée' });
   await execute('DELETE FROM gl_chapters WHERE id = ?', [id]);
   return res.json({ ok: true });
-});
+}));
 
 /** POST /api/gl/chapters/admin/:id/markers — ajoute un marker. */
-router.post('/admin/:id/markers', requireGlPermission('gl.content.manage'), validate({ params: idParamSchema }), async (req, res) => {
+router.post('/admin/:id/markers', requireGlPermission('gl.content.manage'), validate({ params: idParamSchema }), asyncHandler(async (req, res) => {
   const chapterId = Number(req.params.id);
   if (!Number.isFinite(chapterId)) return res.status(400).json({ error: 'Identifiant invalide' });
   const label = normalizeOptionalString(req.body?.label);
@@ -442,10 +443,10 @@ router.post('/admin/:id/markers', requireGlPermission('gl.content.manage'), vali
     [chapterId]
   );
   return res.status(201).json(formatMarkerRow(markerRow));
-});
+}));
 
 /** PUT /api/gl/chapters/admin/markers/:markerId — met à jour un marker. */
-router.put('/admin/markers/:markerId', requireGlPermission('gl.content.manage'), validate({ params: markerIdParamSchema }), async (req, res) => {
+router.put('/admin/markers/:markerId', requireGlPermission('gl.content.manage'), validate({ params: markerIdParamSchema }), asyncHandler(async (req, res) => {
   const markerId = Number(req.params.markerId);
   if (!Number.isFinite(markerId)) return res.status(400).json({ error: 'Identifiant invalide' });
   const existing = await queryOne(`SELECT ${MARKER_SELECT} FROM gl_chapter_markers WHERE id = ? LIMIT 1`, [markerId]);
@@ -556,10 +557,10 @@ router.put('/admin/markers/:markerId', requireGlPermission('gl.content.manage'),
   const updated = await queryOne(`SELECT ${MARKER_SELECT} FROM gl_chapter_markers WHERE id = ? LIMIT 1`, [markerId]);
   if (!updated) return res.status(404).json({ error: 'Marker introuvable' });
   return res.json(formatMarkerRow(updated));
-});
+}));
 
 /** GET /api/gl/chapters/admin/import/template — modèle XLSX série de chapitres. */
-router.get('/admin/import/template', requireGlPermission('gl.content.manage'), async (req, res) => {
+router.get('/admin/import/template', requireGlPermission('gl.content.manage'), asyncHandler(async (req, res) => {
   const scope = normalizeExportScope(req.query?.scope);
   const buffer = await buildChaptersTemplateWorkbook(scope);
   res.setHeader(
@@ -568,10 +569,10 @@ router.get('/admin/import/template', requireGlPermission('gl.content.manage'), a
   );
   res.setHeader('Content-Disposition', 'attachment; filename="foretmap-gl-modele-chapitres.xlsx"');
   return res.send(buffer);
-});
+}));
 
 /** GET /api/gl/chapters/admin/export — export XLSX série de chapitres. */
-router.get('/admin/export', requireGlPermission('gl.content.manage'), async (req, res) => {
+router.get('/admin/export', requireGlPermission('gl.content.manage'), asyncHandler(async (req, res) => {
   const scope = normalizeExportScope(req.query?.scope);
   const slug = normalizeSlug(req.query?.slug);
   const buffer = await buildChaptersExportWorkbook(
@@ -584,10 +585,10 @@ router.get('/admin/export', requireGlPermission('gl.content.manage'), async (req
   );
   res.setHeader('Content-Disposition', 'attachment; filename="foretmap-gl-export-chapitres.xlsx"');
   return res.send(buffer);
-});
+}));
 
 /** POST /api/gl/chapters/admin/import — import XLSX série de chapitres. */
-router.post('/admin/import', requireGlPermission('gl.content.manage'), async (req, res) => {
+router.post('/admin/import', requireGlPermission('gl.content.manage'), asyncHandler(async (req, res) => {
   const dryRun = !!req.body?.dryRun;
   const syncReperes = !!req.body?.syncReperes;
   const syncZones = !!req.body?.syncZones;
@@ -619,10 +620,10 @@ router.post('/admin/import', requireGlPermission('gl.content.manage'), async (re
   } catch (err) {
     return res.status(400).json({ error: err.message || 'Import impossible' });
   }
-});
+}));
 
 /** GET /api/gl/chapters/admin/charte/import/template — modèle XLSX charte chapitres. */
-router.get('/admin/charte/import/template', requireGlPermission('gl.content.manage'), async (_req, res) => {
+router.get('/admin/charte/import/template', requireGlPermission('gl.content.manage'), asyncHandler(async (_req, res) => {
   const buffer = await buildChapterCharteTemplateWorkbook();
   res.setHeader(
     'Content-Type',
@@ -630,10 +631,10 @@ router.get('/admin/charte/import/template', requireGlPermission('gl.content.mana
   );
   res.setHeader('Content-Disposition', 'attachment; filename="foretmap-gl-modele-chapitres-charte.xlsx"');
   return res.send(buffer);
-});
+}));
 
 /** GET /api/gl/chapters/admin/charte/export — export XLSX chartes chapitres. */
-router.get('/admin/charte/export', requireGlPermission('gl.content.manage'), async (req, res) => {
+router.get('/admin/charte/export', requireGlPermission('gl.content.manage'), asyncHandler(async (req, res) => {
   const slug = normalizeSlug(req.query?.slug);
   const rows = await loadChapterCharteExportRows({ queryAll }, { slug: slug || undefined });
   const buffer = await buildChapterCharteExportWorkbook(rows);
@@ -643,10 +644,10 @@ router.get('/admin/charte/export', requireGlPermission('gl.content.manage'), asy
   );
   res.setHeader('Content-Disposition', 'attachment; filename="foretmap-gl-export-chapitres-charte.xlsx"');
   return res.send(buffer);
-});
+}));
 
 /** POST /api/gl/chapters/admin/charte/import — import XLSX charte chapitres. */
-router.post('/admin/charte/import', requireGlPermission('gl.content.manage'), async (req, res) => {
+router.post('/admin/charte/import', requireGlPermission('gl.content.manage'), asyncHandler(async (req, res) => {
   const dryRun = !!req.body?.dryRun;
   let parsed;
   try {
@@ -664,10 +665,10 @@ router.post('/admin/charte/import', requireGlPermission('gl.content.manage'), as
   } catch (err) {
     return res.status(400).json({ error: err.message || 'Import impossible' });
   }
-});
+}));
 
 /** DELETE /api/gl/chapters/admin/markers/:markerId — supprime un marker. */
-router.delete('/admin/markers/:markerId', requireGlPermission('gl.content.manage'), validate({ params: markerIdParamSchema }), async (req, res) => {
+router.delete('/admin/markers/:markerId', requireGlPermission('gl.content.manage'), validate({ params: markerIdParamSchema }), asyncHandler(async (req, res) => {
   const markerId = Number(req.params.markerId);
   if (!Number.isFinite(markerId)) return res.status(400).json({ error: 'Identifiant invalide' });
   // ON DELETE SET NULL côté gl_teams.position_marker_id => les équipes restent en jeu sans marker.
@@ -676,7 +677,7 @@ router.delete('/admin/markers/:markerId', requireGlPermission('gl.content.manage
     await tx.execute('DELETE FROM gl_chapter_markers WHERE id = ?', [markerId]);
   });
   return res.json({ ok: true });
-});
+}));
 
 module.exports = router;
 // Exportés pour test no-DB du contrat O7 (équivalence avec le gate Number()/Number.isFinite).
