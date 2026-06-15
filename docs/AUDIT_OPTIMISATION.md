@@ -199,6 +199,24 @@ Troisième lot en parallèle (5 agents, périmètres disjoints), build + Vitest 
 - **O10** (`wip`) — `routes/gl/games.js` : sous-domaine `markers` (present-question/present-arrival/apply-effects)
   extrait en sous-routeur `routes/gl/games/markers.js` (chemins/middlewares inchangés).
 
+### Lot 7 — sprint O7 + O8 multi-agents (2026-06-15)
+
+Septième lot en parallèle (4 agents, périmètres de fichiers strictement disjoints),
+sprint mécanique O7/O8. Vitest vert (1 652 tests UI), lint sans erreur (2 warnings `catch (_)`
+pré-existants sur `main`), require-smoke OK, tests DB-free verts (9 pass) ; inventaire des routes
+des 4 routeurs **strictement identique avant/après** (anti-régression O8). Tests backend DB
+exécutés en CI. Avancées par recommandation :
+
+- **O7** (`wip`) — `routes/groups.js` : `POST /` (création de groupe) validé via schéma `zod`
+  (transform reproduisant la normalisation permissive + gardes 400 ordonnées) + test DB-free.
+  Garde 403 extraite en middleware `requireGroupManagement` pour préserver l'ordre 403→400.
+- **O7** (`wip`) — `routes/map.js` : `POST /markers/:id/photos` et `PUT /markers/:id/photos/reorder`
+  validés via `zod`/`lib/validate` (messages 400 verbatim conservés) + test DB-free.
+- **O8** (`wip`) — `routes/visit/zones.js` : 3 handlers enveloppés dans `lib/asyncHandler`, 3 catches
+  génériques supprimés (import `routeLog` retiré). Inventaire des 3 routes inchangé.
+- **O8** (`wip`) — `routes/visit/sync.js` : 3 handlers enveloppés dans `lib/asyncHandler`, 3 catches
+  génériques supprimés ; 1 catch best-effort (`deleteFile`) préservé. Inventaire des 3 routes inchangé.
+
 ### Lot 6 — sprint O7 + O8 multi-agents (2026-06-15)
 
 Sixième lot en parallèle (4 agents, périmètres de fichiers strictement disjoints),
