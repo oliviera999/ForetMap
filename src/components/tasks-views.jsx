@@ -8,6 +8,7 @@ import { resolveRoleText } from '../constants/help';
 import { getContentText } from '../utils/content';
 import { TutorialPreviewModal, tutorialPreviewPayload } from './TutorialPreviewModal';
 import { fetchTutorialReadIds } from './TutorialReadAcknowledge';
+import { TasksEmptyState } from './TasksEmptyState.jsx';
 
 import {
   safeLocalStorageGetItem,
@@ -1021,9 +1022,7 @@ function TasksView({
         sectionTitle={`✅ Projets validés (${validatedProjects.length})`}
       />
 
-      {allFiltered.length === 0 && (
-        <div className="empty"><div className="empty-icon">🌿</div><p>Rien à faire ici pour l’instant — reviens plus tard ou change tes filtres.</p></div>
-      )}
+      <TasksEmptyState count={allFiltered.length} />
     </div>
   );
 }
