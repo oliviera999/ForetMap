@@ -33,6 +33,7 @@ import { armNativeFilePickerGuard, disarmNativeFilePickerGuard } from '../utils/
 import { MarkdownContent } from './MarkdownContent.jsx';
 import { MarkdownTextarea } from './MarkdownTextarea.jsx';
 import { ObservationCard } from './ObservationCard.jsx';
+import { ObservationNotebookStatus } from './ObservationNotebookStatus.jsx';
 import { TimedToast } from '../shared/components/TimedToast.jsx';
 import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
 import { useSession } from '../contexts/SessionContext.jsx';
@@ -563,21 +564,9 @@ function ObservationNotebook({ student, onForceLogout = null }) {
         </div>
       )}
 
-      {loading
-        ? <div className="loader" style={{height:'40vh'}}><div className="loader-leaf">🌿</div><p>Chargement...</p></div>
-        : loadError
-          ? (
-            <div className="empty">
-              <div className="empty-icon">⚠️</div>
-              <p>{loadError}</p>
-              <button className="btn btn-ghost btn-sm" style={{ marginTop: 10 }} onClick={load}>
-                Réessayer
-              </button>
-            </div>
-          )
-          : entries.length === 0
-          ? <div className="empty"><div className="empty-icon">📓</div><p>Ton carnet est vide. Ajoute ta première observation !</p></div>
-          : entries.map(e => (
+      {loading || loadError || entries.length === 0
+        ? <ObservationNotebookStatus loading={loading} loadError={loadError} entryCount={entries.length} onRetry={load} />
+        : entries.map(e => (
             <ObservationCard key={e.id} entry={e} onDelete={deleteObs} />
           ))
       }
