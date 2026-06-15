@@ -40,6 +40,7 @@ import { clampVisitMapTransform, zoomVisitTransformToScale } from '../utils/visi
 import { pointToContainedRectPct } from '../shared/pct-map/pctMapPointer.js';
 import VisitMapMascotRenderer from './VisitMapMascotRenderer.jsx';
 import { VisitMapMarkerButton } from './VisitMapMarkerButton.jsx';
+import { VisitDrawZonePreview } from './VisitDrawZonePreview.jsx';
 import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
 import { useSession } from '../contexts/SessionContext.jsx';
 import { useData } from '../contexts/DataContext.jsx';
@@ -1345,18 +1346,7 @@ function VisitView({
                     );
                   })}
                   {mode === 'draw-zone' && drawPoints.length >= 1 && (
-                    <>
-                      <polyline
-                        points={drawPoints.map((pt) => `${pt.xp},${pt.yp}`).join(' ')}
-                        fill="none"
-                        stroke="#166534"
-                        strokeWidth="0.35"
-                        strokeDasharray="0.8 0.4"
-                      />
-                      {drawPoints.map((pt, idx) => (
-                        <circle key={`draw-${idx}`} cx={pt.xp} cy={pt.yp} r="0.7" fill="#166534" />
-                      ))}
-                    </>
+                    <VisitDrawZonePreview points={drawPoints} />
                   )}
                 </svg>
 
