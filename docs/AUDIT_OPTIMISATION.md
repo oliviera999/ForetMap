@@ -199,6 +199,25 @@ Troisième lot en parallèle (5 agents, périmètres disjoints), build + Vitest 
 - **O10** (`wip`) — `routes/gl/games.js` : sous-domaine `markers` (present-question/present-arrival/apply-effects)
   extrait en sous-routeur `routes/gl/games/markers.js` (chemins/middlewares inchangés).
 
+### Lot 5 — sprint O7 + O8 multi-agents (2026-06-15)
+
+Cinquième lot en parallèle (4 agents, périmètres de fichiers strictement disjoints),
+sprint mécanique O7/O8 à faible risque et inventaire-vérifiable. Vitest vert (1 652 tests
+UI), lint sans erreur, require-smoke OK, tests DB-free verts (9 pass) ; inventaire des routes
+des 4 routeurs **strictement identique avant/après** (anti-régression O8). Tests backend DB
+exécutés en CI. Avancées par recommandation :
+
+- **O7** (`wip`) — `routes/gl/chapters.js` : 6 routes admin à param `:id`/`:markerId` validées
+  via schémas `zod` (`z.coerce.number().finite()`, équivalence exacte avec le gate `Number()/Number.isFinite`)
+  + test DB-free. Body/query laissés aux helpers permissifs existants (pas de durcissement).
+- **O7** (`wip`) — `routes/gl/species.js` : 5 routes (`biomeSlug` en query, `code` en params)
+  validées via `zod`/`lib/validate` (messages 400 verbatim conservés) + test DB-free.
+- **O8** (`wip`) — `routes/gl/market.js` : 8 handlers enveloppés dans `lib/asyncHandler` ; 1 catch
+  purement générique supprimé, 7 catches à statut spécifique (`resolveMarketError`/`handleMarketError`)
+  préservés avec `next(err)` → `throw err`. Inventaire des 8 routes inchangé.
+- **O8** (`wip`) — `routes/gl/player-journal.js` : 5 handlers enveloppés dans `lib/asyncHandler`,
+  5 try/catch génériques supprimés (import `routeLog` devenu inutile retiré). Inventaire des 5 routes inchangé.
+
 ### Lot 4 — itération multi-agents (2026-06-15)
 
 Quatrième lot en parallèle (5 agents, périmètres disjoints), build + Vitest verts
