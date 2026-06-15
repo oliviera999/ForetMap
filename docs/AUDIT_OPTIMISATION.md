@@ -199,6 +199,24 @@ Troisième lot en parallèle (5 agents, périmètres disjoints), build + Vitest 
 - **O10** (`wip`) — `routes/gl/games.js` : sous-domaine `markers` (present-question/present-arrival/apply-effects)
   extrait en sous-routeur `routes/gl/games/markers.js` (chemins/middlewares inchangés).
 
+### Lot 12 — sprint O8 gros fichiers, multi-agents (2026-06-15)
+
+Douzième lot en parallèle (3 agents, gros routeurs ; 1 no-op justifié). Vitest vert (1 652 tests UI),
+lint sans erreur (4 warnings pré-existants sur `gl/auth`), require-smoke OK ; inventaire des routes
+des 2 routeurs migrés **strictement identique avant/après** ; `validate(...)` (O7) conservés.
+
+- **O8** (`wip`) — `routes/gl/games.js` (1198 l.) : 26 handlers enveloppés dans `lib/asyncHandler` ;
+  3 catches mixtes « dégénériqués » (branche 409 préservée, queue 500 générique → `throw err`) ;
+  5 catches à statut spécifique préservés (`resolveRosterError`/`resolveVitalityError`/narration/marker).
+  Import `routeLog` retiré. Inventaire des 26 routes inchangé.
+- **O8** (`wip`) — `routes/gl/auth.js` (1193 l.) : 16 handlers enveloppés ; 8 catches génériques
+  supprimés ; 2 catches OAuth spécifiques préservés (401 Google, redirect callback). `logRouteError`
+  conservé (encore utilisé). Status codes auth (400/401/403/404/409/503) inchangés. Inventaire des 16 routes inchangé.
+- **O8** (`skip`) — `routes/visit/mascot.js` : **no-op justifié** — les 4 routes mappent des erreurs SQL
+  vers des statuts spécifiques (503 table absente, 400 FK) non répliqués par le handler central ; supprimer
+  ces catches régresserait le contrat d'erreur. Tous les awaits étant déjà dans le `try`, asyncHandler
+  n'apporterait rien. Laissé inchangé (précédent : `gl/games/spell-casts.js`).
+
 ### Lot 11 — sprint O8 multi-agents (2026-06-15)
 
 Onzième lot en parallèle (4 agents, périmètres disjoints), O8 sur 4 routeurs `gl/` déjà validés O7.

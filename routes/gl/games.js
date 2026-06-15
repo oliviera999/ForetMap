@@ -11,7 +11,6 @@ const {
   applyTeamVitalityDelta,
   resolveVitalityError,
 } = require('../../lib/glVitality');
-const { logRouteError } = require('../../lib/routeLog');
 const { assignPlayerToTeamTx, unassignPlayerFromGameTx } = require('../../lib/glRoster');
 const { canAccessGlGame } = require('../../lib/glGameAccess');
 
@@ -56,6 +55,7 @@ function parsePct(value) {
 }
 
 const { normalizeOptionalString } = require('../../lib/shared/httpHelpers');
+const asyncHandler = require('../../lib/asyncHandler');
 const { z, validate } = require('../../lib/validate');
 
 // O7 — query friction-free (coercition permissive, jamais de 400 issu du schéma) :
@@ -81,20 +81,20 @@ const glGamesFeuilletPresentedQuerySchema = z.object({
   ),
 });
 
-router.get('/chapters', requireGlPermission('gl.read'), async (_req, res) => {
+router.get('/chapters', requireGlPermission('gl.read'), asyncHandler(async (_req, res) => {
   const rows = await queryAll(
     `SELECT id, slug, title, biome, map_image_url, order_index
        FROM gl_chapters
       ORDER BY order_index ASC, id ASC`
   );
   return res.json(rows);
-});
+}));
 
 /**
  * Snapshot public des toggles gameplay (joueur + admin) :
  * le frontend en a besoin pour conditionner l'UI (tour, narration, actions, score).
  */
-router.get('/gameplay-settings', requireGlAuth, async (_req, res) => {
+router.get('/gameplay-settings', requireGlAuth, asyncHandler(async (_req, res) => {
   const settings = await getGameplaySettings();
   const spellCast = await getSpellCastConfig();
   return res.json({
@@ -106,9 +106,9 @@ router.get('/gameplay-settings', requireGlAuth, async (_req, res) => {
       spellCastMjOnly: spellCast.mjOnly,
     },
   });
-});
+}));
 
-router.get('/games', requireGlPermission('gl.game.manage'), validate({ query: glGamesListQuerySchema }), async (req, res) => {
+router.get('/games', requireGlPermission('gl.game.manage'), validate({ query: glGamesListQuerySchema }), asyncHandler(async (req, res) => {
   const classId = req.validatedQuery?.classId;
   const status = req.validatedQuery?.status;
   if (req.query?.classId != null && !classId) {
@@ -155,9 +155,9 @@ router.get('/games', requireGlPermission('gl.game.manage'), validate({ query: gl
     createdAt: row.created_at || null,
     updatedAt: row.updated_at || null,
   })));
-});
+}));
 
-router.get('/games/:id', requireGlAuth, async (req, res) => {
+router.get('/games/:id', requireGlAuth, asyncHandler(async (req, res) => {
   const gameId = parseId(req.params.id);
   if (!gameId) return res.status(400).json({ error: 'Identifiant de partie invalide' });
   const state = await readGameState(gameId);
@@ -166,9 +166,9 @@ router.get('/games/:id', requireGlAuth, async (req, res) => {
     return res.status(403).json({ error: 'Accès refusé à cette partie' });
   }
   return res.json(state);
-});
+}));
 
-router.post('/games', requireGlPermission('gl.game.manage'), async (req, res) => {
+router.post('/games', requireGlPermission('gl.game.manage'), asyncHandler(async (req, res) => {
   const classId = parseId(req.body?.classId);
   const chapterId = parseId(req.body?.chapterId);
   const name = normalizeOptionalString(req.body?.name) || 'Nouvelle partie';
@@ -195,15 +195,14 @@ router.post('/games', requireGlPermission('gl.game.manage'), async (req, res) =>
     if (err && err.code === 'ER_NO_REFERENCED_ROW_2') {
       return res.status(409).json({ error: 'Classe ou chapitre supprimé entre-temps' });
     }
-    logRouteError(err, req, 'POST /api/gl/games : INSERT en échec');
-    return res.status(500).json({ error: 'Erreur lors de la création de la partie' });
+    throw err;
   }
   const newId = insertResult?.insertId;
   const state = await readGameState(newId);
   return res.status(201).json(state);
-});
+}));
 
-router.put('/games/:id', requireGlPermission('gl.game.manage'), async (req, res) => {
+router.put('/games/:id', requireGlPermission('gl.game.manage'), asyncHandler(async (req, res) => {
   const gameId = parseId(req.params.id);
   if (!gameId) return res.status(400).json({ error: 'Identifiant de partie invalide' });
 
@@ -343,16 +342,15 @@ router.put('/games/:id', requireGlPermission('gl.game.manage'), async (req, res)
     if (err && err.code === 'ER_NO_REFERENCED_ROW_2') {
       return res.status(409).json({ error: 'Classe ou chapitre supprimé entre-temps' });
     }
-    logRouteError(err, req, 'PUT /api/gl/games/:id : UPDATE en échec');
-    return res.status(500).json({ error: 'Erreur lors de la mise à jour de la partie' });
+    throw err;
   }
 
   const state = await readGameState(gameId);
   if (!state) return res.status(404).json({ error: 'Partie introuvable' });
   return res.json(state);
-});
+}));
 
-router.post('/games/:id/teams', requireGlPermission('gl.team.manage'), async (req, res) => {
+router.post('/games/:id/teams', requireGlPermission('gl.team.manage'), asyncHandler(async (req, res) => {
   const gameId = parseId(req.params.id);
   if (!gameId) return res.status(400).json({ error: 'Identifiant de partie invalide' });
   const name = normalizeOptionalString(req.body?.name);
@@ -374,14 +372,13 @@ router.post('/games/:id/teams', requireGlPermission('gl.team.manage'), async (re
     if (err && err.code === 'ER_NO_REFERENCED_ROW_2') {
       return res.status(409).json({ error: 'Partie supprimée entre-temps' });
     }
-    logRouteError(err, req, 'POST /api/gl/games/:id/teams : INSERT en échec');
-    return res.status(500).json({ error: 'Erreur lors de la création de l’équipe' });
+    throw err;
   }
   const team = await queryOne('SELECT * FROM gl_teams WHERE id = ? LIMIT 1', [insertResult?.insertId]);
   return res.status(201).json(team);
-});
+}));
 
-router.put('/games/:id/teams/:teamId', requireGlPermission('gl.team.manage'), async (req, res) => {
+router.put('/games/:id/teams/:teamId', requireGlPermission('gl.team.manage'), asyncHandler(async (req, res) => {
   const gameId = parseId(req.params.id);
   const teamId = parseId(req.params.teamId);
   if (!gameId || !teamId) return res.status(400).json({ error: 'Identifiants invalides' });
@@ -412,9 +409,9 @@ router.put('/games/:id/teams/:teamId', requireGlPermission('gl.team.manage'), as
   );
   const updated = await queryOne('SELECT * FROM gl_teams WHERE id = ? AND game_id = ? LIMIT 1', [teamId, gameId]);
   return res.json(updated);
-});
+}));
 
-router.delete('/games/:id/teams/:teamId', requireGlPermission('gl.team.manage'), async (req, res) => {
+router.delete('/games/:id/teams/:teamId', requireGlPermission('gl.team.manage'), asyncHandler(async (req, res) => {
   const gameId = parseId(req.params.id);
   const teamId = parseId(req.params.teamId);
   if (!gameId || !teamId) return res.status(400).json({ error: 'Identifiants invalides' });
@@ -429,9 +426,9 @@ router.delete('/games/:id/teams/:teamId', requireGlPermission('gl.team.manage'),
   }
   await execute('DELETE FROM gl_teams WHERE id = ? AND game_id = ?', [teamId, gameId]);
   return res.json({ ok: true });
-});
+}));
 
-router.post('/games/:id/join-team', requireGlAuth, async (req, res) => {
+router.post('/games/:id/join-team', requireGlAuth, asyncHandler(async (req, res) => {
   if (req.glAuth.userType !== 'gl_player') return res.status(403).json({ error: 'Réservé aux joueurs' });
   const gameId = parseId(req.params.id);
   const teamId = parseId(req.body?.teamId);
@@ -467,9 +464,9 @@ router.post('/games/:id/join-team', requireGlAuth, async (req, res) => {
     throw err;
   }
   return res.json({ ok: true });
-});
+}));
 
-router.get('/games/:id/roster', requireGlPermission('gl.players.manage'), async (req, res) => {
+router.get('/games/:id/roster', requireGlPermission('gl.players.manage'), asyncHandler(async (req, res) => {
   const gameId = parseId(req.params.id);
   if (!gameId) return res.status(400).json({ error: 'Identifiant de partie invalide' });
   const game = await queryOne(
@@ -508,9 +505,9 @@ router.get('/games/:id/roster', requireGlPermission('gl.players.manage'), async 
     }
     return out;
   }));
-});
+}));
 
-router.post('/games/:id/vitality/player', requireGlPermission('gl.event.emit'), async (req, res) => {
+router.post('/games/:id/vitality/player', requireGlPermission('gl.event.emit'), asyncHandler(async (req, res) => {
   const gameId = parseId(req.params.id);
   const playerId = parseId(req.body?.playerId);
   const healthDelta = req.body?.healthDelta;
@@ -559,9 +556,9 @@ router.post('/games/:id/vitality/player', requireGlPermission('gl.event.emit'), 
     if (mapped) return res.status(mapped.status).json({ error: mapped.error });
     throw err;
   }
-});
+}));
 
-router.post('/games/:id/vitality/team', requireGlPermission('gl.event.emit'), async (req, res) => {
+router.post('/games/:id/vitality/team', requireGlPermission('gl.event.emit'), asyncHandler(async (req, res) => {
   const gameId = parseId(req.params.id);
   const teamId = parseId(req.body?.teamId);
   const healthDelta = req.body?.healthDelta;
@@ -609,9 +606,9 @@ router.post('/games/:id/vitality/team', requireGlPermission('gl.event.emit'), as
     if (mapped) return res.status(mapped.status).json({ error: mapped.error });
     throw err;
   }
-});
+}));
 
-router.post('/games/:id/roster/assign', requireGlPermission('gl.players.manage'), async (req, res) => {
+router.post('/games/:id/roster/assign', requireGlPermission('gl.players.manage'), asyncHandler(async (req, res) => {
   const gameId = parseId(req.params.id);
   const playerId = parseId(req.body?.playerId);
   const teamId = parseId(req.body?.teamId);
@@ -626,9 +623,9 @@ router.post('/games/:id/roster/assign', requireGlPermission('gl.players.manage')
     throw err;
   }
   return res.json({ ok: true });
-});
+}));
 
-router.post('/games/:id/roster/unassign', requireGlPermission('gl.players.manage'), async (req, res) => {
+router.post('/games/:id/roster/unassign', requireGlPermission('gl.players.manage'), asyncHandler(async (req, res) => {
   const gameId = parseId(req.params.id);
   const playerId = parseId(req.body?.playerId);
   if (!gameId || !playerId) return res.status(400).json({ error: 'Identifiants invalides' });
@@ -636,9 +633,9 @@ router.post('/games/:id/roster/unassign', requireGlPermission('gl.players.manage
     await unassignPlayerFromGameTx(tx, { gameId, playerId });
   });
   return res.json({ ok: true });
-});
+}));
 
-router.post('/games/:id/events', requireGlPermission('gl.event.emit'), async (req, res) => {
+router.post('/games/:id/events', requireGlPermission('gl.event.emit'), asyncHandler(async (req, res) => {
   const gameId = parseId(req.params.id);
   const teamId = req.body?.teamId != null ? parseId(req.body.teamId) : null;
   const eventType = normalizeOptionalString(req.body?.eventType);
@@ -750,13 +747,13 @@ router.post('/games/:id/events', requireGlPermission('gl.event.emit'), async (re
   const normalized = normalizeEventRow(evt);
   emitGlGameEvent(gameId, normalized);
   return res.status(201).json(normalized);
-});
+}));
 
 /**
  * Avancement du tour. Cyclique sur les equipes triees par id ASC.
  * Refus si `gameplay.turns_enabled = false`.
  */
-router.post('/games/:id/turn/next', requireGlPermission('gl.game.manage'), async (req, res) => {
+router.post('/games/:id/turn/next', requireGlPermission('gl.game.manage'), asyncHandler(async (req, res) => {
   const gameId = parseId(req.params.id);
   if (!gameId) return res.status(400).json({ error: 'Identifiant de partie invalide' });
   const settings = await getGameplaySettings();
@@ -793,14 +790,14 @@ router.post('/games/:id/turn/next', requireGlPermission('gl.game.manage'), async
   const normalized = normalizeEventRow(evt);
   emitGlGameEvent(gameId, normalized);
   return res.json({ ok: true, currentTeamId: Number(nextTeamId), event: normalized });
-});
+}));
 
 /**
  * Demande d'action emise par un joueur. Le MJ resout via /actions/:actionId/resolve.
  * Refus si `gameplay.player_actions_enabled = false` ou si le joueur n'est pas dans
  * l'equipe active (lorsque les tours sont actives).
  */
-router.post('/games/:id/actions', requireGlPermission('gl.action.request'), async (req, res) => {
+router.post('/games/:id/actions', requireGlPermission('gl.action.request'), asyncHandler(async (req, res) => {
   if (req.glAuth.userType !== 'gl_player') return res.status(403).json({ error: 'Réservé aux joueurs' });
   const gameId = parseId(req.params.id);
   if (!gameId) return res.status(400).json({ error: 'Identifiant de partie invalide' });
@@ -861,9 +858,9 @@ router.post('/games/:id/actions', requireGlPermission('gl.action.request'), asyn
   const normalized = normalizeEventRow(evt);
   emitGlGameEvent(gameId, normalized);
   return res.status(201).json({ actionRequestId, event: normalized });
-});
+}));
 
-router.post('/games/:id/actions/:actionId/resolve', requireGlPermission('gl.game.manage'), async (req, res) => {
+router.post('/games/:id/actions/:actionId/resolve', requireGlPermission('gl.game.manage'), asyncHandler(async (req, res) => {
   const gameId = parseId(req.params.id);
   const actionId = parseId(req.params.actionId);
   if (!gameId || !actionId) return res.status(400).json({ error: 'Identifiants invalides' });
@@ -939,7 +936,7 @@ router.post('/games/:id/actions/:actionId/resolve', requireGlPermission('gl.game
     emitGlGameEvent(gameId, normalizeEventRow(row));
   }
   return res.json({ ok: true, decision, scoreDelta: appliedDelta });
-});
+}));
 
 /** POST /api/gl/games/:id/qcm/answer — validation QCM en partie (+ score si activé). */
 router.use(require('./games/qcm'));
@@ -950,7 +947,7 @@ router.use(require('./games/qcm'));
 router.use(require('./games/markers'));
 
 /** POST /api/gl/games/:id/zones/:zoneId/present-content — popover texte/images à l'entrée ou traversée. */
-router.post('/games/:id/zones/:zoneId/present-content', requireGlAuth, async (req, res) => {
+router.post('/games/:id/zones/:zoneId/present-content', requireGlAuth, asyncHandler(async (req, res) => {
   const gameId = parseId(req.params.id);
   const zoneId = parseId(req.params.zoneId);
   if (!gameId || !zoneId) {
@@ -1035,10 +1032,10 @@ router.post('/games/:id/zones/:zoneId/present-content', requireGlAuth, async (re
     popoverMarkdown: popover.popoverMarkdown,
     popoverImages: popover.popoverImages,
   });
-});
+}));
 
 /** GET /api/gl/games/:id/feuillet-zones/presented — zones feuillets déjà lues par équipe. */
-router.get('/games/:id/feuillet-zones/presented', requireGlAuth, validate({ query: glGamesFeuilletPresentedQuerySchema }), async (req, res) => {
+router.get('/games/:id/feuillet-zones/presented', requireGlAuth, validate({ query: glGamesFeuilletPresentedQuerySchema }), asyncHandler(async (req, res) => {
   const gameId = parseId(req.params.id);
   if (!gameId) return res.status(400).json({ error: 'Identifiant de partie invalide' });
 
@@ -1059,10 +1056,10 @@ router.get('/games/:id/feuillet-zones/presented', requireGlAuth, validate({ quer
 
   const zoneIds = await listPresentedFeuilletZones({ queryAll }, { gameId, teamId });
   return res.json({ teamId, zoneIds });
-});
+}));
 
 /** POST /api/gl/games/:id/feuillet-zones/:zoneId/present — première traversée d'une zone feuillet. */
-router.post('/games/:id/feuillet-zones/:zoneId/present', requireGlAuth, async (req, res) => {
+router.post('/games/:id/feuillet-zones/:zoneId/present', requireGlAuth, asyncHandler(async (req, res) => {
   const gameId = parseId(req.params.id);
   const zoneId = String(req.params.zoneId || '').trim();
   if (!gameId || !zoneId) {
@@ -1153,7 +1150,7 @@ router.post('/games/:id/feuillet-zones/:zoneId/present', requireGlAuth, async (r
     teamId,
     vitality: result.vitality,
   });
-});
+}));
 
 async function updateGameStatus(req, res, nextStatus) {
   const gameId = parseId(req.params.id);
@@ -1173,7 +1170,7 @@ async function updateGameStatus(req, res, nextStatus) {
   return res.json({ ok: true, status: nextStatus });
 }
 
-router.delete('/games/:id', requireGlPermission('gl.game.manage'), async (req, res) => {
+router.delete('/games/:id', requireGlPermission('gl.game.manage'), asyncHandler(async (req, res) => {
   const gameId = parseId(req.params.id);
   if (!gameId) return res.status(400).json({ error: 'Identifiant de partie invalide' });
   const existing = await queryOne('SELECT id, status FROM gl_games WHERE id = ? LIMIT 1', [gameId]);
@@ -1183,11 +1180,11 @@ router.delete('/games/:id', requireGlPermission('gl.game.manage'), async (req, r
   }
   await execute('DELETE FROM gl_games WHERE id = ?', [gameId]);
   return res.json({ ok: true });
-});
+}));
 
-router.post('/games/:id/start', requireGlPermission('gl.game.manage'), (req, res) => updateGameStatus(req, res, 'live'));
-router.post('/games/:id/pause', requireGlPermission('gl.game.manage'), (req, res) => updateGameStatus(req, res, 'paused'));
-router.post('/games/:id/end', requireGlPermission('gl.game.manage'), (req, res) => updateGameStatus(req, res, 'ended'));
+router.post('/games/:id/start', requireGlPermission('gl.game.manage'), asyncHandler((req, res) => updateGameStatus(req, res, 'live')));
+router.post('/games/:id/pause', requireGlPermission('gl.game.manage'), asyncHandler((req, res) => updateGameStatus(req, res, 'paused')));
+router.post('/games/:id/end', requireGlPermission('gl.game.manage'), asyncHandler((req, res) => updateGameStatus(req, res, 'ended')));
 
 // O10 — sous-domaine spell-casts extrait en sous-routeur dédié (chemins inchangés).
 router.use(require('./games/spell-casts'));
