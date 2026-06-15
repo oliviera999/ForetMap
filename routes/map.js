@@ -11,8 +11,33 @@ const { sendFilePublicImageOptions } = require('../lib/httpImageCache');
 const { parseVisitEditorialBlocksInput, serializeVisitEditorialBlocks } = require('../lib/visitEditorialBlocks');
 const { resolveDefaultMapId } = require('../lib/settings');
 const { normalizeMarkerEmoji } = require('../lib/markerEmoji');
+const { z, validate } = require('../lib/validate');
 
 const router = express.Router();
+
+// O7 — `PUT /markers/:id/photos/reorder` : remplace la garde manuelle
+// `const raw = req.body?.photo_ids ?? req.body?.ordered_ids; if (!Array.isArray(raw)) -> 400`.
+// Le refine est au niveau racine (path vide) pour que `formatZodError` renvoie exactement le
+// message d'origine (sans préfixe de chemin) et tolère un corps null/undefined comme l'opérateur
+// `?.` d'origine. Le corps n'est PAS transformé : le handler continue de lire/coercer lui-même
+// `req.body?.photo_ids ?? req.body?.ordered_ids` (coercition permissive des éléments inchangée),
+// puis applique les vérifications métier restantes (longueur, appartenance, doublons).
+const reorderMarkerPhotosBodySchema = z
+  .object({ photo_ids: z.unknown().optional(), ordered_ids: z.unknown().optional() })
+  .passthrough()
+  .refine((body) => Array.isArray(body && (body.photo_ids ?? body.ordered_ids)), {
+    message: 'Liste photo_ids (ou ordered_ids) requise',
+  });
+
+// O7 — `POST /markers/:id/photos` : remplace la garde manuelle `if (!image_data) -> 400 'Image requise'`.
+// Le refine est au niveau racine pour que `formatZodError` renvoie 'Image requise' tel quel et
+// tolère un corps null/undefined (déstructuration `const { image_data } = req.body` exigeait déjà
+// un corps objet). Le corps n'est PAS transformé : le handler continue de lire `req.body`
+// (image_data + caption) sans changement.
+const addMarkerPhotoBodySchema = z
+  .object({ image_data: z.unknown().optional() })
+  .passthrough()
+  .refine((body) => !!(body && body.image_data), { message: 'Image requise' });
 
 async function mapExists(mapId) {
   if (!mapId) return false;
@@ -151,7 +176,7 @@ router.get('/markers/:id/photos', asyncHandler(async (req, res) => {
   res.json(photos.map((p) => serializeMarkerPhotoListRow(p, markerId)));
 }));
 
-router.put('/markers/:id/photos/reorder', requirePermission('map.manage_markers', { needsElevation: true }), asyncHandler(async (req, res) => {
+router.put('/markers/:id/photos/reorder', requirePermission('map.manage_markers', { needsElevation: true }), validate({ body: reorderMarkerPhotosBodySchema }), asyncHandler(async (req, res) => {
   const markerId = String(req.params.id || '').trim();
   const m = await queryOne('SELECT id, map_id FROM map_markers WHERE id=?', [markerId]);
   if (!m) return res.status(404).json({ error: 'Repère introuvable' });
@@ -181,7 +206,7 @@ router.put('/markers/:id/photos/reorder', requirePermission('map.manage_markers'
   res.json({ ok: true });
 }));
 
-router.post('/markers/:id/photos', requirePermission('map.manage_markers', { needsElevation: true }), asyncHandler(async (req, res) => {
+router.post('/markers/:id/photos', requirePermission('map.manage_markers', { needsElevation: true }), validate({ body: addMarkerPhotoBodySchema }), asyncHandler(async (req, res) => {
   let photoId = null;
   const m = await queryOne('SELECT * FROM map_markers WHERE id=?', [req.params.id]);
   if (!m) return res.status(404).json({ error: 'Repère introuvable' });
@@ -316,3 +341,6 @@ router.delete('/markers/:id', requirePermission('map.manage_markers', { needsEle
 }));
 
 module.exports = router;
+// Exportés pour le test no-DB du contrat de validation O7.
+module.exports.reorderMarkerPhotosBodySchema = reorderMarkerPhotosBodySchema;
+module.exports.addMarkerPhotoBodySchema = addMarkerPhotoBodySchema;
