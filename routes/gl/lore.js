@@ -71,6 +71,7 @@ const { previewLoreQuestionPool } = require('../../lib/glMarkerLoreQuestionPool'
 const { normalizeLoreQuestionPool } = require('../../lib/glMarkerEventConfig');
 const { normalizeOptionalString } = require('../../lib/shared/httpHelpers');
 const { z, validate } = require('../../lib/validate');
+const asyncHandler = require('../../lib/asyncHandler');
 const { glQcmPoolPreviewQuerySchema } = require('../../lib/glQuerySchemas');
 const {
   parseId,
@@ -101,7 +102,7 @@ const glLoreFeuilletQuerySchema = z.object({
 });
 
 /** GET /api/gl/lore/feuillets */
-router.get('/feuillets', requireGlAuth, validate({ query: glLoreFeuilletQuerySchema }), async (req, res) => {
+router.get('/feuillets', requireGlAuth, validate({ query: glLoreFeuilletQuerySchema }), asyncHandler(async (req, res) => {
   const modules = await getGlModulesSettings();
   if (!modules.loreCarnetEnabled) return res.status(404).json({ error: 'Module carnet désactivé' });
 
@@ -138,10 +139,10 @@ router.get('/feuillets', requireGlAuth, validate({ query: glLoreFeuilletQuerySch
     });
   });
   return res.json({ items });
-});
+}));
 
 /** GET /api/gl/lore/feuillets/:code */
-router.get('/feuillets/:code', requireGlAuth, validate({ query: glLoreFeuilletQuerySchema }), async (req, res) => {
+router.get('/feuillets/:code', requireGlAuth, validate({ query: glLoreFeuilletQuerySchema }), asyncHandler(async (req, res) => {
   const modules = await getGlModulesSettings();
   if (!modules.loreCarnetEnabled) return res.status(404).json({ error: 'Module carnet désactivé' });
 
@@ -170,10 +171,10 @@ router.get('/feuillets/:code', requireGlAuth, validate({ query: glLoreFeuilletQu
       effacementPct: progress?.effacement_pct || 0,
     }),
   });
-});
+}));
 
 /** POST /api/gl/lore/games/:id/feuillets/:code/present */
-router.post('/games/:id/feuillets/:code/present', requireGlAuth, async (req, res) => {
+router.post('/games/:id/feuillets/:code/present', requireGlAuth, asyncHandler(async (req, res) => {
   const modules = await getGlModulesSettings();
   if (!modules.loreCarnetEnabled) return res.status(404).json({ error: 'Module carnet désactivé' });
 
@@ -264,10 +265,10 @@ router.post('/games/:id/feuillets/:code/present', requireGlAuth, async (req, res
     feuillet: formatFeuilletRow(feuillet, { isMj, progressStatus: 'discovered', effacementPct }),
     vitality: vitalityPayload,
   });
-});
+}));
 
 /** POST /api/gl/lore/games/:id/feuillets/:code/read */
-router.post('/games/:id/feuillets/:code/read', requireGlAuth, async (req, res) => {
+router.post('/games/:id/feuillets/:code/read', requireGlAuth, asyncHandler(async (req, res) => {
   const gameId = parseId(req.params.id);
   const code = String(req.params.code || '').trim();
   if (!gameId || !code) return res.status(400).json({ error: 'Identifiants invalides' });
@@ -288,10 +289,10 @@ router.post('/games/:id/feuillets/:code/read', requireGlAuth, async (req, res) =
     feuilletCode: code,
   });
   return res.json({ ok: true });
-});
+}));
 
 /** POST /api/gl/lore/games/:id/feuillets/:code/hold */
-router.post('/games/:id/feuillets/:code/hold', requireGlAuth, async (req, res) => {
+router.post('/games/:id/feuillets/:code/hold', requireGlAuth, asyncHandler(async (req, res) => {
   const gameId = parseId(req.params.id);
   const code = String(req.params.code || '').trim();
   if (!gameId || !code) return res.status(400).json({ error: 'Identifiants invalides' });
@@ -318,10 +319,10 @@ router.post('/games/:id/feuillets/:code/hold', requireGlAuth, async (req, res) =
     tenir: feuillet.tenir,
   });
   return res.json({ ok: true, tenir: feuillet.tenir });
-});
+}));
 
 /** GET /api/gl/lore/games/:id/zones/:zoneId/feuillets — candidats à la découverte */
-router.get('/games/:id/zones/:zoneId/feuillets', requireGlAuth, async (req, res) => {
+router.get('/games/:id/zones/:zoneId/feuillets', requireGlAuth, asyncHandler(async (req, res) => {
   const gameId = parseId(req.params.id);
   const zoneId = parseId(req.params.zoneId);
   if (!gameId || !zoneId) return res.status(400).json({ error: 'Identifiants invalides' });
@@ -361,10 +362,10 @@ router.get('/games/:id/zones/:zoneId/feuillets', requireGlAuth, async (req, res)
   return res.json({
     items: candidates.map((row) => formatFeuilletRow(row, { isMj: req.glAuth.userType === 'gl_admin' })),
   });
-});
+}));
 
 /** GET /api/gl/lore/glossary */
-router.get('/glossary', requireGlAuth, async (req, res) => {
+router.get('/glossary', requireGlAuth, asyncHandler(async (req, res) => {
   const modules = await getGlModulesSettings();
   if (!modules.loreGlossaryEnabled) return res.status(404).json({ error: 'Module glossaire lore désactivé' });
 
@@ -395,10 +396,10 @@ router.get('/glossary', requireGlAuth, async (req, res) => {
     chapitre_scope: row.chapitre_scope,
   }));
   return res.json({ items });
-});
+}));
 
 /** GET /api/gl/lore/glossary/:code */
-router.get('/glossary/:code', requireGlAuth, async (req, res) => {
+router.get('/glossary/:code', requireGlAuth, asyncHandler(async (req, res) => {
   const modules = await getGlModulesSettings();
   if (!modules.loreGlossaryEnabled) return res.status(404).json({ error: 'Module glossaire lore désactivé' });
 
@@ -432,10 +433,10 @@ router.get('/glossary/:code', requireGlAuth, async (req, res) => {
     relatedTerms: related,
     spoilerMaxLevel: gameplay.loreSpoilerMaxLevel,
   });
-});
+}));
 
 /** GET /api/gl/lore/glossary/link-index — auto-liens front */
-router.get('/glossary/link-index', requireGlAuth, async (_req, res) => {
+router.get('/glossary/link-index', requireGlAuth, asyncHandler(async (_req, res) => {
   const rows = await queryAll(
     `SELECT lore_code, terme, variantes FROM gl_lore_glossary_terms WHERE statut = 'actif'`
   );
@@ -446,11 +447,11 @@ router.get('/glossary/link-index', requireGlAuth, async (_req, res) => {
       variantes: row.variantes,
     })),
   });
-});
+}));
 
 // --- Admin ---
 
-router.get('/admin/feuillets', requireGlPermission('gl.content.manage'), async (req, res) => {
+router.get('/admin/feuillets', requireGlPermission('gl.content.manage'), asyncHandler(async (req, res) => {
   const q = String(req.query?.q || '').trim();
   const params = [];
   let sql = `SELECT feuillet_code, titre, type, liasse, biome_slug, zone_label, kingdom_zone_id,
@@ -464,18 +465,18 @@ router.get('/admin/feuillets', requireGlPermission('gl.content.manage'), async (
   sql += ' ORDER BY ordre_voyage ASC, ordre_liasse ASC LIMIT 500';
   const items = await queryAll(sql, params);
   return res.json({ items });
-});
+}));
 
-router.get('/admin/feuillets/:code', requireGlPermission('gl.content.manage'), async (req, res) => {
+router.get('/admin/feuillets/:code', requireGlPermission('gl.content.manage'), asyncHandler(async (req, res) => {
   const row = await queryOne(
     `SELECT ${FEUILLET_SELECT} FROM gl_lore_feuillets f WHERE f.feuillet_code = ? LIMIT 1`,
     [req.params.code]
   );
   if (!row) return res.status(404).json({ error: 'Feuillet introuvable' });
   return res.json({ feuillet: formatFeuilletRow(row, { isMj: true }) });
-});
+}));
 
-router.put('/admin/feuillets/:code/kingdom-zone', requireGlPermission('gl.content.manage'), async (req, res) => {
+router.put('/admin/feuillets/:code/kingdom-zone', requireGlPermission('gl.content.manage'), asyncHandler(async (req, res) => {
   const code = String(req.params.code || '').trim();
   const kingdomZoneId = req.body?.kingdomZoneId == null ? null : parseId(req.body.kingdomZoneId);
   const existing = await queryOne('SELECT feuillet_code FROM gl_lore_feuillets WHERE feuillet_code = ? LIMIT 1', [code]);
@@ -489,7 +490,7 @@ router.put('/admin/feuillets/:code/kingdom-zone', requireGlPermission('gl.conten
     [kingdomZoneId, code]
   );
   return res.json({ ok: true, feuilletCode: code, kingdomZoneId });
-});
+}));
 
 router.get('/admin/feuillets/import/template', requireGlPermission('gl.content.manage'), wrapXlsxRoute(async () => ({
   buffer: await buildFeuilletsTemplateWorkbook(),
@@ -501,7 +502,7 @@ router.get('/admin/feuillets/export', requireGlPermission('gl.content.manage'), 
   filename: 'export-feuillets-selene.xlsx',
 })));
 
-router.post('/admin/feuillets/import', requireGlPermission('gl.content.manage'), async (req, res) => {
+router.post('/admin/feuillets/import', requireGlPermission('gl.content.manage'), asyncHandler(async (req, res) => {
   const dryRun = !!req.body?.dryRun;
   try {
     const parsed = await resolveFeuilletsImportBody(req.body || {});
@@ -510,9 +511,9 @@ router.post('/admin/feuillets/import', requireGlPermission('gl.content.manage'),
   } catch (err) {
     return res.status(400).json({ error: err.message || 'Import impossible' });
   }
-});
+}));
 
-router.get('/admin/glossary/meta', requireGlPermission('gl.content.manage'), async (_req, res) => {
+router.get('/admin/glossary/meta', requireGlPermission('gl.content.manage'), asyncHandler(async (_req, res) => {
   return res.json({
     categories: LORE_GLOSSARY_CATEGORIES.map((id) => ({
       id,
@@ -521,39 +522,39 @@ router.get('/admin/glossary/meta', requireGlPermission('gl.content.manage'), asy
     niveaux: Object.entries(LORE_NIVEAU_LABELS).map(([id, label]) => ({ id, label })),
     spoilerLevels: [...LORE_SPOILER_LEVELS],
   });
-});
+}));
 
-router.get('/admin/glossary/terms/next-code', requireGlPermission('gl.content.manage'), async (_req, res) => {
+router.get('/admin/glossary/terms/next-code', requireGlPermission('gl.content.manage'), asyncHandler(async (_req, res) => {
   const lore_code = await allocateNextLoreCode(queryAll);
   return res.json({ lore_code });
-});
+}));
 
-router.get('/admin/glossary/terms', requireGlPermission('gl.content.manage'), async (req, res) => {
+router.get('/admin/glossary/terms', requireGlPermission('gl.content.manage'), asyncHandler(async (req, res) => {
   const rows = await queryAll(
     `SELECT lore_code, terme, variantes, categorie, niveau, definition_courte, chapitre_scope, statut
        FROM gl_lore_glossary_terms
      ORDER BY categorie ASC, terme ASC LIMIT 500`
   );
   return res.json({ items: rows });
-});
+}));
 
-router.post('/admin/glossary/terms', requireGlPermission('gl.content.manage'), async (req, res) => {
+router.post('/admin/glossary/terms', requireGlPermission('gl.content.manage'), asyncHandler(async (req, res) => {
   try {
     const result = await upsertLoreGlossaryTerm(db, req.body || {}, { requireNew: false });
     return res.status(result.created ? 201 : 200).json(result);
   } catch (err) {
     return res.status(err.statusCode || 400).json({ error: err.message, details: err.details });
   }
-});
+}));
 
-router.put('/admin/glossary/terms/:code', requireGlPermission('gl.content.manage'), async (req, res) => {
+router.put('/admin/glossary/terms/:code', requireGlPermission('gl.content.manage'), asyncHandler(async (req, res) => {
   try {
     const result = await upsertLoreGlossaryTerm(db, { ...req.body, lore_code: req.params.code });
     return res.json(result);
   } catch (err) {
     return res.status(err.statusCode || 400).json({ error: err.message, details: err.details });
   }
-});
+}));
 
 router.get('/admin/glossary/import/template', requireGlPermission('gl.content.manage'), wrapXlsxRoute(async () => ({
   buffer: await buildLoreGlossaryTemplateWorkbook(),
@@ -568,7 +569,7 @@ router.get('/admin/glossary/export', requireGlPermission('gl.content.manage'), w
   };
 }));
 
-router.post('/admin/glossary/import', requireGlPermission('gl.content.manage'), async (req, res) => {
+router.post('/admin/glossary/import', requireGlPermission('gl.content.manage'), asyncHandler(async (req, res) => {
   const dryRun = !!req.body?.dryRun;
   try {
     const { glossaryRows } = await resolveLoreGlossaryImportBody(req.body || {});
@@ -577,7 +578,7 @@ router.post('/admin/glossary/import', requireGlPermission('gl.content.manage'), 
   } catch (err) {
     return res.status(400).json({ error: err.message || 'Import impossible' });
   }
-});
+}));
 
 async function loadLoreGlossaryLookupForQcm() {
   const rows = await queryAll(
@@ -595,27 +596,27 @@ async function loadActiveLoreQuestionRow(code) {
 }
 
 /** GET /api/gl/lore/qcm/categories */
-router.get('/qcm/categories', requireGlPermission('gl.read'), async (_req, res) => {
+router.get('/qcm/categories', requireGlPermission('gl.read'), asyncHandler(async (_req, res) => {
   const items = await queryAll(
     `SELECT slug, nom, emoji, description, order_index
        FROM gl_qcm_lore_categories
       ORDER BY order_index ASC, nom ASC`
   );
   return res.json(items);
-});
+}));
 
 /** GET /api/gl/lore/qcm/scopes */
-router.get('/qcm/scopes', requireGlPermission('gl.read'), async (_req, res) => {
+router.get('/qcm/scopes', requireGlPermission('gl.read'), asyncHandler(async (_req, res) => {
   const items = await queryAll(
     `SELECT slug, nom, plateau, description, order_index
        FROM gl_qcm_lore_scopes
       ORDER BY order_index ASC, nom ASC`
   );
   return res.json(items);
-});
+}));
 
 /** GET /api/gl/lore/qcm/questions */
-router.get('/qcm/questions', requireGlPermission('gl.read'), async (req, res) => {
+router.get('/qcm/questions', requireGlPermission('gl.read'), asyncHandler(async (req, res) => {
   const chapitreSlug = normalizeChapitreSlug(req.query?.chapitreSlug);
   const categorieSlug = normalizeOptionalString(req.query?.categorieSlug);
   const q = normalizeOptionalString(req.query?.q);
@@ -658,13 +659,13 @@ router.get('/qcm/questions', requireGlPermission('gl.read'), async (req, res) =>
   })));
 
   return res.json({ items });
-});
+}));
 
 /** GET /api/gl/lore/qcm/pool-preview */
 // O7 — chapterId/difficulteMin/difficulteMax via le schéma partagé glQcmPoolPreviewQuerySchema
 // (coercition permissive, jamais de 400 issu du schéma, même contrat que qcm/pool-preview) ;
 // les nombreux filtres texte/CSV restent lus manuellement sur req.query, inchangés.
-router.get('/qcm/pool-preview', requireGlPermission('gl.content.manage'), validate({ query: glQcmPoolPreviewQuerySchema }), async (req, res) => {
+router.get('/qcm/pool-preview', requireGlPermission('gl.content.manage'), validate({ query: glQcmPoolPreviewQuerySchema }), asyncHandler(async (req, res) => {
   const chapterId = req.validatedQuery?.chapterId;
   let chapterPlateauNumber = null;
   if (chapterId != null && Number.isFinite(chapterId)) {
@@ -692,10 +693,10 @@ router.get('/qcm/pool-preview', requireGlPermission('gl.content.manage'), valida
     { pool, chapterPlateauNumber }
   );
   return res.json({ items, total: items.length });
-});
+}));
 
 /** GET /api/gl/lore/qcm/draw */
-router.get('/qcm/draw', requireGlPermission('gl.read'), async (req, res) => {
+router.get('/qcm/draw', requireGlPermission('gl.read'), asyncHandler(async (req, res) => {
   const chapitreSlugs = parseCsvQuery(req.query?.chapitreSlug || req.query?.chapitreSlugs);
   if (chapitreSlugs.length === 0) {
     return res.status(400).json({ error: 'chapitreSlug ou chapitreSlugs requis' });
@@ -720,10 +721,10 @@ router.get('/qcm/draw', requireGlPermission('gl.read'), async (req, res) => {
   if (pool.length === 0) return res.status(404).json({ error: 'Aucune question disponible' });
   const picked = pool[Math.floor(Math.random() * pool.length)];
   return res.json({ question_code: picked.question_code });
-});
+}));
 
 /** GET /api/gl/lore/qcm/questions/:code/present */
-router.get('/qcm/questions/:code/present', requireGlPermission('gl.read'), async (req, res) => {
+router.get('/qcm/questions/:code/present', requireGlPermission('gl.read'), asyncHandler(async (req, res) => {
   const code = normalizeLoreQuestionCode(req.params.code);
   if (!code) return res.status(400).json({ error: 'Code invalide' });
 
@@ -739,10 +740,10 @@ router.get('/qcm/questions/:code/present', requireGlPermission('gl.read'), async
   } catch (err) {
     return res.status(400).json({ error: err.message || 'Présentation impossible' });
   }
-});
+}));
 
 /** POST /api/gl/lore/qcm/questions/:code/answer */
-router.post('/qcm/questions/:code/answer', requireGlPermission('gl.read'), async (req, res) => {
+router.post('/qcm/questions/:code/answer', requireGlPermission('gl.read'), asyncHandler(async (req, res) => {
   const code = normalizeLoreQuestionCode(req.params.code);
   if (!code) return res.status(400).json({ error: 'Code invalide' });
 
@@ -767,10 +768,10 @@ router.post('/qcm/questions/:code/answer', requireGlPermission('gl.read'), async
   } catch (err) {
     return res.status(400).json({ error: err.message || 'Réponse invalide' });
   }
-});
+}));
 
 /** GET /api/gl/lore/admin/qcm/stats */
-router.get('/admin/qcm/stats', requireGlPermission('gl.content.manage'), async (_req, res) => {
+router.get('/admin/qcm/stats', requireGlPermission('gl.content.manage'), asyncHandler(async (_req, res) => {
   const total = await queryOne(
     `SELECT COUNT(*) AS total FROM gl_qcm_lore_questions WHERE statut = 'actif'`
   );
@@ -799,7 +800,7 @@ router.get('/admin/qcm/stats', requireGlPermission('gl.content.manage'), async (
     byCategory,
     byTier,
   });
-});
+}));
 
 router.get('/admin/qcm/import/template', requireGlPermission('gl.content.manage'), wrapXlsxRoute(async () => ({
   buffer: await buildQcmLoreTemplateWorkbook(),
@@ -821,7 +822,7 @@ router.get('/admin/qcm/export', requireGlPermission('gl.content.manage'), wrapXl
   };
 }));
 
-router.post('/admin/qcm/import', requireGlPermission('gl.content.manage'), async (req, res) => {
+router.post('/admin/qcm/import', requireGlPermission('gl.content.manage'), asyncHandler(async (req, res) => {
   const dryRun = !!req.body?.dryRun;
   let parsed;
   try {
@@ -848,7 +849,7 @@ router.post('/admin/qcm/import', requireGlPermission('gl.content.manage'), async
   } catch (err) {
     return res.status(400).json({ error: err.message || 'Import impossible' });
   }
-});
+}));
 
 module.exports = {
   router,

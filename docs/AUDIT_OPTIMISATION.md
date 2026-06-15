@@ -182,3 +182,19 @@ Second lot en parallèle (5 agents, périmètres disjoints), build + Vitest vert
   supprimés (erreurs 500 routées via le middleware central), logique catch spécifique (400) préservée.
 - **O10** (`wip`) — `routes/tasks.js` : sous-domaine `assignments` (assign/assign-group/done/unassign)
   extrait en sous-routeur `routes/tasks/assignments.js` (chemins/middlewares inchangés).
+
+### Lot 3 — itération multi-agents (2026-06-14)
+
+Troisième lot en parallèle (5 agents, périmètres disjoints), build + Vitest verts
+(1 638 tests UI), lint sans erreur ; tests backend DB exécutés en CI. Avancées :
+
+- **O5** (`wip`) — 2 concerns supplémentaires extraits d'`App.jsx` en hooks : `useAppBootstrap`
+  (amorçage : `GET /api/version` + `GET /api/settings/public`) et `useTabNavigationGuards`
+  (normalisation de l'onglet actif selon contexte/permissions/modules).
+- **O6** (`wip`) — `ZoneInfoModalHeader` extrait de `ZoneInfoModal.jsx` + test UI ciblé.
+- **O7** (`wip`) — `routes/plants.js` : `POST /:id/acknowledge-discovery` validé via schéma
+  `zod`/`lib/validate` (réponse/statut inchangés) + test DB-free.
+- **O8** (`wip`) — `routes/gl/lore.js` : 28 handlers enveloppés dans `lib/asyncHandler` (chemin
+  d'erreur central pour les rejets async non gérés) ; les 9 `try/catch` à statut spécifique (400/404/409) préservés.
+- **O10** (`wip`) — `routes/gl/games.js` : sous-domaine `markers` (present-question/present-arrival/apply-effects)
+  extrait en sous-routeur `routes/gl/games/markers.js` (chemins/middlewares inchangés).
