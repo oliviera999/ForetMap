@@ -199,6 +199,22 @@ Troisième lot en parallèle (5 agents, périmètres disjoints), build + Vitest 
 - **O10** (`wip`) — `routes/gl/games.js` : sous-domaine `markers` (present-question/present-arrival/apply-effects)
   extrait en sous-routeur `routes/gl/games/markers.js` (chemins/middlewares inchangés).
 
+### Lot 11 — sprint O8 multi-agents (2026-06-15)
+
+Onzième lot en parallèle (4 agents, périmètres disjoints), O8 sur 4 routeurs `gl/` déjà validés O7.
+Vitest vert (1 652 tests UI), lint sans erreur (1 warning `normalizeBiomeSlug` pré-existant),
+require-smoke OK ; inventaire des routes des 4 routeurs **strictement identique avant/après** ;
+middlewares `validate(...)` (O7) conservés intacts. Tests backend DB exécutés en CI.
+
+- **O8** (`wip`) — `routes/gl/chapters.js` : 15 handlers enveloppés dans `lib/asyncHandler` ; 5 catches
+  à statut spécifique préservés (409 slug, 400 imports charte/chapitres). Inventaire des 15 routes inchangé.
+- **O8** (`wip`) — `routes/gl/glossary.js` : 13 handlers enveloppés ; 3 catches à statut spécifique
+  préservés (`handleGlossaryCrudError`, 400 import). Inventaire des 13 routes inchangé.
+- **O8** (`wip`) — `routes/gl/spells.js` : 14 handlers enveloppés ; 3 catches à statut spécifique
+  préservés (`handleSpellCrudError`, 400 import). Inventaire des 14 routes inchangé.
+- **O8** (`wip`) — `routes/gl/species.js` : 12 handlers enveloppés ; 3 catches à statut spécifique
+  préservés (`handleSpeciesCrudError`, 400 import). Inventaire des 12 routes inchangé.
+
 ### Lot 10 — sprint O8 multi-agents (2026-06-15)
 
 Dixième lot en parallèle (4 agents, périmètres disjoints ; 2 no-op justifiés). Vitest vert
