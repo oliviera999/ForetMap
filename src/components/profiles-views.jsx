@@ -23,6 +23,7 @@ import { StudentDeletePanel } from './profiles/StudentDeletePanel.jsx';
 import { ProfilesRbacAdminSection } from './profiles/ProfilesRbacAdminSection.jsx';
 import { ProfilesAdminHeader } from './profiles/ProfilesAdminHeader.jsx';
 import { ProfilesAdminFeedback } from './profiles/ProfilesAdminFeedback.jsx';
+import { ProfilesStatsExportRow } from './profiles/ProfilesStatsExportRow.jsx';
 import {
   isN3beurTierConfigurableProfile as isN3beurTierConfigurableRole,
   sortRolesForDisplay,
@@ -821,11 +822,7 @@ function ProfilesAdminView({ onImpersonationApplied, maps = [] }) {
 
       {canManageStudents && (
         <>
-          <div className="export-row" style={{ marginTop: 12 }}>
-            <button className="btn btn-secondary btn-sm" disabled={!canExport} onClick={exportStats}>
-              📥 Exporter CSV {canExport ? '' : '(PIN requis)'}
-            </button>
-          </div>
+          <ProfilesStatsExportRow canExport={canExport} onExport={exportStats} />
 
           <CreateUserPanel
             roleTerms={roleTerms}
