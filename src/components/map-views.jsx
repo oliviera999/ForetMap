@@ -33,6 +33,7 @@ import { fetchTutorialReadIds } from './TutorialReadAcknowledge';
 import { MapViewMascotOverlay } from './MapViewMascotOverlay.jsx';
 import { MapViewMarkerBubble } from './MapViewMarkerBubble.jsx';
 import { MapViewBackgroundImage } from './MapViewBackgroundImage.jsx';
+import { MapViewWorldLayer } from './MapViewWorldLayer.jsx';
 import useMapViewMascot from '../hooks/useMapViewMascot.js';
 import { useMapGestures } from '../hooks/useMapGestures.js';
 
@@ -874,9 +875,7 @@ function MapView({ maps = [], onMapChange, isTeacher, student, canSelfAssignTask
             onClick={onMapClick}
           >
 
-          <div ref={worldRef}
-            style={{ position: 'absolute', left: 0, top: 0, width: iw, height: ih,
-              transformOrigin: '0 0', willChange: 'transform' }}>
+          <MapViewWorldLayer worldRef={worldRef} width={iw} height={ih}>
 
           <MapViewBackgroundImage
             imgRef={imgRef}
@@ -950,7 +949,7 @@ function MapView({ maps = [], onMapChange, isTeacher, student, canSelfAssignTask
             />
             );
           })}
-          </div>
+          </MapViewWorldLayer>
 
           <MapCanvasHints
             mode={mode}
