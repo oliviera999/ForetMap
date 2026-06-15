@@ -26,6 +26,7 @@ const { glQcmPoolPreviewQuerySchema } = require('../../lib/glQuerySchemas');
 const { parseBiomeSlugsFromQuery, loadBiomesForChapterIds } = require('../../lib/glChapterBiomes');
 const { previewQuestionPool } = require('../../lib/glMarkerQuestionPool');
 const { normalizeQuestionPool } = require('../../lib/glMarkerEventConfig');
+const asyncHandler = require('../../lib/asyncHandler');
 
 const router = express.Router();
 
@@ -73,17 +74,17 @@ async function loadActiveQuestion(code) {
 }
 
 /** GET /api/gl/qcm/categories */
-router.get('/qcm/categories', requireGlPermission('gl.read'), async (_req, res) => {
+router.get('/qcm/categories', requireGlPermission('gl.read'), asyncHandler(async (_req, res) => {
   const items = await queryAll(
     `SELECT slug, nom, emoji, description, order_index
        FROM gl_qcm_categories
       ORDER BY order_index ASC, nom ASC`
   );
   return res.json(items);
-});
+}));
 
 /** GET /api/gl/qcm/questions — liste filtrée (ordre canonique). */
-router.get('/qcm/questions', requireGlPermission('gl.read'), async (req, res) => {
+router.get('/qcm/questions', requireGlPermission('gl.read'), asyncHandler(async (req, res) => {
   const biomeSlug = normalizeBiomeSlug(req.query?.biomeSlug);
   const categorieSlug = normalizeOptionalString(req.query?.categorieSlug);
   const q = normalizeOptionalString(req.query?.q);
@@ -124,7 +125,7 @@ router.get('/qcm/questions', requireGlPermission('gl.read'), async (req, res) =>
   })));
 
   return res.json({ items });
-});
+}));
 
 function parseCsvQuery(value) {
   const raw = normalizeOptionalString(value);
@@ -137,7 +138,7 @@ function parseCsvQuery(value) {
 // (coercition permissive, jamais de 400 issu du schéma) ; le 400 « biomeSlugs ou chapterId
 // requis » historique reste décidé par le handler, condition inchangée. Les filtres texte/CSV
 // restent lus manuellement sur req.query.
-router.get('/qcm/pool-preview', requireGlPermission('gl.content.manage'), validate({ query: glQcmPoolPreviewQuerySchema }), async (req, res) => {
+router.get('/qcm/pool-preview', requireGlPermission('gl.content.manage'), validate({ query: glQcmPoolPreviewQuerySchema }), asyncHandler(async (req, res) => {
   let biomeSlugs = parseBiomeSlugsFromQuery(req.query);
   const chapterId = req.validatedQuery?.chapterId;
   if (chapterId != null && Number.isFinite(chapterId)) {
@@ -166,10 +167,10 @@ router.get('/qcm/pool-preview', requireGlPermission('gl.content.manage'), valida
     { pool, chapterBiomeSlugs: biomeSlugs }
   );
   return res.json({ items, total: items.length });
-});
+}));
 
 /** GET /api/gl/qcm/draw — tirage aléatoire dans un pool biome(s)/catégorie. */
-router.get('/qcm/draw', requireGlPermission('gl.read'), async (req, res) => {
+router.get('/qcm/draw', requireGlPermission('gl.read'), asyncHandler(async (req, res) => {
   const biomeSlugs = parseBiomeSlugsFromQuery(req.query);
   if (biomeSlugs.length === 0) {
     return res.status(400).json({ error: 'biomeSlug ou biomeSlugs requis' });
@@ -194,10 +195,10 @@ router.get('/qcm/draw', requireGlPermission('gl.read'), async (req, res) => {
   if (pool.length === 0) return res.status(404).json({ error: 'Aucune question disponible' });
   const picked = pool[Math.floor(Math.random() * pool.length)];
   return res.json({ question_code: picked.question_code });
-});
+}));
 
 /** GET /api/gl/qcm/questions/:code/present — mélange les choix à chaque appel. */
-router.get('/qcm/questions/:code/present', requireGlPermission('gl.read'), async (req, res) => {
+router.get('/qcm/questions/:code/present', requireGlPermission('gl.read'), asyncHandler(async (req, res) => {
   const code = normalizeQuestionCode(req.params.code);
   if (!code) return res.status(400).json({ error: 'Code invalide' });
 
@@ -213,10 +214,10 @@ router.get('/qcm/questions/:code/present', requireGlPermission('gl.read'), async
   } catch (err) {
     return res.status(400).json({ error: err.message || 'Présentation impossible' });
   }
-});
+}));
 
 /** POST /api/gl/qcm/questions/:code/answer — validation sans score partie. */
-router.post('/qcm/questions/:code/answer', requireGlPermission('gl.read'), async (req, res) => {
+router.post('/qcm/questions/:code/answer', requireGlPermission('gl.read'), asyncHandler(async (req, res) => {
   const code = normalizeQuestionCode(req.params.code);
   if (!code) return res.status(400).json({ error: 'Code invalide' });
 
@@ -240,10 +241,10 @@ router.post('/qcm/questions/:code/answer', requireGlPermission('gl.read'), async
   } catch (err) {
     return res.status(400).json({ error: err.message || 'Réponse invalide' });
   }
-});
+}));
 
 /** GET /api/gl/admin/qcm/stats */
-router.get('/admin/qcm/stats', requireGlPermission('gl.content.manage'), async (_req, res) => {
+router.get('/admin/qcm/stats', requireGlPermission('gl.content.manage'), asyncHandler(async (_req, res) => {
   const total = await queryOne(
     `SELECT COUNT(*) AS total FROM gl_qcm_questions WHERE statut = 'actif'`
   );
@@ -272,10 +273,10 @@ router.get('/admin/qcm/stats', requireGlPermission('gl.content.manage'), async (
     byCategory,
     byDifficulte,
   });
-});
+}));
 
 /** GET /api/gl/admin/qcm/import/template — modèle XLSX (feuilles categories + questions). */
-router.get('/admin/qcm/import/template', requireGlPermission('gl.content.manage'), async (_req, res) => {
+router.get('/admin/qcm/import/template', requireGlPermission('gl.content.manage'), asyncHandler(async (_req, res) => {
   const buffer = await buildQcmTemplateWorkbook();
   res.setHeader(
     'Content-Type',
@@ -283,10 +284,10 @@ router.get('/admin/qcm/import/template', requireGlPermission('gl.content.manage'
   );
   res.setHeader('Content-Disposition', 'attachment; filename="foretmap-gl-modele-qcm.xlsx"');
   return res.send(buffer);
-});
+}));
 
 /** GET /api/gl/admin/qcm/export — export XLSX ré-importable. */
-router.get('/admin/qcm/export', requireGlPermission('gl.content.manage'), async (req, res) => {
+router.get('/admin/qcm/export', requireGlPermission('gl.content.manage'), asyncHandler(async (req, res) => {
   const statutRaw = String(req.query?.statut || 'actif').toLowerCase();
   const statut = statutRaw === 'all' ? 'all' : 'actif';
   const biomeSlug = normalizeBiomeSlug(req.query?.biomeSlug);
@@ -302,10 +303,10 @@ router.get('/admin/qcm/export', requireGlPermission('gl.content.manage'), async 
   );
   res.setHeader('Content-Disposition', 'attachment; filename="foretmap-gl-export-qcm.xlsx"');
   return res.send(buffer);
-});
+}));
 
 /** POST /api/gl/admin/qcm/import */
-router.post('/admin/qcm/import', requireGlPermission('gl.content.manage'), async (req, res) => {
+router.post('/admin/qcm/import', requireGlPermission('gl.content.manage'), asyncHandler(async (req, res) => {
   const dryRun = !!req.body?.dryRun;
   let parsed;
   try {
@@ -331,7 +332,7 @@ router.post('/admin/qcm/import', requireGlPermission('gl.content.manage'), async
   } catch (err) {
     return res.status(400).json({ error: err.message || 'Import impossible' });
   }
-});
+}));
 
 module.exports = {
   router,
