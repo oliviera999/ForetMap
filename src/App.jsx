@@ -76,7 +76,6 @@ import { SessionProvider } from './contexts/SessionContext.jsx';
 import { DataProvider } from './contexts/DataContext.jsx';
 import {
   readStoredTab,
-  pickVisibleMapId,
 } from './utils/appShellHelpers';
 import { useAppBootstrap } from './hooks/useAppBootstrap';
 import { useTabNavigationGuards } from './hooks/useTabNavigationGuards';
@@ -86,6 +85,7 @@ import { useToastNotificationBridge } from './hooks/useToastNotificationBridge';
 import { useRoleViewModeReset } from './hooks/useRoleViewModeReset';
 import { useAuthMeHydration } from './hooks/useAuthMeHydration';
 import { useDefaultActiveMapFromSettings } from './hooks/useDefaultActiveMapFromSettings';
+import { useActiveMapVisibilityReconciler } from './hooks/useActiveMapVisibilityReconciler';
 import { useStudentSessionRef } from './hooks/useStudentSessionRef';
 
 const DEFAULT_MAPS = [];
@@ -605,26 +605,14 @@ function App() {
       : allowedMapIdsFromAffiliation(student?.affiliation);
     return mapsForAffiliationScope(maps, allowedMapIds);
   }, [maps, effectiveIsTeacher, showPublicVisit, student?.affiliation]);
-  useEffect(() => {
-    if (!Array.isArray(visibleMaps) || visibleMaps.length === 0) {
-      if (activeMapId) setActiveMapId('');
-      return;
-    }
-    if (activeMapId && visibleMaps.some((map) => map.id === activeMapId)) return;
-    const preferredDefaultMapId = showPublicVisit
-      ? publicSettings?.map?.default_map_visit
-      : (effectiveIsTeacher ? publicSettings?.map?.default_map_teacher : publicSettings?.map?.default_map_student);
-    const nextMapId = pickVisibleMapId(visibleMaps, preferredDefaultMapId);
-    setActiveMapId((prev) => (prev === nextMapId ? prev : nextMapId));
-  }, [
+  useActiveMapVisibilityReconciler({
     activeMapId,
-    effectiveIsTeacher,
-    publicSettings?.map?.default_map_student,
-    publicSettings?.map?.default_map_teacher,
-    publicSettings?.map?.default_map_visit,
-    showPublicVisit,
     visibleMaps,
-  ]);
+    effectiveIsTeacher,
+    showPublicVisit,
+    publicSettings,
+    setActiveMapId,
+  });
   const mascotStudioMapLabel = useMemo(() => {
     const m = visibleMaps.find((x) => x.id === activeMapId);
     return String(m?.label || m?.id || activeMapId || '').trim() || activeMapId;
