@@ -32,6 +32,7 @@ import { fetchTutorialReadIds } from './TutorialReadAcknowledge';
 
 import { MapViewMascotOverlay } from './MapViewMascotOverlay.jsx';
 import { MapViewMarkerBubble } from './MapViewMarkerBubble.jsx';
+import { MapViewBackgroundImage } from './MapViewBackgroundImage.jsx';
 import useMapViewMascot from '../hooks/useMapViewMascot.js';
 import { useMapGestures } from '../hooks/useMapGestures.js';
 
@@ -877,14 +878,16 @@ function MapView({ maps = [], onMapChange, isTeacher, student, canSelfAssignTask
             style={{ position: 'absolute', left: 0, top: 0, width: iw, height: ih,
               transformOrigin: '0 0', willChange: 'transform' }}>
 
-          <img ref={imgRef} src={mapImageSrc} draggable={false} alt={`Plan ${activeMap?.label || 'du jardin'}`}
-            fetchPriority="high" decoding="async"
+          <MapViewBackgroundImage
+            imgRef={imgRef}
+            src={mapImageSrc}
+            alt={`Plan ${activeMap?.label || 'du jardin'}`}
+            width={iw}
+            height={ih}
             onError={() => setMapImageIdx((idx) => (
               idx < mapImageCandidates.length - 1 ? idx + 1 : idx
             ))}
-            style={{ position: 'absolute', left: 0, top: 0, width: iw, height: ih,
-              userSelect: 'none', pointerEvents: 'none',
-              boxShadow: '0 4px 24px rgba(0,0,0,.18)' }} />
+          />
 
           <svg style={{ position: 'absolute', left: 0, top: 0, width: iw, height: ih,
             overflow: 'visible', pointerEvents: 'none' }}>
