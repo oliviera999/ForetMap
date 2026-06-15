@@ -30,6 +30,7 @@ const {
   markItemsLearned,
 } = require('../../lib/shared/learningAckCore');
 const { z, validate } = require('../../lib/validate');
+const asyncHandler = require('../../lib/asyncHandler');
 
 const db = { queryAll, queryOne, execute };
 
@@ -126,7 +127,7 @@ function filterGlossaryList(rows, { categorie, niveau, q }) {
 }
 
 /** GET /api/gl/glossary — liste filtrée par biome(s) / catégorie / recherche. */
-router.get('/glossary', requireGlPermission('gl.read'), async (req, res) => {
+router.get('/glossary', requireGlPermission('gl.read'), asyncHandler(async (req, res) => {
   const biomeSlugs = parseBiomeSlugsFromQuery(req.query);
   const categorie = normalizeOptionalFilter(req.query?.categorie);
   const niveau = normalizeOptionalFilter(req.query?.niveau);
@@ -162,10 +163,10 @@ router.get('/glossary', requireGlPermission('gl.read'), async (req, res) => {
     biomes,
     items,
   });
-});
+}));
 
 /** GET /api/gl/glossary/:code — fiche détaillée + termes liés + espèces liées. */
-router.get('/glossary/:code', requireGlPermission('gl.read'), validate({ params: glossaryCodeParamsSchema }), async (req, res) => {
+router.get('/glossary/:code', requireGlPermission('gl.read'), validate({ params: glossaryCodeParamsSchema }), asyncHandler(async (req, res) => {
   const code = String(req.params.code || '').trim();
   if (!code) return res.status(400).json({ error: 'Code invalide' });
 
@@ -216,7 +217,7 @@ router.get('/glossary/:code', requireGlPermission('gl.read'), validate({ params:
     relatedTerms,
     relatedSpecies,
   });
-});
+}));
 
 const ADMIN_GLOSSARY_LIST_LIMIT = 500;
 
@@ -257,7 +258,7 @@ function handleGlossaryCrudError(res, err) {
 }
 
 /** GET /api/gl/admin/glossary/meta — catégories, niveaux, biomes. */
-router.get('/admin/glossary/meta', requireGlPermission('gl.content.manage'), async (_req, res) => {
+router.get('/admin/glossary/meta', requireGlPermission('gl.content.manage'), asyncHandler(async (_req, res) => {
   const biomes = await queryAll(
     'SELECT slug, nom, order_index FROM gl_biomes ORDER BY order_index ASC, slug ASC'
   );
@@ -273,16 +274,16 @@ router.get('/admin/glossary/meta', requireGlPermission('gl.content.manage'), asy
     ],
     biomes,
   });
-});
+}));
 
 /** GET /api/gl/admin/glossary/terms/next-code — prochain code GL#### suggéré. */
-router.get('/admin/glossary/terms/next-code', requireGlPermission('gl.content.manage'), async (_req, res) => {
+router.get('/admin/glossary/terms/next-code', requireGlPermission('gl.content.manage'), asyncHandler(async (_req, res) => {
   const code = await allocateNextGlossaryCode(queryAll);
   return res.json({ glossary_code: code });
-});
+}));
 
 /** GET /api/gl/admin/glossary/terms — liste admin. */
-router.get('/admin/glossary/terms', requireGlPermission('gl.content.manage'), async (req, res) => {
+router.get('/admin/glossary/terms', requireGlPermission('gl.content.manage'), asyncHandler(async (req, res) => {
   const categorie = normalizeOptionalFilter(req.query?.categorie);
   const q = normalizeOptionalFilter(req.query?.q);
   const statutRaw = String(req.query?.statut || 'actif').toLowerCase();
@@ -317,19 +318,19 @@ router.get('/admin/glossary/terms', requireGlPermission('gl.content.manage'), as
   }));
 
   return res.json({ items, total: items.length });
-});
+}));
 
 /** GET /api/gl/admin/glossary/terms/:code — fiche admin complète. */
-router.get('/admin/glossary/terms/:code', requireGlPermission('gl.content.manage'), validate({ params: glossaryCodeParamsSchema }), async (req, res) => {
+router.get('/admin/glossary/terms/:code', requireGlPermission('gl.content.manage'), validate({ params: glossaryCodeParamsSchema }), asyncHandler(async (req, res) => {
   const code = String(req.params.code || '').trim();
   if (!code) return res.status(400).json({ error: 'Code invalide' });
   const term = await loadAdminGlossaryTermDetail(code);
   if (!term) return res.status(404).json({ error: 'Terme introuvable' });
   return res.json({ term });
-});
+}));
 
 /** POST /api/gl/admin/glossary/terms — création. */
-router.post('/admin/glossary/terms', requireGlPermission('gl.content.manage'), async (req, res) => {
+router.post('/admin/glossary/terms', requireGlPermission('gl.content.manage'), asyncHandler(async (req, res) => {
   try {
     const explicitCode = String(req.body?.glossary_code || '').trim();
     const result = await upsertGlossaryTerm(
@@ -342,10 +343,10 @@ router.post('/admin/glossary/terms', requireGlPermission('gl.content.manage'), a
   } catch (err) {
     return handleGlossaryCrudError(res, err);
   }
-});
+}));
 
 /** PUT /api/gl/admin/glossary/terms/:code — mise à jour. */
-router.put('/admin/glossary/terms/:code', requireGlPermission('gl.content.manage'), validate({ params: glossaryCodeParamsSchema }), async (req, res) => {
+router.put('/admin/glossary/terms/:code', requireGlPermission('gl.content.manage'), validate({ params: glossaryCodeParamsSchema }), asyncHandler(async (req, res) => {
   const code = String(req.params.code || '').trim();
   if (!code) return res.status(400).json({ error: 'Code invalide' });
   try {
@@ -359,10 +360,10 @@ router.put('/admin/glossary/terms/:code', requireGlPermission('gl.content.manage
   } catch (err) {
     return handleGlossaryCrudError(res, err);
   }
-});
+}));
 
 /** PATCH /api/gl/admin/glossary/terms/:code — archivage (statut). */
-router.patch('/admin/glossary/terms/:code', requireGlPermission('gl.content.manage'), validate({ params: glossaryCodeParamsSchema }), async (req, res) => {
+router.patch('/admin/glossary/terms/:code', requireGlPermission('gl.content.manage'), validate({ params: glossaryCodeParamsSchema }), asyncHandler(async (req, res) => {
   const code = String(req.params.code || '').trim();
   if (!code) return res.status(400).json({ error: 'Code invalide' });
   const existing = await queryOne(
@@ -377,10 +378,10 @@ router.patch('/admin/glossary/terms/:code', requireGlPermission('gl.content.mana
   );
   const term = await loadAdminGlossaryTermDetail(code);
   return res.json({ ok: true, term });
-});
+}));
 
 /** GET /api/gl/admin/glossary/stats — agrégats admin. */
-router.get('/admin/glossary/stats', requireGlPermission('gl.content.manage'), async (_req, res) => {
+router.get('/admin/glossary/stats', requireGlPermission('gl.content.manage'), asyncHandler(async (_req, res) => {
   const byCategory = await queryAll(
     `SELECT categorie, COUNT(*) AS effectif
        FROM gl_glossary_terms
@@ -403,10 +404,10 @@ router.get('/admin/glossary/stats', requireGlPermission('gl.content.manage'), as
     byCategory,
     byNiveau,
   });
-});
+}));
 
 /** GET /api/gl/admin/glossary/import/template — modèle XLSX vierge. */
-router.get('/admin/glossary/import/template', requireGlPermission('gl.content.manage'), async (_req, res) => {
+router.get('/admin/glossary/import/template', requireGlPermission('gl.content.manage'), asyncHandler(async (_req, res) => {
   const buffer = await buildGlossaryTemplateWorkbook();
   res.setHeader(
     'Content-Type',
@@ -414,10 +415,10 @@ router.get('/admin/glossary/import/template', requireGlPermission('gl.content.ma
   );
   res.setHeader('Content-Disposition', 'attachment; filename="foretmap-gl-modele-glossaire.xlsx"');
   return res.send(buffer);
-});
+}));
 
 /** GET /api/gl/admin/glossary/export — export XLSX ré-importable. */
-router.get('/admin/glossary/export', requireGlPermission('gl.content.manage'), async (req, res) => {
+router.get('/admin/glossary/export', requireGlPermission('gl.content.manage'), asyncHandler(async (req, res) => {
   const statutRaw = String(req.query?.statut || 'actif').toLowerCase();
   const statut = statutRaw === 'all' ? 'all' : 'actif';
   const rows = await loadGlossaryExportRows({ queryAll }, { statut });
@@ -428,10 +429,10 @@ router.get('/admin/glossary/export', requireGlPermission('gl.content.manage'), a
   );
   res.setHeader('Content-Disposition', 'attachment; filename="foretmap-gl-export-glossaire.xlsx"');
   return res.send(buffer);
-});
+}));
 
 /** POST /api/gl/admin/glossary/import — import XLSX glossaire. */
-router.post('/admin/glossary/import', requireGlPermission('gl.content.manage'), async (req, res) => {
+router.post('/admin/glossary/import', requireGlPermission('gl.content.manage'), asyncHandler(async (req, res) => {
   const dryRun = !!req.body?.dryRun;
   let parsed;
   try {
@@ -456,7 +457,7 @@ router.post('/admin/glossary/import', requireGlPermission('gl.content.manage'), 
   } catch (err) {
     return res.status(400).json({ error: err.message || 'Import impossible' });
   }
-});
+}));
 
 module.exports = {
   router,
