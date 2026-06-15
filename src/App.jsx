@@ -82,6 +82,7 @@ import {
 import { useAppBootstrap } from './hooks/useAppBootstrap';
 import { useTabNavigationGuards } from './hooks/useTabNavigationGuards';
 import { useAppStoragePersistence } from './hooks/useAppStoragePersistence';
+import { useSessionWindowSync } from './hooks/useSessionWindowSync';
 
 const DEFAULT_MAPS = [];
 
@@ -428,32 +429,12 @@ function App() {
     }
   }, [validateStudentSession]);
 
-  useEffect(() => {
-    const onExpired = () => { setIsTeacher(false); setAuthClaims(null); setSessionUser(null); setToast('Session n3boss expirée.'); };
-    window.addEventListener('foretmap_teacher_expired', onExpired);
-    return () => window.removeEventListener('foretmap_teacher_expired', onExpired);
-  }, []);
-
-  /* `saveStoredSession` (PIN, OAuth…) émet avant le callback React du modal : réaligner claims / isTeacher sur le JWT. */
-  useEffect(() => {
-    let t = 0;
-    const syncAuthFromStoredSession = () => {
-      window.clearTimeout(t);
-      /* Reporter d’un tick : coalescer avec `PinModal` / `mergeAuthMeResponse` et laisser le `localStorage` se stabiliser. */
-      t = window.setTimeout(() => {
-        const sess = getStoredSession();
-        const claims = getAuthClaims();
-        setAuthClaims(claims);
-        setIsTeacher(Array.isArray(claims?.permissions) && claims.permissions.includes('teacher.access'));
-        setSessionUser(sess?.user || null);
-      }, 0);
-    };
-    window.addEventListener('foretmap_session_changed', syncAuthFromStoredSession);
-    return () => {
-      window.removeEventListener('foretmap_session_changed', syncAuthFromStoredSession);
-      window.clearTimeout(t);
-    };
-  }, []);
+  useSessionWindowSync({
+    setAuthClaims,
+    setIsTeacher,
+    setSessionUser,
+    setToast,
+  });
 
   useEffect(() => {
     setRoleViewMode('native');
