@@ -23,6 +23,7 @@ const {
   markItemsLearned,
 } = require('../../lib/shared/learningAckCore');
 const { z, validate } = require('../../lib/validate');
+const asyncHandler = require('../../lib/asyncHandler');
 
 const db = { queryAll, queryOne, execute };
 
@@ -63,7 +64,7 @@ function normalizeBiomeSlug(value) {
 }
 
 /** GET /api/gl/biomes — liste des biomes avec effectifs espèces. */
-router.get('/biomes', requireGlPermission('gl.read'), async (_req, res) => {
+router.get('/biomes', requireGlPermission('gl.read'), asyncHandler(async (_req, res) => {
   const rows = await queryAll(
     `SELECT b.slug, b.nom, b.order_index,
             COUNT(s.id) AS species_count,
@@ -75,10 +76,10 @@ router.get('/biomes', requireGlPermission('gl.read'), async (_req, res) => {
       ORDER BY b.order_index ASC, b.slug ASC`
   );
   return res.json(rows);
-});
+}));
 
 /** GET /api/gl/species?biomeSlug= — espèces d'un biome. */
-router.get('/species', requireGlPermission('gl.read'), validate({ query: biomeSlugQuerySchema }), async (req, res) => {
+router.get('/species', requireGlPermission('gl.read'), validate({ query: biomeSlugQuerySchema }), asyncHandler(async (req, res) => {
   const biomeSlug = normalizeBiomeSlug(req.query?.biomeSlug);
   if (!biomeSlug) return res.status(400).json({ error: 'biomeSlug requis' });
   const biome = await queryOne('SELECT slug, nom FROM gl_biomes WHERE slug = ? LIMIT 1', [biomeSlug]);
@@ -106,7 +107,7 @@ router.get('/species', requireGlPermission('gl.read'), validate({ query: biomeSl
     'species_code'
   );
   return res.json({ biome, items });
-});
+}));
 
 const ADMIN_SPECIES_LIST_LIMIT = 500;
 
@@ -153,13 +154,13 @@ function filterSpeciesAdminList(rows, { type, q }) {
 }
 
 /** GET /api/gl/admin/species/next-code — prochain code SP#### suggéré. */
-router.get('/admin/species/next-code', requireGlPermission('gl.content.manage'), async (_req, res) => {
+router.get('/admin/species/next-code', requireGlPermission('gl.content.manage'), asyncHandler(async (_req, res) => {
   const species_code = await allocateNextSpeciesCode(queryAll);
   return res.json({ species_code });
-});
+}));
 
 /** GET /api/gl/admin/species — liste admin par biome. */
-router.get('/admin/species', requireGlPermission('gl.content.manage'), validate({ query: biomeSlugQuerySchema }), async (req, res) => {
+router.get('/admin/species', requireGlPermission('gl.content.manage'), validate({ query: biomeSlugQuerySchema }), asyncHandler(async (req, res) => {
   const biomeSlug = normalizeBiomeSlug(req.query?.biomeSlug);
   if (!biomeSlug) return res.status(400).json({ error: 'biomeSlug requis' });
   const biome = await queryOne('SELECT slug, nom FROM gl_biomes WHERE slug = ? LIMIT 1', [biomeSlug]);
@@ -181,10 +182,10 @@ router.get('/admin/species', requireGlPermission('gl.content.manage'), validate(
 
   const items = filterSpeciesAdminList(rows, { type, q });
   return res.json({ biome, items, total: items.length });
-});
+}));
 
 /** POST /api/gl/admin/species — création. */
-router.post('/admin/species', requireGlPermission('gl.content.manage'), async (req, res) => {
+router.post('/admin/species', requireGlPermission('gl.content.manage'), asyncHandler(async (req, res) => {
   try {
     const explicitCode = String(req.body?.species_code || '').trim();
     const result = await upsertSpeciesRow(
@@ -197,10 +198,10 @@ router.post('/admin/species', requireGlPermission('gl.content.manage'), async (r
   } catch (err) {
     return handleSpeciesCrudError(res, err);
   }
-});
+}));
 
 /** GET /api/gl/admin/species/stats — agrégats catalogue (admin). */
-router.get('/admin/species/stats', requireGlPermission('gl.content.manage'), async (_req, res) => {
+router.get('/admin/species/stats', requireGlPermission('gl.content.manage'), asyncHandler(async (_req, res) => {
   const byBiome = await queryAll(
     `SELECT s.biome_slug, b.nom AS biome_nom, s.type, COUNT(*) AS effectif
        FROM gl_species s
@@ -216,10 +217,10 @@ router.get('/admin/species/stats', requireGlPermission('gl.content.manage'), asy
     total: Number(total?.total || 0),
     byBiome,
   });
-});
+}));
 
 /** GET /api/gl/admin/species/import/template — modèle XLSX biocénose (especes + biomes_stats). */
-router.get('/admin/species/import/template', requireGlPermission('gl.content.manage'), async (_req, res) => {
+router.get('/admin/species/import/template', requireGlPermission('gl.content.manage'), asyncHandler(async (_req, res) => {
   const buffer = await buildSpeciesTemplateWorkbook();
   res.setHeader(
     'Content-Type',
@@ -227,10 +228,10 @@ router.get('/admin/species/import/template', requireGlPermission('gl.content.man
   );
   res.setHeader('Content-Disposition', 'attachment; filename="foretmap-gl-modele-biocenose.xlsx"');
   return res.send(buffer);
-});
+}));
 
 /** GET /api/gl/admin/species/export — export XLSX ré-importable. */
-router.get('/admin/species/export', requireGlPermission('gl.content.manage'), async (req, res) => {
+router.get('/admin/species/export', requireGlPermission('gl.content.manage'), asyncHandler(async (req, res) => {
   const statutRaw = String(req.query?.statut || 'actif').toLowerCase();
   const statut = statutRaw === 'all' ? 'all' : 'actif';
   const biomeSlug = normalizeBiomeSlug(req.query?.biomeSlug);
@@ -242,10 +243,10 @@ router.get('/admin/species/export', requireGlPermission('gl.content.manage'), as
   );
   res.setHeader('Content-Disposition', 'attachment; filename="foretmap-gl-export-biocenose.xlsx"');
   return res.send(buffer);
-});
+}));
 
 /** POST /api/gl/admin/species/import — import XLSX espèces/biomes. */
-router.post('/admin/species/import', requireGlPermission('gl.content.manage'), async (req, res) => {
+router.post('/admin/species/import', requireGlPermission('gl.content.manage'), asyncHandler(async (req, res) => {
   const dryRun = !!req.body?.dryRun;
   const syncBiomes = req.body?.syncBiomes !== false;
   let parsed;
@@ -271,19 +272,19 @@ router.post('/admin/species/import', requireGlPermission('gl.content.manage'), a
   } catch (err) {
     return res.status(400).json({ error: err.message || 'Import impossible' });
   }
-});
+}));
 
 /** GET /api/gl/admin/species/:code — fiche admin. */
-router.get('/admin/species/:code', requireGlPermission('gl.content.manage'), validate({ params: speciesCodeParamsSchema }), async (req, res) => {
+router.get('/admin/species/:code', requireGlPermission('gl.content.manage'), validate({ params: speciesCodeParamsSchema }), asyncHandler(async (req, res) => {
   const code = String(req.params.code || '').trim();
   if (!code) return res.status(400).json({ error: 'Code invalide' });
   const species = await loadAdminSpeciesDetail(code);
   if (!species) return res.status(404).json({ error: 'Espèce introuvable' });
   return res.json({ species });
-});
+}));
 
 /** PUT /api/gl/admin/species/:code — mise à jour. */
-router.put('/admin/species/:code', requireGlPermission('gl.content.manage'), validate({ params: speciesCodeParamsSchema }), async (req, res) => {
+router.put('/admin/species/:code', requireGlPermission('gl.content.manage'), validate({ params: speciesCodeParamsSchema }), asyncHandler(async (req, res) => {
   const code = String(req.params.code || '').trim();
   if (!code) return res.status(400).json({ error: 'Code invalide' });
   try {
@@ -297,10 +298,10 @@ router.put('/admin/species/:code', requireGlPermission('gl.content.manage'), val
   } catch (err) {
     return handleSpeciesCrudError(res, err);
   }
-});
+}));
 
 /** PATCH /api/gl/admin/species/:code — archivage. */
-router.patch('/admin/species/:code', requireGlPermission('gl.content.manage'), validate({ params: speciesCodeParamsSchema }), async (req, res) => {
+router.patch('/admin/species/:code', requireGlPermission('gl.content.manage'), validate({ params: speciesCodeParamsSchema }), asyncHandler(async (req, res) => {
   const code = String(req.params.code || '').trim();
   if (!code) return res.status(400).json({ error: 'Code invalide' });
   const existing = await queryOne(
@@ -315,7 +316,7 @@ router.patch('/admin/species/:code', requireGlPermission('gl.content.manage'), v
   );
   const species = await loadAdminSpeciesDetail(code);
   return res.json({ ok: true, species });
-});
+}));
 
 module.exports = router;
 module.exports.biomeSlugQuerySchema = biomeSlugQuerySchema; // exporté pour test no-DB du contrat O7
