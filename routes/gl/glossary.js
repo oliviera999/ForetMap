@@ -29,8 +29,19 @@ const {
   groupLearningAcksByType,
   markItemsLearned,
 } = require('../../lib/shared/learningAckCore');
+const { z, validate } = require('../../lib/validate');
 
 const db = { queryAll, queryOne, execute };
+
+// O7 — param `:code` des routes glossaire (`GET /glossary/:code`,
+// `GET|PUT|PATCH /admin/glossary/terms/:code`) : reproduit exactement l'ancienne validation
+// manuelle `String(req.params.code || '').trim()` suivie de `if (!code) return 400 'Code invalide'`.
+// Refine au niveau racine (path vide) pour préserver le message verbatim (sans préfixe de chemin).
+// Le param n'est PAS transformé : le handler continue de lire/trimmer `req.params.code` lui-même.
+const glossaryCodeParamsSchema = z.unknown().superRefine((p, ctx) => {
+  const code = String((p == null ? '' : p.code) || '').trim();
+  if (!code) ctx.addIssue({ code: 'custom', message: 'Code invalide', path: [] });
+});
 
 async function loadGlossaryLearnedCodes(glAuth) {
   const reader = buildReaderKey(glAuth);
@@ -154,7 +165,7 @@ router.get('/glossary', requireGlPermission('gl.read'), async (req, res) => {
 });
 
 /** GET /api/gl/glossary/:code — fiche détaillée + termes liés + espèces liées. */
-router.get('/glossary/:code', requireGlPermission('gl.read'), async (req, res) => {
+router.get('/glossary/:code', requireGlPermission('gl.read'), validate({ params: glossaryCodeParamsSchema }), async (req, res) => {
   const code = String(req.params.code || '').trim();
   if (!code) return res.status(400).json({ error: 'Code invalide' });
 
@@ -309,7 +320,7 @@ router.get('/admin/glossary/terms', requireGlPermission('gl.content.manage'), as
 });
 
 /** GET /api/gl/admin/glossary/terms/:code — fiche admin complète. */
-router.get('/admin/glossary/terms/:code', requireGlPermission('gl.content.manage'), async (req, res) => {
+router.get('/admin/glossary/terms/:code', requireGlPermission('gl.content.manage'), validate({ params: glossaryCodeParamsSchema }), async (req, res) => {
   const code = String(req.params.code || '').trim();
   if (!code) return res.status(400).json({ error: 'Code invalide' });
   const term = await loadAdminGlossaryTermDetail(code);
@@ -334,7 +345,7 @@ router.post('/admin/glossary/terms', requireGlPermission('gl.content.manage'), a
 });
 
 /** PUT /api/gl/admin/glossary/terms/:code — mise à jour. */
-router.put('/admin/glossary/terms/:code', requireGlPermission('gl.content.manage'), async (req, res) => {
+router.put('/admin/glossary/terms/:code', requireGlPermission('gl.content.manage'), validate({ params: glossaryCodeParamsSchema }), async (req, res) => {
   const code = String(req.params.code || '').trim();
   if (!code) return res.status(400).json({ error: 'Code invalide' });
   try {
@@ -351,7 +362,7 @@ router.put('/admin/glossary/terms/:code', requireGlPermission('gl.content.manage
 });
 
 /** PATCH /api/gl/admin/glossary/terms/:code — archivage (statut). */
-router.patch('/admin/glossary/terms/:code', requireGlPermission('gl.content.manage'), async (req, res) => {
+router.patch('/admin/glossary/terms/:code', requireGlPermission('gl.content.manage'), validate({ params: glossaryCodeParamsSchema }), async (req, res) => {
   const code = String(req.params.code || '').trim();
   if (!code) return res.status(400).json({ error: 'Code invalide' });
   const existing = await queryOne(
@@ -454,3 +465,4 @@ module.exports = {
   buildGlossaryLookupMap,
   matchGlossaryTermsForSpecies,
 };
+module.exports.glossaryCodeParamsSchema = glossaryCodeParamsSchema; // exporté pour test no-DB du contrat O7
