@@ -8,6 +8,11 @@ import {
 } from '../../utils/plantPrefillHelpers.js';
 import { applyPrefillToForm } from '../../utils/plantPrefillApply.js';
 import { PHOTO_FIELD_KEYS, PLANT_PHOTO_FIELD_OPTIONS } from '../../constants/plantMetaSections.js';
+import {
+  PrefillSourcesSelector,
+  SPECIES_PREFILL_SOURCE_CHECKBOXES,
+} from './PrefillSourcesSelector.jsx';
+import { PrefillPhotoCard } from './PrefillPhotoCard.jsx';
 
 const SPECIES_PREFILL_FIELDS = [
   'name',
@@ -66,21 +71,6 @@ const SPECIES_PREFILL_FIELD_LABELS = {
   photo_fruit: 'Photo fruit',
   photo_harvest_part: 'Photo partie récoltée',
 };
-
-/** Sources externes pré-saisie (ids alignés sur `GET /api/plants/autofill?sources=`). */
-const SPECIES_PREFILL_SOURCE_CHECKBOXES = [
-  { id: 'wikipedia', label: 'Wikipedia (FR)' },
-  { id: 'wikidata', label: 'Wikidata' },
-  { id: 'gbif', label: 'GBIF (taxonomie)' },
-  { id: 'gbif_traits', label: 'GBIF — descriptions / traits' },
-  { id: 'gbif_vernacular', label: 'GBIF — noms vernaculaires' },
-  { id: 'inaturalist', label: 'iNaturalist' },
-  { id: 'catalogue_of_life', label: 'Catalogue of Life' },
-  { id: 'wikipedia_en', label: 'Wikipedia (EN, secours)' },
-  { id: 'wikipedia_heuristic', label: 'Heuristiques (extrait FR)' },
-  { id: 'trefle', label: 'Trefle' },
-  { id: 'openai', label: 'OpenAI' },
-];
 
 /**
  * Panneau de pré-saisie depuis les sources externes (`GET /api/plants/autofill`) — extrait de
@@ -210,32 +200,10 @@ export function PlantPrefillPanel({ form, setForm, saving = false, onToast }) {
 
   return (
     <>
-      <details className="plant-more" style={{ marginBottom: 8 }}>
-        <summary style={{ cursor: 'pointer', fontSize: '.88rem' }}>Sources à interroger</summary>
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
-            gap: 6,
-            marginTop: 8,
-          }}
-        >
-          {SPECIES_PREFILL_SOURCE_CHECKBOXES.map((row) => (
-            <label
-              key={row.id}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '.8rem', color: '#333' }}
-            >
-              <input
-                type="checkbox"
-                checked={!!prefillSources[row.id]}
-                onChange={() => setPrefillSources((prev) => ({ ...prev, [row.id]: !prev[row.id] }))}
-              />
-              <span>{row.label}</span>
-              <small style={{ color: '#888' }}>({row.id})</small>
-            </label>
-          ))}
-        </div>
-      </details>
+      <PrefillSourcesSelector
+        sources={prefillSources}
+        onToggle={(id) => setPrefillSources((prev) => ({ ...prev, [id]: !prev[id] }))}
+      />
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 8 }}>
         <button
           type="button"
@@ -331,100 +299,37 @@ export function PlantPrefillPanel({ form, setForm, saving = false, onToast }) {
                         const checked = !!slot.checked;
                         const assignTo = PHOTO_FIELD_KEYS.has(slot.assignTo) ? slot.assignTo : field;
                         return (
-                          <div
+                          <PrefillPhotoCard
                             key={slotKey}
-                            className={`plant-prefill-photo-card${checked ? ' plant-prefill-photo-card--selected' : ''}`}
-                          >
-                            <div className="plant-prefill-photo-card-row">
-                              <input
-                                type="checkbox"
-                                className="plant-prefill-photo-check"
-                                checked={checked}
-                                aria-label={`Inclure cette proposition dans la pré-saisie (${SPECIES_PREFILL_FIELD_LABELS[field] || field})`}
-                                onChange={(e) => {
-                                  const on = e.target.checked;
-                                  setPrefillPhotoSelections((prev) => ({
-                                    ...prev,
-                                    [slotKey]: {
-                                      checked: on,
-                                      assignTo: PHOTO_FIELD_KEYS.has(prev[slotKey]?.assignTo)
-                                        ? prev[slotKey].assignTo
-                                        : (PHOTO_FIELD_KEYS.has(field) ? field : 'photo_species'),
-                                    },
-                                  }));
-                                }}
-                              />
-                              <div className="plant-prefill-photo-body">
-                                <div className="plant-prefill-photo-assign-row">
-                                  <label className="plant-prefill-photo-assign-label" htmlFor={`prefill-assign-${slotKey}`}>
-                                    Associer au champ
-                                  </label>
-                                  <select
-                                    id={`prefill-assign-${slotKey}`}
-                                    className="plant-prefill-photo-assign"
-                                    value={assignTo}
-                                    disabled={!checked}
-                                    onChange={(e) => {
-                                      const v = e.target.value;
-                                      setPrefillPhotoSelections((prev) => ({
-                                        ...prev,
-                                        [slotKey]: {
-                                          checked: !!prev[slotKey]?.checked,
-                                          assignTo: PHOTO_FIELD_KEYS.has(v) ? v : assignTo,
-                                        },
-                                      }));
-                                    }}
-                                  >
-                                    {PLANT_PHOTO_FIELD_OPTIONS.map((opt) => (
-                                      <option key={opt.key} value={opt.key}>{opt.label}</option>
-                                    ))}
-                                  </select>
-                                </div>
-                                <div className="plant-prefill-photo-thumb-wrap">
-                                  {broken ? (
-                                    <div className="plant-prefill-photo-thumb-fallback" role="img" aria-label="Aperçu non chargé">
-                                      Aperçu indisponible
-                                    </div>
-                                  ) : (
-                                    <img
-                                      src={photo.url}
-                                      alt=""
-                                      className="plant-prefill-photo-thumb"
-                                      loading="lazy"
-                                      decoding="async"
-                                      referrerPolicy="no-referrer"
-                                      onError={() => markPrefillThumbBroken(field, idx)}
-                                    />
-                                  )}
-                                </div>
-                                <div className="plant-prefill-photo-meta">
-                                  <a
-                                    href={photo.url}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="plant-prefill-photo-url"
-                                    onClick={(e) => e.stopPropagation()}
-                                  >
-                                    Ouvrir l’image
-                                  </a>
-                                  {photo.source_url && (
-                                    <a
-                                      href={photo.source_url}
-                                      target="_blank"
-                                      rel="noreferrer"
-                                      className="plant-prefill-photo-source"
-                                      onClick={(e) => e.stopPropagation()}
-                                    >
-                                      Page source
-                                    </a>
-                                  )}
-                                  <div className="plant-prefill-photo-credit">
-                                    Crédit : {photo.credit || 'inconnu'} · Licence : {photo.license || 'à vérifier'}
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
+                            photo={photo}
+                            slotKey={slotKey}
+                            fieldLabel={SPECIES_PREFILL_FIELD_LABELS[field] || field}
+                            checked={checked}
+                            assignTo={assignTo}
+                            broken={broken}
+                            fieldOptions={PLANT_PHOTO_FIELD_OPTIONS}
+                            onToggleChecked={(on) => {
+                              setPrefillPhotoSelections((prev) => ({
+                                ...prev,
+                                [slotKey]: {
+                                  checked: on,
+                                  assignTo: PHOTO_FIELD_KEYS.has(prev[slotKey]?.assignTo)
+                                    ? prev[slotKey].assignTo
+                                    : (PHOTO_FIELD_KEYS.has(field) ? field : 'photo_species'),
+                                },
+                              }));
+                            }}
+                            onAssignChange={(v) => {
+                              setPrefillPhotoSelections((prev) => ({
+                                ...prev,
+                                [slotKey]: {
+                                  checked: !!prev[slotKey]?.checked,
+                                  assignTo: PHOTO_FIELD_KEYS.has(v) ? v : assignTo,
+                                },
+                              }));
+                            }}
+                            onThumbError={() => markPrefillThumbBroken(field, idx)}
+                          />
                         );
                       })}
                     </div>
