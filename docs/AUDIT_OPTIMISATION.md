@@ -199,6 +199,20 @@ Troisième lot en parallèle (5 agents, périmètres disjoints), build + Vitest 
 - **O10** (`wip`) — `routes/gl/games.js` : sous-domaine `markers` (present-question/present-arrival/apply-effects)
   extrait en sous-routeur `routes/gl/games/markers.js` (chemins/middlewares inchangés).
 
+### Lot 17 — structurel O10 + O6 + O5, multi-agents (2026-06-15)
+
+Dix-septième lot en parallèle (3 agents, fichiers disjoints de la PR #145 en vol). Build Vite vert,
+Vitest vert (1 674 tests UI, +5), lint sans erreur, require-smoke backend OK. Union complète `gl/games*` (36) inchangée.
+
+- **O10** (`wip`) — `routes/gl/games.js` : sous-domaine **actions** (`POST /games/:id/actions`,
+  `POST /games/:id/actions/:actionId/resolve`) extrait en sous-routeur `routes/gl/games/actions.js`.
+  **Union complète inchangée (36)**.
+- **O6** (`wip`) — `src/components/map-views.jsx` : `MapViewMarkerBubble` (bulle de repère sur la carte —
+  bouton positionné %, épingle emoji/point, pastilles état-tâche & tutoriel, étiquette ; logique métier
+  conservée dans `MapView` via props) extrait + test UI (5 cas). 2ᵉ extraction de ce fichier après `MapViewMascotOverlay`.
+- **O5** (`wip`) — `src/App.jsx` : hook `useAuthMeHydration` extrait (hydratation session via `/api/auth/me`
+  au montage + `mergeAuthMeResponse`). Aucun état déplacé, zéro orphelin (l'appel `/api/auth/me` de `fetchAll` conservé).
+
 ### Lot 16 — structurel O10 + O6 ×2, multi-agents (2026-06-15)
 
 Seizième lot en parallèle (3 agents, fichiers strictement disjoints de la PR #144 en vol pour éviter
