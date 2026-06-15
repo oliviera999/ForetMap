@@ -19,6 +19,7 @@ function sanitizeFilename(value) {
 
 const { normalizeOptionalString } = require('../../lib/shared/httpHelpers');
 const { z, validate } = require('../../lib/validate');
+const asyncHandler = require('../../lib/asyncHandler');
 
 // O7 — query friction-free (coercition permissive, jamais de 400) :
 // `gameId` reproduit l'ancien `Number(raw)` gardé par `Number.isFinite(gameId) && gameId > 0`
@@ -42,7 +43,7 @@ function toAssetUrl(relativePath) {
 }
 
 /** GET /api/gl/mascots — catalogue complet (auth GL requise, joueur ou MJ). */
-router.get('/', requireGlAuth, validate({ query: glMascotsCatalogQuerySchema }), async (req, res) => {
+router.get('/', requireGlAuth, validate({ query: glMascotsCatalogQuerySchema }), asyncHandler(async (req, res) => {
   const catalog = await getGlUnifiedMascotCatalog();
   let assignments = [];
   const gameId = req.validatedQuery?.gameId;
@@ -55,7 +56,7 @@ router.get('/', requireGlAuth, validate({ query: glMascotsCatalogQuerySchema }),
     );
   }
   return res.json({ mascots: catalog, assignments });
-});
+}));
 
 /**
  * POST /api/gl/mascots/assign — assigne une mascotte à une équipe.
@@ -65,7 +66,7 @@ router.get('/', requireGlAuth, validate({ query: glMascotsCatalogQuerySchema }),
  * Refuse `409` si la mascotte est déjà utilisée par une autre équipe de la
  * même partie.
  */
-router.post('/assign', requireGlPermission('gl.team.manage'), async (req, res) => {
+router.post('/assign', requireGlPermission('gl.team.manage'), asyncHandler(async (req, res) => {
   const gameId = Number(req.body?.gameId);
   const teamId = Number(req.body?.teamId);
   const mascotId = String(req.body?.mascotId || '').trim();
@@ -123,9 +124,9 @@ router.post('/assign', requireGlPermission('gl.team.manage'), async (req, res) =
     [gameId, teamId]
   );
   return res.status(200).json({ assignment: row, mascot });
-});
+}));
 
-router.get('/packs', requireGlPermission('gl.content.manage'), validate({ query: glMascotsChapterQuerySchema }), async (req, res) => {
+router.get('/packs', requireGlPermission('gl.content.manage'), validate({ query: glMascotsChapterQuerySchema }), asyncHandler(async (req, res) => {
   const chapterId = req.validatedQuery?.chapterId;
   const rows = Number.isFinite(chapterId)
     ? await queryAll(
@@ -157,9 +158,9 @@ router.get('/packs', requireGlPermission('gl.content.manage'), validate({ query:
     };
   });
   return res.json({ packs });
-});
+}));
 
-router.post('/packs', requireGlPermission('gl.content.manage'), async (req, res) => {
+router.post('/packs', requireGlPermission('gl.content.manage'), asyncHandler(async (req, res) => {
   const name = normalizeOptionalString(req.body?.name);
   const version = normalizeOptionalString(req.body?.version) || '1.0';
   const chapterId = req.body?.chapterId == null ? null : Number(req.body.chapterId);
@@ -195,9 +196,9 @@ router.post('/packs', requireGlPermission('gl.content.manage'), async (req, res)
       updated_at: created.updated_at,
     },
   });
-});
+}));
 
-router.put('/packs/:id', requireGlPermission('gl.content.manage'), async (req, res) => {
+router.put('/packs/:id', requireGlPermission('gl.content.manage'), asyncHandler(async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isFinite(id)) return res.status(400).json({ error: 'Identifiant invalide' });
   const existing = await queryOne('SELECT id FROM gl_mascot_packs WHERE id = ? LIMIT 1', [id]);
@@ -240,9 +241,9 @@ router.put('/packs/:id', requireGlPermission('gl.content.manage'), async (req, r
       updated_at: updated.updated_at,
     },
   });
-});
+}));
 
-router.delete('/packs/:id', requireGlPermission('gl.content.manage'), async (req, res) => {
+router.delete('/packs/:id', requireGlPermission('gl.content.manage'), asyncHandler(async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isFinite(id)) return res.status(400).json({ error: 'Identifiant invalide' });
   const assets = await queryAll('SELECT asset_path FROM gl_mascot_pack_assets WHERE pack_id = ?', [id]);
@@ -251,9 +252,9 @@ router.delete('/packs/:id', requireGlPermission('gl.content.manage'), async (req
     if (asset?.asset_path) deleteFile(asset.asset_path);
   }
   return res.json({ ok: true });
-});
+}));
 
-router.get('/packs/:id/assets', requireGlPermission('gl.content.manage'), async (req, res) => {
+router.get('/packs/:id/assets', requireGlPermission('gl.content.manage'), asyncHandler(async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isFinite(id)) return res.status(400).json({ error: 'Identifiant invalide' });
   const rows = await queryAll(
@@ -270,9 +271,9 @@ router.get('/packs/:id/assets', requireGlPermission('gl.content.manage'), async 
       created_at: row.created_at,
     })),
   });
-});
+}));
 
-router.post('/packs/:id/assets', requireGlPermission('gl.content.manage'), async (req, res) => {
+router.post('/packs/:id/assets', requireGlPermission('gl.content.manage'), asyncHandler(async (req, res) => {
   const id = Number(req.params.id);
   const filename = sanitizeFilename(req.body?.filename);
   const mimeType = normalizeOptionalString(req.body?.mimeType) || 'application/octet-stream';
@@ -306,9 +307,9 @@ router.post('/packs/:id/assets', requireGlPermission('gl.content.manage'), async
       created_at: asset.created_at,
     },
   });
-});
+}));
 
-router.delete('/packs/:id/assets/:filename', requireGlPermission('gl.content.manage'), async (req, res) => {
+router.delete('/packs/:id/assets/:filename', requireGlPermission('gl.content.manage'), asyncHandler(async (req, res) => {
   const id = Number(req.params.id);
   const filename = sanitizeFilename(req.params.filename);
   if (!Number.isFinite(id) || !filename) return res.status(400).json({ error: 'Paramètres invalides' });
@@ -319,9 +320,9 @@ router.delete('/packs/:id/assets/:filename', requireGlPermission('gl.content.man
   await execute('DELETE FROM gl_mascot_pack_assets WHERE pack_id = ? AND filename = ?', [id, filename]);
   if (asset?.asset_path) deleteFile(asset.asset_path);
   return res.json({ ok: true });
-});
+}));
 
-router.get('/sprite-library', requireGlPermission('gl.content.manage'), validate({ query: glMascotsChapterQuerySchema }), async (req, res) => {
+router.get('/sprite-library', requireGlPermission('gl.content.manage'), validate({ query: glMascotsChapterQuerySchema }), asyncHandler(async (req, res) => {
   const chapterId = req.validatedQuery?.chapterId;
   const rows = Number.isFinite(chapterId)
     ? await queryAll(
@@ -347,9 +348,9 @@ router.get('/sprite-library', requireGlPermission('gl.content.manage'), validate
       created_at: row.created_at,
     })),
   });
-});
+}));
 
-router.post('/sprite-library', requireGlPermission('gl.content.manage'), async (req, res) => {
+router.post('/sprite-library', requireGlPermission('gl.content.manage'), asyncHandler(async (req, res) => {
   const chapterId = req.body?.chapterId == null ? null : Number(req.body.chapterId);
   const filename = sanitizeFilename(req.body?.filename);
   const mimeType = normalizeOptionalString(req.body?.mimeType) || 'application/octet-stream';
@@ -391,16 +392,16 @@ router.post('/sprite-library', requireGlPermission('gl.content.manage'), async (
       created_at: row.created_at,
     },
   });
-});
+}));
 
-router.delete('/sprite-library/:id', requireGlPermission('gl.content.manage'), async (req, res) => {
+router.delete('/sprite-library/:id', requireGlPermission('gl.content.manage'), asyncHandler(async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isFinite(id)) return res.status(400).json({ error: 'Identifiant invalide' });
   const row = await queryOne('SELECT asset_path FROM gl_mascot_sprite_library WHERE id = ? LIMIT 1', [id]);
   await execute('DELETE FROM gl_mascot_sprite_library WHERE id = ?', [id]);
   if (row?.asset_path) deleteFile(row.asset_path);
   return res.json({ ok: true });
-});
+}));
 
 module.exports = router;
 // exportés pour test no-DB du contrat O7
