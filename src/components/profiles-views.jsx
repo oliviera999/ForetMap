@@ -22,6 +22,7 @@ import { StudentImportPanel } from './profiles/StudentImportPanel.jsx';
 import { StudentDeletePanel } from './profiles/StudentDeletePanel.jsx';
 import { ProfilesRbacAdminSection } from './profiles/ProfilesRbacAdminSection.jsx';
 import { ProfilesAdminHeader } from './profiles/ProfilesAdminHeader.jsx';
+import { ProfilesAdminFeedback } from './profiles/ProfilesAdminFeedback.jsx';
 import {
   isN3beurTierConfigurableProfile as isN3beurTierConfigurableRole,
   sortRolesForDisplay,
@@ -732,10 +733,12 @@ function ProfilesAdminView({ onImpersonationApplied, maps = [] }) {
         onDismiss={trackPanelDismiss}
       />
       <p className="section-sub">Gestion des profils, des comptes et des opérations {roleTerms.studentPlural} (création, import, export, suppression).</p>
-      {err && !(editModalOpen && editUserLoadState === 'ready') && (
-        <div className="auth-error">⚠️ {err}</div>
-      )}
-      {msg && <div className="auth-success">{msg}</div>}
+      <ProfilesAdminFeedback
+        err={err}
+        msg={msg}
+        editModalOpen={editModalOpen}
+        editUserLoadState={editUserLoadState}
+      />
 
       <UserEditModal
         editModalOpen={editModalOpen}
