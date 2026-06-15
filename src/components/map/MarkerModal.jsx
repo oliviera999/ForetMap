@@ -16,6 +16,7 @@ import { MarkdownContent } from '../MarkdownContent.jsx';
 import { ContextComments } from '../context-comments';
 import { BiodiversitySpeciesOpenLinks, LivingBeingsCatalogPanel } from './LivingBeingsCatalogPanel.jsx';
 import { MarkerCommonFormFields, MarkerEmojiField, MarkerVisitImageBuilder } from './MarkerFormSections.jsx';
+import { MarkerModalTabBar } from './MarkerModalTabBar.jsx';
 import { MarkerTutorialCardList } from './MarkerTutorialCardList.jsx';
 import { PhotoGallery } from './PhotoGallery.jsx';
 import { LocationTutorialPreviewList, TaskEnrollmentLegend, tutorialLinkedToSameMap } from './mapModalShared.jsx';
@@ -326,29 +327,7 @@ function MarkerModal({
           )}
         </div>
 
-        <div style={{ display: 'flex', background: 'var(--parchment)', borderRadius: 10, padding: 3, marginBottom: 14, gap: 2 }}>
-          {TABS_EXISTING.map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => setTab(t.id)}
-              style={{
-                flex: 1,
-                padding: '8px 4px',
-                border: 'none',
-                borderRadius: 8,
-                cursor: 'pointer',
-                fontFamily: 'DM Sans,sans-serif',
-                fontSize: '.8rem',
-                fontWeight: tab === t.id ? 700 : 400,
-                background: tab === t.id ? 'var(--forest)' : 'transparent',
-                color: tab === t.id ? 'white' : 'var(--soil)',
-                transition: 'all .15s',
-              }}>
-              {t.label}
-            </button>
-          ))}
-        </div>
+        <MarkerModalTabBar tabs={TABS_EXISTING} activeTab={tab} onSelect={setTab} />
 
         {onNavigateToTasksForLocation && marker.id && (
           <div style={{ marginBottom: 12 }}>
