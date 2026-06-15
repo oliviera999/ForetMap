@@ -9,6 +9,7 @@ import { getContentText } from '../utils/content';
 import { TutorialPreviewModal, tutorialPreviewPayload } from './TutorialPreviewModal';
 import { fetchTutorialReadIds } from './TutorialReadAcknowledge';
 import { TasksEmptyState } from './TasksEmptyState.jsx';
+import { TasksTeacherSections } from './TasksTeacherSections.jsx';
 
 import {
   safeLocalStorageGetItem,
@@ -935,30 +936,19 @@ function TasksView({
       )}
 
       {isTeacher ? (
-        <>
-          <TaskTileSection title="⚙️ En cours" tasks={inProgress} sectionListClass={sectionListClass} taskTileProps={taskTileProps} />
-          <TaskTileSection title="🔥 À faire" tasks={available} sectionListClass={sectionListClass} taskTileProps={taskTileProps} />
-          <TaskProjectsBlock {...taskProjectsBlockProps} visibleProjects={activeProjects} />
-          <TaskTileSection
-            title={`💡 Propositions ${roleTerms.studentPlural} (${proposed.length})`}
-            tasks={proposed}
-            sectionListClass={sectionListClass}
-            taskTileProps={taskTileProps}
-          />
-          <TaskTileSection
-            title={`⏳ En attente de validation (${done.length})`}
-            tasks={done}
-            sectionListClass={sectionListClass}
-            taskTileProps={taskTileProps}
-          />
-          <TaskTileSection
-            title={`⏸️ En attente (${onHold.length})`}
-            tasks={onHold}
-            sectionListClass={sectionListClass}
-            taskTileProps={taskTileProps}
-          />
-          <TaskTileSection title="✅ Validées" tasks={validated} sectionListClass={sectionListClass} taskTileProps={taskTileProps} />
-        </>
+        <TasksTeacherSections
+          inProgress={inProgress}
+          available={available}
+          proposed={proposed}
+          done={done}
+          onHold={onHold}
+          validated={validated}
+          activeProjects={activeProjects}
+          roleTerms={roleTerms}
+          sectionListClass={sectionListClass}
+          taskTileProps={taskTileProps}
+          taskProjectsBlockProps={taskProjectsBlockProps}
+        />
       ) : (
         <>
           {showStudentFilteredResults ? (
