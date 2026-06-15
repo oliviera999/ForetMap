@@ -34,8 +34,21 @@ const {
   sourcesAllowedCacheFingerprint,
 } = require('../lib/speciesAutofill');
 const { plantnetIdentifyFromImages } = require('../lib/speciesAutofillPlantnet');
+const { z, validate } = require('../lib/validate');
 
 const router = express.Router();
+
+// O7 — `POST /:id/acknowledge-discovery` : remplace la validation manuelle
+// `if (!req.body || req.body.confirm !== true) -> 400 'Confirmation explicite requise (confirm: true)'`.
+// Le refine est au niveau racine (path vide) pour que `formatZodError` renvoie exactement
+// le message d'origine, sans préfixe de chemin. `passthrough()` conserve le corps tel quel et
+// le refine reproduit `req.body.confirm !== true` (rejette toute valeur != true booléen).
+const acknowledgeDiscoveryBodySchema = z
+  .object({ confirm: z.unknown().optional() })
+  .passthrough()
+  .refine((body) => body && body.confirm === true, {
+    message: 'Confirmation explicite requise (confirm: true)',
+  });
 const plantsListCache = getNamedMemoryTtlCache('plants:list:v1', { ttlMs: 20000, maxEntries: 5 });
 const plantsAutofillCache = getNamedMemoryTtlCache('plants:autofill:v1', { ttlMs: 10 * 60 * 1000, maxEntries: 120 });
 
@@ -173,11 +186,8 @@ router.get('/me/observation-counts', requireAuth, async (req, res) => {
  * Enregistre une observation (engagement terrain + lecture de fiche) pour une entrée du catalogue plants.
  * Corps JSON : { "confirm": true } (obligatoire). Chaque confirmation ajoute une ligne (compteur incrémenté).
  */
-router.post('/:id/acknowledge-discovery', requireAuth, async (req, res) => {
+router.post('/:id/acknowledge-discovery', requireAuth, validate({ body: acknowledgeDiscoveryBodySchema }), async (req, res) => {
   try {
-    if (!req.body || req.body.confirm !== true) {
-      return res.status(400).json({ error: 'Confirmation explicite requise (confirm: true)' });
-    }
     const userId = req.auth.userId;
     if (userId == null || userId === '') {
       return res.status(403).json({ error: 'Profil utilisateur invalide' });
@@ -509,3 +519,5 @@ router.delete('/:id', requirePermission('plants.manage', { needsElevation: true 
 }));
 
 module.exports = router;
+// Exporté pour le test no-DB du contrat de validation O7.
+module.exports.acknowledgeDiscoveryBodySchema = acknowledgeDiscoveryBodySchema;
