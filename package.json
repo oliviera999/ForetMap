@@ -162,7 +162,7 @@
     "@vitejs/plugin-react": "^6.0.2",
     "@vitest/ui": "^4.1.8",
     "artillery": "^2.0.32",
-    "better-sqlite3": "^11.10.0",
+    "better-sqlite3": "^12.10.1",
     "cross-env": "^10.1.0",
     "eslint": "^10.4.1",
     "eslint-plugin-react-hooks": "^7.1.1",
