@@ -29,11 +29,11 @@ import {
   plantLinkedToMapMarker,
   plantLinkedToMapZone,
 } from '../utils/plantFilters';
-import { armNativeFilePickerGuard, disarmNativeFilePickerGuard } from '../utils/overlayHistory';
 import { MarkdownContent } from './MarkdownContent.jsx';
 import { MarkdownTextarea } from './MarkdownTextarea.jsx';
 import { ObservationCard } from './ObservationCard.jsx';
 import { ObservationNotebookStatus } from './ObservationNotebookStatus.jsx';
+import { ObservationPhotoField } from './ObservationPhotoField.jsx';
 import { TimedToast } from '../shared/components/TimedToast.jsx';
 import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
 import { useSession } from '../contexts/SessionContext.jsx';
@@ -498,60 +498,13 @@ function ObservationNotebook({ student, onForceLogout = null }) {
               placeholder="Qu'as-tu observé ? Croissance, insectes, couleur des feuilles..." autoFocus/>
           </div>
           <div className="field"><label>Photo (optionnel)</label>
-            {!preview ? (
-              <div className="img-upload-area img-upload-area--split" role="group" aria-label="Photo d'observation : galerie ou appareil photo">
-                <div style={{fontSize:'1.5rem', marginBottom:4}}>📷</div>
-                <div style={{fontSize:'.82rem', color:'#888', marginBottom: 10}}>Galerie ou appareil photo</div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
-                  <button
-                    type="button"
-                    className="btn btn-secondary btn-sm"
-                    onClick={() => {
-                      if (galleryFileRef.current) galleryFileRef.current.value = '';
-                      armNativeFilePickerGuard();
-                      galleryFileRef.current?.click();
-                    }}
-                  >
-                    📁 Choisir une photo
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-secondary btn-sm"
-                    onClick={() => {
-                      if (cameraFileRef.current) cameraFileRef.current.value = '';
-                      armNativeFilePickerGuard();
-                      cameraFileRef.current?.click();
-                    }}
-                  >
-                    📸 Prendre une photo
-                  </button>
-                </div>
-                <input
-                  ref={galleryFileRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => {
-                    disarmNativeFilePickerGuard();
-                    handleFile(e);
-                  }}
-                />
-                <input
-                  ref={cameraFileRef}
-                  type="file"
-                  accept="image/*"
-                  capture="environment"
-                  onChange={(e) => {
-                    disarmNativeFilePickerGuard();
-                    handleFile(e);
-                  }}
-                />
-              </div>
-            ) : (
-              <div className="img-preview-wrap">
-                <img src={preview} className="img-preview" alt="preview"/>
-                <button className="img-remove" onClick={() => { setImageData(null); setPreview(null); }}>✕</button>
-              </div>
-            )}
+            <ObservationPhotoField
+              preview={preview}
+              galleryFileRef={galleryFileRef}
+              cameraFileRef={cameraFileRef}
+              onFile={handleFile}
+              onRemove={() => { setImageData(null); setPreview(null); }}
+            />
           </div>
           <div style={{display:'flex', gap:8}}>
             <button className="btn btn-primary btn-sm" onClick={submit} disabled={saving || !content.trim()}>
