@@ -29,6 +29,7 @@ import VisitMascotStudioPreviewSection from './mascot/VisitMascotStudioPreviewSe
 import MascotPackListAside from './mascot/MascotPackListAside.jsx';
 import MascotAssetsLibraryPanel from './mascot/MascotAssetsLibraryPanel.jsx';
 import MascotInteractionProfileEditor from './mascot/MascotInteractionProfileEditor.jsx';
+import MascotStudioModeTabs from './mascot/MascotStudioModeTabs.jsx';
 
 const RIGHT_TABS = [
   { id: 'workspace', label: 'Édition guidée' },
@@ -546,20 +547,11 @@ export default function VisitMascotPackManager({
           : { maxHeight: 'min(85vh, 900px)', overflow: 'auto' }),
       }}
     >
-      <div className="visit-mascot-pack-manager__studio-modes" role="tablist" style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-        {STUDIO_MODES.map((mode) => (
-          <button
-            key={mode.id}
-            type="button"
-            role="tab"
-            aria-selected={studioMode === mode.id}
-            className={`btn btn-sm ${studioMode === mode.id ? 'btn-primary' : 'btn-ghost'}`}
-            onClick={() => setStudioMode(mode.id)}
-          >
-            {mode.label}
-          </button>
-        ))}
-      </div>
+      <MascotStudioModeTabs
+        modes={STUDIO_MODES}
+        activeMode={studioMode}
+        onSelectMode={setStudioMode}
+      />
       {studioMode === 'dialogues' ? (
         <VisitMascotDialogStudioView onForceLogout={onForceLogout} />
       ) : (
