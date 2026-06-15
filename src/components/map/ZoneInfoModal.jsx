@@ -18,6 +18,7 @@ import { BiodiversitySpeciesOpenLinks, LivingBeingsCatalogPanel } from './Living
 import { MarkerVisitImageBuilder } from './MarkerFormSections.jsx';
 import { PhotoGallery } from './PhotoGallery.jsx';
 import { ZoneInfoModalHeader } from './ZoneInfoModalHeader.jsx';
+import { ZoneInfoModalTabBar } from './ZoneInfoModalTabBar.jsx';
 import { ZoneOrMarkerEmojiField } from './ZoneOrMarkerEmojiField.jsx';
 import { ZoneTasksStudentPanel, ZoneTasksTeacherPanel } from './ZoneTasksPanel.jsx';
 import { ZoneTutorialsStudentPanel, ZoneTutorialsTeacherPanel } from './ZoneTutorialsPanel.jsx';
@@ -245,17 +246,7 @@ function ZoneInfoModal({ zone, plants, tasks, tutorials = [], isTeacher, student
           onClose={onClose}
         />
 
-        <div style={{ display: 'flex', background: 'var(--parchment)', borderRadius: 10, padding: 3, marginBottom: 14, gap: 2 }}>
-          {TABS.map(t => (
-            <button key={t.id} onClick={() => setTab(t.id)}
-              style={{ flex: 1, padding: '8px 4px', border: 'none', borderRadius: 8, cursor: 'pointer',
-                fontFamily: 'DM Sans,sans-serif', fontSize: '.8rem', fontWeight: tab === t.id ? 700 : 400,
-                background: tab === t.id ? 'var(--forest)' : 'transparent',
-                color: tab === t.id ? 'white' : 'var(--soil)', transition: 'all .15s' }}>
-              {t.label}
-            </button>
-          ))}
-        </div>
+        <ZoneInfoModalTabBar tabs={TABS} activeTab={tab} onSelect={setTab} />
 
         {onNavigateToTasksForLocation && (
           <div style={{ marginBottom: 12 }}>
