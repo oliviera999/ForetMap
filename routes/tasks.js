@@ -6,7 +6,7 @@ const {
   JWT_SECRET,
   hydrateAuthFromTokenClaims,
 } = require('../middleware/requireTeacher');
-const { getAbsolutePath, deleteFile, writeBufferToDisk } = require('../lib/uploads');
+const { deleteFile, writeBufferToDisk } = require('../lib/uploads');
 const { respondInternalError } = require('../lib/routeLog');
 const asyncHandler = require('../lib/asyncHandler');
 const logger = require('../lib/logger');
@@ -763,15 +763,6 @@ router.get('/referent-candidates', requirePermission('tasks.manage', { needsElev
   res.json([...teachers, ...students]);
 }));
 
-router.get('/:id/image', asyncHandler(async (req, res) => {
-  const row = await queryOne('SELECT image_path FROM tasks WHERE id = ?', [req.params.id]);
-  if (!row?.image_path) return res.status(404).json({ error: 'Aucune image' });
-  const absolutePath = getAbsolutePath(row.image_path);
-  return res.sendFile(absolutePath, (err) => {
-    if (err && !res.headersSent) res.status(404).json({ error: 'Fichier introuvable' });
-  });
-}));
-
 router.get('/:id', asyncHandler(async (req, res) => {
   const task = await getTaskWithAssignments(req.params.id);
   if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
@@ -1243,5 +1234,7 @@ router.use(require('./tasks/assignments'));
 router.use(require('./tasks/import'));
 // O10 — sous-domaine logs de tâches extrait en sous-routeur dédié (chemins inchangés).
 router.use(require('./tasks/logs'));
+// O10 — sous-domaine média de tâche (service d'image de couverture, GET /:id/image) extrait en sous-routeur dédié (chemins inchangés).
+router.use(require('./tasks/media'));
 
 module.exports = router;
