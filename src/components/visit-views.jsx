@@ -38,9 +38,9 @@ import {
 import { wheelZoomScaleFactor } from '../utils/mapWheelZoom';
 import { clampVisitMapTransform, zoomVisitTransformToScale } from '../utils/visitMapTransform.js';
 import { pointToContainedRectPct } from '../shared/pct-map/pctMapPointer.js';
-import VisitMapMascotRenderer from './VisitMapMascotRenderer.jsx';
 import { VisitMapMarkerButton } from './VisitMapMarkerButton.jsx';
 import { VisitDrawZonePreview } from './VisitDrawZonePreview.jsx';
+import { VisitMapMascot } from './VisitMapMascot.jsx';
 import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
 import { useSession } from '../contexts/SessionContext.jsx';
 import { useData } from '../contexts/DataContext.jsx';
@@ -1351,26 +1351,18 @@ function VisitView({
                 </svg>
 
                 {showVisitMapMascot ? (
-                  <div
-                    className={`visit-map-mascot${visitMapMascotWalking ? ' visit-map-mascot--walking' : ''}${visitMapMascotHappy ? ' visit-map-mascot--happy' : ''}${prefersReducedMotion ? ' visit-map-mascot--reduced-motion' : ''}`}
-                    style={{ left: `${visitMapMascotRenderPct.xp}%`, top: `${visitMapMascotRenderPct.yp}%` }}
-                    aria-hidden="true"
-                  >
-                    <div
-                      className="visit-map-mascot-inner"
-                      style={{
-                        transform: `translate(-50%, -100%) scaleX(${visitMapMascotFaceRight ? 1 : -1})`,
-                        '--visit-mascot-dialog-x': visitMapMascotFaceRight ? 1 : -1,
-                      }}
-                    >
-                      <VisitMapMascotRenderer mascotState={visitMascotAnimationState} mascotId={visitMascotId} extraCatalogEntries={visitMascotCatalogExtras} />
-                      {visitMascotDialogVisible && visitMascotDialog ? (
-                        <div className="visit-map-mascot-dialog" role="status" aria-live="polite">
-                          {visitMascotDialog}
-                        </div>
-                      ) : null}
-                    </div>
-                  </div>
+                  <VisitMapMascot
+                    renderPct={visitMapMascotRenderPct}
+                    walking={visitMapMascotWalking}
+                    happy={visitMapMascotHappy}
+                    prefersReducedMotion={prefersReducedMotion}
+                    faceRight={visitMapMascotFaceRight}
+                    mascotState={visitMascotAnimationState}
+                    mascotId={visitMascotId}
+                    extraCatalogEntries={visitMascotCatalogExtras}
+                    dialogVisible={visitMascotDialogVisible}
+                    dialog={visitMascotDialog}
+                  />
                 ) : null}
 
                 {(content.markers || []).map((m) => {
