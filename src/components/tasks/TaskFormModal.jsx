@@ -10,6 +10,7 @@ import { MarkdownTextarea } from '../MarkdownTextarea.jsx';
 import { TaskFormImageField } from './TaskFormImageField.jsx';
 import { TaskFormReferentsField } from './TaskFormReferentsField.jsx';
 import { TaskFormTutorialsField } from './TaskFormTutorialsField.jsx';
+import { TaskFormLevelsField } from './TaskFormLevelsField.jsx';
 import {
   zonePickDisplayName,
   initialLocationIds,
@@ -529,36 +530,14 @@ function TaskFormModal({
             </div>
           </div>
         )}
-        <div className="row">
-          <div className="field"><label>Niveau de danger</label>
-            <select value={form.danger_level || ''} onChange={set('danger_level')}>
-              <option value="">Non renseigné</option>
-              <option value="safe">Sans danger</option>
-              <option value="potential_danger">Danger potentiel</option>
-              <option value="dangerous">Dangereux</option>
-              <option value="very_dangerous">Très dangereux</option>
-            </select>
-          </div>
-          <div className="field"><label>Niveau de difficulté</label>
-            <select value={form.difficulty_level || ''} onChange={set('difficulty_level')}>
-              <option value="">Non renseigné</option>
-              <option value="easy">Facile</option>
-              <option value="medium">Moyen</option>
-              <option value="hard">Compliqué</option>
-              <option value="very_hard">Super compliqué</option>
-            </select>
-          </div>
-          <div className="field"><label>Degré d&apos;importance</label>
-            <select value={form.importance_level || ''} onChange={set('importance_level')}>
-              <option value="">Non renseigné</option>
-              <option value="not_important">Pas important</option>
-              <option value="low">Peu important</option>
-              <option value="medium">Modéré</option>
-              <option value="high">Important</option>
-              <option value="absolute">Urgent !</option>
-            </select>
-          </div>
-        </div>
+        <TaskFormLevelsField
+          dangerLevel={form.danger_level || ''}
+          difficultyLevel={form.difficulty_level || ''}
+          importanceLevel={form.importance_level || ''}
+          onDangerChange={set('danger_level')}
+          onDifficultyChange={set('difficulty_level')}
+          onImportanceChange={set('importance_level')}
+        />
         {!isProposal && (
           <div className="row">
             <div className="field"><label>Mode de validation</label>
