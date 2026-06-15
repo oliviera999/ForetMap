@@ -39,6 +39,7 @@ import { wheelZoomScaleFactor } from '../utils/mapWheelZoom';
 import { clampVisitMapTransform, zoomVisitTransformToScale } from '../utils/visitMapTransform.js';
 import { pointToContainedRectPct } from '../shared/pct-map/pctMapPointer.js';
 import VisitMapMascotRenderer from './VisitMapMascotRenderer.jsx';
+import { VisitMapMarkerButton } from './VisitMapMarkerButton.jsx';
 import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
 import { useSession } from '../contexts/SessionContext.jsx';
 import { useData } from '../contexts/DataContext.jsx';
@@ -1385,12 +1386,10 @@ function VisitView({
                 {(content.markers || []).map((m) => {
                   const isSeen = seen.has(itemSeenKey('marker', m.id));
                   return (
-                    <button
+                    <VisitMapMarkerButton
                       key={m.id}
-                      type="button"
-                      className="visit-marker-btn"
-                      aria-label={String(m.label || '').trim() || 'Repère visite'}
-                      style={{ left: `${m.x_pct}%`, top: `${m.y_pct}%` }}
+                      marker={m}
+                      isSeen={isSeen}
                       onClick={(event) => {
                         event.stopPropagation();
                         if (consumeSkipClick()) return;
@@ -1405,25 +1404,7 @@ function VisitView({
                           setSelectedType('marker');
                         }
                       }}
-                    >
-                      {m.emoji ? (
-                        <span className="visit-marker-emoji">{m.emoji}</span>
-                      ) : (
-                        <span
-                          className="visit-marker-emoji visit-marker-emoji--empty"
-                          aria-hidden
-                          style={{
-                            display: 'inline-block',
-                            width: 8,
-                            height: 8,
-                            borderRadius: '50%',
-                            background: '#1a4731',
-                            opacity: 0.55,
-                          }}
-                        />
-                      )}
-                      <span className={`visit-marker-indicator ${isSeen ? 'is-seen' : 'is-unseen'}`} />
-                    </button>
+                    />
                   );
                 })}
               </div>
