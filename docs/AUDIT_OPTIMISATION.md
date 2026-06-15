@@ -199,6 +199,18 @@ Troisième lot en parallèle (5 agents, périmètres disjoints), build + Vitest 
 - **O10** (`wip`) — `routes/gl/games.js` : sous-domaine `markers` (present-question/present-arrival/apply-effects)
   extrait en sous-routeur `routes/gl/games/markers.js` (chemins/middlewares inchangés).
 
+### Lot 20 — O6 ×3 (agrégateurs, 3ᵉ passe), multi-agents (2026-06-15)
+
+Vingtième lot (3 agents O6, base = `main` à jour). Build Vite vert, Vitest vert (1 709 tests UI, +13),
+lint sans erreur. 3ᵉ extraction sur map/visit/profiles-views.
+
+- **O6** (`wip`) — `src/components/map-views.jsx` : `MapViewBackgroundImage` (image de fond du plan —
+  `<img>` positionné monde, `fetchPriority`/`decoding`/`onError`, ref via prop `imgRef`) + test (4 cas).
+- **O6** (`wip`) — `src/components/visit-views.jsx` : `VisitMapMascot` (mascotte posée sur le plan de visite —
+  classes d'état walking/happy/reduced-motion + bulle de dialogue) extrait + test (5 cas).
+- **O6** (`wip`) — `src/components/profiles-views.jsx` : `ProfilesStatsExportRow` (ligne d'export CSV des stats,
+  bouton désactivé + mention « PIN requis ») extrait dans `src/components/profiles/` + test (4 cas).
+
 ### Lot 19 — structurel O10 + O6 + O5, multi-agents (2026-06-15)
 
 Dix-neuvième lot (3 agents, base = `main` à jour). Build Vite vert, Vitest vert (1 696 tests UI, +11),
