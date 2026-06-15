@@ -22,8 +22,30 @@ const {
   groupLearningAcksByType,
   markItemsLearned,
 } = require('../../lib/shared/learningAckCore');
+const { z, validate } = require('../../lib/validate');
 
 const db = { queryAll, queryOne, execute };
+
+// O7 — query des routes biome-scopées (`GET /species`, `GET /admin/species`) : reproduit
+// exactement l'ancienne validation manuelle `normalizeBiomeSlug(req.query?.biomeSlug)` suivie de
+// `if (!biomeSlug) return 400 'biomeSlug requis'`. La vérification est portée au niveau racine
+// (path vide) pour que `formatZodError` renvoie le message tel quel (sans préfixe de chemin) et
+// pour tolérer un query null/undefined comme l'opérateur `?.` d'origine. Le query n'est PAS
+// transformé : le handler continue de lire/normaliser `req.query?.biomeSlug` lui-même.
+const biomeSlugQuerySchema = z.unknown().superRefine((q, ctx) => {
+  const slug = normalizeBiomeSlug(q == null ? null : q.biomeSlug);
+  if (!slug) ctx.addIssue({ code: 'custom', message: 'biomeSlug requis', path: [] });
+});
+
+// O7 — param `:code` des routes admin (`GET|PUT|PATCH /admin/species/:code`) : reproduit
+// exactement l'ancienne validation manuelle `String(req.params.code || '').trim()` suivie de
+// `if (!code) return 400 'Code invalide'`. Refine au niveau racine (path vide) pour préserver le
+// message verbatim. Le param n'est PAS transformé : le handler continue de lire/trimmer
+// `req.params.code` lui-même.
+const speciesCodeParamsSchema = z.unknown().superRefine((p, ctx) => {
+  const code = String((p == null ? '' : p.code) || '').trim();
+  if (!code) ctx.addIssue({ code: 'custom', message: 'Code invalide', path: [] });
+});
 
 async function loadSpeciesLearnedCodes(glAuth) {
   const reader = buildReaderKey(glAuth);
@@ -56,7 +78,7 @@ router.get('/biomes', requireGlPermission('gl.read'), async (_req, res) => {
 });
 
 /** GET /api/gl/species?biomeSlug= — espèces d'un biome. */
-router.get('/species', requireGlPermission('gl.read'), async (req, res) => {
+router.get('/species', requireGlPermission('gl.read'), validate({ query: biomeSlugQuerySchema }), async (req, res) => {
   const biomeSlug = normalizeBiomeSlug(req.query?.biomeSlug);
   if (!biomeSlug) return res.status(400).json({ error: 'biomeSlug requis' });
   const biome = await queryOne('SELECT slug, nom FROM gl_biomes WHERE slug = ? LIMIT 1', [biomeSlug]);
@@ -137,7 +159,7 @@ router.get('/admin/species/next-code', requireGlPermission('gl.content.manage'),
 });
 
 /** GET /api/gl/admin/species — liste admin par biome. */
-router.get('/admin/species', requireGlPermission('gl.content.manage'), async (req, res) => {
+router.get('/admin/species', requireGlPermission('gl.content.manage'), validate({ query: biomeSlugQuerySchema }), async (req, res) => {
   const biomeSlug = normalizeBiomeSlug(req.query?.biomeSlug);
   if (!biomeSlug) return res.status(400).json({ error: 'biomeSlug requis' });
   const biome = await queryOne('SELECT slug, nom FROM gl_biomes WHERE slug = ? LIMIT 1', [biomeSlug]);
@@ -252,7 +274,7 @@ router.post('/admin/species/import', requireGlPermission('gl.content.manage'), a
 });
 
 /** GET /api/gl/admin/species/:code — fiche admin. */
-router.get('/admin/species/:code', requireGlPermission('gl.content.manage'), async (req, res) => {
+router.get('/admin/species/:code', requireGlPermission('gl.content.manage'), validate({ params: speciesCodeParamsSchema }), async (req, res) => {
   const code = String(req.params.code || '').trim();
   if (!code) return res.status(400).json({ error: 'Code invalide' });
   const species = await loadAdminSpeciesDetail(code);
@@ -261,7 +283,7 @@ router.get('/admin/species/:code', requireGlPermission('gl.content.manage'), asy
 });
 
 /** PUT /api/gl/admin/species/:code — mise à jour. */
-router.put('/admin/species/:code', requireGlPermission('gl.content.manage'), async (req, res) => {
+router.put('/admin/species/:code', requireGlPermission('gl.content.manage'), validate({ params: speciesCodeParamsSchema }), async (req, res) => {
   const code = String(req.params.code || '').trim();
   if (!code) return res.status(400).json({ error: 'Code invalide' });
   try {
@@ -278,7 +300,7 @@ router.put('/admin/species/:code', requireGlPermission('gl.content.manage'), asy
 });
 
 /** PATCH /api/gl/admin/species/:code — archivage. */
-router.patch('/admin/species/:code', requireGlPermission('gl.content.manage'), async (req, res) => {
+router.patch('/admin/species/:code', requireGlPermission('gl.content.manage'), validate({ params: speciesCodeParamsSchema }), async (req, res) => {
   const code = String(req.params.code || '').trim();
   if (!code) return res.status(400).json({ error: 'Code invalide' });
   const existing = await queryOne(
@@ -296,3 +318,5 @@ router.patch('/admin/species/:code', requireGlPermission('gl.content.manage'), a
 });
 
 module.exports = router;
+module.exports.biomeSlugQuerySchema = biomeSlugQuerySchema; // exporté pour test no-DB du contrat O7
+module.exports.speciesCodeParamsSchema = speciesCodeParamsSchema; // exporté pour test no-DB du contrat O7

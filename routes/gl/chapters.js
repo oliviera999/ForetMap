@@ -53,8 +53,20 @@ const {
   attachChapterBiomes,
   attachChapterSpells,
 } = require('../../lib/gl/chaptersRouteHelpers');
+const { z, validate } = require('../../lib/validate');
 
 const router = express.Router();
+
+// O7 — validation déclarative des entrées (zod via lib/validate). Les schémas restent aussi
+// permissifs que la validation manuelle qu'ils précèdent : les handlers conservent leur propre
+// logique (Number(req.params.id), normalizeSlug, clampPercent, etc.) et leurs messages 400.
+//
+// :id / :markerId — reproduit exactement le gate `const x = Number(req.params.x);
+// if (!Number.isFinite(x)) -> 400 'Identifiant invalide'`. `z.coerce.number()` applique la même
+// coercition que `Number(...)` et `.finite()` rejette précisément ce que `!Number.isFinite(...)`
+// rejette (NaN / ±Infinity). Le handler relit `Number(req.params.x)` lui-même : contrat inchangé.
+const idParamSchema = z.object({ id: z.coerce.number().finite() });
+const markerIdParamSchema = z.object({ markerId: z.coerce.number().finite() });
 
 async function readChapterFull(slugOrId) {
   const isNumeric = typeof slugOrId === 'number' || /^\d+$/.test(String(slugOrId || ''));
@@ -198,7 +210,7 @@ router.post('/admin', requireGlPermission('gl.content.manage'), async (req, res)
 });
 
 /** PUT /api/gl/chapters/admin/:id — met à jour un chapitre. */
-router.put('/admin/:id', requireGlPermission('gl.content.manage'), async (req, res) => {
+router.put('/admin/:id', requireGlPermission('gl.content.manage'), validate({ params: idParamSchema }), async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isFinite(id)) return res.status(400).json({ error: 'Identifiant invalide' });
   const biomeSlugs = parseBiomeSlugsFromBody(req.body);
@@ -295,7 +307,7 @@ router.put('/admin/:id', requireGlPermission('gl.content.manage'), async (req, r
 });
 
 /** POST /api/gl/chapters/admin/:id/map-image — upload image carte chapitre. */
-router.post('/admin/:id/map-image', requireGlPermission('gl.content.manage'), async (req, res) => {
+router.post('/admin/:id/map-image', requireGlPermission('gl.content.manage'), validate({ params: idParamSchema }), async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isFinite(id)) return res.status(400).json({ error: 'Identifiant invalide' });
   const chapter = await queryOne(
@@ -321,7 +333,7 @@ router.post('/admin/:id/map-image', requireGlPermission('gl.content.manage'), as
 });
 
 /** DELETE /api/gl/chapters/admin/:id — supprime un chapitre (refuse si lié à une partie). */
-router.delete('/admin/:id', requireGlPermission('gl.content.manage'), async (req, res) => {
+router.delete('/admin/:id', requireGlPermission('gl.content.manage'), validate({ params: idParamSchema }), async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isFinite(id)) return res.status(400).json({ error: 'Identifiant invalide' });
   const linked = await queryOne(
@@ -334,7 +346,7 @@ router.delete('/admin/:id', requireGlPermission('gl.content.manage'), async (req
 });
 
 /** POST /api/gl/chapters/admin/:id/markers — ajoute un marker. */
-router.post('/admin/:id/markers', requireGlPermission('gl.content.manage'), async (req, res) => {
+router.post('/admin/:id/markers', requireGlPermission('gl.content.manage'), validate({ params: idParamSchema }), async (req, res) => {
   const chapterId = Number(req.params.id);
   if (!Number.isFinite(chapterId)) return res.status(400).json({ error: 'Identifiant invalide' });
   const label = normalizeOptionalString(req.body?.label);
@@ -433,7 +445,7 @@ router.post('/admin/:id/markers', requireGlPermission('gl.content.manage'), asyn
 });
 
 /** PUT /api/gl/chapters/admin/markers/:markerId — met à jour un marker. */
-router.put('/admin/markers/:markerId', requireGlPermission('gl.content.manage'), async (req, res) => {
+router.put('/admin/markers/:markerId', requireGlPermission('gl.content.manage'), validate({ params: markerIdParamSchema }), async (req, res) => {
   const markerId = Number(req.params.markerId);
   if (!Number.isFinite(markerId)) return res.status(400).json({ error: 'Identifiant invalide' });
   const existing = await queryOne(`SELECT ${MARKER_SELECT} FROM gl_chapter_markers WHERE id = ? LIMIT 1`, [markerId]);
@@ -655,7 +667,7 @@ router.post('/admin/charte/import', requireGlPermission('gl.content.manage'), as
 });
 
 /** DELETE /api/gl/chapters/admin/markers/:markerId — supprime un marker. */
-router.delete('/admin/markers/:markerId', requireGlPermission('gl.content.manage'), async (req, res) => {
+router.delete('/admin/markers/:markerId', requireGlPermission('gl.content.manage'), validate({ params: markerIdParamSchema }), async (req, res) => {
   const markerId = Number(req.params.markerId);
   if (!Number.isFinite(markerId)) return res.status(400).json({ error: 'Identifiant invalide' });
   // ON DELETE SET NULL côté gl_teams.position_marker_id => les équipes restent en jeu sans marker.
@@ -667,3 +679,6 @@ router.delete('/admin/markers/:markerId', requireGlPermission('gl.content.manage
 });
 
 module.exports = router;
+// Exportés pour test no-DB du contrat O7 (équivalence avec le gate Number()/Number.isFinite).
+module.exports.idParamSchema = idParamSchema;
+module.exports.markerIdParamSchema = markerIdParamSchema;
