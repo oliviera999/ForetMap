@@ -199,6 +199,20 @@ Troisième lot en parallèle (5 agents, périmètres disjoints), build + Vitest 
 - **O10** (`wip`) — `routes/gl/games.js` : sous-domaine `markers` (present-question/present-arrival/apply-effects)
   extrait en sous-routeur `routes/gl/games/markers.js` (chemins/middlewares inchangés).
 
+### Lot 22 — structurel O10 + O6 ×2, multi-agents (2026-06-15)
+
+Vingt-deuxième lot (3 agents, base = `main` à jour). Build Vite vert, Vitest vert (1 723 tests UI, +7),
+lint sans erreur, require-smoke backend OK. Union complète `visit*` (23) inchangée. (Les 2 agents O6
+ayant été coupés avant commit au 1er essai, ré-exécutés proprement avec « commit-avant-rapport ».)
+
+- **O10** (`wip`) — `routes/visit.js` : sous-domaine **markers** (`POST /markers`, `PUT|DELETE /markers/:id`)
+  extrait en sous-routeur `routes/visit/markers.js` ; helpers déplacés, fonction morte retirée de visit.js.
+  **Union complète `visit*` inchangée (23)**.
+- **O6** (`wip`) — `src/components/map-views.jsx` : `MapViewWorldLayer` (conteneur « monde » positionné
+  enveloppant image de fond/zones/mascotte/repères) extrait + test (3 cas).
+- **O6** (`wip`) — `src/components/foretmap-views.jsx` : `ObservationPhotoField` (champ photo du formulaire
+  d'observation — galerie/appareil + aperçu/suppression, garde `disarmNativeFilePicker`) extrait + test (4 cas).
+
 ### Lot 21 — structurel O10 + O6 + O5, multi-agents (2026-06-15)
 
 Vingt-et-unième lot (3 agents, base = `main` à jour). Build Vite vert, Vitest vert (1 716 tests UI, +7),
