@@ -13,6 +13,7 @@ const {
 } = require('../../lib/glSpellsImport');
 const { normalizeSpellCodeList, parseSpellCodesFromQuery } = require('../../lib/glChapterSpells');
 const { z, validate } = require('../../lib/validate');
+const asyncHandler = require('../../lib/asyncHandler');
 
 const router = express.Router();
 
@@ -102,7 +103,7 @@ function filterSpellAdminList(rows, { statut, q }) {
 }
 
 /** GET /api/gl/spell-categories — liste des catégories avec effectifs. */
-router.get('/spell-categories', requireGlPermission('gl.read'), async (_req, res) => {
+router.get('/spell-categories', requireGlPermission('gl.read'), asyncHandler(async (_req, res) => {
   const rows = await queryAll(
     `SELECT c.slug, c.nom, c.order_index,
             COUNT(s.id) AS spell_count,
@@ -114,10 +115,10 @@ router.get('/spell-categories', requireGlPermission('gl.read'), async (_req, res
       ORDER BY c.order_index ASC, c.slug ASC`
   );
   return res.json(rows);
-});
+}));
 
 /** GET /api/gl/spells?spellCodes=SL001,SL002 — sorts filtrés par codes chapitre. */
-router.get('/spells', requireGlPermission('gl.read'), validate({ query: spellCodesQuerySchema }), async (req, res) => {
+router.get('/spells', requireGlPermission('gl.read'), validate({ query: spellCodesQuerySchema }), asyncHandler(async (req, res) => {
   const spellCodes = parseSpellCodesFromQuery(req.query);
   if (spellCodes.length === 0) {
     return res.status(400).json({ error: 'spellCodes requis (liste de codes séparés par des virgules)' });
@@ -132,10 +133,10 @@ router.get('/spells', requireGlPermission('gl.read'), validate({ query: spellCod
     normalized
   );
   return res.json({ items, total: items.length });
-});
+}));
 
 /** GET /api/gl/spells/:code — détail sort (popover). */
-router.get('/spells/:code', requireGlPermission('gl.read'), validate({ params: spellCodeParamsSchema }), async (req, res) => {
+router.get('/spells/:code', requireGlPermission('gl.read'), validate({ params: spellCodeParamsSchema }), asyncHandler(async (req, res) => {
   const code = String(req.params.code || '').trim().toUpperCase();
   if (!code) return res.status(400).json({ error: 'Code invalide' });
   const spell = await loadAdminSpellDetail(code);
@@ -145,18 +146,18 @@ router.get('/spells/:code', requireGlPermission('gl.read'), validate({ params: s
     [spell.category_slug]
   );
   return res.json({ spell, category: category || null });
-});
+}));
 
 const ADMIN_SPELL_LIST_LIMIT = 500;
 
 /** GET /api/gl/admin/spells/next-code */
-router.get('/admin/spells/next-code', requireGlPermission('gl.content.manage'), async (_req, res) => {
+router.get('/admin/spells/next-code', requireGlPermission('gl.content.manage'), asyncHandler(async (_req, res) => {
   const spell_code = await allocateNextSpellCode(queryAll);
   return res.json({ spell_code });
-});
+}));
 
 /** GET /api/gl/admin/spells — liste admin par catégorie. */
-router.get('/admin/spells', requireGlPermission('gl.content.manage'), validate({ query: categorySlugQuerySchema }), async (req, res) => {
+router.get('/admin/spells', requireGlPermission('gl.content.manage'), validate({ query: categorySlugQuerySchema }), asyncHandler(async (req, res) => {
   const categorySlug = normalizeCategorySlug(req.query?.categorySlug);
   if (!categorySlug) return res.status(400).json({ error: 'categorySlug requis' });
   const category = await queryOne(
@@ -181,10 +182,10 @@ router.get('/admin/spells', requireGlPermission('gl.content.manage'), validate({
 
   const items = filterSpellAdminList(rows, { statut, q });
   return res.json({ category, items, total: items.length });
-});
+}));
 
 /** GET /api/gl/admin/spells/all — liste complète (sélection chapitre). */
-router.get('/admin/spells/all', requireGlPermission('gl.content.manage'), async (_req, res) => {
+router.get('/admin/spells/all', requireGlPermission('gl.content.manage'), asyncHandler(async (_req, res) => {
   const rows = await queryAll(
     `SELECT s.spell_code, s.nom, s.emoji, s.category_slug, c.nom AS category_nom, s.statut
        FROM gl_spells s
@@ -192,10 +193,10 @@ router.get('/admin/spells/all', requireGlPermission('gl.content.manage'), async 
       ORDER BY c.order_index ASC, s.nom ASC`
   );
   return res.json({ items: rows });
-});
+}));
 
 /** POST /api/gl/admin/spells */
-router.post('/admin/spells', requireGlPermission('gl.content.manage'), async (req, res) => {
+router.post('/admin/spells', requireGlPermission('gl.content.manage'), asyncHandler(async (req, res) => {
   try {
     const explicitCode = String(req.body?.spell_code || req.body?.id || '').trim();
     const result = await upsertSpellRow(
@@ -208,10 +209,10 @@ router.post('/admin/spells', requireGlPermission('gl.content.manage'), async (re
   } catch (err) {
     return handleSpellCrudError(res, err);
   }
-});
+}));
 
 /** GET /api/gl/admin/spells/stats */
-router.get('/admin/spells/stats', requireGlPermission('gl.content.manage'), async (_req, res) => {
+router.get('/admin/spells/stats', requireGlPermission('gl.content.manage'), asyncHandler(async (_req, res) => {
   const byCategory = await queryAll(
     `SELECT s.category_slug, c.nom AS category_nom, s.statut, COUNT(*) AS effectif
        FROM gl_spells s
@@ -224,10 +225,10 @@ router.get('/admin/spells/stats', requireGlPermission('gl.content.manage'), asyn
     total: Number(total?.total || 0),
     byCategory,
   });
-});
+}));
 
 /** GET /api/gl/admin/spells/import/template */
-router.get('/admin/spells/import/template', requireGlPermission('gl.content.manage'), async (_req, res) => {
+router.get('/admin/spells/import/template', requireGlPermission('gl.content.manage'), asyncHandler(async (_req, res) => {
   const buffer = await buildSpellsTemplateWorkbook();
   res.setHeader(
     'Content-Type',
@@ -235,10 +236,10 @@ router.get('/admin/spells/import/template', requireGlPermission('gl.content.mana
   );
   res.setHeader('Content-Disposition', 'attachment; filename="foretmap-gl-modele-sortileges.xlsx"');
   return res.send(buffer);
-});
+}));
 
 /** GET /api/gl/admin/spells/export */
-router.get('/admin/spells/export', requireGlPermission('gl.content.manage'), async (req, res) => {
+router.get('/admin/spells/export', requireGlPermission('gl.content.manage'), asyncHandler(async (req, res) => {
   const statutRaw = String(req.query?.statut || 'all').toLowerCase();
   const statut = statutRaw === 'all' ? 'all' : statutRaw;
   const categorySlug = normalizeCategorySlug(req.query?.categorySlug);
@@ -250,10 +251,10 @@ router.get('/admin/spells/export', requireGlPermission('gl.content.manage'), asy
   );
   res.setHeader('Content-Disposition', 'attachment; filename="foretmap-gl-export-sortileges.xlsx"');
   return res.send(buffer);
-});
+}));
 
 /** POST /api/gl/admin/spells/import */
-router.post('/admin/spells/import', requireGlPermission('gl.content.manage'), async (req, res) => {
+router.post('/admin/spells/import', requireGlPermission('gl.content.manage'), asyncHandler(async (req, res) => {
   const dryRun = !!req.body?.dryRun;
   const syncCategories = req.body?.syncCategories !== false;
   let parsed;
@@ -279,19 +280,19 @@ router.post('/admin/spells/import', requireGlPermission('gl.content.manage'), as
   } catch (err) {
     return res.status(400).json({ error: err.message || 'Import impossible' });
   }
-});
+}));
 
 /** GET /api/gl/admin/spells/:code */
-router.get('/admin/spells/:code', requireGlPermission('gl.content.manage'), validate({ params: spellCodeParamsSchema }), async (req, res) => {
+router.get('/admin/spells/:code', requireGlPermission('gl.content.manage'), validate({ params: spellCodeParamsSchema }), asyncHandler(async (req, res) => {
   const code = String(req.params.code || '').trim().toUpperCase();
   if (!code) return res.status(400).json({ error: 'Code invalide' });
   const spell = await loadAdminSpellDetail(code);
   if (!spell) return res.status(404).json({ error: 'Sort introuvable' });
   return res.json({ spell });
-});
+}));
 
 /** PUT /api/gl/admin/spells/:code */
-router.put('/admin/spells/:code', requireGlPermission('gl.content.manage'), validate({ params: spellCodeParamsSchema }), async (req, res) => {
+router.put('/admin/spells/:code', requireGlPermission('gl.content.manage'), validate({ params: spellCodeParamsSchema }), asyncHandler(async (req, res) => {
   const code = String(req.params.code || '').trim().toUpperCase();
   if (!code) return res.status(400).json({ error: 'Code invalide' });
   try {
@@ -305,10 +306,10 @@ router.put('/admin/spells/:code', requireGlPermission('gl.content.manage'), vali
   } catch (err) {
     return handleSpellCrudError(res, err);
   }
-});
+}));
 
 /** DELETE /api/gl/admin/spells/:code */
-router.delete('/admin/spells/:code', requireGlPermission('gl.content.manage'), validate({ params: spellCodeParamsSchema }), async (req, res) => {
+router.delete('/admin/spells/:code', requireGlPermission('gl.content.manage'), validate({ params: spellCodeParamsSchema }), asyncHandler(async (req, res) => {
   const code = String(req.params.code || '').trim().toUpperCase();
   if (!code) return res.status(400).json({ error: 'Code invalide' });
   const existing = await queryOne(
@@ -327,7 +328,7 @@ router.delete('/admin/spells/:code', requireGlPermission('gl.content.manage'), v
   }
   await execute('DELETE FROM gl_spells WHERE spell_code = ?', [code]);
   return res.json({ ok: true, deleted: code });
-});
+}));
 
 module.exports = router;
 module.exports.spellCodesQuerySchema = spellCodesQuerySchema; // exporté pour test no-DB du contrat O7
