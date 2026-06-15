@@ -199,6 +199,19 @@ Troisième lot en parallèle (5 agents, périmètres disjoints), build + Vitest 
 - **O10** (`wip`) — `routes/gl/games.js` : sous-domaine `markers` (present-question/present-arrival/apply-effects)
   extrait en sous-routeur `routes/gl/games/markers.js` (chemins/middlewares inchangés).
 
+### Lot 10 — sprint O8 multi-agents (2026-06-15)
+
+Dixième lot en parallèle (4 agents, périmètres disjoints ; 2 no-op justifiés). Vitest vert
+(1 652 tests UI), lint sans erreur, require-smoke OK ; inventaire des routes des 2 routeurs migrés
+**strictement identique avant/après**. Tests backend DB exécutés en CI. Avancées par recommandation :
+
+- **O8** (`wip`) — `routes/gl/content.js` : 3 handlers enveloppés dans `lib/asyncHandler`, 1 catch
+  générique supprimé (import `routeLog` retiré). Inventaire des 3 routes inchangé.
+- **O8** (`wip`) — `routes/gl/tutorials.js` : 6 handlers enveloppés dans `lib/asyncHandler` (handlers
+  async nus auparavant — rejets DB désormais routés vers le gestionnaire central). Inventaire des 6 routes inchangé.
+- **O8** (`done`) — `routes/tasks/logs.js` et `routes/tasks/proposals.js` : **déjà conformes** (créés par
+  les splits O10, enveloppés `asyncHandler` ; seuls des catches best-effort/rollback subsistent, à préserver). No-op.
+
 ### Lot 9 — sprint O7 + O8 multi-agents (2026-06-15)
 
 Neuvième lot en parallèle (4 agents, périmètres disjoints ; 1 no-op justifié). Vitest vert
