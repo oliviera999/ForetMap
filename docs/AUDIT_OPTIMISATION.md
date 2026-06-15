@@ -199,6 +199,23 @@ Troisième lot en parallèle (5 agents, périmètres disjoints), build + Vitest 
 - **O10** (`wip`) — `routes/gl/games.js` : sous-domaine `markers` (present-question/present-arrival/apply-effects)
   extrait en sous-routeur `routes/gl/games/markers.js` (chemins/middlewares inchangés).
 
+### Lot 13 — bascule structurelle O10 + O6 + O5, multi-agents (2026-06-15)
+
+Treizième lot en parallèle (3 agents, un par chantier structurel, périmètres disjoints).
+Build Vite vert, Vitest vert (1 656 tests UI, +4), lint sans erreur (warnings pré-existants),
+require-smoke backend OK. Anti-régression renforcée : union des routes O10 vérifiée, absence de
+double déclaration d'état O5 vérifiée par grep. Tests backend DB exécutés en CI.
+
+- **O10** (`wip`) — `routes/gl/games.js` : sous-domaine **vitality** (`POST /games/:id/vitality/player`,
+  `POST /games/:id/vitality/team`) extrait en sous-routeur `routes/gl/games/vitality.js` (monté via
+  `router.use(require('./games/vitality'))`, helpers depuis `lib/glVitality`/`lib/gl/gamesRuntime`).
+  Imports morts retirés de games.js. **Union des routes inchangée (26)**, chemins/middlewares identiques.
+- **O6** (`wip`) — `src/components/foretmap-views.jsx` : `ObservationCard` (carte d'observation du carnet
+  élève, présentationnel pur) extrait en composant dédié + test UI ciblé (4 cas). DOM/classes/textes inchangés.
+- **O5** (`wip`) — `src/App.jsx` : hook `useSessionWindowSync` extrait (2 `useEffect` d'écoute `window`
+  `foretmap_teacher_expired`/`foretmap_session_changed` → resync session). Aucun état déplacé (effets
+  seuls consommant des setters), zéro double déclaration. App.jsx −26/+7.
+
 ### Lot 12 — sprint O8 gros fichiers, multi-agents (2026-06-15)
 
 Douzième lot en parallèle (3 agents, gros routeurs ; 1 no-op justifié). Vitest vert (1 652 tests UI),

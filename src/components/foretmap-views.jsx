@@ -32,6 +32,7 @@ import {
 import { armNativeFilePickerGuard, disarmNativeFilePickerGuard } from '../utils/overlayHistory';
 import { MarkdownContent } from './MarkdownContent.jsx';
 import { MarkdownTextarea } from './MarkdownTextarea.jsx';
+import { ObservationCard } from './ObservationCard.jsx';
 import { TimedToast } from '../shared/components/TimedToast.jsx';
 import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
 import { useSession } from '../contexts/SessionContext.jsx';
@@ -577,16 +578,7 @@ function ObservationNotebook({ student, onForceLogout = null }) {
           : entries.length === 0
           ? <div className="empty"><div className="empty-icon">📓</div><p>Ton carnet est vide. Ajoute ta première observation !</p></div>
           : entries.map(e => (
-            <div key={e.id} className="obs-card fade-in">
-              <div className="obs-header">
-                <span className="obs-date">{new Date(e.created_at).toLocaleDateString('fr-FR', {day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}</span>
-                <button className="btn btn-ghost btn-sm" style={{padding:'2px 6px', minHeight:'auto', fontSize:'.7rem'}}
-                  onClick={() => { if (confirm('Supprimer cette observation ?')) deleteObs(e.id); }}>🗑️</button>
-              </div>
-              <MarkdownContent className="obs-content">{e.content}</MarkdownContent>
-              {e.zone_name && <div className="obs-zone">📍 {e.zone_name}</div>}
-              {e.image_url && <img src={e.image_url} alt="observation" style={{width:'100%',borderRadius:8,marginTop:8,maxHeight:200,objectFit:'cover'}}/>}
-            </div>
+            <ObservationCard key={e.id} entry={e} onDelete={deleteObs} />
           ))
       }
     </div>
