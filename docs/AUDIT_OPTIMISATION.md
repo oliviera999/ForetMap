@@ -199,6 +199,18 @@ Troisième lot en parallèle (5 agents, périmètres disjoints), build + Vitest 
 - **O10** (`wip`) — `routes/gl/games.js` : sous-domaine `markers` (present-question/present-arrival/apply-effects)
   extrait en sous-routeur `routes/gl/games/markers.js` (chemins/middlewares inchangés).
 
+### Lot 19 — structurel O10 + O6 + O5, multi-agents (2026-06-15)
+
+Dix-neuvième lot (3 agents, base = `main` à jour). Build Vite vert, Vitest vert (1 696 tests UI, +11),
+lint sans erreur, require-smoke backend OK, union complète `gl/games*` (36) inchangée.
+
+- **O10** (`wip`) — `routes/gl/games.js` : sous-domaine **status** (`POST /games/:id/start|pause|end`)
+  extrait en sous-routeur `routes/gl/games/status.js` ; le helper `updateGameStatus` (exclusif) déplacé avec.
+- **O6** (`wip`) — `src/components/foretmap-views.jsx` : `ObservationNotebookStatus` (états transitoires
+  chargement/erreur/vide du carnet d'observations élève) extrait + test (5 cas).
+- **O5** (`wip`) — `src/App.jsx` : hook `useDefaultActiveMapFromSettings` extrait (choix de la carte par
+  défaut selon contexte visite/prof/élève quand aucune carte mémorisée). Aucun état déplacé + test (6 cas).
+
 ### Lot 18 — O6 ×3 (agrégateurs), multi-agents (2026-06-15)
 
 Dix-huitième lot en parallèle (3 agents O6, fichiers disjoints de la PR #146 en vol). Build Vite vert,
