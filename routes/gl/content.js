@@ -6,7 +6,7 @@ const {
   buildPublicIntroPayload,
   getIntroConfigFromDb,
 } = require('../../lib/glIntro');
-const { logRouteError } = require('../../lib/routeLog');
+const asyncHandler = require('../../lib/asyncHandler');
 
 const router = express.Router();
 
@@ -17,24 +17,19 @@ function normalizeSlug(value) {
 const { normalizeOptionalString } = require('../../lib/shared/httpHelpers');
 
 /** GET /api/gl/content/intro — config publique (textes + URLs média résolues). */
-router.get('/intro', async (req, res) => {
-  try {
-    const modules = await getGlModulesSettings();
-    if (modules.introEnabled !== true) {
-      return res.json({ enabled: false });
-    }
-    const config = await getIntroConfigFromDb();
-    if (config.enabled === false) {
-      return res.json({ enabled: false });
-    }
-    return res.json(buildPublicIntroPayload(config));
-  } catch (err) {
-    logRouteError(err, req, 'GET /api/gl/content/intro');
-    return res.status(500).json({ error: 'Erreur serveur' });
+router.get('/intro', asyncHandler(async (req, res) => {
+  const modules = await getGlModulesSettings();
+  if (modules.introEnabled !== true) {
+    return res.json({ enabled: false });
   }
-});
+  const config = await getIntroConfigFromDb();
+  if (config.enabled === false) {
+    return res.json({ enabled: false });
+  }
+  return res.json(buildPublicIntroPayload(config));
+}));
 
-router.get('/:slug', requireGlPermission('gl.read'), async (req, res) => {
+router.get('/:slug', requireGlPermission('gl.read'), asyncHandler(async (req, res) => {
   const slug = normalizeSlug(req.params.slug);
   if (!slug) return res.status(400).json({ error: 'Slug invalide' });
   const row = await queryOne(
@@ -51,9 +46,9 @@ router.get('/:slug', requireGlPermission('gl.read'), async (req, res) => {
     bodyMarkdown: row.body_markdown || '',
     updatedAt: row.updated_at || null,
   });
-});
+}));
 
-router.put('/:slug', requireGlPermission('gl.content.manage'), async (req, res) => {
+router.put('/:slug', requireGlPermission('gl.content.manage'), asyncHandler(async (req, res) => {
   const slug = normalizeSlug(req.params.slug);
   if (!slug) return res.status(400).json({ error: 'Slug invalide' });
   const title = normalizeOptionalString(req.body?.title);
@@ -79,6 +74,6 @@ router.put('/:slug', requireGlPermission('gl.content.manage'), async (req, res) 
     bodyMarkdown: row.body_markdown || '',
     updatedAt: row.updated_at || null,
   });
-});
+}));
 
 module.exports = router;
