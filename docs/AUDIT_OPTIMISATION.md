@@ -199,6 +199,25 @@ Troisième lot en parallèle (5 agents, périmètres disjoints), build + Vitest 
 - **O10** (`wip`) — `routes/gl/games.js` : sous-domaine `markers` (present-question/present-arrival/apply-effects)
   extrait en sous-routeur `routes/gl/games/markers.js` (chemins/middlewares inchangés).
 
+### Lot 6 — sprint O7 + O8 multi-agents (2026-06-15)
+
+Sixième lot en parallèle (4 agents, périmètres de fichiers strictement disjoints),
+sprint mécanique O7/O8 à faible risque et inventaire-vérifiable. Vitest vert (1 652 tests
+UI), lint sans erreur (1 warning `normalizeBiomeSlug` pré-existant sur `main`), require-smoke
+OK, tests DB-free verts (8 pass) ; inventaire des routes des 4 routeurs **strictement identique
+avant/après** (anti-régression O8). Tests backend DB exécutés en CI. Avancées par recommandation :
+
+- **O7** (`wip`) — `routes/gl/glossary.js` : 4 routes admin à param `:code` validées via schéma
+  `zod` (équivalence exacte avec le gate `String(...).trim()` → 400 `Code invalide`) + test DB-free.
+  Body/import/query laissés aux helpers permissifs existants (pas de durcissement).
+- **O7** (`wip`) — `routes/gl/spells.js` : 6 routes (`spellCodes`/`categorySlug` en query, `code`
+  en params) validées via `zod`/`lib/validate` (messages 400 verbatim conservés) + test DB-free.
+- **O8** (`wip`) — `routes/visit/media.js` : 5 handlers enveloppés dans `lib/asyncHandler`, 5 catches
+  externes génériques supprimés ; 2 catches internes à statut 400 (`saveBase64ToDisk` + rollback)
+  préservés. Inventaire des 5 routes inchangé.
+- **O8** (`wip`) — `routes/gl/context-comments.js` : 5 handlers enveloppés dans `lib/asyncHandler`,
+  5 try/catch génériques supprimés (imports `logRouteError`/`respondInternalError` retirés). Inventaire des 5 routes inchangé.
+
 ### Lot 5 — sprint O7 + O8 multi-agents (2026-06-15)
 
 Cinquième lot en parallèle (4 agents, périmètres de fichiers strictement disjoints),
