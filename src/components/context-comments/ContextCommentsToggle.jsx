@@ -29,9 +29,15 @@ function ContextCommentsToggle({ title, total, isOpen, hasUnreadComments, onTogg
     >
       <span className="context-comments-toggle-label">
         {hasUnreadComments && (
-          <span className="context-comments-unread-dot" aria-hidden="true" title={toggleUnreadTitle} />
+          <span
+            className="context-comments-unread-dot"
+            aria-hidden="true"
+            title={toggleUnreadTitle}
+          />
         )}
-        <span>{isOpen ? '▾' : '▸'} {title}</span>
+        <span>
+          {isOpen ? '▾' : '▸'} {title}
+        </span>
       </span>
       <span className="context-comments-count">{total}</span>
     </button>

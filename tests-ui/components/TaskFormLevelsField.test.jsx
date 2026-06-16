@@ -16,7 +16,7 @@ function renderField(props = {}) {
       onDifficultyChange={onDifficultyChange}
       onImportanceChange={onImportanceChange}
       {...props}
-    />
+    />,
   );
   return { onDangerChange, onDifficultyChange, onImportanceChange };
 }
