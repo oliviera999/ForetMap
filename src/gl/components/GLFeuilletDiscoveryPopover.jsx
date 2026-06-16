@@ -18,6 +18,7 @@ export function GLFeuilletDiscoveryPopover({
   glossaryLinkItems = [],
   loreGlossaryLinkItems = [],
   themeStyle = null,
+  showMarkRead = true,
 }) {
   useEffect(() => {
     if (!open) return undefined;
@@ -120,15 +121,17 @@ export function GLFeuilletDiscoveryPopover({
           <GLButton type="button" variant="ghost" onClick={() => onClose?.()}>
             Fermer
           </GLButton>
-          <GLButton
-            type="button"
-            onClick={() => {
-              onMarkRead?.();
-              onClose?.();
-            }}
-          >
-            Marquer comme lu
-          </GLButton>
+          {showMarkRead ? (
+            <GLButton
+              type="button"
+              onClick={() => {
+                onMarkRead?.();
+                onClose?.();
+              }}
+            >
+              Marquer comme lu
+            </GLButton>
+          ) : null}
         </footer>
       </div>
     </div>,
