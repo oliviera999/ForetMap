@@ -81,6 +81,7 @@ const GLPlayerJournalView = lazy(() =>
 import { GLNotificationsCenter } from './components/GLNotificationsCenter.jsx';
 import { GLButton } from './components/ui/GLButton.jsx';
 import { GLAppBanners } from './components/GLAppBanners.jsx';
+import { GLGuestDemoBoard } from './components/GLGuestDemoBoard.jsx';
 import { GLHelpPanel } from './components/GLHelpPanel.jsx';
 import { GLProfileModal } from './components/GLProfileModal.jsx';
 import { GLStatsView } from './components/GLStatsView.jsx';
@@ -887,9 +888,7 @@ export function AppGL() {
                 />
               )}
               {tab === 'discovery' && isGuest ? (
-                <section className="gl-panel gl-guest-discovery-placeholder">
-                  <p className="gl-hint">Chargement du plateau de découverte…</p>
-                </section>
+                <GLGuestDemoBoard onExitGuest={quitGuestMode} brandThemeStyle={glBrandStyle} />
               ) : null}
               {tab === 'spells' && (
                 <GLSpellsView
