@@ -199,6 +199,17 @@ Troisième lot en parallèle (5 agents, périmètres disjoints), build + Vitest 
 - **O10** (`wip`) — `routes/gl/games.js` : sous-domaine `markers` (present-question/present-arrival/apply-effects)
   extrait en sous-routeur `routes/gl/games/markers.js` (chemins/middlewares inchangés).
 
+### Lot 26 — O6 ×3 composants, multi-agents (2026-06-16)
+
+Vingt-sixième lot (3 agents O6). Build Vite vert, Vitest vert (1 775 tests UI, +13), lint sans erreur.
+
+- **O6** (`wip`) — `src/components/biodiv/PlantPrefillPanel.jsx` : `PrefillSourceBadge` (badge source
+  OpenAI/autre du préremplissage plante) extrait + test (5 cas).
+- **O6** (`wip`) — `src/components/PlantSpeciesDiscoveryAcknowledge.jsx` : `PlantDiscoveryObservedCounts`
+  (compteurs « Mes observations / Tout le site », `aria-live`) extrait + test (2 cas).
+- **O6** (`wip`) — `src/components/context-comments.jsx` : `ContextCommentsToggle` (bouton repli/dépli de
+  section + badge total + état non-lu, dans `src/components/context-comments/`) extrait + test (6 cas).
+
 ### Lot 25 — O6 ×3 gros composants, multi-agents (2026-06-16)
 
 Vingt-cinquième lot (3 agents O6 ; 1ʳᵉ tentative perdue sur session-limit, ré-exécutée). Build Vite vert,
