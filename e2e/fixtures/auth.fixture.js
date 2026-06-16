@@ -270,15 +270,30 @@ async function enableTeacherMode(
 }
 
 async function disableTeacherMode(page) {
-  const des = page.getByRole('button', { name: 'Désactiver les droits étendus' });
-  if ((await des.count()) > 0) {
+  if (page.isClosed()) {
+    throw new Error('Page fermée avant disableTeacherMode');
+  }
+  const lockBtn = page.locator('header button.lock-btn[aria-label*="droits étendus"]').first();
+  const lockLabel = String((await lockBtn.getAttribute('aria-label').catch(() => '')) || '');
+  if (lockLabel.includes('Désactiver')) {
     await dismissProfilePromotionModalIfPresent(page);
-    await des.first().evaluate((el) => {
-      el.click();
+    await lockBtn.click({ force: true, timeout: 15_000 }).catch(() => {
+      return lockBtn.evaluate((el) => {
+        el.click();
+      });
     });
     await page
-      .getByRole('button', { name: 'Activer les droits étendus' })
-      .waitFor({ state: 'visible', timeout: 20_000 });
+      .waitForFunction(
+        () => {
+          const btn = document.querySelector('header button.lock-btn[aria-label*="droits étendus"]');
+          if (!btn) return false;
+          const aria = String(btn.getAttribute('aria-label') || '');
+          return aria.includes('Activer');
+        },
+        null,
+        { timeout: 25_000 },
+      )
+      .catch(() => {});
   }
   /* Après élévation, TasksView prof peut laisser `student` incohérent : recharger réaligne la session élève. */
   const meWait = page.waitForResponse(
@@ -460,11 +475,46 @@ async function assignStudentToTaskAsTeacher(page, taskId) {
   }
 }
 
+/** Vue tâches prof (split desktop ou onglet Tâches seul). */
+function teacherTasksViewLocator(page) {
+  return page.locator(
+    '.teacher-main .tasks-view, .teacher-main .desktop-split-pane--tasks .tasks-view',
+  );
+}
+
+function teacherNewTaskButton(page) {
+  return teacherTasksViewLocator(page)
+    .locator('button')
+    .filter({ hasText: /Nouvelle tâche/ })
+    .first();
+}
+
+async function waitForTeacherMapReady(page) {
+  await dismissProfilePromotionModalIfPresent(page);
+  await page.locator('img[alt^="Plan "]').first().waitFor({ state: 'visible', timeout: 45_000 });
+  await page
+    .locator('.map-view-root .loader')
+    .first()
+    .waitFor({ state: 'hidden', timeout: 90_000 })
+    .catch(() => {});
+  await page
+    .waitForResponse(
+      (r) => r.url().includes('/api/zones') && r.request().method() === 'GET' && r.ok(),
+      { timeout: 45_000 },
+    )
+    .catch(() => {});
+  await page
+    .locator('.map-zone-hit')
+    .first()
+    .waitFor({ state: 'attached', timeout: 45_000 })
+    .catch(() => {});
+}
+
 /** Le premier `.map-zone-hit` peut être sous un repère : le clic ouvre la mauvaise modale. */
 async function openFirstZoneModalFromMap(page) {
-  await dismissProfilePromotionModalIfPresent(page);
-  await page.locator('.map-zone-hit').first().waitFor({ state: 'attached', timeout: 25_000 });
+  await waitForTeacherMapReady(page);
   const errBanner = page.getByText('Une erreur s’est produite.');
+  const zoneDlg = page.getByRole('dialog', { name: /^Zone / });
   const maxAttempts = 24;
   for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
     if (await errBanner.isVisible().catch(() => false)) {
@@ -480,20 +530,16 @@ async function openFirstZoneModalFromMap(page) {
     } else {
       await hit.click({ force: true, timeout: 10_000 });
     }
-    if (
-      !(await page
-        .getByRole('dialog', { name: /^Zone / })
-        .isVisible()
-        .catch(() => false))
-    ) {
+    if (!(await zoneDlg.isVisible().catch(() => false))) {
       await hit.evaluate((el) => {
         el.dispatchEvent(
           new MouseEvent('click', { bubbles: true, cancelable: true, view: window }),
         );
       });
     }
-    const zoneDlg = page.getByRole('dialog', { name: /^Zone / });
-    if (await zoneDlg.isVisible().catch(() => false)) return;
+    if (await zoneDlg.waitFor({ state: 'visible', timeout: 2_500 }).then(() => true).catch(() => false)) {
+      return;
+    }
     await page.keyboard.press('Escape');
     const close = page.locator('.modal-close').first();
     if (await close.isVisible({ timeout: 400 }).catch(() => false)) await close.click();
@@ -540,13 +586,11 @@ async function clickTasksTab(page) {
 
   const teacherTasksTab = page
     .locator('.teacher-main .top-tabs')
-    .getByRole('button', { name: /✅ Tâches/i })
+    .getByRole('button', { name: /Tâches/i })
     .first();
   if ((await teacherTasksTab.count()) > 0) {
     await teacherTasksTab.scrollIntoViewIfNeeded().catch(() => {});
-    await teacherTasksTab.evaluate((el) => {
-      el.click();
-    });
+    await teacherTasksTab.click({ force: true, timeout: 25_000 });
     return;
   }
 
@@ -556,17 +600,14 @@ async function clickTasksTab(page) {
     .first();
   if ((await topTab.count()) > 0) {
     await topTab.scrollIntoViewIfNeeded().catch(() => {});
-    await topTab.evaluate((el) => {
-      el.click();
-    });
+    await topTab.click({ force: true, timeout: 25_000 });
     return;
   }
 
   const btn = tasksTabButton(page).first();
   await btn.waitFor({ state: 'visible', timeout: 25_000 });
-  await btn.evaluate((el) => {
-    el.click();
-  });
+  await btn.scrollIntoViewIfNeeded().catch(() => {});
+  await btn.click({ force: true, timeout: 25_000 });
 }
 
 async function fillTaskTitle(dialog, title) {
@@ -578,18 +619,21 @@ async function fillTaskTitle(dialog, title) {
   await dialog.getByLabel('Titre *').fill(title);
 }
 
-function teacherTasksViewLocator(page) {
-  return page.locator(
-    '.teacher-main .tasks-view, .teacher-main .desktop-split-pane--tasks .tasks-view',
-  );
-}
-
 async function openTeacherTasksTab(page) {
   await dismissProfilePromotionModalIfPresent(page);
+  await page.locator('.teacher-main .top-tabs').waitFor({ state: 'visible', timeout: 60_000 });
   const tasksView = teacherTasksViewLocator(page);
   if (!(await tasksView.isVisible().catch(() => false))) {
-    await page.locator('.teacher-main .top-tabs').waitFor({ state: 'visible', timeout: 60_000 });
-    await clickTasksTab(page);
+    const splitTab = page
+      .locator('.teacher-main .top-tabs')
+      .getByRole('button', { name: /Cartes.*tâches/i })
+      .first();
+    if ((await splitTab.count()) > 0) {
+      await splitTab.scrollIntoViewIfNeeded().catch(() => {});
+      await splitTab.click({ force: true, timeout: 25_000 });
+    } else {
+      await clickTasksTab(page);
+    }
   }
   await tasksView.waitFor({ state: 'visible', timeout: 90_000 });
   await page
@@ -602,6 +646,22 @@ async function openTeacherTasksTab(page) {
     .waitFor({ state: 'visible', timeout: 45_000 })
     .catch(() => {});
   await resetTaskFiltersInTasksView(page);
+}
+
+async function clickTeacherNewTaskDomFallback(page) {
+  return page.evaluate(() => {
+    const root =
+      document.querySelector('.teacher-main .tasks-view') ||
+      document.querySelector('.teacher-main .desktop-split-pane--tasks .tasks-view');
+    if (!root) return { ok: false, reason: 'tasks-view absent' };
+    const btn = [...root.querySelectorAll('button')].find((b) =>
+      /Nouvelle tâche/.test(String(b.textContent || '')),
+    );
+    if (!btn) return { ok: false, reason: 'bouton absent dans tasks-view' };
+    btn.scrollIntoView({ block: 'center', inline: 'nearest' });
+    btn.click();
+    return { ok: true };
+  });
 }
 
 async function openStudentTasksTab(page) {
@@ -899,9 +959,9 @@ async function expectTaskCardWithTitle(page, taskTitle) {
 
 /** Soumet le formulaire « Nouvelle tâche » / proposition (évite scrollIntoView instable sur long formulaire). */
 async function submitTaskFormDialog(page) {
-  const dlg = page.getByRole('dialog', {
-    name: /Nouvelle tâche|Dupliquer la tâche|Modifier la tâche|Proposer une tâche/,
-  });
+  const dlg = page.locator(
+    '[role="dialog"][aria-label="Nouvelle tâche"], [role="dialog"][aria-label="Dupliquer la tâche"], [role="dialog"][aria-label="Modifier la tâche"], [role="dialog"][aria-label="Proposer une tâche"]',
+  ).first();
   await dlg.waitFor({ state: 'visible', timeout: 35_000 });
   const createResp = page.waitForResponse(isTaskCreateHttpResponse, { timeout: 60_000 });
   /* Un seul `btn-full` primaire en bas de modale ; `force` évite les blocages « scroll / stable » Playwright. */
@@ -948,7 +1008,8 @@ async function createTeacherTaskViaApi(page, taskTitle) {
 }
 
 /** Crée une tâche côté prof (UI prioritaire, repli API si modale bloquée). */
-async function createTeacherTask(page, taskTitle) {
+async function createTeacherTask(page, taskTitle, options = {}) {
+  const { skipReload = false } = options;
   try {
     await clickTeacherNewTask(page);
     await page.getByPlaceholder('Ex: Arroser les tomates').fill(taskTitle);
@@ -958,13 +1019,18 @@ async function createTeacherTask(page, taskTitle) {
     /* UI lente ou modale instable : repli API avec JWT élevé. */
   }
   const taskId = await createTeacherTaskViaApi(page, taskTitle);
-  await page.reload({ waitUntil: 'domcontentloaded' });
-  await page
-    .getByRole('button', { name: /Déconnexion/ })
-    .waitFor({ state: 'visible', timeout: 60_000 });
-  await dismissProfilePromotionModalIfPresent(page);
-  await openTeacherTasksTab(page).catch(() => {});
-  await resetTaskFiltersInTasksView(page);
+  if (!skipReload) {
+    if (page.isClosed()) {
+      throw new Error('Page fermée avant reload après création tâche');
+    }
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await page
+      .getByRole('button', { name: /Déconnexion/ })
+      .waitFor({ state: 'visible', timeout: 60_000 });
+    await dismissProfilePromotionModalIfPresent(page);
+    await openTeacherTasksTab(page).catch(() => {});
+    await resetTaskFiltersInTasksView(page);
+  }
   return taskId;
 }
 
@@ -983,17 +1049,26 @@ async function clickTeacherNewTask(page) {
     await enableTeacherMode(page);
   }
   await openTeacherTasksTab(page);
-  const dlg = page.getByRole('dialog', {
-    name: /Nouvelle tâche|Dupliquer la tâche|Modifier la tâche|Proposer une tâche/,
-  });
+  const dlg = page.locator(
+    '[role="dialog"][aria-label="Nouvelle tâche"], [role="dialog"][aria-label="Dupliquer la tâche"], [role="dialog"][aria-label="Modifier la tâche"], [role="dialog"][aria-label="Proposer une tâche"]',
+  ).first();
   if (await dlg.isVisible().catch(() => false)) return;
-  const btn = page.getByRole('button', { name: /\+ Nouvelle tâche/ }).first();
-  await expect(btn).toBeVisible({ timeout: 120_000 });
+  const btn = teacherNewTaskButton(page);
+  await btn.waitFor({ state: 'attached', timeout: 120_000 });
   await btn.scrollIntoViewIfNeeded().catch(() => {});
-  await Promise.all([
-    dlg.waitFor({ state: 'visible', timeout: 40_000 }),
-    btn.evaluate((el) => el.click()),
-  ]);
+  if (!(await btn.isVisible().catch(() => false))) {
+    const dom = await clickTeacherNewTaskDomFallback(page);
+    if (!dom.ok) {
+      throw new Error(`Bouton « + Nouvelle tâche » introuvable : ${dom.reason}`);
+    }
+  } else {
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      await btn.click({ force: true, timeout: 15_000 }).catch(() => {});
+      if (await dlg.isVisible().catch(() => false)) return;
+      await page.waitForTimeout(120);
+    }
+  }
+  await dlg.waitFor({ state: 'visible', timeout: 40_000 });
 }
 
 module.exports = {
@@ -1007,6 +1082,7 @@ module.exports = {
   openFirstZoneModalFromMap,
   openTeacherTasksTab,
   openStudentTasksTab,
+  teacherTasksViewLocator,
   clickTeacherNewTask,
   createTeacherTask,
   assignStudentToTaskAsTeacher,

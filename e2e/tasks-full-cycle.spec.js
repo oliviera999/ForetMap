@@ -11,6 +11,8 @@ const {
   openStudentTasksTab,
 } = require('./fixtures/auth.fixture');
 
+test.describe.configure({ mode: 'serial' });
+
 test('cycle complet tâche: création prof -> prise élève -> soumission -> validation prof', async ({
   page,
 }) => {

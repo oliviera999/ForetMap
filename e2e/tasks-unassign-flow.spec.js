@@ -9,13 +9,15 @@ const {
   openStudentTasksTab,
 } = require('./fixtures/auth.fixture');
 
+test.describe.configure({ mode: 'serial' });
+
 test('élève peut se retirer d’une tâche prise en charge', async ({ page }) => {
   test.setTimeout(600_000);
   const taskTitle = `E2E Unassign ${Date.now()}`;
 
   await loginAsNewStudent(page);
   await enableTeacherMode(page);
-  const taskId = await createTeacherTask(page, taskTitle);
+  const taskId = await createTeacherTask(page, taskTitle, { skipReload: true });
   await assignStudentToTaskAsTeacher(page, taskId);
 
   await disableTeacherMode(page);

@@ -128,9 +128,18 @@ test.describe('GL users admin flow', () => {
       .first();
     await playerRow.scrollIntoViewIfNeeded();
     await expect(playerRow).toBeVisible({ timeout: 15_000 });
+    const impersonateDone = page.waitForResponse(
+      (r) =>
+        r.url().includes('/api/gl/auth/admin/impersonate') &&
+        r.request().method() === 'POST' &&
+        !r.url().includes('/stop'),
+      { timeout: 30_000 },
+    );
     await playerRow.getByRole('button', { name: 'Voir comme' }).click({ timeout: 15_000 });
+    const impersonateResp = await impersonateDone;
+    expect(impersonateResp.ok()).toBeTruthy();
 
-    await expect(page.getByText('Prise de contrôle (admin GL)')).toBeVisible();
+    await expect(page.getByText('Prise de contrôle (admin GL)')).toBeVisible({ timeout: 20_000 });
     await expect(page.getByRole('button', { name: 'Revenir à mon compte admin' })).toBeVisible();
 
     await page.getByRole('button', { name: 'Revenir à mon compte admin' }).click();

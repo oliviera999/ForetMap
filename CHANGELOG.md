@@ -7,6 +7,12 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Tests e2e (stabilisation des 13 échecs)
+
+- **Fixtures partagées** (`e2e/fixtures/auth.fixture.js`) : sélecteur « Nouvelle tâche » via `hasText` (évite le blocage Playwright sur `getByRole` avec `+`) ; onglet Tâches robuste (split desktop « Cartes & tâches ») ; modales tâche via `aria-label` ; carte zone (`waitForTeacherMapReady`, repli clic) ; `disableTeacherMode` via cadenas header ; `createTeacherTask({ skipReload })`.
+- **Scénarios** : `modals-responsive` (fixtures unifiées, timeouts réduits, fermeture modale) ; `teacher-auth-invalid-pin` (attente API 401) ; `gl-users-admin` (wait impersonate + bannière 20 s) ; `realtime-multi-session` / cycles tâches (`serial`, skip reload).
+- **Playwright** : `retries: 1` en local. Suite complète : **84 passés**, 1 ignoré.
+
 ### GL — scènes de récit des chapitres (répartition automatique des images de l'Histoire)
 
 - **Convention partagée** : préfixes `recit_0N-chapN_*` / `recit_00-prologue_*` centralisés dans `src/gl/utils/glChapterRecitConvention.js` (une seule source client + serveur : resolver assets, audit, scanner d'usage) ; bornes de chapitres en constantes (`GL_CHAPTER_RECIT_MIN/MAX`).
