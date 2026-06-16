@@ -4,6 +4,7 @@ import { useOverlayHistoryBack } from '../hooks/useOverlayHistoryBack';
 import { AttachmentImagesPicker } from './attachment-images-picker';
 import { DialogShell } from './DialogShell';
 import { MarkdownTextarea } from './MarkdownTextarea.jsx';
+import { PlantDiscoveryObservedCounts } from './PlantDiscoveryObservedCounts.jsx';
 
 const MIN_CONTEXT_COMMENT_CHARS = 2;
 
@@ -191,14 +192,7 @@ export function PlantSpeciesDiscoveryAcknowledgeButton({
           >
             Espèce observée
           </button>
-          <span className="plant-discovery-observed-counts" aria-live="polite">
-            <span className="plant-discovery-observed-counts__mine">Mes observations : {my}</span>
-            <span className="plant-discovery-observed-counts__sep" aria-hidden="true">
-              {' '}
-              ·{' '}
-            </span>
-            <span className="plant-discovery-observed-counts__site">Tout le site : {site}</span>
-          </span>
+          <PlantDiscoveryObservedCounts my={my} site={site} />
         </div>
         {modalOpen && (phase === 'enrich' ? renderEnrichStep() : (
           <DialogShell
