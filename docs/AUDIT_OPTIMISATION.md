@@ -199,6 +199,19 @@ Troisième lot en parallèle (5 agents, périmètres disjoints), build + Vitest 
 - **O10** (`wip`) — `routes/gl/games.js` : sous-domaine `markers` (present-question/present-arrival/apply-effects)
   extrait en sous-routeur `routes/gl/games/markers.js` (chemins/middlewares inchangés).
 
+### Lot 24 — O6 ×3 gros composants, multi-agents (2026-06-15)
+
+Vingt-quatrième lot (3 agents O6 sur les plus gros composants restants). Build Vite vert, Vitest vert
+(1 745 tests UI, +13), lint sans erreur. Consigne « commit-avant-rapport + build obligatoire + vérif
+imports fantômes » appliquée → 0 contamination cette fois.
+
+- **O6** (`wip`) — `src/components/map/ZoneInfoModal.jsx` (577 l.) : `ZoneInfoModalTabBar` (barre d'onglets
+  du modal zone) extrait + test (4 cas).
+- **O6** (`wip`) — `src/components/VisitMascotPackManager.jsx` (740 l.) : `MascotStudioModeTabs` (onglets
+  Packs/Dialogues du studio mascotte, `role=tablist`/`aria-selected`) extrait dans `src/components/mascot/` + test (3 cas).
+- **O6** (`wip`) — `src/components/tasks/TaskTileCard.jsx` (586 l.) : `TaskTileMeta` (rangée de chips méta —
+  zones/marqueurs/projet/échéance/proposant/progression collective/récurrence + helper `startDateChip`) extrait + test (6 cas).
+
 ### Lot 23 — O6 gros modaux + O5, multi-agents (2026-06-15)
 
 Vingt-troisième lot (3 agents). **Réorientation vers les gros composants à logique réelle** (testabilité
