@@ -1,5 +1,6 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 const { queryOne, execute } = require('../../database');
 const { signAuthToken } = require('../../middleware/requireTeacher');
 const { requireGlAuth } = require('../../middleware/requireGlAuth');
@@ -169,6 +170,29 @@ async function isForetmapLinkEnabled() {
     "SELECT value_json FROM gl_settings WHERE `key` = 'platform.allow_player_link_foretmap' LIMIT 1",
   );
   return parseBoolJsonSetting(row?.value_json, false);
+}
+
+async function isGlGuestModeEnabled() {
+  if (String(process.env.GL_GUEST_MODE_DISABLED || '').trim() === '1') {
+    return false;
+  }
+  const row = await queryOne(
+    "SELECT value_json FROM gl_settings WHERE `key` = 'platform.guest_mode_enabled' LIMIT 1",
+  );
+  if (row?.value_json == null) return true;
+  return parseBoolJsonSetting(row.value_json, true);
+}
+
+async function issueGlGuestSession() {
+  const claims = {
+    userType: 'gl_guest',
+    userId: `guest-${crypto.randomUUID()}`,
+    roleSlug: 'gl_observateur',
+    displayName: 'Visiteur',
+    permissions: ['gl.read'],
+  };
+  const token = await signGlToken(claims);
+  return { authToken: token, auth: exposeGlAuth(claims) };
 }
 
 async function resolveGlPlayerActiveMembership(
@@ -354,6 +378,7 @@ router.get(
       normalizeOptionalString(process.env.GOOGLE_OAUTH_CLIENT_ID);
     const modules = await getGlModulesSettings();
     const allowPlayerLinkForetmap = await isForetmapLinkEnabled();
+    const guestModeEnabled = await isGlGuestModeEnabled();
     const googleReady = !!clientId;
     return res.json({
       title: String(title || 'Gnomes & Licornes'),
@@ -362,8 +387,27 @@ router.get(
       allowGoogleStaff: googleReady,
       allowGooglePlayer: googleReady,
       allowPlayerLinkForetmap,
+      guestModeEnabled,
       modules,
     });
+  }),
+);
+
+/** POST /api/gl/auth/guest — token invité éphémère (lecture gl.read uniquement). */
+router.post(
+  '/guest',
+  asyncHandler(async (req, res) => {
+    try {
+      const enabled = await isGlGuestModeEnabled();
+      if (!enabled) {
+        return res.status(403).json({ error: 'Mode découverte désactivé' });
+      }
+      const session = await issueGlGuestSession();
+      return res.json({ ok: true, authToken: session.authToken, auth: session.auth });
+    } catch (err) {
+      logRouteError(req, err, 'gl.auth.guest');
+      return res.status(500).json({ error: 'Impossible d’ouvrir le mode découverte' });
+    }
   }),
 );
 
