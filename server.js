@@ -4,15 +4,21 @@ if (process.argv.includes('--foretmap-e2e-no-rate-limit')) {
 }
 
 const express = require('express');
-const http    = require('http');
-const fs      = require('fs');
-const crypto  = require('crypto');
-const cors    = require('cors');
-const helmet  = require('helmet');
+const http = require('http');
+const fs = require('fs');
+const crypto = require('crypto');
+const cors = require('cors');
+const helmet = require('helmet');
 const compression = require('compression');
-const path    = require('path');
+const path = require('path');
 const jwt = require('jsonwebtoken');
-const { initDatabase, ping: dbPing, isApplicationDatabaseReady, endPool, queryAll } = require('./database');
+const {
+  initDatabase,
+  ping: dbPing,
+  isApplicationDatabaseReady,
+  endPool,
+  queryAll,
+} = require('./database');
 const { validateEnv } = require('./lib/env');
 const logger = require('./lib/logger');
 const { runRecurringTaskSpawnJob } = require('./lib/recurringTasks');
@@ -29,26 +35,26 @@ const { parseBearerToken, JWT_SECRET } = require('./middleware/requireTeacher');
 const { resolveProductFromRequest } = require('./lib/productResolver');
 const { resolveOAuthPublicOrigin, resolveOAuthRedirectUri } = require('./lib/oauthPublicUrl');
 
-const rateLimit     = require('express-rate-limit');
-const authRouter    = require('./routes/auth');
-const zonesRouter   = require('./routes/zones');
-const mapsRouter    = require('./routes/maps');
-const mapRouter     = require('./routes/map');
-const plantsRouter  = require('./routes/plants');
-const tasksRouter   = require('./routes/tasks');
+const rateLimit = require('express-rate-limit');
+const authRouter = require('./routes/auth');
+const zonesRouter = require('./routes/zones');
+const mapsRouter = require('./routes/maps');
+const mapRouter = require('./routes/map');
+const plantsRouter = require('./routes/plants');
+const tasksRouter = require('./routes/tasks');
 const taskProjectsRouter = require('./routes/task-projects');
 const tutorialsRouter = require('./routes/tutorials');
-const visitRouter   = require('./routes/visit');
-const statsRouter   = require('./routes/stats');
-const studentsRouter      = require('./routes/students');
-const observationsRouter  = require('./routes/observations');
-const auditRouter         = require('./routes/audit');
-const rbacRouter          = require('./routes/rbac');
-const settingsRouter      = require('./routes/settings');
-const mediaLibraryRouter  = require('./routes/media-library');
-const forumRouter         = require('./routes/forum');
+const visitRouter = require('./routes/visit');
+const statsRouter = require('./routes/stats');
+const studentsRouter = require('./routes/students');
+const observationsRouter = require('./routes/observations');
+const auditRouter = require('./routes/audit');
+const rbacRouter = require('./routes/rbac');
+const settingsRouter = require('./routes/settings');
+const mediaLibraryRouter = require('./routes/media-library');
+const forumRouter = require('./routes/forum');
 const contextCommentsRouter = require('./routes/context-comments');
-const groupsRouter        = require('./routes/groups');
+const groupsRouter = require('./routes/groups');
 const glAuthRouter = require('./routes/gl/auth');
 const glContentRouter = require('./routes/gl/content');
 const glGamesRouter = require('./routes/gl/games');
@@ -113,7 +119,10 @@ function buildCorsOptions() {
   const multi = parseCorsOriginsFromEnv();
   if (multi.length > 0) return { origin: multi };
   if (process.env.FRONTEND_ORIGIN) return { origin: process.env.FRONTEND_ORIGIN };
-  return {};
+  // En prod sans origine configuree, on desactive CORS cross-origin (origin: false)
+  // au lieu de tout refleter (Access-Control-Allow-Origin: *). Seules les requetes
+  // same-origin passent ; les deploiements multi-origines configurent FRONTEND_ORIGINS.
+  return { origin: false };
 }
 
 const corsOpts = buildCorsOptions();
@@ -122,11 +131,13 @@ app.use(cors(corsOpts));
 // CSP laisse au middleware dedie ci-dessous (img-src) : le CSP par defaut de helmet
 // casserait la SPA (polices Google, styles inline). COEP/CORP desactives : /uploads et
 // photos externes plantes doivent rester chargeables.
-app.use(helmet({
-  contentSecurityPolicy: false,
-  crossOriginEmbedderPolicy: false,
-  crossOriginResourcePolicy: false,
-}));
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false,
+    crossOriginResourcePolicy: false,
+  }),
+);
 
 /** Comparaison de secret a temps constant (evite l'oracle temporel sur DEPLOY_SECRET). */
 function timingSafeSecretEqual(provided, expected) {
@@ -143,12 +154,16 @@ app.use(
       if (p.includes('/import/template') || /\/export$/.test(p)) return false;
       return compression.filter(req, res);
     },
-  })
+  }),
 );
 app.use(assignRequestId);
 
 function isTestEnv() {
-  return String(process.env.NODE_ENV || '').trim().toLowerCase() === 'test';
+  return (
+    String(process.env.NODE_ENV || '')
+      .trim()
+      .toLowerCase() === 'test'
+  );
 }
 
 function isLoadTestBypass(req) {
@@ -159,7 +174,11 @@ function isLoadTestBypass(req) {
 }
 
 function shouldSkipRateLimit(req) {
-  return isTestEnv() || isLoadTestBypass(req) || String(process.env.E2E_DISABLE_RATE_LIMIT || '').trim() === '1';
+  return (
+    isTestEnv() ||
+    isLoadTestBypass(req) ||
+    String(process.env.E2E_DISABLE_RATE_LIMIT || '').trim() === '1'
+  );
 }
 
 function parseRateLimitLogSample() {
@@ -200,7 +219,7 @@ function createRateLimitHandler(messageBody) {
           clientIpTruncated: truncateClientIp(req.ip),
           msg: 'rate_limit_429_sample',
         },
-        '429 rate limit (echantillon)'
+        '429 rate limit (echantillon)',
       );
     }
     const status = options && typeof options.statusCode === 'number' ? options.statusCode : 429;
@@ -223,7 +242,10 @@ function parseGeneralApiRateLimitMax() {
 }
 
 const generalApiRateLimitMax = parseGeneralApiRateLimitMax();
-logger.debug({ apiRateLimitPerMin: generalApiRateLimitMax }, 'Limiteur général /api/* (fenêtre 1 min / IP)');
+logger.debug(
+  { apiRateLimitPerMin: generalApiRateLimitMax },
+  'Limiteur général /api/* (fenêtre 1 min / IP)',
+);
 
 // Limiteur général : défaut 1200 req/min/IP (FORETMAP_API_RATE_LIMIT_PER_MIN) — express-rate-limit v8 : `limit`
 const generalLimiter = rateLimit({
@@ -244,7 +266,9 @@ const authLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Trop de tentatives de connexion, réessayez dans 15 minutes.' },
-  handler: createRateLimitHandler({ error: 'Trop de tentatives de connexion, réessayez dans 15 minutes.' }),
+  handler: createRateLimitHandler({
+    error: 'Trop de tentatives de connexion, réessayez dans 15 minutes.',
+  }),
 });
 
 app.use('/api/', generalLimiter);
@@ -355,8 +379,19 @@ app.use(
       if (/\.(jpe?g|png|gif|webp|avif|svg|ico|bmp)$/i.test(lower)) {
         res.setHeader('Cache-Control', PUBLIC_IMAGE_CACHE_CONTROL);
       }
+      // Neutralisation XSS SVG stocke : un SVG uploade peut contenir un <script>
+      // qui s'execute lors d'une navigation directe vers son URL (CSP helmet desactivee).
+      // On force une CSP stricte + telechargement uniquement pour les .svg ; les images
+      // raster restent servies inline, et les SVG via <img src> s'affichent toujours.
+      if (lower.endsWith('.svg')) {
+        res.setHeader(
+          'Content-Security-Policy',
+          "default-src 'none'; style-src 'unsafe-inline'; sandbox",
+        );
+        res.setHeader('Content-Disposition', 'attachment');
+      }
     },
-  })
+  }),
 );
 app.use('/tutos', express.static(path.join(__dirname, 'tutos')));
 
@@ -467,9 +502,7 @@ app.get('/api/admin/diagnostics', async (req, res) => {
   }
   let glDiagnostics = { ok: false, error: null };
   try {
-    const games = await queryAll(
-      `SELECT status, COUNT(*) AS c FROM gl_games GROUP BY status`
-    );
+    const games = await queryAll(`SELECT status, COUNT(*) AS c FROM gl_games GROUP BY status`);
     const playersRow = await queryAll('SELECT COUNT(*) AS c FROM gl_players WHERE is_active = 1');
     const eventsRecent = await queryAll(
       `SELECT event_type, COUNT(*) AS c
@@ -477,14 +510,17 @@ app.get('/api/admin/diagnostics', async (req, res) => {
         WHERE created_at > (NOW() - INTERVAL 24 HOUR)
         GROUP BY event_type
         ORDER BY c DESC
-        LIMIT 10`
+        LIMIT 10`,
     );
     const packsRow = await queryAll('SELECT COUNT(*) AS c FROM gl_mascot_packs');
     glDiagnostics = {
       ok: true,
       gamesByStatus: Object.fromEntries(games.map((row) => [row.status, Number(row.c)])),
       activePlayers: Number(playersRow?.[0]?.c || 0),
-      recentEventTypes: eventsRecent.map((row) => ({ eventType: row.event_type, count: Number(row.c) })),
+      recentEventTypes: eventsRecent.map((row) => ({
+        eventType: row.event_type,
+        count: Number(row.c),
+      })),
       mascotPackCount: Number(packsRow?.[0]?.c || 0),
     };
   } catch (err) {
@@ -527,8 +563,9 @@ app.get('/api/admin/oauth-debug', (req, res) => {
     return res.status(403).json({ error: 'Secret invalide ou DEPLOY_SECRET non configuré' });
   }
 
-  const frontendOrigin = resolveOAuthPublicOrigin(req, process.env.FRONTEND_ORIGIN)
-    || resolveOAuthPublicOrigin(req, process.env.PASSWORD_RESET_BASE_URL);
+  const frontendOrigin =
+    resolveOAuthPublicOrigin(req, process.env.FRONTEND_ORIGIN) ||
+    resolveOAuthPublicOrigin(req, process.env.PASSWORD_RESET_BASE_URL);
   const redirectUri = resolveOAuthRedirectUri(req, {
     envRedirectUri: process.env.GOOGLE_OAUTH_REDIRECT_URI,
     callbackPath: '/api/auth/google/callback',
@@ -558,14 +595,15 @@ app.get('/api/admin/oauth-debug', (req, res) => {
       resolvedFrontendOrigin: frontendOrigin,
       resolvedGoogleRedirectUri: redirectUri,
       glClientIdSet: !!(
-        normalizeOptionalString(process.env.GL_GOOGLE_OAUTH_CLIENT_ID)
-        || normalizeOptionalString(process.env.GOOGLE_OAUTH_CLIENT_ID)
+        normalizeOptionalString(process.env.GL_GOOGLE_OAUTH_CLIENT_ID) ||
+        normalizeOptionalString(process.env.GOOGLE_OAUTH_CLIENT_ID)
       ),
       glRedirectUriEnv: normalizeOptionalString(process.env.GL_GOOGLE_OAUTH_REDIRECT_URI),
       glFrontendOriginEnv: normalizeOptionalString(process.env.GL_FRONTEND_ORIGIN),
       resolvedGlFrontendOrigin: glFrontendOrigin,
       resolvedGlRedirectUri: glRedirectUri,
-      googleConsoleHint: 'Enregistrer chaque resolved*RedirectUri exactement dans Google Cloud Console → Identifiants → URI de redirection autorisés.',
+      googleConsoleHint:
+        'Enregistrer chaque resolved*RedirectUri exactement dans Google Cloud Console → Identifiants → URI de redirection autorisés.',
     },
   });
 });
@@ -599,7 +637,9 @@ app.use('/api', (req, res, next) => {
     const claims = jwt.verify(token, JWT_SECRET);
     const product = String(claims.product || 'foret').toLowerCase();
     if (product === 'gl') {
-      return res.status(403).json({ error: 'Session Gnomes & Licornes non autorisée sur cette API' });
+      return res
+        .status(403)
+        .json({ error: 'Session Gnomes & Licornes non autorisée sur cette API' });
     }
   } catch (_) {
     // Les routes protégées gèrent ensuite le cas token invalide.
@@ -632,7 +672,13 @@ const rootDocs = new Map([
   ['/README.md', path.resolve(__dirname, 'README.md')],
   ['/CHANGELOG.md', path.resolve(__dirname, 'CHANGELOG.md')],
 ]);
-const allowedDocFiles = new Set(['API.md', 'LOCAL_DEV.md', 'EVOLUTION.md', 'VERSIONING.md', 'MASCOT_PACK.md']);
+const allowedDocFiles = new Set([
+  'API.md',
+  'LOCAL_DEV.md',
+  'EVOLUTION.md',
+  'VERSIONING.md',
+  'MASCOT_PACK.md',
+]);
 
 for (const [routePath, filePath] of rootDocs.entries()) {
   app.get(routePath, (req, res) => {
@@ -672,17 +718,17 @@ registerSpaFallbackRoutes(
     deployHelpPath: path.resolve(__dirname, 'public', 'deploy-help.html'),
     resolveProductFromRequest,
     logger,
-  })
+  }),
 );
 
 // Gestion d'erreurs centralisée (pour les routes qui font next(err))
 app.use((err, req, res, next) => {
   logger.error(
     { err, path: req.path, method: req.method, requestId: req.requestId },
-    'Erreur serveur'
+    'Erreur serveur',
   );
   const status = Number(err?.status) || 500;
-  const message = status >= 500 ? 'Erreur serveur' : (err?.message || 'Requête invalide');
+  const message = status >= 500 ? 'Erreur serveur' : err?.message || 'Requête invalide';
   const originalUrl = String(req.originalUrl || req.url || '');
   if (originalUrl.startsWith('/api')) {
     res.type('application/json');
@@ -755,7 +801,7 @@ function gracefulShutdown(reason) {
             if (err) logger.warn({ err }, 'server.close');
             resolve();
           });
-        })
+        }),
     )
     .then(() => {
       if (httpServer != null) return endPool();
@@ -797,7 +843,12 @@ let booted = false;
 const RECURRING_TASK_JOB_MS = 24 * 60 * 60 * 1000;
 
 function scheduleRecurringTaskSpawn() {
-  if (String(process.env.NODE_ENV || '').trim().toLowerCase() === 'test') return;
+  if (
+    String(process.env.NODE_ENV || '')
+      .trim()
+      .toLowerCase() === 'test'
+  )
+    return;
   if (String(process.env.FORETMAP_DISABLE_RECURRING_TASK_JOB || '').trim() === '1') {
     logger.info('Job tâches récurrentes désactivé (FORETMAP_DISABLE_RECURRING_TASK_JOB=1)');
     return;
@@ -842,7 +893,7 @@ function boot() {
     fs.appendFileSync(diagPath, 'validateEnv: OK\n');
   } catch (e) {
     fs.appendFileSync(diagPath, `validateEnv ERREUR: ${e.message}\n`);
-    logger.error({ err: e }, 'Variables d\'environnement invalides');
+    logger.error({ err: e }, "Variables d'environnement invalides");
     process.exit(1);
   }
 
@@ -878,7 +929,12 @@ if (require.main === module) {
 
 /** Tests uniquement : simuler un redémarrage applicatif. */
 function setShutdownInProgressForTests(value) {
-  if (String(process.env.NODE_ENV || '').trim().toLowerCase() !== 'test') return;
+  if (
+    String(process.env.NODE_ENV || '')
+      .trim()
+      .toLowerCase() !== 'test'
+  )
+    return;
   shutdownInProgress = !!value;
 }
 
