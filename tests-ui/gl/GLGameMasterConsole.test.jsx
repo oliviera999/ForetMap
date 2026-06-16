@@ -1,5 +1,5 @@
 import React from 'react';
-import { describe, test, expect, vi, beforeEach } from 'vitest';
+import { describe, test, expect, vi, beforeEach, beforeAll } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { GLGameMasterConsole } from '../../src/gl/components/GLGameMasterConsole.jsx';
 
@@ -48,6 +48,16 @@ const loadedGameState = {
 };
 
 describe('GLGameMasterConsole', () => {
+  beforeAll(async () => {
+    // Précharge les sous-sections lazy pour éviter les timeouts en suite complète.
+    await Promise.all([
+      import('../../src/gl/components/mj/GLGameMasterConsoleActiveGameBanner.jsx'),
+      import('../../src/gl/components/mj/GLGameMasterConsoleParties.jsx'),
+      import('../../src/gl/components/mj/GLGameMasterConsoleTeams.jsx'),
+      import('../../src/gl/components/mj/GLGameMasterConsoleLive.jsx'),
+    ]);
+  });
+
   beforeEach(() => {
     apiGlMock.mockReset();
     baseProps.onSelectTeam.mockReset();
@@ -110,11 +120,7 @@ describe('GLGameMasterConsole', () => {
 
     fireEvent.click(screen.getByRole('tab', { name: 'Équipes & effectifs' }));
 
-    await waitFor(() => {
-      expect(screen.getByLabelText('Mascotte')).toBeTruthy();
-    });
-
-    const mascotSelect = screen.getByLabelText('Mascotte');
+    const mascotSelect = await screen.findByLabelText('Mascotte', {}, { timeout: 5000 });
     expect(mascotSelect.tagName).toBe('SELECT');
     expect(screen.getByRole('option', { name: 'Gnome Mousse' })).toBeTruthy();
     expect(screen.getByRole('option', { name: 'Gnome Flamme' })).toBeTruthy();
