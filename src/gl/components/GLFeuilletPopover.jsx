@@ -61,7 +61,9 @@ export function GLFeuilletPopover({
       ) : null}
 
       <footer className="gl-feui-discovery__foot">
-        <GLButton type="button" onClick={() => onClose?.()}>Fermer</GLButton>
+        <GLButton type="button" onClick={() => onClose?.()}>
+          Fermer
+        </GLButton>
       </footer>
     </DialogShell>
   );

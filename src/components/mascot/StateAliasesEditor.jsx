@@ -23,12 +23,14 @@ export default function StateAliasesEditor({ stateFrames, aliases, onChange }) {
       const sf = stateFrames[k];
       if (!sf || typeof sf !== 'object') return false;
       const f = /** @type {{ files?: unknown[], srcs?: unknown[] }} */ (sf);
-      return (Array.isArray(f.files) && f.files.length > 0)
-        || (Array.isArray(f.srcs) && f.srcs.length > 0);
+      return (
+        (Array.isArray(f.files) && f.files.length > 0) ||
+        (Array.isArray(f.srcs) && f.srcs.length > 0)
+      );
     });
     const target = withFrames.includes(VISIT_MASCOT_STATE.IDLE)
       ? VISIT_MASCOT_STATE.IDLE
-      : (withFrames[0] || VISIT_MASCOT_STATE.IDLE);
+      : withFrames[0] || VISIT_MASCOT_STATE.IDLE;
     onChange({ ...aliases, [aliasKey]: target });
   };
 
@@ -39,7 +41,16 @@ export default function StateAliasesEditor({ stateFrames, aliases, onChange }) {
       ) : (
         <ul style={{ listStyle: 'none', padding: 0 }}>
           {rows.map(([alias, target]) => (
-            <li key={alias} style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 8, alignItems: 'center' }}>
+            <li
+              key={alias}
+              style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: 8,
+                marginBottom: 8,
+                alignItems: 'center',
+              }}
+            >
               <select
                 className="form-select"
                 value={alias}
@@ -51,7 +62,9 @@ export default function StateAliasesEditor({ stateFrames, aliases, onChange }) {
                 }}
               >
                 {STATE_OPTIONS.map((s) => (
-                  <option key={s} value={s}>{STATE_LABELS[s] || s} ({s})</option>
+                  <option key={s} value={s}>
+                    {STATE_LABELS[s] || s} ({s})
+                  </option>
                 ))}
               </select>
               <span>→</span>
@@ -63,7 +76,9 @@ export default function StateAliasesEditor({ stateFrames, aliases, onChange }) {
                 }}
               >
                 {STATE_OPTIONS.map((s) => (
-                  <option key={s} value={s}>{STATE_LABELS[s] || s} ({s})</option>
+                  <option key={s} value={s}>
+                    {STATE_LABELS[s] || s} ({s})
+                  </option>
                 ))}
               </select>
               <button
@@ -81,7 +96,12 @@ export default function StateAliasesEditor({ stateFrames, aliases, onChange }) {
           ))}
         </ul>
       )}
-      <button type="button" className="btn btn-ghost btn-sm" onClick={addRow} disabled={rows.length >= STATE_OPTIONS.length}>
+      <button
+        type="button"
+        className="btn btn-ghost btn-sm"
+        onClick={addRow}
+        disabled={rows.length >= STATE_OPTIONS.length}
+      >
         + Alias
       </button>
     </div>

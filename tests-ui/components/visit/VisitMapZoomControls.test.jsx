@@ -13,7 +13,7 @@ function setup() {
   render(
     <div onClick={onStageClick}>
       <VisitMapZoomControls {...props} />
-    </div>
+    </div>,
   );
   return { props, onStageClick };
 }

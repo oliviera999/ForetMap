@@ -43,7 +43,7 @@ describe('GLQcmModal', () => {
         gameId={42}
         onClose={vi.fn()}
         onAnswered={vi.fn()}
-      />
+      />,
     );
 
     await waitFor(() => {

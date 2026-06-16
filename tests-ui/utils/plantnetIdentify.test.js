@@ -64,11 +64,17 @@ describe('derivePlantnetNameUpdate', () => {
     expect(out.name).toBe('Malus domestica');
   });
   test('prédiction vide → conserve les valeurs courantes du formulaire', () => {
-    expect(derivePlantnetNameUpdate({}, form)).toEqual({ scientific_name: 'Ancien sci', name: 'Ancien nom' });
+    expect(derivePlantnetNameUpdate({}, form)).toEqual({
+      scientific_name: 'Ancien sci',
+      name: 'Ancien nom',
+    });
   });
   test('troncature à 200 caractères', () => {
     const long = 'x'.repeat(250);
-    const out = derivePlantnetNameUpdate({ scientificName: long, scientificNameWithoutAuthor: long }, form);
+    const out = derivePlantnetNameUpdate(
+      { scientificName: long, scientificNameWithoutAuthor: long },
+      form,
+    );
     expect(out.scientific_name).toHaveLength(200);
     expect(out.name).toHaveLength(200);
   });

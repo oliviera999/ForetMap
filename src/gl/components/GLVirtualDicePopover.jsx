@@ -107,16 +107,12 @@ export function GLVirtualDicePopover({
         })}
       </div>
 
-      {isRolling ? (
-        <p className="gl-dice-popover__status">Les dés roulent…</p>
-      ) : null}
+      {isRolling ? <p className="gl-dice-popover__status">Les dés roulent…</p> : null}
 
       {showResult ? (
         <div className="gl-dice-popover__result" data-testid="gl-dice-result">
           <p className="gl-dice-popover__total">
-            Total :
-            {' '}
-            <strong>{lastRoll.total}</strong>
+            Total : <strong>{lastRoll.total}</strong>
           </p>
           <p className="gl-dice-popover__breakdown">{formatDiceBreakdown(lastRoll.values)}</p>
         </div>
@@ -135,9 +131,7 @@ export function GLVirtualDicePopover({
             −
           </button>
           <span className="gl-dice-popover__count-label">
-            {diceCount}
-            {' '}
-            dé
+            {diceCount} dé
             {diceCount > 1 ? 's' : ''}
           </span>
           <button
@@ -159,7 +153,12 @@ export function GLVirtualDicePopover({
             <GLButton type="button" onClick={onStartRoll} data-testid="gl-dice-reroll">
               Relancer
             </GLButton>
-            <GLButton type="button" variant="secondary" onClick={onReset} data-testid="gl-dice-edit-count">
+            <GLButton
+              type="button"
+              variant="secondary"
+              onClick={onReset}
+              data-testid="gl-dice-edit-count"
+            >
               Modifier le nombre
             </GLButton>
           </div>

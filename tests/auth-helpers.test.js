@@ -75,7 +75,10 @@ describe('authRouteHelpers (logique pure de routes/auth.js, sans DB)', () => {
   });
 
   it('googleOauthConfigured : exige clientId, clientSecret et redirectUri', () => {
-    assert.equal(googleOauthConfigured({ clientId: 'a', clientSecret: 'b', redirectUri: 'c' }), true);
+    assert.equal(
+      googleOauthConfigured({ clientId: 'a', clientSecret: 'b', redirectUri: 'c' }),
+      true,
+    );
     assert.equal(googleOauthConfigured({ clientId: 'a', clientSecret: 'b' }), false);
     assert.equal(googleOauthConfigured({ clientId: 'a', redirectUri: 'c' }), false);
     assert.equal(googleOauthConfigured({}), false);
@@ -85,7 +88,10 @@ describe('authRouteHelpers (logique pure de routes/auth.js, sans DB)', () => {
 
   it('splitDisplayName : prénom/nom, fallback Google Utilisateur', () => {
     assert.deepEqual(splitDisplayName('Jean Dupont'), { firstName: 'Jean', lastName: 'Dupont' });
-    assert.deepEqual(splitDisplayName('Jean Pierre Dupont'), { firstName: 'Jean Pierre', lastName: 'Dupont' });
+    assert.deepEqual(splitDisplayName('Jean Pierre Dupont'), {
+      firstName: 'Jean Pierre',
+      lastName: 'Dupont',
+    });
     assert.deepEqual(splitDisplayName('Solo'), { firstName: 'Solo', lastName: 'Utilisateur' });
     assert.deepEqual(splitDisplayName('   '), { firstName: 'Google', lastName: 'Utilisateur' });
     assert.deepEqual(splitDisplayName(null), { firstName: 'Google', lastName: 'Utilisateur' });
@@ -96,7 +102,10 @@ describe('authRouteHelpers (logique pure de routes/auth.js, sans DB)', () => {
     const emails = new Set(['admin@externe.com']);
     assert.equal(isGoogleEmailAllowed('admin@externe.com', null, domains, emails), true);
     assert.equal(isGoogleEmailAllowed('eleve@lyceelyautey.org', null, domains, emails), true);
-    assert.equal(isGoogleEmailAllowed('eleve@lyceelyautey.org', 'lyceelyautey.org', domains, emails), true);
+    assert.equal(
+      isGoogleEmailAllowed('eleve@lyceelyautey.org', 'lyceelyautey.org', domains, emails),
+      true,
+    );
     assert.equal(isGoogleEmailAllowed('intrus@gmail.com', null, domains, emails), false);
     assert.equal(isGoogleEmailAllowed('', null, domains, emails), false);
     assert.equal(isGoogleEmailAllowed(null, null, domains, emails), false);
@@ -116,22 +125,25 @@ describe('authRouteHelpers (logique pure de routes/auth.js, sans DB)', () => {
   it('buildOAuthFrontendErrorRedirect : code et mode encodés', () => {
     assert.equal(
       buildOAuthFrontendErrorRedirect('https://app.fr///', 'oauth_invalid_state', 'teacher'),
-      'https://app.fr/#oauth_error=oauth_invalid_state&mode=teacher'
+      'https://app.fr/#oauth_error=oauth_invalid_state&mode=teacher',
     );
     assert.equal(
       buildOAuthFrontendErrorRedirect('https://app.fr', 'oauth_server_error', 'inconnu'),
-      'https://app.fr/#oauth_error=oauth_server_error&mode=student'
+      'https://app.fr/#oauth_error=oauth_server_error&mode=student',
     );
   });
 
   it('validateProfileInput : pseudo / email / longueur description', () => {
     assert.equal(validateProfileInput({ pseudo: null, email: null, description: null }), null);
-    assert.equal(validateProfileInput({ pseudo: 'ok_pseudo', email: 'a@b.fr', description: 'court' }), null);
+    assert.equal(
+      validateProfileInput({ pseudo: 'ok_pseudo', email: 'a@b.fr', description: 'court' }),
+      null,
+    );
     assert.match(validateProfileInput({ pseudo: 'x' }), /Pseudo invalide/);
     assert.match(validateProfileInput({ email: 'pas-un-email' }), /Email invalide/);
     assert.match(
       validateProfileInput({ description: 'a'.repeat(MAX_DESCRIPTION_LEN + 1) }),
-      /Description trop longue/
+      /Description trop longue/,
     );
     assert.equal(validateProfileInput({ description: 'a'.repeat(MAX_DESCRIPTION_LEN) }), null);
   });
@@ -183,7 +195,11 @@ describe('authRouteHelpers (logique pure de routes/auth.js, sans DB)', () => {
       impersonatedBy: { userType: 'teacher', userId: 'u1', canonicalUserId: 'c1' },
     });
     assert.equal(imp.impersonating, true);
-    assert.deepEqual(imp.impersonatedBy, { userType: 'teacher', userId: 'u1', canonicalUserId: 'c1' });
+    assert.deepEqual(imp.impersonatedBy, {
+      userType: 'teacher',
+      userId: 'u1',
+      canonicalUserId: 'c1',
+    });
 
     // impersonating sans impersonatedBy : pas de bloc impersonation
     const noBy = exposeAuth({ userType: 'student', userId: 's1', impersonating: true });

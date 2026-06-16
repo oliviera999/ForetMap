@@ -54,7 +54,7 @@ export function GLChapterMapStudio({
 
   const imageStyle = useMemo(
     () => glImageFrameToStyle(normalizeGlImageFrame(mapImageFrame, 'chapter-map')),
-    [mapImageFrame]
+    [mapImageFrame],
   );
 
   const {
@@ -79,10 +79,13 @@ export function GLChapterMapStudio({
     return () => stopAll();
   }, [zoneMusicEnabled, stopAll]);
 
-  const handlePreviewZoneMusic = useCallback((url, volume) => {
-    if (!zoneMusicEnabled || !url) return;
-    previewUrl(url, volume);
-  }, [zoneMusicEnabled, previewUrl]);
+  const handlePreviewZoneMusic = useCallback(
+    (url, volume) => {
+      if (!zoneMusicEnabled || !url) return;
+      previewUrl(url, volume);
+    },
+    [zoneMusicEnabled, previewUrl],
+  );
 
   const zoneEditor = useGLKingdomZoneEditor({
     zones,
@@ -107,15 +110,21 @@ export function GLChapterMapStudio({
     return items;
   }, [fetchMediaLibrary]);
 
-  const uploadMediaLibraryWithInfo = useCallback(async (mediaData) => {
-    await uploadMediaLibrary(mediaData);
-    onInfo?.('Média ajouté à la bibliothèque');
-  }, [uploadMediaLibrary, onInfo]);
+  const uploadMediaLibraryWithInfo = useCallback(
+    async (mediaData) => {
+      await uploadMediaLibrary(mediaData);
+      onInfo?.('Média ajouté à la bibliothèque');
+    },
+    [uploadMediaLibrary, onInfo],
+  );
 
-  const removeMediaLibraryWithInfo = useCallback(async (relativePath) => {
-    await removeMediaLibrary(relativePath);
-    onInfo?.('Média supprimé de la bibliothèque');
-  }, [removeMediaLibrary, onInfo]);
+  const removeMediaLibraryWithInfo = useCallback(
+    async (relativePath) => {
+      await removeMediaLibrary(relativePath);
+      onInfo?.('Média supprimé de la bibliothèque');
+    },
+    [removeMediaLibrary, onInfo],
+  );
 
   useEffect(() => {
     setEditableMarkers(Array.isArray(markers) ? markers : []);
@@ -132,7 +141,7 @@ export function GLChapterMapStudio({
 
   const selectedMarker = useMemo(
     () => editableMarkers.find((marker) => Number(marker.id) === Number(selectedMarkerId)) || null,
-    [editableMarkers, selectedMarkerId]
+    [editableMarkers, selectedMarkerId],
   );
 
   useEffect(() => {
@@ -140,11 +149,13 @@ export function GLChapterMapStudio({
     const onMove = (event) => {
       const pct = mapGestures.toImagePct(event.clientX, event.clientY);
       if (!pct) return;
-      setEditableMarkers((prev) => prev.map((marker) => (
-        Number(marker.id) === Number(dragState.markerId)
-          ? { ...marker, x_pct: pct.x, y_pct: pct.y }
-          : marker
-      )));
+      setEditableMarkers((prev) =>
+        prev.map((marker) =>
+          Number(marker.id) === Number(dragState.markerId)
+            ? { ...marker, x_pct: pct.x, y_pct: pct.y }
+            : marker,
+        ),
+      );
       setMarkerForm((prev) => ({ ...prev, xPct: pct.x, yPct: pct.y }));
     };
     const onUp = async () => {
@@ -169,7 +180,16 @@ export function GLChapterMapStudio({
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerup', onUp);
     };
-  }, [dragState, mapGestures, editableMarkers, onError, onInfo, onReload, chapterSlug, zoneEditActive]);
+  }, [
+    dragState,
+    mapGestures,
+    editableMarkers,
+    onError,
+    onInfo,
+    onReload,
+    chapterSlug,
+    zoneEditActive,
+  ]);
 
   useEffect(() => {
     if (zoneEditActive) {
@@ -258,22 +278,25 @@ export function GLChapterMapStudio({
     }
   }
 
-  const handleMapClick = useCallback((pct, event) => {
-    if (zoneEditActive) {
-      handleZoneMapClick(pct, event);
-      return;
-    }
-    if (!isAddMode) return;
-    if (event.target.closest('.gl-board-marker')) return;
-    setSelectedMarkerId(null);
-    setMarkerForm((prev) => ({
-      ...prev,
-      xPct: Number(pct.x.toFixed(2)),
-      yPct: Number(pct.y.toFixed(2)),
-    }));
-  }, [zoneEditActive, handleZoneMapClick, isAddMode]);
+  const handleMapClick = useCallback(
+    (pct, event) => {
+      if (zoneEditActive) {
+        handleZoneMapClick(pct, event);
+        return;
+      }
+      if (!isAddMode) return;
+      if (event.target.closest('.gl-board-marker')) return;
+      setSelectedMarkerId(null);
+      setMarkerForm((prev) => ({
+        ...prev,
+        xPct: Number(pct.x.toFixed(2)),
+        yPct: Number(pct.y.toFixed(2)),
+      }));
+    },
+    [zoneEditActive, handleZoneMapClick, isAddMode],
+  );
 
-  const mapCursor = zoneEditActive ? zoneMapCursor : (isAddMode ? 'crosshair' : 'default');
+  const mapCursor = zoneEditActive ? zoneMapCursor : isAddMode ? 'crosshair' : 'default';
 
   const toggleMarkerAddMode = () => {
     if (zoneMode === 'draw') {
@@ -283,14 +306,17 @@ export function GLChapterMapStudio({
     setIsAddMode((prev) => !prev);
   };
 
-  const handleDeleteZone = useCallback(async (zoneId) => {
-    try {
-      await deleteZone(zoneId);
-      onInfo?.('Zone supprimée');
-    } catch (err) {
-      onError?.(err.message || 'Suppression de la zone impossible');
-    }
-  }, [deleteZone, onInfo, onError]);
+  const handleDeleteZone = useCallback(
+    async (zoneId) => {
+      try {
+        await deleteZone(zoneId);
+        onInfo?.('Zone supprimée');
+      } catch (err) {
+        onError?.(err.message || 'Suppression de la zone impossible');
+      }
+    },
+    [deleteZone, onInfo, onError],
+  );
 
   return (
     <section className="gl-chapter-map-studio">
@@ -347,8 +373,11 @@ export function GLChapterMapStudio({
       </GLPctMapCanvas>
 
       <p className="gl-hint">
-        Dessinez une zone par clics successifs (minimum 3 points), ou placez des repères sur la même carte.
-        {zoneMusicEnabled ? ' Associez une piste audio par zone pour l’ambiance sur la carte de jeu (onglet Cartes).' : ''}
+        Dessinez une zone par clics successifs (minimum 3 points), ou placez des repères sur la même
+        carte.
+        {zoneMusicEnabled
+          ? ' Associez une piste audio par zone pour l’ambiance sur la carte de jeu (onglet Cartes).'
+          : ''}
       </p>
 
       <h4 className="gl-chapter-map-studio__subtitle">Repères</h4>
@@ -366,26 +395,28 @@ export function GLChapterMapStudio({
               onClick={() => selectMarker(marker)}
             >
               <GLChapterMarkerListVisual marker={marker} />
-              <strong>{marker.label}</strong>
-              {' '}
-              —
-              x:
+              <strong>{marker.label}</strong> — x:
               {Number(marker.x_pct).toFixed(1)}
               %, y:
-              {Number(marker.y_pct).toFixed(1)}
-              %
+              {Number(marker.y_pct).toFixed(1)}%
             </button>
           </li>
         ))}
         {editableMarkers.length === 0 ? (
-          <li className="gl-empty gl-hint">Aucun repère. Activez « Ajouter un repère » puis cliquez sur la carte.</li>
+          <li className="gl-empty gl-hint">
+            Aucun repère. Activez « Ajouter un repère » puis cliquez sur la carte.
+          </li>
         ) : null}
       </ul>
 
       <form className="gl-form" onSubmit={submitMarker}>
         <label>
           Label
-          <input value={markerForm.label} onChange={(event) => setField('label', event.target.value)} required />
+          <input
+            value={markerForm.label}
+            onChange={(event) => setField('label', event.target.value)}
+            required
+          />
         </label>
         <label>
           x (%)
@@ -413,7 +444,10 @@ export function GLChapterMapStudio({
         </label>
         <label>
           Description
-          <input value={markerForm.description} onChange={(event) => setField('description', event.target.value)} />
+          <input
+            value={markerForm.description}
+            onChange={(event) => setField('description', event.target.value)}
+          />
         </label>
         <label>
           Sous-biome (slug catalogue)
@@ -425,7 +459,9 @@ export function GLChapterMapStudio({
           />
           <datalist id="gl-chapter-biome-slugs">
             {(chapterBiomes || []).map((b) => (
-              <option key={b.slug} value={b.slug}>{b.nom || b.slug}</option>
+              <option key={b.slug} value={b.slug}>
+                {b.nom || b.slug}
+              </option>
             ))}
           </datalist>
         </label>
@@ -457,14 +493,23 @@ export function GLChapterMapStudio({
 
         <label>
           Ordre
-          <input type="number" value={markerForm.orderIndex} onChange={(event) => setField('orderIndex', event.target.value)} />
+          <input
+            type="number"
+            value={markerForm.orderIndex}
+            onChange={(event) => setField('orderIndex', event.target.value)}
+          />
         </label>
         <div className="gl-inline-actions">
           <GLButton type="submit" disabled={saving || zoneEditActive} loading={saving}>
             {selectedMarker ? 'Enregistrer le repère' : 'Ajouter le repère'}
           </GLButton>
           {selectedMarker ? (
-            <GLButton type="button" variant="danger" onClick={deleteMarker} disabled={zoneEditActive}>
+            <GLButton
+              type="button"
+              variant="danger"
+              onClick={deleteMarker}
+              disabled={zoneEditActive}
+            >
               Supprimer
             </GLButton>
           ) : null}

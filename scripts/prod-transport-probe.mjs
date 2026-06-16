@@ -65,7 +65,7 @@ function http1Get(urlString, timeoutMs) {
             snippet: raw.slice(0, 120).replace(/\s+/g, ' '),
           });
         });
-      }
+      },
     );
     req.setTimeout(timeoutMs, () => req.destroy(new Error(`timeout ${timeoutMs}ms`)));
     req.on('error', reject);
@@ -200,10 +200,13 @@ function probeSocketIoShort(baseUrl, token, timeoutMs) {
         timeout: Math.min(15000, timeoutMs),
       });
 
-      const t = setTimeout(() => {
-        socket.disconnect();
-        finish({ ok: false, reason: 'probe_timeout' });
-      }, Math.min(12000, timeoutMs));
+      const t = setTimeout(
+        () => {
+          socket.disconnect();
+          finish({ ok: false, reason: 'probe_timeout' });
+        },
+        Math.min(12000, timeoutMs),
+      );
 
       socket.on('connect', () => {
         clearTimeout(t);
@@ -265,7 +268,7 @@ async function main() {
   out.http2.multiplex = mux.ok ? mux.value : { error: mux.error, ms: mux.ms };
 
   const jwt = String(
-    process.env.FORETMAP_TRANSPORT_PROBE_JWT || process.env.FORETMAP_SOCKETIO_LOAD_JWT || ''
+    process.env.FORETMAP_TRANSPORT_PROBE_JWT || process.env.FORETMAP_SOCKETIO_LOAD_JWT || '',
   ).trim();
   if (jwt) {
     out.socketIoShort = await probeSocketIoShort(baseUrl, jwt, timeoutMs);

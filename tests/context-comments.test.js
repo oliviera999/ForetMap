@@ -24,10 +24,13 @@ async function registerStudent(prefix) {
   assert.ok(res.body?.authToken);
   const noviceRole = await queryOne("SELECT id FROM roles WHERE slug = 'eleve_novice' LIMIT 1");
   assert.ok(noviceRole?.id);
-  await execute('UPDATE user_roles SET is_primary = 0 WHERE user_type = ? AND user_id = ?', ['student', res.body.id]);
+  await execute('UPDATE user_roles SET is_primary = 0 WHERE user_type = ? AND user_id = ?', [
+    'student',
+    res.body.id,
+  ]);
   await execute(
     'INSERT INTO user_roles (user_type, user_id, role_id, is_primary) VALUES (?, ?, ?, 1) ON DUPLICATE KEY UPDATE is_primary = 1',
-    ['student', res.body.id, noviceRole.id]
+    ['student', res.body.id, noviceRole.id],
   );
   const login = await request(app)
     .post('/api/auth/login')
@@ -57,31 +60,38 @@ async function teacherToken() {
   const loginEmail = String(process.env.TEACHER_ADMIN_EMAIL || '').trim();
   const teacher = await queryOne(
     "SELECT id FROM users WHERE user_type = 'teacher' AND LOWER(email) = LOWER(?) LIMIT 1",
-    [loginEmail]
+    [loginEmail],
   );
   const adminRole = await queryOne("SELECT id FROM roles WHERE slug = 'admin' LIMIT 1");
   assert.ok(teacher?.id, 'Compte admin enseignant introuvable');
   assert.ok(adminRole?.id, 'Rôle admin introuvable');
   const requiredPermissions = [
-    'zones.manage', 'tasks.manage', 'map.manage_markers',
+    'zones.manage',
+    'tasks.manage',
+    'map.manage_markers',
     'context.comments.moderate',
-    'admin.settings.read', 'admin.settings.write',
+    'admin.settings.read',
+    'admin.settings.write',
   ];
   for (const key of requiredPermissions) {
-    await execute(
-      'INSERT IGNORE INTO permissions (`key`, label, description) VALUES (?, ?, ?)',
-      [key, key, 'Permission auto-seed tests']
-    );
+    await execute('INSERT IGNORE INTO permissions (`key`, label, description) VALUES (?, ?, ?)', [
+      key,
+      key,
+      'Permission auto-seed tests',
+    ]);
     await execute(
       'INSERT IGNORE INTO role_permissions (role_id, permission_key, requires_elevation) VALUES (?, ?, 1)',
-      [adminRole.id, key]
+      [adminRole.id, key],
     );
   }
   if (teacher?.id && adminRole?.id) {
-    await execute('UPDATE user_roles SET is_primary = 0 WHERE user_type = ? AND user_id = ?', ['teacher', teacher.id]);
+    await execute('UPDATE user_roles SET is_primary = 0 WHERE user_type = ? AND user_id = ?', [
+      'teacher',
+      teacher.id,
+    ]);
     await execute(
       'INSERT INTO user_roles (user_type, user_id, role_id, is_primary) VALUES (?, ?, ?, 1) ON DUPLICATE KEY UPDATE is_primary = 1',
-      ['teacher', teacher.id, adminRole.id]
+      ['teacher', teacher.id, adminRole.id],
     );
   }
   const login = await request(app)
@@ -119,7 +129,11 @@ async function createContextFixture(token) {
     .send({
       name: `Zone commentaires ${Date.now()}`,
       map_id: 'foret',
-      points: [{ xp: 18, yp: 18 }, { xp: 26, yp: 18 }, { xp: 22, yp: 26 }],
+      points: [
+        { xp: 18, yp: 18 },
+        { xp: 26, yp: 18 },
+        { xp: 22, yp: 26 },
+      ],
       stage: 'empty',
     })
     .expect(201);
@@ -219,13 +233,15 @@ test('Commentaires contextuels: pagination triée du plus récent au plus ancien
       .expect(201);
     await execute(
       'UPDATE context_comments SET created_at = DATE_ADD(created_at, INTERVAL ? SECOND) WHERE id = ?',
-      [i, created.body.id]
+      [i, created.body.id],
     );
     createdIds.push(created.body.id);
   }
 
   const firstPage = await request(app)
-    .get(`/api/context-comments?contextType=task&contextId=${encodeURIComponent(taskId)}&page=1&page_size=10`)
+    .get(
+      `/api/context-comments?contextType=task&contextId=${encodeURIComponent(taskId)}&page=1&page_size=10`,
+    )
     .set(auth(student.authToken))
     .expect(200);
   assert.strictEqual(firstPage.body.items.length, 10);
@@ -233,7 +249,9 @@ test('Commentaires contextuels: pagination triée du plus récent au plus ancien
   assert.strictEqual(firstPage.body.items[9].id, createdIds[2]);
 
   const secondPage = await request(app)
-    .get(`/api/context-comments?contextType=task&contextId=${encodeURIComponent(taskId)}&page=2&page_size=10`)
+    .get(
+      `/api/context-comments?contextType=task&contextId=${encodeURIComponent(taskId)}&page=2&page_size=10`,
+    )
     .set(auth(student.authToken))
     .expect(200);
   assert.strictEqual(secondPage.body.items.length, 2);
@@ -310,15 +328,20 @@ test('Commentaires contextuels: valide les contextes task/project/zone/marker/pl
   const markerCreated = await request(app)
     .post('/api/context-comments')
     .set(auth(student.authToken))
-    .send({ contextType: 'marker', contextId: markerRes.body.id, body: 'Commentaire sur repère carte.' })
+    .send({
+      contextType: 'marker',
+      contextId: markerRes.body.id,
+      body: 'Commentaire sur repère carte.',
+    })
     .expect(201);
   assert.strictEqual(markerCreated.body.context_type, 'marker');
 
   const stamp = Date.now();
-  const plantIns = await execute(
-    'INSERT INTO plants (name, emoji, description) VALUES (?, ?, ?)',
-    [`Ctx plant ${stamp}`, '🌿', 'Test commentaires']
-  );
+  const plantIns = await execute('INSERT INTO plants (name, emoji, description) VALUES (?, ?, ?)', [
+    `Ctx plant ${stamp}`,
+    '🌿',
+    'Test commentaires',
+  ]);
   const plantId = String(plantIns.insertId);
   const plantCreated = await request(app)
     .post('/api/context-comments')
@@ -330,7 +353,7 @@ test('Commentaires contextuels: valide les contextes task/project/zone/marker/pl
   const slug = `ctx-tuto-${stamp}`;
   const tutoIns = await execute(
     'INSERT INTO tutorials (title, slug, type, summary, sort_order, is_active) VALUES (?, ?, ?, ?, 0, 1)',
-    [`Tuto ctx ${stamp}`, slug, 'html', 'Résumé test']
+    [`Tuto ctx ${stamp}`, slug, 'html', 'Résumé test'],
   );
   const tutorialId = String(tutoIns.insertId);
   const tutorialCreated = await request(app)
@@ -394,7 +417,6 @@ test('Commentaires contextuels: réactions emoji toggle et agrégées', async ()
   await setAllowedReactionEmojis('👍 ❤️ 😂 😮 😢 😡 🔥 👏');
 });
 
-
 test('Commentaires contextuels: le profil visiteur est refusé', async () => {
   const visitor = await registerVisitorStudent('CtxVisitBlk');
   const teacher = await teacherToken();
@@ -410,7 +432,7 @@ test('Commentaires contextuels: compte en lecture seule (GET OK, POST/réactions
   if (!ctxRoRole?.id) {
     await execute(
       `INSERT INTO roles (slug, display_name, emoji, min_done_tasks, display_order, \`rank\`, is_system, forum_participate, context_comment_participate)
-       VALUES ('eleve_ctx_ro_test', 'Test commentaires lecture seule', '🧪', 0, 9990, 1, 0, 1, 0)`
+       VALUES ('eleve_ctx_ro_test', 'Test commentaires lecture seule', '🧪', 0, 9990, 1, 0, 1, 0)`,
     );
     ctxRoRole = await queryOne("SELECT id FROM roles WHERE slug = 'eleve_ctx_ro_test' LIMIT 1");
   }
@@ -420,11 +442,14 @@ test('Commentaires contextuels: compte en lecture seule (GET OK, POST/réactions
   const readOnly = await registerStudent('ComReadOnly');
   const { taskId } = await createContextFixture(teacher);
 
-  await execute('UPDATE user_roles SET is_primary = 0 WHERE user_type = ? AND user_id = ?', ['student', readOnly.id]);
+  await execute('UPDATE user_roles SET is_primary = 0 WHERE user_type = ? AND user_id = ?', [
+    'student',
+    readOnly.id,
+  ]);
   await execute(
     `INSERT INTO user_roles (user_type, user_id, role_id, is_primary) VALUES ('student', ?, ?, 1)
      ON DUPLICATE KEY UPDATE is_primary = 1`,
-    [readOnly.id, ctxRoRole.id]
+    [readOnly.id, ctxRoRole.id],
   );
 
   const created = await request(app)

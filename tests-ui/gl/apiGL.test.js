@@ -51,12 +51,15 @@ describe('apiGL', () => {
       ok: true,
       status: 200,
       headers: { get: () => 'text/plain; charset=utf-8' },
-      json: async () => { throw new Error('not json ct'); },
-      text: async () => JSON.stringify({
-        slug: 'world',
-        title: 'Le monde de Gnomes & Licornes',
-        bodyMarkdown: 'Bienvenue',
-      }),
+      json: async () => {
+        throw new Error('not json ct');
+      },
+      text: async () =>
+        JSON.stringify({
+          slug: 'world',
+          title: 'Le monde de Gnomes & Licornes',
+          bodyMarkdown: 'Bienvenue',
+        }),
     });
 
     const data = await apiGL('/api/gl/content/world');
@@ -87,10 +90,14 @@ describe('apiGL', () => {
       ok: true,
       status: 200,
       headers: { get: () => 'text/html' },
-      json: async () => { throw new Error('not json'); },
+      json: async () => {
+        throw new Error('not json');
+      },
       text: async () => '<!DOCTYPE html><html></html>',
     });
 
-    await expect(apiGL('/api/gl/content/world')).rejects.toThrow(/Impossible de charger le contenu/i);
+    await expect(apiGL('/api/gl/content/world')).rejects.toThrow(
+      /Impossible de charger le contenu/i,
+    );
   });
 });

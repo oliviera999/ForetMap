@@ -16,20 +16,28 @@ before(async () => {
   await execute(
     `INSERT INTO gl_admins (email, display_name, role, is_active, created_at, updated_at)
      VALUES ('games.mj@ecole.local', 'MJ Games', 'admin', 1, NOW(), NOW())
-     ON DUPLICATE KEY UPDATE is_active = 1, updated_at = NOW()`
+     ON DUPLICATE KEY UPDATE is_active = 1, updated_at = NOW()`,
   );
-  const admin = await queryOne('SELECT id FROM gl_admins WHERE email = ? LIMIT 1', ['games.mj@ecole.local']);
+  const admin = await queryOne('SELECT id FROM gl_admins WHERE email = ? LIMIT 1', [
+    'games.mj@ecole.local',
+  ]);
   await execute(
     `INSERT INTO gl_classes (name, school, created_by, is_active, created_at, updated_at)
      VALUES ('6e B', 'College Test', ?, 1, NOW(), NOW())`,
-    [admin.id]
+    [admin.id],
   );
   adminToken = await signAuthToken({
     product: 'gl',
     userType: 'gl_admin',
     userId: String(admin.id),
     roleSlug: 'gl_admin',
-    permissions: ['gl.read', 'gl.game.manage', 'gl.team.manage', 'gl.event.emit', 'gl.mascot.position'],
+    permissions: [
+      'gl.read',
+      'gl.game.manage',
+      'gl.team.manage',
+      'gl.event.emit',
+      'gl.mascot.position',
+    ],
     displayName: 'MJ Games',
   });
 });
@@ -121,25 +129,34 @@ test('PUT /api/gl/games/:id : 409 classe si roster non vide', async () => {
     .set('Authorization', `Bearer ${adminToken}`)
     .send({ name: 'Eq roster', type: 'gnome', color: '#65a30d' })
     .expect(201);
-  const admin = await queryOne('SELECT id FROM gl_admins WHERE email = ? LIMIT 1', ['games.mj@ecole.local']);
+  const admin = await queryOne('SELECT id FROM gl_admins WHERE email = ? LIMIT 1', [
+    'games.mj@ecole.local',
+  ]);
   const rosterPseudo = `roster.test.${Date.now()}`;
   await execute(
     `INSERT INTO gl_players (class_id, pseudo, first_name, last_name, password_hash, is_active, created_at, updated_at)
      VALUES (?, ?, 'Roster', 'Test', '$2b$10$abcdefghijklmnopqrstuv', 1, NOW(), NOW())`,
-    [cls.id, rosterPseudo]
+    [cls.id, rosterPseudo],
   );
-  const player = await queryOne('SELECT id FROM gl_players WHERE pseudo = ? LIMIT 1', [rosterPseudo]);
-  const team = await queryOne('SELECT id FROM gl_teams WHERE game_id = ? ORDER BY id DESC LIMIT 1', [draftGameId]);
+  const player = await queryOne('SELECT id FROM gl_players WHERE pseudo = ? LIMIT 1', [
+    rosterPseudo,
+  ]);
+  const team = await queryOne(
+    'SELECT id FROM gl_teams WHERE game_id = ? ORDER BY id DESC LIMIT 1',
+    [draftGameId],
+  );
   await execute(
     'INSERT INTO gl_team_members (game_id, team_id, player_id, joined_at) VALUES (?, ?, ?, NOW())',
-    [draftGameId, team.id, player.id]
+    [draftGameId, team.id, player.id],
   );
   await execute(
     `INSERT INTO gl_classes (name, school, created_by, is_active, created_at, updated_at)
      VALUES ('6e C roster', 'College Test', ?, 1, NOW(), NOW())`,
-    [admin.id]
+    [admin.id],
   );
-  const otherClass = await queryOne('SELECT id FROM gl_classes WHERE name = ? LIMIT 1', ['6e C roster']);
+  const otherClass = await queryOne('SELECT id FROM gl_classes WHERE name = ? LIMIT 1', [
+    '6e C roster',
+  ]);
   const res = await request(app)
     .put(`/api/gl/games/${draftGameId}`)
     .set('Authorization', `Bearer ${adminToken}`)
@@ -172,8 +189,13 @@ test('POST /api/gl/games/:id/teams : 404 si partie inexistante', async () => {
 });
 
 test('POST /api/gl/games/:id/events move met à jour la position', async () => {
-  const team = await queryOne('SELECT id FROM gl_teams WHERE game_id = ? ORDER BY id DESC LIMIT 1', [gameId]);
-  const marker = await queryOne('SELECT id, x_pct, y_pct FROM gl_chapter_markers ORDER BY id ASC LIMIT 1');
+  const team = await queryOne(
+    'SELECT id FROM gl_teams WHERE game_id = ? ORDER BY id DESC LIMIT 1',
+    [gameId],
+  );
+  const marker = await queryOne(
+    'SELECT id, x_pct, y_pct FROM gl_chapter_markers ORDER BY id ASC LIMIT 1',
+  );
   const res = await request(app)
     .post(`/api/gl/games/${gameId}/events`)
     .set('Authorization', `Bearer ${adminToken}`)
@@ -196,7 +218,10 @@ test('POST /api/gl/games/:id/events move met à jour la position', async () => {
 });
 
 test('POST /api/gl/games/:id/events move accepte xp/yp libres', async () => {
-  const team = await queryOne('SELECT id FROM gl_teams WHERE game_id = ? ORDER BY id DESC LIMIT 1', [gameId]);
+  const team = await queryOne(
+    'SELECT id FROM gl_teams WHERE game_id = ? ORDER BY id DESC LIMIT 1',
+    [gameId],
+  );
   await request(app)
     .post(`/api/gl/games/${gameId}/events`)
     .set('Authorization', `Bearer ${adminToken}`)

@@ -10,7 +10,8 @@ const {
 } = require('../lib/glPlayerJournal');
 
 test('extractJournalEmbeds parse les balises aside', () => {
-  const body = '<aside class="gl-journal-embed" data-gl-embed-type="spell" data-gl-ref="SL001"></aside>';
+  const body =
+    '<aside class="gl-journal-embed" data-gl-embed-type="spell" data-gl-ref="SL001"></aside>';
   const embeds = extractJournalEmbeds(body);
   assert.strictEqual(embeds.length, 1);
   assert.deepStrictEqual(embeds[0], { type: 'spell', ref: 'SL001' });
@@ -28,7 +29,7 @@ test('isAllowedJournalImageUrl accepte le préfixe joueur', () => {
 test('stripDisallowedImageUrls retire les images hors préfixe', () => {
   const out = stripDisallowedImageUrls(
     '![a](/uploads/other/x.png) <img src="/uploads/gl-player-journal/3/a.jpg" alt="ok" />',
-    3
+    3,
   );
   assert.ok(!out.includes('/uploads/other/'));
   assert.ok(out.includes('/uploads/gl-player-journal/3/'));

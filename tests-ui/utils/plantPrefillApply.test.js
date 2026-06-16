@@ -21,7 +21,10 @@ describe('applyPrefillToForm — champs texte', () => {
   test('champ sélectionné et vide → écrit ; non sélectionné → ignoré', () => {
     const out = applyPrefillToForm(
       { name: '', scientific_name: '' },
-      base({ prefillResult: { fields: { name: 'Pommier', scientific_name: 'Malus' } }, selectedFields: { name: true } }),
+      base({
+        prefillResult: { fields: { name: 'Pommier', scientific_name: 'Malus' } },
+        selectedFields: { name: true },
+      }),
     );
     expect(out.name).toBe('Pommier');
     expect(out.scientific_name).toBe('');
@@ -38,7 +41,11 @@ describe('applyPrefillToForm — champs texte', () => {
   test('champ déjà rempli + overwriteFilled → écrasé', () => {
     const out = applyPrefillToForm(
       { name: 'Déjà là' },
-      base({ prefillResult: { fields: { name: 'Pommier' } }, selectedFields: { name: true }, overwriteFilled: true }),
+      base({
+        prefillResult: { fields: { name: 'Pommier' } },
+        selectedFields: { name: true },
+        overwriteFilled: true,
+      }),
     );
     expect(out.name).toBe('Pommier');
   });
@@ -46,7 +53,10 @@ describe('applyPrefillToForm — champs texte', () => {
   test('valeur de pré-saisie vide/espaces → ignorée', () => {
     const out = applyPrefillToForm(
       { description: '' },
-      base({ prefillResult: { fields: { description: '   ' } }, selectedFields: { description: true } }),
+      base({
+        prefillResult: { fields: { description: '   ' } },
+        selectedFields: { description: true },
+      }),
     );
     expect(out.description).toBe('');
   });

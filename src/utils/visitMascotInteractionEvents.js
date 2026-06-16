@@ -15,29 +15,37 @@ export const VISIT_MASCOT_INTERACTION_EVENT = {
 };
 
 /** @type {string[]} */
-export const VISIT_MASCOT_INTERACTION_EVENT_KEYS = Object.freeze(Object.values(VISIT_MASCOT_INTERACTION_EVENT));
+export const VISIT_MASCOT_INTERACTION_EVENT_KEYS = Object.freeze(
+  Object.values(VISIT_MASCOT_INTERACTION_EVENT),
+);
 
 const STATE_VALUES = Object.values(VISIT_MASCOT_STATE);
 
-export const interactionRuleSchema = z.object({
-  mode: z.enum(['none', 'transient', 'happy']),
-  state: z.string().optional(),
-  durationMs: z.number().int().min(200).max(60_000).optional(),
-}).superRefine((data, ctx) => {
-  if (data.mode === 'transient') {
-    const st = String(data.state || '').trim();
-    if (!STATE_VALUES.includes(st)) {
+export const interactionRuleSchema = z
+  .object({
+    mode: z.enum(['none', 'transient', 'happy']),
+    state: z.string().optional(),
+    durationMs: z.number().int().min(200).max(60_000).optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.mode === 'transient') {
+      const st = String(data.state || '').trim();
+      if (!STATE_VALUES.includes(st)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['state'],
+          message: `État transitoire requis (une valeur de VISIT_MASCOT_STATE).`,
+        });
+      }
+    }
+    if (data.mode === 'happy' && data.state) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['state'],
-        message: `État transitoire requis (une valeur de VISIT_MASCOT_STATE).`,
+        message: 'Le mode happy n’utilise pas le champ state.',
       });
     }
-  }
-  if (data.mode === 'happy' && data.state) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['state'], message: 'Le mode happy n’utilise pas le champ state.' });
-  }
-});
+  });
 
 /** Schéma : uniquement les clés connues, chaque valeur = règle. */
 export function buildInteractionProfileSchema() {

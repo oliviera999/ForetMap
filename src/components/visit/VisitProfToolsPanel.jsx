@@ -34,11 +34,16 @@ export function VisitProfToolsPanel({
       <div className="visit-prof-tools__body">
         {!visitMapImageReady && !loading && (
           <p className="section-sub visit-map-image-hint" style={{ margin: '0 0 8px' }}>
-            Chargement du plan… Les outils zone et repère sont disponibles une fois l’image affichée (coordonnées précises).
+            Chargement du plan… Les outils zone et repère sont disponibles une fois l’image affichée
+            (coordonnées précises).
           </p>
         )}
         <div className="visit-map-switch">
-          <button type="button" className={`btn btn-sm ${mode === 'view' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => onSetMode('view')}>
+          <button
+            type="button"
+            className={`btn btn-sm ${mode === 'view' ? 'btn-primary' : 'btn-ghost'}`}
+            onClick={() => onSetMode('view')}
+          >
             🖐️ Navigation
           </button>
           <button
@@ -61,7 +66,12 @@ export function VisitProfToolsPanel({
           </button>
           {mode === 'draw-zone' && (
             <>
-              <button type="button" className="btn btn-secondary btn-sm" disabled={drawPointsCount < 3 || creating} onClick={onCreateZone}>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                disabled={drawPointsCount < 3 || creating}
+                onClick={onCreateZone}
+              >
                 ✅ Terminer zone ({drawPointsCount})
               </button>
               <button type="button" className="btn btn-ghost btn-sm" onClick={onUndoDrawPoint}>
@@ -84,8 +94,8 @@ export function VisitProfToolsPanel({
             <div>
               <h3>🧩 Studio packs mascotte</h3>
               <p className="section-sub" style={{ marginBottom: 8 }}>
-                L’édition complète des mascottes (packs, bibliothèque, comportements) est centralisée
-                dans l’onglet dédié.
+                L’édition complète des mascottes (packs, bibliothèque, comportements) est
+                centralisée dans l’onglet dédié.
               </p>
               <button
                 type="button"

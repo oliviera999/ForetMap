@@ -30,8 +30,8 @@ function parseId(value) {
 function requireSpellCastPermission(req, res, next) {
   requireGlAuth(req, res, () => {
     if (
-      hasGlPermission(req.glAuth, 'gl.action.request')
-      || hasGlPermission(req.glAuth, 'gl.event.emit')
+      hasGlPermission(req.glAuth, 'gl.action.request') ||
+      hasGlPermission(req.glAuth, 'gl.event.emit')
     ) {
       return next();
     }
@@ -92,72 +92,90 @@ router.post('/games/:id/spell-casts/drafts', requireSpellCastPermission, async (
   });
 });
 
-router.get('/games/:id/spell-casts/drafts/:draftId', requireSpellCastPermission, async (req, res) => {
-  return handleSpellCastRoute(req, res, async ({ gameId }) => {
-    const draftId = parseId(req.params.draftId);
-    if (!draftId) return res.status(400).json({ error: 'draftId invalide' });
-    const draft = await getDraftById(draftId, gameId);
-    return res.json({ draft });
-  });
-});
-
-router.put('/games/:id/spell-casts/drafts/:draftId/contributions', requireSpellCastPermission, async (req, res) => {
-  return handleSpellCastRoute(req, res, async ({ gameId, config }) => {
-    const draftId = parseId(req.params.draftId);
-    if (!draftId) return res.status(400).json({ error: 'draftId invalide' });
-    const contributions = req.body?.contributions;
-    const draft = await updateDraftContributions({
-      gameId,
-      draftId,
-      contributions,
-      auth: req.glAuth,
-      config,
+router.get(
+  '/games/:id/spell-casts/drafts/:draftId',
+  requireSpellCastPermission,
+  async (req, res) => {
+    return handleSpellCastRoute(req, res, async ({ gameId }) => {
+      const draftId = parseId(req.params.draftId);
+      if (!draftId) return res.status(400).json({ error: 'draftId invalide' });
+      const draft = await getDraftById(draftId, gameId);
+      return res.json({ draft });
     });
-    emitGlSpellCastDraftChanged(gameId, { draftId: draft.id, type: 'draft_updated', draft });
-    return res.json({ draft });
-  });
-});
+  },
+);
 
-router.post('/games/:id/spell-casts/drafts/:draftId/launch', requireSpellCastPermission, async (req, res) => {
-  return handleSpellCastRoute(req, res, async ({ gameId, config }) => {
-    const draftId = parseId(req.params.draftId);
-    if (!draftId) return res.status(400).json({ error: 'draftId invalide' });
-    const { draft, eventPayload, eventId } = await launchDraft({
-      gameId,
-      draftId,
-      auth: req.glAuth,
-      config,
+router.put(
+  '/games/:id/spell-casts/drafts/:draftId/contributions',
+  requireSpellCastPermission,
+  async (req, res) => {
+    return handleSpellCastRoute(req, res, async ({ gameId, config }) => {
+      const draftId = parseId(req.params.draftId);
+      if (!draftId) return res.status(400).json({ error: 'draftId invalide' });
+      const contributions = req.body?.contributions;
+      const draft = await updateDraftContributions({
+        gameId,
+        draftId,
+        contributions,
+        auth: req.glAuth,
+        config,
+      });
+      emitGlSpellCastDraftChanged(gameId, { draftId: draft.id, type: 'draft_updated', draft });
+      return res.json({ draft });
     });
-    const evt = eventId
-      ? await queryOne(
-        `SELECT id, game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at
+  },
+);
+
+router.post(
+  '/games/:id/spell-casts/drafts/:draftId/launch',
+  requireSpellCastPermission,
+  async (req, res) => {
+    return handleSpellCastRoute(req, res, async ({ gameId, config }) => {
+      const draftId = parseId(req.params.draftId);
+      if (!draftId) return res.status(400).json({ error: 'draftId invalide' });
+      const { draft, eventPayload, eventId } = await launchDraft({
+        gameId,
+        draftId,
+        auth: req.glAuth,
+        config,
+      });
+      const evt = eventId
+        ? await queryOne(
+            `SELECT id, game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at
            FROM gl_game_events
           WHERE id = ? AND game_id = ?
           LIMIT 1`,
-        [eventId, gameId]
-      )
-      : null;
-    if (!evt) {
-      return res.status(500).json({ error: 'Événement de sortilège introuvable après lancement' });
-    }
-    const normalized = normalizeEventRow(evt);
-    if (normalized.eventType !== 'spell_cast') {
-      return res.status(500).json({ error: 'Événement de sortilège incohérent après lancement' });
-    }
-    emitGlGameEvent(gameId, normalized);
-    emitGlSpellCastDraftChanged(gameId, { draftId: draft.id, type: 'draft_cast', draft });
-    return res.json({ ok: true, draft, event: normalized, payload: eventPayload });
-  });
-});
+            [eventId, gameId],
+          )
+        : null;
+      if (!evt) {
+        return res
+          .status(500)
+          .json({ error: 'Événement de sortilège introuvable après lancement' });
+      }
+      const normalized = normalizeEventRow(evt);
+      if (normalized.eventType !== 'spell_cast') {
+        return res.status(500).json({ error: 'Événement de sortilège incohérent après lancement' });
+      }
+      emitGlGameEvent(gameId, normalized);
+      emitGlSpellCastDraftChanged(gameId, { draftId: draft.id, type: 'draft_cast', draft });
+      return res.json({ ok: true, draft, event: normalized, payload: eventPayload });
+    });
+  },
+);
 
-router.delete('/games/:id/spell-casts/drafts/:draftId', requireSpellCastPermission, async (req, res) => {
-  return handleSpellCastRoute(req, res, async ({ gameId }) => {
-    const draftId = parseId(req.params.draftId);
-    if (!draftId) return res.status(400).json({ error: 'draftId invalide' });
-    await cancelDraft({ gameId, draftId, auth: req.glAuth });
-    emitGlSpellCastDraftChanged(gameId, { draftId, type: 'draft_cancelled' });
-    return res.json({ ok: true });
-  });
-});
+router.delete(
+  '/games/:id/spell-casts/drafts/:draftId',
+  requireSpellCastPermission,
+  async (req, res) => {
+    return handleSpellCastRoute(req, res, async ({ gameId }) => {
+      const draftId = parseId(req.params.draftId);
+      if (!draftId) return res.status(400).json({ error: 'draftId invalide' });
+      await cancelDraft({ gameId, draftId, auth: req.glAuth });
+      emitGlSpellCastDraftChanged(gameId, { draftId, type: 'draft_cancelled' });
+      return res.json({ ok: true });
+    });
+  },
+);
 
 module.exports = router;

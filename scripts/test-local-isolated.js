@@ -42,10 +42,13 @@ function main() {
     const file = files[i];
     const prefix = `[${i + 1}/${files.length}]`;
     console.log(`\n${prefix} Reinitialisation BDD (${env.DB_NAME || 'DB_NAME non defini'})`);
-    let code = runNode([
-      '-e',
-      "require('dotenv').config(); const { initSchema, seedData } = require('./database'); (async () => { await initSchema(); await seedData(); console.log('DB init OK'); process.exit(0); })()",
-    ], env);
+    let code = runNode(
+      [
+        '-e',
+        "require('dotenv').config(); const { initSchema, seedData } = require('./database'); (async () => { await initSchema(); await seedData(); console.log('DB init OK'); process.exit(0); })()",
+      ],
+      env,
+    );
     if (code !== 0) {
       console.error(`${prefix} Echec db:init avant ${file}`);
       process.exit(code);

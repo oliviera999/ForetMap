@@ -8,12 +8,25 @@ import {
 
 describe('buildNewEditorialBlock', () => {
   test('paragraph (type inconnu inclus) → bloc paragraphe vide', () => {
-    expect(buildNewEditorialBlock('paragraph', 'p1')).toEqual({ id: 'p1', type: 'paragraph', markdown: '' });
+    expect(buildNewEditorialBlock('paragraph', 'p1')).toEqual({
+      id: 'p1',
+      type: 'paragraph',
+      markdown: '',
+    });
     // tout type non heading/image retombe sur paragraphe (comportement historique)
-    expect(buildNewEditorialBlock('autre', 'x1')).toEqual({ id: 'x1', type: 'paragraph', markdown: '' });
+    expect(buildNewEditorialBlock('autre', 'x1')).toEqual({
+      id: 'x1',
+      type: 'paragraph',
+      markdown: '',
+    });
   });
   test('heading → niveau 3 + texte « Intertitre »', () => {
-    expect(buildNewEditorialBlock('heading', 'h1')).toEqual({ id: 'h1', type: 'heading', level: 3, text: 'Intertitre' });
+    expect(buildNewEditorialBlock('heading', 'h1')).toEqual({
+      id: 'h1',
+      type: 'heading',
+      level: 3,
+      text: 'Intertitre',
+    });
   });
   test('image → défauts single/md/center, media_ids vide, légende vide', () => {
     expect(buildNewEditorialBlock('image', 'i1')).toEqual({

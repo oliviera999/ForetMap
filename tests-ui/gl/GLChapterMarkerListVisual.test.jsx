@@ -4,11 +4,9 @@ import { render } from '@testing-library/react';
 import { GLChapterMarkerListVisual } from '../../src/gl/components/GLChapterMarkerListVisual.jsx';
 
 describe('GLChapterMarkerListVisual', () => {
-  test('rend l\'emoji en mode emoji', () => {
+  test("rend l'emoji en mode emoji", () => {
     const { container } = render(
-      <GLChapterMarkerListVisual
-        marker={{ display_mode: 'emoji', emoji: '🌲' }}
-      />,
+      <GLChapterMarkerListVisual marker={{ display_mode: 'emoji', emoji: '🌲' }} />,
     );
     const span = container.querySelector('span.gl-markers-list__visual');
     expect(span).not.toBeNull();

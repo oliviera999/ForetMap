@@ -9,7 +9,10 @@ const {
   openStudentTasksTab,
 } = require('./fixtures/auth.fixture');
 
-test('temps réel: création prof visible côté élève sans reload manuel', async ({ browser, page }) => {
+test('temps réel: création prof visible côté élève sans reload manuel', async ({
+  browser,
+  page,
+}) => {
   /* Deux sessions + Socket.IO : en tête de suite le run peut dépasser 2 min (cold start + double login). */
   test.setTimeout(300_000);
   const taskTitle = `E2E TempsReel ${Date.now()}`;
@@ -27,8 +30,13 @@ test('temps réel: création prof visible côté élève sans reload manuel', as
   await dismissProfilePromotionModalIfPresent(page);
   await openTeacherTasksTab(page);
   await dismissProfilePromotionModalIfPresent(page);
-  await page.locator('.teacher-main .tasks-view').getByRole('button', { name: /\+ Nouvelle tâche/ }).evaluate((el) => el.click());
-  await page.getByRole('dialog', { name: /Nouvelle tâche/ }).waitFor({ state: 'visible', timeout: 35_000 });
+  await page
+    .locator('.teacher-main .tasks-view')
+    .getByRole('button', { name: /\+ Nouvelle tâche/ })
+    .evaluate((el) => el.click());
+  await page
+    .getByRole('dialog', { name: /Nouvelle tâche/ })
+    .waitFor({ state: 'visible', timeout: 35_000 });
   await dismissProfilePromotionModalIfPresent(page);
   await page.getByPlaceholder('Ex: Arroser les tomates').fill(taskTitle);
   const studentTasksRefresh = studentPage.waitForResponse(

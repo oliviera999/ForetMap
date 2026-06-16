@@ -50,7 +50,9 @@ export function MediaLibraryGalleryTile({
             </>
           ) : (
             <>
-              <span className="media-library-menu__gallery-icon" aria-hidden="true">🎧</span>
+              <span className="media-library-menu__gallery-icon" aria-hidden="true">
+                🎧
+              </span>
               <span className="media-library-menu__gallery-type">Audio</span>
             </>
           )}

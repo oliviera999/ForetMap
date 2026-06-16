@@ -25,11 +25,17 @@ export const GL_DEFAULT_GAMEPLAY = {
  * et — si le jeu en tours est actif — c'est le tour de son équipe.
  * Toujours faux pour l'UI staff (le MJ agit directement).
  */
-export function computeCanRequestAction({ showStaffAdminUi, gameplaySettings, auth, currentTeamId }) {
+export function computeCanRequestAction({
+  showStaffAdminUi,
+  gameplaySettings,
+  auth,
+  currentTeamId,
+}) {
   if (showStaffAdminUi || !gameplaySettings.playerActionsEnabled) return false;
   const myTeamId = auth?.teamId != null ? Number(auth.teamId) : null;
   if (myTeamId == null) return false;
-  if (gameplaySettings.turnsEnabled && currentTeamId != null && currentTeamId !== myTeamId) return false;
+  if (gameplaySettings.turnsEnabled && currentTeamId != null && currentTeamId !== myTeamId)
+    return false;
   return true;
 }
 
@@ -47,8 +53,8 @@ export function computeCanSpellCast({
   showsPlayerChrome,
   showStaffAdminUi,
 }) {
-  const moduleOn = isModuleEnabled(modules, 'spellCastEnabled')
-    || gameplaySettings.spellCastEnabled === true;
+  const moduleOn =
+    isModuleEnabled(modules, 'spellCastEnabled') || gameplaySettings.spellCastEnabled === true;
   if (!moduleOn || !gameplaySettings.vitalityEnabled) return false;
   if (!gameState?.game?.id || gameState?.game?.status !== 'live') return false;
   if (gameplaySettings.spellCastMjOnly && !showStaffAdminUi) return false;
@@ -63,7 +69,13 @@ export function computeCanSpellCast({
  * Vitalité affichée pour le joueur : points temps réel de la partie si
  * présents, sinon repli sur le profil GL, sinon `null`.
  */
-export function computePlayerVitality({ showsPlayerChrome, vitalityEnabled, auth, gameState, profile }) {
+export function computePlayerVitality({
+  showsPlayerChrome,
+  vitalityEnabled,
+  auth,
+  gameState,
+  profile,
+}) {
   if (!showsPlayerChrome || !vitalityEnabled) return null;
   const playerId = auth?.userId != null ? Number(auth.userId) : null;
   if (playerId == null) return null;

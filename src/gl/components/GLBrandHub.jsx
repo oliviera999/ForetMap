@@ -17,10 +17,14 @@ export function GLBrandHub({ slots, onOpenTab, compact = false }) {
   const hero = slots?.hero;
   const heroImage = String(hero?.imageUrl || '').trim();
   const heroFrame = normalizeGlImageFrame(hero?.frame, 'brand-hero');
-  const cards = CARD_SLOT_IDS
-    .map((id) => ({ id, ...slots?.[id] }))
-    .filter((card) => String(card?.imageUrl || '').trim() || String(card?.title || '').trim());
-  const [cardsRef, cardsVisible] = useScrollReveal({ once: true, threshold: 0.01, rootMargin: '0px' });
+  const cards = CARD_SLOT_IDS.map((id) => ({ id, ...slots?.[id] })).filter(
+    (card) => String(card?.imageUrl || '').trim() || String(card?.title || '').trim(),
+  );
+  const [cardsRef, cardsVisible] = useScrollReveal({
+    once: true,
+    threshold: 0.01,
+    rootMargin: '0px',
+  });
 
   if (!heroImage && cards.length === 0) return null;
 
@@ -80,7 +84,10 @@ export function GLBrandHub({ slots, onOpenTab, compact = false }) {
                     />
                   </div>
                 ) : (
-                  <div className="gl-brand-hub__card-image gl-brand-hub__card-image--placeholder" aria-hidden />
+                  <div
+                    className="gl-brand-hub__card-image gl-brand-hub__card-image--placeholder"
+                    aria-hidden
+                  />
                 )}
                 {title ? <span className="gl-brand-hub__card-title">{title}</span> : null}
               </Tag>

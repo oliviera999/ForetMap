@@ -10,7 +10,9 @@ let shouldShowVisitMapMascot;
 let getVisitMascotVisibilityReason;
 
 before(async () => {
-  const mod = await import(pathToFileURL(join(__dirname, '../src/utils/visitMascotVisibility.js')).href);
+  const mod = await import(
+    pathToFileURL(join(__dirname, '../src/utils/visitMascotVisibility.js')).href
+  );
   shouldShowVisitMapMascot = mod.shouldShowVisitMapMascot;
   getVisitMascotVisibilityReason = mod.getVisitMascotVisibilityReason;
 });
@@ -50,6 +52,9 @@ describe('visitMascotVisibility', () => {
   });
 
   it('raison explicite: mode édition', () => {
-    assert.equal(getVisitMascotVisibilityReason('draw-zone', 5, [{ id: 1 }], [{ id: 1 }], 1), 'mode-not-view');
+    assert.equal(
+      getVisitMascotVisibilityReason('draw-zone', 5, [{ id: 1 }], [{ id: 1 }], 1),
+      'mode-not-view',
+    );
   });
 });

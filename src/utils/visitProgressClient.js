@@ -2,10 +2,7 @@
  * Progression visite côté client : normalisation API, file d’attente hors-ligne pour POST /api/visit/seen.
  */
 
-import {
-  safeLocalStorageReadJson,
-  safeLocalStorageWriteJson,
-} from './browserStorage.js';
+import { safeLocalStorageReadJson, safeLocalStorageWriteJson } from './browserStorage.js';
 
 export const VISIT_SEEN_QUEUE_STORAGE_KEY = 'foretmap_visit_seen_queue';
 
@@ -146,7 +143,9 @@ export async function flushVisitSeenQueue(postSeen) {
   let synced = 0;
   let failed = 0;
   const remaining = [];
-  const flushedByKey = new Map(queue.map((item) => [visitSeenQueueItemKey(item.target_type, item.target_id), item]));
+  const flushedByKey = new Map(
+    queue.map((item) => [visitSeenQueueItemKey(item.target_type, item.target_id), item]),
+  );
   for (const item of queue) {
     try {
       await postSeen({
@@ -160,7 +159,9 @@ export async function flushVisitSeenQueue(postSeen) {
       remaining.push(item);
     }
   }
-  const failedKeys = new Set(remaining.map((item) => visitSeenQueueItemKey(item.target_type, item.target_id)));
+  const failedKeys = new Set(
+    remaining.map((item) => visitSeenQueueItemKey(item.target_type, item.target_id)),
+  );
   const nextQueue = [];
   for (const item of loadVisitSeenQueue()) {
     const key = visitSeenQueueItemKey(item.target_type, item.target_id);

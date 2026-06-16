@@ -11,27 +11,31 @@ async function refreshAdminTeacherToken() {
   const loginEmail = String(process.env.TEACHER_ADMIN_EMAIL || '').trim();
   const teacher = await queryOne(
     "SELECT id FROM users WHERE user_type = 'teacher' AND LOWER(email) = LOWER(?) LIMIT 1",
-    [loginEmail]
+    [loginEmail],
   );
   const adminRole = await queryOne("SELECT id FROM roles WHERE slug = 'admin' LIMIT 1");
   assert.ok(teacher?.id, 'Compte admin enseignant introuvable');
   assert.ok(adminRole?.id, 'Rôle admin introuvable');
   const requiredPermissions = ['plants.manage'];
   for (const key of requiredPermissions) {
-    await execute(
-      'INSERT IGNORE INTO permissions (`key`, label, description) VALUES (?, ?, ?)',
-      [key, key, 'Permission auto-seed tests']
-    );
+    await execute('INSERT IGNORE INTO permissions (`key`, label, description) VALUES (?, ?, ?)', [
+      key,
+      key,
+      'Permission auto-seed tests',
+    ]);
     await execute(
       'INSERT IGNORE INTO role_permissions (role_id, permission_key, requires_elevation) VALUES (?, ?, 1)',
-      [adminRole.id, key]
+      [adminRole.id, key],
     );
   }
   if (teacher?.id && adminRole?.id) {
-    await execute('UPDATE user_roles SET is_primary = 0 WHERE user_type = ? AND user_id = ?', ['teacher', teacher.id]);
+    await execute('UPDATE user_roles SET is_primary = 0 WHERE user_type = ? AND user_id = ?', [
+      'teacher',
+      teacher.id,
+    ]);
     await execute(
       'INSERT INTO user_roles (user_type, user_id, role_id, is_primary) VALUES (?, ?, ?, 1) ON DUPLICATE KEY UPDATE is_primary = 1',
-      ['teacher', teacher.id, adminRole.id]
+      ['teacher', teacher.id, adminRole.id],
     );
   }
   const login = await request(app)
@@ -76,7 +80,11 @@ test('POST /api/plants/import dryRun retourne un rapport avec erreurs', async ()
       strategy: 'upsert_name',
       dryRun: true,
       rows: [
-        { name: `ImportTest-${unique}-ok`, scientific_name: 'Ocimum basilicum', photo: 'https://example.com/image.jpg' },
+        {
+          name: `ImportTest-${unique}-ok`,
+          scientific_name: 'Ocimum basilicum',
+          photo: 'https://example.com/image.jpg',
+        },
         { name: '', scientific_name: 'Invalidus testus' },
         { name: `ImportTest-${unique}-badphoto`, photo: 'https://example.com/wiki/page' },
       ],

@@ -17,9 +17,11 @@ export function getAuthSubmitError({
   affiliation,
   affiliationOptions,
 }) {
-  if (mode === 'login' && (!identifier.trim() || !pass)) return 'Identifiant et mot de passe requis';
+  if (mode === 'login' && (!identifier.trim() || !pass))
+    return 'Identifiant et mot de passe requis';
   if (mode === 'register' && !allowRegister) return 'Inscriptions désactivées';
-  if (mode === 'register' && (!first.trim() || !last.trim() || !pass)) return 'Tous les champs sont requis';
+  if (mode === 'register' && (!first.trim() || !last.trim() || !pass))
+    return 'Tous les champs sont requis';
   if (mode === 'register' && pass !== pass2) return 'Les mots de passe ne correspondent pas';
   if (mode === 'register' && pass.length < 4) return 'Mot de passe trop court (min 4 caractères)';
   if (mode === 'register' && pseudo.trim() && !/^[A-Za-z0-9_.-]{3,30}$/.test(pseudo.trim())) {

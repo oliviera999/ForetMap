@@ -65,9 +65,23 @@ test('replayGameEvents collecte les narrations dans l’ordre', () => {
 
 test('replayGameEvents conserve les action_request non résolues', () => {
   const events = [
-    ev(1, 'action_request', { teamId: 21, payload: { actionRequestId: 100, actionType: 'explore', playerId: 5, payload: { markerId: 12 } } }),
-    ev(2, 'action_request', { teamId: 22, payload: { actionRequestId: 101, actionType: 'quiz', playerId: 9 } }),
-    ev(3, 'action_resolved', { teamId: 22, payload: { actionRequestId: 101, decision: 'accepted' } }),
+    ev(1, 'action_request', {
+      teamId: 21,
+      payload: {
+        actionRequestId: 100,
+        actionType: 'explore',
+        playerId: 5,
+        payload: { markerId: 12 },
+      },
+    }),
+    ev(2, 'action_request', {
+      teamId: 22,
+      payload: { actionRequestId: 101, actionType: 'quiz', playerId: 9 },
+    }),
+    ev(3, 'action_resolved', {
+      teamId: 22,
+      payload: { actionRequestId: 101, decision: 'accepted' },
+    }),
   ];
   const replay = replayGameEvents(events);
   assert.strictEqual(replay.pendingActions.length, 1);

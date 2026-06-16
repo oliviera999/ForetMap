@@ -10,28 +10,28 @@ Document d’entrée pour une session [Claude Design](https://claude.ai/design) 
 
 ## Design system à respecter
 
-| Token | Valeur par défaut |
-|-------|-------------------|
-| `--gl-color-topbar` | `#013a40` |
-| `--gl-color-background` | `#f4fff5` |
-| `--gl-color-primary` | `#013a40` |
-| `--gl-color-text` | `#262626` |
-| `--gl-font-body` | Caudex |
-| `--gl-font-heading` | Cinzel |
-| Touch minimum | 44px |
-| Locale | fr-FR, accents obligatoires |
+| Token                   | Valeur par défaut           |
+| ----------------------- | --------------------------- |
+| `--gl-color-topbar`     | `#013a40`                   |
+| `--gl-color-background` | `#f4fff5`                   |
+| `--gl-color-primary`    | `#013a40`                   |
+| `--gl-color-text`       | `#262626`                   |
+| `--gl-font-body`        | Caudex                      |
+| `--gl-font-heading`     | Cinzel                      |
+| Touch minimum           | 44px                        |
+| Locale                  | fr-FR, accents obligatoires |
 
 Fichiers source : `src/gl/styles/gl-theme.css`, `src/gl/hooks/useGLBrandTheme.js`, `src/gl/components/ui/`.
 
 ## Onglets joueur (référence)
 
-| id | label | icône |
-|----|-------|-------|
-| maps | Cartes | 🗺️ |
-| biotope | Biotope | 🌿 |
-| glossary | Glossaire | 📚 |
-| rules | Règles du jeu | 📖 |
-| … | 9 autres onglets | … |
+| id       | label            | icône |
+| -------- | ---------------- | ----- |
+| maps     | Cartes           | 🗺️    |
+| biotope  | Biotope          | 🌿    |
+| glossary | Glossaire        | 📚    |
+| rules    | Règles du jeu    | 📖    |
+| …        | 9 autres onglets | …     |
 
 Onglets **primaires mobile** (implémentés) : `maps`, `biotope`, `glossary`, `rules`.
 

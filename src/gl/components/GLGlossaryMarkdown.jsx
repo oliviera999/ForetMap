@@ -39,7 +39,10 @@ export function GLGlossaryMarkdown({
       return renderMarkdownToSafeHtml(raw, { allowImages, allowJournalEmbeds });
     }
     try {
-      return renderGlMarkdownWithGlossaryLinks(raw, glossaryItems, { allowImages, allowJournalEmbeds });
+      return renderGlMarkdownWithGlossaryLinks(raw, glossaryItems, {
+        allowImages,
+        allowJournalEmbeds,
+      });
     } catch (err) {
       console.warn('GLGlossaryMarkdown: auto-lien glossaire désactivé', err);
       return renderMarkdownToSafeHtml(raw, { allowImages, allowJournalEmbeds });
@@ -53,11 +56,7 @@ export function GLGlossaryMarkdown({
   if (!html) return null;
 
   return (
-    <Tag
-      ref={containerRef}
-      className={className}
-      dangerouslySetInnerHTML={{ __html: html }}
-    />
+    <Tag ref={containerRef} className={className} dangerouslySetInnerHTML={{ __html: html }} />
   );
 }
 
@@ -96,10 +95,6 @@ export function GLGlossaryInlineText({
   }
 
   return (
-    <Tag
-      ref={containerRef}
-      className={className}
-      dangerouslySetInnerHTML={{ __html: html }}
-    />
+    <Tag ref={containerRef} className={className} dangerouslySetInnerHTML={{ __html: html }} />
   );
 }

@@ -10,7 +10,9 @@ let buildMapImageCandidates;
 
 describe('mapImageCandidates', () => {
   before(async () => {
-    const mod = await import(pathToFileURL(join(__dirname, '../src/utils/mapImageCandidates.js')).href);
+    const mod = await import(
+      pathToFileURL(join(__dirname, '../src/utils/mapImageCandidates.js')).href
+    );
     buildMapImageCandidates = mod.buildMapImageCandidates;
   });
 
@@ -31,4 +33,3 @@ describe('mapImageCandidates', () => {
     assert.deepEqual(candidates, ['/map.png', '/maps/plan-foret.jpg']);
   });
 });
-

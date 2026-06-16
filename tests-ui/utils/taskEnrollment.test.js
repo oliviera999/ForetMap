@@ -24,13 +24,17 @@ describe('taskOpenSlots', () => {
 
 describe('canStudentAssignTask', () => {
   test('tâche ouverte avec places → true', () => {
-    expect(canStudentAssignTask({ status: 'available', required_students: 2, assignments: [] }, student)).toBe(true);
+    expect(
+      canStudentAssignTask({ status: 'available', required_students: 2, assignments: [] }, student),
+    ).toBe(true);
   });
   test('refuse si fermée / validée / terminée / en attente', () => {
     expect(canStudentAssignTask({ status: 'validated' }, student)).toBe(false);
     expect(canStudentAssignTask({ status: 'done' }, student)).toBe(false);
     expect(canStudentAssignTask({ status: 'on_hold' }, student)).toBe(false);
-    expect(canStudentAssignTask({ status: 'available', project_status: 'completed' }, student)).toBe(false);
+    expect(
+      canStudentAssignTask({ status: 'available', project_status: 'completed' }, student),
+    ).toBe(false);
   });
   test('refuse si déjà assigné à l’élève', () => {
     const task = {
@@ -41,7 +45,12 @@ describe('canStudentAssignTask', () => {
     expect(canStudentAssignTask(task, student)).toBe(false);
   });
   test('refuse si complet', () => {
-    expect(canStudentAssignTask({ status: 'available', required_students: 1, assignments: [{ student_id: '99' }] }, student)).toBe(false);
+    expect(
+      canStudentAssignTask(
+        { status: 'available', required_students: 1, assignments: [{ student_id: '99' }] },
+        student,
+      ),
+    ).toBe(false);
   });
   test('faux si task/élève manquant', () => {
     expect(canStudentAssignTask(null, student)).toBe(false);
@@ -56,8 +65,12 @@ describe('taskEnrollmentMeta', () => {
   });
   test('en attente / projets', () => {
     expect(taskEnrollmentMeta({ status: 'on_hold' }, student).label).toBe('En attente');
-    expect(taskEnrollmentMeta({ status: 'available', project_status: 'completed' }, student).label).toBe('Projet terminé');
-    expect(taskEnrollmentMeta({ status: 'available', project_status: 'validated' }, student).label).toBe('Projet validé');
+    expect(
+      taskEnrollmentMeta({ status: 'available', project_status: 'completed' }, student).label,
+    ).toBe('Projet terminé');
+    expect(
+      taskEnrollmentMeta({ status: 'available', project_status: 'validated' }, student).label,
+    ).toBe('Projet validé');
   });
   test('fermée (done / validated)', () => {
     expect(taskEnrollmentMeta({ status: 'done' }, student).label).toBe('Terminée (en attente)');
@@ -68,10 +81,16 @@ describe('taskEnrollmentMeta', () => {
     expect(taskEnrollmentMeta(task, student).label).toBe('Complet');
   });
   test('places disponibles (pluriel)', () => {
-    expect(taskEnrollmentMeta({ status: 'available', required_students: 3, assignments: [] }, student).label)
-      .toBe('3 places disponibles');
-    expect(taskEnrollmentMeta({ status: 'available', required_students: 2, assignments: [{ student_id: '5' }] }, student).label)
-      .toBe('1 place disponible');
+    expect(
+      taskEnrollmentMeta({ status: 'available', required_students: 3, assignments: [] }, student)
+        .label,
+    ).toBe('3 places disponibles');
+    expect(
+      taskEnrollmentMeta(
+        { status: 'available', required_students: 2, assignments: [{ student_id: '5' }] },
+        student,
+      ).label,
+    ).toBe('1 place disponible');
   });
 });
 

@@ -57,12 +57,46 @@ function VitalityStatsGrid({ stats, highlightPossessed = false }) {
       <h3 className="gl-stats-section-title">Vitalité (cœurs & gemmes)</h3>
       <p className="gl-hint gl-stats-note">{VITALITY_HISTORY_HINT}</p>
       <StatsSummaryGrid className="gl-stats-grid">
-        <GlStatCard icon="❤️" value={stats.hearts} animateCount label="Cœurs possédés" highlight={highlightPossessed} title="Solde actuel sur ton compte joueur" />
-        <GlStatCard icon="💎" value={stats.gems} animateCount label="Gemmes possédées" highlight={highlightPossessed} title="Solde actuel sur ton compte joueur" />
-        <GlStatCard icon="⬆️" value={formatCount(stats.hearts_gained)} label="Cœurs gagnés" title={VITALITY_HISTORY_HINT} />
-        <GlStatCard icon="⬇️" value={formatCount(stats.hearts_lost)} label="Cœurs perdus" title={VITALITY_HISTORY_HINT} />
-        <GlStatCard icon="⬆️" value={formatCount(stats.gems_gained)} label="Gemmes gagnées" title={VITALITY_HISTORY_HINT} />
-        <GlStatCard icon="⬇️" value={formatCount(stats.gems_lost)} label="Gemmes perdues" title={VITALITY_HISTORY_HINT} />
+        <GlStatCard
+          icon="❤️"
+          value={stats.hearts}
+          animateCount
+          label="Cœurs possédés"
+          highlight={highlightPossessed}
+          title="Solde actuel sur ton compte joueur"
+        />
+        <GlStatCard
+          icon="💎"
+          value={stats.gems}
+          animateCount
+          label="Gemmes possédées"
+          highlight={highlightPossessed}
+          title="Solde actuel sur ton compte joueur"
+        />
+        <GlStatCard
+          icon="⬆️"
+          value={formatCount(stats.hearts_gained)}
+          label="Cœurs gagnés"
+          title={VITALITY_HISTORY_HINT}
+        />
+        <GlStatCard
+          icon="⬇️"
+          value={formatCount(stats.hearts_lost)}
+          label="Cœurs perdus"
+          title={VITALITY_HISTORY_HINT}
+        />
+        <GlStatCard
+          icon="⬆️"
+          value={formatCount(stats.gems_gained)}
+          label="Gemmes gagnées"
+          title={VITALITY_HISTORY_HINT}
+        />
+        <GlStatCard
+          icon="⬇️"
+          value={formatCount(stats.gems_lost)}
+          label="Gemmes perdues"
+          title={VITALITY_HISTORY_HINT}
+        />
       </StatsSummaryGrid>
     </>
   );
@@ -102,9 +136,7 @@ function ClassLeaderboardRow({ row, vitalityEnabled, rank, onViewJournal, showJo
       <div className="gl-stats-lb-name">
         <strong>{playerLabel(row)}</strong>
         {row.last_seen ? (
-          <small>
-            Vu le {new Date(row.last_seen).toLocaleDateString('fr-FR')}
-          </small>
+          <small>Vu le {new Date(row.last_seen).toLocaleDateString('fr-FR')}</small>
         ) : (
           <small>Jamais connecté</small>
         )}
@@ -114,8 +146,12 @@ function ClassLeaderboardRow({ row, vitalityEnabled, rank, onViewJournal, showJo
           <>
             <span title="Cœurs possédés">❤️ {formatCount(s.hearts)}</span>
             <span title="Gemmes possédées">💎 {formatCount(s.gems)}</span>
-            <span title={VITALITY_HISTORY_HINT}>❤️ +{formatCount(s.hearts_gained)} / −{formatCount(s.hearts_lost)}</span>
-            <span title={VITALITY_HISTORY_HINT}>💎 +{formatCount(s.gems_gained)} / −{formatCount(s.gems_lost)}</span>
+            <span title={VITALITY_HISTORY_HINT}>
+              ❤️ +{formatCount(s.hearts_gained)} / −{formatCount(s.hearts_lost)}
+            </span>
+            <span title={VITALITY_HISTORY_HINT}>
+              💎 +{formatCount(s.gems_gained)} / −{formatCount(s.gems_lost)}
+            </span>
           </>
         ) : null}
         <span title="Espèces étudiées">🦋 {formatCount(s.species_learned)}</span>
@@ -147,7 +183,7 @@ export function GLStatsView({
 }) {
   const activeClasses = useMemo(
     () => (Array.isArray(classes) ? classes : []).filter((c) => Number(c.is_active) !== 0),
-    [classes]
+    [classes],
   );
   const defaultClassId = useMemo(() => {
     if (initialClassId != null && String(initialClassId).trim() !== '') {
@@ -164,7 +200,7 @@ export function GLStatsView({
 
   const canViewPlayerJournal = useMemo(
     () => Array.isArray(auth?.permissions) && auth.permissions.includes('gl.players.manage'),
-    [auth?.permissions]
+    [auth?.permissions],
   );
 
   useEffect(() => {
@@ -182,7 +218,10 @@ export function GLStatsView({
     enabled: mode === 'self' || !!effectiveClassId,
   });
 
-  const vitalityOn = mode === 'self' ? data?.vitalityEnabled === true : vitalityEnabled && data?.vitalityEnabled !== false;
+  const vitalityOn =
+    mode === 'self'
+      ? data?.vitalityEnabled === true
+      : vitalityEnabled && data?.vitalityEnabled !== false;
 
   const filteredPlayers = useMemo(() => {
     const rows = Array.isArray(data?.players) ? data.players : [];
@@ -202,8 +241,12 @@ export function GLStatsView({
   if (error && !data) {
     return (
       <div className="gl-stats-view">
-        <p className="gl-error" role="alert">{error}</p>
-        <GLButton type="button" variant="secondary" onClick={reload}>Réessayer</GLButton>
+        <p className="gl-error" role="alert">
+          {error}
+        </p>
+        <GLButton type="button" variant="secondary" onClick={reload}>
+          Réessayer
+        </GLButton>
       </div>
     );
   }
@@ -215,7 +258,9 @@ export function GLStatsView({
         <div className="gl-stats-head">
           <h2 className="gl-stats-title">📊 Mes statistiques</h2>
           {onClose ? (
-            <GLButton type="button" variant="secondary" onClick={onClose}>Fermer</GLButton>
+            <GLButton type="button" variant="secondary" onClick={onClose}>
+              Fermer
+            </GLButton>
           ) : null}
         </div>
         <p className="gl-hint">
@@ -248,14 +293,16 @@ export function GLStatsView({
 
       {activeClasses.length > 0 ? (
         <div className="gl-stats-filter">
-          <GLField label="Classe" hint={activeClasses.length > 1 ? 'Choisis la classe à analyser.' : undefined}>
+          <GLField
+            label="Classe"
+            hint={activeClasses.length > 1 ? 'Choisis la classe à analyser.' : undefined}
+          >
             {activeClasses.length > 1 ? (
-              <GLSelect
-                value={classFilterId}
-                onChange={(e) => setClassFilterId(e.target.value)}
-              >
+              <GLSelect value={classFilterId} onChange={(e) => setClassFilterId(e.target.value)}>
                 {activeClasses.map((cls) => (
-                  <option key={cls.id} value={String(cls.id)}>{cls.name}</option>
+                  <option key={cls.id} value={String(cls.id)}>
+                    {cls.name}
+                  </option>
                 ))}
               </GLSelect>
             ) : (
@@ -264,13 +311,20 @@ export function GLStatsView({
           </GLField>
         </div>
       ) : (
-        <p className="gl-error" role="alert">Aucune classe active disponible.</p>
+        <p className="gl-error" role="alert">
+          Aucune classe active disponible.
+        </p>
       )}
 
-      {error ? <p className="gl-error" role="alert">{error}</p> : null}
+      {error ? (
+        <p className="gl-error" role="alert">
+          {error}
+        </p>
+      ) : null}
 
       <p className="gl-hint">
-        {formatCount(totals.active_players)} joueur{totals.active_players > 1 ? 's' : ''} actif{totals.active_players > 1 ? 's' : ''} dans cette classe.
+        {formatCount(totals.active_players)} joueur{totals.active_players > 1 ? 's' : ''} actif
+        {totals.active_players > 1 ? 's' : ''} dans cette classe.
       </p>
 
       {vitalityOn ? (
@@ -281,9 +335,21 @@ export function GLStatsView({
       ) : null}
 
       <StatsSummaryGrid className="gl-stats-grid gl-stats-grid--class-totals">
-        <GlStatCard icon="🦋" value={formatRatio(totals.species_learned, catalog.species_total)} label="Espèces étudiées (classe)" />
-        <GlStatCard icon="📚" value={formatRatio(totals.glossary_learned, catalog.glossary_total)} label="Termes glossaire (classe)" />
-        <GlStatCard icon="🎓" value={formatRatio(totals.tutorials_read, catalog.tutorials_total)} label="Tutoriels lus (classe)" />
+        <GlStatCard
+          icon="🦋"
+          value={formatRatio(totals.species_learned, catalog.species_total)}
+          label="Espèces étudiées (classe)"
+        />
+        <GlStatCard
+          icon="📚"
+          value={formatRatio(totals.glossary_learned, catalog.glossary_total)}
+          label="Termes glossaire (classe)"
+        />
+        <GlStatCard
+          icon="🎓"
+          value={formatRatio(totals.tutorials_read, catalog.tutorials_total)}
+          label="Tutoriels lus (classe)"
+        />
       </StatsSummaryGrid>
 
       <div className="gl-stats-search">

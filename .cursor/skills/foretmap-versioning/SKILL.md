@@ -14,7 +14,7 @@ description: Guide le versionnage SemVer, la mise à jour du CHANGELOG et les re
 ## Quand ne pas l'utiliser
 
 - Développement de fonctionnalités ou correction de bugs : préférer **foretmap-project** pour le code métier.
-- Rédiger seule des lignes sous **`[Non publié]`** ne nécessite pas d’ouvrir ce skill, **à condition** d’appliquer quand même la fin de tâche du dépôt (**`bump:*`**, commit, push — voir **`docs/VERSIONING.md`**, *Lots livrés sur `main`*) décrite dans **`.cursor/rules/foretmap-conventions.mdc`**.
+- Rédiger seule des lignes sous **`[Non publié]`** ne nécessite pas d’ouvrir ce skill, **à condition** d’appliquer quand même la fin de tâche du dépôt (**`bump:*`**, commit, push — voir **`docs/VERSIONING.md`**, _Lots livrés sur `main`_) décrite dans **`.cursor/rules/foretmap-conventions.mdc`**.
 
 ## Référence complète
 
@@ -27,11 +27,11 @@ Voir [docs/VERSIONING.md](docs/VERSIONING.md) pour le flux détaillé.
 
 ## Fichiers concernés
 
-| Fichier | Rôle |
-|---------|------|
-| `package.json` | Version officielle |
-| `CHANGELOG.md` | Historique lisible (`[Non publié]` puis `[X.Y.Z] - AAAA-MM-JJ`) |
-| Tag Git `vX.Y.Z` | Repère de release |
+| Fichier          | Rôle                                                            |
+| ---------------- | --------------------------------------------------------------- |
+| `package.json`   | Version officielle                                              |
+| `CHANGELOG.md`   | Historique lisible (`[Non publié]` puis `[X.Y.Z] - AAAA-MM-JJ`) |
+| Tag Git `vX.Y.Z` | Repère de release                                               |
 
 ## Flux recommandé (un seul commit)
 
@@ -84,6 +84,7 @@ Ne pas attendre : **chaque modification livrée = un commit poussé**.
 Si le shell est PowerShell, éviter `<<'EOF'` (syntaxe Bash) pour `git commit`.
 
 - Méthode recommandée :
+
   ```powershell
   git add -A
   $msg = @'
@@ -94,6 +95,7 @@ Si le shell est PowerShell, éviter `<<'EOF'` (syntaxe Bash) pour `git commit`.
   git commit -m $msg
   git push
   ```
+
 - Alternative robuste : écrire le message dans un fichier temporaire puis `git commit -F <fichier>`.
 
 ## Rappel pour l'IA

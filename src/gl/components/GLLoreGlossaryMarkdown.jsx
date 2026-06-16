@@ -42,7 +42,9 @@ export function GLLoreGlossaryMarkdown({
   useEffect(() => bindLoreClick(containerRef.current, onOpenLoreTerm), [html, onOpenLoreTerm]);
 
   if (!html) return null;
-  return <Tag ref={containerRef} className={className} dangerouslySetInnerHTML={{ __html: html }} />;
+  return (
+    <Tag ref={containerRef} className={className} dangerouslySetInnerHTML={{ __html: html }} />
+  );
 }
 
 export function GLLoreGlossaryInlineText({
@@ -62,5 +64,7 @@ export function GLLoreGlossaryInlineText({
   useEffect(() => bindLoreClick(containerRef.current, onOpenLoreTerm), [html, onOpenLoreTerm]);
 
   if (!html) return <Tag className={className}>{text}</Tag>;
-  return <Tag ref={containerRef} className={className} dangerouslySetInnerHTML={{ __html: html }} />;
+  return (
+    <Tag ref={containerRef} className={className} dangerouslySetInnerHTML={{ __html: html }} />
+  );
 }

@@ -11,12 +11,7 @@ const BIOMES = [
 
 function renderFieldset(props = {}) {
   return render(
-    <GLChapterBiomesFieldset
-      biomes={BIOMES}
-      selectedSlugs={[]}
-      onChange={vi.fn()}
-      {...props}
-    />,
+    <GLChapterBiomesFieldset biomes={BIOMES} selectedSlugs={[]} onChange={vi.fn()} {...props} />,
   );
 }
 

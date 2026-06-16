@@ -49,10 +49,7 @@ export function TutorialPreviewModal({ tutorial, onClose, readAcknowledge = null
     '';
   const canEmbed = !!source;
   const tutoIdNum = Number(tutorial.id);
-  const showReadFooter =
-    readAcknowledge &&
-    Number.isFinite(tutoIdNum) &&
-    tutoIdNum > 0;
+  const showReadFooter = readAcknowledge && Number.isFinite(tutoIdNum) && tutoIdNum > 0;
   return (
     <DialogShell
       open={!!tutorial}
@@ -63,7 +60,14 @@ export function TutorialPreviewModal({ tutorial, onClose, readAcknowledge = null
       closeOnOverlay
     >
       <div className="tuto-preview-modal__head">
-        <button type="button" className="modal-close" onClick={onClose} aria-label="Fermer l’aperçu">✕</button>
+        <button
+          type="button"
+          className="modal-close"
+          onClick={onClose}
+          aria-label="Fermer l’aperçu"
+        >
+          ✕
+        </button>
         <h3 id="tuto-preview-title">📘 {tutorial.title}</h3>
       </div>
       {canEmbed ? (

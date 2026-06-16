@@ -16,15 +16,17 @@ test('parseDialogProfileJson refuse une clé inconnue', async () => {
 
 test('resolveMascotDialogLine priorise pack puis catalogue puis global', async () => {
   const { resolveMascotDialogLine } = await import('../src/utils/visitMascotDialogApply.js');
-  const extras = [{
-    id: 'srv-pack',
-    label: 'Pack',
-    renderer: 'sprite_cut',
-    fallbackSilhouette: 'gnome',
-    mascotPackVersion: 2,
-    dialogProfile: { move: ['Pack line'] },
-    spriteCut: { frameWidth: 8, frameHeight: 8, stateFrames: { idle: { srcs: ['/x'], fps: 2 } } },
-  }];
+  const extras = [
+    {
+      id: 'srv-pack',
+      label: 'Pack',
+      renderer: 'sprite_cut',
+      fallbackSilhouette: 'gnome',
+      mascotPackVersion: 2,
+      dialogProfile: { move: ['Pack line'] },
+      spriteCut: { frameWidth: 8, frameHeight: 8, stateFrames: { idle: { srcs: ['/x'], fps: 2 } } },
+    },
+  ];
   const global = { move: ['Global line'] };
   const catalog = { 'gnome-foret-rive': { move: ['Catalog line'] } };
   const fromPack = resolveMascotDialogLine('move', {
@@ -61,6 +63,7 @@ test('resolveMascotDialogLine accepte les clés legacy', async () => {
 });
 
 test('normalizeDialogEventKey mappe surprise vers mascotDragLarge', async () => {
-  const { normalizeDialogEventKey, VISIT_MASCOT_DIALOG_EVENT } = await import('../src/utils/visitMascotDialogEvents.js');
+  const { normalizeDialogEventKey, VISIT_MASCOT_DIALOG_EVENT } =
+    await import('../src/utils/visitMascotDialogEvents.js');
   assert.equal(normalizeDialogEventKey('surprise'), VISIT_MASCOT_DIALOG_EVENT.MASCOT_DRAG_LARGE);
 });

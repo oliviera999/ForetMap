@@ -105,12 +105,11 @@ describe('toMarkerPayload', () => {
     expect(payload.orderIndex).toBe(0);
   });
 
-  test('fusionne le payload d\'apparence', () => {
-    const payload = toMarkerPayload(
-      { label: 'x', xPct: 0, yPct: 0 },
-      null,
-      { displayMode: 'emoji', emoji: '🌲' },
-    );
+  test("fusionne le payload d'apparence", () => {
+    const payload = toMarkerPayload({ label: 'x', xPct: 0, yPct: 0 }, null, {
+      displayMode: 'emoji',
+      emoji: '🌲',
+    });
     expect(payload).toHaveProperty('displayMode');
   });
 });

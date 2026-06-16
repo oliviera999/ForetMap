@@ -17,10 +17,17 @@ function runQuery(schema, key, rawValue) {
   let nextCalled = false;
   const res = {
     statusCode: 200,
-    status(c) { this.statusCode = c; return this; },
-    json() { return this; },
+    status(c) {
+      this.statusCode = c;
+      return this;
+    },
+    json() {
+      return this;
+    },
   };
-  validate({ query: schema })(req, res, () => { nextCalled = true; });
+  validate({ query: schema })(req, res, () => {
+    nextCalled = true;
+  });
   return { nextCalled, status: res.statusCode, value: req.validatedQuery?.[key] };
 }
 
@@ -35,7 +42,11 @@ test('gameId : équivalence exacte (fetch ssi fini et > 0), jamais de 400', () =
   };
   for (const raw of CASES) {
     const { nextCalled, status, value } = runQuery(glMascotsCatalogQuerySchema, 'gameId', raw);
-    assert.strictEqual(nextCalled, true, `gameId=${JSON.stringify(raw)} ne doit jamais être rejeté`);
+    assert.strictEqual(
+      nextCalled,
+      true,
+      `gameId=${JSON.stringify(raw)} ne doit jamais être rejeté`,
+    );
     assert.strictEqual(status, 200);
     const now = value != null ? { fetch: true, gameId: value } : { fetch: false };
     assert.deepStrictEqual(now, legacyFetch(raw), `branche/valeur pour ${JSON.stringify(raw)}`);
@@ -49,7 +60,11 @@ test('chapterId (packs / sprite-library) : équivalence exacte (filtre ssi fini)
   };
   for (const raw of CASES) {
     const { nextCalled, status, value } = runQuery(glMascotsChapterQuerySchema, 'chapterId', raw);
-    assert.strictEqual(nextCalled, true, `chapterId=${JSON.stringify(raw)} ne doit jamais être rejeté`);
+    assert.strictEqual(
+      nextCalled,
+      true,
+      `chapterId=${JSON.stringify(raw)} ne doit jamais être rejeté`,
+    );
     assert.strictEqual(status, 200);
     const now = Number.isFinite(value) ? { filtered: true, chapterId: value } : { filtered: false };
     assert.deepStrictEqual(now, legacyFilter(raw), `branche/valeur pour ${JSON.stringify(raw)}`);

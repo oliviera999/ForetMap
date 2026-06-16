@@ -37,7 +37,14 @@ export function TasksViewHeader({
   const helpTasks = HELP_PANELS.tasks;
   return (
     <>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: 4,
+        }}
+      >
         <h2 className="section-title">✅ Tâches</h2>
         {isTeacher && (
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -59,7 +66,10 @@ export function TasksViewHeader({
             <button
               type="button"
               className="btn btn-ghost btn-sm"
-              onClick={() => { setEditProject(null); setShowProjectForm(true); }}
+              onClick={() => {
+                setEditProject(null);
+                setShowProjectForm(true);
+              }}
             >
               + Projet
             </button>
@@ -95,12 +105,27 @@ export function TasksViewHeader({
               />
             )}
             {canSelfAssignTasks && (
-              <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setNewTaskDefaultProjectId(null); setShowProposalForm(true); }}>+ Proposer</button>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={() => {
+                  setNewTaskDefaultProjectId(null);
+                  setShowProposalForm(true);
+                }}
+              >
+                + Proposer
+              </button>
             )}
           </div>
         )}
       </div>
-      <p className="section-sub">{isTeacher ? 'Piloter les missions, valider les retours et traiter les idées du terrain' : (canSelfAssignTasks ? "Choisis une mission ou propose la tienne, tout le monde peut la lire. Il faut t'inscrire seulement au moment où tu commences la mission pour de vrai." : 'Tu consultes la liste en lecture seule')}</p>
+      <p className="section-sub">
+        {isTeacher
+          ? 'Piloter les missions, valider les retours et traiter les idées du terrain'
+          : canSelfAssignTasks
+            ? "Choisis une mission ou propose la tienne, tout le monde peut la lire. Il faut t'inscrire seulement au moment où tu commences la mission pour de vrai."
+            : 'Tu consultes la liste en lecture seule'}
+      </p>
       {isHelpEnabled && showContextHints && tasksQuickTip ? (
         <p className="section-sub" style={{ marginTop: 6 }}>
           <strong>{helpHintPrefix}</strong> {tasksQuickTip}

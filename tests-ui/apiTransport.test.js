@@ -31,10 +31,12 @@ describe('apiTransport', () => {
 
   test('isGatewayStyleResponse accepte SERVICE_RESTARTING en JSON', () => {
     const res = mockRes(503, 'application/json');
-    expect(isGatewayStyleResponse(res, {
-      error: 'Service en redémarrage',
-      code: 'SERVICE_RESTARTING',
-    })).toBe(true);
+    expect(
+      isGatewayStyleResponse(res, {
+        error: 'Service en redémarrage',
+        code: 'SERVICE_RESTARTING',
+      }),
+    ).toBe(true);
   });
 
   test('shouldRetryAfterHttpError pour POST sur passerelle HTML', () => {
@@ -70,7 +72,8 @@ describe('apiTransport', () => {
   });
 
   test('assertJsonApiBody rejette HTML en réponse ok', () => {
-    expect(() => assertJsonApiBody({ raw: '<!DOCTYPE html>' }, { ok: true }))
-      .toThrow(/Impossible de charger le contenu/i);
+    expect(() => assertJsonApiBody({ raw: '<!DOCTYPE html>' }, { ok: true })).toThrow(
+      /Impossible de charger le contenu/i,
+    );
   });
 });

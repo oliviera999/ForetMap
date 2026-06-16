@@ -47,7 +47,11 @@ before(async () => {
     pseudo: `fz-player-${stamp}`,
   });
   await assignPlayerToGameTeam({ gameId, teamId, playerId: player.id });
-  await execute('UPDATE gl_games SET status = ?, current_team_id = ? WHERE id = ?', ['live', teamId, gameId]);
+  await execute('UPDATE gl_games SET status = ?, current_team_id = ? WHERE id = ?', [
+    'live',
+    teamId,
+    gameId,
+  ]);
 
   const tokens = await signTokens({
     adminId: admin.id,

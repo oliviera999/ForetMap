@@ -50,12 +50,18 @@ describe('GLChapterMapStudio', () => {
     apiGlMock.mockImplementation(async (url) => {
       if (String(url).includes('/api/gl/kingdom-map/zones')) {
         return {
-          zones: [{
-            id: 1,
-            label: 'Zone test',
-            color: '#22c55e',
-            points: [{ x: 10, y: 10 }, { x: 20, y: 10 }, { x: 15, y: 20 }],
-          }],
+          zones: [
+            {
+              id: 1,
+              label: 'Zone test',
+              color: '#22c55e',
+              points: [
+                { x: 10, y: 10 },
+                { x: 20, y: 10 },
+                { x: 15, y: 20 },
+              ],
+            },
+          ],
         };
       }
       return { items: [] };

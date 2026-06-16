@@ -20,6 +20,12 @@ test('glPointInPolygon: point à l intérieur', async () => {
 test('glPointInPolygon: polygone invalide', async () => {
   const { isPointInPolygon, polygonArea } = await import('../src/utils/glPointInPolygon.js');
   assert.strictEqual(isPointInPolygon(50, 50, []), false);
-  assert.strictEqual(isPointInPolygon(50, 50, [{ x: 0, y: 0 }, { x: 10, y: 0 }]), false);
+  assert.strictEqual(
+    isPointInPolygon(50, 50, [
+      { x: 0, y: 0 },
+      { x: 10, y: 0 },
+    ]),
+    false,
+  );
   assert.strictEqual(polygonArea([]), 0);
 });

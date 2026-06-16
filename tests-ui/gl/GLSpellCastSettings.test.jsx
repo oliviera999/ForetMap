@@ -5,12 +5,7 @@ import { GLSpellCastSettings } from '../../src/gl/components/settings/GLSpellCas
 
 function renderSettings(props = {}) {
   return render(
-    <GLSpellCastSettings
-      settings={{}}
-      savingKey=""
-      onSaveSetting={vi.fn()}
-      {...props}
-    />,
+    <GLSpellCastSettings settings={{}} savingKey="" onSaveSetting={vi.fn()} {...props} />,
   );
 }
 
@@ -40,10 +35,13 @@ describe('GLSpellCastSettings', () => {
     const onSaveSetting = vi.fn();
     renderSettings({ onSaveSetting });
     fireEvent.change(screen.getAllByRole('combobox')[0], { target: { value: 'coordinator' } });
-    expect(onSaveSetting).toHaveBeenCalledWith('gameplay.spell_cast_contribution_mode', 'coordinator');
+    expect(onSaveSetting).toHaveBeenCalledWith(
+      'gameplay.spell_cast_contribution_mode',
+      'coordinator',
+    );
   });
 
-  test('appelle onSaveSetting au changement de portée d\'équipe', () => {
+  test("appelle onSaveSetting au changement de portée d'équipe", () => {
     const onSaveSetting = vi.fn();
     renderSettings({ onSaveSetting });
     fireEvent.change(screen.getAllByRole('combobox')[1], { target: { value: 'mj_any' } });
@@ -57,7 +55,7 @@ describe('GLSpellCastSettings', () => {
     expect(onSaveSetting).toHaveBeenCalledWith('gameplay.spell_cast_mj_only', true);
   });
 
-  test('désactive le contrôle en cours d\'enregistrement', () => {
+  test("désactive le contrôle en cours d'enregistrement", () => {
     renderSettings({ savingKey: 'gameplay.spell_cast_mj_only' });
     expect(screen.getByRole('checkbox').disabled).toBe(true);
   });

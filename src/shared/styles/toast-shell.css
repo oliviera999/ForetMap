@@ -1,10 +1,10 @@
 /* Toast partagé ForetMap + GL (ancre fixe + panneau animé). */
 
 :root {
-  --fm-toast-bg: linear-gradient(160deg, rgba(26, 71, 49, .96), rgba(26, 71, 49, .88));
+  --fm-toast-bg: linear-gradient(160deg, rgba(26, 71, 49, 0.96), rgba(26, 71, 49, 0.88));
   --fm-toast-color: #fff;
-  --fm-toast-border: rgba(255, 255, 255, .18);
-  --fm-toast-shadow: 0 16px 30px rgba(26, 71, 49, .26);
+  --fm-toast-border: rgba(255, 255, 255, 0.18);
+  --fm-toast-shadow: 0 16px 30px rgba(26, 71, 49, 0.26);
   --fm-toast-bottom: calc(var(--bottom-nav-height, 72px) + var(--safe-bottom) + 12px);
   --fm-toast-z: 500;
 }
@@ -25,14 +25,14 @@
   color: var(--fm-toast-color);
   padding: 11px 16px;
   border-radius: 16px;
-  font-size: .88rem;
+  font-size: 0.88rem;
   white-space: normal;
   text-wrap: balance;
   line-height: 1.35;
   text-align: center;
   border: 1px solid var(--fm-toast-border);
   box-shadow: var(--fm-toast-shadow);
-  animation: toastIn .35s var(--spring) forwards;
+  animation: toastIn 0.35s var(--spring) forwards;
 }
 
 .fm-toast--inline {
@@ -50,14 +50,14 @@
   color: var(--fm-toast-color);
   padding: 11px 16px;
   border-radius: 16px;
-  font-size: .88rem;
+  font-size: 0.88rem;
   white-space: normal;
   text-wrap: balance;
   line-height: 1.35;
   text-align: center;
   border: 1px solid var(--fm-toast-border);
   box-shadow: var(--fm-toast-shadow);
-  animation: toastIn .35s var(--spring) forwards;
+  animation: toastIn 0.35s var(--spring) forwards;
 }
 
 .toast:not(.toast--inline) {

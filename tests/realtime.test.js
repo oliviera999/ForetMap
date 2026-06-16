@@ -91,7 +91,11 @@ test('Socket.IO : réception de tasks / students / garden / forum / context-comm
   assert.strictEqual(msgForum.reason, 'test_forum');
 
   const commentsPromise = once('context-comments:changed');
-  emitContextCommentsChanged({ reason: 'test_context_comments', contextType: 'task', contextId: 't1' });
+  emitContextCommentsChanged({
+    reason: 'test_context_comments',
+    contextType: 'task',
+    contextId: 't1',
+  });
   const msgComments = await commentsPromise;
   assert.strictEqual(msgComments.reason, 'test_context_comments');
   assert.strictEqual(msgComments.contextType, 'task');
@@ -157,7 +161,10 @@ test('Socket.IO : connexion refusée avec JWT invalide', async () => {
   });
 
   await new Promise((resolve, reject) => {
-    const to = setTimeout(() => reject(new Error('timeout connect_error attendu (JWT invalide)')), 5000);
+    const to = setTimeout(
+      () => reject(new Error('timeout connect_error attendu (JWT invalide)')),
+      5000,
+    );
     socket.once('connect', () => {
       clearTimeout(to);
       reject(new Error('la connexion avec JWT invalide ne devrait pas aboutir'));
@@ -192,7 +199,7 @@ test('Socket.IO : connexion refusée avec JWT expiré', async () => {
       roleSlug: 'prof',
       exp: Math.floor(Date.now() / 1000) - 120,
     },
-    JWT_SECRET
+    JWT_SECRET,
   );
 
   const socket = clientIo(`http://127.0.0.1:${port}`, {
@@ -203,7 +210,10 @@ test('Socket.IO : connexion refusée avec JWT expiré', async () => {
   });
 
   await new Promise((resolve, reject) => {
-    const to = setTimeout(() => reject(new Error('timeout connect_error attendu (JWT expiré)')), 5000);
+    const to = setTimeout(
+      () => reject(new Error('timeout connect_error attendu (JWT expiré)')),
+      5000,
+    );
     socket.once('connect', () => {
       clearTimeout(to);
       reject(new Error('la connexion avec JWT expiré ne devrait pas aboutir'));
@@ -244,8 +254,14 @@ test('Socket.IO : subscribe:map quitte l’ancienne salle map', async () => {
 
   await new Promise((resolve, reject) => {
     const to = setTimeout(() => reject(new Error('timeout connexion')), 8000);
-    socket.once('connect', () => { clearTimeout(to); resolve(); });
-    socket.once('connect_error', (err) => { clearTimeout(to); reject(err); });
+    socket.once('connect', () => {
+      clearTimeout(to);
+      resolve();
+    });
+    socket.once('connect_error', (err) => {
+      clearTimeout(to);
+      reject(err);
+    });
   });
 
   socket.emit('subscribe:map', { mapId: 'n3' });
@@ -259,7 +275,7 @@ test('Socket.IO : subscribe:map quitte l’ancienne salle map', async () => {
   assert.strictEqual(
     received.some((m) => m.mapId === 'foret'),
     false,
-    'ne doit plus recevoir les événements map:foret après subscribe:map vers n3'
+    'ne doit plus recevoir les événements map:foret après subscribe:map vers n3',
   );
 
   socket.removeAllListeners('tasks:changed');
@@ -310,13 +326,25 @@ test('Socket.IO : emitTasksChanged sans mapId atteint domain:tasks (toutes les c
   await Promise.all([
     new Promise((resolve, reject) => {
       const to = setTimeout(() => reject(new Error('timeout socketForet')), 8000);
-      socketForet.once('connect', () => { clearTimeout(to); resolve(); });
-      socketForet.once('connect_error', (err) => { clearTimeout(to); reject(err); });
+      socketForet.once('connect', () => {
+        clearTimeout(to);
+        resolve();
+      });
+      socketForet.once('connect_error', (err) => {
+        clearTimeout(to);
+        reject(err);
+      });
     }),
     new Promise((resolve, reject) => {
       const to = setTimeout(() => reject(new Error('timeout socketN3')), 8000);
-      socketN3.once('connect', () => { clearTimeout(to); resolve(); });
-      socketN3.once('connect_error', (err) => { clearTimeout(to); reject(err); });
+      socketN3.once('connect', () => {
+        clearTimeout(to);
+        resolve();
+      });
+      socketN3.once('connect_error', (err) => {
+        clearTimeout(to);
+        reject(err);
+      });
     }),
   ]);
 
@@ -363,19 +391,33 @@ test('Socket.IO : émission ciblée par mapId', async () => {
   await Promise.all([
     new Promise((resolve, reject) => {
       const to = setTimeout(() => reject(new Error('timeout socketForet')), 7000);
-      socketForet.once('connect', () => { clearTimeout(to); resolve(); });
-      socketForet.once('connect_error', (err) => { clearTimeout(to); reject(err); });
+      socketForet.once('connect', () => {
+        clearTimeout(to);
+        resolve();
+      });
+      socketForet.once('connect_error', (err) => {
+        clearTimeout(to);
+        reject(err);
+      });
     }),
     new Promise((resolve, reject) => {
       const to = setTimeout(() => reject(new Error('timeout socketN3')), 7000);
-      socketN3.once('connect', () => { clearTimeout(to); resolve(); });
-      socketN3.once('connect_error', (err) => { clearTimeout(to); reject(err); });
+      socketN3.once('connect', () => {
+        clearTimeout(to);
+        resolve();
+      });
+      socketN3.once('connect_error', (err) => {
+        clearTimeout(to);
+        reject(err);
+      });
     }),
   ]);
 
   const foretEvent = new Promise((resolve) => socketForet.once('tasks:changed', resolve));
   let n3Received = false;
-  socketN3.once('tasks:changed', () => { n3Received = true; });
+  socketN3.once('tasks:changed', () => {
+    n3Received = true;
+  });
 
   emitTasksChanged({ reason: 'map_only', taskId: 't-map', mapId: 'foret' });
   const msg = await foretEvent;

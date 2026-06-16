@@ -114,7 +114,7 @@ test('Socket.IO GL : refuse la souscription joueur à une partie étrangère', a
     `INSERT INTO gl_team_members (game_id, team_id, player_id, joined_at)
      VALUES (?, ?, ?, NOW())
      ON DUPLICATE KEY UPDATE team_id = VALUES(team_id), joined_at = NOW()`,
-    [ownGame.game.id, ownGame.teams[0].id, player.id]
+    [ownGame.game.id, ownGame.teams[0].id, player.id],
   );
   const { playerToken } = await signTokens({
     playerId: player.id,

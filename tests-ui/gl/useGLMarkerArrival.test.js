@@ -33,12 +33,14 @@ describe('useGLMarkerArrival', () => {
       presentation: { question: 'Test ?', choices: [], presentationToken: 'tok' },
     });
 
-    const { result } = renderHook(() => useGLMarkerArrival({
-      teams: [{ id: 1, position_marker_id: null }],
-      markers: [QUESTION_MARKER],
-      gameId: 42,
-      watchTeamId: 1,
-    }));
+    const { result } = renderHook(() =>
+      useGLMarkerArrival({
+        teams: [{ id: 1, position_marker_id: null }],
+        markers: [QUESTION_MARKER],
+        gameId: 42,
+        watchTeamId: 1,
+      }),
+    );
 
     act(() => {
       result.current.schedulePresentOnArrival(QUESTION_MARKER, 1, { force: true });

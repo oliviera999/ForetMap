@@ -38,8 +38,18 @@ export function TasksTeacherSections({
 }) {
   return (
     <>
-      <TaskTileSection title="⚙️ En cours" tasks={inProgress} sectionListClass={sectionListClass} taskTileProps={taskTileProps} />
-      <TaskTileSection title="🔥 À faire" tasks={available} sectionListClass={sectionListClass} taskTileProps={taskTileProps} />
+      <TaskTileSection
+        title="⚙️ En cours"
+        tasks={inProgress}
+        sectionListClass={sectionListClass}
+        taskTileProps={taskTileProps}
+      />
+      <TaskTileSection
+        title="🔥 À faire"
+        tasks={available}
+        sectionListClass={sectionListClass}
+        taskTileProps={taskTileProps}
+      />
       <TaskProjectsBlock {...taskProjectsBlockProps} visibleProjects={activeProjects} />
       <TaskTileSection
         title={`💡 Propositions ${roleTerms.studentPlural} (${proposed.length})`}
@@ -59,7 +69,12 @@ export function TasksTeacherSections({
         sectionListClass={sectionListClass}
         taskTileProps={taskTileProps}
       />
-      <TaskTileSection title="✅ Validées" tasks={validated} sectionListClass={sectionListClass} taskTileProps={taskTileProps} />
+      <TaskTileSection
+        title="✅ Validées"
+        tasks={validated}
+        sectionListClass={sectionListClass}
+        taskTileProps={taskTileProps}
+      />
     </>
   );
 }

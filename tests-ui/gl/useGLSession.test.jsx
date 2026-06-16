@@ -4,7 +4,10 @@ import { useGLSession } from '../../src/gl/hooks/useGLSession.js';
 
 describe('useGLSession', () => {
   test('hydrate la session depuis localStorage', () => {
-    localStorage.setItem('gl_session', JSON.stringify({ token: 'abc', auth: { userType: 'gl_player' } }));
+    localStorage.setItem(
+      'gl_session',
+      JSON.stringify({ token: 'abc', auth: { userType: 'gl_player' } }),
+    );
     const { result } = renderHook(() => useGLSession());
     expect(result.current.token).toBe('abc');
     expect(result.current.auth?.userType).toBe('gl_player');

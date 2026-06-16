@@ -28,15 +28,26 @@ describe('clampVisitMapTransform', () => {
   test('échelle 1 ou rect absent → recentrage (x=0, y=0)', () => {
     expect(clampVisitMapTransform({ x: -50, y: -50, s: 1 }, RECT)).toEqual({ x: 0, y: 0, s: 1 });
     expect(clampVisitMapTransform({ x: -50, y: -50, s: 2 }, null)).toEqual({ x: 0, y: 0, s: 2 });
-    expect(clampVisitMapTransform({ x: -50, y: -50, s: 2 }, { width: 0, height: 300 }))
-      .toEqual({ x: 0, y: 0, s: 2 });
+    expect(clampVisitMapTransform({ x: -50, y: -50, s: 2 }, { width: 0, height: 300 })).toEqual({
+      x: 0,
+      y: 0,
+      s: 2,
+    });
   });
 
   test('translation bornée au cadre : jamais positive, jamais au-delà du débord', () => {
     // s=2 sur 400×300 → x ∈ [-400, 0], y ∈ [-300, 0].
     expect(clampVisitMapTransform({ x: 25, y: 10, s: 2 }, RECT)).toEqual({ x: 0, y: 0, s: 2 });
-    expect(clampVisitMapTransform({ x: -999, y: -999, s: 2 }, RECT)).toEqual({ x: -400, y: -300, s: 2 });
-    expect(clampVisitMapTransform({ x: -120, y: -80, s: 2 }, RECT)).toEqual({ x: -120, y: -80, s: 2 });
+    expect(clampVisitMapTransform({ x: -999, y: -999, s: 2 }, RECT)).toEqual({
+      x: -400,
+      y: -300,
+      s: 2,
+    });
+    expect(clampVisitMapTransform({ x: -120, y: -80, s: 2 }, RECT)).toEqual({
+      x: -120,
+      y: -80,
+      s: 2,
+    });
   });
 
   test('échelle hors bornes : transform résultant borné aussi', () => {

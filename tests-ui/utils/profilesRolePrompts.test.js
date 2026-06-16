@@ -44,7 +44,11 @@ describe('promptRoleDetailsPatch', () => {
 
   test('les brouillons du formulaire priment sur le rôle pour les valeurs par défaut', () => {
     const prompt = makePrompt(['Mentor', '🌳', '5', '4']);
-    promptRoleDetailsPatch(role, { roleEmoji: '🔥', roleMinDoneTasks: '9', roleDisplayOrder: '8' }, prompt);
+    promptRoleDetailsPatch(
+      role,
+      { roleEmoji: '🔥', roleMinDoneTasks: '9', roleDisplayOrder: '8' },
+      prompt,
+    );
     expect(prompt.calls[1].defaultValue).toBe('🔥');
     expect(prompt.calls[2].defaultValue).toBe('9');
     expect(prompt.calls[3].defaultValue).toBe('8');
@@ -52,7 +56,11 @@ describe('promptRoleDetailsPatch', () => {
 
   test('défauts issus du rôle quand pas de brouillon ; min_done_tasks null → chaîne vide', () => {
     const prompt = makePrompt(['Mentor', '🌳', '', '0']);
-    const res = promptRoleDetailsPatch({ ...role, min_done_tasks: null, display_order: undefined }, {}, prompt);
+    const res = promptRoleDetailsPatch(
+      { ...role, min_done_tasks: null, display_order: undefined },
+      {},
+      prompt,
+    );
     expect(prompt.calls[0].defaultValue).toBe('Novice');
     expect(prompt.calls[1].defaultValue).toBe('🌱');
     expect(prompt.calls[2].defaultValue).toBe('');
@@ -69,14 +77,18 @@ describe('promptRoleDetailsPatch', () => {
   });
 
   test('niveau requis invalide → erreur dédiée ; ordre invalide → erreur dédiée', () => {
-    expect(promptRoleDetailsPatch(role, {}, makePrompt(['Mentor', '🌳', '-2', '4'])))
-      .toEqual({ error: 'Niveau requis invalide (entier >= 0)' });
-    expect(promptRoleDetailsPatch(role, {}, makePrompt(['Mentor', '🌳', 'abc', '4'])))
-      .toEqual({ error: 'Niveau requis invalide (entier >= 0)' });
-    expect(promptRoleDetailsPatch(role, {}, makePrompt(['Mentor', '🌳', '5', '-1'])))
-      .toEqual({ error: "Ordre d'affichage invalide (entier >= 0)" });
-    expect(promptRoleDetailsPatch(role, {}, makePrompt(['Mentor', '🌳', '5', 'zz'])))
-      .toEqual({ error: "Ordre d'affichage invalide (entier >= 0)" });
+    expect(promptRoleDetailsPatch(role, {}, makePrompt(['Mentor', '🌳', '-2', '4']))).toEqual({
+      error: 'Niveau requis invalide (entier >= 0)',
+    });
+    expect(promptRoleDetailsPatch(role, {}, makePrompt(['Mentor', '🌳', 'abc', '4']))).toEqual({
+      error: 'Niveau requis invalide (entier >= 0)',
+    });
+    expect(promptRoleDetailsPatch(role, {}, makePrompt(['Mentor', '🌳', '5', '-1']))).toEqual({
+      error: "Ordre d'affichage invalide (entier >= 0)",
+    });
+    expect(promptRoleDetailsPatch(role, {}, makePrompt(['Mentor', '🌳', '5', 'zz']))).toEqual({
+      error: "Ordre d'affichage invalide (entier >= 0)",
+    });
   });
 
   test('emoji vidé → null dans le payload', () => {
@@ -118,17 +130,21 @@ describe('promptNewRoleProfile', () => {
   });
 
   test('profil n3beur (eleve_*) : emoji et niveau requis obligatoires', () => {
-    expect(promptNewRoleProfile(makePrompt(['eleve_x', 'X', '  ', '3', '1'])))
-      .toEqual({ error: 'Un profil n3beur doit avoir un emoji' });
-    expect(promptNewRoleProfile(makePrompt(['eleve_x', 'X', '🌳', '', '1'])))
-      .toEqual({ error: 'Un profil n3beur doit avoir un niveau requis' });
+    expect(promptNewRoleProfile(makePrompt(['eleve_x', 'X', '  ', '3', '1']))).toEqual({
+      error: 'Un profil n3beur doit avoir un emoji',
+    });
+    expect(promptNewRoleProfile(makePrompt(['eleve_x', 'X', '🌳', '', '1']))).toEqual({
+      error: 'Un profil n3beur doit avoir un niveau requis',
+    });
   });
 
   test('saisies numériques invalides → erreurs dédiées', () => {
-    expect(promptNewRoleProfile(makePrompt(['custom', 'X', '🌳', '-1', '1'])))
-      .toEqual({ error: 'Niveau requis invalide (entier >= 0)' });
-    expect(promptNewRoleProfile(makePrompt(['custom', 'X', '🌳', '3', 'nope'])))
-      .toEqual({ error: "Ordre d'affichage invalide (entier >= 0)" });
+    expect(promptNewRoleProfile(makePrompt(['custom', 'X', '🌳', '-1', '1']))).toEqual({
+      error: 'Niveau requis invalide (entier >= 0)',
+    });
+    expect(promptNewRoleProfile(makePrompt(['custom', 'X', '🌳', '3', 'nope']))).toEqual({
+      error: "Ordre d'affichage invalide (entier >= 0)",
+    });
   });
 });
 

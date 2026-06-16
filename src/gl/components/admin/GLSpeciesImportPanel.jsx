@@ -45,7 +45,7 @@ export function GLSpeciesImportPanel() {
     return runDownload(
       '/api/gl/admin/species/import/template',
       'foretmap-gl-modele-biocenose.xlsx',
-      'Modèle XLSX téléchargé (feuilles especes et biomes_stats).'
+      'Modèle XLSX téléchargé (feuilles especes et biomes_stats).',
     );
   }
 
@@ -57,7 +57,7 @@ export function GLSpeciesImportPanel() {
     return runDownload(
       `/api/gl/admin/species/export${query ? `?${query}` : ''}`,
       'foretmap-gl-export-biocenose.xlsx',
-      'Export XLSX généré.'
+      'Export XLSX généré.',
     );
   }
 
@@ -106,26 +106,15 @@ export function GLSpeciesImportPanel() {
     <section className="gl-admin-section fade-in">
       <h3>Import biocénose — espèces / biomes (XLSX)</h3>
       <p className="gl-hint">
-        Catalogue espèces par biome (affiché dans la biocénose joueur). Fichier attendu : feuilles
-        {' '}
-        <code>especes</code>
-        {' '}
-        et
-        {' '}
-        <code>biomes_stats</code>
-        {' '}
-        (voir <code>data/gl/README.md</code>).
+        Catalogue espèces par biome (affiché dans la biocénose joueur). Fichier attendu : feuilles{' '}
+        <code>especes</code> et <code>biomes_stats</code> (voir <code>data/gl/README.md</code>).
       </p>
       {error ? <p className="gl-error">{error}</p> : null}
       {info ? <p className="gl-hint">{info}</p> : null}
 
       {stats ? (
         <p className="gl-hint">
-          Catalogue actuel :
-          {' '}
-          <strong>{stats.total || 0}</strong>
-          {' '}
-          espèce(s) actives.
+          Catalogue actuel : <strong>{stats.total || 0}</strong> espèce(s) actives.
         </p>
       ) : null}
 
@@ -160,7 +149,10 @@ export function GLSpeciesImportPanel() {
           />
         </GLField>
         <GLField label="Mode">
-          <GLSelect value={dryRun ? 'dry' : 'apply'} onChange={(e) => setDryRun(e.target.value === 'dry')}>
+          <GLSelect
+            value={dryRun ? 'dry' : 'apply'}
+            onChange={(e) => setDryRun(e.target.value === 'dry')}
+          >
             <option value="dry">Simulation (dry-run)</option>
             <option value="apply">Importer réellement</option>
           </GLSelect>

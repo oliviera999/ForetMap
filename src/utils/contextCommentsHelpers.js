@@ -14,7 +14,9 @@ export function contextCommentDraftKey(contextType, contextId) {
 }
 
 export function readContextCommentDraft(contextType, contextId) {
-  return String(safeSessionStorageGetItem(contextCommentDraftKey(contextType, contextId), '') || '');
+  return String(
+    safeSessionStorageGetItem(contextCommentDraftKey(contextType, contextId), '') || '',
+  );
 }
 
 export function writeContextCommentDraft(contextType, contextId, text) {
@@ -33,7 +35,10 @@ export function contextCommentReadCursorKey(userType, userId, contextType, conte
 export function readContextCommentReadCursor(userType, userId, contextType, contextId) {
   if (!userType || !userId || !contextType || contextId == null || contextId === '') return null;
   try {
-    const raw = safeLocalStorageGetItem(contextCommentReadCursorKey(userType, userId, contextType, contextId), null);
+    const raw = safeLocalStorageGetItem(
+      contextCommentReadCursorKey(userType, userId, contextType, contextId),
+      null,
+    );
     if (!raw) return null;
     const o = JSON.parse(raw);
     const newestId = Number(o?.newestId);
@@ -49,7 +54,7 @@ export function writeContextCommentReadCursor(userType, userId, contextType, con
   const n = Math.max(0, Math.floor(Number(newestId) || 0));
   safeLocalStorageSetItem(
     contextCommentReadCursorKey(userType, userId, contextType, contextId),
-    JSON.stringify({ newestId: n })
+    JSON.stringify({ newestId: n }),
   );
 }
 

@@ -33,11 +33,9 @@ async function main() {
 
   await initSchema();
 
-  const report = await applyGlossaryImport(
-    { queryAll, execute },
-    glossaryRows,
-    { dryRun: args.dryRun }
-  );
+  const report = await applyGlossaryImport({ queryAll, execute }, glossaryRows, {
+    dryRun: args.dryRun,
+  });
 
   const mode = args.dryRun ? 'dry-run' : 'apply';
   console.log(`[gl-import-glossary] ${mode} OK — fichier: ${args.file}`);

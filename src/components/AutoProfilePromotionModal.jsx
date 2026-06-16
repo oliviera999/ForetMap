@@ -28,51 +28,54 @@ export function AutoProfilePromotionModal({ data, roleTerms, onClose }) {
       ariaDescribedBy="profile-promo-desc"
       closeOnOverlay
     >
-        <div className="profile-promo-card__glow" aria-hidden="true" />
-        <div className="profile-promo-card__inner">
-          <p className="profile-promo-card__kicker">Nouveau palier</p>
-          <h2 id="profile-promo-title" className="profile-promo-card__title">
-            {titleEmoji}
-            Bravo !
-          </h2>
-          <p id="profile-promo-desc" className="profile-promo-card__lead">
-            Ton profil <strong>{studentLabel}</strong> évolue : tu es maintenant{' '}
-            <strong>
-              {data.roleEmoji ? `${data.roleEmoji} ` : ''}
-              {data.roleDisplayName || data.roleSlug}
-            </strong>
-            {data.validatedTaskCount > 0 ? (
-              <>
-                {' '}
-                — avec <strong>{data.validatedTaskCount}</strong> tâche
-                {data.validatedTaskCount > 1 ? 's' : ''} validée
-                {data.validatedTaskCount > 1 ? 's' : ''}
-              </>
-            ) : null}
-            .
-          </p>
-          {Array.isArray(data.highlights) && data.highlights.length > 0 ? (
-            <div className="profile-promo-card__highlights">
-              <p className="profile-promo-card__highlights-title">En résumé, ton profil te permet :</p>
-              <ul>
-                {data.highlights.map((line, i) => (
-                  <li key={`h-${i}`}>{line}</li>
-                ))}
-              </ul>
-            </div>
+      <div className="profile-promo-card__glow" aria-hidden="true" />
+      <div className="profile-promo-card__inner">
+        <p className="profile-promo-card__kicker">Nouveau palier</p>
+        <h2 id="profile-promo-title" className="profile-promo-card__title">
+          {titleEmoji}
+          Bravo !
+        </h2>
+        <p id="profile-promo-desc" className="profile-promo-card__lead">
+          Ton profil <strong>{studentLabel}</strong> évolue : tu es maintenant{' '}
+          <strong>
+            {data.roleEmoji ? `${data.roleEmoji} ` : ''}
+            {data.roleDisplayName || data.roleSlug}
+          </strong>
+          {data.validatedTaskCount > 0 ? (
+            <>
+              {' '}
+              — avec <strong>{data.validatedTaskCount}</strong> tâche
+              {data.validatedTaskCount > 1 ? 's' : ''} validée
+              {data.validatedTaskCount > 1 ? 's' : ''}
+            </>
           ) : null}
-          <p className="profile-promo-card__hint">
-            Le détail des droits est dans l’aide — ou demande un coup de main côté {roleTerms?.teacherSingular || 'n3boss'} si tu bloques.
-          </p>
-          <button
-            ref={closeBtnRef}
-            type="button"
-            className="btn profile-promo-card__cta"
-            onClick={onClose}
-          >
-            C’est parti !
-          </button>
-        </div>
+          .
+        </p>
+        {Array.isArray(data.highlights) && data.highlights.length > 0 ? (
+          <div className="profile-promo-card__highlights">
+            <p className="profile-promo-card__highlights-title">
+              En résumé, ton profil te permet :
+            </p>
+            <ul>
+              {data.highlights.map((line, i) => (
+                <li key={`h-${i}`}>{line}</li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+        <p className="profile-promo-card__hint">
+          Le détail des droits est dans l’aide — ou demande un coup de main côté{' '}
+          {roleTerms?.teacherSingular || 'n3boss'} si tu bloques.
+        </p>
+        <button
+          ref={closeBtnRef}
+          type="button"
+          className="btn profile-promo-card__cta"
+          onClick={onClose}
+        >
+          C’est parti !
+        </button>
+      </div>
     </DialogShell>
   );
 }

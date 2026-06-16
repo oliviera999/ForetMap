@@ -1,12 +1,18 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import TurndownService from 'turndown';
 import { renderMarkdownToSafeHtml, sanitizeRichHtml } from '../../../utils/markdown.js';
-import { glImageFrameToStyle, normalizeGlImageFrame, serializeGlImageFrameAttr } from '../../../utils/glImageFrame.js';
+import {
+  glImageFrameToStyle,
+  normalizeGlImageFrame,
+  serializeGlImageFrameAttr,
+} from '../../../utils/glImageFrame.js';
 import { GLImageInlineInsertControls } from '../GLImageInlineInsertControls.jsx';
 
 function styleObjectToString(style) {
   return Object.entries(style || {})
-    .map(([key, value]) => `${key.replace(/[A-Z]/g, (match) => `-${match.toLowerCase()}`)}:${value}`)
+    .map(
+      ([key, value]) => `${key.replace(/[A-Z]/g, (match) => `-${match.toLowerCase()}`)}:${value}`,
+    )
     .join(';');
 }
 
@@ -19,7 +25,9 @@ function escapeHtmlAttr(value) {
 }
 
 function normalizeHtmlForCompare(html) {
-  return String(html || '').replace(/\s+/g, ' ').trim();
+  return String(html || '')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 function markdownToEditableHtml(markdown) {
@@ -64,24 +72,30 @@ function runExecCommand(command, commandValue = null) {
   return document.execCommand(command, false, commandValue);
 }
 
-export const GLRichTextEditor = React.forwardRef(function GLRichTextEditor({
-  value,
-  onChange,
-  className = '',
-  placeholder = 'Saisissez votre texte…',
-  hint = 'Mise en forme enrichie : titres, listes, citations, liens et images.',
-  imageLegend = 'Photos dans le texte',
-}, forwardedRef) {
+export const GLRichTextEditor = React.forwardRef(function GLRichTextEditor(
+  {
+    value,
+    onChange,
+    className = '',
+    placeholder = 'Saisissez votre texte…',
+    hint = 'Mise en forme enrichie : titres, listes, citations, liens et images.',
+    imageLegend = 'Photos dans le texte',
+  },
+  forwardedRef,
+) {
   const editableRef = useRef(null);
   const lastMarkdownRef = useRef(null);
   const [imageStatus, setImageStatus] = useState('');
   const [imageStatusError, setImageStatusError] = useState(false);
 
-  const setEditableRef = useCallback((element) => {
-    editableRef.current = element;
-    if (typeof forwardedRef === 'function') forwardedRef(element);
-    else if (forwardedRef) forwardedRef.current = element;
-  }, [forwardedRef]);
+  const setEditableRef = useCallback(
+    (element) => {
+      editableRef.current = element;
+      if (typeof forwardedRef === 'function') forwardedRef(element);
+      else if (forwardedRef) forwardedRef.current = element;
+    },
+    [forwardedRef],
+  );
 
   const syncFromDom = useCallback(() => {
     const el = editableRef.current;
@@ -114,25 +128,35 @@ export const GLRichTextEditor = React.forwardRef(function GLRichTextEditor({
     editableRef.current?.focus();
   }, []);
 
-  const applyCommand = useCallback((command, commandValue = null) => {
-    focusEditable();
-    runExecCommand(command, commandValue);
-    syncFromDom();
-  }, [focusEditable, syncFromDom]);
+  const applyCommand = useCallback(
+    (command, commandValue = null) => {
+      focusEditable();
+      runExecCommand(command, commandValue);
+      syncFromDom();
+    },
+    [focusEditable, syncFromDom],
+  );
 
-  const applyFormatBlock = useCallback((tagName) => {
-    applyCommand('formatBlock', `<${tagName}>`);
-  }, [applyCommand]);
+  const applyFormatBlock = useCallback(
+    (tagName) => {
+      applyCommand('formatBlock', `<${tagName}>`);
+    },
+    [applyCommand],
+  );
 
-  const editorClassName = useMemo(() => (
-    ['gl-rich-editor', className].filter(Boolean).join(' ')
-  ), [className]);
+  const editorClassName = useMemo(
+    () => ['gl-rich-editor', className].filter(Boolean).join(' '),
+    [className],
+  );
 
   function insertInlineImage({ url, alt = 'Image', frame = null }) {
     const safeUrl = String(url || '').trim();
     if (!safeUrl) return;
     const normalizedFrame = normalizeGlImageFrame(frame, 'markdown');
-    const frameAttr = serializeGlImageFrameAttr(normalizedFrame, 'markdown').replace(/'/g, '&apos;');
+    const frameAttr = serializeGlImageFrameAttr(normalizedFrame, 'markdown').replace(
+      /'/g,
+      '&apos;',
+    );
     const styleString = styleObjectToString(glImageFrameToStyle(normalizedFrame));
     const snippet = `<img src="${escapeHtmlAttr(safeUrl)}" alt="${escapeHtmlAttr(alt)}" class="gl-content-image" data-gl-frame='${frameAttr}' style="${styleString}" loading="lazy" />`;
     focusEditable();
@@ -146,35 +170,76 @@ export const GLRichTextEditor = React.forwardRef(function GLRichTextEditor({
   return (
     <div className={editorClassName}>
       <div className="gl-rich-editor-toolbar" role="toolbar" aria-label="Mise en forme enrichie">
-        <button type="button" className="gl-rich-editor-tool" onClick={() => applyCommand('bold')} title="Gras">
+        <button
+          type="button"
+          className="gl-rich-editor-tool"
+          onClick={() => applyCommand('bold')}
+          title="Gras"
+        >
           B
         </button>
-        <button type="button" className="gl-rich-editor-tool" onClick={() => applyCommand('italic')} title="Italique">
+        <button
+          type="button"
+          className="gl-rich-editor-tool"
+          onClick={() => applyCommand('italic')}
+          title="Italique"
+        >
           I
         </button>
-        <button type="button" className="gl-rich-editor-tool" onClick={() => applyFormatBlock('h2')} title="Titre">
+        <button
+          type="button"
+          className="gl-rich-editor-tool"
+          onClick={() => applyFormatBlock('h2')}
+          title="Titre"
+        >
           H2
         </button>
-        <button type="button" className="gl-rich-editor-tool" onClick={() => applyFormatBlock('h3')} title="Sous-titre">
+        <button
+          type="button"
+          className="gl-rich-editor-tool"
+          onClick={() => applyFormatBlock('h3')}
+          title="Sous-titre"
+        >
           H3
         </button>
-        <button type="button" className="gl-rich-editor-tool" onClick={() => applyCommand('insertUnorderedList')} title="Liste à puces">
+        <button
+          type="button"
+          className="gl-rich-editor-tool"
+          onClick={() => applyCommand('insertUnorderedList')}
+          title="Liste à puces"
+        >
           • Liste
         </button>
-        <button type="button" className="gl-rich-editor-tool" onClick={() => applyCommand('insertOrderedList')} title="Liste numérotée">
+        <button
+          type="button"
+          className="gl-rich-editor-tool"
+          onClick={() => applyCommand('insertOrderedList')}
+          title="Liste numérotée"
+        >
           1. Liste
         </button>
-        <button type="button" className="gl-rich-editor-tool" onClick={() => applyFormatBlock('blockquote')} title="Citation">
+        <button
+          type="button"
+          className="gl-rich-editor-tool"
+          onClick={() => applyFormatBlock('blockquote')}
+          title="Citation"
+        >
           Citation
         </button>
-        <button type="button" className="gl-rich-editor-tool" onClick={() => applyCommand('insertHorizontalRule')} title="Séparateur">
+        <button
+          type="button"
+          className="gl-rich-editor-tool"
+          onClick={() => applyCommand('insertHorizontalRule')}
+          title="Séparateur"
+        >
           ---
         </button>
         <button
           type="button"
           className="gl-rich-editor-tool"
           onClick={() => {
-            const url = typeof window !== 'undefined' ? window.prompt('URL du lien', 'https://') : 'https://';
+            const url =
+              typeof window !== 'undefined' ? window.prompt('URL du lien', 'https://') : 'https://';
             if (!url) return;
             applyCommand('createLink', url);
           }}
@@ -182,7 +247,12 @@ export const GLRichTextEditor = React.forwardRef(function GLRichTextEditor({
         >
           Lien
         </button>
-        <button type="button" className="gl-rich-editor-tool" onClick={() => applyCommand('unlink')} title="Retirer le lien">
+        <button
+          type="button"
+          className="gl-rich-editor-tool"
+          onClick={() => applyCommand('unlink')}
+          title="Retirer le lien"
+        >
           Delier
         </button>
       </div>
@@ -207,7 +277,9 @@ export const GLRichTextEditor = React.forwardRef(function GLRichTextEditor({
         legend={imageLegend}
       />
 
-      {imageStatus ? <p className={imageStatusError ? 'gl-error' : 'gl-info'}>{imageStatus}</p> : null}
+      {imageStatus ? (
+        <p className={imageStatusError ? 'gl-error' : 'gl-info'}>{imageStatus}</p>
+      ) : null}
       {hint ? <p className="gl-rich-editor-hint">{hint}</p> : null}
     </div>
   );

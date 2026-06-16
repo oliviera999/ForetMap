@@ -20,7 +20,7 @@ function isTrackedByGit(relativePath) {
   try {
     execFileSync('git', ['ls-files', '--error-unmatch', relativePath], {
       cwd: projectRoot,
-      stdio: 'ignore'
+      stdio: 'ignore',
     });
     return true;
   } catch {

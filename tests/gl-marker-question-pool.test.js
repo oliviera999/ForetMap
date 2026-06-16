@@ -39,7 +39,10 @@ test('migrateLegacyMarkerQcmConfig depuis champs legacy', () => {
 test('resolveMarkerEventConfig préfère event_config_json', () => {
   const json = serializeEventConfig({
     version: 1,
-    question: { mode: 'random', pool: { biomeMode: 'chapter', selectedQuestionCodes: ['QCM0001'] } },
+    question: {
+      mode: 'random',
+      pool: { biomeMode: 'chapter', selectedQuestionCodes: ['QCM0001'] },
+    },
   });
   const cfg = resolveMarkerEventConfig({
     event_type: 'question',
@@ -54,18 +57,32 @@ test('resolveBiomeSlugsForPool mode chapter vs custom', () => {
   const chapter = ['foret-temperee'];
   assert.deepStrictEqual(
     resolveBiomeSlugsForPool({ biomeMode: 'chapter', biomeSlugs: ['desert'] }, chapter),
-    chapter
+    chapter,
   );
   assert.deepStrictEqual(
     resolveBiomeSlugsForPool({ biomeMode: 'custom', biomeSlugs: ['desert'] }, chapter),
-    ['foret-temperee', 'desert']
+    ['foret-temperee', 'desert'],
   );
 });
 
 test('queryQuestionPool intersecte selectedQuestionCodes', async () => {
   const rows = [
-    { question_code: 'QCM0001', question: 'A', biome_slug: 'b1', statut: 'actif', tags: '', mots_cles: '' },
-    { question_code: 'QCM0002', question: 'B', biome_slug: 'b1', statut: 'actif', tags: '', mots_cles: '' },
+    {
+      question_code: 'QCM0001',
+      question: 'A',
+      biome_slug: 'b1',
+      statut: 'actif',
+      tags: '',
+      mots_cles: '',
+    },
+    {
+      question_code: 'QCM0002',
+      question: 'B',
+      biome_slug: 'b1',
+      statut: 'actif',
+      tags: '',
+      mots_cles: '',
+    },
   ];
   const deps = {
     queryAll: async () => rows,
@@ -97,13 +114,17 @@ test('drawQuestionFromMarker mode fixed', async () => {
     }),
     queryAll: async () => [],
   };
-  const draw = await drawQuestionFromMarker(deps, {
-    event_type: 'question',
-    event_config_json: serializeEventConfig({
-      version: 1,
-      question: { mode: 'fixed', fixedQuestionCode: 'QCM0001', pool: { biomeMode: 'chapter' } },
-    }),
-  }, ['b1']);
+  const draw = await drawQuestionFromMarker(
+    deps,
+    {
+      event_type: 'question',
+      event_config_json: serializeEventConfig({
+        version: 1,
+        question: { mode: 'fixed', fixedQuestionCode: 'QCM0001', pool: { biomeMode: 'chapter' } },
+      }),
+    },
+    ['b1'],
+  );
   assert.strictEqual(draw.questionCode, 'QCM0001');
   assert.strictEqual(draw.error, null);
   assert.strictEqual(draw.questionRow, undefined);

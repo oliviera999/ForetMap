@@ -40,15 +40,15 @@ export function useGlLearningProgress(authToken) {
 
   const speciesSet = useMemo(
     () => new Set(data.species_codes.map((c) => String(c).trim()).filter(Boolean)),
-    [data.species_codes]
+    [data.species_codes],
   );
   const glossarySet = useMemo(
     () => new Set(data.glossary_codes.map((c) => String(c).trim()).filter(Boolean)),
-    [data.glossary_codes]
+    [data.glossary_codes],
   );
   const tutorialSet = useMemo(
     () => new Set(data.tutorial_ids.map((id) => Number(id)).filter((n) => Number.isFinite(n))),
-    [data.tutorial_ids]
+    [data.tutorial_ids],
   );
 
   const markLocal = useCallback((type, code) => {
@@ -72,8 +72,14 @@ export function useGlLearningProgress(authToken) {
     });
   }, []);
 
-  const isSpeciesLearned = useCallback((code) => speciesSet.has(String(code || '').trim()), [speciesSet]);
-  const isGlossaryLearned = useCallback((code) => glossarySet.has(String(code || '').trim()), [glossarySet]);
+  const isSpeciesLearned = useCallback(
+    (code) => speciesSet.has(String(code || '').trim()),
+    [speciesSet],
+  );
+  const isGlossaryLearned = useCallback(
+    (code) => glossarySet.has(String(code || '').trim()),
+    [glossarySet],
+  );
   const isTutorialRead = useCallback((id) => tutorialSet.has(Number(id)), [tutorialSet]);
 
   return {

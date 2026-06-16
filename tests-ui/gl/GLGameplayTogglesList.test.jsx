@@ -40,7 +40,7 @@ describe('GLGameplayTogglesList', () => {
     expect(boxes[1].checked).toBe(false);
   });
 
-  test('désactive la ligne en cours d\'enregistrement', () => {
+  test("désactive la ligne en cours d'enregistrement", () => {
     renderList({ savingKey: 'b.enabled' });
     const boxes = screen.getAllByRole('checkbox');
     expect(boxes[0].disabled).toBe(false);

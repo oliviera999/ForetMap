@@ -7,22 +7,58 @@ function AboutView({ appVersion, isTeacher = false }) {
   const publicSettings = usePublicSettings();
   const { resetHelp, metrics, resetHelpMetrics } = useHelp({ publicSettings, isTeacher });
   const aboutTitle = getContentText(publicSettings, 'about.title', 'ℹ️ À propos');
-  const aboutSubtitle = getContentText(publicSettings, 'about.subtitle', 'Informations du projet ForetMap');
-  const aboutPurposeTitle = getContentText(publicSettings, 'about.purpose_title', "Objet de l'application");
-  const aboutPurposeBody = getContentText(publicSettings, 'about.purpose_body', 'ForetMap aide les n3beurs et les n3boss du Lycée Lyautey à organiser les activités de la forêt comestible: suivi des zones, de la biodiversité, des tâches et des observations.');
+  const aboutSubtitle = getContentText(
+    publicSettings,
+    'about.subtitle',
+    'Informations du projet ForetMap',
+  );
+  const aboutPurposeTitle = getContentText(
+    publicSettings,
+    'about.purpose_title',
+    "Objet de l'application",
+  );
+  const aboutPurposeBody = getContentText(
+    publicSettings,
+    'about.purpose_body',
+    'ForetMap aide les n3beurs et les n3boss du Lycée Lyautey à organiser les activités de la forêt comestible: suivi des zones, de la biodiversité, des tâches et des observations.',
+  );
   const aboutDocsTitle = getContentText(publicSettings, 'about.docs_title', 'Documentation');
   const aboutHelpTitle = getContentText(publicSettings, 'about.help_title', 'Aide contextuelle');
-  const aboutHelpBody = getContentText(publicSettings, 'about.help_body', 'Si les bulles d aide ont ete masquées, tu peux les reactiver ici.');
-  const aboutHelpReenableLabel = getContentText(publicSettings, 'about.help_reenable_cta', 'Reactiver toutes les aides');
-  const aboutHelpResetMetricsLabel = getContentText(publicSettings, 'about.help_reset_metrics_cta', 'Reinitialiser les compteurs d aide');
+  const aboutHelpBody = getContentText(
+    publicSettings,
+    'about.help_body',
+    'Si les bulles d aide ont ete masquées, tu peux les reactiver ici.',
+  );
+  const aboutHelpReenableLabel = getContentText(
+    publicSettings,
+    'about.help_reenable_cta',
+    'Reactiver toutes les aides',
+  );
+  const aboutHelpResetMetricsLabel = getContentText(
+    publicSettings,
+    'about.help_reset_metrics_cta',
+    'Reinitialiser les compteurs d aide',
+  );
   const docsLinks = [
     { label: 'CHANGELOG', href: '/CHANGELOG.md', desc: 'Historique des modifications publiées' },
     { label: 'README', href: '/README.md', desc: 'Présentation du projet et installation' },
     { label: 'API', href: '/docs/API.md', desc: 'Routes backend et formats JSON' },
-    { label: 'SITE_ISSUES', href: '/api/site-issues', desc: 'Rapport markdown des problèmes connus du site' },
-    { label: 'SITE_ISSUES JSON', href: '/api/site-issues.json', desc: 'Version JSON du rapport de suivi QA' },
-    { label: 'LOCAL_DEV', href: '/docs/LOCAL_DEV.md', desc: 'Mise en place locale (Docker + tests)' },
-    { label: 'EVOLUTION', href: '/docs/EVOLUTION.md', desc: 'Feuille de route d\'évolution' },
+    {
+      label: 'SITE_ISSUES',
+      href: '/api/site-issues',
+      desc: 'Rapport markdown des problèmes connus du site',
+    },
+    {
+      label: 'SITE_ISSUES JSON',
+      href: '/api/site-issues.json',
+      desc: 'Version JSON du rapport de suivi QA',
+    },
+    {
+      label: 'LOCAL_DEV',
+      href: '/docs/LOCAL_DEV.md',
+      desc: 'Mise en place locale (Docker + tests)',
+    },
+    { label: 'EVOLUTION', href: '/docs/EVOLUTION.md', desc: "Feuille de route d'évolution" },
     { label: 'VERSIONING', href: '/docs/VERSIONING.md', desc: 'Règles de versionnage SemVer' },
   ];
 
@@ -34,9 +70,7 @@ function AboutView({ appVersion, isTeacher = false }) {
       <div className="about-grid">
         <div className="about-card">
           <h3>{aboutPurposeTitle}</h3>
-          <p>
-            {aboutPurposeBody}
-          </p>
+          <p>{aboutPurposeBody}</p>
           <div className="about-meta">
             <span className="about-chip">Version: {appVersion || 'indisponible'}</span>
             <span className="about-chip">Auteur: Mohammed El Farrai</span>
@@ -47,9 +81,16 @@ function AboutView({ appVersion, isTeacher = false }) {
         <div className="about-card">
           <h3>{aboutDocsTitle}</h3>
           <div className="about-links">
-            {docsLinks.map(link => (
-              <a key={link.label} className="about-link" href={link.href} target="_blank" rel="noopener noreferrer">
-                <strong>{link.label}</strong><br />
+            {docsLinks.map((link) => (
+              <a
+                key={link.label}
+                className="about-link"
+                href={link.href}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <strong>{link.label}</strong>
+                <br />
                 <small>{link.desc}</small>
               </a>
             ))}
@@ -58,12 +99,14 @@ function AboutView({ appVersion, isTeacher = false }) {
 
         <div className="about-card">
           <h3>{aboutHelpTitle}</h3>
-          <p>
-            {aboutHelpBody}
-          </p>
+          <p>{aboutHelpBody}</p>
           <div className="about-meta">
-            <span className="about-chip">Ouvertures panneau aide: {Number(metrics?.panelOpenCount || 0)}</span>
-            <span className="about-chip">Masquages "Ne plus afficher": {Number(metrics?.panelDismissCount || 0)}</span>
+            <span className="about-chip">
+              Ouvertures panneau aide: {Number(metrics?.panelOpenCount || 0)}
+            </span>
+            <span className="about-chip">
+              Masquages "Ne plus afficher": {Number(metrics?.panelDismissCount || 0)}
+            </span>
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
             <button className="btn btn-secondary btn-sm" onClick={resetHelp}>

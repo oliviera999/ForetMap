@@ -31,9 +31,11 @@ function Tooltip({ children, text, position = 'top' }) {
     const margin = 12;
     let next = position;
     if (position === 'top' && hostRect.top - bubbleRect.height - margin < 0) next = 'bottom';
-    if (position === 'bottom' && hostRect.bottom + bubbleRect.height + margin > window.innerHeight) next = 'top';
+    if (position === 'bottom' && hostRect.bottom + bubbleRect.height + margin > window.innerHeight)
+      next = 'top';
     if (position === 'left' && hostRect.left - bubbleRect.width - margin < 0) next = 'right';
-    if (position === 'right' && hostRect.right + bubbleRect.width + margin > window.innerWidth) next = 'left';
+    if (position === 'right' && hostRect.right + bubbleRect.width + margin > window.innerWidth)
+      next = 'left';
     setResolvedPosition(next);
   }, [open, position]);
 

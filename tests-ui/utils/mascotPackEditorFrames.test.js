@@ -139,12 +139,9 @@ describe('computePackMediaWarnings', () => {
   });
 
   test('aucun avertissement médiathèque hors préfixe serveur', () => {
-    const w = computePackMediaWarnings(
-      { framesBase: '/assets/mascots/x/' },
-      null,
-      [],
-      { idle: { files: ['missing.png'] } },
-    );
+    const w = computePackMediaWarnings({ framesBase: '/assets/mascots/x/' }, null, [], {
+      idle: { files: ['missing.png'] },
+    });
     expect(w).toEqual([]);
   });
 
@@ -164,12 +161,9 @@ describe('computePackMediaWarnings', () => {
   test('pas de doublon si tous les fichiers sont présents', () => {
     const uuid = '12345678-1234-1234-1234-123456789abc';
     const prefix = `/api/visit/mascot-packs/${uuid}/assets/`;
-    const w = computePackMediaWarnings(
-      { framesBase: prefix },
-      uuid,
-      [{ filename: 'a.png' }],
-      { idle: { files: ['a.png'] } },
-    );
+    const w = computePackMediaWarnings({ framesBase: prefix }, uuid, [{ filename: 'a.png' }], {
+      idle: { files: ['a.png'] },
+    });
     expect(w).toEqual([]);
   });
 });

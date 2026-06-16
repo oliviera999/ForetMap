@@ -12,11 +12,18 @@ function effectiveLimit(rawQuery) {
   const req = { query: rawQuery };
   const res = {
     statusCode: 200,
-    status(c) { this.statusCode = c; return this; },
-    json() { return this; },
+    status(c) {
+      this.statusCode = c;
+      return this;
+    },
+    json() {
+      return this;
+    },
   };
   let nextCalled = false;
-  validate({ query: auditQuerySchema })(req, res, () => { nextCalled = true; });
+  validate({ query: auditQuerySchema })(req, res, () => {
+    nextCalled = true;
+  });
   return { nextCalled, status: res.statusCode, limit: req.validatedQuery?.limit };
 }
 
@@ -26,7 +33,19 @@ function legacy(raw) {
 
 test('limit : équivalence exacte avec la logique historique, jamais de 400', () => {
   const cases = [
-    undefined, '', 'abc', '0', '1', '50', '199', '200', '201', '5000', '-3', '50.9', '12abc',
+    undefined,
+    '',
+    'abc',
+    '0',
+    '1',
+    '50',
+    '199',
+    '200',
+    '201',
+    '5000',
+    '-3',
+    '50.9',
+    '12abc',
   ];
   for (const raw of cases) {
     const query = raw === undefined ? {} : { limit: raw };

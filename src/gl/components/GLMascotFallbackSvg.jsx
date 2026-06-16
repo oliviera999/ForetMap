@@ -38,7 +38,13 @@ export function GLMascotFallbackSvg({
           />
           <circle cx="28" cy="36" r="1.2" fill="#0f172a" />
           <circle cx="36" cy="36" r="1.2" fill="#0f172a" />
-          <path d="M 26 40 Q 32 44 38 40" stroke="#0f172a" strokeWidth="1.4" fill="none" strokeLinecap="round" />
+          <path
+            d="M 26 40 Q 32 44 38 40"
+            stroke="#0f172a"
+            strokeWidth="1.4"
+            fill="none"
+            strokeLinecap="round"
+          />
         </g>
       ) : (
         <g>
@@ -57,7 +63,13 @@ export function GLMascotFallbackSvg({
           />
           <circle cx="28" cy="32" r="1.2" fill="#0f172a" />
           <circle cx="36" cy="32" r="1.2" fill="#0f172a" />
-          <path d="M 28 40 Q 32 43 36 40" stroke="#0f172a" strokeWidth="1.4" fill="none" strokeLinecap="round" />
+          <path
+            d="M 28 40 Q 32 43 36 40"
+            stroke="#0f172a"
+            strokeWidth="1.4"
+            fill="none"
+            strokeLinecap="round"
+          />
         </g>
       )}
     </svg>

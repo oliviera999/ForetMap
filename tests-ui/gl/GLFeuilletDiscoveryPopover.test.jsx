@@ -4,7 +4,7 @@ import { render, screen } from '@testing-library/react';
 import { GLFeuilletDiscoveryPopover } from '../../src/gl/components/GLFeuilletDiscoveryPopover.jsx';
 
 describe('GLFeuilletDiscoveryPopover', () => {
-  test('affiche l\'illustration quand imageUrl est présent', () => {
+  test("affiche l'illustration quand imageUrl est présent", () => {
     const imageUrl = '/uploads/media-library/image/scene-test.png';
     render(
       <GLFeuilletDiscoveryPopover
@@ -22,7 +22,7 @@ describe('GLFeuilletDiscoveryPopover', () => {
     expect(img.getAttribute('src')).toBe(imageUrl);
   });
 
-  test('n\'affiche pas d\'illustration sans imageUrl', () => {
+  test("n'affiche pas d'illustration sans imageUrl", () => {
     render(
       <GLFeuilletDiscoveryPopover
         open

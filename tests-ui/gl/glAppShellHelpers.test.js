@@ -100,7 +100,11 @@ describe('parseGlOauthHash', () => {
   });
 
   test('payload staff ou joueur valide → session', () => {
-    const staff = encodeBase64Url({ type: 'gl_staff', token: 'tok-s', auth: { userType: 'gl_admin' } });
+    const staff = encodeBase64Url({
+      type: 'gl_staff',
+      token: 'tok-s',
+      auth: { userType: 'gl_admin' },
+    });
     expect(parseGlOauthHash(`oauth=${staff}`)).toEqual({
       kind: 'session',
       token: 'tok-s',
@@ -127,7 +131,11 @@ describe('filterGlTabs', () => {
   const allModules = Object.fromEntries(Object.keys(GL_MODULE_DEFAULTS).map((k) => [k, true]));
 
   test('joueur avec tous les modules : tous les onglets joueur, aucun admin', () => {
-    const tabs = filterGlTabs({ modules: allModules, vitalityEnabled: true, showStaffAdminUi: false });
+    const tabs = filterGlTabs({
+      modules: allModules,
+      vitalityEnabled: true,
+      showStaffAdminUi: false,
+    });
     const ids = tabs.map((t) => t.id);
     expect(ids).toContain('maps');
     expect(ids).toContain('market');
@@ -137,10 +145,16 @@ describe('filterGlTabs', () => {
   });
 
   test('staff : onglets admin ajoutés après les onglets joueur', () => {
-    const tabs = filterGlTabs({ modules: allModules, vitalityEnabled: true, showStaffAdminUi: true });
+    const tabs = filterGlTabs({
+      modules: allModules,
+      vitalityEnabled: true,
+      showStaffAdminUi: true,
+    });
     const ids = tabs.map((t) => t.id);
     expect(ids.indexOf('mj')).toBeGreaterThan(ids.indexOf('maps'));
-    expect(ids).toEqual(expect.arrayContaining(['stats', 'users', 'contents', 'settings', 'mascots', 'mj']));
+    expect(ids).toEqual(
+      expect.arrayContaining(['stats', 'users', 'contents', 'settings', 'mascots', 'mj']),
+    );
   });
 
   test('modules coupés → onglets gérés masqués', () => {
@@ -153,8 +167,18 @@ describe('filterGlTabs', () => {
       loreCarnetEnabled: false,
       loreGlossaryEnabled: false,
     };
-    const ids = filterGlTabs({ modules, vitalityEnabled: true, showStaffAdminUi: false }).map((t) => t.id);
-    for (const hidden of ['history', 'journal', 'tutorials', 'forum', 'my-journal', 'selene-carnet', 'lore-glossary']) {
+    const ids = filterGlTabs({ modules, vitalityEnabled: true, showStaffAdminUi: false }).map(
+      (t) => t.id,
+    );
+    for (const hidden of [
+      'history',
+      'journal',
+      'tutorials',
+      'forum',
+      'my-journal',
+      'selene-carnet',
+      'lore-glossary',
+    ]) {
       expect(ids).not.toContain(hidden);
     }
     expect(ids).toContain('maps');
@@ -162,7 +186,11 @@ describe('filterGlTabs', () => {
   });
 
   test('marché : exige le module ET la vitalité gameplay', () => {
-    const withoutVitality = filterGlTabs({ modules: allModules, vitalityEnabled: false, showStaffAdminUi: false });
+    const withoutVitality = filterGlTabs({
+      modules: allModules,
+      vitalityEnabled: false,
+      showStaffAdminUi: false,
+    });
     expect(withoutVitality.map((t) => t.id)).not.toContain('market');
     const moduleOff = filterGlTabs({
       modules: { ...allModules, marketEnabled: false },

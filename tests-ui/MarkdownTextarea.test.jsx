@@ -11,7 +11,7 @@ describe('MarkdownTextarea', () => {
         value="## Titre\n\nTexte de consigne"
         onChange={vi.fn()}
         placeholder="Décrire"
-      />
+      />,
     );
 
     const editor = screen.getByRole('textbox');

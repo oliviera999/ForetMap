@@ -20,7 +20,7 @@ before(async () => {
     `INSERT INTO gl_admins (email, display_name, role, is_active, created_at, updated_at)
      VALUES (?, 'MJ Import', 'admin', 1, NOW(), NOW())
      ON DUPLICATE KEY UPDATE is_active = 1, updated_at = NOW()`,
-    [adminEmail]
+    [adminEmail],
   );
   const admin = await queryOne('SELECT id FROM gl_admins WHERE email = ? LIMIT 1', [adminEmail]);
   adminToken = await signAuthToken({
@@ -34,7 +34,7 @@ before(async () => {
   await execute(
     `INSERT INTO gl_classes (name, school, created_by, is_active, created_at, updated_at)
      VALUES (?, 'Ecole', ?, 1, NOW(), NOW())`,
-    [className, admin.id]
+    [className, admin.id],
   );
 });
 
@@ -105,13 +105,13 @@ test('POST /api/gl/admin/players/import crée les lignes valides (must_reset sel
 
   const withPwd = await queryOne(
     'SELECT password_must_reset FROM gl_players WHERE pseudo = ? LIMIT 1',
-    [`avec_${stamp}`]
+    [`avec_${stamp}`],
   );
   assert.strictEqual(Number(withPwd.password_must_reset), 0);
 
   const withoutPwd = await queryOne(
     'SELECT password_must_reset FROM gl_players WHERE pseudo = ? LIMIT 1',
-    [`sans_${stamp}`]
+    [`sans_${stamp}`],
   );
   assert.strictEqual(Number(withoutPwd.password_must_reset), 1);
 
@@ -122,14 +122,21 @@ test('POST /api/gl/admin/players/import crée les lignes valides (must_reset sel
     .expect(200);
 });
 
-test('POST /api/gl/admin/players/import refuse un pseudo déjà importé (rapport d\'erreur)', async () => {
+test("POST /api/gl/admin/players/import refuse un pseudo déjà importé (rapport d'erreur)", async () => {
   const pseudo = `dup_imp_${stamp}`;
   // Crée d'abord via API
   await request(app)
     .post('/api/gl/admin/players')
     .set('Authorization', `Bearer ${adminToken}`)
-    .send({ classId: Number((await queryOne('SELECT id FROM gl_classes WHERE name = ? LIMIT 1', [className])).id),
-      firstName: 'Pre', lastName: 'Existant', pseudo, password: 'motdepasse123' })
+    .send({
+      classId: Number(
+        (await queryOne('SELECT id FROM gl_classes WHERE name = ? LIMIT 1', [className])).id,
+      ),
+      firstName: 'Pre',
+      lastName: 'Existant',
+      pseudo,
+      password: 'motdepasse123',
+    })
     .expect(201);
 
   const csv = [
@@ -147,5 +154,9 @@ test('POST /api/gl/admin/players/import refuse un pseudo déjà importé (rappor
   assert.ok(res.body?.report?.errors?.[0]?.error?.toLowerCase().includes('pseudo'));
 
   const rows = await queryAll('SELECT id FROM gl_players WHERE pseudo = ?', [pseudo]);
-  assert.strictEqual(rows.length, 1, 'aucune ligne supplémentaire ne doit être créée pendant le dryRun');
+  assert.strictEqual(
+    rows.length,
+    1,
+    'aucune ligne supplémentaire ne doit être créée pendant le dryRun',
+  );
 });

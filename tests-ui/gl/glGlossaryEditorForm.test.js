@@ -99,8 +99,18 @@ describe('glGlossaryEditorForm - buildBiomeOptions', () => {
 
 describe('glGlossaryEditorForm - filterGlossaryItems', () => {
   const items = [
-    { glossary_code: 'GL0001', terme: 'Symbiose', categorie: 'biologie', definition_courte: 'Vivre ensemble' },
-    { glossary_code: 'GL0002', terme: 'Canopée', categorie: 'ecologie', definition_courte: 'Sommet des arbres' },
+    {
+      glossary_code: 'GL0001',
+      terme: 'Symbiose',
+      categorie: 'biologie',
+      definition_courte: 'Vivre ensemble',
+    },
+    {
+      glossary_code: 'GL0002',
+      terme: 'Canopée',
+      categorie: 'ecologie',
+      definition_courte: 'Sommet des arbres',
+    },
     { glossary_code: 'GL0003', terme: 'Humus', categorie: 'ecologie' },
   ];
 

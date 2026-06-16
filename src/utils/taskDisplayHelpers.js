@@ -17,20 +17,30 @@ export function formatAssigneeName(assignee, student, canViewIdentity = true) {
   const firstName = String(assignee?.student_first_name || '').trim();
   const lastName = String(assignee?.student_last_name || '').trim();
   if (!canViewIdentity) {
-    const isCurrentStudent = !!student
-      && (
-        String(assignee?.student_id || '') === String(student?.id || '')
-        || (
-          firstName.toLowerCase() === String(student?.first_name || '').trim().toLowerCase()
-          && lastName.toLowerCase() === String(student?.last_name || '').trim().toLowerCase()
-        )
-      );
+    const isCurrentStudent =
+      !!student &&
+      (String(assignee?.student_id || '') === String(student?.id || '') ||
+        (firstName.toLowerCase() ===
+          String(student?.first_name || '')
+            .trim()
+            .toLowerCase() &&
+          lastName.toLowerCase() ===
+            String(student?.last_name || '')
+              .trim()
+              .toLowerCase()));
     return { fullName: isCurrentStudent ? 'Toi' : 'Participant', isCurrentStudent };
   }
   const fullName = `${firstName} ${lastName}`.trim() || 'n3beur';
-  const isCurrentStudent = !!student
-    && firstName.toLowerCase() === String(student.first_name || '').trim().toLowerCase()
-    && lastName.toLowerCase() === String(student.last_name || '').trim().toLowerCase();
+  const isCurrentStudent =
+    !!student &&
+    firstName.toLowerCase() ===
+      String(student.first_name || '')
+        .trim()
+        .toLowerCase() &&
+    lastName.toLowerCase() ===
+      String(student.last_name || '')
+        .trim()
+        .toLowerCase();
   return { fullName, isCurrentStudent };
 }
 

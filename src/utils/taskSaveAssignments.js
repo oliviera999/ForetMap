@@ -14,9 +14,9 @@
  */
 export function prepareTaskSavePayload(form) {
   const { assign_student_ids: rawAssignIds = [], ...taskPayload } = form || {};
-  const assignStudentIds = [...new Set(
-    (rawAssignIds || []).map((id) => String(id || '').trim()).filter(Boolean)
-  )];
+  const assignStudentIds = [
+    ...new Set((rawAssignIds || []).map((id) => String(id || '').trim()).filter(Boolean)),
+  ];
   if (assignStudentIds.length > 0) {
     const cur = Math.max(1, Number.parseInt(taskPayload.required_students, 10) || 1);
     taskPayload.required_students = Math.max(cur, assignStudentIds.length);

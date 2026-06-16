@@ -17,12 +17,25 @@ function run(body) {
   const res = {
     statusCode: 200,
     payload: undefined,
-    status(c) { this.statusCode = c; return this; },
-    json(p) { this.payload = p; return this; },
+    status(c) {
+      this.statusCode = c;
+      return this;
+    },
+    json(p) {
+      this.payload = p;
+      return this;
+    },
   };
   let nextCalled = false;
-  validate({ body: assignRoleBodySchema })(req, res, () => { nextCalled = true; });
-  return { nextCalled, status: res.statusCode, error: res.payload && res.payload.error, body: req.body };
+  validate({ body: assignRoleBodySchema })(req, res, () => {
+    nextCalled = true;
+  });
+  return {
+    nextCalled,
+    status: res.statusCode,
+    error: res.payload && res.payload.error,
+    body: req.body,
+  };
 }
 
 // Parité avec l'ancien : `const roleId = parseInt(req.body?.role_id, 10);`

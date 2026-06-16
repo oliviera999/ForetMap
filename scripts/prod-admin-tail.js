@@ -15,10 +15,16 @@ require('dotenv').config();
 const https = require('https');
 const { deploySecretFromEnv } = require('./lib/deploy-secret-from-env');
 
-const BASE = String(process.env.FORETMAP_PROD_BASE_URL || 'https://foretmap.olution.info').replace(/\/$/, '');
+const BASE = String(process.env.FORETMAP_PROD_BASE_URL || 'https://foretmap.olution.info').replace(
+  /\/$/,
+  '',
+);
 const SECRET = deploySecretFromEnv();
 const UA = 'ForetMap-ProdAdminTail/1.0';
-const LINES = Math.min(5000, Math.max(50, parseInt(process.env.FORETMAP_ADMIN_LOG_LINES || '250', 10)));
+const LINES = Math.min(
+  5000,
+  Math.max(50, parseInt(process.env.FORETMAP_ADMIN_LOG_LINES || '250', 10)),
+);
 const PAUSE_MS = Math.max(0, parseInt(process.env.FORETMAP_ADMIN_TAIL_PAUSE_MS || '300', 10));
 
 function sleep(ms) {
@@ -60,7 +66,15 @@ function request(path, headers = {}) {
 }
 
 function summarizePinoLines(entries) {
-  const byLevel = { trace10: 0, debug20: 0, info30: 0, warn40: 0, error50: 0, fatal60: 0, nonJson: 0 };
+  const byLevel = {
+    trace10: 0,
+    debug20: 0,
+    info30: 0,
+    warn40: 0,
+    error50: 0,
+    fatal60: 0,
+    nonJson: 0,
+  };
   const errorSamples = [];
   for (const line of entries) {
     try {
@@ -92,15 +106,19 @@ function summarizePinoLines(entries) {
 async function main() {
   if (!SECRET) {
     console.error(
-      'Secret deploy manquant (.env) : DEPLOY_SECRET, FORETMAP_DEPLOY_CHECK_SECRET ou FORETMAP_DEPLOY_SECRET — impossible de lire /api/admin/logs sur la prod.'
+      'Secret deploy manquant (.env) : DEPLOY_SECRET, FORETMAP_DEPLOY_CHECK_SECRET ou FORETMAP_DEPLOY_SECRET — impossible de lire /api/admin/logs sur la prod.',
     );
-    console.error('Ajoutez la même valeur que sur le serveur (sans commiter .env), ou utilisez les outils MCP documentés dans docs/MCP_FORETMAP_CURSOR.md.');
+    console.error(
+      'Ajoutez la même valeur que sur le serveur (sans commiter .env), ou utilisez les outils MCP documentés dans docs/MCP_FORETMAP_CURSOR.md.',
+    );
     process.exit(1);
   }
 
   const diag = await request('/api/admin/diagnostics', { 'X-Deploy-Secret': SECRET });
   if (diag.status === 429) {
-    console.error('HTTP 429 sur diagnostics — réessayez après quelques secondes ou augmentez FORETMAP_ADMIN_TAIL_PAUSE_MS.');
+    console.error(
+      'HTTP 429 sur diagnostics — réessayez après quelques secondes ou augmentez FORETMAP_ADMIN_TAIL_PAUSE_MS.',
+    );
     process.exit(1);
   }
   await sleep(PAUSE_MS);
@@ -136,8 +154,8 @@ async function main() {
         metrics: diag.body.metrics,
       },
       null,
-      2
-    )
+      2,
+    ),
   );
 
   console.log(`\n=== Tampon : ${entries.length} ligne(s) analysées (demandé max ${LINES}) ===`);

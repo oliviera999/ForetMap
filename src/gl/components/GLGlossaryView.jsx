@@ -46,11 +46,11 @@ export function GLGlossaryView({
     : [];
   const biomeSlugs = useMemo(
     () => chapterBiomes.map((b) => b.slug).filter(Boolean),
-    [chapterBiomes]
+    [chapterBiomes],
   );
   const biomeLabel = useMemo(
     () => chapterBiomes.map((b) => b.nom || b.slug).join(', '),
-    [chapterBiomes]
+    [chapterBiomes],
   );
 
   const [items, setItems] = useState([]);
@@ -100,16 +100,13 @@ export function GLGlossaryView({
       <h2>Glossaire</h2>
       {biomeLabel ? (
         <p className="gl-glossary__intro">
-          Biomes du chapitre :
-          {' '}
-          <strong>{biomeLabel}</strong>
-          {' '}
-          — cliquez sur un terme pour ouvrir sa définition.
+          Biomes du chapitre : <strong>{biomeLabel}</strong> — cliquez sur un terme pour ouvrir sa
+          définition.
         </p>
       ) : (
         <p className="gl-hint">
-          Aucun biome catalogue lié au chapitre — tous les termes actifs sont affichés.
-          Cliquez sur un terme pour ouvrir sa définition.
+          Aucun biome catalogue lié au chapitre — tous les termes actifs sont affichés. Cliquez sur
+          un terme pour ouvrir sa définition.
         </p>
       )}
 
@@ -127,7 +124,9 @@ export function GLGlossaryView({
           Catégorie
           <select value={categorie} onChange={(e) => setCategorie(e.target.value)}>
             {CATEGORY_OPTIONS.map((opt) => (
-              <option key={opt.value || 'all'} value={opt.value}>{opt.label}</option>
+              <option key={opt.value || 'all'} value={opt.value}>
+                {opt.label}
+              </option>
             ))}
           </select>
         </label>
@@ -135,7 +134,9 @@ export function GLGlossaryView({
           Niveau
           <select value={niveau} onChange={(e) => setNiveau(e.target.value)}>
             {NIVEAU_OPTIONS.map((opt) => (
-              <option key={opt.value || 'all'} value={opt.value}>{opt.label}</option>
+              <option key={opt.value || 'all'} value={opt.value}>
+                {opt.label}
+              </option>
             ))}
           </select>
         </label>
@@ -145,36 +146,40 @@ export function GLGlossaryView({
       {error ? <p className="gl-error">{error}</p> : null}
 
       <div className="gl-glossary__list">
-        {Object.keys(grouped).sort((a, b) => a.localeCompare(b, 'fr')).map((catLabel) => (
-          <section key={catLabel} className="gl-glossary__group">
-            <h3>{catLabel}</h3>
-            <ul className="gl-glossary__terms">
-              {grouped[catLabel].map((term) => {
-                const code = String(term.glossary_code || '').trim();
-                const learned = learningProgress?.isGlossaryLearned?.(code) || !!term.learned;
-                return (
-                  <li key={term.glossary_code}>
-                    <button
-                      type="button"
-                      className={[
-                        activeTermCode === term.glossary_code ? 'is-active' : '',
-                        learned ? 'is-learned' : '',
-                      ].filter(Boolean).join(' ')}
-                      onClick={() => selectTerm(term.glossary_code)}
-                      title={term.definition_courte || term.terme}
-                    >
-                      <span className="gl-glossary__term-label">{term.terme}</span>
-                      <span className="gl-glossary__term-meta">
-                        {learned ? '✓ Appris · ' : ''}
-                        {term.niveau}
-                      </span>
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          </section>
-        ))}
+        {Object.keys(grouped)
+          .sort((a, b) => a.localeCompare(b, 'fr'))
+          .map((catLabel) => (
+            <section key={catLabel} className="gl-glossary__group">
+              <h3>{catLabel}</h3>
+              <ul className="gl-glossary__terms">
+                {grouped[catLabel].map((term) => {
+                  const code = String(term.glossary_code || '').trim();
+                  const learned = learningProgress?.isGlossaryLearned?.(code) || !!term.learned;
+                  return (
+                    <li key={term.glossary_code}>
+                      <button
+                        type="button"
+                        className={[
+                          activeTermCode === term.glossary_code ? 'is-active' : '',
+                          learned ? 'is-learned' : '',
+                        ]
+                          .filter(Boolean)
+                          .join(' ')}
+                        onClick={() => selectTerm(term.glossary_code)}
+                        title={term.definition_courte || term.terme}
+                      >
+                        <span className="gl-glossary__term-label">{term.terme}</span>
+                        <span className="gl-glossary__term-meta">
+                          {learned ? '✓ Appris · ' : ''}
+                          {term.niveau}
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          ))}
         {!loading && items.length === 0 ? (
           <p className="gl-hint">Aucun terme pour ces filtres.</p>
         ) : null}

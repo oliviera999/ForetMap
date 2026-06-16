@@ -12,7 +12,9 @@
  */
 export function isN3beurTierConfigurableProfile(role) {
   if (!role) return false;
-  const slug = String(role.slug || '').trim().toLowerCase();
+  const slug = String(role.slug || '')
+    .trim()
+    .toLowerCase();
   if (slug === 'admin' || slug === 'prof' || slug === 'visiteur') return false;
   if (/^eleve_/i.test(String(role.slug || ''))) return true;
   const r = Number(role.rank);
@@ -111,14 +113,16 @@ export function parseMaxConcurrentTasksLimit(raw) {
   const n = parseInt(trimmed, 10);
   if (!Number.isFinite(n) || n < 0 || n > 99) {
     return {
-      error: 'Plafond invalide : entier entre 0 et 99 (0 = pas de limite pour ce profil), ou champ vide pour hériter du réglage global',
+      error:
+        'Plafond invalide : entier entre 0 et 99 (0 = pas de limite pour ce profil), ou champ vide pour hériter du réglage global',
     };
   }
   return {
     value: n,
-    message: n === 0
-      ? 'Pas de limite d’inscriptions pour ce profil (0) : enregistré.'
-      : `Plafond d’inscriptions simultanées : ${n} tâche(s) non validée(s) — enregistré.`,
+    message:
+      n === 0
+        ? 'Pas de limite d’inscriptions pour ce profil (0) : enregistré.'
+        : `Plafond d’inscriptions simultanées : ${n} tâche(s) non validée(s) — enregistré.`,
   };
 }
 

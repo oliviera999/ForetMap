@@ -19,13 +19,13 @@ description: Centralise les conventions BDD ForetMap (schéma MySQL, migrations,
 
 ## Architecture BDD
 
-| Composant | Fichier | Rôle |
-|-----------|---------|------|
-| Pool SQL | `database.js` | `mysql2/promise` (protocole MySQL, compatible MariaDB), pool via `.env` |
-| Fonctions d'accès | `database.js` | `queryAll(sql, params)`, `queryOne(sql, params)`, `execute(sql, params)` |
-| Helpers métier | `lib/helpers.js` | `getTaskWithAssignments(taskId)`, `studentStats(studentId)` |
-| Schéma DDL | `sql/schema_foretmap.sql` | Tables, index, contraintes |
-| Init | `database.js` → `initDatabase()` | Applique le schéma + seed si tables vides |
+| Composant         | Fichier                          | Rôle                                                                     |
+| ----------------- | -------------------------------- | ------------------------------------------------------------------------ |
+| Pool SQL          | `database.js`                    | `mysql2/promise` (protocole MySQL, compatible MariaDB), pool via `.env`  |
+| Fonctions d'accès | `database.js`                    | `queryAll(sql, params)`, `queryOne(sql, params)`, `execute(sql, params)` |
+| Helpers métier    | `lib/helpers.js`                 | `getTaskWithAssignments(taskId)`, `studentStats(studentId)`              |
+| Schéma DDL        | `sql/schema_foretmap.sql`        | Tables, index, contraintes                                               |
+| Init              | `database.js` → `initDatabase()` | Applique le schéma + seed si tables vides                                |
 
 ## Conventions SQL
 
@@ -56,14 +56,14 @@ description: Centralise les conventions BDD ForetMap (schéma MySQL, migrations,
 
 ## Variables d'environnement BDD
 
-| Variable | Défaut | Description |
-|----------|--------|-------------|
-| `DB_HOST` | `localhost` | Hôte MySQL |
-| `DB_PORT` | `3306` | Port MySQL |
-| `DB_USER` | — | Utilisateur MySQL |
-| `DB_PASS` | — | Mot de passe MySQL |
-| `DB_NAME` | — | Nom de la base |
-| `TEST_DB_NAME` | — | Nom BDD de test (surcharge `DB_NAME` dans les tests) |
+| Variable       | Défaut      | Description                                          |
+| -------------- | ----------- | ---------------------------------------------------- |
+| `DB_HOST`      | `localhost` | Hôte MySQL                                           |
+| `DB_PORT`      | `3306`      | Port MySQL                                           |
+| `DB_USER`      | —           | Utilisateur MySQL                                    |
+| `DB_PASS`      | —           | Mot de passe MySQL                                   |
+| `DB_NAME`      | —           | Nom de la base                                       |
+| `TEST_DB_NAME` | —           | Nom BDD de test (surcharge `DB_NAME` dans les tests) |
 
 ## Import d'un dump SQL distant (copie prod -> local)
 

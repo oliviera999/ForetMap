@@ -2,10 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert');
-const {
-  extractGenusFromScientificName,
-  applyDerivedGroup4IfEmpty,
-} = require('../lib/plantGroup4');
+const { extractGenusFromScientificName, applyDerivedGroup4IfEmpty } = require('../lib/plantGroup4');
 
 test('extractGenusFromScientificName binôme courant', () => {
   assert.strictEqual(extractGenusFromScientificName('Carassius auratus'), 'Carassius');

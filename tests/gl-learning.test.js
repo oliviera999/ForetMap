@@ -20,27 +20,27 @@ before(async () => {
     `INSERT INTO gl_admins (email, display_name, role, is_active, created_at, updated_at)
      VALUES (?, 'MJ Learning', 'admin', 1, NOW(), NOW())
      ON DUPLICATE KEY UPDATE is_active = 1`,
-    [`learning.admin.${stamp}@ecole.local`]
+    [`learning.admin.${stamp}@ecole.local`],
   );
-  const admin = await queryOne(
-    'SELECT id FROM gl_admins WHERE email = ? LIMIT 1',
-    [`learning.admin.${stamp}@ecole.local`]
-  );
+  const admin = await queryOne('SELECT id FROM gl_admins WHERE email = ? LIMIT 1', [
+    `learning.admin.${stamp}@ecole.local`,
+  ]);
   await execute(
     `INSERT INTO gl_classes (name, school, created_by, is_active, created_at, updated_at)
      VALUES (?, 'Ecole', ?, 1, NOW(), NOW())`,
-    [`Classe Learning ${stamp}`, admin.id]
+    [`Classe Learning ${stamp}`, admin.id],
   );
-  const cls = await queryOne('SELECT id FROM gl_classes WHERE name = ? LIMIT 1', [`Classe Learning ${stamp}`]);
+  const cls = await queryOne('SELECT id FROM gl_classes WHERE name = ? LIMIT 1', [
+    `Classe Learning ${stamp}`,
+  ]);
   await execute(
     `INSERT INTO gl_players (class_id, pseudo, password_hash, is_active, created_at, updated_at)
      VALUES (?, ?, 'x', 1, NOW(), NOW())`,
-    [cls.id, `learning-player-${stamp}`]
+    [cls.id, `learning-player-${stamp}`],
   );
-  const player = await queryOne(
-    'SELECT id FROM gl_players WHERE pseudo = ? LIMIT 1',
-    [`learning-player-${stamp}`]
-  );
+  const player = await queryOne('SELECT id FROM gl_players WHERE pseudo = ? LIMIT 1', [
+    `learning-player-${stamp}`,
+  ]);
   playerToken = await signAuthToken({
     product: 'gl',
     userType: 'gl_player',
@@ -56,7 +56,7 @@ before(async () => {
     `INSERT INTO gl_species (
       species_code, biome_slug, type, nom_commun, nom_scientifique, statut, created_at, updated_at
     ) VALUES (?, 'sahara', 'faune', 'Test Learning', 'Testus learnii', 'actif', NOW(), NOW())`,
-    [speciesCode]
+    [speciesCode],
   );
 
   glossaryCode = `GL${stamp}`.slice(0, 16);
@@ -64,13 +64,13 @@ before(async () => {
     `INSERT INTO gl_glossary_terms (
       glossary_code, terme, categorie, niveau, definition_courte, all_biomes, statut, created_at, updated_at
     ) VALUES (?, 'Terme test learning', 'ecologie', 'base', 'Définition courte', 1, 'actif', NOW(), NOW())`,
-    [glossaryCode]
+    [glossaryCode],
   );
 
   const tutoRes = await execute(
     `INSERT INTO gl_tutorials (slug, title, body_markdown, is_published, created_at, updated_at)
      VALUES (?, 'Tuto learning', '# Test', 1, NOW(), NOW())`,
-    [`tuto-learning-${stamp}`]
+    [`tuto-learning-${stamp}`],
   );
   tutorialId = tutoRes.insertId;
 });

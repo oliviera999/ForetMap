@@ -35,4 +35,3 @@ export function buildMapImageCandidates(mapRecord) {
   pushUnique(out, seen, '/map.png');
   return out;
 }
-

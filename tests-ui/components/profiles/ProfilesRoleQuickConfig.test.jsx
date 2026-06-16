@@ -5,7 +5,14 @@ import { ProfilesRoleQuickConfig } from '../../../src/components/profiles/Profil
 
 function setup(overrides = {}) {
   const props = {
-    role: { id: 3, slug: 'eleve_novice', display_name: 'Novice', emoji: '🪨', min_done_tasks: 0, display_order: 2 },
+    role: {
+      id: 3,
+      slug: 'eleve_novice',
+      display_name: 'Novice',
+      emoji: '🪨',
+      min_done_tasks: 0,
+      display_order: 2,
+    },
     roleEmoji: '🌿',
     onRoleEmojiChange: vi.fn(),
     onSaveEmoji: vi.fn(),

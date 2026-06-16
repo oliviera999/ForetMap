@@ -42,7 +42,11 @@ before(async () => {
   gameId = Number(gameSeed.game.id);
   const teamId = Number(gameSeed.teams[0].id);
 
-  await execute('UPDATE gl_games SET status = ?, current_team_id = ? WHERE id = ?', ['live', teamId, gameId]);
+  await execute('UPDATE gl_games SET status = ?, current_team_id = ? WHERE id = ?', [
+    'live',
+    teamId,
+    gameId,
+  ]);
 
   const tokens = await signTokens({
     adminId: admin.id,
@@ -56,7 +60,11 @@ before(async () => {
     .send({
       chapterId,
       label: 'Zone popover test',
-      points: [{ x: 15, y: 15 }, { x: 85, y: 15 }, { x: 50, y: 85 }],
+      points: [
+        { x: 15, y: 15 },
+        { x: 85, y: 15 },
+        { x: 50, y: 85 },
+      ],
       popoverMarkdown: '## Découverte\n\nTexte de zone.',
       popoverImages: [{ url: VALID_IMAGE, caption: 'Vue', sortOrder: 0 }],
     });
@@ -100,5 +108,9 @@ test('GET gameplay-settings expose zoneContentRetrigger', async () => {
     .get('/api/gl/gameplay-settings')
     .set('Authorization', `Bearer ${adminToken}`)
     .expect(200);
-  assert.ok(['every_arrival', 'once_per_team', 'once_per_game'].includes(res.body?.settings?.zoneContentRetrigger));
+  assert.ok(
+    ['every_arrival', 'once_per_team', 'once_per_game'].includes(
+      res.body?.settings?.zoneContentRetrigger,
+    ),
+  );
 });

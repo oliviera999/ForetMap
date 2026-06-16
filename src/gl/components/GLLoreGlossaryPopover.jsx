@@ -51,12 +51,16 @@ export function GLLoreGlossaryPopover({
         if (!cancelled) setLoading(false);
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [open, loreCode]);
 
   useEffect(() => {
     if (!open) return undefined;
-    const onKey = (e) => { if (e.key === 'Escape') onClose?.(); };
+    const onKey = (e) => {
+      if (e.key === 'Escape') onClose?.();
+    };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [open, onClose]);
@@ -66,7 +70,11 @@ export function GLLoreGlossaryPopover({
   const accent = CATEGORY_ACCENT[String(term?.categorie || '').toLowerCase()] || '#047c8c';
 
   return createPortal(
-    <div className="gl-lore-glossary-popover-overlay" role="presentation" onClick={() => onClose?.()}>
+    <div
+      className="gl-lore-glossary-popover-overlay"
+      role="presentation"
+      onClick={() => onClose?.()}
+    >
       <div
         className="gl-lore-glossary-popover"
         role="dialog"
@@ -75,21 +83,36 @@ export function GLLoreGlossaryPopover({
         style={{ '--gl-lore-accent': accent }}
       >
         <header>
-          <p className="gl-lore-glossary-popover__cat">{term?.categorie_label || term?.categorie}</p>
+          <p className="gl-lore-glossary-popover__cat">
+            {term?.categorie_label || term?.categorie}
+          </p>
           <h3>{term?.terme || '…'}</h3>
-          <button type="button" className="gl-lore-glossary-popover__close" onClick={() => onClose?.()} aria-label="Fermer">✕</button>
+          <button
+            type="button"
+            className="gl-lore-glossary-popover__close"
+            onClick={() => onClose?.()}
+            aria-label="Fermer"
+          >
+            ✕
+          </button>
         </header>
         {loading ? <p className="gl-hint">Chargement…</p> : null}
         {error ? <p className="gl-error">{error}</p> : null}
         {term ? (
           <div className="gl-lore-glossary-popover__body">
-            {term.definition_courte ? <p className="gl-lore-glossary-popover__short">{term.definition_courte}</p> : null}
+            {term.definition_courte ? (
+              <p className="gl-lore-glossary-popover__short">{term.definition_courte}</p>
+            ) : null}
             {term.definition_complete ? <p>{term.definition_complete}</p> : null}
             {term.role_recit ? (
-              <p><strong>Rôle récit :</strong> {term.role_recit}</p>
+              <p>
+                <strong>Rôle récit :</strong> {term.role_recit}
+              </p>
             ) : null}
             {term.correspondance_reelle ? (
-              <p><strong>Correspondance réelle :</strong> {term.correspondance_reelle}</p>
+              <p>
+                <strong>Correspondance réelle :</strong> {term.correspondance_reelle}
+              </p>
             ) : null}
             {related.length ? (
               <ul className="gl-lore-glossary-popover__related">
@@ -102,11 +125,20 @@ export function GLLoreGlossaryPopover({
         ) : null}
         <footer>
           {onOpenFullGlossary ? (
-            <GLButton type="button" variant="ghost" onClick={() => { onOpenFullGlossary?.(); onClose?.(); }}>
+            <GLButton
+              type="button"
+              variant="ghost"
+              onClick={() => {
+                onOpenFullGlossary?.();
+                onClose?.();
+              }}
+            >
               Ouvrir le lexique
             </GLButton>
           ) : null}
-          <GLButton type="button" onClick={() => onClose?.()}>Fermer</GLButton>
+          <GLButton type="button" onClick={() => onClose?.()}>
+            Fermer
+          </GLButton>
         </footer>
       </div>
     </div>,

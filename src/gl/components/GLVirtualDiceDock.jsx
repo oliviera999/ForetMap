@@ -55,12 +55,12 @@ export function GLVirtualDiceDock({ themeStyle = null }) {
         title="Dés virtuels"
         onClick={toggleOpen}
       >
-        <span className="gl-dice-fab__icon" aria-hidden>🎲</span>
+        <span className="gl-dice-fab__icon" aria-hidden>
+          🎲
+        </span>
         <span className="gl-dice-fab__label">Dés</span>
       </button>
-      {typeof document !== 'undefined'
-        ? createPortal(popover, document.body)
-        : popover}
+      {typeof document !== 'undefined' ? createPortal(popover, document.body) : popover}
     </div>
   );
 }

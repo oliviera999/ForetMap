@@ -116,7 +116,7 @@ export function GLSettingsView() {
       return;
     }
     const ok = window.confirm(
-      `Appliquer le profil « ${preset.label} » ?\n${changes.length} réglage(s) gameplay seront modifiés.`
+      `Appliquer le profil « ${preset.label} » ?\n${changes.length} réglage(s) gameplay seront modifiés.`,
     );
     if (!ok) return;
 
@@ -142,7 +142,9 @@ export function GLSettingsView() {
     setError('');
     setSuccessMessage('');
     try {
-      await apiGL('/api/gl/admin/settings/platform.brand', 'PUT', { value: normalizeBrand(brandDraft) });
+      await apiGL('/api/gl/admin/settings/platform.brand', 'PUT', {
+        value: normalizeBrand(brandDraft),
+      });
       await load();
       setSuccessMessage('Charte visuelle enregistree.');
     } catch (err) {
@@ -156,7 +158,11 @@ export function GLSettingsView() {
     <GLSurface className="fade-in">
       <h2>Réglages plateforme</h2>
       {error ? <p className="gl-error">{error}</p> : null}
-      {successMessage ? <div className="gl-success-banner" role="status">{successMessage}</div> : null}
+      {successMessage ? (
+        <div className="gl-success-banner" role="status">
+          {successMessage}
+        </div>
+      ) : null}
 
       <form onSubmit={savePlatformIdentity} className="gl-form">
         <GLField label="Titre plateforme">
@@ -179,7 +185,9 @@ export function GLSettingsView() {
           <GLBrandEditor
             value={brandDraft}
             onChange={(updater) => {
-              setBrandDraft((prev) => normalizeBrand(typeof updater === 'function' ? updater(prev) : updater));
+              setBrandDraft((prev) =>
+                normalizeBrand(typeof updater === 'function' ? updater(prev) : updater),
+              );
             }}
             onStatus={(message, isError) => {
               if (isError) setError(message);
@@ -196,8 +204,8 @@ export function GLSettingsView() {
 
       <h3>Gameplay</h3>
       <p className="gl-hint">
-        Tous les toggles sont désactivés par défaut. Le MJ active progressivement les modes
-        standard puis complet selon la séance.
+        Tous les toggles sont désactivés par défaut. Le MJ active progressivement les modes standard
+        puis complet selon la séance.
       </p>
 
       <GLGameplayPresetsPanel
@@ -217,7 +225,8 @@ export function GLSettingsView() {
       <div className="gl-vitality-defaults gl-form">
         <h4>Valeurs initiales (nouveaux joueurs)</h4>
         <p className="gl-hint">
-          S&apos;appliquent uniquement à la création d&apos;un joueur. Les comptes existants ne sont pas réinitialisés.
+          S&apos;appliquent uniquement à la création d&apos;un joueur. Les comptes existants ne sont
+          pas réinitialisés.
         </p>
         <div className="gl-inline-actions">
           <GLField label="PV initiaux (❤️)">
@@ -242,7 +251,10 @@ export function GLSettingsView() {
           </GLField>
           <GLButton
             type="button"
-            disabled={savingKey === 'gameplay.default_health_points' || savingKey === 'gameplay.default_power_points'}
+            disabled={
+              savingKey === 'gameplay.default_health_points' ||
+              savingKey === 'gameplay.default_power_points'
+            }
             onClick={async () => {
               const health = Number(defaultHealthPoints);
               const power = Number(defaultPowerPoints);
@@ -253,8 +265,12 @@ export function GLSettingsView() {
               setSavingKey('gameplay.default_health_points');
               setError('');
               try {
-                await apiGL('/api/gl/admin/settings/gameplay.default_health_points', 'PUT', { value: health });
-                await apiGL('/api/gl/admin/settings/gameplay.default_power_points', 'PUT', { value: power });
+                await apiGL('/api/gl/admin/settings/gameplay.default_health_points', 'PUT', {
+                  value: health,
+                });
+                await apiGL('/api/gl/admin/settings/gameplay.default_power_points', 'PUT', {
+                  value: power,
+                });
                 await load();
                 setSuccessMessage('Valeurs initiales enregistrées.');
               } catch (err) {
@@ -288,13 +304,19 @@ export function GLSettingsView() {
         <label>
           Re-déclenchement des questions sur repère
           <select
-            value={readSelectSetting(settings, 'gameplay.marker_question_retrigger', 'every_arrival')}
+            value={readSelectSetting(
+              settings,
+              'gameplay.marker_question_retrigger',
+              'every_arrival',
+            )}
             disabled={savingKey === 'gameplay.marker_question_retrigger'}
             onChange={async (event) => {
               const next = event.target.value;
               setSavingKey('gameplay.marker_question_retrigger');
               try {
-                await apiGL('/api/gl/admin/settings/gameplay.marker_question_retrigger', 'PUT', { value: next });
+                await apiGL('/api/gl/admin/settings/gameplay.marker_question_retrigger', 'PUT', {
+                  value: next,
+                });
                 await load();
               } catch (err) {
                 setError(err.message || 'Enregistrement impossible');
@@ -320,7 +342,9 @@ export function GLSettingsView() {
               const next = event.target.value;
               setSavingKey('gameplay.zone_content_retrigger');
               try {
-                await apiGL('/api/gl/admin/settings/gameplay.zone_content_retrigger', 'PUT', { value: next });
+                await apiGL('/api/gl/admin/settings/gameplay.zone_content_retrigger', 'PUT', {
+                  value: next,
+                });
                 await load();
               } catch (err) {
                 setError(err.message || 'Enregistrement impossible');
@@ -335,7 +359,8 @@ export function GLSettingsView() {
           </select>
         </label>
         <p className="gl-hint">
-          Contrôle l&apos;affichage du popover texte/images quand une équipe entre ou traverse une zone.
+          Contrôle l&apos;affichage du popover texte/images quand une équipe entre ou traverse une
+          zone.
         </p>
         <h4>Carnet de Sélène (lore)</h4>
         <label>
@@ -346,7 +371,9 @@ export function GLSettingsView() {
             onChange={async (event) => {
               setSavingKey('gameplay.lore_feuillet_retrigger');
               try {
-                await apiGL('/api/gl/admin/settings/gameplay.lore_feuillet_retrigger', 'PUT', { value: event.target.value });
+                await apiGL('/api/gl/admin/settings/gameplay.lore_feuillet_retrigger', 'PUT', {
+                  value: event.target.value,
+                });
                 await load();
               } catch (err) {
                 setError(err.message || 'Enregistrement impossible');
@@ -368,7 +395,9 @@ export function GLSettingsView() {
             onChange={async (event) => {
               setSavingKey('gameplay.lore_spoiler_max_level');
               try {
-                await apiGL('/api/gl/admin/settings/gameplay.lore_spoiler_max_level', 'PUT', { value: event.target.value });
+                await apiGL('/api/gl/admin/settings/gameplay.lore_spoiler_max_level', 'PUT', {
+                  value: event.target.value,
+                });
                 await load();
               } catch (err) {
                 setError(err.message || 'Enregistrement impossible');
@@ -395,7 +424,9 @@ export function GLSettingsView() {
               onChange={async (event) => {
                 setSavingKey(key);
                 try {
-                  await apiGL(`/api/gl/admin/settings/${key}`, 'PUT', { value: event.target.checked });
+                  await apiGL(`/api/gl/admin/settings/${key}`, 'PUT', {
+                    value: event.target.checked,
+                  });
                   await load();
                 } catch (err) {
                   setError(err.message || 'Enregistrement impossible');
@@ -409,16 +440,10 @@ export function GLSettingsView() {
         ))}
       </div>
 
-      <GLSpellCastSettings
-        settings={settings}
-        savingKey={savingKey}
-        onSaveSetting={saveSetting}
-      />
+      <GLSpellCastSettings settings={settings} savingKey={savingKey} onSaveSetting={saveSetting} />
 
       <h3>Modules GL</h3>
-      <p className="gl-hint">
-        Ces drapeaux activent/désactivent les modules GL côté interface.
-      </p>
+      <p className="gl-hint">Ces drapeaux activent/désactivent les modules GL côté interface.</p>
       <GLGameplayTogglesList
         toggles={MODULE_TOGGLES}
         isChecked={readGameplayFlag}

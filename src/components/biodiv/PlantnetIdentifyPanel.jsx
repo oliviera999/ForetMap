@@ -29,7 +29,12 @@ const PLANTNET_IDENTIFY_ORGAN_OPTIONS = [
 ];
 
 function newPlantnetIdentifySlot() {
-  return { key: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`, organ: 'auto', imageData: '', fileName: '' };
+  return {
+    key: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+    organ: 'auto',
+    imageData: '',
+    fileName: '',
+  };
 }
 
 /**
@@ -59,7 +64,13 @@ const PLANTNET_IDENTIFY_PHOTO_FIELD_ORDER = [
  * @param {(updater: Function) => void} props.setForm setter du formulaire parent
  * @param {(msg: string) => void} [props.onToast] notification utilisateur
  */
-export function PlantnetIdentifyPanel({ saving = false, plantId = null, onEnsurePlantId = null, setForm, onToast }) {
+export function PlantnetIdentifyPanel({
+  saving = false,
+  plantId = null,
+  onEnsurePlantId = null,
+  setForm,
+  onToast,
+}) {
   const [identifySlots, setIdentifySlots] = useState(() => [newPlantnetIdentifySlot()]);
   const [identifyLoading, setIdentifyLoading] = useState(false);
   const [identifyApplying, setIdentifyApplying] = useState(false);
@@ -85,7 +96,9 @@ export function PlantnetIdentifyPanel({ saving = false, plantId = null, onEnsure
     if (!file) return;
     try {
       const imageData = await compressImageWithPreset(file, 'plant');
-      setIdentifySlots((prev) => prev.map((r) => (r.key === key ? { ...r, imageData, fileName: file.name || '' } : r)));
+      setIdentifySlots((prev) =>
+        prev.map((r) => (r.key === key ? { ...r, imageData, fileName: file.name || '' } : r)),
+      );
     } catch {
       onToast?.('Impossible de lire cette image.');
     }
@@ -125,7 +138,9 @@ export function PlantnetIdentifyPanel({ saving = false, plantId = null, onEnsure
 
     const slots = filterNonEmptyIdentifySlots(identifySlots);
     if (slots.length === 0) {
-      onToast?.('Nom mis à jour — ajoute des photos d’identification pour les importer dans la fiche.');
+      onToast?.(
+        'Nom mis à jour — ajoute des photos d’identification pour les importer dans la fiche.',
+      );
       return;
     }
 
@@ -145,12 +160,19 @@ export function PlantnetIdentifyPanel({ saving = false, plantId = null, onEnsure
         if (!field) break;
         const imageData = slots[i].imageData;
         const position = i === 0 ? 'prepend' : 'append';
-        const result = await api(`/api/plants/${targetId}/photo-upload`, 'POST', { field, imageData, position });
+        const result = await api(`/api/plants/${targetId}/photo-upload`, 'POST', {
+          field,
+          imageData,
+          position,
+        });
         const newUrl = result?.url;
         if (!newUrl) continue;
         setForm((prev) => ({
           ...prev,
-          [field]: result?.value || result?.plant?.[field] || mergePlantPhotoFieldValue(prev[field], newUrl, position),
+          [field]:
+            result?.value ||
+            result?.plant?.[field] ||
+            mergePlantPhotoFieldValue(prev[field], newUrl, position),
         }));
       }
       onToast?.('Proposition appliquée : noms et photos d’identification importés ✓');
@@ -165,16 +187,22 @@ export function PlantnetIdentifyPanel({ saving = false, plantId = null, onEnsure
 
   return (
     <details className="plant-more" style={{ marginBottom: 10 }}>
-      <summary style={{ cursor: 'pointer', fontSize: '.88rem' }}>Identifier une plante à partir de photos (Pl@ntNet)</summary>
+      <summary style={{ cursor: 'pointer', fontSize: '.88rem' }}>
+        Identifier une plante à partir de photos (Pl@ntNet)
+      </summary>
       <div style={{ marginTop: 8, display: 'grid', gap: 10, fontSize: '.82rem', color: '#444' }}>
         <p style={{ margin: 0, lineHeight: 1.45 }}>
-          Envoie 1 à 5 images de la <strong>même</strong> plante (feuille, fleur, fruit…), depuis la <strong>galerie</strong> ou
-          en <strong>prenant une photo</strong> avec le téléphone (bouton « Appareil photo », caméra arrière si disponible).
-          Le serveur appelle Pl@ntNet ; choisis une proposition puis « Utiliser pour le formulaire » : les noms sont renseignés
-          et les images sont importées (la 1<sup>re</sup> sert de <strong>photo principale</strong> pour illustrer la fiche ;
-          les suivantes remplissent les autres cases photo). Tu peux ensuite lancer la pré-saisie ci-dessous. Données soumises aux
-          conditions d’usage{' '}
-          <a href="https://my.plantnet.org/" target="_blank" rel="noreferrer">my.plantnet.org</a>.
+          Envoie 1 à 5 images de la <strong>même</strong> plante (feuille, fleur, fruit…), depuis la{' '}
+          <strong>galerie</strong> ou en <strong>prenant une photo</strong> avec le téléphone
+          (bouton « Appareil photo », caméra arrière si disponible). Le serveur appelle Pl@ntNet ;
+          choisis une proposition puis « Utiliser pour le formulaire » : les noms sont renseignés et
+          les images sont importées (la 1<sup>re</sup> sert de <strong>photo principale</strong>{' '}
+          pour illustrer la fiche ; les suivantes remplissent les autres cases photo). Tu peux
+          ensuite lancer la pré-saisie ci-dessous. Données soumises aux conditions d’usage{' '}
+          <a href="https://my.plantnet.org/" target="_blank" rel="noreferrer">
+            my.plantnet.org
+          </a>
+          .
         </p>
         {identifySlots.map((row) => {
           const safeId = String(row.key).replace(/\W/g, '_');
@@ -207,7 +235,9 @@ export function PlantnetIdentifyPanel({ saving = false, plantId = null, onEnsure
               }}
             >
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
-                <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: '.78rem' }}>
+                <label
+                  style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: '.78rem' }}
+                >
                   <span>Organe</span>
                   <select
                     value={row.organ}
@@ -215,13 +245,27 @@ export function PlantnetIdentifyPanel({ saving = false, plantId = null, onEnsure
                     disabled={identifyBusy}
                   >
                     {PLANTNET_IDENTIFY_ORGAN_OPTIONS.map((o) => (
-                      <option key={o.id} value={o.id}>{o.label}</option>
+                      <option key={o.id} value={o.id}>
+                        {o.label}
+                      </option>
                     ))}
                   </select>
                 </label>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: '.78rem', flex: '1 1 220px' }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 6,
+                    fontSize: '.78rem',
+                    flex: '1 1 220px',
+                  }}
+                >
                   <span>Image</span>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }} role="group" aria-label="Image : galerie ou appareil photo">
+                  <div
+                    style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}
+                    role="group"
+                    aria-label="Image : galerie ou appareil photo"
+                  >
                     <input
                       id={idGal}
                       type="file"
@@ -268,15 +312,18 @@ export function PlantnetIdentifyPanel({ saving = false, plantId = null, onEnsure
                   </button>
                 )}
               </div>
-              {row.fileName && (
-                <span style={{ color: '#2a6a2a' }}>Fichier : {row.fileName}</span>
-              )}
+              {row.fileName && <span style={{ color: '#2a6a2a' }}>Fichier : {row.fileName}</span>}
             </div>
           );
         })}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
           {identifySlots.length < 5 && (
-            <button type="button" className="btn btn-ghost btn-sm" disabled={identifyBusy} onClick={addIdentifySlot}>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              disabled={identifyBusy}
+              onClick={addIdentifySlot}
+            >
               + Ajouter une image
             </button>
           )}
@@ -289,9 +336,7 @@ export function PlantnetIdentifyPanel({ saving = false, plantId = null, onEnsure
             {identifyLoading ? 'Identification…' : 'Lancer l’identification'}
           </button>
         </div>
-        {identifyError && (
-          <p style={{ margin: 0, color: '#a94442' }}>{identifyError}</p>
-        )}
+        {identifyError && <p style={{ margin: 0, color: '#a94442' }}>{identifyError}</p>}
         <PlantnetPredictionsList
           predictions={identifyPredictions}
           applying={identifyApplying}

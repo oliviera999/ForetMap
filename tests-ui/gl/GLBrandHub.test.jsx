@@ -35,20 +35,30 @@ describe('GLBrandHub', () => {
   });
 
   it('affiche les trois images de cartes et révèle la grille au montage', async () => {
-    Object.defineProperty(window, 'innerWidth', { value: 1024, configurable: true, writable: true });
-    Object.defineProperty(window, 'innerHeight', { value: 768, configurable: true, writable: true });
-    rectSpy = vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function mockRect() {
-      return {
-        top: 200,
-        left: 0,
-        bottom: 400,
-        right: 900,
-        width: 900,
-        height: 200,
-        x: 0,
-        y: 200,
-      };
+    Object.defineProperty(window, 'innerWidth', {
+      value: 1024,
+      configurable: true,
+      writable: true,
     });
+    Object.defineProperty(window, 'innerHeight', {
+      value: 768,
+      configurable: true,
+      writable: true,
+    });
+    rectSpy = vi
+      .spyOn(Element.prototype, 'getBoundingClientRect')
+      .mockImplementation(function mockRect() {
+        return {
+          top: 200,
+          left: 0,
+          bottom: 400,
+          right: 900,
+          width: 900,
+          height: 200,
+          x: 0,
+          y: 200,
+        };
+      });
 
     render(<GLBrandHub slots={slots} onOpenTab={() => {}} />);
 

@@ -12,7 +12,9 @@ describe('GLMascotAvatar', () => {
   });
 
   test('retombe sur le fallback pour mascotte inconnue', () => {
-    render(<GLMascotAvatar mascotId="unknown-id" fallbackType="unicorn" fallbackLabel="Licorne test" />);
+    render(
+      <GLMascotAvatar mascotId="unknown-id" fallbackType="unicorn" fallbackLabel="Licorne test" />,
+    );
     expect(screen.getByLabelText('Licorne test')).toBeInTheDocument();
   });
 });

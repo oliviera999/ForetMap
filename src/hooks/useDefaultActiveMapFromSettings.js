@@ -41,7 +41,9 @@ export function useDefaultActiveMapFromSettings({
     if (storedMapId) return;
     const defaultMap = showPublicVisit
       ? publicSettings?.map?.default_map_visit
-      : (effectiveIsTeacher ? publicSettings?.map?.default_map_teacher : publicSettings?.map?.default_map_student);
+      : effectiveIsTeacher
+        ? publicSettings?.map?.default_map_teacher
+        : publicSettings?.map?.default_map_student;
     const nextMapId = String(defaultMap || '').trim();
     if (!nextMapId) return;
     setActiveMapId((prev) => (prev === nextMapId ? prev : nextMapId));

@@ -146,21 +146,39 @@ export function GLSpeciesEditorPanel() {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
-  const coreFields = ['species_code', 'type', 'nom_commun', 'nom_scientifique', 'groupe', 'famille', 'mots_cles', 'photo_url'];
+  const coreFields = [
+    'species_code',
+    'type',
+    'nom_commun',
+    'nom_scientifique',
+    'groupe',
+    'famille',
+    'mots_cles',
+    'photo_url',
+  ];
 
   return (
     <section className="gl-admin-section fade-in">
       <h3>Saisie manuelle — biocénose (espèces)</h3>
       <p className="gl-hint">
-        Fiches espèces par biome. Les mots-clés relient la fiche au glossaire (séparés par des virgules).
+        Fiches espèces par biome. Les mots-clés relient la fiche au glossaire (séparés par des
+        virgules).
       </p>
       {error ? <p className="gl-error">{error}</p> : null}
       {info ? <p className="gl-hint">{info}</p> : null}
 
       <GLField label="Biome du catalogue">
-        <GLSelect value={biomeSlug} onChange={(e) => { setBiomeSlug(e.target.value); setSelectedCode(null); }}>
+        <GLSelect
+          value={biomeSlug}
+          onChange={(e) => {
+            setBiomeSlug(e.target.value);
+            setSelectedCode(null);
+          }}
+        >
           {biomes.map((b) => (
-            <option key={b.slug} value={b.slug}>{b.nom || b.slug}</option>
+            <option key={b.slug} value={b.slug}>
+              {b.nom || b.slug}
+            </option>
           ))}
         </GLSelect>
       </GLField>
@@ -169,7 +187,11 @@ export function GLSpeciesEditorPanel() {
         <aside>
           <div className="gl-form gl-form--compact">
             <GLField label="Recherche">
-              <GLInput value={filterQ} onChange={(e) => setFilterQ(e.target.value)} placeholder="Nom ou code…" />
+              <GLInput
+                value={filterQ}
+                onChange={(e) => setFilterQ(e.target.value)}
+                placeholder="Nom ou code…"
+              />
             </GLField>
             <GLField label="Type">
               <GLSelect value={filterType} onChange={(e) => setFilterType(e.target.value)}>
@@ -194,7 +216,12 @@ export function GLSpeciesEditorPanel() {
               </li>
             ))}
           </ul>
-          <GLButton type="button" variant="secondary" onClick={startNewSpecies} disabled={loading || !biomeSlug}>
+          <GLButton
+            type="button"
+            variant="secondary"
+            onClick={startNewSpecies}
+            disabled={loading || !biomeSlug}
+          >
             + Nouvelle espèce
           </GLButton>
         </aside>
@@ -227,7 +254,12 @@ export function GLSpeciesEditorPanel() {
                 {loading ? 'Enregistrement…' : 'Enregistrer'}
               </GLButton>
               {selectedCode ? (
-                <GLButton type="button" variant="secondary" onClick={archiveSpecies} disabled={loading}>
+                <GLButton
+                  type="button"
+                  variant="secondary"
+                  onClick={archiveSpecies}
+                  disabled={loading}
+                >
                   Archiver
                 </GLButton>
               ) : null}

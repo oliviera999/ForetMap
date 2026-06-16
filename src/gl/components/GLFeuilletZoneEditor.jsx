@@ -5,7 +5,8 @@ import { GLButton } from './ui/GLButton.jsx';
 
 function buildExportJson(zones) {
   return {
-    format: 'coords normalisees 0-1, origine haut-gauche; superposer sur board_image; declenchement 1ere traversee',
+    format:
+      'coords normalisees 0-1, origine haut-gauche; superposer sur board_image; declenchement 1ere traversee',
     zones: zones.map((zone) => ({
       zone_id: zone.zoneId,
       plateau: zone.plateau,
@@ -38,49 +39,57 @@ export function GLFeuilletZoneEditor({
     [zones, selectedZoneId],
   );
 
-  const handlePointerDown = useCallback((event, zoneId) => {
-    if (!mapGestures?.toImagePct) return;
-    event.preventDefault();
-    event.stopPropagation();
-    const startPct = mapGestures.toImagePct(event.clientX, event.clientY);
-    if (!startPct) return;
-    const zone = zones.find((z) => z.zoneId === zoneId);
-    if (!zone) return;
-    setSelectedZoneId(zoneId);
-    setDragState({
-      zoneId,
-      startXp: startPct.xp,
-      startYp: startPct.yp,
-      originCentreXp: zone.centreXp,
-      originCentreYp: zone.centreYp,
-      originPoints: zone.points.map((p) => ({ x: p.x, y: p.y })),
-    });
-  }, [mapGestures, zones]);
+  const handlePointerDown = useCallback(
+    (event, zoneId) => {
+      if (!mapGestures?.toImagePct) return;
+      event.preventDefault();
+      event.stopPropagation();
+      const startPct = mapGestures.toImagePct(event.clientX, event.clientY);
+      if (!startPct) return;
+      const zone = zones.find((z) => z.zoneId === zoneId);
+      if (!zone) return;
+      setSelectedZoneId(zoneId);
+      setDragState({
+        zoneId,
+        startXp: startPct.xp,
+        startYp: startPct.yp,
+        originCentreXp: zone.centreXp,
+        originCentreYp: zone.centreYp,
+        originPoints: zone.points.map((p) => ({ x: p.x, y: p.y })),
+      });
+    },
+    [mapGestures, zones],
+  );
 
-  const handlePointerMove = useCallback((event) => {
-    if (!dragState || !mapGestures?.toImagePct) return;
-    const pct = mapGestures.toImagePct(event.clientX, event.clientY);
-    if (!pct) return;
-    const dx = pct.xp - dragState.startXp;
-    const dy = pct.yp - dragState.startYp;
-    onZonesChange?.(zones.map((zone) => {
-      if (zone.zoneId !== dragState.zoneId) return zone;
-      const nextPoints = dragState.originPoints.map((p) => ({
-        x: p.x + dx,
-        y: p.y + dy,
-      }));
-      return {
-        ...zone,
-        points: nextPoints,
-        centreXp: dragState.originCentreXp + dx,
-        centreYp: dragState.originCentreYp + dy,
-        centre: {
-          x: dragState.originCentreXp + dx,
-          y: dragState.originCentreYp + dy,
-        },
-      };
-    }));
-  }, [dragState, mapGestures, onZonesChange, zones]);
+  const handlePointerMove = useCallback(
+    (event) => {
+      if (!dragState || !mapGestures?.toImagePct) return;
+      const pct = mapGestures.toImagePct(event.clientX, event.clientY);
+      if (!pct) return;
+      const dx = pct.xp - dragState.startXp;
+      const dy = pct.yp - dragState.startYp;
+      onZonesChange?.(
+        zones.map((zone) => {
+          if (zone.zoneId !== dragState.zoneId) return zone;
+          const nextPoints = dragState.originPoints.map((p) => ({
+            x: p.x + dx,
+            y: p.y + dy,
+          }));
+          return {
+            ...zone,
+            points: nextPoints,
+            centreXp: dragState.originCentreXp + dx,
+            centreYp: dragState.originCentreYp + dy,
+            centre: {
+              x: dragState.originCentreXp + dx,
+              y: dragState.originCentreYp + dy,
+            },
+          };
+        }),
+      );
+    },
+    [dragState, mapGestures, onZonesChange, zones],
+  );
 
   const handlePointerUp = useCallback(() => {
     setDragState(null);
@@ -143,7 +152,9 @@ export function GLFeuilletZoneEditor({
       <aside className="gl-feuillet-zone-debug-panel" aria-label="Debug zones feuillets">
         <h4>Zones feuillets — édition</h4>
         {plateauNumber ? (
-          <p className="gl-hint">Plateau {plateauNumber} — {zones.length} zone(s)</p>
+          <p className="gl-hint">
+            Plateau {plateauNumber} — {zones.length} zone(s)
+          </p>
         ) : (
           <p className="gl-hint">Configurez le numéro de plateau sur le chapitre.</p>
         )}
@@ -167,12 +178,17 @@ export function GLFeuilletZoneEditor({
         </ul>
         {selectedZone ? (
           <p className="gl-hint gl-feuillet-zone-debug-coords">
-            {selectedZone.zoneId} — centre {selectedZone.centreXp.toFixed(2)} % / {selectedZone.centreYp.toFixed(2)} %
+            {selectedZone.zoneId} — centre {selectedZone.centreXp.toFixed(2)} % /{' '}
+            {selectedZone.centreYp.toFixed(2)} %
           </p>
         ) : null}
         <div className="gl-feuillet-zone-debug-actions">
-          <GLButton type="button" variant="secondary" onClick={copyExport}>Copier JSON</GLButton>
-          <GLButton type="button" onClick={downloadExport}>Télécharger JSON</GLButton>
+          <GLButton type="button" variant="secondary" onClick={copyExport}>
+            Copier JSON
+          </GLButton>
+          <GLButton type="button" onClick={downloadExport}>
+            Télécharger JSON
+          </GLButton>
         </div>
       </aside>
     </>

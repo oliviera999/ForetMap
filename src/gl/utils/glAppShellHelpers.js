@@ -15,7 +15,9 @@ import { isModuleEnabled } from '../constants/modules.js';
 /** Décode un payload base64url (retour OAuth dans le hash d'URL) en objet JSON, `null` si invalide. */
 export function decodeBase64UrlJson(value) {
   try {
-    const normalized = String(value || '').replace(/-/g, '+').replace(/_/g, '/');
+    const normalized = String(value || '')
+      .replace(/-/g, '+')
+      .replace(/_/g, '/');
     const padded = normalized + '='.repeat((4 - (normalized.length % 4)) % 4);
     return JSON.parse(atob(padded));
   } catch (_) {

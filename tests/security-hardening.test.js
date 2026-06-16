@@ -67,7 +67,9 @@ describe('Durcissement sécurité / robustesse', () => {
     delete process.env.E2E_DISABLE_RATE_LIMIT;
     delete process.env.FORETMAP_SOCKET_QUERY_TOKEN;
     try {
-      const socket = { handshake: { auth: {}, headers: {}, query: { token: 'secret-from-query' } } };
+      const socket = {
+        handshake: { auth: {}, headers: {}, query: { token: 'secret-from-query' } },
+      };
       assert.strictEqual(parseSocketToken(socket), null);
     } finally {
       process.env.NODE_ENV = prevNode;

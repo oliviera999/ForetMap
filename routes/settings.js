@@ -46,13 +46,13 @@ async function getMapById(id) {
   try {
     return await queryOne(
       'SELECT id, label, map_image_url, sort_order, frame_padding_px, is_active FROM maps WHERE id = ? LIMIT 1',
-      [id]
+      [id],
     );
   } catch (e) {
     if (!(e && (e.errno === 1054 || e.code === 'ER_BAD_FIELD_ERROR'))) throw e;
     return queryOne(
       'SELECT id, label, map_image_url, sort_order, NULL AS frame_padding_px, 1 AS is_active FROM maps WHERE id = ? LIMIT 1',
-      [id]
+      [id],
     );
   }
 }
@@ -60,29 +60,29 @@ async function getMapById(id) {
 async function listMaps() {
   try {
     return await queryAll(
-      'SELECT id, label, map_image_url, sort_order, frame_padding_px, is_active FROM maps ORDER BY sort_order ASC, label ASC'
+      'SELECT id, label, map_image_url, sort_order, frame_padding_px, is_active FROM maps ORDER BY sort_order ASC, label ASC',
     );
   } catch (e) {
     if (!(e && (e.errno === 1054 || e.code === 'ER_BAD_FIELD_ERROR'))) throw e;
     return queryAll(
-      'SELECT id, label, map_image_url, sort_order, NULL AS frame_padding_px, 1 AS is_active FROM maps ORDER BY sort_order ASC, label ASC'
+      'SELECT id, label, map_image_url, sort_order, NULL AS frame_padding_px, 1 AS is_active FROM maps ORDER BY sort_order ASC, label ASC',
     );
   }
 }
 
-router.get('/public', asyncHandler(async (req, res) => {
-  const settings = await getSettings('public');
-  res.json({ settings: settings.nested });
-}));
+router.get(
+  '/public',
+  asyncHandler(async (req, res) => {
+    const settings = await getSettings('public');
+    res.json({ settings: settings.nested });
+  }),
+);
 
 router.get(
   '/admin',
   requirePermission('admin.settings.read', { needsElevation: true }),
   asyncHandler(async (req, res) => {
-    const [settingsRows, maps] = await Promise.all([
-      listAdminSettings(),
-      listMaps(),
-    ]);
+    const [settingsRows, maps] = await Promise.all([listAdminSettings(), listMaps()]);
     res.json({
       settings: settingsRows,
       maps: maps.map((row) => ({
@@ -91,7 +91,7 @@ router.get(
         is_active: !!row.is_active,
       })),
     });
-  })
+  }),
 );
 
 router.put(
@@ -103,12 +103,21 @@ router.put(
       if (!key) return res.status(400).json({ error: 'Clé de réglage requise' });
       const value = req.body?.value;
       if (
-        ['ui.map.default_map_student', 'ui.map.default_map_teacher', 'ui.map.default_map_visit'].includes(key)
+        [
+          'ui.map.default_map_student',
+          'ui.map.default_map_teacher',
+          'ui.map.default_map_visit',
+        ].includes(key)
       ) {
-        const exists = await queryOne('SELECT id FROM maps WHERE id = ? LIMIT 1', [String(value || '').trim()]);
+        const exists = await queryOne('SELECT id FROM maps WHERE id = ? LIMIT 1', [
+          String(value || '').trim(),
+        ]);
         if (!exists) return res.status(400).json({ error: 'Carte par défaut introuvable' });
       }
-      const updated = await setSetting(key, value, { userType: req.auth?.userType, userId: req.auth?.userId });
+      const updated = await setSetting(key, value, {
+        userType: req.auth?.userType,
+        userId: req.auth?.userId,
+      });
       const all = await getSettings('admin');
       await validateCrossSettings(all.flat);
       await logAudit('settings_update', 'setting', key, 'Réglage mis à jour', {
@@ -120,17 +129,21 @@ router.put(
       logRouteError(e, req);
       res.status(400).json({ error: e.message });
     }
-  }
+  },
 );
 
 router.post(
   '/admin/maps',
   requirePermission('admin.settings.write', { needsElevation: true }),
   asyncHandler(async (req, res) => {
-    const id = String(req.body?.id || '').trim().toLowerCase();
+    const id = String(req.body?.id || '')
+      .trim()
+      .toLowerCase();
     const label = String(req.body?.label || '').trim();
     if (!id || !MAP_SLUG_RE.test(id)) {
-      return res.status(400).json({ error: 'Identifiant carte invalide (minuscules, chiffres, tirets ; 1 à 31 caractères)' });
+      return res.status(400).json({
+        error: 'Identifiant carte invalide (minuscules, chiffres, tirets ; 1 à 31 caractères)',
+      });
     }
     if (id === 'both') {
       return res.status(400).json({ error: 'Identifiant réservé (both)' });
@@ -146,14 +159,16 @@ router.post(
       await execute(
         `INSERT INTO maps (id, label, map_image_url, sort_order, frame_padding_px, is_active)
          VALUES (?, ?, ?, ?, NULL, ?)`,
-        [id, label, mapImageUrl, sortOrder, isActive ? 1 : 0]
+        [id, label, mapImageUrl, sortOrder, isActive ? 1 : 0],
       );
     } catch (e) {
       if (!(e && (e.errno === 1054 || e.code === 'ER_BAD_FIELD_ERROR'))) throw e;
-      await execute(
-        'INSERT INTO maps (id, label, map_image_url, sort_order) VALUES (?, ?, ?, ?)',
-        [id, label, mapImageUrl, sortOrder]
-      );
+      await execute('INSERT INTO maps (id, label, map_image_url, sort_order) VALUES (?, ?, ?, ?)', [
+        id,
+        label,
+        mapImageUrl,
+        sortOrder,
+      ]);
     }
     invalidateMapsListCache();
     const created = await getMapById(id);
@@ -166,7 +181,7 @@ router.post(
       map_image_url: normalizeMapImageUrl(created.id, created.map_image_url),
       is_active: !!created.is_active,
     });
-  })
+  }),
 );
 
 router.put(
@@ -176,17 +191,21 @@ router.put(
     const map = await getMapById(req.params.id);
     if (!map) return res.status(404).json({ error: 'Carte introuvable' });
     const label = String(req.body?.label ?? map.label).trim();
-    const mapImageUrl = normalizeMapImageUrl(map.id, String(req.body?.map_image_url ?? map.map_image_url).trim());
+    const mapImageUrl = normalizeMapImageUrl(
+      map.id,
+      String(req.body?.map_image_url ?? map.map_image_url).trim(),
+    );
     const sortOrderRaw = parseInt(req.body?.sort_order, 10);
     const sortOrder = Number.isFinite(sortOrderRaw) ? Math.max(0, sortOrderRaw) : map.sort_order;
     const framePaddingRaw = req.body?.frame_padding_px;
-    const framePadding = framePaddingRaw === null || framePaddingRaw === ''
-      ? null
-      : (() => {
-        const n = parseInt(framePaddingRaw, 10);
-        if (!Number.isFinite(n)) return map.frame_padding_px;
-        return Math.min(Math.max(n, 0), 32);
-      })();
+    const framePadding =
+      framePaddingRaw === null || framePaddingRaw === ''
+        ? null
+        : (() => {
+            const n = parseInt(framePaddingRaw, 10);
+            if (!Number.isFinite(n)) return map.frame_padding_px;
+            return Math.min(Math.max(n, 0), 32);
+          })();
     const isActive = parseBoolean(req.body?.is_active, !!map.is_active);
     if (!label) return res.status(400).json({ error: 'Label requis' });
     try {
@@ -194,14 +213,16 @@ router.put(
         `UPDATE maps
             SET label = ?, map_image_url = ?, sort_order = ?, frame_padding_px = ?, is_active = ?
           WHERE id = ?`,
-        [label, mapImageUrl, sortOrder, framePadding, isActive ? 1 : 0, map.id]
+        [label, mapImageUrl, sortOrder, framePadding, isActive ? 1 : 0, map.id],
       );
     } catch (e) {
       if (!(e && (e.errno === 1054 || e.code === 'ER_BAD_FIELD_ERROR'))) throw e;
-      await execute(
-        'UPDATE maps SET label = ?, map_image_url = ?, sort_order = ? WHERE id = ?',
-        [label, mapImageUrl, sortOrder, map.id]
-      );
+      await execute('UPDATE maps SET label = ?, map_image_url = ?, sort_order = ? WHERE id = ?', [
+        label,
+        mapImageUrl,
+        sortOrder,
+        map.id,
+      ]);
     }
     const updated = await getMapById(map.id);
     invalidateMapsListCache();
@@ -220,7 +241,7 @@ router.put(
       map_image_url: normalizeMapImageUrl(updated.id, updated.map_image_url),
       is_active: !!updated.is_active,
     });
-  })
+  }),
 );
 
 router.post(
@@ -251,7 +272,7 @@ router.post(
       map_image_url: normalizeMapImageUrl(updated.id, updated.map_image_url),
       is_active: !!updated.is_active,
     });
-  })
+  }),
 );
 
 router.get(
@@ -262,7 +283,7 @@ router.get(
     const limit = req.validatedQuery?.limit;
     const items = listMediaLibraryItems(Number.isFinite(limit) ? limit : 300, { app: 'foretmap' });
     res.json({ items });
-  })
+  }),
 );
 
 router.post(
@@ -271,7 +292,8 @@ router.post(
   asyncHandler(async (req, res) => {
     const mediaData = String(req.body?.media_data || '').trim();
     if (!mediaData) return res.status(400).json({ error: 'media_data requis' });
-    const originalName = String(req.body?.original_name || req.body?.originalName || '').trim() || null;
+    const originalName =
+      String(req.body?.original_name || req.body?.originalName || '').trim() || null;
     const saved = saveMediaFromDataUrl(mediaData, { originalName, app: 'foretmap' });
     await logAudit('settings_media_upload', 'media', saved.relativePath, 'Média uploadé', {
       req,
@@ -283,7 +305,7 @@ router.post(
       },
     });
     res.status(201).json(saved);
-  })
+  }),
 );
 
 router.delete(
@@ -300,7 +322,7 @@ router.delete(
       },
     });
     res.json(payload);
-  })
+  }),
 );
 
 router.get(
@@ -340,7 +362,7 @@ router.get(
       metrics: logMetrics.getMetrics(),
       runtimeProcess: getRuntimeProcessSnapshot(),
     });
-  })
+  }),
 );
 
 router.get(
@@ -361,7 +383,7 @@ router.get(
       bufferMax: getMaxLines(),
       entries,
     });
-  })
+  }),
 );
 
 router.get(
@@ -374,15 +396,22 @@ router.get(
     } catch (e) {
       respondInternalError(res, req, e, 'Auto-test fournisseurs en échec');
     }
-  }
+  },
 );
 
 router.get(
   '/admin/system/oauth-debug',
   requirePermission('admin.settings.read', { needsElevation: true }),
   asyncHandler(async (req, res) => {
-    const frontendOrigin = String(process.env.FRONTEND_ORIGIN || process.env.PASSWORD_RESET_BASE_URL || `${req.protocol}://${req.get('host')}`);
-    const redirectUri = String(process.env.GOOGLE_OAUTH_REDIRECT_URI || `${req.protocol}://${req.get('host')}/api/auth/google/callback`);
+    const frontendOrigin = String(
+      process.env.FRONTEND_ORIGIN ||
+        process.env.PASSWORD_RESET_BASE_URL ||
+        `${req.protocol}://${req.get('host')}`,
+    );
+    const redirectUri = String(
+      process.env.GOOGLE_OAUTH_REDIRECT_URI ||
+        `${req.protocol}://${req.get('host')}/api/auth/google/callback`,
+    );
     res.json({
       ok: true,
       runtime: {
@@ -399,7 +428,7 @@ router.get(
         allowedEmails: String(process.env.GOOGLE_OAUTH_ALLOWED_EMAILS || ''),
       },
     });
-  })
+  }),
 );
 
 router.post(
@@ -410,10 +439,16 @@ router.post(
     if (!settings.flat['ops.allow_remote_restart']) {
       return res.status(403).json({ error: 'Redémarrage distant désactivé' });
     }
-    await logAudit('settings_system_restart', 'system', 'node-process', 'Redémarrage demandé via GUI admin', { req });
+    await logAudit(
+      'settings_system_restart',
+      'system',
+      'node-process',
+      'Redémarrage demandé via GUI admin',
+      { req },
+    );
     res.json({ ok: true, message: 'Redémarrage dans 1s' });
     setTimeout(() => process.exit(0), 1000);
-  })
+  }),
 );
 
 module.exports = router;

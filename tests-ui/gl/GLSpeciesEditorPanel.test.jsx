@@ -55,9 +55,13 @@ describe('GLSpeciesEditorPanel', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
 
     await waitFor(() => {
-      expect(apiGlMock).toHaveBeenCalledWith('/api/gl/admin/species', 'POST', expect.objectContaining({
-        nom_commun: 'Fennec test',
-      }));
+      expect(apiGlMock).toHaveBeenCalledWith(
+        '/api/gl/admin/species',
+        'POST',
+        expect.objectContaining({
+          nom_commun: 'Fennec test',
+        }),
+      );
     });
   });
 });

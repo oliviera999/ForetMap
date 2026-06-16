@@ -71,7 +71,9 @@ describe('computeTutorialCountByLocation', () => {
       { id: 3, is_active: false, zone_ids: ['z1'], marker_ids: ['m1'] },
     ];
     const { zoneTutorialCountById, markerTutorialCountById } = computeTutorialCountByLocation({
-      ...base, tutorials, tasks: [],
+      ...base,
+      tutorials,
+      tasks: [],
     });
     expect(zoneTutorialCountById.get('z1')).toBe(2);
     expect(markerTutorialCountById.get('m1')).toBe(1);
@@ -80,7 +82,9 @@ describe('computeTutorialCountByLocation', () => {
   test('ignore les lieux hors carte active', () => {
     const tutorials = [{ id: 1, zone_ids: ['z2'], marker_ids: ['m2'] }];
     const { zoneTutorialCountById, markerTutorialCountById } = computeTutorialCountByLocation({
-      ...base, tutorials, tasks: [],
+      ...base,
+      tutorials,
+      tasks: [],
     });
     expect(zoneTutorialCountById.size).toBe(0);
     expect(markerTutorialCountById.size).toBe(0);
@@ -94,7 +98,9 @@ describe('computeTutorialCountByLocation', () => {
       { id: 1, status: 'todo', zone_ids: ['z1'], marker_ids: ['m1'], tutorial_ids: [7] },
     ];
     const { zoneTutorialCountById, markerTutorialCountById } = computeTutorialCountByLocation({
-      ...base, tutorials, tasks,
+      ...base,
+      tutorials,
+      tasks,
     });
     expect(zoneTutorialCountById.get('z1')).toBe(1);
     expect(markerTutorialCountById.get('m1')).toBe(1);
@@ -125,9 +131,18 @@ describe('computeTutorialCountByLocation', () => {
 
   test('utilise tutorials_linked quand présent sur la tâche', () => {
     const tasks = [
-      { id: 1, status: 'todo', zone_ids: ['z1'], tutorials_linked: [{ id: 9, zone_ids: [], marker_ids: [] }] },
+      {
+        id: 1,
+        status: 'todo',
+        zone_ids: ['z1'],
+        tutorials_linked: [{ id: 9, zone_ids: [], marker_ids: [] }],
+      },
     ];
-    const { zoneTutorialCountById } = computeTutorialCountByLocation({ ...base, tutorials: [], tasks });
+    const { zoneTutorialCountById } = computeTutorialCountByLocation({
+      ...base,
+      tutorials: [],
+      tasks,
+    });
     expect(zoneTutorialCountById.get('z1')).toBe(1);
   });
 });

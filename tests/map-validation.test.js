@@ -9,21 +9,26 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const { validate } = require('../lib/validate');
-const {
-  reorderMarkerPhotosBodySchema,
-  addMarkerPhotoBodySchema,
-} = require('../routes/map');
+const { reorderMarkerPhotosBodySchema, addMarkerPhotoBodySchema } = require('../routes/map');
 
 function runValidation(schema, body) {
   const req = { body };
   const res = {
     statusCode: 200,
     body: undefined,
-    status(c) { this.statusCode = c; return this; },
-    json(payload) { this.body = payload; return this; },
+    status(c) {
+      this.statusCode = c;
+      return this;
+    },
+    json(payload) {
+      this.body = payload;
+      return this;
+    },
   };
   let nextCalled = false;
-  validate({ body: schema })(req, res, () => { nextCalled = true; });
+  validate({ body: schema })(req, res, () => {
+    nextCalled = true;
+  });
   return { nextCalled, status: res.statusCode, error: res.body?.error, reqBody: req.body };
 }
 
@@ -44,13 +49,21 @@ test('reorder : rejet 400 quand ni photo_ids ni ordered_ids n’est un tableau',
   ];
   for (const body of rejectCases) {
     const r = runValidation(reorderMarkerPhotosBodySchema, body);
-    assert.strictEqual(legacyReorderRejects(body), true, `legacy devrait rejeter ${JSON.stringify(body)}`);
-    assert.strictEqual(r.nextCalled, false, `next ne doit pas être appelé pour ${JSON.stringify(body)}`);
+    assert.strictEqual(
+      legacyReorderRejects(body),
+      true,
+      `legacy devrait rejeter ${JSON.stringify(body)}`,
+    );
+    assert.strictEqual(
+      r.nextCalled,
+      false,
+      `next ne doit pas être appelé pour ${JSON.stringify(body)}`,
+    );
     assert.strictEqual(r.status, 400, `status 400 attendu pour ${JSON.stringify(body)}`);
     assert.strictEqual(
       r.error,
       'Liste photo_ids (ou ordered_ids) requise',
-      `message exact attendu pour ${JSON.stringify(body)}`
+      `message exact attendu pour ${JSON.stringify(body)}`,
     );
   }
 });
@@ -64,7 +77,11 @@ test('reorder : laisse passer un tableau (photo_ids ou ordered_ids) sans transfo
   ];
   for (const body of passCases) {
     const r = runValidation(reorderMarkerPhotosBodySchema, body);
-    assert.strictEqual(legacyReorderRejects(body), false, `legacy ne devrait pas rejeter ${JSON.stringify(body)}`);
+    assert.strictEqual(
+      legacyReorderRejects(body),
+      false,
+      `legacy ne devrait pas rejeter ${JSON.stringify(body)}`,
+    );
     assert.strictEqual(r.nextCalled, true, `next doit être appelé pour ${JSON.stringify(body)}`);
     assert.strictEqual(r.status, 200, `pas de 400 pour ${JSON.stringify(body)}`);
     // Corps non transformé : le handler relit photo_ids ?? ordered_ids tel quel.
@@ -89,10 +106,22 @@ test('add photo : rejet 400 quand image_data est absent/falsy', () => {
   ];
   for (const body of rejectCases) {
     const r = runValidation(addMarkerPhotoBodySchema, body);
-    assert.strictEqual(legacyPhotoRejects(body), true, `legacy devrait rejeter ${JSON.stringify(body)}`);
-    assert.strictEqual(r.nextCalled, false, `next ne doit pas être appelé pour ${JSON.stringify(body)}`);
+    assert.strictEqual(
+      legacyPhotoRejects(body),
+      true,
+      `legacy devrait rejeter ${JSON.stringify(body)}`,
+    );
+    assert.strictEqual(
+      r.nextCalled,
+      false,
+      `next ne doit pas être appelé pour ${JSON.stringify(body)}`,
+    );
     assert.strictEqual(r.status, 400, `status 400 attendu pour ${JSON.stringify(body)}`);
-    assert.strictEqual(r.error, 'Image requise', `message exact attendu pour ${JSON.stringify(body)}`);
+    assert.strictEqual(
+      r.error,
+      'Image requise',
+      `message exact attendu pour ${JSON.stringify(body)}`,
+    );
   }
 });
 
@@ -103,7 +132,11 @@ test('add photo : laisse passer dès qu’image_data est truthy, sans transforme
   ];
   for (const body of passCases) {
     const r = runValidation(addMarkerPhotoBodySchema, body);
-    assert.strictEqual(legacyPhotoRejects(body), false, `legacy ne devrait pas rejeter ${JSON.stringify(body)}`);
+    assert.strictEqual(
+      legacyPhotoRejects(body),
+      false,
+      `legacy ne devrait pas rejeter ${JSON.stringify(body)}`,
+    );
     assert.strictEqual(r.nextCalled, true, `next doit être appelé pour ${JSON.stringify(body)}`);
     assert.strictEqual(r.status, 200, `pas de 400 pour ${JSON.stringify(body)}`);
     assert.deepStrictEqual(r.reqBody, body, 'le corps ne doit pas être altéré');

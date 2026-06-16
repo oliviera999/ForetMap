@@ -12,7 +12,13 @@ const {
   buildSpeciesUpsertParams,
 } = require('../lib/glSpeciesImport');
 
-const XLSX_PATH = path.join(__dirname, '..', 'data', 'gl', 'especes-biomes-gnomes-et-licornes.xlsx');
+const XLSX_PATH = path.join(
+  __dirname,
+  '..',
+  'data',
+  'gl',
+  'especes-biomes-gnomes-et-licornes.xlsx',
+);
 
 test('parseSpeciesWorkbook lit le fichier de référence', async () => {
   const buffer = fs.readFileSync(XLSX_PATH);

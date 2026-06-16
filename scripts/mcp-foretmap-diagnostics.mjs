@@ -20,7 +20,11 @@ function baseUrl() {
 }
 
 function glBaseUrl() {
-  const raw = (process.env.GL_BASE_URL || process.env.GL_PROD_BASE_URL || 'https://gl.olution.info').trim();
+  const raw = (
+    process.env.GL_BASE_URL ||
+    process.env.GL_PROD_BASE_URL ||
+    'https://gl.olution.info'
+  ).trim();
   return raw.replace(/\/$/, '');
 }
 
@@ -48,11 +52,11 @@ function requireSecret() {
     process.env.FORETMAP_DEPLOY_SECRET ||
       process.env.DEPLOY_SECRET ||
       process.env.FORETMAP_DEPLOY_CHECK_SECRET ||
-      ''
+      '',
   ).trim();
   if (!s) {
     throw new Error(
-      'Secret deploy manquant pour MCP : FORETMAP_DEPLOY_SECRET (recommandé), ou DEPLOY_SECRET / FORETMAP_DEPLOY_CHECK_SECRET dans l’environnement du serveur MCP.'
+      'Secret deploy manquant pour MCP : FORETMAP_DEPLOY_SECRET (recommandé), ou DEPLOY_SECRET / FORETMAP_DEPLOY_CHECK_SECRET dans l’environnement du serveur MCP.',
     );
   }
   return s;
@@ -83,7 +87,7 @@ server.registerTool(
       version: { status: ver.status, body: ver.json },
     };
     return { content: [{ type: 'text', text: JSON.stringify(out, null, 2) }] };
-  }
+  },
 );
 
 server.registerTool(
@@ -104,7 +108,7 @@ server.registerTool(
       };
     }
     return { content: [{ type: 'text', text: JSON.stringify(json, null, 2) }] };
-  }
+  },
 );
 
 server.registerTool(
@@ -113,13 +117,7 @@ server.registerTool(
     description:
       'Dernières lignes du tampon Pino (secret requis en env MCP). Paramètre optionnel lines (1–5000, défaut 200).',
     inputSchema: {
-      lines: z
-        .number()
-        .int()
-        .min(1)
-        .max(5000)
-        .optional()
-        .describe('Nombre de lignes (défaut 200)'),
+      lines: z.number().int().min(1).max(5000).optional().describe('Nombre de lignes (défaut 200)'),
     },
   },
   async (args) => {
@@ -136,7 +134,7 @@ server.registerTool(
       };
     }
     return { content: [{ type: 'text', text: JSON.stringify(json, null, 2) }] };
-  }
+  },
 );
 
 server.registerTool(
@@ -159,14 +157,14 @@ server.registerTool(
       glChapters: { status: ch.status, body: ch.json },
     };
     return { content: [{ type: 'text', text: JSON.stringify(out, null, 2) }] };
-  }
+  },
 );
 
 server.registerTool(
   'gl_diagnostics',
   {
     description:
-      'Section GL de l\'instantané serveur (secret requis). Renvoie la sous-section `gl` de /api/admin/diagnostics : statuts parties, joueurs actifs, types d\'évènements récents, nb packs.',
+      "Section GL de l'instantané serveur (secret requis). Renvoie la sous-section `gl` de /api/admin/diagnostics : statuts parties, joueurs actifs, types d'évènements récents, nb packs.",
   },
   async () => {
     const secret = requireSecret();
@@ -181,7 +179,7 @@ server.registerTool(
     }
     const out = { ts: json?.ts || null, version: json?.version || null, gl: json?.gl || null };
     return { content: [{ type: 'text', text: JSON.stringify(out, null, 2) }] };
-  }
+  },
 );
 
 const transport = new StdioServerTransport();

@@ -44,7 +44,7 @@ export function GLSpellsImportPanel() {
     return runDownload(
       '/api/gl/admin/spells/import/template',
       'foretmap-gl-modele-sortileges.xlsx',
-      'Modèle XLSX téléchargé (feuilles sortileges et categories_stats).'
+      'Modèle XLSX téléchargé (feuilles sortileges et categories_stats).',
     );
   }
 
@@ -55,7 +55,7 @@ export function GLSpellsImportPanel() {
     return runDownload(
       `/api/gl/admin/spells/export${query ? `?${query}` : ''}`,
       'foretmap-gl-export-sortileges.xlsx',
-      'Export XLSX généré.'
+      'Export XLSX généré.',
     );
   }
 
@@ -104,25 +104,15 @@ export function GLSpellsImportPanel() {
     <section className="gl-admin-section fade-in">
       <h3>Import sortilèges (XLSX)</h3>
       <p className="gl-hint">
-        Catalogue des sorts (onglet joueur Sortilèges). Fichier attendu : feuilles
-        {' '}
-        <code>sortileges</code>
-        {' '}
-        et
-        {' '}
-        <code>categories_stats</code>
-        {' '}
-        (voir <code>data/gl/README.md</code>).
+        Catalogue des sorts (onglet joueur Sortilèges). Fichier attendu : feuilles{' '}
+        <code>sortileges</code> et <code>categories_stats</code> (voir{' '}
+        <code>data/gl/README.md</code>).
       </p>
       {error ? <p className="gl-error">{error}</p> : null}
       {info ? <p className="gl-hint">{info}</p> : null}
       {stats ? (
         <p className="gl-hint">
-          Catalogue actuel :
-          {' '}
-          <strong>{stats.total}</strong>
-          {' '}
-          sort(s) réparti(s) par catégorie.
+          Catalogue actuel : <strong>{stats.total}</strong> sort(s) réparti(s) par catégorie.
         </p>
       ) : null}
       <div className="gl-inline-actions gl-inline-actions--wrap">
@@ -153,16 +143,18 @@ export function GLSpellsImportPanel() {
           Simulation (dry-run) sans écriture en base
         </label>
         <label className="gl-checkbox-row">
-          <input type="checkbox" checked={syncCategories} onChange={(e) => setSyncCategories(e.target.checked)} />
+          <input
+            type="checkbox"
+            checked={syncCategories}
+            onChange={(e) => setSyncCategories(e.target.checked)}
+          />
           Synchroniser les catégories depuis <code>categories_stats</code>
         </label>
         <GLButton type="submit" disabled={loading || !file}>
           {loading ? 'Import…' : dryRun ? 'Simuler l’import' : 'Appliquer l’import'}
         </GLButton>
       </form>
-      {report ? (
-        <pre className="gl-import-report">{JSON.stringify(report, null, 2)}</pre>
-      ) : null}
+      {report ? <pre className="gl-import-report">{JSON.stringify(report, null, 2)}</pre> : null}
     </section>
   );
 }

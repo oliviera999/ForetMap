@@ -104,12 +104,17 @@ export function useGLPlateauMusic({
   useEffect(() => {
     if (!enabled || userMuted || !unlockedRef.current) return undefined;
     const track = resolveTrack(introActive, plateauNumber, biomeSlug, biomeSaison);
-    const trackKey = track.url ? `${introActive ? 'intro' : plateauNumber}:${biomeSlug || ''}:${track.url}` : null;
+    const trackKey = track.url
+      ? `${introActive ? 'intro' : plateauNumber}:${biomeSlug || ''}:${track.url}`
+      : null;
 
     if (!track.url) {
-      const outgoing = activeSlotRef.current === 'a' ? audioARef.current
-        : activeSlotRef.current === 'b' ? audioBRef.current
-          : null;
+      const outgoing =
+        activeSlotRef.current === 'a'
+          ? audioARef.current
+          : activeSlotRef.current === 'b'
+            ? audioBRef.current
+            : null;
       if (outgoing) {
         runCrossfade({
           outgoing,
@@ -137,9 +142,8 @@ export function useGLPlateauMusic({
     if (!audios) return undefined;
 
     const incomingSlot = activeSlotRef.current === 'a' ? 'b' : 'a';
-    const outgoing = activeSlotRef.current === 'a' ? audios.a
-      : activeSlotRef.current === 'b' ? audios.b
-        : null;
+    const outgoing =
+      activeSlotRef.current === 'a' ? audios.a : activeSlotRef.current === 'b' ? audios.b : null;
     const incoming = incomingSlot === 'a' ? audios.a : audios.b;
 
     incoming.loop = track.loop !== false;
@@ -166,17 +170,29 @@ export function useGLPlateauMusic({
     });
 
     return () => cancelFade(fadeRafRef);
-  }, [enabled, userMuted, plateauNumber, introActive, biomeSlug, biomeSaison, fadeMs, ensureAudios]);
+  }, [
+    enabled,
+    userMuted,
+    plateauNumber,
+    introActive,
+    biomeSlug,
+    biomeSaison,
+    fadeMs,
+    ensureAudios,
+  ]);
 
-  useEffect(() => () => {
-    cancelFade(fadeRafRef);
-    for (const node of [audioARef.current, audioBRef.current]) {
-      if (!node) continue;
-      node.pause();
-      node.removeAttribute('src');
-      node.load();
-    }
-  }, []);
+  useEffect(
+    () => () => {
+      cancelFade(fadeRafRef);
+      for (const node of [audioARef.current, audioBRef.current]) {
+        if (!node) continue;
+        node.pause();
+        node.removeAttribute('src');
+        node.load();
+      }
+    },
+    [],
+  );
 
   return { userMuted, toggleMuted, primeAudio };
 }

@@ -1,6 +1,10 @@
 export function buildJournalEmbedSnippet(type, ref) {
-  const safeType = String(type || '').trim().toLowerCase();
-  const safeRef = String(ref || '').trim().replace(/"/g, '');
+  const safeType = String(type || '')
+    .trim()
+    .toLowerCase();
+  const safeRef = String(ref || '')
+    .trim()
+    .replace(/"/g, '');
   return `<aside class="gl-journal-embed" data-gl-embed-type="${safeType}" data-gl-ref="${safeRef}"></aside>`;
 }
 

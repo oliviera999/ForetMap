@@ -15,10 +15,17 @@ function runQuery(rawValue) {
   let nextCalled = false;
   const res = {
     statusCode: 200,
-    status(c) { this.statusCode = c; return this; },
-    json() { return this; },
+    status(c) {
+      this.statusCode = c;
+      return this;
+    },
+    json() {
+      return this;
+    },
   };
-  validate({ query: glKingdomZonesQuerySchema })(req, res, () => { nextCalled = true; });
+  validate({ query: glKingdomZonesQuerySchema })(req, res, () => {
+    nextCalled = true;
+  });
   return { nextCalled, status: res.statusCode, value: req.validatedQuery?.chapterId };
 }
 
@@ -39,9 +46,17 @@ test('chapterId : équivalence exacte avec la logique historique, jamais de 400 
   const cases = [undefined, '', 'abc', '0', '3', '-1', '2.5', '999999', '12abc', ['1', '2']];
   for (const raw of cases) {
     const { nextCalled, status, value } = runQuery(raw);
-    assert.strictEqual(nextCalled, true, `chapterId=${JSON.stringify(raw)} ne doit jamais être rejeté par le schéma`);
+    assert.strictEqual(
+      nextCalled,
+      true,
+      `chapterId=${JSON.stringify(raw)} ne doit jamais être rejeté par le schéma`,
+    );
     assert.strictEqual(status, 200);
-    assert.deepStrictEqual(currentOutcome(value), legacyOutcome(raw), `branche/valeur pour ${JSON.stringify(raw)}`);
+    assert.deepStrictEqual(
+      currentOutcome(value),
+      legacyOutcome(raw),
+      `branche/valeur pour ${JSON.stringify(raw)}`,
+    );
   }
 });
 

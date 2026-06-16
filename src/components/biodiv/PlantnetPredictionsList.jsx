@@ -12,14 +12,24 @@ import { pickPlantnetVernacularName } from '../../utils/biodivPlantForm.js';
  * @param {boolean} [props.disabled] désactive les boutons
  * @param {(pred: object) => void} props.onApply applique une proposition au formulaire
  */
-export function PlantnetPredictionsList({ predictions = [], applying = false, disabled = false, onApply }) {
+export function PlantnetPredictionsList({
+  predictions = [],
+  applying = false,
+  disabled = false,
+  onApply,
+}) {
   if (!predictions || predictions.length === 0) return null;
   return (
     <div style={{ display: 'grid', gap: 6 }}>
       <strong>Propositions</strong>
       {predictions.map((p, idx) => {
-        const label = String(p.scientificName || p.scientificNameWithoutAuthor || '').trim() || `Taxon ${idx + 1}`;
-        const scorePct = p.score != null && Number.isFinite(Number(p.score)) ? Math.round(Number(p.score) * 1000) / 10 : null;
+        const label =
+          String(p.scientificName || p.scientificNameWithoutAuthor || '').trim() ||
+          `Taxon ${idx + 1}`;
+        const scorePct =
+          p.score != null && Number.isFinite(Number(p.score))
+            ? Math.round(Number(p.score) * 1000) / 10
+            : null;
         const vern = pickPlantnetVernacularName(p.commonNames);
         return (
           <div
@@ -37,7 +47,10 @@ export function PlantnetPredictionsList({ predictions = [], applying = false, di
             }}
           >
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontWeight: 600 }}>{label}{scorePct != null ? ` — ${scorePct} %` : ''}</div>
+              <div style={{ fontWeight: 600 }}>
+                {label}
+                {scorePct != null ? ` — ${scorePct} %` : ''}
+              </div>
               {vern && <div style={{ color: '#555', marginTop: 2 }}>{vern}</div>}
             </div>
             <button

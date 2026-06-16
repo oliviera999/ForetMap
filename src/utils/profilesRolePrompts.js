@@ -38,12 +38,12 @@ export function promptRoleDetailsPatch(role, drafts = {}, promptFn = defaultProm
   if (emojiInput == null) return null;
   const minDoneInput = promptFn(
     'Niveau requis (nombre de tâches validées)',
-    drafts.roleMinDoneTasks || (role.min_done_tasks == null ? '' : String(role.min_done_tasks))
+    drafts.roleMinDoneTasks || (role.min_done_tasks == null ? '' : String(role.min_done_tasks)),
   );
   if (minDoneInput == null) return null;
   const displayOrderInput = promptFn(
     "Ordre d'affichage (entier >= 0, plus petit = plus haut)",
-    drafts.roleDisplayOrder || String(role.display_order ?? 0)
+    drafts.roleDisplayOrder || String(role.display_order ?? 0),
   );
   if (displayOrderInput == null) return null;
   const parsedMinDone = parseMinDoneInput(minDoneInput);
@@ -72,21 +72,21 @@ export function promptRoleDetailsPatch(role, drafts = {}, promptFn = defaultProm
 export function promptNewRoleProfile(promptFn = defaultPrompt) {
   const slug = promptFn(
     'Slug technique du profil (ex. eleve_mentor, n3boss_lycee). Réservés et interdits : admin, prof, visiteur, eleve_novice, eleve_avance, eleve_chevronne. Le nom affiché peut être « Admin » ou « n3boss » avec un autre slug.',
-    ''
+    '',
   );
   if (!slug || !slug.trim()) return null;
   const displayName = promptFn('Nom du profil', slug.trim());
   if (!displayName || !displayName.trim()) return null;
-  const emojiInput = promptFn("Emoji du profil (obligatoire pour un profil n3beur)", '');
+  const emojiInput = promptFn('Emoji du profil (obligatoire pour un profil n3beur)', '');
   if (emojiInput == null) return null;
   const minDoneInput = promptFn(
     'Niveau requis pour atteindre ce profil (nombre de tâches validées)',
-    ''
+    '',
   );
   if (minDoneInput == null) return null;
   const displayOrderInput = promptFn(
     "Ordre d'affichage (entier >= 0, plus petit = plus haut)",
-    '100'
+    '100',
   );
   if (displayOrderInput == null) return null;
   const normalizedSlug = slug.trim().toLowerCase();
@@ -124,12 +124,12 @@ export function promptDuplicateRoleProfile(role, promptFn = defaultPrompt) {
   const suggestedSlug = `${String(role.slug || 'profil').replace(/[^a-z0-9_]+/gi, '_')}_copie`;
   const slugInput = promptFn(
     'Slug technique (unique). Ne pas utiliser : admin, prof, visiteur, eleve_novice, eleve_avance, eleve_chevronne — préférez ex. prof_copie_lycee. Le nom affiché est demandé ensuite.',
-    suggestedSlug
+    suggestedSlug,
   );
   if (!slugInput || !slugInput.trim()) return null;
   const displayNameInput = promptFn(
     'Nom affiché du nouveau profil',
-    `${role.display_name || slugInput.trim()} (copie)`
+    `${role.display_name || slugInput.trim()} (copie)`,
   );
   if (!displayNameInput || !displayNameInput.trim()) return null;
   return {

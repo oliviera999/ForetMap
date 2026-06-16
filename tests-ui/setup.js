@@ -5,9 +5,9 @@ import { cleanup } from '@testing-library/react';
 /** Node ≥22 peut exposer un localStorage natif incomplet (--localstorage-file) qui casse jsdom. */
 function installLocalStoragePolyfill() {
   const broken =
-    typeof globalThis.localStorage !== 'undefined'
-    && (typeof globalThis.localStorage.setItem !== 'function'
-      || typeof globalThis.localStorage.clear !== 'function');
+    typeof globalThis.localStorage !== 'undefined' &&
+    (typeof globalThis.localStorage.setItem !== 'function' ||
+      typeof globalThis.localStorage.clear !== 'function');
   if (typeof globalThis.localStorage !== 'undefined' && !broken) return;
 
   const store = new Map();

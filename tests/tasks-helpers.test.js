@@ -136,16 +136,23 @@ describe('taskRouteHelpers — niveaux (danger / difficulté / importance)', () 
   });
 
   it('ALLOWED_TASK_STATUSES expose les six statuts métier', () => {
-    assert.deepEqual(
-      [...ALLOWED_TASK_STATUSES].sort(),
-      ['available', 'done', 'in_progress', 'on_hold', 'proposed', 'validated']
-    );
+    assert.deepEqual([...ALLOWED_TASK_STATUSES].sort(), [
+      'available',
+      'done',
+      'in_progress',
+      'on_hold',
+      'proposed',
+      'validated',
+    ]);
   });
 });
 
 describe('taskRouteHelpers — êtres vivants (living_beings)', () => {
   it('normalizeTaskLivingBeingsInput : tableau trimé/dédupliqué', () => {
-    assert.deepEqual(normalizeTaskLivingBeingsInput([' renard ', 'renard', '', 'hibou']), ['renard', 'hibou']);
+    assert.deepEqual(normalizeTaskLivingBeingsInput([' renard ', 'renard', '', 'hibou']), [
+      'renard',
+      'hibou',
+    ]);
   });
 
   it('normalizeTaskLivingBeingsInput : chaîne JSON ou CSV, fallback si vide', () => {
@@ -201,12 +208,12 @@ describe('taskRouteHelpers — image de tâche', () => {
     const big = Buffer.concat([pngBuffer(), Buffer.alloc(MAX_TASK_IMAGE_BYTES, 0x00)]);
     assert.equal(
       decodeTaskImageBuffer(big.toString('base64')).error,
-      'Image trop volumineuse (max 4 Mo après décodage)'
+      'Image trop volumineuse (max 4 Mo après décodage)',
     );
     const notImage = Buffer.alloc(32, 0x42);
     assert.equal(
       decodeTaskImageBuffer(notImage.toString('base64')).error,
-      'Format image non supporté (JPEG, PNG ou WebP)'
+      'Format image non supporté (JPEG, PNG ou WebP)',
     );
   });
 
@@ -251,7 +258,10 @@ describe('taskRouteHelpers — dates et avancement', () => {
 
   it('countDoneAssignments : compte les done_at, tolère non-tableau', () => {
     assert.equal(countDoneAssignments('x'), 0);
-    assert.equal(countDoneAssignments([{ done_at: 'd' }, { done_at: null }, {}, { done_at: 'e' }]), 2);
+    assert.equal(
+      countDoneAssignments([{ done_at: 'd' }, { done_at: null }, {}, { done_at: 'e' }]),
+      2,
+    );
   });
 
   it('sanitizeRequiredStudents : entier ≥ 1, sinon 1', () => {
@@ -284,8 +294,17 @@ describe('taskRouteHelpers — sérialisation tâche', () => {
       task,
       [{ id: 'z1', name: 'Clairière', map_id: 'm1' }],
       [{ id: 'k1', label: 'Repère', map_id: 'm1' }],
-      [{ id: '7', title: 'Tuto', slug: 's', type: 'video', source_url: null, source_file_path: null }],
-      [{ id: 9, user_type: 'teacher', display_name: 'Prof X', role_slug: 'prof' }]
+      [
+        {
+          id: '7',
+          title: 'Tuto',
+          slug: 's',
+          type: 'video',
+          source_url: null,
+          source_file_path: null,
+        },
+      ],
+      [{ id: 9, user_type: 'teacher', display_name: 'Prof X', role_slug: 'prof' }],
     );
     assert.deepEqual(task.zone_ids, ['z1']);
     assert.deepEqual(task.marker_ids, ['k1']);
@@ -317,7 +336,10 @@ describe('taskAuthzHelpers — contrôles d’accès purs', () => {
 
   it('canManageTasks / canValidateTasks : élévation requise sauf admin natif', () => {
     assert.equal(canManageTasks({ permissions: ['tasks.manage'], elevated: true }), true);
-    assert.equal(canManageTasks({ permissions: ['tasks.manage'], elevated: false, roleSlug: 'prof' }), false);
+    assert.equal(
+      canManageTasks({ permissions: ['tasks.manage'], elevated: false, roleSlug: 'prof' }),
+      false,
+    );
     assert.equal(canManageTasks({ permissions: ['tasks.manage'], roleSlug: 'admin' }), true);
     assert.equal(canValidateTasks({ permissions: ['tasks.validate'], elevated: true }), true);
     assert.equal(canValidateTasks({ permissions: [], elevated: true }), false);
@@ -325,12 +347,15 @@ describe('taskAuthzHelpers — contrôles d’accès purs', () => {
 
   it('assertCanTeacherSetTaskStatus : validated exige tasks.validate', () => {
     assert.deepEqual(
-      assertCanTeacherSetTaskStatus({ permissions: ['tasks.validate'], elevated: true }, 'validated'),
-      { ok: true }
+      assertCanTeacherSetTaskStatus(
+        { permissions: ['tasks.validate'], elevated: true },
+        'validated',
+      ),
+      { ok: true },
     );
     const elevNeeded = assertCanTeacherSetTaskStatus(
       { permissions: [], elevatedPermissions: ['tasks.validate'] },
-      'validated'
+      'validated',
     );
     assert.deepEqual(elevNeeded, { ok: false, status: 403, error: 'Élévation PIN requise' });
     const refused = assertCanTeacherSetTaskStatus({ permissions: [] }, 'validated');
@@ -340,11 +365,11 @@ describe('taskAuthzHelpers — contrôles d’accès purs', () => {
   it('assertCanTeacherSetTaskStatus : autres statuts exigent tasks.manage', () => {
     assert.deepEqual(
       assertCanTeacherSetTaskStatus({ permissions: ['tasks.manage'], elevated: true }, 'done'),
-      { ok: true }
+      { ok: true },
     );
     const elevNeeded = assertCanTeacherSetTaskStatus(
       { permissions: [], elevatedPermissions: ['tasks.manage'] },
-      'in_progress'
+      'in_progress',
     );
     assert.deepEqual(elevNeeded, { ok: false, status: 403, error: 'Élévation PIN requise' });
     assert.equal(assertCanTeacherSetTaskStatus({ permissions: [] }, 'done').ok, false);
@@ -352,9 +377,15 @@ describe('taskAuthzHelpers — contrôles d’accès purs', () => {
 
   it('canRunTeacherStyleTaskStudentAction : manage élevé ou tasks.validate brut', () => {
     assert.equal(canRunTeacherStyleTaskStudentAction(null), false);
-    assert.equal(canRunTeacherStyleTaskStudentAction({ permissions: ['tasks.manage'], elevated: true }), true);
+    assert.equal(
+      canRunTeacherStyleTaskStudentAction({ permissions: ['tasks.manage'], elevated: true }),
+      true,
+    );
     assert.equal(canRunTeacherStyleTaskStudentAction({ permissions: ['tasks.validate'] }), true);
-    assert.equal(canRunTeacherStyleTaskStudentAction({ permissions: ['tasks.assign_self'] }), false);
+    assert.equal(
+      canRunTeacherStyleTaskStudentAction({ permissions: ['tasks.assign_self'] }),
+      false,
+    );
   });
 
   it('isVisitorRole : slug visiteur insensible à la casse', () => {

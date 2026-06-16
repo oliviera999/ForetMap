@@ -17,8 +17,12 @@ export const TASK_IMPORTANCE_SORT_WEIGHT = {
 
 /** Même logique que GET /api/tasks : importance explicite d’abord (poids décroissant), puis sans importance, puis date limite. */
 export function compareTasksByImportanceThenDueDate(a, b) {
-  const rawA = String(a?.importance_level || '').trim().toLowerCase();
-  const rawB = String(b?.importance_level || '').trim().toLowerCase();
+  const rawA = String(a?.importance_level || '')
+    .trim()
+    .toLowerCase();
+  const rawB = String(b?.importance_level || '')
+    .trim()
+    .toLowerCase();
   const tierA = rawA && TASK_IMPORTANCE_SORT_WEIGHT[rawA] != null ? 0 : 1;
   const tierB = rawB && TASK_IMPORTANCE_SORT_WEIGHT[rawB] != null ? 0 : 1;
   if (tierA !== tierB) return tierA - tierB;
@@ -59,10 +63,16 @@ export function isBeforeTaskStartDate(task) {
 
 export function taskEffectiveStatus(task) {
   const baseStatus = task?.status || 'available';
-  if (baseStatus === 'done' || baseStatus === 'validated' || baseStatus === 'proposed') return baseStatus;
+  if (baseStatus === 'done' || baseStatus === 'validated' || baseStatus === 'proposed')
+    return baseStatus;
   if (task?.project_status === 'validated') return 'project_validated';
   if (task?.project_status === 'completed') return 'project_completed';
-  if (baseStatus === 'on_hold' || task?.project_status === 'on_hold' || task?.is_before_start_date || isBeforeTaskStartDate(task)) {
+  if (
+    baseStatus === 'on_hold' ||
+    task?.project_status === 'on_hold' ||
+    task?.is_before_start_date ||
+    isBeforeTaskStartDate(task)
+  ) {
     return 'on_hold';
   }
   return baseStatus;
@@ -102,7 +112,8 @@ export function taskHasMarker(t, markerId) {
   if (!markerId) return true;
   const normalizedMarkerId = String(markerId || '').trim();
   if (!normalizedMarkerId) return true;
-  if ((t.marker_ids || []).some((id) => String(id || '').trim() === normalizedMarkerId)) return true;
+  if ((t.marker_ids || []).some((id) => String(id || '').trim() === normalizedMarkerId))
+    return true;
   return String(t.marker_id || '').trim() === normalizedMarkerId;
 }
 
@@ -118,8 +129,12 @@ export function taskHasLocation(t, locationFilterValue) {
 // ── Filtrage du sélecteur de tutoriels par lieu ───────────────────────────────
 export function tutorialPickerLocationIds(tu) {
   if (!tu) return { zoneIds: [], markerIds: [] };
-  const zoneIds = [...new Set((tu.zone_ids || []).map((id) => String(id || '').trim()).filter(Boolean))];
-  const markerIds = [...new Set((tu.marker_ids || []).map((id) => String(id || '').trim()).filter(Boolean))];
+  const zoneIds = [
+    ...new Set((tu.zone_ids || []).map((id) => String(id || '').trim()).filter(Boolean)),
+  ];
+  const markerIds = [
+    ...new Set((tu.marker_ids || []).map((id) => String(id || '').trim()).filter(Boolean)),
+  ];
   return { zoneIds, markerIds };
 }
 

@@ -38,11 +38,11 @@ description: Maintient la cohérence entre documentation projet, règles Cursor 
 
 Adapter au **type** de changement — pas obligatoire de tout toucher pour un correctif minimal :
 
-| Changement | Minimum typique |
-|------------|-----------------|
-| Nouvelle route API ou contrat modifié | `docs/API.md` + tests `tests/*.test.js` |
-| Workflow dev / CI / e2e | `docs/LOCAL_DEV.md` et/ou skill **`foretmap-e2e`** / **`foretmap-tests`** |
-| Nouvelle convention persistante agent | rule **`.mdc`** ciblée et, si procédure réutilisable, skill associée |
+| Changement                               | Minimum typique                                                              |
+| ---------------------------------------- | ---------------------------------------------------------------------------- |
+| Nouvelle route API ou contrat modifié    | `docs/API.md` + tests `tests/*.test.js`                                      |
+| Workflow dev / CI / e2e                  | `docs/LOCAL_DEV.md` et/ou skill **`foretmap-e2e`** / **`foretmap-tests`**    |
+| Nouvelle convention persistante agent    | rule **`.mdc`** ciblée et, si procédure réutilisable, skill associée         |
 | Évolution transversale (plusieurs zones) | combinaison des lignes ci-dessus + **`docs/EVOLUTION.md`** si impact roadmap |
 
 En cas de doute, privilégier **`docs/API.md`** pour tout endpoint exposé et la rule **`foretmap-conventions`** pour les tests obligatoires.

@@ -26,7 +26,9 @@ export function PlantSummaryBadges({ plant }) {
   return (
     <div className="plant-badges">
       {chips.slice(0, 3).map((chip, idx) => (
-        <span key={`plant-badge-${idx}-${chip}`} className="plant-badge">{chip}</span>
+        <span key={`plant-badge-${idx}-${chip}`} className="plant-badge">
+          {chip}
+        </span>
       ))}
     </div>
   );

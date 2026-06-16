@@ -14,13 +14,23 @@ const ROLE_TERMS = {
 
 describe('resolveSettingLabel', () => {
   test('libellé statique des clés connues', () => {
-    expect(resolveSettingLabel('ui.auth.allow_register', ROLE_TERMS)).toBe('Afficher "Créer un compte"');
+    expect(resolveSettingLabel('ui.auth.allow_register', ROLE_TERMS)).toBe(
+      'Afficher "Créer un compte"',
+    );
   });
   test('libellés dynamiques construits depuis la terminologie des rôles', () => {
-    expect(resolveSettingLabel('ui.auth.allow_google_student', ROLE_TERMS)).toBe('Afficher "Google n3beur"');
-    expect(resolveSettingLabel('ui.auth.allow_google_teacher', ROLE_TERMS)).toBe('Afficher "Google n3boss"');
-    expect(resolveSettingLabel('ui.map.default_map_student', ROLE_TERMS)).toBe('Carte par défaut (n3beur)');
-    expect(resolveSettingLabel('ui.map.default_map_teacher', ROLE_TERMS)).toBe('Carte par défaut (n3boss)');
+    expect(resolveSettingLabel('ui.auth.allow_google_student', ROLE_TERMS)).toBe(
+      'Afficher "Google n3beur"',
+    );
+    expect(resolveSettingLabel('ui.auth.allow_google_teacher', ROLE_TERMS)).toBe(
+      'Afficher "Google n3boss"',
+    );
+    expect(resolveSettingLabel('ui.map.default_map_student', ROLE_TERMS)).toBe(
+      'Carte par défaut (n3beur)',
+    );
+    expect(resolveSettingLabel('ui.map.default_map_teacher', ROLE_TERMS)).toBe(
+      'Carte par défaut (n3boss)',
+    );
   });
   test('clé inconnue → humanisation du dernier segment', () => {
     expect(resolveSettingLabel('xyz.some_new_flag', ROLE_TERMS)).toBe('Some New Flag');
@@ -61,7 +71,12 @@ describe('buildSettingSections', () => {
 describe('filterSettingSections + countSectionRows', () => {
   const sections = buildSettingSections([
     { key: 'system.maintenance_mode', type: 'boolean', scope: 'admin' },
-    { key: 'security.password_min_length', type: 'number', scope: 'admin', constraints: { min: 4 } },
+    {
+      key: 'security.password_min_length',
+      type: 'number',
+      scope: 'admin',
+      constraints: { min: 4 },
+    },
     { key: 'ui.auth.allow_register', type: 'boolean', scope: 'public' },
   ]);
   test('requête vide → même référence, comptage total', () => {

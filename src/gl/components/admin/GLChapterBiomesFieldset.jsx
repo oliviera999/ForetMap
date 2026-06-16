@@ -78,12 +78,7 @@ export function GLChapterBiomesFieldset({ biomes, selectedSlugs, onChange }) {
                     onChange(next);
                   }}
                 />
-                {biome.nom}
-                {' '}
-                (
-                {biome.species_count || 0}
-                {' '}
-                esp.)
+                {biome.nom} ({biome.species_count || 0} esp.)
               </label>
             </li>
           );

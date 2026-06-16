@@ -45,11 +45,8 @@ test('load retourne null sans window', async () => {
 test('sauvegarde et relecture par carte', async () => {
   globalThis.window = mockWindowStorage();
   try {
-    const {
-      loadVisitMascotPositionPct,
-      saveVisitMascotPositionPct,
-      positionStorageKey,
-    } = await loadModule();
+    const { loadVisitMascotPositionPct, saveVisitMascotPositionPct, positionStorageKey } =
+      await loadModule();
     assert.equal(loadVisitMascotPositionPct('n3'), null);
     saveVisitMascotPositionPct('n3', { xp: 42.5, yp: 61 });
     assert.deepEqual(loadVisitMascotPositionPct('n3'), { xp: 42.5, yp: 61 });

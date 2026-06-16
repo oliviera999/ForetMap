@@ -24,56 +24,119 @@ export function TeacherTopTabs({
   hasPermission,
   hasPermissionInRole,
 }) {
-  const pendingSuffix = teacherPendingValidationCount > 0 ? ` (${teacherPendingValidationCount} à valider)` : '';
+  const pendingSuffix =
+    teacherPendingValidationCount > 0 ? ` (${teacherPendingValidationCount} à valider)` : '';
   return (
     <div className="top-tabs app-tabs-surface">
       {shouldUseDesktopSplit && (
-        <button className={`top-tab ${tab === 'maptasks' ? 'active' : ''}`} onClick={() => onTabChange('maptasks')}>
-          {mapTasksSplitLabel}{pendingSuffix}
+        <button
+          className={`top-tab ${tab === 'maptasks' ? 'active' : ''}`}
+          onClick={() => onTabChange('maptasks')}
+        >
+          {mapTasksSplitLabel}
+          {pendingSuffix}
         </button>
       )}
-      <button className={`top-tab ${tab === 'map' ? 'active' : ''}`} onClick={() => onTabChange('map')}>🗺️ Carte & Zones</button>
-      <button className={`top-tab ${tab === 'tasks' || (mergeTasksTutoNav && tab === 'tuto') ? 'active' : ''}`} onClick={() => onTabChange('tasks')}>
-        {tasksTabLabel}{pendingSuffix}
+      <button
+        className={`top-tab ${tab === 'map' ? 'active' : ''}`}
+        onClick={() => onTabChange('map')}
+      >
+        🗺️ Carte & Zones
       </button>
-      <button className={`top-tab ${tab === 'plants' ? 'active' : ''}`} onClick={() => onTabChange('plants')}>🌱 Biodiversité</button>
+      <button
+        className={`top-tab ${tab === 'tasks' || (mergeTasksTutoNav && tab === 'tuto') ? 'active' : ''}`}
+        onClick={() => onTabChange('tasks')}
+      >
+        {tasksTabLabel}
+        {pendingSuffix}
+      </button>
+      <button
+        className={`top-tab ${tab === 'plants' ? 'active' : ''}`}
+        onClick={() => onTabChange('plants')}
+      >
+        🌱 Biodiversité
+      </button>
       {tutorialsModuleEnabled && !mergeTasksTutoNav && (
-        <button className={`top-tab ${tab === 'tuto' ? 'active' : ''}`} onClick={() => onTabChange('tuto')}>📘 Tuto</button>
+        <button
+          className={`top-tab ${tab === 'tuto' ? 'active' : ''}`}
+          onClick={() => onTabChange('tuto')}
+        >
+          📘 Tuto
+        </button>
       )}
-      {canAccessForum && <button className={`top-tab ${tab === 'forum' ? 'active' : ''}`} onClick={() => onTabChange('forum')}>💬 Forum</button>}
+      {canAccessForum && (
+        <button
+          className={`top-tab ${tab === 'forum' ? 'active' : ''}`}
+          onClick={() => onTabChange('forum')}
+        >
+          💬 Forum
+        </button>
+      )}
       {statsEnabled && (
-        <button className={`top-tab ${tab === 'stats' ? 'active' : ''}`} onClick={() => onTabChange('stats')}>📊 Stats</button>
+        <button
+          className={`top-tab ${tab === 'stats' ? 'active' : ''}`}
+          onClick={() => onTabChange('stats')}
+        >
+          📊 Stats
+        </button>
       )}
       {visitEnabled && (
-        <button className={`top-tab ${tab === 'visit' ? 'active' : ''}`} onClick={() => onTabChange('visit')}>🧭 Visite</button>
+        <button
+          className={`top-tab ${tab === 'visit' ? 'active' : ''}`}
+          onClick={() => onTabChange('visit')}
+        >
+          🧭 Visite
+        </button>
       )}
       {visitEnabled && (
-        <button className={`top-tab ${tab === 'mascot_packs' ? 'active' : ''}`} onClick={() => onTabChange('mascot_packs')}>🎨 Packs mascotte</button>
+        <button
+          className={`top-tab ${tab === 'mascot_packs' ? 'active' : ''}`}
+          onClick={() => onTabChange('mascot_packs')}
+        >
+          🎨 Packs mascotte
+        </button>
       )}
-      <button className={`top-tab ${tab === 'media_library' ? 'active' : ''}`} onClick={() => onTabChange('media_library')}>
+      <button
+        className={`top-tab ${tab === 'media_library' ? 'active' : ''}`}
+        onClick={() => onTabChange('media_library')}
+      >
         🗂️ Médiathèque
       </button>
-      {(
-        hasPermissionInRole('admin.roles.manage')
-        || hasPermissionInRole('admin.users.assign_roles')
-        || hasPermissionInRole('stats.export')
-        || hasPermissionInRole('students.import')
-        || hasPermissionInRole('students.delete')
-        || hasPermissionInRole('users.create')
-      ) && (
-        <button className={`top-tab ${tab === 'profiles' ? 'active' : ''}`} onClick={() => onTabChange('profiles')}>
+      {(hasPermissionInRole('admin.roles.manage') ||
+        hasPermissionInRole('admin.users.assign_roles') ||
+        hasPermissionInRole('stats.export') ||
+        hasPermissionInRole('students.import') ||
+        hasPermissionInRole('students.delete') ||
+        hasPermissionInRole('users.create')) && (
+        <button
+          className={`top-tab ${tab === 'profiles' ? 'active' : ''}`}
+          onClick={() => onTabChange('profiles')}
+        >
           🛡️ {isN3Affiliated ? 'n3boss & utilisateurs' : 'Profils & utilisateurs'}
         </button>
       )}
       {hasPermissionInRole('admin.settings.read') && (
-        <button className={`top-tab ${tab === 'settings' ? 'active' : ''}`} onClick={() => onTabChange('settings')}>
+        <button
+          className={`top-tab ${tab === 'settings' ? 'active' : ''}`}
+          onClick={() => onTabChange('settings')}
+        >
           ⚙️ Paramètres
         </button>
       )}
       {hasPermission('audit.read') && (
-        <button className={`top-tab ${tab === 'audit' ? 'active' : ''}`} onClick={() => onTabChange('audit')}>📜 Audit</button>
+        <button
+          className={`top-tab ${tab === 'audit' ? 'active' : ''}`}
+          onClick={() => onTabChange('audit')}
+        >
+          📜 Audit
+        </button>
       )}
-      <button className={`top-tab ${tab === 'about' ? 'active' : ''}`} onClick={() => onTabChange('about')}>ℹ️ À propos</button>
+      <button
+        className={`top-tab ${tab === 'about' ? 'active' : ''}`}
+        onClick={() => onTabChange('about')}
+      >
+        ℹ️ À propos
+      </button>
     </div>
   );
 }

@@ -24,41 +24,51 @@ async function getAdminToken() {
   const email = process.env.TEACHER_ADMIN_EMAIL || 'admin.test@foretmap.local';
   const teacher = await queryOne(
     "SELECT id FROM users WHERE user_type = 'teacher' AND LOWER(email) = LOWER(?) LIMIT 1",
-    [email]
+    [email],
   );
   const adminRole = await queryOne("SELECT id FROM roles WHERE slug = 'admin' LIMIT 1");
   assert.ok(teacher?.id, 'Compte admin enseignant introuvable');
   assert.ok(adminRole?.id, 'Rôle admin introuvable');
   const requiredPermissions = [
-    'admin.settings.read', 'admin.settings.write', 'admin.settings.secrets.write',
-    'admin.roles.manage', 'admin.users.assign_roles',
+    'admin.settings.read',
+    'admin.settings.write',
+    'admin.settings.secrets.write',
+    'admin.roles.manage',
+    'admin.users.assign_roles',
   ];
   for (const key of requiredPermissions) {
-    await execute(
-      'INSERT IGNORE INTO permissions (`key`, label, description) VALUES (?, ?, ?)',
-      [key, key, 'Permission auto-seed tests']
-    );
+    await execute('INSERT IGNORE INTO permissions (`key`, label, description) VALUES (?, ?, ?)', [
+      key,
+      key,
+      'Permission auto-seed tests',
+    ]);
     await execute(
       'INSERT IGNORE INTO role_permissions (role_id, permission_key, requires_elevation) VALUES (?, ?, 1)',
-      [adminRole.id, key]
+      [adminRole.id, key],
     );
   }
   if (teacher?.id && adminRole?.id) {
-    await execute('UPDATE user_roles SET is_primary = 0 WHERE user_type = ? AND user_id = ?', ['teacher', teacher.id]);
+    await execute('UPDATE user_roles SET is_primary = 0 WHERE user_type = ? AND user_id = ?', [
+      'teacher',
+      teacher.id,
+    ]);
     await execute(
       'INSERT INTO user_roles (user_type, user_id, role_id, is_primary) VALUES (?, ?, ?, 1) ON DUPLICATE KEY UPDATE is_primary = 1',
-      ['teacher', teacher.id, adminRole.id]
+      ['teacher', teacher.id, adminRole.id],
     );
   }
-  return await signAuthToken({
-    userType: 'teacher',
-    userId: teacher?.id || null,
-    canonicalUserId: teacher?.id || null,
-    roleId: adminRole?.id || null,
-    roleSlug: 'admin',
-    roleDisplayName: 'Administrateur',
-    elevated: false,
-  }, false);
+  return await signAuthToken(
+    {
+      userType: 'teacher',
+      userId: teacher?.id || null,
+      canonicalUserId: teacher?.id || null,
+      roleId: adminRole?.id || null,
+      roleSlug: 'admin',
+      roleDisplayName: 'Administrateur',
+      elevated: false,
+    },
+    false,
+  );
 }
 
 const TINY_PNG_DATA_URL =
@@ -70,7 +80,13 @@ test('POST /api/settings/admin/maps crée une carte puis GET /api/maps la liste'
   await request(app)
     .post('/api/settings/admin/maps')
     .set('Authorization', `Bearer ${token}`)
-    .send({ id, label: 'Plan test API', sort_order: 90, map_image_url: '/map.png', is_active: true })
+    .send({
+      id,
+      label: 'Plan test API',
+      sort_order: 90,
+      map_image_url: '/map.png',
+      is_active: true,
+    })
     .expect(201);
   const list = await request(app).get('/api/maps').expect(200);
   assert.ok(Array.isArray(list.body));
@@ -114,18 +130,26 @@ test('resolveDefaultMapId ignore une carte par défaut inactive', async () => {
   const activeMapId = `active_${Date.now()}`.slice(0, 31);
   await execute(
     'INSERT INTO maps (id, label, map_image_url, sort_order, is_active) VALUES (?, ?, ?, ?, ?), (?, ?, ?, ?, ?)',
-    [inactiveMapId, 'Inactive', '/map.png', 0, 0, activeMapId, 'Active', '/map.png', 1, 1]
+    [inactiveMapId, 'Inactive', '/map.png', 0, 0, activeMapId, 'Active', '/map.png', 1, 1],
   );
-  await setSetting('ui.map.default_map_visit', inactiveMapId, { userType: 'teacher', userId: 'test-suite' });
+  await setSetting('ui.map.default_map_visit', inactiveMapId, {
+    userType: 'teacher',
+    userId: 'test-suite',
+  });
 
   const resolved = await resolveDefaultMapId('visit');
 
   assert.notStrictEqual(resolved, inactiveMapId);
-  const resolvedRow = await queryOne('SELECT id, is_active FROM maps WHERE id = ? LIMIT 1', [resolved]);
+  const resolvedRow = await queryOne('SELECT id, is_active FROM maps WHERE id = ? LIMIT 1', [
+    resolved,
+  ]);
   assert.ok(resolvedRow?.id, 'Une carte résolue doit exister');
   assert.strictEqual(Number(resolvedRow.is_active || 0), 1, 'La carte résolue doit être active');
 
-  await setSetting('ui.map.default_map_visit', 'foret', { userType: 'teacher', userId: 'test-suite' });
+  await setSetting('ui.map.default_map_visit', 'foret', {
+    userType: 'teacher',
+    userId: 'test-suite',
+  });
   await execute('DELETE FROM maps WHERE id IN (?, ?)', [inactiveMapId, activeMapId]);
 });
 
@@ -171,7 +195,10 @@ test('réglages mascotte visite : liste autorisée + défaut global normalisés'
     .expect(200);
 
   const pub = await request(app).get('/api/settings/public').expect(200);
-  assert.deepStrictEqual(pub.body?.settings?.ui?.visit?.mascot?.allowed_ids, ['renard2-cut-spritesheet', 'sprout-rive']);
+  assert.deepStrictEqual(pub.body?.settings?.ui?.visit?.mascot?.allowed_ids, [
+    'renard2-cut-spritesheet',
+    'sprout-rive',
+  ]);
   assert.strictEqual(pub.body?.settings?.ui?.visit?.mascot?.default_id, 'sprout-rive');
 
   await request(app)
@@ -180,7 +207,10 @@ test('réglages mascotte visite : liste autorisée + défaut global normalisés'
     .send({ value: 'inconnue' })
     .expect(200);
   const normalized = await request(app).get('/api/settings/public').expect(200);
-  assert.strictEqual(normalized.body?.settings?.ui?.visit?.mascot?.default_id, 'renard2-cut-spritesheet');
+  assert.strictEqual(
+    normalized.body?.settings?.ui?.visit?.mascot?.default_id,
+    'renard2-cut-spritesheet',
+  );
 
   await request(app)
     .put('/api/settings/admin/ui.visit.mascot.allowed_ids')
@@ -227,7 +257,9 @@ test('réglages dialogues mascotte : defaults et surcharges catalogue', async ()
     .send({ value: catalogJson })
     .expect(200);
   const pub = await request(app).get('/api/settings/public').expect(200);
-  assert.deepStrictEqual(pub.body?.settings?.visit?.mascot?.dialog?.defaults?.move, ['Ligne test globale']);
+  assert.deepStrictEqual(pub.body?.settings?.visit?.mascot?.dialog?.defaults?.move, [
+    'Ligne test globale',
+  ]);
   assert.deepStrictEqual(
     pub.body?.settings?.visit?.mascot?.dialog?.catalogOverrides?.['sprout-rive']?.move,
     ['Ligne mascotte sprout'],
@@ -359,7 +391,7 @@ test('security.jwt_ttl_base_seconds pilote la durée du JWT à l’émission', a
       roleDisplayName: 'Test',
       elevated: false,
     },
-    false
+    false,
   );
   const dec = jwt.decode(issued);
   assert.ok(dec?.iat && dec?.exp, 'JWT décodable avec iat/exp');
@@ -410,9 +442,15 @@ test('RBAC refuse la rétrogradation du dernier administrateur', async () => {
     .get('/api/rbac/users')
     .set('Authorization', `Bearer ${token}`)
     .expect(200);
-  const loginEmail = String(process.env.TEACHER_ADMIN_EMAIL || 'admin.test@foretmap.local').trim().toLowerCase();
+  const loginEmail = String(process.env.TEACHER_ADMIN_EMAIL || 'admin.test@foretmap.local')
+    .trim()
+    .toLowerCase();
   const adminUser = (users.body || []).find(
-    (u) => u.role_slug === 'admin' && String(u.email || '').trim().toLowerCase() === loginEmail
+    (u) =>
+      u.role_slug === 'admin' &&
+      String(u.email || '')
+        .trim()
+        .toLowerCase() === loginEmail,
   );
   assert.ok(adminUser, 'Aucun utilisateur admin trouvé pour TEACHER_ADMIN_EMAIL');
   const prof = await queryOne('SELECT id FROM roles WHERE slug = ? LIMIT 1', ['prof']);
@@ -421,7 +459,7 @@ test('RBAC refuse la rétrogradation du dernier administrateur', async () => {
     `SELECT COUNT(*) AS c
        FROM user_roles ur
        INNER JOIN roles r ON r.id = ur.role_id
-      WHERE ur.is_primary = 1 AND ur.user_type = 'teacher' AND r.slug = 'admin'`
+      WHERE ur.is_primary = 1 AND ur.user_type = 'teacher' AND r.slug = 'admin'`,
   );
   const adminCount = Number(adminCountRow?.c || 0);
   const expectedStatus = adminCount <= 1 ? 409 : 200;

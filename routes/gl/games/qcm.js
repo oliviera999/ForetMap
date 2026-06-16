@@ -7,7 +7,10 @@ const { getGameplaySettings } = require('../../../lib/glSettings');
 const { verifyPresentationAnswer, resolveQcmAnswerFeedback } = require('../../../lib/glQcmChoices');
 const { combineKeywords } = require('../../../lib/glQcmImport');
 const { combineKeywords: combineLoreKeywords } = require('../../../lib/glQcmLoreImport');
-const { buildGlossaryLookupMap, matchGlossaryTermsForSpecies } = require('../../../lib/glGlossaryMatch');
+const {
+  buildGlossaryLookupMap,
+  matchGlossaryTermsForSpecies,
+} = require('../../../lib/glGlossaryMatch');
 const {
   buildLoreGlossaryLookupMap,
   matchLoreGlossaryTermsForText,
@@ -29,7 +32,7 @@ async function getPlayerGameMembership(gameId, playerId) {
       WHERE game_id = ?
         AND player_id = ?
       LIMIT 1`,
-    [gameId, playerId]
+    [gameId, playerId],
   );
 }
 
@@ -51,7 +54,9 @@ async function resolveQcmAnswerContext(req, gameId) {
     if (!hasGlPermission(req.glAuth, 'gl.action.request')) {
       return { ok: false, status: 403, error: 'Permission insuffisante' };
     }
-    const player = await queryOne('SELECT id FROM gl_players WHERE id = ? LIMIT 1', [req.glAuth.userId]);
+    const player = await queryOne('SELECT id FROM gl_players WHERE id = ? LIMIT 1', [
+      req.glAuth.userId,
+    ]);
     if (!player) {
       return { ok: false, status: 403, error: 'Aucune équipe associée à ce joueur' };
     }
@@ -75,7 +80,10 @@ async function resolveQcmAnswerContext(req, gameId) {
   if (teamId == null) {
     return { ok: false, status: 400, error: 'teamId requis pour valider une réponse (mode MJ)' };
   }
-  const team = await queryOne('SELECT id FROM gl_teams WHERE id = ? AND game_id = ? LIMIT 1', [teamId, gameId]);
+  const team = await queryOne('SELECT id FROM gl_teams WHERE id = ? AND game_id = ? LIMIT 1', [
+    teamId,
+    gameId,
+  ]);
   if (!team) {
     return { ok: false, status: 404, error: 'Équipe introuvable dans cette partie' };
   }
@@ -97,7 +105,9 @@ router.post('/games/:id/qcm/answer', requireGlAuth, async (req, res) => {
   }
   const teamIdForGame = answerCtx.teamId;
 
-  const questionCode = String(req.body?.questionCode || '').trim().toUpperCase();
+  const questionCode = String(req.body?.questionCode || '')
+    .trim()
+    .toUpperCase();
   if (!questionCode) return res.status(400).json({ error: 'questionCode requis' });
 
   const settings = await getGameplaySettings();
@@ -107,8 +117,13 @@ router.post('/games/:id/qcm/answer', requireGlAuth, async (req, res) => {
   }
 
   if (settings.turnsEnabled) {
-    const gameTurn = await queryOne('SELECT current_team_id FROM gl_games WHERE id = ? LIMIT 1', [gameId]);
-    if (gameTurn?.current_team_id != null && Number(gameTurn.current_team_id) !== Number(teamIdForGame)) {
+    const gameTurn = await queryOne('SELECT current_team_id FROM gl_games WHERE id = ? LIMIT 1', [
+      gameId,
+    ]);
+    if (
+      gameTurn?.current_team_id != null &&
+      Number(gameTurn.current_team_id) !== Number(teamIdForGame)
+    ) {
       return res.status(409).json({ error: 'Ce n’est pas le tour de votre équipe' });
     }
   }
@@ -121,7 +136,7 @@ router.post('/games/:id/qcm/answer', requireGlAuth, async (req, res) => {
     verification = verifyPresentationAnswer(
       req.body?.presentationToken,
       questionCode,
-      req.body?.choiceId
+      req.body?.choiceId,
     );
   } catch (err) {
     return res.status(400).json({ error: err.message || 'Réponse invalide' });
@@ -146,7 +161,7 @@ router.post('/games/:id/qcm/answer', requireGlAuth, async (req, res) => {
           choiceId: verification.selectedChoiceId,
           markerId: Number.isFinite(markerId) ? markerId : null,
         }),
-      ]
+      ],
     );
     if (verification.correct && settings.scoringEnabled) {
       scoreDelta = 1;
@@ -157,7 +172,7 @@ router.post('/games/:id/qcm/answer', requireGlAuth, async (req, res) => {
            score = score + VALUES(score),
            last_reason = VALUES(last_reason),
            updated_at = NOW()`,
-        [gameId, teamIdForGame, scoreDelta, 'Bonne réponse QCM']
+        [gameId, teamIdForGame, scoreDelta, 'Bonne réponse QCM'],
       );
       await tx.execute(
         `INSERT INTO gl_game_events (game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at)
@@ -168,7 +183,7 @@ router.post('/games/:id/qcm/answer', requireGlAuth, async (req, res) => {
           answerCtx.actorType,
           answerCtx.actorId,
           JSON.stringify({ delta: scoreDelta, reason: 'Bonne réponse QCM', questionCode }),
-        ]
+        ],
       );
     }
   });
@@ -179,21 +194,24 @@ router.post('/games/:id/qcm/answer', requireGlAuth, async (req, res) => {
       ? `SELECT lore_code, terme, variantes, categorie, definition_courte, niveau
            FROM gl_lore_glossary_terms WHERE statut = 'actif'`
       : `SELECT glossary_code, terme, variantes, categorie, definition_courte
-           FROM gl_glossary_terms WHERE statut = 'actif'`
+           FROM gl_glossary_terms WHERE statut = 'actif'`,
   );
   const glossaryTerms = verification.correct
-    ? (isLore
+    ? isLore
       ? matchLoreGlossaryTermsForText(
-        combineLoreKeywords(questionRow),
-        buildLoreGlossaryLookupMap(glossaryRows)
-      )
-      : matchGlossaryTermsForSpecies(combineKeywords(questionRow), buildGlossaryLookupMap(glossaryRows)))
+          combineLoreKeywords(questionRow),
+          buildLoreGlossaryLookupMap(glossaryRows),
+        )
+      : matchGlossaryTermsForSpecies(
+          combineKeywords(questionRow),
+          buildGlossaryLookupMap(glossaryRows),
+        )
     : [];
 
   const evt = await queryOne(
     `SELECT id, game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at
        FROM gl_game_events WHERE game_id = ? ORDER BY id DESC LIMIT 1`,
-    [gameId]
+    [gameId],
   );
   if (evt) emitGlGameEvent(gameId, normalizeEventRow(evt));
 

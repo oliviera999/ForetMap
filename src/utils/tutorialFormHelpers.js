@@ -48,10 +48,10 @@ export function applyTutorialFormMapChange(form, nextMapId, zones = [], markers 
  */
 export function tutorialFormFromDetail(detail, activeMapId) {
   const inferMap =
-    (detail.zones_linked && detail.zones_linked[0]?.map_id)
-    || (detail.markers_linked && detail.markers_linked[0]?.map_id)
-    || activeMapId
-    || '';
+    (detail.zones_linked && detail.zones_linked[0]?.map_id) ||
+    (detail.markers_linked && detail.markers_linked[0]?.map_id) ||
+    activeMapId ||
+    '';
   return {
     id: detail.id,
     title: detail.title || '',
@@ -77,8 +77,8 @@ export function buildTutorialSavePayload(form) {
     title: form.title.trim(),
     summary: form.summary || '',
     type: form.type,
-    html_content: form.type === 'html' ? (form.html_content || null) : null,
-    source_url: form.type === 'link' ? (form.source_url || null) : null,
+    html_content: form.type === 'html' ? form.html_content || null : null,
+    source_url: form.type === 'link' ? form.source_url || null : null,
     source_file_path: form.source_file_path || null,
     sort_order: Number(form.sort_order) || 0,
     is_active: !!form.is_active,

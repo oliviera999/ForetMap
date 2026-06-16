@@ -46,9 +46,10 @@ export function pointToRenderedImagePct(clientX, clientY, imageEl, options = {})
 }
 
 export function pointToElementPct(clientX, clientY, elementOrRect, options = {}) {
-  const rect = typeof elementOrRect?.getBoundingClientRect === 'function'
-    ? elementOrRect.getBoundingClientRect()
-    : elementOrRect;
+  const rect =
+    typeof elementOrRect?.getBoundingClientRect === 'function'
+      ? elementOrRect.getBoundingClientRect()
+      : elementOrRect;
   if (!rect || !(rect.width > 0) || !(rect.height > 0)) return null;
   const x = ((clientX - rect.left) / rect.width) * 100;
   const y = ((clientY - rect.top) / rect.height) * 100;
@@ -60,7 +61,13 @@ export function pointToElementPct(clientX, clientY, elementOrRect, options = {})
   };
 }
 
-export function pointToContainedRectPct(event, stageEl, transform = { x: 0, y: 0, s: 1 }, fit = null, options = {}) {
+export function pointToContainedRectPct(
+  event,
+  stageEl,
+  transform = { x: 0, y: 0, s: 1 },
+  fit = null,
+  options = {},
+) {
   const rect = stageEl?.getBoundingClientRect?.();
   if (!rect || !rect.width || !rect.height) return null;
   const scale = Number(transform?.s) > 0 ? Number(transform.s) : 1;

@@ -49,9 +49,12 @@ export function zoomVisitTransformToScale(from, px, py, nextScale, rect = null) 
   const fromScale = Number(from?.s) || 1;
   const s = clampVisitMapScale(nextScale);
   const ratio = s / fromScale;
-  return clampVisitMapTransform({
-    s,
-    x: px - (px - (Number(from?.x) || 0)) * ratio,
-    y: py - (py - (Number(from?.y) || 0)) * ratio,
-  }, rect);
+  return clampVisitMapTransform(
+    {
+      s,
+      x: px - (px - (Number(from?.x) || 0)) * ratio,
+      y: py - (py - (Number(from?.y) || 0)) * ratio,
+    },
+    rect,
+  );
 }

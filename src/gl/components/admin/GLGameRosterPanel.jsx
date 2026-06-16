@@ -31,7 +31,7 @@ export function GLGameRosterPanel({
         list.reduce((acc, item) => {
           acc[item.id] = item.teamId ? String(item.teamId) : '';
           return acc;
-        }, {})
+        }, {}),
       );
     } catch (err) {
       setError(err.message || 'Chargement des effectifs impossible');
@@ -130,7 +130,7 @@ export function GLGameRosterPanel({
     }
   }
 
-  const colSpan = vitalityEnabled ? (canImpersonate ? 8 : 7) : (canImpersonate ? 6 : 5);
+  const colSpan = vitalityEnabled ? (canImpersonate ? 8 : 7) : canImpersonate ? 6 : 5;
 
   return (
     <section className="gl-gameplay-block">
@@ -164,10 +164,7 @@ export function GLGameRosterPanel({
                 {vitalityEnabled ? (
                   <>
                     <td>
-                      <GLVitalityCounts
-                        health={item.healthPoints}
-                        power={item.powerPoints}
-                      />
+                      <GLVitalityCounts health={item.healthPoints} power={item.powerPoints} />
                     </td>
                     <td>
                       <GLVitalityAdjustButtons
@@ -183,11 +180,15 @@ export function GLGameRosterPanel({
                 <td>
                   <GLSelect
                     value={selectedTeams[item.id] || ''}
-                    onChange={(event) => setSelectedTeams((prev) => ({ ...prev, [item.id]: event.target.value }))}
+                    onChange={(event) =>
+                      setSelectedTeams((prev) => ({ ...prev, [item.id]: event.target.value }))
+                    }
                   >
                     <option value="">Choisir</option>
                     {teams.map((team) => (
-                      <option key={team.id} value={team.id}>{team.name}</option>
+                      <option key={team.id} value={team.id}>
+                        {team.name}
+                      </option>
                     ))}
                   </GLSelect>
                 </td>
@@ -205,10 +206,21 @@ export function GLGameRosterPanel({
                   </td>
                 ) : null}
                 <td className="gl-admin-actions-cell">
-                  <GLButton type="button" size="sm" onClick={() => assignPlayer(item.id)} disabled={busy || !selectedTeams[item.id]}>
+                  <GLButton
+                    type="button"
+                    size="sm"
+                    onClick={() => assignPlayer(item.id)}
+                    disabled={busy || !selectedTeams[item.id]}
+                  >
                     Assigner
                   </GLButton>
-                  <GLButton type="button" size="sm" variant="secondary" onClick={() => unassignPlayer(item.id)} disabled={busy || !item.teamId}>
+                  <GLButton
+                    type="button"
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => unassignPlayer(item.id)}
+                    disabled={busy || !item.teamId}
+                  >
                     Retirer
                   </GLButton>
                 </td>

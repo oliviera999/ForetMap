@@ -20,7 +20,9 @@ const dest = path.join(destDir, 'noto-color-emoji.woff2');
 
 if (!fs.existsSync(src)) {
   console.error('[fonts] Fichier source introuvable :', src);
-  console.error('[fonts] Installez la dépendance : npm install @fontsource/noto-color-emoji --save-dev');
+  console.error(
+    '[fonts] Installez la dépendance : npm install @fontsource/noto-color-emoji --save-dev',
+  );
   process.exit(1);
 }
 

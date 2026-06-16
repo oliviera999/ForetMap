@@ -27,14 +27,26 @@ export function TaskConfirmDialog({ confirmTask, onClose }) {
       closeOnOverlay
       dialogRef={confirmDialogRef}
     >
-        <h3 style={{ marginBottom: 8 }}>Confirmation</h3>
-        <p style={{ fontSize: '.95rem', color: '#444', marginBottom: 20, lineHeight: 1.5 }}>{confirmTask.label}</p>
-        <div style={{ display: 'flex', gap: 10 }}>
-          <button className="btn btn-danger" style={{ flex: 1 }} onClick={async () => {
-            const a = confirmTask.action; onClose(); await a();
-          }}>Confirmer</button>
-          <button className="btn btn-ghost" style={{ flex: 1 }} onClick={onClose}>Annuler</button>
-        </div>
+      <h3 style={{ marginBottom: 8 }}>Confirmation</h3>
+      <p style={{ fontSize: '.95rem', color: '#444', marginBottom: 20, lineHeight: 1.5 }}>
+        {confirmTask.label}
+      </p>
+      <div style={{ display: 'flex', gap: 10 }}>
+        <button
+          className="btn btn-danger"
+          style={{ flex: 1 }}
+          onClick={async () => {
+            const a = confirmTask.action;
+            onClose();
+            await a();
+          }}
+        >
+          Confirmer
+        </button>
+        <button className="btn btn-ghost" style={{ flex: 1 }} onClick={onClose}>
+          Annuler
+        </button>
+      </div>
     </DialogShell>
   );
 }

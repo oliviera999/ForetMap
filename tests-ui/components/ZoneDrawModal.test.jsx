@@ -8,7 +8,11 @@ function renderModal(overrides = {}) {
   const onClose = vi.fn();
   render(
     <ZoneDrawModal
-      points_pct={[{ xp: 10, yp: 10 }, { xp: 20, yp: 20 }, { xp: 30, yp: 30 }]}
+      points_pct={[
+        { xp: 10, yp: 10 },
+        { xp: 20, yp: 20 },
+        { xp: 30, yp: 30 },
+      ]}
       plants={[{ id: 1, name: 'Tomate', emoji: '🍅' }]}
       onSave={onSave}
       onClose={onClose}
@@ -34,7 +38,9 @@ describe('ZoneDrawModal', () => {
 
   test('sauvegarde avec le nom saisi + les points tracés', async () => {
     const { onSave } = renderModal();
-    fireEvent.change(screen.getByPlaceholderText('Ex: Potager Est'), { target: { value: 'Potager Est' } });
+    fireEvent.change(screen.getByPlaceholderText('Ex: Potager Est'), {
+      target: { value: 'Potager Est' },
+    });
     fireEvent.click(screen.getByRole('button', { name: /Créer la zone/ }));
     await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
     const payload = onSave.mock.calls[0][0];

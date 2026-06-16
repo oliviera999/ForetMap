@@ -14,23 +14,23 @@ description: Guide l’ajout et l’évolution des mascottes visite (catalogue m
 
 ## Fichiers à connaître
 
-| Fichier | Rôle |
-|---------|------|
-| `src/utils/visitMascotCatalog.js` | Entrées mascottes, renderer, assets, états supportés |
-| `docs/MASCOT_PACK.md` | Format JSON **mascot pack v1** (`sprite_cut`), validation CLI, outil dev |
-| `src/utils/mascotPack.js` | Zod : `validateMascotPackV1`, `expandMascotPackToSpriteCut` |
-| `src/utils/visitMascotState.js` | États canoniques + résolution prioritaire + dialogues |
-| `src/hooks/useVisitMascotStateMachine.js` | Pilotage runtime/preview et comportements transitoires |
-| `src/components/VisitMapMascotRenderer.jsx` | Routeur renderer |
-| `src/components/VisitMapMascotRive.jsx` | Rendu Rive + fallback |
-| `src/components/VisitMapMascotSpritesheet.jsx` | Rendu spritesheet + fallback |
-| `src/components/VisitMapMascotSpriteCut.jsx` | Rendu `sprite_cut` (PNG par frame, manifeste + catalogue) |
-| `src/components/VisitMascotFallbackSvg.jsx` | Silhouettes de secours |
-| `src/components/visit-views.jsx` | Déclencheurs UI et preview prof/admin |
-| `src/components/VisitMascotPackManager.jsx` | Gestion des packs persistés (prof / modale Visite) |
-| `src/components/MascotPackWysiwygEditor.jsx` | Éditeur WYSIWYG pack (métadonnées, états, vignettes, médiathèque) |
-| `src/utils/mascotPackEditorModel.js` | Modèle éditeur (états, assets, synchro JSON) |
-| `routes/visit.js` | CRUD packs, médiathèque, bibliothèque sprites, **`GET /api/visit/mascot-assets`**, **`GET /api/visit/content`** (`mascot_packs`) |
+| Fichier                                        | Rôle                                                                                                                             |
+| ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `src/utils/visitMascotCatalog.js`              | Entrées mascottes, renderer, assets, états supportés                                                                             |
+| `docs/MASCOT_PACK.md`                          | Format JSON **mascot pack v1** (`sprite_cut`), validation CLI, outil dev                                                         |
+| `src/utils/mascotPack.js`                      | Zod : `validateMascotPackV1`, `expandMascotPackToSpriteCut`                                                                      |
+| `src/utils/visitMascotState.js`                | États canoniques + résolution prioritaire + dialogues                                                                            |
+| `src/hooks/useVisitMascotStateMachine.js`      | Pilotage runtime/preview et comportements transitoires                                                                           |
+| `src/components/VisitMapMascotRenderer.jsx`    | Routeur renderer                                                                                                                 |
+| `src/components/VisitMapMascotRive.jsx`        | Rendu Rive + fallback                                                                                                            |
+| `src/components/VisitMapMascotSpritesheet.jsx` | Rendu spritesheet + fallback                                                                                                     |
+| `src/components/VisitMapMascotSpriteCut.jsx`   | Rendu `sprite_cut` (PNG par frame, manifeste + catalogue)                                                                        |
+| `src/components/VisitMascotFallbackSvg.jsx`    | Silhouettes de secours                                                                                                           |
+| `src/components/visit-views.jsx`               | Déclencheurs UI et preview prof/admin                                                                                            |
+| `src/components/VisitMascotPackManager.jsx`    | Gestion des packs persistés (prof / modale Visite)                                                                               |
+| `src/components/MascotPackWysiwygEditor.jsx`   | Éditeur WYSIWYG pack (métadonnées, états, vignettes, médiathèque)                                                                |
+| `src/utils/mascotPackEditorModel.js`           | Modèle éditeur (états, assets, synchro JSON)                                                                                     |
+| `routes/visit.js`                              | CRUD packs, médiathèque, bibliothèque sprites, **`GET /api/visit/mascot-assets`**, **`GET /api/visit/content`** (`mascot_packs`) |
 
 ## Prod sans dossier `src/`
 

@@ -10,7 +10,13 @@ const { app } = require('../server');
 const { initSchema, execute, queryOne } = require('../database');
 const { signAuthToken } = require('../middleware/requireTeacher');
 
-const XLSX_PATH = path.join(__dirname, '..', 'data', 'gl', 'especes-biomes-gnomes-et-licornes.xlsx');
+const XLSX_PATH = path.join(
+  __dirname,
+  '..',
+  'data',
+  'gl',
+  'especes-biomes-gnomes-et-licornes.xlsx',
+);
 
 let adminToken = '';
 let playerToken = '';
@@ -22,12 +28,11 @@ before(async () => {
     `INSERT INTO gl_admins (email, display_name, role, is_active, created_at, updated_at)
      VALUES (?, 'MJ Species', 'admin', 1, NOW(), NOW())
      ON DUPLICATE KEY UPDATE is_active = 1, updated_at = NOW()`,
-    [`species.admin.${stamp}@ecole.local`]
+    [`species.admin.${stamp}@ecole.local`],
   );
-  const admin = await queryOne(
-    'SELECT id FROM gl_admins WHERE email = ? LIMIT 1',
-    [`species.admin.${stamp}@ecole.local`]
-  );
+  const admin = await queryOne('SELECT id FROM gl_admins WHERE email = ? LIMIT 1', [
+    `species.admin.${stamp}@ecole.local`,
+  ]);
   adminToken = await signAuthToken({
     product: 'gl',
     userType: 'gl_admin',
@@ -38,15 +43,19 @@ before(async () => {
   await execute(
     `INSERT INTO gl_classes (name, school, created_by, is_active, created_at, updated_at)
      VALUES (?, 'Ecole', ?, 1, NOW(), NOW())`,
-    [`Classe Species ${stamp}`, admin.id]
+    [`Classe Species ${stamp}`, admin.id],
   );
-  const cls = await queryOne('SELECT id FROM gl_classes WHERE name = ? LIMIT 1', [`Classe Species ${stamp}`]);
+  const cls = await queryOne('SELECT id FROM gl_classes WHERE name = ? LIMIT 1', [
+    `Classe Species ${stamp}`,
+  ]);
   await execute(
     `INSERT INTO gl_players (class_id, pseudo, password_hash, is_active, created_at, updated_at)
      VALUES (?, ?, 'x', 1, NOW(), NOW())`,
-    [cls.id, `species-player-${stamp}`]
+    [cls.id, `species-player-${stamp}`],
   );
-  const player = await queryOne('SELECT id FROM gl_players WHERE pseudo = ? LIMIT 1', [`species-player-${stamp}`]);
+  const player = await queryOne('SELECT id FROM gl_players WHERE pseudo = ? LIMIT 1', [
+    `species-player-${stamp}`,
+  ]);
   playerToken = await signAuthToken({
     product: 'gl',
     userType: 'gl_player',
@@ -88,7 +97,7 @@ test('POST /api/gl/admin/species/import apply upsert le catalogue', async () => 
     .expect(200);
   assert.ok(res.body?.report?.totals?.created + res.body?.report?.totals?.updated >= 250);
   const row = await queryOne(
-    "SELECT nom_commun FROM gl_species WHERE species_code = 'SP0001' LIMIT 1"
+    "SELECT nom_commun FROM gl_species WHERE species_code = 'SP0001' LIMIT 1",
   );
   assert.strictEqual(row?.nom_commun, 'Fennec');
 });

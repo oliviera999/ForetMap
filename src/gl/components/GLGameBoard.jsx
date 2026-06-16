@@ -74,12 +74,14 @@ export function GLGameBoard({
     if (!assetsReady || plateauNumber == null) return null;
     return chapterIllustration(plateauNumber);
   }, [assetsReady, plateauNumber]);
-  const imageUrl = useMemo(() => (
-    chapter?.map_image_url
-    || (conventionBoard && conventionBoard !== GL_ASSET_PLACEHOLDER_URL ? conventionBoard : null)
-    || conventionChapter
-    || '/maps/map-foret.svg'
-  ), [chapter?.map_image_url, conventionBoard, conventionChapter]);
+  const imageUrl = useMemo(
+    () =>
+      chapter?.map_image_url ||
+      (conventionBoard && conventionBoard !== GL_ASSET_PLACEHOLDER_URL ? conventionBoard : null) ||
+      conventionChapter ||
+      '/maps/map-foret.svg',
+    [chapter?.map_image_url, conventionBoard, conventionChapter],
+  );
   const [pendingMarker, setPendingMarker] = useState(null);
   const [actionType, setActionType] = useState('explore');
   const [mapFullscreen, setMapFullscreen] = useState(false);
@@ -104,11 +106,7 @@ export function GLGameBoard({
     enabled: Boolean(gameId && watchTeamId != null && markerArrivalEnabled),
   });
 
-  const {
-    getPositionForTeam,
-    getMotionForTeam,
-    moveTeamTo,
-  } = useGLBoardMascotMotion({
+  const { getPositionForTeam, getMotionForTeam, moveTeamTo } = useGLBoardMascotMotion({
     teams,
     boardHeightPx,
     prefersReducedMotion,
@@ -168,7 +166,9 @@ export function GLGameBoard({
         if (!cancelled) setPresentedFeuilletZoneIds([]);
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [gameId, watchTeamId]);
 
   const activeFeuilletZones = feuilletZoneEditMode ? editZones : feuilletZones;
@@ -182,7 +182,9 @@ export function GLGameBoard({
     gameId,
     watchTeamId,
     presentedZoneIds: presentedFeuilletZoneIds,
-    enabled: Boolean(gameId && watchTeamId != null && activeFeuilletZones.length > 0) && !feuilletZoneEditMode,
+    enabled:
+      Boolean(gameId && watchTeamId != null && activeFeuilletZones.length > 0) &&
+      !feuilletZoneEditMode,
     qcmOpen: modalOpen,
     loreCarnetEnabled,
   });
@@ -204,9 +206,18 @@ export function GLGameBoard({
 
   useEffect(() => {
     if (watchTeamId == null || !watchPosition) return undefined;
-    const cleanupZone = handleZoneContentPositionChange({ xp: watchPosition.xp, yp: watchPosition.yp });
-    const cleanupFeuillet = handleFeuilletPositionChange({ xp: watchPosition.xp, yp: watchPosition.yp });
-    const cleanupFeuilletZone = handleFeuilletZonePositionChange({ xp: watchPosition.xp, yp: watchPosition.yp });
+    const cleanupZone = handleZoneContentPositionChange({
+      xp: watchPosition.xp,
+      yp: watchPosition.yp,
+    });
+    const cleanupFeuillet = handleFeuilletPositionChange({
+      xp: watchPosition.xp,
+      yp: watchPosition.yp,
+    });
+    const cleanupFeuilletZone = handleFeuilletZonePositionChange({
+      xp: watchPosition.xp,
+      yp: watchPosition.yp,
+    });
     return () => {
       cleanupZone?.();
       cleanupFeuillet?.();
@@ -250,24 +261,30 @@ export function GLGameBoard({
     return list.length > 0 ? Number(list[0].id) : null;
   }, [teams, selectedTeamId, watchTeamId]);
 
-  const handleBoardMove = useCallback((xp, yp) => {
-    const teamId = resolveActiveTeamId();
-    if (teamId == null) return;
-    moveTeamTo(teamId, xp, yp);
-    onBoardClick?.({ xp, yp });
-  }, [resolveActiveTeamId, moveTeamTo, onBoardClick]);
+  const handleBoardMove = useCallback(
+    (xp, yp) => {
+      const teamId = resolveActiveTeamId();
+      if (teamId == null) return;
+      moveTeamTo(teamId, xp, yp);
+      onBoardClick?.({ xp, yp });
+    },
+    [resolveActiveTeamId, moveTeamTo, onBoardClick],
+  );
 
-  const handleMarkerMove = useCallback((marker) => {
-    const teamId = resolveActiveTeamId();
-    if (teamId == null) return;
-    const xp = Number(marker.x_pct);
-    const yp = Number(marker.y_pct);
-    moveTeamTo(teamId, xp, yp, { triggerHappy: true, arrival: 'marker' });
-    onMarkerClick?.(marker);
-    if (isQuestionMarker(marker) || shouldPresentMarkerOnArrival(marker)) {
-      schedulePresentOnArrival(marker, teamId, { force: true });
-    }
-  }, [resolveActiveTeamId, moveTeamTo, onMarkerClick, schedulePresentOnArrival]);
+  const handleMarkerMove = useCallback(
+    (marker) => {
+      const teamId = resolveActiveTeamId();
+      if (teamId == null) return;
+      const xp = Number(marker.x_pct);
+      const yp = Number(marker.y_pct);
+      moveTeamTo(teamId, xp, yp, { triggerHappy: true, arrival: 'marker' });
+      onMarkerClick?.(marker);
+      if (isQuestionMarker(marker) || shouldPresentMarkerOnArrival(marker)) {
+        schedulePresentOnArrival(marker, teamId, { force: true });
+      }
+    },
+    [resolveActiveTeamId, moveTeamTo, onMarkerClick, schedulePresentOnArrival],
+  );
 
   function handleMarkerClick(marker) {
     if (canMoveMascot) {
@@ -296,7 +313,10 @@ export function GLGameBoard({
   const boardClass = mapFullscreen ? 'gl-board gl-board--fullscreen' : 'gl-board';
 
   const boardShell = (
-    <div className={boardShellClass} data-testid={mapFullscreen ? 'gl-map-fullscreen-layer' : undefined}>
+    <div
+      className={boardShellClass}
+      data-testid={mapFullscreen ? 'gl-map-fullscreen-layer' : undefined}
+    >
       {mapFullscreen ? (
         <button
           type="button"
@@ -322,11 +342,7 @@ export function GLGameBoard({
         onMapClick={(pct) => {
           onZoneMusicUnlock?.();
           if (!canMoveMascot) return;
-          const clamped = clampMapMascotPctForViewport(
-            pct.x,
-            pct.y,
-            boardHeightPxRef.current,
-          );
+          const clamped = clampMapMascotPctForViewport(pct.x, pct.y, boardHeightPxRef.current);
           handleBoardMove(clamped.xp, clamped.yp);
         }}
       >
@@ -360,7 +376,9 @@ export function GLGameBoard({
               motion={motion}
               mascotState={mascotState}
               prefersReducedMotion={prefersReducedMotion}
-              zIndex={6 + (selectedTeamId != null && Number(selectedTeamId) === Number(team.id) ? 2 : 0)}
+              zIndex={
+                6 + (selectedTeamId != null && Number(selectedTeamId) === Number(team.id) ? 2 : 0)
+              }
             />
           );
         })}
@@ -397,9 +415,7 @@ export function GLGameBoard({
         })}
       </GLPctMapCanvas>
 
-      {virtualDiceEnabled && gameId ? (
-        <GLVirtualDiceDock themeStyle={brandThemeStyle} />
-      ) : null}
+      {virtualDiceEnabled && gameId ? <GLVirtualDiceDock themeStyle={brandThemeStyle} /> : null}
 
       {!mapFullscreen ? (
         <GLGameBoardHudToolbar
@@ -486,9 +502,10 @@ export function GLGameBoard({
     </div>
   );
 
-  const boardShellNode = mapFullscreen && typeof document !== 'undefined' && document.body
-    ? createPortal(boardShell, document.body)
-    : boardShell;
+  const boardShellNode =
+    mapFullscreen && typeof document !== 'undefined' && document.body
+      ? createPortal(boardShell, document.body)
+      : boardShell;
 
   return (
     <section className={mapFullscreen ? 'gl-panel gl-panel--map-fullscreen-active' : 'gl-panel'}>
@@ -529,8 +546,12 @@ export function GLGameBoard({
           </select>
         </label>
         <div className="gl-inline-actions">
-          <GLButton type="button" onClick={confirmActionRequest}>Envoyer la demande</GLButton>
-          <GLButton type="button" variant="secondary" onClick={() => setPendingMarker(null)}>Annuler</GLButton>
+          <GLButton type="button" onClick={confirmActionRequest}>
+            Envoyer la demande
+          </GLButton>
+          <GLButton type="button" variant="secondary" onClick={() => setPendingMarker(null)}>
+            Annuler
+          </GLButton>
         </div>
       </DialogShell>
     </section>

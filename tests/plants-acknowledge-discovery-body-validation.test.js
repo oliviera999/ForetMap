@@ -15,11 +15,19 @@ function runValidation(body) {
   const res = {
     statusCode: 200,
     body: undefined,
-    status(c) { this.statusCode = c; return this; },
-    json(payload) { this.body = payload; return this; },
+    status(c) {
+      this.statusCode = c;
+      return this;
+    },
+    json(payload) {
+      this.body = payload;
+      return this;
+    },
   };
   let nextCalled = false;
-  validate({ body: acknowledgeDiscoveryBodySchema })(req, res, () => { nextCalled = true; });
+  validate({ body: acknowledgeDiscoveryBodySchema })(req, res, () => {
+    nextCalled = true;
+  });
   return { nextCalled, status: res.statusCode, error: res.body?.error };
 }
 
@@ -41,12 +49,16 @@ test('acknowledge-discovery : rejet 400 quand confirm !== true', () => {
   for (const body of rejectCases) {
     const r = runValidation(body);
     assert.strictEqual(legacyRejects(body), true, `legacy devrait rejeter ${JSON.stringify(body)}`);
-    assert.strictEqual(r.nextCalled, false, `next ne doit pas être appelé pour ${JSON.stringify(body)}`);
+    assert.strictEqual(
+      r.nextCalled,
+      false,
+      `next ne doit pas être appelé pour ${JSON.stringify(body)}`,
+    );
     assert.strictEqual(r.status, 400, `status 400 attendu pour ${JSON.stringify(body)}`);
     assert.strictEqual(
       r.error,
       'Confirmation explicite requise (confirm: true)',
-      `message exact attendu pour ${JSON.stringify(body)}`
+      `message exact attendu pour ${JSON.stringify(body)}`,
     );
   }
 });
@@ -58,7 +70,11 @@ test('acknowledge-discovery : laisse passer uniquement confirm === true', () => 
   ];
   for (const body of passCases) {
     const r = runValidation(body);
-    assert.strictEqual(legacyRejects(body), false, `legacy ne devrait pas rejeter ${JSON.stringify(body)}`);
+    assert.strictEqual(
+      legacyRejects(body),
+      false,
+      `legacy ne devrait pas rejeter ${JSON.stringify(body)}`,
+    );
     assert.strictEqual(r.nextCalled, true, `next doit être appelé pour ${JSON.stringify(body)}`);
     assert.strictEqual(r.status, 200, `pas de 400 pour ${JSON.stringify(body)}`);
   }

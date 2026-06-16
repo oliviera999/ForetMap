@@ -13,15 +13,13 @@ import useVisitMascotStateMachine from '../../hooks/useVisitMascotStateMachine.j
  */
 export default function VisitMascotStudioPreviewSection({ packs, mapId }) {
   const extras = useMemo(
-    () => buildVisitMascotCatalogExtrasFromContent(
-      packs.map((p) => ({ catalog_id: p.catalog_id, label: p.label, pack: p.pack })),
-    ),
+    () =>
+      buildVisitMascotCatalogExtrasFromContent(
+        packs.map((p) => ({ catalog_id: p.catalog_id, label: p.label, pack: p.pack })),
+      ),
     [packs],
   );
-  const visitMascotOptions = useMemo(
-    () => [...getVisitMascotCatalog(), ...extras],
-    [extras],
-  );
+  const visitMascotOptions = useMemo(() => [...getVisitMascotCatalog(), ...extras], [extras]);
   const {
     visitMascotId,
     visitMascotPreviewState,
@@ -39,10 +37,10 @@ export default function VisitMascotStudioPreviewSection({ packs, mapId }) {
       return 'visit-mascot-preview-body--motion-walk';
     }
     if (
-      s === VISIT_MASCOT_STATE.HAPPY
-      || s === VISIT_MASCOT_STATE.CELEBRATE
-      || s === VISIT_MASCOT_STATE.HAPPY_JUMP
-      || s === VISIT_MASCOT_STATE.SPIN
+      s === VISIT_MASCOT_STATE.HAPPY ||
+      s === VISIT_MASCOT_STATE.CELEBRATE ||
+      s === VISIT_MASCOT_STATE.HAPPY_JUMP ||
+      s === VISIT_MASCOT_STATE.SPIN
     ) {
       return 'visit-mascot-preview-body--motion-happy';
     }
@@ -52,9 +50,13 @@ export default function VisitMascotStudioPreviewSection({ packs, mapId }) {
   return (
     <section className="visit-mascot-preview-card" aria-label="Aperçu de la mascotte">
       <p className="section-sub" style={{ fontSize: '0.82rem' }}>
-        Carte <strong>{mapId}</strong> — packs chargés (y compris brouillons) pour prévisualiser les mascottes serveur.
+        Carte <strong>{mapId}</strong> — packs chargés (y compris brouillons) pour prévisualiser les
+        mascottes serveur.
       </p>
-      <div className="visit-mascot-preview-actions" style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
+      <div
+        className="visit-mascot-preview-actions"
+        style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}
+      >
         <button
           type="button"
           className={`btn btn-sm ${visitMascotPreviewState === VISIT_MASCOT_STATE.IDLE ? 'btn-primary' : 'btn-ghost'}`}
@@ -77,7 +79,14 @@ export default function VisitMascotStudioPreviewSection({ packs, mapId }) {
           Heureuse
         </button>
         {visitMascotPreviewStateOptions
-          .filter((entry) => ![VISIT_MASCOT_STATE.IDLE, VISIT_MASCOT_STATE.WALKING, VISIT_MASCOT_STATE.HAPPY].includes(entry.state))
+          .filter(
+            (entry) =>
+              ![
+                VISIT_MASCOT_STATE.IDLE,
+                VISIT_MASCOT_STATE.WALKING,
+                VISIT_MASCOT_STATE.HAPPY,
+              ].includes(entry.state),
+          )
           .map((entry) => (
             <button
               key={entry.state}
@@ -93,7 +102,9 @@ export default function VisitMascotStudioPreviewSection({ packs, mapId }) {
         <span>Mascotte</span>
         <select value={visitMascotId} onChange={(e) => onChangeVisitMascotId(e.target.value)}>
           {visitMascotOptions.map((m) => (
-            <option key={m.id} value={m.id}>{m.label}</option>
+            <option key={m.id} value={m.id}>
+              {m.label}
+            </option>
           ))}
         </select>
       </label>

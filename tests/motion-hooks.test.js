@@ -14,16 +14,30 @@ describe('motionMath', () => {
   });
 
   it('computeScrollProgress retourne 1 en bas de page', () => {
-    assert.equal(computeScrollProgress({ scrollTop: 400, scrollHeight: 500, clientHeight: 100 }), 1);
+    assert.equal(
+      computeScrollProgress({ scrollTop: 400, scrollHeight: 500, clientHeight: 100 }),
+      1,
+    );
   });
 
   it('computeScrollProgress borne entre 0 et 1', () => {
-    assert.equal(computeScrollProgress({ scrollTop: 200, scrollHeight: 500, clientHeight: 100 }), 0.5);
-    assert.equal(computeScrollProgress({ scrollTop: 999, scrollHeight: 500, clientHeight: 100 }), 1);
+    assert.equal(
+      computeScrollProgress({ scrollTop: 200, scrollHeight: 500, clientHeight: 100 }),
+      0.5,
+    );
+    assert.equal(
+      computeScrollProgress({ scrollTop: 999, scrollHeight: 500, clientHeight: 100 }),
+      1,
+    );
   });
 
   it('parseRootMargin lit quatre valeurs px', () => {
-    assert.deepEqual(parseRootMargin('0px 0px -80px 0px'), { top: 0, right: 0, bottom: -80, left: 0 });
+    assert.deepEqual(parseRootMargin('0px 0px -80px 0px'), {
+      top: 0,
+      right: 0,
+      bottom: -80,
+      left: 0,
+    });
   });
 
   it('isElementScrollRevealVisible respecte rootMargin et threshold', () => {

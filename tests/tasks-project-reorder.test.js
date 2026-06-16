@@ -15,7 +15,7 @@ async function refreshAdminTeacherToken() {
   const loginEmail = String(process.env.TEACHER_ADMIN_EMAIL || '').trim();
   const teacher = await queryOne(
     "SELECT id FROM users WHERE user_type = 'teacher' AND LOWER(email) = LOWER(?) LIMIT 1",
-    [loginEmail]
+    [loginEmail],
   );
   const adminRole = await queryOne("SELECT id FROM roles WHERE slug = 'admin' LIMIT 1");
   assert.ok(teacher?.id, 'Compte admin enseignant introuvable');
@@ -157,7 +157,7 @@ describe('Tâches — réordonnancement projet', () => {
       .expect(200);
     assert.deepStrictEqual(
       list.body.map((row) => row.id),
-      [existing.body.id, toAttach.body.id]
+      [existing.body.id, toAttach.body.id],
     );
   });
 });

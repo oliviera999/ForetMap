@@ -26,10 +26,13 @@ test.describe('GL player full cycle', () => {
     const body = await createAction.json();
     expect(Number(body.actionRequestId)).toBeGreaterThan(0);
 
-    const resolveAction = await request.post(`/api/gl/games/${seeded.gameId}/actions/${body.actionRequestId}/resolve`, {
-      headers: { Authorization: `Bearer ${seeded.adminToken}` },
-      data: { decision: 'accepted', scoreDelta: 2, reason: 'E2E full cycle' },
-    });
+    const resolveAction = await request.post(
+      `/api/gl/games/${seeded.gameId}/actions/${body.actionRequestId}/resolve`,
+      {
+        headers: { Authorization: `Bearer ${seeded.adminToken}` },
+        data: { decision: 'accepted', scoreDelta: 2, reason: 'E2E full cycle' },
+      },
+    );
     expect(resolveAction.status()).toBe(200);
 
     const state = await request.get(`/api/gl/games/${seeded.gameId}`, {
@@ -37,7 +40,8 @@ test.describe('GL player full cycle', () => {
     });
     expect(state.status()).toBe(200);
     const stateBody = await state.json();
-    const scoreEntry = stateBody.scores?.[String(seeded.teamId)] || stateBody.scores?.[seeded.teamId];
+    const scoreEntry =
+      stateBody.scores?.[String(seeded.teamId)] || stateBody.scores?.[seeded.teamId];
     expect(Number(scoreEntry?.score || 0)).toBe(2);
   });
 });

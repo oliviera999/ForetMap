@@ -8,15 +8,16 @@
 
 ## Partie 1 - Matrice de resultats
 
-| Parcours | Marie | Theo | Sandra | Karim |
-|----------|-------|------|--------|-------|
-| Eleve - inscription/connexion/premier usage | Completion:  | Completion:  | Completion:  | Completion:  |
-| Eleve - cycle taches | Completion:  | Completion:  | Completion:  | Completion:  |
-| Prof - elevation + gestion | Completion:  | Completion:  | Completion:  | Completion:  |
-| Carte/visite mobile | Completion:  | Completion:  | Completion:  | Completion:  |
-| Robustesse formulaires | Completion:  | Completion:  | Completion:  | Completion:  |
+| Parcours                                    | Marie       | Theo        | Sandra      | Karim       |
+| ------------------------------------------- | ----------- | ----------- | ----------- | ----------- |
+| Eleve - inscription/connexion/premier usage | Completion: | Completion: | Completion: | Completion: |
+| Eleve - cycle taches                        | Completion: | Completion: | Completion: | Completion: |
+| Prof - elevation + gestion                  | Completion: | Completion: | Completion: | Completion: |
+| Carte/visite mobile                         | Completion: | Completion: | Completion: | Completion: |
+| Robustesse formulaires                      | Completion: | Completion: | Completion: | Completion: |
 
 Legenda completion:
+
 - Oui
 - Oui avec friction
 - Abandon
@@ -24,15 +25,15 @@ Legenda completion:
 Synthese severite:
 
 | Severite | Total |
-|----------|-------|
-| Bloquant |   |
-| Majeur   |   |
-| Mineur   |   |
+| -------- | ----- |
+| Bloquant |       |
+| Majeur   |       |
+| Mineur   |       |
 
 ## Partie 2 - Liste exhaustive des problemes
 
-| ID | Severite | Categorie | Personas | Parcours/Etape | Description | Correction suggeree | Preuve technique |
-|----|----------|-----------|----------|----------------|-------------|---------------------|------------------|
+| ID  | Severite | Categorie | Personas | Parcours/Etape | Description | Correction suggeree | Preuve technique |
+| --- | -------- | --------- | -------- | -------------- | ----------- | ------------------- | ---------------- |
 
 ## Partie 3 - Top 10 des corrections prioritaires
 
@@ -40,30 +41,29 @@ Critere de classement recommande:
 `impact = severite x nb personas touchees x criticite du parcours`
 
 | Rang | Action | Impact | Effort (rapide/moyen/complexe) | Owner |
-|------|--------|--------|-------------------------------|-------|
-| 1 |  |  |  |  |
-| 2 |  |  |  |  |
-| 3 |  |  |  |  |
-| 4 |  |  |  |  |
-| 5 |  |  |  |  |
-| 6 |  |  |  |  |
-| 7 |  |  |  |  |
-| 8 |  |  |  |  |
-| 9 |  |  |  |  |
-| 10 |  |  |  |  |
+| ---- | ------ | ------ | ------------------------------ | ----- |
+| 1    |        |        |                                |       |
+| 2    |        |        |                                |       |
+| 3    |        |        |                                |       |
+| 4    |        |        |                                |       |
+| 5    |        |        |                                |       |
+| 6    |        |        |                                |       |
+| 7    |        |        |                                |       |
+| 8    |        |        |                                |       |
+| 9    |        |        |                                |       |
+| 10   |        |        |                                |       |
 
 ## Partie 4 - Score global et verdict
 
 - Score d'utilisabilite: `/100`
 - Verdict global:
-- Points forts:
-  - 
-  - 
-  - 
+- ## Points forts:
+  -
+  -
 - 3 chantiers structurels prioritaires:
-  1. 
-  2. 
-  3. 
+  1.
+  2.
+  3.
 
 ## Annexes (optionnel)
 

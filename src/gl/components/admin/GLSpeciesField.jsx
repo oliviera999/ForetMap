@@ -20,7 +20,12 @@ export function GLSpeciesField({ fieldKey, value, onChange, disabled }) {
   if (fieldKey === 'type') {
     return (
       <GLField label={label}>
-        <GLSelect value={value} onChange={(e) => onChange(fieldKey, e.target.value)} disabled={disabled} required>
+        <GLSelect
+          value={value}
+          onChange={(e) => onChange(fieldKey, e.target.value)}
+          disabled={disabled}
+          required
+        >
           <option value="faune">{GL_SPECIES_TYPE_LABELS.faune}</option>
           <option value="flore">{GL_SPECIES_TYPE_LABELS.flore}</option>
         </GLSelect>
@@ -30,7 +35,11 @@ export function GLSpeciesField({ fieldKey, value, onChange, disabled }) {
   if (fieldKey === 'statut') {
     return (
       <GLField label={label}>
-        <GLSelect value={value} onChange={(e) => onChange(fieldKey, e.target.value)} disabled={disabled}>
+        <GLSelect
+          value={value}
+          onChange={(e) => onChange(fieldKey, e.target.value)}
+          disabled={disabled}
+        >
           <option value="actif">Actif</option>
           <option value="inactif">Inactif</option>
         </GLSelect>
@@ -40,7 +49,12 @@ export function GLSpeciesField({ fieldKey, value, onChange, disabled }) {
   if (TEXTAREA_FIELDS.has(fieldKey)) {
     return (
       <GLField label={label}>
-        <GLTextarea value={value} onChange={(e) => onChange(fieldKey, e.target.value)} rows={3} disabled={disabled} />
+        <GLTextarea
+          value={value}
+          onChange={(e) => onChange(fieldKey, e.target.value)}
+          rows={3}
+          disabled={disabled}
+        />
       </GLField>
     );
   }

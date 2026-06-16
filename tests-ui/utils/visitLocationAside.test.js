@@ -1,5 +1,8 @@
 import { describe, test, expect } from 'vitest';
-import { computeVisitLocationAside, EMPTY_VISIT_LOCATION_ASIDE } from '../../src/utils/visitLocationAside.js';
+import {
+  computeVisitLocationAside,
+  EMPTY_VISIT_LOCATION_ASIDE,
+} from '../../src/utils/visitLocationAside.js';
 
 const MAP_ID = 'foret';
 
@@ -16,7 +19,9 @@ const baseCtx = (overrides = {}) => ({
 describe('computeVisitLocationAside', () => {
   test('sans sélection → aside vide (rien à afficher)', () => {
     expect(computeVisitLocationAside(null, null, baseCtx())).toEqual(EMPTY_VISIT_LOCATION_ASIDE);
-    expect(computeVisitLocationAside({ id: 1 }, null, baseCtx())).toEqual(EMPTY_VISIT_LOCATION_ASIDE);
+    expect(computeVisitLocationAside({ id: 1 }, null, baseCtx())).toEqual(
+      EMPTY_VISIT_LOCATION_ASIDE,
+    );
     expect(computeVisitLocationAside(null, 'zone', baseCtx())).toEqual(EMPTY_VISIT_LOCATION_ASIDE);
   });
 

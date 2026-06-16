@@ -41,7 +41,11 @@ function GLSpeciesTile({ species, onSelect, isLearned }) {
       </span>
       <span className="gl-species-tile__labels">
         <span className="gl-species-tile__name">{nomCommun}</span>
-        {isLearned ? <span className="gl-species-tile__learned-badge" aria-hidden>✓</span> : null}
+        {isLearned ? (
+          <span className="gl-species-tile__learned-badge" aria-hidden>
+            ✓
+          </span>
+        ) : null}
         {nomScientifique ? (
           <span className="gl-species-tile__scientific">
             <em>{nomScientifique}</em>
@@ -52,7 +56,14 @@ function GLSpeciesTile({ species, onSelect, isLearned }) {
   );
 }
 
-function GLSpeciesCatalogPanel({ biomeSlug, biomeNom, gameId, loreCarnetEnabled, onOpenGlossaryTerm, learningProgress }) {
+function GLSpeciesCatalogPanel({
+  biomeSlug,
+  biomeNom,
+  gameId,
+  loreCarnetEnabled,
+  onOpenGlossaryTerm,
+  learningProgress,
+}) {
   const assetsReady = useGlAssetsReady();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -94,9 +105,7 @@ function GLSpeciesCatalogPanel({ biomeSlug, biomeNom, gameId, loreCarnetEnabled,
   if (error) return <p className="gl-error">{error}</p>;
   if (items.length === 0) {
     return (
-      <p className="gl-hint">
-        Aucune espèce importée pour le biome « {biomeNom || biomeSlug} ».
-      </p>
+      <p className="gl-hint">Aucune espèce importée pour le biome « {biomeNom || biomeSlug} ».</p>
     );
   }
 
@@ -111,44 +120,38 @@ function GLSpeciesCatalogPanel({ biomeSlug, biomeNom, gameId, loreCarnetEnabled,
       ) : null}
       {biomeNom ? (
         <p className="gl-species-catalog__intro">
-          Biome :
-          {' '}
-          <strong>{biomeNom}</strong>
-          {' '}
-          —
-          {' '}
-          {items.length}
-          {' '}
-          espèce(s)
+          Biome : <strong>{biomeNom}</strong> — {items.length} espèce(s)
         </p>
       ) : null}
-      {(['faune', 'flore']).map((typeKey) => {
+      {['faune', 'flore'].map((typeKey) => {
         const groups = grouped[typeKey];
         const groupNames = Object.keys(groups);
         if (groupNames.length === 0) return null;
         return (
           <section key={typeKey} className="gl-species-catalog__section">
             <h3>{TYPE_LABELS[typeKey]}</h3>
-            {groupNames.sort((a, b) => a.localeCompare(b, 'fr')).map((groupName) => (
-              <div key={`${typeKey}-${groupName}`} className="gl-species-catalog__group">
-                <h4>{groupName}</h4>
-                <div className="gl-species-catalog__grid gl-species-catalog__grid--dense">
-                  {groups[groupName].map((species) => {
-                    const code = String(species.species_code || '').trim();
-                    const learned = learningProgress?.isSpeciesLearned?.(code)
-                      || !!species.learned;
-                    return (
-                      <GLSpeciesTile
-                        key={species.species_code || species.id}
-                        species={species}
-                        onSelect={setSelectedSpecies}
-                        isLearned={learned}
-                      />
-                    );
-                  })}
+            {groupNames
+              .sort((a, b) => a.localeCompare(b, 'fr'))
+              .map((groupName) => (
+                <div key={`${typeKey}-${groupName}`} className="gl-species-catalog__group">
+                  <h4>{groupName}</h4>
+                  <div className="gl-species-catalog__grid gl-species-catalog__grid--dense">
+                    {groups[groupName].map((species) => {
+                      const code = String(species.species_code || '').trim();
+                      const learned =
+                        learningProgress?.isSpeciesLearned?.(code) || !!species.learned;
+                      return (
+                        <GLSpeciesTile
+                          key={species.species_code || species.id}
+                          species={species}
+                          onSelect={setSelectedSpecies}
+                          isLearned={learned}
+                        />
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
           </section>
         );
       })}
@@ -176,10 +179,11 @@ export function GLSpeciesCatalog({
   learningProgress,
 }) {
   const normalizedBiomes = useMemo(
-    () => (Array.isArray(biomes) ? biomes : [])
-      .filter((b) => b && b.slug)
-      .map((b) => ({ slug: String(b.slug), nom: String(b.nom || b.slug) })),
-    [biomes]
+    () =>
+      (Array.isArray(biomes) ? biomes : [])
+        .filter((b) => b && b.slug)
+        .map((b) => ({ slug: String(b.slug), nom: String(b.nom || b.slug) })),
+    [biomes],
   );
   const [activeSlug, setActiveSlug] = useState(null);
 
@@ -197,8 +201,7 @@ export function GLSpeciesCatalog({
   if (normalizedBiomes.length === 0) {
     return (
       <p className="gl-hint">
-        Aucun biome du catalogue n’est lié à ce chapitre. Un MJ peut en choisir dans
-        {' '}
+        Aucun biome du catalogue n’est lié à ce chapitre. Un MJ peut en choisir dans{' '}
         <strong>Contenus → Chapitres → Biomes (catalogue espèces)</strong>.
       </p>
     );
@@ -211,9 +214,7 @@ export function GLSpeciesCatalog({
       {normalizedBiomes.length > 1 ? (
         <>
           <p className="gl-species-catalog__intro">
-            Biomes de ce chapitre :
-            {' '}
-            <strong>{normalizedBiomes.map((b) => b.nom).join(', ')}</strong>
+            Biomes de ce chapitre : <strong>{normalizedBiomes.map((b) => b.nom).join(', ')}</strong>
           </p>
           <div className="gl-species-catalog__tabs" role="tablist" aria-label="Biomes du chapitre">
             {normalizedBiomes.map((biome) => (

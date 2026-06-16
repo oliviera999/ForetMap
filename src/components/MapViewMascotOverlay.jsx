@@ -48,10 +48,7 @@ export function MapViewMascotOverlay({
           '--visit-mascot-dialog-x': faceRight ? 1 : -1,
         }}
       >
-        <VisitMapMascotRenderer
-          mascotState={animationState}
-          mascotId={mascotId}
-        />
+        <VisitMapMascotRenderer mascotState={animationState} mascotId={mascotId} />
         {dialogVisible && dialog ? (
           <div className="visit-map-mascot-dialog" role="status" aria-live="polite">
             {dialog}

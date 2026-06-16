@@ -7,9 +7,7 @@ import {
 
 describe('visitEditorialBlocks', () => {
   it('mergeDefaultVisitMediaImageBlocks ajoute les photos visit_media absentes des blocs image', () => {
-    const blocks = [
-      { id: 'p1', type: 'paragraph', markdown: 'Intro' },
-    ];
+    const blocks = [{ id: 'p1', type: 'paragraph', markdown: 'Intro' }];
     const visitMedia = [
       { id: 10, caption: 'Photo A' },
       { id: 11, caption: 'Photo B' },
@@ -27,7 +25,15 @@ describe('visitEditorialBlocks', () => {
 
   it('mergeDefaultVisitMediaImageBlocks ne duplique pas une photo déjà dans un bloc', () => {
     const blocks = [
-      { id: 'img1', type: 'image', media_ids: [10], layout: 'single', size: 'md', align: 'center', caption: '' },
+      {
+        id: 'img1',
+        type: 'image',
+        media_ids: [10],
+        layout: 'single',
+        size: 'md',
+        align: 'center',
+        caption: '',
+      },
     ];
     const visitMedia = [{ id: 10 }, { id: 11 }];
     const merged = mergeDefaultVisitMediaImageBlocks(blocks, visitMedia);

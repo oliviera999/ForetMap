@@ -31,7 +31,9 @@ export function chapterRecitRefs() {
 
 /** Numéro de chapitre (0 = prologue) d'une clé scène de récit, ou null. */
 export function parseChapterRecitKey(stableKey) {
-  const key = String(stableKey || '').trim().toLowerCase();
+  const key = String(stableKey || '')
+    .trim()
+    .toLowerCase();
   if (!key) return null;
   for (const { prefix, chapterNumber } of chapterRecitRefs()) {
     if (prefix && key.startsWith(prefix)) return chapterNumber;

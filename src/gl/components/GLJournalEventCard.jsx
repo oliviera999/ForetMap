@@ -20,9 +20,7 @@ export function GLJournalEventCard({ event }) {
   const imageUrl = pres.imageUrl ? String(pres.imageUrl) : '';
 
   const bodyHtml =
-    kind === 'narration' && body
-      ? renderMarkdownToSafeHtml(body, { allowImages: false })
-      : null;
+    kind === 'narration' && body ? renderMarkdownToSafeHtml(body, { allowImages: false }) : null;
 
   return (
     <li className={`gl-journal-event gl-journal-${kind}`}>
@@ -33,9 +31,7 @@ export function GLJournalEventCard({ event }) {
         </time>
       </header>
       <div className="gl-journal-event__meta">
-        {pres.teamLabel ? (
-          <span className="gl-journal-event__badge">{pres.teamLabel}</span>
-        ) : null}
+        {pres.teamLabel ? <span className="gl-journal-event__badge">{pres.teamLabel}</span> : null}
         {pres.actorLabel ? (
           <span className="gl-journal-event__actor">{pres.actorLabel}</span>
         ) : null}

@@ -44,7 +44,10 @@ export function getResolvedVisitMascotInteractionProfile(mascotId, extraCatalogE
  * @returns {{ kind: 'transient', state: string, durationMs: number } | { kind: 'happy' } | { kind: 'none' }}
  */
 export function resolveVisitMascotInteraction(eventKey, ctx) {
-  const profile = getResolvedVisitMascotInteractionProfile(ctx.mascotId, ctx.extraCatalogEntries || []);
+  const profile = getResolvedVisitMascotInteractionProfile(
+    ctx.mascotId,
+    ctx.extraCatalogEntries || [],
+  );
   const rule = profile[eventKey] || DEFAULT_VISIT_MASCOT_INTERACTION_PROFILE[eventKey];
   if (!rule || rule.mode === 'none') return { kind: 'none' };
   if (rule.mode === 'happy') return { kind: 'happy' };

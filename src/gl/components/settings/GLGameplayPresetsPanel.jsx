@@ -14,8 +14,8 @@ export function GLGameplayPresetsPanel({ presets, applyingPresetId, onApply }) {
     <div className="gl-gameplay-presets">
       <h4>Profils de séance</h4>
       <p className="gl-hint">
-        Applique en un clic une combinaison de réglages gameplay. Les modules (sortilèges, forum, etc.)
-        et le re-déclenchement des questions sur repère ne sont pas modifiés.
+        Applique en un clic une combinaison de réglages gameplay. Les modules (sortilèges, forum,
+        etc.) et le re-déclenchement des questions sur repère ne sont pas modifiés.
       </p>
       <ul className="gl-gameplay-presets-list">
         {presets.map((preset) => (

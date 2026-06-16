@@ -51,7 +51,9 @@ export function MascotPackSpriteCutPreview({
   return (
     <section className={previewClassName} style={{ marginTop: 20 }}>
       <h3 style={{ fontSize: '1.05rem', marginTop: 0 }}>{title}</h3>
-      <div style={{ marginBottom: 8, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+      <div
+        style={{ marginBottom: 8, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}
+      >
         <label>
           État :{' '}
           <select
@@ -61,7 +63,9 @@ export function MascotPackSpriteCutPreview({
             style={{ minWidth: 160 }}
           >
             {statesWithFrames.map((s) => (
-              <option key={s} value={s}>{s}</option>
+              <option key={s} value={s}>
+                {s}
+              </option>
             ))}
           </select>
         </label>
@@ -86,12 +90,9 @@ export function MascotPackSpriteCutPreview({
           mascotId={mascotConfig.id}
           mascotState={previewState}
           mascotConfig={mascotConfig}
-          fallback={(
-            <VisitMascotFallbackSvg
-              silhouette={mascotConfig.fallbackSilhouette}
-              variant="forest"
-            />
-          )}
+          fallback={
+            <VisitMascotFallbackSvg silhouette={mascotConfig.fallbackSilhouette} variant="forest" />
+          }
         />
       </div>
     </section>

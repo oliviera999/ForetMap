@@ -13,8 +13,12 @@ export function taskLocationIds(t) {
 /** IDs zones/repères liés à un tutoriel (API). */
 export function tutorialLocationIds(tu) {
   if (!tu) return { zoneIds: [], markerIds: [] };
-  const zoneIds = [...new Set((tu.zone_ids || []).map((id) => String(id || '').trim()).filter(Boolean))];
-  const markerIds = [...new Set((tu.marker_ids || []).map((id) => String(id || '').trim()).filter(Boolean))];
+  const zoneIds = [
+    ...new Set((tu.zone_ids || []).map((id) => String(id || '').trim()).filter(Boolean)),
+  ];
+  const markerIds = [
+    ...new Set((tu.marker_ids || []).map((id) => String(id || '').trim()).filter(Boolean)),
+  ];
   return { zoneIds, markerIds };
 }
 

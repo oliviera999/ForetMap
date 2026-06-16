@@ -56,7 +56,7 @@ describe('GLContentLibraryAnalysisTable', () => {
     expect(screen.getByRole('checkbox').disabled).toBe(true);
   });
 
-  test('affiche l\'erreur à la place du résumé', () => {
+  test("affiche l'erreur à la place du résumé", () => {
     renderTable({ entries: [{ ...mediaEntry, error: 'Format invalide' }] });
     expect(screen.getByText('Format invalide')).toBeInTheDocument();
   });

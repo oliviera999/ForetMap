@@ -44,10 +44,7 @@ export function GLBoardMarkers({
   return markers.map((marker) => {
     const appearance = resolveMarkerAppearance(marker);
     const isSelected = selectedMarkerId != null && Number(selectedMarkerId) === Number(marker.id);
-    const classes = [
-      className,
-      `gl-board-marker--${appearance.displayMode}`,
-    ];
+    const classes = [className, `gl-board-marker--${appearance.displayMode}`];
     if (isSelected) classes.push('is-selected');
     const ariaLabel = appearance.ariaLabel;
     return (
@@ -55,7 +52,10 @@ export function GLBoardMarkers({
         key={marker.id}
         type="button"
         className={classes.join(' ')}
-        style={{ left: `${markerValue(marker, 'x_pct')}%`, top: `${markerValue(marker, 'y_pct')}%` }}
+        style={{
+          left: `${markerValue(marker, 'x_pct')}%`,
+          top: `${markerValue(marker, 'y_pct')}%`,
+        }}
         title={ariaLabel}
         aria-label={ariaLabel}
         data-marker-id={marker.id}
