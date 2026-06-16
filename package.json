@@ -35,6 +35,17 @@
   "optionalDependencies": {
     "sharp": "^0.34.5"
   },
+  "overrides": {
+    "engine.io": {
+      "ws": "^8.21.0"
+    },
+    "engine.io-client": {
+      "ws": "^8.21.0"
+    },
+    "socket.io-adapter": {
+      "ws": "^8.21.0"
+    }
+  },
   "scripts": {
     "start": "node server.js",
     "start:e2e": "node server.js --foretmap-e2e-no-rate-limit",
