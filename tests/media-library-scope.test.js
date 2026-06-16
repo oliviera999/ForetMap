@@ -17,7 +17,7 @@ const {
 
 const TINY_PNG = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO6pJkQAAAAASUVORK5CYII=',
-  'base64'
+  'base64',
 );
 
 let teacherToken = '';
@@ -29,27 +29,32 @@ before(async () => {
   const loginEmail = String(process.env.TEACHER_ADMIN_EMAIL || '').trim();
   const teacher = await queryOne(
     "SELECT id FROM users WHERE user_type = 'teacher' AND LOWER(email) = LOWER(?) LIMIT 1",
-    [loginEmail]
+    [loginEmail],
   );
   const adminRole = await queryOne("SELECT id FROM roles WHERE slug = 'admin' LIMIT 1");
   assert.ok(teacher?.id, 'Compte admin enseignant introuvable');
-  teacherToken = await signAuthToken({
-    userType: 'teacher',
-    userId: teacher.id,
-    canonicalUserId: teacher.id,
-    roleId: adminRole?.id || null,
-    roleSlug: 'admin',
-    roleDisplayName: 'Administrateur',
-    elevated: true,
-    permissions: ['teacher.access'],
-  }, false);
+  teacherToken = await signAuthToken(
+    {
+      userType: 'teacher',
+      userId: teacher.id,
+      canonicalUserId: teacher.id,
+      roleId: adminRole?.id || null,
+      roleSlug: 'admin',
+      roleDisplayName: 'Administrateur',
+      elevated: true,
+      permissions: ['teacher.access'],
+    },
+    false,
+  );
 
   await execute(
     `INSERT INTO gl_admins (email, display_name, role, is_active, created_at, updated_at)
      VALUES (?, 'MJ Scope', 'admin', 1, NOW(), NOW())`,
-    [`scope-route-${routeStamp}@ecole.local`]
+    [`scope-route-${routeStamp}@ecole.local`],
   );
-  const glAdmin = await queryOne('SELECT id FROM gl_admins WHERE email = ? LIMIT 1', [`scope-route-${routeStamp}@ecole.local`]);
+  const glAdmin = await queryOne('SELECT id FROM gl_admins WHERE email = ? LIMIT 1', [
+    `scope-route-${routeStamp}@ecole.local`,
+  ]);
   glAdminToken = await signAuthToken({
     product: 'gl',
     userType: 'gl_admin',
@@ -78,25 +83,37 @@ test('resolveMediaItemApp / mediaItemMatchesApp — médias hérités réservés
 
 test('listMediaLibraryItems cloisonne les deux médiathèques (legacy → G&L)', () => {
   const stamp = `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
-  const fm = saveMediaFromBuffer(TINY_PNG, 'image/png', `scope-fm-${stamp}.png`, { skipManifestSync: true, app: 'foretmap' });
-  const gl = saveMediaFromBuffer(TINY_PNG, 'image/png', `scope-gl-${stamp}.png`, { skipManifestSync: true, app: 'gl' });
-  const legacy = saveMediaFromBuffer(TINY_PNG, 'image/png', `scope-legacy-${stamp}.png`, { skipManifestSync: true });
+  const fm = saveMediaFromBuffer(TINY_PNG, 'image/png', `scope-fm-${stamp}.png`, {
+    skipManifestSync: true,
+    app: 'foretmap',
+  });
+  const gl = saveMediaFromBuffer(TINY_PNG, 'image/png', `scope-gl-${stamp}.png`, {
+    skipManifestSync: true,
+    app: 'gl',
+  });
+  const legacy = saveMediaFromBuffer(TINY_PNG, 'image/png', `scope-legacy-${stamp}.png`, {
+    skipManifestSync: true,
+  });
 
   const created = new Set([fm.relativePath, gl.relativePath, legacy.relativePath]);
 
   try {
-    const foretmap = listMediaLibraryItems(800, { app: 'foretmap' }).filter((i) => created.has(i.relativePath));
-    const glList = listMediaLibraryItems(800, { app: 'gl' }).filter((i) => created.has(i.relativePath));
+    const foretmap = listMediaLibraryItems(800, { app: 'foretmap' }).filter((i) =>
+      created.has(i.relativePath),
+    );
+    const glList = listMediaLibraryItems(800, { app: 'gl' }).filter((i) =>
+      created.has(i.relativePath),
+    );
 
     assert.deepStrictEqual(
       foretmap.map((i) => i.relativePath).sort(),
       [fm.relativePath],
-      'ForetMap ne voit que ses propres médias'
+      'ForetMap ne voit que ses propres médias',
     );
     assert.deepStrictEqual(
       glList.map((i) => i.relativePath).sort(),
       [gl.relativePath, legacy.relativePath].sort(),
-      'G&L voit ses médias + les médias hérités'
+      'G&L voit ses médias + les médias hérités',
     );
 
     // Chaque item expose slug + médiathèque d'origine.
@@ -115,9 +132,17 @@ test('listMediaLibraryItems cloisonne les deux médiathèques (legacy → G&L)',
 
 test('GET routes médiathèque — cloisonnement HTTP ForetMap vs G&L', async () => {
   const stamp = `${routeStamp}-${Math.random().toString(16).slice(2, 8)}`;
-  const fm = saveMediaFromBuffer(TINY_PNG, 'image/png', `route-fm-${stamp}.png`, { skipManifestSync: true, app: 'foretmap' });
-  const gl = saveMediaFromBuffer(TINY_PNG, 'image/png', `route-gl-${stamp}.png`, { skipManifestSync: true, app: 'gl' });
-  const legacy = saveMediaFromBuffer(TINY_PNG, 'image/png', `route-legacy-${stamp}.png`, { skipManifestSync: true });
+  const fm = saveMediaFromBuffer(TINY_PNG, 'image/png', `route-fm-${stamp}.png`, {
+    skipManifestSync: true,
+    app: 'foretmap',
+  });
+  const gl = saveMediaFromBuffer(TINY_PNG, 'image/png', `route-gl-${stamp}.png`, {
+    skipManifestSync: true,
+    app: 'gl',
+  });
+  const legacy = saveMediaFromBuffer(TINY_PNG, 'image/png', `route-legacy-${stamp}.png`, {
+    skipManifestSync: true,
+  });
   const created = new Set([fm.relativePath, gl.relativePath, legacy.relativePath]);
 
   try {
@@ -125,17 +150,24 @@ test('GET routes médiathèque — cloisonnement HTTP ForetMap vs G&L', async ()
       .get('/api/media-library?limit=800')
       .set('Authorization', `Bearer ${teacherToken}`)
       .expect(200);
-    const fmPaths = (fmRes.body?.items || []).filter((i) => created.has(i.relativePath)).map((i) => i.relativePath);
+    const fmPaths = (fmRes.body?.items || [])
+      .filter((i) => created.has(i.relativePath))
+      .map((i) => i.relativePath);
     assert.deepStrictEqual(fmPaths, [fm.relativePath]);
 
     const glRes = await request(app)
       .get('/api/gl/admin/media-library?limit=800')
       .set('Authorization', `Bearer ${glAdminToken}`)
       .expect(200);
-    const glPaths = (glRes.body?.items || []).filter((i) => created.has(i.relativePath)).map((i) => i.relativePath).sort();
+    const glPaths = (glRes.body?.items || [])
+      .filter((i) => created.has(i.relativePath))
+      .map((i) => i.relativePath)
+      .sort();
     assert.deepStrictEqual(glPaths, [gl.relativePath, legacy.relativePath].sort());
 
-    const legacyItem = (glRes.body?.items || []).find((i) => i.relativePath === legacy.relativePath);
+    const legacyItem = (glRes.body?.items || []).find(
+      (i) => i.relativePath === legacy.relativePath,
+    );
     assert.strictEqual(legacyItem?.app, 'gl');
   } finally {
     deleteMediaLibraryItem(fm.relativePath, { skipManifestSync: true });

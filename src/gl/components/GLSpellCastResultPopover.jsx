@@ -18,11 +18,7 @@ function categoryAccent(slug) {
   return CATEGORY_ACCENT[String(slug || '').toLowerCase()] || '#047c8c';
 }
 
-export function GLSpellCastResultPopover({
-  open = false,
-  result = null,
-  onClose,
-}) {
+export function GLSpellCastResultPopover({ open = false, result = null, onClose }) {
   const titleId = useId();
   const castersId = useId();
   const [detail, setDetail] = useState(null);
@@ -51,9 +47,12 @@ export function GLSpellCastResultPopover({
     requestClose();
   });
 
-  useEffect(() => () => {
-    if (closeTimerRef.current) window.clearTimeout(closeTimerRef.current);
-  }, []);
+  useEffect(
+    () => () => {
+      if (closeTimerRef.current) window.clearTimeout(closeTimerRef.current);
+    },
+    [],
+  );
 
   useEffect(() => {
     if (open) {
@@ -115,11 +114,9 @@ export function GLSpellCastResultPopover({
 
   const spell = detail?.spell;
   const accent = categoryAccent(spell?.category_slug);
-  const overlayClass = [
-    'gl-spell-popover',
-    'gl-spell-cast-result',
-    isClosing ? 'is-closing' : '',
-  ].filter(Boolean).join(' ');
+  const overlayClass = ['gl-spell-popover', 'gl-spell-cast-result', isClosing ? 'is-closing' : '']
+    .filter(Boolean)
+    .join(' ');
 
   const casters = Array.isArray(result.casters) ? result.casters : [];
 
@@ -163,9 +160,7 @@ export function GLSpellCastResultPopover({
         <div className="gl-spell-popover__content fade-in">
           <div className="gl-spell-popover__badges stagger">
             <span className="gl-badge gl-badge--success">Sortilège lancé</span>
-            {result.costLabel ? (
-              <span className="gl-badge">Coût : {result.costLabel}</span>
-            ) : null}
+            {result.costLabel ? <span className="gl-badge">Coût : {result.costLabel}</span> : null}
           </div>
 
           {casters.length > 0 ? (
@@ -188,9 +183,7 @@ export function GLSpellCastResultPopover({
             </section>
           ) : null}
 
-          {error ? (
-            <p className="gl-error gl-spell-popover__error">{error}</p>
-          ) : null}
+          {error ? <p className="gl-error gl-spell-popover__error">{error}</p> : null}
 
           {loading && !spell && !error ? (
             <div className="gl-spell-popover__body gl-spell-popover__body--loading">

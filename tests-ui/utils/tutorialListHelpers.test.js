@@ -1,5 +1,9 @@
 import { describe, test, expect } from 'vitest';
-import { sortTutorialsByOrder, moveIndex, linkedTaskStatusLabel } from '../../src/utils/tutorialListHelpers.js';
+import {
+  sortTutorialsByOrder,
+  moveIndex,
+  linkedTaskStatusLabel,
+} from '../../src/utils/tutorialListHelpers.js';
 
 describe('sortTutorialsByOrder', () => {
   test('trie par sort_order puis titre (fr), sans muter', () => {
@@ -48,27 +52,46 @@ describe('linkedTaskStatusLabel', () => {
   });
 });
 
-import { tutorialZonePickLabel, createInitialTutorialForm, filterAndSortTutorials } from '../../src/utils/tutorialListHelpers.js';
+import {
+  tutorialZonePickLabel,
+  createInitialTutorialForm,
+  filterAndSortTutorials,
+} from '../../src/utils/tutorialListHelpers.js';
 
 describe('filterAndSortTutorials', () => {
   const tutorials = [
     { title: 'Greffe', summary: 'Arbres fruitiers', type: 'html', is_active: true, sort_order: 2 },
     { title: 'Compost', summary: '', type: 'link', is_active: true, sort_order: 1 },
-    { title: 'Ancienne fiche', summary: 'greffe historique', type: 'html', is_active: false, sort_order: 0 },
+    {
+      title: 'Ancienne fiche',
+      summary: 'greffe historique',
+      type: 'html',
+      is_active: false,
+      sort_order: 0,
+    },
   ];
   test('sans filtre : tout, trié par sort_order', () => {
     expect(filterAndSortTutorials(tutorials).map((t) => t.title)).toEqual([
-      'Ancienne fiche', 'Compost', 'Greffe',
+      'Ancienne fiche',
+      'Compost',
+      'Greffe',
     ]);
   });
   test('filtre par type et par statut', () => {
-    expect(filterAndSortTutorials(tutorials, { typeFilter: 'link' }).map((t) => t.title)).toEqual(['Compost']);
-    expect(filterAndSortTutorials(tutorials, { statusFilter: 'active' }).map((t) => t.title)).toEqual(['Compost', 'Greffe']);
-    expect(filterAndSortTutorials(tutorials, { statusFilter: 'archived' }).map((t) => t.title)).toEqual(['Ancienne fiche']);
+    expect(filterAndSortTutorials(tutorials, { typeFilter: 'link' }).map((t) => t.title)).toEqual([
+      'Compost',
+    ]);
+    expect(
+      filterAndSortTutorials(tutorials, { statusFilter: 'active' }).map((t) => t.title),
+    ).toEqual(['Compost', 'Greffe']);
+    expect(
+      filterAndSortTutorials(tutorials, { statusFilter: 'archived' }).map((t) => t.title),
+    ).toEqual(['Ancienne fiche']);
   });
   test('recherche insensible à la casse sur titre + résumé', () => {
     expect(filterAndSortTutorials(tutorials, { search: '  GREFFE ' }).map((t) => t.title)).toEqual([
-      'Ancienne fiche', 'Greffe',
+      'Ancienne fiche',
+      'Greffe',
     ]);
   });
   test('liste absente → tableau vide', () => {

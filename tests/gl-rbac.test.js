@@ -12,7 +12,9 @@ before(async () => {
 });
 
 test('permissions gl.* sont bootstrappées', async () => {
-  const permission = await queryOne("SELECT `key` FROM permissions WHERE `key` = 'gl.game.manage' LIMIT 1");
+  const permission = await queryOne(
+    "SELECT `key` FROM permissions WHERE `key` = 'gl.game.manage' LIMIT 1",
+  );
   assert.ok(permission);
 });
 
@@ -27,7 +29,10 @@ test('rôle gl_player possède gl.read et gl.action.request', async () => {
        FROM role_permissions rp
   INNER JOIN roles r ON r.id = rp.role_id
       WHERE r.slug = 'gl_player'
-      ORDER BY rp.permission_key ASC`
+      ORDER BY rp.permission_key ASC`,
   );
-  assert.deepStrictEqual(rows.map((row) => row.permission_key), ['gl.action.request', 'gl.read']);
+  assert.deepStrictEqual(
+    rows.map((row) => row.permission_key),
+    ['gl.action.request', 'gl.read'],
+  );
 });

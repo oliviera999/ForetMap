@@ -20,14 +20,17 @@ export function usePwaInstall({ onToast } = {}) {
   const [deferredInstallPrompt, setDeferredInstallPrompt] = useState(null);
   const [showIosInstallHint, setShowIosInstallHint] = useState(false);
   const [isStandaloneMode, setIsStandaloneMode] = useState(() => {
-    const displayStandalone = window.matchMedia && window.matchMedia('(display-mode: standalone)').matches;
+    const displayStandalone =
+      window.matchMedia && window.matchMedia('(display-mode: standalone)').matches;
     const iosStandalone = window.navigator.standalone === true;
     return displayStandalone || iosStandalone;
   });
   const isIosDevice = useMemo(() => detectIosDevice(), []);
 
   useEffect(() => {
-    const displayModeQuery = window.matchMedia ? window.matchMedia('(display-mode: standalone)') : null;
+    const displayModeQuery = window.matchMedia
+      ? window.matchMedia('(display-mode: standalone)')
+      : null;
     const updateStandaloneState = () => {
       const displayStandalone = displayModeQuery ? displayModeQuery.matches : false;
       const iosStandalone = window.navigator.standalone === true;

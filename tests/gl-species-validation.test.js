@@ -16,12 +16,25 @@ function runQuery(query) {
   const res = {
     statusCode: 200,
     payload: undefined,
-    status(c) { this.statusCode = c; return this; },
-    json(p) { this.payload = p; return this; },
+    status(c) {
+      this.statusCode = c;
+      return this;
+    },
+    json(p) {
+      this.payload = p;
+      return this;
+    },
   };
   let nextCalled = false;
-  validate({ query: biomeSlugQuerySchema })(req, res, () => { nextCalled = true; });
-  return { nextCalled, status: res.statusCode, error: res.payload && res.payload.error, query: req.query };
+  validate({ query: biomeSlugQuerySchema })(req, res, () => {
+    nextCalled = true;
+  });
+  return {
+    nextCalled,
+    status: res.statusCode,
+    error: res.payload && res.payload.error,
+    query: req.query,
+  };
 }
 
 function runParams(params) {
@@ -29,12 +42,25 @@ function runParams(params) {
   const res = {
     statusCode: 200,
     payload: undefined,
-    status(c) { this.statusCode = c; return this; },
-    json(p) { this.payload = p; return this; },
+    status(c) {
+      this.statusCode = c;
+      return this;
+    },
+    json(p) {
+      this.payload = p;
+      return this;
+    },
   };
   let nextCalled = false;
-  validate({ params: speciesCodeParamsSchema })(req, res, () => { nextCalled = true; });
-  return { nextCalled, status: res.statusCode, error: res.payload && res.payload.error, params: req.params };
+  validate({ params: speciesCodeParamsSchema })(req, res, () => {
+    nextCalled = true;
+  });
+  return {
+    nextCalled,
+    status: res.statusCode,
+    error: res.payload && res.payload.error,
+    params: req.params,
+  };
 }
 
 // Parité avec `normalizeBiomeSlug(req.query?.biomeSlug)` : toute valeur non vide après trim passe.
@@ -49,7 +75,13 @@ test('query biomeSlug valide -> next, query inchangée', () => {
 });
 
 test('query biomeSlug manquant/vide -> 400 message exact (sans préfixe de chemin)', () => {
-  const cases = [{}, { biomeSlug: '' }, { biomeSlug: '   ' }, { biomeSlug: null }, { biomeSlug: undefined }];
+  const cases = [
+    {},
+    { biomeSlug: '' },
+    { biomeSlug: '   ' },
+    { biomeSlug: null },
+    { biomeSlug: undefined },
+  ];
   for (const q of cases) {
     const r = runQuery(q);
     assert.strictEqual(r.nextCalled, false, `q=${JSON.stringify(q)}`);

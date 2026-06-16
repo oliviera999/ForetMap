@@ -61,26 +61,28 @@ describe('planGalleryPhotoSlots', () => {
 
 describe('galleryUploadToastMessages', () => {
   test('1 photo importée sans perte → message singulier', () => {
-    expect(galleryUploadToastMessages({ ok: 1, skipped: 0, startLabel: 'Photo espèce' }))
-      .toEqual(['Photo importée ✓']);
+    expect(galleryUploadToastMessages({ ok: 1, skipped: 0, startLabel: 'Photo espèce' })).toEqual([
+      'Photo importée ✓',
+    ]);
   });
 
   test('plusieurs photos importées → message pluriel', () => {
-    expect(galleryUploadToastMessages({ ok: 3, skipped: 0, startLabel: 'Photo espèce' }))
-      .toEqual(['3 photos importées ✓']);
+    expect(galleryUploadToastMessages({ ok: 3, skipped: 0, startLabel: 'Photo espèce' })).toEqual([
+      '3 photos importées ✓',
+    ]);
   });
 
   test('pertes → avertissement en premier, puis succès pluriel', () => {
-    expect(galleryUploadToastMessages({ ok: 2, skipped: 1, startLabel: 'Photo feuille' }))
-      .toEqual([
-        '1 photo(s) non importée(s) — plus de champ disponible après « Photo feuille ».',
-        '2 photos importées ✓',
-      ]);
+    expect(galleryUploadToastMessages({ ok: 2, skipped: 1, startLabel: 'Photo feuille' })).toEqual([
+      '1 photo(s) non importée(s) — plus de champ disponible après « Photo feuille ».',
+      '2 photos importées ✓',
+    ]);
   });
 
   test('1 seule importée mais avec perte → pas de message singulier (comportement historique)', () => {
-    expect(galleryUploadToastMessages({ ok: 1, skipped: 2, startLabel: 'Photo fleur' }))
-      .toEqual(['2 photo(s) non importée(s) — plus de champ disponible après « Photo fleur ».']);
+    expect(galleryUploadToastMessages({ ok: 1, skipped: 2, startLabel: 'Photo fleur' })).toEqual([
+      '2 photo(s) non importée(s) — plus de champ disponible après « Photo fleur ».',
+    ]);
   });
 
   test('aucune réussite ni perte → aucun message', () => {

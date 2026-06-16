@@ -8,7 +8,9 @@ import {
 describe('computeEditorWarnings', () => {
   test('avertit si état idle absent', () => {
     const w = computeEditorWarnings({ stateFrames: { walking: {} } });
-    expect(w).toContain('État recommandé manquant: ajoutez un état « idle » pour un fallback visuel fiable.');
+    expect(w).toContain(
+      'État recommandé manquant: ajoutez un état « idle » pour un fallback visuel fiable.',
+    );
   });
 
   test('aucun avertissement idle si état idle présent', () => {
@@ -17,7 +19,10 @@ describe('computeEditorWarnings', () => {
   });
 
   test('avertit pour une silhouette inconnue', () => {
-    const w = computeEditorWarnings({ fallbackSilhouette: 'licorne-rose', stateFrames: { idle: {} } });
+    const w = computeEditorWarnings({
+      fallbackSilhouette: 'licorne-rose',
+      stateFrames: { idle: {} },
+    });
     expect(w).toContain('Silhouette « licorne-rose » inconnue.');
   });
 
@@ -38,7 +43,14 @@ describe('computeEditorWarnings', () => {
 
 describe('filterGlobalAssets', () => {
   const assets = [
-    { id: 1, filename: 'spr0ut-idle.png', url: '/a/x.png', source: 'pack', map_id: 'foret', pack_label: 'SPR0UT' },
+    {
+      id: 1,
+      filename: 'spr0ut-idle.png',
+      url: '/a/x.png',
+      source: 'pack',
+      map_id: 'foret',
+      pack_label: 'SPR0UT',
+    },
     { id: 2, filename: 'renard-walk.png', url: '/a/y.png', source: 'library', map_id: 'jardin' },
     { id: 3, filename: 'autre.gif', url: 'https://cdn/z.gif', source: 'catalog' },
   ];

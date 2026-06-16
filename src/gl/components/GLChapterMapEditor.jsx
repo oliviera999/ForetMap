@@ -53,8 +53,7 @@ function MarkerListVisual({ marker }) {
   if (appearance.displayMode === 'emoji' && appearance.emoji) {
     return (
       <span className="gl-markers-list__visual foretmap-emoji-text-mixed" aria-hidden>
-        {appearance.emoji}
-        {' '}
+        {appearance.emoji}{' '}
       </span>
     );
   }
@@ -96,7 +95,7 @@ export function GLChapterMapEditor({
   const [saving, setSaving] = useState(false);
   const imageStyle = useMemo(
     () => glImageFrameToStyle(normalizeGlImageFrame(mapImageFrame, 'chapter-map')),
-    [mapImageFrame]
+    [mapImageFrame],
   );
 
   const fetchMediaLibrary = useCallback(async () => {
@@ -104,15 +103,21 @@ export function GLChapterMapEditor({
     return Array.isArray(data?.items) ? data.items : [];
   }, []);
 
-  const uploadMediaLibrary = useCallback(async (mediaData) => {
-    await apiGL('/api/gl/admin/media-library', 'POST', { media_data: mediaData });
-    onInfo?.('Média ajouté à la bibliothèque');
-  }, [onInfo]);
+  const uploadMediaLibrary = useCallback(
+    async (mediaData) => {
+      await apiGL('/api/gl/admin/media-library', 'POST', { media_data: mediaData });
+      onInfo?.('Média ajouté à la bibliothèque');
+    },
+    [onInfo],
+  );
 
-  const removeMediaLibrary = useCallback(async (relativePath) => {
-    await apiGL('/api/gl/admin/media-library', 'DELETE', { relative_path: relativePath });
-    onInfo?.('Média supprimé de la bibliothèque');
-  }, [onInfo]);
+  const removeMediaLibrary = useCallback(
+    async (relativePath) => {
+      await apiGL('/api/gl/admin/media-library', 'DELETE', { relative_path: relativePath });
+      onInfo?.('Média supprimé de la bibliothèque');
+    },
+    [onInfo],
+  );
 
   useEffect(() => {
     setEditableMarkers(Array.isArray(markers) ? markers : []);
@@ -129,7 +134,7 @@ export function GLChapterMapEditor({
 
   const selectedMarker = useMemo(
     () => editableMarkers.find((marker) => Number(marker.id) === Number(selectedMarkerId)) || null,
-    [editableMarkers, selectedMarkerId]
+    [editableMarkers, selectedMarkerId],
   );
 
   useEffect(() => {
@@ -137,11 +142,13 @@ export function GLChapterMapEditor({
     const onMove = (event) => {
       const pct = mapGestures.toImagePct(event.clientX, event.clientY);
       if (!pct) return;
-      setEditableMarkers((prev) => prev.map((marker) => (
-        Number(marker.id) === Number(dragState.markerId)
-          ? { ...marker, x_pct: pct.x, y_pct: pct.y }
-          : marker
-      )));
+      setEditableMarkers((prev) =>
+        prev.map((marker) =>
+          Number(marker.id) === Number(dragState.markerId)
+            ? { ...marker, x_pct: pct.x, y_pct: pct.y }
+            : marker,
+        ),
+      );
       setMarkerForm((prev) => ({ ...prev, xPct: pct.x, yPct: pct.y }));
     };
     const onUp = async () => {
@@ -295,28 +302,34 @@ export function GLChapterMapEditor({
             data-marker-id={marker.id}
             className={Number(marker.id) === Number(selectedMarkerId) ? 'is-selected' : ''}
           >
-            <button type="button" className="gl-marker-row-btn" onClick={() => selectMarker(marker)}>
+            <button
+              type="button"
+              className="gl-marker-row-btn"
+              onClick={() => selectMarker(marker)}
+            >
               <MarkerListVisual marker={marker} />
-              <strong>{marker.label}</strong>
-              {' '}
-              —
-              x:
+              <strong>{marker.label}</strong> — x:
               {Number(marker.x_pct).toFixed(1)}
               %, y:
-              {Number(marker.y_pct).toFixed(1)}
-              %
+              {Number(marker.y_pct).toFixed(1)}%
             </button>
           </li>
         ))}
         {editableMarkers.length === 0 ? (
-          <li className="gl-empty gl-hint">Aucun repère. Activez « Ajouter un repère » puis cliquez sur la carte.</li>
+          <li className="gl-empty gl-hint">
+            Aucun repère. Activez « Ajouter un repère » puis cliquez sur la carte.
+          </li>
         ) : null}
       </ul>
 
       <form className="gl-form" onSubmit={submitMarker}>
         <label>
           Label
-          <input value={markerForm.label} onChange={(event) => setField('label', event.target.value)} required />
+          <input
+            value={markerForm.label}
+            onChange={(event) => setField('label', event.target.value)}
+            required
+          />
         </label>
         <label>
           x (%)
@@ -344,7 +357,10 @@ export function GLChapterMapEditor({
         </label>
         <label>
           Description
-          <input value={markerForm.description} onChange={(event) => setField('description', event.target.value)} />
+          <input
+            value={markerForm.description}
+            onChange={(event) => setField('description', event.target.value)}
+          />
         </label>
 
         <GLMarkerEventEditor
@@ -364,7 +380,11 @@ export function GLChapterMapEditor({
 
         <label>
           Ordre
-          <input type="number" value={markerForm.orderIndex} onChange={(event) => setField('orderIndex', event.target.value)} />
+          <input
+            type="number"
+            value={markerForm.orderIndex}
+            onChange={(event) => setField('orderIndex', event.target.value)}
+          />
         </label>
         <div className="gl-inline-actions">
           <GLButton type="submit" disabled={saving} loading={saving}>

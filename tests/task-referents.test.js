@@ -19,20 +19,23 @@ before(async () => {
   const loginEmail = String(process.env.TEACHER_ADMIN_EMAIL || '').trim();
   const teacher = await queryOne(
     "SELECT id FROM users WHERE user_type = 'teacher' AND LOWER(email) = LOWER(?) LIMIT 1",
-    [loginEmail]
+    [loginEmail],
   );
   const adminRole = await queryOne("SELECT id FROM roles WHERE slug = 'admin' LIMIT 1");
   assert.ok(teacher?.id, 'Compte admin enseignant introuvable');
   assert.ok(adminRole?.id, 'Rôle admin introuvable');
-  teacherToken = await signAuthToken({
-    userType: 'teacher',
-    userId: teacher.id,
-    canonicalUserId: teacher.id,
-    roleId: adminRole.id,
-    roleSlug: 'admin',
-    roleDisplayName: 'Administrateur',
-    elevated: false,
-  }, false);
+  teacherToken = await signAuthToken(
+    {
+      userType: 'teacher',
+      userId: teacher.id,
+      canonicalUserId: teacher.id,
+      roleId: adminRole.id,
+      roleSlug: 'admin',
+      roleDisplayName: 'Administrateur',
+      elevated: false,
+    },
+    false,
+  );
   const reg = await request(app)
     .post('/api/auth/register')
     .send({ firstName: 'Ref', lastName: `St${Date.now()}`, password: 'pass123' })

@@ -17,7 +17,8 @@ export function taskEffectiveMapId(task) {
 /** Une tâche (par sa carte effective, null = globale) passe-t-elle le filtre carte (`active` / `all` / id) ? */
 export function taskMapIdMatchesFilter(taskMapId, filterMap, activeMapId) {
   if (filterMap === 'active' && taskMapId !== activeMapId && taskMapId != null) return false;
-  if (filterMap !== 'active' && filterMap !== 'all' && taskMapId !== filterMap && taskMapId != null) return false;
+  if (filterMap !== 'active' && filterMap !== 'all' && taskMapId !== filterMap && taskMapId != null)
+    return false;
   return true;
 }
 

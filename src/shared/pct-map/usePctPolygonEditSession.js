@@ -1,9 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  clonePctPoints,
-  normalizePctPoints,
-  pctPointsEqual,
-} from './pctPolygon.js';
+import { clonePctPoints, normalizePctPoints, pctPointsEqual } from './pctPolygon.js';
 
 const HISTORY_MAX = 30;
 
@@ -38,7 +34,9 @@ export function usePctPolygonEditSession({ onSave } = {}) {
       recordHistory();
       return;
     }
-    window.setTimeout(() => { recordHistory(); }, 0);
+    window.setTimeout(() => {
+      recordHistory();
+    }, 0);
   }, [recordHistory]);
 
   const start = useCallback((initialPoints) => {

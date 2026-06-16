@@ -105,7 +105,7 @@ describe('enrichLoreQuestionWithGlossary', () => {
   it('renvoie un tableau sans correspondance sur un glossaire vide', async () => {
     const out = await enrichLoreQuestionWithGlossary(
       { question: 'Texte', tags: '', mots_cles: '' },
-      new Map()
+      new Map(),
     );
     assert.ok(Array.isArray(out));
     assert.equal(out.length, 0);

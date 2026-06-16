@@ -33,18 +33,13 @@ export function taskStatusIndicator(status, isN3Affiliated = false) {
       ? 'task-status-dot--todo'
       : status === 'proposed'
         ? 'task-status-dot--todo'
-      : status === 'on_hold' || status === 'project_completed' || status === 'project_validated'
-        ? 'task-status-dot--progress'
-      : status === 'in_progress'
-        ? 'task-status-dot--progress'
-        : 'task-status-dot--done';
+        : status === 'on_hold' || status === 'project_completed' || status === 'project_validated'
+          ? 'task-status-dot--progress'
+          : status === 'in_progress'
+            ? 'task-status-dot--progress'
+            : 'task-status-dot--done';
   return (
-    <span
-      className={`task-status-dot ${pulseClass}`}
-      role="img"
-      aria-label={aria}
-      title={aria}
-    />
+    <span className={`task-status-dot ${pulseClass}`} role="img" aria-label={aria} title={aria} />
   );
 }
 
@@ -73,9 +68,7 @@ export function dueDateChip(date) {
   const d = daysUntil(date);
   const label =
     d < 0 ? `En retard de ${-d}j` : d === 0 ? "Aujourd'hui" : d === 1 ? 'Demain' : `Dans ${d}j`;
-  return (
-    <span className={`task-chip ${d <= 1 ? 'urgent' : ''}`}>📅 {label}</span>
-  );
+  return <span className={`task-chip ${d <= 1 ? 'urgent' : ''}`}>📅 {label}</span>;
 }
 
 const TASK_DIFFICULTY_LEVELS = new Set(['easy', 'medium', 'hard', 'very_hard']);
@@ -126,8 +119,16 @@ const TASK_DANGER_DISPLAY = {
     label: 'Danger potentiel',
     title: 'Danger : potentiel — vigilance recommandée',
   },
-  dangerous: { emoji: '⚠️', label: 'Dangereux', title: 'Danger : dangereux — précautions requises' },
-  very_dangerous: { emoji: '🚨', label: 'Très dangereux', title: 'Danger : très dangereux — accord adulte requis' },
+  dangerous: {
+    emoji: '⚠️',
+    label: 'Dangereux',
+    title: 'Danger : dangereux — précautions requises',
+  },
+  very_dangerous: {
+    emoji: '🚨',
+    label: 'Très dangereux',
+    title: 'Danger : très dangereux — accord adulte requis',
+  },
 };
 
 /** Tâche à traiter avec les référents avant toute action (difficulté élevée ou risque). */

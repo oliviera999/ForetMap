@@ -21,21 +21,19 @@ function VisitMapMascotSpritesheet({
   const sheet = mascotConfig?.spritesheet || null;
   const stateSpec = useMemo(() => resolveStateSpec(sheet, mascotState), [sheet, mascotState]);
   const canRender =
-    !imgError
-    && !!sheet?.src
-    && Number(sheet?.frameWidth) > 0
-    && Number(sheet?.frameHeight) > 0;
+    !imgError && !!sheet?.src && Number(sheet?.frameWidth) > 0 && Number(sheet?.frameHeight) > 0;
   const fallbackSilhouette = mascotConfig?.fallbackSilhouette || 'gnome';
   const spriteStartCol = Math.max(0, Number(stateSpec?.col) || 0);
   const spriteAnimKey = useMemo(
-    () => [
-      mascotId,
-      mascotState,
-      spriteStartCol,
-      stateSpec?.row ?? 0,
-      stateSpec?.frames ?? 1,
-      stateSpec?.fps ?? 1,
-    ].join('|'),
+    () =>
+      [
+        mascotId,
+        mascotState,
+        spriteStartCol,
+        stateSpec?.row ?? 0,
+        stateSpec?.frames ?? 1,
+        stateSpec?.fps ?? 1,
+      ].join('|'),
     [mascotId, mascotState, spriteStartCol, stateSpec?.row, stateSpec?.frames, stateSpec?.fps],
   );
 

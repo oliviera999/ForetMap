@@ -81,7 +81,9 @@ export function GLProfileEditor({ auth, profile, config, onSessionUpdated, onRel
     <div className="gl-profile-layout">
       <section className="gl-panel">
         <h2>Mon profil</h2>
-        <p className="gl-hint">Role actuel : <strong>{roleLabel}</strong></p>
+        <p className="gl-hint">
+          Role actuel : <strong>{roleLabel}</strong>
+        </p>
         {error ? <p className="gl-error">{error}</p> : null}
         {ok ? <p className="gl-profile-ok">{ok}</p> : null}
         <form className="gl-form" onSubmit={saveProfile}>
@@ -97,15 +99,26 @@ export function GLProfileEditor({ auth, profile, config, onSessionUpdated, onRel
           />
           {isAdmin ? (
             <GLField label="Nom affiche">
-              <GLInput value={displayName} onChange={(event) => setDisplayName(event.target.value)} />
+              <GLInput
+                value={displayName}
+                onChange={(event) => setDisplayName(event.target.value)}
+              />
             </GLField>
           ) : (
             <>
               <GLField label="Pseudo">
-                <GLInput value={pseudo} onChange={(event) => setPseudo(event.target.value)} autoComplete="username" />
+                <GLInput
+                  value={pseudo}
+                  onChange={(event) => setPseudo(event.target.value)}
+                  autoComplete="username"
+                />
               </GLField>
               <GLField label="Email">
-                <GLInput value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" />
+                <GLInput
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  autoComplete="email"
+                />
               </GLField>
               <p className="gl-hint">
                 Classe: {profile?.class_name || '-'} | Equipe: {profile?.team_name || '-'}
@@ -113,7 +126,11 @@ export function GLProfileEditor({ auth, profile, config, onSessionUpdated, onRel
             </>
           )}
           <GLField label="Description">
-            <GLTextarea value={description} onChange={(event) => setDescription(event.target.value)} maxLength={300} />
+            <GLTextarea
+              value={description}
+              onChange={(event) => setDescription(event.target.value)}
+              maxLength={300}
+            />
           </GLField>
           <GLField label="Mot de passe actuel">
             <GLInput
@@ -123,7 +140,9 @@ export function GLProfileEditor({ auth, profile, config, onSessionUpdated, onRel
               autoComplete="current-password"
             />
           </GLField>
-          <GLButton type="submit" disabled={busy}>{busy ? '...' : 'Enregistrer'}</GLButton>
+          <GLButton type="submit" disabled={busy}>
+            {busy ? '...' : 'Enregistrer'}
+          </GLButton>
         </form>
       </section>
 

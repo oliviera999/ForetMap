@@ -40,15 +40,11 @@ async function main() {
 
   await initSchema();
 
-  const report = await applySpellsImport(
-    { queryAll, execute },
-    spellRows,
-    {
-      dryRun: args.dryRun,
-      syncCategories: args.syncCategories,
-      categoryRows,
-    }
-  );
+  const report = await applySpellsImport({ queryAll, execute }, spellRows, {
+    dryRun: args.dryRun,
+    syncCategories: args.syncCategories,
+    categoryRows,
+  });
 
   const mode = args.dryRun ? 'dry-run' : 'apply';
   console.log(`[gl-import-spells] ${mode} OK — fichier: ${args.file}`);

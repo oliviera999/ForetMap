@@ -44,9 +44,7 @@ export function chapterDetailToForm(data) {
     slug: data.chapter.slug,
     title: data.chapter.title || '',
     biome: data.chapter.biome || '',
-    biomeSlugs: Array.isArray(data.chapter.biomes)
-      ? data.chapter.biomes.map((b) => b.slug)
-      : [],
+    biomeSlugs: Array.isArray(data.chapter.biomes) ? data.chapter.biomes.map((b) => b.slug) : [],
     spellCodes: Array.isArray(data.chapter.spells)
       ? data.chapter.spells.map((s) => s.spell_code)
       : [],

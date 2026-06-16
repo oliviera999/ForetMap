@@ -1,5 +1,7 @@
 function readNestedValue(source, dottedPath) {
-  const parts = String(dottedPath || '').split('.').filter(Boolean);
+  const parts = String(dottedPath || '')
+    .split('.')
+    .filter(Boolean);
   if (parts.length === 0) return undefined;
   let ref = source;
   for (const part of parts) {

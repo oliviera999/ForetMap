@@ -32,21 +32,41 @@ export function TeacherObservationsPanel({
           </p>
         )}
         {observations.length > 0 && (
-          <div style={{ maxHeight: 280, overflow: 'auto', border: '1px solid #e5e7eb', borderRadius: 10, padding: 8, background: '#f8fafc' }}>
+          <div
+            style={{
+              maxHeight: 280,
+              overflow: 'auto',
+              border: '1px solid #e5e7eb',
+              borderRadius: 10,
+              padding: 8,
+              background: '#f8fafc',
+            }}
+          >
             {observations.map((entry) => {
-              const studentName = `${entry.first_name || ''} ${entry.last_name || ''}`.trim() || 'n3beur';
+              const studentName =
+                `${entry.first_name || ''} ${entry.last_name || ''}`.trim() || 'n3beur';
               const zoneLabel = String(entry.zone_name || '').trim();
               const dateLabel = entry.created_at
                 ? new Date(entry.created_at).toLocaleString('fr-FR')
                 : '';
               return (
-                <div key={entry.id} style={{ padding: '8px 6px', borderBottom: '1px solid #e2e8f0' }}>
+                <div
+                  key={entry.id}
+                  style={{ padding: '8px 6px', borderBottom: '1px solid #e2e8f0' }}
+                >
                   <div style={{ fontSize: '.82rem', color: '#374151' }}>
                     <strong>{studentName}</strong>
                     {zoneLabel ? ` · ${zoneLabel}` : ''}
                     {dateLabel ? ` · ${dateLabel}` : ''}
                   </div>
-                  <div style={{ fontSize: '.82rem', color: '#4b5563', marginTop: 4, whiteSpace: 'pre-wrap' }}>
+                  <div
+                    style={{
+                      fontSize: '.82rem',
+                      color: '#4b5563',
+                      marginTop: 4,
+                      whiteSpace: 'pre-wrap',
+                    }}
+                  >
                     {String(entry.content || '').trim() || '—'}
                   </div>
                 </div>

@@ -16,11 +16,18 @@ function runQuery(rawQuery) {
   const req = { query: rawQuery };
   const res = {
     statusCode: 200,
-    status(c) { this.statusCode = c; return this; },
-    json() { return this; },
+    status(c) {
+      this.statusCode = c;
+      return this;
+    },
+    json() {
+      return this;
+    },
   };
   let nextCalled = false;
-  validate({ query: forumPageQuerySchema })(req, res, () => { nextCalled = true; });
+  validate({ query: forumPageQuerySchema })(req, res, () => {
+    nextCalled = true;
+  });
   return { nextCalled, status: res.statusCode, parsed: req.validatedQuery };
 }
 
@@ -32,11 +39,28 @@ function legacyParsePositiveInt(value, fallback) {
 }
 function legacyPageQuery(query) {
   const page = legacyParsePositiveInt(query?.page, 1);
-  const pageSize = Math.min(MAX_PAGE_SIZE, legacyParsePositiveInt(query?.page_size, DEFAULT_PAGE_SIZE));
+  const pageSize = Math.min(
+    MAX_PAGE_SIZE,
+    legacyParsePositiveInt(query?.page_size, DEFAULT_PAGE_SIZE),
+  );
   return { page, pageSize, offset: (page - 1) * pageSize };
 }
 
-const EDGE_VALUES = [undefined, '', 'abc', '0', '-3', '1', '2', '2.9', '12abc', '49', '50', '51', '5000'];
+const EDGE_VALUES = [
+  undefined,
+  '',
+  'abc',
+  '0',
+  '-3',
+  '1',
+  '2',
+  '2.9',
+  '12abc',
+  '49',
+  '50',
+  '51',
+  '5000',
+];
 
 test('page/page_size : équivalence exacte avec parsePageQuery sur tous les cas limites, jamais de 400', () => {
   for (const page of EDGE_VALUES) {
@@ -56,7 +80,10 @@ test('page/page_size : équivalence exacte avec parsePageQuery sur tous les cas 
 test('pageSize borné dans [1, 50] et offset cohérent pour toute entrée', () => {
   for (const raw of ['0', '-100', '1', '50', '51', '999999', 'abc']) {
     const { parsed } = runQuery({ page: '3', page_size: raw });
-    assert.ok(parsed.pageSize >= 1 && parsed.pageSize <= MAX_PAGE_SIZE, `pageSize ${parsed.pageSize} hors borne pour ${raw}`);
+    assert.ok(
+      parsed.pageSize >= 1 && parsed.pageSize <= MAX_PAGE_SIZE,
+      `pageSize ${parsed.pageSize} hors borne pour ${raw}`,
+    );
     assert.strictEqual(parsed.offset, (parsed.page - 1) * parsed.pageSize);
   }
 });

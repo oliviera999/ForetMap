@@ -9,7 +9,13 @@ function renderModal(props = {}) {
       previewCode="Q1"
       presentLoading={false}
       answerLoading={false}
-      presentation={{ question: 'Quelle couleur ?', choices: [{ id: 1, text: 'Bleu' }, { id: 2, text: 'Rouge' }] }}
+      presentation={{
+        question: 'Quelle couleur ?',
+        choices: [
+          { id: 1, text: 'Bleu' },
+          { id: 2, text: 'Rouge' },
+        ],
+      }}
       feedback={null}
       selectedChoiceId={null}
       onReload={vi.fn()}

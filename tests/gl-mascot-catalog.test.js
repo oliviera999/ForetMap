@@ -39,7 +39,7 @@ test('chaque entrée du catalogue est unique et a un type/renderer/fallbackVaria
   }
 });
 
-test('getGlMascotById retourne l\'entrée ou null', async () => {
+test("getGlMascotById retourne l'entrée ou null", async () => {
   const mod = await loadCatalogModule();
   const first = mod.GL_MASCOT_CATALOG[0];
   assert.strictEqual(mod.getGlMascotById(first.id)?.id, first.id);

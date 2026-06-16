@@ -47,13 +47,15 @@ function committedSrcImageCount() {
 const existingCount = committedSrcImageCount();
 if (result.imageCount < existingCount) {
   console.warn(
-    `⚠ Manifest GL genere (${result.imageCount} images) plus petit que le committe (${existingCount}) — `
-    + 'manifest src/gl/assets PRESERVE (mediatheque GL non importee dans cet environnement). '
-    + 'Lancez `npm run gl:import:media` pour (re)generer depuis la mediatheque.'
+    `⚠ Manifest GL genere (${result.imageCount} images) plus petit que le committe (${existingCount}) — ` +
+      'manifest src/gl/assets PRESERVE (mediatheque GL non importee dans cet environnement). ' +
+      'Lancez `npm run gl:import:media` pour (re)generer depuis la mediatheque.',
   );
 } else {
   copyManifestSnapshotsToSrcAssets(root);
-  console.log(`Manifestes GL synchronisés (${result.imageCount} images, ${result.warnings.length} avertissement(s)).`);
+  console.log(
+    `Manifestes GL synchronisés (${result.imageCount} images, ${result.warnings.length} avertissement(s)).`,
+  );
 }
 if (result.warnings.length) {
   for (const warning of result.warnings) console.warn('⚠', warning);

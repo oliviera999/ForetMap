@@ -6,30 +6,30 @@ Ce document décrit le JSON **mascot pack** versions **1** et **2** : source de 
 
 ## Version 2 — champs supplémentaires
 
-| Champ | Type | Description |
-|--------|------|-------------|
-| `mascotPackVersion` | `2` | Active le profil d’interaction ci-dessous. |
-| `interactionProfile` | objet (optionnel) | Clés stables listées dans [`visitMascotInteractionEvents.js`](../src/utils/visitMascotInteractionEvents.js) (miroir prod : **`lib/visit-pack/visitMascotInteractionEvents.js`**) ; chaque valeur : `{ mode: 'none' \| 'happy' \| 'transient', state?: état canonique, durationMs?: nombre }` (pour `transient`, `state` requis). Absence d’entrée = **comportement par défaut** (équivalent historique ForetMap). |
-| `dialogProfile` | objet (optionnel) | Clés stables listées dans [`visitMascotDialogEvents.js`](../src/utils/visitMascotDialogEvents.js) (miroir prod : **`lib/visit-pack/visitMascotDialogEvents.js`**) ; chaque valeur : tableau de lignes de bulle (`string[]`, max 12 lignes × 160 car.). Priorité runtime : **pack** → surcharges catalogue (`content.visit.mascot_dialog.catalog_overrides`) → défauts globaux (`content.visit.mascot_dialog.defaults`) → textes code. Studio prof : onglet **Bulles de dialogue** + vue **Dialogues** du studio packs. |
+| Champ                | Type              | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| -------------------- | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `mascotPackVersion`  | `2`               | Active le profil d’interaction ci-dessous.                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| `interactionProfile` | objet (optionnel) | Clés stables listées dans [`visitMascotInteractionEvents.js`](../src/utils/visitMascotInteractionEvents.js) (miroir prod : **`lib/visit-pack/visitMascotInteractionEvents.js`**) ; chaque valeur : `{ mode: 'none' \| 'happy' \| 'transient', state?: état canonique, durationMs?: nombre }` (pour `transient`, `state` requis). Absence d’entrée = **comportement par défaut** (équivalent historique ForetMap).                                                                                                      |
+| `dialogProfile`      | objet (optionnel) | Clés stables listées dans [`visitMascotDialogEvents.js`](../src/utils/visitMascotDialogEvents.js) (miroir prod : **`lib/visit-pack/visitMascotDialogEvents.js`**) ; chaque valeur : tableau de lignes de bulle (`string[]`, max 12 lignes × 160 car.). Priorité runtime : **pack** → surcharges catalogue (`content.visit.mascot_dialog.catalog_overrides`) → défauts globaux (`content.visit.mascot_dialog.defaults`) → textes code. Studio prof : onglet **Bulles de dialogue** + vue **Dialogues** du studio packs. |
 
 **Bibliothèque sprites** : `framesBase` peut aussi être `/api/visit/mascot-sprite-library/{mapId}/assets/` (PNG partagés par carte, voir **`docs/API.md`**).
 
 ## Champs racine (v1 et v2)
 
-| Champ | Type | Description |
-|--------|------|-------------|
-| `mascotPackVersion` | `1` ou `2` | Version du schéma. |
-| `id` | string | Identifiant catalogue (`kebab-case`, lettres minuscules et chiffres). |
-| `label` | string | Libellé affiché dans le sélecteur prof. |
-| `renderer` | `"sprite_cut"` | Seule valeur supportée par ce format. |
-| `framesBase` | string | URL-prefix des frames, ex. `/assets/mascots/mon-id/frames/` (slash final recommandé) **ou** `/api/visit/mascot-packs/{uuid}/assets/` **ou** `/api/visit/mascot-sprite-library/{mapId}/assets/`. |
-| `frameWidth` | entier | Largeur logique d’une cellule (px). |
-| `frameHeight` | entier | Hauteur logique (px). |
-| `pixelated` | booléen (optionnel) | Défaut `true` : rendu pixelated. |
-| `displayScale` | nombre (optionnel) | Facteur d’affichage `0.25`–`4` (défaut `1`). |
-| `fallbackSilhouette` | string | Silhouette SVG existante (ex. `gnome`, `backpackFox2`, …). |
-| `stateAliases` | objet (optionnel) | Map `état_alias → état_cible` (clés = états canoniques). |
-| `stateFrames` | objet | Clés = **états visite canoniques** uniquement (voir `VISIT_MASCOT_STATE` dans [`visitMascotState.js`](../src/utils/visitMascotState.js)). |
+| Champ                | Type                | Description                                                                                                                                                                                     |
+| -------------------- | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `mascotPackVersion`  | `1` ou `2`          | Version du schéma.                                                                                                                                                                              |
+| `id`                 | string              | Identifiant catalogue (`kebab-case`, lettres minuscules et chiffres).                                                                                                                           |
+| `label`              | string              | Libellé affiché dans le sélecteur prof.                                                                                                                                                         |
+| `renderer`           | `"sprite_cut"`      | Seule valeur supportée par ce format.                                                                                                                                                           |
+| `framesBase`         | string              | URL-prefix des frames, ex. `/assets/mascots/mon-id/frames/` (slash final recommandé) **ou** `/api/visit/mascot-packs/{uuid}/assets/` **ou** `/api/visit/mascot-sprite-library/{mapId}/assets/`. |
+| `frameWidth`         | entier              | Largeur logique d’une cellule (px).                                                                                                                                                             |
+| `frameHeight`        | entier              | Hauteur logique (px).                                                                                                                                                                           |
+| `pixelated`          | booléen (optionnel) | Défaut `true` : rendu pixelated.                                                                                                                                                                |
+| `displayScale`       | nombre (optionnel)  | Facteur d’affichage `0.25`–`4` (défaut `1`).                                                                                                                                                    |
+| `fallbackSilhouette` | string              | Silhouette SVG existante (ex. `gnome`, `backpackFox2`, …).                                                                                                                                      |
+| `stateAliases`       | objet (optionnel)   | Map `état_alias → état_cible` (clés = états canoniques).                                                                                                                                        |
+| `stateFrames`        | objet               | Clés = **états visite canoniques** uniquement (voir `VISIT_MASCOT_STATE` dans [`visitMascotState.js`](../src/utils/visitMascotState.js)).                                                       |
 
 ## Entrée `stateFrames.<état>`
 

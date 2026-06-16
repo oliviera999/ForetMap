@@ -11,7 +11,15 @@ const PLANTS = [
 
 function setup(overrides = {}) {
   const setters = Object.fromEntries(
-    ['setSearch', 'setGroup1', 'setGroup2', 'setGroup3', 'setHabitat', 'setAgro', 'setZonePresence'].map((k) => [k, vi.fn()]),
+    [
+      'setSearch',
+      'setGroup1',
+      'setGroup2',
+      'setGroup3',
+      'setHabitat',
+      'setAgro',
+      'setZonePresence',
+    ].map((k) => [k, vi.fn()]),
   );
   const props = {
     plants: PLANTS,
@@ -57,7 +65,9 @@ describe('PlantCatalogFilterPanel', () => {
 
   test('recherche → setSearch', () => {
     const { setSearch } = setup();
-    fireEvent.change(screen.getByPlaceholderText('🔍 Rechercher dans la biodiversité...'), { target: { value: 'pomm' } });
+    fireEvent.change(screen.getByPlaceholderText('🔍 Rechercher dans la biodiversité...'), {
+      target: { value: 'pomm' },
+    });
     expect(setSearch).toHaveBeenCalledWith('pomm');
   });
 

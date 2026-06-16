@@ -44,7 +44,9 @@ describe('PinModal', () => {
     await user.click(screen.getByRole('button', { name: 'Email' }));
     expect(screen.getByLabelText('Email n3boss')).toBeInTheDocument();
     expect(screen.getByLabelText('Mot de passe')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Envoyer un lien de réinitialisation' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Envoyer un lien de réinitialisation' }),
+    ).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Se connecter' }));
     expect(screen.getByText('Email et mot de passe requis')).toBeInTheDocument();
   });
@@ -58,7 +60,7 @@ describe('PinModal', () => {
         onSuccess={vi.fn()}
         onClose={vi.fn()}
         uiSettings={{ auth: { allow_google_teacher: false } }}
-      />
+      />,
     );
     expect(screen.queryByRole('button', { name: 'Continuer avec Google' })).not.toBeInTheDocument();
   });

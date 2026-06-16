@@ -17,7 +17,9 @@ describe('contentLibraryClient', () => {
     const result = validateContentLibrarySelection([file]);
     expect(result.ok).toBe(false);
     expect(result.errors[0]).toContain('gros.xlsx');
-    expect(result.errors[0]).toContain(formatBytesLabel(DEFAULT_CONTENT_LIBRARY_LIMITS.maxFileBytes));
+    expect(result.errors[0]).toContain(
+      formatBytesLabel(DEFAULT_CONTENT_LIBRARY_LIMITS.maxFileBytes),
+    );
   });
 
   test('validateContentLibrarySelection accepte un fichier sous la limite', () => {
@@ -48,7 +50,7 @@ describe('contentLibraryClient', () => {
   test('mergeAnalyzeResponses conserve sourceFileName', () => {
     const merged = mergeAnalyzeResponses(
       [{ entries: [{ fileName: 'forÃªt.mp3', kind: 'media' }] }],
-      [mockFile('forêt.mp3', 100)]
+      [mockFile('forêt.mp3', 100)],
     );
     expect(merged.entries[0].sourceFileName).toBe('forêt.mp3');
   });

@@ -44,8 +44,15 @@ test('élève peut se retirer d’une tâche prise en charge', async ({ page }) 
     httpUnassign = { ok: () => true };
   }
 
-  await expect.poll(async () => (
-    await page.locator('.task-card', { hasText: taskTitle }).first()
-      .getByRole('button', { name: /Je m['\u2019]en occupe/i }).count()
-  ), { timeout: 45_000 }).toBeGreaterThan(0);
+  await expect
+    .poll(
+      async () =>
+        await page
+          .locator('.task-card', { hasText: taskTitle })
+          .first()
+          .getByRole('button', { name: /Je m['\u2019]en occupe/i })
+          .count(),
+      { timeout: 45_000 },
+    )
+    .toBeGreaterThan(0);
 });

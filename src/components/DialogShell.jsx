@@ -3,7 +3,10 @@ import { createPortal } from 'react-dom';
 import { useDialogA11y } from '../hooks/useDialogA11y';
 
 function joinClassNames(...values) {
-  return values.map((v) => String(v || '').trim()).filter(Boolean).join(' ');
+  return values
+    .map((v) => String(v || '').trim())
+    .filter(Boolean)
+    .join(' ');
 }
 
 /**

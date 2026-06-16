@@ -21,15 +21,19 @@ export function TaskImportPanel({ setToast, onRefresh }) {
       const token = getAuthToken();
       const headers = new Headers();
       if (token) headers.set('Authorization', 'Bearer ' + token);
-      const res = await fetch(`${API}/api/tasks/import/template?format=${encodeURIComponent(format)}`, { headers });
+      const res = await fetch(
+        `${API}/api/tasks/import/template?format=${encodeURIComponent(format)}`,
+        { headers },
+      );
       if (!res.ok) throw new Error('Téléchargement impossible');
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = format === 'xlsx'
-        ? 'foretmap-modele-taches-projets.xlsx'
-        : 'foretmap-modele-taches-projets.csv';
+      link.download =
+        format === 'xlsx'
+          ? 'foretmap-modele-taches-projets.xlsx'
+          : 'foretmap-modele-taches-projets.csv';
       link.click();
       URL.revokeObjectURL(url);
     } catch (e) {
@@ -57,7 +61,9 @@ export function TaskImportPanel({ setToast, onRefresh }) {
       } else {
         const createdProjects = Number(result?.report?.totals?.created_projects || 0);
         const createdTasks = Number(result?.report?.totals?.created_tasks || 0);
-        setToast(`Import OK : ${createdProjects} projet(s), ${createdTasks} tâche(s) — la forêt grossit !`);
+        setToast(
+          `Import OK : ${createdProjects} projet(s), ${createdTasks} tâche(s) — la forêt grossit !`,
+        );
         await onRefresh();
       }
     } catch (e) {
@@ -72,13 +78,22 @@ export function TaskImportPanel({ setToast, onRefresh }) {
       <summary>Import tâches/projets (CSV / XLSX)</summary>
       <div style={{ display: 'grid', gap: 8, marginTop: 10 }}>
         <p style={{ margin: 0, fontSize: '.85rem', color: '#6b7280' }}>
-          Le fichier peut contenir des lignes de type <strong>project</strong> et <strong>task</strong>.
+          Le fichier peut contenir des lignes de type <strong>project</strong> et{' '}
+          <strong>task</strong>.
         </p>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-          <button className="btn btn-ghost btn-sm" onClick={() => downloadImportTemplate('csv')} disabled={importing}>
+          <button
+            className="btn btn-ghost btn-sm"
+            onClick={() => downloadImportTemplate('csv')}
+            disabled={importing}
+          >
             📄 Modèle CSV
           </button>
-          <button className="btn btn-ghost btn-sm" onClick={() => downloadImportTemplate('xlsx')} disabled={importing}>
+          <button
+            className="btn btn-ghost btn-sm"
+            onClick={() => downloadImportTemplate('xlsx')}
+            disabled={importing}
+          >
             📗 Modèle XLSX
           </button>
         </div>
@@ -91,7 +106,15 @@ export function TaskImportPanel({ setToast, onRefresh }) {
               setImportReport(null);
             }}
           />
-          <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '.85rem', color: '#374151' }}>
+          <label
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              fontSize: '.85rem',
+              color: '#374151',
+            }}
+          >
             <input
               type="checkbox"
               checked={importDryRun}
@@ -99,7 +122,11 @@ export function TaskImportPanel({ setToast, onRefresh }) {
             />
             Simulation (sans création)
           </label>
-          <button className="btn btn-primary btn-sm" onClick={runImportTasksProjects} disabled={importing}>
+          <button
+            className="btn btn-primary btn-sm"
+            onClick={runImportTasksProjects}
+            disabled={importing}
+          >
             {importing ? 'Import...' : 'Importer'}
           </button>
         </div>
@@ -109,17 +136,26 @@ export function TaskImportPanel({ setToast, onRefresh }) {
           </p>
         )}
         {importReport && (
-          <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: 10 }}>
+          <div
+            style={{
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              borderRadius: 10,
+              padding: 10,
+            }}
+          >
             <div style={{ fontSize: '.85rem', color: '#1f2937', marginBottom: 4 }}>
-              Reçues: <strong>{importReport?.totals?.received || 0}</strong> ·
-              Valides: <strong>{importReport?.totals?.valid || 0}</strong> ·
-              Projets créés: <strong>{importReport?.totals?.created_projects || 0}</strong> ·
-              Tâches créées: <strong>{importReport?.totals?.created_tasks || 0}</strong> ·
-              Déjà existants: <strong>{importReport?.totals?.skipped_existing || 0}</strong> ·
-              Invalides: <strong>{importReport?.totals?.skipped_invalid || 0}</strong>
+              Reçues: <strong>{importReport?.totals?.received || 0}</strong> · Valides:{' '}
+              <strong>{importReport?.totals?.valid || 0}</strong> · Projets créés:{' '}
+              <strong>{importReport?.totals?.created_projects || 0}</strong> · Tâches créées:{' '}
+              <strong>{importReport?.totals?.created_tasks || 0}</strong> · Déjà existants:{' '}
+              <strong>{importReport?.totals?.skipped_existing || 0}</strong> · Invalides:{' '}
+              <strong>{importReport?.totals?.skipped_invalid || 0}</strong>
             </div>
             {Array.isArray(importReport?.errors) && importReport.errors.length > 0 && (
-              <div style={{ maxHeight: 120, overflow: 'auto', fontSize: '.8rem', color: '#991b1b' }}>
+              <div
+                style={{ maxHeight: 120, overflow: 'auto', fontSize: '.8rem', color: '#991b1b' }}
+              >
                 {importReport.errors.slice(0, 15).map((item, idx) => (
                   <div key={`${item.row}-${item.field}-${idx}`}>
                     Ligne {item.row} ({item.field}): {item.error}

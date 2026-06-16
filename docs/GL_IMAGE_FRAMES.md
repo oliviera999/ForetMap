@@ -46,7 +46,13 @@ Contexte par défaut :
 - Insertion : `GLMarkdownImageInsert` ouvre `GLImageFrameEditor`, puis injecte :
 
 ```html
-<img src="/uploads/..." alt="..." class="gl-content-image" data-gl-frame='{"aspectRatio":"16/9",...}' loading="lazy" />
+<img
+  src="/uploads/..."
+  alt="..."
+  class="gl-content-image"
+  data-gl-frame='{"aspectRatio":"16/9",...}'
+  loading="lazy"
+/>
 ```
 
 - Sanitization : `renderMarkdownToSafeHtml` autorise `class`, `data-gl-frame`, `style`.

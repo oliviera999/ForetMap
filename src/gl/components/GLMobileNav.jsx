@@ -25,7 +25,9 @@ function GlNavTabButton({
       aria-label={showLabel ? undefined : tab.label}
       onClick={() => onTabChange(tab.id)}
     >
-      <span className="gl-tab-icon foretmap-emoji-text-mixed" aria-hidden>{tab.icon || '📌'}</span>
+      <span className="gl-tab-icon foretmap-emoji-text-mixed" aria-hidden>
+        {tab.icon || '📌'}
+      </span>
       {showLabel ? <span className="gl-tab-label">{tab.label}</span> : null}
     </button>
   );
@@ -70,7 +72,9 @@ export function GLMobileNavDrawer({
         onClick={(event) => event.stopPropagation()}
       >
         <div className="gl-nav-drawer-head">
-          <h2 id={titleId} className="gl-nav-drawer-title">Navigation</h2>
+          <h2 id={titleId} className="gl-nav-drawer-title">
+            Navigation
+          </h2>
           <button
             type="button"
             className="gl-nav-drawer-close"
@@ -133,7 +137,9 @@ export function GLBottomNav({
         aria-haspopup="dialog"
         onClick={onOpenDrawer}
       >
-        <span className="gl-tab-icon foretmap-emoji-text-mixed" aria-hidden>⋯</span>
+        <span className="gl-tab-icon foretmap-emoji-text-mixed" aria-hidden>
+          ⋯
+        </span>
         <span className="gl-tab-label">Plus</span>
       </button>
     </nav>

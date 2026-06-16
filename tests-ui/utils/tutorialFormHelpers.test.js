@@ -81,9 +81,14 @@ describe('tutorialFormFromDetail', () => {
   });
   test('carte inférée depuis la 1re zone liée, puis 1er repère, puis activeMapId', () => {
     expect(
-      tutorialFormFromDetail({ zones_linked: [{ map_id: 'jardin' }], markers_linked: [{ map_id: 'foret' }] }, 'x').map_id,
+      tutorialFormFromDetail(
+        { zones_linked: [{ map_id: 'jardin' }], markers_linked: [{ map_id: 'foret' }] },
+        'x',
+      ).map_id,
     ).toBe('jardin');
-    expect(tutorialFormFromDetail({ markers_linked: [{ map_id: 'foret' }] }, 'x').map_id).toBe('foret');
+    expect(tutorialFormFromDetail({ markers_linked: [{ map_id: 'foret' }] }, 'x').map_id).toBe(
+      'foret',
+    );
     expect(tutorialFormFromDetail({}, 'foret').map_id).toBe('foret');
     expect(tutorialFormFromDetail({}, undefined).map_id).toBe('');
   });

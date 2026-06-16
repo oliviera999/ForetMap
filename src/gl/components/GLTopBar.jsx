@@ -38,10 +38,7 @@ export function GLTopBar({
   const title = String(platformTitle || 'Gnomes & Licornes');
   const subtitle = String(platformSubtitle || 'Le jeu de Sciences et Technologie');
 
-  const primaryTabIds = useMemo(
-    () => new Set(GL_MOBILE_PRIMARY_TAB_IDS),
-    [],
-  );
+  const primaryTabIds = useMemo(() => new Set(GL_MOBILE_PRIMARY_TAB_IDS), []);
 
   const primaryTabs = useMemo(
     () => tabs.filter((tab) => primaryTabIds.has(tab.id)),
@@ -108,10 +105,15 @@ export function GLTopBar({
 
   return (
     <>
-      <div className={`gl-topbar${isScrolled ? ' is-scrolled' : ''}${compactNav ? ' gl-topbar--compact' : ''}`} role="banner">
+      <div
+        className={`gl-topbar${isScrolled ? ' is-scrolled' : ''}${compactNav ? ' gl-topbar--compact' : ''}`}
+        role="banner"
+      >
         <div className="gl-brand">
           <div className="gl-brand-header">
-            {brandLogoUrl ? <img src={brandLogoUrl} alt="Logo G&L" className="gl-brand-logo" /> : null}
+            {brandLogoUrl ? (
+              <img src={brandLogoUrl} alt="Logo G&L" className="gl-brand-logo" />
+            ) : null}
             <div>
               <div className="gl-brand-title">{title}</div>
               {!compactNav ? <div className="gl-brand-subtitle">{subtitle}</div> : null}

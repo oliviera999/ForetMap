@@ -55,18 +55,18 @@ Perimetre analyse:
 
 Heuristiques appliquees: visibilite de l'etat systeme, gestion d'erreurs, prevention, charge cognitive mobile, accessibilite.
 
-| ID | Heuristique | Gravite | Constat | Preuve |
-|---|---|---|---|---|
-| UX-01 | Visibilite et progression | Elevee | Chargement initial bloquant plein ecran, sans conservation du shell ni skeleton local. | [src/App.jsx](c:/projets_code/ForetMap/src/App.jsx), [src/index.css](c:/projets_code/ForetMap/src/index.css) |
-| UX-02 | Recuperation d'erreur | Elevee | Echec de validation session eleve (hors compte supprime) non visible pour l'utilisateur. | [src/App.jsx](c:/projets_code/ForetMap/src/App.jsx) |
-| UX-03 | Accessibilite feedback | Elevee | Toast sans `role=status`/`aria-live`, texte tronque par `nowrap` + `ellipsis` sur petits ecrans. | [src/components/tasks-views.jsx](c:/projets_code/ForetMap/src/components/tasks-views.jsx), [src/index.css](c:/projets_code/ForetMap/src/index.css) |
-| UX-04 | Accessibilite controles | Moyenne | Plusieurs boutons fermeture/modales et actions icones sans `aria-label`. | [src/components/tasks-views.jsx](c:/projets_code/ForetMap/src/components/tasks-views.jsx), [src/App.jsx](c:/projets_code/ForetMap/src/App.jsx) |
-| UX-05 | Prevention d'erreurs auth | Moyenne | `autoComplete` non optimal pour connexion (`off` + `new-password`), friction sur mobile et gestionnaire de mots de passe. | [src/components/auth-views.jsx](c:/projets_code/ForetMap/src/components/auth-views.jsx) |
-| UX-06 | Coherence erreurs compte supprime | Elevee | `AccountDeletedError` bien gere globalement, mais certains flux modaux affichent juste l'erreur sans deconnexion immediate. | [src/App.jsx](c:/projets_code/ForetMap/src/App.jsx), [src/components/tasks-views.jsx](c:/projets_code/ForetMap/src/components/tasks-views.jsx), [src/services/api.js](c:/projets_code/ForetMap/src/services/api.js) |
-| UX-07 | Clarte des restrictions | Moyenne | Restriction N3 appliquee via redirection, sans explication pedagogique explicite dans l'UI. | [src/App.jsx](c:/projets_code/ForetMap/src/App.jsx) |
-| UX-08 | Charge cognitive navigation | Moyenne | Bottom nav chargee (nombre d'entrees), labels longs et petite taille en contexte mobile. | [src/App.jsx](c:/projets_code/ForetMap/src/App.jsx), [src/index.css](c:/projets_code/ForetMap/src/index.css) |
-| UX-09 | Robustesse carnet | Moyenne | Echec de chargement carnet observations silencieux pour l'eleve (console uniquement). | [src/components/foretmap-views.jsx](c:/projets_code/ForetMap/src/components/foretmap-views.jsx) |
-| UX-10 | Confidentialite percue | Elevee | Consultation des logs tache sans garde auth dediee peut poser un risque de confiance/clarte pour les eleves. | [routes/tasks.js](c:/projets_code/ForetMap/routes/tasks.js) |
+| ID    | Heuristique                       | Gravite | Constat                                                                                                                     | Preuve                                                                                                                                                                                                              |
+| ----- | --------------------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| UX-01 | Visibilite et progression         | Elevee  | Chargement initial bloquant plein ecran, sans conservation du shell ni skeleton local.                                      | [src/App.jsx](c:/projets_code/ForetMap/src/App.jsx), [src/index.css](c:/projets_code/ForetMap/src/index.css)                                                                                                        |
+| UX-02 | Recuperation d'erreur             | Elevee  | Echec de validation session eleve (hors compte supprime) non visible pour l'utilisateur.                                    | [src/App.jsx](c:/projets_code/ForetMap/src/App.jsx)                                                                                                                                                                 |
+| UX-03 | Accessibilite feedback            | Elevee  | Toast sans `role=status`/`aria-live`, texte tronque par `nowrap` + `ellipsis` sur petits ecrans.                            | [src/components/tasks-views.jsx](c:/projets_code/ForetMap/src/components/tasks-views.jsx), [src/index.css](c:/projets_code/ForetMap/src/index.css)                                                                  |
+| UX-04 | Accessibilite controles           | Moyenne | Plusieurs boutons fermeture/modales et actions icones sans `aria-label`.                                                    | [src/components/tasks-views.jsx](c:/projets_code/ForetMap/src/components/tasks-views.jsx), [src/App.jsx](c:/projets_code/ForetMap/src/App.jsx)                                                                      |
+| UX-05 | Prevention d'erreurs auth         | Moyenne | `autoComplete` non optimal pour connexion (`off` + `new-password`), friction sur mobile et gestionnaire de mots de passe.   | [src/components/auth-views.jsx](c:/projets_code/ForetMap/src/components/auth-views.jsx)                                                                                                                             |
+| UX-06 | Coherence erreurs compte supprime | Elevee  | `AccountDeletedError` bien gere globalement, mais certains flux modaux affichent juste l'erreur sans deconnexion immediate. | [src/App.jsx](c:/projets_code/ForetMap/src/App.jsx), [src/components/tasks-views.jsx](c:/projets_code/ForetMap/src/components/tasks-views.jsx), [src/services/api.js](c:/projets_code/ForetMap/src/services/api.js) |
+| UX-07 | Clarte des restrictions           | Moyenne | Restriction N3 appliquee via redirection, sans explication pedagogique explicite dans l'UI.                                 | [src/App.jsx](c:/projets_code/ForetMap/src/App.jsx)                                                                                                                                                                 |
+| UX-08 | Charge cognitive navigation       | Moyenne | Bottom nav chargee (nombre d'entrees), labels longs et petite taille en contexte mobile.                                    | [src/App.jsx](c:/projets_code/ForetMap/src/App.jsx), [src/index.css](c:/projets_code/ForetMap/src/index.css)                                                                                                        |
+| UX-09 | Robustesse carnet                 | Moyenne | Echec de chargement carnet observations silencieux pour l'eleve (console uniquement).                                       | [src/components/foretmap-views.jsx](c:/projets_code/ForetMap/src/components/foretmap-views.jsx)                                                                                                                     |
+| UX-10 | Confidentialite percue            | Elevee  | Consultation des logs tache sans garde auth dediee peut poser un risque de confiance/clarte pour les eleves.                | [routes/tasks.js](c:/projets_code/ForetMap/routes/tasks.js)                                                                                                                                                         |
 
 ## 4) Priorisation (impact x effort)
 
@@ -91,15 +91,15 @@ Heuristiques appliquees: visibilite de l'etat systeme, gestion d'erreurs, preven
 
 ## 5) Backlog quick wins recommande
 
-| Item | Action | Effort | Impact |
-|---|---|---|---|
-| QW-01 | Toast global sur echec de `POST /api/students/register` (hors deleted) + bouton "Reessayer". | Faible | Eleve |
-| QW-02 | Composant Toast unique avec `role="status"` et `aria-live="polite"` + retour a la ligne. | Faible | Eleve |
-| QW-03 | Ajouter `aria-label` aux boutons `lock-btn`, `modal-close`, lightbox close. | Faible | Moyen |
-| QW-04 | Auth: ajuster `autoComplete` connexion/reset. | Faible | Moyen |
-| QW-05 | Message contextualise pour limitation N3 (bandeau ou empty state dedie). | Faible | Moyen |
-| QW-06 | Carnet: afficher erreur visible + bouton retry dans `ObservationNotebook`. | Faible | Moyen |
-| QW-07 | Capturer `AccountDeletedError` dans `LogModal` et autres modales pour deconnexion coherente. | Faible | Eleve |
+| Item  | Action                                                                                       | Effort | Impact |
+| ----- | -------------------------------------------------------------------------------------------- | ------ | ------ |
+| QW-01 | Toast global sur echec de `POST /api/students/register` (hors deleted) + bouton "Reessayer". | Faible | Eleve  |
+| QW-02 | Composant Toast unique avec `role="status"` et `aria-live="polite"` + retour a la ligne.     | Faible | Eleve  |
+| QW-03 | Ajouter `aria-label` aux boutons `lock-btn`, `modal-close`, lightbox close.                  | Faible | Moyen  |
+| QW-04 | Auth: ajuster `autoComplete` connexion/reset.                                                | Faible | Moyen  |
+| QW-05 | Message contextualise pour limitation N3 (bandeau ou empty state dedie).                     | Faible | Moyen  |
+| QW-06 | Carnet: afficher erreur visible + bouton retry dans `ObservationNotebook`.                   | Faible | Moyen  |
+| QW-07 | Capturer `AccountDeletedError` dans `LogModal` et autres modales pour deconnexion coherente. | Faible | Eleve  |
 
 ## 6) Plan de validation
 

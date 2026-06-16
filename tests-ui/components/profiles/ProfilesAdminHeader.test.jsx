@@ -31,9 +31,7 @@ describe('ProfilesAdminHeader', () => {
 
   test('isHelpEnabled vrai (avec entrées) → rend le bouton d aide', () => {
     renderHeader();
-    expect(
-      screen.getByRole('button', { name: /Ouvrir l aide: Aide profils/ })
-    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Ouvrir l aide: Aide profils/ })).toBeInTheDocument();
   });
 
   test('isHelpEnabled faux → aucun panneau d aide', () => {

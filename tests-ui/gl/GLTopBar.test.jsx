@@ -16,7 +16,7 @@ describe('GLTopBar', () => {
         onTabChange={onTabChange}
         auth={{ displayName: 'MJ Test' }}
         onLogout={() => {}}
-      />
+      />,
     );
 
     expect(screen.getByRole('tab', { name: 'Cartes' })).toBeInTheDocument();
@@ -35,7 +35,7 @@ describe('GLTopBar', () => {
         onLogout={() => {}}
         showVersion
         appVersion="1.57.23"
-      />
+      />,
     );
 
     expect(screen.getByLabelText('Version 1.57.23')).toBeInTheDocument();
@@ -52,7 +52,7 @@ describe('GLTopBar', () => {
         onLogout={() => {}}
         showVersion={false}
         appVersion="1.57.23"
-      />
+      />,
     );
 
     expect(screen.queryByLabelText(/Version/)).not.toBeInTheDocument();

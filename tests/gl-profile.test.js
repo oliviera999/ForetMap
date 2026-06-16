@@ -33,14 +33,14 @@ before(async () => {
     `INSERT INTO users (id, user_type, email, pseudo, display_name, password_hash, auth_provider, is_active, created_at, updated_at)
      VALUES (?, 'teacher', ?, ?, ?, ?, 'local', 1, NOW(), NOW())
      ON DUPLICATE KEY UPDATE password_hash = VALUES(password_hash), is_active = 1`,
-    [`teacher-gl-profile-${stamp}`, staffEmail, `staff-${stamp}`, 'Staff GL Profil', teacherHash]
+    [`teacher-gl-profile-${stamp}`, staffEmail, `staff-${stamp}`, 'Staff GL Profil', teacherHash],
   );
   const adminRole = await queryOne("SELECT id FROM roles WHERE slug = 'admin' LIMIT 1");
   await execute(
     `INSERT INTO user_roles (user_id, user_type, role_id, is_primary, assigned_at)
      VALUES (?, 'teacher', ?, 1, NOW())
      ON DUPLICATE KEY UPDATE role_id = VALUES(role_id), is_primary = 1`,
-    [`teacher-gl-profile-${stamp}`, adminRole.id]
+    [`teacher-gl-profile-${stamp}`, adminRole.id],
   );
 
   const studentHash = await bcrypt.hash(foretmapStudentPassword, 10);
@@ -48,10 +48,13 @@ before(async () => {
     `INSERT INTO users (id, user_type, email, pseudo, first_name, last_name, display_name, password_hash, auth_provider, is_active, created_at, updated_at)
      VALUES (?, 'student', ?, ?, 'Lien', 'ForetMap', 'Lien ForetMap', ?, 'local', 1, NOW(), NOW())
      ON DUPLICATE KEY UPDATE password_hash = VALUES(password_hash), is_active = 1`,
-    [foretmapStudentId, `link-${stamp}@ecole.local`, foretmapStudentPseudo, studentHash]
+    [foretmapStudentId, `link-${stamp}@ecole.local`, foretmapStudentPseudo, studentHash],
   );
 
-  const glAdmin = await createGlAdmin({ email: `gl-profile-admin-${stamp}@ecole.local`, displayName: 'Admin profil' });
+  const glAdmin = await createGlAdmin({
+    email: `gl-profile-admin-${stamp}@ecole.local`,
+    displayName: 'Admin profil',
+  });
   const glClass = await createGlClass({ name: `Classe profil ${stamp}`, adminId: glAdmin.id });
   await createGlPlayer({
     classId: glClass.id,
@@ -74,7 +77,8 @@ before(async () => {
 });
 
 test('PATCH /api/gl/auth/me/profile met a jour le profil joueur et reemet la session', async () => {
-  const pngData = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO7Z0m4AAAAASUVORK5CYII=';
+  const pngData =
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO7Z0m4AAAAASUVORK5CYII=';
   const res = await request(app)
     .patch('/api/gl/auth/me/profile')
     .set('Authorization', `Bearer ${playerToken}`)
@@ -105,7 +109,7 @@ test('PATCH /api/gl/auth/me/profile refuse un mot de passe joueur incorrect', as
 
 test('POST+DELETE /api/gl/auth/link-foretmap lient puis delient le compte eleve', async () => {
   await execute(
-    "INSERT INTO gl_settings (`key`, value_json, updated_by, updated_at) VALUES ('platform.allow_player_link_foretmap', 'true', 'test', NOW()) ON DUPLICATE KEY UPDATE value_json = VALUES(value_json), updated_at = NOW()"
+    "INSERT INTO gl_settings (`key`, value_json, updated_by, updated_at) VALUES ('platform.allow_player_link_foretmap', 'true', 'test', NOW()) ON DUPLICATE KEY UPDATE value_json = VALUES(value_json), updated_at = NOW()",
   );
 
   const linkRes = await request(app)

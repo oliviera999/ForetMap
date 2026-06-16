@@ -14,21 +14,27 @@ const VIEWPORTS = [
   { name: 'tablet', width: 820, height: 1180 },
   { name: 'desktop', width: 1440, height: 900 },
 ];
-const TASK_DIALOG_NAME_RE = /Nouvelle tâche|Dupliquer la tâche|Modifier la tâche|Proposer une tâche/;
+const TASK_DIALOG_NAME_RE =
+  /Nouvelle tâche|Dupliquer la tâche|Modifier la tâche|Proposer une tâche/;
 
 async function expectDialogStableAndFitting(dialog, viewportHeight, options = {}) {
   const { pinCard = false, allowTallModal = false } = options;
   await expect(dialog).toBeVisible();
   let lastHeight = 0;
   let stableCount = 0;
-  await expect.poll(async () => {
-    const box = await dialog.boundingBox();
-    const h = box ? Math.round(box.height) : 0;
-    if (h > 0 && h === lastHeight) stableCount += 1;
-    else stableCount = 0;
-    lastHeight = h;
-    return stableCount >= 2 ? h : 0;
-  }, { timeout: 10_000, intervals: [80, 120, 160] }).toBeGreaterThan(0);
+  await expect
+    .poll(
+      async () => {
+        const box = await dialog.boundingBox();
+        const h = box ? Math.round(box.height) : 0;
+        if (h > 0 && h === lastHeight) stableCount += 1;
+        else stableCount = 0;
+        lastHeight = h;
+        return stableCount >= 2 ? h : 0;
+      },
+      { timeout: 10_000, intervals: [80, 120, 160] },
+    )
+    .toBeGreaterThan(0);
   const box = await dialog.boundingBox();
   expect(box).toBeTruthy();
   if (box) {
@@ -55,7 +61,11 @@ async function closeDialogSafely(page, dialog) {
 async function setupTeacherSession(page) {
   await loginAsNewStudent(page);
   await enableTeacherMode(page);
-  await page.locator('.teacher-main .top-tabs').getByRole('button', { name: /^✅/ }).first().click();
+  await page
+    .locator('.teacher-main .top-tabs')
+    .getByRole('button', { name: /^✅/ })
+    .first()
+    .click();
   await page.locator('.teacher-main .tasks-view').waitFor({ state: 'visible', timeout: 90_000 });
 }
 
@@ -68,17 +78,27 @@ for (const vp of VIEWPORTS) {
 
       await loginAsNewStudent(page);
 
-      await page.getByRole('button', { name: 'Activer les droits étendus' }).click({ timeout: 25_000 });
+      await page
+        .getByRole('button', { name: 'Activer les droits étendus' })
+        .click({ timeout: 25_000 });
       const pinCard = page.locator('.pin-card');
       await expect(pinCard).toBeVisible({ timeout: 25_000 });
       await expectDialogStableAndFitting(pinCard, vp.height, { pinCard: true });
       const pin = process.env.E2E_ELEVATION_PIN || process.env.TEACHER_PIN || '1234';
       await enableTeacherMode(page, pin, { pinCardAlreadyOpen: true });
 
-      await page.locator('.teacher-main .top-tabs').getByRole('button', { name: /^✅/ }).first().click();
-      await page.locator('.teacher-main .tasks-view').waitFor({ state: 'visible', timeout: 90_000 });
+      await page
+        .locator('.teacher-main .top-tabs')
+        .getByRole('button', { name: /^✅/ })
+        .first()
+        .click();
+      await page
+        .locator('.teacher-main .tasks-view')
+        .waitFor({ state: 'visible', timeout: 90_000 });
 
-      const newTaskBtn = page.locator('.teacher-main .tasks-view').getByRole('button', { name: /\+ Nouvelle tâche/ });
+      const newTaskBtn = page
+        .locator('.teacher-main .tasks-view')
+        .getByRole('button', { name: /\+ Nouvelle tâche/ });
       await newTaskBtn.scrollIntoViewIfNeeded().catch(() => {});
       await newTaskBtn.evaluate((el) => el.click());
       const taskModal = page.getByRole('dialog', { name: TASK_DIALOG_NAME_RE });
@@ -112,7 +132,11 @@ for (const vp of VIEWPORTS) {
       const scrollState = await dialog.evaluate((el) => {
         const hasOverflow = el.scrollHeight > el.clientHeight;
         el.scrollTop = el.scrollHeight;
-        return { hasOverflow, scrollTop: el.scrollTop, maxScroll: el.scrollHeight - el.clientHeight };
+        return {
+          hasOverflow,
+          scrollTop: el.scrollTop,
+          maxScroll: el.scrollHeight - el.clientHeight,
+        };
       });
       if (scrollState.hasOverflow) {
         expect(scrollState.scrollTop).toBeGreaterThan(0);

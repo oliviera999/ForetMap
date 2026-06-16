@@ -5,10 +5,18 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 require('dotenv').config();
 
-const { parseLoreGlossaryWorkbook, applyLoreGlossaryImport } = require('../lib/glLoreGlossaryImport');
+const {
+  parseLoreGlossaryWorkbook,
+  applyLoreGlossaryImport,
+} = require('../lib/glLoreGlossaryImport');
 const { initSchema, queryAll, execute } = require('../database');
 
-const DEFAULT_FILE = path.join(process.cwd(), 'data', 'gl', 'glossaire-lore-gnomes-et-licornes.xlsx');
+const DEFAULT_FILE = path.join(
+  process.cwd(),
+  'data',
+  'gl',
+  'glossaire-lore-gnomes-et-licornes.xlsx',
+);
 
 function parseArgs(argv) {
   const args = { dryRun: true, apply: false, file: DEFAULT_FILE };
@@ -31,7 +39,9 @@ async function main() {
   const buffer = await fs.readFile(args.file);
   const { glossaryRows } = parseLoreGlossaryWorkbook(buffer);
   await initSchema();
-  const report = await applyLoreGlossaryImport({ queryAll, execute }, glossaryRows, { dryRun: args.dryRun });
+  const report = await applyLoreGlossaryImport({ queryAll, execute }, glossaryRows, {
+    dryRun: args.dryRun,
+  });
   const mode = args.dryRun ? 'dry-run' : 'apply';
   console.log(`[gl-import-lore-glossary] ${mode} OK — fichier: ${args.file}`);
   console.log(JSON.stringify(report, null, 2));

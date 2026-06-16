@@ -22,7 +22,7 @@ function renderField(props = {}) {
       onFile={onFile}
       onClear={onClear}
       {...props}
-    />
+    />,
   );
   return { galleryInputRef, cameraInputRef, onFile, onClear };
 }

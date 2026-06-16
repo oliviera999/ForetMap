@@ -46,7 +46,10 @@ describe('markerFormFromMarker', () => {
   });
 
   test('living_beings : ordre conservé depuis living_beings_list, sinon plant_name', () => {
-    expect(markerFormFromMarker({ living_beings_list: ['B', 'A'] }).living_beings).toEqual(['B', 'A']);
+    expect(markerFormFromMarker({ living_beings_list: ['B', 'A'] }).living_beings).toEqual([
+      'B',
+      'A',
+    ]);
     expect(markerFormFromMarker({ plant_name: 'Tomate' }).living_beings).toEqual(['Tomate']);
   });
 });
@@ -97,7 +100,12 @@ describe('computeMarkerVisitImageBlocks', () => {
       { id: 0 },
     ]);
     expect(blocks).toHaveLength(2);
-    expect(blocks[0]).toMatchObject({ id: 'default-img-5', media_ids: [5], size: 'lg', caption: 'Vue' });
+    expect(blocks[0]).toMatchObject({
+      id: 'default-img-5',
+      media_ids: [5],
+      size: 'lg',
+      caption: 'Vue',
+    });
     expect(blocks[1]).toMatchObject({ id: 'default-img-6', media_ids: [6], size: 'md' });
   });
 

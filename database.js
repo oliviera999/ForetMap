@@ -19,7 +19,7 @@ function logMigrationStmtError(err, stmt, migrationFile) {
   if (num != null && MYSQL_MIGRATION_EXPECTED_ERRNO.has(num)) {
     logger.debug(
       { err, migrationFile, stmt: migrationStmtSnippet(stmt) },
-      'Étape migration ignorée (déjà appliquée)'
+      'Étape migration ignorée (déjà appliquée)',
     );
     return true;
   }
@@ -28,13 +28,13 @@ function logMigrationStmtError(err, stmt, migrationFile) {
   if (num === 1005 && /\b121\b|Duplicate key on write/i.test(msg)) {
     logger.debug(
       { err, migrationFile, stmt: migrationStmtSnippet(stmt) },
-      'Étape migration ignorée (contrainte ou index déjà présent)'
+      'Étape migration ignorée (contrainte ou index déjà présent)',
     );
     return true;
   }
   logger.warn(
     { err, migrationFile, stmt: migrationStmtSnippet(stmt) },
-    'Échec étape migration SQL'
+    'Échec étape migration SQL',
   );
   return false;
 }
@@ -68,7 +68,12 @@ const pool = mysql.createPool({
   database: process.env.DB_NAME,
   waitForConnections: true,
   connectionLimit: parseDbConnectionLimit(),
-  queueLimit: String(process.env.NODE_ENV || '').trim().toLowerCase() === 'test' ? 0 : 200,
+  queueLimit:
+    String(process.env.NODE_ENV || '')
+      .trim()
+      .toLowerCase() === 'test'
+      ? 0
+      : 200,
   charset: 'utf8mb4',
 });
 
@@ -85,7 +90,8 @@ pool.on('error', (err) => {
  * toute écriture (y compris SQL direct des tests) périme instantanément le cache, sans hook par route.
  */
 let rbacWriteVersion = 0;
-const RBAC_WRITE_RE = /^\s*(?:INSERT|UPDATE|DELETE|REPLACE|TRUNCATE)\b[\s\S]*\b(?:role_permissions|user_roles|roles)\b/i;
+const RBAC_WRITE_RE =
+  /^\s*(?:INSERT|UPDATE|DELETE|REPLACE|TRUNCATE)\b[\s\S]*\b(?:role_permissions|user_roles|roles)\b/i;
 /** Vrai si `sql` est une écriture (INSERT/UPDATE/DELETE/REPLACE/TRUNCATE) touchant une table RBAC. */
 function isRbacWriteSql(sql) {
   return typeof sql === 'string' && RBAC_WRITE_RE.test(sql);
@@ -214,7 +220,14 @@ function stripSqlLineCommentsRespectingStrings(s) {
       continue;
     }
 
-    if (!inSingle && !inDouble && !inBacktick && ch === '-' && next === '-' && (i === 0 || /\s/.test(prev))) {
+    if (
+      !inSingle &&
+      !inDouble &&
+      !inBacktick &&
+      ch === '-' &&
+      next === '-' &&
+      (i === 0 || /\s/.test(prev))
+    ) {
       i += 1;
       while (i + 1 < s.length && s[i + 1] !== '\n' && s[i + 1] !== '\r') {
         i += 1;
@@ -333,7 +346,7 @@ async function initSchema() {
   if (!fs.existsSync(schemaPath)) {
     throw new Error(
       `Fichier introuvable: ${schemaPath}\n` +
-      'Vérifiez que le dossier sql/ et le fichier schema_foretmap.sql sont bien déployés sur le serveur.'
+        'Vérifiez que le dossier sql/ et le fichier schema_foretmap.sql sont bien déployés sur le serveur.',
     );
   }
   const sql = fs.readFileSync(schemaPath, 'utf8');
@@ -345,10 +358,12 @@ async function initSchema() {
     }
     const [rows] = await conn.query(
       "SELECT 1 FROM information_schema.tables WHERE table_schema = ? AND table_name = 'zones'",
-      [process.env.DB_NAME]
+      [process.env.DB_NAME],
     );
     if (!rows || rows.length === 0) {
-      throw new Error('La table zones n\'a pas été créée. Vérifiez les erreurs MySQL ci-dessus ou exécutez sql/schema_foretmap.sql à la main (mysql -u user -p base < sql/schema_foretmap.sql).');
+      throw new Error(
+        "La table zones n'a pas été créée. Vérifiez les erreurs MySQL ci-dessus ou exécutez sql/schema_foretmap.sql à la main (mysql -u user -p base < sql/schema_foretmap.sql).",
+      );
     }
     await runMigrations(conn);
   } finally {
@@ -368,8 +383,9 @@ async function initSchema() {
 async function runMigrations(conn) {
   const migrationsDir = path.join(__dirname, 'migrations');
   if (!fs.existsSync(migrationsDir)) return;
-  const files = fs.readdirSync(migrationsDir)
-    .filter(f => /^\d{3}_.*\.sql$/.test(f))
+  const files = fs
+    .readdirSync(migrationsDir)
+    .filter((f) => /^\d{3}_.*\.sql$/.test(f))
     .sort();
   let current = -1;
   try {
@@ -420,10 +436,10 @@ async function runMigrations(conn) {
 async function seedData() {
   await execute(
     'INSERT IGNORE INTO maps (id, label, map_image_url, sort_order) VALUES (?, ?, ?, ?), (?, ?, ?, ?)',
-    ['foret', 'Forêt comestible', '/maps/map-foret.svg', 1, 'n3', 'N3', '/maps/plan%20n3.jpg', 2]
+    ['foret', 'Forêt comestible', '/maps/map-foret.svg', 1, 'n3', 'N3', '/maps/plan%20n3.jpg', 2],
   );
 
-  const zoneCount = await queryOne('SELECT COUNT(*) AS c FROM zones').then(r => r?.c ?? 0);
+  const zoneCount = await queryOne('SELECT COUNT(*) AS c FROM zones').then((r) => r?.c ?? 0);
   if (zoneCount > 0) return;
 
   const iz = `INSERT INTO zones (id, map_id, name, x, y, width, height, current_plant, stage, special, shape) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
@@ -449,18 +465,42 @@ async function seedData() {
     await execute(iz, z);
   }
 
-  await execute('INSERT INTO zone_history (zone_id, plant, harvested_at) VALUES (?, ?, ?)', ['potager-n', 'Poivron', '2024-11-15']);
-  await execute('INSERT INTO zone_history (zone_id, plant, harvested_at) VALUES (?, ?, ?)', ['potager-s', 'Radis', '2025-01-20']);
-  await execute('INSERT INTO zone_history (zone_id, plant, harvested_at) VALUES (?, ?, ?)', ['potager-ne', 'Persil', '2024-12-10']);
-  await execute('INSERT INTO zone_history (zone_id, plant, harvested_at) VALUES (?, ?, ?)', ['aromatiques', 'Basilic', '2025-02-10']);
+  await execute('INSERT INTO zone_history (zone_id, plant, harvested_at) VALUES (?, ?, ?)', [
+    'potager-n',
+    'Poivron',
+    '2024-11-15',
+  ]);
+  await execute('INSERT INTO zone_history (zone_id, plant, harvested_at) VALUES (?, ?, ?)', [
+    'potager-s',
+    'Radis',
+    '2025-01-20',
+  ]);
+  await execute('INSERT INTO zone_history (zone_id, plant, harvested_at) VALUES (?, ?, ?)', [
+    'potager-ne',
+    'Persil',
+    '2024-12-10',
+  ]);
+  await execute('INSERT INTO zone_history (zone_id, plant, harvested_at) VALUES (?, ?, ?)', [
+    'aromatiques',
+    'Basilic',
+    '2025-02-10',
+  ]);
 
-  const plantsCount = await queryOne('SELECT COUNT(*) AS c FROM plants').then(r => r?.c ?? 0);
+  const plantsCount = await queryOne('SELECT COUNT(*) AS c FROM plants').then((r) => r?.c ?? 0);
   if (plantsCount === 0) {
     const plants = [
-      ['Laitue', '🥬', 'Feuilles larges et tendres, vert clair. Se récolte avant la montée en graines.'],
+      [
+        'Laitue',
+        '🥬',
+        'Feuilles larges et tendres, vert clair. Se récolte avant la montée en graines.',
+      ],
       ['Carotte', '🥕', 'Feuillage fin et plumeux. La racine orange se voit à la base du plant.'],
       ['Tomate', '🍅', 'Tiges poilues, odeur forte. Fruits rouges à maturité, verts avant.'],
-      ['Basilic', '🌿', 'Grandes feuilles ovales, brillantes, vert intense. Odeur très aromatique.'],
+      [
+        'Basilic',
+        '🌿',
+        'Grandes feuilles ovales, brillantes, vert intense. Odeur très aromatique.',
+      ],
       ['Menthe', '🌱', 'Petites feuilles dentées, très parfumées. Se propage rapidement.'],
       ['Courgette', '🥒', 'Grandes feuilles en étoile. Fleurs jaunes, fruits verts allongés.'],
       ['Radis', '🔴', 'Pousse rapide. Petites feuilles rugueuses, racine rouge visible.'],
@@ -469,11 +509,11 @@ async function seedData() {
       ['Fraisier', '🍓', 'Feuilles trilobées, stolons rampants. Petits fruits rouges parfumés.'],
       ['Romarin', '🌿', 'Feuilles en aiguilles, très aromatiques, tiges ligneuses.'],
       ['Sauge', '🌿', 'Feuilles grises-vertes, veloutées, odeur camphrée.'],
-      ['Ciboulette', '🌱', 'Tiges cylindriques creuses, vert brillant, goût d\'oignon doux.'],
+      ['Ciboulette', '🌱', "Tiges cylindriques creuses, vert brillant, goût d'oignon doux."],
       ['Poivron', '🫑', 'Feuilles luisantes, fruits charnus rouges, jaunes ou verts.'],
       ['Concombre', '🥒', 'Tiges grimpantes, grandes feuilles rugueuses, fruits allongés.'],
       ['Épinard', '🥬', 'Feuilles lisses ou frisées, vert foncé, riches en fer.'],
-      ['Cactus', '🌵', 'Tiges charnues et épineuses, stocke l\'eau. Résistant à la sécheresse.'],
+      ['Cactus', '🌵', "Tiges charnues et épineuses, stocke l'eau. Résistant à la sécheresse."],
     ];
     const insertPlantSql = `
       INSERT INTO plants (
@@ -486,8 +526,39 @@ async function seedData() {
     `;
     for (const p of plants) {
       await execute(insertPlantSql, [
-        p[0], p[1], p[2], null, null, null, null, null, null, null, null, null, null, null, null, null, null,
-        null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null,
+        p[0],
+        p[1],
+        p[2],
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
       ]);
     }
   }
@@ -499,18 +570,48 @@ async function seedData() {
   };
   const now = new Date().toISOString();
   const tasks = [
-    [uuidv4(), 'Arroser les tomates', 'Arrosoir rouge, 2L par plant', 'foret', 'potager-n', fmt(2), 2, 'available', now],
-    [uuidv4(), 'Récolter les laitues', 'Couper à la base avec les ciseaux verts', 'foret', 'potager-s', fmt(1), 3, 'available', now],
-    [uuidv4(), 'Désherber Potager Sud-Est', 'Retirer les mauvaises herbes autour du basilic', 'foret', 'potager-se', fmt(4), 2, 'available', now],
+    [
+      uuidv4(),
+      'Arroser les tomates',
+      'Arrosoir rouge, 2L par plant',
+      'foret',
+      'potager-n',
+      fmt(2),
+      2,
+      'available',
+      now,
+    ],
+    [
+      uuidv4(),
+      'Récolter les laitues',
+      'Couper à la base avec les ciseaux verts',
+      'foret',
+      'potager-s',
+      fmt(1),
+      3,
+      'available',
+      now,
+    ],
+    [
+      uuidv4(),
+      'Désherber Potager Sud-Est',
+      'Retirer les mauvaises herbes autour du basilic',
+      'foret',
+      'potager-se',
+      fmt(4),
+      2,
+      'available',
+      now,
+    ],
   ];
   for (const t of tasks) {
     await execute(
       'INSERT INTO tasks (id, title, description, map_id, zone_id, due_date, required_students, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      t
+      t,
     );
   }
   await execute(
-    'INSERT IGNORE INTO task_zones (task_id, zone_id) SELECT id, zone_id FROM tasks WHERE zone_id IS NOT NULL'
+    'INSERT IGNORE INTO task_zones (task_id, zone_id) SELECT id, zone_id FROM tasks WHERE zone_id IS NOT NULL',
   );
 }
 

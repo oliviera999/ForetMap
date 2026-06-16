@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { computeVisitMascotStartPct } from '../utils/visitMascotPlacement.js';
 import { visitZoneCentroidPct } from '../utils/visitMapGeometry.js';
-import { loadVisitMascotPositionPct, saveVisitMascotPositionPct } from '../utils/visitMascotPositionPersistence.js';
+import {
+  loadVisitMascotPositionPct,
+  saveVisitMascotPositionPct,
+} from '../utils/visitMascotPositionPersistence.js';
 import { resolveMascotDialogLine } from '../utils/visitMascotDialogApply.js';
 import { VISIT_MASCOT_STATE } from '../utils/visitMascotState.js';
 import {
@@ -96,12 +99,15 @@ function useMapViewMascot({
     return () => mq.removeEventListener('change', apply);
   }, []);
 
-  useEffect(() => () => {
-    if (moveTimeoutRef.current) clearTimeout(moveTimeoutRef.current);
-    if (happyTimeoutRef.current) clearTimeout(happyTimeoutRef.current);
-    if (dialogTimeoutRef.current) clearTimeout(dialogTimeoutRef.current);
-    if (detailAfterMoveTimeoutRef.current) clearTimeout(detailAfterMoveTimeoutRef.current);
-  }, []);
+  useEffect(
+    () => () => {
+      if (moveTimeoutRef.current) clearTimeout(moveTimeoutRef.current);
+      if (happyTimeoutRef.current) clearTimeout(happyTimeoutRef.current);
+      if (dialogTimeoutRef.current) clearTimeout(dialogTimeoutRef.current);
+      if (detailAfterMoveTimeoutRef.current) clearTimeout(detailAfterMoveTimeoutRef.current);
+    },
+    [],
+  );
 
   const clearDetailAfterMove = useCallback(() => {
     if (detailAfterMoveTimeoutRef.current) {
@@ -110,27 +116,30 @@ function useMapViewMascot({
     }
   }, []);
 
-  const showDialog = useCallback((eventKey, { force = false } = {}) => {
-    const now = Date.now();
-    if (!force && eventKey === 'move' && now < moveDialogCooldownUntilRef.current) return;
-    const text = resolveMascotDialogLine(eventKey, {
-      mascotId,
-      extraCatalogEntries,
-      globalDefaults: mascotDialogSettings?.defaults || null,
-      catalogOverrides: mascotDialogSettings?.catalogOverrides || null,
-    });
-    if (!text) return;
-    if (eventKey === 'move') {
-      moveDialogCooldownUntilRef.current = now + MAP_VIEW_MASCOT_DIALOG_MOVE_COOLDOWN_MS;
-    }
-    if (dialogTimeoutRef.current) clearTimeout(dialogTimeoutRef.current);
-    setDialog(text);
-    setDialogVisible(true);
-    dialogTimeoutRef.current = window.setTimeout(() => {
-      setDialogVisible(false);
-      dialogTimeoutRef.current = null;
-    }, MAP_VIEW_MASCOT_DIALOG_MS);
-  }, [extraCatalogEntries, mascotDialogSettings, mascotId]);
+  const showDialog = useCallback(
+    (eventKey, { force = false } = {}) => {
+      const now = Date.now();
+      if (!force && eventKey === 'move' && now < moveDialogCooldownUntilRef.current) return;
+      const text = resolveMascotDialogLine(eventKey, {
+        mascotId,
+        extraCatalogEntries,
+        globalDefaults: mascotDialogSettings?.defaults || null,
+        catalogOverrides: mascotDialogSettings?.catalogOverrides || null,
+      });
+      if (!text) return;
+      if (eventKey === 'move') {
+        moveDialogCooldownUntilRef.current = now + MAP_VIEW_MASCOT_DIALOG_MOVE_COOLDOWN_MS;
+      }
+      if (dialogTimeoutRef.current) clearTimeout(dialogTimeoutRef.current);
+      setDialog(text);
+      setDialogVisible(true);
+      dialogTimeoutRef.current = window.setTimeout(() => {
+        setDialogVisible(false);
+        dialogTimeoutRef.current = null;
+      }, MAP_VIEW_MASCOT_DIALOG_MS);
+    },
+    [extraCatalogEntries, mascotDialogSettings, mascotId],
+  );
 
   const triggerHappy = useCallback(() => {
     if (happyTimeoutRef.current) {
@@ -195,14 +204,11 @@ function useMapViewMascot({
   const scheduleAfterMove = useCallback(
     (action, targetXpYp, moveFromPct) => {
       clearDetailAfterMove();
-      const prev = moveFromPct && Number.isFinite(moveFromPct.xp) && Number.isFinite(moveFromPct.yp)
-        ? moveFromPct
-        : mascotPctRef.current;
-      const target = clampMapMascotPctForViewport(
-        targetXpYp.xp,
-        targetXpYp.yp,
-        fitHeightPx,
-      );
+      const prev =
+        moveFromPct && Number.isFinite(moveFromPct.xp) && Number.isFinite(moveFromPct.yp)
+          ? moveFromPct
+          : mascotPctRef.current;
+      const target = clampMapMascotPctForViewport(targetXpYp.xp, targetXpYp.yp, fitHeightPx);
       const dist = Math.hypot(target.xp - prev.xp, target.yp - prev.yp);
       const delay = dist < 0.08 || prefersReducedMotion ? 0 : MAP_VIEW_MASCOT_MOVE_MS;
       if (delay === 0) {

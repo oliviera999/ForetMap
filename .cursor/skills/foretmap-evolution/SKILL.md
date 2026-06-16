@@ -38,34 +38,34 @@ Toutes les recommandations détaillées sont dans **docs/EVOLUTION.md** (à la r
 
 ## État d'avancement
 
-| Évolution | Statut |
-|-----------|--------|
-| Auth serveur JWT + middleware `requireTeacher` | Fait |
-| CORS restreint en production | Fait |
-| Découpage backend en `routes/` | Fait |
-| Script `dev` avec nodemon | Fait |
-| Logger Pino + trace erreurs | Fait |
-| Observabilité (`X-Request-Id`, HTTP log, diagnostics `metrics`, MCP) | Fait |
-| Tests backend (auth, statuts, suppression) | Fait (base) |
-| Tests Playwright + exécution e2e en CI | Fait (base + scénarios étendus) |
-| Suppression du PIN côté frontend (auth serveur) | Fait |
-| Images sur disque (au lieu de base64) + retrait fallback base64 | Fait |
-| Migration frontend Vite | Fait |
-| Migrations de schéma versionnées | Fait |
-| Projets de tâches (`/api/task-projects`) | Fait (V1 minimale) |
+| Évolution                                                            | Statut                          |
+| -------------------------------------------------------------------- | ------------------------------- |
+| Auth serveur JWT + middleware `requireTeacher`                       | Fait                            |
+| CORS restreint en production                                         | Fait                            |
+| Découpage backend en `routes/`                                       | Fait                            |
+| Script `dev` avec nodemon                                            | Fait                            |
+| Logger Pino + trace erreurs                                          | Fait                            |
+| Observabilité (`X-Request-Id`, HTTP log, diagnostics `metrics`, MCP) | Fait                            |
+| Tests backend (auth, statuts, suppression)                           | Fait (base)                     |
+| Tests Playwright + exécution e2e en CI                               | Fait (base + scénarios étendus) |
+| Suppression du PIN côté frontend (auth serveur)                      | Fait                            |
+| Images sur disque (au lieu de base64) + retrait fallback base64      | Fait                            |
+| Migration frontend Vite                                              | Fait                            |
+| Migrations de schéma versionnées                                     | Fait                            |
+| Projets de tâches (`/api/task-projects`)                             | Fait (V1 minimale)              |
 
 ## Fichiers à modifier selon le sujet
 
-| Sujet | Fichiers |
-|-------|----------|
-| Auth / PIN / CORS | `server.js`, `middleware/requireTeacher.js`, `routes/auth.js`, `src/components/auth-views.jsx` |
-| Images | `routes/zones.js`, `routes/tasks.js`, `database.js` (schéma), `lib/uploads.js` |
-| Projets de tâches | `routes/task-projects.js`, `routes/tasks.js`, `database.js`, `migrations/` |
-| Tests backend | `tests/`, `tests/helpers/setup.js`, `package.json` |
-| Tests e2e / CI | `e2e/`, `playwright.config.js`, `.github/workflows/` |
-| Migration Vite | `src/`, `vite.config.js`, `package.json`, `index.vite.html` |
-| Schéma / migrations | `database.js`, `sql/schema_foretmap.sql`, `migrations/` |
-| Config | `package.json`, `.env.example`, `docker-compose.yml` |
+| Sujet               | Fichiers                                                                                       |
+| ------------------- | ---------------------------------------------------------------------------------------------- |
+| Auth / PIN / CORS   | `server.js`, `middleware/requireTeacher.js`, `routes/auth.js`, `src/components/auth-views.jsx` |
+| Images              | `routes/zones.js`, `routes/tasks.js`, `database.js` (schéma), `lib/uploads.js`                 |
+| Projets de tâches   | `routes/task-projects.js`, `routes/tasks.js`, `database.js`, `migrations/`                     |
+| Tests backend       | `tests/`, `tests/helpers/setup.js`, `package.json`                                             |
+| Tests e2e / CI      | `e2e/`, `playwright.config.js`, `.github/workflows/`                                           |
+| Migration Vite      | `src/`, `vite.config.js`, `package.json`, `index.vite.html`                                    |
+| Schéma / migrations | `database.js`, `sql/schema_foretmap.sql`, `migrations/`                                        |
+| Config              | `package.json`, `.env.example`, `docker-compose.yml`                                           |
 
 Lire systématiquement `docs/EVOLUTION.md` avant d'implémenter une évolution, avec priorité sur le backlog § 2 puis la séquence §§ 3-4.
 

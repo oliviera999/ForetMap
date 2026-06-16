@@ -17,7 +17,7 @@ async function createGlAdmin(options = {}) {
        role = VALUES(role),
        is_active = 1,
        updated_at = NOW()`,
-    [email, displayName, role]
+    [email, displayName, role],
   );
   return queryOne('SELECT * FROM gl_admins WHERE email = ? LIMIT 1', [email]);
 }
@@ -29,7 +29,7 @@ async function createGlClass(options = {}) {
   await execute(
     `INSERT INTO gl_classes (name, school, created_by, is_active, created_at, updated_at)
      VALUES (?, ?, ?, 1, NOW(), NOW())`,
-    [name, school, adminId]
+    [name, school, adminId],
   );
   return queryOne('SELECT * FROM gl_classes WHERE name = ? ORDER BY id DESC LIMIT 1', [name]);
 }
@@ -42,10 +42,11 @@ async function createGlPlayer(options = {}) {
   const firstName = options.firstName == null ? 'Prenom' : String(options.firstName);
   const lastName = options.lastName == null ? 'Nom' : String(options.lastName);
   const passwordMustReset = options.passwordMustReset ? 1 : 0;
-  const isActive = options.isActive == null ? 1 : (options.isActive ? 1 : 0);
-  const linkedForetmapUserId = options.linkedForetmapUserId == null ? null : String(options.linkedForetmapUserId);
+  const isActive = options.isActive == null ? 1 : options.isActive ? 1 : 0;
+  const linkedForetmapUserId =
+    options.linkedForetmapUserId == null ? null : String(options.linkedForetmapUserId);
   const email = options.email == null ? null : String(options.email).trim().toLowerCase() || null;
-  const passwordHash = options.passwordHash || await bcrypt.hash(password, 10);
+  const passwordHash = options.passwordHash || (await bcrypt.hash(password, 10));
 
   await execute('DELETE FROM gl_players WHERE pseudo = ?', [pseudo]);
   const healthPoints = options.healthPoints == null ? 3 : Number(options.healthPoints);
@@ -68,7 +69,7 @@ async function createGlPlayer(options = {}) {
       isActive,
       healthPoints,
       powerPoints,
-    ]
+    ],
   );
   return queryOne('SELECT * FROM gl_players WHERE pseudo = ? ORDER BY id DESC LIMIT 1', [pseudo]);
 }
@@ -90,7 +91,7 @@ async function createGlChapterWithMarker(options = {}) {
        biome = VALUES(biome),
        map_image_url = VALUES(map_image_url),
        updated_at = NOW()`,
-    [slug, title, biome, mapImageUrl]
+    [slug, title, biome, mapImageUrl],
   );
   const chapter = await queryOne('SELECT * FROM gl_chapters WHERE slug = ? LIMIT 1', [slug]);
   const biomeSlugs = Array.isArray(options.biomeSlugs) ? options.biomeSlugs : [];
@@ -99,15 +100,18 @@ async function createGlChapterWithMarker(options = {}) {
       `INSERT INTO gl_chapter_biomes (chapter_id, biome_slug, order_index)
        VALUES (?, ?, ?)
        ON DUPLICATE KEY UPDATE order_index = VALUES(order_index)`,
-      [chapter.id, biomeSlugs[i], i * 10]
+      [chapter.id, biomeSlugs[i], i * 10],
     );
   }
   await execute(
     `INSERT INTO gl_chapter_markers (chapter_id, x_pct, y_pct, event_type, label, description, order_index)
      VALUES (?, 50, 50, 'point', ?, 'repere', 0)`,
-    [chapter.id, markerLabel]
+    [chapter.id, markerLabel],
   );
-  const marker = await queryOne('SELECT * FROM gl_chapter_markers WHERE chapter_id = ? ORDER BY id DESC LIMIT 1', [chapter.id]);
+  const marker = await queryOne(
+    'SELECT * FROM gl_chapter_markers WHERE chapter_id = ? ORDER BY id DESC LIMIT 1',
+    [chapter.id],
+  );
   return { chapter, marker };
 }
 
@@ -122,9 +126,11 @@ async function createGlGameWithTeams(options = {}) {
   await execute(
     `INSERT INTO gl_games (class_id, chapter_id, name, status, created_by, created_at, updated_at)
      VALUES (?, ?, ?, ?, ?, NOW(), NOW())`,
-    [classId, chapterId, name, status, createdBy]
+    [classId, chapterId, name, status, createdBy],
   );
-  const game = await queryOne('SELECT * FROM gl_games WHERE name = ? ORDER BY id DESC LIMIT 1', [name]);
+  const game = await queryOne('SELECT * FROM gl_games WHERE name = ? ORDER BY id DESC LIMIT 1', [
+    name,
+  ]);
   const createdTeams = [];
   for (const team of teams) {
     await execute(
@@ -136,9 +142,12 @@ async function createGlGameWithTeams(options = {}) {
         String(team.type || 'gnome'),
         team.mascotId == null ? null : String(team.mascotId),
         String(team.color || '#22c55e'),
-      ]
+      ],
     );
-    const row = await queryOne('SELECT * FROM gl_teams WHERE game_id = ? ORDER BY id DESC LIMIT 1', [game.id]);
+    const row = await queryOne(
+      'SELECT * FROM gl_teams WHERE game_id = ? ORDER BY id DESC LIMIT 1',
+      [game.id],
+    );
     createdTeams.push(row);
   }
   return { game, teams: createdTeams };
@@ -186,7 +195,7 @@ async function assignPlayerToGameTeam({ gameId, teamId, playerId }) {
     `INSERT INTO gl_team_members (game_id, team_id, player_id)
      VALUES (?, ?, ?)
      ON DUPLICATE KEY UPDATE team_id = VALUES(team_id)`,
-    [Number(gameId), Number(teamId), Number(playerId)]
+    [Number(gameId), Number(teamId), Number(playerId)],
   );
 }
 

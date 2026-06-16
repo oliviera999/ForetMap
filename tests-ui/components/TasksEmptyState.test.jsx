@@ -8,9 +8,7 @@ describe('TasksEmptyState', () => {
     const { container } = render(<TasksEmptyState count={0} />);
     expect(container.querySelector('.empty')).toBeInTheDocument();
     expect(container.querySelector('.empty-icon')).toHaveTextContent('🌿');
-    expect(
-      screen.getByText(/Rien à faire ici pour l’instant/)
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Rien à faire ici pour l’instant/)).toBeInTheDocument();
   });
 
   test('count > 0 → rien n’est rendu', () => {

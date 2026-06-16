@@ -145,7 +145,7 @@ export const GL_MASCOT_CATALOG = Object.freeze([
     fallbackVariant: 'forest',
     primaryColor: '#15803d',
     secondaryColor: '#052e16',
-    description: 'Licorne sylvestre — crinière feuillage, corne d\'écorce.',
+    description: "Licorne sylvestre — crinière feuillage, corne d'écorce.",
   }),
 ]);
 
@@ -160,7 +160,9 @@ export function getGlMascotById(id) {
 }
 
 export function getGlMascotsByType(type) {
-  const normalized = String(type || '').trim().toLowerCase();
+  const normalized = String(type || '')
+    .trim()
+    .toLowerCase();
   if (!normalized) return GL_MASCOT_CATALOG.slice();
   return GL_MASCOT_CATALOG.filter((entry) => entry.type === normalized);
 }

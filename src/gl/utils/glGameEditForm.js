@@ -27,8 +27,10 @@ export function gameToEditForm(game) {
     name: game.name || '',
     chapterId: game.chapter_id != null ? String(game.chapter_id) : '',
     classId: game.class_id != null ? String(game.class_id) : '',
-    zoneContentRetrigger: game.zone_content_retrigger != null ? String(game.zone_content_retrigger) : '',
-    loreFeuilletRetrigger: game.lore_feuillet_retrigger != null ? String(game.lore_feuillet_retrigger) : '',
+    zoneContentRetrigger:
+      game.zone_content_retrigger != null ? String(game.zone_content_retrigger) : '',
+    loreFeuilletRetrigger:
+      game.lore_feuillet_retrigger != null ? String(game.lore_feuillet_retrigger) : '',
     loreEffacementEnabled: toTriStateString(game.lore_effacement_enabled),
     loreGemmeCostsEnabled: toTriStateString(game.lore_gemme_costs_enabled),
     loreHeartRewardsEnabled: toTriStateString(game.lore_heart_rewards_enabled),

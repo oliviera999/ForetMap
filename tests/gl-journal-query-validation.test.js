@@ -15,11 +15,18 @@ function runQuery(rawQuery) {
   const req = { query: rawQuery };
   const res = {
     statusCode: 200,
-    status(c) { this.statusCode = c; return this; },
-    json() { return this; },
+    status(c) {
+      this.statusCode = c;
+      return this;
+    },
+    json() {
+      return this;
+    },
   };
   let nextCalled = false;
-  validate({ query: journalGameQuerySchema })(req, res, () => { nextCalled = true; });
+  validate({ query: journalGameQuerySchema })(req, res, () => {
+    nextCalled = true;
+  });
   return { nextCalled, status: res.statusCode, parsed: req.validatedQuery };
 }
 
@@ -32,20 +39,41 @@ function legacy(query) {
 }
 
 test('limit : équivalence exacte avec la logique historique, jamais de 400', () => {
-  const cases = [undefined, '', 'abc', '0', '1', '100', '499', '500', '501', '999999', '-5', '50.9', '12abc'];
+  const cases = [
+    undefined,
+    '',
+    'abc',
+    '0',
+    '1',
+    '100',
+    '499',
+    '500',
+    '501',
+    '999999',
+    '-5',
+    '50.9',
+    '12abc',
+  ];
   for (const raw of cases) {
     const query = raw === undefined ? {} : { limit: raw };
     const { nextCalled, status, parsed } = runQuery(query);
     assert.strictEqual(nextCalled, true, `limit=${JSON.stringify(raw)} ne doit jamais être rejeté`);
     assert.strictEqual(status, 200);
-    assert.strictEqual(parsed.limit, legacy(query).limit, `limit effectif pour ${JSON.stringify(raw)}`);
+    assert.strictEqual(
+      parsed.limit,
+      legacy(query).limit,
+      `limit effectif pour ${JSON.stringify(raw)}`,
+    );
   }
 });
 
 test('limit borné dans [1, 500] pour toute entrée numérique', () => {
   for (const raw of ['0', '-100', '1', '500', '501', '999999']) {
     const { parsed } = runQuery({ limit: raw });
-    assert.ok(parsed.limit >= 1 && parsed.limit <= 500, `limit ${parsed.limit} hors borne pour ${raw}`);
+    assert.ok(
+      parsed.limit >= 1 && parsed.limit <= 500,
+      `limit ${parsed.limit} hors borne pour ${raw}`,
+    );
   }
 });
 
@@ -54,8 +82,16 @@ test('teamId : équivalence exacte (Number ou null, NaN conservé), jamais de 40
   for (const raw of cases) {
     const query = raw === undefined ? {} : { teamId: raw };
     const { nextCalled, parsed } = runQuery(query);
-    assert.strictEqual(nextCalled, true, `teamId=${JSON.stringify(raw)} ne doit jamais être rejeté`);
+    assert.strictEqual(
+      nextCalled,
+      true,
+      `teamId=${JSON.stringify(raw)} ne doit jamais être rejeté`,
+    );
     // strictEqual utilise SameValue : NaN === NaN ici, comme l'ancienne logique le produisait.
-    assert.strictEqual(parsed.teamFilter, legacy(query).teamFilter, `teamFilter pour ${JSON.stringify(raw)}`);
+    assert.strictEqual(
+      parsed.teamFilter,
+      legacy(query).teamFilter,
+      `teamFilter pour ${JSON.stringify(raw)}`,
+    );
   }
 });

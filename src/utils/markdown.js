@@ -3,7 +3,11 @@
  */
 import { marked } from 'marked';
 import DOMPurify from 'isomorphic-dompurify';
-import { glImageFrameToStyle, parseGlImageFrameAttr, serializeGlImageFrameAttr } from './glImageFrame.js';
+import {
+  glImageFrameToStyle,
+  parseGlImageFrameAttr,
+  serializeGlImageFrameAttr,
+} from './glImageFrame.js';
 
 const ALLOWED_TAGS = [
   'p',
@@ -25,9 +29,22 @@ const ALLOWED_TAGS = [
 ];
 const ALLOWED_ATTR = ['href', 'rel', 'target', 'title'];
 const ALLOWED_TAGS_WITH_IMAGES = [...ALLOWED_TAGS, 'img'];
-const ALLOWED_ATTR_WITH_IMAGES = [...ALLOWED_ATTR, 'src', 'alt', 'title', 'loading', 'class', 'data-gl-frame', 'style'];
+const ALLOWED_ATTR_WITH_IMAGES = [
+  ...ALLOWED_ATTR,
+  'src',
+  'alt',
+  'title',
+  'loading',
+  'class',
+  'data-gl-frame',
+  'style',
+];
 const ALLOWED_TAGS_WITH_JOURNAL = [...ALLOWED_TAGS_WITH_IMAGES, 'aside'];
-const ALLOWED_ATTR_WITH_JOURNAL = [...ALLOWED_ATTR_WITH_IMAGES, 'data-gl-embed-type', 'data-gl-ref'];
+const ALLOWED_ATTR_WITH_JOURNAL = [
+  ...ALLOWED_ATTR_WITH_IMAGES,
+  'data-gl-embed-type',
+  'data-gl-ref',
+];
 const ALLOWED_ATTR_WITH_GLOSSARY = [...ALLOWED_ATTR, 'class', 'data-gl-glossary-code'];
 const JOURNAL_EMBED_TYPES = new Set(['spell', 'species', 'glossary', 'chapter', 'module_stub']);
 
@@ -66,7 +83,9 @@ DOMPurify.addHook('afterSanitizeAttributes', (node) => {
     const frame = parseGlImageFrameAttr(node.getAttribute('data-gl-frame'), 'markdown');
     const style = glImageFrameToStyle(frame);
     const styleString = Object.entries(style)
-      .map(([key, value]) => `${key.replace(/[A-Z]/g, (match) => `-${match.toLowerCase()}`)}:${value}`)
+      .map(
+        ([key, value]) => `${key.replace(/[A-Z]/g, (match) => `-${match.toLowerCase()}`)}:${value}`,
+      )
       .join(';');
     node.setAttribute('data-gl-frame', serializeGlImageFrameAttr(frame, 'markdown'));
     node.setAttribute('style', styleString);
@@ -81,7 +100,9 @@ DOMPurify.addHook('afterSanitizeAttributes', (node) => {
       node.remove();
       return;
     }
-    const embedType = String(node.getAttribute('data-gl-embed-type') || '').trim().toLowerCase();
+    const embedType = String(node.getAttribute('data-gl-embed-type') || '')
+      .trim()
+      .toLowerCase();
     const embedRef = String(node.getAttribute('data-gl-ref') || '').trim();
     if (!JOURNAL_EMBED_TYPES.has(embedType) || !embedRef) {
       node.remove();
@@ -117,8 +138,12 @@ export function applyJournalEmbed(value, selectionStart, selectionEnd, type, ref
   const text = String(value ?? '');
   const start = Math.max(0, Math.min(selectionStart, text.length));
   const end = Math.max(start, Math.min(selectionEnd, text.length));
-  const safeType = String(type || '').trim().toLowerCase();
-  const safeRef = String(ref || '').trim().replace(/"/g, '');
+  const safeType = String(type || '')
+    .trim()
+    .toLowerCase();
+  const safeRef = String(ref || '')
+    .trim()
+    .replace(/"/g, '');
   const snippet = `\n\n<aside class="gl-journal-embed" data-gl-embed-type="${safeType}" data-gl-ref="${safeRef}"></aside>\n\n`;
   const nextValue = `${text.slice(0, start)}${snippet}${text.slice(end)}`;
   const cursor = start + snippet.length;
@@ -163,7 +188,14 @@ export function sanitizeRichHtml(html, options = {}) {
  * @param {string} [placeholder]
  * @returns {{ value: string, selectionStart: number, selectionEnd: number }}
  */
-export function applyMarkdownWrap(value, selectionStart, selectionEnd, prefix, suffix = prefix, placeholder = '') {
+export function applyMarkdownWrap(
+  value,
+  selectionStart,
+  selectionEnd,
+  prefix,
+  suffix = prefix,
+  placeholder = '',
+) {
   const text = String(value ?? '');
   const start = Math.max(0, Math.min(selectionStart, text.length));
   const end = Math.max(start, Math.min(selectionEnd, text.length));
@@ -201,12 +233,18 @@ export function applyMarkdownList(value, selectionStart, selectionEnd, listType)
   const block = text.slice(blockStart, blockEnd);
   const lines = block.split('\n');
   const prefix = listType === 'ol' ? (i) => `${i + 1}. ` : () => '- ';
-  const transformed = lines.map((line, i) => {
-    const trimmed = line.replace(/^(\d+\.\s+|-\s+)/, '');
-    return `${prefix(i)}${trimmed}`;
-  }).join('\n');
+  const transformed = lines
+    .map((line, i) => {
+      const trimmed = line.replace(/^(\d+\.\s+|-\s+)/, '');
+      return `${prefix(i)}${trimmed}`;
+    })
+    .join('\n');
   const nextValue = `${text.slice(0, blockStart)}${transformed}${text.slice(blockEnd)}`;
-  return { value: nextValue, selectionStart: blockStart, selectionEnd: blockStart + transformed.length };
+  return {
+    value: nextValue,
+    selectionStart: blockStart,
+    selectionEnd: blockStart + transformed.length,
+  };
 }
 
 /**
@@ -227,7 +265,14 @@ export function applyMarkdownImage(value, selectionStart, selectionEnd, url, alt
   return { value: nextValue, selectionStart: cursor, selectionEnd: cursor };
 }
 
-export function applyMarkdownHtmlImage(value, selectionStart, selectionEnd, url, alt = 'Image', frame = null) {
+export function applyMarkdownHtmlImage(
+  value,
+  selectionStart,
+  selectionEnd,
+  url,
+  alt = 'Image',
+  frame = null,
+) {
   const text = String(value ?? '');
   const start = Math.max(0, Math.min(selectionStart, text.length));
   const end = Math.max(start, Math.min(selectionEnd, text.length));

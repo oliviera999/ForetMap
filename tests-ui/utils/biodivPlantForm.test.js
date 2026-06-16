@@ -15,7 +15,9 @@ describe('pickPlantnetVernacularName', () => {
     expect(pickPlantnetVernacularName(['Common daisy', 'Pâquerette'])).toBe('Pâquerette');
   });
   test('privilégie un nom avec article élidé', () => {
-    expect(pickPlantnetVernacularName(['Dandelion', "Pissenlit d'automne"])).toBe("Pissenlit d'automne");
+    expect(pickPlantnetVernacularName(['Dandelion', "Pissenlit d'automne"])).toBe(
+      "Pissenlit d'automne",
+    );
   });
   test('sinon le premier de la liste (trim)', () => {
     expect(pickPlantnetVernacularName([' Nettle ', 'Stinging nettle'])).toBe('Nettle');
@@ -42,16 +44,24 @@ describe('findFirstBiodivHeroPhotoCandidate', () => {
   });
   test('page fichier Commons sans extension image → conversion Special:FilePath', () => {
     expect(
-      findFirstBiodivHeroPhotoCandidate({ photo: 'https://commons.wikimedia.org/wiki/File:Rosa_canina' })
-    ).toEqual({ kind: 'direct', src: 'https://commons.wikimedia.org/wiki/Special:FilePath/Rosa_canina' });
+      findFirstBiodivHeroPhotoCandidate({
+        photo: 'https://commons.wikimedia.org/wiki/File:Rosa_canina',
+      }),
+    ).toEqual({
+      kind: 'direct',
+      src: 'https://commons.wikimedia.org/wiki/Special:FilePath/Rosa_canina',
+    });
   });
   test('catégorie Commons → categoryUrl', () => {
     const url = 'https://commons.wikimedia.org/wiki/Category:Rosa';
-    expect(findFirstBiodivHeroPhotoCandidate({ photo: url })).toEqual({ kind: 'category', categoryUrl: url });
+    expect(findFirstBiodivHeroPhotoCandidate({ photo: url })).toEqual({
+      kind: 'category',
+      categoryUrl: url,
+    });
   });
   test('priorité photo puis photo_species ; null si rien d’exploitable', () => {
     expect(
-      findFirstBiodivHeroPhotoCandidate({ photo: 'pas une url', photo_species: '/uploads/x.png' })
+      findFirstBiodivHeroPhotoCandidate({ photo: 'pas une url', photo_species: '/uploads/x.png' }),
     ).toEqual({ kind: 'direct', src: '/uploads/x.png' });
     expect(findFirstBiodivHeroPhotoCandidate({ photo: 'texte', photo_species: '' })).toBe(null);
   });

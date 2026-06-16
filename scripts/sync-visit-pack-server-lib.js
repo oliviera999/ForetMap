@@ -38,10 +38,14 @@ function main() {
   if (!hasSrc) {
     const hasLib = files.every(([, name]) => fs.existsSync(path.join(outDir, name)));
     if (hasLib) {
-      console.warn('[sync-visit-pack-server-lib] Sources `src/utils` absentes — lib/visit-pack/ conservé (bundle runtime).');
+      console.warn(
+        '[sync-visit-pack-server-lib] Sources `src/utils` absentes — lib/visit-pack/ conservé (bundle runtime).',
+      );
       return;
     }
-    console.error('[sync-visit-pack-server-lib] Ni sources ni lib/visit-pack/ — impossible de continuer.');
+    console.error(
+      '[sync-visit-pack-server-lib] Ni sources ni lib/visit-pack/ — impossible de continuer.',
+    );
     process.exit(1);
   }
   fs.mkdirSync(outDir, { recursive: true });

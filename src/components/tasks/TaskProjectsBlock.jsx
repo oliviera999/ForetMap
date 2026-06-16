@@ -33,12 +33,15 @@ function TaskProjectsBlock({
   onProjectTaskDragOver,
   onDropTaskToProject,
 }) {
-if (visibleProjects.length <= 0) return null;
-    return (
-      <div className="tasks-section">
-        <div className="tasks-section-title">{sectionTitle || `📁 Projets (${visibleProjects.length})`}</div>
-        <div style={{ display: 'grid', gap: 8 }}>
-          {[...visibleProjects].sort((a, b) => {
+  if (visibleProjects.length <= 0) return null;
+  return (
+    <div className="tasks-section">
+      <div className="tasks-section-title">
+        {sectionTitle || `📁 Projets (${visibleProjects.length})`}
+      </div>
+      <div style={{ display: 'grid', gap: 8 }}>
+        {[...visibleProjects]
+          .sort((a, b) => {
             const rank = (status) => {
               if (status === 'active') return 0;
               if (status === 'on_hold') return 1;
@@ -49,8 +52,11 @@ if (visibleProjects.length <= 0) return null;
             const diff = rank(a.status) - rank(b.status);
             if (diff !== 0) return diff;
             return String(a.title || '').localeCompare(String(b.title || ''), 'fr');
-          }).map((p) => {
-            const projectTasks = allFiltered.filter((t) => String(t.project_id || '') === String(p.id || ''));
+          })
+          .map((p) => {
+            const projectTasks = allFiltered.filter(
+              (t) => String(t.project_id || '') === String(p.id || ''),
+            );
             const projectTasksCount = projectTasks.length;
             const projectStatus = normalizeProjectUiStatus(p.status);
             const loadingActive = !!loading[`${p.id}projectactive`];
@@ -60,9 +66,10 @@ if (visibleProjects.length <= 0) return null;
             const loadingDelete = !!loading[`${p.id}projectdelete`];
             const canReceiveTaskDrop = !!(isTeacher && taskDragPayload?.taskId);
             const projectDropId = String(p.id || '');
-            const projectCardDropActive = canReceiveTaskDrop
-              && taskDropHint?.projectId === projectDropId
-              && !taskDropHint?.beforeTaskId;
+            const projectCardDropActive =
+              canReceiveTaskDrop &&
+              taskDropHint?.projectId === projectDropId &&
+              !taskDropHint?.beforeTaskId;
             return (
               <div
                 key={p.id}
@@ -80,17 +87,31 @@ if (visibleProjects.length <= 0) return null;
                   onDropTaskToProject?.(projectDropId, '');
                 }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    gap: 8,
+                    flexWrap: 'wrap',
+                  }}
+                >
                   <div>
-                    <div className="task-title" style={{ fontSize: '1rem' }}>📁 {p.title}</div>
+                    <div className="task-title" style={{ fontSize: '1rem' }}>
+                      📁 {p.title}
+                    </div>
                     <div className="task-meta" style={{ marginTop: 6 }}>
                       {(p.zones_linked || []).map((z) => (
-                        <span key={z.id} className="task-chip">{z.name}</span>
+                        <span key={z.id} className="task-chip">
+                          {z.name}
+                        </span>
                       ))}
                       {(p.markers_linked || []).map((m) => (
-                        <span key={m.id} className="task-chip">📍 {m.label}</span>
+                        <span key={m.id} className="task-chip">
+                          📍 {m.label}
+                        </span>
                       ))}
-                      {(p.tutorials_linked || []).map((tu) => (
+                      {(p.tutorials_linked || []).map((tu) =>
                         tutorialPreviewCanEmbed(tu) ? (
                           <button
                             key={tu.id}
@@ -102,15 +123,20 @@ if (visibleProjects.length <= 0) return null;
                             📘 {tu.title}
                           </button>
                         ) : (
-                          <span key={tu.id} className="task-chip">📘 {tu.title}</span>
-                        )
-                      ))}
+                          <span key={tu.id} className="task-chip">
+                            📘 {tu.title}
+                          </span>
+                        ),
+                      )}
                     </div>
                     <div style={{ fontSize: '.82rem', color: '#666' }}>
-                      {p.map_label || mapLabelFromMaps(p.map_id, maps)} · {projectTasksCount} tâche{projectTasksCount > 1 ? 's' : ''}
+                      {p.map_label || mapLabelFromMaps(p.map_id, maps)} · {projectTasksCount} tâche
+                      {projectTasksCount > 1 ? 's' : ''}
                     </div>
                     {!!(p.description || '').trim() && (
-                      <MarkdownContent className="task-desc" style={{ marginTop: 8 }}>{String(p.description).trim()}</MarkdownContent>
+                      <MarkdownContent className="task-desc" style={{ marginTop: 8 }}>
+                        {String(p.description).trim()}
+                      </MarkdownContent>
                     )}
                     {p.status === 'on_hold' && (
                       <div style={{ fontSize: '.82rem', color: '#92400e', marginTop: 4 }}>
@@ -135,7 +161,14 @@ if (visibleProjects.length <= 0) return null;
                     )}
                   </div>
                   {isTeacher ? (
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'flex-end' }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        gap: 6,
+                        justifyContent: 'flex-end',
+                      }}
+                    >
                       <button
                         type="button"
                         className="btn btn-ghost btn-sm"
@@ -246,7 +279,9 @@ if (visibleProjects.length <= 0) return null;
                         ? 'Validé'
                         : projectStatus === 'completed'
                           ? 'Terminé'
-                          : projectStatus === 'on_hold' ? '⏸️ En attente' : '✅ Actif'}
+                          : projectStatus === 'on_hold'
+                            ? '⏸️ En attente'
+                            : '✅ Actif'}
                     </span>
                   )}
                 </div>
@@ -295,9 +330,9 @@ if (visibleProjects.length <= 0) return null;
               </div>
             );
           })}
-        </div>
       </div>
-    );
+    </div>
+  );
 }
 
 export { TaskProjectsBlock };

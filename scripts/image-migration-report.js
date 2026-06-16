@@ -28,7 +28,7 @@ async function hasImageDataColumn(tableName) {
      WHERE TABLE_SCHEMA = DATABASE()
        AND TABLE_NAME = ?
        AND COLUMN_NAME = 'image_data'`,
-    [tableName]
+    [tableName],
   );
   return Number(row?.c || 0) > 0;
 }
@@ -78,7 +78,7 @@ function printHuman(report) {
   console.log('[image-report] task_logs legacy:', report.task_logs_legacy);
   console.log('[image-report] total legacy:', report.total_legacy);
   console.log(
-    `[image-report] bascule clear-legacy: ${report.ready_for_clear ? 'OK (aucun reliquat)' : 'NON (reliquats présents)'}`
+    `[image-report] bascule clear-legacy: ${report.ready_for_clear ? 'OK (aucun reliquat)' : 'NON (reliquats présents)'}`,
   );
   if (!report.legacy_columns_present) {
     console.log('[image-report] legacy désactivé: colonnes image_data déjà retirées.');

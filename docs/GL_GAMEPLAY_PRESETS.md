@@ -6,10 +6,10 @@ Référence technique : [GL_ARCHITECTURE.md](GL_ARCHITECTURE.md), [API.md](API.m
 
 ## Rappel : tours ≠ actions joueurs
 
-| Toggle | Effet |
-|--------|--------|
-| `gameplay.turns_enabled` | Rotation cyclique des équipes (`POST /api/gl/games/:id/turn/next`), toast joueurs, restriction QCM / actions / sorts à l’équipe du tour |
-| `gameplay.player_actions_enabled` | Modale « proposer une action » sur la carte, file d’attente MJ |
+| Toggle                            | Effet                                                                                                                                   |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `gameplay.turns_enabled`          | Rotation cyclique des équipes (`POST /api/gl/games/:id/turn/next`), toast joueurs, restriction QCM / actions / sorts à l’équipe du tour |
+| `gameplay.player_actions_enabled` | Modale « proposer une action » sur la carte, file d’attente MJ                                                                          |
 
 Ces deux réglages sont **orthogonaux** : on peut avoir les tours sans actions joueurs (MJ seul), ou les actions sans tours (jeu libre).
 
@@ -21,13 +21,13 @@ Les profils ne modifient **pas** les modules (`modules.*`) ni `gameplay.marker_q
 
 Contrôle l’affichage du popover texte/images quand une équipe entre ou traverse une zone royaume ayant du contenu (`popoverMarkdown` / `popoverImages`). Valeurs : `every_arrival`, `once_per_team`, `once_per_game` (défaut global). Une partie peut surcharger via `gl_games.zone_content_retrigger` (console MJ → édition de partie).
 
-| Profil | Tours | Narration | Actions joueurs | Score | QCM MJ only | Sorts MJ only |
-|--------|:-----:|:---------:|:---------------:|:-----:|:-----------:|:-------------:|
-| **Minimal** | off | off | off | off | off | off |
-| **MJ + tours** | on | on | off | off | **on** | **on** |
-| **MJ + tours interactif** | on | on | off | off | off | off |
-| **Complet avec tours** | on | on | on | on | off | off |
-| **Complet libre** | off | off | on | on | off | off |
+| Profil                    | Tours | Narration | Actions joueurs | Score | QCM MJ only | Sorts MJ only |
+| ------------------------- | :---: | :-------: | :-------------: | :---: | :---------: | :-----------: |
+| **Minimal**               |  off  |    off    |       off       |  off  |     off     |      off      |
+| **MJ + tours**            |  on   |    on     |       off       |  off  |   **on**    |    **on**     |
+| **MJ + tours interactif** |  on   |    on     |       off       |  off  |     off     |      off      |
+| **Complet avec tours**    |  on   |    on     |       on        |  on   |     off     |      off      |
+| **Complet libre**         |  off  |    off    |       on        |  on   |     off     |      off      |
 
 ### Cas d’usage
 

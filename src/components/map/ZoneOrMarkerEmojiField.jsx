@@ -5,7 +5,14 @@ import { clampEmojiInput } from '../../constants/emojis';
  * Champ de saisie d'emoji (zone/repère) — input libre + libellé de grille + bouton « sans emoji ».
  * Partagé par ZoneInfoModal / ZoneDrawModal / MarkerModal ; extrait de `map-views.jsx` (O6).
  */
-export function ZoneOrMarkerEmojiField({ id, value, onChange, maxLen, gridLabel = 'Ou choisir dans la liste :', allowNone = false }) {
+export function ZoneOrMarkerEmojiField({
+  id,
+  value,
+  onChange,
+  maxLen,
+  gridLabel = 'Ou choisir dans la liste :',
+  allowNone = false,
+}) {
   return (
     <>
       <input

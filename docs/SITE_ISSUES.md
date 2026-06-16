@@ -23,7 +23,7 @@ Il consolide les constats des audits internes, notamment:
 - `R5` - Logique de compression image dupliquee cote frontend.
 - `R6` - Gouvernance des URLs externes plantes a renforcer (allowlist / verifications periodiques).
 - `R7` - Moderation explicite des photos eleves a clarifier selon besoin pedagogique.
-- `R9` - Risque de rupture HTTP/2 / WAF (Tiger Protect) sur o2switch : erreurs type Chrome **`ERR_HTTP2_PROTOCOL_ERROR`** sur `/socket.io` ou `/api/*` (voir **`docs/EXPLOITATION.md`**, section *Chrome ERR_HTTP2_PROTOCOL_ERROR*).
+- `R9` - Risque de rupture HTTP/2 / WAF (Tiger Protect) sur o2switch : erreurs type Chrome **`ERR_HTTP2_PROTOCOL_ERROR`** sur `/socket.io` ou `/api/*` (voir **`docs/EXPLOITATION.md`**, section _Chrome ERR_HTTP2_PROTOCOL_ERROR_).
 - `GL1` - Isolement cross-produit : verifier en CI/QA qu'un JWT `product: 'gl'` ne donne pas acces aux routes ForetMap principales (cf. garde dans **`server.js`**).
 - `GL2` - Tests GL : la base est partagee, executer les suites `tests/gl-*.test.js` en `--test-concurrency=1 --test-force-exit` (sinon deadlocks `initSchema`).
 

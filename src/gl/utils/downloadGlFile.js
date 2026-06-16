@@ -24,7 +24,7 @@ export async function downloadGlFile(path, filename) {
       }
       if (res.status === 404) {
         throw new Error(
-          msg || 'Route introuvable — déployez la dernière version du serveur (modèles XLSX GL).'
+          msg || 'Route introuvable — déployez la dernière version du serveur (modèles XLSX GL).',
         );
       }
       throw new Error(msg || `Téléchargement impossible (HTTP ${res.status}).`);
@@ -34,7 +34,7 @@ export async function downloadGlFile(path, filename) {
 
   if (contentType.includes('application/json') || contentType.includes('text/html')) {
     throw new Error(
-      'Réponse serveur invalide (page HTML ou JSON au lieu du fichier). Vérifiez le déploiement et reconnectez-vous.'
+      'Réponse serveur invalide (page HTML ou JSON au lieu du fichier). Vérifiez le déploiement et reconnectez-vous.',
     );
   }
 

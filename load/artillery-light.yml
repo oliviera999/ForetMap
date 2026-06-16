@@ -1,11 +1,11 @@
 config:
-  target: "http://127.0.0.1:3000"
+  target: 'http://127.0.0.1:3000'
   http:
     timeout: 20
   defaults:
     headers:
       Accept: application/json
-      X-ForetMap-Load-Test: "{{ $processEnvironment.LOAD_TEST_SECRET }}"
+      X-ForetMap-Load-Test: '{{ $processEnvironment.LOAD_TEST_SECRET }}'
   phases:
     - duration: 20
       arrivalRate: 2

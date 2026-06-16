@@ -1,13 +1,7 @@
-import React, {
-  useCallback, useEffect, useMemo, useState,
-} from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { api, AccountDeletedError } from '../services/api';
 import MascotPackWysiwygEditor from './MascotPackWysiwygEditor.jsx';
-import {
-  clonePackDeep,
-  parsePackJson,
-  stringifyPack,
-} from '../utils/mascotPackEditorModel.js';
+import { clonePackDeep, parsePackJson, stringifyPack } from '../utils/mascotPackEditorModel.js';
 import {
   getPackStrictValidation,
   computeEditorWarnings,
@@ -20,9 +14,7 @@ import {
   extractMascotPackValidationIssues,
   sanitizeMascotPackDraft,
 } from '../utils/mascotPackValidationUi.js';
-import {
-  DEFAULT_VISIT_MASCOT_INTERACTION_PROFILE,
-} from '../utils/visitMascotInteractionEvents.js';
+import { DEFAULT_VISIT_MASCOT_INTERACTION_PROFILE } from '../utils/visitMascotInteractionEvents.js';
 import VisitMascotDialogEditor from './VisitMascotDialogEditor.jsx';
 import VisitMascotDialogStudioView from './VisitMascotDialogStudioView.jsx';
 import VisitMascotStudioPreviewSection from './mascot/VisitMascotStudioPreviewSection.jsx';
@@ -78,29 +70,34 @@ export default function VisitMascotPackManager({
   const [globalAssetsMessage, setGlobalAssetsMessage] = useState('');
   const [globalAssetSearch, setGlobalAssetSearch] = useState('');
   const [globalTargetState, setGlobalTargetState] = useState('idle');
-  const [catalogModelIds, setCatalogModelIds] = useState(() => (
-    getVisitMascotCatalog().map((m) => String(m?.id || '').trim()).filter(Boolean)
-  ));
-  const catalogModelOptions = useMemo(
-    () => {
-      const labelById = new Map(
-        getVisitMascotCatalog()
-          .map((m) => ({ id: String(m?.id || '').trim(), label: String(m?.label || m?.id || '').trim() }))
-          .filter((m) => m.id)
-          .map((m) => [m.id, m.label || m.id]),
-      );
-      return catalogModelIds
-        .map((id) => String(id || '').trim())
-        .filter(Boolean)
-        .map((id) => ({ id, label: labelById.get(id) || id }));
-    },
-    [catalogModelIds]
+  const [catalogModelIds, setCatalogModelIds] = useState(() =>
+    getVisitMascotCatalog()
+      .map((m) => String(m?.id || '').trim())
+      .filter(Boolean),
   );
-  const [selectedCatalogModelId, setSelectedCatalogModelId] = useState(() => (
-    getVisitMascotCatalog()[0]?.id || ''
-  ));
+  const catalogModelOptions = useMemo(() => {
+    const labelById = new Map(
+      getVisitMascotCatalog()
+        .map((m) => ({
+          id: String(m?.id || '').trim(),
+          label: String(m?.label || m?.id || '').trim(),
+        }))
+        .filter((m) => m.id)
+        .map((m) => [m.id, m.label || m.id]),
+    );
+    return catalogModelIds
+      .map((id) => String(id || '').trim())
+      .filter(Boolean)
+      .map((id) => ({ id, label: labelById.get(id) || id }));
+  }, [catalogModelIds]);
+  const [selectedCatalogModelId, setSelectedCatalogModelId] = useState(
+    () => getVisitMascotCatalog()[0]?.id || '',
+  );
 
-  const mapTitle = useMemo(() => String(mapLabel || mapId || '').trim() || mapId, [mapLabel, mapId]);
+  const mapTitle = useMemo(
+    () => String(mapLabel || mapId || '').trim() || mapId,
+    [mapLabel, mapId],
+  );
 
   const loadList = useCallback(async () => {
     const mid = String(mapId || '').trim();
@@ -185,7 +182,11 @@ export default function VisitMascotPackManager({
   const selectedRow = packs.find((p) => p.id === selectedId);
   const selectedValidation = useMemo(() => {
     if (!selectedId) return { ok: false, error: null };
-    return getPackStrictValidation(sanitizeMascotPackDraft(editorPack), selectedId, String(mapId || '').trim());
+    return getPackStrictValidation(
+      sanitizeMascotPackDraft(editorPack),
+      selectedId,
+      String(mapId || '').trim(),
+    );
   }, [editorPack, selectedId, mapId]);
   const editorWarnings = useMemo(() => computeEditorWarnings(editorPack), [editorPack]);
 
@@ -228,30 +229,37 @@ export default function VisitMascotPackManager({
     setEditorTab('workspace');
   }, [jsonDraft]);
 
-  const postNewPack = useCallback(async (bodyExtra = {}) => {
-    const mid = String(mapId || '').trim();
-    if (!mid) return;
-    setActionBusy(true);
-    setActionError('');
-    setActionIssues([]);
-    try {
-      const created = await api('/api/visit/mascot-packs', 'POST', { map_id: mid, is_published: 0, ...bodyExtra });
-      const newId = created?.id ? String(created.id) : '';
-      if (newId) setSelectedId(newId);
-      await onRefresh();
-    } catch (e) {
-      if (e instanceof AccountDeletedError) onForceLogout?.();
-      else {
-        if (Array.isArray(e?.allowed_catalog_ids)) {
-          const ids = e.allowed_catalog_ids.map((id) => String(id || '').trim()).filter(Boolean);
-          if (ids.length > 0) setCatalogModelIds(ids);
+  const postNewPack = useCallback(
+    async (bodyExtra = {}) => {
+      const mid = String(mapId || '').trim();
+      if (!mid) return;
+      setActionBusy(true);
+      setActionError('');
+      setActionIssues([]);
+      try {
+        const created = await api('/api/visit/mascot-packs', 'POST', {
+          map_id: mid,
+          is_published: 0,
+          ...bodyExtra,
+        });
+        const newId = created?.id ? String(created.id) : '';
+        if (newId) setSelectedId(newId);
+        await onRefresh();
+      } catch (e) {
+        if (e instanceof AccountDeletedError) onForceLogout?.();
+        else {
+          if (Array.isArray(e?.allowed_catalog_ids)) {
+            const ids = e.allowed_catalog_ids.map((id) => String(id || '').trim()).filter(Boolean);
+            if (ids.length > 0) setCatalogModelIds(ids);
+          }
+          setActionError(e.message || 'Création impossible');
         }
-        setActionError(e.message || 'Création impossible');
+      } finally {
+        setActionBusy(false);
       }
-    } finally {
-      setActionBusy(false);
-    }
-  }, [mapId, onRefresh, onForceLogout]);
+    },
+    [mapId, onRefresh, onForceLogout],
+  );
 
   const onNewDraft = useCallback(async () => {
     await postNewPack({});
@@ -263,53 +271,59 @@ export default function VisitMascotPackManager({
     await postNewPack({ clone_from_catalog_id: modelId });
   }, [postNewPack, selectedCatalogModelId]);
 
-  const findPackForCatalogModel = useCallback((modelId) => {
-    const mid = String(modelId || '').trim();
-    if (!mid) return null;
-    return packs.find((p) => String(p.pack?.clonedFromCatalogId || '').trim() === mid) || null;
-  }, [packs]);
+  const findPackForCatalogModel = useCallback(
+    (modelId) => {
+      const mid = String(modelId || '').trim();
+      if (!mid) return null;
+      return packs.find((p) => String(p.pack?.clonedFromCatalogId || '').trim() === mid) || null;
+    },
+    [packs],
+  );
 
   /** Ouvre une copie modifiable du modèle catalogue sur la carte (réutilise le pack existant si déjà cloné). */
-  const openCatalogModelForEdit = useCallback(async (modelId) => {
-    const mid = String(modelId || '').trim();
-    if (!mid) return;
-    setSelectedCatalogModelId(mid);
-    const existing = findPackForCatalogModel(mid);
-    if (existing?.id) {
-      setSelectedId(existing.id);
-      setEditorTab('workspace');
-      setActionError('');
-      return;
-    }
-    setActionBusy(true);
-    setActionError('');
-    setActionIssues([]);
-    try {
-      const midMap = String(mapId || '').trim();
-      const created = await api('/api/visit/mascot-packs', 'POST', {
-        map_id: midMap,
-        is_published: 0,
-        clone_from_catalog_id: mid,
-      });
-      const newId = created?.id ? String(created.id) : '';
-      if (newId) {
-        setSelectedId(newId);
+  const openCatalogModelForEdit = useCallback(
+    async (modelId) => {
+      const mid = String(modelId || '').trim();
+      if (!mid) return;
+      setSelectedCatalogModelId(mid);
+      const existing = findPackForCatalogModel(mid);
+      if (existing?.id) {
+        setSelectedId(existing.id);
         setEditorTab('workspace');
+        setActionError('');
+        return;
       }
-      await onRefresh();
-    } catch (e) {
-      if (e instanceof AccountDeletedError) onForceLogout?.();
-      else {
-        if (Array.isArray(e?.allowed_catalog_ids)) {
-          const ids = e.allowed_catalog_ids.map((id) => String(id || '').trim()).filter(Boolean);
-          if (ids.length > 0) setCatalogModelIds(ids);
+      setActionBusy(true);
+      setActionError('');
+      setActionIssues([]);
+      try {
+        const midMap = String(mapId || '').trim();
+        const created = await api('/api/visit/mascot-packs', 'POST', {
+          map_id: midMap,
+          is_published: 0,
+          clone_from_catalog_id: mid,
+        });
+        const newId = created?.id ? String(created.id) : '';
+        if (newId) {
+          setSelectedId(newId);
+          setEditorTab('workspace');
         }
-        setActionError(e.message || 'Impossible d’ouvrir ce modèle pour édition');
+        await onRefresh();
+      } catch (e) {
+        if (e instanceof AccountDeletedError) onForceLogout?.();
+        else {
+          if (Array.isArray(e?.allowed_catalog_ids)) {
+            const ids = e.allowed_catalog_ids.map((id) => String(id || '').trim()).filter(Boolean);
+            if (ids.length > 0) setCatalogModelIds(ids);
+          }
+          setActionError(e.message || 'Impossible d’ouvrir ce modèle pour édition');
+        }
+      } finally {
+        setActionBusy(false);
       }
-    } finally {
-      setActionBusy(false);
-    }
-  }, [mapId, findPackForCatalogModel, onRefresh, onForceLogout]);
+    },
+    [mapId, findPackForCatalogModel, onRefresh, onForceLogout],
+  );
 
   const onDuplicateSelected = useCallback(async () => {
     if (!selectedId) return;
@@ -336,7 +350,8 @@ export default function VisitMascotPackManager({
         return;
       }
       const row = packs.find((p) => p.id === selectedId);
-      const label = String(labelDraft || '').trim() || String(editorPack.label || '').trim() || 'Pack mascotte';
+      const label =
+        String(labelDraft || '').trim() || String(editorPack.label || '').trim() || 'Pack mascotte';
       await api(`/api/visit/mascot-packs/${encodeURIComponent(selectedId)}`, 'PUT', {
         map_id: String(mapId || '').trim(),
         label,
@@ -351,7 +366,16 @@ export default function VisitMascotPackManager({
     } finally {
       setActionBusy(false);
     }
-  }, [selectedId, editorPack, packs, mapId, onRefresh, onForceLogout, labelDraft, setActionErrorWithDetails]);
+  }, [
+    selectedId,
+    editorPack,
+    packs,
+    mapId,
+    onRefresh,
+    onForceLogout,
+    labelDraft,
+    setActionErrorWithDetails,
+  ]);
 
   const onTogglePublish = useCallback(async () => {
     if (!selectedId) return;
@@ -370,7 +394,8 @@ export default function VisitMascotPackManager({
         );
         return;
       }
-      const label = String(labelDraft || '').trim() || String(editorPack.label || '').trim() || 'Pack mascotte';
+      const label =
+        String(labelDraft || '').trim() || String(editorPack.label || '').trim() || 'Pack mascotte';
       await api(`/api/visit/mascot-packs/${encodeURIComponent(selectedId)}`, 'PUT', {
         map_id: String(mapId || '').trim(),
         label,
@@ -385,11 +410,21 @@ export default function VisitMascotPackManager({
     } finally {
       setActionBusy(false);
     }
-  }, [selectedId, editorPack, packs, mapId, onRefresh, onForceLogout, labelDraft, setActionErrorWithDetails]);
+  }, [
+    selectedId,
+    editorPack,
+    packs,
+    mapId,
+    onRefresh,
+    onForceLogout,
+    labelDraft,
+    setActionErrorWithDetails,
+  ]);
 
   const onDelete = useCallback(async () => {
     if (!selectedId) return;
-    if (!window.confirm('Supprimer définitivement ce pack (y compris les fichiers uploadés) ?')) return;
+    if (!window.confirm('Supprimer définitivement ce pack (y compris les fichiers uploadés) ?'))
+      return;
     setActionBusy(true);
     setActionError('');
     setActionIssues([]);
@@ -409,12 +444,12 @@ export default function VisitMascotPackManager({
     setEditorPack((prev) => ({
       ...prev,
       mascotPackVersion: 2,
-      interactionProfile: typeof prev.interactionProfile === 'object' && prev.interactionProfile
-        ? prev.interactionProfile
-        : {},
-      dialogProfile: typeof prev.dialogProfile === 'object' && prev.dialogProfile
-        ? prev.dialogProfile
-        : {},
+      interactionProfile:
+        typeof prev.interactionProfile === 'object' && prev.interactionProfile
+          ? prev.interactionProfile
+          : {},
+      dialogProfile:
+        typeof prev.dialogProfile === 'object' && prev.dialogProfile ? prev.dialogProfile : {},
     }));
     setEditorTab(nextTab);
   }, []);
@@ -429,9 +464,12 @@ export default function VisitMascotPackManager({
 
   const patchInteractionRule = useCallback((key, partial) => {
     setEditorPack((prev) => {
-      const base = Number(prev.mascotPackVersion) === 2 && prev.interactionProfile && typeof prev.interactionProfile === 'object'
-        ? { ...prev.interactionProfile }
-        : {};
+      const base =
+        Number(prev.mascotPackVersion) === 2 &&
+        prev.interactionProfile &&
+        typeof prev.interactionProfile === 'object'
+          ? { ...prev.interactionProfile }
+          : {};
       const def = DEFAULT_VISIT_MASCOT_INTERACTION_PROFILE[key] || { mode: 'none' };
       const cur = { ...def, ...(base[key] || {}) };
       const nextRule = { ...cur, ...partial };
@@ -441,10 +479,15 @@ export default function VisitMascotPackManager({
       } else if (nextRule.mode === 'happy') {
         rule = { mode: 'happy' };
       } else {
-        const st = String(nextRule.state || (def.mode === 'transient' ? def.state : 'idle') || 'idle');
-        const dm = nextRule.durationMs != null
-          ? Number(nextRule.durationMs)
-          : (def.mode === 'transient' && def.durationMs != null ? Number(def.durationMs) : 1500);
+        const st = String(
+          nextRule.state || (def.mode === 'transient' ? def.state : 'idle') || 'idle',
+        );
+        const dm =
+          nextRule.durationMs != null
+            ? Number(nextRule.durationMs)
+            : def.mode === 'transient' && def.durationMs != null
+              ? Number(def.durationMs)
+              : 1500;
         rule = {
           mode: 'transient',
           state: st,
@@ -460,50 +503,60 @@ export default function VisitMascotPackManager({
     });
   }, []);
 
-  const onLibUpload = useCallback(async (ev) => {
-    const file = ev.target?.files?.[0];
-    ev.target.value = '';
-    if (!file || !selectedId) return;
-    const mid = String(mapId || '').trim();
-    const reader = new FileReader();
-    reader.onload = async () => {
-      const dataUrl = String(reader.result || '');
-      const comma = dataUrl.indexOf(',');
-      const b64 = comma >= 0 ? dataUrl.slice(comma + 1) : '';
-      if (!b64) return;
+  const onLibUpload = useCallback(
+    async (ev) => {
+      const file = ev.target?.files?.[0];
+      ev.target.value = '';
+      if (!file || !selectedId) return;
+      const mid = String(mapId || '').trim();
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const dataUrl = String(reader.result || '');
+        const comma = dataUrl.indexOf(',');
+        const b64 = comma >= 0 ? dataUrl.slice(comma + 1) : '';
+        if (!b64) return;
+        setLibLoading(true);
+        try {
+          const safeName =
+            file.name.replace(/[^a-zA-Z0-9._-]+/g, '-').toLowerCase() || 'import.png';
+          await api(`/api/visit/mascot-sprite-library/${encodeURIComponent(mid)}/assets`, 'POST', {
+            filename: safeName.endsWith('.png') ? safeName : `${safeName}.png`,
+            image_data: b64,
+          });
+          setLibMessage('Image importée dans la bibliothèque.');
+          await loadLibrary();
+        } catch (e) {
+          if (e instanceof AccountDeletedError) onForceLogout?.();
+          else setLibMessage(e.message || 'Import impossible');
+        } finally {
+          setLibLoading(false);
+        }
+      };
+      reader.readAsDataURL(file);
+    },
+    [mapId, selectedId, loadLibrary, onForceLogout],
+  );
+
+  const onLibDelete = useCallback(
+    async (filename) => {
+      const mid = String(mapId || '').trim();
+      if (!window.confirm(`Supprimer « ${filename} » de la bibliothèque ?`)) return;
       setLibLoading(true);
       try {
-        const safeName = file.name.replace(/[^a-zA-Z0-9._-]+/g, '-').toLowerCase() || 'import.png';
-        await api(`/api/visit/mascot-sprite-library/${encodeURIComponent(mid)}/assets`, 'POST', {
-          filename: safeName.endsWith('.png') ? safeName : `${safeName}.png`,
-          image_data: b64,
-        });
-        setLibMessage('Image importée dans la bibliothèque.');
+        await api(
+          `/api/visit/mascot-sprite-library/${encodeURIComponent(mid)}/assets/${encodeURIComponent(filename)}`,
+          'DELETE',
+        );
         await loadLibrary();
       } catch (e) {
         if (e instanceof AccountDeletedError) onForceLogout?.();
-        else setLibMessage(e.message || 'Import impossible');
+        else setLibMessage(e.message || 'Suppression impossible');
       } finally {
         setLibLoading(false);
       }
-    };
-    reader.readAsDataURL(file);
-  }, [mapId, selectedId, loadLibrary, onForceLogout]);
-
-  const onLibDelete = useCallback(async (filename) => {
-    const mid = String(mapId || '').trim();
-    if (!window.confirm(`Supprimer « ${filename} » de la bibliothèque ?`)) return;
-    setLibLoading(true);
-    try {
-      await api(`/api/visit/mascot-sprite-library/${encodeURIComponent(mid)}/assets/${encodeURIComponent(filename)}`, 'DELETE');
-      await loadLibrary();
-    } catch (e) {
-      if (e instanceof AccountDeletedError) onForceLogout?.();
-      else setLibMessage(e.message || 'Suppression impossible');
-    } finally {
-      setLibLoading(false);
-    }
-  }, [mapId, loadLibrary, onForceLogout]);
+    },
+    [mapId, loadLibrary, onForceLogout],
+  );
 
   const setFramesBaseToLibrary = useCallback(() => {
     const mid = String(mapId || '').trim();
@@ -518,12 +571,15 @@ export default function VisitMascotPackManager({
     [globalAssets, globalAssetSearch],
   );
 
-  const insertGlobalAssetIntoState = useCallback((assetUrl) => {
-    const url = String(assetUrl || '').trim();
-    if (!url) return;
-    setEditorPack((prev) => insertAssetUrlIntoPackState(prev, globalTargetState, url));
-    setEditorTab('workspace');
-  }, [globalTargetState]);
+  const insertGlobalAssetIntoState = useCallback(
+    (assetUrl) => {
+      const url = String(assetUrl || '').trim();
+      if (!url) return;
+      setEditorPack((prev) => insertAssetUrlIntoPackState(prev, globalTargetState, url));
+      setEditorTab('workspace');
+    },
+    [globalTargetState],
+  );
 
   const packDialogInheritedContext = useMemo(() => {
     const catalogId = String(selectedRow?.catalog_id || editorPack?.id || '').trim();
@@ -555,177 +611,210 @@ export default function VisitMascotPackManager({
       {studioMode === 'dialogues' ? (
         <VisitMascotDialogStudioView onForceLogout={onForceLogout} />
       ) : (
-      <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 16, alignItems: 'stretch', flex: 1 }}>
-      <MascotPackListAside
-        mapTitle={mapTitle}
-        actionBusy={actionBusy}
-        catalogModelOptions={catalogModelOptions}
-        selectedCatalogModelId={selectedCatalogModelId}
-        onSelectCatalogModel={setSelectedCatalogModelId}
-        findPackForCatalogModel={findPackForCatalogModel}
-        onNewDraft={() => void onNewDraft()}
-        onOpenCatalogModelForEdit={(id) => void openCatalogModelForEdit(id)}
-        onNewFromCatalog={() => void onNewFromCatalog()}
-        onRefresh={() => void onRefresh()}
-        onDuplicateSelected={() => void onDuplicateSelected()}
-        listError={listError}
-        loading={loading}
-        packs={packs}
-        selectedId={selectedId}
-        onSelectPack={setSelectedId}
-        selectedRow={selectedRow}
-        labelDraft={labelDraft}
-        onLabelDraftChange={setLabelDraft}
-        onSave={() => void onSave()}
-        onTogglePublish={() => void onTogglePublish()}
-        onDelete={() => void onDelete()}
-        selectedValidation={selectedValidation}
-        editorWarnings={editorWarnings}
-        actionError={actionError}
-        actionIssues={actionIssues}
-      />
-      <div style={{ flex: '1 1 420px', minWidth: 300 }}>
-        {!selectedId ? (
-          <div className="section-sub">
-            <p style={{ marginTop: 0 }}>
-              Sélectionnez un <strong>pack de la liste</strong> (brouillon ou publié), ou choisissez un
-              {' '}<strong>modèle intégré</strong> à gauche puis <strong>Éditer sur cette carte</strong>.
-            </p>
-            <p style={{ fontSize: '0.82rem', opacity: 0.9, marginBottom: 0 }}>
-              L’onglet <strong>Aperçu global</strong> permet de comparer les modèles ; les onglets
-              {' '}<strong>Édition guidée</strong>, <strong>JSON</strong> et <strong>Comportements visite</strong>
-              {' '}modifient uniquement le pack sélectionné dans la colonne de gauche.
-            </p>
-          </div>
-        ) : (
-          <>
-            <div className="visit-mascot-pack-manager__tabs" role="tablist" style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
-              {RIGHT_TABS.map((t) => (
-                <button
-                  key={t.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={editorTab === t.id}
-                  className={`btn btn-sm ${editorTab === t.id ? 'btn-primary' : 'btn-ghost'}`}
-                  onClick={() => {
-                    setEditorTab(t.id);
-                    if (t.id === 'json') setJsonDraft(stringifyPack(editorPack, 2));
-                    setJsonError('');
-                  }}
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'row',
+            flexWrap: 'wrap',
+            gap: 16,
+            alignItems: 'stretch',
+            flex: 1,
+          }}
+        >
+          <MascotPackListAside
+            mapTitle={mapTitle}
+            actionBusy={actionBusy}
+            catalogModelOptions={catalogModelOptions}
+            selectedCatalogModelId={selectedCatalogModelId}
+            onSelectCatalogModel={setSelectedCatalogModelId}
+            findPackForCatalogModel={findPackForCatalogModel}
+            onNewDraft={() => void onNewDraft()}
+            onOpenCatalogModelForEdit={(id) => void openCatalogModelForEdit(id)}
+            onNewFromCatalog={() => void onNewFromCatalog()}
+            onRefresh={() => void onRefresh()}
+            onDuplicateSelected={() => void onDuplicateSelected()}
+            listError={listError}
+            loading={loading}
+            packs={packs}
+            selectedId={selectedId}
+            onSelectPack={setSelectedId}
+            selectedRow={selectedRow}
+            labelDraft={labelDraft}
+            onLabelDraftChange={setLabelDraft}
+            onSave={() => void onSave()}
+            onTogglePublish={() => void onTogglePublish()}
+            onDelete={() => void onDelete()}
+            selectedValidation={selectedValidation}
+            editorWarnings={editorWarnings}
+            actionError={actionError}
+            actionIssues={actionIssues}
+          />
+          <div style={{ flex: '1 1 420px', minWidth: 300 }}>
+            {!selectedId ? (
+              <div className="section-sub">
+                <p style={{ marginTop: 0 }}>
+                  Sélectionnez un <strong>pack de la liste</strong> (brouillon ou publié), ou
+                  choisissez un <strong>modèle intégré</strong> à gauche puis{' '}
+                  <strong>Éditer sur cette carte</strong>.
+                </p>
+                <p style={{ fontSize: '0.82rem', opacity: 0.9, marginBottom: 0 }}>
+                  L’onglet <strong>Aperçu global</strong> permet de comparer les modèles ; les
+                  onglets <strong>Édition guidée</strong>, <strong>JSON</strong> et{' '}
+                  <strong>Comportements visite</strong> modifient uniquement le pack sélectionné
+                  dans la colonne de gauche.
+                </p>
+              </div>
+            ) : (
+              <>
+                <div
+                  className="visit-mascot-pack-manager__tabs"
+                  role="tablist"
+                  style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}
                 >
-                  {t.label}
-                </button>
-              ))}
-            </div>
-            {editorTab === 'workspace' ? <PackBehaviorDetailTable pack={editorPack} /> : null}
-            {editorTab === 'workspace' ? (
-              <div style={{ marginTop: 10 }}>
-                <MascotPackWysiwygEditor
-                  pack={editorPack}
-                  onPackChange={setEditorPack}
-                  packUuid={selectedId}
-                  catalogId={selectedRow?.catalog_id || ''}
-                  visitMapId={String(mapId || '').trim()}
-                  onForceLogout={onForceLogout}
-                />
-              </div>
-            ) : null}
-            {editorTab === 'json' ? (
-              <div className="mascot-pack-json-tab">
-                <p className="section-sub" style={{ fontSize: '0.82rem' }}>
-                  Modifiez le JSON puis « Appliquer ».
-                </p>
-                <textarea
-                  value={jsonDraft}
-                  onChange={(ev) => { setJsonDraft(ev.target.value); setJsonError(''); }}
-                  spellCheck={false}
-                  style={{
-                    width: '100%',
-                    minHeight: 280,
-                    fontFamily: 'ui-monospace, monospace',
-                    fontSize: 12,
-                    borderRadius: 8,
-                    border: '1px solid rgba(26,71,49,0.25)',
-                    padding: 10,
-                    boxSizing: 'border-box',
-                  }}
-                />
-                {jsonError ? (
-                  <p className="text-danger" role="alert" style={{ fontSize: '0.82rem' }}>{jsonError}</p>
-                ) : null}
-                <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                  <button type="button" className="btn btn-primary btn-sm" onClick={applyJsonDraft}>
-                    Appliquer le JSON
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-sm"
-                    onClick={() => {
-                      void navigator.clipboard.writeText(jsonDraft);
-                    }}
-                  >
-                    Copier
-                  </button>
+                  {RIGHT_TABS.map((t) => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      role="tab"
+                      aria-selected={editorTab === t.id}
+                      className={`btn btn-sm ${editorTab === t.id ? 'btn-primary' : 'btn-ghost'}`}
+                      onClick={() => {
+                        setEditorTab(t.id);
+                        if (t.id === 'json') setJsonDraft(stringifyPack(editorPack, 2));
+                        setJsonError('');
+                      }}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
                 </div>
-              </div>
-            ) : null}
-            {editorTab === 'workspace' ? (
-              <MascotAssetsLibraryPanel
-                libAssets={libAssets}
-                libLoading={libLoading}
-                libMessage={libMessage}
-                onReloadLibrary={() => void loadLibrary()}
-                onSetFramesBaseToLibrary={setFramesBaseToLibrary}
-                onLibUpload={(e) => void onLibUpload(e)}
-                onLibDelete={(filename) => void onLibDelete(filename)}
-                globalAssetsLoading={globalAssetsLoading}
-                globalAssetsMessage={globalAssetsMessage}
-                filteredAssets={libraryFilteredAssets}
-                globalAssetSearch={globalAssetSearch}
-                onGlobalAssetSearchChange={setGlobalAssetSearch}
-                globalTargetState={globalTargetState}
-                onGlobalTargetStateChange={setGlobalTargetState}
-                onReloadGlobalAssets={() => void loadGlobalAssets()}
-                onInsertGlobalAsset={insertGlobalAssetIntoState}
-              />
-            ) : null}
-            {editorTab === 'interaction' ? (
-              <MascotInteractionProfileEditor
-                pack={editorPack}
-                onUpgradeToV2={() => upgradePackToV2('interaction')}
-                onPatchRule={patchInteractionRule}
-              />
-            ) : null}
-            {editorTab === 'dialog' ? (
-              <div>
-                <p className="section-sub" style={{ fontSize: '0.82rem', marginBottom: 10 }}>
-                  Messages de bulle pour ce pack (priorité maximale sur les défauts globaux et catalogue).
-                </p>
-                {Number(editorPack.mascotPackVersion) !== 2 ? (
-                  <button type="button" className="btn btn-primary btn-sm" onClick={() => upgradePackToV2('dialog')}>
-                    Passer ce pack en version 2 (bulles de dialogue)
-                  </button>
-                ) : (
-                  <VisitMascotDialogEditor
-                    profile={
-                      editorPack.dialogProfile && typeof editorPack.dialogProfile === 'object'
-                        ? editorPack.dialogProfile
-                        : {}
-                    }
-                    onProfileChange={patchDialogProfile}
-                    inheritedContext={packDialogInheritedContext}
-                    allowInheritToggle
+                {editorTab === 'workspace' ? <PackBehaviorDetailTable pack={editorPack} /> : null}
+                {editorTab === 'workspace' ? (
+                  <div style={{ marginTop: 10 }}>
+                    <MascotPackWysiwygEditor
+                      pack={editorPack}
+                      onPackChange={setEditorPack}
+                      packUuid={selectedId}
+                      catalogId={selectedRow?.catalog_id || ''}
+                      visitMapId={String(mapId || '').trim()}
+                      onForceLogout={onForceLogout}
+                    />
+                  </div>
+                ) : null}
+                {editorTab === 'json' ? (
+                  <div className="mascot-pack-json-tab">
+                    <p className="section-sub" style={{ fontSize: '0.82rem' }}>
+                      Modifiez le JSON puis « Appliquer ».
+                    </p>
+                    <textarea
+                      value={jsonDraft}
+                      onChange={(ev) => {
+                        setJsonDraft(ev.target.value);
+                        setJsonError('');
+                      }}
+                      spellCheck={false}
+                      style={{
+                        width: '100%',
+                        minHeight: 280,
+                        fontFamily: 'ui-monospace, monospace',
+                        fontSize: 12,
+                        borderRadius: 8,
+                        border: '1px solid rgba(26,71,49,0.25)',
+                        padding: 10,
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                    {jsonError ? (
+                      <p className="text-danger" role="alert" style={{ fontSize: '0.82rem' }}>
+                        {jsonError}
+                      </p>
+                    ) : null}
+                    <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                      <button
+                        type="button"
+                        className="btn btn-primary btn-sm"
+                        onClick={applyJsonDraft}
+                      >
+                        Appliquer le JSON
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm"
+                        onClick={() => {
+                          void navigator.clipboard.writeText(jsonDraft);
+                        }}
+                      >
+                        Copier
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
+                {editorTab === 'workspace' ? (
+                  <MascotAssetsLibraryPanel
+                    libAssets={libAssets}
+                    libLoading={libLoading}
+                    libMessage={libMessage}
+                    onReloadLibrary={() => void loadLibrary()}
+                    onSetFramesBaseToLibrary={setFramesBaseToLibrary}
+                    onLibUpload={(e) => void onLibUpload(e)}
+                    onLibDelete={(filename) => void onLibDelete(filename)}
+                    globalAssetsLoading={globalAssetsLoading}
+                    globalAssetsMessage={globalAssetsMessage}
+                    filteredAssets={libraryFilteredAssets}
+                    globalAssetSearch={globalAssetSearch}
+                    onGlobalAssetSearchChange={setGlobalAssetSearch}
+                    globalTargetState={globalTargetState}
+                    onGlobalTargetStateChange={setGlobalTargetState}
+                    onReloadGlobalAssets={() => void loadGlobalAssets()}
+                    onInsertGlobalAsset={insertGlobalAssetIntoState}
                   />
-                )}
-              </div>
-            ) : null}
-            {editorTab === 'preview' ? (
-              <VisitMascotStudioPreviewSection packs={packs} mapId={String(mapId || '')} onForceLogout={onForceLogout} />
-            ) : null}
-          </>
-        )}
-      </div>
-      </div>
+                ) : null}
+                {editorTab === 'interaction' ? (
+                  <MascotInteractionProfileEditor
+                    pack={editorPack}
+                    onUpgradeToV2={() => upgradePackToV2('interaction')}
+                    onPatchRule={patchInteractionRule}
+                  />
+                ) : null}
+                {editorTab === 'dialog' ? (
+                  <div>
+                    <p className="section-sub" style={{ fontSize: '0.82rem', marginBottom: 10 }}>
+                      Messages de bulle pour ce pack (priorité maximale sur les défauts globaux et
+                      catalogue).
+                    </p>
+                    {Number(editorPack.mascotPackVersion) !== 2 ? (
+                      <button
+                        type="button"
+                        className="btn btn-primary btn-sm"
+                        onClick={() => upgradePackToV2('dialog')}
+                      >
+                        Passer ce pack en version 2 (bulles de dialogue)
+                      </button>
+                    ) : (
+                      <VisitMascotDialogEditor
+                        profile={
+                          editorPack.dialogProfile && typeof editorPack.dialogProfile === 'object'
+                            ? editorPack.dialogProfile
+                            : {}
+                        }
+                        onProfileChange={patchDialogProfile}
+                        inheritedContext={packDialogInheritedContext}
+                        allowInheritToggle
+                      />
+                    )}
+                  </div>
+                ) : null}
+                {editorTab === 'preview' ? (
+                  <VisitMascotStudioPreviewSection
+                    packs={packs}
+                    mapId={String(mapId || '')}
+                    onForceLogout={onForceLogout}
+                  />
+                ) : null}
+              </>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );

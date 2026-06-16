@@ -24,7 +24,7 @@ async function createStudentForGroups(label) {
     `INSERT INTO users
       (id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name, affiliation, password_hash, auth_provider, is_active, created_at, updated_at)
      VALUES (?, 'student', NULL, NULL, NULL, ?, ?, ?, 'both', NULL, 'local', 1, NOW(), NOW())`,
-    [id, firstName, lastName, `${firstName} ${lastName}`]
+    [id, firstName, lastName, `${firstName} ${lastName}`],
   );
   const noviceRole = await queryOne("SELECT id FROM roles WHERE slug = 'eleve_novice' LIMIT 1");
   assert.ok(noviceRole?.id);
@@ -32,7 +32,7 @@ async function createStudentForGroups(label) {
     `INSERT INTO user_roles (user_type, user_id, role_id, is_primary)
      VALUES ('student', ?, ?, 1)
      ON DUPLICATE KEY UPDATE is_primary = 1`,
-    [id, noviceRole.id]
+    [id, noviceRole.id],
   );
   return { id, firstName, lastName };
 }
@@ -69,7 +69,9 @@ test('Groupes: CRUD basique + membres + scopes', async () => {
   assert.strictEqual(membership.body.group_id, created.body.id);
   assert.ok(Array.isArray(membership.body.members));
   assert.ok(membership.body.members.some((m) => m.user_id === studentA.id));
-  assert.ok(membership.body.members.some((m) => m.user_id === studentB.id && m.role_in_group === 'manager'));
+  assert.ok(
+    membership.body.members.some((m) => m.user_id === studentB.id && m.role_in_group === 'manager'),
+  );
   assert.ok(Array.isArray(membership.body.scopes));
   assert.ok(membership.body.scopes.some((s) => s.map_id === mapRow.id));
 
@@ -92,23 +94,26 @@ async function createProfTeacherToken(label) {
   await execute(
     `INSERT INTO users (id, user_type, email, pseudo, display_name, password_hash, auth_provider, is_active, created_at, updated_at)
      VALUES (?, 'teacher', ?, ?, ?, 'x', 'local', 1, NOW(), NOW())`,
-    [teacherId, teacherEmail, teacherId, `Prof ${label}`]
+    [teacherId, teacherEmail, teacherId, `Prof ${label}`],
   );
   await execute(
     `INSERT INTO user_roles (user_type, user_id, role_id, is_primary)
      VALUES ('teacher', ?, ?, 1)
      ON DUPLICATE KEY UPDATE role_id = VALUES(role_id), is_primary = 1`,
-    [teacherId, profRole.id]
+    [teacherId, profRole.id],
   );
-  const token = await signAuthToken({
-    userType: 'teacher',
-    userId: teacherId,
-    canonicalUserId: teacherId,
-    roleId: profRole.id,
-    roleSlug: 'prof',
-    roleDisplayName: 'n3boss',
-    elevated: false,
-  }, false);
+  const token = await signAuthToken(
+    {
+      userType: 'teacher',
+      userId: teacherId,
+      canonicalUserId: teacherId,
+      roleId: profRole.id,
+      roleSlug: 'prof',
+      roleDisplayName: 'n3boss',
+      elevated: false,
+    },
+    false,
+  );
   return { token, teacherId };
 }
 
@@ -121,12 +126,12 @@ test('Stats: prof avec stats.read.all et membre d’un groupe voit tous les n3be
   await execute(
     `INSERT INTO \`groups\` (id, slug, name, kind, is_active, created_at, updated_at)
      VALUES (?, ?, ?, 'class', 1, NOW(), NOW())`,
-    [groupId, `stats-prof-group-${Date.now()}`, `Stats Prof Group ${Date.now()}`]
+    [groupId, `stats-prof-group-${Date.now()}`, `Stats Prof Group ${Date.now()}`],
   );
   await execute(
     `INSERT INTO group_members (group_id, user_id, user_type, role_in_group)
      VALUES (?, ?, 'student', 'member'), (?, ?, 'teacher', 'manager')`,
-    [groupId, studentInGroup.id, groupId, teacherId]
+    [groupId, studentInGroup.id, groupId, teacherId],
   );
 
   const allStats = await request(app)
@@ -154,17 +159,17 @@ test('Stats: filtre group_id limite la liste des n3beurs', async () => {
   await execute(
     `INSERT INTO \`groups\` (id, slug, name, kind, is_active, created_at, updated_at)
      VALUES (?, ?, ?, 'class', 1, NOW(), NOW())`,
-    [groupId, `stats-group-${Date.now()}`, `Stats Group ${Date.now()}`]
+    [groupId, `stats-group-${Date.now()}`, `Stats Group ${Date.now()}`],
   );
   await execute(
     `INSERT INTO group_members (group_id, user_id, user_type, role_in_group)
      VALUES (?, ?, 'student', 'member')`,
-    [groupId, studentInGroup.id]
+    [groupId, studentInGroup.id],
   );
   await execute(
     `INSERT INTO group_members (group_id, user_id, user_type, role_in_group)
      VALUES (?, ?, 'teacher', 'manager')`,
-    [groupId, (await queryOne("SELECT id FROM users WHERE user_type='teacher' LIMIT 1")).id]
+    [groupId, (await queryOne("SELECT id FROM users WHERE user_type='teacher' LIMIT 1")).id],
   );
 
   const allStats = await request(app)
@@ -191,12 +196,12 @@ test('Forum: création de sujet dans un groupe et filtrage /threads', async () =
   await execute(
     `INSERT INTO \`groups\` (id, slug, name, kind, is_active, created_at, updated_at)
      VALUES (?, ?, ?, 'class', 1, NOW(), NOW())`,
-    [groupId, `forum-group-${Date.now()}`, `Forum Group ${Date.now()}`]
+    [groupId, `forum-group-${Date.now()}`, `Forum Group ${Date.now()}`],
   );
   await execute(
     `INSERT INTO group_members (group_id, user_id, user_type, role_in_group)
      VALUES (?, ?, 'teacher', 'manager')`,
-    [groupId, teacherId]
+    [groupId, teacherId],
   );
 
   const created = await request(app)
@@ -217,7 +222,9 @@ test('Forum: création de sujet dans un groupe et filtrage /threads', async () =
   assert.ok(Array.isArray(listed.body.items));
   assert.ok(listed.body.items.some((t) => t.id === created.body.thread.id));
 
-  const dbRow = await queryOne('SELECT group_id FROM forum_threads WHERE id = ? LIMIT 1', [created.body.thread.id]);
+  const dbRow = await queryOne('SELECT group_id FROM forum_threads WHERE id = ? LIMIT 1', [
+    created.body.thread.id,
+  ]);
   assert.strictEqual(String(dbRow?.group_id || ''), groupId);
 });
 
@@ -230,22 +237,22 @@ test('Tasks: affectation rapide par groupe', async () => {
   await execute(
     `INSERT INTO \`groups\` (id, slug, name, kind, is_active, created_at, updated_at)
      VALUES (?, ?, ?, 'class', 1, NOW(), NOW())`,
-    [groupId, `task-group-${Date.now()}`, `Task Group ${Date.now()}`]
+    [groupId, `task-group-${Date.now()}`, `Task Group ${Date.now()}`],
   );
   await execute(
     `INSERT INTO group_members (group_id, user_id, user_type, role_in_group)
      VALUES (?, ?, 'teacher', 'manager')`,
-    [groupId, teacherId]
+    [groupId, teacherId],
   );
   await execute(
     `INSERT INTO group_members (group_id, user_id, user_type, role_in_group)
      VALUES (?, ?, 'student', 'member')`,
-    [groupId, student.id]
+    [groupId, student.id],
   );
   await execute(
     `INSERT INTO tasks (id, title, description, map_id, group_id, required_students, completion_mode, status, created_at)
      VALUES (?, ?, '', 'foret', ?, 5, 'single_done', 'available', ?)`,
-    [taskId, `Task group ${Date.now()}`, groupId, new Date().toISOString()]
+    [taskId, `Task group ${Date.now()}`, groupId, new Date().toISOString()],
   );
 
   const res = await request(app)
@@ -254,6 +261,8 @@ test('Tasks: affectation rapide par groupe', async () => {
     .send({ group_id: groupId })
     .expect(200);
   assert.ok(Number(res.body.assigned) >= 1);
-  const assignments = await queryAll('SELECT student_id FROM task_assignments WHERE task_id = ?', [taskId]);
+  const assignments = await queryAll('SELECT student_id FROM task_assignments WHERE task_id = ?', [
+    taskId,
+  ]);
   assert.ok(assignments.some((a) => String(a.student_id) === student.id));
 });

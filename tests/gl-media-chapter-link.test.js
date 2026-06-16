@@ -9,10 +9,7 @@ const {
   loadMediaKeyIndex,
   resolveMediaByStableKey,
 } = require('../lib/glAssetManifest');
-const {
-  saveMediaFromBuffer,
-  deleteMediaLibraryItem,
-} = require('../lib/mediaLibrary');
+const { saveMediaFromBuffer, deleteMediaLibraryItem } = require('../lib/mediaLibrary');
 const { biomeAssetSlug } = require('../lib/glBiomesRegistry');
 const { buildPublicIntroPayload, loadDefaultIntroConfig } = require('../lib/glIntro');
 const { auditGlMediaKeys } = require('../lib/glMediaKeysAudit');
@@ -24,8 +21,8 @@ const TINY_PNG = Buffer.from(
 
 /** En-tête MP3 minimal valide (silence, ~0.1 s) */
 const TINY_MP3 = Buffer.from([
-  0xFF, 0xFB, 0x90, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0xff, 0xfb, 0x90, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 ]);
 
 const FIXTURE_FILES = [
@@ -40,7 +37,9 @@ const FIXTURE_FILES = [
 function importFixtures() {
   const saved = [];
   for (const file of FIXTURE_FILES) {
-    saved.push(saveMediaFromBuffer(file.buffer, file.mime, file.fileName, { skipManifestSync: true }));
+    saved.push(
+      saveMediaFromBuffer(file.buffer, file.mime, file.fileName, { skipManifestSync: true }),
+    );
   }
   syncAssetManifests();
   return saved;
@@ -118,11 +117,21 @@ test('auditGlMediaKeys — compte les entrées importées', () => {
 
 test('auditGlMediaKeys — branche les scènes de récit de chapitre (recit_0N-chapN_*)', () => {
   const recitFiles = [
-    { fileName: 'GL_recit_01-chap1_le-carnet-dans-la-savane.png', buffer: TINY_PNG, mime: 'image/png' },
-    { fileName: 'GL_recit_01-chap1_savane-emerveillement.png', buffer: TINY_PNG, mime: 'image/png' },
+    {
+      fileName: 'GL_recit_01-chap1_le-carnet-dans-la-savane.png',
+      buffer: TINY_PNG,
+      mime: 'image/png',
+    },
+    {
+      fileName: 'GL_recit_01-chap1_savane-emerveillement.png',
+      buffer: TINY_PNG,
+      mime: 'image/png',
+    },
     { fileName: 'GL_recit_00-prologue_la-boite-portail.png', buffer: TINY_PNG, mime: 'image/png' },
   ];
-  const saved = recitFiles.map((f) => saveMediaFromBuffer(f.buffer, f.mime, f.fileName, { skipManifestSync: true }));
+  const saved = recitFiles.map((f) =>
+    saveMediaFromBuffer(f.buffer, f.mime, f.fileName, { skipManifestSync: true }),
+  );
   syncAssetManifests();
   try {
     const index = loadMediaKeyIndex();
@@ -132,7 +141,9 @@ test('auditGlMediaKeys — branche les scènes de récit de chapitre (recit_0N-c
     assert.ok(chap1, 'le chapitre 1 doit être branché');
     assert.ok(chap1.slug.startsWith('recit_01-chap1_'));
 
-    const prologue = report.ok.find((row) => row.category === 'chapitre-recit' && row.ref === 'prologue');
+    const prologue = report.ok.find(
+      (row) => row.category === 'chapitre-recit' && row.ref === 'prologue',
+    );
     assert.ok(prologue, 'le prologue doit être branché');
 
     // Toutes les scènes du chapitre (pas seulement la couverture) sortent des clés orphelines.
@@ -144,8 +155,12 @@ test('auditGlMediaKeys — branche les scènes de récit de chapitre (recit_0N-c
 });
 
 test('collision de clé stable — avertissement à l’upload (dernier import gagnant)', () => {
-  const first = saveMediaFromBuffer(TINY_PNG, 'image/png', 'GL_recit_01-chap1_doublon.png', { skipManifestSync: true });
-  const second = saveMediaFromBuffer(TINY_PNG, 'image/png', 'GL_recit_01-chap1_doublon.png', { skipManifestSync: true });
+  const first = saveMediaFromBuffer(TINY_PNG, 'image/png', 'GL_recit_01-chap1_doublon.png', {
+    skipManifestSync: true,
+  });
+  const second = saveMediaFromBuffer(TINY_PNG, 'image/png', 'GL_recit_01-chap1_doublon.png', {
+    skipManifestSync: true,
+  });
   try {
     const collision = (second.assetWarnings || []).find((w) => w.type === 'stable_key_collision');
     assert.ok(collision, 'le second upload doit signaler la collision');
@@ -170,7 +185,9 @@ test('métas de scène (légende / ordre / couverture) — édition, tri et pers
     { fileName: 'GL_recit_02-chap2_bbb.png', buffer: TINY_PNG, mime: 'image/png' },
     { fileName: 'GL_recit_02-chap2_ccc.png', buffer: TINY_PNG, mime: 'image/png' },
   ];
-  const saved = files.map((f) => saveMediaFromBuffer(f.buffer, f.mime, f.fileName, { skipManifestSync: true }));
+  const saved = files.map((f) =>
+    saveMediaFromBuffer(f.buffer, f.mime, f.fileName, { skipManifestSync: true }),
+  );
   syncAssetManifests();
   try {
     // sans méta : tri alphabétique
@@ -196,7 +213,9 @@ test('métas de scène (légende / ordre / couverture) — édition, tri et pers
     );
 
     // les métas survivent à un ré-import du même fichier (clé identique)
-    const reuploaded = saveMediaFromBuffer(TINY_PNG, 'image/png', 'GL_recit_02-chap2_ccc.png', { skipManifestSync: true });
+    const reuploaded = saveMediaFromBuffer(TINY_PNG, 'image/png', 'GL_recit_02-chap2_ccc.png', {
+      skipManifestSync: true,
+    });
     saved.push(reuploaded);
     scenes = listChapterRecitScenes(2);
     const ccc = scenes.find((s) => s.stableKey === 'recit_02-chap2_ccc');
@@ -204,10 +223,7 @@ test('métas de scène (légende / ordre / couverture) — édition, tri et pers
     assert.strictEqual(ccc.order, 1);
 
     // clé hors convention refusée
-    assert.throws(
-      () => updateChapterSceneMeta('biome_jungle', { caption: 'x' }),
-      /convention/,
-    );
+    assert.throws(() => updateChapterSceneMeta('biome_jungle', { caption: 'x' }), /convention/);
   } finally {
     cleanupSaved(saved);
   }
@@ -215,8 +231,12 @@ test('métas de scène (légende / ordre / couverture) — édition, tri et pers
 
 test('auditGlMediaKeys — signale les clés récit suspectes (typos)', () => {
   const saved = [
-    saveMediaFromBuffer(TINY_PNG, 'image/png', 'GL_recit_1-chap1_typo.png', { skipManifestSync: true }),
-    saveMediaFromBuffer(TINY_PNG, 'image/png', 'GL_recit_01-chap1_valide.png', { skipManifestSync: true }),
+    saveMediaFromBuffer(TINY_PNG, 'image/png', 'GL_recit_1-chap1_typo.png', {
+      skipManifestSync: true,
+    }),
+    saveMediaFromBuffer(TINY_PNG, 'image/png', 'GL_recit_01-chap1_valide.png', {
+      skipManifestSync: true,
+    }),
   ];
   syncAssetManifests();
   try {
@@ -233,8 +253,5 @@ test('deriveMediaStableKey — cohérence noms importés images.zip', () => {
     deriveMediaStableKey('GL_plateau-1_tropiques-africains.jpg'),
     'plateau-1_tropiques-africains',
   );
-  assert.strictEqual(
-    deriveMediaStableKey('GL_plateau-2_savane.mp3'),
-    'plateau-2_savane',
-  );
+  assert.strictEqual(deriveMediaStableKey('GL_plateau-2_savane.mp3'), 'plateau-2_savane');
 });

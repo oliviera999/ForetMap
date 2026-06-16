@@ -111,7 +111,10 @@ export function PlantPrefillPanel({ form, setForm, saving = false, onToast }) {
     setPrefillThumbBroken((prev) => (prev[k] ? prev : { ...prev, [k]: true }));
   };
 
-  const groupedPrefillPhotos = useMemo(() => groupPrefillPhotosByField(prefillResult?.photos), [prefillResult]);
+  const groupedPrefillPhotos = useMemo(
+    () => groupPrefillPhotosByField(prefillResult?.photos),
+    [prefillResult],
+  );
 
   const prefillQuery = (form.scientific_name || form.name || '').trim();
 
@@ -120,7 +123,9 @@ export function PlantPrefillPanel({ form, setForm, saving = false, onToast }) {
       onToast?.('Indique un nom (ou nom scientifique) avec au moins 2 caractères.');
       return;
     }
-    const selectedSourceIds = SPECIES_PREFILL_SOURCE_CHECKBOXES.filter((o) => prefillSources[o.id]).map((o) => o.id);
+    const selectedSourceIds = SPECIES_PREFILL_SOURCE_CHECKBOXES.filter(
+      (o) => prefillSources[o.id],
+    ).map((o) => o.id);
     if (selectedSourceIds.length === 0) {
       onToast?.('Coche au moins une source pour la pré-saisie.');
       return;
@@ -139,10 +144,12 @@ export function PlantPrefillPanel({ form, setForm, saving = false, onToast }) {
       }
       const data = await api(`/api/plants/autofill?${hintParams.toString()}`);
       setPrefillResult(data || null);
-      setSelectedFields(buildPrefillFieldSelection(data, formRef.current || {}, {
-        overwriteFilled,
-        speciesPrefillFields: SPECIES_PREFILL_FIELDS,
-      }));
+      setSelectedFields(
+        buildPrefillFieldSelection(data, formRef.current || {}, {
+          overwriteFilled,
+          speciesPrefillFields: SPECIES_PREFILL_FIELDS,
+        }),
+      );
       setPrefillPhotoSelections(buildInitialPrefillPhotoSelections(data?.photos, PHOTO_FIELD_KEYS));
     } catch (e) {
       setPrefillResult(null);
@@ -158,15 +165,17 @@ export function PlantPrefillPanel({ form, setForm, saving = false, onToast }) {
 
   const applyPrefill = () => {
     if (!prefillResult) return;
-    setForm((prev) => applyPrefillToForm(prev, {
-      prefillResult,
-      selectedFields,
-      prefillPhotoSelections,
-      groupedPrefillPhotos,
-      overwriteFilled,
-      speciesPrefillFields: SPECIES_PREFILL_FIELDS,
-      photoFieldKeys: PHOTO_FIELD_KEYS,
-    }));
+    setForm((prev) =>
+      applyPrefillToForm(prev, {
+        prefillResult,
+        selectedFields,
+        prefillPhotoSelections,
+        groupedPrefillPhotos,
+        overwriteFilled,
+        speciesPrefillFields: SPECIES_PREFILL_FIELDS,
+        photoFieldKeys: PHOTO_FIELD_KEYS,
+      }),
+    );
     onToast?.('Pré-saisie appliquée au formulaire ✓');
   };
 
@@ -176,7 +185,9 @@ export function PlantPrefillPanel({ form, setForm, saving = false, onToast }) {
         sources={prefillSources}
         onToggle={(id) => setPrefillSources((prev) => ({ ...prev, [id]: !prev[id] }))}
       />
-      <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 8 }}>
+      <div
+        style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 8 }}
+      >
         <button
           type="button"
           className="btn btn-ghost btn-sm"
@@ -185,7 +196,15 @@ export function PlantPrefillPanel({ form, setForm, saving = false, onToast }) {
         >
           {prefillLoading ? 'Pré-saisie…' : '✨ Pré-saisir depuis sources externes'}
         </button>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '.8rem', color: '#444' }}>
+        <label
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            fontSize: '.8rem',
+            color: '#444',
+          }}
+        >
           <input
             type="checkbox"
             checked={overwriteFilled}
@@ -202,11 +221,20 @@ export function PlantPrefillPanel({ form, setForm, saving = false, onToast }) {
       {prefillResult && (
         <details className="plant-more" style={{ marginBottom: 10 }} open>
           <summary>
-            Pré-saisie proposée — confiance {Math.round(Number(prefillResult?.confidence || 0) * 100)}%
+            Pré-saisie proposée — confiance{' '}
+            {Math.round(Number(prefillResult?.confidence || 0) * 100)}%
           </summary>
           <div style={{ display: 'grid', gap: 8, marginTop: 10 }}>
             {Array.isArray(prefillResult?.warnings) && prefillResult.warnings.length > 0 && (
-              <div style={{ fontSize: '.8rem', color: '#7a5a13', background: '#fff9e5', borderRadius: 8, padding: '6px 8px' }}>
+              <div
+                style={{
+                  fontSize: '.8rem',
+                  color: '#7a5a13',
+                  background: '#fff9e5',
+                  borderRadius: 8,
+                  padding: '6px 8px',
+                }}
+              >
                 {prefillResult.warnings.slice(0, 3).map((w, idx) => (
                   <div key={`prefill-warning-${idx}`}>- {w}</div>
                 ))}
@@ -233,28 +261,48 @@ export function PlantPrefillPanel({ form, setForm, saving = false, onToast }) {
                         </small>
                       )}
                     </span>
-                    <span style={{ fontSize: '.83rem', color: '#333', paddingLeft: 24 }}>{value}</span>
+                    <span style={{ fontSize: '.83rem', color: '#333', paddingLeft: 24 }}>
+                      {value}
+                    </span>
                   </label>
                 );
               })}
             </div>
             {(() => {
-              const empty = SPECIES_PREFILL_FIELDS.filter((k) => !String(prefillResult?.fields?.[k] || '').trim());
+              const empty = SPECIES_PREFILL_FIELDS.filter(
+                (k) => !String(prefillResult?.fields?.[k] || '').trim(),
+              );
               if (empty.length === 0) return null;
               const labels = empty.slice(0, 14).map((k) => SPECIES_PREFILL_FIELD_LABELS[k] || k);
               const extra = empty.length > 14 ? ` (+${empty.length - 14} autres)` : '';
               return (
                 <p style={{ fontSize: '.76rem', color: '#666', margin: 0, lineHeight: 1.35 }}>
-                  Sans proposition automatique pour : {labels.join(', ')}{extra}. Les sources publiques ne couvrent pas toujours ces champs ; complément possible via saisie manuelle ou extensions documentées (voir la doc API).
+                  Sans proposition automatique pour : {labels.join(', ')}
+                  {extra}. Les sources publiques ne couvrent pas toujours ces champs ; complément
+                  possible via saisie manuelle ou extensions documentées (voir la doc API).
                 </p>
               );
             })()}
             {Object.keys(groupedPrefillPhotos).length > 0 && (
               <div style={{ display: 'grid', gap: 6 }}>
                 <div>
-                  <strong style={{ fontSize: '.9rem' }}>Photos proposées (aperçu + crédit / licence)</strong>
-                  <p style={{ margin: '4px 0 0', fontSize: '.78rem', color: '#555', lineHeight: 1.35 }}>
-                    Cochez les images à ajouter (aucune n’est cochée par défaut). Le menu « Associer au champ » indique la case photo du formulaire cible ; plusieurs URL sur un même champ sont listées ligne à ligne. Les photos déjà présentes (ex. prises pour Pl@ntNet ou importées manuellement) sont conservées : les propositions de pré-saisie s’ajoutent sans les remplacer, sauf si vous cochez « Autoriser l’écrasement des champs déjà remplis ».
+                  <strong style={{ fontSize: '.9rem' }}>
+                    Photos proposées (aperçu + crédit / licence)
+                  </strong>
+                  <p
+                    style={{
+                      margin: '4px 0 0',
+                      fontSize: '.78rem',
+                      color: '#555',
+                      lineHeight: 1.35,
+                    }}
+                  >
+                    Cochez les images à ajouter (aucune n’est cochée par défaut). Le menu « Associer
+                    au champ » indique la case photo du formulaire cible ; plusieurs URL sur un même
+                    champ sont listées ligne à ligne. Les photos déjà présentes (ex. prises pour
+                    Pl@ntNet ou importées manuellement) sont conservées : les propositions de
+                    pré-saisie s’ajoutent sans les remplacer, sauf si vous cochez « Autoriser
+                    l’écrasement des champs déjà remplis ».
                   </p>
                 </div>
                 {Object.entries(groupedPrefillPhotos).map(([field, photos]) => (
@@ -267,9 +315,14 @@ export function PlantPrefillPanel({ form, setForm, saving = false, onToast }) {
                         const slotKey = prefillPhotoSlotKey(field, idx);
                         const thumbKey = slotKey;
                         const broken = !!prefillThumbBroken[thumbKey];
-                        const slot = prefillPhotoSelections[slotKey] || { checked: false, assignTo: field };
+                        const slot = prefillPhotoSelections[slotKey] || {
+                          checked: false,
+                          assignTo: field,
+                        };
                         const checked = !!slot.checked;
-                        const assignTo = PHOTO_FIELD_KEYS.has(slot.assignTo) ? slot.assignTo : field;
+                        const assignTo = PHOTO_FIELD_KEYS.has(slot.assignTo)
+                          ? slot.assignTo
+                          : field;
                         return (
                           <PrefillPhotoCard
                             key={slotKey}
@@ -287,7 +340,9 @@ export function PlantPrefillPanel({ form, setForm, saving = false, onToast }) {
                                   checked: on,
                                   assignTo: PHOTO_FIELD_KEYS.has(prev[slotKey]?.assignTo)
                                     ? prev[slotKey].assignTo
-                                    : (PHOTO_FIELD_KEYS.has(field) ? field : 'photo_species'),
+                                    : PHOTO_FIELD_KEYS.has(field)
+                                      ? field
+                                      : 'photo_species',
                                 },
                               }));
                             }}
@@ -313,7 +368,11 @@ export function PlantPrefillPanel({ form, setForm, saving = false, onToast }) {
               <button type="button" className="btn btn-primary btn-sm" onClick={applyPrefill}>
                 Appliquer la sélection
               </button>
-              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setPrefillResult(null)}>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={() => setPrefillResult(null)}
+              >
                 Masquer
               </button>
             </div>

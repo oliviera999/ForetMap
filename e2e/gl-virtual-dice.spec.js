@@ -13,19 +13,22 @@ test.describe('GL dés virtuels', () => {
 
     await page.setExtraHTTPHeaders({ 'X-Foretmap-Product': 'gl' });
     await page.goto('/');
-    await page.evaluate((payload) => {
-      localStorage.setItem('gl_session', JSON.stringify(payload));
-      localStorage.setItem('gl_active_tab', 'maps');
-    }, {
-      token: seeded.playerToken,
-      auth: {
-        userType: 'gl_player',
-        roleSlug: 'gl_player',
-        displayName: seeded.playerPseudo,
-        teamId: seeded.teamId,
-        gameId: seeded.gameId,
+    await page.evaluate(
+      (payload) => {
+        localStorage.setItem('gl_session', JSON.stringify(payload));
+        localStorage.setItem('gl_active_tab', 'maps');
       },
-    });
+      {
+        token: seeded.playerToken,
+        auth: {
+          userType: 'gl_player',
+          roleSlug: 'gl_player',
+          displayName: seeded.playerPseudo,
+          teamId: seeded.teamId,
+          gameId: seeded.gameId,
+        },
+      },
+    );
     await page.reload();
 
     const fab = page.getByTestId('gl-virtual-dice-fab');

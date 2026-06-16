@@ -48,7 +48,7 @@ test('getContentLibraryLimits expose les tailles attendues', () => {
 test('decodeMultipartFileName corrige les accents UTF-8 mal lus en latin1', () => {
   assert.strictEqual(
     decodeMultipartFileName('forÃªt caducifoliÃ© (2).mp3'),
-    'forêt caducifolié (2).mp3'
+    'forêt caducifolié (2).mp3',
   );
   assert.strictEqual(decodeMultipartFileName('dÃ©sert froid.mp3'), 'désert froid.mp3');
   assert.strictEqual(decodeMultipartFileName('photo.png'), 'photo.png');
@@ -56,12 +56,14 @@ test('decodeMultipartFileName corrige les accents UTF-8 mal lus en latin1', () =
 
 test('readAnalyzeUploadPayload multipart — archive', () => {
   const buffer = Buffer.from('zip-content');
-  const payload = readAnalyzeUploadPayload(mockReq({
-    headers: { 'content-type': 'multipart/form-data; boundary=abc' },
-    files: {
-      archive: [{ originalname: 'forÃªt.zip', buffer }],
-    },
-  }));
+  const payload = readAnalyzeUploadPayload(
+    mockReq({
+      headers: { 'content-type': 'multipart/form-data; boundary=abc' },
+      files: {
+        archive: [{ originalname: 'forÃªt.zip', buffer }],
+      },
+    }),
+  );
   assert.strictEqual(payload.transport, 'multipart');
   assert.strictEqual(payload.archive.fileName, 'forêt.zip');
   assert.deepStrictEqual(payload.archive.buffer, buffer);
@@ -69,22 +71,26 @@ test('readAnalyzeUploadPayload multipart — archive', () => {
 
 test('readAnalyzeUploadPayload multipart — fichiers', () => {
   const buffer = Buffer.from('png');
-  const payload = readAnalyzeUploadPayload(mockReq({
-    headers: { 'content-type': 'multipart/form-data; boundary=abc' },
-    files: {
-      files: [{ originalname: 'photo.png', buffer }],
-    },
-  }));
+  const payload = readAnalyzeUploadPayload(
+    mockReq({
+      headers: { 'content-type': 'multipart/form-data; boundary=abc' },
+      files: {
+        files: [{ originalname: 'photo.png', buffer }],
+      },
+    }),
+  );
   assert.strictEqual(payload.transport, 'multipart');
   assert.strictEqual(payload.uploadedFiles.length, 1);
   assert.strictEqual(payload.uploadedFiles[0].fileName, 'photo.png');
 });
 
 test('readAnalyzeUploadPayload JSON legacy', () => {
-  const payload = readAnalyzeUploadPayload(mockReq({
-    headers: { 'content-type': 'application/json' },
-    body: { files: [{ fileName: 'x.png' }] },
-  }));
+  const payload = readAnalyzeUploadPayload(
+    mockReq({
+      headers: { 'content-type': 'application/json' },
+      body: { files: [{ fileName: 'x.png' }] },
+    }),
+  );
   assert.strictEqual(payload.transport, 'json');
   assert.deepStrictEqual(payload.body.files, [{ fileName: 'x.png' }]);
 });
@@ -92,13 +98,15 @@ test('readAnalyzeUploadPayload JSON legacy', () => {
 test('readApplyUploadPayload multipart — entries JSON', () => {
   const entries = [{ fileName: 'a.png', kind: 'media' }];
   const buffer = Buffer.from('png');
-  const payload = readApplyUploadPayload(mockReq({
-    headers: { 'content-type': 'multipart/form-data; boundary=abc' },
-    body: { entries: JSON.stringify(entries) },
-    files: {
-      files: [{ originalname: 'a.png', buffer }],
-    },
-  }));
+  const payload = readApplyUploadPayload(
+    mockReq({
+      headers: { 'content-type': 'multipart/form-data; boundary=abc' },
+      body: { entries: JSON.stringify(entries) },
+      files: {
+        files: [{ originalname: 'a.png', buffer }],
+      },
+    }),
+  );
   assert.strictEqual(payload.transport, 'multipart');
   assert.deepStrictEqual(payload.entries, entries);
   assert.strictEqual(payload.uploadedFiles.length, 1);

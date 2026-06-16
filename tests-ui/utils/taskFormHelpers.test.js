@@ -23,7 +23,10 @@ describe('zonePickDisplayName', () => {
 
 describe('initialLocationIds', () => {
   test('clé multi prioritaire, dédupliquée/nettoyée', () => {
-    expect(initialLocationIds({ zone_ids: [' 1 ', '1', '', '2'] }, 'zone_ids', 'zone_id')).toEqual(['1', '2']);
+    expect(initialLocationIds({ zone_ids: [' 1 ', '1', '', '2'] }, 'zone_ids', 'zone_id')).toEqual([
+      '1',
+      '2',
+    ]);
   });
   test('repli sur la clé simple', () => {
     expect(initialLocationIds({ zone_id: '7' }, 'zone_ids', 'zone_id')).toEqual(['7']);
@@ -36,8 +39,12 @@ describe('initialLocationIds', () => {
 
 describe('initialLinkedObjectIds', () => {
   test('extrait les id d’objets liés, dédupliqués', () => {
-    expect(initialLinkedObjectIds({ zones_linked: [{ id: '1' }, { id: '1' }, { id: '2' }] }, 'zones_linked'))
-      .toEqual(['1', '2']);
+    expect(
+      initialLinkedObjectIds(
+        { zones_linked: [{ id: '1' }, { id: '1' }, { id: '2' }] },
+        'zones_linked',
+      ),
+    ).toEqual(['1', '2']);
   });
   test('vide si absent / non tableau', () => {
     expect(initialLinkedObjectIds({}, 'zones_linked')).toEqual([]);
@@ -57,7 +64,9 @@ describe('normalizeTutorialIds', () => {
 
 describe('referentCandidateLabel', () => {
   test('display_name prioritaire', () => {
-    expect(referentCandidateLabel({ display_name: 'Alice', first_name: 'A', last_name: 'B' })).toBe('Alice');
+    expect(referentCandidateLabel({ display_name: 'Alice', first_name: 'A', last_name: 'B' })).toBe(
+      'Alice',
+    );
   });
   test('repli prénom + nom puis id', () => {
     expect(referentCandidateLabel({ first_name: 'Jean', last_name: 'Dupont' })).toBe('Jean Dupont');
@@ -68,14 +77,22 @@ describe('referentCandidateLabel', () => {
 describe('referentRoleHint', () => {
   const terms = { teacherSingular: 'prof', studentSingular: 'élève' };
   test('équipe enseignante : admin / prof / équipe', () => {
-    expect(referentRoleHint({ user_type: 'teacher', primary_role_slug: 'admin' }, terms)).toBe('Admin');
-    expect(referentRoleHint({ user_type: 'teacher', primary_role_slug: 'prof' }, terms)).toBe('prof');
-    expect(referentRoleHint({ user_type: 'teacher', primary_role_slug: 'autre' }, terms)).toBe('Équipe');
+    expect(referentRoleHint({ user_type: 'teacher', primary_role_slug: 'admin' }, terms)).toBe(
+      'Admin',
+    );
+    expect(referentRoleHint({ user_type: 'teacher', primary_role_slug: 'prof' }, terms)).toBe(
+      'prof',
+    );
+    expect(referentRoleHint({ user_type: 'teacher', primary_role_slug: 'autre' }, terms)).toBe(
+      'Équipe',
+    );
   });
   test('élève par défaut + replis sans termes', () => {
     expect(referentRoleHint({ user_type: 'student' }, terms)).toBe('élève');
     expect(referentRoleHint({ user_type: 'student' }, null)).toBe('n3beur');
-    expect(referentRoleHint({ user_type: 'teacher', primary_role_slug: 'prof' }, null)).toBe('n3boss');
+    expect(referentRoleHint({ user_type: 'teacher', primary_role_slug: 'prof' }, null)).toBe(
+      'n3boss',
+    );
   });
 });
 
@@ -103,11 +120,17 @@ describe('buildInitialTaskForm', () => {
   test('édition : reprend les champs de la tâche', () => {
     const form = buildInitialTaskForm({
       editTask: {
-        title: 'Arroser', description: 'Bien', project_id: 'p9',
-        required_students: 3, danger_level: 'safe', recurrence: 'weekly',
+        title: 'Arroser',
+        description: 'Bien',
+        project_id: 'p9',
+        required_students: 3,
+        danger_level: 'safe',
+        recurrence: 'weekly',
         referent_user_ids: [' u1 ', 'u1', 'u2'],
       },
-      initialMapId: 'm1', initialZoneIds: ['z1'], initialMarkerIds: ['mk1'],
+      initialMapId: 'm1',
+      initialZoneIds: ['z1'],
+      initialMarkerIds: ['mk1'],
     });
     expect(form.title).toBe('Arroser');
     expect(form.zone_ids).toEqual(['z1']);
@@ -119,7 +142,9 @@ describe('buildInitialTaskForm', () => {
   });
   test('duplication : titre suffixé (copie)', () => {
     const form = buildInitialTaskForm({
-      editTask: { title: 'Tailler' }, isDuplicate: true, initialMapId: 'm1',
+      editTask: { title: 'Tailler' },
+      isDuplicate: true,
+      initialMapId: 'm1',
     });
     expect(form.title).toBe('Tailler (copie)');
   });
@@ -127,11 +152,24 @@ describe('buildInitialTaskForm', () => {
 
 describe('buildTaskSavePayload', () => {
   const baseForm = {
-    title: '  Arroser  ', description: 'Détail', map_id: '', zone_ids: [' z1 ', 'z1'],
-    marker_ids: [], tutorial_ids: [], referent_user_ids: [' u1 ', 'u1'], project_id: '',
-    start_date: '', due_date: '', required_students: 2, completion_mode: '',
-    danger_level: '', difficulty_level: '', importance_level: '', recurrence: '',
-    living_beings: [' Pommier ', 'Pommier'], assign_student_ids: [],
+    title: '  Arroser  ',
+    description: 'Détail',
+    map_id: '',
+    zone_ids: [' z1 ', 'z1'],
+    marker_ids: [],
+    tutorial_ids: [],
+    referent_user_ids: [' u1 ', 'u1'],
+    project_id: '',
+    start_date: '',
+    due_date: '',
+    required_students: 2,
+    completion_mode: '',
+    danger_level: '',
+    difficulty_level: '',
+    importance_level: '',
+    recurrence: '',
+    living_beings: [' Pommier ', 'Pommier'],
+    assign_student_ids: [],
   };
   test('dédup + trim des ids et titre, valeurs vides → null', () => {
     const payload = buildTaskSavePayload({ form: baseForm, normalizedTutorialIds: [5] });
@@ -155,7 +193,9 @@ describe('buildTaskSavePayload', () => {
     const withImg = buildTaskSavePayload({ form: baseForm, taskImageData: 'data:img' });
     expect(withImg.imageData).toBe('data:img');
     const removed = buildTaskSavePayload({
-      form: baseForm, editTask: { id: 't1' }, taskImageRemoved: true,
+      form: baseForm,
+      editTask: { id: 't1' },
+      taskImageRemoved: true,
     });
     expect(removed.remove_task_image).toBe(true);
   });

@@ -34,15 +34,16 @@ function auth(token) {
 test('context-comments plant + tutorial', async () => {
   const student = await registerStudent('Ptut');
   const stamp = Date.now();
-  const plantIns = await execute(
-    'INSERT INTO plants (name, emoji, description) VALUES (?, ?, ?)',
-    [`Ctx plant ${stamp}`, '🌿', 'Test']
-  );
+  const plantIns = await execute('INSERT INTO plants (name, emoji, description) VALUES (?, ?, ?)', [
+    `Ctx plant ${stamp}`,
+    '🌿',
+    'Test',
+  ]);
   const plantId = String(plantIns.insertId);
   const slug = `ctx-tuto-${stamp}`;
   const tutoIns = await execute(
     'INSERT INTO tutorials (title, slug, type, summary, sort_order, is_active) VALUES (?, ?, ?, ?, 0, 1)',
-    [`Tuto ${stamp}`, slug, 'html', 'S']
+    [`Tuto ${stamp}`, slug, 'html', 'S'],
   );
   const tutorialId = String(tutoIns.insertId);
 

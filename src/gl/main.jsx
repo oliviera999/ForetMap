@@ -14,5 +14,5 @@ document.body.classList.add('gl-body');
 ReactDOM.createRoot(document.getElementById('root')).render(
   <ErrorBoundary>
     <AppGL />
-  </ErrorBoundary>
+  </ErrorBoundary>,
 );

@@ -2,14 +2,17 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { getDicebearAvatarUrl, getStudentAvatarUrl, resolveAvatarPath } from '../utils/avatar';
 
 function StudentAvatar({ student, size = 28, style = {}, className = '' }) {
-  const fallback = useMemo(() => getDicebearAvatarUrl(student), [
-    student?.id,
-    student?.pseudo,
-    student?.first_name,
-    student?.last_name,
-    student?.displayName,
-    student?.email,
-  ]);
+  const fallback = useMemo(
+    () => getDicebearAvatarUrl(student),
+    [
+      student?.id,
+      student?.pseudo,
+      student?.first_name,
+      student?.last_name,
+      student?.displayName,
+      student?.email,
+    ],
+  );
   const [src, setSrc] = useState(() => getStudentAvatarUrl(student));
 
   const pathKey = resolveAvatarPath(student) || '';

@@ -45,12 +45,7 @@ test('validateQuestionPayload signale chapitre inconnu', () => {
     choix_b: 'B',
     reponse_correcte: 'A',
   });
-  const errors = validateQuestionPayload(
-    payload,
-    2,
-    new Set(['tous']),
-    new Set(['cosmologie'])
-  );
+  const errors = validateQuestionPayload(payload, 2, new Set(['tous']), new Set(['cosmologie']));
   assert.ok(errors.some((e) => e.field === 'chapitre_slug'));
 });
 
@@ -69,12 +64,7 @@ test('validateQuestionPayload accepte deux choix minimum', () => {
     choix_e: '',
     reponse_correcte: 'B',
   });
-  const errors = validateQuestionPayload(
-    payload,
-    2,
-    new Set(['tous']),
-    new Set(['cosmologie'])
-  );
+  const errors = validateQuestionPayload(payload, 2, new Set(['tous']), new Set(['cosmologie']));
   assert.strictEqual(errors.length, 0);
 });
 

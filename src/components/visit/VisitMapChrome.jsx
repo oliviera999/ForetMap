@@ -106,7 +106,9 @@ export function VisitMapChrome({
                 marginLeft: 4,
               }}
             >
-              <span className="section-sub" style={{ whiteSpace: 'nowrap' }}>Mascotte</span>
+              <span className="section-sub" style={{ whiteSpace: 'nowrap' }}>
+                Mascotte
+              </span>
               <select
                 className="form-select"
                 style={{ minWidth: 140, maxWidth: 220 }}
@@ -115,7 +117,9 @@ export function VisitMapChrome({
                 aria-label="Choisir la mascotte affichée sur le plan"
               >
                 {visitMascotOptions.map((m) => (
-                  <option key={m.id} value={m.id}>{m.label}</option>
+                  <option key={m.id} value={m.id}>
+                    {m.label}
+                  </option>
                 ))}
               </select>
             </label>
@@ -167,7 +171,9 @@ export function VisitMapChrome({
           ) : null}
           {helpPanelSlot}
           {onBackToAuth ? (
-            <button type="button" className="btn btn-ghost btn-sm" onClick={onBackToAuth}>↩ Retour connexion</button>
+            <button type="button" className="btn btn-ghost btn-sm" onClick={onBackToAuth}>
+              ↩ Retour connexion
+            </button>
           ) : null}
         </div>
       </div>

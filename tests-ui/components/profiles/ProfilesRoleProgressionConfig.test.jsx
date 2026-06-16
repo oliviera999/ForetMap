@@ -37,8 +37,10 @@ describe('ProfilesRoleProgressionConfig', () => {
 
   test('progression : toggle câblé ; seuil affiché et enregistrable (palier)', () => {
     const { onToggleProgression, onSaveMinDoneThreshold } = setup();
-    fireEvent.click(screen.getByLabelText(/montée de niveau automatique/i, { selector: 'input' }) ||
-      screen.getAllByRole('checkbox')[0]);
+    fireEvent.click(
+      screen.getByLabelText(/montée de niveau automatique/i, { selector: 'input' }) ||
+        screen.getAllByRole('checkbox')[0],
+    );
     expect(onToggleProgression).toHaveBeenCalled();
     expect(screen.getByLabelText('Tâches validées requises pour Novice')).toHaveValue(5);
     fireEvent.click(screen.getByRole('button', { name: 'Enregistrer le seuil' }));
@@ -47,26 +49,26 @@ describe('ProfilesRoleProgressionConfig', () => {
 
   test('proposition : toggle tasks.propose + élévation', () => {
     const { onTogglePermission, onTogglePermissionElevation } = setup();
-    const proposeCb = screen.getAllByRole('checkbox').find((c) =>
-      c.closest('label')?.textContent?.includes('proposer de nouvelles tâches')
-    );
+    const proposeCb = screen
+      .getAllByRole('checkbox')
+      .find((c) => c.closest('label')?.textContent?.includes('proposer de nouvelles tâches'));
     fireEvent.click(proposeCb);
     expect(onTogglePermission).toHaveBeenCalledWith('tasks.propose', false);
-    const elevCb = screen.getAllByRole('checkbox').find((c) =>
-      c.closest('label')?.textContent?.includes('Exiger le PIN')
-    );
+    const elevCb = screen
+      .getAllByRole('checkbox')
+      .find((c) => c.closest('label')?.textContent?.includes('Exiger le PIN'));
     fireEvent.click(elevCb);
     expect(onTogglePermissionElevation).toHaveBeenCalledWith('tasks.propose', true);
   });
 
   test('forum / contexte : reflètent l’état du rôle et appellent les setters(id, checked)', () => {
     const { onSetForumParticipate, onSetContextCommentParticipate } = setup();
-    const forumCb = screen.getAllByRole('checkbox').find((c) =>
-      c.closest('label')?.textContent?.includes('participation au forum')
-    );
-    const ctxCb = screen.getAllByRole('checkbox').find((c) =>
-      c.closest('label')?.textContent?.includes('commentaires contextuels')
-    );
+    const forumCb = screen
+      .getAllByRole('checkbox')
+      .find((c) => c.closest('label')?.textContent?.includes('participation au forum'));
+    const ctxCb = screen
+      .getAllByRole('checkbox')
+      .find((c) => c.closest('label')?.textContent?.includes('commentaires contextuels'));
     expect(forumCb).toBeChecked(); // forum_participate = 1
     expect(ctxCb).not.toBeChecked(); // context_comment_participate = 0
     fireEvent.click(forumCb);
@@ -95,9 +97,9 @@ describe('ProfilesRoleProgressionConfig', () => {
 
   test('forum désactivé si canEditRoleDefinition=false', () => {
     setup({ canEditRoleDefinition: false });
-    const forumCb = screen.getAllByRole('checkbox').find((c) =>
-      c.closest('label')?.textContent?.includes('participation au forum')
-    );
+    const forumCb = screen
+      .getAllByRole('checkbox')
+      .find((c) => c.closest('label')?.textContent?.includes('participation au forum'));
     expect(forumCb).toBeDisabled();
   });
 });

@@ -3,7 +3,14 @@ import { api } from '../services/api';
 import { wheelZoomScaleFactor } from '../utils/mapWheelZoom';
 import { pointToContainedRectPct } from '../shared/pct-map/pctMapPointer.js';
 
-function useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh, embedded = false, mapLayoutOuterRef = null }) {
+function useMapGestures({
+  mapImageSrc,
+  activeMapId,
+  mode,
+  onRefresh,
+  embedded = false,
+  mapLayoutOuterRef = null,
+}) {
   const containerRef = useRef(null);
   const worldRef = useRef(null);
   const imgRef = useRef(null);
@@ -50,7 +57,8 @@ function useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh, embedded = 
     tx.current = { x, y, s };
     applyTransform();
     setCommitted((prev) => {
-      if (Math.abs(prev.x - x) < 0.5 && Math.abs(prev.y - y) < 0.5 && Math.abs(prev.s - s) < 1e-4) return prev;
+      if (Math.abs(prev.x - x) < 0.5 && Math.abs(prev.y - y) < 0.5 && Math.abs(prev.s - s) < 1e-4)
+        return prev;
       return { x, y, s };
     });
   };
@@ -144,7 +152,8 @@ function useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh, embedded = 
       imgSizeRef.current = { w: img.naturalWidth, h: img.naturalHeight };
       setImgSize({ w: img.naturalWidth, h: img.naturalHeight });
     };
-    if (img.complete) onLoad(); else img.addEventListener('load', onLoad);
+    if (img.complete) onLoad();
+    else img.addEventListener('load', onLoad);
     return () => img.removeEventListener('load', onLoad);
   }, [mapImageSrc]);
 
@@ -234,9 +243,7 @@ function useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh, embedded = 
       }, 120);
     };
 
-    const ro = typeof ResizeObserver !== 'undefined'
-      ? new ResizeObserver(schedule)
-      : null;
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(schedule) : null;
     if (ro) {
       ro.observe(c);
       const outerEl = mapLayoutOuterRef?.current;
@@ -269,7 +276,7 @@ function useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh, embedded = 
       c,
       { x, y, s },
       { offsetX: 0, offsetY: 0, width: w, height: h },
-      { clamp: false }
+      { clamp: false },
     );
   };
 
@@ -293,7 +300,9 @@ function useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh, embedded = 
       if (isPanning.current) {
         if (!moved.current) {
           moved.current = true;
-          try { el.setPointerCapture(e.pointerId); } catch (_) {}
+          try {
+            el.setPointerCapture(e.pointerId);
+          } catch (_) {}
         }
         tx.current.x = e.clientX - panStart.current.x;
         tx.current.y = e.clientY - panStart.current.y;
@@ -322,13 +331,17 @@ function useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh, embedded = 
         const id = draggingMarkerRef.current;
         const mel = draggingMarkerEl.current;
         if (mel?._pct) {
-          api(`/api/map/markers/${id}`, 'PUT', { x_pct: mel._pct.xp, y_pct: mel._pct.yp }).then(onRefresh);
+          api(`/api/map/markers/${id}`, 'PUT', { x_pct: mel._pct.xp, y_pct: mel._pct.yp }).then(
+            onRefresh,
+          );
           delete mel._pct;
         }
         draggingMarkerRef.current = null;
         draggingMarkerEl.current = null;
       }
-      setTimeout(() => { moved.current = false; }, 0);
+      setTimeout(() => {
+        moved.current = false;
+      }, 0);
     };
 
     const onWH = (e) => {
@@ -429,7 +442,8 @@ function useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh, embedded = 
     enableMapInteraction();
   };
 
-  const prefersPageScroll = isCoarsePointer && mode === 'view' && committed.s <= 1.05 && !mapInteractionEnabled;
+  const prefersPageScroll =
+    isCoarsePointer && mode === 'view' && committed.s <= 1.05 && !mapInteractionEnabled;
   const touchAction = prefersPageScroll ? 'pan-y' : 'none';
 
   return {

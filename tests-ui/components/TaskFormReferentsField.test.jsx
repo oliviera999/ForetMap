@@ -4,7 +4,12 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { TaskFormReferentsField } from '../../src/components/tasks/TaskFormReferentsField.jsx';
 
 const TERMS = { studentPlural: 'n3beurs', studentSingular: 'n3beur', teacherSingular: 'n3boss' };
-const TEACHER = { id: 't1', display_name: 'Alice', user_type: 'teacher', primary_role_slug: 'prof' };
+const TEACHER = {
+  id: 't1',
+  display_name: 'Alice',
+  user_type: 'teacher',
+  primary_role_slug: 'prof',
+};
 const STUDENT = { id: 's1', first_name: 'Bob', last_name: 'Martin', user_type: 'student' };
 
 function renderField(props = {}) {
@@ -24,7 +29,7 @@ function renderField(props = {}) {
       onToggle={onToggle}
       onClear={onClear}
       {...props}
-    />
+    />,
   );
   return { onSearchChange, onToggle, onClear };
 }
@@ -48,7 +53,9 @@ describe('TaskFormReferentsField', () => {
 
   test('coche un candidat sélectionné', () => {
     renderField({ selectedIds: ['t1'] });
-    const checked = [...document.querySelectorAll('input[type="checkbox"]')].filter((c) => c.checked);
+    const checked = [...document.querySelectorAll('input[type="checkbox"]')].filter(
+      (c) => c.checked,
+    );
     expect(checked).toHaveLength(1);
   });
 
@@ -60,7 +67,9 @@ describe('TaskFormReferentsField', () => {
 
   test('recherche et effacement déclenchent les callbacks', () => {
     const { onSearchChange, onClear } = renderField();
-    fireEvent.change(screen.getByPlaceholderText('🔍 Filtrer par nom…'), { target: { value: 'al' } });
+    fireEvent.change(screen.getByPlaceholderText('🔍 Filtrer par nom…'), {
+      target: { value: 'al' },
+    });
     expect(onSearchChange).toHaveBeenCalledWith('al');
     fireEvent.click(screen.getByRole('button', { name: 'Effacer les référents' }));
     expect(onClear).toHaveBeenCalledTimes(1);

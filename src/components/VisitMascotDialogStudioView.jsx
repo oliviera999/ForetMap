@@ -24,10 +24,13 @@ export default function VisitMascotDialogStudioView({ onForceLogout }) {
   const [selectedScope, setSelectedScope] = useState(GLOBAL_SCOPE);
 
   const catalogOptions = useMemo(
-    () => getVisitMascotCatalog().map((m) => ({
-      id: String(m?.id || '').trim(),
-      label: String(m?.label || m?.id || '').trim(),
-    })).filter((m) => m.id),
+    () =>
+      getVisitMascotCatalog()
+        .map((m) => ({
+          id: String(m?.id || '').trim(),
+          label: String(m?.label || m?.id || '').trim(),
+        }))
+        .filter((m) => m.id),
     [],
   );
 
@@ -38,8 +41,12 @@ export default function VisitMascotDialogStudioView({ onForceLogout }) {
       const res = await api('/api/settings/admin');
       const rows = Array.isArray(res?.settings) ? res.settings : [];
       const byKey = Object.fromEntries(rows.map((r) => [String(r.key || ''), r.value]));
-      const defaultsParsed = parseDialogProfileJson(byKey['content.visit.mascot_dialog.defaults'] ?? '{}');
-      const catalogParsed = parseCatalogDialogOverridesJson(byKey['content.visit.mascot_dialog.catalog_overrides'] ?? '{}');
+      const defaultsParsed = parseDialogProfileJson(
+        byKey['content.visit.mascot_dialog.defaults'] ?? '{}',
+      );
+      const catalogParsed = parseCatalogDialogOverridesJson(
+        byKey['content.visit.mascot_dialog.catalog_overrides'] ?? '{}',
+      );
       setGlobalDefaults(defaultsParsed.ok ? defaultsParsed.profile : {});
       setCatalogOverrides(catalogParsed.ok ? catalogParsed.overrides : {});
     } catch (e) {
@@ -59,22 +66,25 @@ export default function VisitMascotDialogStudioView({ onForceLogout }) {
     return catalogOverrides[selectedScope] || {};
   }, [catalogOverrides, globalDefaults, selectedScope]);
 
-  const onProfileChange = useCallback((nextProfile) => {
-    if (selectedScope === GLOBAL_SCOPE) {
-      setGlobalDefaults(nextProfile);
-      return;
-    }
-    setCatalogOverrides((prev) => {
-      const out = { ...prev };
-      const cleanedKeys = Object.keys(nextProfile || {});
-      if (cleanedKeys.length === 0) {
-        delete out[selectedScope];
-      } else {
-        out[selectedScope] = nextProfile;
+  const onProfileChange = useCallback(
+    (nextProfile) => {
+      if (selectedScope === GLOBAL_SCOPE) {
+        setGlobalDefaults(nextProfile);
+        return;
       }
-      return out;
-    });
-  }, [selectedScope]);
+      setCatalogOverrides((prev) => {
+        const out = { ...prev };
+        const cleanedKeys = Object.keys(nextProfile || {});
+        if (cleanedKeys.length === 0) {
+          delete out[selectedScope];
+        } else {
+          out[selectedScope] = nextProfile;
+        }
+        return out;
+      });
+    },
+    [selectedScope],
+  );
 
   const onSave = useCallback(async () => {
     setSaving(true);
@@ -110,11 +120,19 @@ export default function VisitMascotDialogStudioView({ onForceLogout }) {
     <div className="visit-mascot-dialog-studio">
       <h2 style={{ fontSize: '1.05rem', marginTop: 0 }}>Bulles de dialogue</h2>
       <p className="section-sub" style={{ fontSize: '0.82rem' }}>
-        Définissez les messages affichés selon la situation sur la carte visite.
-        Les défauts globaux s’appliquent à toutes les mascottes ; vous pouvez surcharger par mascotte catalogue.
-        Les packs publiés peuvent encore surcharger via l’onglet « Bulles de dialogue » du pack.
+        Définissez les messages affichés selon la situation sur la carte visite. Les défauts globaux
+        s’appliquent à toutes les mascottes ; vous pouvez surcharger par mascotte catalogue. Les
+        packs publiés peuvent encore surcharger via l’onglet « Bulles de dialogue » du pack.
       </p>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', marginBottom: 12 }}>
+      <div
+        style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: 8,
+          alignItems: 'center',
+          marginBottom: 12,
+        }}
+      >
         <label style={{ fontSize: '0.85rem' }}>
           Périmètre{' '}
           <select
@@ -124,20 +142,40 @@ export default function VisitMascotDialogStudioView({ onForceLogout }) {
           >
             <option value={GLOBAL_SCOPE}>Défauts globaux (toutes mascottes)</option>
             {catalogOptions.map((opt) => (
-              <option key={opt.id} value={opt.id}>{opt.label}</option>
+              <option key={opt.id} value={opt.id}>
+                {opt.label}
+              </option>
             ))}
           </select>
         </label>
-        <button type="button" className="btn btn-primary btn-sm" disabled={saving || loading} onClick={() => void onSave()}>
+        <button
+          type="button"
+          className="btn btn-primary btn-sm"
+          disabled={saving || loading}
+          onClick={() => void onSave()}
+        >
           Enregistrer sur le serveur
         </button>
-        <button type="button" className="btn btn-ghost btn-sm" disabled={loading} onClick={() => void loadSettings()}>
+        <button
+          type="button"
+          className="btn btn-ghost btn-sm"
+          disabled={loading}
+          onClick={() => void loadSettings()}
+        >
           Actualiser
         </button>
       </div>
       {loading ? <p className="section-sub">Chargement…</p> : null}
-      {error ? <p className="text-danger" role="alert">{error}</p> : null}
-      {message ? <p className="section-sub" role="status">{message}</p> : null}
+      {error ? (
+        <p className="text-danger" role="alert">
+          {error}
+        </p>
+      ) : null}
+      {message ? (
+        <p className="section-sub" role="status">
+          {message}
+        </p>
+      ) : null}
       {!loading ? (
         <VisitMascotDialogEditor
           profile={editingProfile}

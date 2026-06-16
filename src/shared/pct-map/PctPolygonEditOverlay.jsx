@@ -30,7 +30,11 @@ export function PctPolygonEditOverlay({
     translateLastRef.current = null;
     onGestureEnd?.();
     if (e?.currentTarget?.hasPointerCapture?.(e.pointerId)) {
-      try { e.currentTarget.releasePointerCapture(e.pointerId); } catch (_) { /* noop */ }
+      try {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      } catch (_) {
+        /* noop */
+      }
     }
   };
 
@@ -49,7 +53,11 @@ export function PctPolygonEditOverlay({
           const p0 = toImagePct(e.clientX, e.clientY);
           if (!p0) return;
           translateLastRef.current = { x: p0.x, y: p0.y };
-          try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) { /* noop */ }
+          try {
+            e.currentTarget.setPointerCapture(e.pointerId);
+          } catch (_) {
+            /* noop */
+          }
         }}
         onPointerMove={(e) => {
           const last = translateLastRef.current;
@@ -64,7 +72,9 @@ export function PctPolygonEditOverlay({
         }}
         onPointerUp={endTranslate}
         onPointerCancel={endTranslate}
-        onLostPointerCapture={() => { translateLastRef.current = null; }}
+        onLostPointerCapture={() => {
+          translateLastRef.current = null;
+        }}
       />
       {points.map((point, index) => {
         const dragging = draggingIdx === index;
@@ -77,22 +87,30 @@ export function PctPolygonEditOverlay({
               e.stopPropagation();
               onVertexSelect?.(index);
               setDraggingIdx(index);
-              try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) { /* noop */ }
+              try {
+                e.currentTarget.setPointerCapture(e.pointerId);
+              } catch (_) {
+                /* noop */
+              }
             }}
             onPointerMove={(e) => {
               if (draggingIdx !== index) return;
               const p2 = toImagePct(e.clientX, e.clientY);
               if (!p2) return;
-              onPointsChange((prev) => prev.map((pt, j) => (
-                j === index ? normalizePctPoint(p2) : pt
-              )));
+              onPointsChange((prev) =>
+                prev.map((pt, j) => (j === index ? normalizePctPoint(p2) : pt)),
+              );
             }}
             onPointerUp={(e) => {
               e.stopPropagation();
               setDraggingIdx(-1);
               onGestureEnd?.();
               if (e.currentTarget.hasPointerCapture?.(e.pointerId)) {
-                try { e.currentTarget.releasePointerCapture(e.pointerId); } catch (_) { /* noop */ }
+                try {
+                  e.currentTarget.releasePointerCapture(e.pointerId);
+                } catch (_) {
+                  /* noop */
+                }
               }
             }}
           >
@@ -108,10 +126,32 @@ export function PctPolygonEditOverlay({
               style={{ pointerEvents: 'none' }}
             />
             <g className="gl-pct-edit-pt-cross" style={{ pointerEvents: 'none' }}>
-              <line x1={point.x - 2.2} y1={point.y} x2={point.x + 2.2} y2={point.y} stroke={strokeColor} strokeWidth="0.35" strokeLinecap="round" />
-              <line x1={point.x} y1={point.y - 2.2} x2={point.x} y2={point.y + 2.2} stroke={strokeColor} strokeWidth="0.35" strokeLinecap="round" />
+              <line
+                x1={point.x - 2.2}
+                y1={point.y}
+                x2={point.x + 2.2}
+                y2={point.y}
+                stroke={strokeColor}
+                strokeWidth="0.35"
+                strokeLinecap="round"
+              />
+              <line
+                x1={point.x}
+                y1={point.y - 2.2}
+                x2={point.x}
+                y2={point.y + 2.2}
+                stroke={strokeColor}
+                strokeWidth="0.35"
+                strokeLinecap="round"
+              />
             </g>
-            <circle cx={point.x} cy={point.y} r="0.45" fill={strokeColor} style={{ pointerEvents: 'none' }} />
+            <circle
+              cx={point.x}
+              cy={point.y}
+              r="0.45"
+              fill={strokeColor}
+              style={{ pointerEvents: 'none' }}
+            />
           </g>
         );
       })}

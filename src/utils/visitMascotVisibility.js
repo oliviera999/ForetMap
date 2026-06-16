@@ -9,7 +9,13 @@
  * @param {unknown[]} [markers]
  * @param {number} [tutorialCount] — tutoriels actifs renvoyés par `/api/visit/content` pour ce plan
  */
-export function getVisitMascotVisibilityReason(mode, visitCartographyTotal, zones, markers, tutorialCount = 0) {
+export function getVisitMascotVisibilityReason(
+  mode,
+  visitCartographyTotal,
+  zones,
+  markers,
+  tutorialCount = 0,
+) {
   const z = Array.isArray(zones) ? zones.length : 0;
   const m = Array.isArray(markers) ? markers.length : 0;
   const t = Math.max(0, Number(tutorialCount) || 0);
@@ -22,7 +28,19 @@ export function getVisitMascotVisibilityReason(mode, visitCartographyTotal, zone
   return 'no-public-content';
 }
 
-export function shouldShowVisitMapMascot(mode, visitCartographyTotal, zones, markers, tutorialCount = 0) {
-  const reason = getVisitMascotVisibilityReason(mode, visitCartographyTotal, zones, markers, tutorialCount);
+export function shouldShowVisitMapMascot(
+  mode,
+  visitCartographyTotal,
+  zones,
+  markers,
+  tutorialCount = 0,
+) {
+  const reason = getVisitMascotVisibilityReason(
+    mode,
+    visitCartographyTotal,
+    zones,
+    markers,
+    tutorialCount,
+  );
   return reason !== 'mode-not-view' && reason !== 'no-public-content';
 }

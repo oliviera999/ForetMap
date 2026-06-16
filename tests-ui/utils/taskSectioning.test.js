@@ -46,14 +46,25 @@ describe('taskMatchesFilters', () => {
 
   test('filtre statut : validated englobe project_validated, on_hold reste strict', () => {
     const validated = { title: 'a', status: 'available', project_status: 'validated' };
-    expect(taskMatchesFilters(validated, { ...BASE_FILTERS, filterStatus: 'validated' })).toBe(true);
-    expect(taskMatchesFilters({ title: 'a', status: 'validated' }, { ...BASE_FILTERS, filterStatus: 'validated' })).toBe(true);
-    expect(taskMatchesFilters(validated, { ...BASE_FILTERS, filterStatus: 'project_validated' })).toBe(true);
+    expect(taskMatchesFilters(validated, { ...BASE_FILTERS, filterStatus: 'validated' })).toBe(
+      true,
+    );
+    expect(
+      taskMatchesFilters(
+        { title: 'a', status: 'validated' },
+        { ...BASE_FILTERS, filterStatus: 'validated' },
+      ),
+    ).toBe(true);
+    expect(
+      taskMatchesFilters(validated, { ...BASE_FILTERS, filterStatus: 'project_validated' }),
+    ).toBe(true);
     const onHold = { title: 'a', status: 'on_hold' };
     expect(taskMatchesFilters(onHold, { ...BASE_FILTERS, filterStatus: 'on_hold' })).toBe(true);
     expect(taskMatchesFilters(onHold, { ...BASE_FILTERS, filterStatus: 'available' })).toBe(false);
     const projectCompleted = { title: 'a', status: 'available', project_status: 'completed' };
-    expect(taskMatchesFilters(projectCompleted, { ...BASE_FILTERS, filterStatus: 'project_completed' })).toBe(true);
+    expect(
+      taskMatchesFilters(projectCompleted, { ...BASE_FILTERS, filterStatus: 'project_completed' }),
+    ).toBe(true);
   });
 
   test('filtres projet et groupe', () => {
@@ -67,10 +78,18 @@ describe('taskMatchesFilters', () => {
   test('catégorie urgent : urgent ne garde que absolute, non_urgent l’exclut', () => {
     const urgent = { title: 'a', importance_level: 'absolute' };
     const normal = { title: 'b', importance_level: 'high' };
-    expect(taskMatchesFilters(urgent, { ...BASE_FILTERS, filterUrgentCategory: 'urgent' })).toBe(true);
-    expect(taskMatchesFilters(normal, { ...BASE_FILTERS, filterUrgentCategory: 'urgent' })).toBe(false);
-    expect(taskMatchesFilters(urgent, { ...BASE_FILTERS, filterUrgentCategory: 'non_urgent' })).toBe(false);
-    expect(taskMatchesFilters(normal, { ...BASE_FILTERS, filterUrgentCategory: 'non_urgent' })).toBe(true);
+    expect(taskMatchesFilters(urgent, { ...BASE_FILTERS, filterUrgentCategory: 'urgent' })).toBe(
+      true,
+    );
+    expect(taskMatchesFilters(normal, { ...BASE_FILTERS, filterUrgentCategory: 'urgent' })).toBe(
+      false,
+    );
+    expect(
+      taskMatchesFilters(urgent, { ...BASE_FILTERS, filterUrgentCategory: 'non_urgent' }),
+    ).toBe(false);
+    expect(
+      taskMatchesFilters(normal, { ...BASE_FILTERS, filterUrgentCategory: 'non_urgent' }),
+    ).toBe(true);
   });
 
   test('applyTaskFilters conserve l’ordre d’origine', () => {
@@ -98,7 +117,10 @@ describe('projets visibles selon le filtre carte', () => {
   });
 
   test('filterProjectsByMapChoice conserve l’ordre d’origine', () => {
-    expect(filterProjectsByMapChoice(projects, 'active', 'foret').map((p) => p.id)).toEqual(['p1', 'p3']);
+    expect(filterProjectsByMapChoice(projects, 'active', 'foret').map((p) => p.id)).toEqual([
+      'p1',
+      'p3',
+    ]);
     expect(filterProjectsByMapChoice(projects, 'all', 'foret')).toHaveLength(3);
   });
 
@@ -144,15 +166,32 @@ describe('studentUrgentDueTasks', () => {
     const noDate = { id: 'nodate', status: 'available' };
     const doneTask = { id: 'done', status: 'done', due_date: inDays(1) };
     const onHold = { id: 'hold', status: 'on_hold', due_date: inDays(1) };
-    const projectValidated = { id: 'pv', status: 'available', project_status: 'validated', due_date: inDays(1) };
+    const projectValidated = {
+      id: 'pv',
+      status: 'available',
+      project_status: 'validated',
+      due_date: inDays(1),
+    };
     const out = studentUrgentDueTasks([
-      keepSoon, keepLate, tooFar, tooOld, noDate, doneTask, onHold, projectValidated,
+      keepSoon,
+      keepLate,
+      tooFar,
+      tooOld,
+      noDate,
+      doneTask,
+      onHold,
+      projectValidated,
     ]);
     expect(out.map((t) => t.id).sort()).toEqual(['late', 'soon']);
   });
 
   test('trie par importance explicite puis date limite', () => {
-    const absoluteLater = { id: 'abs', status: 'available', importance_level: 'absolute', due_date: inDays(3) };
+    const absoluteLater = {
+      id: 'abs',
+      status: 'available',
+      importance_level: 'absolute',
+      due_date: inDays(3),
+    };
     const plainSooner = { id: 'plain', status: 'available', due_date: inDays(1) };
     const out = studentUrgentDueTasks([plainSooner, absoluteLater]);
     expect(out.map((t) => t.id)).toEqual(['abs', 'plain']);

@@ -16,7 +16,7 @@ describe('GLContentLibraryAuditPanel', () => {
     expect(screen.queryByText(/clé\(s\) en médiathèque/)).not.toBeInTheDocument();
   });
 
-  test('désactive le bouton et change le libellé en cours d\'audit', () => {
+  test("désactive le bouton et change le libellé en cours d'audit", () => {
     renderPanel({ busy: true });
     const btn = screen.getByRole('button', { name: 'Audit en cours…' });
     expect(btn.disabled).toBe(true);

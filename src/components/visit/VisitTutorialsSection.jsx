@@ -29,7 +29,9 @@ export function VisitTutorialsSection({
   studentId = null,
   canParticipateContextComments = true,
 }) {
-  const [tutorialSelection, setTutorialSelection] = useState(() => (tutorials || []).map((t) => t.id));
+  const [tutorialSelection, setTutorialSelection] = useState(() =>
+    (tutorials || []).map((t) => t.id),
+  );
   const [savingTutorials, setSavingTutorials] = useState(false);
 
   useEffect(() => {
@@ -61,18 +63,22 @@ export function VisitTutorialsSection({
                   type="checkbox"
                   checked={tutorialSelection.includes(t.id)}
                   onChange={(e) => {
-                    setTutorialSelection((prev) => (
+                    setTutorialSelection((prev) =>
                       e.target.checked
                         ? [...new Set([...prev, t.id])]
-                        : prev.filter((id) => id !== t.id)
-                    ));
+                        : prev.filter((id) => id !== t.id),
+                    );
                   }}
-                />
-                {' '}{t.title}
+                />{' '}
+                {t.title}
               </label>
             ))}
           </div>
-          <button className="btn btn-secondary btn-sm" onClick={saveTutorialSelection} disabled={savingTutorials}>
+          <button
+            className="btn btn-secondary btn-sm"
+            onClick={saveTutorialSelection}
+            disabled={savingTutorials}
+          >
             {savingTutorials ? 'Sauvegarde...' : '💾 Enregistrer la sélection des tutos'}
           </button>
         </div>
@@ -93,12 +99,24 @@ export function VisitTutorialsSection({
                   type="button"
                   className="btn btn-ghost btn-sm"
                   disabled={!tutorialPreviewCanEmbed(t)}
-                  title={!tutorialPreviewCanEmbed(t) ? 'Aperçu indisponible pour ce tutoriel' : undefined}
+                  title={
+                    !tutorialPreviewCanEmbed(t) ? 'Aperçu indisponible pour ce tutoriel' : undefined
+                  }
                   onClick={() => onOpenTutorialPreview(tutorialPreviewPayload(t))}
                 >
                   👁️ Lire
                 </button>
-                <button type="button" className="btn btn-primary btn-sm" onClick={() => window.open(`/api/tutorials/${t.id}/download/pdf`, '_blank', 'noopener,noreferrer')}>
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  onClick={() =>
+                    window.open(
+                      `/api/tutorials/${t.id}/download/pdf`,
+                      '_blank',
+                      'noopener,noreferrer',
+                    )
+                  }
+                >
                   ⬇️ PDF
                 </button>
                 <TutorialReadAcknowledgeButton

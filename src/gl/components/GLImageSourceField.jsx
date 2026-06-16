@@ -22,7 +22,8 @@ export function GLImageSourceField({
     <fieldset className="gl-image-source">
       <legend>{label}</legend>
       <p className="gl-hint gl-image-source__intro">
-        Collez une URL ou chargez une photo depuis votre ordinateur ou smartphone (galerie ou appareil photo).
+        Collez une URL ou chargez une photo depuis votre ordinateur ou smartphone (galerie ou
+        appareil photo).
       </p>
       <label htmlFor={`${baseId}-url`}>
         URL (optionnel si vous importez un fichier)

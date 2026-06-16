@@ -6,17 +6,16 @@ const assert = require('node:assert');
 describe('taskActionErrors (client)', () => {
   it('formatTaskActionError — élévation PIN', async () => {
     const { formatTaskActionError } = await import('../src/utils/taskActionErrors.js');
-    assert.match(
-      formatTaskActionError('Élévation PIN requise'),
-      /cadenas/i
-    );
+    assert.match(formatTaskActionError('Élévation PIN requise'), /cadenas/i);
   });
 
   it('formatTaskActionError — indisponibilité passerelle', async () => {
     const { formatTaskActionError } = await import('../src/utils/taskActionErrors.js');
     assert.match(
-      formatTaskActionError('Service momentanément indisponible (redémarrage ou surcharge réseau).'),
-      /quelques secondes/i
+      formatTaskActionError(
+        'Service momentanément indisponible (redémarrage ou surcharge réseau).',
+      ),
+      /quelques secondes/i,
     );
   });
 

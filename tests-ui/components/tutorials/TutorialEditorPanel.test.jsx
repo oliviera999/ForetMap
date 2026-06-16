@@ -4,7 +4,10 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { TutorialEditorPanel } from '../../../src/components/tutorials/TutorialEditorPanel.jsx';
 import { createInitialTutorialForm } from '../../../src/utils/tutorialListHelpers.js';
 
-const MAPS = [{ id: 'foret', label: 'Forêt' }, { id: 'jardin', label: 'Jardin' }];
+const MAPS = [
+  { id: 'foret', label: 'Forêt' },
+  { id: 'jardin', label: 'Jardin' },
+];
 const ZONES = [
   { id: 'z1', name: 'Mare', map_id: 'foret' },
   { id: 'z2', name: 'Potager', map_id: 'jardin' },

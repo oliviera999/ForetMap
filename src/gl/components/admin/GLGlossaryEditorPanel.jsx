@@ -25,7 +25,7 @@ export function GLGlossaryEditorPanel() {
 
   const filteredItems = useMemo(
     () => filterGlossaryItems(items, { filterCategorie, filterQ }),
-    [items, filterCategorie, filterQ]
+    [items, filterCategorie, filterQ],
   );
 
   const loadMeta = useCallback(async () => {
@@ -140,7 +140,8 @@ export function GLGlossaryEditorPanel() {
     <section className="gl-admin-section fade-in">
       <h3>Saisie manuelle — glossaire</h3>
       <p className="gl-hint">
-        Créez ou modifiez un terme pédagogique. Les termes liés se saisissent en codes ou libellés séparés par des virgules.
+        Créez ou modifiez un terme pédagogique. Les termes liés se saisissent en codes ou libellés
+        séparés par des virgules.
       </p>
       {error ? <p className="gl-error">{error}</p> : null}
       {info ? <p className="gl-hint">{info}</p> : null}

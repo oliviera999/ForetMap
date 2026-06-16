@@ -27,7 +27,7 @@ export function GLMascotPackManager() {
 
   const selectedPack = useMemo(
     () => packs.find((pack) => String(pack.id) === String(selectedId)) || null,
-    [packs, selectedId]
+    [packs, selectedId],
   );
 
   async function savePack(next) {
@@ -74,7 +74,11 @@ export function GLMascotPackManager() {
           ))}
         </select>
       </label>
-      <GLMascotPackWysiwygEditor initialPack={selectedPack} onSave={savePack} onDelete={deletePack} />
+      <GLMascotPackWysiwygEditor
+        initialPack={selectedPack}
+        onSave={savePack}
+        onDelete={deletePack}
+      />
       <GLMascotPackPreviewPanel pack={selectedPack} />
     </section>
   );

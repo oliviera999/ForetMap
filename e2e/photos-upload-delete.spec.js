@@ -1,10 +1,14 @@
 const { test, expect } = require('@playwright/test');
-const { loginAsNewStudent, enableTeacherMode, openFirstZoneModalFromMap } = require('./fixtures/auth.fixture');
+const {
+  loginAsNewStudent,
+  enableTeacherMode,
+  openFirstZoneModalFromMap,
+} = require('./fixtures/auth.fixture');
 
 function tinyPngBuffer() {
   return Buffer.from(
     'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO7Z3G8AAAAASUVORK5CYII=',
-    'base64'
+    'base64',
   );
 }
 
@@ -39,7 +43,7 @@ test('parcours photos zone: upload puis suppression', async ({ page }) => {
   const deleteButtons = page.locator('button', { hasText: '✕' });
   const deleteCount = await deleteButtons.count();
   if (deleteCount > 1) {
-    page.once('dialog', d => d.accept());
+    page.once('dialog', (d) => d.accept());
     await deleteButtons.nth(1).click();
   }
 });

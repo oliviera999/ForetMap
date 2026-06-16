@@ -28,7 +28,10 @@ const baseSettings = {
 describe('GLSettingsView', () => {
   beforeEach(() => {
     apiGlMock.mockReset();
-    vi.stubGlobal('confirm', vi.fn(() => true));
+    vi.stubGlobal(
+      'confirm',
+      vi.fn(() => true),
+    );
     apiGlMock.mockImplementation((path) => {
       if (path === '/api/gl/admin/settings') {
         return Promise.resolve({ settings: { ...baseSettings } });
@@ -60,8 +63,10 @@ describe('GLSettingsView', () => {
     fireEvent.click(mjTurnsButton);
 
     await waitFor(() => {
-      const puts = apiGlMock.mock.calls
-        .filter(([path, method]) => method === 'PUT' && String(path).includes('/api/gl/admin/settings/gameplay.'));
+      const puts = apiGlMock.mock.calls.filter(
+        ([path, method]) =>
+          method === 'PUT' && String(path).includes('/api/gl/admin/settings/gameplay.'),
+      );
       const keys = puts.map(([path]) => path.split('/').pop());
       expect(keys).toContain('gameplay.turns_enabled');
       expect(keys).toContain('gameplay.narration_enabled');

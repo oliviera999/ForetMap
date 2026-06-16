@@ -11,7 +11,13 @@ const { initSchema, execute, queryOne } = require('../database');
 const { signAuthToken } = require('../middleware/requireTeacher');
 
 const GLOSSARY_XLSX = path.join(__dirname, '..', 'data', 'gl', 'glossaire-gnomes-et-licornes.xlsx');
-const SPECIES_XLSX = path.join(__dirname, '..', 'data', 'gl', 'especes-biomes-gnomes-et-licornes.xlsx');
+const SPECIES_XLSX = path.join(
+  __dirname,
+  '..',
+  'data',
+  'gl',
+  'especes-biomes-gnomes-et-licornes.xlsx',
+);
 
 let adminToken = '';
 let playerToken = '';
@@ -23,12 +29,11 @@ before(async () => {
     `INSERT INTO gl_admins (email, display_name, role, is_active, created_at, updated_at)
      VALUES (?, 'MJ Glossary', 'admin', 1, NOW(), NOW())
      ON DUPLICATE KEY UPDATE is_active = 1, updated_at = NOW()`,
-    [`glossary.admin.${stamp}@ecole.local`]
+    [`glossary.admin.${stamp}@ecole.local`],
   );
-  const admin = await queryOne(
-    'SELECT id FROM gl_admins WHERE email = ? LIMIT 1',
-    [`glossary.admin.${stamp}@ecole.local`]
-  );
+  const admin = await queryOne('SELECT id FROM gl_admins WHERE email = ? LIMIT 1', [
+    `glossary.admin.${stamp}@ecole.local`,
+  ]);
   adminToken = await signAuthToken({
     product: 'gl',
     userType: 'gl_admin',
@@ -39,15 +44,19 @@ before(async () => {
   await execute(
     `INSERT INTO gl_classes (name, school, created_by, is_active, created_at, updated_at)
      VALUES (?, 'Ecole', ?, 1, NOW(), NOW())`,
-    [`Classe Glossary ${stamp}`, admin.id]
+    [`Classe Glossary ${stamp}`, admin.id],
   );
-  const cls = await queryOne('SELECT id FROM gl_classes WHERE name = ? LIMIT 1', [`Classe Glossary ${stamp}`]);
+  const cls = await queryOne('SELECT id FROM gl_classes WHERE name = ? LIMIT 1', [
+    `Classe Glossary ${stamp}`,
+  ]);
   await execute(
     `INSERT INTO gl_players (class_id, pseudo, password_hash, is_active, created_at, updated_at)
      VALUES (?, ?, 'x', 1, NOW(), NOW())`,
-    [cls.id, `glossary-player-${stamp}`]
+    [cls.id, `glossary-player-${stamp}`],
   );
-  const player = await queryOne('SELECT id FROM gl_players WHERE pseudo = ? LIMIT 1', [`glossary-player-${stamp}`]);
+  const player = await queryOne('SELECT id FROM gl_players WHERE pseudo = ? LIMIT 1', [
+    `glossary-player-${stamp}`,
+  ]);
   playerToken = await signAuthToken({
     product: 'gl',
     userType: 'gl_player',
@@ -80,7 +89,7 @@ test('POST /api/gl/admin/glossary/import apply upsert le glossaire', async () =>
     .expect(200);
   assert.ok(res.body?.report?.totals?.created + res.body?.report?.totals?.updated >= 270);
   const row = await queryOne(
-    "SELECT terme FROM gl_glossary_terms WHERE glossary_code = 'GL0001' LIMIT 1"
+    "SELECT terme FROM gl_glossary_terms WHERE glossary_code = 'GL0001' LIMIT 1",
   );
   assert.ok(row?.terme);
 });
@@ -133,7 +142,9 @@ test('GET /api/gl/species enrichit glossaryTerms après import espèces', async 
     .get('/api/gl/species?biomeSlug=sahara')
     .set('Authorization', `Bearer ${playerToken}`)
     .expect(200);
-  const withTerms = res.body.items.filter((s) => Array.isArray(s.glossaryTerms) && s.glossaryTerms.length > 0);
+  const withTerms = res.body.items.filter(
+    (s) => Array.isArray(s.glossaryTerms) && s.glossaryTerms.length > 0,
+  );
   assert.ok(withTerms.length >= 10);
   assert.ok(withTerms[0].glossaryTerms[0].glossary_code);
   assert.ok(withTerms[0].glossaryTerms[0].terme);

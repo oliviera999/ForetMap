@@ -76,13 +76,24 @@ export function GLMultiCheckDropdown({
         onClick={() => setOpen((prev) => !prev)}
       >
         <span className="gl-multi-check-dropdown__summary">{summary}</span>
-        <span className="gl-multi-check-dropdown__chevron" aria-hidden>{open ? '▴' : '▾'}</span>
+        <span className="gl-multi-check-dropdown__chevron" aria-hidden>
+          {open ? '▴' : '▾'}
+        </span>
       </button>
       {open ? (
-        <div id={panelId} className="gl-multi-check-dropdown__panel" role="listbox" aria-multiselectable="true">
+        <div
+          id={panelId}
+          className="gl-multi-check-dropdown__panel"
+          role="listbox"
+          aria-multiselectable="true"
+        >
           <div className="gl-multi-check-dropdown__toolbar">
-            <button type="button" onClick={selectAll}>Tout cocher</button>
-            <button type="button" onClick={clearAll}>Tout décocher</button>
+            <button type="button" onClick={selectAll}>
+              Tout cocher
+            </button>
+            <button type="button" onClick={clearAll}>
+              Tout décocher
+            </button>
           </div>
           <ul className="gl-multi-check-dropdown__options">
             {options.map((option) => {
@@ -91,11 +102,7 @@ export function GLMultiCheckDropdown({
               return (
                 <li key={value}>
                   <label className="gl-multi-check-dropdown__option">
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      onChange={() => toggleValue(value)}
-                    />
+                    <input type="checkbox" checked={checked} onChange={() => toggleValue(value)} />
                     <span className="gl-multi-check-dropdown__option-label">{option.label}</span>
                     {option.hint ? (
                       <span className="gl-multi-check-dropdown__option-hint">{option.hint}</span>

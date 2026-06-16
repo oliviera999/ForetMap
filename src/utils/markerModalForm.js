@@ -4,7 +4,11 @@
  */
 import { MAP_MARKER_EMOJI_MAX_CHARS, clampEmojiInput } from '../constants/emojis';
 import { orderedLivingBeingsForForm } from './livingBeings';
-import { mergeDefaultVisitMediaImageBlocks, normalizeVisitEditorialBlocksForSave, parseVisitEditorialBlocksFromJson } from './visitEditorialBlocks.js';
+import {
+  mergeDefaultVisitMediaImageBlocks,
+  normalizeVisitEditorialBlocksForSave,
+  parseVisitEditorialBlocksFromJson,
+} from './visitEditorialBlocks.js';
 
 /**
  * Construit l'objet de formulaire à partir d'un repère.
@@ -14,10 +18,13 @@ export function markerFormFromMarker(marker, { defaultEmoji = '' } = {}) {
   const m = marker || {};
   // Init (sans defaultEmoji) : emoji trimé, repli ''. Reset (avec defaultEmoji) : `emoji || defaultEmoji`,
   // sans trim — comportement historique distinct entre l'init du useState et l'effet de réinitialisation.
-  const emoji = defaultEmoji ? (m.emoji || defaultEmoji) : String(m.emoji ?? '').trim();
+  const emoji = defaultEmoji ? m.emoji || defaultEmoji : String(m.emoji ?? '').trim();
   return {
     label: m.label || '',
-    living_beings: orderedLivingBeingsForForm(m.living_beings_list || m.living_beings, m.plant_name),
+    living_beings: orderedLivingBeingsForForm(
+      m.living_beings_list || m.living_beings,
+      m.plant_name,
+    ),
     note: m.note || '',
     emoji,
     visit_subtitle: m.visit_subtitle || '',
@@ -78,7 +85,9 @@ export function computeMarkerVisitImageBlocks(visitBodyJson, visitMediaOptions) 
   }
   const hasImageBlock = imageBlocksFromJson.length > 0;
   if (!hasImageBlock && media.length > 0) {
-    return mergeDefaultVisitMediaImageBlocks(imageBlocksFromJson, media).filter((b) => b.type === 'image');
+    return mergeDefaultVisitMediaImageBlocks(imageBlocksFromJson, media).filter(
+      (b) => b.type === 'image',
+    );
   }
   return imageBlocksFromJson;
 }

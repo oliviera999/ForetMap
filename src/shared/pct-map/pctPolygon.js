@@ -41,10 +41,15 @@ export function pointsToSvgPolygon(points) {
 }
 
 export function translatePctPoints(points, dx, dy, decimals = 2) {
-  return (points || []).map((p) => normalizePctPoint({
-    x: (Number(p.x) || 0) + dx,
-    y: (Number(p.y) || 0) + dy,
-  }, decimals));
+  return (points || []).map((p) =>
+    normalizePctPoint(
+      {
+        x: (Number(p.x) || 0) + dx,
+        y: (Number(p.y) || 0) + dy,
+      },
+      decimals,
+    ),
+  );
 }
 
 export function offsetDuplicatePctPoints(points, dx = 2.5, dy = 2.5, decimals = 2) {

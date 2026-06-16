@@ -77,20 +77,68 @@
       }
     ],
     "optimisation": [
-      { "id": "O1", "status": "done", "summary": "Renderers mascotte en eager sur la Carte (~268 KB) ; lazy par renderer" },
-      { "id": "O2", "status": "done", "summary": "Tuiles de taches non memoisees ; useMemo + React.memo" },
-      { "id": "O3", "status": "differe", "summary": "RBAC cache TTL tente puis reverte (invalidation incomplete) ; a refaire avec compteur de version global ou request-scoped" },
-      { "id": "O4", "status": "differe", "summary": "xlsx@0.18.5 CVE via parsing uploads ; exceljs vs SheetJS CDN a trancher" },
-      { "id": "O5", "status": "wip", "summary": "App.jsx God component + prop-drilling x4 ; Contexts par domaine" },
+      {
+        "id": "O1",
+        "status": "done",
+        "summary": "Renderers mascotte en eager sur la Carte (~268 KB) ; lazy par renderer"
+      },
+      {
+        "id": "O2",
+        "status": "done",
+        "summary": "Tuiles de taches non memoisees ; useMemo + React.memo"
+      },
+      {
+        "id": "O3",
+        "status": "differe",
+        "summary": "RBAC cache TTL tente puis reverte (invalidation incomplete) ; a refaire avec compteur de version global ou request-scoped"
+      },
+      {
+        "id": "O4",
+        "status": "differe",
+        "summary": "xlsx@0.18.5 CVE via parsing uploads ; exceljs vs SheetJS CDN a trancher"
+      },
+      {
+        "id": "O5",
+        "status": "wip",
+        "summary": "App.jsx God component + prop-drilling x4 ; Contexts par domaine"
+      },
       { "id": "O6", "status": "wip", "summary": "Composants monolithiques + 0 test UI (~21k LOC)" },
-      { "id": "O7", "status": "wip", "summary": "zod jamais utilise ; middleware validate(schema)" },
+      {
+        "id": "O7",
+        "status": "wip",
+        "summary": "zod jamais utilise ; middleware validate(schema)"
+      },
       { "id": "O8", "status": "todo", "summary": "try/catch disperses ; wrapper asyncHandler" },
-      { "id": "O9", "status": "done", "summary": "Helpers dupliques ; mutualisation lib/strings, pagination, shared" },
-      { "id": "O10", "status": "wip", "summary": "Routes obeses + N+1 d'ecriture ; services + INSERT multi-valeurs" },
-      { "id": "O11", "status": "done", "summary": "Lazy ineffectif + markdown/GL eager + sourcemap prod" },
-      { "id": "O12", "status": "done", "summary": "ESLint sans react-hooks ; pas de Prettier ; typage" },
-      { "id": "O13", "status": "done", "summary": "helmet absent ; CORS ouvert ; DEPLOY_SECRET non constant-time" },
-      { "id": "O14", "status": "done", "summary": "Fichiers morts ; fs.readFileSync(package.json) en chemin requete" }
+      {
+        "id": "O9",
+        "status": "done",
+        "summary": "Helpers dupliques ; mutualisation lib/strings, pagination, shared"
+      },
+      {
+        "id": "O10",
+        "status": "wip",
+        "summary": "Routes obeses + N+1 d'ecriture ; services + INSERT multi-valeurs"
+      },
+      {
+        "id": "O11",
+        "status": "done",
+        "summary": "Lazy ineffectif + markdown/GL eager + sourcemap prod"
+      },
+      {
+        "id": "O12",
+        "status": "done",
+        "summary": "ESLint sans react-hooks ; pas de Prettier ; typage"
+      },
+      {
+        "id": "O13",
+        "status": "done",
+        "summary": "helmet absent ; CORS ouvert ; DEPLOY_SECRET non constant-time"
+      },
+      {
+        "id": "O14",
+        "status": "done",
+        "summary": "Fichiers morts ; fs.readFileSync(package.json) en chemin requete"
+      }
     ],
     "resolved": [
       {

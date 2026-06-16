@@ -38,7 +38,7 @@ async function main() {
     scopeRows,
     categoryRows,
     questionRows,
-    { dryRun: args.dryRun }
+    { dryRun: args.dryRun },
   );
 
   const mode = args.dryRun ? 'dry-run' : 'apply';

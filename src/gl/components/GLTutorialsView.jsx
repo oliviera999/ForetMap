@@ -16,7 +16,13 @@ export function GLTutorialsView({
   const [items, setItems] = useState([]);
   const [active, setActive] = useState(null);
   const [error, setError] = useState('');
-  const [draft, setDraft] = useState({ id: null, slug: '', title: '', bodyMarkdown: '', isPublished: true });
+  const [draft, setDraft] = useState({
+    id: null,
+    slug: '',
+    title: '',
+    bodyMarkdown: '',
+    isPublished: true,
+  });
   const [editing, setEditing] = useState(false);
 
   const reload = useCallback(async () => {
@@ -93,7 +99,8 @@ export function GLTutorialsView({
     try {
       await apiGL(`/api/gl/tutorials/${id}`, 'DELETE');
       if (Number(active?.id) === Number(id)) setActive(null);
-      if (Number(draft?.id) === Number(id)) setDraft({ id: null, slug: '', title: '', bodyMarkdown: '', isPublished: true });
+      if (Number(draft?.id) === Number(id))
+        setDraft({ id: null, slug: '', title: '', bodyMarkdown: '', isPublished: true });
       await reload();
     } catch (err) {
       setError(err.message || 'Suppression impossible');
@@ -130,7 +137,9 @@ export function GLTutorialsView({
             {editing ? 'Annuler' : 'Nouveau tutoriel'}
           </GLButton>
         ) : null}
-        <GLButton type="button" variant="secondary" onClick={reload}>Rafraîchir</GLButton>
+        <GLButton type="button" variant="secondary" onClick={reload}>
+          Rafraîchir
+        </GLButton>
       </div>
 
       {editing && canManage ? (
@@ -143,7 +152,10 @@ export function GLTutorialsView({
             />
           </GLField>
           <GLField label="Titre">
-            <GLInput value={draft.title} onChange={(event) => setDraft((d) => ({ ...d, title: event.target.value }))} />
+            <GLInput
+              value={draft.title}
+              onChange={(event) => setDraft((d) => ({ ...d, title: event.target.value }))}
+            />
           </GLField>
           <GLField label="Texte enrichi">
             <GLRichTextEditor
@@ -157,8 +169,8 @@ export function GLTutorialsView({
               type="checkbox"
               checked={!!draft.isPublished}
               onChange={(event) => setDraft((d) => ({ ...d, isPublished: event.target.checked }))}
-            />
-            {' '}Publié
+            />{' '}
+            Publié
           </label>
           <GLButton type="submit">{draft.id ? 'Enregistrer' : 'Publier'}</GLButton>
         </form>
@@ -173,15 +185,31 @@ export function GLTutorialsView({
             </button>
             {canManage ? (
               <div className="gl-inline-actions">
-                <GLButton type="button" size="sm" variant="secondary" onClick={() => startEdit(item.id)}>Éditer</GLButton>
-                <GLButton type="button" size="sm" variant="danger" onClick={() => removeTutorial(item.id)}>Suppr.</GLButton>
+                <GLButton
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => startEdit(item.id)}
+                >
+                  Éditer
+                </GLButton>
+                <GLButton
+                  type="button"
+                  size="sm"
+                  variant="danger"
+                  onClick={() => removeTutorial(item.id)}
+                >
+                  Suppr.
+                </GLButton>
               </div>
             ) : null}
           </li>
         ))}
         {items.length === 0 ? (
           <li className="gl-empty gl-hint">
-            <span className="gl-empty-icon" aria-hidden>🎓</span>
+            <span className="gl-empty-icon" aria-hidden>
+              🎓
+            </span>
             Aucun tutoriel.
           </li>
         ) : null}
@@ -198,13 +226,12 @@ export function GLTutorialsView({
                 labelAction="✓ Marquer comme lu"
                 labelDone="✓ Lu"
                 titleDone="Tu as confirmé avoir lu et compris ce tutoriel"
-                confirmIntro={(
+                confirmIntro={
                   <>
-                    En validant, tu t&apos;engages à avoir lu et compris le tutoriel
-                    {' '}
+                    En validant, tu t&apos;engages à avoir lu et compris le tutoriel{' '}
                     <strong>« {active.title || 'ce tutoriel'} »</strong>.
                   </>
-                )}
+                }
                 confirmCheckboxLabel="Je confirme avoir lu et compris ce contenu."
                 isDone={isTutorialRead(active.id)}
                 onAcknowledged={() => learningProgress.markLocal('tutorial', String(active.id))}
@@ -213,8 +240,12 @@ export function GLTutorialsView({
           </div>
           {canManage ? (
             <div className="gl-inline-actions" style={{ marginBottom: 8 }}>
-              <GLButton type="button" variant="secondary" onClick={() => startEdit(active.id)}>Modifier ce tutoriel</GLButton>
-              <GLButton type="button" variant="danger" onClick={() => removeTutorial(active.id)}>Supprimer ce tutoriel</GLButton>
+              <GLButton type="button" variant="secondary" onClick={() => startEdit(active.id)}>
+                Modifier ce tutoriel
+              </GLButton>
+              <GLButton type="button" variant="danger" onClick={() => removeTutorial(active.id)}>
+                Supprimer ce tutoriel
+              </GLButton>
             </div>
           ) : null}
           <GLGlossaryMarkdown

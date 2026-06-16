@@ -35,21 +35,23 @@ module.exports = defineConfig({
     // Evite qu'un ancien service worker pollue les runs e2e locaux.
     serviceWorkers: 'block',
   },
-  webServer: process.env.CI ? undefined : {
-    // Aligné sur `npm run start:e2e` : même flags, heap explicite pour limiter les OOM pendant la suite.
-    command: `npm run db:init && node --max-old-space-size=${E2E_SERVER_HEAP_MB} server.js --foretmap-e2e-no-rate-limit`,
-    /* Sert `dist/` (SPA) comme en prod : sans cela `server.js` utilise `public/` + deploy-help. */
-    env: {
-      ...process.env,
-      E2E_DISABLE_RATE_LIMIT: '1',
-      NODE_ENV: 'production',
-      VISIT_COOKIE_SECRET: E2E_VISIT_COOKIE_SECRET,
-    },
-    url: `${baseURL}/api/health`,
-    // Après changement backend, un vieux Node sur le port sert un code périmé ; ne pas réutiliser par défaut.
-    reuseExistingServer: process.env.E2E_REUSE_SERVER === '1',
-    timeout: 120_000,
-  },
+  webServer: process.env.CI
+    ? undefined
+    : {
+        // Aligné sur `npm run start:e2e` : même flags, heap explicite pour limiter les OOM pendant la suite.
+        command: `npm run db:init && node --max-old-space-size=${E2E_SERVER_HEAP_MB} server.js --foretmap-e2e-no-rate-limit`,
+        /* Sert `dist/` (SPA) comme en prod : sans cela `server.js` utilise `public/` + deploy-help. */
+        env: {
+          ...process.env,
+          E2E_DISABLE_RATE_LIMIT: '1',
+          NODE_ENV: 'production',
+          VISIT_COOKIE_SECRET: E2E_VISIT_COOKIE_SECRET,
+        },
+        url: `${baseURL}/api/health`,
+        // Après changement backend, un vieux Node sur le port sert un code périmé ; ne pas réutiliser par défaut.
+        reuseExistingServer: process.env.E2E_REUSE_SERVER === '1',
+        timeout: 120_000,
+      },
   projects: [
     {
       name: 'chromium',

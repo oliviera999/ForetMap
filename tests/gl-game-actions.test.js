@@ -7,7 +7,13 @@ const request = require('supertest');
 const { app } = require('../server');
 const { initSchema, execute, queryOne } = require('../database');
 const { invalidateGameplayCache } = require('../lib/glSettings');
-const { createGlAdmin, createGlClass, createGlGameWithTeams, createGlPlayer, signTokens } = require('./helpers/glFixtures');
+const {
+  createGlAdmin,
+  createGlClass,
+  createGlGameWithTeams,
+  createGlPlayer,
+  signTokens,
+} = require('./helpers/glFixtures');
 
 let adminToken = '';
 let playerToken = '';
@@ -48,7 +54,7 @@ before(async () => {
   await execute(
     `INSERT IGNORE INTO gl_team_members (game_id, team_id, player_id, joined_at)
      VALUES (?, ?, ?, NOW())`,
-    [gameId, teamId, playerId]
+    [gameId, teamId, playerId],
   );
 
   const tokens = await signTokens({
@@ -68,7 +74,7 @@ test('POST /actions refusé quand toggle player_actions_enabled = false', async 
   await execute(
     `INSERT INTO gl_settings (\`key\`, value_json, updated_at)
      VALUES ('gameplay.player_actions_enabled', 'false', NOW())
-     ON DUPLICATE KEY UPDATE value_json = 'false', updated_at = NOW()`
+     ON DUPLICATE KEY UPDATE value_json = 'false', updated_at = NOW()`,
   );
   invalidateGameplayCache();
   await request(app)
@@ -82,12 +88,12 @@ test('Flux complet : joueur soumet → MJ accepte avec score → score appliqué
   await execute(
     `INSERT INTO gl_settings (\`key\`, value_json, updated_at)
      VALUES ('gameplay.player_actions_enabled', 'true', NOW())
-     ON DUPLICATE KEY UPDATE value_json = 'true', updated_at = NOW()`
+     ON DUPLICATE KEY UPDATE value_json = 'true', updated_at = NOW()`,
   );
   await execute(
     `INSERT INTO gl_settings (\`key\`, value_json, updated_at)
      VALUES ('gameplay.scoring_enabled', 'true', NOW())
-     ON DUPLICATE KEY UPDATE value_json = 'true', updated_at = NOW()`
+     ON DUPLICATE KEY UPDATE value_json = 'true', updated_at = NOW()`,
   );
   invalidateGameplayCache();
 
@@ -104,7 +110,10 @@ test('Flux complet : joueur soumet → MJ accepte avec score → score appliqué
     .set('Authorization', `Bearer ${adminToken}`)
     .expect(200);
   const pendingBefore = stateBefore.body.pendingActions || [];
-  assert.ok(pendingBefore.some((a) => Number(a.id) === actionId), 'action en attente attendue');
+  assert.ok(
+    pendingBefore.some((a) => Number(a.id) === actionId),
+    'action en attente attendue',
+  );
 
   await request(app)
     .post(`/api/gl/games/${gameId}/actions/${actionId}/resolve`)
@@ -117,13 +126,16 @@ test('Flux complet : joueur soumet → MJ accepte avec score → score appliqué
     .set('Authorization', `Bearer ${adminToken}`)
     .expect(200);
   const pendingAfter = stateAfter.body.pendingActions || [];
-  assert.ok(!pendingAfter.some((a) => Number(a.id) === actionId), 'action ne doit plus être en attente');
+  assert.ok(
+    !pendingAfter.some((a) => Number(a.id) === actionId),
+    'action ne doit plus être en attente',
+  );
   assert.strictEqual(stateAfter.body.scores?.[teamId]?.score, 3);
 
   // Reset
   await execute(
     `UPDATE gl_settings SET value_json = 'false', updated_at = NOW()
-      WHERE \`key\` IN ('gameplay.player_actions_enabled', 'gameplay.scoring_enabled')`
+      WHERE \`key\` IN ('gameplay.player_actions_enabled', 'gameplay.scoring_enabled')`,
   );
   invalidateGameplayCache();
 });

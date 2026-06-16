@@ -1,5 +1,10 @@
 const { test, expect } = require('@playwright/test');
-const { loginAsNewStudent, enableTeacherMode, openTeacherTasksTab, openStudentTasksTab } = require('./fixtures/auth.fixture');
+const {
+  loginAsNewStudent,
+  enableTeacherMode,
+  openTeacherTasksTab,
+  openStudentTasksTab,
+} = require('./fixtures/auth.fixture');
 
 test('parcours tâches: consultation élève puis consultation professeur', async ({ page }) => {
   /* Inscription + double connexion + élévation PIN : peut dépasser 60 s sous charge. */

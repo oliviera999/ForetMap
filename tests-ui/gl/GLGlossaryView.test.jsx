@@ -40,7 +40,7 @@ describe('GLGlossaryView', () => {
         focusCode={null}
         onOpenPopover={vi.fn()}
         onFocusHandled={vi.fn()}
-      />
+      />,
     );
 
     await waitFor(() => {
@@ -73,7 +73,7 @@ describe('GLGlossaryView', () => {
         focusCode={null}
         onOpenPopover={onOpenPopover}
         onFocusHandled={vi.fn()}
-      />
+      />,
     );
 
     await waitFor(() => {
@@ -96,7 +96,7 @@ describe('GLGlossaryView', () => {
         focusCode="GL0099"
         onOpenPopover={onOpenPopover}
         onFocusHandled={onFocusHandled}
-      />
+      />,
     );
 
     await waitFor(() => {

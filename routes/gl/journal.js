@@ -25,7 +25,8 @@ const journalGameQuerySchema = z
 
 router.get('/games/:id', validate({ query: journalGameQuerySchema }), async (req, res) => {
   const gameId = Number(req.params.id);
-  if (!Number.isFinite(gameId)) return res.status(400).json({ error: 'Identifiant de partie invalide' });
+  if (!Number.isFinite(gameId))
+    return res.status(400).json({ error: 'Identifiant de partie invalide' });
   const game = await queryOne('SELECT id FROM gl_games WHERE id = ? LIMIT 1', [gameId]);
   if (!game) return res.status(404).json({ error: 'Partie introuvable' });
   if (!(await canAccessGlGame(req.glAuth, gameId))) {
@@ -34,27 +35,28 @@ router.get('/games/:id', validate({ query: journalGameQuerySchema }), async (req
 
   const { teamFilter, limit } = req.validatedQuery;
 
-  const rows = teamFilter != null && Number.isFinite(teamFilter)
-    ? await queryAll(
-      `SELECT id, game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at
+  const rows =
+    teamFilter != null && Number.isFinite(teamFilter)
+      ? await queryAll(
+          `SELECT id, game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at
          FROM gl_game_events
         WHERE game_id = ? AND (team_id = ? OR team_id IS NULL)
         ORDER BY id DESC
         LIMIT ${limit}`,
-      [gameId, teamFilter]
-    )
-    : await queryAll(
-      `SELECT id, game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at
+          [gameId, teamFilter],
+        )
+      : await queryAll(
+          `SELECT id, game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at
          FROM gl_game_events
         WHERE game_id = ?
         ORDER BY id DESC
         LIMIT ${limit}`,
-      [gameId]
-    );
+          [gameId],
+        );
 
   const teamRows = await queryAll(
     'SELECT id, name, color FROM gl_teams WHERE game_id = ? ORDER BY id ASC',
-    [gameId]
+    [gameId],
   );
   const teams = teamRows.map((row) => ({
     id: Number(row.id),

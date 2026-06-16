@@ -19,11 +19,23 @@ function buildWorkbookBuffer(rows) {
   const wb = XLSX.utils.book_new();
   const data = [
     [
-      'slug', 'titre', 'image_carte_url',
-      'couleur_primaire', 'couleur_secondaire', 'couleur_tertiaire', 'couleur_texte',
-      'couleur_liens', 'couleur_liens_survol', 'couleur_barre_haute', 'couleur_fond',
-      'cadre_ratio', 'cadre_ajustement', 'cadre_focal_x', 'cadre_focal_y',
-      'cadre_largeur_max', 'cadre_hauteur_max',
+      'slug',
+      'titre',
+      'image_carte_url',
+      'couleur_primaire',
+      'couleur_secondaire',
+      'couleur_tertiaire',
+      'couleur_texte',
+      'couleur_liens',
+      'couleur_liens_survol',
+      'couleur_barre_haute',
+      'couleur_fond',
+      'cadre_ratio',
+      'cadre_ajustement',
+      'cadre_focal_x',
+      'cadre_focal_y',
+      'cadre_largeur_max',
+      'cadre_hauteur_max',
     ],
     ...rows,
   ];
@@ -72,14 +84,16 @@ test('validateChapterChartePayload refuse hex invalide', () => {
 test('mergeThemeWithColorDeltas retire une couleur sur reset', () => {
   const merged = mergeThemeWithColorDeltas(
     { colors: { primary: '#111111', secondary: '#222222' } },
-    { primary: null }
+    { primary: null },
   );
   assert.strictEqual(merged.colors.primary, undefined);
   assert.strictEqual(merged.colors.secondary, '#222222');
 });
 
 test('parseChapterCharteWorkbook lit la feuille chapitres_charte', async () => {
-  const buffer = buildWorkbookBuffer([[slug, 'T', '', '#012345', '', '', '', '', '', '', '', '', '', '', '', '', '']]);
+  const buffer = buildWorkbookBuffer([
+    [slug, 'T', '', '#012345', '', '', '', '', '', '', '', '', '', '', '', '', ''],
+  ]);
   const { rows } = await parseChapterCharteWorkbook(buffer);
   assert.strictEqual(rows.length, 1);
   assert.strictEqual(rows[0].slug, slug);
@@ -91,13 +105,15 @@ test('buildChapterCharteTemplateWorkbook et export sont des XLSX valides', async
   const wb = XLSX.read(tpl, { type: 'buffer' });
   assert.ok(wb.SheetNames.includes(CHARTE_SHEET));
 
-  const exp = await buildChapterCharteExportWorkbook([{
-    slug,
-    title: 'Charte test',
-    map_image_url: '/maps/map-foret.svg',
-    theme_json: JSON.stringify({ colors: { primary: '#111111' } }),
-    map_image_frame_json: JSON.stringify(normalizeFrame()),
-  }]);
+  const exp = await buildChapterCharteExportWorkbook([
+    {
+      slug,
+      title: 'Charte test',
+      map_image_url: '/maps/map-foret.svg',
+      theme_json: JSON.stringify({ colors: { primary: '#111111' } }),
+      map_image_frame_json: JSON.stringify(normalizeFrame()),
+    },
+  ]);
   assert.strictEqual(exp.slice(0, 2).toString('latin1'), 'PK');
 });
 

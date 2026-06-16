@@ -95,7 +95,7 @@ describe('GLMarkerQuestionPoolFilters — lore', () => {
     expect(screen.queryByText('Biomes du pool')).not.toBeInTheDocument();
   });
 
-  test('mode chapter affiche l\'aide, custom affiche le dropdown de scopes', () => {
+  test("mode chapter affiche l'aide, custom affiche le dropdown de scopes", () => {
     const { rerender } = renderFilters({ isLoreSet: true, pool: BASE_LORE_POOL });
     expect(screen.getByText(/Inclut automatiquement/)).toBeInTheDocument();
     rerender(

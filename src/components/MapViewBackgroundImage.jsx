@@ -19,11 +19,24 @@ import React from 'react';
  */
 export function MapViewBackgroundImage({ imgRef, src, alt, width, height, onError }) {
   return (
-    <img ref={imgRef} src={src} draggable={false} alt={alt}
-      fetchPriority="high" decoding="async"
+    <img
+      ref={imgRef}
+      src={src}
+      draggable={false}
+      alt={alt}
+      fetchPriority="high"
+      decoding="async"
       onError={onError}
-      style={{ position: 'absolute', left: 0, top: 0, width, height,
-        userSelect: 'none', pointerEvents: 'none',
-        boxShadow: '0 4px 24px rgba(0,0,0,.18)' }} />
+      style={{
+        position: 'absolute',
+        left: 0,
+        top: 0,
+        width,
+        height,
+        userSelect: 'none',
+        pointerEvents: 'none',
+        boxShadow: '0 4px 24px rgba(0,0,0,.18)',
+      }}
+    />
   );
 }

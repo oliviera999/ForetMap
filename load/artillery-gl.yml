@@ -1,12 +1,12 @@
 config:
-  target: "http://127.0.0.1:3000"
+  target: 'http://127.0.0.1:3000'
   http:
     timeout: 20
   defaults:
     headers:
       Accept: application/json
-      X-Foretmap-Product: "gl"
-      X-ForetMap-Load-Test: "{{ $processEnvironment.LOAD_TEST_SECRET }}"
+      X-Foretmap-Product: 'gl'
+      X-ForetMap-Load-Test: '{{ $processEnvironment.LOAD_TEST_SECRET }}'
   phases:
     - duration: 20
       arrivalRate: 2
@@ -39,8 +39,8 @@ scenarios:
       - post:
           url: /api/gl/auth/login
           json:
-            pseudo: "load-test-player"
-            pin: "0000"
+            pseudo: 'load-test-player'
+            pin: '0000'
       - think: 2
       - get:
           url: /api/gl/auth/config
@@ -53,6 +53,6 @@ scenarios:
       - post:
           url: /api/gl/auth/login
           json:
-            pseudo: "load-test-player"
-            pin: "0000"
+            pseudo: 'load-test-player'
+            pin: '0000'
       - think: 1

@@ -62,7 +62,7 @@ before(async () => {
     `INSERT INTO gl_team_members (game_id, team_id, player_id, joined_at)
      VALUES (?, ?, ?, NOW())
      ON DUPLICATE KEY UPDATE team_id = VALUES(team_id), joined_at = NOW()`,
-    [ownGameId, ownGame.teams[0].id, player.id]
+    [ownGameId, ownGame.teams[0].id, player.id],
   );
 
   const tokens = await signTokens({

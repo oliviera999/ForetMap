@@ -66,14 +66,16 @@ describe('buildConstraintHelp', () => {
         type: 'number',
         constraints: { min: 0, max: 10, maxLength: null },
         default_value: 4,
-      })
+      }),
     ).toBe('Type: numérique • min 0 • max 10 • défaut: 4');
-    expect(
-      buildConstraintHelp({ type: 'enum', constraints: { values: ['a', 'b'] } })
-    ).toBe('Type: liste • valeurs: a, b');
+    expect(buildConstraintHelp({ type: 'enum', constraints: { values: ['a', 'b'] } })).toBe(
+      'Type: liste • valeurs: a, b',
+    );
   });
   test('min=0 conservé (pas traité comme absent)', () => {
-    expect(buildConstraintHelp({ type: 'number', constraints: { min: 0 } })).toBe('Type: numérique • min 0');
+    expect(buildConstraintHelp({ type: 'number', constraints: { min: 0 } })).toBe(
+      'Type: numérique • min 0',
+    );
   });
   test('default_value vide / null ignoré', () => {
     expect(buildConstraintHelp({ type: 'string', default_value: '' })).toBe('Type: texte');

@@ -77,9 +77,8 @@ export function apiGLMultipart(path, formData, options = {}) {
         return;
       }
 
-      const message = typeof body.error === 'string' && body.error
-        ? body.error
-        : `Erreur HTTP ${xhr.status}`;
+      const message =
+        typeof body.error === 'string' && body.error ? body.error : `Erreur HTTP ${xhr.status}`;
       const err = new Error(message);
       err.status = xhr.status;
       err.body = body;

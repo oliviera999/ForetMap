@@ -75,7 +75,7 @@ export function autolinkPlainText(text, entries) {
 
   matches.sort((a, b) => {
     if (a.start !== b.start) return a.start - b.start;
-    return (b.end - b.start) - (a.end - a.start);
+    return b.end - b.start - (a.end - a.start);
   });
 
   const selected = [];
@@ -109,23 +109,25 @@ export function autolinkHtmlTextNodes(html, entries) {
   const tokens = source.split(/(<[^>]+>)/g);
   let skipDepth = 0;
 
-  return tokens.map((token) => {
-    if (!token.startsWith('<')) {
-      return skipDepth > 0 ? token : autolinkPlainText(token, entries);
-    }
+  return tokens
+    .map((token) => {
+      if (!token.startsWith('<')) {
+        return skipDepth > 0 ? token : autolinkPlainText(token, entries);
+      }
 
-    const close = /^<\/(\w+)/i.exec(token);
-    if (close && SKIP_TAGS.has(close[1].toLowerCase())) {
-      skipDepth = Math.max(0, skipDepth - 1);
+      const close = /^<\/(\w+)/i.exec(token);
+      if (close && SKIP_TAGS.has(close[1].toLowerCase())) {
+        skipDepth = Math.max(0, skipDepth - 1);
+        return token;
+      }
+
+      const open = /^<(\w+)/i.exec(token);
+      if (open && SKIP_TAGS.has(open[1].toLowerCase()) && !/\/>$/.test(token.trim())) {
+        skipDepth += 1;
+      }
       return token;
-    }
-
-    const open = /^<(\w+)/i.exec(token);
-    if (open && SKIP_TAGS.has(open[1].toLowerCase()) && !/\/>$/.test(token.trim())) {
-      skipDepth += 1;
-    }
-    return token;
-  }).join('');
+    })
+    .join('');
 }
 
 /**

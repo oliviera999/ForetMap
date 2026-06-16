@@ -56,7 +56,14 @@ export function GLPlayersPanel({
         password: create.password || undefined,
         passwordMustReset: create.passwordMustReset,
       });
-      setCreate({ firstName: '', lastName: '', pseudo: '', classId: create.classId, password: '', passwordMustReset: false });
+      setCreate({
+        firstName: '',
+        lastName: '',
+        pseudo: '',
+        classId: create.classId,
+        password: '',
+        passwordMustReset: false,
+      });
       setInfo('Joueur créé.');
       await onReload?.();
     } catch (err) {
@@ -194,41 +201,75 @@ export function GLPlayersPanel({
       <form className="gl-form" onSubmit={createPlayer}>
         <div className="gl-admin-grid-2">
           <GLField label="Prénom">
-            <GLInput value={create.firstName} onChange={(e) => setCreate((p) => ({ ...p, firstName: e.target.value }))} required />
+            <GLInput
+              value={create.firstName}
+              onChange={(e) => setCreate((p) => ({ ...p, firstName: e.target.value }))}
+              required
+            />
           </GLField>
           <GLField label="Nom">
-            <GLInput value={create.lastName} onChange={(e) => setCreate((p) => ({ ...p, lastName: e.target.value }))} required />
+            <GLInput
+              value={create.lastName}
+              onChange={(e) => setCreate((p) => ({ ...p, lastName: e.target.value }))}
+              required
+            />
           </GLField>
           <GLField label="Pseudo">
-            <GLInput value={create.pseudo} onChange={(e) => setCreate((p) => ({ ...p, pseudo: e.target.value }))} required />
+            <GLInput
+              value={create.pseudo}
+              onChange={(e) => setCreate((p) => ({ ...p, pseudo: e.target.value }))}
+              required
+            />
           </GLField>
           <GLField label="Classe">
-            <GLSelect value={create.classId} onChange={(e) => setCreate((p) => ({ ...p, classId: e.target.value }))} required>
+            <GLSelect
+              value={create.classId}
+              onChange={(e) => setCreate((p) => ({ ...p, classId: e.target.value }))}
+              required
+            >
               <option value="">Choisir</option>
-              {classes.map((cls) => <option key={cls.id} value={cls.id}>{cls.name}</option>)}
+              {classes.map((cls) => (
+                <option key={cls.id} value={cls.id}>
+                  {cls.name}
+                </option>
+              ))}
             </GLSelect>
           </GLField>
           <GLField label="Mot de passe (optionnel)">
-            <GLInput value={create.password} onChange={(e) => setCreate((p) => ({ ...p, password: e.target.value }))} />
+            <GLInput
+              value={create.password}
+              onChange={(e) => setCreate((p) => ({ ...p, password: e.target.value }))}
+            />
           </GLField>
           <GLField label="Forcer changement mot de passe">
             <GLSelect
               value={create.passwordMustReset ? 'yes' : 'no'}
-              onChange={(e) => setCreate((p) => ({ ...p, passwordMustReset: e.target.value === 'yes' }))}
+              onChange={(e) =>
+                setCreate((p) => ({ ...p, passwordMustReset: e.target.value === 'yes' }))
+              }
             >
               <option value="no">Non</option>
               <option value="yes">Oui</option>
             </GLSelect>
           </GLField>
         </div>
-        <GLButton type="submit" disabled={busy}>Créer le joueur</GLButton>
+        <GLButton type="submit" disabled={busy}>
+          Créer le joueur
+        </GLButton>
       </form>
 
       <div className="gl-inline-actions">
         <GLField label="Filtrer par classe">
-          <GLSelect value={classFilter || ''} onChange={(e) => onClassFilterChange?.(e.target.value)}>
+          <GLSelect
+            value={classFilter || ''}
+            onChange={(e) => onClassFilterChange?.(e.target.value)}
+          >
             <option value="">Toutes</option>
-            {classes.map((cls) => <option key={cls.id} value={cls.id}>{cls.name}</option>)}
+            {classes.map((cls) => (
+              <option key={cls.id} value={cls.id}>
+                {cls.name}
+              </option>
+            ))}
           </GLSelect>
         </GLField>
       </div>
@@ -249,22 +290,57 @@ export function GLPlayersPanel({
           const displayName = playerDisplayName(player);
           const actionButtons = isEditing ? (
             <>
-              <GLButton type="button" onClick={saveEdit} disabled={busy}>Enregistrer</GLButton>
-              <GLButton type="button" variant="secondary" onClick={() => setEditId(null)} disabled={busy}>Annuler</GLButton>
+              <GLButton type="button" onClick={saveEdit} disabled={busy}>
+                Enregistrer
+              </GLButton>
+              <GLButton
+                type="button"
+                variant="secondary"
+                onClick={() => setEditId(null)}
+                disabled={busy}
+              >
+                Annuler
+              </GLButton>
             </>
           ) : (
             <>
-              <GLButton type="button" onClick={() => startEdit(player)} disabled={busy}>Modifier</GLButton>
-              <GLButton type="button" variant="secondary" onClick={() => toggleActive(player)} disabled={busy}>
+              <GLButton type="button" onClick={() => startEdit(player)} disabled={busy}>
+                Modifier
+              </GLButton>
+              <GLButton
+                type="button"
+                variant="secondary"
+                onClick={() => toggleActive(player)}
+                disabled={busy}
+              >
                 {toBool(player.is_active) ? 'Désactiver' : 'Activer'}
               </GLButton>
-              <GLButton type="button" variant="secondary" onClick={() => setResetPlayer(player)} disabled={busy}>Reset mdp</GLButton>
+              <GLButton
+                type="button"
+                variant="secondary"
+                onClick={() => setResetPlayer(player)}
+                disabled={busy}
+              >
+                Reset mdp
+              </GLButton>
               {canImpersonate ? (
-                <GLButton type="button" variant="secondary" onClick={() => impersonatePlayer(player)} disabled={busy}>
+                <GLButton
+                  type="button"
+                  variant="secondary"
+                  onClick={() => impersonatePlayer(player)}
+                  disabled={busy}
+                >
                   Voir comme
                 </GLButton>
               ) : null}
-              <GLButton type="button" variant="danger" onClick={() => deletePlayer(player)} disabled={busy}>Supprimer</GLButton>
+              <GLButton
+                type="button"
+                variant="danger"
+                onClick={() => deletePlayer(player)}
+                disabled={busy}
+              >
+                Supprimer
+              </GLButton>
             </>
           );
 
@@ -272,12 +348,27 @@ export function GLPlayersPanel({
             key: player.id,
             desktopCells: (
               <>
-                <td>{isEditing ? <GLInput value={edit.pseudo} onChange={(e) => setEdit((p) => ({ ...p, pseudo: e.target.value }))} /> : player.pseudo}</td>
+                <td>
+                  {isEditing ? (
+                    <GLInput
+                      value={edit.pseudo}
+                      onChange={(e) => setEdit((p) => ({ ...p, pseudo: e.target.value }))}
+                    />
+                  ) : (
+                    player.pseudo
+                  )}
+                </td>
                 <td>
                   {isEditing ? (
                     <div className="gl-admin-inline-edit">
-                      <GLInput value={edit.firstName} onChange={(e) => setEdit((p) => ({ ...p, firstName: e.target.value }))} />
-                      <GLInput value={edit.lastName} onChange={(e) => setEdit((p) => ({ ...p, lastName: e.target.value }))} />
+                      <GLInput
+                        value={edit.firstName}
+                        onChange={(e) => setEdit((p) => ({ ...p, firstName: e.target.value }))}
+                      />
+                      <GLInput
+                        value={edit.lastName}
+                        onChange={(e) => setEdit((p) => ({ ...p, lastName: e.target.value }))}
+                      />
                     </div>
                   ) : (
                     displayName
@@ -285,25 +376,59 @@ export function GLPlayersPanel({
                 </td>
                 <td>
                   {isEditing ? (
-                    <GLSelect value={edit.classId} onChange={(e) => setEdit((p) => ({ ...p, classId: e.target.value }))}>
-                      {classes.map((cls) => <option key={cls.id} value={cls.id}>{cls.name}</option>)}
+                    <GLSelect
+                      value={edit.classId}
+                      onChange={(e) => setEdit((p) => ({ ...p, classId: e.target.value }))}
+                    >
+                      {classes.map((cls) => (
+                        <option key={cls.id} value={cls.id}>
+                          {cls.name}
+                        </option>
+                      ))}
                     </GLSelect>
                   ) : (
                     className
                   )}
                 </td>
-                <td><GLBadge tone={toBool(player.is_active) ? 'success' : 'danger'}>{toBool(player.is_active) ? 'Oui' : 'Non'}</GLBadge></td>
-                <td><GLBadge tone={toBool(player.password_must_reset) ? 'info' : 'neutral'}>{toBool(player.password_must_reset) ? 'Oui' : 'Non'}</GLBadge></td>
+                <td>
+                  <GLBadge tone={toBool(player.is_active) ? 'success' : 'danger'}>
+                    {toBool(player.is_active) ? 'Oui' : 'Non'}
+                  </GLBadge>
+                </td>
+                <td>
+                  <GLBadge tone={toBool(player.password_must_reset) ? 'info' : 'neutral'}>
+                    {toBool(player.password_must_reset) ? 'Oui' : 'Non'}
+                  </GLBadge>
+                </td>
                 <td className="gl-admin-actions-cell">{actionButtons}</td>
               </>
             ),
             mobileCells: (
               <>
-                <div className="gl-data-card-row"><span className="gl-data-card-label">Pseudo</span><strong>{player.pseudo}</strong></div>
-                <div className="gl-data-card-row"><span className="gl-data-card-label">Nom</span><span>{displayName}</span></div>
-                <div className="gl-data-card-row"><span className="gl-data-card-label">Classe</span><span>{className}</span></div>
-                <div className="gl-data-card-row"><span className="gl-data-card-label">Actif</span><GLBadge tone={toBool(player.is_active) ? 'success' : 'danger'}>{toBool(player.is_active) ? 'Oui' : 'Non'}</GLBadge></div>
-                <div className="gl-data-card-row"><span className="gl-data-card-label">Reset mdp</span><GLBadge tone={toBool(player.password_must_reset) ? 'info' : 'neutral'}>{toBool(player.password_must_reset) ? 'Oui' : 'Non'}</GLBadge></div>
+                <div className="gl-data-card-row">
+                  <span className="gl-data-card-label">Pseudo</span>
+                  <strong>{player.pseudo}</strong>
+                </div>
+                <div className="gl-data-card-row">
+                  <span className="gl-data-card-label">Nom</span>
+                  <span>{displayName}</span>
+                </div>
+                <div className="gl-data-card-row">
+                  <span className="gl-data-card-label">Classe</span>
+                  <span>{className}</span>
+                </div>
+                <div className="gl-data-card-row">
+                  <span className="gl-data-card-label">Actif</span>
+                  <GLBadge tone={toBool(player.is_active) ? 'success' : 'danger'}>
+                    {toBool(player.is_active) ? 'Oui' : 'Non'}
+                  </GLBadge>
+                </div>
+                <div className="gl-data-card-row">
+                  <span className="gl-data-card-label">Reset mdp</span>
+                  <GLBadge tone={toBool(player.password_must_reset) ? 'info' : 'neutral'}>
+                    {toBool(player.password_must_reset) ? 'Oui' : 'Non'}
+                  </GLBadge>
+                </div>
                 <div className="gl-data-card-actions">{actionButtons}</div>
               </>
             ),

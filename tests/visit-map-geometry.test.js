@@ -37,8 +37,13 @@ describe('visitMapGeometry', () => {
   it('visitZoneCentroidPct retourne null si moins de 3 points', () => {
     assert.equal(visitZoneCentroidPct({ points: '[]' }), null);
     assert.equal(
-      visitZoneCentroidPct({ points: JSON.stringify([{ xp: 0, yp: 0 }, { xp: 1, yp: 1 }]) }),
-      null
+      visitZoneCentroidPct({
+        points: JSON.stringify([
+          { xp: 0, yp: 0 },
+          { xp: 1, yp: 1 },
+        ]),
+      }),
+      null,
     );
   });
 

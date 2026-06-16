@@ -60,13 +60,24 @@ describe('visitContentHelpers — cibles de visite', () => {
 
 describe('visitContentHelpers — médias de visite', () => {
   it('visitMediaPublicImageUrl privilégie le fichier local puis le lien externe', () => {
-    assert.equal(visitMediaPublicImageUrl({ id: 7, image_path: 'visit_media/7.jpg' }), '/api/visit/media/7/data');
-    assert.equal(visitMediaPublicImageUrl({ id: 7, image_path: null, image_url: ' https://x/y.jpg ' }), 'https://x/y.jpg');
+    assert.equal(
+      visitMediaPublicImageUrl({ id: 7, image_path: 'visit_media/7.jpg' }),
+      '/api/visit/media/7/data',
+    );
+    assert.equal(
+      visitMediaPublicImageUrl({ id: 7, image_path: null, image_url: ' https://x/y.jpg ' }),
+      'https://x/y.jpg',
+    );
     assert.equal(visitMediaPublicImageUrl(null), '');
   });
 
   it('serializeVisitMedia masque image_path et expose image_url public', () => {
-    const out = serializeVisitMedia({ id: 7, image_path: 'visit_media/7.jpg', image_url: 'ignored', caption: 'c' });
+    const out = serializeVisitMedia({
+      id: 7,
+      image_path: 'visit_media/7.jpg',
+      image_url: 'ignored',
+      caption: 'c',
+    });
     assert.equal(out.image_url, '/api/visit/media/7/data');
     assert.equal('image_path' in out, false);
     assert.equal(out.caption, 'c');
@@ -89,7 +100,7 @@ describe('visitContentHelpers — médias de visite', () => {
         detailsTitle: row.visit_details_title,
         detailsText: row.visit_details_text,
         visitMedia: media,
-      })
+      }),
     );
     assert.deepEqual(resolveVisitEditorialBlocksForContentRow(null, []), []);
   });
@@ -122,8 +133,17 @@ describe('visitContentHelpers — photos galerie carte', () => {
   });
 
   it('serializeMapLeadPhoto construit les URLs zone/marker (repli API sans chemin public)', () => {
-    const zone = serializeMapLeadPhoto('zone', 'z1', { id: 5, image_path: null, caption: ' Légende ' });
-    assert.deepEqual(zone, { id: 5, image_url: '/api/zones/z1/photos/5/data', thumb_url: null, caption: 'Légende' });
+    const zone = serializeMapLeadPhoto('zone', 'z1', {
+      id: 5,
+      image_path: null,
+      caption: ' Légende ',
+    });
+    assert.deepEqual(zone, {
+      id: 5,
+      image_url: '/api/zones/z1/photos/5/data',
+      thumb_url: null,
+      caption: 'Légende',
+    });
     const marker = serializeMapLeadPhoto('marker', 'm1', { id: 6, image_path: '', caption: '' });
     assert.equal(marker.image_url, '/api/map/markers/m1/photos/6/data');
     assert.equal(marker.thumb_url, null);
@@ -154,9 +174,19 @@ describe('visitContentHelpers — normalisations de payload', () => {
   });
 
   it('normalizePoints exige au moins 3 points valides dans [0,100]', () => {
-    const pts = [{ xp: 0, yp: 0 }, { xp: 50, yp: 50 }, { xp: 100, yp: 100 }];
+    const pts = [
+      { xp: 0, yp: 0 },
+      { xp: 50, yp: 50 },
+      { xp: 100, yp: 100 },
+    ];
     assert.deepEqual(normalizePoints(pts), pts);
-    assert.equal(normalizePoints([{ xp: 0, yp: 0 }, { xp: 1, yp: 1 }]), null);
+    assert.equal(
+      normalizePoints([
+        { xp: 0, yp: 0 },
+        { xp: 1, yp: 1 },
+      ]),
+      null,
+    );
     assert.equal(normalizePoints([...pts.slice(0, 2), { xp: 101, yp: 5 }]), null);
     assert.equal(normalizePoints('non-json'), null);
   });
@@ -169,7 +199,11 @@ describe('visitContentHelpers — normalisations de payload', () => {
       { xp: 2, yp: 2 },
       { xp: 3, yp: 3 },
     ]);
-    assert.deepEqual(out, [{ xp: 1, yp: 1 }, { xp: 2, yp: 2 }, { xp: 3, yp: 3 }]);
+    assert.deepEqual(out, [
+      { xp: 1, yp: 1 },
+      { xp: 2, yp: 2 },
+      { xp: 3, yp: 3 },
+    ]);
   });
 
   it('normalizeCoord borne dans [0,100], sinon null', () => {
@@ -219,12 +253,17 @@ describe('visitMascotPackHelpers — chemins et noms de fichiers', () => {
   });
 
   it('visitMascotSpriteLibraryAssetsApiPrefix suit la même validation', () => {
-    assert.equal(visitMascotSpriteLibraryAssetsApiPrefix('foret'), '/api/visit/mascot-sprite-library/foret/assets/');
+    assert.equal(
+      visitMascotSpriteLibraryAssetsApiPrefix('foret'),
+      '/api/visit/mascot-sprite-library/foret/assets/',
+    );
     assert.equal(visitMascotSpriteLibraryAssetsApiPrefix('a/b'), null);
   });
 
   it('mascotPackAllowedFramesPrefixesForMap inclut les préfixes valides uniquement', () => {
-    assert.deepEqual(mascotPackAllowedFramesPrefixesForMap('a/b', 'not-a-uuid'), ['/assets/mascots/']);
+    assert.deepEqual(mascotPackAllowedFramesPrefixesForMap('a/b', 'not-a-uuid'), [
+      '/assets/mascots/',
+    ]);
     assert.deepEqual(mascotPackAllowedFramesPrefixesForMap('foret', PACK_UUID), [
       '/assets/mascots/',
       `/api/visit/mascot-packs/${PACK_UUID}/assets/`,
@@ -252,7 +291,7 @@ describe('visitMascotPackHelpers — templates de packs', () => {
   it('buildVisitCatalogPackTemplate route vers le bon template', () => {
     assert.deepEqual(
       buildVisitCatalogPackTemplate('renard2-cut-spritesheet', 'mon-pack'),
-      buildRenard2CatalogPackTemplate('mon-pack')
+      buildRenard2CatalogPackTemplate('mon-pack'),
     );
     const fox = buildVisitCatalogPackTemplate('fox-backpack-spritesheet', 'mon-pack');
     assert.equal(fox.fallbackSilhouette, 'backpackFox');
@@ -289,16 +328,28 @@ describe('visitMascotPackHelpers — sérialisation et erreurs', () => {
   });
 
   it('classifyMascotPackModuleError catégorise les erreurs de chargement', () => {
-    assert.equal(classifyMascotPackModuleError(new Error("Cannot find package 'zod'")).reason, 'missing_runtime_dependency');
-    assert.equal(classifyMascotPackModuleError(new Error('visitMascotState.js missing')).reason, 'incomplete_lib_mirror');
-    assert.equal(classifyMascotPackModuleError(new Error('Cannot find module x')).reason, 'validator_module_missing');
+    assert.equal(
+      classifyMascotPackModuleError(new Error("Cannot find package 'zod'")).reason,
+      'missing_runtime_dependency',
+    );
+    assert.equal(
+      classifyMascotPackModuleError(new Error('visitMascotState.js missing')).reason,
+      'incomplete_lib_mirror',
+    );
+    assert.equal(
+      classifyMascotPackModuleError(new Error('Cannot find module x')).reason,
+      'validator_module_missing',
+    );
     assert.equal(classifyMascotPackModuleError(new Error('boom')).reason, 'validator_import_error');
     assert.equal(classifyMascotPackModuleError(null).reason, 'validator_import_error');
   });
 
   it('mapVisitMascotPackSqlError mappe 1146→503 et 1452→400, sinon null', () => {
     assert.equal(mapVisitMascotPackSqlError({ errno: 1146 }).status, 503);
-    assert.equal(mapVisitMascotPackSqlError({ code: 'ER_NO_SUCH_TABLE' }).body.code, 'visit_mascot_packs_table_missing');
+    assert.equal(
+      mapVisitMascotPackSqlError({ code: 'ER_NO_SUCH_TABLE' }).body.code,
+      'visit_mascot_packs_table_missing',
+    );
     assert.equal(mapVisitMascotPackSqlError({ errno: 1452 }).status, 400);
     assert.equal(mapVisitMascotPackSqlError({ errno: 1062 }), null);
     assert.equal(mapVisitMascotPackSqlError(null), null);
@@ -308,7 +359,7 @@ describe('visitMascotPackHelpers — sérialisation et erreurs', () => {
     assert.equal(mapVisitMascotSpriteLibSqlError({ errno: 1146 }).status, 503);
     assert.equal(
       mapVisitMascotSpriteLibSqlError({ code: 'ER_NO_REFERENCED_ROW_2' }).body.code,
-      'visit_mascot_sprite_library_referential_integrity'
+      'visit_mascot_sprite_library_referential_integrity',
     );
     assert.equal(mapVisitMascotSpriteLibSqlError({ errno: 1062 }), null);
     assert.equal(mapVisitMascotSpriteLibSqlError(undefined), null);

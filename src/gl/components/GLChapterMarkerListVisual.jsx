@@ -11,8 +11,7 @@ export function GLChapterMarkerListVisual({ marker }) {
   if (appearance.displayMode === 'emoji' && appearance.emoji) {
     return (
       <span className="gl-markers-list__visual foretmap-emoji-text-mixed" aria-hidden>
-        {appearance.emoji}
-        {' '}
+        {appearance.emoji}{' '}
       </span>
     );
   }

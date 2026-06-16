@@ -1,10 +1,6 @@
 import React from 'react';
 import { formatBytesLabel } from '../../services/apiGLUpload.js';
-import {
-  entryKey,
-  kindBadgeClass,
-  previewSummary,
-} from '../../utils/glContentLibraryDisplay.js';
+import { entryKey, kindBadgeClass, previewSummary } from '../../utils/glContentLibraryDisplay.js';
 
 /**
  * Tableau des entrées d'analyse (dry-run) de la bibliothèque de contenus G&L.
@@ -16,7 +12,13 @@ import {
  * @param {(key:string, checked:boolean)=>void} onToggle bascule une entrée
  * @param {((subTab:string)=>void)|undefined} onOpenSubTab ouvre l'onglet ciblé
  */
-export function GLContentLibraryAnalysisTable({ entries, selectedKeys, busy, onToggle, onOpenSubTab }) {
+export function GLContentLibraryAnalysisTable({
+  entries,
+  selectedKeys,
+  busy,
+  onToggle,
+  onOpenSubTab,
+}) {
   if (!entries || entries.length === 0) return null;
   return (
     <div className="gl-content-library__report">
@@ -49,11 +51,17 @@ export function GLContentLibraryAnalysisTable({ entries, selectedKeys, busy, onT
                   <div className="gl-hint">{formatBytesLabel(entry.size || 0)}</div>
                 </td>
                 <td>
-                  <span className={kindBadgeClass(entry.kind)}>{entry.kindLabel || entry.kind}</span>
+                  <span className={kindBadgeClass(entry.kind)}>
+                    {entry.kindLabel || entry.kind}
+                  </span>
                   {entry.mediaType ? <span className="gl-hint"> ({entry.mediaType})</span> : null}
                 </td>
                 <td>
-                  {entry.error ? <span className="gl-error">{entry.error}</span> : previewSummary(entry)}
+                  {entry.error ? (
+                    <span className="gl-error">{entry.error}</span>
+                  ) : (
+                    previewSummary(entry)
+                  )}
                   {warnings.length ? (
                     <ul className="gl-content-library__warnings">
                       {warnings.map((warning) => (

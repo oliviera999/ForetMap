@@ -10,12 +10,12 @@ Les élèves peuvent consulter la carte des zones, s’inscrire à des tâches e
 
 ## Stack technique
 
-| Couche      | Technologie |
-|------------|-------------|
-| Backend    | Node.js, Express, Socket.IO (mises à jour temps réel) |
-| Base de données | **MySQL** (mysql2, pool promesses) — hébergement o2switch |
-| Frontend   | React 19 + react-dom 18, build **Vite** (`src/`), bundle servi depuis `dist/` en production |
-| Auth élèves | bcrypt (hash des mots de passe), session en `localStorage` |
+| Couche          | Technologie                                                                                 |
+| --------------- | ------------------------------------------------------------------------------------------- |
+| Backend         | Node.js, Express, Socket.IO (mises à jour temps réel)                                       |
+| Base de données | **MySQL** (mysql2, pool promesses) — hébergement o2switch                                   |
+| Frontend        | React 19 + react-dom 18, build **Vite** (`src/`), bundle servi depuis `dist/` en production |
+| Auth élèves     | bcrypt (hash des mots de passe), session en `localStorage`                                  |
 
 Fichiers principaux : `server.js` (API + fichiers statiques), `database.js` (pool MySQL, helpers, seed), `sql/schema_foretmap.sql` (DDL), `src/` (application React), `index.vite.html` + `vite.config.js` (build → `dist/`).
 
@@ -109,34 +109,34 @@ Documentation détaillée et templates:
 
 ### Variables d’environnement
 
-| Variable | Description |
-|----------|-------------|
-| `DB_HOST` | Hôte MySQL (défaut : localhost) |
-| `DB_PORT` | Port MySQL (défaut : 3306) |
-| `DB_NAME` | Nom de la base |
-| `DB_USER` | Utilisateur MySQL |
-| `DB_PASS` | Mot de passe MySQL |
-| `PORT` | Port du serveur (défaut : 3000) |
-| `IP` ou `ALWAYSDATA_HTTPD_IP` | Adresse d’écoute (défaut : 0.0.0.0) |
-| `DEPLOY_SECRET` | Optionnel : secret pour redémarrage à distance après déploiement (voir ci‑dessous) |
-| `TEACHER_PIN` | PIN de secours historique (élévation admin de compatibilité) |
-| `JWT_SECRET` | Secret JWT (requis en production) |
-| `TEACHER_ADMIN_EMAIL` | Optionnel : email du compte prof auto-créé (auth email/mot de passe) |
-| `TEACHER_ADMIN_PASSWORD` | Optionnel : mot de passe initial du compte prof auto-créé |
-| `TEACHER_ADMIN_DISPLAY_NAME` | Optionnel : nom affiché du compte prof auto-créé |
-| `RBAC_DEFAULT_STUDENT_ROLE` | Optionnel : rôle élève assigné par défaut (`eleve_novice` par défaut) |
-| `FRONTEND_ORIGIN` | En production : origine CORS autorisée (ex. `https://foretmap.olution.info`) |
-| `PASSWORD_RESET_BASE_URL` | URL de base incluse dans les emails de réinitialisation (défaut `FRONTEND_ORIGIN` puis `http://localhost:3000`) |
-| `SMTP_HOST` | Hôte SMTP pour l’envoi d’emails (mot de passe oublié) |
-| `SMTP_PORT` | Port SMTP (défaut 587) |
-| `SMTP_SECURE` | `true` pour SMTPS (défaut auto selon port) |
-| `SMTP_USER` / `SMTP_PASS` | Identifiants SMTP (si requis par le fournisseur) |
-| `SMTP_FROM` | Expéditeur des emails (ex. `ForetMap <no-reply@exemple.com>`) |
-| `SMTP_JSON_TRANSPORT` | Optionnel (dev/test) : active un transport JSON sans envoi réel |
-| `FORETMAP_RECURRENCE_TZ` | Optionnel : fuseau IANA pour la date du jour du job tâches récurrentes (défaut `Europe/Paris`). |
-| `FORETMAP_DISABLE_RECURRING_TASK_JOB` | Optionnel : `1` pour ne pas planifier le job de duplication des tâches récurrentes (hors `NODE_ENV=test` qui le désactive déjà). |
-| `FORETMAP_SHUTDOWN_TIMEOUT_MS` | Optionnel : délai max (ms) avant `exit 1` si l’arrêt gracieux (`SIGTERM` / `SIGINT` / redémarrage admin) bloque ; entre **3000** et **120000**, défaut **12000**. |
-| `LOG_LEVEL` | Optionnel : niveau Pino (`debug`, `info`, …). Voir section *Débogage* ci‑dessus. |
+| Variable                              | Description                                                                                                                                                       |
+| ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DB_HOST`                             | Hôte MySQL (défaut : localhost)                                                                                                                                   |
+| `DB_PORT`                             | Port MySQL (défaut : 3306)                                                                                                                                        |
+| `DB_NAME`                             | Nom de la base                                                                                                                                                    |
+| `DB_USER`                             | Utilisateur MySQL                                                                                                                                                 |
+| `DB_PASS`                             | Mot de passe MySQL                                                                                                                                                |
+| `PORT`                                | Port du serveur (défaut : 3000)                                                                                                                                   |
+| `IP` ou `ALWAYSDATA_HTTPD_IP`         | Adresse d’écoute (défaut : 0.0.0.0)                                                                                                                               |
+| `DEPLOY_SECRET`                       | Optionnel : secret pour redémarrage à distance après déploiement (voir ci‑dessous)                                                                                |
+| `TEACHER_PIN`                         | PIN de secours historique (élévation admin de compatibilité)                                                                                                      |
+| `JWT_SECRET`                          | Secret JWT (requis en production)                                                                                                                                 |
+| `TEACHER_ADMIN_EMAIL`                 | Optionnel : email du compte prof auto-créé (auth email/mot de passe)                                                                                              |
+| `TEACHER_ADMIN_PASSWORD`              | Optionnel : mot de passe initial du compte prof auto-créé                                                                                                         |
+| `TEACHER_ADMIN_DISPLAY_NAME`          | Optionnel : nom affiché du compte prof auto-créé                                                                                                                  |
+| `RBAC_DEFAULT_STUDENT_ROLE`           | Optionnel : rôle élève assigné par défaut (`eleve_novice` par défaut)                                                                                             |
+| `FRONTEND_ORIGIN`                     | En production : origine CORS autorisée (ex. `https://foretmap.olution.info`)                                                                                      |
+| `PASSWORD_RESET_BASE_URL`             | URL de base incluse dans les emails de réinitialisation (défaut `FRONTEND_ORIGIN` puis `http://localhost:3000`)                                                   |
+| `SMTP_HOST`                           | Hôte SMTP pour l’envoi d’emails (mot de passe oublié)                                                                                                             |
+| `SMTP_PORT`                           | Port SMTP (défaut 587)                                                                                                                                            |
+| `SMTP_SECURE`                         | `true` pour SMTPS (défaut auto selon port)                                                                                                                        |
+| `SMTP_USER` / `SMTP_PASS`             | Identifiants SMTP (si requis par le fournisseur)                                                                                                                  |
+| `SMTP_FROM`                           | Expéditeur des emails (ex. `ForetMap <no-reply@exemple.com>`)                                                                                                     |
+| `SMTP_JSON_TRANSPORT`                 | Optionnel (dev/test) : active un transport JSON sans envoi réel                                                                                                   |
+| `FORETMAP_RECURRENCE_TZ`              | Optionnel : fuseau IANA pour la date du jour du job tâches récurrentes (défaut `Europe/Paris`).                                                                   |
+| `FORETMAP_DISABLE_RECURRING_TASK_JOB` | Optionnel : `1` pour ne pas planifier le job de duplication des tâches récurrentes (hors `NODE_ENV=test` qui le désactive déjà).                                  |
+| `FORETMAP_SHUTDOWN_TIMEOUT_MS`        | Optionnel : délai max (ms) avant `exit 1` si l’arrêt gracieux (`SIGTERM` / `SIGINT` / redémarrage admin) bloque ; entre **3000** et **120000**, défaut **12000**. |
+| `LOG_LEVEL`                           | Optionnel : niveau Pino (`debug`, `info`, …). Voir section _Débogage_ ci‑dessus.                                                                                  |
 
 Le réglage GUI admin `tasks.recurring_automation_enabled` permet de suspendre globalement la création automatique des tâches récurrentes (ex. vacances) sans couper le timer serveur. Pour couper complètement la planification, utiliser `FORETMAP_DISABLE_RECURRING_TASK_JOB=1`.
 
@@ -177,9 +177,11 @@ Le script vide les tables MySQL puis recopie toutes les données (zones, biodive
 3. **Fichier d’entrée (Application startup file)** : **`app.js`** (valeur par défaut de cPanel). Ce fichier charge `server.js` et lance le serveur via `boot()`. Il écrit un diagnostic immédiat dans `startup-diag.log` pour faciliter le débogage. Si le champ est sur `server.js`, le démarrage direct fonctionne aussi (`node server.js` appelle `boot()` automatiquement).
 
 4. **Déployer le code (mode standard)** : upload du dépôt (sans `.env`), puis sur le serveur :
+
    ```bash
    npm install --production
    ```
+
    **Erreur « Can't acquire lock for app: … »** : message du panel o2switch (pas de l’app). **Arrêter l’application** dans Setup Node.js App, attendre quelques secondes, lancer **npm install**, puis **redémarrer** l’app. Ne pas ouvrir l’URL du site pendant l’install si le panel ou un script interroge l’app à ce moment.
 
 5. **Initialiser la BDD** (une fois) : exécuter le schéma puis éventuellement la migration :
@@ -206,9 +208,11 @@ Le script vide les tables MySQL puis recopie toutes les données (zones, biodive
 Cette variante évite les pannes observées côté hébergeur (`vite` absent, lock panel pendant `npm install`).
 
 1. En local (Linux / macOS / Windows — script **Node**, voir [docs/LOCAL_DEV.md](docs/LOCAL_DEV.md)) :
+
    ```bash
    npm run deploy:prepare:runtime
    ```
+
    Cette commande :
    - installe les dépendances (dev),
    - build le frontend,
@@ -240,9 +244,11 @@ Cette variante évite les pannes observées côté hébergeur (`vite` absent, lo
 Si la console navigateur affiche `reserved bits are on` ou `connect_error websocket error`, cela indique généralement une altération des trames WebSocket par un proxy/CDN (pas une erreur métier ForetMap).
 
 **Contournement actuellement appliqué côté client :**
+
 - transport forcé en `polling` dans `src/hooks/useForetmapRealtime.js` pour maintenir le temps réel sans dépendre de WebSocket.
 
 **Checklist de diagnostic côté hébergeur / proxy :**
+
 - vérifier que la route `https://foretmap.olution.info/socket.io/` est bien routée vers l’app Node ;
 - vérifier la prise en charge WebSocket (upgrade HTTP) sur le reverse proxy ;
 - transmettre correctement les headers `Upgrade: websocket` et `Connection: upgrade` ;
@@ -250,6 +256,7 @@ Si la console navigateur affiche `reserved bits are on` ou `connect_error websoc
 - vérifier que l’origine front (`FRONTEND_ORIGIN`) correspond exactement au domaine servi (schéma + hôte).
 
 **Marche arrière une fois l’infra corrigée :**
+
 1. remettre `transports: ['websocket', 'polling']` dans `src/hooks/useForetmapRealtime.js` ;
 2. redéployer le frontend (`npm run build`) ;
 3. redémarrer l’app Node.js ;

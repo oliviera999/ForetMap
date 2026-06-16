@@ -31,7 +31,9 @@ test.describe('GL — liaison médias assets', () => {
       expect(manifest[stableKey]).toBe(stableKey);
 
       const index = loadMediaKeyIndex();
-      expect(index[stableKey]?.url || `/uploads/${index[stableKey]?.relativePath}`).toContain('/uploads/');
+      expect(index[stableKey]?.url || `/uploads/${index[stableKey]?.relativePath}`).toContain(
+        '/uploads/',
+      );
     } finally {
       if (relativePath) {
         deleteMediaLibraryItem(relativePath);
@@ -51,8 +53,7 @@ test.describe('GL — liaison médias assets', () => {
     const boiteUrl = String(body.images?.boite || '');
     expect(boiteUrl.length).toBeGreaterThan(0);
     expect(
-      boiteUrl.includes('/uploads/media-library/')
-      || boiteUrl.includes('/gl/intro/'),
+      boiteUrl.includes('/uploads/media-library/') || boiteUrl.includes('/gl/intro/'),
     ).toBeTruthy();
   });
 
@@ -63,7 +64,9 @@ test.describe('GL — liaison médias assets', () => {
       'INSERT INTO gl_admins (email, display_name, role, is_active, created_at, updated_at) VALUES (?, ?, ?, 1, NOW(), NOW())',
       [adminEmail, `MJ Media ${now}`, 'admin'],
     );
-    const adminRow = await queryOne('SELECT id FROM gl_admins WHERE email = ? LIMIT 1', [adminEmail]);
+    const adminRow = await queryOne('SELECT id FROM gl_admins WHERE email = ? LIMIT 1', [
+      adminEmail,
+    ]);
     const adminToken = await signAuthToken({
       product: 'gl',
       userType: 'gl_admin',
@@ -73,7 +76,9 @@ test.describe('GL — liaison médias assets', () => {
       displayName: `MJ Media ${now}`,
     });
 
-    const chapter = await queryOne("SELECT slug, plateau_number FROM gl_chapters WHERE slug = 'foret-magique' LIMIT 1");
+    const chapter = await queryOne(
+      "SELECT slug, plateau_number FROM gl_chapters WHERE slug = 'foret-magique' LIMIT 1",
+    );
     expect(chapter?.slug).toBeTruthy();
 
     const detail = await request.get(`/api/gl/chapters/${chapter.slug}`, {
@@ -82,6 +87,8 @@ test.describe('GL — liaison médias assets', () => {
     expect(detail.ok()).toBeTruthy();
     const detailBody = await detail.json();
     expect(detailBody?.chapter?.slug).toBe(chapter.slug);
-    expect(detailBody?.chapter?.plateau_number == null || Number(detailBody.chapter.plateau_number) >= 1).toBeTruthy();
+    expect(
+      detailBody?.chapter?.plateau_number == null || Number(detailBody.chapter.plateau_number) >= 1,
+    ).toBeTruthy();
   });
 });

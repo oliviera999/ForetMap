@@ -1,6 +1,4 @@
-import React, {
-  useCallback, useEffect, useMemo, useRef, useState,
-} from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { VISIT_MASCOT_STATE } from '../utils/visitMascotState.js';
 import { validateMascotPackV1 } from '../utils/mascotPack.js';
 import { api, AccountDeletedError, withAppBase } from '../services/api';
@@ -68,7 +66,9 @@ export default function MascotPackWysiwygEditor({
     const result = validateMascotPackV1(draft, validationOpts);
     if (!result.ok) {
       setValidated(null);
-      setValidationIssues(extractMascotPackValidationIssues(result.error?.format?.() || result.error));
+      setValidationIssues(
+        extractMascotPackValidationIssues(result.error?.format?.() || result.error),
+      );
       return;
     }
     setValidated(result);
@@ -106,126 +106,156 @@ export default function MascotPackWysiwygEditor({
     void loadAssets();
   }, [loadAssets]);
 
-  const patchPack = useCallback((partial) => {
-    onPackChange({ ...pack, ...partial });
-  }, [pack, onPackChange]);
+  const patchPack = useCallback(
+    (partial) => {
+      onPackChange({ ...pack, ...partial });
+    },
+    [pack, onPackChange],
+  );
 
   const setFramesBaseServer = useCallback(() => {
     if (!packUuid) return;
     onPackChange(ensureServerFramesBase(pack, packUuid));
   }, [pack, packUuid, onPackChange]);
 
-  const stateFrames = useMemo(() => (
-    pack.stateFrames && typeof pack.stateFrames === 'object' && !Array.isArray(pack.stateFrames)
-      ? /** @type {Record<string, unknown>} */ (pack.stateFrames)
-      : {}
-  ), [pack.stateFrames]);
+  const stateFrames = useMemo(
+    () =>
+      pack.stateFrames && typeof pack.stateFrames === 'object' && !Array.isArray(pack.stateFrames)
+        ? /** @type {Record<string, unknown>} */ (pack.stateFrames)
+        : {},
+    [pack.stateFrames],
+  );
 
-  const setStateFrames = useCallback((next) => {
-    patchPack({ stateFrames: next });
-  }, [patchPack]);
+  const setStateFrames = useCallback(
+    (next) => {
+      patchPack({ stateFrames: next });
+    },
+    [patchPack],
+  );
 
   const packWarnings = useMemo(
     () => computePackMediaWarnings(pack, packUuid, assets, stateFrames),
     [pack, packUuid, assets, stateFrames],
   );
 
-  const updateStateEntry = useCallback((stateKey, spec) => {
-    const next = { ...stateFrames };
-    if (spec == null) delete next[stateKey];
-    else next[stateKey] = spec;
-    setStateFrames(next);
-  }, [stateFrames, setStateFrames]);
+  const updateStateEntry = useCallback(
+    (stateKey, spec) => {
+      const next = { ...stateFrames };
+      if (spec == null) delete next[stateKey];
+      else next[stateKey] = spec;
+      setStateFrames(next);
+    },
+    [stateFrames, setStateFrames],
+  );
 
-  const appendFileToState = useCallback((stateKey, filename) => {
-    setStateFrames(appendFileToStateFrames(stateFrames, stateKey, filename));
-  }, [stateFrames, setStateFrames]);
+  const appendFileToState = useCallback(
+    (stateKey, filename) => {
+      setStateFrames(appendFileToStateFrames(stateFrames, stateKey, filename));
+    },
+    [stateFrames, setStateFrames],
+  );
 
-  const onAddLibraryToTarget = useCallback((filename) => {
-    if (!filename) return;
-    appendFileToState(libraryTargetState, filename);
-    setStatusMessage(`« ${filename} » ajouté à l’état « ${libraryTargetState} ».`);
-  }, [appendFileToState, libraryTargetState]);
+  const onAddLibraryToTarget = useCallback(
+    (filename) => {
+      if (!filename) return;
+      appendFileToState(libraryTargetState, filename);
+      setStatusMessage(`« ${filename} » ajouté à l’état « ${libraryTargetState} ».`);
+    },
+    [appendFileToState, libraryTargetState],
+  );
 
-  const fileToPngDataUrl = useCallback((file) => new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = () => reject(new Error('Lecture fichier impossible'));
-    reader.onload = () => {
-      const dataUrl = reader.result;
-      const img = new Image();
-      img.onerror = () => reject(new Error('Image invalide'));
-      img.onload = () => {
-        let w = img.naturalWidth;
-        let h = img.naturalHeight;
-        const max = 2048;
-        if (w > max || h > max) {
-          if (w >= h) {
-            h = Math.round((h * max) / w);
-            w = max;
-          } else {
-            w = Math.round((w * max) / h);
-            h = max;
-          }
-        }
-        const canvas = document.createElement('canvas');
-        canvas.width = w;
-        canvas.height = h;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-          reject(new Error('Canvas indisponible'));
-          return;
-        }
-        ctx.drawImage(img, 0, 0, w, h);
-        resolve(canvas.toDataURL('image/png'));
-      };
-      img.src = dataUrl;
-    };
-    reader.readAsDataURL(file);
-  }), []);
+  const fileToPngDataUrl = useCallback(
+    (file) =>
+      new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onerror = () => reject(new Error('Lecture fichier impossible'));
+        reader.onload = () => {
+          const dataUrl = reader.result;
+          const img = new Image();
+          img.onerror = () => reject(new Error('Image invalide'));
+          img.onload = () => {
+            let w = img.naturalWidth;
+            let h = img.naturalHeight;
+            const max = 2048;
+            if (w > max || h > max) {
+              if (w >= h) {
+                h = Math.round((h * max) / w);
+                w = max;
+              } else {
+                w = Math.round((w * max) / h);
+                h = max;
+              }
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+              reject(new Error('Canvas indisponible'));
+              return;
+            }
+            ctx.drawImage(img, 0, 0, w, h);
+            resolve(canvas.toDataURL('image/png'));
+          };
+          img.src = dataUrl;
+        };
+        reader.readAsDataURL(file);
+      }),
+    [],
+  );
 
-  const onPickUpload = useCallback(async (e) => {
-    const file = e.target?.files?.[0];
-    e.target.value = '';
-    if (!file || !packUuid) return;
-    const filename = sanitizeClientFilename(file.name);
-    setStatusMessage('Envoi en cours…');
-    try {
-      const dataUrl = await fileToPngDataUrl(file);
-      await api(`/api/visit/mascot-packs/${encodeURIComponent(packUuid)}/assets`, 'POST', {
-        filename,
-        image_data: dataUrl,
-      });
-      setStatusMessage(`Fichier « ${filename} » enregistré.`);
-      await loadAssets();
-    } catch (err) {
-      if (err instanceof AccountDeletedError) onForceLogout?.();
-      else setStatusMessage(err.message || 'Upload impossible');
-    }
-  }, [fileToPngDataUrl, loadAssets, packUuid, onForceLogout]);
+  const onPickUpload = useCallback(
+    async (e) => {
+      const file = e.target?.files?.[0];
+      e.target.value = '';
+      if (!file || !packUuid) return;
+      const filename = sanitizeClientFilename(file.name);
+      setStatusMessage('Envoi en cours…');
+      try {
+        const dataUrl = await fileToPngDataUrl(file);
+        await api(`/api/visit/mascot-packs/${encodeURIComponent(packUuid)}/assets`, 'POST', {
+          filename,
+          image_data: dataUrl,
+        });
+        setStatusMessage(`Fichier « ${filename} » enregistré.`);
+        await loadAssets();
+      } catch (err) {
+        if (err instanceof AccountDeletedError) onForceLogout?.();
+        else setStatusMessage(err.message || 'Upload impossible');
+      }
+    },
+    [fileToPngDataUrl, loadAssets, packUuid, onForceLogout],
+  );
 
-  const onDeleteAsset = useCallback(async (filename) => {
-    if (!packUuid || !filename) return;
-    if (!window.confirm(`Supprimer « ${filename} » du serveur ?`)) return;
-    try {
-      await api(
-        `/api/visit/mascot-packs/${encodeURIComponent(packUuid)}/assets/${encodeURIComponent(filename)}`,
-        'DELETE',
-      );
-      await loadAssets();
-      setStatusMessage(`« ${filename} » supprimé.`);
-    } catch (err) {
-      if (err instanceof AccountDeletedError) onForceLogout?.();
-      else setStatusMessage(err.message || 'Suppression impossible');
-    }
-  }, [loadAssets, packUuid, onForceLogout]);
+  const onDeleteAsset = useCallback(
+    async (filename) => {
+      if (!packUuid || !filename) return;
+      if (!window.confirm(`Supprimer « ${filename} » du serveur ?`)) return;
+      try {
+        await api(
+          `/api/visit/mascot-packs/${encodeURIComponent(packUuid)}/assets/${encodeURIComponent(filename)}`,
+          'DELETE',
+        );
+        await loadAssets();
+        setStatusMessage(`« ${filename} » supprimé.`);
+      } catch (err) {
+        if (err instanceof AccountDeletedError) onForceLogout?.();
+        else setStatusMessage(err.message || 'Suppression impossible');
+      }
+    },
+    [loadAssets, packUuid, onForceLogout],
+  );
 
-  const toggleState = useCallback((stateKey, enabled) => {
-    if (enabled) {
-      updateStateEntry(stateKey, { files: [], fps: 8 });
-    } else {
-      updateStateEntry(stateKey, null);
-    }
-  }, [updateStateEntry]);
+  const toggleState = useCallback(
+    (stateKey, enabled) => {
+      if (enabled) {
+        updateStateEntry(stateKey, { files: [], fps: 8 });
+      } else {
+        updateStateEntry(stateKey, null);
+      }
+    },
+    [updateStateEntry],
+  );
 
   return (
     <div className="mascot-pack-wysiwyg">
@@ -246,12 +276,35 @@ export default function MascotPackWysiwygEditor({
       {packUuid ? (
         <section className="mascot-pack-wysiwyg__library">
           <h3 className="mascot-pack-wysiwyg__h">Médiathèque (serveur)</h3>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', marginBottom: 10 }}>
-            <button type="button" className="btn btn-ghost btn-sm" onClick={() => void loadAssets()} disabled={assetsLoading}>
+          <div
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: 8,
+              alignItems: 'center',
+              marginBottom: 10,
+            }}
+          >
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              onClick={() => void loadAssets()}
+              disabled={assetsLoading}
+            >
               {assetsLoading ? 'Chargement…' : 'Actualiser'}
             </button>
-            <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={onPickUpload} />
-            <button type="button" className="btn btn-primary btn-sm" onClick={() => fileInputRef.current?.click()}>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              style={{ display: 'none' }}
+              onChange={onPickUpload}
+            />
+            <button
+              type="button"
+              className="btn btn-primary btn-sm"
+              onClick={() => fileInputRef.current?.click()}
+            >
               Envoyer une image PNG…
             </button>
             <label>
@@ -263,7 +316,9 @@ export default function MascotPackWysiwygEditor({
                 onChange={(ev) => setLibraryTargetState(ev.target.value)}
               >
                 {STATE_OPTIONS.map((s) => (
-                  <option key={s} value={s}>{STATE_LABELS[s] || s} ({s})</option>
+                  <option key={s} value={s}>
+                    {STATE_LABELS[s] || s} ({s})
+                  </option>
                 ))}
               </select>
             </label>
@@ -284,10 +339,18 @@ export default function MascotPackWysiwygEditor({
                   </button>
                   <div className="mascot-pack-wysiwyg__asset-name">{a.filename}</div>
                   <div className="mascot-pack-wysiwyg__asset-actions">
-                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => onAddLibraryToTarget(a.filename)}>
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      onClick={() => onAddLibraryToTarget(a.filename)}
+                    >
                       + animation
                     </button>
-                    <button type="button" className="btn btn-danger btn-sm" onClick={() => void onDeleteAsset(a.filename)}>
+                    <button
+                      type="button"
+                      className="btn btn-danger btn-sm"
+                      onClick={() => void onDeleteAsset(a.filename)}
+                    >
                       Supprimer
                     </button>
                   </div>
@@ -299,8 +362,8 @@ export default function MascotPackWysiwygEditor({
       ) : (
         <section className="mascot-pack-wysiwyg__library">
           <p className="section-sub" style={{ fontSize: '0.85rem' }}>
-            Médiathèque serveur : disponible lorsque le pack est enregistré sur une carte (UUID).
-            En mode autonome, utilisez des <strong>srcs</strong> (URLs / blob) dans chaque état.
+            Médiathèque serveur : disponible lorsque le pack est enregistré sur une carte (UUID). En
+            mode autonome, utilisez des <strong>srcs</strong> (URLs / blob) dans chaque état.
           </p>
         </section>
       )}
@@ -308,13 +371,15 @@ export default function MascotPackWysiwygEditor({
       <section className="mascot-pack-wysiwyg__states">
         <h3 className="mascot-pack-wysiwyg__h">États d’animation</h3>
         <p className="section-sub" style={{ fontSize: '0.82rem' }}>
-          Cochez les états utilisés, puis ordonnez les images. La validation Zod exige au moins une image par état activé avant enregistrement.
+          Cochez les états utilisés, puis ordonnez les images. La validation Zod exige au moins une
+          image par état activé avant enregistrement.
         </p>
         {STATE_OPTIONS.map((stateKey) => {
           const active = Object.prototype.hasOwnProperty.call(stateFrames, stateKey);
-          const spec = active && stateFrames[stateKey] && typeof stateFrames[stateKey] === 'object'
-            ? stateFrames[stateKey]
-            : {};
+          const spec =
+            active && stateFrames[stateKey] && typeof stateFrames[stateKey] === 'object'
+              ? stateFrames[stateKey]
+              : {};
           return (
             <MascotPackStateEditor
               key={stateKey}
@@ -338,7 +403,9 @@ export default function MascotPackWysiwygEditor({
         </p>
         <StateAliasesEditor
           stateFrames={stateFrames}
-          aliases={pack.stateAliases && typeof pack.stateAliases === 'object' ? pack.stateAliases : {}}
+          aliases={
+            pack.stateAliases && typeof pack.stateAliases === 'object' ? pack.stateAliases : {}
+          }
           onChange={(next) => {
             if (next && Object.keys(next).length) patchPack({ stateAliases: next });
             else {
@@ -349,7 +416,9 @@ export default function MascotPackWysiwygEditor({
         />
       </section>
 
-      <div style={{ marginTop: 16, display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+      <div
+        style={{ marginTop: 16, display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}
+      >
         <button type="button" className="btn btn-ghost btn-sm" onClick={runValidate}>
           Revalider maintenant
         </button>
@@ -360,7 +429,8 @@ export default function MascotPackWysiwygEditor({
 
       {validated ? (
         <p className="section-sub" style={{ marginTop: 10, fontSize: '0.82rem' }}>
-          Pack valide: <code>{validated.pack.id}</code> ({Object.keys(validated.pack.stateFrames || {}).length} état(s)).
+          Pack valide: <code>{validated.pack.id}</code> (
+          {Object.keys(validated.pack.stateFrames || {}).length} état(s)).
         </p>
       ) : null}
       {validationIssues.length > 0 ? (
@@ -379,7 +449,9 @@ export default function MascotPackWysiwygEditor({
           <strong>Corrections nécessaires</strong>
           <ul style={{ margin: '8px 0 0', paddingLeft: 16 }}>
             {toMascotPackIssueLines(validationIssues).map((line) => (
-              <li key={line} style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{line}</li>
+              <li key={line} style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                {line}
+              </li>
             ))}
           </ul>
         </div>

@@ -15,11 +15,7 @@ function ProgressBar({ label, current, required, emoji }) {
       <div className="gl-spell-cast-progress__label">
         <span>{label}</span>
         <span>
-          {current}
-          /
-          {required}
-          {' '}
-          {emoji}
+          {current}/{required} {emoji}
         </span>
       </div>
       <div className="gl-spell-cast-progress__track" aria-hidden="true">
@@ -45,9 +41,7 @@ function RosterPlayerRow({
         <strong>{formatPlayerLabel(player)}</strong>
         <span className="gl-spell-cast-roster__balance">
           ❤️
-          {player.healthPoints}
-          {' '}
-          · 💎
+          {player.healthPoints} · 💎
           {player.powerPoints}
         </span>
       </div>
@@ -121,23 +115,12 @@ export function GLSpellCastRosterSection({
 
   return (
     <>
-      <ProgressBar
-        label="Gemmes"
-        current={totals.gems}
-        required={required.gems}
-        emoji="💎"
-      />
-      <ProgressBar
-        label="Cœurs"
-        current={totals.hearts}
-        required={required.hearts}
-        emoji="❤️"
-      />
+      <ProgressBar label="Gemmes" current={totals.gems} required={required.gems} emoji="💎" />
+      <ProgressBar label="Cœurs" current={totals.hearts} required={required.hearts} emoji="❤️" />
       {rosterEmpty ? (
         <p className="gl-hint">
-          Aucun joueur assigné aux équipes de cette partie.
-          {' '}
-          Assignez les joueurs depuis la console MJ (onglet Équipes / roster).
+          Aucun joueur assigné aux équipes de cette partie. Assignez les joueurs depuis la console
+          MJ (onglet Équipes / roster).
         </p>
       ) : (
         rosterGroups.map((group) => (

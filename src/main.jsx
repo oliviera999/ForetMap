@@ -9,7 +9,7 @@ import { safeSessionStorageSetItem } from './utils/browserStorage.js';
 ReactDOM.createRoot(document.getElementById('root')).render(
   <ErrorBoundary>
     <App />
-  </ErrorBoundary>
+  </ErrorBoundary>,
 );
 
 if ('serviceWorker' in navigator) {
@@ -22,7 +22,7 @@ if ('serviceWorker' in navigator) {
     window.location.reload();
   };
 
-  const activateWaitingWorker = registration => {
+  const activateWaitingWorker = (registration) => {
     if (registration.waiting) {
       registration.waiting.postMessage({ type: 'SKIP_WAITING' });
     }
@@ -30,8 +30,9 @@ if ('serviceWorker' in navigator) {
 
   navigator.serviceWorker.addEventListener('controllerchange', triggerReloadOnControllerChange);
 
-  navigator.serviceWorker.register(withAppBase('/sw.js'))
-    .then(registration => {
+  navigator.serviceWorker
+    .register(withAppBase('/sw.js'))
+    .then((registration) => {
       activateWaitingWorker(registration);
 
       registration.addEventListener('updatefound', () => {

@@ -32,11 +32,14 @@ export function computeEditorWarnings(editorPack) {
   if (silhouette && !MASCOT_PACK_FALLBACK_SILHOUETTES.includes(silhouette)) {
     warnings.push(`Silhouette « ${silhouette} » inconnue.`);
   }
-  const stateFrames = editorPack?.stateFrames && typeof editorPack.stateFrames === 'object'
-    ? editorPack.stateFrames
-    : {};
+  const stateFrames =
+    editorPack?.stateFrames && typeof editorPack.stateFrames === 'object'
+      ? editorPack.stateFrames
+      : {};
   if (!stateFrames?.idle) {
-    warnings.push('État recommandé manquant: ajoutez un état « idle » pour un fallback visuel fiable.');
+    warnings.push(
+      'État recommandé manquant: ajoutez un état « idle » pour un fallback visuel fiable.',
+    );
   }
   return warnings;
 }
@@ -48,17 +51,14 @@ export function computeEditorWarnings(editorPack) {
  */
 export function filterGlobalAssets(globalAssets, search) {
   const list = Array.isArray(globalAssets) ? globalAssets : [];
-  const q = String(search || '').trim().toLowerCase();
+  const q = String(search || '')
+    .trim()
+    .toLowerCase();
   if (!q) return list;
   return list.filter((a) => {
-    const hay = [
-      a?.filename,
-      a?.url,
-      a?.source,
-      a?.map_id,
-      a?.pack_catalog_id,
-      a?.pack_label,
-    ].map((x) => String(x || '').toLowerCase()).join(' ');
+    const hay = [a?.filename, a?.url, a?.source, a?.map_id, a?.pack_catalog_id, a?.pack_label]
+      .map((x) => String(x || '').toLowerCase())
+      .join(' ');
     return hay.includes(q);
   });
 }
@@ -77,14 +77,15 @@ export function insertAssetUrlIntoPackState(prevPack, targetState, assetUrl) {
   const url = String(assetUrl || '').trim();
   const next = { ...(prevPack || {}) };
   if (!url) return next;
-  const sf = next.stateFrames && typeof next.stateFrames === 'object' ? { ...next.stateFrames } : {};
+  const sf =
+    next.stateFrames && typeof next.stateFrames === 'object' ? { ...next.stateFrames } : {};
   const cur = sf[state] && typeof sf[state] === 'object' ? { ...sf[state] } : {};
   let srcs = [];
   if (Array.isArray(cur.srcs) && cur.srcs.length > 0) {
     srcs = cur.srcs.map((u) => String(u || '').trim()).filter(Boolean);
   } else if (Array.isArray(cur.files) && cur.files.length > 0) {
     const base = String(next.framesBase || '').trim();
-    const normalizedBase = base.endsWith('/') ? base : (base ? `${base}/` : '');
+    const normalizedBase = base.endsWith('/') ? base : base ? `${base}/` : '';
     srcs = cur.files
       .map((f) => `${normalizedBase}${String(f || '').replace(/^\//, '')}`)
       .map((u) => String(u || '').trim())

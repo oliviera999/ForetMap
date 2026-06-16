@@ -1,9 +1,6 @@
 import React, { lazy, Suspense } from 'react';
 import { VISIT_MASCOT_STATE } from '../utils/visitMascotState.js';
-import {
-  resolveVisitMascotEntry,
-  getDefaultVisitMascotId,
-} from '../utils/visitMascotCatalog.js';
+import { resolveVisitMascotEntry, getDefaultVisitMascotId } from '../utils/visitMascotCatalog.js';
 import VisitMascotFallbackSvg from './VisitMascotFallbackSvg.jsx';
 
 // Renderers lourds chargés à la demande : seul le renderer effectivement sélectionné est
@@ -18,8 +15,9 @@ function VisitMapMascotRenderer({
   mascotId = '',
   extraCatalogEntries = [],
 }) {
-  const selectedMascot = resolveVisitMascotEntry(mascotId, extraCatalogEntries)
-    || resolveVisitMascotEntry(getDefaultVisitMascotId(), extraCatalogEntries);
+  const selectedMascot =
+    resolveVisitMascotEntry(mascotId, extraCatalogEntries) ||
+    resolveVisitMascotEntry(getDefaultVisitMascotId(), extraCatalogEntries);
   const selectedMascotId = selectedMascot?.id || getDefaultVisitMascotId();
   const fallbackSilhouette = selectedMascot?.fallbackSilhouette || 'gnome';
   const fallbackVariant = selectedMascot?.fallbackVariant || 'forest';

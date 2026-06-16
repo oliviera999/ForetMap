@@ -20,12 +20,11 @@ before(async () => {
     `INSERT INTO gl_admins (email, display_name, role, is_active, created_at, updated_at)
      VALUES (?, 'MJ Chapter Biomes', 'admin', 1, NOW(), NOW())
      ON DUPLICATE KEY UPDATE is_active = 1, updated_at = NOW()`,
-    [`chapter.biomes.${stamp}@ecole.local`]
+    [`chapter.biomes.${stamp}@ecole.local`],
   );
-  const admin = await queryOne(
-    'SELECT id FROM gl_admins WHERE email = ? LIMIT 1',
-    [`chapter.biomes.${stamp}@ecole.local`]
-  );
+  const admin = await queryOne('SELECT id FROM gl_admins WHERE email = ? LIMIT 1', [
+    `chapter.biomes.${stamp}@ecole.local`,
+  ]);
   adminToken = await signAuthToken({
     product: 'gl',
     userType: 'gl_admin',
@@ -37,9 +36,11 @@ before(async () => {
   await execute(
     `INSERT INTO gl_classes (name, school, created_by, is_active, created_at, updated_at)
      VALUES (?, 'Ecole', ?, 1, NOW(), NOW())`,
-    [`Classe Chapter Biomes ${stamp}`, admin.id]
+    [`Classe Chapter Biomes ${stamp}`, admin.id],
   );
-  const cls = await queryOne('SELECT id FROM gl_classes WHERE name = ? LIMIT 1', [`Classe Chapter Biomes ${stamp}`]);
+  const cls = await queryOne('SELECT id FROM gl_classes WHERE name = ? LIMIT 1', [
+    `Classe Chapter Biomes ${stamp}`,
+  ]);
   const player = await createGlPlayer({
     classId: cls.id,
     pseudo: `chapter-biomes-player-${stamp}`,
@@ -81,7 +82,9 @@ test('GET /api/gl/chapters/:slug expose biomes[]', async () => {
 });
 
 test('PUT /api/gl/chapters/admin/:id remplace biomeSlugs', async () => {
-  const chapter = await queryOne('SELECT id FROM gl_chapters WHERE slug = ? LIMIT 1', [slugCreated]);
+  const chapter = await queryOne('SELECT id FROM gl_chapters WHERE slug = ? LIMIT 1', [
+    slugCreated,
+  ]);
   const res = await request(app)
     .put(`/api/gl/chapters/admin/${chapter.id}`)
     .set('Authorization', `Bearer ${adminToken}`)
@@ -92,7 +95,9 @@ test('PUT /api/gl/chapters/admin/:id remplace biomeSlugs', async () => {
 });
 
 test('PUT /api/gl/chapters/admin/:id refuse biomeSlugs inconnu', async () => {
-  const chapter = await queryOne('SELECT id FROM gl_chapters WHERE slug = ? LIMIT 1', [slugCreated]);
+  const chapter = await queryOne('SELECT id FROM gl_chapters WHERE slug = ? LIMIT 1', [
+    slugCreated,
+  ]);
   await request(app)
     .put(`/api/gl/chapters/admin/${chapter.id}`)
     .set('Authorization', `Bearer ${adminToken}`)
@@ -101,7 +106,9 @@ test('PUT /api/gl/chapters/admin/:id refuse biomeSlugs inconnu', async () => {
 });
 
 test('PUT /api/gl/chapters/admin/:id accepte biomeSlug legacy (string)', async () => {
-  const chapter = await queryOne('SELECT id FROM gl_chapters WHERE slug = ? LIMIT 1', [slugCreated]);
+  const chapter = await queryOne('SELECT id FROM gl_chapters WHERE slug = ? LIMIT 1', [
+    slugCreated,
+  ]);
   const res = await request(app)
     .put(`/api/gl/chapters/admin/${chapter.id}`)
     .set('Authorization', `Bearer ${adminToken}`)
@@ -112,11 +119,10 @@ test('PUT /api/gl/chapters/admin/:id accepte biomeSlug legacy (string)', async (
 });
 
 test('GET /api/gl/games/:id expose chapter_biomes', async () => {
-  const chapter = await queryOne('SELECT id FROM gl_chapters WHERE slug = ? LIMIT 1', [slugCreated]);
-  await execute(
-    `UPDATE gl_chapters SET biome = 'test' WHERE id = ?`,
-    [chapter.id]
-  );
+  const chapter = await queryOne('SELECT id FROM gl_chapters WHERE slug = ? LIMIT 1', [
+    slugCreated,
+  ]);
+  await execute(`UPDATE gl_chapters SET biome = 'test' WHERE id = ?`, [chapter.id]);
   await request(app)
     .put(`/api/gl/chapters/admin/${chapter.id}`)
     .set('Authorization', `Bearer ${adminToken}`)
@@ -128,9 +134,11 @@ test('GET /api/gl/games/:id expose chapter_biomes', async () => {
   await execute(
     `INSERT INTO gl_games (class_id, chapter_id, name, status, created_by, created_at, updated_at)
      VALUES (?, ?, ?, 'live', ?, NOW(), NOW())`,
-    [cls.id, chapter.id, `Partie biomes ${stamp}`, admin.id]
+    [cls.id, chapter.id, `Partie biomes ${stamp}`, admin.id],
   );
-  const game = await queryOne('SELECT id FROM gl_games WHERE name = ? LIMIT 1', [`Partie biomes ${stamp}`]);
+  const game = await queryOne('SELECT id FROM gl_games WHERE name = ? LIMIT 1', [
+    `Partie biomes ${stamp}`,
+  ]);
 
   const res = await request(app)
     .get(`/api/gl/games/${game.id}`)
@@ -164,7 +172,9 @@ test('GET /api/gl/qcm/draw accepte biomeSlugs multiples', async () => {
 });
 
 test('DELETE chapitre test multi-biomes', async () => {
-  const chapter = await queryOne('SELECT id FROM gl_chapters WHERE slug = ? LIMIT 1', [slugCreated]);
+  const chapter = await queryOne('SELECT id FROM gl_chapters WHERE slug = ? LIMIT 1', [
+    slugCreated,
+  ]);
   await execute('DELETE FROM gl_games WHERE chapter_id = ?', [chapter.id]);
   await request(app)
     .delete(`/api/gl/chapters/admin/${chapter.id}`)
