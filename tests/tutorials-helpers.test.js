@@ -41,7 +41,10 @@ describe('tutorialRouteHelpers (logique pure de routes/tutorials.js, sans DB)', 
   });
 
   it('extractUploadsRelativePath : chemin local, URL absolue /uploads/, sinon null', () => {
-    assert.equal(extractUploadsRelativePath('/uploads/tutorials/3/cover.png'), 'tutorials/3/cover.png');
+    assert.equal(
+      extractUploadsRelativePath('/uploads/tutorials/3/cover.png'),
+      'tutorials/3/cover.png',
+    );
     assert.equal(extractUploadsRelativePath('https://foretmap.fr/uploads/a/b.jpg'), 'a/b.jpg');
     assert.equal(extractUploadsRelativePath('https://foretmap.fr/autre/b.jpg'), null);
     assert.equal(extractUploadsRelativePath('pas-une-url'), null);
@@ -56,7 +59,10 @@ describe('tutorialRouteHelpers (logique pure de routes/tutorials.js, sans DB)', 
 
   it('validateTutorialCoverImageUrl : chemin /uploads/ avec extension image accepté, sans extension refusé', () => {
     assert.equal(validateTutorialCoverImageUrl('/uploads/tutorials/1/cover.webp'), null);
-    assert.match(String(validateTutorialCoverImageUrl('/uploads/tutorials/1/cover')), /chemin local invalide/);
+    assert.match(
+      String(validateTutorialCoverImageUrl('/uploads/tutorials/1/cover')),
+      /chemin local invalide/,
+    );
   });
 
   it('validateTutorialCoverImageUrl : URL non parsable refusée', () => {
@@ -72,10 +78,15 @@ describe('tutorialRouteHelpers (logique pure de routes/tutorials.js, sans DB)', 
   it('validateTutorialCoverImageUrl : image directe ou Special:FilePath exigée', () => {
     assert.equal(validateTutorialCoverImageUrl('https://example.com/img/photo.JPG'), null);
     assert.equal(
-      validateTutorialCoverImageUrl('https://commons.wikimedia.org/wiki/Special:FilePath/Quercus.jpg'),
-      null
+      validateTutorialCoverImageUrl(
+        'https://commons.wikimedia.org/wiki/Special:FilePath/Quercus.jpg',
+      ),
+      null,
     );
-    assert.match(String(validateTutorialCoverImageUrl('https://example.com/page.html')), /image directe/);
+    assert.match(
+      String(validateTutorialCoverImageUrl('https://example.com/page.html')),
+      /image directe/,
+    );
   });
 
   it('normalizeIdArray : dédoublonne, trim, filtre les vides, non-tableau → []', () => {
@@ -121,7 +132,10 @@ describe('tutorialRouteHelpers (logique pure de routes/tutorials.js, sans DB)', 
   });
 
   it('decodeHtmlEntities : entités usuelles décodées', () => {
-    assert.equal(decodeHtmlEntities('a&nbsp;&amp;&nbsp;b &lt;c&gt; &quot;d&quot; &#39;e&#39;'), 'a & b <c> "d" \'e\'');
+    assert.equal(
+      decodeHtmlEntities('a&nbsp;&amp;&nbsp;b &lt;c&gt; &quot;d&quot; &#39;e&#39;'),
+      'a & b <c> "d" \'e\'',
+    );
     assert.equal(decodeHtmlEntities(null), '');
   });
 
@@ -143,7 +157,10 @@ describe('tutorialRouteHelpers (logique pure de routes/tutorials.js, sans DB)', 
   });
 
   it('injectTutorialViewIframeLinkScript : sans </body>, ajoute en fin ; vide inchangé', () => {
-    assert.equal(injectTutorialViewIframeLinkScript('<p>x</p>'), `<p>x</p>${TUTORIAL_VIEW_IFRAME_LINK_SCRIPT}`);
+    assert.equal(
+      injectTutorialViewIframeLinkScript('<p>x</p>'),
+      `<p>x</p>${TUTORIAL_VIEW_IFRAME_LINK_SCRIPT}`,
+    );
     assert.equal(injectTutorialViewIframeLinkScript(''), '');
     assert.equal(injectTutorialViewIframeLinkScript('   '), '   ');
   });
@@ -168,7 +185,7 @@ describe('tutorialRouteHelpers (logique pure de routes/tutorials.js, sans DB)', 
     const out = toPublicTutorialRow(
       row,
       [{ id: 'z1', name: 'Clairière', map_id: 'm1', extra: 'x' }],
-      [{ id: 'k1', label: 'Repère', map_id: 'm1' }]
+      [{ id: 'k1', label: 'Repère', map_id: 'm1' }],
     );
     assert.deepEqual(out, {
       id: 7,
@@ -193,7 +210,11 @@ describe('tutorialRouteHelpers (logique pure de routes/tutorials.js, sans DB)', 
   });
 
   it('toPublicTutorialRow : défauts sûrs (inactif, listes absentes → vides)', () => {
-    const out = toPublicTutorialRow({ id: 1, title: 't', slug: 's', type: 'link', is_active: 0 }, null, null);
+    const out = toPublicTutorialRow(
+      { id: 1, title: 't', slug: 's', type: 'link', is_active: 0 },
+      null,
+      null,
+    );
     assert.equal(out.is_active, false);
     assert.equal(out.sort_order, 0);
     assert.equal(out.linked_tasks_count, 0);

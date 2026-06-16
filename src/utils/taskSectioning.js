@@ -14,30 +14,38 @@ import {
   taskEffectiveStatus,
   taskHasLocation,
 } from './taskListHelpers.js';
-import {
-  taskEffectiveMapId,
-  taskMapIdMatchesFilter,
-} from './taskLocationPicker.js';
+import { taskEffectiveMapId, taskMapIdMatchesFilter } from './taskLocationPicker.js';
 
 /** Tâche marquée « importance absolue » (affichage urgence). */
 export function isTaskUrgentCategory(task) {
-  return String(task?.importance_level || '').trim().toLowerCase() === 'absolute';
+  return (
+    String(task?.importance_level || '')
+      .trim()
+      .toLowerCase() === 'absolute'
+  );
 }
 
 /** Une tâche passe-t-elle l'ensemble des filtres de la vue Tâches ? */
-export function taskMatchesFilters(t, {
-  filterMap,
-  activeMapId,
-  filterText = '',
-  filterZone = '',
-  filterStatus = '',
-  filterProject = '',
-  filterGroupId = '',
-  filterUrgentCategory = '',
-} = {}) {
+export function taskMatchesFilters(
+  t,
+  {
+    filterMap,
+    activeMapId,
+    filterText = '',
+    filterZone = '',
+    filterStatus = '',
+    filterProject = '',
+    filterGroupId = '',
+    filterUrgentCategory = '',
+  } = {},
+) {
   if (!taskMapIdMatchesFilter(taskEffectiveMapId(t), filterMap, activeMapId)) return false;
-  if (filterText && !t.title.toLowerCase().includes(filterText.toLowerCase()) &&
-    !(t.description || '').toLowerCase().includes(filterText.toLowerCase())) return false;
+  if (
+    filterText &&
+    !t.title.toLowerCase().includes(filterText.toLowerCase()) &&
+    !(t.description || '').toLowerCase().includes(filterText.toLowerCase())
+  )
+    return false;
   if (filterZone && !taskHasLocation(t, filterZone)) return false;
   if (filterStatus) {
     const eff = taskEffectiveStatus(t);
@@ -93,17 +101,30 @@ export function partitionTasksByEffectiveStatus(regularFiltered) {
     validated: regularFiltered.filter((t) => taskEffectiveStatus(t) === 'validated'),
     proposed: regularFiltered.filter((t) => taskEffectiveStatus(t) === 'proposed'),
     onHold: regularFiltered.filter((t) => taskEffectiveStatus(t) === 'on_hold'),
-    projectCompletedTasks: regularFiltered.filter((t) => taskEffectiveStatus(t) === 'project_completed'),
-    projectValidatedTasks: regularFiltered.filter((t) => taskEffectiveStatus(t) === 'project_validated'),
+    projectCompletedTasks: regularFiltered.filter(
+      (t) => taskEffectiveStatus(t) === 'project_completed',
+    ),
+    projectValidatedTasks: regularFiltered.filter(
+      (t) => taskEffectiveStatus(t) === 'project_validated',
+    ),
   };
 }
 
 /** Bandeau « Échéances proches » côté élève : tâches actives dues entre J-2 (retard) et J+3, triées par importance puis échéance. */
 export function studentUrgentDueTasks(regularFiltered) {
-  return regularFiltered.filter((t) => {
-    const effective = taskEffectiveStatus(t);
-    if (effective === 'validated' || effective === 'done' || effective === 'on_hold' || effective === 'project_completed' || effective === 'project_validated') return false;
-    const d = daysUntil(t.due_date);
-    return d !== null && d <= 3 && d >= -2;
-  }).sort(compareTasksByImportanceThenDueDate);
+  return regularFiltered
+    .filter((t) => {
+      const effective = taskEffectiveStatus(t);
+      if (
+        effective === 'validated' ||
+        effective === 'done' ||
+        effective === 'on_hold' ||
+        effective === 'project_completed' ||
+        effective === 'project_validated'
+      )
+        return false;
+      const d = daysUntil(t.due_date);
+      return d !== null && d <= 3 && d >= -2;
+    })
+    .sort(compareTasksByImportanceThenDueDate);
 }

@@ -28,7 +28,9 @@ export default function GLGameMasterConsoleActiveGameBanner({
 }) {
   if (!game?.id) return null;
   return (
-    <div className={`gl-active-game-banner is-status-${String(gameStatus || 'draft').toLowerCase()}`}>
+    <div
+      className={`gl-active-game-banner is-status-${String(gameStatus || 'draft').toLowerCase()}`}
+    >
       <div className="gl-active-game-banner-head">
         <div>
           <h3 className="gl-active-game-banner-title">{game.name || `Partie #${game.id}`}</h3>
@@ -36,7 +38,9 @@ export default function GLGameMasterConsoleActiveGameBanner({
             <span>#{game.id}</span>
             <span>{activeClassLabel}</span>
             <span>{activeChapterTitle}</span>
-            <span>{teams.length} équipe{teams.length > 1 ? 's' : ''}</span>
+            <span>
+              {teams.length} équipe{teams.length > 1 ? 's' : ''}
+            </span>
           </div>
         </div>
         <GLBadge tone={gameStatusTone(gameStatus)}>{formatGameStatus(gameStatus)}</GLBadge>
@@ -74,26 +78,34 @@ export default function GLGameMasterConsoleActiveGameBanner({
           <GLField label="Nom de partie">
             <GLInput
               value={editGameForm.name}
-              onChange={(event) => setEditGameForm((prev) => ({ ...prev, name: event.target.value }))}
+              onChange={(event) =>
+                setEditGameForm((prev) => ({ ...prev, name: event.target.value }))
+              }
               required
             />
           </GLField>
           <GLField label="Chapitre">
             <GLSelect
               value={editGameForm.chapterId}
-              onChange={(event) => setEditGameForm((prev) => ({ ...prev, chapterId: event.target.value }))}
+              onChange={(event) =>
+                setEditGameForm((prev) => ({ ...prev, chapterId: event.target.value }))
+              }
               disabled={!canEditGameChapter(gameStatus)}
             >
               <option value="">Choisir</option>
               {chapters.map((chapter) => (
-                <option key={chapter.id} value={chapter.id}>{chapter.title}</option>
+                <option key={chapter.id} value={chapter.id}>
+                  {chapter.title}
+                </option>
               ))}
             </GLSelect>
           </GLField>
           <GLField label="Classe">
             <GLSelect
               value={editGameForm.classId}
-              onChange={(event) => setEditGameForm((prev) => ({ ...prev, classId: event.target.value }))}
+              onChange={(event) =>
+                setEditGameForm((prev) => ({ ...prev, classId: event.target.value }))
+              }
               disabled={!canEditGameClass(gameStatus)}
             >
               <option value="">Choisir</option>
@@ -108,10 +120,12 @@ export default function GLGameMasterConsoleActiveGameBanner({
           <GLField label="Popover zones (cette partie)">
             <GLSelect
               value={editGameForm.zoneContentRetrigger}
-              onChange={(event) => setEditGameForm((prev) => ({
-                ...prev,
-                zoneContentRetrigger: event.target.value,
-              }))}
+              onChange={(event) =>
+                setEditGameForm((prev) => ({
+                  ...prev,
+                  zoneContentRetrigger: event.target.value,
+                }))
+              }
             >
               <option value="">Hériter des réglages globaux</option>
               <option value="every_arrival">À chaque entrée ou traversée</option>
@@ -122,10 +136,12 @@ export default function GLGameMasterConsoleActiveGameBanner({
           <GLField label="Feuillets Sélène (cette partie)">
             <GLSelect
               value={editGameForm.loreFeuilletRetrigger}
-              onChange={(event) => setEditGameForm((prev) => ({
-                ...prev,
-                loreFeuilletRetrigger: event.target.value,
-              }))}
+              onChange={(event) =>
+                setEditGameForm((prev) => ({
+                  ...prev,
+                  loreFeuilletRetrigger: event.target.value,
+                }))
+              }
             >
               <option value="">Hériter des réglages globaux</option>
               <option value="every_arrival">À chaque entrée ou traversée</option>
@@ -136,10 +152,12 @@ export default function GLGameMasterConsoleActiveGameBanner({
           <GLField label="Effacement feuillets">
             <GLSelect
               value={editGameForm.loreEffacementEnabled}
-              onChange={(event) => setEditGameForm((prev) => ({
-                ...prev,
-                loreEffacementEnabled: event.target.value,
-              }))}
+              onChange={(event) =>
+                setEditGameForm((prev) => ({
+                  ...prev,
+                  loreEffacementEnabled: event.target.value,
+                }))
+              }
             >
               <option value="">Hériter plateforme</option>
               <option value="1">Activé</option>
@@ -149,10 +167,12 @@ export default function GLGameMasterConsoleActiveGameBanner({
           <GLField label="Coûts gemmes (feuillets)">
             <GLSelect
               value={editGameForm.loreGemmeCostsEnabled}
-              onChange={(event) => setEditGameForm((prev) => ({
-                ...prev,
-                loreGemmeCostsEnabled: event.target.value,
-              }))}
+              onChange={(event) =>
+                setEditGameForm((prev) => ({
+                  ...prev,
+                  loreGemmeCostsEnabled: event.target.value,
+                }))
+              }
             >
               <option value="">Hériter plateforme</option>
               <option value="1">Activé</option>
@@ -162,10 +182,12 @@ export default function GLGameMasterConsoleActiveGameBanner({
           <GLField label="Gains cœurs (feuillets)">
             <GLSelect
               value={editGameForm.loreHeartRewardsEnabled}
-              onChange={(event) => setEditGameForm((prev) => ({
-                ...prev,
-                loreHeartRewardsEnabled: event.target.value,
-              }))}
+              onChange={(event) =>
+                setEditGameForm((prev) => ({
+                  ...prev,
+                  loreHeartRewardsEnabled: event.target.value,
+                }))
+              }
             >
               <option value="">Hériter plateforme</option>
               <option value="1">Activé</option>
@@ -177,9 +199,13 @@ export default function GLGameMasterConsoleActiveGameBanner({
           <p className="gl-hint">Chapitre modifiable uniquement en brouillon ou pause.</p>
         ) : null}
         {!canEditGameClass(gameStatus) ? (
-          <p className="gl-hint">Classe modifiable uniquement en brouillon (sans joueurs assignés).</p>
+          <p className="gl-hint">
+            Classe modifiable uniquement en brouillon (sans joueurs assignés).
+          </p>
         ) : null}
-        <GLButton type="submit" disabled={busy}>Enregistrer la partie</GLButton>
+        <GLButton type="submit" disabled={busy}>
+          Enregistrer la partie
+        </GLButton>
       </form>
     </div>
   );

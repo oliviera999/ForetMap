@@ -30,7 +30,7 @@ async function setVitalityEnabled(enabled) {
     `INSERT INTO gl_settings (\`key\`, value_json, updated_at)
      VALUES ('gameplay.vitality_enabled', ?, NOW())
      ON DUPLICATE KEY UPDATE value_json = VALUES(value_json), updated_at = NOW()`,
-    [JSON.stringify(!!enabled)]
+    [JSON.stringify(!!enabled)],
   );
   invalidateGameplayCache();
 }
@@ -69,18 +69,24 @@ before(async () => {
   await execute(
     `INSERT IGNORE INTO gl_team_members (game_id, team_id, player_id, joined_at)
      VALUES (?, ?, ?, NOW()), (?, ?, ?, NOW())`,
-    [gameId, teamId, playerAId, gameId, teamId, playerBId]
+    [gameId, teamId, playerAId, gameId, teamId, playerBId],
   );
 
-  await execute(
-    'UPDATE gl_players SET health_points = 3, power_points = 3 WHERE id IN (?, ?)',
-    [playerAId, playerBId]
-  );
+  await execute('UPDATE gl_players SET health_points = 3, power_points = 3 WHERE id IN (?, ?)', [
+    playerAId,
+    playerBId,
+  ]);
 
   const tokens = await signTokens({
     adminId: admin.id,
     adminDisplayName: 'MJ Vitalité',
-    adminPermissions: ['gl.read', 'gl.game.manage', 'gl.event.emit', 'gl.players.manage', 'gl.settings.manage'],
+    adminPermissions: [
+      'gl.read',
+      'gl.game.manage',
+      'gl.event.emit',
+      'gl.players.manage',
+      'gl.settings.manage',
+    ],
     playerId: playerAId,
     playerPseudo: playerA.pseudo,
     playerPermissions: ['gl.read'],
@@ -100,7 +106,9 @@ test('POST vitality/player refusé si module désactivé', async () => {
 
 test('delta joueur et plancher à 0', async () => {
   await setVitalityEnabled(true);
-  await execute('UPDATE gl_players SET health_points = 1, power_points = 2 WHERE id = ?', [playerAId]);
+  await execute('UPDATE gl_players SET health_points = 1, power_points = 2 WHERE id = ?', [
+    playerAId,
+  ]);
 
   await request(app)
     .post(`/api/gl/games/${gameId}/vitality/player`)
@@ -108,7 +116,9 @@ test('delta joueur et plancher à 0', async () => {
     .send({ playerId: playerAId, healthDelta: 2, powerDelta: 1 })
     .expect(200);
 
-  const row = await queryOne('SELECT health_points, power_points FROM gl_players WHERE id = ?', [playerAId]);
+  const row = await queryOne('SELECT health_points, power_points FROM gl_players WHERE id = ?', [
+    playerAId,
+  ]);
   assert.strictEqual(Number(row.health_points), 3);
   assert.strictEqual(Number(row.power_points), 3);
 
@@ -124,7 +134,10 @@ test('delta joueur et plancher à 0', async () => {
 
 test('delta équipe applique à tous les membres', async () => {
   await setVitalityEnabled(true);
-  await execute('UPDATE gl_players SET health_points = 3, power_points = 3 WHERE id IN (?, ?)', [playerAId, playerBId]);
+  await execute('UPDATE gl_players SET health_points = 3, power_points = 3 WHERE id IN (?, ?)', [
+    playerAId,
+    playerBId,
+  ]);
 
   const res = await request(app)
     .post(`/api/gl/games/${gameId}/vitality/team`)
@@ -141,7 +154,9 @@ test('delta équipe applique à tous les membres', async () => {
 
 test('GET game state et roster exposent la vitalité', async () => {
   await setVitalityEnabled(true);
-  await execute('UPDATE gl_players SET health_points = 4, power_points = 5 WHERE id = ?', [playerAId]);
+  await execute('UPDATE gl_players SET health_points = 4, power_points = 5 WHERE id = ?', [
+    playerAId,
+  ]);
 
   const gameRes = await request(app)
     .get(`/api/gl/games/${gameId}`)
@@ -167,7 +182,7 @@ test('nouveau joueur reçoit les défauts configurés', async () => {
   await execute(
     `INSERT INTO gl_settings (\`key\`, value_json, updated_at)
      VALUES ('gameplay.default_health_points', '7', NOW()), ('gameplay.default_power_points', '8', NOW())
-     ON DUPLICATE KEY UPDATE value_json = VALUES(value_json), updated_at = NOW()`
+     ON DUPLICATE KEY UPDATE value_json = VALUES(value_json), updated_at = NOW()`,
   );
   invalidateGameplayCache();
 
@@ -186,14 +201,14 @@ test('nouveau joueur reçoit les défauts configurés', async () => {
 
   const created = await queryOne(
     'SELECT health_points, power_points FROM gl_players WHERE id = ?',
-    [createRes.body.id]
+    [createRes.body.id],
   );
   assert.strictEqual(Number(created.health_points), 7);
   assert.strictEqual(Number(created.power_points), 8);
 
   await execute(
     `UPDATE gl_settings SET value_json = '3', updated_at = NOW()
-      WHERE \`key\` IN ('gameplay.default_health_points', 'gameplay.default_power_points')`
+      WHERE \`key\` IN ('gameplay.default_health_points', 'gameplay.default_power_points')`,
   );
   invalidateGameplayCache();
 });

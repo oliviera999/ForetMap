@@ -11,7 +11,9 @@ const {
   openStudentTasksTab,
 } = require('./fixtures/auth.fixture');
 
-test('cycle complet tâche: création prof -> prise élève -> soumission -> validation prof', async ({ page }) => {
+test('cycle complet tâche: création prof -> prise élève -> soumission -> validation prof', async ({
+  page,
+}) => {
   /* Deux élévations + liste tâches : > 3 min possible quand le worker est chargé. */
   test.setTimeout(600_000);
   const taskTitle = `E2E Cycle ${Date.now()}`;
@@ -31,8 +33,12 @@ test('cycle complet tâche: création prof -> prise élève -> soumission -> val
 
   const studentTaskCard = page.locator('.task-card', { hasText: taskTitle }).first();
   await expect(studentTaskCard).toBeVisible({ timeout: 45_000 });
-  await expect(studentTaskCard.getByRole('button', { name: /Marquer terminée/ })).toBeVisible({ timeout: 45_000 });
-  await studentTaskCard.getByRole('button', { name: /Marquer terminée/ }).evaluate((el) => el.click());
+  await expect(studentTaskCard.getByRole('button', { name: /Marquer terminée/ })).toBeVisible({
+    timeout: 45_000,
+  });
+  await studentTaskCard
+    .getByRole('button', { name: /Marquer terminée/ })
+    .evaluate((el) => el.click());
 
   const reportDlg = page.getByRole('dialog', { name: 'Rapport de tâche' });
   await reportDlg.waitFor({ state: 'visible', timeout: 30_000 });

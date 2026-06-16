@@ -85,16 +85,16 @@ Note importante: la suppression de zone n'appelle pas explicitement `deleteFile`
 
 ## 3) Matrice de risques priorisée
 
-| ID | Risque | Gravité | Probabilité | Impact | Observations |
-|---|---|---|---|---|---|
-| R1 | Fichiers orphelins lors de suppression de zone | Haute | Elevée | Coût stockage, dérive opérationnelle | `DELETE /api/zones/:id` supprime DB `zone_photos` sans purge fichier explicite |
-| R2 | Contrôle insuffisant du contenu image uploadé | Haute | Moyenne | Sécurité, stabilité, contenu non conforme | décodage base64 sans validation MIME/magic bytes/taille post-décodage |
-| R3 | Accès large aux images via routes GET ouvertes | Haute | Moyenne | Confidentialité des photos élèves | plusieurs routes image lisibles sans auth applicative |
-| R4 | Upload base64 JSON coûteux en CPU/mémoire | Moyenne | Elevée | UX mobile, latence, charge serveur | double conversion client/serveur, limite 10 MB par requête |
-| R5 | Hétérogénéité pipeline compression frontend | Moyenne | Moyenne | Qualité/maintenance | `compressImage` + logique parallèle dans `tasks-views.jsx` |
-| R6 | Gouvernance faible des URLs externes `plants.photo*` | Moyenne | Moyenne | Qualité disponibilité, conformité source | HTTPS requis mais pas d'allowlist/check santé des liens |
-| R7 | Modération incomplète des photos élèves | Moyenne | Moyenne | Qualité pédagogique, conformité interne | route prof `/api/observations/all` présente, pas de workflow de validation |
-| R8 | Exposition doublonnée des images locales | Basse | Moyenne | Surface d'attaque accrue | routes `sendFile` + statique `/uploads` |
+| ID  | Risque                                               | Gravité | Probabilité | Impact                                    | Observations                                                                   |
+| --- | ---------------------------------------------------- | ------- | ----------- | ----------------------------------------- | ------------------------------------------------------------------------------ |
+| R1  | Fichiers orphelins lors de suppression de zone       | Haute   | Elevée      | Coût stockage, dérive opérationnelle      | `DELETE /api/zones/:id` supprime DB `zone_photos` sans purge fichier explicite |
+| R2  | Contrôle insuffisant du contenu image uploadé        | Haute   | Moyenne     | Sécurité, stabilité, contenu non conforme | décodage base64 sans validation MIME/magic bytes/taille post-décodage          |
+| R3  | Accès large aux images via routes GET ouvertes       | Haute   | Moyenne     | Confidentialité des photos élèves         | plusieurs routes image lisibles sans auth applicative                          |
+| R4  | Upload base64 JSON coûteux en CPU/mémoire            | Moyenne | Elevée      | UX mobile, latence, charge serveur        | double conversion client/serveur, limite 10 MB par requête                     |
+| R5  | Hétérogénéité pipeline compression frontend          | Moyenne | Moyenne     | Qualité/maintenance                       | `compressImage` + logique parallèle dans `tasks-views.jsx`                     |
+| R6  | Gouvernance faible des URLs externes `plants.photo*` | Moyenne | Moyenne     | Qualité disponibilité, conformité source  | HTTPS requis mais pas d'allowlist/check santé des liens                        |
+| R7  | Modération incomplète des photos élèves              | Moyenne | Moyenne     | Qualité pédagogique, conformité interne   | route prof `/api/observations/all` présente, pas de workflow de validation     |
+| R8  | Exposition doublonnée des images locales             | Basse   | Moyenne     | Surface d'attaque accrue                  | routes `sendFile` + statique `/uploads`                                        |
 
 ## 4) Exigences non fonctionnelles cibles
 

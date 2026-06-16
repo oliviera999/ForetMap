@@ -25,16 +25,12 @@ async function ensureValidateOnlyTeacher() {
     `INSERT INTO users (id, user_type, email, first_name, last_name, password_hash, is_active, created_at)
      VALUES (?, 'teacher', ?, 'Valide', 'Seul', ?, 1, NOW())
      ON DUPLICATE KEY UPDATE is_active = 1`,
-    [
-      teacherId,
-      loginEmail,
-      '$2a$10$abcdefghijklmnopqrstuvabcdefghijklmnopqrstuvabcdefghi',
-    ]
+    [teacherId, loginEmail, '$2a$10$abcdefghijklmnopqrstuvabcdefghijklmnopqrstuvabcdefghi'],
   );
 
   await execute(
     'INSERT IGNORE INTO roles (slug, display_name, emoji, min_done_tasks, display_order, `rank`, is_system) VALUES (?, ?, ?, NULL, 9999, 150, 0)',
-    [slug, 'Validateur test', '✔️']
+    [slug, 'Validateur test', '✔️'],
   );
   const role = await queryOne('SELECT id FROM roles WHERE slug = ? LIMIT 1', [slug]);
   assert.ok(role?.id, 'rôle validate-only introuvable');
@@ -43,34 +39,39 @@ async function ensureValidateOnlyTeacher() {
     ['teacher.access', 0],
     ['tasks.validate', 1],
   ]) {
-    await execute(
-      'INSERT IGNORE INTO permissions (`key`, label, description) VALUES (?, ?, ?)',
-      [key, key, 'test']
-    );
+    await execute('INSERT IGNORE INTO permissions (`key`, label, description) VALUES (?, ?, ?)', [
+      key,
+      key,
+      'test',
+    ]);
     await execute(
       'INSERT IGNORE INTO role_permissions (role_id, permission_key, requires_elevation) VALUES (?, ?, ?)',
-      [role.id, key, elev]
+      [role.id, key, elev],
     );
   }
 
-  await execute('UPDATE user_roles SET is_primary = 0 WHERE user_type = ? AND user_id = ?', ['teacher', teacherId]);
+  await execute('UPDATE user_roles SET is_primary = 0 WHERE user_type = ? AND user_id = ?', [
+    'teacher',
+    teacherId,
+  ]);
   await execute(
     'INSERT INTO user_roles (user_type, user_id, role_id, is_primary) VALUES (?, ?, ?, 1) ON DUPLICATE KEY UPDATE is_primary = 1',
-    ['teacher', teacherId, role.id]
+    ['teacher', teacherId, role.id],
   );
 
-  const sign = (elevated) => signAuthToken(
-    {
-      userType: 'teacher',
-      userId: teacherId,
-      canonicalUserId: teacherId,
-      roleId: role.id,
-      roleSlug: slug,
-      roleDisplayName: 'Validateur test',
-      elevated: !!elevated,
-    },
-    !!elevated
-  );
+  const sign = (elevated) =>
+    signAuthToken(
+      {
+        userType: 'teacher',
+        userId: teacherId,
+        canonicalUserId: teacherId,
+        roleId: role.id,
+        roleSlug: slug,
+        roleDisplayName: 'Validateur test',
+        elevated: !!elevated,
+      },
+      !!elevated,
+    );
 
   return { sign };
 }

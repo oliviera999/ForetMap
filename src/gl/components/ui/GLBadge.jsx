@@ -5,5 +5,7 @@ function joinClassNames(...parts) {
 }
 
 export function GLBadge({ tone = 'neutral', className = '', children }) {
-  return <span className={joinClassNames('gl-badge', `gl-badge--${tone}`, className)}>{children}</span>;
+  return (
+    <span className={joinClassNames('gl-badge', `gl-badge--${tone}`, className)}>{children}</span>
+  );
 }

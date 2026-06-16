@@ -1,1 +1,0 @@
-function e(e,t){let n=String(t||``).split(`.`).filter(Boolean);if(n.length===0)return;let r=e;for(let e of n){if(!r||typeof r!=`object`||Array.isArray(r))return;r=r[e]}return r}function t(e){return typeof e==`string`?e.trim():``}function n(n,r,i=``){return t(e(n?.content,r))||String(i||``)}export{n as t};

@@ -111,13 +111,19 @@ export function plantMatchesZonePresence(plant, zones, markers, presence) {
   const zl = Array.isArray(zones) ? zones : [];
   const ml = Array.isArray(markers) ? markers : [];
   const has =
-    zl.some((z) => plantLinkedToMapZone(plant, z)) || ml.some((m) => plantLinkedToMapMarker(plant, m));
+    zl.some((z) => plantLinkedToMapZone(plant, z)) ||
+    ml.some((m) => plantLinkedToMapMarker(plant, m));
   if (presence === ZONE_PRESENCE_FILTER.IN_MAP) return has;
   if (presence === ZONE_PRESENCE_FILTER.NOT_IN_MAP) return !has;
   return true;
 }
 
-export function plantMatchesAllFilters(plant, { structured, queryTrimmedLower, zonePresence }, zones, markers) {
+export function plantMatchesAllFilters(
+  plant,
+  { structured, queryTrimmedLower, zonePresence },
+  zones,
+  markers,
+) {
   if (!plantMatchesStructuredFilters(plant, structured)) return false;
   if (!plantTextMatchesQuery(plant, queryTrimmedLower)) return false;
   if (!plantMatchesZonePresence(plant, zones, markers, zonePresence)) return false;

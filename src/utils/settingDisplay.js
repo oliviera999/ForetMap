@@ -21,7 +21,8 @@ export function inferSectionFromKey(key) {
   if (normalized.startsWith('ui.modules.') || normalized.startsWith('ui.map.')) return 'modules';
   if (normalized.startsWith('tasks.')) return 'tasks';
   if (normalized.startsWith('progression.') || normalized.startsWith('rbac.')) return 'progression';
-  if (normalized.startsWith('security.') || normalized.startsWith('integration.')) return 'security';
+  if (normalized.startsWith('security.') || normalized.startsWith('integration.'))
+    return 'security';
   if (normalized.startsWith('system.') || normalized.startsWith('ops.')) return 'operations';
   return 'other';
 }

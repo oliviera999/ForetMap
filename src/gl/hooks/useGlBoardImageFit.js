@@ -29,23 +29,27 @@ export function useGlBoardImageFit(containerRef, imageRef) {
     return () => ro.disconnect();
   }, [containerRef, recalc]);
 
-  const onImageLoad = useCallback((event) => {
-    const img = event?.currentTarget || imageRef?.current;
-    if (!img) return;
-    setNatural({
-      w: Number(img.naturalWidth) || 0,
-      h: Number(img.naturalHeight) || 0,
-    });
-  }, [imageRef]);
+  const onImageLoad = useCallback(
+    (event) => {
+      const img = event?.currentTarget || imageRef?.current;
+      if (!img) return;
+      setNatural({
+        w: Number(img.naturalWidth) || 0,
+        h: Number(img.naturalHeight) || 0,
+      });
+    },
+    [imageRef],
+  );
 
-  const fitLayerStyle = fit.width > 0 && fit.height > 0
-    ? {
-      left: fit.offsetX,
-      top: fit.offsetY,
-      width: fit.width,
-      height: fit.height,
-    }
-    : { left: 0, top: 0, width: '100%', height: '100%' };
+  const fitLayerStyle =
+    fit.width > 0 && fit.height > 0
+      ? {
+          left: fit.offsetX,
+          top: fit.offsetY,
+          width: fit.width,
+          height: fit.height,
+        }
+      : { left: 0, top: 0, width: '100%', height: '100%' };
 
   return {
     fit,

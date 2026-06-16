@@ -11,14 +11,7 @@ const TABS = [
 
 function renderTabBar(overrides = {}) {
   const onSelect = vi.fn();
-  render(
-    <MarkerModalTabBar
-      tabs={TABS}
-      activeTab="info"
-      onSelect={onSelect}
-      {...overrides}
-    />
-  );
+  render(<MarkerModalTabBar tabs={TABS} activeTab="info" onSelect={onSelect} {...overrides} />);
   return { onSelect };
 }
 
@@ -36,7 +29,7 @@ describe('MarkerModalTabBar', () => {
     expect(onSelect).toHaveBeenCalledWith('photos');
   });
 
-  test('l\'onglet actif est mis en avant (gras + fond forêt)', () => {
+  test("l'onglet actif est mis en avant (gras + fond forêt)", () => {
     renderTabBar({ activeTab: 'photos' });
     const active = screen.getByRole('button', { name: '📷 Photos' });
     const inactive = screen.getByRole('button', { name: 'ℹ️ Info' });

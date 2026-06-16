@@ -30,7 +30,7 @@ test('registerSpaFallbackRoutes sert GET / (200 html)', async () => {
       deployHelpPath: deployHelp,
       resolveProductFromRequest,
       logger: { error: () => {} },
-    })
+    }),
   );
   const res = await request(mini).get('/');
   assert.strictEqual(res.status, 200);
@@ -49,7 +49,7 @@ test('registerSpaFallbackRoutes sert les sous-chemins SPA', async () => {
       deployHelpPath: deployHelp,
       resolveProductFromRequest,
       logger: { error: () => {} },
-    })
+    }),
   );
   const res = await request(mini).get('/chemin-spa-inconnu');
   assert.strictEqual(res.status, 200);
@@ -73,7 +73,7 @@ test('resolveSpaIndexPath choisit gl.html sur produit gl en prod', () => {
       distGlIndex,
       deployHelpPath: path.join(__dirname, '..', 'public', 'deploy-help.html'),
       resolveProductFromRequest,
-    }
+    },
   );
   assert.strictEqual(indexPath, distGlIndex);
 });

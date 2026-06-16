@@ -47,10 +47,16 @@ describe('getCompletionMode', () => {
 
 describe('getAssigneesDoneCount', () => {
   test('compteur API prioritaire', () => {
-    expect(getAssigneesDoneCount({ assignees_done_count: 2, assignments: [{ done_at: 'x' }] })).toBe(2);
+    expect(
+      getAssigneesDoneCount({ assignees_done_count: 2, assignments: [{ done_at: 'x' }] }),
+    ).toBe(2);
   });
   test('repli sur done_at', () => {
-    expect(getAssigneesDoneCount({ assignments: [{ done_at: 'x' }, { done_at: null }, { done_at: 'y' }] })).toBe(2);
+    expect(
+      getAssigneesDoneCount({
+        assignments: [{ done_at: 'x' }, { done_at: null }, { done_at: 'y' }],
+      }),
+    ).toBe(2);
   });
   test('0 par défaut', () => {
     expect(getAssigneesDoneCount({})).toBe(0);
@@ -66,18 +72,20 @@ describe('completionModeLabel', () => {
 
 describe('isStudentAlreadyAssignedToTask', () => {
   const task = {
-    assignments: [
-      { student_id: '42', student_first_name: 'Léa', student_last_name: 'Martin' },
-    ],
+    assignments: [{ student_id: '42', student_first_name: 'Léa', student_last_name: 'Martin' }],
   };
   test('match par student_id', () => {
     expect(isStudentAlreadyAssignedToTask(task, { id: '42' })).toBe(true);
   });
   test('match par nom (insensible casse/espaces)', () => {
-    expect(isStudentAlreadyAssignedToTask(task, { first_name: ' léa ', last_name: 'MARTIN' })).toBe(true);
+    expect(isStudentAlreadyAssignedToTask(task, { first_name: ' léa ', last_name: 'MARTIN' })).toBe(
+      true,
+    );
   });
   test('faux si absent', () => {
-    expect(isStudentAlreadyAssignedToTask(task, { id: '99', first_name: 'Tom', last_name: 'Roy' })).toBe(false);
+    expect(
+      isStudentAlreadyAssignedToTask(task, { id: '99', first_name: 'Tom', last_name: 'Roy' }),
+    ).toBe(false);
   });
   test('faux si task/élève manquant', () => {
     expect(isStudentAlreadyAssignedToTask(null, { id: '42' })).toBe(false);

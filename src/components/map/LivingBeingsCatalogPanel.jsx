@@ -78,28 +78,31 @@ export function LivingBeingsCatalogPanel({ plants, names, showHeading = true }) 
   };
 
   return (
-    <div style={{
-      background: 'var(--parchment)',
-      borderRadius: 10,
-      padding: '10px 14px',
-      marginBottom: 12,
-      border: '1px solid rgba(0,0,0,.06)',
-    }}
+    <div
+      style={{
+        background: 'var(--parchment)',
+        borderRadius: 10,
+        padding: '10px 14px',
+        marginBottom: 12,
+        border: '1px solid rgba(0,0,0,.06)',
+      }}
     >
       {showHeading && (
-        <div style={{
-          fontSize: '.78rem',
-          fontWeight: 700,
-          color: '#64748b',
-          marginBottom: 8,
-          textTransform: 'uppercase',
-        }}
+        <div
+          style={{
+            fontSize: '.78rem',
+            fontWeight: 700,
+            color: '#64748b',
+            marginBottom: 8,
+            textTransform: 'uppercase',
+          }}
         >
           Êtres vivants
         </div>
       )}
       <p style={{ fontSize: '.72rem', color: '#64748b', margin: '0 0 8px', lineHeight: 1.45 }}>
-        Touche ou clique un nom pour afficher la fiche du catalogue (description, rôle, utilité, remarques).
+        Touche ou clique un nom pour afficher la fiche du catalogue (description, rôle, utilité,
+        remarques).
       </p>
       <div
         style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}
@@ -117,17 +120,13 @@ export function LivingBeingsCatalogPanel({ plants, names, showHeading = true }) 
               onClick={() => setSelectedName(name)}
               style={{
                 fontWeight: 500,
-                border: isSel
-                  ? '2px solid var(--forest)'
-                  : '1px solid rgba(0,0,0,.12)',
+                border: isSel ? '2px solid var(--forest)' : '1px solid rgba(0,0,0,.12)',
                 cursor: 'pointer',
                 fontFamily: 'inherit',
                 background: isSel ? 'rgba(26, 71, 49, 0.08)' : undefined,
               }}
             >
-              {livingBeingEmoji(plants, name)}
-              {' '}
-              {name}
+              {livingBeingEmoji(plants, name)} {name}
             </button>
           );
         })}
@@ -141,50 +140,52 @@ export function LivingBeingsCatalogPanel({ plants, names, showHeading = true }) 
         >
           {!selectedPlant ? (
             <p style={{ fontSize: '.83rem', color: '#92400e', margin: 0, lineHeight: 1.5 }}>
-              Aucune fiche catalogue ne correspond à «
-              {selectedName}
+              Aucune fiche catalogue ne correspond à «{selectedName}
               ». Un professeur peut mettre à jour la base biodiversité.
             </p>
           ) : (
             <>
               <div>
                 <div style={{ ...labelStyle, marginTop: 0 }}>Description</div>
-                <p style={{
-                  fontSize: '.83rem',
-                  color: desc ? '#555' : '#94a3b8',
-                  lineHeight: 1.5,
-                  margin: 0,
-                  whiteSpace: 'pre-wrap',
-                  fontStyle: desc ? 'normal' : 'italic',
-                }}
+                <p
+                  style={{
+                    fontSize: '.83rem',
+                    color: desc ? '#555' : '#94a3b8',
+                    lineHeight: 1.5,
+                    margin: 0,
+                    whiteSpace: 'pre-wrap',
+                    fontStyle: desc ? 'normal' : 'italic',
+                  }}
                 >
                   {desc || 'Non renseigné'}
                 </p>
               </div>
               <div>
                 <div style={labelStyle}>Rôle dans l&apos;écosystème</div>
-                <p style={{
-                  fontSize: '.83rem',
-                  color: role ? '#555' : '#94a3b8',
-                  lineHeight: 1.5,
-                  margin: 0,
-                  whiteSpace: 'pre-wrap',
-                  fontStyle: role ? 'normal' : 'italic',
-                }}
+                <p
+                  style={{
+                    fontSize: '.83rem',
+                    color: role ? '#555' : '#94a3b8',
+                    lineHeight: 1.5,
+                    margin: 0,
+                    whiteSpace: 'pre-wrap',
+                    fontStyle: role ? 'normal' : 'italic',
+                  }}
                 >
                   {role || 'Non renseigné'}
                 </p>
               </div>
               <div>
                 <div style={labelStyle}>Utilité pour l&apos;être humain</div>
-                <p style={{
-                  fontSize: '.83rem',
-                  color: utility ? '#555' : '#94a3b8',
-                  lineHeight: 1.5,
-                  margin: 0,
-                  whiteSpace: 'pre-wrap',
-                  fontStyle: utility ? 'normal' : 'italic',
-                }}
+                <p
+                  style={{
+                    fontSize: '.83rem',
+                    color: utility ? '#555' : '#94a3b8',
+                    lineHeight: 1.5,
+                    margin: 0,
+                    whiteSpace: 'pre-wrap',
+                    fontStyle: utility ? 'normal' : 'italic',
+                  }}
                 >
                   {utility || 'Non renseigné'}
                 </p>
@@ -200,7 +201,11 @@ export function LivingBeingsCatalogPanel({ plants, names, showHeading = true }) 
 
 /** Boutons espèces : ouvre la même fiche que l'onglet « Biodiversité » (via callback parent). */
 export function BiodiversitySpeciesOpenLinks({
-  plants, names, showHeading = true, sectionTitle = null, onOpenPlant,
+  plants,
+  names,
+  showHeading = true,
+  sectionTitle = null,
+  onOpenPlant,
 }) {
   const raw = names || [];
   const list = [];
@@ -215,22 +220,24 @@ export function BiodiversitySpeciesOpenLinks({
   const canOpen = typeof onOpenPlant === 'function';
 
   return (
-    <div style={{
-      background: 'var(--parchment)',
-      borderRadius: 10,
-      padding: '10px 14px',
-      marginBottom: 12,
-      border: '1px solid rgba(0,0,0,.06)',
-    }}
+    <div
+      style={{
+        background: 'var(--parchment)',
+        borderRadius: 10,
+        padding: '10px 14px',
+        marginBottom: 12,
+        border: '1px solid rgba(0,0,0,.06)',
+      }}
     >
       {showHeading && (
-        <div style={{
-          fontSize: '.78rem',
-          fontWeight: 700,
-          color: '#64748b',
-          marginBottom: 8,
-          textTransform: 'uppercase',
-        }}
+        <div
+          style={{
+            fontSize: '.78rem',
+            fontWeight: 700,
+            color: '#64748b',
+            marginBottom: 8,
+            textTransform: 'uppercase',
+          }}
         >
           {sectionTitle || 'Êtres vivants'}
         </div>
@@ -252,20 +259,25 @@ export function BiodiversitySpeciesOpenLinks({
               key={name}
               className="task-chip living-being-catalog-chip"
               disabled={disabled}
-              title={!plant ? 'Pas de fiche catalogue pour ce nom — un prof peut compléter la biodiversité.' : undefined}
-              aria-label={plant ? `Ouvrir la fiche biodiversité : ${name}` : `Aucune fiche pour : ${name}`}
+              title={
+                !plant
+                  ? 'Pas de fiche catalogue pour ce nom — un prof peut compléter la biodiversité.'
+                  : undefined
+              }
+              aria-label={
+                plant ? `Ouvrir la fiche biodiversité : ${name}` : `Aucune fiche pour : ${name}`
+              }
               onClick={() => plant && canOpen && onOpenPlant(plant.id)}
               style={{
                 fontWeight: 500,
-                border: plant && canOpen ? '1px solid rgba(0,0,0,.12)' : '1px solid rgba(0,0,0,.08)',
+                border:
+                  plant && canOpen ? '1px solid rgba(0,0,0,.12)' : '1px solid rgba(0,0,0,.08)',
                 cursor: plant && canOpen ? 'pointer' : 'not-allowed',
                 fontFamily: 'inherit',
                 opacity: plant && canOpen ? 1 : 0.65,
               }}
             >
-              {livingBeingEmoji(plants, name)}
-              {' '}
-              {name}
+              {livingBeingEmoji(plants, name)} {name}
             </button>
           );
         })}

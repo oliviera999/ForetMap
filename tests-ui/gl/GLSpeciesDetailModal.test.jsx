@@ -65,9 +65,7 @@ const fullSpecies = {
 
 describe('GLSpeciesDetailModal', () => {
   test('ne rend rien sans espèce', () => {
-    const { container } = render(
-      <GLSpeciesDetailModal species={null} onClose={vi.fn()} />
-    );
+    const { container } = render(<GLSpeciesDetailModal species={null} onClose={vi.fn()} />);
     expect(container.firstChild).toBeNull();
   });
 
@@ -77,7 +75,7 @@ describe('GLSpeciesDetailModal', () => {
         species={fullSpecies}
         biomeNom="Désert chaud (Sahara)"
         onClose={vi.fn()}
-      />
+      />,
     );
     const dialog = screen.getByRole('dialog');
     expect(within(dialog).getByRole('heading', { name: 'Fennec' })).toBeInTheDocument();
@@ -93,9 +91,7 @@ describe('GLSpeciesDetailModal', () => {
 
   test('ferme via Échap et bouton Fermer', async () => {
     const onClose = vi.fn();
-    render(
-      <GLSpeciesDetailModal species={fullSpecies} onClose={onClose} />
-    );
+    render(<GLSpeciesDetailModal species={fullSpecies} onClose={onClose} />);
     await userEvent.click(screen.getByRole('button', { name: 'Fermer' }));
     expect(onClose).toHaveBeenCalledTimes(1);
     onClose.mockClear();
@@ -110,7 +106,7 @@ describe('GLSpeciesDetailModal', () => {
         species={fullSpecies}
         onClose={vi.fn()}
         onOpenGlossaryTerm={onOpenGlossaryTerm}
-      />
+      />,
     );
     await userEvent.click(screen.getByRole('button', { name: 'Biome' }));
     expect(onOpenGlossaryTerm).toHaveBeenCalledWith('GL0001');
@@ -126,10 +122,12 @@ describe('GLSpeciesDetailModal', () => {
         species={fullSpecies}
         onClose={vi.fn()}
         learningProgress={learningProgress}
-      />
+      />,
     );
     expect(screen.getByTitle(/étudié/i)).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Marquer comme étudiée/i })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /Marquer comme étudiée/i }),
+    ).not.toBeInTheDocument();
   });
 
   test('affiche le bouton marquer comme étudiée si non appris', () => {
@@ -142,7 +140,7 @@ describe('GLSpeciesDetailModal', () => {
         species={fullSpecies}
         onClose={vi.fn()}
         learningProgress={learningProgress}
-      />
+      />,
     );
     expect(screen.getByRole('button', { name: /Marquer comme étudiée/i })).toBeInTheDocument();
   });
@@ -159,7 +157,7 @@ describe('GLSpeciesDetailModal', () => {
         loreCarnetEnabled
         onClose={vi.fn()}
         learningProgress={learningProgress}
-      />
+      />,
     );
     await userEvent.click(screen.getByRole('button', { name: /Marquer comme étudiée/i }));
     expect(screen.getByRole('dialog', { name: /Feuillet : Ours polaire/i })).toBeInTheDocument();
@@ -175,7 +173,7 @@ describe('GLSpeciesDetailModal', () => {
           species_code: 'SP9999',
         }}
         onClose={vi.fn()}
-      />
+      />,
     );
     expect(screen.queryByText('Écologie')).not.toBeInTheDocument();
     expect(screen.getByText('SP9999')).toBeInTheDocument();

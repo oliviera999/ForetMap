@@ -25,7 +25,10 @@ export function resolveSelectionMode(files = []) {
   return { mode: 'files', files: list, zipFile: null, ignoredCount: 0 };
 }
 
-export function validateContentLibrarySelection(files = [], limits = DEFAULT_CONTENT_LIBRARY_LIMITS) {
+export function validateContentLibrarySelection(
+  files = [],
+  limits = DEFAULT_CONTENT_LIBRARY_LIMITS,
+) {
   const resolved = resolveSelectionMode(files);
   const errors = [];
   const warnings = [];
@@ -37,7 +40,7 @@ export function validateContentLibrarySelection(files = [], limits = DEFAULT_CON
 
   if (resolved.ignoredCount > 0) {
     warnings.push(
-      `Archive ZIP détectée : les ${resolved.ignoredCount} autre(s) fichier(s) seront ignorés pour l’analyse.`
+      `Archive ZIP détectée : les ${resolved.ignoredCount} autre(s) fichier(s) seront ignorés pour l’analyse.`,
     );
   }
 
@@ -75,10 +78,7 @@ export async function runPool(items, concurrency, worker) {
     }
   }
 
-  const workers = Array.from(
-    { length: Math.min(concurrency, list.length) },
-    () => runWorker()
-  );
+  const workers = Array.from({ length: Math.min(concurrency, list.length) }, () => runWorker());
   await Promise.all(workers);
   return results;
 }
@@ -86,9 +86,11 @@ export async function runPool(items, concurrency, worker) {
 export function findSelectedSourceFile(selectedFiles = [], entry = {}) {
   const preferred = asTrimmedString(entry.sourceFileName) || asTrimmedString(entry.fileName);
   if (!preferred) return null;
-  return selectedFiles.find((file) => file.name === preferred)
-    || selectedFiles.find((file) => file.name === entry.fileName)
-    || null;
+  return (
+    selectedFiles.find((file) => file.name === preferred) ||
+    selectedFiles.find((file) => file.name === entry.fileName) ||
+    null
+  );
 }
 
 function asTrimmedString(value) {

@@ -63,7 +63,13 @@ function main() {
     console.log(`  zones : ${result.counts.zones}`);
     console.log(`  repères : ${result.counts.markers}`);
     if (result.skipped.zones.length || result.skipped.markers.length) {
-      console.warn('  ignorés :', result.skipped.zones.length, 'zone(s),', result.skipped.markers.length, 'repère(s)');
+      console.warn(
+        '  ignorés :',
+        result.skipped.zones.length,
+        'zone(s),',
+        result.skipped.markers.length,
+        'repère(s)',
+      );
     }
   } finally {
     sqlite.close();

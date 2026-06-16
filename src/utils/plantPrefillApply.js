@@ -54,7 +54,9 @@ export function applyPrefillToForm(prev, opts = {}) {
     const assignTo = photoFieldKeys.has(sel.assignTo) ? sel.assignTo : sourceField;
     picked.push({ assignTo, url: selected.url, source_url: selected.source_url });
   }
-  picked.sort((a, b) => a.assignTo.localeCompare(b.assignTo) || String(a.url).localeCompare(String(b.url)));
+  picked.sort(
+    (a, b) => a.assignTo.localeCompare(b.assignTo) || String(a.url).localeCompare(String(b.url)),
+  );
   const byTarget = new Map();
   for (const row of picked) {
     if (!byTarget.has(row.assignTo)) byTarget.set(row.assignTo, []);

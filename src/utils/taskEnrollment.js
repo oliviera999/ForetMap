@@ -19,7 +19,14 @@ export function taskOpenSlots(task) {
 export function canStudentAssignTask(task, student) {
   if (!task || !student) return false;
   const effectiveStatus = taskEffectiveStatus(task);
-  if (effectiveStatus === 'validated' || effectiveStatus === 'done' || effectiveStatus === 'on_hold' || effectiveStatus === 'project_completed' || effectiveStatus === 'project_validated') return false;
+  if (
+    effectiveStatus === 'validated' ||
+    effectiveStatus === 'done' ||
+    effectiveStatus === 'on_hold' ||
+    effectiveStatus === 'project_completed' ||
+    effectiveStatus === 'project_validated'
+  )
+    return false;
   if (isStudentAssignedToTask(task, student)) return false;
   return taskOpenSlots(task) > 0;
 }
@@ -31,7 +38,13 @@ export function taskEnrollmentMeta(task, student) {
   const effectiveStatus = taskEffectiveStatus(task);
   const isClosed = effectiveStatus === 'validated' || effectiveStatus === 'done';
   if (isMine) {
-    return { tone: '#0f766e', bg: '#f0fdfa', border: '#99f6e4', dot: '●', label: 'Déjà prise par toi' };
+    return {
+      tone: '#0f766e',
+      bg: '#f0fdfa',
+      border: '#99f6e4',
+      dot: '●',
+      label: 'Déjà prise par toi',
+    };
   }
   if (effectiveStatus === 'on_hold') {
     return { tone: '#92400e', bg: '#fffbeb', border: '#fde68a', dot: '●', label: 'En attente' };
@@ -43,12 +56,24 @@ export function taskEnrollmentMeta(task, student) {
     return { tone: '#166534', bg: '#f0fdf4', border: '#86efac', dot: '●', label: 'Projet validé' };
   }
   if (isClosed) {
-    return { tone: '#92400e', bg: '#fffbeb', border: '#fde68a', dot: '●', label: effectiveStatus === 'done' ? 'Terminée (en attente)' : 'Validée' };
+    return {
+      tone: '#92400e',
+      bg: '#fffbeb',
+      border: '#fde68a',
+      dot: '●',
+      label: effectiveStatus === 'done' ? 'Terminée (en attente)' : 'Validée',
+    };
   }
   if (slots <= 0) {
     return { tone: '#991b1b', bg: '#fef2f2', border: '#fecaca', dot: '●', label: 'Complet' };
   }
-  return { tone: '#166534', bg: '#f0fdf4', border: '#86efac', dot: '●', label: `${slots} place${slots > 1 ? 's' : ''} disponible${slots > 1 ? 's' : ''}` };
+  return {
+    tone: '#166534',
+    bg: '#f0fdf4',
+    border: '#86efac',
+    dot: '●',
+    label: `${slots} place${slots > 1 ? 's' : ''} disponible${slots > 1 ? 's' : ''}`,
+  };
 }
 
 // ── Statut visuel agrégé d'un lieu (priorité todo > progress > done : on met en

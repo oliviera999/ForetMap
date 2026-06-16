@@ -122,11 +122,13 @@ describe('groupSpellsByCategory', () => {
 
 describe('allSpellCodesFrom', () => {
   test('liste les codes trimmés non vides', () => {
-    expect(allSpellCodesFrom([
-      { spell_code: ' AGUA ' },
-      { spell_code: '' },
-      { spell_code: null },
-      { spell_code: 'IGNI' },
-    ])).toEqual(['AGUA', 'IGNI']);
+    expect(
+      allSpellCodesFrom([
+        { spell_code: ' AGUA ' },
+        { spell_code: '' },
+        { spell_code: null },
+        { spell_code: 'IGNI' },
+      ]),
+    ).toEqual(['AGUA', 'IGNI']);
   });
 });

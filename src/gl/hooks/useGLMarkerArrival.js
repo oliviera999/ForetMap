@@ -39,121 +39,144 @@ export function useGLMarkerArrival({
     };
   }, []);
 
-  const presentQuestionAtMarker = useCallback(async (marker, options = {}) => {
-    if (!gameId || !marker?.id) return;
-    const teamId = options.teamId != null ? Number(options.teamId) : (watchTeamId != null ? Number(watchTeamId) : null);
-    if (!options.force && wasRecentPresentation(teamId, marker.id)) return;
+  const presentQuestionAtMarker = useCallback(
+    async (marker, options = {}) => {
+      if (!gameId || !marker?.id) return;
+      const teamId =
+        options.teamId != null
+          ? Number(options.teamId)
+          : watchTeamId != null
+            ? Number(watchTeamId)
+            : null;
+      if (!options.force && wasRecentPresentation(teamId, marker.id)) return;
 
-    const excludeCodes = options.excludeCodes || excludeCodesRef.current || [];
-    markRecentPresentation(teamId, marker.id);
-    setEffectPopover(null);
-    setQuestionPopover({
-      marker,
-      teamId,
-      loading: true,
-      error: '',
-      presentation: null,
-      questionCode: null,
-      result: null,
-    });
-    try {
-      const body = { excludeCodes };
-      if (teamId != null) body.teamId = teamId;
-      const data = await apiGL(
-        `/api/gl/games/${gameId}/markers/${marker.id}/present-question`,
-        'POST',
-        body,
-      );
-      excludeCodesRef.current = [];
+      const excludeCodes = options.excludeCodes || excludeCodesRef.current || [];
+      markRecentPresentation(teamId, marker.id);
+      setEffectPopover(null);
       setQuestionPopover({
         marker,
         teamId,
-        loading: false,
+        loading: true,
         error: '',
-        presentation: data?.presentation || null,
-        questionCode: data?.questionCode || null,
-        qcmSet: data?.qcmSet || data?.presentation?.qcmSet || null,
-        result: null,
-      });
-    } catch (err) {
-      setQuestionPopover({
-        marker,
-        teamId,
-        loading: false,
-        error: err.message || 'Présentation impossible',
         presentation: null,
         questionCode: null,
         result: null,
       });
-    }
-  }, [gameId, watchTeamId, wasRecentPresentation, markRecentPresentation]);
+      try {
+        const body = { excludeCodes };
+        if (teamId != null) body.teamId = teamId;
+        const data = await apiGL(
+          `/api/gl/games/${gameId}/markers/${marker.id}/present-question`,
+          'POST',
+          body,
+        );
+        excludeCodesRef.current = [];
+        setQuestionPopover({
+          marker,
+          teamId,
+          loading: false,
+          error: '',
+          presentation: data?.presentation || null,
+          questionCode: data?.questionCode || null,
+          qcmSet: data?.qcmSet || data?.presentation?.qcmSet || null,
+          result: null,
+        });
+      } catch (err) {
+        setQuestionPopover({
+          marker,
+          teamId,
+          loading: false,
+          error: err.message || 'Présentation impossible',
+          presentation: null,
+          questionCode: null,
+          result: null,
+        });
+      }
+    },
+    [gameId, watchTeamId, wasRecentPresentation, markRecentPresentation],
+  );
 
-  const presentEffectAtMarker = useCallback(async (marker, options = {}) => {
-    if (!gameId || !marker?.id) return;
-    const teamId = options.teamId != null ? Number(options.teamId) : (watchTeamId != null ? Number(watchTeamId) : null);
-    if (!options.force && wasRecentPresentation(teamId, marker.id)) return;
+  const presentEffectAtMarker = useCallback(
+    async (marker, options = {}) => {
+      if (!gameId || !marker?.id) return;
+      const teamId =
+        options.teamId != null
+          ? Number(options.teamId)
+          : watchTeamId != null
+            ? Number(watchTeamId)
+            : null;
+      if (!options.force && wasRecentPresentation(teamId, marker.id)) return;
 
-    markRecentPresentation(teamId, marker.id);
-    setQuestionPopover(null);
-    setEffectPopover({
-      marker,
-      teamId,
-      loading: true,
-      error: '',
-      arrival: null,
-    });
-    try {
-      const body = {};
-      if (teamId != null) body.teamId = teamId;
-      const data = await apiGL(
-        `/api/gl/games/${gameId}/markers/${marker.id}/present-arrival`,
-        'POST',
-        body,
-      );
+      markRecentPresentation(teamId, marker.id);
+      setQuestionPopover(null);
       setEffectPopover({
         marker,
         teamId,
-        loading: false,
+        loading: true,
         error: '',
-        arrival: data,
-      });
-    } catch (err) {
-      setEffectPopover({
-        marker,
-        teamId,
-        loading: false,
-        error: err.message || 'Présentation impossible',
         arrival: null,
       });
-    }
-  }, [gameId, watchTeamId, wasRecentPresentation, markRecentPresentation]);
+      try {
+        const body = {};
+        if (teamId != null) body.teamId = teamId;
+        const data = await apiGL(
+          `/api/gl/games/${gameId}/markers/${marker.id}/present-arrival`,
+          'POST',
+          body,
+        );
+        setEffectPopover({
+          marker,
+          teamId,
+          loading: false,
+          error: '',
+          arrival: data,
+        });
+      } catch (err) {
+        setEffectPopover({
+          marker,
+          teamId,
+          loading: false,
+          error: err.message || 'Présentation impossible',
+          arrival: null,
+        });
+      }
+    },
+    [gameId, watchTeamId, wasRecentPresentation, markRecentPresentation],
+  );
 
-  const presentAtMarker = useCallback(async (marker, options = {}) => {
-    if (isQuestionMarker(marker)) {
-      await presentQuestionAtMarker(marker, options);
-      return;
-    }
-    if (shouldPresentMarkerOnArrival(marker)) {
-      await presentEffectAtMarker(marker, options);
-    }
-  }, [presentQuestionAtMarker, presentEffectAtMarker]);
+  const presentAtMarker = useCallback(
+    async (marker, options = {}) => {
+      if (isQuestionMarker(marker)) {
+        await presentQuestionAtMarker(marker, options);
+        return;
+      }
+      if (shouldPresentMarkerOnArrival(marker)) {
+        await presentEffectAtMarker(marker, options);
+      }
+    },
+    [presentQuestionAtMarker, presentEffectAtMarker],
+  );
 
-  const schedulePresentOnArrival = useCallback((marker, teamId, options = {}) => {
-    if (!enabled || !gameId || !marker?.id) return undefined;
-    const isQ = isQuestionMarker(marker);
-    const isEffect = shouldPresentMarkerOnArrival(marker);
-    if (!isQ && !isEffect) return undefined;
-    const resolvedTeamId = teamId != null ? Number(teamId) : (watchTeamId != null ? Number(watchTeamId) : null);
-    if (resolvedTeamId == null) return undefined;
-    const delay = Math.max(0, Number(options.moveDelayMs ?? moveDelayMs) || 0);
-    const timer = window.setTimeout(() => {
-      presentAtMarker(marker, {
-        teamId: resolvedTeamId,
-        force: options.force === true,
-      });
-    }, delay);
-    return () => window.clearTimeout(timer);
-  }, [enabled, gameId, watchTeamId, moveDelayMs, presentAtMarker]);
+  const schedulePresentOnArrival = useCallback(
+    (marker, teamId, options = {}) => {
+      if (!enabled || !gameId || !marker?.id) return undefined;
+      const isQ = isQuestionMarker(marker);
+      const isEffect = shouldPresentMarkerOnArrival(marker);
+      if (!isQ && !isEffect) return undefined;
+      const resolvedTeamId =
+        teamId != null ? Number(teamId) : watchTeamId != null ? Number(watchTeamId) : null;
+      if (resolvedTeamId == null) return undefined;
+      const delay = Math.max(0, Number(options.moveDelayMs ?? moveDelayMs) || 0);
+      const timer = window.setTimeout(() => {
+        presentAtMarker(marker, {
+          teamId: resolvedTeamId,
+          force: options.force === true,
+        });
+      }, delay);
+      return () => window.clearTimeout(timer);
+    },
+    [enabled, gameId, watchTeamId, moveDelayMs, presentAtMarker],
+  );
 
   const closeQuestionPopover = useCallback(() => {
     setQuestionPopover(null);
@@ -187,7 +210,9 @@ export function useGLMarkerArrival({
 
   useEffect(() => {
     if (!enabled || watchTeamId == null || !gameId) return undefined;
-    const team = (Array.isArray(teams) ? teams : []).find((t) => Number(t.id) === Number(watchTeamId));
+    const team = (Array.isArray(teams) ? teams : []).find(
+      (t) => Number(t.id) === Number(watchTeamId),
+    );
     if (!team) return undefined;
 
     const markerId = team.position_marker_id != null ? Number(team.position_marker_id) : null;

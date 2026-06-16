@@ -8,7 +8,12 @@ require('dotenv').config();
 const { parseSpeciesWorkbook, applySpeciesImport } = require('../lib/glSpeciesImport');
 const { initSchema, queryAll, execute } = require('../database');
 
-const DEFAULT_FILE = path.join(process.cwd(), 'data', 'gl', 'especes-biomes-gnomes-et-licornes.xlsx');
+const DEFAULT_FILE = path.join(
+  process.cwd(),
+  'data',
+  'gl',
+  'especes-biomes-gnomes-et-licornes.xlsx',
+);
 
 function parseArgs(argv) {
   const args = {
@@ -40,15 +45,11 @@ async function main() {
 
   await initSchema();
 
-  const report = await applySpeciesImport(
-    { queryAll, execute },
-    speciesRows,
-    {
-      dryRun: args.dryRun,
-      syncBiomes: args.syncBiomes,
-      biomeRows,
-    }
-  );
+  const report = await applySpeciesImport({ queryAll, execute }, speciesRows, {
+    dryRun: args.dryRun,
+    syncBiomes: args.syncBiomes,
+    biomeRows,
+  });
 
   const mode = args.dryRun ? 'dry-run' : 'apply';
   console.log(`[gl-import-species] ${mode} OK — fichier: ${args.file}`);

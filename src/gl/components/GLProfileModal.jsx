@@ -3,7 +3,16 @@ import { DialogShell } from '../../components/DialogShell.jsx';
 import { GLProfileEditor } from './GLProfileEditor.jsx';
 import { GLButton } from './ui/GLButton.jsx';
 
-export function GLProfileModal({ open, onClose, auth, profile, config, onSessionUpdated, onReloadProfile, onOpenStats = null }) {
+export function GLProfileModal({
+  open,
+  onClose,
+  auth,
+  profile,
+  config,
+  onSessionUpdated,
+  onReloadProfile,
+  onOpenStats = null,
+}) {
   return (
     <DialogShell
       open={open}
@@ -20,7 +29,9 @@ export function GLProfileModal({ open, onClose, auth, profile, config, onSession
               Mes statistiques
             </GLButton>
           ) : null}
-          <GLButton type="button" variant="secondary" onClick={onClose}>Fermer</GLButton>
+          <GLButton type="button" variant="secondary" onClick={onClose}>
+            Fermer
+          </GLButton>
         </div>
       </div>
       <GLProfileEditor

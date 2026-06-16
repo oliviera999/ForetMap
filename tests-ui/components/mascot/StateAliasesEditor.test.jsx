@@ -52,8 +52,21 @@ describe('StateAliasesEditor', () => {
   test('+ Alias désactivé quand tous les états sont déjà mappés', () => {
     const allStates = {};
     // Mappe les 13 états canoniques (clés = STATE_OPTIONS) pour saturer.
-    ['alert', 'angry', 'celebrate', 'happy', 'happy_jump', 'idle', 'inspect',
-      'map_read', 'running', 'spin', 'surprise', 'talk', 'walking'].forEach((s) => {
+    [
+      'alert',
+      'angry',
+      'celebrate',
+      'happy',
+      'happy_jump',
+      'idle',
+      'inspect',
+      'map_read',
+      'running',
+      'spin',
+      'surprise',
+      'talk',
+      'walking',
+    ].forEach((s) => {
       allStates[s] = 'idle';
     });
     render(<StateAliasesEditor stateFrames={{}} aliases={allStates} onChange={() => {}} />);

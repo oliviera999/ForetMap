@@ -8,9 +8,8 @@ export function buildAffiliationSelectOptions(maps = []) {
   const activeCount = list.filter((map) => map?.is_active !== false).length;
   const totalCount = list.length;
   const effectiveCount = activeCount > 0 ? activeCount : totalCount;
-  const bothLabel = effectiveCount > 1
-    ? `Tous les espaces (${effectiveCount})`
-    : 'Tous les espaces';
+  const bothLabel =
+    effectiveCount > 1 ? `Tous les espaces (${effectiveCount})` : 'Tous les espaces';
   const opts = [
     { value: 'both', label: bothLabel },
     { value: 'n3', label: 'N3 uniquement' },

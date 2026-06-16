@@ -22,7 +22,10 @@ const PSEUDO_MUST_RESET = 'equipe_reinit';
 before(async () => {
   await initSchema();
   const { execute } = require('../database');
-  await execute('DELETE FROM gl_players WHERE pseudo IN (?, ?)', [PSEUDO_NORMAL, PSEUDO_MUST_RESET]);
+  await execute('DELETE FROM gl_players WHERE pseudo IN (?, ?)', [
+    PSEUDO_NORMAL,
+    PSEUDO_MUST_RESET,
+  ]);
   const admin = await createGlAdmin({ email: 'mj.test@ecole.local', displayName: 'MJ Test' });
   const cls = await createGlClass({ name: '6e A', school: 'College Test', adminId: admin.id });
   await createGlPlayer({
@@ -85,9 +88,13 @@ test('GET /api/gl/auth/me expose first_name / last_name', async () => {
 });
 
 test('POST /api/gl/auth/admin/impersonate puis stop restaure l’admin GL', async () => {
-  const admin = await queryOne('SELECT id FROM gl_admins WHERE LOWER(email) = LOWER(?) LIMIT 1', ['mj.test@ecole.local']);
+  const admin = await queryOne('SELECT id FROM gl_admins WHERE LOWER(email) = LOWER(?) LIMIT 1', [
+    'mj.test@ecole.local',
+  ]);
   assert.ok(admin?.id);
-  const player = await queryOne('SELECT id FROM gl_players WHERE pseudo = ? LIMIT 1', [PSEUDO_NORMAL]);
+  const player = await queryOne('SELECT id FROM gl_players WHERE pseudo = ? LIMIT 1', [
+    PSEUDO_NORMAL,
+  ]);
   assert.ok(player?.id);
 
   const adminToken = await signAuthToken({
@@ -95,7 +102,14 @@ test('POST /api/gl/auth/admin/impersonate puis stop restaure l’admin GL', asyn
     userType: 'gl_admin',
     userId: String(admin.id),
     roleSlug: 'gl_admin',
-    permissions: ['gl.read', 'gl.players.manage', 'gl.game.manage', 'gl.team.manage', 'gl.event.emit', 'gl.settings.manage'],
+    permissions: [
+      'gl.read',
+      'gl.players.manage',
+      'gl.game.manage',
+      'gl.team.manage',
+      'gl.event.emit',
+      'gl.settings.manage',
+    ],
     displayName: 'MJ Test',
   });
 
@@ -128,7 +142,9 @@ test('POST /api/gl/auth/admin/impersonate puis stop restaure l’admin GL', asyn
 test('POST /api/gl/auth/admin/impersonate MJ puis stop restaure gl_mj', async () => {
   const email = `gl.mj.impersonate.${Date.now()}@ecole.local`;
   const mjAdmin = await createGlAdmin({ email, displayName: 'MJ Impersonate', role: 'mj' });
-  const player = await queryOne('SELECT id FROM gl_players WHERE pseudo = ? LIMIT 1', [PSEUDO_NORMAL]);
+  const player = await queryOne('SELECT id FROM gl_players WHERE pseudo = ? LIMIT 1', [
+    PSEUDO_NORMAL,
+  ]);
   assert.ok(player?.id);
 
   const mjToken = await signAuthToken({

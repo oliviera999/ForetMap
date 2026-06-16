@@ -93,7 +93,10 @@ test('isGoogleEmailAllowed: domaine autorisé', () => {
 
 test('isGoogleEmailAllowed: hd doit correspondre au domaine autorisé', () => {
   const domains = new Set(['lyceelyautey.org']);
-  assert.equal(isGoogleEmailAllowed('prof@lyceelyautey.org', 'lyceelyautey.org', domains, new Set()), true);
+  assert.equal(
+    isGoogleEmailAllowed('prof@lyceelyautey.org', 'lyceelyautey.org', domains, new Set()),
+    true,
+  );
   assert.equal(isGoogleEmailAllowed('', null, domains, new Set()), false);
 });
 
@@ -112,14 +115,14 @@ test('parseBoolJsonSetting: parse JSON booléen, fallback sinon', () => {
   assert.equal(parseBoolJsonSetting('1'), false);
 });
 
-test('buildGlOAuthFrontendErrorRedirect: URL d\'erreur avec mode', () => {
+test("buildGlOAuthFrontendErrorRedirect: URL d'erreur avec mode", () => {
   assert.equal(
     buildGlOAuthFrontendErrorRedirect('https://gl.example.org/', 'oauth_invalid_state', 'player'),
-    'https://gl.example.org/#oauth_error=oauth_invalid_state&oauth_mode=player'
+    'https://gl.example.org/#oauth_error=oauth_invalid_state&oauth_mode=player',
   );
   assert.equal(
     buildGlOAuthFrontendErrorRedirect('https://gl.example.org', 'x', 'auto'),
-    'https://gl.example.org/#oauth_error=x&oauth_mode=staff'
+    'https://gl.example.org/#oauth_error=x&oauth_mode=staff',
   );
 });
 
@@ -128,7 +131,10 @@ test('canGlStaffImpersonate: gl_admin avec roleSlug autorisé', () => {
   assert.equal(canGlStaffImpersonate({ userType: 'gl_admin', roleSlug: 'gl_mj' }), true);
   assert.equal(canGlStaffImpersonate({ userType: 'gl_admin', roleSlug: 'autre' }), false);
   assert.equal(canGlStaffImpersonate({ userType: 'gl_player', roleSlug: 'gl_admin' }), false);
-  assert.equal(canGlStaffImpersonate({ userType: 'gl_admin', roleSlug: 'gl_admin', impersonating: true }), false);
+  assert.equal(
+    canGlStaffImpersonate({ userType: 'gl_admin', roleSlug: 'gl_admin', impersonating: true }),
+    false,
+  );
   assert.equal(canGlStaffImpersonate(null), false);
 });
 

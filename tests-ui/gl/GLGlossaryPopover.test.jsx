@@ -17,13 +17,11 @@ const TERM_DETAIL = {
     categorie_label: 'Biome',
     niveau: 'base',
     definition_courte: 'Grande région écologique homogène.',
-    definition_complete: 'Ensemble d\'écosystèmes caractéristiques d\'une vaste région.',
+    definition_complete: "Ensemble d'écosystèmes caractéristiques d'une vaste région.",
     exemple: 'La toundra est un biome froid.',
     etymologie: 'Du grec bios, vie.',
   },
-  relatedTerms: [
-    { glossary_code: 'GL0002', terme: 'Écosystème' },
-  ],
+  relatedTerms: [{ glossary_code: 'GL0002', terme: 'Écosystème' }],
   relatedSpecies: [],
 };
 
@@ -62,7 +60,7 @@ describe('GLGlossaryPopover', () => {
         biomeSlugs={['sahara']}
         onClose={vi.fn()}
         onOpenFullGlossary={vi.fn()}
-      />
+      />,
     );
 
     await waitFor(() => {
@@ -83,7 +81,7 @@ describe('GLGlossaryPopover', () => {
         glossaryCode="GL0001"
         onClose={onClose}
         onOpenFullGlossary={vi.fn()}
-      />
+      />,
     );
 
     await waitFor(() => {
@@ -109,7 +107,7 @@ describe('GLGlossaryPopover', () => {
         glossaryCode="GL0001"
         onClose={vi.fn()}
         onOpenFullGlossary={vi.fn()}
-      />
+      />,
     );
 
     await waitFor(() => {
@@ -135,7 +133,7 @@ describe('GLGlossaryPopover', () => {
         glossaryCode="GL0001"
         onClose={onClose}
         onOpenFullGlossary={onOpenFullGlossary}
-      />
+      />,
     );
 
     await waitFor(() => {
@@ -147,7 +145,7 @@ describe('GLGlossaryPopover', () => {
     expect(onOpenFullGlossary).toHaveBeenCalledWith('GL0001');
   });
 
-  test('masque le lien glossaire complet sur l\'onglet glossaire', async () => {
+  test("masque le lien glossaire complet sur l'onglet glossaire", async () => {
     vi.mocked(apiGL).mockResolvedValue(TERM_DETAIL);
 
     render(
@@ -157,23 +155,25 @@ describe('GLGlossaryPopover', () => {
         onClose={vi.fn()}
         onOpenFullGlossary={vi.fn()}
         showFullGlossaryLink={false}
-      />
+      />,
     );
 
     await waitFor(() => {
       expect(screen.getByRole('dialog', { name: /Biome/i })).toBeInTheDocument();
     });
-    expect(screen.queryByRole('button', { name: /Voir le glossaire complet/i })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /Voir le glossaire complet/i }),
+    ).not.toBeInTheDocument();
   });
 
-  test('n\'est pas rendu quand fermé', () => {
+  test("n'est pas rendu quand fermé", () => {
     render(
       <GLGlossaryPopover
         open={false}
         glossaryCode="GL0001"
         onClose={vi.fn()}
         onOpenFullGlossary={vi.fn()}
-      />
+      />,
     );
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });

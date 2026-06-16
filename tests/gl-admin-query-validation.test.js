@@ -22,17 +22,24 @@ function runSchema(schema, query) {
   let nextCalled = false;
   const res = {
     statusCode: 200,
-    status(c) { this.statusCode = c; return this; },
-    json() { return this; },
+    status(c) {
+      this.statusCode = c;
+      return this;
+    },
+    json() {
+      return this;
+    },
   };
-  validate({ query: schema })(req, res, () => { nextCalled = true; });
+  validate({ query: schema })(req, res, () => {
+    nextCalled = true;
+  });
   return { nextCalled, status: res.statusCode, validated: req.validatedQuery };
 }
 
 function runQuery(rawValue) {
   const { nextCalled, status, validated } = runSchema(
     glAdminMediaQuerySchema,
-    rawValue === undefined ? {} : { limit: rawValue }
+    rawValue === undefined ? {} : { limit: rawValue },
   );
   return { nextCalled, status, value: validated?.limit };
 }
@@ -40,7 +47,10 @@ function runQuery(rawValue) {
 test('limit : équivalence exacte avec la logique historique, jamais de 400', () => {
   // Reproduit le handler : limite effective passée à listMediaLibraryItems.
   const effective = (v) => (Number.isFinite(v) ? v : 300);
-  const legacy = (raw) => { const n = Number(raw); return Number.isFinite(n) ? n : 300; };
+  const legacy = (raw) => {
+    const n = Number(raw);
+    return Number.isFinite(n) ? n : 300;
+  };
   const cases = [undefined, '', 'abc', '0', '5', '50.9', '-3', '400', '999999', '12abc'];
   for (const raw of cases) {
     const { nextCalled, status, value } = runQuery(raw);
@@ -58,7 +68,21 @@ test('limit répété (?limit=1&limit=2 → tableau) : non numérique → repli 
 
 // Cas limites numériques communs (paramètre absent, vide, non numérique, zéro, négatif,
 // décimal, très grand, Infinity, partiellement numérique, répété en tableau).
-const NUMERIC_EDGE_CASES = [undefined, '', '  ', 'abc', '0', '3', '-1', '2.5', '999999', 'Infinity', '12abc', ['1', '2'], ['4']];
+const NUMERIC_EDGE_CASES = [
+  undefined,
+  '',
+  '  ',
+  'abc',
+  '0',
+  '3',
+  '-1',
+  '2.5',
+  '999999',
+  'Infinity',
+  '12abc',
+  ['1', '2'],
+  ['4'],
+];
 
 // ——— GET /players — ré-implémentation indépendante de l'ancien handler. ———
 // Ancien : classId = req.query?.classId ? Number(...) : null, puis `classId ?` filtre SQL.
@@ -81,12 +105,29 @@ test('GET /players — classId : équivalence exacte avec la logique historique,
     assert.deepStrictEqual(currentPlayersOutcome(validated), legacyPlayersOutcome(query), label);
   }
   // Branches notables : ''/0/NaN → falsy → pas de filtre ; -1/2.5/Infinity conservés tels quels.
-  assert.strictEqual(currentPlayersOutcome(runSchema(glAdminPlayersQuerySchema, { classId: '' }).validated).filtered, false);
-  assert.strictEqual(currentPlayersOutcome(runSchema(glAdminPlayersQuerySchema, { classId: '0' }).validated).filtered, false);
-  assert.strictEqual(currentPlayersOutcome(runSchema(glAdminPlayersQuerySchema, { classId: 'abc' }).validated).filtered, false);
+  assert.strictEqual(
+    currentPlayersOutcome(runSchema(glAdminPlayersQuerySchema, { classId: '' }).validated).filtered,
+    false,
+  );
+  assert.strictEqual(
+    currentPlayersOutcome(runSchema(glAdminPlayersQuerySchema, { classId: '0' }).validated)
+      .filtered,
+    false,
+  );
+  assert.strictEqual(
+    currentPlayersOutcome(runSchema(glAdminPlayersQuerySchema, { classId: 'abc' }).validated)
+      .filtered,
+    false,
+  );
   assert.strictEqual(runSchema(glAdminPlayersQuerySchema, { classId: '-1' }).validated.classId, -1);
-  assert.strictEqual(runSchema(glAdminPlayersQuerySchema, { classId: '2.5' }).validated.classId, 2.5);
-  assert.strictEqual(runSchema(glAdminPlayersQuerySchema, { classId: 'Infinity' }).validated.classId, Infinity);
+  assert.strictEqual(
+    runSchema(glAdminPlayersQuerySchema, { classId: '2.5' }).validated.classId,
+    2.5,
+  );
+  assert.strictEqual(
+    runSchema(glAdminPlayersQuerySchema, { classId: 'Infinity' }).validated.classId,
+    Infinity,
+  );
   assert.strictEqual(runSchema(glAdminPlayersQuerySchema, { classId: ['4'] }).validated.classId, 4); // Number(['4']) === 4, comme avant
 });
 
@@ -96,12 +137,18 @@ test('GET /players — classId : équivalence exacte avec la logique historique,
 function legacyExportOutcome(query) {
   const classId = query?.classId == null ? null : Number(query.classId);
   if (classId != null && !Number.isFinite(classId)) return { rejected: true };
-  return { rejected: false, ...(classId ? { filtered: true, param: classId } : { filtered: false, param: null }) };
+  return {
+    rejected: false,
+    ...(classId ? { filtered: true, param: classId } : { filtered: false, param: null }),
+  };
 }
 function currentExportOutcome(validated) {
   const classId = validated?.classId;
   if (classId != null && !Number.isFinite(classId)) return { rejected: true };
-  return { rejected: false, ...(classId ? { filtered: true, param: classId } : { filtered: false, param: null }) };
+  return {
+    rejected: false,
+    ...(classId ? { filtered: true, param: classId } : { filtered: false, param: null }),
+  };
 }
 
 test('GET /players/export — classId : équivalence exacte, le 400 « classId invalide » reste décidé par le handler', () => {
@@ -115,11 +162,28 @@ test('GET /players/export — classId : équivalence exacte, le 400 « classId i
   }
   // Branches notables : non numérique/Infinity → 400 du handler ; '' → ni 400 ni filtre (comme
   // l'ancien Number('') === 0) ; '0' → ni 400 ni filtre ; négatif/décimal → filtre conservé.
-  assert.strictEqual(currentExportOutcome(runSchema(glAdminPlayersQuerySchema, { classId: 'abc' }).validated).rejected, true);
-  assert.strictEqual(currentExportOutcome(runSchema(glAdminPlayersQuerySchema, { classId: ['1', '2'] }).validated).rejected, true);
-  assert.deepStrictEqual(currentExportOutcome(runSchema(glAdminPlayersQuerySchema, { classId: '' }).validated), { rejected: false, filtered: false, param: null });
-  assert.deepStrictEqual(currentExportOutcome(runSchema(glAdminPlayersQuerySchema, { classId: '0' }).validated), { rejected: false, filtered: false, param: null });
-  assert.deepStrictEqual(currentExportOutcome(runSchema(glAdminPlayersQuerySchema, { classId: '-1' }).validated), { rejected: false, filtered: true, param: -1 });
+  assert.strictEqual(
+    currentExportOutcome(runSchema(glAdminPlayersQuerySchema, { classId: 'abc' }).validated)
+      .rejected,
+    true,
+  );
+  assert.strictEqual(
+    currentExportOutcome(runSchema(glAdminPlayersQuerySchema, { classId: ['1', '2'] }).validated)
+      .rejected,
+    true,
+  );
+  assert.deepStrictEqual(
+    currentExportOutcome(runSchema(glAdminPlayersQuerySchema, { classId: '' }).validated),
+    { rejected: false, filtered: false, param: null },
+  );
+  assert.deepStrictEqual(
+    currentExportOutcome(runSchema(glAdminPlayersQuerySchema, { classId: '0' }).validated),
+    { rejected: false, filtered: false, param: null },
+  );
+  assert.deepStrictEqual(
+    currentExportOutcome(runSchema(glAdminPlayersQuerySchema, { classId: '-1' }).validated),
+    { rejected: false, filtered: true, param: -1 },
+  );
 });
 
 // ——— GET /media-library/chapter-scenes — ré-implémentation indépendante. ———
@@ -147,10 +211,31 @@ test('GET /media-library/chapter-scenes — chapter : équivalence exacte, le 40
   }
   // Branches notables : absent → NaN → 400 du handler ; '' → 0 (prologue) accepté comme avant ;
   // bornes 0/5 acceptées, 6/-1/décimal/non numérique → 400 du handler.
-  assert.strictEqual(currentChapterOutcome(runSchema(glAdminChapterScenesQuerySchema, {}).validated).rejected, true);
-  assert.deepStrictEqual(currentChapterOutcome(runSchema(glAdminChapterScenesQuerySchema, { chapter: '' }).validated), { rejected: false, chapter: 0 });
-  assert.deepStrictEqual(currentChapterOutcome(runSchema(glAdminChapterScenesQuerySchema, { chapter: '5' }).validated), { rejected: false, chapter: 5 });
-  assert.strictEqual(currentChapterOutcome(runSchema(glAdminChapterScenesQuerySchema, { chapter: '6' }).validated).rejected, true);
-  assert.strictEqual(currentChapterOutcome(runSchema(glAdminChapterScenesQuerySchema, { chapter: '2.5' }).validated).rejected, true);
-  assert.strictEqual(currentChapterOutcome(runSchema(glAdminChapterScenesQuerySchema, { chapter: 'abc' }).validated).rejected, true);
+  assert.strictEqual(
+    currentChapterOutcome(runSchema(glAdminChapterScenesQuerySchema, {}).validated).rejected,
+    true,
+  );
+  assert.deepStrictEqual(
+    currentChapterOutcome(runSchema(glAdminChapterScenesQuerySchema, { chapter: '' }).validated),
+    { rejected: false, chapter: 0 },
+  );
+  assert.deepStrictEqual(
+    currentChapterOutcome(runSchema(glAdminChapterScenesQuerySchema, { chapter: '5' }).validated),
+    { rejected: false, chapter: 5 },
+  );
+  assert.strictEqual(
+    currentChapterOutcome(runSchema(glAdminChapterScenesQuerySchema, { chapter: '6' }).validated)
+      .rejected,
+    true,
+  );
+  assert.strictEqual(
+    currentChapterOutcome(runSchema(glAdminChapterScenesQuerySchema, { chapter: '2.5' }).validated)
+      .rejected,
+    true,
+  );
+  assert.strictEqual(
+    currentChapterOutcome(runSchema(glAdminChapterScenesQuerySchema, { chapter: 'abc' }).validated)
+      .rejected,
+    true,
+  );
 });

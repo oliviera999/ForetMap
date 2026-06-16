@@ -18,22 +18,22 @@ backend no-DB ajoutés (`lib/*Helpers`). 0 erreur ESLint maintenue tout du long.
 
 ### État des 14 recommandations (tracker §3)
 
-| ID | Axe | État | Note |
-|----|-----|------|------|
-| O1 | Perf bundle | **done** | Lazy renderers mascotte |
-| O2 | Perf rendu | **done** | `React.memo` TaskTileCard + mémoïsation effective |
-| O3 | Perf RBAC | **done** | Cache versionné global, validé en CI |
-| O4 | Sécu | **done** | xlsx→exceljs, prod 100 % xlsx-free |
-| O5 | Extensibilité | **wip** | 3 contexts livrés, ~121 passes de props éliminées ; App.jsx allégé |
-| O6 | Maint/Test | **wip** | Cœur de la session — voir §2 |
-| O7 | Validation zod | **wip** | **File numérique épuisée** ; reste flags texte/CSV/OAuth (faible enjeu) |
-| O8 | asyncHandler | **wip** | **Queues tasks/settings soldées** ; reste handlers à mapping spécial documentés |
-| O9 | Dédup | **done** | (cas initiaux) — voir mise en garde §4 |
-| O10 | Routes obèses | **wip** | 12 routes allégées (logique pure) ; reste couche service — voir §3 |
-| O11 | Bundle | **done** | Reste markdown eager (non bloquant) |
-| O12 | Outillage | **done** | eslint-hooks, prettier, checkJS |
-| O13 | Sécu durcissement | **done** | helmet, timingSafeEqual |
-| O14 | Maint | **done** | fichiers morts, version servie |
+| ID  | Axe               | État     | Note                                                                            |
+| --- | ----------------- | -------- | ------------------------------------------------------------------------------- |
+| O1  | Perf bundle       | **done** | Lazy renderers mascotte                                                         |
+| O2  | Perf rendu        | **done** | `React.memo` TaskTileCard + mémoïsation effective                               |
+| O3  | Perf RBAC         | **done** | Cache versionné global, validé en CI                                            |
+| O4  | Sécu              | **done** | xlsx→exceljs, prod 100 % xlsx-free                                              |
+| O5  | Extensibilité     | **wip**  | 3 contexts livrés, ~121 passes de props éliminées ; App.jsx allégé              |
+| O6  | Maint/Test        | **wip**  | Cœur de la session — voir §2                                                    |
+| O7  | Validation zod    | **wip**  | **File numérique épuisée** ; reste flags texte/CSV/OAuth (faible enjeu)         |
+| O8  | asyncHandler      | **wip**  | **Queues tasks/settings soldées** ; reste handlers à mapping spécial documentés |
+| O9  | Dédup             | **done** | (cas initiaux) — voir mise en garde §4                                          |
+| O10 | Routes obèses     | **wip**  | 12 routes allégées (logique pure) ; reste couche service — voir §3              |
+| O11 | Bundle            | **done** | Reste markdown eager (non bloquant)                                             |
+| O12 | Outillage         | **done** | eslint-hooks, prettier, checkJS                                                 |
+| O13 | Sécu durcissement | **done** | helmet, timingSafeEqual                                                         |
+| O14 | Maint             | **done** | fichiers morts, version servie                                                  |
 
 ## 2. O6 — découpage des méga-composants (le gros du travail)
 
@@ -50,11 +50,11 @@ Réductions notables (lignes) :
 - `VisitMascotPackManager.jsx` 1346 → **740**
 - `MascotPackWysiwygEditor.jsx` 916 → **504**
 - `MarkerModal.jsx` 960 → **731**, `ZoneInfoModal.jsx` → **592**
-- + tous les éditeurs/vues GL moyens (GLGameMasterConsole, GLChaptersAdminView,
-  GLSettingsView, GLContentLibraryView, GLSpellCastWizard, GLMarkerEventEditor,
-  les 4 éditeurs de catalogue species/glossary/qcm/spells, GLChapterMapStudio,
-  GLPlayersPanel), `context-comments`, `auth-views`, `forum-views`,
-  `tutorials-views`, `settings-admin-views`, `stats-views`, `MediaLibraryMenu`.
+- - tous les éditeurs/vues GL moyens (GLGameMasterConsole, GLChaptersAdminView,
+    GLSettingsView, GLContentLibraryView, GLSpellCastWizard, GLMarkerEventEditor,
+    les 4 éditeurs de catalogue species/glossary/qcm/spells, GLChapterMapStudio,
+    GLPlayersPanel), `context-comments`, `auth-views`, `forum-views`,
+    `tutorials-views`, `settings-admin-views`, `stats-views`, `MediaLibraryMenu`.
 
 **Convention établie** : logique pure d'abord (→ `src/utils/` ou `src/gl/utils/`,
 testée), puis sous-composants JSX feuilles prop-driven (→ sous-dossiers dédiés
@@ -71,7 +71,7 @@ testée), puis sous-composants JSX feuilles prop-driven (→ sous-dossiers dédi
    manager léger). À faire en petites étapes très vérifiées, pas en parallèle massif.
 
 2. **O10 couche service backend** (`gl/games.js` 2024, `visit.js` 1997, `tasks.js` 1810).
-   La logique *pure* en est déjà sortie ; le reste est de l'orchestration DB/handlers.
+   La logique _pure_ en est déjà sortie ; le reste est de l'orchestration DB/handlers.
    Le seul vrai levier est un **découpage en sous-routeurs par domaine**
    (ex. `routes/gl/games/{teams,roster,vitality,markers,spell-casts}.js`). C'est un
    refactor structurel, pas un déplacement pur — à valider avec tests d'intégration DB.

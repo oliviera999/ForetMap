@@ -22,12 +22,11 @@ before(async () => {
     `INSERT INTO gl_admins (email, display_name, role, is_active, created_at, updated_at)
      VALUES (?, 'MJ Spells', 'admin', 1, NOW(), NOW())
      ON DUPLICATE KEY UPDATE is_active = 1, updated_at = NOW()`,
-    [`spells.admin.${stamp}@ecole.local`]
+    [`spells.admin.${stamp}@ecole.local`],
   );
-  const admin = await queryOne(
-    'SELECT id FROM gl_admins WHERE email = ? LIMIT 1',
-    [`spells.admin.${stamp}@ecole.local`]
-  );
+  const admin = await queryOne('SELECT id FROM gl_admins WHERE email = ? LIMIT 1', [
+    `spells.admin.${stamp}@ecole.local`,
+  ]);
   adminToken = await signAuthToken({
     product: 'gl',
     userType: 'gl_admin',
@@ -38,15 +37,19 @@ before(async () => {
   await execute(
     `INSERT INTO gl_classes (name, school, created_by, is_active, created_at, updated_at)
      VALUES (?, 'Ecole', ?, 1, NOW(), NOW())`,
-    [`Classe Spells ${stamp}`, admin.id]
+    [`Classe Spells ${stamp}`, admin.id],
   );
-  const cls = await queryOne('SELECT id FROM gl_classes WHERE name = ? LIMIT 1', [`Classe Spells ${stamp}`]);
+  const cls = await queryOne('SELECT id FROM gl_classes WHERE name = ? LIMIT 1', [
+    `Classe Spells ${stamp}`,
+  ]);
   await execute(
     `INSERT INTO gl_players (class_id, pseudo, password_hash, is_active, created_at, updated_at)
      VALUES (?, ?, 'x', 1, NOW(), NOW())`,
-    [cls.id, `spells-player-${stamp}`]
+    [cls.id, `spells-player-${stamp}`],
   );
-  const player = await queryOne('SELECT id FROM gl_players WHERE pseudo = ? LIMIT 1', [`spells-player-${stamp}`]);
+  const player = await queryOne('SELECT id FROM gl_players WHERE pseudo = ? LIMIT 1', [
+    `spells-player-${stamp}`,
+  ]);
   playerToken = await signAuthToken({
     product: 'gl',
     userType: 'gl_player',
@@ -87,9 +90,7 @@ test('POST /api/gl/admin/spells/import apply upsert le catalogue', async () => {
     .send({ fileDataBase64, dryRun: false, syncCategories: true })
     .expect(200);
   assert.ok(res.body?.report?.totals?.created + res.body?.report?.totals?.updated >= 30);
-  const row = await queryOne(
-    "SELECT nom FROM gl_spells WHERE spell_code = 'SL002' LIMIT 1"
-  );
+  const row = await queryOne("SELECT nom FROM gl_spells WHERE spell_code = 'SL002' LIMIT 1");
   assert.strictEqual(row?.nom, 'Progression');
 });
 

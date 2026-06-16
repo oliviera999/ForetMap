@@ -30,7 +30,8 @@ describe('resolveOauthErrorMessage', () => {
 describe('decodeBase64UrlJson', () => {
   test('décode un payload base64url (sans padding, alphabet -_ )', () => {
     const payload = { type: 'teacher', token: 'abc?>~' };
-    const encoded = window.btoa(JSON.stringify(payload))
+    const encoded = window
+      .btoa(JSON.stringify(payload))
       .replace(/\+/g, '-')
       .replace(/\//g, '_')
       .replace(/=+$/, '');

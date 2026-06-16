@@ -61,7 +61,7 @@ export function GLQcmCatalogPanel({
     return runDownload(
       `${adminBasePath}/import/template`,
       templateFilename,
-      'Modèle XLSX téléchargé.'
+      'Modèle XLSX téléchargé.',
     );
   }
 
@@ -70,7 +70,7 @@ export function GLQcmCatalogPanel({
     return runDownload(
       `${adminBasePath}/export${query ? `?${query}` : ''}`,
       exportFilename,
-      'Export XLSX généré.'
+      'Export XLSX généré.',
     );
   }
 
@@ -179,13 +179,8 @@ export function GLQcmCatalogPanel({
       {info ? <p className="gl-hint">{info}</p> : null}
       {stats ? (
         <p className="gl-hint">
-          Catalogue actuel :
-          {' '}
-          <strong>{stats.total || 0}</strong>
-          {' '}
-          question(s) actives — liens glossaire :
-          {' '}
-          <strong>{stats.glossaryLinks || 0}</strong>
+          Catalogue actuel : <strong>{stats.total || 0}</strong> question(s) actives — liens
+          glossaire : <strong>{stats.glossaryLinks || 0}</strong>
         </p>
       ) : null}
 
@@ -207,7 +202,11 @@ export function GLQcmCatalogPanel({
 
       <form className="gl-admin-form" onSubmit={runImport}>
         <GLField label="Fichier XLSX">
-          <input type="file" accept=".xlsx,.xls" onChange={(e) => setFile(e.target.files?.[0] || null)} />
+          <input
+            type="file"
+            accept=".xlsx,.xls"
+            onChange={(e) => setFile(e.target.files?.[0] || null)}
+          />
         </GLField>
         <label className="gl-checkbox-row">
           <input type="checkbox" checked={dryRun} onChange={(e) => setDryRun(e.target.checked)} />
@@ -218,9 +217,7 @@ export function GLQcmCatalogPanel({
         </GLButton>
       </form>
 
-      {report ? (
-        <pre className="gl-import-report">{JSON.stringify(report, null, 2)}</pre>
-      ) : null}
+      {report ? <pre className="gl-import-report">{JSON.stringify(report, null, 2)}</pre> : null}
 
       <hr className="gl-divider" />
 
@@ -234,10 +231,18 @@ export function GLQcmCatalogPanel({
           />
         </GLField>
         <GLField label="Catégorie slug">
-          <GLInput value={categorieSlug} onChange={(e) => setCategorieSlug(e.target.value)} placeholder="cosmologie" />
+          <GLInput
+            value={categorieSlug}
+            onChange={(e) => setCategorieSlug(e.target.value)}
+            placeholder="cosmologie"
+          />
         </GLField>
         <GLField label="Recherche">
-          <GLInput value={search} onChange={(e) => setSearch(e.target.value)} placeholder="trame…" />
+          <GLInput
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="trame…"
+          />
         </GLField>
       </div>
 
@@ -245,8 +250,7 @@ export function GLQcmCatalogPanel({
         {items.slice(0, 30).map((item) => (
           <div key={item.question_code} className="gl-qcm-admin-row">
             <div>
-              <strong>{item.question_code}</strong>
-              {' '}
+              <strong>{item.question_code}</strong>{' '}
               <span className="gl-hint">{listMeta(item)}</span>
               <p>{item.question}</p>
             </div>
@@ -256,7 +260,9 @@ export function GLQcmCatalogPanel({
           </div>
         ))}
         {items.length > 30 ? (
-          <p className="gl-hint">Affichage limité aux 30 premières questions filtrées ({items.length} au total).</p>
+          <p className="gl-hint">
+            Affichage limité aux 30 premières questions filtrées ({items.length} au total).
+          </p>
         ) : null}
       </div>
 
@@ -271,7 +277,10 @@ export function GLQcmCatalogPanel({
         onSelectChoice={setSelectedChoiceId}
         onSubmitAnswer={submitPreviewAnswer}
         onClose={() => setPreviewCode(null)}
-        onCloseFromFeedback={() => { setPreviewCode(null); setFeedback(null); }}
+        onCloseFromFeedback={() => {
+          setPreviewCode(null);
+          setFeedback(null);
+        }}
       />
     </section>
   );

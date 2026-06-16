@@ -7,7 +7,9 @@ const detailCache = new Map();
  * @returns {Promise<{ spell, category }|null>}
  */
 export async function fetchSpellDetail(spellCode) {
-  const code = String(spellCode || '').trim().toUpperCase();
+  const code = String(spellCode || '')
+    .trim()
+    .toUpperCase();
   if (!code) return null;
   const cached = detailCache.get(code);
   if (cached) return cached;

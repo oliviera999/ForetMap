@@ -1,16 +1,24 @@
 import React from 'react';
-import {
-  describe, test, expect, vi,
-} from 'vitest';
+import { describe, test, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { GLSpellCastRosterSection } from '../../src/gl/components/spell-cast/GLSpellCastRosterSection.jsx';
 
 const ROSTER = [
   {
-    playerId: 1, pseudo: 'Alice', teamId: 7, teamName: 'Rouges', healthPoints: 5, powerPoints: 9,
+    playerId: 1,
+    pseudo: 'Alice',
+    teamId: 7,
+    teamName: 'Rouges',
+    healthPoints: 5,
+    powerPoints: 9,
   },
   {
-    playerId: 2, pseudo: 'Bob', teamId: 7, teamName: 'Rouges', healthPoints: 3, powerPoints: 4,
+    playerId: 2,
+    pseudo: 'Bob',
+    teamId: 7,
+    teamName: 'Rouges',
+    healthPoints: 3,
+    powerPoints: 4,
   },
 ];
 
@@ -75,7 +83,7 @@ describe('GLSpellCastRosterSection', () => {
     expect(inputs[2].disabled).toBe(true);
   });
 
-  test('n\'affiche pas le champ d\'une ressource non requise', () => {
+  test("n'affiche pas le champ d'une ressource non requise", () => {
     renderSection({ required: { gems: 10, hearts: 0 } });
     // hearts requis = 0 → un seul champ par joueur (gems)
     expect(screen.getAllByRole('spinbutton')).toHaveLength(2);

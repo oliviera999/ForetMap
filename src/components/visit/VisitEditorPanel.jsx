@@ -1,7 +1,11 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { api, AccountDeletedError } from '../../services/api';
 import { compressImage } from '../../utils/image';
-import { MARKER_EMOJIS, detectLeadingMarkerEmoji, stripLeadingMarkerEmoji } from '../../constants/emojis';
+import {
+  MARKER_EMOJIS,
+  detectLeadingMarkerEmoji,
+  stripLeadingMarkerEmoji,
+} from '../../constants/emojis';
 import { MarkdownTextarea } from '../MarkdownTextarea.jsx';
 import {
   normalizeEditorialBlocks,
@@ -20,7 +24,15 @@ import { VisitEditorEmojiPicker } from './VisitEditorEmojiPicker.jsx';
  * Édite titres/textes/blocs éditoriaux, gère les photos (upload, URL, association carte,
  * réordonnancement par glisser-déposer) et la suppression de l'élément. Déplacement pur.
  */
-export function VisitEditorPanel({ selected, selectedType, onSaved, onForceLogout, isTeacher, roleTerms, markerEmojis = MARKER_EMOJIS }) {
+export function VisitEditorPanel({
+  selected,
+  selectedType,
+  onSaved,
+  onForceLogout,
+  isTeacher,
+  roleTerms,
+  markerEmojis = MARKER_EMOJIS,
+}) {
   const [form, setForm] = useState({
     title: '',
     subtitle: '',
@@ -43,7 +55,8 @@ export function VisitEditorPanel({ selected, selectedType, onSaved, onForceLogou
   const sortedVisitMedia = useMemo(() => {
     const arr = [...(selected?.visit_media || [])];
     arr.sort(
-      (a, b) => (Number(a.sort_order) || 0) - (Number(b.sort_order) || 0) || Number(a.id) - Number(b.id),
+      (a, b) =>
+        (Number(a.sort_order) || 0) - (Number(b.sort_order) || 0) || Number(a.id) - Number(b.id),
     );
     return arr;
   }, [selected]);
@@ -71,7 +84,7 @@ export function VisitEditorPanel({ selected, selectedType, onSaved, onForceLogou
   }, [selected]);
 
   useEffect(() => {
-    const nextTitle = selectedType === 'zone' ? (selected?.name || '') : (selected?.label || '');
+    const nextTitle = selectedType === 'zone' ? selected?.name || '' : selected?.label || '';
     const trimmedTitle = String(nextTitle || '').trim();
     const detectedZoneEmoji = detectLeadingMarkerEmoji(trimmedTitle, markerEmojis);
     setForm({
@@ -82,15 +95,14 @@ export function VisitEditorPanel({ selected, selectedType, onSaved, onForceLogou
       details_text: selected?.visit_details_text || '',
       sort_order: Number(selected?.visit_sort_order || 0),
       is_active: Number(selected?.visit_is_active ?? 1) === 1,
-      emoji: selectedType === 'zone'
-        ? (detectedZoneEmoji || markerEmojis[0] || '📍')
-        : String(selected?.emoji ?? '').trim(),
+      emoji:
+        selectedType === 'zone'
+          ? detectedZoneEmoji || markerEmojis[0] || '📍'
+          : String(selected?.emoji ?? '').trim(),
     });
-    setEditorialBlocks(resolveEditorialBlocksForEditor(
-      selected?.visit_editorial_blocks,
-      selected,
-      sortedVisitMedia,
-    ));
+    setEditorialBlocks(
+      resolveEditorialBlocksForEditor(selected?.visit_editorial_blocks, selected, sortedVisitMedia),
+    );
     setMediaUrl('');
     setMediaCaption('');
   }, [markerEmojis, selected, selectedType, sortedVisitMedia]);
@@ -114,7 +126,11 @@ export function VisitEditorPanel({ selected, selectedType, onSaved, onForceLogou
         payload.label = form.title;
         payload.emoji = form.emoji;
       }
-      await api(`/api/visit/${selectedType === 'zone' ? 'zones' : 'markers'}/${selected.id}`, 'PUT', payload);
+      await api(
+        `/api/visit/${selectedType === 'zone' ? 'zones' : 'markers'}/${selected.id}`,
+        'PUT',
+        payload,
+      );
       await onSaved?.();
     } catch (err) {
       if (err instanceof AccountDeletedError) onForceLogout?.();
@@ -257,23 +273,40 @@ export function VisitEditorPanel({ selected, selectedType, onSaved, onForceLogou
       <h4>🎛️ Édition visite ({roleTerms.teacherShort})</h4>
       <div className="field">
         <label>{selectedType === 'zone' ? 'Titre de zone' : 'Titre du repère'}</label>
-        <input value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} />
+        <input
+          value={form.title}
+          onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+        />
       </div>
       <div className="field">
         <label>Sous-titre</label>
-        <input value={form.subtitle} onChange={(e) => setForm((f) => ({ ...f, subtitle: e.target.value }))} />
+        <input
+          value={form.subtitle}
+          onChange={(e) => setForm((f) => ({ ...f, subtitle: e.target.value }))}
+        />
       </div>
       <div className="field">
         <label>Description courte</label>
-        <MarkdownTextarea rows={2} value={form.short_description} onChange={(e) => setForm((f) => ({ ...f, short_description: e.target.value }))} />
+        <MarkdownTextarea
+          rows={2}
+          value={form.short_description}
+          onChange={(e) => setForm((f) => ({ ...f, short_description: e.target.value }))}
+        />
       </div>
       <div className="field">
         <label>Titre du bloc dépliable</label>
-        <input value={form.details_title} onChange={(e) => setForm((f) => ({ ...f, details_title: e.target.value }))} />
+        <input
+          value={form.details_title}
+          onChange={(e) => setForm((f) => ({ ...f, details_title: e.target.value }))}
+        />
       </div>
       <div className="field">
         <label>Détails dépliables</label>
-        <MarkdownTextarea rows={4} value={form.details_text} onChange={(e) => setForm((f) => ({ ...f, details_text: e.target.value }))} />
+        <MarkdownTextarea
+          rows={4}
+          value={form.details_text}
+          onChange={(e) => setForm((f) => ({ ...f, details_text: e.target.value }))}
+        />
       </div>
       <VisitEditorialBuilder
         blocks={editorialBlocks}
@@ -299,8 +332,8 @@ export function VisitEditorPanel({ selected, selectedType, onSaved, onForceLogou
               type="checkbox"
               checked={form.is_active}
               onChange={(e) => setForm((f) => ({ ...f, is_active: e.target.checked }))}
-            />
-            {' '}Visible en visite
+            />{' '}
+            Visible en visite
           </label>
         </div>
       </div>
@@ -328,9 +361,17 @@ export function VisitEditorPanel({ selected, selectedType, onSaved, onForceLogou
         className="btn btn-danger btn-sm"
         style={{ marginLeft: 8 }}
         onClick={async () => {
-          if (!confirm(`Supprimer ce ${selectedType === 'zone' ? 'zone de visite' : 'repère de visite'} ?`)) return;
+          if (
+            !confirm(
+              `Supprimer ce ${selectedType === 'zone' ? 'zone de visite' : 'repère de visite'} ?`,
+            )
+          )
+            return;
           try {
-            await api(`/api/visit/${selectedType === 'zone' ? 'zones' : 'markers'}/${selected.id}`, 'DELETE');
+            await api(
+              `/api/visit/${selectedType === 'zone' ? 'zones' : 'markers'}/${selected.id}`,
+              'DELETE',
+            );
             await onSaved?.();
           } catch (err) {
             if (err instanceof AccountDeletedError) onForceLogout?.();

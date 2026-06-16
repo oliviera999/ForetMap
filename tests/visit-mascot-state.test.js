@@ -8,7 +8,10 @@ async function loadModule() {
 test('resolveVisitMascotState priorise happy sur walking', async () => {
   const { VISIT_MASCOT_STATE, resolveVisitMascotState } = await loadModule();
   assert.equal(resolveVisitMascotState({ happy: true, walking: true }), VISIT_MASCOT_STATE.HAPPY);
-  assert.equal(resolveVisitMascotState({ happy: false, walking: true }), VISIT_MASCOT_STATE.WALKING);
+  assert.equal(
+    resolveVisitMascotState({ happy: false, walking: true }),
+    VISIT_MASCOT_STATE.WALKING,
+  );
   assert.equal(resolveVisitMascotState({ happy: false, walking: false }), VISIT_MASCOT_STATE.IDLE);
 });
 
@@ -24,7 +27,10 @@ test('resolveVisitMascotState supporte les états étendus et la priorité expli
   assert.equal(resolveVisitMascotState({ angry: true, happy: true }), VISIT_MASCOT_STATE.ANGRY);
   assert.equal(resolveVisitMascotState({ surprise: true }), VISIT_MASCOT_STATE.SURPRISE);
   assert.equal(resolveVisitMascotState({ state: 'talk', happy: true }), VISIT_MASCOT_STATE.TALK);
-  assert.equal(resolveVisitMascotState({ state: 'inconnu', walking: true }), VISIT_MASCOT_STATE.WALKING);
+  assert.equal(
+    resolveVisitMascotState({ state: 'inconnu', walking: true }),
+    VISIT_MASCOT_STATE.WALKING,
+  );
 });
 
 test('pickMascotDialog renvoie toujours une phrase pour les événements connus', async () => {

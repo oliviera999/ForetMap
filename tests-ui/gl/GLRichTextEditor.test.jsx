@@ -6,12 +6,7 @@ import { GLRichTextEditor } from '../../src/gl/components/ui/GLRichTextEditor.js
 
 describe('GLRichTextEditor', () => {
   it('affiche le markdown initial dans la surface editable', () => {
-    render(
-      <GLRichTextEditor
-        value="# Titre\n\nParagraphe."
-        onChange={vi.fn()}
-      />
-    );
+    render(<GLRichTextEditor value="# Titre\n\nParagraphe." onChange={vi.fn()} />);
 
     const editor = screen.getByRole('textbox');
     expect(editor.innerHTML).toContain('Titre');
@@ -35,7 +30,8 @@ describe('GLRichTextEditor', () => {
     const onChange = vi.fn();
     render(<GLRichTextEditor value="" onChange={onChange} />);
     const editor = screen.getByRole('textbox');
-    editor.innerHTML = '<p>Intro</p><img src="/uploads/test.jpg" alt="Photo" class="gl-content-image" data-gl-frame=\'{"aspectRatio":"1/1"}\' loading="lazy" />';
+    editor.innerHTML =
+      '<p>Intro</p><img src="/uploads/test.jpg" alt="Photo" class="gl-content-image" data-gl-frame=\'{"aspectRatio":"1/1"}\' loading="lazy" />';
     fireEvent.input(editor);
 
     const lastValue = onChange.mock.calls.at(-1)?.[0]?.target?.value || '';

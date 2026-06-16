@@ -56,7 +56,9 @@ export function PlantBiodivHeroPhoto({ plant }) {
       const thumb = await fetchCommonsCategoryPreview(candidate.categoryUrl);
       if (!cancelled) setCategorySrc(thumb);
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [candidate]);
 
   if (!candidate) return null;
@@ -68,11 +70,7 @@ export function PlantBiodivHeroPhoto({ plant }) {
   return (
     <>
       {lightbox && (
-        <Lightbox
-          src={lightbox.src}
-          caption={lightbox.caption}
-          onClose={() => setLightbox(null)}
-        />
+        <Lightbox src={lightbox.src} caption={lightbox.caption} onClose={() => setLightbox(null)} />
       )}
       <button
         type="button"
@@ -80,8 +78,16 @@ export function PlantBiodivHeroPhoto({ plant }) {
         onClick={() => setLightbox({ src, caption: `Photo — ${name}` })}
         aria-label={`Agrandir la photo de ${name}`}
       >
-        <img src={src} alt="" className="biodiv-card-hero-photo" fetchPriority="high" decoding="async" />
-        <span className="biodiv-card-hero-photo-hint" aria-hidden="true">🔍 Voir</span>
+        <img
+          src={src}
+          alt=""
+          className="biodiv-card-hero-photo"
+          fetchPriority="high"
+          decoding="async"
+        />
+        <span className="biodiv-card-hero-photo-hint" aria-hidden="true">
+          🔍 Voir
+        </span>
       </button>
     </>
   );
@@ -97,7 +103,7 @@ export function PlantMetaSections({ plant }) {
       for (const item of section.items) {
         if (!PHOTO_FIELD_KEYS.has(item.key)) continue;
         const entries = parseLinkCandidates(plant[item.key]).filter(
-          (entry) => isHttpLink(entry) || isLocalUploadsPath(entry)
+          (entry) => isHttpLink(entry) || isLocalUploadsPath(entry),
         );
         for (const entry of entries) links.push(entry);
       }
@@ -109,9 +115,12 @@ export function PlantMetaSections({ plant }) {
     let cancelled = false;
     const categoryLinks = plantPhotoLinks.filter((entry) => !!parseCommonsCategoryFromUrl(entry));
     const missing = categoryLinks.filter(
-      (entry) => !Object.prototype.hasOwnProperty.call(commonsPreviewByUrl, entry)
+      (entry) => !Object.prototype.hasOwnProperty.call(commonsPreviewByUrl, entry),
     );
-    if (missing.length === 0) return () => { cancelled = true; };
+    if (missing.length === 0)
+      return () => {
+        cancelled = true;
+      };
     (async () => {
       const resolved = {};
       for (const link of missing) {
@@ -125,7 +134,9 @@ export function PlantMetaSections({ plant }) {
         setCommonsPreviewByUrl((prev) => ({ ...prev, ...resolved }));
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [plantPhotoLinks, commonsPreviewByUrl]);
 
   const renderPhotoLinks = (item, entries) => (
@@ -135,7 +146,8 @@ export function PlantMetaSections({ plant }) {
           key={`${item.key}-${idx}`}
           type="button"
           className="plant-photo-thumb"
-          onClick={() => setBigPhoto({ src: entry.src, caption: item.label })}>
+          onClick={() => setBigPhoto({ src: entry.src, caption: item.label })}
+        >
           <img src={entry.src} alt={item.label} loading="lazy" decoding="async" />
           <span className="plant-photo-overlay">🔍 Voir</span>
         </button>
@@ -145,24 +157,28 @@ export function PlantMetaSections({ plant }) {
 
   return (
     <>
-      {bigPhoto && <Lightbox src={bigPhoto.src} caption={bigPhoto.caption} onClose={() => setBigPhoto(null)} />}
-      {PLANT_META_SECTIONS.map(section => {
+      {bigPhoto && (
+        <Lightbox src={bigPhoto.src} caption={bigPhoto.caption} onClose={() => setBigPhoto(null)} />
+      )}
+      {PLANT_META_SECTIONS.map((section) => {
         const values = section.items
-          .map(item => ({ ...item, value: normalizedPlantValue(plant[item.key]) }))
-          .filter(item => !!item.value);
+          .map((item) => ({ ...item, value: normalizedPlantValue(plant[item.key]) }))
+          .filter((item) => !!item.value);
         if (values.length === 0) return null;
         return (
           <details key={section.title} className="plant-more">
             <summary>{section.title}</summary>
             <div className="plant-meta-grid">
-              {values.map(item => (
+              {values.map((item) => (
                 <div key={item.key} className="plant-meta-item">
                   <div className="plant-meta-label">{item.label}</div>
                   {item.links ? (
                     <div className="plant-links">
                       {(() => {
                         const entries = parseLinkCandidates(item.value);
-                        const photoEntries = entries.filter((entry) => isHttpLink(entry) || isLocalUploadsPath(entry));
+                        const photoEntries = entries.filter(
+                          (entry) => isHttpLink(entry) || isLocalUploadsPath(entry),
+                        );
 
                         if (PHOTO_FIELD_KEYS.has(item.key) && photoEntries.length > 0) {
                           const directImageEntries = photoEntries
@@ -189,7 +205,8 @@ export function PlantMetaSections({ plant }) {
                           const pageEntries = photoEntries.filter((entry) => {
                             if (isLikelyDirectImageUrl(entry)) return false;
                             if (commonsFilePageToDisplaySrc(entry)) return false;
-                            if (parseCommonsCategoryFromUrl(entry) && commonsPreviewByUrl[entry]) return false;
+                            if (parseCommonsCategoryFromUrl(entry) && commonsPreviewByUrl[entry])
+                              return false;
                             return true;
                           });
                           return (
@@ -201,7 +218,8 @@ export function PlantMetaSections({ plant }) {
                                   href={entry}
                                   target="_blank"
                                   rel="noreferrer"
-                                  title={entry}>
+                                  title={entry}
+                                >
                                   {getSourceLabel(entry)}
                                 </a>
                               ))}
@@ -209,21 +227,22 @@ export function PlantMetaSections({ plant }) {
                           );
                         }
 
-                        return entries.map((entry, idx) => (
-                          isHttpLink(entry)
-                            ? (
-                              <a
-                                key={`${item.key}-${idx}`}
-                                href={entry}
-                                target="_blank"
-                                rel="noreferrer"
-                                className={item.key === 'sources' ? 'plant-source-link' : undefined}
-                                title={entry}>
-                                {item.key === 'sources' ? getSourceLabel(entry) : entry}
-                              </a>
-                            )
-                            : <span key={`${item.key}-${idx}`}>{entry}</span>
-                        ));
+                        return entries.map((entry, idx) =>
+                          isHttpLink(entry) ? (
+                            <a
+                              key={`${item.key}-${idx}`}
+                              href={entry}
+                              target="_blank"
+                              rel="noreferrer"
+                              className={item.key === 'sources' ? 'plant-source-link' : undefined}
+                              title={entry}
+                            >
+                              {item.key === 'sources' ? getSourceLabel(entry) : entry}
+                            </a>
+                          ) : (
+                            <span key={`${item.key}-${idx}`}>{entry}</span>
+                          ),
+                        );
                       })()}
                     </div>
                   ) : (

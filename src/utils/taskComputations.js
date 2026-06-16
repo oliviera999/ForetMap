@@ -29,7 +29,10 @@ export function getAssigneesDoneCount(task) {
   const fromApi = Number(task?.assignees_done_count);
   if (Number.isFinite(fromApi) && fromApi >= 0) return fromApi;
   if (!Array.isArray(task?.assignments)) return 0;
-  return task.assignments.reduce((count, assignment) => (assignment?.done_at ? count + 1 : count), 0);
+  return task.assignments.reduce(
+    (count, assignment) => (assignment?.done_at ? count + 1 : count),
+    0,
+  );
 }
 
 /** Libellé lisible du mode de complétion. */
@@ -43,13 +46,22 @@ export function completionModeLabel(mode) {
  */
 export function isStudentAlreadyAssignedToTask(task, targetStudent = null) {
   if (!task || !targetStudent) return false;
-  return (task.assignments || []).some((a) => (
-    String(a.student_id || '') === String(targetStudent.id || '')
-    || (
-      String(a.student_first_name || '').trim().toLowerCase() === String(targetStudent.first_name || '').trim().toLowerCase()
-      && String(a.student_last_name || '').trim().toLowerCase() === String(targetStudent.last_name || '').trim().toLowerCase()
-    )
-  ));
+  return (task.assignments || []).some(
+    (a) =>
+      String(a.student_id || '') === String(targetStudent.id || '') ||
+      (String(a.student_first_name || '')
+        .trim()
+        .toLowerCase() ===
+        String(targetStudent.first_name || '')
+          .trim()
+          .toLowerCase() &&
+        String(a.student_last_name || '')
+          .trim()
+          .toLowerCase() ===
+          String(targetStudent.last_name || '')
+            .trim()
+            .toLowerCase()),
+  );
 }
 
 /**

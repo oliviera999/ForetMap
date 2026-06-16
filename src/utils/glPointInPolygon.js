@@ -16,11 +16,15 @@ export function isPointInPolygon(x, y, points) {
     const yi = Number(points[i]?.y);
     const xj = Number(points[j]?.x);
     const yj = Number(points[j]?.y);
-    if (!Number.isFinite(xi) || !Number.isFinite(yi) || !Number.isFinite(xj) || !Number.isFinite(yj)) {
+    if (
+      !Number.isFinite(xi) ||
+      !Number.isFinite(yi) ||
+      !Number.isFinite(xj) ||
+      !Number.isFinite(yj)
+    ) {
       continue;
     }
-    const intersect = ((yi > py) !== (yj > py))
-      && (px < ((xj - xi) * (py - yi)) / (yj - yi + 0) + xi);
+    const intersect = yi > py !== yj > py && px < ((xj - xi) * (py - yi)) / (yj - yi + 0) + xi;
     if (intersect) inside = !inside;
   }
   return inside;
@@ -38,7 +42,12 @@ export function polygonArea(points) {
     const yi = Number(points[i]?.y);
     const xj = Number(points[j]?.x);
     const yj = Number(points[j]?.y);
-    if (!Number.isFinite(xi) || !Number.isFinite(yi) || !Number.isFinite(xj) || !Number.isFinite(yj)) {
+    if (
+      !Number.isFinite(xi) ||
+      !Number.isFinite(yi) ||
+      !Number.isFinite(xj) ||
+      !Number.isFinite(yj)
+    ) {
       continue;
     }
     sum += (xj + xi) * (yj - yi);

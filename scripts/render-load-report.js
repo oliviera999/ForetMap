@@ -7,7 +7,9 @@ const ROOT = path.resolve(__dirname, '..');
 const reportPathArg = String(process.argv[2] || 'load/report.json').trim();
 const summaryPathArg = String(process.argv[3] || 'load/report-summary.md').trim();
 const reportPath = path.isAbsolute(reportPathArg) ? reportPathArg : path.join(ROOT, reportPathArg);
-const summaryPath = path.isAbsolute(summaryPathArg) ? summaryPathArg : path.join(ROOT, summaryPathArg);
+const summaryPath = path.isAbsolute(summaryPathArg)
+  ? summaryPathArg
+  : path.join(ROOT, summaryPathArg);
 
 function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, 'utf8'));

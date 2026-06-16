@@ -47,7 +47,15 @@ describe('MascotPackListAside', () => {
 
   test('sélectionner un pack de la liste transmet son id', () => {
     const props = setup({
-      packs: [{ id: 'p1', label: 'Pack 1', catalog_id: 'sprout', is_published: 1, pack: { mascotPackVersion: 2 } }],
+      packs: [
+        {
+          id: 'p1',
+          label: 'Pack 1',
+          catalog_id: 'sprout',
+          is_published: 1,
+          pack: { mascotPackVersion: 2 },
+        },
+      ],
     });
     fireEvent.click(screen.getByRole('button', { name: 'Ouvrir le pack Pack 1' }));
     expect(props.onSelectPack).toHaveBeenCalledWith('p1');

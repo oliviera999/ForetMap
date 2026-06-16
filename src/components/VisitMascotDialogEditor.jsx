@@ -7,7 +7,10 @@ import {
   sanitizeDialogLines,
   sanitizeDialogProfile,
 } from '../utils/visitMascotDialogEvents.js';
-import { getEffectiveDialogProfile, pickRandomDialogLine } from '../utils/visitMascotDialogApply.js';
+import {
+  getEffectiveDialogProfile,
+  pickRandomDialogLine,
+} from '../utils/visitMascotDialogApply.js';
 
 /**
  * @param {{
@@ -34,10 +37,7 @@ export default function VisitMascotDialogEditor({
   const [previewText, setPreviewText] = useState('');
   const [previewVisible, setPreviewVisible] = useState(false);
 
-  const safeProfile = useMemo(
-    () => sanitizeDialogProfile(profile),
-    [profile],
-  );
+  const safeProfile = useMemo(() => sanitizeDialogProfile(profile), [profile]);
 
   const effectiveProfile = useMemo(() => {
     if (!inheritedContext) {
@@ -53,50 +53,62 @@ export default function VisitMascotDialogEditor({
     });
   }, [inheritedContext, safeProfile]);
 
-  const patchEventLines = useCallback((eventKey, lines) => {
-    const next = { ...safeProfile };
-    const cleaned = sanitizeDialogLines(lines);
-    if (cleaned.length === 0) {
-      delete next[eventKey];
-    } else {
-      next[eventKey] = cleaned;
-    }
-    onProfileChange(next);
-  }, [onProfileChange, safeProfile]);
+  const patchEventLines = useCallback(
+    (eventKey, lines) => {
+      const next = { ...safeProfile };
+      const cleaned = sanitizeDialogLines(lines);
+      if (cleaned.length === 0) {
+        delete next[eventKey];
+      } else {
+        next[eventKey] = cleaned;
+      }
+      onProfileChange(next);
+    },
+    [onProfileChange, safeProfile],
+  );
 
-  const setInherit = useCallback((eventKey, inherit) => {
-    const next = { ...safeProfile };
-    if (inherit) {
-      delete next[eventKey];
-    } else {
-      const fallback = effectiveProfile[eventKey]
-        || DEFAULT_VISIT_MASCOT_DIALOG_PROFILE[eventKey]
-        || [''];
-      next[eventKey] = [...fallback];
-    }
-    onProfileChange(next);
-  }, [effectiveProfile, onProfileChange, safeProfile]);
+  const setInherit = useCallback(
+    (eventKey, inherit) => {
+      const next = { ...safeProfile };
+      if (inherit) {
+        delete next[eventKey];
+      } else {
+        const fallback = effectiveProfile[eventKey] ||
+          DEFAULT_VISIT_MASCOT_DIALOG_PROFILE[eventKey] || [''];
+        next[eventKey] = [...fallback];
+      }
+      onProfileChange(next);
+    },
+    [effectiveProfile, onProfileChange, safeProfile],
+  );
 
-  const resetEventToDefaults = useCallback((eventKey) => {
-    const defaults = DEFAULT_VISIT_MASCOT_DIALOG_PROFILE[eventKey];
-    if (!Array.isArray(defaults) || defaults.length === 0) {
-      patchEventLines(eventKey, []);
-      return;
-    }
-    patchEventLines(eventKey, [...defaults]);
-  }, [patchEventLines]);
+  const resetEventToDefaults = useCallback(
+    (eventKey) => {
+      const defaults = DEFAULT_VISIT_MASCOT_DIALOG_PROFILE[eventKey];
+      if (!Array.isArray(defaults) || defaults.length === 0) {
+        patchEventLines(eventKey, []);
+        return;
+      }
+      patchEventLines(eventKey, [...defaults]);
+    },
+    [patchEventLines],
+  );
 
-  const runPreview = useCallback((eventKey) => {
-    const lines = allowInheritToggle && !safeProfile[eventKey]
-      ? (effectiveProfile[eventKey] || [])
-      : (safeProfile[eventKey] || effectiveProfile[eventKey] || []);
-    const text = pickRandomDialogLine(lines);
-    if (!text) return;
-    setPreviewEventKey(eventKey);
-    setPreviewText(text);
-    setPreviewVisible(true);
-    window.setTimeout(() => setPreviewVisible(false), 2600);
-  }, [allowInheritToggle, effectiveProfile, safeProfile]);
+  const runPreview = useCallback(
+    (eventKey) => {
+      const lines =
+        allowInheritToggle && !safeProfile[eventKey]
+          ? effectiveProfile[eventKey] || []
+          : safeProfile[eventKey] || effectiveProfile[eventKey] || [];
+      const text = pickRandomDialogLine(lines);
+      if (!text) return;
+      setPreviewEventKey(eventKey);
+      setPreviewText(text);
+      setPreviewVisible(true);
+      window.setTimeout(() => setPreviewVisible(false), 2600);
+    },
+    [allowInheritToggle, effectiveProfile, safeProfile],
+  );
 
   return (
     <div className="visit-mascot-dialog-editor">
@@ -114,8 +126,11 @@ export default function VisitMascotDialogEditor({
         {VISIT_MASCOT_DIALOG_EVENT_KEYS.map((eventKey) => {
           const isRuntimeActive = VISIT_MASCOT_DIALOG_RUNTIME_ACTIVE_KEYS.includes(eventKey);
           const hasOverride = Object.prototype.hasOwnProperty.call(safeProfile, eventKey);
-          const lines = hasOverride ? (safeProfile[eventKey] || []) : (effectiveProfile[eventKey] || []);
-          const inheritedLines = effectiveProfile[eventKey] || DEFAULT_VISIT_MASCOT_DIALOG_PROFILE[eventKey] || [];
+          const lines = hasOverride
+            ? safeProfile[eventKey] || []
+            : effectiveProfile[eventKey] || [];
+          const inheritedLines =
+            effectiveProfile[eventKey] || DEFAULT_VISIT_MASCOT_DIALOG_PROFILE[eventKey] || [];
           return (
             <section
               key={eventKey}
@@ -125,7 +140,15 @@ export default function VisitMascotDialogEditor({
                 padding: 10,
               }}
             >
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', marginBottom: 8 }}>
+              <div
+                style={{
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: 8,
+                  alignItems: 'center',
+                  marginBottom: 8,
+                }}
+              >
                 <strong style={{ fontSize: '0.88rem' }}>
                   {VISIT_MASCOT_DIALOG_LABELS[eventKey] || eventKey}
                 </strong>
@@ -147,22 +170,31 @@ export default function VisitMascotDialogEditor({
                       type="checkbox"
                       checked={!hasOverride}
                       onChange={(ev) => setInherit(eventKey, ev.target.checked)}
-                    />
-                    {' '}
+                    />{' '}
                     Hériter des défauts
                   </label>
                 ) : null}
               </div>
               {allowInheritToggle && !hasOverride ? (
                 <p className="section-sub" style={{ fontSize: '0.78rem', marginTop: 0 }}>
-                  Messages effectifs hérités :
-                  {' '}
+                  Messages effectifs hérités :{' '}
                   {(inheritedLines.length > 0 ? inheritedLines : ['—']).join(' · ')}
                 </p>
               ) : (
-                <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 8px', display: 'grid', gap: 6 }}>
+                <ul
+                  style={{
+                    listStyle: 'none',
+                    padding: 0,
+                    margin: '0 0 8px',
+                    display: 'grid',
+                    gap: 6,
+                  }}
+                >
                   {(lines.length > 0 ? lines : ['']).map((line, idx) => (
-                    <li key={`${eventKey}-${idx}`} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                    <li
+                      key={`${eventKey}-${idx}`}
+                      style={{ display: 'flex', gap: 6, alignItems: 'center' }}
+                    >
                       <input
                         className="form-input"
                         type="text"
@@ -194,7 +226,7 @@ export default function VisitMascotDialogEditor({
                 </ul>
               )}
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                {(!allowInheritToggle || hasOverride) ? (
+                {!allowInheritToggle || hasOverride ? (
                   <button
                     type="button"
                     className="btn btn-secondary btn-sm"

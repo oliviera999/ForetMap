@@ -44,9 +44,9 @@ function ContextComments({
   const [toast, setToast] = useState('');
   const [authClaims, setAuthClaims] = useState(() => getAuthClaims());
   const [hasUnreadComments, setHasUnreadComments] = useState(false);
-  const [isOpen, setIsOpen] = useState(() => (
-    defaultOpen || !!String(readContextCommentDraft(contextType, contextId) || '').trim()
-  ));
+  const [isOpen, setIsOpen] = useState(
+    () => defaultOpen || !!String(readContextCommentDraft(contextType, contextId) || '').trim(),
+  );
 
   const currentUserType = String(authClaims?.userType || '').toLowerCase();
   const currentUserId = String(authClaims?.canonicalUserId || authClaims?.userId || '');
@@ -54,26 +54,40 @@ function ContextComments({
   const canUseCommentActions = canParticipateContextComments;
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
-  const load = useCallback(async (nextPage = 1) => {
-    if (!contextType || !contextId) return;
-    setLoading(true);
-    try {
-      const data = await listContextComments({ contextType, contextId, page: nextPage, pageSize: PAGE_SIZE });
-      const list = Array.isArray(data?.items) ? data.items : [];
-      setItems(list);
-      setTotal(Number(data?.total || 0));
-      setPage(Number(data?.page || nextPage));
-      if (nextPage === 1 && isOpen && currentUserType && currentUserId) {
-        const newestId = list[0]?.id != null ? Number(list[0].id) : 0;
-        writeContextCommentReadCursor(currentUserType, currentUserId, contextType, contextId, newestId);
-        setHasUnreadComments(false);
+  const load = useCallback(
+    async (nextPage = 1) => {
+      if (!contextType || !contextId) return;
+      setLoading(true);
+      try {
+        const data = await listContextComments({
+          contextType,
+          contextId,
+          page: nextPage,
+          pageSize: PAGE_SIZE,
+        });
+        const list = Array.isArray(data?.items) ? data.items : [];
+        setItems(list);
+        setTotal(Number(data?.total || 0));
+        setPage(Number(data?.page || nextPage));
+        if (nextPage === 1 && isOpen && currentUserType && currentUserId) {
+          const newestId = list[0]?.id != null ? Number(list[0].id) : 0;
+          writeContextCommentReadCursor(
+            currentUserType,
+            currentUserId,
+            contextType,
+            contextId,
+            newestId,
+          );
+          setHasUnreadComments(false);
+        }
+      } catch (err) {
+        setToast(`Chargement impossible : ${err.message}`);
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      setToast(`Chargement impossible : ${err.message}`);
-    } finally {
-      setLoading(false);
-    }
-  }, [contextId, contextType, currentUserId, currentUserType, isOpen]);
+    },
+    [contextId, contextType, currentUserId, currentUserType, isOpen],
+  );
 
   /** Même section repliée : le badge doit afficher le bon total (l’API renvoie total avec page_size minimal). */
   const refreshTotal = useCallback(async () => {
@@ -82,7 +96,12 @@ function ContextComments({
       const data = await listContextComments({ contextType, contextId, page: 1, pageSize: 1 });
       setTotal(Number(data?.total || 0));
       const newestId = data?.items?.[0]?.id != null ? Number(data.items[0].id) : 0;
-      const cursor = readContextCommentReadCursor(currentUserType, currentUserId, contextType, contextId);
+      const cursor = readContextCommentReadCursor(
+        currentUserType,
+        currentUserId,
+        contextType,
+        contextId,
+      );
       setHasUnreadComments((prev) => {
         if (cursor && newestId > cursor.newestId) return true;
         if (cursor && newestId <= cursor.newestId) return false;
@@ -127,8 +146,8 @@ function ContextComments({
   useEffect(() => {
     if (!contextType || contextId == null || contextId === '') return undefined;
     const sameContext = (payload) =>
-      String(payload?.contextType || '') === String(contextType || '')
-      && String(payload?.contextId ?? '') === String(contextId ?? '');
+      String(payload?.contextType || '') === String(contextType || '') &&
+      String(payload?.contextId ?? '') === String(contextId ?? '');
     const onRealtime = (e) => {
       const detail = e?.detail || {};
       if (detail.domain !== 'context_comments') return;
@@ -157,9 +176,10 @@ function ContextComments({
   useEffect(() => {
     api('/api/settings/public')
       .then((d) => {
-        const configured = d?.settings?.ui?.reactions?.allowed_emojis
-          || d?.settings?.reactions?.allowed_emojis
-          || '';
+        const configured =
+          d?.settings?.ui?.reactions?.allowed_emojis ||
+          d?.settings?.reactions?.allowed_emojis ||
+          '';
         setReactionEmojis(parseReactionEmojiList(configured));
       })
       .catch(() => {
@@ -253,14 +273,20 @@ function ContextComments({
               onNotify={(msg) => setToast(msg)}
             />
           ) : (
-            <p className="forum-muted" style={{ margin: '0 0 10px', lineHeight: 1.5, fontSize: '.85rem' }}>
-              Lecture seule : tu peux consulter les commentaires ; la publication n’est pas activée sur ton compte.
+            <p
+              className="forum-muted"
+              style={{ margin: '0 0 10px', lineHeight: 1.5, fontSize: '.85rem' }}
+            >
+              Lecture seule : tu peux consulter les commentaires ; la publication n’est pas activée
+              sur ton compte.
             </p>
           )}
 
           <div className="context-comments-list">
             {loading && <p className="forum-muted">Chargement…</p>}
-            {!loading && items.length === 0 && <p className="forum-muted">Aucun commentaire pour l’instant.</p>}
+            {!loading && items.length === 0 && (
+              <p className="forum-muted">Aucun commentaire pour l’instant.</p>
+            )}
             {items.map((item) => (
               <ContextCommentItem
                 key={item.id}
@@ -272,23 +298,41 @@ function ContextComments({
                 reactionEmojis={reactionEmojis}
                 firstReactionEmoji={firstReactionEmoji}
                 reactionsExpanded={!!expandedReactionsByComment[item.id]}
-                onExpandReactions={() => setExpandedReactionsByComment((prev) => ({ ...prev, [item.id]: true }))}
-                onCollapseReactions={() => setExpandedReactionsByComment((prev) => ({ ...prev, [item.id]: false }))}
+                onExpandReactions={() =>
+                  setExpandedReactionsByComment((prev) => ({ ...prev, [item.id]: true }))
+                }
+                onCollapseReactions={() =>
+                  setExpandedReactionsByComment((prev) => ({ ...prev, [item.id]: false }))
+                }
                 onReact={react}
                 onRemove={remove}
                 reportReason={reportReasonById[item.id] || ''}
-                onReportReasonChange={(id, value) => setReportReasonById((prev) => ({ ...prev, [id]: value }))}
+                onReportReasonChange={(id, value) =>
+                  setReportReasonById((prev) => ({ ...prev, [id]: value }))
+                }
                 onReport={report}
               />
             ))}
           </div>
 
           <div className="context-comments-pager">
-            <button type="button" className="btn btn-ghost btn-sm" disabled={page <= 1 || loading} onClick={() => load(page - 1)}>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              disabled={page <= 1 || loading}
+              onClick={() => load(page - 1)}
+            >
               Précédent
             </button>
-            <span>{page}/{pages}</span>
-            <button type="button" className="btn btn-ghost btn-sm" disabled={page >= pages || loading} onClick={() => load(page + 1)}>
+            <span>
+              {page}/{pages}
+            </span>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              disabled={page >= pages || loading}
+              onClick={() => load(page + 1)}
+            >
               Suivant
             </button>
           </div>

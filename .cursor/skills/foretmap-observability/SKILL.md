@@ -7,19 +7,19 @@ description: Observabilité ForetMap (Pino, X-Request-Id, logs HTTP, métriques 
 
 ## Références
 
-- **API / variables** : [docs/API.md](docs/API.md) section *Observabilité* ; [docs/EXPLOITATION.md](docs/EXPLOITATION.md) (check post-déploiement, secret pour diagnostics).
+- **API / variables** : [docs/API.md](docs/API.md) section _Observabilité_ ; [docs/EXPLOITATION.md](docs/EXPLOITATION.md) (check post-déploiement, secret pour diagnostics).
 - **MCP Cursor** (accès outils `foretmap_*` sans coller le secret dans le chat) : [docs/MCP_FORETMAP_CURSOR.md](docs/MCP_FORETMAP_CURSOR.md) — le processus **`foretmap-diagnostics`** charge **`.env`** à la racine du dépôt.
 - **Évolutions externes** (Sentry, OpenTelemetry) : [docs/EVOLUTION.md](docs/EVOLUTION.md).
 
 ## Modules backend
 
-| Fichier | Rôle |
-|---------|------|
-| `lib/logger.js` | Pino + `redact` (tokens, mots de passe) |
-| `lib/requestId.js` | `X-Request-Id` sur chaque réponse |
-| `lib/httpRequestLog.js` | Fin de requête ; `FORETMAP_HTTP_LOG`, `FORETMAP_HTTP_SLOW_MS` |
-| `lib/logMetrics.js` | Compteurs + `recentHttp5xx`, `http429` + `recentHttp429` pour `/api/admin/diagnostics` |
-| `lib/routeLog.js` | `logRouteError` (+ `requestId`, incrément métriques) |
+| Fichier                 | Rôle                                                                                   |
+| ----------------------- | -------------------------------------------------------------------------------------- |
+| `lib/logger.js`         | Pino + `redact` (tokens, mots de passe)                                                |
+| `lib/requestId.js`      | `X-Request-Id` sur chaque réponse                                                      |
+| `lib/httpRequestLog.js` | Fin de requête ; `FORETMAP_HTTP_LOG`, `FORETMAP_HTTP_SLOW_MS`                          |
+| `lib/logMetrics.js`     | Compteurs + `recentHttp5xx`, `http429` + `recentHttp429` pour `/api/admin/diagnostics` |
+| `lib/routeLog.js`       | `logRouteError` (+ `requestId`, incrément métriques)                                   |
 
 ## Checks rapides (local → prod)
 

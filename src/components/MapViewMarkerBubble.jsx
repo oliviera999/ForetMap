@@ -45,16 +45,27 @@ export function MapViewMarkerBubble({
   const markerStatusDotBorder = isCoarsePointer ? 2 : 1.5;
   const markerStatusDotOffset = isCoarsePointer ? -2 : -1;
   return (
-    <button className="map-bubble" type="button"
-      style={{ position: 'absolute', left: m.x_pct + '%', top: m.y_pct + '%',
-        transform: 'translate(-50%,-50%)', zIndex: 10, cursor: draggable ? 'grab' : 'pointer',
-        border: 'none', background: 'transparent',
-        display: 'flex', flexDirection: 'column', alignItems: 'center',
+    <button
+      className="map-bubble"
+      type="button"
+      style={{
+        position: 'absolute',
+        left: m.x_pct + '%',
+        top: m.y_pct + '%',
+        transform: 'translate(-50%,-50%)',
+        zIndex: 10,
+        cursor: draggable ? 'grab' : 'pointer',
+        border: 'none',
+        background: 'transparent',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
         justifyContent: isCoarsePointer ? 'center' : 'flex-start',
         minWidth: isCoarsePointer ? 48 : undefined,
         minHeight: isCoarsePointer ? 48 : undefined,
         padding: isCoarsePointer ? 6 : 0,
-        boxSizing: 'border-box' }}
+        boxSizing: 'border-box',
+      }}
       aria-label={ariaLabel}
       title={ariaLabel}
       onClick={onOpen}
@@ -65,16 +76,24 @@ export function MapViewMarkerBubble({
         }
       }}
       onPointerDown={onPointerDown}
-      onPointerUp={e => e.stopPropagation()}>
-      <div className="map-bubble-pin" style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        flexShrink: 0,
-        background: 'transparent', border: 'none', borderRadius: 0,
-        fontSize: emojiFontSize,
-        lineHeight: 1,
-        minWidth: m.emoji ? undefined : 10,
-        minHeight: m.emoji ? undefined : 10,
-      }}>
+      onPointerUp={(e) => e.stopPropagation()}
+    >
+      <div
+        className="map-bubble-pin"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
+          background: 'transparent',
+          border: 'none',
+          borderRadius: 0,
+          fontSize: emojiFontSize,
+          lineHeight: 1,
+          minWidth: m.emoji ? undefined : 10,
+          minHeight: m.emoji ? undefined : 10,
+        }}
+      >
         {m.emoji ? (
           m.emoji
         ) : (
@@ -125,17 +144,28 @@ export function MapViewMarkerBubble({
         )}
       </div>
       {showLabels && (
-        <div style={{
-          flexShrink: 0,
-          marginTop: labelMarginTop,
-          background: 'transparent', color: '#1a4731', borderRadius: 0,
-          padding: 0, fontSize: labelFontSize, fontWeight: 700,
-          fontFamily: 'DM Sans,sans-serif',
-          lineHeight: 1,
-          whiteSpace: 'nowrap', maxWidth: isCoarsePointer ? 128 : 96,
-          overflow: 'hidden', textOverflow: 'ellipsis', pointerEvents: 'none',
-          textAlign: 'center',
-          textShadow: '0 0 2px rgba(255,255,255,.95), 0 0 6px rgba(255,255,255,.85), 0 1px 0 rgba(255,255,255,.92)' }}>
+        <div
+          style={{
+            flexShrink: 0,
+            marginTop: labelMarginTop,
+            background: 'transparent',
+            color: '#1a4731',
+            borderRadius: 0,
+            padding: 0,
+            fontSize: labelFontSize,
+            fontWeight: 700,
+            fontFamily: 'DM Sans,sans-serif',
+            lineHeight: 1,
+            whiteSpace: 'nowrap',
+            maxWidth: isCoarsePointer ? 128 : 96,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            pointerEvents: 'none',
+            textAlign: 'center',
+            textShadow:
+              '0 0 2px rgba(255,255,255,.95), 0 0 6px rgba(255,255,255,.85), 0 1px 0 rgba(255,255,255,.92)',
+          }}
+        >
           {m.label}
         </div>
       )}

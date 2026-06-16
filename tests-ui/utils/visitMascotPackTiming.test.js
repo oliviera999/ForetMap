@@ -1,5 +1,8 @@
 import { describe, test, expect } from 'vitest';
-import { isSpriteLibraryPreviewableUrl, estimateStateDurationMs } from '../../src/utils/visitMascotPackTiming.js';
+import {
+  isSpriteLibraryPreviewableUrl,
+  estimateStateDurationMs,
+} from '../../src/utils/visitMascotPackTiming.js';
 
 describe('isSpriteLibraryPreviewableUrl', () => {
   test('extensions image, avec ou sans query', () => {
@@ -23,7 +26,9 @@ describe('estimateStateDurationMs', () => {
     expect(estimateStateDurationMs({ stateFrames: { idle: { files: [] } } }, 'idle')).toBe(null);
   });
   test('somme des frameDwellMs si une valeur par frame', () => {
-    const pack = { stateFrames: { walk: { files: ['a', 'b', 'c'], frameDwellMs: [100, 200, 50] } } };
+    const pack = {
+      stateFrames: { walk: { files: ['a', 'b', 'c'], frameDwellMs: [100, 200, 50] } },
+    };
     expect(estimateStateDurationMs(pack, 'walk')).toBe(350);
   });
   test('frameDwellMs de mauvaise longueur ignoré → dérive du fps', () => {
@@ -32,10 +37,16 @@ describe('estimateStateDurationMs', () => {
     expect(estimateStateDurationMs(pack, 'walk')).toBe(500);
   });
   test('fps par défaut = 8, borné à ≥1', () => {
-    expect(estimateStateDurationMs({ stateFrames: { i: { files: ['a'] } } }, 'i')).toBe(Math.round(1000 / 8));
-    expect(estimateStateDurationMs({ stateFrames: { i: { files: ['a', 'b'], fps: 0 } } }, 'i')).toBe(250);
+    expect(estimateStateDurationMs({ stateFrames: { i: { files: ['a'] } } }, 'i')).toBe(
+      Math.round(1000 / 8),
+    );
+    expect(
+      estimateStateDurationMs({ stateFrames: { i: { files: ['a', 'b'], fps: 0 } } }, 'i'),
+    ).toBe(250);
   });
   test('compte via srcs si files absent', () => {
-    expect(estimateStateDurationMs({ stateFrames: { i: { srcs: ['a', 'b', 'c', 'd'], fps: 8 } } }, 'i')).toBe(500);
+    expect(
+      estimateStateDurationMs({ stateFrames: { i: { srcs: ['a', 'b', 'c', 'd'], fps: 8 } } }, 'i'),
+    ).toBe(500);
   });
 });

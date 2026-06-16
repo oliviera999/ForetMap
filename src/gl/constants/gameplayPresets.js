@@ -17,7 +17,8 @@ export const GAMEPLAY_PRESETS = [
   {
     id: 'mj_turns',
     label: 'MJ + tours',
-    description: 'Alternance des équipes et narration ; joueurs spectateurs (QCM et sorts réservés au MJ).',
+    description:
+      'Alternance des équipes et narration ; joueurs spectateurs (QCM et sorts réservés au MJ).',
     settings: {
       'gameplay.turns_enabled': true,
       'gameplay.narration_enabled': true,
@@ -30,7 +31,8 @@ export const GAMEPLAY_PRESETS = [
   {
     id: 'mj_turns_interactive',
     label: 'MJ + tours interactif',
-    description: 'Tours actifs ; l’équipe du tour répond aux QCM quand le MJ la déplace sur un repère.',
+    description:
+      'Tours actifs ; l’équipe du tour répond aux QCM quand le MJ la déplace sur un repère.',
     settings: {
       'gameplay.turns_enabled': true,
       'gameplay.narration_enabled': true,
@@ -56,7 +58,8 @@ export const GAMEPLAY_PRESETS = [
   {
     id: 'collaborative_free',
     label: 'Complet libre',
-    description: 'Pas de tour imposé ; toutes les équipes peuvent proposer des actions en parallèle.',
+    description:
+      'Pas de tour imposé ; toutes les équipes peuvent proposer des actions en parallèle.',
     settings: {
       'gameplay.turns_enabled': false,
       'gameplay.narration_enabled': false,

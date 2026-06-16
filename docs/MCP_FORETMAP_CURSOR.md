@@ -13,8 +13,8 @@ Le dépôt contient **`.cursor/mcp.json`** : serveur **`foretmap-diagnostics`**,
 
 Au démarrage, le script **`scripts/mcp-foretmap-diagnostics.mjs`** charge le fichier **`.env` à la racine du workspace** (via `dotenv`, sans écraser les variables déjà posées par le système). Y définir au moins une de :
 
-- **`FORETMAP_DEPLOY_SECRET`** (recommandé pour distinguer MCP des autres usages), ou  
-- **`DEPLOY_SECRET`**, ou **`FORETMAP_DEPLOY_CHECK_SECRET`**  
+- **`FORETMAP_DEPLOY_SECRET`** (recommandé pour distinguer MCP des autres usages), ou
+- **`DEPLOY_SECRET`**, ou **`FORETMAP_DEPLOY_CHECK_SECRET`**
 
 (même valeur que **`DEPLOY_SECRET`** sur le serveur). Ne pas commiter `.env`.
 
@@ -30,13 +30,13 @@ Si besoin d’une config MCP hors dépôt : **`%USERPROFILE%\.cursor\mcp.json`**
 
 ## Outils exposés
 
-| Outil | Secret | Rôle |
-|--------|--------|------|
-| `foretmap_public_health` | Non | `/api/health`, `/api/health/db`, `/api/version` en parallèle |
-| `foretmap_diagnostics` | Oui | Instantané serveur (équivalent `GET /api/admin/diagnostics`) |
-| `foretmap_tail_logs` | Oui | Tampon Pino (`lines` optionnel, 1–5000) |
+| Outil                    | Secret | Rôle                                                         |
+| ------------------------ | ------ | ------------------------------------------------------------ |
+| `foretmap_public_health` | Non    | `/api/health`, `/api/health/db`, `/api/version` en parallèle |
+| `foretmap_diagnostics`   | Oui    | Instantané serveur (équivalent `GET /api/admin/diagnostics`) |
+| `foretmap_tail_logs`     | Oui    | Tampon Pino (`lines` optionnel, 1–5000)                      |
 
-Après configuration : *Cursor Settings → MCP* : vérifier que **`foretmap-diagnostics`** est actif ; en cas de doute, redémarrer Cursor.
+Après configuration : _Cursor Settings → MCP_ : vérifier que **`foretmap-diagnostics`** est actif ; en cas de doute, redémarrer Cursor.
 
 Les réponses HTTP exposent **`X-Request-Id`** : pour une erreur signalée par un utilisateur, demandez l’ID affiché dans les outils dev du navigateur et corrélez-le avec **`GET /api/admin/logs`** ou les champs `recentHttp5xx` de **`foretmap_diagnostics`**.
 

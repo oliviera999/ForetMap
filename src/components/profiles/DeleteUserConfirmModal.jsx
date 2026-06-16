@@ -17,17 +17,23 @@ function DeleteUserConfirmModal({ confirmStudent, roleTerms, onConfirm, onCancel
       ariaLabel="Confirmer la suppression"
       closeOnOverlay
     >
-        <h3 style={{ marginBottom: 8 }}>Supprimer le/la {roleTerms.studentSingular} ?</h3>
-        <p style={{ fontSize: '.95rem', color: '#444', marginBottom: 6, lineHeight: 1.5 }}>
-          <strong>{confirmStudent.first_name} {confirmStudent.last_name}</strong>
-        </p>
-        <p style={{ fontSize: '.85rem', color: '#888', marginBottom: 20, lineHeight: 1.5 }}>
-          Ses assignations de tâches seront également supprimées.
-        </p>
-        <div style={{ display: 'flex', gap: 10 }}>
-          <button className="btn btn-danger" style={{ flex: 1 }} onClick={onConfirm}>Supprimer</button>
-          <button className="btn btn-ghost" style={{ flex: 1 }} onClick={onCancel}>Annuler</button>
-        </div>
+      <h3 style={{ marginBottom: 8 }}>Supprimer le/la {roleTerms.studentSingular} ?</h3>
+      <p style={{ fontSize: '.95rem', color: '#444', marginBottom: 6, lineHeight: 1.5 }}>
+        <strong>
+          {confirmStudent.first_name} {confirmStudent.last_name}
+        </strong>
+      </p>
+      <p style={{ fontSize: '.85rem', color: '#888', marginBottom: 20, lineHeight: 1.5 }}>
+        Ses assignations de tâches seront également supprimées.
+      </p>
+      <div style={{ display: 'flex', gap: 10 }}>
+        <button className="btn btn-danger" style={{ flex: 1 }} onClick={onConfirm}>
+          Supprimer
+        </button>
+        <button className="btn btn-ghost" style={{ flex: 1 }} onClick={onCancel}>
+          Annuler
+        </button>
+      </div>
     </DialogShell>
   );
 }

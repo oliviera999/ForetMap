@@ -35,7 +35,10 @@ export function GLMascotsAdminView({ gameState, onReloadGame, mascotPacksEnabled
   const [previewState, setPreviewState] = useState(GL_MASCOT_STATE.IDLE);
 
   const gameId = gameState?.game?.id || null;
-  const teams = useMemo(() => (Array.isArray(gameState?.teams) ? gameState.teams : []), [gameState]);
+  const teams = useMemo(
+    () => (Array.isArray(gameState?.teams) ? gameState.teams : []),
+    [gameState],
+  );
 
   const mascots = useMemo(
     () => (Array.isArray(catalogMascots) ? catalogMascots : []),
@@ -90,7 +93,7 @@ export function GLMascotsAdminView({ gameState, onReloadGame, mascotPacksEnabled
       return;
     }
     if (!selectedTeamId) {
-      setError('Sélectionnez une équipe avant d\'assigner une mascotte.');
+      setError("Sélectionnez une équipe avant d'assigner une mascotte.");
       return;
     }
     setError('');
@@ -121,9 +124,10 @@ export function GLMascotsAdminView({ gameState, onReloadGame, mascotPacksEnabled
     <section className="gl-panel">
       <h2>Gestion mascottes</h2>
       <p>
-        Catalogue unifié (G&amp;L, ForetMap, packs). Sélectionnez une équipe puis assignez une mascotte.
-        Les gnomes et licornes SVG (`gl-*`) n&apos;animent pas les états preview ; seules les mascottes
-        animées (ForetMap, packs `sprite_cut`, etc.) réagissent au sélecteur d&apos;état.
+        Catalogue unifié (G&amp;L, ForetMap, packs). Sélectionnez une équipe puis assignez une
+        mascotte. Les gnomes et licornes SVG (`gl-*`) n&apos;animent pas les états preview ; seules
+        les mascottes animées (ForetMap, packs `sprite_cut`, etc.) réagissent au sélecteur
+        d&apos;état.
       </p>
       {error ? <p className="gl-error">{error}</p> : null}
       {info ? <p className="gl-info">{info}</p> : null}
@@ -193,7 +197,9 @@ export function GLMascotsAdminView({ gameState, onReloadGame, mascotPacksEnabled
             const assignedRow = isAssigned(mascot.id);
             const assignedToOther = isAssignedToOther(mascot.id);
             const isMine = assignedRow && String(assignedRow.team_id) === String(selectedTeamId);
-            const cardPreviewState = supportsAnimatedPreview(mascot) ? previewState : GL_MASCOT_STATE.IDLE;
+            const cardPreviewState = supportsAnimatedPreview(mascot)
+              ? previewState
+              : GL_MASCOT_STATE.IDLE;
             return (
               <li
                 key={mascot.id}
@@ -207,7 +213,9 @@ export function GLMascotsAdminView({ gameState, onReloadGame, mascotPacksEnabled
                   <span className="gl-hint">
                     {mascot.source === 'foretmap'
                       ? 'ForetMap'
-                      : (mascot.type === 'gnome' ? 'Gnome' : 'Licorne')}
+                      : mascot.type === 'gnome'
+                        ? 'Gnome'
+                        : 'Licorne'}
                     {!supportsAnimatedPreview(mascot) ? ' · SVG statique' : ''}
                   </span>
                   <p>{mascot.description}</p>
@@ -217,9 +225,11 @@ export function GLMascotsAdminView({ gameState, onReloadGame, mascotPacksEnabled
                     variant={isMine ? 'secondary' : 'primary'}
                     onClick={() => assign(mascot)}
                     disabled={assignedToOther || !selectedTeamId || !gameId}
-                    title={assignedToOther ? 'Déjà utilisée par une autre équipe de cette partie' : ''}
+                    title={
+                      assignedToOther ? 'Déjà utilisée par une autre équipe de cette partie' : ''
+                    }
                   >
-                    {isMine ? 'Assignée à cette équipe' : 'Assigner à l\'équipe sélectionnée'}
+                    {isMine ? 'Assignée à cette équipe' : "Assigner à l'équipe sélectionnée"}
                   </GLButton>
                 </div>
               </li>

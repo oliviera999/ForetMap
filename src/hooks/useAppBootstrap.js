@@ -27,9 +27,11 @@ export function useAppBootstrap() {
   const [publicSettingsReady, setPublicSettingsReady] = useState(false);
 
   useEffect(() => {
-    api('/api/version').then((d) => setAppVersion(d.version)).catch((err) => {
-      console.error('[ForetMap] version app', err);
-    });
+    api('/api/version')
+      .then((d) => setAppVersion(d.version))
+      .catch((err) => {
+        console.error('[ForetMap] version app', err);
+      });
   }, []);
 
   useEffect(() => {

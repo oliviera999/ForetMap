@@ -34,13 +34,13 @@ before(async () => {
     `INSERT INTO users (id, user_type, email, pseudo, display_name, password_hash, auth_provider, is_active, created_at, updated_at)
      VALUES (?, 'teacher', ?, ?, ?, ?, 'local', 1, NOW(), NOW())
      ON DUPLICATE KEY UPDATE password_hash = VALUES(password_hash), is_active = 1`,
-    [teacherId, teacherEmail, `prof-forgot-${stamp}`, 'Prof forgot GL', hash]
+    [teacherId, teacherEmail, `prof-forgot-${stamp}`, 'Prof forgot GL', hash],
   );
   await execute(
     `INSERT INTO gl_admins (email, display_name, role, foretmap_user_id, is_active, created_at, updated_at)
      VALUES (?, 'MJ forgot', 'mj', ?, 1, NOW(), NOW())
      ON DUPLICATE KEY UPDATE foretmap_user_id = VALUES(foretmap_user_id), is_active = 1`,
-    [teacherEmail, teacherId]
+    [teacherEmail, teacherId],
   );
 });
 
@@ -54,13 +54,15 @@ test('POST /api/gl/auth/forgot-password renvoie un message neutre', async () => 
 });
 
 test('POST /api/gl/auth/reset-password réinitialise un joueur GL', async () => {
-  const player = await queryOne('SELECT id FROM gl_players WHERE LOWER(email)=LOWER(?) LIMIT 1', [playerEmail]);
+  const player = await queryOne('SELECT id FROM gl_players WHERE LOWER(email)=LOWER(?) LIMIT 1', [
+    playerEmail,
+  ]);
   assert.ok(player?.id);
   const rawToken = `gl-player-reset-${stamp}`;
   await execute(
     `INSERT INTO password_reset_tokens (id, user_type, user_id, token_hash, expires_at, used_at)
      VALUES (?, 'gl_player', ?, ?, DATE_ADD(NOW(), INTERVAL 1 HOUR), NULL)`,
-    [`tok-gl-player-${stamp}`, String(player.id), hashResetToken(rawToken)]
+    [`tok-gl-player-${stamp}`, String(player.id), hashResetToken(rawToken)],
   );
 
   const newPassword = 'NewPlayerPwd-9';
@@ -79,14 +81,14 @@ test('POST /api/gl/auth/reset-password réinitialise un joueur GL', async () => 
 test('POST /api/gl/auth/reset-password réinitialise un enseignant MJ/Admin', async () => {
   const teacher = await queryOne(
     "SELECT id FROM users WHERE user_type = 'teacher' AND LOWER(email)=LOWER(?) LIMIT 1",
-    [teacherEmail]
+    [teacherEmail],
   );
   assert.ok(teacher?.id);
   const rawToken = `gl-teacher-reset-${stamp}`;
   await execute(
     `INSERT INTO password_reset_tokens (id, user_type, user_id, token_hash, expires_at, used_at)
      VALUES (?, 'teacher', ?, ?, DATE_ADD(NOW(), INTERVAL 1 HOUR), NULL)`,
-    [`tok-gl-teacher-${stamp}`, teacher.id, hashResetToken(rawToken)]
+    [`tok-gl-teacher-${stamp}`, teacher.id, hashResetToken(rawToken)],
   );
 
   const newPassword = 'NewTeacherPwd-9';

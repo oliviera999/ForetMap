@@ -33,7 +33,10 @@ test('Validateurs chemins publics zones / repères', () => {
   assert.strictEqual(isSafePublicZonePhotoRelativePath('zones/z1/12.jpg'), true);
   assert.strictEqual(isSafePublicZonePhotoRelativePath('zones/../evil/12.jpg'), false);
   assert.strictEqual(isSafePublicMarkerPhotoRelativePath('markers/mk-1/3.jpg'), true);
-  assert.strictEqual(companionMapPhotoThumbRelativePath('zones/z1/12.jpg'), 'zones/z1/12.thumb.jpg');
+  assert.strictEqual(
+    companionMapPhotoThumbRelativePath('zones/z1/12.jpg'),
+    'zones/z1/12.thumb.jpg',
+  );
 });
 
 test('zoneMapPhotoImageUrl expose /uploads pour chemin canonique', () => {
@@ -50,29 +53,32 @@ test('GET /uploads/... image pose Cache-Control public', async () => {
   const zoneId = `zone-cache-${Date.now()}`;
   await execute(
     'INSERT INTO zones (id, name, x, y, width, height, current_plant, stage, special, points, color) VALUES (?, ?, 0, 0, 0, 0, ?, ?, 0, ?, ?)',
-    [zoneId, 'Zone cache hdr', '', 'empty', '[]', '#86efac80']
+    [zoneId, 'Zone cache hdr', '', 'empty', '[]', '#86efac80'],
   );
   const created = await execute(
     'INSERT INTO zone_photos (zone_id, image_path, caption, uploaded_at) VALUES (?, ?, ?, ?)',
-    [zoneId, null, 'c', new Date().toISOString()]
+    [zoneId, null, 'c', new Date().toISOString()],
   );
   const photoId = created.insertId;
   const relativePath = `zones/${zoneId}/${photoId}.jpg`;
   saveBase64ToDisk(relativePath, SAMPLE_IMAGE_DATA);
 
   const res = await request(app).get(`/uploads/${relativePath}`).expect(200);
-  assert.strictEqual((res.headers['cache-control'] || '').toLowerCase(), PUBLIC_IMAGE_CACHE_CONTROL.toLowerCase());
+  assert.strictEqual(
+    (res.headers['cache-control'] || '').toLowerCase(),
+    PUBLIC_IMAGE_CACHE_CONTROL.toLowerCase(),
+  );
 });
 
 test('GET /api/zones/:id/photos/:pid/data redirige vers /uploads (302, sans suivre)', async () => {
   const zoneId = `zone-redir-${Date.now()}`;
   await execute(
     'INSERT INTO zones (id, name, x, y, width, height, current_plant, stage, special, points, color) VALUES (?, ?, 0, 0, 0, 0, ?, ?, 0, ?, ?)',
-    [zoneId, 'Zone redir', '', 'empty', '[]', '#86efac80']
+    [zoneId, 'Zone redir', '', 'empty', '[]', '#86efac80'],
   );
   const created = await execute(
     'INSERT INTO zone_photos (zone_id, image_path, caption, uploaded_at) VALUES (?, ?, ?, ?)',
-    [zoneId, null, 'r', new Date().toISOString()]
+    [zoneId, null, 'r', new Date().toISOString()],
   );
   const photoId = created.insertId;
   const relativePath = `zones/${zoneId}/${photoId}.jpg`;
@@ -91,11 +97,11 @@ test('GET /api/zones/:id/photos/:pid/data sans token renvoie 401', async () => {
   const zoneId = `zone-redir-auth-${Date.now()}`;
   await execute(
     'INSERT INTO zones (id, name, x, y, width, height, current_plant, stage, special, points, color) VALUES (?, ?, 0, 0, 0, 0, ?, ?, 0, ?, ?)',
-    [zoneId, 'Zone redir auth', '', 'empty', '[]', '#86efac80']
+    [zoneId, 'Zone redir auth', '', 'empty', '[]', '#86efac80'],
   );
   const created = await execute(
     'INSERT INTO zone_photos (zone_id, image_path, caption, uploaded_at) VALUES (?, ?, ?, ?)',
-    [zoneId, `zones/${zoneId}/1.jpg`, 'a', new Date().toISOString()]
+    [zoneId, `zones/${zoneId}/1.jpg`, 'a', new Date().toISOString()],
   );
   await request(app)
     .get(`/api/zones/${zoneId}/photos/${created.insertId}/data`)

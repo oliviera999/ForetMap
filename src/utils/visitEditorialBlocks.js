@@ -72,7 +72,8 @@ export function buildLegacyEditorialBlocks(selected, selectedVisitMedia) {
   const detailsTitle = String(selected?.visit_details_title || '').trim();
   const detailsText = String(selected?.visit_details_text || '').trim();
   if (detailsText) {
-    if (detailsTitle) out.push({ id: 'legacy-heading', type: 'heading', level: 3, text: detailsTitle });
+    if (detailsTitle)
+      out.push({ id: 'legacy-heading', type: 'heading', level: 3, text: detailsTitle });
     out.push({ id: 'legacy-details', type: 'paragraph', markdown: detailsText });
   }
   return out;
@@ -113,7 +114,8 @@ export function mergeDefaultVisitMediaImageBlocks(blocks, visitMedia) {
 /** Blocs pour l’éditeur visite : legacy complet ou fusion des photos visit_media absentes des blocs image. */
 export function resolveEditorialBlocksForEditor(visitEditorialBlocks, selected, sortedVisitMedia) {
   const fromApi = normalizeEditorialBlocks(visitEditorialBlocks || []);
-  const trimmedBody = selected?.visit_body_json == null ? '' : String(selected.visit_body_json).trim();
+  const trimmedBody =
+    selected?.visit_body_json == null ? '' : String(selected.visit_body_json).trim();
   if (!trimmedBody) {
     return buildLegacyEditorialBlocks(selected, sortedVisitMedia);
   }
@@ -136,7 +138,10 @@ export function parseVisitEditorialBlocksFromJson(raw) {
         id: String(block.id || `${block.type}-${index + 1}`),
         type: String(block.type || '').trim(),
         media_ids: Array.isArray(block.media_ids)
-          ? block.media_ids.map((id) => Number(id)).filter((id, idx, arr) => Number.isFinite(id) && id > 0 && arr.indexOf(id) === idx).slice(0, 2)
+          ? block.media_ids
+              .map((id) => Number(id))
+              .filter((id, idx, arr) => Number.isFinite(id) && id > 0 && arr.indexOf(id) === idx)
+              .slice(0, 2)
           : [],
         layout: block.layout === 'single' ? 'single' : 'duo',
         size: block.size === 'sm' || block.size === 'lg' ? block.size : 'md',
@@ -161,7 +166,15 @@ export function buildNewEditorialBlock(type, id) {
     return { id, type: 'heading', level: 3, text: 'Intertitre' };
   }
   if (type === 'image') {
-    return { id, type: 'image', media_ids: [], layout: 'single', size: 'md', align: 'center', caption: '' };
+    return {
+      id,
+      type: 'image',
+      media_ids: [],
+      layout: 'single',
+      size: 'md',
+      align: 'center',
+      caption: '',
+    };
   }
   return { id, type: 'paragraph', markdown: '' };
 }
@@ -224,9 +237,10 @@ export function normalizeVisitEditorialBlocksForSave(blocks) {
         markdown: String(b.markdown || ''),
       };
     })
-    .filter((b) => (
-      (b.type === 'image' && b.media_ids.length > 0)
-      || (b.type === 'heading' && b.text)
-      || (b.type === 'paragraph' && String(b.markdown || '').trim())
-    ));
+    .filter(
+      (b) =>
+        (b.type === 'image' && b.media_ids.length > 0) ||
+        (b.type === 'heading' && b.text) ||
+        (b.type === 'paragraph' && String(b.markdown || '').trim()),
+    );
 }

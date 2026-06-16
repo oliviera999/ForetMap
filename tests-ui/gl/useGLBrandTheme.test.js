@@ -12,7 +12,7 @@ describe('useGLBrandTheme', () => {
 
   it('fusionne les couleurs chapitre sur la charte normalisée', () => {
     const { result } = renderHook(() =>
-      useGLBrandTheme({ colors: { primary: '#013a40' } }, { colors: { primary: '#112233' } })
+      useGLBrandTheme({ colors: { primary: '#013a40' } }, { colors: { primary: '#112233' } }),
     );
     expect(result.current.brand.colors.primary).toBe('#112233');
     expect(result.current.brand.fonts.heading).toBeTruthy();

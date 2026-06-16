@@ -36,7 +36,9 @@ function printCheck(state, label, details = '') {
 }
 
 async function ensureAdminForLogin(login, dryRun) {
-  const normalizedLogin = String(login || '').trim().toLowerCase();
+  const normalizedLogin = String(login || '')
+    .trim()
+    .toLowerCase();
   if (!normalizedLogin) throw new Error('Login admin vide');
 
   await ensureRbacBootstrap();
@@ -46,14 +48,14 @@ async function ensureAdminForLogin(login, dryRun) {
        FROM users
       WHERE LOWER(pseudo) = ? OR LOWER(email) = ?
       LIMIT 1`,
-    [normalizedLogin, normalizedLogin]
+    [normalizedLogin, normalizedLogin],
   );
   if (!user && normalizedLogin === adminCanonicalLogin()) {
     const resolved = await resolveLoginAccountByIdentifier(normalizedLogin);
     if (resolved?.id) {
       user = await queryOne(
         `SELECT id, user_type, pseudo, email, is_active FROM users WHERE id = ? LIMIT 1`,
-        [resolved.id]
+        [resolved.id],
       );
     }
   }
@@ -64,7 +66,7 @@ async function ensureAdminForLogin(login, dryRun) {
 
   const adminRole = await queryOne(
     'SELECT id, slug, display_name FROM roles WHERE slug = ? LIMIT 1',
-    ['admin']
+    ['admin'],
   );
   if (!adminRole) {
     return { ok: false, message: 'Rôle admin introuvable (RBAC non bootstrapé)' };
@@ -73,7 +75,10 @@ async function ensureAdminForLogin(login, dryRun) {
   let applied = false;
   if (String(user.user_type) !== 'teacher') {
     if (!dryRun) {
-      await execute('UPDATE users SET user_type = ?, updated_at = NOW() WHERE id = ?', ['teacher', user.id]);
+      await execute('UPDATE users SET user_type = ?, updated_at = NOW() WHERE id = ?', [
+        'teacher',
+        user.id,
+      ]);
     }
     applied = true;
   }
@@ -91,7 +96,7 @@ async function ensureAdminForLogin(login, dryRun) {
        INNER JOIN roles r ON r.id = ur.role_id
       WHERE ur.user_type = ? AND ur.user_id = ? AND ur.is_primary = 1
       LIMIT 1`,
-    ['teacher', user.id]
+    ['teacher', user.id],
   );
 
   if (currentPrimary?.slug !== 'admin') {
@@ -103,25 +108,32 @@ async function ensureAdminForLogin(login, dryRun) {
 
   const canonicalLogin = adminCanonicalLogin();
   if (
-    normalizedLogin === canonicalLogin
-    && String(user.pseudo || '').trim().toLowerCase() !== canonicalLogin
+    normalizedLogin === canonicalLogin &&
+    String(user.pseudo || '')
+      .trim()
+      .toLowerCase() !== canonicalLogin
   ) {
     if (!dryRun) {
-      await execute('UPDATE users SET pseudo = ?, updated_at = NOW() WHERE id = ?', [canonicalLogin, user.id]);
+      await execute('UPDATE users SET pseudo = ?, updated_at = NOW() WHERE id = ?', [
+        canonicalLogin,
+        user.id,
+      ]);
     }
     applied = true;
   }
 
   const afterRole = dryRun
-    ? (currentPrimary?.slug || '(inchangé - dry-run)')
-    : (await queryOne(
-      `SELECT r.slug
+    ? currentPrimary?.slug || '(inchangé - dry-run)'
+    : (
+        await queryOne(
+          `SELECT r.slug
          FROM user_roles ur
          INNER JOIN roles r ON r.id = ur.role_id
         WHERE ur.user_type = ? AND ur.user_id = ? AND ur.is_primary = 1
         LIMIT 1`,
-      ['teacher', user.id]
-    ))?.slug;
+          ['teacher', user.id],
+        )
+      )?.slug;
 
   return {
     ok: true,
@@ -130,7 +142,9 @@ async function ensureAdminForLogin(login, dryRun) {
     applied,
     role: afterRole || 'admin',
     message: applied
-      ? (dryRun ? 'Corrections détectées (dry-run)' : 'Corrections appliquées')
+      ? dryRun
+        ? 'Corrections détectées (dry-run)'
+        : 'Corrections appliquées'
       : 'Déjà conforme',
   };
 }
@@ -141,7 +155,7 @@ async function countOrphanStudentAssignments() {
        FROM task_assignments ta
        LEFT JOIN users u ON u.id = ta.student_id AND u.user_type = 'student'
       WHERE ta.student_id IS NOT NULL
-        AND u.id IS NULL`
+        AND u.id IS NULL`,
   );
   return Number(row?.c || 0);
 }
@@ -156,7 +170,7 @@ async function fixOrphanStudentAssignments(dryRun) {
        LEFT JOIN users u ON u.id = ta.student_id AND u.user_type = 'student'
        SET ta.student_id = NULL
      WHERE ta.student_id IS NOT NULL
-       AND u.id IS NULL`
+       AND u.id IS NULL`,
   );
   const after = await countOrphanStudentAssignments();
   return {
@@ -173,15 +187,24 @@ async function auditDatabase(options = {}) {
   const push = (state, label, details = '') => checks.push({ state, label, details });
 
   const requiredTables = [
-    'users', 'roles', 'permissions', 'role_permissions', 'user_roles',
-    'tasks', 'task_assignments', 'zones', 'maps', 'task_zones', 'task_markers',
+    'users',
+    'roles',
+    'permissions',
+    'role_permissions',
+    'user_roles',
+    'tasks',
+    'task_assignments',
+    'zones',
+    'maps',
+    'task_zones',
+    'task_markers',
   ];
   const tableRows = await queryAll(
     `SELECT table_name
        FROM information_schema.tables
       WHERE table_schema = ?
         AND table_name IN (${requiredTables.map(() => '?').join(',')})`,
-    [process.env.DB_NAME, ...requiredTables]
+    [process.env.DB_NAME, ...requiredTables],
   );
   const present = new Set(tableRows.map((r) => r.table_name));
   for (const tableName of requiredTables) {
@@ -190,12 +213,12 @@ async function auditDatabase(options = {}) {
   }
 
   const invalidUserTypes = await queryOne(
-    "SELECT COUNT(*) AS c FROM users WHERE user_type NOT IN ('teacher', 'student')"
+    "SELECT COUNT(*) AS c FROM users WHERE user_type NOT IN ('teacher', 'student')",
   );
   push(
     Number(invalidUserTypes?.c || 0) === 0 ? 'ok' : 'fail',
     'Types utilisateurs valides',
-    Number(invalidUserTypes?.c || 0) === 0 ? '' : `${invalidUserTypes.c} compte(s) invalide(s)`
+    Number(invalidUserTypes?.c || 0) === 0 ? '' : `${invalidUserTypes.c} compte(s) invalide(s)`,
   );
 
   const teachersWithoutPrimaryRole = await queryOne(
@@ -208,12 +231,14 @@ async function auditDatabase(options = {}) {
            WHERE ur.user_type = 'teacher'
              AND ur.user_id = u.id
              AND ur.is_primary = 1
-        )`
+        )`,
   );
   push(
     Number(teachersWithoutPrimaryRole?.c || 0) === 0 ? 'ok' : 'warn',
     'Professeurs avec rôle principal',
-    Number(teachersWithoutPrimaryRole?.c || 0) === 0 ? '' : `${teachersWithoutPrimaryRole.c} sans rôle primaire`
+    Number(teachersWithoutPrimaryRole?.c || 0) === 0
+      ? ''
+      : `${teachersWithoutPrimaryRole.c} sans rôle primaire`,
   );
 
   const studentsWithoutPrimaryRole = await queryOne(
@@ -226,12 +251,14 @@ async function auditDatabase(options = {}) {
            WHERE ur.user_type = 'student'
              AND ur.user_id = u.id
              AND ur.is_primary = 1
-        )`
+        )`,
   );
   push(
     Number(studentsWithoutPrimaryRole?.c || 0) === 0 ? 'ok' : 'warn',
     'Élèves avec rôle principal',
-    Number(studentsWithoutPrimaryRole?.c || 0) === 0 ? '' : `${studentsWithoutPrimaryRole.c} sans rôle primaire`
+    Number(studentsWithoutPrimaryRole?.c || 0) === 0
+      ? ''
+      : `${studentsWithoutPrimaryRole.c} sans rôle primaire`,
   );
 
   const duplicatePrimaries = await queryOne(
@@ -241,24 +268,28 @@ async function auditDatabase(options = {}) {
            FROM user_roles
           GROUP BY user_type, user_id
          HAVING p > 1
-       ) t`
+       ) t`,
   );
   push(
     Number(duplicatePrimaries?.c || 0) === 0 ? 'ok' : 'fail',
     'Un seul rôle principal par utilisateur',
-    Number(duplicatePrimaries?.c || 0) === 0 ? '' : `${duplicatePrimaries.c} utilisateur(s) incohérent(s)`
+    Number(duplicatePrimaries?.c || 0) === 0
+      ? ''
+      : `${duplicatePrimaries.c} utilisateur(s) incohérent(s)`,
   );
 
   const orphanAssignments = await queryOne(
     `SELECT COUNT(*) AS c
        FROM task_assignments ta
        LEFT JOIN tasks t ON t.id = ta.task_id
-      WHERE t.id IS NULL`
+      WHERE t.id IS NULL`,
   );
   push(
     Number(orphanAssignments?.c || 0) === 0 ? 'ok' : 'fail',
     'Assignations liées à une tâche existante',
-    Number(orphanAssignments?.c || 0) === 0 ? '' : `${orphanAssignments.c} assignation(s) orpheline(s)`
+    Number(orphanAssignments?.c || 0) === 0
+      ? ''
+      : `${orphanAssignments.c} assignation(s) orpheline(s)`,
   );
 
   let orphanStudentAssignments = await countOrphanStudentAssignments();
@@ -266,17 +297,27 @@ async function auditDatabase(options = {}) {
     const fix = await fixOrphanStudentAssignments(dryRun);
     orphanStudentAssignments = fix.after;
     if (dryRun) {
-      push('warn', 'Correction orphelins student_id (dry-run)', `${fix.before} ligne(s) seraient corrigées`);
+      push(
+        'warn',
+        'Correction orphelins student_id (dry-run)',
+        `${fix.before} ligne(s) seraient corrigées`,
+      );
     } else if (fix.after === 0) {
       push('ok', 'Correction orphelins student_id', `${fix.fixed} ligne(s) corrigée(s)`);
     } else {
-      push('warn', 'Correction orphelins student_id', `${fix.fixed} corrigée(s), ${fix.after} restante(s)`);
+      push(
+        'warn',
+        'Correction orphelins student_id',
+        `${fix.fixed} corrigée(s), ${fix.after} restante(s)`,
+      );
     }
   }
   push(
     Number(orphanStudentAssignments || 0) === 0 ? 'ok' : 'warn',
     'Assignations avec student_id valide',
-    Number(orphanStudentAssignments || 0) === 0 ? '' : `${orphanStudentAssignments} référence(s) élève absente(s)`
+    Number(orphanStudentAssignments || 0) === 0
+      ? ''
+      : `${orphanStudentAssignments} référence(s) élève absente(s)`,
   );
 
   const orphanTaskZones = await queryOne(
@@ -284,12 +325,12 @@ async function auditDatabase(options = {}) {
        FROM task_zones tz
        LEFT JOIN tasks t ON t.id = tz.task_id
        LEFT JOIN zones z ON z.id = tz.zone_id
-      WHERE t.id IS NULL OR z.id IS NULL`
+      WHERE t.id IS NULL OR z.id IS NULL`,
   );
   push(
     Number(orphanTaskZones?.c || 0) === 0 ? 'ok' : 'fail',
     'Liens task_zones cohérents',
-    Number(orphanTaskZones?.c || 0) === 0 ? '' : `${orphanTaskZones.c} lien(s) orphelin(s)`
+    Number(orphanTaskZones?.c || 0) === 0 ? '' : `${orphanTaskZones.c} lien(s) orphelin(s)`,
   );
 
   const orphanTaskMarkers = await queryOne(
@@ -297,12 +338,12 @@ async function auditDatabase(options = {}) {
        FROM task_markers tm
        LEFT JOIN tasks t ON t.id = tm.task_id
        LEFT JOIN map_markers m ON m.id = tm.marker_id
-      WHERE t.id IS NULL OR m.id IS NULL`
+      WHERE t.id IS NULL OR m.id IS NULL`,
   );
   push(
     Number(orphanTaskMarkers?.c || 0) === 0 ? 'ok' : 'fail',
     'Liens task_markers cohérents',
-    Number(orphanTaskMarkers?.c || 0) === 0 ? '' : `${orphanTaskMarkers.c} lien(s) orphelin(s)`
+    Number(orphanTaskMarkers?.c || 0) === 0 ? '' : `${orphanTaskMarkers.c} lien(s) orphelin(s)`,
   );
 
   return checks;
@@ -352,5 +393,7 @@ main()
     process.exitCode = 2;
   })
   .finally(async () => {
-    try { await pool.end(); } catch (_) {}
+    try {
+      await pool.end();
+    } catch (_) {}
   });

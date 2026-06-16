@@ -26,15 +26,7 @@ function cancelFade(rafRef) {
   }
 }
 
-function runCrossfade({
-  outgoing,
-  incoming,
-  outFrom,
-  inTo,
-  durationMs,
-  rafRef,
-  onDone,
-}) {
+function runCrossfade({ outgoing, incoming, outFrom, inTo, durationMs, rafRef, onDone }) {
   cancelFade(rafRef);
   if (durationMs <= 0) {
     if (outgoing) outgoing.volume = 0;
@@ -108,26 +100,29 @@ export function useGLZoneMusic({
     unlockedRef.current = true;
   }, []);
 
-  const previewUrl = useCallback((url, volume = 0.7) => {
-    const audios = ensureAudios();
-    if (!audios || !url) return;
-    stopAll();
-    unlockedRef.current = true;
-    const target = audios.a;
-    target.src = url;
-    target.volume = 0;
-    target.play().catch(() => {});
-    runCrossfade({
-      outgoing: null,
-      incoming: target,
-      outFrom: 0,
-      inTo: Math.max(0, Math.min(1, volume)),
-      durationMs: fadeMs,
-      rafRef: fadeRafRef,
-    });
-    activeSlotRef.current = 'a';
-    lastZoneKeyRef.current = `preview:${url}`;
-  }, [ensureAudios, fadeMs, stopAll]);
+  const previewUrl = useCallback(
+    (url, volume = 0.7) => {
+      const audios = ensureAudios();
+      if (!audios || !url) return;
+      stopAll();
+      unlockedRef.current = true;
+      const target = audios.a;
+      target.src = url;
+      target.volume = 0;
+      target.play().catch(() => {});
+      runCrossfade({
+        outgoing: null,
+        incoming: target,
+        outFrom: 0,
+        inTo: Math.max(0, Math.min(1, volume)),
+        durationMs: fadeMs,
+        rafRef: fadeRafRef,
+      });
+      activeSlotRef.current = 'a';
+      lastZoneKeyRef.current = `preview:${url}`;
+    },
+    [ensureAudios, fadeMs, stopAll],
+  );
 
   useEffect(() => {
     if (!enabled || prefersReducedMotion) {
@@ -135,9 +130,12 @@ export function useGLZoneMusic({
     }
 
     if (userMuted || !unlockedRef.current) {
-      const outgoing = activeSlotRef.current === 'a' ? audioARef.current
-        : activeSlotRef.current === 'b' ? audioBRef.current
-          : null;
+      const outgoing =
+        activeSlotRef.current === 'a'
+          ? audioARef.current
+          : activeSlotRef.current === 'b'
+            ? audioBRef.current
+            : null;
       if (outgoing && !outgoing.paused) {
         const outFrom = outgoing.volume;
         runCrossfade({
@@ -164,9 +162,12 @@ export function useGLZoneMusic({
     const zoneKey = musicUrl ? `${activeZone?.id}:${musicUrl}` : null;
 
     if (!musicUrl) {
-      const outgoing = activeSlotRef.current === 'a' ? audioARef.current
-        : activeSlotRef.current === 'b' ? audioBRef.current
-          : null;
+      const outgoing =
+        activeSlotRef.current === 'a'
+          ? audioARef.current
+          : activeSlotRef.current === 'b'
+            ? audioBRef.current
+            : null;
       if (outgoing && !outgoing.paused) {
         const outFrom = outgoing.volume;
         runCrossfade({
@@ -195,9 +196,8 @@ export function useGLZoneMusic({
     const audios = ensureAudios();
     if (!audios) return undefined;
 
-    const outgoing = activeSlotRef.current === 'a' ? audios.a
-      : activeSlotRef.current === 'b' ? audios.b
-        : null;
+    const outgoing =
+      activeSlotRef.current === 'a' ? audios.a : activeSlotRef.current === 'b' ? audios.b : null;
     const incomingSlot = activeSlotRef.current === 'a' ? 'b' : 'a';
     const incoming = incomingSlot === 'a' ? audios.a : audios.b;
 
@@ -228,19 +228,14 @@ export function useGLZoneMusic({
     });
 
     return undefined;
-  }, [
-    activeZone,
-    enabled,
-    userMuted,
-    prefersReducedMotion,
-    fadeMs,
-    ensureAudios,
-    stopAll,
-  ]);
+  }, [activeZone, enabled, userMuted, prefersReducedMotion, fadeMs, ensureAudios, stopAll]);
 
-  useEffect(() => () => {
-    stopAll();
-  }, [stopAll]);
+  useEffect(
+    () => () => {
+      stopAll();
+    },
+    [stopAll],
+  );
 
   return {
     unlock,

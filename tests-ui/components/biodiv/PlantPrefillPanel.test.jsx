@@ -40,7 +40,9 @@ describe('PlantPrefillPanel', () => {
   test('requête trop courte → toast, aucun appel serveur', () => {
     const { onToast } = setup({ form: { name: 'T', scientific_name: '' } });
     fireEvent.click(screen.getByText('✨ Pré-saisir depuis sources externes'));
-    expect(onToast).toHaveBeenCalledWith('Indique un nom (ou nom scientifique) avec au moins 2 caractères.');
+    expect(onToast).toHaveBeenCalledWith(
+      'Indique un nom (ou nom scientifique) avec au moins 2 caractères.',
+    );
     expect(api).not.toHaveBeenCalled();
   });
 
@@ -84,7 +86,9 @@ describe('PlantPrefillPanel', () => {
     fireEvent.click(screen.getByText('Appliquer la sélection'));
     expect(setForm).toHaveBeenCalledTimes(1);
     const updater = setForm.mock.calls[0][0];
-    expect(updater({ name: 'Tomate', habitat: '', sources: '' })).toMatchObject({ habitat: 'Potager' });
+    expect(updater({ name: 'Tomate', habitat: '', sources: '' })).toMatchObject({
+      habitat: 'Potager',
+    });
     expect(onToast).toHaveBeenCalledWith('Pré-saisie appliquée au formulaire ✓');
   });
 
@@ -92,7 +96,14 @@ describe('PlantPrefillPanel', () => {
     api.mockResolvedValueOnce({
       confidence: 0.5,
       fields: {},
-      photos: [{ field: 'photo_leaf', url: 'https://example.org/a.jpg', credit: 'Alice', license: 'CC-BY' }],
+      photos: [
+        {
+          field: 'photo_leaf',
+          url: 'https://example.org/a.jpg',
+          credit: 'Alice',
+          license: 'CC-BY',
+        },
+      ],
     });
     setup();
     fireEvent.click(screen.getByText('✨ Pré-saisir depuis sources externes'));

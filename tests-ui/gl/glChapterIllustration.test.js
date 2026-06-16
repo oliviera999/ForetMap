@@ -61,10 +61,7 @@ describe('sortChapterScenes', () => {
   });
 
   test('sans ordre explicite → ordre alphabétique (comportement historique)', () => {
-    const scenes = [
-      { key: 'recit_01-chap1_b' },
-      { key: 'recit_01-chap1_a' },
-    ];
+    const scenes = [{ key: 'recit_01-chap1_b' }, { key: 'recit_01-chap1_a' }];
     expect(sortChapterScenes(scenes).map((s) => s.key)).toEqual([
       'recit_01-chap1_a',
       'recit_01-chap1_b',

@@ -38,11 +38,7 @@ describe('TeacherTopTabs', () => {
 
   test('affiche le compteur « à valider » sur Tâches et l’onglet split', () => {
     render(
-      <TeacherTopTabs
-        {...baseProps}
-        shouldUseDesktopSplit
-        teacherPendingValidationCount={3}
-      />,
+      <TeacherTopTabs {...baseProps} shouldUseDesktopSplit teacherPendingValidationCount={3} />,
     );
     expect(screen.getByText('✅ Tâches (3 à valider)')).toBeInTheDocument();
     expect(screen.getByText('🗺️ Cartes & tâches (3 à valider)')).toBeInTheDocument();
@@ -54,7 +50,9 @@ describe('TeacherTopTabs', () => {
         {...baseProps}
         isN3Affiliated
         hasPermission={(perm) => perm === 'audit.read'}
-        hasPermissionInRole={(perm) => perm === 'admin.roles.manage' || perm === 'admin.settings.read'}
+        hasPermissionInRole={(perm) =>
+          perm === 'admin.roles.manage' || perm === 'admin.settings.read'
+        }
       />,
     );
     expect(screen.getByText(/n3boss & utilisateurs/)).toBeInTheDocument();
@@ -80,7 +78,9 @@ describe('TeacherTopTabs', () => {
   });
 
   test('fusion tâches&tuto : Tuto masqué et Tâches actif aussi depuis l’onglet tuto', () => {
-    render(<TeacherTopTabs {...baseProps} tab="tuto" mergeTasksTutoNav tasksTabLabel="✅ Tâches&tuto" />);
+    render(
+      <TeacherTopTabs {...baseProps} tab="tuto" mergeTasksTutoNav tasksTabLabel="✅ Tâches&tuto" />,
+    );
     expect(screen.queryByText('📘 Tuto')).toBeNull();
     expect(screen.getByText('✅ Tâches&tuto')).toHaveClass('active');
   });

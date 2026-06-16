@@ -40,7 +40,9 @@ describe('StudentDeletePanel', () => {
 
   test('saisir une recherche appelle setSearchStudent', () => {
     const { setSearchStudent } = renderPanel();
-    fireEvent.change(screen.getByPlaceholderText(/Rechercher un\(e\) n3beur/), { target: { value: 'Léa' } });
+    fireEvent.change(screen.getByPlaceholderText(/Rechercher un\(e\) n3beur/), {
+      target: { value: 'Léa' },
+    });
     expect(setSearchStudent).toHaveBeenCalledWith('Léa');
   });
 

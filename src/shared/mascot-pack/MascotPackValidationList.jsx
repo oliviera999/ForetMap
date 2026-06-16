@@ -15,7 +15,9 @@ export function MascotPackValidationList({
       <strong>{title}</strong>
       <ul style={{ margin: '6px 0 0', paddingLeft: 20 }}>
         {issueLines.map((line) => (
-          <li key={line} style={{ fontSize: '0.9rem' }}>{line}</li>
+          <li key={line} style={{ fontSize: '0.9rem' }}>
+            {line}
+          </li>
         ))}
       </ul>
     </div>

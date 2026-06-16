@@ -36,10 +36,14 @@ describe('rbacRouteHelpers (logique pure de routes/rbac.js, sans DB)', () => {
   });
 
   it('RESERVED_ROLE_SLUGS : les 6 slugs système exacts', () => {
-    assert.deepEqual(
-      [...RESERVED_ROLE_SLUGS].sort(),
-      ['admin', 'eleve_avance', 'eleve_chevronne', 'eleve_novice', 'prof', 'visiteur']
-    );
+    assert.deepEqual([...RESERVED_ROLE_SLUGS].sort(), [
+      'admin',
+      'eleve_avance',
+      'eleve_chevronne',
+      'eleve_novice',
+      'prof',
+      'visiteur',
+    ]);
   });
 
   it('reservedRoleSlugError : message pour un slug réservé (casse / espaces ignorés)', () => {
@@ -60,10 +64,17 @@ describe('rbacRouteHelpers (logique pure de routes/rbac.js, sans DB)', () => {
 
   it('PROFILE_PATCH_KEYS : clés snake_case et alias camelCase reconnus', () => {
     for (const key of [
-      'display_name', 'rank', 'emoji', 'min_done_tasks', 'display_order',
-      'forum_participate', 'forumParticipate',
-      'context_comment_participate', 'contextCommentParticipate',
-      'max_concurrent_tasks', 'maxConcurrentTasks',
+      'display_name',
+      'rank',
+      'emoji',
+      'min_done_tasks',
+      'display_order',
+      'forum_participate',
+      'forumParticipate',
+      'context_comment_participate',
+      'contextCommentParticipate',
+      'max_concurrent_tasks',
+      'maxConcurrentTasks',
     ]) {
       assert.ok(PROFILE_PATCH_KEYS.has(key), `clé manquante : ${key}`);
     }

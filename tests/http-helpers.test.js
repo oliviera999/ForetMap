@@ -25,7 +25,10 @@ describe('httpHelpers', () => {
   });
 
   it('parsePageQuery borne page_size et calcule offset', () => {
-    const p1 = parsePageQuery({ page: '2', page_size: '80' }, { defaultPageSize: 20, maxPageSize: 50 });
+    const p1 = parsePageQuery(
+      { page: '2', page_size: '80' },
+      { defaultPageSize: 20, maxPageSize: 50 },
+    );
     assert.deepEqual(p1, { page: 2, pageSize: 50, offset: 50 });
 
     const p2 = parsePageQuery({}, { defaultPageSize: 15, maxPageSize: 30 });

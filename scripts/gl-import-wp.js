@@ -116,7 +116,8 @@ function parseArgs(argv) {
     const token = String(argv[i] || '').trim();
     if (token === '--config') args.configPath = String(argv[i + 1] || '').trim() || args.configPath;
     if (token === '--source-base-url') args.sourceBaseUrl = String(argv[i + 1] || '').trim();
-    if (token === '--output-dir') args.outputDir = String(argv[i + 1] || '').trim() || args.outputDir;
+    if (token === '--output-dir')
+      args.outputDir = String(argv[i + 1] || '').trim() || args.outputDir;
     if (token === '--include-posts') args.includePosts = true;
     if (token === '--skip-media') args.skipMedia = true;
     if (token === '--apply') {
@@ -128,7 +129,9 @@ function parseArgs(argv) {
       const raw = token.slice('--target='.length).trim().toLowerCase();
       if (VALID_TARGETS.has(raw)) args.target = raw;
     } else if (token === '--target') {
-      const raw = String(argv[i + 1] || '').trim().toLowerCase();
+      const raw = String(argv[i + 1] || '')
+        .trim()
+        .toLowerCase();
       if (VALID_TARGETS.has(raw)) args.target = raw;
     }
   }
@@ -145,17 +148,23 @@ async function loadConfig(configPath) {
     excludeSlugs: excludeSlugsRaw.map((value) => normalizeSlug(value)).filter(Boolean),
     brandMap: parsed?.brandMap && typeof parsed.brandMap === 'object' ? parsed.brandMap : {},
     slugMap: parsed?.slugMap && typeof parsed.slugMap === 'object' ? parsed.slugMap : {},
-    chapterMap: parsed?.chapterMap && typeof parsed.chapterMap === 'object' ? parsed.chapterMap : {},
+    chapterMap:
+      parsed?.chapterMap && typeof parsed.chapterMap === 'object' ? parsed.chapterMap : {},
   };
 }
 
 function normalizeSlug(value) {
-  return String(value || '').trim().toLowerCase();
+  return String(value || '')
+    .trim()
+    .toLowerCase();
 }
 
 function normalizeRenderedText(value) {
   const html = String(value || '');
-  return html.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+  return html
+    .replace(/<[^>]+>/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 function createMarkdownConverter() {
@@ -171,13 +180,10 @@ function createMarkdownConverter() {
 function preprocessWpHtmlForMarkdown(html) {
   let source = String(html || '');
   if (!source) return '';
-  source = source.replace(
-    /<img([^>]*?)\sdata-src=["']([^"']+)["']/gi,
-    (match, attrs, dataSrc) => {
-      if (/\ssrc=/i.test(attrs)) return match;
-      return `<img${attrs} src="${dataSrc}"`;
-    }
-  );
+  source = source.replace(/<img([^>]*?)\sdata-src=["']([^"']+)["']/gi, (match, attrs, dataSrc) => {
+    if (/\ssrc=/i.test(attrs)) return match;
+    return `<img${attrs} src="${dataSrc}"`;
+  });
   source = source.replace(
     /<img([^>]*?)\ssrcset=["'][^"']+["']([^>]*?)>/gi,
     (match, before, after) => {
@@ -193,12 +199,15 @@ function preprocessWpHtmlForMarkdown(html) {
       if (!urlMatch?.[1]) return match;
       const candidates = urlMatch[1].split(',').map((part) => part.trim());
       const pick = largest
-        ? candidates.find((part) => part.includes(`${largest.width}w`)) || candidates[candidates.length - 1]
+        ? candidates.find((part) => part.includes(`${largest.width}w`)) ||
+          candidates[candidates.length - 1]
         : candidates[candidates.length - 1];
-      const url = String(pick || '').replace(/\s+\d+w$/, '').trim();
+      const url = String(pick || '')
+        .replace(/\s+\d+w$/, '')
+        .trim();
       if (!url) return match;
       return `<img${before} src="${url}"${after}>`;
-    }
+    },
   );
   return source;
 }
@@ -220,7 +229,9 @@ function mapWpSlugToGlSlug(wpSlug, slugMap) {
 }
 
 function normalizeUrlHost(value) {
-  const raw = String(value || '').trim().toLowerCase();
+  const raw = String(value || '')
+    .trim()
+    .toLowerCase();
   return raw.replace(/^https?:\/\//, '').replace(/\/+$/, '');
 }
 
@@ -244,8 +255,8 @@ async function fetchWpCollection({ sourceBaseUrl, resource, fetchFn = lightweigh
   let totalPages = 1;
   while (page <= totalPages) {
     const url =
-      `${normalizedBase}/wp-json/wp/v2/${resource}`
-      + `?per_page=100&page=${page}&_fields=slug,title,content,modified`;
+      `${normalizedBase}/wp-json/wp/v2/${resource}` +
+      `?per_page=100&page=${page}&_fields=slug,title,content,modified`;
     const res = await fetchFn(url, {
       headers: {
         Accept: 'application/json',
@@ -264,8 +275,13 @@ async function fetchWpCollection({ sourceBaseUrl, resource, fetchFn = lightweigh
   return entries;
 }
 
-function transformWpEntries(rawEntries, { slugMap, sourceType, turndownService, excludeSlugs = [] }) {
-  const excluded = new Set((Array.isArray(excludeSlugs) ? excludeSlugs : []).map((value) => normalizeSlug(value)));
+function transformWpEntries(
+  rawEntries,
+  { slugMap, sourceType, turndownService, excludeSlugs = [] },
+) {
+  const excluded = new Set(
+    (Array.isArray(excludeSlugs) ? excludeSlugs : []).map((value) => normalizeSlug(value)),
+  );
   return (Array.isArray(rawEntries) ? rawEntries : [])
     .map((entry) => {
       const wpSlug = normalizeSlug(entry?.slug);
@@ -290,8 +306,13 @@ function transformWpEntries(rawEntries, { slugMap, sourceType, turndownService, 
  * Convertit les entrées WP vers le schéma `gl_chapters`. Seules les entrées
  * dont le slug WP est référencé dans `chapterMap` sont retenues.
  */
-function transformWpEntriesAsChapters(rawEntries, { chapterMap, sourceType, turndownService, excludeSlugs = [] }) {
-  const excluded = new Set((Array.isArray(excludeSlugs) ? excludeSlugs : []).map((value) => normalizeSlug(value)));
+function transformWpEntriesAsChapters(
+  rawEntries,
+  { chapterMap, sourceType, turndownService, excludeSlugs = [] },
+) {
+  const excluded = new Set(
+    (Array.isArray(excludeSlugs) ? excludeSlugs : []).map((value) => normalizeSlug(value)),
+  );
   return (Array.isArray(rawEntries) ? rawEntries : [])
     .map((entry) => {
       const wpSlug = normalizeSlug(entry?.slug);
@@ -415,9 +436,13 @@ function isLikelyImageBuffer(buffer, contentType) {
   const ct = String(contentType || '').toLowerCase();
   if (ct.startsWith('image/')) return true;
   if (!buffer || buffer.length < 12) return false;
-  if (buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4e && buffer[3] === 0x47) return true;
+  if (buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4e && buffer[3] === 0x47)
+    return true;
   if (buffer[0] === 0xff && buffer[1] === 0xd8) return true;
-  if (buffer.slice(0, 4).toString('ascii') === 'RIFF' && buffer.slice(8, 12).toString('ascii') === 'WEBP') {
+  if (
+    buffer.slice(0, 4).toString('ascii') === 'RIFF' &&
+    buffer.slice(8, 12).toString('ascii') === 'WEBP'
+  ) {
     return true;
   }
   if (buffer.slice(0, 3).toString('ascii') === 'GIF') return true;
@@ -439,7 +464,9 @@ function decodeHtmlEntities(value) {
 }
 
 function stripHtmlTags(value) {
-  return decodeHtmlEntities(String(value || '').replace(/<[^>]+>/g, ' ')).replace(/\s+/g, ' ').trim();
+  return decodeHtmlEntities(String(value || '').replace(/<[^>]+>/g, ' '))
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 /**
@@ -450,14 +477,14 @@ function extractLayoutSlotsFromHomepageHtml(html, baseUrl = '') {
   const slots = normalizeBrandSlots(DEFAULT_GL_BRAND_SLOTS);
 
   const heroCover = source.match(
-    /wp-block-cover[^>]*hero-image[\s\S]{0,6000}?<img[^>]+src=["']([^"']+)["']/i
+    /wp-block-cover[^>]*hero-image[\s\S]{0,6000}?<img[^>]+src=["']([^"']+)["']/i,
   );
   if (heroCover?.[1]) {
     slots.hero.imageUrl = resolveRelativeUrl(baseUrl, heroCover[1]);
   }
 
   const heroHeading = source.match(
-    /wp-block-cover[^>]*hero-image[\s\S]{0,6000}?<h1[^>]*>([\s\S]*?)<\/h1>/i
+    /wp-block-cover[^>]*hero-image[\s\S]{0,6000}?<h1[^>]*>([\s\S]*?)<\/h1>/i,
   );
   if (heroHeading?.[1]) {
     const headingText = stripHtmlTags(heroHeading[1]);
@@ -466,20 +493,24 @@ function extractLayoutSlotsFromHomepageHtml(html, baseUrl = '') {
     if (parts[1]) slots.hero.subtitle = `L'aventure${parts[1].trim()}`;
   }
 
-  const rasterGlImages = [...new Set(
-    [...source.matchAll(/https?:\/\/[^"'()\s]+\/wp-content\/uploads\/[^"'()\s]+/gi)]
-      .map((m) => m[0])
-      .filter((url) => /gl\.olution\.info/i.test(url) && /\.(png|jpe?g|webp|gif)(\?|$)/i.test(url))
-  )];
+  const rasterGlImages = [
+    ...new Set(
+      [...source.matchAll(/https?:\/\/[^"'()\s]+\/wp-content\/uploads\/[^"'()\s]+/gi)]
+        .map((m) => m[0])
+        .filter(
+          (url) => /gl\.olution\.info/i.test(url) && /\.(png|jpe?g|webp|gif)(\?|$)/i.test(url),
+        ),
+    ),
+  ];
 
   let imageCursor = 0;
   if (!slots.hero.imageUrl && rasterGlImages[imageCursor]) {
     slots.hero.imageUrl = rasterGlImages[imageCursor];
     imageCursor += 1;
   } else if (
-    slots.hero.imageUrl
-    && rasterGlImages[imageCursor]
-    && rasterGlImages[imageCursor] === slots.hero.imageUrl
+    slots.hero.imageUrl &&
+    rasterGlImages[imageCursor] &&
+    rasterGlImages[imageCursor] === slots.hero.imageUrl
   ) {
     imageCursor += 1;
   }
@@ -525,11 +556,19 @@ async function mirrorBrandSlots(slots, context = {}) {
 }
 
 function extFromUrlOrContentType(urlValue, contentType) {
-  const fromType = EXT_BY_CONTENT_TYPE.get(String(contentType || '').split(';')[0].trim().toLowerCase());
+  const fromType = EXT_BY_CONTENT_TYPE.get(
+    String(contentType || '')
+      .split(';')[0]
+      .trim()
+      .toLowerCase(),
+  );
   if (fromType) return fromType;
   try {
     const parsed = new URL(String(urlValue || ''));
-    const ext = path.extname(parsed.pathname || '').replace('.', '').toLowerCase();
+    const ext = path
+      .extname(parsed.pathname || '')
+      .replace('.', '')
+      .toLowerCase();
     if (ext) return ext;
   } catch (_) {
     // noop
@@ -556,7 +595,7 @@ async function fetchBinaryBufferForMedia(urlValue, fetchFn = lightweightFetch, o
       const buffer = Buffer.from(await res.arrayBuffer());
       if (contentType.includes('text/html') || !isLikelyImageBuffer(buffer, contentType)) {
         errors.push(
-          `${candidate}: contenu non image (${contentType || 'type inconnu'}, ${buffer.length} o)`
+          `${candidate}: contenu non image (${contentType || 'type inconnu'}, ${buffer.length} o)`,
         );
         continue;
       }
@@ -568,15 +607,18 @@ async function fetchBinaryBufferForMedia(urlValue, fetchFn = lightweightFetch, o
   throw new Error(`Media ${urlValue}: aucune source image valide (${errors.join(' | ')})`);
 }
 
-async function mirrorOneMediaUrl(urlValue, {
-  fetchFn = lightweightFetch,
-  mediaCache,
-  targetDir = 'gl_import/wp',
-  apply = false,
-  sourceBaseUrl = '',
-  canonicalHost = '',
-  mediaStats = null,
-}) {
+async function mirrorOneMediaUrl(
+  urlValue,
+  {
+    fetchFn = lightweightFetch,
+    mediaCache,
+    targetDir = 'gl_import/wp',
+    apply = false,
+    sourceBaseUrl = '',
+    canonicalHost = '',
+    mediaStats = null,
+  },
+) {
   if (mediaCache.has(urlValue)) return mediaCache.get(urlValue);
   const checksum = crypto.createHash('sha1').update(urlValue).digest('hex').slice(0, 16);
   if (!apply) {
@@ -606,7 +648,9 @@ async function mirrorOneMediaUrl(urlValue, {
 async function mirrorWpMediaInMarkdown(markdown, context = {}) {
   const source = String(markdown || '');
   if (!source) return source;
-  const urls = extractUrlsFromMarkdown(source).filter((urlValue) => isWpMediaUrl(urlValue, context.sourceHosts || []));
+  const urls = extractUrlsFromMarkdown(source).filter((urlValue) =>
+    isWpMediaUrl(urlValue, context.sourceHosts || []),
+  );
   if (urls.length === 0) return source;
   let out = source;
   for (const urlValue of urls) {
@@ -629,11 +673,14 @@ async function mirrorMediaInRecords(records, context = {}, fieldName) {
 async function writeDryRun(records, outputDir, label = 'pages') {
   await fs.mkdir(outputDir, { recursive: true });
   for (const row of records) {
-    const filePath = path.join(outputDir, `${label === 'chapters' ? 'chapter-' : ''}${row.slug}.md`);
+    const filePath = path.join(
+      outputDir,
+      `${label === 'chapters' ? 'chapter-' : ''}${row.slug}.md`,
+    );
     const body =
-      `# ${row.title}\n\n`
-      + `<!-- source: ${row.sourceType}:${row.sourceSlug} | modified: ${row.sourceModifiedAt || 'unknown'} -->\n\n`
-      + `${row.bodyMarkdown || row.storyMarkdown || '_Aucun contenu converti._'}\n`;
+      `# ${row.title}\n\n` +
+      `<!-- source: ${row.sourceType}:${row.sourceSlug} | modified: ${row.sourceModifiedAt || 'unknown'} -->\n\n` +
+      `${row.bodyMarkdown || row.storyMarkdown || '_Aucun contenu converti._'}\n`;
     await fs.writeFile(filePath, body, 'utf8');
   }
 }
@@ -664,9 +711,13 @@ function resolveRelativeUrl(baseUrl, maybeRelative) {
 
 function pickFirstLogoUrlFromHtml(html, fallbackBaseUrl) {
   const source = String(html || '');
-  const inSiteLogoBlock = source.match(/wp-block-site-logo[\s\S]{0,2500}?<img[^>]+src=["']([^"']+)["']/i);
+  const inSiteLogoBlock = source.match(
+    /wp-block-site-logo[\s\S]{0,2500}?<img[^>]+src=["']([^"']+)["']/i,
+  );
   if (inSiteLogoBlock?.[1]) return resolveRelativeUrl(fallbackBaseUrl, inSiteLogoBlock[1]);
-  const customLogo = source.match(/<img[^>]+class=["'][^"']*custom-logo[^"']*["'][^>]+src=["']([^"']+)["']/i);
+  const customLogo = source.match(
+    /<img[^>]+class=["'][^"']*custom-logo[^"']*["'][^>]+src=["']([^"']+)["']/i,
+  );
   if (customLogo?.[1]) return resolveRelativeUrl(fallbackBaseUrl, customLogo[1]);
   return '';
 }
@@ -699,8 +750,8 @@ async function fetchPageHtml(urlValue, fetchFn = lightweightFetch) {
 async function fetchMediaBySlug({ sourceBaseUrl, slug, fetchFn = lightweightFetch }) {
   const base = String(sourceBaseUrl || '').replace(/\/+$/, '');
   const endpoint =
-    `${base}/wp-json/wp/v2/media`
-    + `?slug=${encodeURIComponent(String(slug || '').trim())}&per_page=1&_fields=source_url`;
+    `${base}/wp-json/wp/v2/media` +
+    `?slug=${encodeURIComponent(String(slug || '').trim())}&per_page=1&_fields=source_url`;
   const res = await fetchFn(endpoint, {
     headers: {
       Accept: 'application/json',
@@ -755,19 +806,19 @@ async function applyBrandSettings(brand) {
     `INSERT INTO gl_settings (\`key\`, value_json, updated_by, updated_at)
      VALUES (?, ?, ?, NOW())
      ON DUPLICATE KEY UPDATE value_json = VALUES(value_json), updated_by = VALUES(updated_by), updated_at = NOW()`,
-    ['platform.title', JSON.stringify(String(brand?.title || 'Gnomes & Licornes')), 'wp-import']
+    ['platform.title', JSON.stringify(String(brand?.title || 'Gnomes & Licornes')), 'wp-import'],
   );
   await execute(
     `INSERT INTO gl_settings (\`key\`, value_json, updated_by, updated_at)
      VALUES (?, ?, ?, NOW())
      ON DUPLICATE KEY UPDATE value_json = VALUES(value_json), updated_by = VALUES(updated_by), updated_at = NOW()`,
-    ['platform.subtitle', JSON.stringify(String(brand?.subtitle || '')), 'wp-import']
+    ['platform.subtitle', JSON.stringify(String(brand?.subtitle || '')), 'wp-import'],
   );
   await execute(
     `INSERT INTO gl_settings (\`key\`, value_json, updated_by, updated_at)
      VALUES (?, ?, ?, NOW())
      ON DUPLICATE KEY UPDATE value_json = VALUES(value_json), updated_by = VALUES(updated_by), updated_at = NOW()`,
-    ['platform.brand', JSON.stringify(brand || {}), 'wp-import']
+    ['platform.brand', JSON.stringify(brand || {}), 'wp-import'],
   );
 }
 
@@ -782,7 +833,7 @@ async function applyRecords(records) {
          body_markdown = VALUES(body_markdown),
          updated_by = VALUES(updated_by),
          updated_at = NOW()`,
-      [row.slug, row.title, row.bodyMarkdown || '', 'wp-import']
+      [row.slug, row.title, row.bodyMarkdown || '', 'wp-import'],
     );
   }
 }
@@ -811,13 +862,17 @@ async function applyChapterRecords(records) {
         row.biotopeMarkdown || '',
         row.biocenoseMarkdown || '',
         row.orderIndex,
-      ]
+      ],
     );
   }
 }
 
 async function buildPageRecords({ sourceBaseUrl, args, config, turndownService }) {
-  const pageEntries = await fetchWpCollection({ sourceBaseUrl, resource: 'pages', fetchFn: args.fetchFn });
+  const pageEntries = await fetchWpCollection({
+    sourceBaseUrl,
+    resource: 'pages',
+    fetchFn: args.fetchFn,
+  });
   const postEntries = args.includePosts
     ? await fetchWpCollection({ sourceBaseUrl, resource: 'posts', fetchFn: args.fetchFn })
     : [];
@@ -837,20 +892,28 @@ async function buildPageRecords({ sourceBaseUrl, args, config, turndownService }
   ]);
   if (args.skipMedia) return records;
   const sourceHosts = getSourceHosts({ sourceBaseUrl, canonicalHost: config.canonicalHost });
-  return mirrorMediaInRecords(records, {
-    fetchFn: args.fetchFn,
-    mediaCache: args.mediaCache,
-    sourceHosts,
-    apply: args.apply,
-    targetDir: 'gl_import/wp',
-    sourceBaseUrl,
-    canonicalHost: config.canonicalHost,
-    mediaStats: args.mediaStats,
-  }, 'bodyMarkdown');
+  return mirrorMediaInRecords(
+    records,
+    {
+      fetchFn: args.fetchFn,
+      mediaCache: args.mediaCache,
+      sourceHosts,
+      apply: args.apply,
+      targetDir: 'gl_import/wp',
+      sourceBaseUrl,
+      canonicalHost: config.canonicalHost,
+      mediaStats: args.mediaStats,
+    },
+    'bodyMarkdown',
+  );
 }
 
 async function buildChapterRecords({ sourceBaseUrl, args, config, turndownService }) {
-  const pageEntries = await fetchWpCollection({ sourceBaseUrl, resource: 'pages', fetchFn: args.fetchFn });
+  const pageEntries = await fetchWpCollection({
+    sourceBaseUrl,
+    resource: 'pages',
+    fetchFn: args.fetchFn,
+  });
   const postEntries = args.includePosts
     ? await fetchWpCollection({ sourceBaseUrl, resource: 'posts', fetchFn: args.fetchFn })
     : [];
@@ -870,16 +933,20 @@ async function buildChapterRecords({ sourceBaseUrl, args, config, turndownServic
   ]);
   if (args.skipMedia) return records;
   const sourceHosts = getSourceHosts({ sourceBaseUrl, canonicalHost: config.canonicalHost });
-  return mirrorMediaInRecords(records, {
-    fetchFn: args.fetchFn,
-    mediaCache: args.mediaCache,
-    sourceHosts,
-    apply: args.apply,
-    targetDir: 'gl_import/wp',
-    sourceBaseUrl,
-    canonicalHost: config.canonicalHost,
-    mediaStats: args.mediaStats,
-  }, 'storyMarkdown');
+  return mirrorMediaInRecords(
+    records,
+    {
+      fetchFn: args.fetchFn,
+      mediaCache: args.mediaCache,
+      sourceHosts,
+      apply: args.apply,
+      targetDir: 'gl_import/wp',
+      sourceBaseUrl,
+      canonicalHost: config.canonicalHost,
+      mediaStats: args.mediaStats,
+    },
+    'storyMarkdown',
+  );
 }
 
 function summarizeBrandMedia(brand) {
@@ -896,15 +963,15 @@ function logBrandMediaSummary(brand, { apply = false } = {}) {
   const rows = summarizeBrandMedia(brand);
   const localCount = rows.filter((row) => String(row.url).startsWith('/uploads/')).length;
   console.log(
-    `[gl-import-wp] médias charte: ${localCount}/${rows.length} URL locales`
-    + (apply ? ' (fichiers sous uploads/gl_brand/)' : ' (dry-run)')
+    `[gl-import-wp] médias charte: ${localCount}/${rows.length} URL locales` +
+      (apply ? ' (fichiers sous uploads/gl_brand/)' : ' (dry-run)'),
   );
   for (const row of rows) {
     console.log(`  - ${row.label}: ${row.url}`);
   }
   if (apply && localCount < rows.length) {
     console.warn(
-      '[gl-import-wp] attention: certaines images ne sont pas sous /uploads/ — elles ne s’afficheront pas dans GL.'
+      '[gl-import-wp] attention: certaines images ne sont pas sous /uploads/ — elles ne s’afficheront pas dans GL.',
     );
   }
 }
@@ -956,8 +1023,8 @@ async function runBrandImport({ sourceBaseUrl, args, config }) {
   logBrandMediaSummary(brand, { apply: args.apply });
   if (args.mediaStats && args.apply) {
     console.log(
-      `[gl-import-wp] fichiers médias copiés: ${args.mediaStats.mirrored}`
-      + (args.mediaStats.rewritten ? ` (${args.mediaStats.rewritten} via yo.olution.info)` : '')
+      `[gl-import-wp] fichiers médias copiés: ${args.mediaStats.mirrored}` +
+        (args.mediaStats.rewritten ? ` (${args.mediaStats.rewritten} via yo.olution.info)` : ''),
     );
   }
   return { target: 'brand', brand };
@@ -1048,19 +1115,25 @@ async function main() {
   };
   const label = labelByTarget[out.target] || out.target;
   if (args.dryRun) {
-    console.log(`[gl-import-wp] dry-run OK (${label}): ${out.recordsCount} contenus exportés dans ${args.outputDir}`);
+    console.log(
+      `[gl-import-wp] dry-run OK (${label}): ${out.recordsCount} contenus exportés dans ${args.outputDir}`,
+    );
   }
   if (args.apply) {
     if (out.target === 'all') {
       const details = out.breakdown || { brand: 0, pages: 0, chapters: 0 };
       console.log(
-        `[gl-import-wp] apply OK (${label}): brand=${details.brand}, pages=${details.pages}, chapters=${details.chapters}`
+        `[gl-import-wp] apply OK (${label}): brand=${details.brand}, pages=${details.pages}, chapters=${details.chapters}`,
       );
     } else if (out.target === 'brand') {
-      console.log('[gl-import-wp] apply OK (identité visuelle): UPSERT platform.title/platform.subtitle/platform.brand');
+      console.log(
+        '[gl-import-wp] apply OK (identité visuelle): UPSERT platform.title/platform.subtitle/platform.brand',
+      );
     } else {
       const table = out.target === 'chapters' ? 'gl_chapters' : 'gl_content_pages';
-      console.log(`[gl-import-wp] apply OK (${label}): ${out.recordsCount} contenus UPSERT dans ${table}`);
+      console.log(
+        `[gl-import-wp] apply OK (${label}): ${out.recordsCount} contenus UPSERT dans ${table}`,
+      );
     }
   }
 }

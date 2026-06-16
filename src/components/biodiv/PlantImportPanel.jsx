@@ -127,14 +127,22 @@ export function PlantImportPanel({ setToast, onRefresh }) {
         <div className="plant-form-grid">
           <div className="field">
             <label>Source</label>
-            <select value={importSource} onChange={(e) => setImportSource(e.target.value)} style={{ background: 'white' }}>
+            <select
+              value={importSource}
+              onChange={(e) => setImportSource(e.target.value)}
+              style={{ background: 'white' }}
+            >
               <option value="file">Fichier CSV/XLSX</option>
               <option value="gsheet">URL Google Sheet</option>
             </select>
           </div>
           <div className="field">
             <label>Stratégie d'import</label>
-            <select value={importStrategy} onChange={(e) => setImportStrategy(e.target.value)} style={{ background: 'white' }}>
+            <select
+              value={importStrategy}
+              onChange={(e) => setImportStrategy(e.target.value)}
+              style={{ background: 'white' }}
+            >
               <option value="upsert_name">Mettre à jour si même nom, sinon créer</option>
               <option value="insert_only">Créer uniquement, ignorer les doublons</option>
               <option value="replace_all">Remplacer entièrement le catalogue</option>
@@ -164,7 +172,15 @@ export function PlantImportPanel({ setToast, onRefresh }) {
         )}
 
         {importStrategy === 'replace_all' && (
-          <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: '.85rem', color: '#7a3a3a' }}>
+          <label
+            style={{
+              display: 'flex',
+              gap: 8,
+              alignItems: 'center',
+              fontSize: '.85rem',
+              color: '#7a3a3a',
+            }}
+          >
             <input
               type="checkbox"
               checked={confirmReplaceAll}
@@ -177,36 +193,68 @@ export function PlantImportPanel({ setToast, onRefresh }) {
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <button
             className="btn btn-ghost btn-sm"
-            onClick={() => downloadCsvTemplate(PLANTS_IMPORT_TEMPLATE_HEADERS, 'plants-import-template-vierge.csv')}
-            disabled={importing}>
+            onClick={() =>
+              downloadCsvTemplate(
+                PLANTS_IMPORT_TEMPLATE_HEADERS,
+                'plants-import-template-vierge.csv',
+              )
+            }
+            disabled={importing}
+          >
             Télécharger template vierge
           </button>
           <button
             className="btn btn-ghost btn-sm"
-            onClick={() => downloadCsvTemplate(PLANTS_IMPORT_TEMPLATE_HEADERS_FULL, 'plants-import-template-complet.csv')}
-            disabled={importing}>
+            onClick={() =>
+              downloadCsvTemplate(
+                PLANTS_IMPORT_TEMPLATE_HEADERS_FULL,
+                'plants-import-template-complet.csv',
+              )
+            }
+            disabled={importing}
+          >
             Télécharger template complet
           </button>
-          <button className="btn btn-ghost btn-sm" onClick={() => runImport({ dryRun: true })} disabled={importing}>
+          <button
+            className="btn btn-ghost btn-sm"
+            onClick={() => runImport({ dryRun: true })}
+            disabled={importing}
+          >
             {importing ? 'Analyse...' : 'Analyser (prévisualisation)'}
           </button>
-          <button className="btn btn-primary btn-sm" onClick={() => runImport({ dryRun: false })} disabled={importing}>
-            {importing ? 'Import...' : 'Lancer l\'import'}
+          <button
+            className="btn btn-primary btn-sm"
+            onClick={() => runImport({ dryRun: false })}
+            disabled={importing}
+          >
+            {importing ? 'Import...' : "Lancer l'import"}
           </button>
         </div>
 
         {importReport && (
-          <div style={{ background: '#f8fafc', border: '1px solid #e5e7eb', borderRadius: 10, padding: 10 }}>
-            <div style={{ fontWeight: 700, color: 'var(--forest)', marginBottom: 6 }}>Rapport d'import</div>
+          <div
+            style={{
+              background: '#f8fafc',
+              border: '1px solid #e5e7eb',
+              borderRadius: 10,
+              padding: 10,
+            }}
+          >
+            <div style={{ fontWeight: 700, color: 'var(--forest)', marginBottom: 6 }}>
+              Rapport d'import
+            </div>
             <div style={{ fontSize: '.85rem', color: '#444', lineHeight: 1.6 }}>
-              Reçues: {importReport?.totals?.received ?? 0} · Valides: {importReport?.totals?.valid ?? 0} ·
-              Créées: {importReport?.totals?.created ?? 0} · Mises à jour: {importReport?.totals?.updated ?? 0} ·
-              Ignorées (doublon): {importReport?.totals?.skipped_existing ?? 0} ·
-              Ignorées (invalides): {importReport?.totals?.skipped_invalid ?? 0}
+              Reçues: {importReport?.totals?.received ?? 0} · Valides:{' '}
+              {importReport?.totals?.valid ?? 0} · Créées: {importReport?.totals?.created ?? 0} ·
+              Mises à jour: {importReport?.totals?.updated ?? 0} · Ignorées (doublon):{' '}
+              {importReport?.totals?.skipped_existing ?? 0} · Ignorées (invalides):{' '}
+              {importReport?.totals?.skipped_invalid ?? 0}
             </div>
             {Array.isArray(importReport?.errors) && importReport.errors.length > 0 && (
               <div style={{ marginTop: 8 }}>
-                <div style={{ fontSize: '.8rem', fontWeight: 700, color: '#a94442' }}>Erreurs (max 10 affichées)</div>
+                <div style={{ fontSize: '.8rem', fontWeight: 700, color: '#a94442' }}>
+                  Erreurs (max 10 affichées)
+                </div>
                 <ul style={{ margin: '4px 0 0 16px', padding: 0 }}>
                   {importReport.errors.slice(0, 10).map((err, idx) => (
                     <li key={`import-err-${idx}`} style={{ fontSize: '.8rem', color: '#a94442' }}>

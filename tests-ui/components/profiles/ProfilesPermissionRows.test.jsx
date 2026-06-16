@@ -22,7 +22,7 @@ function setup(overrides = {}) {
   render(
     <div>
       <ProfilesPermissionRows {...props} />
-    </div>
+    </div>,
   );
   return props;
 }

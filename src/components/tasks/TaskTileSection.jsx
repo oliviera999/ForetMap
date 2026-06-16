@@ -24,7 +24,9 @@ export function TaskTileSection({
     <div className="tasks-section">
       <div className="tasks-section-title">{title}</div>
       <div className={sectionListClass}>
-        {list.map((t, idx) => <TaskTileCard key={t.id} {...taskTileProps} t={t} index={idx} />)}
+        {list.map((t, idx) => (
+          <TaskTileCard key={t.id} {...taskTileProps} t={t} index={idx} />
+        ))}
       </div>
     </div>
   );

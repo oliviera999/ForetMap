@@ -3,20 +3,24 @@ const { signAuthToken } = require('../middleware/requireTeacher');
 const { queryOne, execute } = require('../database');
 
 test.describe('Gnomes & Licornes — édition des chapitres (Lot 2B)', () => {
-  test('MJ crée/édite un chapitre via l\'API et le joueur le lit via /api/gl/chapters/:slug', async ({ request }) => {
+  test("MJ crée/édite un chapitre via l'API et le joueur le lit via /api/gl/chapters/:slug", async ({
+    request,
+  }) => {
     const now = Date.now();
     const adminEmail = `e2e-content-mj-${now}@example.org`;
     await execute(
       'INSERT INTO gl_admins (email, display_name, role, is_active, created_at, updated_at) VALUES (?, ?, ?, 1, NOW(), NOW())',
-      [adminEmail, `MJ Content ${now}`, 'admin']
+      [adminEmail, `MJ Content ${now}`, 'admin'],
     );
-    const adminRow = await queryOne('SELECT id FROM gl_admins WHERE email = ? LIMIT 1', [adminEmail]);
+    const adminRow = await queryOne('SELECT id FROM gl_admins WHERE email = ? LIMIT 1', [
+      adminEmail,
+    ]);
     const adminId = Number(adminRow?.id || 0);
     expect(adminId).toBeGreaterThan(0);
 
     await execute(
       'INSERT INTO gl_classes (name, school, created_by, is_active, created_at, updated_at) VALUES (?, ?, ?, 1, NOW(), NOW())',
-      [`6e Content ${now}`, 'Lyautey', adminId]
+      [`6e Content ${now}`, 'Lyautey', adminId],
     );
     const classRow = await queryOne('SELECT id FROM gl_classes ORDER BY id DESC LIMIT 1');
     const classId = Number(classRow?.id || 0);
@@ -24,7 +28,7 @@ test.describe('Gnomes & Licornes — édition des chapitres (Lot 2B)', () => {
     await execute(
       `INSERT INTO gl_players (class_id, pseudo, password_hash, is_active, created_at, updated_at)
        VALUES (?, ?, 'x', 1, NOW(), NOW())`,
-      [classId, `e2e_content_player_${now}`]
+      [classId, `e2e_content_player_${now}`],
     );
     const playerRow = await queryOne('SELECT id FROM gl_players ORDER BY id DESC LIMIT 1');
     const playerId = Number(playerRow?.id || 0);
@@ -58,7 +62,8 @@ test.describe('Gnomes & Licornes — édition des chapitres (Lot 2B)', () => {
         biome: 'biome e2e',
         mapImageUrl: '/maps/map-foret.svg',
         mapImageFrame: { aspectRatio: '16/9', objectFit: 'contain', focalX: 30, focalY: 70 },
-        storyMarkdown: '# Histoire e2e\n\n<img src="/uploads/media-library/image/2026/01/e2e-inline.jpg" alt="Illustration e2e" class="gl-content-image" data-gl-frame=\'{"ratio":"16:9","radius":10}\' loading="lazy" />',
+        storyMarkdown:
+          '# Histoire e2e\n\n<img src="/uploads/media-library/image/2026/01/e2e-inline.jpg" alt="Illustration e2e" class="gl-content-image" data-gl-frame=\'{"ratio":"16:9","radius":10}\' loading="lazy" />',
         biotopeMarkdown: '## Biotope e2e',
         biocenoseMarkdown: '## Biocénose e2e',
         orderIndex: 999,
@@ -81,7 +86,9 @@ test.describe('Gnomes & Licornes — édition des chapitres (Lot 2B)', () => {
     expect(detailBody?.chapter?.slug).toBe(slug);
     expect(detailBody?.chapter?.map_image_frame?.objectFit).toBe('contain');
     expect(detailBody?.chapter?.title).toBe('Chapitre e2e');
-    expect(String(detailBody?.chapter?.story_markdown || '')).toContain('/uploads/media-library/image/2026/01/e2e-inline.jpg');
+    expect(String(detailBody?.chapter?.story_markdown || '')).toContain(
+      '/uploads/media-library/image/2026/01/e2e-inline.jpg',
+    );
     expect(Array.isArray(detailBody.markers)).toBe(true);
     expect(detailBody.markers.some((m) => m.label === 'Repère e2e')).toBe(true);
 
@@ -93,9 +100,11 @@ test.describe('Gnomes & Licornes — édition des chapitres (Lot 2B)', () => {
     const adminEmail = `e2e-species-mj-${now}@example.org`;
     await execute(
       'INSERT INTO gl_admins (email, display_name, role, is_active, created_at, updated_at) VALUES (?, ?, ?, 1, NOW(), NOW())',
-      [adminEmail, `MJ Species ${now}`, 'admin']
+      [adminEmail, `MJ Species ${now}`, 'admin'],
     );
-    const adminRow = await queryOne('SELECT id FROM gl_admins WHERE email = ? LIMIT 1', [adminEmail]);
+    const adminRow = await queryOne('SELECT id FROM gl_admins WHERE email = ? LIMIT 1', [
+      adminEmail,
+    ]);
     const adminToken = await signAuthToken({
       product: 'gl',
       userType: 'gl_admin',
@@ -105,7 +114,13 @@ test.describe('Gnomes & Licornes — édition des chapitres (Lot 2B)', () => {
     });
     const fs = require('node:fs');
     const path = require('node:path');
-    const xlsxPath = path.join(__dirname, '..', 'data', 'gl', 'especes-biomes-gnomes-et-licornes.xlsx');
+    const xlsxPath = path.join(
+      __dirname,
+      '..',
+      'data',
+      'gl',
+      'especes-biomes-gnomes-et-licornes.xlsx',
+    );
     const fileDataBase64 = fs.readFileSync(xlsxPath).toString('base64');
     const importRes = await request.post('/api/gl/admin/species/import', {
       headers: { Authorization: `Bearer ${adminToken}` },
@@ -128,9 +143,11 @@ test.describe('Gnomes & Licornes — édition des chapitres (Lot 2B)', () => {
     const adminEmail = `e2e-spells-mj-${now}@example.org`;
     await execute(
       'INSERT INTO gl_admins (email, display_name, role, is_active, created_at, updated_at) VALUES (?, ?, ?, 1, NOW(), NOW())',
-      [adminEmail, `MJ Spells ${now}`, 'admin']
+      [adminEmail, `MJ Spells ${now}`, 'admin'],
     );
-    const adminRow = await queryOne('SELECT id FROM gl_admins WHERE email = ? LIMIT 1', [adminEmail]);
+    const adminRow = await queryOne('SELECT id FROM gl_admins WHERE email = ? LIMIT 1', [
+      adminEmail,
+    ]);
     const adminToken = await signAuthToken({
       product: 'gl',
       userType: 'gl_admin',
@@ -163,9 +180,11 @@ test.describe('Gnomes & Licornes — édition des chapitres (Lot 2B)', () => {
     const adminEmail = `e2e-glossary-mj-${now}@example.org`;
     await execute(
       'INSERT INTO gl_admins (email, display_name, role, is_active, created_at, updated_at) VALUES (?, ?, ?, 1, NOW(), NOW())',
-      [adminEmail, `MJ Glossary ${now}`, 'admin']
+      [adminEmail, `MJ Glossary ${now}`, 'admin'],
     );
-    const adminRow = await queryOne('SELECT id FROM gl_admins WHERE email = ? LIMIT 1', [adminEmail]);
+    const adminRow = await queryOne('SELECT id FROM gl_admins WHERE email = ? LIMIT 1', [
+      adminEmail,
+    ]);
     const adminToken = await signAuthToken({
       product: 'gl',
       userType: 'gl_admin',
@@ -198,9 +217,11 @@ test.describe('Gnomes & Licornes — édition des chapitres (Lot 2B)', () => {
     const adminEmail = `e2e-qcm-mj-${now}@example.org`;
     await execute(
       'INSERT INTO gl_admins (email, display_name, role, is_active, created_at, updated_at) VALUES (?, ?, ?, 1, NOW(), NOW())',
-      [adminEmail, `MJ QCM ${now}`, 'admin']
+      [adminEmail, `MJ QCM ${now}`, 'admin'],
     );
-    const adminRow = await queryOne('SELECT id FROM gl_admins WHERE email = ? LIMIT 1', [adminEmail]);
+    const adminRow = await queryOne('SELECT id FROM gl_admins WHERE email = ? LIMIT 1', [
+      adminEmail,
+    ]);
     const adminToken = await signAuthToken({
       product: 'gl',
       userType: 'gl_admin',
@@ -210,7 +231,13 @@ test.describe('Gnomes & Licornes — édition des chapitres (Lot 2B)', () => {
     });
     const fs = require('node:fs');
     const path = require('node:path');
-    const xlsxPath = path.join(__dirname, '..', 'data', 'gl', 'qcm-biomes-gnomes-et-licornes-consolide.xlsx');
+    const xlsxPath = path.join(
+      __dirname,
+      '..',
+      'data',
+      'gl',
+      'qcm-biomes-gnomes-et-licornes-consolide.xlsx',
+    );
     const fileDataBase64 = fs.readFileSync(xlsxPath).toString('base64');
     const importRes = await request.post('/api/gl/admin/qcm/import', {
       headers: { Authorization: `Bearer ${adminToken}` },
@@ -230,13 +257,15 @@ test.describe('Gnomes & Licornes — édition des chapitres (Lot 2B)', () => {
 
     await execute(
       'INSERT INTO gl_biomes (slug, nom, order_index, created_at, updated_at) VALUES (?, ?, 9998, NOW(), NOW())',
-      [biomeSlug, `Biome manual ${now}`]
+      [biomeSlug, `Biome manual ${now}`],
     );
     await execute(
       'INSERT INTO gl_admins (email, display_name, role, is_active, created_at, updated_at) VALUES (?, ?, ?, 1, NOW(), NOW())',
-      [adminEmail, `MJ Manual ${now}`, 'admin']
+      [adminEmail, `MJ Manual ${now}`, 'admin'],
     );
-    const adminRow = await queryOne('SELECT id FROM gl_admins WHERE email = ? LIMIT 1', [adminEmail]);
+    const adminRow = await queryOne('SELECT id FROM gl_admins WHERE email = ? LIMIT 1', [
+      adminEmail,
+    ]);
     const adminToken = await signAuthToken({
       product: 'gl',
       userType: 'gl_admin',
@@ -276,7 +305,10 @@ test.describe('Gnomes & Licornes — édition des chapitres (Lot 2B)', () => {
     });
     expect(speciesCreate.status()).toBe(201);
 
-    const speciesRead = await request.get(`/api/gl/species?biomeSlug=${encodeURIComponent(biomeSlug)}`, { headers });
+    const speciesRead = await request.get(
+      `/api/gl/species?biomeSlug=${encodeURIComponent(biomeSlug)}`,
+      { headers },
+    );
     const speciesBody = await speciesRead.json();
     expect(speciesBody.items.some((s) => s.species_code === speciesCode)).toBe(true);
   });

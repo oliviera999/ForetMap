@@ -16,34 +16,41 @@ describe('glContentLibraryDisplay - previewSummary', () => {
 
   test('formate un média', () => {
     expect(
-      previewSummary({ kind: 'media', preview: { mediaType: 'image', relativePath: 'a/b.png' } })
+      previewSummary({ kind: 'media', preview: { mediaType: 'image', relativePath: 'a/b.png' } }),
     ).toBe('image → a/b.png');
   });
 
   test('média sans relativePath retombe sur url', () => {
-    expect(
-      previewSummary({ kind: 'media', preview: { url: 'http://x/y.png' } })
-    ).toBe('média → http://x/y.png');
+    expect(previewSummary({ kind: 'media', preview: { url: 'http://x/y.png' } })).toBe(
+      'média → http://x/y.png',
+    );
   });
 
-  test('formate les lignes valides d\'un catalogue', () => {
-    expect(previewSummary({ kind: 'catalog', preview: { valid: 3, received: 5 } }))
-      .toBe('3/5 ligne(s) valide(s)');
-    expect(previewSummary({ kind: 'catalog', preview: { valid: 2 } }))
-      .toBe('2/? ligne(s) valide(s)');
+  test("formate les lignes valides d'un catalogue", () => {
+    expect(previewSummary({ kind: 'catalog', preview: { valid: 3, received: 5 } })).toBe(
+      '3/5 ligne(s) valide(s)',
+    );
+    expect(previewSummary({ kind: 'catalog', preview: { valid: 2 } })).toBe(
+      '2/? ligne(s) valide(s)',
+    );
   });
 
   test('formate les éléments upsertés', () => {
-    expect(previewSummary({ kind: 'catalog', preview: { upserted: 7 } }))
-      .toBe('7 élément(s) prêt(s)');
+    expect(previewSummary({ kind: 'catalog', preview: { upserted: 7 } })).toBe(
+      '7 élément(s) prêt(s)',
+    );
   });
 
   test('formate feuillets et plateaux', () => {
     expect(
-      previewSummary({ kind: 'catalog', preview: { feuillets: { upserted: 4 }, plateaux: { upserted: 2 } } })
+      previewSummary({
+        kind: 'catalog',
+        preview: { feuillets: { upserted: 4 }, plateaux: { upserted: 2 } },
+      }),
     ).toBe('4 feuillet(s), 2 plateau(x)');
-    expect(previewSummary({ kind: 'catalog', preview: { feuillets: {} } }))
-      .toBe('0 feuillet(s), 0 plateau(x)');
+    expect(previewSummary({ kind: 'catalog', preview: { feuillets: {} } })).toBe(
+      '0 feuillet(s), 0 plateau(x)',
+    );
   });
 
   test('retombe sur Analyse OK', () => {
@@ -56,11 +63,17 @@ describe('glContentLibraryDisplay - kindBadgeClass', () => {
     expect(kindBadgeClass('media')).toBe('gl-content-library-kind gl-content-library-kind--media');
   });
   test('inconnu / non supporté', () => {
-    expect(kindBadgeClass('unknown')).toBe('gl-content-library-kind gl-content-library-kind--unknown');
-    expect(kindBadgeClass('unsupported')).toBe('gl-content-library-kind gl-content-library-kind--unknown');
+    expect(kindBadgeClass('unknown')).toBe(
+      'gl-content-library-kind gl-content-library-kind--unknown',
+    );
+    expect(kindBadgeClass('unsupported')).toBe(
+      'gl-content-library-kind gl-content-library-kind--unknown',
+    );
   });
   test('défaut catalogue', () => {
-    expect(kindBadgeClass('species')).toBe('gl-content-library-kind gl-content-library-kind--catalog');
+    expect(kindBadgeClass('species')).toBe(
+      'gl-content-library-kind gl-content-library-kind--catalog',
+    );
   });
 });
 

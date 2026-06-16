@@ -128,10 +128,10 @@ describe('Auth', () => {
       })
       .expect(201);
     const storedAffiliation = `missing_${stamp % 100000}`;
-    await execute(
-      "UPDATE users SET affiliation = ? WHERE id = ? AND user_type = 'student'",
-      [storedAffiliation, reg.body.id]
-    );
+    await execute("UPDATE users SET affiliation = ? WHERE id = ? AND user_type = 'student'", [
+      storedAffiliation,
+      reg.body.id,
+    ]);
 
     const res = await request(app)
       .patch('/api/auth/me/profile')
@@ -143,7 +143,10 @@ describe('Auth', () => {
       .expect(200);
 
     assert.strictEqual(res.body.affiliation, storedAffiliation);
-    const row = await queryOne("SELECT affiliation FROM users WHERE id = ? AND user_type = 'student' LIMIT 1", [reg.body.id]);
+    const row = await queryOne(
+      "SELECT affiliation FROM users WHERE id = ? AND user_type = 'student' LIMIT 1",
+      [reg.body.id],
+    );
     assert.strictEqual(row.affiliation, storedAffiliation);
   });
 
@@ -184,7 +187,7 @@ describe('Auth', () => {
       .expect(401);
     assert.ok(res.body.error);
     const evt = await queryOne(
-      "SELECT action, result FROM security_events WHERE action = 'auth.login' ORDER BY id DESC LIMIT 1"
+      "SELECT action, result FROM security_events WHERE action = 'auth.login' ORDER BY id DESC LIMIT 1",
     );
     assert.ok(evt);
     assert.strictEqual(evt.result, 'failure');
@@ -199,16 +202,16 @@ describe('Auth', () => {
   });
 
   it('POST /api/auth/forgot-password renvoie un succès neutre', async () => {
-    const res = await request(app)
-      .post('/api/auth/forgot-password')
-      .send({ email })
-      .expect(200);
+    const res = await request(app).post('/api/auth/forgot-password').send({ email }).expect(200);
     assert.strictEqual(res.body.ok, true);
     assert.ok(res.body.message);
   });
 
   it('POST /api/auth/reset-password consomme un token valide', async () => {
-    const student = await queryOne("SELECT id FROM users WHERE user_type = 'student' AND LOWER(email)=LOWER(?) LIMIT 1", [email]);
+    const student = await queryOne(
+      "SELECT id FROM users WHERE user_type = 'student' AND LOWER(email)=LOWER(?) LIMIT 1",
+      [email],
+    );
     assert.ok(student?.id);
     const resetToken = `student-reset-${Date.now()}`;
     const tokenHash = crypto.createHash('sha256').update(resetToken).digest('hex');
@@ -216,7 +219,7 @@ describe('Auth', () => {
 
     await execute(
       'INSERT INTO password_reset_tokens (id, user_type, user_id, token_hash, expires_at, used_at) VALUES (?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL 1 HOUR), NULL)',
-      [tokenId, 'student', student.id, tokenHash]
+      [tokenId, 'student', student.id, tokenHash],
     );
 
     await request(app)
@@ -230,7 +233,9 @@ describe('Auth', () => {
       .expect(200);
     assert.strictEqual(loginRes.body.id, student.id);
 
-    const consumed = await queryOne('SELECT used_at FROM password_reset_tokens WHERE id = ?', [tokenId]);
+    const consumed = await queryOne('SELECT used_at FROM password_reset_tokens WHERE id = ?', [
+      tokenId,
+    ]);
     assert.ok(consumed?.used_at);
   });
 
@@ -243,7 +248,7 @@ describe('Auth', () => {
       `INSERT INTO users
         (id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name, description, avatar_path, affiliation, password_hash, auth_provider, is_active, last_seen, created_at, updated_at)
        VALUES (?, 'teacher', NULL, ?, ?, NULL, NULL, ?, NULL, NULL, 'both', ?, 'local', 1, ?, NOW(), NOW())`,
-      [uuidv4(), teacherEmail, teacherEmail.split('@')[0], 'Prof Test', hash, now]
+      [uuidv4(), teacherEmail, teacherEmail.split('@')[0], 'Prof Test', hash, now],
     );
 
     const res = await request(app)
@@ -253,13 +258,13 @@ describe('Auth', () => {
     assert.ok(res.body.authToken);
     assert.strictEqual(res.body.user_type, 'teacher');
     const evt = await queryOne(
-      "SELECT action, result FROM security_events WHERE action = 'auth.login' ORDER BY id DESC LIMIT 1"
+      "SELECT action, result FROM security_events WHERE action = 'auth.login' ORDER BY id DESC LIMIT 1",
     );
     assert.ok(evt);
     assert.strictEqual(evt.result, 'success');
   });
 
-  it('POST /api/auth/login accepte l\'alias canonique admin sans pseudo correspondant', async () => {
+  it("POST /api/auth/login accepte l'alias canonique admin sans pseudo correspondant", async () => {
     const canonicalLogin = `canon_admin_${Date.now()}`;
     const teacherEmail = `admin_alias_${Date.now()}@example.com`;
     const teacherPseudo = `other_pseudo_${Date.now()}`;
@@ -276,13 +281,13 @@ describe('Auth', () => {
       `INSERT INTO users
         (id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name, description, avatar_path, affiliation, password_hash, auth_provider, is_active, last_seen, created_at, updated_at)
        VALUES (?, 'teacher', NULL, ?, ?, NULL, NULL, ?, NULL, NULL, 'both', ?, 'local', 1, ?, NOW(), NOW())`,
-      [teacherId, teacherEmail, teacherPseudo, 'Admin Alias', hash, now]
+      [teacherId, teacherEmail, teacherPseudo, 'Admin Alias', hash, now],
     );
     const adminRole = await queryOne("SELECT id FROM roles WHERE slug = 'admin' LIMIT 1");
     assert.ok(adminRole?.id);
     await execute(
       'INSERT INTO user_roles (user_type, user_id, role_id, is_primary) VALUES (?, ?, ?, 1)',
-      ['teacher', teacherId, adminRole.id]
+      ['teacher', teacherId, adminRole.id],
     );
 
     try {
@@ -311,13 +316,13 @@ describe('Auth', () => {
       `INSERT INTO users
         (id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name, description, avatar_path, affiliation, password_hash, auth_provider, is_active, last_seen, created_at, updated_at)
        VALUES (?, 'teacher', NULL, ?, ?, NULL, NULL, ?, NULL, NULL, 'both', ?, 'local', 1, ?, NOW(), NOW())`,
-      [teacherId, teacherEmail, `admin_elev_${stamp}`, 'Admin Elev', hash, now]
+      [teacherId, teacherEmail, `admin_elev_${stamp}`, 'Admin Elev', hash, now],
     );
     const adminRole = await queryOne("SELECT id FROM roles WHERE slug = 'admin' LIMIT 1");
     assert.ok(adminRole?.id);
     await execute(
       'INSERT INTO user_roles (user_type, user_id, role_id, is_primary) VALUES (?, ?, ?, 1)',
-      ['teacher', teacherId, adminRole.id]
+      ['teacher', teacherId, adminRole.id],
     );
 
     const res = await request(app)
@@ -338,10 +343,12 @@ describe('Auth', () => {
   });
 
   it('GET /api/auth/google/start redirige vers Google avec state', async () => {
-    const res = await request(app)
-      .get('/api/auth/google/start?mode=student')
-      .expect(302);
-    assert.ok(String(res.headers.location || '').startsWith('https://accounts.google.com/o/oauth2/v2/auth?'));
+    const res = await request(app).get('/api/auth/google/start?mode=student').expect(302);
+    assert.ok(
+      String(res.headers.location || '').startsWith(
+        'https://accounts.google.com/o/oauth2/v2/auth?',
+      ),
+    );
     assert.ok((res.headers['set-cookie'] || []).some((c) => c.startsWith('foretmap_oauth_state=')));
   });
 
@@ -360,7 +367,14 @@ describe('Auth', () => {
       `INSERT INTO users
         (id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name, description, avatar_path, affiliation, password_hash, auth_provider, is_active, last_seen, created_at, updated_at)
        VALUES (?, 'teacher', NULL, ?, ?, NULL, NULL, ?, NULL, NULL, 'both', ?, 'local', 1, ?, NOW(), NOW())`,
-      [uuidv4(), teacherEmail, teacherEmail.split('@')[0], 'Prof OAuth', await bcrypt.hash('dummy-password', 10), now]
+      [
+        uuidv4(),
+        teacherEmail,
+        teacherEmail.split('@')[0],
+        'Prof OAuth',
+        await bcrypt.hash('dummy-password', 10),
+        now,
+      ],
     );
     authRouter.__setGoogleOAuthHooks({
       exchangeCode: async () => ({ id_token: 'token-prof' }),
@@ -404,9 +418,17 @@ describe('Auth', () => {
     const payload = decodeOAuthPayloadFromRedirect(res.headers.location);
     assert.strictEqual(payload?.type, 'student');
     assert.ok(payload?.student?.id);
-    assert.ok(['visiteur', 'eleve_novice'].includes(String(payload?.student?.auth?.roleSlug || '')));
-    assert.strictEqual(String(payload?.student?.email || '').toLowerCase(), studentEmail.toLowerCase());
-    const created = await queryOne("SELECT id, email FROM users WHERE user_type = 'student' AND LOWER(email)=LOWER(?) LIMIT 1", [studentEmail]);
+    assert.ok(
+      ['visiteur', 'eleve_novice'].includes(String(payload?.student?.auth?.roleSlug || '')),
+    );
+    assert.strictEqual(
+      String(payload?.student?.email || '').toLowerCase(),
+      studentEmail.toLowerCase(),
+    );
+    const created = await queryOne(
+      "SELECT id, email FROM users WHERE user_type = 'student' AND LOWER(email)=LOWER(?) LIMIT 1",
+      [studentEmail],
+    );
     assert.ok(created?.id);
     authRouter.__setGoogleOAuthHooks();
   });
@@ -441,14 +463,14 @@ describe('Auth', () => {
       `INSERT INTO users
         (id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name, description, avatar_path, affiliation, password_hash, auth_provider, is_active, last_seen, created_at, updated_at)
        VALUES (?, 'teacher', NULL, ?, ?, NULL, NULL, ?, NULL, NULL, 'both', ?, 'local', 1, ?, NOW(), NOW())`,
-      [teacherId, teacherEmail, teacherEmail.split('@')[0], 'Prof Reset', hash, now]
+      [teacherId, teacherEmail, teacherEmail.split('@')[0], 'Prof Reset', hash, now],
     );
 
     const resetToken = `teacher-reset-${Date.now()}`;
     const tokenHash = crypto.createHash('sha256').update(resetToken).digest('hex');
     await execute(
       'INSERT INTO password_reset_tokens (id, user_type, user_id, token_hash, expires_at, used_at) VALUES (?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL 1 HOUR), NULL)',
-      [uuidv4(), 'teacher', teacherId, tokenHash]
+      [uuidv4(), 'teacher', teacherId, tokenHash],
     );
 
     await request(app)

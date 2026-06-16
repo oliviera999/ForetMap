@@ -24,10 +24,14 @@ export function GLSpellCastSettings({ settings, savingKey, onSaveSetting }) {
         <select
           value={readSelectSetting(settings, 'gameplay.spell_cast_contribution_mode', 'both')}
           disabled={savingKey === 'gameplay.spell_cast_contribution_mode'}
-          onChange={(event) => onSaveSetting('gameplay.spell_cast_contribution_mode', event.target.value)}
+          onChange={(event) =>
+            onSaveSetting('gameplay.spell_cast_contribution_mode', event.target.value)
+          }
         >
           {SPELL_CAST_CONTRIBUTION_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>{opt.label}</option>
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
           ))}
         </select>
       </label>
@@ -39,7 +43,9 @@ export function GLSpellCastSettings({ settings, savingKey, onSaveSetting }) {
           onChange={(event) => onSaveSetting('gameplay.spell_cast_team_scope', event.target.value)}
         >
           {SPELL_CAST_TEAM_SCOPE_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>{opt.label}</option>
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
           ))}
         </select>
       </label>
@@ -53,11 +59,12 @@ export function GLSpellCastSettings({ settings, savingKey, onSaveSetting }) {
         <span>Seul le MJ peut lancer les sortilèges</span>
       </label>
       <p className="gl-hint">
-        Si activé, les joueurs consultent le catalogue mais ne peuvent pas ouvrir l&apos;assistant de lancement
-        (réservé au MJ sur la console / carte).
+        Si activé, les joueurs consultent le catalogue mais ne peuvent pas ouvrir l&apos;assistant
+        de lancement (réservé au MJ sur la console / carte).
       </p>
       <p className="gl-hint">
-        Activez aussi le module « Lancement de sortilèges » ci-dessous et la vitalité (gemmes / cœurs).
+        Activez aussi le module « Lancement de sortilèges » ci-dessous et la vitalité (gemmes /
+        cœurs).
       </p>
     </div>
   );

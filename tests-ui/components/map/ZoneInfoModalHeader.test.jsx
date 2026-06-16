@@ -20,7 +20,7 @@ function renderHeader(overrides = {}) {
       duplicating={false}
       {...handlers}
       {...overrides}
-    />
+    />,
   );
   return handlers;
 }
@@ -33,7 +33,7 @@ describe('ZoneInfoModalHeader', () => {
     vi.restoreAllMocks();
   });
 
-  test('affiche le titre de la zone et la pastille d\'état', () => {
+  test("affiche le titre de la zone et la pastille d'état", () => {
     renderHeader();
     expect(screen.getByRole('heading', { name: 'Potager Est' })).toBeTruthy();
     expect(screen.getByText('En croissance')).toBeTruthy();
@@ -73,7 +73,7 @@ describe('ZoneInfoModalHeader', () => {
     expect(screen.queryByRole('button', { name: '🗑️' })).toBeNull();
   });
 
-  test('zone spéciale : pas d\'actions même pour un prof', () => {
+  test("zone spéciale : pas d'actions même pour un prof", () => {
     renderHeader({ zone: { ...ZONE, special: true } });
     expect(screen.queryByRole('button', { name: '📋 Copie' })).toBeNull();
     expect(screen.queryByRole('button', { name: '🗑️' })).toBeNull();

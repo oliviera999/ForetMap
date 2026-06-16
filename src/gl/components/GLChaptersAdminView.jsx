@@ -123,9 +123,12 @@ export function GLChaptersAdminView() {
     clearPendingMapImage();
   }
 
-  useEffect(() => () => {
-    if (pendingMapPreviewUrl) URL.revokeObjectURL(pendingMapPreviewUrl);
-  }, [pendingMapPreviewUrl]);
+  useEffect(
+    () => () => {
+      if (pendingMapPreviewUrl) URL.revokeObjectURL(pendingMapPreviewUrl);
+    },
+    [pendingMapPreviewUrl],
+  );
 
   async function submitChapter(event) {
     event.preventDefault();
@@ -198,7 +201,7 @@ export function GLChaptersAdminView() {
     setInfo(
       selectedId
         ? 'Image sélectionnée — envoi en cours…'
-        : 'Image sélectionnée : elle sera envoyée lors de l’enregistrement du chapitre.'
+        : 'Image sélectionnée : elle sera envoyée lors de l’enregistrement du chapitre.',
     );
   }
 
@@ -214,12 +217,17 @@ export function GLChaptersAdminView() {
     setInfo('');
     try {
       const imageData = await compressImageWithPreset(file, 'glChapter');
-      const data = await apiGL(`/api/gl/chapters/admin/${targetId}/map-image`, 'POST', { image_data: imageData });
+      const data = await apiGL(`/api/gl/chapters/admin/${targetId}/map-image`, 'POST', {
+        image_data: imageData,
+      });
       setDetail(data);
       setChapterForm((prev) => ({
         ...prev,
         mapImageUrl: data?.chapter?.map_image_url || prev.mapImageUrl,
-        mapImageFrame: normalizeGlImageFrame(data?.chapter?.map_image_frame || prev.mapImageFrame, 'chapter-map'),
+        mapImageFrame: normalizeGlImageFrame(
+          data?.chapter?.map_image_frame || prev.mapImageFrame,
+          'chapter-map',
+        ),
       }));
       clearPendingMapImage();
       setInfo('Image de carte importée');
@@ -240,9 +248,12 @@ export function GLChaptersAdminView() {
   }
 
   const previewMapImageUrl = chapterForm.mapImageUrl || pendingMapPreviewUrl || '';
-  const mapImagePickHint = !selectedId && pendingMapImageFile
-    ? 'L’image sera importée sur le serveur à l’enregistrement du chapitre.'
-    : (!selectedId ? 'Vous pouvez choisir une photo avant l’enregistrement ; l’envoi se fera à la création du chapitre.' : '');
+  const mapImagePickHint =
+    !selectedId && pendingMapImageFile
+      ? 'L’image sera importée sur le serveur à l’enregistrement du chapitre.'
+      : !selectedId
+        ? 'Vous pouvez choisir une photo avant l’enregistrement ; l’envoi se fera à la création du chapitre.'
+        : '';
 
   const markers = useMemo(() => (Array.isArray(detail?.markers) ? detail.markers : []), [detail]);
 
@@ -260,7 +271,7 @@ export function GLChaptersAdminView() {
     setSpellCodes(
       checked
         ? [...new Set([...chapterForm.spellCodes, c])]
-        : chapterForm.spellCodes.filter((item) => item !== c)
+        : chapterForm.spellCodes.filter((item) => item !== c),
     );
   }
 
@@ -274,7 +285,7 @@ export function GLChaptersAdminView() {
   }
   const mapPreviewStyle = useMemo(
     () => glImageFrameToStyle(normalizeGlImageFrame(chapterForm.mapImageFrame, 'chapter-map')),
-    [chapterForm.mapImageFrame]
+    [chapterForm.mapImageFrame],
   );
   const themePreviewStyle = useMemo(() => {
     const merged = mergeBrandWithChapterTheme(platformBrand, chapterForm.theme);
@@ -282,8 +293,8 @@ export function GLChaptersAdminView() {
   }, [platformBrand, chapterForm.theme]);
 
   async function handleCharteImportApplied() {
-    const slugToReload = chapterForm.slug
-      || chapters.find((c) => Number(c.id) === Number(selectedId))?.slug;
+    const slugToReload =
+      chapterForm.slug || chapters.find((c) => Number(c.id) === Number(selectedId))?.slug;
     await loadChapters();
     if (slugToReload) {
       await loadDetail(slugToReload);
@@ -318,11 +329,7 @@ export function GLChaptersAdminView() {
                   <strong>{chapter.title || chapter.slug}</strong>
                   <span className="gl-hint">{chapter.slug}</span>
                   {Array.isArray(chapter.biomes) && chapter.biomes.length > 0 ? (
-                    <span className="gl-hint">
-                      {chapter.biomes.length}
-                      {' '}
-                      biome(s)
-                    </span>
+                    <span className="gl-hint">{chapter.biomes.length} biome(s)</span>
                   ) : null}
                 </button>
               </li>
@@ -400,7 +407,9 @@ export function GLChaptersAdminView() {
               <div className="gl-map-url-preview">
                 <p className="gl-hint">
                   Aperçu de la carte
-                  {pendingMapPreviewUrl && !chapterForm.mapImageUrl ? ' (fichier local, en attente d’envoi)' : ''}
+                  {pendingMapPreviewUrl && !chapterForm.mapImageUrl
+                    ? ' (fichier local, en attente d’envoi)'
+                    : ''}
                 </p>
                 <GLPctMapCanvas
                   imageUrl={previewMapImageUrl}
@@ -418,14 +427,18 @@ export function GLChaptersAdminView() {
               <input
                 type="number"
                 value={chapterForm.orderIndex}
-                onChange={(event) => setChapterForm({ ...chapterForm, orderIndex: event.target.value })}
+                onChange={(event) =>
+                  setChapterForm({ ...chapterForm, orderIndex: event.target.value })
+                }
               />
             </label>
             <label>
               Plateau narratif (1–5)
               <select
                 value={chapterForm.plateauNumber}
-                onChange={(event) => setChapterForm({ ...chapterForm, plateauNumber: event.target.value })}
+                onChange={(event) =>
+                  setChapterForm({ ...chapterForm, plateauNumber: event.target.value })
+                }
               >
                 <option value="">— Non défini —</option>
                 <option value="1">P1 — Tropiques africains</option>
@@ -438,8 +451,8 @@ export function GLChaptersAdminView() {
 
             <h3>Thème du chapitre</h3>
             <p className="gl-hint">
-              Laissez une couleur vide pour hériter de la charte plateforme. Seules les couleurs renseignées
-              remplacent la charte par défaut pendant une partie.
+              Laissez une couleur vide pour hériter de la charte plateforme. Seules les couleurs
+              renseignées remplacent la charte par défaut pendant une partie.
             </p>
             <GLBrandColorEditor
               sparse
@@ -459,8 +472,12 @@ export function GLChaptersAdminView() {
             <div className="gl-theme-preview gl-app" style={themePreviewStyle} aria-hidden>
               <div className="gl-theme-preview-topbar">Barre haute</div>
               <div className="gl-theme-preview-body">
-                <span className="gl-theme-preview-chip gl-theme-preview-chip--primary">Primaire</span>
-                <span className="gl-theme-preview-chip gl-theme-preview-chip--secondary">Secondaire</span>
+                <span className="gl-theme-preview-chip gl-theme-preview-chip--primary">
+                  Primaire
+                </span>
+                <span className="gl-theme-preview-chip gl-theme-preview-chip--secondary">
+                  Secondaire
+                </span>
                 <span className="gl-theme-preview-text">Texte et liens du chapitre</span>
               </div>
             </div>
@@ -469,20 +486,24 @@ export function GLChaptersAdminView() {
               Histoire (markdown)
               <GLRichTextEditor
                 value={chapterForm.storyMarkdown}
-                onChange={(event) => setChapterForm({ ...chapterForm, storyMarkdown: event.target.value })}
+                onChange={(event) =>
+                  setChapterForm({ ...chapterForm, storyMarkdown: event.target.value })
+                }
                 imageLegend="Images de l'histoire"
               />
               <span className="gl-hint">
-                Astuce : <code>![légende](scene:N)</code> intercale la N-ième scène de récit du chapitre
-                (médiathèque <code>GL_recit_0N-chapN_*</code>) dans le texte ; les autres scènes restent en
-                galerie de fin.
+                Astuce : <code>![légende](scene:N)</code> intercale la N-ième scène de récit du
+                chapitre (médiathèque <code>GL_recit_0N-chapN_*</code>) dans le texte ; les autres
+                scènes restent en galerie de fin.
               </span>
             </label>
             <label>
               Biotope (markdown)
               <GLRichTextEditor
                 value={chapterForm.biotopeMarkdown}
-                onChange={(event) => setChapterForm({ ...chapterForm, biotopeMarkdown: event.target.value })}
+                onChange={(event) =>
+                  setChapterForm({ ...chapterForm, biotopeMarkdown: event.target.value })
+                }
                 imageLegend="Images du biotope"
               />
             </label>
@@ -490,7 +511,9 @@ export function GLChaptersAdminView() {
               Biocénose (markdown)
               <GLRichTextEditor
                 value={chapterForm.biocenoseMarkdown}
-                onChange={(event) => setChapterForm({ ...chapterForm, biocenoseMarkdown: event.target.value })}
+                onChange={(event) =>
+                  setChapterForm({ ...chapterForm, biocenoseMarkdown: event.target.value })
+                }
                 imageLegend="Images de la biocénose"
               />
             </label>
@@ -498,7 +521,9 @@ export function GLChaptersAdminView() {
               Sortilèges (markdown)
               <GLRichTextEditor
                 value={chapterForm.sortilegesMarkdown}
-                onChange={(event) => setChapterForm({ ...chapterForm, sortilegesMarkdown: event.target.value })}
+                onChange={(event) =>
+                  setChapterForm({ ...chapterForm, sortilegesMarkdown: event.target.value })
+                }
                 imageLegend="Images du grimoire"
               />
             </label>
@@ -543,7 +568,9 @@ export function GLChaptersAdminView() {
 
               <h3>Scènes de récit (médiathèque)</h3>
               <GLChapterScenesAdminPanel
-                plateauNumber={chapterForm.plateauNumber === '' ? null : Number(chapterForm.plateauNumber)}
+                plateauNumber={
+                  chapterForm.plateauNumber === '' ? null : Number(chapterForm.plateauNumber)
+                }
                 onInfo={(message) => {
                   setInfo(message);
                   setError('');
@@ -565,7 +592,10 @@ export function GLChaptersAdminView() {
         imageUrl={previewMapImageUrl}
         initialFrame={chapterForm.mapImageFrame}
         onApply={({ frame }) => {
-          setChapterForm((prev) => ({ ...prev, mapImageFrame: normalizeGlImageFrame(frame, 'chapter-map') }));
+          setChapterForm((prev) => ({
+            ...prev,
+            mapImageFrame: normalizeGlImageFrame(frame, 'chapter-map'),
+          }));
           setFrameEditorOpen(false);
         }}
         onClose={() => setFrameEditorOpen(false)}

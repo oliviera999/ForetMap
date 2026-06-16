@@ -13,12 +13,10 @@ test('glMapZoneDetect: traversée détectée', async () => {
       { x: 50, y: 60 },
     ],
   };
-  const hit = findZoneTriggeredOnMoveGeneric(
-    { xp: 30, yp: 50 },
-    { xp: 50, yp: 50 },
-    [zone],
-    { getZonePoints: (z) => z.points, isZoneEligible: () => true },
-  );
+  const hit = findZoneTriggeredOnMoveGeneric({ xp: 30, yp: 50 }, { xp: 50, yp: 50 }, [zone], {
+    getZonePoints: (z) => z.points,
+    isZoneEligible: () => true,
+  });
   assert.strictEqual(hit?.zoneId, 'z1');
 });
 
@@ -33,15 +31,10 @@ test('glMapZoneDetect: zone déjà lue ignorée', async () => {
     ],
   };
   const read = new Set(['z-read']);
-  const hit = findZoneTriggeredOnMoveGeneric(
-    { xp: 30, yp: 50 },
-    { xp: 50, yp: 50 },
-    [zone],
-    {
-      getZonePoints: (z) => z.points,
-      isZoneEligible: (z) => !read.has(z.zoneId),
-    },
-  );
+  const hit = findZoneTriggeredOnMoveGeneric({ xp: 30, yp: 50 }, { xp: 50, yp: 50 }, [zone], {
+    getZonePoints: (z) => z.points,
+    isZoneEligible: (z) => !read.has(z.zoneId),
+  });
   assert.strictEqual(hit, null);
 });
 
@@ -64,11 +57,9 @@ test('glMapZoneDetect: plus petite zone en chevauchement', async () => {
       { x: 50, y: 55 },
     ],
   };
-  const hit = findZoneTriggeredOnMoveGeneric(
-    { xp: 40, yp: 50 },
-    { xp: 50, yp: 50 },
-    [big, small],
-    { getZonePoints: (z) => z.points, isZoneEligible: () => true },
-  );
+  const hit = findZoneTriggeredOnMoveGeneric({ xp: 40, yp: 50 }, { xp: 50, yp: 50 }, [big, small], {
+    getZonePoints: (z) => z.points,
+    isZoneEligible: () => true,
+  });
   assert.strictEqual(hit?.zoneId, 'small');
 });

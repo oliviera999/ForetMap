@@ -29,7 +29,10 @@ test('classifyContentFile reconnaît média PNG et XLSX catalogues', async () =>
   const species = await classifyContentFile('biocenose.xlsx', await buildSpeciesTemplateWorkbook());
   assert.strictEqual(species.kind, 'species');
 
-  const glossary = await classifyContentFile('glossaire-svt.xlsx', await buildGlossaryTemplateWorkbook());
+  const glossary = await classifyContentFile(
+    'glossaire-svt.xlsx',
+    await buildGlossaryTemplateWorkbook(),
+  );
   assert.strictEqual(glossary.kind, 'glossary');
 
   const qcm = await classifyContentFile('qcm.xlsx', await buildQcmTemplateWorkbook());

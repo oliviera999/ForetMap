@@ -16,11 +16,19 @@ function runParams(schema, key, rawValue) {
   const res = {
     statusCode: 200,
     body: null,
-    status(c) { this.statusCode = c; return this; },
-    json(b) { this.body = b; return this; },
+    status(c) {
+      this.statusCode = c;
+      return this;
+    },
+    json(b) {
+      this.body = b;
+      return this;
+    },
   };
   let nextCalled = false;
-  validate({ params: schema })(req, res, () => { nextCalled = true; });
+  validate({ params: schema })(req, res, () => {
+    nextCalled = true;
+  });
   return { nextCalled, status: res.statusCode, body: res.body, parsed: req.validatedParams };
 }
 
@@ -30,7 +38,22 @@ function legacyAccepts(raw) {
 }
 
 const EDGE_VALUES = [
-  '1', '0', '-3', '42', '2.9', '12abc', 'abc', '', ' ', '  7 ', '0x10', '1e3', 'Infinity', '-Infinity', 'NaN', '999999999999',
+  '1',
+  '0',
+  '-3',
+  '42',
+  '2.9',
+  '12abc',
+  'abc',
+  '',
+  ' ',
+  '  7 ',
+  '0x10',
+  '1e3',
+  'Infinity',
+  '-Infinity',
+  'NaN',
+  '999999999999',
 ];
 
 test('idParamSchema : équivalence exacte avec Number()/Number.isFinite sur tous les cas limites', () => {
@@ -46,7 +69,11 @@ test('markerIdParamSchema : équivalence exacte avec Number()/Number.isFinite su
   for (const raw of EDGE_VALUES) {
     const { nextCalled, status } = runParams(markerIdParamSchema, 'markerId', raw);
     const accepts = legacyAccepts(raw);
-    assert.strictEqual(nextCalled, accepts, `markerId=${JSON.stringify(raw)} : next attendu ${accepts}`);
+    assert.strictEqual(
+      nextCalled,
+      accepts,
+      `markerId=${JSON.stringify(raw)} : next attendu ${accepts}`,
+    );
     assert.strictEqual(status, accepts ? 200 : 400, `markerId=${JSON.stringify(raw)} : status`);
   }
 });

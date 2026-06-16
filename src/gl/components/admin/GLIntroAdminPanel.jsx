@@ -63,7 +63,10 @@ export function GLIntroAdminPanel() {
   }
 
   async function resetDefaults() {
-    if (!window.confirm('Réinitialiser tous les textes et clés média depuis le modèle par défaut ?')) return;
+    if (
+      !window.confirm('Réinitialiser tous les textes et clés média depuis le modèle par défaut ?')
+    )
+      return;
     setBusy(true);
     setError('');
     try {
@@ -83,15 +86,17 @@ export function GLIntroAdminPanel() {
 
   const mediaApi = {
     fetchItems: () => apiGL('/api/gl/admin/media-library'),
-    uploadDataUrl: (mediaData) => apiGL('/api/gl/admin/media-library', 'POST', { media_data: mediaData }),
+    uploadDataUrl: (mediaData) =>
+      apiGL('/api/gl/admin/media-library', 'POST', { media_data: mediaData }),
     removeItem: (relativePath) => apiGL('/api/gl/admin/media-library', 'DELETE', { relativePath }),
   };
 
   return (
     <div className="gl-intro-admin">
       <p className="gl-hint">
-        Textes et médias de l&apos;intro cinématique (écran avant connexion). Les images et pistes audio
-        utilisent des clés stables de la bibliothèque média (ex. <code>GL_intro_01_la-boite</code>).
+        Textes et médias de l&apos;intro cinématique (écran avant connexion). Les images et pistes
+        audio utilisent des clés stables de la bibliothèque média (ex.{' '}
+        <code>GL_intro_01_la-boite</code>).
       </p>
 
       {error ? <p className="gl-error">{error}</p> : null}
@@ -116,7 +121,9 @@ export function GLIntroAdminPanel() {
             checked={draft.enabled !== false}
             onChange={(event) => setDraft((prev) => ({ ...prev, enabled: event.target.checked }))}
           />
-          <span>Contenu intro publié (désactiver masque l&apos;intro même si le module est actif)</span>
+          <span>
+            Contenu intro publié (désactiver masque l&apos;intro même si le module est actif)
+          </span>
         </label>
       </GLField>
 
@@ -125,37 +132,45 @@ export function GLIntroAdminPanel() {
         <GLField label="Surtitre">
           <GLInput
             value={draft.opening?.kicker || ''}
-            onChange={(event) => setDraft((prev) => ({
-              ...prev,
-              opening: { ...prev.opening, kicker: event.target.value },
-            }))}
+            onChange={(event) =>
+              setDraft((prev) => ({
+                ...prev,
+                opening: { ...prev.opening, kicker: event.target.value },
+              }))
+            }
           />
         </GLField>
         <GLField label="Titre (HTML autorisé)">
           <GLInput
             value={draft.opening?.titleHtml || ''}
-            onChange={(event) => setDraft((prev) => ({
-              ...prev,
-              opening: { ...prev.opening, titleHtml: event.target.value },
-            }))}
+            onChange={(event) =>
+              setDraft((prev) => ({
+                ...prev,
+                opening: { ...prev.opening, titleHtml: event.target.value },
+              }))
+            }
           />
         </GLField>
         <GLField label="Crédit">
           <GLInput
             value={draft.opening?.credit || ''}
-            onChange={(event) => setDraft((prev) => ({
-              ...prev,
-              opening: { ...prev.opening, credit: event.target.value },
-            }))}
+            onChange={(event) =>
+              setDraft((prev) => ({
+                ...prev,
+                opening: { ...prev.opening, credit: event.target.value },
+              }))
+            }
           />
         </GLField>
         <GLField label="Bouton">
           <GLInput
             value={draft.opening?.button || ''}
-            onChange={(event) => setDraft((prev) => ({
-              ...prev,
-              opening: { ...prev.opening, button: event.target.value },
-            }))}
+            onChange={(event) =>
+              setDraft((prev) => ({
+                ...prev,
+                opening: { ...prev.opening, button: event.target.value },
+              }))
+            }
           />
         </GLField>
       </section>
@@ -165,19 +180,23 @@ export function GLIntroAdminPanel() {
         <GLField label="Clé média — boucle (scènes 1 à 8)">
           <GLInput
             value={draft.audio?.loopKey || ''}
-            onChange={(event) => setDraft((prev) => ({
-              ...prev,
-              audio: { ...prev.audio, loopKey: event.target.value },
-            }))}
+            onChange={(event) =>
+              setDraft((prev) => ({
+                ...prev,
+                audio: { ...prev.audio, loopKey: event.target.value },
+              }))
+            }
           />
         </GLField>
         <GLField label="Clé média — cue final (scène 9)">
           <GLInput
             value={draft.audio?.finalKey || ''}
-            onChange={(event) => setDraft((prev) => ({
-              ...prev,
-              audio: { ...prev.audio, finalKey: event.target.value },
-            }))}
+            onChange={(event) =>
+              setDraft((prev) => ({
+                ...prev,
+                audio: { ...prev.audio, finalKey: event.target.value },
+              }))
+            }
           />
         </GLField>
         <MediaLibraryMenu
@@ -196,8 +215,7 @@ export function GLIntroAdminPanel() {
         {(draft.scenes || []).map((scene, index) => (
           <details key={scene.id} className="gl-intro-admin__scene" open={index === 0}>
             <summary>
-              {index + 1}. {scene.id}
-              {' '}
+              {index + 1}. {scene.id}{' '}
               <span className="gl-hint">({VOICE_LABELS[scene.voice] || scene.voice})</span>
             </summary>
             <GLField label="Kicker">
@@ -237,10 +255,12 @@ export function GLIntroAdminPanel() {
         <GLField label="Bouton CTA">
           <GLInput
             value={draft.finale?.button || ''}
-            onChange={(event) => setDraft((prev) => ({
-              ...prev,
-              finale: { ...prev.finale, button: event.target.value },
-            }))}
+            onChange={(event) =>
+              setDraft((prev) => ({
+                ...prev,
+                finale: { ...prev.finale, button: event.target.value },
+              }))
+            }
           />
         </GLField>
       </section>

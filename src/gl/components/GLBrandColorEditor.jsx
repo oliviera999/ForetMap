@@ -26,7 +26,10 @@ export function GLBrandColorEditor({
   inheritedColors = null,
 }) {
   const colors = value && typeof value === 'object' ? value : {};
-  const inherited = inheritedColors && typeof inheritedColors === 'object' ? inheritedColors : DEFAULT_GL_BRAND_COLORS;
+  const inherited =
+    inheritedColors && typeof inheritedColors === 'object'
+      ? inheritedColors
+      : DEFAULT_GL_BRAND_COLORS;
 
   function patchColor(key, nextRaw) {
     const normalized = normalizeHexInput(nextRaw);
@@ -42,7 +45,8 @@ export function GLBrandColorEditor({
       return;
     }
     onChange?.((prev) => {
-      const prevColors = prev && typeof prev === 'object' ? { ...prev } : { ...DEFAULT_GL_BRAND_COLORS };
+      const prevColors =
+        prev && typeof prev === 'object' ? { ...prev } : { ...DEFAULT_GL_BRAND_COLORS };
       const fallback = inherited[key] || DEFAULT_GL_BRAND_COLORS[key];
       const next = isValidHexColor(normalized) ? normalized.toLowerCase() : fallback;
       return { ...prevColors, [key]: next };
@@ -75,10 +79,13 @@ export function GLBrandColorEditor({
         {GL_BRAND_COLOR_KEYS.map((key) => {
           const current = colors[key] || '';
           const effective = current || inherited[key] || DEFAULT_GL_BRAND_COLORS[key];
-          const pickerValue = isValidHexColor(current) ? current : (isValidHexColor(effective) ? effective : '#000000');
-          const hint = sparse && !current
-            ? `Hérite : ${inherited[key] || DEFAULT_GL_BRAND_COLORS[key]}`
-            : '';
+          const pickerValue = isValidHexColor(current)
+            ? current
+            : isValidHexColor(effective)
+              ? effective
+              : '#000000';
+          const hint =
+            sparse && !current ? `Hérite : ${inherited[key] || DEFAULT_GL_BRAND_COLORS[key]}` : '';
           return (
             <label key={key} className="gl-color-editor-field">
               <span className="gl-color-editor-label">{GL_BRAND_COLOR_LABELS[key] || key}</span>

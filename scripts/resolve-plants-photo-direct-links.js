@@ -112,7 +112,7 @@ async function fetchJson(url, timeoutMs = 15000) {
             reject(new Error(`JSON invalide: ${err.message}`));
           }
         });
-      }
+      },
     );
 
     req.setTimeout(timeoutMs, () => {
@@ -216,10 +216,9 @@ async function resolveFromWikiPage(urlValue, pageCache) {
 }
 
 function buildSearchQueries(plant, fieldName) {
-  const baseNames = [
-    (plant.scientific_name || '').trim(),
-    (plant.name || '').trim(),
-  ].filter(Boolean);
+  const baseNames = [(plant.scientific_name || '').trim(), (plant.name || '').trim()].filter(
+    Boolean,
+  );
 
   const fieldHints = {
     photo: [''],
@@ -303,7 +302,7 @@ async function main() {
   const rows = await queryAll(
     `SELECT id, name, scientific_name, harvest_part, photo, photo_species, photo_leaf, photo_flower, photo_fruit, photo_harvest_part
      FROM plants
-     ORDER BY id`
+     ORDER BY id`,
   );
 
   const selectedRows = limit ? rows.slice(0, limit) : rows;
@@ -399,4 +398,3 @@ module.exports = {
   splitCandidates,
   isDirectImageUrl,
 };
-

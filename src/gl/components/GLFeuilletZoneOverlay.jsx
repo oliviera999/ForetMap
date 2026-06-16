@@ -33,16 +33,20 @@ export function GLFeuilletZoneOverlay({
     >
       {zones.map((zone) => {
         const isRead = presentedSet.has(String(zone.zoneId));
-        const near = watchPosition && !isRead
-          ? distancePct(watchPosition.xp, watchPosition.yp, zone.centreXp, zone.centreYp) <= NEAR_THRESHOLD_PCT
-          : false;
+        const near =
+          watchPosition && !isRead
+            ? distancePct(watchPosition.xp, watchPosition.yp, zone.centreXp, zone.centreYp) <=
+              NEAR_THRESHOLD_PCT
+            : false;
         const isSelected = editMode && selectedZoneId === zone.zoneId;
         const classes = [
           'gl-feuillet-zone-polygon',
           isRead ? 'is-read' : '',
           near ? 'is-near' : '',
           isSelected ? 'is-selected' : '',
-        ].filter(Boolean).join(' ');
+        ]
+          .filter(Boolean)
+          .join(' ');
 
         return (
           <g key={zone.zoneId} className="gl-feuillet-zone-group">

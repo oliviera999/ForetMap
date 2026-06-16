@@ -6,7 +6,13 @@ const assert = require('node:assert');
 const request = require('supertest');
 const { app } = require('../server');
 const { initSchema, queryOne, execute } = require('../database');
-const { createGlAdmin, createGlClass, createGlGameWithTeams, createGlPlayer, signTokens } = require('./helpers/glFixtures');
+const {
+  createGlAdmin,
+  createGlClass,
+  createGlGameWithTeams,
+  createGlPlayer,
+  signTokens,
+} = require('./helpers/glFixtures');
 const { signAuthToken } = require('../middleware/requireTeacher');
 
 let adminToken = '';
@@ -128,7 +134,9 @@ test('GET /api/gl/mascots?gameId=... renvoie les assignations actuelles', async 
     .get(`/api/gl/mascots?gameId=${gameId}`)
     .set('Authorization', `Bearer ${adminToken}`)
     .expect(200);
-  const map = Object.fromEntries((res.body?.assignments || []).map((a) => [Number(a.team_id), a.mascot_id]));
+  const map = Object.fromEntries(
+    (res.body?.assignments || []).map((a) => [Number(a.team_id), a.mascot_id]),
+  );
   assert.strictEqual(map[Number(teamAId)], 'renard2-cut-spritesheet');
   assert.strictEqual(map[Number(teamBId)], 'gl-licorne-aube');
 });
@@ -238,18 +246,23 @@ test('GET /api/gl/mascots expose les packs visit publiés et GL persistés', asy
     .send({ name: 'Pack GL catalogue', payload: glPayload })
     .expect(201);
 
-  const teacher = await queryOne("SELECT id FROM users WHERE user_type = 'teacher' ORDER BY id ASC LIMIT 1");
+  const teacher = await queryOne(
+    "SELECT id FROM users WHERE user_type = 'teacher' ORDER BY id ASC LIMIT 1",
+  );
   const adminRole = await queryOne("SELECT id FROM roles WHERE slug = 'admin' LIMIT 1");
   assert.ok(teacher?.id && adminRole?.id);
-  const teacherToken = await signAuthToken({
-    userType: 'teacher',
-    userId: teacher.id,
-    canonicalUserId: teacher.id,
-    roleId: adminRole.id,
-    roleSlug: 'admin',
-    roleDisplayName: 'Administrateur',
-    elevated: true,
-  }, true);
+  const teacherToken = await signAuthToken(
+    {
+      userType: 'teacher',
+      userId: teacher.id,
+      canonicalUserId: teacher.id,
+      roleId: adminRole.id,
+      roleSlug: 'admin',
+      roleDisplayName: 'Administrateur',
+      elevated: true,
+    },
+    true,
+  );
 
   const visitCreated = await request(app)
     .post('/api/visit/mascot-packs')

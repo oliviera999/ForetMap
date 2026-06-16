@@ -29,12 +29,18 @@ export function VisitGuestMascotOnboarding({
   }, [requested]);
   if (!open) return null;
   return (
-    <div className="visit-mascot-onboarding" role="dialog" aria-modal="true" aria-label="Choix de la mascotte">
+    <div
+      className="visit-mascot-onboarding"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Choix de la mascotte"
+    >
       <div className="visit-mascot-onboarding__card">
         <p className="visit-mascot-onboarding__eyebrow">Bienvenue dans la visite</p>
         <h3>Choisis ta mascotte guide</h3>
         <p>
-          Avant de commencer, sélectionne ton compagnon de balade. Tu pourras le changer plus tard pendant la visite.
+          Avant de commencer, sélectionne ton compagnon de balade. Tu pourras le changer plus tard
+          pendant la visite.
         </p>
         <div className="visit-mascot-onboarding__grid" role="list">
           {mascotOptions.map((mascot) => {

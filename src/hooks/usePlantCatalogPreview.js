@@ -17,12 +17,15 @@ import { useCallback, useState } from 'react';
 export function usePlantCatalogPreview(plants) {
   const [plantCatalogPreview, setPlantCatalogPreview] = useState(null);
 
-  const openPlantCatalogPreviewById = useCallback((plantId) => {
-    const id = Number(plantId);
-    if (!Number.isFinite(id) || id <= 0) return;
-    const p = (plants || []).find((x) => Number(x.id) === id);
-    if (p) setPlantCatalogPreview(p);
-  }, [plants]);
+  const openPlantCatalogPreviewById = useCallback(
+    (plantId) => {
+      const id = Number(plantId);
+      if (!Number.isFinite(id) || id <= 0) return;
+      const p = (plants || []).find((x) => Number(x.id) === id);
+      if (p) setPlantCatalogPreview(p);
+    },
+    [plants],
+  );
 
   return {
     plantCatalogPreview,

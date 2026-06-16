@@ -1,6 +1,6 @@
-require("dotenv").config();
-const { initSchema } = require("../database");
-const { runRecurringTaskSpawnJob } = require("../lib/recurringTasks");
+require('dotenv').config();
+const { initSchema } = require('../database');
+const { runRecurringTaskSpawnJob } = require('../lib/recurringTasks');
 
 (async () => {
   try {

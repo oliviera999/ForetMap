@@ -27,7 +27,7 @@ function main() {
     if (runCode !== 0) process.exit(runCode);
 
     const reportCode = run(
-      `node scripts/render-load-report.js "load/report.json" "load/reports/${profile}-summary.md"`
+      `node scripts/render-load-report.js "load/report.json" "load/reports/${profile}-summary.md"`,
     );
     if (reportCode !== 0) process.exit(reportCode);
   }

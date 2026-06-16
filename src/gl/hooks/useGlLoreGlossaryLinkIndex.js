@@ -27,7 +27,9 @@ export function useGlLoreGlossaryLinkIndex(authToken) {
         if (!cancelled) setItems([]);
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [authToken]);
 
   return items;

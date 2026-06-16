@@ -90,95 +90,110 @@ async function hasExistingLearningAck(reader, targetType, targetCode) {
       WHERE reader_user_type = ? AND reader_user_id = ?
         AND target_type = ? AND target_code = ?
       LIMIT 1`,
-    [reader.reader_user_type, reader.reader_user_id, targetType, targetCode]
+    [reader.reader_user_type, reader.reader_user_id, targetType, targetCode],
   );
   return !!row;
 }
 
 /** POST /api/gl/learning/species/:code — marquer une espèce comme étudiée. */
-router.post('/species/:code', requireGlAuth, validate({ body: confirmBodySchema, params: learningCodeParamsSchema }), async (req, res) => {
-  const confirm = parseConfirmBody(req.body);
-  if (!confirm.ok) return res.status(400).json({ error: confirm.error });
-  const reader = buildReaderKey(req.glAuth);
-  if (!reader) return res.status(403).json({ error: 'Profil invalide' });
-  const code = normalizeTargetCode(req.params.code);
-  if (!code) return res.status(400).json({ error: 'Identifiant invalide' });
+router.post(
+  '/species/:code',
+  requireGlAuth,
+  validate({ body: confirmBodySchema, params: learningCodeParamsSchema }),
+  async (req, res) => {
+    const confirm = parseConfirmBody(req.body);
+    if (!confirm.ok) return res.status(400).json({ error: confirm.error });
+    const reader = buildReaderKey(req.glAuth);
+    if (!reader) return res.status(403).json({ error: 'Profil invalide' });
+    const code = normalizeTargetCode(req.params.code);
+    if (!code) return res.status(400).json({ error: 'Identifiant invalide' });
 
-  const species = await queryOne(
-    "SELECT species_code, biome_slug FROM gl_species WHERE species_code = ? AND statut = 'actif' LIMIT 1",
-    [code]
-  );
-  if (!species) return res.status(404).json({ error: 'Ressource introuvable' });
+    const species = await queryOne(
+      "SELECT species_code, biome_slug FROM gl_species WHERE species_code = ? AND statut = 'actif' LIMIT 1",
+      [code],
+    );
+    if (!species) return res.status(404).json({ error: 'Ressource introuvable' });
 
-  const alreadyStudied = await hasExistingLearningAck(reader, 'species', code);
-  await upsertLearningAck(db, reader, 'species', code);
+    const alreadyStudied = await hasExistingLearningAck(reader, 'species', code);
+    await upsertLearningAck(db, reader, 'species', code);
 
-  const response = {
-    success: true,
-    target_type: 'species',
-    target_code: code,
-  };
+    const response = {
+      success: true,
+      target_type: 'species',
+      target_code: code,
+    };
 
-  if (!alreadyStudied) {
-    const gameId = parseGlId(req.body?.gameId ?? req.glAuth.gameId);
-    if (gameId) {
-      const modules = await getGlModulesSettings();
-      if (modules.loreCarnetEnabled && await canAccessGlGame(req.glAuth, gameId)) {
-        const teamCtx = await resolveTeamContext(req, gameId, req.body?.teamId);
-        if (!teamCtx.error) {
-          const isMj = req.glAuth.userType === 'gl_admin';
-          const actorType = isMj ? 'mj' : 'team';
-          const feuilletRevealed = await revealFeuilletForSpeciesStudy(db, {
-            gameId,
-            teamId: teamCtx.teamId,
-            speciesCode: code,
-            biomeSlug: species.biome_slug,
-            actorType,
-            actorId: String(req.glAuth.userId),
-            isMj,
-          });
-          if (feuilletRevealed) {
-            response.feuilletRevealed = feuilletRevealed;
+    if (!alreadyStudied) {
+      const gameId = parseGlId(req.body?.gameId ?? req.glAuth.gameId);
+      if (gameId) {
+        const modules = await getGlModulesSettings();
+        if (modules.loreCarnetEnabled && (await canAccessGlGame(req.glAuth, gameId))) {
+          const teamCtx = await resolveTeamContext(req, gameId, req.body?.teamId);
+          if (!teamCtx.error) {
+            const isMj = req.glAuth.userType === 'gl_admin';
+            const actorType = isMj ? 'mj' : 'team';
+            const feuilletRevealed = await revealFeuilletForSpeciesStudy(db, {
+              gameId,
+              teamId: teamCtx.teamId,
+              speciesCode: code,
+              biomeSlug: species.biome_slug,
+              actorType,
+              actorId: String(req.glAuth.userId),
+              isMj,
+            });
+            if (feuilletRevealed) {
+              response.feuilletRevealed = feuilletRevealed;
+            }
           }
         }
       }
     }
-  }
 
-  return res.json(response);
-});
+    return res.json(response);
+  },
+);
 
 /** POST /api/gl/learning/glossary/:code — marquer un terme de glossaire comme appris. */
-router.post('/glossary/:code', requireGlAuth, validate({ body: confirmBodySchema, params: learningCodeParamsSchema }), async (req, res) => {
-  return handleAcknowledge(req, res, {
-    targetType: 'glossary',
-    resolveTarget: async (targetCode) => {
-      const row = await queryOne(
-        "SELECT glossary_code FROM gl_glossary_terms WHERE glossary_code = ? AND statut = 'actif' LIMIT 1",
-        [targetCode]
-      );
-      return !!row;
-    },
-  });
-});
+router.post(
+  '/glossary/:code',
+  requireGlAuth,
+  validate({ body: confirmBodySchema, params: learningCodeParamsSchema }),
+  async (req, res) => {
+    return handleAcknowledge(req, res, {
+      targetType: 'glossary',
+      resolveTarget: async (targetCode) => {
+        const row = await queryOne(
+          "SELECT glossary_code FROM gl_glossary_terms WHERE glossary_code = ? AND statut = 'actif' LIMIT 1",
+          [targetCode],
+        );
+        return !!row;
+      },
+    });
+  },
+);
 
 /** POST /api/gl/learning/tutorials/:id — marquer un tutoriel GL comme lu. */
-router.post('/tutorials/:id', requireGlAuth, validate({ params: tutorialIdParamsSchema }), async (req, res) => {
-  const id = Number(req.params.id);
-  if (!Number.isFinite(id) || id <= 0) {
-    return res.status(400).json({ error: 'Identifiant invalide' });
-  }
-  req.params.code = String(id);
-  return handleAcknowledge(req, res, {
-    targetType: 'tutorial',
-    resolveTarget: async (targetCode) => {
-      const tid = Number(targetCode);
-      if (!Number.isFinite(tid) || tid <= 0) return false;
-      const row = await queryOne('SELECT id FROM gl_tutorials WHERE id = ? LIMIT 1', [tid]);
-      return !!row;
-    },
-  });
-});
+router.post(
+  '/tutorials/:id',
+  requireGlAuth,
+  validate({ params: tutorialIdParamsSchema }),
+  async (req, res) => {
+    const id = Number(req.params.id);
+    if (!Number.isFinite(id) || id <= 0) {
+      return res.status(400).json({ error: 'Identifiant invalide' });
+    }
+    req.params.code = String(id);
+    return handleAcknowledge(req, res, {
+      targetType: 'tutorial',
+      resolveTarget: async (targetCode) => {
+        const tid = Number(targetCode);
+        if (!Number.isFinite(tid) || tid <= 0) return false;
+        const row = await queryOne('SELECT id FROM gl_tutorials WHERE id = ? LIMIT 1', [tid]);
+        return !!row;
+      },
+    });
+  },
+);
 
 module.exports = router;
 module.exports.confirmBodySchema = confirmBodySchema; // exporté pour test no-DB du contrat O7

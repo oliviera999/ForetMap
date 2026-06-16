@@ -17,7 +17,9 @@ export function GLZoneMusicMuteButton({
       title={muted ? 'Activer la musique des zones' : 'Couper la musique des zones'}
       onClick={onToggle}
     >
-      <span className="gl-zone-music-toggle-icon" aria-hidden>{muted ? '🔇' : '🎵'}</span>
+      <span className="gl-zone-music-toggle-icon" aria-hidden>
+        {muted ? '🔇' : '🎵'}
+      </span>
       <span className="gl-zone-music-toggle-label">{muted ? 'Son off' : 'Son on'}</span>
     </button>
   );

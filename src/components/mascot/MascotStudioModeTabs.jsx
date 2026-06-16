@@ -14,7 +14,11 @@ import React from 'react';
  */
 export default function MascotStudioModeTabs({ modes, activeMode, onSelectMode }) {
   return (
-    <div className="visit-mascot-pack-manager__studio-modes" role="tablist" style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+    <div
+      className="visit-mascot-pack-manager__studio-modes"
+      role="tablist"
+      style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}
+    >
       {modes.map((mode) => (
         <button
           key={mode.id}

@@ -25,28 +25,43 @@ export function GLAppBanners({
 
       {isStaffPlayerPreview ? (
         <div className="role-preview-banner fade-in" role="status">
-          <span className="role-preview-banner__icon" aria-hidden>🎮</span>
+          <span className="role-preview-banner__icon" aria-hidden>
+            🎮
+          </span>
           <div className="role-preview-banner__text">
             <strong>Vue joueur (aperçu)</strong>
             <span>
-              Navigation limitée aux onglets joueur. Tes droits MJ/admin restent actifs côté serveur.
+              Navigation limitée aux onglets joueur. Tes droits MJ/admin restent actifs côté
+              serveur.
             </span>
           </div>
         </div>
       ) : null}
 
       {impersonationBanner ? (
-        <div className="role-preview-banner role-preview-banner--impersonation fade-in" role="status">
-          <span className="role-preview-banner__icon" aria-hidden>👤</span>
+        <div
+          className="role-preview-banner role-preview-banner--impersonation fade-in"
+          role="status"
+        >
+          <span className="role-preview-banner__icon" aria-hidden>
+            👤
+          </span>
           <div className="role-preview-banner__text" style={{ flex: '1 1 200px' }}>
             <strong>{impersonationBanner.title}</strong>
             <span>
-              Tu navigues avec l’identité de <strong>{String(impersonatedDisplayName || 'joueur')}</strong>.
-              Les actions sont enregistrées pour ce compte.
+              Tu navigues avec l’identité de{' '}
+              <strong>{String(impersonatedDisplayName || 'joueur')}</strong>. Les actions sont
+              enregistrées pour ce compte.
             </span>
           </div>
           <div className="impersonation-banner-actions">
-            <GLButton type="button" size="sm" onClick={() => { onStopImpersonation?.(); }}>
+            <GLButton
+              type="button"
+              size="sm"
+              onClick={() => {
+                onStopImpersonation?.();
+              }}
+            >
               {impersonationBanner.stopLabel}
             </GLButton>
           </div>

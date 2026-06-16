@@ -27,7 +27,7 @@ describe('TeacherLeaderboard', () => {
         students={[student(1, 'Léa', 'Martin')]}
         search="zzz"
         roleTerms={ROLE_TERMS}
-      />
+      />,
     );
     expect(screen.getByText('Aucun n3beur ne correspond à ta recherche')).toBeTruthy();
     expect(screen.queryByText('Léa Martin')).toBeNull();
@@ -40,7 +40,9 @@ describe('TeacherLeaderboard', () => {
       student(3, 'Zoé', 'Petit', { done: 4 }),
       student(4, 'Ali', 'Ben', { done: 1 }),
     ];
-    const { container } = render(<TeacherLeaderboard students={students} search="" roleTerms={ROLE_TERMS} />);
+    const { container } = render(
+      <TeacherLeaderboard students={students} search="" roleTerms={ROLE_TERMS} />,
+    );
     const ranks = [...container.querySelectorAll('.lb-rank')];
     expect(ranks.map((el) => el.textContent)).toEqual(['🥇', '🥈', '🥉', '4.']);
     expect(ranks[0].className).toContain('gold');
@@ -53,7 +55,9 @@ describe('TeacherLeaderboard', () => {
       student(1, 'Léa', 'Martin', { done: 9 }),
       student(2, 'Tom', 'Roy', { done: 7 }),
     ];
-    const { container } = render(<TeacherLeaderboard students={students} search="tom" roleTerms={ROLE_TERMS} />);
+    const { container } = render(
+      <TeacherLeaderboard students={students} search="tom" roleTerms={ROLE_TERMS} />,
+    );
     const ranks = [...container.querySelectorAll('.lb-rank')];
     expect(ranks).toHaveLength(1);
     expect(ranks[0].textContent).toBe('🥈');
@@ -65,21 +69,33 @@ describe('TeacherLeaderboard', () => {
         1,
         'Léa',
         'Martin',
-        { done: 3, pending: 1, submitted: 2, total: 4, plant_species_observed: 5, plant_observation_events: 8, tutorials_read: 2 },
+        {
+          done: 3,
+          pending: 1,
+          submitted: 2,
+          total: 4,
+          plant_species_observed: 5,
+          plant_observation_events: 8,
+          tutorials_read: 2,
+        },
         {
           pseudo: 'lea_m',
           description: 'J’arrose souvent.',
           progression: { roleDisplayName: 'n3beur avancé', roleEmoji: '🌿' },
-        }
+        },
       ),
     ];
-    const { container } = render(<TeacherLeaderboard students={students} search="" roleTerms={ROLE_TERMS} />);
+    const { container } = render(
+      <TeacherLeaderboard students={students} search="" roleTerms={ROLE_TERMS} />,
+    );
     expect(screen.getByText('@lea_m')).toBeTruthy();
     expect(screen.getByText('J’arrose souvent.')).toBeTruthy();
     expect(screen.getByText('Profil : 🌿 n3beur avancé')).toBeTruthy();
     expect(screen.getByText('75%')).toBeTruthy(); // 3 validées / 4 prises
     expect(screen.getByText('Jamais connecté')).toBeTruthy();
-    const nums = [...container.querySelectorAll('.lb-stat .lb-stat-num')].map((el) => el.textContent);
+    const nums = [...container.querySelectorAll('.lb-stat .lb-stat-num')].map(
+      (el) => el.textContent,
+    );
     expect(nums).toEqual(['3', '2', '1', '4', '75%', '5', '8', '2']);
   });
 
@@ -89,7 +105,7 @@ describe('TeacherLeaderboard', () => {
         students={[student(1, 'Léa', 'Martin', { done: 0, total: 0 })]}
         search=""
         roleTerms={ROLE_TERMS}
-      />
+      />,
     );
     expect(screen.getByText('0%')).toBeTruthy();
   });

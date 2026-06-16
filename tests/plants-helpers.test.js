@@ -39,7 +39,8 @@ describe('plantsRouteHelpers (logique pure de routes/plants.js, sans DB)', () =>
   it('constantes : PLANT_COLUMNS = name/emoji/description + champs étendus, photos incluses', () => {
     assert.deepEqual(PLANT_COLUMNS.slice(0, 3), ['name', 'emoji', 'description']);
     assert.deepEqual(PLANT_COLUMNS, ['name', 'emoji', 'description', ...PLANT_EXTRA_FIELDS]);
-    for (const f of PHOTO_FIELDS) assert.ok(PLANT_EXTRA_FIELDS.includes(f), `photo ${f} dans PLANT_EXTRA_FIELDS`);
+    for (const f of PHOTO_FIELDS)
+      assert.ok(PLANT_EXTRA_FIELDS.includes(f), `photo ${f} dans PLANT_EXTRA_FIELDS`);
     assert.deepEqual([...IMPORT_STRATEGIES].sort(), ['insert_only', 'replace_all', 'upsert_name']);
   });
 
@@ -51,7 +52,7 @@ describe('plantsRouteHelpers (logique pure de routes/plants.js, sans DB)', () =>
     assert.equal(hasOwn(undefined, 'a'), false);
   });
 
-  it('asTrimmedString / asOptionalText : null → \'\' / null, trim sinon', () => {
+  it("asTrimmedString / asOptionalText : null → '' / null, trim sinon", () => {
     assert.equal(asTrimmedString(null), '');
     assert.equal(asTrimmedString('  a  '), 'a');
     assert.equal(asTrimmedString(12), '12');
@@ -131,7 +132,10 @@ describe('plantsRouteHelpers (logique pure de routes/plants.js, sans DB)', () =>
     assert.equal(isDevLocalhostHttp(new URL('http://example.com/a.png')), false);
     assert.equal(isDevLocalhostHttp(new URL('https://localhost/a.png')), false);
     assert.equal(isDirectImageUrl(new URL('https://x.fr/img/photo.JPG')), true);
-    assert.equal(isDirectImageUrl(new URL('https://commons.wikimedia.org/wiki/Special:FilePath/Quercus.jpg')), true);
+    assert.equal(
+      isDirectImageUrl(new URL('https://commons.wikimedia.org/wiki/Special:FilePath/Quercus.jpg')),
+      true,
+    );
     assert.equal(isDirectImageUrl(new URL('https://x.fr/page.html')), false);
   });
 
@@ -155,37 +159,58 @@ describe('plantsRouteHelpers (logique pure de routes/plants.js, sans DB)', () =>
     assert.equal(extractUploadsRelativePath('https://foretmap.fr/autre/b.jpg'), null);
     assert.equal(extractUploadsRelativePath('pas-une-url'), null);
     assert.deepEqual(
-      extractUploadsRelativePaths('/uploads/a.png\nhttps://x.fr/uploads/b.jpg, /uploads/a.png\nhttps://x.fr/c.jpg'),
-      ['a.png', 'b.jpg']
+      extractUploadsRelativePaths(
+        '/uploads/a.png\nhttps://x.fr/uploads/b.jpg, /uploads/a.png\nhttps://x.fr/c.jpg',
+      ),
+      ['a.png', 'b.jpg'],
     );
   });
 
   it('validateHttpsPhotoLinks : URLs https directes et /uploads/ valides → null', () => {
     assert.equal(validateHttpsPhotoLinks({}), null);
-    assert.equal(validateHttpsPhotoLinks({ photo: 'https://x.fr/a.jpg\n/uploads/plants/1/b.png' }), null);
+    assert.equal(
+      validateHttpsPhotoLinks({ photo: 'https://x.fr/a.jpg\n/uploads/plants/1/b.png' }),
+      null,
+    );
     assert.equal(validateHttpsPhotoLinks({ photo_leaf: 'http://localhost:5173/a.png' }), null);
   });
 
   it('validateHttpsPhotoLinks : http public, URL invalide, page non image, /uploads/ sans extension refusés', () => {
-    assert.match(String(validateHttpsPhotoLinks({ photo: 'http://x.fr/a.jpg' })), /^photo: seules les URLs HTTPS/);
-    assert.match(String(validateHttpsPhotoLinks({ photo_fruit: 'pas une url' })), /^photo_fruit: URL invalide/);
-    assert.match(String(validateHttpsPhotoLinks({ photo: 'https://x.fr/page.html' })), /URL d'image directe requise/);
-    assert.match(String(validateHttpsPhotoLinks({ photo: '/uploads/plants/1/b' })), /chemin local invalide/);
-    assert.equal(validateHttpsPhotoLinks({ autre_champ: 'pas une url' }), null, 'seuls les champs photo sont validés');
+    assert.match(
+      String(validateHttpsPhotoLinks({ photo: 'http://x.fr/a.jpg' })),
+      /^photo: seules les URLs HTTPS/,
+    );
+    assert.match(
+      String(validateHttpsPhotoLinks({ photo_fruit: 'pas une url' })),
+      /^photo_fruit: URL invalide/,
+    );
+    assert.match(
+      String(validateHttpsPhotoLinks({ photo: 'https://x.fr/page.html' })),
+      /URL d'image directe requise/,
+    );
+    assert.match(
+      String(validateHttpsPhotoLinks({ photo: '/uploads/plants/1/b' })),
+      /chemin local invalide/,
+    );
+    assert.equal(
+      validateHttpsPhotoLinks({ autre_champ: 'pas une url' }),
+      null,
+      'seuls les champs photo sont validés',
+    );
   });
 
   it('toGoogleSheetCsvUrl : URL Sheets → export CSV avec gid (query ou hash), sinon null', () => {
     assert.equal(
       toGoogleSheetCsvUrl('https://docs.google.com/spreadsheets/d/ABC-123_x/edit#gid=42'),
-      'https://docs.google.com/spreadsheets/d/ABC-123_x/export?format=csv&gid=42'
+      'https://docs.google.com/spreadsheets/d/ABC-123_x/export?format=csv&gid=42',
     );
     assert.equal(
       toGoogleSheetCsvUrl('https://docs.google.com/spreadsheets/d/ABC/edit?gid=7'),
-      'https://docs.google.com/spreadsheets/d/ABC/export?format=csv&gid=7'
+      'https://docs.google.com/spreadsheets/d/ABC/export?format=csv&gid=7',
     );
     assert.equal(
       toGoogleSheetCsvUrl('https://docs.google.com/spreadsheets/d/ABC'),
-      'https://docs.google.com/spreadsheets/d/ABC/export?format=csv&gid=0'
+      'https://docs.google.com/spreadsheets/d/ABC/export?format=csv&gid=0',
     );
     assert.equal(toGoogleSheetCsvUrl('https://example.com/spreadsheets/d/ABC'), null);
     assert.equal(toGoogleSheetCsvUrl('pas une url'), null);
@@ -213,7 +238,12 @@ describe('plantsRouteHelpers (logique pure de routes/plants.js, sans DB)', () =>
   it('buildPlantPayload : dérive group_4 (végétal → group_3) si laissé vide', () => {
     const p = buildPlantPayload({ name: 'Chêne', group_1: 'Végétal', group_3: 'Fagacées' });
     assert.equal(p.group_4, 'Fagacées');
-    const q = buildPlantPayload({ name: 'Chêne', group_1: 'Végétal', group_3: 'Fagacées', group_4: 'Déjà' });
+    const q = buildPlantPayload({
+      name: 'Chêne',
+      group_1: 'Végétal',
+      group_3: 'Fagacées',
+      group_4: 'Déjà',
+    });
     assert.equal(q.group_4, 'Déjà');
   });
 
@@ -223,7 +253,14 @@ describe('plantsRouteHelpers (logique pure de routes/plants.js, sans DB)', () =>
       strategy: 'upsert_name',
       dryRun: true,
       sourceType: 'csv',
-      totals: { received: 12, valid: 0, created: 0, updated: 0, skipped_existing: 0, skipped_invalid: 0 },
+      totals: {
+        received: 12,
+        valid: 0,
+        created: 0,
+        updated: 0,
+        skipped_existing: 0,
+        skipped_invalid: 0,
+      },
       preview: [],
       errors: [],
     });
@@ -239,18 +276,24 @@ describe('plantsRouteHelpers (logique pure de routes/plants.js, sans DB)', () =>
   });
 
   it('validateImportPayloadRow : photo non https, température et pH hors plage signalés par champ', () => {
-    const { payload, errors } = validateImportPayloadRow({
-      Nom: 'Chêne',
-      'Photo espèce': 'http://x.fr/a.jpg',
-      'Température idéale (°C)': '999',
-      'pH optimal': '20',
-    }, 5);
+    const { payload, errors } = validateImportPayloadRow(
+      {
+        Nom: 'Chêne',
+        'Photo espèce': 'http://x.fr/a.jpg',
+        'Température idéale (°C)': '999',
+        'pH optimal': '20',
+      },
+      5,
+    );
     assert.ok(payload);
-    assert.deepEqual(errors.map((e) => [e.row, e.field]), [
-      [5, 'photo_species'],
-      [5, 'ideal_temperature_c'],
-      [5, 'optimal_ph'],
-    ]);
+    assert.deepEqual(
+      errors.map((e) => [e.row, e.field]),
+      [
+        [5, 'photo_species'],
+        [5, 'ideal_temperature_c'],
+        [5, 'optimal_ph'],
+      ],
+    );
     assert.match(errors[0].error, /seules les URLs HTTPS/);
   });
 
@@ -263,7 +306,9 @@ describe('plantsRouteHelpers (logique pure de routes/plants.js, sans DB)', () =>
   });
 
   it(`parsePlantIdsQueryParam : borné à MAX_PLANT_OBSERVATION_COUNT_IDS (${MAX_PLANT_OBSERVATION_COUNT_IDS})`, () => {
-    const raw = Array.from({ length: MAX_PLANT_OBSERVATION_COUNT_IDS + 50 }, (_, i) => i + 1).join(',');
+    const raw = Array.from({ length: MAX_PLANT_OBSERVATION_COUNT_IDS + 50 }, (_, i) => i + 1).join(
+      ',',
+    );
     const ids = parsePlantIdsQueryParam(raw);
     assert.equal(ids.length, MAX_PLANT_OBSERVATION_COUNT_IDS);
     assert.equal(ids[0], 1);

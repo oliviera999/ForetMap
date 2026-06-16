@@ -43,7 +43,7 @@ export function GLGlossaryImportPanel() {
     return runDownload(
       '/api/gl/admin/glossary/import/template',
       'foretmap-gl-modele-glossaire.xlsx',
-      'Modèle XLSX téléchargé.'
+      'Modèle XLSX téléchargé.',
     );
   }
 
@@ -54,7 +54,7 @@ export function GLGlossaryImportPanel() {
     return runDownload(
       `/api/gl/admin/glossary/export${query ? `?${query}` : ''}`,
       'foretmap-gl-export-glossaire.xlsx',
-      'Export XLSX généré.'
+      'Export XLSX généré.',
     );
   }
 
@@ -108,11 +108,7 @@ export function GLGlossaryImportPanel() {
       {info ? <p className="gl-hint">{info}</p> : null}
       {stats ? (
         <p className="gl-hint">
-          Catalogue actuel :
-          {' '}
-          <strong>{stats.total || 0}</strong>
-          {' '}
-          terme(s) actifs.
+          Catalogue actuel : <strong>{stats.total || 0}</strong> terme(s) actifs.
         </p>
       ) : null}
 
@@ -140,7 +136,10 @@ export function GLGlossaryImportPanel() {
           />
         </GLField>
         <GLField label="Mode">
-          <GLSelect value={dryRun ? 'dry' : 'apply'} onChange={(e) => setDryRun(e.target.value === 'dry')}>
+          <GLSelect
+            value={dryRun ? 'dry' : 'apply'}
+            onChange={(e) => setDryRun(e.target.value === 'dry')}
+          >
             <option value="dry">Simulation (dry-run)</option>
             <option value="apply">Importer réellement</option>
           </GLSelect>

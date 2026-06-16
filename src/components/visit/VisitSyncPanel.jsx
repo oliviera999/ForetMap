@@ -20,8 +20,14 @@ export function VisitSyncPanel({ isTeacher, mapId, onSynced, onForceLogout }) {
   // Réf. stables : sans `useMemo`, ces `|| []` recréaient un tableau à chaque rendu et,
   // comme dépendances de l'effet de présélection ci-dessous, provoquaient une boucle de rendu
   // (avertissement react-hooks pré-existant). La valeur calculée est identique.
-  const sourceZones = useMemo(() => options?.source?.[sourceKey]?.zones || [], [options, sourceKey]);
-  const sourceMarkers = useMemo(() => options?.source?.[sourceKey]?.markers || [], [options, sourceKey]);
+  const sourceZones = useMemo(
+    () => options?.source?.[sourceKey]?.zones || [],
+    [options, sourceKey],
+  );
+  const sourceMarkers = useMemo(
+    () => options?.source?.[sourceKey]?.markers || [],
+    [options, sourceKey],
+  );
 
   const loadOptions = useCallback(async () => {
     if (!isTeacher) return;
@@ -75,7 +81,9 @@ export function VisitSyncPanel({ isTeacher, mapId, onSynced, onForceLogout }) {
         zone_ids: selectedZones,
         marker_ids: selectedMarkers,
       });
-      alert(`Synchronisation terminée : ${res?.imported?.zones || 0} zone(s), ${res?.imported?.markers || 0} repère(s).`);
+      alert(
+        `Synchronisation terminée : ${res?.imported?.zones || 0} zone(s), ${res?.imported?.markers || 0} repère(s).`,
+      );
       await onSynced?.();
       await loadOptions();
     } catch (err) {
@@ -89,7 +97,7 @@ export function VisitSyncPanel({ isTeacher, mapId, onSynced, onForceLogout }) {
   const rebuildVisitFromMap = async () => {
     if (
       !window.confirm(
-        'Réaligner toute la visite sur cette carte ? Toutes les zones et repères visite du plan seront recréés à partir de la carte. Pour chaque élément encore présent sur la carte (même id), les textes, médias et ordre sont conservés ; les éléments visite sans équivalent carte sont supprimés.'
+        'Réaligner toute la visite sur cette carte ? Toutes les zones et repères visite du plan seront recréés à partir de la carte. Pour chaque élément encore présent sur la carte (même id), les textes, médias et ordre sont conservés ; les éléments visite sans équivalent carte sont supprimés.',
       )
     ) {
       return;
@@ -98,7 +106,7 @@ export function VisitSyncPanel({ isTeacher, mapId, onSynced, onForceLogout }) {
     try {
       const res = await api('/api/visit/rebuild-from-map', 'POST', { map_id: mapId });
       alert(
-        `Réalignement terminé : ${res?.imported?.zones ?? 0} zone(s), ${res?.imported?.markers ?? 0} repère(s) recréé(s). Retirés (hors carte) : ${res?.removed?.zones ?? 0} zone(s), ${res?.removed?.markers ?? 0} repère(s).`
+        `Réalignement terminé : ${res?.imported?.zones ?? 0} zone(s), ${res?.imported?.markers ?? 0} repère(s) recréé(s). Retirés (hors carte) : ${res?.removed?.zones ?? 0} zone(s), ${res?.removed?.markers ?? 0} repère(s).`,
       );
       await onSynced?.();
       await loadOptions();
@@ -115,7 +123,9 @@ export function VisitSyncPanel({ isTeacher, mapId, onSynced, onForceLogout }) {
   return (
     <section className="visit-sync-card">
       <h3>🔁 Import sélectif carte / visite</h3>
-      <p className="section-sub">Choisis le sens puis les éléments à importer (zones et/ou repères).</p>
+      <p className="section-sub">
+        Choisis le sens puis les éléments à importer (zones et/ou repères).
+      </p>
       <div className="visit-map-switch">
         <button
           className={`btn btn-sm ${direction === 'map_to_visit' ? 'btn-primary' : 'btn-ghost'}`}
@@ -152,8 +162,8 @@ export function VisitSyncPanel({ isTeacher, mapId, onSynced, onForceLogout }) {
                     checked={selectedZones.includes(z.id)}
                     onChange={() => toggleSelection(z.id, true)}
                     disabled={syncing}
-                  />
-                  {' '}{z.name || z.id}
+                  />{' '}
+                  {z.name || z.id}
                 </label>
               ))
             )}
@@ -170,8 +180,8 @@ export function VisitSyncPanel({ isTeacher, mapId, onSynced, onForceLogout }) {
                     checked={selectedMarkers.includes(m.id)}
                     onChange={() => toggleSelection(m.id, false)}
                     disabled={syncing}
-                  />
-                  {' '}{m.label || m.id}
+                  />{' '}
+                  {m.label || m.id}
                 </label>
               ))
             )}
@@ -179,7 +189,11 @@ export function VisitSyncPanel({ isTeacher, mapId, onSynced, onForceLogout }) {
         </div>
       )}
       <div className="visit-sync-actions">
-        <button className="btn btn-secondary btn-sm" disabled={loading || syncing} onClick={runSync}>
+        <button
+          className="btn btn-secondary btn-sm"
+          disabled={loading || syncing}
+          onClick={runSync}
+        >
           {syncing ? 'Synchronisation...' : 'Lancer l’import sélectionné'}
         </button>
         <button

@@ -38,7 +38,8 @@ export function previewSummary(entry) {
 /** Classe CSS de la pastille de nature d'une entrée. */
 export function kindBadgeClass(kind) {
   if (kind === 'media') return 'gl-content-library-kind gl-content-library-kind--media';
-  if (kind === 'unknown' || kind === 'unsupported') return 'gl-content-library-kind gl-content-library-kind--unknown';
+  if (kind === 'unknown' || kind === 'unsupported')
+    return 'gl-content-library-kind gl-content-library-kind--unknown';
   return 'gl-content-library-kind gl-content-library-kind--catalog';
 }
 

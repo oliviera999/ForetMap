@@ -7,7 +7,9 @@ const path = require('path');
 const ROOT = path.resolve(__dirname, '..');
 const REPORTS_DIR = path.join(ROOT, 'load', 'reports');
 const baseUrl = String(process.env.BASE_URL || 'http://127.0.0.1:3000').trim();
-const profile = String(process.argv[2] || 'normal').trim().toLowerCase();
+const profile = String(process.argv[2] || 'normal')
+  .trim()
+  .toLowerCase();
 const profileToScenarioFile = {
   light: path.join('load', 'artillery-light.yml'),
   normal: path.join('load', 'artillery.yml'),

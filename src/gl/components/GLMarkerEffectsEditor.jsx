@@ -126,9 +126,10 @@ export function GLMarkerEffectsEditor({ eventConfig, onChange }) {
 
   useEffect(() => {
     const effects = buildEffectsFromForm(form);
-    const eventMeta = form.tonalite || form.rarete
-      ? { tonalite: form.tonalite || null, rarete: form.rarete || null }
-      : null;
+    const eventMeta =
+      form.tonalite || form.rarete
+        ? { tonalite: form.tonalite || null, rarete: form.rarete || null }
+        : null;
     onChange?.({ effects, eventMeta });
   }, [form, onChange]);
 
@@ -141,7 +142,12 @@ export function GLMarkerEffectsEditor({ eventConfig, onChange }) {
 
   return (
     <div className="gl-marker-effects-editor">
-      <BranchFields title="Effet neutre (deltas communs)" branchKey="neutral" form={form} onPatch={patchBranch} />
+      <BranchFields
+        title="Effet neutre (deltas communs)"
+        branchKey="neutral"
+        form={form}
+        onPatch={patchBranch}
+      />
       <BranchFields title="Effet Gnome" branchKey="gnome" form={form} onPatch={patchBranch} />
       <BranchFields title="Effet Licorne" branchKey="unicorn" form={form} onPatch={patchBranch} />
       <div className="gl-marker-effects-meta">

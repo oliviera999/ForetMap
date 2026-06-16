@@ -8,11 +8,7 @@ import { useScrollReveal } from './useScrollReveal.js';
  * @param {{ start?: number, duration?: number, enabled?: boolean }} [options]
  */
 export function useCountUp(end, options = {}) {
-  const {
-    start = 0,
-    duration = 1200,
-    enabled = true,
-  } = options;
+  const { start = 0, duration = 1200, enabled = true } = options;
   const [ref, visible] = useScrollReveal({ once: true, threshold: 0.2 });
   const endNum = Number(end);
   const canAnimate = enabled && Number.isFinite(endNum);

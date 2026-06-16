@@ -98,7 +98,9 @@ export function GLImageInlineInsertControls({
           fetchItems={fetchMediaLibrary}
           uploadDataUrl={uploadMediaLibrary}
           removeItem={removeMediaLibrary}
-          onPickUrl={(url) => setPendingInsert({ url, alt: 'Image', frame: normalizeGlImageFrame(null, 'markdown') })}
+          onPickUrl={(url) =>
+            setPendingInsert({ url, alt: 'Image', frame: normalizeGlImageFrame(null, 'markdown') })
+          }
         />
       </div>
 

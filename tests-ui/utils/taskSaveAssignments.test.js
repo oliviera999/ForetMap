@@ -30,9 +30,13 @@ describe('prepareTaskSavePayload', () => {
   });
 
   test('required_students invalide → traité comme 1 puis relevé si besoin', () => {
-    expect(prepareTaskSavePayload({ assign_student_ids: [1] }).taskPayload.required_students).toBe(1);
-    expect(prepareTaskSavePayload({ required_students: 'abc', assign_student_ids: [1, 2] })
-      .taskPayload.required_students).toBe(2);
+    expect(prepareTaskSavePayload({ assign_student_ids: [1] }).taskPayload.required_students).toBe(
+      1,
+    );
+    expect(
+      prepareTaskSavePayload({ required_students: 'abc', assign_student_ids: [1, 2] }).taskPayload
+        .required_students,
+    ).toBe(2);
   });
 
   test('sans inscription demandée, required_students n’est pas touché', () => {
@@ -83,12 +87,14 @@ describe('initialAssignmentsToast', () => {
   });
 
   test('succès partiel → ratio inscrit / demandé', () => {
-    expect(initialAssignmentsToast(2, ['1', '2', '99'], STUDENTS))
-      .toBe('Tâche créée : 2 inscription(s) sur 3 — certains comptes manquaient dans la liste.');
+    expect(initialAssignmentsToast(2, ['1', '2', '99'], STUDENTS)).toBe(
+      'Tâche créée : 2 inscription(s) sur 3 — certains comptes manquaient dans la liste.',
+    );
   });
 
   test('tous inscrits → message de réussite', () => {
-    expect(initialAssignmentsToast(2, ['1', '2'], STUDENTS))
-      .toBe('Tâche créée : 2 n3beur(s) inscrit(s) — bien joué ! ✓');
+    expect(initialAssignmentsToast(2, ['1', '2'], STUDENTS)).toBe(
+      'Tâche créée : 2 n3beur(s) inscrit(s) — bien joué ! ✓',
+    );
   });
 });

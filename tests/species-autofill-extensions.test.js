@@ -1,7 +1,10 @@
 require('./helpers/setup');
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { fetchTrefleSpeciesTraits, isTrefleAutofillEnabled } = require('../lib/speciesAutofillTrefle');
+const {
+  fetchTrefleSpeciesTraits,
+  isTrefleAutofillEnabled,
+} = require('../lib/speciesAutofillTrefle');
 const {
   fetchOpenAiSpeciesTraits,
   fetchOpenAiSpeciesGapFill,
@@ -28,13 +31,15 @@ test('Trefle : mapping quand API renvoie une espèce (fetch mock)', async () => 
   const fetchImpl = async () => ({
     ok: true,
     json: async () => ({
-      data: [{
-        observations: 'Open ground',
-        edible_part: ['fruit'],
-        duration: ['Perennial'],
-        growth: { description: 'Fast grower', ph_minimum: 6, ph_maximum: 7 },
-        image_url: 'https://images.trefle.io/example.jpg',
-      }],
+      data: [
+        {
+          observations: 'Open ground',
+          edible_part: ['fruit'],
+          duration: ['Perennial'],
+          growth: { description: 'Fast grower', ph_minimum: 6, ph_maximum: 7 },
+          image_url: 'https://images.trefle.io/example.jpg',
+        },
+      ],
     }),
   });
   const pack = await fetchTrefleSpeciesTraits('Solanum lycopersicum', { fetchImpl });
@@ -65,17 +70,22 @@ test('OpenAI : parse JSON et mappe les champs (fetch mock)', async () => {
   const fetchImpl = async () => ({
     ok: true,
     json: async () => ({
-      choices: [{
-        message: {
-          content: JSON.stringify({
-            habitat: 'Sol drainé, soleil.',
-            optimal_ph: '6-7',
-          }),
+      choices: [
+        {
+          message: {
+            content: JSON.stringify({
+              habitat: 'Sol drainé, soleil.',
+              optimal_ph: '6-7',
+            }),
+          },
         },
-      }],
+      ],
     }),
   });
-  const pack = await fetchOpenAiSpeciesTraits({ query: 'Tomate', scientificName: 'Solanum' }, { fetchImpl });
+  const pack = await fetchOpenAiSpeciesTraits(
+    { query: 'Tomate', scientificName: 'Solanum' },
+    { fetchImpl },
+  );
   assert.ok(pack);
   assert.equal(pack.source, 'openai');
   assert.equal(pack.confidence, 0.22);
@@ -96,23 +106,28 @@ test('OpenAI : mode contexte court — payload indique mode_contexte court_indic
     return {
       ok: true,
       json: async () => ({
-        choices: [{
-          message: {
-            content: JSON.stringify({
-              description: 'Plante potagère annuelle, fruit comestible.',
-              habitat: 'Maraîchage, sol fertile et drainé.',
-            }),
+        choices: [
+          {
+            message: {
+              content: JSON.stringify({
+                description: 'Plante potagère annuelle, fruit comestible.',
+                habitat: 'Maraîchage, sol fertile et drainé.',
+              }),
+            },
           },
-        }],
+        ],
       }),
     };
   };
   const shortCtx = '[Texte de recherche pré-saisie]\naubergine';
-  const pack = await fetchOpenAiSpeciesTraits({
-    query: 'aubergine',
-    partialContext: shortCtx,
-    hintName: 'Aubergine',
-  }, { fetchImpl });
+  const pack = await fetchOpenAiSpeciesTraits(
+    {
+      query: 'aubergine',
+      partialContext: shortCtx,
+      hintName: 'Aubergine',
+    },
+    { fetchImpl },
+  );
   assert.ok(pack);
   assert.ok((pack.warnings || []).some((w) => String(w).includes('Contexte externe limité')));
   assert.ok(capturedBody?.messages?.[1]?.content);
@@ -132,16 +147,21 @@ test('OpenAI : second_name autorisé et tronqué si trop long (fetch mock)', asy
   const fetchImpl = async () => ({
     ok: true,
     json: async () => ({
-      choices: [{
-        message: {
-          content: JSON.stringify({
-            fields: { second_name: longVern, habitat: 'Plein soleil.' },
-          }),
+      choices: [
+        {
+          message: {
+            content: JSON.stringify({
+              fields: { second_name: longVern, habitat: 'Plein soleil.' },
+            }),
+          },
         },
-      }],
+      ],
     }),
   });
-  const pack = await fetchOpenAiSpeciesTraits({ query: 'x', partialContext: 'Libellé: Tomate' }, { fetchImpl });
+  const pack = await fetchOpenAiSpeciesTraits(
+    { query: 'x', partialContext: 'Libellé: Tomate' },
+    { fetchImpl },
+  );
   assert.ok(pack);
   assert.ok(pack.fields.second_name.length <= 118);
   assert.equal(pack.fields.habitat, 'Plein soleil.');
@@ -157,19 +177,21 @@ test('OpenAI : complète aussi les champs taxonomiques quand plausibles', async 
   const fetchImpl = async () => ({
     ok: true,
     json: async () => ({
-      choices: [{
-        message: {
-          content: JSON.stringify({
-            name: 'Cétoine funeste',
-            scientific_name: 'Oxythyrea funesta',
-            group_1: 'Animalia',
-            group_2: 'Coleoptera',
-            group_3: 'Scarabaeidae',
-            group_4: 'Cetoniinae',
-            habitat: 'Milieux ouverts, fleuris et ensoleillés.',
-          }),
+      choices: [
+        {
+          message: {
+            content: JSON.stringify({
+              name: 'Cétoine funeste',
+              scientific_name: 'Oxythyrea funesta',
+              group_1: 'Animalia',
+              group_2: 'Coleoptera',
+              group_3: 'Scarabaeidae',
+              group_4: 'Cetoniinae',
+              habitat: 'Milieux ouverts, fleuris et ensoleillés.',
+            }),
+          },
         },
-      }],
+      ],
     }),
   });
   const pack = await fetchOpenAiSpeciesTraits({ query: 'cétoine funeste' }, { fetchImpl });
@@ -192,17 +214,19 @@ test('OpenAI : rejette les valeurs taxonomiques/numériques non plausibles', asy
   const fetchImpl = async () => ({
     ok: true,
     json: async () => ({
-      choices: [{
-        message: {
-          content: JSON.stringify({
-            scientific_name: '12345 ???',
-            ideal_temperature_c: 'température tiède',
-            optimal_ph: 'acide',
-            group_1: 'inconnu',
-            habitat: 'Prairie sèche.',
-          }),
+      choices: [
+        {
+          message: {
+            content: JSON.stringify({
+              scientific_name: '12345 ???',
+              ideal_temperature_c: 'température tiède',
+              optimal_ph: 'acide',
+              group_1: 'inconnu',
+              habitat: 'Prairie sèche.',
+            }),
+          },
         },
-      }],
+      ],
     }),
   });
   const pack = await fetchOpenAiSpeciesTraits({ query: 'x' }, { fetchImpl });
@@ -226,7 +250,11 @@ test('OpenAI : fallback Responses API si chat/completions indisponible', async (
     const raw = String(url || '');
     urls.push(raw);
     if (raw.includes('/v1/chat/completions')) {
-      return { ok: false, status: 400, json: async () => ({ error: { message: 'Unsupported model for this endpoint' } }) };
+      return {
+        ok: false,
+        status: 400,
+        json: async () => ({ error: { message: 'Unsupported model for this endpoint' } }),
+      };
     }
     if (raw.includes('/v1/responses')) {
       return {
@@ -288,11 +316,14 @@ test('OpenAI gap-fill : fallback Responses API si chat/completions indisponible'
     }
     throw new Error(`URL inattendue: ${raw}`);
   };
-  const gap = await fetchOpenAiSpeciesGapFill({
-    query: 'aubergine',
-    keysToFill: ['habitat', 'size'],
-    knownFields: { scientific_name: 'Solanum melongena' },
-  }, { fetchImpl });
+  const gap = await fetchOpenAiSpeciesGapFill(
+    {
+      query: 'aubergine',
+      keysToFill: ['habitat', 'size'],
+      knownFields: { scientific_name: 'Solanum melongena' },
+    },
+    { fetchImpl },
+  );
   assert.ok(gap);
   assert.equal(gap.fields.habitat, 'Milieu chaud.');
   assert.equal(gap.fields.size, '0,6 à 1,2 m.');
@@ -309,8 +340,12 @@ test('OpenAI : mode contexte court + allowGeneralKnowledge inclut extension taxo
   let capturedUser = '';
   const fetchImpl = async (_url, init) => {
     const body = JSON.parse(String(init?.body || '{}'));
-    const sysMsg = Array.isArray(body.messages) ? body.messages.find((m) => m.role === 'system') : null;
-    const userMsg = Array.isArray(body.messages) ? body.messages.find((m) => m.role === 'user') : null;
+    const sysMsg = Array.isArray(body.messages)
+      ? body.messages.find((m) => m.role === 'system')
+      : null;
+    const userMsg = Array.isArray(body.messages)
+      ? body.messages.find((m) => m.role === 'user')
+      : null;
     capturedSystem = String(sysMsg?.content || '');
     capturedUser = String(userMsg?.content || '');
     return {
@@ -319,11 +354,14 @@ test('OpenAI : mode contexte court + allowGeneralKnowledge inclut extension taxo
       json: async () => ({ choices: [{ message: { content: '{}' } }] }),
     };
   };
-  await fetchOpenAiSpeciesTraits({
-    query: 'cétoine funeste',
-    partialContext: 'cétoine funeste',
-    allowGeneralKnowledge: true,
-  }, { fetchImpl });
+  await fetchOpenAiSpeciesTraits(
+    {
+      query: 'cétoine funeste',
+      partialContext: 'cétoine funeste',
+      allowGeneralKnowledge: true,
+    },
+    { fetchImpl },
+  );
   assert.match(capturedSystem, /insecte|non végétal|mammifère/i);
   const parsedUser = JSON.parse(capturedUser);
   assert.equal(parsedUser.mode_contexte, 'court_indicatif');

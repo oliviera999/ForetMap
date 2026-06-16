@@ -27,7 +27,9 @@ const GL_STATE_ALIASES = {
  * @returns {string}
  */
 export function mapGlMascotStateKeyToVisit(key) {
-  const raw = String(key || '').trim().toLowerCase();
+  const raw = String(key || '')
+    .trim()
+    .toLowerCase();
   if (GL_STATE_ALIASES[raw]) return GL_STATE_ALIASES[raw];
   const values = Object.values(VISIT_MASCOT_STATE);
   if (values.includes(raw)) return raw;
@@ -64,7 +66,11 @@ export function glMascotPackSpriteCutToVisitValidation(glPack, opts = {}) {
   }
   const visitPack = {
     mascotPackVersion: 1,
-    id: String(glPack.id || 'gl-pack').replace(/[^a-z0-9-]/gi, '-').toLowerCase().slice(0, 64) || 'gl-pack',
+    id:
+      String(glPack.id || 'gl-pack')
+        .replace(/[^a-z0-9-]/gi, '-')
+        .toLowerCase()
+        .slice(0, 64) || 'gl-pack',
     label: String(glPack.name || glPack.id || 'Pack GL').slice(0, 120),
     renderer: 'sprite_cut',
     framesBase: '/assets/mascots/gl-pack/',

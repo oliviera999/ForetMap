@@ -22,7 +22,9 @@ const LADDER = [
 
 describe('studentProgressionLadder', () => {
   before(async () => {
-    const mod = await import(pathToFileURL(join(__dirname, '../src/utils/studentProgressionLadder.js')).href);
+    const mod = await import(
+      pathToFileURL(join(__dirname, '../src/utils/studentProgressionLadder.js')).href
+    );
     sortProgressionSteps = mod.sortProgressionSteps;
     resolveTaskTierSlug = mod.resolveTaskTierSlug;
     findProgressionStep = mod.findProgressionStep;
@@ -36,7 +38,7 @@ describe('studentProgressionLadder', () => {
     const sorted = sortProgressionSteps(shuffled);
     assert.deepStrictEqual(
       sorted.map((s) => s.roleSlug),
-      ['eleve_novice', 'eleve_chevronne', 'n3beur_expert', 'n3beur_ultime']
+      ['eleve_novice', 'eleve_chevronne', 'n3beur_expert', 'n3beur_ultime'],
     );
   });
 
@@ -54,7 +56,10 @@ describe('studentProgressionLadder', () => {
 
   it('getNextProgressionStep renvoie ultime après expert', () => {
     assert.strictEqual(getNextProgressionStep(LADDER, 'n3beur_expert')?.roleSlug, 'n3beur_ultime');
-    assert.strictEqual(getNextProgressionStep(LADDER, 'eleve_chevronne')?.roleSlug, 'n3beur_expert');
+    assert.strictEqual(
+      getNextProgressionStep(LADDER, 'eleve_chevronne')?.roleSlug,
+      'n3beur_expert',
+    );
   });
 
   it('computeProgressPercent calcule la jauge expert → ultime', () => {
@@ -65,6 +70,9 @@ describe('studentProgressionLadder', () => {
   });
 
   it('getProgressionStepIndex permet de comparer profil vs objectif tâches', () => {
-    assert.ok(getProgressionStepIndex(LADDER, 'eleve_chevronne') < getProgressionStepIndex(LADDER, 'n3beur_expert'));
+    assert.ok(
+      getProgressionStepIndex(LADDER, 'eleve_chevronne') <
+        getProgressionStepIndex(LADDER, 'n3beur_expert'),
+    );
   });
 });

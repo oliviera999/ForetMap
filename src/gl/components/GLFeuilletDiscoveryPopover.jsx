@@ -34,7 +34,11 @@ export function GLFeuilletDiscoveryPopover({
     ? `gl-feui-${String(feuillet.modeApparition).replace(/_/g, '-')}`
     : 'gl-feui-boite';
   const effPct = Number(feuillet?.effacementPct) || 0;
-  const hasBody = feuillet?.displayText || feuillet?.imageUrl || feuillet?.imageCoupeUrl || feuillet?.feuilletCode;
+  const hasBody =
+    feuillet?.displayText ||
+    feuillet?.imageUrl ||
+    feuillet?.imageCoupeUrl ||
+    feuillet?.feuilletCode;
 
   return createPortal(
     <div
@@ -55,8 +59,17 @@ export function GLFeuilletDiscoveryPopover({
             {zone?.label ? `Zone · ${zone.label}` : 'Carnet de Sélène'}
           </p>
           <h3>{feuillet?.titre || 'Feuillet'}</h3>
-          {feuillet?.incipit ? <p className="gl-feui-discovery__incipit">{feuillet.incipit}</p> : null}
-          <button type="button" className="gl-feui-discovery__close" onClick={() => onClose?.()} aria-label="Fermer">✕</button>
+          {feuillet?.incipit ? (
+            <p className="gl-feui-discovery__incipit">{feuillet.incipit}</p>
+          ) : null}
+          <button
+            type="button"
+            className="gl-feui-discovery__close"
+            onClick={() => onClose?.()}
+            aria-label="Fermer"
+          >
+            ✕
+          </button>
         </header>
 
         {error ? <p className="gl-error">{error}</p> : null}
@@ -65,7 +78,9 @@ export function GLFeuilletDiscoveryPopover({
         {!loading && hasBody ? (
           <div
             className="gl-feui-discovery__body"
-            style={effPct > 0 && effPct < 100 ? { opacity: Math.max(0.35, 1 - effPct / 100) } : undefined}
+            style={
+              effPct > 0 && effPct < 100 ? { opacity: Math.max(0.35, 1 - effPct / 100) } : undefined
+            }
           >
             <GLFeuilletIllustration
               feuilletCode={feuillet?.feuilletCode}
@@ -102,7 +117,9 @@ export function GLFeuilletDiscoveryPopover({
         ) : null}
 
         <footer className="gl-feui-discovery__foot">
-          <GLButton type="button" variant="ghost" onClick={() => onClose?.()}>Fermer</GLButton>
+          <GLButton type="button" variant="ghost" onClick={() => onClose?.()}>
+            Fermer
+          </GLButton>
           <GLButton
             type="button"
             onClick={() => {

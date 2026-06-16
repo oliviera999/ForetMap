@@ -22,10 +22,13 @@ test.describe('Gnomes & Licornes foundations', () => {
   test('navigation GL affiche icones et cloche notifications', async ({ request, page }) => {
     const seeded = await seedGlScenario('foundations-ui');
 
-    const enableNotifications = await request.put('/api/gl/admin/settings/modules.notifications_enabled', {
-      headers: { Authorization: `Bearer ${seeded.adminToken}` },
-      data: { value: true },
-    });
+    const enableNotifications = await request.put(
+      '/api/gl/admin/settings/modules.notifications_enabled',
+      {
+        headers: { Authorization: `Bearer ${seeded.adminToken}` },
+        data: { value: true },
+      },
+    );
     expect(enableNotifications.ok()).toBeTruthy();
 
     await mountGlSession(page, {

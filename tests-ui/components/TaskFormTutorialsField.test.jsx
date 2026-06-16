@@ -22,7 +22,7 @@ function renderField(props = {}) {
       onSelectAll={onSelectAll}
       onClear={onClear}
       {...props}
-    />
+    />,
   );
   return { onSearchChange, onToggle, onSelectAll, onClear };
 }
@@ -64,7 +64,9 @@ describe('TaskFormTutorialsField', () => {
 
   test('recherche déclenche onSearchChange', () => {
     const { onSearchChange } = renderField();
-    fireEvent.change(screen.getByPlaceholderText('🔍 Rechercher un tutoriel...'), { target: { value: 'arr' } });
+    fireEvent.change(screen.getByPlaceholderText('🔍 Rechercher un tutoriel...'), {
+      target: { value: 'arr' },
+    });
     expect(onSearchChange).toHaveBeenCalledWith('arr');
   });
 

@@ -37,7 +37,9 @@ let VISIT_SEEN_QUEUE_STORAGE_KEY;
 
 before(async () => {
   installMemoryLocalStorage();
-  const mod = await import(pathToFileURL(join(__dirname, '../src/utils/visitProgressClient.js')).href);
+  const mod = await import(
+    pathToFileURL(join(__dirname, '../src/utils/visitProgressClient.js')).href
+  );
   safeVisitProgressPayload = mod.safeVisitProgressPayload;
   compactVisitSeenQueue = mod.compactVisitSeenQueue;
   enqueueVisitSeenAction = mod.enqueueVisitSeenAction;
@@ -147,7 +149,11 @@ describe('visitProgressClient', () => {
   it('remplace une action en attente après un succès réseau pour la même cible', () => {
     memoryStore = {};
     enqueueVisitSeenAction({ target_type: 'zone', target_id: 'z1', seen: true });
-    const queue = replaceQueuedVisitSeenAction({ target_type: 'zone', target_id: 'z1', seen: false });
+    const queue = replaceQueuedVisitSeenAction({
+      target_type: 'zone',
+      target_id: 'z1',
+      seen: false,
+    });
     assert.strictEqual(queue.length, 1);
     assert.strictEqual(queue[0].target_id, 'z1');
     assert.strictEqual(queue[0].seen, false);

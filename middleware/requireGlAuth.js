@@ -49,9 +49,9 @@ function requireGlAuth(req, res, next) {
     }
     if (!req.glAuth.userId) return res.status(401).json({ error: 'Token invalide' });
     if (
-      req.glAuth.userType === 'gl_player'
-      && req.glAuth.passwordMustReset
-      && !allowsPasswordResetRoute(req)
+      req.glAuth.userType === 'gl_player' &&
+      req.glAuth.passwordMustReset &&
+      !allowsPasswordResetRoute(req)
     ) {
       return res.status(403).json({
         error: 'Mot de passe à mettre à jour avant de continuer',

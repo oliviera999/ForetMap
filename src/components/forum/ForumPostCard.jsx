@@ -38,59 +38,66 @@ export function ForumPostCard({
         <MarkdownContent className="forum-post-body">{p.body}</MarkdownContent>
       )}
       {!p.is_deleted && <UserContentImagesGrid urls={p.image_urls} />}
-      {!p.is_deleted && (canUseForumActions ? (
-        <div className={`message-reactions-row ${reactionsExpanded ? 'expanded' : 'compact'}`}>
-          {!reactionsExpanded ? (
-            <button
-              type="button"
-              className="message-reaction-chip message-reaction-chip--toggle"
-              onClick={() => onSetReactionsExpanded(p.id, true)}
-              title="Afficher toutes les réactions"
-            >
-              <span>{firstReactionEmoji}</span>
-            </button>
-          ) : (
-            <>
-              {reactionEmojis.map((emoji) => {
-                const item = (p.reactions || []).find((r) => r.emoji === emoji);
-                const count = Number(item?.count || 0);
-                const mine = !!item?.reacted_by_me;
-                return (
-                  <button
-                    key={`${p.id}-${emoji}`}
-                    type="button"
-                    className={`message-reaction-chip ${mine ? 'active' : ''}`}
-                    onClick={() => onReact(p.id, emoji)}
-                    title={`Réagir avec ${emoji}`}
-                  >
-                    <span>{emoji}</span>
-                    {count > 0 && <span>{count}</span>}
-                  </button>
-                );
-              })}
+      {!p.is_deleted &&
+        (canUseForumActions ? (
+          <div className={`message-reactions-row ${reactionsExpanded ? 'expanded' : 'compact'}`}>
+            {!reactionsExpanded ? (
               <button
                 type="button"
                 className="message-reaction-chip message-reaction-chip--toggle"
-                onClick={() => onSetReactionsExpanded(p.id, false)}
-                title="Réduire les réactions"
+                onClick={() => onSetReactionsExpanded(p.id, true)}
+                title="Afficher toutes les réactions"
               >
-                <span>▾</span>
+                <span>{firstReactionEmoji}</span>
               </button>
-            </>
-          )}
-        </div>
-      ) : (
-        (p.reactions || []).some((r) => Number(r.count) > 0) && (
-          <div className="message-reactions-row compact" style={{ opacity: 0.85 }}>
-            {(p.reactions || []).filter((r) => Number(r.count) > 0).map((r) => (
-              <span key={`${p.id}-${r.emoji}`} className="message-reaction-chip" style={{ cursor: 'default' }}>
-                <span>{r.emoji}</span>
-                <span>{r.count}</span>
-              </span>
-            ))}
+            ) : (
+              <>
+                {reactionEmojis.map((emoji) => {
+                  const item = (p.reactions || []).find((r) => r.emoji === emoji);
+                  const count = Number(item?.count || 0);
+                  const mine = !!item?.reacted_by_me;
+                  return (
+                    <button
+                      key={`${p.id}-${emoji}`}
+                      type="button"
+                      className={`message-reaction-chip ${mine ? 'active' : ''}`}
+                      onClick={() => onReact(p.id, emoji)}
+                      title={`Réagir avec ${emoji}`}
+                    >
+                      <span>{emoji}</span>
+                      {count > 0 && <span>{count}</span>}
+                    </button>
+                  );
+                })}
+                <button
+                  type="button"
+                  className="message-reaction-chip message-reaction-chip--toggle"
+                  onClick={() => onSetReactionsExpanded(p.id, false)}
+                  title="Réduire les réactions"
+                >
+                  <span>▾</span>
+                </button>
+              </>
+            )}
           </div>
-        )
-      ))}
+        ) : (
+          (p.reactions || []).some((r) => Number(r.count) > 0) && (
+            <div className="message-reactions-row compact" style={{ opacity: 0.85 }}>
+              {(p.reactions || [])
+                .filter((r) => Number(r.count) > 0)
+                .map((r) => (
+                  <span
+                    key={`${p.id}-${r.emoji}`}
+                    className="message-reaction-chip"
+                    style={{ cursor: 'default' }}
+                  >
+                    <span>{r.emoji}</span>
+                    <span>{r.count}</span>
+                  </span>
+                ))}
+            </div>
+          )
+        ))}
       {!p.is_deleted && canUseForumActions && (
         <div className="forum-post-actions">
           {canDelete && (

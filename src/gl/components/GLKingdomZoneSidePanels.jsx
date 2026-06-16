@@ -65,7 +65,11 @@ export function GLKingdomZoneSidePanels({
   const toolbars = (
     <>
       {canManage && isEditingShape ? (
-        <div className="gl-map-editor-toolbar gl-map-editor-toolbar--shape" role="toolbar" aria-label="Édition du contour">
+        <div
+          className="gl-map-editor-toolbar gl-map-editor-toolbar--shape"
+          role="toolbar"
+          aria-label="Édition du contour"
+        >
           <span className="gl-shape-edit-badge">
             Contour — {draftLabel || selectedZone?.label || 'Zone'}
           </span>
@@ -124,15 +128,18 @@ export function GLKingdomZoneSidePanels({
     <>
       {isEditingShape ? (
         <p className="gl-hint">
-          Glissez un sommet ou le polygone entier. « Ajouter un sommet » puis cliquez sur un bord (ou la carte).
-          Raccourci&nbsp;: Ctrl+Z pour annuler. Minimum 3 sommets.
+          Glissez un sommet ou le polygone entier. « Ajouter un sommet » puis cliquez sur un bord
+          (ou la carte). Raccourci&nbsp;: Ctrl+Z pour annuler. Minimum 3 sommets.
         </p>
       ) : null}
 
       {showZonesHeading ? <h4 className="gl-chapter-map-studio__subtitle">Zones</h4> : null}
       <ul className="gl-kingdom-map-zones">
         {displayZones.map((zone) => (
-          <li key={zone.id} className={Number(selectedZoneId) === Number(zone.id) ? 'is-selected' : ''}>
+          <li
+            key={zone.id}
+            className={Number(selectedZoneId) === Number(zone.id) ? 'is-selected' : ''}
+          >
             <button
               type="button"
               className="gl-marker-row-btn"
@@ -141,14 +148,33 @@ export function GLKingdomZoneSidePanels({
             >
               <strong>{zone.label}</strong>
               {zoneMusicEnabled && readZoneMusicUrl(zone) ? (
-                <span className="gl-zone-music-badge" aria-label="Musique associée" title="Musique associée"> 🎧</span>
+                <span
+                  className="gl-zone-music-badge"
+                  aria-label="Musique associée"
+                  title="Musique associée"
+                >
+                  {' '}
+                  🎧
+                </span>
               ) : null}
               {zoneHasPopoverDraft(readZonePopoverMarkdown(zone), readZonePopoverImages(zone)) ? (
-                <span className="gl-zone-content-badge" aria-label="Contenu popover" title="Contenu popover"> 📄</span>
+                <span
+                  className="gl-zone-content-badge"
+                  aria-label="Contenu popover"
+                  title="Contenu popover"
+                >
+                  {' '}
+                  📄
+                </span>
               ) : null}
             </button>
             {canManage && !isEditingShape ? (
-              <GLButton type="button" size="sm" variant="danger" onClick={() => onDeleteZone?.(zone.id)}>
+              <GLButton
+                type="button"
+                size="sm"
+                variant="danger"
+                onClick={() => onDeleteZone?.(zone.id)}
+              >
                 Supprimer
               </GLButton>
             ) : null}
@@ -156,14 +182,22 @@ export function GLKingdomZoneSidePanels({
         ))}
         {displayZones.length === 0 ? (
           <li className="gl-empty gl-hint">
-            <span className="gl-empty-icon" aria-hidden>🏰</span>
+            <span className="gl-empty-icon" aria-hidden>
+              🏰
+            </span>
             Aucune zone.
           </li>
         ) : null}
       </ul>
 
       {canManage && mode === 'draw' ? (
-        <form className="gl-form" onSubmit={(event) => { event.preventDefault(); createZone(); }}>
+        <form
+          className="gl-form"
+          onSubmit={(event) => {
+            event.preventDefault();
+            createZone();
+          }}
+        >
           <label>
             Label
             <input value={draftLabel} onChange={(event) => setDraftLabel(event.target.value)} />
@@ -179,7 +213,13 @@ export function GLKingdomZoneSidePanels({
       ) : null}
 
       {canManage && mode === 'edit' && selectedZone && !isEditingShape ? (
-        <form className="gl-form gl-zone-music-form" onSubmit={(event) => { event.preventDefault(); saveZoneMeta(); }}>
+        <form
+          className="gl-form gl-zone-music-form"
+          onSubmit={(event) => {
+            event.preventDefault();
+            saveZoneMeta();
+          }}
+        >
           <div className="gl-inline-actions gl-zone-edit-actions">
             <GLButton type="button" onClick={startShapeEdit}>
               Modifier le contour
@@ -204,7 +244,9 @@ export function GLKingdomZoneSidePanels({
                 placeholder="Texte affiché quand une équipe entre ou traverse la zone…"
               />
             </label>
-            <p className="gl-hint">Markdown accepté (glossaire, images inline via la bibliothèque média).</p>
+            <p className="gl-hint">
+              Markdown accepté (glossaire, images inline via la bibliothèque média).
+            </p>
             <div className="gl-zone-popover-images">
               <div className="gl-inline-actions">
                 <strong>Galerie d’images</strong>
@@ -230,16 +272,23 @@ export function GLKingdomZoneSidePanels({
               </div>
               {draftPopoverImages.map((img, index) => (
                 <div key={`${img.url}-${index}`} className="gl-zone-popover-image-row">
-                  <img src={img.url} alt="" className="gl-zone-popover-image-thumb" loading="lazy" />
+                  <img
+                    src={img.url}
+                    alt=""
+                    className="gl-zone-popover-image-thumb"
+                    loading="lazy"
+                  />
                   <label>
                     Légende
                     <input
                       value={img.caption || ''}
                       onChange={(event) => {
                         const caption = event.target.value;
-                        setDraftPopoverImages((prev) => prev.map((row, rowIndex) => (
-                          rowIndex === index ? { ...row, caption } : row
-                        )));
+                        setDraftPopoverImages((prev) =>
+                          prev.map((row, rowIndex) =>
+                            rowIndex === index ? { ...row, caption } : row,
+                          ),
+                        );
                       }}
                     />
                   </label>
@@ -248,7 +297,9 @@ export function GLKingdomZoneSidePanels({
                     size="sm"
                     variant="ghost"
                     onClick={() => {
-                      setDraftPopoverImages((prev) => prev.filter((_, rowIndex) => rowIndex !== index));
+                      setDraftPopoverImages((prev) =>
+                        prev.filter((_, rowIndex) => rowIndex !== index),
+                      );
                     }}
                   >
                     Retirer
@@ -292,10 +343,20 @@ export function GLKingdomZoneSidePanels({
                 />
               </label>
               <div className="gl-inline-actions gl-zone-music-actions">
-                <GLButton type="button" variant="secondary" onClick={previewDraftMusic} disabled={!draftMusicUrl.trim()}>
+                <GLButton
+                  type="button"
+                  variant="secondary"
+                  onClick={previewDraftMusic}
+                  disabled={!draftMusicUrl.trim()}
+                >
                   Écouter
                 </GLButton>
-                <GLButton type="button" variant="ghost" onClick={clearZoneMusic} disabled={!draftMusicUrl.trim()}>
+                <GLButton
+                  type="button"
+                  variant="ghost"
+                  onClick={clearZoneMusic}
+                  disabled={!draftMusicUrl.trim()}
+                >
                   Retirer la musique
                 </GLButton>
               </div>

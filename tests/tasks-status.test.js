@@ -28,10 +28,13 @@ const secondLastName = 'Task';
 async function setStudentPrimaryRole(userId, roleSlug) {
   const role = await queryOne('SELECT id FROM roles WHERE slug = ? LIMIT 1', [roleSlug]);
   assert.ok(role?.id, `Rôle introuvable: ${roleSlug}`);
-  await execute('UPDATE user_roles SET is_primary = 0 WHERE user_type = ? AND user_id = ?', ['student', userId]);
+  await execute('UPDATE user_roles SET is_primary = 0 WHERE user_type = ? AND user_id = ?', [
+    'student',
+    userId,
+  ]);
   await execute(
     'INSERT INTO user_roles (user_type, user_id, role_id, is_primary) VALUES (?, ?, ?, 1) ON DUPLICATE KEY UPDATE is_primary = 1',
-    ['student', userId, role.id]
+    ['student', userId, role.id],
   );
 }
 
@@ -41,27 +44,33 @@ before(async () => {
   const loginEmail = String(process.env.TEACHER_ADMIN_EMAIL || '').trim();
   const teacher = await queryOne(
     "SELECT id FROM users WHERE user_type = 'teacher' AND LOWER(email) = LOWER(?) LIMIT 1",
-    [loginEmail]
+    [loginEmail],
   );
   const adminRole = await queryOne("SELECT id FROM roles WHERE slug = 'admin' LIMIT 1");
   assert.ok(teacher?.id, 'Compte admin enseignant introuvable');
   assert.ok(adminRole?.id, 'Rôle admin introuvable');
   if (teacher?.id && adminRole?.id) {
-    await execute('UPDATE user_roles SET is_primary = 0 WHERE user_type = ? AND user_id = ?', ['teacher', teacher.id]);
+    await execute('UPDATE user_roles SET is_primary = 0 WHERE user_type = ? AND user_id = ?', [
+      'teacher',
+      teacher.id,
+    ]);
     await execute(
       'INSERT INTO user_roles (user_type, user_id, role_id, is_primary) VALUES (?, ?, ?, 1) ON DUPLICATE KEY UPDATE is_primary = 1',
-      ['teacher', teacher.id, adminRole.id]
+      ['teacher', teacher.id, adminRole.id],
     );
   }
-  teacherToken = await signAuthToken({
-    userType: 'teacher',
-    userId: teacher?.id || null,
-    canonicalUserId: teacher?.id || null,
-    roleId: adminRole?.id || null,
-    roleSlug: 'admin',
-    roleDisplayName: 'Administrateur',
-    elevated: false,
-  }, false);
+  teacherToken = await signAuthToken(
+    {
+      userType: 'teacher',
+      userId: teacher?.id || null,
+      canonicalUserId: teacher?.id || null,
+      roleId: adminRole?.id || null,
+      roleSlug: 'admin',
+      roleDisplayName: 'Administrateur',
+      elevated: false,
+    },
+    false,
+  );
   const reg = await request(app)
     .post('/api/auth/register')
     .send({ firstName, lastName, password: 'pass123' })
@@ -172,7 +181,7 @@ describe('Recalcul statuts tâches', () => {
       .expect(400);
   });
 
-  it('assign refuse une tâche dont la date de départ n\'est pas atteinte', async () => {
+  it("assign refuse une tâche dont la date de départ n'est pas atteinte", async () => {
     await request(app)
       .post(`/api/tasks/${taskIdFutureStart}/assign`)
       .set('Authorization', `Bearer ${teacherToken}`)

@@ -73,7 +73,10 @@ export async function apiGL(path, method = 'GET', body = null) {
       if (err?.name === 'AbortError') {
         throw new Error('Délai d’attente dépassé pour la requête réseau.');
       }
-      if (shouldRetryAfterNetworkError(method, body, attempt, maxAttempts) && err instanceof TypeError) {
+      if (
+        shouldRetryAfterNetworkError(method, body, attempt, maxAttempts) &&
+        err instanceof TypeError
+      ) {
         await sleepMs(transientRetryDelayMs(attempt));
         continue;
       }
@@ -101,9 +104,9 @@ export async function apiGL(path, method = 'GET', body = null) {
     if (res.status === 401 && token) {
       const errText = String(errBody.error || '').toLowerCase();
       const sessionExpired =
-        errText.includes('token invalide')
-        || errText.includes('expiré')
-        || errText.includes('expired');
+        errText.includes('token invalide') ||
+        errText.includes('expiré') ||
+        errText.includes('expired');
       if (sessionExpired) {
         clearGlSession();
         const expiredErr = new Error('Session expirée — reconnectez-vous à Gnomes & Licornes.');

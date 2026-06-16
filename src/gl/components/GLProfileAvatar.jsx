@@ -7,11 +7,20 @@ import { GLButton } from './ui/GLButton.jsx';
 function estimateDataUrlBytes(dataUrl) {
   const payload = String(dataUrl || '').split(',')[1] || '';
   if (!payload) return 0;
-  const padding = payload.endsWith('==') ? 2 : (payload.endsWith('=') ? 1 : 0);
+  const padding = payload.endsWith('==') ? 2 : payload.endsWith('=') ? 1 : 0;
   return Math.floor((payload.length * 3) / 4) - padding;
 }
 
-export function GLProfileAvatar({ profile, auth, avatarData, onAvatarData, removeAvatar, onRemoveAvatar, onError, busy }) {
+export function GLProfileAvatar({
+  profile,
+  auth,
+  avatarData,
+  onAvatarData,
+  removeAvatar,
+  onRemoveAvatar,
+  onError,
+  busy,
+}) {
   const [processing, setProcessing] = useState(false);
   const [pendingImage, setPendingImage] = useState(null);
   const galleryRef = useRef(null);
@@ -31,7 +40,8 @@ export function GLProfileAvatar({ profile, auth, avatarData, onAvatarData, remov
     return new Promise((resolve, reject) => {
       const img = new Image();
       img.onerror = () => reject(new Error('Image invalide'));
-      img.onload = () => resolve({ width: img.naturalWidth || img.width, height: img.naturalHeight || img.height });
+      img.onload = () =>
+        resolve({ width: img.naturalWidth || img.width, height: img.naturalHeight || img.height });
       img.src = dataUrl;
     });
   }
@@ -47,8 +57,8 @@ export function GLProfileAvatar({ profile, auth, avatarData, onAvatarData, remov
     const focusY = (Number(frame?.focalY) || 50) / 100;
     const centerX = focusX * width;
     const centerY = focusY * height;
-    const xPx = Math.min(Math.max(0, centerX - (cropSizePx / 2)), width - cropSizePx);
-    const yPx = Math.min(Math.max(0, centerY - (cropSizePx / 2)), height - cropSizePx);
+    const xPx = Math.min(Math.max(0, centerX - cropSizePx / 2), width - cropSizePx);
+    const yPx = Math.min(Math.max(0, centerY - cropSizePx / 2), height - cropSizePx);
     return {
       x: xPx / width,
       y: yPx / height,
@@ -82,10 +92,22 @@ export function GLProfileAvatar({ profile, auth, avatarData, onAvatarData, remov
     <div className="gl-profile-avatar">
       <img src={preview} alt="Avatar profil" />
       <div className="gl-profile-avatar-actions gl-inline-actions">
-        <GLButton type="button" variant="secondary" size="sm" disabled={busy || processing} onClick={() => galleryRef.current?.click()}>
+        <GLButton
+          type="button"
+          variant="secondary"
+          size="sm"
+          disabled={busy || processing}
+          onClick={() => galleryRef.current?.click()}
+        >
           Galerie
         </GLButton>
-        <GLButton type="button" variant="secondary" size="sm" disabled={busy || processing} onClick={() => cameraRef.current?.click()}>
+        <GLButton
+          type="button"
+          variant="secondary"
+          size="sm"
+          disabled={busy || processing}
+          onClick={() => cameraRef.current?.click()}
+        >
           Camera
         </GLButton>
         <GLButton
@@ -132,7 +154,12 @@ export function GLProfileAvatar({ profile, auth, avatarData, onAvatarData, remov
             const normalizedFrame = normalizeGlImageFrame(frame, 'avatar');
             const size = await getImageSize(String(pendingImage?.dataUrl || ''));
             const squareCrop = computeSquareCrop(normalizedFrame, size);
-            const cropped = await cropImageDataUrl(String(pendingImage?.dataUrl || ''), squareCrop, 1200, 0.82);
+            const cropped = await cropImageDataUrl(
+              String(pendingImage?.dataUrl || ''),
+              squareCrop,
+              1200,
+              0.82,
+            );
             if (estimateDataUrlBytes(cropped) > 2 * 1024 * 1024) {
               onError?.('Image trop lourde après recadrage (max 2 Mo)');
               return;

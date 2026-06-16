@@ -21,30 +21,33 @@ export function hasActiveStudentFilters({
   hasTouchedStatusFilter = false,
   filterMap = 'active',
 } = {}) {
-  return !!filterText
-    || !!filterZone
-    || !!filterProject
-    || !!filterStatus
-    || !!filterUrgentCategory
-    || !!hasTouchedStatusFilter
-    || filterMap !== 'active';
+  return (
+    !!filterText ||
+    !!filterZone ||
+    !!filterProject ||
+    !!filterStatus ||
+    !!filterUrgentCategory ||
+    !!hasTouchedStatusFilter ||
+    filterMap !== 'active'
+  );
 }
 
 /** Propositions (statut `proposed`) soumises par l'élève courant. */
 export function studentOwnProposals(tasks, student) {
   if (!student) return [];
-  return (tasks || []).filter((t) => (
-    t?.status === 'proposed'
-    && String(t.proposed_by_student_id || '') === String(student.id || '')
-  ));
+  return (tasks || []).filter(
+    (t) =>
+      t?.status === 'proposed' &&
+      String(t.proposed_by_student_id || '') === String(student.id || ''),
+  );
 }
 
 /** Tâches non validées où l'élève courant est inscrit (section « Mes tâches »). */
 export function studentActiveAssignedTasks(tasks, student) {
   if (!student) return [];
-  return (tasks || []).filter((t) => (
-    taskEffectiveStatus(t) !== 'validated' && isStudentAssignedToTask(t, student)
-  ));
+  return (tasks || []).filter(
+    (t) => taskEffectiveStatus(t) !== 'validated' && isStudentAssignedToTask(t, student),
+  );
 }
 
 /** Retire de `list` les tâches présentes dans `excluded` (comparaison par id). */
@@ -56,7 +59,7 @@ export function excludeTasksById(list, excluded) {
 /** Tâches validées où l'élève courant était inscrit (section « Récemment validées »). */
 export function recentlyValidatedAssignedTasks(tasks, student) {
   if (!student) return [];
-  return (tasks || []).filter((t) => (
-    taskEffectiveStatus(t) === 'validated' && isStudentAssignedToTask(t, student)
-  ));
+  return (tasks || []).filter(
+    (t) => taskEffectiveStatus(t) === 'validated' && isStudentAssignedToTask(t, student),
+  );
 }

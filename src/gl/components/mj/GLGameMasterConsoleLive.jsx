@@ -48,7 +48,9 @@ export default function GLGameMasterConsoleLive({
   if (!game?.id) {
     return (
       <div className="gl-empty-state">
-        <span className="gl-empty-state-icon foretmap-emoji-text-mixed" aria-hidden="true">🎲</span>
+        <span className="gl-empty-state-icon foretmap-emoji-text-mixed" aria-hidden="true">
+          🎲
+        </span>
         <p>Sélectionnez ou créez une partie dans l’onglet « Parties ».</p>
         <GLButton type="button" variant="secondary" onClick={onGoToParties}>
           Aller aux parties
@@ -82,7 +84,9 @@ export default function GLGameMasterConsoleLive({
                     aria-hidden="true"
                   />
                   <span>{team.name}</span>
-                  {team.mascot_id ? <span className="gl-team-chip-mascot">{team.mascot_id}</span> : null}
+                  {team.mascot_id ? (
+                    <span className="gl-team-chip-mascot">{team.mascot_id}</span>
+                  ) : null}
                   {isCurrentTurn ? <span className="gl-team-chip-badge">Tour</span> : null}
                 </button>
               );
@@ -110,11 +114,14 @@ export default function GLGameMasterConsoleLive({
             Équipe courante :{' '}
             <strong>
               {currentTeamId != null
-                ? (teams.find((team) => Number(team.id) === currentTeamId)?.name || `#${currentTeamId}`)
+                ? teams.find((team) => Number(team.id) === currentTeamId)?.name ||
+                  `#${currentTeamId}`
                 : 'aucune'}
             </strong>
           </p>
-          <GLButton type="button" onClick={nextTurn} disabled={busy}>Tour suivant</GLButton>
+          <GLButton type="button" onClick={nextTurn} disabled={busy}>
+            Tour suivant
+          </GLButton>
         </div>
       )}
 
@@ -143,7 +150,9 @@ export default function GLGameMasterConsoleLive({
               if (isErr) showFailure(msg);
             }}
           />
-          <GLButton type="submit" disabled={busy}>Envoyer la narration</GLButton>
+          <GLButton type="submit" disabled={busy}>
+            Envoyer la narration
+          </GLButton>
         </form>
       )}
 
@@ -162,9 +171,13 @@ export default function GLGameMasterConsoleLive({
                       <strong>{team?.name || `Équipe #${action.teamId}`}</strong>
                       <span className="gl-hint">{formatTimestamp(action.createdAt)}</span>
                     </div>
-                    <div>Type : <code>{action.actionType}</code></div>
+                    <div>
+                      Type : <code>{action.actionType}</code>
+                    </div>
                     {action.payload && Object.keys(action.payload).length > 0 && (
-                      <pre className="gl-pending-action-payload">{JSON.stringify(action.payload, null, 2)}</pre>
+                      <pre className="gl-pending-action-payload">
+                        {JSON.stringify(action.payload, null, 2)}
+                      </pre>
                     )}
                     {scoringEnabled && (
                       <GLField label="Score à attribuer en cas d’acceptation">
@@ -172,16 +185,30 @@ export default function GLGameMasterConsoleLive({
                           type="number"
                           value={resolveDeltas[action.id] ?? 0}
                           onChange={(event) =>
-                            setResolveDeltas((prev) => ({ ...prev, [action.id]: Number(event.target.value) }))
+                            setResolveDeltas((prev) => ({
+                              ...prev,
+                              [action.id]: Number(event.target.value),
+                            }))
                           }
                         />
                       </GLField>
                     )}
                     <div className="gl-inline-actions">
-                      <GLButton type="button" size="sm" onClick={() => resolveAction(action.id, 'accepted')} disabled={busy}>
+                      <GLButton
+                        type="button"
+                        size="sm"
+                        onClick={() => resolveAction(action.id, 'accepted')}
+                        disabled={busy}
+                      >
                         Accepter
                       </GLButton>
-                      <GLButton type="button" size="sm" variant="danger" onClick={() => resolveAction(action.id, 'refused')} disabled={busy}>
+                      <GLButton
+                        type="button"
+                        size="sm"
+                        variant="danger"
+                        onClick={() => resolveAction(action.id, 'refused')}
+                        disabled={busy}
+                      >
                         Refuser
                       </GLButton>
                     </div>
@@ -235,7 +262,9 @@ export default function GLGameMasterConsoleLive({
               type="button"
               variant="secondary"
               disabled={busy || effectiveSelectedTeamId == null}
-              onClick={() => applyTeamVitality({ healthDelta: teamHealthDelta, powerDelta: teamPowerDelta })}
+              onClick={() =>
+                applyTeamVitality({ healthDelta: teamHealthDelta, powerDelta: teamPowerDelta })
+              }
             >
               Appliquer les deux
             </GLButton>
@@ -251,7 +280,10 @@ export default function GLGameMasterConsoleLive({
               const entry = scores[team.id] || { score: 0 };
               return (
                 <li key={team.id} className="gl-scoreboard-row">
-                  <span className="gl-scoreboard-team" style={{ borderColor: team.color || '#22c55e' }}>
+                  <span
+                    className="gl-scoreboard-team"
+                    style={{ borderColor: team.color || '#22c55e' }}
+                  >
                     {team.name}
                   </span>
                   <span className="gl-scoreboard-score">{entry.score || 0}</span>
@@ -280,9 +312,15 @@ export default function GLGameMasterConsoleLive({
         </div>
       )}
 
-      {!turnsEnabled && !narrationEnabled && !playerActionsEnabled && !scoringEnabled && !vitalityEnabled ? (
+      {!turnsEnabled &&
+      !narrationEnabled &&
+      !playerActionsEnabled &&
+      !scoringEnabled &&
+      !vitalityEnabled ? (
         <div className="gl-empty-state">
-          <span className="gl-empty-state-icon foretmap-emoji-text-mixed" aria-hidden="true">⚙️</span>
+          <span className="gl-empty-state-icon foretmap-emoji-text-mixed" aria-hidden="true">
+            ⚙️
+          </span>
           <p>Aucun module de jeu en direct activé. Configurez-les dans l’onglet Réglages.</p>
         </div>
       ) : null}

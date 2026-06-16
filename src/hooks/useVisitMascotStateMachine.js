@@ -61,7 +61,11 @@ function useVisitMascotStateMachine({
   useEffect(() => {
     const preferred = String(preferredMascotId || '').trim();
     if (preferred) {
-      const normalizedPreferred = normalizeVisitMascotId(preferred, extraCatalogEntries, mascotSelectionOptions);
+      const normalizedPreferred = normalizeVisitMascotId(
+        preferred,
+        extraCatalogEntries,
+        mascotSelectionOptions,
+      );
       saveVisitMascotId(normalizedPreferred, extraCatalogEntries, mascotSelectionOptions);
       setVisitMascotId((prev) => (prev === normalizedPreferred ? prev : normalizedPreferred));
       return;
@@ -100,7 +104,12 @@ function useVisitMascotStateMachine({
       stateAnimations = Object.fromEntries(
         Object.entries(frames).map(([stateKey, spec]) => {
           const srcs = Array.isArray(spec?.srcs) ? spec.srcs : [];
-          const aliases = srcs.map((u) => String(u || '').split('/').pop() || u);
+          const aliases = srcs.map(
+            (u) =>
+              String(u || '')
+                .split('/')
+                .pop() || u,
+          );
           return [stateKey, aliases];
         }),
       );
@@ -116,7 +125,8 @@ function useVisitMascotStateMachine({
   }, [visitMascotId, extraCatalogEntries]);
 
   useEffect(() => {
-    if (visitMascotPreviewStateOptions.some((entry) => entry.state === visitMascotPreviewState)) return;
+    if (visitMascotPreviewStateOptions.some((entry) => entry.state === visitMascotPreviewState))
+      return;
     setVisitMascotPreviewState(VISIT_MASCOT_STATE.IDLE);
   }, [visitMascotPreviewStateOptions, visitMascotPreviewState]);
 
@@ -128,38 +138,51 @@ function useVisitMascotStateMachine({
     setVisitMapMascotTransientState('');
   }, []);
 
-  useEffect(() => () => {
-    if (visitMapMascotTransientStateTimeoutRef.current) {
-      clearTimeout(visitMapMascotTransientStateTimeoutRef.current);
-    }
-  }, []);
-
-  const triggerMascotTransientState = useCallback((state, durationMs = transientDurationMs) => {
-    const wanted = resolveVisitMascotState({ state });
-    if (!wanted || wanted === VISIT_MASCOT_STATE.IDLE) return;
-    if (visitMapMascotTransientStateTimeoutRef.current) {
-      clearTimeout(visitMapMascotTransientStateTimeoutRef.current);
-    }
-    setVisitMapMascotTransientState(wanted);
-    visitMapMascotTransientStateTimeoutRef.current = window.setTimeout(() => {
-      setVisitMapMascotTransientState('');
-      visitMapMascotTransientStateTimeoutRef.current = null;
-    }, Math.max(300, Number(durationMs) || VISIT_MASCOT_TRANSIENT_STATE_MS));
-  }, [transientDurationMs]);
-
-  const visitMascotAnimationState = useMemo(
-    () => resolveVisitMascotState({
-      state: visitMapMascotTransientState,
-      happy,
-      walking,
-    }),
-    [visitMapMascotTransientState, happy, walking]
+  useEffect(
+    () => () => {
+      if (visitMapMascotTransientStateTimeoutRef.current) {
+        clearTimeout(visitMapMascotTransientStateTimeoutRef.current);
+      }
+    },
+    [],
   );
 
-  const onChangeVisitMascotId = useCallback((nextId) => {
-    const normalized = saveVisitMascotId(nextId, extraCatalogEntries, mascotSelectionOptions);
-    setVisitMascotId(normalized);
-  }, [extraCatalogEntries, mascotSelectionOptions]);
+  const triggerMascotTransientState = useCallback(
+    (state, durationMs = transientDurationMs) => {
+      const wanted = resolveVisitMascotState({ state });
+      if (!wanted || wanted === VISIT_MASCOT_STATE.IDLE) return;
+      if (visitMapMascotTransientStateTimeoutRef.current) {
+        clearTimeout(visitMapMascotTransientStateTimeoutRef.current);
+      }
+      setVisitMapMascotTransientState(wanted);
+      visitMapMascotTransientStateTimeoutRef.current = window.setTimeout(
+        () => {
+          setVisitMapMascotTransientState('');
+          visitMapMascotTransientStateTimeoutRef.current = null;
+        },
+        Math.max(300, Number(durationMs) || VISIT_MASCOT_TRANSIENT_STATE_MS),
+      );
+    },
+    [transientDurationMs],
+  );
+
+  const visitMascotAnimationState = useMemo(
+    () =>
+      resolveVisitMascotState({
+        state: visitMapMascotTransientState,
+        happy,
+        walking,
+      }),
+    [visitMapMascotTransientState, happy, walking],
+  );
+
+  const onChangeVisitMascotId = useCallback(
+    (nextId) => {
+      const normalized = saveVisitMascotId(nextId, extraCatalogEntries, mascotSelectionOptions);
+      setVisitMascotId(normalized);
+    },
+    [extraCatalogEntries, mascotSelectionOptions],
+  );
 
   return {
     visitMascotId,

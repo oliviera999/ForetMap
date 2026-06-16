@@ -4,7 +4,9 @@ const DEFAULT_QUESTION_MARKER_EMOJI = '❓';
 const MARKER_QUESTION_EVENT_TYPES = new Set(['question', 'quiz']);
 
 function normalizeDisplayMode(value) {
-  const s = String(value || '').trim().toLowerCase();
+  const s = String(value || '')
+    .trim()
+    .toLowerCase();
   return MARKER_DISPLAY_MODES.has(s) ? s : null;
 }
 
@@ -31,7 +33,9 @@ function normalizeIconUrl(value) {
 }
 
 function isQuestionEventType(eventType) {
-  const s = String(eventType || '').trim().toLowerCase();
+  const s = String(eventType || '')
+    .trim()
+    .toLowerCase();
   return MARKER_QUESTION_EVENT_TYPES.has(s);
 }
 
@@ -63,9 +67,14 @@ function resolveMarkerAppearance(marker) {
   const defaults = defaultAppearanceForEventType(eventType);
 
   let displayMode = storedMode ?? defaults.displayMode;
-  let emoji = marker?.emoji != null && String(marker.emoji).trim()
-    ? normalizeMarkerEmoji(marker.emoji, { allowEmpty: true })
-    : (storedMode === 'emoji' ? defaults.emoji : (defaults.displayMode === 'emoji' ? defaults.emoji : null));
+  let emoji =
+    marker?.emoji != null && String(marker.emoji).trim()
+      ? normalizeMarkerEmoji(marker.emoji, { allowEmpty: true })
+      : storedMode === 'emoji'
+        ? defaults.emoji
+        : defaults.displayMode === 'emoji'
+          ? defaults.emoji
+          : null;
   let iconUrl = normalizeIconUrl(marker?.icon_url ?? marker?.iconUrl);
 
   if (displayMode === 'emoji' && !emoji) {
@@ -94,16 +103,20 @@ function resolveMarkerAppearance(marker) {
 function validateMarkerAppearance(input) {
   const label = String(input?.label || '').trim();
   const eventType = input?.eventType ?? input?.event_type ?? null;
-  const hasDisplayMode = Object.prototype.hasOwnProperty.call(input || {}, 'displayMode')
-    || Object.prototype.hasOwnProperty.call(input || {}, 'display_mode');
+  const hasDisplayMode =
+    Object.prototype.hasOwnProperty.call(input || {}, 'displayMode') ||
+    Object.prototype.hasOwnProperty.call(input || {}, 'display_mode');
   const hasEmoji = Object.prototype.hasOwnProperty.call(input || {}, 'emoji');
-  const hasIconUrl = Object.prototype.hasOwnProperty.call(input || {}, 'iconUrl')
-    || Object.prototype.hasOwnProperty.call(input || {}, 'icon_url');
+  const hasIconUrl =
+    Object.prototype.hasOwnProperty.call(input || {}, 'iconUrl') ||
+    Object.prototype.hasOwnProperty.call(input || {}, 'icon_url');
 
   let displayMode = hasDisplayMode
     ? normalizeDisplayMode(input.displayMode ?? input.display_mode)
     : null;
-  let emoji = hasEmoji ? normalizeMarkerEmoji(input.emoji, { allowEmpty: true, fallback: '' }) : null;
+  let emoji = hasEmoji
+    ? normalizeMarkerEmoji(input.emoji, { allowEmpty: true, fallback: '' })
+    : null;
   let iconUrl = hasIconUrl ? normalizeIconUrl(input.iconUrl ?? input.icon_url) : null;
 
   if (!hasDisplayMode && !hasEmoji && !hasIconUrl) {
@@ -128,9 +141,7 @@ function validateMarkerAppearance(input) {
 
   if (displayMode === 'emoji') {
     if (!emoji) {
-      emoji = isQuestionEventType(eventType)
-        ? DEFAULT_QUESTION_MARKER_EMOJI
-        : null;
+      emoji = isQuestionEventType(eventType) ? DEFAULT_QUESTION_MARKER_EMOJI : null;
     }
     if (!emoji) {
       return { error: 'emoji requis pour displayMode emoji' };
@@ -156,8 +167,8 @@ function validateMarkerAppearance(input) {
 }
 
 function parseAppearanceInput(body, eventType) {
-  const hasAny = ['displayMode', 'display_mode', 'emoji', 'iconUrl', 'icon_url'].some(
-    (key) => Object.prototype.hasOwnProperty.call(body || {}, key)
+  const hasAny = ['displayMode', 'display_mode', 'emoji', 'iconUrl', 'icon_url'].some((key) =>
+    Object.prototype.hasOwnProperty.call(body || {}, key),
   );
   if (!hasAny) {
     const defaults = defaultAppearanceForEventType(eventType);

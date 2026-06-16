@@ -1,11 +1,6 @@
 import React from 'react';
 
-export function GLGameBoardHud({
-  chapterTitle,
-  canSpellCast,
-  onLaunchSpell,
-  onOpenFullscreen,
-}) {
+export function GLGameBoardHud({ chapterTitle, canSpellCast, onLaunchSpell, onOpenFullscreen }) {
   return (
     <div className="gl-game-board-head">
       <h2>{chapterTitle || 'Carte de jeu'}</h2>
@@ -33,11 +28,7 @@ export function GLGameBoardHud({
   );
 }
 
-export function GLGameBoardHudToolbar({
-  canSpellCast,
-  onLaunchSpell,
-  onOpenFullscreen,
-}) {
+export function GLGameBoardHudToolbar({ canSpellCast, onLaunchSpell, onOpenFullscreen }) {
   return (
     <div className="gl-board-hud" role="toolbar" aria-label="Actions carte">
       {canSpellCast ? (

@@ -26,7 +26,7 @@ export const EVENT_TYPE_OPTIONS = [
   { value: 'frontier', label: 'Frontière', enabled: true },
   { value: 'finish', label: 'Arrivée', enabled: true },
   { value: 'story', label: 'Histoire', enabled: true },
-  { value: 'point', label: 'Point d\'intérêt', enabled: true },
+  { value: 'point', label: "Point d'intérêt", enabled: true },
   { value: 'narration', label: 'Narration', enabled: true },
   { value: 'behavior', label: 'Comportement', enabled: true },
 ];
@@ -55,11 +55,13 @@ export function emptyQuestionForm() {
 /** Dérive l'état du formulaire depuis un repère existant (ou vierge si absent). */
 export function formFromMarker(marker) {
   if (!marker) return emptyQuestionForm();
-  const eventType = String(marker.event_type || '').trim().toLowerCase();
+  const eventType = String(marker.event_type || '')
+    .trim()
+    .toLowerCase();
   const cfg = normalizeEventConfig(marker.event_config) || defaultEventConfigForQuestion();
   const question = cfg.question || defaultEventConfigForQuestion().question;
   return {
-    eventType: eventType === 'quiz' ? 'question' : (eventType || 'question'),
+    eventType: eventType === 'quiz' ? 'question' : eventType || 'question',
     questionSet: question.set || 'biome',
     questionMode: question.mode,
     fixedQuestionCode: question.fixedQuestionCode || '',
@@ -69,20 +71,22 @@ export function formFromMarker(marker) {
 
 /** Reconstruit la config d'événement normalisée à partir du formulaire + brouillon d'effets. */
 export function buildEventConfigFromForm(form, effectsDraft = null) {
-  const pool = form.questionSet === 'lore'
-    ? normalizeLoreQuestionPool(form.pool)
-    : normalizeQuestionPool(form.pool);
-  const base = form.eventType === 'question'
-    ? normalizeEventConfig({
-      version: 2,
-      question: {
-        set: form.questionSet || 'biome',
-        mode: form.questionMode,
-        fixedQuestionCode: form.fixedQuestionCode || null,
-        pool,
-      },
-    })
-    : null;
+  const pool =
+    form.questionSet === 'lore'
+      ? normalizeLoreQuestionPool(form.pool)
+      : normalizeQuestionPool(form.pool);
+  const base =
+    form.eventType === 'question'
+      ? normalizeEventConfig({
+          version: 2,
+          question: {
+            set: form.questionSet || 'biome',
+            mode: form.questionMode,
+            fixedQuestionCode: form.fixedQuestionCode || null,
+            pool,
+          },
+        })
+      : null;
   if (!effectsDraft?.effects && !effectsDraft?.eventMeta) return base;
   return normalizeEventConfig({
     version: 2,
@@ -94,9 +98,7 @@ export function buildEventConfigFromForm(form, effectsDraft = null) {
 
 /** Pool vierge pour un catalogue donné (biome/lore), au changement de catalogue. */
 export function emptyPoolForSet(nextSet) {
-  return nextSet === 'lore'
-    ? { ...DEFAULT_LORE_QUESTION_POOL }
-    : { ...DEFAULT_QUESTION_POOL };
+  return nextSet === 'lore' ? { ...DEFAULT_LORE_QUESTION_POOL } : { ...DEFAULT_QUESTION_POOL };
 }
 
 /** Applique un patch au pool en le renormalisant selon le catalogue courant. */
@@ -114,7 +116,7 @@ export function effectiveBiomeSlugs(pool, chapterBiomeSlugs) {
   const normalized = normalizeQuestionPool(pool);
   if (normalized.biomeMode === 'chapter') return chapterBiomeSlugs;
   const merged = [...chapterBiomeSlugs];
-  for (const slug of (normalized.biomeSlugs || [])) {
+  for (const slug of normalized.biomeSlugs || []) {
     if (!merged.includes(slug)) merged.push(slug);
   }
   return merged;
@@ -122,9 +124,7 @@ export function effectiveBiomeSlugs(pool, chapterBiomeSlugs) {
 
 /** Slugs des biomes du chapitre (filtrés non vides). */
 export function chapterBiomeSlugsFrom(chapterBiomes) {
-  return Array.isArray(chapterBiomes)
-    ? chapterBiomes.map((b) => b.slug).filter(Boolean)
-    : [];
+  return Array.isArray(chapterBiomes) ? chapterBiomes.map((b) => b.slug).filter(Boolean) : [];
 }
 
 /** Options « biomes additionnels » : tous les biomes hors ceux du chapitre. */
@@ -153,7 +153,9 @@ export function buildNiveauOptions(poolItems) {
   for (const item of poolItems) {
     if (item.niveau) set.add(item.niveau);
   }
-  return Array.from(set).sort().map((n) => ({ value: n, label: n }));
+  return Array.from(set)
+    .sort()
+    .map((n) => ({ value: n, label: n }));
 }
 
 /**
@@ -161,15 +163,17 @@ export function buildNiveauOptions(poolItems) {
  * sélectionnés (normalisé majuscule). Renvoie la liste inchangée si code vide.
  */
 export function toggleSelectedCode(selectedCodes, code) {
-  const upper = String(code || '').trim().toUpperCase();
+  const upper = String(code || '')
+    .trim()
+    .toUpperCase();
   const current = selectedCodes || [];
   if (!upper) return current;
-  return current.includes(upper)
-    ? current.filter((c) => c !== upper)
-    : [...current, upper];
+  return current.includes(upper) ? current.filter((c) => c !== upper) : [...current, upper];
 }
 
 /** Normalise un code de question fixe (trim + majuscule). */
 export function normalizeFixedCode(code) {
-  return String(code || '').trim().toUpperCase();
+  return String(code || '')
+    .trim()
+    .toUpperCase();
 }

@@ -15,8 +15,9 @@ export function GLContentLibraryAuditPanel({ report, busy, onRun }) {
     <section className="gl-content-library__section">
       <h3>Audit des conventions</h3>
       <p className="gl-hint">
-        Vérifie les liaisons par nom de fichier (plateaux, biomes, feuillets, scènes de récit, intro, audio) :
-        ressources requises manquantes et clés <code>recit_*</code> mal nommées (invisibles en jeu).
+        Vérifie les liaisons par nom de fichier (plateaux, biomes, feuillets, scènes de récit,
+        intro, audio) : ressources requises manquantes et clés <code>recit_*</code> mal nommées
+        (invisibles en jeu).
       </p>
       <GLButton type="button" disabled={busy} onClick={onRun}>
         {busy ? 'Audit en cours…' : 'Lancer l’audit'}
@@ -30,12 +31,14 @@ export function GLContentLibraryAuditPanel({ report, busy, onRun }) {
           {Array.isArray(report.suspectRecitKeys) && report.suspectRecitKeys.length > 0 ? (
             <div>
               <p className="gl-error">
-                ⚠ {report.suspectRecitKeys.length} clé(s) récit suspecte(s) — typo probable, ces images
-                ne s’affichent dans aucun chapitre :
+                ⚠ {report.suspectRecitKeys.length} clé(s) récit suspecte(s) — typo probable, ces
+                images ne s’affichent dans aucun chapitre :
               </p>
               <ul className="gl-content-library__warnings">
                 {report.suspectRecitKeys.map((key) => (
-                  <li key={key}><code>{key}</code></li>
+                  <li key={key}>
+                    <code>{key}</code>
+                  </li>
                 ))}
               </ul>
             </div>
@@ -44,7 +47,9 @@ export function GLContentLibraryAuditPanel({ report, busy, onRun }) {
           )}
           {Array.isArray(report.missing) && report.missing.length > 0 ? (
             <div>
-              <p className="gl-error">✗ {report.missing.length} ressource(s) requise(s) manquante(s) :</p>
+              <p className="gl-error">
+                ✗ {report.missing.length} ressource(s) requise(s) manquante(s) :
+              </p>
               <ul className="gl-content-library__warnings">
                 {report.missing.map((row) => (
                   <li key={`${row.category}-${row.ref}`}>
@@ -56,14 +61,15 @@ export function GLContentLibraryAuditPanel({ report, busy, onRun }) {
           ) : (
             <p className="gl-success">Toutes les ressources requises sont présentes.</p>
           )}
-          {Array.isArray(report.ok) && report.ok.some((row) => row.category === 'chapitre-recit') ? (
+          {Array.isArray(report.ok) &&
+          report.ok.some((row) => row.category === 'chapitre-recit') ? (
             <p className="gl-hint">
               Scènes de récit branchées :{' '}
               {report.ok
                 .filter((row) => row.category === 'chapitre-recit')
                 .map((row) => row.ref)
-                .join(', ')}
-              {' '}— détail par chapitre dans Contenus → Chapitres.
+                .join(', ')}{' '}
+              — détail par chapitre dans Contenus → Chapitres.
             </p>
           ) : null}
         </div>

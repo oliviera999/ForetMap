@@ -16,7 +16,9 @@ async function main() {
   const fileArg = argv.find((a) => !a.startsWith('--') && a !== outJs);
 
   if (!fileArg || argv.includes('--help')) {
-    console.log(`Usage: node scripts/mascot-pack-validate.cjs <pack.json> [--generate-js <sortie.js>]`);
+    console.log(
+      `Usage: node scripts/mascot-pack-validate.cjs <pack.json> [--generate-js <sortie.js>]`,
+    );
     process.exit(fileArg ? 0 : 1);
   }
 
@@ -47,11 +49,14 @@ async function main() {
 
   if (outJs) {
     const outAbs = path.resolve(process.cwd(), outJs);
-    const base = result.pack.framesBase.endsWith('/') ? result.pack.framesBase : `${result.pack.framesBase}/`;
+    const base = result.pack.framesBase.endsWith('/')
+      ? result.pack.framesBase
+      : `${result.pack.framesBase}/`;
     const manifest = {};
     for (const [st, spec] of Object.entries(result.pack.stateFrames)) {
       const entry = { files: spec.files || [], fps: spec.fps != null ? spec.fps : 8 };
-      if (Array.isArray(spec.frameDwellMs) && spec.frameDwellMs.length) entry.frameDwellMs = spec.frameDwellMs;
+      if (Array.isArray(spec.frameDwellMs) && spec.frameDwellMs.length)
+        entry.frameDwellMs = spec.frameDwellMs;
       manifest[st] = entry;
     }
     const body = [

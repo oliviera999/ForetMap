@@ -24,7 +24,10 @@ function mockReq({ host, proto, forwardedHost, forwardedProto } = {}) {
 
 test('normalizeOAuthPublicHost retire www. et conserve le port', () => {
   assert.equal(normalizeOAuthPublicHost('www.gl.olution.info'), 'gl.olution.info');
-  assert.equal(normalizeOAuthPublicHost('WWW.Foretmap.olution.info:443'), 'foretmap.olution.info:443');
+  assert.equal(
+    normalizeOAuthPublicHost('WWW.Foretmap.olution.info:443'),
+    'foretmap.olution.info:443',
+  );
   assert.equal(normalizeOAuthPublicHost('localhost:3000'), 'localhost:3000');
 });
 
@@ -44,7 +47,7 @@ test('resolveOAuthRedirectUri dérive https sans www depuis X-Forwarded-*', () =
       forwardedHost: 'www.gl.olution.info',
       forwardedProto: 'https',
     }),
-    { callbackPath: '/api/gl/auth/google/callback' }
+    { callbackPath: '/api/gl/auth/google/callback' },
   );
   assert.equal(uri, 'https://gl.olution.info/api/gl/auth/google/callback');
 });
@@ -52,7 +55,7 @@ test('resolveOAuthRedirectUri dérive https sans www depuis X-Forwarded-*', () =
 test('resolveOAuthPublicOrigin respecte FRONTEND_ORIGIN', () => {
   const origin = resolveOAuthPublicOrigin(
     mockReq({ host: 'gl.olution.info' }),
-    'https://gl.olution.info'
+    'https://gl.olution.info',
   );
   assert.equal(origin, 'https://gl.olution.info');
 });

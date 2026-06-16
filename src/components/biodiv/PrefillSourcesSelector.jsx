@@ -39,13 +39,15 @@ export function PrefillSourcesSelector({ sources, onToggle }) {
         {SPECIES_PREFILL_SOURCE_CHECKBOXES.map((row) => (
           <label
             key={row.id}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '.8rem', color: '#333' }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              fontSize: '.8rem',
+              color: '#333',
+            }}
           >
-            <input
-              type="checkbox"
-              checked={!!sources[row.id]}
-              onChange={() => onToggle(row.id)}
-            />
+            <input type="checkbox" checked={!!sources[row.id]} onChange={() => onToggle(row.id)} />
             <span>{row.label}</span>
             <small style={{ color: '#888' }}>({row.id})</small>
           </label>

@@ -6,8 +6,5 @@ export function normalizeGlMediaStableKey(fileName) {
   const dot = base.lastIndexOf('.');
   if (dot > 0) base = base.slice(0, dot);
   if (/^gl_/i.test(base)) base = base.slice(3);
-  return base
-    .normalize('NFD')
-    .replace(/\p{M}/gu, '')
-    .toLowerCase();
+  return base.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
 }

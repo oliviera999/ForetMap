@@ -247,7 +247,15 @@ test('GL kingdom-map: refuse points hors plage', async () => {
   await request(app)
     .post('/api/gl/kingdom-map/zones')
     .set('Authorization', `Bearer ${adminToken}`)
-    .send({ chapterId, label: 'Hors plage', points: [{ x: -1, y: 50 }, { x: 50, y: 50 }, { x: 50, y: 150 }] })
+    .send({
+      chapterId,
+      label: 'Hors plage',
+      points: [
+        { x: -1, y: 50 },
+        { x: 50, y: 50 },
+        { x: 50, y: 150 },
+      ],
+    })
     .expect(400);
 });
 

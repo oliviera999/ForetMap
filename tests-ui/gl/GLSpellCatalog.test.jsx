@@ -36,11 +36,9 @@ describe('GLSpellCatalog', () => {
     });
     render(
       <GLSpellCatalog
-        chapterSpells={[
-          { spell_code: 'SL002', category_slug: 'mouvement', nom: 'Progression' },
-        ]}
+        chapterSpells={[{ spell_code: 'SL002', category_slug: 'mouvement', nom: 'Progression' }]}
         onOpenSpell={onOpenSpell}
-      />
+      />,
     );
     await waitFor(() => {
       expect(screen.getByText('Progression')).toBeInTheDocument();

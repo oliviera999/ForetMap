@@ -6,10 +6,7 @@ const assert = require('node:assert');
 const request = require('supertest');
 const { app } = require('../server');
 const { initSchema, execute, queryOne } = require('../database');
-const {
-  invalidateGameplayCache,
-  invalidateModulesCache,
-} = require('../lib/glSettings');
+const { invalidateGameplayCache, invalidateModulesCache } = require('../lib/glSettings');
 const { signAuthToken } = require('../middleware/requireTeacher');
 const {
   createGlAdmin,
@@ -43,7 +40,7 @@ async function enableSpellCast(extra = {}) {
       JSON.stringify(extra.contributionMode || 'coordinator'),
       JSON.stringify(extra.teamScope || 'any_team'),
       JSON.stringify(extra.mjOnly === true),
-    ]
+    ],
   );
   invalidateGameplayCache();
   invalidateModulesCache();
@@ -75,13 +72,13 @@ before(async () => {
             ('SCT02', 'vie', 'Sort coeurs', '❤️', 0, 2, 'officiel', NOW(), NOW()),
             ('SCT03', 'vie', 'Sort mixte', '✨', 1, 1, 'officiel', NOW(), NOW())
      ON DUPLICATE KEY UPDATE nom = VALUES(nom), cout_gemmes = VALUES(cout_gemmes),
-       cout_coeurs = VALUES(cout_coeurs), updated_at = NOW()`
+       cout_coeurs = VALUES(cout_coeurs), updated_at = NOW()`,
   );
   await execute(
     `INSERT INTO gl_chapter_spells (chapter_id, spell_code, order_index)
      VALUES (?, 'SCT01', 0), (?, 'SCT02', 10), (?, 'SCT03', 20)
      ON DUPLICATE KEY UPDATE order_index = VALUES(order_index)`,
-    [chapterId, chapterId, chapterId]
+    [chapterId, chapterId, chapterId],
   );
 
   const playerA = await createGlPlayer({
@@ -145,7 +142,7 @@ test('module désactivé → 409', async () => {
   await execute(
     `INSERT INTO gl_settings (\`key\`, value_json, updated_at)
      VALUES ('modules.spell_cast_enabled', 'false', NOW())
-     ON DUPLICATE KEY UPDATE value_json = VALUES(value_json), updated_at = NOW()`
+     ON DUPLICATE KEY UPDATE value_json = VALUES(value_json), updated_at = NOW()`,
   );
   invalidateModulesCache();
   const res = await request(app)
@@ -160,7 +157,7 @@ test('sort hors chapitre → 400', async () => {
   await execute(
     `INSERT INTO gl_spells (spell_code, category_slug, nom, cout_gemmes, cout_coeurs, statut, created_at, updated_at)
      VALUES ('SCT99', 'vie', 'Hors chapitre', 1, 0, 'officiel', NOW(), NOW())
-     ON DUPLICATE KEY UPDATE updated_at = NOW()`
+     ON DUPLICATE KEY UPDATE updated_at = NOW()`,
   );
   const res = await request(app)
     .post(`/api/gl/games/${gameId}/spell-casts/drafts`)
@@ -204,7 +201,7 @@ test('lancement gemmes : débit et événement spell_cast', async () => {
   const evt = await queryOne(
     `SELECT event_type, payload_json FROM gl_game_events
       WHERE game_id = ? AND event_type = 'spell_cast' ORDER BY id DESC LIMIT 1`,
-    [gameId]
+    [gameId],
   );
   assert.ok(evt);
   const payload = JSON.parse(evt.payload_json);
@@ -286,17 +283,15 @@ test('mj_only : joueur refusé, staff autorisé', async () => {
 test('MJ : brouillon multi-équipes sans teamId, contributions cross-team', async () => {
   await execute(
     'DELETE FROM gl_spell_cast_contributions WHERE draft_id IN (SELECT id FROM gl_spell_cast_drafts WHERE game_id = ?)',
-    [gameId]
+    [gameId],
   );
   await execute('DELETE FROM gl_spell_cast_drafts WHERE game_id = ?', [gameId]);
-  await execute(
-    'UPDATE gl_players SET health_points = 5, power_points = 5 WHERE id = ?',
-    [playerAId]
-  );
-  await execute(
-    'UPDATE gl_players SET health_points = 4, power_points = 3 WHERE id = ?',
-    [playerBId]
-  );
+  await execute('UPDATE gl_players SET health_points = 5, power_points = 5 WHERE id = ?', [
+    playerAId,
+  ]);
+  await execute('UPDATE gl_players SET health_points = 4, power_points = 3 WHERE id = ?', [
+    playerBId,
+  ]);
   await assignPlayerToGameTeam({ gameId, teamId: teamBId, playerId: playerBId });
 
   const mjToken = await signAuthToken({
@@ -337,17 +332,23 @@ test('MJ : brouillon multi-équipes sans teamId, contributions cross-team', asyn
     .set('Authorization', `Bearer ${mjToken}`);
   assert.strictEqual(launchRes.status, 200);
 
-  const rowA = await queryOne('SELECT power_points, health_points FROM gl_players WHERE id = ?', [playerAId]);
-  const rowB = await queryOne('SELECT power_points, health_points FROM gl_players WHERE id = ?', [playerBId]);
+  const rowA = await queryOne('SELECT power_points, health_points FROM gl_players WHERE id = ?', [
+    playerAId,
+  ]);
+  const rowB = await queryOne('SELECT power_points, health_points FROM gl_players WHERE id = ?', [
+    playerBId,
+  ]);
   assert.strictEqual(Number(rowA.power_points), 4);
   assert.strictEqual(Number(rowB.health_points), 3);
 
   const payload = JSON.parse(
-    (await queryOne(
-      `SELECT payload_json FROM gl_game_events
+    (
+      await queryOne(
+        `SELECT payload_json FROM gl_game_events
         WHERE game_id = ? AND event_type = 'spell_cast' ORDER BY id DESC LIMIT 1`,
-      [gameId]
-    )).payload_json
+        [gameId],
+      )
+    ).payload_json,
   );
   const contribTeams = payload.contributions.map((c) => c.teamId);
   assert.ok(contribTeams.includes(teamAId) || contribTeams.includes(teamBId));

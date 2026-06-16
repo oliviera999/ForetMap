@@ -94,15 +94,27 @@ export function GLSeleneCarnetView({
           Feuillets épars du voyage — découvertes sur la carte et lectures du passeur.
         </p>
         <div className="gl-selene-carnet__modes">
-          <button type="button" className={viewMode === 'voyage' ? 'is-active' : ''} onClick={() => setViewMode('voyage')}>
+          <button
+            type="button"
+            className={viewMode === 'voyage' ? 'is-active' : ''}
+            onClick={() => setViewMode('voyage')}
+          >
             Vue voyage
           </button>
-          <button type="button" className={viewMode === 'liasse' ? 'is-active' : ''} onClick={() => setViewMode('liasse')}>
+          <button
+            type="button"
+            className={viewMode === 'liasse' ? 'is-active' : ''}
+            onClick={() => setViewMode('liasse')}
+          >
             Vue liasse
           </button>
           {isMj ? (
             <label className="gl-selene-carnet__toggle">
-              <input type="checkbox" checked={showNarrative} onChange={(e) => setShowNarrative(e.target.checked)} />
+              <input
+                type="checkbox"
+                checked={showNarrative}
+                onChange={(e) => setShowNarrative(e.target.checked)}
+              />
               Texte intégral
             </label>
           ) : null}
@@ -114,53 +126,59 @@ export function GLSeleneCarnetView({
 
       <div className="gl-selene-carnet__layout">
         <aside className="gl-selene-carnet__list">
-          {viewMode === 'liasse'
-            ? Object.entries(grouped).map(([liasse, rows]) => (
+          {viewMode === 'liasse' ? (
+            Object.entries(grouped).map(([liasse, rows]) => (
               <section key={liasse} className="gl-selene-carnet__liasse">
                 <h3>{liasse === '—' ? 'Sans liasse' : `Liasse ${liasse}`}</h3>
                 <ul>
-                  {[...rows].sort((a, b) => (a.ordreLiasse || 0) - (b.ordreLiasse || 0)).map((item) => (
-                    <li key={item.feuilletCode}>
-                      <button
-                        type="button"
-                        className={activeCode === item.feuilletCode ? 'is-active' : ''}
-                        onClick={() => setActiveCode(item.feuilletCode)}
-                        disabled={item.progressStatus === 'locked' && !isMj}
-                      >
-                        <span>{item.titre || item.feuilletCode}</span>
-                        {item.progressStatus && item.progressStatus !== 'locked' ? (
-                          <span className="gl-selene-carnet__badge">{item.progressStatus}</span>
-                        ) : null}
-                      </button>
-                    </li>
-                  ))}
+                  {[...rows]
+                    .sort((a, b) => (a.ordreLiasse || 0) - (b.ordreLiasse || 0))
+                    .map((item) => (
+                      <li key={item.feuilletCode}>
+                        <button
+                          type="button"
+                          className={activeCode === item.feuilletCode ? 'is-active' : ''}
+                          onClick={() => setActiveCode(item.feuilletCode)}
+                          disabled={item.progressStatus === 'locked' && !isMj}
+                        >
+                          <span>{item.titre || item.feuilletCode}</span>
+                          {item.progressStatus && item.progressStatus !== 'locked' ? (
+                            <span className="gl-selene-carnet__badge">{item.progressStatus}</span>
+                          ) : null}
+                        </button>
+                      </li>
+                    ))}
                 </ul>
               </section>
             ))
-            : (
-              <ul className="gl-selene-carnet__timeline">
-                {sortedItems.map((item) => (
-                  <li key={item.feuilletCode}>
-                    <button
-                      type="button"
-                      className={activeCode === item.feuilletCode ? 'is-active' : ''}
-                      onClick={() => setActiveCode(item.feuilletCode)}
-                      disabled={item.progressStatus === 'locked' && !isMj}
-                    >
-                      <span className="gl-selene-carnet__ordre">{item.ordreVoyage || '·'}</span>
-                      <span>{item.titre || item.feuilletCode}</span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
+          ) : (
+            <ul className="gl-selene-carnet__timeline">
+              {sortedItems.map((item) => (
+                <li key={item.feuilletCode}>
+                  <button
+                    type="button"
+                    className={activeCode === item.feuilletCode ? 'is-active' : ''}
+                    onClick={() => setActiveCode(item.feuilletCode)}
+                    disabled={item.progressStatus === 'locked' && !isMj}
+                  >
+                    <span className="gl-selene-carnet__ordre">{item.ordreVoyage || '·'}</span>
+                    <span>{item.titre || item.feuilletCode}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </aside>
 
         <section className={`gl-selene-carnet__reader ${modeClass}`}>
           {!active ? (
             <p className="gl-hint">Sélectionnez un feuillet dans la liste.</p>
           ) : (
-            <div className={(active.imageUrl || active.feuilletCode) ? 'gl-selene-carnet__spread' : undefined}>
+            <div
+              className={
+                active.imageUrl || active.feuilletCode ? 'gl-selene-carnet__spread' : undefined
+              }
+            >
               <GLFeuilletIllustration
                 feuilletCode={active.feuilletCode}
                 fallbackUrl={active.imageUrl}
@@ -168,7 +186,9 @@ export function GLSeleneCarnetView({
               />
               <div className="gl-selene-carnet__content">
                 <h3>{active.titre}</h3>
-                {active.incipit ? <p className="gl-selene-carnet__incipit">{active.incipit}</p> : null}
+                {active.incipit ? (
+                  <p className="gl-selene-carnet__incipit">{active.incipit}</p>
+                ) : null}
                 <GLLoreGlossaryMarkdown
                   markdown={showNarrative && active.texte ? active.texte : active.displayText}
                   loreGlossaryItems={loreGlossaryLinkItems}

@@ -15,7 +15,7 @@ describe('MediaLibraryMenu layout gallery', () => {
         defaultOpen
         showToggle={false}
         layout="gallery"
-        fetchItems={async () => ([
+        fetchItems={async () => [
           {
             relativePath: 'media-library/image/2026/06/a.png',
             url: '/uploads/media-library/image/2026/06/a.png',
@@ -28,16 +28,18 @@ describe('MediaLibraryMenu layout gallery', () => {
             filename: 'track.mp3',
             mediaType: 'audio',
           },
-        ])}
+        ]}
         uploadDataUrl={vi.fn()}
         removeItem={vi.fn()}
         onPickUrl={onPickUrl}
         canUpload={false}
         canRemove={false}
-      />
+      />,
     );
 
-    expect(await screen.findByRole('button', { name: /Copier l’URL — a\.png/i })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('button', { name: /Copier l’URL — a\.png/i }),
+    ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Copier l’URL — track\.mp3/i })).toBeInTheDocument();
     const trackBtn = screen.getByRole('button', { name: /Copier l’URL — track\.mp3/i });
     expect(trackBtn.querySelector('.media-library-menu__gallery-type')).toHaveTextContent('Audio');
@@ -51,23 +53,25 @@ describe('MediaLibraryMenu layout gallery', () => {
       <MediaLibraryMenu
         defaultOpen
         showToggle={false}
-        fetchItems={async () => ([
+        fetchItems={async () => [
           {
             relativePath: 'media-library/image/2026/06/pick.png',
             url: '/uploads/media-library/image/2026/06/pick.png',
             filename: 'pick.png',
             mediaType: 'image',
           },
-        ])}
+        ]}
         uploadDataUrl={vi.fn()}
         removeItem={vi.fn()}
         onPickUrl={vi.fn()}
         canUpload={false}
         canRemove={false}
-      />
+      />,
     );
 
-    expect(await screen.findByRole('button', { name: /Copier l’URL — pick\.png/i })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('button', { name: /Copier l’URL — pick\.png/i }),
+    ).toBeInTheDocument();
     expect(document.querySelector('.media-library-menu__gallery')).toBeTruthy();
   });
 
@@ -77,7 +81,7 @@ describe('MediaLibraryMenu layout gallery', () => {
         defaultOpen
         showToggle={false}
         layout="gallery"
-        fetchItems={async () => ([
+        fetchItems={async () => [
           {
             relativePath: 'media-library/image/2026/06/a.png',
             url: '/uploads/media-library/image/2026/06/a.png',
@@ -85,17 +89,19 @@ describe('MediaLibraryMenu layout gallery', () => {
             mediaType: 'image',
             stableKey: 'embleme_foret',
           },
-        ])}
+        ]}
         uploadDataUrl={vi.fn()}
         removeItem={vi.fn()}
         onPickUrl={vi.fn()}
         canUpload={false}
         canRemove={false}
-      />
+      />,
     );
 
     expect(await screen.findByText('embleme_foret')).toBeInTheDocument();
-    expect(document.querySelector('.media-library-menu__gallery-slug')).toHaveTextContent('embleme_foret');
+    expect(document.querySelector('.media-library-menu__gallery-slug')).toHaveTextContent(
+      'embleme_foret',
+    );
   });
 
   test('recherche aussi sur le slug', async () => {
@@ -104,7 +110,7 @@ describe('MediaLibraryMenu layout gallery', () => {
         defaultOpen
         showToggle={false}
         layout="gallery"
-        fetchItems={async () => ([
+        fetchItems={async () => [
           {
             relativePath: 'media-library/image/2026/06/a.png',
             url: '/uploads/media-library/image/2026/06/a.png',
@@ -119,19 +125,23 @@ describe('MediaLibraryMenu layout gallery', () => {
             mediaType: 'image',
             stableKey: 'plateau-1_jungle',
           },
-        ])}
+        ]}
         uploadDataUrl={vi.fn()}
         removeItem={vi.fn()}
         onPickUrl={vi.fn()}
         canUpload={false}
         canRemove={false}
-      />
+      />,
     );
 
     expect(await screen.findByText('2 médias')).toBeInTheDocument();
-    fireEvent.change(screen.getByPlaceholderText('Nom de fichier…'), { target: { value: 'jungle' } });
+    fireEvent.change(screen.getByPlaceholderText('Nom de fichier…'), {
+      target: { value: 'jungle' },
+    });
     expect(await screen.findByText('1 / 2 médias')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Copier l’URL — a\.png/i })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /Copier l’URL — a\.png/i }),
+    ).not.toBeInTheDocument();
   });
 
   test('affiche l’usage de chaque ressource (utilisée / inutilisée)', async () => {
@@ -140,7 +150,13 @@ describe('MediaLibraryMenu layout gallery', () => {
         count: 2,
         locations: [
           { app: 'gl', kind: 'Chapitre', label: 'Forêt', field: 'image de carte', id: 7 },
-          { app: 'gl', kind: 'Feuillet de Sélène', label: 'Le copiste', field: 'illustration', id: 3 },
+          {
+            app: 'gl',
+            kind: 'Feuillet de Sélène',
+            label: 'Le copiste',
+            field: 'illustration',
+            id: 3,
+          },
         ],
       },
     }));
@@ -150,7 +166,7 @@ describe('MediaLibraryMenu layout gallery', () => {
         defaultOpen
         showToggle={false}
         layout="gallery"
-        fetchItems={async () => ([
+        fetchItems={async () => [
           {
             relativePath: 'media-library/image/2026/06/a.png',
             url: '/uploads/media-library/image/2026/06/a.png',
@@ -165,14 +181,14 @@ describe('MediaLibraryMenu layout gallery', () => {
             mediaType: 'image',
             stableKey: 'orphelin',
           },
-        ])}
+        ]}
         fetchUsage={fetchUsage}
         uploadDataUrl={vi.fn()}
         removeItem={vi.fn()}
         onPickUrl={vi.fn()}
         canUpload={false}
         canRemove={false}
-      />
+      />,
     );
 
     expect(await screen.findByText('Utilisée · 2')).toBeInTheDocument();
@@ -187,7 +203,7 @@ describe('MediaLibraryMenu layout gallery', () => {
         defaultOpen
         showToggle={false}
         layout="gallery"
-        fetchItems={async () => ([
+        fetchItems={async () => [
           {
             relativePath: 'media-library/audio/2026/06/track.mp3',
             url: '/uploads/media-library/audio/2026/06/track.mp3',
@@ -202,19 +218,23 @@ describe('MediaLibraryMenu layout gallery', () => {
             mediaType: 'image',
             size: 2048,
           },
-        ])}
+        ]}
         uploadDataUrl={vi.fn()}
         removeItem={vi.fn()}
         onPickUrl={vi.fn()}
         canUpload={false}
         canRemove={false}
-      />
+      />,
     );
 
     expect(await screen.findByText('2 médias')).toBeInTheDocument();
-    fireEvent.change(screen.getByPlaceholderText('Nom de fichier…'), { target: { value: 'track' } });
+    fireEvent.change(screen.getByPlaceholderText('Nom de fichier…'), {
+      target: { value: 'track' },
+    });
     expect(await screen.findByText('1 / 2 médias')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Copier l’URL — b\.png/i })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /Copier l’URL — b\.png/i }),
+    ).not.toBeInTheDocument();
   });
 
   test('sélection multiple et suppression groupée', async () => {
@@ -227,7 +247,7 @@ describe('MediaLibraryMenu layout gallery', () => {
         showToggle={false}
         layout="gallery"
         enableGalleryBulkActions
-        fetchItems={async () => ([
+        fetchItems={async () => [
           {
             relativePath: 'media-library/image/2026/06/a.png',
             url: '/uploads/media-library/image/2026/06/a.png',
@@ -240,13 +260,13 @@ describe('MediaLibraryMenu layout gallery', () => {
             filename: 'b.png',
             mediaType: 'image',
           },
-        ])}
+        ]}
         uploadDataUrl={vi.fn()}
         removeItem={removeItem}
         onPickUrl={vi.fn()}
         canUpload={false}
         canRemove
-      />
+      />,
     );
 
     expect(await screen.findByRole('button', { name: 'Tout sélectionner' })).toBeInTheDocument();

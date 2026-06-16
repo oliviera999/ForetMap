@@ -3,12 +3,7 @@ import { io } from 'socket.io-client';
 import { apiGL } from '../services/apiGL.js';
 import { withAppBase } from '../../services/api.js';
 
-export function useGLSpellCast({
-  token,
-  gameId,
-  enabled,
-  onCastComplete,
-}) {
+export function useGLSpellCast({ token, gameId, enabled, onCastComplete }) {
   const [draft, setDraft] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -32,57 +27,72 @@ export function useGLSpellCast({
     }
   }, []);
 
-  const startDraft = useCallback(async ({ spellCode, teamId }) => {
-    if (!gameId) throw new Error('Aucune partie active');
-    return runAction(async () => {
-      const body = { spellCode };
-      if (teamId != null && Number(teamId) > 0) body.teamId = Number(teamId);
-      const data = await apiGL(`/api/gl/games/${gameId}/spell-casts/drafts`, 'POST', body);
+  const startDraft = useCallback(
+    async ({ spellCode, teamId }) => {
+      if (!gameId) throw new Error('Aucune partie active');
+      return runAction(async () => {
+        const body = { spellCode };
+        if (teamId != null && Number(teamId) > 0) body.teamId = Number(teamId);
+        const data = await apiGL(`/api/gl/games/${gameId}/spell-casts/drafts`, 'POST', body);
+        setDraft(data?.draft || null);
+        return data?.draft;
+      });
+    },
+    [gameId, runAction],
+  );
+
+  const refreshDraft = useCallback(
+    async (draftId) => {
+      if (!gameId || draftId == null) return null;
+      const data = await apiGL(`/api/gl/games/${gameId}/spell-casts/drafts/${draftId}`);
       setDraft(data?.draft || null);
       return data?.draft;
-    });
-  }, [gameId, runAction]);
+    },
+    [gameId],
+  );
 
-  const refreshDraft = useCallback(async (draftId) => {
-    if (!gameId || draftId == null) return null;
-    const data = await apiGL(`/api/gl/games/${gameId}/spell-casts/drafts/${draftId}`);
-    setDraft(data?.draft || null);
-    return data?.draft;
-  }, [gameId]);
+  const saveContributions = useCallback(
+    async (draftId, contributions) => {
+      if (!gameId || draftId == null) return null;
+      return runAction(async () => {
+        const data = await apiGL(
+          `/api/gl/games/${gameId}/spell-casts/drafts/${draftId}/contributions`,
+          'PUT',
+          { contributions },
+        );
+        setDraft(data?.draft || null);
+        return data?.draft;
+      });
+    },
+    [gameId, runAction],
+  );
 
-  const saveContributions = useCallback(async (draftId, contributions) => {
-    if (!gameId || draftId == null) return null;
-    return runAction(async () => {
-      const data = await apiGL(
-        `/api/gl/games/${gameId}/spell-casts/drafts/${draftId}/contributions`,
-        'PUT',
-        { contributions },
-      );
-      setDraft(data?.draft || null);
-      return data?.draft;
-    });
-  }, [gameId, runAction]);
+  const launch = useCallback(
+    async (draftId) => {
+      if (!gameId || draftId == null) return null;
+      return runAction(async () => {
+        const data = await apiGL(
+          `/api/gl/games/${gameId}/spell-casts/drafts/${draftId}/launch`,
+          'POST',
+        );
+        setDraft(data?.draft || null);
+        onCastCompleteRef.current?.(data);
+        return data;
+      });
+    },
+    [gameId, runAction],
+  );
 
-  const launch = useCallback(async (draftId) => {
-    if (!gameId || draftId == null) return null;
-    return runAction(async () => {
-      const data = await apiGL(
-        `/api/gl/games/${gameId}/spell-casts/drafts/${draftId}/launch`,
-        'POST',
-      );
-      setDraft(data?.draft || null);
-      onCastCompleteRef.current?.(data);
-      return data;
-    });
-  }, [gameId, runAction]);
-
-  const cancelDraft = useCallback(async (draftId) => {
-    if (!gameId || draftId == null) return;
-    await runAction(async () => {
-      await apiGL(`/api/gl/games/${gameId}/spell-casts/drafts/${draftId}`, 'DELETE');
-      setDraft(null);
-    });
-  }, [gameId, runAction]);
+  const cancelDraft = useCallback(
+    async (draftId) => {
+      if (!gameId || draftId == null) return;
+      await runAction(async () => {
+        await apiGL(`/api/gl/games/${gameId}/spell-casts/drafts/${draftId}`, 'DELETE');
+        setDraft(null);
+      });
+    },
+    [gameId, runAction],
+  );
 
   const reset = useCallback(() => {
     setDraft(null);

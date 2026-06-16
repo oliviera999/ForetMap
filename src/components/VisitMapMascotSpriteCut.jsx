@@ -26,10 +26,11 @@ function computeDwellMsForSrcs(stateSpec, srcsLength) {
 }
 
 function usePrefersReducedMotion() {
-  const [reduced, setReduced] = useState(() => (
-    typeof window !== 'undefined'
-    && window.matchMedia('(prefers-reduced-motion: reduce)').matches
-  ));
+  const [reduced, setReduced] = useState(
+    () =>
+      typeof window !== 'undefined' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+  );
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
     const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -51,7 +52,10 @@ function VisitMapMascotSpriteCut({
   const cut = mascotConfig?.spriteCut || null;
   const stateSpec = useMemo(() => resolveSpriteCutStateSpec(cut, mascotState), [cut, mascotState]);
   const srcs = useMemo(
-    () => (Array.isArray(stateSpec?.srcs) ? stateSpec.srcs.map((u) => String(u || '').trim()).filter(Boolean) : []),
+    () =>
+      Array.isArray(stateSpec?.srcs)
+        ? stateSpec.srcs.map((u) => String(u || '').trim()).filter(Boolean)
+        : [],
     [stateSpec?.srcs],
   );
   const fps = Math.max(1, Number(stateSpec?.fps) || 1);
@@ -72,10 +76,7 @@ function VisitMapMascotSpriteCut({
     [mascotId, mascotState, srcs, fps, dwellKey],
   );
 
-  const workingSrcs = useMemo(
-    () => srcs.filter((u) => !failedSrcs.has(u)),
-    [srcs, failedSrcs],
-  );
+  const workingSrcs = useMemo(() => srcs.filter((u) => !failedSrcs.has(u)), [srcs, failedSrcs]);
 
   const workingDwells = useMemo(() => {
     return srcs
@@ -101,15 +102,17 @@ function VisitMapMascotSpriteCut({
     const n = workingSrcs.length;
     const idx = frameIndex % n;
     const dwell = workingDwells[idx] ?? Math.max(33, Math.round(1000 / fps));
-    const id = window.setTimeout(() => {
-      setFrameIndex((i) => (i + 1) % n);
-    }, Math.max(33, dwell));
+    const id = window.setTimeout(
+      () => {
+        setFrameIndex((i) => (i + 1) % n);
+      },
+      Math.max(33, dwell),
+    );
     return () => window.clearTimeout(id);
   }, [frameIndex, workingSrcs, workingDwells, prefersReducedMotion, fps, spriteAnimKey]);
 
-  const safeIndex = workingSrcs.length === 0
-    ? 0
-    : (prefersReducedMotion ? 0 : frameIndex % workingSrcs.length);
+  const safeIndex =
+    workingSrcs.length === 0 ? 0 : prefersReducedMotion ? 0 : frameIndex % workingSrcs.length;
   const currentSrc = workingSrcs[safeIndex] || '';
 
   const onImgError = () => {
@@ -122,9 +125,8 @@ function VisitMapMascotSpriteCut({
     setFrameIndex(0);
   };
 
-  const canRender = workingSrcs.length > 0
-    && Number(cut?.frameWidth) > 0
-    && Number(cut?.frameHeight) > 0;
+  const canRender =
+    workingSrcs.length > 0 && Number(cut?.frameWidth) > 0 && Number(cut?.frameHeight) > 0;
   const fallbackSilhouette = mascotConfig?.fallbackSilhouette || 'gnome';
   const displayScale = (() => {
     const s = Number(cut?.displayScale);
@@ -160,13 +162,7 @@ function VisitMapMascotSpriteCut({
           role="presentation"
           aria-hidden="true"
         >
-          <img
-            src={currentSrc}
-            alt=""
-            decoding="async"
-            draggable={false}
-            onError={onImgError}
-          />
+          <img src={currentSrc} alt="" decoding="async" draggable={false} onError={onImgError} />
         </div>
       ) : null}
     </div>

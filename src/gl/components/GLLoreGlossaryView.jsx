@@ -69,19 +69,28 @@ export function GLLoreGlossaryView({
   return (
     <article className="gl-panel gl-lore-glossary fade-in">
       <h2>Lexique du lore</h2>
-      <p className="gl-hint">Vocabulaire narratif de Gnomes &amp; Licornes (distinct du glossaire SVT).</p>
+      <p className="gl-hint">
+        Vocabulaire narratif de Gnomes &amp; Licornes (distinct du glossaire SVT).
+      </p>
       <div className="gl-glossary-filters">
         <label>
           Catégorie
           <select value={categorie} onChange={(e) => setCategorie(e.target.value)}>
             {CATEGORY_OPTIONS.map((opt) => (
-              <option key={opt.value || 'all'} value={opt.value}>{opt.label}</option>
+              <option key={opt.value || 'all'} value={opt.value}>
+                {opt.label}
+              </option>
             ))}
           </select>
         </label>
         <label>
           Recherche
-          <input type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Terme…" />
+          <input
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Terme…"
+          />
         </label>
       </div>
       {error ? <p className="gl-error">{error}</p> : null}

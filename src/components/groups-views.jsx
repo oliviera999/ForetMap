@@ -18,8 +18,12 @@ function GroupMembersEditor({ group, users, maps, projects, onClose, onSaved }) 
 
   useEffect(() => {
     const members = Array.isArray(group?.members) ? group.members : [];
-    setMemberIds(normalizeIds(members.filter((m) => m.role_in_group !== 'manager').map((m) => m.user_id)));
-    setManagerIds(normalizeIds(members.filter((m) => m.role_in_group === 'manager').map((m) => m.user_id)));
+    setMemberIds(
+      normalizeIds(members.filter((m) => m.role_in_group !== 'manager').map((m) => m.user_id)),
+    );
+    setManagerIds(
+      normalizeIds(members.filter((m) => m.role_in_group === 'manager').map((m) => m.user_id)),
+    );
     const scopes = Array.isArray(group?.scopes) ? group.scopes : [];
     setScopeMapIds(normalizeIds(scopes.map((s) => s.map_id).filter(Boolean)));
     setScopeProjectIds(normalizeIds(scopes.map((s) => s.project_id).filter(Boolean)));
@@ -28,7 +32,11 @@ function GroupMembersEditor({ group, users, maps, projects, onClose, onSaved }) 
   const filteredUsers = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return users;
-    return users.filter((u) => String(u.display_name || '').toLowerCase().includes(q));
+    return users.filter((u) =>
+      String(u.display_name || '')
+        .toLowerCase()
+        .includes(q),
+    );
   }, [users, search]);
 
   const toggleId = (setter, current, id, checked) => {
@@ -65,13 +73,30 @@ function GroupMembersEditor({ group, users, maps, projects, onClose, onSaved }) 
           placeholder="Rechercher un utilisateur..."
         />
       </div>
-      <div style={{ maxHeight: 220, overflow: 'auto', border: '1px solid #e5e7eb', borderRadius: 8, padding: 8 }}>
+      <div
+        style={{
+          maxHeight: 220,
+          overflow: 'auto',
+          border: '1px solid #e5e7eb',
+          borderRadius: 8,
+          padding: 8,
+        }}
+      >
         {filteredUsers.map((u) => {
           const uid = String(u.id);
           const memberChecked = memberIds.includes(uid) || managerIds.includes(uid);
           const managerChecked = managerIds.includes(uid);
           return (
-            <div key={uid} style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 8, alignItems: 'center', marginBottom: 6 }}>
+            <div
+              key={uid}
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr auto auto',
+                gap: 8,
+                alignItems: 'center',
+                marginBottom: 6,
+              }}
+            >
               <div style={{ fontSize: '.86rem' }}>
                 {u.display_name} <span style={{ color: '#64748b' }}>({u.user_type})</span>
               </div>
@@ -80,14 +105,16 @@ function GroupMembersEditor({ group, users, maps, projects, onClose, onSaved }) 
                   type="checkbox"
                   checked={memberChecked}
                   onChange={(e) => toggleId(setMemberIds, memberIds, uid, e.target.checked)}
-                /> membre
+                />{' '}
+                membre
               </label>
               <label style={{ fontSize: '.78rem' }}>
                 <input
                   type="checkbox"
                   checked={managerChecked}
                   onChange={(e) => toggleId(setManagerIds, managerIds, uid, e.target.checked)}
-                /> manager
+                />{' '}
+                manager
               </label>
             </div>
           );
@@ -98,11 +125,15 @@ function GroupMembersEditor({ group, users, maps, projects, onClose, onSaved }) 
         <select
           multiple
           value={scopeMapIds}
-          onChange={(e) => setScopeMapIds(normalizeIds([...e.target.selectedOptions].map((opt) => opt.value)))}
+          onChange={(e) =>
+            setScopeMapIds(normalizeIds([...e.target.selectedOptions].map((opt) => opt.value)))
+          }
           style={{ minHeight: 90 }}
         >
           {maps.map((m) => (
-            <option key={m.id} value={m.id}>{m.label}</option>
+            <option key={m.id} value={m.id}>
+              {m.label}
+            </option>
           ))}
         </select>
       </div>
@@ -111,11 +142,15 @@ function GroupMembersEditor({ group, users, maps, projects, onClose, onSaved }) 
         <select
           multiple
           value={scopeProjectIds}
-          onChange={(e) => setScopeProjectIds(normalizeIds([...e.target.selectedOptions].map((opt) => opt.value)))}
+          onChange={(e) =>
+            setScopeProjectIds(normalizeIds([...e.target.selectedOptions].map((opt) => opt.value)))
+          }
           style={{ minHeight: 110 }}
         >
           {projects.map((p) => (
-            <option key={p.id} value={p.id}>{p.title}</option>
+            <option key={p.id} value={p.id}>
+              {p.title}
+            </option>
           ))}
         </select>
       </div>
@@ -163,7 +198,13 @@ export function GroupsAdminView() {
   const createGroup = async () => {
     const name = window.prompt('Nom du groupe (ex: 2nde A)');
     if (!name || !name.trim()) return;
-    const slug = window.prompt('Slug technique (optionnel)', String(name).trim().toLowerCase().replace(/[^a-z0-9]+/g, '-'));
+    const slug = window.prompt(
+      'Slug technique (optionnel)',
+      String(name)
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-'),
+    );
     const kind = window.prompt('Type (class|team|unit|club)', 'class');
     setLoading(true);
     setErr('');
@@ -215,8 +256,18 @@ export function GroupsAdminView() {
   };
 
   return (
-    <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 12, marginTop: 12 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+    <div
+      style={{
+        background: 'white',
+        border: '1px solid #e5e7eb',
+        borderRadius: 12,
+        padding: 12,
+        marginTop: 12,
+      }}
+    >
+      <div
+        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}
+      >
         <h3 style={{ marginTop: 0, marginBottom: 0 }}>Groupes & sous-groupes</h3>
         <HelpPanel
           sectionId="groups"
@@ -230,29 +281,44 @@ export function GroupsAdminView() {
       </p>
       {err && <div className="auth-error">⚠️ {err}</div>}
       {msg && <div className="auth-success">{msg}</div>}
-      <button className="btn btn-secondary btn-sm" onClick={createGroup} disabled={loading}>+ Nouveau groupe</button>
+      <button className="btn btn-secondary btn-sm" onClick={createGroup} disabled={loading}>
+        + Nouveau groupe
+      </button>
       <div style={{ marginTop: 10, display: 'grid', gap: 8 }}>
         {groups.map((g) => (
           <div key={g.id} style={{ border: '1px solid #e5e7eb', borderRadius: 8, padding: 8 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                gap: 8,
+                flexWrap: 'wrap',
+                alignItems: 'center',
+              }}
+            >
               <div>
                 <strong>{g.name}</strong>
                 <span style={{ color: '#64748b' }}> · {g.kind}</span>
                 {g.parent_group_id && <span style={{ color: '#94a3b8' }}> · sous-groupe</span>}
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
-                <button className="btn btn-ghost btn-sm" onClick={() => setEditingGroup(g)}>Membres</button>
+                <button className="btn btn-ghost btn-sm" onClick={() => setEditingGroup(g)}>
+                  Membres
+                </button>
                 <button className="btn btn-ghost btn-sm" onClick={() => toggleGroupActive(g)}>
                   {g.is_active ? 'Désactiver' : 'Activer'}
                 </button>
-                <button className="btn btn-danger btn-sm" onClick={() => deleteGroup(g)} disabled={loading}>
+                <button
+                  className="btn btn-danger btn-sm"
+                  onClick={() => deleteGroup(g)}
+                  disabled={loading}
+                >
                   Supprimer
                 </button>
               </div>
             </div>
             <div style={{ fontSize: '.76rem', color: '#64748b', marginTop: 4 }}>
-              {Array.isArray(g.members) ? `${g.members.length} membre(s)` : '0 membre'} ·
-              {' '}
+              {Array.isArray(g.members) ? `${g.members.length} membre(s)` : '0 membre'} ·{' '}
               {Array.isArray(g.scopes) ? `${g.scopes.length} scope(s)` : '0 scope'}
             </div>
           </div>
@@ -273,4 +339,3 @@ export function GroupsAdminView() {
     </div>
   );
 }
-

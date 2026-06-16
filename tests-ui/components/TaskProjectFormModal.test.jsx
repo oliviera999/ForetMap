@@ -29,7 +29,16 @@ describe('TaskProjectFormModal', () => {
   });
 
   test('mode édition : titre + bouton adaptés', () => {
-    renderModal({ editProject: { id: 5, title: 'Verger', map_id: 'foret', zone_ids: [], marker_ids: [], tutorial_ids: [] } });
+    renderModal({
+      editProject: {
+        id: 5,
+        title: 'Verger',
+        map_id: 'foret',
+        zone_ids: [],
+        marker_ids: [],
+        tutorial_ids: [],
+      },
+    });
     expect(screen.getByText('Modifier le projet')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Enregistrer le projet' })).toBeTruthy();
   });

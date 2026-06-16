@@ -47,7 +47,10 @@ function parseFlags(argv) {
 }
 
 function normalizeRelativePath(value) {
-  const raw = String(value || '').trim().replace(/\\/g, '/').replace(/^\/+/, '');
+  const raw = String(value || '')
+    .trim()
+    .replace(/\\/g, '/')
+    .replace(/^\/+/, '');
   if (!raw) return '';
   const normalized = path.posix.normalize(raw);
   if (normalized === '.' || normalized.startsWith('../')) return '';
@@ -96,10 +99,22 @@ function computeOrphanPaths(diskPaths, referencedPaths) {
 async function loadReferencedImagePaths(scope = 'managed') {
   const references = [];
   const sources = [
-    { name: 'zone_photos', sql: "SELECT image_path AS p FROM zone_photos WHERE image_path IS NOT NULL AND image_path <> ''" },
-    { name: 'task_logs', sql: "SELECT image_path AS p FROM task_logs WHERE image_path IS NOT NULL AND image_path <> ''" },
-    { name: 'observation_logs', sql: "SELECT image_path AS p FROM observation_logs WHERE image_path IS NOT NULL AND image_path <> ''" },
-    { name: 'students', sql: "SELECT avatar_path AS p FROM users WHERE user_type = 'student' AND avatar_path IS NOT NULL AND avatar_path <> ''" },
+    {
+      name: 'zone_photos',
+      sql: "SELECT image_path AS p FROM zone_photos WHERE image_path IS NOT NULL AND image_path <> ''",
+    },
+    {
+      name: 'task_logs',
+      sql: "SELECT image_path AS p FROM task_logs WHERE image_path IS NOT NULL AND image_path <> ''",
+    },
+    {
+      name: 'observation_logs',
+      sql: "SELECT image_path AS p FROM observation_logs WHERE image_path IS NOT NULL AND image_path <> ''",
+    },
+    {
+      name: 'students',
+      sql: "SELECT avatar_path AS p FROM users WHERE user_type = 'student' AND avatar_path IS NOT NULL AND avatar_path <> ''",
+    },
   ];
 
   for (const src of sources) {
@@ -116,7 +131,9 @@ async function loadReferencedImagePaths(scope = 'managed') {
 }
 
 function printHuman(summary) {
-  console.log(`[uploads-reconcile] mode=${summary.apply ? 'APPLY' : 'DRY-RUN'} scope=${summary.scope}`);
+  console.log(
+    `[uploads-reconcile] mode=${summary.apply ? 'APPLY' : 'DRY-RUN'} scope=${summary.scope}`,
+  );
   console.log(`[uploads-reconcile] uploads_dir=${summary.uploadsDir}`);
   console.log(`[uploads-reconcile] fichiers_scannes=${summary.diskCount}`);
   console.log(`[uploads-reconcile] references_bdd=${summary.referencedCount}`);
