@@ -199,6 +199,18 @@ Troisième lot en parallèle (5 agents, périmètres disjoints), build + Vitest 
 - **O10** (`wip`) — `routes/gl/games.js` : sous-domaine `markers` (present-question/present-arrival/apply-effects)
   extrait en sous-routeur `routes/gl/games/markers.js` (chemins/middlewares inchangés).
 
+### Lot 25 — O6 ×3 gros composants, multi-agents (2026-06-16)
+
+Vingt-cinquième lot (3 agents O6 ; 1ʳᵉ tentative perdue sur session-limit, ré-exécutée). Build Vite vert,
+Vitest vert (1 762 tests UI, +17), lint sans erreur, discipline « commit-avant-rapport + build obligatoire » → 0 contamination.
+
+- **O6** (`wip`) — `src/components/MascotPackWysiwygEditor.jsx` (504 l.) : `MascotPackMetaSection`
+  (section Métadonnées : id/label/framesBase/dimensions/silhouette de secours/avertissements) extrait + test (4 cas).
+- **O6** (`wip`) — `src/components/MediaLibraryMenu.jsx` (386 l.) : `MediaLibraryBulkActions` (barre d'actions
+  groupées tout sélectionner/désélectionner/supprimer/vider, dans `src/components/media/`) extrait + test (6 cas).
+- **O6** (`wip`) — `src/components/visit/VisitEditorPanel.jsx` (381 l.) : `VisitEditorEmojiPicker` (sélecteur
+  d'emoji zone/repère + « Sans emoji ») extrait + test (7 cas).
+
 ### Lot 24 — O6 ×3 gros composants, multi-agents (2026-06-15)
 
 Vingt-quatrième lot (3 agents O6 sur les plus gros composants restants). Build Vite vert, Vitest vert
