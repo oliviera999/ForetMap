@@ -199,6 +199,25 @@ Troisième lot en parallèle (5 agents, périmètres disjoints), build + Vitest 
 - **O10** (`wip`) — `routes/gl/games.js` : sous-domaine `markers` (present-question/present-arrival/apply-effects)
   extrait en sous-routeur `routes/gl/games/markers.js` (chemins/middlewares inchangés).
 
+### Lot 27 — passe mémoïsation ciblée MapView (perf, §2.1) (2026-06-16)
+
+Effort **dédié et prudent** (pas multi-agents) sur le seul levier perf restant : §2.1 « re-render de
+l'arbre entier au refetch/realtime ». Audit de stabilité référentielle des ~11 props que `App` passe à
+`MapView` → seul `updateZone` (recréé à chaque rendu) défaisait la mémo dans le cas connecté courant.
+
+- **App.jsx** : `updateZone` enveloppé dans `useCallback([fetchAll])` (déps exactes : `api` est un module,
+  `fetchAll` stable → zéro risque de closure périmée). (Tentative `useMemo` sur `currentUser` annulée :
+  située après un return conditionnel → rules-of-hooks ; `currentUser` vaut `sessionUser` (réf stable) dans
+  le cas connecté, la mémo reste effective.)
+- **map-views.jsx** : `MapView` exporté via `React.memo(MapViewBase)` → le sous-arbre Carte (image de fond,
+  zones SVG, N repères, mascotte) **saute désormais le re-render** lors des re-renders incidents d'`App`
+  (toast, événements realtime hors-carte, polling ne changeant pas les cartes), les props étant maintenant
+  toutes référentiellement stables (visibleMaps `useMemo`, fetchAll/updateZone/callbacks `useCallback`).
+
+Bénéfice : moins de CPU client / carte plus fluide sur appareils faibles pendant l'activité realtime —
+gain réel mais borné (cf. analyse). Build vert, Vitest vert (1 775), lint 0 erreur, comportement inchangé
+(zéro modification de logique ; React.memo ne bloque pas les mises à jour de contexte).
+
 ### Lot 26 — O6 ×3 composants, multi-agents (2026-06-16)
 
 Vingt-sixième lot (3 agents O6). Build Vite vert, Vitest vert (1 775 tests UI, +13), lint sans erreur.
