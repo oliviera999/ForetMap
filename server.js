@@ -277,6 +277,7 @@ app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/register', authLimiter);
 app.use('/api/auth/reset-password', authLimiter);
 app.use('/api/gl/auth/login', authLimiter);
+app.use('/api/gl/auth/guest', authLimiter);
 app.use('/api/gl/auth/forgot-password', authLimiter);
 app.use('/api/gl/auth/reset-password', authLimiter);
 

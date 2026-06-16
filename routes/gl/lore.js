@@ -21,6 +21,7 @@ const {
   findFeuilletsForZone,
   upsertFeuilletState,
 } = require('../../lib/glLoreFeuillets');
+const { GL_DEMO_FEUILLET_CODES } = require('../../lib/gl/demoFeuillets');
 const { canPresentFeuillet } = require('../../lib/glLoreFeuilletRetrigger');
 const {
   applyFeuilletVitalityEffects,
@@ -97,6 +98,34 @@ const glLoreFeuilletQuerySchema = z.object({
   gameId: glLoreFeuilletIdQueryValue,
   teamId: glLoreFeuilletIdQueryValue,
 });
+
+/** GET /api/gl/lore/demo-feuillets — arc découverte visiteur (allowlist curée, indépendant du module carnet). */
+router.get(
+  '/demo-feuillets',
+  requireGlPermission('gl.read'),
+  asyncHandler(async (_req, res) => {
+    if (!GL_DEMO_FEUILLET_CODES.length) {
+      return res.json({ items: [] });
+    }
+    const placeholders = GL_DEMO_FEUILLET_CODES.map(() => '?').join(', ');
+    const rows = await queryAll(
+      `SELECT ${FEUILLET_SELECT}
+         FROM gl_lore_feuillets f
+        WHERE f.statut = 'actif'
+          AND f.feuillet_code IN (${placeholders})
+        ORDER BY f.ordre_liasse ASC, f.feuillet_code ASC`,
+      [...GL_DEMO_FEUILLET_CODES],
+    );
+    const items = rows.map((row) =>
+      formatFeuilletRow(row, {
+        isMj: false,
+        progressStatus: 'revealed',
+        effacementPct: 0,
+      }),
+    );
+    return res.json({ items });
+  }),
+);
 
 /** GET /api/gl/lore/feuillets */
 router.get(
