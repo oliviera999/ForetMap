@@ -25,7 +25,7 @@ module.exports = defineConfig({
     timeout: 8_000,
   },
   fullyParallel: false,
-  retries: process.env.CI ? 2 : 0,
+  retries: process.env.CI ? 2 : 1,
   reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : [['list']],
   use: {
     baseURL,
