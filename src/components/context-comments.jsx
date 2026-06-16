@@ -10,6 +10,7 @@ import {
 } from '../services/api';
 import { ContextCommentForm } from './context-comments/ContextCommentForm.jsx';
 import { ContextCommentItem } from './context-comments/ContextCommentItem.jsx';
+import { ContextCommentsToggle } from './context-comments/ContextCommentsToggle.jsx';
 import {
   DEFAULT_REACTION_EMOJIS,
   canModerate,
@@ -228,28 +229,15 @@ function ContextComments({
   if (!contextType || !contextId) return null;
   const firstReactionEmoji = reactionEmojis[0] || '👍';
 
-  const toggleUnreadTitle = hasUnreadComments ? 'Nouveaux commentaires non lus' : undefined;
-  const toggleAria = hasUnreadComments
-    ? `${title}, ${total} commentaire${total === 1 ? '' : 's'}, nouveaux messages non lus`
-    : undefined;
-
   return (
     <section className="context-comments">
-      <button
-        type="button"
-        className={`context-comments-toggle${hasUnreadComments ? ' context-comments-toggle--unread' : ''}`}
-        onClick={() => setIsOpen((prev) => !prev)}
-        title={toggleUnreadTitle}
-        aria-label={toggleAria}
-      >
-        <span className="context-comments-toggle-label">
-          {hasUnreadComments && (
-            <span className="context-comments-unread-dot" aria-hidden="true" title={toggleUnreadTitle} />
-          )}
-          <span>{isOpen ? '▾' : '▸'} {title}</span>
-        </span>
-        <span className="context-comments-count">{total}</span>
-      </button>
+      <ContextCommentsToggle
+        title={title}
+        total={total}
+        isOpen={isOpen}
+        hasUnreadComments={hasUnreadComments}
+        onToggle={() => setIsOpen((prev) => !prev)}
+      />
 
       {isOpen && (
         <div className="context-comments-body">
