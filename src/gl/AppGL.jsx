@@ -103,11 +103,13 @@ import {
   canGlStaffImpersonate,
   glImpersonationBannerCopy,
 } from './utils/glStaffView.js';
+import { isGlGuest } from './utils/glGuestMode.js';
 
 export function AppGL() {
   const { session, auth, token, updateSession, logout } = useGLSession();
+  const isGuest = isGlGuest(auth);
   const compactNav = useGlCompactNav();
-  const learningProgress = useGlLearningProgress(token);
+  const learningProgress = useGlLearningProgress(isGuest ? null : token);
   const [tab, setTab] = useState(() => readStoredGlTab());
   const [chapters, setChapters] = useState([]);
   const [classes, setClasses] = useState([]);
@@ -122,6 +124,7 @@ export function AppGL() {
   const [modules, setModules] = useState(GL_MODULE_DEFAULTS);
   const [glProfile, setGlProfile] = useState(null);
   const [glConfig, setGlConfig] = useState({});
+  const [guestChapter, setGuestChapter] = useState(null);
   const { showProfile, setShowProfile, showPlayerStats, setShowPlayerStats } = useGLOverlays();
   const [glossaryFocusCode, setGlossaryFocusCode] = useState(null);
   const [glossaryPopoverCode, setGlossaryPopoverCode] = useState(null);
@@ -160,7 +163,7 @@ export function AppGL() {
   }, [gameState?.game?.chapter_biomes]);
 
   const glossaryLinkItems = useGlGlossaryLinkIndex(token, chapterBiomeSlugs);
-  const loreGlossaryLinkItems = useGlLoreGlossaryLinkIndex(token);
+  const loreGlossaryLinkItems = useGlLoreGlossaryLinkIndex(isGuest ? null : token);
 
   const openGlossaryPopover = useCallback((code) => {
     const trimmed = String(code || '').trim();
@@ -331,8 +334,9 @@ export function AppGL() {
         modules,
         vitalityEnabled: gameplaySettings.vitalityEnabled,
         showStaffAdminUi,
+        isGuest,
       }),
-    [showStaffAdminUi, modules, gameplaySettings.vitalityEnabled],
+    [showStaffAdminUi, modules, gameplaySettings.vitalityEnabled, isGuest],
   );
 
   useEffect(() => {
@@ -350,7 +354,7 @@ export function AppGL() {
   }, [tabs, tab, auth]);
 
   const reloadGameplaySettings = useCallback(async () => {
-    if (!token) return;
+    if (!token || isGuest) return;
     try {
       const data = await apiGL('/api/gl/gameplay-settings');
       const next = data?.settings || {};
@@ -358,10 +362,10 @@ export function AppGL() {
     } catch (_) {
       // toggles silencieusement défaut
     }
-  }, [token]);
+  }, [token, isGuest]);
 
   const reloadProfile = useCallback(async () => {
-    if (!token) return;
+    if (!token || isGuest) return;
     try {
       const data = await apiGL('/api/gl/auth/me');
       setGlProfile(data?.profile || null);
@@ -381,7 +385,7 @@ export function AppGL() {
     } catch (err) {
       setError(err.message || 'Chargement profil impossible');
     }
-  }, [token, isAdmin, updateSession]);
+  }, [token, isAdmin, updateSession, isGuest]);
 
   const applyGlImpersonation = useCallback(
     (payload) => {
@@ -420,6 +424,31 @@ export function AppGL() {
   useEffect(() => {
     if (!token) return;
     let cancelled = false;
+    if (isGuest) {
+      Promise.all([
+        apiGL('/api/gl/chapters').catch(() => []),
+        apiGL('/api/gl/auth/config').catch(() => ({})),
+      ]).then(async ([chaptersData, configData]) => {
+        if (cancelled) return;
+        setChapters(Array.isArray(chaptersData) ? chaptersData : []);
+        setModules(normalizeGlModules(configData?.modules));
+        setGlConfig(configData || {});
+        const first = Array.isArray(chaptersData) ? chaptersData[0] : null;
+        if (first?.slug) {
+          try {
+            const detail = await apiGL(`/api/gl/chapters/${encodeURIComponent(first.slug)}`);
+            if (!cancelled) setGuestChapter(detail?.chapter || null);
+          } catch {
+            if (!cancelled) setGuestChapter(null);
+          }
+        } else if (!cancelled) {
+          setGuestChapter(null);
+        }
+      });
+      return () => {
+        cancelled = true;
+      };
+    }
     const classListPromise = isAdmin
       ? apiGL('/api/gl/admin/classes').catch(() => [])
       : Promise.resolve([]);
@@ -452,7 +481,7 @@ export function AppGL() {
     return () => {
       cancelled = true;
     };
-  }, [token, reloadGameplaySettings, isAdmin, updateSession]);
+  }, [token, reloadGameplaySettings, isAdmin, updateSession, isGuest]);
 
   useEffect(() => {
     const nextTitle = String(glConfig?.title || '').trim();
@@ -461,16 +490,17 @@ export function AppGL() {
   }, [glConfig?.title]);
 
   useEffect(() => {
+    if (isGuest) return;
     if (isAdmin) return;
     if (activeGameId) return;
     const hintedGameId = auth?.gameId != null ? Number(auth.gameId) : null;
     if (hintedGameId != null && Number.isFinite(hintedGameId) && hintedGameId > 0) {
       setActiveGameId(hintedGameId);
     }
-  }, [isAdmin, activeGameId, auth?.gameId]);
+  }, [isAdmin, activeGameId, auth?.gameId, isGuest]);
 
   const reloadGame = useCallback(async () => {
-    if (!activeGameId) return;
+    if (isGuest || !activeGameId) return;
     try {
       const data = await apiGL(`/api/gl/games/${activeGameId}`);
       setGameState(toGameViewModel(data));
@@ -478,7 +508,7 @@ export function AppGL() {
     } catch (err) {
       setError(err.message || 'Chargement partie impossible');
     }
-  }, [activeGameId]);
+  }, [activeGameId, isGuest]);
 
   const showSpellCastResult = useCallback((source) => {
     const vm = buildSpellCastResultViewModel(source);
@@ -488,11 +518,12 @@ export function AppGL() {
   }, []);
 
   useEffect(() => {
+    if (isGuest) return;
     reloadGame();
-  }, [reloadGame]);
+  }, [reloadGame, isGuest]);
 
   useEffect(() => {
-    if (!token || !activeGameId) return undefined;
+    if (isGuest || !token || !activeGameId) return undefined;
     const socket = io(withAppBase(''), {
       path: '/socket.io',
       transports: ['polling', 'websocket'],
@@ -518,7 +549,7 @@ export function AppGL() {
     return () => {
       socket.close();
     };
-  }, [token, activeGameId, reloadGame, showSpellCastResult]);
+  }, [token, activeGameId, reloadGame, showSpellCastResult, isGuest]);
 
   useEffect(() => {
     if (!narrationToast) return undefined;
@@ -630,8 +661,10 @@ export function AppGL() {
   }, [gameState]);
 
   const canRequestAction = useMemo(
-    () => computeCanRequestAction({ showStaffAdminUi, gameplaySettings, auth, currentTeamId }),
-    [showStaffAdminUi, gameplaySettings, auth, currentTeamId],
+    () =>
+      !isGuest &&
+      computeCanRequestAction({ showStaffAdminUi, gameplaySettings, auth, currentTeamId }),
+    [isGuest, showStaffAdminUi, gameplaySettings, auth, currentTeamId],
   );
 
   const markerArrivalEnabled = useMemo(() => {
@@ -641,6 +674,7 @@ export function AppGL() {
 
   const canSpellCast = useMemo(
     () =>
+      !isGuest &&
       computeCanSpellCast({
         modules,
         gameplaySettings,
@@ -651,6 +685,7 @@ export function AppGL() {
         showStaffAdminUi,
       }),
     [
+      isGuest,
       modules,
       gameplaySettings,
       gameState,
@@ -721,6 +756,30 @@ export function AppGL() {
     return chapters[0] || null;
   }, [chapters, gameState]);
 
+  const effectiveGameState = useMemo(() => {
+    if (!isGuest) return gameState;
+    if (!guestChapter) return null;
+    return {
+      game: {
+        biotope_markdown: guestChapter.biotope_markdown,
+        biocenose_markdown: guestChapter.biocenose_markdown,
+        chapter_biomes: guestChapter.biomes || [],
+        chapter_plateau_number: guestChapter.plateau_number ?? 1,
+      },
+    };
+  }, [isGuest, gameState, guestChapter]);
+
+  const quitGuestMode = useCallback(() => {
+    logout();
+    setGameState(null);
+    setActiveGameId(null);
+    setGlProfile(null);
+    setShowProfile(false);
+    setGlViewMode('native');
+    setTab('world');
+    setError('');
+  }, [logout, setShowProfile]);
+
   if (!session?.token) {
     return (
       <div className="gl-app gl-app--guest" style={glBrandStyle}>
@@ -740,10 +799,13 @@ export function AppGL() {
   }
 
   return (
-    <GLMascotCatalogProvider token={token}>
-      <div className={`gl-app${compactNav ? ' gl-app--has-bottom-nav' : ''}`} style={glBrandStyle}>
+    <GLMascotCatalogProvider token={isGuest ? null : token}>
+      <div
+        className={`gl-app${compactNav ? ' gl-app--has-bottom-nav' : ''}${isGuest ? ' gl-app--discovery' : ''}`}
+        style={glBrandStyle}
+      >
         <GLPasswordResetGate
-          open={!isAdmin && auth?.passwordMustReset === true}
+          open={!isGuest && !isAdmin && auth?.passwordMustReset === true}
           onCompleted={() => {
             updateSession({ auth: { ...auth, passwordMustReset: false } });
           }}
@@ -761,8 +823,8 @@ export function AppGL() {
           playerHealthPoints={playerVitality?.health}
           playerPowerPoints={playerVitality?.power}
           onOpenProfile={() => setShowProfile(true)}
-          onOpenStats={showsPlayerChrome ? () => setShowPlayerStats(true) : undefined}
-          canSwitchGlPlayerView={isStaff}
+          onOpenStats={showsPlayerChrome && !isGuest ? () => setShowPlayerStats(true) : undefined}
+          canSwitchGlPlayerView={isStaff && !isGuest}
           glViewMode={glViewMode}
           onGlViewModeNative={() => {
             setGlViewMode('native');
@@ -772,7 +834,7 @@ export function AppGL() {
             setGlViewMode('player');
             setTab('maps');
           }}
-          onLogout={() => {
+          onLogout={isGuest ? quitGuestMode : () => {
             logout();
             setGameState(null);
             setActiveGameId(null);
@@ -780,12 +842,16 @@ export function AppGL() {
             setShowProfile(false);
             setGlViewMode('native');
           }}
+          isGuestMode={isGuest}
           showVersion={showStaffAdminUi}
           appVersion={appVersion}
         />
 
         <GLAppBanners
           error={error}
+          isGuestMode={isGuest}
+          onQuitGuest={quitGuestMode}
+          onGuestLogin={quitGuestMode}
           isStaffPlayerPreview={isStaffPlayerPreview}
           impersonationBanner={isImpersonating ? impersonationBanner : null}
           impersonatedDisplayName={auth?.displayName}
@@ -820,6 +886,11 @@ export function AppGL() {
                   onOpenGlossaryTerm={openGlossaryPopover}
                 />
               )}
+              {tab === 'discovery' && isGuest ? (
+                <section className="gl-panel gl-guest-discovery-placeholder">
+                  <p className="gl-hint">Chargement du plateau de découverte…</p>
+                </section>
+              ) : null}
               {tab === 'spells' && (
                 <GLSpellsView
                   gameState={gameState}
@@ -880,28 +951,28 @@ export function AppGL() {
               )}
               {tab === 'biotope' && (
                 <GLBiotopeView
-                  gameState={gameState}
+                  gameState={effectiveGameState}
                   glossaryLinkItems={glossaryLinkItems}
                   onOpenGlossaryTerm={openGlossaryPopover}
                 />
               )}
               {tab === 'biocenose' && (
                 <GLBiocenoseView
-                  gameState={gameState}
+                  gameState={effectiveGameState}
                   onOpenGlossaryTerm={openGlossaryPopover}
-                  learningProgress={learningProgress}
+                  learningProgress={isGuest ? null : learningProgress}
                   glossaryLinkItems={glossaryLinkItems}
-                  loreCarnetEnabled={isModuleEnabled(modules, 'loreCarnetEnabled')}
+                  loreCarnetEnabled={false}
                 />
               )}
               {tab === 'glossary' && (
                 <GLGlossaryView
-                  gameState={gameState}
+                  gameState={effectiveGameState}
                   focusCode={glossaryFocusCode}
                   activeTermCode={glossaryPopoverCode}
                   onOpenPopover={openGlossaryPopover}
                   onFocusHandled={clearGlossaryFocus}
-                  learningProgress={learningProgress}
+                  learningProgress={isGuest ? null : learningProgress}
                 />
               )}
               {tab === 'lore-glossary' && isModuleEnabled(modules, 'loreGlossaryEnabled') && (
@@ -1032,7 +1103,7 @@ export function AppGL() {
                   </p>
                 </GLHelpPanel>
               ) : null}
-              {isModuleEnabled(modules, 'notificationsEnabled') ? (
+              {isModuleEnabled(modules, 'notificationsEnabled') && !isGuest ? (
                 <GLNotificationsCenter
                   items={notifications.items}
                   unreadCount={notifications.unreadCount}
@@ -1049,7 +1120,7 @@ export function AppGL() {
           </footer>
         ) : null}
         <GLProfileModal
-          open={showProfile}
+          open={!isGuest && showProfile}
           onClose={() => setShowProfile(false)}
           auth={auth}
           profile={glProfile}

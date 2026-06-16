@@ -31,6 +31,7 @@ export function GLTopBar({
   glViewMode = 'native',
   onGlViewModeNative = null,
   onGlViewModePlayer = null,
+  isGuestMode = false,
 }) {
   const isScrolled = useStickyHeaderScrolled();
   const compactNav = useGlCompactNav();
@@ -52,7 +53,14 @@ export function GLTopBar({
     setDrawerOpen(false);
   }
 
-  const userChrome = (
+  const userChrome = isGuestMode ? (
+    <div className="gl-user">
+      <span className="gl-user-name">{auth?.displayName || 'Visiteur'}</span>
+      <button type="button" className="gl-logout" onClick={onLogout}>
+        Quitter la découverte
+      </button>
+    </div>
+  ) : (
     <div className="gl-user">
       {showVersion ? <GLAppVersionBadge appVersion={appVersion} /> : null}
       {playerMascotId ? (
