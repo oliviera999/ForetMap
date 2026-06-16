@@ -8,6 +8,7 @@ Il consolide les constats des audits internes, notamment:
 - `docs/AUDIT_BUGS_INCOHERENCES.md`
 - `docs/AUDIT_PHOTOS_BIODIVERSITE.md`
 - `docs/AUDIT_OPTIMISATION.md` (extensibilite / maintenabilite / performance)
+- `docs/AUDIT_GENERAL_2026-06.md` (audit transversal securite / qualite / perf, 2026-06-16)
 
 ## Critiques / Haute priorite
 
@@ -18,6 +19,10 @@ Il consolide les constats des audits internes, notamment:
 
 ## Moyenne priorite
 
+- `G8` - Mot de passe minimum par defaut = 4 (`lib/settings.js:96`), comptes staff/MJ inclus ; porter le defaut a 8-10. Voir `docs/AUDIT_GENERAL_2026-06.md`.
+- `G9` - JWT stocke en `localStorage` + CSP `script-src` absente (helmet `contentSecurityPolicy:false`) : defense en profondeur XSS a renforcer (cookie httpOnly + CSP stricte SPA).
+- `G6` - N+1 d'ecriture hors transaction sur tables de liaison (`task-projects.js:85`, `tutorials.js:77`, `visit/sync.js:131`) ; batcher en INSERT multi-valeurs + `withTransaction` (cf. O10).
+- `G7` - Migrations sans lock ni transaction par fichier (`database.js:368`) : risque en deploiement concurrent / echec partiel.
 - `B5` - Temps reel incomplet sur les observations (creation/suppression non diffusees).
 - `R4` - Pipeline base64 JSON couteux en CPU/memoire pour les uploads.
 - `R5` - Logique de compression image dupliquee cote frontend.
@@ -34,6 +39,10 @@ Il consolide les constats des audits internes, notamment:
 
 ## Deja traite
 
+- `G1` - [done #154] XSS SVG stocke sur `/uploads` neutralise (CSP `sandbox` + `Content-Disposition: attachment` pour les `.svg`). Recoupe `R3`.
+- `G2` - [done #154] CVE high `ws` (divulgation memoire / DoS) corrigee via override `ws@^8.21.0` cible sur la pile socket.io.
+- `G3` - [done #154] CORS permissif par defaut en prod durci (`origin: false` same-origin si aucune origine configuree).
+- `G4` - [done #154] Prettier applique sur tout le depot + gate `format:check` ajoute en CI.
 - `B4` - Incoherence `unassign` eleve/prof corrigee et alignee avec la documentation.
 - `B6` - Regle interne frontend mise a jour sur la stack Vite.
 - `B1` - Suppression d'observation protegee (proprietaire ou n3boss selon perimetre).

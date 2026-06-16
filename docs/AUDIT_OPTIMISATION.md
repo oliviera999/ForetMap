@@ -7,6 +7,9 @@ backend Express, tests, dépendances, bundle) et **sert de tracker** des lots de
 correction. Il complète — sans les remplacer — les audits sécurité/bugs existants
 (`docs/AUDIT_BUGS_INCOHERENCES.md`, `docs/SITE_ISSUES.md`).
 
+> **Audit transversal le plus récent : `docs/AUDIT_GENERAL_2026-06.md`** (2026-06-16, v1.58.20) —
+> sécurité/qualité/perf mesurées, quick wins appliqués (PR #154).
+
 Périmètre analysé : ~159 000 LOC (hors `node_modules`/`dist`). Deux applications
 servies par un backend Express commun : **ForetMap** (`src/main.jsx` → `src/App.jsx`)
 et **GL « Gnomes & Licornes »** (`src/gl/AppGL.jsx`, zone de développement la plus active).
@@ -173,6 +176,23 @@ Lot livré en parallèle (5 agents, périmètres de fichiers disjoints), build +
   dans `routes/auth.js` et `routes/tasks.js`, désormais importé depuis `lib/routeLog`.
 - **O10** (`wip`) — `routes/visit.js` : sous-domaines `media` (photos) et `zones` (CRUD) extraits en
   sous-routeurs dédiés `routes/visit/media.js` et `routes/visit/zones.js` (chemins/middlewares inchangés).
+
+### Lot — Quick wins audit général (2026-06-16, PR #154)
+
+Issu de `docs/AUDIT_GENERAL_2026-06.md`. Lot livré en 3 agents parallèles (fichiers disjoints) +
+intégration ; build + Vitest verts (1 716 tests UI), ESLint 0 erreur, `prettier --check` conforme,
+`npm audit --omit=dev` 6→3 vulns (high `ws` éliminé).
+
+- **Sécurité** — XSS SVG stocké neutralisé sur `/uploads` (CSP `sandbox` + `Content-Disposition` pour `.svg`,
+  `server.js`) ; défaut CORS prod durci (`origin:false` same-origin) ; CVE high `ws` corrigée via override
+  `ws@^8.21.0` ciblé sur la pile socket.io.
+- **O12** (`done`, nuance levée) — Prettier était **configuré mais non appliqué ni gardé** : passe
+  `prettier --write` sur tout le dépôt + step `format:check` ajouté en CI (`.github/workflows/ci.yml`).
+- **Hygiène lint** — `caughtErrorsIgnorePattern: '^_'` (−185 warnings `catch(_)`) + directive `eslint-disable`
+  morte retirée.
+- **O5/O6** (`wip`) — `React.memo` (shallow) sur les 4 vues lourdes (`TasksView`/`MapView`/`VisitView`/
+  `ProfilesAdminView`) + `updateZone` stabilisé en `useCallback` ; bénéfice partiel (props `maps`/preview
+  encore dérivées de `fetchAll`, à stabiliser ultérieurement hors zone sensible).
 
 ### Lot 2 — itération multi-agents (2026-06-14)
 

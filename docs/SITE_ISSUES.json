@@ -4,7 +4,8 @@
   "sources": [
     "docs/AUDIT_BUGS_INCOHERENCES.md",
     "docs/AUDIT_PHOTOS_BIODIVERSITE.md",
-    "docs/AUDIT_OPTIMISATION.md"
+    "docs/AUDIT_OPTIMISATION.md",
+    "docs/AUDIT_GENERAL_2026-06.md"
   ],
   "items": {
     "high": [
@@ -29,6 +30,26 @@
       }
     ],
     "medium": [
+      {
+        "id": "G8",
+        "summary": "Mot de passe minimum par defaut = 4 (comptes staff/MJ inclus)",
+        "details": "lib/settings.js:96 ; porter le defaut a 8-10. Voir docs/AUDIT_GENERAL_2026-06.md"
+      },
+      {
+        "id": "G9",
+        "summary": "JWT en localStorage + CSP script-src absente",
+        "details": "Defense en profondeur XSS : cookie httpOnly + CSP stricte SPA (helmet contentSecurityPolicy:false)"
+      },
+      {
+        "id": "G6",
+        "summary": "N+1 d'ecriture hors transaction sur tables de liaison",
+        "details": "task-projects.js:85, tutorials.js:77, visit/sync.js:131 ; INSERT multi-valeurs + withTransaction (cf. O10)"
+      },
+      {
+        "id": "G7",
+        "summary": "Migrations sans lock ni transaction par fichier",
+        "details": "database.js:368 ; risque en deploiement concurrent / echec partiel"
+      },
       {
         "id": "B5",
         "summary": "Temps reel incomplet sur les observations"
@@ -141,6 +162,25 @@
       }
     ],
     "resolved": [
+      {
+        "id": "G1",
+        "summary": "XSS SVG stocke sur /uploads neutralise (PR #154)",
+        "details": "CSP sandbox + Content-Disposition attachment pour les .svg. Recoupe R3"
+      },
+      {
+        "id": "G2",
+        "summary": "CVE high ws (pile socket.io) corrigee (PR #154)",
+        "details": "Override ws@^8.21.0 cible (engine.io / engine.io-client / socket.io-adapter)"
+      },
+      {
+        "id": "G3",
+        "summary": "CORS permissif par defaut en prod durci (PR #154)",
+        "details": "origin:false (same-origin) si aucune origine configuree"
+      },
+      {
+        "id": "G4",
+        "summary": "Prettier applique + gate format:check en CI (PR #154)"
+      },
       {
         "id": "B4",
         "summary": "Incoherence unassign eleve/prof corrigee"
