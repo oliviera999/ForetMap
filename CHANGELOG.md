@@ -7,6 +7,13 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### GL — Mode Découverte (visiteur sans compte)
+
+- **Auth** : `POST /api/gl/auth/guest` (token `gl_guest`, permission `gl.read` seule) ; `guestModeEnabled` dans `GET /api/gl/auth/config` ; désactivation via `platform.guest_mode_enabled=false` ou `GL_GUEST_MODE_DISABLED=1`.
+- **Sécurité** : `requireGlAuth` refuse explicitement les invités (`guestBlocked`) ; `GET /api/gl/lore/demo-feuillets` (allowlist `ep-I-01`…`04`, indépendant du module carnet).
+- **Front** : bouton « Découvrir sans compte », shell réduit (Monde, Règles, Découverte, glossaire SVT, biotope/biocénose), plateau P1 en bac à sable client (dé + 4 feuillets + mur de fin).
+- **Tests** : `tests/gl-guest-mode.test.js`, `e2e/gl-guest-discovery.spec.js`.
+
 ### Tests e2e (stabilisation des 13 échecs)
 
 - **Fixtures partagées** (`e2e/fixtures/auth.fixture.js`) : sélecteur « Nouvelle tâche » via `hasText` (évite le blocage Playwright sur `getByRole` avec `+`) ; onglet Tâches robuste (split desktop « Cartes & tâches ») ; modales tâche via `aria-label` ; carte zone (`waitForTeacherMapReady`, repli clic) ; `disableTeacherMode` via cadenas header ; `createTeacherTask({ skipReload })`.
