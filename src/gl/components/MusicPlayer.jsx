@@ -13,11 +13,7 @@ export function MusicPlayer({
   biomeSaison = null,
   className = '',
 }) {
-  const {
-    userMuted,
-    toggleMuted,
-    primeAudio,
-  } = useGLPlateauMusic({
+  const { userMuted, toggleMuted, primeAudio } = useGLPlateauMusic({
     enabled,
     plateauNumber,
     introActive,
@@ -35,7 +31,11 @@ export function MusicPlayer({
 
   return (
     <div className={`gl-plateau-music ${className}`.trim()} aria-hidden>
-      <GLZoneMusicMuteButton muted={userMuted} onToggle={toggleMuted} className="gl-plateau-music__toggle" />
+      <GLZoneMusicMuteButton
+        muted={userMuted}
+        onToggle={toggleMuted}
+        className="gl-plateau-music__toggle"
+      />
     </div>
   );
 }

@@ -23,7 +23,7 @@ test('GET /api/observations/:id/image retourne le fichier image', async () => {
   const studentId = reg.body.id;
   const created = await execute(
     'INSERT INTO observation_logs (student_id, zone_id, content, image_path, created_at) VALUES (?, ?, ?, ?, ?)',
-    [studentId, null, 'Observation image', null, new Date().toISOString()]
+    [studentId, null, 'Observation image', null, new Date().toISOString()],
   );
   const obsId = created.insertId;
   const relativePath = `observations/${studentId}_${obsId}.jpg`;
@@ -89,7 +89,13 @@ test('GET /api/observations/:id/image retourne 404 si fichier absent', async () 
   const studentId = reg.body.id;
   const created = await execute(
     'INSERT INTO observation_logs (student_id, zone_id, content, image_path, created_at) VALUES (?, ?, ?, ?, ?)',
-    [studentId, null, 'Observation missing', `observations/${studentId}_${Date.now()}_missing.jpg`, new Date().toISOString()]
+    [
+      studentId,
+      null,
+      'Observation missing',
+      `observations/${studentId}_${Date.now()}_missing.jpg`,
+      new Date().toISOString(),
+    ],
   );
 
   const res = await request(app)

@@ -5,11 +5,12 @@ export function GLQcmImportPanel() {
   return (
     <GLQcmCatalogPanel
       title="Import QCM biomes (XLSX)"
-      hint={(
+      hint={
         <>
-          Fichier attendu : feuilles <code>categories</code> et <code>questions</code> (voir <code>data/gl/README.md</code>).
+          Fichier attendu : feuilles <code>categories</code> et <code>questions</code> (voir{' '}
+          <code>data/gl/README.md</code>).
         </>
-      )}
+      }
       scopeQueryKey="biomeSlug"
       scopeLabel="Biome slug"
       scopePlaceholder="sahara"

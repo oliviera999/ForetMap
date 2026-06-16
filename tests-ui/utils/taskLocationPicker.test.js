@@ -35,8 +35,14 @@ describe('taskMapIdMatchesFilter', () => {
 });
 
 describe('collectUsedLocationIds', () => {
-  const zones = [{ id: 'z1', map_id: 'foret' }, { id: 'z2', map_id: 'mare' }];
-  const markers = [{ id: 'm1', map_id: 'foret' }, { id: 'm2', map_id: 'mare' }];
+  const zones = [
+    { id: 'z1', map_id: 'foret' },
+    { id: 'z2', map_id: 'mare' },
+  ];
+  const markers = [
+    { id: 'm1', map_id: 'foret' },
+    { id: 'm2', map_id: 'mare' },
+  ];
 
   test('collecte zones/repères des tâches (listes + champs legacy)', () => {
     const { usedZones, usedMarkers } = collectUsedLocationIds({
@@ -112,26 +118,39 @@ describe('tutorialLocationIdsAfterLink / tutorialLocationIdsAfterUnlink', () => 
   const tu = { zone_ids: ['z1'], marker_ids: ['m1'] };
 
   test('lie une zone (dédupliqué) sans toucher aux repères', () => {
-    expect(tutorialLocationIdsAfterLink(tu, 'zone:z2'))
-      .toEqual({ zoneIds: ['z1', 'z2'], markerIds: ['m1'] });
-    expect(tutorialLocationIdsAfterLink(tu, 'zone:z1'))
-      .toEqual({ zoneIds: ['z1'], markerIds: ['m1'] });
+    expect(tutorialLocationIdsAfterLink(tu, 'zone:z2')).toEqual({
+      zoneIds: ['z1', 'z2'],
+      markerIds: ['m1'],
+    });
+    expect(tutorialLocationIdsAfterLink(tu, 'zone:z1')).toEqual({
+      zoneIds: ['z1'],
+      markerIds: ['m1'],
+    });
   });
 
   test('lie un repère sans toucher aux zones', () => {
-    expect(tutorialLocationIdsAfterLink(tu, 'marker:m2'))
-      .toEqual({ zoneIds: ['z1'], markerIds: ['m1', 'm2'] });
+    expect(tutorialLocationIdsAfterLink(tu, 'marker:m2')).toEqual({
+      zoneIds: ['z1'],
+      markerIds: ['m1', 'm2'],
+    });
   });
 
   test('délie zone ou repère du filtre courant', () => {
-    expect(tutorialLocationIdsAfterUnlink(tu, 'zone:z1'))
-      .toEqual({ zoneIds: [], markerIds: ['m1'] });
-    expect(tutorialLocationIdsAfterUnlink(tu, 'marker:m1'))
-      .toEqual({ zoneIds: ['z1'], markerIds: [] });
+    expect(tutorialLocationIdsAfterUnlink(tu, 'zone:z1')).toEqual({
+      zoneIds: [],
+      markerIds: ['m1'],
+    });
+    expect(tutorialLocationIdsAfterUnlink(tu, 'marker:m1')).toEqual({
+      zoneIds: ['z1'],
+      markerIds: [],
+    });
   });
 
   test('valeur sans préfixe valide : ids inchangés', () => {
     expect(tutorialLocationIdsAfterLink(tu, 'z9')).toEqual({ zoneIds: ['z1'], markerIds: ['m1'] });
-    expect(tutorialLocationIdsAfterUnlink(tu, 'z1')).toEqual({ zoneIds: ['z1'], markerIds: ['m1'] });
+    expect(tutorialLocationIdsAfterUnlink(tu, 'z1')).toEqual({
+      zoneIds: ['z1'],
+      markerIds: ['m1'],
+    });
   });
 });

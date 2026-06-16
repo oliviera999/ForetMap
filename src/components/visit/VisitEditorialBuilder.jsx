@@ -15,25 +15,66 @@ import { VisitEditorialMediaIdPicker } from '../VisitEditorialPhotoUi.jsx';
  * - `onUpdate(id, patch)` : patch partiel d'un bloc.
  * - `onRemove(id)` : suppression d'un bloc.
  */
-export function VisitEditorialBuilder({ blocks = [], mediaList = [], onAdd, onMove, onUpdate, onRemove }) {
+export function VisitEditorialBuilder({
+  blocks = [],
+  mediaList = [],
+  onAdd,
+  onMove,
+  onUpdate,
+  onRemove,
+}) {
   return (
     <div className="visit-editorial-builder">
       <h5>Mise en page éditoriale</h5>
-      <p className="section-sub">Ajoute des blocs texte/image, puis réordonne-les pour placer les images où tu veux.</p>
+      <p className="section-sub">
+        Ajoute des blocs texte/image, puis réordonne-les pour placer les images où tu veux.
+      </p>
       <div className="visit-editorial-builder__actions">
-        <button type="button" className="btn btn-ghost btn-sm" onClick={() => onAdd('paragraph')}>+ Paragraphe</button>
-        <button type="button" className="btn btn-ghost btn-sm" onClick={() => onAdd('heading')}>+ Intertitre</button>
-        <button type="button" className="btn btn-ghost btn-sm" onClick={() => onAdd('image')}>+ Bloc image</button>
+        <button type="button" className="btn btn-ghost btn-sm" onClick={() => onAdd('paragraph')}>
+          + Paragraphe
+        </button>
+        <button type="button" className="btn btn-ghost btn-sm" onClick={() => onAdd('heading')}>
+          + Intertitre
+        </button>
+        <button type="button" className="btn btn-ghost btn-sm" onClick={() => onAdd('image')}>
+          + Bloc image
+        </button>
       </div>
       <div className="visit-editorial-builder__list">
         {blocks.map((block, index) => (
           <div key={block.id} className="visit-editorial-builder__item">
             <div className="visit-editorial-builder__head">
-              <strong>{block.type === 'paragraph' ? 'Paragraphe' : block.type === 'heading' ? 'Intertitre' : 'Image(s)'}</strong>
+              <strong>
+                {block.type === 'paragraph'
+                  ? 'Paragraphe'
+                  : block.type === 'heading'
+                    ? 'Intertitre'
+                    : 'Image(s)'}
+              </strong>
               <div className="visit-editorial-builder__head-actions">
-                <button type="button" className="btn btn-ghost btn-sm" onClick={() => onMove(block.id, -1)} disabled={index === 0}>↑</button>
-                <button type="button" className="btn btn-ghost btn-sm" onClick={() => onMove(block.id, 1)} disabled={index === blocks.length - 1}>↓</button>
-                <button type="button" className="btn btn-danger btn-sm" onClick={() => onRemove(block.id)}>Suppr.</button>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => onMove(block.id, -1)}
+                  disabled={index === 0}
+                >
+                  ↑
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => onMove(block.id, 1)}
+                  disabled={index === blocks.length - 1}
+                >
+                  ↓
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-danger btn-sm"
+                  onClick={() => onRemove(block.id)}
+                >
+                  Suppr.
+                </button>
               </div>
             </div>
             {block.type === 'paragraph' ? (
@@ -62,7 +103,10 @@ export function VisitEditorialBuilder({ blocks = [], mediaList = [], onAdd, onMo
                   onChange={(ids) => onUpdate(block.id, { media_ids: ids })}
                 />
                 <div className="visit-editorial-builder__image-meta">
-                  <select value={block.size || 'md'} onChange={(e) => onUpdate(block.id, { size: e.target.value })}>
+                  <select
+                    value={block.size || 'md'}
+                    onChange={(e) => onUpdate(block.id, { size: e.target.value })}
+                  >
                     <option value="sm">Compact</option>
                     <option value="md">Normal</option>
                     <option value="lg">Large</option>

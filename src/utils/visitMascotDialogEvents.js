@@ -19,7 +19,9 @@ export const VISIT_MASCOT_DIALOG_EVENT = Object.freeze({
 });
 
 /** @type {string[]} */
-export const VISIT_MASCOT_DIALOG_EVENT_KEYS = Object.freeze(Object.values(VISIT_MASCOT_DIALOG_EVENT));
+export const VISIT_MASCOT_DIALOG_EVENT_KEYS = Object.freeze(
+  Object.values(VISIT_MASCOT_DIALOG_EVENT),
+);
 
 /** Situations réellement déclenchées au runtime visite / carte forêt. */
 export const VISIT_MASCOT_DIALOG_RUNTIME_ACTIVE_KEYS = Object.freeze([
@@ -48,7 +50,9 @@ export const LEGACY_DIALOG_KEY_TO_EVENT = Object.freeze({
 
 /** @type {Record<string, string>} */
 export const DIALOG_EVENT_TO_LEGACY_KEY = Object.freeze(
-  Object.fromEntries(Object.entries(LEGACY_DIALOG_KEY_TO_EVENT).map(([legacy, stable]) => [stable, legacy])),
+  Object.fromEntries(
+    Object.entries(LEGACY_DIALOG_KEY_TO_EVENT).map(([legacy, stable]) => [stable, legacy]),
+  ),
 );
 
 export const VISIT_MASCOT_DIALOG_LABELS = Object.freeze({
@@ -100,9 +104,7 @@ export const DEFAULT_VISIT_MASCOT_DIALOG_PROFILE = Object.freeze({
     'Excellent, repere valide.',
     'Parfait, la foret te remercie.',
   ],
-  [VISIT_MASCOT_DIALOG_EVENT.IDLE]: [
-    'Ton gnome gardien est pret.',
-  ],
+  [VISIT_MASCOT_DIALOG_EVENT.IDLE]: ['Ton gnome gardien est pret.'],
   [VISIT_MASCOT_DIALOG_EVENT.TALK]: [
     'Je te raconte ce que je vois ici.',
     'Regarde ce detail, il est important.',
@@ -201,7 +203,8 @@ export function parseDialogProfileJson(raw) {
   if (candidate == null) return { ok: true, profile: {} };
   const parsed = dialogProfileSchema.safeParse(candidate);
   if (!parsed.success) {
-    const msg = parsed.error.issues.map((i) => i.message).join(' ; ') || 'Profil de dialogue invalide.';
+    const msg =
+      parsed.error.issues.map((i) => i.message).join(' ; ') || 'Profil de dialogue invalide.';
     return { ok: false, error: msg };
   }
   return { ok: true, profile: sanitizeDialogProfile(parsed.data) };
@@ -227,7 +230,8 @@ export function parseCatalogDialogOverridesJson(raw) {
   if (candidate == null) return { ok: true, overrides: {} };
   const parsed = catalogOverridesSchema.safeParse(candidate);
   if (!parsed.success) {
-    const msg = parsed.error.issues.map((i) => i.message).join(' ; ') || 'Surcharges catalogue invalides.';
+    const msg =
+      parsed.error.issues.map((i) => i.message).join(' ; ') || 'Surcharges catalogue invalides.';
     return { ok: false, error: msg };
   }
   const overrides = {};

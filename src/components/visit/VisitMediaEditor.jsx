@@ -49,7 +49,9 @@ export function VisitMediaEditor({
       <h5>🖼️ Photos</h5>
       <p style={{ fontSize: '.76rem', color: '#64748b', margin: '0 0 10px', lineHeight: 1.45 }}>
         Envoi d’image (comme sur la carte) ou lien URL (ex. Wikimedia, fichier déjà sur le serveur).
-        {sortedVisitMedia.length > 1 ? ' Plusieurs photos : glisser-déposer une ligne pour réordonner.' : ''}
+        {sortedVisitMedia.length > 1
+          ? ' Plusieurs photos : glisser-déposer une ligne pour réordonner.'
+          : ''}
       </p>
       <VisitEditorialMapPhotoImportList
         photos={mapAssociatedPhotos}
@@ -60,7 +62,14 @@ export function VisitMediaEditor({
         <label>Légende (optionnel)</label>
         <input value={mediaCaption} onChange={(e) => onMediaCaptionChange(e.target.value)} />
       </div>
-      <input ref={mediaFileRef} type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={onAddFromFile} />
+      <input
+        ref={mediaFileRef}
+        type="file"
+        accept="image/*"
+        multiple
+        style={{ display: 'none' }}
+        onChange={onAddFromFile}
+      />
       <button
         type="button"
         className="btn btn-secondary btn-sm btn-full"
@@ -72,12 +81,26 @@ export function VisitMediaEditor({
       </button>
       <div className="field">
         <label>URL image</label>
-        <input value={mediaUrl} onChange={(e) => onMediaUrlChange(e.target.value)} placeholder="https://… ou /uploads/…" />
+        <input
+          value={mediaUrl}
+          onChange={(e) => onMediaUrlChange(e.target.value)}
+          placeholder="https://… ou /uploads/…"
+        />
       </div>
-      <button className="btn btn-secondary btn-sm" disabled={mediaSaving || !mediaUrl.trim()} onClick={onAddFromUrl}>
+      <button
+        className="btn btn-secondary btn-sm"
+        disabled={mediaSaving || !mediaUrl.trim()}
+        onClick={onAddFromUrl}
+      >
         {mediaSaving ? 'Ajout...' : '+ Ajouter depuis URL'}
       </button>
-      <div className="visit-media-list" style={{ opacity: mediaReorderBusy ? 0.65 : 1, pointerEvents: mediaReorderBusy ? 'none' : undefined }}>
+      <div
+        className="visit-media-list"
+        style={{
+          opacity: mediaReorderBusy ? 0.65 : 1,
+          pointerEvents: mediaReorderBusy ? 'none' : undefined,
+        }}
+      >
         {sortedVisitMedia.map((m) => (
           <div
             key={m.id}
@@ -107,7 +130,13 @@ export function VisitMediaEditor({
               <img
                 src={visitMediaImgSrc(m)}
                 alt=""
-                style={{ width: 44, height: 44, objectFit: 'cover', borderRadius: 6, flexShrink: 0 }}
+                style={{
+                  width: 44,
+                  height: 44,
+                  objectFit: 'cover',
+                  borderRadius: 6,
+                  flexShrink: 0,
+                }}
               />
             ) : null}
             <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>

@@ -34,7 +34,10 @@ export function GLGlossaryTermForm({
 }) {
   return (
     <form className="gl-form" onSubmit={onSubmit}>
-      <GLField label="Code (id)" hint="Laisser vide à la création pour génération automatique GL####">
+      <GLField
+        label="Code (id)"
+        hint="Laisser vide à la création pour génération automatique GL####"
+      >
         <GLInput
           value={form.glossary_code}
           onChange={(e) => onField('glossary_code', e.target.value)}
@@ -54,27 +57,46 @@ export function GLGlossaryTermForm({
         <GLInput value={form.variantes} onChange={(e) => onField('variantes', e.target.value)} />
       </GLField>
       <GLField label="Catégorie *">
-        <GLSelect value={form.categorie} onChange={(e) => onField('categorie', e.target.value)} required>
+        <GLSelect
+          value={form.categorie}
+          onChange={(e) => onField('categorie', e.target.value)}
+          required
+        >
           {categories.map((cat) => (
-            <option key={cat.id} value={cat.id}>{cat.label}</option>
+            <option key={cat.id} value={cat.id}>
+              {cat.label}
+            </option>
           ))}
         </GLSelect>
       </GLField>
       <GLField label="Niveau *">
         <GLSelect value={form.niveau} onChange={(e) => onField('niveau', e.target.value)} required>
           {niveaux.map((n) => (
-            <option key={n.id} value={n.id}>{n.label}</option>
+            <option key={n.id} value={n.id}>
+              {n.label}
+            </option>
           ))}
         </GLSelect>
       </GLField>
       <GLField label="Définition courte">
-        <GLInput value={form.definition_courte} onChange={(e) => onField('definition_courte', e.target.value)} />
+        <GLInput
+          value={form.definition_courte}
+          onChange={(e) => onField('definition_courte', e.target.value)}
+        />
       </GLField>
       <GLField label="Définition complète">
-        <GLTextarea value={form.definition_complete} onChange={(e) => onField('definition_complete', e.target.value)} rows={4} />
+        <GLTextarea
+          value={form.definition_complete}
+          onChange={(e) => onField('definition_complete', e.target.value)}
+          rows={4}
+        />
       </GLField>
       <GLField label="Exemple">
-        <GLTextarea value={form.exemple} onChange={(e) => onField('exemple', e.target.value)} rows={2} />
+        <GLTextarea
+          value={form.exemple}
+          onChange={(e) => onField('exemple', e.target.value)}
+          rows={2}
+        />
       </GLField>
       <GLField label="Étymologie">
         <GLInput value={form.etymologie} onChange={(e) => onField('etymologie', e.target.value)} />
@@ -85,8 +107,7 @@ export function GLGlossaryTermForm({
             type="checkbox"
             checked={form.all_biomes}
             onChange={(e) => onField('all_biomes', e.target.checked)}
-          />
-          {' '}
+          />{' '}
           Tous les biomes
         </label>
       </GLField>
@@ -101,13 +122,23 @@ export function GLGlossaryTermForm({
         />
       ) : null}
       <GLField label="Termes liés" hint="Codes GL#### ou libellés, séparés par des virgules">
-        <GLInput value={form.termes_lies} onChange={(e) => onField('termes_lies', e.target.value)} />
+        <GLInput
+          value={form.termes_lies}
+          onChange={(e) => onField('termes_lies', e.target.value)}
+        />
       </GLField>
       <GLField label="Présent dans le QCM">
-        <GLInput value={form.present_dans_qcm} onChange={(e) => onField('present_dans_qcm', e.target.value)} />
+        <GLInput
+          value={form.present_dans_qcm}
+          onChange={(e) => onField('present_dans_qcm', e.target.value)}
+        />
       </GLField>
       <GLField label="Idée d’illustration">
-        <GLTextarea value={form.illustration_idee} onChange={(e) => onField('illustration_idee', e.target.value)} rows={2} />
+        <GLTextarea
+          value={form.illustration_idee}
+          onChange={(e) => onField('illustration_idee', e.target.value)}
+          rows={2}
+        />
       </GLField>
       <div className="gl-inline-actions">
         <GLButton type="submit" disabled={loading}>

@@ -20,7 +20,9 @@ export function GLSpellCastSpellPicker({ chapterSpells = [], onPick }) {
             className="gl-spell-tile gl-spell-tile--pick"
             onClick={() => onPick?.(String(s.spell_code))}
           >
-            <span className="gl-spell-tile__emoji" aria-hidden="true">{s.emoji || '✨'}</span>
+            <span className="gl-spell-tile__emoji" aria-hidden="true">
+              {s.emoji || '✨'}
+            </span>
             <span className="gl-spell-tile__name">{s.nom || s.spell_code}</span>
           </button>
         ))}
@@ -38,12 +40,7 @@ export function GLSpellCastSpellPicker({ chapterSpells = [], onPick }) {
  * @param {boolean} busy
  * @param {(teamId:number)=>void} onSelectTeam
  */
-export function GLSpellCastTeamPicker({
-  teams = [],
-  selectedTeamId,
-  busy = false,
-  onSelectTeam,
-}) {
+export function GLSpellCastTeamPicker({ teams = [], selectedTeamId, busy = false, onSelectTeam }) {
   return (
     <div className="gl-spell-cast-panel__body">
       <p className="gl-hint">Quelle équipe lance ce sortilège ?</p>

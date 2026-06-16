@@ -14,7 +14,11 @@ function MarkdownContent({ children, className = '', emptyFallback = null, style
   }
 
   if (!html) {
-    return <p className={`markdown-content markdown-content--plain ${className}`.trim()} style={style}>{source}</p>;
+    return (
+      <p className={`markdown-content markdown-content--plain ${className}`.trim()} style={style}>
+        {source}
+      </p>
+    );
   }
 
   return (

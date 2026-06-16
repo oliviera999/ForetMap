@@ -27,14 +27,18 @@ export const EMPTY_VISIT_LOCATION_ASIDE = Object.freeze({
  * @returns {{ showBiodiversity: boolean, showTutos: boolean, primaryLivingNames: string[],
  *   livingBeingsOnlyOnTasks: string[], tutorialListForPreview: Array, locationKind: 'zone'|'marker' }}
  */
-export function computeVisitLocationAside(selected, selectedType, {
-  mapId,
-  mapZones = [],
-  mapMarkers = [],
-  tasks = [],
-  catalogTutorials = [],
-  isTeacher = false,
-} = {}) {
+export function computeVisitLocationAside(
+  selected,
+  selectedType,
+  {
+    mapId,
+    mapZones = [],
+    mapMarkers = [],
+    tasks = [],
+    catalogTutorials = [],
+    isTeacher = false,
+  } = {},
+) {
   if (!selected || !selectedType) return EMPTY_VISIT_LOCATION_ASIDE;
   const catalog = catalogTutorials || [];
   const taskList = tasks || [];
@@ -44,16 +48,28 @@ export function computeVisitLocationAside(selected, selectedType, {
     );
     const zoneSpecial = !!mapZone?.special;
     const primaryLivingNames = mapZone
-      ? orderedLivingBeingsForForm(mapZone.living_beings_list || mapZone.living_beings, mapZone.current_plant)
+      ? orderedLivingBeingsForForm(
+          mapZone.living_beings_list || mapZone.living_beings,
+          mapZone.current_plant,
+        )
       : [];
     const livingFromTasks = livingBeingNamesFromTasksAtLocation('zone', selected.id, taskList);
     const livingBeingsOnlyOnTasks = livingFromTasks.filter((n) => !primaryLivingNames.includes(n));
-    const showBiodiversity = !zoneSpecial && (primaryLivingNames.length > 0 || livingBeingsOnlyOnTasks.length > 0);
-    const linkedTutorialsDirect = catalog.filter((tu) => (
-      tutorialLocationIds(tu).zoneIds.some((id) => String(id) === String(selected.id))
-    ));
-    const tutorialsFromTasksHere = tutorialsFromTasksAtLocation('zone', selected.id, taskList, catalog);
-    const linkedTutorialsAll = dedupeTutorialsById([...linkedTutorialsDirect, ...tutorialsFromTasksHere]);
+    const showBiodiversity =
+      !zoneSpecial && (primaryLivingNames.length > 0 || livingBeingsOnlyOnTasks.length > 0);
+    const linkedTutorialsDirect = catalog.filter((tu) =>
+      tutorialLocationIds(tu).zoneIds.some((id) => String(id) === String(selected.id)),
+    );
+    const tutorialsFromTasksHere = tutorialsFromTasksAtLocation(
+      'zone',
+      selected.id,
+      taskList,
+      catalog,
+    );
+    const linkedTutorialsAll = dedupeTutorialsById([
+      ...linkedTutorialsDirect,
+      ...tutorialsFromTasksHere,
+    ]);
     const linkedTutorialsVisible = isTeacher
       ? linkedTutorialsAll
       : linkedTutorialsAll.filter((tu) => tu.is_active !== false);
@@ -71,16 +87,27 @@ export function computeVisitLocationAside(selected, selectedType, {
     (m) => String(m.id) === String(selected.id) && String(m.map_id || '') === String(mapId),
   );
   const primaryLivingNames = mapMarker
-    ? orderedLivingBeingsForForm(mapMarker.living_beings_list || mapMarker.living_beings, mapMarker.plant_name)
+    ? orderedLivingBeingsForForm(
+        mapMarker.living_beings_list || mapMarker.living_beings,
+        mapMarker.plant_name,
+      )
     : [];
   const livingFromTasks = livingBeingNamesFromTasksAtLocation('marker', selected.id, taskList);
   const livingBeingsOnlyOnTasks = livingFromTasks.filter((n) => !primaryLivingNames.includes(n));
   const showBiodiversity = primaryLivingNames.length > 0 || livingBeingsOnlyOnTasks.length > 0;
-  const linkedTutorialsDirect = catalog.filter((tu) => (
-    tutorialLocationIds(tu).markerIds.some((id) => String(id) === String(selected.id))
-  ));
-  const tutorialsFromTasksHere = tutorialsFromTasksAtLocation('marker', selected.id, taskList, catalog);
-  const linkedTutorialsAll = dedupeTutorialsById([...linkedTutorialsDirect, ...tutorialsFromTasksHere]);
+  const linkedTutorialsDirect = catalog.filter((tu) =>
+    tutorialLocationIds(tu).markerIds.some((id) => String(id) === String(selected.id)),
+  );
+  const tutorialsFromTasksHere = tutorialsFromTasksAtLocation(
+    'marker',
+    selected.id,
+    taskList,
+    catalog,
+  );
+  const linkedTutorialsAll = dedupeTutorialsById([
+    ...linkedTutorialsDirect,
+    ...tutorialsFromTasksHere,
+  ]);
   const linkedTutorialsVisible = isTeacher
     ? linkedTutorialsAll
     : linkedTutorialsAll.filter((tu) => tu.is_active !== false);

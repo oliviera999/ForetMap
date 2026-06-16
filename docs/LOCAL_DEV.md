@@ -60,6 +60,7 @@ npm run local:setup
 ```
 
 Cette commande enchaîne :
+
 - démarrage Docker (MariaDB),
 - installation des dépendances (incluant dev),
 - attente active de disponibilité du serveur MariaDB,
@@ -99,11 +100,13 @@ npm run db:migrate
 ```
 
 Important :
+
 - Le dump contient des donnees reelles (PII : noms, emails, historique). Ne pas le versionner dans Git.
 - Le script cible `DB_NAME` courant (par defaut `foretmap_local`) et execute un `DROP DATABASE` + `CREATE DATABASE`.
 - Le dump peut ecraser les secrets de PIN en base (`role_pin_secrets`). Le `TEACHER_PIN` de `.env` peut alors ne plus correspondre.
 
 Apres import, deux options :
+
 - Option A : utiliser les credentials/PIN reels deja presents dans le dump (sans les copier dans le depot).
 - Option B : realigner le local sur `.env` pour les tests/dev avec :
 
@@ -153,17 +156,17 @@ Le script force `DB_NAME=foretmap_test` ; le schéma est (re)créé par les fich
 
 ### Récapitulatif des commandes de test (référence)
 
-| Commande | Rôle |
-|----------|------|
-| `npm test` | Tous les **`tests/*.test.js`** (API + utilitaires **`src/utils`** : géométrie visite, mascotte, etc.) |
-| `npm run test:ui` | Tests UI Vitest (`tests-ui/**`) — exécutés aussi en **CI** (après `npm test`) |
-| `npm run test:all` | `npm test` puis `npm run test:ui` |
-| `npm run test:e2e` | Playwright sur **`e2e/`** (inclut visite / mascotte) |
-| `npm run smoke:local:fast` | Smoke applicatif (`scripts/local-smoke.js`) |
-| `npm run test:snapshot` | Snapshot DB importée (`FORETMAP_SNAPSHOT_TESTS=1`, voir § 5ter) |
-| `npm run test:snapshot:gl` | Snapshot DB ciblé Gnomes & Licornes (`FORETMAP_SNAPSHOT_GL=1`) |
-| `npm run test:load` (et variantes) | Charge Artillery (`LOAD_TEST_SECRET`, voir § **5quinquies**) |
-| `npm run test:load:gl` | Charge Artillery ciblée GL (`load/artillery-gl.yml`) |
+| Commande                           | Rôle                                                                                                  |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `npm test`                         | Tous les **`tests/*.test.js`** (API + utilitaires **`src/utils`** : géométrie visite, mascotte, etc.) |
+| `npm run test:ui`                  | Tests UI Vitest (`tests-ui/**`) — exécutés aussi en **CI** (après `npm test`)                         |
+| `npm run test:all`                 | `npm test` puis `npm run test:ui`                                                                     |
+| `npm run test:e2e`                 | Playwright sur **`e2e/`** (inclut visite / mascotte)                                                  |
+| `npm run smoke:local:fast`         | Smoke applicatif (`scripts/local-smoke.js`)                                                           |
+| `npm run test:snapshot`            | Snapshot DB importée (`FORETMAP_SNAPSHOT_TESTS=1`, voir § 5ter)                                       |
+| `npm run test:snapshot:gl`         | Snapshot DB ciblé Gnomes & Licornes (`FORETMAP_SNAPSHOT_GL=1`)                                        |
+| `npm run test:load` (et variantes) | Charge Artillery (`LOAD_TEST_SECRET`, voir § **5quinquies**)                                          |
+| `npm run test:load:gl`             | Charge Artillery ciblée GL (`load/artillery-gl.yml`)                                                  |
 
 Après une modification **frontend** : **`npm run build`** si le serveur sert **`dist/`** (`NODE_ENV=production`), avant **`npm run test:e2e`**. Le build Vite applique un **code-splitting** par onglet (`React.lazy` dans `App.jsx`) et des chunks vendor (`react-vendor`, `socket-io`, `rive`, `markdown` — voir `vite.config.js`).
 
@@ -188,7 +191,7 @@ Checklist GUI (~10 min) sur l’entrée GL (`gl.html` / sous-domaine `gl.*`) :
 - Popover **sort** : fade overlay (pas d’animation cassée)
 - Panneau **aide contextuelle** : pulse `is-attention-pulse`
 
-Conventions CSS/JS : tableau dans `docs/GL_ARCHITECTURE.md` (*Cohérence esthétique*).
+Conventions CSS/JS : tableau dans `docs/GL_ARCHITECTURE.md` (_Cohérence esthétique_).
 
 ### Audit QA UX par personae (routine)
 
@@ -230,6 +233,7 @@ npm run test:snapshot
 ```
 
 Le test `tests/snapshot-db.test.js` est actif uniquement avec `FORETMAP_SNAPSHOT_TESTS=1` (deja active par le script `test:snapshot`) et verifie :
+
 - `/api/health` et `/api/health/db` ;
 - la presence de donnees sur `/api/zones`, `/api/plants`, `/api/tasks`.
 
@@ -247,7 +251,7 @@ npm run test:e2e
 La commande **`npm run test:e2e`** enchaîne :
 
 1. **`scripts/e2e-kill-listen-port.js`** (hors CI) : libère le port **3000** (ou `PORT` / `E2E_KILL_PORT`) pour éviter un vieux Node qui écoute encore sans le mode e2e.
-2. **Playwright** : hors CI, **`webServer`** exécute **`npm run db:init`** puis **`node --max-old-space-size=<Mo> server.js --foretmap-e2e-no-rate-limit`** (défaut heap **12288** Mo via **`E2E_NODE_MAX_OLD_SPACE_SIZE`** dans **`playwright.config.js`**) — équivalent fonctionnel à **`npm run start:e2e`** avec heap explicite pour limiter les OOM.  
+2. **Playwright** : hors CI, **`webServer`** exécute **`npm run db:init`** puis **`node --max-old-space-size=<Mo> server.js --foretmap-e2e-no-rate-limit`** (défaut heap **12288** Mo via **`E2E_NODE_MAX_OLD_SPACE_SIZE`** dans **`playwright.config.js`**) — équivalent fonctionnel à **`npm run start:e2e`** avec heap explicite pour limiter les OOM.
    - Le flag **`--foretmap-e2e-no-rate-limit`** désactive le **rate limiting** (sinon inscription / formulaires peuvent renvoyer **« Trop de requêtes »**). Sur Windows, ce **flag CLI** est plus fiable que la seule variable **`E2E_DISABLE_RATE_LIMIT`**.
 3. Le fichier **`playwright.config.js`** charge **`.env`** : le PIN prof des tests suit **`TEACHER_PIN`** (surcharge possible avec **`E2E_ELEVATION_PIN`**).
 
@@ -293,10 +297,10 @@ Ces commandes n'affectent pas la politique de versionnage de **`dist/`**.
 
 Les scénarios créent des élèves reconnaissables (**prénom `E2E…`**, **email `e2e%@example.com`**, **pseudo `e2e%`**). Le job serveur duplique les tâches validées avec récurrence en conservant **`parent_task_id`**.
 
-| Commande | Effet |
-|----------|--------|
-| **`npm run db:cleanup:dev:dry`** | Affiche ce qui serait supprimé (aucune écriture). |
-| **`npm run db:cleanup:dev`** | Supprime ces élèves avec la même logique que **`DELETE /api/students/:id`** (assignations, statuts de tâches, forum, commentaires contextuels, RBAC, tokens, avatar disque), puis supprime les tâches dont **`parent_task_id`** est non nul (clones de récurrence). |
+| Commande                         | Effet                                                                                                                                                                                                                                                               |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`npm run db:cleanup:dev:dry`** | Affiche ce qui serait supprimé (aucune écriture).                                                                                                                                                                                                                   |
+| **`npm run db:cleanup:dev`**     | Supprime ces élèves avec la même logique que **`DELETE /api/students/:id`** (assignations, statuts de tâches, forum, commentaires contextuels, RBAC, tokens, avatar disque), puis supprime les tâches dont **`parent_task_id`** est non nul (clones de récurrence). |
 
 Options supplémentaires (passer après `--`) :
 
@@ -308,6 +312,7 @@ Options supplémentaires (passer après `--`) :
 Le scénario de charge est défini dans `load/artillery.yml` et cible par défaut `http://127.0.0.1:3000`.
 
 Pré-requis :
+
 - serveur API lancé (`npm run dev` ou `npm run start`) ;
 - base MySQL accessible (si vous testez `/api/health/db`, `/api/zones`, `/api/plants`).
 
@@ -326,6 +331,7 @@ npm run test:load:stress
 ```
 
 Repères (ordre de grandeur) :
+
 - `light` : montée jusqu'à ~8 utilisateurs virtuels/s, sessions plus longues (navigation + pauses).
 - `normal` : montée jusqu'à ~20 utilisateurs virtuels/s, palier prolongé pour charge soutenue.
 - `stress` : montée jusqu'à ~40 utilisateurs virtuels/s, palier long pour pousser la concurrence.
@@ -349,6 +355,7 @@ BASE_URL=http://localhost:3000 npm run test:load
 ```
 
 Bypass du rate limit pour un run de charge contrôlé :
+
 - côté serveur : définir `LOAD_TEST_SECRET` ;
 - côté client (Artillery) : utiliser la même valeur `LOAD_TEST_SECRET`.
 
@@ -396,6 +403,7 @@ Base URL : `FORETMAP_PROD_BASE_URL` ou `DEPLOY_BASE_URL`, ou argument `--base-ur
 Voir aussi **`docs/EXPLOITATION.md`** (section temps réel / Passenger, section **Chrome ERR_HTTP2_PROTOCOL_ERROR**) et **`docs/EVOLUTION.md`** (critères de décision hébergement).
 
 Après `npm run test:load:all`, vous obtenez aussi :
+
 - `load/reports/light-summary.md`
 - `load/reports/normal-summary.md`
 - `load/reports/stress-summary.md`

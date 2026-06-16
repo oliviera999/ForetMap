@@ -89,55 +89,71 @@ export function useGLMarketTrade({ token, classId, enabled, onTradeCompleted }) 
     }
   }, []);
 
-  const startTrade = useCallback(async (peerPlayerId) => {
-    await runAction(async () => {
-      try {
-        const trade = await apiGL('/api/gl/market/trades', 'POST', { peerPlayerId });
-        setActiveTradeId(trade.id);
+  const startTrade = useCallback(
+    async (peerPlayerId) => {
+      await runAction(async () => {
+        try {
+          const trade = await apiGL('/api/gl/market/trades', 'POST', { peerPlayerId });
+          setActiveTradeId(trade.id);
+          setActiveTrade(trade);
+          await loadTrades();
+        } catch (err) {
+          if (err?.body?.trade?.id) {
+            setActiveTradeId(err.body.trade.id);
+            setActiveTrade(err.body.trade);
+            await loadTrades();
+          }
+          throw err;
+        }
+      });
+    },
+    [runAction, loadTrades],
+  );
+
+  const updateOffer = useCallback(
+    async (offerHealth, offerPower) => {
+      if (activeTradeId == null) return;
+      await runAction(async () => {
+        const trade = await apiGL(`/api/gl/market/trades/${activeTradeId}/offer`, 'PATCH', {
+          offerHealth,
+          offerPower,
+        });
         setActiveTrade(trade);
         await loadTrades();
-      } catch (err) {
-        if (err?.body?.trade?.id) {
-          setActiveTradeId(err.body.trade.id);
-          setActiveTrade(err.body.trade);
-          await loadTrades();
-        }
-        throw err;
-      }
-    });
-  }, [runAction, loadTrades]);
-
-  const updateOffer = useCallback(async (offerHealth, offerPower) => {
-    if (activeTradeId == null) return;
-    await runAction(async () => {
-      const trade = await apiGL(`/api/gl/market/trades/${activeTradeId}/offer`, 'PATCH', {
-        offerHealth,
-        offerPower,
       });
-      setActiveTrade(trade);
-      await loadTrades();
-    });
-  }, [activeTradeId, runAction, loadTrades]);
+    },
+    [activeTradeId, runAction, loadTrades],
+  );
 
-  const setAccepted = useCallback(async (accepted) => {
-    if (activeTradeId == null) return;
-    await runAction(async () => {
-      const trade = await apiGL(`/api/gl/market/trades/${activeTradeId}/accept`, 'PATCH', { accepted });
-      setActiveTrade(trade);
-      await loadTrades();
-      if (trade?.status === 'completed') {
-        onTradeCompletedRef.current?.(trade);
-      }
-    });
-  }, [activeTradeId, runAction, loadTrades]);
+  const setAccepted = useCallback(
+    async (accepted) => {
+      if (activeTradeId == null) return;
+      await runAction(async () => {
+        const trade = await apiGL(`/api/gl/market/trades/${activeTradeId}/accept`, 'PATCH', {
+          accepted,
+        });
+        setActiveTrade(trade);
+        await loadTrades();
+        if (trade?.status === 'completed') {
+          onTradeCompletedRef.current?.(trade);
+        }
+      });
+    },
+    [activeTradeId, runAction, loadTrades],
+  );
 
-  const sendMessage = useCallback(async (body) => {
-    if (activeTradeId == null) return;
-    await runAction(async () => {
-      const data = await apiGL(`/api/gl/market/trades/${activeTradeId}/messages`, 'POST', { body });
-      setActiveTrade(data?.trade || null);
-    });
-  }, [activeTradeId, runAction]);
+  const sendMessage = useCallback(
+    async (body) => {
+      if (activeTradeId == null) return;
+      await runAction(async () => {
+        const data = await apiGL(`/api/gl/market/trades/${activeTradeId}/messages`, 'POST', {
+          body,
+        });
+        setActiveTrade(data?.trade || null);
+      });
+    },
+    [activeTradeId, runAction],
+  );
 
   const cancelTrade = useCallback(async () => {
     if (activeTradeId == null) return;
@@ -148,10 +164,13 @@ export function useGLMarketTrade({ token, classId, enabled, onTradeCompleted }) 
     });
   }, [activeTradeId, runAction, loadTrades]);
 
-  const selectTrade = useCallback((tradeId) => {
-    setActiveTradeId(tradeId);
-    loadTrade(tradeId);
-  }, [loadTrade]);
+  const selectTrade = useCallback(
+    (tradeId) => {
+      setActiveTradeId(tradeId);
+      loadTrade(tradeId);
+    },
+    [loadTrade],
+  );
 
   return {
     classmates,

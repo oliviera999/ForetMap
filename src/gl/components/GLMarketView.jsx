@@ -28,14 +28,8 @@ export function GLMarketView({ token, classId, playerId, onTradeCompleted }) {
   const [messageBody, setMessageBody] = useState('');
 
   const activeTrade = market.activeTrade;
-  const mySide = useMemo(
-    () => findMySide(activeTrade, playerId),
-    [activeTrade, playerId]
-  );
-  const peerSide = useMemo(
-    () => findPeerSide(activeTrade, playerId),
-    [activeTrade, playerId]
-  );
+  const mySide = useMemo(() => findMySide(activeTrade, playerId), [activeTrade, playerId]);
+  const peerSide = useMemo(() => findPeerSide(activeTrade, playerId), [activeTrade, playerId]);
 
   const isNegotiating = activeTrade?.status === 'negotiating';
   const isFrozen = !!activeTrade?.frozen;
@@ -55,26 +49,30 @@ export function GLMarketView({ token, classId, playerId, onTradeCompleted }) {
         <h2>Comment fonctionne le marché ?</h2>
         <ul>
           <li>
-            Les <strong>cœurs</strong> (❤️) et <strong>gemmes</strong> (💎) sont tes points de vie et de pouvoir
-            : ils restent sur ton compte même d’une partie à l’autre.
+            Les <strong>cœurs</strong> (❤️) et <strong>gemmes</strong> (💎) sont tes points de vie
+            et de pouvoir : ils restent sur ton compte même d’une partie à l’autre.
           </li>
           <li>
-            Tu peux <strong>échanger</strong> avec un camarade de ta classe ou lui faire un <strong>don</strong>
+            Tu peux <strong>échanger</strong> avec un camarade de ta classe ou lui faire un{' '}
+            <strong>don</strong>
             (tu proposes des cœurs et/ou des gemmes, l’autre peut proposer zéro).
           </li>
           <li>
-            Discute dans le fil de l’échange, ajuste ton offre, puis coche <strong>J’accepte</strong> quand tu es prêt.
+            Discute dans le fil de l’échange, ajuste ton offre, puis coche{' '}
+            <strong>J’accepte</strong> quand tu es prêt.
           </li>
           <li>
-            Dès qu’un joueur coche « J’accepte », les montants sont <strong>figés</strong> : pour les modifier,
-            décoche d’abord ta case (ou demande à l’autre de décocher la sienne).
+            Dès qu’un joueur coche « J’accepte », les montants sont <strong>figés</strong> : pour
+            les modifier, décoche d’abord ta case (ou demande à l’autre de décocher la sienne).
           </li>
           <li>
-            L’échange ne se réalise que lorsque <strong>les deux</strong> ont coché « J’accepte ». C’est alors
+            L’échange ne se réalise que lorsque <strong>les deux</strong> ont coché « J’accepte ».
+            C’est alors
             <strong>définitif</strong> : vérifie bien les quantités avant de valider.
           </li>
           <li>
-            Le MJ et l’équipe pédagogique peuvent consulter l’activité ; reste fair-play et respecte les règles du jeu.
+            Le MJ et l’équipe pédagogique peuvent consulter l’activité ; reste fair-play et respecte
+            les règles du jeu.
           </li>
         </ul>
       </aside>
@@ -112,10 +110,7 @@ export function GLMarketView({ token, classId, playerId, onTradeCompleted }) {
               const peer = findPeerSide(trade, playerId);
               return (
                 <li key={trade.id} className={market.activeTradeId === trade.id ? 'is-active' : ''}>
-                  <button
-                    type="button"
-                    onClick={() => market.selectTrade(trade.id)}
-                  >
+                  <button type="button" onClick={() => market.selectTrade(trade.id)}>
                     <span>{peer?.pseudo || 'Joueur'}</span>
                     {trade.frozen ? <span className="gl-market-badge">Figé</span> : null}
                   </button>
@@ -155,7 +150,8 @@ export function GLMarketView({ token, classId, playerId, onTradeCompleted }) {
 
               {isFrozen && isNegotiating ? (
                 <p className="gl-market-frozen-hint" role="status">
-                  Les offres sont figées : un joueur a coché « J’accepte ». Décoche pour modifier les montants.
+                  Les offres sont figées : un joueur a coché « J’accepte ». Décoche pour modifier
+                  les montants.
                 </p>
               ) : null}
 
@@ -207,7 +203,9 @@ export function GLMarketView({ token, classId, playerId, onTradeCompleted }) {
                     ❤️ {Number(peerSide?.offerHealth) || 0} · 💎 {Number(peerSide?.offerPower) || 0}
                   </p>
                   {peerSide?.accepted ? (
-                    <p className="gl-market-peer-accepted" role="status">L’autre joueur a accepté.</p>
+                    <p className="gl-market-peer-accepted" role="status">
+                      L’autre joueur a accepté.
+                    </p>
                   ) : (
                     <p className="gl-market-peer-pending">En attente de l’autre joueur.</p>
                   )}

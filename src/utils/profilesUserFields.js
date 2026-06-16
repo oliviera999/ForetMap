@@ -19,7 +19,8 @@ export function validateUserIdentityFields({
   requirePassword = false,
 } = {}) {
   if (requirePassword) {
-    if (!firstName.trim() || !lastName.trim() || !password) return 'Prénom, nom et mot de passe sont requis';
+    if (!firstName.trim() || !lastName.trim() || !password)
+      return 'Prénom, nom et mot de passe sont requis';
   } else if (!firstName.trim() || !lastName.trim()) {
     return 'Prénom et nom sont requis';
   }
@@ -69,7 +70,7 @@ export function pickUserField(obj, ...logicalNames) {
     logicalNames.flatMap((n) => {
       const s = String(n);
       return [s.toLowerCase(), s.toLowerCase().replace(/_/g, '')];
-    })
+    }),
   );
   for (const k of Object.keys(obj)) {
     const keyNorm = k.toLowerCase().replace(/_/g, '');
@@ -107,9 +108,10 @@ export function mergeRbacUserRowsForEdit(listRow, detailRow) {
   const idRaw = pickUserField(b, 'id') ?? pickUserField(a, 'id');
   const id = idRaw != null ? toUiString(idRaw).trim() : '';
   const user_type = String(
-    pick(b, 'user_type', 'userType') ?? pick(a, 'user_type', 'userType') ?? ''
+    pick(b, 'user_type', 'userType') ?? pick(a, 'user_type', 'userType') ?? '',
   ).toLowerCase();
-  const displayRaw = pickLoose(b, 'display_name', 'displayName') ?? pickLoose(a, 'display_name', 'displayName');
+  const displayRaw =
+    pickLoose(b, 'display_name', 'displayName') ?? pickLoose(a, 'display_name', 'displayName');
   return {
     id,
     user_type,
@@ -121,15 +123,17 @@ export function mergeRbacUserRowsForEdit(listRow, detailRow) {
     description: pickLoose(b, 'description') ?? pickLoose(a, 'description'),
     affiliation: pick(b, 'affiliation') ?? pick(a, 'affiliation'),
     role_id: pickUserField(b, 'role_id', 'roleId') ?? pickUserField(a, 'role_id', 'roleId'),
-    role_slug: pickUserField(b, 'role_slug', 'roleSlug') ?? pickUserField(a, 'role_slug', 'roleSlug'),
+    role_slug:
+      pickUserField(b, 'role_slug', 'roleSlug') ?? pickUserField(a, 'role_slug', 'roleSlug'),
     role_display_name:
-      pickUserField(b, 'role_display_name', 'roleDisplayName')
-      ?? pickUserField(a, 'role_display_name', 'roleDisplayName'),
-    forum_participate: pickUserField(b, 'forum_participate', 'forumParticipate')
-      ?? pickUserField(a, 'forum_participate', 'forumParticipate'),
+      pickUserField(b, 'role_display_name', 'roleDisplayName') ??
+      pickUserField(a, 'role_display_name', 'roleDisplayName'),
+    forum_participate:
+      pickUserField(b, 'forum_participate', 'forumParticipate') ??
+      pickUserField(a, 'forum_participate', 'forumParticipate'),
     context_comment_participate:
-      pickUserField(b, 'context_comment_participate', 'contextCommentParticipate')
-      ?? pickUserField(a, 'context_comment_participate', 'contextCommentParticipate'),
+      pickUserField(b, 'context_comment_participate', 'contextCommentParticipate') ??
+      pickUserField(a, 'context_comment_participate', 'contextCommentParticipate'),
   };
 }
 
@@ -157,8 +161,13 @@ export function buildUserEditInitialFields(u) {
     } else if (dn && EDIT_EMAIL_RE.test(dn)) {
       const at = dn.indexOf('@');
       const local = at > 0 ? dn.slice(0, at) : dn;
-      const rawTokens = local.replace(/[._-]+/g, ' ').split(/\s+/).filter(Boolean);
-      const tokens = rawTokens.map((t) => (t ? t.charAt(0).toUpperCase() + t.slice(1).toLowerCase() : '')).filter(Boolean);
+      const rawTokens = local
+        .replace(/[._-]+/g, ' ')
+        .split(/\s+/)
+        .filter(Boolean);
+      const tokens = rawTokens
+        .map((t) => (t ? t.charAt(0).toUpperCase() + t.slice(1).toLowerCase() : ''))
+        .filter(Boolean);
       if (tokens.length >= 1) firstName = tokens[0];
       if (tokens.length >= 2) lastName = tokens.slice(1).join(' ');
     }

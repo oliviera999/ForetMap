@@ -25,7 +25,10 @@ describe('glPlayersPanel - toBool', () => {
 
 describe('glPlayersPanel - buildClassesById', () => {
   test('indexe par id numérique', () => {
-    const map = buildClassesById([{ id: '3', name: 'CM2' }, { id: 5, name: 'CE1' }]);
+    const map = buildClassesById([
+      { id: '3', name: 'CM2' },
+      { id: 5, name: 'CE1' },
+    ]);
     expect(map.get(3)).toEqual({ id: '3', name: 'CM2' });
     expect(map.get(5)).toEqual({ id: 5, name: 'CE1' });
     expect(map.size).toBe(2);

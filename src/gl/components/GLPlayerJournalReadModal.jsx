@@ -53,9 +53,7 @@ export function GLPlayerJournalReadModal({ playerId, open, onClose }) {
       ariaLabelledBy="gl-journal-read-title"
     >
       <header className="gl-profile-modal-head">
-        <h2 id="gl-journal-read-title">
-          Carnet de {playerLabel(data?.player)}
-        </h2>
+        <h2 id="gl-journal-read-title">Carnet de {playerLabel(data?.player)}</h2>
         <GLButton type="button" variant="secondary" onClick={onClose} aria-label="Fermer">
           ✕
         </GLButton>
@@ -66,7 +64,8 @@ export function GLPlayerJournalReadModal({ playerId, open, onClose }) {
         {!loading && !error && data ? (
           <>
             <p className="gl-hint gl-player-journal-read-meta">
-              {data.usage?.charCount ?? 0} caractères · {data.usage?.assetCount ?? 0} illustration(s)
+              {data.usage?.charCount ?? 0} caractères · {data.usage?.assetCount ?? 0}{' '}
+              illustration(s)
               {data.updatedAt ? (
                 <> · modifié le {new Date(data.updatedAt).toLocaleString('fr-FR')}</>
               ) : null}
@@ -82,7 +81,9 @@ export function GLPlayerJournalReadModal({ playerId, open, onClose }) {
           </>
         ) : null}
       </div>
-      <GLButton type="button" variant="secondary" onClick={onClose}>Fermer</GLButton>
+      <GLButton type="button" variant="secondary" onClick={onClose}>
+        Fermer
+      </GLButton>
     </DialogShell>
   );
 }

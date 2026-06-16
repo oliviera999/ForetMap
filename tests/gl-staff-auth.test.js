@@ -27,7 +27,7 @@ before(async () => {
     `INSERT INTO users (id, user_type, email, pseudo, display_name, password_hash, auth_provider, is_active, created_at, updated_at)
      VALUES (?, 'teacher', ?, ?, ?, ?, 'local', 1, NOW(), NOW())
      ON DUPLICATE KEY UPDATE password_hash = VALUES(password_hash), is_active = 1`,
-    [adminTeacherId, adminEmail, `admin${stamp}`, 'Admin GL Staff', hash]
+    [adminTeacherId, adminEmail, `admin${stamp}`, 'Admin GL Staff', hash],
   );
   const adminRole = await queryOne("SELECT id FROM roles WHERE slug = 'admin' LIMIT 1");
   assert.ok(adminRole?.id);
@@ -35,14 +35,14 @@ before(async () => {
     `INSERT INTO user_roles (user_id, user_type, role_id, is_primary, assigned_at)
      VALUES (?, 'teacher', ?, 1, NOW())
      ON DUPLICATE KEY UPDATE role_id = VALUES(role_id), is_primary = 1`,
-    [adminTeacherId, adminRole.id]
+    [adminTeacherId, adminRole.id],
   );
 
   await execute(
     `INSERT INTO gl_admins (email, display_name, role, is_active, created_at, updated_at)
      VALUES (?, 'MJ seul GL', 'mj', 1, NOW(), NOW())
      ON DUPLICATE KEY UPDATE is_active = 1`,
-    [mjOnlyEmail]
+    [mjOnlyEmail],
   );
 });
 
@@ -60,14 +60,14 @@ test('POST /api/gl/auth/staff/login connecte un admin ForetMap via pseudo sans e
     `INSERT INTO users (id, user_type, email, pseudo, display_name, password_hash, auth_provider, is_active, created_at, updated_at)
      VALUES (?, 'teacher', NULL, ?, ?, ?, 'local', 1, NOW(), NOW())
      ON DUPLICATE KEY UPDATE password_hash = VALUES(password_hash), is_active = 1`,
-    [pseudoOnlyId, pseudoOnly, 'Admin pseudo GL', hash]
+    [pseudoOnlyId, pseudoOnly, 'Admin pseudo GL', hash],
   );
   const adminRole = await queryOne("SELECT id FROM roles WHERE slug = 'admin' LIMIT 1");
   await execute(
     `INSERT INTO user_roles (user_id, user_type, role_id, is_primary, assigned_at)
      VALUES (?, 'teacher', ?, 1, NOW())
      ON DUPLICATE KEY UPDATE role_id = VALUES(role_id), is_primary = 1`,
-    [pseudoOnlyId, adminRole.id]
+    [pseudoOnlyId, adminRole.id],
   );
 
   const res = await request(app)
@@ -75,7 +75,10 @@ test('POST /api/gl/auth/staff/login connecte un admin ForetMap via pseudo sans e
     .send({ identifier: pseudoOnly, password: adminPassword })
     .expect(200);
   assert.strictEqual(res.body?.auth?.userType, 'gl_admin');
-  const row = await queryOne('SELECT id, email, foretmap_user_id FROM gl_admins WHERE foretmap_user_id = ? LIMIT 1', [pseudoOnlyId]);
+  const row = await queryOne(
+    'SELECT id, email, foretmap_user_id FROM gl_admins WHERE foretmap_user_id = ? LIMIT 1',
+    [pseudoOnlyId],
+  );
   assert.ok(row);
 });
 
@@ -88,7 +91,9 @@ test('POST /api/gl/auth/staff/login connecte un admin ForetMap et crée gl_admin
   assert.strictEqual(res.body?.auth?.userType, 'gl_admin');
   assert.ok(res.body?.auth?.permissions?.includes('gl.settings.manage'));
 
-  const row = await queryOne('SELECT id, role FROM gl_admins WHERE LOWER(email)=LOWER(?) LIMIT 1', [adminEmail]);
+  const row = await queryOne('SELECT id, role FROM gl_admins WHERE LOWER(email)=LOWER(?) LIMIT 1', [
+    adminEmail,
+  ]);
   assert.ok(row);
   assert.strictEqual(String(row.role).toLowerCase(), 'admin');
 });
@@ -103,7 +108,7 @@ test('POST /api/gl/auth/staff/login accepte un MJ GL dont gl_admins.email = iden
     `INSERT INTO users (id, user_type, email, pseudo, display_name, password_hash, auth_provider, is_active, created_at, updated_at)
      VALUES (?, 'teacher', ?, ?, ?, ?, 'local', 1, NOW(), NOW())
      ON DUPLICATE KEY UPDATE password_hash = VALUES(password_hash), is_active = 1`,
-    [legacyTeacherId, foretmapEmail, glLoginKey, 'MJ legacy', legacyHash]
+    [legacyTeacherId, foretmapEmail, glLoginKey, 'MJ legacy', legacyHash],
   );
   const profRole = await queryOne("SELECT id FROM roles WHERE slug = 'prof' LIMIT 1");
   assert.ok(profRole?.id);
@@ -111,13 +116,13 @@ test('POST /api/gl/auth/staff/login accepte un MJ GL dont gl_admins.email = iden
     `INSERT INTO user_roles (user_id, user_type, role_id, is_primary, assigned_at)
      VALUES (?, 'teacher', ?, 1, NOW())
      ON DUPLICATE KEY UPDATE role_id = VALUES(role_id), is_primary = 1`,
-    [legacyTeacherId, profRole.id]
+    [legacyTeacherId, profRole.id],
   );
   await execute(
     `INSERT INTO gl_admins (email, display_name, role, is_active, created_at, updated_at)
      VALUES (?, 'MJ legacy GL', 'mj', 1, NOW(), NOW())
      ON DUPLICATE KEY UPDATE is_active = 1`,
-    [glLoginKey]
+    [glLoginKey],
   );
 
   const res = await request(app)
@@ -158,20 +163,20 @@ test('POST /api/gl/auth/login connecte un MJ via email ForetMap quand gl_admins.
     `INSERT INTO users (id, user_type, email, pseudo, display_name, password_hash, auth_provider, is_active, created_at, updated_at)
      VALUES (?, 'teacher', ?, ?, ?, ?, 'local', 1, NOW(), NOW())
      ON DUPLICATE KEY UPDATE password_hash = VALUES(password_hash), is_active = 1`,
-    [mjTeacherId, foretmapEmail, glPseudo, 'MJ email login', mjHash]
+    [mjTeacherId, foretmapEmail, glPseudo, 'MJ email login', mjHash],
   );
   const profRole = await queryOne("SELECT id FROM roles WHERE slug = 'prof' LIMIT 1");
   await execute(
     `INSERT INTO user_roles (user_id, user_type, role_id, is_primary, assigned_at)
      VALUES (?, 'teacher', ?, 1, NOW())
      ON DUPLICATE KEY UPDATE role_id = VALUES(role_id), is_primary = 1`,
-    [mjTeacherId, profRole.id]
+    [mjTeacherId, profRole.id],
   );
   await execute(
     `INSERT INTO gl_admins (email, display_name, role, is_active, created_at, updated_at)
      VALUES (?, 'MJ pseudo GL', 'mj', 1, NOW(), NOW())
      ON DUPLICATE KEY UPDATE is_active = 1`,
-    [glPseudo]
+    [glPseudo],
   );
 
   const res = await request(app)
@@ -190,14 +195,14 @@ test('POST /api/gl/auth/login tente le staff si un joueur partage le même pseud
     `INSERT INTO users (id, user_type, email, pseudo, display_name, password_hash, auth_provider, is_active, created_at, updated_at)
      VALUES (?, 'teacher', ?, ?, ?, ?, 'local', 1, NOW(), NOW())
      ON DUPLICATE KEY UPDATE password_hash = VALUES(password_hash), is_active = 1`,
-    [sharedId, `${sharedId}@ecole.local`, sharedId, 'Admin partage pseudo', hash]
+    [sharedId, `${sharedId}@ecole.local`, sharedId, 'Admin partage pseudo', hash],
   );
   const adminRole = await queryOne("SELECT id FROM roles WHERE slug = 'admin' LIMIT 1");
   await execute(
     `INSERT INTO user_roles (user_id, user_type, role_id, is_primary, assigned_at)
      VALUES (?, 'teacher', ?, 1, NOW())
      ON DUPLICATE KEY UPDATE role_id = VALUES(role_id), is_primary = 1`,
-    [sharedId, adminRole.id]
+    [sharedId, adminRole.id],
   );
   const admin = await createGlAdmin({ email: `mj.${sharedId}@ecole.local` });
   const cls = await createGlClass({ adminId: admin.id, name: `Classe ${sharedId}` });
@@ -221,14 +226,14 @@ test('POST /api/gl/auth/staff/login signale un compte enseignant Google-only', a
     `INSERT INTO users (id, user_type, email, pseudo, display_name, password_hash, auth_provider, is_active, created_at, updated_at)
      VALUES (?, 'teacher', ?, ?, ?, NULL, 'google', 1, NOW(), NOW())
      ON DUPLICATE KEY UPDATE password_hash = NULL, auth_provider = 'google', is_active = 1`,
-    [googleOnlyId, googleEmail, `google${stamp}`, 'Prof Google only']
+    [googleOnlyId, googleEmail, `google${stamp}`, 'Prof Google only'],
   );
   const adminRole = await queryOne("SELECT id FROM roles WHERE slug = 'admin' LIMIT 1");
   await execute(
     `INSERT INTO user_roles (user_id, user_type, role_id, is_primary, assigned_at)
      VALUES (?, 'teacher', ?, 1, NOW())
      ON DUPLICATE KEY UPDATE role_id = VALUES(role_id), is_primary = 1`,
-    [googleOnlyId, adminRole.id]
+    [googleOnlyId, adminRole.id],
   );
 
   const res = await request(app)

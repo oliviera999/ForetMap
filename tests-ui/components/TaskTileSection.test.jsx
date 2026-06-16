@@ -7,7 +7,9 @@ import { TaskTileSection } from '../../src/components/tasks/TaskTileSection.jsx'
 // les props clefs — la mémoïsation réelle reste couverte par TaskTileCard.test.jsx.
 vi.mock('../../src/components/tasks/TaskTileCard.jsx', () => ({
   TaskTileCard: ({ t, index, probe }) => (
-    <div data-testid="tile" data-index={index} data-probe={probe || ''}>{t.title}</div>
+    <div data-testid="tile" data-index={index} data-probe={probe || ''}>
+      {t.title}
+    </div>
   ),
 }));
 
@@ -37,14 +39,24 @@ describe('TaskTileSection', () => {
 
   test('applique la classe de liste du mode d’affichage', () => {
     const { container } = render(
-      <TaskTileSection title="Section" tasks={TASKS} sectionListClass="tasks-condensed" taskTileProps={{}} />,
+      <TaskTileSection
+        title="Section"
+        tasks={TASKS}
+        sectionListClass="tasks-condensed"
+        taskTileProps={{}}
+      />,
     );
     expect(container.querySelector('.tasks-section .tasks-condensed')).not.toBeNull();
   });
 
   test('liste vide → rien n’est rendu (ni titre ni section)', () => {
     const { container } = render(
-      <TaskTileSection title="Section vide" tasks={[]} sectionListClass="tasks-grid" taskTileProps={{}} />,
+      <TaskTileSection
+        title="Section vide"
+        tasks={[]}
+        sectionListClass="tasks-grid"
+        taskTileProps={{}}
+      />,
     );
     expect(container).toBeEmptyDOMElement();
   });

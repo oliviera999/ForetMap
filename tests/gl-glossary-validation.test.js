@@ -16,12 +16,25 @@ function runParams(params) {
   const res = {
     statusCode: 200,
     payload: undefined,
-    status(c) { this.statusCode = c; return this; },
-    json(p) { this.payload = p; return this; },
+    status(c) {
+      this.statusCode = c;
+      return this;
+    },
+    json(p) {
+      this.payload = p;
+      return this;
+    },
   };
   let nextCalled = false;
-  validate({ params: glossaryCodeParamsSchema })(req, res, () => { nextCalled = true; });
-  return { nextCalled, status: res.statusCode, error: res.payload && res.payload.error, params: req.params };
+  validate({ params: glossaryCodeParamsSchema })(req, res, () => {
+    nextCalled = true;
+  });
+  return {
+    nextCalled,
+    status: res.statusCode,
+    error: res.payload && res.payload.error,
+    params: req.params,
+  };
 }
 
 // Parité avec `String(req.params.code || '').trim()` : toute valeur non vide après trim passe.

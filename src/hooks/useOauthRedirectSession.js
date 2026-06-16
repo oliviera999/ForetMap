@@ -80,7 +80,10 @@ export function useOauthRedirectSession({
           user: {
             id: nextStudent?.auth?.canonicalUserId || nextStudent?.id || null,
             userType: 'student',
-            displayName: nextStudent?.pseudo || `${nextStudent?.first_name || ''} ${nextStudent?.last_name || ''}`.trim() || 'Utilisateur',
+            displayName:
+              nextStudent?.pseudo ||
+              `${nextStudent?.first_name || ''} ${nextStudent?.last_name || ''}`.trim() ||
+              'Utilisateur',
             email: nextStudent?.email || null,
             avatar_path: nextStudent?.avatar_path ?? nextStudent?.avatarPath ?? null,
           },

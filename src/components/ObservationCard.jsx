@@ -15,13 +15,40 @@ export function ObservationCard({ entry, onDelete }) {
   return (
     <div className="obs-card fade-in">
       <div className="obs-header">
-        <span className="obs-date">{new Date(entry.created_at).toLocaleDateString('fr-FR', {day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}</span>
-        <button className="btn btn-ghost btn-sm" style={{padding:'2px 6px', minHeight:'auto', fontSize:'.7rem'}}
-          onClick={() => { if (confirm('Supprimer cette observation ?')) onDelete(entry.id); }}>🗑️</button>
+        <span className="obs-date">
+          {new Date(entry.created_at).toLocaleDateString('fr-FR', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+          })}
+        </span>
+        <button
+          className="btn btn-ghost btn-sm"
+          style={{ padding: '2px 6px', minHeight: 'auto', fontSize: '.7rem' }}
+          onClick={() => {
+            if (confirm('Supprimer cette observation ?')) onDelete(entry.id);
+          }}
+        >
+          🗑️
+        </button>
       </div>
       <MarkdownContent className="obs-content">{entry.content}</MarkdownContent>
       {entry.zone_name && <div className="obs-zone">📍 {entry.zone_name}</div>}
-      {entry.image_url && <img src={entry.image_url} alt="observation" style={{width:'100%',borderRadius:8,marginTop:8,maxHeight:200,objectFit:'cover'}}/>}
+      {entry.image_url && (
+        <img
+          src={entry.image_url}
+          alt="observation"
+          style={{
+            width: '100%',
+            borderRadius: 8,
+            marginTop: 8,
+            maxHeight: 200,
+            objectFit: 'cover',
+          }}
+        />
+      )}
     </div>
   );
 }

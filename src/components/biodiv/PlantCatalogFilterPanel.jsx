@@ -30,10 +30,7 @@ export function PlantCatalogFilterPanel({
   zonePresence,
   setZonePresence,
 }) {
-  const subsetAfterG1 = useMemo(
-    () => filterPlantsByTaxonomy(plants, { group1 }),
-    [plants, group1],
-  );
+  const subsetAfterG1 = useMemo(() => filterPlantsByTaxonomy(plants, { group1 }), [plants, group1]);
   const subsetAfterG2 = useMemo(
     () => filterPlantsByTaxonomy(plants, { group1, group2 }),
     [plants, group1, group2],
@@ -44,9 +41,18 @@ export function PlantCatalogFilterPanel({
   );
 
   const group1Options = useMemo(() => distinctPlantFieldValues(plants, 'group_1'), [plants]);
-  const group2Options = useMemo(() => distinctPlantFieldValues(subsetAfterG1, 'group_2'), [subsetAfterG1]);
-  const group3Options = useMemo(() => distinctPlantFieldValues(subsetAfterG2, 'group_3'), [subsetAfterG2]);
-  const habitatOptions = useMemo(() => distinctPlantFieldValues(subsetTaxonomy, 'habitat'), [subsetTaxonomy]);
+  const group2Options = useMemo(
+    () => distinctPlantFieldValues(subsetAfterG1, 'group_2'),
+    [subsetAfterG1],
+  );
+  const group3Options = useMemo(
+    () => distinctPlantFieldValues(subsetAfterG2, 'group_3'),
+    [subsetAfterG2],
+  );
+  const habitatOptions = useMemo(
+    () => distinctPlantFieldValues(subsetTaxonomy, 'habitat'),
+    [subsetTaxonomy],
+  );
   const agroOptions = useMemo(
     () => distinctPlantFieldValues(subsetTaxonomy, 'agroecosystem_category'),
     [subsetTaxonomy],
@@ -126,7 +132,11 @@ export function PlantCatalogFilterPanel({
             </div>
             <div className="field" style={{ marginBottom: 0 }}>
               <label>Groupe (taxon) 3</label>
-              <select value={group3} onChange={(e) => setGroup3(e.target.value)} style={selectStyle}>
+              <select
+                value={group3}
+                onChange={(e) => setGroup3(e.target.value)}
+                style={selectStyle}
+              >
                 <option value="">Tous</option>
                 {group3Options.map((g) => (
                   <option key={g} value={g}>
@@ -137,7 +147,11 @@ export function PlantCatalogFilterPanel({
             </div>
             <div className="field" style={{ marginBottom: 0 }}>
               <label>Habitat</label>
-              <select value={habitat} onChange={(e) => setHabitat(e.target.value)} style={selectStyle}>
+              <select
+                value={habitat}
+                onChange={(e) => setHabitat(e.target.value)}
+                style={selectStyle}
+              >
                 <option value="">Tous</option>
                 {habitatOptions.map((h) => (
                   <option key={h} value={h}>
@@ -166,7 +180,9 @@ export function PlantCatalogFilterPanel({
                   style={selectStyle}
                 >
                   <option value={ZONE_PRESENCE_FILTER.ALL}>Toutes les fiches</option>
-                  <option value={ZONE_PRESENCE_FILTER.IN_MAP}>Lié à au moins une zone ou un repère</option>
+                  <option value={ZONE_PRESENCE_FILTER.IN_MAP}>
+                    Lié à au moins une zone ou un repère
+                  </option>
                   <option value={ZONE_PRESENCE_FILTER.NOT_IN_MAP}>Sans lieu sur la carte</option>
                 </select>
               </div>

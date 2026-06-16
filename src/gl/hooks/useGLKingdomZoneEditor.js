@@ -30,11 +30,17 @@ export function readZonePopoverMarkdown(zone) {
 
 export function readZonePopoverImages(zone) {
   const images = zone?.popoverImages ?? zone?.popover_images;
-  return Array.isArray(images) ? images.map((img, index) => ({
-    url: String(img?.url || '').trim(),
-    caption: img?.caption != null ? String(img.caption) : '',
-    sortOrder: Number.isFinite(Number(img?.sortOrder ?? img?.sort_order)) ? Number(img.sortOrder ?? img.sort_order) : index,
-  })).filter((img) => img.url) : [];
+  return Array.isArray(images)
+    ? images
+        .map((img, index) => ({
+          url: String(img?.url || '').trim(),
+          caption: img?.caption != null ? String(img.caption) : '',
+          sortOrder: Number.isFinite(Number(img?.sortOrder ?? img?.sort_order))
+            ? Number(img.sortOrder ?? img.sort_order)
+            : index,
+        }))
+        .filter((img) => img.url)
+    : [];
 }
 
 export function zoneHasPopoverDraft(markdown, images) {
@@ -75,8 +81,11 @@ export function useGLKingdomZoneEditor({
   const [insertVertexMode, setInsertVertexMode] = useState(false);
 
   const selectedZone = useMemo(
-    () => (Array.isArray(zones) ? zones.find((zone) => Number(zone.id) === Number(selectedZoneId)) : null) || null,
-    [zones, selectedZoneId]
+    () =>
+      (Array.isArray(zones)
+        ? zones.find((zone) => Number(zone.id) === Number(selectedZoneId))
+        : null) || null,
+    [zones, selectedZoneId],
   );
 
   const shapeSession = usePctPolygonEditSession({
@@ -116,13 +125,16 @@ export function useGLKingdomZoneEditor({
     });
   }, [zones, isEditingShape, selectedZoneId, shapeSession.points]);
 
-  const selectZone = useCallback((zoneId) => {
-    if (isEditingShape) return;
-    setSelectedZoneId(zoneId);
-    setMode('edit');
-    setSelectedVertexIndex(null);
-    setInsertVertexMode(false);
-  }, [isEditingShape]);
+  const selectZone = useCallback(
+    (zoneId) => {
+      if (isEditingShape) return;
+      setSelectedZoneId(zoneId);
+      setMode('edit');
+      setSelectedVertexIndex(null);
+      setInsertVertexMode(false);
+    },
+    [isEditingShape],
+  );
 
   const startShapeEdit = useCallback(() => {
     if (!selectedZone?.points?.length) return;
@@ -211,34 +223,43 @@ export function useGLKingdomZoneEditor({
     setSelectedVertexIndex(null);
   }, [isEditingShape, selectedVertexIndex, shapeSession]);
 
-  const handleMapClick = useCallback((pct, event) => {
-    if (!canManage) return;
-    if (event.target.closest('.gl-pct-edit-pt') || event.target.closest('.gl-pct-edit-zone-translate')) return;
+  const handleMapClick = useCallback(
+    (pct, event) => {
+      if (!canManage) return;
+      if (
+        event.target.closest('.gl-pct-edit-pt') ||
+        event.target.closest('.gl-pct-edit-zone-translate')
+      )
+        return;
 
-    if (isEditingShape) {
-      if (insertVertexMode) {
-        const hit = findNearestEdgeInsertion(shapeSession.points, pct, 4);
-        if (hit) {
-          shapeSession.setPoints(insertPctPointAt(shapeSession.points, hit.insertIndex, hit.point));
-          shapeSession.scheduleRecordHistory();
-          setSelectedVertexIndex(hit.insertIndex);
-        } else {
-          const next = [...shapeSession.points, normalizePctPoint(pct)];
-          shapeSession.setPoints(next);
-          shapeSession.scheduleRecordHistory();
-          setSelectedVertexIndex(next.length - 1);
+      if (isEditingShape) {
+        if (insertVertexMode) {
+          const hit = findNearestEdgeInsertion(shapeSession.points, pct, 4);
+          if (hit) {
+            shapeSession.setPoints(
+              insertPctPointAt(shapeSession.points, hit.insertIndex, hit.point),
+            );
+            shapeSession.scheduleRecordHistory();
+            setSelectedVertexIndex(hit.insertIndex);
+          } else {
+            const next = [...shapeSession.points, normalizePctPoint(pct)];
+            shapeSession.setPoints(next);
+            shapeSession.scheduleRecordHistory();
+            setSelectedVertexIndex(next.length - 1);
+          }
+          setInsertVertexMode(false);
         }
-        setInsertVertexMode(false);
+        return;
       }
-      return;
-    }
 
-    if (event.target.closest('.gl-kingdom-zone-polygon')) return;
+      if (event.target.closest('.gl-kingdom-zone-polygon')) return;
 
-    if (mode === 'draw') {
-      setDrawPoints((prev) => [...prev, normalizePctPoint(pct)]);
-    }
-  }, [canManage, isEditingShape, insertVertexMode, shapeSession, mode]);
+      if (mode === 'draw') {
+        setDrawPoints((prev) => [...prev, normalizePctPoint(pct)]);
+      }
+    },
+    [canManage, isEditingShape, insertVertexMode, shapeSession, mode],
+  );
 
   const editStrokeColor = draftColor || selectedZone?.color || GL_KINGDOM_ZONE_DEFAULT_COLOR;
   const mapCursor = mode === 'draw' || insertVertexMode ? 'crosshair' : 'default';

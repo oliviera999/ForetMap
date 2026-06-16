@@ -17,9 +17,14 @@ export function isSpriteLibraryPreviewableUrl(url) {
  * @param {string} stateKey
  */
 export function estimateStateDurationMs(pack, stateKey) {
-  const sf = pack?.stateFrames && typeof pack.stateFrames === 'object' ? pack.stateFrames[stateKey] : null;
+  const sf =
+    pack?.stateFrames && typeof pack.stateFrames === 'object' ? pack.stateFrames[stateKey] : null;
   if (!sf || typeof sf !== 'object') return null;
-  const nFiles = Array.isArray(sf.files) ? sf.files.length : Array.isArray(sf.srcs) ? sf.srcs.length : 0;
+  const nFiles = Array.isArray(sf.files)
+    ? sf.files.length
+    : Array.isArray(sf.srcs)
+      ? sf.srcs.length
+      : 0;
   if (nFiles <= 0) return null;
   if (Array.isArray(sf.frameDwellMs) && sf.frameDwellMs.length === nFiles) {
     return sf.frameDwellMs.reduce((a, b) => a + (Number(b) || 0), 0);

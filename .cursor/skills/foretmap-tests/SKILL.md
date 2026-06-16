@@ -18,13 +18,13 @@ description: Guide l'écriture et l'exécution des tests ForetMap (backend API, 
 
 ## Stack de tests
 
-| Outil | Rôle |
-|-------|------|
-| `node --test` (built-in) | Runner de tests |
-| `supertest` | Requêtes HTTP sur l'app Express |
-| `node:assert` | Assertions (strict) |
+| Outil                    | Rôle                                                                              |
+| ------------------------ | --------------------------------------------------------------------------------- |
+| `node --test` (built-in) | Runner de tests                                                                   |
+| `supertest`              | Requêtes HTTP sur l'app Express                                                   |
+| `node:assert`            | Assertions (strict)                                                               |
 | `tests/helpers/setup.js` | Chargement `.env`, surcharge `DB_NAME` pour BDD de test, `TEACHER_PIN` par défaut |
-| `vitest` + RTL | Tests UI React (`tests-ui/**`) en environnement `jsdom` |
+| `vitest` + RTL           | Tests UI React (`tests-ui/**`) en environnement `jsdom`                           |
 
 ## Commandes
 
@@ -68,20 +68,20 @@ Les réponses API exposent **`X-Request-Id`** : l’inclure dans les rapports de
 
 Tous les fichiers `tests/*.test.js` sont exécutés par **`npm test`**. Extraits utiles :
 
-| Domaine | Fichiers (exemples) |
-|---------|---------------------|
-| **Auth / RBAC** | `auth.test.js`, `rbac.test.js` |
-| **API large** | `api.test.js` (CRUD, autofill, plantnet-identify, …) |
-| **Pré-saisie biodiversité** | `species-autofill.test.js`, `species-autofill-wikidata.test.js`, `species-autofill-gbif-descriptions.test.js`, `species-autofill-wikipedia-heuristics.test.js`, `species-autofill-extensions.test.js`, `species-autofill-gap.test.js`, `species-autofill-openai-context.test.js`, `species-autofill-plantnet.test.js`, `species-autofill-common-species.test.js`, `species-autofill-provider-selftest.test.js` |
-| **Plantes / import / sécurité** | `plants-import.test.js`, `plants-security.test.js`, `plants-discovery.test.js`, `plant-group4.test.js` |
-| **Tâches** | `tasks-status.test.js`, `tasks-import.test.js`, `tasks-importance.test.js`, `tasks-image.test.js`, `task-referents.test.js`, `recurring-tasks-spawn.test.js`, `recurring-tasks-utils.test.js` |
-| **Visite / mascotte / pack** | `visit-map-geometry.test.js`, `visit-mascot-state.test.js`, `visit-mascot-catalog.test.js`, `visit-mascot-placement.test.js`, `visit-mascot-visibility.test.js`, `visit-mascot-position-persistence.test.js`, `visit-mascot-diagnostics.test.js`, `visit-content-public-active.test.js`, `visit-progress-client.test.js`, `mascot-pack.test.js` |
-| **Carte / médias** | `map-wheel-zoom.test.js`, `new-features.test.js` (zones, repères, visit, photos, réordonnancement, …) |
-| **Forum / commentaires / tuto** | `forum.test.js`, `context-comments.test.js`, `context-comments-plant-tuto.test.js`, `tutorials.test.js` |
-| **Élèves / stats / réglages** | `students-delete.test.js`, `students-duplicate.test.js`, `students-import.test.js`, `settings.test.js`, `observations-images.test.js` |
-| **Temps réel / déploiement / scripts** | `realtime.test.js`, `post-deploy-check-script.test.js`, `deploy-secret-from-env.test.js`, `uploads-reconcile-script.test.js`, … |
-| **UI partagée** | `emoji-font-coverage.test.js` |
-| **Snapshot BDD** | `snapshot-db.test.js` (sans `initSchema` dans le test) |
+| Domaine                                | Fichiers (exemples)                                                                                                                                                                                                                                                                                                                                                                                            |
+| -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Auth / RBAC**                        | `auth.test.js`, `rbac.test.js`                                                                                                                                                                                                                                                                                                                                                                                 |
+| **API large**                          | `api.test.js` (CRUD, autofill, plantnet-identify, …)                                                                                                                                                                                                                                                                                                                                                           |
+| **Pré-saisie biodiversité**            | `species-autofill.test.js`, `species-autofill-wikidata.test.js`, `species-autofill-gbif-descriptions.test.js`, `species-autofill-wikipedia-heuristics.test.js`, `species-autofill-extensions.test.js`, `species-autofill-gap.test.js`, `species-autofill-openai-context.test.js`, `species-autofill-plantnet.test.js`, `species-autofill-common-species.test.js`, `species-autofill-provider-selftest.test.js` |
+| **Plantes / import / sécurité**        | `plants-import.test.js`, `plants-security.test.js`, `plants-discovery.test.js`, `plant-group4.test.js`                                                                                                                                                                                                                                                                                                         |
+| **Tâches**                             | `tasks-status.test.js`, `tasks-import.test.js`, `tasks-importance.test.js`, `tasks-image.test.js`, `task-referents.test.js`, `recurring-tasks-spawn.test.js`, `recurring-tasks-utils.test.js`                                                                                                                                                                                                                  |
+| **Visite / mascotte / pack**           | `visit-map-geometry.test.js`, `visit-mascot-state.test.js`, `visit-mascot-catalog.test.js`, `visit-mascot-placement.test.js`, `visit-mascot-visibility.test.js`, `visit-mascot-position-persistence.test.js`, `visit-mascot-diagnostics.test.js`, `visit-content-public-active.test.js`, `visit-progress-client.test.js`, `mascot-pack.test.js`                                                                |
+| **Carte / médias**                     | `map-wheel-zoom.test.js`, `new-features.test.js` (zones, repères, visit, photos, réordonnancement, …)                                                                                                                                                                                                                                                                                                          |
+| **Forum / commentaires / tuto**        | `forum.test.js`, `context-comments.test.js`, `context-comments-plant-tuto.test.js`, `tutorials.test.js`                                                                                                                                                                                                                                                                                                        |
+| **Élèves / stats / réglages**          | `students-delete.test.js`, `students-duplicate.test.js`, `students-import.test.js`, `settings.test.js`, `observations-images.test.js`                                                                                                                                                                                                                                                                          |
+| **Temps réel / déploiement / scripts** | `realtime.test.js`, `post-deploy-check-script.test.js`, `deploy-secret-from-env.test.js`, `uploads-reconcile-script.test.js`, …                                                                                                                                                                                                                                                                                |
+| **UI partagée**                        | `emoji-font-coverage.test.js`                                                                                                                                                                                                                                                                                                                                                                                  |
+| **Snapshot BDD**                       | `snapshot-db.test.js` (sans `initSchema` dans le test)                                                                                                                                                                                                                                                                                                                                                         |
 
 **Helpers** : `tests/helpers/setup.js` (env, `DB_NAME` test, `TEACHER_PIN`) et `tests/helpers/glFixtures.js` (seed GL mutualisé : admin, classe, joueur, partie, tokens).
 

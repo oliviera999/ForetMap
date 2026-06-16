@@ -35,12 +35,7 @@ const EXCLUDE_DIR_NAMES = new Set([
   'test-results',
   'blob-report',
 ]);
-const EXCLUDE_FILE_NAMES = new Set([
-  '.env',
-  'startup.log',
-  'startup-diag.log',
-  'npm-debug.log',
-]);
+const EXCLUDE_FILE_NAMES = new Set(['.env', 'startup.log', 'startup-diag.log', 'npm-debug.log']);
 
 const REQUIRED_RUNTIME_BASE = [
   'app.js',
@@ -143,7 +138,7 @@ function createRuntimeZip(zipPath, stageDir) {
   }
 
   console.warn(
-    "Aucun outil ZIP trouvé (essayez : apt install zip, ou tar avec support zip). Archive non créée."
+    'Aucun outil ZIP trouvé (essayez : apt install zip, ou tar avec support zip). Archive non créée.',
   );
   return false;
 }
@@ -156,7 +151,9 @@ if (!skipInstall || !skipBuild || !skipPrune) {
 
 if (!skipInstall) {
   console.log('==> Installation dépendances complètes (build local)');
-  console.log('    (PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 — pas de navigateurs e2e, adapté hébergement limité)');
+  console.log(
+    '    (PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 — pas de navigateurs e2e, adapté hébergement limité)',
+  );
   if (!runCommand('npm', ['ci', '--include=dev'], { env: envForNpmBundle() })) {
     fail('Échec npm ci --include=dev');
   }
@@ -256,13 +253,19 @@ console.log(`- Dossier: ${stageDir}`);
 if (zipped) {
   console.log(`- ZIP (optionnel): ${zipPath}`);
 } else {
-  console.log('- ZIP: non généré (voir message ci-dessus) — tu peux uploader le dossier tel quel ou zipper à la main.');
+  console.log(
+    '- ZIP: non généré (voir message ci-dessus) — tu peux uploader le dossier tel quel ou zipper à la main.',
+  );
 }
 console.log('');
 console.log('Déploiement serveur:');
-console.log('1) Uploader le dossier ci-dessus tel quel (rsync / SFTP), ou extraire le ZIP si tu l’as produit.');
+console.log(
+  '1) Uploader le dossier ci-dessus tel quel (rsync / SFTP), ou extraire le ZIP si tu l’as produit.',
+);
 if (!includeNodeModules) {
-  console.log('2) Installer les dépendances via NodeJS Selector (symlink node_modules géré par l’hébergeur).');
+  console.log(
+    '2) Installer les dépendances via NodeJS Selector (symlink node_modules géré par l’hébergeur).',
+  );
   console.log('3) Redémarrer l’application Node.js.');
   console.log('4) Vérifier avec: npm run deploy:check:prod');
 } else {

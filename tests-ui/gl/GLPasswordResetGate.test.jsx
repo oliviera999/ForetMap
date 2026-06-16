@@ -12,7 +12,9 @@ describe('GLPasswordResetGate', () => {
   it('affiche la gate mot de passe quand open=true', () => {
     render(<GLPasswordResetGate open onCompleted={vi.fn()} />);
 
-    expect(screen.getByRole('dialog', { name: /Mise a jour mot de passe obligatoire/i })).toBeTruthy();
+    expect(
+      screen.getByRole('dialog', { name: /Mise a jour mot de passe obligatoire/i }),
+    ).toBeTruthy();
     expect(screen.getByText(/Mise a jour du mot de passe requise/i)).toBeTruthy();
     expect(screen.getByTestId('password-form')).toBeTruthy();
   });

@@ -12,7 +12,10 @@ vi.mock('../../../src/services/api.js', () => ({
 const OPTIONS = {
   source: {
     map: {
-      zones: [{ id: 1, name: 'Verger' }, { id: 2, name: 'Mare' }],
+      zones: [
+        { id: 1, name: 'Verger' },
+        { id: 2, name: 'Mare' },
+      ],
       markers: [{ id: 10, label: 'Pommier' }],
     },
     visit: { zones: [], markers: [] },

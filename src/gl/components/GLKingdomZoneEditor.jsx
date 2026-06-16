@@ -31,13 +31,7 @@ export function GLKingdomZoneEditor({
     onPreviewZoneMusic,
   });
 
-  const {
-    selectedZone,
-    isEditingShape,
-    handleMapClick,
-    mapCursor,
-    selectZone,
-  } = zoneEditor;
+  const { selectedZone, isEditingShape, handleMapClick, mapCursor, selectZone } = zoneEditor;
 
   useEffect(() => {
     if (isEditingShape) {

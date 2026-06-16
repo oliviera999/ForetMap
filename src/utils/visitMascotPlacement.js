@@ -14,7 +14,9 @@ export const VISIT_N3_ENTRANCE_LABEL_RE =
 
 export function findVisitN3EntranceMarker(markers) {
   if (!Array.isArray(markers)) return null;
-  const matches = markers.filter((mk) => VISIT_N3_ENTRANCE_LABEL_RE.test(String(mk.label || '').trim()));
+  const matches = markers.filter((mk) =>
+    VISIT_N3_ENTRANCE_LABEL_RE.test(String(mk.label || '').trim()),
+  );
   if (matches.length === 0) return null;
   if (matches.length === 1) return matches[0];
   return matches.reduce((best, mk) => {
@@ -31,10 +33,7 @@ export function computeVisitMascotStartPct(mapId, markers) {
     const m = findVisitN3EntranceMarker(markers);
     if (m && Number.isFinite(Number(m.x_pct)) && Number.isFinite(Number(m.y_pct))) {
       const xp = Math.max(0, Math.min(100, Number(m.x_pct)));
-      const yp = Math.max(
-        0,
-        Math.min(100, Number(m.y_pct) + VISIT_MASCOT_BELOW_N3_ENTRANCE_YP)
-      );
+      const yp = Math.max(0, Math.min(100, Number(m.y_pct) + VISIT_MASCOT_BELOW_N3_ENTRANCE_YP));
       return { xp, yp };
     }
   }

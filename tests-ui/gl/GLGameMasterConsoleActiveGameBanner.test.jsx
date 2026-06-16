@@ -37,7 +37,9 @@ describe('GLGameMasterConsoleActiveGameBanner', () => {
   beforeEach(() => vi.clearAllMocks());
 
   test('ne rend rien sans partie chargée', () => {
-    const { container } = render(<GLGameMasterConsoleActiveGameBanner game={null} teams={[]} editGameForm={baseForm} />);
+    const { container } = render(
+      <GLGameMasterConsoleActiveGameBanner game={null} teams={[]} editGameForm={baseForm} />,
+    );
     expect(container.firstChild).toBeNull();
   });
 

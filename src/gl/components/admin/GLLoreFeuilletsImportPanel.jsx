@@ -47,22 +47,45 @@ export function GLLoreFeuilletsImportPanel() {
   return (
     <section className="gl-admin-import-panel">
       <h3>Import carnet Sélène (XLSX)</h3>
-      <p className="gl-hint">Feuilles attendues : feuillets, plateaux (cf. data/gl/corpus-feuillets-selene.xlsx).</p>
+      <p className="gl-hint">
+        Feuilles attendues : feuillets, plateaux (cf. data/gl/corpus-feuillets-selene.xlsx).
+      </p>
       <div className="gl-admin-import-actions">
-        <GLButton type="button" disabled={loading} onClick={() => downloadGlFile('/api/gl/lore/admin/feuillets/import/template', 'modele-feuillets-selene.xlsx')}>
+        <GLButton
+          type="button"
+          disabled={loading}
+          onClick={() =>
+            downloadGlFile(
+              '/api/gl/lore/admin/feuillets/import/template',
+              'modele-feuillets-selene.xlsx',
+            )
+          }
+        >
           Modèle XLSX
         </GLButton>
-        <GLButton type="button" disabled={loading} onClick={() => downloadGlFile('/api/gl/lore/admin/feuillets/export', 'export-feuillets-selene.xlsx')}>
+        <GLButton
+          type="button"
+          disabled={loading}
+          onClick={() =>
+            downloadGlFile('/api/gl/lore/admin/feuillets/export', 'export-feuillets-selene.xlsx')
+          }
+        >
           Exporter le catalogue
         </GLButton>
       </div>
       <form onSubmit={runImport}>
-        <input type="file" accept=".xlsx,.xls" onChange={(e) => setFile(e.target.files?.[0] || null)} />
+        <input
+          type="file"
+          accept=".xlsx,.xls"
+          onChange={(e) => setFile(e.target.files?.[0] || null)}
+        />
         <label>
           <input type="checkbox" checked={dryRun} onChange={(e) => setDryRun(e.target.checked)} />
           Simulation (dry-run)
         </label>
-        <GLButton type="submit" disabled={loading}>{loading ? 'Import…' : 'Importer'}</GLButton>
+        <GLButton type="submit" disabled={loading}>
+          {loading ? 'Import…' : 'Importer'}
+        </GLButton>
       </form>
       {error ? <p className="gl-error">{error}</p> : null}
       {info ? <p className="gl-success">{info}</p> : null}

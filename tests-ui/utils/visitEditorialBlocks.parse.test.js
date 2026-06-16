@@ -15,11 +15,25 @@ describe('parseVisitEditorialBlocksFromJson', () => {
     const fromStr = parseVisitEditorialBlocksFromJson(raw);
     const fromArr = parseVisitEditorialBlocksFromJson([{ type: 'paragraph', markdown: 'Salut' }]);
     expect(fromStr).toEqual(fromArr);
-    expect(fromStr[0]).toMatchObject({ type: 'paragraph', markdown: 'Salut', layout: 'duo', size: 'md', align: 'center' });
+    expect(fromStr[0]).toMatchObject({
+      type: 'paragraph',
+      markdown: 'Salut',
+      layout: 'duo',
+      size: 'md',
+      align: 'center',
+    });
     expect(fromStr[0].id).toBeTruthy();
   });
   test('media_ids : entiers >0 uniques, max 2 ; valeurs invalides bornées', () => {
-    const out = parseVisitEditorialBlocksFromJson([{ type: 'image', media_ids: ['3', 3, 0, -1, 5, 9], size: 'xl', layout: 'single', align: 'left' }]);
+    const out = parseVisitEditorialBlocksFromJson([
+      {
+        type: 'image',
+        media_ids: ['3', 3, 0, -1, 5, 9],
+        size: 'xl',
+        layout: 'single',
+        align: 'left',
+      },
+    ]);
     expect(out[0].media_ids).toEqual([3, 5]);
     expect(out[0].size).toBe('md'); // 'xl' invalide → défaut md
     expect(out[0].layout).toBe('single');
@@ -34,11 +48,11 @@ describe('normalizeVisitEditorialBlocksForSave', () => {
   test('garde image (avec media), heading (avec texte), paragraph (avec markdown) ; filtre les vides', () => {
     const out = normalizeVisitEditorialBlocksForSave([
       { id: 'a', type: 'image', media_ids: [2, 2, 0, 7] },
-      { id: 'b', type: 'image', media_ids: [] },        // vide → filtré
+      { id: 'b', type: 'image', media_ids: [] }, // vide → filtré
       { id: 'c', type: 'heading', text: '  Titre  ', level: 2 },
-      { id: 'd', type: 'heading', text: '   ' },          // vide → filtré
+      { id: 'd', type: 'heading', text: '   ' }, // vide → filtré
       { id: 'e', type: 'paragraph', markdown: 'Texte' },
-      { id: 'f', type: 'paragraph', markdown: '   ' },    // vide → filtré
+      { id: 'f', type: 'paragraph', markdown: '   ' }, // vide → filtré
     ]);
     expect(out.map((b) => b.type)).toEqual(['image', 'heading', 'paragraph']);
     expect(out[0].media_ids).toEqual([2, 7]);

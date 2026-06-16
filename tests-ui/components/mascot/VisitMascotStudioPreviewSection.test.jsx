@@ -14,12 +14,7 @@ import VisitMascotStudioPreviewSection from '../../../src/components/mascot/Visi
 
 function setup(extra = {}) {
   render(
-    <VisitMascotStudioPreviewSection
-      packs={[]}
-      mapId="foret"
-      onForceLogout={vi.fn()}
-      {...extra}
-    />
+    <VisitMascotStudioPreviewSection packs={[]} mapId="foret" onForceLogout={vi.fn()} {...extra} />,
   );
 }
 

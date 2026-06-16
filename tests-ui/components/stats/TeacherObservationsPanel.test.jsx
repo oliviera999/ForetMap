@@ -10,7 +10,9 @@ describe('TeacherObservationsPanel', () => {
     const onLoad = vi.fn();
     render(<TeacherObservationsPanel roleTerms={ROLE_TERMS} onLoad={onLoad} />);
     expect(screen.getByText('📓 Observations des n3beurs (max 100)')).toBeTruthy();
-    expect(screen.getByText('Aucune observation chargée (clique sur le bouton pour rafraîchir).')).toBeTruthy();
+    expect(
+      screen.getByText('Aucune observation chargée (clique sur le bouton pour rafraîchir).'),
+    ).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Charger les observations' }));
     expect(onLoad).toHaveBeenCalledTimes(1);
   });
@@ -30,10 +32,22 @@ describe('TeacherObservationsPanel', () => {
 
   test('liste : nom, zone, contenu et tiret pour un contenu vide', () => {
     const observations = [
-      { id: 1, first_name: 'Léa', last_name: 'Martin', zone_name: 'Mare', content: 'Têtards observés' },
+      {
+        id: 1,
+        first_name: 'Léa',
+        last_name: 'Martin',
+        zone_name: 'Mare',
+        content: 'Têtards observés',
+      },
       { id: 2, first_name: '', last_name: '', zone_name: '', content: '   ' },
     ];
-    render(<TeacherObservationsPanel roleTerms={ROLE_TERMS} observations={observations} onLoad={() => {}} />);
+    render(
+      <TeacherObservationsPanel
+        roleTerms={ROLE_TERMS}
+        observations={observations}
+        onLoad={() => {}}
+      />,
+    );
     expect(screen.getByText('Léa Martin')).toBeTruthy();
     expect(screen.getByText(/· Mare/)).toBeTruthy();
     expect(screen.getByText('Têtards observés')).toBeTruthy();

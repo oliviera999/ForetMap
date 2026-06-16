@@ -8,10 +8,7 @@ const { app } = require('../server');
 const { initSchema } = require('../database');
 const { createGlAdmin, createGlClass, createGlPlayer } = require('./helpers/glFixtures');
 const { resolveGlPlayerLogin } = require('../lib/glPlayerAuth');
-const {
-  setGoogleOAuthHooks,
-  makeGoogleOAuthState,
-} = require('../lib/googleOAuthShared');
+const { setGoogleOAuthHooks, makeGoogleOAuthState } = require('../lib/googleOAuthShared');
 
 const stamp = Date.now();
 const playerEmail = `gl.player.oauth.${stamp}@pedagolyautey.org`;

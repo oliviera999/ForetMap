@@ -2,10 +2,7 @@
 
 const { test } = require('node:test');
 const assert = require('node:assert');
-const {
-  normalizeGlImageFrame,
-  parseGlImageFrameAttr,
-} = require('../lib/glImageFrame');
+const { normalizeGlImageFrame, parseGlImageFrameAttr } = require('../lib/glImageFrame');
 
 test('normalizeGlImageFrame applique les valeurs par defaut par contexte', () => {
   const frame = normalizeGlImageFrame(null, 'chapter-map');
@@ -16,15 +13,18 @@ test('normalizeGlImageFrame applique les valeurs par defaut par contexte', () =>
 });
 
 test('normalizeGlImageFrame nettoie les valeurs hors bornes', () => {
-  const frame = normalizeGlImageFrame({
-    aspectRatio: 'bad',
-    objectFit: 'invalid',
-    focalX: 200,
-    focalY: -50,
-    maxWidthPx: -20,
-    maxHeightPx: 9000,
-    crop: { x: -1, y: 0.25, w: 2, h: 0.6 },
-  }, 'brand-card');
+  const frame = normalizeGlImageFrame(
+    {
+      aspectRatio: 'bad',
+      objectFit: 'invalid',
+      focalX: 200,
+      focalY: -50,
+      maxWidthPx: -20,
+      maxHeightPx: 9000,
+      crop: { x: -1, y: 0.25, w: 2, h: 0.6 },
+    },
+    'brand-card',
+  );
   assert.strictEqual(frame.aspectRatio, '4/3');
   assert.strictEqual(frame.objectFit, 'cover');
   assert.strictEqual(frame.focalX, 100);

@@ -58,9 +58,7 @@ describe('VisitMapChrome', () => {
   test('bouton présentation : masqué par défaut, pulse piloté par prop, clic → onOpenPresentation', () => {
     const { props, rerender } = setup();
     expect(screen.queryByTestId('visit-presentation-link')).toBeNull();
-    rerender(
-      <VisitMapChrome {...props} showPresentationButton presentationInvitePulse />
-    );
+    rerender(<VisitMapChrome {...props} showPresentationButton presentationInvitePulse />);
     const btn = screen.getByTestId('visit-presentation-link');
     expect(btn.getAttribute('data-invite-pulse')).toBe('1');
     fireEvent.click(btn);
@@ -125,7 +123,11 @@ describe('VisitMapChrome', () => {
       helpPanelSlot: <div data-testid="help-slot" />,
       onBackToAuth: vi.fn(),
     });
-    expect(screen.getByText('Aucune zone ni repère sur cette carte. Choisis une autre carte ci-dessus si besoin.')).toBeTruthy();
+    expect(
+      screen.getByText(
+        'Aucune zone ni repère sur cette carte. Choisis une autre carte ci-dessus si besoin.',
+      ),
+    ).toBeTruthy();
     expect(screen.getByText('Coche ce que tu vois.', { exact: false })).toBeTruthy();
     expect(screen.getByTestId('help-slot')).toBeTruthy();
     expect(screen.getByRole('button', { name: '↩ Retour connexion' })).toBeTruthy();

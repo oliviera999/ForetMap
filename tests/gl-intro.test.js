@@ -33,7 +33,9 @@ test('normalizeIntroConfig conserve 9 scènes et les voix autorisées', () => {
   const normalized = normalizeIntroConfig(defaults);
   assert.strictEqual(normalized.scenes.length, 9);
   assert.strictEqual(normalized.scenes[0].id, 'boite');
-  assert.ok(normalized.scenes.every((scene) => ['copiste', 'selene', 'passeur'].includes(scene.voice)));
+  assert.ok(
+    normalized.scenes.every((scene) => ['copiste', 'selene', 'passeur'].includes(scene.voice)),
+  );
 });
 
 test('buildPublicIntroPayload résout les URLs de repli', () => {
@@ -77,7 +79,7 @@ test('GET /api/gl/admin/content/intro exige gl.content.manage', async () => {
   assert.strictEqual(res.body.scenes.length, 9);
 });
 
-test('PUT /api/gl/admin/content/intro met à jour le kicker d\'une scène', async () => {
+test("PUT /api/gl/admin/content/intro met à jour le kicker d'une scène", async () => {
   const label = `kicker test ${Date.now()}`;
   const draft = normalizeIntroConfig(loadDefaultIntroConfig());
   draft.scenes[0].kicker = label;
@@ -102,7 +104,5 @@ test('GET /api/gl/auth/config expose introEnabled', async () => {
 
 after(async () => {
   setModulesCacheForTests(null);
-  await execute(
-    "DELETE FROM gl_settings WHERE `key` = 'content.intro'"
-  ).catch(() => {});
+  await execute("DELETE FROM gl_settings WHERE `key` = 'content.intro'").catch(() => {});
 });

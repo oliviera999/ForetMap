@@ -6,12 +6,15 @@ import { AuthScreen } from '../../src/components/auth-views.jsx';
 
 describe('AuthScreen', () => {
   beforeEach(() => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      status: 200,
-      headers: { get: () => 'application/json' },
-      json: async () => ({ publicSettings: { auth: { allow_register: true } } }),
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        headers: { get: () => 'application/json' },
+        json: async () => ({ publicSettings: { auth: { allow_register: true } } }),
+      }),
+    );
   });
 
   test('affiche les onglets Connexion et Créer un compte', async () => {

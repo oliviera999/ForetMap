@@ -24,10 +24,14 @@ async function loginAsNewStudent(page) {
   const registerResp = await registerDone;
   if (!registerResp.ok()) {
     const snippet = await registerResp.text().catch(() => '');
-    throw new Error(`Inscription élève refusée (HTTP ${registerResp.status()}). ${snippet.slice(0, 240)}`);
+    throw new Error(
+      `Inscription élève refusée (HTTP ${registerResp.status()}). ${snippet.slice(0, 240)}`,
+    );
   }
 
-  await page.getByRole('button', { name: /Déconnexion/ }).waitFor({ state: 'visible', timeout: 60_000 });
+  await page
+    .getByRole('button', { name: /Déconnexion/ })
+    .waitFor({ state: 'visible', timeout: 60_000 });
   // Inscription = profil visiteur ; la 1re connexion identifiant/mot de passe promeut en n3beur novice (droits tâches).
   await logoutToAuth(page);
   await page.goto('/');
@@ -54,7 +58,9 @@ async function registerStudentWithProfile(page) {
   await page.getByLabel('Email (optionnel)').fill(email);
   await page.getByLabel('Confirmer le mot de passe', { exact: true }).fill(password);
   await page.getByRole('button', { name: 'Créer le compte' }).click();
-  await page.getByRole('button', { name: /Déconnexion/ }).waitFor({ state: 'visible', timeout: 60_000 });
+  await page
+    .getByRole('button', { name: /Déconnexion/ })
+    .waitFor({ state: 'visible', timeout: 60_000 });
   await dismissProfilePromotionModalIfPresent(page);
   return { firstName, lastName, pseudo, email, password };
 }
@@ -62,11 +68,13 @@ async function registerStudentWithProfile(page) {
 async function logoutToAuth(page) {
   await page.getByRole('button', { name: /Déconnexion/ }).click();
   await page.getByRole('button', { name: 'Connexion', exact: true }).waitFor({ state: 'visible' });
-  await page.waitForFunction(
-    () => !localStorage.getItem('foretmap_session') && !localStorage.getItem('foretmap_student'),
-    null,
-    { timeout: 15_000 },
-  ).catch(() => {});
+  await page
+    .waitForFunction(
+      () => !localStorage.getItem('foretmap_session') && !localStorage.getItem('foretmap_student'),
+      null,
+      { timeout: 15_000 },
+    )
+    .catch(() => {});
 }
 
 /**
@@ -105,7 +113,9 @@ async function loginByIdentifier(page, identifier, password) {
   if (!body?.authToken) {
     throw new Error('Connexion : authToken absent dans la réponse serveur.');
   }
-  await page.getByRole('button', { name: /Déconnexion/ }).waitFor({ state: 'visible', timeout: 60_000 });
+  await page
+    .getByRole('button', { name: /Déconnexion/ })
+    .waitFor({ state: 'visible', timeout: 60_000 });
   await page.waitForFunction(
     (expectedToken) => {
       try {
@@ -140,7 +150,11 @@ async function loginByIdentifier(page, identifier, password) {
   await dismissProfilePromotionModalIfPresent(page);
 }
 
-async function enableTeacherMode(page, pin = process.env.E2E_ELEVATION_PIN || process.env.TEACHER_PIN || '1234', options = {}) {
+async function enableTeacherMode(
+  page,
+  pin = process.env.E2E_ELEVATION_PIN || process.env.TEACHER_PIN || '1234',
+  options = {},
+) {
   const { pinCardAlreadyOpen = false } = options;
   /* La promo « nouveau palier » recouvre l’en-tête ; la désactiver avant le cadenas évite des PIN bloqués ou une 2e élévation lente. */
   await dismissProfilePromotionModalIfPresent(page);
@@ -150,7 +164,10 @@ async function enableTeacherMode(page, pin = process.env.E2E_ELEVATION_PIN || pr
   const lockLabel = await lockBtn.getAttribute('aria-label');
   if (String(lockLabel || '').includes('Désactiver')) {
     await page.locator('.teacher-main .top-tabs').waitFor({ state: 'attached', timeout: 45_000 });
-    await page.locator('.teacher-main .loader').waitFor({ state: 'hidden', timeout: 90_000 }).catch(() => {});
+    await page
+      .locator('.teacher-main .loader')
+      .waitFor({ state: 'hidden', timeout: 90_000 })
+      .catch(() => {});
     return;
   }
   if (!pinCardAlreadyOpen) {
@@ -167,7 +184,10 @@ async function enableTeacherMode(page, pin = process.env.E2E_ELEVATION_PIN || pr
       (r) => r.url().includes('/api/auth/elevate') && r.request().method() === 'POST',
       { timeout: 90_000 },
     ),
-    page.locator('.pin-card').getByRole('button', { name: 'Entrer', exact: true }).click({ force: true }),
+    page
+      .locator('.pin-card')
+      .getByRole('button', { name: 'Entrer', exact: true })
+      .click({ force: true }),
   ]);
   if (!elevateResp.ok()) {
     const snippet = await elevateResp.text().catch(() => '');
@@ -176,7 +196,10 @@ async function enableTeacherMode(page, pin = process.env.E2E_ELEVATION_PIN || pr
     );
   }
   /* La modale PIN se ferme dans le même tick que `setAuthClaims` : attendre le retrait du DOM évite une course avec le bouton « Désactiver ». */
-  await page.locator('.pin-card').waitFor({ state: 'detached', timeout: 30_000 }).catch(() => {});
+  await page
+    .locator('.pin-card')
+    .waitFor({ state: 'detached', timeout: 30_000 })
+    .catch(() => {});
   await dismissProfilePromotionModalIfPresent(page);
   /* Attendre le JWT élevé dans le stockage (race validateStudentSession / merge auth). */
   await page.waitForFunction(
@@ -196,12 +219,16 @@ async function enableTeacherMode(page, pin = process.env.E2E_ELEVATION_PIN || pr
             const sr = localStorage.getItem('foretmap_student');
             if (sr) {
               const s = JSON.parse(sr);
-              if (typeof s?.authToken === 'string' && s.authToken.split('.').length >= 2) return s.authToken;
+              if (typeof s?.authToken === 'string' && s.authToken.split('.').length >= 2)
+                return s.authToken;
             }
           } catch (_) {
             /* ignore */
           }
-          return localStorage.getItem('foretmap_auth_token') || localStorage.getItem('foretmap_teacher_token');
+          return (
+            localStorage.getItem('foretmap_auth_token') ||
+            localStorage.getItem('foretmap_teacher_token')
+          );
         };
         const t = pick();
         if (!t || String(t).split('.').length < 2) return false;
@@ -209,9 +236,9 @@ async function enableTeacherMode(page, pin = process.env.E2E_ELEVATION_PIN || pr
         const pad = '='.repeat((4 - (b64.length % 4)) % 4);
         const json = JSON.parse(atob(b64 + pad));
         return (
-          json.elevated === true
-          && Array.isArray(json.permissions)
-          && json.permissions.includes('teacher.access')
+          json.elevated === true &&
+          Array.isArray(json.permissions) &&
+          json.permissions.includes('teacher.access')
         );
       } catch (_) {
         return false;
@@ -236,7 +263,10 @@ async function enableTeacherMode(page, pin = process.env.E2E_ELEVATION_PIN || pr
   );
   await dismissProfilePromotionModalIfPresent(page);
   await page.locator('.teacher-main .top-tabs').waitFor({ state: 'attached', timeout: 45_000 });
-  await page.locator('.teacher-main .loader').waitFor({ state: 'hidden', timeout: 90_000 }).catch(() => {});
+  await page
+    .locator('.teacher-main .loader')
+    .waitFor({ state: 'hidden', timeout: 90_000 })
+    .catch(() => {});
 }
 
 async function disableTeacherMode(page) {
@@ -246,7 +276,9 @@ async function disableTeacherMode(page) {
     await des.first().evaluate((el) => {
       el.click();
     });
-    await page.getByRole('button', { name: 'Activer les droits étendus' }).waitFor({ state: 'visible', timeout: 20_000 });
+    await page
+      .getByRole('button', { name: 'Activer les droits étendus' })
+      .waitFor({ state: 'visible', timeout: 20_000 });
   }
   /* Après élévation, TasksView prof peut laisser `student` incohérent : recharger réaligne la session élève. */
   const meWait = page.waitForResponse(
@@ -254,7 +286,9 @@ async function disableTeacherMode(page) {
     { timeout: 60_000 },
   );
   await page.reload({ waitUntil: 'domcontentloaded' });
-  await page.getByRole('button', { name: /Déconnexion/ }).waitFor({ state: 'visible', timeout: 60_000 });
+  await page
+    .getByRole('button', { name: /Déconnexion/ })
+    .waitFor({ state: 'visible', timeout: 60_000 });
   await meWait.catch(() => {});
   await page.waitForFunction(
     () => {
@@ -274,10 +308,12 @@ async function disableTeacherMode(page) {
     null,
     { timeout: 45_000 },
   );
-  await page.waitForResponse(
-    (r) => r.url().includes('/api/students/register') && r.request().method() === 'POST',
-    { timeout: 60_000 },
-  ).catch(() => {});
+  await page
+    .waitForResponse(
+      (r) => r.url().includes('/api/students/register') && r.request().method() === 'POST',
+      { timeout: 60_000 },
+    )
+    .catch(() => {});
   await page.waitForFunction(
     () => {
       try {
@@ -327,9 +363,11 @@ async function syncStudentSessionToken(page) {
     if (!token) return { ok: false, reason: 'token absent' };
     let claims = decodeJwt(token);
     if (claims?.elevated === true) {
-      const fallback = (typeof student?.elevationStudentToken === 'string' && student.elevationStudentToken.trim())
-        || (typeof student?.authToken === 'string' && student.authToken.trim())
-        || null;
+      const fallback =
+        (typeof student?.elevationStudentToken === 'string' &&
+          student.elevationStudentToken.trim()) ||
+        (typeof student?.authToken === 'string' && student.authToken.trim()) ||
+        null;
       if (fallback && decodeJwt(fallback)?.elevated !== true) {
         token = fallback;
         claims = decodeJwt(token);
@@ -355,12 +393,17 @@ async function syncStudentSessionToken(page) {
       user: {
         id: mergedStudent.auth?.canonicalUserId || mergedStudent.id || session?.user?.id || null,
         userType: 'student',
-        displayName: mergedStudent.pseudo
-          || `${mergedStudent.first_name || ''} ${mergedStudent.last_name || ''}`.trim()
-          || session?.user?.displayName
-          || 'Utilisateur',
+        displayName:
+          mergedStudent.pseudo ||
+          `${mergedStudent.first_name || ''} ${mergedStudent.last_name || ''}`.trim() ||
+          session?.user?.displayName ||
+          'Utilisateur',
         email: mergedStudent.email || session?.user?.email || null,
-        avatar_path: mergedStudent.avatar_path ?? mergedStudent.avatarPath ?? session?.user?.avatar_path ?? null,
+        avatar_path:
+          mergedStudent.avatar_path ??
+          mergedStudent.avatarPath ??
+          session?.user?.avatar_path ??
+          null,
       },
     };
     localStorage.setItem('foretmap_session', JSON.stringify(nextSession));
@@ -411,7 +454,9 @@ async function assignStudentToTaskAsTeacher(page, taskId) {
     return { ok: r.ok, status: r.status, error: text.slice(0, 240) };
   }, taskId);
   if (!result.ok) {
-    throw new Error(`Affectation prof→élève refusée (HTTP ${result.status}). ${result.error || ''}`);
+    throw new Error(
+      `Affectation prof→élève refusée (HTTP ${result.status}). ${result.error || ''}`,
+    );
   }
 }
 
@@ -435,9 +480,16 @@ async function openFirstZoneModalFromMap(page) {
     } else {
       await hit.click({ force: true, timeout: 10_000 });
     }
-    if (!(await page.getByRole('dialog', { name: /^Zone / }).isVisible().catch(() => false))) {
+    if (
+      !(await page
+        .getByRole('dialog', { name: /^Zone / })
+        .isVisible()
+        .catch(() => false))
+    ) {
       await hit.evaluate((el) => {
-        el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
+        el.dispatchEvent(
+          new MouseEvent('click', { bubbles: true, cancelable: true, view: window }),
+        );
       });
     }
     const zoneDlg = page.getByRole('dialog', { name: /^Zone / });
@@ -472,16 +524,25 @@ async function resetTaskFiltersInTasksView(page) {
  * Onglet Tâches : nav basse élève ou barre d’onglets prof (évite les boutons hors navigation).
  */
 function tasksTabButton(page) {
-  return page.locator('nav.bottom-nav').getByRole('button', { name: /✅.*Tâches/ })
+  return page
+    .locator('nav.bottom-nav')
+    .getByRole('button', { name: /✅.*Tâches/ })
     .or(page.locator('.top-tabs').getByRole('button', { name: /✅.*Tâches/ }));
 }
 
 async function clickTasksTab(page) {
   await dismissProfilePromotionModalIfPresent(page);
-  await page.locator('.teacher-main .top-tabs, nav.bottom-nav').first().waitFor({ state: 'attached', timeout: 30_000 }).catch(() => {});
+  await page
+    .locator('.teacher-main .top-tabs, nav.bottom-nav')
+    .first()
+    .waitFor({ state: 'attached', timeout: 30_000 })
+    .catch(() => {});
 
-  const teacherTasksTab = page.locator('.teacher-main .top-tabs').getByRole('button', { name: /✅ Tâches/i }).first();
-  if (await teacherTasksTab.count() > 0) {
+  const teacherTasksTab = page
+    .locator('.teacher-main .top-tabs')
+    .getByRole('button', { name: /✅ Tâches/i })
+    .first();
+  if ((await teacherTasksTab.count()) > 0) {
     await teacherTasksTab.scrollIntoViewIfNeeded().catch(() => {});
     await teacherTasksTab.evaluate((el) => {
       el.click();
@@ -489,8 +550,11 @@ async function clickTasksTab(page) {
     return;
   }
 
-  const topTab = page.locator('.top-tabs').getByRole('button', { name: /✅.*Tâches/ }).first();
-  if (await topTab.count() > 0) {
+  const topTab = page
+    .locator('.top-tabs')
+    .getByRole('button', { name: /✅.*Tâches/ })
+    .first();
+  if ((await topTab.count()) > 0) {
     await topTab.scrollIntoViewIfNeeded().catch(() => {});
     await topTab.evaluate((el) => {
       el.click();
@@ -515,7 +579,9 @@ async function fillTaskTitle(dialog, title) {
 }
 
 function teacherTasksViewLocator(page) {
-  return page.locator('.teacher-main .tasks-view, .teacher-main .desktop-split-pane--tasks .tasks-view');
+  return page.locator(
+    '.teacher-main .tasks-view, .teacher-main .desktop-split-pane--tasks .tasks-view',
+  );
 }
 
 async function openTeacherTasksTab(page) {
@@ -526,14 +592,24 @@ async function openTeacherTasksTab(page) {
     await clickTasksTab(page);
   }
   await tasksView.waitFor({ state: 'visible', timeout: 90_000 });
-  await page.locator('.teacher-main .loader, .teacher-main .tasks-view .loader').first().waitFor({ state: 'hidden', timeout: 120_000 }).catch(() => {});
-  await page.getByRole('heading', { name: '✅ Tâches' }).waitFor({ state: 'visible', timeout: 45_000 }).catch(() => {});
+  await page
+    .locator('.teacher-main .loader, .teacher-main .tasks-view .loader')
+    .first()
+    .waitFor({ state: 'hidden', timeout: 120_000 })
+    .catch(() => {});
+  await page
+    .getByRole('heading', { name: '✅ Tâches' })
+    .waitFor({ state: 'visible', timeout: 45_000 })
+    .catch(() => {});
   await resetTaskFiltersInTasksView(page);
 }
 
 async function openStudentTasksTab(page) {
   await dismissProfilePromotionModalIfPresent(page);
-  await page.locator('nav.bottom-nav').waitFor({ state: 'visible', timeout: 15_000 }).catch(() => {});
+  await page
+    .locator('nav.bottom-nav')
+    .waitFor({ state: 'visible', timeout: 15_000 })
+    .catch(() => {});
   await clickTasksTab(page);
   const tasksHeading = page.getByRole('heading', { name: '✅ Tâches' });
   await tasksHeading.waitFor({ state: 'attached', timeout: 25_000 });
@@ -571,9 +647,10 @@ function isTaskCreateHttpResponse(response) {
 }
 
 function parseCreatedTaskId(response) {
-  return response.json().then((body) => (
-    body?.id ?? body?.task?.id ?? body?.taskId ?? null
-  )).catch(() => null);
+  return response
+    .json()
+    .then((body) => body?.id ?? body?.task?.id ?? body?.taskId ?? null)
+    .catch(() => null);
 }
 
 async function unassignTaskByApi(page, taskId) {
@@ -601,7 +678,9 @@ async function unassignTaskByApi(page, taskId) {
             return { token: session.token, student: mergeStudent(legacy, session.student) };
           }
         }
-      } catch (_) { /* ignore */ }
+      } catch (_) {
+        /* ignore */
+      }
       try {
         const student = JSON.parse(localStorage.getItem('foretmap_student') || 'null');
         const token = student?.authToken || student?.elevationStudentToken || '';
@@ -609,7 +688,9 @@ async function unassignTaskByApi(page, taskId) {
           const claims = decodeJwt(token);
           if (claims && claims.elevated !== true) return { token, student };
         }
-      } catch (_) { /* ignore */ }
+      } catch (_) {
+        /* ignore */
+      }
       return null;
     };
     const auth = pickStudentAuth();
@@ -651,7 +732,11 @@ async function assignTaskByApi(page, taskId) {
       try {
         const session = JSON.parse(localStorage.getItem('foretmap_session') || 'null');
         const legacy = JSON.parse(localStorage.getItem('foretmap_student') || 'null');
-        if (session?.user?.userType === 'student' && typeof session.token === 'string' && session.token) {
+        if (
+          session?.user?.userType === 'student' &&
+          typeof session.token === 'string' &&
+          session.token
+        ) {
           const claims = decodeJwt(session.token);
           if (claims && claims.elevated !== true) {
             return { token: session.token, student: mergeStudent(legacy, session.student) };
@@ -662,9 +747,12 @@ async function assignTaskByApi(page, taskId) {
       }
       try {
         const student = JSON.parse(localStorage.getItem('foretmap_student') || 'null');
-        const token = (typeof student?.authToken === 'string' && student.authToken.trim())
-          ? student.authToken.trim()
-          : (typeof student?.elevationStudentToken === 'string' ? student.elevationStudentToken.trim() : '');
+        const token =
+          typeof student?.authToken === 'string' && student.authToken.trim()
+            ? student.authToken.trim()
+            : typeof student?.elevationStudentToken === 'string'
+              ? student.elevationStudentToken.trim()
+              : '';
         if (token) {
           const claims = decodeJwt(token);
           if (claims && claims.elevated !== true) return { token, student };
@@ -764,7 +852,9 @@ async function enrollOnTaskCard(page, taskCard, options = {}) {
   }
   if (!resp && taskId) {
     await page.reload({ waitUntil: 'domcontentloaded' });
-    await page.getByRole('button', { name: /Déconnexion/ }).waitFor({ state: 'visible', timeout: 60_000 });
+    await page
+      .getByRole('button', { name: /Déconnexion/ })
+      .waitFor({ state: 'visible', timeout: 60_000 });
     await dismissProfilePromotionModalIfPresent(page);
     await openStudentTasksTab(page);
     if (taskTitle) {
@@ -775,18 +865,24 @@ async function enrollOnTaskCard(page, taskCard, options = {}) {
       }
     }
   } else {
-    await page.waitForResponse(
-      (r) => r.url().includes('/api/tasks') && r.request().method() === 'GET' && r.ok(),
-      { timeout: 60_000 },
-    ).catch(() => {});
+    await page
+      .waitForResponse(
+        (r) => r.url().includes('/api/tasks') && r.request().method() === 'GET' && r.ok(),
+        { timeout: 60_000 },
+      )
+      .catch(() => {});
   }
   await dismissProfilePromotionModalIfPresent(page);
   const cardAfter = taskTitle
     ? page.locator('.task-card', { hasText: taskTitle }).first()
     : cardLocator;
-  await expect.poll(async () => (
-    await cardAfter.getByRole('button', { name: /Me retirer|Marquer terminée/i }).count()
-  ), { timeout: 90_000 }).toBeGreaterThan(0);
+  await expect
+    .poll(
+      async () =>
+        await cardAfter.getByRole('button', { name: /Me retirer|Marquer terminée/i }).count(),
+      { timeout: 90_000 },
+    )
+    .toBeGreaterThan(0);
 }
 
 /** Attend qu’une carte tâche portant ce titre soit visible (filtres + recherche). */
@@ -796,12 +892,16 @@ async function expectTaskCardWithTitle(page, taskTitle) {
   if (await search.isVisible({ timeout: 5000 }).catch(() => false)) {
     await search.fill(taskTitle, { force: true, timeout: 10_000 }).catch(() => {});
   }
-  await expect(page.locator('.task-card', { hasText: taskTitle }).first()).toBeVisible({ timeout: 45_000 });
+  await expect(page.locator('.task-card', { hasText: taskTitle }).first()).toBeVisible({
+    timeout: 45_000,
+  });
 }
 
 /** Soumet le formulaire « Nouvelle tâche » / proposition (évite scrollIntoView instable sur long formulaire). */
 async function submitTaskFormDialog(page) {
-  const dlg = page.getByRole('dialog', { name: /Nouvelle tâche|Dupliquer la tâche|Modifier la tâche|Proposer une tâche/ });
+  const dlg = page.getByRole('dialog', {
+    name: /Nouvelle tâche|Dupliquer la tâche|Modifier la tâche|Proposer une tâche/,
+  });
   await dlg.waitFor({ state: 'visible', timeout: 35_000 });
   const createResp = page.waitForResponse(isTaskCreateHttpResponse, { timeout: 60_000 });
   /* Un seul `btn-full` primaire en bas de modale ; `force` évite les blocages « scroll / stable » Playwright. */
@@ -859,7 +959,9 @@ async function createTeacherTask(page, taskTitle) {
   }
   const taskId = await createTeacherTaskViaApi(page, taskTitle);
   await page.reload({ waitUntil: 'domcontentloaded' });
-  await page.getByRole('button', { name: /Déconnexion/ }).waitFor({ state: 'visible', timeout: 60_000 });
+  await page
+    .getByRole('button', { name: /Déconnexion/ })
+    .waitFor({ state: 'visible', timeout: 60_000 });
   await dismissProfilePromotionModalIfPresent(page);
   await openTeacherTasksTab(page).catch(() => {});
   await resetTaskFiltersInTasksView(page);
@@ -869,13 +971,21 @@ async function createTeacherTask(page, taskTitle) {
 async function clickTeacherNewTask(page) {
   await dismissProfilePromotionModalIfPresent(page);
   const elevated =
-    (await page.locator('header button.lock-btn.active').isVisible().catch(() => false))
-    || (await page.getByRole('button', { name: 'Désactiver les droits étendus' }).isVisible().catch(() => false));
+    (await page
+      .locator('header button.lock-btn.active')
+      .isVisible()
+      .catch(() => false)) ||
+    (await page
+      .getByRole('button', { name: 'Désactiver les droits étendus' })
+      .isVisible()
+      .catch(() => false));
   if (!elevated) {
     await enableTeacherMode(page);
   }
   await openTeacherTasksTab(page);
-  const dlg = page.getByRole('dialog', { name: /Nouvelle tâche|Dupliquer la tâche|Modifier la tâche|Proposer une tâche/ });
+  const dlg = page.getByRole('dialog', {
+    name: /Nouvelle tâche|Dupliquer la tâche|Modifier la tâche|Proposer une tâche/,
+  });
   if (await dlg.isVisible().catch(() => false)) return;
   const btn = page.getByRole('button', { name: /\+ Nouvelle tâche/ }).first();
   await expect(btn).toBeVisible({ timeout: 120_000 });

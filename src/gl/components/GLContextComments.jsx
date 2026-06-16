@@ -12,14 +12,15 @@ export function GLContextComments({ contextType, contextId }) {
   const [body, setBody] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const valid = ALLOWED.includes(String(contextType || '')) && contextId != null && contextId !== '';
+  const valid =
+    ALLOWED.includes(String(contextType || '')) && contextId != null && contextId !== '';
 
   const load = useCallback(async () => {
     if (!valid) return;
     setLoading(true);
     try {
       const data = await apiGL(
-        `/api/gl/context-comments?contextType=${encodeURIComponent(contextType)}&contextId=${encodeURIComponent(contextId)}`
+        `/api/gl/context-comments?contextType=${encodeURIComponent(contextType)}&contextId=${encodeURIComponent(contextId)}`,
       );
       setItems(Array.isArray(data?.items) ? data.items : []);
       setError('');
@@ -74,13 +75,17 @@ export function GLContextComments({ contextType, contextId }) {
       <ul className="gl-context-comments">
         {items.map((item) => (
           <li key={item.id} className={Number(item.is_deleted) ? 'is-deleted' : ''}>
-            <strong>{item.author_user_type}#{item.author_user_id}</strong>
+            <strong>
+              {item.author_user_type}#{item.author_user_id}
+            </strong>
             <p>{item.body}</p>
           </li>
         ))}
         {items.length === 0 ? (
           <li className="gl-empty gl-hint">
-            <span className="gl-empty-icon" aria-hidden>🗨️</span>
+            <span className="gl-empty-icon" aria-hidden>
+              🗨️
+            </span>
             Aucun commentaire.
           </li>
         ) : null}

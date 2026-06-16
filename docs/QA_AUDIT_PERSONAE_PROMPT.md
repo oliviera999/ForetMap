@@ -6,10 +6,12 @@ Ce document fournit un prompt pret a l'emploi pour lancer un audit QA complet ba
 
 ```md
 ## Contexte
+
 Tu es un expert QA, tests E2E et audit UX sur le projet ForetMap.
 Tu dois simuler des personae realistes, parcourir les flux critiques eleve/prof, detecter les frictions, bugs et regressions d'accessibilite, puis produire un rapport actionnable.
 
 ## Application a tester
+
 - URL / point d'entree:
   - Local dev UI: http://localhost:5173 (proxy API vers 3000)
   - Ou app servie par Express: http://localhost:3000
@@ -22,6 +24,7 @@ Tu dois simuler des personae realistes, parcourir les flux critiques eleve/prof,
   - Foret comestible (Lycée Lyautey), parcours eleve et mode professeur (PIN/JWT)
 
 ## Parcours critiques ForetMap a couvrir
+
 Tester chaque parcours avec CHAQUE persona:
 
 1. Eleve - authentification et prise en main
@@ -36,27 +39,33 @@ Tester chaque parcours avec CHAQUE persona:
    - soumission vide/invalide -> message d'erreur -> correction -> soumission reussie
 
 ## Personae a simuler
+
 ### Persona 1 - Marie, 58 ans, peu a l'aise avec le numerique
+
 - Android entree de gamme, connexion 4G limitee
 - Lit tout, n'infere pas, clique seulement ce qui est explicite
 - Abandonne si un message d'erreur est ambigu
 - Focus test: labels, lisibilite, cibles tactiles (>=44px), messages d'erreur simples
 
 ### Persona 2 - Theo, 24 ans, dev front, impatient power user
+
 - Clavier, raccourcis, console, edge cases
 - Champs vides, emojis, payload HTML, double-clic spam sur submit
 - Focus test: validation input, etats de chargement, idempotence, anti-double soumission, sanitization
 
 ### Persona 3 - Sandra, 41 ans, directrice marketing, mobile-first
+
 - iPhone, sessions courtes, attentes de fluidite
 - Focus test: parcours en <=3 taps pour actions cles, cohérence CTA, microcopies, performance percue
 
 ### Persona 4 - Karim, 35 ans, malvoyant, lecteur d'ecran
+
 - Navigation clavier + VoiceOver/NVDA
 - Depend de aria-labels, focus visible, headings ordonnes
 - Focus test: WCAG 2.1 AA, navigation clavier complete, contraste, alternatives textuelles
 
 ## Methodologie obligatoire (chaque parcours x persona)
+
 1. Parcours pas a pas
 2. Frictions detectees (ralentit, confus, bloque)
 3. Bugs fonctionnels (etat casse, incoherence, erreur)
@@ -65,6 +74,7 @@ Tester chaque parcours avec CHAQUE persona:
 6. Score de completion (oui / oui avec friction / abandon)
 
 ## Regles de verification techniques (ForetMap)
+
 - Ne jamais supposer: verifier dans le code ET via comportement observe.
 - Inspecter au minimum:
   - frontend: `src/components/`, `src/App.jsx`, `src/index.css`
@@ -80,13 +90,18 @@ Tester chaque parcours avec CHAQUE persona:
   - double soumission et clics repetes
 
 ## Livrable attendu (4 parties)
+
 ### Partie 1 - Matrice de resultats
+
 Tableau parcours x persona:
+
 - score de completion
 - nb problemes par severite (bloquant / majeur / mineur)
 
 ### Partie 2 - Liste exhaustive des problemes
+
 Pour chaque probleme:
+
 - ID: BUG-xxx / UX-xxx / A11Y-xxx / PERF-xxx / WORD-xxx
 - Severite: bloquant / majeur / mineur
 - Categorie
@@ -97,15 +112,18 @@ Pour chaque probleme:
 - Preuve technique: fichier(s) + reference(s) de code (chemin et ligne si applicable)
 
 ### Partie 3 - Top 10 corrections prioritaires
+
 Classement par impact = severite x nombre de personae impactees x criticite parcours.
 Pour chaque correction: effort estime (rapide / moyen / complexe).
 
 ### Partie 4 - Score global et verdict
+
 - Score d'utilisabilite /100
 - Points forts
 - 3 chantiers structurels prioritaires
 
 ## Format de restitution
+
 - Ecrire en francais
 - Separer faits observes vs hypothese
 - Ne pas masquer les incertitudes: marquer "a verifier" si non reproductible
@@ -194,20 +212,20 @@ Utiliser cette checklist pour la recette ciblee de `gl.olution.info` apres un lo
 
 ### Matrice parcours x personae GL
 
-| Parcours / Persona            | Joueur 6e | Joueur conf. | MJ      | Admin GL |
-|-------------------------------|-----------|--------------|---------|----------|
-| Connexion + tabs              | OK        | OK           | OK      | OK       |
-| Forum GL                      | -         | OK           | OK      | OK       |
-| Tutoriels GL                  | OK        | OK           | OK      | OK       |
-| Commentaires contextuels GL   | OK        | OK           | OK      | OK       |
-| Mascotte renderer/state       | -         | OK           | OK      | OK       |
-| Studio packs mascotte         | -         | -            | OK      | OK       |
-| Carte royaume                 | OK        | OK           | OK      | OK       |
-| Journal de partie             | OK        | OK           | OK      | OK       |
-| Notifications GL              | OK        | OK           | OK      | OK       |
-| Reglages modules.*            | -         | -            | -       | OK       |
-| Import joueurs                | -         | -            | -       | OK       |
-| MCP diagnostics GL            | -         | -            | -       | OK       |
+| Parcours / Persona          | Joueur 6e | Joueur conf. | MJ  | Admin GL |
+| --------------------------- | --------- | ------------ | --- | -------- |
+| Connexion + tabs            | OK        | OK           | OK  | OK       |
+| Forum GL                    | -         | OK           | OK  | OK       |
+| Tutoriels GL                | OK        | OK           | OK  | OK       |
+| Commentaires contextuels GL | OK        | OK           | OK  | OK       |
+| Mascotte renderer/state     | -         | OK           | OK  | OK       |
+| Studio packs mascotte       | -         | -            | OK  | OK       |
+| Carte royaume               | OK        | OK           | OK  | OK       |
+| Journal de partie           | OK        | OK           | OK  | OK       |
+| Notifications GL            | OK        | OK           | OK  | OK       |
+| Reglages modules.\*         | -         | -            | -   | OK       |
+| Import joueurs              | -         | -            | -   | OK       |
+| MCP diagnostics GL          | -         | -            | -   | OK       |
 
 ### Criteres d'acceptation GL
 
@@ -217,4 +235,3 @@ Utiliser cette checklist pour la recette ciblee de `gl.olution.info` apres un lo
 - Les ecrans editoriaux GL sont consultables sans erreur bloquante
 - Les modules GL desactives (`modules.*=false`) masquent l'onglet
   correspondant immediatement apres rechargement
-

@@ -53,7 +53,7 @@ describe('GLQcmPopover', () => {
         }}
         onClose={vi.fn()}
         onSubmitResult={onSubmitResult}
-      />
+      />,
     );
 
     expect(document.querySelector('.gl-qcm-popover-overlay')).toBeTruthy();
@@ -85,7 +85,10 @@ describe('GLQcmPopover', () => {
         presentation={{
           presentationToken: 't',
           question: 'Couleur thème ?',
-          choices: [{ id: 0, text: 'A' }, { id: 1, text: 'B' }],
+          choices: [
+            { id: 0, text: 'A' },
+            { id: 1, text: 'B' },
+          ],
         }}
         onClose={vi.fn()}
       />,

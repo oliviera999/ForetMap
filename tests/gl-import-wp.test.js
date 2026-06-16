@@ -95,7 +95,7 @@ test('transformWpEntries convertit HTML en markdown puis dedupe par slug', () =>
       slugMap: { 'regles-du-jeu': 'rules' },
       sourceType: 'page',
       turndownService: turndown,
-    }
+    },
   );
   const merged = mergeRecordsBySlug(rows);
   assert.strictEqual(merged.length, 1);
@@ -169,7 +169,7 @@ test('transformWpEntriesAsChapters ne retient que les slugs mappés en chapitre'
       },
       sourceType: 'page',
       turndownService: turndown,
-    }
+    },
   );
   assert.strictEqual(rows.length, 1);
   assert.strictEqual(rows[0].slug, 'foret-magique');
@@ -236,9 +236,11 @@ test('buildMediaFetchCandidates retente yo.olution.info pour gl.olution.info', (
     {
       sourceBaseUrl: 'https://yo.olution.info',
       canonicalHost: 'www.yo.olution.info',
-    }
+    },
   );
-  assert.ok(candidates.includes('https://www.gl.olution.info/wp-content/uploads/2025/06/world.png'));
+  assert.ok(
+    candidates.includes('https://www.gl.olution.info/wp-content/uploads/2025/06/world.png'),
+  );
   assert.ok(candidates.some((url) => /yo\.olution\.info/.test(url)));
 });
 
@@ -268,7 +270,7 @@ test('fetchBinaryBufferForMedia refuse le HTML renvoyé par gl.olution.info', as
   const out = await fetchBinaryBufferForMedia(
     'https://www.gl.olution.info/wp-content/uploads/2025/06/world.png',
     fetchFn,
-    { sourceBaseUrl: 'https://yo.olution.info', canonicalHost: 'www.yo.olution.info' }
+    { sourceBaseUrl: 'https://yo.olution.info', canonicalHost: 'www.yo.olution.info' },
   );
   assert.ok(out.fetchUrl.includes('yo.olution.info'));
   assert.ok(isLikelyImageBuffer(out.buffer, out.contentType));

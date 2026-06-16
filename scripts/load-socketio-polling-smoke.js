@@ -31,25 +31,33 @@ function parsePositiveInt(raw, fallback) {
 
 async function main() {
   const baseUrl = String(
-    process.env.FORETMAP_SOCKETIO_LOAD_BASE_URL || process.env.BASE_URL || 'http://127.0.0.1:3000'
+    process.env.FORETMAP_SOCKETIO_LOAD_BASE_URL || process.env.BASE_URL || 'http://127.0.0.1:3000',
   ).trim();
   const token = String(process.env.FORETMAP_SOCKETIO_LOAD_JWT || '').trim();
   if (!token) {
     console.error(
-      '[socketio-smoke] Définir FORETMAP_SOCKETIO_LOAD_JWT (JWT session, ex. copié depuis le stockage navigateur après connexion).'
+      '[socketio-smoke] Définir FORETMAP_SOCKETIO_LOAD_JWT (JWT session, ex. copié depuis le stockage navigateur après connexion).',
     );
     process.exit(1);
   }
 
   const clients = parsePositiveInt(process.env.FORETMAP_SOCKETIO_LOAD_CLIENTS, 5);
   const durationMs = parsePositiveInt(process.env.FORETMAP_SOCKETIO_LOAD_DURATION_MS, 30000);
-  const socketPath = String(process.env.FORETMAP_SOCKETIO_PATH || '/socket.io').trim() || '/socket.io';
+  const socketPath =
+    String(process.env.FORETMAP_SOCKETIO_PATH || '/socket.io').trim() || '/socket.io';
   const mapId = String(process.env.FORETMAP_SOCKETIO_LOAD_MAP_ID || 'foret').trim() || 'foret';
   const restBurst = String(process.env.FORETMAP_SOCKETIO_LOAD_REST_BURST || '').trim() === '1';
 
   const origin = new URL(baseUrl).origin;
 
-  console.log('[socketio-smoke] origin=%s path=%s clients=%d durationMs=%d restBurst=%s', origin, socketPath, clients, durationMs, restBurst);
+  console.log(
+    '[socketio-smoke] origin=%s path=%s clients=%d durationMs=%d restBurst=%s',
+    origin,
+    socketPath,
+    clients,
+    durationMs,
+    restBurst,
+  );
 
   let connected = 0;
   let connectErrors = 0;
@@ -102,7 +110,7 @@ async function main() {
     '[socketio-smoke] après poignées de main : connectés=%d erreurs=%d (cible clients=%d)',
     connected,
     connectErrors,
-    clients
+    clients,
   );
 
   await new Promise((r) => setTimeout(r, durationMs));
@@ -119,7 +127,7 @@ async function main() {
     '[socketio-smoke] fin : connectés=%d connect_errors=%d disconnects=%d',
     connected,
     connectErrors,
-    disconnects
+    disconnects,
   );
 }
 

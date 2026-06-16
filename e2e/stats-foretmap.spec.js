@@ -8,6 +8,8 @@ test('parcours prof: onglet Stats accessible après élévation', async ({ page 
   const statsTab = page.getByRole('button', { name: /^Stats/ });
   if (await statsTab.isVisible({ timeout: 5000 }).catch(() => false)) {
     await statsTab.click();
-    await expect(page.getByText(/Statistiques|n3beur|tâche/i).first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText(/Statistiques|n3beur|tâche/i).first()).toBeVisible({
+      timeout: 15_000,
+    });
   }
 });

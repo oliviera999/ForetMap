@@ -28,10 +28,11 @@ export function GLPlayersImportPanel({ onReload }) {
     setError('');
     setInfo('');
     try {
-      const filename = format === 'xlsx' ? 'foretmap-gl-modele-joueurs.xlsx' : 'foretmap-gl-modele-joueurs.csv';
+      const filename =
+        format === 'xlsx' ? 'foretmap-gl-modele-joueurs.xlsx' : 'foretmap-gl-modele-joueurs.csv';
       await downloadGlFile(
         `/api/gl/admin/players/import/template?format=${encodeURIComponent(format)}`,
-        filename
+        filename,
       );
       setInfo(`Modèle ${format.toUpperCase()} téléchargé.`);
     } catch (err) {
@@ -75,10 +76,20 @@ export function GLPlayersImportPanel({ onReload }) {
       {info ? <p className="gl-hint">{info}</p> : null}
 
       <div className="gl-inline-actions">
-        <GLButton type="button" variant="secondary" onClick={() => downloadTemplate('csv')} disabled={loading}>
+        <GLButton
+          type="button"
+          variant="secondary"
+          onClick={() => downloadTemplate('csv')}
+          disabled={loading}
+        >
           Modèle CSV
         </GLButton>
-        <GLButton type="button" variant="secondary" onClick={() => downloadTemplate('xlsx')} disabled={loading}>
+        <GLButton
+          type="button"
+          variant="secondary"
+          onClick={() => downloadTemplate('xlsx')}
+          disabled={loading}
+        >
           Modèle XLSX
         </GLButton>
       </div>
@@ -92,19 +103,25 @@ export function GLPlayersImportPanel({ onReload }) {
           />
         </GLField>
         <GLField label="Mode">
-          <GLSelect value={dryRun ? 'dry' : 'apply'} onChange={(e) => setDryRun(e.target.value === 'dry')}>
+          <GLSelect
+            value={dryRun ? 'dry' : 'apply'}
+            onChange={(e) => setDryRun(e.target.value === 'dry')}
+          >
             <option value="dry">Simulation (dry-run)</option>
             <option value="apply">Importer réellement</option>
           </GLSelect>
         </GLField>
-        <GLButton type="submit" disabled={loading}>{loading ? 'Traitement…' : 'Lancer l’import'}</GLButton>
+        <GLButton type="submit" disabled={loading}>
+          {loading ? 'Traitement…' : 'Lancer l’import'}
+        </GLButton>
       </form>
 
       {report ? (
         <div className="gl-admin-import-report">
           <p>
-            Reçues: <strong>{report?.totals?.received || 0}</strong> · Valides: <strong>{report?.totals?.valid || 0}</strong> ·
-            Créées: <strong>{report?.totals?.created || 0}</strong>
+            Reçues: <strong>{report?.totals?.received || 0}</strong> · Valides:{' '}
+            <strong>{report?.totals?.valid || 0}</strong> · Créées:{' '}
+            <strong>{report?.totals?.created || 0}</strong>
           </p>
           {Array.isArray(report?.errors) && report.errors.length > 0 ? (
             <ul>

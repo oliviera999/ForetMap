@@ -13,13 +13,18 @@ describe('groupPrefillPhotosByField', () => {
       { field: 'photo_leaf', url: 'c' },
     ];
     expect(groupPrefillPhotosByField(photos)).toEqual({
-      photo_leaf: [{ field: 'photo_leaf', url: 'a' }, { field: 'photo_leaf', url: 'c' }],
+      photo_leaf: [
+        { field: 'photo_leaf', url: 'a' },
+        { field: 'photo_leaf', url: 'c' },
+      ],
       photo_flower: [{ field: 'photo_flower', url: 'b' }],
     });
   });
   test('ignore les photos sans field (vide/espaces/absent)', () => {
     const photos = [{ field: '' }, { field: '   ' }, {}, { field: 'photo_fruit', url: 'x' }];
-    expect(groupPrefillPhotosByField(photos)).toEqual({ photo_fruit: [{ field: 'photo_fruit', url: 'x' }] });
+    expect(groupPrefillPhotosByField(photos)).toEqual({
+      photo_fruit: [{ field: 'photo_fruit', url: 'x' }],
+    });
   });
   test('field trimé pour le regroupement', () => {
     const out = groupPrefillPhotosByField([{ field: ' photo_leaf ', url: 'a' }]);
@@ -37,22 +42,34 @@ describe('buildPrefillFieldSelection', () => {
 
   test('coche les champs proposés quand le formulaire est vide dessus', () => {
     const data = { fields: { name: 'Tomate', habitat: 'Potager' } };
-    const out = buildPrefillFieldSelection(data, { name: '', habitat: '   ' }, { speciesPrefillFields: FIELDS });
+    const out = buildPrefillFieldSelection(
+      data,
+      { name: '', habitat: '   ' },
+      { speciesPrefillFields: FIELDS },
+    );
     expect(out).toEqual({ name: true, habitat: true });
   });
 
   test('décoche les champs déjà remplis sans overwriteFilled', () => {
     const data = { fields: { name: 'Tomate', habitat: 'Potager' } };
-    const out = buildPrefillFieldSelection(data, { name: 'Aubergine', habitat: '' }, { speciesPrefillFields: FIELDS });
+    const out = buildPrefillFieldSelection(
+      data,
+      { name: 'Aubergine', habitat: '' },
+      { speciesPrefillFields: FIELDS },
+    );
     expect(out).toEqual({ name: false, habitat: true });
   });
 
   test('overwriteFilled → tout champ proposé est coché, même déjà rempli', () => {
     const data = { fields: { name: 'Tomate', sources: 'https://a' } };
-    const out = buildPrefillFieldSelection(data, { name: 'Aubergine', sources: 'x' }, {
-      overwriteFilled: true,
-      speciesPrefillFields: FIELDS,
-    });
+    const out = buildPrefillFieldSelection(
+      data,
+      { name: 'Aubergine', sources: 'x' },
+      {
+        overwriteFilled: true,
+        speciesPrefillFields: FIELDS,
+      },
+    );
     expect(out).toEqual({ name: true, sources: true });
   });
 
@@ -63,7 +80,9 @@ describe('buildPrefillFieldSelection', () => {
 
   test('données nulles / liste de champs vide → objet vide', () => {
     expect(buildPrefillFieldSelection(null, null, {})).toEqual({});
-    expect(buildPrefillFieldSelection({ fields: { name: 'x' } }, {}, { speciesPrefillFields: [] })).toEqual({});
+    expect(
+      buildPrefillFieldSelection({ fields: { name: 'x' } }, {}, { speciesPrefillFields: [] }),
+    ).toEqual({});
   });
 });
 
@@ -94,7 +113,10 @@ describe('buildInitialPrefillPhotoSelections', () => {
   });
 
   test('accepte un tableau de clés à la place d’un Set', () => {
-    const out = buildInitialPrefillPhotoSelections([{ field: 'photo_leaf', url: 'a' }], ['photo_leaf']);
+    const out = buildInitialPrefillPhotoSelections(
+      [{ field: 'photo_leaf', url: 'a' }],
+      ['photo_leaf'],
+    );
     expect(out['photo_leaf:0']).toEqual({ checked: false, assignTo: 'photo_leaf' });
   });
 });

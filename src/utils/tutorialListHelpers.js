@@ -38,7 +38,7 @@ export function sortTutorialsByOrder(list) {
   return [...list].sort(
     (a, b) =>
       (Number(a.sort_order) || 0) - (Number(b.sort_order) || 0) ||
-      String(a.title || '').localeCompare(String(b.title || ''), 'fr')
+      String(a.title || '').localeCompare(String(b.title || ''), 'fr'),
   );
 }
 
@@ -55,16 +55,25 @@ export function moveIndex(arr, from, to) {
  * Filtre la liste des tutoriels (type, statut actif/archivé, recherche texte sur titre + résumé,
  * insensible à la casse) puis la trie par `sort_order`. Ne mute pas l'entrée.
  */
-export function filterAndSortTutorials(tutorials, { search = '', typeFilter = 'all', statusFilter = 'all' } = {}) {
-  const q = String(search || '').trim().toLowerCase();
+export function filterAndSortTutorials(
+  tutorials,
+  { search = '', typeFilter = 'all', statusFilter = 'all' } = {},
+) {
+  const q = String(search || '')
+    .trim()
+    .toLowerCase();
   const arr = (tutorials || []).filter((t) => {
     if (typeFilter !== 'all' && t.type !== typeFilter) return false;
     if (statusFilter === 'active' && !t.is_active) return false;
     if (statusFilter === 'archived' && t.is_active) return false;
     if (!q) return true;
     return (
-      String(t.title || '').toLowerCase().includes(q) ||
-      String(t.summary || '').toLowerCase().includes(q)
+      String(t.title || '')
+        .toLowerCase()
+        .includes(q) ||
+      String(t.summary || '')
+        .toLowerCase()
+        .includes(q)
     );
   });
   return sortTutorialsByOrder(arr);

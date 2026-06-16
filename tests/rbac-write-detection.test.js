@@ -43,7 +43,7 @@ const RBAC_READS = [
 const NON_RBAC_WRITES = [
   'INSERT INTO tasks (id, title) VALUES (?, ?)',
   'UPDATE users SET display_name = ? WHERE id = ?',
-  "DELETE FROM plants",
+  'DELETE FROM plants',
   'INSERT INTO group_members (group_id, user_id) VALUES (?, ?)',
   'UPDATE gl_players SET health_points = ? WHERE id = ?',
 ];

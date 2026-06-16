@@ -11,7 +11,11 @@ vi.mock('../../../src/services/api.js', () => ({
 // L'accusé de lecture et les commentaires font leurs propres appels API : stubs ciblés.
 vi.mock('../../../src/components/TutorialReadAcknowledge', () => ({
   TutorialReadAcknowledgeButton: ({ tutorialId, isRead, onAcknowledged }) => (
-    <button type="button" data-testid={`ack-${tutorialId}`} onClick={() => onAcknowledged(Number(tutorialId))}>
+    <button
+      type="button"
+      data-testid={`ack-${tutorialId}`}
+      onClick={() => onAcknowledged(Number(tutorialId))}
+    >
       {isRead ? 'lu' : 'non lu'}
     </button>
   ),
@@ -127,11 +131,13 @@ describe('VisitTutorialsSection', () => {
   });
 
   test('la sélection se réaligne quand les tutos visite changent (rechargement)', () => {
-    const { props, rerender } = setup({ isTeacher: true, availableTutorials: TUTOS, tutorials: [TUTOS[0]] });
+    const { props, rerender } = setup({
+      isTeacher: true,
+      availableTutorials: TUTOS,
+      tutorials: [TUTOS[0]],
+    });
     expect(screen.getAllByRole('checkbox').map((b) => b.checked)).toEqual([true, false]);
-    rerender(
-      <VisitTutorialsSection {...props} tutorials={[TUTOS[0], TUTOS[1]]} />,
-    );
+    rerender(<VisitTutorialsSection {...props} tutorials={[TUTOS[0], TUTOS[1]]} />);
     expect(screen.getAllByRole('checkbox').map((b) => b.checked)).toEqual([true, true]);
   });
 });

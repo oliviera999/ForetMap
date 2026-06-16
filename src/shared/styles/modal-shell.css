@@ -1,12 +1,12 @@
 /* Shell modale partagé ForetMap + GL (overlay + panneau thématisable). */
 
 :root {
-  --fm-modal-overlay-bg: rgba(12, 30, 20, .52);
+  --fm-modal-overlay-bg: rgba(12, 30, 20, 0.52);
   --fm-modal-overlay-z: 200;
   --fm-modal-panel-bg: var(--surface-1, #fff);
-  --fm-modal-panel-border: rgba(255, 255, 255, .46);
+  --fm-modal-panel-border: rgba(255, 255, 255, 0.46);
   --fm-modal-panel-shadow: var(--shadow-strong, 0 18px 42px rgba(20, 54, 37, 0.16));
-  --fm-modal-pop-duration: .28s;
+  --fm-modal-pop-duration: 0.28s;
 }
 
 .fm-modal-overlay,

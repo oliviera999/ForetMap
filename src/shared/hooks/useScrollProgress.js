@@ -16,18 +16,22 @@ export function useScrollProgress(mode = 'window') {
       raf = 0;
       if (mode === 'element' && ref.current) {
         const el = ref.current;
-        setProgress(computeScrollProgress({
-          scrollTop: el.scrollTop,
-          scrollHeight: el.scrollHeight,
-          clientHeight: el.clientHeight,
-        }));
+        setProgress(
+          computeScrollProgress({
+            scrollTop: el.scrollTop,
+            scrollHeight: el.scrollHeight,
+            clientHeight: el.clientHeight,
+          }),
+        );
         return;
       }
-      setProgress(computeScrollProgress({
-        scrollTop: window.scrollY,
-        scrollHeight: document.documentElement.scrollHeight,
-        clientHeight: window.innerHeight,
-      }));
+      setProgress(
+        computeScrollProgress({
+          scrollTop: window.scrollY,
+          scrollHeight: document.documentElement.scrollHeight,
+          clientHeight: window.innerHeight,
+        }),
+      );
     };
 
     const onScroll = () => {

@@ -1,0 +1,1 @@
+function e(e){return new Promise((t,n)=>{let r=new FileReader;r.onload=()=>t(String(r.result||``)),r.onerror=()=>n(Error(`Lecture du fichier impossible`)),r.readAsDataURL(e)})}export{e as t};

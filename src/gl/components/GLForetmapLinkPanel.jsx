@@ -77,7 +77,11 @@ export function GLForetmapLinkPanel({ enabled, profile, onReload }) {
       ) : (
         <form className="gl-form" onSubmit={linkAccount}>
           <GLField label="Identifiant ForetMap eleve (email ou pseudo)">
-            <GLInput value={identifier} onChange={(event) => setIdentifier(event.target.value)} autoComplete="username" />
+            <GLInput
+              value={identifier}
+              onChange={(event) => setIdentifier(event.target.value)}
+              autoComplete="username"
+            />
           </GLField>
           <GLField label="Mot de passe ForetMap eleve">
             <GLInput
@@ -87,7 +91,9 @@ export function GLForetmapLinkPanel({ enabled, profile, onReload }) {
               autoComplete="current-password"
             />
           </GLField>
-          <GLButton type="submit" disabled={busy}>{busy ? '...' : 'Lier mon compte ForetMap'}</GLButton>
+          <GLButton type="submit" disabled={busy}>
+            {busy ? '...' : 'Lier mon compte ForetMap'}
+          </GLButton>
         </form>
       )}
     </GLSurface>

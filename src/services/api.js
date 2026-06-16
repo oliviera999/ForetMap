@@ -1,7 +1,4 @@
-import {
-  safeLocalStorageGetItem,
-  safeLocalStorageRemoveItem,
-} from '../utils/browserStorage.js';
+import { safeLocalStorageGetItem, safeLocalStorageRemoveItem } from '../utils/browserStorage.js';
 import {
   API_FETCH_TIMEOUT_MS,
   assertJsonApiBody,
@@ -73,10 +70,12 @@ const STUDENT_AUTH_FIELDS = [
 
 function isQuotaExceededError(err) {
   if (!err) return false;
-  return err.name === 'QuotaExceededError'
-    || err.name === 'NS_ERROR_DOM_QUOTA_REACHED'
-    || err.code === 22
-    || err.code === 1014;
+  return (
+    err.name === 'QuotaExceededError' ||
+    err.name === 'NS_ERROR_DOM_QUOTA_REACHED' ||
+    err.code === 22 ||
+    err.code === 1014
+  );
 }
 
 function safeSetLocalStorageItem(key, value, { allowDropLegacyStudent = true } = {}) {
@@ -179,9 +178,11 @@ export function getAuthToken() {
       if (token) return token;
     }
   } catch (_) {}
-  return pickStoredToken(safeLocalStorageGetItem('foretmap_auth_token', null))
-    || getLegacyStudentToken()
-    || pickStoredToken(safeLocalStorageGetItem('foretmap_teacher_token', null));
+  return (
+    pickStoredToken(safeLocalStorageGetItem('foretmap_auth_token', null)) ||
+    getLegacyStudentToken() ||
+    pickStoredToken(safeLocalStorageGetItem('foretmap_teacher_token', null))
+  );
 }
 
 export function getStoredSession() {
@@ -190,19 +191,25 @@ export function getStoredSession() {
     if (raw) return JSON.parse(raw);
   } catch (_) {}
   const student = readLegacyStudentSnapshot();
-  const token = pickStoredToken(safeLocalStorageGetItem('foretmap_auth_token', null))
-    || getLegacyStudentToken(student)
-    || pickStoredToken(safeLocalStorageGetItem('foretmap_teacher_token', null));
+  const token =
+    pickStoredToken(safeLocalStorageGetItem('foretmap_auth_token', null)) ||
+    getLegacyStudentToken(student) ||
+    pickStoredToken(safeLocalStorageGetItem('foretmap_teacher_token', null));
   if (!token && !student) return null;
   return {
     token: token || null,
-    user: student ? {
-      id: student.id,
-      userType: 'student',
-      displayName: student.pseudo || `${student.first_name || ''} ${student.last_name || ''}`.trim() || 'Utilisateur',
-      email: student.email || null,
-      avatar_path: student.avatar_path ?? student.avatarPath ?? null,
-    } : null,
+    user: student
+      ? {
+          id: student.id,
+          userType: 'student',
+          displayName:
+            student.pseudo ||
+            `${student.first_name || ''} ${student.last_name || ''}`.trim() ||
+            'Utilisateur',
+          email: student.email || null,
+          avatar_path: student.avatar_path ?? student.avatarPath ?? null,
+        }
+      : null,
     student: student || null,
   };
 }
@@ -253,17 +260,17 @@ export function isLikelyNetworkTransportFailure(err) {
   const msg = String(err.message || err || '').toLowerCase();
   if (err instanceof TypeError && typeof fetch !== 'undefined') {
     return (
-      msg.includes('failed to fetch')
-      || msg.includes('networkerror')
-      || msg.includes('network request failed')
-      || msg.includes('chargement')
-      || msg.includes('load failed')
+      msg.includes('failed to fetch') ||
+      msg.includes('networkerror') ||
+      msg.includes('network request failed') ||
+      msg.includes('chargement') ||
+      msg.includes('load failed')
     );
   }
   return (
-    msg.includes('failed to fetch')
-    || msg.includes('networkerror when attempting to fetch')
-    || msg.includes('network request failed')
+    msg.includes('failed to fetch') ||
+    msg.includes('networkerror when attempting to fetch') ||
+    msg.includes('network request failed')
   );
 }
 
@@ -271,16 +278,16 @@ function networkFailureUserMessage() {
   // En build prod, ne pas afficher les consignes « Vite + port 3000 » (inadaptées sur serveur distant).
   if (import.meta.env.DEV) {
     return (
-      'Impossible de contacter le serveur. En développement local, lancez l’API sur le port 3000 '
-      + '(`npm run dev` à la racine du projet) en parallèle du client Vite (`npm run dev:client`), '
-      + 'puis ouvrez l’URL affichée par Vite (souvent http://localhost:5173). '
-      + 'Sans l’API, toute inscription ou connexion échoue ainsi.'
+      'Impossible de contacter le serveur. En développement local, lancez l’API sur le port 3000 ' +
+      '(`npm run dev` à la racine du projet) en parallèle du client Vite (`npm run dev:client`), ' +
+      'puis ouvrez l’URL affichée par Vite (souvent http://localhost:5173). ' +
+      'Sans l’API, toute inscription ou connexion échoue ainsi.'
     );
   }
   return (
-    'Impossible de contacter le serveur. Vérifiez votre connexion, rechargez la page ou réessayez plus tard. '
-    + 'Si le problème continue, le site peut être en maintenance ou la passerelle réseau indisponible : '
-    + 'contactez l’administrateur de la plateforme.'
+    'Impossible de contacter le serveur. Vérifiez votre connexion, rechargez la page ou réessayez plus tard. ' +
+    'Si le problème continue, le site peut être en maintenance ou la passerelle réseau indisponible : ' +
+    'contactez l’administrateur de la plateforme.'
   );
 }
 
@@ -312,7 +319,10 @@ export async function api(path, method = 'GET', body) {
       if (isAbort) {
         throw new Error('Délai d’attente dépassé pour la requête réseau.');
       }
-      if (shouldRetryAfterNetworkError(method, body, attempt, maxAttempts) && err instanceof TypeError) {
+      if (
+        shouldRetryAfterNetworkError(method, body, attempt, maxAttempts) &&
+        err instanceof TypeError
+      ) {
         await sleepMs(transientRetryDelayMs(attempt));
         continue;
       }
@@ -344,10 +354,10 @@ export async function api(path, method = 'GET', body) {
     if (res.status === 401 && authToken) {
       const errText = String(errBody.error || '').toLowerCase();
       const sessionExpired =
-        errText.includes('token invalide')
-        || errText.includes('expiré')
-        || errText.includes('expired')
-        || errBody.code === 'jwt_expired';
+        errText.includes('token invalide') ||
+        errText.includes('expiré') ||
+        errText.includes('expired') ||
+        errBody.code === 'jwt_expired';
       if (sessionExpired) {
         clearStoredSession();
         window.dispatchEvent(new CustomEvent('foretmap_teacher_expired'));

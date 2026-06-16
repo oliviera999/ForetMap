@@ -6,16 +6,9 @@ const assert = require('node:assert');
 const request = require('supertest');
 const { app } = require('../server');
 const { initSchema, execute, queryOne } = require('../database');
-const {
-  invalidateGameplayCache,
-  invalidateModulesCache,
-} = require('../lib/glSettings');
+const { invalidateGameplayCache, invalidateModulesCache } = require('../lib/glSettings');
 const { signAuthToken } = require('../middleware/requireTeacher');
-const {
-  createGlAdmin,
-  createGlClass,
-  createGlPlayer,
-} = require('./helpers/glFixtures');
+const { createGlAdmin, createGlClass, createGlPlayer } = require('./helpers/glFixtures');
 
 let tokenA = '';
 let tokenB = '';
@@ -33,7 +26,7 @@ async function setVitalityAndMarket(enabled) {
      VALUES ('gameplay.vitality_enabled', ?, NOW()),
             ('modules.market_enabled', ?, NOW())
      ON DUPLICATE KEY UPDATE value_json = VALUES(value_json), updated_at = NOW()`,
-    [JSON.stringify(!!enabled), JSON.stringify(!!enabled)]
+    [JSON.stringify(!!enabled), JSON.stringify(!!enabled)],
   );
   invalidateGameplayCache();
   invalidateModulesCache();
@@ -171,8 +164,12 @@ test('flux complet : offres, figement, double accept, soldes', async () => {
   assert.strictEqual(completeRes.status, 200);
   assert.strictEqual(completeRes.body.status, 'completed');
 
-  const rowA = await queryOne('SELECT health_points, power_points FROM gl_players WHERE id = ?', [playerAId]);
-  const rowB = await queryOne('SELECT health_points, power_points FROM gl_players WHERE id = ?', [playerBId]);
+  const rowA = await queryOne('SELECT health_points, power_points FROM gl_players WHERE id = ?', [
+    playerAId,
+  ]);
+  const rowB = await queryOne('SELECT health_points, power_points FROM gl_players WHERE id = ?', [
+    playerBId,
+  ]);
   assert.strictEqual(Number(rowA.health_points), 4);
   assert.strictEqual(Number(rowA.power_points), 5);
   assert.strictEqual(Number(rowB.health_points), 4);
@@ -212,7 +209,9 @@ test('dé-accept défige les offres', async () => {
 });
 
 test('solde insuffisant bloque la finalisation', async () => {
-  await execute('UPDATE gl_players SET health_points = 0, power_points = 0 WHERE id = ?', [playerAId]);
+  await execute('UPDATE gl_players SET health_points = 0, power_points = 0 WHERE id = ?', [
+    playerAId,
+  ]);
 
   const createRes = await request(app)
     .post('/api/gl/market/trades')
@@ -242,7 +241,9 @@ test('solde insuffisant bloque la finalisation', async () => {
     .send({ accepted: true });
   assert.strictEqual(failRes.status, 409);
 
-  await execute('UPDATE gl_players SET health_points = 5, power_points = 4 WHERE id = ?', [playerAId]);
+  await execute('UPDATE gl_players SET health_points = 5, power_points = 4 WHERE id = ?', [
+    playerAId,
+  ]);
 });
 
 test('module désactivé renvoie 503', async () => {

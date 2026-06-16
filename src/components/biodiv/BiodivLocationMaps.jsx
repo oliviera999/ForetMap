@@ -90,7 +90,12 @@ export function BiodivLocationMapBlock({ mapId, maps, zones, markers }) {
             }}
             onError={onImgError}
           />
-          <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="biodiv-location-map-svg" aria-hidden="true">
+          <svg
+            viewBox="0 0 100 100"
+            preserveAspectRatio="none"
+            className="biodiv-location-map-svg"
+            aria-hidden="true"
+          >
             {drawableZones.map((z) => {
               const pts = parseZonePointsJson(z.points);
               const p = pts.map((pt) => `${pt.xp},${pt.yp}`).join(' ');
@@ -121,7 +126,10 @@ export function BiodivLocationMapBlock({ mapId, maps, zones, markers }) {
 }
 
 export function PlantLocationPreviewMaps({ maps, zones, markers }) {
-  const groups = useMemo(() => [...groupPlantLocationsByMap(zones, markers).entries()], [zones, markers]);
+  const groups = useMemo(
+    () => [...groupPlantLocationsByMap(zones, markers).entries()],
+    [zones, markers],
+  );
   if (groups.length === 0) return null;
   return (
     <div className="biodiv-location-maps">

@@ -9,13 +9,13 @@ async function seedGlMarketE2E(label) {
   const adminEmail = `e2e-market-mj-${label}-${stamp}@example.org`;
   await execute(
     'INSERT INTO gl_admins (email, display_name, role, is_active, created_at, updated_at) VALUES (?, ?, ?, 1, NOW(), NOW())',
-    [adminEmail, `MJ ${label}`, 'admin']
+    [adminEmail, `MJ ${label}`, 'admin'],
   );
   const admin = await queryOne('SELECT id FROM gl_admins WHERE email = ? LIMIT 1', [adminEmail]);
 
   await execute(
     'INSERT INTO gl_classes (name, school, created_by, is_active, created_at, updated_at) VALUES (?, ?, ?, 1, NOW(), NOW())',
-    [`Classe market ${label} ${stamp}`, 'Lyautey', admin.id]
+    [`Classe market ${label} ${stamp}`, 'Lyautey', admin.id],
   );
   const cls = await queryOne('SELECT id FROM gl_classes ORDER BY id DESC LIMIT 1');
   const hash = await bcrypt.hash('1234', 10);
@@ -27,16 +27,20 @@ async function seedGlMarketE2E(label) {
       (class_id, first_name, last_name, pseudo, password_hash, is_active, health_points, power_points, created_at, updated_at)
      VALUES (?, 'A', 'Un', ?, ?, 1, 5, 5, NOW(), NOW()),
             (?, 'B', 'Deux', ?, ?, 1, 5, 5, NOW(), NOW())`,
-    [cls.id, pseudoA, hash, cls.id, pseudoB, hash]
+    [cls.id, pseudoA, hash, cls.id, pseudoB, hash],
   );
-  const playerA = await queryOne('SELECT id, pseudo FROM gl_players WHERE pseudo = ? LIMIT 1', [pseudoA]);
-  const playerB = await queryOne('SELECT id, pseudo FROM gl_players WHERE pseudo = ? LIMIT 1', [pseudoB]);
+  const playerA = await queryOne('SELECT id, pseudo FROM gl_players WHERE pseudo = ? LIMIT 1', [
+    pseudoA,
+  ]);
+  const playerB = await queryOne('SELECT id, pseudo FROM gl_players WHERE pseudo = ? LIMIT 1', [
+    pseudoB,
+  ]);
 
   await execute(
     `INSERT INTO gl_settings (\`key\`, value_json, updated_at)
      VALUES ('gameplay.vitality_enabled', 'true', NOW()),
             ('modules.market_enabled', 'true', NOW())
-     ON DUPLICATE KEY UPDATE value_json = VALUES(value_json), updated_at = NOW()`
+     ON DUPLICATE KEY UPDATE value_json = VALUES(value_json), updated_at = NOW()`,
   );
 
   const classId = Number(cls.id);
@@ -70,14 +74,14 @@ async function seedGlMarketE2E(label) {
   };
 }
 
-
 function waitMarketPatch(page, pathPart) {
   return page.waitForResponse(
-    (res) => res.url().includes(pathPart)
-      && res.request().method() === 'PATCH'
-      && res.status() >= 200
-      && res.status() < 300,
-    { timeout: 15000 }
+    (res) =>
+      res.url().includes(pathPart) &&
+      res.request().method() === 'PATCH' &&
+      res.status() >= 200 &&
+      res.status() < 300,
+    { timeout: 15000 },
   );
 }
 
@@ -119,7 +123,9 @@ test.describe('GL marché', () => {
 
     await pageB.getByRole('tab', { name: 'Marché' }).click();
     await pageB.getByRole('button', { name: seeded.pseudoA }).click();
-    await expect(pageB.getByRole('heading', { name: new RegExp(`Échange avec ${seeded.pseudoA}`, 'i') })).toBeVisible();
+    await expect(
+      pageB.getByRole('heading', { name: new RegExp(`Échange avec ${seeded.pseudoA}`, 'i') }),
+    ).toBeVisible();
 
     const offerPatchB = waitMarketPatch(pageB, '/offer');
     await pageB.getByLabel('Gemmes 💎').fill('1');

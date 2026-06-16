@@ -96,17 +96,16 @@ describe('ContextCommentItem', () => {
 
   test('signalement : saisie et envoi remontés', () => {
     const { onReportReasonChange, onReport } = renderItem();
-    fireEvent.change(screen.getByPlaceholderText('Motif de signalement'), { target: { value: 'spam' } });
+    fireEvent.change(screen.getByPlaceholderText('Motif de signalement'), {
+      target: { value: 'spam' },
+    });
     expect(onReportReasonChange).toHaveBeenCalledWith(1, 'spam');
     fireEvent.click(screen.getByRole('button', { name: 'Signaler' }));
     expect(onReport).toHaveBeenCalledWith(1);
   });
 
   test('lecture seule : réactions non nulles affichées sans actions', () => {
-    renderItem(
-      { reactions: [{ emoji: '👍', count: 3 }] },
-      { canUseCommentActions: false },
-    );
+    renderItem({ reactions: [{ emoji: '👍', count: 3 }] }, { canUseCommentActions: false });
     expect(screen.getByText('3')).toBeTruthy();
     expect(screen.queryByPlaceholderText('Motif de signalement')).toBeNull();
   });

@@ -10,15 +10,9 @@ import { scopeLabel, buildConstraintHelp } from '../../utils/settingDisplay.js';
  */
 
 /** Champs texte pilotés par l’état : collage (Ctrl+V / presse-papiers) fiable + resync après chargement serveur. */
-export function AdminTextSettingField({
-  rowKey,
-  label,
-  row,
-  serverValue,
-  disabled,
-  onSave,
-}) {
-  const multiline = row._multiline || (row?.constraints?.maxLength != null && row.constraints.maxLength > 100);
+export function AdminTextSettingField({ rowKey, label, row, serverValue, disabled, onSave }) {
+  const multiline =
+    row._multiline || (row?.constraints?.maxLength != null && row.constraints.maxLength > 100);
   const maxLength = row?.constraints?.maxLength;
   const maxLenN = maxLength == null ? NaN : Number(maxLength);
   const maxLenProp = Number.isFinite(maxLenN) && maxLenN > 0 ? maxLenN : undefined;

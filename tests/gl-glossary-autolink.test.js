@@ -24,7 +24,9 @@ const SAMPLE_ITEMS = [
 ];
 
 before(async () => {
-  const mod = await import(pathToFileURL(join(__dirname, '../src/utils/glGlossaryAutolink.js')).href);
+  const mod = await import(
+    pathToFileURL(join(__dirname, '../src/utils/glGlossaryAutolink.js')).href
+  );
   buildGlossaryLinkEntries = mod.buildGlossaryLinkEntries;
   autolinkPlainText = mod.autolinkPlainText;
   autolinkHtmlTextNodes = mod.autolinkHtmlTextNodes;
@@ -58,7 +60,7 @@ describe('glGlossaryAutolink', () => {
     const html = renderGlMarkdownWithGlossaryLinks(
       'Un **biome** est une zone climatique.',
       SAMPLE_ITEMS,
-      { allowImages: false }
+      { allowImages: false },
     );
     assert.match(html, /<strong>/);
     assert.match(html, /data-gl-glossary-code="GL0001"/);

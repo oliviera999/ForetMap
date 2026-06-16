@@ -15,7 +15,7 @@ const ROOT = path.resolve(__dirname, '..');
 const DEFAULT_BUNDLE = path.join(
   process.env.USERPROFILE || process.env.HOME || '',
   'Downloads',
-  'Intro Gnomes & Licornes (hors-ligne) (1).html'
+  'Intro Gnomes & Licornes (hors-ligne) (1).html',
 );
 const DEFAULT_OUT = path.join(ROOT, 'public', 'gl', 'intro');
 const DEFAULT_CONFIG = path.join(ROOT, 'data', 'gl', 'intro.default.json');
@@ -94,7 +94,7 @@ function patchIntroHtml(html) {
   let out = stripTweaksAndBundler(html);
   out = out.replace(
     /const GAME_URL\s*=\s*"[^"]*";/,
-    'const GAME_URL = ""; // intégration ForetMap : postMessage uniquement'
+    'const GAME_URL = ""; // intégration ForetMap : postMessage uniquement',
   );
   const configLoader = `
 <script>
@@ -154,7 +154,6 @@ function patchIntroHtml(html) {
 function extractScenesConfig(template) {
   const scenesMatch = template.match(/const SCENES\s*=\s*(\[[\s\S]*?\]);/);
   if (!scenesMatch) throw new Error('SCENES introuvable dans le template');
-  // eslint-disable-next-line no-eval
   const scenes = eval(scenesMatch[1]);
   const opening = {
     kicker: 'une boîte vous a été confiée',
@@ -216,7 +215,9 @@ function main() {
     const bytes = decodeManifestEntry(m);
     const ext = extFromMime(m.mime || entry.mime);
     let rel;
-    const sceneId = Object.keys(SCENE_IMAGE_KEYS).find((id) => entry.id === id || entry.id.includes(id));
+    const sceneId = Object.keys(SCENE_IMAGE_KEYS).find(
+      (id) => entry.id === id || entry.id.includes(id),
+    );
     if (m.mime && m.mime.startsWith('image/') && sceneId) {
       rel = `assets/img/${sceneId}.${ext}`;
     } else if (m.mime && m.mime.startsWith('audio/')) {
@@ -259,16 +260,16 @@ function main() {
   boite:"assets/img/boite.png", copiste:"assets/img/copiste.png", carnet:"assets/img/carnet.png",
   miroir:"assets/img/miroir.png", selene:"assets/img/selene.png", corbeau:"assets/img/corbeau.png",
   souffle:"assets/img/souffle.png", seuil:"assets/img/seuil.png", bienvenue:"assets/img/bienvenue.png",
-};`
+};`,
   );
 
   patchedTemplate = patchedTemplate.replace(
     /<audio id="aud-loop"[^>]*>/,
-    '<audio id="aud-loop" src="assets/audio/loop.mp3" loop preload="auto">'
+    '<audio id="aud-loop" src="assets/audio/loop.mp3" loop preload="auto">',
   );
   patchedTemplate = patchedTemplate.replace(
     /<audio id="aud-final"[^>]*>/,
-    '<audio id="aud-final" src="assets/audio/final.mp3" preload="auto">'
+    '<audio id="aud-final" src="assets/audio/final.mp3" preload="auto">',
   );
 
   patchedTemplate = patchedTemplate.replace(
@@ -276,7 +277,7 @@ function main() {
     `function enterGame(){
   try { if (window.parent && window.parent !== window) window.parent.postMessage({type:'gl-intro-done'}, '*'); } catch(e){}
   if (window.self === window.top && GAME_URL) window.location.href = GAME_URL;
-}`
+}`,
   );
   patchedTemplate = patchedTemplate.replace(/#tweaks-root\{[^}]+\}\s*/g, '');
 

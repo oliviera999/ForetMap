@@ -15,7 +15,9 @@ const VISIT_N3_ENTRANCE_LABEL_RE =
 async function getTeacherBearerToken(page) {
   const t = await page.evaluate(() => localStorage.getItem('foretmap_teacher_token') || '');
   if (!t) {
-    throw new Error('foretmap_teacher_token absent : activer les droits étendus avant les appels API visite.');
+    throw new Error(
+      'foretmap_teacher_token absent : activer les droits étendus avant les appels API visite.',
+    );
   }
   return t;
 }
@@ -81,7 +83,9 @@ async function deleteAllN3EntranceMarkers(page, headers) {
   for (const marker of markers) {
     const label = String(marker?.label || '').trim();
     if (!VISIT_N3_ENTRANCE_LABEL_RE.test(label)) continue;
-    await page.request.delete(`/api/visit/markers/${encodeURIComponent(marker.id)}`, { headers }).catch(() => false);
+    await page.request
+      .delete(`/api/visit/markers/${encodeURIComponent(marker.id)}`, { headers })
+      .catch(() => false);
   }
 }
 
@@ -136,7 +140,12 @@ async function seedVisitMascotContent(page) {
     token,
     suffix,
     entrancePct: { x_pct: 22, y_pct: 18 },
-    n3: { zoneId: zone.id, markerAId: markerA.id, markerBId: markerB.id, entranceId: entranceN3.id },
+    n3: {
+      zoneId: zone.id,
+      markerAId: markerA.id,
+      markerBId: markerB.id,
+      entranceId: entranceN3.id,
+    },
   };
 }
 

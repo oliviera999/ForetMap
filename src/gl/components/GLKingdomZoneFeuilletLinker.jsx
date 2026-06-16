@@ -29,9 +29,13 @@ export function GLKingdomZoneFeuilletLinker({ zoneId, canManage = false }) {
     if (!selectedCode || !zoneId) return;
     setFeedback('');
     try {
-      await apiGL(`/api/gl/lore/admin/feuillets/${encodeURIComponent(selectedCode)}/kingdom-zone`, 'PUT', {
-        kingdomZoneId: zoneId,
-      });
+      await apiGL(
+        `/api/gl/lore/admin/feuillets/${encodeURIComponent(selectedCode)}/kingdom-zone`,
+        'PUT',
+        {
+          kingdomZoneId: zoneId,
+        },
+      );
       setFeedback('Feuillet associé à la zone.');
       await load();
     } catch (err) {

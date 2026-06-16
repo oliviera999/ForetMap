@@ -84,7 +84,8 @@ test('plantnetIdentifyFromImages : mock HTTP OK', async () => {
   const prevK = process.env.PLANTNET_API_KEY;
   process.env.SPECIES_AUTOFILL_PLANTNET = '1';
   process.env.PLANTNET_API_KEY = 'pk-test';
-  const png = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+  const png =
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
   const imageData = `data:image/png;base64,${png}`;
   const fetchImpl = async (url, opts) => {
     assert.match(String(url), /\/v2\/identify\//);
@@ -93,13 +94,15 @@ test('plantnetIdentifyFromImages : mock HTTP OK', async () => {
       ok: true,
       status: 200,
       json: async () => ({
-        results: [{
-          score: 0.91,
-          species: {
-            scientificNameWithoutAuthor: 'Rosa canina',
-            commonNames: ['Églantier'],
+        results: [
+          {
+            score: 0.91,
+            species: {
+              scientificNameWithoutAuthor: 'Rosa canina',
+              commonNames: ['Églantier'],
+            },
           },
-        }],
+        ],
       }),
     };
   };
@@ -120,7 +123,8 @@ test('plantnetIdentifyFromImages : organe invalide', async () => {
   const prevK = process.env.PLANTNET_API_KEY;
   process.env.SPECIES_AUTOFILL_PLANTNET = '1';
   process.env.PLANTNET_API_KEY = 'pk-test';
-  const png = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+  const png =
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
   const out = await plantnetIdentifyFromImages({
     images: [{ organ: 'invalid_organ', imageData: `data:image/png;base64,${png}` }],
     fetchImpl: async () => ({ ok: true, status: 200, json: async () => ({}) }),

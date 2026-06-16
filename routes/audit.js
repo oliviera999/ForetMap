@@ -12,7 +12,7 @@ const router = express.Router();
 const auditQuerySchema = z.object({
   limit: z.preprocess(
     (v) => parseInt(v, 10) || 50,
-    z.number().transform((n) => Math.max(1, Math.min(n, 200)))
+    z.number().transform((n) => Math.max(1, Math.min(n, 200))),
   ),
 });
 
@@ -25,7 +25,7 @@ router.get(
     const { limit } = req.validatedQuery;
     const rows = await queryAll(`SELECT * FROM audit_log ORDER BY id DESC LIMIT ${limit}`, []);
     res.json(rows);
-  })
+  }),
 );
 
 /**
@@ -34,12 +34,15 @@ router.get(
  */
 async function resolveCanonicalActorId(actorUserType, actorUserId) {
   if (!actorUserType || !actorUserId) return null;
-  const existing = await queryOne(
-    'SELECT id FROM users WHERE user_type = ? AND id = ? LIMIT 1',
-    [actorUserType, actorUserId]
-  );
+  const existing = await queryOne('SELECT id FROM users WHERE user_type = ? AND id = ? LIMIT 1', [
+    actorUserType,
+    actorUserId,
+  ]);
   if (existing?.id) return existing.id;
-  const fromAuth = await ensureCanonicalUserByAuth({ userType: actorUserType, userId: actorUserId });
+  const fromAuth = await ensureCanonicalUserByAuth({
+    userType: actorUserType,
+    userId: actorUserId,
+  });
   return fromAuth || null;
 }
 
@@ -49,8 +52,9 @@ async function logSecurityEvent(action, options = {}) {
     const actorFromReq = resolveActorFromReq(req);
     const actorUserType = options.actorUserType || actorFromReq.actorUserType || null;
     const actorLegacyUserId = options.actorUserId || actorFromReq.actorUserId || null;
-    const actorUserId = options.actorUserCanonicalId
-      || await resolveCanonicalActorId(actorUserType, actorLegacyUserId);
+    const actorUserId =
+      options.actorUserCanonicalId ||
+      (await resolveCanonicalActorId(actorUserType, actorLegacyUserId));
     const payload = options.payload ? JSON.stringify(options.payload) : null;
     await execute(
       `INSERT INTO security_events
@@ -67,7 +71,7 @@ async function logSecurityEvent(action, options = {}) {
         req?.ip || null,
         req?.headers?.['user-agent'] || null,
         payload,
-      ]
+      ],
     );
   } catch (_) {
     // Ne pas bloquer la route appelante.
@@ -80,8 +84,9 @@ async function logAudit(action, targetType, targetId, details, options = {}) {
     const actorFromReq = resolveActorFromReq(req);
     const actorUserType = options.actorUserType || actorFromReq.actorUserType || null;
     const actorLegacyUserId = options.actorUserId || actorFromReq.actorUserId || null;
-    const actorUserId = options.actorUserCanonicalId
-      || await resolveCanonicalActorId(actorUserType, actorLegacyUserId);
+    const actorUserId =
+      options.actorUserCanonicalId ||
+      (await resolveCanonicalActorId(actorUserType, actorLegacyUserId));
     const payload = options.payload ? JSON.stringify(options.payload) : null;
     await execute(
       `INSERT INTO audit_log
@@ -97,7 +102,7 @@ async function logAudit(action, targetType, targetId, details, options = {}) {
         options.result || 'success',
         new Date().toISOString(),
         payload,
-      ]
+      ],
     );
     await logSecurityEvent(action, {
       req,

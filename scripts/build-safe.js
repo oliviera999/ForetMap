@@ -76,7 +76,9 @@ function main() {
   }
 
   console.error('[build-safe] Impossible de builder : Vite absent et dist/ introuvable.');
-  console.error('[build-safe] Installez les dépendances dev (npm ci --include=dev) ou poussez dist/.');
+  console.error(
+    '[build-safe] Installez les dépendances dev (npm ci --include=dev) ou poussez dist/.',
+  );
   process.exit(1);
 }
 

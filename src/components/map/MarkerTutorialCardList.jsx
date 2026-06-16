@@ -27,10 +27,13 @@ function MarkerTutorialCardList({ tutorials = [], currentMarkerId, onOpenTutoria
               borderRadius: 10,
               padding: '12px 14px',
               background: 'var(--parchment)',
-            }}>
+            }}
+          >
             <div style={{ fontWeight: 700, color: 'var(--forest)' }}>{tu.title}</div>
             {tu.summary && (
-              <p style={{ margin: '8px 0 0', fontSize: '.82rem', color: '#555', lineHeight: 1.45 }}>{tu.summary}</p>
+              <p style={{ margin: '8px 0 0', fontSize: '.82rem', color: '#555', lineHeight: 1.45 }}>
+                {tu.summary}
+              </p>
             )}
             {zones.length > 0 && (
               <p style={{ margin: '10px 0 0', fontSize: '.76rem', color: '#64748b' }}>

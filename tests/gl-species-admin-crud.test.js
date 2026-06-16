@@ -19,17 +19,16 @@ before(async () => {
   await execute(
     `INSERT INTO gl_biomes (slug, nom, order_index, created_at, updated_at)
      VALUES (?, ?, 9999, NOW(), NOW())`,
-    [biomeSlug, `Biome e2e ${stamp}`]
+    [biomeSlug, `Biome e2e ${stamp}`],
   );
   await execute(
     `INSERT INTO gl_admins (email, display_name, role, is_active, created_at, updated_at)
      VALUES (?, 'MJ CRUD Species', 'admin', 1, NOW(), NOW())`,
-    [`species.crud.${stamp}@ecole.local`]
+    [`species.crud.${stamp}@ecole.local`],
   );
-  const admin = await queryOne(
-    'SELECT id FROM gl_admins WHERE email = ? LIMIT 1',
-    [`species.crud.${stamp}@ecole.local`]
-  );
+  const admin = await queryOne('SELECT id FROM gl_admins WHERE email = ? LIMIT 1', [
+    `species.crud.${stamp}@ecole.local`,
+  ]);
   adminToken = await signAuthToken({
     product: 'gl',
     userType: 'gl_admin',
@@ -40,15 +39,19 @@ before(async () => {
   await execute(
     `INSERT INTO gl_classes (name, school, created_by, is_active, created_at, updated_at)
      VALUES (?, 'Ecole', ?, 1, NOW(), NOW())`,
-    [`Classe CRUD Species ${stamp}`, admin.id]
+    [`Classe CRUD Species ${stamp}`, admin.id],
   );
-  const cls = await queryOne('SELECT id FROM gl_classes WHERE name = ? LIMIT 1', [`Classe CRUD Species ${stamp}`]);
+  const cls = await queryOne('SELECT id FROM gl_classes WHERE name = ? LIMIT 1', [
+    `Classe CRUD Species ${stamp}`,
+  ]);
   await execute(
     `INSERT INTO gl_players (class_id, pseudo, password_hash, is_active, created_at, updated_at)
      VALUES (?, ?, 'x', 1, NOW(), NOW())`,
-    [cls.id, `species-crud-player-${stamp}`]
+    [cls.id, `species-crud-player-${stamp}`],
   );
-  const player = await queryOne('SELECT id FROM gl_players WHERE pseudo = ? LIMIT 1', [`species-crud-player-${stamp}`]);
+  const player = await queryOne('SELECT id FROM gl_players WHERE pseudo = ? LIMIT 1', [
+    `species-crud-player-${stamp}`,
+  ]);
   playerToken = await signAuthToken({
     product: 'gl',
     userType: 'gl_player',

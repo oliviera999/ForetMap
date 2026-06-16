@@ -3,7 +3,10 @@ import { describe, test, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { TaskFiltersBar } from '../../src/components/tasks/TaskFiltersBar.jsx';
 
-const MAPS = [{ id: 'foret', label: 'Forêt' }, { id: 'jardin', label: 'Jardin' }];
+const MAPS = [
+  { id: 'foret', label: 'Forêt' },
+  { id: 'jardin', label: 'Jardin' },
+];
 const ZONES = [{ id: 'z1', name: 'Mare', map_id: 'foret' }];
 const MARKERS = [{ id: 'm1', label: 'Ruche', emoji: '🐝', map_id: 'foret' }];
 const PROJECTS = [

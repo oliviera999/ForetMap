@@ -8,7 +8,9 @@ function PopoverHarness(props) {
   const anchorRef = useRef(null);
   return (
     <>
-      <button type="button" ref={anchorRef}>Ancre</button>
+      <button type="button" ref={anchorRef}>
+        Ancre
+      </button>
       <GLVirtualDicePopover anchorRef={anchorRef} open {...props} />
     </>
   );
@@ -40,7 +42,7 @@ describe('GLVirtualDicePopover', () => {
         canRemoveDie
         onAddDie={onAddDie}
         onRemoveDie={onRemoveDie}
-      />
+      />,
     );
     expect(screen.getByText(/2 dés/)).toBeInTheDocument();
     await userEvent.click(screen.getByTestId('gl-dice-add'));
@@ -50,14 +52,7 @@ describe('GLVirtualDicePopover', () => {
   });
 
   test('désactive + à 5 dés', () => {
-    render(
-      <PopoverHarness
-        {...baseProps}
-        diceCount={5}
-        canAddDie={false}
-        canRemoveDie
-      />
-    );
+    render(<PopoverHarness {...baseProps} diceCount={5} canAddDie={false} canRemoveDie />);
     expect(screen.getByTestId('gl-dice-add')).toBeDisabled();
     expect(document.querySelector('.gl-dice-popover__count-label')).toHaveTextContent('5 dés');
   });
@@ -70,7 +65,7 @@ describe('GLVirtualDicePopover', () => {
         diceCount={3}
         lastRoll={{ values: [4, 5, 2], total: 11 }}
         canRemoveDie
-      />
+      />,
     );
     expect(screen.getByTestId('gl-dice-result')).toBeInTheDocument();
     expect(screen.getByText('11')).toBeInTheDocument();
@@ -85,7 +80,7 @@ describe('GLVirtualDicePopover', () => {
         isRolling
         canAddDie={false}
         canRemoveDie={false}
-      />
+      />,
     );
     expect(screen.getByText(/Les dés roulent/)).toBeInTheDocument();
     expect(screen.getByTestId('gl-dice-roll')).toBeDisabled();
@@ -93,12 +88,7 @@ describe('GLVirtualDicePopover', () => {
 
   test('lancer appelle onStartRoll', async () => {
     const onStartRoll = vi.fn();
-    render(
-      <PopoverHarness
-        {...baseProps}
-        onStartRoll={onStartRoll}
-      />
-    );
+    render(<PopoverHarness {...baseProps} onStartRoll={onStartRoll} />);
     await userEvent.click(screen.getByTestId('gl-dice-roll'));
     expect(onStartRoll).toHaveBeenCalled();
   });

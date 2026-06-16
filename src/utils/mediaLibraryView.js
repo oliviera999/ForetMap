@@ -45,7 +45,7 @@ export function filterMediaLibraryItems(items = [], options = {}) {
     if (filter !== 'all' && String(item.mediaType || '') !== filter) return false;
     if (!query) return true;
     const haystack = normalizeSearchText(
-      [item.filename, item.stableKey, item.relativePath, item.url].filter(Boolean).join(' ')
+      [item.filename, item.stableKey, item.relativePath, item.url].filter(Boolean).join(' '),
     );
     return haystack.includes(query);
   });
@@ -62,12 +62,18 @@ export function sortMediaLibraryItems(items = [], sort = 'updated_desc') {
       case 'name_desc':
         return compareStrings(right.filename, left.filename);
       case 'size_desc':
-        return compareNumbers(right.size, left.size) || compareStrings(left.filename, right.filename);
+        return (
+          compareNumbers(right.size, left.size) || compareStrings(left.filename, right.filename)
+        );
       case 'size_asc':
-        return compareNumbers(left.size, right.size) || compareStrings(left.filename, right.filename);
+        return (
+          compareNumbers(left.size, right.size) || compareStrings(left.filename, right.filename)
+        );
       case 'type_asc':
-        return compareStrings(left.mediaType, right.mediaType)
-          || compareStrings(left.filename, right.filename);
+        return (
+          compareStrings(left.mediaType, right.mediaType) ||
+          compareStrings(left.filename, right.filename)
+        );
       case 'updated_desc':
       default:
         return compareDates(right.updatedAt, left.updatedAt);
@@ -79,7 +85,7 @@ export function sortMediaLibraryItems(items = [], sort = 'updated_desc') {
 export function filterAndSortMediaLibraryItems(items = [], options = {}) {
   return sortMediaLibraryItems(
     filterMediaLibraryItems(items, options),
-    options.sort || 'updated_desc'
+    options.sort || 'updated_desc',
   );
 }
 

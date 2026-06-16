@@ -15,7 +15,7 @@ describe('GLImageFrameEditor', () => {
         initialFrame={{ aspectRatio: '16/9', objectFit: 'cover', focalX: 50, focalY: 50 }}
         onApply={onApply}
         onClose={vi.fn()}
-      />
+      />,
     );
 
     fireEvent.change(screen.getByLabelText(/Focus horizontal/i), { target: { value: '20' } });

@@ -31,7 +31,12 @@ describe('visitMascotDiagnostics.buildVisitMascotHintPayload', () => {
 
   it('tutoriels seuls suffisent pour le hint', () => {
     const maps = ['foret'];
-    const out = buildVisitMascotHintPayload(maps, [], [], [{ map_id: 'foret', tutorial_rows_active: 2 }]);
+    const out = buildVisitMascotHintPayload(
+      maps,
+      [],
+      [],
+      [{ map_id: 'foret', tutorial_rows_active: 2 }],
+    );
     assert.strictEqual(out[0].visitTutorialsForContentApi, 2);
     assert.strictEqual(out[0].mascotWouldRenderHint, true);
   });

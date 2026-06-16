@@ -70,7 +70,7 @@ async function hasImageDataColumn(tableName) {
      WHERE TABLE_SCHEMA = DATABASE()
        AND TABLE_NAME = ?
        AND COLUMN_NAME = 'image_data'`,
-    [tableName]
+    [tableName],
   );
   return Number(row?.c || 0) > 0;
 }
@@ -140,14 +140,16 @@ async function main() {
       acc.failed += r.failed;
       return acc;
     },
-    { scanned: 0, migrated: 0, failed: 0 }
+    { scanned: 0, migrated: 0, failed: 0 },
   );
 
   for (const r of results) {
-    console.log(`[migrate-images] ${r.table}: scanned=${r.scanned} migrated=${r.migrated} failed=${r.failed}`);
+    console.log(
+      `[migrate-images] ${r.table}: scanned=${r.scanned} migrated=${r.migrated} failed=${r.failed}`,
+    );
   }
   console.log(
-    `[migrate-images] total: scanned=${totals.scanned} migrated=${totals.migrated} failed=${totals.failed}`
+    `[migrate-images] total: scanned=${totals.scanned} migrated=${totals.migrated} failed=${totals.failed}`,
   );
 
   if (totals.failed > 0) process.exit(1);

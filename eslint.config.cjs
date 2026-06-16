@@ -60,7 +60,10 @@ module.exports = [
       'no-func-assign': 'error',
       'no-undef': 'error',
       'no-unreachable': 'warn',
-      'no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+      'no-unused-vars': [
+        'warn',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' },
+      ],
     },
   },
   {
@@ -167,7 +170,10 @@ module.exports = [
       'no-func-assign': 'error',
       'no-undef': 'error',
       'no-unreachable': 'warn',
-      'no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+      'no-unused-vars': [
+        'warn',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' },
+      ],
       // Regles des Hooks : violations reelles bloquantes (hook conditionnel, etc.) ;
       // dependances manquantes en avertissement pour guider la stabilisation (useCallback/useMemo).
       'react-hooks/rules-of-hooks': 'error',

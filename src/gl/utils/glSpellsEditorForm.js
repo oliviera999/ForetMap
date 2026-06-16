@@ -28,11 +28,24 @@ export const EMPTY_FORM = {
 
 /** Ordre d'affichage des champs dans le formulaire. */
 export const FORM_FIELDS = [
-  'spell_code', 'category_slug', 'nom', 'emoji',
-  'cout_gemmes', 'cout_coeurs', 'cout_total_eq',
-  'portee', 'cible', 'timing',
-  'effet_court', 'effet_detaille', 'limite_usage', 'cumul',
-  'statut', 'source', 'notes_pedagogiques', 'cree_le',
+  'spell_code',
+  'category_slug',
+  'nom',
+  'emoji',
+  'cout_gemmes',
+  'cout_coeurs',
+  'cout_total_eq',
+  'portee',
+  'cible',
+  'timing',
+  'effet_court',
+  'effet_detaille',
+  'limite_usage',
+  'cumul',
+  'statut',
+  'source',
+  'notes_pedagogiques',
+  'cree_le',
 ];
 
 /**

@@ -66,19 +66,14 @@ export function LearningAcknowledgeButton({
 
   const intro = confirmIntro || (
     <>
-      En validant, tu t&apos;engages à avoir lu et compris
-      {' '}
+      En validant, tu t&apos;engages à avoir lu et compris{' '}
       <strong>« {itemTitle || 'ce contenu'} »</strong>.
     </>
   );
 
   return (
     <>
-      <button
-        type="button"
-        className={buttonClassName}
-        onClick={() => setModalOpen(true)}
-      >
+      <button type="button" className={buttonClassName} onClick={() => setModalOpen(true)}>
         {labelAction}
       </button>
       {modalOpen ? (

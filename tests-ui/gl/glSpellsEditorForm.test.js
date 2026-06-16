@@ -77,7 +77,7 @@ describe('formToPayload', () => {
     expect(payload.cout_coeurs).toBe(0);
   });
 
-  test('spell_code épuré sert aussi d\'id', () => {
+  test("spell_code épuré sert aussi d'id", () => {
     const payload = formToPayload({ ...EMPTY_FORM, spell_code: '  AGUA  ' });
     expect(payload.spell_code).toBe('AGUA');
     expect(payload.id).toBe('AGUA');

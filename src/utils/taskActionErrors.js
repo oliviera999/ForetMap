@@ -41,9 +41,13 @@ export function filterTeacherStatusActions(actions, perms) {
  */
 export function teacherStatusActionDisabled(statusValue, perms) {
   if (statusValue === 'validated') {
-    if (!perms?.canValidateTasks) return { disabled: true, title: 'Validation des tâches non autorisée pour votre profil.' };
+    if (!perms?.canValidateTasks)
+      return { disabled: true, title: 'Validation des tâches non autorisée pour votre profil.' };
     if (!perms?.hasActiveValidate) {
-      return { disabled: true, title: 'Activez les droits étendus (cadenas) pour valider une tâche.' };
+      return {
+        disabled: true,
+        title: 'Activez les droits étendus (cadenas) pour valider une tâche.',
+      };
     }
     return { disabled: false, title: '' };
   }
@@ -51,7 +55,10 @@ export function teacherStatusActionDisabled(statusValue, perms) {
     return { disabled: true, title: 'Gestion des tâches non autorisée pour votre profil.' };
   }
   if (!perms?.hasActiveManage) {
-    return { disabled: true, title: 'Activez les droits étendus (cadenas) pour modifier le statut.' };
+    return {
+      disabled: true,
+      title: 'Activez les droits étendus (cadenas) pour modifier le statut.',
+    };
   }
   return { disabled: false, title: '' };
 }

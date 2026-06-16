@@ -21,7 +21,7 @@ async function enableQcmMjOnly() {
   await execute(
     `INSERT INTO gl_settings (\`key\`, value_json, updated_at)
      VALUES ('gameplay.qcm_mj_only', 'true', NOW())
-     ON DUPLICATE KEY UPDATE value_json = 'true', updated_at = NOW()`
+     ON DUPLICATE KEY UPDATE value_json = 'true', updated_at = NOW()`,
   );
   invalidateGameplayCache();
   setGameplayCacheForTests({ qcmMjOnly: true });
@@ -61,11 +61,11 @@ before(async () => {
     `UPDATE gl_chapter_markers
         SET event_type = 'question', event_config_json = ?
       WHERE chapter_id = ?`,
-    [eventConfig, chapter.id]
+    [eventConfig, chapter.id],
   );
   const markerRow = await queryOne(
     'SELECT id FROM gl_chapter_markers WHERE chapter_id = ? ORDER BY id DESC LIMIT 1',
-    [chapter.id]
+    [chapter.id],
   );
   markerId = Number(markerRow.id);
 
@@ -82,7 +82,7 @@ before(async () => {
   await execute(
     `INSERT INTO gl_team_members (game_id, team_id, player_id, joined_at)
      VALUES (?, ?, ?, NOW())`,
-    [gameId, teamId, player.id]
+    [gameId, teamId, player.id],
   );
 
   const tokens = await signTokens({
@@ -99,7 +99,7 @@ before(async () => {
   await execute(
     `INSERT INTO gl_qcm_categories (slug, nom, order_index, created_at, updated_at)
      VALUES ('test-cat', 'Test', 0, NOW(), NOW())
-     ON DUPLICATE KEY UPDATE nom = VALUES(nom), updated_at = NOW()`
+     ON DUPLICATE KEY UPDATE nom = VALUES(nom), updated_at = NOW()`,
   );
   await execute(
     `INSERT INTO gl_qcm_questions (
@@ -109,14 +109,14 @@ before(async () => {
        'QCM0001', 'sahara', 'test-cat', 1, 'Question test mj only?',
        'A', 'B', 'C', 'D', 'E', 'A', 'actif', NOW(), NOW()
      )
-     ON DUPLICATE KEY UPDATE question = VALUES(question), updated_at = NOW()`
+     ON DUPLICATE KEY UPDATE question = VALUES(question), updated_at = NOW()`,
   );
 });
 
 after(async () => {
   await execute(
     `UPDATE gl_settings SET value_json = 'false', updated_at = NOW()
-      WHERE \`key\` = 'gameplay.qcm_mj_only'`
+      WHERE \`key\` = 'gameplay.qcm_mj_only'`,
   );
   invalidateGameplayCache();
   setGameplayCacheForTests(null);

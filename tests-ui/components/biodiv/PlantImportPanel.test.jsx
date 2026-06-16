@@ -33,7 +33,7 @@ describe('PlantImportPanel', () => {
     expect(screen.getByText('Fichier CSV/XLSX')).toBeInTheDocument();
     expect(screen.getByText('Remplacer entièrement le catalogue')).toBeInTheDocument();
     expect(screen.getByText('Télécharger template vierge')).toBeInTheDocument();
-    expect(screen.getByText('Lancer l\'import')).toBeInTheDocument();
+    expect(screen.getByText("Lancer l'import")).toBeInTheDocument();
   });
 
   test('source fichier sans fichier choisi → toast de garde, aucun appel serveur', () => {
@@ -47,8 +47,10 @@ describe('PlantImportPanel', () => {
     const { setToast } = setup();
     const [sourceSelect] = screen.getAllByRole('combobox');
     fireEvent.change(sourceSelect, { target: { value: 'gsheet' } });
-    expect(screen.getByPlaceholderText('https://docs.google.com/spreadsheets/d/.../edit#gid=0')).toBeInTheDocument();
-    fireEvent.click(screen.getByText('Lancer l\'import'));
+    expect(
+      screen.getByPlaceholderText('https://docs.google.com/spreadsheets/d/.../edit#gid=0'),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByText("Lancer l'import"));
     expect(setToast).toHaveBeenCalledWith('Saisis une URL Google Sheet.');
     expect(api).not.toHaveBeenCalled();
   });
@@ -63,9 +65,11 @@ describe('PlantImportPanel', () => {
       screen.getByPlaceholderText('https://docs.google.com/spreadsheets/d/.../edit#gid=0'),
       { target: { value: 'https://docs.google.com/spreadsheets/d/abc/edit' } },
     );
-    expect(screen.getByText('Je confirme le remplacement complet de la base biodiversité.')).toBeInTheDocument();
+    expect(
+      screen.getByText('Je confirme le remplacement complet de la base biodiversité.'),
+    ).toBeInTheDocument();
 
-    fireEvent.click(screen.getByText('Lancer l\'import'));
+    fireEvent.click(screen.getByText("Lancer l'import"));
     expect(setToast).toHaveBeenCalledWith('Confirme le remplacement complet avant import.');
     expect(api).not.toHaveBeenCalled();
 
@@ -82,14 +86,25 @@ describe('PlantImportPanel', () => {
 
   test('import fichier réel → POST avec fileDataBase64, onRefresh puis toast et rapport affiché', async () => {
     api.mockResolvedValue({
-      report: { totals: { received: 3, valid: 3, created: 2, updated: 1, skipped_existing: 0, skipped_invalid: 0 } },
+      report: {
+        totals: {
+          received: 3,
+          valid: 3,
+          created: 2,
+          updated: 1,
+          skipped_existing: 0,
+          skipped_invalid: 0,
+        },
+      },
     });
     const { setToast, onRefresh } = setup();
     const fileInput = document.querySelector('input[type=file]');
-    fireEvent.change(fileInput, { target: { files: [new File(['a,b'], 'plantes.csv', { type: 'text/csv' })] } });
+    fireEvent.change(fileInput, {
+      target: { files: [new File(['a,b'], 'plantes.csv', { type: 'text/csv' })] },
+    });
     await screen.findByText('plantes.csv');
 
-    fireEvent.click(screen.getByText('Lancer l\'import'));
+    fireEvent.click(screen.getByText("Lancer l'import"));
     await waitFor(() => {
       expect(api).toHaveBeenCalledWith('/api/plants/import', 'POST', {
         sourceType: 'file',
@@ -101,17 +116,19 @@ describe('PlantImportPanel', () => {
     });
     await waitFor(() => expect(setToast).toHaveBeenCalledWith('Import biodiversité terminé ✓'));
     expect(onRefresh).toHaveBeenCalledTimes(1);
-    expect(screen.getByText('Rapport d\'import')).toBeInTheDocument();
+    expect(screen.getByText("Rapport d'import")).toBeInTheDocument();
     expect(screen.getByText(/Créées: 2/)).toBeInTheDocument();
   });
 
-  test('erreur serveur → toast d\'erreur, pas de rafraîchissement', async () => {
+  test("erreur serveur → toast d'erreur, pas de rafraîchissement", async () => {
     api.mockRejectedValue(new Error('boom'));
     const { setToast, onRefresh } = setup();
     const fileInput = document.querySelector('input[type=file]');
-    fireEvent.change(fileInput, { target: { files: [new File(['a'], 'p.csv', { type: 'text/csv' })] } });
+    fireEvent.change(fileInput, {
+      target: { files: [new File(['a'], 'p.csv', { type: 'text/csv' })] },
+    });
     await screen.findByText('p.csv');
-    fireEvent.click(screen.getByText('Lancer l\'import'));
+    fireEvent.click(screen.getByText("Lancer l'import"));
     await waitFor(() => expect(setToast).toHaveBeenCalledWith('Erreur import : boom'));
     expect(onRefresh).not.toHaveBeenCalled();
   });

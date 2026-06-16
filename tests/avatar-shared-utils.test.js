@@ -10,7 +10,9 @@ let avatarShared;
 
 describe('avatar shared utils', () => {
   before(async () => {
-    avatarShared = await import(pathToFileURL(join(__dirname, '../src/shared/profile/avatarUrl.js')).href);
+    avatarShared = await import(
+      pathToFileURL(join(__dirname, '../src/shared/profile/avatarUrl.js')).href
+    );
   });
 
   it('normalise un chemin upload avatar', () => {

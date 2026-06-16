@@ -43,13 +43,13 @@ Composant `GLGameBoardHud.jsx` : barre d’actions flottante regroupant plein é
 
 ## États à maquetter
 
-| État | Éléments visibles |
-|------|-------------------|
-| Joueur standard | HUD actions + musique si module actif |
+| État                      | Éléments visibles                               |
+| ------------------------- | ----------------------------------------------- |
+| Joueur standard           | HUD actions + musique si module actif           |
 | MJ (déplacement mascotte) | Pas de demande d’action ; pins équipes visibles |
-| Plein écran | Bouton Fermer seul en overlay |
-| Popover QCM ouvert | HUD masqué ou atténué |
-| Dés virtuels actifs | Dock dés + HUD |
+| Plein écran               | Bouton Fermer seul en overlay                   |
+| Popover QCM ouvert        | HUD masqué ou atténué                           |
+| Dés virtuels actifs       | Dock dés + HUD                                  |
 
 ## Design system
 

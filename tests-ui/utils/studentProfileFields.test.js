@@ -69,7 +69,10 @@ describe('buildProfileAffiliationOptions', () => {
 
   test('affiliation hors options → entrée « valeur en base » ajoutée', () => {
     const opts = buildProfileAffiliationOptions([], 'ancienne_carte', null);
-    expect(opts[opts.length - 1]).toEqual({ value: 'ancienne_carte', label: 'ancienne_carte (valeur en base)' });
+    expect(opts[opts.length - 1]).toEqual({
+      value: 'ancienne_carte',
+      label: 'ancienne_carte (valeur en base)',
+    });
   });
 
   test('repli sur l’affiliation du compte puis sur both', () => {
@@ -104,21 +107,30 @@ describe('buildVisitMascotOptions', () => {
 });
 
 describe('validateProfileEditorFields', () => {
-  const valid = { pseudo: 'momo_lyautey', email: 'moi@exemple.com', description: 'Salut', currentPassword: 'xx' };
+  const valid = {
+    pseudo: 'momo_lyautey',
+    email: 'moi@exemple.com',
+    description: 'Salut',
+    currentPassword: 'xx',
+  };
 
   test('champs valides → pas d’erreur', () => {
     expect(validateProfileEditorFields(valid)).toBe('');
   });
 
   test('mot de passe actuel requis (vérifié en premier)', () => {
-    expect(validateProfileEditorFields({ ...valid, currentPassword: '' })).toBe('Mot de passe actuel requis');
+    expect(validateProfileEditorFields({ ...valid, currentPassword: '' })).toBe(
+      'Mot de passe actuel requis',
+    );
   });
 
   test('pseudo invalide (trop court ou caractères interdits) ; pseudo vide toléré', () => {
-    expect(validateProfileEditorFields({ ...valid, pseudo: 'ab' }))
-      .toBe('Pseudo invalide (3-30 caractères, lettres/chiffres/._-)');
-    expect(validateProfileEditorFields({ ...valid, pseudo: 'momo lyautey' }))
-      .toBe('Pseudo invalide (3-30 caractères, lettres/chiffres/._-)');
+    expect(validateProfileEditorFields({ ...valid, pseudo: 'ab' })).toBe(
+      'Pseudo invalide (3-30 caractères, lettres/chiffres/._-)',
+    );
+    expect(validateProfileEditorFields({ ...valid, pseudo: 'momo lyautey' })).toBe(
+      'Pseudo invalide (3-30 caractères, lettres/chiffres/._-)',
+    );
     expect(validateProfileEditorFields({ ...valid, pseudo: '   ' })).toBe('');
   });
 
@@ -128,8 +140,9 @@ describe('validateProfileEditorFields', () => {
   });
 
   test('description > 300 caractères refusée', () => {
-    expect(validateProfileEditorFields({ ...valid, description: 'x'.repeat(301) }))
-      .toBe('Description trop longue (max 300 caractères)');
+    expect(validateProfileEditorFields({ ...valid, description: 'x'.repeat(301) })).toBe(
+      'Description trop longue (max 300 caractères)',
+    );
     expect(validateProfileEditorFields({ ...valid, description: 'x'.repeat(300) })).toBe('');
   });
 });

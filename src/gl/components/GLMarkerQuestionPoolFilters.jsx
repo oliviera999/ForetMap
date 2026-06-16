@@ -54,7 +54,8 @@ export function GLMarkerQuestionPoolFilters({
             />
           ) : (
             <p className="gl-hint">
-              Inclut automatiquement les questions « tous » et le scope lié au plateau du chapitre (ex. ch3).
+              Inclut automatiquement les questions « tous » et le scope lié au plateau du chapitre
+              (ex. ch3).
             </p>
           )}
         </>
@@ -74,8 +75,7 @@ export function GLMarkerQuestionPoolFilters({
           {pool.biomeMode === 'custom' ? (
             <div className="gl-marker-event-biomes">
               <p className="gl-hint">
-                Biomes du chapitre :
-                {' '}
+                Biomes du chapitre :{' '}
                 {chapterBiomeSlugs.length ? chapterBiomeSlugs.join(', ') : 'aucun'}
               </p>
               <GLMultiCheckDropdown
@@ -128,9 +128,11 @@ export function GLMarkerQuestionPoolFilters({
             min="1"
             max="5"
             value={pool.difficulteMin ?? ''}
-            onChange={(event) => onPatchPool({
-              difficulteMin: event.target.value === '' ? null : Number(event.target.value),
-            })}
+            onChange={(event) =>
+              onPatchPool({
+                difficulteMin: event.target.value === '' ? null : Number(event.target.value),
+              })
+            }
           />
         </label>
         <label>
@@ -140,9 +142,11 @@ export function GLMarkerQuestionPoolFilters({
             min="1"
             max="5"
             value={pool.difficulteMax ?? ''}
-            onChange={(event) => onPatchPool({
-              difficulteMax: event.target.value === '' ? null : Number(event.target.value),
-            })}
+            onChange={(event) =>
+              onPatchPool({
+                difficulteMax: event.target.value === '' ? null : Number(event.target.value),
+              })
+            }
           />
         </label>
       </div>

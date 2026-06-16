@@ -19,7 +19,9 @@ vi.mock('../../../src/components/map-views', () => ({
     <ul data-testid="location-tutos">
       {(tutorials || []).map((t) => (
         <li key={t.id}>
-          <button type="button" onClick={() => onOpenTutorialPreview(t)}>{t.title}</button>
+          <button type="button" onClick={() => onOpenTutorialPreview(t)}>
+            {t.title}
+          </button>
         </li>
       ))}
     </ul>
@@ -28,9 +30,8 @@ vi.mock('../../../src/components/map-views', () => ({
 
 // L'éditeur prof fait des appels API : stub minimal qui expose le flag isTeacher reçu.
 vi.mock('../../../src/components/visit/VisitEditorPanel.jsx', () => ({
-  VisitEditorPanel: ({ isTeacher }) => (
-    isTeacher ? <div data-testid="visit-editor-panel" /> : null
-  ),
+  VisitEditorPanel: ({ isTeacher }) =>
+    isTeacher ? <div data-testid="visit-editor-panel" /> : null,
 }));
 
 import { VisitDetailPanel } from '../../../src/components/visit/VisitDetailPanel.jsx';
@@ -111,14 +112,18 @@ describe('VisitDetailPanel', () => {
 
   test('mode lecture confortable : classe modifiée appliquée au panneau', () => {
     setup({ comfortableReading: true });
-    expect(screen.getByTestId('visit-detail-panel').className)
-      .toContain('visit-detail-panel--comfortable');
+    expect(screen.getByTestId('visit-detail-panel').className).toContain(
+      'visit-detail-panel--comfortable',
+    );
   });
 
   test('clic vignette → onOpenLightbox avec src pleine taille + légende', () => {
     const { props } = setup();
     fireEvent.click(screen.getByRole('button', { name: 'Agrandir la photo : Photo une' }));
-    expect(props.onOpenLightbox).toHaveBeenCalledWith({ src: '/uploads/a.jpg', caption: 'Photo une' });
+    expect(props.onOpenLightbox).toHaveBeenCalledWith({
+      src: '/uploads/a.jpg',
+      caption: 'Photo une',
+    });
   });
 
   test('blocs éditoriaux présents : rendu éditorial au lieu du repli description', () => {
@@ -134,7 +139,9 @@ describe('VisitDetailPanel', () => {
     });
     expect(screen.getByText('Chapitre')).toBeInTheDocument();
     expect(screen.getByText('Paragraphe éditorial')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Agrandir la photo : Photo deux' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Agrandir la photo : Photo deux' }),
+    ).toBeInTheDocument();
     expect(screen.queryByText('Description courte')).not.toBeInTheDocument();
   });
 
@@ -158,9 +165,7 @@ describe('VisitDetailPanel', () => {
     expect(screen.getByTestId('biodiv-catalog-panel')).toHaveTextContent('Chêne, Fougère');
     expect(screen.getByText('Tuto')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Tuto verger' }));
-    expect(props.onOpenTutorialPreview).toHaveBeenCalledWith(
-      expect.objectContaining({ id: 10 }),
-    );
+    expect(props.onOpenTutorialPreview).toHaveBeenCalledWith(expect.objectContaining({ id: 10 }));
   });
 
   test('onOpenPlantCatalogPreview fourni : liens d’ouverture du catalogue plutôt que panneau inline', () => {

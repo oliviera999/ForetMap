@@ -5,12 +5,7 @@ import { GLImageInlineInsertControls } from './GLImageInlineInsertControls.jsx';
 /**
  * Import d’image (fichier ou bibliothèque) et insertion Markdown dans un textarea.
  */
-export function GLMarkdownImageInsert({
-  textareaRef,
-  value,
-  onChange,
-  onStatus,
-}) {
+export function GLMarkdownImageInsert({ textareaRef, value, onChange, onStatus }) {
   function applyInsert({ url, alt = 'Image', frame = null }) {
     const el = textareaRef?.current;
     const start = el?.selectionStart ?? String(value ?? '').length;

@@ -43,9 +43,10 @@ function safeColor(value) {
 /** Thème chapitre sparse : seules les couleurs renseignées sont conservées. */
 export function normalizeChapterTheme(raw) {
   const source = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
-  const colorsSource = source.colors && typeof source.colors === 'object' && !Array.isArray(source.colors)
-    ? source.colors
-    : {};
+  const colorsSource =
+    source.colors && typeof source.colors === 'object' && !Array.isArray(source.colors)
+      ? source.colors
+      : {};
   const colors = {};
   for (const key of GL_BRAND_COLOR_KEYS) {
     if (!Object.prototype.hasOwnProperty.call(colorsSource, key)) continue;
@@ -63,7 +64,8 @@ export function mergeBrandColors(baseColors, chapterTheme) {
 
 export function mergeBrandWithChapterTheme(baseBrand, chapterTheme) {
   const brand = baseBrand && typeof baseBrand === 'object' ? baseBrand : {};
-  const baseColors = brand.colors && typeof brand.colors === 'object' ? brand.colors : DEFAULT_GL_BRAND_COLORS;
+  const baseColors =
+    brand.colors && typeof brand.colors === 'object' ? brand.colors : DEFAULT_GL_BRAND_COLORS;
   return {
     ...brand,
     colors: mergeBrandColors(baseColors, chapterTheme),
@@ -71,9 +73,8 @@ export function mergeBrandWithChapterTheme(baseBrand, chapterTheme) {
 }
 
 export function brandToCssVars(brand) {
-  const colors = brand?.colors && typeof brand.colors === 'object'
-    ? brand.colors
-    : DEFAULT_GL_BRAND_COLORS;
+  const colors =
+    brand?.colors && typeof brand.colors === 'object' ? brand.colors : DEFAULT_GL_BRAND_COLORS;
   return {
     '--gl-color-primary': colors.primary,
     '--gl-color-secondary': colors.secondary,

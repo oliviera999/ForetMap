@@ -73,7 +73,7 @@ async function requestStatus(url, timeoutMs = 10000) {
         const status = Number(res.statusCode || 0);
         res.destroy();
         resolve(status);
-      }
+      },
     );
 
     req.setTimeout(timeoutMs, () => req.destroy(new Error(`Timeout HTTP (${timeoutMs}ms)`)));
@@ -122,7 +122,7 @@ async function fetchJson(url, timeoutMs = 15000) {
             reject(new Error(`JSON invalide: ${err.message}`));
           }
         });
-      }
+      },
     );
 
     req.setTimeout(timeoutMs, () => req.destroy(new Error(`Timeout HTTP (${timeoutMs}ms)`)));
@@ -188,10 +188,9 @@ async function resolveWikipediaCandidate(plant, lang, titleValue, cache) {
 }
 
 async function findBestTrustedSources(plant, cache) {
-  const candidates = [
-    (plant.scientific_name || '').trim(),
-    (plant.name || '').trim(),
-  ].filter(Boolean);
+  const candidates = [(plant.scientific_name || '').trim(), (plant.name || '').trim()].filter(
+    Boolean,
+  );
 
   let best = null;
   for (const lang of ['fr', 'en']) {
@@ -221,7 +220,7 @@ async function main() {
   const rows = await queryAll(
     `SELECT id, name, scientific_name, sources
      FROM plants
-     ORDER BY id`
+     ORDER BY id`,
   );
   const plants = limit ? rows.slice(0, limit) : rows;
   const wikiCache = new Map();
@@ -265,8 +264,10 @@ async function main() {
 
     const trusted = await findBestTrustedSources(plant, wikiCache);
     const added = [];
-    if (trusted?.wikipediaUrl && !verifiedUrls.includes(trusted.wikipediaUrl)) added.push(trusted.wikipediaUrl);
-    if (trusted?.wikidataUrl && !verifiedUrls.includes(trusted.wikidataUrl)) added.push(trusted.wikidataUrl);
+    if (trusted?.wikipediaUrl && !verifiedUrls.includes(trusted.wikipediaUrl))
+      added.push(trusted.wikipediaUrl);
+    if (trusted?.wikidataUrl && !verifiedUrls.includes(trusted.wikidataUrl))
+      added.push(trusted.wikidataUrl);
     stats.sourcesAdded += added.length;
 
     const nextEntries = uniqueOrdered([...verifiedUrls, ...added, ...preservedText]);
@@ -309,4 +310,3 @@ module.exports = {
   splitSources,
   isHttpsUrl,
 };
-

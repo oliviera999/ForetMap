@@ -59,7 +59,8 @@ const createProjectBodySchema = z
   .superRefine((d, ctx) => {
     if (!d.map_id) ctx.addIssue({ code: 'custom', message: 'Carte requise', path: [] });
     else if (!d.title) ctx.addIssue({ code: 'custom', message: 'Titre requis', path: [] });
-    else if (!d.status) ctx.addIssue({ code: 'custom', message: 'Statut projet invalide', path: [] });
+    else if (!d.status)
+      ctx.addIssue({ code: 'custom', message: 'Statut projet invalide', path: [] });
   });
 
 async function ensureMapExists(mapId) {
@@ -68,38 +69,56 @@ async function ensureMapExists(mapId) {
 }
 
 async function getProjectZoneIds(projectId) {
-  const rows = await queryAll('SELECT zone_id FROM project_zones WHERE project_id = ? ORDER BY zone_id', [projectId]);
+  const rows = await queryAll(
+    'SELECT zone_id FROM project_zones WHERE project_id = ? ORDER BY zone_id',
+    [projectId],
+  );
   return rows.map((r) => r.zone_id);
 }
 
 async function getProjectMarkerIds(projectId) {
-  const rows = await queryAll('SELECT marker_id FROM project_markers WHERE project_id = ? ORDER BY marker_id', [projectId]);
+  const rows = await queryAll(
+    'SELECT marker_id FROM project_markers WHERE project_id = ? ORDER BY marker_id',
+    [projectId],
+  );
   return rows.map((r) => r.marker_id);
 }
 
 async function getProjectTutorialIds(projectId) {
-  const rows = await queryAll('SELECT tutorial_id FROM project_tutorials WHERE project_id = ? ORDER BY tutorial_id', [projectId]);
+  const rows = await queryAll(
+    'SELECT tutorial_id FROM project_tutorials WHERE project_id = ? ORDER BY tutorial_id',
+    [projectId],
+  );
   return rows.map((r) => Number(r.tutorial_id));
 }
 
 async function setProjectZones(projectId, zoneIds) {
   await execute('DELETE FROM project_zones WHERE project_id = ?', [projectId]);
   for (const zid of zoneIds) {
-    await execute('INSERT INTO project_zones (project_id, zone_id) VALUES (?, ?)', [projectId, zid]);
+    await execute('INSERT INTO project_zones (project_id, zone_id) VALUES (?, ?)', [
+      projectId,
+      zid,
+    ]);
   }
 }
 
 async function setProjectMarkers(projectId, markerIds) {
   await execute('DELETE FROM project_markers WHERE project_id = ?', [projectId]);
   for (const mid of markerIds) {
-    await execute('INSERT INTO project_markers (project_id, marker_id) VALUES (?, ?)', [projectId, mid]);
+    await execute('INSERT INTO project_markers (project_id, marker_id) VALUES (?, ?)', [
+      projectId,
+      mid,
+    ]);
   }
 }
 
 async function setProjectTutorials(projectId, tutorialIds) {
   await execute('DELETE FROM project_tutorials WHERE project_id = ?', [projectId]);
   for (const tid of tutorialIds) {
-    await execute('INSERT INTO project_tutorials (project_id, tutorial_id) VALUES (?, ?)', [projectId, tid]);
+    await execute('INSERT INTO project_tutorials (project_id, tutorial_id) VALUES (?, ?)', [
+      projectId,
+      tid,
+    ]);
   }
 }
 
@@ -107,12 +126,14 @@ async function validateProjectLinksForMap(mapId, zoneIds, markerIds) {
   for (const zid of zoneIds) {
     const zone = await queryOne('SELECT map_id FROM zones WHERE id = ?', [zid]);
     if (!zone) return { error: 'Zone introuvable' };
-    if (zone.map_id !== mapId) return { error: 'Une zone ne fait pas partie de la carte du projet' };
+    if (zone.map_id !== mapId)
+      return { error: 'Une zone ne fait pas partie de la carte du projet' };
   }
   for (const mid of markerIds) {
     const marker = await queryOne('SELECT map_id FROM map_markers WHERE id = ?', [mid]);
     if (!marker) return { error: 'Repère introuvable' };
-    if (marker.map_id !== mapId) return { error: 'Un repère ne fait pas partie de la carte du projet' };
+    if (marker.map_id !== mapId)
+      return { error: 'Un repère ne fait pas partie de la carte du projet' };
   }
   return {};
 }
@@ -122,7 +143,7 @@ async function validateTutorialIds(tutorialIds) {
   const placeholders = tutorialIds.map(() => '?').join(',');
   const rows = await queryAll(
     `SELECT id FROM tutorials WHERE id IN (${placeholders}) AND is_active = 1`,
-    tutorialIds
+    tutorialIds,
   );
   const existing = new Set(rows.map((r) => Number(r.id)));
   for (const tid of tutorialIds) {
@@ -140,7 +161,7 @@ async function fetchZonesForProjects(projectIds) {
        INNER JOIN zones z ON z.id = pz.zone_id
       WHERE pz.project_id IN (${ph})
       ORDER BY z.name`,
-    projectIds
+    projectIds,
   );
   const m = new Map();
   for (const r of rows) {
@@ -159,7 +180,7 @@ async function fetchMarkersForProjects(projectIds) {
        INNER JOIN map_markers mk ON mk.id = pm.marker_id
       WHERE pm.project_id IN (${ph})
       ORDER BY mk.label`,
-    projectIds
+    projectIds,
   );
   const m = new Map();
   for (const r of rows) {
@@ -178,7 +199,7 @@ async function fetchTutorialsForProjects(projectIds) {
        INNER JOIN tutorials tu ON tu.id = pt.tutorial_id
       WHERE pt.project_id IN (${ph}) AND tu.is_active = 1
       ORDER BY tu.sort_order ASC, tu.title ASC`,
-    projectIds
+    projectIds,
   );
   const m = new Map();
   for (const r of rows) {
@@ -235,7 +256,7 @@ async function loadProjectRow(projectId) {
        FROM task_projects p
        INNER JOIN maps m ON m.id = p.map_id
       WHERE p.id = ?`,
-    [projectId]
+    [projectId],
   );
   if (!row) return null;
   const [zm, mm, tm] = await Promise.all([
@@ -247,133 +268,180 @@ async function loadProjectRow(projectId) {
   return row;
 }
 
-router.get('/', asyncHandler(async (req, res) => {
-  const mapId = normalizeText(req.query.map_id);
-  if (mapId && !(await ensureMapExists(mapId))) {
-    return res.status(400).json({ error: 'Carte introuvable' });
-  }
+router.get(
+  '/',
+  asyncHandler(async (req, res) => {
+    const mapId = normalizeText(req.query.map_id);
+    if (mapId && !(await ensureMapExists(mapId))) {
+      return res.status(400).json({ error: 'Carte introuvable' });
+    }
 
-  const sql = `
+    const sql = `
     SELECT p.*, m.label AS map_label
     FROM task_projects p
     INNER JOIN maps m ON m.id = p.map_id
     ${mapId ? 'WHERE p.map_id = ?' : ''}
     ORDER BY p.created_at DESC, p.title ASC
   `;
-  const rows = mapId ? await queryAll(sql, [mapId]) : await queryAll(sql);
-  res.json(await enrichProjects(rows));
-}));
+    const rows = mapId ? await queryAll(sql, [mapId]) : await queryAll(sql);
+    res.json(await enrichProjects(rows));
+  }),
+);
 
-router.post('/', requirePermission('tasks.manage', { needsElevation: true }), validate({ body: createProjectBodySchema }), asyncHandler(async (req, res) => {
-  const { map_id: mapId, title, description, status, zone_ids: zoneIds, marker_ids: markerIds, tutorial_ids: tutorialIds } = req.body;
+router.post(
+  '/',
+  requirePermission('tasks.manage', { needsElevation: true }),
+  validate({ body: createProjectBodySchema }),
+  asyncHandler(async (req, res) => {
+    const {
+      map_id: mapId,
+      title,
+      description,
+      status,
+      zone_ids: zoneIds,
+      marker_ids: markerIds,
+      tutorial_ids: tutorialIds,
+    } = req.body;
 
-  if (!(await ensureMapExists(mapId))) return res.status(400).json({ error: 'Carte introuvable' });
+    if (!(await ensureMapExists(mapId)))
+      return res.status(400).json({ error: 'Carte introuvable' });
 
-  const loc = await validateProjectLinksForMap(mapId, zoneIds, markerIds);
-  if (loc.error) return res.status(400).json({ error: loc.error });
-  const tuto = await validateTutorialIds(tutorialIds);
-  if (tuto.error) return res.status(400).json({ error: tuto.error });
+    const loc = await validateProjectLinksForMap(mapId, zoneIds, markerIds);
+    if (loc.error) return res.status(400).json({ error: loc.error });
+    const tuto = await validateTutorialIds(tutorialIds);
+    if (tuto.error) return res.status(400).json({ error: tuto.error });
 
-  const id = uuidv4();
-  const createdAt = new Date().toISOString();
-  await execute(
-    'INSERT INTO task_projects (id, map_id, title, description, status, created_at) VALUES (?, ?, ?, ?, ?, ?)',
-    [id, mapId, title, description, status, createdAt]
-  );
-  await setProjectZones(id, zoneIds);
-  await setProjectMarkers(id, markerIds);
-  await setProjectTutorials(id, tutorialIds);
+    const id = uuidv4();
+    const createdAt = new Date().toISOString();
+    await execute(
+      'INSERT INTO task_projects (id, map_id, title, description, status, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+      [id, mapId, title, description, status, createdAt],
+    );
+    await setProjectZones(id, zoneIds);
+    await setProjectMarkers(id, markerIds);
+    await setProjectTutorials(id, tutorialIds);
 
-  const created = await loadProjectRow(id);
-  emitTasksChanged({ reason: 'project_create', projectId: id, mapId });
-  res.status(201).json(created);
-}));
+    const created = await loadProjectRow(id);
+    emitTasksChanged({ reason: 'project_create', projectId: id, mapId });
+    res.status(201).json(created);
+  }),
+);
 
-router.put('/:id', requirePermission('tasks.manage', { needsElevation: true }), asyncHandler(async (req, res) => {
-  const existing = await queryOne('SELECT * FROM task_projects WHERE id = ?', [req.params.id]);
-  if (!existing) return res.status(404).json({ error: 'Projet introuvable' });
+router.put(
+  '/:id',
+  requirePermission('tasks.manage', { needsElevation: true }),
+  asyncHandler(async (req, res) => {
+    const existing = await queryOne('SELECT * FROM task_projects WHERE id = ?', [req.params.id]);
+    if (!existing) return res.status(404).json({ error: 'Projet introuvable' });
 
-  const nextMapId = req.body.map_id !== undefined ? normalizeText(req.body.map_id) : existing.map_id;
-  const nextTitle = req.body.title !== undefined ? normalizeText(req.body.title) : existing.title;
-  const nextDescription = req.body.description !== undefined ? normalizeText(req.body.description) || null : existing.description;
-  const nextStatus = req.body.status !== undefined
-    ? normalizeProjectStatusForApi(req.body.status, 'active')
-    : (existing.status || 'active');
+    const nextMapId =
+      req.body.map_id !== undefined ? normalizeText(req.body.map_id) : existing.map_id;
+    const nextTitle = req.body.title !== undefined ? normalizeText(req.body.title) : existing.title;
+    const nextDescription =
+      req.body.description !== undefined
+        ? normalizeText(req.body.description) || null
+        : existing.description;
+    const nextStatus =
+      req.body.status !== undefined
+        ? normalizeProjectStatusForApi(req.body.status, 'active')
+        : existing.status || 'active';
 
-  let nextZoneIds;
-  if (Object.prototype.hasOwnProperty.call(req.body, 'zone_ids')) {
-    nextZoneIds = normalizeIdArray(req.body.zone_ids);
-  } else {
-    nextZoneIds = await getProjectZoneIds(req.params.id);
-  }
+    let nextZoneIds;
+    if (Object.prototype.hasOwnProperty.call(req.body, 'zone_ids')) {
+      nextZoneIds = normalizeIdArray(req.body.zone_ids);
+    } else {
+      nextZoneIds = await getProjectZoneIds(req.params.id);
+    }
 
-  let nextMarkerIds;
-  if (Object.prototype.hasOwnProperty.call(req.body, 'marker_ids')) {
-    nextMarkerIds = normalizeIdArray(req.body.marker_ids);
-  } else {
-    nextMarkerIds = await getProjectMarkerIds(req.params.id);
-  }
+    let nextMarkerIds;
+    if (Object.prototype.hasOwnProperty.call(req.body, 'marker_ids')) {
+      nextMarkerIds = normalizeIdArray(req.body.marker_ids);
+    } else {
+      nextMarkerIds = await getProjectMarkerIds(req.params.id);
+    }
 
-  let nextTutorialIds;
-  if (Object.prototype.hasOwnProperty.call(req.body, 'tutorial_ids')) {
-    nextTutorialIds = normalizeTutorialIdArray(req.body.tutorial_ids);
-  } else {
-    nextTutorialIds = await getProjectTutorialIds(req.params.id);
-  }
+    let nextTutorialIds;
+    if (Object.prototype.hasOwnProperty.call(req.body, 'tutorial_ids')) {
+      nextTutorialIds = normalizeTutorialIdArray(req.body.tutorial_ids);
+    } else {
+      nextTutorialIds = await getProjectTutorialIds(req.params.id);
+    }
 
-  if (!nextMapId) return res.status(400).json({ error: 'Carte requise' });
-  if (!nextTitle) return res.status(400).json({ error: 'Titre requis' });
-  if (!nextStatus) return res.status(400).json({ error: 'Statut projet invalide' });
-  if (!(await ensureMapExists(nextMapId))) return res.status(400).json({ error: 'Carte introuvable' });
+    if (!nextMapId) return res.status(400).json({ error: 'Carte requise' });
+    if (!nextTitle) return res.status(400).json({ error: 'Titre requis' });
+    if (!nextStatus) return res.status(400).json({ error: 'Statut projet invalide' });
+    if (!(await ensureMapExists(nextMapId)))
+      return res.status(400).json({ error: 'Carte introuvable' });
 
-  const loc = await validateProjectLinksForMap(nextMapId, nextZoneIds, nextMarkerIds);
-  if (loc.error) return res.status(400).json({ error: loc.error });
-  const tuto = await validateTutorialIds(nextTutorialIds);
-  if (tuto.error) return res.status(400).json({ error: tuto.error });
+    const loc = await validateProjectLinksForMap(nextMapId, nextZoneIds, nextMarkerIds);
+    if (loc.error) return res.status(400).json({ error: loc.error });
+    const tuto = await validateTutorialIds(nextTutorialIds);
+    if (tuto.error) return res.status(400).json({ error: tuto.error });
 
-  await execute('UPDATE task_projects SET map_id = ?, title = ?, description = ?, status = ? WHERE id = ?', [
-    nextMapId,
-    nextTitle,
-    nextDescription,
-    nextStatus,
-    req.params.id,
-  ]);
-  await setProjectZones(req.params.id, nextZoneIds);
-  await setProjectMarkers(req.params.id, nextMarkerIds);
-  await setProjectTutorials(req.params.id, nextTutorialIds);
+    await execute(
+      'UPDATE task_projects SET map_id = ?, title = ?, description = ?, status = ? WHERE id = ?',
+      [nextMapId, nextTitle, nextDescription, nextStatus, req.params.id],
+    );
+    await setProjectZones(req.params.id, nextZoneIds);
+    await setProjectMarkers(req.params.id, nextMarkerIds);
+    await setProjectTutorials(req.params.id, nextTutorialIds);
 
-  const updated = await loadProjectRow(req.params.id);
-  emitTasksChanged({ reason: 'project_update', projectId: req.params.id, mapId: nextMapId });
-  res.json(updated);
-}));
+    const updated = await loadProjectRow(req.params.id);
+    emitTasksChanged({ reason: 'project_update', projectId: req.params.id, mapId: nextMapId });
+    res.json(updated);
+  }),
+);
 
-router.delete('/:id', requirePermission('tasks.manage', { needsElevation: true }), asyncHandler(async (req, res) => {
-  const existing = await queryOne('SELECT id, map_id FROM task_projects WHERE id = ?', [req.params.id]);
-  if (!existing) return res.status(404).json({ error: 'Projet introuvable' });
-  await execute('DELETE FROM task_projects WHERE id = ?', [req.params.id]);
-  emitTasksChanged({ reason: 'project_delete', projectId: req.params.id, mapId: existing.map_id });
-  res.json({ success: true });
-}));
+router.delete(
+  '/:id',
+  requirePermission('tasks.manage', { needsElevation: true }),
+  asyncHandler(async (req, res) => {
+    const existing = await queryOne('SELECT id, map_id FROM task_projects WHERE id = ?', [
+      req.params.id,
+    ]);
+    if (!existing) return res.status(404).json({ error: 'Projet introuvable' });
+    await execute('DELETE FROM task_projects WHERE id = ?', [req.params.id]);
+    emitTasksChanged({
+      reason: 'project_delete',
+      projectId: req.params.id,
+      mapId: existing.map_id,
+    });
+    res.json({ success: true });
+  }),
+);
 
-router.post('/:id/validate', requirePermission('tasks.validate', { needsElevation: true }), asyncHandler(async (req, res) => {
-  const existing = await queryOne('SELECT id, map_id, title, status FROM task_projects WHERE id = ?', [req.params.id]);
-  if (!existing) return res.status(404).json({ error: 'Projet introuvable' });
+router.post(
+  '/:id/validate',
+  requirePermission('tasks.validate', { needsElevation: true }),
+  asyncHandler(async (req, res) => {
+    const existing = await queryOne(
+      'SELECT id, map_id, title, status FROM task_projects WHERE id = ?',
+      [req.params.id],
+    );
+    if (!existing) return res.status(404).json({ error: 'Projet introuvable' });
 
-  const cur = String(existing.status || 'active').trim().toLowerCase();
-  if (cur === 'validated') {
-    const unchanged = await loadProjectRow(req.params.id);
-    return res.json(unchanged);
-  }
+    const cur = String(existing.status || 'active')
+      .trim()
+      .toLowerCase();
+    if (cur === 'validated') {
+      const unchanged = await loadProjectRow(req.params.id);
+      return res.json(unchanged);
+    }
 
-  await execute('UPDATE task_projects SET status = ? WHERE id = ?', ['validated', req.params.id]);
-  const updated = await loadProjectRow(req.params.id);
-  logAudit('validate_task_project', 'task_project', req.params.id, existing.title || 'Projet', {
-    req,
-    payload: { previous_status: cur, map_id: existing.map_id },
-  });
-  emitTasksChanged({ reason: 'project_validate', projectId: req.params.id, mapId: existing.map_id });
-  res.json(updated);
-}));
+    await execute('UPDATE task_projects SET status = ? WHERE id = ?', ['validated', req.params.id]);
+    const updated = await loadProjectRow(req.params.id);
+    logAudit('validate_task_project', 'task_project', req.params.id, existing.title || 'Projet', {
+      req,
+      payload: { previous_status: cur, map_id: existing.map_id },
+    });
+    emitTasksChanged({
+      reason: 'project_validate',
+      projectId: req.params.id,
+      mapId: existing.map_id,
+    });
+    res.json(updated);
+  }),
+);
 
 function duplicateTitleSuffix(title) {
   const base = normalizeText(title) || 'Projet';
@@ -391,7 +459,7 @@ function currentLocalDateOnly() {
 async function copyProjectLinksTx(tx, sourceProjectId, targetProjectId) {
   const zoneRows = await tx.queryAll(
     'SELECT zone_id FROM project_zones WHERE project_id = ? ORDER BY zone_id',
-    [sourceProjectId]
+    [sourceProjectId],
   );
   for (const row of zoneRows) {
     await tx.execute('INSERT INTO project_zones (project_id, zone_id) VALUES (?, ?)', [
@@ -402,7 +470,7 @@ async function copyProjectLinksTx(tx, sourceProjectId, targetProjectId) {
 
   const markerRows = await tx.queryAll(
     'SELECT marker_id FROM project_markers WHERE project_id = ? ORDER BY marker_id',
-    [sourceProjectId]
+    [sourceProjectId],
   );
   for (const row of markerRows) {
     await tx.execute('INSERT INTO project_markers (project_id, marker_id) VALUES (?, ?)', [
@@ -413,7 +481,7 @@ async function copyProjectLinksTx(tx, sourceProjectId, targetProjectId) {
 
   const tutorialRows = await tx.queryAll(
     'SELECT tutorial_id FROM project_tutorials WHERE project_id = ? ORDER BY tutorial_id',
-    [sourceProjectId]
+    [sourceProjectId],
   );
   for (const row of tutorialRows) {
     await tx.execute('INSERT INTO project_tutorials (project_id, tutorial_id) VALUES (?, ?)', [
@@ -431,7 +499,7 @@ async function copyProjectTasksTx(tx, sourceProjectId, targetProjectId, mapId) {
        FROM tasks
       WHERE project_id = ?
       ORDER BY sort_order ASC, created_at ASC, title ASC`,
-    [sourceProjectId]
+    [sourceProjectId],
   );
 
   const createdTaskIds = [];
@@ -465,26 +533,47 @@ async function copyProjectTasksTx(tx, sourceProjectId, targetProjectId, mapId) {
         Number(task.sort_order) || 0,
         'available',
         createdAt,
-      ]
+      ],
     );
 
-    const zoneRows = await tx.queryAll('SELECT zone_id FROM task_zones WHERE task_id = ?', [task.id]);
-    const zoneIds = [...new Set([
-      ...zoneRows.map((row) => String(row.zone_id || '').trim()).filter(Boolean),
-      task.zone_id != null ? String(task.zone_id).trim() : '',
-    ].filter(Boolean))];
+    const zoneRows = await tx.queryAll('SELECT zone_id FROM task_zones WHERE task_id = ?', [
+      task.id,
+    ]);
+    const zoneIds = [
+      ...new Set(
+        [
+          ...zoneRows.map((row) => String(row.zone_id || '').trim()).filter(Boolean),
+          task.zone_id != null ? String(task.zone_id).trim() : '',
+        ].filter(Boolean),
+      ),
+    ];
     for (const zoneId of zoneIds) {
-      await tx.execute('INSERT INTO task_zones (task_id, zone_id) VALUES (?, ?)', [newTaskId, zoneId]);
+      await tx.execute('INSERT INTO task_zones (task_id, zone_id) VALUES (?, ?)', [
+        newTaskId,
+        zoneId,
+      ]);
     }
-    const markerRows = await tx.queryAll('SELECT marker_id FROM task_markers WHERE task_id = ?', [task.id]);
-    const markerIds = [...new Set([
-      ...markerRows.map((row) => String(row.marker_id || '').trim()).filter(Boolean),
-      task.marker_id != null ? String(task.marker_id).trim() : '',
-    ].filter(Boolean))];
+    const markerRows = await tx.queryAll('SELECT marker_id FROM task_markers WHERE task_id = ?', [
+      task.id,
+    ]);
+    const markerIds = [
+      ...new Set(
+        [
+          ...markerRows.map((row) => String(row.marker_id || '').trim()).filter(Boolean),
+          task.marker_id != null ? String(task.marker_id).trim() : '',
+        ].filter(Boolean),
+      ),
+    ];
     for (const markerId of markerIds) {
-      await tx.execute('INSERT INTO task_markers (task_id, marker_id) VALUES (?, ?)', [newTaskId, markerId]);
+      await tx.execute('INSERT INTO task_markers (task_id, marker_id) VALUES (?, ?)', [
+        newTaskId,
+        markerId,
+      ]);
     }
-    const tutorialRows = await tx.queryAll('SELECT tutorial_id FROM task_tutorials WHERE task_id = ?', [task.id]);
+    const tutorialRows = await tx.queryAll(
+      'SELECT tutorial_id FROM task_tutorials WHERE task_id = ?',
+      [task.id],
+    );
     for (const tr of tutorialRows) {
       await tx.execute('INSERT INTO task_tutorials (task_id, tutorial_id) VALUES (?, ?)', [
         newTaskId,
@@ -497,51 +586,57 @@ async function copyProjectTasksTx(tx, sourceProjectId, targetProjectId, mapId) {
   return createdTaskIds;
 }
 
-router.post('/:id/duplicate', requirePermission('tasks.manage', { needsElevation: true }), asyncHandler(async (req, res) => {
-  const source = await queryOne('SELECT * FROM task_projects WHERE id = ?', [req.params.id]);
-  if (!source) return res.status(404).json({ error: 'Projet introuvable' });
+router.post(
+  '/:id/duplicate',
+  requirePermission('tasks.manage', { needsElevation: true }),
+  asyncHandler(async (req, res) => {
+    const source = await queryOne('SELECT * FROM task_projects WHERE id = ?', [req.params.id]);
+    if (!source) return res.status(404).json({ error: 'Projet introuvable' });
 
-  const requestedTitle = req.body?.title !== undefined ? normalizeText(req.body.title) : '';
-  const nextTitle = requestedTitle || duplicateTitleSuffix(source.title);
-  if (!nextTitle) return res.status(400).json({ error: 'Titre requis' });
+    const requestedTitle = req.body?.title !== undefined ? normalizeText(req.body.title) : '';
+    const nextTitle = requestedTitle || duplicateTitleSuffix(source.title);
+    if (!nextTitle) return res.status(400).json({ error: 'Titre requis' });
 
-  const nextMapId = req.body?.map_id !== undefined ? normalizeText(req.body.map_id) : source.map_id;
-  if (!nextMapId) return res.status(400).json({ error: 'Carte requise' });
-  if (!(await ensureMapExists(nextMapId))) return res.status(400).json({ error: 'Carte introuvable' });
+    const nextMapId =
+      req.body?.map_id !== undefined ? normalizeText(req.body.map_id) : source.map_id;
+    if (!nextMapId) return res.status(400).json({ error: 'Carte requise' });
+    if (!(await ensureMapExists(nextMapId)))
+      return res.status(400).json({ error: 'Carte introuvable' });
 
-  const newProjectId = uuidv4();
-  const createdAt = new Date().toISOString();
+    const newProjectId = uuidv4();
+    const createdAt = new Date().toISOString();
 
-  const createdTaskIds = await withTransaction(async (tx) => {
-    await tx.execute(
-      'INSERT INTO task_projects (id, map_id, title, description, status, created_at) VALUES (?, ?, ?, ?, ?, ?)',
-      [newProjectId, nextMapId, nextTitle, source.description || null, 'active', createdAt]
-    );
-    await copyProjectLinksTx(tx, source.id, newProjectId);
-    return copyProjectTasksTx(tx, source.id, newProjectId, nextMapId);
-  });
+    const createdTaskIds = await withTransaction(async (tx) => {
+      await tx.execute(
+        'INSERT INTO task_projects (id, map_id, title, description, status, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+        [newProjectId, nextMapId, nextTitle, source.description || null, 'active', createdAt],
+      );
+      await copyProjectLinksTx(tx, source.id, newProjectId);
+      return copyProjectTasksTx(tx, source.id, newProjectId, nextMapId);
+    });
 
-  const created = await loadProjectRow(newProjectId);
-  logAudit('duplicate_task_project', 'task_project', newProjectId, nextTitle, {
-    req,
-    payload: {
+    const created = await loadProjectRow(newProjectId);
+    logAudit('duplicate_task_project', 'task_project', newProjectId, nextTitle, {
+      req,
+      payload: {
+        source_project_id: source.id,
+        map_id: nextMapId,
+        tasks_copied: createdTaskIds.length,
+      },
+    });
+    emitTasksChanged({
+      reason: 'project_duplicate',
+      projectId: newProjectId,
+      mapId: nextMapId,
+    });
+    res.status(201).json({
+      project: created,
       source_project_id: source.id,
-      map_id: nextMapId,
       tasks_copied: createdTaskIds.length,
-    },
-  });
-  emitTasksChanged({
-    reason: 'project_duplicate',
-    projectId: newProjectId,
-    mapId: nextMapId,
-  });
-  res.status(201).json({
-    project: created,
-    source_project_id: source.id,
-    tasks_copied: createdTaskIds.length,
-    task_ids: createdTaskIds,
-  });
-}));
+      task_ids: createdTaskIds,
+    });
+  }),
+);
 
 module.exports = router;
 // Exporté pour les tests unitaires (sans base) du schéma de validation O7.

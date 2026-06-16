@@ -1,5 +1,9 @@
 const { test, expect } = require('@playwright/test');
-const { loginAsNewStudent, enableTeacherMode, openFirstZoneModalFromMap } = require('./fixtures/auth.fixture');
+const {
+  loginAsNewStudent,
+  enableTeacherMode,
+  openFirstZoneModalFromMap,
+} = require('./fixtures/auth.fixture');
 
 test('parcours prof: activation mode prof, carte et modale zone', async ({ page }) => {
   await loginAsNewStudent(page);

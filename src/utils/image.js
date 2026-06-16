@@ -36,10 +36,14 @@ export function compressImage(file, maxPx = 1200, quality = 0.75) {
   return new Promise((res, rej) => {
     if (file.size > 15 * 1024 * 1024) return rej(new Error('Image trop lourde (max 15MB)'));
     const reader = new FileReader();
-    reader.onerror = () => rej(new Error('Impossible de lire le fichier (accès refusé ou fichier invalide)'));
+    reader.onerror = () =>
+      rej(new Error('Impossible de lire le fichier (accès refusé ou fichier invalide)'));
     reader.onload = (ev) => {
       const img = new Image();
-      img.onerror = () => rej(new Error('Impossible de lire cette image (format non pris en charge par le navigateur)'));
+      img.onerror = () =>
+        rej(
+          new Error('Impossible de lire cette image (format non pris en charge par le navigateur)'),
+        );
       img.onload = () => {
         let w = img.width;
         let h = img.height;

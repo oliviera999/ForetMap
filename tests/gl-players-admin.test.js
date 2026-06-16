@@ -21,7 +21,7 @@ before(async () => {
     `INSERT INTO gl_admins (email, display_name, role, is_active, created_at, updated_at)
      VALUES (?, 'MJ Players', 'admin', 1, NOW(), NOW())
      ON DUPLICATE KEY UPDATE is_active = 1, updated_at = NOW()`,
-    [adminEmail]
+    [adminEmail],
   );
   const admin = await queryOne('SELECT id FROM gl_admins WHERE email = ? LIMIT 1', [adminEmail]);
   adminToken = await signAuthToken({
@@ -34,7 +34,7 @@ before(async () => {
   await execute(
     `INSERT INTO gl_classes (name, school, created_by, is_active, created_at, updated_at)
      VALUES (?, 'Ecole', ?, 1, NOW(), NOW())`,
-    [className, admin.id]
+    [className, admin.id],
   );
   const cls = await queryOne('SELECT id FROM gl_classes WHERE name = ? LIMIT 1', [className]);
   classId = Number(cls.id);
@@ -57,7 +57,10 @@ test('POST /api/gl/admin/players crée un joueur avec password (must_reset=0)', 
     .expect(201);
   assert.strictEqual(res.body?.pseudo, pseudo);
   assert.strictEqual(Number(res.body?.password_must_reset), 0);
-  const row = await queryOne('SELECT password_must_reset FROM gl_players WHERE pseudo = ? LIMIT 1', [pseudo]);
+  const row = await queryOne(
+    'SELECT password_must_reset FROM gl_players WHERE pseudo = ? LIMIT 1',
+    [pseudo],
+  );
   assert.strictEqual(Number(row.password_must_reset), 0);
 });
 
@@ -83,7 +86,11 @@ test('POST /api/gl/admin/players refuse un pseudo déjà utilisé (409)', async 
     .set('Authorization', `Bearer ${adminToken}`)
     .send({ classId, firstName: 'B', lastName: 'B', pseudo, password: 'motdepasse123' })
     .expect(409);
-  assert.ok(String(res.body?.error || '').toLowerCase().includes('pseudo'));
+  assert.ok(
+    String(res.body?.error || '')
+      .toLowerCase()
+      .includes('pseudo'),
+  );
 });
 
 test('POST /api/gl/admin/players/:id/reset-password met must_reset=0', async () => {
@@ -93,7 +100,10 @@ test('POST /api/gl/admin/players/:id/reset-password met must_reset=0', async () 
     .set('Authorization', `Bearer ${adminToken}`)
     .send({ classId, firstName: 'Reset', lastName: 'Me', pseudo })
     .expect(201);
-  const before = await queryOne('SELECT id, password_must_reset FROM gl_players WHERE pseudo = ? LIMIT 1', [pseudo]);
+  const before = await queryOne(
+    'SELECT id, password_must_reset FROM gl_players WHERE pseudo = ? LIMIT 1',
+    [pseudo],
+  );
   assert.strictEqual(Number(before.password_must_reset), 1);
 
   await request(app)
@@ -102,7 +112,9 @@ test('POST /api/gl/admin/players/:id/reset-password met must_reset=0', async () 
     .send({ password: 'nouveau1234' })
     .expect(200);
 
-  const after = await queryOne('SELECT password_must_reset FROM gl_players WHERE id = ? LIMIT 1', [before.id]);
+  const after = await queryOne('SELECT password_must_reset FROM gl_players WHERE id = ? LIMIT 1', [
+    before.id,
+  ]);
   assert.strictEqual(Number(after.password_must_reset), 0);
 
   // Le joueur peut désormais se connecter

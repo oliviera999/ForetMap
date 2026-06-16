@@ -39,15 +39,16 @@ import {
   promptDuplicateRoleProfile,
 } from '../utils/profilesRolePrompts.js';
 
-function ProfilesAdminViewBase({ onImpersonationApplied, maps = [] }) {
+function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
   const publicSettings = usePublicSettings();
   const { isN3Affiliated = false } = useSession();
   const roleTerms = getRoleTerms(isN3Affiliated);
   const affiliationOptions = useMemo(() => buildAffiliationSelectOptions(maps), [maps]);
-  const { isHelpEnabled, hasSeenSection, markSectionSeen, trackPanelOpen, trackPanelDismiss } = useHelp({
-    publicSettings,
-    isTeacher: true,
-  });
+  const { isHelpEnabled, hasSeenSection, markSectionSeen, trackPanelOpen, trackPanelDismiss } =
+    useHelp({
+      publicSettings,
+      isTeacher: true,
+    });
   const helpProfiles = HELP_PANELS.profiles;
   const [roles, setRoles] = useState([]);
   const [catalog, setCatalog] = useState([]);
@@ -112,7 +113,8 @@ function ProfilesAdminViewBase({ onImpersonationApplied, maps = [] }) {
     setAuthNativePrivileged(nativePrivileged);
     setAuthRoleSlug(roleSlug);
 
-    const canManageProfiles = perms.includes('admin.roles.manage') || perms.includes('admin.users.assign_roles');
+    const canManageProfiles =
+      perms.includes('admin.roles.manage') || perms.includes('admin.users.assign_roles');
     const canLoadStudents = perms.includes('stats.read.all');
 
     if (canManageProfiles) {
@@ -130,7 +132,12 @@ function ProfilesAdminViewBase({ onImpersonationApplied, maps = [] }) {
       } else {
         setProgressionByTasksEnabled(true);
       }
-      setRoles(normalized.map((r) => ({ ...r, permissions: Array.isArray(r.permissions) ? r.permissions : [] })));
+      setRoles(
+        normalized.map((r) => ({
+          ...r,
+          permissions: Array.isArray(r.permissions) ? r.permissions : [],
+        })),
+      );
       setCatalog(normalized[0]?.catalog || []);
       setUsers(Array.isArray(userRows) ? userRows : []);
       setSelectedRoleId((prev) => prev ?? normalized[0]?.id ?? null);
@@ -150,16 +157,18 @@ function ProfilesAdminViewBase({ onImpersonationApplied, maps = [] }) {
     }
   };
 
-  useEffect(() => { load().catch((e) => setErr(e.message)); }, []);
+  useEffect(() => {
+    load().catch((e) => setErr(e.message));
+  }, []);
 
   const selectedRole = useMemo(
     () => roles.find((r) => Number(r.id) === Number(selectedRoleId)) || null,
-    [roles, selectedRoleId]
+    [roles, selectedRoleId],
   );
   /** Paliers n3beur : slug eleve_* ou profil perso. avec rang strictement inférieur à 400 (n3boss) ; exclus admin, n3boss, visiteur. */
   const isN3beurTierConfigurableProfile = useMemo(
     () => isN3beurTierConfigurableRole(selectedRole),
-    [selectedRole]
+    [selectedRole],
   );
   const tasksProposeEntry = useMemo(() => {
     if (!selectedRole) return null;
@@ -201,7 +210,9 @@ function ProfilesAdminViewBase({ onImpersonationApplied, maps = [] }) {
   const filteredStudents = useMemo(() => {
     const needle = searchStudent.trim().toLowerCase();
     if (!needle) return students;
-    return students.filter((s) => `${s.first_name || ''} ${s.last_name || ''}`.toLowerCase().includes(needle));
+    return students.filter((s) =>
+      `${s.first_name || ''} ${s.last_name || ''}`.toLowerCase().includes(needle),
+    );
   }, [students, searchStudent]);
 
   useEffect(() => {
@@ -240,7 +251,7 @@ function ProfilesAdminViewBase({ onImpersonationApplied, maps = [] }) {
       setMsg(
         enabled
           ? 'Montée de niveau automatique selon les tâches validées : activée.'
-          : 'Montée de niveau automatique : désactivée. Les profils affichés restent ceux attribués manuellement.'
+          : 'Montée de niveau automatique : désactivée. Les profils affichés restent ceux attribués manuellement.',
       );
     } catch (e) {
       setErr(e.message || 'Erreur lors de l’enregistrement du réglage');
@@ -258,7 +269,9 @@ function ProfilesAdminViewBase({ onImpersonationApplied, maps = [] }) {
     setLoading(true);
     setErr('');
     try {
-      await api(`/api/rbac/profiles/${selectedRole.id}`, 'PATCH', { max_concurrent_tasks: parsed.value });
+      await api(`/api/rbac/profiles/${selectedRole.id}`, 'PATCH', {
+        max_concurrent_tasks: parsed.value,
+      });
       setMsg(parsed.message);
       await load();
     } catch (e) {
@@ -369,7 +382,9 @@ function ProfilesAdminViewBase({ onImpersonationApplied, maps = [] }) {
     setErr('');
     try {
       const current = selectedRole.permissions || [];
-      const next = current.map((p) => (p.key === permissionKey ? { ...p, requires_elevation: checked } : p));
+      const next = current.map((p) =>
+        p.key === permissionKey ? { ...p, requires_elevation: checked } : p,
+      );
       await api(`/api/rbac/profiles/${selectedRole.id}/permissions`, 'PUT', { permissions: next });
       await load();
     } catch (e) {
@@ -522,7 +537,7 @@ function ProfilesAdminViewBase({ onImpersonationApplied, maps = [] }) {
       await api(
         `/api/rbac/users/${String(editingUser.user_type || '').toLowerCase()}/${encodeURIComponent(String(editingUser.id))}`,
         'PATCH',
-        payload
+        payload,
       );
       setMsg(`Compte mis à jour : ${editFirstName.trim()} ${editLastName.trim()}`);
       closeEditUser();
@@ -537,20 +552,31 @@ function ProfilesAdminViewBase({ onImpersonationApplied, maps = [] }) {
     setEditLoading(false);
   };
 
-
   const setRoleForumParticipate = async (roleId, forumParticipate) => {
     setLoading(true);
     setErr('');
     try {
-      await api(`/api/rbac/profiles/${roleId}`, 'PATCH', { forum_participate: forumParticipate ? 1 : 0 });
-      setRoles((prev) => prev.map((r) => (
-        Number(r.id) === Number(roleId) ? { ...r, forum_participate: forumParticipate ? 1 : 0 } : r
-      )));
-      setUsers((prev) => prev.map((u) => {
-        if (u.user_type !== 'student' || Number(u.role_id) !== Number(roleId)) return u;
-        return { ...u, forum_participate: forumParticipate };
-      }));
-      setMsg(forumParticipate ? 'Participation au forum activée pour ce profil.' : 'Forum en lecture seule pour ce profil.');
+      await api(`/api/rbac/profiles/${roleId}`, 'PATCH', {
+        forum_participate: forumParticipate ? 1 : 0,
+      });
+      setRoles((prev) =>
+        prev.map((r) =>
+          Number(r.id) === Number(roleId)
+            ? { ...r, forum_participate: forumParticipate ? 1 : 0 }
+            : r,
+        ),
+      );
+      setUsers((prev) =>
+        prev.map((u) => {
+          if (u.user_type !== 'student' || Number(u.role_id) !== Number(roleId)) return u;
+          return { ...u, forum_participate: forumParticipate };
+        }),
+      );
+      setMsg(
+        forumParticipate
+          ? 'Participation au forum activée pour ce profil.'
+          : 'Forum en lecture seule pour ce profil.',
+      );
     } catch (e) {
       setErr(e.message || 'Erreur réglage forum');
     }
@@ -564,14 +590,24 @@ function ProfilesAdminViewBase({ onImpersonationApplied, maps = [] }) {
       await api(`/api/rbac/profiles/${roleId}`, 'PATCH', {
         context_comment_participate: contextCommentParticipate ? 1 : 0,
       });
-      setRoles((prev) => prev.map((r) => (
-        Number(r.id) === Number(roleId) ? { ...r, context_comment_participate: contextCommentParticipate ? 1 : 0 } : r
-      )));
-      setUsers((prev) => prev.map((u) => {
-        if (u.user_type !== 'student' || Number(u.role_id) !== Number(roleId)) return u;
-        return { ...u, context_comment_participate: contextCommentParticipate };
-      }));
-      setMsg(contextCommentParticipate ? 'Commentaires contextuels autorisés pour ce profil.' : 'Commentaires contextuels en lecture seule pour ce profil.');
+      setRoles((prev) =>
+        prev.map((r) =>
+          Number(r.id) === Number(roleId)
+            ? { ...r, context_comment_participate: contextCommentParticipate ? 1 : 0 }
+            : r,
+        ),
+      );
+      setUsers((prev) =>
+        prev.map((u) => {
+          if (u.user_type !== 'student' || Number(u.role_id) !== Number(roleId)) return u;
+          return { ...u, context_comment_participate: contextCommentParticipate };
+        }),
+      );
+      setMsg(
+        contextCommentParticipate
+          ? 'Commentaires contextuels autorisés pour ce profil.'
+          : 'Commentaires contextuels en lecture seule pour ce profil.',
+      );
     } catch (e) {
       setErr(e.message || 'Erreur réglage commentaires');
     }
@@ -609,7 +645,9 @@ function ProfilesAdminViewBase({ onImpersonationApplied, maps = [] }) {
         description: createDescription.trim() || null,
         affiliation: createAffiliation,
       });
-      setMsg(`Utilisateur créé : ${result.first_name} ${result.last_name} (${result.role_display_name || result.role_slug})`);
+      setMsg(
+        `Utilisateur créé : ${result.first_name} ${result.last_name} (${result.role_display_name || result.role_slug})`,
+      );
       setCreateFirstName('');
       setCreateLastName('');
       setCreatePassword('');
@@ -630,13 +668,17 @@ function ProfilesAdminViewBase({ onImpersonationApplied, maps = [] }) {
       const token = getAuthToken();
       const headers = new Headers();
       if (token) headers.set('Authorization', 'Bearer ' + token);
-      const res = await fetch(`${API}/api/students/import/template?format=${encodeURIComponent(format)}`, { headers });
+      const res = await fetch(
+        `${API}/api/students/import/template?format=${encodeURIComponent(format)}`,
+        { headers },
+      );
       if (!res.ok) throw new Error('Téléchargement impossible');
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = format === 'xlsx' ? 'foretmap-modele-n3beurs.xlsx' : 'foretmap-modele-n3beurs.csv';
+      link.download =
+        format === 'xlsx' ? 'foretmap-modele-n3beurs.xlsx' : 'foretmap-modele-n3beurs.csv';
       link.click();
       URL.revokeObjectURL(url);
     } catch (e) {
@@ -733,7 +775,10 @@ function ProfilesAdminViewBase({ onImpersonationApplied, maps = [] }) {
         onOpen={trackPanelOpen}
         onDismiss={trackPanelDismiss}
       />
-      <p className="section-sub">Gestion des profils, des comptes et des opérations {roleTerms.studentPlural} (création, import, export, suppression).</p>
+      <p className="section-sub">
+        Gestion des profils, des comptes et des opérations {roleTerms.studentPlural} (création,
+        import, export, suppression).
+      </p>
       <ProfilesAdminFeedback
         err={err}
         msg={msg}
@@ -880,15 +925,18 @@ function ProfilesAdminViewBase({ onImpersonationApplied, maps = [] }) {
 
       {!canManageProfiles && !canManageStudents && (
         <div className="empty" style={{ marginTop: 12 }}>
-          <p>Aucune permission disponible pour gérer les profils ou les {roleTerms.studentPlural}.</p>
+          <p>
+            Aucune permission disponible pour gérer les profils ou les {roleTerms.studentPlural}.
+          </p>
         </div>
       )}
     </div>
   );
 }
 
-// perf (§2.1) — ProfilesAdminView mémoïsé : évite le re-render de la vue Profils lors des re-renders
-// incidents d'App ne changeant pas ses props (maps réf stable, onImpersonationApplied mémoïsé côté App).
-const ProfilesAdminView = React.memo(ProfilesAdminViewBase);
+/** Mémoïsation (comparaison shallow par défaut) : évite le re-render de cette vue lourde
+ *  à chaque tick du polling global d'App.jsx quand ses props ne changent pas. */
+const ProfilesAdminView = React.memo(ProfilesAdminViewImpl);
+ProfilesAdminView.displayName = 'ProfilesAdminView';
 
 export { ProfilesAdminView };

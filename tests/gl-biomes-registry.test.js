@@ -24,7 +24,10 @@ test('biomeAssetSlug expose slugs conventionnels (prod)', () => {
   assert.strictEqual(biomeAssetSlug('savane', 'biocenose'), 'biocenose_savane');
   assert.strictEqual(biomeAssetSlug('jungle', 'biome'), 'biome_jungle');
   assert.strictEqual(biomeAssetSlug('toundra', 'biome', 'hiver'), 'biome-realiste_toundra-hiver');
-  assert.strictEqual(biomeAssetSlug('toundra', 'biocenose', 'ete'), 'biocenose_toundra-ete_legendee');
+  assert.strictEqual(
+    biomeAssetSlug('toundra', 'biocenose', 'ete'),
+    'biocenose_toundra-ete_legendee',
+  );
 });
 
 test('11 biomes canoniques', () => {

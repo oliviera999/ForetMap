@@ -30,7 +30,9 @@ export default function GLGameMasterConsoleTeams({
   if (!game?.id) {
     return (
       <div className="gl-empty-state">
-        <span className="gl-empty-state-icon foretmap-emoji-text-mixed" aria-hidden="true">🎲</span>
+        <span className="gl-empty-state-icon foretmap-emoji-text-mixed" aria-hidden="true">
+          🎲
+        </span>
         <p>Sélectionnez ou créez une partie dans l’onglet « Parties ».</p>
         <GLButton type="button" variant="secondary" onClick={onGoToParties}>
           Aller aux parties
@@ -42,12 +44,20 @@ export default function GLGameMasterConsoleTeams({
   return (
     <>
       <div className="gl-gameplay-block">
-        <h3>Équipes de la partie « {game.name} » (#{game.id})</h3>
+        <h3>
+          Équipes de la partie « {game.name} » (#{game.id})
+        </h3>
         <div className="gl-inline-actions">
           <GLButton type="button" size="sm" onClick={() => addTeam('gnome')} disabled={busy}>
             Ajouter équipe Gnome
           </GLButton>
-          <GLButton type="button" size="sm" variant="secondary" onClick={() => addTeam('unicorn')} disabled={busy}>
+          <GLButton
+            type="button"
+            size="sm"
+            variant="secondary"
+            onClick={() => addTeam('unicorn')}
+            disabled={busy}
+          >
             Ajouter équipe Licorne
           </GLButton>
         </div>
@@ -81,7 +91,9 @@ export default function GLGameMasterConsoleTeams({
             <GLField label="Mascotte">
               <GLSelect
                 value={teamForm.mascotId}
-                onChange={(event) => setTeamForm((prev) => ({ ...prev, mascotId: event.target.value }))}
+                onChange={(event) =>
+                  setTeamForm((prev) => ({ ...prev, mascotId: event.target.value }))
+                }
                 disabled={selectableMascots.length === 0}
               >
                 {selectableMascots.length === 0 ? (
@@ -98,15 +110,24 @@ export default function GLGameMasterConsoleTeams({
             <GLField label="Couleur">
               <GLInput
                 value={teamForm.color}
-                onChange={(event) => setTeamForm((prev) => ({ ...prev, color: event.target.value }))}
+                onChange={(event) =>
+                  setTeamForm((prev) => ({ ...prev, color: event.target.value }))
+                }
                 placeholder="#22c55e"
               />
             </GLField>
           </div>
           <div className="gl-inline-actions">
-            <GLButton type="submit" disabled={busy}>{editingTeamId ? 'Enregistrer équipe' : 'Créer équipe'}</GLButton>
+            <GLButton type="submit" disabled={busy}>
+              {editingTeamId ? 'Enregistrer équipe' : 'Créer équipe'}
+            </GLButton>
             {editingTeamId ? (
-              <GLButton type="button" variant="secondary" onClick={resetTeamEditing} disabled={busy}>
+              <GLButton
+                type="button"
+                variant="secondary"
+                onClick={resetTeamEditing}
+                disabled={busy}
+              >
                 Annuler édition
               </GLButton>
             ) : null}

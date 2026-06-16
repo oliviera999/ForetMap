@@ -23,7 +23,7 @@ test('max_concurrent_tasks = 0 sur le profil prime comme « sans limite »', asy
        INNER JOIN user_roles ur ON ur.user_id = u.id AND ur.user_type = 'student' AND ur.is_primary = 1
        INNER JOIN roles r ON r.id = ur.role_id AND r.slug = 'eleve_novice'
        WHERE u.user_type = 'student' AND u.is_active = 1
-       LIMIT 1`
+       LIMIT 1`,
     );
     assert.ok(student?.id);
 

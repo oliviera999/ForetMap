@@ -65,9 +65,13 @@ test('requestJsonWithTimeout transmet des en-têtes supplémentaires', async () 
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
   const port = server.address().port;
   try {
-    const out = await requestJsonWithTimeout(`http://127.0.0.1:${port}/api/admin/diagnostics`, 3000, {
-      'X-Deploy-Secret': 'check-secret',
-    });
+    const out = await requestJsonWithTimeout(
+      `http://127.0.0.1:${port}/api/admin/diagnostics`,
+      3000,
+      {
+        'X-Deploy-Secret': 'check-secret',
+      },
+    );
     assert.strictEqual(out.status, 200);
     assert.strictEqual(out.body.deploySecret, 'check-secret');
   } finally {
@@ -155,7 +159,7 @@ test('checkEndpointAllowedStatuses accepte 401 pour contenu GL optionnel', async
       '/api/gl/content/world',
       3000,
       [200, 401],
-      false
+      false,
     );
     assert.strictEqual(out.required, false);
     assert.strictEqual(out.pass, true);
@@ -174,7 +178,11 @@ test('checkImageEndpoint accepte 404 comme succès optionnel', async () => {
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
   const port = server.address().port;
   try {
-    const out = await checkImageEndpoint(`http://127.0.0.1:${port}`, '/api/zones/a/photos/1/data', 3000);
+    const out = await checkImageEndpoint(
+      `http://127.0.0.1:${port}`,
+      '/api/zones/a/photos/1/data',
+      3000,
+    );
     assert.strictEqual(out.required, false);
     assert.strictEqual(out.pass, true);
     assert.strictEqual(out.status, 404);
@@ -200,7 +208,11 @@ test('checkImageEndpoint suit une redirection 302 vers le fichier image', async 
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
   const port = server.address().port;
   try {
-    const out = await checkImageEndpoint(`http://127.0.0.1:${port}`, '/api/zones/a/photos/1/data', 3000);
+    const out = await checkImageEndpoint(
+      `http://127.0.0.1:${port}`,
+      '/api/zones/a/photos/1/data',
+      3000,
+    );
     assert.strictEqual(out.required, false);
     assert.strictEqual(out.pass, true);
     assert.strictEqual(out.status, 200);

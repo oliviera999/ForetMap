@@ -9,7 +9,14 @@ export const MAX_ATTACHMENT_IMAGES = 3;
 const FORETMAP_ATTACHMENT_IMG_DRAG = 'application/x-foretmap-attachment-img-idx';
 
 function reorderStringListByDrop(list, fromIdx, toIdx) {
-  if (fromIdx < 0 || toIdx < 0 || fromIdx === toIdx || fromIdx >= list.length || toIdx >= list.length) return list;
+  if (
+    fromIdx < 0 ||
+    toIdx < 0 ||
+    fromIdx === toIdx ||
+    fromIdx >= list.length ||
+    toIdx >= list.length
+  )
+    return list;
   const next = [...list];
   const [removed] = next.splice(fromIdx, 1);
   next.splice(toIdx, 0, removed);
@@ -25,7 +32,13 @@ function fileAllowedForAttachment(file) {
   if (!file || !file.size) return false;
   const t = String(file.type || '').toLowerCase();
   if (t === 'image/jpeg' || t === 'image/png' || t === 'image/webp') return true;
-  if (t === 'image/gif' || t === 'image/bmp' || t === 'image/heic' || t === 'image/heif' || t === 'image/avif') {
+  if (
+    t === 'image/gif' ||
+    t === 'image/bmp' ||
+    t === 'image/heic' ||
+    t === 'image/heif' ||
+    t === 'image/avif'
+  ) {
     return false;
   }
   if (t === '' || t === 'application/octet-stream' || t === 'binary/octet-stream') {
@@ -80,7 +93,7 @@ export function AttachmentImagesPicker({
       }
       onChange(next.slice(0, MAX_ATTACHMENT_IMAGES));
     },
-    [list, onChange, onNotify]
+    [list, onChange, onNotify],
   );
 
   const removeAt = (idx) => {
@@ -208,7 +221,12 @@ export function UserContentImagesGrid({ urls = [], className = '' }) {
           rel="noopener noreferrer"
           className="user-content-images-grid-link"
         >
-          <img src={withAppBase(u)} alt="Photo jointe" loading="lazy" className="user-content-images-grid-img" />
+          <img
+            src={withAppBase(u)}
+            alt="Photo jointe"
+            loading="lazy"
+            className="user-content-images-grid-img"
+          />
         </a>
       ))}
     </div>

@@ -34,9 +34,10 @@ export function buildStudentRankSteps(steps) {
   return sortProgressionSteps(rawSteps).map((step, i) => ({
     ...step,
     color: i === 0 ? '#94a3b8' : i === 1 ? '#52b788' : '#1a4731',
-    icon: String(step.emoji || '').trim()
-      || DEFAULT_ICON_BY_SLUG[String(step.roleSlug || '').toLowerCase()]
-      || '🌿',
+    icon:
+      String(step.emoji || '').trim() ||
+      DEFAULT_ICON_BY_SLUG[String(step.roleSlug || '').toLowerCase()] ||
+      '🌿',
   }));
 }
 
@@ -53,29 +54,23 @@ export function deriveStudentProgressionView(progression, doneCount) {
   const taskTierIndex = getProgressionStepIndex(ranks, taskTierSlug);
   const actualSlug = String(progression?.roleSlug || '').toLowerCase();
   const actualTier =
-    findProgressionStep(ranks, actualSlug)
-    || (progression?.roleDisplayName
+    findProgressionStep(ranks, actualSlug) ||
+    (progression?.roleDisplayName
       ? {
-        roleSlug: actualSlug,
-        min: taskTier.min,
-        label: progression.roleDisplayName,
-        icon: String(progression?.roleEmoji || '').trim() || taskTier.icon,
-        color: taskTier.color,
-      }
+          roleSlug: actualSlug,
+          min: taskTier.min,
+          label: progression.roleDisplayName,
+          icon: String(progression?.roleEmoji || '').trim() || taskTier.icon,
+          color: taskTier.color,
+        }
       : taskTier);
   const actualIndex = getProgressionStepIndex(ranks, actualSlug);
   const nextRank = getNextProgressionStep(ranks, taskTierSlug);
   const progressPct = computeProgressPercent(doneCount, taskTier, nextRank);
   const profileAheadOfTasks =
-    autoProgressionEnabled
-    && actualIndex >= 0
-    && taskTierIndex >= 0
-    && actualIndex > taskTierIndex;
+    autoProgressionEnabled && actualIndex >= 0 && taskTierIndex >= 0 && actualIndex > taskTierIndex;
   const profileBehindOfTasks =
-    autoProgressionEnabled
-    && actualIndex >= 0
-    && taskTierIndex >= 0
-    && actualIndex < taskTierIndex;
+    autoProgressionEnabled && actualIndex >= 0 && taskTierIndex >= 0 && actualIndex < taskTierIndex;
   const showTaskObjective = profileAheadOfTasks || profileBehindOfTasks;
   const tasksRemaining = nextRank ? Math.max(0, nextRank.min - doneCount) : 0;
 

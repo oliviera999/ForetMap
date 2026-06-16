@@ -40,11 +40,7 @@ function EditorialPhotoLightbox({ src, caption, onClose }) {
   }, [el]);
 
   const content = (
-    <div
-      className="editorial-photo-lightbox"
-      onClick={onClose}
-      role="presentation"
-    >
+    <div className="editorial-photo-lightbox" onClick={onClose} role="presentation">
       <div
         ref={dialogRef}
         role="dialog"
@@ -56,7 +52,12 @@ function EditorialPhotoLightbox({ src, caption, onClose }) {
       >
         <img src={src} alt={caption || ''} decoding="async" onClick={(e) => e.stopPropagation()} />
         {caption ? <p className="editorial-photo-lightbox__caption">{caption}</p> : null}
-        <button type="button" className="editorial-photo-lightbox__close" aria-label="Fermer l'aperçu" onClick={onClose}>
+        <button
+          type="button"
+          className="editorial-photo-lightbox__close"
+          aria-label="Fermer l'aperçu"
+          onClick={onClose}
+        >
           ✕
         </button>
       </div>
@@ -81,7 +82,10 @@ export function VisitEditorialPhotoThumb({
 
   if (!thumbSrc || !fullSrc) {
     return (
-      <div className={`visit-editorial-photo-thumb visit-editorial-photo-thumb--empty ${className}`.trim()} aria-hidden>
+      <div
+        className={`visit-editorial-photo-thumb visit-editorial-photo-thumb--empty ${className}`.trim()}
+        aria-hidden
+      >
         🌿
       </div>
     );
@@ -104,9 +108,14 @@ export function VisitEditorialPhotoThumb({
   };
 
   const cap = String(photo?.caption || '').trim();
-  const aria = mode === 'picker'
-    ? (selected ? `Retirer ${label} du bloc` : `Ajouter ${label} au bloc`)
-    : (cap ? `Agrandir : ${cap}` : 'Agrandir la photo');
+  const aria =
+    mode === 'picker'
+      ? selected
+        ? `Retirer ${label} du bloc`
+        : `Ajouter ${label} au bloc`
+      : cap
+        ? `Agrandir : ${cap}`
+        : 'Agrandir la photo';
 
   return (
     <>
@@ -144,11 +153,20 @@ export function VisitEditorialMapPhotoImportList({
       {heading ? <h6>{heading}</h6> : null}
       <div className="visit-media-import-from-map__list visit-media-import-from-map__list--thumbs">
         {list.map((ph) => (
-          <div key={String(ph.id)} className="visit-media-import-from-map__item visit-media-import-from-map__item--thumb">
+          <div
+            key={String(ph.id)}
+            className="visit-media-import-from-map__item visit-media-import-from-map__item--thumb"
+          >
             <VisitEditorialPhotoThumb photo={ph} mode="preview" />
             <div className="visit-media-import-from-map__item-meta">
-              <span className="visit-media-import-from-map__item-label">{editorialPhotoLabel(ph)}</span>
-              <button type="button" className="btn btn-ghost btn-sm" onClick={() => onAssociate?.(ph)}>
+              <span className="visit-media-import-from-map__item-label">
+                {editorialPhotoLabel(ph)}
+              </span>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={() => onAssociate?.(ph)}
+              >
                 {associateLabel}
               </button>
             </div>
@@ -167,7 +185,9 @@ export function VisitEditorialMediaIdPicker({
   maxCount = 2,
   emptyHint = 'Aucune photo visite — ajoute-en dans l’onglet Photos ou associe une photo carte ci-dessus.',
 }) {
-  const media = Array.isArray(mediaList) ? mediaList.filter((m) => m?.image_url || m?.thumb_url) : [];
+  const media = Array.isArray(mediaList)
+    ? mediaList.filter((m) => m?.image_url || m?.thumb_url)
+    : [];
   const selectedSet = useMemo(
     () => new Set((selectedIds || []).map((x) => Number(x)).filter((n) => Number.isFinite(n))),
     [selectedIds],

@@ -22,13 +22,28 @@ export function ProfilesRoleList({
     <>
       <h3 style={{ marginTop: 0 }}>Profils</h3>
       <p style={{ margin: '0 0 10px', fontSize: '.8rem', color: '#6b7280', lineHeight: 1.45 }}>
-        Utilisez ↑ ↓ pour définir l’ordre d’affichage (liste ci-dessous, menus d’attribution et progression n3beur alignés sur cet ordre).
+        Utilisez ↑ ↓ pour définir l’ordre d’affichage (liste ci-dessous, menus d’attribution et
+        progression n3beur alignés sur cet ordre).
       </p>
-      <button className="btn btn-secondary btn-sm" onClick={onCreate} disabled={loading} style={{ marginBottom: 10 }}>
+      <button
+        className="btn btn-secondary btn-sm"
+        onClick={onCreate}
+        disabled={loading}
+        style={{ marginBottom: 10 }}
+      >
         + Créer un profil
       </button>
       {roles.map((r, idx) => (
-        <div key={r.id} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8, flexWrap: 'wrap' }}>
+        <div
+          key={r.id}
+          style={{
+            display: 'flex',
+            gap: 8,
+            alignItems: 'center',
+            marginBottom: 8,
+            flexWrap: 'wrap',
+          }}
+        >
           <div style={{ display: 'inline-flex', flexDirection: 'column', gap: 2 }}>
             <button
               type="button"
@@ -60,7 +75,11 @@ export function ProfilesRoleList({
           >
             {(r.emoji ? `${r.emoji} ` : '') + r.display_name}
           </button>
-          <button className="btn btn-ghost btn-sm" onClick={() => onEditDetails(r)} disabled={loading}>
+          <button
+            className="btn btn-ghost btn-sm"
+            onClick={() => onEditDetails(r)}
+            disabled={loading}
+          >
             Modifier
           </button>
           {canEditRoleDefinition && (

@@ -61,10 +61,14 @@ function TutorialLinkedTasksModal({ state, onClose }) {
               <div className="tuto-linked-tasks-row-meta">
                 <span className="task-chip">{linkedTaskStatusLabel(task.status)}</span>
                 {task.map_label ? (
-                  <span className="task-chip" title={task.map_id || ''}>🗺️ {task.map_label}</span>
+                  <span className="task-chip" title={task.map_id || ''}>
+                    🗺️ {task.map_label}
+                  </span>
                 ) : null}
                 {task.location_hint ? (
-                  <span className="task-chip" title="Lieu">📍 {task.location_hint}</span>
+                  <span className="task-chip" title="Lieu">
+                    📍 {task.location_hint}
+                  </span>
                 ) : null}
               </div>
             </li>
@@ -75,12 +79,7 @@ function TutorialLinkedTasksModal({ state, onClose }) {
   );
 }
 
-function TutorialsView({
-  isTeacher,
-  onRefresh,
-  onForceLogout,
-  maps = [],
-}) {
+function TutorialsView({ isTeacher, onRefresh, onForceLogout, maps = [] }) {
   const publicSettings = usePublicSettings();
   const { canParticipateContextComments = true } = useSession();
   const { tutorials = [], zones = [], markers = [], activeMapId = 'foret' } = useData();
@@ -111,19 +110,24 @@ function TutorialsView({
         const res = await api(`/api/tutorials/${t.id}/linked-tasks${q}`);
         setLinkedTasksModal((prev) =>
           prev?.tutorial?.id === t.id
-            ? { ...prev, loading: false, tasks: Array.isArray(res?.tasks) ? res.tasks : [], error: null }
-            : prev
+            ? {
+                ...prev,
+                loading: false,
+                tasks: Array.isArray(res?.tasks) ? res.tasks : [],
+                error: null,
+              }
+            : prev,
         );
       } catch (e) {
         if (e instanceof AccountDeletedError) onForceLogout?.();
         setLinkedTasksModal((prev) =>
           prev?.tutorial?.id === t.id
             ? { ...prev, loading: false, tasks: [], error: e.message || 'Erreur' }
-            : prev
+            : prev,
         );
       }
     },
-    [isTeacher, onForceLogout]
+    [isTeacher, onForceLogout],
   );
 
   useEffect(() => {
@@ -152,7 +156,7 @@ function TutorialsView({
 
   const filtered = useMemo(
     () => filterAndSortTutorials(tutorials, { search, typeFilter, statusFilter }),
-    [tutorials, search, typeFilter, statusFilter]
+    [tutorials, search, typeFilter, statusFilter],
   );
 
   const openReorder = useCallback(() => {
@@ -318,7 +322,9 @@ function TutorialsView({
           }}
         />
       )}
-      {linkedTasksModal && <TutorialLinkedTasksModal state={linkedTasksModal} onClose={closeLinkedTasks} />}
+      {linkedTasksModal && (
+        <TutorialLinkedTasksModal state={linkedTasksModal} onClose={closeLinkedTasks} />
+      )}
       {showReorder && (
         <DialogShell
           open={showReorder}
@@ -334,7 +340,8 @@ function TutorialsView({
         >
           <h3 id="tuto-reorder-title">Ordre d’affichage des tutoriels</h3>
           <p className="tuto-reorder-hint">
-            Glissez-déposez une ligne ou utilisez les flèches. Cet ordre est celui de la liste des tutoriels (élèves et profs) et correspond au champ « Ordre » de chaque fiche.
+            Glissez-déposez une ligne ou utilisez les flèches. Cet ordre est celui de la liste des
+            tutoriels (élèves et profs) et correspond au champ « Ordre » de chaque fiche.
           </p>
           <ul className="tuto-reorder-list">
             {reorderDraft.map((t, index) => (
@@ -346,7 +353,9 @@ function TutorialsView({
                 onDragOver={onReorderDragOver}
                 onDrop={(e) => onReorderDrop(e, index)}
               >
-                <span className="tuto-reorder-grip" title="Glisser pour déplacer" aria-hidden>⋮⋮</span>
+                <span className="tuto-reorder-grip" title="Glisser pour déplacer" aria-hidden>
+                  ⋮⋮
+                </span>
                 <span className="tuto-reorder-row-title">{t.title}</span>
                 {!t.is_active && <span className="task-chip archived">Archivé</span>}
                 <span className="tuto-reorder-actions">
@@ -356,165 +365,226 @@ function TutorialsView({
                     disabled={reorderSaving || index === 0}
                     onClick={() => moveReorderRow(index, -1)}
                     aria-label="Monter"
-                  >↑</button>
+                  >
+                    ↑
+                  </button>
                   <button
                     type="button"
                     className="btn btn-ghost btn-sm"
                     disabled={reorderSaving || index >= reorderDraft.length - 1}
                     onClick={() => moveReorderRow(index, 1)}
                     aria-label="Descendre"
-                  >↓</button>
+                  >
+                    ↓
+                  </button>
                 </span>
               </li>
             ))}
           </ul>
           <div className="tuto-reorder-footer">
-            <button type="button" className="btn btn-primary btn-sm" disabled={reorderSaving} onClick={saveReorder}>
+            <button
+              type="button"
+              className="btn btn-primary btn-sm"
+              disabled={reorderSaving}
+              onClick={saveReorder}
+            >
               {reorderSaving ? 'Enregistrement…' : '💾 Enregistrer l’ordre'}
             </button>
-            <button type="button" className="btn btn-ghost btn-sm" disabled={reorderSaving} onClick={closeReorder}>Annuler</button>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              disabled={reorderSaving}
+              onClick={closeReorder}
+            >
+              Annuler
+            </button>
           </div>
         </DialogShell>
       )}
-    <div className="fade-in">
-      {toast ? <FixedToast>{toast}</FixedToast> : null}
+      <div className="fade-in">
+        {toast ? <FixedToast>{toast}</FixedToast> : null}
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4, flexWrap: 'wrap', gap: 8 }}>
-        <h2 className="section-title">📘 Tutoriels</h2>
-        {isTeacher && (
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {tutorials.length > 0 && (
-              <button type="button" className="btn btn-ghost btn-sm" onClick={openReorder}>
-                ⇅ Ordre
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: 4,
+            flexWrap: 'wrap',
+            gap: 8,
+          }}
+        >
+          <h2 className="section-title">📘 Tutoriels</h2>
+          {isTeacher && (
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {tutorials.length > 0 && (
+                <button type="button" className="btn btn-ghost btn-sm" onClick={openReorder}>
+                  ⇅ Ordre
+                </button>
+              )}
+              <button type="button" className="btn btn-primary btn-sm" onClick={beginCreate}>
+                + Ajouter
               </button>
-            )}
-            <button type="button" className="btn btn-primary btn-sm" onClick={beginCreate}>+ Ajouter</button>
+            </div>
+          )}
+        </div>
+        <p className="section-sub">Guides pratiques consultables et téléchargeables</p>
+
+        <div className="task-filters">
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="🔍 Rechercher un tutoriel..."
+          />
+          <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
+            <option value="all">Tous les types</option>
+            <option value="html">HTML</option>
+            <option value="link">Lien</option>
+            <option value="pdf">PDF</option>
+          </select>
+          {isTeacher && (
+            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+              <option value="all">Tous les statuts</option>
+              <option value="active">Actifs</option>
+              <option value="archived">Archivés</option>
+            </select>
+          )}
+        </div>
+
+        {isTeacher && showEditor && (
+          <TutorialEditorPanel
+            form={form}
+            setForm={setForm}
+            saving={saving}
+            maps={maps}
+            zones={zones}
+            markers={markers}
+            onSave={save}
+            onCancel={() => setShowEditor(false)}
+            onToast={showToast}
+          />
+        )}
+
+        {filtered.length === 0 ? (
+          <div className="empty">
+            <div className="empty-icon">📘</div>
+            <p>Aucun tutoriel pour le moment</p>
+          </div>
+        ) : (
+          <div className="tuto-grid">
+            {filtered.map((t, idx) => (
+              <article
+                key={t.id}
+                className={`tuto-card fade-in ${!t.is_active ? 'archived' : ''}`}
+                style={{ animationDelay: `${Math.min(idx * 60, 360)}ms` }}
+              >
+                <div className="tuto-card-head">
+                  <div>
+                    <h3>{t.title}</h3>
+                    {t.summary && <MarkdownContent>{t.summary}</MarkdownContent>}
+                  </div>
+                  <span className={`task-chip ${!t.is_active ? 'archived' : ''}`}>
+                    {t.type.toUpperCase()}
+                    {!t.is_active ? ' · ARCHIVÉ' : ''}
+                  </span>
+                </div>
+                <div className="task-meta" style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {(Number(t.linked_tasks_count) || 0) > 0 ? (
+                    <button
+                      type="button"
+                      className="task-chip tuto-linked-tasks-pill"
+                      onClick={() => openLinkedTasks(t)}
+                      title="Afficher les tâches liées à ce tutoriel"
+                    >
+                      🔗 {t.linked_tasks_count} tâche(s) liée(s)
+                    </button>
+                  ) : (
+                    <span className="task-chip">🔗 0 tâche(s) liée(s)</span>
+                  )}
+                  {(t.zones_linked || []).map((z) => (
+                    <span key={`z-${z.id}`} className="task-chip" title="Zone sur la carte">
+                      {z.name}
+                    </span>
+                  ))}
+                  {(t.markers_linked || []).map((m) => (
+                    <span key={`m-${m.id}`} className="task-chip" title="Repère sur la carte">
+                      📍 {m.label}
+                    </span>
+                  ))}
+                </div>
+                <div className="task-actions">
+                  {t.is_active && (
+                    <>
+                      <button className="btn btn-ghost btn-sm" onClick={() => openSource(t)}>
+                        🌐 Ouvrir
+                      </button>
+                      <button
+                        className="btn btn-ghost btn-sm"
+                        onClick={() => downloadUrl(`/api/tutorials/${t.id}/download/html`)}
+                      >
+                        ⬇️ HTML
+                      </button>
+                      <button
+                        className="btn btn-primary btn-sm"
+                        onClick={() => downloadUrl(`/api/tutorials/${t.id}/download/pdf`)}
+                      >
+                        ⬇️ PDF
+                      </button>
+                      <TutorialReadAcknowledgeButton
+                        tutorialId={t.id}
+                        tutorialTitle={t.title}
+                        isRead={tutorialReadIds.has(Number(t.id))}
+                        onAcknowledged={(id) =>
+                          setTutorialReadIds((prev) => new Set([...prev, id]))
+                        }
+                        onForceLogout={onForceLogout}
+                      />
+                    </>
+                  )}
+                  {isTeacher && (
+                    <>
+                      <button className="btn btn-ghost btn-sm" onClick={() => beginEdit(t)}>
+                        ✏️
+                      </button>
+                      <button
+                        className="btn btn-ghost btn-sm"
+                        onClick={() => uploadCover(t)}
+                        title="Uploader une image de couverture"
+                      >
+                        🖼️ Couverture
+                      </button>
+                      {t.is_active ? (
+                        <button
+                          className="btn btn-danger btn-sm"
+                          onClick={() => archiveTutorial(t)}
+                        >
+                          🗑️
+                        </button>
+                      ) : (
+                        <button
+                          className="btn btn-primary btn-sm"
+                          onClick={() => restoreTutorial(t)}
+                        >
+                          ♻️ Restaurer
+                        </button>
+                      )}
+                    </>
+                  )}
+                </div>
+                {contextCommentsEnabled && (
+                  <ContextComments
+                    contextType="tutorial"
+                    contextId={String(t.id)}
+                    title="Commentaires sur ce tutoriel"
+                    placeholder="Question ou retour sur ce tutoriel…"
+                    canParticipateContextComments={canParticipateContextComments}
+                  />
+                )}
+              </article>
+            ))}
           </div>
         )}
       </div>
-      <p className="section-sub">Guides pratiques consultables et téléchargeables</p>
-
-      <div className="task-filters">
-        <input
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder="🔍 Rechercher un tutoriel..."
-        />
-        <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)}>
-          <option value="all">Tous les types</option>
-          <option value="html">HTML</option>
-          <option value="link">Lien</option>
-          <option value="pdf">PDF</option>
-        </select>
-        {isTeacher && (
-          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
-            <option value="all">Tous les statuts</option>
-            <option value="active">Actifs</option>
-            <option value="archived">Archivés</option>
-          </select>
-        )}
-      </div>
-
-      {isTeacher && showEditor && (
-        <TutorialEditorPanel
-          form={form}
-          setForm={setForm}
-          saving={saving}
-          maps={maps}
-          zones={zones}
-          markers={markers}
-          onSave={save}
-          onCancel={() => setShowEditor(false)}
-          onToast={showToast}
-        />
-      )}
-
-      {filtered.length === 0 ? (
-        <div className="empty">
-          <div className="empty-icon">📘</div>
-          <p>Aucun tutoriel pour le moment</p>
-        </div>
-      ) : (
-        <div className="tuto-grid">
-          {filtered.map((t, idx) => (
-            <article key={t.id} className={`tuto-card fade-in ${!t.is_active ? 'archived' : ''}`} style={{ animationDelay: `${Math.min(idx * 60, 360)}ms` }}>
-              <div className="tuto-card-head">
-                <div>
-                  <h3>{t.title}</h3>
-                  {t.summary && <MarkdownContent>{t.summary}</MarkdownContent>}
-                </div>
-                <span className={`task-chip ${!t.is_active ? 'archived' : ''}`}>
-                  {t.type.toUpperCase()}
-                  {!t.is_active ? ' · ARCHIVÉ' : ''}
-                </span>
-              </div>
-              <div className="task-meta" style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                {(Number(t.linked_tasks_count) || 0) > 0 ? (
-                  <button
-                    type="button"
-                    className="task-chip tuto-linked-tasks-pill"
-                    onClick={() => openLinkedTasks(t)}
-                    title="Afficher les tâches liées à ce tutoriel"
-                  >
-                    🔗 {t.linked_tasks_count} tâche(s) liée(s)
-                  </button>
-                ) : (
-                  <span className="task-chip">🔗 0 tâche(s) liée(s)</span>
-                )}
-                {(t.zones_linked || []).map((z) => (
-                  <span key={`z-${z.id}`} className="task-chip" title="Zone sur la carte">
-                    {z.name}
-                  </span>
-                ))}
-                {(t.markers_linked || []).map((m) => (
-                  <span key={`m-${m.id}`} className="task-chip" title="Repère sur la carte">
-                    📍 {m.label}
-                  </span>
-                ))}
-              </div>
-              <div className="task-actions">
-                {t.is_active && (
-                  <>
-                    <button className="btn btn-ghost btn-sm" onClick={() => openSource(t)}>🌐 Ouvrir</button>
-                    <button className="btn btn-ghost btn-sm" onClick={() => downloadUrl(`/api/tutorials/${t.id}/download/html`)}>⬇️ HTML</button>
-                    <button className="btn btn-primary btn-sm" onClick={() => downloadUrl(`/api/tutorials/${t.id}/download/pdf`)}>⬇️ PDF</button>
-                    <TutorialReadAcknowledgeButton
-                      tutorialId={t.id}
-                      tutorialTitle={t.title}
-                      isRead={tutorialReadIds.has(Number(t.id))}
-                      onAcknowledged={(id) => setTutorialReadIds((prev) => new Set([...prev, id]))}
-                      onForceLogout={onForceLogout}
-                    />
-                  </>
-                )}
-                {isTeacher && (
-                  <>
-                    <button className="btn btn-ghost btn-sm" onClick={() => beginEdit(t)}>✏️</button>
-                    <button className="btn btn-ghost btn-sm" onClick={() => uploadCover(t)} title="Uploader une image de couverture">
-                      🖼️ Couverture
-                    </button>
-                    {t.is_active ? (
-                      <button className="btn btn-danger btn-sm" onClick={() => archiveTutorial(t)}>🗑️</button>
-                    ) : (
-                      <button className="btn btn-primary btn-sm" onClick={() => restoreTutorial(t)}>♻️ Restaurer</button>
-                    )}
-                  </>
-                )}
-              </div>
-              {contextCommentsEnabled && (
-                <ContextComments
-                  contextType="tutorial"
-                  contextId={String(t.id)}
-                  title="Commentaires sur ce tutoriel"
-                  placeholder="Question ou retour sur ce tutoriel…"
-                  canParticipateContextComments={canParticipateContextComments}
-                />
-              )}
-            </article>
-          ))}
-        </div>
-      )}
-    </div>
     </div>
   );
 }

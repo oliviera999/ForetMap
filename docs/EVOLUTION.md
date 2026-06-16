@@ -83,12 +83,12 @@ Il reflète l’état réel du dépôt (avril 2026) et priorise la suite en comm
 
 Objectif : **stabilité** avec utilisateurs simultanés et **délai de rafraîchissement** acceptable. Le canal Socket.IO actuel est un **signal** ; la donnée à jour passe par **refetch REST** (debounce côté client).
 
-| Situation | Piste recommandée |
-|-----------|-------------------|
-| **Une instance Node** sur le mutualisé, symptômes rares | **Option B** : conserver l’existant ; surveiller **`GET /api/admin/diagnostics`** (`runtimeProcess`, métriques HTTP), logs Socket.IO (`socket_io_engine_connection_error`, déconnexions anormales) ; **`npm run test:load:10vu`** et **`npm run test:load:socketio-smoke`** en local/préprod. Quick wins côté code : **`tasks:changed` par `mapId`** (suppression élève, import CSV, tutoriels liés), debounce refetch tâches/jardin, refetch jardin **sans `/api/plants`** quand `garden:changed` = zone/repère uniquement. |
-| **Plusieurs instances Node** sans Redis | **Option A/D** : sans **`@socket.io/redis-adapter`** (ou équivalent), les événements ne traversent pas les processus — soit **réduire à une instance** si l’hébergeur le permet, soit **VPS + Redis** pour adapter multi-instance. |
-| **Saturation HTTP / latence** liée au **long-polling** (nombreuses connexions simultanées) | **Option C** : hébergement ou frontal avec **WebSocket** correctement terminé ; réactiver WS côté client/serveur **derrière un drapeau** après validation. |
-| **Proxy WS irréparable** sur le mutualisé | **Option E** ou maintien du **polling** documenté ; services managés uniquement si le coût / la dépendance externe sont acceptés. |
+| Situation                                                                                  | Piste recommandée                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| ------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Une instance Node** sur le mutualisé, symptômes rares                                    | **Option B** : conserver l’existant ; surveiller **`GET /api/admin/diagnostics`** (`runtimeProcess`, métriques HTTP), logs Socket.IO (`socket_io_engine_connection_error`, déconnexions anormales) ; **`npm run test:load:10vu`** et **`npm run test:load:socketio-smoke`** en local/préprod. Quick wins côté code : **`tasks:changed` par `mapId`** (suppression élève, import CSV, tutoriels liés), debounce refetch tâches/jardin, refetch jardin **sans `/api/plants`** quand `garden:changed` = zone/repère uniquement. |
+| **Plusieurs instances Node** sans Redis                                                    | **Option A/D** : sans **`@socket.io/redis-adapter`** (ou équivalent), les événements ne traversent pas les processus — soit **réduire à une instance** si l’hébergeur le permet, soit **VPS + Redis** pour adapter multi-instance.                                                                                                                                                                                                                                                                                           |
+| **Saturation HTTP / latence** liée au **long-polling** (nombreuses connexions simultanées) | **Option C** : hébergement ou frontal avec **WebSocket** correctement terminé ; réactiver WS côté client/serveur **derrière un drapeau** après validation.                                                                                                                                                                                                                                                                                                                                                                   |
+| **Proxy WS irréparable** sur le mutualisé                                                  | **Option E** ou maintien du **polling** documenté ; services managés uniquement si le coût / la dépendance externe sont acceptés.                                                                                                                                                                                                                                                                                                                                                                                            |
 
 Références : **`docs/EXPLOITATION.md`** (temps réel / Passenger), **`docs/LOCAL_DEV.md`** (charge Artillery + smoke Socket.IO), **`docs/API.md`** (section Temps réel).
 
@@ -134,11 +134,11 @@ Références : **`docs/EXPLOITATION.md`** (temps réel / Passenger), **`docs/LOC
 
 ## 4. Ordre suggéré des actions (à partir de maintenant)
 
-| Ordre | Action | Priorité |
-|-------|--------|----------|
-| 1 | Étendre les scénarios Playwright e2e (flux complets) | Haute |
-| 2 | Maintenir scripts/docs post-bascule image (disk-only) | Moyenne |
-| 3 | Nettoyage façade historique frontend (optionnel) | Basse |
+| Ordre | Action                                                | Priorité |
+| ----- | ----------------------------------------------------- | -------- |
+| 1     | Étendre les scénarios Playwright e2e (flux complets)  | Haute    |
+| 2     | Maintenir scripts/docs post-bascule image (disk-only) | Moyenne  |
+| 3     | Nettoyage façade historique frontend (optionnel)      | Basse    |
 
 ---
 

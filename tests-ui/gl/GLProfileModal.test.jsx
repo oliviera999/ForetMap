@@ -19,7 +19,7 @@ describe('GLProfileModal', () => {
         config={{}}
         onSessionUpdated={vi.fn()}
         onReloadProfile={vi.fn()}
-      />
+      />,
     );
 
     expect(screen.getByRole('dialog', { name: 'Mon profil GL' })).toBeTruthy();
@@ -37,7 +37,7 @@ describe('GLProfileModal', () => {
         config={{}}
         onSessionUpdated={vi.fn()}
         onReloadProfile={vi.fn()}
-      />
+      />,
     );
 
     fireEvent.click(screen.getByRole('button', { name: 'Fermer' }));
@@ -54,7 +54,7 @@ describe('GLProfileModal', () => {
         config={{}}
         onSessionUpdated={vi.fn()}
         onReloadProfile={vi.fn()}
-      />
+      />,
     );
 
     expect(screen.queryByRole('dialog')).toBeNull();

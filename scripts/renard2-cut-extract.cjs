@@ -70,7 +70,9 @@ async function transparentTilePng() {
       channels: 4,
       background: { r: 0, g: 0, b: 0, alpha: 0 },
     },
-  }).png().toBuffer();
+  })
+    .png()
+    .toBuffer();
 }
 
 async function main() {
@@ -112,7 +114,9 @@ async function main() {
   }
   console.log('OK renard2-cut:', path.relative(ROOT, OUT_DIR), `(${COLS * ROWS} frames)`);
   console.log('  source:', path.relative(ROOT, srcPath));
-  console.log('  Astuce visite : si la ligne de course « défile » horizontalement, lancer npm run mascot:renard2-cut-align-walk');
+  console.log(
+    '  Astuce visite : si la ligne de course « défile » horizontalement, lancer npm run mascot:renard2-cut-align-walk',
+  );
 }
 
 main().catch((err) => {

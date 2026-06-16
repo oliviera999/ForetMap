@@ -20,7 +20,10 @@ test('glVirtualDice — clampDiceCount et rollDice', async () => {
 
   const result = rollDice(3);
   assert.strictEqual(result.values.length, 3);
-  assert.strictEqual(result.total, result.values.reduce((a, b) => a + b, 0));
+  assert.strictEqual(
+    result.total,
+    result.values.reduce((a, b) => a + b, 0),
+  );
   for (const v of result.values) {
     assert.ok(v >= 1 && v <= DICE_SIDES);
   }

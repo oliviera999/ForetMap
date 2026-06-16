@@ -18,9 +18,9 @@ function stepLabel(step) {
 export function sortProgressionSteps(steps) {
   return [...(Array.isArray(steps) ? steps : [])].sort(
     (a, b) =>
-      toPositiveInt(a?.min, 0) - toPositiveInt(b?.min, 0)
-      || stepDisplayOrder(a) - stepDisplayOrder(b)
-      || stepLabel(a).localeCompare(stepLabel(b))
+      toPositiveInt(a?.min, 0) - toPositiveInt(b?.min, 0) ||
+      stepDisplayOrder(a) - stepDisplayOrder(b) ||
+      stepLabel(a).localeCompare(stepLabel(b)),
   );
 }
 
@@ -37,27 +37,46 @@ export function resolveTaskTierSlug(validatedCount, steps) {
 }
 
 export function findProgressionStep(steps, roleSlug) {
-  const slug = String(roleSlug || '').trim().toLowerCase();
+  const slug = String(roleSlug || '')
+    .trim()
+    .toLowerCase();
   if (!slug) return null;
-  return sortProgressionSteps(steps).find(
-    (s) => String(s.roleSlug || '').trim().toLowerCase() === slug
-  ) || null;
+  return (
+    sortProgressionSteps(steps).find(
+      (s) =>
+        String(s.roleSlug || '')
+          .trim()
+          .toLowerCase() === slug,
+    ) || null
+  );
 }
 
 /** Palier suivant dans l'échelle triée, ou null si maximum. */
 export function getNextProgressionStep(steps, currentSlug) {
   const ordered = sortProgressionSteps(steps);
-  const slug = String(currentSlug || '').trim().toLowerCase();
-  const idx = ordered.findIndex((s) => String(s.roleSlug || '').trim().toLowerCase() === slug);
+  const slug = String(currentSlug || '')
+    .trim()
+    .toLowerCase();
+  const idx = ordered.findIndex(
+    (s) =>
+      String(s.roleSlug || '')
+        .trim()
+        .toLowerCase() === slug,
+  );
   if (idx < 0 || idx >= ordered.length - 1) return null;
   return ordered[idx + 1];
 }
 
 /** Index du palier dans l'échelle triée (-1 si absent). */
 export function getProgressionStepIndex(steps, roleSlug) {
-  const slug = String(roleSlug || '').trim().toLowerCase();
+  const slug = String(roleSlug || '')
+    .trim()
+    .toLowerCase();
   return sortProgressionSteps(steps).findIndex(
-    (s) => String(s.roleSlug || '').trim().toLowerCase() === slug
+    (s) =>
+      String(s.roleSlug || '')
+        .trim()
+        .toLowerCase() === slug,
   );
 }
 

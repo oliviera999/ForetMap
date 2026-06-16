@@ -1,1 +1,0 @@
-var e={studentSingular:`n3beur`,studentPlural:`n3beurs`,teacherSingular:`n3boss`,teacherPlural:`n3boss`,teacherShort:`n3boss`,teacherShortPlural:`n3boss`};function t(e){return String(e||``).toLowerCase()===`n3`}function n(t){return e}export{t as n,n as t};

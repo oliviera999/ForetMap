@@ -64,9 +64,12 @@ export function GLSpellPopover({
     requestClose();
   });
 
-  useEffect(() => () => {
-    if (closeTimerRef.current) window.clearTimeout(closeTimerRef.current);
-  }, []);
+  useEffect(
+    () => () => {
+      if (closeTimerRef.current) window.clearTimeout(closeTimerRef.current);
+    },
+    [],
+  );
 
   useEffect(() => {
     if (open) {
@@ -75,7 +78,11 @@ export function GLSpellPopover({
         closeTimerRef.current = null;
       }
       setIsClosing(false);
-      setActiveCode(String(spellCode || '').trim().toUpperCase() || null);
+      setActiveCode(
+        String(spellCode || '')
+          .trim()
+          .toUpperCase() || null,
+      );
     }
   }, [open, spellCode]);
 
@@ -129,10 +136,9 @@ export function GLSpellPopover({
 
   const spell = detail?.spell;
   const accent = categoryAccent(spell?.category_slug);
-  const overlayClass = [
-    'gl-spell-popover',
-    isClosing ? 'is-closing' : '',
-  ].filter(Boolean).join(' ');
+  const overlayClass = ['gl-spell-popover', isClosing ? 'is-closing' : '']
+    .filter(Boolean)
+    .join(' ');
 
   const costParts = [];
   if (spell?.cout_total_eq) costParts.push(spell.cout_total_eq);
@@ -166,7 +172,9 @@ export function GLSpellPopover({
             <div className="gl-spell-popover__skeleton gl-spell-popover__skeleton-title" />
           ) : (
             <h3 id={titleId}>
-              <span className="gl-spell-popover__emoji" aria-hidden="true">{spell?.emoji || '✨'}</span>
+              <span className="gl-spell-popover__emoji" aria-hidden="true">
+                {spell?.emoji || '✨'}
+              </span>
               {spell?.nom || 'Sortilège'}
             </h3>
           )}
@@ -180,9 +188,7 @@ export function GLSpellPopover({
           </button>
         </header>
 
-        {error ? (
-          <p className="gl-error gl-spell-popover__error">{error}</p>
-        ) : null}
+        {error ? <p className="gl-error gl-spell-popover__error">{error}</p> : null}
 
         {loading && !spell && !error ? (
           <div className="gl-spell-popover__body gl-spell-popover__body--loading">
@@ -217,20 +223,18 @@ export function GLSpellPopover({
                 <p className="gl-spell-popover__text">{spell.effet_detaille}</p>
               ) : null}
               {formatMeta(spell).map((line) => (
-                <p key={line} className="gl-spell-popover__meta">{line}</p>
+                <p key={line} className="gl-spell-popover__meta">
+                  {line}
+                </p>
               ))}
               {spell.limite_usage ? (
                 <p className="gl-spell-popover__meta">
-                  <strong>{GL_SPELL_FIELD_LABELS.limite_usage} :</strong>
-                  {' '}
-                  {spell.limite_usage}
+                  <strong>{GL_SPELL_FIELD_LABELS.limite_usage} :</strong> {spell.limite_usage}
                 </p>
               ) : null}
               {spell.cumul ? (
                 <p className="gl-spell-popover__meta">
-                  <strong>{GL_SPELL_FIELD_LABELS.cumul} :</strong>
-                  {' '}
-                  {spell.cumul}
+                  <strong>{GL_SPELL_FIELD_LABELS.cumul} :</strong> {spell.cumul}
                 </p>
               ) : null}
             </div>

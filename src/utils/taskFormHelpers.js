@@ -12,7 +12,10 @@ import { getCompletionMode } from './taskComputations.js';
 export function referentCandidateLabel(c) {
   const dn = String(c?.display_name || '').trim();
   if (dn) return dn;
-  return `${String(c?.first_name || '').trim()} ${String(c?.last_name || '').trim()}`.trim() || String(c?.id || '');
+  return (
+    `${String(c?.first_name || '').trim()} ${String(c?.last_name || '').trim()}`.trim() ||
+    String(c?.id || '')
+  );
 }
 
 /** Indice de rôle d'un candidat référent (Admin / n3boss / Équipe / n3beur). */
@@ -29,8 +32,12 @@ export function referentRoleHint(c, terms) {
 /** Carte initiale du formulaire selon la tâche éditée ou le projet par défaut. */
 export function initialTaskFormMapId(editTask, defaultProjectForNew, activeMapId) {
   return editTask
-    ? (editTask.map_id_resolved || editTask.map_id || editTask.zone_map_id || editTask.marker_map_id || null)
-    : (defaultProjectForNew?.map_id || activeMapId);
+    ? editTask.map_id_resolved ||
+        editTask.map_id ||
+        editTask.zone_map_id ||
+        editTask.marker_map_id ||
+        null
+    : defaultProjectForNew?.map_id || activeMapId;
 }
 
 /**
@@ -52,29 +59,58 @@ export function buildInitialTaskForm({
       map_id: initialMapId || '',
       zone_ids: initialZoneIds,
       marker_ids: initialMarkerIds,
-      tutorial_ids: normalizeTutorialIds(initialLocationIds(editTask, 'tutorial_ids', 'tutorial_id')),
-      referent_user_ids: editTask && Array.isArray(editTask.referent_user_ids)
-        ? [...new Set(editTask.referent_user_ids.map((id) => String(id || '').trim()).filter(Boolean))]
-        : [],
+      tutorial_ids: normalizeTutorialIds(
+        initialLocationIds(editTask, 'tutorial_ids', 'tutorial_id'),
+      ),
+      referent_user_ids:
+        editTask && Array.isArray(editTask.referent_user_ids)
+          ? [
+              ...new Set(
+                editTask.referent_user_ids.map((id) => String(id || '').trim()).filter(Boolean),
+              ),
+            ]
+          : [],
       project_id: editTask.project_id || '',
-      start_date: isDuplicate ? currentLocalDateOnly() : (editTask.start_date || ''),
+      start_date: isDuplicate ? currentLocalDateOnly() : editTask.start_date || '',
       due_date: editTask.due_date || '',
       required_students: editTask.required_students || 1,
       completion_mode: getCompletionMode(editTask),
-      danger_level: editTask.danger_level != null && editTask.danger_level !== '' ? editTask.danger_level : '',
-      difficulty_level: editTask.difficulty_level != null && editTask.difficulty_level !== '' ? editTask.difficulty_level : '',
-      importance_level: editTask.importance_level != null && editTask.importance_level !== '' ? editTask.importance_level : '',
+      danger_level:
+        editTask.danger_level != null && editTask.danger_level !== '' ? editTask.danger_level : '',
+      difficulty_level:
+        editTask.difficulty_level != null && editTask.difficulty_level !== ''
+          ? editTask.difficulty_level
+          : '',
+      importance_level:
+        editTask.importance_level != null && editTask.importance_level !== ''
+          ? editTask.importance_level
+          : '',
       recurrence: editTask.recurrence || '',
-      living_beings: orderedLivingBeingsForForm(editTask.living_beings_list || editTask.living_beings, ''),
+      living_beings: orderedLivingBeingsForForm(
+        editTask.living_beings_list || editTask.living_beings,
+        '',
+      ),
       assign_student_ids: [],
     };
   }
   return {
-    title: '', description: '', map_id: initialMapId || '',
-    zone_ids: [], marker_ids: [], tutorial_ids: [], referent_user_ids: [], living_beings: [],
+    title: '',
+    description: '',
+    map_id: initialMapId || '',
+    zone_ids: [],
+    marker_ids: [],
+    tutorial_ids: [],
+    referent_user_ids: [],
+    living_beings: [],
     project_id: defaultProjectForNew ? String(defaultProjectForNew.id) : '',
-    start_date: '', due_date: '', required_students: 1, completion_mode: 'single_done',
-    danger_level: '', difficulty_level: '', importance_level: '', recurrence: '',
+    start_date: '',
+    due_date: '',
+    required_students: 1,
+    completion_mode: 'single_done',
+    danger_level: '',
+    difficulty_level: '',
+    importance_level: '',
+    recurrence: '',
     assign_student_ids: [],
   };
 }
@@ -104,7 +140,9 @@ export function buildTaskSavePayload({
     }
     return form.map_id || null;
   };
-  const normalizedReferentIds = [...new Set((form.referent_user_ids || []).map((id) => String(id || '').trim()).filter(Boolean))];
+  const normalizedReferentIds = [
+    ...new Set((form.referent_user_ids || []).map((id) => String(id || '').trim()).filter(Boolean)),
+  ];
   const payload = {
     title: form.title.trim(),
     description: form.description || '',
@@ -122,8 +160,14 @@ export function buildTaskSavePayload({
     difficulty_level: form.difficulty_level ? form.difficulty_level : null,
     importance_level: form.importance_level ? form.importance_level : null,
     recurrence: form.recurrence || null,
-    living_beings: [...new Set((form.living_beings || []).map((n) => String(n || '').trim()).filter(Boolean))],
-    assign_student_ids: [...new Set((form.assign_student_ids || []).map((id) => String(id || '').trim()).filter(Boolean))],
+    living_beings: [
+      ...new Set((form.living_beings || []).map((n) => String(n || '').trim()).filter(Boolean)),
+    ],
+    assign_student_ids: [
+      ...new Set(
+        (form.assign_student_ids || []).map((id) => String(id || '').trim()).filter(Boolean),
+      ),
+    ],
   };
   if (!payload.map_id && (payload.zone_ids.length || payload.marker_ids.length)) {
     payload.map_id = mapFromLinks();
@@ -157,9 +201,7 @@ export function initialLinkedObjectIds(editTask, linkedKey) {
   if (!editTask) return [];
   const linked = editTask[linkedKey];
   if (!Array.isArray(linked) || !linked.length) return [];
-  return [...new Set(linked
-    .map((entry) => String(entry?.id || '').trim())
-    .filter(Boolean))];
+  return [...new Set(linked.map((entry) => String(entry?.id || '').trim()).filter(Boolean))];
 }
 
 /** Normalise une liste d'IDs de tutoriels en entiers positifs uniques. */

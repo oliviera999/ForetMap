@@ -35,7 +35,9 @@ export function GLPlayerJournalEmbedPicker({ open, onClose, onInsert, chapterSpe
         <GLField label="Type d’élément">
           <GLSelect value={embedType} onChange={(e) => setEmbedType(e.target.value)}>
             {Object.entries(JOURNAL_EMBED_TYPE_LABELS).map(([key, label]) => (
-              <option key={key} value={key}>{label}</option>
+              <option key={key} value={key}>
+                {label}
+              </option>
             ))}
           </GLSelect>
         </GLField>
@@ -94,8 +96,12 @@ export function GLPlayerJournalEmbedPicker({ open, onClose, onInsert, chapterSpe
         ) : null}
       </div>
       <div className="gl-inline-actions">
-        <GLButton type="button" variant="secondary" onClick={onClose}>Annuler</GLButton>
-        <GLButton type="button" onClick={handleInsert}>Insérer</GLButton>
+        <GLButton type="button" variant="secondary" onClick={onClose}>
+          Annuler
+        </GLButton>
+        <GLButton type="button" onClick={handleInsert}>
+          Insérer
+        </GLButton>
       </div>
     </DialogShell>
   );

@@ -25,8 +25,11 @@ export default defineConfig({
           }
           if (id.includes('node_modules/socket.io-client')) return 'socket-io';
           if (id.includes('node_modules/@rive-app')) return 'rive';
-          if (id.includes('node_modules/marked') || id.includes('node_modules/isomorphic-dompurify')
-            || id.includes('node_modules/dompurify')) {
+          if (
+            id.includes('node_modules/marked') ||
+            id.includes('node_modules/isomorphic-dompurify') ||
+            id.includes('node_modules/dompurify')
+          ) {
             return 'markdown';
           }
         },

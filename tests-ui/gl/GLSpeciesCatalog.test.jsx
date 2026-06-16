@@ -65,7 +65,7 @@ describe('GLSpeciesCatalog', () => {
           { slug: 'sahara', nom: 'Désert chaud (Sahara)' },
           { slug: 'toundra', nom: 'Toundra arctique' },
         ]}
-      />
+      />,
     );
     expect(screen.getByRole('tab', { name: 'Désert chaud (Sahara)' })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'Toundra arctique' })).toBeInTheDocument();
@@ -96,10 +96,12 @@ describe('GLSpeciesCatalog', () => {
       <GLSpeciesCatalog
         biomes={[{ slug: 'sahara', nom: 'Désert chaud (Sahara)' }]}
         onOpenGlossaryTerm={onOpenGlossaryTerm}
-      />
+      />,
     );
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /Ouvrir la fiche de Fennec/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: /Ouvrir la fiche de Fennec/i }),
+      ).toBeInTheDocument();
     });
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: /Ouvrir la fiche de Fennec/i }));
@@ -107,7 +109,7 @@ describe('GLSpeciesCatalog', () => {
     expect(within(dialog).getByText('Prédateur nocturne')).toBeInTheDocument();
     expect(within(dialog).getByRole('link', { name: 'Fennec' })).toHaveAttribute(
       'href',
-      'https://fr.wikipedia.org/wiki/Fennec'
+      'https://fr.wikipedia.org/wiki/Fennec',
     );
     expect(screen.queryByText(/Rôle :/i)).not.toBeInTheDocument();
     await userEvent.click(within(dialog).getByRole('button', { name: 'Biome' }));

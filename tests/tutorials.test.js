@@ -121,11 +121,13 @@ test('inlineLegacyTutorialHtmlToDb remplit html_content depuis source_file_path'
   const ins = await execute(
     `INSERT INTO tutorials (title, slug, type, summary, html_content, source_file_path, is_active, sort_order, created_at, updated_at)
      VALUES (?, ?, 'html', 'x', NULL, '/tutos/fiche-arrosage-punk.html', 1, 998, NOW(), NOW())`,
-    ['Test inline BDD', slug]
+    ['Test inline BDD', slug],
   );
   const r = await inlineLegacyTutorialHtmlToDb({ queryAll, execute });
   assert.ok(r.applied >= 1);
-  const row = await queryOne('SELECT html_content, source_file_path FROM tutorials WHERE id = ?', [ins.insertId]);
+  const row = await queryOne('SELECT html_content, source_file_path FROM tutorials WHERE id = ?', [
+    ins.insertId,
+  ]);
   assert.ok(row.html_content && String(row.html_content).length > 50);
   assert.strictEqual(row.source_file_path, null);
   await execute('DELETE FROM tutorials WHERE id = ?', [ins.insertId]);
@@ -196,9 +198,7 @@ test('Tutoriel archivé: invisible publiquement mais éditable par prof', async 
     .set('Authorization', 'Bearer ' + teacherToken)
     .expect(200);
 
-  await request(app)
-    .get(`/api/tutorials/${create.body.id}`)
-    .expect(404);
+  await request(app).get(`/api/tutorials/${create.body.id}`).expect(404);
 
   const managed = await request(app)
     .get(`/api/tutorials/${create.body.id}?include_inactive=1&include_content=1`)

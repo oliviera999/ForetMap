@@ -38,7 +38,7 @@ function renderCard(props = {}) {
       reportReason=""
       {...handlers}
       {...props}
-    />
+    />,
   );
   return handlers;
 }
@@ -79,7 +79,12 @@ describe('ForumPostCard', () => {
   test('lecture seule : seules les réactions comptabilisées s’affichent, sans actions', () => {
     renderCard({
       canUseForumActions: false,
-      post: post({ reactions: [{ emoji: '👍', count: 3 }, { emoji: '❤️', count: 0 }] }),
+      post: post({
+        reactions: [
+          { emoji: '👍', count: 3 },
+          { emoji: '❤️', count: 0 },
+        ],
+      }),
     });
     expect(screen.getByText('👍')).toBeInTheDocument();
     expect(screen.getByText('3')).toBeInTheDocument();

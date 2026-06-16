@@ -13,10 +13,20 @@ import React from 'react';
  * - `onClearEmoji()` : intention de retirer l'emoji (repère uniquement).
  * - `onSelectEmoji(emoji)` : intention de choisir l'emoji donné.
  */
-export function VisitEditorEmojiPicker({ selectedType, markerEmojis = [], selectedEmoji, onClearEmoji, onSelectEmoji }) {
+export function VisitEditorEmojiPicker({
+  selectedType,
+  markerEmojis = [],
+  selectedEmoji,
+  onClearEmoji,
+  onSelectEmoji,
+}) {
   return (
     <div className="field">
-      <label>{selectedType === 'zone' ? 'Liste d’emojis (insérer dans le titre de zone)' : 'Emoji du repère (optionnel)'}</label>
+      <label>
+        {selectedType === 'zone'
+          ? 'Liste d’emojis (insérer dans le titre de zone)'
+          : 'Emoji du repère (optionnel)'}
+      </label>
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
         {selectedType === 'marker' ? (
           <button

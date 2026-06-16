@@ -30,7 +30,7 @@ before(async () => {
   await execute(
     `INSERT INTO gl_admins (email, display_name, role, is_active, created_at, updated_at)
      VALUES (?, 'MJ Bibliothèque', 'admin', 1, NOW(), NOW())`,
-    [adminEmail]
+    [adminEmail],
   );
   const admin = await queryOne('SELECT id FROM gl_admins WHERE email = ? LIMIT 1', [adminEmail]);
   contentAdminToken = await signAuthToken({
@@ -45,15 +45,19 @@ before(async () => {
   await execute(
     `INSERT INTO gl_classes (name, school, created_by, is_active, created_at, updated_at)
      VALUES (?, 'Ecole Test', ?, 1, NOW(), NOW())`,
-    [`Classe Biblio ${stamp}`, admin.id]
+    [`Classe Biblio ${stamp}`, admin.id],
   );
-  const cls = await queryOne('SELECT id FROM gl_classes WHERE name = ? ORDER BY id DESC LIMIT 1', [`Classe Biblio ${stamp}`]);
+  const cls = await queryOne('SELECT id FROM gl_classes WHERE name = ? ORDER BY id DESC LIMIT 1', [
+    `Classe Biblio ${stamp}`,
+  ]);
   await execute(
     `INSERT INTO gl_players (class_id, pseudo, password_hash, is_active, created_at, updated_at)
      VALUES (?, ?, 'x', 1, NOW(), NOW())`,
-    [cls.id, `biblio_player_${stamp}`]
+    [cls.id, `biblio_player_${stamp}`],
   );
-  const player = await queryOne('SELECT id FROM gl_players WHERE pseudo = ? LIMIT 1', [`biblio_player_${stamp}`]);
+  const player = await queryOne('SELECT id FROM gl_players WHERE pseudo = ? LIMIT 1', [
+    `biblio_player_${stamp}`,
+  ]);
   playerToken = await signAuthToken({
     product: 'gl',
     userType: 'gl_player',
@@ -93,9 +97,7 @@ test('extractZipEntries ignore __MACOSX et extrait les fichiers', () => {
 });
 
 test('POST /api/gl/admin/content-library/analyze exige gl.content.manage', async () => {
-  await request(app)
-    .post('/api/gl/admin/content-library/analyze')
-    .expect(401);
+  await request(app).post('/api/gl/admin/content-library/analyze').expect(401);
 
   await request(app)
     .post('/api/gl/admin/content-library/analyze')
@@ -119,16 +121,20 @@ test('analyze + apply média via API GL', async () => {
     .post('/api/gl/admin/content-library/apply')
     .set('Authorization', `Bearer ${contentAdminToken}`)
     .send({
-      entries: [{
-        fileName: 'bulk-test.png',
-        kind: 'media',
-        fileDataBase64: TINY_PNG_DATA_URL,
-      }],
+      entries: [
+        {
+          fileName: 'bulk-test.png',
+          kind: 'media',
+          fileDataBase64: TINY_PNG_DATA_URL,
+        },
+      ],
     })
     .expect(200);
 
   assert.strictEqual(applied.body?.summary?.applied, 1);
-  assert.ok(String(applied.body?.results?.[0]?.result?.url || '').startsWith('/uploads/media-library/'));
+  assert.ok(
+    String(applied.body?.results?.[0]?.result?.url || '').startsWith('/uploads/media-library/'),
+  );
 });
 
 test('analyze archive ZIP avec média et apply via archive', async () => {
@@ -150,10 +156,12 @@ test('analyze archive ZIP avec média et apply via archive', async () => {
     .set('Authorization', `Bearer ${contentAdminToken}`)
     .send({
       archive: { fileName: 'lot.zip', fileDataBase64: archiveBase64 },
-      entries: [{
-        fileName: 'bulk-zip.png',
-        kind: 'media',
-      }],
+      entries: [
+        {
+          fileName: 'bulk-zip.png',
+          kind: 'media',
+        },
+      ],
     })
     .expect(200);
 
@@ -205,10 +213,12 @@ test('analyze + apply multipart média', async () => {
 
   assert.strictEqual(analyzed.body?.entries?.[0]?.canApply, true);
 
-  const entries = JSON.stringify([{
-    fileName: 'apply-multipart.png',
-    kind: 'media',
-  }]);
+  const entries = JSON.stringify([
+    {
+      fileName: 'apply-multipart.png',
+      kind: 'media',
+    },
+  ]);
 
   const applied = await request(app)
     .post('/api/gl/admin/content-library/apply')

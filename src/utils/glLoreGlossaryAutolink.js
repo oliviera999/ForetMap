@@ -65,7 +65,7 @@ export function autolinkLorePlainText(text, entries) {
 
   matches.sort((a, b) => {
     if (a.start !== b.start) return a.start - b.start;
-    return (b.end - b.start) - (a.end - a.start);
+    return b.end - b.start - (a.end - a.start);
   });
 
   const kept = [];

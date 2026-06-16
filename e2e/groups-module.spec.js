@@ -17,7 +17,10 @@ test('module groupes visible dans l’espace profils prof/admin', async ({ page 
   const adminEmail = String(process.env.TEACHER_ADMIN_EMAIL || '').trim();
   const adminPassword = String(process.env.TEACHER_ADMIN_PASSWORD || '').trim();
   if (!adminEmail || !adminPassword) {
-    test.skip(true, 'Identifiants admin e2e manquants (TEACHER_ADMIN_EMAIL / TEACHER_ADMIN_PASSWORD)');
+    test.skip(
+      true,
+      'Identifiants admin e2e manquants (TEACHER_ADMIN_EMAIL / TEACHER_ADMIN_PASSWORD)',
+    );
   }
 
   await page.goto('/');
@@ -34,4 +37,3 @@ test('module groupes visible dans l’espace profils prof/admin', async ({ page 
   await expect(page.getByText('Groupes & sous-groupes')).toBeVisible();
   await expect(page.getByText('Module dédié: structure pédagogique')).toBeVisible();
 });
-

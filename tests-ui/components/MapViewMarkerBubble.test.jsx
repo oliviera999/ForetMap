@@ -38,7 +38,9 @@ describe('MapViewMarkerBubble', () => {
 
   test('sans emoji → point par défaut, sans étiquette quand showLabels=false', () => {
     const { container } = render(
-      <MapViewMarkerBubble {...makeProps({ marker: { x_pct: 0, y_pct: 0, emoji: '', label: 'X' }, showLabels: false })} />,
+      <MapViewMarkerBubble
+        {...makeProps({ marker: { x_pct: 0, y_pct: 0, emoji: '', label: 'X' }, showLabels: false })}
+      />,
     );
     expect(container.querySelector('.map-marker-no-emoji')).toBeInTheDocument();
     expect(screen.queryByText('X')).toBeNull();
@@ -46,10 +48,23 @@ describe('MapViewMarkerBubble', () => {
 
   test('pastilles de tâche et de tutoriel selon les props', () => {
     const { container } = render(
-      <MapViewMarkerBubble {...makeProps({ taskVisual: 'done', taskLabel: 'Terminé', tutorialCount: 2, tutorialLabel: '2 tutoriels liés' })} />,
+      <MapViewMarkerBubble
+        {...makeProps({
+          taskVisual: 'done',
+          taskLabel: 'Terminé',
+          tutorialCount: 2,
+          tutorialLabel: '2 tutoriels liés',
+        })}
+      />,
     );
-    expect(container.querySelector('.map-task-status-dot--done')).toHaveAttribute('aria-label', 'Terminé');
-    expect(container.querySelector('.map-tutorial-marker-dot')).toHaveAttribute('aria-label', '2 tutoriels liés');
+    expect(container.querySelector('.map-task-status-dot--done')).toHaveAttribute(
+      'aria-label',
+      'Terminé',
+    );
+    expect(container.querySelector('.map-tutorial-marker-dot')).toHaveAttribute(
+      'aria-label',
+      '2 tutoriels liés',
+    );
   });
 
   test('clic et touche Entrée déclenchent onOpen', () => {

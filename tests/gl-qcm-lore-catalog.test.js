@@ -9,10 +9,19 @@ const request = require('supertest');
 const { app } = require('../server');
 const { initSchema, execute, queryOne } = require('../database');
 const { signAuthToken } = require('../middleware/requireTeacher');
-const { parseLoreGlossaryWorkbook, applyLoreGlossaryImport } = require('../lib/glLoreGlossaryImport');
+const {
+  parseLoreGlossaryWorkbook,
+  applyLoreGlossaryImport,
+} = require('../lib/glLoreGlossaryImport');
 
 const XLSX_PATH = path.join(__dirname, '..', 'data', 'gl', 'qcm-lore-gnomes-et-licornes.xlsx');
-const LORE_GLOSSARY_XLSX = path.join(__dirname, '..', 'data', 'gl', 'glossaire-lore-gnomes-et-licornes.xlsx');
+const LORE_GLOSSARY_XLSX = path.join(
+  __dirname,
+  '..',
+  'data',
+  'gl',
+  'glossaire-lore-gnomes-et-licornes.xlsx',
+);
 
 let adminToken = '';
 let playerToken = '';
@@ -24,12 +33,11 @@ before(async () => {
     `INSERT INTO gl_admins (email, display_name, role, is_active, created_at, updated_at)
      VALUES (?, 'MJ QCM Lore', 'admin', 1, NOW(), NOW())
      ON DUPLICATE KEY UPDATE is_active = 1, updated_at = NOW()`,
-    [`qcm-lore.admin.${stamp}@ecole.local`]
+    [`qcm-lore.admin.${stamp}@ecole.local`],
   );
-  const admin = await queryOne(
-    'SELECT id FROM gl_admins WHERE email = ? LIMIT 1',
-    [`qcm-lore.admin.${stamp}@ecole.local`]
-  );
+  const admin = await queryOne('SELECT id FROM gl_admins WHERE email = ? LIMIT 1', [
+    `qcm-lore.admin.${stamp}@ecole.local`,
+  ]);
   adminToken = await signAuthToken({
     product: 'gl',
     userType: 'gl_admin',
@@ -40,15 +48,19 @@ before(async () => {
   await execute(
     `INSERT INTO gl_classes (name, school, created_by, is_active, created_at, updated_at)
      VALUES (?, 'Ecole', ?, 1, NOW(), NOW())`,
-    [`Classe QCM Lore ${stamp}`, admin.id]
+    [`Classe QCM Lore ${stamp}`, admin.id],
   );
-  const cls = await queryOne('SELECT id FROM gl_classes WHERE name = ? LIMIT 1', [`Classe QCM Lore ${stamp}`]);
+  const cls = await queryOne('SELECT id FROM gl_classes WHERE name = ? LIMIT 1', [
+    `Classe QCM Lore ${stamp}`,
+  ]);
   await execute(
     `INSERT INTO gl_players (class_id, pseudo, password_hash, is_active, created_at, updated_at)
      VALUES (?, ?, 'x', 1, NOW(), NOW())`,
-    [cls.id, `qcm-lore-player-${stamp}`]
+    [cls.id, `qcm-lore-player-${stamp}`],
   );
-  const player = await queryOne('SELECT id FROM gl_players WHERE pseudo = ? LIMIT 1', [`qcm-lore-player-${stamp}`]);
+  const player = await queryOne('SELECT id FROM gl_players WHERE pseudo = ? LIMIT 1', [
+    `qcm-lore-player-${stamp}`,
+  ]);
   playerToken = await signAuthToken({
     product: 'gl',
     userType: 'gl_player',
@@ -78,7 +90,7 @@ test('POST /api/gl/lore/admin/qcm/import apply upsert le catalogue', async () =>
     await applyLoreGlossaryImport(
       { queryAll: require('../database').queryAll, execute },
       glossaryRows,
-      { dryRun: false }
+      { dryRun: false },
     );
   }
 
@@ -90,7 +102,7 @@ test('POST /api/gl/lore/admin/qcm/import apply upsert le catalogue', async () =>
     .expect(200);
   assert.ok(res.body?.report?.totals?.created + res.body?.report?.totals?.updated >= 150);
   const row = await queryOne(
-    "SELECT question FROM gl_qcm_lore_questions WHERE question_code = 'LQCM0001' LIMIT 1"
+    "SELECT question FROM gl_qcm_lore_questions WHERE question_code = 'LQCM0001' LIMIT 1",
   );
   assert.ok(String(row?.question || '').length > 5);
 });
@@ -132,7 +144,7 @@ test('POST /api/gl/lore/qcm/questions/:code/answer valide une réponse', async (
     .expect(200);
   const row = await queryOne(
     `SELECT reponse_correcte, choix_a, choix_b, choix_c, choix_d, choix_e, feedback_correct
-       FROM gl_qcm_lore_questions WHERE question_code = 'LQCM0001'`
+       FROM gl_qcm_lore_questions WHERE question_code = 'LQCM0001'`,
   );
   const letter = String(row.reponse_correcte).toLowerCase();
   const correctText = row[`choix_${letter}`];

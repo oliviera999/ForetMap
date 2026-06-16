@@ -21,8 +21,14 @@ function harness(initialForm) {
 }
 
 const EMPTY_FORM = {
-  label: '', living_beings: [], note: '', emoji: '',
-  visit_subtitle: '', visit_short_description: '', visit_details_title: 'Détails', visit_details_text: '',
+  label: '',
+  living_beings: [],
+  note: '',
+  emoji: '',
+  visit_subtitle: '',
+  visit_short_description: '',
+  visit_details_title: 'Détails',
+  visit_details_text: '',
 };
 
 describe('MarkerCommonFormFields', () => {
@@ -46,7 +52,9 @@ describe('MarkerCommonFormFields', () => {
 
   test('catalogue d’êtres vivants masqué quand aucune sélection', () => {
     const Harness = harness({ ...EMPTY_FORM });
-    const { container } = render(<Harness>{(p) => <MarkerCommonFormFields {...p} plants={PLANTS} />}</Harness>);
+    const { container } = render(
+      <Harness>{(p) => <MarkerCommonFormFields {...p} plants={PLANTS} />}</Harness>,
+    );
     // pas de panneau catalogue → seul le <select multiple> liste les options
     expect(container.querySelectorAll('option').length).toBe(PLANTS.length);
   });
@@ -55,7 +63,9 @@ describe('MarkerCommonFormFields', () => {
 describe('MarkerEmojiField', () => {
   test('rend la grille de suggestions et sélectionne au clic', () => {
     const Harness = harness({ ...EMPTY_FORM });
-    render(<Harness>{(p) => <MarkerEmojiField id="x" {...p} markerEmojis={['🌳', '🌲']} />}</Harness>);
+    render(
+      <Harness>{(p) => <MarkerEmojiField id="x" {...p} markerEmojis={['🌳', '🌲']} />}</Harness>,
+    );
     const btn = screen.getByRole('button', { name: '🌳' });
     fireEvent.click(btn);
     expect(btn.className).toContain('sel');
@@ -63,7 +73,11 @@ describe('MarkerEmojiField', () => {
 
   test('htmlFor relie le label au champ via l’id fourni', () => {
     const Harness = harness({ ...EMPTY_FORM });
-    const { container } = render(<Harness>{(p) => <MarkerEmojiField id="marker-edit-emoji-custom" {...p} markerEmojis={[]} />}</Harness>);
+    const { container } = render(
+      <Harness>
+        {(p) => <MarkerEmojiField id="marker-edit-emoji-custom" {...p} markerEmojis={[]} />}
+      </Harness>,
+    );
     expect(container.querySelector('label[for="marker-edit-emoji-custom"]')).toBeTruthy();
   });
 });

@@ -16,11 +16,18 @@ function runQuery(rawQuery) {
   const req = { query: rawQuery };
   const res = {
     statusCode: 200,
-    status(c) { this.statusCode = c; return this; },
-    json() { return this; },
+    status(c) {
+      this.statusCode = c;
+      return this;
+    },
+    json() {
+      return this;
+    },
   };
   let nextCalled = false;
-  validate({ query: glMarketTradesQuerySchema })(req, res, () => { nextCalled = true; });
+  validate({ query: glMarketTradesQuerySchema })(req, res, () => {
+    nextCalled = true;
+  });
   return { nextCalled, status: res.statusCode, parsed: req.validatedQuery };
 }
 
@@ -32,11 +39,27 @@ function legacyParsePositiveInt(value, fallback) {
 }
 function legacyPageQuery(query) {
   const page = legacyParsePositiveInt(query?.page, 1);
-  const pageSize = Math.min(MAX_PAGE_SIZE, legacyParsePositiveInt(query?.page_size, DEFAULT_PAGE_SIZE));
+  const pageSize = Math.min(
+    MAX_PAGE_SIZE,
+    legacyParsePositiveInt(query?.page_size, DEFAULT_PAGE_SIZE),
+  );
   return { page, pageSize, offset: (page - 1) * pageSize };
 }
 
-const EDGE_VALUES = [undefined, '', 'abc', '0', '-3', '1', '2.9', '12abc', '50', '51', '999999', ['3', '4']];
+const EDGE_VALUES = [
+  undefined,
+  '',
+  'abc',
+  '0',
+  '-3',
+  '1',
+  '2.9',
+  '12abc',
+  '50',
+  '51',
+  '999999',
+  ['3', '4'],
+];
 
 test('page/page_size : équivalence exacte avec parsePageQuery sur tous les cas limites, jamais de 400', () => {
   for (const page of EDGE_VALUES) {
@@ -56,8 +79,13 @@ test('page/page_size : équivalence exacte avec parsePageQuery sur tous les cas 
 test('page/pageSize toujours des entiers ≥ 1, pageSize ≤ 50', () => {
   for (const raw of ['0', '-100', '1', '50', '51', '999999', 'abc', '2.5', ['1', '2']]) {
     const { parsed } = runQuery({ page: raw, page_size: raw });
-    assert.ok(Number.isInteger(parsed.page) && parsed.page >= 1, `page ${parsed.page} invalide pour ${JSON.stringify(raw)}`);
-    assert.ok(Number.isInteger(parsed.pageSize) && parsed.pageSize >= 1 && parsed.pageSize <= MAX_PAGE_SIZE,
-      `pageSize ${parsed.pageSize} hors borne pour ${JSON.stringify(raw)}`);
+    assert.ok(
+      Number.isInteger(parsed.page) && parsed.page >= 1,
+      `page ${parsed.page} invalide pour ${JSON.stringify(raw)}`,
+    );
+    assert.ok(
+      Number.isInteger(parsed.pageSize) && parsed.pageSize >= 1 && parsed.pageSize <= MAX_PAGE_SIZE,
+      `pageSize ${parsed.pageSize} hors borne pour ${JSON.stringify(raw)}`,
+    );
   }
 });

@@ -34,14 +34,18 @@ export function resolveOauthErrorMessage(code) {
 
 /** Décode un payload base64url (retour OAuth dans le hash d'URL) en objet JSON. */
 export function decodeBase64UrlJson(value) {
-  const normalized = String(value || '').replace(/-/g, '+').replace(/_/g, '/');
+  const normalized = String(value || '')
+    .replace(/-/g, '+')
+    .replace(/_/g, '/');
   const padded = normalized + '='.repeat((4 - (normalized.length % 4)) % 4);
   return JSON.parse(window.atob(padded));
 }
 
 /** Onglet mémorisé en localStorage, replié sur `map` si absent ou inconnu. */
 export function readStoredTab() {
-  const raw = String(safeLocalStorageGetItem(TAB_STORAGE_KEY, '') || '').trim().toLowerCase();
+  const raw = String(safeLocalStorageGetItem(TAB_STORAGE_KEY, '') || '')
+    .trim()
+    .toLowerCase();
   if (!raw) return 'map';
   return KNOWN_TAB_VALUES.has(raw) ? raw : 'map';
 }

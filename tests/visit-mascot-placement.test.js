@@ -12,7 +12,9 @@ let VISIT_MASCOT_BELOW_N3_ENTRANCE_YP;
 let VISIT_N3_ENTRANCE_LABEL_RE;
 
 before(async () => {
-  const mod = await import(pathToFileURL(join(__dirname, '../src/utils/visitMascotPlacement.js')).href);
+  const mod = await import(
+    pathToFileURL(join(__dirname, '../src/utils/visitMascotPlacement.js')).href
+  );
   computeVisitMascotStartPct = mod.computeVisitMascotStartPct;
   findVisitN3EntranceMarker = mod.findVisitN3EntranceMarker;
   VISIT_MASCOT_BELOW_N3_ENTRANCE_YP = mod.VISIT_MASCOT_BELOW_N3_ENTRANCE_YP;
@@ -22,10 +24,13 @@ before(async () => {
 describe('visitMascotPlacement', () => {
   it('computeVisitMascotStartPct : carte foret → centre', () => {
     assert.deepEqual(computeVisitMascotStartPct('foret', []), { xp: 50, yp: 50 });
-    assert.deepEqual(computeVisitMascotStartPct('foret', [{ label: 'Entrée N3', x_pct: 10, y_pct: 20 }]), {
-      xp: 50,
-      yp: 50,
-    });
+    assert.deepEqual(
+      computeVisitMascotStartPct('foret', [{ label: 'Entrée N3', x_pct: 10, y_pct: 20 }]),
+      {
+        xp: 50,
+        yp: 50,
+      },
+    );
   });
 
   it('computeVisitMascotStartPct : n3 sans repère entrée → centre', () => {
@@ -52,10 +57,13 @@ describe('visitMascotPlacement', () => {
   });
 
   it('computeVisitMascotStartPct : ignore x_pct / y_pct non numériques', () => {
-    assert.deepEqual(computeVisitMascotStartPct('n3', [{ label: 'Entrée N3', x_pct: 'x', y_pct: 10 }]), {
-      xp: 50,
-      yp: 50,
-    });
+    assert.deepEqual(
+      computeVisitMascotStartPct('n3', [{ label: 'Entrée N3', x_pct: 'x', y_pct: 10 }]),
+      {
+        xp: 50,
+        yp: 50,
+      },
+    );
   });
 
   it('findVisitN3EntranceMarker : variantes de libellé reconnues', () => {

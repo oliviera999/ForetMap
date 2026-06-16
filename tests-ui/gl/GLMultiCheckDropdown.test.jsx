@@ -21,7 +21,7 @@ describe('GLMultiCheckDropdown', () => {
         selectedValues={[]}
         onChange={onChange}
         emptyLabel="Toutes les catégories"
-      />
+      />,
     );
 
     expect(screen.getByText('Toutes les catégories')).toBeInTheDocument();
@@ -41,7 +41,7 @@ describe('GLMultiCheckDropdown', () => {
         options={OPTIONS}
         selectedValues={['flore']}
         onChange={vi.fn()}
-      />
+      />,
     );
 
     await user.click(screen.getByRole('button'));

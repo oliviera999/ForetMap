@@ -43,7 +43,7 @@ test('migrateTable en dry-run ne modifie pas la ligne', async () => {
   const zoneId = `zone-migrate-dry-${Date.now()}`;
   await execute(
     'INSERT INTO zones (id, name, x, y, width, height, current_plant, stage, special, points, color) VALUES (?, ?, 0, 0, 0, 0, ?, ?, 0, ?, ?)',
-    [zoneId, 'Zone dry-run', '', 'empty', '[]', '#86efac80']
+    [zoneId, 'Zone dry-run', '', 'empty', '[]', '#86efac80'],
   );
   const tempTable = `tmp_legacy_images_${Date.now()}`;
   await execute(
@@ -52,11 +52,15 @@ test('migrateTable en dry-run ne modifie pas la ligne', async () => {
       zone_id VARCHAR(64) NOT NULL,
       image_data LONGTEXT DEFAULT NULL,
       image_path VARCHAR(512) DEFAULT NULL
-    )`
+    )`,
   );
   const inserted = await execute(
     `INSERT INTO ${tempTable} (zone_id, image_data, image_path) VALUES (?, ?, ?)`,
-    [zoneId, 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO5qXg8AAAAASUVORK5CYII=', null]
+    [
+      zoneId,
+      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO5qXg8AAAAASUVORK5CYII=',
+      null,
+    ],
   );
   const photoId = inserted.insertId;
 
@@ -69,11 +73,13 @@ test('migrateTable en dry-run ne modifie pas la ligne', async () => {
         relativePath: targetPathForZonePhoto,
         updateSql: `UPDATE ${tempTable} SET image_path = ? WHERE id = ?`,
         updateWithClearSql: `UPDATE ${tempTable} SET image_path = ?, image_data = NULL WHERE id = ?`,
-      }
+      },
     );
     assert.ok(summary.migrated >= 1);
 
-    const row = await queryOne(`SELECT image_path, image_data FROM ${tempTable} WHERE id = ?`, [photoId]);
+    const row = await queryOne(`SELECT image_path, image_data FROM ${tempTable} WHERE id = ?`, [
+      photoId,
+    ]);
     assert.strictEqual(row.image_path, null);
     assert.ok(row.image_data);
   } finally {

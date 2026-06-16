@@ -13,7 +13,7 @@ describe('GLPlayerJournalEmbedPicker', () => {
         onClose={onClose}
         onInsert={vi.fn()}
         chapterSpells={['SL001']}
-      />
+      />,
     );
 
     expect(screen.getByRole('dialog')).toBeTruthy();
@@ -23,13 +23,7 @@ describe('GLPlayerJournalEmbedPicker', () => {
   });
 
   it('ne rend rien quand open=false', () => {
-    render(
-      <GLPlayerJournalEmbedPicker
-        open={false}
-        onClose={vi.fn()}
-        onInsert={vi.fn()}
-      />
-    );
+    render(<GLPlayerJournalEmbedPicker open={false} onClose={vi.fn()} onInsert={vi.fn()} />);
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 });

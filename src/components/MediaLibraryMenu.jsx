@@ -61,12 +61,13 @@ export function MediaLibraryMenu({
   const galleryBulkEnabled = enableGalleryBulkActions && canRemove && effectiveLayout === 'gallery';
 
   const visibleItems = useMemo(
-    () => filterAndSortMediaLibraryItems(items, {
-      filter: typeFilter,
-      query: searchQuery,
-      sort: sortBy,
-    }),
-    [items, typeFilter, searchQuery, sortBy]
+    () =>
+      filterAndSortMediaLibraryItems(items, {
+        filter: typeFilter,
+        query: searchQuery,
+        sort: sortBy,
+      }),
+    [items, typeFilter, searchQuery, sortBy],
   );
 
   const selectedCount = selectedPaths.size;
@@ -210,7 +211,7 @@ export function MediaLibraryMenu({
   async function deleteSelected() {
     await deletePaths(
       selectedPaths,
-      `Supprimer ${selectedCount} média${selectedCount > 1 ? 's' : ''} sélectionné${selectedCount > 1 ? 's' : ''} ?`
+      `Supprimer ${selectedCount} média${selectedCount > 1 ? 's' : ''} sélectionné${selectedCount > 1 ? 's' : ''} ?`,
     );
   }
 
@@ -218,20 +219,24 @@ export function MediaLibraryMenu({
     if (items.length === 0) return;
     await deletePaths(
       items.map((item) => item.relativePath),
-      `Vider toute la bibliothèque (${items.length} média${items.length > 1 ? 's' : ''}) ? Cette action est irréversible.`
+      `Vider toute la bibliothèque (${items.length} média${items.length > 1 ? 's' : ''}) ? Cette action est irréversible.`,
     );
   }
 
-  const panelClassName = effectiveLayout === 'gallery'
-    ? 'media-library-menu__panel media-library-menu__panel--gallery'
-    : 'media-library-menu__panel';
+  const panelClassName =
+    effectiveLayout === 'gallery'
+      ? 'media-library-menu__panel media-library-menu__panel--gallery'
+      : 'media-library-menu__panel';
 
-  const countLabel = visibleItems.length === items.length
-    ? `${visibleItems.length} média${visibleItems.length > 1 ? 's' : ''}`
-    : `${visibleItems.length} / ${items.length} média${items.length > 1 ? 's' : ''}`;
+  const countLabel =
+    visibleItems.length === items.length
+      ? `${visibleItems.length} média${visibleItems.length > 1 ? 's' : ''}`
+      : `${visibleItems.length} / ${items.length} média${items.length > 1 ? 's' : ''}`;
 
   return (
-    <div className={`media-library-menu${effectiveLayout === 'gallery' ? ' media-library-menu--gallery' : ''}`}>
+    <div
+      className={`media-library-menu${effectiveLayout === 'gallery' ? ' media-library-menu--gallery' : ''}`}
+    >
       {showToggle ? (
         <button type="button" className="btn btn-secondary btn-sm" onClick={ensureOpen}>
           {open ? 'Fermer bibliothèque média' : 'Ouvrir bibliothèque média'}
@@ -257,17 +262,29 @@ export function MediaLibraryMenu({
               </label>
               <label className="media-library-menu__filter">
                 <span className="media-library-menu__filter-label">Type</span>
-                <select value={typeFilter} disabled={busy} onChange={(event) => setTypeFilter(event.target.value)}>
+                <select
+                  value={typeFilter}
+                  disabled={busy}
+                  onChange={(event) => setTypeFilter(event.target.value)}
+                >
                   {MEDIA_LIBRARY_TYPE_FILTERS.map((option) => (
-                    <option key={option.value} value={option.value}>{option.label}</option>
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
                   ))}
                 </select>
               </label>
               <label className="media-library-menu__filter">
                 <span className="media-library-menu__filter-label">Tri</span>
-                <select value={sortBy} disabled={busy} onChange={(event) => setSortBy(event.target.value)}>
+                <select
+                  value={sortBy}
+                  disabled={busy}
+                  onChange={(event) => setSortBy(event.target.value)}
+                >
                   {MEDIA_LIBRARY_SORT_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>{option.label}</option>
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
                   ))}
                 </select>
               </label>
@@ -298,7 +315,12 @@ export function MediaLibraryMenu({
                   📁 Importer
                 </button>
               )}
-              <button type="button" className="btn btn-secondary btn-sm" disabled={busy} onClick={reload}>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                disabled={busy}
+                onClick={reload}
+              >
                 Rafraîchir
               </button>
             </div>
@@ -317,7 +339,9 @@ export function MediaLibraryMenu({
           ) : null}
           <p className="media-library-menu__count gl-hint">
             {countLabel}
-            {galleryBulkEnabled && selectedCount > 0 ? ` · ${selectedCount} sélectionné${selectedCount > 1 ? 's' : ''}` : ''}
+            {galleryBulkEnabled && selectedCount > 0
+              ? ` · ${selectedCount} sélectionné${selectedCount > 1 ? 's' : ''}`
+              : ''}
           </p>
           {busy ? <p className="gl-hint">Chargement…</p> : null}
           {effectiveLayout === 'gallery' ? (
@@ -350,30 +374,51 @@ export function MediaLibraryMenu({
                 </li>
               ))}
               {visibleItems.length === 0 && !busy ? (
-                <li className="media-library-menu__gallery-empty gl-hint">Aucun média ne correspond aux filtres.</li>
+                <li className="media-library-menu__gallery-empty gl-hint">
+                  Aucun média ne correspond aux filtres.
+                </li>
               ) : null}
             </ul>
           ) : (
             <ul className="media-library-menu__list">
               {visibleItems.map((item) => (
                 <li key={item.relativePath}>
-                  <button type="button" className="gl-marker-row-btn" onClick={() => onPickUrl?.(item.url)}>
+                  <button
+                    type="button"
+                    className="gl-marker-row-btn"
+                    onClick={() => onPickUrl?.(item.url)}
+                  >
                     {mediaEmoji(item.mediaType)} <strong>{item.filename}</strong>
-                    {item.stableKey ? <span className="gl-hint"> · slug : {item.stableKey}</span> : null}
+                    {item.stableKey ? (
+                      <span className="gl-hint"> · slug : {item.stableKey}</span>
+                    ) : null}
                     <span className="gl-hint"> — {item.url}</span>
-                    {item.size ? <span className="gl-hint"> ({formatMediaLibrarySize(item.size)})</span> : null}
+                    {item.size ? (
+                      <span className="gl-hint"> ({formatMediaLibrarySize(item.size)})</span>
+                    ) : null}
                   </button>
-                  <button type="button" className="gl-danger" onClick={() => onDelete(item)} disabled={busy || !canRemove}>
+                  <button
+                    type="button"
+                    className="gl-danger"
+                    onClick={() => onDelete(item)}
+                    disabled={busy || !canRemove}
+                  >
                     Supprimer
                   </button>
                   {showUsage ? (
                     <div className="media-library-menu__usage-row">
-                      <MediaUsageInfo usage={usageByPath[item.relativePath]} ready={usageReady} limit={5} />
+                      <MediaUsageInfo
+                        usage={usageByPath[item.relativePath]}
+                        ready={usageReady}
+                        limit={5}
+                      />
                     </div>
                   ) : null}
                 </li>
               ))}
-              {visibleItems.length === 0 && !busy ? <li className="gl-hint">Aucun média ne correspond aux filtres.</li> : null}
+              {visibleItems.length === 0 && !busy ? (
+                <li className="gl-hint">Aucun média ne correspond aux filtres.</li>
+              ) : null}
             </ul>
           )}
         </div>

@@ -1,7 +1,4 @@
-import {
-  findZoneTriggeredOnMoveGeneric,
-  pickZoneAtPctGeneric,
-} from './glMapZoneDetect.js';
+import { findZoneTriggeredOnMoveGeneric, pickZoneAtPctGeneric } from './glMapZoneDetect.js';
 
 function zonePoints(zone) {
   return Array.isArray(zone?.points) ? zone.points : [];

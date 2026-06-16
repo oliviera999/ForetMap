@@ -6,7 +6,13 @@ import { LearningAcknowledgeButton } from '../shared/components/LearningAcknowle
  * Bouton + modal pour marquer un tutoriel comme lu après confirmation explicite.
  * N’affiche rien si aucune session (pas de jeton).
  */
-export function TutorialReadAcknowledgeButton({ tutorialId, tutorialTitle, isRead, onAcknowledged, onForceLogout }) {
+export function TutorialReadAcknowledgeButton({
+  tutorialId,
+  tutorialTitle,
+  isRead,
+  onAcknowledged,
+  onForceLogout,
+}) {
   const hasToken = typeof getAuthToken === 'function' && !!getAuthToken();
 
   const submit = useCallback(async () => {
@@ -14,10 +20,13 @@ export function TutorialReadAcknowledgeButton({ tutorialId, tutorialTitle, isRea
     onAcknowledged?.(Number(tutorialId));
   }, [tutorialId, onAcknowledged]);
 
-  const handleError = useCallback((e) => {
-    if (e instanceof AccountDeletedError) onForceLogout?.();
-    throw e;
-  }, [onForceLogout]);
+  const handleError = useCallback(
+    (e) => {
+      if (e instanceof AccountDeletedError) onForceLogout?.();
+      throw e;
+    },
+    [onForceLogout],
+  );
 
   if (!hasToken) return null;
 
@@ -27,13 +36,12 @@ export function TutorialReadAcknowledgeButton({ tutorialId, tutorialTitle, isRea
       labelAction="✓ Marquer comme lu"
       labelDone="✓ Lu"
       titleDone="Tu as confirmé avoir lu et compris ce tutoriel"
-      confirmIntro={(
+      confirmIntro={
         <>
-          En validant, tu t&apos;engages à avoir lu et compris le tutoriel
-          {' '}
+          En validant, tu t&apos;engages à avoir lu et compris le tutoriel{' '}
           <strong>« {tutorialTitle || 'ce tutoriel'} »</strong>.
         </>
-      )}
+      }
       confirmCheckboxLabel="Je confirme avoir lu et compris ce contenu."
       isDone={isRead}
       onSubmit={async () => {

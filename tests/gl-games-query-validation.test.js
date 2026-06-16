@@ -20,10 +20,17 @@ function runQuery(schema, query) {
   let nextCalled = false;
   const res = {
     statusCode: 200,
-    status(c) { this.statusCode = c; return this; },
-    json() { return this; },
+    status(c) {
+      this.statusCode = c;
+      return this;
+    },
+    json() {
+      return this;
+    },
   };
-  validate({ query: schema })(req, res, () => { nextCalled = true; });
+  validate({ query: schema })(req, res, () => {
+    nextCalled = true;
+  });
   return { nextCalled, status: res.statusCode, validated: req.validatedQuery };
 }
 
@@ -58,10 +65,32 @@ function currentGamesOutcome(query, validated) {
   return { rejected: null, classId, status };
 }
 
-const NUMERIC_EDGE_CASES = [undefined, '', 'abc', '0', '3', '-1', '2.5', '999999', '12abc', ['1', '2']];
+const NUMERIC_EDGE_CASES = [
+  undefined,
+  '',
+  'abc',
+  '0',
+  '3',
+  '-1',
+  '2.5',
+  '999999',
+  '12abc',
+  ['1', '2'],
+];
 
 test('GET /games — classId/status : équivalence exacte avec la logique historique, jamais de 400 issu du schéma', () => {
-  const statusCases = [undefined, '', '  ', 'live', ' live ', 'LIVE', 'bogus', 'draft', 'ended', ['live', 'x']];
+  const statusCases = [
+    undefined,
+    '',
+    '  ',
+    'live',
+    ' live ',
+    'LIVE',
+    'bogus',
+    'draft',
+    'ended',
+    ['live', 'x'],
+  ];
   for (const rawClassId of NUMERIC_EDGE_CASES) {
     for (const rawStatus of statusCases) {
       const query = {};
@@ -71,31 +100,72 @@ test('GET /games — classId/status : équivalence exacte avec la logique histor
       const label = `classId=${JSON.stringify(rawClassId)} status=${JSON.stringify(rawStatus)}`;
       assert.strictEqual(nextCalled, true, `${label} ne doit jamais être rejeté par le schéma`);
       assert.strictEqual(status, 200, label);
-      assert.deepStrictEqual(currentGamesOutcome(query, validated), legacyGamesOutcome(query), label);
+      assert.deepStrictEqual(
+        currentGamesOutcome(query, validated),
+        legacyGamesOutcome(query),
+        label,
+      );
     }
   }
 });
 
-test('GET /games — branches notables conservées (\'\'/0 → 400 classId, négatif/décimal acceptés, statut trim/hors liste)', () => {
+test("GET /games — branches notables conservées (''/0 → 400 classId, négatif/décimal acceptés, statut trim/hors liste)", () => {
   // '' → Number('') === 0 → !0 → 400 « classId invalide » (comme parseId historique).
-  assert.strictEqual(currentGamesOutcome({ classId: '' }, runQuery(glGamesListQuerySchema, { classId: '' }).validated).rejected, 'classId');
-  assert.strictEqual(currentGamesOutcome({ classId: '0' }, runQuery(glGamesListQuerySchema, { classId: '0' }).validated).rejected, 'classId');
-  assert.strictEqual(currentGamesOutcome({ classId: 'abc' }, runQuery(glGamesListQuerySchema, { classId: 'abc' }).validated).rejected, 'classId');
-  assert.strictEqual(currentGamesOutcome({ classId: ['1', '2'] }, runQuery(glGamesListQuerySchema, { classId: ['1', '2'] }).validated).rejected, 'classId');
+  assert.strictEqual(
+    currentGamesOutcome(
+      { classId: '' },
+      runQuery(glGamesListQuerySchema, { classId: '' }).validated,
+    ).rejected,
+    'classId',
+  );
+  assert.strictEqual(
+    currentGamesOutcome(
+      { classId: '0' },
+      runQuery(glGamesListQuerySchema, { classId: '0' }).validated,
+    ).rejected,
+    'classId',
+  );
+  assert.strictEqual(
+    currentGamesOutcome(
+      { classId: 'abc' },
+      runQuery(glGamesListQuerySchema, { classId: 'abc' }).validated,
+    ).rejected,
+    'classId',
+  );
+  assert.strictEqual(
+    currentGamesOutcome(
+      { classId: ['1', '2'] },
+      runQuery(glGamesListQuerySchema, { classId: ['1', '2'] }).validated,
+    ).rejected,
+    'classId',
+  );
   // Négatif/décimal : finis et non nuls → passaient le garde historique, filtre conservé.
   assert.strictEqual(runQuery(glGamesListQuerySchema, { classId: '-1' }).validated.classId, -1);
   assert.strictEqual(runQuery(glGamesListQuerySchema, { classId: '2.5' }).validated.classId, 2.5);
   // status : trim conservé, hors liste → 400 du handler, '' → null (pas de filtre).
-  assert.strictEqual(runQuery(glGamesListQuerySchema, { status: ' live ' }).validated.status, 'live');
+  assert.strictEqual(
+    runQuery(glGamesListQuerySchema, { status: ' live ' }).validated.status,
+    'live',
+  );
   assert.strictEqual(runQuery(glGamesListQuerySchema, { status: '' }).validated.status, null);
-  assert.strictEqual(currentGamesOutcome({ status: 'LIVE' }, runQuery(glGamesListQuerySchema, { status: 'LIVE' }).validated).rejected, 'status');
+  assert.strictEqual(
+    currentGamesOutcome(
+      { status: 'LIVE' },
+      runQuery(glGamesListQuerySchema, { status: 'LIVE' }).validated,
+    ).rejected,
+    'status',
+  );
 });
 
 test('GET /games/:id/feuillet-zones/presented — teamId : équivalence exacte avec parseId historique', () => {
   for (const raw of NUMERIC_EDGE_CASES) {
     const query = raw === undefined ? {} : { teamId: raw };
     const { nextCalled, status, validated } = runQuery(glGamesFeuilletPresentedQuerySchema, query);
-    assert.strictEqual(nextCalled, true, `teamId=${JSON.stringify(raw)} ne doit jamais être rejeté par le schéma`);
+    assert.strictEqual(
+      nextCalled,
+      true,
+      `teamId=${JSON.stringify(raw)} ne doit jamais être rejeté par le schéma`,
+    );
     assert.strictEqual(status, 200);
     // Ancienne logique : req.query?.teamId != null ? parseId(raw) : null.
     const legacy = raw !== undefined ? legacyParseId(raw) : null;
@@ -103,7 +173,13 @@ test('GET /games/:id/feuillet-zones/presented — teamId : équivalence exacte a
   }
   // null côté MJ → garde 400 « teamId requis pour le MJ » du handler (condition inchangée).
   assert.strictEqual(runQuery(glGamesFeuilletPresentedQuerySchema, {}).validated.teamId, null);
-  assert.strictEqual(runQuery(glGamesFeuilletPresentedQuerySchema, { teamId: 'abc' }).validated.teamId, null);
+  assert.strictEqual(
+    runQuery(glGamesFeuilletPresentedQuerySchema, { teamId: 'abc' }).validated.teamId,
+    null,
+  );
   // '' → 0 : parseId('') === 0 passait (lookup équipe → 404 plus loin), conservé.
-  assert.strictEqual(runQuery(glGamesFeuilletPresentedQuerySchema, { teamId: '' }).validated.teamId, 0);
+  assert.strictEqual(
+    runQuery(glGamesFeuilletPresentedQuerySchema, { teamId: '' }).validated.teamId,
+    0,
+  );
 });

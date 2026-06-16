@@ -45,7 +45,9 @@ export function GLQcmPreviewModal({
           <>
             <GLQcmFeedbackBlock result={feedback} />
             <div className="gl-inline-actions">
-              <GLButton type="button" onClick={onReload}>Nouvelle présentation</GLButton>
+              <GLButton type="button" onClick={onReload}>
+                Nouvelle présentation
+              </GLButton>
               <GLButton type="button" variant="ghost" onClick={onCloseFromFeedback}>
                 Fermer
               </GLButton>
@@ -53,7 +55,9 @@ export function GLQcmPreviewModal({
           </>
         ) : (
           <>
-            {presentation?.question ? <p className="gl-qcm-modal__question">{presentation.question}</p> : null}
+            {presentation?.question ? (
+              <p className="gl-qcm-modal__question">{presentation.question}</p>
+            ) : null}
             {presentation?.choices?.length ? (
               <div className="gl-qcm-modal__choices">
                 {presentation.choices.map((choice) => (
@@ -70,7 +74,9 @@ export function GLQcmPreviewModal({
               </div>
             ) : null}
             <div className="gl-inline-actions">
-              <GLButton type="button" onClick={onReload}>Re-mélanger</GLButton>
+              <GLButton type="button" onClick={onReload}>
+                Re-mélanger
+              </GLButton>
               <GLButton
                 type="button"
                 onClick={onSubmitAnswer}
@@ -78,7 +84,9 @@ export function GLQcmPreviewModal({
               >
                 Valider
               </GLButton>
-              <GLButton type="button" variant="ghost" onClick={onClose}>Fermer</GLButton>
+              <GLButton type="button" variant="ghost" onClick={onClose}>
+                Fermer
+              </GLButton>
             </div>
             {feedback?.error ? <p className="gl-error">{feedback.error}</p> : null}
           </>
