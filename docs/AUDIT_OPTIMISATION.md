@@ -199,6 +199,20 @@ Troisième lot en parallèle (5 agents, périmètres disjoints), build + Vitest 
 - **O10** (`wip`) — `routes/gl/games.js` : sous-domaine `markers` (present-question/present-arrival/apply-effects)
   extrait en sous-routeur `routes/gl/games/markers.js` (chemins/middlewares inchangés).
 
+### Lot 28 — extension mémoïsation TasksView + ProfilesAdminView (perf, §2.1) (2026-06-16)
+
+Extension du levier mémo (même patron sûr que MapView). Audit de stabilité des props : **toutes déjà
+référentiellement stables côté App** (pas de stabilisation supplémentaire nécessaire) → simple wrapper `React.memo`.
+
+- **tasks-views.jsx** : `TasksView` exporté via `React.memo(TasksViewBase)` — props stables (maps `useMemo`,
+  `fetchAll`/`hasPermission`/`hasPermissionInRole`/`onTaskFormOverlayOpenChange`/`forceLogout`/preview `useCallback`,
+  setters, primitives).
+- **profiles-views.jsx** : `ProfilesAdminView` (vue lazy) exporté via `React.memo(ProfilesAdminViewBase)` —
+  props stables (`maps` réf, `onImpersonationApplied` = `handleAdminImpersonationApplied` `useCallback`).
+
+Effet : ces vues sautent désormais le re-render lors des re-renders incidents d'`App` (toast, realtime,
+polling) ne changeant pas leurs données. Build vert, Vitest vert (1 775), lint 0 erreur, comportement inchangé.
+
 ### Lot 27 — passe mémoïsation ciblée MapView (perf, §2.1) (2026-06-16)
 
 Effort **dédié et prudent** (pas multi-agents) sur le seul levier perf restant : §2.1 « re-render de

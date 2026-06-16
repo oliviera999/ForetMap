@@ -39,7 +39,7 @@ import {
   promptDuplicateRoleProfile,
 } from '../utils/profilesRolePrompts.js';
 
-function ProfilesAdminView({ onImpersonationApplied, maps = [] }) {
+function ProfilesAdminViewBase({ onImpersonationApplied, maps = [] }) {
   const publicSettings = usePublicSettings();
   const { isN3Affiliated = false } = useSession();
   const roleTerms = getRoleTerms(isN3Affiliated);
@@ -886,5 +886,9 @@ function ProfilesAdminView({ onImpersonationApplied, maps = [] }) {
     </div>
   );
 }
+
+// perf (§2.1) — ProfilesAdminView mémoïsé : évite le re-render de la vue Profils lors des re-renders
+// incidents d'App ne changeant pas ses props (maps réf stable, onImpersonationApplied mémoïsé côté App).
+const ProfilesAdminView = React.memo(ProfilesAdminViewBase);
 
 export { ProfilesAdminView };
