@@ -13,6 +13,7 @@ import {
 } from '../../utils/visitEditorialBlocks.js';
 import { VisitEditorialBuilder } from './VisitEditorialBuilder.jsx';
 import { VisitMediaEditor } from './VisitMediaEditor.jsx';
+import { VisitEditorEmojiPicker } from './VisitEditorEmojiPicker.jsx';
 
 /**
  * Panneau d'édition visite (zone / repère) réservé enseignant, extrait de `visit-views.jsx` (O6).
@@ -303,41 +304,23 @@ export function VisitEditorPanel({ selected, selectedType, onSaved, onForceLogou
           </label>
         </div>
       </div>
-      <div className="field">
-        <label>{selectedType === 'zone' ? 'Liste d’emojis (insérer dans le titre de zone)' : 'Emoji du repère (optionnel)'}</label>
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-          {selectedType === 'marker' ? (
-            <button
-              type="button"
-              className={`emoji-btn ${!String(form.emoji || '').trim() ? 'sel' : ''}`}
-              style={{ fontSize: '.78rem', padding: '6px 10px' }}
-              onClick={() => setForm((f) => ({ ...f, emoji: '' }))}
-            >
-              Sans emoji
-            </button>
-          ) : null}
-          {markerEmojis.map((emoji) => (
-            <button
-              key={emoji}
-              type="button"
-              className={`emoji-btn ${form.emoji === emoji ? 'sel' : ''}`}
-              onClick={() => {
-                if (selectedType === 'zone') {
-                  setForm((f) => ({
-                    ...f,
-                    emoji,
-                    title: `${emoji} ${stripLeadingMarkerEmoji(f.title, markerEmojis)}`.trim(),
-                  }));
-                  return;
-                }
-                setForm((f) => ({ ...f, emoji }));
-              }}
-            >
-              {emoji}
-            </button>
-          ))}
-        </div>
-      </div>
+      <VisitEditorEmojiPicker
+        selectedType={selectedType}
+        markerEmojis={markerEmojis}
+        selectedEmoji={form.emoji}
+        onClearEmoji={() => setForm((f) => ({ ...f, emoji: '' }))}
+        onSelectEmoji={(emoji) => {
+          if (selectedType === 'zone') {
+            setForm((f) => ({
+              ...f,
+              emoji,
+              title: `${emoji} ${stripLeadingMarkerEmoji(f.title, markerEmojis)}`.trim(),
+            }));
+            return;
+          }
+          setForm((f) => ({ ...f, emoji }));
+        }}
+      />
       <button className="btn btn-primary btn-sm" disabled={saving} onClick={save}>
         {saving ? 'Enregistrement...' : '💾 Sauver'}
       </button>
