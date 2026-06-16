@@ -67,7 +67,7 @@ function Lightbox({ src, caption, onClose, useOverlayHistory = false }) {
   );
 }
 
-function MapView({ maps = [], onMapChange, isTeacher, student, canSelfAssignTasks = true, canEnrollOnTasks, onZoneUpdate, onRefresh, embedded = false, onLocationTasksFocus = null, onNavigateToTasksForLocation = null, onOpenPlantCatalogPreview = null, onForceLogout }) {
+function MapViewBase({ maps = [], onMapChange, isTeacher, student, canSelfAssignTasks = true, canEnrollOnTasks, onZoneUpdate, onRefresh, embedded = false, onLocationTasksFocus = null, onNavigateToTasksForLocation = null, onOpenPlantCatalogPreview = null, onForceLogout }) {
   const publicSettings = usePublicSettings();
   const { canParticipateContextComments = true } = useSession();
   const { zones = [], markers = [], tasks = [], tutorials = [], plants = [], activeMapId = '' } = useData();
@@ -963,6 +963,12 @@ function MapView({ maps = [], onMapChange, isTeacher, student, canSelfAssignTask
     </div>
   );
 }
+
+// O5/perf — MapView mémoïsé : évite le re-render de tout le sous-arbre Carte (image de fond, zones SVG,
+// N repères, mascotte) lors des re-renders incidents d'App (toast, realtime, polling) ne changeant pas
+// ses props. Les props passées par App sont stabilisées (visibleMaps/fetchAll/callbacks mémoïsés,
+// updateZone/currentUser stabilisés côté App) pour rendre la mémoïsation effective.
+const MapView = React.memo(MapViewBase);
 
 export {
   Lightbox,
