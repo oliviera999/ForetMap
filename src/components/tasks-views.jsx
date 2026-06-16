@@ -80,7 +80,7 @@ import {
   toQuickAssignStudentId,
 } from '../utils/taskDisplayHelpers.js';
 
-function TasksView({
+function TasksViewBase({
   maps = [],
   isTeacher,
   student,
@@ -990,5 +990,10 @@ function TasksView({
     </div>
   );
 }
+
+// perf (§2.1) — TasksView mémoïsé : évite le re-render de la vue Tâches lors des re-renders incidents
+// d'App (toast, realtime, polling) ne changeant pas ses props (toutes déjà stables : maps/fetchAll/
+// hasPermission/onTaskFormOverlayOpenChange mémoïsés côté App).
+const TasksView = React.memo(TasksViewBase);
 
 export { TaskFormModal, TasksView, LogModal, TaskLogsViewer, TaskTileCard };
