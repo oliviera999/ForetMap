@@ -67,7 +67,7 @@ function Lightbox({ src, caption, onClose, useOverlayHistory = false }) {
   );
 }
 
-function MapView({ maps = [], onMapChange, isTeacher, student, canSelfAssignTasks = true, canEnrollOnTasks, onZoneUpdate, onRefresh, embedded = false, onLocationTasksFocus = null, onNavigateToTasksForLocation = null, onOpenPlantCatalogPreview = null, onForceLogout }) {
+function MapViewImpl({ maps = [], onMapChange, isTeacher, student, canSelfAssignTasks = true, canEnrollOnTasks, onZoneUpdate, onRefresh, embedded = false, onLocationTasksFocus = null, onNavigateToTasksForLocation = null, onOpenPlantCatalogPreview = null, onForceLogout }) {
   const publicSettings = usePublicSettings();
   const { canParticipateContextComments = true } = useSession();
   const { zones = [], markers = [], tasks = [], tutorials = [], plants = [], activeMapId = '' } = useData();
@@ -963,6 +963,11 @@ function MapView({ maps = [], onMapChange, isTeacher, student, canSelfAssignTask
     </div>
   );
 }
+
+/** Mémoïsation (comparaison shallow par défaut) : évite le re-render de cette vue lourde
+ *  à chaque tick du polling global d'App.jsx quand ses props ne changent pas. */
+const MapView = React.memo(MapViewImpl);
+MapView.displayName = 'MapView';
 
 export {
   Lightbox,

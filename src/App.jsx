@@ -829,10 +829,10 @@ function App() {
     if (wasCoarse && !isCoarse) void fetchAll();
   }, [tab, fetchAll]);
 
-  const updateZone = async (id, data) => {
+  const updateZone = useCallback(async (id, data) => {
     await api(`/api/zones/${id}`, 'PUT', data);
     await fetchAll();
-  };
+  }, [fetchAll]);
   const updateTeacherSession = useCallback((updatedUser) => {
     setSessionUser((prev) => {
       const nextDisplayName = updatedUser?.pseudo
