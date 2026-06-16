@@ -11,14 +11,7 @@ const TABS = [
 
 function renderTabBar(overrides = {}) {
   const onSelect = vi.fn();
-  render(
-    <ZoneInfoModalTabBar
-      tabs={TABS}
-      activeTab="info"
-      onSelect={onSelect}
-      {...overrides}
-    />
-  );
+  render(<ZoneInfoModalTabBar tabs={TABS} activeTab="info" onSelect={onSelect} {...overrides} />);
   return { onSelect };
 }
 
@@ -36,7 +29,7 @@ describe('ZoneInfoModalTabBar', () => {
     expect(onSelect).toHaveBeenCalledWith('photos');
   });
 
-  test('l\'onglet actif est mis en évidence (gras + fond forêt)', () => {
+  test("l'onglet actif est mis en évidence (gras + fond forêt)", () => {
     renderTabBar();
     const active = screen.getByRole('button', { name: 'ℹ️ Info' });
     const inactive = screen.getByRole('button', { name: '📷 Photos' });

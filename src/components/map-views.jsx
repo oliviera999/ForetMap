@@ -67,10 +67,31 @@ function Lightbox({ src, caption, onClose, useOverlayHistory = false }) {
   );
 }
 
-function MapViewImpl({ maps = [], onMapChange, isTeacher, student, canSelfAssignTasks = true, canEnrollOnTasks, onZoneUpdate, onRefresh, embedded = false, onLocationTasksFocus = null, onNavigateToTasksForLocation = null, onOpenPlantCatalogPreview = null, onForceLogout }) {
+function MapViewImpl({
+  maps = [],
+  onMapChange,
+  isTeacher,
+  student,
+  canSelfAssignTasks = true,
+  canEnrollOnTasks,
+  onZoneUpdate,
+  onRefresh,
+  embedded = false,
+  onLocationTasksFocus = null,
+  onNavigateToTasksForLocation = null,
+  onOpenPlantCatalogPreview = null,
+  onForceLogout,
+}) {
   const publicSettings = usePublicSettings();
   const { canParticipateContextComments = true } = useSession();
-  const { zones = [], markers = [], tasks = [], tutorials = [], plants = [], activeMapId = '' } = useData();
+  const {
+    zones = [],
+    markers = [],
+    tasks = [],
+    tutorials = [],
+    plants = [],
+    activeMapId = '',
+  } = useData();
   const canEnrollNewTasks = canEnrollOnTasks !== undefined ? canEnrollOnTasks : canSelfAssignTasks;
   const [mode, setMode] = useState('view');
   const [showLabels, setShowLabels] = useState(true);
@@ -91,20 +112,16 @@ function MapViewImpl({ maps = [], onMapChange, isTeacher, student, canSelfAssign
   const [tutorialReadIds, setTutorialReadIds] = useState(() => new Set());
   const [markerPositionUnlocked, setMarkerPositionUnlocked] = useState(false);
   const configuredLocationEmojis = String(
-    publicSettings?.ui?.map?.location_emojis
-    || publicSettings?.map?.location_emojis
-    || ''
+    publicSettings?.ui?.map?.location_emojis || publicSettings?.map?.location_emojis || '',
   );
   const markerEmojis = useMemo(
     () => parseEmojiListSetting(configuredLocationEmojis, MARKER_EMOJIS),
-    [configuredLocationEmojis]
+    [configuredLocationEmojis],
   );
   const visitMascotAllowedIds = useMemo(() => {
     const raw = publicSettings?.visit?.mascot?.allowed_ids;
     if (Array.isArray(raw)) {
-      return raw
-        .map((id) => String(id || '').trim())
-        .filter(Boolean);
+      return raw.map((id) => String(id || '').trim()).filter(Boolean);
     }
     if (typeof raw === 'string') {
       return raw
@@ -122,7 +139,7 @@ function MapViewImpl({ maps = [], onMapChange, isTeacher, student, canSelfAssign
   const contextCommentsEnabled = publicSettings?.modules?.context_comments_enabled !== false;
   const emojiParsingList = useMemo(
     () => [...new Set([...markerEmojis, ...MARKER_EMOJIS])],
-    [markerEmojis]
+    [markerEmojis],
   );
   const activeMap = maps.find((m) => m.id === activeMapId);
   const mapImageCandidates = useMemo(() => buildMapImageCandidates(activeMap), [activeMap]);
@@ -249,7 +266,7 @@ function MapViewImpl({ maps = [], onMapChange, isTeacher, student, canSelfAssign
     editPointsRef.current = editPoints;
   }, [editPoints]);
 
-  const onMapClick = e => {
+  const onMapClick = (e) => {
     if (moved.current) return;
     if (e.target.closest('.map-zone-hit') || e.target.closest('.map-bubble')) return;
     const p = toImagePct(e.clientX, e.clientY);
@@ -258,13 +275,25 @@ function MapViewImpl({ maps = [], onMapChange, isTeacher, student, canSelfAssign
       moveMapMascotTo(p.xp, p.yp);
       return;
     }
-    if (mode === 'draw-zone') setDrawPoints(pts => [...pts, p]);
-    else if (mode === 'add-marker') { setPendingMarker(p); setMode('view'); }
+    if (mode === 'draw-zone') setDrawPoints((pts) => [...pts, p]);
+    else if (mode === 'add-marker') {
+      setPendingMarker(p);
+      setMode('view');
+    }
   };
 
-  const finishZone = () => { if (drawPoints.length >= 3) { setPendingZone(drawPoints); setDrawPoints([]); setMode('view'); } };
-  const undoPoint = () => setDrawPoints(pts => pts.slice(0, -1));
-  const cancelDraw = () => { setDrawPoints([]); setMode('view'); };
+  const finishZone = () => {
+    if (drawPoints.length >= 3) {
+      setPendingZone(drawPoints);
+      setDrawPoints([]);
+      setMode('view');
+    }
+  };
+  const undoPoint = () => setDrawPoints((pts) => pts.slice(0, -1));
+  const cancelDraw = () => {
+    setDrawPoints([]);
+    setMode('view');
+  };
 
   const recordEditHistoryAfterGesture = useCallback(() => {
     if (mode !== 'edit-points') return;
@@ -278,7 +307,9 @@ function MapViewImpl({ maps = [], onMapChange, isTeacher, student, canSelfAssign
   }, [mode]);
 
   const scheduleRecordEditHistory = useCallback(() => {
-    window.setTimeout(() => { recordEditHistoryAfterGesture(); }, 0);
+    window.setTimeout(() => {
+      recordEditHistoryAfterGesture();
+    }, 0);
   }, [recordEditHistoryAfterGesture]);
 
   const undoEditPoints = useCallback(() => {
@@ -312,7 +343,12 @@ function MapViewImpl({ maps = [], onMapChange, isTeacher, student, canSelfAssign
   }, []);
 
   const startEditPoints = (z) => {
-    let pts; try { pts = z.points ? JSON.parse(z.points) : []; } catch (e) { pts = []; }
+    let pts;
+    try {
+      pts = z.points ? JSON.parse(z.points) : [];
+    } catch (e) {
+      pts = [];
+    }
     const clamped = clampEditPts(pts);
     editPointsHistoryRef.current = [cloneEditPts(clamped)];
     setEditCanUndo(false);
@@ -400,15 +436,28 @@ function MapViewImpl({ maps = [], onMapChange, isTeacher, student, canSelfAssign
     await api(`/api/tutorials/${tutorial.id}`, 'PUT', { zone_ids: zi, marker_ids: markerIds });
     await onRefresh();
   };
-  const deleteMarker = async id => { await api(`/api/map/markers/${id}`, 'DELETE'); await onRefresh(); };
-  const deleteZone = async id => { await api(`/api/zones/${id}`, 'DELETE'); await onRefresh(); };
+  const deleteMarker = async (id) => {
+    await api(`/api/map/markers/${id}`, 'DELETE');
+    await onRefresh();
+  };
+  const deleteZone = async (id) => {
+    await api(`/api/zones/${id}`, 'DELETE');
+    await onRefresh();
+  };
   const duplicateZone = async (z) => {
     let pts;
-    try { pts = z.points ? JSON.parse(z.points) : []; } catch (e) { pts = []; }
+    try {
+      pts = z.points ? JSON.parse(z.points) : [];
+    } catch (e) {
+      pts = [];
+    }
     if (!pts || pts.length < 3) throw new Error('Contour invalide');
     const shifted = offsetDuplicateZonePoints(pts);
     if (!shifted) throw new Error('Contour invalide');
-    const living = orderedLivingBeingsForForm(z.living_beings_list || z.living_beings, z.current_plant);
+    const living = orderedLivingBeingsForForm(
+      z.living_beings_list || z.living_beings,
+      z.current_plant,
+    );
     const created = await api('/api/zones', 'POST', {
       name: `${z.name || 'Zone'} (copie)`,
       points: shifted,
@@ -429,8 +478,13 @@ function MapViewImpl({ maps = [], onMapChange, isTeacher, student, canSelfAssign
     const dy = 1.5;
     const nx = Math.min(100, Math.max(0, Number(m.x_pct) + dx));
     const ny = Math.min(100, Math.max(0, Number(m.y_pct) + dy));
-    const living = orderedLivingBeingsForForm(m.living_beings_list || m.living_beings, m.plant_name);
-    const baseLabel = String(m.label || 'Repère').replace(/\s*\(copie\)\s*$/i, '').trim();
+    const living = orderedLivingBeingsForForm(
+      m.living_beings_list || m.living_beings,
+      m.plant_name,
+    );
+    const baseLabel = String(m.label || 'Repère')
+      .replace(/\s*\(copie\)\s*$/i, '')
+      .trim();
     const created = await api('/api/map/markers', 'POST', {
       map_id: m.map_id || activeMapId,
       x_pct: nx,
@@ -488,20 +542,21 @@ function MapViewImpl({ maps = [], onMapChange, isTeacher, student, canSelfAssign
   const mapMascotFitScale = Math.max(1, inv);
   const mapSettings =
     publicSettings?.map && typeof publicSettings.map === 'object' ? publicSettings.map : null;
-  const {
-    mapEmojiLabelCenterGap,
-    mapEmojiFontPx,
-    mapLabelFontPx,
-    markerLabelMarginTop,
-  } = resolveMapOverlayTypography(mapSettings, inv);
+  const { mapEmojiLabelCenterGap, mapEmojiFontPx, mapLabelFontPx, markerLabelMarginTop } =
+    resolveMapOverlayTypography(mapSettings, inv);
 
-  const toWorld = p => ({ cx: (p.xp / 100) * iw, cy: (p.yp / 100) * ih });
+  const toWorld = (p) => ({ cx: (p.xp / 100) * iw, cy: (p.yp / 100) * ih });
 
-  const renderZonePoly = z => {
-    let pts; try { pts = z.points ? JSON.parse(z.points) : null; } catch (e) { pts = null; }
+  const renderZonePoly = (z) => {
+    let pts;
+    try {
+      pts = z.points ? JSON.parse(z.points) : null;
+    } catch (e) {
+      pts = null;
+    }
     if (!pts || pts.length < 3) return null;
     const wp = pts.map(toWorld);
-    const str = wp.map(p => `${p.cx},${p.cy}`).join(' ');
+    const str = wp.map((p) => `${p.cx},${p.cy}`).join(' ');
     const mx = wp.reduce((s, p) => s + p.cx, 0) / wp.length;
     const my = wp.reduce((s, p) => s + p.cy, 0) / wp.length;
     const zoneEmoji = detectLeadingMarkerEmoji(z.name || '', emojiParsingList);
@@ -510,17 +565,25 @@ function MapViewImpl({ maps = [], onMapChange, isTeacher, student, canSelfAssign
     const zoneTaskVisual = zoneTaskVisualById.get(z.id);
     const zoneTutorialCount = zoneTutorialCountById.get(z.id) || 0;
     return (
-      <g key={z.id} className={mode === 'view' ? 'map-zone-hit' : ''} style={{ cursor: mode === 'view' ? 'pointer' : 'default' }}
-        onClick={e => {
+      <g
+        key={z.id}
+        className={mode === 'view' ? 'map-zone-hit' : ''}
+        style={{ cursor: mode === 'view' ? 'pointer' : 'default' }}
+        onClick={(e) => {
           if (mode === 'view' && !moved.current) {
             e.stopPropagation();
             if (showMapMascot) onMapMascotZoneClick(z, setSelectedZone);
             else setSelectedZone(z);
           }
-        }}>
-        <polygon points={str} fill={isEd ? 'rgba(82,183,136,0.35)' : (z.color || '#86efac90')}
+        }}
+      >
+        <polygon
+          points={str}
+          fill={isEd ? 'rgba(82,183,136,0.35)' : z.color || '#86efac90'}
           stroke={isEd ? '#52b788' : 'rgba(26,71,49,0.5)'}
-          strokeWidth={(isEd ? 2.5 : 1.5) * inv} strokeDasharray={z.special ? `${5 * inv},${3 * inv}` : 'none'} />
+          strokeWidth={(isEd ? 2.5 : 1.5) * inv}
+          strokeDasharray={z.special ? `${5 * inv},${3 * inv}` : 'none'}
+        />
         {showLabels && (
           <text
             x={mx}
@@ -535,29 +598,45 @@ function MapViewImpl({ maps = [], onMapChange, isTeacher, student, canSelfAssign
           </text>
         )}
         {showLabels && (
-          <text x={mx} y={my + (zoneEmoji ? mapEmojiLabelCenterGap : 0)} textAnchor="middle" dominantBaseline="middle"
-            fontSize={mapLabelFontPx} fontWeight="700" fontFamily="DM Sans,sans-serif"
-            fill="#1a4731" stroke="rgba(255,255,255,0.8)" strokeWidth={3 * inv} paintOrder="stroke"
-            style={{ pointerEvents: 'none', userSelect: 'none' }}>{zoneName || z.name}</text>
+          <text
+            x={mx}
+            y={my + (zoneEmoji ? mapEmojiLabelCenterGap : 0)}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            fontSize={mapLabelFontPx}
+            fontWeight="700"
+            fontFamily="DM Sans,sans-serif"
+            fill="#1a4731"
+            stroke="rgba(255,255,255,0.8)"
+            strokeWidth={3 * inv}
+            paintOrder="stroke"
+            style={{ pointerEvents: 'none', userSelect: 'none' }}
+          >
+            {zoneName || z.name}
+          </text>
         )}
         {zoneTaskVisual && (
           <circle
             className={`map-task-status map-task-status--${zoneTaskVisual}`}
-            cx={mx + (16 * inv)}
-            cy={my - (12 * inv)}
+            cx={mx + 16 * inv}
+            cy={my - 12 * inv}
             r={Math.max(5, 7 * inv)}
-            style={{ pointerEvents: 'none' }}>
+            style={{ pointerEvents: 'none' }}
+          >
             <title>{TASK_VISUAL_LABEL[zoneTaskVisual]}</title>
           </circle>
         )}
         {zoneTutorialCount > 0 && (
           <circle
             className="map-tutorial-zone-dot"
-            cx={mx - (16 * inv)}
-            cy={my - (12 * inv)}
+            cx={mx - 16 * inv}
+            cy={my - 12 * inv}
             r={Math.max(4, 6 * inv)}
-            style={{ pointerEvents: 'none' }}>
-            <title>{zoneTutorialCount === 1 ? '1 tutoriel lié' : `${zoneTutorialCount} tutoriels liés`}</title>
+            style={{ pointerEvents: 'none' }}
+          >
+            <title>
+              {zoneTutorialCount === 1 ? '1 tutoriel lié' : `${zoneTutorialCount} tutoriels liés`}
+            </title>
           </circle>
         )}
       </g>
@@ -568,14 +647,16 @@ function MapViewImpl({ maps = [], onMapChange, isTeacher, student, canSelfAssign
     scheduleRecordEditHistory();
     editZoneTranslateLastRef.current = null;
     if (e?.currentTarget?.hasPointerCapture?.(e.pointerId)) {
-      try { e.currentTarget.releasePointerCapture(e.pointerId); } catch (_) {}
+      try {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      } catch (_) {}
     }
   };
 
   const renderEditPts = () => {
     if (mode !== 'edit-points' || !editPoints.length) return null;
     const wp = editPoints.map(toWorld);
-    const str = wp.map(p => `${p.cx},${p.cy}`).join(' ');
+    const str = wp.map((p) => `${p.cx},${p.cy}`).join(' ');
     /** Anneau léger + croix : voir le sol sous le sommet ; disque invisible pour le doigt. */
     const rHit = Math.max(22, 14 * inv);
     const rVis = Math.max(4, 5.5 * inv);
@@ -596,7 +677,9 @@ function MapViewImpl({ maps = [], onMapChange, isTeacher, student, canSelfAssign
             const p0 = toImagePct(e.clientX, e.clientY);
             if (!p0) return;
             editZoneTranslateLastRef.current = p0;
-            try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {}
+            try {
+              e.currentTarget.setPointerCapture(e.pointerId);
+            } catch (_) {}
           }}
           onPointerMove={(e) => {
             const last = editZoneTranslateLastRef.current;
@@ -606,12 +689,16 @@ function MapViewImpl({ maps = [], onMapChange, isTeacher, student, canSelfAssign
             const dx = p2.xp - last.xp;
             const dy = p2.yp - last.yp;
             editZoneTranslateLastRef.current = p2;
-            setEditPoints((pts) => clampEditPts(pts.map((pt) => ({ xp: pt.xp + dx, yp: pt.yp + dy }))));
+            setEditPoints((pts) =>
+              clampEditPts(pts.map((pt) => ({ xp: pt.xp + dx, yp: pt.yp + dy }))),
+            );
             e.preventDefault();
           }}
           onPointerUp={endEditZoneTranslate}
           onPointerCancel={endEditZoneTranslate}
-          onLostPointerCapture={() => { editZoneTranslateLastRef.current = null; }}
+          onLostPointerCapture={() => {
+            editZoneTranslateLastRef.current = null;
+          }}
         />
         {wp.map((p, i) => {
           const dragging = draggingPtIdx === i;
@@ -623,12 +710,17 @@ function MapViewImpl({ maps = [], onMapChange, isTeacher, student, canSelfAssign
               onPointerDown={(e) => {
                 e.stopPropagation();
                 setDraggingPtIdx(i);
-                try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {}
+                try {
+                  e.currentTarget.setPointerCapture(e.pointerId);
+                } catch (_) {}
               }}
               onPointerMove={(e) => {
                 if (draggingPtIdx === i) {
                   const p2 = toImagePct(e.clientX, e.clientY);
-                  if (p2) setEditPoints((pts) => pts.map((pt, j) => (j === i ? clampEditZonePct(p2) : pt)));
+                  if (p2)
+                    setEditPoints((pts) =>
+                      pts.map((pt, j) => (j === i ? clampEditZonePct(p2) : pt)),
+                    );
                 }
               }}
               onPointerUp={(e) => {
@@ -636,7 +728,9 @@ function MapViewImpl({ maps = [], onMapChange, isTeacher, student, canSelfAssign
                 scheduleRecordEditHistory();
                 setDraggingPtIdx(-1);
                 if (e.currentTarget.hasPointerCapture?.(e.pointerId)) {
-                  try { e.currentTarget.releasePointerCapture(e.pointerId); } catch (_) {}
+                  try {
+                    e.currentTarget.releasePointerCapture(e.pointerId);
+                  } catch (_) {}
                 }
               }}
             >
@@ -687,14 +781,22 @@ function MapViewImpl({ maps = [], onMapChange, isTeacher, student, canSelfAssign
   const renderDrawing = () => {
     if (!drawPoints.length) return null;
     const wp = drawPoints.map(toWorld);
-    const str = wp.map(p => `${p.cx},${p.cy}`).join(' ');
+    const str = wp.map((p) => `${p.cx},${p.cy}`).join(' ');
     const rVis = Math.max(3.5, 5 * inv);
     const crossHalf = Math.max(7, 9 * inv);
     const crossStroke = Math.max(1, 1.1 * inv);
     const centerR = Math.max(1.2, 1.5 * inv);
     return (
       <g>
-        {drawPoints.length > 1 && <polyline points={str} fill="none" stroke="#52b788" strokeWidth={2 * inv} strokeDasharray={`${6 * inv},${3 * inv}`} />}
+        {drawPoints.length > 1 && (
+          <polyline
+            points={str}
+            fill="none"
+            stroke="#52b788"
+            strokeWidth={2 * inv}
+            strokeDasharray={`${6 * inv},${3 * inv}`}
+          />
+        )}
         {wp.map((p, i) => (
           <g key={i} style={{ pointerEvents: 'none' }}>
             <circle
@@ -730,12 +832,21 @@ function MapViewImpl({ maps = [], onMapChange, isTeacher, student, canSelfAssign
     );
   };
 
-  const cursor = mode === 'view' ? 'grab' : mode === 'draw-zone' ? 'crosshair' : mode === 'edit-points' ? 'default' : 'cell';
+  const cursor =
+    mode === 'view'
+      ? 'grab'
+      : mode === 'draw-zone'
+        ? 'crosshair'
+        : mode === 'edit-points'
+          ? 'default'
+          : 'cell';
   const mobileInteractionsActive = mapInteractionEnabled || committed.s > 1.05;
   const canManageMarkerPositions = !!isTeacher;
 
   return (
-    <div className={`map-view-root ${embedded ? 'map-view-root--embedded' : 'map-view-root--solo'}`}>
+    <div
+      className={`map-view-root ${embedded ? 'map-view-root--embedded' : 'map-view-root--solo'}`}
+    >
       {toast && <TimedToast msg={toast} onDone={() => setToast(null)} />}
       {mapTutorialPreview && (
         <TutorialPreviewModal
@@ -750,20 +861,49 @@ function MapViewImpl({ maps = [], onMapChange, isTeacher, student, canSelfAssign
       )}
 
       {selectedZone && (
-        <ZoneInfoModal zone={selectedZone} plants={plants} tasks={tasks} tutorials={tutorials} isTeacher={isTeacher} student={student} canSelfAssignTasks={canSelfAssignTasks} canEnrollOnTasks={canEnrollNewTasks} markerEmojis={markerEmojis} emojiParsingList={emojiParsingList} contextCommentsEnabled={contextCommentsEnabled} canParticipateContextComments={canParticipateContextComments}
-          onClose={() => { clearMapMascotDetailAfterMove(); setSelectedZone(null); }}
-          onUpdate={async (id, data) => { await onZoneUpdate(id, data); setSelectedZone(null); await onRefresh(); }}
-          onDelete={async id => { await deleteZone(id); setSelectedZone(null); }}
+        <ZoneInfoModal
+          zone={selectedZone}
+          plants={plants}
+          tasks={tasks}
+          tutorials={tutorials}
+          isTeacher={isTeacher}
+          student={student}
+          canSelfAssignTasks={canSelfAssignTasks}
+          canEnrollOnTasks={canEnrollNewTasks}
+          markerEmojis={markerEmojis}
+          emojiParsingList={emojiParsingList}
+          contextCommentsEnabled={contextCommentsEnabled}
+          canParticipateContextComments={canParticipateContextComments}
+          onClose={() => {
+            clearMapMascotDetailAfterMove();
+            setSelectedZone(null);
+          }}
+          onUpdate={async (id, data) => {
+            await onZoneUpdate(id, data);
+            setSelectedZone(null);
+            await onRefresh();
+          }}
+          onDelete={async (id) => {
+            await deleteZone(id);
+            setSelectedZone(null);
+          }}
           onDuplicate={isTeacher ? duplicateZone : undefined}
           onLinkTask={async (taskId) => linkTaskToZone(taskId, selectedZone.id)}
           onUnlinkTask={(t) => unlinkTaskFromZone(t, selectedZone.id)}
           onAssignTasks={assignTasksToStudent}
           onLinkTutorial={async (tutorialId) => linkTutorialToZone(tutorialId, selectedZone.id)}
           onUnlinkTutorial={(tu) => unlinkTutorialFromZone(tu, selectedZone.id)}
-          onEditPoints={isTeacher ? z => startEditPoints(z) : null}
+          onEditPoints={isTeacher ? (z) => startEditPoints(z) : null}
           onNavigateToTasksForLocation={onNavigateToTasksForLocation}
           onOpenTutorialPreview={setMapTutorialPreview}
-          onOpenPlantCatalogPreview={onOpenPlantCatalogPreview ? (id) => { onOpenPlantCatalogPreview(id); setSelectedZone(null); } : null}
+          onOpenPlantCatalogPreview={
+            onOpenPlantCatalogPreview
+              ? (id) => {
+                  onOpenPlantCatalogPreview(id);
+                  setSelectedZone(null);
+                }
+              : null
+          }
         />
       )}
       {selectedMarker && (
@@ -779,7 +919,10 @@ function MapViewImpl({ maps = [], onMapChange, isTeacher, student, canSelfAssign
           markerEmojis={markerEmojis}
           contextCommentsEnabled={contextCommentsEnabled}
           canParticipateContextComments={canParticipateContextComments}
-          onClose={() => { clearMapMascotDetailAfterMove(); setSelectedMarker(null); }}
+          onClose={() => {
+            clearMapMascotDetailAfterMove();
+            setSelectedMarker(null);
+          }}
           onSave={saveMarker}
           onUpdate={updateMarker}
           onDelete={deleteMarker}
@@ -791,26 +934,62 @@ function MapViewImpl({ maps = [], onMapChange, isTeacher, student, canSelfAssign
           onAssignTasks={assignTasksToStudent}
           onNavigateToTasksForLocation={onNavigateToTasksForLocation}
           onOpenTutorialPreview={setMapTutorialPreview}
-          onOpenPlantCatalogPreview={onOpenPlantCatalogPreview ? (id) => { onOpenPlantCatalogPreview(id); setSelectedMarker(null); } : null}
-          onRequestAdjustMarkerPosition={isTeacher
-            ? () => {
-              setMarkerPositionUnlocked(true);
-              setToast('Déplacement des repères activé : fais glisser le repère sur la carte, puis reverrouille dans la barre d’outils si besoin.');
-            }
-            : undefined}
+          onOpenPlantCatalogPreview={
+            onOpenPlantCatalogPreview
+              ? (id) => {
+                  onOpenPlantCatalogPreview(id);
+                  setSelectedMarker(null);
+                }
+              : null
+          }
+          onRequestAdjustMarkerPosition={
+            isTeacher
+              ? () => {
+                  setMarkerPositionUnlocked(true);
+                  setToast(
+                    'Déplacement des repères activé : fais glisser le repère sur la carte, puis reverrouille dans la barre d’outils si besoin.',
+                  );
+                }
+              : undefined
+          }
         />
       )}
       {pendingZone && (
-        <ZoneDrawModal points_pct={pendingZone} plants={plants} markerEmojis={markerEmojis} emojiParsingList={emojiParsingList}
+        <ZoneDrawModal
+          points_pct={pendingZone}
+          plants={plants}
+          markerEmojis={markerEmojis}
+          emojiParsingList={emojiParsingList}
           onClose={() => setPendingZone(null)}
-          onSave={async data => { await api('/api/zones', 'POST', { ...data, map_id: activeMapId }); setPendingZone(null); await onRefresh(); }} />
+          onSave={async (data) => {
+            await api('/api/zones', 'POST', { ...data, map_id: activeMapId });
+            setPendingZone(null);
+            await onRefresh();
+          }}
+        />
       )}
       {pendingMarker && (
-        <MarkerModal marker={{ x_pct: pendingMarker.xp, y_pct: pendingMarker.yp, label: '', note: '', emoji: markerEmojis[0] || '🌱', plant_name: '', map_id: activeMapId }}
-          plants={plants} isTeacher={isTeacher} markerEmojis={markerEmojis}
+        <MarkerModal
+          marker={{
+            x_pct: pendingMarker.xp,
+            y_pct: pendingMarker.yp,
+            label: '',
+            note: '',
+            emoji: markerEmojis[0] || '🌱',
+            plant_name: '',
+            map_id: activeMapId,
+          }}
+          plants={plants}
+          isTeacher={isTeacher}
+          markerEmojis={markerEmojis}
           onClose={() => setPendingMarker(null)}
-          onSave={async data => { await api('/api/map/markers', 'POST', { ...data, map_id: activeMapId }); setPendingMarker(null); await onRefresh(); }}
-          onDelete={() => setPendingMarker(null)} />
+          onSave={async (data) => {
+            await api('/api/map/markers', 'POST', { ...data, map_id: activeMapId });
+            setPendingMarker(null);
+            await onRefresh();
+          }}
+          onDelete={() => setPendingMarker(null)}
+        />
       )}
 
       <MapViewToolbar
@@ -820,7 +999,13 @@ function MapViewImpl({ maps = [], onMapChange, isTeacher, student, canSelfAssign
         mode={mode}
         isTeacher={isTeacher}
         drawPointsCount={drawPoints.length}
-        onModeButtonClick={(m) => { setMode(p => p === m && m !== 'view' ? 'view' : m); if (m === 'view') { setDrawPoints([]); discardEditPointsSession(); } }}
+        onModeButtonClick={(m) => {
+          setMode((p) => (p === m && m !== 'view' ? 'view' : m));
+          if (m === 'view') {
+            setDrawPoints([]);
+            discardEditPointsSession();
+          }
+        }}
         onFinishZone={finishZone}
         onUndoPoint={undoPoint}
         onCancelDraw={cancelDraw}
@@ -828,7 +1013,10 @@ function MapViewImpl({ maps = [], onMapChange, isTeacher, student, canSelfAssign
         editCanUndo={editCanUndo}
         onUndoEditPoints={undoEditPoints}
         onSaveEditPoints={saveEditPoints}
-        onExitEditPoints={() => { setMode('view'); discardEditPointsSession(); }}
+        onExitEditPoints={() => {
+          setMode('view');
+          discardEditPointsSession();
+        }}
         canManageMarkerPositions={canManageMarkerPositions}
         markerPositionUnlocked={markerPositionUnlocked}
         onToggleMarkerPositionLock={toggleMarkerPositionLock}
@@ -836,7 +1024,7 @@ function MapViewImpl({ maps = [], onMapChange, isTeacher, student, canSelfAssign
         mobileInteractionsActive={mobileInteractionsActive}
         onToggleMapInteraction={toggleMapInteraction}
         showLabels={showLabels}
-        onToggleLabels={() => setShowLabels(l => !l)}
+        onToggleLabels={() => setShowLabels((l) => !l)}
         containerRef={containerRef}
         txRef={tx}
         fitMap={fitMap}
@@ -874,90 +1062,107 @@ function MapViewImpl({ maps = [], onMapChange, isTeacher, student, canSelfAssign
             }}
             onClick={onMapClick}
           >
+            <MapViewWorldLayer worldRef={worldRef} width={iw} height={ih}>
+              <MapViewBackgroundImage
+                imgRef={imgRef}
+                src={mapImageSrc}
+                alt={`Plan ${activeMap?.label || 'du jardin'}`}
+                width={iw}
+                height={ih}
+                onError={() =>
+                  setMapImageIdx((idx) => (idx < mapImageCandidates.length - 1 ? idx + 1 : idx))
+                }
+              />
 
-          <MapViewWorldLayer worldRef={worldRef} width={iw} height={ih}>
+              <svg
+                style={{
+                  position: 'absolute',
+                  left: 0,
+                  top: 0,
+                  width: iw,
+                  height: ih,
+                  overflow: 'visible',
+                  pointerEvents: 'none',
+                }}
+              >
+                <g style={{ pointerEvents: 'all' }}>
+                  {zones.map((z) => renderZonePoly(z))}
+                  {renderDrawing()}
+                  {renderEditPts()}
+                </g>
+              </svg>
 
-          <MapViewBackgroundImage
-            imgRef={imgRef}
-            src={mapImageSrc}
-            alt={`Plan ${activeMap?.label || 'du jardin'}`}
-            width={iw}
-            height={ih}
-            onError={() => setMapImageIdx((idx) => (
-              idx < mapImageCandidates.length - 1 ? idx + 1 : idx
-            ))}
-          />
+              <MapViewMascotOverlay
+                show={showMapMascot}
+                mascotClassName={mapMascotClassName}
+                embedded={embedded}
+                renderPct={mapMascotRenderPct}
+                fitScale={mapMascotFitScale}
+                faceRight={mapMascotFaceRight}
+                animationState={mapMascotAnimationState}
+                mascotId={mapMascotId}
+                dialogVisible={mapMascotDialogVisible}
+                dialog={mapMascotDialog}
+              />
 
-          <svg style={{ position: 'absolute', left: 0, top: 0, width: iw, height: ih,
-            overflow: 'visible', pointerEvents: 'none' }}>
-            <g style={{ pointerEvents: 'all' }}>
-              {zones.map(z => renderZonePoly(z))}
-              {renderDrawing()}
-              {renderEditPts()}
-            </g>
-          </svg>
+              {markers.map((m) => {
+                const markerTaskVisual = markerTaskVisualById.get(m.id);
+                const markerTaskLabel = markerTaskVisual ? TASK_VISUAL_LABEL[markerTaskVisual] : '';
+                const markerTutorialCount = markerTutorialCountById.get(m.id) || 0;
+                const markerTutorialLabel =
+                  markerTutorialCount === 0
+                    ? ''
+                    : markerTutorialCount === 1
+                      ? '1 tutoriel lié'
+                      : `${markerTutorialCount} tutoriels liés`;
+                const markerAriaLabel = [m.label || 'Repère', markerTaskLabel, markerTutorialLabel]
+                  .filter(Boolean)
+                  .join(' — ');
+                const markerDraggable = isTeacher && markerPositionUnlocked;
+                const openMarker = (e) => {
+                  e.stopPropagation();
+                  if (!moved.current) {
+                    if (mode === 'view' && showMapMascot)
+                      onMapMascotMarkerClick(m, setSelectedMarker);
+                    else setSelectedMarker(m);
+                  }
+                };
+                return (
+                  <MapViewMarkerBubble
+                    key={m.id}
+                    marker={m}
+                    ariaLabel={markerAriaLabel}
+                    showLabels={showLabels}
+                    isCoarsePointer={isCoarsePointer}
+                    draggable={markerDraggable}
+                    emojiFontSize={`${mapEmojiFontPx}px`}
+                    labelFontSize={`${mapLabelFontPx}px`}
+                    labelMarginTop={markerLabelMarginTop}
+                    taskVisual={markerTaskVisual}
+                    taskLabel={markerTaskLabel}
+                    tutorialCount={markerTutorialCount}
+                    tutorialLabel={markerTutorialLabel}
+                    onOpen={openMarker}
+                    onPointerDown={
+                      markerDraggable
+                        ? (e) => {
+                            e.stopPropagation();
+                            beginMarkerDrag(m.id, e.currentTarget, e.pointerId);
+                          }
+                        : undefined
+                    }
+                  />
+                );
+              })}
+            </MapViewWorldLayer>
 
-          <MapViewMascotOverlay
-            show={showMapMascot}
-            mascotClassName={mapMascotClassName}
-            embedded={embedded}
-            renderPct={mapMascotRenderPct}
-            fitScale={mapMascotFitScale}
-            faceRight={mapMascotFaceRight}
-            animationState={mapMascotAnimationState}
-            mascotId={mapMascotId}
-            dialogVisible={mapMascotDialogVisible}
-            dialog={mapMascotDialog}
-          />
-
-          {markers.map((m) => {
-            const markerTaskVisual = markerTaskVisualById.get(m.id);
-            const markerTaskLabel = markerTaskVisual ? TASK_VISUAL_LABEL[markerTaskVisual] : '';
-            const markerTutorialCount = markerTutorialCountById.get(m.id) || 0;
-            const markerTutorialLabel = markerTutorialCount === 0
-              ? ''
-              : (markerTutorialCount === 1 ? '1 tutoriel lié' : `${markerTutorialCount} tutoriels liés`);
-            const markerAriaLabel = [m.label || 'Repère', markerTaskLabel, markerTutorialLabel].filter(Boolean).join(' — ');
-            const markerDraggable = isTeacher && markerPositionUnlocked;
-            const openMarker = (e) => {
-              e.stopPropagation();
-              if (!moved.current) {
-                if (mode === 'view' && showMapMascot) onMapMascotMarkerClick(m, setSelectedMarker);
-                else setSelectedMarker(m);
-              }
-            };
-            return (
-            <MapViewMarkerBubble
-              key={m.id}
-              marker={m}
-              ariaLabel={markerAriaLabel}
-              showLabels={showLabels}
+            <MapCanvasHints
+              mode={mode}
+              drawPointsCount={drawPoints.length}
+              prefersPageScroll={prefersPageScroll}
               isCoarsePointer={isCoarsePointer}
-              draggable={markerDraggable}
-              emojiFontSize={`${mapEmojiFontPx}px`}
-              labelFontSize={`${mapLabelFontPx}px`}
-              labelMarginTop={markerLabelMarginTop}
-              taskVisual={markerTaskVisual}
-              taskLabel={markerTaskLabel}
-              tutorialCount={markerTutorialCount}
-              tutorialLabel={markerTutorialLabel}
-              onOpen={openMarker}
-              onPointerDown={markerDraggable ? e => {
-                e.stopPropagation();
-                beginMarkerDrag(m.id, e.currentTarget, e.pointerId);
-              } : undefined}
             />
-            );
-          })}
-          </MapViewWorldLayer>
-
-          <MapCanvasHints
-            mode={mode}
-            drawPointsCount={drawPoints.length}
-            prefersPageScroll={prefersPageScroll}
-            isCoarsePointer={isCoarsePointer}
-          />
-        </div>
+          </div>
         </div>
       </div>
     </div>

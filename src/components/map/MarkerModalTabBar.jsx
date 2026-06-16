@@ -8,7 +8,16 @@ import React from 'react';
  */
 function MarkerModalTabBar({ tabs, activeTab, onSelect }) {
   return (
-    <div style={{ display: 'flex', background: 'var(--parchment)', borderRadius: 10, padding: 3, marginBottom: 14, gap: 2 }}>
+    <div
+      style={{
+        display: 'flex',
+        background: 'var(--parchment)',
+        borderRadius: 10,
+        padding: 3,
+        marginBottom: 14,
+        gap: 2,
+      }}
+    >
       {tabs.map((t) => (
         <button
           key={t.id}
@@ -26,7 +35,8 @@ function MarkerModalTabBar({ tabs, activeTab, onSelect }) {
             background: activeTab === t.id ? 'var(--forest)' : 'transparent',
             color: activeTab === t.id ? 'white' : 'var(--soil)',
             transition: 'all .15s',
-          }}>
+          }}
+        >
           {t.label}
         </button>
       ))}
