@@ -180,6 +180,13 @@ test('collision de clé stable — avertissement à l’upload (dernier import g
 
 test('métas de scène (légende / ordre / couverture) — édition, tri et persistance', () => {
   const { listChapterRecitScenes, updateChapterSceneMeta } = require('../lib/glChapterScenes');
+  const TEST_SCENE_KEYS = [
+    'recit_02-chap2_aaa',
+    'recit_02-chap2_bbb',
+    'recit_02-chap2_ccc',
+  ];
+  const pickTestScenes = (scenes) =>
+    scenes.filter((scene) => TEST_SCENE_KEYS.includes(scene.stableKey));
   const files = [
     { fileName: 'GL_recit_02-chap2_aaa.png', buffer: TINY_PNG, mime: 'image/png' },
     { fileName: 'GL_recit_02-chap2_bbb.png', buffer: TINY_PNG, mime: 'image/png' },
@@ -190,11 +197,11 @@ test('métas de scène (légende / ordre / couverture) — édition, tri et pers
   );
   syncAssetManifests();
   try {
-    // sans méta : tri alphabétique
-    let scenes = listChapterRecitScenes(2);
+    // sans méta : tri alphabétique (fixtures isolées — le chapitre 2 a des scènes seed en prod)
+    let scenes = pickTestScenes(listChapterRecitScenes(2));
     assert.deepStrictEqual(
       scenes.map((s) => s.stableKey),
-      ['recit_02-chap2_aaa', 'recit_02-chap2_bbb', 'recit_02-chap2_ccc'],
+      TEST_SCENE_KEYS,
     );
 
     // ordre explicite : ccc passe devant
