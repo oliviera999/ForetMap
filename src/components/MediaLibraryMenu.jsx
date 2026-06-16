@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { MediaUsageInfo } from './media/MediaUsageInfo.jsx';
 import { MediaLibraryGalleryTile } from './media/MediaLibraryGalleryTile.jsx';
+import { MediaLibraryBulkActions } from './media/MediaLibraryBulkActions.jsx';
 import {
   filterAndSortMediaLibraryItems,
   formatMediaLibrarySize,
@@ -303,20 +304,16 @@ export function MediaLibraryMenu({
             </div>
           </div>
           {galleryBulkEnabled ? (
-            <div className="media-library-menu__bulk">
-              <button type="button" className="btn btn-secondary btn-sm" disabled={busy || visibleItems.length === 0} onClick={selectAllVisible}>
-                Tout sélectionner
-              </button>
-              <button type="button" className="btn btn-secondary btn-sm" disabled={busy || selectedCount === 0} onClick={deselectAll}>
-                Tout désélectionner
-              </button>
-              <button type="button" className="btn btn-secondary btn-sm" disabled={busy || selectedCount === 0} onClick={deleteSelected}>
-                Supprimer la sélection{selectedCount > 0 ? ` (${selectedCount})` : ''}
-              </button>
-              <button type="button" className="btn btn-secondary btn-sm gl-danger" disabled={busy || items.length === 0} onClick={clearLibrary}>
-                Vider la bibliothèque
-              </button>
-            </div>
+            <MediaLibraryBulkActions
+              busy={busy}
+              visibleCount={visibleItems.length}
+              selectedCount={selectedCount}
+              totalCount={items.length}
+              onSelectAll={selectAllVisible}
+              onDeselectAll={deselectAll}
+              onDeleteSelected={deleteSelected}
+              onClearLibrary={clearLibrary}
+            />
           ) : null}
           <p className="media-library-menu__count gl-hint">
             {countLabel}
