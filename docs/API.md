@@ -1248,6 +1248,26 @@ Objet **`site`** (réponse `GET /api/stats/all` uniquement) :
 
 ---
 
+
+## Pédagogie biodiversité (ForetMap)
+
+Routes publiques (lecture) sauf progression quiz. Voir aussi les routes GL `/api/gl/glossary`.
+
+| Méthode | URL | Auth | Description |
+| GET | `/api/glossary/categories` | non | Catégories glossaire |
+| GET | `/api/glossary/terms` | non | Liste/recherche |
+| GET | `/api/glossary/terms/:code` | non | Fiche terme |
+| GET | `/api/quiz/categories` | non | Catégories QCM |
+| GET | `/api/quiz/draw` | non | Tirage QCM |
+| GET | `/api/quiz/questions/:code/present` | non | Question présentée |
+| POST | `/api/quiz/questions/:code/answer` | non | Validation réponse |
+| GET | `/api/quiz/me/progress` | élève | Progression |
+| GET | `/api/food-web` | non | Réseau trophique |
+| GET | `/api/plants/:id/interactions` | non | Interactions espèce |
+| GET | `/api/plants/:id/glossary-terms` | non | Termes liés |
+
+Import local : `npm run db:import:biodiv` (après `npm run db:migrate`).
+
 ## Codes d’erreur
 
 - **401** : Non authentifié ou token invalide ; possible `{ error, deleted: true }` si compte supprimé.

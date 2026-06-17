@@ -7,6 +7,15 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Biodiversité pédagogique (glossaire, QCM, réseau trophique)
+
+- **Migrations** : 122–128 (taxonomie plants, junction *_species, interactions/vues, glossaire, quiz).
+- **Import** : `npm run db:import:biodiv` (scripts + `sql/foretmap_bdd_complete.sql`).
+- **API** : `/api/glossary`, `/api/quiz`, `/api/food-web` ; fiches plantes enrichies.
+- **Dual-write** : `zone_species`, `marker_species`, `task_species` + JSON `living_beings`.
+- **UI élève** : Glossaire, Quiz, réseau trophique, fiches espèces enrichies.
+- **Tests** : `biodiv-read-model`, `glossary-api`, `quiz-api`.
+
 ### GL — Mode Découverte (visiteur sans compte)
 
 - **Auth** : `POST /api/gl/auth/guest` (token `gl_guest`, permission `gl.read` seule) ; `guestModeEnabled` dans `GET /api/gl/auth/config` ; désactivation via `platform.guest_mode_enabled=false` ou `GL_GUEST_MODE_DISABLED=1`.

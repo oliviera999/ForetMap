@@ -82,6 +82,15 @@ const ForumViewLazy = lazy(() =>
 const AboutViewLazy = lazy(() =>
   import('./components/about-views').then((m) => ({ default: m.AboutView })),
 );
+const GlossaryViewLazy = lazy(() =>
+  import('./components/pedago-views').then((m) => ({ default: m.GlossaryView })),
+);
+const QuizViewLazy = lazy(() =>
+  import('./components/pedago-views').then((m) => ({ default: m.QuizView })),
+);
+const FoodWebViewLazy = lazy(() =>
+  import('./components/pedago-views').then((m) => ({ default: m.FoodWebView })),
+);
 const VisitMascotPackManagerLazy = lazy(() => import('./components/VisitMascotPackManager.jsx'));
 import { Tooltip } from './components/Tooltip';
 import { getRoleTerms, isN3OnlyAffiliation } from './utils/n3-terminology';
@@ -857,6 +866,28 @@ function App() {
 
   const { plantCatalogPreview, setPlantCatalogPreview, openPlantCatalogPreviewById } =
     usePlantCatalogPreview(plants);
+  const [pedagoGlossaryCode, setPedagoGlossaryCode] = useState(null);
+  const [foodWebHighlightPlantId, setFoodWebHighlightPlantId] = useState(null);
+
+  const openPedagoGlossaryTerm = useCallback(
+    (code) => {
+      const c = String(code || '').trim();
+      setPedagoGlossaryCode(c || null);
+      setTab('glossary');
+      setPlantCatalogPreview(null);
+    },
+    [setPlantCatalogPreview],
+  );
+
+  const openPedagoFoodWeb = useCallback(
+    (plantId = null) => {
+      const id = plantId != null ? Number(plantId) : null;
+      setFoodWebHighlightPlantId(Number.isFinite(id) && id > 0 ? id : null);
+      setTab('foodweb');
+      setPlantCatalogPreview(null);
+    },
+    [setPlantCatalogPreview],
+  );
 
   const useWideMain = shouldUseDesktopSplit;
   const mapChromeCompactVisible =
@@ -1173,6 +1204,9 @@ function App() {
                   maps={visibleMaps}
                   onClose={() => setPlantCatalogPreview(null)}
                   onForceLogout={forceLogout}
+                  onOpenPlant={openPlantCatalogPreviewById}
+                  onOpenGlossaryTerm={openPedagoGlossaryTerm}
+                  onNavigateToFoodWeb={openPedagoFoodWeb}
                 />
               </Suspense>
             )}
@@ -1855,6 +1889,32 @@ function App() {
                         <ForumViewLazy authClaims={authClaims} canParticipateForum />
                       </TabSuspense>
                     )}
+                    {tab === 'glossary' && (
+                      <TabSuspense>
+                        <GlossaryViewLazy
+                          onOpenPlant={openPlantCatalogPreviewById}
+                          selectedCode={pedagoGlossaryCode}
+                          onSelectedCodeChange={setPedagoGlossaryCode}
+                        />
+                      </TabSuspense>
+                    )}
+                    {tab === 'quiz' && (
+                      <TabSuspense>
+                        <QuizViewLazy
+                          onOpenPlant={openPlantCatalogPreviewById}
+                          onOpenGlossaryTerm={openPedagoGlossaryTerm}
+                        />
+                      </TabSuspense>
+                    )}
+                    {tab === 'foodweb' && (
+                      <TabSuspense>
+                        <FoodWebViewLazy
+                          onOpenPlant={openPlantCatalogPreviewById}
+                          onOpenGlossaryTerm={openPedagoGlossaryTerm}
+                          highlightPlantId={foodWebHighlightPlantId}
+                        />
+                      </TabSuspense>
+                    )}
                     {tab === 'about' && (
                       <TabSuspense>
                         <AboutViewLazy appVersion={appVersion} isTeacher={effectiveIsTeacher} />
@@ -1955,7 +2015,13 @@ function App() {
                       )}
                       {tab === 'plants' && (
                         <TabSuspense>
-                          <PlantViewerLazy maps={visibleMaps} onForceLogout={forceLogout} />
+                          <PlantViewerLazy
+                            maps={visibleMaps}
+                            onForceLogout={forceLogout}
+                            onOpenPlant={openPlantCatalogPreviewById}
+                            onOpenGlossaryTerm={openPedagoGlossaryTerm}
+                            onNavigateToFoodWeb={openPedagoFoodWeb}
+                          />
                         </TabSuspense>
                       )}
                       {publicSettings?.modules?.tutorials_enabled !== false && tab === 'tuto' && (
@@ -2003,6 +2069,32 @@ function App() {
                           <ForumViewLazy
                             authClaims={authClaims}
                             canParticipateForum={canParticipateForum}
+                          />
+                        </TabSuspense>
+                      )}
+                      {tab === 'glossary' && (
+                        <TabSuspense>
+                          <GlossaryViewLazy
+                            onOpenPlant={openPlantCatalogPreviewById}
+                            selectedCode={pedagoGlossaryCode}
+                            onSelectedCodeChange={setPedagoGlossaryCode}
+                          />
+                        </TabSuspense>
+                      )}
+                      {tab === 'quiz' && (
+                        <TabSuspense>
+                          <QuizViewLazy
+                            onOpenPlant={openPlantCatalogPreviewById}
+                            onOpenGlossaryTerm={openPedagoGlossaryTerm}
+                          />
+                        </TabSuspense>
+                      )}
+                      {tab === 'foodweb' && (
+                        <TabSuspense>
+                          <FoodWebViewLazy
+                            onOpenPlant={openPlantCatalogPreviewById}
+                            onOpenGlossaryTerm={openPedagoGlossaryTerm}
+                            highlightPlantId={foodWebHighlightPlantId}
                           />
                         </TabSuspense>
                       )}

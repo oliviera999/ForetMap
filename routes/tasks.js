@@ -13,6 +13,12 @@ const logger = require('../lib/logger');
 const { logAudit } = require('./audit');
 const { emitTasksChanged } = require('../lib/realtime');
 const { syncTaskProjectCompletionForProjects } = require('../lib/syncTaskProjectCompletion');
+const {
+  syncTaskSpecies,
+  loadTaskSpeciesMap,
+  attachSpeciesToEntity,
+} = require('../lib/speciesJunction');
+const dbSpecies = { queryAll, queryOne, execute, withTransaction };
 const { syncProgressionForValidatedTask } = require('../lib/rbac');
 const {
   normalizeTaskStatusForRead,
@@ -921,6 +927,9 @@ router.post(
     await setTaskTutorials(id, tutorialIds);
     await setTaskReferents(id, referentValidation.userIds);
     await syncLegacyLocationColumns(id, zIds, mIds);
+    if (Object.prototype.hasOwnProperty.call(req.body || {}, 'living_beings') || Object.prototype.hasOwnProperty.call(req.body || {}, 'species_ids')) {
+      await syncTaskSpecies(dbSpecies, id, req.body.species_ids, living_beings);
+    }
     if (decodedTaskImage) {
       const rel = `tasks/${id}.${decodedTaskImage.ext}`;
       try {
@@ -1218,6 +1227,9 @@ router.put('/:id', async (req, res) => {
     await setTaskMarkers(task.id, nextMarkerIds);
     await setTaskTutorials(task.id, nextTutorialIds);
     await setTaskReferents(task.id, referentValidation.userIds);
+    if (Object.prototype.hasOwnProperty.call(req.body, 'living_beings') || Object.prototype.hasOwnProperty.call(req.body, 'species_ids')) {
+      await syncTaskSpecies(dbSpecies, task.id, req.body.species_ids, living_beings);
+    }
     await syncLegacyLocationColumns(task.id, nextZoneIds, nextMarkerIds);
 
     const bodyPut = req.body || {};

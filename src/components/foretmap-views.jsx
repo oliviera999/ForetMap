@@ -662,7 +662,13 @@ function ObservationNotebook({ student, onForceLogout = null }) {
 }
 
 // ── PLANT VIEWER (student read-only) ──────────────────────────────────────────
-function PlantViewer({ maps = [], onForceLogout = null }) {
+function PlantViewer({
+  maps = [],
+  onForceLogout = null,
+  onOpenPlant = null,
+  onOpenGlossaryTerm = null,
+  onNavigateToFoodWeb = null,
+}) {
   const publicSettings = usePublicSettings();
   const { canParticipateContextComments = true } = useSession();
   const { plants = [], zones = [], markers = [] } = useData();
@@ -804,6 +810,9 @@ function PlantViewer({ maps = [], onForceLogout = null }) {
               onForceLogout={onForceLogout}
               showContextComments
               dataBiodivPlantId={null}
+              onOpenPlant={onOpenPlant}
+              onOpenGlossaryTerm={onOpenGlossaryTerm}
+              onNavigateToFoodWeb={onNavigateToFoodWeb}
             />
           ))}
         </div>

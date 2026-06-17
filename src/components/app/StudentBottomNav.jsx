@@ -68,6 +68,20 @@ export function StudentBottomNav({
       >
         <span className="nav-icon">🌱</span> Biodiversité
       </button>
+      <button
+        className={`nav-btn ${tab === 'glossary' ? 'active' : ''}`}
+        type="button"
+        onClick={() => onTabChange('glossary')}
+      >
+        <span className="nav-icon">📖</span> Glossaire
+      </button>
+      <button
+        className={`nav-btn ${tab === 'quiz' ? 'active' : ''}`}
+        type="button"
+        onClick={() => onTabChange('quiz')}
+      >
+        <span className="nav-icon">❓</span> Quiz
+      </button>
       {tutorialsModuleEnabled && !mergeTasksTutoNav && (
         <button
           className={`nav-btn ${tab === 'tuto' ? 'active' : ''}`}
