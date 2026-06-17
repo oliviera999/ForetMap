@@ -13,6 +13,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Import** : `npm run db:import:biodiv` (scripts + `sql/foretmap_bdd_complete.sql`).
 - **API** : `/api/glossary`, `/api/quiz`, `/api/food-web` ; fiches plantes enrichies (`/:id/interactions`, `/glossary-terms`, `/quiz-questions`).
 - **Lecture espèces** : `zone_species`, `marker_species`, `task_species` uniquement (plus de dual-write JSON).
+- **Post-migration 130** : retrait résiduel de `living_beings` (tâches récurrentes, duplication projet, sync visite, propositions élève) ; import OpenAI species autofill ; tests quiz/plants-import alignés.
 - **Schéma / seed** : `sql/schema_foretmap.sql` et seed `database.js` alignés sur le contrat post-129/130.
 - **Scripts** : `scripts/backfill-gbif-keys.js`, `scripts/fix-auto-increment.js` (`npm run db:fix-auto-increment` si documenté).
 - **UI élève** : Glossaire, Quiz, réseau trophique (libellés interactions alignés enum SQL), fiches espèces enrichies.

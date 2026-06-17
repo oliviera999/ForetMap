@@ -192,8 +192,8 @@ router.post(
         const z = zoneById.get(zoneId);
         await execute(
           `INSERT INTO zones
-          (id, map_id, name, x, y, width, height, current_plant, living_beings, stage, special, shape, points, color, description)
-         VALUES (?, ?, ?, 0, 0, 0, 0, '', '[]', 'empty', 0, 'polygon', ?, '#86efac80', '')
+          (id, map_id, name, x, y, width, height, current_plant, stage, special, shape, points, color, description)
+         VALUES (?, ?, ?, 0, 0, 0, 0, '', 'empty', 0, 'polygon', ?, '#86efac80', '')
          ON DUPLICATE KEY UPDATE
            map_id = VALUES(map_id),
            name = VALUES(name),
@@ -207,8 +207,8 @@ router.post(
         const m = markerById.get(markerId);
         await execute(
           `INSERT INTO map_markers
-          (id, map_id, x_pct, y_pct, label, plant_name, living_beings, note, emoji, created_at)
-         VALUES (?, ?, ?, ?, ?, '', '[]', '', ?, ?)
+          (id, map_id, x_pct, y_pct, label, plant_name, note, emoji, created_at)
+         VALUES (?, ?, ?, ?, ?, '', '', ?, ?)
          ON DUPLICATE KEY UPDATE
            map_id = VALUES(map_id),
            x_pct = VALUES(x_pct),

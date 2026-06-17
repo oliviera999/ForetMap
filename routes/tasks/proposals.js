@@ -16,7 +16,8 @@ const {
   normalizeTaskStatusForRead,
   normalizeTaskCompletionMode,
 } = require('../../lib/taskStatusRecalc');
-const { parseOptionalForetAuth } = require('../../lib/auth/jwtPipeline');
+const { syncTaskSpecies } = require('../../lib/speciesJunction');
+const dbSpecies = require('../../database');
 const {
   resolveTaskMapId,
   parseTaskDangerLevelFromClient,
@@ -36,6 +37,7 @@ const {
   enrichTaskRow,
 } = require('../../lib/taskRouteHelpers');
 const { isVisitorRole } = require('../../lib/taskAuthzHelpers');
+const { parseOptionalForetAuth } = require('../../lib/auth/jwtPipeline');
 
 const router = express.Router();
 
@@ -393,14 +395,14 @@ router.post(
     const finalDescription = [baseDescription, proposer ? `Proposition n3beur: ${proposer}` : '']
       .filter(Boolean)
       .join('\n\n');
-    const proposalLivingDb = Object.prototype.hasOwnProperty.call(req.body || {}, 'living_beings')
-      ? serializeTaskLivingBeingsForDb(living_beings)
-      : null;
+    const proposalLivingNames = Object.prototype.hasOwnProperty.call(req.body || {}, 'living_beings')
+      ? living_beings
+      : undefined;
     await execute(
       `INSERT INTO tasks (
       id, title, description, map_id, project_id, zone_id, marker_id,
-      start_date, due_date, required_students, completion_mode, danger_level, difficulty_level, importance_level, living_beings, status, recurrence, created_at
-    ) VALUES (?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      start_date, due_date, required_students, completion_mode, danger_level, difficulty_level, importance_level, status, recurrence, created_at
+    ) VALUES (?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         String(title).trim(),
@@ -415,7 +417,6 @@ router.post(
         proposalDangerParsed.level,
         proposalDifficultyParsed.level,
         proposalImportanceParsed.level,
-        proposalLivingDb,
         'proposed',
         null,
         new Date().toISOString(),
@@ -425,6 +426,12 @@ router.post(
     await setTaskMarkers(id, mIds);
     await setTaskTutorials(id, []);
     await setTaskReferents(id, []);
+    if (
+      Object.prototype.hasOwnProperty.call(req.body || {}, 'living_beings') ||
+      Object.prototype.hasOwnProperty.call(req.body || {}, 'species_ids')
+    ) {
+      await syncTaskSpecies(dbSpecies, id, req.body.species_ids, proposalLivingNames);
+    }
     await syncLegacyLocationColumns(id, zIds, mIds);
     if (proposalDecodedImage) {
       const rel = `tasks/${id}.${proposalDecodedImage.ext}`;
