@@ -39,13 +39,15 @@ async function fetchLinkedPlantsForTerms(terms) {
   return [...byId.values()];
 }
 
-export function QuizView({ onOpenPlant, onOpenGlossaryTerm }) {
+export function QuizView({ onOpenPlant, onOpenGlossaryTerm, initialQuestionCode = null }) {
   const [theme, setTheme] = useState('');
   const [niveau, setNiveau] = useState('');
   const [difficulte, setDifficulte] = useState('');
   const [categorieSlug, setCategorieSlug] = useState('');
+  const [illustratedOnly, setIllustratedOnly] = useState(false);
   const [categories, setCategories] = useState([]);
   const [loadingCategories, setLoadingCategories] = useState(false);
+  const [progress, setProgress] = useState(null);
 
   const [drawing, setDrawing] = useState(false);
   const [questionCode, setQuestionCode] = useState('');
@@ -75,6 +77,44 @@ export function QuizView({ onOpenPlant, onOpenGlossaryTerm }) {
   useEffect(() => {
     loadCategories();
   }, [loadCategories]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await api('/api/quiz/me/progress');
+        if (!cancelled) setProgress(data);
+      } catch (_) {
+        if (!cancelled) setProgress(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [answerResult]);
+
+  useEffect(() => {
+    if (!initialQuestionCode) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const code = String(initialQuestionCode).trim().toUpperCase();
+        if (!code) return;
+        setQuestionCode(code);
+        const present = await api(`/api/quiz/questions/${encodeURIComponent(code)}/present`);
+        if (!cancelled) {
+          setPresentation(present);
+          setAnswerResult(null);
+          setSelectedChoiceId(null);
+        }
+      } catch (err) {
+        if (!cancelled) setError(err.message || 'Question introuvable');
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [initialQuestionCode]);
 
   useEffect(() => {
     if (!categorieSlug) return;
@@ -127,6 +167,7 @@ export function QuizView({ onOpenPlant, onOpenGlossaryTerm }) {
       if (categorieSlug) params.set('categorieSlug', categorieSlug);
       if (niveau) params.set('niveau', niveau);
       if (difficulte) params.set('difficulte', difficulte);
+      if (illustratedOnly) params.set('illustrated', '1');
       const draw = await api(`/api/quiz/draw?${params.toString()}`);
       const code = draw?.question_code;
       if (!code) throw new Error('Aucune question disponible');
@@ -172,6 +213,11 @@ export function QuizView({ onOpenPlant, onOpenGlossaryTerm }) {
       <header className="pedago-view__head">
         <h2 className="section-title">❓ Quiz</h2>
         <p className="section-sub">Questions sciences du vivant et jardinage.</p>
+        {progress ? (
+          <p className="section-sub pedago-quiz__progress">
+            Progression : {progress.correct}/{progress.attempts} bonnes réponses
+          </p>
+        ) : null}
       </header>
 
       <div className="pedago-filters card">
@@ -223,6 +269,14 @@ export function QuizView({ onOpenPlant, onOpenGlossaryTerm }) {
               </option>
             ))}
           </select>
+        </label>
+        <label className="pedago-filter-field pedago-filter-field--checkbox">
+          <span>Illustrées</span>
+          <input
+            type="checkbox"
+            checked={illustratedOnly}
+            onChange={(e) => setIllustratedOnly(e.target.checked)}
+          />
         </label>
         <button type="button" className="btn btn-primary" onClick={drawQuestion} disabled={drawing}>
           {drawing ? 'Tirage…' : 'Tirer une question'}

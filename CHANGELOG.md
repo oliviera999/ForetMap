@@ -9,19 +9,21 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ### Biodiversité pédagogique (glossaire, QCM, réseau trophique)
 
-- **Migrations** : 122–128 (taxonomie plants, junction *_species, interactions/vues, glossaire, quiz).
+- **Migrations** : 122–132 (taxonomie plants, junction `*_species`, interactions/vues, glossaire, quiz ; **129** retrait colonnes legacy plants ; **130** retrait JSON `living_beings` ; **131** audit_log utf8mb4 ; **132** correctif AUTO_INCREMENT).
 - **Import** : `npm run db:import:biodiv` (scripts + `sql/foretmap_bdd_complete.sql`).
-- **API** : `/api/glossary`, `/api/quiz`, `/api/food-web` ; fiches plantes enrichies.
-- **Dual-write** : `zone_species`, `marker_species`, `task_species` + JSON `living_beings`.
-- **UI élève** : Glossaire, Quiz, réseau trophique, fiches espèces enrichies.
-- **Tests** : `biodiv-read-model`, `glossary-api`, `quiz-api`.
+- **API** : `/api/glossary`, `/api/quiz`, `/api/food-web` ; fiches plantes enrichies (`/:id/interactions`, `/glossary-terms`, `/quiz-questions`).
+- **Lecture espèces** : `zone_species`, `marker_species`, `task_species` uniquement (plus de dual-write JSON).
+- **Schéma / seed** : `sql/schema_foretmap.sql` et seed `database.js` alignés sur le contrat post-129/130.
+- **Scripts** : `scripts/backfill-gbif-keys.js`, `scripts/fix-auto-increment.js` (`npm run db:fix-auto-increment` si documenté).
+- **UI élève** : Glossaire, Quiz, réseau trophique (libellés interactions alignés enum SQL), fiches espèces enrichies.
+- **Tests** : `biodiv-read-model`, `glossary-api`, `glossary-search`, `quiz-api`, `food-web-api`, `plant-payload-sync`, `species-junction-read` ; e2e `pedago-quiz`, `pedago-food-web`, `pedago-glossary`.
 
 ### GL — Mode Découverte (visiteur sans compte)
 
 - **Auth** : `POST /api/gl/auth/guest` (token `gl_guest`, permission `gl.read` seule) ; `guestModeEnabled` dans `GET /api/gl/auth/config` ; désactivation via `platform.guest_mode_enabled=false` ou `GL_GUEST_MODE_DISABLED=1`.
 - **Sécurité** : `requireGlAuth` refuse explicitement les invités (`guestBlocked`) ; `GET /api/gl/lore/demo-feuillets` (allowlist `ep-I-01`…`04`, indépendant du module carnet).
 - **Front** : bouton « Découvrir sans compte », shell réduit (Monde, Règles, Découverte, glossaire SVT, biotope/biocénose), plateau P1 en bac à sable client (dé + 4 feuillets + mur de fin).
-- **Tests** : `tests/gl-guest-mode.test.js`, `e2e/gl-guest-discovery.spec.js`.
+- **Tests** : `tests/gl-guest-mode.test.js`, `e2e/gl-guest-discovery.spec.js` (parcours dé → feuillets → mur de fin).
 
 ### Tests e2e (stabilisation des 13 échecs)
 

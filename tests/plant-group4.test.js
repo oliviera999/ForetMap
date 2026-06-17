@@ -13,28 +13,32 @@ test('extractGenusFromScientificName hybride ×', () => {
   assert.strictEqual(extractGenusFromScientificName('× Dactylorhiza majalis'), 'Dactylorhiza');
 });
 
-test('applyDerivedGroup4IfEmpty végétal reprend group_3', () => {
-  const p = { group_1: 'Végétal (Chlorobiontes)', group_3: 'Solanacées', group_4: null };
+test('applyDerivedGroup4IfEmpty végétal reprend taxon_family', () => {
+  const p = {
+    taxon_kingdom: 'Végétal (Chlorobiontes)',
+    taxon_family: 'Solanacées',
+    taxon_genus: null,
+  };
   applyDerivedGroup4IfEmpty(p);
-  assert.strictEqual(p.group_4, 'Solanacées');
+  assert.strictEqual(p.taxon_genus, 'Solanacées');
 });
 
 test('applyDerivedGroup4IfEmpty animal reprend genre', () => {
   const p = {
-    group_1: 'Animal (Métazoaires)',
+    taxon_kingdom: 'Animal (Métazoaires)',
     scientific_name: 'Lasius niger',
-    group_4: null,
+    taxon_genus: null,
   };
   applyDerivedGroup4IfEmpty(p);
-  assert.strictEqual(p.group_4, 'Lasius');
+  assert.strictEqual(p.taxon_genus, 'Lasius');
 });
 
 test('applyDerivedGroup4IfEmpty ne remplace pas une valeur fournie', () => {
   const p = {
-    group_1: 'Végétal (Chlorobiontes)',
-    group_3: 'Solanacées',
-    group_4: 'Surcouche manuelle',
+    taxon_kingdom: 'Végétal (Chlorobiontes)',
+    taxon_family: 'Solanacées',
+    taxon_genus: 'Surcouche manuelle',
   };
   applyDerivedGroup4IfEmpty(p);
-  assert.strictEqual(p.group_4, 'Surcouche manuelle');
+  assert.strictEqual(p.taxon_genus, 'Surcouche manuelle');
 });

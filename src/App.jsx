@@ -867,6 +867,7 @@ function App() {
   const { plantCatalogPreview, setPlantCatalogPreview, openPlantCatalogPreviewById } =
     usePlantCatalogPreview(plants);
   const [pedagoGlossaryCode, setPedagoGlossaryCode] = useState(null);
+  const [pedagoQuizQuestionCode, setPedagoQuizQuestionCode] = useState(null);
   const [foodWebHighlightPlantId, setFoodWebHighlightPlantId] = useState(null);
 
   const openPedagoGlossaryTerm = useCallback(
@@ -879,6 +880,13 @@ function App() {
     [setPlantCatalogPreview],
   );
 
+  const openPedagoQuizQuestion = useCallback((code) => {
+    const c = String(code || '').trim().toUpperCase();
+    setPedagoQuizQuestionCode(c || null);
+    setTab('quiz');
+    setPlantCatalogPreview(null);
+  }, [setPlantCatalogPreview]);
+
   const openPedagoFoodWeb = useCallback(
     (plantId = null) => {
       const id = plantId != null ? Number(plantId) : null;
@@ -888,6 +896,17 @@ function App() {
     },
     [setPlantCatalogPreview],
   );
+
+  useEffect(() => {
+    const onGlossaryMessage = (event) => {
+      const data = event?.data;
+      if (!data || data.type !== 'foretmap:glossary') return;
+      const code = String(data.code || '').trim();
+      if (code) openPedagoGlossaryTerm(code);
+    };
+    window.addEventListener('message', onGlossaryMessage);
+    return () => window.removeEventListener('message', onGlossaryMessage);
+  }, [openPedagoGlossaryTerm]);
 
   const useWideMain = shouldUseDesktopSplit;
   const mapChromeCompactVisible =
@@ -1207,6 +1226,7 @@ function App() {
                   onOpenPlant={openPlantCatalogPreviewById}
                   onOpenGlossaryTerm={openPedagoGlossaryTerm}
                   onNavigateToFoodWeb={openPedagoFoodWeb}
+                  onOpenQuizQuestion={openPedagoQuizQuestion}
                 />
               </Suspense>
             )}
@@ -1893,6 +1913,7 @@ function App() {
                       <TabSuspense>
                         <GlossaryViewLazy
                           onOpenPlant={openPlantCatalogPreviewById}
+                          onOpenQuizQuestion={openPedagoQuizQuestion}
                           selectedCode={pedagoGlossaryCode}
                           onSelectedCodeChange={setPedagoGlossaryCode}
                         />
@@ -1903,12 +1924,14 @@ function App() {
                         <QuizViewLazy
                           onOpenPlant={openPlantCatalogPreviewById}
                           onOpenGlossaryTerm={openPedagoGlossaryTerm}
+                          initialQuestionCode={pedagoQuizQuestionCode}
                         />
                       </TabSuspense>
                     )}
                     {tab === 'foodweb' && (
                       <TabSuspense>
                         <FoodWebViewLazy
+                          mapZones={mapZones}
                           onOpenPlant={openPlantCatalogPreviewById}
                           onOpenGlossaryTerm={openPedagoGlossaryTerm}
                           highlightPlantId={foodWebHighlightPlantId}
@@ -2076,6 +2099,7 @@ function App() {
                         <TabSuspense>
                           <GlossaryViewLazy
                             onOpenPlant={openPlantCatalogPreviewById}
+                            onOpenQuizQuestion={openPedagoQuizQuestion}
                             selectedCode={pedagoGlossaryCode}
                             onSelectedCodeChange={setPedagoGlossaryCode}
                           />
@@ -2086,12 +2110,14 @@ function App() {
                           <QuizViewLazy
                             onOpenPlant={openPlantCatalogPreviewById}
                             onOpenGlossaryTerm={openPedagoGlossaryTerm}
+                            initialQuestionCode={pedagoQuizQuestionCode}
                           />
                         </TabSuspense>
                       )}
                       {tab === 'foodweb' && (
                         <TabSuspense>
                           <FoodWebViewLazy
+                            mapZones={mapZones}
                             onOpenPlant={openPlantCatalogPreviewById}
                             onOpenGlossaryTerm={openPedagoGlossaryTerm}
                             highlightPlantId={foodWebHighlightPlantId}

@@ -74,7 +74,8 @@ function PlantManager({ onRefresh, maps = [], onForceLogout = null }) {
   const [group2, setGroup2] = useState('');
   const [group3, setGroup3] = useState('');
   const [habitatFilter, setHabitatFilter] = useState('');
-  const [agroFilter, setAgroFilter] = useState('');
+  const [trophicRoleFilter, setTrophicRoleFilter] = useState('');
+  const [habitatTypeFilter, setHabitatTypeFilter] = useState('');
   const [plantObservationCounts, setPlantObservationCounts] = useState(() => ({}));
   const { isHelpEnabled, hasSeenSection, markSectionSeen, trackPanelOpen, trackPanelDismiss } =
     useHelp({ publicSettings, isTeacher: true });
@@ -86,9 +87,10 @@ function PlantManager({ onRefresh, maps = [], onForceLogout = null }) {
       group2,
       group3,
       habitat: habitatFilter,
-      agroecosystemCategory: agroFilter,
+      trophicRole: trophicRoleFilter,
+      habitatType: habitatTypeFilter,
     }),
-    [group1, group2, group3, habitatFilter, agroFilter],
+    [group1, group2, group3, habitatFilter, trophicRoleFilter, habitatTypeFilter],
   );
 
   const queryTrimmedLower = search.trim().toLowerCase();
@@ -233,8 +235,10 @@ function PlantManager({ onRefresh, maps = [], onForceLogout = null }) {
         setGroup3={setGroup3}
         habitat={habitatFilter}
         setHabitat={setHabitatFilter}
-        agro={agroFilter}
-        setAgro={setAgroFilter}
+        trophicRole={trophicRoleFilter}
+        setTrophicRole={setTrophicRoleFilter}
+        habitatType={habitatTypeFilter}
+        setHabitatType={setHabitatTypeFilter}
       />
 
       <PlantImportPanel setToast={setToast} onRefresh={onRefresh} />
@@ -305,8 +309,14 @@ function PlantManager({ onRefresh, maps = [], onForceLogout = null }) {
                         </p>
                       </div>
                     </div>
-                    {normalizedPlantValue(p.group_2) && (
-                      <span className="task-chip">{p.group_2}</span>
+                    {(normalizedPlantValue(p.taxonomy?.group) ||
+                      normalizedPlantValue(p.taxon_group) ||
+                      normalizedPlantValue(p.group_2)) && (
+                      <span className="task-chip">
+                        {normalizedPlantValue(p.taxonomy?.group) ||
+                          normalizedPlantValue(p.taxon_group) ||
+                          normalizedPlantValue(p.group_2)}
+                      </span>
                     )}
                   </div>
 
@@ -325,10 +335,9 @@ function PlantManager({ onRefresh, maps = [], onForceLogout = null }) {
                       {normalizedPlantValue(p.habitat) && !isGenericPotagerLabel(p.habitat) && (
                         <span className="task-chip">🏡 {p.habitat}</span>
                       )}
-                      {normalizedPlantValue(p.agroecosystem_category) &&
-                        !isGenericPotagerLabel(p.agroecosystem_category) && (
-                          <span className="task-chip">🌍 {p.agroecosystem_category}</span>
-                        )}
+                      {normalizedPlantValue(p.trophic_role) && (
+                        <span className="task-chip">🔗 {p.trophic_role}</span>
+                      )}
                     </div>
                     <PlantSummaryBadges plant={p} />
                     <PlantMetaSections plant={p} />
@@ -678,7 +687,8 @@ function PlantViewer({
   const [group2, setGroup2] = useState('');
   const [group3, setGroup3] = useState('');
   const [habitatFilter, setHabitatFilter] = useState('');
-  const [agroFilter, setAgroFilter] = useState('');
+  const [trophicRoleFilter, setTrophicRoleFilter] = useState('');
+  const [habitatTypeFilter, setHabitatTypeFilter] = useState('');
   const [zonePresence, setZonePresence] = useState(ZONE_PRESENCE_FILTER.ALL);
   const [plantObservationCounts, setPlantObservationCounts] = useState(() => ({}));
   const { isHelpEnabled, hasSeenSection, markSectionSeen, trackPanelOpen, trackPanelDismiss } =
@@ -690,9 +700,10 @@ function PlantViewer({
       group2,
       group3,
       habitat: habitatFilter,
-      agroecosystemCategory: agroFilter,
+      trophicRole: trophicRoleFilter,
+      habitatType: habitatTypeFilter,
     }),
-    [group1, group2, group3, habitatFilter, agroFilter],
+    [group1, group2, group3, habitatFilter, trophicRoleFilter, habitatTypeFilter],
   );
 
   const queryTrimmedLower = search.trim().toLowerCase();
@@ -772,8 +783,10 @@ function PlantViewer({
         setGroup3={setGroup3}
         habitat={habitatFilter}
         setHabitat={setHabitatFilter}
-        agro={agroFilter}
-        setAgro={setAgroFilter}
+        trophicRole={trophicRoleFilter}
+        setTrophicRole={setTrophicRoleFilter}
+        habitatType={habitatTypeFilter}
+        setHabitatType={setHabitatTypeFilter}
         zonePresence={zonePresence}
         setZonePresence={setZonePresence}
       />

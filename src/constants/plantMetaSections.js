@@ -9,12 +9,13 @@ export const PLANT_META_SECTIONS = [
     items: [
       { key: 'second_name', label: 'Deuxième nom' },
       { key: 'scientific_name', label: 'Nom scientifique' },
-      { key: 'group_1', label: 'Groupe (taxon) 1' },
-      { key: 'group_2', label: 'Groupe (taxon) 2' },
-      { key: 'group_3', label: 'Groupe (taxon) 3' },
-      { key: 'group_4', label: 'Groupe (taxon) 4' },
+      { key: 'taxon_kingdom', label: 'Règne (taxon)' },
+      { key: 'taxon_group', label: 'Grand groupe' },
+      { key: 'taxon_family', label: 'Famille' },
+      { key: 'taxon_genus', label: 'Genre' },
+      { key: 'gbif_key', label: 'Clé GBIF' },
       { key: 'geographic_origin', label: 'Origine géographique' },
-      { key: 'longevity', label: 'Longévité' },
+      { key: 'life_cycle', label: 'Cycle de vie' },
       { key: 'size', label: 'Taille' },
       { key: 'reproduction', label: 'Reproduction' },
     ],
@@ -22,14 +23,18 @@ export const PLANT_META_SECTIONS = [
   {
     title: 'Écologie et usages',
     items: [
-      { key: 'habitat', label: 'Habitat' },
-      { key: 'agroecosystem_category', label: "Catégorie de l'agrosystème" },
+      { key: 'habitat', label: 'Habitat (texte)' },
+      { key: 'habitat_type', label: 'Milieu (terrestre/aquatique)', select: 'habitat_type' },
+      { key: 'trophic_role', label: 'Rôle trophique', select: 'trophic_role' },
+      { key: 'is_edible', label: 'Comestible (oui/non)', select: 'is_edible' },
       { key: 'harvest_part', label: 'Partie à récolter' },
       { key: 'planting_recommendations', label: 'Recommandations de plantation' },
       { key: 'preferred_nutrients', label: 'Nutriments préférés' },
       { key: 'nutrition', label: 'Nutrition' },
-      { key: 'ideal_temperature_c', label: 'Température idéale (°C)' },
-      { key: 'optimal_ph', label: 'pH optimal' },
+      { key: 'temp_min_c', label: 'Température min (°C)' },
+      { key: 'temp_max_c', label: 'Température max (°C)' },
+      { key: 'ph_min', label: 'pH min' },
+      { key: 'ph_max', label: 'pH max' },
     ],
   },
   {
@@ -45,6 +50,33 @@ export const PLANT_META_SECTIONS = [
     ],
   },
 ];
+
+export const PLANT_SELECT_OPTIONS = {
+  habitat_type: [
+    { value: '', label: '—' },
+    { value: 'terrestre', label: 'Terrestre' },
+    { value: 'aquatique', label: 'Aquatique' },
+    { value: 'les_deux', label: 'Terrestre & aquatique' },
+  ],
+  trophic_role: [
+    { value: '', label: '—' },
+    { value: 'producteur', label: 'Producteur' },
+    { value: 'consommateur', label: 'Consommateur' },
+    { value: 'decomposeur', label: 'Décomposeur' },
+  ],
+  is_edible: [
+    { value: '', label: '—' },
+    { value: '1', label: 'Oui' },
+    { value: '0', label: 'Non' },
+  ],
+  life_cycle: [
+    { value: '', label: '—' },
+    { value: 'annuelle', label: 'Annuelle' },
+    { value: 'bisannuelle', label: 'Bisannuelle' },
+    { value: 'vivace', label: 'Vivace' },
+    { value: 'variable', label: 'Variable' },
+  ],
+};
 
 export const PHOTO_FIELD_KEYS = new Set([
   'photo',
