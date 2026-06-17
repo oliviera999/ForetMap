@@ -53,15 +53,24 @@ test('GET /api/quiz/questions/:code/present puis POST answer', async () => {
 });
 
 test('GET /api/quiz/draw — illustrated=1 filtre photo', async () => {
+  const slug = 'identification_especes';
+  const hasIllustrated = await queryOne(
+    `SELECT 1 AS ok FROM quiz_questions
+      WHERE statut = 'actif' AND categorie_slug = ?
+        AND photo_url IS NOT NULL AND TRIM(photo_url) <> ''
+      LIMIT 1`,
+    [slug],
+  );
+  if (!hasIllustrated) return;
   const res = await request(app)
-    .get('/api/quiz/draw?categorieSlug=vivant_classification&illustrated=1')
+    .get(`/api/quiz/draw?categorieSlug=${encodeURIComponent(slug)}&illustrated=1`)
     .expect(200);
-  if (res.body.question_code) {
-    assert.ok(
-      res.body.photo_url != null && String(res.body.photo_url).trim() !== '',
-      'illustrated=1 doit renvoyer une question avec photo_url',
-    );
-  }
+  assert.ok(res.body.question_code);
+  const row = await queryOne(
+    'SELECT photo_url FROM quiz_questions WHERE question_code = ? LIMIT 1',
+    [res.body.question_code],
+  );
+  assert.ok(row?.photo_url && String(row.photo_url).trim() !== '');
 });
 
 test('GET /api/quiz/stats — auth prof requise', async () => {
