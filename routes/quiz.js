@@ -2,9 +2,7 @@
 
 const express = require('express');
 const { queryAll, queryOne, execute } = require('../database');
-const {
-  requireAuth,
-  parseBearerToken,
+const { requireAuth, requirePermission, parseBearerToken,
   hydrateAuthFromTokenClaims,
   JWT_SECRET,
 } = require('../middleware/requireTeacher');
@@ -121,6 +119,9 @@ router.get(
     const categorieSlug = normalizeOptionalFilter(req.query?.categorieSlug);
     const niveau = normalizeOptionalFilter(req.query?.niveau);
     const difficulteRaw = normalizeOptionalFilter(req.query?.difficulte);
+    const illustratedOnly =
+      String(req.query?.illustrated || '').trim() === '1' ||
+      String(req.query?.illustrated || '').toLowerCase() === 'true';
 
     const params = [];
     let sql = `SELECT question_code FROM quiz_questions WHERE statut = 'actif'`;
@@ -139,6 +140,9 @@ router.get(
       }
       sql += ' AND difficulte = ?';
       params.push(difficulte);
+    }
+    if (illustratedOnly) {
+      sql += " AND photo_url IS NOT NULL AND TRIM(photo_url) <> ''";
     }
     sql += ' ORDER BY RAND() LIMIT 1';
 
@@ -252,6 +256,33 @@ router.get(
       byCategory,
       recent,
     });
+  }),
+);
+
+/** GET /api/quiz/stats — agrégation prof (stats.read.all) */
+router.get(
+  '/stats',
+  requirePermission('stats.read.all', { needsElevation: true }),
+  asyncHandler(async (_req, res) => {
+    const byStudent = await queryAll(
+      `SELECT u.id AS user_id, u.first_name, u.last_name, u.pseudo,
+              COUNT(*) AS attempts,
+              SUM(CASE WHEN uqa.is_correct = 1 THEN 1 ELSE 0 END) AS correct
+         FROM user_quiz_attempts uqa
+         JOIN users u ON u.id = uqa.user_id
+        GROUP BY u.id, u.first_name, u.last_name, u.pseudo
+        ORDER BY attempts DESC, u.last_name ASC`,
+    );
+    const byCategory = await queryAll(
+      `SELECT categorie_slug,
+              COUNT(*) AS attempts,
+              SUM(CASE WHEN is_correct = 1 THEN 1 ELSE 0 END) AS correct
+         FROM user_quiz_attempts
+        WHERE categorie_slug IS NOT NULL AND categorie_slug <> ''
+        GROUP BY categorie_slug
+        ORDER BY categorie_slug ASC`,
+    );
+    return res.json({ byStudent, byCategory });
   }),
 );
 

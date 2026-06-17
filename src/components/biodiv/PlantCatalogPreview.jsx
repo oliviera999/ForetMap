@@ -43,6 +43,7 @@ export function PlantBiodiversityCatalogPreviewCard({
   dataBiodivPlantId = null,
   onOpenPlant = null,
   onOpenGlossaryTerm = null,
+  onOpenQuizQuestion = null,
   onNavigateToFoodWeb = null,
 }) {
   if (!plant) return null;
@@ -97,6 +98,7 @@ export function PlantBiodiversityCatalogPreviewCard({
           plantId={plant.id}
           onOpenPlant={onOpenPlant}
           onOpenGlossaryTerm={onOpenGlossaryTerm}
+          onOpenQuizQuestion={onOpenQuizQuestion}
           onNavigateToFoodWeb={onNavigateToFoodWeb}
         />
         {hasMapLink ? (
@@ -182,6 +184,7 @@ export function PlantCatalogPreviewModal({
   onForceLogout = null,
   onOpenPlant = null,
   onOpenGlossaryTerm = null,
+  onOpenQuizQuestion = null,
   onNavigateToFoodWeb = null,
 }) {
   const publicSettings = usePublicSettings();
@@ -253,6 +256,7 @@ export function PlantCatalogPreviewModal({
           dataBiodivPlantId={null}
           onOpenPlant={onOpenPlant}
           onOpenGlossaryTerm={onOpenGlossaryTerm}
+          onOpenQuizQuestion={onOpenQuizQuestion}
           onNavigateToFoodWeb={onNavigateToFoodWeb}
         />
       </div>

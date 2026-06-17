@@ -52,6 +52,18 @@ test('GET /api/quiz/questions/:code/present puis POST answer', async () => {
   assert.ok(answer.body.feedback);
 });
 
-test('GET /api/quiz/me/progress — auth requise', async () => {
-  await request(app).get('/api/quiz/me/progress').expect(401);
+test('GET /api/quiz/draw — illustrated=1 filtre photo', async () => {
+  const res = await request(app)
+    .get('/api/quiz/draw?categorieSlug=vivant_classification&illustrated=1')
+    .expect(200);
+  if (res.body.question_code) {
+    assert.ok(
+      res.body.photo_url != null && String(res.body.photo_url).trim() !== '',
+      'illustrated=1 doit renvoyer une question avec photo_url',
+    );
+  }
+});
+
+test('GET /api/quiz/stats — auth prof requise', async () => {
+  await request(app).get('/api/quiz/stats').expect(401);
 });

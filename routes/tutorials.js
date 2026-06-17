@@ -23,6 +23,34 @@ const {
   injectTutorialViewIframeLinkScript,
   toPublicTutorialRow,
 } = require('../lib/tutorialRouteHelpers');
+const {
+  buildGlossaryLinkEntries,
+  autolinkHtmlTextNodes,
+  injectGlossaryAutolinkScript,
+} = require('../lib/foretmapGlossaryAutolink');
+
+let glossaryAutolinkCache = null;
+let glossaryAutolinkCacheAt = 0;
+const GLOSSARY_AUTOLINK_TTL_MS = 5 * 60 * 1000;
+
+async function loadGlossaryAutolinkEntries() {
+  const now = Date.now();
+  if (glossaryAutolinkCache && now - glossaryAutolinkCacheAt < GLOSSARY_AUTOLINK_TTL_MS) {
+    return glossaryAutolinkCache;
+  }
+  const rows = await queryAll(
+    `SELECT glossary_code, terme, variantes FROM glossary_terms WHERE statut = 'actif'`,
+  );
+  glossaryAutolinkCache = buildGlossaryLinkEntries(rows);
+  glossaryAutolinkCacheAt = now;
+  return glossaryAutolinkCache;
+}
+
+async function enrichTutorialHtmlWithGlossary(html) {
+  const entries = await loadGlossaryAutolinkEntries();
+  const linked = autolinkHtmlTextNodes(html, entries);
+  return injectGlossaryAutolinkScript(injectTutorialViewIframeLinkScript(linked));
+}
 
 const router = express.Router();
 const MAX_TUTORIAL_COVER_BYTES = 5 * 1024 * 1024;
@@ -788,6 +816,52 @@ router.delete(
 );
 
 router.get(
+  '/:id/glossary-terms',
+  asyncHandler(async (req, res) => {
+    const tutorialId = Number(req.params.id);
+    if (!Number.isInteger(tutorialId) || tutorialId <= 0) {
+      return res.status(400).json({ error: 'Identifiant invalide' });
+    }
+    const tutorial = await queryOne('SELECT id FROM tutorials WHERE id = ? AND is_active = 1', [
+      tutorialId,
+    ]);
+    if (!tutorial) return res.status(404).json({ error: 'Tutoriel introuvable' });
+    const terms = await queryAll(
+      `SELECT g.glossary_code, g.terme, g.variantes, g.categorie, g.niveau, g.definition_courte
+         FROM glossary_term_tutorials gtt
+         JOIN glossary_terms g ON g.glossary_code = gtt.glossary_code
+        WHERE gtt.tutorial_id = ? AND g.statut = 'actif'
+        ORDER BY g.terme ASC`,
+      [tutorialId],
+    );
+    return res.json({ tutorialId, terms });
+  }),
+);
+
+router.get(
+  '/:id/quiz-questions',
+  asyncHandler(async (req, res) => {
+    const tutorialId = Number(req.params.id);
+    if (!Number.isInteger(tutorialId) || tutorialId <= 0) {
+      return res.status(400).json({ error: 'Identifiant invalide' });
+    }
+    const tutorial = await queryOne('SELECT id FROM tutorials WHERE id = ? AND is_active = 1', [
+      tutorialId,
+    ]);
+    if (!tutorial) return res.status(404).json({ error: 'Tutoriel introuvable' });
+    const questions = await queryAll(
+      `SELECT qq.question_code, qq.question, qq.categorie_slug, qq.niveau, qq.difficulte
+         FROM quiz_question_tutorials qqt
+         JOIN quiz_questions qq ON qq.question_code = qqt.question_code
+        WHERE qqt.tutorial_id = ? AND qq.statut = 'actif'
+        ORDER BY qq.categorie_slug ASC, qq.numero_dans_categorie ASC`,
+      [tutorialId],
+    );
+    return res.json({ tutorialId, questions });
+  }),
+);
+
+router.get(
   '/:id/download/html',
   asyncHandler(async (req, res) => {
     const tutorial = await queryOne('SELECT * FROM tutorials WHERE id = ? AND is_active = 1', [
@@ -816,7 +890,7 @@ router.get(
     const html = await loadTutorialHtml(tutorial);
     if (!html) return res.status(400).send('Aucun contenu HTML');
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    res.send(injectTutorialViewIframeLinkScript(html));
+    res.send(await enrichTutorialHtmlWithGlossary(html));
   }),
 );
 

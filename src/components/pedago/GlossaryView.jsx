@@ -9,7 +9,7 @@ const NIVEAU_OPTIONS = [
   { value: 'avance', label: 'Avancé' },
 ];
 
-export function GlossaryView({ onOpenPlant, selectedCode = null, onSelectedCodeChange = null }) {
+export function GlossaryView({ onOpenPlant, onOpenQuizQuestion, selectedCode = null, onSelectedCodeChange = null }) {
   const [search, setSearch] = useState('');
   const [niveau, setNiveau] = useState('');
   const [categorie, setCategorie] = useState('');
@@ -204,6 +204,24 @@ export function GlossaryView({ onOpenPlant, selectedCode = null, onSelectedCodeC
                 </div>
               ) : null}
 
+              {detail.incomingRelations?.length > 0 ? (
+                <div className="pedago-remediation" style={{ marginTop: 16 }}>
+                  <strong>Voir aussi</strong>
+                  <div className="pedago-chip-row">
+                    {detail.incomingRelations.map((term) => (
+                      <button
+                        key={`in-${term.glossary_code}`}
+                        type="button"
+                        className="pedago-chip-btn"
+                        onClick={() => selectTerm(term.glossary_code)}
+                      >
+                        {term.terme}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
               {detail.relatedTerms?.length > 0 ? (
                 <div className="pedago-remediation" style={{ marginTop: 16 }}>
                   <strong>Termes liés</strong>
@@ -235,6 +253,35 @@ export function GlossaryView({ onOpenPlant, selectedCode = null, onSelectedCodeC
                       >
                         {plant.emoji ? `${plant.emoji} ` : ''}
                         {plant.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
+              {detail.linkedTutorials?.length > 0 ? (
+                <div className="pedago-remediation" style={{ marginTop: 16 }}>
+                  <strong>Tutoriels liés</strong>
+                  <ul className="pedago-link-list">
+                    {detail.linkedTutorials.map((tu) => (
+                      <li key={tu.id}>{tu.title}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+
+              {detail.linkedQuizQuestions?.length > 0 ? (
+                <div className="pedago-remediation" style={{ marginTop: 16 }}>
+                  <strong>Questions quiz</strong>
+                  <div className="pedago-chip-row">
+                    {detail.linkedQuizQuestions.map((q) => (
+                      <button
+                        key={q.question_code}
+                        type="button"
+                        className="pedago-chip-btn"
+                        onClick={() => onOpenQuizQuestion?.(q.question_code)}
+                      >
+                        {q.question_code}
                       </button>
                     ))}
                   </div>

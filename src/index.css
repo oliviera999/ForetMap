@@ -5771,3 +5771,44 @@
   border-radius: 8px;
   font-size: 0.84rem;
 }
+.pedago-foodweb-graph {
+  width: 100%;
+  max-width: 440px;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}
+.pedago-foodweb-graph__line {
+  stroke: #94a3b8;
+  stroke-width: 1.5;
+}
+.pedago-foodweb-graph__line.active {
+  stroke: #16a34a;
+  stroke-width: 2.5;
+}
+.pedago-foodweb-graph__edge-hit {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 14px;
+  cursor: pointer;
+}
+.pedago-foodweb-graph__node {
+  fill: #dcfce7;
+  stroke: #16a34a;
+  stroke-width: 1.5;
+}
+.pedago-foodweb-graph__node.highlight {
+  fill: #bbf7d0;
+  stroke-width: 2.5;
+}
+.pedago-foodweb-graph__label {
+  font-size: 9px;
+  fill: #1f2937;
+}
+.pedago-foodweb__graph-wrap {
+  padding: 12px;
+  overflow: auto;
+}
+.pedago-foodweb__glossary--panel {
+  margin-top: 12px;
+}

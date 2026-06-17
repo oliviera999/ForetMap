@@ -26,17 +26,22 @@ test('GET /api/glossary/categories — public', async () => {
   assert.ok(res.body.categories.includes('plantes'));
 });
 
-test('GET /api/glossary/terms — recherche LIKE', async () => {
+test('GET /api/glossary/terms — recherche LIKE et variantes', async () => {
   const res = await request(app).get('/api/glossary/terms?q=photo').expect(200);
   assert.ok(Array.isArray(res.body.items));
   assert.ok(res.body.items.some((item) => item.glossary_code === glossaryCode));
+  const variant = await request(app).get('/api/glossary/terms?q=synthèse').expect(200);
+  assert.ok(variant.body.items.some((item) => item.glossary_code === glossaryCode));
 });
 
-test('GET /api/glossary/terms/:code — détail avec relations', async () => {
+test('GET /api/glossary/terms/:code — détail avec liens', async () => {
   const res = await request(app).get(`/api/glossary/terms/${glossaryCode}`).expect(200);
   assert.strictEqual(res.body.glossary_code, glossaryCode);
   assert.ok(Array.isArray(res.body.relatedTerms));
   assert.ok(Array.isArray(res.body.linkedPlants));
+  assert.ok(Array.isArray(res.body.linkedTutorials));
+  assert.ok(Array.isArray(res.body.linkedQuizQuestions));
+  assert.ok(Array.isArray(res.body.incomingRelations));
   assert.strictEqual(typeof res.body.tutorialsCount, 'number');
 });
 

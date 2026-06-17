@@ -554,6 +554,20 @@ function TeacherStats() {
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [toast, setToast] = useState(null);
+  const [quizStats, setQuizStats] = useState(null);
+  const [quizStatsError, setQuizStatsError] = useState('');
+
+  const loadQuizStats = useCallback(() => {
+    api('/api/quiz/stats')
+      .then((payload) => {
+        setQuizStats(payload);
+        setQuizStatsError('');
+      })
+      .catch((err) => {
+        setQuizStats(null);
+        setQuizStatsError(err?.message || 'Stats quiz indisponibles.');
+      });
+  }, []);
 
   const load = useCallback(
     () =>
@@ -592,6 +606,9 @@ function TeacherStats() {
   useEffect(() => {
     load();
   }, [load]);
+  useEffect(() => {
+    loadQuizStats();
+  }, [loadQuizStats]);
   useEffect(() => {
     api('/api/groups/options')
       .then((payload) => setGroups(Array.isArray(payload?.groups) ? payload.groups : []))
@@ -687,6 +704,44 @@ function TeacherStats() {
           label="Marquages tutoriel lus"
         />
       </StatsSummaryGrid>
+
+      <section className="card" style={{ marginBottom: 20, padding: 14 }}>
+        <h3 className="section-title" style={{ fontSize: '1.05rem', marginBottom: 8 }}>
+          ❓ Quiz (QCM)
+        </h3>
+        {quizStatsError ? <p className="section-sub">{quizStatsError}</p> : null}
+        {quizStats?.byCategory?.length > 0 ? (
+          <div className="table-wrap">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Catégorie</th>
+                  <th>Tentatives</th>
+                  <th>Réussites</th>
+                  <th>Taux</th>
+                </tr>
+              </thead>
+              <tbody>
+                {quizStats.byCategory.map((row) => {
+                  const attempts = Number(row.attempts || 0);
+                  const correct = Number(row.correct || 0);
+                  const rate = attempts > 0 ? Math.round((correct / attempts) * 100) : 0;
+                  return (
+                    <tr key={row.categorie_slug}>
+                      <td>{row.categorie_slug}</td>
+                      <td>{attempts}</td>
+                      <td>{correct}</td>
+                      <td>{rate}%</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="section-sub">Aucune tentative enregistrée pour l’instant.</p>
+        )}
+      </section>
 
       <div className="field" style={{ marginBottom: 12 }}>
         <input

@@ -466,6 +466,29 @@ router.get(
 );
 
 router.get(
+  '/:id/quiz-questions',
+  asyncHandler(async (req, res) => {
+    const plantId = Number(req.params.id);
+    if (!Number.isInteger(plantId) || plantId <= 0) {
+      return res.status(400).json({ error: 'Identifiant invalide' });
+    }
+    const plant = await queryOne('SELECT id, name FROM plants WHERE id = ? LIMIT 1', [plantId]);
+    if (!plant) return res.status(404).json({ error: 'Plante introuvable' });
+
+    const questions = await queryAll(
+      `SELECT qq.question_code, qq.question, qq.categorie_slug, qq.niveau, qq.difficulte,
+              qq.photo_url, qq.photo_legende
+         FROM quiz_question_species qqs
+         JOIN quiz_questions qq ON qq.question_code = qqs.question_code
+        WHERE qqs.plant_id = ? AND qq.statut = 'actif'
+        ORDER BY qq.categorie_slug ASC, qq.numero_dans_categorie ASC`,
+      [plantId],
+    );
+    return res.json({ plantId, questions });
+  }),
+);
+
+router.get(
   '/autofill',
   requirePermission('plants.manage', { needsElevation: true }),
   async (req, res) => {

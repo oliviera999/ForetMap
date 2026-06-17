@@ -95,9 +95,11 @@ export function PlantPedagoFetchedSections({
   onOpenPlant,
   onOpenGlossaryTerm,
   onNavigateToFoodWeb,
+  onOpenQuizQuestion,
 }) {
   const [interactions, setInteractions] = useState(null);
   const [glossaryTerms, setGlossaryTerms] = useState(null);
+  const [quizQuestions, setQuizQuestions] = useState(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -105,23 +107,27 @@ export function PlantPedagoFetchedSections({
     if (!Number.isFinite(id) || id <= 0) {
       setInteractions(null);
       setGlossaryTerms(null);
+      setQuizQuestions(null);
       return undefined;
     }
     let cancelled = false;
     setLoading(true);
     (async () => {
       try {
-        const [ix, gloss] = await Promise.all([
+        const [ix, gloss, quiz] = await Promise.all([
           api(`/api/plants/${id}/interactions`),
           api(`/api/plants/${id}/glossary-terms`),
+          api(`/api/plants/${id}/quiz-questions`),
         ]);
         if (cancelled) return;
         setInteractions(ix);
         setGlossaryTerms(Array.isArray(gloss?.terms) ? gloss.terms : []);
+        setQuizQuestions(Array.isArray(quiz?.questions) ? quiz.questions : []);
       } catch (_) {
         if (!cancelled) {
           setInteractions(null);
           setGlossaryTerms([]);
+          setQuizQuestions([]);
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -135,7 +141,8 @@ export function PlantPedagoFetchedSections({
   const hasInteractions =
     (interactions?.asSource?.length || 0) + (interactions?.asTarget?.length || 0) > 0;
   const hasGlossary = (glossaryTerms?.length || 0) > 0;
-  if (!loading && !hasInteractions && !hasGlossary && !onNavigateToFoodWeb) return null;
+  const hasQuiz = (quizQuestions?.length || 0) > 0;
+  if (!loading && !hasInteractions && !hasGlossary && !hasQuiz && !onNavigateToFoodWeb) return null;
 
   return (
     <div className="plant-pedago-sections">
@@ -161,6 +168,24 @@ export function PlantPedagoFetchedSections({
                 onClick={() => onOpenGlossaryTerm?.(term.glossary_code)}
               >
                 {term.terme}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      {!loading && hasQuiz ? (
+        <div className="plant-pedago-sections__block">
+          <div className="plant-meta-label">Questions quiz liées</div>
+          <div className="pedago-chip-row">
+            {quizQuestions.map((q) => (
+              <button
+                key={q.question_code}
+                type="button"
+                className="pedago-chip-btn"
+                onClick={() => onOpenQuizQuestion?.(q.question_code)}
+              >
+                {q.question_code}
               </button>
             ))}
           </div>
@@ -200,13 +225,27 @@ export function PlantPedagoFetchedSections({
   );
 }
 
+function formatPlantNumericRange(min, max, unit = '') {
+  if (min == null && max == null) return '';
+  const a = min != null ? Number(min) : null;
+  const b = max != null ? Number(max) : null;
+  if (a != null && b != null && Number.isFinite(a) && Number.isFinite(b)) {
+    const lo = Math.min(a, b);
+    const hi = Math.max(a, b);
+    if (lo === hi) return unit ? `${lo}${unit}` : String(lo);
+    return unit ? `${lo}-${hi}${unit}` : `${lo}-${hi}`;
+  }
+  const single = a != null && Number.isFinite(a) ? a : b;
+  return single != null && Number.isFinite(single) ? (unit ? `${single}${unit}` : String(single)) : '';
+}
+
 /** Pastilles de synthèse (nutrition/nutriments, température, pH) — max 3 ; `null` si aucune. */
 export function PlantSummaryBadges({ plant }) {
   const chips = [];
   const nutrition = normalizedPlantValue(plant.nutrition);
   const preferredNutrients = normalizedPlantValue(plant.preferred_nutrients);
-  const temp = normalizedPlantValue(plant.ideal_temperature_c);
-  const ph = normalizedPlantValue(plant.optimal_ph);
+  const temp = formatPlantNumericRange(plant.temp_min_c, plant.temp_max_c);
+  const ph = formatPlantNumericRange(plant.ph_min, plant.ph_max);
   if (isVegetalCatalogEntry(plant)) {
     if (preferredNutrients) chips.push(`🍽️ ${preferredNutrients}`);
   } else if (nutrition) {

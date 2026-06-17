@@ -187,11 +187,12 @@ router.get(
     const result = zones.map((z) =>
       attachSpeciesToEntity(
         {
-          ...withLivingBeings(z),
+          ...z,
           special: !!z.special,
           history: history.filter((h) => h.zone_id === z.id),
         },
         speciesMap.get(String(z.id)) || [],
+        { legacySingleName: z.current_plant },
       ),
     );
     res.json(result);
@@ -210,8 +211,9 @@ router.get(
     const speciesRows = await loadZoneSpeciesMap(db, [zone.id]);
     res.json(
       attachSpeciesToEntity(
-        { ...withLivingBeings(zone), special: !!zone.special, history },
+        { ...zone, special: !!zone.special, history },
         speciesRows.get(String(zone.id)) || [],
+        { legacySingleName: zone.current_plant },
       ),
     );
   }),
@@ -234,7 +236,16 @@ router.put(
       if (!(await mapExists(nextMapId)))
         return res.status(400).json({ error: 'Carte introuvable' });
     }
-    const existingLiving = normalizeLivingBeings(zone.living_beings, zone.current_plant);
+    const speciesRowsBefore = await loadZoneSpeciesMap(db, [zone.id]);
+    const junctionNames = (speciesRowsBefore.get(String(zone.id)) || [])
+      .map((row) => String(row.name || '').trim())
+      .filter(Boolean);
+    const existingLiving =
+      living_beings !== undefined
+        ? normalizeLivingBeings(living_beings, '')
+        : junctionNames.length > 0
+          ? junctionNames
+          : normalizeLivingBeings(undefined, zone.current_plant);
     const nextLiving =
       living_beings !== undefined ? normalizeLivingBeings(living_beings, '') : existingLiving;
     const nextCurrentPlant =
@@ -265,12 +276,11 @@ router.put(
       ]);
     }
     await execute(
-      'UPDATE zones SET map_id=?, name=?, current_plant=?, living_beings=?, stage=?, description=?, points=?, color=? WHERE id=?',
+      'UPDATE zones SET map_id=?, name=?, current_plant=?, stage=?, description=?, points=?, color=? WHERE id=?',
       [
         map_id != null ? String(map_id).trim() : zone.map_id,
         name !== undefined ? String(name).trim() : zone.name,
         nextCurrentPlant,
-        serializeLivingBeings(nextLiving, nextCurrentPlant),
         stage ?? zone.stage,
         description !== undefined ? description : (zone.description ?? ''),
         points !== undefined ? JSON.stringify(points) : zone.points,
@@ -295,11 +305,12 @@ router.put(
     res.json(
       attachSpeciesToEntity(
         {
-          ...withLivingBeings(updatedWithVisit),
+          ...updatedWithVisit,
           special: !!updatedWithVisit.special,
           history,
         },
         speciesRows.get(String(zone.id)) || [],
+        { legacySingleName: updatedWithVisit.current_plant },
       ),
     );
   }),
@@ -461,13 +472,12 @@ router.post(
     const desc = description !== undefined && description !== null ? String(description) : '';
     const id = 'zone-' + uuidv4().slice(0, 8);
     await execute(
-      'INSERT INTO zones (id, map_id, name, x, y, width, height, current_plant, living_beings, stage, special, points, color, description) VALUES (?, ?, ?, 0, 0, 0, 0, ?, ?, ?, 0, ?, ?, ?)',
+      'INSERT INTO zones (id, map_id, name, x, y, width, height, current_plant, stage, special, points, color, description) VALUES (?, ?, ?, 0, 0, 0, 0, ?, ?, 0, ?, ?, ?)',
       [
         id,
         mapId,
         name.trim(),
         nextCurrentPlant,
-        serializeLivingBeings(nextLiving, nextCurrentPlant),
         stage || 'empty',
         JSON.stringify(points),
         color || '#86efac80',
@@ -479,7 +489,11 @@ router.post(
     const speciesRows = await loadZoneSpeciesMap(db, [id]);
     emitGardenChanged({ reason: 'create_zone', zoneId: id, mapId });
     res.status(201).json(
-      attachSpeciesToEntity({ ...withLivingBeings(zone), history: [] }, speciesRows.get(id) || []),
+      attachSpeciesToEntity(
+        { ...zone, history: [] },
+        speciesRows.get(id) || [],
+        { legacySingleName: zone.current_plant },
+      ),
     );
   }),
 );

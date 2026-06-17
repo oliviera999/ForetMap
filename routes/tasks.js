@@ -529,7 +529,8 @@ async function getTaskWithAssignments(taskId) {
   task.assignees_total_count = task.assigned_count;
   task.assignees_done_count = countDoneAssignments(task.assignments);
   task.proposed_by_student_id = await getTaskProposerStudentId(taskId);
-  attachTaskLivingBeingsApiFields(task);
+  const taskSpeciesRows = await loadTaskSpeciesMap(dbSpecies, [taskId]);
+  attachTaskLivingBeingsApiFields(task, taskSpeciesRows.get(taskId) || []);
   attachTaskImagePublicFields(task);
   return task;
 }
@@ -600,7 +601,7 @@ router.get(
     const proposedTaskIds = tasks
       .filter((t) => normalizeTaskStatusForRead(t?.status) === 'proposed')
       .map((t) => t.id);
-    const [zm, mm, tutorialsMap, referentsMap, proposerByTask, assignments, countRows] =
+    const [zm, mm, tutorialsMap, referentsMap, proposerByTask, assignments, countRows, taskSpeciesMap] =
       await Promise.all([
         fetchZonesForTasks(taskIds),
         fetchMarkersForTasks(taskIds),
@@ -609,6 +610,7 @@ router.get(
         fetchTaskProposerMap(proposedTaskIds),
         fetchTaskListAssignments(auth, taskIds),
         fetchTaskAssignmentAggregates(taskIds),
+        loadTaskSpeciesMap(dbSpecies, taskIds),
       ]);
     const assignmentsByTask = new Map();
     for (const a of assignments) {
@@ -642,7 +644,7 @@ router.get(
       row.assignees_total_count = row.assigned_count;
       row.assignees_done_count = doneCountByTask.get(t.id) || 0;
       row.proposed_by_student_id = proposerByTask.get(t.id) || null;
-      attachTaskLivingBeingsApiFields(row);
+      attachTaskLivingBeingsApiFields(row, taskSpeciesMap.get(t.id) || []);
       attachTaskImagePublicFields(row);
       return row;
     });
@@ -894,13 +896,10 @@ router.post(
     if (parsedDifficulty.error) return res.status(400).json({ error: parsedDifficulty.error });
     const parsedImportance = parseTaskImportanceLevelFromClient(importance_level);
     if (parsedImportance.error) return res.status(400).json({ error: parsedImportance.error });
-    const livingDb = Object.prototype.hasOwnProperty.call(req.body || {}, 'living_beings')
-      ? serializeTaskLivingBeingsForDb(living_beings)
-      : null;
     const normalizedGroupId = normalizeOptionalId(group_id);
     const id = uuidv4();
     await execute(
-      'INSERT INTO tasks (id, title, description, map_id, project_id, group_id, zone_id, marker_id, start_date, due_date, required_students, completion_mode, danger_level, difficulty_level, importance_level, living_beings, recurrence, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO tasks (id, title, description, map_id, project_id, group_id, zone_id, marker_id, start_date, due_date, required_students, completion_mode, danger_level, difficulty_level, importance_level, recurrence, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
       [
         id,
         title,
@@ -917,7 +916,6 @@ router.post(
         parsedDanger.level,
         parsedDifficulty.level,
         parsedImportance.level,
-        livingDb,
         recurrence || null,
         new Date().toISOString(),
       ],
@@ -1154,11 +1152,6 @@ router.put('/:id', async (req, res) => {
       nextImportanceLevel = task.importance_level;
     }
 
-    let nextLivingDb = task.living_beings;
-    if (Object.prototype.hasOwnProperty.call(req.body, 'living_beings')) {
-      nextLivingDb = serializeTaskLivingBeingsForDb(living_beings);
-    }
-
     const currentStatus = normalizeTaskStatusForRead(task.status);
     const becameValidated = nextStatus === 'validated' && currentStatus !== 'validated';
     const currentZoneIds = await getTaskZoneIds(task.id);
@@ -1185,7 +1178,7 @@ router.put('/:id', async (req, res) => {
     }
 
     await execute(
-      'UPDATE tasks SET title=?, description=?, map_id=?, project_id=?, group_id=?, zone_id=?, marker_id=?, start_date=?, due_date=?, required_students=?, status=?, completion_mode=?, danger_level=?, difficulty_level=?, importance_level=?, living_beings=?, recurrence=? WHERE id=?',
+      'UPDATE tasks SET title=?, description=?, map_id=?, project_id=?, group_id=?, zone_id=?, marker_id=?, start_date=?, due_date=?, required_students=?, status=?, completion_mode=?, danger_level=?, difficulty_level=?, importance_level=?, recurrence=? WHERE id=?',
       [
         title ?? task.title,
         description ?? task.description,
@@ -1202,7 +1195,6 @@ router.put('/:id', async (req, res) => {
         nextDangerLevel,
         nextDifficultyLevel,
         nextImportanceLevel,
-        nextLivingDb,
         isTeacherManageAction
           ? recurrence !== undefined
             ? recurrence || null

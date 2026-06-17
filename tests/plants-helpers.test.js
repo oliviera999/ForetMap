@@ -235,16 +235,20 @@ describe('plantsRouteHelpers (logique pure de routes/plants.js, sans DB)', () =>
     assert.equal(p.nutrition, 'n1');
   });
 
-  it('buildPlantPayload : dérive group_4 (végétal → group_3) si laissé vide', () => {
-    const p = buildPlantPayload({ name: 'Chêne', group_1: 'Végétal', group_3: 'Fagacées' });
-    assert.equal(p.group_4, 'Fagacées');
+  it('buildPlantPayload : dérive taxon_genus (végétal → taxon_family) si laissé vide', () => {
+    const p = buildPlantPayload({
+      name: 'Chêne',
+      taxon_kingdom: 'Végétal',
+      taxon_family: 'Fagacées',
+    });
+    assert.equal(p.taxon_genus, 'Fagacées');
     const q = buildPlantPayload({
       name: 'Chêne',
-      group_1: 'Végétal',
-      group_3: 'Fagacées',
-      group_4: 'Déjà',
+      taxon_kingdom: 'Végétal',
+      taxon_family: 'Fagacées',
+      taxon_genus: 'Déjà',
     });
-    assert.equal(q.group_4, 'Déjà');
+    assert.equal(q.taxon_genus, 'Déjà');
   });
 
   it('buildImportReportBase : structure et totaux initiaux', () => {
@@ -290,8 +294,8 @@ describe('plantsRouteHelpers (logique pure de routes/plants.js, sans DB)', () =>
       errors.map((e) => [e.row, e.field]),
       [
         [5, 'photo_species'],
-        [5, 'ideal_temperature_c'],
-        [5, 'optimal_ph'],
+        [5, 'temp_min_c'],
+        [5, 'ph_min'],
       ],
     );
     assert.match(errors[0].error, /seules les URLs HTTPS/);

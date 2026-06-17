@@ -613,6 +613,21 @@ router.post(
       return res.status(401).json({ error: 'Identifiant ou mot de passe incorrect' });
     }
 
+    if (String(account.password_hash || '').startsWith('$2a$')) {
+      try {
+        const upgraded = await bcrypt.hash(password, 10);
+        await execute('UPDATE users SET password_hash = ?, updated_at = NOW() WHERE id = ?', [
+          upgraded,
+          account.id,
+        ]);
+      } catch (rehashErr) {
+        logger.warn(
+          { requestId: req.requestId, err: rehashErr, userId: account.id },
+          'Re-hash bcrypt $2a$ ignoré',
+        );
+      }
+    }
+
     const userType = await resolveLoginUserType(account);
     const preferredRole = userType === 'teacher' || userType === 'user' ? 'prof' : 'eleve_novice';
     await ensurePrimaryRole(userType, account.id, preferredRole);

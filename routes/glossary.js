@@ -5,6 +5,8 @@ const { queryAll, queryOne } = require('../database');
 const asyncHandler = require('../lib/asyncHandler');
 const { z, validate } = require('../lib/validate');
 
+const { glossaryTermMatchesQuery } = require('../lib/glossarySearch');
+
 const router = express.Router();
 
 function normalizeOptionalFilter(value) {
@@ -46,7 +48,10 @@ router.get(
     }
     sql += ' ORDER BY categorie ASC, terme ASC';
 
-    const items = await queryAll(sql, params);
+    let items = await queryAll(sql, params);
+    if (q) {
+      items = items.filter((term) => glossaryTermMatchesQuery(term, q));
+    }
     return res.json({ items });
   }),
 );
@@ -87,16 +92,41 @@ router.get(
       [code],
     );
 
-    const tutorialsCountRow = await queryOne(
-      `SELECT COUNT(*) AS total FROM glossary_term_tutorials WHERE glossary_code = ?`,
+    const linkedTutorials = await queryAll(
+      `SELECT t.id, t.title, t.slug
+         FROM glossary_term_tutorials gtt
+         JOIN tutorials t ON t.id = gtt.tutorial_id
+        WHERE gtt.glossary_code = ? AND t.is_active = 1
+        ORDER BY t.title ASC`,
+      [code],
+    );
+
+    const linkedQuizQuestions = await queryAll(
+      `SELECT qq.question_code, qq.question, qq.categorie_slug, qq.niveau, qq.difficulte
+         FROM quiz_question_glossary qqg
+         JOIN quiz_questions qq ON qq.question_code = qqg.question_code
+        WHERE qqg.glossary_code = ? AND qq.statut = 'actif'
+        ORDER BY qq.categorie_slug ASC, qq.numero_dans_categorie ASC`,
+      [code],
+    );
+
+    const incomingRelations = await queryAll(
+      `SELECT t.glossary_code, t.terme, t.categorie, t.definition_courte
+         FROM glossary_term_relations r
+         JOIN glossary_terms t ON t.glossary_code = r.from_code
+        WHERE r.to_code = ? AND t.statut = 'actif'
+        ORDER BY t.terme ASC`,
       [code],
     );
 
     return res.json({
       ...term,
       relatedTerms,
+      incomingRelations,
       linkedPlants,
-      tutorialsCount: Number(tutorialsCountRow?.total || 0),
+      linkedTutorials,
+      linkedQuizQuestions,
+      tutorialsCount: linkedTutorials.length,
     });
   }),
 );

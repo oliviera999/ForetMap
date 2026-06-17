@@ -1258,13 +1258,18 @@ Routes publiques (lecture) sauf progression quiz. Voir aussi les routes GL `/api
 | GET | `/api/glossary/terms` | non | Liste/recherche |
 | GET | `/api/glossary/terms/:code` | non | Fiche terme |
 | GET | `/api/quiz/categories` | non | Catégories QCM |
-| GET | `/api/quiz/draw` | non | Tirage QCM |
+| GET | `/api/quiz/draw` | non | Tirage QCM (`?illustrated=1` : questions avec photo) |
 | GET | `/api/quiz/questions/:code/present` | non | Question présentée |
 | POST | `/api/quiz/questions/:code/answer` | non | Validation réponse |
 | GET | `/api/quiz/me/progress` | élève | Progression |
-| GET | `/api/food-web` | non | Réseau trophique |
+| GET | `/api/quiz/stats` | prof (`stats.read.all`) | Agrégation tentatives par élève et catégorie |
+| GET | `/api/food-web` | non | Réseau trophique (`?zoneId=`) |
+| GET | `/api/food-web/interactions/:id/glossary` | non | Termes glossaire liés à une interaction |
 | GET | `/api/plants/:id/interactions` | non | Interactions espèce |
 | GET | `/api/plants/:id/glossary-terms` | non | Termes liés |
+| GET | `/api/plants/:id/quiz-questions` | non | Questions QCM liées |
+| GET | `/api/tutorials/:id/glossary-terms` | non | Termes glossaire liés au tutoriel |
+| GET | `/api/tutorials/:id/quiz-questions` | non | Questions QCM liées au tutoriel |
 
 Import local : `npm run db:import:biodiv` (après `npm run db:migrate`).
 

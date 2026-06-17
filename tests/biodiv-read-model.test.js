@@ -24,13 +24,12 @@ test('parseTempRangeText — intervalle et valeur unique', () => {
   assert.strictEqual(parseTempRangeText('abc'), null);
 });
 
-test('resolvePlantTaxonomy — taxon_* avec repli group_*', () => {
+test('resolvePlantTaxonomy — taxon_* normalisé', () => {
   const taxonomy = resolvePlantTaxonomy({
     taxon_kingdom: 'Animal',
-    group_1: 'Plante',
-    group_2: 'Arbre',
-    group_3: 'Rosaceae',
-    group_4: 'Malus',
+    taxon_group: 'Arbre',
+    taxon_family: 'Rosaceae',
+    taxon_genus: 'Malus',
     scientific_name: 'Malus domestica',
     gbif_key: 3001234,
   });
@@ -41,49 +40,38 @@ test('resolvePlantTaxonomy — taxon_* avec repli group_*', () => {
   assert.strictEqual(taxonomy.scientificName, 'Malus domestica');
   assert.strictEqual(taxonomy.gbifKey, 3001234);
 
-  const fallback = resolvePlantTaxonomy({
-    group_1: 'Plante',
-    group_2: 'Arbre',
-    group_3: 'Rosaceae',
-    group_4: 'Malus',
-  });
-  assert.strictEqual(fallback.kingdom, 'Plante');
-  assert.strictEqual(fallback.group, 'Arbre');
+  const empty = resolvePlantTaxonomy({});
+  assert.strictEqual(empty.kingdom, null);
+  assert.strictEqual(empty.group, null);
 });
 
-test('resolvePlantPhRange — colonnes puis optimal_ph', () => {
+test('resolvePlantPhRange — colonnes numériques uniquement', () => {
   assert.deepStrictEqual(resolvePlantPhRange({ ph_min: 5.5, ph_max: 7.0 }), {
     min: 5.5,
     max: 7,
     source: 'columns',
   });
-  assert.deepStrictEqual(resolvePlantPhRange({ optimal_ph: '6,0-7,5' }), {
-    min: 6,
-    max: 7.5,
-    source: 'optimal_ph',
-  });
+  assert.strictEqual(resolvePlantPhRange({ optimal_ph: '6,0-7,5' }), null);
 });
 
-test('resolvePlantTempRange — colonnes puis ideal_temperature_c', () => {
+test('resolvePlantTempRange — colonnes numériques uniquement', () => {
   assert.deepStrictEqual(resolvePlantTempRange({ temp_min_c: 10, temp_max_c: 25 }), {
     min: 10,
     max: 25,
     source: 'columns',
   });
-  assert.deepStrictEqual(resolvePlantTempRange({ ideal_temperature_c: '15-20' }), {
-    min: 15,
-    max: 20,
-    source: 'ideal_temperature_c',
-  });
+  assert.strictEqual(resolvePlantTempRange({ ideal_temperature_c: '15-20' }), null);
 });
 
 test('enrichPlantRow — ajoute taxonomy, phRange et tempRange', () => {
   const enriched = enrichPlantRow({
     id: 1,
     name: 'Menthe',
-    group_1: 'Plante',
-    optimal_ph: '6-7',
-    ideal_temperature_c: '12-22',
+    taxon_kingdom: 'Plante',
+    ph_min: 6,
+    ph_max: 7,
+    temp_min_c: 12,
+    temp_max_c: 22,
   });
   assert.strictEqual(enriched.name, 'Menthe');
   assert.ok(enriched.taxonomy);
