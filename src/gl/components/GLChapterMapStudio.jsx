@@ -284,6 +284,36 @@ export function GLChapterMapStudio({
         handleZoneMapClick(pct, event);
         return;
       }
+      if (
+        selectedMarkerId != null &&
+        !isAddMode &&
+        !event.target.closest('.gl-board-marker')
+      ) {
+        const x = Number(pct.x.toFixed(2));
+        const y = Number(pct.y.toFixed(2));
+        setEditableMarkers((prev) =>
+          prev.map((marker) =>
+            Number(marker.id) === Number(selectedMarkerId)
+              ? { ...marker, x_pct: x, y_pct: y }
+              : marker,
+          ),
+        );
+        setMarkerForm((prev) => ({ ...prev, xPct: x, yPct: y }));
+        (async () => {
+          try {
+            await apiGL(`/api/gl/chapters/admin/markers/${selectedMarkerId}`, 'PUT', {
+              xPct: x,
+              yPct: y,
+            });
+            onInfo?.('Position du repère mise à jour');
+            await onReload?.(chapterSlug);
+          } catch (err) {
+            onError?.(err.message || 'Déplacement impossible');
+            await onReload?.(chapterSlug);
+          }
+        })();
+        return;
+      }
       if (!isAddMode) return;
       if (event.target.closest('.gl-board-marker')) return;
       setSelectedMarkerId(null);
@@ -293,10 +323,24 @@ export function GLChapterMapStudio({
         yPct: Number(pct.y.toFixed(2)),
       }));
     },
-    [zoneEditActive, handleZoneMapClick, isAddMode],
+    [
+      zoneEditActive,
+      handleZoneMapClick,
+      isAddMode,
+      selectedMarkerId,
+      onInfo,
+      onError,
+      onReload,
+      chapterSlug,
+    ],
   );
 
-  const mapCursor = zoneEditActive ? zoneMapCursor : isAddMode ? 'crosshair' : 'default';
+  const mapCursor =
+    zoneEditActive
+      ? zoneMapCursor
+      : isAddMode || selectedMarkerId != null
+        ? 'crosshair'
+        : 'default';
 
   const toggleMarkerAddMode = () => {
     if (zoneMode === 'draw') {
@@ -374,7 +418,7 @@ export function GLChapterMapStudio({
 
       <p className="gl-hint">
         Dessinez une zone par clics successifs (minimum 3 points), ou placez des repères sur la même
-        carte.
+        carte. Sélectionnez un repère puis cliquez sur la carte pour le déplacer.
         {zoneMusicEnabled
           ? ' Associez une piste audio par zone pour l’ambiance sur la carte de jeu (onglet Cartes).'
           : ''}

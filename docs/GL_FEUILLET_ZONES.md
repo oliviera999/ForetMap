@@ -24,9 +24,17 @@ Import XLSX chapitres : colonne optionnelle `plateau_number` (ou `plateau`).
 
 ## Mode debug (repositionnement)
 
-- URL : `?editFeuilletZones=1` (staff / MJ sur la carte).
+- URL : `?editPlateau=1` ou `?editFeuilletZones=1` (staff / MJ sur la carte en partie).
 - Ou variable Vite : `VITE_GL_EDIT_FEUILLET_ZONES=1`.
-- Poignée au centre de chaque zone, panneau liste lue / non lue, **Copier JSON** et **Télécharger JSON** (coords reconverties en 0–1).
+- **Sélection + clic** : choisir une zone feuillet ou un repère dans le panneau (ou cliquer sur le repère), puis cliquer sur la carte pour le déplacer.
+- **Glisser** : poignée au centre de chaque zone feuillet (comportement conservé).
+- Panneau liste lue / non lue, export **Copier JSON** / **Télécharger JSON** (coords reconverties en 0–1).
+
+## Admin chapitres
+
+Dans **Contenus → Chapitres**, lorsque le **plateau narratif (1–5)** est renseigné, une section **Zones feuillets — plateau N** permet le même repositionnement au clic sur le visuel du plateau, avec export JSON vers `src/gl/data/zones_feuillets.json`.
+
+Les repères se déplacent au clic dans le studio carte (sélectionner un repère, puis cliquer sur la carte).
 
 ## API
 
@@ -38,5 +46,6 @@ Voir [API.md](API.md).
 ## Tests
 
 ```bash
-npm test -- tests/gl-norm-map-coords.test.js tests/gl-feuillet-zones-loader.test.js tests/gl-map-zone-detect.test.js tests/gl-feuillet-zone-present.test.js
+npm test -- tests/gl-norm-map-coords.test.js tests/gl-feuillet-zones-loader.test.js tests/gl-map-zone-detect.test.js tests/gl-feuillet-zone-present.test.js tests/pct-polygon.test.js
+npm run test:ui -- tests-ui/gl/GLPlateauMapEditor.test.jsx tests-ui/gl/GLChapterMapStudio.test.jsx
 ```

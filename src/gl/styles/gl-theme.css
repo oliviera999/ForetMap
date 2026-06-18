@@ -6658,6 +6658,95 @@ fieldset .media-library-menu__gallery {
   margin-top: 0.5rem;
 }
 
+.gl-plateau-edit-banner {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 15;
+  max-width: calc(100% - 16px);
+  padding: 0.35rem 0.65rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  text-align: center;
+  color: #1f2937;
+  background: rgba(255, 253, 248, 0.92);
+  border: 1px solid #e7dcc8;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  pointer-events: none;
+}
+
+.gl-plateau-edit-panel {
+  position: fixed;
+  right: 12px;
+  bottom: 12px;
+  z-index: 120;
+  width: min(340px, calc(100vw - 24px));
+  max-height: 55vh;
+  overflow: auto;
+  padding: 0.75rem 0.9rem;
+  border-radius: 12px;
+  border: 1px solid #e7dcc8;
+  background: rgba(255, 253, 248, 0.96);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.gl-plateau-edit-panel__subtitle {
+  margin: 0.65rem 0 0.35rem;
+  font-size: 0.95rem;
+}
+
+.gl-plateau-edit-list {
+  list-style: none;
+  margin: 0.35rem 0;
+  padding: 0;
+}
+
+.gl-plateau-edit-list button {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  text-align: left;
+  padding: 0.35rem 0.4rem;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.gl-plateau-edit-list button.is-active {
+  background: color-mix(in srgb, var(--gl-primary, #047c8c) 12%, white);
+}
+
+.gl-plateau-edit-state,
+.gl-plateau-edit-coords-inline {
+  font-size: 0.85em;
+  opacity: 0.75;
+  white-space: nowrap;
+}
+
+.gl-plateau-edit-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.gl-feuillet-zone-plateau-panel {
+  margin-top: 0.75rem;
+}
+
+.gl-feuillet-zone-plateau-panel__canvas {
+  min-height: 280px;
+}
+
+.gl-board-marker.is-selected {
+  outline: 2px solid var(--gl-primary, #047c8c);
+  outline-offset: 2px;
+  z-index: 9;
+}
+
 .gl-feuillet-popover__body {
   font-size: clamp(1.05rem, 2.2vw, 1.35rem);
   line-height: 1.55;
