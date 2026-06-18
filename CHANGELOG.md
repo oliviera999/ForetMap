@@ -7,6 +7,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### GL — déplacement zones feuillets et repères au clic
+
+- **Placement au clic** : sélectionner une zone feuillet ou un repère puis cliquer sur la carte (curseur crosshair) ; glisser-déposer des zones conservé.
+- **Plateau en partie** : mode `?editPlateau=1` (alias `?editFeuilletZones=1`) — panneau unifié zones + repères ; repères persistés via API admin.
+- **Admin chapitres** : repère sélectionné déplaçable au clic dans le studio carte ; section « Zones feuillets — plateau N » avec export JSON.
+- **Utilitaires** : `translateFeuilletZoneToPoint`, hook `useGlPlateauClickPlacement`, composant `GLPlateauMapEditor`.
+- **Tests** : `tests/pct-polygon.test.js`, `tests-ui/gl/GLPlateauMapEditor.test.jsx`, `GLChapterMapStudio.test.jsx` ; doc `docs/GL_FEUILLET_ZONES.md`.
+
 ### GL — mise en page (images, texte éditorial, admin)
 
 - **Images markdown** : rendu wrap+fill (`gl-content-image-wrap`) aligné sur le hub marque ; post-traitement dans `renderMarkdownToSafeHtml` / `sanitizeRichHtml`.

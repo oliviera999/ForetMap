@@ -17,6 +17,7 @@ import { brandToCssVars, mergeBrandWithChapterTheme } from '../../utils/glBrandT
 import { GLButton } from './ui/GLButton.jsx';
 import { GLChaptersImportExportPanel } from './admin/GLChaptersImportExportPanel.jsx';
 import { GLChapterScenesAdminPanel } from './admin/GLChapterScenesAdminPanel.jsx';
+import { GLFeuilletZonePlateauPanel } from './GLFeuilletZonePlateauPanel.jsx';
 import { GLChapterSpellsFieldset } from './admin/GLChapterSpellsFieldset.jsx';
 import { GLChapterBiomesFieldset } from './admin/GLChapterBiomesFieldset.jsx';
 import {
@@ -565,6 +566,24 @@ export function GLChaptersAdminView() {
                   setInfo('');
                 }}
               />
+
+              {chapterForm.plateauNumber !== '' &&
+              Number(chapterForm.plateauNumber) >= 1 &&
+              Number(chapterForm.plateauNumber) <= 5 ? (
+                <>
+                  <h3>Zones feuillets — plateau {chapterForm.plateauNumber}</h3>
+                  <p className="gl-hint">
+                    Calque de découverte des feuillets sur le visuel du plateau. Sélectionnez une zone
+                    puis cliquez sur la carte pour la déplacer ; exportez le JSON vers{' '}
+                    <code>src/gl/data/zones_feuillets.json</code>.
+                  </p>
+                  <GLFeuilletZonePlateauPanel
+                    plateauNumber={Number(chapterForm.plateauNumber)}
+                    mapImageUrl={chapterForm.mapImageUrl}
+                    mapImageFrame={chapterForm.mapImageFrame}
+                  />
+                </>
+              ) : null}
 
               <h3>Scènes de récit (médiathèque)</h3>
               <GLChapterScenesAdminPanel

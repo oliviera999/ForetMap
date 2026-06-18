@@ -18,7 +18,7 @@ import { GLZoneContentPopover } from './GLZoneContentPopover.jsx';
 import { GLFeuilletDiscoveryPopover } from './GLFeuilletDiscoveryPopover.jsx';
 import { GLFeuilletPopover } from './GLFeuilletPopover.jsx';
 import { GLFeuilletZoneOverlay } from './GLFeuilletZoneOverlay.jsx';
-import { GLFeuilletZoneEditor } from './GLFeuilletZoneEditor.jsx';
+import { GLPlateauMapEditor } from './GLPlateauMapEditor.jsx';
 import { apiGL } from '../services/apiGL.js';
 import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion.js';
 import { GLZoneMusicMuteButton } from './GLZoneMusicMuteButton.jsx';
@@ -146,10 +146,21 @@ export function GLGameBoard({
 
   const [presentedFeuilletZoneIds, setPresentedFeuilletZoneIds] = useState([]);
   const [editZones, setEditZones] = useState(feuilletZones);
+  const [editableMarkers, setEditableMarkers] = useState(markers);
+  const [plateauPlacement, setPlateauPlacement] = useState({
+    handleMapClick: null,
+    mapCursor: 'default',
+    selectedMarkerId: null,
+    selectMarker: null,
+  });
 
   useEffect(() => {
     setEditZones(feuilletZones);
   }, [feuilletZones]);
+
+  useEffect(() => {
+    setEditableMarkers(Array.isArray(markers) ? markers : []);
+  }, [markers]);
 
   useEffect(() => {
     if (!gameId || watchTeamId == null) {
@@ -290,6 +301,9 @@ export function GLGameBoard({
   );
 
   function handleMarkerClick(marker) {
+    if (feuilletZoneEditMode) {
+      return;
+    }
     if (canMoveMascot) {
       handleMarkerMove(marker);
       return;
@@ -298,6 +312,17 @@ export function GLGameBoard({
       setPendingMarker(marker);
     }
   }
+
+  const handlePlateauPlacementReady = useCallback((handlers) => {
+    setPlateauPlacement(handlers);
+  }, []);
+
+  const handleMarkerPositionSave = useCallback(async (markerId, xPct, yPct) => {
+    await apiGL(`/api/gl/chapters/admin/markers/${markerId}`, 'PUT', {
+      xPct: Number(xPct),
+      yPct: Number(yPct),
+    });
+  }, []);
 
   function confirmActionRequest() {
     if (!pendingMarker) return;
@@ -336,26 +361,39 @@ export function GLGameBoard({
         imageAlt={chapter?.title || 'Carte du chapitre'}
         mapGestures={mapGestures}
         className={boardClass}
+        cursor={feuilletZoneEditMode ? plateauPlacement.mapCursor : undefined}
         onFitLayout={({ height }) => {
           if (!Number.isFinite(height) || height <= 0) return;
           boardHeightPxRef.current = height;
           setBoardHeightPx(height);
         }}
         onMapPointerDown={() => onZoneMusicUnlock?.()}
-        onMapClick={(pct) => {
+        onMapClick={(pct, event) => {
           onZoneMusicUnlock?.();
+          if (feuilletZoneEditMode) {
+            plateauPlacement.handleMapClick?.(pct, event);
+            return;
+          }
           if (!canMoveMascot) return;
           const clamped = clampMapMascotPctForViewport(pct.x, pct.y, boardHeightPxRef.current);
           handleBoardMove(clamped.xp, clamped.yp);
         }}
       >
         {feuilletZoneEditMode ? (
-          <GLFeuilletZoneEditor
+          <GLPlateauMapEditor
             zones={editZones}
             onZonesChange={setEditZones}
+            markers={editableMarkers}
+            editableMarkers={editableMarkers}
+            onEditableMarkersChange={setEditableMarkers}
+            onMarkerSave={handleMarkerPositionSave}
             presentedZoneIds={presentedFeuilletZoneIds}
             mapGestures={mapGestures}
             plateauNumber={plateauNumber}
+            showMarkers
+            showZones
+            panelTitle="Édition plateau"
+            onPlacementReady={handlePlateauPlacementReady}
           />
         ) : (
           <GLFeuilletZoneOverlay
@@ -365,7 +403,17 @@ export function GLGameBoard({
           />
         )}
 
-        <GLBoardMarkers markers={markers} onMarkerClick={handleMarkerClick} />
+        <GLBoardMarkers
+          markers={feuilletZoneEditMode ? editableMarkers : markers}
+          selectedMarkerId={
+            feuilletZoneEditMode ? plateauPlacement.selectedMarkerId : null
+          }
+          onMarkerClick={
+            feuilletZoneEditMode
+              ? (marker) => plateauPlacement.selectMarker?.(marker.id)
+              : handleMarkerClick
+          }
+        />
 
         {teamList.map((team) => {
           const position = getPositionForTeam(team.id);
