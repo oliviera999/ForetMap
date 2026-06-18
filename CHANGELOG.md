@@ -7,6 +7,33 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Biodiversité pédagogique (glossaire, QCM, réseau trophique)
+
+- **Migrations** : 122–132 (taxonomie plants, junction `*_species`, interactions/vues, glossaire, quiz ; **129** retrait colonnes legacy plants ; **130** retrait JSON `living_beings` ; **131** audit_log utf8mb4 ; **132** correctif AUTO_INCREMENT).
+- **Import** : `npm run db:import:biodiv` (scripts + `sql/foretmap_bdd_complete.sql`).
+- **API** : `/api/glossary`, `/api/quiz`, `/api/food-web` ; fiches plantes enrichies (`/:id/interactions`, `/glossary-terms`, `/quiz-questions`).
+- **Lecture espèces** : `zone_species`, `marker_species`, `task_species` uniquement (plus de dual-write JSON).
+- **Post-migration 130** : retrait résiduel de `living_beings` (tâches récurrentes, duplication projet, sync visite, propositions élève) ; import OpenAI species autofill ; tests quiz/plants-import alignés.
+- **Schéma / seed** : `sql/schema_foretmap.sql` et seed `database.js` alignés sur le contrat post-129/130.
+- **Scripts** : `scripts/backfill-gbif-keys.js`, `scripts/fix-auto-increment.js` (`npm run db:fix-auto-increment` si documenté).
+- **UI élève** : Glossaire, Quiz, réseau trophique (libellés interactions alignés enum SQL), fiches espèces enrichies.
+- **Tests** : `biodiv-read-model`, `glossary-api`, `glossary-search`, `quiz-api`, `food-web-api`, `plant-payload-sync`, `species-junction-read` ; e2e `pedago-quiz`, `pedago-food-web`, `pedago-glossary`.
+- **Quiz — visibilité et admin prof** : onglet Quiz (élève : après Biodiversité ; prof : onglet dédié) ; catalogue import/export XLSX (`lib/fmQuizImport.js`, `plants.manage` + élévation) ; `GET /api/quiz/questions`, `/api/quiz/admin/*` ; panneau partagé `src/shared/qcm/` (GL + FM) ; tests `fm-quiz-import`.
+
+### GL — images plateau / histoire (URLs legacy)
+
+- **Médiathèque** : `npm run gl:import:media` + `npm run gl:audit:media-keys` ; résolution convention `plateau-N_*` / `recit_0N-chapN_*` via `_keys.json`.
+- **Runtime** : priorité convention sur `map_image_url` legacy (`gl-plateau-*`) ; réécriture markdown `gl-*` (Histoire, Biotope, Biocénose).
+- **Migration BDD** : `npm run gl:migrate:chapter-media -- --apply` ; migration SQL `133_gl_chapter_media_legacy_cleanup.sql` (héros → `scene:1`, feuillets copiste).
+- **Tests** : `gl-legacy-media-url`, `gl-migrate-chapter-media`.
+
+### GL — Mode Découverte (visiteur sans compte)
+
+- **Auth** : `POST /api/gl/auth/guest` (token `gl_guest`, permission `gl.read` seule) ; `guestModeEnabled` dans `GET /api/gl/auth/config` ; désactivation via `platform.guest_mode_enabled=false` ou `GL_GUEST_MODE_DISABLED=1`.
+- **Sécurité** : `requireGlAuth` refuse explicitement les invités (`guestBlocked`) ; `GET /api/gl/lore/demo-feuillets` (allowlist `ep-I-01`…`04`, indépendant du module carnet).
+- **Front** : bouton « Découvrir sans compte », shell réduit (Monde, Règles, Découverte, glossaire SVT, biotope/biocénose), plateau P1 en bac à sable client (dé + 4 feuillets + mur de fin).
+- **Tests** : `tests/gl-guest-mode.test.js`, `e2e/gl-guest-discovery.spec.js` (parcours dé → feuillets → mur de fin).
+
 ### Tests e2e (stabilisation des 13 échecs)
 
 - **Fixtures partagées** (`e2e/fixtures/auth.fixture.js`) : sélecteur « Nouvelle tâche » via `hasText` (évite le blocage Playwright sur `getByRole` avec `+`) ; onglet Tâches robuste (split desktop « Cartes & tâches ») ; modales tâche via `aria-label` ; carte zone (`waitForTeacherMapReady`, repli clic) ; `disableTeacherMode` via cadenas header ; `createTeacherTask({ skipReload })`.

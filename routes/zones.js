@@ -20,7 +20,14 @@ const {
   serializeVisitEditorialBlocks,
 } = require('../lib/visitEditorialBlocks');
 const { resolveDefaultMapId } = require('../lib/settings');
+const {
+  loadZoneSpeciesMap,
+  syncZoneSpecies,
+  attachSpeciesToEntity,
+} = require('../lib/speciesJunction');
 const { z, validate } = require('../lib/validate');
+
+const db = { queryAll, queryOne, execute, withTransaction };
 
 const router = express.Router();
 
@@ -176,11 +183,18 @@ router.get(
       ? await queryAll(`${ZONES_LIST_SQL} WHERE z.map_id = ?`, [mapId])
       : await queryAll(ZONES_LIST_SQL);
     const history = await queryAll('SELECT * FROM zone_history ORDER BY harvested_at DESC');
-    const result = zones.map((z) => ({
-      ...withLivingBeings(z),
-      special: !!z.special,
-      history: history.filter((h) => h.zone_id === z.id),
-    }));
+    const speciesMap = await loadZoneSpeciesMap(db, zones.map((z) => z.id));
+    const result = zones.map((z) =>
+      attachSpeciesToEntity(
+        {
+          ...z,
+          special: !!z.special,
+          history: history.filter((h) => h.zone_id === z.id),
+        },
+        speciesMap.get(String(z.id)) || [],
+        { legacySingleName: z.current_plant },
+      ),
+    );
     res.json(result);
   }),
 );
@@ -194,7 +208,14 @@ router.get(
       'SELECT * FROM zone_history WHERE zone_id = ? ORDER BY harvested_at DESC',
       [req.params.id],
     );
-    res.json({ ...withLivingBeings(zone), special: !!zone.special, history });
+    const speciesRows = await loadZoneSpeciesMap(db, [zone.id]);
+    res.json(
+      attachSpeciesToEntity(
+        { ...zone, special: !!zone.special, history },
+        speciesRows.get(String(zone.id)) || [],
+        { legacySingleName: zone.current_plant },
+      ),
+    );
   }),
 );
 
@@ -204,7 +225,7 @@ router.put(
   asyncHandler(async (req, res) => {
     const zone = await queryOne('SELECT * FROM zones WHERE id = ?', [req.params.id]);
     if (!zone) return res.status(404).json({ error: 'Zone introuvable' });
-    const { name, current_plant, living_beings, stage, description, points, color, map_id } =
+    const { name, current_plant, living_beings, stage, description, points, color, map_id, species_ids } =
       req.body;
     if (name !== undefined && !String(name).trim()) {
       return res.status(400).json({ error: 'Nom requis' });
@@ -215,7 +236,16 @@ router.put(
       if (!(await mapExists(nextMapId)))
         return res.status(400).json({ error: 'Carte introuvable' });
     }
-    const existingLiving = normalizeLivingBeings(zone.living_beings, zone.current_plant);
+    const speciesRowsBefore = await loadZoneSpeciesMap(db, [zone.id]);
+    const junctionNames = (speciesRowsBefore.get(String(zone.id)) || [])
+      .map((row) => String(row.name || '').trim())
+      .filter(Boolean);
+    const existingLiving =
+      living_beings !== undefined
+        ? normalizeLivingBeings(living_beings, '')
+        : junctionNames.length > 0
+          ? junctionNames
+          : normalizeLivingBeings(undefined, zone.current_plant);
     const nextLiving =
       living_beings !== undefined ? normalizeLivingBeings(living_beings, '') : existingLiving;
     const nextCurrentPlant =
@@ -246,12 +276,11 @@ router.put(
       ]);
     }
     await execute(
-      'UPDATE zones SET map_id=?, name=?, current_plant=?, living_beings=?, stage=?, description=?, points=?, color=? WHERE id=?',
+      'UPDATE zones SET map_id=?, name=?, current_plant=?, stage=?, description=?, points=?, color=? WHERE id=?',
       [
         map_id != null ? String(map_id).trim() : zone.map_id,
         name !== undefined ? String(name).trim() : zone.name,
         nextCurrentPlant,
-        serializeLivingBeings(nextLiving, nextCurrentPlant),
         stage ?? zone.stage,
         description !== undefined ? description : (zone.description ?? ''),
         points !== undefined ? JSON.stringify(points) : zone.points,
@@ -259,6 +288,9 @@ router.put(
         zone.id,
       ],
     );
+    if (living_beings !== undefined || species_ids !== undefined) {
+      await syncZoneSpecies(db, zone.id, species_ids, nextLiving);
+    }
     const updated = await queryOne(`${ZONES_LIST_SQL} WHERE z.id = ?`, [zone.id]);
     const history = await queryAll(
       'SELECT * FROM zone_history WHERE zone_id=? ORDER BY harvested_at DESC',
@@ -268,12 +300,19 @@ router.put(
       await upsertVisitZoneEditorial(req.body, updated);
     }
     const updatedWithVisit = await queryOne(`${ZONES_LIST_SQL} WHERE z.id = ?`, [zone.id]);
+    const speciesRows = await loadZoneSpeciesMap(db, [zone.id]);
     emitGardenChanged({ reason: 'update_zone', zoneId: zone.id, mapId: updatedWithVisit.map_id });
-    res.json({
-      ...withLivingBeings(updatedWithVisit),
-      special: !!updatedWithVisit.special,
-      history,
-    });
+    res.json(
+      attachSpeciesToEntity(
+        {
+          ...updatedWithVisit,
+          special: !!updatedWithVisit.special,
+          history,
+        },
+        speciesRows.get(String(zone.id)) || [],
+        { legacySingleName: updatedWithVisit.current_plant },
+      ),
+    );
   }),
 );
 
@@ -420,7 +459,7 @@ router.post(
   '/',
   requirePermission('zones.manage', { needsElevation: true }),
   asyncHandler(async (req, res) => {
-    const { name, points, color, current_plant, living_beings, stage, map_id, description } =
+    const { name, points, color, current_plant, living_beings, stage, map_id, description, species_ids } =
       req.body;
     if (!name?.trim()) return res.status(400).json({ error: 'Nom requis' });
     if (!points || points.length < 3)
@@ -433,22 +472,29 @@ router.post(
     const desc = description !== undefined && description !== null ? String(description) : '';
     const id = 'zone-' + uuidv4().slice(0, 8);
     await execute(
-      'INSERT INTO zones (id, map_id, name, x, y, width, height, current_plant, living_beings, stage, special, points, color, description) VALUES (?, ?, ?, 0, 0, 0, 0, ?, ?, ?, 0, ?, ?, ?)',
+      'INSERT INTO zones (id, map_id, name, x, y, width, height, current_plant, stage, special, points, color, description) VALUES (?, ?, ?, 0, 0, 0, 0, ?, ?, 0, ?, ?, ?)',
       [
         id,
         mapId,
         name.trim(),
         nextCurrentPlant,
-        serializeLivingBeings(nextLiving, nextCurrentPlant),
         stage || 'empty',
         JSON.stringify(points),
         color || '#86efac80',
         desc,
       ],
     );
+    await syncZoneSpecies(db, id, species_ids, nextLiving);
     const zone = await queryOne('SELECT * FROM zones WHERE id = ?', [id]);
+    const speciesRows = await loadZoneSpeciesMap(db, [id]);
     emitGardenChanged({ reason: 'create_zone', zoneId: id, mapId });
-    res.status(201).json({ ...withLivingBeings(zone), history: [] });
+    res.status(201).json(
+      attachSpeciesToEntity(
+        { ...zone, history: [] },
+        speciesRows.get(id) || [],
+        { legacySingleName: zone.current_plant },
+      ),
+    );
   }),
 );
 

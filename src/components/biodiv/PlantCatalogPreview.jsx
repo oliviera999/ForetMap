@@ -13,7 +13,14 @@ import { useSession } from '../../contexts/SessionContext.jsx';
 import { useData } from '../../contexts/DataContext.jsx';
 import { normalizedPlantValue, isGenericPotagerLabel } from '../../utils/plantFormValues.js';
 import { plantLinkedToMapMarker, plantLinkedToMapZone } from '../../utils/plantFilters';
-import { PlantSummaryBadges, PlantEcosystemHumanLead } from './PlantSummaryBlocks.jsx';
+import {
+  PlantSummaryBadges,
+  PlantEcosystemHumanLead,
+  PlantTaxonomyLine,
+  PlantPedagoTraitBadges,
+  PlantRangeGauges,
+  PlantPedagoFetchedSections,
+} from './PlantSummaryBlocks.jsx';
 import { PlantBiodivHeroPhoto, PlantMetaSections } from './PlantMetaSections.jsx';
 import { PlantLocationPreviewMaps } from './BiodivLocationMaps.jsx';
 
@@ -34,6 +41,10 @@ export function PlantBiodiversityCatalogPreviewCard({
   onForceLogout = null,
   showContextComments = true,
   dataBiodivPlantId = null,
+  onOpenPlant = null,
+  onOpenGlossaryTerm = null,
+  onOpenQuizQuestion = null,
+  onNavigateToFoodWeb = null,
 }) {
   if (!plant) return null;
   const pZones = zones.filter((z) => plantLinkedToMapZone(plant, z));
@@ -68,6 +79,9 @@ export function PlantBiodiversityCatalogPreviewCard({
         )}
         <PlantBiodivHeroPhoto plant={plant} />
         <PlantEcosystemHumanLead plant={plant} />
+        <PlantTaxonomyLine plant={plant} />
+        <PlantPedagoTraitBadges plant={plant} />
+        <PlantRangeGauges plant={plant} />
         <CatalogRemarksSection plant={plant} />
         <div className="task-meta">
           {normalizedPlantValue(plant.habitat) && !isGenericPotagerLabel(plant.habitat) && (
@@ -80,6 +94,13 @@ export function PlantBiodiversityCatalogPreviewCard({
         </div>
         <PlantSummaryBadges plant={plant} />
         <PlantMetaSections plant={plant} />
+        <PlantPedagoFetchedSections
+          plantId={plant.id}
+          onOpenPlant={onOpenPlant}
+          onOpenGlossaryTerm={onOpenGlossaryTerm}
+          onOpenQuizQuestion={onOpenQuizQuestion}
+          onNavigateToFoodWeb={onNavigateToFoodWeb}
+        />
         {hasMapLink ? (
           <div>
             <div
@@ -156,7 +177,16 @@ export function PlantBiodiversityCatalogPreviewCard({
 }
 
 /** Aperçu plein écran (portal) d’une fiche catalogue — même principe que `TutorialPreviewModal`. */
-export function PlantCatalogPreviewModal({ plant, maps = [], onClose, onForceLogout = null }) {
+export function PlantCatalogPreviewModal({
+  plant,
+  maps = [],
+  onClose,
+  onForceLogout = null,
+  onOpenPlant = null,
+  onOpenGlossaryTerm = null,
+  onOpenQuizQuestion = null,
+  onNavigateToFoodWeb = null,
+}) {
   const publicSettings = usePublicSettings();
   const { canParticipateContextComments = true } = useSession();
   const { zones = [], markers = [] } = useData();
@@ -224,6 +254,10 @@ export function PlantCatalogPreviewModal({ plant, maps = [], onClose, onForceLog
           onForceLogout={onForceLogout}
           showContextComments
           dataBiodivPlantId={null}
+          onOpenPlant={onOpenPlant}
+          onOpenGlossaryTerm={onOpenGlossaryTerm}
+          onOpenQuizQuestion={onOpenQuizQuestion}
+          onNavigateToFoodWeb={onNavigateToFoodWeb}
         />
       </div>
     </DialogShell>

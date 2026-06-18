@@ -34,6 +34,7 @@ const {
   sourcesAllowedCacheFingerprint,
 } = require('../lib/speciesAutofill');
 const { plantnetIdentifyFromImages } = require('../lib/speciesAutofillPlantnet');
+const { enrichPlantRow } = require('../lib/biodivReadModel');
 const { z, validate } = require('../lib/validate');
 
 const router = express.Router();
@@ -401,10 +402,89 @@ router.get(
   '/',
   asyncHandler(async (req, res) => {
     const cached = plantsListCache.get('all');
-    if (cached) return res.json(cached);
+    if (cached) return res.json(cached.map(enrichPlantRow));
     const rows = await queryAll('SELECT * FROM plants ORDER BY name');
-    plantsListCache.set('all', rows);
-    res.json(rows);
+    const enriched = rows.map(enrichPlantRow);
+    plantsListCache.set('all', enriched);
+    res.json(enriched);
+  }),
+);
+
+router.get(
+  '/:id/interactions',
+  asyncHandler(async (req, res) => {
+    const plantId = Number(req.params.id);
+    if (!Number.isInteger(plantId) || plantId <= 0) {
+      return res.status(400).json({ error: 'Identifiant invalide' });
+    }
+    const plant = await queryOne('SELECT id, name FROM plants WHERE id = ? LIMIT 1', [plantId]);
+    if (!plant) return res.status(404).json({ error: 'Plante introuvable' });
+
+    const asSource = await queryAll(
+      `SELECT si.id, si.interaction_type, si.description,
+              pt.id AS to_id, pt.name AS to_name, pt.emoji AS to_emoji
+         FROM species_interactions si
+         LEFT JOIN plants pt ON pt.id = si.to_plant_id
+        WHERE si.from_plant_id = ?
+        ORDER BY si.interaction_type ASC, pt.name ASC`,
+      [plantId],
+    );
+    const asTarget = await queryAll(
+      `SELECT si.id, si.interaction_type, si.description,
+              pf.id AS from_id, pf.name AS from_name, pf.emoji AS from_emoji
+         FROM species_interactions si
+         JOIN plants pf ON pf.id = si.from_plant_id
+        WHERE si.to_plant_id = ?
+        ORDER BY si.interaction_type ASC, pf.name ASC`,
+      [plantId],
+    );
+
+    return res.json({ plantId, asSource, asTarget });
+  }),
+);
+
+router.get(
+  '/:id/glossary-terms',
+  asyncHandler(async (req, res) => {
+    const plantId = Number(req.params.id);
+    if (!Number.isInteger(plantId) || plantId <= 0) {
+      return res.status(400).json({ error: 'Identifiant invalide' });
+    }
+    const plant = await queryOne('SELECT id, name FROM plants WHERE id = ? LIMIT 1', [plantId]);
+    if (!plant) return res.status(404).json({ error: 'Plante introuvable' });
+
+    const terms = await queryAll(
+      `SELECT g.glossary_code, g.terme, g.variantes, g.categorie, g.niveau, g.definition_courte
+         FROM glossary_term_species gts
+         JOIN glossary_terms g ON g.glossary_code = gts.glossary_code
+        WHERE gts.plant_id = ? AND g.statut = 'actif'
+        ORDER BY g.terme ASC`,
+      [plantId],
+    );
+    return res.json({ plantId, terms });
+  }),
+);
+
+router.get(
+  '/:id/quiz-questions',
+  asyncHandler(async (req, res) => {
+    const plantId = Number(req.params.id);
+    if (!Number.isInteger(plantId) || plantId <= 0) {
+      return res.status(400).json({ error: 'Identifiant invalide' });
+    }
+    const plant = await queryOne('SELECT id, name FROM plants WHERE id = ? LIMIT 1', [plantId]);
+    if (!plant) return res.status(404).json({ error: 'Plante introuvable' });
+
+    const questions = await queryAll(
+      `SELECT qq.question_code, qq.question, qq.categorie_slug, qq.niveau, qq.difficulte,
+              qq.photo_url, qq.photo_legende
+         FROM quiz_question_species qqs
+         JOIN quiz_questions qq ON qq.question_code = qqs.question_code
+        WHERE qqs.plant_id = ? AND qq.statut = 'actif'
+        ORDER BY qq.categorie_slug ASC, qq.numero_dans_categorie ASC`,
+      [plantId],
+    );
+    return res.json({ plantId, questions });
   }),
 );
 

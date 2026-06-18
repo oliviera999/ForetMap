@@ -27,6 +27,10 @@ export function PlantCatalogFilterPanel({
   setHabitat,
   agro,
   setAgro,
+  trophicRole,
+  setTrophicRole,
+  habitatType,
+  setHabitatType,
   zonePresence,
   setZonePresence,
 }) {
@@ -36,42 +40,67 @@ export function PlantCatalogFilterPanel({
     [plants, group1, group2],
   );
   const subsetTaxonomy = useMemo(
-    () => filterPlantsByTaxonomy(plants, { group1, group2, group3 }),
-    [plants, group1, group2, group3],
+    () =>
+      filterPlantsByTaxonomy(plants, {
+        group1,
+        group2,
+        group3,
+        trophicRole: trophicRole || agro,
+        habitatType,
+      }),
+    [plants, group1, group2, group3, trophicRole, agro, habitatType],
   );
 
-  const group1Options = useMemo(() => distinctPlantFieldValues(plants, 'group_1'), [plants]);
+  const group1Options = useMemo(() => distinctPlantFieldValues(plants, 'taxon_kingdom'), [plants]);
   const group2Options = useMemo(
-    () => distinctPlantFieldValues(subsetAfterG1, 'group_2'),
+    () => distinctPlantFieldValues(subsetAfterG1, 'taxon_group'),
     [subsetAfterG1],
   );
   const group3Options = useMemo(
-    () => distinctPlantFieldValues(subsetAfterG2, 'group_3'),
+    () => distinctPlantFieldValues(subsetAfterG2, 'taxon_family'),
     [subsetAfterG2],
   );
   const habitatOptions = useMemo(
     () => distinctPlantFieldValues(subsetTaxonomy, 'habitat'),
     [subsetTaxonomy],
   );
-  const agroOptions = useMemo(
-    () => distinctPlantFieldValues(subsetTaxonomy, 'agroecosystem_category'),
+
+  const trophicOptions = useMemo(
+    () => distinctPlantFieldValues(subsetTaxonomy, 'trophic_role'),
     [subsetTaxonomy],
   );
+  const habitatTypeOptions = useMemo(
+    () => distinctPlantFieldValues(subsetTaxonomy, 'habitat_type'),
+    [subsetTaxonomy],
+  );
+
+  const effectiveTrophic = trophicRole ?? agro ?? '';
 
   useEffect(() => {
     if (habitat && !habitatOptions.includes(habitat)) setHabitat('');
   }, [habitat, habitatOptions, setHabitat]);
 
   useEffect(() => {
-    if (agro && !agroOptions.includes(agro)) setAgro('');
-  }, [agro, agroOptions, setAgro]);
+    if (effectiveTrophic && !trophicOptions.includes(effectiveTrophic)) {
+      if (setTrophicRole) setTrophicRole('');
+      else if (setAgro) setAgro('');
+    }
+  }, [effectiveTrophic, trophicOptions, setTrophicRole, setAgro]);
+
+  useEffect(() => {
+    if (habitatType && !habitatTypeOptions.includes(habitatType) && setHabitatType) {
+      setHabitatType('');
+    }
+  }, [habitatType, habitatTypeOptions, setHabitatType]);
 
   const resetAllFilters = () => {
     setGroup1('');
     setGroup2('');
     setGroup3('');
     setHabitat('');
-    setAgro('');
+    if (setTrophicRole) setTrophicRole('');
+    else if (setAgro) setAgro('');
+    if (setHabitatType) setHabitatType('');
     setSearch('');
     if (showZonePresence && setZonePresence) setZonePresence(ZONE_PRESENCE_FILTER.ALL);
   };
@@ -81,7 +110,7 @@ export function PlantCatalogFilterPanel({
   return (
     <div style={{ display: 'grid', gap: 8, marginBottom: 12 }}>
       <div className="field" style={{ marginBottom: 0 }}>
-        <label>Groupe (taxon) 1</label>
+        <label>Règne</label>
         <select
           value={group1}
           onChange={(e) => {
@@ -113,7 +142,7 @@ export function PlantCatalogFilterPanel({
         <div style={{ display: 'grid', gap: 8, marginTop: 10 }}>
           <div className="plant-form-grid">
             <div className="field" style={{ marginBottom: 0 }}>
-              <label>Groupe (taxon) 2</label>
+              <label>Grand groupe</label>
               <select
                 value={group2}
                 onChange={(e) => {
@@ -131,7 +160,7 @@ export function PlantCatalogFilterPanel({
               </select>
             </div>
             <div className="field" style={{ marginBottom: 0 }}>
-              <label>Groupe (taxon) 3</label>
+              <label>Famille</label>
               <select
                 value={group3}
                 onChange={(e) => setGroup3(e.target.value)}
@@ -161,16 +190,41 @@ export function PlantCatalogFilterPanel({
               </select>
             </div>
             <div className="field" style={{ marginBottom: 0 }}>
-              <label>Catégorie d&apos;agrosystème</label>
-              <select value={agro} onChange={(e) => setAgro(e.target.value)} style={selectStyle}>
-                <option value="">Toutes</option>
-                {agroOptions.map((a) => (
+              <label>Rôle trophique</label>
+              <select
+                value={effectiveTrophic}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (setTrophicRole) setTrophicRole(v);
+                  else if (setAgro) setAgro(v);
+                }}
+                style={selectStyle}
+              >
+                <option value="">Tous</option>
+                {trophicOptions.map((a) => (
                   <option key={a} value={a}>
                     {a}
                   </option>
                 ))}
               </select>
             </div>
+            {setHabitatType ? (
+              <div className="field" style={{ marginBottom: 0 }}>
+                <label>Milieu</label>
+                <select
+                  value={habitatType || ''}
+                  onChange={(e) => setHabitatType(e.target.value)}
+                  style={selectStyle}
+                >
+                  <option value="">Tous</option>
+                  {habitatTypeOptions.map((h) => (
+                    <option key={h} value={h}>
+                      {h}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : null}
             {showZonePresence && setZonePresence && (
               <div className="field" style={{ marginBottom: 0 }}>
                 <label>Présence sur la carte</label>

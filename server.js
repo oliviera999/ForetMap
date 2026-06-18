@@ -75,6 +75,9 @@ const glQcmRouter = require('./routes/gl/qcm').router;
 const glLearningRouter = require('./routes/gl/learning');
 const glLoreRouter = require('./routes/gl/lore').router;
 const glStatsRouter = require('./routes/gl/stats');
+const glossaryRouter = require('./routes/glossary');
+const quizRouter = require('./routes/quiz');
+const foodWebRouter = require('./routes/food-web');
 
 const app = express();
 
@@ -277,6 +280,7 @@ app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/register', authLimiter);
 app.use('/api/auth/reset-password', authLimiter);
 app.use('/api/gl/auth/login', authLimiter);
+app.use('/api/gl/auth/guest', authLimiter);
 app.use('/api/gl/auth/forgot-password', authLimiter);
 app.use('/api/gl/auth/reset-password', authLimiter);
 
@@ -652,6 +656,9 @@ app.use('/api/zones', zonesRouter);
 app.use('/api/maps', mapsRouter);
 app.use('/api/map', mapRouter);
 app.use('/api/plants', plantsRouter);
+app.use('/api/glossary', glossaryRouter);
+app.use('/api/quiz', quizRouter);
+app.use('/api/food-web', foodWebRouter);
 app.use('/api/tasks', tasksRouter);
 app.use('/api/task-projects', taskProjectsRouter);
 app.use('/api/tutorials', tutorialsRouter);

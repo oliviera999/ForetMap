@@ -56,6 +56,12 @@ export function TeacherTopTabs({
       >
         🌱 Biodiversité
       </button>
+      <button
+        className={`top-tab ${tab === 'quiz' ? 'active' : ''}`}
+        onClick={() => onTabChange('quiz')}
+      >
+        ❓ Quiz
+      </button>
       {tutorialsModuleEnabled && !mergeTasksTutoNav && (
         <button
           className={`top-tab ${tab === 'tuto' ? 'active' : ''}`}

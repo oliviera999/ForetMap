@@ -475,7 +475,7 @@ test('buildSpeciesAutofill avec gbif+openai : OpenAI complète sans écraser GBI
     });
     assert.equal(result.fields.name, 'Cétoine funeste');
     assert.equal(result.fields.scientific_name, 'Oxythyrea funesta');
-    assert.equal(result.fields.group_1, 'Animalia');
+    assert.equal(result.fields.taxon_kingdom, 'Animalia');
     assert.match(String(result.fields.habitat || ''), /prair|ouvert|chaud/i);
     assert.ok((result.sources || []).some((s) => s.source === 'gbif'));
     assert.ok((result.sources || []).some((s) => s.source === 'openai'));

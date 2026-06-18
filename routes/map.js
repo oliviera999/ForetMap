@@ -19,8 +19,15 @@ const {
   serializeVisitEditorialBlocks,
 } = require('../lib/visitEditorialBlocks');
 const { resolveDefaultMapId } = require('../lib/settings');
+const {
+  loadMarkerSpeciesMap,
+  syncMarkerSpecies,
+  attachSpeciesToEntity,
+} = require('../lib/speciesJunction');
 const { normalizeMarkerEmoji } = require('../lib/markerEmoji');
 const { z, validate } = require('../lib/validate');
+
+const db = { queryAll, queryOne, execute, withTransaction };
 
 const router = express.Router();
 
@@ -314,7 +321,17 @@ router.get(
     const rows = mapId
       ? await queryAll(`${MARKERS_LIST_SQL} WHERE m.map_id = ? ORDER BY m.created_at`, [mapId])
       : await queryAll(`${MARKERS_LIST_SQL} ORDER BY m.created_at`);
-    res.json(rows.map(withLivingBeings));
+    const speciesMap = await loadMarkerSpeciesMap(
+      db,
+      rows.map((row) => row.id),
+    );
+    res.json(
+      rows.map((row) =>
+        attachSpeciesToEntity(row, speciesMap.get(String(row.id)) || [], {
+          legacySingleName: row.plant_name,
+        }),
+      ),
+    );
   }),
 );
 
@@ -322,7 +339,7 @@ router.post(
   '/markers',
   requirePermission('map.manage_markers', { needsElevation: true }),
   asyncHandler(async (req, res) => {
-    const { x_pct, y_pct, label, plant_name, living_beings, note, emoji, map_id } = req.body;
+    const { x_pct, y_pct, label, plant_name, living_beings, note, emoji, map_id, species_ids } = req.body;
     const mapId = String(map_id || '').trim() || (await resolveDefaultMapId('teacher'));
     if (!mapId) return res.status(400).json({ error: 'map_id requis' });
     if (!(await mapExists(mapId))) return res.status(400).json({ error: 'Carte introuvable' });
@@ -331,7 +348,7 @@ router.post(
     const nextPlantName = nextLiving.length > 0 ? '' : String(plant_name || '').trim();
     const id = uuidv4();
     await execute(
-      'INSERT INTO map_markers (id, map_id, x_pct, y_pct, label, plant_name, living_beings, note, emoji, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO map_markers (id, map_id, x_pct, y_pct, label, plant_name, note, emoji, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
       [
         id,
         mapId,
@@ -339,19 +356,24 @@ router.post(
         y_pct,
         label.trim(),
         nextPlantName,
-        serializeLivingBeings(nextLiving, nextPlantName),
         note || '',
         normalizeMarkerEmoji(emoji, { allowEmpty: true, fallback: '' }),
         new Date().toISOString(),
       ],
     );
+    await syncMarkerSpecies(db, id, species_ids, nextLiving);
     let row = await queryOne(`${MARKERS_LIST_SQL} WHERE m.id = ?`, [id]);
     if (hasVisitMarkerContentPatch(req.body)) {
       await upsertVisitMarkerEditorial(req.body, row);
       row = await queryOne(`${MARKERS_LIST_SQL} WHERE m.id = ?`, [id]);
     }
+    const speciesRows = await loadMarkerSpeciesMap(db, [id]);
     emitGardenChanged({ reason: 'create_marker', markerId: id, mapId });
-    res.status(201).json(withLivingBeings(row));
+    res.status(201).json(
+      attachSpeciesToEntity(row, speciesRows.get(String(id)) || [], {
+        legacySingleName: row.plant_name,
+      }),
+    );
   }),
 );
 
@@ -361,7 +383,7 @@ router.put(
   asyncHandler(async (req, res) => {
     const m = await queryOne('SELECT * FROM map_markers WHERE id = ?', [req.params.id]);
     if (!m) return res.status(404).json({ error: 'Repère introuvable' });
-    const { x_pct, y_pct, label, plant_name, living_beings, note, emoji, map_id } = req.body;
+    const { x_pct, y_pct, label, plant_name, living_beings, note, emoji, map_id, species_ids } = req.body;
     if (label !== undefined && !String(label).trim()) {
       return res.status(400).json({ error: 'Label requis' });
     }
@@ -370,7 +392,16 @@ router.put(
       if (!mapId) return res.status(400).json({ error: 'map_id invalide' });
       if (!(await mapExists(mapId))) return res.status(400).json({ error: 'Carte introuvable' });
     }
-    const existingLiving = normalizeLivingBeings(m.living_beings, m.plant_name);
+    const speciesRowsBefore = await loadMarkerSpeciesMap(db, [m.id]);
+    const junctionNames = (speciesRowsBefore.get(String(m.id)) || [])
+      .map((row) => String(row.name || '').trim())
+      .filter(Boolean);
+    const existingLiving =
+      living_beings !== undefined
+        ? normalizeLivingBeings(living_beings, '')
+        : junctionNames.length > 0
+          ? junctionNames
+          : normalizeLivingBeings(undefined, m.plant_name);
     const nextLiving =
       living_beings !== undefined ? normalizeLivingBeings(living_beings, '') : existingLiving;
     const nextPlantName =
@@ -380,14 +411,13 @@ router.put(
           ? String(plant_name || '').trim()
           : String(m.plant_name || '').trim();
     await execute(
-      'UPDATE map_markers SET map_id=?, x_pct=?, y_pct=?, label=?, plant_name=?, living_beings=?, note=?, emoji=? WHERE id=?',
+      'UPDATE map_markers SET map_id=?, x_pct=?, y_pct=?, label=?, plant_name=?, note=?, emoji=? WHERE id=?',
       [
         map_id != null ? String(map_id).trim() : m.map_id,
         x_pct ?? m.x_pct,
         y_pct ?? m.y_pct,
         label !== undefined ? String(label).trim() : m.label,
         nextPlantName,
-        serializeLivingBeings(nextLiving, nextPlantName),
         note ?? m.note,
         emoji !== undefined
           ? normalizeMarkerEmoji(emoji, { allowEmpty: true, fallback: '' })
@@ -395,13 +425,21 @@ router.put(
         m.id,
       ],
     );
+    if (living_beings !== undefined || species_ids !== undefined) {
+      await syncMarkerSpecies(db, m.id, species_ids, nextLiving);
+    }
     let updated = await queryOne(`${MARKERS_LIST_SQL} WHERE m.id = ?`, [m.id]);
     if (hasVisitMarkerContentPatch(req.body)) {
       await upsertVisitMarkerEditorial(req.body, updated);
       updated = await queryOne(`${MARKERS_LIST_SQL} WHERE m.id = ?`, [m.id]);
     }
+    const speciesRows = await loadMarkerSpeciesMap(db, [m.id]);
     emitGardenChanged({ reason: 'update_marker', markerId: m.id, mapId: updated.map_id });
-    res.json(withLivingBeings(updated));
+    res.json(
+      attachSpeciesToEntity(updated, speciesRows.get(String(m.id)) || [], {
+        legacySingleName: updated.plant_name,
+      }),
+    );
   }),
 );
 
