@@ -1,6 +1,6 @@
 import React from 'react';
-import { api } from '../../services/api.js';
-import { downloadApiFile } from '../../utils/downloadApiFile.js';
+import { api } from '../../../services/api.js';
+import { downloadApiFile } from '../../../utils/downloadApiFile.js';
 import { PedagoQcmFeedbackBlock } from '../PedagoQcmFeedbackBlock.jsx';
 import { QcmCatalogPanel } from '../../../shared/qcm/QcmCatalogPanel.jsx';
 

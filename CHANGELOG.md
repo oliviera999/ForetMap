@@ -7,6 +7,12 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Build — correctifs imports et artefacts `dist/`
+
+- **FMQuizCatalogPanel** : chemins `api` / `downloadApiFile` corrigés (`../../../`).
+- **useGlMarkdownWithLegacyMedia** : import `applyGlLegacyMediaRefs` depuis `glLegacyMediaUrl.js`.
+- **dist/** : build production régénéré (ForetMap + GL).
+
 ### GL — déplacement zones feuillets et repères au clic
 
 - **Placement au clic** : sélectionner une zone feuillet ou un repère puis cliquer sur la carte (curseur crosshair) ; glisser-déposer des zones conservé.

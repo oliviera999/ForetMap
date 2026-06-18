@@ -1,0 +1,1 @@
+var e=`Bonne réponse !`,t=`Ce n’est pas la bonne réponse.`;function n(n){return!n||typeof n.error==`string`?``:String(n.feedback??``).trim()||(typeof n.correct==`boolean`?n.correct?e:t:``)}function r(e){return n(e).length>0}function i(e){return!e||typeof e.error==`string`?!1:typeof e.correct==`boolean`?!0:r(e)}export{r as n,i as r,n as t};
