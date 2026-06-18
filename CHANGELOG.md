@@ -18,6 +18,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Scripts** : `scripts/backfill-gbif-keys.js`, `scripts/fix-auto-increment.js` (`npm run db:fix-auto-increment` si documenté).
 - **UI élève** : Glossaire, Quiz, réseau trophique (libellés interactions alignés enum SQL), fiches espèces enrichies.
 - **Tests** : `biodiv-read-model`, `glossary-api`, `glossary-search`, `quiz-api`, `food-web-api`, `plant-payload-sync`, `species-junction-read` ; e2e `pedago-quiz`, `pedago-food-web`, `pedago-glossary`.
+- **Quiz — visibilité et admin prof** : onglet Quiz (élève : après Biodiversité ; prof : onglet dédié) ; catalogue import/export XLSX (`lib/fmQuizImport.js`, `plants.manage` + élévation) ; `GET /api/quiz/questions`, `/api/quiz/admin/*` ; panneau partagé `src/shared/qcm/` (GL + FM) ; tests `fm-quiz-import`.
+
+### GL — images plateau / histoire (URLs legacy)
+
+- **Médiathèque** : `npm run gl:import:media` + `npm run gl:audit:media-keys` ; résolution convention `plateau-N_*` / `recit_0N-chapN_*` via `_keys.json`.
+- **Runtime** : priorité convention sur `map_image_url` legacy (`gl-plateau-*`) ; réécriture markdown `gl-*` (Histoire, Biotope, Biocénose).
+- **Migration BDD** : `npm run gl:migrate:chapter-media -- --apply` ; migration SQL `133_gl_chapter_media_legacy_cleanup.sql` (héros → `scene:1`, feuillets copiste).
+- **Tests** : `gl-legacy-media-url`, `gl-migrate-chapter-media`.
 
 ### GL — Mode Découverte (visiteur sans compte)
 
