@@ -4,7 +4,8 @@
 import { marked } from 'marked';
 import DOMPurify from 'isomorphic-dompurify';
 import {
-  glImageFrameToStyle,
+  glImageFrameToImgFillStyle,
+  glImageFrameToWrapStyle,
   parseGlImageFrameAttr,
   serializeGlImageFrameAttr,
 } from './glImageFrame.js';
@@ -28,7 +29,7 @@ const ALLOWED_TAGS = [
   'hr',
 ];
 const ALLOWED_ATTR = ['href', 'rel', 'target', 'title'];
-const ALLOWED_TAGS_WITH_IMAGES = [...ALLOWED_TAGS, 'img'];
+const ALLOWED_TAGS_WITH_IMAGES = [...ALLOWED_TAGS, 'img', 'figure'];
 const ALLOWED_ATTR_WITH_IMAGES = [
   ...ALLOWED_ATTR,
   'src',
@@ -52,6 +53,67 @@ marked.setOptions({
   breaks: true,
   gfm: true,
 });
+
+function styleObjectToString(style) {
+  return Object.entries(style || {})
+    .map(
+      ([key, value]) => `${key.replace(/[A-Z]/g, (match) => `-${match.toLowerCase()}`)}:${value}`,
+    )
+    .join(';');
+}
+
+
+function decodeHtmlAttr(value) {
+  return String(value || '')
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>');
+}
+
+function wrapMarkdownContentImagesWithDom(doc, source) {
+  const template = doc.createElement('template');
+  template.innerHTML = source;
+  const images = template.content.querySelectorAll('img.gl-content-image');
+  images.forEach((img) => {
+    if (img.parentElement?.classList?.contains('gl-content-image-wrap')) return;
+    const frame = parseGlImageFrameAttr(img.getAttribute('data-gl-frame'), 'markdown');
+    const wrap = doc.createElement('figure');
+    wrap.className = 'gl-content-image-wrap';
+    const wrapStyle = styleObjectToString(glImageFrameToWrapStyle(frame, 'markdown'));
+    if (wrapStyle) wrap.setAttribute('style', wrapStyle);
+    img.setAttribute('style', styleObjectToString(glImageFrameToImgFillStyle(frame, 'markdown')));
+    img.parentNode?.insertBefore(wrap, img);
+    wrap.appendChild(img);
+  });
+  return template.innerHTML;
+}
+
+function wrapMarkdownContentImagesWithString(source) {
+  return source.replace(/<img\b([^>]*\bclass="[^"]*\bgl-content-image\b[^"]*"[^>]*)>/gi, (imgTag) => {
+    if (/gl-content-image-wrap/i.test(imgTag)) return imgTag;
+    const frameMatch = imgTag.match(/data-gl-frame=(['"])(.*?)\1/i);
+    const frame = parseGlImageFrameAttr(decodeHtmlAttr(frameMatch?.[2]), 'markdown');
+    const wrapStyle = styleObjectToString(glImageFrameToWrapStyle(frame, 'markdown'));
+    const fillStyle = styleObjectToString(glImageFrameToImgFillStyle(frame, 'markdown'));
+    const imgWithoutStyle = imgTag.replace(/\sstyle=(['"]).*?\1/i, '');
+    const imgWithFill = imgWithoutStyle.replace(/>$/, ` style="${fillStyle}">`);
+    const wrapOpen = `<figure class="gl-content-image-wrap"${
+      wrapStyle ? ` style="${wrapStyle}"` : ''
+    }>`;
+    return `${wrapOpen}${imgWithFill}</figure>`;
+  });
+}
+
+function wrapMarkdownContentImages(html) {
+  const source = String(html || '');
+  if (!source.includes('gl-content-image')) return source;
+  if (typeof document !== 'undefined') {
+    return wrapMarkdownContentImagesWithDom(document, source);
+  }
+  return wrapMarkdownContentImagesWithString(source);
+}
 
 DOMPurify.addHook('afterSanitizeAttributes', (node) => {
   if (node.tagName === 'A') {
@@ -81,17 +143,25 @@ DOMPurify.addHook('afterSanitizeAttributes', (node) => {
       return;
     }
     const frame = parseGlImageFrameAttr(node.getAttribute('data-gl-frame'), 'markdown');
-    const style = glImageFrameToStyle(frame);
-    const styleString = Object.entries(style)
-      .map(
-        ([key, value]) => `${key.replace(/[A-Z]/g, (match) => `-${match.toLowerCase()}`)}:${value}`,
-      )
-      .join(';');
     node.setAttribute('data-gl-frame', serializeGlImageFrameAttr(frame, 'markdown'));
-    node.setAttribute('style', styleString);
     const className = String(node.getAttribute('class') || '').trim();
     if (!className.includes('gl-content-image')) {
       node.setAttribute('class', `${className} gl-content-image`.trim());
+    }
+    if (!node.parentElement?.classList?.contains('gl-content-image-wrap')) {
+      node.removeAttribute('style');
+    }
+  }
+  if (node.tagName === 'FIGURE') {
+    const className = String(node.getAttribute('class') || '').trim();
+    if (!className.includes('gl-content-image-wrap')) {
+      node.remove();
+      return;
+    }
+    node.setAttribute('class', 'gl-content-image-wrap');
+    const img = node.querySelector('img.gl-content-image');
+    if (!img) {
+      node.remove();
     }
   }
   if (node.tagName === 'ASIDE') {
@@ -171,11 +241,15 @@ export function sanitizeRichHtml(html, options = {}) {
   if (allowGlossaryLinks) {
     attrs = Array.from(new Set([...attrs, ...ALLOWED_ATTR_WITH_GLOSSARY]));
   }
-  return DOMPurify.sanitize(html, {
+  const sanitized = DOMPurify.sanitize(html, {
     ALLOWED_TAGS: tags,
     ALLOWED_ATTR: attrs,
     ALLOW_DATA_ATTR: allowJournalEmbeds || allowGlossaryLinks,
   });
+  if (allowImages) {
+    return wrapMarkdownContentImages(sanitized);
+  }
+  return sanitized;
 }
 
 /**

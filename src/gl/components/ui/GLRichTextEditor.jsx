@@ -2,7 +2,8 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import TurndownService from 'turndown';
 import { renderMarkdownToSafeHtml, sanitizeRichHtml } from '../../../utils/markdown.js';
 import {
-  glImageFrameToStyle,
+  glImageFrameToImgFillStyle,
+  glImageFrameToWrapStyle,
   normalizeGlImageFrame,
   serializeGlImageFrameAttr,
 } from '../../../utils/glImageFrame.js';
@@ -44,20 +45,42 @@ const turndownService = new TurndownService({
 
 turndownService.remove(['script', 'style']);
 turndownService.keep(['hr']);
+
+function turndownGlImageMarkup(node) {
+  const src = String(node.getAttribute('src') || '').trim();
+  if (!src) return '';
+  const alt = String(node.getAttribute('alt') || 'Image').replace(/"/g, '&quot;');
+  const frame = String(node.getAttribute('data-gl-frame') || '').replace(/'/g, '&apos;');
+  const classAttr = String(node.getAttribute('class') || '').trim();
+  const classValue = classAttr.includes('gl-content-image')
+    ? classAttr
+    : `${classAttr} gl-content-image`.trim();
+  return `\n\n<img src="${src}" alt="${alt}" class="${classValue}" data-gl-frame='${frame}' loading="lazy" />\n\n`;
+}
+
+turndownService.addRule('glImageFigure', {
+  filter(node) {
+    return (
+      node.nodeName === 'FIGURE' &&
+      String(node.getAttribute('class') || '').includes('gl-content-image-wrap')
+    );
+  },
+  replacement(_content, node) {
+    const img = node.querySelector('img');
+    if (!img) return '';
+    return turndownGlImageMarkup(img);
+  },
+});
+
 turndownService.addRule('glImage', {
   filter(node) {
     return node.nodeName === 'IMG';
   },
   replacement(_content, node) {
-    const src = String(node.getAttribute('src') || '').trim();
-    if (!src) return '';
-    const alt = String(node.getAttribute('alt') || 'Image').replace(/"/g, '&quot;');
-    const frame = String(node.getAttribute('data-gl-frame') || '').replace(/'/g, '&apos;');
-    const classAttr = String(node.getAttribute('class') || '').trim();
-    const classValue = classAttr.includes('gl-content-image')
-      ? classAttr
-      : `${classAttr} gl-content-image`.trim();
-    return `\n\n<img src="${src}" alt="${alt}" class="${classValue}" data-gl-frame='${frame}' loading="lazy" />\n\n`;
+    if (node.parentElement?.classList?.contains('gl-content-image-wrap')) {
+      return '';
+    }
+    return turndownGlImageMarkup(node);
   },
 });
 
@@ -157,8 +180,9 @@ export const GLRichTextEditor = React.forwardRef(function GLRichTextEditor(
       /'/g,
       '&apos;',
     );
-    const styleString = styleObjectToString(glImageFrameToStyle(normalizedFrame));
-    const snippet = `<img src="${escapeHtmlAttr(safeUrl)}" alt="${escapeHtmlAttr(alt)}" class="gl-content-image" data-gl-frame='${frameAttr}' style="${styleString}" loading="lazy" />`;
+    const wrapStyle = styleObjectToString(glImageFrameToWrapStyle(normalizedFrame, 'markdown'));
+    const fillStyle = styleObjectToString(glImageFrameToImgFillStyle(normalizedFrame, 'markdown'));
+    const snippet = `<figure class="gl-content-image-wrap" style="${wrapStyle}"><img src="${escapeHtmlAttr(safeUrl)}" alt="${escapeHtmlAttr(alt)}" class="gl-content-image" data-gl-frame='${frameAttr}' style="${fillStyle}" loading="lazy" /></figure>`;
     focusEditable();
     const inserted = runExecCommand('insertHTML', snippet);
     if (!inserted && editableRef.current) {

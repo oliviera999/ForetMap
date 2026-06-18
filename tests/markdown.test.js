@@ -101,12 +101,15 @@ describe('markdown utils', () => {
       5,
       '/uploads/media-library/image/2026/01/a.jpg',
       'Photo',
-      { ratio: '4:3', radius: 12, shadow: true, align: 'left' },
+      { aspectRatio: '16/9', objectFit: 'cover' },
     ).value;
     const html = renderMarkdownToSafeHtml(source, { allowImages: true });
     assert.match(html, /class="[^"]*gl-content-image/);
+    assert.match(html, /class="[^"]*gl-content-image-wrap/);
+    assert.match(html, /<figure[^>]*class="[^"]*gl-content-image-wrap/);
     assert.match(html, /data-gl-frame=/);
-    assert.match(html, /style="/);
+    assert.match(html, /object-fit:cover/);
+    assert.match(html, /aspect-ratio:16\/9/);
   });
 
   it('applyMarkdownImage insère une image markdown', () => {
