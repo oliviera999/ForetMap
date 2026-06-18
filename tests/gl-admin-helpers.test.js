@@ -125,7 +125,7 @@ describe('ALLOWED_GAMEPLAY_SETTINGS', () => {
     assert.ok(ALLOWED_GAMEPLAY_SETTINGS.has('gameplay.lore_spoiler_max_level'));
     assert.equal(ALLOWED_GAMEPLAY_SETTINGS.has('gameplay.inexistant'), false);
   });
-  it('compte 20 clés gameplay', () => {
-    assert.equal(ALLOWED_GAMEPLAY_SETTINGS.size, 20);
+  it('compte 22 clés gameplay', () => {
+    assert.equal(ALLOWED_GAMEPLAY_SETTINGS.size, 22);
   });
 });

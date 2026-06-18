@@ -132,6 +132,24 @@ test("PUT /api/gl/chapters/admin/:id met à jour le titre et l'order_index", asy
   assert.strictEqual(Number(res.body.chapter.map_image_frame.focalY), 25);
 });
 
+test('PUT /api/gl/chapters/admin/:id met à jour mapMarkersVisible et mapZonesVisible', async () => {
+  const res = await request(app)
+    .put(`/api/gl/chapters/admin/${createdChapterId}`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ mapMarkersVisible: false, mapZonesVisible: true })
+    .expect(200);
+  assert.strictEqual(res.body.chapter.map_markers_visible, 0);
+  assert.strictEqual(res.body.chapter.map_zones_visible, 1);
+
+  const reset = await request(app)
+    .put(`/api/gl/chapters/admin/${createdChapterId}`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ mapMarkersVisible: null, mapZonesVisible: null })
+    .expect(200);
+  assert.strictEqual(reset.body.chapter.map_markers_visible, null);
+  assert.strictEqual(reset.body.chapter.map_zones_visible, null);
+});
+
 test('PUT /api/gl/chapters/admin/:id met à jour theme.colors', async () => {
   const res = await request(app)
     .put(`/api/gl/chapters/admin/${createdChapterId}`)

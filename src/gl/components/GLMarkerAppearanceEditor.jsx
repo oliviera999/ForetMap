@@ -8,6 +8,7 @@ import {
   normalizeDisplayMode,
   normalizeMarkerEmoji,
 } from '../../utils/glMarkerAppearance.js';
+import { useResolveGlMarkerIconDisplayUrl } from '../hooks/useResolveGlMarkerIconDisplayUrl.js';
 
 const DISPLAY_MODE_OPTIONS = [
   { value: 'label', label: 'Texte (titre)' },
@@ -53,6 +54,8 @@ export function GLMarkerAppearanceEditor({
   const displayMode = value?.displayMode || 'label';
   const emoji = value?.emoji ?? '';
   const iconUrl = value?.iconUrl ?? '';
+  const resolveIconUrl = useResolveGlMarkerIconDisplayUrl();
+  const previewIconUrl = iconUrl ? resolveIconUrl(iconUrl) || iconUrl : '';
 
   function patch(next) {
     onChange?.({
@@ -149,10 +152,10 @@ export function GLMarkerAppearanceEditor({
               placeholder="/uploads/media-library/..."
             />
           </label>
-          {iconUrl ? (
+          {previewIconUrl ? (
             <img
               className="gl-marker-appearance-editor__icon-preview"
-              src={iconUrl}
+              src={previewIconUrl}
               alt=""
               aria-hidden
             />

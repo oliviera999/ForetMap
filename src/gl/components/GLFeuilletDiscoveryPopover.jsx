@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { GLLoreGlossaryMarkdown } from './GLLoreGlossaryMarkdown.jsx';
 import { GLGlossaryMarkdown } from './GLGlossaryMarkdown.jsx';
-import { GLFeuilletIllustration } from './GLFeuilletIllustration.jsx';
+import { GLFeuilletIllustration, GLFeuilletCoupeIllustration } from './GLFeuilletIllustration.jsx';
 import { GLButton } from './ui/GLButton.jsx';
 
 export function GLFeuilletDiscoveryPopover({
@@ -99,9 +99,10 @@ export function GLFeuilletDiscoveryPopover({
             {feuillet.imageCoupeUrl ? (
               <details className="gl-feui-discovery__coupe">
                 <summary>Coupe</summary>
-                <figure className="gl-feui-discovery__illu">
-                  <img src={feuillet.imageCoupeUrl} alt="Coupe pédagogique" loading="lazy" />
-                </figure>
+                <GLFeuilletCoupeIllustration
+                  url={feuillet.imageCoupeUrl}
+                  figureClassName="gl-feui-discovery__illu"
+                />
               </details>
             ) : null}
             {feuillet.ancrageScientifique ? (

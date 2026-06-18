@@ -62,8 +62,10 @@ function mapZoneRow(row) {
     points,
     color: row.color,
     music_url: music.music_url,
+    music_urls: music.music_urls,
     music_volume: music.music_volume,
     musicUrl: music.musicUrl,
+    musicUrls: music.musicUrls,
     musicVolume: music.musicVolume,
     popover_markdown: popover.popover_markdown,
     popoverMarkdown: popover.popoverMarkdown,
@@ -85,7 +87,7 @@ router.get(
     }
     const rows = await queryAll(
       `SELECT id, chapter_id, label, description, points_json, color,
-            music_url, music_volume, popover_markdown, popover_images_json,
+            music_url, music_urls_json, music_volume, popover_markdown, popover_images_json,
             created_at, updated_at
        FROM gl_kingdom_zones
       WHERE chapter_id = ?
@@ -122,7 +124,11 @@ router.post(
     }
     const chapter = await queryOne('SELECT id FROM gl_chapters WHERE id = ? LIMIT 1', [chapterId]);
     if (!chapter) return res.status(404).json({ error: 'Chapitre introuvable' });
-    const musicUrl = musicParsed.hasMusicUrl ? musicParsed.musicUrl : null;
+    const musicUrl = musicParsed.hasMusicUrls ? musicParsed.musicUrl : null;
+    const musicUrlsJson =
+      musicParsed.hasMusicUrls && musicParsed.musicUrls?.length
+        ? JSON.stringify(musicParsed.musicUrls)
+        : null;
     const musicVolume = musicParsed.hasMusicVolume ? musicParsed.musicVolume : DEFAULT_MUSIC_VOLUME;
     const popoverMarkdown = popoverParsed.hasPopoverMarkdown ? popoverParsed.popoverMarkdown : null;
     const popoverImagesJson = popoverParsed.hasPopoverImages
@@ -132,9 +138,9 @@ router.post(
       : null;
     const result = await execute(
       `INSERT INTO gl_kingdom_zones
-       (chapter_id, label, description, points_json, color, music_url, music_volume,
+       (chapter_id, label, description, points_json, color, music_url, music_urls_json, music_volume,
         popover_markdown, popover_images_json, created_by, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
       [
         chapterId,
         label,
@@ -142,6 +148,7 @@ router.post(
         JSON.stringify(points),
         color,
         musicUrl,
+        musicUrlsJson,
         musicVolume,
         popoverMarkdown,
         popoverImagesJson,
@@ -179,7 +186,12 @@ router.put(
       }
       pointsJson = JSON.stringify(points);
     }
-    const musicUrl = musicParsed.hasMusicUrl ? musicParsed.musicUrl : undefined;
+    const musicUrl = musicParsed.hasMusicUrls ? musicParsed.musicUrl : undefined;
+    const musicUrlsJson = musicParsed.hasMusicUrls
+      ? musicParsed.musicUrls?.length
+        ? JSON.stringify(musicParsed.musicUrls)
+        : null
+      : undefined;
     const musicVolume = musicParsed.hasMusicVolume ? musicParsed.musicVolume : undefined;
     const popoverMarkdown = popoverParsed.hasPopoverMarkdown
       ? popoverParsed.popoverMarkdown
@@ -195,7 +207,8 @@ router.put(
             description = COALESCE(?, description),
             color = COALESCE(?, color),
             points_json = COALESCE(?, points_json),
-            music_url = ${musicParsed.hasMusicUrl ? '?' : 'music_url'},
+            music_url = ${musicParsed.hasMusicUrls ? '?' : 'music_url'},
+            music_urls_json = ${musicParsed.hasMusicUrls ? '?' : 'music_urls_json'},
             music_volume = ${musicParsed.hasMusicVolume ? '?' : 'music_volume'},
             popover_markdown = ${popoverParsed.hasPopoverMarkdown ? '?' : 'popover_markdown'},
             popover_images_json = ${popoverParsed.hasPopoverImages ? '?' : 'popover_images_json'},
@@ -206,7 +219,7 @@ router.put(
         description,
         color,
         pointsJson,
-        ...(musicParsed.hasMusicUrl ? [musicUrl] : []),
+        ...(musicParsed.hasMusicUrls ? [musicUrl, musicUrlsJson] : []),
         ...(musicParsed.hasMusicVolume ? [musicVolume] : []),
         ...(popoverParsed.hasPopoverMarkdown ? [popoverMarkdown] : []),
         ...(popoverParsed.hasPopoverImages ? [popoverImagesJson] : []),

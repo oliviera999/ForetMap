@@ -64,6 +64,8 @@ export function GLGameBoard({
   virtualDiceEnabled = false,
   feuilletZones = [],
   feuilletZoneEditMode = false,
+  showPlateauMarkers = true,
+  showPlateauZones = false,
 }) {
   const assetsReady = useGlAssetsReady();
   const plateauNumber = chapter?.chapter_plateau_number ?? chapter?.plateau_number ?? null;
@@ -186,6 +188,8 @@ export function GLGameBoard({
   }, [gameId, watchTeamId]);
 
   const activeFeuilletZones = feuilletZoneEditMode ? editZones : feuilletZones;
+  const displayMarkers = feuilletZoneEditMode || showPlateauMarkers;
+  const displayFeuilletZones = feuilletZoneEditMode || showPlateauZones;
 
   const {
     popover: feuilletZonePopover,
@@ -395,25 +399,27 @@ export function GLGameBoard({
             panelTitle="Édition plateau"
             onPlacementReady={handlePlateauPlacementReady}
           />
-        ) : (
+        ) : displayFeuilletZones ? (
           <GLFeuilletZoneOverlay
             zones={activeFeuilletZones}
             presentedZoneIds={presentedFeuilletZoneIds}
             watchPosition={watchPosition}
           />
-        )}
+        ) : null}
 
-        <GLBoardMarkers
-          markers={feuilletZoneEditMode ? editableMarkers : markers}
-          selectedMarkerId={
-            feuilletZoneEditMode ? plateauPlacement.selectedMarkerId : null
-          }
-          onMarkerClick={
-            feuilletZoneEditMode
-              ? (marker) => plateauPlacement.selectMarker?.(marker.id)
-              : handleMarkerClick
-          }
-        />
+        {displayMarkers ? (
+          <GLBoardMarkers
+            markers={feuilletZoneEditMode ? editableMarkers : markers}
+            selectedMarkerId={
+              feuilletZoneEditMode ? plateauPlacement.selectedMarkerId : null
+            }
+            onMarkerClick={
+              feuilletZoneEditMode
+                ? (marker) => plateauPlacement.selectMarker?.(marker.id)
+                : handleMarkerClick
+            }
+          />
+        ) : null}
 
         {teamList.map((team) => {
           const position = getPositionForTeam(team.id);

@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { apiGL } from '../services/apiGL.js';
 import { GLLoreGlossaryMarkdown } from './GLLoreGlossaryMarkdown.jsx';
 import { GLGlossaryMarkdown } from './GLGlossaryMarkdown.jsx';
-import { GLFeuilletIllustration } from './GLFeuilletIllustration.jsx';
+import { GLFeuilletIllustration, GLFeuilletCoupeIllustration } from './GLFeuilletIllustration.jsx';
 import { GLButton } from './ui/GLButton.jsx';
 
 function groupByLiasse(items) {
@@ -198,9 +198,10 @@ export function GLSeleneCarnetView({
                 {active.imageCoupeUrl ? (
                   <details className="gl-selene-carnet__coupe">
                     <summary>Coupe</summary>
-                    <figure className="gl-selene-carnet__illu">
-                      <img src={active.imageCoupeUrl} alt="Coupe pédagogique" loading="lazy" />
-                    </figure>
+                    <GLFeuilletCoupeIllustration
+                      url={active.imageCoupeUrl}
+                      figureClassName="gl-selene-carnet__illu"
+                    />
                   </details>
                 ) : null}
                 {active.ancrageScientifique ? (

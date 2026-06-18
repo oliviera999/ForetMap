@@ -7,6 +7,19 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### GL — affichage des icônes de repères sur le plateau
+
+- **Emojis** : police Noto Color Emoji préchargée, variables `--font-emoji-stack` dans `gl-base.css`, `font-variant-emoji` sur les repères ; restauration de `foretmap-emoji-text-mixed` (évite rectangles / glyphes incorrects sous Caudex).
+- **Icônes image** : résolution des clés stables médiathèque via `resolveGlMarkerIconDisplayUrl` / `useResolveGlMarkerIconDisplayUrl` (legacy `gl-*`, `local:/`, `/uploads/`) ; acceptation des clés stables dans `normalizeIconUrl`.
+- **Tests** : `tests-ui/gl/resolveGlMarkerIconDisplayUrl.test.js`, extension `GLBoardMarkers.test.jsx`.
+
+### GL — duplication repères et zones (studio carte chapitre)
+
+- **Repères** : bouton « Dupliquer » dans la liste et le formulaire ; copie label « (copie) », position décalée (+3 %), événement et apparence conservés.
+- **Zones royaume** : bouton « Dupliquer » dans la liste et le panneau d’édition ; copie contour (décalé), couleur, popover et musique.
+- **Utilitaires** : `glMapDuplicate.js`, `markerDuplicatePayloadFromMarker`, `zoneDuplicateCreatePayloadFromZone`.
+- **Tests** : `tests-ui/gl/glMapDuplicate.test.js`, extension `GLChapterMapStudio.test.jsx`.
+
 ### Build — correctifs imports et artefacts `dist/`
 
 - **FMQuizCatalogPanel** : chemins `api` / `downloadApiFile` corrigés (`../../../`).

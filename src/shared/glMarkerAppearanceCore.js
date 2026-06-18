@@ -22,13 +22,17 @@ function normalizeMarkerEmoji(value, opts = {}) {
   return s.slice(0, MAP_MARKER_EMOJI_MAX_LEN);
 }
 
+const MARKER_ICON_STABLE_KEY_RE = /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$/;
+
 function normalizeIconUrl(value) {
   if (value == null) return null;
   const s = String(value).trim();
   if (!s) return null;
   if (/^javascript:/i.test(s) || /^data:/i.test(s)) return null;
+  if (s.startsWith('local:/')) return s.slice(0, 512);
   if (s.startsWith('/uploads/')) return s.slice(0, 512);
   if (/^https?:\/\//i.test(s)) return s.slice(0, 512);
+  if (MARKER_ICON_STABLE_KEY_RE.test(s)) return s.slice(0, 512);
   return null;
 }
 

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react';
+import { zoneMusicUrls, zoneMusicVolume } from '../../utils/glZoneAtPct.js';
 
 export const GL_ZONE_MUSIC_FADE_MS = 1200;
 export const GL_ZONE_MUSIC_MUTED_KEY = 'gl_zone_music_muted';
@@ -49,8 +50,14 @@ function runCrossfade({ outgoing, incoming, outFrom, inTo, durationMs, rafRef, o
   rafRef.current = requestAnimationFrame(step);
 }
 
+function buildZoneKey(activeZone, urls) {
+  if (!activeZone?.id || !urls?.length) return null;
+  return `${activeZone.id}:${urls.join('|')}`;
+}
+
 /**
  * Moteur audio à deux pistes avec fondu enchaîné pour la musique de zone GL.
+ * Supporte une playlist de pistes qui s'enchaînent (boucle sur la liste).
  */
 export function useGLZoneMusic({
   enabled = false,
@@ -65,63 +72,212 @@ export function useGLZoneMusic({
   const fadeRafRef = useRef(null);
   const unlockedRef = useRef(false);
   const lastZoneKeyRef = useRef(null);
+  const playlistRef = useRef([]);
+  const trackIndexRef = useRef(0);
+  const volumeRef = useRef(0.7);
+  const endedHandlerRef = useRef(null);
 
   const ensureAudios = useCallback(() => {
     if (typeof Audio === 'undefined') return null;
     if (!audioARef.current) {
       const a = new Audio();
-      a.loop = true;
       a.preload = 'auto';
       audioARef.current = a;
     }
     if (!audioBRef.current) {
       const b = new Audio();
-      b.loop = true;
       b.preload = 'auto';
       audioBRef.current = b;
     }
     return { a: audioARef.current, b: audioBRef.current };
   }, []);
 
+  const detachEndedHandler = useCallback((audio) => {
+    if (!audio || !endedHandlerRef.current) return;
+    audio.removeEventListener('ended', endedHandlerRef.current);
+  }, []);
+
   const stopAll = useCallback(() => {
     cancelFade(fadeRafRef);
     for (const audio of [audioARef.current, audioBRef.current]) {
       if (!audio) continue;
+      detachEndedHandler(audio);
       audio.pause();
       audio.removeAttribute('src');
       audio.load();
       audio.volume = 0;
+      audio.loop = false;
     }
     activeSlotRef.current = null;
     lastZoneKeyRef.current = null;
-  }, []);
+    playlistRef.current = [];
+    trackIndexRef.current = 0;
+  }, [detachEndedHandler]);
+
+  const fadeOutActive = useCallback(
+    (onDone) => {
+      const outgoing =
+        activeSlotRef.current === 'a'
+          ? audioARef.current
+          : activeSlotRef.current === 'b'
+            ? audioBRef.current
+            : null;
+      if (outgoing && !outgoing.paused) {
+        const outFrom = outgoing.volume;
+        runCrossfade({
+          outgoing,
+          incoming: null,
+          outFrom,
+          inTo: 0,
+          durationMs: fadeMs,
+          rafRef: fadeRafRef,
+          onDone: () => {
+            detachEndedHandler(outgoing);
+            outgoing.pause();
+            outgoing.removeAttribute('src');
+            outgoing.load();
+            outgoing.loop = false;
+            activeSlotRef.current = null;
+            lastZoneKeyRef.current = null;
+            playlistRef.current = [];
+            trackIndexRef.current = 0;
+            onDone?.();
+          },
+        });
+      } else {
+        stopAll();
+        onDone?.();
+      }
+    },
+    [detachEndedHandler, fadeMs, stopAll],
+  );
+
+  const playTrack = useCallback(
+    ({ url, volume, loop, resetZoneKey = false }) => {
+      const audios = ensureAudios();
+      if (!audios || !url) return;
+
+      const outgoing =
+        activeSlotRef.current === 'a'
+          ? audios.a
+          : activeSlotRef.current === 'b'
+            ? audios.b
+            : null;
+      const incomingSlot = activeSlotRef.current === 'a' ? 'b' : 'a';
+      const incoming = incomingSlot === 'a' ? audios.a : audios.b;
+
+      if (resetZoneKey) {
+        lastZoneKeyRef.current = null;
+      }
+
+      detachEndedHandler(outgoing);
+      detachEndedHandler(incoming);
+      activeSlotRef.current = incomingSlot;
+
+      incoming.loop = loop;
+      incoming.src = url;
+      incoming.volume = 0;
+      incoming.play().catch(() => {});
+
+      const targetVol = Math.max(0, Math.min(1, volume));
+      const outFrom = outgoing && !outgoing.paused ? outgoing.volume : 0;
+      runCrossfade({
+        outgoing: outgoing && !outgoing.paused ? outgoing : null,
+        incoming,
+        outFrom,
+        inTo: targetVol,
+        durationMs: fadeMs,
+        rafRef: fadeRafRef,
+        onDone: () => {
+          if (outgoing && outgoing !== incoming) {
+            detachEndedHandler(outgoing);
+            outgoing.pause();
+            outgoing.removeAttribute('src');
+            outgoing.load();
+            outgoing.volume = 0;
+            outgoing.loop = false;
+          }
+        },
+      });
+    },
+    [detachEndedHandler, ensureAudios, fadeMs],
+  );
+
+  const bindPlaylistEnded = useCallback(
+    (audio) => {
+      const urls = playlistRef.current;
+      if (urls.length <= 1 || !audio) return;
+      detachEndedHandler(audio);
+      const handler = () => {
+        if (playlistRef.current.length <= 1) return;
+        const nextUrls = playlistRef.current;
+        const nextIndex = (trackIndexRef.current + 1) % nextUrls.length;
+        trackIndexRef.current = nextIndex;
+        playTrack({
+          url: nextUrls[nextIndex],
+          volume: volumeRef.current,
+          loop: false,
+        });
+        const audios = ensureAudios();
+        const active =
+          activeSlotRef.current === 'a'
+            ? audios?.a
+            : activeSlotRef.current === 'b'
+              ? audios?.b
+              : null;
+        if (active) bindPlaylistEnded(active);
+      };
+      endedHandlerRef.current = handler;
+      audio.addEventListener('ended', handler);
+    },
+    [detachEndedHandler, ensureAudios, playTrack],
+  );
+
+  const startPlaylist = useCallback(
+    (urls, volume, zoneKey) => {
+      playlistRef.current = urls;
+      trackIndexRef.current = 0;
+      volumeRef.current = volume;
+      lastZoneKeyRef.current = zoneKey;
+
+      const loopSingle = urls.length <= 1;
+      playTrack({
+        url: urls[0],
+        volume,
+        loop: loopSingle,
+      });
+
+      if (!loopSingle) {
+        const audios = ensureAudios();
+        const active =
+          activeSlotRef.current === 'a'
+            ? audios?.a
+            : activeSlotRef.current === 'b'
+              ? audios?.b
+              : null;
+        if (active) bindPlaylistEnded(active);
+      }
+    },
+    [bindPlaylistEnded, ensureAudios, playTrack],
+  );
 
   const unlock = useCallback(() => {
     unlockedRef.current = true;
   }, []);
 
   const previewUrl = useCallback(
-    (url, volume = 0.7) => {
-      const audios = ensureAudios();
-      if (!audios || !url) return;
+    (urlOrUrls, volume = 0.7) => {
+      const urls = Array.isArray(urlOrUrls)
+        ? urlOrUrls.map((url) => String(url || '').trim()).filter(Boolean)
+        : urlOrUrls
+          ? [String(urlOrUrls).trim()]
+          : [];
+      if (urls.length === 0) return;
       stopAll();
       unlockedRef.current = true;
-      const target = audios.a;
-      target.src = url;
-      target.volume = 0;
-      target.play().catch(() => {});
-      runCrossfade({
-        outgoing: null,
-        incoming: target,
-        outFrom: 0,
-        inTo: Math.max(0, Math.min(1, volume)),
-        durationMs: fadeMs,
-        rafRef: fadeRafRef,
-      });
-      activeSlotRef.current = 'a';
-      lastZoneKeyRef.current = `preview:${url}`;
+      startPlaylist(urls, volume, `preview:${urls.join('|')}`);
     },
-    [ensureAudios, fadeMs, stopAll],
+    [startPlaylist, stopAll],
   );
 
   useEffect(() => {
@@ -130,105 +286,25 @@ export function useGLZoneMusic({
     }
 
     if (userMuted || !unlockedRef.current) {
-      const outgoing =
-        activeSlotRef.current === 'a'
-          ? audioARef.current
-          : activeSlotRef.current === 'b'
-            ? audioBRef.current
-            : null;
-      if (outgoing && !outgoing.paused) {
-        const outFrom = outgoing.volume;
-        runCrossfade({
-          outgoing,
-          incoming: null,
-          outFrom,
-          inTo: 0,
-          durationMs: fadeMs,
-          rafRef: fadeRafRef,
-          onDone: () => {
-            outgoing.pause();
-            outgoing.removeAttribute('src');
-            outgoing.load();
-            activeSlotRef.current = null;
-            lastZoneKeyRef.current = null;
-          },
-        });
-      }
+      fadeOutActive();
       return undefined;
     }
 
-    const musicUrl = activeZone?.musicUrl || null;
-    const musicVolume = Number(activeZone?.musicVolume ?? 0.7);
-    const zoneKey = musicUrl ? `${activeZone?.id}:${musicUrl}` : null;
+    const musicUrls = zoneMusicUrls(activeZone);
+    const musicVolume = zoneMusicVolume(activeZone);
+    const zoneKey = buildZoneKey(activeZone, musicUrls);
 
-    if (!musicUrl) {
-      const outgoing =
-        activeSlotRef.current === 'a'
-          ? audioARef.current
-          : activeSlotRef.current === 'b'
-            ? audioBRef.current
-            : null;
-      if (outgoing && !outgoing.paused) {
-        const outFrom = outgoing.volume;
-        runCrossfade({
-          outgoing,
-          incoming: null,
-          outFrom,
-          inTo: 0,
-          durationMs: fadeMs,
-          rafRef: fadeRafRef,
-          onDone: () => {
-            outgoing.pause();
-            outgoing.removeAttribute('src');
-            outgoing.load();
-            activeSlotRef.current = null;
-            lastZoneKeyRef.current = null;
-          },
-        });
-      } else {
-        stopAll();
-      }
+    if (musicUrls.length === 0) {
+      fadeOutActive();
       return undefined;
     }
 
     if (zoneKey === lastZoneKeyRef.current) return undefined;
 
-    const audios = ensureAudios();
-    if (!audios) return undefined;
-
-    const outgoing =
-      activeSlotRef.current === 'a' ? audios.a : activeSlotRef.current === 'b' ? audios.b : null;
-    const incomingSlot = activeSlotRef.current === 'a' ? 'b' : 'a';
-    const incoming = incomingSlot === 'a' ? audios.a : audios.b;
-
-    lastZoneKeyRef.current = zoneKey;
-    activeSlotRef.current = incomingSlot;
-
-    incoming.src = musicUrl;
-    incoming.volume = 0;
-    incoming.play().catch(() => {});
-
-    const targetVol = Math.max(0, Math.min(1, musicVolume));
-    const outFrom = outgoing && !outgoing.paused ? outgoing.volume : 0;
-    runCrossfade({
-      outgoing: outgoing && !outgoing.paused ? outgoing : null,
-      incoming,
-      outFrom,
-      inTo: targetVol,
-      durationMs: fadeMs,
-      rafRef: fadeRafRef,
-      onDone: () => {
-        if (outgoing && outgoing !== incoming) {
-          outgoing.pause();
-          outgoing.removeAttribute('src');
-          outgoing.load();
-          outgoing.volume = 0;
-        }
-      },
-    });
+    startPlaylist(musicUrls, musicVolume, zoneKey);
 
     return undefined;
-  }, [activeZone, enabled, userMuted, prefersReducedMotion, fadeMs, ensureAudios, stopAll]);
+  }, [activeZone, enabled, userMuted, prefersReducedMotion, fadeOutActive, startPlaylist]);
 
   useEffect(
     () => () => {

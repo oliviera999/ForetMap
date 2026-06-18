@@ -48,6 +48,7 @@ const {
   clampPercent,
   toPositiveInt,
   parsePlateauNumber,
+  parseChapterMapVisibilityField,
   normalizeMapImageFrame,
   parseMapImageFrameJson,
   attachChapterTheme,
@@ -77,7 +78,8 @@ async function readChapterFull(slugOrId) {
         `SELECT c.id, c.slug, c.title, c.biome,
               c.map_image_url, c.story_markdown, c.biotope_markdown,
               c.biocenose_markdown, c.sortileges_markdown, c.map_image_frame_json, c.theme_json,
-              c.souffle_face, c.plateau_number, c.order_index, c.created_at, c.updated_at
+              c.souffle_face, c.plateau_number, c.map_markers_visible, c.map_zones_visible,
+              c.order_index, c.created_at, c.updated_at
          FROM gl_chapters c
         WHERE c.id = ?
         LIMIT 1`,
@@ -87,7 +89,8 @@ async function readChapterFull(slugOrId) {
         `SELECT c.id, c.slug, c.title, c.biome,
               c.map_image_url, c.story_markdown, c.biotope_markdown,
               c.biocenose_markdown, c.sortileges_markdown, c.map_image_frame_json, c.theme_json,
-              c.souffle_face, c.plateau_number, c.order_index, c.created_at, c.updated_at
+              c.souffle_face, c.plateau_number, c.map_markers_visible, c.map_zones_visible,
+              c.order_index, c.created_at, c.updated_at
          FROM gl_chapters c
         WHERE c.slug = ?
         LIMIT 1`,
@@ -119,7 +122,8 @@ router.get(
   asyncHandler(async (_req, res) => {
     const rows = await queryAll(
       `SELECT c.id, c.slug, c.title, c.biome,
-            c.map_image_url, c.map_image_frame_json, c.theme_json, c.plateau_number, c.order_index
+            c.map_image_url, c.map_image_frame_json, c.theme_json, c.plateau_number,
+            c.map_markers_visible, c.map_zones_visible, c.order_index
        FROM gl_chapters c
       ORDER BY c.order_index ASC, c.id ASC`,
     );
@@ -187,6 +191,22 @@ router.post(
     if (!mapImageFrame) return res.status(400).json({ error: 'mapImageFrame invalide' });
     const orderIndex = toPositiveInt(req.body?.orderIndex, 0);
     const plateauNumber = parsePlateauNumber(req.body?.plateauNumber);
+    const mapMarkersVisible = parseChapterMapVisibilityField(req.body?.mapMarkersVisible);
+    const mapZonesVisible = parseChapterMapVisibilityField(req.body?.mapZonesVisible);
+    if (
+      req.body &&
+      Object.prototype.hasOwnProperty.call(req.body, 'mapMarkersVisible') &&
+      mapMarkersVisible === undefined
+    ) {
+      return res.status(400).json({ error: 'mapMarkersVisible doit être booléen ou null' });
+    }
+    if (
+      req.body &&
+      Object.prototype.hasOwnProperty.call(req.body, 'mapZonesVisible') &&
+      mapZonesVisible === undefined
+    ) {
+      return res.status(400).json({ error: 'mapZonesVisible doit être booléen ou null' });
+    }
     let themeJson = null;
     if (req.body && Object.prototype.hasOwnProperty.call(req.body, 'theme')) {
       const { theme, error: themeError } = validateChapterThemeInput(req.body.theme);
@@ -199,8 +219,9 @@ router.post(
         await tx.execute(
           `INSERT INTO gl_chapters (slug, title, biome, map_image_url, story_markdown,
                                    biotope_markdown, biocenose_markdown, sortileges_markdown,
-                                   map_image_frame_json, theme_json, plateau_number, order_index, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+                                   map_image_frame_json, theme_json, plateau_number,
+                                   map_markers_visible, map_zones_visible, order_index, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
           [
             slug,
             title,
@@ -213,6 +234,8 @@ router.post(
             JSON.stringify(mapImageFrame),
             themeJson,
             plateauNumber,
+            mapMarkersVisible ?? null,
+            mapZonesVisible ?? null,
             orderIndex,
           ],
         );
@@ -319,6 +342,22 @@ router.put(
       }
       updates.push('plateau_number = ?');
       params.push(plateauNumber);
+    }
+    if (req.body && Object.prototype.hasOwnProperty.call(req.body, 'mapMarkersVisible')) {
+      const mapMarkersVisible = parseChapterMapVisibilityField(req.body.mapMarkersVisible);
+      if (mapMarkersVisible === undefined) {
+        return res.status(400).json({ error: 'mapMarkersVisible doit être booléen ou null' });
+      }
+      updates.push('map_markers_visible = ?');
+      params.push(mapMarkersVisible);
+    }
+    if (req.body && Object.prototype.hasOwnProperty.call(req.body, 'mapZonesVisible')) {
+      const mapZonesVisible = parseChapterMapVisibilityField(req.body.mapZonesVisible);
+      if (mapZonesVisible === undefined) {
+        return res.status(400).json({ error: 'mapZonesVisible doit être booléen ou null' });
+      }
+      updates.push('map_zones_visible = ?');
+      params.push(mapZonesVisible);
     }
     if (updates.length === 0 && biomeSlugs == null && spellCodes == null) {
       return res.status(400).json({ error: 'Aucun champ à mettre à jour' });

@@ -84,6 +84,10 @@ test('GET /api/gl/gameplay-settings expose les 4 toggles (joueur)', async () => 
     ['every_arrival', 'once_per_team', 'once_per_game'].includes(s.markerQuestionRetrigger),
   );
   assert.ok(['every_arrival', 'once_per_team', 'once_per_game'].includes(s.zoneContentRetrigger));
+  assert.strictEqual(typeof s.plateauMarkersVisible, 'boolean');
+  assert.strictEqual(typeof s.plateauZonesVisible, 'boolean');
+  assert.strictEqual(s.plateauMarkersVisible, true);
+  assert.strictEqual(s.plateauZonesVisible, false);
 });
 
 test('PUT défauts vitalité invalide → 400', async () => {
@@ -147,6 +151,40 @@ test('PUT gameplay.qcm_mj_only persiste et est lu par /gameplay-settings', async
 
   await request(app)
     .put('/api/gl/admin/settings/gameplay.qcm_mj_only')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ value: false })
+    .expect(200);
+  invalidateGameplayCache();
+});
+
+test('PUT gameplay.plateau_* persiste et est lu par /gameplay-settings', async () => {
+  await request(app)
+    .put('/api/gl/admin/settings/gameplay.plateau_markers_visible')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ value: false })
+    .expect(200);
+  await request(app)
+    .put('/api/gl/admin/settings/gameplay.plateau_zones_visible')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ value: true })
+    .expect(200);
+
+  invalidateGameplayCache();
+
+  const res = await request(app)
+    .get('/api/gl/gameplay-settings')
+    .set('Authorization', `Bearer ${playerToken}`)
+    .expect(200);
+  assert.strictEqual(res.body.settings.plateauMarkersVisible, false);
+  assert.strictEqual(res.body.settings.plateauZonesVisible, true);
+
+  await request(app)
+    .put('/api/gl/admin/settings/gameplay.plateau_markers_visible')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ value: true })
+    .expect(200);
+  await request(app)
+    .put('/api/gl/admin/settings/gameplay.plateau_zones_visible')
     .set('Authorization', `Bearer ${adminToken}`)
     .send({ value: false })
     .expect(200);

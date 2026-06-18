@@ -43,7 +43,16 @@ export function useGLKingdomZones(chapterId, { zoneMusicEnabled = false } = {}) 
   }, []);
 
   const createZone = useCallback(
-    async ({ label, color, points, musicUrl, musicVolume }) => {
+    async ({
+      label,
+      color,
+      points,
+      musicUrl,
+      musicVolume,
+      popoverMarkdown,
+      popoverImages,
+      description,
+    }) => {
       const id = chapterId != null ? Number(chapterId) : null;
       if (!id) return;
       const payload = {
@@ -52,6 +61,9 @@ export function useGLKingdomZones(chapterId, { zoneMusicEnabled = false } = {}) 
         color,
         points,
       };
+      if (description != null) payload.description = description;
+      if (popoverMarkdown !== undefined) payload.popoverMarkdown = popoverMarkdown;
+      if (popoverImages !== undefined) payload.popoverImages = popoverImages;
       if (zoneMusicEnabled && musicUrl) {
         payload.musicUrl = musicUrl;
         payload.musicVolume = musicVolume;

@@ -21,9 +21,11 @@ import { GLButton } from './ui/GLButton.jsx';
 import { GLChapterMarkerListVisual } from './GLChapterMarkerListVisual.jsx';
 import {
   EMPTY_MARKER_FORM,
+  markerDuplicatePayloadFromMarker,
   toFormFromMarker,
   toMarkerPayload,
 } from '../utils/glChapterMapStudioForm.js';
+import { zoneDuplicateCreatePayloadFromZone } from '../hooks/useGLKingdomZoneEditor.js';
 
 export function GLChapterMapStudio({
   chapterId,
@@ -278,6 +280,28 @@ export function GLChapterMapStudio({
     }
   }
 
+  async function duplicateMarker(sourceMarker) {
+    const marker = sourceMarker || selectedMarker;
+    if (!chapterId || !marker) return;
+    const payload = markerDuplicatePayloadFromMarker(marker);
+    if (!payload?.label) {
+      onError?.('Duplication du repère impossible');
+      return;
+    }
+    setSaving(true);
+    try {
+      await apiGL(`/api/gl/chapters/admin/${chapterId}/markers`, 'POST', payload);
+      onInfo?.('Repère dupliqué');
+      setIsAddMode(false);
+      resetForm();
+      await onReload?.(chapterSlug);
+    } catch (err) {
+      onError?.(err.message || 'Duplication du repère impossible');
+    } finally {
+      setSaving(false);
+    }
+  }
+
   const handleMapClick = useCallback(
     (pct, event) => {
       if (zoneEditActive) {
@@ -362,6 +386,28 @@ export function GLChapterMapStudio({
     [deleteZone, onInfo, onError],
   );
 
+  const handleDuplicateZone = useCallback(
+    async (zoneOrId) => {
+      const source =
+        typeof zoneOrId === 'object' && zoneOrId != null
+          ? zoneOrId
+          : zones.find((zone) => Number(zone.id) === Number(zoneOrId));
+      if (!source) return;
+      const payload = zoneDuplicateCreatePayloadFromZone(source);
+      if (!payload) {
+        onError?.('Duplication de la zone impossible');
+        return;
+      }
+      try {
+        await createZone(payload);
+        onInfo?.('Zone dupliquée');
+      } catch (err) {
+        onError?.(err.message || 'Duplication de la zone impossible');
+      }
+    },
+    [zones, createZone, onInfo, onError],
+  );
+
   return (
     <section className="gl-chapter-map-studio">
       {zonesError ? <p className="gl-error">{zonesError}</p> : null}
@@ -370,6 +416,7 @@ export function GLChapterMapStudio({
         zoneEditor={zoneEditor}
         zoneMusicEnabled={zoneMusicEnabled}
         onDeleteZone={handleDeleteZone}
+        onDuplicateZone={handleDuplicateZone}
         fetchMediaLibrary={fetchMediaLibraryWithInfo}
         uploadMediaLibrary={uploadMediaLibraryWithInfo}
         removeMediaLibrary={removeMediaLibraryWithInfo}
@@ -444,6 +491,18 @@ export function GLChapterMapStudio({
               %, y:
               {Number(marker.y_pct).toFixed(1)}%
             </button>
+            {!zoneEditActive ? (
+              <GLButton
+                type="button"
+                size="sm"
+                variant="secondary"
+                disabled={saving}
+                onClick={() => duplicateMarker(marker)}
+                title="Dupliquer ce repère"
+              >
+                Dupliquer
+              </GLButton>
+            ) : null}
           </li>
         ))}
         {editableMarkers.length === 0 ? (
@@ -548,14 +607,25 @@ export function GLChapterMapStudio({
             {selectedMarker ? 'Enregistrer le repère' : 'Ajouter le repère'}
           </GLButton>
           {selectedMarker ? (
-            <GLButton
-              type="button"
-              variant="danger"
-              onClick={deleteMarker}
-              disabled={zoneEditActive}
-            >
-              Supprimer
-            </GLButton>
+            <>
+              <GLButton
+                type="button"
+                variant="secondary"
+                onClick={() => duplicateMarker(selectedMarker)}
+                disabled={zoneEditActive || saving}
+                loading={saving}
+              >
+                Dupliquer
+              </GLButton>
+              <GLButton
+                type="button"
+                variant="danger"
+                onClick={deleteMarker}
+                disabled={zoneEditActive}
+              >
+                Supprimer
+              </GLButton>
+            </>
           ) : null}
         </div>
       </form>
@@ -564,6 +634,7 @@ export function GLChapterMapStudio({
         zoneEditor={zoneEditor}
         zoneMusicEnabled={zoneMusicEnabled}
         onDeleteZone={handleDeleteZone}
+        onDuplicateZone={handleDuplicateZone}
         fetchMediaLibrary={fetchMediaLibraryWithInfo}
         uploadMediaLibrary={uploadMediaLibraryWithInfo}
         removeMediaLibrary={removeMediaLibraryWithInfo}

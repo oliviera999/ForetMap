@@ -14,7 +14,7 @@ import {
 import { glImageFrameToStyle, normalizeGlImageFrame } from '../../utils/glImageFrame.js';
 import { defaultEventConfigForQuestion } from '../../utils/glMarkerEventConfig.js';
 import { GLButton } from './ui/GLButton.jsx';
-import { resolveMarkerAppearance } from '../../utils/glMarkerAppearance.js';
+import { GLChapterMarkerListVisual } from './GLChapterMarkerListVisual.jsx';
 
 const EMPTY_MARKER_FORM = {
   label: '',
@@ -49,25 +49,7 @@ function toMarkerPayload(form, eventDraft, appearanceForm) {
 }
 
 function MarkerListVisual({ marker }) {
-  const appearance = resolveMarkerAppearance(marker);
-  if (appearance.displayMode === 'emoji' && appearance.emoji) {
-    return (
-      <span className="gl-markers-list__visual foretmap-emoji-text-mixed" aria-hidden>
-        {appearance.emoji}{' '}
-      </span>
-    );
-  }
-  if (appearance.displayMode === 'icon' && appearance.iconUrl) {
-    return (
-      <img
-        className="gl-markers-list__visual gl-markers-list__visual--icon"
-        src={appearance.iconUrl}
-        alt=""
-        aria-hidden
-      />
-    );
-  }
-  return null;
+  return <GLChapterMarkerListVisual marker={marker} />;
 }
 
 export function GLChapterMapEditor({
