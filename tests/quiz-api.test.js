@@ -6,6 +6,8 @@ const assert = require('node:assert');
 const request = require('supertest');
 const { initSchema, queryOne } = require('../database');
 const { app } = require('../server');
+const { ensureAdminTeacherAuthToken } = require('./helpers/adminAuth');
+const { buildFmQuizTemplateWorkbook } = require('../lib/fmQuizImport');
 
 test.before(async () => {
   await initSchema();
@@ -75,4 +77,62 @@ test('GET /api/quiz/draw — illustrated=1 filtre photo', async () => {
 
 test('GET /api/quiz/stats — auth prof requise', async () => {
   await request(app).get('/api/quiz/stats').expect(401);
+});
+
+test('GET /api/quiz/questions — liste publique filtrée', async () => {
+  const res = await request(app)
+    .get('/api/quiz/questions?theme=sciences&categorieSlug=vivant_classification')
+    .expect(200);
+  assert.ok(Array.isArray(res.body.items));
+  assert.ok(res.body.items.length > 0);
+  assert.strictEqual(res.body.items[0].categorie_slug, 'vivant_classification');
+  assert.strictEqual(res.body.items[0].theme, 'sciences');
+});
+
+test('GET /api/quiz/admin/stats — auth requise', async () => {
+  await request(app).get('/api/quiz/admin/stats').expect(401);
+  const token = await ensureAdminTeacherAuthToken();
+  const res = await request(app)
+    .get('/api/quiz/admin/stats')
+    .set('Authorization', `Bearer ${token}`)
+    .expect(200);
+  assert.ok(Number(res.body.total) > 0);
+});
+
+async function getQuizXlsxBuffer(url, token) {
+  const chunks = [];
+  const res = await request(app)
+    .get(url)
+    .set('Authorization', `Bearer ${token}`)
+    .buffer(true)
+    .parse((res, callback) => {
+      res.on('data', (chunk) => chunks.push(chunk));
+      res.on('end', () => callback(null, Buffer.concat(chunks)));
+    })
+    .expect(200);
+  assert.ok((res.headers['content-type'] || '').includes('openxmlformats'));
+  const buf = Buffer.isBuffer(res.body) ? res.body : Buffer.from(res.body);
+  assert.strictEqual(buf.slice(0, 2).toString('latin1'), 'PK');
+  return buf;
+}
+
+test('GET /api/quiz/admin/import/template — modèle XLSX', async () => {
+  const token = await ensureAdminTeacherAuthToken();
+  const buf = await getQuizXlsxBuffer('/api/quiz/admin/import/template', token);
+  assert.ok(buf.length > 100);
+});
+
+test('POST /api/quiz/admin/import dryRun avec modèle', async () => {
+  const token = await ensureAdminTeacherAuthToken();
+  const buffer = await buildFmQuizTemplateWorkbook();
+  const beforeCount = await queryOne('SELECT COUNT(*) AS n FROM quiz_questions');
+  const res = await request(app)
+    .post('/api/quiz/admin/import')
+    .set('Authorization', `Bearer ${token}`)
+    .send({ fileDataBase64: buffer.toString('base64'), dryRun: true })
+    .expect(200);
+  assert.strictEqual(res.body?.report?.dryRun, true);
+  assert.ok(res.body?.report?.totals?.valid >= 1);
+  const afterCount = await queryOne('SELECT COUNT(*) AS n FROM quiz_questions');
+  assert.strictEqual(Number(afterCount.n), Number(beforeCount.n));
 });

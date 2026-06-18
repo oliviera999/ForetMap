@@ -5634,6 +5634,53 @@
   gap: 8px;
   margin-top: 14px;
 }
+.pedago-quiz-admin { display: grid; gap: 20px; }
+.pedago-quiz-admin__catalog .pedago-qcm-admin { padding: 14px; }
+.pedago-qcm-admin__error { color: #b42318; }
+.pedago-qcm-admin__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: flex-end;
+  margin: 12px 0;
+}
+.pedago-qcm-admin__form { display: grid; gap: 10px; margin: 12px 0; }
+.pedago-qcm-admin__checkbox {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  min-height: 44px;
+}
+.pedago-qcm-admin__report {
+  max-height: 240px;
+  overflow: auto;
+  font-size: 0.78rem;
+  background: #f6faf7;
+  border: 1px solid #dce8e0;
+  border-radius: 8px;
+  padding: 10px;
+}
+.pedago-qcm-admin__divider { margin: 16px 0; border: none; border-top: 1px solid #e2ebe5; }
+.pedago-qcm-admin__list { display: grid; gap: 10px; margin-top: 12px; }
+.pedago-qcm-admin__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 12px;
+  border: 1px solid #e2ebe5;
+  border-radius: 10px;
+  background: #fff;
+}
+.pedago-qcm-admin__preview {
+  margin-top: 16px;
+  padding: 14px;
+  border: 1px solid #dce8e0;
+  border-radius: 12px;
+  background: #f9fcfa;
+}
+.pedago-qcm-admin__preview-body { display: grid; gap: 10px; }
 .pedago-qcm-feedback {
   margin: 12px 0;
   padding: 12px 14px;
