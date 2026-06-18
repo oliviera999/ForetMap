@@ -50,6 +50,7 @@ export function GLAuthView({ onLogin, oauthNotice, config, appVersion = null }) 
   const [modules, setModules] = useState(config?.modules || null);
   const [modulesLoaded, setModulesLoaded] = useState(Boolean(config?.modules));
   const [allowGoogle, setAllowGoogle] = useState(false);
+  const [guestModeEnabled, setGuestModeEnabled] = useState(Boolean(config?.guestModeEnabled));
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
   const [busy, setBusy] = useState(false);
@@ -85,6 +86,9 @@ export function GLAuthView({ onLogin, oauthNotice, config, appVersion = null }) 
         setModulesLoaded(true);
         const googleReady = !!(data?.allowGoogleStaff || data?.allowGooglePlayer);
         setAllowGoogle(googleReady);
+        if (typeof data?.guestModeEnabled === 'boolean') {
+          setGuestModeEnabled(data.guestModeEnabled);
+        }
       })
       .catch(() => {
         setAllowGoogle(false);
@@ -101,6 +105,9 @@ export function GLAuthView({ onLogin, oauthNotice, config, appVersion = null }) 
     if (config?.modules) {
       setModules(config.modules);
       setModulesLoaded(true);
+    }
+    if (typeof config?.guestModeEnabled === 'boolean') {
+      setGuestModeEnabled(config.guestModeEnabled);
     }
   }, [config]);
 
@@ -136,6 +143,24 @@ export function GLAuthView({ onLogin, oauthNotice, config, appVersion = null }) 
       onLogin(data);
     } catch (err) {
       setError(err.message || 'Connexion impossible');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function enterGuestMode() {
+    setBusy(true);
+    setError('');
+    setInfo('');
+    try {
+      const data = await apiGL('/api/gl/auth/guest', 'POST');
+      if (!data?.authToken || !data?.auth) {
+        setError('Réponse serveur invalide');
+        return;
+      }
+      onLogin({ authToken: data.authToken, auth: data.auth });
+    } catch (err) {
+      setError(err.message || 'Mode découverte indisponible');
     } finally {
       setBusy(false);
     }
@@ -273,6 +298,17 @@ export function GLAuthView({ onLogin, oauthNotice, config, appVersion = null }) 
               disabled={busy}
             >
               Continuer avec Google
+            </GLButton>
+          ) : null}
+          {guestModeEnabled ? (
+            <GLButton
+              type="button"
+              variant="ghost"
+              className="gl-btn--full"
+              onClick={enterGuestMode}
+              disabled={busy}
+            >
+              Découvrir sans compte
             </GLButton>
           ) : null}
         </form>

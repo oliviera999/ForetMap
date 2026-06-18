@@ -26,6 +26,7 @@ import { GLVirtualDiceDock } from './GLVirtualDiceDock.jsx';
 import { GLButton } from './ui/GLButton.jsx';
 import { GLGameBoardHud, GLGameBoardHudToolbar } from './GLGameBoardHud.jsx';
 import { plateauBoardImg, chapterIllustration, GL_ASSET_PLACEHOLDER_URL } from '../assets/index.js';
+import { resolveGlBoardImageUrl } from '../utils/glLegacyMediaUrl.js';
 import { useGlAssetsReady } from './GLFeuilletIllustration.jsx';
 import { DialogShell } from '../../components/DialogShell.jsx';
 
@@ -76,10 +77,12 @@ export function GLGameBoard({
   }, [assetsReady, plateauNumber]);
   const imageUrl = useMemo(
     () =>
-      chapter?.map_image_url ||
-      (conventionBoard && conventionBoard !== GL_ASSET_PLACEHOLDER_URL ? conventionBoard : null) ||
-      conventionChapter ||
-      '/maps/map-foret.svg',
+      resolveGlBoardImageUrl({
+        mapImageUrl: chapter?.map_image_url,
+        conventionBoard,
+        conventionChapter,
+        placeholderUrl: GL_ASSET_PLACEHOLDER_URL,
+      }),
     [chapter?.map_image_url, conventionBoard, conventionChapter],
   );
   const [pendingMarker, setPendingMarker] = useState(null);

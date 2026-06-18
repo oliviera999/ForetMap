@@ -163,7 +163,7 @@ test('POST /api/plants/import insert_only ignore les doublons', async () => {
   assert.strictEqual(row.description, 'base');
 });
 
-test('POST /api/plants déduit group_4 (genre) pour un animal si absent', async () => {
+test('POST /api/plants déduit taxon_genus pour un animal si absent', async () => {
   const name = `PlantG4-${Date.now()}`;
   const res = await request(app)
     .post('/api/plants')
@@ -171,14 +171,14 @@ test('POST /api/plants déduit group_4 (genre) pour un animal si absent', async 
     .send({
       name,
       emoji: '🐟',
-      description: 'test groupe 4',
+      description: 'test genre',
       scientific_name: 'Carassius auratus',
-      group_1: 'Animal (Métazoaires)',
-      group_2: 'Téléostéens',
-      group_3: 'Cyprinidés',
+      taxon_kingdom: 'Animal (Métazoaires)',
+      taxon_group: 'Téléostéens',
+      taxon_family: 'Cyprinidés',
     })
     .expect(201);
-  assert.strictEqual(res.body.group_4, 'Carassius');
+  assert.strictEqual(res.body.taxon_genus, 'Carassius');
 });
 
 test('POST /api/plants/import replace_all refuse si lignes invalides', async () => {

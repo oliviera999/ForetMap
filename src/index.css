@@ -5489,3 +5489,373 @@
 .obs-content.markdown-content {
   white-space: normal;
 }
+
+/* ── Pédagogie (glossaire, quiz, réseau trophique) ── */
+.pedago-view {
+  padding: 12px 16px 24px;
+  max-width: 960px;
+  margin: 0 auto;
+}
+.pedago-view__head { margin-bottom: 14px; }
+.pedago-filters {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr));
+  padding: 14px;
+  margin-bottom: 14px;
+  align-items: end;
+}
+.pedago-filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #6b7f72;
+}
+.pedago-error {
+  color: #b91c1c;
+  font-size: 0.88rem;
+  margin: 0 0 12px;
+}
+.pedago-panel-title {
+  font-size: 1rem;
+  margin: 0 0 10px;
+  color: var(--forest, #1a3d2e);
+}
+.pedago-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+.pedago-chip-btn {
+  border: 1px solid #c8ddd0;
+  background: #f7fbf8;
+  color: #2d4a3a;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 0.82rem;
+  min-height: 36px;
+  cursor: pointer;
+}
+.pedago-chip-btn:hover,
+.pedago-chip-btn:focus-visible {
+  background: #e8f5ec;
+  border-color: var(--sage, #7aab8a);
+}
+.pedago-inline-link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--forest, #1a3d2e);
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: inherit;
+}
+.pedago-remediation { margin-top: 12px; font-size: 0.88rem; }
+.pedago-glossary__layout {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (min-width: 768px) {
+  .pedago-glossary__layout {
+    grid-template-columns: minmax(0, 280px) minmax(0, 1fr);
+    align-items: start;
+  }
+}
+.pedago-glossary__list,
+.pedago-glossary__detail { padding: 14px; }
+.pedago-term-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+  max-height: min(60vh, 480px);
+  overflow-y: auto;
+}
+.pedago-term-btn {
+  width: 100%;
+  text-align: left;
+  border: 1px solid #e2ebe5;
+  background: #fff;
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 44px;
+  cursor: pointer;
+}
+.pedago-term-btn.active {
+  border-color: var(--sage, #7aab8a);
+  background: #f0faf3;
+}
+.pedago-term-btn__chip { align-self: flex-start; font-size: 0.72rem; }
+.pedago-term-btn__hint {
+  font-size: 0.78rem;
+  color: #7a8f82;
+  line-height: 1.35;
+}
+.pedago-quiz__card { padding: 16px; }
+.pedago-quiz__question {
+  font-size: 1.05rem;
+  font-weight: 600;
+  line-height: 1.45;
+  margin: 0 0 12px;
+}
+.pedago-quiz__choices { display: grid; gap: 8px; margin: 12px 0; }
+.pedago-quiz__choice {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 10px 12px;
+  border: 1px solid #dce8e0;
+  border-radius: 10px;
+  cursor: pointer;
+  min-height: 44px;
+}
+.pedago-quiz__choice:has(input:checked) {
+  border-color: var(--sage, #7aab8a);
+  background: #f3faf5;
+}
+.pedago-quiz__photo-wrap { margin: 0 0 12px; }
+.pedago-quiz__photo {
+  max-width: 100%;
+  border-radius: 10px;
+  display: block;
+}
+.pedago-quiz__photo-credit { font-size: 0.75rem; color: #8aa193; margin-top: 4px; }
+.pedago-quiz__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+.pedago-quiz-admin { display: grid; gap: 20px; }
+.pedago-quiz-admin__catalog .pedago-qcm-admin { padding: 14px; }
+.pedago-qcm-admin__error { color: #b42318; }
+.pedago-qcm-admin__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: flex-end;
+  margin: 12px 0;
+}
+.pedago-qcm-admin__form { display: grid; gap: 10px; margin: 12px 0; }
+.pedago-qcm-admin__checkbox {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  min-height: 44px;
+}
+.pedago-qcm-admin__report {
+  max-height: 240px;
+  overflow: auto;
+  font-size: 0.78rem;
+  background: #f6faf7;
+  border: 1px solid #dce8e0;
+  border-radius: 8px;
+  padding: 10px;
+}
+.pedago-qcm-admin__divider { margin: 16px 0; border: none; border-top: 1px solid #e2ebe5; }
+.pedago-qcm-admin__list { display: grid; gap: 10px; margin-top: 12px; }
+.pedago-qcm-admin__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 12px;
+  border: 1px solid #e2ebe5;
+  border-radius: 10px;
+  background: #fff;
+}
+.pedago-qcm-admin__preview {
+  margin-top: 16px;
+  padding: 14px;
+  border: 1px solid #dce8e0;
+  border-radius: 12px;
+  background: #f9fcfa;
+}
+.pedago-qcm-admin__preview-body { display: grid; gap: 10px; }
+.pedago-qcm-feedback {
+  margin: 12px 0;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid #e2ebe5;
+}
+.pedago-qcm-feedback--ok {
+  background: #f0faf3;
+  border-color: #86c99a;
+}
+.pedago-qcm-feedback--ko {
+  background: #fef2f2;
+  border-color: #f0a8a8;
+}
+.pedago-qcm-feedback__text {
+  margin: 0;
+  font-weight: 600;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.pedago-qcm-feedback--ok .pedago-qcm-feedback__text { color: #15803d; }
+.pedago-qcm-feedback--ko .pedago-qcm-feedback__text { color: #b91c1c; }
+.pedago-range-gauge { margin: 8px 0; }
+.pedago-range-gauge__label {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: #8aa193;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.pedago-range-gauge__track {
+  position: relative;
+  height: 10px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #fde68a 0%, #86efac 40%, #7dd3fc 100%);
+  overflow: hidden;
+}
+.pedago-range-gauge__fill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: rgba(26, 61, 46, 0.55);
+  border-radius: 999px;
+  min-width: 4px;
+}
+.pedago-range-gauge__fill--single { min-width: 8px; }
+.pedago-range-gauge__values {
+  font-size: 0.82rem;
+  color: #42544a;
+  margin-top: 4px;
+}
+.plant-range-gauges {
+  display: grid;
+  gap: 4px;
+  margin: 8px 0;
+}
+.plant-pedago-sections { margin-top: 12px; }
+.plant-pedago-sections__block { margin-top: 10px; }
+.plant-pedago-sections__link-row { margin-bottom: 8px; }
+.plant-pedago-interactions {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+  font-size: 0.84rem;
+}
+.plant-pedago-interactions li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.pedago-foodweb__groups { display: grid; gap: 12px; }
+.pedago-foodweb__group { padding: 14px; }
+.pedago-foodweb__edges {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+.pedago-foodweb__edge-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.pedago-foodweb__node {
+  border: 1px solid #c8ddd0;
+  background: #fff;
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 0.88rem;
+  min-height: 40px;
+  cursor: pointer;
+}
+.pedago-foodweb__node--env {
+  background: #f3f4f6;
+  cursor: default;
+  border-style: dashed;
+}
+.pedago-foodweb__node--highlight {
+  border-color: var(--forest, #1a3d2e);
+  box-shadow: 0 0 0 2px rgba(26, 61, 46, 0.15);
+}
+.pedago-foodweb__edge {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  border: 1px dashed #94a89c;
+  background: #f8fbf9;
+  border-radius: 8px;
+  padding: 4px 10px;
+  min-height: 36px;
+  cursor: pointer;
+  font-size: 0.75rem;
+}
+.pedago-foodweb__edge.active {
+  border-color: var(--sage, #7aab8a);
+  background: #edf8f0;
+}
+.pedago-foodweb__edge-arrow { font-size: 1rem; line-height: 1; }
+.pedago-foodweb__desc {
+  font-size: 0.8rem;
+  color: #6b7f72;
+  margin: 4px 0 0;
+}
+.pedago-foodweb__glossary {
+  margin-top: 8px;
+  padding: 8px 10px;
+  background: #f7fbf8;
+  border-radius: 8px;
+  font-size: 0.84rem;
+}
+.pedago-foodweb-graph {
+  width: 100%;
+  max-width: 440px;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}
+.pedago-foodweb-graph__line {
+  stroke: #94a3b8;
+  stroke-width: 1.5;
+}
+.pedago-foodweb-graph__line.active {
+  stroke: #16a34a;
+  stroke-width: 2.5;
+}
+.pedago-foodweb-graph__edge-hit {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 14px;
+  cursor: pointer;
+}
+.pedago-foodweb-graph__node {
+  fill: #dcfce7;
+  stroke: #16a34a;
+  stroke-width: 1.5;
+}
+.pedago-foodweb-graph__node.highlight {
+  fill: #bbf7d0;
+  stroke-width: 2.5;
+}
+.pedago-foodweb-graph__label {
+  font-size: 9px;
+  fill: #1f2937;
+}
+.pedago-foodweb__graph-wrap {
+  padding: 12px;
+  overflow: auto;
+}
+.pedago-foodweb__glossary--panel {
+  margin-top: 12px;
+}

@@ -494,7 +494,7 @@ async function copyProjectLinksTx(tx, sourceProjectId, targetProjectId) {
 async function copyProjectTasksTx(tx, sourceProjectId, targetProjectId, mapId) {
   const sourceTasks = await tx.queryAll(
     `SELECT id, title, description, zone_id, marker_id, start_date, due_date, required_students,
-            completion_mode, danger_level, difficulty_level, importance_level, living_beings,
+            completion_mode, danger_level, difficulty_level, importance_level,
             recurrence, sort_order
        FROM tasks
       WHERE project_id = ?
@@ -511,8 +511,8 @@ async function copyProjectTasksTx(tx, sourceProjectId, targetProjectId, mapId) {
       `INSERT INTO tasks (
         id, title, description, map_id, project_id, zone_id, marker_id,
         start_date, due_date, required_students, completion_mode, danger_level, difficulty_level,
-        importance_level, living_beings, recurrence, sort_order, status, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        importance_level, recurrence, sort_order, status, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         newTaskId,
         task.title,
@@ -528,7 +528,6 @@ async function copyProjectTasksTx(tx, sourceProjectId, targetProjectId, mapId) {
         task.danger_level || null,
         task.difficulty_level || null,
         task.importance_level || null,
-        task.living_beings || null,
         task.recurrence || null,
         Number(task.sort_order) || 0,
         'available',
@@ -578,6 +577,17 @@ async function copyProjectTasksTx(tx, sourceProjectId, targetProjectId, mapId) {
       await tx.execute('INSERT INTO task_tutorials (task_id, tutorial_id) VALUES (?, ?)', [
         newTaskId,
         tr.tutorial_id,
+      ]);
+    }
+
+    const speciesRows = await tx.queryAll(
+      'SELECT plant_id FROM task_species WHERE task_id = ? ORDER BY plant_id',
+      [task.id],
+    );
+    for (const sr of speciesRows) {
+      await tx.execute('INSERT INTO task_species (task_id, plant_id) VALUES (?, ?)', [
+        newTaskId,
+        sr.plant_id,
       ]);
     }
 
