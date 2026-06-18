@@ -6,6 +6,7 @@
 import { MARKER_EMOJIS } from './emojis.js';
 
 export const FORETMAP_UI_EMOJI_EXTRAS = [
+  '❓',
   '💾',
   '📷',
   '🧭',

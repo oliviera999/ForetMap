@@ -32,6 +32,12 @@ test('normalizeIconUrl refuse javascript et data URLs', () => {
   assert.strictEqual(normalizeIconUrl('data:image/png;base64,abc'), null);
 });
 
+test('normalizeIconUrl accepte clés stables et local:/', () => {
+  assert.strictEqual(normalizeIconUrl('biome_sahara'), 'biome_sahara');
+  assert.strictEqual(normalizeIconUrl('local:/assets/gl/icon.png'), 'local:/assets/gl/icon.png');
+  assert.strictEqual(normalizeIconUrl('../etc/passwd'), null);
+});
+
 test('defaultAppearanceForEventType question → emoji ❓', () => {
   const appearance = defaultAppearanceForEventType('question');
   assert.strictEqual(appearance.displayMode, 'emoji');

@@ -20,6 +20,7 @@ import {
   computePlayerVitality,
   findPlayerMascotId,
 } from './utils/glGameplayRules.js';
+import { resolvePlateauMapVisibility } from './utils/glPlateauMapVisibility.js';
 import { GLAuthView } from './components/GLAuthView.jsx';
 import { GLTopBar, GL_TAB_ID_PREFIX, GL_TABPANEL_ID_PREFIX } from './components/GLTopBar.jsx';
 import { useGlCompactNav } from './hooks/useGlCompactNav.js';
@@ -246,6 +247,15 @@ export function AppGL() {
     if (chapterPlateauNumber == null) return [];
     return getRuntimeFeuilletZonesForPlateau(chapterPlateauNumber);
   }, [chapterPlateauNumber]);
+
+  const plateauMapVisibility = useMemo(
+    () =>
+      resolvePlateauMapVisibility({
+        gameplaySettings,
+        chapter: gameState?.game,
+      }),
+    [gameplaySettings, gameState?.game],
+  );
 
   const activeZoneForMusic = useMemo(() => {
     if (!watchTeamPct) return null;
@@ -934,6 +944,8 @@ export function AppGL() {
                     virtualDiceEnabled={virtualDiceEnabled}
                     feuilletZones={feuilletZones}
                     feuilletZoneEditMode={feuilletZoneEditMode}
+                    showPlateauMarkers={plateauMapVisibility.markersVisible}
+                    showPlateauZones={plateauMapVisibility.zonesVisible}
                   />
                   {showsPlayerChrome && gameState?.game && auth?.teamId == null && (
                     <section className="gl-panel">

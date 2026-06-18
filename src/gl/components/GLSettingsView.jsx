@@ -13,8 +13,10 @@ import { normalizeBrand } from '../hooks/useGLBrandTheme.js';
 import { GAMEPLAY_PRESETS } from '../constants/gameplayPresets.js';
 import {
   GAMEPLAY_TOGGLES,
+  MAP_DISPLAY_TOGGLES,
   MODULE_TOGGLES,
   readGameplayFlag,
+  readPlateauMarkersVisibleSetting,
   readSelectSetting,
   settingsToIdentityFields,
   areVitalityValuesValid,
@@ -217,6 +219,22 @@ export function GLSettingsView() {
       <GLGameplayTogglesList
         toggles={GAMEPLAY_TOGGLES}
         isChecked={readGameplayFlag}
+        settings={settings}
+        savingKey={savingKey}
+        onToggle={toggleGameplayFlag}
+      />
+
+      <h4>Affichage carte plateau</h4>
+      <p className="gl-hint">
+        Contrôle la visibilité des repères et des zones feuillets sur la carte en partie. Chaque
+        chapitre peut surcharger ces défauts.
+      </p>
+      <GLGameplayTogglesList
+        toggles={MAP_DISPLAY_TOGGLES}
+        isChecked={(currentSettings, key) => {
+          const toggle = MAP_DISPLAY_TOGGLES.find((item) => item.key === key);
+          return toggle?.readChecked?.(currentSettings) ?? readGameplayFlag(currentSettings, key);
+        }}
         settings={settings}
         savingKey={savingKey}
         onToggle={toggleGameplayFlag}

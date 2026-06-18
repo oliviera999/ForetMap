@@ -32,6 +32,8 @@ export function GLMapView({
   virtualDiceEnabled = false,
   feuilletZones = [],
   feuilletZoneEditMode = false,
+  showPlateauMarkers = true,
+  showPlateauZones = false,
 }) {
   const watchTeamId = useMemo(() => {
     if (canMoveMascot) {
@@ -78,6 +80,8 @@ export function GLMapView({
       virtualDiceEnabled={virtualDiceEnabled}
       feuilletZones={feuilletZones}
       feuilletZoneEditMode={feuilletZoneEditMode}
+      showPlateauMarkers={showPlateauMarkers}
+      showPlateauZones={showPlateauZones}
     />
   );
 }

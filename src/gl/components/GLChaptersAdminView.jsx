@@ -450,6 +450,40 @@ export function GLChaptersAdminView() {
               </select>
             </label>
 
+            <fieldset className="gl-fieldset">
+              <legend>Affichage carte en partie</legend>
+              <p className="gl-hint">
+                Surcharge optionnelle des défauts plateforme (Réglages → Affichage carte plateau).
+                Laissez « Hériter » pour appliquer le défaut global.
+              </p>
+              <label>
+                Repères sur la carte
+                <select
+                  value={chapterForm.mapMarkersVisible}
+                  onChange={(event) =>
+                    setChapterForm({ ...chapterForm, mapMarkersVisible: event.target.value })
+                  }
+                >
+                  <option value="">Hériter du défaut plateforme</option>
+                  <option value="true">Visibles</option>
+                  <option value="false">Masqués</option>
+                </select>
+              </label>
+              <label>
+                Zones feuillets sur la carte
+                <select
+                  value={chapterForm.mapZonesVisible}
+                  onChange={(event) =>
+                    setChapterForm({ ...chapterForm, mapZonesVisible: event.target.value })
+                  }
+                >
+                  <option value="">Hériter du défaut plateforme</option>
+                  <option value="true">Visibles</option>
+                  <option value="false">Masquées</option>
+                </select>
+              </label>
+            </fieldset>
+
             <h3>Thème du chapitre</h3>
             <p className="gl-hint">
               Laissez une couleur vide pour hériter de la charte plateforme. Seules les couleurs

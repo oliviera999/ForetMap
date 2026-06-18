@@ -904,7 +904,9 @@ router.put(
     if (
       key === 'gameplay.lore_effacement_enabled' ||
       key === 'gameplay.lore_gemme_costs_enabled' ||
-      key === 'gameplay.lore_heart_rewards_enabled'
+      key === 'gameplay.lore_heart_rewards_enabled' ||
+      key === 'gameplay.plateau_markers_visible' ||
+      key === 'gameplay.plateau_zones_visible'
     ) {
       if (typeof value !== 'boolean') {
         return res.status(400).json({ error: 'La valeur doit être booléenne' });

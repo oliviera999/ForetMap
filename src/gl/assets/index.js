@@ -164,10 +164,17 @@ export function feuilletIllustration(code) {
   if (!normalizedCode) return null;
   const images = getImagesManifest();
   const keys = getKeysIndex();
-  const match = Object.keys({ ...images, ...keys }).find((slug) => slug.startsWith(prefix));
-  if (!match) return null;
-  const url = img(match);
-  return url === placeholderUrl ? null : url;
+  const fromKeys = Object.keys(keys)
+    .filter((slug) => slug.startsWith(prefix))
+    .sort();
+  const fromImages = Object.keys(images)
+    .filter((slug) => slug.startsWith(prefix) && !keys[slug])
+    .sort();
+  for (const match of [...fromKeys, ...fromImages]) {
+    const url = img(match);
+    if (url && url !== placeholderUrl) return url;
+  }
+  return null;
 }
 
 /**

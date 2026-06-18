@@ -1,5 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { feuilletIllustration, loadGlAssetRuntime } from '../assets/index.js';
+import { loadGlAssetRuntime } from '../assets/index.js';
+import {
+  resolveFeuilletExplicitMediaUrl,
+  resolveFeuilletImageUrl,
+} from '../utils/glFeuilletMediaUrl.js';
+
+export { resolveFeuilletImageUrl, resolveFeuilletExplicitMediaUrl };
 
 export function useGlAssetsReady() {
   const [ready, setReady] = useState(false);
@@ -17,10 +23,24 @@ export function useGlAssetsReady() {
   return ready;
 }
 
-export function resolveFeuilletImageUrl(feuilletCode, fallbackUrl = null, assetsReady = true) {
-  if (!assetsReady) return fallbackUrl || null;
-  const convention = feuilletCode ? feuilletIllustration(feuilletCode) : null;
-  return convention || fallbackUrl || null;
+/** Illustration « coupe » (URL explicite ou clé stable, sans convention feuillet). */
+export function GLFeuilletCoupeIllustration({
+  url = null,
+  alt = 'Coupe pédagogique',
+  figureClassName = '',
+  imgClassName = '',
+}) {
+  const assetsReady = useGlAssetsReady();
+  const src = useMemo(
+    () => resolveFeuilletExplicitMediaUrl(url, assetsReady),
+    [url, assetsReady],
+  );
+  if (!src) return null;
+  return (
+    <figure className={figureClassName || undefined}>
+      <img src={src} alt={alt} loading="lazy" className={imgClassName || undefined} />
+    </figure>
+  );
 }
 
 export function GLFeuilletIllustration({

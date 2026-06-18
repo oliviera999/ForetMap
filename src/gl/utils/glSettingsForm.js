@@ -4,6 +4,29 @@
  * sans dépendance React. Couverts par `tests-ui/gl/glSettingsForm.test.js`.
  */
 
+/** Repères visibles par défaut si le réglage plateforme est absent. */
+export function readPlateauMarkersVisibleSetting(settings) {
+  const value = settings?.['gameplay.plateau_markers_visible'];
+  if (value == null) return true;
+  return value === true || value === 'true';
+}
+
+/** Toggles d'affichage repères / zones feuillets sur la carte en partie. */
+export const MAP_DISPLAY_TOGGLES = [
+  {
+    key: 'gameplay.plateau_markers_visible',
+    label: 'Repères visibles sur la carte',
+    hint: 'Affiche les repères interactifs sur le plateau en partie (défaut : visible).',
+    readChecked: readPlateauMarkersVisibleSetting,
+  },
+  {
+    key: 'gameplay.plateau_zones_visible',
+    label: 'Zones feuillets visibles sur la carte',
+    hint: 'Affiche les polygones de zones feuillets sur le plateau en partie (défaut : masqué).',
+    readChecked: readGameplayFlag,
+  },
+];
+
 /** Toggles gameplay (modes standard puis complet), avec libellé et aide. */
 export const GAMEPLAY_TOGGLES = [
   {
