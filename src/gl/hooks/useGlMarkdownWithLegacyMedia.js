@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
-import { applyGlLegacyMediaRefs, img, GL_ASSET_PLACEHOLDER_URL } from '../assets/index.js';
+import { applyGlLegacyMediaRefs } from '../utils/glLegacyMediaUrl.js';
+import { img, GL_ASSET_PLACEHOLDER_URL } from '../assets/index.js';
 import { useGlAssetsReady } from '../components/GLFeuilletIllustration.jsx';
 
 /** Markdown GL avec réécriture des URLs legacy `gl-*` vers la médiathèque. */
