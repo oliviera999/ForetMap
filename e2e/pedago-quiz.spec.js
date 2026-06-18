@@ -1,9 +1,11 @@
 const { test, expect } = require('@playwright/test');
 const { loginAsNewStudent } = require('./fixtures/auth.fixture');
 
-test('parcours élève : quiz tirage et feedback', async ({ page }) => {
+test('parcours élève : quiz visible et tirage', async ({ page }) => {
   await loginAsNewStudent(page);
-  await page.getByRole('button', { name: 'Quiz' }).click();
+  const quizBtn = page.getByRole('button', { name: 'Quiz' });
+  await expect(quizBtn).toBeVisible({ timeout: 20_000 });
+  await quizBtn.click();
   await expect(page.getByRole('heading', { name: /Quiz/i })).toBeVisible({ timeout: 20_000 });
 
   await page.getByRole('button', { name: /Tirer une question/i }).click();

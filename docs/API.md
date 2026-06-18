@@ -1258,11 +1258,16 @@ Routes publiques (lecture) sauf progression quiz. Voir aussi les routes GL `/api
 | GET | `/api/glossary/terms` | non | Liste/recherche |
 | GET | `/api/glossary/terms/:code` | non | Fiche terme |
 | GET | `/api/quiz/categories` | non | Catégories QCM |
+| GET | `/api/quiz/questions` | non | Liste questions (`theme`, `categorieSlug`, `niveau`, `q`) |
 | GET | `/api/quiz/draw` | non | Tirage QCM (`?illustrated=1` : questions avec photo) |
 | GET | `/api/quiz/questions/:code/present` | non | Question présentée |
 | POST | `/api/quiz/questions/:code/answer` | non | Validation réponse |
 | GET | `/api/quiz/me/progress` | élève | Progression |
 | GET | `/api/quiz/stats` | prof (`stats.read.all`) | Agrégation tentatives par élève et catégorie |
+| GET | `/api/quiz/admin/stats` | prof (`plants.manage` + élévation) | Agrégats catalogue (totaux, thèmes, catégories) |
+| GET | `/api/quiz/admin/import/template` | prof (`plants.manage` + élévation) | Modèle XLSX (`categories` + `questions`) |
+| GET | `/api/quiz/admin/export` | prof (`plants.manage` + élévation) | Export ré-importable (`statut`, `theme`, `categorieSlug`) |
+| POST | `/api/quiz/admin/import` | prof (`plants.manage` + élévation) | Import XLSX (`dryRun` optionnel) |
 | GET | `/api/food-web` | non | Réseau trophique (`?zoneId=`) |
 | GET | `/api/food-web/interactions/:id/glossary` | non | Termes glossaire liés à une interaction |
 | GET | `/api/plants/:id/interactions` | non | Interactions espèce |

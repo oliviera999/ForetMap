@@ -12,6 +12,14 @@ const {
   verifyPresentationAnswer,
   resolveQcmAnswerFeedback,
 } = require('../lib/glQcmChoices');
+const {
+  resolveImportRows,
+  applyFmQuizImport,
+  MAX_IMPORT_ROWS,
+  buildFmQuizTemplateWorkbook,
+  buildFmQuizExportWorkbook,
+  loadFmQuizExportRows,
+} = require('../lib/fmQuizImport');
 const asyncHandler = require('../lib/asyncHandler');
 const { z, validate } = require('../lib/validate');
 
@@ -152,6 +160,62 @@ router.get(
   }),
 );
 
+/** GET /api/quiz/questions — liste filtrée (catalogue admin / aperçu). */
+router.get(
+  '/questions',
+  asyncHandler(async (req, res) => {
+    const theme = normalizeOptionalFilter(req.query?.theme);
+    const categorieSlug = normalizeOptionalFilter(req.query?.categorieSlug);
+    const niveau = normalizeOptionalFilter(req.query?.niveau);
+    const q = normalizeOptionalFilter(req.query?.q);
+
+    const params = [];
+    let sql = `
+      SELECT q.question_code, q.categorie_slug, q.numero_dans_categorie, q.question,
+             q.niveau, q.difficulte, q.difficulte_label, q.reponse_correcte, q.tags,
+             c.theme
+        FROM quiz_questions q
+        JOIN quiz_categories c ON c.slug = q.categorie_slug
+       WHERE q.statut = 'actif'`;
+    if (theme) {
+      sql += ' AND c.theme = ?';
+      params.push(theme);
+    }
+    if (categorieSlug) {
+      sql += ' AND q.categorie_slug = ?';
+      params.push(categorieSlug);
+    }
+    if (niveau) {
+      sql += ' AND q.niveau = ?';
+      params.push(niveau);
+    }
+    sql += ' ORDER BY c.theme ASC, q.categorie_slug ASC, q.numero_dans_categorie ASC';
+
+    let rows = await queryAll(sql, params);
+    if (q) {
+      const needle = q.toLowerCase();
+      rows = rows.filter((row) => {
+        const hay = `${row.question} ${row.tags || ''}`.toLowerCase();
+        return hay.includes(needle);
+      });
+    }
+
+    const items = rows.map((row) => ({
+      question_code: row.question_code,
+      theme: row.theme,
+      categorie_slug: row.categorie_slug,
+      numero_dans_categorie: row.numero_dans_categorie,
+      question: row.question,
+      niveau: row.niveau,
+      difficulte: row.difficulte,
+      difficulte_label: row.difficulte_label,
+      reponse_correcte: row.reponse_correcte,
+    }));
+
+    return res.json({ items });
+  }),
+);
+
 /** GET /api/quiz/questions/:code/present */
 router.get(
   '/questions/:code/present',
@@ -283,6 +347,110 @@ router.get(
         ORDER BY categorie_slug ASC`,
     );
     return res.json({ byStudent, byCategory });
+  }),
+);
+
+const quizManagePermission = requirePermission('plants.manage', { needsElevation: true });
+
+/** GET /api/quiz/admin/stats */
+router.get(
+  '/admin/stats',
+  quizManagePermission,
+  asyncHandler(async (_req, res) => {
+    const total = await queryOne(
+      `SELECT COUNT(*) AS total FROM quiz_questions WHERE statut = 'actif'`,
+    );
+    const byTheme = await queryAll(
+      `SELECT c.theme, COUNT(*) AS effectif
+         FROM quiz_questions q
+         JOIN quiz_categories c ON c.slug = q.categorie_slug
+        WHERE q.statut = 'actif'
+        GROUP BY c.theme
+        ORDER BY effectif DESC`,
+    );
+    const byCategory = await queryAll(
+      `SELECT categorie_slug, COUNT(*) AS effectif
+         FROM quiz_questions WHERE statut = 'actif'
+        GROUP BY categorie_slug ORDER BY effectif DESC`,
+    );
+    const byDifficulte = await queryAll(
+      `SELECT difficulte, COUNT(*) AS effectif
+         FROM quiz_questions WHERE statut = 'actif'
+        GROUP BY difficulte ORDER BY difficulte ASC`,
+    );
+    const glossaryLinks = await queryOne('SELECT COUNT(*) AS total FROM quiz_question_glossary');
+    return res.json({
+      total: Number(total?.total || 0),
+      glossaryLinks: Number(glossaryLinks?.total || 0),
+      byTheme,
+      byCategory,
+      byDifficulte,
+    });
+  }),
+);
+
+/** GET /api/quiz/admin/import/template */
+router.get(
+  '/admin/import/template',
+  quizManagePermission,
+  asyncHandler(async (_req, res) => {
+    const buffer = await buildFmQuizTemplateWorkbook();
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
+    res.setHeader('Content-Disposition', 'attachment; filename="foretmap-modele-qcm.xlsx"');
+    return res.send(buffer);
+  }),
+);
+
+/** GET /api/quiz/admin/export */
+router.get(
+  '/admin/export',
+  quizManagePermission,
+  asyncHandler(async (req, res) => {
+    const statutRaw = String(req.query?.statut || 'actif').toLowerCase();
+    const statut = statutRaw === 'all' ? 'all' : 'actif';
+    const theme = normalizeOptionalFilter(req.query?.theme);
+    const categorieSlug = normalizeOptionalFilter(req.query?.categorieSlug);
+    const data = await loadFmQuizExportRows({ queryAll }, { statut, theme, categorieSlug });
+    const buffer = await buildFmQuizExportWorkbook(data);
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
+    res.setHeader('Content-Disposition', 'attachment; filename="foretmap-export-qcm.xlsx"');
+    return res.send(buffer);
+  }),
+);
+
+/** POST /api/quiz/admin/import */
+router.post(
+  '/admin/import',
+  quizManagePermission,
+  asyncHandler(async (req, res) => {
+    const dryRun = !!req.body?.dryRun;
+    let parsed;
+    try {
+      parsed = await resolveImportRows(req.body || {});
+    } catch (err) {
+      return res.status(400).json({ error: err.message || 'Fichier import invalide' });
+    }
+    const { categoryRows, questionRows } = parsed;
+    if (!Array.isArray(questionRows) || questionRows.length === 0) {
+      return res.status(400).json({ error: 'Feuille questions vide ou absente' });
+    }
+    if (questionRows.length > MAX_IMPORT_ROWS) {
+      return res.status(400).json({ error: `Trop de lignes (max ${MAX_IMPORT_ROWS})` });
+    }
+    try {
+      const report = await applyFmQuizImport({ queryAll, execute }, categoryRows || [], questionRows, {
+        dryRun,
+      });
+      return res.json({ report });
+    } catch (err) {
+      return res.status(400).json({ error: err.message || 'Import impossible' });
+    }
   }),
 );
 

@@ -88,6 +88,9 @@ const GlossaryViewLazy = lazy(() =>
 const QuizViewLazy = lazy(() =>
   import('./components/pedago-views').then((m) => ({ default: m.QuizView })),
 );
+const QuizAdminViewLazy = lazy(() =>
+  import('./components/pedago-views').then((m) => ({ default: m.QuizAdminView })),
+);
 const FoodWebViewLazy = lazy(() =>
   import('./components/pedago-views').then((m) => ({ default: m.FoodWebView })),
 );
@@ -776,6 +779,8 @@ function App() {
     return true;
   }, [effectiveIsTeacher, studentForUi]);
   const canManageMediaLibrary = !!authClaims?.elevated || !!authClaims?.nativePrivileged;
+  const canManageQuiz =
+    !!authClaims?.elevated && hasPermission('plants.manage');
 
   const canParticipateContextComments = useMemo(() => {
     if (effectiveIsTeacher) return true;
@@ -1921,7 +1926,8 @@ function App() {
                     )}
                     {tab === 'quiz' && (
                       <TabSuspense>
-                        <QuizViewLazy
+                        <QuizAdminViewLazy
+                          canManageQuiz={canManageQuiz}
                           onOpenPlant={openPlantCatalogPreviewById}
                           onOpenGlossaryTerm={openPedagoGlossaryTerm}
                           initialQuestionCode={pedagoQuizQuestionCode}
