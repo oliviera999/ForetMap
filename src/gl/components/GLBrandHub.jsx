@@ -1,7 +1,6 @@
 import React from 'react';
 import {
   glImageFrameToImgFillStyle,
-  glImageFrameToStyle,
   glImageFrameToWrapStyle,
   normalizeGlImageFrame,
 } from '../../utils/glImageFrame.js';
@@ -99,7 +98,7 @@ export function GLBrandHub({ slots, onOpenTab, compact = false }) {
   );
 }
 
-/** Bannière d’une page éditoriale (carte associée au slug GL). */
+/** Bannière d'une page éditoriale (carte associée au slug GL). */
 export function GLBrandPageBanner({ slot }) {
   const imageUrl = String(slot?.imageUrl || '').trim();
   const title = String(slot?.title || '').trim();
@@ -111,7 +110,17 @@ export function GLBrandPageBanner({ slot }) {
       ref={bannerRef}
       className={`gl-brand-page-banner scroll-reveal${bannerVisible ? ' is-visible' : ''}`}
     >
-      <img src={imageUrl} alt={title || ''} loading="lazy" style={glImageFrameToStyle(frame)} />
+      <div
+        className="gl-brand-page-banner__image-wrap"
+        style={glImageFrameToWrapStyle(frame, 'brand-banner')}
+      >
+        <img
+          src={imageUrl}
+          alt={title || ''}
+          loading="lazy"
+          style={glImageFrameToImgFillStyle(frame, 'brand-banner')}
+        />
+      </div>
       {title ? <figcaption>{title}</figcaption> : null}
     </figure>
   );

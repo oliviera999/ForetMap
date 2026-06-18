@@ -657,11 +657,18 @@ button.gl-brand-hub__card {
   box-shadow: 0 6px 18px rgba(1, 58, 64, 0.12);
 }
 
+.gl-brand-page-banner__image-wrap {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+}
+
 .gl-brand-page-banner img {
   width: 100%;
-  max-height: 280px;
-  object-fit: cover;
+  height: 100%;
+  max-width: 100%;
   display: block;
+  object-fit: cover;
 }
 
 .gl-brand-page-banner figcaption {
@@ -972,10 +979,11 @@ button.gl-danger {
 .gl-markdown {
   line-height: 1.7;
   color: #1f2937;
+  --gl-prose-max-width: 90%;
 }
 
-.gl-markdown :where(p, ul, ol, blockquote) {
-  max-width: 72ch;
+.gl-markdown :where(p, ul, ol, blockquote, h2, h3, h4) {
+  max-width: var(--gl-prose-max-width);
 }
 
 .gl-markdown p {
@@ -1872,6 +1880,12 @@ body.gl-map-fullscreen-active .gl-qcm-popover-overlay {
   gap: 10px;
 }
 
+@media (max-width: 520px) {
+  .gl-image-frame-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .gl-image-frame-help summary {
   cursor: pointer;
   font-weight: 600;
@@ -2646,6 +2660,16 @@ body.gl-map-fullscreen-active .gl-qcm-popover-overlay {
   outline-offset: 1px;
 }
 
+.gl-rich-editor-surface :where(img) {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+.gl-rich-editor-surface .gl-content-image-wrap {
+  max-width: 100%;
+}
+
 .gl-rich-editor-surface:empty::before {
   content: attr(data-placeholder);
   color: #6b7280;
@@ -2658,13 +2682,30 @@ body.gl-map-fullscreen-active .gl-qcm-popover-overlay {
 }
 
 .gl-markdown img.gl-content-image {
-  width: 100%;
-  height: auto;
+  max-width: 100%;
   display: block;
   border-radius: 10px;
   border: 1px solid #dbeafe;
+  margin: 0;
+}
+
+.gl-markdown .gl-content-image-wrap {
+  width: 100%;
+  max-width: 100%;
   margin: 12px 0;
-  object-fit: cover;
+  overflow: hidden;
+  border-radius: 10px;
+  border: 1px solid #dbeafe;
+  box-sizing: border-box;
+}
+
+.gl-markdown .gl-content-image-wrap > img.gl-content-image {
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  border: 0;
+  border-radius: 0;
+  margin: 0;
 }
 
 .gl-map-url-preview {
@@ -2798,7 +2839,7 @@ body.gl-map-fullscreen-active .gl-qcm-popover-overlay {
   box-shadow: var(--gl-shadow-sm);
 }
 
-@media (max-width: 800px) {
+@media (max-width: 1024px) {
   .gl-chapters-admin-grid {
     grid-template-columns: 1fr;
   }
@@ -3648,6 +3689,8 @@ body.gl-map-fullscreen-active .gl-qcm-popover-overlay {
 
 .gl-zone-content-popover__figure {
   margin: 0;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .gl-zone-content-popover__figure img {
@@ -6399,6 +6442,7 @@ body.gl-glossary-popover-open {
   padding: 0.55rem 0.45rem;
   vertical-align: top;
   text-align: left;
+  overflow-wrap: anywhere;
 }
 
 .gl-content-library-kind {

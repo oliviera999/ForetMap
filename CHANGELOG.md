@@ -7,6 +7,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### GL — mise en page (images, texte éditorial, admin)
+
+- **Images markdown** : rendu wrap+fill (`gl-content-image-wrap`) aligné sur le hub marque ; post-traitement dans `renderMarkdownToSafeHtml` / `sanitizeRichHtml`.
+- **Texte éditorial** : largeur prose portée à 90 % (titres h2–h4 inclus) au lieu de 72ch.
+- **Bannières pages** : `GLBrandPageBanner` en wrap+fill ; garde-fous WYSIWYG, popover zones, table bibliothèque contenu.
+- **Admin responsive** : grille chapitres 1 col à ≤1024px ; grille cadre image 1 col à ≤520px.
+- **Tests** : `tests/markdown.test.js`, `tests-ui/gl/GLRichTextEditor.test.jsx` ; doc `docs/GL_IMAGE_FRAMES.md`.
+
 ### Biodiversité pédagogique (glossaire, QCM, réseau trophique)
 
 - **Migrations** : 122–132 (taxonomie plants, junction `*_species`, interactions/vues, glossaire, quiz ; **129** retrait colonnes legacy plants ; **130** retrait JSON `living_beings` ; **131** audit_log utf8mb4 ; **132** correctif AUTO_INCREMENT).
