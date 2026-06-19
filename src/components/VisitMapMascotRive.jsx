@@ -101,6 +101,12 @@ function VisitMapMascotRive({
     <VisitMascotFallbackSvg silhouette={fallbackSilhouette} variant={fallbackVariant} />
   );
   const layout = useMemo(() => new Layout({ fit: Fit.Contain, alignment: Alignment.Center }), []);
+
+  useEffect(() => {
+    setRiveError(false);
+    setStatus('loading');
+  }, [riveSrc, mascotId]);
+
   const { rive, RiveComponent } = useRive({
     src: riveSrc,
     autoplay: true,

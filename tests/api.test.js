@@ -2640,6 +2640,50 @@ test('visit mascot assets : inventaire global catalogue + packs + bibliothèque'
   }
 });
 
+test('visit mascot assets : suppression catalogue statique public', async () => {
+  const fs = require('fs');
+  const path = require('path');
+  const token = await getAdminAuthToken();
+  const relDir = path.join(__dirname, '..', 'public', 'assets', 'mascots', '_test-delete');
+  const relUrl = '/assets/mascots/_test-delete/delete-me.png';
+  const absFile = path.join(relDir, 'delete-me.png');
+  fs.mkdirSync(relDir, { recursive: true });
+  fs.writeFileSync(absFile, Buffer.from(VISIT_LIB_TINY_PNG_B64, 'base64'));
+  try {
+    const before = await request(app)
+      .get('/api/visit/mascot-assets')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+    assert.ok(before.body.assets.some((a) => a.url === relUrl));
+
+    await request(app)
+      .delete('/api/visit/mascot-assets/public')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ url: relUrl })
+      .expect(200);
+
+    assert.ok(!fs.existsSync(absFile));
+
+    await request(app)
+      .delete('/api/visit/mascot-assets/public')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ url: relUrl })
+      .expect(404);
+
+    await request(app)
+      .delete('/api/visit/mascot-assets/public')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ url: '/uploads/evil.png' })
+      .expect(400);
+  } finally {
+    try {
+      fs.rmSync(relDir, { recursive: true, force: true });
+    } catch (_) {
+      /* ignore */
+    }
+  }
+});
+
 test('visit mascot packs : export ZIP et import create', async () => {
   const token = await getAdminAuthToken();
   const created = await request(app)

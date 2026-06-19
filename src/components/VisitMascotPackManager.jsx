@@ -630,7 +630,7 @@ export default function VisitMascotPackManager({
     async (ev) => {
       const file = ev.target?.files?.[0];
       ev.target.value = '';
-      if (!file || !selectedId) return;
+      if (!file) return;
       const mid = String(mapId || '').trim();
       const reader = new FileReader();
       reader.onload = async () => {
@@ -657,7 +657,7 @@ export default function VisitMascotPackManager({
       };
       reader.readAsDataURL(file);
     },
-    [mapId, selectedId, loadLibrary, onForceLogout],
+    [mapId, loadLibrary, onForceLogout],
   );
 
   const onLibDelete = useCallback(
@@ -679,6 +679,32 @@ export default function VisitMascotPackManager({
       }
     },
     [mapId, loadLibrary, onForceLogout],
+  );
+
+  const onDeletePublicAsset = useCallback(
+    async (url) => {
+      const assetUrl = String(url || '').trim();
+      if (!assetUrl) return;
+      if (
+        !window.confirm(
+          `Supprimer définitivement « ${assetUrl.split('/').pop() || assetUrl} » du catalogue site ?`,
+        )
+      )
+        return;
+      setGlobalAssetsLoading(true);
+      setGlobalAssetsMessage('');
+      try {
+        await api('/api/visit/mascot-assets/public', 'DELETE', { url: assetUrl });
+        setGlobalAssetsMessage('Sprite site supprimé.');
+        await loadGlobalAssets();
+      } catch (e) {
+        if (e instanceof AccountDeletedError) onForceLogout?.();
+        else setGlobalAssetsMessage(e.message || 'Suppression site impossible');
+      } finally {
+        setGlobalAssetsLoading(false);
+      }
+    },
+    [loadGlobalAssets, onForceLogout],
   );
 
   const setFramesBaseToLibrary = useCallback(() => {
@@ -950,6 +976,7 @@ export default function VisitMascotPackManager({
                       onInsertImage={insertImageIntoPack}
                       onDeletePackAsset={(f) => void onPackDeleteAsset(f)}
                       onDeleteMapAsset={(f) => void onLibDelete(f)}
+                      onDeletePublicAsset={(u) => void onDeletePublicAsset(u)}
                       insertFeedback={insertFeedback}
                     />
                   </div>
@@ -1069,6 +1096,10 @@ export default function VisitMascotPackManager({
                     packs={packs}
                     mapId={String(mapId || '')}
                     onForceLogout={onForceLogout}
+                    selectedPackId={selectedId}
+                    selectedPackCatalogId={selectedRow?.catalog_id || ''}
+                    selectedPackLabel={labelDraft || selectedRow?.label || ''}
+                    editorPack={editorPack}
                   />
                   </div>
                 ) : null}

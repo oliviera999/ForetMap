@@ -165,7 +165,48 @@ const SOURCE_LABELS = {
   pack: 'Ce pack',
   map: 'Carte',
   site: 'Site',
+  public: 'Site',
+  library: 'Carte',
 };
+
+/**
+ * @param {Record<string, unknown>} asset
+ * @param {string} packUuid
+ * @param {string} mapId
+ */
+function resolveGlobalAssetDeleteMeta(asset, packUuid, mapId) {
+  const apiSource = String(asset?.source || 'public').trim() || 'public';
+  const url = String(asset?.url || '').trim();
+  const filename = String(asset?.filename || '').trim();
+  const assetPackId = String(asset?.pack_id || '').trim();
+  const assetMapId = String(asset?.map_id || '').trim();
+
+  if (apiSource === 'public') {
+    return {
+      canDelete: true,
+      deleteScope: 'public',
+      deleteUrl: url,
+    };
+  }
+  if (apiSource === 'pack' && assetPackId && assetPackId === packUuid && filename) {
+    return { canDelete: true, deleteScope: 'pack', deleteUrl: null };
+  }
+  if (apiSource === 'library' && assetMapId && assetMapId === mapId && filename) {
+    return { canDelete: true, deleteScope: 'map', deleteUrl: null };
+  }
+  const foreignHint =
+    apiSource === 'pack'
+      ? `Pack « ${asset?.pack_label || assetPackId || '?'} » (${asset?.map_id || '?'})`
+      : apiSource === 'library'
+        ? `Bibliothèque carte « ${assetMapId || '?'} »`
+        : '';
+  return {
+    canDelete: false,
+    deleteScope: null,
+    deleteUrl: null,
+    metaExtra: foreignHint,
+  };
+}
 
 /**
  * Fusionne pack, bibliothèque carte et assets globaux pour le panneau Images unifié.
@@ -198,6 +239,7 @@ export function buildUnifiedMascotImageEntries(opts = {}) {
     entries.push({
       id: `pack:${filename}`,
       source: 'pack',
+      apiSource: 'pack',
       sourceLabel: SOURCE_LABELS.pack,
       filename,
       url: String(a?.url || '').trim(),
@@ -205,6 +247,7 @@ export function buildUnifiedMascotImageEntries(opts = {}) {
       framesBaseHint: packPrefix,
       canDelete: true,
       deleteScope: 'pack',
+      deleteUrl: null,
     });
   }
 
@@ -214,6 +257,7 @@ export function buildUnifiedMascotImageEntries(opts = {}) {
     entries.push({
       id: `map:${filename}`,
       source: 'map',
+      apiSource: 'library',
       sourceLabel: SOURCE_LABELS.map,
       filename,
       url: String(a?.url || '').trim(),
@@ -221,6 +265,7 @@ export function buildUnifiedMascotImageEntries(opts = {}) {
       framesBaseHint: mapPrefix,
       canDelete: true,
       deleteScope: 'map',
+      deleteUrl: null,
     });
   }
 
@@ -229,22 +274,31 @@ export function buildUnifiedMascotImageEntries(opts = {}) {
     const url = String(a?.url || '').trim();
     if (!url || seenUrls.has(url)) continue;
     seenUrls.add(url);
-    const siteSource = String(a?.source || 'site').trim() || 'site';
+    const apiSource = String(a?.source || 'public').trim() || 'public';
+    const deleteMeta = resolveGlobalAssetDeleteMeta(a, packUuid, mapId);
+    const metaParts = [a?.map_id, a?.pack_label, deleteMeta.metaExtra].filter(Boolean);
     entries.push({
-      id: `site:${a?.id ?? url}`,
-      source: 'site',
-      sourceLabel: siteSource,
+      id: `global:${a?.id ?? url}`,
+      source: apiSource === 'public' ? 'site' : apiSource === 'library' ? 'map' : 'pack',
+      apiSource,
+      sourceLabel: SOURCE_LABELS[apiSource] || apiSource,
       filename: String(a?.filename || '').trim() || '—',
       url,
       kind: 'url',
       framesBaseHint: null,
-      canDelete: false,
-      meta: [a?.map_id, a?.pack_label].filter(Boolean).join(' · ') || '',
+      canDelete: deleteMeta.canDelete,
+      deleteScope: deleteMeta.deleteScope,
+      deleteUrl: deleteMeta.deleteUrl,
+      packId: String(a?.pack_id || '').trim() || null,
+      mapIdRef: String(a?.map_id || '').trim() || null,
+      meta: metaParts.join(' · ') || '',
     });
   }
 
   let list = entries;
-  if (sourceFilter !== 'all') {
+  if (sourceFilter === 'site') {
+    list = list.filter((e) => e.apiSource === 'public');
+  } else if (sourceFilter !== 'all') {
     list = list.filter((e) => e.source === sourceFilter);
   }
 
@@ -254,7 +308,7 @@ export function buildUnifiedMascotImageEntries(opts = {}) {
   if (!q) return list;
 
   return list.filter((e) => {
-    const hay = [e.filename, e.url, e.sourceLabel, e.meta, e.source]
+    const hay = [e.filename, e.url, e.sourceLabel, e.meta, e.source, e.apiSource]
       .map((x) => String(x || '').toLowerCase())
       .join(' ');
     return hay.includes(q);

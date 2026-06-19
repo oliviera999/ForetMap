@@ -162,4 +162,69 @@ describe('buildUnifiedMascotImageEntries', () => {
     expect(entries).toHaveLength(1);
     expect(entries[0].source).toBe('pack');
   });
+
+  test('filtre Site : uniquement le catalogue statique public', () => {
+    const entries = buildUnifiedMascotImageEntries({
+      packAssets: [],
+      libAssets: [],
+      globalAssets: [
+        { id: '1', source: 'public', filename: 'a.png', url: '/assets/mascots/a.png' },
+        { id: '2', source: 'pack', filename: 'b.png', url: '/api/visit/mascot-packs/x/assets/b.png', pack_id: 'x' },
+        { id: '3', source: 'library', filename: 'c.png', url: '/api/visit/mascot-sprite-library/foret/assets/c.png', map_id: 'foret' },
+      ],
+      packUuid: '00000000-0000-4000-8000-000000000001',
+      mapId: 'foret',
+      sourceFilter: 'site',
+    });
+    expect(entries).toHaveLength(1);
+    expect(entries[0].apiSource).toBe('public');
+    expect(entries[0].canDelete).toBe(true);
+    expect(entries[0].deleteScope).toBe('public');
+  });
+
+  test('suppression contextuelle pack et bibliothèque courante', () => {
+    const packUuid = '00000000-0000-4000-8000-000000000001';
+    const entries = buildUnifiedMascotImageEntries({
+      packAssets: [],
+      libAssets: [],
+      globalAssets: [
+        {
+          id: 'p1',
+          source: 'pack',
+          filename: 'mine.png',
+          url: `/api/visit/mascot-packs/${packUuid}/assets/mine.png`,
+          pack_id: packUuid,
+          map_id: 'foret',
+        },
+        {
+          id: 'p2',
+          source: 'pack',
+          filename: 'other.png',
+          url: '/api/visit/mascot-packs/other/assets/other.png',
+          pack_id: 'other',
+          map_id: 'foret',
+          pack_label: 'Autre',
+        },
+        {
+          id: 'l1',
+          source: 'library',
+          filename: 'lib.png',
+          url: '/api/visit/mascot-sprite-library/foret/assets/lib.png',
+          map_id: 'foret',
+        },
+      ],
+      packUuid,
+      mapId: 'foret',
+      sourceFilter: 'all',
+    });
+    const mine = entries.find((e) => e.filename === 'mine.png');
+    const other = entries.find((e) => e.filename === 'other.png');
+    const lib = entries.find((e) => e.filename === 'lib.png');
+    expect(mine?.canDelete).toBe(true);
+    expect(mine?.deleteScope).toBe('pack');
+    expect(other?.canDelete).toBe(false);
+    expect(other?.meta).toContain('Autre');
+    expect(lib?.canDelete).toBe(true);
+    expect(lib?.deleteScope).toBe('map');
+  });
 });

@@ -31,10 +31,10 @@ describe('VisitMascotStudioPreviewSection', () => {
     expect(screen.getByTestId('mascot-renderer').getAttribute('data-state')).toBe('walking');
   });
 
-  test('le bouton Idle remet l’état d’aperçu à « idle »', () => {
+  test('le bouton Repos remet l’état d’aperçu à « idle »', () => {
     setup();
     fireEvent.click(screen.getByRole('button', { name: 'Marche' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Idle' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Repos' }));
     expect(screen.getByTestId('mascot-renderer').getAttribute('data-state')).toBe('idle');
   });
 
@@ -42,5 +42,15 @@ describe('VisitMascotStudioPreviewSection', () => {
     setup();
     const select = screen.getByRole('combobox');
     expect(select.querySelectorAll('option').length).toBeGreaterThan(0);
+  });
+
+  test('change la mascotte affichée dans le renderer', () => {
+    setup();
+    const select = screen.getByRole('combobox');
+    const options = Array.from(select.querySelectorAll('option'));
+    expect(options.length).toBeGreaterThan(1);
+    const secondId = options[1].value;
+    fireEvent.change(select, { target: { value: secondId } });
+    expect(screen.getByTestId('mascot-renderer').getAttribute('data-mascot')).toBe(secondId);
   });
 });

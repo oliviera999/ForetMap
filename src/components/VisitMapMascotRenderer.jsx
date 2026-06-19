@@ -34,6 +34,7 @@ function VisitMapMascotRenderer({
   return (
     <Suspense fallback={fallback}>
       <Active
+        key={selectedMascotId}
         mascotState={mascotState}
         mascotConfig={selectedMascot}
         fallback={fallback}

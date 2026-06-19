@@ -1,9 +1,10 @@
-import React, { useMemo } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { withAppBase } from '../../services/api';
 import { isSpriteLibraryPreviewableUrl } from '../../utils/visitMascotPackTiming.js';
 import { VISIT_MASCOT_STATE } from '../../utils/visitMascotState.js';
 import { STATE_LABELS } from '../../constants/mascotStateLabels.js';
 import { buildUnifiedMascotImageEntries } from '../../utils/visitMascotPackManager.js';
+import { downloadApiFile } from '../../utils/downloadApiFile.js';
 
 const SOURCE_FILTERS = [
   { id: 'all', label: 'Toutes' },
@@ -41,6 +42,7 @@ const SOURCE_FILTERS = [
  *   onInsertImage: (entry: Record<string, unknown>) => void,
  *   onDeletePackAsset: (filename: string) => void,
  *   onDeleteMapAsset: (filename: string) => void,
+ *   onDeletePublicAsset: (url: string) => void,
  *   insertFeedback?: string,
  * }} props
  */
@@ -70,8 +72,12 @@ export default function MascotPackImagesPanel({
   onInsertImage,
   onDeletePackAsset,
   onDeleteMapAsset,
+  onDeletePublicAsset,
   insertFeedback = '',
 }) {
+  const [copyFeedback, setCopyFeedback] = useState('');
+  const [downloadBusy, setDownloadBusy] = useState('');
+
   const entries = useMemo(
     () =>
       buildUnifiedMascotImageEntries({
@@ -87,12 +93,50 @@ export default function MascotPackImagesPanel({
   );
 
   const loading = packAssetsLoading || libLoading || globalAssetsLoading;
-  const statusMessage = [packAssetsMessage, libMessage, globalAssetsMessage, insertFeedback]
+  const statusMessage = [packAssetsMessage, libMessage, globalAssetsMessage, insertFeedback, copyFeedback]
     .map((m) => String(m || '').trim())
     .filter(Boolean)
     .join(' · ');
 
   const targetLabel = STATE_LABELS[targetState] || targetState;
+
+  const copyUrl = useCallback((url) => {
+    const value = String(url || '').trim();
+    if (!value) return;
+    void navigator.clipboard.writeText(value).then(() => {
+      setCopyFeedback('URL copiée.');
+      setTimeout(() => setCopyFeedback(''), 2500);
+    });
+  }, []);
+
+  const downloadAsset = useCallback(async (entry) => {
+    const url = String(entry?.url || '').trim();
+    const filename = String(entry?.filename || 'asset').trim() || 'asset';
+    if (!url) return;
+    setDownloadBusy(url);
+    try {
+      if (url.startsWith('/api/')) {
+        await downloadApiFile(url, filename);
+      } else {
+        const link = document.createElement('a');
+        link.href = withAppBase(url);
+        link.download = filename;
+        link.click();
+      }
+    } finally {
+      setDownloadBusy('');
+    }
+  }, []);
+
+  const handleDelete = useCallback(
+    (entry) => {
+      const scope = entry?.deleteScope;
+      if (scope === 'pack') onDeletePackAsset(entry.filename);
+      else if (scope === 'map') onDeleteMapAsset(entry.filename);
+      else if (scope === 'public') onDeletePublicAsset(entry.deleteUrl || entry.url);
+    },
+    [onDeletePackAsset, onDeleteMapAsset, onDeletePublicAsset],
+  );
 
   return (
     <section
@@ -201,6 +245,7 @@ export default function MascotPackImagesPanel({
         <ul className="mascot-pack-wysiwyg__asset-grid" style={{ marginTop: 12 }}>
           {entries.map((entry) => {
             const previewable = isSpriteLibraryPreviewableUrl(entry.url);
+            const isDownloading = downloadBusy === entry.url;
             return (
               <li key={entry.id} className="mascot-pack-wysiwyg__asset-card">
                 <button
@@ -239,15 +284,26 @@ export default function MascotPackImagesPanel({
                   >
                     + {targetLabel}
                   </button>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => copyUrl(entry.url)}
+                  >
+                    Copier URL
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    disabled={isDownloading}
+                    onClick={() => void downloadAsset(entry)}
+                  >
+                    {isDownloading ? '…' : 'Télécharger'}
+                  </button>
                   {entry.canDelete ? (
                     <button
                       type="button"
                       className="btn btn-danger btn-sm"
-                      onClick={() =>
-                        entry.deleteScope === 'pack'
-                          ? onDeletePackAsset(entry.filename)
-                          : onDeleteMapAsset(entry.filename)
-                      }
+                      onClick={() => handleDelete(entry)}
                     >
                       Supprimer
                     </button>
