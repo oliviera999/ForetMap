@@ -7,6 +7,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Correctif — plein écran carte (fond vert sans plan)
+
+- **Cause** : après portail `body`, le cadre carte pouvait rester à ~1×1 px (`MapView`, calcul via `.main` absent) ou conserver d’anciennes dimensions pixels (`VisitView`).
+- **MapView** : `resolveMapLayoutAvailBox` + prop `mapFullscreen`, `remeasureMap` / `useLayoutEffect`, repli viewport.
+- **Visite** : calque `visit-map-fit-layer` en 100 % en immersion ; recentrage zoom à l’entrée plein écran.
+- **Styles** : shell plein écran en flex (remplissage viewport).
+- **Tests** : `tests-ui/shared/resolveMapLayoutAvailBox.test.js` ; e2e visite (image visible en plein écran).
+
 ### Packs mascotte — archive ZIP portable (visite + GL)
 
 - **Format** : `foretmap-mascot-pack-archive` v1 (`manifest.json`, `pack.json`, `assets/`) — module `lib/mascotPackArchive.js`.

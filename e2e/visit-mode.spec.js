@@ -72,6 +72,10 @@ test('visite connectée : plein écran carte puis Échap pour quitter', async ({
   await expect(page.getByTestId('fm-map-fullscreen-layer')).toBeVisible();
   await expect(page.getByTestId('visit-map-fullscreen-open')).toHaveCount(0);
   await expect(stage).toHaveClass(/visit-map-stage--fullscreen/);
+  const fullscreenImg = page.getByTestId('fm-map-fullscreen-layer').locator('img.visit-map-img');
+  await expect(fullscreenImg).toBeVisible();
+  const imgBox = await fullscreenImg.boundingBox();
+  expect(imgBox && imgBox.width > 80 && imgBox.height > 80).toBeTruthy();
 
   await page.keyboard.press('Escape');
   await expect(page.getByTestId('fm-map-fullscreen-layer')).toHaveCount(0);
