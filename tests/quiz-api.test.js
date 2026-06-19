@@ -136,3 +136,57 @@ test('POST /api/quiz/admin/import dryRun avec modèle', async () => {
   const afterCount = await queryOne('SELECT COUNT(*) AS n FROM quiz_questions');
   assert.strictEqual(Number(afterCount.n), Number(beforeCount.n));
 });
+
+test('GET /api/quiz/admin/questions — liste admin complète', async () => {
+  const token = await ensureAdminTeacherAuthToken();
+  const res = await request(app)
+    .get('/api/quiz/admin/questions?theme=sciences&statut=actif&sort=code')
+    .set('Authorization', `Bearer ${token}`)
+    .expect(200);
+  assert.ok(Array.isArray(res.body.items));
+  assert.ok(res.body.items.length > 0);
+  assert.ok(res.body.total >= res.body.items.length);
+  assert.match(String(res.body.items[0].question_code), /^QF/);
+});
+
+test('GET /api/quiz/admin/questions/:code puis PUT mise à jour', async () => {
+  const token = await ensureAdminTeacherAuthToken();
+  const list = await request(app)
+    .get('/api/quiz/admin/questions?categorieSlug=vivant_classification&statut=actif')
+    .set('Authorization', `Bearer ${token}`)
+    .expect(200);
+  const code = list.body.items[0]?.question_code;
+  assert.ok(code);
+
+  const detail = await request(app)
+    .get(`/api/quiz/admin/questions/${encodeURIComponent(code)}`)
+    .set('Authorization', `Bearer ${token}`)
+    .expect(200);
+  assert.strictEqual(detail.body.question.question_code, code);
+
+  const suffix = ` [test ${Date.now()}]`;
+  const updatedQuestion = `${detail.body.question.question}${suffix}`;
+  const put = await request(app)
+    .put(`/api/quiz/admin/questions/${encodeURIComponent(code)}`)
+    .set('Authorization', `Bearer ${token}`)
+    .send({ ...detail.body.question, question: updatedQuestion })
+    .expect(200);
+  assert.strictEqual(put.body.question.question, updatedQuestion);
+
+  const restored = await request(app)
+    .put(`/api/quiz/admin/questions/${encodeURIComponent(code)}`)
+    .set('Authorization', `Bearer ${token}`)
+    .send({ ...detail.body.question, question: detail.body.question.question })
+    .expect(200);
+  assert.strictEqual(restored.body.question.question, detail.body.question.question);
+});
+
+test('GET /api/quiz/admin/questions/next-code — auth requise', async () => {
+  await request(app).get('/api/quiz/admin/questions/next-code').expect(401);
+  const token = await ensureAdminTeacherAuthToken();
+  const res = await request(app)
+    .get('/api/quiz/admin/questions/next-code')
+    .set('Authorization', `Bearer ${token}`)
+    .expect(200);
+  assert.match(String(res.body.question_code), /^QF\d{4,}$/);
+});

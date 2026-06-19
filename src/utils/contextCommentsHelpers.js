@@ -8,6 +8,9 @@ import {
 
 export const DEFAULT_REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '😡', '🔥', '👏'];
 
+/** Nombre de commentaires visibles sans déplier la section (aperçu replié). */
+export const CONTEXT_COMMENT_PREVIEW_SIZE = 2;
+
 /** Brouillon commentaire : survit au remontage des tuiles tâche (rafraîchissement liste / changement de section). */
 export function contextCommentDraftKey(contextType, contextId) {
   return `foretmap:contextCommentDraft:${String(contextType || '')}:${String(contextId ?? '')}`;

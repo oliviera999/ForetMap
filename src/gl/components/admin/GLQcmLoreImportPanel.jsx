@@ -1,7 +1,10 @@
 import React from 'react';
 import { GLQcmCatalogPanel } from './GLQcmCatalogPanel.jsx';
 
-export function GLQcmLoreImportPanel() {
+export function GLQcmLoreImportPanel({
+  loreGlossaryLinkItems = [],
+  onOpenLoreTerm,
+}) {
   return (
     <GLQcmCatalogPanel
       title="Import QCM lore (XLSX)"
@@ -24,6 +27,9 @@ export function GLQcmLoreImportPanel() {
       answerPath={(code) => `/api/gl/lore/qcm/questions/${encodeURIComponent(code)}/answer`}
       templateFilename="foretmap-gl-modele-qcm-lore.xlsx"
       exportFilename="foretmap-gl-export-qcm-lore.xlsx"
+      qcmSet="lore"
+      loreGlossaryLinkItems={loreGlossaryLinkItems}
+      onOpenLoreTerm={onOpenLoreTerm}
     />
   );
 }

@@ -24,6 +24,30 @@ function splitLabels(terme, variantes) {
  * @param {Array<{ glossary_code?: string, terme?: string, variantes?: string }>} items
  * @returns {Array<{ code: string, labels: string[] }>}
  */
+/**
+ * Fusionne l’index glossaire (auto-lien) avec les termes liés à une question.
+ * @param {Array<{ glossary_code?: string, terme?: string, variantes?: string }>} baseItems
+ * @param {Array<{ glossary_code?: string, terme?: string, variantes?: string }>} extraTerms
+ */
+export function mergeGlossaryLinkItems(baseItems = [], extraTerms = []) {
+  const byCode = new Map();
+  for (const item of baseItems || []) {
+    const code = String(item?.glossary_code || '').trim();
+    if (!code) continue;
+    byCode.set(code, item);
+  }
+  for (const term of extraTerms || []) {
+    const code = String(term?.glossary_code || '').trim();
+    if (!code || byCode.has(code)) continue;
+    byCode.set(code, {
+      glossary_code: code,
+      terme: term.terme,
+      variantes: term.variantes || '',
+    });
+  }
+  return [...byCode.values()];
+}
+
 export function buildGlossaryLinkEntries(items) {
   const entries = [];
   for (const item of items || []) {

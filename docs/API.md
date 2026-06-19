@@ -1265,6 +1265,11 @@ Routes publiques (lecture) sauf progression quiz. Voir aussi les routes GL `/api
 | GET | `/api/quiz/me/progress` | élève | Progression |
 | GET | `/api/quiz/stats` | prof (`stats.read.all`) | Agrégation tentatives par élève et catégorie |
 | GET | `/api/quiz/admin/stats` | prof (`plants.manage` + élévation) | Agrégats catalogue (totaux, thèmes, catégories) |
+| GET | `/api/quiz/admin/questions` | prof (`plants.manage` + élévation) | Liste complète (`theme`, `categorieSlug`, `niveau`, `q`, `statut`, `sort`) |
+| GET | `/api/quiz/admin/questions/next-code` | prof (`plants.manage` + élévation) | Prochain code libre (`QF0001`…) |
+| GET | `/api/quiz/admin/questions/:code` | prof (`plants.manage` + élévation) | Fiche complète pour édition |
+| POST | `/api/quiz/admin/questions` | prof (`plants.manage` + élévation) | Création d’une question |
+| PUT | `/api/quiz/admin/questions/:code` | prof (`plants.manage` + élévation) | Mise à jour d’une question existante |
 | GET | `/api/quiz/admin/import/template` | prof (`plants.manage` + élévation) | Modèle XLSX (`categories` + `questions`) |
 | GET | `/api/quiz/admin/export` | prof (`plants.manage` + élévation) | Export ré-importable (`statut`, `theme`, `categorieSlug`) |
 | POST | `/api/quiz/admin/import` | prof (`plants.manage` + élévation) | Import XLSX (`dryRun` optionnel) |

@@ -7,6 +7,20 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Mutualisation ForetMap ↔ GL (composants partagés)
+
+- **QCM feedback** : logique unifiée dans `src/shared/qcm/qcmFeedback.js` ; `PedagoQcmFeedbackBlock` et `glQcmDisplay.js` réexportent le module partagé.
+- **DialogShell** : déplacé vers `src/shared/components/DialogShell.jsx` ; réexport de compatibilité dans `src/components/DialogShell.jsx`.
+- **MediaLibraryMenu** : déplacé vers `src/shared/components/MediaLibraryMenu.jsx` ; réexport dans `src/components/MediaLibraryMenu.jsx`.
+- **Tests** : `tests/qcm-feedback.test.js`.
+
+### GL — glossaire dans les questions QCM (popover)
+
+- **Clic terme / terme lié** : énoncé, choix et feedback hyperliés ; puces « Glossaire » / « Lexique lore » ouvrent le popover de définition (plateau et admin Contenus → QCM).
+- **Fusion index** : termes liés à la question (`glossaryTerms` / `loreGlossaryTerms`) complètent l’index d’auto-lien pour couvrir les mots-clés hors biome courant.
+- **Utilitaires** : `mergeGlossaryLinkItems`, `mergeLoreGlossaryLinkItems`.
+- **Tests** : extension `gl-glossary-autolink.test.js`, `GLQcmPopover.test.jsx`.
+
 ### GL — affichage des icônes de repères sur le plateau
 
 - **Emojis** : police Noto Color Emoji préchargée, variables `--font-emoji-stack` dans `gl-base.css`, `font-variant-emoji` sur les repères ; restauration de `foretmap-emoji-text-mixed` (évite rectangles / glyphes incorrects sous Caudex).
@@ -23,6 +37,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ### Build — correctifs imports et artefacts `dist/`
 
 - **FMQuizCatalogPanel** : chemins `api` / `downloadApiFile` corrigés (`../../../`).
+- **Quiz admin ForetMap** : liste complète du catalogue par défaut avec filtres, tris, import/export XLSX ; édition manuelle des questions (`FMQuizQuestionEditorPanel`, API `GET|POST|PUT /api/quiz/admin/questions*`).
 - **useGlMarkdownWithLegacyMedia** : import `applyGlLegacyMediaRefs` depuis `glLegacyMediaUrl.js`.
 - **dist/** : build production régénéré (ForetMap + GL).
 

@@ -20,7 +20,9 @@ export function GLContentsAdminView({
   auth,
   onNavigateTab,
   glossaryLinkItems = [],
+  loreGlossaryLinkItems = [],
   onOpenGlossaryTerm,
+  onOpenLoreTerm,
 }) {
   const [section, setSection] = useState('pages');
   const [items, setItems] = useState([]);
@@ -198,9 +200,15 @@ export function GLContentsAdminView({
       ) : section === 'library' ? (
         <GLContentLibraryView onOpenSubTab={setSection} />
       ) : section === 'qcm-lore' ? (
-        <GLQcmLoreImportPanel />
+        <GLQcmLoreImportPanel
+          loreGlossaryLinkItems={loreGlossaryLinkItems}
+          onOpenLoreTerm={onOpenLoreTerm}
+        />
       ) : (
-        <GLQcmImportPanel />
+        <GLQcmImportPanel
+          glossaryLinkItems={glossaryLinkItems}
+          onOpenGlossaryTerm={onOpenGlossaryTerm}
+        />
       )}
     </section>
   );

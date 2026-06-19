@@ -13,6 +13,12 @@ const {
   resolveQcmAnswerFeedback,
 } = require('../lib/glQcmChoices');
 const {
+  loadAdminQuestionDetail,
+  allocateNextQuizQuestionCode,
+  listAdminQuestions,
+  upsertQuizQuestion,
+} = require('../lib/fmQuizCrud');
+const {
   resolveImportRows,
   applyFmQuizImport,
   MAX_IMPORT_ROWS,
@@ -351,6 +357,89 @@ router.get(
 );
 
 const quizManagePermission = requirePermission('plants.manage', { needsElevation: true });
+
+/** GET /api/quiz/admin/questions — liste complète (catalogue admin). */
+router.get(
+  '/admin/questions',
+  quizManagePermission,
+  asyncHandler(async (req, res) => {
+    const items = await listAdminQuestions(
+      { queryAll },
+      {
+        theme: req.query?.theme,
+        categorieSlug: req.query?.categorieSlug,
+        niveau: req.query?.niveau,
+        q: req.query?.q,
+        statut: req.query?.statut,
+        sort: req.query?.sort,
+      },
+    );
+    return res.json({ items, total: items.length });
+  }),
+);
+
+/** GET /api/quiz/admin/questions/next-code */
+router.get(
+  '/admin/questions/next-code',
+  quizManagePermission,
+  asyncHandler(async (_req, res) => {
+    const question_code = await allocateNextQuizQuestionCode({ queryOne });
+    return res.json({ question_code });
+  }),
+);
+
+/** GET /api/quiz/admin/questions/:code */
+router.get(
+  '/admin/questions/:code',
+  quizManagePermission,
+  validate({ params: questionCodeParamsSchema }),
+  asyncHandler(async (req, res) => {
+    const code = normalizeQuestionCode(req.params.code);
+    if (!code) return res.status(400).json({ error: 'Code invalide' });
+    const question = await loadAdminQuestionDetail({ queryOne }, code);
+    if (!question) return res.status(404).json({ error: 'Question introuvable' });
+    return res.json({ question });
+  }),
+);
+
+/** POST /api/quiz/admin/questions */
+router.post(
+  '/admin/questions',
+  quizManagePermission,
+  asyncHandler(async (req, res) => {
+    try {
+      const result = await upsertQuizQuestion({ queryAll, queryOne, execute }, req.body || {}, {
+        requireNew: true,
+      });
+      return res.status(201).json({ ok: true, created: true, question: result.question });
+    } catch (err) {
+      const status = err.statusCode || 400;
+      return res.status(status).json({ error: err.message || 'Création impossible' });
+    }
+  }),
+);
+
+/** PUT /api/quiz/admin/questions/:code */
+router.put(
+  '/admin/questions/:code',
+  quizManagePermission,
+  validate({ params: questionCodeParamsSchema }),
+  asyncHandler(async (req, res) => {
+    const code = normalizeQuestionCode(req.params.code);
+    if (!code) return res.status(400).json({ error: 'Code invalide' });
+    try {
+      const result = await upsertQuizQuestion(
+        { queryAll, queryOne, execute },
+        req.body || {},
+        { question_code: code, requireExisting: true },
+      );
+      return res.json({ ok: true, created: false, question: result.question });
+    } catch (err) {
+      const status = err.statusCode || 400;
+      return res.status(status).json({ error: err.message || 'Mise à jour impossible' });
+    }
+  }),
+);
 
 /** GET /api/quiz/admin/stats */
 router.get(

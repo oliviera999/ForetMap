@@ -59,14 +59,15 @@ const FM_QCM_CLASS_NAMES = {
   },
 };
 
-export function FMQuizCatalogPanel() {
+export function FMQuizCatalogPanel({ showQuestionList = false }) {
   return (
     <QcmCatalogPanel
       title="Catalogue Quiz (QCM)"
       hint={
         <>
-          Fichier attendu : feuilles <code>categories</code> et <code>questions</code> (modèle
-          XLSX).
+          Import et export XLSX du catalogue par défaut (feuilles <code>categories</code> et{' '}
+          <code>questions</code>). Utilisez la section « Édition des questions » ci-dessous pour
+          parcourir, filtrer et modifier les fiches.
         </>
       }
       scopeQueryKey="theme"
@@ -75,11 +76,13 @@ export function FMQuizCatalogPanel() {
       exportFilterHint="L’export utilise les filtres thème / catégorie ci-dessous s’ils sont renseignés."
       listMeta={(item) => `(${item.theme || '—'} / ${item.categorie_slug})`}
       adminBasePath="/api/quiz/admin"
-      questionsListPath="/api/quiz/questions"
+      questionsListPath="/api/quiz/admin/questions"
       presentPath={(code) => `/api/quiz/questions/${encodeURIComponent(code)}/present`}
       answerPath={(code) => `/api/quiz/questions/${encodeURIComponent(code)}/answer`}
       templateFilename="foretmap-modele-qcm.xlsx"
       exportFilename="foretmap-export-qcm.xlsx"
+      showQuestionList={showQuestionList}
+      enableAdminFilters={showQuestionList}
       request={api}
       downloadFile={downloadApiFile}
       FeedbackBlock={PedagoQcmFeedbackBlock}

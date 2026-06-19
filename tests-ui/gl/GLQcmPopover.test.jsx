@@ -76,6 +76,37 @@ describe('GLQcmPopover', () => {
     expect(screen.queryByLabelText('Désert')).not.toBeInTheDocument();
   });
 
+  test('ouvre le glossaire au clic sur un terme lié', async () => {
+    const user = userEvent.setup();
+    const onOpenGlossaryTerm = vi.fn();
+
+    render(
+      <GLQcmPopover
+        open
+        marker={{ id: 1, label: 'Quiz' }}
+        questionCode="QCM0001"
+        presentation={{
+          presentationToken: 'token-test',
+          question: 'Quel biome abrite le fennec ?',
+          choices: [
+            { id: 0, text: 'Désert' },
+            { id: 1, text: 'Banquise' },
+          ],
+          glossaryTerms: [{ glossary_code: 'GL0001', terme: 'Biome' }],
+        }}
+        glossaryLinkItems={[{ glossary_code: 'GL0001', terme: 'Biome', variantes: '' }]}
+        onOpenGlossaryTerm={onOpenGlossaryTerm}
+        onClose={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole('link', { name: /biome/i }));
+    expect(onOpenGlossaryTerm).toHaveBeenCalledWith('GL0001');
+
+    await user.click(screen.getByRole('button', { name: /^Biome$/i }));
+    expect(onOpenGlossaryTerm).toHaveBeenCalledWith('GL0001');
+  });
+
   test('applique themeStyle sur le portail (hors .gl-app)', () => {
     render(
       <GLQcmPopover

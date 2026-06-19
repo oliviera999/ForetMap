@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { FMQuizCatalogPanel } from './admin/FMQuizCatalogPanel.jsx';
+import { FMQuizQuestionEditorPanel } from './admin/FMQuizQuestionEditorPanel.jsx';
 import { QuizView } from './QuizView.jsx';
 
 /**
@@ -11,15 +12,22 @@ export function QuizAdminView({
   onOpenGlossaryTerm,
   initialQuestionCode = null,
 }) {
+  const editorRef = useRef(null);
+
   return (
     <div className="pedago-view pedago-quiz-admin">
       {canManageQuiz ? (
-        <section className="pedago-quiz-admin__catalog">
-          <FMQuizCatalogPanel />
-        </section>
+        <>
+          <section className="pedago-quiz-admin__catalog">
+            <FMQuizCatalogPanel />
+          </section>
+          <section ref={editorRef} className="pedago-quiz-admin__editor">
+            <FMQuizQuestionEditorPanel initialQuestionCode={initialQuestionCode} />
+          </section>
+        </>
       ) : (
         <p className="section-sub card" style={{ padding: '12px 14px' }}>
-          Élevez vos droits (PIN) pour importer ou exporter le catalogue Quiz.
+          Élevez vos droits (PIN) pour importer, exporter ou modifier le catalogue Quiz.
         </p>
       )}
       <section className="pedago-quiz-admin__play">

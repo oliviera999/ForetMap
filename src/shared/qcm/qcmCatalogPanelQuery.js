@@ -24,10 +24,21 @@ export function buildExportQuery({ exportStatut, scopeQueryKey, scopeSlug, categ
  * @param {string} opts.search
  * @returns {string}
  */
-export function buildQuestionsListQuery({ scopeQueryKey, scopeSlug, categorieSlug, search }) {
+export function buildQuestionsListQuery({
+  scopeQueryKey,
+  scopeSlug,
+  categorieSlug,
+  search,
+  statut,
+  niveau,
+  sort,
+}) {
   const params = new URLSearchParams();
   if (scopeSlug?.trim()) params.set(scopeQueryKey, scopeSlug.trim());
   if (categorieSlug?.trim()) params.set('categorieSlug', categorieSlug.trim());
   if (search?.trim()) params.set('q', search.trim());
+  if (statut?.trim()) params.set('statut', statut.trim());
+  if (niveau?.trim()) params.set('niveau', niveau.trim());
+  if (sort?.trim()) params.set('sort', sort.trim());
   return params.toString();
 }

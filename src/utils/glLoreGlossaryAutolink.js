@@ -20,6 +20,30 @@ function splitLabels(terme, variantes) {
   return [...labels];
 }
 
+/**
+ * Fusionne l’index lore avec les termes liés à une question lore.
+ * @param {Array<{ lore_code?: string, terme?: string, variantes?: string }>} baseItems
+ * @param {Array<{ lore_code?: string, terme?: string, variantes?: string }>} extraTerms
+ */
+export function mergeLoreGlossaryLinkItems(baseItems = [], extraTerms = []) {
+  const byCode = new Map();
+  for (const item of baseItems || []) {
+    const code = String(item?.lore_code || '').trim();
+    if (!code) continue;
+    byCode.set(code, item);
+  }
+  for (const term of extraTerms || []) {
+    const code = String(term?.lore_code || '').trim();
+    if (!code || byCode.has(code)) continue;
+    byCode.set(code, {
+      lore_code: code,
+      terme: term.terme,
+      variantes: term.variantes || '',
+    });
+  }
+  return [...byCode.values()];
+}
+
 export function buildLoreGlossaryLinkEntries(items) {
   const entries = [];
   for (const item of items || []) {

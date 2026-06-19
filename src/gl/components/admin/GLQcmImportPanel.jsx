@@ -1,7 +1,10 @@
 import React from 'react';
 import { GLQcmCatalogPanel } from './GLQcmCatalogPanel.jsx';
 
-export function GLQcmImportPanel() {
+export function GLQcmImportPanel({
+  glossaryLinkItems = [],
+  onOpenGlossaryTerm,
+}) {
   return (
     <GLQcmCatalogPanel
       title="Import QCM biomes (XLSX)"
@@ -22,6 +25,9 @@ export function GLQcmImportPanel() {
       answerPath={(code) => `/api/gl/qcm/questions/${encodeURIComponent(code)}/answer`}
       templateFilename="foretmap-gl-modele-qcm.xlsx"
       exportFilename="foretmap-gl-export-qcm.xlsx"
+      qcmSet="biome"
+      glossaryLinkItems={glossaryLinkItems}
+      onOpenGlossaryTerm={onOpenGlossaryTerm}
     />
   );
 }
