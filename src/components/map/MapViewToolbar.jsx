@@ -42,6 +42,7 @@ export function MapViewToolbar({
   txRef,
   fitMap,
   animateZoomTowardScale,
+  onOpenFullscreen,
 }) {
   const publicSettings = usePublicSettings();
   const {
@@ -224,6 +225,17 @@ export function MapViewToolbar({
         )}
 
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 4, alignItems: 'center' }}>
+          {typeof onOpenFullscreen === 'function' ? (
+            <button
+              type="button"
+              className="fm-map-fullscreen-open"
+              data-testid="map-view-fullscreen-open"
+              aria-label="Afficher la carte en plein écran"
+              onClick={onOpenFullscreen}
+            >
+              <span aria-hidden>⛶</span> Plein écran
+            </button>
+          ) : null}
           {canManageMarkerPositions && (
             <button
               aria-label={

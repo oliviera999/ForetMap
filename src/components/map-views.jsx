@@ -52,6 +52,8 @@ import { ZoneInfoModal } from './map/ZoneInfoModal.jsx';
 import { MarkerModal } from './map/MarkerModal.jsx';
 import { MapViewToolbar } from './map/MapViewToolbar.jsx';
 import { MapCanvasHints } from './map/MapCanvasHints.jsx';
+import { useMapFullscreen } from '../shared/hooks/useMapFullscreen.js';
+import { MapFullscreenShell } from '../shared/components/MapFullscreenShell.jsx';
 import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
 import { useSession } from '../contexts/SessionContext.jsx';
 import { useData } from '../contexts/DataContext.jsx';
@@ -111,6 +113,20 @@ function MapViewImpl({
   const [mapTutorialPreview, setMapTutorialPreview] = useState(null);
   const [tutorialReadIds, setTutorialReadIds] = useState(() => new Set());
   const [markerPositionUnlocked, setMarkerPositionUnlocked] = useState(false);
+  const {
+    mapFullscreen,
+    setMapFullscreen,
+    openMapFullscreen,
+    closeMapFullscreen,
+  } = useMapFullscreen({
+    escapeBlocked: Boolean(
+      selectedZone ||
+        selectedMarker ||
+        pendingZone ||
+        pendingMarker ||
+        mapTutorialPreview,
+    ),
+  });
   const configuredLocationEmojis = String(
     publicSettings?.ui?.map?.location_emojis || publicSettings?.map?.location_emojis || '',
   );
@@ -241,6 +257,12 @@ function MapViewImpl({
   useEffect(() => {
     setMapImageIdx(0);
   }, [mapImageCandidates]);
+
+  useEffect(() => {
+    if (!mapFullscreen) return undefined;
+    const id = requestAnimationFrame(() => fitMap());
+    return () => cancelAnimationFrame(id);
+  }, [mapFullscreen, fitMap]);
 
   useEffect(() => {
     setMode('view');
@@ -845,7 +867,7 @@ function MapViewImpl({
 
   return (
     <div
-      className={`map-view-root ${embedded ? 'map-view-root--embedded' : 'map-view-root--solo'}`}
+      className={`map-view-root ${embedded ? 'map-view-root--embedded' : 'map-view-root--solo'}${mapFullscreen ? ' map-view-root--map-fullscreen-active' : ''}`}
     >
       {toast && <TimedToast msg={toast} onDone={() => setToast(null)} />}
       {mapTutorialPreview && (
@@ -992,64 +1014,72 @@ function MapViewImpl({
         />
       )}
 
-      <MapViewToolbar
-        maps={maps}
-        activeMapId={activeMapId}
-        onMapChange={onMapChange}
-        mode={mode}
-        isTeacher={isTeacher}
-        drawPointsCount={drawPoints.length}
-        onModeButtonClick={(m) => {
-          setMode((p) => (p === m && m !== 'view' ? 'view' : m));
-          if (m === 'view') {
-            setDrawPoints([]);
+      {!mapFullscreen ? (
+        <MapViewToolbar
+          maps={maps}
+          activeMapId={activeMapId}
+          onMapChange={onMapChange}
+          mode={mode}
+          isTeacher={isTeacher}
+          drawPointsCount={drawPoints.length}
+          onModeButtonClick={(m) => {
+            setMode((p) => (p === m && m !== 'view' ? 'view' : m));
+            if (m === 'view') {
+              setDrawPoints([]);
+              discardEditPointsSession();
+            }
+          }}
+          onFinishZone={finishZone}
+          onUndoPoint={undoPoint}
+          onCancelDraw={cancelDraw}
+          editZoneName={editZone?.name}
+          editCanUndo={editCanUndo}
+          onUndoEditPoints={undoEditPoints}
+          onSaveEditPoints={saveEditPoints}
+          onExitEditPoints={() => {
+            setMode('view');
             discardEditPointsSession();
-          }
-        }}
-        onFinishZone={finishZone}
-        onUndoPoint={undoPoint}
-        onCancelDraw={cancelDraw}
-        editZoneName={editZone?.name}
-        editCanUndo={editCanUndo}
-        onUndoEditPoints={undoEditPoints}
-        onSaveEditPoints={saveEditPoints}
-        onExitEditPoints={() => {
-          setMode('view');
-          discardEditPointsSession();
-        }}
-        canManageMarkerPositions={canManageMarkerPositions}
-        markerPositionUnlocked={markerPositionUnlocked}
-        onToggleMarkerPositionLock={toggleMarkerPositionLock}
-        isCoarsePointer={isCoarsePointer}
-        mobileInteractionsActive={mobileInteractionsActive}
-        onToggleMapInteraction={toggleMapInteraction}
-        showLabels={showLabels}
-        onToggleLabels={() => setShowLabels((l) => !l)}
-        containerRef={containerRef}
-        txRef={tx}
-        fitMap={fitMap}
-        animateZoomTowardScale={animateZoomTowardScale}
-      />
+          }}
+          canManageMarkerPositions={canManageMarkerPositions}
+          markerPositionUnlocked={markerPositionUnlocked}
+          onToggleMarkerPositionLock={toggleMarkerPositionLock}
+          isCoarsePointer={isCoarsePointer}
+          mobileInteractionsActive={mobileInteractionsActive}
+          onToggleMapInteraction={toggleMapInteraction}
+          showLabels={showLabels}
+          onToggleLabels={() => setShowLabels((l) => !l)}
+          containerRef={containerRef}
+          txRef={tx}
+          fitMap={fitMap}
+          animateZoomTowardScale={animateZoomTowardScale}
+          onOpenFullscreen={openMapFullscreen}
+        />
+      ) : null}
 
-      <div
-        ref={mapLayoutOuterRef}
-        className="map-view-canvas-outer"
-        style={{
-          minHeight: 0,
-          minWidth: 0,
-          display: 'flex',
-          flexDirection: 'column',
-          boxSizing: 'border-box',
-          ...(embedded
-            ? {
-                paddingTop: 0,
-                paddingLeft: mapFramePaddingPx,
-                paddingRight: mapFramePaddingPx,
-                paddingBottom: mapFramePaddingPx,
-              }
-            : { padding: mapFramePaddingPx }),
-        }}
+      <MapFullscreenShell
+        active={mapFullscreen}
+        onClose={closeMapFullscreen}
+        layerClassName="map-view-fullscreen-shell"
       >
+        <div
+          ref={mapLayoutOuterRef}
+          className={`map-view-canvas-outer${mapFullscreen ? ' map-view-canvas-outer--fullscreen' : ''}`}
+          style={{
+            minHeight: 0,
+            minWidth: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            boxSizing: 'border-box',
+            ...(embedded
+              ? {
+                  paddingTop: 0,
+                  paddingLeft: mapFramePaddingPx,
+                  paddingRight: mapFramePaddingPx,
+                  paddingBottom: mapFramePaddingPx,
+                }
+              : { padding: mapFramePaddingPx }),
+          }}
+        >
         <div className="map-view-canvas-slot">
           <div
             ref={containerRef}
@@ -1164,7 +1194,8 @@ function MapViewImpl({
             />
           </div>
         </div>
-      </div>
+        </div>
+      </MapFullscreenShell>
     </div>
   );
 }

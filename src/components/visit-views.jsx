@@ -48,6 +48,8 @@ import {
 import { wheelZoomScaleFactor } from '../utils/mapWheelZoom';
 import { clampVisitMapTransform, zoomVisitTransformToScale } from '../utils/visitMapTransform.js';
 import { pointToContainedRectPct } from '../shared/pct-map/pctMapPointer.js';
+import { useMapFullscreen } from '../shared/hooks/useMapFullscreen.js';
+import { MapFullscreenShell } from '../shared/components/MapFullscreenShell.jsx';
 import { VisitMapMarkerButton } from './VisitMapMarkerButton.jsx';
 import { VisitDrawZonePreview } from './VisitDrawZonePreview.jsx';
 import { VisitMapMascot } from './VisitMapMascot.jsx';
@@ -272,8 +274,13 @@ function VisitViewImpl({
   const VISIT_TEACHER_PREVIEW_LS_KEY = 'foretmap_visit_teacher_preview_student';
   const VISIT_COMFORTABLE_READING_LS_KEY = 'foretmap_visit_comfortable_reading';
 
-  const [visitImmersion, setVisitImmersion] = useState(() => {
-    return safeLocalStorageGetItem(VISIT_IMMERSION_LS_KEY, null) === '1';
+  const {
+    mapFullscreen: visitImmersion,
+    setMapFullscreen: setVisitImmersion,
+    toggleMapFullscreen: toggleVisitImmersion,
+  } = useMapFullscreen({
+    persistKey: VISIT_IMMERSION_LS_KEY,
+    escapeBlocked: Boolean(selected || visitMediaLightbox || visitTutorialPreview),
   });
   const [teacherPreviewAsStudent, setTeacherPreviewAsStudent] = useState(() => {
     if (!isTeacher) return false;
@@ -286,10 +293,6 @@ function VisitViewImpl({
   useEffect(() => {
     if (!isTeacher) setTeacherPreviewAsStudent(false);
   }, [isTeacher]);
-
-  useEffect(() => {
-    safeLocalStorageSetItem(VISIT_IMMERSION_LS_KEY, visitImmersion ? '1' : '0');
-  }, [visitImmersion]);
 
   useEffect(() => {
     if (!isTeacher) return;
@@ -1241,70 +1244,77 @@ function VisitViewImpl({
         />
         <div className="visit-grid visit-grid--map-forward">
           <div className="visit-map-card">
-            <VisitMapChrome
-              title={visitTitle}
-              showPresentationButton={showVisitPresentationButton}
-              presentationInvitePulse={visitPresentationInvitePulse}
-              onOpenPresentation={() =>
-                setVisitTutorialPreview(tutorialPreviewPayload(visitPresentationTutorial))
-              }
-              networkStatusLabel={mode === 'view' ? visitNetworkStatusLabel : null}
-              isOnline={isOnline}
-              syncStatus={syncStatus}
-              pendingSyncCount={pendingSyncCount}
-              visitImmersion={visitImmersion}
-              onToggleImmersion={() => setVisitImmersion((v) => !v)}
-              isTeacher={isTeacher}
-              teacherPreviewAsStudent={teacherPreviewAsStudent}
-              onToggleTeacherPreview={() => setTeacherPreviewAsStudent((v) => !v)}
-              visitMascotId={visitMascotId}
-              visitMascotOptions={visitMascotOptions}
-              onChangeVisitMascotId={onChangeVisitMascotId}
-              cartographyProgress={visitCartographyProgress}
-              helpPanelSlot={
-                isHelpEnabled ? (
-                  <HelpPanel
-                    sectionId="visit"
-                    title={HELP_PANELS.visit.title}
-                    entries={HELP_PANELS.visit.items}
-                    isTeacher={isTeacher}
-                    isPulsing={pulseUnseenPanels && !hasSeenSection('visit')}
-                    panelTitlePrefix={helpPanelTitlePrefix}
-                    closeButtonText={helpPanelCloseCta}
-                    dismissButtonText={helpPanelDismissCta}
-                    onMarkSeen={markSectionSeen}
-                    onOpen={trackPanelOpen}
-                    onDismiss={trackPanelDismiss}
-                  />
-                ) : null
-              }
-              onBackToAuth={!student && onBackToAuth ? onBackToAuth : null}
-              maps={maps}
-              mapId={mapId}
-              onSelectMapId={setMapId}
-              quickTipPrefix={helpHintPrefix}
-              quickTipText={
-                isHelpEnabled && showContextHints && visitQuickTip ? visitQuickTip : null
-              }
-            />
-            <div
-              ref={stageRef}
-              className="visit-map-stage"
-              onClick={onMapClick}
-              data-visit-mascot-visibility={showVisitMapMascot ? 'visible' : 'hidden'}
-              data-visit-mascot-reason={visitMascotVisibilityReason}
-              style={{
-                cursor:
-                  isTeacher && mode !== 'view' && !visitMapImageReady
-                    ? 'wait'
-                    : isTeacher && mode !== 'view'
-                      ? 'crosshair'
-                      : canPanAndZoom
-                        ? 'grab'
-                        : 'default',
-                touchAction: canPanAndZoom ? 'none' : 'auto',
-              }}
+            {!visitImmersion ? (
+              <VisitMapChrome
+                title={visitTitle}
+                showPresentationButton={showVisitPresentationButton}
+                presentationInvitePulse={visitPresentationInvitePulse}
+                onOpenPresentation={() =>
+                  setVisitTutorialPreview(tutorialPreviewPayload(visitPresentationTutorial))
+                }
+                networkStatusLabel={mode === 'view' ? visitNetworkStatusLabel : null}
+                isOnline={isOnline}
+                syncStatus={syncStatus}
+                pendingSyncCount={pendingSyncCount}
+                visitImmersion={visitImmersion}
+                onToggleImmersion={toggleVisitImmersion}
+                isTeacher={isTeacher}
+                teacherPreviewAsStudent={teacherPreviewAsStudent}
+                onToggleTeacherPreview={() => setTeacherPreviewAsStudent((v) => !v)}
+                visitMascotId={visitMascotId}
+                visitMascotOptions={visitMascotOptions}
+                onChangeVisitMascotId={onChangeVisitMascotId}
+                cartographyProgress={visitCartographyProgress}
+                helpPanelSlot={
+                  isHelpEnabled ? (
+                    <HelpPanel
+                      sectionId="visit"
+                      title={HELP_PANELS.visit.title}
+                      entries={HELP_PANELS.visit.items}
+                      isTeacher={isTeacher}
+                      isPulsing={pulseUnseenPanels && !hasSeenSection('visit')}
+                      panelTitlePrefix={helpPanelTitlePrefix}
+                      closeButtonText={helpPanelCloseCta}
+                      dismissButtonText={helpPanelDismissCta}
+                      onMarkSeen={markSectionSeen}
+                      onOpen={trackPanelOpen}
+                      onDismiss={trackPanelDismiss}
+                    />
+                  ) : null
+                }
+                onBackToAuth={!student && onBackToAuth ? onBackToAuth : null}
+                maps={maps}
+                mapId={mapId}
+                onSelectMapId={setMapId}
+                quickTipPrefix={helpHintPrefix}
+                quickTipText={
+                  isHelpEnabled && showContextHints && visitQuickTip ? visitQuickTip : null
+                }
+              />
+            ) : null}
+            <MapFullscreenShell
+              active={visitImmersion}
+              onClose={() => setVisitImmersion(false)}
+              layerClassName="visit-map-fullscreen-shell"
             >
+              <div
+                ref={stageRef}
+                className={`visit-map-stage${visitImmersion ? ' visit-map-stage--fullscreen' : ''}`}
+                onClick={onMapClick}
+                data-visit-mascot-visibility={showVisitMapMascot ? 'visible' : 'hidden'}
+                data-visit-mascot-reason={visitMascotVisibilityReason}
+                style={{
+                  cursor:
+                    isTeacher && mode !== 'view' && !visitMapImageReady
+                      ? 'wait'
+                      : isTeacher && mode !== 'view'
+                        ? 'crosshair'
+                        : canPanAndZoom
+                          ? 'grab'
+                          : 'default',
+                  touchAction: canPanAndZoom ? 'none' : 'auto',
+                }}
+              >
               <div
                 className="visit-map-world"
                 style={{
@@ -1485,6 +1495,7 @@ function VisitViewImpl({
             {!selected ? (
               <p className="visit-map-empty-hint section-sub">{visitEmptySelection}</p>
             ) : null}
+            </MapFullscreenShell>
           </div>
         </div>
 

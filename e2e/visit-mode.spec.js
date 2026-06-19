@@ -59,6 +59,25 @@ test('visite connectée : onglet Visite affiche la vue visite', async ({ page })
   await expect(page.locator('.visit-view--guest-public')).toHaveCount(0);
 });
 
+test('visite connectée : plein écran carte puis Échap pour quitter', async ({ page }) => {
+  await loginAsNewStudent(page);
+
+  await page.getByRole('button', { name: /^🧭 Visite$/ }).click();
+  await expect(page.locator('.visit-view')).toBeVisible({ timeout: 30_000 });
+
+  const stage = page.locator('.visit-map-stage');
+  await expect(stage.locator('img.visit-map-img')).toBeVisible({ timeout: 15_000 });
+
+  await page.getByTestId('visit-map-fullscreen-open').click();
+  await expect(page.getByTestId('fm-map-fullscreen-layer')).toBeVisible();
+  await expect(page.getByTestId('visit-map-fullscreen-open')).toHaveCount(0);
+  await expect(stage).toHaveClass(/visit-map-stage--fullscreen/);
+
+  await page.keyboard.press('Escape');
+  await expect(page.getByTestId('fm-map-fullscreen-layer')).toHaveCount(0);
+  await expect(page.getByTestId('visit-map-fullscreen-open')).toBeVisible();
+});
+
 test('visite connectée : scène carte, image chargée et contrôles zoom', async ({ page }) => {
   await loginAsNewStudent(page);
 
