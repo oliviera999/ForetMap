@@ -102,6 +102,15 @@ describe('MascotPackListAside', () => {
     expect(props.onLabelDraftChange).toHaveBeenCalledWith('X');
   });
 
+  test('isDirty : affiche la bannière modifications non enregistrées', () => {
+    setup({
+      selectedId: 'p1',
+      selectedRow: { id: 'p1', is_published: 0 },
+      isDirty: true,
+    });
+    expect(screen.getByText('Modifications non enregistrées')).toBeTruthy();
+  });
+
   test('erreur d’action : affiche le message et les lignes d’issues', () => {
     setup({
       actionError: 'Échec',

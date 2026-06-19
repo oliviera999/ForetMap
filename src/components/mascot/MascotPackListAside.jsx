@@ -32,6 +32,7 @@ import { toMascotPackIssueLines } from '../../utils/mascotPackValidationUi.js';
  *   onDelete: () => void,
  *   selectedValidation: { ok: boolean },
  *   editorWarnings: string[],
+ *   isDirty?: boolean,
  *   actionError: string,
  *   actionIssues: Array<Record<string, unknown>>,
  * }} props
@@ -61,6 +62,7 @@ export default function MascotPackListAside({
   onDelete,
   selectedValidation,
   editorWarnings,
+  isDirty = false,
   actionError,
   actionIssues,
 }) {
@@ -219,6 +221,16 @@ export default function MascotPackListAside({
       </ul>
       {selectedId ? (
         <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {isDirty ? (
+            <p
+              className="visit-mascot-pack-manager__dirty-banner"
+              role="status"
+              aria-live="polite"
+            >
+              <span className="visit-mascot-pack-manager__dirty-dot" aria-hidden="true" />
+              Modifications non enregistrées
+            </p>
+          ) : null}
           <label>
             <span
               className="section-sub"
@@ -235,7 +247,7 @@ export default function MascotPackListAside({
           </label>
           <button
             type="button"
-            className="btn btn-primary btn-sm"
+            className={`btn btn-primary btn-sm${isDirty ? ' visit-mascot-pack-manager__save--dirty' : ''}`}
             disabled={actionBusy || !selectedValidation.ok}
             title={
               selectedValidation.ok
