@@ -2463,6 +2463,21 @@ test('visit mascot packs : filtrage strict par map_id dans la liste studio', asy
 const VISIT_LIB_TINY_PNG_B64 =
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO5qXg8AAAAASUVORK5CYII=';
 
+async function readZipResponseBody(agentReq) {
+  const chunks = [];
+  const res = await agentReq
+    .buffer(true)
+    .parse((resStream, callback) => {
+      resStream.on('data', (chunk) => chunks.push(chunk));
+      resStream.on('end', () => callback(null, Buffer.concat(chunks)));
+    })
+    .expect(200);
+  assert.ok(String(res.headers['content-type'] || '').includes('zip'));
+  if (Buffer.isBuffer(res.body)) return res.body;
+  if (chunks.length) return Buffer.concat(chunks);
+  return Buffer.from(String(res.text || ''), 'binary');
+}
+
 test('visit : bibliothèque sprites + clone catalogue + clone pack (assets)', async () => {
   const token = await getAdminAuthToken();
   const libName = `lib-api-${Date.now()}.png`;
@@ -2620,6 +2635,79 @@ test('visit mascot assets : inventaire global catalogue + packs + bibliothèque'
       .expect(200);
     await request(app)
       .delete(`/api/visit/mascot-sprite-library/foret/assets/${encodeURIComponent(libName)}`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+  }
+});
+
+test('visit mascot packs : export ZIP et import create', async () => {
+  const token = await getAdminAuthToken();
+  const created = await request(app)
+    .post('/api/visit/mascot-packs')
+    .set('Authorization', `Bearer ${token}`)
+    .send({ map_id: 'foret', is_published: 0, label: 'zip-export-src' })
+    .expect(201);
+  const packId = created.body.id;
+  try {
+    await request(app)
+      .post(`/api/visit/mascot-packs/${packId}/assets`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ filename: 'zip-frame.png', image_data: VISIT_LIB_TINY_PNG_B64 })
+      .expect(201);
+    const fb = `/api/visit/mascot-packs/${packId}/assets/`;
+    const slimPack = {
+      ...created.body.pack,
+      framesBase: fb,
+      stateFrames: { idle: { files: ['zip-frame.png'], fps: 4 } },
+    };
+    await request(app)
+      .put(`/api/visit/mascot-packs/${packId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ map_id: 'foret', label: 'zip-export-src', pack: slimPack, is_published: 0 })
+      .expect(200);
+
+    const zipBody = await readZipResponseBody(
+      request(app)
+        .get(`/api/visit/mascot-packs/${packId}/export.zip`)
+        .set('Authorization', `Bearer ${token}`),
+    );
+    assert.ok(zipBody.length > 100);
+
+    const archiveB64 = zipBody.toString('base64');
+    const analyzeRes = await request(app)
+      .post('/api/visit/mascot-packs/import/analyze')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ archive: { fileName: 'test.zip', fileDataBase64: archiveB64 } })
+      .expect(200);
+    assert.strictEqual(analyzeRes.body.variant, 'visit');
+    assert.strictEqual(analyzeRes.body.ok, true);
+    assert.ok(Number(analyzeRes.body.assetCount) >= 1);
+
+    const imported = await request(app)
+      .post('/api/visit/mascot-packs/import')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        map_id: 'foret',
+        mode: 'create',
+        label: 'zip-imported',
+        archive: { fileName: 'test.zip', fileDataBase64: archiveB64 },
+      })
+      .expect(201);
+    const importedId = imported.body.id;
+    assert.notStrictEqual(importedId, packId);
+    const importedAssets = await request(app)
+      .get(`/api/visit/mascot-packs/${importedId}/assets`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+    assert.ok(importedAssets.body.assets.some((a) => a.filename === 'zip-frame.png'));
+
+    await request(app)
+      .delete(`/api/visit/mascot-packs/${importedId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+  } finally {
+    await request(app)
+      .delete(`/api/visit/mascot-packs/${packId}`)
       .set('Authorization', `Bearer ${token}`)
       .expect(200);
   }

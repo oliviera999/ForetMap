@@ -24,6 +24,8 @@ import MascotPackListAside from './mascot/MascotPackListAside.jsx';
 import MascotPackImagesPanel from './mascot/MascotPackImagesPanel.jsx';
 import MascotInteractionProfileEditor from './mascot/MascotInteractionProfileEditor.jsx';
 import MascotStudioModeTabs from './mascot/MascotStudioModeTabs.jsx';
+import MascotPackArchiveImportDialog from '../shared/mascot-pack/MascotPackArchiveImportDialog.jsx';
+import { downloadApiFile } from '../utils/downloadApiFile.js';
 
 import { STATE_LABELS } from '../constants/mascotStateLabels.js';
 
@@ -78,6 +80,7 @@ export default function VisitMascotPackManager({
   const [globalAssetsMessage, setGlobalAssetsMessage] = useState('');
   const [imageSourceFilter, setImageSourceFilter] = useState('all');
   const [imageSearch, setImageSearch] = useState('');
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [globalTargetState, setGlobalTargetState] = useState('idle');
   const [packAssets, setPackAssets] = useState([]);
   const [packAssetsLoading, setPackAssetsLoading] = useState(false);
@@ -411,6 +414,43 @@ export default function VisitMascotPackManager({
     if (!window.confirm('Dupliquer ce pack (copie JSON et fichiers uploadés) ?')) return;
     await postNewPack({ clone_from_pack_id: selectedId });
   }, [selectedId, postNewPack, confirmLeaveIfDirty]);
+
+  const onExportZip = useCallback(async () => {
+    if (!selectedId) return;
+    setActionBusy(true);
+    setActionError('');
+    try {
+      const row = packs.find((p) => p.id === selectedId);
+      const slug = String(row?.label || 'pack')
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9._-]+/g, '-')
+        .slice(0, 40);
+      await downloadApiFile(
+        `/api/visit/mascot-packs/${encodeURIComponent(selectedId)}/export.zip`,
+        `mascot-pack-${slug || 'pack'}.zip`,
+      );
+    } catch (e) {
+      if (e instanceof AccountDeletedError) onForceLogout?.();
+      else setActionError(e.message || 'Export ZIP impossible');
+    } finally {
+      setActionBusy(false);
+    }
+  }, [selectedId, packs, onForceLogout]);
+
+  const onOpenImport = useCallback(() => {
+    if (!confirmLeaveIfDirty()) return;
+    setImportDialogOpen(true);
+  }, [confirmLeaveIfDirty]);
+
+  const onArchiveImported = useCallback(
+    async (result) => {
+      const newId = result?.id ? String(result.id) : '';
+      if (newId) setSelectedId(newId);
+      await onRefresh();
+    },
+    [onRefresh],
+  );
 
   const onSave = useCallback(async () => {
     if (!selectedId) {
@@ -805,6 +845,8 @@ export default function VisitMascotPackManager({
             onNewFromCatalog={() => void onNewFromCatalog()}
             onRefresh={() => void onRefresh()}
             onDuplicateSelected={() => void onDuplicateSelected()}
+            onExportZip={() => void onExportZip()}
+            onOpenImport={onOpenImport}
             listError={listError}
             loading={loading}
             packs={packs}
@@ -1035,6 +1077,15 @@ export default function VisitMascotPackManager({
           </div>
         </div>
       )}
+      <MascotPackArchiveImportDialog
+        open={importDialogOpen}
+        variant="visit"
+        mapId={String(mapId || '')}
+        targetPackId={selectedId}
+        targetPackLabel={String(selectedRow?.label || labelDraft || '')}
+        onClose={() => setImportDialogOpen(false)}
+        onImported={(result) => void onArchiveImported(result)}
+      />
     </div>
   );
 }

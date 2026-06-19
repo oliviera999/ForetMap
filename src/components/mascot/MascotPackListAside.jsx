@@ -19,6 +19,8 @@ import { toMascotPackIssueLines } from '../../utils/mascotPackValidationUi.js';
  *   onNewFromCatalog: () => void,
  *   onRefresh: () => void,
  *   onDuplicateSelected: () => void,
+ *   onExportZip?: () => void,
+ *   onOpenImport?: () => void,
  *   listError: string,
  *   loading: boolean,
  *   packs: Array<Record<string, unknown>>,
@@ -49,6 +51,8 @@ export default function MascotPackListAside({
   onNewFromCatalog,
   onRefresh,
   onDuplicateSelected,
+  onExportZip,
+  onOpenImport,
   listError,
   loading,
   packs,
@@ -174,14 +178,47 @@ export default function MascotPackListAside({
         </button>
       </div>
       {selectedId ? (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            disabled={actionBusy}
+            onClick={onDuplicateSelected}
+          >
+            Dupliquer le pack sélectionné
+          </button>
+          {onExportZip ? (
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              disabled={actionBusy}
+              onClick={onExportZip}
+              title="Télécharger une archive ZIP portable (JSON + images)"
+            >
+              Exporter ZIP
+            </button>
+          ) : null}
+          {onOpenImport ? (
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              disabled={actionBusy}
+              onClick={onOpenImport}
+              title="Importer une archive ZIP (nouveau brouillon ou remplacement)"
+            >
+              Importer ZIP…
+            </button>
+          ) : null}
+        </div>
+      ) : onOpenImport ? (
         <button
           type="button"
           className="btn btn-ghost btn-sm"
           style={{ marginBottom: 10 }}
           disabled={actionBusy}
-          onClick={onDuplicateSelected}
+          onClick={onOpenImport}
         >
-          Dupliquer le pack sélectionné
+          Importer ZIP…
         </button>
       ) : null}
       {listError ? (

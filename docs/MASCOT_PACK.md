@@ -75,6 +75,22 @@ Puis importer ce manifeste dans le catalogue et appeler `expandMascotPackToSprit
 2. Les packs **publiés** sont renvoyés dans **`GET /api/visit/content`** (`mascot_packs`) et fusionnés au sélecteur mascotte pour cette carte (identifiant runtime = **`catalog_id`**, préfixe `srv-…`).
 3. Médiathèque : **`GET /api/visit/mascot-packs/:id/assets`** (liste des PNG), **`POST …/assets`**, **`DELETE …/assets/:filename`** ; `framesBase` = **`/api/visit/mascot-packs/{id}/assets/`** — voir **`docs/API.md`**.
 
+## Archive ZIP v1 (export / import portable)
+
+Format **`foretmap-mascot-pack-archive`** (`formatVersion: 1`) :
+
+```
+mon-pack.zip
+├── manifest.json   # variant visit | gl, source, warnings
+├── pack.json       # charge utile complète (v2 visite : interaction + dialogue)
+└── assets/         # PNG embarqués ; framesBase portable = ./assets/
+```
+
+- **Visite** : `GET /api/visit/mascot-packs/:id/export.zip` ; import `POST …/import` (`mode: create` ou `replace` + `target_pack_id`). Studio : boutons **Exporter ZIP** / **Importer ZIP** dans `VisitMascotPackManager`.
+- **GL** : routes équivalentes sous `/api/gl/mascots/packs/…` ; studio `GLMascotPackManager`.
+- **Limites** : mêmes bornes que la médiathèque (`FORETMAP_CONTENT_LIBRARY_MAX_*`, défaut 50 Mo archive / 100 Mo décompressé / 200 fichiers).
+- **URLs externes** (`https://…`) : non téléchargées ; listées dans `manifest.warnings`.
+
 ## Outil graphique (dev)
 
 - **Page autonome** : avec **`npm run dev:client`**, ouvrir **`/mascot-pack-tool.html`** (onglets **Éditeur visuel** / **JSON / export**, validation, prévisualisation). Les URLs **`blob:`** en **`srcs`** sont possibles avec l’assouplissement `relaxAssetPrefix`. Voir [`docs/LOCAL_DEV.md`](LOCAL_DEV.md).

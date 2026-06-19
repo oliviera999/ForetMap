@@ -7,6 +7,15 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Packs mascotte — archive ZIP portable (visite + GL)
+
+- **Format** : `foretmap-mascot-pack-archive` v1 (`manifest.json`, `pack.json`, `assets/`) — module `lib/mascotPackArchive.js`.
+- **API visite** : `GET …/export.zip`, `POST …/import/analyze`, `POST …/import` (`create` / `replace`).
+- **API GL** : routes équivalentes sous `/api/gl/mascots/packs/…`.
+- **UI** : boutons Export/Import ZIP dans le studio visite (`MascotPackListAside`) et GL (`GLMascotPackManager`) ; modale partagée `MascotPackArchiveImportDialog`.
+- **Tests** : `tests/mascot-pack-archive.test.js`, extension `api.test.js` et `gl-mascots.test.js`.
+- **Doc** : `docs/MASCOT_PACK.md` (section Archive ZIP), `docs/API.md`.
+
 ### Packs mascotte visite — audit UX (quick wins)
 
 - **Libellés FR** : aperçu global (boutons d’état), sélecteur de prévisualisation WYSIWYG et fiche récap utilisent `STATE_LABELS` au lieu de clés techniques / anglais.

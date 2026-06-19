@@ -1,8 +1,10 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { apiGL } from '../services/apiGL.js';
 import { GLMascotPackWysiwygEditor } from './GLMascotPackWysiwygEditor.jsx';
 import { GLMascotPackPreviewPanel } from './GLMascotPackPreviewPanel.jsx';
 import { useGLMascotCatalog } from '../context/GLMascotCatalogContext.jsx';
+import MascotPackArchiveImportDialog from '../../shared/mascot-pack/MascotPackArchiveImportDialog.jsx';
+import { downloadApiFile } from '../../utils/downloadApiFile.js';
 
 export function GLMascotPackManager() {
   const { reload: reloadMascotCatalog } = useGLMascotCatalog();
@@ -10,6 +12,8 @@ export function GLMascotPackManager() {
   const [selectedId, setSelectedId] = useState('new');
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
 
   async function loadPacks() {
     try {
@@ -21,11 +25,11 @@ export function GLMascotPackManager() {
     }
   }
 
-  useEffect(() => {
+  React.useEffect(() => {
     loadPacks();
   }, []);
 
-  const selectedPack = useMemo(
+  const selectedPack = React.useMemo(
     () => packs.find((pack) => String(pack.id) === String(selectedId)) || null,
     [packs, selectedId],
   );
@@ -58,6 +62,35 @@ export function GLMascotPackManager() {
     }
   }
 
+  async function exportZip() {
+    if (!selectedPack?.id) return;
+    setBusy(true);
+    setError('');
+    try {
+      const slug = String(selectedPack.name || 'pack')
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9._-]+/g, '-')
+        .slice(0, 40);
+      await downloadApiFile(
+        `/api/gl/mascots/packs/${selectedPack.id}/export.zip`,
+        `gl-mascot-pack-${slug || 'pack'}.zip`,
+      );
+    } catch (err) {
+      setError(err.message || 'Export ZIP impossible');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onArchiveImported(result) {
+    const id = result?.pack?.id ?? result?.id;
+    if (id != null) setSelectedId(String(id));
+    setInfo('Pack importé depuis ZIP.');
+    await loadPacks();
+    await reloadMascotCatalog();
+  }
+
   return (
     <section className="gl-panel">
       <h3>Studio packs mascottes (WYSIWYG JSON)</h3>
@@ -74,12 +107,39 @@ export function GLMascotPackManager() {
           ))}
         </select>
       </label>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, margin: '10px 0' }}>
+        <button
+          type="button"
+          className="btn btn-ghost btn-sm"
+          disabled={busy || !selectedPack?.id}
+          onClick={() => void exportZip()}
+        >
+          Exporter ZIP
+        </button>
+        <button
+          type="button"
+          className="btn btn-ghost btn-sm"
+          disabled={busy}
+          onClick={() => setImportOpen(true)}
+        >
+          Importer ZIP…
+        </button>
+      </div>
       <GLMascotPackWysiwygEditor
         initialPack={selectedPack}
         onSave={savePack}
         onDelete={deletePack}
       />
       <GLMascotPackPreviewPanel pack={selectedPack} />
+      <MascotPackArchiveImportDialog
+        open={importOpen}
+        variant="gl"
+        chapterId={selectedPack?.chapter_id ?? null}
+        targetPackId={selectedPack?.id ?? null}
+        targetPackLabel={selectedPack?.name ?? ''}
+        onClose={() => setImportOpen(false)}
+        onImported={(result) => void onArchiveImported(result)}
+      />
     </section>
   );
 }
