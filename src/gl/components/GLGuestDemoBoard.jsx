@@ -1,19 +1,17 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { withAppBase } from '../../services/api.js';
 import { apiGL } from '../services/apiGL.js';
 import { getRuntimeFeuilletZonesForPlateau } from '../data/glFeuilletZonesBundle.js';
 import { useGlPctMapGestures } from '../hooks/useGlPctMapGestures.js';
 import { useGLBoardMascotMotion } from '../hooks/useGLBoardMascotMotion.js';
 import { useGLGuestFeuilletArrival } from '../hooks/useGLGuestFeuilletArrival.js';
-import { useGLVirtualDice } from '../hooks/useGLVirtualDice.js';
 import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion.js';
 import { GLPctMapCanvas } from './GLPctMapCanvas.jsx';
 import { GLBoardMascot } from './GLBoardMascot.jsx';
 import { GLFeuilletZoneOverlay } from './GLFeuilletZoneOverlay.jsx';
 import { GLFeuilletPopover } from './GLFeuilletPopover.jsx';
 import { GLFeuilletDiscoveryPopover } from './GLFeuilletDiscoveryPopover.jsx';
-import { GLVirtualDicePopover } from './GLVirtualDicePopover.jsx';
+import { GLVirtualDiceDock } from './GLVirtualDiceDock.jsx';
 import { GLButton } from './ui/GLButton.jsx';
 import { GL_DISCOVERY_TAB } from '../constants/app-runtime.js';
 
@@ -55,10 +53,6 @@ export function GLGuestDemoBoard({ onExitGuest, brandThemeStyle = null }) {
   const [discoveryZone, setDiscoveryZone] = useState(null);
   const [showWall, setShowWall] = useState(false);
   const [loadError, setLoadError] = useState('');
-  const lastRollKeyRef = useRef('');
-  const diceFabRef = useRef(null);
-  const [diceOpen, setDiceOpen] = useState(false);
-  const dice = useGLVirtualDice({ prefersReducedMotion });
 
   const teams = useMemo(() => [DEMO_TEAM], []);
   const { getPositionForTeam, getMotionForTeam, moveTeamTo } = useGLBoardMascotMotion({
@@ -137,13 +131,12 @@ export function GLGuestDemoBoard({ onExitGuest, brandThemeStyle = null }) {
     [moveTeamTo, pathWaypoints],
   );
 
-  useEffect(() => {
-    if (dice.phase !== 'result' || !dice.lastRoll) return;
-    const rollKey = `${dice.lastRoll.values?.join(',')}:${dice.lastRoll.total}`;
-    if (lastRollKeyRef.current === rollKey) return;
-    lastRollKeyRef.current = rollKey;
-    advanceAlongPath(dice.lastRoll.total);
-  }, [dice.phase, dice.lastRoll, advanceAlongPath]);
+  const handleDiceRollResult = useCallback(
+    (roll) => {
+      advanceAlongPath(roll?.total);
+    },
+    [advanceAlongPath],
+  );
 
   const openDiscoveryForZone = useCallback(
     (zone) => {
@@ -182,70 +175,34 @@ export function GLGuestDemoBoard({ onExitGuest, brandThemeStyle = null }) {
 
       {loadError ? <p className="gl-error">{loadError}</p> : null}
 
-      <GLPctMapCanvas
-        imageUrl={imageUrl}
-        imageAlt="Plateau 1 — tropiques africains (aperçu)"
-        mapGestures={mapGestures}
-        onFitLayout={({ height }) => setBoardHeightPx(height || 0)}
-      >
-        <GLFeuilletZoneOverlay
-          zones={feuilletZones}
-          presentedZoneIds={presentedZoneIds}
-          watchPosition={watchPosition}
-        />
-        <GLBoardMascot
-          team={DEMO_TEAM}
-          position={watchPosition}
-          motion={getMotionForTeam(DEMO_TEAM_ID)}
-          prefersReducedMotion={prefersReducedMotion}
-        />
-      </GLPctMapCanvas>
-
-      <div className="gl-dice-dock">
-        <button
-          ref={diceFabRef}
-          type="button"
-          className={`gl-dice-fab${diceOpen ? ' is-open' : ''}`}
-          data-testid="gl-guest-demo-dice-fab"
-          aria-expanded={diceOpen}
-          aria-haspopup="dialog"
-          aria-label={diceOpen ? 'Fermer le lanceur de dés' : 'Ouvrir le lanceur de dés'}
-          title="Dés virtuels"
-          onClick={() => {
-            setDiceOpen((prev) => {
-              const next = !prev;
-              if (!next) dice.reset();
-              return next;
-            });
-          }}
+      <div className="gl-board-shell">
+        <GLPctMapCanvas
+          imageUrl={imageUrl}
+          imageAlt="Plateau 1 — tropiques africains (aperçu)"
+          mapGestures={mapGestures}
+          onFitLayout={({ height }) => setBoardHeightPx(height || 0)}
         >
-          <span className="gl-dice-fab__icon" aria-hidden>
-            🎲
-          </span>
-        </button>
-      </div>
-      {createPortal(
-        <GLVirtualDicePopover
-          open={diceOpen}
-          anchorRef={diceFabRef}
-          phase={dice.phase}
-          diceCount={dice.diceCount}
-          lastRoll={dice.lastRoll}
-          onClose={() => {
-            setDiceOpen(false);
-            dice.reset();
-          }}
-          onAddDie={dice.addDie}
-          onRemoveDie={dice.removeDie}
-          onStartRoll={dice.startRoll}
-          onReset={dice.reset}
-          canAddDie={dice.canAddDie}
-          canRemoveDie={dice.canRemoveDie}
-          isRolling={dice.isRolling}
+          <GLFeuilletZoneOverlay
+            zones={feuilletZones}
+            presentedZoneIds={presentedZoneIds}
+            watchPosition={watchPosition}
+          />
+          <GLBoardMascot
+            team={DEMO_TEAM}
+            position={watchPosition}
+            motion={getMotionForTeam(DEMO_TEAM_ID)}
+            prefersReducedMotion={prefersReducedMotion}
+          />
+        </GLPctMapCanvas>
+
+        <GLVirtualDiceDock
+          enabled
+          testId="gl-guest-demo-dice-fab"
+          showLabel={false}
           themeStyle={brandThemeStyle}
-        />,
-        document.body,
-      )}
+          onRollResult={handleDiceRollResult}
+        />
+      </div>
 
       <GLFeuilletPopover
         open={Boolean(feuilletZonePopover)}

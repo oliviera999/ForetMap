@@ -7,6 +7,33 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### GL — unification boutons carte plateau
+
+- **Composants** : `GLBoardActionButton` (rôles `primary` / `display` / `tool`) et `GLBoardChrome` (docks coins, barre mobile, fermer plein écran).
+- **Style** : famille visuelle unifiée dans `gl-theme.css` (`.gl-board-action*`, `.gl-board-chrome*`).
+- **Agencement** : outils (dés, musique) ancrés dans `gl-board-shell` ; toggle musique zones corrigé (plus de positionnement fragile hors shell).
+- **Refactor** : `GLGameBoardHud`, `GLVirtualDiceDock`, `GLZoneMusicMuteButton`, `GLGuestDemoBoard` ; suppression `GLGameBoardHudToolbar`.
+
+### GL — fonds des repères configurables (défaut transparent)
+
+- **Réglage** : `gameplay.marker_backgrounds` (`{ label, emoji, icon }`) — transparent (défaut), `classic` (orange/blanc historique) ou couleur hex `#RRGGBB` par mode.
+- **UI** : Réglages plateforme GL → « Affichage carte plateau » → « Fond des repères sur la carte ».
+- **Runtime** : variables CSS `--gl-marker-bg-*` sur `.gl-app` ; exposé via `GET /api/gl/gameplay-settings` (`markerBackgrounds`).
+- **Tests** : `tests/gl-marker-backgrounds.test.js`, extension `tests/gl-settings.test.js`, tests UI `glMarkerBackgrounds`, `glSettingsForm`, `GLSettingsView`.
+
+### Réglages — désactivation des signalements
+
+- **Réglage** : `ui.modules.reports_enabled` (public, défaut `true`) dans Paramètres admin → section Modules.
+- **Effet** : masque les contrôles « Signaler » (forum, commentaires de contexte) et refuse `POST …/report` avec `403` / `code: "REPORTS_DISABLED"` (y compris GL context-comments).
+- **Tests** : `tests/forum.test.js`, `tests/context-comments.test.js`, `tests/settings.test.js`, tests UI `ContextCommentItem` / `ForumPostCard`.
+
+### Admin — édition des bulles d'aide (ForetMap + GL)
+
+- **ForetMap** : registre `content.help.registry` (tooltips, panneaux ?, mini-astuces, libellés chrome, bandeaux carte, infobulles temps réel prof) ; sous-onglet **Bulles d'aide** dans Réglages admin ; API `GET/PUT/POST reset /api/settings/admin/help-content` ; défauts `data/help.default.json`.
+- **GL** : registre `content.help` par onglet (`tab:{id}`) ; sous-onglet **Bulles d'aide** dans Contenus admin ; API `GET/PUT/POST reset /api/gl/admin/content/help` et lecture `GET /api/gl/content/help`.
+- **Runtime** : `src/utils/helpResolve.js` (ForetMap), `useGlHelpContent` + `GLTabHelpPanel` (GL).
+- **Tests** : `tests/help-content.test.js`, `tests/gl-help-content.test.js`, `tests/gl-help.test.js`, `tests-ui/shared/helpResolve.test.js`, extension `tests/settings.test.js`.
+
 ### Correctif — plein écran carte (fond vert sans plan)
 
 - **Cause** : après portail `body`, le cadre carte pouvait rester à ~1×1 px (`MapView`, calcul via `.main` absent) ou conserver d’anciennes dimensions pixels (`VisitView`).

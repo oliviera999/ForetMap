@@ -1089,29 +1089,143 @@ a.gl-glossary-inline-link:hover,
   flex: 1 1 auto;
 }
 
-.gl-map-fullscreen-open {
+/* —— Chrome carte plateau (boutons unifiés par rôle) —— */
+.gl-board-action {
   flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
   gap: 6px;
   min-height: 44px;
   padding: 8px 14px;
-  border: 1px solid #bae6fd;
+  border: 1px solid transparent;
   border-radius: 999px;
-  background: #eff6ff;
-  color: #0f172a;
+  font: inherit;
   font-size: 0.88rem;
   font-weight: 600;
   cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background-color var(--motion-fast) var(--ease-out),
+    box-shadow var(--motion-fast) var(--ease-out),
+    transform var(--motion-base) var(--spring);
 }
 
-.gl-map-fullscreen-open:hover {
+.gl-board-action__icon {
+  line-height: 1;
+  font-size: 1.05rem;
+}
+
+.gl-board-action__label--short {
+  display: none;
+}
+
+.gl-board-action--primary {
+  background: var(--gl-color-primary);
+  border-color: var(--gl-color-primary);
+  color: #fff;
+}
+
+.gl-board-action--primary:hover {
+  filter: brightness(1.06);
+  box-shadow: var(--gl-shadow-sm);
+}
+
+.gl-board-action--display {
+  border-color: #bae6fd;
+  background: #eff6ff;
+  color: #0f172a;
+}
+
+.gl-board-action--display:hover {
   background: #dbeafe;
 }
 
-.gl-map-fullscreen-open:focus-visible {
+.gl-board-action--tool {
+  border-color: #cbd5e1;
+  background: rgba(255, 255, 255, 0.92);
+  color: #0f172a;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+}
+
+.gl-board-action--tool:hover {
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.12);
+}
+
+.gl-board-action--tool.is-active {
+  border-color: var(--gl-color-primary, #6366f1);
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.25);
+}
+
+.gl-board-action--tool.is-muted {
+  opacity: 0.85;
+}
+
+.gl-board-action:focus-visible {
   outline: 2px solid var(--gl-border-focus, #047c8c);
   outline-offset: 2px;
+}
+
+.gl-board-chrome-dock {
+  position: absolute;
+  bottom: max(12px, env(safe-area-inset-bottom, 0px));
+  z-index: 12;
+}
+
+.gl-board-chrome-dock--left {
+  left: max(12px, env(safe-area-inset-left, 0px));
+}
+
+.gl-board-chrome-dock--right {
+  right: max(12px, env(safe-area-inset-right, 0px));
+}
+
+.gl-board-chrome-bar {
+  position: absolute;
+  left: 50%;
+  bottom: max(12px, env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  z-index: 12;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  max-width: calc(100% - 24px);
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(1, 58, 64, 0.88);
+  backdrop-filter: blur(10px);
+  box-shadow: var(--gl-shadow-md);
+}
+
+.gl-board-chrome-bar .gl-board-action--primary {
+  background: rgba(248, 250, 252, 0.95);
+  border-color: transparent;
+  color: var(--gl-color-text, #262626);
+}
+
+.gl-board-chrome-bar .gl-board-action--primary:hover {
+  filter: none;
+  background: #fff;
+}
+
+.gl-board-chrome-bar .gl-board-action--display {
+  border-color: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.1);
+  color: #f8fafc;
+}
+
+.gl-board-chrome-bar .gl-board-action--display:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.gl-board-chrome-bar .gl-board-action:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px #f8fafc;
+}
+
+.gl-map-fullscreen-open {
+  flex: 0 0 auto;
 }
 
 .gl-board-shell--fullscreen {
@@ -1141,15 +1255,12 @@ a.gl-glossary-inline-link:hover,
   top: max(12px, env(safe-area-inset-top, 0px));
   right: max(12px, env(safe-area-inset-right, 0px));
   z-index: 1410;
-  min-height: 44px;
-  padding: 8px 16px;
   border: 0;
   border-radius: 999px;
   background: rgba(15, 23, 42, 0.82);
   color: #f8fafc;
   font-size: 0.9rem;
   font-weight: 700;
-  cursor: pointer;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
 }
 
@@ -1215,7 +1326,7 @@ body.gl-map-fullscreen-active .gl-qcm-popover-overlay {
   transform: translate(-50%, -50%);
   border: 0;
   border-radius: 999px;
-  background: #fb923c;
+  background: var(--gl-marker-bg-label, transparent);
   color: #111827;
   padding: 2px 8px;
   font-size: 0.72rem;
@@ -1230,15 +1341,15 @@ body.gl-map-fullscreen-active .gl-qcm-popover-overlay {
 }
 
 .gl-board-marker--emoji {
-  background: rgba(255, 255, 255, 0.92);
+  background: var(--gl-marker-bg-emoji, transparent);
   padding: 4px 6px;
-  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.18);
+  box-shadow: var(--gl-marker-bg-emoji-shadow, none);
   font-family: var(--font-emoji-stack);
   font-variant-emoji: emoji;
 }
 
 .gl-board-marker--icon {
-  background: transparent;
+  background: var(--gl-marker-bg-icon, transparent);
   padding: 3px;
   box-shadow: none;
 }
@@ -1264,6 +1375,7 @@ body.gl-map-fullscreen-active .gl-qcm-popover-overlay {
   overflow: hidden;
   text-overflow: ellipsis;
   font-family: var(--font-sans-with-emoji);
+  text-shadow: var(--gl-marker-label-text-shadow, none);
 }
 
 .gl-board-marker.is-selected {
@@ -1273,6 +1385,46 @@ body.gl-map-fullscreen-active .gl-qcm-popover-overlay {
 
 .gl-board-marker.is-dragging {
   transform: translate(-50%, -50%) scale(1.05);
+}
+
+.gl-marker-bg-settings {
+  margin: 12px 0 0;
+  padding: 12px 14px;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  border-radius: 10px;
+}
+
+.gl-marker-bg-settings h5 {
+  margin: 0 0 6px;
+  font-size: 0.95rem;
+}
+
+.gl-marker-bg-row + .gl-marker-bg-row {
+  margin-top: 10px;
+}
+
+.gl-marker-bg-row__controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.gl-marker-bg-preview {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 52px;
+  min-height: 28px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+}
+
+.gl-marker-bg-preview--emoji {
+  font-size: 1rem;
+  padding: 4px 6px;
 }
 
 .gl-marker-appearance-editor {
@@ -3759,82 +3911,7 @@ body.gl-map-fullscreen-active .gl-qcm-popover-overlay {
   margin-top: 0.5rem;
 }
 
-.gl-zone-music-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  min-height: 44px;
-  padding: 0.45rem 0.75rem;
-  border: 1px solid #cbd5e1;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.92);
-  color: #0f172a;
-  cursor: pointer;
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
-}
-
-.gl-zone-music-toggle.is-muted {
-  opacity: 0.85;
-}
-
-.gl-zone-music-toggle--board {
-  position: absolute;
-  right: 12px;
-  bottom: 12px;
-  z-index: 12;
-}
-
-.gl-zone-music-toggle-icon {
-  line-height: 1;
-}
-
-.gl-zone-music-toggle-label {
-  font-size: 0.85rem;
-  font-weight: 600;
-}
-
-/* —— Dés virtuels (carte) —— */
-.gl-dice-dock {
-  position: absolute;
-  left: 12px;
-  bottom: 12px;
-  z-index: 12;
-}
-
-.gl-dice-fab {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  min-height: 44px;
-  padding: 0.45rem 0.75rem;
-  border: 1px solid #cbd5e1;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.92);
-  color: #0f172a;
-  cursor: pointer;
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
-  transition: box-shadow 0.2s ease, transform 0.2s var(--spring, cubic-bezier(0.34, 1.56, 0.64, 1));
-}
-
-.gl-dice-fab:hover {
-  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.12);
-}
-
-.gl-dice-fab.is-open {
-  border-color: var(--gl-color-primary, #6366f1);
-  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.25);
-}
-
-.gl-dice-fab__icon {
-  line-height: 1;
-  font-size: 1.1rem;
-}
-
-.gl-dice-fab__label {
-  font-size: 0.85rem;
-  font-weight: 600;
-}
-
+/* —— Dés virtuels (popover) —— */
 .gl-dice-popover {
   position: fixed;
   z-index: 10050;
@@ -5739,72 +5816,22 @@ body.gl-glossary-popover-open {
   gap: 0.5rem;
 }
 
-/* —— HUD plateau (actions flottantes) —— */
-.gl-board-hud {
-  position: absolute;
-  left: 50%;
-  bottom: 12px;
-  transform: translateX(-50%);
-  z-index: 12;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  max-width: calc(100% - 24px);
-  padding: 6px 10px;
-  border-radius: 999px;
-  background: rgba(1, 58, 64, 0.88);
-  backdrop-filter: blur(10px);
-  box-shadow: var(--gl-shadow-md);
-}
-
-.gl-board-hud__btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 44px;
-  padding: 8px 14px;
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.1);
-  color: #f8fafc;
-  cursor: pointer;
-  font: inherit;
-  font-size: 0.9rem;
-  white-space: nowrap;
-  transition: background-color var(--motion-fast) var(--ease-out);
-}
-
-.gl-board-hud__btn:hover,
-.gl-board-hud__btn:focus-visible {
-  background: rgba(255, 255, 255, 0.2);
-  outline: none;
-}
-
-.gl-board-hud__btn:focus-visible {
-  box-shadow: 0 0 0 2px #f8fafc;
-}
-
-.gl-board-hud__btn--primary {
-  background: rgba(248, 250, 252, 0.95);
-  color: var(--gl-color-text, #262626);
-  border-color: transparent;
-}
-
 @media (max-width: 640px) {
-  .gl-game-board-head__actions .gl-map-fullscreen-open,
-  .gl-game-board-head__actions .gl-btn {
+  .gl-game-board-head__actions {
     display: none;
   }
 
-  .gl-board-hud__btn .gl-board-hud__label--long {
+  .gl-board-chrome-bar .gl-board-action__label--long {
     display: none;
+  }
+
+  .gl-board-chrome-bar .gl-board-action__label--short {
+    display: inline;
   }
 }
 
 @media (min-width: 641px) {
-  .gl-board-hud {
+  .gl-board-chrome-bar {
     display: none;
   }
 }
