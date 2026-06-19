@@ -74,7 +74,7 @@ export default function MascotAssetsLibraryPanel({
           />
         </label>
         {libMessage ? (
-          <p className="section-sub" style={{ marginTop: 8 }}>
+          <p className="section-sub" role="status" aria-live="polite" style={{ marginTop: 8 }}>
             {libMessage}
           </p>
         ) : null}

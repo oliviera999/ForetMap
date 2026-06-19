@@ -67,6 +67,24 @@ describe('MascotPackListAside', () => {
     expect(props.onOpenCatalogModelForEdit).toHaveBeenCalledWith('sprout');
   });
 
+  test('pack sélectionné invalide : enregistrer et publier désactivés', () => {
+    const props = setup({
+      selectedId: 'p1',
+      selectedRow: { id: 'p1', is_published: 0 },
+      selectedValidation: { ok: false },
+    });
+    expect(screen.getByRole('button', { name: 'Enregistrer sur le serveur' })).toHaveProperty(
+      'disabled',
+      true,
+    );
+    expect(screen.getByRole('button', { name: 'Publier sur la visite' })).toHaveProperty(
+      'disabled',
+      true,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer sur le serveur' }));
+    expect(props.onSave).not.toHaveBeenCalled();
+  });
+
   test('pack sélectionné : enregistrer/publier/supprimer câblés et libellé édité', () => {
     const props = setup({
       selectedId: 'p1',

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import VisitMapMascotSpriteCut from '../../components/VisitMapMascotSpriteCut.jsx';
 import VisitMascotFallbackSvg from '../../components/VisitMascotFallbackSvg.jsx';
+import { STATE_LABELS } from '../../constants/mascotStateLabels.js';
 
 /**
  * Prévisualisation sprite_cut (pack visite validé ou dérivé GL).
@@ -64,7 +65,7 @@ export function MascotPackSpriteCutPreview({
           >
             {statesWithFrames.map((s) => (
               <option key={s} value={s}>
-                {s}
+                {STATE_LABELS[s] ? `${STATE_LABELS[s]} (${s})` : s}
               </option>
             ))}
           </select>

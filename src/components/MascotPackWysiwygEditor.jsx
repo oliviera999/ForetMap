@@ -457,7 +457,12 @@ export default function MascotPackWysiwygEditor({
         </div>
       ) : null}
       {statusMessage ? (
-        <p className="section-sub" style={{ marginTop: 10, fontSize: '0.82rem' }}>
+        <p
+          className="section-sub"
+          role="status"
+          aria-live="polite"
+          style={{ marginTop: 10, fontSize: '0.82rem' }}
+        >
           {statusMessage}
         </p>
       ) : null}

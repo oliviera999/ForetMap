@@ -66,6 +66,7 @@ export default function MascotPackListAside({
 }) {
   return (
     <aside
+      className="visit-mascot-pack-manager__aside"
       style={{
         flex: '0 0 280px',
         minWidth: 240,
@@ -235,7 +236,12 @@ export default function MascotPackListAside({
           <button
             type="button"
             className="btn btn-primary btn-sm"
-            disabled={actionBusy}
+            disabled={actionBusy || !selectedValidation.ok}
+            title={
+              selectedValidation.ok
+                ? 'Enregistrer les modifications sur le serveur'
+                : 'Corrigez les erreurs de validation avant enregistrement'
+            }
             onClick={onSave}
           >
             Enregistrer sur le serveur
@@ -243,7 +249,12 @@ export default function MascotPackListAside({
           <button
             type="button"
             className="btn btn-ghost btn-sm"
-            disabled={actionBusy}
+            disabled={actionBusy || !selectedValidation.ok}
+            title={
+              selectedValidation.ok
+                ? undefined
+                : 'Corrigez les erreurs de validation avant publication'
+            }
             onClick={onTogglePublish}
           >
             {selectedRow?.is_published ? 'Retirer de la visite publique' : 'Publier sur la visite'}

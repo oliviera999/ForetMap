@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { validateMascotPackV1 } from '../../utils/mascotPack.js';
 import { estimateStateDurationMs } from '../../utils/visitMascotPackTiming.js';
+import { STATE_LABELS } from '../../constants/mascotStateLabels.js';
 
 /**
  * Fiche récapitulative (lecture seule) d'un pack mascotte : métadonnées
@@ -66,7 +67,14 @@ export default function PackBehaviorDetailTable({ pack }) {
               return (
                 <tr key={st} style={{ borderBottom: '1px solid rgba(26,71,49,0.08)' }}>
                   <td style={{ padding: '6px 8px' }}>
-                    <code>{st}</code>
+                    {STATE_LABELS[st] ? (
+                      <>
+                        {STATE_LABELS[st]}{' '}
+                        <code style={{ fontSize: '0.9em', opacity: 0.85 }}>({st})</code>
+                      </>
+                    ) : (
+                      <code>{st}</code>
+                    )}
                   </td>
                   <td style={{ padding: '6px 8px' }}>{n}</td>
                   <td style={{ padding: '6px 8px' }}>

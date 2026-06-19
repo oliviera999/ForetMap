@@ -7,6 +7,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Packs mascotte visite — audit UX (quick wins)
+
+- **Libellés FR** : aperçu global (boutons d’état), sélecteur de prévisualisation WYSIWYG et fiche récap utilisent `STATE_LABELS` au lieu de clés techniques / anglais.
+- **Actions** : boutons Enregistrer / Publier désactivés tant que la validation Zod échoue (infobulle explicative).
+- **Accessibilité** : onglets éditeur avec `aria-controls` / `tabpanel` ; retours copie JSON et messages upload en `role="status"`.
+- **Mobile** : mise en page studio empilée ≤768px, zones tactiles 44px sur onglets et actions frames.
+- **Tests** : extension `MascotPackListAside.test.jsx`.
+
 ### ForetMap — plein écran carte (aligné GL)
 
 - **Visite** : le bouton « Plein écran » porte la carte en viewport complet (portail `body`, fermeture **Fermer** / **Échap**, préférence persistée) ; remplace l’ancien agrandissement « Plein plan ».
