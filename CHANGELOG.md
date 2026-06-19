@@ -7,6 +7,13 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### ForetMap — plein écran carte (aligné GL)
+
+- **Visite** : le bouton « Plein écran » porte la carte en viewport complet (portail `body`, fermeture **Fermer** / **Échap**, préférence persistée) ; remplace l’ancien agrandissement « Plein plan ».
+- **Carte jardin (`MapView`)** : bouton **Plein écran** dans la barre d’outils ; même mécanisme portail + modales au-dessus.
+- **Partagé** : `useMapFullscreen`, `MapFullscreenShell`, styles `map-fullscreen.css`.
+- **Tests** : `tests-ui/shared/useMapFullscreen.test.js` ; e2e `visit-mode.spec.js`, `teacher-auth-map.spec.js`.
+
 ### Mutualisation ForetMap ↔ GL (composants partagés)
 
 - **QCM feedback** : logique unifiée dans `src/shared/qcm/qcmFeedback.js` ; `PedagoQcmFeedbackBlock` et `glQcmDisplay.js` réexportent le module partagé.

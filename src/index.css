@@ -1,6 +1,7 @@
     @import './shared/styles/motion.css';
     @import './shared/styles/modal-shell.css';
     @import './shared/styles/toast-shell.css';
+    @import './shared/styles/map-fullscreen.css';
     @import './shared/styles/visit-map-mascot.css';
 
     @font-face {
@@ -3381,9 +3382,6 @@
     .visit-view--map-forward .visit-map-stage {
       min-height:min(58dvh, 720px);
       aspect-ratio:unset;
-    }
-    .visit-view--immersion .visit-map-stage {
-      min-height:min(72dvh, 880px);
     }
     .visit-prof-tools .visit-mascot-preview-card {
       margin-bottom:0;

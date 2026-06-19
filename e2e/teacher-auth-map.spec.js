@@ -12,6 +12,13 @@ test('parcours prof: activation mode prof, carte et modale zone', async ({ page 
   await page.getByRole('button', { name: /Carte & Zones/ }).click();
   await expect(page.locator('img[alt^="Plan "]').first()).toBeVisible();
 
+  await page.getByTestId('map-view-fullscreen-open').click();
+  await expect(page.getByTestId('fm-map-fullscreen-layer')).toBeVisible();
+  await expect(page.getByTestId('map-view-fullscreen-open')).toHaveCount(0);
+  await page.getByTestId('fm-map-fullscreen-close').click();
+  await expect(page.getByTestId('fm-map-fullscreen-layer')).toHaveCount(0);
+  await expect(page.getByTestId('map-view-fullscreen-open')).toBeVisible();
+
   const zoneCount = await page.locator('.map-zone-hit').count();
   if (zoneCount > 0) {
     await openFirstZoneModalFromMap(page);

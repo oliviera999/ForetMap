@@ -77,11 +77,13 @@ export function VisitMapChrome({
           ) : null}
           <button
             type="button"
-            className={`btn btn-sm ${visitImmersion ? 'btn-primary' : 'btn-ghost'}`}
+            className="fm-map-fullscreen-open"
+            data-testid="visit-map-fullscreen-open"
             onClick={onToggleImmersion}
             aria-pressed={visitImmersion}
+            aria-label={visitImmersion ? 'Quitter le plein écran' : 'Afficher la carte en plein écran'}
           >
-            {visitImmersion ? 'Quitter le plein plan' : 'Plein plan'}
+            <span aria-hidden>⛶</span> Plein écran
           </button>
           {isTeacher ? (
             <button
