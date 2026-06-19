@@ -13,7 +13,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Actions** : boutons Enregistrer / Publier désactivés tant que la validation Zod échoue (infobulle explicative).
 - **Accessibilité** : onglets éditeur avec `aria-controls` / `tabpanel` ; retours copie JSON et messages upload en `role="status"`.
 - **Mobile** : mise en page studio empilée ≤768px, zones tactiles 44px sur onglets et actions frames.
-- **Tests** : extension `MascotPackListAside.test.jsx`.
+- **Modifications non enregistrées** : bannière + surbrillance Enregistrer, confirmation avant changement de pack/mode, garde `beforeunload`.
+- **Panneau Images unifié** : fusion médiathèque pack, bibliothèque carte et assets site (`MascotPackImagesPanel`) avec filtre par origine et insertion unique vers l’état cible.
+- **Tests** : extension `MascotPackListAside.test.jsx`, `visitMascotPackManager.test.js`.
 
 ### ForetMap — plein écran carte (aligné GL)
 

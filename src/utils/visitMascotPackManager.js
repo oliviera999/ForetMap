@@ -2,8 +2,11 @@ import {
   serverMascotPackAssetsPrefix,
   serverMascotSpriteLibraryAssetsPrefix,
   MASCOT_PACK_FALLBACK_SILHOUETTES,
+  stringifyPack,
 } from './mascotPackEditorModel.js';
 import { validateMascotPackV1 } from './mascotPack.js';
+import { appendFileToStateFrames } from './mascotPackEditorFrames.js';
+import { sanitizeMascotPackDraft } from './mascotPackValidationUi.js';
 
 /**
  * Validation stricte d'un pack pour sauvegarde/publication : autorise les
@@ -100,4 +103,160 @@ export function insertAssetUrlIntoPackState(prevPack, targetState, assetUrl) {
   delete sf[state].files;
   next.stateFrames = sf;
   return next;
+}
+
+/**
+ * Instantané de l’éditeur (pack + libellé liste) pour détecter les modifications non enregistrées.
+ * @param {Record<string, unknown> | null | undefined} pack
+ * @param {string} label
+ */
+export function createMascotPackEditorSnapshot(pack, label) {
+  const cleaned = sanitizeMascotPackDraft(pack || {});
+  return {
+    label: String(label || '').trim(),
+    packJson: stringifyPack(cleaned, 0),
+  };
+}
+
+/**
+ * @param {{ label: string, packJson: string } | null | undefined} snapshot
+ * @param {Record<string, unknown> | null | undefined} pack
+ * @param {string} label
+ */
+export function isMascotPackEditorDirty(snapshot, pack, label) {
+  if (!snapshot) return false;
+  const current = createMascotPackEditorSnapshot(pack, label);
+  return snapshot.label !== current.label || snapshot.packJson !== current.packJson;
+}
+
+/**
+ * Insère une image dans l’état ciblé : fichier relatif si `framesBase` correspond, sinon URL absolue.
+ * @param {Record<string, unknown> | null | undefined} prevPack
+ * @param {string} targetState
+ * @param {{ kind: 'pack-file' | 'map-file' | 'url', filename?: string, url: string, framesBaseHint?: string | null }} asset
+ */
+export function insertMascotImageIntoPackState(prevPack, targetState, asset) {
+  const state = String(targetState || '').trim() || 'idle';
+  const next = { ...(prevPack || {}) };
+  const url = String(asset?.url || '').trim();
+  if (!url) return next;
+
+  const filename = String(asset?.filename || '').trim();
+  const hint = String(asset?.framesBaseHint || '').trim();
+  const framesBase = String(next.framesBase || '').trim();
+  const norm = (b) => (b.endsWith('/') ? b : b ? `${b}/` : '');
+  const canUseRelative =
+    (asset?.kind === 'pack-file' || asset?.kind === 'map-file') &&
+    filename &&
+    hint &&
+    framesBase &&
+    norm(framesBase) === norm(hint);
+
+  if (canUseRelative) {
+    const sf =
+      next.stateFrames && typeof next.stateFrames === 'object' ? { ...next.stateFrames } : {};
+    next.stateFrames = appendFileToStateFrames(sf, state, filename);
+    return next;
+  }
+  return insertAssetUrlIntoPackState(next, state, url);
+}
+
+const SOURCE_LABELS = {
+  pack: 'Ce pack',
+  map: 'Carte',
+  site: 'Site',
+};
+
+/**
+ * Fusionne pack, bibliothèque carte et assets globaux pour le panneau Images unifié.
+ * @param {{
+ *   packAssets?: Array<Record<string, unknown>>,
+ *   libAssets?: Array<Record<string, unknown>>,
+ *   globalAssets?: Array<Record<string, unknown>>,
+ *   packUuid?: string | null,
+ *   mapId?: string,
+ *   sourceFilter?: 'all' | 'pack' | 'map' | 'site',
+ *   search?: string,
+ * }} opts
+ */
+export function buildUnifiedMascotImageEntries(opts = {}) {
+  const packAssets = Array.isArray(opts.packAssets) ? opts.packAssets : [];
+  const libAssets = Array.isArray(opts.libAssets) ? opts.libAssets : [];
+  const globalAssets = Array.isArray(opts.globalAssets) ? opts.globalAssets : [];
+  const packUuid = String(opts.packUuid || '').trim();
+  const mapId = String(opts.mapId || '').trim();
+  const sourceFilter = opts.sourceFilter || 'all';
+  const packPrefix = serverMascotPackAssetsPrefix(packUuid);
+  const mapPrefix = serverMascotSpriteLibraryAssetsPrefix(mapId);
+
+  /** @type {Array<Record<string, unknown>>} */
+  const entries = [];
+
+  for (const a of packAssets) {
+    const filename = String(a?.filename || '').trim();
+    if (!filename) continue;
+    entries.push({
+      id: `pack:${filename}`,
+      source: 'pack',
+      sourceLabel: SOURCE_LABELS.pack,
+      filename,
+      url: String(a?.url || '').trim(),
+      kind: 'pack-file',
+      framesBaseHint: packPrefix,
+      canDelete: true,
+      deleteScope: 'pack',
+    });
+  }
+
+  for (const a of libAssets) {
+    const filename = String(a?.filename || '').trim();
+    if (!filename) continue;
+    entries.push({
+      id: `map:${filename}`,
+      source: 'map',
+      sourceLabel: SOURCE_LABELS.map,
+      filename,
+      url: String(a?.url || '').trim(),
+      kind: 'map-file',
+      framesBaseHint: mapPrefix,
+      canDelete: true,
+      deleteScope: 'map',
+    });
+  }
+
+  const seenUrls = new Set(entries.map((e) => e.url).filter(Boolean));
+  for (const a of globalAssets) {
+    const url = String(a?.url || '').trim();
+    if (!url || seenUrls.has(url)) continue;
+    seenUrls.add(url);
+    const siteSource = String(a?.source || 'site').trim() || 'site';
+    entries.push({
+      id: `site:${a?.id ?? url}`,
+      source: 'site',
+      sourceLabel: siteSource,
+      filename: String(a?.filename || '').trim() || '—',
+      url,
+      kind: 'url',
+      framesBaseHint: null,
+      canDelete: false,
+      meta: [a?.map_id, a?.pack_label].filter(Boolean).join(' · ') || '',
+    });
+  }
+
+  let list = entries;
+  if (sourceFilter !== 'all') {
+    list = list.filter((e) => e.source === sourceFilter);
+  }
+
+  const q = String(opts.search || '')
+    .trim()
+    .toLowerCase();
+  if (!q) return list;
+
+  return list.filter((e) => {
+    const hay = [e.filename, e.url, e.sourceLabel, e.meta, e.source]
+      .map((x) => String(x || '').toLowerCase())
+      .join(' ');
+    return hay.includes(q);
+  });
 }

@@ -3,6 +3,10 @@ import {
   computeEditorWarnings,
   filterGlobalAssets,
   insertAssetUrlIntoPackState,
+  insertMascotImageIntoPackState,
+  createMascotPackEditorSnapshot,
+  isMascotPackEditorDirty,
+  buildUnifiedMascotImageEntries,
 } from '../../src/utils/visitMascotPackManager.js';
 
 describe('computeEditorWarnings', () => {
@@ -118,5 +122,44 @@ describe('insertAssetUrlIntoPackState', () => {
     const snapshot = JSON.parse(JSON.stringify(prev));
     insertAssetUrlIntoPackState(prev, 'idle', 'b.png');
     expect(prev).toEqual(snapshot);
+  });
+});
+
+describe('insertMascotImageIntoPackState', () => {
+  test('fichier pack avec framesBase aligné → mode files', () => {
+    const packId = '00000000-0000-4000-8000-000000000001';
+    const prefix = `/api/visit/mascot-packs/${packId}/assets/`;
+    const prev = { framesBase: prefix, stateFrames: {} };
+    const next = insertMascotImageIntoPackState(prev, 'idle', {
+      kind: 'pack-file',
+      filename: 'a.png',
+      url: `${prefix}a.png`,
+      framesBaseHint: prefix,
+    });
+    expect(next.stateFrames.idle.files).toEqual(['a.png']);
+    expect(next.stateFrames.idle.srcs).toBeUndefined();
+  });
+});
+
+describe('isMascotPackEditorDirty', () => {
+  test('détecte un changement de libellé ou de pack', () => {
+    const snap = createMascotPackEditorSnapshot({ stateFrames: { idle: {} } }, 'A');
+    expect(isMascotPackEditorDirty(snap, { stateFrames: { idle: {} } }, 'A')).toBe(false);
+    expect(isMascotPackEditorDirty(snap, { stateFrames: { idle: {} } }, 'B')).toBe(true);
+  });
+});
+
+describe('buildUnifiedMascotImageEntries', () => {
+  test('filtre par origine pack', () => {
+    const entries = buildUnifiedMascotImageEntries({
+      packAssets: [{ filename: 'p.png', url: '/pack/p.png' }],
+      libAssets: [{ filename: 'm.png', url: '/map/m.png' }],
+      globalAssets: [],
+      packUuid: '00000000-0000-4000-8000-000000000001',
+      mapId: 'foret',
+      sourceFilter: 'pack',
+    });
+    expect(entries).toHaveLength(1);
+    expect(entries[0].source).toBe('pack');
   });
 });

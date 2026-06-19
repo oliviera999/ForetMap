@@ -1,12 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { api, AccountDeletedError } from '../services/api';
 import MascotPackWysiwygEditor from './MascotPackWysiwygEditor.jsx';
-import { clonePackDeep, parsePackJson, stringifyPack } from '../utils/mascotPackEditorModel.js';
+import { clonePackDeep, parsePackJson, stringifyPack, ensureServerFramesBase } from '../utils/mascotPackEditorModel.js';
+import { sanitizeClientFilename } from '../utils/mascotPackEditorFrames.js';
 import {
   getPackStrictValidation,
   computeEditorWarnings,
-  filterGlobalAssets,
-  insertAssetUrlIntoPackState,
+  insertMascotImageIntoPackState,
+  createMascotPackEditorSnapshot,
+  isMascotPackEditorDirty,
 } from '../utils/visitMascotPackManager.js';
 import PackBehaviorDetailTable from './mascot/PackBehaviorDetailTable.jsx';
 import { getVisitMascotCatalog } from '../utils/visitMascotCatalog.js';
@@ -19,9 +21,14 @@ import VisitMascotDialogEditor from './VisitMascotDialogEditor.jsx';
 import VisitMascotDialogStudioView from './VisitMascotDialogStudioView.jsx';
 import VisitMascotStudioPreviewSection from './mascot/VisitMascotStudioPreviewSection.jsx';
 import MascotPackListAside from './mascot/MascotPackListAside.jsx';
-import MascotAssetsLibraryPanel from './mascot/MascotAssetsLibraryPanel.jsx';
+import MascotPackImagesPanel from './mascot/MascotPackImagesPanel.jsx';
 import MascotInteractionProfileEditor from './mascot/MascotInteractionProfileEditor.jsx';
 import MascotStudioModeTabs from './mascot/MascotStudioModeTabs.jsx';
+
+import { STATE_LABELS } from '../constants/mascotStateLabels.js';
+
+const UNSAVED_LEAVE_MSG =
+  'Des modifications ne sont pas enregistrées. Quitter sans enregistrer ?';
 
 const RIGHT_TABS = [
   { id: 'workspace', label: 'Édition guidée' },
@@ -69,8 +76,14 @@ export default function VisitMascotPackManager({
   const [globalAssets, setGlobalAssets] = useState([]);
   const [globalAssetsLoading, setGlobalAssetsLoading] = useState(false);
   const [globalAssetsMessage, setGlobalAssetsMessage] = useState('');
-  const [globalAssetSearch, setGlobalAssetSearch] = useState('');
+  const [imageSourceFilter, setImageSourceFilter] = useState('all');
+  const [imageSearch, setImageSearch] = useState('');
   const [globalTargetState, setGlobalTargetState] = useState('idle');
+  const [packAssets, setPackAssets] = useState([]);
+  const [packAssetsLoading, setPackAssetsLoading] = useState(false);
+  const [packAssetsMessage, setPackAssetsMessage] = useState('');
+  const [insertFeedback, setInsertFeedback] = useState('');
+  const [savedSnapshot, setSavedSnapshot] = useState(null);
   const [catalogModelIds, setCatalogModelIds] = useState(() =>
     getVisitMascotCatalog()
       .map((m) => String(m?.id || '').trim())
@@ -169,16 +182,52 @@ export default function VisitMascotPackManager({
     }
   }, [onForceLogout]);
 
+  const loadPackAssets = useCallback(async () => {
+    const id = String(selectedId || '').trim();
+    if (!/^[0-9a-f-]{36}$/i.test(id)) {
+      setPackAssets([]);
+      return;
+    }
+    setPackAssetsLoading(true);
+    setPackAssetsMessage('');
+    try {
+      const res = await api(`/api/visit/mascot-packs/${encodeURIComponent(id)}/assets`);
+      setPackAssets(Array.isArray(res?.assets) ? res.assets : []);
+    } catch (e) {
+      if (e instanceof AccountDeletedError) onForceLogout?.();
+      else setPackAssetsMessage(e.message || 'Impossible de charger la médiathèque du pack');
+      setPackAssets([]);
+    } finally {
+      setPackAssetsLoading(false);
+    }
+  }, [selectedId, onForceLogout]);
+
   useEffect(() => {
     void loadList();
   }, [loadList]);
 
   useEffect(() => {
-    if (editorTab === 'workspace') {
+    if (editorTab === 'workspace' && selectedId) {
+      void loadPackAssets();
       void loadLibrary();
       void loadGlobalAssets();
     }
-  }, [editorTab, loadLibrary, loadGlobalAssets]);
+  }, [editorTab, selectedId, loadPackAssets, loadLibrary, loadGlobalAssets]);
+
+  const isDirty = useMemo(
+    () => isMascotPackEditorDirty(savedSnapshot, editorPack, labelDraft),
+    [savedSnapshot, editorPack, labelDraft],
+  );
+
+  useEffect(() => {
+    if (!isDirty) return undefined;
+    const onBeforeUnload = (e) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, [isDirty]);
 
   const selectedRow = packs.find((p) => p.id === selectedId);
   const selectedValidation = useMemo(() => {
@@ -205,11 +254,15 @@ export default function VisitMascotPackManager({
       setJsonDraft('{}');
       setJsonError('');
       setActionIssues([]);
+      setSavedSnapshot(null);
       return;
     }
-    setLabelDraft(String(row.label || '').trim());
+    const label = String(row.label || '').trim();
+    setLabelDraft(label);
     const raw = row.pack && typeof row.pack === 'object' ? row.pack : {};
-    setEditorPack(clonePackDeep(raw));
+    const packClone = clonePackDeep(raw);
+    setEditorPack(packClone);
+    setSavedSnapshot(createMascotPackEditorSnapshot(packClone, label));
     setJsonError('');
     setActionIssues([]);
   }, [selectedId, packs]);
@@ -218,6 +271,29 @@ export default function VisitMascotPackManager({
     await loadList();
     await onPacksChanged?.();
   }, [loadList, onPacksChanged]);
+
+  const confirmLeaveIfDirty = useCallback(() => {
+    if (!isDirty) return true;
+    return window.confirm(UNSAVED_LEAVE_MSG);
+  }, [isDirty]);
+
+  const requestSelectPack = useCallback(
+    (id) => {
+      if (id === selectedId) return;
+      if (!confirmLeaveIfDirty()) return;
+      setSelectedId(id);
+    },
+    [selectedId, confirmLeaveIfDirty],
+  );
+
+  const requestStudioMode = useCallback(
+    (mode) => {
+      if (mode === studioMode) return;
+      if (!confirmLeaveIfDirty()) return;
+      setStudioMode(mode);
+    },
+    [studioMode, confirmLeaveIfDirty],
+  );
 
   const applyJsonDraft = useCallback(() => {
     const parsed = parsePackJson(jsonDraft);
@@ -263,14 +339,16 @@ export default function VisitMascotPackManager({
   );
 
   const onNewDraft = useCallback(async () => {
+    if (!confirmLeaveIfDirty()) return;
     await postNewPack({});
-  }, [postNewPack]);
+  }, [postNewPack, confirmLeaveIfDirty]);
 
   const onNewFromCatalog = useCallback(async () => {
     const modelId = String(selectedCatalogModelId || '').trim();
     if (!modelId) return;
+    if (!confirmLeaveIfDirty()) return;
     await postNewPack({ clone_from_catalog_id: modelId });
-  }, [postNewPack, selectedCatalogModelId]);
+  }, [postNewPack, selectedCatalogModelId, confirmLeaveIfDirty]);
 
   const findPackForCatalogModel = useCallback(
     (modelId) => {
@@ -289,6 +367,7 @@ export default function VisitMascotPackManager({
       setSelectedCatalogModelId(mid);
       const existing = findPackForCatalogModel(mid);
       if (existing?.id) {
+        if (existing.id !== selectedId && !confirmLeaveIfDirty()) return;
         setSelectedId(existing.id);
         setEditorTab('workspace');
         setActionError('');
@@ -323,14 +402,15 @@ export default function VisitMascotPackManager({
         setActionBusy(false);
       }
     },
-    [mapId, findPackForCatalogModel, onRefresh, onForceLogout],
+    [mapId, findPackForCatalogModel, onRefresh, onForceLogout, selectedId, confirmLeaveIfDirty],
   );
 
   const onDuplicateSelected = useCallback(async () => {
     if (!selectedId) return;
+    if (!confirmLeaveIfDirty()) return;
     if (!window.confirm('Dupliquer ce pack (copie JSON et fichiers uploadés) ?')) return;
     await postNewPack({ clone_from_pack_id: selectedId });
-  }, [selectedId, postNewPack]);
+  }, [selectedId, postNewPack, confirmLeaveIfDirty]);
 
   const onSave = useCallback(async () => {
     if (!selectedId) {
@@ -360,6 +440,7 @@ export default function VisitMascotPackManager({
         is_published: row?.is_published ? 1 : 0,
       });
       setEditorPack(cleanedPack);
+      setSavedSnapshot(createMascotPackEditorSnapshot(cleanedPack, label));
       await onRefresh();
     } catch (e) {
       if (e instanceof AccountDeletedError) onForceLogout?.();
@@ -404,6 +485,7 @@ export default function VisitMascotPackManager({
         is_published: row.is_published ? 0 : 1,
       });
       setEditorPack(cleanedPack);
+      setSavedSnapshot(createMascotPackEditorSnapshot(cleanedPack, label));
       await onRefresh();
     } catch (e) {
       if (e instanceof AccountDeletedError) onForceLogout?.();
@@ -564,23 +646,121 @@ export default function VisitMascotPackManager({
     if (!mid) return;
     const prefix = `/api/visit/mascot-sprite-library/${mid}/assets/`;
     setEditorPack((p) => ({ ...p, framesBase: prefix.endsWith('/') ? prefix : `${prefix}/` }));
-    setEditorTab('workspace');
   }, [mapId]);
 
-  const libraryFilteredAssets = useMemo(
-    () => filterGlobalAssets(globalAssets, globalAssetSearch),
-    [globalAssets, globalAssetSearch],
+  const setFramesBaseToPack = useCallback(() => {
+    if (!selectedId) return;
+    setEditorPack((p) => ensureServerFramesBase(p, selectedId));
+  }, [selectedId]);
+
+  const fileToPngDataUrl = useCallback(
+    (file) =>
+      new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onerror = () => reject(new Error('Lecture fichier impossible'));
+        reader.onload = () => {
+          const dataUrl = reader.result;
+          const img = new Image();
+          img.onerror = () => reject(new Error('Image invalide'));
+          img.onload = () => {
+            let w = img.naturalWidth;
+            let h = img.naturalHeight;
+            const max = 2048;
+            if (w > max || h > max) {
+              if (w >= h) {
+                h = Math.round((h * max) / w);
+                w = max;
+              } else {
+                w = Math.round((w * max) / h);
+                h = max;
+              }
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+              reject(new Error('Canvas indisponible'));
+              return;
+            }
+            ctx.drawImage(img, 0, 0, w, h);
+            resolve(canvas.toDataURL('image/png'));
+          };
+          img.src = dataUrl;
+        };
+        reader.readAsDataURL(file);
+      }),
+    [],
   );
 
-  const insertGlobalAssetIntoState = useCallback(
-    (assetUrl) => {
-      const url = String(assetUrl || '').trim();
-      if (!url) return;
-      setEditorPack((prev) => insertAssetUrlIntoPackState(prev, globalTargetState, url));
-      setEditorTab('workspace');
+  const onPackUpload = useCallback(
+    async (ev) => {
+      const file = ev.target?.files?.[0];
+      ev.target.value = '';
+      if (!file || !selectedId) return;
+      const filename = sanitizeClientFilename(file.name);
+      setPackAssetsMessage('Envoi en cours…');
+      try {
+        const dataUrl = await fileToPngDataUrl(file);
+        await api(`/api/visit/mascot-packs/${encodeURIComponent(selectedId)}/assets`, 'POST', {
+          filename,
+          image_data: dataUrl,
+        });
+        setPackAssetsMessage(`Fichier « ${filename} » enregistré sur le pack.`);
+        await loadPackAssets();
+      } catch (e) {
+        if (e instanceof AccountDeletedError) onForceLogout?.();
+        else setPackAssetsMessage(e.message || 'Import pack impossible');
+      }
+    },
+    [selectedId, fileToPngDataUrl, loadPackAssets, onForceLogout],
+  );
+
+  const onPackDeleteAsset = useCallback(
+    async (filename) => {
+      if (!selectedId || !filename) return;
+      if (!window.confirm(`Supprimer « ${filename} » de la médiathèque du pack ?`)) return;
+      setPackAssetsLoading(true);
+      try {
+        await api(
+          `/api/visit/mascot-packs/${encodeURIComponent(selectedId)}/assets/${encodeURIComponent(filename)}`,
+          'DELETE',
+        );
+        setPackAssetsMessage(`« ${filename} » supprimé du pack.`);
+        await loadPackAssets();
+      } catch (e) {
+        if (e instanceof AccountDeletedError) onForceLogout?.();
+        else setPackAssetsMessage(e.message || 'Suppression pack impossible');
+      } finally {
+        setPackAssetsLoading(false);
+      }
+    },
+    [selectedId, loadPackAssets, onForceLogout],
+  );
+
+  const insertImageIntoPack = useCallback(
+    (entry) => {
+      if (!entry) return;
+      setEditorPack((prev) =>
+        insertMascotImageIntoPackState(prev, globalTargetState, {
+          kind: entry.kind,
+          filename: entry.filename,
+          url: entry.url,
+          framesBaseHint: entry.framesBaseHint,
+        }),
+      );
+      const stateLabel = STATE_LABELS[globalTargetState] || globalTargetState;
+      setInsertFeedback(`« ${entry.filename} » ajouté à l’état « ${stateLabel} ».`);
+      setTimeout(() => setInsertFeedback(''), 2800);
     },
     [globalTargetState],
   );
+
+  const reloadAllImages = useCallback(() => {
+    void loadPackAssets();
+    void loadLibrary();
+    void loadGlobalAssets();
+  }, [loadPackAssets, loadLibrary, loadGlobalAssets]);
 
   const packDialogInheritedContext = useMemo(() => {
     const catalogId = String(selectedRow?.catalog_id || editorPack?.id || '').trim();
@@ -607,7 +787,7 @@ export default function VisitMascotPackManager({
       <MascotStudioModeTabs
         modes={STUDIO_MODES}
         activeMode={studioMode}
-        onSelectMode={setStudioMode}
+        onSelectMode={requestStudioMode}
       />
       {studioMode === 'dialogues' ? (
         <VisitMascotDialogStudioView onForceLogout={onForceLogout} />
@@ -629,10 +809,11 @@ export default function VisitMascotPackManager({
             loading={loading}
             packs={packs}
             selectedId={selectedId}
-            onSelectPack={setSelectedId}
+            onSelectPack={requestSelectPack}
             selectedRow={selectedRow}
             labelDraft={labelDraft}
             onLabelDraftChange={setLabelDraft}
+            isDirty={isDirty}
             onSave={() => void onSave()}
             onTogglePublish={() => void onTogglePublish()}
             onDelete={() => void onDelete()}
@@ -697,26 +878,37 @@ export default function VisitMascotPackManager({
                         packUuid={selectedId}
                         catalogId={selectedRow?.catalog_id || ''}
                         visitMapId={String(mapId || '').trim()}
+                        packAssets={packAssets}
                         onForceLogout={onForceLogout}
                       />
                     </div>
-                    <MascotAssetsLibraryPanel
+                    <MascotPackImagesPanel
+                      packUuid={selectedId}
+                      mapId={String(mapId || '').trim()}
+                      packAssets={packAssets}
+                      packAssetsLoading={packAssetsLoading}
+                      packAssetsMessage={packAssetsMessage}
                       libAssets={libAssets}
                       libLoading={libLoading}
                       libMessage={libMessage}
-                      onReloadLibrary={() => void loadLibrary()}
-                      onSetFramesBaseToLibrary={setFramesBaseToLibrary}
-                      onLibUpload={(e) => void onLibUpload(e)}
-                      onLibDelete={(filename) => void onLibDelete(filename)}
+                      globalAssets={globalAssets}
                       globalAssetsLoading={globalAssetsLoading}
                       globalAssetsMessage={globalAssetsMessage}
-                      filteredAssets={libraryFilteredAssets}
-                      globalAssetSearch={globalAssetSearch}
-                      onGlobalAssetSearchChange={setGlobalAssetSearch}
-                      globalTargetState={globalTargetState}
-                      onGlobalTargetStateChange={setGlobalTargetState}
-                      onReloadGlobalAssets={() => void loadGlobalAssets()}
-                      onInsertGlobalAsset={insertGlobalAssetIntoState}
+                      targetState={globalTargetState}
+                      onTargetStateChange={setGlobalTargetState}
+                      sourceFilter={imageSourceFilter}
+                      onSourceFilterChange={setImageSourceFilter}
+                      search={imageSearch}
+                      onSearchChange={setImageSearch}
+                      onReloadAll={reloadAllImages}
+                      onPackUpload={(e) => void onPackUpload(e)}
+                      onMapUpload={(e) => void onLibUpload(e)}
+                      onSetFramesBasePack={setFramesBaseToPack}
+                      onSetFramesBaseMap={setFramesBaseToLibrary}
+                      onInsertImage={insertImageIntoPack}
+                      onDeletePackAsset={(f) => void onPackDeleteAsset(f)}
+                      onDeleteMapAsset={(f) => void onLibDelete(f)}
+                      insertFeedback={insertFeedback}
                     />
                   </div>
                 ) : null}

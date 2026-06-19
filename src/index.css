@@ -1427,6 +1427,71 @@
       flex-direction:column;
       gap:4px;
     }
+    .visit-mascot-pack-manager__dirty-banner {
+      display:flex;
+      align-items:center;
+      gap:8px;
+      margin:0;
+      padding:8px 10px;
+      border-radius:8px;
+      font-size:0.8rem;
+      font-weight:600;
+      color:#9a3412;
+      background:rgba(255,237,213,0.95);
+      border:1px solid rgba(234,88,12,0.28);
+    }
+    .visit-mascot-pack-manager__dirty-dot {
+      width:10px;
+      height:10px;
+      border-radius:50%;
+      background:#ea580c;
+      flex-shrink:0;
+    }
+    .visit-mascot-pack-manager__save--dirty {
+      box-shadow:0 0 0 2px rgba(234,88,12,0.35);
+    }
+    .mascot-pack-images-panel__toolbar {
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      align-items:flex-end;
+      margin-bottom:10px;
+    }
+    .mascot-pack-images-panel__target {
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+      min-width:180px;
+    }
+    .mascot-pack-images-panel__search {
+      flex:1 1 200px;
+      min-width:160px;
+    }
+    .mascot-pack-images-panel__filters {
+      display:flex;
+      flex-wrap:wrap;
+      gap:6px;
+      margin-bottom:10px;
+    }
+    .mascot-pack-images-panel__actions {
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      align-items:center;
+      margin-bottom:4px;
+    }
+    .mascot-pack-images-panel__badge {
+      display:inline-block;
+      font-size:0.68rem;
+      font-weight:600;
+      text-transform:uppercase;
+      letter-spacing:0.02em;
+      padding:2px 6px;
+      border-radius:4px;
+      margin-bottom:4px;
+      background:rgba(26,71,49,0.1);
+      color:var(--forest);
+    }
     .visit-mascot-pack-manager--page {
       max-height:none !important;
       overflow:visible !important;
