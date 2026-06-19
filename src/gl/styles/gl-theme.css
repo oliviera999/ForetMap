@@ -1323,7 +1323,8 @@ body.gl-map-fullscreen-active .gl-qcm-popover-overlay {
 
 .gl-board-marker {
   position: absolute;
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%) scale(var(--map-overlay-scale, 1));
+  transform-origin: center;
   border: 0;
   border-radius: 999px;
   background: var(--gl-marker-bg-label, transparent);
@@ -1384,7 +1385,7 @@ body.gl-map-fullscreen-active .gl-qcm-popover-overlay {
 }
 
 .gl-board-marker.is-dragging {
-  transform: translate(-50%, -50%) scale(1.05);
+  transform: translate(-50%, -50%) scale(calc(var(--map-overlay-scale, 1) * 1.05));
 }
 
 .gl-marker-bg-settings {

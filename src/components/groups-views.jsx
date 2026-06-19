@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { api } from '../services/api';
 import { HelpPanel } from './HelpPanel';
-import { HELP_PANELS } from '../constants/help';
+import { resolveHelpPanelSection } from '../utils/helpResolve';
+import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
 
 function normalizeIds(values = []) {
   return [...new Set(values.map((v) => String(v || '').trim()).filter(Boolean))];
@@ -167,6 +168,7 @@ function GroupMembersEditor({ group, users, maps, projects, onClose, onSaved }) 
 }
 
 export function GroupsAdminView() {
+  const publicSettings = usePublicSettings();
   const [groups, setGroups] = useState([]);
   const [users, setUsers] = useState([]);
   const [maps, setMaps] = useState([]);
@@ -175,7 +177,7 @@ export function GroupsAdminView() {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState('');
   const [msg, setMsg] = useState('');
-  const helpGroups = HELP_PANELS.groups;
+  const helpGroups = resolveHelpPanelSection('groups', publicSettings);
 
   const load = async () => {
     setErr('');

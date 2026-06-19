@@ -1,7 +1,8 @@
 import React from 'react';
 
 import { HelpPanel } from '../HelpPanel';
-import { HELP_PANELS } from '../../constants/help';
+import { resolveHelpPanelSection } from '../../utils/helpResolve';
+import { usePublicSettings } from '../../contexts/PublicSettingsContext.jsx';
 
 /**
  * En-tête de la vue Tâches (extrait de `tasks-views.jsx`, O6) : titre, aide
@@ -34,7 +35,8 @@ export function TasksViewHeader({
   setShowForm,
   setShowProposalForm,
 }) {
-  const helpTasks = HELP_PANELS.tasks;
+  const publicSettings = usePublicSettings();
+  const helpTasks = resolveHelpPanelSection('tasks', publicSettings);
   return (
     <>
       <div

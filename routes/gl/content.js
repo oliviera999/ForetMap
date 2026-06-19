@@ -3,6 +3,7 @@ const { queryOne, execute } = require('../../database');
 const { requireGlPermission } = require('../../middleware/requireGlAuth');
 const { getGlModulesSettings } = require('../../lib/glSettings');
 const { buildPublicIntroPayload, getIntroConfigFromDb } = require('../../lib/glIntro');
+const { buildPublicGlHelpPayload, getGlHelpConfigFromDb } = require('../../lib/glHelp');
 const asyncHandler = require('../../lib/asyncHandler');
 
 const router = express.Router();
@@ -28,6 +29,16 @@ router.get(
       return res.json({ enabled: false });
     }
     return res.json(buildPublicIntroPayload(config));
+  }),
+);
+
+/** GET /api/gl/content/help — textes d'aide contextuelle GL (public, auth GL standard). */
+router.get(
+  '/help',
+  requireGlPermission('gl.read'),
+  asyncHandler(async (_req, res) => {
+    const config = await getGlHelpConfigFromDb();
+    return res.json(buildPublicGlHelpPayload(config));
   }),
 );
 

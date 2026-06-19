@@ -15,6 +15,7 @@ function ContextCommentItem({
   currentUserId,
   allowModeration,
   canUseCommentActions,
+  reportsEnabled = true,
   reactionEmojis,
   firstReactionEmoji,
   reactionsExpanded,
@@ -102,7 +103,7 @@ function ContextCommentItem({
             </div>
           )
         ))}
-      {!item.is_deleted && canUseCommentActions && (
+      {!item.is_deleted && canUseCommentActions && (canDelete || reportsEnabled) && (
         <div className="context-comment-actions">
           {canDelete && (
             <button
@@ -113,19 +114,23 @@ function ContextCommentItem({
               Supprimer
             </button>
           )}
-          <input
-            value={reportReason || ''}
-            onChange={(e) => onReportReasonChange(item.id, e.target.value)}
-            placeholder="Motif de signalement"
-            maxLength={500}
-          />
-          <button
-            type="button"
-            className="btn btn-secondary btn-sm"
-            onClick={() => onReport(item.id)}
-          >
-            Signaler
-          </button>
+          {reportsEnabled && (
+            <>
+              <input
+                value={reportReason || ''}
+                onChange={(e) => onReportReasonChange(item.id, e.target.value)}
+                placeholder="Motif de signalement"
+                maxLength={500}
+              />
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => onReport(item.id)}
+              >
+                Signaler
+              </button>
+            </>
+          )}
         </div>
       )}
     </article>

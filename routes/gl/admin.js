@@ -39,6 +39,12 @@ const {
   getIntroConfigFromDb,
 } = require('../../lib/glIntro');
 const {
+  loadDefaultGlHelpConfig,
+  normalizeGlHelpConfig,
+  getGlHelpConfigFromDb,
+  saveGlHelpConfigToDb,
+} = require('../../lib/glHelp');
+const {
   analyzeContentLibraryBulk,
   applyContentLibraryBulk,
 } = require('../../lib/contentLibraryBulk');
@@ -49,6 +55,7 @@ const {
   getContentLibraryLimits,
 } = require('../../lib/contentLibraryUpload');
 const { normalizeBrand } = require('../../lib/glBrand');
+const { validateMarkerBackgrounds } = require('../../lib/glMarkerBackgrounds');
 const { sendXlsxAttachment, wrapXlsxRoute } = require('../../lib/glXlsxAttachment');
 const {
   buildGlossaryTemplateWorkbook,
@@ -912,6 +919,13 @@ router.put(
         return res.status(400).json({ error: 'La valeur doit être booléenne' });
       }
     }
+    if (key === 'gameplay.marker_backgrounds') {
+      const validated = validateMarkerBackgrounds(value);
+      if (validated.error) {
+        return res.status(400).json({ error: validated.error });
+      }
+      value = validated.value;
+    }
     if (key === 'platform.brand') {
       if (!value || typeof value !== 'object' || Array.isArray(value)) {
         return res
@@ -919,6 +933,20 @@ router.put(
           .json({ error: 'La valeur de platform.brand doit etre un objet JSON' });
       }
       value = normalizeBrand(value);
+    }
+    if (key === 'ui.map.plateau_marker_size_percent') {
+      const { setSetting } = require('../../lib/settings');
+      const n = Number(value);
+      if (!Number.isFinite(n) || !Number.isInteger(n) || n < 50 || n > 200) {
+        return res
+          .status(400)
+          .json({ error: 'La valeur doit être un entier entre 50 et 200' });
+      }
+      await setSetting('ui.map.plateau_marker_size_percent', n, {
+        userType: 'gl',
+        userId: req.glAuth.userId,
+      });
+      return res.json({ ok: true });
     }
     await execute(
       `INSERT INTO gl_settings (\`key\`, value_json, updated_by, updated_at)
@@ -991,6 +1019,33 @@ router.post(
      ON DUPLICATE KEY UPDATE value_json = VALUES(value_json), updated_by = VALUES(updated_by), updated_at = NOW()`,
       [INTRO_SETTINGS_KEY, JSON.stringify(normalized), req.glAuth.userId],
     );
+    return res.json(normalized);
+  }),
+);
+
+router.get(
+  '/content/help',
+  requireGlPermission('gl.content.manage'),
+  asyncHandler(async (_req, res) => {
+    const config = await getGlHelpConfigFromDb();
+    return res.json(config);
+  }),
+);
+
+router.put(
+  '/content/help',
+  requireGlPermission('gl.content.manage'),
+  asyncHandler(async (req, res) => {
+    const normalized = await saveGlHelpConfigToDb(req.body, req.glAuth.userId);
+    return res.json(normalized);
+  }),
+);
+
+router.post(
+  '/content/help/reset',
+  requireGlPermission('gl.content.manage'),
+  asyncHandler(async (req, res) => {
+    const normalized = await saveGlHelpConfigToDb(loadDefaultGlHelpConfig(), req.glAuth.userId);
     return res.json(normalized);
   }),
 );

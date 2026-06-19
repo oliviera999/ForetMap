@@ -5,6 +5,7 @@ import { GLBrandEditor } from './GLBrandEditor.jsx';
 import { GLGameplayTogglesList } from './settings/GLGameplayTogglesList.jsx';
 import { GLGameplayPresetsPanel } from './settings/GLGameplayPresetsPanel.jsx';
 import { GLSpellCastSettings } from './settings/GLSpellCastSettings.jsx';
+import { GLMarkerBackgroundSettings } from './settings/GLMarkerBackgroundSettings.jsx';
 import { GLButton } from './ui/GLButton.jsx';
 import { GLField } from './ui/GLField.jsx';
 import { GLInput } from './ui/GLInput.jsx';
@@ -22,6 +23,8 @@ import {
   areVitalityValuesValid,
   gameplayPresetChanges,
 } from '../utils/glSettingsForm.js';
+import { useGlMapOverlaySettings } from '../context/GlMapOverlaySettingsContext.jsx';
+import { readPlateauMarkerSizePercent } from '../../shared/mapOverlayScale.js';
 
 export function GLSettingsView() {
   const [settings, setSettings] = useState({});
@@ -35,6 +38,8 @@ export function GLSettingsView() {
   const [savingBrand, setSavingBrand] = useState(false);
   const [defaultHealthPoints, setDefaultHealthPoints] = useState('3');
   const [defaultPowerPoints, setDefaultPowerPoints] = useState('3');
+  const { mapSettings, reload: reloadMapOverlaySettings } = useGlMapOverlaySettings();
+  const [plateauMarkerSizePercent, setPlateauMarkerSizePercent] = useState('100');
   const [brandDraft, setBrandDraft] = useState(() => normalizeBrand({}));
 
   async function load() {
@@ -57,6 +62,10 @@ export function GLSettingsView() {
   useEffect(() => {
     load();
   }, []);
+
+  useEffect(() => {
+    setPlateauMarkerSizePercent(String(readPlateauMarkerSizePercent(mapSettings)));
+  }, [mapSettings]);
 
   async function savePlatformIdentity(event) {
     event.preventDefault();
@@ -238,6 +247,58 @@ export function GLSettingsView() {
         settings={settings}
         savingKey={savingKey}
         onToggle={toggleGameplayFlag}
+      />
+
+      <div className="gl-form gl-plateau-marker-scale">
+        <h4>Taille des repères sur le plateau</h4>
+        <p className="gl-hint">
+          Ratio repères / plateau en pourcentage (100 = référence à ~480 px de hauteur affichée).
+          Réglage partagé avec ForetMap (carte tâches et visite).
+        </p>
+        <div className="gl-inline-actions">
+          <GLField label="Taille des repères (%)">
+            <GLInput
+              type="number"
+              min={50}
+              max={200}
+              value={plateauMarkerSizePercent}
+              disabled={savingKey === 'ui.map.plateau_marker_size_percent'}
+              onChange={(event) => setPlateauMarkerSizePercent(event.target.value)}
+            />
+          </GLField>
+          <GLButton
+            type="button"
+            disabled={savingKey === 'ui.map.plateau_marker_size_percent'}
+            onClick={async () => {
+              const n = Number(plateauMarkerSizePercent);
+              if (!Number.isInteger(n) || n < 50 || n > 200) {
+                setError('La taille des repères doit être un entier entre 50 et 200.');
+                return;
+              }
+              setSavingKey('ui.map.plateau_marker_size_percent');
+              setError('');
+              try {
+                await apiGL('/api/gl/admin/settings/ui.map.plateau_marker_size_percent', 'PUT', {
+                  value: n,
+                });
+                await reloadMapOverlaySettings();
+                setSuccessMessage('Taille des repères enregistrée.');
+              } catch (err) {
+                setError(err.message || 'Enregistrement impossible');
+              } finally {
+                setSavingKey('');
+              }
+            }}
+          >
+            Enregistrer la taille des repères
+          </GLButton>
+        </div>
+      </div>
+
+      <GLMarkerBackgroundSettings
+        settings={settings}
+        savingKey={savingKey}
+        onSave={saveSetting}
       />
 
       <div className="gl-vitality-defaults gl-form">

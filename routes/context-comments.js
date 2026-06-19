@@ -7,7 +7,7 @@ const { z, validate } = require('../lib/validate');
 const { logRouteError } = require('../lib/routeLog');
 const { logAudit } = require('./audit');
 const { emitContextCommentsChanged } = require('../lib/realtime');
-const { getSettingValue } = require('../lib/settings');
+const { getSettingValue, isReportsEnabled } = require('../lib/settings');
 const {
   persistUserContentImages,
   attachPublicImageUrls,
@@ -402,6 +402,12 @@ router.delete(
 router.post(
   '/:id/report',
   asyncHandler(async (req, res) => {
+    if (!(await isReportsEnabled())) {
+      return res.status(403).json({
+        error: 'Les signalements sont désactivés.',
+        code: 'REPORTS_DISABLED',
+      });
+    }
     if (!(await requireContextCommentParticipation(req, res))) return;
     const actor = getActor(req.auth);
     if (!actor) return res.status(401).json({ error: 'Session invalide' });

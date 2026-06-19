@@ -26,7 +26,14 @@ const {
   setSetting,
   listAdminSettings,
   validateCrossSettings,
+  invalidateSettingsCache,
 } = require('../lib/settings');
+const {
+  getHelpConfigFromDb,
+  saveHelpConfigToDb,
+  loadDefaultHelpConfig,
+  normalizeHelpConfig,
+} = require('../lib/helpContent');
 const { runSpeciesAutofillProviderSelfTest } = require('../lib/speciesAutofillProviderSelfTest');
 const { normalizeMapImageUrl } = require('../lib/mapImageUrl');
 const { MAP_SLUG_RE } = require('../lib/studentAffiliation');
@@ -91,6 +98,47 @@ router.get(
         is_active: !!row.is_active,
       })),
     });
+  }),
+);
+
+router.get(
+  '/admin/help-content',
+  requirePermission('admin.settings.read', { needsElevation: true }),
+  asyncHandler(async (_req, res) => {
+    const config = await getHelpConfigFromDb();
+    res.json(config);
+  }),
+);
+
+router.put(
+  '/admin/help-content',
+  requirePermission('admin.settings.write', { needsElevation: true }),
+  asyncHandler(async (req, res) => {
+    const normalized = await saveHelpConfigToDb(req.body, {
+      userType: req.auth?.userType,
+      userId: req.auth?.userId,
+    });
+    invalidateSettingsCache();
+    await logAudit('settings_help_content_update', 'setting', 'content.help.registry', 'Registre aide mis à jour', {
+      req,
+    });
+    res.json(normalized);
+  }),
+);
+
+router.post(
+  '/admin/help-content/reset',
+  requirePermission('admin.settings.write', { needsElevation: true }),
+  asyncHandler(async (req, res) => {
+    const normalized = await saveHelpConfigToDb(loadDefaultHelpConfig(), {
+      userType: req.auth?.userType,
+      userId: req.auth?.userId,
+    });
+    invalidateSettingsCache();
+    await logAudit('settings_help_content_reset', 'setting', 'content.help.registry', 'Registre aide réinitialisé', {
+      req,
+    });
+    res.json(normalized);
   }),
 );
 

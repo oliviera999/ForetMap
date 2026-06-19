@@ -9,9 +9,14 @@ import {
 import { getRoleTerms } from '../utils/n3-terminology';
 import { useHelp } from '../hooks/useHelp';
 import { HelpPanel } from './HelpPanel';
-import { HELP_PANELS } from '../constants/help';
+import { resolveHelpChrome, resolveHelpPanelSection, resolveHelpQuickTip } from '../utils/helpResolve';
 import { getContentText } from '../utils/content';
 import { resolveMapOverlayTypography } from '../utils/mapOverlayTypography';
+import {
+  MAP_OVERLAY_REFERENCE_BOARD_HEIGHT_PX,
+  readPlateauMarkerSizePercent,
+  resolveMapOverlayScaleCssValue,
+} from '../shared/mapOverlayScale.js';
 import { fetchTutorialReadIds } from './TutorialReadAcknowledge';
 import {
   TutorialPreviewModal,
@@ -125,19 +130,13 @@ function VisitViewImpl({
   const visitMascotDefaultId =
     String(publicSettings?.visit?.mascot?.default_id || '').trim() || 'renard2-cut-spritesheet';
   const visitTitle = getContentText(publicSettings, 'visit.title', '🧭 Visite de la carte');
-  const helpHintPrefix = getContentText(publicSettings, 'help.hint_prefix', 'Astuce :');
-  const helpPanelTitlePrefix = getContentText(publicSettings, 'help.panel_title_prefix', '💡');
-  const helpPanelCloseCta = getContentText(publicSettings, 'help.panel_close_cta', 'Fermer');
-  const helpPanelDismissCta = getContentText(
-    publicSettings,
-    'help.panel_dismiss_cta',
-    'Ne plus afficher',
-  );
-  const visitQuickTip = getContentText(
-    publicSettings,
-    'help.visit_quick_tip',
-    'Coche ce que tu vois déjà pour suivre ta progression sur la carte.',
-  );
+  const helpChrome = resolveHelpChrome(publicSettings);
+  const helpHintPrefix = helpChrome.hintPrefix;
+  const helpPanelTitlePrefix = helpChrome.panelTitlePrefix;
+  const helpPanelCloseCta = helpChrome.panelCloseCta;
+  const helpPanelDismissCta = helpChrome.panelDismissCta;
+  const visitQuickTip = resolveHelpQuickTip('visit', publicSettings);
+  const helpVisit = resolveHelpPanelSection('visit', publicSettings);
   const visitEmptySelection = getContentText(
     publicSettings,
     'visit.empty_selection',
@@ -396,21 +395,28 @@ function VisitViewImpl({
   const visitMapImageReady = visitImgNatural.w > 0 && visitImgNatural.h > 0;
   const canPanAndZoom = mode === 'view';
 
-  /** Tailles emoji / libellé zone en unités SVG (viewBox 0–100), alignées sur `resolveMapOverlayTypography` + largeur calque carte. */
+  /** Tailles emoji / libellé zone en unités SVG (viewBox 0–100), ratio constant repère/plateau. */
   const visitZoneSvgTypography = useMemo(() => {
     const mapSettings =
       publicSettings?.map && typeof publicSettings.map === 'object' ? publicSettings.map : null;
+    const fitH =
+      visitMapFit.height > 0 ? visitMapFit.height : MAP_OVERLAY_REFERENCE_BOARD_HEIGHT_PX;
     const fw = visitMapFit.width > 0 ? visitMapFit.width : 360;
     const uPerPx = 100 / Math.max(1, fw);
-    const inv = 1 / Math.max(mapTransform.s, 0.12);
-    const t = resolveMapOverlayTypography(mapSettings, inv);
+    const worldScale = Math.max(Number(mapTransform.s) || 1, 0.001);
+    const t = resolveMapOverlayTypography(mapSettings, fitH, { worldScale });
+    const overlayScale = resolveMapOverlayScaleCssValue({
+      fitHeightPx: fitH,
+      sizePercent: readPlateauMarkerSizePercent(mapSettings),
+    });
     return {
       emojiU: t.mapEmojiFontPx * uPerPx,
       labelU: t.mapLabelFontPx * uPerPx,
       gapU: t.mapEmojiLabelCenterGap * uPerPx,
-      strokeU: Math.max(0.06, 3 * inv * uPerPx),
+      strokeU: Math.max(0.06, (3 / worldScale) * uPerPx),
+      overlayScale,
     };
-  }, [publicSettings, visitMapFit.width, mapTransform.s]);
+  }, [publicSettings, visitMapFit.width, visitMapFit.height, mapTransform.s]);
 
   const clampTransform = useCallback((next, rectLike = null) => {
     const stage = stageRef.current;
@@ -1295,8 +1301,8 @@ function VisitViewImpl({
                   isHelpEnabled ? (
                     <HelpPanel
                       sectionId="visit"
-                      title={HELP_PANELS.visit.title}
-                      entries={HELP_PANELS.visit.items}
+                      title={helpVisit.title}
+                      entries={helpVisit.items}
                       isTeacher={isTeacher}
                       isPulsing={pulseUnseenPanels && !hasSeenSection('visit')}
                       panelTitlePrefix={helpPanelTitlePrefix}
@@ -1345,14 +1351,12 @@ function VisitViewImpl({
                 className="visit-map-world"
                 style={{
                   transform: `translate(${mapTransform.x}px, ${mapTransform.y}px) scale(${mapTransform.s})`,
-                  /* Repères HTML : contre-échelle pour composer les emojis en px écran (évite le flou sous transform). */
-                  '--visit-map-scale': String(Math.max(Number(mapTransform.s) || 1, 0.001)),
                 }}
               >
                 <div
                   className="visit-map-fit-layer"
-                  style={
-                    visitImmersion
+                  style={{
+                    ...(visitImmersion
                       ? { left: 0, top: 0, width: '100%', height: '100%' }
                       : visitMapFit.width > 0 && visitMapFit.height > 0
                         ? {
@@ -1361,8 +1365,9 @@ function VisitViewImpl({
                             width: visitMapFit.width,
                             height: visitMapFit.height,
                           }
-                        : { left: 0, top: 0, width: '100%', height: '100%' }
-                  }
+                        : { left: 0, top: 0, width: '100%', height: '100%' }),
+                    '--map-overlay-scale': visitZoneSvgTypography.overlayScale,
+                  }}
                 >
                   <img
                     ref={imgRef}

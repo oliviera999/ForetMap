@@ -13,6 +13,7 @@ export function ForumPostCard({
   post,
   canModerate,
   canUseForumActions,
+  reportsEnabled = true,
   isOwner,
   reactionEmojis,
   firstReactionEmoji,
@@ -98,22 +99,26 @@ export function ForumPostCard({
             </div>
           )
         ))}
-      {!p.is_deleted && canUseForumActions && (
+      {!p.is_deleted && canUseForumActions && (canDelete || reportsEnabled) && (
         <div className="forum-post-actions">
           {canDelete && (
             <button type="button" className="btn btn-ghost btn-sm" onClick={() => onDelete(p.id)}>
               Supprimer
             </button>
           )}
-          <input
-            value={reportReason}
-            onChange={(e) => onReportReasonChange(p.id, e.target.value)}
-            placeholder="Motif de signalement"
-            maxLength={500}
-          />
-          <button type="button" className="btn btn-secondary btn-sm" onClick={() => onReport(p.id)}>
-            Signaler
-          </button>
+          {reportsEnabled && (
+            <>
+              <input
+                value={reportReason}
+                onChange={(e) => onReportReasonChange(p.id, e.target.value)}
+                placeholder="Motif de signalement"
+                maxLength={500}
+              />
+              <button type="button" className="btn btn-secondary btn-sm" onClick={() => onReport(p.id)}>
+                Signaler
+              </button>
+            </>
+          )}
         </div>
       )}
     </article>

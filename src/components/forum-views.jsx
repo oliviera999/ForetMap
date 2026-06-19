@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api, toggleForumPostReaction } from '../services/api';
+import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
 import { formatDateTimeFr } from '../utils/datetime-fr';
 import { AttachmentImagesPicker } from './attachment-images-picker';
 import { MarkdownTextarea } from './MarkdownTextarea.jsx';
@@ -43,6 +44,8 @@ function ForumView({ authClaims, canParticipateForum = true }) {
 
   const canModerate = useMemo(() => isForumModerator(authClaims), [authClaims]);
   const canUseForumActions = canParticipateForum || canModerate;
+  const publicSettings = usePublicSettings();
+  const reportsEnabled = publicSettings?.modules?.reports_enabled !== false;
   const currentUserType = String(authClaims?.userType || '').toLowerCase();
   const currentUserId = String(authClaims?.canonicalUserId || authClaims?.userId || '');
 
@@ -408,6 +411,7 @@ function ForumView({ authClaims, canParticipateForum = true }) {
                       post={p}
                       canModerate={canModerate}
                       canUseForumActions={canUseForumActions}
+                      reportsEnabled={reportsEnabled}
                       isOwner={
                         p.author_user_type === currentUserType && p.author_user_id === currentUserId
                       }

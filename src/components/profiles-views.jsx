@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { API, api, getAuthToken } from '../services/api';
 import { getRoleTerms } from '../utils/n3-terminology';
 import { useHelp } from '../hooks/useHelp';
-import { HELP_PANELS } from '../constants/help';
+import { resolveHelpPanelSection } from '../utils/helpResolve';
 import { buildAffiliationSelectOptions } from '../utils/affiliationSelectOptions';
 import { GroupsAdminView } from './groups-views.jsx';
 import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
@@ -49,7 +49,7 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
       publicSettings,
       isTeacher: true,
     });
-  const helpProfiles = HELP_PANELS.profiles;
+  const helpProfiles = resolveHelpPanelSection('profiles', publicSettings);
   const [roles, setRoles] = useState([]);
   const [catalog, setCatalog] = useState([]);
   const [users, setUsers] = useState([]);

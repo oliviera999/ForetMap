@@ -20,7 +20,6 @@ import { teacherStatusActionDisabled } from '../../utils/taskActionErrors.js';
 import { TEACHER_STATUS_ACTIONS } from './taskViewHelpers.js';
 import { TaskTileMeta } from './TaskTileMeta.jsx';
 import { isStudentAssignedToTask } from '../../utils/task-assignments';
-import { HELP_TOOLTIPS } from '../../constants/help';
 import { ContextComments } from '../context-comments';
 import { MarkdownContent } from '../MarkdownContent.jsx';
 import { Tooltip } from '../Tooltip';
@@ -632,7 +631,7 @@ function TaskTileCardImpl({
             )}
             {isTeacher && (
               <>
-                <Tooltip text={tooltipText(HELP_TOOLTIPS.tasks.edit)}>
+                <Tooltip text={tooltipText('tasks.edit')}>
                   <button
                     className="btn btn-ghost btn-sm"
                     aria-label="Modifier la tâche"
@@ -646,7 +645,7 @@ function TaskTileCardImpl({
                     ✏️
                   </button>
                 </Tooltip>
-                <Tooltip text={tooltipText(HELP_TOOLTIPS.tasks.duplicate)}>
+                <Tooltip text={tooltipText('tasks.duplicate')}>
                   <button
                     className="btn btn-ghost btn-sm"
                     aria-label="Dupliquer la tâche"
@@ -660,7 +659,7 @@ function TaskTileCardImpl({
                     📄
                   </button>
                 </Tooltip>
-                <Tooltip text={tooltipText(HELP_TOOLTIPS.tasks.delete)}>
+                <Tooltip text={tooltipText('tasks.delete')}>
                   <button
                     className="btn btn-danger btn-sm"
                     aria-label="Supprimer la tâche"

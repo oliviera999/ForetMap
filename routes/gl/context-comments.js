@@ -22,6 +22,7 @@ const {
   toggleContextCommentReaction,
   softDeleteContextComment,
 } = require('../../lib/shared/contextCommentsCore');
+const { isReportsEnabled } = require('../../lib/settings');
 
 const router = express.Router();
 
@@ -238,6 +239,12 @@ router.delete(
 router.post(
   '/:id/report',
   asyncHandler(async (req, res) => {
+    if (!(await isReportsEnabled())) {
+      return res.status(403).json({
+        error: 'Les signalements sont désactivés.',
+        code: 'REPORTS_DISABLED',
+      });
+    }
     const actor = getActor(req.glAuth);
     if (!actor) return res.status(401).json({ error: 'Session invalide' });
     const reason = normalizeOptionalString(req.body?.reason);

@@ -8,6 +8,7 @@ import {
   reportContextComment,
   toggleContextCommentReaction,
 } from '../services/api';
+import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
 import { ContextCommentForm } from './context-comments/ContextCommentForm.jsx';
 import { ContextCommentItem } from './context-comments/ContextCommentItem.jsx';
 import { ContextCommentsToggle } from './context-comments/ContextCommentsToggle.jsx';
@@ -54,6 +55,8 @@ function ContextComments({
   const currentUserId = String(authClaims?.canonicalUserId || authClaims?.userId || '');
   const allowModeration = canModerate(authClaims);
   const canUseCommentActions = canParticipateContextComments;
+  const publicSettings = usePublicSettings();
+  const reportsEnabled = publicSettings?.modules?.reports_enabled !== false;
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   const markCommentsRead = useCallback(
@@ -268,6 +271,7 @@ function ContextComments({
         currentUserId={currentUserId}
         allowModeration={allowModeration}
         canUseCommentActions={canUseCommentActions}
+        reportsEnabled={reportsEnabled}
         reactionEmojis={reactionEmojis}
         firstReactionEmoji={firstReactionEmoji}
         reactionsExpanded={!!expandedReactionsByComment[item.id]}
@@ -297,12 +301,9 @@ function ContextComments({
         onToggle={() => setIsOpen((prev) => !prev)}
       />
 
-      {!isOpen && (
+      {!isOpen && total > 0 && (
         <div className="context-comments-preview">
           {loading && items.length === 0 && <p className="forum-muted">Chargement…</p>}
-          {!loading && items.length === 0 && (
-            <p className="forum-muted">Aucun commentaire pour l’instant.</p>
-          )}
           <div className="context-comments-list">{renderCommentItems(items)}</div>
           {hiddenCount > 0 && (
             <button

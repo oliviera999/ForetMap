@@ -252,6 +252,44 @@ test('Forum: signalement de message et prévention des doublons', async () => {
     .expect(409);
 });
 
+test('Forum: signalements désactivés par réglage renvoie 403', async () => {
+  const teacher = await teacherToken();
+  const author = await registerStudent('AuthorForumOff');
+  const reporter = await registerStudent('ReporterForumOff');
+
+  const thread = await request(app)
+    .post('/api/forum/threads')
+    .set(auth(author.authToken))
+    .send({ title: `Sujet report off ${Date.now()}`, body: 'Post initial.' })
+    .expect(201);
+  const threadId = thread.body.thread.id;
+
+  const post = await request(app)
+    .post(`/api/forum/threads/${threadId}/posts`)
+    .set(auth(author.authToken))
+    .send({ body: 'Message à signaler.' })
+    .expect(201);
+
+  await request(app)
+    .put('/api/settings/admin/ui.modules.reports_enabled')
+    .set(auth(teacher))
+    .send({ value: false })
+    .expect(200);
+
+  const res = await request(app)
+    .post(`/api/forum/posts/${post.body.id}/report`)
+    .set(auth(reporter.authToken))
+    .send({ reason: 'Contenu inadapté.' })
+    .expect(403);
+  assert.strictEqual(res.body?.code, 'REPORTS_DISABLED');
+
+  await request(app)
+    .put('/api/settings/admin/ui.modules.reports_enabled')
+    .set(auth(teacher))
+    .send({ value: true })
+    .expect(200);
+});
+
 test('Forum: réactions emoji toggle et agrégées sur les messages', async () => {
   const author = await registerStudent('ReactForumAuthor');
   const reactor = await registerStudent('ReactForumUser');

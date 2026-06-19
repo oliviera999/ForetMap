@@ -302,6 +302,38 @@ test('Commentaires contextuels: signalement et prévention des doublons', async 
     .expect(409);
 });
 
+test('Commentaires contextuels: signalements désactivés par réglage renvoie 403', async () => {
+  const teacher = await teacherToken();
+  const author = await registerStudent('ComRepOffAuthor');
+  const reporter = await registerStudent('ComRepOffUser');
+  const { zoneId } = await createContextFixture(teacher);
+
+  const created = await request(app)
+    .post('/api/context-comments')
+    .set(auth(author.authToken))
+    .send({ contextType: 'zone', contextId: zoneId, body: 'Commentaire à signaler.' })
+    .expect(201);
+
+  await request(app)
+    .put('/api/settings/admin/ui.modules.reports_enabled')
+    .set(auth(teacher))
+    .send({ value: false })
+    .expect(200);
+
+  const res = await request(app)
+    .post(`/api/context-comments/${created.body.id}/report`)
+    .set(auth(reporter.authToken))
+    .send({ reason: 'Contenu inadapté.' })
+    .expect(403);
+  assert.strictEqual(res.body?.code, 'REPORTS_DISABLED');
+
+  await request(app)
+    .put('/api/settings/admin/ui.modules.reports_enabled')
+    .set(auth(teacher))
+    .send({ value: true })
+    .expect(200);
+});
+
 test('Commentaires contextuels: valide les contextes task/project/zone/marker/plant/tutorial', async () => {
   const teacher = await teacherToken();
   const student = await registerStudent('ComCtx');

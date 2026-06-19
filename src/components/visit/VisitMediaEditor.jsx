@@ -1,6 +1,7 @@
 import React from 'react';
 import { Tooltip } from '../Tooltip';
-import { HELP_TOOLTIPS, resolveRoleText } from '../../constants/help';
+import { resolveTooltipKey } from '../../utils/helpResolve';
+import { usePublicSettings } from '../../contexts/PublicSettingsContext.jsx';
 import { visitMediaImgSrc, reorderVisitMediaRows } from '../../utils/visitMediaGallery.js';
 import { VisitEditorialMapPhotoImportList } from '../VisitEditorialPhotoUi.jsx';
 
@@ -43,7 +44,8 @@ export function VisitMediaEditor({
   onDeleteMedia,
   onReorder,
 }) {
-  const tooltipText = (entry) => resolveRoleText(entry, true);
+  const publicSettings = usePublicSettings();
+  const tooltipText = (path) => resolveTooltipKey(path, publicSettings, true);
   return (
     <div className="visit-media-editor">
       <h5>🖼️ Photos</h5>
@@ -151,7 +153,7 @@ export function VisitMediaEditor({
             >
               ✏️
             </button>
-            <Tooltip text={tooltipText(HELP_TOOLTIPS.visit.mediaDelete)}>
+            <Tooltip text={tooltipText('visit.mediaDelete')}>
               <button
                 type="button"
                 className="btn btn-danger btn-sm"

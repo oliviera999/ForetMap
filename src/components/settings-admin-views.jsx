@@ -11,6 +11,7 @@ import {
 import { getRoleTerms } from '../utils/n3-terminology';
 import { MediaLibraryMenu } from './MediaLibraryMenu.jsx';
 import { AdminTextSettingField, AdminNumberSettingField } from './settings/AdminSettingFields.jsx';
+import { ForetMapHelpContentAdminPanel } from './help/ForetMapHelpContentAdminPanel.jsx';
 import { useSession } from '../contexts/SessionContext.jsx';
 
 function SettingsAdminView() {
@@ -27,6 +28,7 @@ function SettingsAdminView() {
   const [msg, setMsg] = useState('');
   const [err, setErr] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [adminSection, setAdminSection] = useState('general');
   const mapGalleryFileRefs = useRef({});
   const mapCameraFileRefs = useRef({});
   const [newMapId, setNewMapId] = useState('');
@@ -348,6 +350,26 @@ function SettingsAdminView() {
       </p>
       {err && <div className="auth-error">⚠️ {err}</div>}
       {msg && <div className="auth-success">{msg}</div>}
+      <nav className="gl-subtabs" style={{ marginBottom: 12 }}>
+        <button
+          type="button"
+          className={adminSection === 'general' ? 'is-active' : ''}
+          onClick={() => setAdminSection('general')}
+        >
+          Paramètres généraux
+        </button>
+        <button
+          type="button"
+          className={adminSection === 'help' ? 'is-active' : ''}
+          onClick={() => setAdminSection('help')}
+        >
+          Bulles d'aide
+        </button>
+      </nav>
+      {adminSection === 'help' ? (
+        <ForetMapHelpContentAdminPanel />
+      ) : (
+        <>
       <div
         style={{
           background: 'white',
@@ -723,6 +745,8 @@ function SettingsAdminView() {
             </pre>
           )}
         </div>
+      )}
+        </>
       )}
     </div>
   );

@@ -1,5 +1,10 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { useGlBoardImageFit } from '../hooks/useGlBoardImageFit.js';
+import { useGlMapOverlaySettings } from '../context/GlMapOverlaySettingsContext.jsx';
+import {
+  readPlateauMarkerSizePercent,
+  resolveMapOverlayScaleCssValue,
+} from '../../shared/mapOverlayScale.js';
 
 export function GLPctMapCanvas({
   imageUrl,
@@ -13,19 +18,34 @@ export function GLPctMapCanvas({
   imageClassName = 'gl-board-image',
   imageStyle = undefined,
   cursor = 'default',
+  markerSizePercent: markerSizePercentProp,
   children,
 }) {
   const containerRef = mapGestures?.containerRef;
   const imageRef = mapGestures?.imageRef;
   const { fitLayerStyle, onImageLoad, fitHeightPx } = useGlBoardImageFit(containerRef, imageRef);
+  const { mapSettings } = useGlMapOverlaySettings();
+  const markerSizePercent =
+    markerSizePercentProp ?? readPlateauMarkerSizePercent(mapSettings);
+
+  const fitLayerStyleWithScale = useMemo(() => {
+    const overlayScale = resolveMapOverlayScaleCssValue({
+      fitHeightPx,
+      sizePercent: markerSizePercent,
+    });
+    return {
+      ...fitLayerStyle,
+      '--map-overlay-scale': overlayScale,
+    };
+  }, [fitLayerStyle, fitHeightPx, markerSizePercent]);
 
   useEffect(() => {
     onMapReady?.(mapGestures);
   }, [mapGestures, onMapReady]);
 
   useEffect(() => {
-    onFitLayout?.({ height: fitHeightPx, fit: fitLayerStyle });
-  }, [fitHeightPx, fitLayerStyle, onFitLayout]);
+    onFitLayout?.({ height: fitHeightPx, fit: fitLayerStyleWithScale });
+  }, [fitHeightPx, fitLayerStyleWithScale, onFitLayout]);
 
   return (
     <div
@@ -40,7 +60,7 @@ export function GLPctMapCanvas({
         onMapClick(pct, event);
       }}
     >
-      <div className="gl-board-fit-layer" style={fitLayerStyle}>
+      <div className="gl-board-fit-layer" style={fitLayerStyleWithScale}>
         <img
           ref={imageRef}
           src={imageUrl || '/maps/map-foret.svg'}

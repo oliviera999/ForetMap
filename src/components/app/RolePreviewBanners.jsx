@@ -1,6 +1,5 @@
 import React from 'react';
 import { Tooltip } from '../Tooltip';
-import { HELP_TOOLTIPS } from '../../constants/help';
 
 /**
  * Bannières d'aperçu de rôle — extraites de `src/App.jsx` (O6).
@@ -45,7 +44,7 @@ export function RolePreviewBanners({
             </span>
           </div>
           <div className="impersonation-banner-actions">
-            <Tooltip text={helpText(HELP_TOOLTIPS.header.impersonationStop)}>
+            <Tooltip text={helpText('header.impersonationStop')}>
               <button
                 type="button"
                 className="btn btn-primary btn-sm"

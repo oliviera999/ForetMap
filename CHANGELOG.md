@@ -7,6 +7,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Carte — ratio repères / plateau (ForetMap + GL)
+
+- **Module partagé** : `src/shared/mapOverlayScale.js` — facteur `(fitHeightPx / 480) × (sizePercent / 100)` ; refactor `resolveMapOverlayTypography` (hauteur affichée du plan au lieu de `inv`).
+- **ForetMap** : carte tâches et visite — repères proportionnels au plan ; visite sans contre-échelle zoom sur `.visit-marker-btn`.
+- **GL** : repères plateau via `--map-overlay-scale` sur `GLPctMapCanvas` ; contexte `GlMapOverlaySettingsProvider`.
+- **Réglage** : `ui.map.plateau_marker_size_percent` (50–200, défaut 100), éditable admin ForetMap et réglages GL (`PUT /api/gl/admin/settings/ui.map.plateau_marker_size_percent`).
+- **Tests** : `tests/map-overlay-scale.test.js`, `tests/map-overlay-typography.test.js`, extensions `settings.test.js` / `gl-settings.test.js`.
+
 ### GL — unification boutons carte plateau
 
 - **Composants** : `GLBoardActionButton` (rôles `primary` / `display` / `tool`) et `GLBoardChrome` (docks coins, barre mobile, fermer plein écran).

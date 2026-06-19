@@ -3,8 +3,12 @@ import React from 'react';
 import { Tooltip } from '../Tooltip';
 import { HelpPanel } from '../HelpPanel';
 import { useHelp } from '../../hooks/useHelp';
-import { HELP_PANELS, HELP_TOOLTIPS, resolveRoleText } from '../../constants/help';
-import { getContentText } from '../../utils/content';
+import {
+  resolveHelpChrome,
+  resolveHelpPanelSection,
+  resolveHelpQuickTip,
+  resolveTooltipKey,
+} from '../../utils/helpResolve';
 import { usePublicSettings } from '../../contexts/PublicSettingsContext.jsx';
 
 /**
@@ -54,21 +58,14 @@ export function MapViewToolbar({
     trackPanelOpen,
     trackPanelDismiss,
   } = useHelp({ publicSettings, isTeacher });
-  const helpMap = HELP_PANELS.map;
-  const helpHintPrefix = getContentText(publicSettings, 'help.hint_prefix', 'Astuce :');
-  const helpPanelTitlePrefix = getContentText(publicSettings, 'help.panel_title_prefix', '💡');
-  const helpPanelCloseCta = getContentText(publicSettings, 'help.panel_close_cta', 'Fermer');
-  const helpPanelDismissCta = getContentText(
-    publicSettings,
-    'help.panel_dismiss_cta',
-    'Ne plus afficher',
-  );
-  const mapQuickTip = getContentText(
-    publicSettings,
-    'help.map_quick_tip',
-    'Clique une zone ou un repère puis ouvre ? pour les actions guidées.',
-  );
-  const tooltipText = (entry) => resolveRoleText(entry, isTeacher);
+  const helpMap = resolveHelpPanelSection('map', publicSettings);
+  const helpChrome = resolveHelpChrome(publicSettings);
+  const helpHintPrefix = helpChrome.hintPrefix;
+  const helpPanelTitlePrefix = helpChrome.panelTitlePrefix;
+  const helpPanelCloseCta = helpChrome.panelCloseCta;
+  const helpPanelDismissCta = helpChrome.panelDismissCta;
+  const mapQuickTip = resolveHelpQuickTip('map', publicSettings);
+  const tooltipText = (path) => resolveTooltipKey(path, publicSettings, isTeacher);
 
   return (
     <>
@@ -260,7 +257,7 @@ export function MapViewToolbar({
             </button>
           )}
           {isCoarsePointer && mode === 'view' && (
-            <Tooltip text={tooltipText(HELP_TOOLTIPS.map.toggleGestures)}>
+            <Tooltip text={tooltipText('map.toggleGestures')}>
               <button
                 className={`map-gesture-toggle ${mobileInteractionsActive ? 'is-on' : ''}`}
                 onClick={onToggleMapInteraction}
@@ -274,7 +271,7 @@ export function MapViewToolbar({
               </button>
             </Tooltip>
           )}
-          <Tooltip text={tooltipText(HELP_TOOLTIPS.map.toggleLabels)}>
+          <Tooltip text={tooltipText('map.toggleLabels')}>
             <button
               aria-label={showLabels ? 'Masquer les noms' : 'Afficher les noms'}
               onClick={onToggleLabels}
@@ -301,9 +298,9 @@ export function MapViewToolbar({
             }}
           >
             {[
-              ['＋', 1.28, HELP_TOOLTIPS.map.zoomIn, 'Zoomer la carte'],
-              ['－', 0.78, HELP_TOOLTIPS.map.zoomOut, 'Dézoomer la carte'],
-              ['⊡', 0, HELP_TOOLTIPS.map.zoomReset, 'Recentrer la carte'],
+              ['＋', 1.28, 'map.zoomIn', 'Zoomer la carte'],
+              ['－', 0.78, 'map.zoomOut', 'Dézoomer la carte'],
+              ['⊡', 0, 'map.zoomReset', 'Recentrer la carte'],
             ].map(([label, factor, helpEntry, ariaLabel]) => (
               <Tooltip key={label} text={tooltipText(helpEntry)}>
                 <button

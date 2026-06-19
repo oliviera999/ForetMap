@@ -123,9 +123,10 @@ describe('ALLOWED_GAMEPLAY_SETTINGS', () => {
     assert.ok(ALLOWED_GAMEPLAY_SETTINGS instanceof Set);
     assert.ok(ALLOWED_GAMEPLAY_SETTINGS.has('gameplay.turns_enabled'));
     assert.ok(ALLOWED_GAMEPLAY_SETTINGS.has('gameplay.lore_spoiler_max_level'));
+    assert.ok(ALLOWED_GAMEPLAY_SETTINGS.has('gameplay.marker_backgrounds'));
     assert.equal(ALLOWED_GAMEPLAY_SETTINGS.has('gameplay.inexistant'), false);
   });
-  it('compte 22 clés gameplay', () => {
-    assert.equal(ALLOWED_GAMEPLAY_SETTINGS.size, 22);
+  it('compte 23 clés gameplay', () => {
+    assert.equal(ALLOWED_GAMEPLAY_SETTINGS.size, 23);
   });
 });

@@ -8,6 +8,7 @@ const { app } = require('../server');
 const { initSchema, execute, queryOne } = require('../database');
 const { signAuthToken } = require('../middleware/requireTeacher');
 const { invalidateGameplayCache } = require('../lib/glSettings');
+const { DEFAULT_MARKER_BACKGROUNDS } = require('../lib/glMarkerBackgrounds');
 
 let adminToken = '';
 let playerToken = '';
@@ -187,6 +188,57 @@ test('PUT gameplay.plateau_* persiste et est lu par /gameplay-settings', async (
     .put('/api/gl/admin/settings/gameplay.plateau_zones_visible')
     .set('Authorization', `Bearer ${adminToken}`)
     .send({ value: false })
+    .expect(200);
+  invalidateGameplayCache();
+});
+
+test('PUT ui.map.plateau_marker_size_percent via admin GL persiste dans app_settings', async () => {
+  await request(app)
+    .put('/api/gl/admin/settings/ui.map.plateau_marker_size_percent')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ value: 125 })
+    .expect(200);
+
+  const pub = await request(app).get('/api/settings/public').expect(200);
+  assert.strictEqual(pub.body?.settings?.ui?.map?.plateau_marker_size_percent, 125);
+
+  await request(app)
+    .put('/api/gl/admin/settings/ui.map.plateau_marker_size_percent')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ value: 100 })
+    .expect(200);
+});
+
+test('PUT gameplay.marker_backgrounds persiste et est lu par /gameplay-settings', async () => {
+  const payload = {
+    label: 'classic',
+    emoji: '#ffffff',
+    icon: 'transparent',
+  };
+  await request(app)
+    .put('/api/gl/admin/settings/gameplay.marker_backgrounds')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ value: payload })
+    .expect(200);
+
+  invalidateGameplayCache();
+
+  const res = await request(app)
+    .get('/api/gl/gameplay-settings')
+    .set('Authorization', `Bearer ${playerToken}`)
+    .expect(200);
+  assert.deepStrictEqual(res.body.settings.markerBackgrounds, payload);
+
+  await request(app)
+    .put('/api/gl/admin/settings/gameplay.marker_backgrounds')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ value: { label: 'bad', emoji: 'transparent', icon: 'transparent' } })
+    .expect(400);
+
+  await request(app)
+    .put('/api/gl/admin/settings/gameplay.marker_backgrounds')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ value: DEFAULT_MARKER_BACKGROUNDS })
     .expect(200);
   invalidateGameplayCache();
 });

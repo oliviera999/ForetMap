@@ -81,6 +81,18 @@ describe('ContextComments', () => {
     });
   });
 
+  test('section repliée sans commentaire : pas d’aperçu ni de message vide', async () => {
+    listContextComments.mockResolvedValue({ items: [], total: 0, page: 1 });
+
+    render(<ContextComments contextType="task" contextId="t1" title="Commentaires" />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /Commentaires/ })).toBeTruthy();
+    });
+    expect(screen.queryByText(/Aucun commentaire/)).toBeNull();
+    expect(document.querySelector('.context-comments-preview')).toBeNull();
+  });
+
   test('indicateur non lu sur le toggle quand de nouveaux commentaires arrivent', async () => {
     listContextComments.mockImplementation(async ({ pageSize }) => ({
       items: makeComments(pageSize === 1 ? 1 : 2),
