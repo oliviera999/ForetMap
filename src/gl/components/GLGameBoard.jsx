@@ -21,10 +21,9 @@ import { GLFeuilletZoneOverlay } from './GLFeuilletZoneOverlay.jsx';
 import { GLPlateauMapEditor } from './GLPlateauMapEditor.jsx';
 import { apiGL } from '../services/apiGL.js';
 import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion.js';
-import { GLZoneMusicMuteButton } from './GLZoneMusicMuteButton.jsx';
-import { GLVirtualDiceDock } from './GLVirtualDiceDock.jsx';
+import { GLBoardChrome } from './GLBoardChrome.jsx';
 import { GLButton } from './ui/GLButton.jsx';
-import { GLGameBoardHud, GLGameBoardHudToolbar } from './GLGameBoardHud.jsx';
+import { GLGameBoardHud } from './GLGameBoardHud.jsx';
 import { plateauBoardImg, chapterIllustration, GL_ASSET_PLACEHOLDER_URL } from '../assets/index.js';
 import { resolveGlBoardImageUrl } from '../utils/glLegacyMediaUrl.js';
 import { useGlAssetsReady } from './GLFeuilletIllustration.jsx';
@@ -349,17 +348,6 @@ export function GLGameBoard({
       className={boardShellClass}
       data-testid={mapFullscreen ? 'gl-map-fullscreen-layer' : undefined}
     >
-      {mapFullscreen ? (
-        <button
-          type="button"
-          className="gl-map-fullscreen-close"
-          data-testid="gl-map-fullscreen-close"
-          aria-label="Quitter le plein écran"
-          onClick={() => setMapFullscreen(false)}
-        >
-          Fermer
-        </button>
-      ) : null}
       <GLPctMapCanvas
         imageUrl={imageUrl}
         imageAlt={chapter?.title || 'Carte du chapitre'}
@@ -472,15 +460,19 @@ export function GLGameBoard({
         })}
       </GLPctMapCanvas>
 
-      {virtualDiceEnabled && gameId ? <GLVirtualDiceDock themeStyle={brandThemeStyle} /> : null}
-
-      {!mapFullscreen ? (
-        <GLGameBoardHudToolbar
-          canSpellCast={canSpellCast}
-          onLaunchSpell={onLaunchSpell}
-          onOpenFullscreen={() => setMapFullscreen(true)}
-        />
-      ) : null}
+      <GLBoardChrome
+        mapFullscreen={mapFullscreen}
+        onCloseFullscreen={() => setMapFullscreen(false)}
+        canSpellCast={canSpellCast}
+        onLaunchSpell={onLaunchSpell}
+        onOpenFullscreen={() => setMapFullscreen(true)}
+        virtualDiceEnabled={virtualDiceEnabled}
+        gameId={gameId}
+        themeStyle={brandThemeStyle}
+        zoneMusicEnabled={zoneMusicEnabled}
+        zoneMusicMuted={zoneMusicMuted}
+        onZoneMusicToggle={onZoneMusicToggle}
+      />
 
       <GLZoneContentPopover
         open={Boolean(zoneContentPopover)}
@@ -575,15 +567,6 @@ export function GLGameBoard({
         />
       ) : null}
       {boardShellNode}
-
-      {zoneMusicEnabled ? (
-        <GLZoneMusicMuteButton
-          visible
-          muted={zoneMusicMuted}
-          onToggle={onZoneMusicToggle}
-          className="gl-zone-music-toggle--board"
-        />
-      ) : null}
 
       <DialogShell
         open={!!pendingMarker}
