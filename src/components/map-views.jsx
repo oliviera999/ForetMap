@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } from 'react';
 
 import { api } from '../services/api';
 
@@ -178,6 +178,7 @@ function MapViewImpl({
     applyTransform,
     commit,
     fitMap,
+    remeasureMap,
     toImagePct,
     beginMarkerDrag,
     isCoarsePointer,
@@ -186,7 +187,7 @@ function MapViewImpl({
     prefersPageScroll,
     touchAction,
     animateZoomTowardScale,
-  } = useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh, embedded, mapLayoutOuterRef });
+  } = useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh, embedded, mapLayoutOuterRef, mapFullscreen });
   const {
     mascotId: mapMascotId,
     showMascot: showMapMascot,
@@ -258,11 +259,18 @@ function MapViewImpl({
     setMapImageIdx(0);
   }, [mapImageCandidates]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!mapFullscreen) return undefined;
-    const id = requestAnimationFrame(() => fitMap());
-    return () => cancelAnimationFrame(id);
-  }, [mapFullscreen, fitMap]);
+    remeasureMap();
+    let innerRaf = null;
+    const outerRaf = requestAnimationFrame(() => {
+      innerRaf = requestAnimationFrame(() => remeasureMap());
+    });
+    return () => {
+      cancelAnimationFrame(outerRaf);
+      if (innerRaf != null) cancelAnimationFrame(innerRaf);
+    };
+  }, [mapFullscreen, remeasureMap]);
 
   useEffect(() => {
     setMode('view');

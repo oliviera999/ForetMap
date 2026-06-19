@@ -19,7 +19,7 @@ import {
   tutorialPreviewCanEmbed,
 } from './TutorialPreviewModal';
 import { useOverlayHistoryBack } from '../hooks/useOverlayHistoryBack';
-import { computeMapImageContainRect } from '../utils/mapImageFit';
+import { computeMapImageContainRect, resolveMapStageClientBox } from '../utils/mapImageFit';
 import { buildMapImageCandidates } from '../utils/mapImageCandidates';
 import {
   parseVisitZonePoints as parsePctPoints,
@@ -378,6 +378,19 @@ function VisitViewImpl({
   const imgRef = useRef(null);
   const [visitImgNatural, setVisitImgNatural] = useState({ w: 0, h: 0 });
   const [visitMapFit, setVisitMapFit] = useState({ offsetX: 0, offsetY: 0, width: 0, height: 0 });
+  const visitImmersionRef = useRef(visitImmersion);
+  visitImmersionRef.current = visitImmersion;
+
+  const applyVisitMapFit = useCallback(
+    (stageEl, { fullscreen = visitImmersionRef.current } = {}) => {
+      if (!stageEl) return;
+      const { cw, ch } = resolveMapStageClientBox(stageEl, { fullscreen });
+      setVisitMapFit(
+        computeMapImageContainRect(visitImgNatural.w, visitImgNatural.h, cw, ch),
+      );
+    },
+    [visitImgNatural.w, visitImgNatural.h],
+  );
   const visitMapFitRef = useRef(visitMapFit);
   visitMapFitRef.current = visitMapFit;
   const visitMapImageReady = visitImgNatural.w > 0 && visitImgNatural.h > 0;
@@ -835,18 +848,31 @@ function VisitViewImpl({
   useEffect(() => {
     const stage = stageRef.current;
     if (!stage || typeof ResizeObserver === 'undefined') return undefined;
-    const run = () => {
-      const cw = Math.max(1, stage.clientWidth);
-      const ch = Math.max(1, stage.clientHeight);
-      const nw = visitImgNatural.w;
-      const nh = visitImgNatural.h;
-      setVisitMapFit(computeMapImageContainRect(nw, nh, cw, ch));
-    };
+    const run = () => applyVisitMapFit(stage, { fullscreen: visitImmersionRef.current });
     run();
     const ro = new ResizeObserver(() => run());
     ro.observe(stage);
     return () => ro.disconnect();
-  }, [visitImgNatural.w, visitImgNatural.h, mapId]);
+  }, [applyVisitMapFit, mapId, visitImmersion]);
+
+  useLayoutEffect(() => {
+    if (!visitImmersion) return undefined;
+    const stage = stageRef.current;
+    if (!stage) return undefined;
+    const measure = () => {
+      applyVisitMapFit(stage, { fullscreen: true });
+      setMapTransform({ x: 0, y: 0, s: 1 });
+    };
+    measure();
+    let innerRaf = null;
+    const outerRaf = requestAnimationFrame(() => {
+      innerRaf = requestAnimationFrame(measure);
+    });
+    return () => {
+      cancelAnimationFrame(outerRaf);
+      if (innerRaf != null) cancelAnimationFrame(innerRaf);
+    };
+  }, [visitImmersion, applyVisitMapFit]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
@@ -1326,14 +1352,16 @@ function VisitViewImpl({
                 <div
                   className="visit-map-fit-layer"
                   style={
-                    visitMapFit.width > 0 && visitMapFit.height > 0
-                      ? {
-                          left: visitMapFit.offsetX,
-                          top: visitMapFit.offsetY,
-                          width: visitMapFit.width,
-                          height: visitMapFit.height,
-                        }
-                      : { left: 0, top: 0, width: '100%', height: '100%' }
+                    visitImmersion
+                      ? { left: 0, top: 0, width: '100%', height: '100%' }
+                      : visitMapFit.width > 0 && visitMapFit.height > 0
+                        ? {
+                            left: visitMapFit.offsetX,
+                            top: visitMapFit.offsetY,
+                            width: visitMapFit.width,
+                            height: visitMapFit.height,
+                          }
+                        : { left: 0, top: 0, width: '100%', height: '100%' }
                   }
                 >
                   <img

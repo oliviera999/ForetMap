@@ -37,6 +37,9 @@
   max-width: none;
   background: var(--forest);
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .fm-map-fullscreen-close {
@@ -83,8 +86,8 @@ body.fm-map-fullscreen-active .modal-overlay {
 
 /* Visite */
 .visit-map-stage--fullscreen {
-  position: absolute;
-  inset: 0;
+  position: relative;
+  flex: 1 1 auto;
   width: 100%;
   height: 100%;
   min-height: 0;
@@ -100,8 +103,8 @@ body.fm-map-fullscreen-active .modal-overlay {
 
 /* Carte jardin (MapView) */
 .map-view-canvas-outer--fullscreen {
-  position: absolute;
-  inset: 0;
+  position: relative;
+  flex: 1 1 auto;
   width: 100%;
   height: 100%;
   min-height: 0;
