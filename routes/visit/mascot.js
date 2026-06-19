@@ -34,6 +34,18 @@ const {
   mapVisitMascotSpriteLibSqlError,
   buildVisitCatalogPackTemplate,
 } = require('../../lib/visitMascotPackHelpers');
+const {
+  parseMascotPackZipBuffer,
+  buildMascotPackZipBuffer,
+  buildVisitExportArchive,
+  analyzeVisitArchive,
+  rewriteVisitPackForServerImport,
+  slugifyArchiveFilename,
+} = require('../../lib/mascotPackArchive');
+const {
+  contentLibraryUploadMiddleware,
+  readAnalyzeUploadPayload,
+} = require('../../lib/contentLibraryUpload');
 
 const router = express.Router();
 
@@ -218,6 +230,37 @@ async function copyVisitMascotPackAssetDirectory(fromPackId, toPackId) {
   const names = listVisitMascotPackAssetFilenames(fromPackId);
   for (const name of names) {
     await fs.promises.copyFile(path.join(fromAbs, name), path.join(toAbs, name));
+  }
+}
+
+function readVisitArchiveBufferFromRequest(req) {
+  if (req.files?.archive?.[0]?.buffer) {
+    return Buffer.from(req.files.archive[0].buffer);
+  }
+  const archive = req.body?.archive;
+  if (archive && typeof archive === 'object') {
+    const b64 = String(archive.fileDataBase64 || archive.dataBase64 || '').trim();
+    if (b64) {
+      try {
+        return Buffer.from(b64, 'base64');
+      } catch (_) {
+        return null;
+      }
+    }
+  }
+  return null;
+}
+
+async function writeVisitArchiveAssetsFromMap(packUuid, assetsMap) {
+  await removeVisitMascotPackUploadDir(packUuid);
+  const relDir = visitMascotPackAssetRelativeDir(packUuid);
+  if (!relDir) return;
+  const absDir = getAbsolutePath(relDir);
+  await fs.promises.mkdir(absDir, { recursive: true });
+  for (const [zipPath, buffer] of assetsMap.entries()) {
+    const filename = sanitizeMascotPackAssetFilename(path.basename(zipPath));
+    if (!filename || !Buffer.isBuffer(buffer)) continue;
+    await fs.promises.writeFile(path.join(absDir, filename), buffer);
   }
 }
 
@@ -455,6 +498,222 @@ router.put(
       const mapped = mapVisitMascotPackSqlError(err);
       if (mapped) return jsonVisitMascotPackError(res, req, mapped.status, mapped.body);
       res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });
+    }
+  },
+);
+
+router.get(
+  '/mascot-packs/:id/export.zip',
+  requirePermission('visit.manage', { needsElevation: true }),
+  async (req, res) => {
+    try {
+      const packId = String(req.params.id || '').trim();
+      if (!/^[0-9a-f-]{36}$/i.test(packId)) return res.status(400).json({ error: 'Pack invalide' });
+      const row = await queryOne('SELECT * FROM visit_mascot_packs WHERE id = ? LIMIT 1', [packId]);
+      if (!row) return res.status(404).json({ error: 'Pack introuvable' });
+      let packJson = {};
+      try {
+        packJson = row.pack_json ? JSON.parse(row.pack_json) : {};
+      } catch (_) {
+        packJson = {};
+      }
+      const built = buildVisitExportArchive({
+        packRow: row,
+        packJson,
+        mapId: row.map_id,
+      });
+      const zipBuffer = buildMascotPackZipBuffer({
+        manifest: built.manifest,
+        pack: built.pack,
+        assetFiles: built.assetFiles,
+      });
+      const filename = `mascot-pack-${slugifyArchiveFilename(row.label)}-${packId.slice(0, 8)}.zip`;
+      res.setHeader('Content-Type', 'application/zip');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      return res.send(zipBuffer);
+    } catch (err) {
+      logRouteError(err, req);
+      if (Number.isFinite(err?.status)) {
+        return jsonVisitMascotPackError(res, req, err.status, { error: err.message });
+      }
+      const mapped = mapVisitMascotPackSqlError(err);
+      if (mapped) return jsonVisitMascotPackError(res, req, mapped.status, mapped.body);
+      return res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });
+    }
+  },
+);
+
+router.post(
+  '/mascot-packs/import/analyze',
+  requirePermission('visit.manage', { needsElevation: true }),
+  contentLibraryUploadMiddleware,
+  async (req, res) => {
+    try {
+      let buffer = readVisitArchiveBufferFromRequest(req);
+      if (!buffer) {
+        const payload = readAnalyzeUploadPayload(req);
+        if (payload.archive?.buffer) buffer = payload.archive.buffer;
+      }
+      if (!buffer) return res.status(400).json({ error: 'Archive ZIP requise (archive ou fileDataBase64)' });
+      const parsed = parseMascotPackZipBuffer(buffer);
+      if (parsed.manifest.variant !== 'visit') {
+        return res.status(400).json({ error: 'Archive GL — importez depuis le studio GL' });
+      }
+      const validated = await validateMascotPackForDb(parsed.pack, {
+        relaxAssetPrefix: true,
+      });
+      if (validated.moduleError) {
+        return jsonVisitMascotPackError(
+          res,
+          req,
+          503,
+          buildMascotPackModuleUnavailableBody(validated.moduleError),
+        );
+      }
+      const analysis = analyzeVisitArchive(parsed);
+      if (!validated.ok) {
+        return res.json({
+          ...analysis,
+          ok: false,
+          validationError: validated.error?.format
+            ? validated.error.format()
+            : String(validated.error || 'Pack invalide'),
+        });
+      }
+      return res.json(analysis);
+    } catch (err) {
+      logRouteError(err, req);
+      if (Number.isFinite(err?.status)) {
+        return jsonVisitMascotPackError(res, req, err.status, { error: err.message });
+      }
+      return res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });
+    }
+  },
+);
+
+router.post(
+  '/mascot-packs/import',
+  requirePermission('visit.manage', { needsElevation: true }),
+  contentLibraryUploadMiddleware,
+  async (req, res) => {
+    try {
+      const mapId = String(req.body?.map_id || '').trim();
+      const mode = String(req.body?.mode || 'create').trim();
+      const targetPackId = String(req.body?.target_pack_id || '').trim();
+      if (!mapId) return res.status(400).json({ error: 'map_id requis' });
+      if (!(await mapExists(mapId))) return res.status(400).json({ error: 'Carte introuvable' });
+      if (mode !== 'create' && mode !== 'replace') {
+        return res.status(400).json({ error: 'mode invalide (create ou replace)' });
+      }
+      let buffer = readVisitArchiveBufferFromRequest(req);
+      if (!buffer) {
+        const payload = readAnalyzeUploadPayload(req);
+        if (payload.archive?.buffer) buffer = payload.archive.buffer;
+      }
+      if (!buffer) return res.status(400).json({ error: 'Archive ZIP requise' });
+
+      const parsed = parseMascotPackZipBuffer(buffer);
+      if (parsed.manifest.variant !== 'visit') {
+        return res.status(400).json({ error: 'Archive GL — importez depuis le studio GL' });
+      }
+
+      let packUuid;
+      let catalogId;
+      let existingRow = null;
+      if (mode === 'replace') {
+        if (!/^[0-9a-f-]{36}$/i.test(targetPackId)) {
+          return res.status(400).json({ error: 'target_pack_id requis en mode replace' });
+        }
+        existingRow = await queryOne('SELECT * FROM visit_mascot_packs WHERE id = ? LIMIT 1', [
+          targetPackId,
+        ]);
+        if (!existingRow) return res.status(404).json({ error: 'Pack cible introuvable' });
+        if (String(existingRow.map_id) !== mapId) {
+          return res.status(400).json({ error: 'Le pack cible appartient à une autre carte' });
+        }
+        packUuid = targetPackId;
+        catalogId = existingRow.catalog_id;
+      } else {
+        packUuid = uuidv4();
+        catalogId = `srv-${packUuid}`;
+      }
+
+      const serverPack = rewriteVisitPackForServerImport(parsed.pack, packUuid);
+      serverPack.id = catalogId;
+      const validated = await validateMascotPackForDb(serverPack, {
+        allowedFramesBasePrefixes: mascotPackAllowedFramesPrefixesForMap(mapId, packUuid),
+      });
+      if (validated.moduleError) {
+        return jsonVisitMascotPackError(
+          res,
+          req,
+          503,
+          buildMascotPackModuleUnavailableBody(validated.moduleError),
+        );
+      }
+      if (!validated.ok) {
+        return res.status(400).json({
+          error: 'Pack JSON invalide',
+          details: validated.error?.format ? validated.error.format() : String(validated.error),
+          requestId: req.requestId || null,
+        });
+      }
+
+      const label = String(
+        req.body?.label ||
+          parsed.pack?.label ||
+          parsed.manifest?.source?.label ||
+          'Pack importé',
+      )
+        .trim()
+        .slice(0, 120);
+      const isPublished =
+        mode === 'replace' && existingRow
+          ? Number(existingRow.is_published)
+          : 0;
+      const now = nowIso();
+      const createdBy = await resolveVisitMascotPackCreatedBy(req.auth);
+
+      await writeVisitArchiveAssetsFromMap(packUuid, parsed.assets);
+
+      if (mode === 'replace') {
+        await execute(
+          `UPDATE visit_mascot_packs SET label = ?, pack_json = ?, updated_at = ? WHERE id = ?`,
+          [label, JSON.stringify(validated.pack), now, packUuid],
+        );
+      } else {
+        await execute(
+          `INSERT INTO visit_mascot_packs (id, map_id, catalog_id, label, pack_json, is_published, created_at, updated_at, created_by)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            packUuid,
+            mapId,
+            catalogId,
+            label,
+            JSON.stringify(validated.pack),
+            isPublished,
+            now,
+            now,
+            createdBy,
+          ],
+        );
+      }
+
+      const row = await queryOne('SELECT * FROM visit_mascot_packs WHERE id = ? LIMIT 1', [
+        packUuid,
+      ]);
+      return res.status(mode === 'replace' ? 200 : 201).json({
+        ...serializeVisitMascotPackRow(row),
+        warnings: analyzeVisitArchive(parsed).warnings,
+      });
+    } catch (err) {
+      logRouteError(err, req);
+      if (Number.isFinite(err?.status)) {
+        return jsonVisitMascotPackError(res, req, err.status, { error: err.message });
+      }
+      const mapped = mapVisitMascotPackSqlError(err);
+      if (mapped) return jsonVisitMascotPackError(res, req, mapped.status, mapped.body);
+      return res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });
     }
   },
 );

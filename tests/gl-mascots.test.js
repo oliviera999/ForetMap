@@ -27,6 +27,21 @@ const className = `Classe Mascots ${stamp}`;
 const gameName = `Partie Mascots ${stamp}`;
 const playerPseudo = `mascots-player-${stamp}`;
 
+async function readZipResponseBody(agentReq) {
+  const chunks = [];
+  const res = await agentReq
+    .buffer(true)
+    .parse((resStream, callback) => {
+      resStream.on('data', (chunk) => chunks.push(chunk));
+      resStream.on('end', () => callback(null, Buffer.concat(chunks)));
+    })
+    .expect(200);
+  assert.ok(String(res.headers['content-type'] || '').includes('zip'));
+  if (Buffer.isBuffer(res.body)) return res.body;
+  if (chunks.length) return Buffer.concat(chunks);
+  return Buffer.from(String(res.text || ''), 'binary');
+}
+
 before(async () => {
   await initSchema();
   const admin = await createGlAdmin({ email: adminEmail, displayName: 'MJ Mascots' });
@@ -200,6 +215,87 @@ test('CRUD pack mascotte GL + assets', async () => {
     .set('Authorization', `Bearer ${adminToken}`)
     .expect(200);
 
+  await request(app)
+    .delete(`/api/gl/mascots/packs/${packId}`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .expect(200);
+});
+
+test('GL mascot packs : export ZIP et import create', async () => {
+  const dataBase64 = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO5qXg8AAAAASUVORK5CYII=',
+    'base64',
+  ).toString('base64');
+  const created = await request(app)
+    .post('/api/gl/mascots/packs')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({
+      chapterId: 1,
+      name: 'Pack ZIP GL',
+      payload: {
+        id: `gl-zip-${stamp}`,
+        name: 'Pack ZIP GL',
+        type: 'gnome',
+        renderer: 'sprite_cut',
+        assets: [{ key: 'atlas', src: '/uploads/placeholder.png' }],
+        states: [{ key: 'idle', frames: [0], loop: true, fps: 8 }],
+      },
+    })
+    .expect(201);
+  const packId = Number(created.body?.pack?.id);
+  assert.ok(Number.isFinite(packId) && packId > 0);
+
+  await request(app)
+    .post(`/api/gl/mascots/packs/${packId}/assets`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ filename: 'atlas.png', mimeType: 'image/png', dataBase64 })
+    .expect(201);
+
+  const assets = await request(app)
+    .get(`/api/gl/mascots/packs/${packId}/assets`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .expect(200);
+  const atlasUrl = assets.body?.assets?.find((a) => a.filename === 'atlas.png')?.url;
+  assert.ok(atlasUrl);
+
+  await request(app)
+    .put(`/api/gl/mascots/packs/${packId}`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({
+      payload: {
+        id: `gl-zip-${stamp}`,
+        name: 'Pack ZIP GL',
+        type: 'gnome',
+        renderer: 'sprite_cut',
+        assets: [{ key: 'atlas', src: atlasUrl }],
+        states: [{ key: 'idle', frames: [0], loop: true, fps: 8 }],
+      },
+    })
+    .expect(200);
+
+  const zipBody = await readZipResponseBody(
+    request(app)
+      .get(`/api/gl/mascots/packs/${packId}/export.zip`)
+      .set('Authorization', `Bearer ${adminToken}`),
+  );
+  const archiveB64 = zipBody.toString('base64');
+  const imported = await request(app)
+    .post('/api/gl/mascots/packs/import')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({
+      mode: 'create',
+      chapterId: 1,
+      archive: { fileName: 'gl-pack.zip', fileDataBase64: archiveB64 },
+    })
+    .expect(201);
+  const importedId = Number(imported.body?.pack?.id);
+  assert.ok(Number.isFinite(importedId) && importedId > 0);
+  assert.notStrictEqual(importedId, packId);
+
+  await request(app)
+    .delete(`/api/gl/mascots/packs/${importedId}`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .expect(200);
   await request(app)
     .delete(`/api/gl/mascots/packs/${packId}`)
     .set('Authorization', `Bearer ${adminToken}`)
