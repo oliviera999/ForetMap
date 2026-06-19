@@ -9,6 +9,7 @@ import { compressImageWithPreset, isLikelyImageFile } from '../../utils/image.js
 import { GLButton } from './ui/GLButton.jsx';
 import { GLPlayerJournalEmbedPicker } from './GLPlayerJournalEmbedPicker.jsx';
 import { GLHelpPanel } from './GLHelpPanel.jsx';
+import { useGlHelpContent } from '../hooks/useGlHelpContent.js';
 
 function formatQuota(current, max) {
   return `${Number(current || 0).toLocaleString('fr-FR')} / ${Number(max || 0).toLocaleString('fr-FR')}`;
@@ -28,6 +29,7 @@ export function GLPlayerJournalView({ gameState }) {
   const [showPreview, setShowPreview] = useState(false);
   const [embedPickerOpen, setEmbedPickerOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const { title: helpTitle, body: helpBody } = useGlHelpContent('tab:my-journal');
 
   const chapterSpells = useMemo(() => {
     const rows = Array.isArray(gameState?.game?.chapter_spells)
@@ -210,23 +212,12 @@ export function GLPlayerJournalView({ gameState }) {
         </div>
       </header>
 
-      <GLHelpPanel helpKey="tab:my-journal" title="Aide — Mon journal" defaultOpen={false}>
-        <ul className="gl-help-list">
-          <li>
-            Le texte accepte le <strong>markdown</strong> (titres, listes, liens).
-          </li>
-          <li>
-            <strong>Illustration</strong> : bouton « Ajouter une image » (compte dans le quota).
-          </li>
-          <li>
-            <strong>Encart</strong> : référence un sort, une espèce, un terme ou un chapitre du
-            site.
-          </li>
-          <li>
-            La sauvegarde est <strong>automatique</strong> après une courte pause de frappe.
-          </li>
-        </ul>
-      </GLHelpPanel>
+      <GLHelpPanel
+        helpKey="tab:my-journal"
+        title={helpTitle}
+        body={helpBody}
+        defaultOpen={false}
+      />
 
       <div className="gl-player-journal__quotas" aria-live="polite">
         <span

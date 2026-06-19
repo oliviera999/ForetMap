@@ -5,7 +5,22 @@ import React from 'react';
  * consignes du mode courant (tracé de zone / pose de repère / édition de
  * contour) en bas, et rappel des gestes tactiles en haut.
  */
-export function MapCanvasHints({ mode, drawPointsCount = 0, prefersPageScroll, isCoarsePointer }) {
+export function MapCanvasHints({
+  mode,
+  drawPointsCount = 0,
+  prefersPageScroll,
+  isCoarsePointer,
+  hintTexts = {},
+}) {
+  const {
+    drawZoneMin = '🖊️ Touche la carte (min. 3 pts)',
+    drawZoneReady = `✅ ${drawPointsCount} pts — Terminer`,
+    addMarker = '📍 Touche la carte pour placer',
+    editPoints = "✋ Glisse un point ou l'intérieur · limites carte · Ctrl+Z annule",
+    pageScroll = '📱 1 doigt: page · 2 doigts: zoom carte',
+    gesturesActive = '✋ Gestes carte actifs',
+  } = hintTexts;
+
   return (
     <>
       {mode !== 'view' && mode !== 'edit-points' && (
@@ -26,9 +41,9 @@ export function MapCanvasHints({ mode, drawPointsCount = 0, prefersPageScroll, i
             zIndex: 20,
           }}
         >
-          {mode === 'draw-zone' && drawPointsCount < 3 && '🖊️ Touche la carte (min. 3 pts)'}
-          {mode === 'draw-zone' && drawPointsCount >= 3 && `✅ ${drawPointsCount} pts — Terminer`}
-          {mode === 'add-marker' && '📍 Touche la carte pour placer'}
+          {mode === 'draw-zone' && drawPointsCount < 3 && drawZoneMin}
+          {mode === 'draw-zone' && drawPointsCount >= 3 && drawZoneReady}
+          {mode === 'add-marker' && addMarker}
         </div>
       )}
       {mode === 'edit-points' && (
@@ -49,7 +64,7 @@ export function MapCanvasHints({ mode, drawPointsCount = 0, prefersPageScroll, i
             zIndex: 20,
           }}
         >
-          ✋ Glisse un point ou l&apos;intérieur · limites carte · Ctrl+Z annule
+          {editPoints}
         </div>
       )}
       {prefersPageScroll && (
@@ -70,7 +85,7 @@ export function MapCanvasHints({ mode, drawPointsCount = 0, prefersPageScroll, i
             zIndex: 20,
           }}
         >
-          📱 1 doigt: page · 2 doigts: zoom carte
+          {pageScroll}
         </div>
       )}
       {isCoarsePointer && mode === 'view' && !prefersPageScroll && (
@@ -91,7 +106,7 @@ export function MapCanvasHints({ mode, drawPointsCount = 0, prefersPageScroll, i
             zIndex: 20,
           }}
         >
-          ✋ Gestes carte actifs
+          {gesturesActive}
         </div>
       )}
     </>

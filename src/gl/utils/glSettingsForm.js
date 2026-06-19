@@ -4,6 +4,48 @@
  * sans dépendance React. Couverts par `tests-ui/gl/glSettingsForm.test.js`.
  */
 
+import {
+  DEFAULT_MARKER_BACKGROUNDS,
+  normalizeMarkerBackgrounds,
+} from '../../shared/glMarkerBackgroundsCore.js';
+
+/** Options d'affichage du fond de repère par mode (label / emoji / icône). */
+export const MARKER_BACKGROUND_UI_MODES = Object.freeze([
+  { value: 'transparent', label: 'Transparent' },
+  { value: 'classic', label: 'Classique (orange / blanc)' },
+  { value: 'custom', label: 'Couleur personnalisée' },
+]);
+
+export const MARKER_BACKGROUND_MODE_LABELS = Object.freeze({
+  label: 'Libellé (texte)',
+  emoji: 'Emoji',
+  icon: 'Icône',
+});
+
+/** Lit et normalise les fonds de repères depuis l'objet settings admin. */
+export function readMarkerBackgroundsSetting(settings) {
+  const raw = settings?.['gameplay.marker_backgrounds'];
+  return normalizeMarkerBackgrounds(raw ?? DEFAULT_MARKER_BACKGROUNDS);
+}
+
+/** Déduit le mode UI (transparent / classic / custom) pour un mode de repère. */
+export function markerBackgroundUiMode(value) {
+  const normalized = String(value ?? '')
+    .trim()
+    .toLowerCase();
+  if (normalized === 'transparent' || normalized === 'classic') return normalized;
+  if (/^#[0-9a-f]{6}$/i.test(String(value || '').trim())) return 'custom';
+  return 'transparent';
+}
+
+/** Valeur stockée API à partir du mode UI et d'une couleur hex optionnelle. */
+export function markerBackgroundStoredValue(uiMode, customHex, fallbackHex = '#fb923c') {
+  if (uiMode === 'transparent' || uiMode === 'classic') return uiMode;
+  const raw = String(customHex || fallbackHex || '').trim();
+  if (/^#[0-9a-f]{6}$/i.test(raw)) return raw.toLowerCase();
+  return 'transparent';
+}
+
 /** Repères visibles par défaut si le réglage plateforme est absent. */
 export function readPlateauMarkersVisibleSetting(settings) {
   const value = settings?.['gameplay.plateau_markers_visible'];

@@ -160,6 +160,7 @@ test('GET /api/settings/public renvoie les réglages publics', async () => {
   assert.strictEqual(typeof res.body.settings.ui?.auth?.allow_google_student, 'boolean');
   assert.strictEqual(typeof res.body.settings.ui?.modules?.forum_enabled, 'boolean');
   assert.strictEqual(typeof res.body.settings.ui?.modules?.context_comments_enabled, 'boolean');
+  assert.strictEqual(typeof res.body.settings.ui?.modules?.reports_enabled, 'boolean');
   assert.strictEqual(typeof res.body.settings.ui?.help?.show_context_hints, 'boolean');
   assert.strictEqual(typeof res.body.settings.ui?.help?.pulse_unseen_panels, 'boolean');
   assert.strictEqual(typeof res.body.settings.content?.auth?.title, 'string');
@@ -176,6 +177,7 @@ test('GET /api/settings/public renvoie les réglages publics', async () => {
   assert.strictEqual(uiMap.emoji_label_center_gap, 14);
   assert.strictEqual(uiMap.overlay_emoji_size_percent, 100);
   assert.strictEqual(uiMap.overlay_label_size_percent, 100);
+  assert.strictEqual(uiMap.plateau_marker_size_percent, 100);
   assert.ok(Array.isArray(res.body.settings.ui?.visit?.mascot?.allowed_ids));
   assert.strictEqual(typeof res.body.settings.ui?.visit?.mascot?.default_id, 'string');
 });
@@ -468,4 +470,30 @@ test('RBAC refuse la rétrogradation du dernier administrateur', async () => {
     .set('Authorization', `Bearer ${token}`)
     .send({ role_id: prof.id })
     .expect(expectedStatus);
+});
+
+test('GET/PUT/reset /api/settings/admin/help-content gère le registre aide', async () => {
+  const token = await getAdminToken();
+  const getRes = await request(app)
+    .get('/api/settings/admin/help-content')
+    .set('Authorization', `Bearer ${token}`)
+    .expect(200);
+  assert.ok(getRes.body?.tooltips?.['header.userBadge']?.text);
+  const draft = getRes.body;
+  draft.quickTips.map = 'Astuce test API';
+  await request(app)
+    .put('/api/settings/admin/help-content')
+    .set('Authorization', `Bearer ${token}`)
+    .send(draft)
+    .expect(200);
+  const publicRes = await request(app).get('/api/settings/public').expect(200);
+  assert.strictEqual(
+    publicRes.body?.settings?.content?.help?.registry?.quickTips?.map,
+    'Astuce test API',
+  );
+  await request(app)
+    .post('/api/settings/admin/help-content/reset')
+    .set('Authorization', `Bearer ${token}`)
+    .expect(200);
+  await execute("DELETE FROM app_settings WHERE `key` = 'content.help.registry'").catch(() => {});
 });

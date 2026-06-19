@@ -16,13 +16,13 @@ import {
 } from '../utils/studentProfileFields.js';
 import { useHelp } from '../hooks/useHelp';
 import { HelpPanel } from './HelpPanel';
-import { HELP_PANELS } from '../constants/help';
+import { resolveHelpPanelSection } from '../utils/helpResolve';
+import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
 import { StatCard, StatsSummaryGrid } from '../shared/components/StatsSummaryGrid.jsx';
 import { TimedToast } from '../shared/components/TimedToast.jsx';
 import { TeacherObservationsPanel } from './stats/TeacherObservationsPanel.jsx';
 import { TeacherLeaderboard } from './stats/TeacherLeaderboard.jsx';
 import { deriveStudentProgressionView } from '../utils/studentStatsProgression.js';
-import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
 import { useSession } from '../contexts/SessionContext.jsx';
 
 function StudentStats({ student }) {
@@ -539,11 +539,12 @@ function StudentProfileEditor({ student, onUpdated, onClose, maps = [] }) {
 }
 
 function TeacherStats() {
+  const publicSettings = usePublicSettings();
   const { isN3Affiliated = false } = useSession();
   const roleTerms = getRoleTerms(isN3Affiliated);
   const { isHelpEnabled, hasSeenSection, markSectionSeen, trackPanelOpen, trackPanelDismiss } =
-    useHelp({ publicSettings: null, isTeacher: true });
-  const helpGroupFilters = HELP_PANELS.groupFilters;
+    useHelp({ publicSettings, isTeacher: true });
+  const helpGroupFilters = resolveHelpPanelSection('groupFilters', publicSettings);
   const [students, setStudents] = useState(null);
   const [site, setSite] = useState(null);
   const [groups, setGroups] = useState([]);

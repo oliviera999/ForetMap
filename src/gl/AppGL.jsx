@@ -21,6 +21,7 @@ import {
   findPlayerMascotId,
 } from './utils/glGameplayRules.js';
 import { resolvePlateauMapVisibility } from './utils/glPlateauMapVisibility.js';
+import { markerBackgroundStyleFromSettings } from './utils/glMarkerBackgrounds.js';
 import { GLAuthView } from './components/GLAuthView.jsx';
 import { GLTopBar, GL_TAB_ID_PREFIX, GL_TABPANEL_ID_PREFIX } from './components/GLTopBar.jsx';
 import { useGlCompactNav } from './hooks/useGlCompactNav.js';
@@ -83,12 +84,13 @@ import { GLNotificationsCenter } from './components/GLNotificationsCenter.jsx';
 import { GLButton } from './components/ui/GLButton.jsx';
 import { GLAppBanners } from './components/GLAppBanners.jsx';
 import { GLGuestDemoBoard } from './components/GLGuestDemoBoard.jsx';
-import { GLHelpPanel } from './components/GLHelpPanel.jsx';
+import { GLTabHelpPanel } from './components/GLTabHelpPanel.jsx';
 import { GLProfileModal } from './components/GLProfileModal.jsx';
 import { GLStatsView } from './components/GLStatsView.jsx';
 import { GLPasswordResetGate } from './components/GLPasswordResetGate.jsx';
 import { useGLBrandTheme } from './hooks/useGLBrandTheme.js';
 import { GLMascotCatalogProvider } from './context/GLMascotCatalogContext.jsx';
+import { GlMapOverlaySettingsProvider } from './context/GlMapOverlaySettingsContext.jsx';
 import { MusicPlayer } from './components/MusicPlayer.jsx';
 import { loadGlAssetRuntime } from './assets/index.js';
 import { pickZoneAtPct } from '../utils/glZoneAtPct.js';
@@ -156,6 +158,14 @@ export function AppGL() {
   const { brand: glBrand, style: glBrandStyle } = useGLBrandTheme(
     glConfig?.brand,
     themeChapter?.theme,
+  );
+
+  const glAppStyle = useMemo(
+    () => ({
+      ...glBrandStyle,
+      ...markerBackgroundStyleFromSettings(gameplaySettings),
+    }),
+    [glBrandStyle, gameplaySettings],
   );
 
   const chapterBiomeSlugs = useMemo(() => {
@@ -793,7 +803,7 @@ export function AppGL() {
 
   if (!session?.token) {
     return (
-      <div className="gl-app gl-app--guest" style={glBrandStyle}>
+      <div className="gl-app gl-app--guest" style={glAppStyle}>
         <GLAuthView
           config={glConfig}
           oauthNotice={oauthNotice}
@@ -810,10 +820,11 @@ export function AppGL() {
   }
 
   return (
+    <GlMapOverlaySettingsProvider>
     <GLMascotCatalogProvider token={isGuest ? null : token}>
       <div
         className={`gl-app${compactNav ? ' gl-app--has-bottom-nav' : ''}${isGuest ? ' gl-app--discovery' : ''}`}
-        style={glBrandStyle}
+        style={glAppStyle}
       >
         <GLPasswordResetGate
           open={!isGuest && !isAdmin && auth?.passwordMustReset === true}
@@ -1106,15 +1117,8 @@ export function AppGL() {
               {tab === 'my-journal' && isModuleEnabled(modules, 'playerJournalEnabled') && (
                 <GLPlayerJournalView gameState={gameState} />
               )}
-              {isModuleEnabled(modules, 'helpEnabled') ? (
-                <GLHelpPanel helpKey={`tab:${tab}`} title="Aide GL" defaultOpen={false}>
-                  <p>
-                    Onglet courant&nbsp;: <strong>{tab}</strong>. Astuce&nbsp;: les modules visibles
-                    dépendent des réglages MJ. Désactive un module dans{' '}
-                    <strong>Réglages plateforme</strong>
-                    pour épurer la navigation joueur.
-                  </p>
-                </GLHelpPanel>
+              {isModuleEnabled(modules, 'helpEnabled') && tab !== 'my-journal' ? (
+                <GLTabHelpPanel tab={tab} defaultOpen={false} />
               ) : null}
               {isModuleEnabled(modules, 'notificationsEnabled') && !isGuest ? (
                 <GLNotificationsCenter
@@ -1229,5 +1233,6 @@ export function AppGL() {
         />
       </div>
     </GLMascotCatalogProvider>
+    </GlMapOverlaySettingsProvider>
   );
 }

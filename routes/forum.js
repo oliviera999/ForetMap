@@ -6,7 +6,7 @@ const { logRouteError } = require('../lib/routeLog');
 const asyncHandler = require('../lib/asyncHandler');
 const { z, validate } = require('../lib/validate');
 const { emitForumChanged } = require('../lib/realtime');
-const { getSettingValue } = require('../lib/settings');
+const { getSettingValue, isReportsEnabled } = require('../lib/settings');
 const { logAudit } = require('./audit');
 const {
   getUserAccessibleGroupIds,
@@ -540,6 +540,12 @@ router.post(
 router.post(
   '/posts/:id/report',
   asyncHandler(async (req, res) => {
+    if (!(await isReportsEnabled())) {
+      return res.status(403).json({
+        error: 'Les signalements sont désactivés.',
+        code: 'REPORTS_DISABLED',
+      });
+    }
     if (!(await requireForumParticipation(req, res))) return;
     const actor = getActor(req.auth);
     if (!actor) return res.status(401).json({ error: 'Session invalide' });

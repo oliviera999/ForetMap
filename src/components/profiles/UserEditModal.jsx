@@ -2,7 +2,8 @@ import React from 'react';
 import { DialogShell } from '../DialogShell';
 import { MarkdownTextarea } from '../MarkdownTextarea.jsx';
 import { Tooltip } from '../Tooltip';
-import { HELP_TOOLTIPS, resolveRoleText } from '../../constants/help';
+import { resolveTooltipKey } from '../../utils/helpResolve';
+import { usePublicSettings } from '../../contexts/PublicSettingsContext.jsx';
 
 /**
  * Modale « Modifier le compte » (administration des profils).
@@ -36,6 +37,7 @@ function UserEditModal({
   saveEditUser,
   startImpersonation,
 }) {
+  const publicSettings = usePublicSettings();
   if (!editModalOpen) return null;
   return (
     <DialogShell
@@ -163,7 +165,7 @@ function UserEditModal({
             </div>
             {authPerms.includes('admin.impersonate') && (
               <div style={{ gridColumn: '1 / -1', marginTop: 4 }}>
-                <Tooltip text={resolveRoleText(HELP_TOOLTIPS.profiles.impersonateUser, true)}>
+                <Tooltip text={resolveTooltipKey('profiles.impersonateUser', publicSettings, true)}>
                   <button
                     type="button"
                     className="btn btn-secondary"

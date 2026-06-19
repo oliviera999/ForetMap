@@ -190,6 +190,11 @@ export const KEY_META = {
     section: 'modules',
     order: 47,
   },
+  'ui.modules.reports_enabled': {
+    label: 'Signalements (forum et commentaires de contexte)',
+    section: 'modules',
+    order: 47.05,
+  },
   'ui.help.show_context_hints': {
     label: 'Afficher les mini-astuces contextuelles',
     section: 'modules',
@@ -228,19 +233,24 @@ export const KEY_META = {
     order: 70,
   },
   'ui.map.emoji_label_center_gap': {
-    label: 'Carte — écart emoji / nom (coefficient × inv ; zones + repères, 14 = défaut)',
+    label: 'Carte — écart emoji / nom (zones + repères, 14 = défaut)',
     section: 'modules',
     order: 71,
   },
   'ui.map.overlay_emoji_size_percent': {
-    label: 'Carte — taille des emojis zones & repères (%)',
+    label: 'Carte — taille emojis zones & repères (% du ratio repère/plateau, 100 = réf. ~480 px)',
     section: 'modules',
     order: 72,
   },
   'ui.map.overlay_label_size_percent': {
-    label: 'Carte — taille des noms sous les repères (%)',
+    label: 'Carte — taille noms sous repères (% du ratio repère/plateau)',
     section: 'modules',
     order: 73,
+  },
+  'ui.map.plateau_marker_size_percent': {
+    label: 'Carte / plateau GL — taille des repères (% du plateau, ForetMap + GL)',
+    section: 'modules',
+    order: 74,
   },
   'tasks.student_max_active_assignments': {
     label:

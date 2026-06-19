@@ -108,4 +108,11 @@ describe('ForumPostCard', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Signaler' }));
     expect(h.onReport).toHaveBeenCalledWith('p1');
   });
+
+  test('signalements désactivés : pas de champ ni bouton Signaler', () => {
+    renderCard({ reportsEnabled: false, isOwner: true });
+    expect(screen.getByRole('button', { name: 'Supprimer' })).toBeInTheDocument();
+    expect(screen.queryByPlaceholderText('Motif de signalement')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Signaler' })).not.toBeInTheDocument();
+  });
 });

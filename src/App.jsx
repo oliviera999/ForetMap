@@ -17,8 +17,7 @@ import { useNotificationCenter } from './hooks/useNotificationCenter';
 import { usePwaInstall } from './hooks/usePwaInstall';
 import { usePlantCatalogPreview } from './hooks/usePlantCatalogPreview';
 import { useViewportLayout } from './hooks/useViewportLayout';
-import { RT_PROF_TOOLTIPS } from './constants/realtime';
-import { HELP_TOOLTIPS, resolveRoleText } from './constants/help';
+import { resolveTooltipKey, resolveRealtimeTooltip } from './utils/helpResolve';
 import {
   FETCH_ALL_AUTO_DEBOUNCE_MS,
   getFetchAllLoopAbortReason,
@@ -210,8 +209,8 @@ function App() {
 
   const effectiveIsTeacher = effectiveRoleContext.effectiveIsTeacher;
   const helpText = useCallback(
-    (entry) => resolveRoleText(entry, effectiveIsTeacher),
-    [effectiveIsTeacher],
+    (path) => resolveTooltipKey(path, publicSettings, effectiveIsTeacher),
+    [effectiveIsTeacher, publicSettings],
   );
 
   const hasPermission = useCallback(
@@ -1456,8 +1455,11 @@ function App() {
                 {effectiveIsTeacher && (
                   <span
                     className="realtime-prof-wrap"
-                    title={RT_PROF_TOOLTIPS[teacherSyncStatus] || ''}
-                    aria-label={RT_PROF_TOOLTIPS[teacherSyncStatus] || 'État du temps réel'}
+                    title={resolveRealtimeTooltip(teacherSyncStatus, publicSettings)}
+                    aria-label={
+                      resolveRealtimeTooltip(teacherSyncStatus, publicSettings) ||
+                      'État du temps réel'
+                    }
                     role="status"
                   >
                     <span
@@ -1480,9 +1482,9 @@ function App() {
                   onClearRead={clearRead}
                   onOpenPanel={trackOpenedPanel}
                   onResetMetrics={resetMetrics}
-                  helpText={helpText(HELP_TOOLTIPS.header.notifications)}
+                  helpText={helpText('header.notifications')}
                 />
-                <Tooltip text={helpText(HELP_TOOLTIPS.header.userBadge)}>
+                <Tooltip text={helpText('header.userBadge')}>
                   <button
                     type="button"
                     className="user-badge"
@@ -1512,7 +1514,7 @@ function App() {
                   </button>
                 </Tooltip>
                 {canOpenUserDialogs && (
-                  <Tooltip text={helpText(HELP_TOOLTIPS.header.profileEdit)}>
+                  <Tooltip text={helpText('header.profileEdit')}>
                     <button
                       className="lock-btn"
                       aria-label="Modifier mon profil"
@@ -1525,7 +1527,7 @@ function App() {
                 {isTeacher && (
                   <>
                     {roleViewMode !== 'native' && (
-                      <Tooltip text={helpText(HELP_TOOLTIPS.header.roleReset)}>
+                      <Tooltip text={helpText('header.roleReset')}>
                         <button
                           className="lock-btn"
                           aria-label="Revenir au rôle normal"
@@ -1541,7 +1543,7 @@ function App() {
                       </Tooltip>
                     )}
                     {roleViewMode !== 'student' && canSwitchToStudentView && (
-                      <Tooltip text={helpText(HELP_TOOLTIPS.header.roleStudent)}>
+                      <Tooltip text={helpText('header.roleStudent')}>
                         <button
                           className="lock-btn"
                           aria-label={`Passer en vue ${roleTerms.studentSingular}`}
@@ -1557,7 +1559,7 @@ function App() {
                       </Tooltip>
                     )}
                     {roleViewMode !== 'teacher' && canSwitchToTeacherView && (
-                      <Tooltip text={helpText(HELP_TOOLTIPS.header.roleTeacher)}>
+                      <Tooltip text={helpText('header.roleTeacher')}>
                         <button
                           className="lock-btn"
                           aria-label={`Passer en vue ${roleTerms.teacherShort}`}
@@ -1574,7 +1576,7 @@ function App() {
                     )}
                   </>
                 )}
-                <Tooltip text={helpText(HELP_TOOLTIPS.header.elevatedMode)}>
+                <Tooltip text={helpText('header.elevatedMode')}>
                   <button
                     className={`lock-btn ${authClaims?.elevated ? 'active' : ''}`}
                     aria-label={
@@ -1647,7 +1649,7 @@ function App() {
                     )}
                   </button>
                 </Tooltip>
-                <Tooltip text={helpText(HELP_TOOLTIPS.header.logout)}>
+                <Tooltip text={helpText('header.logout')}>
                   <button
                     className="lock-btn"
                     aria-label="Déconnexion"

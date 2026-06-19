@@ -4,7 +4,7 @@ import { api, AccountDeletedError } from '../services/api';
 import { getRoleTerms } from '../utils/n3-terminology';
 import { useHelp } from '../hooks/useHelp';
 
-import { resolveRoleText } from '../constants/help';
+import { resolveHelpChrome, resolveHelpQuickTip, resolveTooltipKey } from '../utils/helpResolve';
 import { getContentText } from '../utils/content';
 import { TutorialPreviewModal, tutorialPreviewPayload } from './TutorialPreviewModal';
 import { fetchTutorialReadIds } from './TutorialReadAcknowledge';
@@ -166,20 +166,16 @@ function TasksViewImpl({
   } = useHelp({ publicSettings, isTeacher });
   const contextCommentsEnabled = publicSettings?.modules?.context_comments_enabled !== false;
   const tutorialsModuleEnabled = publicSettings?.modules?.tutorials_enabled !== false;
-  const helpHintPrefix = getContentText(publicSettings, 'help.hint_prefix', 'Astuce :');
-  const helpPanelTitlePrefix = getContentText(publicSettings, 'help.panel_title_prefix', '💡');
-  const helpPanelCloseCta = getContentText(publicSettings, 'help.panel_close_cta', 'Fermer');
-  const helpPanelDismissCta = getContentText(
-    publicSettings,
-    'help.panel_dismiss_cta',
-    'Ne plus afficher',
+  const helpChrome = resolveHelpChrome(publicSettings);
+  const helpHintPrefix = helpChrome.hintPrefix;
+  const helpPanelTitlePrefix = helpChrome.panelTitlePrefix;
+  const helpPanelCloseCta = helpChrome.panelCloseCta;
+  const helpPanelDismissCta = helpChrome.panelDismissCta;
+  const tasksQuickTip = resolveHelpQuickTip('tasks', publicSettings);
+  const tooltipText = useCallback(
+    (path) => resolveTooltipKey(path, publicSettings, isTeacher),
+    [isTeacher, publicSettings],
   );
-  const tasksQuickTip = getContentText(
-    publicSettings,
-    'help.tasks_quick_tip',
-    'Filtre d abord par carte ou groupe, puis traite les retours en attente.',
-  );
-  const tooltipText = useCallback((entry) => resolveRoleText(entry, isTeacher), [isTeacher]);
   const [tasksTutorialPreview, setTasksTutorialPreview] = useState(null);
   const [tasksTutorialReadIds, setTasksTutorialReadIds] = useState(() => new Set());
   const openTasksTutorialPreview = useCallback((tu) => {

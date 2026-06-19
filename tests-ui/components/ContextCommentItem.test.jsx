@@ -109,4 +109,10 @@ describe('ContextCommentItem', () => {
     expect(screen.getByText('3')).toBeTruthy();
     expect(screen.queryByPlaceholderText('Motif de signalement')).toBeNull();
   });
+
+  test('signalements désactivés : pas de champ ni bouton Signaler', () => {
+    renderItem({}, { reportsEnabled: false, canUseCommentActions: true });
+    expect(screen.queryByPlaceholderText('Motif de signalement')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Signaler' })).toBeNull();
+  });
 });

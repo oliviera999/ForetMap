@@ -1,7 +1,8 @@
 import React from 'react';
 
 import { HelpPanel } from '../HelpPanel';
-import { HELP_PANELS } from '../../constants/help';
+import { resolveHelpPanelSection } from '../../utils/helpResolve';
+import { usePublicSettings } from '../../contexts/PublicSettingsContext.jsx';
 import { TASK_STATUS_FILTER_OPTIONS } from './taskViewHelpers.js';
 import { filterProjectsByMapChoice } from '../../utils/taskSectioning.js';
 import { projectStatusLabel, mapLabelFromMaps } from '../../utils/taskListHelpers.js';
@@ -50,7 +51,8 @@ export function TaskFiltersBar({
   setFilterStatus,
   setHasTouchedStatusFilter,
 }) {
-  const helpGroupFilters = HELP_PANELS.groupFilters;
+  const publicSettings = usePublicSettings();
+  const helpGroupFilters = resolveHelpPanelSection('groupFilters', publicSettings);
   return (
     <div className="task-filters">
       <div className="tasks-view-switch" role="group" aria-label="Mode d'affichage des tâches">

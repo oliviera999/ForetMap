@@ -18,8 +18,24 @@ function writeSeen(key) {
   }
 }
 
+function renderHelpBody(body) {
+  const text = String(body || '').trim();
+  if (!text) return null;
+  const lines = text.split('\n').map((line) => line.trim()).filter(Boolean);
+  if (lines.length <= 1 && !text.includes('•') && !text.startsWith('-')) {
+    return <p>{text}</p>;
+  }
+  return (
+    <ul className="gl-help-list">
+      {lines.map((line) => (
+        <li key={line}>{line.replace(/^[-•]\s*/, '')}</li>
+      ))}
+    </ul>
+  );
+}
+
 /** Affiche un encadré d'aide contextuelle GL avec mémorisation par clé. */
-export function GLHelpPanel({ helpKey, title, children, defaultOpen = true }) {
+export function GLHelpPanel({ helpKey, title, body, defaultOpen = true }) {
   const [seen, setSeen] = useState(true);
   const [open, setOpen] = useState(defaultOpen);
 
@@ -27,7 +43,7 @@ export function GLHelpPanel({ helpKey, title, children, defaultOpen = true }) {
     setSeen(readSeen(helpKey));
   }, [helpKey]);
 
-  if (!helpKey) return null;
+  if (!helpKey || !String(body || '').trim()) return null;
   return (
     <aside className={`gl-help-panel ${seen ? 'is-seen' : 'is-pulse'}`}>
       <header>
@@ -45,7 +61,7 @@ export function GLHelpPanel({ helpKey, title, children, defaultOpen = true }) {
           {open ? 'Masquer' : 'Voir l’aide'}
         </button>
       </header>
-      {open ? <div className="gl-help-panel-body">{children}</div> : null}
+      {open ? <div className="gl-help-panel-body">{renderHelpBody(body)}</div> : null}
     </aside>
   );
 }

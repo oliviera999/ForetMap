@@ -20,7 +20,11 @@ import {
   PlantSpeciesDiscoveryAcknowledgeButton,
   fetchPlantObservationCounts,
 } from './PlantSpeciesDiscoveryAcknowledge';
-import { HELP_PANELS, HELP_TOOLTIPS, resolveRoleText } from '../constants/help';
+import {
+  resolveHelpPanelSection,
+  resolveHelpChrome,
+  resolveTooltipKey,
+} from '../utils/helpResolve';
 import {
   ZONE_PRESENCE_FILTER,
   distinctPlantFieldValues,
@@ -79,7 +83,8 @@ function PlantManager({ onRefresh, maps = [], onForceLogout = null }) {
   const [plantObservationCounts, setPlantObservationCounts] = useState(() => ({}));
   const { isHelpEnabled, hasSeenSection, markSectionSeen, trackPanelOpen, trackPanelDismiss } =
     useHelp({ publicSettings, isTeacher: true });
-  const tooltipText = (entry) => resolveRoleText(entry, true);
+  const tooltipText = (path) => resolveTooltipKey(path, publicSettings, true);
+  const helpPlants = resolveHelpPanelSection('plants', publicSettings);
 
   const structured = useMemo(
     () => ({
@@ -196,8 +201,8 @@ function PlantManager({ onRefresh, maps = [], onForceLogout = null }) {
           {isHelpEnabled && (
             <HelpPanel
               sectionId="plants"
-              title={HELP_PANELS.plants.title}
-              entries={HELP_PANELS.plants.items}
+              title={helpPlants.title}
+              entries={helpPlants.items}
               isTeacher
               isPulsing={!hasSeenSection('plants')}
               onMarkSeen={markSectionSeen}
@@ -431,7 +436,7 @@ function PlantManager({ onRefresh, maps = [], onForceLogout = null }) {
                   )}
 
                   <div className="task-actions">
-                    <Tooltip text={tooltipText(HELP_TOOLTIPS.plants.edit)}>
+                    <Tooltip text={tooltipText('plants.edit')}>
                       <button
                         className="btn btn-ghost btn-sm"
                         aria-label="Modifier la fiche biodiversité"
@@ -440,7 +445,7 @@ function PlantManager({ onRefresh, maps = [], onForceLogout = null }) {
                         ✏️
                       </button>
                     </Tooltip>
-                    <Tooltip text={tooltipText(HELP_TOOLTIPS.plants.delete)}>
+                    <Tooltip text={tooltipText('plants.delete')}>
                       <button
                         className="btn btn-danger btn-sm"
                         aria-label="Supprimer la fiche biodiversité"
@@ -693,6 +698,7 @@ function PlantViewer({
   const [plantObservationCounts, setPlantObservationCounts] = useState(() => ({}));
   const { isHelpEnabled, hasSeenSection, markSectionSeen, trackPanelOpen, trackPanelDismiss } =
     useHelp({ publicSettings, isTeacher: false });
+  const helpPlants = resolveHelpPanelSection('plants', publicSettings);
 
   const structured = useMemo(
     () => ({
@@ -755,8 +761,8 @@ function PlantViewer({
         {isHelpEnabled && (
           <HelpPanel
             sectionId="plants"
-            title={HELP_PANELS.plants.title}
-            entries={HELP_PANELS.plants.items}
+            title={helpPlants.title}
+            entries={helpPlants.items}
             isTeacher={false}
             isPulsing={!hasSeenSection('plants')}
             onMarkSeen={markSectionSeen}

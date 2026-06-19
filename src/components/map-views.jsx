@@ -55,6 +55,7 @@ import { MapCanvasHints } from './map/MapCanvasHints.jsx';
 import { useMapFullscreen } from '../shared/hooks/useMapFullscreen.js';
 import { MapFullscreenShell } from '../shared/components/MapFullscreenShell.jsx';
 import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
+import { resolveMapCanvasHint } from '../utils/helpResolve.js';
 import { useSession } from '../contexts/SessionContext.jsx';
 import { useData } from '../contexts/DataContext.jsx';
 
@@ -570,10 +571,24 @@ function MapViewImpl({
   const { w: iw, h: ih } = imgSize;
   const inv = 1 / cs;
   const mapMascotFitScale = Math.max(1, inv);
+  const mapFitHeightPx = ih * cs;
   const mapSettings =
     publicSettings?.map && typeof publicSettings.map === 'object' ? publicSettings.map : null;
+  const mapCanvasHintTexts = useMemo(
+    () => ({
+      drawZoneMin: resolveMapCanvasHint('drawZoneMin', publicSettings),
+      drawZoneReady: resolveMapCanvasHint('drawZoneReady', publicSettings, {
+        count: drawPoints.length,
+      }),
+      addMarker: resolveMapCanvasHint('addMarker', publicSettings),
+      editPoints: resolveMapCanvasHint('editPoints', publicSettings),
+      pageScroll: resolveMapCanvasHint('pageScroll', publicSettings),
+      gesturesActive: resolveMapCanvasHint('gesturesActive', publicSettings),
+    }),
+    [publicSettings, drawPoints.length],
+  );
   const { mapEmojiLabelCenterGap, mapEmojiFontPx, mapLabelFontPx, markerLabelMarginTop } =
-    resolveMapOverlayTypography(mapSettings, inv);
+    resolveMapOverlayTypography(mapSettings, mapFitHeightPx, { worldScale: cs });
 
   const toWorld = (p) => ({ cx: (p.xp / 100) * iw, cy: (p.yp / 100) * ih });
 
@@ -1199,6 +1214,7 @@ function MapViewImpl({
               drawPointsCount={drawPoints.length}
               prefersPageScroll={prefersPageScroll}
               isCoarsePointer={isCoarsePointer}
+              hintTexts={mapCanvasHintTexts}
             />
           </div>
         </div>
