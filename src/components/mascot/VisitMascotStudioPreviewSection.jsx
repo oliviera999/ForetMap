@@ -5,21 +5,61 @@ import { getVisitMascotCatalog } from '../../utils/visitMascotCatalog.js';
 import { VISIT_MASCOT_STATE } from '../../utils/visitMascotState.js';
 import { STATE_LABELS } from '../../constants/mascotStateLabels.js';
 import useVisitMascotStateMachine from '../../hooks/useVisitMascotStateMachine.js';
+import { validateMascotPackV1 } from '../../utils/mascotPack.js';
+import { sanitizeMascotPackDraft } from '../../utils/mascotPackValidationUi.js';
 
 /**
  * Aperçu global des mascottes serveur (onglet « Aperçu global ») : sélecteur de
  * mascotte (catalogue + extras dérivés des packs chargés), boutons d'états et
  * rendu animé. Présentation pure prop-driven.
- * @param {{ packs: Array<{ catalog_id: string, label: string, pack: object }>, mapId: string, onForceLogout?: () => void }} props
+ * @param {{
+ *   packs: Array<{ id?: string, catalog_id: string, label: string, pack: object }>,
+ *   mapId: string,
+ *   onForceLogout?: () => void,
+ *   selectedPackId?: string | null,
+ *   selectedPackCatalogId?: string,
+ *   selectedPackLabel?: string,
+ *   editorPack?: Record<string, unknown>,
+ * }} props
  */
-export default function VisitMascotStudioPreviewSection({ packs, mapId }) {
-  const extras = useMemo(
-    () =>
-      buildVisitMascotCatalogExtrasFromContent(
-        packs.map((p) => ({ catalog_id: p.catalog_id, label: p.label, pack: p.pack })),
-      ),
-    [packs],
-  );
+export default function VisitMascotStudioPreviewSection({
+  packs,
+  mapId,
+  selectedPackId = null,
+  selectedPackCatalogId = '',
+  selectedPackLabel = '',
+  editorPack = {},
+}) {
+  const extras = useMemo(() => {
+    const base = buildVisitMascotCatalogExtrasFromContent(
+      packs.map((p) => ({ catalog_id: p.catalog_id, label: p.label, pack: p.pack })),
+    );
+    const catalogId = String(selectedPackCatalogId || editorPack?.id || '').trim();
+    const packId = String(selectedPackId || '').trim();
+    if (!packId || !catalogId) return base;
+
+    const draft = sanitizeMascotPackDraft(editorPack || {});
+    const relaxed = validateMascotPackV1(draft, { relaxAssetPrefix: true });
+    if (!relaxed.ok) return base;
+
+    const label = String(selectedPackLabel || relaxed.pack.label || catalogId).trim();
+    const ver = Number(relaxed.pack.mascotPackVersion) === 2 ? 2 : 1;
+    const draftEntry = {
+      id: catalogId,
+      label: label || catalogId,
+      renderer: 'sprite_cut',
+      fallbackSilhouette: relaxed.pack.fallbackSilhouette || 'gnome',
+      spriteCut: relaxed.spriteCut,
+      ...(ver === 2 && relaxed.pack.interactionProfile
+        ? { interactionProfile: relaxed.pack.interactionProfile }
+        : {}),
+      ...(ver === 2 && relaxed.pack.dialogProfile ? { dialogProfile: relaxed.pack.dialogProfile } : {}),
+      mascotPackVersion: ver,
+    };
+    const withoutCurrent = base.filter((entry) => entry.id !== catalogId);
+    return [...withoutCurrent, draftEntry];
+  }, [packs, selectedPackId, selectedPackCatalogId, selectedPackLabel, editorPack]);
+
   const visitMascotOptions = useMemo(() => [...getVisitMascotCatalog(), ...extras], [extras]);
   const {
     visitMascotId,

@@ -219,6 +219,27 @@ function listPublicMascotStaticAssets() {
   return out;
 }
 
+const PUBLIC_MASCOT_ASSET_URL_PREFIX = '/assets/mascots/';
+const PUBLIC_MASCOT_ASSET_EXT = /\.(png|jpg|jpeg|webp|gif|svg|riv)$/i;
+
+/**
+ * Valide une URL catalogue statique et retourne le chemin relatif sous `public/`.
+ * @param {string} url
+ * @returns {string | null}
+ */
+function resolvePublicMascotAssetRelativePath(url) {
+  const raw = String(url || '').trim();
+  if (!raw.startsWith(PUBLIC_MASCOT_ASSET_URL_PREFIX)) return null;
+  const withoutQuery = raw.split('?')[0].split('#')[0];
+  if (!PUBLIC_MASCOT_ASSET_EXT.test(withoutQuery)) return null;
+  const relFromPublic = withoutQuery.replace(/^\/+/, '');
+  const publicRoot = path.join(__dirname, '..', '..', 'public');
+  const abs = path.resolve(publicRoot, relFromPublic);
+  const mascotsRoot = path.resolve(publicRoot, 'assets', 'mascots');
+  if (!abs.startsWith(mascotsRoot + path.sep) && abs !== mascotsRoot) return null;
+  return relFromPublic.replace(/\\/g, '/');
+}
+
 async function copyVisitMascotPackAssetDirectory(fromPackId, toPackId) {
   const fromRel = visitMascotPackAssetRelativeDir(fromPackId);
   const toRel = visitMascotPackAssetRelativeDir(toPackId);
@@ -891,6 +912,29 @@ router.get(
       logRouteError(err, req);
       const mapped = mapVisitMascotPackSqlError(err) || mapVisitMascotSpriteLibSqlError(err);
       if (mapped) return jsonVisitMascotPackError(res, req, mapped.status, mapped.body);
+      return res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });
+    }
+  },
+);
+
+router.delete(
+  '/mascot-assets/public',
+  requirePermission('visit.manage', { needsElevation: true }),
+  async (req, res) => {
+    try {
+      const rel = resolvePublicMascotAssetRelativePath(req.body?.url);
+      if (!rel) {
+        return res.status(400).json({ error: 'URL invalide pour un asset catalogue statique' });
+      }
+      const publicRoot = path.join(__dirname, '..', '..', 'public');
+      const abs = path.resolve(publicRoot, rel);
+      if (!fs.existsSync(abs)) {
+        return res.status(404).json({ error: 'Fichier introuvable' });
+      }
+      await fs.promises.unlink(abs);
+      return res.json({ ok: true, url: `/${rel.replace(/^\/+/, '')}` });
+    } catch (err) {
+      logRouteError(err, req);
       return res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });
     }
   },

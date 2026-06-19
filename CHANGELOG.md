@@ -7,6 +7,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Studio Packs mascotte — sprites site, export et aperçu
+
+- **API** : `DELETE /api/visit/mascot-assets/public` — suppression des fichiers statiques sous `public/assets/mascots/` (auth `visit.manage` + élévation PIN).
+- **Panneau Images** : filtre « Site » limité au catalogue public ; suppression contextuelle (site / pack courant / bibliothèque carte) ; boutons **Copier URL** et **Télécharger** rétablis.
+- **Correctifs** : import bibliothèque carte sans pack sélectionné ; aperçu global remonte au changement de mascotte (`key` sur le renderer Rive/sprites) ; brouillon du pack en cours reflété dans l’onglet **Aperçu global**.
+- **Tests** : `tests/api.test.js`, `tests-ui/components/mascot/MascotPackImagesPanel.test.jsx`, extensions `visitMascotPackManager.test.js` et `VisitMascotStudioPreviewSection.test.jsx`.
+- **Doc** : `docs/API.md`.
+
 ### Carte — ratio repères / plateau (ForetMap + GL)
 
 - **Module partagé** : `src/shared/mapOverlayScale.js` — facteur `(fitHeightPx / 480) × (sizePercent / 100)` ; refactor `resolveMapOverlayTypography` (hauteur affichée du plan au lieu de `inv`).
