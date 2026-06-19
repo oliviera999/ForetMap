@@ -1431,6 +1431,39 @@
       max-height:none !important;
       overflow:visible !important;
     }
+    .visit-mascot-pack-manager__layout {
+      display:flex;
+      flex-direction:row;
+      flex-wrap:wrap;
+      gap:16px;
+      align-items:stretch;
+      flex:1;
+    }
+    @media (max-width:768px) {
+      .visit-mascot-pack-manager__aside {
+        flex:1 1 100% !important;
+        min-width:0 !important;
+        border-right:none !important;
+        border-bottom:1px solid rgba(26,71,49,0.15);
+        padding-right:0 !important;
+        padding-bottom:12px;
+        margin-bottom:4px;
+      }
+      .visit-mascot-pack-manager__main {
+        flex:1 1 100% !important;
+        min-width:0 !important;
+      }
+      .visit-mascot-pack-manager__tabs .btn-sm {
+        min-height:44px;
+      }
+      .mascot-pack-wysiwyg__frame-row {
+        flex-direction:column;
+        align-items:flex-start;
+      }
+      .mascot-pack-wysiwyg__asset-actions .btn-sm {
+        min-height:44px;
+      }
+    }
 
     .modal h3, .log-modal h3 { font-size:clamp(1.05rem, .95rem + .45vw, 1.2rem); margin-bottom:16px; color:var(--forest); }
     .modal-close {

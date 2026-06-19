@@ -61,6 +61,7 @@ export default function VisitMascotPackManager({
   const [studioMode, setStudioMode] = useState('packs');
   const [jsonDraft, setJsonDraft] = useState('{}');
   const [jsonError, setJsonError] = useState('');
+  const [jsonCopyFeedback, setJsonCopyFeedback] = useState('');
   const [labelDraft, setLabelDraft] = useState('');
   const [libAssets, setLibAssets] = useState([]);
   const [libLoading, setLibLoading] = useState(false);
@@ -611,16 +612,7 @@ export default function VisitMascotPackManager({
       {studioMode === 'dialogues' ? (
         <VisitMascotDialogStudioView onForceLogout={onForceLogout} />
       ) : (
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'row',
-            flexWrap: 'wrap',
-            gap: 16,
-            alignItems: 'stretch',
-            flex: 1,
-          }}
-        >
+        <div className="visit-mascot-pack-manager__layout">
           <MascotPackListAside
             mapTitle={mapTitle}
             actionBusy={actionBusy}
@@ -649,9 +641,9 @@ export default function VisitMascotPackManager({
             actionError={actionError}
             actionIssues={actionIssues}
           />
-          <div style={{ flex: '1 1 420px', minWidth: 300 }}>
+          <div style={{ flex: '1 1 420px', minWidth: 300 }} className="visit-mascot-pack-manager__main">
             {!selectedId ? (
-              <div className="section-sub">
+              <div className="section-sub" role="tabpanel" id="mascot-pack-tabpanel-empty">
                 <p style={{ marginTop: 0 }}>
                   Sélectionnez un <strong>pack de la liste</strong> (brouillon ou publié), ou
                   choisissez un <strong>modèle intégré</strong> à gauche puis{' '}
@@ -669,6 +661,7 @@ export default function VisitMascotPackManager({
                 <div
                   className="visit-mascot-pack-manager__tabs"
                   role="tablist"
+                  aria-label="Sections d’édition du pack"
                   style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}
                 >
                   {RIGHT_TABS.map((t) => (
@@ -676,7 +669,9 @@ export default function VisitMascotPackManager({
                       key={t.id}
                       type="button"
                       role="tab"
+                      id={`mascot-pack-tab-${t.id}`}
                       aria-selected={editorTab === t.id}
+                      aria-controls={`mascot-pack-tabpanel-${t.id}`}
                       className={`btn btn-sm ${editorTab === t.id ? 'btn-primary' : 'btn-ghost'}`}
                       onClick={() => {
                         setEditorTab(t.id);
@@ -688,21 +683,50 @@ export default function VisitMascotPackManager({
                     </button>
                   ))}
                 </div>
-                {editorTab === 'workspace' ? <PackBehaviorDetailTable pack={editorPack} /> : null}
                 {editorTab === 'workspace' ? (
-                  <div style={{ marginTop: 10 }}>
-                    <MascotPackWysiwygEditor
-                      pack={editorPack}
-                      onPackChange={setEditorPack}
-                      packUuid={selectedId}
-                      catalogId={selectedRow?.catalog_id || ''}
-                      visitMapId={String(mapId || '').trim()}
-                      onForceLogout={onForceLogout}
+                  <div
+                    role="tabpanel"
+                    id="mascot-pack-tabpanel-workspace"
+                    aria-labelledby="mascot-pack-tab-workspace"
+                  >
+                    <PackBehaviorDetailTable pack={editorPack} />
+                    <div style={{ marginTop: 10 }}>
+                      <MascotPackWysiwygEditor
+                        pack={editorPack}
+                        onPackChange={setEditorPack}
+                        packUuid={selectedId}
+                        catalogId={selectedRow?.catalog_id || ''}
+                        visitMapId={String(mapId || '').trim()}
+                        onForceLogout={onForceLogout}
+                      />
+                    </div>
+                    <MascotAssetsLibraryPanel
+                      libAssets={libAssets}
+                      libLoading={libLoading}
+                      libMessage={libMessage}
+                      onReloadLibrary={() => void loadLibrary()}
+                      onSetFramesBaseToLibrary={setFramesBaseToLibrary}
+                      onLibUpload={(e) => void onLibUpload(e)}
+                      onLibDelete={(filename) => void onLibDelete(filename)}
+                      globalAssetsLoading={globalAssetsLoading}
+                      globalAssetsMessage={globalAssetsMessage}
+                      filteredAssets={libraryFilteredAssets}
+                      globalAssetSearch={globalAssetSearch}
+                      onGlobalAssetSearchChange={setGlobalAssetSearch}
+                      globalTargetState={globalTargetState}
+                      onGlobalTargetStateChange={setGlobalTargetState}
+                      onReloadGlobalAssets={() => void loadGlobalAssets()}
+                      onInsertGlobalAsset={insertGlobalAssetIntoState}
                     />
                   </div>
                 ) : null}
                 {editorTab === 'json' ? (
-                  <div className="mascot-pack-json-tab">
+                  <div
+                    className="mascot-pack-json-tab"
+                    role="tabpanel"
+                    id="mascot-pack-tabpanel-json"
+                    aria-labelledby="mascot-pack-tab-json"
+                  >
                     <p className="section-sub" style={{ fontSize: '0.82rem' }}>
                       Modifiez le JSON puis « Appliquer ».
                     </p>
@@ -742,42 +766,39 @@ export default function VisitMascotPackManager({
                         className="btn btn-ghost btn-sm"
                         onClick={() => {
                           void navigator.clipboard.writeText(jsonDraft);
+                          setJsonCopyFeedback('JSON copié dans le presse-papiers.');
+                          setTimeout(() => setJsonCopyFeedback(''), 2500);
                         }}
                       >
                         Copier
                       </button>
+                      {jsonCopyFeedback ? (
+                        <span className="section-sub" role="status" style={{ fontSize: '0.8rem' }}>
+                          {jsonCopyFeedback}
+                        </span>
+                      ) : null}
                     </div>
                   </div>
                 ) : null}
-                {editorTab === 'workspace' ? (
-                  <MascotAssetsLibraryPanel
-                    libAssets={libAssets}
-                    libLoading={libLoading}
-                    libMessage={libMessage}
-                    onReloadLibrary={() => void loadLibrary()}
-                    onSetFramesBaseToLibrary={setFramesBaseToLibrary}
-                    onLibUpload={(e) => void onLibUpload(e)}
-                    onLibDelete={(filename) => void onLibDelete(filename)}
-                    globalAssetsLoading={globalAssetsLoading}
-                    globalAssetsMessage={globalAssetsMessage}
-                    filteredAssets={libraryFilteredAssets}
-                    globalAssetSearch={globalAssetSearch}
-                    onGlobalAssetSearchChange={setGlobalAssetSearch}
-                    globalTargetState={globalTargetState}
-                    onGlobalTargetStateChange={setGlobalTargetState}
-                    onReloadGlobalAssets={() => void loadGlobalAssets()}
-                    onInsertGlobalAsset={insertGlobalAssetIntoState}
-                  />
-                ) : null}
                 {editorTab === 'interaction' ? (
+                  <div
+                    role="tabpanel"
+                    id="mascot-pack-tabpanel-interaction"
+                    aria-labelledby="mascot-pack-tab-interaction"
+                  >
                   <MascotInteractionProfileEditor
                     pack={editorPack}
                     onUpgradeToV2={() => upgradePackToV2('interaction')}
                     onPatchRule={patchInteractionRule}
                   />
+                  </div>
                 ) : null}
                 {editorTab === 'dialog' ? (
-                  <div>
+                  <div
+                    role="tabpanel"
+                    id="mascot-pack-tabpanel-dialog"
+                    aria-labelledby="mascot-pack-tab-dialog"
+                  >
                     <p className="section-sub" style={{ fontSize: '0.82rem', marginBottom: 10 }}>
                       Messages de bulle pour ce pack (priorité maximale sur les défauts globaux et
                       catalogue).
@@ -805,11 +826,17 @@ export default function VisitMascotPackManager({
                   </div>
                 ) : null}
                 {editorTab === 'preview' ? (
+                  <div
+                    role="tabpanel"
+                    id="mascot-pack-tabpanel-preview"
+                    aria-labelledby="mascot-pack-tab-preview"
+                  >
                   <VisitMascotStudioPreviewSection
                     packs={packs}
                     mapId={String(mapId || '')}
                     onForceLogout={onForceLogout}
                   />
+                  </div>
                 ) : null}
               </>
             )}

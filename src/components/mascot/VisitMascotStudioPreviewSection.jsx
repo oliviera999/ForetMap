@@ -3,6 +3,7 @@ import VisitMapMascotRenderer from '../VisitMapMascotRenderer.jsx';
 import { buildVisitMascotCatalogExtrasFromContent } from '../../utils/visitMascotPackExtras.js';
 import { getVisitMascotCatalog } from '../../utils/visitMascotCatalog.js';
 import { VISIT_MASCOT_STATE } from '../../utils/visitMascotState.js';
+import { STATE_LABELS } from '../../constants/mascotStateLabels.js';
 import useVisitMascotStateMachine from '../../hooks/useVisitMascotStateMachine.js';
 
 /**
@@ -62,21 +63,21 @@ export default function VisitMascotStudioPreviewSection({ packs, mapId }) {
           className={`btn btn-sm ${visitMascotPreviewState === VISIT_MASCOT_STATE.IDLE ? 'btn-primary' : 'btn-ghost'}`}
           onClick={() => setVisitMascotPreviewState(VISIT_MASCOT_STATE.IDLE)}
         >
-          Idle
+          {STATE_LABELS[VISIT_MASCOT_STATE.IDLE]}
         </button>
         <button
           type="button"
           className={`btn btn-sm ${visitMascotPreviewState === VISIT_MASCOT_STATE.WALKING ? 'btn-primary' : 'btn-ghost'}`}
           onClick={() => setVisitMascotPreviewState(VISIT_MASCOT_STATE.WALKING)}
         >
-          Marche
+          {STATE_LABELS[VISIT_MASCOT_STATE.WALKING]}
         </button>
         <button
           type="button"
           className={`btn btn-sm ${visitMascotPreviewState === VISIT_MASCOT_STATE.HAPPY ? 'btn-primary' : 'btn-ghost'}`}
           onClick={() => setVisitMascotPreviewState(VISIT_MASCOT_STATE.HAPPY)}
         >
-          Heureuse
+          {STATE_LABELS[VISIT_MASCOT_STATE.HAPPY]}
         </button>
         {visitMascotPreviewStateOptions
           .filter(
@@ -100,7 +101,11 @@ export default function VisitMascotStudioPreviewSection({ packs, mapId }) {
       </div>
       <label className="visit-mascot-picker" style={{ display: 'block', marginBottom: 10 }}>
         <span>Mascotte</span>
-        <select value={visitMascotId} onChange={(e) => onChangeVisitMascotId(e.target.value)}>
+        <select
+          value={visitMascotId}
+          onChange={(e) => onChangeVisitMascotId(e.target.value)}
+          aria-label="Choisir la mascotte à prévisualiser"
+        >
           {visitMascotOptions.map((m) => (
             <option key={m.id} value={m.id}>
               {m.label}
