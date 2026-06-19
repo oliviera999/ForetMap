@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { apiGL } from '../services/apiGL.js';
 import { GLButton } from './ui/GLButton.jsx';
@@ -6,6 +6,8 @@ import { GLQcmFeedbackBlock } from './GLQcmFeedbackBlock.jsx';
 import { shouldShowQcmAnswerPhase } from '../utils/glQcmDisplay.js';
 import { GLGlossaryInlineText } from './GLGlossaryMarkdown.jsx';
 import { GLLoreGlossaryInlineText } from './GLLoreGlossaryMarkdown.jsx';
+import { mergeGlossaryLinkItems } from '../../utils/glGlossaryAutolink.js';
+import { mergeLoreGlossaryLinkItems } from '../../utils/glLoreGlossaryAutolink.js';
 
 function isLoreQcmCode(code) {
   return /^LQCM\d+$/i.test(String(code || '').trim());
@@ -104,9 +106,25 @@ export function GLQcmPopover({
     qcmSet || presentation?.qcmSet || (isLoreQcmCode(questionCode) ? 'lore' : 'biome');
   const isLore = resolvedQcmSet === 'lore';
   const InlineText = isLore ? GLLoreGlossaryInlineText : GLGlossaryInlineText;
+  const mergedGlossaryItems = useMemo(
+    () =>
+      mergeGlossaryLinkItems(glossaryLinkItems, [
+        ...(presentation?.glossaryTerms || []),
+        ...(displayResult?.glossaryTerms || []),
+      ]),
+    [glossaryLinkItems, presentation?.glossaryTerms, displayResult?.glossaryTerms],
+  );
+  const mergedLoreGlossaryItems = useMemo(
+    () =>
+      mergeLoreGlossaryLinkItems(loreGlossaryLinkItems, [
+        ...(presentation?.loreGlossaryTerms || []),
+        ...(displayResult?.loreGlossaryTerms || []),
+      ]),
+    [loreGlossaryLinkItems, presentation?.loreGlossaryTerms, displayResult?.loreGlossaryTerms],
+  );
   const inlineGlossaryProps = isLore
-    ? { loreGlossaryItems: loreGlossaryLinkItems, onOpenLoreTerm: onOpenLoreTerm }
-    : { glossaryItems: glossaryLinkItems, onOpenGlossaryTerm: onOpenGlossaryTerm };
+    ? { loreGlossaryItems: mergedLoreGlossaryItems, onOpenLoreTerm: onOpenLoreTerm }
+    : { glossaryItems: mergedGlossaryItems, onOpenGlossaryTerm: onOpenGlossaryTerm };
 
   return createPortal(
     <div
@@ -216,8 +234,11 @@ export function GLQcmPopover({
                 <GLQcmFeedbackBlock
                   result={displayResult}
                   scoreDelta={displayResult?.scoreDelta}
-                  glossaryLinkItems={glossaryLinkItems}
+                  qcmSet={resolvedQcmSet}
+                  glossaryLinkItems={mergedGlossaryItems}
+                  loreGlossaryLinkItems={mergedLoreGlossaryItems}
                   onOpenGlossaryTerm={onOpenGlossaryTerm}
+                  onOpenLoreTerm={onOpenLoreTerm}
                 />
                 {((isLore ? displayResult.loreGlossaryTerms : displayResult.glossaryTerms) || [])
                   .length > 0 ? (

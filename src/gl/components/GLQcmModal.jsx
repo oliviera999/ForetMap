@@ -1,8 +1,12 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { apiGL } from '../services/apiGL.js';
 import { GLButton } from './ui/GLButton.jsx';
 import { GLQcmFeedbackBlock } from './GLQcmFeedbackBlock.jsx';
 import { hasQcmAnswerFeedback } from '../utils/glQcmDisplay.js';
+import { GLGlossaryInlineText } from './GLGlossaryMarkdown.jsx';
+import { GLLoreGlossaryInlineText } from './GLLoreGlossaryMarkdown.jsx';
+import { mergeGlossaryLinkItems } from '../../utils/glGlossaryAutolink.js';
+import { mergeLoreGlossaryLinkItems } from '../../utils/glLoreGlossaryAutolink.js';
 
 function isLoreQcmCode(code) {
   return /^LQCM\d+$/i.test(String(code || '').trim());
@@ -25,6 +29,8 @@ export function GLQcmModal({
   onClose,
   onOpenGlossaryTerm,
   onOpenLoreTerm,
+  glossaryLinkItems = [],
+  loreGlossaryLinkItems = [],
   onAnswered,
 }) {
   const [questionCode, setQuestionCode] = useState(null);
@@ -92,6 +98,24 @@ export function GLQcmModal({
     if (open) loadQuestion();
   }, [open, loadQuestion]);
 
+  const isLore = qcmSet === 'lore' || isLoreQcmCode(questionCode);
+  const mergedGlossaryItems = useMemo(
+    () =>
+      mergeGlossaryLinkItems(glossaryLinkItems, [
+        ...(presentation?.glossaryTerms || []),
+        ...(result?.glossaryTerms || []),
+      ]),
+    [glossaryLinkItems, presentation?.glossaryTerms, result?.glossaryTerms],
+  );
+  const mergedLoreGlossaryItems = useMemo(
+    () =>
+      mergeLoreGlossaryLinkItems(loreGlossaryLinkItems, [
+        ...(presentation?.loreGlossaryTerms || []),
+        ...(result?.loreGlossaryTerms || []),
+      ]),
+    [loreGlossaryLinkItems, presentation?.loreGlossaryTerms, result?.loreGlossaryTerms],
+  );
+
   async function submitAnswer() {
     if (!questionCode || !presentation?.presentationToken || selectedChoiceId == null) return;
     setSubmitting(true);
@@ -125,6 +149,10 @@ export function GLQcmModal({
   if (!open) return null;
 
   const showAnswer = hasQcmAnswerFeedback(result);
+  const InlineText = isLore ? GLLoreGlossaryInlineText : GLGlossaryInlineText;
+  const inlineGlossaryProps = isLore
+    ? { loreGlossaryItems: mergedLoreGlossaryItems, onOpenLoreTerm }
+    : { glossaryItems: mergedGlossaryItems, onOpenGlossaryTerm };
 
   return (
     <div className="gl-qcm-modal" role="dialog" aria-label="Quiz">
@@ -138,7 +166,12 @@ export function GLQcmModal({
           <>
             <div className="gl-qcm-popover__scroll">
               {questionCode ? <p className="gl-hint">Question {questionCode}</p> : null}
-              <p className="gl-qcm-modal__question">{presentation.question}</p>
+              <InlineText
+                className="gl-qcm-modal__question"
+                text={presentation.question}
+                {...inlineGlossaryProps}
+                tag="p"
+              />
               {presentation.photoUrl ? (
                 <figure className="gl-qcm-modal__photo-wrap">
                   <img src={presentation.photoUrl} alt="" className="gl-qcm-modal__photo" />
@@ -160,7 +193,7 @@ export function GLQcmModal({
                       checked={selectedChoiceId === choice.id}
                       onChange={() => setSelectedChoiceId(choice.id)}
                     />
-                    <span>{choice.text}</span>
+                    <InlineText text={choice.text} {...inlineGlossaryProps} />
                   </label>
                 ))}
               </div>
@@ -226,7 +259,15 @@ export function GLQcmModal({
           <>
             <div className="gl-qcm-popover__scroll">
               {questionCode ? <p className="gl-hint">Question {questionCode}</p> : null}
-              <GLQcmFeedbackBlock result={result} scoreDelta={result?.scoreDelta} />
+              <GLQcmFeedbackBlock
+                result={result}
+                scoreDelta={result?.scoreDelta}
+                qcmSet={isLore ? 'lore' : 'biome'}
+                glossaryLinkItems={mergedGlossaryItems}
+                loreGlossaryLinkItems={mergedLoreGlossaryItems}
+                onOpenGlossaryTerm={onOpenGlossaryTerm}
+                onOpenLoreTerm={onOpenLoreTerm}
+              />
               {Array.isArray(result.loreGlossaryTerms) && result.loreGlossaryTerms.length > 0 ? (
                 <div className="gl-qcm-modal__glossary">
                   <strong>Termes lore liés :</strong>

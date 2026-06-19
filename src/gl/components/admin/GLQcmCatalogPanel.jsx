@@ -22,6 +22,11 @@ export function GLQcmCatalogPanel({
   answerPath,
   templateFilename,
   exportFilename,
+  qcmSet = null,
+  glossaryLinkItems = [],
+  loreGlossaryLinkItems = [],
+  onOpenGlossaryTerm,
+  onOpenLoreTerm,
 }) {
   return (
     <QcmCatalogPanel
@@ -45,6 +50,11 @@ export function GLQcmCatalogPanel({
       Field={GLField}
       Input={GLInput}
       Select={GLSelect}
+      qcmSet={qcmSet}
+      glossaryLinkItems={glossaryLinkItems}
+      loreGlossaryLinkItems={loreGlossaryLinkItems}
+      onOpenGlossaryTerm={onOpenGlossaryTerm}
+      onOpenLoreTerm={onOpenLoreTerm}
     />
   );
 }

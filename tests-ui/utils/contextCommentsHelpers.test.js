@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import {
+  CONTEXT_COMMENT_PREVIEW_SIZE,
   DEFAULT_REACTION_EMOJIS,
   canModerate,
   contextCommentDraftKey,
@@ -28,6 +29,12 @@ describe('contextCommentDraftKey', () => {
 
   test('tolère les valeurs nulles', () => {
     expect(contextCommentDraftKey(null, null)).toBe('foretmap:contextCommentDraft::');
+  });
+});
+
+describe('CONTEXT_COMMENT_PREVIEW_SIZE', () => {
+  test('vaut 2 pour l’aperçu replié', () => {
+    expect(CONTEXT_COMMENT_PREVIEW_SIZE).toBe(2);
   });
 });
 

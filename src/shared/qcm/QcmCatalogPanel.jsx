@@ -28,6 +28,15 @@ export function QcmCatalogPanel({
   Input,
   Select,
   classNames = {},
+  showQuestionList = true,
+  listMaxItems = null,
+  enableAdminFilters = false,
+  onEditQuestion = null,
+  qcmSet = null,
+  glossaryLinkItems = [],
+  loreGlossaryLinkItems = [],
+  onOpenGlossaryTerm,
+  onOpenLoreTerm,
 }) {
   const {
     section = 'gl-admin-section fade-in',
@@ -61,6 +70,9 @@ export function QcmCatalogPanel({
   const [selectedChoiceId, setSelectedChoiceId] = useState(null);
   const [feedback, setFeedback] = useState(null);
   const [exportStatut, setExportStatut] = useState('actif');
+  const [listStatut, setListStatut] = useState('actif');
+  const [listNiveau, setListNiveau] = useState('');
+  const [listSort, setListSort] = useState('theme');
 
   async function runDownload(path, filename, successMessage) {
     setLoading(true);
@@ -103,8 +115,17 @@ export function QcmCatalogPanel({
   }
 
   const loadList = useCallback(async () => {
+    if (!showQuestionList) return;
     try {
-      const query = buildQuestionsListQuery({ scopeQueryKey, scopeSlug, categorieSlug, search });
+      const query = buildQuestionsListQuery({
+        scopeQueryKey,
+        scopeSlug,
+        categorieSlug,
+        search,
+        statut: enableAdminFilters ? listStatut : undefined,
+        niveau: enableAdminFilters ? listNiveau : undefined,
+        sort: enableAdminFilters ? listSort : undefined,
+      });
       const data = await request(`${questionsListPath}?${query}`);
       setItems(Array.isArray(data?.items) ? data.items : []);
       setError('');
@@ -112,15 +133,30 @@ export function QcmCatalogPanel({
       setError(err.message || 'Chargement questions impossible');
       setItems([]);
     }
-  }, [scopeSlug, categorieSlug, search, scopeQueryKey, questionsListPath, request]);
+  }, [
+    scopeSlug,
+    categorieSlug,
+    search,
+    scopeQueryKey,
+    questionsListPath,
+    request,
+    showQuestionList,
+    enableAdminFilters,
+    listStatut,
+    listNiveau,
+    listSort,
+  ]);
 
   useEffect(() => {
     loadStats();
   }, [adminBasePath]);
 
   useEffect(() => {
-    loadList();
-  }, [loadList]);
+    if (showQuestionList) loadList();
+  }, [loadList, showQuestionList]);
+
+  const visibleItems =
+    listMaxItems != null && listMaxItems > 0 ? items.slice(0, listMaxItems) : items;
 
   async function runImport(event) {
     event.preventDefault();
@@ -242,50 +278,90 @@ export function QcmCatalogPanel({
 
       <hr className={divider} />
 
-      <h4>Aperçu questions</h4>
-      <div className={filters}>
-        <Field label={scopeLabel}>
-          <Input
-            value={scopeSlug}
-            onChange={(e) => setScopeSlug(e.target.value)}
-            placeholder={scopePlaceholder}
-          />
-        </Field>
-        <Field label="Catégorie slug">
-          <Input
-            value={categorieSlug}
-            onChange={(e) => setCategorieSlug(e.target.value)}
-            placeholder="vivant_classification"
-          />
-        </Field>
-        <Field label="Recherche">
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="trame…"
-          />
-        </Field>
-      </div>
-
-      <div className={list}>
-        {items.slice(0, 30).map((item) => (
-          <div key={item.question_code} className={row}>
-            <div>
-              <strong>{item.question_code}</strong>{' '}
-              <span className={hintClass}>{listMeta(item)}</span>
-              <p>{item.question}</p>
-            </div>
-            <Button type="button" onClick={() => openPreview(item.question_code)}>
-              Présenter
-            </Button>
+      {showQuestionList ? (
+        <>
+          <h4>Aperçu questions</h4>
+          <div className={filters}>
+            <Field label={scopeLabel}>
+              <Input
+                value={scopeSlug}
+                onChange={(e) => setScopeSlug(e.target.value)}
+                placeholder={scopePlaceholder}
+              />
+            </Field>
+            <Field label="Catégorie slug">
+              <Input
+                value={categorieSlug}
+                onChange={(e) => setCategorieSlug(e.target.value)}
+                placeholder="vivant_classification"
+              />
+            </Field>
+            {enableAdminFilters ? (
+              <>
+                <Field label="Statut">
+                  <Select value={listStatut} onChange={(e) => setListStatut(e.target.value)}>
+                    <option value="actif">Actives</option>
+                    <option value="inactif">Inactives</option>
+                    <option value="all">Toutes</option>
+                  </Select>
+                </Field>
+                <Field label="Niveau">
+                  <Select value={listNiveau} onChange={(e) => setListNiveau(e.target.value)}>
+                    <option value="">Tous</option>
+                    <option value="college">Collège</option>
+                    <option value="lycee">Lycée</option>
+                  </Select>
+                </Field>
+                <Field label="Tri">
+                  <Select value={listSort} onChange={(e) => setListSort(e.target.value)}>
+                    <option value="theme">Thème / catégorie</option>
+                    <option value="code">Code A→Z</option>
+                    <option value="code_desc">Code Z→A</option>
+                    <option value="category">Catégorie</option>
+                    <option value="difficulte">Difficulté</option>
+                  </Select>
+                </Field>
+              </>
+            ) : null}
+            <Field label="Recherche">
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="trame…"
+              />
+            </Field>
           </div>
-        ))}
-        {items.length > 30 ? (
+
           <p className={hintClass}>
-            Affichage limité aux 30 premières questions filtrées ({items.length} au total).
+            {items.length} question(s) filtrée(s)
+            {listMaxItems != null && listMaxItems > 0 && items.length > listMaxItems
+              ? ` — affichage limité aux ${listMaxItems} premières`
+              : ''}
           </p>
-        ) : null}
-      </div>
+
+          <div className={list}>
+            {visibleItems.map((item) => (
+              <div key={item.question_code} className={row}>
+                <div>
+                  <strong>{item.question_code}</strong>{' '}
+                  <span className={hintClass}>{listMeta(item)}</span>
+                  <p>{item.question}</p>
+                </div>
+                <div className={actions}>
+                  {onEditQuestion ? (
+                    <Button type="button" variant="secondary" onClick={() => onEditQuestion(item.question_code)}>
+                      Éditer
+                    </Button>
+                  ) : null}
+                  <Button type="button" onClick={() => openPreview(item.question_code)}>
+                    Présenter
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      ) : null}
 
       <QcmPreviewModal
         previewCode={previewCode}
@@ -305,6 +381,11 @@ export function QcmCatalogPanel({
         FeedbackBlock={FeedbackBlock}
         Button={Button}
         classNames={classNames.previewModal}
+        qcmSet={qcmSet}
+        glossaryLinkItems={glossaryLinkItems}
+        loreGlossaryLinkItems={loreGlossaryLinkItems}
+        onOpenGlossaryTerm={onOpenGlossaryTerm}
+        onOpenLoreTerm={onOpenLoreTerm}
       />
     </section>
   );

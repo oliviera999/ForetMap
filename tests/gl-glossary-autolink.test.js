@@ -9,6 +9,7 @@ let buildGlossaryLinkEntries;
 let autolinkPlainText;
 let autolinkHtmlTextNodes;
 let renderGlMarkdownWithGlossaryLinks;
+let mergeGlossaryLinkItems;
 
 const SAMPLE_ITEMS = [
   {
@@ -31,6 +32,7 @@ before(async () => {
   autolinkPlainText = mod.autolinkPlainText;
   autolinkHtmlTextNodes = mod.autolinkHtmlTextNodes;
   renderGlMarkdownWithGlossaryLinks = mod.renderGlMarkdownWithGlossaryLinks;
+  mergeGlossaryLinkItems = mod.mergeGlossaryLinkItems;
 });
 
 describe('glGlossaryAutolink', () => {
@@ -64,5 +66,13 @@ describe('glGlossaryAutolink', () => {
     );
     assert.match(html, /<strong>/);
     assert.match(html, /data-gl-glossary-code="GL0001"/);
+  });
+
+  test('mergeGlossaryLinkItems ajoute les termes liés à une question', () => {
+    const merged = mergeGlossaryLinkItems(SAMPLE_ITEMS, [
+      { glossary_code: 'GL0099', terme: 'Fennec' },
+    ]);
+    assert.equal(merged.length, 3);
+    assert.ok(merged.some((item) => item.glossary_code === 'GL0099'));
   });
 });

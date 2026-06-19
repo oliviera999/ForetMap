@@ -1027,7 +1027,9 @@ export function AppGL() {
                   auth={auth}
                   onNavigateTab={setTab}
                   glossaryLinkItems={glossaryLinkItems}
+                  loreGlossaryLinkItems={loreGlossaryLinkItems}
                   onOpenGlossaryTerm={openGlossaryPopover}
+                  onOpenLoreTerm={openLoreGlossaryPopover}
                 />
               )}
               {tab === 'settings' && showStaffAdminUi && <GLSettingsView />}

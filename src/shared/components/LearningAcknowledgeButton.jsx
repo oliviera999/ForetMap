@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useOverlayHistoryBack } from '../../hooks/useOverlayHistoryBack';
-import { DialogShell } from '../../components/DialogShell';
+import { DialogShell } from './DialogShell.jsx';
 
 /**
  * Bouton + modal de confirmation pour marquer un contenu comme lu / appris / étudié.
