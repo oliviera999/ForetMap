@@ -49,7 +49,7 @@ describe('GLGlossaryTermForm', () => {
   });
 
   test('pas de bouton Enregistrer (auto-save parent)', () => {
-    const { rerender } =     renderForm({
+    const { rerender } = renderForm({
       onField: vi.fn(),
       onArchive: vi.fn(),
       selectedCode: null,

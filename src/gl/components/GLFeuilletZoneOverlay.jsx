@@ -40,8 +40,7 @@ export function GLFeuilletZoneOverlay({
               NEAR_THRESHOLD_PCT
             : false;
         const isSelected = editMode && selectedZoneId === zone.zoneId;
-        const zoneNumber =
-          zoneNumbers instanceof Map ? zoneNumbers.get(String(zone.zoneId)) : null;
+        const zoneNumber = zoneNumbers instanceof Map ? zoneNumbers.get(String(zone.zoneId)) : null;
         const classes = [
           'gl-feuillet-zone-polygon',
           isRead ? 'is-read' : '',

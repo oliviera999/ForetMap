@@ -251,7 +251,10 @@ export function AppGL() {
   const zoneMusicEnabled = isModuleEnabled(modules, 'zoneMusicEnabled');
   const virtualDiceEnabled = isModuleEnabled(modules, 'virtualDiceEnabled');
   const canDiceAdvancePath =
-    isMjMapControls && boardMovement.isNumberedPath && virtualDiceEnabled && Boolean(gameState?.game?.id);
+    isMjMapControls &&
+    boardMovement.isNumberedPath &&
+    virtualDiceEnabled &&
+    Boolean(gameState?.game?.id);
   const feuilletZoneEditMode = isFeuilletZoneEditMode() && showStaffAdminUi;
   const chapterPlateauNumber = gameState?.game?.chapter_plateau_number ?? null;
   const chapterMusicBiomeSlug = useMemo(() => {

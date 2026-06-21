@@ -335,9 +335,7 @@ export function GLQcmLoreQuestionEditorPanel({ initialQuestionCode = null }) {
         <div className="gl-qcm-editor__form">
           <h4>{selectedCode ? `Modifier ${selectedCode}` : 'Nouvelle question'}</h4>
           <AutoSaveStatus status={saveStatus} className="gl-hint" />
-          <div className="gl-qcm-editor__fields">
-            {FORM_FIELDS.map((key) => renderField(key))}
-          </div>
+          <div className="gl-qcm-editor__fields">{FORM_FIELDS.map((key) => renderField(key))}</div>
         </div>
       </div>
     </section>

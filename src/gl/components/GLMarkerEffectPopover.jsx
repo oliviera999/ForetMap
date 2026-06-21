@@ -9,18 +9,13 @@ function formatVitalitySummary(vitality) {
   const health = Number(vitality.healthDelta) || 0;
   const power = Number(vitality.powerDelta) || 0;
   if (health !== 0) {
-    parts.push(
-      `${health > 0 ? '+' : ''}${health} cœur${Math.abs(health) > 1 ? 's' : ''}`,
-    );
+    parts.push(`${health > 0 ? '+' : ''}${health} cœur${Math.abs(health) > 1 ? 's' : ''}`);
   }
   if (power !== 0) {
-    parts.push(
-      `${power > 0 ? '+' : ''}${power} gemme${Math.abs(power) > 1 ? 's' : ''}`,
-    );
+    parts.push(`${power > 0 ? '+' : ''}${power} gemme${Math.abs(power) > 1 ? 's' : ''}`);
   }
   if (!parts.length) return null;
-  const targetLabel =
-    vitality.target === 'players' ? ' (joueurs ciblés)' : ' (équipe entière)';
+  const targetLabel = vitality.target === 'players' ? ' (joueurs ciblés)' : ' (équipe entière)';
   return `${parts.join(', ')}${targetLabel}`;
 }
 
