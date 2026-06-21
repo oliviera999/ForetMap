@@ -88,7 +88,7 @@ export const GAMEPLAY_TOGGLES = [
     key: 'gameplay.turns_enabled',
     camel: 'turnsEnabled',
     label: 'Tours de jeu',
-    hint: 'Active la rotation des équipes (mode standard).',
+    hint: 'Mode classique : le MJ lance un tour, chaque équipe joue et déplace sa mascotte une fois par tour.',
   },
   {
     key: 'gameplay.narration_enabled',
@@ -195,6 +195,19 @@ export const SPELL_CAST_TEAM_SCOPE_OPTIONS = [
   { value: 'any_team', label: 'Toutes les équipes de la partie' },
   { value: 'own_team', label: 'Uniquement son équipe' },
   { value: 'mj_any', label: 'Joueur : son équipe · MJ : toutes les équipes' },
+];
+
+/** Options du mode d'approbation des sortilèges (mode classique). */
+export const SPELL_CAST_APPROVAL_MODE_OPTIONS = [
+  { value: 'per_spell', label: 'Par sort (selon le catalogue de sortilèges)' },
+  { value: 'auto', label: 'Automatique (lancement immédiat)' },
+  { value: 'mj_required', label: 'Validation du MJ obligatoire' },
+];
+
+/** Options de l'acteur qui déplace la mascotte (mode classique). */
+export const MASCOT_MOVE_ACTOR_OPTIONS = [
+  { value: 'mj', label: 'Maître du jeu (contrôle libre)' },
+  { value: 'players', label: 'Joueurs (un déplacement par tour)' },
 ];
 
 /**

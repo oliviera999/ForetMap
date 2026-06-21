@@ -127,7 +127,7 @@ describe('ALLOWED_GAMEPLAY_SETTINGS', () => {
     assert.ok(ALLOWED_GAMEPLAY_SETTINGS.has('gameplay.plateau_marker_numbers_visible'));
     assert.equal(ALLOWED_GAMEPLAY_SETTINGS.has('gameplay.inexistant'), false);
   });
-  it('compte 24 clés gameplay', () => {
-    assert.equal(ALLOWED_GAMEPLAY_SETTINGS.size, 24);
+  it('compte 26 clés gameplay', () => {
+    assert.equal(ALLOWED_GAMEPLAY_SETTINGS.size, 26);
   });
 });
