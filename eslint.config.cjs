@@ -69,11 +69,13 @@ module.exports = [
   {
     files: [
       'tests/fetch-all-loop-guard.test.js',
+      'tests/map-overlay-scale.test.js',
+      'tests/map-overlay-typography.test.js',
       'tests/map-view-mascot-motion.test.js',
       'tests/motion-hooks.test.js',
+      'tests/pct-polygon.test.js',
+      'tests/qcm-feedback.test.js',
       'tests/visit-editorial-blocks.test.js',
-      'tests/fetch-all-loop-guard.test.js',
-      'tests/motion-hooks.test.js',
     ],
     languageOptions: {
       ecmaVersion: 2022,
