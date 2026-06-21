@@ -2,7 +2,11 @@ const express = require('express');
 const { queryAll, queryOne, withTransaction } = require('../../../database');
 const { requireGlPermission } = require('../../../middleware/requireGlAuth');
 const { getGameplaySettings } = require('../../../lib/glSettings');
-const { assignPlayerToTeamTx, unassignPlayerFromGameTx } = require('../../../lib/glRoster');
+const {
+  assignPlayerToTeamTx,
+  unassignPlayerFromGameTx,
+  autoAssignRosterTx,
+} = require('../../../lib/glRoster');
 const asyncHandler = require('../../../lib/asyncHandler');
 // O10 — resolveRosterError partagé via lib/gl/gamesRuntime.js (aussi utilisé par join-team dans gl/games.js).
 const { resolveRosterError } = require('../../../lib/gl/gamesRuntime');
@@ -75,6 +79,34 @@ router.post(
       throw err;
     }
     return res.json({ ok: true });
+  }),
+);
+
+router.post(
+  '/games/:id/roster/auto-assign',
+  requireGlPermission('gl.players.manage'),
+  asyncHandler(async (req, res) => {
+    const gameId = parseId(req.params.id);
+    if (!gameId) return res.status(400).json({ error: 'Identifiant de partie invalide' });
+    const mode = req.body?.mode === 'reset' ? 'reset' : 'fill';
+    let teamIds = null;
+    if (Array.isArray(req.body?.teamIds)) {
+      teamIds = req.body.teamIds.map(Number).filter((n) => Number.isFinite(n));
+    }
+    let result;
+    try {
+      result = await withTransaction(async (tx) =>
+        autoAssignRosterTx(tx, { gameId, mode, teamIds }),
+      );
+    } catch (err) {
+      if (err?.message === 'NO_TEAMS') {
+        return res.status(409).json({ error: 'Aucune équipe à remplir pour cette partie' });
+      }
+      const mapped = resolveRosterError(err);
+      if (mapped) return res.status(mapped.status).json({ error: mapped.error });
+      throw err;
+    }
+    return res.json({ ok: true, ...result });
   }),
 );
 
