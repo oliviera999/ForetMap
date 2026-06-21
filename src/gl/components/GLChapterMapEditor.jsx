@@ -76,7 +76,6 @@ export function GLChapterMapEditor({
   });
   const [editableMarkers, setEditableMarkers] = useState([]);
   const [dragState, setDragState] = useState(null);
-  const [saving, setSaving] = useState(false);
   const imageStyle = useMemo(
     () => glImageFrameToStyle(normalizeGlImageFrame(mapImageFrame, 'chapter-map')),
     [mapImageFrame],
@@ -206,7 +205,6 @@ export function GLChapterMapEditor({
     if (!chapterId) return markerDraft;
     const payload = toMarkerPayload(markerForm, eventDraft, appearanceForm);
     if (!payload.label) throw new Error('Le label du repère est requis');
-    setSaving(true);
     try {
       if (selectedMarkerId != null && !isAddMode) {
         await apiGL(`/api/gl/chapters/admin/markers/${selectedMarkerId}`, 'PUT', payload);
@@ -222,8 +220,6 @@ export function GLChapterMapEditor({
     } catch (err) {
       onError?.(err.message || 'Enregistrement du repère impossible');
       throw err;
-    } finally {
-      setSaving(false);
     }
   }, [
     chapterId,
