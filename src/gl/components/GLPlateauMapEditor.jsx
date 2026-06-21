@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { translateFeuilletZoneToPoint } from '../../shared/pct-map/pctPolygon.js';
 import { buildFeuilletZonesExportJson } from '../utils/glFeuilletZoneExport.js';
 import {
@@ -9,7 +9,17 @@ import { useGlPlateauClickPlacement } from '../hooks/useGlPlateauClickPlacement.
 import { GLFeuilletZoneOverlay } from './GLFeuilletZoneOverlay.jsx';
 import { GLButton } from './ui/GLButton.jsx';
 
-export function GLPlateauMapEditor({
+const GLPlateauMapEditorContext = createContext(null);
+
+function useGLPlateauMapEditorContext() {
+  const ctx = useContext(GLPlateauMapEditorContext);
+  if (!ctx) {
+    throw new Error('Composant plateau éditeur utilisé hors GLPlateauMapEditorProvider');
+  }
+  return ctx;
+}
+
+function useGLPlateauMapEditorState({
   zones = [],
   onZonesChange,
   markers = [],
@@ -186,7 +196,7 @@ export function GLPlateauMapEditor({
 
   const exportJson = useMemo(() => buildFeuilletZonesExportJson(zones), [zones]);
 
-  async function copyExport() {
+  const copyExport = useCallback(async () => {
     const text = JSON.stringify(exportJson, null, 1);
     try {
       await navigator.clipboard.writeText(text);
@@ -194,9 +204,9 @@ export function GLPlateauMapEditor({
     } catch {
       setInfo('Copie impossible — utilisez le téléchargement');
     }
-  }
+  }, [exportJson]);
 
-  function downloadExport() {
+  const downloadExport = useCallback(() => {
     const blob = new Blob([JSON.stringify(exportJson, null, 1)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
@@ -205,9 +215,56 @@ export function GLPlateauMapEditor({
     anchor.click();
     URL.revokeObjectURL(url);
     setInfo('Téléchargement lancé');
-  }
+  }, [exportJson]);
 
   const activeFeuilletZoneId = placement.selectedFeuilletZoneId ?? selectedZoneId;
+
+  return {
+    zones,
+    presentedZoneIds,
+    showMarkers,
+    showZones,
+    panelTitle,
+    plateauNumber,
+    displayMarkers,
+    zonesInDisplayOrder,
+    zoneNumbers,
+    selectedZone,
+    info,
+    markerInfo,
+    dragState,
+    activeFeuilletZoneId,
+    placement,
+    selectFeuilletZone,
+    selectMarker,
+    handlePointerDown,
+    handlePointerMove,
+    handlePointerUp,
+    copyExport,
+    downloadExport,
+  };
+}
+
+export function GLPlateauMapEditorProvider({ children, ...props }) {
+  const value = useGLPlateauMapEditorState(props);
+  return (
+    <GLPlateauMapEditorContext.Provider value={value}>{children}</GLPlateauMapEditorContext.Provider>
+  );
+}
+
+export function GLPlateauMapEditorMapLayer() {
+  const {
+    zones,
+    presentedZoneIds,
+    showZones,
+    zoneNumbers,
+    activeFeuilletZoneId,
+    dragState,
+    selectFeuilletZone,
+    handlePointerDown,
+    handlePointerMove,
+    handlePointerUp,
+  } = useGLPlateauMapEditorContext();
 
   return (
     <>
@@ -234,121 +291,158 @@ export function GLPlateauMapEditor({
           {zones.map((zone) => {
             const zoneNumber = zoneNumbers.get(String(zone.zoneId));
             return (
-            <button
-              key={`handle-${zone.zoneId}`}
-              type="button"
-              className={`gl-feuillet-zone-handle${activeFeuilletZoneId === zone.zoneId ? ' is-selected' : ''}`}
-              style={{
-                left: `${zone.centreXp}%`,
-                top: `${zone.centreYp}%`,
-              }}
-              title={
-                zoneNumber != null
-                  ? `Zone ${zoneNumber} — ${zone.titre || zone.zoneId}`
-                  : `${zone.zoneId} — ${zone.titre}`
-              }
-              aria-label={
-                zoneNumber != null
-                  ? `Déplacer zone ${zoneNumber} — ${zone.titre || zone.zoneId}`
-                  : `Déplacer ${zone.titre || zone.zoneId}`
-              }
-              onPointerDown={(event) => handlePointerDown(event, zone.zoneId)}
-            >
-              {zoneNumber != null ? (
-                <span className="gl-feuillet-zone-handle__number" aria-hidden>
-                  {zoneNumber}
-                </span>
-              ) : null}
-            </button>
+              <button
+                key={`handle-${zone.zoneId}`}
+                type="button"
+                className={`gl-feuillet-zone-handle${activeFeuilletZoneId === zone.zoneId ? ' is-selected' : ''}`}
+                style={{
+                  left: `${zone.centreXp}%`,
+                  top: `${zone.centreYp}%`,
+                }}
+                title={
+                  zoneNumber != null
+                    ? `Zone ${zoneNumber} — ${zone.titre || zone.zoneId}`
+                    : `${zone.zoneId} — ${zone.titre}`
+                }
+                aria-label={
+                  zoneNumber != null
+                    ? `Déplacer zone ${zoneNumber} — ${zone.titre || zone.zoneId}`
+                    : `Déplacer ${zone.titre || zone.zoneId}`
+                }
+                onPointerDown={(event) => handlePointerDown(event, zone.zoneId)}
+              >
+                {zoneNumber != null ? (
+                  <span className="gl-feuillet-zone-handle__number" aria-hidden>
+                    {zoneNumber}
+                  </span>
+                ) : null}
+              </button>
             );
           })}
         </div>
       ) : null}
+    </>
+  );
+}
 
-      <aside className="gl-plateau-edit-panel" aria-label={panelTitle}>
-        <h4>{panelTitle}</h4>
-        {plateauNumber ? (
-          <p className="gl-hint">
-            Plateau {plateauNumber}
-            {showZones ? ` — ${zones.length} zone(s)` : ''}
-            {showMarkers ? ` — ${displayMarkers.length} repère(s)` : ''}
-          </p>
-        ) : (
-          <p className="gl-hint">Configurez le numéro de plateau sur le chapitre.</p>
-        )}
+export function GLPlateauMapEditorPanel() {
+  const {
+    panelTitle,
+    plateauNumber,
+    zones,
+    showZones,
+    showMarkers,
+    displayMarkers,
+    zonesInDisplayOrder,
+    zoneNumbers,
+    presentedZoneIds,
+    activeFeuilletZoneId,
+    selectedZone,
+    info,
+    markerInfo,
+    placement,
+    selectFeuilletZone,
+    selectMarker,
+    copyExport,
+    downloadExport,
+  } = useGLPlateauMapEditorContext();
+
+  return (
+    <aside className="gl-plateau-edit-panel" aria-label={panelTitle}>
+      <h4>{panelTitle}</h4>
+      {plateauNumber ? (
         <p className="gl-hint">
-          Sélectionnez un élément puis cliquez sur la carte pour le déplacer.
+          Plateau {plateauNumber}
+          {showZones ? ` — ${zones.length} zone(s)` : ''}
+          {showMarkers ? ` — ${displayMarkers.length} repère(s)` : ''}
         </p>
-        {info ? <p className="gl-hint">{info}</p> : null}
-        {markerInfo ? <p className="gl-hint">{markerInfo}</p> : null}
+      ) : (
+        <p className="gl-hint">Configurez le numéro de plateau sur le chapitre.</p>
+      )}
+      <p className="gl-hint">Sélectionnez un élément puis cliquez sur la carte pour le déplacer.</p>
+      {info ? <p className="gl-hint">{info}</p> : null}
+      {markerInfo ? <p className="gl-hint">{markerInfo}</p> : null}
 
-        {showZones ? (
-          <>
-            <h5 className="gl-plateau-edit-panel__subtitle">Zones feuillets</h5>
-            <ul className="gl-plateau-edit-list">
-              {zonesInDisplayOrder.map((zone) => {
-                const isRead = presentedZoneIds.includes(zone.zoneId);
-                const zoneNumber = zoneNumbers.get(String(zone.zoneId));
-                return (
-                  <li key={zone.zoneId}>
-                    <button
-                      type="button"
-                      className={activeFeuilletZoneId === zone.zoneId ? 'is-active' : ''}
-                      onClick={() => selectFeuilletZone(zone.zoneId)}
-                    >
-                      {zoneNumber != null ? (
-                        <span className="gl-markers-list__path-number" aria-hidden>
-                          {zoneNumber}
-                        </span>
-                      ) : null}
-                      <span className="gl-plateau-edit-list__label">{zone.titre || zone.zoneId}</span>
-                      <span className="gl-plateau-edit-state">{isRead ? 'lue' : 'non lue'}</span>
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-            {selectedZone ? (
-              <p className="gl-hint gl-plateau-edit-coords">
-                {selectedZone.zoneId} — centre {selectedZone.centreXp.toFixed(2)} % /{' '}
-                {selectedZone.centreYp.toFixed(2)} %
-              </p>
-            ) : null}
-            <div className="gl-plateau-edit-actions">
-              <GLButton type="button" variant="secondary" onClick={copyExport}>
-                Copier JSON
-              </GLButton>
-              <GLButton type="button" onClick={downloadExport}>
-                Télécharger JSON
-              </GLButton>
-            </div>
-          </>
-        ) : null}
-
-        {showMarkers ? (
-          <>
-            <h5 className="gl-plateau-edit-panel__subtitle">Repères</h5>
-            <ul className="gl-plateau-edit-list">
-              {displayMarkers.map((marker) => (
-                <li key={marker.id}>
+      {showZones ? (
+        <>
+          <h5 className="gl-plateau-edit-panel__subtitle">Zones feuillets</h5>
+          <ul className="gl-plateau-edit-list">
+            {zonesInDisplayOrder.map((zone) => {
+              const isRead = presentedZoneIds.includes(zone.zoneId);
+              const zoneNumber = zoneNumbers.get(String(zone.zoneId));
+              return (
+                <li key={zone.zoneId}>
                   <button
                     type="button"
-                    className={
-                      Number(placement.selectedMarkerId) === Number(marker.id) ? 'is-active' : ''
-                    }
-                    onClick={() => selectMarker(marker.id)}
+                    className={activeFeuilletZoneId === zone.zoneId ? 'is-active' : ''}
+                    onClick={() => selectFeuilletZone(zone.zoneId)}
                   >
-                    <span>{marker.label || `Repère ${marker.id}`}</span>
-                    <span className="gl-plateau-edit-coords-inline">
-                      {Number(marker.x_pct).toFixed(1)} % / {Number(marker.y_pct).toFixed(1)} %
-                    </span>
+                    {zoneNumber != null ? (
+                      <span className="gl-markers-list__path-number" aria-hidden>
+                        {zoneNumber}
+                      </span>
+                    ) : null}
+                    <span className="gl-plateau-edit-list__label">{zone.titre || zone.zoneId}</span>
+                    <span className="gl-plateau-edit-state">{isRead ? 'lue' : 'non lue'}</span>
                   </button>
                 </li>
-              ))}
-            </ul>
-          </>
-        ) : null}
-      </aside>
-    </>
+              );
+            })}
+          </ul>
+          {selectedZone ? (
+            <p className="gl-hint gl-plateau-edit-coords">
+              {selectedZone.zoneId} — centre {selectedZone.centreXp.toFixed(2)} % /{' '}
+              {selectedZone.centreYp.toFixed(2)} %
+            </p>
+          ) : null}
+          <div className="gl-plateau-edit-actions">
+            <GLButton type="button" variant="secondary" onClick={copyExport}>
+              Copier JSON
+            </GLButton>
+            <GLButton type="button" onClick={downloadExport}>
+              Télécharger JSON
+            </GLButton>
+          </div>
+        </>
+      ) : null}
+
+      {showMarkers ? (
+        <>
+          <h5 className="gl-plateau-edit-panel__subtitle">Repères</h5>
+          <ul className="gl-plateau-edit-list">
+            {displayMarkers.map((marker) => (
+              <li key={marker.id}>
+                <button
+                  type="button"
+                  className={
+                    Number(placement.selectedMarkerId) === Number(marker.id) ? 'is-active' : ''
+                  }
+                  onClick={() => selectMarker(marker.id)}
+                >
+                  <span>{marker.label || `Repère ${marker.id}`}</span>
+                  <span className="gl-plateau-edit-coords-inline">
+                    {Number(marker.x_pct).toFixed(1)} % / {Number(marker.y_pct).toFixed(1)} %
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : null}
+    </aside>
+  );
+}
+
+/** Éditeur complet (calque carte + panneau sous la carte) — pratique pour les tests isolés. */
+export function GLPlateauMapEditor(props) {
+  return (
+    <GLPlateauMapEditorProvider {...props}>
+      <div className="gl-plateau-map-editor">
+        <div className="gl-plateau-map-editor__map-slot">
+          <GLPlateauMapEditorMapLayer />
+        </div>
+        <GLPlateauMapEditorPanel />
+      </div>
+    </GLPlateauMapEditorProvider>
   );
 }

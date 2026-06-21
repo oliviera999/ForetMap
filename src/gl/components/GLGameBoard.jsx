@@ -18,7 +18,11 @@ import { GLZoneContentPopover } from './GLZoneContentPopover.jsx';
 import { GLFeuilletDiscoveryPopover } from './GLFeuilletDiscoveryPopover.jsx';
 import { GLFeuilletPopover } from './GLFeuilletPopover.jsx';
 import { GLFeuilletZoneOverlay } from './GLFeuilletZoneOverlay.jsx';
-import { GLPlateauMapEditor } from './GLPlateauMapEditor.jsx';
+import {
+  GLPlateauMapEditorMapLayer,
+  GLPlateauMapEditorPanel,
+  GLPlateauMapEditorProvider,
+} from './GLPlateauMapEditor.jsx';
 import { apiGL } from '../services/apiGL.js';
 import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion.js';
 import { GLBoardChrome } from './GLBoardChrome.jsx';
@@ -129,7 +133,7 @@ export function GLGameBoard({
     enabled: Boolean(gameId && watchTeamId != null && markerArrivalEnabled),
   });
 
-  const { getPositionForTeam, getMotionForTeam, moveTeamTo } = useGLBoardMascotMotion({
+  const { getPositionForTeam, getMotionForTeam, moveTeamTo, moveTeamAlongPath } = useGLBoardMascotMotion({
     teams,
     boardHeightPx,
     prefersReducedMotion,
@@ -335,10 +339,11 @@ export function GLGameBoard({
         markerArrivalEnabled,
       });
       if (plan && onDiceRollResult) {
-        moveTeamTo(plan.teamId, Number(plan.marker.x_pct), Number(plan.marker.y_pct), {
-          triggerHappy: true,
-          arrival: 'marker',
-        });
+        const waypoints =
+          Array.isArray(plan.waypoints) && plan.waypoints.length > 0
+            ? plan.waypoints
+            : [plan.marker];
+        await moveTeamAlongPath(plan.teamId, waypoints, { triggerHappy: true });
         if (plan.shouldPresent) {
           schedulePresentOnArrival(plan.marker, plan.teamId, { force: true });
         }
@@ -352,7 +357,7 @@ export function GLGameBoard({
       onDiceRollResult,
       resolveActiveTeamId,
       markerArrivalEnabled,
-      moveTeamTo,
+      moveTeamAlongPath,
       schedulePresentOnArrival,
     ],
   );
@@ -397,122 +402,141 @@ export function GLGameBoard({
     : 'gl-board-shell';
   const boardClass = mapFullscreen ? 'gl-board gl-board--fullscreen' : 'gl-board';
 
+  const plateauEditorProps = {
+    zones: editZones,
+    onZonesChange: setEditZones,
+    markers: editableMarkers,
+    editableMarkers,
+    onEditableMarkersChange: setEditableMarkers,
+    onMarkerSave: handleMarkerPositionSave,
+    presentedZoneIds: presentedFeuilletZoneIds,
+    mapGestures,
+    plateauNumber,
+    showMarkers: true,
+    showZones: true,
+    panelTitle: 'Édition plateau',
+    onPlacementReady: handlePlateauPlacementReady,
+  };
+
+  const boardMapOverlays = (
+    <>
+      {feuilletZoneEditMode ? (
+        <GLPlateauMapEditorMapLayer />
+      ) : displayFeuilletZones ? (
+        <GLFeuilletZoneOverlay
+          zones={activeFeuilletZones}
+          presentedZoneIds={presentedFeuilletZoneIds}
+          watchPosition={watchPosition}
+        />
+      ) : null}
+
+      {displayMarkers ? (
+        <GLBoardMarkers
+          markers={feuilletZoneEditMode ? editableMarkers : markers}
+          selectedMarkerId={feuilletZoneEditMode ? plateauPlacement.selectedMarkerId : null}
+          markerPathNumbers={markerPathNumbers}
+          onMarkerClick={
+            feuilletZoneEditMode
+              ? (marker) => plateauPlacement.selectMarker?.(marker.id)
+              : handleMarkerClick
+          }
+        />
+      ) : null}
+
+      {teamList.map((team) => {
+        const position = getPositionForTeam(team.id);
+        const motion = getMotionForTeam(team.id);
+        const mascotState = mascotStateMachine?.getStateForTeam?.(team.id);
+        return (
+          <GLBoardMascot
+            key={`mascot-${team.id}`}
+            team={team}
+            position={position}
+            motion={motion}
+            mascotState={mascotState}
+            prefersReducedMotion={prefersReducedMotion}
+            zIndex={
+              6 + (selectedTeamId != null && Number(selectedTeamId) === Number(team.id) ? 2 : 0)
+            }
+          />
+        );
+      })}
+
+      {teamList.map((team) => {
+        const position = getPositionForTeam(team.id);
+        const isSelected = selectedTeamId != null && Number(selectedTeamId) === Number(team.id);
+        const isCurrentTurn = currentTeamId != null && Number(currentTeamId) === Number(team.id);
+        const classes = ['gl-board-team-pin'];
+        if (isSelected) classes.push('is-selected');
+        if (isCurrentTurn) classes.push('is-current-turn');
+        return (
+          <button
+            key={`pin-${team.id}`}
+            type="button"
+            className={classes.join(' ')}
+            style={{
+              left: `${position.xp}%`,
+              top: `${position.yp}%`,
+              '--gl-team-color': team.color || '#22c55e',
+            }}
+            title={team.name}
+            aria-selected={isSelected}
+            data-team-id={team.id}
+            data-team-mascot={team.mascot_id || ''}
+            onClick={(event) => {
+              event.stopPropagation();
+              onSelectTeam?.(Number(team.id));
+            }}
+          >
+            <span className="gl-board-team-pin-label">{team.name}</span>
+          </button>
+        );
+      })}
+    </>
+  );
+
+  const boardMapCanvas = (
+    <GLPctMapCanvas
+      imageUrl={imageUrl}
+      imageAlt={chapter?.title || 'Carte du chapitre'}
+      mapGestures={mapGestures}
+      className={boardClass}
+      cursor={feuilletZoneEditMode ? plateauPlacement.mapCursor : undefined}
+      onFitLayout={({ height }) => {
+        if (!Number.isFinite(height) || height <= 0) return;
+        boardHeightPxRef.current = height;
+        setBoardHeightPx(height);
+      }}
+      onMapPointerDown={() => onZoneMusicUnlock?.()}
+      onMapClick={(pct, event) => {
+        onZoneMusicUnlock?.();
+        if (feuilletZoneEditMode) {
+          plateauPlacement.handleMapClick?.(pct, event);
+          return;
+        }
+        if (!canMoveMascot) return;
+        const clamped = clampMapMascotPctForViewport(pct.x, pct.y, boardHeightPxRef.current);
+        handleBoardMove(clamped.xp, clamped.yp);
+      }}
+    >
+      {boardMapOverlays}
+    </GLPctMapCanvas>
+  );
+
   const boardShell = (
     <div
       ref={boardShellRef}
       className={boardShellClass}
       data-testid={mapFullscreen ? 'gl-map-fullscreen-layer' : undefined}
     >
-      <GLPctMapCanvas
-        imageUrl={imageUrl}
-        imageAlt={chapter?.title || 'Carte du chapitre'}
-        mapGestures={mapGestures}
-        className={boardClass}
-        cursor={feuilletZoneEditMode ? plateauPlacement.mapCursor : undefined}
-        onFitLayout={({ height }) => {
-          if (!Number.isFinite(height) || height <= 0) return;
-          boardHeightPxRef.current = height;
-          setBoardHeightPx(height);
-        }}
-        onMapPointerDown={() => onZoneMusicUnlock?.()}
-        onMapClick={(pct, event) => {
-          onZoneMusicUnlock?.();
-          if (feuilletZoneEditMode) {
-            plateauPlacement.handleMapClick?.(pct, event);
-            return;
-          }
-          if (!canMoveMascot) return;
-          const clamped = clampMapMascotPctForViewport(pct.x, pct.y, boardHeightPxRef.current);
-          handleBoardMove(clamped.xp, clamped.yp);
-        }}
-      >
-        {feuilletZoneEditMode ? (
-          <GLPlateauMapEditor
-            zones={editZones}
-            onZonesChange={setEditZones}
-            markers={editableMarkers}
-            editableMarkers={editableMarkers}
-            onEditableMarkersChange={setEditableMarkers}
-            onMarkerSave={handleMarkerPositionSave}
-            presentedZoneIds={presentedFeuilletZoneIds}
-            mapGestures={mapGestures}
-            plateauNumber={plateauNumber}
-            showMarkers
-            showZones
-            panelTitle="Édition plateau"
-            onPlacementReady={handlePlateauPlacementReady}
-          />
-        ) : displayFeuilletZones ? (
-          <GLFeuilletZoneOverlay
-            zones={activeFeuilletZones}
-            presentedZoneIds={presentedFeuilletZoneIds}
-            watchPosition={watchPosition}
-          />
-        ) : null}
-
-        {displayMarkers ? (
-          <GLBoardMarkers
-            markers={feuilletZoneEditMode ? editableMarkers : markers}
-            selectedMarkerId={feuilletZoneEditMode ? plateauPlacement.selectedMarkerId : null}
-            markerPathNumbers={markerPathNumbers}
-            onMarkerClick={
-              feuilletZoneEditMode
-                ? (marker) => plateauPlacement.selectMarker?.(marker.id)
-                : handleMarkerClick
-            }
-          />
-        ) : null}
-
-        {teamList.map((team) => {
-          const position = getPositionForTeam(team.id);
-          const motion = getMotionForTeam(team.id);
-          const mascotState = mascotStateMachine?.getStateForTeam?.(team.id);
-          return (
-            <GLBoardMascot
-              key={`mascot-${team.id}`}
-              team={team}
-              position={position}
-              motion={motion}
-              mascotState={mascotState}
-              prefersReducedMotion={prefersReducedMotion}
-              zIndex={
-                6 + (selectedTeamId != null && Number(selectedTeamId) === Number(team.id) ? 2 : 0)
-              }
-            />
-          );
-        })}
-
-        {teamList.map((team) => {
-          const position = getPositionForTeam(team.id);
-          const isSelected = selectedTeamId != null && Number(selectedTeamId) === Number(team.id);
-          const isCurrentTurn = currentTeamId != null && Number(currentTeamId) === Number(team.id);
-          const classes = ['gl-board-team-pin'];
-          if (isSelected) classes.push('is-selected');
-          if (isCurrentTurn) classes.push('is-current-turn');
-          return (
-            <button
-              key={`pin-${team.id}`}
-              type="button"
-              className={classes.join(' ')}
-              style={{
-                left: `${position.xp}%`,
-                top: `${position.yp}%`,
-                '--gl-team-color': team.color || '#22c55e',
-              }}
-              title={team.name}
-              aria-selected={isSelected}
-              data-team-id={team.id}
-              data-team-mascot={team.mascot_id || ''}
-              onClick={(event) => {
-                event.stopPropagation();
-                onSelectTeam?.(Number(team.id));
-              }}
-            >
-              <span className="gl-board-team-pin-label">{team.name}</span>
-            </button>
-          );
-        })}
-      </GLPctMapCanvas>
+      {feuilletZoneEditMode ? (
+        <GLPlateauMapEditorProvider {...plateauEditorProps}>
+          {boardMapCanvas}
+          <GLPlateauMapEditorPanel />
+        </GLPlateauMapEditorProvider>
+      ) : (
+        boardMapCanvas
+      )}
 
       <GLBoardChrome
         mapFullscreen={mapFullscreen}

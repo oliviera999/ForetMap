@@ -2,7 +2,11 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { getRuntimeFeuilletZonesForPlateau } from '../data/glFeuilletZonesBundle.js';
 import { useGlPctMapGestures } from '../hooks/useGlPctMapGestures.js';
 import { GLPctMapCanvas } from './GLPctMapCanvas.jsx';
-import { GLPlateauMapEditor } from './GLPlateauMapEditor.jsx';
+import {
+  GLPlateauMapEditorMapLayer,
+  GLPlateauMapEditorPanel,
+  GLPlateauMapEditorProvider,
+} from './GLPlateauMapEditor.jsx';
 import { plateauBoardImg, GL_ASSET_PLACEHOLDER_URL } from '../assets/index.js';
 import { resolveGlBoardImageUrl } from '../utils/glLegacyMediaUrl.js';
 import { useGlAssetsReady } from './GLFeuilletIllustration.jsx';
@@ -61,25 +65,28 @@ export function GLFeuilletZonePlateauPanel({
 
   return (
     <section className="gl-feuillet-zone-plateau-panel">
-      <GLPctMapCanvas
-        imageUrl={imageUrl}
-        imageAlt={`Plateau ${plateauNumber} — zones feuillets`}
+      <GLPlateauMapEditorProvider
+        zones={zones}
+        onZonesChange={setZones}
         mapGestures={mapGestures}
-        className="gl-board gl-feuillet-zone-plateau-panel__canvas"
-        cursor={placementHandlers.mapCursor}
-        onMapClick={(pct, event) => placementHandlers.handleMapClick?.(pct, event)}
+        plateauNumber={plateauNumber}
+        showMarkers={false}
+        showZones
+        panelTitle="Zones feuillets — édition"
+        onPlacementReady={handlePlacementReady}
       >
-        <GLPlateauMapEditor
-          zones={zones}
-          onZonesChange={setZones}
+        <GLPctMapCanvas
+          imageUrl={imageUrl}
+          imageAlt={`Plateau ${plateauNumber} — zones feuillets`}
           mapGestures={mapGestures}
-          plateauNumber={plateauNumber}
-          showMarkers={false}
-          showZones
-          panelTitle="Zones feuillets — édition"
-          onPlacementReady={handlePlacementReady}
-        />
-      </GLPctMapCanvas>
+          className="gl-board gl-feuillet-zone-plateau-panel__canvas"
+          cursor={placementHandlers.mapCursor}
+          onMapClick={(pct, event) => placementHandlers.handleMapClick?.(pct, event)}
+        >
+          <GLPlateauMapEditorMapLayer />
+        </GLPctMapCanvas>
+        <GLPlateauMapEditorPanel />
+      </GLPlateauMapEditorProvider>
     </section>
   );
 }

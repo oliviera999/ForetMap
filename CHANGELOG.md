@@ -7,6 +7,11 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### GL — panneau édition zones feuillets sous la carte
+
+- **fix(gl)** : le panneau de configuration (liste zones/repères, export JSON) s’affiche sous la carte au lieu d’un overlay `position: fixed` qui se déplaçait de façon incohérente (admin chapitres et mode debug `?editPlateau=1`).
+- **Refactor** : `GLPlateauMapEditor` scindé en `Provider` / `MapLayer` / `Panel`.
+
 ### Visite — correctifs onglet Packs mascotte
 
 - **fix** : garde anti-perte des modifications (Actualiser, changement de carte, navigation onglet prof, draft JSON non appliqué, suppression).
