@@ -5,6 +5,7 @@ on:
     branches: [main, master]
   pull_request:
     branches: [main, master]
+  workflow_dispatch:
 
 jobs:
   # Lint / format / tests UI : aucun besoin de MySQL → job parallèle sans service,
