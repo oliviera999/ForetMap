@@ -7,6 +7,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### GL — panneau équipes/joueurs sur la carte
+
+- **API** : `GET /api/gl/games/:id` inclut `roster` (joueurs assignés par équipe ; `healthPoints` / `powerPoints` si vitalité active).
+- **UI** : panneau latéral responsive (droite desktop, dessous mobile) sur l’onglet Cartes — noms, ❤️/💎, badge « Tour », joueur courant mis en évidence ; masqué en plein écran.
+- **Correctif** : `toGameViewModel` préserve `vitality` (top bar joueur).
+- **Tests** : `tests/gl-games-roster.test.js`, `tests-ui/gl/GLGameBoardRoster.test.jsx`, `buildMapRosterGroups.test.js`, e2e `gl-game-flow.spec.js`.
+- **Doc** : `docs/API.md`.
+
 ### Studio Packs mascotte — sprites site, export et aperçu
 
 - **API** : `DELETE /api/visit/mascot-assets/public` — suppression des fichiers statiques sous `public/assets/mascots/` (auth `visit.manage` + élévation PIN).

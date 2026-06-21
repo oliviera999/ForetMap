@@ -21,7 +21,7 @@ function MarkerVisual({ appearance, label, resolveIconUrl }) {
 
   if (appearance.displayMode === 'emoji' && appearance.emoji) {
     return (
-      <span className="gl-board-marker__emoji foretmap-emoji-text-mixed" aria-hidden>
+      <span className="gl-board-marker__emoji" aria-hidden>
         {appearance.emoji}
       </span>
     );
