@@ -24,9 +24,9 @@ describe('PackBehaviorDetailTable', () => {
     // En-tête métadonnées : framesBase + dimensions + silhouette
     expect(screen.getByText('framesBase')).toBeTruthy();
     expect(screen.getByText(/\/assets\/mascots\/demo\/frames/)).toBeTruthy();
-    // Une ligne <code> par état, triées alphabétiquement.
-    expect(screen.getByText('idle')).toBeTruthy();
-    expect(screen.getByText('walking')).toBeTruthy();
+    // Une ligne par état (libellé humain + clé entre parenthèses), triées alphabétiquement.
+    expect(screen.getByText('(idle)')).toBeTruthy();
+    expect(screen.getByText('(walking)')).toBeTruthy();
     // En-têtes du tableau présents.
     expect(screen.getByText('Durée estimée')).toBeTruthy();
     expect(screen.getByText('frameDwellMs')).toBeTruthy();
@@ -40,7 +40,7 @@ describe('PackBehaviorDetailTable', () => {
 
   test('le nombre d’images reflète les frames de l’état', () => {
     render(<PackBehaviorDetailTable pack={VALID_PACK} />);
-    const idleRow = screen.getByText('idle').closest('tr');
+    const idleRow = screen.getByText('(idle)').closest('tr');
     expect(idleRow.textContent).toContain('2');
   });
 });

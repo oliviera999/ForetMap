@@ -1,11 +1,43 @@
 'use strict';
 
 const express = require('express');
-const { queryAll, queryOne } = require('../database');
+const { queryAll, queryOne, execute } = require('../database');
 const asyncHandler = require('../lib/asyncHandler');
 const { z, validate } = require('../lib/validate');
+const { requirePermission } = require('../middleware/requireTeacher');
+const { INTERACTION_TYPES, makeFoodWebStore } = require('../lib/shared/foodWebCore');
 
 const router = express.Router();
+
+/** Magasin CRUD ForetMap (plantes) bâti sur le noyau partagé. */
+const foodWebStore = makeFoodWebStore(
+  { queryOne, execute },
+  {
+    table: 'species_interactions',
+    fromCol: 'from_plant_id',
+    toCol: 'to_plant_id',
+    refTable: 'plants',
+  },
+);
+
+/** Recharge une interaction enrichie (noms/emoji) via la vue de lecture. */
+async function loadEnrichedInteraction(id) {
+  return queryOne(
+    `SELECT id, interaction_type, from_id, from_name, from_emoji,
+            to_id, to_name, to_emoji, description
+       FROM v_food_web WHERE id = ? LIMIT 1`,
+    [id],
+  );
+}
+
+/** Mappe un résultat du noyau ({ ok, status, error }) vers une réponse HTTP. */
+async function respondFromStoreResult(res, result, successStatus) {
+  if (!result.ok) {
+    return res.status(result.status).json({ error: result.error });
+  }
+  const enriched = result.row ? await loadEnrichedInteraction(result.row.id) : null;
+  return res.status(successStatus).json({ interaction: enriched || result.row });
+}
 
 const interactionIdParamsSchema = z.unknown().superRefine((p, ctx) => {
   const id = Number(p == null ? NaN : p.id);
@@ -81,6 +113,44 @@ router.get(
     );
 
     return res.json({ interactionId, terms });
+  }),
+);
+
+/** GET /api/food-web/interaction-types — catalogue des types (pour l'éditeur). */
+router.get('/interaction-types', (req, res) => {
+  res.json({ types: INTERACTION_TYPES });
+});
+
+/** POST /api/food-web/interactions — créer une interaction (admin biodiversité). */
+router.post(
+  '/interactions',
+  requirePermission('plants.manage', { needsElevation: true }),
+  asyncHandler(async (req, res) => {
+    const result = await foodWebStore.create(req.body || {});
+    return respondFromStoreResult(res, result, 201);
+  }),
+);
+
+/** PUT /api/food-web/interactions/:id — modifier une interaction. */
+router.put(
+  '/interactions/:id',
+  requirePermission('plants.manage', { needsElevation: true }),
+  validate({ params: interactionIdParamsSchema }),
+  asyncHandler(async (req, res) => {
+    const result = await foodWebStore.update(Number(req.params.id), req.body || {});
+    return respondFromStoreResult(res, result, 200);
+  }),
+);
+
+/** DELETE /api/food-web/interactions/:id — supprimer une interaction. */
+router.delete(
+  '/interactions/:id',
+  requirePermission('plants.manage', { needsElevation: true }),
+  validate({ params: interactionIdParamsSchema }),
+  asyncHandler(async (req, res) => {
+    const result = await foodWebStore.remove(Number(req.params.id));
+    if (!result.ok) return res.status(result.status).json({ error: result.error });
+    return res.json({ success: true });
   }),
 );
 

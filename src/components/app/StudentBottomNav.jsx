@@ -82,6 +82,13 @@ export function StudentBottomNav({
       >
         <span className="nav-icon">📖</span> Glossaire
       </button>
+      <button
+        className={`nav-btn ${tab === 'foodweb' ? 'active' : ''}`}
+        type="button"
+        onClick={() => onTabChange('foodweb')}
+      >
+        <span className="nav-icon">🕸️</span> Réseau
+      </button>
       {tutorialsModuleEnabled && !mergeTasksTutoNav && (
         <button
           className={`nav-btn ${tab === 'tuto' ? 'active' : ''}`}

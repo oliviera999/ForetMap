@@ -80,7 +80,7 @@ describe('zoneDuplicateCreatePayloadFromZone', () => {
     expect(payload.points[0]).toEqual({ x: 8, y: 8 });
     expect(payload.popoverMarkdown).toBe('Texte');
     expect(payload.popoverImages).toHaveLength(1);
-    expect(payload.musicUrl).toBe('/audio.mp3');
+    expect(payload.musicUrls).toEqual(['/audio.mp3']);
     expect(payload.musicVolume).toBe(0.5);
   });
 });
