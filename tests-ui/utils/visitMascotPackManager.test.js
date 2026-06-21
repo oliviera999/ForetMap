@@ -169,8 +169,20 @@ describe('buildUnifiedMascotImageEntries', () => {
       libAssets: [],
       globalAssets: [
         { id: '1', source: 'public', filename: 'a.png', url: '/assets/mascots/a.png' },
-        { id: '2', source: 'pack', filename: 'b.png', url: '/api/visit/mascot-packs/x/assets/b.png', pack_id: 'x' },
-        { id: '3', source: 'library', filename: 'c.png', url: '/api/visit/mascot-sprite-library/foret/assets/c.png', map_id: 'foret' },
+        {
+          id: '2',
+          source: 'pack',
+          filename: 'b.png',
+          url: '/api/visit/mascot-packs/x/assets/b.png',
+          pack_id: 'x',
+        },
+        {
+          id: '3',
+          source: 'library',
+          filename: 'c.png',
+          url: '/api/visit/mascot-sprite-library/foret/assets/c.png',
+          map_id: 'foret',
+        },
       ],
       packUuid: '00000000-0000-4000-8000-000000000001',
       mapId: 'foret',

@@ -8,28 +8,28 @@ function joinClassNames(...parts) {
  * Bouton d'action superposé à la carte plateau GL.
  * Rôles : primary (gameplay), display (plein écran), tool (dés, musique).
  */
-export const GLBoardActionButton = forwardRef(function GLBoardActionButton({
-  role = 'tool',
-  active = false,
-  muted = false,
-  icon = null,
-  label,
-  labelShort = null,
-  testId,
-  title,
-  ariaLabel,
-  ariaExpanded,
-  ariaPressed,
-  ariaHaspopup,
-  className = '',
-  children,
-  ...props
-}, ref) {
+export const GLBoardActionButton = forwardRef(function GLBoardActionButton(
+  {
+    role = 'tool',
+    active = false,
+    muted = false,
+    icon = null,
+    label,
+    labelShort = null,
+    testId,
+    title,
+    ariaLabel,
+    ariaExpanded,
+    ariaPressed,
+    ariaHaspopup,
+    className = '',
+    children,
+    ...props
+  },
+  ref,
+) {
   const roleClass = `gl-board-action--${role}`;
-  const stateClasses = [
-    active ? 'is-active' : '',
-    muted ? 'is-muted' : '',
-  ].filter(Boolean);
+  const stateClasses = [active ? 'is-active' : '', muted ? 'is-muted' : ''].filter(Boolean);
 
   return (
     <button
@@ -52,7 +52,9 @@ export const GLBoardActionButton = forwardRef(function GLBoardActionButton({
       {children ?? (
         <>
           {labelShort ? (
-            <span className="gl-board-action__label gl-board-action__label--short">{labelShort}</span>
+            <span className="gl-board-action__label gl-board-action__label--short">
+              {labelShort}
+            </span>
           ) : null}
           {label ? (
             <span

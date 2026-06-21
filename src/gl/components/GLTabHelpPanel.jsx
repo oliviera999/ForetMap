@@ -7,7 +7,5 @@ import { useGlHelpContent } from '../hooks/useGlHelpContent.js';
 export function GLTabHelpPanel({ tab, defaultOpen = false }) {
   const helpKey = `tab:${tab}`;
   const { title, body } = useGlHelpContent(helpKey);
-  return (
-    <GLHelpPanel helpKey={helpKey} title={title} body={body} defaultOpen={defaultOpen} />
-  );
+  return <GLHelpPanel helpKey={helpKey} title={title} body={body} defaultOpen={defaultOpen} />;
 }

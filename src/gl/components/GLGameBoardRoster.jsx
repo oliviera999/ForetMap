@@ -72,8 +72,7 @@ export function GLGameBoardRoster({
               ) : (
                 <ul className="gl-map-roster-group__players">
                   {group.players.map((player) => {
-                    const isSelf =
-                      playerId != null && Number(playerId) === Number(player.playerId);
+                    const isSelf = playerId != null && Number(playerId) === Number(player.playerId);
                     const vitality = resolvePlayerVitality(
                       player,
                       vitalityEnabled,

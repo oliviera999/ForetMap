@@ -47,9 +47,7 @@ function buildGlAuthFromClaims(claims) {
 
 function passwordResetBlocked(glAuth, req) {
   return (
-    glAuth.userType === 'gl_player' &&
-    glAuth.passwordMustReset &&
-    !allowsPasswordResetRoute(req)
+    glAuth.userType === 'gl_player' && glAuth.passwordMustReset && !allowsPasswordResetRoute(req)
   );
 }
 

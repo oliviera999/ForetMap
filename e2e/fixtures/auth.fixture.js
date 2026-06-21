@@ -285,7 +285,9 @@ async function disableTeacherMode(page) {
     await page
       .waitForFunction(
         () => {
-          const btn = document.querySelector('header button.lock-btn[aria-label*="droits étendus"]');
+          const btn = document.querySelector(
+            'header button.lock-btn[aria-label*="droits étendus"]',
+          );
           if (!btn) return false;
           const aria = String(btn.getAttribute('aria-label') || '');
           return aria.includes('Activer');
@@ -537,7 +539,12 @@ async function openFirstZoneModalFromMap(page) {
         );
       });
     }
-    if (await zoneDlg.waitFor({ state: 'visible', timeout: 2_500 }).then(() => true).catch(() => false)) {
+    if (
+      await zoneDlg
+        .waitFor({ state: 'visible', timeout: 2_500 })
+        .then(() => true)
+        .catch(() => false)
+    ) {
       return;
     }
     await page.keyboard.press('Escape');
@@ -959,9 +966,11 @@ async function expectTaskCardWithTitle(page, taskTitle) {
 
 /** Soumet le formulaire « Nouvelle tâche » / proposition (évite scrollIntoView instable sur long formulaire). */
 async function submitTaskFormDialog(page) {
-  const dlg = page.locator(
-    '[role="dialog"][aria-label="Nouvelle tâche"], [role="dialog"][aria-label="Dupliquer la tâche"], [role="dialog"][aria-label="Modifier la tâche"], [role="dialog"][aria-label="Proposer une tâche"]',
-  ).first();
+  const dlg = page
+    .locator(
+      '[role="dialog"][aria-label="Nouvelle tâche"], [role="dialog"][aria-label="Dupliquer la tâche"], [role="dialog"][aria-label="Modifier la tâche"], [role="dialog"][aria-label="Proposer une tâche"]',
+    )
+    .first();
   await dlg.waitFor({ state: 'visible', timeout: 35_000 });
   const createResp = page.waitForResponse(isTaskCreateHttpResponse, { timeout: 60_000 });
   /* Un seul `btn-full` primaire en bas de modale ; `force` évite les blocages « scroll / stable » Playwright. */
@@ -1049,9 +1058,11 @@ async function clickTeacherNewTask(page) {
     await enableTeacherMode(page);
   }
   await openTeacherTasksTab(page);
-  const dlg = page.locator(
-    '[role="dialog"][aria-label="Nouvelle tâche"], [role="dialog"][aria-label="Dupliquer la tâche"], [role="dialog"][aria-label="Modifier la tâche"], [role="dialog"][aria-label="Proposer une tâche"]',
-  ).first();
+  const dlg = page
+    .locator(
+      '[role="dialog"][aria-label="Nouvelle tâche"], [role="dialog"][aria-label="Dupliquer la tâche"], [role="dialog"][aria-label="Modifier la tâche"], [role="dialog"][aria-label="Proposer une tâche"]',
+    )
+    .first();
   if (await dlg.isVisible().catch(() => false)) return;
   const btn = teacherNewTaskButton(page);
   await btn.waitFor({ state: 'attached', timeout: 120_000 });

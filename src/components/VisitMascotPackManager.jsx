@@ -1,7 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { api, AccountDeletedError } from '../services/api';
 import MascotPackWysiwygEditor from './MascotPackWysiwygEditor.jsx';
-import { clonePackDeep, parsePackJson, stringifyPack, ensureServerFramesBase } from '../utils/mascotPackEditorModel.js';
+import {
+  clonePackDeep,
+  parsePackJson,
+  stringifyPack,
+  ensureServerFramesBase,
+} from '../utils/mascotPackEditorModel.js';
 import { sanitizeClientFilename } from '../utils/mascotPackEditorFrames.js';
 import {
   getPackStrictValidation,
@@ -29,8 +34,7 @@ import { downloadApiFile } from '../utils/downloadApiFile.js';
 
 import { STATE_LABELS } from '../constants/mascotStateLabels.js';
 
-const UNSAVED_LEAVE_MSG =
-  'Des modifications ne sont pas enregistrées. Quitter sans enregistrer ?';
+const UNSAVED_LEAVE_MSG = 'Des modifications ne sont pas enregistrées. Quitter sans enregistrer ?';
 
 const RIGHT_TABS = [
   { id: 'workspace', label: 'Édition guidée' },
@@ -890,7 +894,10 @@ export default function VisitMascotPackManager({
             actionError={actionError}
             actionIssues={actionIssues}
           />
-          <div style={{ flex: '1 1 420px', minWidth: 300 }} className="visit-mascot-pack-manager__main">
+          <div
+            style={{ flex: '1 1 420px', minWidth: 300 }}
+            className="visit-mascot-pack-manager__main"
+          >
             {!selectedId ? (
               <div className="section-sub" role="tabpanel" id="mascot-pack-tabpanel-empty">
                 <p style={{ marginTop: 0 }}>
@@ -1047,11 +1054,11 @@ export default function VisitMascotPackManager({
                     id="mascot-pack-tabpanel-interaction"
                     aria-labelledby="mascot-pack-tab-interaction"
                   >
-                  <MascotInteractionProfileEditor
-                    pack={editorPack}
-                    onUpgradeToV2={() => upgradePackToV2('interaction')}
-                    onPatchRule={patchInteractionRule}
-                  />
+                    <MascotInteractionProfileEditor
+                      pack={editorPack}
+                      onUpgradeToV2={() => upgradePackToV2('interaction')}
+                      onPatchRule={patchInteractionRule}
+                    />
                   </div>
                 ) : null}
                 {editorTab === 'dialog' ? (
@@ -1092,15 +1099,15 @@ export default function VisitMascotPackManager({
                     id="mascot-pack-tabpanel-preview"
                     aria-labelledby="mascot-pack-tab-preview"
                   >
-                  <VisitMascotStudioPreviewSection
-                    packs={packs}
-                    mapId={String(mapId || '')}
-                    onForceLogout={onForceLogout}
-                    selectedPackId={selectedId}
-                    selectedPackCatalogId={selectedRow?.catalog_id || ''}
-                    selectedPackLabel={labelDraft || selectedRow?.label || ''}
-                    editorPack={editorPack}
-                  />
+                    <VisitMascotStudioPreviewSection
+                      packs={packs}
+                      mapId={String(mapId || '')}
+                      onForceLogout={onForceLogout}
+                      selectedPackId={selectedId}
+                      selectedPackCatalogId={selectedRow?.catalog_id || ''}
+                      selectedPackLabel={labelDraft || selectedRow?.label || ''}
+                      editorPack={editorPack}
+                    />
                   </div>
                 ) : null}
               </>

@@ -114,7 +114,11 @@ export function ForumPostCard({
                 placeholder="Motif de signalement"
                 maxLength={500}
               />
-              <button type="button" className="btn btn-secondary btn-sm" onClick={() => onReport(p.id)}>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => onReport(p.id)}
+              >
                 Signaler
               </button>
             </>

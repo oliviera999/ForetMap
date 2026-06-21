@@ -18,8 +18,7 @@ export function parseChapterMapVisibilityOverride(value) {
 
 export function readPlatformPlateauMarkersVisible(gameplaySettings = {}) {
   const raw =
-    gameplaySettings.plateauMarkersVisible ??
-    gameplaySettings['gameplay.plateau_markers_visible'];
+    gameplaySettings.plateauMarkersVisible ?? gameplaySettings['gameplay.plateau_markers_visible'];
   if (raw == null) return DEFAULT_PLATEAU_MAP_VISIBILITY.markersVisible;
   return raw === true || raw === 'true';
 }

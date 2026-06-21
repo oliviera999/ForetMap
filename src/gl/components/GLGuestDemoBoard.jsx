@@ -240,8 +240,8 @@ export function GLGuestDemoBoard({ onExitGuest, brandThemeStyle = null }) {
           </header>
           <div className="gl-feui-discovery__body">
             <p>
-              Tu as goûté au début de l’aventure. Crée ton compte pour franchir le seuil et poursuivre
-              l’histoire avec ta classe.
+              Tu as goûté au début de l’aventure. Crée ton compte pour franchir le seuil et
+              poursuivre l’histoire avec ta classe.
             </p>
           </div>
           <footer className="gl-feui-discovery__foot">

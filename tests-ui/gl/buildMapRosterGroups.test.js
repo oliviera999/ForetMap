@@ -7,9 +7,7 @@ describe('buildMapRosterGroups', () => {
       { id: 1, name: 'Gnomes', color: '#22c55e' },
       { id: 2, name: 'Licorne', color: '#a855f7' },
     ];
-    const roster = [
-      { playerId: 10, teamId: 1, teamName: 'Gnomes', pseudo: 'Alice' },
-    ];
+    const roster = [{ playerId: 10, teamId: 1, teamName: 'Gnomes', pseudo: 'Alice' }];
     const groups = buildMapRosterGroups(teams, roster);
     expect(groups).toHaveLength(2);
     expect(groups[0]).toMatchObject({

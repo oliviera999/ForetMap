@@ -3,7 +3,13 @@ import React, { useMemo } from 'react';
 /**
  * Graphe SVG léger : nœuds en cercle, arêtes comme segments.
  */
-export function FoodWebGraph({ items, onSelectEdge, selectedEdgeId, highlightPlantId, onOpenPlant }) {
+export function FoodWebGraph({
+  items,
+  onSelectEdge,
+  selectedEdgeId,
+  highlightPlantId,
+  onOpenPlant,
+}) {
   const { nodes, edges } = useMemo(() => {
     const nodeMap = new Map();
     for (const row of items || []) {
@@ -52,7 +58,12 @@ export function FoodWebGraph({ items, onSelectEdge, selectedEdgeId, highlightPla
   }
 
   return (
-    <svg className="pedago-foodweb-graph" viewBox="0 0 440 360" role="img" aria-label="Graphe du réseau trophique">
+    <svg
+      className="pedago-foodweb-graph"
+      viewBox="0 0 440 360"
+      role="img"
+      aria-label="Graphe du réseau trophique"
+    >
       {edges.map((edge) => {
         const from = edge.fromId != null ? positions.get(edge.fromId) : { x: 220, y: 30 };
         const to = edge.toId != null ? positions.get(edge.toId) : { x: 220, y: 330 };

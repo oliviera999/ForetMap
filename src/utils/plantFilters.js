@@ -74,7 +74,10 @@ export function plantLinkedToMapMarker(plant, marker) {
 /**
  * Sous-ensemble après application des filtres taxonomiques seuls (pour options en cascade).
  */
-export function filterPlantsByTaxonomy(plants, { group1, group2, group3, trophicRole, habitatType } = {}) {
+export function filterPlantsByTaxonomy(
+  plants,
+  { group1, group2, group3, trophicRole, habitatType } = {},
+) {
   return plants.filter((p) => {
     if (group1 && plantTaxonomyValue(p, 'kingdom') !== group1) return false;
     if (group2 && plantTaxonomyValue(p, 'group') !== group2) return false;

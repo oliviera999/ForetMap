@@ -73,7 +73,9 @@ export function validateMarkerBackgrounds(input) {
       normalized[mode] = hex;
       continue;
     }
-    return { error: `Valeur marker_backgrounds.${mode} invalide (transparent, classic ou #RRGGBB)` };
+    return {
+      error: `Valeur marker_backgrounds.${mode} invalide (transparent, classic ou #RRGGBB)`,
+    };
   }
   return { error: null, value: normalized };
 }
