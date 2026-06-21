@@ -7,6 +7,11 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### GL — sélection des classes pour la création de partie
+
+- **fix(gl)** : une classe créée (ou (ré)activée) dans « Gestion utilisateurs » apparaît désormais immédiatement dans le sélecteur de classe de la console MJ, sans rechargement de page. `GLUsersAdminView` notifie `AppGL` (`onClassesChange`) qui resynchronise la liste partagée `classes`.
+- **Tests** : `GLUsersAdminView` — appel de `onClassesChange` avec la liste rechargée.
+
 ### GL — déplacement au dé (repères numérotés)
 
 - **fix(gl)** : la mascotte traverse chaque repère intermédiaire dans l’ordre (plus de saut direct) ; ancrage centré sur le repère à chaque étape (`snapCenter`, coordonnées exactes sans clamp viewport).
