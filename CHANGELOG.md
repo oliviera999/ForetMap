@@ -28,6 +28,18 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **fix** : la police Noto Color Emoji de Google déjà auto-hébergée (`public/fonts/noto-color-emoji.woff2`, `@font-face 'ForetMapColorEmoji'`) est désormais ajoutée en **dernier recours** des stacks de texte courant (`--font-sans` ForetMap et GL, titres `h1/h2/h3`, `body.gl-body`). Les emojis s'affichent ainsi **quel que soit le périphérique**, y compris ceux dépourvus de police emoji native (certains Linux, vieux Android, navigateurs minimaux).
 - **Perf** : la police restant prioritaire aux polices système et son `cmap` ne contenant que des emojis, elle n'est téléchargée **à la demande** (cascade par caractère) que lorsqu'aucune police emoji native ne couvre le glyphe — aucun surcoût sur les appareils déjà équipés.
 
+### Responsive — homogénéité de l’affichage ForetMap
+
+- **Espacements fluides** : nouveaux tokens `--space-page-x`, `--space-card`, `--space-card-lg(-x)` (`clamp`) appliqués aux conteneurs `.main`/`.teacher-main`, aux cartes `.task-card`, `.pin-card`, `.auth-card` et aux états vides `.empty` → moins de marges perdues sur petit mobile, confort conservé sur tablette/desktop.
+- **Grilles dégradables** : `.stats-grid` et `.plant-form-grid` passent en `auto-fit` + `minmax(min(…, 100%), 1fr)` (plus de colonnes minuscules ni de débordement sur écran étroit) ; vignettes `.plant-photo-thumb` en largeur fluide `clamp(96px, 30vw, 140px)`.
+- **Anti-débordement images** : garde-fou global `img, video { max-width: 100% }` (les règles dédiées restent prioritaires) ; `.profile-promo-card__glow` resserré pour ne pas dépasser le conteneur.
+
+### GL — homogénéité responsive (console MJ, joueurs, écosystèmes)
+
+- **fix(gl)** : padding fluide de `.gl-main` (`clamp(10px, 3vw, 16px)`) → moins de marge perdue sur petit mobile, confort conservé sur desktop.
+- **fix(gl)** : `gl-admin-grid-2` (formulaires console MJ) en `minmax(min(170px, 100%), 1fr)` → la colonne se réduit au lieu de déborder sur écran étroit.
+- **fix(gl)** : nom de joueur du roster (`gl-map-roster-player__name`) avec `min-width:0` + `overflow-wrap:anywhere` → un nom long ne pousse plus la vitalité hors écran.
+
 ### GL — déplacement au dé (repères numérotés)
 
 - **fix(gl)** : la mascotte traverse chaque repère intermédiaire dans l’ordre (plus de saut direct) ; ancrage centré sur le repère à chaque étape (`snapCenter`, coordonnées exactes sans clamp viewport).
