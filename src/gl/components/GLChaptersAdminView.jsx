@@ -29,11 +29,7 @@ import {
 } from '../utils/glChapterAdminForm.js';
 import { useGlChapterEditorMarkdownResolver } from '../hooks/useGlChapterEditorMarkdownResolver.js';
 import { resolveGlBoardImageUrl } from '../utils/glLegacyMediaUrl.js';
-import {
-  chapterIllustration,
-  plateauBoardImg,
-  GL_ASSET_PLACEHOLDER_URL,
-} from '../assets/index.js';
+import { chapterIllustration, plateauBoardImg, GL_ASSET_PLACEHOLDER_URL } from '../assets/index.js';
 import { useGlAssetsReady } from './GLFeuilletIllustration.jsx';
 
 export function GLChaptersAdminView() {
@@ -263,10 +259,8 @@ export function GLChaptersAdminView() {
   const hasPlateau = Number.isInteger(plateauNumber) && plateauNumber >= 1 && plateauNumber <= 5;
   const resolvedMapImageUrl = useMemo(() => {
     if (!previewMapImageUrl) return '';
-    const conventionBoard =
-      assetsReady && hasPlateau ? plateauBoardImg(plateauNumber) : null;
-    const conventionChapter =
-      assetsReady && hasPlateau ? chapterIllustration(plateauNumber) : null;
+    const conventionBoard = assetsReady && hasPlateau ? plateauBoardImg(plateauNumber) : null;
+    const conventionChapter = assetsReady && hasPlateau ? chapterIllustration(plateauNumber) : null;
     return resolveGlBoardImageUrl({
       mapImageUrl: previewMapImageUrl,
       conventionBoard,
@@ -646,8 +640,8 @@ export function GLChaptersAdminView() {
                 <>
                   <h3>Zones feuillets — plateau {chapterForm.plateauNumber}</h3>
                   <p className="gl-hint">
-                    Calque de découverte des feuillets sur le visuel du plateau. Sélectionnez une zone
-                    puis cliquez sur la carte pour la déplacer ; exportez le JSON vers{' '}
+                    Calque de découverte des feuillets sur le visuel du plateau. Sélectionnez une
+                    zone puis cliquez sur la carte pour la déplacer ; exportez le JSON vers{' '}
                     <code>src/gl/data/zones_feuillets.json</code>.
                   </p>
                   <GLFeuilletZonePlateauPanel

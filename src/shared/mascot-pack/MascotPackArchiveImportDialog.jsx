@@ -174,11 +174,15 @@ export default function MascotPackArchiveImportDialog({
         {analysis ? (
           <div
             role="status"
-            style={{ fontSize: '0.82rem', marginBottom: 10, padding: 8, background: 'rgba(26,71,49,0.06)' }}
+            style={{
+              fontSize: '0.82rem',
+              marginBottom: 10,
+              padding: 8,
+              background: 'rgba(26,71,49,0.06)',
+            }}
           >
             <p style={{ margin: '0 0 4px' }}>
-              <strong>Analyse :</strong>{' '}
-              {analysis.ok === false ? 'pack invalide' : 'prêt'}
+              <strong>Analyse :</strong> {analysis.ok === false ? 'pack invalide' : 'prêt'}
               {' · '}
               {Number(analysis.assetCount) || 0} image(s)
               {analysis.label ? ` · ${analysis.label}` : ''}
@@ -199,10 +203,20 @@ export default function MascotPackArchiveImportDialog({
           </p>
         ) : null}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
-          <button type="button" className="btn btn-ghost btn-sm" disabled={busy} onClick={handleClose}>
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            disabled={busy}
+            onClick={handleClose}
+          >
             Annuler
           </button>
-          <button type="button" className="btn btn-ghost btn-sm" disabled={busy} onClick={onAnalyze}>
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            disabled={busy}
+            onClick={onAnalyze}
+          >
             Analyser
           </button>
           <button

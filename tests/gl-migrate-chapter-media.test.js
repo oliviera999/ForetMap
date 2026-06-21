@@ -37,9 +37,10 @@ test('migration chapitre — map legacy NULL + story scene:1 + biome résolu', a
     [slug, legacyPlateau, legacyStory, legacyBiotope],
   );
 
-  const row = await queryOne('SELECT id, map_image_url, story_markdown, biotope_markdown FROM gl_chapters WHERE slug = ?', [
-    slug,
-  ]);
+  const row = await queryOne(
+    'SELECT id, map_image_url, story_markdown, biotope_markdown FROM gl_chapters WHERE slug = ?',
+    [slug],
+  );
   const knownKeys = Object.keys(loadMediaKeyIndex());
 
   const nextMap = isLegacyGlMediaUrl(row.map_image_url)

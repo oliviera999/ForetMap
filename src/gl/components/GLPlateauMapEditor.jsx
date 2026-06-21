@@ -247,7 +247,9 @@ export function GLPlateauMapEditor({
         ) : (
           <p className="gl-hint">Configurez le numéro de plateau sur le chapitre.</p>
         )}
-        <p className="gl-hint">Sélectionnez un élément puis cliquez sur la carte pour le déplacer.</p>
+        <p className="gl-hint">
+          Sélectionnez un élément puis cliquez sur la carte pour le déplacer.
+        </p>
         {info ? <p className="gl-hint">{info}</p> : null}
         {markerInfo ? <p className="gl-hint">{markerInfo}</p> : null}
 

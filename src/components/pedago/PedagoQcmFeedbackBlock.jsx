@@ -1,8 +1,5 @@
 import React from 'react';
-import {
-  getQcmFeedbackText,
-  shouldShowQcmAnswerPhase,
-} from '../../shared/qcm/qcmFeedback.js';
+import { getQcmFeedbackText, shouldShowQcmAnswerPhase } from '../../shared/qcm/qcmFeedback.js';
 
 /** Retour pédagogique après validation d'une réponse QCM (style ForetMap). */
 export function PedagoQcmFeedbackBlock({ result, className = '' }) {

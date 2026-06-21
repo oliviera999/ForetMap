@@ -138,13 +138,7 @@ async function main() {
           SET map_image_url = ?, story_markdown = ?, biotope_markdown = ?, biocenose_markdown = ?,
               updated_at = NOW()
         WHERE id = ?`,
-      [
-        row.map_image_url,
-        row.story_markdown,
-        row.biotope_markdown,
-        row.biocenose_markdown,
-        row.id,
-      ],
+      [row.map_image_url, row.story_markdown, row.biotope_markdown, row.biocenose_markdown, row.id],
     );
   }
 

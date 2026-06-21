@@ -183,7 +183,10 @@ router.get(
       ? await queryAll(`${ZONES_LIST_SQL} WHERE z.map_id = ?`, [mapId])
       : await queryAll(ZONES_LIST_SQL);
     const history = await queryAll('SELECT * FROM zone_history ORDER BY harvested_at DESC');
-    const speciesMap = await loadZoneSpeciesMap(db, zones.map((z) => z.id));
+    const speciesMap = await loadZoneSpeciesMap(
+      db,
+      zones.map((z) => z.id),
+    );
     const result = zones.map((z) =>
       attachSpeciesToEntity(
         {
@@ -225,8 +228,17 @@ router.put(
   asyncHandler(async (req, res) => {
     const zone = await queryOne('SELECT * FROM zones WHERE id = ?', [req.params.id]);
     if (!zone) return res.status(404).json({ error: 'Zone introuvable' });
-    const { name, current_plant, living_beings, stage, description, points, color, map_id, species_ids } =
-      req.body;
+    const {
+      name,
+      current_plant,
+      living_beings,
+      stage,
+      description,
+      points,
+      color,
+      map_id,
+      species_ids,
+    } = req.body;
     if (name !== undefined && !String(name).trim()) {
       return res.status(400).json({ error: 'Nom requis' });
     }
@@ -459,8 +471,17 @@ router.post(
   '/',
   requirePermission('zones.manage', { needsElevation: true }),
   asyncHandler(async (req, res) => {
-    const { name, points, color, current_plant, living_beings, stage, map_id, description, species_ids } =
-      req.body;
+    const {
+      name,
+      points,
+      color,
+      current_plant,
+      living_beings,
+      stage,
+      map_id,
+      description,
+      species_ids,
+    } = req.body;
     if (!name?.trim()) return res.status(400).json({ error: 'Nom requis' });
     if (!points || points.length < 3)
       return res.status(400).json({ error: 'Au moins 3 points requis' });
@@ -489,11 +510,9 @@ router.post(
     const speciesRows = await loadZoneSpeciesMap(db, [id]);
     emitGardenChanged({ reason: 'create_zone', zoneId: id, mapId });
     res.status(201).json(
-      attachSpeciesToEntity(
-        { ...zone, history: [] },
-        speciesRows.get(id) || [],
-        { legacySingleName: zone.current_plant },
-      ),
+      attachSpeciesToEntity({ ...zone, history: [] }, speciesRows.get(id) || [], {
+        legacySingleName: zone.current_plant,
+      }),
     );
   }),
 );

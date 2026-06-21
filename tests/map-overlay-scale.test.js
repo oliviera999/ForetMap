@@ -20,10 +20,7 @@ describe('mapOverlayScale', () => {
   });
 
   test('resolveMapOverlayBoardScale proportionnel à fitHeightPx', () => {
-    assert.strictEqual(
-      resolveMapOverlayBoardScale({ fitHeightPx: 240, sizePercent: 100 }),
-      0.5,
-    );
+    assert.strictEqual(resolveMapOverlayBoardScale({ fitHeightPx: 240, sizePercent: 100 }), 0.5);
   });
 
   test('resolveMapOverlayBoardScale applique sizePercent', () => {

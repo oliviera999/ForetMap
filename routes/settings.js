@@ -119,9 +119,15 @@ router.put(
       userId: req.auth?.userId,
     });
     invalidateSettingsCache();
-    await logAudit('settings_help_content_update', 'setting', 'content.help.registry', 'Registre aide mis à jour', {
-      req,
-    });
+    await logAudit(
+      'settings_help_content_update',
+      'setting',
+      'content.help.registry',
+      'Registre aide mis à jour',
+      {
+        req,
+      },
+    );
     res.json(normalized);
   }),
 );
@@ -135,9 +141,15 @@ router.post(
       userId: req.auth?.userId,
     });
     invalidateSettingsCache();
-    await logAudit('settings_help_content_reset', 'setting', 'content.help.registry', 'Registre aide réinitialisé', {
-      req,
-    });
+    await logAudit(
+      'settings_help_content_reset',
+      'setting',
+      'content.help.registry',
+      'Registre aide réinitialisé',
+      {
+        req,
+      },
+    );
     res.json(normalized);
   }),
 );

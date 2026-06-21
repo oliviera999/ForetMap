@@ -24,7 +24,11 @@ describe('glMarkerBackgrounds', () => {
 
   test('lit clé plateforme gameplay.marker_backgrounds', () => {
     const backgrounds = readMarkerBackgroundsFromGameplaySettings({
-      'gameplay.marker_backgrounds': { label: '#aabbcc', emoji: 'transparent', icon: 'transparent' },
+      'gameplay.marker_backgrounds': {
+        label: '#aabbcc',
+        emoji: 'transparent',
+        icon: 'transparent',
+      },
     });
     expect(backgrounds.label).toBe('#aabbcc');
   });

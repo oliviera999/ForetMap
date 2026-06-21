@@ -28,7 +28,8 @@ export function resolveHelpPanelSection(sectionId, publicSettings) {
   if (!override) return { title: fallback.title, items: [...fallback.items] };
   return {
     title: override.title || fallback.title,
-    items: Array.isArray(override.items) && override.items.length > 0 ? override.items : fallback.items,
+    items:
+      Array.isArray(override.items) && override.items.length > 0 ? override.items : fallback.items,
   };
 }
 
@@ -37,10 +38,10 @@ export function resolveHelpChrome(publicSettings) {
   const registry = getHelpRegistry(publicSettings);
   const chrome = registry?.chrome;
   return {
-    hintPrefix: chrome?.hintPrefix || getContentText(publicSettings, 'help.hint_prefix', 'Astuce :'),
+    hintPrefix:
+      chrome?.hintPrefix || getContentText(publicSettings, 'help.hint_prefix', 'Astuce :'),
     panelTitlePrefix:
-      chrome?.panelTitlePrefix ||
-      getContentText(publicSettings, 'help.panel_title_prefix', '💡'),
+      chrome?.panelTitlePrefix || getContentText(publicSettings, 'help.panel_title_prefix', '💡'),
     panelCloseCta:
       chrome?.panelCloseCta || getContentText(publicSettings, 'help.panel_close_cta', 'Fermer'),
     panelDismissCta:
@@ -77,8 +78,7 @@ const MAP_CANVAS_HINT_FALLBACKS = {
 /** Bandeau carte (mode dessin, gestes tactiles). */
 export function resolveMapCanvasHint(key, publicSettings, vars = {}) {
   const registry = getHelpRegistry(publicSettings);
-  const template =
-    registry?.mapCanvasHints?.[key] || MAP_CANVAS_HINT_FALLBACKS[key] || '';
+  const template = registry?.mapCanvasHints?.[key] || MAP_CANVAS_HINT_FALLBACKS[key] || '';
   return String(template).replace(/\{(\w+)\}/g, (_, name) =>
     vars[name] != null ? String(vars[name]) : '',
   );

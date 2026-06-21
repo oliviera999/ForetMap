@@ -308,11 +308,7 @@ export function GLChapterMapStudio({
         handleZoneMapClick(pct, event);
         return;
       }
-      if (
-        selectedMarkerId != null &&
-        !isAddMode &&
-        !event.target.closest('.gl-board-marker')
-      ) {
+      if (selectedMarkerId != null && !isAddMode && !event.target.closest('.gl-board-marker')) {
         const x = Number(pct.x.toFixed(2));
         const y = Number(pct.y.toFixed(2));
         setEditableMarkers((prev) =>
@@ -359,12 +355,11 @@ export function GLChapterMapStudio({
     ],
   );
 
-  const mapCursor =
-    zoneEditActive
-      ? zoneMapCursor
-      : isAddMode || selectedMarkerId != null
-        ? 'crosshair'
-        : 'default';
+  const mapCursor = zoneEditActive
+    ? zoneMapCursor
+    : isAddMode || selectedMarkerId != null
+      ? 'crosshair'
+      : 'default';
 
   const toggleMarkerAddMode = () => {
     if (zoneMode === 'draw') {

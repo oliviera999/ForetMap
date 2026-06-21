@@ -236,7 +236,11 @@ export function GLKingdomZoneSidePanels({
             <GLButton type="button" onClick={startShapeEdit}>
               Modifier le contour
             </GLButton>
-            <GLButton type="button" variant="secondary" onClick={() => onDuplicateZone?.(selectedZone)}>
+            <GLButton
+              type="button"
+              variant="secondary"
+              onClick={() => onDuplicateZone?.(selectedZone)}
+            >
               Dupliquer
             </GLButton>
           </div>
@@ -369,7 +373,9 @@ export function GLKingdomZoneSidePanels({
                       size="sm"
                       variant="ghost"
                       onClick={() => {
-                        setDraftMusicUrls((prev) => prev.filter((_, rowIndex) => rowIndex !== index));
+                        setDraftMusicUrls((prev) =>
+                          prev.filter((_, rowIndex) => rowIndex !== index),
+                        );
                       }}
                     >
                       Retirer

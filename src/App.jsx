@@ -778,8 +778,7 @@ function App() {
     return true;
   }, [effectiveIsTeacher, studentForUi]);
   const canManageMediaLibrary = !!authClaims?.elevated || !!authClaims?.nativePrivileged;
-  const canManageQuiz =
-    !!authClaims?.elevated && hasPermission('plants.manage');
+  const canManageQuiz = !!authClaims?.elevated && hasPermission('plants.manage');
 
   const canParticipateContextComments = useMemo(() => {
     if (effectiveIsTeacher) return true;
@@ -884,12 +883,17 @@ function App() {
     [setPlantCatalogPreview],
   );
 
-  const openPedagoQuizQuestion = useCallback((code) => {
-    const c = String(code || '').trim().toUpperCase();
-    setPedagoQuizQuestionCode(c || null);
-    setTab('quiz');
-    setPlantCatalogPreview(null);
-  }, [setPlantCatalogPreview]);
+  const openPedagoQuizQuestion = useCallback(
+    (code) => {
+      const c = String(code || '')
+        .trim()
+        .toUpperCase();
+      setPedagoQuizQuestionCode(c || null);
+      setTab('quiz');
+      setPlantCatalogPreview(null);
+    },
+    [setPlantCatalogPreview],
+  );
 
   const openPedagoFoodWeb = useCallback(
     (plantId = null) => {
@@ -1939,7 +1943,7 @@ function App() {
                     {tab === 'foodweb' && (
                       <TabSuspense>
                         <FoodWebViewLazy
-                          mapZones={mapZones}
+                          mapZones={zones}
                           onOpenPlant={openPlantCatalogPreviewById}
                           onOpenGlossaryTerm={openPedagoGlossaryTerm}
                           highlightPlantId={foodWebHighlightPlantId}
@@ -2125,7 +2129,7 @@ function App() {
                       {tab === 'foodweb' && (
                         <TabSuspense>
                           <FoodWebViewLazy
-                            mapZones={mapZones}
+                            mapZones={zones}
                             onOpenPlant={openPlantCatalogPreviewById}
                             onOpenGlossaryTerm={openPedagoGlossaryTerm}
                             highlightPlantId={foodWebHighlightPlantId}

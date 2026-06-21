@@ -22,6 +22,12 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Tests** : `tests/gl-games-roster.test.js`, `tests-ui/gl/GLGameBoardRoster.test.jsx`, `buildMapRosterGroups.test.js`, e2e `gl-game-flow.spec.js`.
 - **Doc** : `docs/API.md`.
 
+### Qualité — lint ESLint vert
+
+- **Config** : `eslint.config.cjs` — ajout des tests ESM `map-overlay-scale`, `map-overlay-typography`, `pct-polygon`, `qcm-feedback` à l'override `sourceType: 'module'` (corrige les `Parsing error` qui bloquaient le job CI), + déduplication de la liste.
+- **Correctif** : `src/App.jsx` — onglet « foodweb » passait `mapZones={mapZones}` (variable inexistante) ; corrigé en `mapZones={zones}` comme les autres usages de `FoodWebViewLazy`.
+- **Correctif** : `src/gl/components/GLQcmPopover.jsx` — `useMemo` appelés après un `return` conditionnel (violation `react-hooks/rules-of-hooks`) ; hooks remontés avant l'early return (comportement inchangé).
+
 ### Outillage IA — CLAUDE.md & skills Claude Code
 
 - **`CLAUDE.md`** : mémoire projet pour Claude Code (vue d'ensemble, architecture, commandes,

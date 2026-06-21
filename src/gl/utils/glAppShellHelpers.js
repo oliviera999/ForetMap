@@ -58,8 +58,7 @@ export function toGameViewModel(raw) {
   const scores = raw?.scores || {};
   const pendingActions = Array.isArray(raw?.pendingActions) ? raw.pendingActions : [];
   const roster = Array.isArray(raw?.roster) ? raw.roster : [];
-  const vitality =
-    raw?.vitality && typeof raw.vitality === 'object' ? raw.vitality : null;
+  const vitality = raw?.vitality && typeof raw.vitality === 'object' ? raw.vitality : null;
   return {
     game,
     teams,

@@ -1,10 +1,7 @@
 import React from 'react';
 import { GLQcmCatalogPanel } from './GLQcmCatalogPanel.jsx';
 
-export function GLQcmImportPanel({
-  glossaryLinkItems = [],
-  onOpenGlossaryTerm,
-}) {
+export function GLQcmImportPanel({ glossaryLinkItems = [], onOpenGlossaryTerm }) {
   return (
     <GLQcmCatalogPanel
       title="Import QCM biomes (XLSX)"

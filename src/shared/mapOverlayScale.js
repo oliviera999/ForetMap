@@ -10,10 +10,7 @@ export const MAP_OVERLAY_SIZE_PERCENT_MAX = 200;
  * @param {unknown} raw
  * @param {number} [fallback]
  */
-export function clampMapOverlaySizePercent(
-  raw,
-  fallback = MAP_OVERLAY_SIZE_PERCENT_DEFAULT,
-) {
+export function clampMapOverlaySizePercent(raw, fallback = MAP_OVERLAY_SIZE_PERCENT_DEFAULT) {
   const n = Number(raw);
   if (!Number.isFinite(n)) return fallback;
   return Math.min(
