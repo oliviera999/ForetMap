@@ -254,8 +254,12 @@ export function GLSpellCastWizard({
       if (!savedDraft?.ready && !isSpellCastReady(savedDraft?.totals, required)) {
         return;
       }
-      await spellCast.launch(savedDraft?.id ?? spellCast.draft.id);
-      requestClose();
+      const result = await spellCast.launch(savedDraft?.id ?? spellCast.draft.id);
+      // Mode classique : sort soumis à validation MJ → on garde le panneau ouvert
+      // avec l'état « en attente du MJ » plutôt que de fermer.
+      if (!result?.pending) {
+        requestClose();
+      }
     } catch (_) {
       // error shown via spellCast.error
     }
@@ -279,6 +283,7 @@ export function GLSpellCastWizard({
   const showSpellPick = step === 'spell' && !activeSpellCode;
   const showTeamPick = !isStaff && step === 'team' && activeSpellCode;
   const showFund = step === 'fund' && (spellCast?.draft || fundLoading || spellCast?.busy);
+  const isPendingApproval = spellCast?.draft?.status === 'pending_approval';
   const spellName =
     spellCast?.draft?.spell?.nom || activeSpell?.nom || activeSpellCode || 'Sortilège';
   const spellEmoji = spellCast?.draft?.spell?.emoji || activeSpell?.emoji || '✨';
@@ -334,6 +339,13 @@ export function GLSpellCastWizard({
           />
         ) : null}
 
+        {isPendingApproval ? (
+          <p className="gl-spell-cast-panel__pending" role="status">
+            ⏳ Sortilège soumis au maître du jeu. Les gemmes / cœurs ne seront débités qu&apos;après
+            sa validation.
+          </p>
+        ) : null}
+
         {showFund ? (
           <div className="gl-spell-cast-panel__body">
             {fundLoading || (spellCast?.busy && !spellCast?.draft) ? (
@@ -362,7 +374,7 @@ export function GLSpellCastWizard({
           step={step}
           busy={spellCast?.busy}
           fundLoading={fundLoading}
-          canLaunch={readyLocal && !!spellCast?.draft}
+          canLaunch={readyLocal && !!spellCast?.draft && !isPendingApproval}
           onCancelDraft={handleCancelDraft}
           onLaunch={handleLaunch}
           onClose={requestClose}

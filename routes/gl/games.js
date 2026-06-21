@@ -22,6 +22,7 @@ const { resolveBoardMovementMode } = require('../../lib/glBoardPath');
 const {
   getPlayerGameMembership,
   resolveRosterError,
+  applyTeamMoveTx,
   readGameState,
 } = require('../../lib/gl/gamesRuntime');
 
@@ -518,6 +519,15 @@ router.post(
     }
     const actorType = req.glAuth.userType === 'gl_admin' ? 'mj' : 'team';
     const actorId = String(req.glAuth.userId);
+    // Mode classique : un déplacement MJ consomme aussi le tour de l'équipe (1 par tour).
+    let moveRoundNumber = null;
+    if (eventType === 'move' && teamId != null) {
+      const roundRow = await queryOne(
+        'SELECT current_round_number FROM gl_games WHERE id = ? LIMIT 1',
+        [gameId],
+      );
+      moveRoundNumber = roundRow ? Number(roundRow.current_round_number) || 0 : 0;
+    }
     await withTransaction(async (tx) => {
       await tx.execute(
         `INSERT INTO gl_game_events (game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at)
@@ -525,36 +535,14 @@ router.post(
         [gameId, teamId, actorType, actorId, eventType, JSON.stringify(payloadToStore)],
       );
       if (eventType === 'move' && teamId != null) {
-        if (moveMarkerId != null) {
-          const marker = await tx.queryOne(
-            'SELECT id, x_pct, y_pct FROM gl_chapter_markers WHERE id = ? LIMIT 1',
-            [moveMarkerId],
-          );
-          if (!marker) {
-            const err = new Error('MARKER_NOT_FOUND');
-            err.status = 404;
-            throw err;
-          }
-          await tx.execute(
-            `UPDATE gl_teams
-              SET position_marker_id = ?,
-                  position_x_pct = ?,
-                  position_y_pct = ?,
-                  updated_at = NOW()
-            WHERE id = ? AND game_id = ?`,
-            [moveMarkerId, Number(marker.x_pct), Number(marker.y_pct), teamId, gameId],
-          );
-        } else {
-          await tx.execute(
-            `UPDATE gl_teams
-              SET position_marker_id = NULL,
-                  position_x_pct = ?,
-                  position_y_pct = ?,
-                  updated_at = NOW()
-            WHERE id = ? AND game_id = ?`,
-            [moveXp, moveYp, teamId, gameId],
-          );
-        }
+        await applyTeamMoveTx(tx, {
+          gameId,
+          teamId,
+          markerId: moveMarkerId,
+          xp: moveXp,
+          yp: moveYp,
+          roundNumber: moveRoundNumber,
+        });
       }
       if (eventType === 'score' && teamId != null) {
         const delta = Number(payload?.delta);
@@ -594,58 +582,220 @@ router.post(
 );
 
 /**
- * Avancement du tour. Cyclique sur les equipes triees par id ASC.
- * Refus si `gameplay.turns_enabled = false`.
+ * Lancement d'un nouveau tour (mode classique). Toutes les équipes jouent simultanément ;
+ * chaque équipe peut de nouveau déplacer sa mascotte (réarmement implicite via le numéro de tour).
+ * Refus si `gameplay.turns_enabled = false`. Alias historique : POST /turn/next.
  */
-router.post(
-  '/games/:id/turn/next',
-  requireGlPermission('gl.game.manage'),
-  asyncHandler(async (req, res) => {
-    const gameId = parseId(req.params.id);
-    if (!gameId) return res.status(400).json({ error: 'Identifiant de partie invalide' });
-    const settings = await getGameplaySettings();
-    if (!settings.turnsEnabled) {
-      return res.status(409).json({ error: 'Tours desactivés dans les réglages' });
-    }
-    const teams = await queryAll('SELECT id FROM gl_teams WHERE game_id = ? ORDER BY id ASC', [
-      gameId,
-    ]);
-    if (teams.length === 0) {
-      return res.status(400).json({ error: 'Aucune équipe sur cette partie' });
-    }
-    const game = await queryOne('SELECT current_team_id FROM gl_games WHERE id = ? LIMIT 1', [
-      gameId,
-    ]);
-    if (!game) return res.status(404).json({ error: 'Partie introuvable' });
-    const currentId = game.current_team_id != null ? Number(game.current_team_id) : null;
-    const idx = teams.findIndex((t) => Number(t.id) === currentId);
-    const nextTeamId = teams[(idx + 1) % teams.length].id;
-    await withTransaction(async (tx) => {
-      await tx.execute('UPDATE gl_games SET current_team_id = ?, updated_at = NOW() WHERE id = ?', [
-        nextTeamId,
-        gameId,
-      ]);
+async function startNextRound(req, res) {
+  const gameId = parseId(req.params.id);
+  if (!gameId) return res.status(400).json({ error: 'Identifiant de partie invalide' });
+  const settings = await getGameplaySettings();
+  if (!settings.turnsEnabled) {
+    return res.status(409).json({ error: 'Tours desactivés dans les réglages' });
+  }
+  const game = await queryOne(
+    'SELECT id, current_round_number FROM gl_games WHERE id = ? LIMIT 1',
+    [gameId],
+  );
+  if (!game) return res.status(404).json({ error: 'Partie introuvable' });
+  const teamsCount = await queryOne('SELECT COUNT(*) AS cnt FROM gl_teams WHERE game_id = ?', [
+    gameId,
+  ]);
+  if (Number(teamsCount?.cnt || 0) === 0) {
+    return res.status(400).json({ error: 'Aucune équipe sur cette partie' });
+  }
+  const previousRound = Number(game.current_round_number) || 0;
+  const nextRound = previousRound + 1;
+  await withTransaction(async (tx) => {
+    if (previousRound > 0) {
       await tx.execute(
-        `INSERT INTO gl_game_events (game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at)
-       VALUES (?, ?, 'mj', ?, 'turn_change', ?, NOW())`,
-        [
-          gameId,
-          nextTeamId,
-          String(req.glAuth.userId),
-          JSON.stringify({ teamId: Number(nextTeamId) }),
-        ],
+        'UPDATE gl_game_rounds SET ended_at = NOW() WHERE game_id = ? AND round_number = ? AND ended_at IS NULL',
+        [gameId, previousRound],
       );
-    });
-    const evt = await queryOne(
-      `SELECT id, game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at
+    }
+    await tx.execute(
+      'UPDATE gl_games SET current_round_number = ?, current_round_started_at = NOW(), updated_at = NOW() WHERE id = ?',
+      [nextRound, gameId],
+    );
+    await tx.execute(
+      `INSERT INTO gl_game_rounds (game_id, round_number, started_by, started_at)
+       VALUES (?, ?, ?, NOW())
+       ON DUPLICATE KEY UPDATE started_by = VALUES(started_by), started_at = NOW(), ended_at = NULL`,
+      [gameId, nextRound, String(req.glAuth.userId)],
+    );
+    await tx.execute(
+      `INSERT INTO gl_game_events (game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at)
+       VALUES (?, NULL, 'mj', ?, 'round_start', ?, NOW())`,
+      [gameId, String(req.glAuth.userId), JSON.stringify({ roundNumber: nextRound })],
+    );
+  });
+  const evt = await queryOne(
+    `SELECT id, game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at
        FROM gl_game_events
       WHERE game_id = ?
       ORDER BY id DESC LIMIT 1`,
+    [gameId],
+  );
+  const normalized = normalizeEventRow(evt);
+  emitGlGameEvent(gameId, normalized);
+  return res.json({ ok: true, roundNumber: nextRound, event: normalized });
+}
+
+router.post(
+  '/games/:id/turn/start',
+  requireGlPermission('gl.game.manage'),
+  asyncHandler(startNextRound),
+);
+router.post(
+  '/games/:id/turn/next',
+  requireGlPermission('gl.game.manage'),
+  asyncHandler(startNextRound),
+);
+
+/** État du tour courant + statut de déplacement de chaque équipe. */
+router.get(
+  '/games/:id/turn',
+  requireGlAuth,
+  asyncHandler(async (req, res) => {
+    const gameId = parseId(req.params.id);
+    if (!gameId) return res.status(400).json({ error: 'Identifiant de partie invalide' });
+    if (!(await canAccessGlGame(req.glAuth, gameId))) {
+      return res.status(403).json({ error: 'Accès partie refusé' });
+    }
+    const game = await queryOne(
+      'SELECT current_round_number, current_round_started_at FROM gl_games WHERE id = ? LIMIT 1',
+      [gameId],
+    );
+    if (!game) return res.status(404).json({ error: 'Partie introuvable' });
+    const roundNumber = Number(game.current_round_number) || 0;
+    const teams = await queryAll(
+      'SELECT id, name, last_move_round_number FROM gl_teams WHERE game_id = ? ORDER BY id ASC',
+      [gameId],
+    );
+    return res.json({
+      roundNumber,
+      startedAt: game.current_round_started_at || null,
+      teams: teams.map((t) => ({
+        teamId: Number(t.id),
+        name: t.name || '',
+        hasMovedThisRound: roundNumber > 0 && Number(t.last_move_round_number || 0) >= roundNumber,
+      })),
+    });
+  }),
+);
+
+/**
+ * Déplacement de mascotte par un joueur (mode classique). Activé seulement si
+ * `gameplay.mascot_move_actor = 'players'`. Le joueur doit être membre de l'équipe ;
+ * une seule fois par tour lorsque les tours sont actifs.
+ */
+router.post(
+  '/games/:id/teams/:teamId/move',
+  requireGlAuth,
+  asyncHandler(async (req, res) => {
+    if (req.glAuth.userType !== 'gl_player') {
+      return res.status(403).json({ error: 'Réservé aux joueurs' });
+    }
+    const gameId = parseId(req.params.id);
+    const teamId = parseId(req.params.teamId);
+    if (!gameId || !teamId) return res.status(400).json({ error: 'Identifiants invalides' });
+
+    const settings = await getGameplaySettings();
+    if (settings.mascotMoveActor !== 'players') {
+      return res.status(403).json({ error: 'Déplacement de la mascotte réservé au maître du jeu' });
+    }
+
+    const game = await queryOne(
+      'SELECT id, status, current_round_number, board_movement_mode FROM gl_games WHERE id = ? LIMIT 1',
+      [gameId],
+    );
+    if (!game) return res.status(404).json({ error: 'Partie introuvable' });
+    if (String(game.status || '').toLowerCase() !== 'live') {
+      return res.status(409).json({ error: 'La partie doit être en cours' });
+    }
+
+    const membership = await getPlayerGameMembership(gameId, req.glAuth.userId);
+    if (!membership?.team_id || Number(membership.team_id) !== Number(teamId)) {
+      return res
+        .status(403)
+        .json({ error: 'Vous ne pouvez déplacer que la mascotte de votre équipe' });
+    }
+
+    const team = await queryOne(
+      'SELECT id, last_move_round_number FROM gl_teams WHERE id = ? AND game_id = ? LIMIT 1',
+      [teamId, gameId],
+    );
+    if (!team) return res.status(404).json({ error: 'Équipe introuvable dans cette partie' });
+
+    const roundNumber = Number(game.current_round_number) || 0;
+    if (settings.turnsEnabled) {
+      if (roundNumber === 0) {
+        return res.status(409).json({ error: 'Aucun tour en cours : attendez le lancement du MJ' });
+      }
+      if (Number(team.last_move_round_number || 0) >= roundNumber) {
+        return res.status(409).json({ error: 'Mascotte déjà déplacée pour ce tour' });
+      }
+    }
+
+    const payload = req.body?.payload ?? req.body ?? {};
+    const moveMarkerId = payload?.markerId != null ? parseId(payload.markerId) : null;
+    const hasMovePctPayload = payload?.xp != null || payload?.yp != null;
+    const moveXp = parsePct(payload?.xp);
+    const moveYp = parsePct(payload?.yp);
+    if (moveMarkerId == null && !hasMovePctPayload) {
+      return res.status(400).json({ error: 'payload move invalide (markerId ou xp/yp requis)' });
+    }
+    if (hasMovePctPayload && (moveXp == null || moveYp == null)) {
+      return res.status(400).json({ error: 'xp/yp invalides (attendus entre 0 et 100)' });
+    }
+    if (
+      moveMarkerId == null &&
+      hasMovePctPayload &&
+      resolveBoardMovementMode(game) === 'numbered_path'
+    ) {
+      return res.status(409).json({
+        error: 'Déplacement libre désactivé : mode repères numérotés (utilisez le dé)',
+      });
+    }
+
+    try {
+      await withTransaction(async (tx) => {
+        await tx.execute(
+          `INSERT INTO gl_game_events (game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at)
+           VALUES (?, ?, 'team', ?, 'move', ?, NOW())`,
+          [
+            gameId,
+            teamId,
+            String(req.glAuth.userId),
+            JSON.stringify(
+              moveMarkerId != null ? { markerId: moveMarkerId } : { xp: moveXp, yp: moveYp },
+            ),
+          ],
+        );
+        await applyTeamMoveTx(tx, {
+          gameId,
+          teamId,
+          markerId: moveMarkerId,
+          xp: moveXp,
+          yp: moveYp,
+          roundNumber,
+        });
+      });
+    } catch (err) {
+      if (err?.status === 404 && err?.message === 'MARKER_NOT_FOUND') {
+        return res.status(404).json({ error: 'Repère introuvable' });
+      }
+      throw err;
+    }
+
+    const evt = await queryOne(
+      `SELECT id, game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at
+         FROM gl_game_events WHERE game_id = ? ORDER BY id DESC LIMIT 1`,
       [gameId],
     );
     const normalized = normalizeEventRow(evt);
     emitGlGameEvent(gameId, normalized);
-    return res.json({ ok: true, currentTeamId: Number(nextTeamId), event: normalized });
+    return res.status(201).json(normalized);
   }),
 );
 

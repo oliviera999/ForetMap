@@ -128,6 +128,8 @@ export function AppGL() {
   const [selectedTeamId, setSelectedTeamId] = useState(null);
   const [narrationToast, setNarrationToast] = useState(null); // { text, ts }
   const [turnToast, setTurnToast] = useState(null); // { teamId, ts }
+  const [roundToast, setRoundToast] = useState(null); // { roundNumber, ts }
+  const [spellRejectedToast, setSpellRejectedToast] = useState(null); // { spellName, ts }
   const [error, setError] = useState('');
   const [oauthNotice, setOauthNotice] = useState(null);
   const [modules, setModules] = useState(GL_MODULE_DEFAULTS);
@@ -594,8 +596,15 @@ export function AppGL() {
       } else if (type === 'turn_change') {
         const nextTeamId = evt?.payload?.teamId != null ? Number(evt.payload.teamId) : null;
         if (nextTeamId != null) setTurnToast({ teamId: nextTeamId, ts: Date.now() });
+      } else if (type === 'round_start') {
+        const roundNumber =
+          evt?.payload?.roundNumber != null ? Number(evt.payload.roundNumber) : null;
+        if (roundNumber != null) setRoundToast({ roundNumber, ts: Date.now() });
       } else if (type === 'spell_cast') {
         showSpellCastResult({ event: evt });
+      } else if (type === 'spell_cast_rejected') {
+        const spellName = String(evt?.payload?.spellName || evt?.payload?.spellCode || 'sortilège');
+        setSpellRejectedToast({ spellName, ts: Date.now() });
       }
       reloadGame();
     });
@@ -615,6 +624,18 @@ export function AppGL() {
     const id = setTimeout(() => setTurnToast(null), 4000);
     return () => clearTimeout(id);
   }, [turnToast]);
+
+  useEffect(() => {
+    if (!roundToast) return undefined;
+    const id = setTimeout(() => setRoundToast(null), 4000);
+    return () => clearTimeout(id);
+  }, [roundToast]);
+
+  useEffect(() => {
+    if (!spellRejectedToast) return undefined;
+    const id = setTimeout(() => setSpellRejectedToast(null), 6000);
+    return () => clearTimeout(id);
+  }, [spellRejectedToast]);
 
   function resolveTargetTeamId() {
     const teams = Array.isArray(gameState?.teams) ? gameState.teams : [];
@@ -654,6 +675,33 @@ export function AppGL() {
           xp: marker.x_pct,
           yp: marker.y_pct,
         },
+      });
+      await reloadGame();
+    } catch (err) {
+      setError(err.message || 'Déplacement impossible');
+    }
+  }
+
+  /** Joueur (mode classique, acteur = joueurs) : déplace sa propre mascotte sur un repère. */
+  async function movePlayerMascotToMarker(marker) {
+    if (!gameState?.game?.id || !marker?.id || auth?.teamId == null) return;
+    try {
+      await apiGL(`/api/gl/games/${gameState.game.id}/teams/${Number(auth.teamId)}/move`, 'POST', {
+        markerId: marker.id,
+      });
+      await reloadGame();
+    } catch (err) {
+      setError(err.message || 'Déplacement impossible');
+    }
+  }
+
+  /** Joueur (mode classique, acteur = joueurs) : déplacement libre de sa propre mascotte. */
+  async function movePlayerMascotToPct(point) {
+    if (!gameState?.game?.id || !point || auth?.teamId == null) return;
+    try {
+      await apiGL(`/api/gl/games/${gameState.game.id}/teams/${Number(auth.teamId)}/move`, 'POST', {
+        xp: point.xp,
+        yp: point.yp,
       });
       await reloadGame();
     } catch (err) {
@@ -731,6 +779,23 @@ export function AppGL() {
     return value != null ? Number(value) : null;
   }, [gameState]);
 
+  // Mode classique : le joueur déplace lui-même sa mascotte (1×/tour) si le réglage l'autorise.
+  const myTeamHasMovedThisRound = useMemo(() => {
+    const myId = auth?.teamId != null ? Number(auth.teamId) : null;
+    if (myId == null) return false;
+    const myTeam = (gameState?.teams || []).find((team) => Number(team.id) === myId);
+    return myTeam?.hasMovedThisRound === true;
+  }, [auth, gameState]);
+
+  const canPlayerMoveMascot =
+    showsPlayerChrome &&
+    !isMjMapControls &&
+    gameplaySettings.mascotMoveActor === 'players' &&
+    auth?.teamId != null &&
+    gameState?.game?.status === 'live' &&
+    !boardMovement.isNumberedPath &&
+    !myTeamHasMovedThisRound;
+
   const canRequestAction = useMemo(
     () =>
       !isGuest &&
@@ -772,7 +837,8 @@ export function AppGL() {
     gameId: gameState?.game?.id,
     enabled: canSpellCast && spellCastOpen,
     onCastComplete: async (data) => {
-      if (data?.event) {
+      // Mode classique : si le sort est en attente de validation MJ, pas d'animation de lancement.
+      if (data?.event && !data?.pending) {
         showSpellCastResult({ event: data.event, draft: data.draft });
       }
       await reloadGame();
@@ -934,6 +1000,8 @@ export function AppGL() {
             onStopImpersonation={stopGlImpersonation}
             narrationText={narrationToast?.text}
             turnTeamLabel={turnToast ? turnToastTeam?.name || `équipe #${turnToast.teamId}` : null}
+            roundLabel={roundToast ? `n°${roundToast.roundNumber}` : null}
+            spellRejectedText={spellRejectedToast?.spellName || null}
           />
 
           <main className="gl-main" id="gl-main-content">
@@ -980,8 +1048,20 @@ export function AppGL() {
                   <>
                     <GLMapView
                       gameState={gameState}
-                      onMoveMascot={moveMascotToMarker}
-                      onMoveMascotToPct={moveMascotToPct}
+                      onMoveMascot={
+                        isMjMapControls
+                          ? moveMascotToMarker
+                          : canPlayerMoveMascot
+                            ? movePlayerMascotToMarker
+                            : undefined
+                      }
+                      onMoveMascotToPct={
+                        isMjMapControls
+                          ? moveMascotToPct
+                          : canPlayerMoveMascot
+                            ? movePlayerMascotToPct
+                            : undefined
+                      }
                       onPlayerActionRequest={submitPlayerActionRequest}
                       onSelectTeam={setSelectedTeamId}
                       onOpenGlossaryTerm={openGlossaryPopover}
@@ -990,14 +1070,18 @@ export function AppGL() {
                       loreGlossaryLinkItems={loreGlossaryLinkItems}
                       loreCarnetEnabled={isModuleEnabled(modules, 'loreCarnetEnabled')}
                       onQcmAnswered={reloadGame}
-                      canMoveMascot={canMoveMascotFree}
+                      canMoveMascot={canMoveMascotFree || canPlayerMoveMascot}
                       boardMovement={boardMovement}
                       onDiceRollResult={canDiceAdvancePath ? handleDiceRollAdvance : null}
                       canRequestAction={canRequestAction}
                       markerArrivalEnabled={markerArrivalEnabled}
                       canSpellCast={canSpellCast}
                       onLaunchSpell={() => openSpellCastWizard(null)}
-                      selectedTeamId={selectedTeamId}
+                      selectedTeamId={
+                        canPlayerMoveMascot && selectedTeamId == null
+                          ? Number(auth.teamId)
+                          : selectedTeamId
+                      }
                       currentTeamId={currentTeamId}
                       playerTeamId={auth?.teamId != null ? Number(auth.teamId) : null}
                       mascotStateMachine={mascotStateMachine}
