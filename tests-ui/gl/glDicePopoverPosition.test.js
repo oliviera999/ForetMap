@@ -3,7 +3,7 @@ import { computeGlDicePopoverPosition } from '../../src/gl/utils/glDicePopoverPo
 
 const anchor = { left: 20, top: 500, right: 64, bottom: 544, width: 44, height: 44 };
 const board = { left: 0, top: 80, right: 800, bottom: 560, width: 800, height: 480 };
-const viewport = { width: 900, height: 700 };
+const viewport = { width: 900, height: 900 };
 
 describe('computeGlDicePopoverPosition', () => {
   test('place le popover sous le plateau quand la place le permet', () => {

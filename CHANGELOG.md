@@ -11,6 +11,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 - **Admin Contenus** : numéros (1, 2, 3…) sur les poignées de déplacement, les labels SVG et la liste « Zones feuillets », triés par code feuillet puis `zone_id`.
 - **Utilitaire** : `glFeuilletZoneNumbers.js` ; tests `GLPlateauMapEditor`, `glFeuilletZoneNumbers`.
+- **test(gl)** : fixture viewport `glDicePopoverPosition` (hauteur 900 px) pour valider l’absence de recouvrement plateau.
 
 ### GL — studio carte chapitre et dé numéroté
 
