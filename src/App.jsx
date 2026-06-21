@@ -26,6 +26,7 @@ import {
   IOS_INSTALL_HINT_DISMISSED_KEY,
   GUEST_VISIT_MASCOT_CONFIRMED_KEY,
 } from './constants/app-runtime';
+import { MASCOT_PACK_UNSAVED_LEAVE_MSG } from './constants/mascotPackEditor.js';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { TimedToast as Toast } from './shared/components/TimedToast.jsx';
 import { TasksView } from './components/tasks-views';
@@ -182,6 +183,7 @@ function App() {
   const fetchAllRunPromiseRef = useRef(null);
   const fetchAllPendingRef = useRef(false);
   const initialFetchDoneRef = useRef(false);
+  const mascotPackDirtyRef = useRef(false);
   /** Incrémenté après succès modale PIN / login prof : déclenche un `fetchAll` sans s’accrocher à chaque changement de `authClaims`. */
   const [pinSuccessFetchAllTick, setPinSuccessFetchAllTick] = useState(0);
 
@@ -711,9 +713,48 @@ function App() {
     const m = visibleMaps.find((x) => x.id === activeMapId);
     return String(m?.label || m?.id || activeMapId || '').trim() || activeMapId;
   }, [visibleMaps, activeMapId]);
-  const openMascotPackStudioTab = useCallback(() => {
-    setTab('mascot_packs');
+  const onMascotPackDirtyChange = useCallback((dirty) => {
+    mascotPackDirtyRef.current = dirty;
   }, []);
+
+  const handleTeacherTabChange = useCallback(
+    (nextTab) => {
+      if (tab === 'mascot_packs' && nextTab !== 'mascot_packs' && mascotPackDirtyRef.current) {
+        if (!window.confirm(MASCOT_PACK_UNSAVED_LEAVE_MSG)) return;
+      }
+      setTab(nextTab);
+    },
+    [tab, setTab],
+  );
+
+  const handleMascotStudioMapChange = useCallback(
+    (nextMapId) => {
+      const next = String(nextMapId || '').trim();
+      if (!next || next === activeMapId) return;
+      if (mascotPackDirtyRef.current && !window.confirm(MASCOT_PACK_UNSAVED_LEAVE_MSG)) return;
+      setActiveMapId(next);
+    },
+    [activeMapId, setActiveMapId],
+  );
+
+  const openMascotPackStudioTab = useCallback(
+    (mapIdForStudio) => {
+      const mid = String(mapIdForStudio || '').trim();
+      if (mid && visibleMaps.some((m) => m.id === mid)) {
+        if (
+          tab === 'mascot_packs' &&
+          mid !== activeMapId &&
+          mascotPackDirtyRef.current &&
+          !window.confirm(MASCOT_PACK_UNSAVED_LEAVE_MSG)
+        ) {
+          return;
+        }
+        setActiveMapId(mid);
+      }
+      setTab('mascot_packs');
+    },
+    [visibleMaps, activeMapId, tab, setActiveMapId, setTab],
+  );
   const previewStudent = useMemo(() => {
     if (!isTeacher || roleViewMode !== 'student') return null;
     const fallbackName = String(
@@ -1692,7 +1733,7 @@ function App() {
               >
                 <TeacherTopTabs
                   tab={tab}
-                  onTabChange={setTab}
+                  onTabChange={handleTeacherTabChange}
                   shouldUseDesktopSplit={shouldUseDesktopSplit}
                   mapTasksSplitLabel={mapTasksSplitLabel}
                   tasksTabLabel={tasksTabLabel}
@@ -1879,7 +1920,7 @@ function App() {
                               verticalAlign: 'middle',
                             }}
                             value={activeMapId}
-                            onChange={(e) => setActiveMapId(e.target.value)}
+                            onChange={(e) => handleMascotStudioMapChange(e.target.value)}
                             aria-label="Choisir la carte pour les packs mascotte"
                           >
                             {visibleMaps.map((m) => (
@@ -1907,6 +1948,7 @@ function App() {
                             onPacksChanged={fetchAll}
                             onForceLogout={forceLogout}
                             mascotDialogSettings={publicSettings?.visit?.mascot?.dialog}
+                            onDirtyChange={onMascotPackDirtyChange}
                           />
                         </Suspense>
                       </div>

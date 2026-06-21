@@ -14,6 +14,10 @@ import {
   insertMascotImageIntoPackState,
   createMascotPackEditorSnapshot,
   isMascotPackEditorDirty,
+  isJsonDraftDirty,
+  resolvePackDialogMascotId,
+  findPacksForCatalogModel,
+  pickPreferredCatalogModelPack,
 } from '../utils/visitMascotPackManager.js';
 import PackBehaviorDetailTable from './mascot/PackBehaviorDetailTable.jsx';
 import { getVisitMascotCatalog } from '../utils/visitMascotCatalog.js';
@@ -31,10 +35,11 @@ import MascotInteractionProfileEditor from './mascot/MascotInteractionProfileEdi
 import MascotStudioModeTabs from './mascot/MascotStudioModeTabs.jsx';
 import MascotPackArchiveImportDialog from '../shared/mascot-pack/MascotPackArchiveImportDialog.jsx';
 import { downloadApiFile } from '../utils/downloadApiFile.js';
+import { MASCOT_PACK_UNSAVED_LEAVE_MSG } from '../constants/mascotPackEditor.js';
 
 import { STATE_LABELS } from '../constants/mascotStateLabels.js';
 
-const UNSAVED_LEAVE_MSG = 'Des modifications ne sont pas enregistrées. Quitter sans enregistrer ?';
+const UNSAVED_LEAVE_MSG = MASCOT_PACK_UNSAVED_LEAVE_MSG;
 
 const RIGHT_TABS = [
   { id: 'workspace', label: 'Édition guidée' },
@@ -51,7 +56,7 @@ const STUDIO_MODES = [
 
 /**
  * Gestionnaire GUI des packs mascotte serveur (prof élevé, par carte).
- * @param {{ mapId: string, mapLabel?: string, onPacksChanged?: () => void | Promise<void>, onForceLogout?: () => void, variant?: 'modal' | 'page', mascotDialogSettings?: { defaults?: Record<string, string[]>, catalogOverrides?: Record<string, Record<string, string[]>> } | null }} props
+ * @param {{ mapId: string, mapLabel?: string, onPacksChanged?: () => void | Promise<void>, onForceLogout?: () => void, variant?: 'modal' | 'page', mascotDialogSettings?: { defaults?: Record<string, string[]>, catalogOverrides?: Record<string, Record<string, string[]>> } | null, onDirtyChange?: (dirty: boolean) => void }} props
  */
 export default function VisitMascotPackManager({
   mapId,
@@ -60,6 +65,7 @@ export default function VisitMascotPackManager({
   onForceLogout,
   variant = 'modal',
   mascotDialogSettings = null,
+  onDirtyChange,
 }) {
   const [packs, setPacks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -91,6 +97,7 @@ export default function VisitMascotPackManager({
   const [packAssetsMessage, setPackAssetsMessage] = useState('');
   const [insertFeedback, setInsertFeedback] = useState('');
   const [savedSnapshot, setSavedSnapshot] = useState(null);
+  const [catalogCopyHint, setCatalogCopyHint] = useState('');
   const [catalogModelIds, setCatalogModelIds] = useState(() =>
     getVisitMascotCatalog()
       .map((m) => String(m?.id || '').trim())
@@ -221,9 +228,25 @@ export default function VisitMascotPackManager({
     }
   }, [editorTab, selectedId, loadPackAssets, loadLibrary, loadGlobalAssets]);
 
-  const isDirty = useMemo(
+  const editorDirty = useMemo(
     () => isMascotPackEditorDirty(savedSnapshot, editorPack, labelDraft),
     [savedSnapshot, editorPack, labelDraft],
+  );
+  const jsonDirty = useMemo(
+    () => editorTab === 'json' && isJsonDraftDirty(jsonDraft, editorPack),
+    [editorTab, jsonDraft, editorPack],
+  );
+  const isDirty = editorDirty || jsonDirty;
+
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+  }, [isDirty, onDirtyChange]);
+
+  useEffect(
+    () => () => {
+      onDirtyChange?.(false);
+    },
+    [onDirtyChange],
   );
 
   useEffect(() => {
@@ -272,17 +295,41 @@ export default function VisitMascotPackManager({
     setSavedSnapshot(createMascotPackEditorSnapshot(packClone, label));
     setJsonError('');
     setActionIssues([]);
+    setJsonDraft((prev) => {
+      if (isJsonDraftDirty(prev, packClone)) return prev;
+      return stringifyPack(packClone, 2);
+    });
   }, [selectedId, packs]);
-
-  const onRefresh = useCallback(async () => {
-    await loadList();
-    await onPacksChanged?.();
-  }, [loadList, onPacksChanged]);
 
   const confirmLeaveIfDirty = useCallback(() => {
     if (!isDirty) return true;
     return window.confirm(UNSAVED_LEAVE_MSG);
   }, [isDirty]);
+
+  const refreshFromServer = useCallback(async () => {
+    await loadList();
+    await onPacksChanged?.();
+  }, [loadList, onPacksChanged]);
+
+  const onRefresh = useCallback(async () => {
+    if (!confirmLeaveIfDirty()) return;
+    await refreshFromServer();
+  }, [refreshFromServer, confirmLeaveIfDirty]);
+
+  const requestEditorTab = useCallback(
+    (nextTab) => {
+      if (nextTab === editorTab) return;
+      if (editorTab === 'json' && isJsonDraftDirty(jsonDraft, editorPack)) {
+        if (!window.confirm(UNSAVED_LEAVE_MSG)) return;
+      } else if (!confirmLeaveIfDirty()) {
+        return;
+      }
+      setEditorTab(nextTab);
+      if (nextTab === 'json') setJsonDraft(stringifyPack(editorPack, 2));
+      setJsonError('');
+    },
+    [editorTab, jsonDraft, editorPack, confirmLeaveIfDirty],
+  );
 
   const requestSelectPack = useCallback(
     (id) => {
@@ -328,7 +375,7 @@ export default function VisitMascotPackManager({
         });
         const newId = created?.id ? String(created.id) : '';
         if (newId) setSelectedId(newId);
-        await onRefresh();
+        await refreshFromServer();
       } catch (e) {
         if (e instanceof AccountDeletedError) onForceLogout?.();
         else {
@@ -342,7 +389,7 @@ export default function VisitMascotPackManager({
         setActionBusy(false);
       }
     },
-    [mapId, onRefresh, onForceLogout],
+    [mapId, refreshFromServer, onForceLogout],
   );
 
   const onNewDraft = useCallback(async () => {
@@ -357,12 +404,8 @@ export default function VisitMascotPackManager({
     await postNewPack({ clone_from_catalog_id: modelId });
   }, [postNewPack, selectedCatalogModelId, confirmLeaveIfDirty]);
 
-  const findPackForCatalogModel = useCallback(
-    (modelId) => {
-      const mid = String(modelId || '').trim();
-      if (!mid) return null;
-      return packs.find((p) => String(p.pack?.clonedFromCatalogId || '').trim() === mid) || null;
-    },
+  const findPacksForCatalogModelCb = useCallback(
+    (modelId) => findPacksForCatalogModel(packs, modelId),
     [packs],
   );
 
@@ -372,17 +415,26 @@ export default function VisitMascotPackManager({
       const mid = String(modelId || '').trim();
       if (!mid) return;
       setSelectedCatalogModelId(mid);
-      const existing = findPackForCatalogModel(mid);
-      if (existing?.id) {
-        if (existing.id !== selectedId && !confirmLeaveIfDirty()) return;
-        setSelectedId(existing.id);
+      const copies = findPacksForCatalogModel(packs, mid);
+      if (copies.length > 0) {
+        const picked = pickPreferredCatalogModelPack(copies, selectedId);
+        if (!picked?.pack?.id) return;
+        if (picked.pack.id !== selectedId && !confirmLeaveIfDirty()) return;
+        setSelectedId(picked.pack.id);
         setEditorTab('workspace');
         setActionError('');
+        setCatalogCopyHint(
+          picked.ambiguous
+            ? 'Plusieurs copies existent pour ce modèle — la plus récente (ou celle sélectionnée) est ouverte.'
+            : '',
+        );
         return;
       }
+      if (!confirmLeaveIfDirty()) return;
       setActionBusy(true);
       setActionError('');
       setActionIssues([]);
+      setCatalogCopyHint('');
       try {
         const midMap = String(mapId || '').trim();
         const created = await api('/api/visit/mascot-packs', 'POST', {
@@ -395,7 +447,7 @@ export default function VisitMascotPackManager({
           setSelectedId(newId);
           setEditorTab('workspace');
         }
-        await onRefresh();
+        await refreshFromServer();
       } catch (e) {
         if (e instanceof AccountDeletedError) onForceLogout?.();
         else {
@@ -409,7 +461,7 @@ export default function VisitMascotPackManager({
         setActionBusy(false);
       }
     },
-    [mapId, findPackForCatalogModel, onRefresh, onForceLogout, selectedId, confirmLeaveIfDirty],
+    [mapId, packs, refreshFromServer, onForceLogout, selectedId, confirmLeaveIfDirty],
   );
 
   const onDuplicateSelected = useCallback(async () => {
@@ -451,9 +503,9 @@ export default function VisitMascotPackManager({
     async (result) => {
       const newId = result?.id ? String(result.id) : '';
       if (newId) setSelectedId(newId);
-      await onRefresh();
+      await refreshFromServer();
     },
-    [onRefresh],
+    [refreshFromServer],
   );
 
   const onSave = useCallback(async () => {
@@ -485,7 +537,7 @@ export default function VisitMascotPackManager({
       });
       setEditorPack(cleanedPack);
       setSavedSnapshot(createMascotPackEditorSnapshot(cleanedPack, label));
-      await onRefresh();
+      await refreshFromServer();
     } catch (e) {
       if (e instanceof AccountDeletedError) onForceLogout?.();
       else setActionErrorWithDetails(e.message || 'Enregistrement impossible', e?.body?.details);
@@ -497,7 +549,7 @@ export default function VisitMascotPackManager({
     editorPack,
     packs,
     mapId,
-    onRefresh,
+    refreshFromServer,
     onForceLogout,
     labelDraft,
     setActionErrorWithDetails,
@@ -530,7 +582,7 @@ export default function VisitMascotPackManager({
       });
       setEditorPack(cleanedPack);
       setSavedSnapshot(createMascotPackEditorSnapshot(cleanedPack, label));
-      await onRefresh();
+      await refreshFromServer();
     } catch (e) {
       if (e instanceof AccountDeletedError) onForceLogout?.();
       else setActionErrorWithDetails(e.message || 'Mise à jour impossible', e?.body?.details);
@@ -542,7 +594,7 @@ export default function VisitMascotPackManager({
     editorPack,
     packs,
     mapId,
-    onRefresh,
+    refreshFromServer,
     onForceLogout,
     labelDraft,
     setActionErrorWithDetails,
@@ -550,6 +602,10 @@ export default function VisitMascotPackManager({
 
   const onDelete = useCallback(async () => {
     if (!selectedId) return;
+    if (isDirty) {
+      const leaveOk = window.confirm(UNSAVED_LEAVE_MSG);
+      if (!leaveOk) return;
+    }
     if (!window.confirm('Supprimer définitivement ce pack (y compris les fichiers uploadés) ?'))
       return;
     setActionBusy(true);
@@ -558,14 +614,14 @@ export default function VisitMascotPackManager({
     try {
       await api(`/api/visit/mascot-packs/${encodeURIComponent(selectedId)}`, 'DELETE');
       setSelectedId(null);
-      await onRefresh();
+      await refreshFromServer();
     } catch (e) {
       if (e instanceof AccountDeletedError) onForceLogout?.();
       else setActionError(e.message || 'Suppression impossible');
     } finally {
       setActionBusy(false);
     }
-  }, [selectedId, onRefresh, onForceLogout]);
+  }, [selectedId, refreshFromServer, onForceLogout, isDirty]);
 
   const upgradePackToV2 = useCallback((nextTab = 'interaction') => {
     setEditorPack((prev) => ({
@@ -630,38 +686,72 @@ export default function VisitMascotPackManager({
     });
   }, []);
 
+  const fileToPngDataUrl = useCallback(
+    (file) =>
+      new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onerror = () => reject(new Error('Lecture fichier impossible'));
+        reader.onload = () => {
+          const dataUrl = reader.result;
+          const img = new Image();
+          img.onerror = () => reject(new Error('Image invalide'));
+          img.onload = () => {
+            let w = img.naturalWidth;
+            let h = img.naturalHeight;
+            const max = 2048;
+            if (w > max || h > max) {
+              if (w >= h) {
+                h = Math.round((h * max) / w);
+                w = max;
+              } else {
+                w = Math.round((w * max) / h);
+                h = max;
+              }
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+              reject(new Error('Canvas indisponible'));
+              return;
+            }
+            ctx.drawImage(img, 0, 0, w, h);
+            resolve(canvas.toDataURL('image/png'));
+          };
+          img.src = dataUrl;
+        };
+        reader.readAsDataURL(file);
+      }),
+    [],
+  );
+
   const onLibUpload = useCallback(
     async (ev) => {
       const file = ev.target?.files?.[0];
       ev.target.value = '';
       if (!file) return;
       const mid = String(mapId || '').trim();
-      const reader = new FileReader();
-      reader.onload = async () => {
-        const dataUrl = String(reader.result || '');
-        const comma = dataUrl.indexOf(',');
-        const b64 = comma >= 0 ? dataUrl.slice(comma + 1) : '';
-        if (!b64) return;
-        setLibLoading(true);
-        try {
-          const safeName =
-            file.name.replace(/[^a-zA-Z0-9._-]+/g, '-').toLowerCase() || 'import.png';
-          await api(`/api/visit/mascot-sprite-library/${encodeURIComponent(mid)}/assets`, 'POST', {
-            filename: safeName.endsWith('.png') ? safeName : `${safeName}.png`,
-            image_data: b64,
-          });
-          setLibMessage('Image importée dans la bibliothèque.');
-          await loadLibrary();
-        } catch (e) {
-          if (e instanceof AccountDeletedError) onForceLogout?.();
-          else setLibMessage(e.message || 'Import impossible');
-        } finally {
-          setLibLoading(false);
-        }
-      };
-      reader.readAsDataURL(file);
+      setLibLoading(true);
+      setLibMessage('Envoi en cours…');
+      try {
+        const dataUrl = await fileToPngDataUrl(file);
+        const safeName =
+          file.name.replace(/[^a-zA-Z0-9._-]+/g, '-').toLowerCase() || 'import.png';
+        await api(`/api/visit/mascot-sprite-library/${encodeURIComponent(mid)}/assets`, 'POST', {
+          filename: safeName.endsWith('.png') ? safeName : `${safeName}.png`,
+          image_data: dataUrl,
+        });
+        setLibMessage('Image importée dans la bibliothèque.');
+        await loadLibrary();
+      } catch (e) {
+        if (e instanceof AccountDeletedError) onForceLogout?.();
+        else setLibMessage(e.message || 'Import impossible');
+      } finally {
+        setLibLoading(false);
+      }
     },
-    [mapId, loadLibrary, onForceLogout],
+    [mapId, loadLibrary, onForceLogout, fileToPngDataUrl],
   );
 
   const onLibDelete = useCallback(
@@ -722,46 +812,6 @@ export default function VisitMascotPackManager({
     if (!selectedId) return;
     setEditorPack((p) => ensureServerFramesBase(p, selectedId));
   }, [selectedId]);
-
-  const fileToPngDataUrl = useCallback(
-    (file) =>
-      new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onerror = () => reject(new Error('Lecture fichier impossible'));
-        reader.onload = () => {
-          const dataUrl = reader.result;
-          const img = new Image();
-          img.onerror = () => reject(new Error('Image invalide'));
-          img.onload = () => {
-            let w = img.naturalWidth;
-            let h = img.naturalHeight;
-            const max = 2048;
-            if (w > max || h > max) {
-              if (w >= h) {
-                h = Math.round((h * max) / w);
-                w = max;
-              } else {
-                w = Math.round((w * max) / h);
-                h = max;
-              }
-            }
-            const canvas = document.createElement('canvas');
-            canvas.width = w;
-            canvas.height = h;
-            const ctx = canvas.getContext('2d');
-            if (!ctx) {
-              reject(new Error('Canvas indisponible'));
-              return;
-            }
-            ctx.drawImage(img, 0, 0, w, h);
-            resolve(canvas.toDataURL('image/png'));
-          };
-          img.src = dataUrl;
-        };
-        reader.readAsDataURL(file);
-      }),
-    [],
-  );
 
   const onPackUpload = useCallback(
     async (ev) => {
@@ -833,14 +883,14 @@ export default function VisitMascotPackManager({
   }, [loadPackAssets, loadLibrary, loadGlobalAssets]);
 
   const packDialogInheritedContext = useMemo(() => {
-    const catalogId = String(selectedRow?.catalog_id || editorPack?.id || '').trim();
+    const catalogId = resolvePackDialogMascotId(editorPack, selectedRow);
     return {
       mascotId: catalogId,
       extraCatalogEntries: [],
       globalDefaults: mascotDialogSettings?.defaults || null,
       catalogOverrides: mascotDialogSettings?.catalogOverrides || null,
     };
-  }, [editorPack?.id, mascotDialogSettings, selectedRow?.catalog_id]);
+  }, [editorPack, mascotDialogSettings, selectedRow]);
 
   return (
     <div
@@ -860,7 +910,10 @@ export default function VisitMascotPackManager({
         onSelectMode={requestStudioMode}
       />
       {studioMode === 'dialogues' ? (
-        <VisitMascotDialogStudioView onForceLogout={onForceLogout} />
+        <VisitMascotDialogStudioView
+          onForceLogout={onForceLogout}
+          catalogModelOptions={catalogModelOptions}
+        />
       ) : (
         <div className="visit-mascot-pack-manager__layout">
           <MascotPackListAside
@@ -869,7 +922,8 @@ export default function VisitMascotPackManager({
             catalogModelOptions={catalogModelOptions}
             selectedCatalogModelId={selectedCatalogModelId}
             onSelectCatalogModel={setSelectedCatalogModelId}
-            findPackForCatalogModel={findPackForCatalogModel}
+            findPacksForCatalogModel={findPacksForCatalogModelCb}
+            catalogCopyHint={catalogCopyHint}
             onNewDraft={() => void onNewDraft()}
             onOpenCatalogModelForEdit={(id) => void openCatalogModelForEdit(id)}
             onNewFromCatalog={() => void onNewFromCatalog()}
@@ -929,11 +983,7 @@ export default function VisitMascotPackManager({
                       aria-selected={editorTab === t.id}
                       aria-controls={`mascot-pack-tabpanel-${t.id}`}
                       className={`btn btn-sm ${editorTab === t.id ? 'btn-primary' : 'btn-ghost'}`}
-                      onClick={() => {
-                        setEditorTab(t.id);
-                        if (t.id === 'json') setJsonDraft(stringifyPack(editorPack, 2));
-                        setJsonError('');
-                      }}
+                      onClick={() => requestEditorTab(t.id)}
                     >
                       {t.label}
                     </button>

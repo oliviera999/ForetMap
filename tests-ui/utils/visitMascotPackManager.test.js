@@ -6,6 +6,11 @@ import {
   insertMascotImageIntoPackState,
   createMascotPackEditorSnapshot,
   isMascotPackEditorDirty,
+  isJsonDraftDirty,
+  resolvePackDialogMascotId,
+  findPacksForCatalogModel,
+  pickPreferredCatalogModelPack,
+  getPackStrictValidation,
   buildUnifiedMascotImageEntries,
 } from '../../src/utils/visitMascotPackManager.js';
 
@@ -238,5 +243,95 @@ describe('buildUnifiedMascotImageEntries', () => {
     expect(other?.meta).toContain('Autre');
     expect(lib?.canDelete).toBe(true);
     expect(lib?.deleteScope).toBe('map');
+  });
+});
+
+describe('resolvePackDialogMascotId', () => {
+  test('priorise clonedFromCatalogId', () => {
+    expect(
+      resolvePackDialogMascotId(
+        { clonedFromCatalogId: 'sprout-rive' },
+        { catalog_id: 'srv-abc' },
+      ),
+    ).toBe('sprout-rive');
+  });
+
+  test('ignore catalog_id srv-* sans clone', () => {
+    expect(resolvePackDialogMascotId({}, { catalog_id: 'srv-abc' })).toBe('');
+    expect(resolvePackDialogMascotId({}, { catalog_id: 'fox-backpack-spritesheet' })).toBe(
+      'fox-backpack-spritesheet',
+    );
+  });
+});
+
+describe('isJsonDraftDirty', () => {
+  test('JSON identique au pack → pas dirty', () => {
+    const pack = { stateFrames: { idle: {} }, mascotPackVersion: 1 };
+    const json = JSON.stringify(pack);
+    expect(isJsonDraftDirty(json, pack)).toBe(false);
+  });
+
+  test('JSON modifié → dirty', () => {
+    const pack = { stateFrames: { idle: {} }, mascotPackVersion: 1 };
+    expect(isJsonDraftDirty(JSON.stringify({ ...pack, label: 'x' }), pack)).toBe(true);
+  });
+
+  test('JSON invalide non vide → dirty', () => {
+    expect(isJsonDraftDirty('{oops', {})).toBe(true);
+  });
+});
+
+describe('findPacksForCatalogModel / pickPreferredCatalogModelPack', () => {
+  const packs = [
+    {
+      id: 'a',
+      updated_at: '2026-01-01',
+      pack: { clonedFromCatalogId: 'sprout' },
+    },
+    {
+      id: 'b',
+      updated_at: '2026-06-01',
+      pack: { clonedFromCatalogId: 'sprout' },
+    },
+    { id: 'c', pack: { clonedFromCatalogId: 'fox' } },
+  ];
+
+  test('findPacksForCatalogModel filtre par modèle', () => {
+    expect(findPacksForCatalogModel(packs, 'sprout').map((p) => p.id)).toEqual(['a', 'b']);
+  });
+
+  test('pickPreferredCatalogModelPack préfère le pack sélectionné', () => {
+    const picked = pickPreferredCatalogModelPack(findPacksForCatalogModel(packs, 'sprout'), 'a');
+    expect(picked?.pack?.id).toBe('a');
+    expect(picked?.ambiguous).toBe(true);
+  });
+
+  test('pickPreferredCatalogModelPack prend le plus récent sinon', () => {
+    const picked = pickPreferredCatalogModelPack(findPacksForCatalogModel(packs, 'sprout'), null);
+    expect(picked?.pack?.id).toBe('b');
+    expect(picked?.ambiguous).toBe(true);
+  });
+});
+
+describe('getPackStrictValidation', () => {
+  const packId = '00000000-0000-4000-8000-000000000001';
+  const mapId = 'foret';
+
+  test('accepte framesBase pack et bibliothèque carte', () => {
+    const pack = {
+      mascotPackVersion: 1,
+      id: 'test-pack',
+      label: 'Test',
+      renderer: 'sprite_cut',
+      frameWidth: 32,
+      frameHeight: 32,
+      fallbackSilhouette: 'gnome',
+      framesBase: `/api/visit/mascot-packs/${packId}/assets/`,
+      stateFrames: {
+        idle: { files: ['a.png'], fps: 8 },
+      },
+    };
+    const result = getPackStrictValidation(pack, packId, mapId);
+    expect(result.ok).toBe(true);
   });
 });

@@ -7,6 +7,15 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Visite — correctifs onglet Packs mascotte
+
+- **fix** : garde anti-perte des modifications (Actualiser, changement de carte, navigation onglet prof, draft JSON non appliqué, suppression).
+- **fix** : héritage des bulles de dialogue via `clonedFromCatalogId` (plus `srv-{uuid}`).
+- **fix** : multi-copies catalogue — « Éditer la copie » ouvre le pack sélectionné ou le plus récent.
+- **fix** : lien Visite → studio aligne la carte active ; mode Dialogues utilise `allowed_catalog_ids` serveur.
+- **fix** : import bibliothèque carte harmonisé (PNG redimensionné, `image/*`).
+- **Tests** : `visitMascotPackManager`, `MascotPackListAside`.
+
 ### GL — numéros zones feuillets (admin chapitres)
 
 - **Admin Contenus** : numéros (1, 2, 3…) sur les poignées de déplacement, les labels SVG et la liste « Zones feuillets », triés par code feuillet puis `zone_id`.
