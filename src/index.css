@@ -19,8 +19,12 @@
       --leaf:     #2d6a4f;
       --sage:     #52b788;
       --mint:     #b7e4c7;
-      --font-sans: 'DM Sans', 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', sans-serif;
-      /* Noto Color Emoji auto-hébergé : zones ciblées uniquement (évite de mélanger tout le body). */
+      /* Noto Color Emoji auto-hébergé ('ForetMapColorEmoji') ajouté en dernier recours sur TOUT le
+         texte : garantit l'affichage des emojis quel que soit le périphérique (y compris ceux sans
+         police emoji native). Son cmap ne contient que des emojis → la police n'est téléchargée à la
+         demande que pour les emojis non couverts par une police système (cascade par caractère). */
+      --font-sans: 'DM Sans', 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', 'ForetMapColorEmoji', sans-serif;
+      /* Stacks ciblés : la police auto-hébergée est prioritaire pour un rendu emoji homogène partout. */
       --font-emoji-stack: 'ForetMapColorEmoji', 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
       --font-sans-with-emoji: 'DM Sans', 'ForetMapColorEmoji', 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', sans-serif;
       --cream:    #fefae0;
@@ -64,7 +68,7 @@
       overflow-x:hidden;
       overflow-y:auto;
     }
-    h1,h2,h3 { font-family:'Playfair Display',serif; }
+    h1,h2,h3 { font-family:'Playfair Display', 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', 'ForetMapColorEmoji', serif; }
     /* min-width:0 sur la chaîne flex : évite qu’un enfant (grille, texte long) impose une largeur
        minimale au document et déclenche un scroll horizontal sur mobile. */
     #root { display:flex; flex-direction:column; min-height:100vh; min-height:100dvh; width:100%; max-width:100%; min-width:0; overflow-x:hidden; }
