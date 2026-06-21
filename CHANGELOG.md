@@ -7,6 +7,13 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### GL — studio carte chapitre et dé numéroté
+
+- **Admin Contenus** : numéros de parcours (1, 2, 3…) sur les repères de la carte et dans la liste « Repères » du studio chapitre, triés par `order_index`.
+- **Partie** : jet du dé virtuel en mode `numbered_path` déplace la mascotte sur le repère cible et planifie le popover repère (question / effet).
+- **UI** : popover du dé virtuel repositionné pour ne pas masquer la carte plateau (`glDicePopoverPosition`).
+- **Tests** : `GLChapterMapStudio`, `GLBoardMarkers`, `GLGameBoard`, `glDicePopoverPosition`.
+
 ### GL — correctifs admin Contenus (QCM lore + glossaire)
 
 - **fix(gl)** : `GET /api/gl/lore/glossary/link-index` — route déclarée avant `/glossary/:code` (sinon 404 « Terme introuvable »).

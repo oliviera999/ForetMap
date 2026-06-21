@@ -32,6 +32,7 @@ import { GLGameBoardRoster } from './GLGameBoardRoster.jsx';
 import {
   buildMarkerPathNumberMap,
   sortMarkersByPath,
+  targetMarkerAfterDice,
 } from '../utils/glBoardPath.js';
 
 export function GLGameBoard({
@@ -108,6 +109,7 @@ export function GLGameBoard({
   const [mapFullscreen, setMapFullscreen] = useState(false);
   const [boardHeightPx, setBoardHeightPx] = useState(0);
   const boardHeightPxRef = useRef(0);
+  const boardShellRef = useRef(null);
   const mapGestures = useGlPctMapGestures();
   const prefersReducedMotion = usePrefersReducedMotion();
 
@@ -320,6 +322,51 @@ export function GLGameBoard({
     [resolveActiveTeamId, moveTeamTo, onMarkerClick, schedulePresentOnArrival],
   );
 
+  const handleDiceRollResult = useCallback(
+    async (roll) => {
+      if (boardMovement?.isNumberedPath && onDiceRollResult) {
+        const teamId = resolveActiveTeamId();
+        if (teamId != null) {
+          const team = (Array.isArray(teams) ? teams : []).find(
+            (item) => Number(item.id) === Number(teamId),
+          );
+          const sortedMarkers = sortMarkersByPath(markers);
+          const target = targetMarkerAfterDice(
+            sortedMarkers,
+            team,
+            roll?.total,
+            boardMovement.startIndex,
+          );
+          if (target?.marker) {
+            const marker = target.marker;
+            moveTeamTo(teamId, Number(marker.x_pct), Number(marker.y_pct), {
+              triggerHappy: true,
+              arrival: 'marker',
+            });
+            if (
+              markerArrivalEnabled &&
+              (isQuestionMarker(marker) || shouldPresentMarkerOnArrival(marker))
+            ) {
+              schedulePresentOnArrival(marker, teamId, { force: true });
+            }
+          }
+        }
+      }
+      await onDiceRollResult?.(roll);
+    },
+    [
+      boardMovement?.isNumberedPath,
+      boardMovement?.startIndex,
+      onDiceRollResult,
+      resolveActiveTeamId,
+      teams,
+      markers,
+      moveTeamTo,
+      markerArrivalEnabled,
+      schedulePresentOnArrival,
+    ],
+  );
+
   function handleMarkerClick(marker) {
     if (feuilletZoneEditMode) {
       return;
@@ -362,6 +409,7 @@ export function GLGameBoard({
 
   const boardShell = (
     <div
+      ref={boardShellRef}
       className={boardShellClass}
       data-testid={mapFullscreen ? 'gl-map-fullscreen-layer' : undefined}
     >
@@ -483,9 +531,10 @@ export function GLGameBoard({
         onLaunchSpell={onLaunchSpell}
         onOpenFullscreen={() => setMapFullscreen(true)}
         virtualDiceEnabled={virtualDiceEnabled}
-        onRollResult={onDiceRollResult}
+        onRollResult={handleDiceRollResult}
         gameId={gameId}
         themeStyle={brandThemeStyle}
+        boardShellRef={boardShellRef}
         zoneMusicEnabled={zoneMusicEnabled}
         zoneMusicMuted={zoneMusicMuted}
         onZoneMusicToggle={onZoneMusicToggle}

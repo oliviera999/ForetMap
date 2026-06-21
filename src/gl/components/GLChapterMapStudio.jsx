@@ -26,6 +26,7 @@ import {
   toMarkerPayload,
 } from '../utils/glChapterMapStudioForm.js';
 import { zoneDuplicateCreatePayloadFromZone } from '../hooks/useGLKingdomZoneEditor.js';
+import { buildMarkerPathNumberMap, sortMarkersByPath } from '../utils/glBoardPath.js';
 
 export function GLChapterMapStudio({
   chapterId,
@@ -144,6 +145,16 @@ export function GLChapterMapStudio({
   const selectedMarker = useMemo(
     () => editableMarkers.find((marker) => Number(marker.id) === Number(selectedMarkerId)) || null,
     [editableMarkers, selectedMarkerId],
+  );
+
+  const markersInPathOrder = useMemo(
+    () => sortMarkersByPath(editableMarkers),
+    [editableMarkers],
+  );
+
+  const markerPathNumbers = useMemo(
+    () => buildMarkerPathNumberMap(markersInPathOrder, 1),
+    [markersInPathOrder],
   );
 
   useEffect(() => {
@@ -448,6 +459,7 @@ export function GLChapterMapStudio({
         <GLBoardMarkers
           markers={editableMarkers}
           selectedMarkerId={selectedMarkerId}
+          markerPathNumbers={markerPathNumbers}
           onMarkerClick={(marker) => selectMarker(marker)}
           onMarkerPointerDown={(event, marker) => {
             if (isAddMode || zoneEditActive) return;
@@ -468,7 +480,9 @@ export function GLChapterMapStudio({
 
       <h4 className="gl-chapter-map-studio__subtitle">Repères</h4>
       <ul className="gl-markers-list">
-        {editableMarkers.map((marker) => (
+        {markersInPathOrder.map((marker) => {
+          const pathNumber = markerPathNumbers.get(Number(marker.id));
+          return (
           <li
             key={marker.id}
             data-marker-id={marker.id}
@@ -480,6 +494,11 @@ export function GLChapterMapStudio({
               disabled={zoneEditActive}
               onClick={() => selectMarker(marker)}
             >
+              {pathNumber != null ? (
+                <span className="gl-markers-list__path-number" aria-hidden>
+                  {pathNumber}
+                </span>
+              ) : null}
               <GLChapterMarkerListVisual marker={marker} />
               <strong>{marker.label}</strong> — x:
               {Number(marker.x_pct).toFixed(1)}
@@ -499,7 +518,8 @@ export function GLChapterMapStudio({
               </GLButton>
             ) : null}
           </li>
-        ))}
+          );
+        })}
         {editableMarkers.length === 0 ? (
           <li className="gl-empty gl-hint">
             Aucun repère. Activez « Ajouter un repère » puis cliquez sur la carte.

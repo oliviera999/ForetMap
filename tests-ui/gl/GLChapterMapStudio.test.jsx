@@ -124,6 +124,36 @@ describe('GLChapterMapStudio', () => {
     expect(onInfo).toHaveBeenCalledWith('Position du repère mise à jour');
   });
 
+  test('affiche les numéros de parcours dans la liste des repères', async () => {
+    render(
+      <GLChapterMapStudio
+        chapterId={42}
+        chapterSlug="foret-magique"
+        chapterTitle="Forêt magique"
+        mapImageUrl="/maps/map-foret.svg"
+        markers={[
+          { id: 9, label: 'Repère B', x_pct: 10, y_pct: 20, order_index: 1 },
+          { id: 8, label: 'Repère A', x_pct: 30, y_pct: 40, order_index: 0 },
+        ]}
+        zoneMusicEnabled={false}
+        onReload={vi.fn()}
+        onError={vi.fn()}
+        onInfo={vi.fn()}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /Repère A/i })).toBeTruthy();
+    });
+
+    const numbers = document.querySelectorAll('.gl-markers-list__path-number');
+    expect(numbers).toHaveLength(2);
+    expect(numbers[0]?.textContent).toBe('1');
+    expect(numbers[1]?.textContent).toBe('2');
+    expect(screen.getByText('Repère A').closest('button')?.querySelector('.gl-markers-list__path-number')?.textContent).toBe('1');
+    expect(screen.getByText('Repère B').closest('button')?.querySelector('.gl-markers-list__path-number')?.textContent).toBe('2');
+  });
+
   test('duplique un repère depuis la liste', async () => {
     const onReload = vi.fn();
     const onInfo = vi.fn();

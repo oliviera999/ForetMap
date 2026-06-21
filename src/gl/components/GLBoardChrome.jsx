@@ -17,6 +17,7 @@ export function GLBoardChrome({
   onRollResult = null,
   gameId = null,
   themeStyle = null,
+  boardShellRef = null,
   zoneMusicEnabled = false,
   zoneMusicMuted = false,
   onZoneMusicToggle,
@@ -35,7 +36,12 @@ export function GLBoardChrome({
       ) : null}
 
       {virtualDiceEnabled && gameId ? (
-        <GLVirtualDiceDock themeStyle={themeStyle} enabled onRollResult={onRollResult} />
+        <GLVirtualDiceDock
+          themeStyle={themeStyle}
+          enabled
+          onRollResult={onRollResult}
+          boardShellRef={boardShellRef}
+        />
       ) : null}
 
       {!mapFullscreen ? (

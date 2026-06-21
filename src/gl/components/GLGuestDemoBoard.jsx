@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { withAppBase } from '../../services/api.js';
 import { apiGL } from '../services/apiGL.js';
 import { getRuntimeFeuilletZonesForPlateau } from '../data/glFeuilletZonesBundle.js';
@@ -46,6 +46,7 @@ export function GLGuestDemoBoard({ onExitGuest, brandThemeStyle = null }) {
   const mapGestures = useGlPctMapGestures();
   const prefersReducedMotion = usePrefersReducedMotion();
   const [boardHeightPx, setBoardHeightPx] = useState(0);
+  const boardShellRef = useRef(null);
   const [presentedZoneIds, setPresentedZoneIds] = useState([]);
   const [pathIndex, setPathIndex] = useState(0);
   const [demoFeuillets, setDemoFeuillets] = useState([]);
@@ -175,7 +176,7 @@ export function GLGuestDemoBoard({ onExitGuest, brandThemeStyle = null }) {
 
       {loadError ? <p className="gl-error">{loadError}</p> : null}
 
-      <div className="gl-board-shell">
+      <div className="gl-board-shell" ref={boardShellRef}>
         <GLPctMapCanvas
           imageUrl={imageUrl}
           imageAlt="Plateau 1 — tropiques africains (aperçu)"
@@ -201,6 +202,7 @@ export function GLGuestDemoBoard({ onExitGuest, brandThemeStyle = null }) {
           showLabel={false}
           themeStyle={brandThemeStyle}
           onRollResult={handleDiceRollResult}
+          boardShellRef={boardShellRef}
         />
       </div>
 
