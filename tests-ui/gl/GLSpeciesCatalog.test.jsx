@@ -69,7 +69,7 @@ describe('GLSpeciesCatalog', () => {
     );
     expect(screen.getByRole('tab', { name: 'Désert chaud (Sahara)' })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'Toundra arctique' })).toBeInTheDocument();
-    expect(screen.getByText(/Biomes de ce chapitre/i)).toBeInTheDocument();
+    expect(screen.getByText(/Écosystèmes de ce chapitre/i)).toBeInTheDocument();
     await waitFor(() => {
       expect(screen.getByText('Fennec')).toBeInTheDocument();
     });

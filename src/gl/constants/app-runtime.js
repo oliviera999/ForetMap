@@ -1,17 +1,24 @@
 export const GL_TAB_STORAGE_KEY = 'gl_active_tab';
 
 /** Onglets épinglés sur la barre mobile (bottom-nav + raccourcis desktop compacts). */
-export const GL_MOBILE_PRIMARY_TAB_IDS = ['maps', 'biotope', 'glossary', 'rules'];
+export const GL_MOBILE_PRIMARY_TAB_IDS = ['maps', 'ecosystemes', 'glossary', 'rules'];
 
 /** Onglet plateau démo — visible uniquement en Mode Découverte. */
 export const GL_DISCOVERY_TAB = { id: 'discovery', label: 'Découverte', icon: '🧭' };
 
-export const GL_GUEST_TAB_IDS = ['world', 'rules', 'discovery', 'glossary', 'biotope', 'biocenose'];
+export const GL_GUEST_TAB_IDS = [
+  'world',
+  'rules',
+  'discovery',
+  'glossary',
+  'ecosystemes',
+  'biodiversite',
+];
 
 export const GL_PLAYER_TABS = [
   { id: 'maps', label: 'Cartes', icon: '🗺️' },
-  { id: 'biotope', label: 'Biotope', icon: '🌿' },
-  { id: 'biocenose', label: 'Biocénose', icon: '🦋' },
+  { id: 'ecosystemes', label: 'Écosystèmes', icon: '🌿' },
+  { id: 'biodiversite', label: 'Biodiversité', icon: '🦋' },
   { id: 'glossary', label: 'Glossaire', icon: '📚' },
   { id: 'lore-glossary', label: 'Lexique lore', icon: '📜' },
   { id: 'selene-carnet', label: 'Carnet Sélène', icon: '📒' },

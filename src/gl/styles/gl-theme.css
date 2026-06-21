@@ -4357,8 +4357,44 @@ body.gl-map-fullscreen-active .gl-qcm-popover-overlay {
 }
 
 .gl-biocenose-intro,
+.gl-ecosystem-section__biocenose,
 .gl-grimoire .gl-spells-intro {
   margin-bottom: 1.25rem;
+}
+
+.gl-ecosystem-section {
+  margin-top: 1.5rem;
+  padding-top: 0.25rem;
+  border-top: 1px solid var(--gl-border, rgba(1, 58, 64, 0.12));
+}
+
+.gl-ecosystem-section:first-of-type {
+  margin-top: 0.75rem;
+  border-top: none;
+  padding-top: 0;
+}
+
+.gl-ecosystem-section > h3 {
+  margin: 0 0 0.75rem;
+  font-size: 1.15rem;
+}
+
+.gl-ecosystem-section__block > h4 {
+  margin: 1rem 0 0.5rem;
+  font-size: 1rem;
+  color: var(--gl-color-link, #778c88);
+}
+
+.gl-ecosystem-section__figure {
+  margin: 0.75rem 0 1rem;
+}
+
+.gl-ecosystem-section__figure img {
+  display: block;
+  width: 100%;
+  max-width: 720px;
+  height: auto;
+  border-radius: var(--gl-radius-sm, 8px);
 }
 
 .gl-grimoire .gl-spell-catalog__intro {

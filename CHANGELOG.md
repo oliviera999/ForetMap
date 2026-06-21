@@ -7,6 +7,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### GL — onglets Écosystèmes et Biodiversité
+
+- **Navigation** : l’onglet « Biotope » devient **Écosystèmes** (`ecosystemes`) ; « Biocénose » devient **Biodiversité** (`biodiversite`), aligné sur ForetMap. Redirection des identifiants mémorisés (`biotope` → `ecosystemes`, `biocenose` → `biodiversite`).
+- **Écosystèmes** : biotope et biocénose (textes + illustrations) regroupés par écosystème catalogue ; découpage markdown par titres `##` si plusieurs biomes.
+- **Biodiversité** : catalogue espèces seul (fiches des êtres vivants) ; illustrations biocénose déplacées vers Écosystèmes.
+- **Aide contextuelle** : clés `tab:ecosystemes` / `tab:biodiversite` (repli legacy admin).
+- **Tests** : `glEcosystemSections`, `GLEcosystemsView`, `GLBiodiversityView`, `glAppShellHelpers`, `gl-help-content`.
+
 ### GL — édition chapitres (images et emojis repères)
 
 - **Markdown admin** : résolution legacy `gl-*` et `scene:N` dans `GLRichTextEditor` (Contenus → Chapitres) — même logique que les pages joueur ; round-trip via `data-gl-md-src`.

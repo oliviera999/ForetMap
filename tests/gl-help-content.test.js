@@ -25,3 +25,10 @@ test('normalizeGlHelpConfig préserve une surcharge', () => {
   assert.equal(normalized.entries['tab:rules'].body, 'Texte custom');
   assert.ok(normalized.entries['tab:maps']?.body);
 });
+
+test('normalizeGlHelpConfig expose les nouveaux onglets écosystèmes / biodiversité', () => {
+  const normalized = normalizeGlHelpConfig({});
+  assert.ok(normalized.entries['tab:ecosystemes']?.body);
+  assert.ok(normalized.entries['tab:biodiversite']?.body);
+  assert.ok(!HELP_ENTRY_KEYS.includes('tab:biotope'));
+});
