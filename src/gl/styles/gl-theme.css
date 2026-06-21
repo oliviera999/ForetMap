@@ -1089,6 +1089,131 @@ a.gl-glossary-inline-link:hover,
   flex: 1 1 auto;
 }
 
+.gl-map-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+@media (min-width: 900px) {
+  .gl-map-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(240px, 300px);
+  }
+}
+
+.gl-map-layout__board {
+  min-width: 0;
+}
+
+.gl-map-roster {
+  background: var(--gl-surface);
+  border: 1px solid var(--gl-border);
+  border-radius: var(--gl-radius-lg);
+  padding: 12px 14px;
+  box-shadow: var(--gl-shadow-sm);
+}
+
+.gl-map-roster__title {
+  margin: 0 0 10px;
+  font-size: 1rem;
+}
+
+.gl-map-roster__groups {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.gl-map-roster-group {
+  border: 1px solid var(--gl-border);
+  border-radius: 12px;
+  padding: 10px;
+  background: color-mix(in srgb, var(--gl-surface) 92%, #f8fafc);
+}
+
+.gl-map-roster-group.is-current-turn {
+  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.35);
+}
+
+.gl-map-roster-group.is-selected {
+  border-color: color-mix(in srgb, var(--gl-color-accent, #52b788) 55%, var(--gl-border));
+}
+
+.gl-map-roster-group__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.gl-map-roster-group__color {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: var(--gl-team-color, #94a3b8);
+  flex-shrink: 0;
+}
+
+.gl-map-roster-group__title {
+  margin: 0;
+  flex: 1 1 auto;
+  font-size: 0.95rem;
+}
+
+.gl-map-roster-group__turn-badge {
+  font-size: 0.7rem;
+  background: #16a34a;
+  color: #fff;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-weight: 700;
+}
+
+.gl-map-roster-group__empty {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.gl-map-roster-group__players {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.gl-map-roster-player {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 10px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: #fff;
+  border: 1px solid color-mix(in srgb, var(--gl-border) 80%, transparent);
+}
+
+.gl-map-roster-player.is-self {
+  border-color: color-mix(in srgb, var(--gl-color-accent, #52b788) 45%, var(--gl-border));
+  background: color-mix(in srgb, var(--gl-color-accent, #52b788) 8%, #fff);
+}
+
+.gl-map-roster-player__name {
+  font-size: 0.9rem;
+}
+
+.gl-map-roster-player__you {
+  font-size: 0.82rem;
+  color: color-mix(in srgb, var(--gl-color-text, #262626) 65%, transparent);
+}
+
+.gl-map-roster-player__vitality {
+  font-size: 0.85rem;
+}
+
 /* —— Chrome carte plateau (boutons unifiés par rôle) —— */
 .gl-board-action {
   flex: 0 0 auto;
@@ -1443,9 +1568,11 @@ body.gl-map-fullscreen-active .gl-qcm-popover-overlay {
 }
 
 .gl-marker-appearance-editor__emoji-quick .emoji-btn,
+.gl-marker-appearance-editor__emoji-input,
 .gl-marker-appearance-editor__emoji input {
   font-family: var(--font-emoji-stack);
   font-variant-emoji: emoji;
+  font-size: 1.2rem;
 }
 
 .emoji-btn {

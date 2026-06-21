@@ -360,6 +360,11 @@ test.describe('Gnomes & Licornes game flow smoke', () => {
     const board = page.locator('.gl-board');
     await expect(board).toBeVisible({ timeout: 15000 });
 
+    const roster = page.getByTestId('gl-map-roster');
+    await expect(roster).toBeVisible();
+    await expect(page.getByTestId(`gl-map-roster-team-${seeded.teamId}`)).toBeVisible();
+    await expect(roster.getByText(seeded.playerPseudo)).toBeVisible();
+
     await page.getByTestId('gl-map-fullscreen-open').click();
     await expect(board).toHaveClass(/gl-board--fullscreen/);
     await expect(page.getByTestId('gl-map-fullscreen-layer')).toBeVisible();

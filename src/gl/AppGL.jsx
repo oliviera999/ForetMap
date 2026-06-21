@@ -957,6 +957,14 @@ export function AppGL() {
                     feuilletZoneEditMode={feuilletZoneEditMode}
                     showPlateauMarkers={plateauMapVisibility.markersVisible}
                     showPlateauZones={plateauMapVisibility.zonesVisible}
+                    roster={gameState?.roster || []}
+                    vitalityEnabled={!!gameplaySettings.vitalityEnabled}
+                    vitalityByPlayerId={gameState?.vitality?.byPlayerId || null}
+                    playerId={
+                      auth?.userType === 'gl_player' && auth?.userId != null
+                        ? Number(auth.userId)
+                        : null
+                    }
                   />
                   {showsPlayerChrome && gameState?.game && auth?.teamId == null && (
                     <section className="gl-panel">

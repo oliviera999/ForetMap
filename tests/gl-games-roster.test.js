@@ -129,6 +129,16 @@ test('roster assign/unassign met à jour les affectations', async () => {
   const playerAssigned = rosterAssigned.body.find((row) => Number(row.id) === playerId);
   assert.equal(Number(playerAssigned?.teamId), teamAId);
 
+  const gameState = await request(app)
+    .get(`/api/gl/games/${gameId}`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .expect(200);
+  assert.ok(Array.isArray(gameState.body.roster));
+  const rosterPlayer = gameState.body.roster.find((row) => Number(row.playerId) === playerId);
+  assert.ok(rosterPlayer);
+  assert.equal(Number(rosterPlayer.teamId), teamAId);
+  assert.equal(rosterPlayer.pseudo, `player-roster-${stamp}`);
+
   await request(app)
     .post(`/api/gl/games/${gameId}/roster/assign`)
     .set('Authorization', `Bearer ${adminToken}`)
