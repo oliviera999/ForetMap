@@ -21,7 +21,10 @@ function writeSeen(key) {
 function renderHelpBody(body) {
   const text = String(body || '').trim();
   if (!text) return null;
-  const lines = text.split('\n').map((line) => line.trim()).filter(Boolean);
+  const lines = text
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
   if (lines.length <= 1 && !text.includes('•') && !text.startsWith('-')) {
     return <p>{text}</p>;
   }

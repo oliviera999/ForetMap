@@ -32,7 +32,8 @@ function MarkerBackgroundPreview({ mode, storedValue }) {
       className={`gl-marker-bg-preview gl-marker-bg-preview--${mode}`}
       style={{
         background: cssBg,
-        boxShadow: isEmoji && storedValue === 'classic' ? '0 1px 4px rgba(15, 23, 42, 0.18)' : 'none',
+        boxShadow:
+          isEmoji && storedValue === 'classic' ? '0 1px 4px rgba(15, 23, 42, 0.18)' : 'none',
       }}
       aria-hidden
     >
@@ -55,9 +56,7 @@ function MarkerBackgroundRow({ mode, value, disabled, onChange }) {
   }, [value]);
 
   function emit(nextUiMode, hex = customHex) {
-    onChange(
-      markerBackgroundStoredValue(nextUiMode, hex, defaultCustomHex(mode)),
-    );
+    onChange(markerBackgroundStoredValue(nextUiMode, hex, defaultCustomHex(mode)));
   }
 
   return (

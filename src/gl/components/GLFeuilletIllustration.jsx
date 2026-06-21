@@ -31,10 +31,7 @@ export function GLFeuilletCoupeIllustration({
   imgClassName = '',
 }) {
   const assetsReady = useGlAssetsReady();
-  const src = useMemo(
-    () => resolveFeuilletExplicitMediaUrl(url, assetsReady),
-    [url, assetsReady],
-  );
+  const src = useMemo(() => resolveFeuilletExplicitMediaUrl(url, assetsReady), [url, assetsReady]);
   if (!src) return null;
   return (
     <figure className={figureClassName || undefined}>

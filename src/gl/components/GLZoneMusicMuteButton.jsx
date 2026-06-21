@@ -1,12 +1,7 @@
 import React from 'react';
 import { GLBoardActionButton } from './GLBoardActionButton.jsx';
 
-export function GLZoneMusicMuteButton({
-  visible = true,
-  muted = false,
-  onToggle,
-  className = '',
-}) {
+export function GLZoneMusicMuteButton({ visible = true, muted = false, onToggle, className = '' }) {
   if (!visible) return null;
   return (
     <GLBoardActionButton

@@ -70,9 +70,7 @@ test('mascotPackArchive : parse et round-trip visit portable', () => {
 
   const serverPack = rewriteVisitPackForServerImport(parsed.pack, PACK_UUID);
   assert.ok(String(serverPack.framesBase).includes(PACK_UUID));
-  assert.ok(
-    String(serverPack.stateFrames.idle.files[0]).includes('/api/visit/mascot-packs/'),
-  );
+  assert.ok(String(serverPack.stateFrames.idle.files[0]).includes('/api/visit/mascot-packs/'));
 });
 
 test('mascotPackArchive : assets extraits restent sous assets/', () => {

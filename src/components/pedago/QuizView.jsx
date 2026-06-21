@@ -1,6 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '../../services/api';
-import { PedagoQcmFeedbackBlock, shouldShowPedagoQcmAnswerPhase } from './PedagoQcmFeedbackBlock.jsx';
+import {
+  PedagoQcmFeedbackBlock,
+  shouldShowPedagoQcmAnswerPhase,
+} from './PedagoQcmFeedbackBlock.jsx';
 
 const THEME_OPTIONS = [
   { value: '', label: 'Tous thèmes' },
@@ -122,10 +125,13 @@ export function QuizView({ onOpenPlant, onOpenGlossaryTerm, initialQuestionCode 
   }, [categories, categorieSlug]);
 
   const categorieOptions = useMemo(
-    () => [{ value: '', label: 'Toutes catégories' }, ...categories.map((c) => ({
-      value: c.slug,
-      label: `${c.emoji ? `${c.emoji} ` : ''}${c.nom}${c.questionCount != null ? ` (${c.questionCount})` : ''}`,
-    }))],
+    () => [
+      { value: '', label: 'Toutes catégories' },
+      ...categories.map((c) => ({
+        value: c.slug,
+        label: `${c.emoji ? `${c.emoji} ` : ''}${c.nom}${c.questionCount != null ? ` (${c.questionCount})` : ''}`,
+      })),
+    ],
     [categories],
   );
 
@@ -233,7 +239,11 @@ export function QuizView({ onOpenPlant, onOpenGlossaryTerm, initialQuestionCode 
         </label>
         <label className="pedago-filter-field">
           <span>Niveau</span>
-          <select className="form-select" value={niveau} onChange={(e) => setNiveau(e.target.value)}>
+          <select
+            className="form-select"
+            value={niveau}
+            onChange={(e) => setNiveau(e.target.value)}
+          >
             {NIVEAU_OPTIONS.map((opt) => (
               <option key={opt.value || 'all'} value={opt.value}>
                 {opt.label}
@@ -303,7 +313,9 @@ export function QuizView({ onOpenPlant, onOpenGlossaryTerm, initialQuestionCode 
                   <img src={presentation.photoUrl} alt="" className="pedago-quiz__photo" />
                   {presentation.photoCredit || presentation.photoLicence ? (
                     <figcaption className="pedago-quiz__photo-credit">
-                      {[presentation.photoCredit, presentation.photoLicence].filter(Boolean).join(' — ')}
+                      {[presentation.photoCredit, presentation.photoLicence]
+                        .filter(Boolean)
+                        .join(' — ')}
                     </figcaption>
                   ) : null}
                 </figure>

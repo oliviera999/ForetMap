@@ -403,9 +403,7 @@ export function GLGameBoard({
         {displayMarkers ? (
           <GLBoardMarkers
             markers={feuilletZoneEditMode ? editableMarkers : markers}
-            selectedMarkerId={
-              feuilletZoneEditMode ? plateauPlacement.selectedMarkerId : null
-            }
+            selectedMarkerId={feuilletZoneEditMode ? plateauPlacement.selectedMarkerId : null}
             onMarkerClick={
               feuilletZoneEditMode
                 ? (marker) => plateauPlacement.selectMarker?.(marker.id)

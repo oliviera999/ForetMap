@@ -17,9 +17,7 @@ const savedGuestDisabled = process.env.GL_GUEST_MODE_DISABLED;
 before(async () => {
   delete process.env.GL_GUEST_MODE_DISABLED;
   await initSchema();
-  await execute(
-    "DELETE FROM gl_settings WHERE `key` = 'platform.guest_mode_enabled'",
-  );
+  await execute("DELETE FROM gl_settings WHERE `key` = 'platform.guest_mode_enabled'");
 
   const feuilletFile = path.join(process.cwd(), 'data', 'gl', 'corpus-feuillets-selene.xlsx');
   const feuilletParsed = await parseFeuilletsWorkbook(fs.readFileSync(feuilletFile));

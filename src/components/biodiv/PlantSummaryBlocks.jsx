@@ -39,7 +39,9 @@ export function PlantTaxonomyLine({ plant }) {
 /** Badges rôle trophique, comestibilité, habitat. */
 export function PlantPedagoTraitBadges({ plant }) {
   const chips = [];
-  const trophic = String(plant?.trophic_role || '').trim().toLowerCase();
+  const trophic = String(plant?.trophic_role || '')
+    .trim()
+    .toLowerCase();
   if (trophic && TROPHIC_LABELS[trophic]) {
     chips.push({ key: 'trophic', label: TROPHIC_LABELS[trophic], icon: '🔗' });
   }
@@ -48,7 +50,9 @@ export function PlantPedagoTraitBadges({ plant }) {
   } else if (plant?.is_edible === 0 || plant?.is_edible === false) {
     chips.push({ key: 'not-edible', label: 'Non comestible', icon: '⛔' });
   }
-  const habitat = String(plant?.habitat_type || '').trim().toLowerCase();
+  const habitat = String(plant?.habitat_type || '')
+    .trim()
+    .toLowerCase();
   if (habitat && HABITAT_LABELS[habitat]) {
     chips.push({ key: 'habitat', label: HABITAT_LABELS[habitat], icon: '🏞️' });
   }
@@ -72,7 +76,15 @@ export function PlantRangeGauges({ plant }) {
   return (
     <div className="plant-range-gauges">
       {ph ? (
-        <PlantRangeGauge label="pH optimal" unit="" min={ph.min} max={ph.max} domainMin={0} domainMax={14} icon="🧪" />
+        <PlantRangeGauge
+          label="pH optimal"
+          unit=""
+          min={ph.min}
+          max={ph.max}
+          domainMin={0}
+          domainMax={14}
+          icon="🧪"
+        />
       ) : null}
       {temp ? (
         <PlantRangeGauge
@@ -148,7 +160,11 @@ export function PlantPedagoFetchedSections({
     <div className="plant-pedago-sections">
       {onNavigateToFoodWeb ? (
         <div className="plant-pedago-sections__link-row">
-          <button type="button" className="btn btn-secondary btn-sm" onClick={() => onNavigateToFoodWeb?.(plantId)}>
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={() => onNavigateToFoodWeb?.(plantId)}
+          >
             🕸️ Voir le réseau trophique
           </button>
         </div>
@@ -200,7 +216,11 @@ export function PlantPedagoFetchedSections({
               <li key={`src-${row.id}`}>
                 <span className="task-chip">{row.interaction_type}</span>
                 {row.to_id ? (
-                  <button type="button" className="pedago-inline-link" onClick={() => onOpenPlant?.(row.to_id)}>
+                  <button
+                    type="button"
+                    className="pedago-inline-link"
+                    onClick={() => onOpenPlant?.(row.to_id)}
+                  >
                     → {row.to_emoji ? `${row.to_emoji} ` : ''}
                     {row.to_name}
                   </button>
@@ -211,7 +231,11 @@ export function PlantPedagoFetchedSections({
             ))}
             {(interactions.asTarget || []).map((row) => (
               <li key={`tgt-${row.id}`}>
-                <button type="button" className="pedago-inline-link" onClick={() => onOpenPlant?.(row.from_id)}>
+                <button
+                  type="button"
+                  className="pedago-inline-link"
+                  onClick={() => onOpenPlant?.(row.from_id)}
+                >
                   {row.from_emoji ? `${row.from_emoji} ` : ''}
                   {row.from_name}
                 </button>
@@ -236,7 +260,11 @@ function formatPlantNumericRange(min, max, unit = '') {
     return unit ? `${lo}-${hi}${unit}` : `${lo}-${hi}`;
   }
   const single = a != null && Number.isFinite(a) ? a : b;
-  return single != null && Number.isFinite(single) ? (unit ? `${single}${unit}` : String(single)) : '';
+  return single != null && Number.isFinite(single)
+    ? unit
+      ? `${single}${unit}`
+      : String(single)
+    : '';
 }
 
 /** Pastilles de synthèse (nutrition/nutriments, température, pH) — max 3 ; `null` si aucune. */

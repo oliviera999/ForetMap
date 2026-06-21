@@ -20,8 +20,7 @@ const BASE_LABEL_AT_REF = 14;
  */
 export function resolveMapOverlayTypography(mapSettings, fitHeightPx, options = {}) {
   const worldScale = Number(options.worldScale) > 0 ? Number(options.worldScale) : 1;
-  const fit =
-    Number(fitHeightPx) > 0 ? Number(fitHeightPx) : MAP_OVERLAY_REFERENCE_BOARD_HEIGHT_PX;
+  const fit = Number(fitHeightPx) > 0 ? Number(fitHeightPx) : MAP_OVERLAY_REFERENCE_BOARD_HEIGHT_PX;
   const m = mapSettings && typeof mapSettings === 'object' ? mapSettings : {};
   const gapRaw = Number(m.emoji_label_center_gap);
   const gap = Number.isFinite(gapRaw) ? Math.min(32, Math.max(6, Math.round(gapRaw))) : DEFAULT_GAP;
@@ -31,19 +30,10 @@ export function resolveMapOverlayTypography(mapSettings, fitHeightPx, options = 
   const lbScale = resolveMapOverlayBoardScale({ fitHeightPx: fit, sizePercent: lbPct });
   const gapScale = resolveMapOverlayBoardScale({ fitHeightPx: fit, sizePercent: 100 });
 
-  const mapEmojiFontPx = Math.max(
-    8,
-    Math.round((BASE_EMOJI_AT_REF * emScale) / worldScale),
-  );
-  const mapLabelFontPx = Math.max(
-    6,
-    Math.round((BASE_LABEL_AT_REF * lbScale) / worldScale),
-  );
+  const mapEmojiFontPx = Math.max(8, Math.round((BASE_EMOJI_AT_REF * emScale) / worldScale));
+  const mapLabelFontPx = Math.max(6, Math.round((BASE_LABEL_AT_REF * lbScale) / worldScale));
   const minCenterGapPx = mapEmojiFontPx / 2 + mapLabelFontPx / 2 + MIN_CENTER_GAP_EXTRA_PX;
-  const mapEmojiLabelCenterGap = Math.max(
-    (gap * gapScale) / worldScale,
-    minCenterGapPx,
-  );
+  const mapEmojiLabelCenterGap = Math.max((gap * gapScale) / worldScale, minCenterGapPx);
   const markerLabelMarginTop = mapEmojiLabelCenterGap - mapEmojiFontPx / 2 - mapLabelFontPx / 2;
   return {
     mapEmojiLabelCenterGap,

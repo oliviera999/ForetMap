@@ -938,9 +938,7 @@ router.put(
       const { setSetting } = require('../../lib/settings');
       const n = Number(value);
       if (!Number.isFinite(n) || !Number.isInteger(n) || n < 50 || n > 200) {
-        return res
-          .status(400)
-          .json({ error: 'La valeur doit être un entier entre 50 et 200' });
+        return res.status(400).json({ error: 'La valeur doit être un entier entre 50 et 200' });
       }
       await setSetting('ui.map.plateau_marker_size_percent', n, {
         userType: 'gl',

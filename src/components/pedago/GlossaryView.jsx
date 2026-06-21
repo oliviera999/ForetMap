@@ -9,7 +9,12 @@ const NIVEAU_OPTIONS = [
   { value: 'avance', label: 'Avancé' },
 ];
 
-export function GlossaryView({ onOpenPlant, onOpenQuizQuestion, selectedCode = null, onSelectedCodeChange = null }) {
+export function GlossaryView({
+  onOpenPlant,
+  onOpenQuizQuestion,
+  selectedCode = null,
+  onSelectedCodeChange = null,
+}) {
   const [search, setSearch] = useState('');
   const [niveau, setNiveau] = useState('');
   const [categorie, setCategorie] = useState('');
@@ -89,7 +94,10 @@ export function GlossaryView({ onOpenPlant, onOpenQuizQuestion, selectedCode = n
   }, [activeCode, loadDetail]);
 
   const categorieOptions = useMemo(
-    () => [{ value: '', label: 'Toutes catégories' }, ...categories.map((c) => ({ value: c, label: c }))],
+    () => [
+      { value: '', label: 'Toutes catégories' },
+      ...categories.map((c) => ({ value: c, label: c })),
+    ],
     [categories],
   );
 
@@ -118,7 +126,11 @@ export function GlossaryView({ onOpenPlant, onOpenQuizQuestion, selectedCode = n
         </label>
         <label className="pedago-filter-field">
           <span>Niveau</span>
-          <select className="form-select" value={niveau} onChange={(e) => setNiveau(e.target.value)}>
+          <select
+            className="form-select"
+            value={niveau}
+            onChange={(e) => setNiveau(e.target.value)}
+          >
             {NIVEAU_OPTIONS.map((opt) => (
               <option key={opt.value || 'all'} value={opt.value}>
                 {opt.label}
@@ -189,7 +201,9 @@ export function GlossaryView({ onOpenPlant, onOpenQuizQuestion, selectedCode = n
                 <p className="plant-row-desc">{detail.definition_courte}</p>
               ) : null}
               {detail.definition_complete ? (
-                <MarkdownContent className="plant-row-desc">{detail.definition_complete}</MarkdownContent>
+                <MarkdownContent className="plant-row-desc">
+                  {detail.definition_complete}
+                </MarkdownContent>
               ) : null}
               {detail.exemple ? (
                 <div className="plant-meta-item" style={{ marginTop: 12 }}>
@@ -200,7 +214,9 @@ export function GlossaryView({ onOpenPlant, onOpenQuizQuestion, selectedCode = n
               {detail.etymologie ? (
                 <div className="plant-meta-item" style={{ marginTop: 8 }}>
                   <div className="plant-meta-label">Étymologie</div>
-                  <MarkdownContent className="plant-meta-value">{detail.etymologie}</MarkdownContent>
+                  <MarkdownContent className="plant-meta-value">
+                    {detail.etymologie}
+                  </MarkdownContent>
                 </div>
               ) : null}
 

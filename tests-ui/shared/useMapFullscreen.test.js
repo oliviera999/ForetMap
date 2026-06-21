@@ -1,7 +1,10 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 
-import { useMapFullscreen, FM_MAP_FULLSCREEN_BODY_CLASS } from '../../src/shared/hooks/useMapFullscreen.js';
+import {
+  useMapFullscreen,
+  FM_MAP_FULLSCREEN_BODY_CLASS,
+} from '../../src/shared/hooks/useMapFullscreen.js';
 
 describe('useMapFullscreen', () => {
   beforeEach(() => {

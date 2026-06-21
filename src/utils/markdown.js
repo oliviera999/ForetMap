@@ -63,7 +63,6 @@ function styleObjectToString(style) {
     .join(';');
 }
 
-
 function decodeHtmlAttr(value) {
   return String(value || '')
     .replace(/&quot;/g, '"')
@@ -92,19 +91,22 @@ function wrapMarkdownContentImagesWithDom(doc, source) {
 }
 
 function wrapMarkdownContentImagesWithString(source) {
-  return source.replace(/<img\b([^>]*\bclass="[^"]*\bgl-content-image\b[^"]*"[^>]*)>/gi, (imgTag) => {
-    if (/gl-content-image-wrap/i.test(imgTag)) return imgTag;
-    const frameMatch = imgTag.match(/data-gl-frame=(['"])(.*?)\1/i);
-    const frame = parseGlImageFrameAttr(decodeHtmlAttr(frameMatch?.[2]), 'markdown');
-    const wrapStyle = styleObjectToString(glImageFrameToWrapStyle(frame, 'markdown'));
-    const fillStyle = styleObjectToString(glImageFrameToImgFillStyle(frame, 'markdown'));
-    const imgWithoutStyle = imgTag.replace(/\sstyle=(['"]).*?\1/i, '');
-    const imgWithFill = imgWithoutStyle.replace(/>$/, ` style="${fillStyle}">`);
-    const wrapOpen = `<figure class="gl-content-image-wrap"${
-      wrapStyle ? ` style="${wrapStyle}"` : ''
-    }>`;
-    return `${wrapOpen}${imgWithFill}</figure>`;
-  });
+  return source.replace(
+    /<img\b([^>]*\bclass="[^"]*\bgl-content-image\b[^"]*"[^>]*)>/gi,
+    (imgTag) => {
+      if (/gl-content-image-wrap/i.test(imgTag)) return imgTag;
+      const frameMatch = imgTag.match(/data-gl-frame=(['"])(.*?)\1/i);
+      const frame = parseGlImageFrameAttr(decodeHtmlAttr(frameMatch?.[2]), 'markdown');
+      const wrapStyle = styleObjectToString(glImageFrameToWrapStyle(frame, 'markdown'));
+      const fillStyle = styleObjectToString(glImageFrameToImgFillStyle(frame, 'markdown'));
+      const imgWithoutStyle = imgTag.replace(/\sstyle=(['"]).*?\1/i, '');
+      const imgWithFill = imgWithoutStyle.replace(/>$/, ` style="${fillStyle}">`);
+      const wrapOpen = `<figure class="gl-content-image-wrap"${
+        wrapStyle ? ` style="${wrapStyle}"` : ''
+      }>`;
+      return `${wrapOpen}${imgWithFill}</figure>`;
+    },
+  );
 }
 
 function wrapMarkdownContentImages(html) {

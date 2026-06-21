@@ -178,7 +178,10 @@ export function FMQuizQuestionEditorPanel({ initialQuestionCode = null, onQuesti
     if (key === 'categorie_slug') {
       return (
         <FmField key={key} label="Catégorie">
-          <FmSelect value={form.categorie_slug} onChange={(e) => setField('categorie_slug', e.target.value)}>
+          <FmSelect
+            value={form.categorie_slug}
+            onChange={(e) => setField('categorie_slug', e.target.value)}
+          >
             <option value="">— Choisir —</option>
             {categoryOptions.map((cat) => (
               <option key={cat.slug} value={cat.slug}>
@@ -263,7 +266,10 @@ export function FMQuizQuestionEditorPanel({ initialQuestionCode = null, onQuesti
               </FmSelect>
             </FmField>
             <FmField label="Catégorie">
-              <FmSelect value={filterCategorie} onChange={(e) => setFilterCategorie(e.target.value)}>
+              <FmSelect
+                value={filterCategorie}
+                onChange={(e) => setFilterCategorie(e.target.value)}
+              >
                 <option value="">Toutes</option>
                 {categoryOptions.map((cat) => (
                   <option key={cat.slug} value={cat.slug}>

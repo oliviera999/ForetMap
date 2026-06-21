@@ -339,7 +339,8 @@ router.post(
   '/markers',
   requirePermission('map.manage_markers', { needsElevation: true }),
   asyncHandler(async (req, res) => {
-    const { x_pct, y_pct, label, plant_name, living_beings, note, emoji, map_id, species_ids } = req.body;
+    const { x_pct, y_pct, label, plant_name, living_beings, note, emoji, map_id, species_ids } =
+      req.body;
     const mapId = String(map_id || '').trim() || (await resolveDefaultMapId('teacher'));
     if (!mapId) return res.status(400).json({ error: 'map_id requis' });
     if (!(await mapExists(mapId))) return res.status(400).json({ error: 'Carte introuvable' });
@@ -383,7 +384,8 @@ router.put(
   asyncHandler(async (req, res) => {
     const m = await queryOne('SELECT * FROM map_markers WHERE id = ?', [req.params.id]);
     if (!m) return res.status(404).json({ error: 'Repère introuvable' });
-    const { x_pct, y_pct, label, plant_name, living_beings, note, emoji, map_id, species_ids } = req.body;
+    const { x_pct, y_pct, label, plant_name, living_beings, note, emoji, map_id, species_ids } =
+      req.body;
     if (label !== undefined && !String(label).trim()) {
       return res.status(400).json({ error: 'Label requis' });
     }

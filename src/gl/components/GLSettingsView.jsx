@@ -295,11 +295,7 @@ export function GLSettingsView() {
         </div>
       </div>
 
-      <GLMarkerBackgroundSettings
-        settings={settings}
-        savingKey={savingKey}
-        onSave={saveSetting}
-      />
+      <GLMarkerBackgroundSettings settings={settings} savingKey={savingKey} onSave={saveSetting} />
 
       <div className="gl-vitality-defaults gl-form">
         <h4>Valeurs initiales (nouveaux joueurs)</h4>
