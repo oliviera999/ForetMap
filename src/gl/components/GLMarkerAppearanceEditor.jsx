@@ -110,6 +110,7 @@ export function GLMarkerAppearanceEditor({
               autoComplete="off"
               spellCheck={false}
               maxLength={MAP_MARKER_EMOJI_MAX_LEN}
+              className="gl-marker-appearance-editor__emoji-input"
               value={emoji}
               onChange={(event) =>
                 patch({
@@ -119,7 +120,7 @@ export function GLMarkerAppearanceEditor({
                   }),
                 })
               }
-              style={{ fontSize: '1.2rem', maxWidth: 140 }}
+              style={{ maxWidth: 140 }}
             />
           </label>
           <div

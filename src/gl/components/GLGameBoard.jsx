@@ -28,6 +28,7 @@ import { plateauBoardImg, chapterIllustration, GL_ASSET_PLACEHOLDER_URL } from '
 import { resolveGlBoardImageUrl } from '../utils/glLegacyMediaUrl.js';
 import { useGlAssetsReady } from './GLFeuilletIllustration.jsx';
 import { DialogShell } from '../../components/DialogShell.jsx';
+import { GLGameBoardRoster } from './GLGameBoardRoster.jsx';
 
 export function GLGameBoard({
   chapter,
@@ -65,6 +66,10 @@ export function GLGameBoard({
   feuilletZoneEditMode = false,
   showPlateauMarkers = true,
   showPlateauZones = false,
+  roster = [],
+  vitalityEnabled = false,
+  vitalityByPlayerId = null,
+  playerId = null,
 }) {
   const assetsReady = useGlAssetsReady();
   const plateauNumber = chapter?.chapter_plateau_number ?? chapter?.plateau_number ?? null;
@@ -558,15 +563,30 @@ export function GLGameBoard({
 
   return (
     <section className={mapFullscreen ? 'gl-panel gl-panel--map-fullscreen-active' : 'gl-panel'}>
-      {!mapFullscreen ? (
-        <GLGameBoardHud
-          chapterTitle={chapter?.title}
-          canSpellCast={canSpellCast}
-          onLaunchSpell={onLaunchSpell}
-          onOpenFullscreen={() => setMapFullscreen(true)}
-        />
-      ) : null}
-      {boardShellNode}
+      <div className="gl-map-layout">
+        <div className="gl-map-layout__board">
+          {!mapFullscreen ? (
+            <GLGameBoardHud
+              chapterTitle={chapter?.title}
+              canSpellCast={canSpellCast}
+              onLaunchSpell={onLaunchSpell}
+              onOpenFullscreen={() => setMapFullscreen(true)}
+            />
+          ) : null}
+          {boardShellNode}
+        </div>
+        {!mapFullscreen ? (
+          <GLGameBoardRoster
+            teams={teamList}
+            roster={roster}
+            vitalityEnabled={vitalityEnabled}
+            vitalityByPlayerId={vitalityByPlayerId}
+            currentTeamId={currentTeamId}
+            selectedTeamId={selectedTeamId}
+            playerId={playerId}
+          />
+        ) : null}
+      </div>
 
       <DialogShell
         open={!!pendingMarker}
