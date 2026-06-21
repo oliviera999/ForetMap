@@ -1,3 +1,9 @@
+---
+description: Règles spécifiques au sous-produit Gnomes & Licornes (GL) — routage host, auth produit, isolement, tests séquentiels, mascottes et cadres d'image GL
+globs: routes/gl/**/*.js, src/gl/**/*.jsx, src/gl/**/*.js, src/gl/**/*.css, lib/gl-pack/**/*.js, lib/glSettings.js, lib/glImageFrame.js, lib/productResolver.js, src/utils/gl*.js, middleware/requireGlAuth.js, gl.html, tests/gl-*.test.js, e2e/gl-*.spec.js
+alwaysApply: false
+---
+
 # Règles spécifiques Gnomes & Licornes (GL)
 
 - **Routage host** : `gl.*` ou `X-Foretmap-Product: gl` → SPA `gl.html` ; les routes API sont préfixées **`/api/gl/*`**.
