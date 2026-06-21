@@ -16,6 +16,7 @@ export function GLFeuilletZoneOverlay({
   editMode = false,
   onZoneSelect,
   selectedZoneId = null,
+  zoneNumbers = null,
 }) {
   const presentedSet = useMemo(
     () => new Set((presentedZoneIds || []).map(String)),
@@ -39,6 +40,8 @@ export function GLFeuilletZoneOverlay({
               NEAR_THRESHOLD_PCT
             : false;
         const isSelected = editMode && selectedZoneId === zone.zoneId;
+        const zoneNumber =
+          zoneNumbers instanceof Map ? zoneNumbers.get(String(zone.zoneId)) : null;
         const classes = [
           'gl-feuillet-zone-polygon',
           isRead ? 'is-read' : '',
@@ -74,7 +77,7 @@ export function GLFeuilletZoneOverlay({
                   y={zone.centreYp - 1.8}
                   textAnchor="middle"
                 >
-                  {zone.titre || zone.zoneId}
+                  {zoneNumber != null ? zoneNumber : zone.titre || zone.zoneId}
                 </text>
               </>
             ) : null}

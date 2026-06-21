@@ -7,6 +7,11 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### GL — numéros zones feuillets (admin chapitres)
+
+- **Admin Contenus** : numéros (1, 2, 3…) sur les poignées de déplacement, les labels SVG et la liste « Zones feuillets », triés par code feuillet puis `zone_id`.
+- **Utilitaire** : `glFeuilletZoneNumbers.js` ; tests `GLPlateauMapEditor`, `glFeuilletZoneNumbers`.
+
 ### GL — studio carte chapitre et dé numéroté
 
 - **Admin Contenus** : numéros de parcours (1, 2, 3…) sur les repères de la carte et dans la liste « Repères » du studio chapitre, triés par `order_index`.

@@ -16,8 +16,24 @@ describe('GLPlateauMapEditor', () => {
         { x: 12, y: 18 },
         { x: 10, y: 22 },
       ],
-      feuilletCode: 'F01',
+      feuilletCode: 'ep-I-01',
       popover: 'Texte',
+      coutGemme: 0,
+      gainCoeur: 0,
+    },
+    {
+      zoneId: 'zf-p1-02',
+      plateau: 1,
+      titre: 'Zone deux',
+      centreXp: 30,
+      centreYp: 40,
+      points: [
+        { x: 28, y: 38 },
+        { x: 32, y: 38 },
+        { x: 30, y: 42 },
+      ],
+      feuilletCode: 'ep-I-02',
+      popover: 'Texte 2',
       coutGemme: 0,
       gainCoeur: 0,
     },
@@ -66,5 +82,17 @@ describe('GLPlateauMapEditor', () => {
       markers: [{ id: 7, label: 'Repère A', x_pct: 12, y_pct: 34 }],
     });
     expect(screen.getByText('Repère A')).toBeTruthy();
+  });
+
+  test('affiche les numéros de zones feuillets sur la carte et dans la liste', () => {
+    const { container } = renderEditor();
+    const listNumbers = container.querySelectorAll('.gl-plateau-edit-list .gl-markers-list__path-number');
+    expect(listNumbers).toHaveLength(2);
+    expect(listNumbers[0]?.textContent).toBe('1');
+    expect(listNumbers[1]?.textContent).toBe('2');
+    const handleNumbers = container.querySelectorAll('.gl-feuillet-zone-handle__number');
+    expect(handleNumbers).toHaveLength(2);
+    expect(handleNumbers[0]?.textContent).toBe('1');
+    expect(handleNumbers[1]?.textContent).toBe('2');
   });
 });
