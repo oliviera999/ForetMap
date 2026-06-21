@@ -95,6 +95,8 @@ describe('GLGameBoard', () => {
       'src',
       '/uploads/media-library/image/2026/06/plateau-2.jpg',
     );
+  });
+
   test('masque les numéros de parcours par défaut', () => {
     const { container } = render(
       <GLGameBoard
