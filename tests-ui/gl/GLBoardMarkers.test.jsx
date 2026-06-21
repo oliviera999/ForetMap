@@ -43,6 +43,29 @@ describe('GLBoardMarkers', () => {
     expect(btn).toHaveTextContent('❓');
     expect(btn).not.toHaveTextContent('Question foret');
     expect(document.querySelector('.gl-board-marker--emoji')).toBeTruthy();
+    expect(document.querySelector('.foretmap-emoji-text-mixed')).toBeNull();
+  });
+
+  test('affiche emoji rameau sans classe foretmap-emoji-text-mixed', () => {
+    render(
+      <GLBoardMarkers
+        markers={[
+          {
+            id: 4,
+            label: 'Repère nature',
+            x_pct: 20,
+            y_pct: 40,
+            event_type: 'point',
+            display_mode: 'emoji',
+            emoji: '🌿',
+          },
+        ]}
+      />,
+    );
+    const emojiSpan = document.querySelector('.gl-board-marker__emoji');
+    expect(emojiSpan).toBeTruthy();
+    expect(emojiSpan.textContent).toContain('🌿');
+    expect(emojiSpan.classList.contains('foretmap-emoji-text-mixed')).toBe(false);
   });
 
   test('affiche icône en mode icon', () => {
