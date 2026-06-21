@@ -23,7 +23,7 @@ test('rôle gl_admin existe', async () => {
   assert.ok(role);
 });
 
-test('rôle gl_player possède gl.read et gl.action.request', async () => {
+test('rôle gl_player possède gl.read, gl.action.request et gl.mascot.position', async () => {
   const rows = await queryAll(
     `SELECT rp.permission_key
        FROM role_permissions rp
@@ -33,6 +33,6 @@ test('rôle gl_player possède gl.read et gl.action.request', async () => {
   );
   assert.deepStrictEqual(
     rows.map((row) => row.permission_key),
-    ['gl.action.request', 'gl.read'],
+    ['gl.action.request', 'gl.mascot.position', 'gl.read'],
   );
 });
