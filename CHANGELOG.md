@@ -17,6 +17,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 - **Admin Contenus** : numéros de parcours (1, 2, 3…) sur les repères de la carte et dans la liste « Repères » du studio chapitre, triés par `order_index`.
 - **Partie** : jet du dé virtuel en mode `numbered_path` déplace la mascotte sur le repère cible et planifie le popover repère (question / effet).
+- **Utilitaire** : `glDicePathAdvance.js` (plan d’avancement après jet de dés) ; tests `glDicePathAdvance`.
 - **UI** : popover du dé virtuel repositionné pour ne pas masquer la carte plateau (`glDicePopoverPosition`).
 - **Tests** : `GLChapterMapStudio`, `GLBoardMarkers`, `GLGameBoard`, `glDicePopoverPosition`.
 

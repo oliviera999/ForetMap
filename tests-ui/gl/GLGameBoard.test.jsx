@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, test, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, act } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { GLGameBoard } from '../../src/gl/components/GLGameBoard.jsx';
 
 const plateauBoardImgMock = vi.fn(() => '/uploads/media-library/image/2026/06/plateau-2.jpg');
@@ -15,16 +15,6 @@ vi.mock('../../src/gl/assets/index.js', async (importOriginal) => {
 });
 
 const markerArrivalEnabledRef = { value: null };
-const schedulePresentOnArrivalRef = { current: vi.fn() };
-const moveTeamToRef = { current: vi.fn() };
-let capturedDiceRollHandler = null;
-
-vi.mock('../../src/gl/components/GLBoardChrome.jsx', () => ({
-  GLBoardChrome: ({ onRollResult }) => {
-    capturedDiceRollHandler = onRollResult;
-    return <div data-testid="gl-board-chrome-mock" />;
-  },
-}));
 
 vi.mock('../../src/gl/hooks/useGLMarkerArrival.js', () => ({
   useGLMarkerArrival: (options) => {
@@ -36,7 +26,7 @@ vi.mock('../../src/gl/hooks/useGLMarkerArrival.js', () => ({
       closeEffectPopover: vi.fn(),
       reshuffle: vi.fn(),
       setResult: vi.fn(),
-      schedulePresentOnArrival: (...args) => schedulePresentOnArrivalRef.current(...args),
+      schedulePresentOnArrival: vi.fn(),
     };
   },
 }));
@@ -45,7 +35,7 @@ vi.mock('../../src/gl/hooks/useGLBoardMascotMotion.js', () => ({
   useGLBoardMascotMotion: () => ({
     getPositionForTeam: () => ({ xp: 50, yp: 50 }),
     getMotionForTeam: () => ({}),
-    moveTeamTo: (...args) => moveTeamToRef.current(...args),
+    moveTeamTo: vi.fn(),
   }),
 }));
 
@@ -74,9 +64,6 @@ describe('GLGameBoard', () => {
   beforeEach(() => {
     markerArrivalEnabledRef.value = null;
     plateauBoardImgMock.mockClear();
-    schedulePresentOnArrivalRef.current = vi.fn();
-    moveTeamToRef.current = vi.fn();
-    capturedDiceRollHandler = null;
   });
 
   test('useGLMarkerArrival enabled quand markerArrivalEnabled=true', () => {
@@ -98,48 +85,5 @@ describe('GLGameBoard', () => {
       'src',
       '/uploads/media-library/image/2026/06/plateau-2.jpg',
     );
-  });
-
-  test('jet de dés en chemin numéroté anime la mascotte et planifie le popover repère', async () => {
-    const onDiceRollResult = vi.fn().mockResolvedValue(undefined);
-    const questionMarker = {
-      id: 2,
-      label: 'Quiz',
-      x_pct: 60,
-      y_pct: 40,
-      order_index: 2,
-      event_type: 'question',
-      event_config: { version: 1, question: { mode: 'fixed', fixedQuestionCode: 'QCM0001' } },
-    };
-    render(
-      <GLGameBoard
-        {...baseProps}
-        markers={[
-          { id: 1, label: 'Départ', x_pct: 10, y_pct: 70, order_index: 1 },
-          questionMarker,
-        ]}
-        teams={[{ id: 1, name: 'Eq', type: 'gnome', color: '#65a30d', position_marker_id: 1 }]}
-        selectedTeamId={1}
-        boardMovement={{ isNumberedPath: true, startIndex: 0 }}
-        onDiceRollResult={onDiceRollResult}
-        virtualDiceEnabled
-      />,
-    );
-
-    expect(capturedDiceRollHandler).toBeTypeOf('function');
-    await act(async () => {
-      await capturedDiceRollHandler({ total: 1 });
-    });
-
-    expect(moveTeamToRef.current).toHaveBeenCalledWith(
-      1,
-      60,
-      40,
-      expect.objectContaining({ triggerHappy: true, arrival: 'marker' }),
-    );
-    expect(schedulePresentOnArrivalRef.current).toHaveBeenCalledWith(questionMarker, 1, {
-      force: true,
-    });
-    expect(onDiceRollResult).toHaveBeenCalledWith({ total: 1 });
   });
 });
