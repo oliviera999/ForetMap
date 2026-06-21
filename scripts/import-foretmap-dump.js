@@ -69,7 +69,7 @@ function resolveDumpPath(input) {
 async function recreateDatabase(adminConn, dbName) {
   await adminConn.query(`DROP DATABASE IF EXISTS \`${dbName}\``);
   await adminConn.query(
-    `CREATE DATABASE \`${dbName}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`
+    `CREATE DATABASE \`${dbName}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`,
   );
 }
 

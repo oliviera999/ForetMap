@@ -1,5 +1,5 @@
 const express = require('express');
-const bcrypt  = require('bcryptjs');
+const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const { OAuth2Client } = require('google-auth-library');
@@ -41,10 +41,7 @@ const {
   getEffectiveMaxActiveTaskAssignments,
 } = require('../lib/studentTaskEnrollment');
 const { logAudit, logSecurityEvent } = require('./audit');
-const {
-  ensureCanonicalUserByAuth,
-  resolveLoginAccountByIdentifier,
-} = require('../lib/identity');
+const { ensureCanonicalUserByAuth, resolveLoginAccountByIdentifier } = require('../lib/identity');
 const { saveBase64ToDisk, deleteFile } = require('../lib/uploads');
 const { resolveStudentAffiliationForPersist } = require('../lib/studentAffiliation');
 const { resolveOAuthPublicOrigin, resolveOAuthRedirectUri } = require('../lib/oauthPublicUrl');
@@ -101,10 +98,17 @@ function getGoogleOauthConfig(req) {
     envRedirectUri: process.env.GOOGLE_OAUTH_REDIRECT_URI,
     callbackPath: '/api/auth/google/callback',
   });
-  const frontendOrigin = resolveOAuthPublicOrigin(req, process.env.FRONTEND_ORIGIN)
-    || resolveOAuthPublicOrigin(req, process.env.PASSWORD_RESET_BASE_URL);
-  const allowedDomains = parseCsvLowercaseSet(process.env.GOOGLE_OAUTH_ALLOWED_DOMAINS, GOOGLE_ALLOWED_DOMAINS_DEFAULT);
-  const allowedEmails = parseCsvLowercaseSet(process.env.GOOGLE_OAUTH_ALLOWED_EMAILS, GOOGLE_ALLOWED_EMAILS_DEFAULT);
+  const frontendOrigin =
+    resolveOAuthPublicOrigin(req, process.env.FRONTEND_ORIGIN) ||
+    resolveOAuthPublicOrigin(req, process.env.PASSWORD_RESET_BASE_URL);
+  const allowedDomains = parseCsvLowercaseSet(
+    process.env.GOOGLE_OAUTH_ALLOWED_DOMAINS,
+    GOOGLE_ALLOWED_DOMAINS_DEFAULT,
+  );
+  const allowedEmails = parseCsvLowercaseSet(
+    process.env.GOOGLE_OAUTH_ALLOWED_EMAILS,
+    GOOGLE_ALLOWED_EMAILS_DEFAULT,
+  );
   return { clientId, clientSecret, redirectUri, frontendOrigin, allowedDomains, allowedEmails };
 }
 
@@ -147,7 +151,7 @@ async function ensureTeacherSeedFromEnv() {
 
   const existing = await queryOne(
     "SELECT id FROM users WHERE user_type = 'teacher' AND LOWER(email) = LOWER(?) LIMIT 1",
-    [email]
+    [email],
   );
   if (existing) return;
 
@@ -159,7 +163,7 @@ async function ensureTeacherSeedFromEnv() {
       `INSERT INTO users
         (id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name, description, avatar_path, affiliation, password_hash, auth_provider, is_active, last_seen, created_at, updated_at)
        VALUES (?, 'teacher', NULL, ?, ?, NULL, NULL, ?, NULL, NULL, 'both', ?, 'local', 1, ?, NOW(), NOW())`,
-      [teacherId, email, email.split('@')[0] || null, displayName, hash, now]
+      [teacherId, email, email.split('@')[0] || null, displayName, hash, now],
     );
     await ensurePrimaryRole('teacher', teacherId, 'admin');
   } catch (err) {
@@ -198,7 +202,7 @@ async function resolveLoginUserType(user) {
       WHERE ur.user_id = ? AND ur.is_primary = 1
       ORDER BY r.\`rank\` DESC, ur.assigned_at ASC
       LIMIT 1`,
-    [user?.id]
+    [user?.id],
   );
   if (primary?.user_type) return String(primary.user_type).toLowerCase();
   if (explicit) return explicit;
@@ -212,10 +216,15 @@ router.get('/me', requireAuth, async (req, res) => {
     if (tokenIn && req.auth) {
       const claims = jwt.verify(tokenIn, JWT_SECRET);
       if (
-        String(claims.roleId) !== String(req.auth.roleId)
-        || String(claims.roleSlug || '').toLowerCase() !== String(req.auth.roleSlug || '').toLowerCase()
+        String(claims.roleId) !== String(req.auth.roleId) ||
+        String(claims.roleSlug || '').toLowerCase() !==
+          String(req.auth.roleSlug || '').toLowerCase()
       ) {
-        const session = await buildSessionPayload(req.auth.userType, req.auth.userId, !!claims.elevated);
+        const session = await buildSessionPayload(
+          req.auth.userType,
+          req.auth.userId,
+          !!claims.elevated,
+        );
         if (session) {
           const tp = { ...session.tokenPayload };
           if (claims.impersonating && claims.actorUserType && claims.actorUserId != null) {
@@ -248,11 +257,15 @@ router.get('/me', requireAuth, async (req, res) => {
     LEFT JOIN user_roles ur ON ur.user_id = u.id AND ur.user_type = 'student' AND ur.is_primary = 1
     LEFT JOIN roles r ON r.id = ur.role_id
         WHERE u.id = ? AND u.user_type = 'student' LIMIT 1`,
-      [req.auth.userId]
+      [req.auth.userId],
     );
     if (u) {
       const maxActive = await getEffectiveMaxActiveTaskAssignments(req.auth.userId);
-      const current = await countStudentActiveTaskAssignments(req.auth.userId, u.first_name, u.last_name);
+      const current = await countStudentActiveTaskAssignments(
+        req.auth.userId,
+        u.first_name,
+        u.last_name,
+      );
       body.taskEnrollment = {
         maxActiveAssignments: maxActive,
         currentActiveAssignments: current,
@@ -273,26 +286,43 @@ router.patch('/me/profile', requireAuth, async (req, res) => {
     const auth = req.auth || {};
     const account = await queryOne('SELECT * FROM users WHERE id = ? LIMIT 1', [auth.userId]);
     if (!account) return res.status(404).json({ error: 'Utilisateur introuvable' });
-    if (!account.password_hash) return res.status(401).json({ error: 'Ce compte n\'a pas de mot de passe. Contactez un responsable.' });
+    if (!account.password_hash)
+      return res
+        .status(401)
+        .json({ error: "Ce compte n'a pas de mot de passe. Contactez un responsable." });
 
     const passwordOk = await bcrypt.compare(String(body.currentPassword), account.password_hash);
     if (!passwordOk) return res.status(401).json({ error: 'Mot de passe actuel incorrect' });
 
     const hasPseudo = Object.prototype.hasOwnProperty.call(body, 'pseudo');
-    const hasEmail = Object.prototype.hasOwnProperty.call(body, 'email')
-      || Object.prototype.hasOwnProperty.call(body, 'mail');
+    const hasEmail =
+      Object.prototype.hasOwnProperty.call(body, 'email') ||
+      Object.prototype.hasOwnProperty.call(body, 'mail');
     const hasDescription = Object.prototype.hasOwnProperty.call(body, 'description');
     const hasAffiliation = Object.prototype.hasOwnProperty.call(body, 'affiliation');
-    const hasVisitMascotCatalogId = Object.prototype.hasOwnProperty.call(body, 'visit_mascot_catalog_id');
+    const hasVisitMascotCatalogId = Object.prototype.hasOwnProperty.call(
+      body,
+      'visit_mascot_catalog_id',
+    );
     const hasAvatarData = Object.prototype.hasOwnProperty.call(body, 'avatarData');
     const removeAvatar = !!body.removeAvatar;
-    if (!hasPseudo && !hasEmail && !hasDescription && !hasAffiliation && !hasVisitMascotCatalogId && !hasAvatarData && !removeAvatar) {
+    if (
+      !hasPseudo &&
+      !hasEmail &&
+      !hasDescription &&
+      !hasAffiliation &&
+      !hasVisitMascotCatalogId &&
+      !hasAvatarData &&
+      !removeAvatar
+    ) {
       return res.status(400).json({ error: 'Aucun champ de profil à mettre à jour' });
     }
 
     const pseudo = hasPseudo ? normalizeOptionalString(body.pseudo) : account.pseudo;
     const email = hasEmail ? normalizeEmail(body.email ?? body.mail) : account.email;
-    const description = hasDescription ? normalizeOptionalString(body.description) : account.description;
+    const description = hasDescription
+      ? normalizeOptionalString(body.description)
+      : account.description;
     let affiliation;
     if (hasAffiliation) {
       const affRes = await resolveStudentAffiliationForPersist(body.affiliation, queryOne);
@@ -337,11 +367,17 @@ router.patch('/me/profile', requireAuth, async (req, res) => {
     }
 
     if (pseudo) {
-      const existingPseudo = await queryOne('SELECT id FROM users WHERE LOWER(pseudo)=LOWER(?) AND id <> ? LIMIT 1', [pseudo, account.id]);
+      const existingPseudo = await queryOne(
+        'SELECT id FROM users WHERE LOWER(pseudo)=LOWER(?) AND id <> ? LIMIT 1',
+        [pseudo, account.id],
+      );
       if (existingPseudo) return res.status(409).json({ error: 'Ce pseudo est déjà utilisé' });
     }
     if (email) {
-      const existingEmail = await queryOne('SELECT id FROM users WHERE LOWER(email)=LOWER(?) AND id <> ? LIMIT 1', [email, account.id]);
+      const existingEmail = await queryOne(
+        'SELECT id FROM users WHERE LOWER(email)=LOWER(?) AND id <> ? LIMIT 1',
+        [email, account.id],
+      );
       if (existingEmail) return res.status(409).json({ error: 'Cet email est déjà utilisé' });
     }
 
@@ -350,7 +386,7 @@ router.patch('/me/profile', requireAuth, async (req, res) => {
         `UPDATE users
             SET pseudo = ?, email = ?, description = ?, affiliation = ?, visit_mascot_catalog_id = ?, avatar_path = ?, updated_at = NOW()
           WHERE id = ?`,
-        [pseudo, email, description, affiliation, visitMascotCatalogId, avatarPath, account.id]
+        [pseudo, email, description, affiliation, visitMascotCatalogId, avatarPath, account.id],
       );
     } catch (err) {
       if (err && (err.errno === 1062 || err.code === 'ER_DUP_ENTRY')) {
@@ -360,19 +396,27 @@ router.patch('/me/profile', requireAuth, async (req, res) => {
     }
 
     const updated = await queryOne('SELECT * FROM users WHERE id = ? LIMIT 1', [account.id]);
-    logAudit('update_user_profile', 'user', account.id, `${updated?.first_name || ''} ${updated?.last_name || ''}`.trim() || updated?.display_name || account.id, {
-      req,
-      actorUserType: account.user_type,
-      actorUserId: account.id,
-      payload: {
-        pseudo: !!hasPseudo,
-        email: !!hasEmail,
-        description: !!hasDescription,
-        affiliation: !!hasAffiliation,
-        visit_mascot_catalog_id: !!hasVisitMascotCatalogId,
-        avatar: !!(hasAvatarData || removeAvatar),
+    logAudit(
+      'update_user_profile',
+      'user',
+      account.id,
+      `${updated?.first_name || ''} ${updated?.last_name || ''}`.trim() ||
+        updated?.display_name ||
+        account.id,
+      {
+        req,
+        actorUserType: account.user_type,
+        actorUserId: account.id,
+        payload: {
+          pseudo: !!hasPseudo,
+          email: !!hasEmail,
+          description: !!hasDescription,
+          affiliation: !!hasAffiliation,
+          visit_mascot_catalog_id: !!hasVisitMascotCatalogId,
+          avatar: !!(hasAvatarData || removeAvatar),
+        },
       },
-    });
+    );
     if (String(account.user_type || '').toLowerCase() === 'student') {
       emitStudentsChanged({ reason: 'student_profile_update', studentId: account.id });
     }
@@ -393,35 +437,54 @@ router.post('/register', async (req, res) => {
     const affRes = await resolveStudentAffiliationForPersist(req.body?.affiliation, queryOne);
     if (!affRes.ok) return res.status(400).json({ error: affRes.error });
     const affiliation = affRes.affiliation;
-    if (!firstName?.trim() || !lastName?.trim()) return res.status(400).json({ error: 'Prénom et nom requis' });
+    if (!firstName?.trim() || !lastName?.trim())
+      return res.status(400).json({ error: 'Prénom et nom requis' });
     const minPasswordLen = await getPasswordMinLength();
-    if (!password || password.length < minPasswordLen) return res.status(400).json({ error: `Mot de passe trop court (min ${minPasswordLen} caractères)` });
+    if (!password || password.length < minPasswordLen)
+      return res
+        .status(400)
+        .json({ error: `Mot de passe trop court (min ${minPasswordLen} caractères)` });
     const profileError = validateProfileInput({ pseudo, email, description });
     if (profileError) return res.status(400).json({ error: profileError });
 
     const existing = await queryOne(
       "SELECT * FROM users WHERE user_type = 'student' AND LOWER(first_name)=LOWER(?) AND LOWER(last_name)=LOWER(?)",
-      [firstName.trim(), lastName.trim()]
+      [firstName.trim(), lastName.trim()],
     );
     if (existing) return res.status(409).json({ error: 'Un compte avec ce nom existe déjà' });
     if (pseudo) {
-      const existingPseudo = await queryOne("SELECT id FROM users WHERE LOWER(pseudo)=LOWER(?)", [pseudo]);
+      const existingPseudo = await queryOne('SELECT id FROM users WHERE LOWER(pseudo)=LOWER(?)', [
+        pseudo,
+      ]);
       if (existingPseudo) return res.status(409).json({ error: 'Ce pseudo est déjà utilisé' });
     }
     if (email) {
-      const existingEmail = await queryOne("SELECT id FROM users WHERE LOWER(email)=LOWER(?)", [email]);
+      const existingEmail = await queryOne('SELECT id FROM users WHERE LOWER(email)=LOWER(?)', [
+        email,
+      ]);
       if (existingEmail) return res.status(409).json({ error: 'Cet email est déjà utilisé' });
     }
 
     const hash = await bcrypt.hash(password, 10);
-    const id   = uuidv4();
-    const now  = new Date().toISOString();
+    const id = uuidv4();
+    const now = new Date().toISOString();
     try {
       await execute(
         `INSERT INTO users
           (id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name, description, avatar_path, affiliation, password_hash, auth_provider, is_active, last_seen, created_at, updated_at)
          VALUES (?, 'student', NULL, ?, ?, ?, ?, ?, ?, NULL, ?, ?, 'local', 1, ?, NOW(), NOW())`,
-        [id, email, pseudo, firstName.trim(), lastName.trim(), `${firstName.trim()} ${lastName.trim()}`.trim(), description, affiliation, hash, now]
+        [
+          id,
+          email,
+          pseudo,
+          firstName.trim(),
+          lastName.trim(),
+          `${firstName.trim()} ${lastName.trim()}`.trim(),
+          description,
+          affiliation,
+          hash,
+          now,
+        ],
       );
     } catch (err) {
       if (err && (err.errno === 1062 || err.code === 'ER_DUP_ENTRY')) {
@@ -430,7 +493,9 @@ router.post('/register', async (req, res) => {
       throw err;
     }
     await ensurePrimaryRole('student', id, 'visiteur');
-    const student = await queryOne("SELECT * FROM users WHERE id = ? AND user_type = 'student'", [id]);
+    const student = await queryOne("SELECT * FROM users WHERE id = ? AND user_type = 'student'", [
+      id,
+    ]);
     const session = await buildSessionPayload('student', id, false);
     const token = session ? await signAuthToken(session.tokenPayload, false) : null;
     await logSecurityEvent('auth.register.student', {
@@ -453,117 +518,160 @@ router.post('/register', async (req, res) => {
   }
 });
 
-router.post('/login', asyncHandler(async (req, res) => {
-  const { password } = req.body;
-  const identifier = normalizeOptionalString(req.body?.identifier);
-  if (!password || !identifier) return res.status(400).json({ error: 'Identifiant (email ou pseudo) et mot de passe requis' });
-  await ensureTeacherSeedFromEnv();
+router.post(
+  '/login',
+  asyncHandler(async (req, res) => {
+    const { password } = req.body;
+    const identifier = normalizeOptionalString(req.body?.identifier);
+    if (!password || !identifier)
+      return res
+        .status(400)
+        .json({ error: 'Identifiant (email ou pseudo) et mot de passe requis' });
+    await ensureTeacherSeedFromEnv();
 
-  const account = await resolveLoginAccountByIdentifier(identifier);
+    const account = await resolveLoginAccountByIdentifier(identifier);
 
-  if (!account) {
-    await logSecurityEvent('auth.login', {
-      req,
-      result: 'failure',
-      reason: 'account_not_found',
-      payload: { identifier },
-    });
-    logger.warn(
-      { requestId: req.requestId, event: 'auth_login_failure', reason: 'account_not_found' },
-      'Échec connexion (compte introuvable)'
-    );
-    return res.status(401).json({ error: 'Identifiant ou mot de passe incorrect' });
-  }
-  if (!account.password_hash) {
-    await logSecurityEvent('auth.login', {
-      req,
-      actorUserType: account.user_type,
-      actorUserId: account.id,
-      targetType: account.user_type,
-      targetId: account.id,
-      result: 'failure',
-      reason: 'password_not_set',
-    });
-    logger.warn(
-      { requestId: req.requestId, event: 'auth_login_failure', reason: 'password_not_set', userType: account.user_type },
-      'Échec connexion (mot de passe non défini)'
-    );
-    return res.status(401).json({ error: 'Ce compte n\'a pas de mot de passe. Contactez le prof.' });
-  }
-
-  if (account.is_active != null && !Number(account.is_active)) {
-    await logSecurityEvent('auth.login', {
-      req,
-      actorUserType: account.user_type,
-      actorUserId: account.id,
-      targetType: account.user_type,
-      targetId: account.id,
-      result: 'failure',
-      reason: 'account_inactive',
-    });
-    logger.warn(
-      { requestId: req.requestId, event: 'auth_login_failure', reason: 'account_inactive', userType: account.user_type },
-      'Échec connexion (compte inactif)'
-    );
-    return res.status(401).json({ error: 'Compte inactif' });
-  }
-
-  const ok = await bcrypt.compare(password, account.password_hash);
-  if (!ok) {
-    await logSecurityEvent('auth.login', {
-      req,
-      actorUserType: account.user_type,
-      actorUserId: account.id,
-      targetType: account.user_type,
-      targetId: account.id,
-      result: 'failure',
-      reason: 'password_invalid',
-    });
-    logger.warn(
-      { requestId: req.requestId, event: 'auth_login_failure', reason: 'password_invalid', userType: account.user_type },
-      'Échec connexion (mot de passe incorrect)'
-    );
-    return res.status(401).json({ error: 'Identifiant ou mot de passe incorrect' });
-  }
-
-  const userType = await resolveLoginUserType(account);
-  const preferredRole = userType === 'teacher' || userType === 'user' ? 'prof' : 'eleve_novice';
-  await ensurePrimaryRole(userType, account.id, preferredRole);
-  if (userType === 'student') {
-    const primary = await getPrimaryRoleForUser('student', account.id);
-    if (primary && String(primary.slug || '').toLowerCase() === 'visiteur') {
-      const noviceRole = await queryOne("SELECT id FROM roles WHERE slug = 'eleve_novice' LIMIT 1");
-      if (noviceRole?.id) await setPrimaryRole('student', account.id, noviceRole.id);
+    if (!account) {
+      await logSecurityEvent('auth.login', {
+        req,
+        result: 'failure',
+        reason: 'account_not_found',
+        payload: { identifier },
+      });
+      logger.warn(
+        { requestId: req.requestId, event: 'auth_login_failure', reason: 'account_not_found' },
+        'Échec connexion (compte introuvable)',
+      );
+      return res.status(401).json({ error: 'Identifiant ou mot de passe incorrect' });
     }
-  }
-  await execute('UPDATE users SET last_seen = ?, updated_at = NOW() WHERE id = ?', [new Date().toISOString(), account.id]);
-  let session = await buildSessionPayload(userType, account.id, false);
-  if (!session && userType !== 'teacher') {
-    session = await buildSessionPayload('teacher', account.id, false);
-  }
-  if (!session && userType !== 'student') {
-    session = await buildSessionPayload('student', account.id, false);
-  }
-  if (!session) {
-    return res.status(403).json({ error: 'Aucun profil attribué' });
-  }
-  const token = session ? await signAuthToken(session.tokenPayload, false) : null;
-  await logSecurityEvent('auth.login', {
-    req,
-    actorUserType: session.tokenPayload.userType,
-    actorUserId: account.id,
-    targetType: session.tokenPayload.userType,
-    targetId: account.id,
-    payload: { via: 'identifier' },
-  });
-  const safeUser = { ...account };
-  delete safeUser.password_hash;
-  res.json({
-    ...safeUser,
-    authToken: token,
-    auth: session ? exposeAuth(session.tokenPayload) : null,
-  });
-}));
+    if (!account.password_hash) {
+      await logSecurityEvent('auth.login', {
+        req,
+        actorUserType: account.user_type,
+        actorUserId: account.id,
+        targetType: account.user_type,
+        targetId: account.id,
+        result: 'failure',
+        reason: 'password_not_set',
+      });
+      logger.warn(
+        {
+          requestId: req.requestId,
+          event: 'auth_login_failure',
+          reason: 'password_not_set',
+          userType: account.user_type,
+        },
+        'Échec connexion (mot de passe non défini)',
+      );
+      return res
+        .status(401)
+        .json({ error: "Ce compte n'a pas de mot de passe. Contactez le prof." });
+    }
+
+    if (account.is_active != null && !Number(account.is_active)) {
+      await logSecurityEvent('auth.login', {
+        req,
+        actorUserType: account.user_type,
+        actorUserId: account.id,
+        targetType: account.user_type,
+        targetId: account.id,
+        result: 'failure',
+        reason: 'account_inactive',
+      });
+      logger.warn(
+        {
+          requestId: req.requestId,
+          event: 'auth_login_failure',
+          reason: 'account_inactive',
+          userType: account.user_type,
+        },
+        'Échec connexion (compte inactif)',
+      );
+      return res.status(401).json({ error: 'Compte inactif' });
+    }
+
+    const ok = await bcrypt.compare(password, account.password_hash);
+    if (!ok) {
+      await logSecurityEvent('auth.login', {
+        req,
+        actorUserType: account.user_type,
+        actorUserId: account.id,
+        targetType: account.user_type,
+        targetId: account.id,
+        result: 'failure',
+        reason: 'password_invalid',
+      });
+      logger.warn(
+        {
+          requestId: req.requestId,
+          event: 'auth_login_failure',
+          reason: 'password_invalid',
+          userType: account.user_type,
+        },
+        'Échec connexion (mot de passe incorrect)',
+      );
+      return res.status(401).json({ error: 'Identifiant ou mot de passe incorrect' });
+    }
+
+    if (String(account.password_hash || '').startsWith('$2a$')) {
+      try {
+        const upgraded = await bcrypt.hash(password, 10);
+        await execute('UPDATE users SET password_hash = ?, updated_at = NOW() WHERE id = ?', [
+          upgraded,
+          account.id,
+        ]);
+      } catch (rehashErr) {
+        logger.warn(
+          { requestId: req.requestId, err: rehashErr, userId: account.id },
+          'Re-hash bcrypt $2a$ ignoré',
+        );
+      }
+    }
+
+    const userType = await resolveLoginUserType(account);
+    const preferredRole = userType === 'teacher' || userType === 'user' ? 'prof' : 'eleve_novice';
+    await ensurePrimaryRole(userType, account.id, preferredRole);
+    if (userType === 'student') {
+      const primary = await getPrimaryRoleForUser('student', account.id);
+      if (primary && String(primary.slug || '').toLowerCase() === 'visiteur') {
+        const noviceRole = await queryOne(
+          "SELECT id FROM roles WHERE slug = 'eleve_novice' LIMIT 1",
+        );
+        if (noviceRole?.id) await setPrimaryRole('student', account.id, noviceRole.id);
+      }
+    }
+    await execute('UPDATE users SET last_seen = ?, updated_at = NOW() WHERE id = ?', [
+      new Date().toISOString(),
+      account.id,
+    ]);
+    let session = await buildSessionPayload(userType, account.id, false);
+    if (!session && userType !== 'teacher') {
+      session = await buildSessionPayload('teacher', account.id, false);
+    }
+    if (!session && userType !== 'student') {
+      session = await buildSessionPayload('student', account.id, false);
+    }
+    if (!session) {
+      return res.status(403).json({ error: 'Aucun profil attribué' });
+    }
+    const token = session ? await signAuthToken(session.tokenPayload, false) : null;
+    await logSecurityEvent('auth.login', {
+      req,
+      actorUserType: session.tokenPayload.userType,
+      actorUserId: account.id,
+      targetType: session.tokenPayload.userType,
+      targetId: account.id,
+      payload: { via: 'identifier' },
+    });
+    const safeUser = { ...account };
+    delete safeUser.password_hash;
+    res.json({
+      ...safeUser,
+      authToken: token,
+      auth: session ? exposeAuth(session.tokenPayload) : null,
+    });
+  }),
+);
 
 router.get('/google/start', async (req, res) => {
   const mode = normalizeOAuthMode(req.query?.mode);
@@ -608,11 +716,14 @@ router.get('/google/start', async (req, res) => {
 router.get('/google/callback', async (req, res) => {
   const googleEnabled = await getSettingValue('integration.google.enabled', true);
   if (!googleEnabled) {
-    return res.redirect(buildOAuthFrontendErrorRedirect(
-      normalizeOptionalString(process.env.FRONTEND_ORIGIN) || `${req.protocol}://${req.get('host')}`,
-      'oauth_not_configured',
-      normalizeOAuthMode(req.query?.mode)
-    ));
+    return res.redirect(
+      buildOAuthFrontendErrorRedirect(
+        normalizeOptionalString(process.env.FRONTEND_ORIGIN) ||
+          `${req.protocol}://${req.get('host')}`,
+        'oauth_not_configured',
+        normalizeOAuthMode(req.query?.mode),
+      ),
+    );
   }
   const cfg = getGoogleOauthConfig(req);
   const stateCookie = readCookie(req, OAUTH_STATE_COOKIE);
@@ -622,18 +733,26 @@ router.get('/google/callback', async (req, res) => {
   res.clearCookie(OAUTH_MODE_COOKIE, { path: '/api/auth/google' });
 
   if (!googleOauthConfigured(cfg)) {
-    return res.redirect(buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_not_configured', mode));
+    return res.redirect(
+      buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_not_configured', mode),
+    );
   }
   if (normalizeOptionalString(req.query?.error)) {
-    return res.redirect(buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_google_refused', mode));
+    return res.redirect(
+      buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_google_refused', mode),
+    );
   }
   const state = normalizeOptionalString(req.query?.state);
   if (!state || !stateCookie || state !== stateCookie) {
-    return res.redirect(buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_invalid_state', mode));
+    return res.redirect(
+      buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_invalid_state', mode),
+    );
   }
   const code = normalizeOptionalString(req.query?.code);
   if (!code) {
-    return res.redirect(buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_missing_code', mode));
+    return res.redirect(
+      buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_missing_code', mode),
+    );
   }
 
   try {
@@ -645,37 +764,58 @@ router.get('/google/callback', async (req, res) => {
     });
     const idToken = normalizeOptionalString(tokenData?.id_token);
     if (!idToken) {
-      return res.redirect(buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_missing_id_token', mode));
+      return res.redirect(
+        buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_missing_id_token', mode),
+      );
     }
     const payload = await verifyGoogleIdToken({ idToken, audience: cfg.clientId });
     if (!payload) {
-      return res.redirect(buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_invalid_token', mode));
+      return res.redirect(
+        buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_invalid_token', mode),
+      );
     }
     const email = normalizeEmail(payload.email);
     const issuer = String(payload.iss || '');
-    const emailVerified = payload.email_verified === true || String(payload.email_verified) === 'true';
+    const emailVerified =
+      payload.email_verified === true || String(payload.email_verified) === 'true';
     const audience = String(payload.aud || '');
-    if (!email || !emailVerified || audience !== cfg.clientId || !['accounts.google.com', 'https://accounts.google.com'].includes(issuer)) {
-      return res.redirect(buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_claims_invalid', mode));
+    if (
+      !email ||
+      !emailVerified ||
+      audience !== cfg.clientId ||
+      !['accounts.google.com', 'https://accounts.google.com'].includes(issuer)
+    ) {
+      return res.redirect(
+        buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_claims_invalid', mode),
+      );
     }
     if (!isGoogleEmailAllowed(email, payload.hd, cfg.allowedDomains, cfg.allowedEmails)) {
-      return res.redirect(buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_email_not_allowed', mode));
+      return res.redirect(
+        buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_email_not_allowed', mode),
+      );
     }
 
     const teacher = await queryOne(
       "SELECT id, email, is_active FROM users WHERE user_type = 'teacher' AND LOWER(email)=LOWER(?) LIMIT 1",
-      [email]
+      [email],
     );
     if (teacher) {
       if (!teacher.is_active) {
-        return res.redirect(buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_teacher_inactive', mode));
+        return res.redirect(
+          buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_teacher_inactive', mode),
+        );
       }
       await ensurePrimaryRole('teacher', teacher.id, 'prof');
       const now = new Date().toISOString();
-      await execute("UPDATE users SET last_seen = ?, updated_at = NOW() WHERE id = ? AND user_type = 'teacher'", [now, teacher.id]);
+      await execute(
+        "UPDATE users SET last_seen = ?, updated_at = NOW() WHERE id = ? AND user_type = 'teacher'",
+        [now, teacher.id],
+      );
       const session = await buildSessionPayload('teacher', teacher.id, false);
       if (!session) {
-        return res.redirect(buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_teacher_no_role', mode));
+        return res.redirect(
+          buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_teacher_no_role', mode),
+        );
       }
       const token = await signAuthToken(session.tokenPayload, false);
       await logSecurityEvent('auth.login.teacher.oauth_google', {
@@ -685,16 +825,18 @@ router.get('/google/callback', async (req, res) => {
         targetType: 'teacher',
         targetId: teacher.id,
       });
-      return res.redirect(buildOAuthFrontendRedirect(cfg.frontendOrigin, {
-        type: 'teacher',
-        token,
-        auth: exposeAuth(session.tokenPayload),
-      }));
+      return res.redirect(
+        buildOAuthFrontendRedirect(cfg.frontendOrigin, {
+          type: 'teacher',
+          token,
+          auth: exposeAuth(session.tokenPayload),
+        }),
+      );
     }
 
     let student = await queryOne(
       "SELECT * FROM users WHERE user_type = 'student' AND LOWER(email)=LOWER(?) LIMIT 1",
-      [email]
+      [email],
     );
     if (!student) {
       const id = uuidv4();
@@ -706,14 +848,19 @@ router.get('/google/callback', async (req, res) => {
         `INSERT INTO users
           (id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name, description, avatar_path, affiliation, password_hash, auth_provider, is_active, last_seen, created_at, updated_at)
          VALUES (?, 'student', NULL, ?, NULL, ?, ?, ?, 'Compte Google', NULL, 'both', NULL, 'google', 1, ?, NOW(), NOW())`,
-        [id, email, firstName, lastName, `${firstName} ${lastName}`.trim(), now]
+        [id, email, firstName, lastName, `${firstName} ${lastName}`.trim(), now],
       );
       await ensurePrimaryRole('student', id, 'visiteur');
       emitStudentsChanged({ reason: 'register_google', studentId: id });
       student = await queryOne("SELECT * FROM users WHERE id = ? AND user_type = 'student'", [id]);
     } else {
-      await execute("UPDATE users SET last_seen = ? WHERE id = ? AND user_type = 'student'", [new Date().toISOString(), student.id]);
-      student = await queryOne("SELECT * FROM users WHERE id = ? AND user_type = 'student'", [student.id]);
+      await execute("UPDATE users SET last_seen = ? WHERE id = ? AND user_type = 'student'", [
+        new Date().toISOString(),
+        student.id,
+      ]);
+      student = await queryOne("SELECT * FROM users WHERE id = ? AND user_type = 'student'", [
+        student.id,
+      ]);
     }
 
     const session = await buildSessionPayload('student', student.id, false);
@@ -725,158 +872,205 @@ router.get('/google/callback', async (req, res) => {
       targetType: 'student',
       targetId: student.id,
     });
-    return res.redirect(buildOAuthFrontendRedirect(cfg.frontendOrigin, {
-      type: 'student',
-      student: {
-        ...student,
-        password_hash: undefined,
-        authToken: token,
-        auth: session ? exposeAuth(session.tokenPayload) : null,
-      },
-    }));
+    return res.redirect(
+      buildOAuthFrontendRedirect(cfg.frontendOrigin, {
+        type: 'student',
+        student: {
+          ...student,
+          password_hash: undefined,
+          authToken: token,
+          auth: session ? exposeAuth(session.tokenPayload) : null,
+        },
+      }),
+    );
   } catch (e) {
     logRouteError(e, req);
-    return res.redirect(buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_server_error', mode));
+    return res.redirect(
+      buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_server_error', mode),
+    );
   }
 });
 
-router.post('/forgot-password', asyncHandler(async (req, res) => {
-  const email = normalizeEmail(req.body?.email ?? req.body?.mail);
-  if (!email || !EMAIL_RE.test(email)) {
-    return res.json({ ok: true, message: 'Si un compte existe, un email de réinitialisation a été envoyé.' });
-  }
-  const student = await queryOne(
-    "SELECT id, first_name, last_name, email, password_hash FROM users WHERE user_type = 'student' AND LOWER(email)=LOWER(?) LIMIT 1",
-    [email]
-  );
-  if (student && student.password_hash) {
-    const token = await createPasswordResetToken('student', student.id);
-    await sendPasswordResetEmail({
-      to: student.email,
-      displayName: `${student.first_name || ''} ${student.last_name || ''}`.trim() || 'n3beur',
-      resetUrl: makeResetUrl('student', token),
-      roleLabel: 'n3beur',
+router.post(
+  '/forgot-password',
+  asyncHandler(async (req, res) => {
+    const email = normalizeEmail(req.body?.email ?? req.body?.mail);
+    if (!email || !EMAIL_RE.test(email)) {
+      return res.json({
+        ok: true,
+        message: 'Si un compte existe, un email de réinitialisation a été envoyé.',
+      });
+    }
+    const student = await queryOne(
+      "SELECT id, first_name, last_name, email, password_hash FROM users WHERE user_type = 'student' AND LOWER(email)=LOWER(?) LIMIT 1",
+      [email],
+    );
+    if (student && student.password_hash) {
+      const token = await createPasswordResetToken('student', student.id);
+      await sendPasswordResetEmail({
+        to: student.email,
+        displayName: `${student.first_name || ''} ${student.last_name || ''}`.trim() || 'n3beur',
+        resetUrl: makeResetUrl('student', token),
+        roleLabel: 'n3beur',
+      });
+      await logSecurityEvent('auth.password_reset.request.student', {
+        req,
+        actorUserType: 'student',
+        actorUserId: student.id,
+        targetType: 'student',
+        targetId: student.id,
+      });
+    }
+    res.json({
+      ok: true,
+      message: 'Si un compte existe, un email de réinitialisation a été envoyé.',
     });
-    await logSecurityEvent('auth.password_reset.request.student', {
+  }),
+);
+
+router.post(
+  '/reset-password',
+  asyncHandler(async (req, res) => {
+    const token = normalizeOptionalString(req.body?.token);
+    const password = req.body?.password;
+    if (!token || !password) return res.status(400).json({ error: 'Champs requis' });
+    const minPasswordLen = await getPasswordMinLength();
+    if (String(password).length < minPasswordLen) {
+      return res
+        .status(400)
+        .json({ error: `Mot de passe trop court (min ${minPasswordLen} caractères)` });
+    }
+    const studentId = await consumePasswordResetToken('student', token);
+    if (!studentId) return res.status(400).json({ error: 'Token invalide ou expiré' });
+    const hash = await bcrypt.hash(password, 10);
+    await execute("UPDATE users SET password_hash = ? WHERE id = ? AND user_type = 'student'", [
+      hash,
+      studentId,
+    ]);
+    await logSecurityEvent('auth.password_reset.confirm.student', {
       req,
       actorUserType: 'student',
-      actorUserId: student.id,
+      actorUserId: studentId,
       targetType: 'student',
-      targetId: student.id,
+      targetId: studentId,
     });
-  }
-  res.json({ ok: true, message: 'Si un compte existe, un email de réinitialisation a été envoyé.' });
-}));
-
-router.post('/reset-password', asyncHandler(async (req, res) => {
-  const token = normalizeOptionalString(req.body?.token);
-  const password = req.body?.password;
-  if (!token || !password) return res.status(400).json({ error: 'Champs requis' });
-  const minPasswordLen = await getPasswordMinLength();
-  if (String(password).length < minPasswordLen) {
-    return res.status(400).json({ error: `Mot de passe trop court (min ${minPasswordLen} caractères)` });
-  }
-  const studentId = await consumePasswordResetToken('student', token);
-  if (!studentId) return res.status(400).json({ error: 'Token invalide ou expiré' });
-  const hash = await bcrypt.hash(password, 10);
-  await execute("UPDATE users SET password_hash = ? WHERE id = ? AND user_type = 'student'", [hash, studentId]);
-  await logSecurityEvent('auth.password_reset.confirm.student', {
-    req,
-    actorUserType: 'student',
-    actorUserId: studentId,
-    targetType: 'student',
-    targetId: studentId,
-  });
-  res.json({ ok: true });
-}));
+    res.json({ ok: true });
+  }),
+);
 
 router.post('/teacher/login', async (req, res) => {
   return res.status(410).json({ error: 'Endpoint supprimé. Utilisez /api/auth/login.' });
 });
 
-router.post('/teacher/forgot-password', asyncHandler(async (req, res) => {
-  await ensureTeacherSeedFromEnv();
-  const email = normalizeEmail(req.body?.email);
-  if (!email || !EMAIL_RE.test(email)) {
-    return res.json({ ok: true, message: 'Si un compte existe, un email de réinitialisation a été envoyé.' });
-  }
-  const teacher = await queryOne(
-    "SELECT id, email, is_active FROM users WHERE user_type = 'teacher' AND LOWER(email)=LOWER(?) LIMIT 1",
-    [email]
-  );
-  if (teacher && teacher.is_active) {
-    const token = await createPasswordResetToken('teacher', teacher.id);
-    await sendPasswordResetEmail({
-      to: teacher.email,
-      displayName: 'n3boss',
-      resetUrl: makeResetUrl('teacher', token),
-      roleLabel: 'n3boss',
+router.post(
+  '/teacher/forgot-password',
+  asyncHandler(async (req, res) => {
+    await ensureTeacherSeedFromEnv();
+    const email = normalizeEmail(req.body?.email);
+    if (!email || !EMAIL_RE.test(email)) {
+      return res.json({
+        ok: true,
+        message: 'Si un compte existe, un email de réinitialisation a été envoyé.',
+      });
+    }
+    const teacher = await queryOne(
+      "SELECT id, email, is_active FROM users WHERE user_type = 'teacher' AND LOWER(email)=LOWER(?) LIMIT 1",
+      [email],
+    );
+    if (teacher && teacher.is_active) {
+      const token = await createPasswordResetToken('teacher', teacher.id);
+      await sendPasswordResetEmail({
+        to: teacher.email,
+        displayName: 'n3boss',
+        resetUrl: makeResetUrl('teacher', token),
+        roleLabel: 'n3boss',
+      });
+      await logSecurityEvent('auth.password_reset.request.teacher', {
+        req,
+        actorUserType: 'teacher',
+        actorUserId: teacher.id,
+        targetType: 'teacher',
+        targetId: teacher.id,
+      });
+    }
+    res.json({
+      ok: true,
+      message: 'Si un compte existe, un email de réinitialisation a été envoyé.',
     });
-    await logSecurityEvent('auth.password_reset.request.teacher', {
+  }),
+);
+
+router.post(
+  '/teacher/reset-password',
+  asyncHandler(async (req, res) => {
+    const token = normalizeOptionalString(req.body?.token);
+    const password = req.body?.password;
+    if (!token || !password) return res.status(400).json({ error: 'Champs requis' });
+    const minPasswordLen = await getPasswordMinLength();
+    if (String(password).length < minPasswordLen) {
+      return res
+        .status(400)
+        .json({ error: `Mot de passe trop court (min ${minPasswordLen} caractères)` });
+    }
+    const teacherId = await consumePasswordResetToken('teacher', token);
+    if (!teacherId) return res.status(400).json({ error: 'Token invalide ou expiré' });
+    const hash = await bcrypt.hash(password, 10);
+    const now = new Date().toISOString();
+    await execute(
+      "UPDATE users SET password_hash = ?, updated_at = NOW() WHERE id = ? AND user_type = 'teacher'",
+      [hash, teacherId],
+    );
+    await logSecurityEvent('auth.password_reset.confirm.teacher', {
       req,
       actorUserType: 'teacher',
-      actorUserId: teacher.id,
+      actorUserId: teacherId,
       targetType: 'teacher',
-      targetId: teacher.id,
+      targetId: teacherId,
     });
-  }
-  res.json({ ok: true, message: 'Si un compte existe, un email de réinitialisation a été envoyé.' });
-}));
+    res.json({ ok: true });
+  }),
+);
 
-router.post('/teacher/reset-password', asyncHandler(async (req, res) => {
-  const token = normalizeOptionalString(req.body?.token);
-  const password = req.body?.password;
-  if (!token || !password) return res.status(400).json({ error: 'Champs requis' });
-  const minPasswordLen = await getPasswordMinLength();
-  if (String(password).length < minPasswordLen) {
-    return res.status(400).json({ error: `Mot de passe trop court (min ${minPasswordLen} caractères)` });
-  }
-  const teacherId = await consumePasswordResetToken('teacher', token);
-  if (!teacherId) return res.status(400).json({ error: 'Token invalide ou expiré' });
-  const hash = await bcrypt.hash(password, 10);
-  const now = new Date().toISOString();
-  await execute("UPDATE users SET password_hash = ?, updated_at = NOW() WHERE id = ? AND user_type = 'teacher'", [hash, teacherId]);
-  await logSecurityEvent('auth.password_reset.confirm.teacher', {
-    req,
-    actorUserType: 'teacher',
-    actorUserId: teacherId,
-    targetType: 'teacher',
-    targetId: teacherId,
-  });
-  res.json({ ok: true });
-}));
+router.post(
+  '/elevate',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const allowPinElevation = await getSettingValue('security.allow_pin_elevation', true);
+    if (!allowPinElevation) return res.status(403).json({ error: 'Élévation PIN désactivée' });
+    const pin = normalizeOptionalString(req.body?.pin);
+    if (!pin) return res.status(400).json({ error: 'PIN requis' });
+    if (!req.auth?.roleId) return res.status(401).json({ error: 'Session invalide' });
 
-router.post('/elevate', requireAuth, asyncHandler(async (req, res) => {
-  const allowPinElevation = await getSettingValue('security.allow_pin_elevation', true);
-  if (!allowPinElevation) return res.status(403).json({ error: 'Élévation PIN désactivée' });
-  const pin = normalizeOptionalString(req.body?.pin);
-  if (!pin) return res.status(400).json({ error: 'PIN requis' });
-  if (!req.auth?.roleId) return res.status(401).json({ error: 'Session invalide' });
-
-  const ok = await verifyRolePin(req.auth.roleId, pin);
-  await execute(
-    'INSERT INTO elevation_audit (user_type, user_id, role_id, success, reason) VALUES (?, ?, ?, ?, ?)',
-    [req.auth.userType, req.auth.userId, req.auth.roleId, ok ? 1 : 0, ok ? 'ok' : 'pin_invalid']
-  );
-  if (!ok) {
-    logger.warn(
-      { requestId: req.requestId, event: 'auth_elevate_failure', reason: 'pin_invalid', userType: req.auth.userType },
-      'Élévation PIN refusée'
+    const ok = await verifyRolePin(req.auth.roleId, pin);
+    await execute(
+      'INSERT INTO elevation_audit (user_type, user_id, role_id, success, reason) VALUES (?, ?, ?, ?, ?)',
+      [req.auth.userType, req.auth.userId, req.auth.roleId, ok ? 1 : 0, ok ? 'ok' : 'pin_invalid'],
     );
-    return res.status(401).json({ error: 'PIN incorrect' });
-  }
+    if (!ok) {
+      logger.warn(
+        {
+          requestId: req.requestId,
+          event: 'auth_elevate_failure',
+          reason: 'pin_invalid',
+          userType: req.auth.userType,
+        },
+        'Élévation PIN refusée',
+      );
+      return res.status(401).json({ error: 'PIN incorrect' });
+    }
 
-  const session = await buildSessionPayload(req.auth.userType, req.auth.userId, true);
-  if (!session) return res.status(403).json({ error: 'Aucun profil attribué' });
-  const token = await signAuthToken(session.tokenPayload, true);
-  await logAudit('auth_elevate', 'auth', req.auth.userId, `Élévation ${req.auth.userType}`, {
-    req,
-    actorUserType: req.auth.userType,
-    actorUserId: req.auth.userId,
-    payload: { role_id: req.auth.roleId, elevated: true },
-  });
-  res.json({ token, auth: exposeAuth(session.tokenPayload) });
-}));
+    const session = await buildSessionPayload(req.auth.userType, req.auth.userId, true);
+    if (!session) return res.status(403).json({ error: 'Aucun profil attribué' });
+    const token = await signAuthToken(session.tokenPayload, true);
+    await logAudit('auth_elevate', 'auth', req.auth.userId, `Élévation ${req.auth.userType}`, {
+      req,
+      actorUserType: req.auth.userType,
+      actorUserId: req.auth.userId,
+      payload: { role_id: req.auth.roleId, elevated: true },
+    });
+    res.json({ token, auth: exposeAuth(session.tokenPayload) });
+  }),
+);
 
 // Compatibilité historique: "mode prof via PIN".
 // Désormais, ce endpoint exige d'être déjà connecté puis élève la session.
@@ -895,27 +1089,37 @@ router.post('/teacher', async (req, res) => {
       } catch (_) {
         logger.warn(
           { requestId: req.requestId, event: 'auth_teacher_legacy_token_invalid' },
-          'Token JWT invalide (endpoint teacher legacy)'
+          'Token JWT invalide (endpoint teacher legacy)',
         );
         return res.status(401).json({ error: 'Token invalide ou expiré' });
       }
       const ok = await verifyRolePin(claims.roleId, pin);
       if (!ok) {
         logger.warn(
-          { requestId: req.requestId, event: 'auth_teacher_legacy_pin_invalid', userType: claims.userType },
-          'PIN incorrect (endpoint teacher legacy)'
+          {
+            requestId: req.requestId,
+            event: 'auth_teacher_legacy_pin_invalid',
+            userType: claims.userType,
+          },
+          'PIN incorrect (endpoint teacher legacy)',
         );
         return res.status(401).json({ error: 'PIN incorrect' });
       }
       const session = await buildSessionPayload(claims.userType, claims.userId, true);
       if (!session) return res.status(403).json({ error: 'Aucun profil attribué' });
       const token = await signAuthToken(session.tokenPayload, true);
-      await logAudit('auth_teacher_legacy_elevate', 'auth', claims.userId, `Élévation via endpoint legacy (${claims.userType})`, {
-        req,
-        actorUserType: claims.userType,
-        actorUserId: claims.userId,
-        payload: { role_id: claims.roleId, elevated: true },
-      });
+      await logAudit(
+        'auth_teacher_legacy_elevate',
+        'auth',
+        claims.userId,
+        `Élévation via endpoint legacy (${claims.userType})`,
+        {
+          req,
+          actorUserType: claims.userType,
+          actorUserId: claims.userId,
+          payload: { role_id: claims.roleId, elevated: true },
+        },
+      );
       return res.json({ token, auth: exposeAuth(session.tokenPayload) });
     }
     return res.status(401).json({ error: 'Token requis avant élévation PIN' });
@@ -935,13 +1139,18 @@ router.post('/admin/impersonate', requirePermission('admin.impersonate'), async 
     if (!targetUserId) {
       return res.status(400).json({ error: 'Identifiant utilisateur requis' });
     }
-    if (String(req.auth.userType) === targetUserType && String(req.auth.userId) === String(targetUserId)) {
-      return res.status(400).json({ error: 'Impossible de prendre le contrôle de votre propre compte' });
+    if (
+      String(req.auth.userType) === targetUserType &&
+      String(req.auth.userId) === String(targetUserId)
+    ) {
+      return res
+        .status(400)
+        .json({ error: 'Impossible de prendre le contrôle de votre propre compte' });
     }
-    const account = await queryOne(
-      'SELECT * FROM users WHERE id = ? AND user_type = ? LIMIT 1',
-      [targetUserId, targetUserType]
-    );
+    const account = await queryOne('SELECT * FROM users WHERE id = ? AND user_type = ? LIMIT 1', [
+      targetUserId,
+      targetUserType,
+    ]);
     if (!account) return res.status(404).json({ error: 'Utilisateur introuvable' });
 
     const tokenIn = parseBearerToken(req);
@@ -960,7 +1169,10 @@ router.post('/admin/impersonate', requirePermission('admin.impersonate'), async 
     const session = await buildSessionPayload(targetUserType, targetUserId, false);
     if (!session) return res.status(403).json({ error: 'Aucun profil attribué pour ce compte' });
 
-    const actorCanonical = await ensureCanonicalUserByAuth({ userType: req.auth.userType, userId: req.auth.userId });
+    const actorCanonical = await ensureCanonicalUserByAuth({
+      userType: req.auth.userType,
+      userId: req.auth.userId,
+    });
     const tokenPayload = {
       ...session.tokenPayload,
       impersonating: true,
@@ -979,12 +1191,18 @@ router.post('/admin/impersonate', requirePermission('admin.impersonate'), async 
     }
     if (!hydrated) return res.status(500).json({ error: 'Session impersonation invalide' });
 
-    await logAudit('auth_impersonate_start', 'auth', req.auth.userId, `Prise de contrôle ${targetUserType}#${targetUserId}`, {
-      req,
-      actorUserType: req.auth.userType,
-      actorUserId: req.auth.userId,
-      payload: { target_user_type: targetUserType, target_user_id: targetUserId },
-    });
+    await logAudit(
+      'auth_impersonate_start',
+      'auth',
+      req.auth.userId,
+      `Prise de contrôle ${targetUserType}#${targetUserId}`,
+      {
+        req,
+        actorUserType: req.auth.userType,
+        actorUserId: req.auth.userId,
+        payload: { target_user_type: targetUserType, target_user_id: targetUserId },
+      },
+    );
 
     const { password_hash, ...profile } = account;
     res.json({

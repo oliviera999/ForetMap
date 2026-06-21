@@ -31,7 +31,9 @@ export function PrefillPhotoCard({
   onThumbError,
 }) {
   return (
-    <div className={`plant-prefill-photo-card${checked ? ' plant-prefill-photo-card--selected' : ''}`}>
+    <div
+      className={`plant-prefill-photo-card${checked ? ' plant-prefill-photo-card--selected' : ''}`}
+    >
       <div className="plant-prefill-photo-card-row">
         <input
           type="checkbox"
@@ -42,7 +44,10 @@ export function PrefillPhotoCard({
         />
         <div className="plant-prefill-photo-body">
           <div className="plant-prefill-photo-assign-row">
-            <label className="plant-prefill-photo-assign-label" htmlFor={`prefill-assign-${slotKey}`}>
+            <label
+              className="plant-prefill-photo-assign-label"
+              htmlFor={`prefill-assign-${slotKey}`}
+            >
               Associer au champ
             </label>
             <select
@@ -53,13 +58,19 @@ export function PrefillPhotoCard({
               onChange={(e) => onAssignChange(e.target.value)}
             >
               {fieldOptions.map((opt) => (
-                <option key={opt.key} value={opt.key}>{opt.label}</option>
+                <option key={opt.key} value={opt.key}>
+                  {opt.label}
+                </option>
               ))}
             </select>
           </div>
           <div className="plant-prefill-photo-thumb-wrap">
             {broken ? (
-              <div className="plant-prefill-photo-thumb-fallback" role="img" aria-label="Aperçu non chargé">
+              <div
+                className="plant-prefill-photo-thumb-fallback"
+                role="img"
+                aria-label="Aperçu non chargé"
+              >
                 Aperçu indisponible
               </div>
             ) : (

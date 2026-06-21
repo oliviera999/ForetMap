@@ -2,6 +2,7 @@ import React from 'react';
 import { GLGlossaryMarkdown } from './GLGlossaryMarkdown.jsx';
 import { GLSpeciesCatalog } from './GLSpeciesCatalog.jsx';
 import { GLChapterIllustration } from './GLChapterIllustration.jsx';
+import { useGlMarkdownWithLegacyMedia } from '../hooks/useGlMarkdownWithLegacyMedia.js';
 
 export function GLBiocenoseView({
   gameState,
@@ -10,7 +11,9 @@ export function GLBiocenoseView({
   glossaryLinkItems = [],
   loreCarnetEnabled = false,
 }) {
-  const introMarkdown = String(gameState?.game?.biocenose_markdown || '').trim();
+  const introMarkdown = useGlMarkdownWithLegacyMedia(
+    String(gameState?.game?.biocenose_markdown || '').trim(),
+  );
   const chapterNumber = gameState?.game?.chapter_plateau_number ?? null;
   const biomes = Array.isArray(gameState?.game?.chapter_biomes)
     ? gameState.game.chapter_biomes

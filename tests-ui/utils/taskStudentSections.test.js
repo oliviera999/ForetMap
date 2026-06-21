@@ -70,8 +70,9 @@ describe('studentActiveAssignedTasks', () => {
   const notAssigned = task({ id: 'a3', status: 'in_progress' });
 
   test('garde les tâches non validées où l’élève est inscrit', () => {
-    expect(studentActiveAssignedTasks([assigned, assignedValidated, notAssigned], STUDENT))
-      .toEqual([assigned]);
+    expect(studentActiveAssignedTasks([assigned, assignedValidated, notAssigned], STUDENT)).toEqual(
+      [assigned],
+    );
   });
 
   test('reconnaît aussi l’inscription par prénom + nom', () => {
@@ -114,8 +115,9 @@ describe('recentlyValidatedAssignedTasks', () => {
   const activeMine = task({ id: 'v3', status: 'in_progress', assignments: [{ student_id: '7' }] });
 
   test('garde les tâches validées où l’élève était inscrit', () => {
-    expect(recentlyValidatedAssignedTasks([validatedMine, validatedOther, activeMine], STUDENT))
-      .toEqual([validatedMine]);
+    expect(
+      recentlyValidatedAssignedTasks([validatedMine, validatedOther, activeMine], STUDENT),
+    ).toEqual([validatedMine]);
   });
 
   test('sans élève → liste vide', () => {

@@ -9,13 +9,15 @@ const {
   openStudentTasksTab,
 } = require('./fixtures/auth.fixture');
 
+test.describe.configure({ mode: 'serial' });
+
 test('élève peut se retirer d’une tâche prise en charge', async ({ page }) => {
   test.setTimeout(600_000);
   const taskTitle = `E2E Unassign ${Date.now()}`;
 
   await loginAsNewStudent(page);
   await enableTeacherMode(page);
-  const taskId = await createTeacherTask(page, taskTitle);
+  const taskId = await createTeacherTask(page, taskTitle, { skipReload: true });
   await assignStudentToTaskAsTeacher(page, taskId);
 
   await disableTeacherMode(page);
@@ -44,8 +46,15 @@ test('élève peut se retirer d’une tâche prise en charge', async ({ page }) 
     httpUnassign = { ok: () => true };
   }
 
-  await expect.poll(async () => (
-    await page.locator('.task-card', { hasText: taskTitle }).first()
-      .getByRole('button', { name: /Je m['\u2019]en occupe/i }).count()
-  ), { timeout: 45_000 }).toBeGreaterThan(0);
+  await expect
+    .poll(
+      async () =>
+        await page
+          .locator('.task-card', { hasText: taskTitle })
+          .first()
+          .getByRole('button', { name: /Je m['\u2019]en occupe/i })
+          .count(),
+      { timeout: 45_000 },
+    )
+    .toBeGreaterThan(0);
 });

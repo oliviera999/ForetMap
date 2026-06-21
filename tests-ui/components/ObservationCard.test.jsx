@@ -21,7 +21,10 @@ function makeEntry(overrides = {}) {
 
 describe('ObservationCard', () => {
   beforeEach(() => {
-    vi.stubGlobal('confirm', vi.fn(() => true));
+    vi.stubGlobal(
+      'confirm',
+      vi.fn(() => true),
+    );
   });
   afterEach(() => {
     vi.unstubAllGlobals();

@@ -10,13 +10,21 @@ describe('MarkerTutorialCardList', () => {
   });
 
   test('affiche titre, résumé, zones et exclut le repère courant des « autres repères »', () => {
-    const tutorials = [{
-      id: 7,
-      title: 'Tailler les pommiers',
-      summary: 'En hiver, sécateur propre.',
-      zones_linked: [{ id: 'z1', name: 'Verger' }, { id: 'z2', name: 'Potager' }],
-      markers_linked: [{ id: 'm1', label: 'Repère courant' }, { id: 'm2', label: 'Autre repère' }],
-    }];
+    const tutorials = [
+      {
+        id: 7,
+        title: 'Tailler les pommiers',
+        summary: 'En hiver, sécateur propre.',
+        zones_linked: [
+          { id: 'z1', name: 'Verger' },
+          { id: 'z2', name: 'Potager' },
+        ],
+        markers_linked: [
+          { id: 'm1', label: 'Repère courant' },
+          { id: 'm2', label: 'Autre repère' },
+        ],
+      },
+    ];
     render(<MarkerTutorialCardList tutorials={tutorials} currentMarkerId="m1" />);
     expect(screen.getByText('Tailler les pommiers')).toBeTruthy();
     expect(screen.getByText('En hiver, sécateur propre.')).toBeTruthy();
@@ -30,20 +38,22 @@ describe('MarkerTutorialCardList', () => {
 
   test('bouton « Consulter » présent et déclenche l’aperçu pour un tutoriel intégrable', () => {
     const onOpenTutorialPreview = vi.fn();
-    const tutorials = [{
-      id: 9,
-      title: 'Compostage',
-      type: 'link',
-      source_url: 'https://example.org/compost',
-      zones_linked: [],
-      markers_linked: [],
-    }];
+    const tutorials = [
+      {
+        id: 9,
+        title: 'Compostage',
+        type: 'link',
+        source_url: 'https://example.org/compost',
+        zones_linked: [],
+        markers_linked: [],
+      },
+    ];
     render(
       <MarkerTutorialCardList
         tutorials={tutorials}
         currentMarkerId="m1"
         onOpenTutorialPreview={onOpenTutorialPreview}
-      />
+      />,
     );
     const btn = screen.getByRole('button', { name: /Consulter/ });
     fireEvent.click(btn);
@@ -52,14 +62,16 @@ describe('MarkerTutorialCardList', () => {
   });
 
   test('aucun bouton « Consulter » sans callback onOpenTutorialPreview', () => {
-    const tutorials = [{
-      id: 9,
-      title: 'Compostage',
-      type: 'link',
-      source_url: 'https://example.org/compost',
-      zones_linked: [],
-      markers_linked: [],
-    }];
+    const tutorials = [
+      {
+        id: 9,
+        title: 'Compostage',
+        type: 'link',
+        source_url: 'https://example.org/compost',
+        zones_linked: [],
+        markers_linked: [],
+      },
+    ];
     render(<MarkerTutorialCardList tutorials={tutorials} currentMarkerId="m1" />);
     expect(screen.queryByRole('button', { name: /Consulter/ })).toBeNull();
   });

@@ -6,7 +6,13 @@ const assert = require('node:assert');
 const request = require('supertest');
 const { app } = require('../server');
 const { initSchema, execute, queryOne } = require('../database');
-const { createGlAdmin, createGlClass, createGlGameWithTeams, createGlPlayer, signTokens } = require('./helpers/glFixtures');
+const {
+  createGlAdmin,
+  createGlClass,
+  createGlGameWithTeams,
+  createGlPlayer,
+  signTokens,
+} = require('./helpers/glFixtures');
 
 let adminToken = '';
 let playerToken = '';
@@ -66,7 +72,7 @@ test('POST /api/gl/games/:id/join-team accepte un joueur', async () => {
     .expect(200);
   const member = await queryOne(
     'SELECT team_id FROM gl_team_members WHERE game_id = ? AND player_id = ? LIMIT 1',
-    [gameId, playerId]
+    [gameId, playerId],
   );
   assert.ok(member);
 });
@@ -88,9 +94,18 @@ test('POST /api/gl/games/:id/join-team retourne 404 si équipe absente', async (
 });
 
 test('POST start/pause/end met à jour le statut de partie', async () => {
-  await request(app).post(`/api/gl/games/${gameId}/start`).set('Authorization', `Bearer ${adminToken}`).expect(200);
-  await request(app).post(`/api/gl/games/${gameId}/pause`).set('Authorization', `Bearer ${adminToken}`).expect(200);
-  await request(app).post(`/api/gl/games/${gameId}/end`).set('Authorization', `Bearer ${adminToken}`).expect(200);
+  await request(app)
+    .post(`/api/gl/games/${gameId}/start`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .expect(200);
+  await request(app)
+    .post(`/api/gl/games/${gameId}/pause`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .expect(200);
+  await request(app)
+    .post(`/api/gl/games/${gameId}/end`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .expect(200);
   const game = await queryOne('SELECT status FROM gl_games WHERE id = ? LIMIT 1', [gameId]);
   assert.strictEqual(game?.status, 'ended');
 });

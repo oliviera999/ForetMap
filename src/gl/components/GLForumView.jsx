@@ -71,7 +71,9 @@ export function GLForumView({ canModerate }) {
     event.preventDefault();
     if (!activeThread || !postBody.trim()) return;
     try {
-      await apiGL(`/api/gl/forum/threads/${activeThread.id}/posts`, 'POST', { body: postBody.trim() });
+      await apiGL(`/api/gl/forum/threads/${activeThread.id}/posts`, 'POST', {
+        body: postBody.trim(),
+      });
       setPostBody('');
       await loadThread(activeThread.id);
       await loadThreads();
@@ -83,7 +85,9 @@ export function GLForumView({ canModerate }) {
   async function toggleLock() {
     if (!activeThread) return;
     try {
-      await apiGL(`/api/gl/forum/threads/${activeThread.id}/lock`, 'PATCH', { locked: !activeThread.is_locked });
+      await apiGL(`/api/gl/forum/threads/${activeThread.id}/lock`, 'PATCH', {
+        locked: !activeThread.is_locked,
+      });
       await loadThread(activeThread.id);
       await loadThreads();
     } catch (err) {
@@ -99,7 +103,9 @@ export function GLForumView({ canModerate }) {
         <GLButton type="button" onClick={() => setCreatingThread((v) => !v)}>
           {creatingThread ? 'Annuler' : 'Nouveau sujet'}
         </GLButton>
-        <GLButton type="button" variant="secondary" onClick={loadThreads}>Rafraîchir</GLButton>
+        <GLButton type="button" variant="secondary" onClick={loadThreads}>
+          Rafraîchir
+        </GLButton>
       </div>
 
       {creatingThread ? (
@@ -108,7 +114,11 @@ export function GLForumView({ canModerate }) {
             <GLInput value={draftTitle} onChange={(event) => setDraftTitle(event.target.value)} />
           </GLField>
           <GLField label="Premier message">
-            <GLTextarea value={draftBody} onChange={(event) => setDraftBody(event.target.value)} rows={4} />
+            <GLTextarea
+              value={draftBody}
+              onChange={(event) => setDraftBody(event.target.value)}
+              rows={4}
+            />
           </GLField>
           <GLButton type="submit">Publier le sujet</GLButton>
         </form>
@@ -120,14 +130,17 @@ export function GLForumView({ canModerate }) {
             <button type="button" onClick={() => setActiveId(thread.id)}>
               <strong>{thread.title}</strong>
               <span className="gl-hint">
-                {Number(thread.is_locked) ? '🔒 ' : ''}{thread.posts_count} messages
+                {Number(thread.is_locked) ? '🔒 ' : ''}
+                {thread.posts_count} messages
               </span>
             </button>
           </li>
         ))}
         {threads.length === 0 ? (
           <li className="gl-empty gl-hint">
-            <span className="gl-empty-icon" aria-hidden>💬</span>
+            <span className="gl-empty-icon" aria-hidden>
+              💬
+            </span>
             Aucun sujet.
           </li>
         ) : null}
@@ -146,13 +159,17 @@ export function GLForumView({ canModerate }) {
           <ul className="gl-forum-posts">
             {posts.map((post) => (
               <li key={post.id} className={Number(post.is_deleted) ? 'is-deleted' : ''}>
-                <strong>{post.author_user_type}#{post.author_user_id}</strong>
+                <strong>
+                  {post.author_user_type}#{post.author_user_id}
+                </strong>
                 <p>{post.body}</p>
               </li>
             ))}
             {posts.length === 0 ? (
               <li className="gl-empty gl-hint">
-                <span className="gl-empty-icon" aria-hidden>📝</span>
+                <span className="gl-empty-icon" aria-hidden>
+                  📝
+                </span>
                 Aucun message.
               </li>
             ) : null}
@@ -160,7 +177,11 @@ export function GLForumView({ canModerate }) {
           {!Number(activeThread.is_locked) || canModerate ? (
             <form className="gl-form" onSubmit={postReply}>
               <GLField label="Répondre">
-                <GLTextarea value={postBody} onChange={(event) => setPostBody(event.target.value)} rows={3} />
+                <GLTextarea
+                  value={postBody}
+                  onChange={(event) => setPostBody(event.target.value)}
+                  rows={3}
+                />
               </GLField>
               <GLButton type="submit">Envoyer</GLButton>
             </form>

@@ -14,10 +14,7 @@ import {
   buildContributionsSavePayload,
 } from '../utils/glSpellCastRules.js';
 import { GLSpellCastRosterSection } from './spell-cast/GLSpellCastRosterSection.jsx';
-import {
-  GLSpellCastSpellPicker,
-  GLSpellCastTeamPicker,
-} from './spell-cast/GLSpellCastPickers.jsx';
+import { GLSpellCastSpellPicker, GLSpellCastTeamPicker } from './spell-cast/GLSpellCastPickers.jsx';
 import { GLSpellCastFooter } from './spell-cast/GLSpellCastFooter.jsx';
 
 const CLOSE_MS = 200;
@@ -67,32 +64,36 @@ export function GLSpellCastWizard({
   }, [spellCast?.draft?.required, activeSpell]);
 
   const selectableTeams = useMemo(
-    () => filterSelectableTeams({
-      teams,
-      teamScope,
-      playerTeamId,
-      currentTeamId,
-      turnsEnabled,
-      isStaff,
-    }),
+    () =>
+      filterSelectableTeams({
+        teams,
+        teamScope,
+        playerTeamId,
+        currentTeamId,
+        turnsEnabled,
+        isStaff,
+      }),
     [teams, teamScope, playerTeamId, currentTeamId, turnsEnabled, isStaff],
   );
 
-  const beginFundDraft = useCallback(async ({ spell, teamId }) => {
-    if (!spell || !gameId || !spellCast?.startDraft) return;
-    setFundLoading(true);
-    try {
-      const payload = { spellCode: spell };
-      if (teamId != null && Number(teamId) > 0) payload.teamId = Number(teamId);
-      await spellCast.startDraft(payload);
-      setStep('fund');
-    } catch (_) {
-      if (!isStaff) setStep('team');
-      else setStep(activeSpellCode ? 'fund' : 'spell');
-    } finally {
-      setFundLoading(false);
-    }
-  }, [gameId, spellCast, isStaff, activeSpellCode]);
+  const beginFundDraft = useCallback(
+    async ({ spell, teamId }) => {
+      if (!spell || !gameId || !spellCast?.startDraft) return;
+      setFundLoading(true);
+      try {
+        const payload = { spellCode: spell };
+        if (teamId != null && Number(teamId) > 0) payload.teamId = Number(teamId);
+        await spellCast.startDraft(payload);
+        setStep('fund');
+      } catch (_) {
+        if (!isStaff) setStep('team');
+        else setStep(activeSpellCode ? 'fund' : 'spell');
+      } finally {
+        setFundLoading(false);
+      }
+    },
+    [gameId, spellCast, isStaff, activeSpellCode],
+  );
 
   const requestClose = useCallback(() => {
     if (isClosing) return;
@@ -114,9 +115,12 @@ export function GLSpellCastWizard({
     requestClose();
   });
 
-  useEffect(() => () => {
-    if (closeTimerRef.current) window.clearTimeout(closeTimerRef.current);
-  }, []);
+  useEffect(
+    () => () => {
+      if (closeTimerRef.current) window.clearTimeout(closeTimerRef.current);
+    },
+    [],
+  );
 
   useEffect(() => {
     if (!open) return;
@@ -128,7 +132,10 @@ export function GLSpellCastWizard({
     staffDraftStartedRef.current = false;
     setFundLoading(false);
     setStep(resolveSpellCastInitialStep({ isStaff, activeSpellCode }));
-    if (playerTeamId != null && selectableTeams.some((t) => Number(t.id) === Number(playerTeamId))) {
+    if (
+      playerTeamId != null &&
+      selectableTeams.some((t) => Number(t.id) === Number(playerTeamId))
+    ) {
       setSelectedTeamId(Number(playerTeamId));
     } else if (selectableTeams.length === 1) {
       setSelectedTeamId(Number(selectableTeams[0].id));
@@ -142,8 +149,10 @@ export function GLSpellCastWizard({
   useEffect(() => {
     if (!open || !isStaff || !activeSpellCode || !gameId) return;
     if (staffDraftStartedRef.current) return;
-    if (spellCast?.draft?.spellCode && String(spellCast.draft.spellCode).toUpperCase()
-      === String(activeSpellCode).toUpperCase()) {
+    if (
+      spellCast?.draft?.spellCode &&
+      String(spellCast.draft.spellCode).toUpperCase() === String(activeSpellCode).toUpperCase()
+    ) {
       setStep('fund');
       return;
     }
@@ -162,7 +171,9 @@ export function GLSpellCastWizard({
 
   useEffect(() => {
     if (!spellCast?.draft?.roster) return;
-    setLocalContribs(buildLocalContributions(spellCast.draft.roster, spellCast.draft.contributions));
+    setLocalContribs(
+      buildLocalContributions(spellCast.draft.roster, spellCast.draft.contributions),
+    );
   }, [spellCast?.draft?.id, spellCast?.draft?.contributions, spellCast?.draft?.roster]);
 
   const totals = useMemo(() => sumContributionTotals(localContribs), [localContribs]);
@@ -188,11 +199,11 @@ export function GLSpellCastWizard({
 
   function updateContrib(playerIdTarget, field, rawValue) {
     const n = Math.max(0, Math.floor(Number(rawValue) || 0));
-    setLocalContribs((prev) => prev.map((row) => (
-      Number(row.playerId) === Number(playerIdTarget)
-        ? { ...row, [field]: n }
-        : row
-    )));
+    setLocalContribs((prev) =>
+      prev.map((row) =>
+        Number(row.playerId) === Number(playerIdTarget) ? { ...row, [field]: n } : row,
+      ),
+    );
   }
 
   async function handleContribBlur(playerIdTarget, field, value) {
@@ -204,7 +215,9 @@ export function GLSpellCastWizard({
       targetPlayerId: playerIdTarget,
     });
     if (needsConfirm && (Number(value) || 0) > 0) {
-      const rosterRow = spellCast.draft.roster?.find((p) => Number(p.playerId) === Number(playerIdTarget));
+      const rosterRow = spellCast.draft.roster?.find(
+        (p) => Number(p.playerId) === Number(playerIdTarget),
+      );
       const label = formatPlayerLabel(rosterRow);
       const amount = Number(value) || 0;
       const unit = field === 'gems' ? '💎' : '❤️';
@@ -212,18 +225,24 @@ export function GLSpellCastWizard({
         `Utiliser ${amount} ${unit} du solde de ${label} pour ce sortilège ?`,
       );
       if (!ok) {
-        setLocalContribs(buildLocalContributions(spellCast.draft.roster, spellCast.draft.contributions));
+        setLocalContribs(
+          buildLocalContributions(spellCast.draft.roster, spellCast.draft.contributions),
+        );
         return;
       }
     }
     try {
-      await spellCast.saveContributions(spellCast.draft.id, [{
-        playerId: playerIdTarget,
-        gems: field === 'gems' ? value : row.gems,
-        hearts: field === 'hearts' ? value : row.hearts,
-      }]);
+      await spellCast.saveContributions(spellCast.draft.id, [
+        {
+          playerId: playerIdTarget,
+          gems: field === 'gems' ? value : row.gems,
+          hearts: field === 'hearts' ? value : row.hearts,
+        },
+      ]);
     } catch (_) {
-      setLocalContribs(buildLocalContributions(spellCast.draft.roster, spellCast.draft.contributions));
+      setLocalContribs(
+        buildLocalContributions(spellCast.draft.roster, spellCast.draft.contributions),
+      );
     }
   }
 
@@ -260,15 +279,15 @@ export function GLSpellCastWizard({
   const showSpellPick = step === 'spell' && !activeSpellCode;
   const showTeamPick = !isStaff && step === 'team' && activeSpellCode;
   const showFund = step === 'fund' && (spellCast?.draft || fundLoading || spellCast?.busy);
-  const spellName = spellCast?.draft?.spell?.nom || activeSpell?.nom || activeSpellCode || 'Sortilège';
+  const spellName =
+    spellCast?.draft?.spell?.nom || activeSpell?.nom || activeSpellCode || 'Sortilège';
   const spellEmoji = spellCast?.draft?.spell?.emoji || activeSpell?.emoji || '✨';
 
   return createPortal(
     <div
-      className={[
-        'gl-spell-cast-overlay',
-        isClosing ? 'gl-spell-cast-overlay--closing' : '',
-      ].filter(Boolean).join(' ')}
+      className={['gl-spell-cast-overlay', isClosing ? 'gl-spell-cast-overlay--closing' : '']
+        .filter(Boolean)
+        .join(' ')}
       role="presentation"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) requestClose();
@@ -284,10 +303,7 @@ export function GLSpellCastWizard({
         <header className="gl-spell-cast-panel__header">
           <div>
             <h2 id={titleId}>
-              <span aria-hidden="true">{spellEmoji}</span>
-              {' '}
-              Lancer :
-              {spellName}
+              <span aria-hidden="true">{spellEmoji}</span> Lancer :{spellName}
             </h2>
             {costLabel ? (
               <p className="gl-hint gl-spell-cast-panel__cost">Coût : {costLabel}</p>
@@ -306,10 +322,7 @@ export function GLSpellCastWizard({
         ) : null}
 
         {showSpellPick ? (
-          <GLSpellCastSpellPicker
-            chapterSpells={chapterSpells}
-            onPick={handlePickSpell}
-          />
+          <GLSpellCastSpellPicker chapterSpells={chapterSpells} onPick={handlePickSpell} />
         ) : null}
 
         {showTeamPick ? (
@@ -323,8 +336,10 @@ export function GLSpellCastWizard({
 
         {showFund ? (
           <div className="gl-spell-cast-panel__body">
-            {(fundLoading || (spellCast?.busy && !spellCast?.draft)) ? (
-              <p className="gl-hint" role="status">Chargement des contributeurs…</p>
+            {fundLoading || (spellCast?.busy && !spellCast?.draft) ? (
+              <p className="gl-hint" role="status">
+                Chargement des contributeurs…
+              </p>
             ) : null}
             {spellCast?.draft ? (
               <GLSpellCastRosterSection

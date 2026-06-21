@@ -15,8 +15,9 @@ export function GLMarkerQuestionList({
   onRefresh,
 }) {
   const selectedSet = new Set(
-    (Array.isArray(selectedQuestionCodes) ? selectedQuestionCodes : [])
-      .map((c) => String(c).toUpperCase())
+    (Array.isArray(selectedQuestionCodes) ? selectedQuestionCodes : []).map((c) =>
+      String(c).toUpperCase(),
+    ),
   );
   const allExplicit = selectedSet.size > 0;
   const eligibleCount = allExplicit
@@ -43,16 +44,23 @@ export function GLMarkerQuestionList({
           {mode === 'random' && !allExplicit ? ' (toutes éligibles)' : ''}
         </span>
         {mode === 'random' ? (
-          <GLButton type="button" size="sm" variant="secondary" onClick={onSelectAll}>Tout le pool</GLButton>
+          <GLButton type="button" size="sm" variant="secondary" onClick={onSelectAll}>
+            Tout le pool
+          </GLButton>
         ) : null}
-        <GLButton type="button" size="sm" variant="secondary" onClick={onRefresh} disabled={loading} loading={loading}>
+        <GLButton
+          type="button"
+          size="sm"
+          variant="secondary"
+          onClick={onRefresh}
+          disabled={loading}
+          loading={loading}
+        >
           Actualiser
         </GLButton>
       </header>
       {error ? <p className="gl-error">{error}</p> : null}
-      {loading && items.length === 0 ? (
-        <p className="gl-hint">Chargement des questions…</p>
-      ) : null}
+      {loading && items.length === 0 ? <p className="gl-hint">Chargement des questions…</p> : null}
       {!loading && items.length === 0 && !error ? (
         <p className="gl-hint">Aucune question ne correspond aux filtres.</p>
       ) : null}
@@ -68,7 +76,9 @@ export function GLMarkerQuestionList({
                   'gl-marker-question-list__row',
                   included ? 'is-included' : '',
                   mode === 'fixed' && included ? 'is-fixed-selected' : '',
-                ].filter(Boolean).join(' ')}
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
               >
                 {mode === 'random' ? (
                   <label className="gl-marker-question-list__pick">

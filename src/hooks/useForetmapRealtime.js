@@ -79,7 +79,10 @@ export function useForetmapRealtime({
         api(`/api/task-projects?${mapQuery}`).catch(() => []),
       ]);
       if (!Array.isArray(t)) {
-        console.warn('[ForetMap] rafraîchissement tâches (temps réel) : réponse inattendue', typeof t);
+        console.warn(
+          '[ForetMap] rafraîchissement tâches (temps réel) : réponse inattendue',
+          typeof t,
+        );
         return;
       }
       setTasks(t);
@@ -91,38 +94,41 @@ export function useForetmapRealtime({
     }
   }, [pauseDataRefreshRef, setTaskProjects, setTasks]);
 
-  const refreshGardenFromServer = useCallback(async (options = {}) => {
-    if (pauseDataRefreshRef?.current) return;
-    const includePlants = options.includePlants !== false;
-    try {
-      const mapId = String(activeMapIdRef.current || '').trim();
-      if (!mapId) return;
-      const mapQuery = `map_id=${encodeURIComponent(mapId)}`;
-      if (includePlants) {
-        const [z, p, m] = await Promise.all([
-          api(`/api/zones?${mapQuery}`),
-          api('/api/plants'),
-          api(`/api/map/markers?${mapQuery}`),
-        ]);
-        setZones(z);
-        setPlants(p);
-        setMarkers(m);
-      } else {
-        const [z, m] = await Promise.all([
-          api(`/api/zones?${mapQuery}`),
-          api(`/api/map/markers?${mapQuery}`),
-        ]);
-        setZones(z);
-        setMarkers(m);
+  const refreshGardenFromServer = useCallback(
+    async (options = {}) => {
+      if (pauseDataRefreshRef?.current) return;
+      const includePlants = options.includePlants !== false;
+      try {
+        const mapId = String(activeMapIdRef.current || '').trim();
+        if (!mapId) return;
+        const mapQuery = `map_id=${encodeURIComponent(mapId)}`;
+        if (includePlants) {
+          const [z, p, m] = await Promise.all([
+            api(`/api/zones?${mapQuery}`),
+            api('/api/plants'),
+            api(`/api/map/markers?${mapQuery}`),
+          ]);
+          setZones(z);
+          setPlants(p);
+          setMarkers(m);
+        } else {
+          const [z, m] = await Promise.all([
+            api(`/api/zones?${mapQuery}`),
+            api(`/api/map/markers?${mapQuery}`),
+          ]);
+          setZones(z);
+          setMarkers(m);
+        }
+        window.dispatchEvent(
+          new CustomEvent('foretmap_realtime', { detail: { domain: 'garden', includePlants } }),
+        );
+      } catch (e) {
+        if (e instanceof AccountDeletedError) forceLogoutRef.current();
+        else console.error('[ForetMap] rafraîchissement jardin (temps réel)', e);
       }
-      window.dispatchEvent(
-        new CustomEvent('foretmap_realtime', { detail: { domain: 'garden', includePlants } })
-      );
-    } catch (e) {
-      if (e instanceof AccountDeletedError) forceLogoutRef.current();
-      else console.error('[ForetMap] rafraîchissement jardin (temps réel)', e);
-    }
-  }, [pauseDataRefreshRef, setMarkers, setPlants, setZones]);
+    },
+    [pauseDataRefreshRef, setMarkers, setPlants, setZones],
+  );
 
   const scheduleTasksRefresh = useCallback(() => {
     if (tasksRtDebounceRef.current) clearTimeout(tasksRtDebounceRef.current);
@@ -144,7 +150,7 @@ export function useForetmapRealtime({
         refreshGardenFromServer({ includePlants });
       }, GARDEN_RT_DEBOUNCE_MS);
     },
-    [refreshGardenFromServer]
+    [refreshGardenFromServer],
   );
 
   const onStudentsRealtime = useCallback(() => {
@@ -154,7 +160,9 @@ export function useForetmapRealtime({
     window.dispatchEvent(new CustomEvent('foretmap_realtime', { detail: { domain: 'forum' } }));
   }, []);
   const onContextCommentsRealtime = useCallback((payload = {}) => {
-    window.dispatchEvent(new CustomEvent('foretmap_realtime', { detail: { domain: 'context_comments', payload } }));
+    window.dispatchEvent(
+      new CustomEvent('foretmap_realtime', { detail: { domain: 'context_comments', payload } }),
+    );
   }, []);
 
   useEffect(() => {
@@ -169,7 +177,9 @@ export function useForetmapRealtime({
     }
     setRtStatus('connecting');
     const origin =
-      API && String(API).trim() ? new URL(API, window.location.href).origin : window.location.origin;
+      API && String(API).trim()
+        ? new URL(API, window.location.href).origin
+        : window.location.origin;
     const socket = io(origin, {
       path: withAppBase('/socket.io'),
       auth: { token: authToken, mapId: activeMapIdRef.current || undefined },
@@ -287,7 +297,14 @@ export function useForetmapRealtime({
       socket.disconnect();
       setRtStatus('off');
     };
-  }, [enabled, onContextCommentsRealtime, onForumRealtime, onStudentsRealtime, scheduleGardenRefresh, scheduleTasksRefresh]);
+  }, [
+    enabled,
+    onContextCommentsRealtime,
+    onForumRealtime,
+    onStudentsRealtime,
+    scheduleGardenRefresh,
+    scheduleTasksRefresh,
+  ]);
 
   useEffect(() => {
     activeMapIdRef.current = activeMapId;

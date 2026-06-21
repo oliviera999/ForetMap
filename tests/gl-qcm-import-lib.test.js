@@ -13,7 +13,13 @@ const {
   formatQuestionCode,
 } = require('../lib/glQcmImport');
 
-const XLSX_PATH = path.join(__dirname, '..', 'data', 'gl', 'qcm-biomes-gnomes-et-licornes-consolide.xlsx');
+const XLSX_PATH = path.join(
+  __dirname,
+  '..',
+  'data',
+  'gl',
+  'qcm-biomes-gnomes-et-licornes-consolide.xlsx',
+);
 
 test('parseQcmWorkbook lit le fichier de référence', async () => {
   const buffer = fs.readFileSync(XLSX_PATH);
@@ -45,12 +51,7 @@ test('validateQuestionPayload signale biome inconnu', () => {
     choix_e: 'E',
     reponse_correcte: 'A',
   });
-  const errors = validateQuestionPayload(
-    payload,
-    2,
-    new Set(['sahara']),
-    new Set(['faune'])
-  );
+  const errors = validateQuestionPayload(payload, 2, new Set(['sahara']), new Set(['faune']));
   assert.ok(errors.some((e) => e.field === 'biome_slug'));
 });
 

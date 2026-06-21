@@ -13,7 +13,10 @@ function ReferentCheckboxItem({ candidate, selectedIds, terms, onToggle }) {
       />
       <span className="task-form-pick-text">
         👤 {referentCandidateLabel(candidate)}
-        <span style={{ opacity: 0.75, fontSize: '.78rem' }}> — {referentRoleHint(candidate, terms)}</span>
+        <span style={{ opacity: 0.75, fontSize: '.78rem' }}>
+          {' '}
+          — {referentRoleHint(candidate, terms)}
+        </span>
       </span>
     </label>
   );
@@ -42,7 +45,8 @@ export function TaskFormReferentsField({
     <div className="field">
       <label>Référents (optionnel)</label>
       <p style={{ fontSize: '.8rem', color: '#555', margin: '0 0 8px', lineHeight: 1.45 }}>
-        Elles figurent sur la fiche : les {terms.studentPlural} savent vers qui se tourner en cas de question.
+        Elles figurent sur la fiche : les {terms.studentPlural} savent vers qui se tourner en cas de
+        question.
       </p>
       {candidates.length > 0 && (
         <div style={{ display: 'grid', gap: 8, marginBottom: 8 }}>
@@ -51,15 +55,19 @@ export function TaskFormReferentsField({
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder="🔍 Filtrer par nom…"
           />
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 8,
+              flexWrap: 'wrap',
+            }}
+          >
             <span style={{ fontSize: '.8rem', color: '#666' }}>
               {selectedCount} sélectionné{selectedCount > 1 ? 's' : ''}
             </span>
-            <button
-              type="button"
-              className="btn btn-ghost btn-sm"
-              onClick={onClear}
-            >
+            <button type="button" className="btn btn-ghost btn-sm" onClick={onClear}>
               Effacer les référents
             </button>
           </div>
@@ -67,12 +75,16 @@ export function TaskFormReferentsField({
       )}
       <div className="task-form-pick-list">
         {candidates.length === 0 ? (
-          <p className="task-form-pick-empty">Chargement de la liste des utilisateurs ou aucun compte actif.</p>
+          <p className="task-form-pick-empty">
+            Chargement de la liste des utilisateurs ou aucun compte actif.
+          </p>
         ) : (
           <>
             {filteredTeacher.length > 0 && (
               <>
-                <div className="task-form-pick-subheading" aria-hidden="true">Équipe pédagogique</div>
+                <div className="task-form-pick-subheading" aria-hidden="true">
+                  Équipe pédagogique
+                </div>
                 {filteredTeacher.map((c) => (
                   <ReferentCheckboxItem
                     key={String(c.id || '').trim()}

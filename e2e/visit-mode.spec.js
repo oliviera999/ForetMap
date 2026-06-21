@@ -21,7 +21,9 @@ async function clickFirstVisitZone(stage) {
   await zoneHit.click({ force: true, timeout: 10_000 });
 }
 
-test('visite publique : choix mascotte obligatoire au premier lancement puis mémorisé', async ({ page }) => {
+test('visite publique : choix mascotte obligatoire au premier lancement puis mémorisé', async ({
+  page,
+}) => {
   await page.goto('/');
   const guestCta = page.getByRole('button', { name: /Visiter sans compte/i });
   await expect(guestCta).toBeVisible({ timeout: 30_000 });
@@ -29,7 +31,9 @@ test('visite publique : choix mascotte obligatoire au premier lancement puis mé
 
   const onboarding = page.locator('.visit-mascot-onboarding');
   await expect(onboarding).toBeVisible({ timeout: 30_000 });
-  await expect(onboarding.getByRole('heading', { name: /Choisis ta mascotte guide/i })).toBeVisible();
+  await expect(
+    onboarding.getByRole('heading', { name: /Choisis ta mascotte guide/i }),
+  ).toBeVisible();
   await onboarding.locator('.visit-mascot-onboarding__option').first().click();
   await onboarding.getByRole('button', { name: /Commencer la visite/i }).click();
   await expect(onboarding).toHaveCount(0);
@@ -55,6 +59,29 @@ test('visite connectée : onglet Visite affiche la vue visite', async ({ page })
   await expect(page.locator('.visit-view--guest-public')).toHaveCount(0);
 });
 
+test('visite connectée : plein écran carte puis Échap pour quitter', async ({ page }) => {
+  await loginAsNewStudent(page);
+
+  await page.getByRole('button', { name: /^🧭 Visite$/ }).click();
+  await expect(page.locator('.visit-view')).toBeVisible({ timeout: 30_000 });
+
+  const stage = page.locator('.visit-map-stage');
+  await expect(stage.locator('img.visit-map-img')).toBeVisible({ timeout: 15_000 });
+
+  await page.getByTestId('visit-map-fullscreen-open').click();
+  await expect(page.getByTestId('fm-map-fullscreen-layer')).toBeVisible();
+  await expect(page.getByTestId('visit-map-fullscreen-open')).toHaveCount(0);
+  await expect(stage).toHaveClass(/visit-map-stage--fullscreen/);
+  const fullscreenImg = page.getByTestId('fm-map-fullscreen-layer').locator('img.visit-map-img');
+  await expect(fullscreenImg).toBeVisible();
+  const imgBox = await fullscreenImg.boundingBox();
+  expect(imgBox && imgBox.width > 80 && imgBox.height > 80).toBeTruthy();
+
+  await page.keyboard.press('Escape');
+  await expect(page.getByTestId('fm-map-fullscreen-layer')).toHaveCount(0);
+  await expect(page.getByTestId('visit-map-fullscreen-open')).toBeVisible();
+});
+
 test('visite connectée : scène carte, image chargée et contrôles zoom', async ({ page }) => {
   await loginAsNewStudent(page);
 
@@ -71,12 +98,20 @@ test('visite connectée : scène carte, image chargée et contrôles zoom', asyn
   await expect(mapImg).toHaveAttribute('src', /./);
 
   const controls = stage.locator('.visit-map-controls');
-  await expect(controls.getByRole('button', { name: 'Zoomer la carte de visite', exact: true })).toBeVisible();
-  await expect(controls.getByRole('button', { name: 'Dézoomer la carte de visite', exact: true })).toBeVisible();
-  await expect(controls.getByRole('button', { name: 'Recentrer la carte de visite', exact: true })).toBeVisible();
+  await expect(
+    controls.getByRole('button', { name: 'Zoomer la carte de visite', exact: true }),
+  ).toBeVisible();
+  await expect(
+    controls.getByRole('button', { name: 'Dézoomer la carte de visite', exact: true }),
+  ).toBeVisible();
+  await expect(
+    controls.getByRole('button', { name: 'Recentrer la carte de visite', exact: true }),
+  ).toBeVisible();
 });
 
-test('visite connectée : mascotte visible si au moins une zone ou un repère sur le plan', async ({ page }) => {
+test('visite connectée : mascotte visible si au moins une zone ou un repère sur le plan', async ({
+  page,
+}) => {
   await loginAsNewStudent(page);
 
   await page.getByRole('button', { name: /^🧭 Visite$/ }).click();
@@ -94,7 +129,9 @@ test('visite connectée : mascotte visible si au moins une zone ou un repère su
   }
 });
 
-test('visite connectée : bouton Présentation du lieu (animation si parcours carte à 0)', async ({ page }) => {
+test('visite connectée : bouton Présentation du lieu (animation si parcours carte à 0)', async ({
+  page,
+}) => {
   await loginAsNewStudent(page);
   await page.getByRole('button', { name: /^🧭 Visite$/ }).click();
   await expect(page.locator('.visit-view')).toBeVisible({ timeout: 30_000 });

@@ -18,7 +18,11 @@ function check(name, condition, message) {
 
 console.log('1. Fichiers');
 check('.env existe', fs.existsSync(path.join(root, '.env')), 'copiez env.local.example vers .env');
-check('docker-compose.yml', fs.existsSync(path.join(root, 'docker-compose.yml')), 'fichier manquant');
+check(
+  'docker-compose.yml',
+  fs.existsSync(path.join(root, 'docker-compose.yml')),
+  'fichier manquant',
+);
 check('env.local.example', fs.existsSync(path.join(root, 'env.local.example')), 'fichier manquant');
 
 console.log('\n2. Variables .env (si .env présent)');
@@ -41,7 +45,9 @@ if (process.env.DB_HOST && process.env.DB_USER) {
     } catch (err) {
       ok = false;
       console.log('  FAIL MySQL', '—', err.message || err);
-      console.log('  → Démarrez Docker : npm run docker:up, attendez le healthcheck, puis réessayez.');
+      console.log(
+        '  → Démarrez Docker : npm run docker:up, attendez le healthcheck, puis réessayez.',
+      );
     }
     process.exit(ok ? 0 : 1);
   })();

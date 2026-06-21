@@ -18,9 +18,10 @@ export function useGLPlayerStats({ mode = 'self', classId = null, enabled = true
     setLoading(true);
     setError('');
     try {
-      const path = mode === 'class'
-        ? `/api/gl/stats/class${classId ? `?class_id=${encodeURIComponent(classId)}` : ''}`
-        : '/api/gl/stats/me';
+      const path =
+        mode === 'class'
+          ? `/api/gl/stats/class${classId ? `?class_id=${encodeURIComponent(classId)}` : ''}`
+          : '/api/gl/stats/me';
       const payload = await apiGL(path);
       setData(payload);
     } catch (err) {

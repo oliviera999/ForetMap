@@ -27,10 +27,30 @@ export const DEFAULT_GL_BRAND = {
   logoUrl: '',
   faviconUrl: '',
   slots: {
-    hero: { imageUrl: '', title: '', subtitle: '', frame: normalizeGlImageFrame(null, 'brand-hero') },
-    card_world: { imageUrl: '', title: 'Un monde', tab: 'world', frame: normalizeGlImageFrame(null, 'brand-card') },
-    card_rules: { imageUrl: '', title: 'Les règles du jeu', tab: 'rules', frame: normalizeGlImageFrame(null, 'brand-card') },
-    card_spells: { imageUrl: '', title: 'Les sortilèges', tab: 'spells', frame: normalizeGlImageFrame(null, 'brand-card') },
+    hero: {
+      imageUrl: '',
+      title: '',
+      subtitle: '',
+      frame: normalizeGlImageFrame(null, 'brand-hero'),
+    },
+    card_world: {
+      imageUrl: '',
+      title: 'Un monde',
+      tab: 'world',
+      frame: normalizeGlImageFrame(null, 'brand-card'),
+    },
+    card_rules: {
+      imageUrl: '',
+      title: 'Les règles du jeu',
+      tab: 'rules',
+      frame: normalizeGlImageFrame(null, 'brand-card'),
+    },
+    card_spells: {
+      imageUrl: '',
+      title: 'Les sortilèges',
+      tab: 'spells',
+      frame: normalizeGlImageFrame(null, 'brand-card'),
+    },
   },
 };
 
@@ -83,7 +103,10 @@ export function normalizeBrand(rawBrand) {
   const sourceColors = source.colors && typeof source.colors === 'object' ? source.colors : {};
   const sourceFonts = source.fonts && typeof source.fonts === 'object' ? source.fonts : {};
   const googleFamilies = Array.isArray(sourceFonts.googleFamilies)
-    ? sourceFonts.googleFamilies.map((item) => String(item || '').trim()).filter(Boolean).slice(0, 6)
+    ? sourceFonts.googleFamilies
+        .map((item) => String(item || '').trim())
+        .filter(Boolean)
+        .slice(0, 6)
     : DEFAULT_GL_BRAND.fonts.googleFamilies;
   return {
     colors: {
@@ -99,7 +122,8 @@ export function normalizeBrand(rawBrand) {
     fonts: {
       body: safeFontName(sourceFonts.body, DEFAULT_GL_BRAND.fonts.body),
       heading: safeFontName(sourceFonts.heading, DEFAULT_GL_BRAND.fonts.heading),
-      googleFamilies: googleFamilies.length > 0 ? googleFamilies : DEFAULT_GL_BRAND.fonts.googleFamilies,
+      googleFamilies:
+        googleFamilies.length > 0 ? googleFamilies : DEFAULT_GL_BRAND.fonts.googleFamilies,
     },
     logoUrl: normalizeAssetUrl(source.logoUrl),
     faviconUrl: normalizeAssetUrl(source.faviconUrl),
@@ -116,7 +140,9 @@ function toCssFontFamily(value, fallbackStack = 'serif') {
 
 function upsertFontLink(families) {
   if (typeof document === 'undefined') return;
-  const uniqueFamilies = [...new Set((families || []).map((item) => String(item || '').trim()).filter(Boolean))];
+  const uniqueFamilies = [
+    ...new Set((families || []).map((item) => String(item || '').trim()).filter(Boolean)),
+  ];
   if (uniqueFamilies.length === 0) return;
   const encoded = uniqueFamilies.map((item) => item.replace(/\s+/g, '+')).join('&family=');
   const href = `https://fonts.googleapis.com/css2?family=${encoded}:wght@400;500;600;700&display=swap`;
@@ -133,24 +159,27 @@ function upsertFontLink(families) {
 export function useGLBrandTheme(rawBrand, chapterTheme) {
   const brand = useMemo(
     () => mergeBrandWithChapterTheme(normalizeBrand(rawBrand), chapterTheme),
-    [rawBrand, chapterTheme]
+    [rawBrand, chapterTheme],
   );
   useEffect(() => {
     upsertFontLink(brand.fonts.googleFamilies);
   }, [brand]);
 
-  const style = useMemo(() => ({
-    '--gl-color-primary': brand.colors.primary,
-    '--gl-color-secondary': brand.colors.secondary,
-    '--gl-color-tertiary': brand.colors.tertiary,
-    '--gl-color-text': brand.colors.text,
-    '--gl-color-link': brand.colors.link,
-    '--gl-color-link-hover': brand.colors.linkHover,
-    '--gl-color-topbar': brand.colors.topbar,
-    '--gl-color-background': brand.colors.background,
-    '--gl-font-body': toCssFontFamily(brand.fonts.body, 'serif'),
-    '--gl-font-heading': toCssFontFamily(brand.fonts.heading, 'serif'),
-  }), [brand]);
+  const style = useMemo(
+    () => ({
+      '--gl-color-primary': brand.colors.primary,
+      '--gl-color-secondary': brand.colors.secondary,
+      '--gl-color-tertiary': brand.colors.tertiary,
+      '--gl-color-text': brand.colors.text,
+      '--gl-color-link': brand.colors.link,
+      '--gl-color-link-hover': brand.colors.linkHover,
+      '--gl-color-topbar': brand.colors.topbar,
+      '--gl-color-background': brand.colors.background,
+      '--gl-font-body': toCssFontFamily(brand.fonts.body, 'serif'),
+      '--gl-font-heading': toCssFontFamily(brand.fonts.heading, 'serif'),
+    }),
+    [brand],
+  );
 
   return { brand, style };
 }

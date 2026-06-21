@@ -6,7 +6,9 @@
   src: url('/fonts/noto-color-emoji.woff2') format('woff2');
 }
 
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
@@ -40,13 +42,17 @@ body.gl-body {
   overflow-x: hidden;
 }
 
-input, select, textarea {
-  font-size: .95rem;
+input,
+select,
+textarea {
+  font-size: 0.95rem;
   font-family: inherit;
 }
 
 @media (max-width: 1023px), (hover: none), (pointer: coarse) {
-  input, select, textarea {
+  input,
+  select,
+  textarea {
     font-size: 16px !important;
   }
 }
@@ -59,23 +65,23 @@ input, select, textarea {
   margin: 0 12px 0;
   padding: 10px 14px;
   border-radius: 12px;
-  border: 1px solid rgba(245, 158, 11, .45);
-  background: rgba(255, 251, 235, .96);
+  border: 1px solid rgba(245, 158, 11, 0.45);
+  background: rgba(255, 251, 235, 0.96);
   color: #78350f;
-  font-size: .82rem;
+  font-size: 0.82rem;
   line-height: 1.35;
   flex-shrink: 0;
 }
 
 .role-preview-banner--teacher {
-  border-color: rgba(59, 130, 246, .38);
-  background: rgba(239, 246, 255, .96);
+  border-color: rgba(59, 130, 246, 0.38);
+  background: rgba(239, 246, 255, 0.96);
   color: #1e3a8a;
 }
 
 .role-preview-banner--impersonation {
-  border-color: rgba(234, 88, 12, .5);
-  background: rgba(255, 247, 237, .98);
+  border-color: rgba(234, 88, 12, 0.5);
+  background: rgba(255, 247, 237, 0.98);
   color: #9a3412;
   flex-wrap: wrap;
 }
@@ -101,9 +107,14 @@ input, select, textarea {
 }
 
 .role-preview-banner__text strong {
-  font-size: .86rem;
+  font-size: 0.86rem;
 }
 
 :root {
-  --font-sans: 'DM Sans', 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', sans-serif;
+  --font-sans: 'Caudex', 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', serif;
+  --font-emoji-stack:
+    'ForetMapColorEmoji', 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
+  --font-sans-with-emoji:
+    'Caudex', 'ForetMapColorEmoji', 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji',
+    serif;
 }

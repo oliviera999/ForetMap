@@ -61,3 +61,28 @@ test('glZoneAtPct: zone sans musique ignorée hors chevauchement musical', async
   ];
   assert.strictEqual(pickZoneAtPct(zones, 20, 20), null);
 });
+
+test('glZoneAtPct: playlist musicUrls sur zone active', async () => {
+  const { pickZoneAtPct, zoneMusicUrls } = await import('../src/utils/glZoneAtPct.js');
+  const urls = [
+    '/uploads/media-library/audio/2026/05/a.mp3',
+    '/uploads/media-library/audio/2026/05/b.mp3',
+  ];
+  const zones = [
+    {
+      id: 4,
+      label: 'Playlist',
+      musicUrls: urls,
+      points: [
+        { x: 0, y: 0 },
+        { x: 100, y: 0 },
+        { x: 100, y: 100 },
+        { x: 0, y: 100 },
+      ],
+    },
+  ];
+  const picked = pickZoneAtPct(zones, 40, 40);
+  assert.deepStrictEqual(picked?.musicUrls, urls);
+  assert.strictEqual(picked?.musicUrl, urls[0]);
+  assert.deepStrictEqual(zoneMusicUrls(zones[0]), urls);
+});

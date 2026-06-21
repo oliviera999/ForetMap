@@ -65,7 +65,13 @@ export const GL_SPECIES_DETAIL_SECTIONS = [
   {
     id: 'ressources',
     title: 'Ressources',
-    fields: ['wikipedia_url', 'wikipedia_title', 'photo_credit', 'photo_licence', 'photo_licence_url'],
+    fields: [
+      'wikipedia_url',
+      'wikipedia_title',
+      'photo_credit',
+      'photo_licence',
+      'photo_licence_url',
+    ],
   },
   {
     id: 'jeu',

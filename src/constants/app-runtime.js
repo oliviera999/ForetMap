@@ -66,4 +66,7 @@ export const KNOWN_TAB_VALUES = new Set([
   'forum',
   'audit',
   'about',
+  'glossary',
+  'quiz',
+  'foodweb',
 ]);

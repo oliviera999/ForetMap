@@ -40,7 +40,9 @@ describe('useAppStoragePersistence', () => {
   it('consomme le drapeau de mise à jour SW une seule fois et émet le toast', () => {
     sessionStorage.setItem(SW_KEY, '1');
     const onToast = vi.fn();
-    const { rerender } = renderHook(() => useAppStoragePersistence({ activeMapId: 'mapA', tab: 'map', onToast }));
+    const { rerender } = renderHook(() =>
+      useAppStoragePersistence({ activeMapId: 'mapA', tab: 'map', onToast }),
+    );
     expect(onToast).toHaveBeenCalledTimes(1);
     expect(onToast).toHaveBeenCalledWith('Nouvelle version installée.');
     expect(sessionStorage.getItem(SW_KEY)).toBeNull();

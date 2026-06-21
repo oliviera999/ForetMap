@@ -21,10 +21,13 @@ import {
 export function resolveSettingLabel(key, roleTerms) {
   const meta = KEY_META[key];
   if (!meta) return humanizeKey(key);
-  if (meta.dynamicLabel === 'googleStudent') return `Afficher "Google ${roleTerms.studentSingular}"`;
+  if (meta.dynamicLabel === 'googleStudent')
+    return `Afficher "Google ${roleTerms.studentSingular}"`;
   if (meta.dynamicLabel === 'googleTeacher') return `Afficher "Google ${roleTerms.teacherShort}"`;
-  if (meta.dynamicLabel === 'defaultStudentMap') return `Carte par défaut (${roleTerms.studentSingular})`;
-  if (meta.dynamicLabel === 'defaultTeacherMap') return `Carte par défaut (${roleTerms.teacherSingular})`;
+  if (meta.dynamicLabel === 'defaultStudentMap')
+    return `Carte par défaut (${roleTerms.studentSingular})`;
+  if (meta.dynamicLabel === 'defaultTeacherMap')
+    return `Carte par défaut (${roleTerms.teacherSingular})`;
   return meta.label || humanizeKey(key);
 }
 
@@ -59,10 +62,13 @@ export function buildSettingSections(settings) {
     }
     grouped.get(row._sectionId).rows.push(row);
   }
-  const ordered = Array.from(grouped.values())
-    .sort((a, b) => a.order - b.order || a.title.localeCompare(b.title));
+  const ordered = Array.from(grouped.values()).sort(
+    (a, b) => a.order - b.order || a.title.localeCompare(b.title),
+  );
   for (const section of ordered) {
-    section.rows.sort((a, b) => a._fieldOrder - b._fieldOrder || String(a.key).localeCompare(String(b.key)));
+    section.rows.sort(
+      (a, b) => a._fieldOrder - b._fieldOrder || String(a.key).localeCompare(String(b.key)),
+    );
   }
   return ordered;
 }
@@ -73,7 +79,9 @@ export function buildSettingSections(settings) {
  * retournée telle quelle (même référence).
  */
 export function filterSettingSections(sections, searchQuery, roleTerms) {
-  const query = String(searchQuery || '').trim().toLowerCase();
+  const query = String(searchQuery || '')
+    .trim()
+    .toLowerCase();
   if (!query) return sections;
   return sections
     .map((section) => {
@@ -82,7 +90,12 @@ export function filterSettingSections(sections, searchQuery, roleTerms) {
         const key = String(row.key || '').toLowerCase();
         const scope = scopeLabel(row.scope).toLowerCase();
         const help = buildConstraintHelp(row).toLowerCase();
-        return label.includes(query) || key.includes(query) || scope.includes(query) || help.includes(query);
+        return (
+          label.includes(query) ||
+          key.includes(query) ||
+          scope.includes(query) ||
+          help.includes(query)
+        );
       });
       return { ...section, rows };
     })

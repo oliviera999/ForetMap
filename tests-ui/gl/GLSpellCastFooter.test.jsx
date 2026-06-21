@@ -1,7 +1,5 @@
 import React from 'react';
-import {
-  describe, test, expect, vi,
-} from 'vitest';
+import { describe, test, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { GLSpellCastFooter } from '../../src/gl/components/spell-cast/GLSpellCastFooter.jsx';
 
@@ -21,7 +19,7 @@ function renderFooter(props = {}) {
 }
 
 describe('GLSpellCastFooter', () => {
-  test('à l\'étape fund, rend Annuler et Lancer', () => {
+  test("à l'étape fund, rend Annuler et Lancer", () => {
     renderFooter();
     expect(screen.getByText('Annuler le brouillon')).toBeInTheDocument();
     expect(screen.getByText('Lancer le sortilège')).toBeInTheDocument();

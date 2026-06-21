@@ -10,7 +10,14 @@ import { GLMascotFallbackSvg } from './GLMascotFallbackSvg.jsx';
  * stables (`data-gl-mascot-id`, `data-gl-mascot-type`) utiles pour les
  * tests e2e (`e2e/gl-mascots.spec.js`).
  */
-export function GLMascotAvatar({ mascotId, size = 48, fallbackType, fallbackPrimaryColor, fallbackSecondaryColor, fallbackLabel }) {
+export function GLMascotAvatar({
+  mascotId,
+  size = 48,
+  fallbackType,
+  fallbackPrimaryColor,
+  fallbackSecondaryColor,
+  fallbackLabel,
+}) {
   const entry = getGlMascotById(mascotId);
   const type = entry?.type || fallbackType || 'gnome';
   const primary = entry?.primaryColor || fallbackPrimaryColor || '#16a34a';

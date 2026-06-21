@@ -16,11 +16,11 @@ const { isLoreQuestionCode } = require('../lib/glQcmResolve');
 test('resolveChapitreSlugsForPool mode chapter inclut tous et chN', () => {
   assert.deepStrictEqual(
     resolveChapitreSlugsForPool({ chapitreMode: 'chapter', chapitreSlugs: [] }, 3),
-    ['tous', 'ch3']
+    ['tous', 'ch3'],
   );
   assert.deepStrictEqual(
     resolveChapitreSlugsForPool({ chapitreMode: 'custom', chapitreSlugs: ['ch0'] }, 3),
-    ['ch0', 'tous']
+    ['ch0', 'tous'],
   );
 });
 
@@ -68,7 +68,9 @@ test('queryLoreQuestionPool filtre chapitre et tier_lore', async () => {
     queryAll: async (sql, params) => {
       let result = rows;
       if (sql.includes('chapitre_slug IN')) {
-        const slugParams = params.filter((p) => typeof p === 'string' && (p === 'tous' || p.startsWith('ch')));
+        const slugParams = params.filter(
+          (p) => typeof p === 'string' && (p === 'tous' || p.startsWith('ch')),
+        );
         result = result.filter((row) => slugParams.includes(row.chapitre_slug));
       }
       if (sql.includes('tier_lore IN')) {
@@ -105,18 +107,22 @@ test('drawLoreQuestionFromMarker mode fixed', async () => {
     }),
     queryAll: async () => [],
   };
-  const draw = await drawLoreQuestionFromMarker(deps, {
-    event_type: 'question',
-    event_config_json: serializeEventConfig({
-      version: 1,
-      question: {
-        set: 'lore',
-        mode: 'fixed',
-        fixedQuestionCode: 'LQCM0001',
-        pool: { chapitreMode: 'chapter' },
-      },
-    }),
-  }, 3);
+  const draw = await drawLoreQuestionFromMarker(
+    deps,
+    {
+      event_type: 'question',
+      event_config_json: serializeEventConfig({
+        version: 1,
+        question: {
+          set: 'lore',
+          mode: 'fixed',
+          fixedQuestionCode: 'LQCM0001',
+          pool: { chapitreMode: 'chapter' },
+        },
+      }),
+    },
+    3,
+  );
   assert.strictEqual(draw.questionCode, 'LQCM0001');
   assert.strictEqual(draw.error, null);
   assert.strictEqual(draw.qcmSet, 'lore');

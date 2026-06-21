@@ -11,27 +11,27 @@ const GLMascotCatalogContext = createContext({
 export function GLMascotCatalogProvider({ token, children }) {
   const [mascots, setMascots] = useState([]);
 
-  const reload = useMemo(() => async () => {
-    if (!token) {
-      setMascots([]);
-      return;
-    }
-    try {
-      const data = await apiGL('/api/gl/mascots');
-      setMascots(Array.isArray(data?.mascots) ? data.mascots : []);
-    } catch (_) {
-      setMascots([]);
-    }
-  }, [token]);
+  const reload = useMemo(
+    () => async () => {
+      if (!token) {
+        setMascots([]);
+        return;
+      }
+      try {
+        const data = await apiGL('/api/gl/mascots');
+        setMascots(Array.isArray(data?.mascots) ? data.mascots : []);
+      } catch (_) {
+        setMascots([]);
+      }
+    },
+    [token],
+  );
 
   useEffect(() => {
     void reload();
   }, [reload]);
 
-  const extraCatalogEntries = useMemo(
-    () => buildGlMascotExtraCatalogEntries(mascots),
-    [mascots],
-  );
+  const extraCatalogEntries = useMemo(() => buildGlMascotExtraCatalogEntries(mascots), [mascots]);
 
   const value = useMemo(
     () => ({ mascots, extraCatalogEntries, reload }),
@@ -39,9 +39,7 @@ export function GLMascotCatalogProvider({ token, children }) {
   );
 
   return (
-    <GLMascotCatalogContext.Provider value={value}>
-      {children}
-    </GLMascotCatalogContext.Provider>
+    <GLMascotCatalogContext.Provider value={value}>{children}</GLMascotCatalogContext.Provider>
   );
 }
 

@@ -4,11 +4,14 @@ import { GL_SPELL_CATEGORY_LABELS } from '../utils/glSpellFieldLabels.js';
 
 function GLSpellTile({ spell, onSelect }) {
   const nom = String(spell.nom || '').trim() || 'Sort';
-  const cost = String(spell.cout_total_eq || '').trim()
-    || [
+  const cost =
+    String(spell.cout_total_eq || '').trim() ||
+    [
       Number(spell.cout_gemmes) > 0 ? `${spell.cout_gemmes} 💎` : '',
       Number(spell.cout_coeurs) > 0 ? `${spell.cout_coeurs} ❤️` : '',
-    ].filter(Boolean).join(' ');
+    ]
+      .filter(Boolean)
+      .join(' ');
 
   return (
     <button
@@ -17,7 +20,9 @@ function GLSpellTile({ spell, onSelect }) {
       aria-label={`Ouvrir le sort ${nom}`}
       onClick={() => onSelect(spell)}
     >
-      <span className="gl-spell-tile__emoji" aria-hidden="true">{spell.emoji || '✨'}</span>
+      <span className="gl-spell-tile__emoji" aria-hidden="true">
+        {spell.emoji || '✨'}
+      </span>
       <span className="gl-spell-tile__labels">
         <span className="gl-spell-tile__name">{nom}</span>
         {cost ? <span className="gl-spell-tile__cost">{cost}</span> : null}
@@ -78,25 +83,14 @@ function GLSpellCatalogPanel({ categorySlug, categoryNom, spellCodes, onSelectSp
       <p className="gl-spell-catalog__intro">
         {categoryNom ? (
           <>
-            Catégorie :
-            {' '}
-            <strong>{categoryNom}</strong>
-            {' '}
-            —
-            {' '}
+            Catégorie : <strong>{categoryNom}</strong> —{' '}
           </>
         ) : null}
-        {items.length}
-        {' '}
-        sort(s)
+        {items.length} sort(s)
       </p>
       <div className="gl-spell-catalog__grid">
         {items.map((spell) => (
-          <GLSpellTile
-            key={spell.spell_code}
-            spell={spell}
-            onSelect={onSelectSpell}
-          />
+          <GLSpellTile key={spell.spell_code} spell={spell} onSelect={onSelectSpell} />
         ))}
       </div>
     </div>
@@ -108,10 +102,15 @@ function GLSpellCatalogPanel({ categorySlug, categoryNom, spellCodes, onSelectSp
  */
 export function GLSpellCatalog({ chapterSpells = [], onOpenSpell }) {
   const spellCodes = useMemo(
-    () => (Array.isArray(chapterSpells) ? chapterSpells : [])
-      .map((s) => String(s.spell_code || '').trim().toUpperCase())
-      .filter(Boolean),
-    [chapterSpells]
+    () =>
+      (Array.isArray(chapterSpells) ? chapterSpells : [])
+        .map((s) =>
+          String(s.spell_code || '')
+            .trim()
+            .toUpperCase(),
+        )
+        .filter(Boolean),
+    [chapterSpells],
   );
 
   const categories = useMemo(() => {
@@ -143,8 +142,7 @@ export function GLSpellCatalog({ chapterSpells = [], onOpenSpell }) {
   if (spellCodes.length === 0) {
     return (
       <p className="gl-hint">
-        Aucun sort n’est lié à ce chapitre. Un MJ peut en choisir dans
-        {' '}
+        Aucun sort n’est lié à ce chapitre. Un MJ peut en choisir dans{' '}
         <strong>Contenus → Chapitres → Sorts du chapitre</strong>.
       </p>
     );

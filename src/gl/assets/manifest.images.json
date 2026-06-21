@@ -126,5 +126,13 @@
   "plateau-5_toundra-nuit": "plateau-5_toundra-nuit",
   "bulk-test": "bulk-test",
   "bulk-zip": "bulk-zip",
-  "apply-multipart": "apply-multipart"
+  "apply-multipart": "apply-multipart",
+  "biome_jungle": "biome_jungle",
+  "plateau-1_tropiques-africains": "plateau-1_tropiques-africains",
+  "intro_01_la-boite": "intro_01_la-boite",
+  "recit_00-prologue_la-boite-portail": "recit_00-prologue_la-boite-portail",
+  "recit_01-chap1_le-carnet-dans-la-savane": "recit_01-chap1_le-carnet-dans-la-savane",
+  "recit_01-chap1_savane-emerveillement": "recit_01-chap1_savane-emerveillement",
+  "plateau-1_jungle": "plateau-1_jungle",
+  "plateau-2_savane": "plateau-2_savane"
 }

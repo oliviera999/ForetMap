@@ -1,8 +1,12 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { apiGL } from '../services/apiGL.js';
 import { GLButton } from './ui/GLButton.jsx';
 import { GLQcmFeedbackBlock } from './GLQcmFeedbackBlock.jsx';
 import { hasQcmAnswerFeedback } from '../utils/glQcmDisplay.js';
+import { GLGlossaryInlineText } from './GLGlossaryMarkdown.jsx';
+import { GLLoreGlossaryInlineText } from './GLLoreGlossaryMarkdown.jsx';
+import { mergeGlossaryLinkItems } from '../../utils/glGlossaryAutolink.js';
+import { mergeLoreGlossaryLinkItems } from '../../utils/glLoreGlossaryAutolink.js';
 
 function isLoreQcmCode(code) {
   return /^LQCM\d+$/i.test(String(code || '').trim());
@@ -25,6 +29,8 @@ export function GLQcmModal({
   onClose,
   onOpenGlossaryTerm,
   onOpenLoreTerm,
+  glossaryLinkItems = [],
+  loreGlossaryLinkItems = [],
   onAnswered,
 }) {
   const [questionCode, setQuestionCode] = useState(null);
@@ -78,11 +84,37 @@ export function GLQcmModal({
     } finally {
       setLoading(false);
     }
-  }, [open, slugsKey, chapitreSlugsKey, qcmSet, marker?.qcm_question_code, marker?.qcm_categorie_slug, marker?.event_config]);
+  }, [
+    open,
+    slugsKey,
+    chapitreSlugsKey,
+    qcmSet,
+    marker?.qcm_question_code,
+    marker?.qcm_categorie_slug,
+    marker?.event_config,
+  ]);
 
   useEffect(() => {
     if (open) loadQuestion();
   }, [open, loadQuestion]);
+
+  const isLore = qcmSet === 'lore' || isLoreQcmCode(questionCode);
+  const mergedGlossaryItems = useMemo(
+    () =>
+      mergeGlossaryLinkItems(glossaryLinkItems, [
+        ...(presentation?.glossaryTerms || []),
+        ...(result?.glossaryTerms || []),
+      ]),
+    [glossaryLinkItems, presentation?.glossaryTerms, result?.glossaryTerms],
+  );
+  const mergedLoreGlossaryItems = useMemo(
+    () =>
+      mergeLoreGlossaryLinkItems(loreGlossaryLinkItems, [
+        ...(presentation?.loreGlossaryTerms || []),
+        ...(result?.loreGlossaryTerms || []),
+      ]),
+    [loreGlossaryLinkItems, presentation?.loreGlossaryTerms, result?.loreGlossaryTerms],
+  );
 
   async function submitAnswer() {
     if (!questionCode || !presentation?.presentationToken || selectedChoiceId == null) return;
@@ -97,10 +129,14 @@ export function GLQcmModal({
       };
       const data = gameId
         ? await apiGL(`/api/gl/games/${gameId}/qcm/answer`, 'POST', body)
-        : await apiGL(`${isLoreQcmCode(questionCode) ? '/api/gl/lore/qcm' : '/api/gl/qcm'}/questions/${encodeURIComponent(questionCode)}/answer`, 'POST', {
-          presentationToken: body.presentationToken,
-          choiceId: body.choiceId,
-        });
+        : await apiGL(
+            `${isLoreQcmCode(questionCode) ? '/api/gl/lore/qcm' : '/api/gl/qcm'}/questions/${encodeURIComponent(questionCode)}/answer`,
+            'POST',
+            {
+              presentationToken: body.presentationToken,
+              choiceId: body.choiceId,
+            },
+          );
       setResult(data);
       if (gameId && data?.correct) onAnswered?.(data);
     } catch (err) {
@@ -113,6 +149,10 @@ export function GLQcmModal({
   if (!open) return null;
 
   const showAnswer = hasQcmAnswerFeedback(result);
+  const InlineText = isLore ? GLLoreGlossaryInlineText : GLGlossaryInlineText;
+  const inlineGlossaryProps = isLore
+    ? { loreGlossaryItems: mergedLoreGlossaryItems, onOpenLoreTerm }
+    : { glossaryItems: mergedGlossaryItems, onOpenGlossaryTerm };
 
   return (
     <div className="gl-qcm-modal" role="dialog" aria-label="Quiz">
@@ -125,16 +165,21 @@ export function GLQcmModal({
         {!loading && !result && presentation ? (
           <>
             <div className="gl-qcm-popover__scroll">
-              {questionCode ? (
-                <p className="gl-hint">Question {questionCode}</p>
-              ) : null}
-              <p className="gl-qcm-modal__question">{presentation.question}</p>
+              {questionCode ? <p className="gl-hint">Question {questionCode}</p> : null}
+              <InlineText
+                className="gl-qcm-modal__question"
+                text={presentation.question}
+                {...inlineGlossaryProps}
+                tag="p"
+              />
               {presentation.photoUrl ? (
                 <figure className="gl-qcm-modal__photo-wrap">
                   <img src={presentation.photoUrl} alt="" className="gl-qcm-modal__photo" />
                   {presentation.photoCredit || presentation.photoLicence ? (
                     <figcaption className="gl-qcm-modal__photo-credit">
-                      {[presentation.photoCredit, presentation.photoLicence].filter(Boolean).join(' — ')}
+                      {[presentation.photoCredit, presentation.photoLicence]
+                        .filter(Boolean)
+                        .join(' — ')}
                     </figcaption>
                   ) : null}
                 </figure>
@@ -148,11 +193,12 @@ export function GLQcmModal({
                       checked={selectedChoiceId === choice.id}
                       onChange={() => setSelectedChoiceId(choice.id)}
                     />
-                    <span>{choice.text}</span>
+                    <InlineText text={choice.text} {...inlineGlossaryProps} />
                   </label>
                 ))}
               </div>
-              {Array.isArray(presentation.loreGlossaryTerms) && presentation.loreGlossaryTerms.length > 0 ? (
+              {Array.isArray(presentation.loreGlossaryTerms) &&
+              presentation.loreGlossaryTerms.length > 0 ? (
                 <div className="gl-qcm-modal__glossary">
                   <strong>Glossaire lore :</strong>
                   <div className="gl-glossary-chips">
@@ -169,7 +215,8 @@ export function GLQcmModal({
                   </div>
                 </div>
               ) : null}
-              {Array.isArray(presentation.glossaryTerms) && presentation.glossaryTerms.length > 0 ? (
+              {Array.isArray(presentation.glossaryTerms) &&
+              presentation.glossaryTerms.length > 0 ? (
                 <div className="gl-qcm-modal__glossary">
                   <strong>Glossaire :</strong>
                   <div className="gl-glossary-chips">
@@ -195,11 +242,15 @@ export function GLQcmModal({
                 disabled={submitting || selectedChoiceId == null}
                 loading={submitting}
               >
-                {submitting ? 'Envoi…' : 'C\'est cette réponse !'}
+                {submitting ? 'Envoi…' : "C'est cette réponse !"}
               </GLButton>
               <div className="gl-inline-actions">
-                <GLButton type="button" variant="ghost" onClick={loadQuestion}>Re-mélanger</GLButton>
-                <GLButton type="button" variant="ghost" onClick={onClose}>Fermer</GLButton>
+                <GLButton type="button" variant="ghost" onClick={loadQuestion}>
+                  Re-mélanger
+                </GLButton>
+                <GLButton type="button" variant="ghost" onClick={onClose}>
+                  Fermer
+                </GLButton>
               </div>
             </footer>
           </>
@@ -207,10 +258,16 @@ export function GLQcmModal({
         {showAnswer ? (
           <>
             <div className="gl-qcm-popover__scroll">
-              {questionCode ? (
-                <p className="gl-hint">Question {questionCode}</p>
-              ) : null}
-              <GLQcmFeedbackBlock result={result} scoreDelta={result?.scoreDelta} />
+              {questionCode ? <p className="gl-hint">Question {questionCode}</p> : null}
+              <GLQcmFeedbackBlock
+                result={result}
+                scoreDelta={result?.scoreDelta}
+                qcmSet={isLore ? 'lore' : 'biome'}
+                glossaryLinkItems={mergedGlossaryItems}
+                loreGlossaryLinkItems={mergedLoreGlossaryItems}
+                onOpenGlossaryTerm={onOpenGlossaryTerm}
+                onOpenLoreTerm={onOpenLoreTerm}
+              />
               {Array.isArray(result.loreGlossaryTerms) && result.loreGlossaryTerms.length > 0 ? (
                 <div className="gl-qcm-modal__glossary">
                   <strong>Termes lore liés :</strong>
@@ -249,9 +306,13 @@ export function GLQcmModal({
             <footer className="gl-qcm-popover__footer">
               <div className="gl-inline-actions">
                 {!result.correct ? (
-                  <GLButton type="button" onClick={loadQuestion}>Réessayer (ordre différent)</GLButton>
+                  <GLButton type="button" onClick={loadQuestion}>
+                    Réessayer (ordre différent)
+                  </GLButton>
                 ) : null}
-                <GLButton type="button" onClick={onClose}>Fermer</GLButton>
+                <GLButton type="button" onClick={onClose}>
+                  Fermer
+                </GLButton>
               </div>
             </footer>
           </>

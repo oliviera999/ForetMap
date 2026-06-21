@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { apiGL } from '../services/apiGL.js';
 import { GLButton } from './ui/GLButton.jsx';
@@ -6,6 +6,8 @@ import { GLQcmFeedbackBlock } from './GLQcmFeedbackBlock.jsx';
 import { shouldShowQcmAnswerPhase } from '../utils/glQcmDisplay.js';
 import { GLGlossaryInlineText } from './GLGlossaryMarkdown.jsx';
 import { GLLoreGlossaryInlineText } from './GLLoreGlossaryMarkdown.jsx';
+import { mergeGlossaryLinkItems } from '../../utils/glGlossaryAutolink.js';
+import { mergeLoreGlossaryLinkItems } from '../../utils/glLoreGlossaryAutolink.js';
 
 function isLoreQcmCode(code) {
   return /^LQCM\d+$/i.test(String(code || '').trim());
@@ -79,9 +81,9 @@ export function GLQcmPopover({
       const data = gameId
         ? await apiGL(`/api/gl/games/${gameId}/qcm/answer`, 'POST', body)
         : await apiGL(`/api/gl/qcm/questions/${encodeURIComponent(questionCode)}/answer`, 'POST', {
-          presentationToken: body.presentationToken,
-          choiceId: body.choiceId,
-        });
+            presentationToken: body.presentationToken,
+            choiceId: body.choiceId,
+          });
       setAnswerResult(data);
       onSubmitResult?.(data);
       if (gameId && data?.correct) {
@@ -100,12 +102,29 @@ export function GLQcmPopover({
   const displayResult = answerResult ?? result;
   const showAnswer = shouldShowQcmAnswerPhase(displayResult);
   const showChoices = !loading && !showAnswer && presentation;
-  const resolvedQcmSet = qcmSet || presentation?.qcmSet || (isLoreQcmCode(questionCode) ? 'lore' : 'biome');
+  const resolvedQcmSet =
+    qcmSet || presentation?.qcmSet || (isLoreQcmCode(questionCode) ? 'lore' : 'biome');
   const isLore = resolvedQcmSet === 'lore';
   const InlineText = isLore ? GLLoreGlossaryInlineText : GLGlossaryInlineText;
+  const mergedGlossaryItems = useMemo(
+    () =>
+      mergeGlossaryLinkItems(glossaryLinkItems, [
+        ...(presentation?.glossaryTerms || []),
+        ...(displayResult?.glossaryTerms || []),
+      ]),
+    [glossaryLinkItems, presentation?.glossaryTerms, displayResult?.glossaryTerms],
+  );
+  const mergedLoreGlossaryItems = useMemo(
+    () =>
+      mergeLoreGlossaryLinkItems(loreGlossaryLinkItems, [
+        ...(presentation?.loreGlossaryTerms || []),
+        ...(displayResult?.loreGlossaryTerms || []),
+      ]),
+    [loreGlossaryLinkItems, presentation?.loreGlossaryTerms, displayResult?.loreGlossaryTerms],
+  );
   const inlineGlossaryProps = isLore
-    ? { loreGlossaryItems: loreGlossaryLinkItems, onOpenLoreTerm: onOpenLoreTerm }
-    : { glossaryItems: glossaryLinkItems, onOpenGlossaryTerm: onOpenGlossaryTerm };
+    ? { loreGlossaryItems: mergedLoreGlossaryItems, onOpenLoreTerm: onOpenLoreTerm }
+    : { glossaryItems: mergedGlossaryItems, onOpenGlossaryTerm: onOpenGlossaryTerm };
 
   return createPortal(
     <div
@@ -130,9 +149,7 @@ export function GLQcmPopover({
           {showChoices ? (
             <>
               <div className="gl-qcm-popover__scroll">
-                {questionCode ? (
-                  <p className="gl-hint">Question {questionCode}</p>
-                ) : null}
+                {questionCode ? <p className="gl-hint">Question {questionCode}</p> : null}
                 <InlineText
                   className="gl-qcm-modal__question"
                   text={presentation.question}
@@ -144,7 +161,9 @@ export function GLQcmPopover({
                     <img src={presentation.photoUrl} alt="" className="gl-qcm-modal__photo" />
                     {presentation.photoCredit || presentation.photoLicence ? (
                       <figcaption className="gl-qcm-modal__photo-credit">
-                        {[presentation.photoCredit, presentation.photoLicence].filter(Boolean).join(' — ')}
+                        {[presentation.photoCredit, presentation.photoLicence]
+                          .filter(Boolean)
+                          .join(' — ')}
                       </figcaption>
                     ) : null}
                   </figure>
@@ -158,29 +177,31 @@ export function GLQcmPopover({
                         checked={selectedChoiceId === choice.id}
                         onChange={() => setSelectedChoiceId(choice.id)}
                       />
-                      <InlineText
-                        text={choice.text}
-                        {...inlineGlossaryProps}
-                      />
+                      <InlineText text={choice.text} {...inlineGlossaryProps} />
                     </label>
                   ))}
                 </div>
-                {(isLore ? presentation.loreGlossaryTerms : presentation.glossaryTerms)?.length > 0 ? (
+                {(isLore ? presentation.loreGlossaryTerms : presentation.glossaryTerms)?.length >
+                0 ? (
                   <div className="gl-qcm-modal__glossary">
                     <strong>{isLore ? 'Lexique lore :' : 'Glossaire :'}</strong>
                     <div className="gl-glossary-chips">
-                      {(isLore ? presentation.loreGlossaryTerms : presentation.glossaryTerms).map((term) => (
-                        <button
-                          key={isLore ? term.lore_code : term.glossary_code}
-                          type="button"
-                          className="gl-glossary-chip"
-                          onClick={() => (isLore
-                            ? onOpenLoreTerm?.(term.lore_code)
-                            : onOpenGlossaryTerm?.(term.glossary_code))}
-                        >
-                          {term.terme}
-                        </button>
-                      ))}
+                      {(isLore ? presentation.loreGlossaryTerms : presentation.glossaryTerms).map(
+                        (term) => (
+                          <button
+                            key={isLore ? term.lore_code : term.glossary_code}
+                            type="button"
+                            className="gl-glossary-chip"
+                            onClick={() =>
+                              isLore
+                                ? onOpenLoreTerm?.(term.lore_code)
+                                : onOpenGlossaryTerm?.(term.glossary_code)
+                            }
+                          >
+                            {term.terme}
+                          </button>
+                        ),
+                      )}
                     </div>
                   </div>
                 ) : null}
@@ -193,11 +214,15 @@ export function GLQcmPopover({
                   disabled={submitting || selectedChoiceId == null}
                   loading={submitting}
                 >
-                  {submitting ? 'Envoi…' : 'C\'est cette réponse !'}
+                  {submitting ? 'Envoi…' : "C'est cette réponse !"}
                 </GLButton>
                 <div className="gl-inline-actions">
-                  <GLButton type="button" variant="ghost" onClick={onReshuffle}>Re-mélanger</GLButton>
-                  <GLButton type="button" variant="ghost" onClick={onClose}>Fermer</GLButton>
+                  <GLButton type="button" variant="ghost" onClick={onReshuffle}>
+                    Re-mélanger
+                  </GLButton>
+                  <GLButton type="button" variant="ghost" onClick={onClose}>
+                    Fermer
+                  </GLButton>
                 </div>
               </footer>
             </>
@@ -205,31 +230,37 @@ export function GLQcmPopover({
           {showAnswer ? (
             <>
               <div className="gl-qcm-popover__scroll">
-                {questionCode ? (
-                  <p className="gl-hint">Question {questionCode}</p>
-                ) : null}
+                {questionCode ? <p className="gl-hint">Question {questionCode}</p> : null}
                 <GLQcmFeedbackBlock
                   result={displayResult}
                   scoreDelta={displayResult?.scoreDelta}
-                  glossaryLinkItems={glossaryLinkItems}
+                  qcmSet={resolvedQcmSet}
+                  glossaryLinkItems={mergedGlossaryItems}
+                  loreGlossaryLinkItems={mergedLoreGlossaryItems}
                   onOpenGlossaryTerm={onOpenGlossaryTerm}
+                  onOpenLoreTerm={onOpenLoreTerm}
                 />
-                {((isLore ? displayResult.loreGlossaryTerms : displayResult.glossaryTerms) || []).length > 0 ? (
+                {((isLore ? displayResult.loreGlossaryTerms : displayResult.glossaryTerms) || [])
+                  .length > 0 ? (
                   <div className="gl-qcm-modal__glossary">
                     <strong>Termes liés :</strong>
                     <div className="gl-glossary-chips">
-                      {(isLore ? displayResult.loreGlossaryTerms : displayResult.glossaryTerms).map((term) => (
-                        <button
-                          key={isLore ? term.lore_code : term.glossary_code}
-                          type="button"
-                          className="gl-glossary-chip"
-                          onClick={() => (isLore
-                            ? onOpenLoreTerm?.(term.lore_code)
-                            : onOpenGlossaryTerm?.(term.glossary_code))}
-                        >
-                          {term.terme}
-                        </button>
-                      ))}
+                      {(isLore ? displayResult.loreGlossaryTerms : displayResult.glossaryTerms).map(
+                        (term) => (
+                          <button
+                            key={isLore ? term.lore_code : term.glossary_code}
+                            type="button"
+                            className="gl-glossary-chip"
+                            onClick={() =>
+                              isLore
+                                ? onOpenLoreTerm?.(term.lore_code)
+                                : onOpenGlossaryTerm?.(term.glossary_code)
+                            }
+                          >
+                            {term.terme}
+                          </button>
+                        ),
+                      )}
                     </div>
                   </div>
                 ) : null}
@@ -237,9 +268,13 @@ export function GLQcmPopover({
               <footer className="gl-qcm-popover__footer">
                 <div className="gl-inline-actions">
                   {!displayResult.correct ? (
-                    <GLButton type="button" onClick={onReshuffle}>Réessayer</GLButton>
+                    <GLButton type="button" onClick={onReshuffle}>
+                      Réessayer
+                    </GLButton>
                   ) : null}
-                  <GLButton type="button" onClick={onClose}>Fermer</GLButton>
+                  <GLButton type="button" onClick={onClose}>
+                    Fermer
+                  </GLButton>
                 </div>
               </footer>
             </>

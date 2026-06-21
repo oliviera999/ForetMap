@@ -13,7 +13,10 @@ const { execSync } = require('child_process');
 const { deploySecretFromEnv } = require('./lib/deploy-secret-from-env');
 
 const root = path.join(__dirname, '..');
-const base = String(process.env.FORETMAP_PROD_BASE_URL || 'https://foretmap.olution.info').replace(/\/$/, '');
+const base = String(process.env.FORETMAP_PROD_BASE_URL || 'https://foretmap.olution.info').replace(
+  /\/$/,
+  '',
+);
 
 function main() {
   if (!deploySecretFromEnv()) {
@@ -22,7 +25,7 @@ function main() {
         '  DEPLOY_SECRET\n' +
         '  FORETMAP_DEPLOY_CHECK_SECRET\n' +
         '  FORETMAP_DEPLOY_SECRET\n' +
-        '(même valeur que sur le serveur.)'
+        '(même valeur que sur le serveur.)',
     );
     process.exit(1);
   }

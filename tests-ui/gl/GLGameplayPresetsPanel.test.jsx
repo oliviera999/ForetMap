@@ -10,12 +10,7 @@ const PRESETS = [
 
 function renderPanel(props = {}) {
   return render(
-    <GLGameplayPresetsPanel
-      presets={PRESETS}
-      applyingPresetId=""
-      onApply={vi.fn()}
-      {...props}
-    />,
+    <GLGameplayPresetsPanel presets={PRESETS} applyingPresetId="" onApply={vi.fn()} {...props} />,
   );
 }
 

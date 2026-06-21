@@ -19,11 +19,7 @@ const DataContext = createContext(null);
 const EMPTY_DATA = Object.freeze({});
 
 export function DataProvider({ value, children }) {
-  return (
-    <DataContext.Provider value={value ?? null}>
-      {children}
-    </DataContext.Provider>
-  );
+  return <DataContext.Provider value={value ?? null}>{children}</DataContext.Provider>;
 }
 
 /**

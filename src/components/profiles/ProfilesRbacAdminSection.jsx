@@ -5,7 +5,12 @@ import { ProfilesUserAssignmentList } from './ProfilesUserAssignmentList.jsx';
 import { ProfilesRoleQuickConfig } from './ProfilesRoleQuickConfig.jsx';
 import { ProfilesRoleProgressionConfig } from './ProfilesRoleProgressionConfig.jsx';
 
-const cardStyle = { background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 12 };
+const cardStyle = {
+  background: 'white',
+  border: '1px solid #e5e7eb',
+  borderRadius: 12,
+  padding: 12,
+};
 
 /**
  * Section RBAC de l'admin des profils — extraite de `ProfilesAdminView` (O6). Grille profils +
@@ -123,7 +128,10 @@ export function ProfilesRbacAdminSection({
       <div style={{ ...cardStyle, marginTop: 12 }}>
         <h3 style={{ marginTop: 0 }}>Attribution des profils</h3>
         <p style={{ margin: '0 0 10px', fontSize: '.78rem', color: '#64748b', lineHeight: 1.45 }}>
-          Choisir le profil principal définit notamment forum et commentaires contextuels (réglés par profil dans la colonne de gauche, section Permissions). L’attribution peut exiger une session élevée (PIN) selon les droits du compte administrateur. Utilisez « Modifier » pour changer prénom, nom, pseudo, email, description, affiliation ou mot de passe.
+          Choisir le profil principal définit notamment forum et commentaires contextuels (réglés
+          par profil dans la colonne de gauche, section Permissions). L’attribution peut exiger une
+          session élevée (PIN) selon les droits du compte administrateur. Utilisez « Modifier » pour
+          changer prénom, nom, pseudo, email, description, affiliation ou mot de passe.
         </p>
         <ProfilesUserAssignmentList
           users={users}

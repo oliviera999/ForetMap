@@ -21,14 +21,15 @@ const HELP_TOOLTIPS = {
     logout: { text: 'Quitter ForetMap proprement.' },
     notifications: { text: 'Nouvelles infos, rappels et petites alertes utiles.' },
     impersonationStop: {
-      text:
-        'Fin de la prise de contrôle : tu retrouves ton compte admin et tes droits (diagnostic ou support terminé).',
+      text: 'Fin de la prise de contrôle : tu retrouves ton compte admin et tes droits (diagnostic ou support terminé).',
       textTeacher:
         'Fin de la prise de contrôle : tu retrouves ton compte admin. À utiliser quand le diagnostic ou le support est terminé.',
     },
   },
   map: {
-    toggleGestures: { text: 'Autoriser ou figer les gestes sur la carte (pratique si ça bouge trop).' },
+    toggleGestures: {
+      text: 'Autoriser ou figer les gestes sur la carte (pratique si ça bouge trop).',
+    },
     toggleLabels: { text: 'Afficher ou masquer les noms sur la carte.' },
     zoomIn: { text: 'Zoomer pour voir le détail.' },
     zoomOut: { text: 'Dézoomer pour voir plus large.' },
@@ -68,7 +69,8 @@ const HELP_PANELS = {
         text: 'Sur mobile, verrouille les gestes avec 🔒 pour éviter les déplacements involontaires.',
       },
       {
-        textTeacher: 'En mode n3boss, passe en mode Zone ou Repère pour créer le terrain, puis reviens en mode Nav.',
+        textTeacher:
+          'En mode n3boss, passe en mode Zone ou Repère pour créer le terrain, puis reviens en mode Nav.',
       },
     ],
   },
@@ -82,10 +84,12 @@ const HELP_PANELS = {
         text: 'Quand c est fait, envoie un retour clair (texte + photo si possible) pour faciliter la validation.',
       },
       {
-        textTeacher: 'Côté n3boss : traite d abord les tâches en attente de validation, puis ajuste les statuts.',
+        textTeacher:
+          'Côté n3boss : traite d abord les tâches en attente de validation, puis ajuste les statuts.',
       },
       {
-        textTeacher: 'Tu peux aussi dupliquer une tâche pour gagner du temps sur les missions répétitives.',
+        textTeacher:
+          'Tu peux aussi dupliquer une tâche pour gagner du temps sur les missions répétitives.',
       },
     ],
   },
@@ -113,10 +117,12 @@ const HELP_PANELS = {
         text: 'Marque ce que tu as déjà vu : la progression se met à jour automatiquement.',
       },
       {
-        textTeacher: 'En mode n3boss, utilise "Aperçu comme élève" pour vérifier ce que les élèves verront vraiment.',
+        textTeacher:
+          'En mode n3boss, utilise "Aperçu comme élève" pour vérifier ce que les élèves verront vraiment.',
       },
       {
-        textTeacher: 'Pense à sélectionner les tutoriels utiles à la visite pour guider le parcours sur le terrain.',
+        textTeacher:
+          'Pense à sélectionner les tutoriels utiles à la visite pour guider le parcours sur le terrain.',
       },
     ],
   },

@@ -1,10 +1,19 @@
 import { isPointInPolygon, polygonArea } from './glPointInPolygon.js';
 
 function zoneMusicUrl(zone) {
-  const url = zone?.musicUrl ?? zone?.music_url ?? null;
-  if (url == null) return null;
-  const s = String(url).trim();
-  return s.length > 0 ? s : null;
+  const urls = zoneMusicUrls(zone);
+  return urls.length > 0 ? urls[0] : null;
+}
+
+function zoneMusicUrls(zone) {
+  const urls = zone?.musicUrls ?? zone?.music_urls;
+  if (Array.isArray(urls)) {
+    return urls.map((url) => String(url || '').trim()).filter(Boolean);
+  }
+  const legacy = zone?.musicUrl ?? zone?.music_url ?? null;
+  if (legacy == null) return [];
+  const s = String(legacy).trim();
+  return s.length > 0 ? [s] : [];
 }
 
 function zoneMusicVolume(zone, fallback = 0.7) {
@@ -26,8 +35,8 @@ export function pickZoneAtPct(zones, xPct, yPct) {
   let best = null;
   let bestArea = Infinity;
   for (const zone of zones) {
-    const musicUrl = zoneMusicUrl(zone);
-    if (!musicUrl) continue;
+    const musicUrls = zoneMusicUrls(zone);
+    if (musicUrls.length === 0) continue;
     const points = Array.isArray(zone?.points) ? zone.points : [];
     if (!isPointInPolygon(xPct, yPct, points)) continue;
     const area = polygonArea(points);
@@ -35,7 +44,8 @@ export function pickZoneAtPct(zones, xPct, yPct) {
       bestArea = area;
       best = {
         ...zone,
-        musicUrl,
+        musicUrls,
+        musicUrl: musicUrls[0],
         musicVolume: zoneMusicVolume(zone),
       };
     }
@@ -43,4 +53,4 @@ export function pickZoneAtPct(zones, xPct, yPct) {
   return best;
 }
 
-export { zoneMusicUrl, zoneMusicVolume };
+export { zoneMusicUrl, zoneMusicUrls, zoneMusicVolume };

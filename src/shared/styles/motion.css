@@ -3,24 +3,27 @@
 :root {
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-top: env(safe-area-inset-top, 0px);
-  --spring: cubic-bezier(.34, 1.56, .64, 1);
-  --spring-touch: cubic-bezier(.34, 1.2, .64, 1);
-  --ease-out: cubic-bezier(.22, 1, .36, 1);
-  --motion-fast: .16s;
-  --motion-base: .24s;
-  --motion-slow: .34s;
-  --font-emoji-stack: 'ForetMapColorEmoji', 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
-  --font-sans-with-emoji: 'DM Sans', 'ForetMapColorEmoji', 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', sans-serif;
-  --attention-pulse-color: rgba(82, 183, 136, .45);
+  --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --spring-touch: cubic-bezier(0.34, 1.2, 0.64, 1);
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --motion-fast: 0.16s;
+  --motion-base: 0.24s;
+  --motion-slow: 0.34s;
+  --font-emoji-stack:
+    'ForetMapColorEmoji', 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
+  --font-sans-with-emoji:
+    'DM Sans', 'ForetMapColorEmoji', 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji',
+    sans-serif;
+  --attention-pulse-color: rgba(82, 183, 136, 0.45);
   --attention-pulse-spread: 12px;
 }
 
 @media (hover: none) and (pointer: coarse) {
   :root {
     --spring: var(--spring-touch);
-    --motion-fast: .12s;
-    --motion-base: .20s;
-    --motion-slow: .28s;
+    --motion-fast: 0.12s;
+    --motion-base: 0.2s;
+    --motion-slow: 0.28s;
   }
 }
 
@@ -29,55 +32,111 @@
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translate3d(0, 8px, 0); }
-  to { opacity: 1; transform: translate3d(0, 0, 0); }
+  from {
+    opacity: 0;
+    transform: translate3d(0, 8px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
 }
 
 @keyframes popIn {
-  from { transform: scale3d(.88, .88, 1) translate3d(0, 12px, 0); opacity: 0; }
-  to { transform: scale3d(1, 1, 1) translate3d(0, 0, 0); opacity: 1; }
+  from {
+    transform: scale3d(0.88, 0.88, 1) translate3d(0, 12px, 0);
+    opacity: 0;
+  }
+  to {
+    transform: scale3d(1, 1, 1) translate3d(0, 0, 0);
+    opacity: 1;
+  }
 }
 
 @keyframes toastIn {
-  from { opacity: 0; transform: translate3d(0, 16px, 0) scale3d(.92, .92, 1); }
-  to { opacity: 1; transform: translate3d(0, 0, 0) scale3d(1, 1, 1); }
+  from {
+    opacity: 0;
+    transform: translate3d(0, 16px, 0) scale3d(0.92, 0.92, 1);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale3d(1, 1, 1);
+  }
 }
 
 @keyframes shake {
-  0%, 100% { transform: translate3d(0, 0, 0); }
-  25% { transform: translate3d(-6px, 0, 0); }
-  75% { transform: translate3d(6px, 0, 0); }
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  25% {
+    transform: translate3d(-6px, 0, 0);
+  }
+  75% {
+    transform: translate3d(6px, 0, 0);
+  }
 }
 
 @keyframes statPop {
-  from { opacity: 0; transform: scale3d(.88, .88, 1) translate3d(0, 10px, 0); }
-  to { opacity: 1; transform: scale3d(1, 1, 1) translate3d(0, 0, 0); }
+  from {
+    opacity: 0;
+    transform: scale3d(0.88, 0.88, 1) translate3d(0, 10px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: scale3d(1, 1, 1) translate3d(0, 0, 0);
+  }
 }
 
 @keyframes overlayFadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes overlayFadeOut {
-  from { opacity: 1; }
-  to { opacity: 0; }
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
 }
 
 @keyframes attentionPulse {
-  0% { box-shadow: 0 0 0 0 var(--attention-pulse-color); }
-  70% { box-shadow: 0 0 0 var(--attention-pulse-spread, 12px) var(--attention-pulse-color-end, rgba(82, 183, 136, 0)); }
-  100% { box-shadow: 0 0 0 0 var(--attention-pulse-color-end, rgba(82, 183, 136, 0)); }
+  0% {
+    box-shadow: 0 0 0 0 var(--attention-pulse-color);
+  }
+  70% {
+    box-shadow: 0 0 0 var(--attention-pulse-spread, 12px)
+      var(--attention-pulse-color-end, rgba(82, 183, 136, 0));
+  }
+  100% {
+    box-shadow: 0 0 0 0 var(--attention-pulse-color-end, rgba(82, 183, 136, 0));
+  }
 }
 
 @keyframes heroFadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes heroStagger {
-  from { opacity: 0; transform: translate3d(0, 16px, 0); }
-  to { opacity: 1; transform: translate3d(0, 0, 0); }
+  from {
+    opacity: 0;
+    transform: translate3d(0, 16px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
 }
 
 @keyframes kenBurns {
@@ -86,11 +145,13 @@
     background-size: 100%;
   }
   33% {
-    background-position: calc(var(--gl-hero-focal-x, 50%) + 2%) calc(var(--gl-hero-focal-y, 50%) + 1%);
+    background-position: calc(var(--gl-hero-focal-x, 50%) + 2%)
+      calc(var(--gl-hero-focal-y, 50%) + 1%);
     background-size: 102%;
   }
   66% {
-    background-position: calc(var(--gl-hero-focal-x, 50%) - 1%) calc(var(--gl-hero-focal-y, 50%) + 2%);
+    background-position: calc(var(--gl-hero-focal-x, 50%) - 1%)
+      calc(var(--gl-hero-focal-y, 50%) + 2%);
     background-size: 103%;
   }
   100% {
@@ -107,15 +168,27 @@
   animation: fadeIn var(--motion-base) var(--ease-out) both;
 }
 
-.stagger > *:nth-child(1) { animation-delay: .04s; }
-.stagger > *:nth-child(2) { animation-delay: .08s; }
-.stagger > *:nth-child(3) { animation-delay: .12s; }
-.stagger > *:nth-child(4) { animation-delay: .16s; }
-.stagger > *:nth-child(5) { animation-delay: .20s; }
-.stagger > *:nth-child(n+6) { animation-delay: .22s; }
+.stagger > *:nth-child(1) {
+  animation-delay: 0.04s;
+}
+.stagger > *:nth-child(2) {
+  animation-delay: 0.08s;
+}
+.stagger > *:nth-child(3) {
+  animation-delay: 0.12s;
+}
+.stagger > *:nth-child(4) {
+  animation-delay: 0.16s;
+}
+.stagger > *:nth-child(5) {
+  animation-delay: 0.2s;
+}
+.stagger > *:nth-child(n + 6) {
+  animation-delay: 0.22s;
+}
 
 .animate-pop {
-  animation: popIn var(--fm-modal-pop-duration, .28s) var(--spring) forwards;
+  animation: popIn var(--fm-modal-pop-duration, 0.28s) var(--spring) forwards;
 }
 
 .is-attention-pulse {
@@ -156,11 +229,21 @@
   animation: heroStagger 0.5s var(--ease-out) both;
 }
 
-.hero-stagger > *:nth-child(1) { animation-delay: 0.2s; }
-.hero-stagger > *:nth-child(2) { animation-delay: 0.45s; }
-.hero-stagger > *:nth-child(3) { animation-delay: 0.65s; }
-.hero-stagger > *:nth-child(4) { animation-delay: 0.85s; }
-.hero-stagger > *:nth-child(n+5) { animation-delay: 1s; }
+.hero-stagger > *:nth-child(1) {
+  animation-delay: 0.2s;
+}
+.hero-stagger > *:nth-child(2) {
+  animation-delay: 0.45s;
+}
+.hero-stagger > *:nth-child(3) {
+  animation-delay: 0.65s;
+}
+.hero-stagger > *:nth-child(4) {
+  animation-delay: 0.85s;
+}
+.hero-stagger > *:nth-child(n + 5) {
+  animation-delay: 1s;
+}
 
 .hero-ken-burns {
   animation: heroFadeIn 2s var(--ease-out) forwards;
@@ -168,7 +251,9 @@
 
 @media (prefers-reduced-motion: no-preference) and (min-width: 769px) {
   .hero-ken-burns {
-    animation: heroFadeIn 2s var(--ease-out) forwards, kenBurns 30s ease-in-out 2.5s infinite;
+    animation:
+      heroFadeIn 2s var(--ease-out) forwards,
+      kenBurns 30s ease-in-out 2.5s infinite;
   }
 }
 

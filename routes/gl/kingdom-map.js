@@ -8,10 +8,7 @@ const {
   parseZoneMusicInput,
   serializeZoneMusicRow,
 } = require('../../lib/glZoneMusic');
-const {
-  parseZonePopoverInput,
-  serializeZonePopoverRow,
-} = require('../../lib/glZoneContent');
+const { parseZonePopoverInput, serializeZonePopoverRow } = require('../../lib/glZoneContent');
 
 const { z, validate } = require('../../lib/validate');
 const asyncHandler = require('../../lib/asyncHandler');
@@ -29,7 +26,7 @@ const MAX_POINTS = 200;
 const glKingdomZonesQuerySchema = z.object({
   chapterId: z.preprocess(
     (v) => (v == null ? null : Number(v)),
-    z.number().finite().nullable().catch(null)
+    z.number().finite().nullable().catch(null),
   ),
 });
 
@@ -65,8 +62,10 @@ function mapZoneRow(row) {
     points,
     color: row.color,
     music_url: music.music_url,
+    music_urls: music.music_urls,
     music_volume: music.music_volume,
     musicUrl: music.musicUrl,
+    musicUrls: music.musicUrls,
     musicVolume: music.musicVolume,
     popover_markdown: popover.popover_markdown,
     popoverMarkdown: popover.popoverMarkdown,
@@ -77,122 +76,171 @@ function mapZoneRow(row) {
   };
 }
 
-router.get('/zones', requireGlAuth, validate({ query: glKingdomZonesQuerySchema }), asyncHandler(async (req, res) => {
-  const chapterId = req.validatedQuery?.chapterId;
-  if (chapterId == null || !Number.isFinite(chapterId)) {
-    return res.status(400).json({ error: 'chapterId requis' });
-  }
-  const rows = await queryAll(
-    `SELECT id, chapter_id, label, description, points_json, color,
-            music_url, music_volume, popover_markdown, popover_images_json,
+router.get(
+  '/zones',
+  requireGlAuth,
+  validate({ query: glKingdomZonesQuerySchema }),
+  asyncHandler(async (req, res) => {
+    const chapterId = req.validatedQuery?.chapterId;
+    if (chapterId == null || !Number.isFinite(chapterId)) {
+      return res.status(400).json({ error: 'chapterId requis' });
+    }
+    const rows = await queryAll(
+      `SELECT id, chapter_id, label, description, points_json, color,
+            music_url, music_urls_json, music_volume, popover_markdown, popover_images_json,
             created_at, updated_at
        FROM gl_kingdom_zones
       WHERE chapter_id = ?
       ORDER BY id ASC`,
-    [chapterId]
-  );
-  return res.json({ zones: rows.map(mapZoneRow) });
-}));
+      [chapterId],
+    );
+    return res.json({ zones: rows.map(mapZoneRow) });
+  }),
+);
 
-router.post('/zones', requireGlPermission('gl.content.manage'), asyncHandler(async (req, res) => {
-  const chapterId = Number(req.body?.chapterId);
-  const label = normalizeOptionalString(req.body?.label);
-  const description = normalizeOptionalString(req.body?.description);
-  const color = normalizeOptionalString(req.body?.color) || '#22c55e';
-  const points = req.body?.points;
-  const musicParsed = parseZoneMusicInput(req.body);
-  if (musicParsed.error) return res.status(400).json({ error: musicParsed.error });
-  const popoverParsed = parseZonePopoverInput(req.body);
-  if (popoverParsed.error) return res.status(400).json({ error: popoverParsed.error });
-  if (!Number.isFinite(chapterId)) return res.status(400).json({ error: 'chapterId invalide' });
-  if (!label || label.length < MIN_LABEL || label.length > MAX_LABEL) {
-    return res.status(400).json({ error: `Label invalide (${MIN_LABEL}-${MAX_LABEL} caractères)` });
-  }
-  if (!validatePoints(points)) {
-    return res.status(400).json({ error: 'Points invalides (3-200 points {x,y} en pourcentage 0-100)' });
-  }
-  const chapter = await queryOne('SELECT id FROM gl_chapters WHERE id = ? LIMIT 1', [chapterId]);
-  if (!chapter) return res.status(404).json({ error: 'Chapitre introuvable' });
-  const musicUrl = musicParsed.hasMusicUrl ? musicParsed.musicUrl : null;
-  const musicVolume = musicParsed.hasMusicVolume ? musicParsed.musicVolume : DEFAULT_MUSIC_VOLUME;
-  const popoverMarkdown = popoverParsed.hasPopoverMarkdown ? popoverParsed.popoverMarkdown : null;
-  const popoverImagesJson = popoverParsed.hasPopoverImages
-    ? (popoverParsed.popoverImages ? JSON.stringify(popoverParsed.popoverImages) : null)
-    : null;
-  const result = await execute(
-    `INSERT INTO gl_kingdom_zones
-       (chapter_id, label, description, points_json, color, music_url, music_volume,
-        popover_markdown, popover_images_json, created_by, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
-    [
-      chapterId, label, description, JSON.stringify(points), color, musicUrl, musicVolume,
-      popoverMarkdown, popoverImagesJson, req.glAuth.userId,
-    ]
-  );
-  const created = await queryOne('SELECT * FROM gl_kingdom_zones WHERE id = ? LIMIT 1', [result.insertId]);
-  return res.status(201).json(mapZoneRow(created));
-}));
-
-router.put('/zones/:id', requireGlPermission('gl.content.manage'), asyncHandler(async (req, res) => {
-  const id = Number(req.params.id);
-  if (!Number.isFinite(id)) return res.status(400).json({ error: 'Identifiant invalide' });
-  const existing = await queryOne('SELECT id FROM gl_kingdom_zones WHERE id = ? LIMIT 1', [id]);
-  if (!existing) return res.status(404).json({ error: 'Zone introuvable' });
-  const label = normalizeOptionalString(req.body?.label);
-  const description = req.body?.description == null ? null : normalizeOptionalString(req.body.description);
-  const color = normalizeOptionalString(req.body?.color);
-  const points = req.body?.points;
-  const musicParsed = parseZoneMusicInput(req.body);
-  if (musicParsed.error) return res.status(400).json({ error: musicParsed.error });
-  const popoverParsed = parseZonePopoverInput(req.body);
-  if (popoverParsed.error) return res.status(400).json({ error: popoverParsed.error });
-  let pointsJson = null;
-  if (points != null) {
-    if (!validatePoints(points)) {
-      return res.status(400).json({ error: 'Points invalides' });
+router.post(
+  '/zones',
+  requireGlPermission('gl.content.manage'),
+  asyncHandler(async (req, res) => {
+    const chapterId = Number(req.body?.chapterId);
+    const label = normalizeOptionalString(req.body?.label);
+    const description = normalizeOptionalString(req.body?.description);
+    const color = normalizeOptionalString(req.body?.color) || '#22c55e';
+    const points = req.body?.points;
+    const musicParsed = parseZoneMusicInput(req.body);
+    if (musicParsed.error) return res.status(400).json({ error: musicParsed.error });
+    const popoverParsed = parseZonePopoverInput(req.body);
+    if (popoverParsed.error) return res.status(400).json({ error: popoverParsed.error });
+    if (!Number.isFinite(chapterId)) return res.status(400).json({ error: 'chapterId invalide' });
+    if (!label || label.length < MIN_LABEL || label.length > MAX_LABEL) {
+      return res
+        .status(400)
+        .json({ error: `Label invalide (${MIN_LABEL}-${MAX_LABEL} caractères)` });
     }
-    pointsJson = JSON.stringify(points);
-  }
-  const musicUrl = musicParsed.hasMusicUrl ? musicParsed.musicUrl : undefined;
-  const musicVolume = musicParsed.hasMusicVolume ? musicParsed.musicVolume : undefined;
-  const popoverMarkdown = popoverParsed.hasPopoverMarkdown ? popoverParsed.popoverMarkdown : undefined;
-  const popoverImagesJson = popoverParsed.hasPopoverImages
-    ? (popoverParsed.popoverImages ? JSON.stringify(popoverParsed.popoverImages) : null)
-    : undefined;
-  await execute(
-    `UPDATE gl_kingdom_zones
+    if (!validatePoints(points)) {
+      return res
+        .status(400)
+        .json({ error: 'Points invalides (3-200 points {x,y} en pourcentage 0-100)' });
+    }
+    const chapter = await queryOne('SELECT id FROM gl_chapters WHERE id = ? LIMIT 1', [chapterId]);
+    if (!chapter) return res.status(404).json({ error: 'Chapitre introuvable' });
+    const musicUrl = musicParsed.hasMusicUrls ? musicParsed.musicUrl : null;
+    const musicUrlsJson =
+      musicParsed.hasMusicUrls && musicParsed.musicUrls?.length
+        ? JSON.stringify(musicParsed.musicUrls)
+        : null;
+    const musicVolume = musicParsed.hasMusicVolume ? musicParsed.musicVolume : DEFAULT_MUSIC_VOLUME;
+    const popoverMarkdown = popoverParsed.hasPopoverMarkdown ? popoverParsed.popoverMarkdown : null;
+    const popoverImagesJson = popoverParsed.hasPopoverImages
+      ? popoverParsed.popoverImages
+        ? JSON.stringify(popoverParsed.popoverImages)
+        : null
+      : null;
+    const result = await execute(
+      `INSERT INTO gl_kingdom_zones
+       (chapter_id, label, description, points_json, color, music_url, music_urls_json, music_volume,
+        popover_markdown, popover_images_json, created_by, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+      [
+        chapterId,
+        label,
+        description,
+        JSON.stringify(points),
+        color,
+        musicUrl,
+        musicUrlsJson,
+        musicVolume,
+        popoverMarkdown,
+        popoverImagesJson,
+        req.glAuth.userId,
+      ],
+    );
+    const created = await queryOne('SELECT * FROM gl_kingdom_zones WHERE id = ? LIMIT 1', [
+      result.insertId,
+    ]);
+    return res.status(201).json(mapZoneRow(created));
+  }),
+);
+
+router.put(
+  '/zones/:id',
+  requireGlPermission('gl.content.manage'),
+  asyncHandler(async (req, res) => {
+    const id = Number(req.params.id);
+    if (!Number.isFinite(id)) return res.status(400).json({ error: 'Identifiant invalide' });
+    const existing = await queryOne('SELECT id FROM gl_kingdom_zones WHERE id = ? LIMIT 1', [id]);
+    if (!existing) return res.status(404).json({ error: 'Zone introuvable' });
+    const label = normalizeOptionalString(req.body?.label);
+    const description =
+      req.body?.description == null ? null : normalizeOptionalString(req.body.description);
+    const color = normalizeOptionalString(req.body?.color);
+    const points = req.body?.points;
+    const musicParsed = parseZoneMusicInput(req.body);
+    if (musicParsed.error) return res.status(400).json({ error: musicParsed.error });
+    const popoverParsed = parseZonePopoverInput(req.body);
+    if (popoverParsed.error) return res.status(400).json({ error: popoverParsed.error });
+    let pointsJson = null;
+    if (points != null) {
+      if (!validatePoints(points)) {
+        return res.status(400).json({ error: 'Points invalides' });
+      }
+      pointsJson = JSON.stringify(points);
+    }
+    const musicUrl = musicParsed.hasMusicUrls ? musicParsed.musicUrl : undefined;
+    const musicUrlsJson = musicParsed.hasMusicUrls
+      ? musicParsed.musicUrls?.length
+        ? JSON.stringify(musicParsed.musicUrls)
+        : null
+      : undefined;
+    const musicVolume = musicParsed.hasMusicVolume ? musicParsed.musicVolume : undefined;
+    const popoverMarkdown = popoverParsed.hasPopoverMarkdown
+      ? popoverParsed.popoverMarkdown
+      : undefined;
+    const popoverImagesJson = popoverParsed.hasPopoverImages
+      ? popoverParsed.popoverImages
+        ? JSON.stringify(popoverParsed.popoverImages)
+        : null
+      : undefined;
+    await execute(
+      `UPDATE gl_kingdom_zones
         SET label = COALESCE(?, label),
             description = COALESCE(?, description),
             color = COALESCE(?, color),
             points_json = COALESCE(?, points_json),
-            music_url = ${musicParsed.hasMusicUrl ? '?' : 'music_url'},
+            music_url = ${musicParsed.hasMusicUrls ? '?' : 'music_url'},
+            music_urls_json = ${musicParsed.hasMusicUrls ? '?' : 'music_urls_json'},
             music_volume = ${musicParsed.hasMusicVolume ? '?' : 'music_volume'},
             popover_markdown = ${popoverParsed.hasPopoverMarkdown ? '?' : 'popover_markdown'},
             popover_images_json = ${popoverParsed.hasPopoverImages ? '?' : 'popover_images_json'},
             updated_at = NOW()
       WHERE id = ?`,
-    [
-      label,
-      description,
-      color,
-      pointsJson,
-      ...(musicParsed.hasMusicUrl ? [musicUrl] : []),
-      ...(musicParsed.hasMusicVolume ? [musicVolume] : []),
-      ...(popoverParsed.hasPopoverMarkdown ? [popoverMarkdown] : []),
-      ...(popoverParsed.hasPopoverImages ? [popoverImagesJson] : []),
-      id,
-    ]
-  );
-  const updated = await queryOne('SELECT * FROM gl_kingdom_zones WHERE id = ? LIMIT 1', [id]);
-  return res.json(mapZoneRow(updated));
-}));
+      [
+        label,
+        description,
+        color,
+        pointsJson,
+        ...(musicParsed.hasMusicUrls ? [musicUrl, musicUrlsJson] : []),
+        ...(musicParsed.hasMusicVolume ? [musicVolume] : []),
+        ...(popoverParsed.hasPopoverMarkdown ? [popoverMarkdown] : []),
+        ...(popoverParsed.hasPopoverImages ? [popoverImagesJson] : []),
+        id,
+      ],
+    );
+    const updated = await queryOne('SELECT * FROM gl_kingdom_zones WHERE id = ? LIMIT 1', [id]);
+    return res.json(mapZoneRow(updated));
+  }),
+);
 
-router.delete('/zones/:id', requireGlPermission('gl.content.manage'), asyncHandler(async (req, res) => {
-  const id = Number(req.params.id);
-  if (!Number.isFinite(id)) return res.status(400).json({ error: 'Identifiant invalide' });
-  await execute('DELETE FROM gl_kingdom_zones WHERE id = ?', [id]);
-  return res.json({ ok: true });
-}));
+router.delete(
+  '/zones/:id',
+  requireGlPermission('gl.content.manage'),
+  asyncHandler(async (req, res) => {
+    const id = Number(req.params.id);
+    if (!Number.isFinite(id)) return res.status(400).json({ error: 'Identifiant invalide' });
+    await execute('DELETE FROM gl_kingdom_zones WHERE id = ?', [id]);
+    return res.json({ ok: true });
+  }),
+);
 
 module.exports = router;
 module.exports.glKingdomZonesQuerySchema = glKingdomZonesQuerySchema; // exporté pour test no-DB du contrat O7

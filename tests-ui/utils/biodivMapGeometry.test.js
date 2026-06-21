@@ -9,7 +9,9 @@ describe('parseZonePointsJson', () => {
     ]);
   });
   test('filtre les points non finis', () => {
-    expect(parseZonePointsJson('[{"xp":1,"yp":2},{"xp":"x","yp":3},{"yp":4}]')).toEqual([{ xp: 1, yp: 2 }]);
+    expect(parseZonePointsJson('[{"xp":1,"yp":2},{"xp":"x","yp":3},{"yp":4}]')).toEqual([
+      { xp: 1, yp: 2 },
+    ]);
   });
   test('tolère null / vide / JSON invalide / non-tableau', () => {
     expect(parseZonePointsJson(null)).toEqual([]);

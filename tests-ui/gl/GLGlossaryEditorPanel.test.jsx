@@ -23,7 +23,20 @@ describe('GLGlossaryEditorPanel', () => {
       if (path === '/api/gl/admin/glossary/terms') return { items: [], total: 0 };
       if (path === '/api/gl/admin/glossary/terms/next-code') return { glossary_code: 'GL9999' };
       if (method === 'POST') {
-        return { ok: true, created: true, term: { glossary_code: 'GL9999', terme: 'Nouveau', categorie: 'ecologie', niveau: 'base', all_biomes: true, statut: 'actif', biome_slugs: [], related_codes: [] } };
+        return {
+          ok: true,
+          created: true,
+          term: {
+            glossary_code: 'GL9999',
+            terme: 'Nouveau',
+            categorie: 'ecologie',
+            niveau: 'base',
+            all_biomes: true,
+            statut: 'actif',
+            biome_slugs: [],
+            related_codes: [],
+          },
+        };
       }
       return {};
     });
@@ -46,9 +59,13 @@ describe('GLGlossaryEditorPanel', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
 
     await waitFor(() => {
-      expect(apiGlMock).toHaveBeenCalledWith('/api/gl/admin/glossary/terms', 'POST', expect.objectContaining({
-        terme: 'Photosynthèse test',
-      }));
+      expect(apiGlMock).toHaveBeenCalledWith(
+        '/api/gl/admin/glossary/terms',
+        'POST',
+        expect.objectContaining({
+          terme: 'Photosynthèse test',
+        }),
+      );
     });
   });
 });

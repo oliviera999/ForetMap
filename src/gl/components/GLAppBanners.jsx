@@ -13,6 +13,9 @@ import { FixedToast } from '../../shared/components/FixedToast.jsx';
 export function GLAppBanners({
   error,
   isStaffPlayerPreview,
+  isGuestMode = false,
+  onQuitGuest,
+  onGuestLogin,
   impersonationBanner,
   impersonatedDisplayName,
   onStopImpersonation,
@@ -23,30 +26,72 @@ export function GLAppBanners({
     <>
       {error ? <div className="gl-error-banner">{error}</div> : null}
 
+      {isGuestMode ? (
+        <div
+          className="role-preview-banner role-preview-banner--guest fade-in"
+          role="status"
+        >
+          <span className="role-preview-banner__icon" aria-hidden>
+            🧭
+          </span>
+          <div className="role-preview-banner__text" style={{ flex: '1 1 200px' }}>
+            <strong>Mode découverte</strong>
+            <span>Connecte-toi pour jouer une vraie partie et poursuivre l’aventure.</span>
+          </div>
+          <div className="impersonation-banner-actions">
+            {typeof onGuestLogin === 'function' ? (
+              <GLButton type="button" size="sm" variant="primary" onClick={onGuestLogin}>
+                Se connecter
+              </GLButton>
+            ) : null}
+            {typeof onQuitGuest === 'function' ? (
+              <GLButton type="button" size="sm" onClick={onQuitGuest}>
+                Quitter la découverte
+              </GLButton>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+
       {isStaffPlayerPreview ? (
         <div className="role-preview-banner fade-in" role="status">
-          <span className="role-preview-banner__icon" aria-hidden>🎮</span>
+          <span className="role-preview-banner__icon" aria-hidden>
+            🎮
+          </span>
           <div className="role-preview-banner__text">
             <strong>Vue joueur (aperçu)</strong>
             <span>
-              Navigation limitée aux onglets joueur. Tes droits MJ/admin restent actifs côté serveur.
+              Navigation limitée aux onglets joueur. Tes droits MJ/admin restent actifs côté
+              serveur.
             </span>
           </div>
         </div>
       ) : null}
 
       {impersonationBanner ? (
-        <div className="role-preview-banner role-preview-banner--impersonation fade-in" role="status">
-          <span className="role-preview-banner__icon" aria-hidden>👤</span>
+        <div
+          className="role-preview-banner role-preview-banner--impersonation fade-in"
+          role="status"
+        >
+          <span className="role-preview-banner__icon" aria-hidden>
+            👤
+          </span>
           <div className="role-preview-banner__text" style={{ flex: '1 1 200px' }}>
             <strong>{impersonationBanner.title}</strong>
             <span>
-              Tu navigues avec l’identité de <strong>{String(impersonatedDisplayName || 'joueur')}</strong>.
-              Les actions sont enregistrées pour ce compte.
+              Tu navigues avec l’identité de{' '}
+              <strong>{String(impersonatedDisplayName || 'joueur')}</strong>. Les actions sont
+              enregistrées pour ce compte.
             </span>
           </div>
           <div className="impersonation-banner-actions">
-            <GLButton type="button" size="sm" onClick={() => { onStopImpersonation?.(); }}>
+            <GLButton
+              type="button"
+              size="sm"
+              onClick={() => {
+                onStopImpersonation?.();
+              }}
+            >
               {impersonationBanner.stopLabel}
             </GLButton>
           </div>

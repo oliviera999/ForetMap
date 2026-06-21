@@ -12,7 +12,7 @@ describe('MascotInteractionProfileEditor', () => {
         pack={{ mascotPackVersion: 1 }}
         onUpgradeToV2={onUpgradeToV2}
         onPatchRule={vi.fn()}
-      />
+      />,
     );
     const btn = screen.getByRole('button', { name: /version 2/i });
     fireEvent.click(btn);
@@ -25,7 +25,7 @@ describe('MascotInteractionProfileEditor', () => {
         pack={{ mascotPackVersion: 2, interactionProfile: {} }}
         onUpgradeToV2={vi.fn()}
         onPatchRule={vi.fn()}
-      />
+      />,
     );
     // Pas de bouton d'upgrade en v2.
     expect(screen.queryByRole('button', { name: /version 2/i })).toBeNull();
@@ -41,13 +41,12 @@ describe('MascotInteractionProfileEditor', () => {
         pack={{ mascotPackVersion: 2, interactionProfile: {} }}
         onUpgradeToV2={vi.fn()}
         onPatchRule={onPatchRule}
-      />
+      />,
     );
     const firstMode = screen.getAllByRole('combobox')[0];
     fireEvent.change(firstMode, { target: { value: 'none' } });
-    expect(onPatchRule).toHaveBeenCalledWith(
-      VISIT_MASCOT_INTERACTION_EVENT_KEYS[0],
-      { mode: 'none' },
-    );
+    expect(onPatchRule).toHaveBeenCalledWith(VISIT_MASCOT_INTERACTION_EVENT_KEYS[0], {
+      mode: 'none',
+    });
   });
 });

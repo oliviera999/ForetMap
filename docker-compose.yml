@@ -9,12 +9,12 @@ services:
     environment:
       MARIADB_ROOT_PASSWORD: foretmap_local_root
     ports:
-      - "${FORETMAP_DB_PUBLISH_PORT:-3306}:3306"
+      - '${FORETMAP_DB_PUBLISH_PORT:-3306}:3306'
     volumes:
       - foretmap_mariadb_data:/var/lib/mysql
       - ./docker/mysql-init:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      test: ['CMD', 'healthcheck.sh', '--connect', '--innodb_initialized']
       interval: 10s
       timeout: 5s
       retries: 5

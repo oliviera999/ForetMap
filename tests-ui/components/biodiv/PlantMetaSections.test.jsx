@@ -4,17 +4,27 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 
 // map-views est un gros module : on ne mocke que Lightbox (sonde de test dédiée).
 vi.mock('../../../src/components/map-views', () => ({
-  Lightbox: ({ src, caption }) => <div data-testid="lightbox">{caption} — {src}</div>,
+  Lightbox: ({ src, caption }) => (
+    <div data-testid="lightbox">
+      {caption} — {src}
+    </div>
+  ),
 }));
 vi.mock('../../../src/components/MarkdownContent.jsx', () => ({
   MarkdownContent: ({ children, className }) => <div className={className}>{children}</div>,
 }));
 
-import { PlantMetaSections, PlantBiodivHeroPhoto } from '../../../src/components/biodiv/PlantMetaSections.jsx';
+import {
+  PlantMetaSections,
+  PlantBiodivHeroPhoto,
+} from '../../../src/components/biodiv/PlantMetaSections.jsx';
 
 beforeEach(() => {
   // Aucun appel réseau réel (aperçus de catégorie Commons) : fetch neutralisé.
-  vi.stubGlobal('fetch', vi.fn(async () => ({ ok: false })));
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => ({ ok: false })),
+  );
 });
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -38,7 +48,11 @@ describe('PlantMetaSections', () => {
   });
 
   test('source http → lien étiqueté (getSourceLabel) ; valeur non-lien → texte brut', () => {
-    render(<PlantMetaSections plant={{ sources: 'https://fr.wikipedia.org/wiki/Pommier\nLivre de la forêt' }} />);
+    render(
+      <PlantMetaSections
+        plant={{ sources: 'https://fr.wikipedia.org/wiki/Pommier\nLivre de la forêt' }}
+      />,
+    );
     const link = screen.getByRole('link');
     expect(link).toHaveAttribute('href', 'https://fr.wikipedia.org/wiki/Pommier');
     expect(screen.getByText('Livre de la forêt')).toBeInTheDocument();
@@ -60,7 +74,11 @@ describe('PlantBiodivHeroPhoto', () => {
   });
 
   test('photo directe → bouton héro ; clic → lightbox avec le nom', async () => {
-    render(<PlantBiodivHeroPhoto plant={{ name: 'Pommier', photo: 'https://exemple.org/pommier.jpg' }} />);
+    render(
+      <PlantBiodivHeroPhoto
+        plant={{ name: 'Pommier', photo: 'https://exemple.org/pommier.jpg' }}
+      />,
+    );
     const btn = screen.getByRole('button', { name: 'Agrandir la photo de Pommier' });
     expect(btn.querySelector('img')).toHaveAttribute('src', 'https://exemple.org/pommier.jpg');
     fireEvent.click(btn);

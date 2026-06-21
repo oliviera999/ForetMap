@@ -39,103 +39,141 @@ async function mapExists(mapId) {
 async function deleteVisitMediaFilesForTarget(targetType, targetId) {
   const rows = await queryAll(
     'SELECT image_path FROM visit_media WHERE target_type = ? AND target_id = ?',
-    [targetType, targetId]
+    [targetType, targetId],
   );
   for (const r of rows) {
     if (r.image_path) deleteFile(r.image_path);
   }
 }
 
-router.post('/zones', requirePermission('visit.manage', { needsElevation: true }), asyncHandler(async (req, res) => {
-  const mapId = await resolveVisitMapId(req.body.map_id);
-  const name = String(req.body.name || '').trim();
-  const points = normalizePoints(req.body.points);
-  if (!mapId || !(await mapExists(mapId))) return res.status(400).json({ error: 'Carte introuvable' });
-  if (!name) return res.status(400).json({ error: 'Nom de zone requis' });
-  if (!points) return res.status(400).json({ error: 'Polygone invalide (min 3 points)' });
-  const id = uuidv4();
-  await execute(
-    `INSERT INTO visit_zones
+router.post(
+  '/zones',
+  requirePermission('visit.manage', { needsElevation: true }),
+  asyncHandler(async (req, res) => {
+    const mapId = await resolveVisitMapId(req.body.map_id);
+    const name = String(req.body.name || '').trim();
+    const points = normalizePoints(req.body.points);
+    if (!mapId || !(await mapExists(mapId)))
+      return res.status(400).json({ error: 'Carte introuvable' });
+    if (!name) return res.status(400).json({ error: 'Nom de zone requis' });
+    if (!points) return res.status(400).json({ error: 'Polygone invalide (min 3 points)' });
+    const id = uuidv4();
+    await execute(
+      `INSERT INTO visit_zones
         (id, map_id, name, points, subtitle, short_description, details_title, details_text, body_json, sort_order, is_active, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [
-      id,
-      mapId,
-      name,
-      JSON.stringify(points),
-      String(req.body.subtitle || '').trim(),
-      String(req.body.short_description || '').trim(),
-      String(req.body.details_title || 'Détails').trim() || 'Détails',
-      String(req.body.details_text || '').trim(),
-      serializeVisitEditorialBlocks(parseVisitEditorialBlocksInput(req.body.visit_editorial_blocks ?? req.body.body_json)),
-      Number.isFinite(Number(req.body.sort_order)) ? Math.max(0, Number(req.body.sort_order)) : 0,
-      req.body.is_active === false ? 0 : 1,
-      nowIso(),
-      nowIso(),
-    ]
-  );
-  const row = await queryOne('SELECT * FROM visit_zones WHERE id = ?', [id]);
-  res.status(201).json(row);
-}));
+      [
+        id,
+        mapId,
+        name,
+        JSON.stringify(points),
+        String(req.body.subtitle || '').trim(),
+        String(req.body.short_description || '').trim(),
+        String(req.body.details_title || 'Détails').trim() || 'Détails',
+        String(req.body.details_text || '').trim(),
+        serializeVisitEditorialBlocks(
+          parseVisitEditorialBlocksInput(req.body.visit_editorial_blocks ?? req.body.body_json),
+        ),
+        Number.isFinite(Number(req.body.sort_order)) ? Math.max(0, Number(req.body.sort_order)) : 0,
+        req.body.is_active === false ? 0 : 1,
+        nowIso(),
+        nowIso(),
+      ],
+    );
+    const row = await queryOne('SELECT * FROM visit_zones WHERE id = ?', [id]);
+    res.status(201).json(row);
+  }),
+);
 
-router.put('/zones/:id', requirePermission('visit.manage', { needsElevation: true }), asyncHandler(async (req, res) => {
-  const zoneId = String(req.params.id || '').trim();
-  if (!zoneId) return res.status(400).json({ error: 'Zone invalide' });
-  const exists = await queryOne('SELECT * FROM visit_zones WHERE id = ? LIMIT 1', [zoneId]);
-  if (!exists) return res.status(404).json({ error: 'Zone introuvable' });
-  const name = req.body.name !== undefined ? String(req.body.name || '').trim() : exists.name;
-  if (!name) return res.status(400).json({ error: 'Nom de zone requis' });
-  const maybePoints = req.body.points !== undefined ? normalizePoints(req.body.points) : null;
-  if (req.body.points !== undefined && !maybePoints) {
-    return res.status(400).json({ error: 'Polygone invalide (min 3 points)' });
-  }
-  const subtitle = req.body.subtitle !== undefined ? String(req.body.subtitle || '').trim() : String(exists.subtitle || '');
-  const shortDescription = req.body.short_description !== undefined
-    ? String(req.body.short_description || '').trim()
-    : String(exists.short_description || '');
-  const detailsTitle = req.body.details_title !== undefined
-    ? (String(req.body.details_title || 'Détails').trim() || 'Détails')
-    : (String(exists.details_title || 'Détails').trim() || 'Détails');
-  const detailsText = req.body.details_text !== undefined ? String(req.body.details_text || '').trim() : String(exists.details_text || '');
-  const bodyJson = req.body.visit_editorial_blocks !== undefined || req.body.body_json !== undefined
-    ? serializeVisitEditorialBlocks(parseVisitEditorialBlocksInput(req.body.visit_editorial_blocks ?? req.body.body_json))
-    : serializeVisitEditorialBlocks(parseVisitEditorialBlocksStored(exists.body_json));
-  const isActive = req.body.is_active !== undefined ? (req.body.is_active === false ? 0 : 1) : Number(exists.is_active ?? 1);
-  const sortOrder = req.body.sort_order !== undefined
-    ? (Number.isFinite(Number(req.body.sort_order)) ? Math.max(0, Number(req.body.sort_order)) : Number(exists.sort_order || 0))
-    : Number(exists.sort_order || 0);
-  await execute(
-    `UPDATE visit_zones
+router.put(
+  '/zones/:id',
+  requirePermission('visit.manage', { needsElevation: true }),
+  asyncHandler(async (req, res) => {
+    const zoneId = String(req.params.id || '').trim();
+    if (!zoneId) return res.status(400).json({ error: 'Zone invalide' });
+    const exists = await queryOne('SELECT * FROM visit_zones WHERE id = ? LIMIT 1', [zoneId]);
+    if (!exists) return res.status(404).json({ error: 'Zone introuvable' });
+    const name = req.body.name !== undefined ? String(req.body.name || '').trim() : exists.name;
+    if (!name) return res.status(400).json({ error: 'Nom de zone requis' });
+    const maybePoints = req.body.points !== undefined ? normalizePoints(req.body.points) : null;
+    if (req.body.points !== undefined && !maybePoints) {
+      return res.status(400).json({ error: 'Polygone invalide (min 3 points)' });
+    }
+    const subtitle =
+      req.body.subtitle !== undefined
+        ? String(req.body.subtitle || '').trim()
+        : String(exists.subtitle || '');
+    const shortDescription =
+      req.body.short_description !== undefined
+        ? String(req.body.short_description || '').trim()
+        : String(exists.short_description || '');
+    const detailsTitle =
+      req.body.details_title !== undefined
+        ? String(req.body.details_title || 'Détails').trim() || 'Détails'
+        : String(exists.details_title || 'Détails').trim() || 'Détails';
+    const detailsText =
+      req.body.details_text !== undefined
+        ? String(req.body.details_text || '').trim()
+        : String(exists.details_text || '');
+    const bodyJson =
+      req.body.visit_editorial_blocks !== undefined || req.body.body_json !== undefined
+        ? serializeVisitEditorialBlocks(
+            parseVisitEditorialBlocksInput(req.body.visit_editorial_blocks ?? req.body.body_json),
+          )
+        : serializeVisitEditorialBlocks(parseVisitEditorialBlocksStored(exists.body_json));
+    const isActive =
+      req.body.is_active !== undefined
+        ? req.body.is_active === false
+          ? 0
+          : 1
+        : Number(exists.is_active ?? 1);
+    const sortOrder =
+      req.body.sort_order !== undefined
+        ? Number.isFinite(Number(req.body.sort_order))
+          ? Math.max(0, Number(req.body.sort_order))
+          : Number(exists.sort_order || 0)
+        : Number(exists.sort_order || 0);
+    await execute(
+      `UPDATE visit_zones
        SET name = ?, points = ?, subtitle = ?, short_description = ?, details_title = ?, details_text = ?, body_json = ?,
            is_active = ?, sort_order = ?, updated_at = ?
        WHERE id = ?`,
-    [
-      name,
-      maybePoints ? JSON.stringify(maybePoints) : exists.points,
-      subtitle,
-      shortDescription,
-      detailsTitle,
-      detailsText,
-      bodyJson,
-      isActive,
-      sortOrder,
-      nowIso(),
-      zoneId,
-    ]
-  );
-  const row = await queryOne('SELECT * FROM visit_zones WHERE id = ?', [zoneId]);
-  res.json(row);
-}));
+      [
+        name,
+        maybePoints ? JSON.stringify(maybePoints) : exists.points,
+        subtitle,
+        shortDescription,
+        detailsTitle,
+        detailsText,
+        bodyJson,
+        isActive,
+        sortOrder,
+        nowIso(),
+        zoneId,
+      ],
+    );
+    const row = await queryOne('SELECT * FROM visit_zones WHERE id = ?', [zoneId]);
+    res.json(row);
+  }),
+);
 
-router.delete('/zones/:id', requirePermission('visit.manage', { needsElevation: true }), asyncHandler(async (req, res) => {
-  const zoneId = String(req.params.id || '').trim();
-  if (!zoneId) return res.status(400).json({ error: 'Zone invalide' });
-  await deleteVisitMediaFilesForTarget('zone', zoneId);
-  await execute('DELETE FROM visit_zones WHERE id = ?', [zoneId]);
-  await execute(`DELETE FROM visit_media WHERE target_type = 'zone' AND target_id = ?`, [zoneId]);
-  await execute(`DELETE FROM visit_seen_students WHERE target_type = 'zone' AND target_id = ?`, [zoneId]);
-  await execute(`DELETE FROM visit_seen_anonymous WHERE target_type = 'zone' AND target_id = ?`, [zoneId]);
-  res.json({ ok: true });
-}));
+router.delete(
+  '/zones/:id',
+  requirePermission('visit.manage', { needsElevation: true }),
+  asyncHandler(async (req, res) => {
+    const zoneId = String(req.params.id || '').trim();
+    if (!zoneId) return res.status(400).json({ error: 'Zone invalide' });
+    await deleteVisitMediaFilesForTarget('zone', zoneId);
+    await execute('DELETE FROM visit_zones WHERE id = ?', [zoneId]);
+    await execute(`DELETE FROM visit_media WHERE target_type = 'zone' AND target_id = ?`, [zoneId]);
+    await execute(`DELETE FROM visit_seen_students WHERE target_type = 'zone' AND target_id = ?`, [
+      zoneId,
+    ]);
+    await execute(`DELETE FROM visit_seen_anonymous WHERE target_type = 'zone' AND target_id = ?`, [
+      zoneId,
+    ]);
+    res.json({ ok: true });
+  }),
+);
 
 module.exports = router;

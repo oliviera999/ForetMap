@@ -16,13 +16,13 @@ import {
 } from '../utils/studentProfileFields.js';
 import { useHelp } from '../hooks/useHelp';
 import { HelpPanel } from './HelpPanel';
-import { HELP_PANELS } from '../constants/help';
+import { resolveHelpPanelSection } from '../utils/helpResolve';
+import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
 import { StatCard, StatsSummaryGrid } from '../shared/components/StatsSummaryGrid.jsx';
 import { TimedToast } from '../shared/components/TimedToast.jsx';
 import { TeacherObservationsPanel } from './stats/TeacherObservationsPanel.jsx';
 import { TeacherLeaderboard } from './stats/TeacherLeaderboard.jsx';
 import { deriveStudentProgressionView } from '../utils/studentStatsProgression.js';
-import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
 import { useSession } from '../contexts/SessionContext.jsx';
 
 function StudentStats({ student }) {
@@ -33,19 +33,28 @@ function StudentStats({ student }) {
 
   useEffect(() => {
     setError('');
-    api(`/api/stats/me/${student.id}`).then(setData).catch(err => {
-      console.error('[ForetMap] stats n3beur', err);
-      setError(err?.message || 'Impossible de charger tes stats pour l’instant.');
-    });
+    api(`/api/stats/me/${student.id}`)
+      .then(setData)
+      .catch((err) => {
+        console.error('[ForetMap] stats n3beur', err);
+        setError(err?.message || 'Impossible de charger tes stats pour l’instant.');
+      });
   }, [student.id]);
 
-  if (!data && !error) return <div className="loader" style={{ height: '60vh' }}><div className="loader-leaf">🌿</div><p>Chargement...</p></div>;
-  if (!data && error) return (
-    <div className="empty" style={{ minHeight: '40vh' }}>
-      <div className="empty-icon">⚠️</div>
-      <p>{error}</p>
-    </div>
-  );
+  if (!data && !error)
+    return (
+      <div className="loader" style={{ height: '60vh' }}>
+        <div className="loader-leaf">🌿</div>
+        <p>Chargement...</p>
+      </div>
+    );
+  if (!data && error)
+    return (
+      <div className="empty" style={{ minHeight: '40vh' }}>
+        <div className="empty-icon">⚠️</div>
+        <p>{error}</p>
+      </div>
+    );
 
   const { stats, assignments } = data;
   const {
@@ -67,18 +76,37 @@ function StudentStats({ student }) {
       <div className="stats-title-row">
         <div className="stats-title-left">
           <StudentAvatar student={data} size={34} />
-          <h2 className="section-title" style={{ marginBottom: 0 }}>📊 Mes statistiques</h2>
+          <h2 className="section-title" style={{ marginBottom: 0 }}>
+            📊 Mes statistiques
+          </h2>
         </div>
         <span
-          style={{ background: 'var(--parchment)', borderRadius: 20, padding: '4px 12px', fontSize: '.8rem', fontWeight: 600, color: 'var(--soil)' }}
+          style={{
+            background: 'var(--parchment)',
+            borderRadius: 20,
+            padding: '4px 12px',
+            fontSize: '.8rem',
+            fontWeight: 600,
+            color: 'var(--soil)',
+          }}
           title="Palier n3beur actuel"
         >
           Profil actuel : {actualTier.icon} {actualTier.label}
         </span>
       </div>
-      <p className="section-sub">Salut {data.first_name} ! Voici ton bilan terrain — merci pour ce que tu fais pousser.</p>
-      {data.pseudo && <p className="section-sub" style={{ marginTop: 0 }}>Pseudo public : @{data.pseudo}</p>}
-      {data.description && <p className="section-sub" style={{ marginTop: 0 }}>{data.description}</p>}
+      <p className="section-sub">
+        Salut {data.first_name} ! Voici ton bilan terrain — merci pour ce que tu fais pousser.
+      </p>
+      {data.pseudo && (
+        <p className="section-sub" style={{ marginTop: 0 }}>
+          Pseudo public : @{data.pseudo}
+        </p>
+      )}
+      {data.description && (
+        <p className="section-sub" style={{ marginTop: 0 }}>
+          {data.description}
+        </p>
+      )}
       {!autoProgressionEnabled && (
         <p
           className="section-sub"
@@ -92,37 +120,40 @@ function StudentStats({ student }) {
             lineHeight: 1.45,
           }}
         >
-          La montée de palier auto est coupée : ton badge affiché suit un réglage manuel. La barre ci-dessous reste un repère (objectifs de tâches validées).
+          La montée de palier auto est coupée : ton badge affiché suit un réglage manuel. La barre
+          ci-dessous reste un repère (objectifs de tâches validées).
         </p>
       )}
 
       {profileAheadOfTasks && (
         <p className="section-sub" style={{ marginTop: 8, fontSize: '.85rem', color: '#555' }}>
-          Objectif tâches validées : {taskTier.icon} {taskTier.label}
-          {' '}
-          (ton profil attribué est plus avancé).
+          Objectif tâches validées : {taskTier.icon} {taskTier.label} (ton profil attribué est plus
+          avancé).
         </p>
       )}
       {profileBehindOfTasks && (
         <p className="section-sub" style={{ marginTop: 8, fontSize: '.85rem', color: '#555' }}>
-          Objectif tâches validées : {taskTier.icon} {taskTier.label}
-          {' '}
-          — ton profil sera mis à jour automatiquement.
+          Objectif tâches validées : {taskTier.icon} {taskTier.label} — ton profil sera mis à jour
+          automatiquement.
         </p>
       )}
       <div className="rank-progress">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
           <span style={{ fontSize: '.82rem', fontWeight: 600, color: 'var(--forest)' }}>
-            {showTaskObjective ? 'Objectif (tâches validées)' : 'Progression'} : {taskTier.icon} {taskTier.label}
+            {showTaskObjective ? 'Objectif (tâches validées)' : 'Progression'} : {taskTier.icon}{' '}
+            {taskTier.label}
           </span>
           {nextRank && (
             <span style={{ fontSize: '.76rem', color: '#aaa' }}>
-              Prochain palier : {nextRank.icon} {nextRank.label}
-              {' '}
-              ({tasksRemaining} tâche{tasksRemaining > 1 ? 's' : ''} restante{tasksRemaining > 1 ? 's' : ''})
+              Prochain palier : {nextRank.icon} {nextRank.label} ({tasksRemaining} tâche
+              {tasksRemaining > 1 ? 's' : ''} restante{tasksRemaining > 1 ? 's' : ''})
             </span>
           )}
-          {!nextRank && <span style={{ fontSize: '.76rem', color: taskTier.color, fontWeight: 600 }}>Palier maximum atteint (tâches validées) !</span>}
+          {!nextRank && (
+            <span style={{ fontSize: '.76rem', color: taskTier.color, fontWeight: 600 }}>
+              Palier maximum atteint (tâches validées) !
+            </span>
+          )}
         </div>
         <div className="rank-bar-bg">
           <div className="rank-bar-fill" style={{ width: `${progressPct}%` }} />
@@ -143,11 +174,24 @@ function StudentStats({ student }) {
       <StatsSummaryGrid>
         <StatCard icon="✅" value={stats.done} label="Tâches validées" highlight />
         <StatCard icon="⏳" value={stats.pending} label="En cours" />
-        <StatCard icon="📋" value={stats.submitted} label={`En attente ${roleTerms.teacherShort}`} />
+        <StatCard
+          icon="📋"
+          value={stats.submitted}
+          label={`En attente ${roleTerms.teacherShort}`}
+        />
         <StatCard icon="🌱" value={stats.total} label="Total prises" />
       </StatsSummaryGrid>
 
-      <h3 style={{ fontFamily: 'Playfair Display,serif', fontSize: '1.05rem', margin: '20px 0 10px', color: 'var(--forest)' }}>Biodiversité & tutoriels</h3>
+      <h3
+        style={{
+          fontFamily: 'Playfair Display,serif',
+          fontSize: '1.05rem',
+          margin: '20px 0 10px',
+          color: 'var(--forest)',
+        }}
+      >
+        Biodiversité & tutoriels
+      </h3>
       <StatsSummaryGrid>
         <StatCard
           icon="🌿"
@@ -166,24 +210,47 @@ function StudentStats({ student }) {
         />
       </StatsSummaryGrid>
 
-      <h3 style={{ fontFamily: 'Playfair Display,serif', fontSize: '1.1rem', marginBottom: 12, color: 'var(--forest)' }}>Activité récente</h3>
+      <h3
+        style={{
+          fontFamily: 'Playfair Display,serif',
+          fontSize: '1.1rem',
+          marginBottom: 12,
+          color: 'var(--forest)',
+        }}
+      >
+        Activité récente
+      </h3>
       <div className="activity-list">
-        {assignments.length === 0
-          ? <div className="empty"><div className="empty-icon">🌿</div><p>Aucune tâche prise pour l'instant</p></div>
-          : assignments.slice(0, 10).map((a, i) => (
-            <div key={a?.id != null ? String(a.id) : `activity-${a?.task_id ?? 'x'}-${a?.assigned_at ?? i}-${i}`} className="activity-item">
+        {assignments.length === 0 ? (
+          <div className="empty">
+            <div className="empty-icon">🌿</div>
+            <p>Aucune tâche prise pour l'instant</p>
+          </div>
+        ) : (
+          assignments.slice(0, 10).map((a, i) => (
+            <div
+              key={
+                a?.id != null
+                  ? String(a.id)
+                  : `activity-${a?.task_id ?? 'x'}-${a?.assigned_at ?? i}-${i}`
+              }
+              className="activity-item"
+            >
               <div className={`activity-dot ${a.status}`} />
               <div className="activity-info">
                 <div className="activity-title">{a.title}</div>
                 <div className="activity-meta">
                   {a.zone_name && `📍 ${a.zone_name} · `}
-                  {new Date(a.assigned_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}
+                  {new Date(a.assigned_at).toLocaleDateString('fr-FR', {
+                    day: '2-digit',
+                    month: 'short',
+                  })}
                 </div>
               </div>
               {statusBadge(a.status)}
             </div>
           ))
-        }
+        )}
       </div>
     </div>
   );
@@ -193,7 +260,9 @@ function StudentProfileEditor({ student, onUpdated, onClose, maps = [] }) {
   const publicSettings = usePublicSettings();
   const { isN3Affiliated = false } = useSession();
   const roleTerms = getRoleTerms(isN3Affiliated);
-  const fallbackDisplayName = String(student?.display_name || student?.displayName || student?.email || 'Utilisateur').trim();
+  const fallbackDisplayName = String(
+    student?.display_name || student?.displayName || student?.email || 'Utilisateur',
+  ).trim();
   const displayFirstName = String(student?.first_name || '').trim() || fallbackDisplayName;
   const displayLastName = String(student?.last_name || '').trim();
   const profileType = deriveProfileTypeLabel(student, roleTerms);
@@ -202,14 +271,16 @@ function StudentProfileEditor({ student, onUpdated, onClose, maps = [] }) {
   const [email, setEmail] = useState(student?.email || '');
   const [description, setDescription] = useState(student?.description || '');
   const [affiliation, setAffiliation] = useState(student?.affiliation || 'both');
-  const [visitMascotCatalogId, setVisitMascotCatalogId] = useState(student?.visit_mascot_catalog_id || '');
+  const [visitMascotCatalogId, setVisitMascotCatalogId] = useState(
+    student?.visit_mascot_catalog_id || '',
+  );
   const affiliationSelectOptions = useMemo(
     () => buildProfileAffiliationOptions(maps, affiliation, student?.affiliation),
-    [maps, affiliation, student?.affiliation]
+    [maps, affiliation, student?.affiliation],
   );
   const visitMascotOptions = useMemo(
     () => buildVisitMascotOptions(publicSettings?.visit?.mascot?.allowed_ids),
-    [publicSettings?.visit?.mascot?.allowed_ids]
+    [publicSettings?.visit?.mascot?.allowed_ids],
   );
   const [avatarPreview, setAvatarPreview] = useState(getStudentAvatarUrl(student));
   const [avatarData, setAvatarData] = useState(null);
@@ -250,7 +321,12 @@ function StudentProfileEditor({ student, onUpdated, onClose, maps = [] }) {
   const save = async () => {
     setErr('');
     setOkMsg('');
-    const validationError = validateProfileEditorFields({ pseudo, email, description, currentPassword });
+    const validationError = validateProfileEditorFields({
+      pseudo,
+      email,
+      description,
+      currentPassword,
+    });
     if (validationError) return setErr(validationError);
 
     setLoading(true);
@@ -294,12 +370,24 @@ function StudentProfileEditor({ student, onUpdated, onClose, maps = [] }) {
       <div className="field">
         <label>Photo de profil</label>
         <div className="profile-avatar-row">
-          {avatarPreview
-            ? <img src={avatarPreview} alt="Aperçu avatar" style={{ width: 52, height: 52, borderRadius: '50%', objectFit: 'cover', border: '1px solid #ddd' }} />
-            : <StudentAvatar student={student} size={52} style={{ border: '1px solid #ddd' }} />}
+          {avatarPreview ? (
+            <img
+              src={avatarPreview}
+              alt="Aperçu avatar"
+              style={{
+                width: 52,
+                height: 52,
+                borderRadius: '50%',
+                objectFit: 'cover',
+                border: '1px solid #ddd',
+              }}
+            />
+          ) : (
+            <StudentAvatar student={student} size={52} style={{ border: '1px solid #ddd' }} />
+          )}
           <div className="profile-avatar-help">
-            Par défaut, l&apos;avatar est généré automatiquement via DiceBear.
-            Tu peux aussi prendre une photo directement.
+            Par défaut, l&apos;avatar est généré automatiquement via DiceBear. Tu peux aussi prendre
+            une photo directement.
           </div>
         </div>
         <div className="profile-avatar-actions">
@@ -373,26 +461,42 @@ function StudentProfileEditor({ student, onUpdated, onClose, maps = [] }) {
       </div>
       <div className="field">
         <label>Pseudo</label>
-        <input value={pseudo} onChange={e => setPseudo(e.target.value)} placeholder="momo_lyautey" />
+        <input
+          value={pseudo}
+          onChange={(e) => setPseudo(e.target.value)}
+          placeholder="momo_lyautey"
+        />
       </div>
       <div className="field">
         <label>Mail</label>
-        <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="moi@exemple.com" />
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="moi@exemple.com"
+        />
       </div>
       <div className="field">
         <label>Mon espace</label>
-        <select value={affiliation} onChange={e => setAffiliation(e.target.value)}>
+        <select value={affiliation} onChange={(e) => setAffiliation(e.target.value)}>
           {affiliationSelectOptions.map((o) => (
-            <option key={o.value} value={o.value}>{o.label}</option>
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
           ))}
         </select>
       </div>
       <div className="field">
         <label>Mascotte préférée (visite)</label>
-        <select value={visitMascotCatalogId} onChange={(e) => setVisitMascotCatalogId(e.target.value)}>
+        <select
+          value={visitMascotCatalogId}
+          onChange={(e) => setVisitMascotCatalogId(e.target.value)}
+        >
           <option value="">Défaut global du site</option>
           {visitMascotOptions.map((m) => (
-            <option key={m.id} value={m.id}>{m.label}</option>
+            <option key={m.id} value={m.id}>
+              {m.label}
+            </option>
           ))}
         </select>
       </div>
@@ -400,7 +504,7 @@ function StudentProfileEditor({ student, onUpdated, onClose, maps = [] }) {
         <label>Description</label>
         <MarkdownTextarea
           value={description}
-          onChange={e => setDescription(e.target.value)}
+          onChange={(e) => setDescription(e.target.value)}
           rows={4}
           maxLength={300}
           placeholder="Je participe souvent à l'arrosage."
@@ -411,14 +515,19 @@ function StudentProfileEditor({ student, onUpdated, onClose, maps = [] }) {
         <input
           type="password"
           value={currentPassword}
-          onChange={e => setCurrentPassword(e.target.value)}
+          onChange={(e) => setCurrentPassword(e.target.value)}
           placeholder="••••"
         />
       </div>
       {err && <div className="auth-error">⚠️ {err}</div>}
       {okMsg && <div className="fm-toast fm-toast--inline">{okMsg}</div>}
       <div style={{ display: 'flex', gap: 10, marginTop: 10 }}>
-        <button className="btn btn-primary" onClick={save} disabled={loading || avatarProcessing} style={{ flex: 1 }}>
+        <button
+          className="btn btn-primary"
+          onClick={save}
+          disabled={loading || avatarProcessing}
+          style={{ flex: 1 }}
+        >
           {loading ? 'Enregistrement…' : 'Enregistrer'}
         </button>
         <button className="btn btn-ghost" onClick={onClose} disabled={loading} style={{ flex: 1 }}>
@@ -430,16 +539,12 @@ function StudentProfileEditor({ student, onUpdated, onClose, maps = [] }) {
 }
 
 function TeacherStats() {
+  const publicSettings = usePublicSettings();
   const { isN3Affiliated = false } = useSession();
   const roleTerms = getRoleTerms(isN3Affiliated);
-  const {
-    isHelpEnabled,
-    hasSeenSection,
-    markSectionSeen,
-    trackPanelOpen,
-    trackPanelDismiss,
-  } = useHelp({ publicSettings: null, isTeacher: true });
-  const helpGroupFilters = HELP_PANELS.groupFilters;
+  const { isHelpEnabled, hasSeenSection, markSectionSeen, trackPanelOpen, trackPanelDismiss } =
+    useHelp({ publicSettings, isTeacher: true });
+  const helpGroupFilters = resolveHelpPanelSection('groupFilters', publicSettings);
   const [students, setStudents] = useState(null);
   const [site, setSite] = useState(null);
   const [groups, setGroups] = useState([]);
@@ -450,25 +555,47 @@ function TeacherStats() {
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [toast, setToast] = useState(null);
+  const [quizStats, setQuizStats] = useState(null);
+  const [quizStatsError, setQuizStatsError] = useState('');
 
-  const load = useCallback(() => api(`/api/stats/all${filterGroupId ? `?group_id=${encodeURIComponent(filterGroupId)}` : ''}`).then((payload) => {
-    const rows = Array.isArray(payload) ? payload : (payload?.students ?? []);
-    setStudents(rows);
-    setSite(Array.isArray(payload) ? null : (payload?.site ?? null));
-    setError('');
-  }).catch(err => {
-    console.error('[ForetMap] stats tous', err);
-    setStudents([]);
-    setSite(null);
-    setError(err?.message || 'Impossible de charger les statistiques.');
-    setToast('Impossible de charger les statistiques.');
-  }), [filterGroupId]);
+  const loadQuizStats = useCallback(() => {
+    api('/api/quiz/stats')
+      .then((payload) => {
+        setQuizStats(payload);
+        setQuizStatsError('');
+      })
+      .catch((err) => {
+        setQuizStats(null);
+        setQuizStatsError(err?.message || 'Stats quiz indisponibles.');
+      });
+  }, []);
+
+  const load = useCallback(
+    () =>
+      api(`/api/stats/all${filterGroupId ? `?group_id=${encodeURIComponent(filterGroupId)}` : ''}`)
+        .then((payload) => {
+          const rows = Array.isArray(payload) ? payload : (payload?.students ?? []);
+          setStudents(rows);
+          setSite(Array.isArray(payload) ? null : (payload?.site ?? null));
+          setError('');
+        })
+        .catch((err) => {
+          console.error('[ForetMap] stats tous', err);
+          setStudents([]);
+          setSite(null);
+          setError(err?.message || 'Impossible de charger les statistiques.');
+          setToast('Impossible de charger les statistiques.');
+        }),
+    [filterGroupId],
+  );
 
   const loadObservations = useCallback(async () => {
     setObsLoading(true);
     setObsError('');
     try {
-      const rows = await api(`/api/observations/all${filterGroupId ? `?group_id=${encodeURIComponent(filterGroupId)}` : ''}`);
+      const rows = await api(
+        `/api/observations/all${filterGroupId ? `?group_id=${encodeURIComponent(filterGroupId)}` : ''}`,
+      );
       setObservations(Array.isArray(rows) ? rows : []);
     } catch (err) {
       setObservations([]);
@@ -477,7 +604,12 @@ function TeacherStats() {
       setObsLoading(false);
     }
   }, [filterGroupId]);
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
+  useEffect(() => {
+    loadQuizStats();
+  }, [loadQuizStats]);
   useEffect(() => {
     api('/api/groups/options')
       .then((payload) => setGroups(Array.isArray(payload?.groups) ? payload.groups : []))
@@ -492,12 +624,18 @@ function TeacherStats() {
     return () => window.removeEventListener('foretmap_realtime', onRealtime);
   }, [load]);
 
-  if (students === null) return <div className="loader" style={{ height: '60vh' }}><div className="loader-leaf">🌿</div><p>Chargement...</p></div>;
+  if (students === null)
+    return (
+      <div className="loader" style={{ height: '60vh' }}>
+        <div className="loader-leaf">🌿</div>
+        <p>Chargement...</p>
+      </div>
+    );
 
   const data = students;
   const totalValidated = data.reduce((s, d) => s + d.stats.done, 0);
   const totalPending = data.reduce((s, d) => s + d.stats.pending, 0);
-  const activeStudents = data.filter(d => d.stats.total > 0).length;
+  const activeStudents = data.filter((d) => d.stats.total > 0).length;
   const siteSpecies = Number(site?.plant_species_observed ?? 0);
   const siteObsEvents = Number(site?.plant_observation_events ?? 0);
   const siteTutorials = Number(site?.tutorials_read ?? 0);
@@ -505,7 +643,14 @@ function TeacherStats() {
   return (
     <div className="fade-in">
       {toast && <TimedToast msg={toast} onDone={() => setToast(null)} />}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: 4,
+        }}
+      >
         <h2 className="section-title">📊 Statistiques des {roleTerms.studentPlural}</h2>
         {isHelpEnabled && (
           <HelpPanel
@@ -520,36 +665,100 @@ function TeacherStats() {
           />
         )}
       </div>
-      <p className="section-sub">{data.length} {data.length > 1 ? roleTerms.studentPlural : roleTerms.studentSingular} dans les stats collectives</p>
+      <p className="section-sub">
+        {data.length} {data.length > 1 ? roleTerms.studentPlural : roleTerms.studentSingular} dans
+        les stats collectives
+      </p>
       {error && (
         <div className="auth-error" style={{ marginBottom: 10 }}>
           ⚠️ {error}
         </div>
       )}
 
-      <StatsSummaryGrid style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', marginBottom: 16 }}>
+      <StatsSummaryGrid
+        style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', marginBottom: 16 }}
+      >
         <StatCard icon="✅" value={totalValidated} label="Tâches validées" highlight />
         <StatCard icon="⏳" value={totalPending} label="En cours" />
         <StatCard icon="👤" value={activeStudents} label="Actifs" />
       </StatsSummaryGrid>
 
-      <p className="section-sub" style={{ marginTop: 0, marginBottom: 8 }}>Tout le site (biodiversité & tutoriels)</p>
-      <StatsSummaryGrid style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', marginBottom: 20 }}>
-        <StatCard icon="🌿" value={siteSpecies.toLocaleString('fr-FR')} label="Espèces observées (catalogue)" />
-        <StatCard icon="🔭" value={siteObsEvents.toLocaleString('fr-FR')} label="Observations fiches plantes" />
-        <StatCard icon="📖" value={siteTutorials.toLocaleString('fr-FR')} label="Marquages tutoriel lus" />
+      <p className="section-sub" style={{ marginTop: 0, marginBottom: 8 }}>
+        Tout le site (biodiversité & tutoriels)
+      </p>
+      <StatsSummaryGrid
+        style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', marginBottom: 20 }}
+      >
+        <StatCard
+          icon="🌿"
+          value={siteSpecies.toLocaleString('fr-FR')}
+          label="Espèces observées (catalogue)"
+        />
+        <StatCard
+          icon="🔭"
+          value={siteObsEvents.toLocaleString('fr-FR')}
+          label="Observations fiches plantes"
+        />
+        <StatCard
+          icon="📖"
+          value={siteTutorials.toLocaleString('fr-FR')}
+          label="Marquages tutoriel lus"
+        />
       </StatsSummaryGrid>
 
+      <section className="card" style={{ marginBottom: 20, padding: 14 }}>
+        <h3 className="section-title" style={{ fontSize: '1.05rem', marginBottom: 8 }}>
+          ❓ Quiz (QCM)
+        </h3>
+        {quizStatsError ? <p className="section-sub">{quizStatsError}</p> : null}
+        {quizStats?.byCategory?.length > 0 ? (
+          <div className="table-wrap">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Catégorie</th>
+                  <th>Tentatives</th>
+                  <th>Réussites</th>
+                  <th>Taux</th>
+                </tr>
+              </thead>
+              <tbody>
+                {quizStats.byCategory.map((row) => {
+                  const attempts = Number(row.attempts || 0);
+                  const correct = Number(row.correct || 0);
+                  const rate = attempts > 0 ? Math.round((correct / attempts) * 100) : 0;
+                  return (
+                    <tr key={row.categorie_slug}>
+                      <td>{row.categorie_slug}</td>
+                      <td>{attempts}</td>
+                      <td>{correct}</td>
+                      <td>{rate}%</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="section-sub">Aucune tentative enregistrée pour l’instant.</p>
+        )}
+      </section>
+
       <div className="field" style={{ marginBottom: 12 }}>
-        <input value={search} onChange={e => setSearch(e.target.value)}
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
           placeholder={`🔍 Rechercher un(e) ${roleTerms.studentSingular}...`}
-          style={{ background: 'white' }} />
+          style={{ background: 'white' }}
+        />
       </div>
       <div className="field" style={{ marginBottom: 12 }}>
         <select value={filterGroupId} onChange={(e) => setFilterGroupId(e.target.value)}>
           <option value="">Tous les groupes</option>
           {groups.map((g) => (
-            <option key={g.id} value={g.id}>{g.name}</option>
+            <option key={g.id} value={g.id}>
+              {g.name}
+            </option>
           ))}
         </select>
       </div>

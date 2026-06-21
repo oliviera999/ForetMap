@@ -20,11 +20,7 @@ const SessionContext = createContext(null);
 const EMPTY_SESSION = Object.freeze({});
 
 export function SessionProvider({ value, children }) {
-  return (
-    <SessionContext.Provider value={value ?? null}>
-      {children}
-    </SessionContext.Provider>
-  );
+  return <SessionContext.Provider value={value ?? null}>{children}</SessionContext.Provider>;
 }
 
 /**

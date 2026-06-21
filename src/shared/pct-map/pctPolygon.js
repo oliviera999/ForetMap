@@ -41,15 +41,43 @@ export function pointsToSvgPolygon(points) {
 }
 
 export function translatePctPoints(points, dx, dy, decimals = 2) {
-  return (points || []).map((p) => normalizePctPoint({
-    x: (Number(p.x) || 0) + dx,
-    y: (Number(p.y) || 0) + dy,
-  }, decimals));
+  return (points || []).map((p) =>
+    normalizePctPoint(
+      {
+        x: (Number(p.x) || 0) + dx,
+        y: (Number(p.y) || 0) + dy,
+      },
+      decimals,
+    ),
+  );
 }
 
 export function offsetDuplicatePctPoints(points, dx = 2.5, dy = 2.5, decimals = 2) {
   if (!Array.isArray(points) || points.length < 3) return null;
   return translatePctPoints(points, dx, dy, decimals);
+}
+
+/**
+ * Déplace une zone feuillet (polygone + centre) pour aligner le centre sur targetPct.
+ * @param {{ centreXp: number, centreYp: number, points: Array<{ x: number, y: number }> }} zone
+ * @param {{ x?: number, y?: number, xp?: number, yp?: number }} targetPct
+ */
+export function translateFeuilletZoneToPoint(zone, targetPct) {
+  const targetX = Number(targetPct?.x ?? targetPct?.xp);
+  const targetY = Number(targetPct?.y ?? targetPct?.yp);
+  if (!Number.isFinite(targetX) || !Number.isFinite(targetY)) return zone;
+  const centreXp = Number(zone.centreXp);
+  const centreYp = Number(zone.centreYp);
+  const dx = targetX - centreXp;
+  const dy = targetY - centreYp;
+  const nextCentre = normalizePctPoint({ x: targetX, y: targetY });
+  return {
+    ...zone,
+    points: translatePctPoints(zone.points, dx, dy),
+    centreXp: nextCentre.x,
+    centreYp: nextCentre.y,
+    centre: { x: nextCentre.x, y: nextCentre.y },
+  };
 }
 
 function distSq(ax, ay, bx, by) {

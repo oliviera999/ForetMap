@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useOverlayHistoryBack } from '../../hooks/useOverlayHistoryBack';
-import { DialogShell } from '../../components/DialogShell';
+import { DialogShell } from './DialogShell.jsx';
 
 /**
  * Bouton + modal de confirmation pour marquer un contenu comme lu / appris / étudié.
@@ -66,19 +66,14 @@ export function LearningAcknowledgeButton({
 
   const intro = confirmIntro || (
     <>
-      En validant, tu t&apos;engages à avoir lu et compris
-      {' '}
+      En validant, tu t&apos;engages à avoir lu et compris{' '}
       <strong>« {itemTitle || 'ce contenu'} »</strong>.
     </>
   );
 
   return (
     <>
-      <button
-        type="button"
-        className={buttonClassName}
-        onClick={() => setModalOpen(true)}
-      >
+      <button type="button" className={buttonClassName} onClick={() => setModalOpen(true)}>
         {labelAction}
       </button>
       {modalOpen ? (

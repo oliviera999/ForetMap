@@ -59,11 +59,16 @@ afterEach(() => {
 describe('VisitEditorPanel', () => {
   test('non enseignant ou sans sélection → ne rend rien', () => {
     const { container: c1 } = render(
-      <VisitEditorPanel isTeacher={false} selected={ZONE} selectedType="zone" roleTerms={ROLE_TERMS} />
+      <VisitEditorPanel
+        isTeacher={false}
+        selected={ZONE}
+        selectedType="zone"
+        roleTerms={ROLE_TERMS}
+      />,
     );
     expect(c1).toBeEmptyDOMElement();
     const { container: c2 } = render(
-      <VisitEditorPanel isTeacher selected={null} selectedType="zone" roleTerms={ROLE_TERMS} />
+      <VisitEditorPanel isTeacher selected={null} selectedType="zone" roleTerms={ROLE_TERMS} />,
     );
     expect(c2).toBeEmptyDOMElement();
   });
@@ -80,15 +85,19 @@ describe('VisitEditorPanel', () => {
     const { onSaved } = setup();
     fireEvent.click(screen.getByText('💾 Sauver'));
     await waitFor(() => {
-      expect(api).toHaveBeenCalledWith('/api/visit/zones/7', 'PUT', expect.objectContaining({
-        name: '🌳 Verger',
-        subtitle: 'Sous-titre',
-        short_description: 'Desc courte',
-        details_title: 'Détails',
-        details_text: 'Texte détails',
-        sort_order: 3,
-        is_active: true,
-      }));
+      expect(api).toHaveBeenCalledWith(
+        '/api/visit/zones/7',
+        'PUT',
+        expect.objectContaining({
+          name: '🌳 Verger',
+          subtitle: 'Sous-titre',
+          short_description: 'Desc courte',
+          details_title: 'Détails',
+          details_text: 'Texte détails',
+          sort_order: 3,
+          is_active: true,
+        }),
+      );
     });
     await waitFor(() => expect(onSaved).toHaveBeenCalled());
   });
@@ -109,10 +118,14 @@ describe('VisitEditorPanel', () => {
     });
     fireEvent.click(screen.getByText('💾 Sauver'));
     await waitFor(() => {
-      expect(api).toHaveBeenCalledWith('/api/visit/markers/9', 'PUT', expect.objectContaining({
-        label: 'Pommier',
-        emoji: '🍎',
-      }));
+      expect(api).toHaveBeenCalledWith(
+        '/api/visit/markers/9',
+        'PUT',
+        expect.objectContaining({
+          label: 'Pommier',
+          emoji: '🍎',
+        }),
+      );
     });
   });
 });

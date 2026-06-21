@@ -20,10 +20,17 @@ export function GLSpellFormField({ fieldKey, value, onChange, disabled }) {
   if (fieldKey === 'category_slug') {
     return (
       <GLField label={label}>
-        <GLSelect value={value} onChange={(e) => onChange(fieldKey, e.target.value)} disabled={disabled} required>
+        <GLSelect
+          value={value}
+          onChange={(e) => onChange(fieldKey, e.target.value)}
+          disabled={disabled}
+          required
+        >
           <option value="">—</option>
           {Object.entries(GL_SPELL_CATEGORY_LABELS).map(([slug, nom]) => (
-            <option key={slug} value={slug}>{nom}</option>
+            <option key={slug} value={slug}>
+              {nom}
+            </option>
           ))}
         </GLSelect>
       </GLField>
@@ -32,9 +39,15 @@ export function GLSpellFormField({ fieldKey, value, onChange, disabled }) {
   if (fieldKey === 'statut') {
     return (
       <GLField label={label}>
-        <GLSelect value={value} onChange={(e) => onChange(fieldKey, e.target.value)} disabled={disabled}>
+        <GLSelect
+          value={value}
+          onChange={(e) => onChange(fieldKey, e.target.value)}
+          disabled={disabled}
+        >
           {Object.entries(GL_SPELL_STATUT_LABELS).map(([val, lab]) => (
-            <option key={val} value={val}>{lab}</option>
+            <option key={val} value={val}>
+              {lab}
+            </option>
           ))}
         </GLSelect>
       </GLField>
@@ -43,7 +56,12 @@ export function GLSpellFormField({ fieldKey, value, onChange, disabled }) {
   if (TEXTAREA_FIELDS.has(fieldKey)) {
     return (
       <GLField label={label}>
-        <GLTextarea value={value} onChange={(e) => onChange(fieldKey, e.target.value)} rows={3} disabled={disabled} />
+        <GLTextarea
+          value={value}
+          onChange={(e) => onChange(fieldKey, e.target.value)}
+          rows={3}
+          disabled={disabled}
+        />
       </GLField>
     );
   }

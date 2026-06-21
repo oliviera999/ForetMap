@@ -32,13 +32,17 @@ function parseArgs(argv) {
     if (a === '--image-check-path') args.imageCheckPath = argv[i + 1];
     if (a === '--gl-health-only') args.glHealthOnly = true;
   }
-  const envGlHealthOnly = String(process.env.DEPLOY_GL_HEALTH_ONLY || '').trim().toLowerCase();
+  const envGlHealthOnly = String(process.env.DEPLOY_GL_HEALTH_ONLY || '')
+    .trim()
+    .toLowerCase();
   return {
     baseUrl: args.baseUrl || process.env.DEPLOY_BASE_URL || 'http://localhost:3000',
     glBaseUrl: args.glBaseUrl || process.env.GL_PROD_BASE_URL || '',
     timeoutMs: Number.isFinite(parseInt(args.timeoutMs, 10)) ? parseInt(args.timeoutMs, 10) : 10000,
     imageCheckPath: args.imageCheckPath || process.env.DEPLOY_IMAGE_CHECK_PATH || '',
-    glHealthOnly: Boolean(args.glHealthOnly || envGlHealthOnly === '1' || envGlHealthOnly === 'true'),
+    glHealthOnly: Boolean(
+      args.glHealthOnly || envGlHealthOnly === '1' || envGlHealthOnly === 'true',
+    ),
   };
 }
 
@@ -63,7 +67,9 @@ function requestJsonWithTimeout(urlString, timeoutMs, extraHeaders = {}) {
       (res) => {
         let raw = '';
         res.setEncoding('utf8');
-        res.on('data', (chunk) => { raw += chunk; });
+        res.on('data', (chunk) => {
+          raw += chunk;
+        });
         res.on('end', () => {
           let body = {};
           try {
@@ -79,7 +85,7 @@ function requestJsonWithTimeout(urlString, timeoutMs, extraHeaders = {}) {
             headers: res.headers || {},
           });
         });
-      }
+      },
     );
 
     req.setTimeout(timeoutMs, () => {
@@ -112,7 +118,8 @@ async function requestJsonWithRetry(urlString, timeoutMs, maxAttempts = 3, extra
     const out = await requestJsonWithTimeout(urlString, timeoutMs, extraHeaders);
     last = out;
     if (out.status !== 429 || attempt >= maxAttempts) return out;
-    const retryAfterHeader = out.headers && (out.headers['retry-after'] || out.headers['Retry-After']);
+    const retryAfterHeader =
+      out.headers && (out.headers['retry-after'] || out.headers['Retry-After']);
     const retryAfterMs = parseRetryAfterMs(retryAfterHeader);
     const backoffMs = Math.min(4000, 500 * attempt);
     await wait(retryAfterMs > 0 ? retryAfterMs : backoffMs);
@@ -146,7 +153,13 @@ async function checkEndpoint(baseUrl, path, timeoutMs, required = true) {
   }
 }
 
-async function checkEndpointAllowedStatuses(baseUrl, path, timeoutMs, allowedStatuses, required = false) {
+async function checkEndpointAllowedStatuses(
+  baseUrl,
+  path,
+  timeoutMs,
+  allowedStatuses,
+  required = false,
+) {
   const full = new URL(path, baseUrl).toString();
   try {
     const res = await requestJsonWithRetry(full, timeoutMs);
@@ -178,14 +191,20 @@ async function checkImageEndpoint(baseUrl, path, timeoutMs) {
   let full = new URL(path, baseUrl).toString();
   try {
     let res = await requestJsonWithRetry(full, timeoutMs);
-    for (let hop = 0; hop < 5 && res.status >= 300 && res.status < 400 && res.headers?.location; hop += 1) {
+    for (
+      let hop = 0;
+      hop < 5 && res.status >= 300 && res.status < 400 && res.headers?.location;
+      hop += 1
+    ) {
       const next = new URL(String(res.headers.location), full).toString();
       full = next;
       res = await requestJsonWithRetry(full, timeoutMs);
     }
     const pass = res.status === 200 || res.status === 404;
     const label = pass ? 'OK' : 'FAIL';
-    console.log(`${label} ${path} -> HTTP ${res.status}${res.status === 404 ? ' (ressource absente, check optionnel)' : ''}`);
+    console.log(
+      `${label} ${path} -> HTTP ${res.status}${res.status === 404 ? ' (ressource absente, check optionnel)' : ''}`,
+    );
     return {
       path,
       required: false,
@@ -206,8 +225,12 @@ async function checkImageEndpoint(baseUrl, path, timeoutMs) {
 }
 
 async function main() {
-  const { baseUrl, glBaseUrl, timeoutMs, imageCheckPath, glHealthOnly } = parseArgs(process.argv.slice(2));
-  console.log(`[post-deploy-check] baseUrl=${baseUrl} glBaseUrl=${glBaseUrl || '-'} timeoutMs=${timeoutMs} glHealthOnly=${glHealthOnly}`);
+  const { baseUrl, glBaseUrl, timeoutMs, imageCheckPath, glHealthOnly } = parseArgs(
+    process.argv.slice(2),
+  );
+  console.log(
+    `[post-deploy-check] baseUrl=${baseUrl} glBaseUrl=${glBaseUrl || '-'} timeoutMs=${timeoutMs} glHealthOnly=${glHealthOnly}`,
+  );
 
   const checks = [];
 
@@ -236,7 +259,9 @@ async function main() {
           body: res.body,
         });
       } catch (err) {
-        console.log(`FAIL ${path} (avec secret local) -> ${err.name || 'Error'}: ${err.message || err}`);
+        console.log(
+          `FAIL ${path} (avec secret local) -> ${err.name || 'Error'}: ${err.message || err}`,
+        );
         checks.push({
           path,
           required: false,
@@ -257,7 +282,15 @@ async function main() {
     checks.push(await checkEndpoint(glTargetUrl, '/api/health', timeoutMs, false));
     checks.push(await checkEndpoint(glTargetUrl, '/api/version', timeoutMs, false));
     checks.push(await checkEndpoint(glTargetUrl, '/api/gl/chapters', timeoutMs, false));
-    checks.push(await checkEndpointAllowedStatuses(glTargetUrl, '/api/gl/content/world', timeoutMs, [200, 401], false));
+    checks.push(
+      await checkEndpointAllowedStatuses(
+        glTargetUrl,
+        '/api/gl/content/world',
+        timeoutMs,
+        [200, 401],
+        false,
+      ),
+    );
   }
 
   const requiredFails = checks.filter((c) => c.required && !c.pass);
@@ -269,7 +302,9 @@ async function main() {
   }
 
   if (optionalFails.length > 0) {
-    console.log(`[post-deploy-check] PARTIEL: ${optionalFails.length} contrôle(s) optionnel(s) en erreur.`);
+    console.log(
+      `[post-deploy-check] PARTIEL: ${optionalFails.length} contrôle(s) optionnel(s) en erreur.`,
+    );
   } else {
     console.log('[post-deploy-check] SUCCES: contrôles requis OK.');
   }

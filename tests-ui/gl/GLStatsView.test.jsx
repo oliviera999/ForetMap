@@ -99,7 +99,13 @@ describe('GLStatsView', () => {
       error: '',
       reload: vi.fn(),
     });
-    render(<GLStatsView mode="class" vitalityEnabled classes={[{ id: 1, name: 'Classe A', is_active: 1 }]} />);
+    render(
+      <GLStatsView
+        mode="class"
+        vitalityEnabled
+        classes={[{ id: 1, name: 'Classe A', is_active: 1 }]}
+      />,
+    );
     expect(screen.getByText(/Statistiques des joueurs/i)).toBeTruthy();
     expect(screen.getByText(/alpha/i)).toBeTruthy();
   });

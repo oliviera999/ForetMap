@@ -38,12 +38,21 @@ function ZoneInfoModalHeader({
                 } catch (_) {
                   onDuplicateError?.();
                 }
-              }}>
+              }}
+            >
               {duplicating ? '…' : '📋 Copie'}
             </button>
           )}
-          <button type="button" className="btn btn-danger btn-sm"
-            onClick={() => { if (confirm(`Supprimer "${zone.name}" ?`)) { onDelete(zone.id); onClose(); } }}>
+          <button
+            type="button"
+            className="btn btn-danger btn-sm"
+            onClick={() => {
+              if (confirm(`Supprimer "${zone.name}" ?`)) {
+                onDelete(zone.id);
+                onClose();
+              }
+            }}
+          >
             🗑️
           </button>
         </div>

@@ -10,14 +10,20 @@ const { URL } = require('url');
 const { deploySecretFromEnv } = require('./lib/deploy-secret-from-env');
 const { requestJsonWithRetry } = require('./post-deploy-check.js');
 
-const BASE = String(process.env.FORETMAP_PROD_BASE_URL || 'https://foretmap.olution.info').replace(/\/$/, '');
-const TIMEOUT_MS = Math.max(3000, parseInt(process.env.FORETMAP_PROD_DIAG_TIMEOUT_MS || '15000', 10));
+const BASE = String(process.env.FORETMAP_PROD_BASE_URL || 'https://foretmap.olution.info').replace(
+  /\/$/,
+  '',
+);
+const TIMEOUT_MS = Math.max(
+  3000,
+  parseInt(process.env.FORETMAP_PROD_DIAG_TIMEOUT_MS || '15000', 10),
+);
 
 async function main() {
   const secret = deploySecretFromEnv();
   if (!secret) {
     console.error(
-      'Secret manquant : DEPLOY_SECRET, FORETMAP_DEPLOY_CHECK_SECRET ou FORETMAP_DEPLOY_SECRET dans .env.'
+      'Secret manquant : DEPLOY_SECRET, FORETMAP_DEPLOY_CHECK_SECRET ou FORETMAP_DEPLOY_SECRET dans .env.',
     );
     process.exit(1);
   }

@@ -14,13 +14,47 @@ function buildStateAnimationLookup(stateAnimations) {
   const defaults = {
     [VISIT_MASCOT_STATE.IDLE]: ['idle', 'Idle', 'IDLE'],
     [VISIT_MASCOT_STATE.WALKING]: ['walk', 'Walk', 'walking', 'Walking', 'move', 'Move'],
-    [VISIT_MASCOT_STATE.RUNNING]: ['run', 'Run', 'running', 'sprint', 'move', 'Move', 'walk', 'Walk', 'walking', 'Walking'],
+    [VISIT_MASCOT_STATE.RUNNING]: [
+      'run',
+      'Run',
+      'running',
+      'sprint',
+      'move',
+      'Move',
+      'walk',
+      'Walk',
+      'walking',
+      'Walking',
+    ],
     [VISIT_MASCOT_STATE.HAPPY]: ['happy', 'Happy', 'celebrate', 'Celebrate'],
-    [VISIT_MASCOT_STATE.HAPPY_JUMP]: ['happy_jump', 'happyJump', 'happy', 'Happy', 'celebrate', 'Celebrate'],
+    [VISIT_MASCOT_STATE.HAPPY_JUMP]: [
+      'happy_jump',
+      'happyJump',
+      'happy',
+      'Happy',
+      'celebrate',
+      'Celebrate',
+    ],
     [VISIT_MASCOT_STATE.SPIN]: ['spin', 'rotate', 'happy', 'Happy', 'celebrate', 'Celebrate'],
     [VISIT_MASCOT_STATE.INSPECT]: ['inspect', 'look', 'idle', 'Idle', 'talk', 'Talk'],
-    [VISIT_MASCOT_STATE.MAP_READ]: ['map_read', 'mapRead', 'map', 'read', 'idle', 'Idle', 'talk', 'Talk'],
-    [VISIT_MASCOT_STATE.CELEBRATE]: ['celebrate', 'Celebrate', 'happy', 'Happy', 'victory', 'Victory'],
+    [VISIT_MASCOT_STATE.MAP_READ]: [
+      'map_read',
+      'mapRead',
+      'map',
+      'read',
+      'idle',
+      'Idle',
+      'talk',
+      'Talk',
+    ],
+    [VISIT_MASCOT_STATE.CELEBRATE]: [
+      'celebrate',
+      'Celebrate',
+      'happy',
+      'Happy',
+      'victory',
+      'Victory',
+    ],
     [VISIT_MASCOT_STATE.TALK]: ['talk', 'Talk', 'speaking', 'Speaking', 'idle', 'Idle'],
     [VISIT_MASCOT_STATE.ALERT]: ['alert', 'Alert', 'warning', 'Warning', 'angry', 'Angry'],
     [VISIT_MASCOT_STATE.ANGRY]: ['angry', 'Angry', 'alert', 'Alert'],
@@ -30,7 +64,11 @@ function buildStateAnimationLookup(stateAnimations) {
   return { ...defaults, ...stateAnimations };
 }
 
-function pickAnimationName(animationNames = [], mascotState = VISIT_MASCOT_STATE.IDLE, stateAnimations = null) {
+function pickAnimationName(
+  animationNames = [],
+  mascotState = VISIT_MASCOT_STATE.IDLE,
+  stateAnimations = null,
+) {
   const names = Array.isArray(animationNames) ? animationNames : [];
   const byState = buildStateAnimationLookup(
     stateAnimations && typeof stateAnimations === 'object' ? stateAnimations : null,
@@ -62,10 +100,13 @@ function VisitMapMascotRive({
   const resolvedFallback = fallback ?? (
     <VisitMascotFallbackSvg silhouette={fallbackSilhouette} variant={fallbackVariant} />
   );
-  const layout = useMemo(
-    () => new Layout({ fit: Fit.Contain, alignment: Alignment.Center }),
-    []
-  );
+  const layout = useMemo(() => new Layout({ fit: Fit.Contain, alignment: Alignment.Center }), []);
+
+  useEffect(() => {
+    setRiveError(false);
+    setStatus('loading');
+  }, [riveSrc, mascotId]);
+
   const { rive, RiveComponent } = useRive({
     src: riveSrc,
     autoplay: true,

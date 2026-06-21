@@ -100,7 +100,11 @@ export function GLMascotPackWysiwygEditor({ initialPack, onSave, onDelete }) {
       </label>
       <label>
         JSON pack
-        <textarea value={jsonText} onChange={(event) => setJsonText(event.target.value)} rows={14} />
+        <textarea
+          value={jsonText}
+          onChange={(event) => setJsonText(event.target.value)}
+          rows={14}
+        />
       </label>
       {parseError ? <p className="gl-error">{parseError}</p> : null}
       <MascotPackValidationList

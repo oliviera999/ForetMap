@@ -55,7 +55,7 @@ export function GLChaptersImportExportPanel({ onImportApplied }) {
     return runDownload(
       `/api/gl/chapters/admin/import/template?${params.toString()}`,
       'foretmap-gl-modele-chapitres.xlsx',
-      'Modèle XLSX téléchargé.'
+      'Modèle XLSX téléchargé.',
     );
   }
 
@@ -65,7 +65,7 @@ export function GLChaptersImportExportPanel({ onImportApplied }) {
     return runDownload(
       `/api/gl/chapters/admin/export?${params.toString()}`,
       'foretmap-gl-export-chapitres.xlsx',
-      'Export XLSX généré.'
+      'Export XLSX généré.',
     );
   }
 
@@ -104,8 +104,7 @@ export function GLChaptersImportExportPanel({ onImportApplied }) {
     <section className="gl-admin-section fade-in">
       <h3>Import / export chapitres (XLSX)</h3>
       <p className="gl-hint">
-        Fichier multi-feuilles selon la portée choisie (
-        <code>chapitres</code>
+        Fichier multi-feuilles selon la portée choisie (<code>chapitres</code>
         {scope !== 'content' ? ', reperes' : ''}
         {scope === 'full' ? ', zones_royaume, chapitres_charte' : ''}
         ). Voir <code>data/gl/README.md</code>.
@@ -116,7 +115,9 @@ export function GLChaptersImportExportPanel({ onImportApplied }) {
       <GLField label="Portée export / modèle">
         <GLSelect value={scope} onChange={(e) => setScope(e.target.value)}>
           {SCOPE_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>{opt.label}</option>
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
           ))}
         </GLSelect>
       </GLField>
@@ -146,7 +147,10 @@ export function GLChaptersImportExportPanel({ onImportApplied }) {
           />
         </GLField>
         <GLField label="Mode">
-          <GLSelect value={dryRun ? 'dry' : 'apply'} onChange={(e) => setDryRun(e.target.value === 'dry')}>
+          <GLSelect
+            value={dryRun ? 'dry' : 'apply'}
+            onChange={(e) => setDryRun(e.target.value === 'dry')}
+          >
             <option value="dry">Simulation (dry-run)</option>
             <option value="apply">Importer réellement</option>
           </GLSelect>
@@ -157,8 +161,7 @@ export function GLChaptersImportExportPanel({ onImportApplied }) {
               type="checkbox"
               checked={syncReperes}
               onChange={(e) => setSyncReperes(e.target.checked)}
-            />
-            {' '}
+            />{' '}
             Synchroniser les repères (supprimer ceux absents du fichier, par chapitre)
           </label>
         ) : null}
@@ -168,8 +171,7 @@ export function GLChaptersImportExportPanel({ onImportApplied }) {
               type="checkbox"
               checked={syncZones}
               onChange={(e) => setSyncZones(e.target.checked)}
-            />
-            {' '}
+            />{' '}
             Synchroniser les zones royaume (supprimer celles absentes du fichier, par chapitre)
           </label>
         ) : null}

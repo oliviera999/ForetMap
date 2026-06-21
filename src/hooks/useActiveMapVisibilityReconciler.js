@@ -45,7 +45,9 @@ export function useActiveMapVisibilityReconciler({
     if (activeMapId && visibleMaps.some((map) => map.id === activeMapId)) return;
     const preferredDefaultMapId = showPublicVisit
       ? publicSettings?.map?.default_map_visit
-      : (effectiveIsTeacher ? publicSettings?.map?.default_map_teacher : publicSettings?.map?.default_map_student);
+      : effectiveIsTeacher
+        ? publicSettings?.map?.default_map_teacher
+        : publicSettings?.map?.default_map_student;
     const nextMapId = pickVisibleMapId(visibleMaps, preferredDefaultMapId);
     setActiveMapId((prev) => (prev === nextMapId ? prev : nextMapId));
   }, [

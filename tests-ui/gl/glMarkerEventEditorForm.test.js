@@ -77,11 +77,14 @@ describe('buildEventConfigFromForm', () => {
   });
 
   test('type non-question sans effets renvoie null', () => {
-    const cfg = buildEventConfigFromForm({ eventType: 'souffle', questionSet: 'biome', pool: {} }, null);
+    const cfg = buildEventConfigFromForm(
+      { eventType: 'souffle', questionSet: 'biome', pool: {} },
+      null,
+    );
     expect(cfg).toBeNull();
   });
 
-  test('type non-question avec effets renvoie une config d\'effets', () => {
+  test("type non-question avec effets renvoie une config d'effets", () => {
     const cfg = buildEventConfigFromForm(
       { eventType: 'souffle', questionSet: 'biome', pool: {} },
       { effects: { neutral: { deltaPv: 1 } } },
@@ -91,10 +94,9 @@ describe('buildEventConfigFromForm', () => {
   });
 
   test('question + effets combine question et effets', () => {
-    const cfg = buildEventConfigFromForm(
-      emptyQuestionForm(),
-      { effects: { neutral: { deltaPv: 2 } } },
-    );
+    const cfg = buildEventConfigFromForm(emptyQuestionForm(), {
+      effects: { neutral: { deltaPv: 2 } },
+    });
     expect(cfg.question).toBeTruthy();
     expect(cfg.effects).toBeTruthy();
   });
@@ -124,10 +126,7 @@ describe('effectiveBiomeSlugs', () => {
   });
 
   test('mode custom fusionne sans doublon', () => {
-    const result = effectiveBiomeSlugs(
-      { biomeMode: 'custom', biomeSlugs: ['b', 'c'] },
-      ['a', 'b'],
-    );
+    const result = effectiveBiomeSlugs({ biomeMode: 'custom', biomeSlugs: ['b', 'c'] }, ['a', 'b']);
     expect(result).toEqual(['a', 'b', 'c']);
   });
 });
@@ -142,25 +141,27 @@ describe('chapterBiomeSlugsFrom', () => {
   });
 });
 
-describe('builders d\'options', () => {
+describe("builders d'options", () => {
   test('buildAdditionalBiomeOptions exclut les biomes du chapitre', () => {
     const opts = buildAdditionalBiomeOptions(
-      [{ slug: 'a', nom: 'A' }, { slug: 'b', nom: 'B' }],
+      [
+        { slug: 'a', nom: 'A' },
+        { slug: 'b', nom: 'B' },
+      ],
       ['a'],
     );
     expect(opts).toEqual([{ value: 'b', label: 'B' }]);
   });
 
-  test('buildCategoryOptions préfixe l\'emoji', () => {
-    expect(buildCategoryOptions([{ slug: 'x', nom: 'X', emoji: '🌿' }]))
-      .toEqual([{ value: 'x', label: '🌿 X' }]);
-    expect(buildCategoryOptions([{ slug: 'y', nom: 'Y' }]))
-      .toEqual([{ value: 'y', label: 'Y' }]);
+  test("buildCategoryOptions préfixe l'emoji", () => {
+    expect(buildCategoryOptions([{ slug: 'x', nom: 'X', emoji: '🌿' }])).toEqual([
+      { value: 'x', label: '🌿 X' },
+    ]);
+    expect(buildCategoryOptions([{ slug: 'y', nom: 'Y' }])).toEqual([{ value: 'y', label: 'Y' }]);
   });
 
   test('buildLoreScopeOptions', () => {
-    expect(buildLoreScopeOptions([{ slug: 's', nom: 'S' }]))
-      .toEqual([{ value: 's', label: 'S' }]);
+    expect(buildLoreScopeOptions([{ slug: 's', nom: 'S' }])).toEqual([{ value: 's', label: 'S' }]);
   });
 
   test('buildNiveauOptions fusionne défauts et niveaux du pool, triés', () => {

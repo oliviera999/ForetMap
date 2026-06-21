@@ -67,7 +67,7 @@ describe('mediaLibraryView', () => {
   test('pruneMediaLibrarySelection retire les chemins absents', () => {
     const pruned = pruneMediaLibrarySelection(
       new Set(['media-library/image/a.png', 'media-library/image/ghost.png']),
-      [{ relativePath: 'media-library/image/a.png' }]
+      [{ relativePath: 'media-library/image/a.png' }],
     );
     expect([...pruned]).toEqual(['media-library/image/a.png']);
   });

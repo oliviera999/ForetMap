@@ -46,16 +46,16 @@ Les deux enchaînent **`node scripts/e2e-kill-listen-port.js`** (hors CI) pour l
 
 ## Fichiers clés
 
-| Fichier/Dossier | Rôle |
-|-----------------|------|
-| `e2e/` | Scénarios Playwright (auth, tâches, photos, temps réel, cas PIN invalide) |
-| `e2e/fixtures/auth.fixture.js` | Inscription, login, mode prof (`enableTeacherMode` / `disableTeacherMode`), onglets tâches |
-| `e2e/fixtures/visit-api.fixture.js` | Seed / cleanup **zones et repères visite** via `page.request` + JWT `foretmap_teacher_token` (scénarios déterministes, ex. mascotte) |
-| `e2e/visit-mascot.spec.js` | Mascotte visite : position initiale N3, déplacement au clic (% sur `.visit-map-fit-layer`), classe **walking**, `prefers-reduced-motion` |
-| `scripts/e2e-kill-listen-port.js` | Libère le port HTTP (Windows : `taskkill` via `netstat`) avant les runs |
-| `playwright.config.js` | Workers, timeouts, `webServer`, `serviceWorkers: 'block'`, dotenv |
-| `package.json` | `test:e2e`, `test:e2e:headed`, **`start:e2e`** |
-| `server.js` | Traitement du flag **`--foretmap-e2e-no-rate-limit`** en tout début de fichier |
+| Fichier/Dossier                     | Rôle                                                                                                                                     |
+| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `e2e/`                              | Scénarios Playwright (auth, tâches, photos, temps réel, cas PIN invalide)                                                                |
+| `e2e/fixtures/auth.fixture.js`      | Inscription, login, mode prof (`enableTeacherMode` / `disableTeacherMode`), onglets tâches                                               |
+| `e2e/fixtures/visit-api.fixture.js` | Seed / cleanup **zones et repères visite** via `page.request` + JWT `foretmap_teacher_token` (scénarios déterministes, ex. mascotte)     |
+| `e2e/visit-mascot.spec.js`          | Mascotte visite : position initiale N3, déplacement au clic (% sur `.visit-map-fit-layer`), classe **walking**, `prefers-reduced-motion` |
+| `scripts/e2e-kill-listen-port.js`   | Libère le port HTTP (Windows : `taskkill` via `netstat`) avant les runs                                                                  |
+| `playwright.config.js`              | Workers, timeouts, `webServer`, `serviceWorkers: 'block'`, dotenv                                                                        |
+| `package.json`                      | `test:e2e`, `test:e2e:headed`, **`start:e2e`**                                                                                           |
+| `server.js`                         | Traitement du flag **`--foretmap-e2e-no-rate-limit`** en tout début de fichier                                                           |
 
 ## Conventions de rédaction
 

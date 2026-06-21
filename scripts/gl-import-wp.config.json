@@ -1,9 +1,7 @@
 {
   "sourceBaseUrl": "https://yo.olution.info",
   "canonicalHost": "www.yo.olution.info",
-  "excludeSlugs": [
-    "sample-page"
-  ],
+  "excludeSlugs": ["sample-page"],
   "brandMap": {
     "logoMediaSlug": "",
     "faviconMediaSlug": ""

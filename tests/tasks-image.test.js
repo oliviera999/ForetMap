@@ -20,7 +20,7 @@ before(async () => {
   const loginEmail = String(process.env.TEACHER_ADMIN_EMAIL || '').trim();
   const teacher = await queryOne(
     "SELECT id FROM users WHERE user_type = 'teacher' AND LOWER(email) = LOWER(?) LIMIT 1",
-    [loginEmail]
+    [loginEmail],
   );
   const adminRole = await queryOne("SELECT id FROM roles WHERE slug = 'admin' LIMIT 1");
   assert.ok(teacher?.id, 'Compte admin enseignant introuvable');
@@ -35,7 +35,7 @@ before(async () => {
       roleDisplayName: 'Administrateur',
       elevated: false,
     },
-    false
+    false,
   );
 });
 
@@ -52,7 +52,8 @@ describe('Tâches — image illustrative', () => {
       .expect(201);
     assert.ok(res.body.image_url);
     assert.ok(
-      String(res.body.image_url).includes('/uploads/tasks/') || String(res.body.image_url).includes('/image')
+      String(res.body.image_url).includes('/uploads/tasks/') ||
+        String(res.body.image_url).includes('/image'),
     );
     assert.strictEqual(res.body.image_path, undefined);
 
@@ -66,7 +67,7 @@ describe('Tâches — image illustrative', () => {
     await execute(
       `INSERT INTO tasks (id, title, description, image_path, map_id, project_id, zone_id, marker_id, start_date, due_date, required_students, completion_mode, danger_level, difficulty_level, importance_level, status, recurrence, created_at)
        VALUES (?, ?, ?, ?, NULL, NULL, NULL, NULL, NULL, NULL, 1, 'single_done', NULL, NULL, NULL, 'available', NULL, ?)`,
-      [taskId, 'Sans image bientôt', '', `tasks/${taskId}.jpg`, new Date().toISOString()]
+      [taskId, 'Sans image bientôt', '', `tasks/${taskId}.jpg`, new Date().toISOString()],
     );
 
     const put = await request(app)

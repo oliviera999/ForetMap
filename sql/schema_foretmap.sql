@@ -38,7 +38,6 @@ CREATE TABLE IF NOT EXISTS zones (
   width DOUBLE DEFAULT NULL,
   height DOUBLE DEFAULT NULL,
   current_plant VARCHAR(255) DEFAULT '',
-  living_beings TEXT DEFAULT NULL,
   stage VARCHAR(64) DEFAULT 'empty',
   special TINYINT(1) DEFAULT 0,
   shape VARCHAR(32) DEFAULT 'rect',
@@ -67,23 +66,29 @@ CREATE TABLE IF NOT EXISTS plants (
   description TEXT DEFAULT NULL,
   second_name VARCHAR(255) DEFAULT NULL,
   scientific_name VARCHAR(255) DEFAULT NULL,
-  group_1 VARCHAR(255) DEFAULT NULL,
-  group_2 VARCHAR(255) DEFAULT NULL,
-  group_3 VARCHAR(255) DEFAULT NULL,
-  group_4 VARCHAR(255) DEFAULT NULL,
+  taxon_kingdom VARCHAR(64) DEFAULT NULL COMMENT 'Règne (vernaculaire pédagogique)',
+  taxon_group VARCHAR(96) DEFAULT NULL COMMENT 'Grand groupe',
+  taxon_family VARCHAR(96) DEFAULT NULL COMMENT 'Famille',
+  taxon_genus VARCHAR(96) DEFAULT NULL COMMENT 'Genre',
+  gbif_key INT UNSIGNED DEFAULT NULL COMMENT 'Identifiant taxon GBIF',
+  habitat_type ENUM('terrestre','aquatique','les_deux') DEFAULT NULL,
+  trophic_role ENUM('producteur','consommateur','decomposeur') DEFAULT NULL,
+  is_ornamental TINYINT(1) NOT NULL DEFAULT 0,
+  life_cycle ENUM('annuelle','bisannuelle','vivace','variable') DEFAULT NULL,
+  temp_min_c SMALLINT DEFAULT NULL,
+  temp_max_c SMALLINT DEFAULT NULL,
+  ph_min DECIMAL(3,1) DEFAULT NULL,
+  ph_max DECIMAL(3,1) DEFAULT NULL,
+  is_edible TINYINT(1) DEFAULT NULL,
   habitat VARCHAR(255) DEFAULT NULL,
   photo TEXT DEFAULT NULL,
   nutrition TEXT DEFAULT NULL,
-  agroecosystem_category VARCHAR(255) DEFAULT NULL,
-  longevity VARCHAR(255) DEFAULT NULL,
   remark_1 TEXT DEFAULT NULL,
   remark_2 TEXT DEFAULT NULL,
   remark_3 TEXT DEFAULT NULL,
   reproduction VARCHAR(255) DEFAULT NULL,
   size VARCHAR(255) DEFAULT NULL,
   sources TEXT DEFAULT NULL,
-  ideal_temperature_c VARCHAR(64) DEFAULT NULL,
-  optimal_ph VARCHAR(64) DEFAULT NULL,
   ecosystem_role TEXT DEFAULT NULL,
   geographic_origin VARCHAR(255) DEFAULT NULL,
   human_utility TEXT DEFAULT NULL,
@@ -96,6 +101,24 @@ CREATE TABLE IF NOT EXISTS plants (
   photo_fruit TEXT DEFAULT NULL,
   photo_harvest_part TEXT DEFAULT NULL,
   INDEX idx_plants_name (name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS plant_name_aliases (
+  alias VARCHAR(255) NOT NULL,
+  plant_id INT UNSIGNED NOT NULL,
+  PRIMARY KEY (alias),
+  KEY idx_alias_plant (plant_id),
+  CONSTRAINT fk_alias_plant FOREIGN KEY (plant_id) REFERENCES plants (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS zone_species (
+  zone_id VARCHAR(64) NOT NULL,
+  plant_id INT UNSIGNED NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (zone_id, plant_id),
+  KEY idx_zone_species_plant (plant_id),
+  CONSTRAINT fk_zone_species_zone FOREIGN KEY (zone_id) REFERENCES zones (id) ON DELETE CASCADE,
+  CONSTRAINT fk_zone_species_plant FOREIGN KEY (plant_id) REFERENCES plants (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- task_projects (regroupement de tâches par projet)
@@ -130,7 +153,6 @@ CREATE TABLE IF NOT EXISTS tasks (
   difficulty_level VARCHAR(32) DEFAULT NULL,
   importance_level VARCHAR(32) DEFAULT NULL,
   sort_order INT UNSIGNED NOT NULL DEFAULT 0,
-  living_beings TEXT DEFAULT NULL,
   status VARCHAR(32) DEFAULT 'available',
   created_at VARCHAR(32) DEFAULT NULL,
   INDEX idx_tasks_map_id (map_id),
@@ -144,6 +166,16 @@ CREATE TABLE IF NOT EXISTS tasks (
   CONSTRAINT fk_tasks_project FOREIGN KEY (project_id) REFERENCES task_projects(id) ON DELETE SET NULL,
   CONSTRAINT fk_tasks_zone FOREIGN KEY (zone_id) REFERENCES zones(id) ON DELETE SET NULL,
   CONSTRAINT fk_tasks_marker FOREIGN KEY (marker_id) REFERENCES map_markers(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS task_species (
+  task_id VARCHAR(64) NOT NULL,
+  plant_id INT UNSIGNED NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (task_id, plant_id),
+  KEY idx_task_species_plant (plant_id),
+  CONSTRAINT fk_task_species_task FOREIGN KEY (task_id) REFERENCES tasks (id) ON DELETE CASCADE,
+  CONSTRAINT fk_task_species_plant FOREIGN KEY (plant_id) REFERENCES plants (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Liens N-N tâches / zones et tâches / repères (zone_id et marker_id sur tasks = premier lien pour compat)
@@ -649,13 +681,22 @@ CREATE TABLE IF NOT EXISTS map_markers (
   y_pct DOUBLE NOT NULL,
   label VARCHAR(255) NOT NULL,
   plant_name VARCHAR(255) DEFAULT '',
-  living_beings TEXT DEFAULT NULL,
   note TEXT DEFAULT NULL,
   emoji VARCHAR(16) DEFAULT '🌱',
   created_at VARCHAR(32) DEFAULT NULL,
   INDEX idx_map_markers_map_id (map_id),
   CONSTRAINT fk_map_markers_map FOREIGN KEY (map_id) REFERENCES maps(id) ON DELETE RESTRICT,
   INDEX idx_map_markers_created (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS marker_species (
+  marker_id VARCHAR(64) NOT NULL,
+  plant_id INT UNSIGNED NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (marker_id, plant_id),
+  KEY idx_marker_species_plant (plant_id),
+  CONSTRAINT fk_marker_species_marker FOREIGN KEY (marker_id) REFERENCES map_markers (id) ON DELETE CASCADE,
+  CONSTRAINT fk_marker_species_plant FOREIGN KEY (plant_id) REFERENCES plants (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- marker_photos (photos par repère carte)

@@ -8,33 +8,39 @@ const {
 
 test('collectItemIdsFromClaims agrège P366, P183 et P9714', () => {
   const claims = {
-    P366: [{
-      mainsnak: {
-        snaktype: 'value',
-        datavalue: {
-          type: 'wikibase-entityid',
-          value: { id: 'Q2095' },
+    P366: [
+      {
+        mainsnak: {
+          snaktype: 'value',
+          datavalue: {
+            type: 'wikibase-entityid',
+            value: { id: 'Q2095' },
+          },
         },
       },
-    }],
-    P183: [{
-      mainsnak: {
-        snaktype: 'value',
-        datavalue: {
-          type: 'wikibase-entityid',
-          value: { id: 'Q142' },
+    ],
+    P183: [
+      {
+        mainsnak: {
+          snaktype: 'value',
+          datavalue: {
+            type: 'wikibase-entityid',
+            value: { id: 'Q142' },
+          },
         },
       },
-    }],
-    P9714: [{
-      mainsnak: {
-        snaktype: 'value',
-        datavalue: {
-          type: 'wikibase-entityid',
-          value: { id: 'Q155' },
+    ],
+    P9714: [
+      {
+        mainsnak: {
+          snaktype: 'value',
+          datavalue: {
+            type: 'wikibase-entityid',
+            value: { id: 'Q155' },
+          },
         },
       },
-    }],
+    ],
   };
   const ids = collectItemIdsFromClaims(claims, ['P366', 'P183', 'P9714']);
   assert.ok(ids.includes('Q2095'));
@@ -44,12 +50,14 @@ test('collectItemIdsFromClaims agrège P366, P183 et P9714', () => {
 
 test('extractWikidataTraitFields inclut P9714 dans geographic_origin', () => {
   const claims = {
-    P9714: [{
-      mainsnak: {
-        snaktype: 'value',
-        datavalue: { type: 'wikibase-entityid', value: { id: 'Q155' } },
+    P9714: [
+      {
+        mainsnak: {
+          snaktype: 'value',
+          datavalue: { type: 'wikibase-entityid', value: { id: 'Q155' } },
+        },
       },
-    }],
+    ],
   };
   const labelMap = new Map([['Q155', { fr: 'Brésil', en: 'Brazil' }]]);
   const { fields } = extractWikidataTraitFields(claims, labelMap);
@@ -58,18 +66,22 @@ test('extractWikidataTraitFields inclut P9714 dans geographic_origin', () => {
 
 test('extractWikidataTraitFields joint libellés P366 et P183', () => {
   const claims = {
-    P366: [{
-      mainsnak: {
-        snaktype: 'value',
-        datavalue: { type: 'wikibase-entityid', value: { id: 'Q2095' } },
+    P366: [
+      {
+        mainsnak: {
+          snaktype: 'value',
+          datavalue: { type: 'wikibase-entityid', value: { id: 'Q2095' } },
+        },
       },
-    }],
-    P183: [{
-      mainsnak: {
-        snaktype: 'value',
-        datavalue: { type: 'wikibase-entityid', value: { id: 'Q142' } },
+    ],
+    P183: [
+      {
+        mainsnak: {
+          snaktype: 'value',
+          datavalue: { type: 'wikibase-entityid', value: { id: 'Q142' } },
+        },
       },
-    }],
+    ],
   };
   const labelMap = new Map([
     ['Q2095', { fr: 'aliment', en: 'food' }],

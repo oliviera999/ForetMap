@@ -14,7 +14,11 @@ describe('buildStudentRankSteps', () => {
   test('repli sur l’échelle n3beur historique si steps vide ou absent', () => {
     for (const input of [undefined, null, []]) {
       const ranks = buildStudentRankSteps(input);
-      expect(ranks.map((r) => r.roleSlug)).toEqual(['eleve_novice', 'eleve_avance', 'eleve_chevronne']);
+      expect(ranks.map((r) => r.roleSlug)).toEqual([
+        'eleve_novice',
+        'eleve_avance',
+        'eleve_chevronne',
+      ]);
       expect(ranks.map((r) => r.min)).toEqual([0, 5, 10]);
     }
   });
@@ -55,14 +59,20 @@ describe('deriveStudentProgressionView', () => {
   });
 
   test('palier maximum : nextRank null, barre à 100 %, 0 restante', () => {
-    const view = deriveStudentProgressionView({ steps: SERVER_STEPS, roleSlug: 'eleve_chevronne' }, 12);
+    const view = deriveStudentProgressionView(
+      { steps: SERVER_STEPS, roleSlug: 'eleve_chevronne' },
+      12,
+    );
     expect(view.nextRank).toBeNull();
     expect(view.progressPct).toBe(100);
     expect(view.tasksRemaining).toBe(0);
   });
 
   test('profil attribué plus avancé que les tâches → profileAheadOfTasks', () => {
-    const view = deriveStudentProgressionView({ steps: SERVER_STEPS, roleSlug: 'eleve_chevronne' }, 2);
+    const view = deriveStudentProgressionView(
+      { steps: SERVER_STEPS, roleSlug: 'eleve_chevronne' },
+      2,
+    );
     expect(view.profileAheadOfTasks).toBe(true);
     expect(view.profileBehindOfTasks).toBe(false);
     expect(view.showTaskObjective).toBe(true);
@@ -79,7 +89,7 @@ describe('deriveStudentProgressionView', () => {
   test('montée auto coupée : aucun écart signalé même si profil ≠ palier tâches', () => {
     const view = deriveStudentProgressionView(
       { steps: SERVER_STEPS, roleSlug: 'eleve_chevronne', autoProgressionEnabled: false },
-      2
+      2,
     );
     expect(view.autoProgressionEnabled).toBe(false);
     expect(view.profileAheadOfTasks).toBe(false);
@@ -89,8 +99,13 @@ describe('deriveStudentProgressionView', () => {
 
   test('rôle hors échelle avec roleDisplayName → palier synthétique sur la base du palier tâches', () => {
     const view = deriveStudentProgressionView(
-      { steps: SERVER_STEPS, roleSlug: 'gardien_forets', roleDisplayName: 'Gardien des forêts', roleEmoji: '🦉' },
-      6
+      {
+        steps: SERVER_STEPS,
+        roleSlug: 'gardien_forets',
+        roleDisplayName: 'Gardien des forêts',
+        roleEmoji: '🦉',
+      },
+      6,
     );
     expect(view.actualTier).toMatchObject({
       roleSlug: 'gardien_forets',

@@ -48,11 +48,7 @@ describe('GLContentPage', () => {
     apiGlMock.mockRejectedValue(err);
 
     render(
-      <GLContentPage
-        slug="world"
-        fallbackTitle="Monde"
-        auth={{ permissions: ['gl.read'] }}
-      />,
+      <GLContentPage slug="world" fallbackTitle="Monde" auth={{ permissions: ['gl.read'] }} />,
     );
 
     await waitFor(() => {
@@ -63,13 +59,11 @@ describe('GLContentPage', () => {
   });
 
   test('Réessayer relance le chargement sans reload complet', async () => {
-    apiGlMock
-      .mockRejectedValueOnce(new Error('Service indisponible'))
-      .mockResolvedValueOnce({
-        slug: 'world',
-        title: 'Monde OK',
-        bodyMarkdown: 'Contenu',
-      });
+    apiGlMock.mockRejectedValueOnce(new Error('Service indisponible')).mockResolvedValueOnce({
+      slug: 'world',
+      title: 'Monde OK',
+      bodyMarkdown: 'Contenu',
+    });
 
     render(
       <GLContentPage slug="world" fallbackTitle="Monde" auth={{ permissions: ['gl.read'] }} />,

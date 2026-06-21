@@ -45,9 +45,11 @@ curl -s https://gl.olution.info/api/gl/auth/config
 ## Côté WordPress : faut-il des identifiants ?
 
 Par défaut, non :
+
 - pages + médias + HTML sont lus en public.
 
 Identifiants requis seulement si :
+
 - l'API `/wp-json/*` est protégée,
 - ou si un plugin bloque la lecture des médias/pages.
 

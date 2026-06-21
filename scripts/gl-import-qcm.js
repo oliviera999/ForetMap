@@ -8,7 +8,12 @@ require('dotenv').config();
 const { parseQcmWorkbook, applyQcmImport } = require('../lib/glQcmImport');
 const { initSchema, queryAll, execute } = require('../database');
 
-const DEFAULT_FILE = path.join(process.cwd(), 'data', 'gl', 'qcm-biomes-gnomes-et-licornes-consolide.xlsx');
+const DEFAULT_FILE = path.join(
+  process.cwd(),
+  'data',
+  'gl',
+  'qcm-biomes-gnomes-et-licornes-consolide.xlsx',
+);
 
 function parseArgs(argv) {
   const args = { dryRun: true, apply: false, file: DEFAULT_FILE };
@@ -33,12 +38,9 @@ async function main() {
 
   await initSchema();
 
-  const report = await applyQcmImport(
-    { queryAll, execute },
-    categoryRows,
-    questionRows,
-    { dryRun: args.dryRun }
-  );
+  const report = await applyQcmImport({ queryAll, execute }, categoryRows, questionRows, {
+    dryRun: args.dryRun,
+  });
 
   const mode = args.dryRun ? 'dry-run' : 'apply';
   console.log(`[gl-import-qcm] ${mode} OK — fichier: ${args.file}`);

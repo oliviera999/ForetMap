@@ -5,17 +5,16 @@
 
 export function sanitizeFrameEntries(values) {
   if (!Array.isArray(values)) return [];
-  return values
-    .map((v) => String(v || '').trim())
-    .filter(Boolean);
+  return values.map((v) => String(v || '').trim()).filter(Boolean);
 }
 
 export function sanitizeMascotPackDraft(pack) {
   if (!pack || typeof pack !== 'object') return {};
   const next = { ...pack };
-  const rawStates = next.stateFrames && typeof next.stateFrames === 'object' && !Array.isArray(next.stateFrames)
-    ? next.stateFrames
-    : {};
+  const rawStates =
+    next.stateFrames && typeof next.stateFrames === 'object' && !Array.isArray(next.stateFrames)
+      ? next.stateFrames
+      : {};
   const cleanedStates = {};
   for (const [stateKey, rawSpec] of Object.entries(rawStates)) {
     if (!rawSpec || typeof rawSpec !== 'object') continue;
@@ -133,4 +132,5 @@ export function toFriendlyVisitPackIssueMessage(path, message) {
 /** @deprecated Alias visite */
 export const extractMascotPackValidationIssues = extractZodValidationIssues;
 /** @deprecated Alias visite */
-export const toMascotPackIssueLines = (issues) => toValidationIssueLines(issues, toFriendlyVisitPackIssueMessage);
+export const toMascotPackIssueLines = (issues) =>
+  toValidationIssueLines(issues, toFriendlyVisitPackIssueMessage);

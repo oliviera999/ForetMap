@@ -19,8 +19,14 @@ import {
  * @returns {string}
  */
 export function sanitizeClientFilename(name) {
-  const raw = String(name || '').replace(/^.*[\\/]/, '').trim();
-  const base = raw.replace(/[^a-zA-Z0-9._-]+/g, '-').toLowerCase().replace(/^-+|-+$/g, '') || 'frame';
+  const raw = String(name || '')
+    .replace(/^.*[\\/]/, '')
+    .trim();
+  const base =
+    raw
+      .replace(/[^a-zA-Z0-9._-]+/g, '-')
+      .toLowerCase()
+      .replace(/^-+|-+$/g, '') || 'frame';
   return base.toLowerCase().endsWith('.png') ? base : `${base}.png`;
 }
 
@@ -47,7 +53,13 @@ export function resolveFrameUrl(pack, rel) {
 export function resolveSrcPreviewUrl(raw) {
   const s = String(raw || '').trim();
   if (!s) return '';
-  if (s.startsWith('blob:') || s.startsWith('data:') || s.startsWith('http://') || s.startsWith('https://')) return s;
+  if (
+    s.startsWith('blob:') ||
+    s.startsWith('data:') ||
+    s.startsWith('http://') ||
+    s.startsWith('https://')
+  )
+    return s;
   return withAppBase(s);
 }
 
@@ -111,9 +123,10 @@ export function removeFrameAt(spec, files, dwell, fps, idx) {
  * @returns {Record<string, unknown>} nouveau dictionnaire `stateFrames`
  */
 export function appendFileToStateFrames(stateFrames, stateKey, filename) {
-  const map = stateFrames && typeof stateFrames === 'object' && !Array.isArray(stateFrames)
-    ? stateFrames
-    : {};
+  const map =
+    stateFrames && typeof stateFrames === 'object' && !Array.isArray(stateFrames)
+      ? stateFrames
+      : {};
   const cur = map[stateKey];
   const base = cur && typeof cur === 'object' ? { ...cur } : { fps: 8 };
   const files = Array.isArray(base.files) ? [...base.files] : [];
@@ -160,7 +173,9 @@ export function computePackMediaWarnings(pack, packUuid, assets, stateFrames) {
     }
     const missing = [...referenced].filter((f) => !available.has(f));
     if (missing.length > 0) {
-      warnings.push(`Fichiers référencés absents de la médiathèque serveur: ${missing.slice(0, 6).join(', ')}${missing.length > 6 ? '…' : ''}.`);
+      warnings.push(
+        `Fichiers référencés absents de la médiathèque serveur: ${missing.slice(0, 6).join(', ')}${missing.length > 6 ? '…' : ''}.`,
+      );
     }
   }
   return warnings;

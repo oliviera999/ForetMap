@@ -12,7 +12,11 @@ vi.mock('../../src/gl/components/GLSpellCatalog.jsx', () => ({
 }));
 
 vi.mock('../../src/gl/components/ui/GLButton.jsx', () => ({
-  GLButton: ({ children, ...props }) => <button type="button" {...props}>{children}</button>,
+  GLButton: ({ children, ...props }) => (
+    <button type="button" {...props}>
+      {children}
+    </button>
+  ),
 }));
 
 describe('GLSpellsView', () => {
@@ -26,6 +30,8 @@ describe('GLSpellsView', () => {
     const panel = container.querySelector('article');
     expect(panel).toHaveClass('gl-spells-panel');
     expect(panel).toHaveClass('gl-grimoire');
-    expect(screen.getByRole('heading', { name: 'Sortilèges' })).toHaveClass('gl-spells-panel__title');
+    expect(screen.getByRole('heading', { name: 'Sortilèges' })).toHaveClass(
+      'gl-spells-panel__title',
+    );
   });
 });

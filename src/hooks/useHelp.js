@@ -66,10 +66,13 @@ function useHelp({ publicSettings, isTeacher }) {
     });
   }, []);
 
-  const hasSeenSection = useCallback((sectionId) => {
-    if (!sectionId) return false;
-    return !!seenSections?.[sectionId];
-  }, [seenSections]);
+  const hasSeenSection = useCallback(
+    (sectionId) => {
+      if (!sectionId) return false;
+      return !!seenSections?.[sectionId];
+    },
+    [seenSections],
+  );
 
   const resetHelp = useCallback(() => {
     setSeenSections({});
@@ -122,31 +125,34 @@ function useHelp({ publicSettings, isTeacher }) {
     persistHelpMetrics(next);
   }, []);
 
-  return useMemo(() => ({
-    isHelpEnabled,
-    showContextHints,
-    pulseUnseenPanels,
-    roleKey,
-    hasSeenSection,
-    markSectionSeen,
-    resetHelp,
-    metrics,
-    trackPanelOpen,
-    trackPanelDismiss,
-    resetHelpMetrics,
-  }), [
-    hasSeenSection,
-    isHelpEnabled,
-    pulseUnseenPanels,
-    markSectionSeen,
-    metrics,
-    resetHelp,
-    resetHelpMetrics,
-    roleKey,
-    showContextHints,
-    trackPanelDismiss,
-    trackPanelOpen,
-  ]);
+  return useMemo(
+    () => ({
+      isHelpEnabled,
+      showContextHints,
+      pulseUnseenPanels,
+      roleKey,
+      hasSeenSection,
+      markSectionSeen,
+      resetHelp,
+      metrics,
+      trackPanelOpen,
+      trackPanelDismiss,
+      resetHelpMetrics,
+    }),
+    [
+      hasSeenSection,
+      isHelpEnabled,
+      pulseUnseenPanels,
+      markSectionSeen,
+      metrics,
+      resetHelp,
+      resetHelpMetrics,
+      roleKey,
+      showContextHints,
+      trackPanelDismiss,
+      trackPanelOpen,
+    ],
+  );
 }
 
 export { useHelp };

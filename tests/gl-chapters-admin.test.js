@@ -26,12 +26,11 @@ before(async () => {
     `INSERT INTO gl_admins (email, display_name, role, is_active, created_at, updated_at)
      VALUES (?, 'MJ Chapters Admin', 'admin', 1, NOW(), NOW())
      ON DUPLICATE KEY UPDATE is_active = 1, updated_at = NOW()`,
-    [`chapters.admin.${stamp}@ecole.local`]
+    [`chapters.admin.${stamp}@ecole.local`],
   );
-  const admin = await queryOne(
-    'SELECT id FROM gl_admins WHERE email = ? LIMIT 1',
-    [`chapters.admin.${stamp}@ecole.local`]
-  );
+  const admin = await queryOne('SELECT id FROM gl_admins WHERE email = ? LIMIT 1', [
+    `chapters.admin.${stamp}@ecole.local`,
+  ]);
   adminId = admin.id;
   adminToken = await signAuthToken({
     product: 'gl',
@@ -45,9 +44,11 @@ before(async () => {
   await execute(
     `INSERT INTO gl_classes (name, school, created_by, is_active, created_at, updated_at)
      VALUES (?, 'Ecole', ?, 1, NOW(), NOW())`,
-    [`Classe Chapters Admin ${stamp}`, admin.id]
+    [`Classe Chapters Admin ${stamp}`, admin.id],
   );
-  const cls = await queryOne('SELECT id FROM gl_classes WHERE name = ? LIMIT 1', [`Classe Chapters Admin ${stamp}`]);
+  const cls = await queryOne('SELECT id FROM gl_classes WHERE name = ? LIMIT 1', [
+    `Classe Chapters Admin ${stamp}`,
+  ]);
   classId = cls.id;
   const player = await createGlPlayer({
     classId: cls.id,
@@ -115,7 +116,7 @@ test('PUT /api/gl/chapters/admin/:id met à jour biomeSlugs', async () => {
   assert.ok(res.body.chapter.biomes[0].nom);
 });
 
-test('PUT /api/gl/chapters/admin/:id met à jour le titre et l\'order_index', async () => {
+test("PUT /api/gl/chapters/admin/:id met à jour le titre et l'order_index", async () => {
   const res = await request(app)
     .put(`/api/gl/chapters/admin/${createdChapterId}`)
     .set('Authorization', `Bearer ${adminToken}`)
@@ -129,6 +130,24 @@ test('PUT /api/gl/chapters/admin/:id met à jour le titre et l\'order_index', as
   assert.strictEqual(Number(res.body.chapter.order_index), 5);
   assert.strictEqual(Number(res.body.chapter.map_image_frame.focalX), 15);
   assert.strictEqual(Number(res.body.chapter.map_image_frame.focalY), 25);
+});
+
+test('PUT /api/gl/chapters/admin/:id met à jour mapMarkersVisible et mapZonesVisible', async () => {
+  const res = await request(app)
+    .put(`/api/gl/chapters/admin/${createdChapterId}`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ mapMarkersVisible: false, mapZonesVisible: true })
+    .expect(200);
+  assert.strictEqual(res.body.chapter.map_markers_visible, 0);
+  assert.strictEqual(res.body.chapter.map_zones_visible, 1);
+
+  const reset = await request(app)
+    .put(`/api/gl/chapters/admin/${createdChapterId}`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ mapMarkersVisible: null, mapZonesVisible: null })
+    .expect(200);
+  assert.strictEqual(reset.body.chapter.map_markers_visible, null);
+  assert.strictEqual(reset.body.chapter.map_zones_visible, null);
 });
 
 test('PUT /api/gl/chapters/admin/:id met à jour theme.colors', async () => {
@@ -162,11 +181,23 @@ test('POST /api/gl/chapters/admin/charte/import apply met à jour theme_json', a
   const wb = XLSX.utils.book_new();
   const data = [
     [
-      'slug', 'titre', 'image_carte_url',
-      'couleur_primaire', 'couleur_secondaire', 'couleur_tertiaire', 'couleur_texte',
-      'couleur_liens', 'couleur_liens_survol', 'couleur_barre_haute', 'couleur_fond',
-      'cadre_ratio', 'cadre_ajustement', 'cadre_focal_x', 'cadre_focal_y',
-      'cadre_largeur_max', 'cadre_hauteur_max',
+      'slug',
+      'titre',
+      'image_carte_url',
+      'couleur_primaire',
+      'couleur_secondaire',
+      'couleur_tertiaire',
+      'couleur_texte',
+      'couleur_liens',
+      'couleur_liens_survol',
+      'couleur_barre_haute',
+      'couleur_fond',
+      'cadre_ratio',
+      'cadre_ajustement',
+      'cadre_focal_x',
+      'cadre_focal_y',
+      'cadre_largeur_max',
+      'cadre_hauteur_max',
     ],
     [slugCreated, '', '', '#2c5959', '', '', '', '', '', '', '#e8f5e9', '', '', '', '', '', ''],
   ];
@@ -181,7 +212,9 @@ test('POST /api/gl/chapters/admin/charte/import apply met à jour theme_json', a
     .expect(200);
   assert.strictEqual(res.body.report.totals.updated, 1);
 
-  const row = await queryOne('SELECT theme_json FROM gl_chapters WHERE slug = ? LIMIT 1', [slugCreated]);
+  const row = await queryOne('SELECT theme_json FROM gl_chapters WHERE slug = ? LIMIT 1', [
+    slugCreated,
+  ]);
   const theme = JSON.parse(String(row.theme_json));
   assert.strictEqual(theme.colors.primary, '#2c5959');
   assert.strictEqual(theme.colors.background, '#e8f5e9');
@@ -229,15 +262,29 @@ test('GET /api/gl/chapters/admin/export filtre par slug', async () => {
   const { parseChaptersWorkbook } = require('../lib/glChaptersImport');
   const parsed = await parseChaptersWorkbook(buf);
   assert.strictEqual(parsed.chapterRows.length, 1);
-  assert.strictEqual(String(parsed.chapterRows[0].slug || parsed.chapterRows[0].Slug).toLowerCase(), slugCreated);
+  assert.strictEqual(
+    String(parsed.chapterRows[0].slug || parsed.chapterRows[0].Slug).toLowerCase(),
+    slugCreated,
+  );
 });
 
 test('POST /api/gl/chapters/admin/import met à jour histoire_markdown', async () => {
   const XLSX = require('xlsx');
   const wb = XLSX.utils.book_new();
   const data = [
-    ['slug', 'titre', 'ordre', 'biome', 'biomes_slugs', 'sorts_codes', 'image_carte_url',
-      'histoire_markdown', 'biotope_markdown', 'biocenose_markdown', 'sortileges_markdown'],
+    [
+      'slug',
+      'titre',
+      'ordre',
+      'biome',
+      'biomes_slugs',
+      'sorts_codes',
+      'image_carte_url',
+      'histoire_markdown',
+      'biotope_markdown',
+      'biocenose_markdown',
+      'sortileges_markdown',
+    ],
     [slugCreated, '', '', '', '', '', '', '# Histoire import XLSX', '', '', ''],
   ];
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(data), 'chapitres');
@@ -251,7 +298,9 @@ test('POST /api/gl/chapters/admin/import met à jour histoire_markdown', async (
     .expect(200);
   assert.strictEqual(res.body.report.totals.updated, 1);
 
-  const row = await queryOne('SELECT story_markdown FROM gl_chapters WHERE slug = ? LIMIT 1', [slugCreated]);
+  const row = await queryOne('SELECT story_markdown FROM gl_chapters WHERE slug = ? LIMIT 1', [
+    slugCreated,
+  ]);
   assert.strictEqual(String(row.story_markdown), '# Histoire import XLSX');
 });
 
@@ -269,7 +318,9 @@ test('POST /api/gl/chapters/admin/:id/map-image importe une image locale', async
     .set('Authorization', `Bearer ${adminToken}`)
     .send({ image_data: TINY_PNG_DATA_URL })
     .expect(200);
-  assert.ok(String(res.body?.chapter?.map_image_url || '').startsWith('/uploads/gl_chapters_maps/'));
+  assert.ok(
+    String(res.body?.chapter?.map_image_url || '').startsWith('/uploads/gl_chapters_maps/'),
+  );
 });
 
 test('POST /api/gl/chapters/admin/:id/markers ajoute un marker', async () => {
@@ -348,10 +399,9 @@ test('DELETE /api/gl/chapters/admin/markers/:markerId supprime le marker', async
     .delete(`/api/gl/chapters/admin/markers/${createdMarkerId}`)
     .set('Authorization', `Bearer ${adminToken}`)
     .expect(200);
-  const row = await queryOne(
-    'SELECT id FROM gl_chapter_markers WHERE id = ? LIMIT 1',
-    [createdMarkerId]
-  );
+  const row = await queryOne('SELECT id FROM gl_chapter_markers WHERE id = ? LIMIT 1', [
+    createdMarkerId,
+  ]);
   assert.ok(!row, 'Marker should be removed (queryOne returns null or undefined)');
 });
 
@@ -379,6 +429,8 @@ test('DELETE /api/gl/chapters/admin/:id refuse si chapitre lié à une partie (4
     .delete(`/api/gl/chapters/admin/${chapter.id}`)
     .set('Authorization', `Bearer ${adminToken}`)
     .expect(409);
-  const stillThere = await queryOne("SELECT id FROM gl_chapters WHERE slug = 'foret-magique' LIMIT 1");
+  const stillThere = await queryOne(
+    "SELECT id FROM gl_chapters WHERE slug = 'foret-magique' LIMIT 1",
+  );
   assert.ok(stillThere?.id, 'Le chapitre seedé ne doit pas avoir été supprimé');
 });

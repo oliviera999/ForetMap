@@ -48,125 +48,150 @@ function playerIdFromReq(req) {
   return Number(req.glAuth.userId);
 }
 
-router.get('/classmates', asyncHandler(async (req, res) => {
-  try {
-    const items = await listClassmates(playerIdFromReq(req));
-    return res.json({ items });
-  } catch (err) {
-    const mapped = resolveMarketError(err);
-    if (mapped) return res.status(mapped.status).json({ error: mapped.error });
-    throw err;
-  }
-}));
-
-router.get('/trades', validate({ query: glMarketTradesQuerySchema }), asyncHandler(async (req, res) => {
-  const { page, pageSize } = req.validatedQuery;
-  const data = await listTradesForPlayer(playerIdFromReq(req), { page, pageSize });
-  return res.json(data);
-}));
-
-router.post('/trades', asyncHandler(async (req, res) => {
-  try {
-    const peerPlayerId = Number(req.body?.peerPlayerId);
-    if (!Number.isFinite(peerPlayerId) || peerPlayerId <= 0) {
-      return res.status(400).json({ error: 'peerPlayerId invalide' });
+router.get(
+  '/classmates',
+  asyncHandler(async (req, res) => {
+    try {
+      const items = await listClassmates(playerIdFromReq(req));
+      return res.json({ items });
+    } catch (err) {
+      const mapped = resolveMarketError(err);
+      if (mapped) return res.status(mapped.status).json({ error: mapped.error });
+      throw err;
     }
-    const trade = await createTrade(playerIdFromReq(req), peerPlayerId);
-    emitGlMarketTradeChanged(trade.classId, { tradeId: trade.id, action: 'created' });
-    return res.status(201).json(trade);
-  } catch (err) {
-    return handleMarketError(err, res);
-  }
-}));
+  }),
+);
 
-router.get('/trades/:id', asyncHandler(async (req, res) => {
-  try {
-    const tradeId = Number(req.params.id);
-    if (!Number.isFinite(tradeId)) {
-      return res.status(400).json({ error: 'Identifiant invalide' });
-    }
-    await assertTradeParticipant(tradeId, playerIdFromReq(req));
-    const trade = await buildTradePayload(tradeId);
-    if (!trade) return res.status(404).json({ error: 'Échange introuvable' });
-    return res.json(trade);
-  } catch (err) {
-    const mapped = resolveMarketError(err);
-    if (mapped) return res.status(mapped.status).json({ error: mapped.error });
-    throw err;
-  }
-}));
+router.get(
+  '/trades',
+  validate({ query: glMarketTradesQuerySchema }),
+  asyncHandler(async (req, res) => {
+    const { page, pageSize } = req.validatedQuery;
+    const data = await listTradesForPlayer(playerIdFromReq(req), { page, pageSize });
+    return res.json(data);
+  }),
+);
 
-router.patch('/trades/:id/offer', asyncHandler(async (req, res) => {
-  try {
-    const tradeId = Number(req.params.id);
-    if (!Number.isFinite(tradeId)) {
-      return res.status(400).json({ error: 'Identifiant invalide' });
+router.post(
+  '/trades',
+  asyncHandler(async (req, res) => {
+    try {
+      const peerPlayerId = Number(req.body?.peerPlayerId);
+      if (!Number.isFinite(peerPlayerId) || peerPlayerId <= 0) {
+        return res.status(400).json({ error: 'peerPlayerId invalide' });
+      }
+      const trade = await createTrade(playerIdFromReq(req), peerPlayerId);
+      emitGlMarketTradeChanged(trade.classId, { tradeId: trade.id, action: 'created' });
+      return res.status(201).json(trade);
+    } catch (err) {
+      return handleMarketError(err, res);
     }
-    const trade = await updateOffer(tradeId, playerIdFromReq(req), {
-      offerHealth: req.body?.offerHealth,
-      offerPower: req.body?.offerPower,
-    });
-    emitGlMarketTradeChanged(trade.classId, { tradeId: trade.id, action: 'offer_updated' });
-    return res.json(trade);
-  } catch (err) {
-    const mapped = resolveMarketError(err);
-    if (mapped) return res.status(mapped.status).json({ error: mapped.error });
-    throw err;
-  }
-}));
+  }),
+);
 
-router.patch('/trades/:id/accept', asyncHandler(async (req, res) => {
-  try {
-    const tradeId = Number(req.params.id);
-    if (!Number.isFinite(tradeId)) {
-      return res.status(400).json({ error: 'Identifiant invalide' });
+router.get(
+  '/trades/:id',
+  asyncHandler(async (req, res) => {
+    try {
+      const tradeId = Number(req.params.id);
+      if (!Number.isFinite(tradeId)) {
+        return res.status(400).json({ error: 'Identifiant invalide' });
+      }
+      await assertTradeParticipant(tradeId, playerIdFromReq(req));
+      const trade = await buildTradePayload(tradeId);
+      if (!trade) return res.status(404).json({ error: 'Échange introuvable' });
+      return res.json(trade);
+    } catch (err) {
+      const mapped = resolveMarketError(err);
+      if (mapped) return res.status(mapped.status).json({ error: mapped.error });
+      throw err;
     }
-    const accepted = req.body?.accepted === true;
-    const { trade, classId } = await setAccepted(tradeId, playerIdFromReq(req), accepted);
-    emitGlMarketTradeChanged(classId, {
-      tradeId: trade.id,
-      action: trade.status === 'completed' ? 'completed' : 'accept_updated',
-    });
-    return res.json(trade);
-  } catch (err) {
-    const mapped = resolveMarketError(err);
-    if (mapped) return res.status(mapped.status).json({ error: mapped.error });
-    throw err;
-  }
-}));
+  }),
+);
 
-router.post('/trades/:id/messages', asyncHandler(async (req, res) => {
-  try {
-    const tradeId = Number(req.params.id);
-    if (!Number.isFinite(tradeId)) {
-      return res.status(400).json({ error: 'Identifiant invalide' });
+router.patch(
+  '/trades/:id/offer',
+  asyncHandler(async (req, res) => {
+    try {
+      const tradeId = Number(req.params.id);
+      if (!Number.isFinite(tradeId)) {
+        return res.status(400).json({ error: 'Identifiant invalide' });
+      }
+      const trade = await updateOffer(tradeId, playerIdFromReq(req), {
+        offerHealth: req.body?.offerHealth,
+        offerPower: req.body?.offerPower,
+      });
+      emitGlMarketTradeChanged(trade.classId, { tradeId: trade.id, action: 'offer_updated' });
+      return res.json(trade);
+    } catch (err) {
+      const mapped = resolveMarketError(err);
+      if (mapped) return res.status(mapped.status).json({ error: mapped.error });
+      throw err;
     }
-    const result = await appendMessage(tradeId, playerIdFromReq(req), req.body?.body);
-    emitGlMarketTradeChanged(result.classId, { tradeId, action: 'message' });
-    const trade = await buildTradePayload(tradeId);
-    return res.status(201).json({ message: result.message, trade });
-  } catch (err) {
-    const mapped = resolveMarketError(err);
-    if (mapped) return res.status(mapped.status).json({ error: mapped.error });
-    throw err;
-  }
-}));
+  }),
+);
 
-router.post('/trades/:id/cancel', asyncHandler(async (req, res) => {
-  try {
-    const tradeId = Number(req.params.id);
-    if (!Number.isFinite(tradeId)) {
-      return res.status(400).json({ error: 'Identifiant invalide' });
+router.patch(
+  '/trades/:id/accept',
+  asyncHandler(async (req, res) => {
+    try {
+      const tradeId = Number(req.params.id);
+      if (!Number.isFinite(tradeId)) {
+        return res.status(400).json({ error: 'Identifiant invalide' });
+      }
+      const accepted = req.body?.accepted === true;
+      const { trade, classId } = await setAccepted(tradeId, playerIdFromReq(req), accepted);
+      emitGlMarketTradeChanged(classId, {
+        tradeId: trade.id,
+        action: trade.status === 'completed' ? 'completed' : 'accept_updated',
+      });
+      return res.json(trade);
+    } catch (err) {
+      const mapped = resolveMarketError(err);
+      if (mapped) return res.status(mapped.status).json({ error: mapped.error });
+      throw err;
     }
-    const { trade, classId } = await cancelTrade(tradeId, playerIdFromReq(req));
-    emitGlMarketTradeChanged(classId, { tradeId: trade.id, action: 'cancelled' });
-    return res.json(trade);
-  } catch (err) {
-    const mapped = resolveMarketError(err);
-    if (mapped) return res.status(mapped.status).json({ error: mapped.error });
-    throw err;
-  }
-}));
+  }),
+);
+
+router.post(
+  '/trades/:id/messages',
+  asyncHandler(async (req, res) => {
+    try {
+      const tradeId = Number(req.params.id);
+      if (!Number.isFinite(tradeId)) {
+        return res.status(400).json({ error: 'Identifiant invalide' });
+      }
+      const result = await appendMessage(tradeId, playerIdFromReq(req), req.body?.body);
+      emitGlMarketTradeChanged(result.classId, { tradeId, action: 'message' });
+      const trade = await buildTradePayload(tradeId);
+      return res.status(201).json({ message: result.message, trade });
+    } catch (err) {
+      const mapped = resolveMarketError(err);
+      if (mapped) return res.status(mapped.status).json({ error: mapped.error });
+      throw err;
+    }
+  }),
+);
+
+router.post(
+  '/trades/:id/cancel',
+  asyncHandler(async (req, res) => {
+    try {
+      const tradeId = Number(req.params.id);
+      if (!Number.isFinite(tradeId)) {
+        return res.status(400).json({ error: 'Identifiant invalide' });
+      }
+      const { trade, classId } = await cancelTrade(tradeId, playerIdFromReq(req));
+      emitGlMarketTradeChanged(classId, { tradeId: trade.id, action: 'cancelled' });
+      return res.json(trade);
+    } catch (err) {
+      const mapped = resolveMarketError(err);
+      if (mapped) return res.status(mapped.status).json({ error: mapped.error });
+      throw err;
+    }
+  }),
+);
 
 module.exports = router;
 module.exports.glMarketTradesQuerySchema = glMarketTradesQuerySchema; // exporté pour test no-DB du contrat O7

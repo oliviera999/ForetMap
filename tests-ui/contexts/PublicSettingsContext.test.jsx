@@ -1,7 +1,10 @@
 import React from 'react';
 import { describe, test, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { PublicSettingsProvider, usePublicSettings } from '../../src/contexts/PublicSettingsContext.jsx';
+import {
+  PublicSettingsProvider,
+  usePublicSettings,
+} from '../../src/contexts/PublicSettingsContext.jsx';
 
 function Probe({ fallback }) {
   const settings = usePublicSettings(fallback);

@@ -45,7 +45,9 @@ describe('isForumModerator', () => {
   test('sinon non modérateur (claims absents ou permissions non tableau)', () => {
     expect(isForumModerator(null)).toBe(false);
     expect(isForumModerator({ roleSlug: 'n3beur', permissions: 'teacher.access' })).toBe(false);
-    expect(isForumModerator({ roleSlug: 'n3beur', permissions: ['forum.participate'] })).toBe(false);
+    expect(isForumModerator({ roleSlug: 'n3beur', permissions: ['forum.participate'] })).toBe(
+      false,
+    );
   });
 });
 

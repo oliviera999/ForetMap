@@ -29,7 +29,9 @@ export function TaskUrgencyBanner({ isTeacher = false, tasks = [], maxItems = 5 
           <span className="urgency-days">{urgencyDueLabel(daysUntil(t.due_date))}</span>
           <span style={{ flex: 1, color: 'var(--forest)', fontWeight: 500 }}>{t.title}</span>
           {(t.zones_linked?.[0]?.name || t.zone_name) && (
-            <span style={{ fontSize: '.76rem', color: '#aaa' }}>{t.zones_linked?.[0]?.name || t.zone_name}</span>
+            <span style={{ fontSize: '.76rem', color: '#aaa' }}>
+              {t.zones_linked?.[0]?.name || t.zone_name}
+            </span>
           )}
         </div>
       ))}

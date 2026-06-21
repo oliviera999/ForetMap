@@ -6,17 +6,28 @@
  * mutualisés du modal frère MarkerModal (`markerModalForm.js`) : logique strictement
  * identique entre zone et repère.
  */
-import { ZONE_NAME_PREFIX_EMOJI_MAX_CHARS, clampEmojiInput, stripLeadingMarkerEmoji } from '../constants/emojis';
+import {
+  ZONE_NAME_PREFIX_EMOJI_MAX_CHARS,
+  clampEmojiInput,
+  stripLeadingMarkerEmoji,
+} from '../constants/emojis';
 import { normalizeVisitEditorialBlocksForSave } from './visitEditorialBlocks.js';
 
-export { computeMarkerVisitImageBlocks as computeZoneVisitImageBlocks, markerTaskMapId as zoneTaskMapId } from './markerModalForm.js';
+export {
+  computeMarkerVisitImageBlocks as computeZoneVisitImageBlocks,
+  markerTaskMapId as zoneTaskMapId,
+} from './markerModalForm.js';
 
 /**
  * Construit le nom complet de la zone (préfixe emoji + nom nettoyé) à enregistrer.
  * Renvoie `null` si le nom (sans emoji de tête) est vide → la sauvegarde doit être bloquée.
  * `emojiParsingList` sert à retirer un éventuel emoji déjà présent en tête du nom saisi.
  */
-export function buildZoneName(zoneName, zoneEmoji, { markerEmojis = [], emojiParsingList = [] } = {}) {
+export function buildZoneName(
+  zoneName,
+  zoneEmoji,
+  { markerEmojis = [], emojiParsingList = [] } = {},
+) {
   const cleanName = stripLeadingMarkerEmoji(zoneName, emojiParsingList);
   if (!cleanName) return null;
   const prefixEmoji = clampEmojiInput(

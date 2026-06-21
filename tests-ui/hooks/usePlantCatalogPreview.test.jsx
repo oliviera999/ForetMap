@@ -26,23 +26,35 @@ describe('usePlantCatalogPreview', () => {
 
   it('ignore un id invalide ou absent du catalogue', () => {
     const { result } = renderHook(() => usePlantCatalogPreview(PLANTS));
-    act(() => { result.current.openPlantCatalogPreviewById(0); });
-    act(() => { result.current.openPlantCatalogPreviewById('abc'); });
-    act(() => { result.current.openPlantCatalogPreviewById(999); });
+    act(() => {
+      result.current.openPlantCatalogPreviewById(0);
+    });
+    act(() => {
+      result.current.openPlantCatalogPreviewById('abc');
+    });
+    act(() => {
+      result.current.openPlantCatalogPreviewById(999);
+    });
     expect(result.current.plantCatalogPreview).toBeNull();
   });
 
   it('permet la fermeture via setPlantCatalogPreview(null)', () => {
     const { result } = renderHook(() => usePlantCatalogPreview(PLANTS));
-    act(() => { result.current.openPlantCatalogPreviewById(1); });
+    act(() => {
+      result.current.openPlantCatalogPreviewById(1);
+    });
     expect(result.current.plantCatalogPreview).toEqual({ id: 1, name: 'Chêne' });
-    act(() => { result.current.setPlantCatalogPreview(null); });
+    act(() => {
+      result.current.setPlantCatalogPreview(null);
+    });
     expect(result.current.plantCatalogPreview).toBeNull();
   });
 
   it('tolère une liste plants absente sans planter', () => {
     const { result } = renderHook(() => usePlantCatalogPreview(undefined));
-    act(() => { result.current.openPlantCatalogPreviewById(1); });
+    act(() => {
+      result.current.openPlantCatalogPreviewById(1);
+    });
     expect(result.current.plantCatalogPreview).toBeNull();
   });
 });

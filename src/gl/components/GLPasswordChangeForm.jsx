@@ -18,7 +18,9 @@ export function GLPasswordChangeForm({ isAdmin, onChanged }) {
     setError('');
     setInfo('');
     try {
-      const endpoint = isAdmin ? '/api/gl/auth/staff/change-password' : '/api/gl/auth/change-password';
+      const endpoint = isAdmin
+        ? '/api/gl/auth/staff/change-password'
+        : '/api/gl/auth/change-password';
       await apiGL(endpoint, 'POST', { currentPassword, newPassword: nextPassword });
       setCurrentPassword('');
       setNextPassword('');
@@ -52,7 +54,9 @@ export function GLPasswordChangeForm({ isAdmin, onChanged }) {
           autoComplete="new-password"
         />
       </GLField>
-      <GLButton type="submit" loading={busy}>{busy ? '...' : 'Mettre à jour'}</GLButton>
+      <GLButton type="submit" loading={busy}>
+        {busy ? '...' : 'Mettre à jour'}
+      </GLButton>
     </GLSurface>
   );
 }

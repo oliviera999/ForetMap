@@ -60,13 +60,14 @@ export default function MascotPackToolView({
   const maxW = embedded ? '100%' : 960;
 
   return (
-    <div style={{
-      padding: pad,
-      maxWidth: maxW,
-      margin: embedded ? 0 : '0 auto',
-      fontFamily: 'var(--font-sans-with-emoji, DM Sans, system-ui)',
-      color: '#1a4731',
-    }}
+    <div
+      style={{
+        padding: pad,
+        maxWidth: maxW,
+        margin: embedded ? 0 : '0 auto',
+        fontFamily: 'var(--font-sans-with-emoji, DM Sans, system-ui)',
+        color: '#1a4731',
+      }}
     >
       {embedded ? (
         <h2 style={{ fontSize: '1.15rem', marginTop: 0 }}>Mascotte pack v1 (`sprite_cut`)</h2>
@@ -78,13 +79,20 @@ export default function MascotPackToolView({
         {embedded && !hideIntegrationSection ? ' — page autonome : /mascot-pack-tool.html' : null}
       </p>
 
-      <div className="visit-mascot-pack-manager__tabs" role="tablist" style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
+      <div
+        className="visit-mascot-pack-manager__tabs"
+        role="tablist"
+        style={{ display: 'flex', gap: 6, marginBottom: 12 }}
+      >
         <button
           type="button"
           role="tab"
           aria-selected={editorTab === 'visual'}
           className={`btn btn-sm ${editorTab === 'visual' ? 'btn-primary' : 'btn-ghost'}`}
-          onClick={() => { setEditorTab('visual'); setJsonError(''); }}
+          onClick={() => {
+            setEditorTab('visual');
+            setJsonError('');
+          }}
         >
           Éditeur visuel
         </button>
@@ -93,7 +101,11 @@ export default function MascotPackToolView({
           role="tab"
           aria-selected={editorTab === 'json'}
           className={`btn btn-sm ${editorTab === 'json' ? 'btn-primary' : 'btn-ghost'}`}
-          onClick={() => { setEditorTab('json'); setJsonDraft(stringifyPack(pack, 2)); setJsonError(''); }}
+          onClick={() => {
+            setEditorTab('json');
+            setJsonDraft(stringifyPack(pack, 2));
+            setJsonError('');
+          }}
         >
           JSON / export
         </button>
@@ -110,7 +122,10 @@ export default function MascotPackToolView({
         <div className="mascot-pack-json-tab">
           <textarea
             value={jsonDraft}
-            onChange={(ev) => { setJsonDraft(ev.target.value); setJsonError(''); }}
+            onChange={(ev) => {
+              setJsonDraft(ev.target.value);
+              setJsonError('');
+            }}
             spellCheck={false}
             style={{
               width: '100%',
@@ -124,13 +139,19 @@ export default function MascotPackToolView({
             }}
           />
           {jsonError ? (
-            <p className="text-danger" role="alert" style={{ fontSize: '0.82rem' }}>{jsonError}</p>
+            <p className="text-danger" role="alert" style={{ fontSize: '0.82rem' }}>
+              {jsonError}
+            </p>
           ) : null}
           <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             <button type="button" className="btn btn-primary btn-sm" onClick={applyJson}>
               Appliquer le JSON
             </button>
-            <button type="button" className="btn btn-ghost btn-sm" onClick={() => void navigator.clipboard.writeText(jsonDraft)}>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              onClick={() => void navigator.clipboard.writeText(jsonDraft)}
+            >
               Copier JSON
             </button>
             <button
@@ -158,10 +179,20 @@ export default function MascotPackToolView({
         <section style={{ marginTop: 28, fontSize: '0.88rem', opacity: 0.9 }}>
           <h2 style={{ fontSize: '1.05rem' }}>Intégration</h2>
           <ol style={{ paddingLeft: 18, lineHeight: 1.5 }}>
-            <li>Déposer les PNG sous <code>public/assets/mascots/&lt;id&gt;/frames/</code> ou publier un pack avec images via l’API (voir <code>docs/MASCOT_PACK.md</code>).</li>
-            <li><code>npm run mascot:pack:validate -- votre-pack.json</code></li>
-            <li>Packs publiés sur le serveur : visibles dans le sélecteur mascotte (onglet Visite) sans modifier <code>visitMascotCatalog.js</code>.</li>
-            <li><code>npm run build</code> si prod sert <code>dist/</code>.</li>
+            <li>
+              Déposer les PNG sous <code>public/assets/mascots/&lt;id&gt;/frames/</code> ou publier
+              un pack avec images via l’API (voir <code>docs/MASCOT_PACK.md</code>).
+            </li>
+            <li>
+              <code>npm run mascot:pack:validate -- votre-pack.json</code>
+            </li>
+            <li>
+              Packs publiés sur le serveur : visibles dans le sélecteur mascotte (onglet Visite)
+              sans modifier <code>visitMascotCatalog.js</code>.
+            </li>
+            <li>
+              <code>npm run build</code> si prod sert <code>dist/</code>.
+            </li>
           </ol>
         </section>
       ) : null}

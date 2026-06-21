@@ -50,9 +50,15 @@ export default function MascotAssetsLibraryPanel({
       <section style={{ marginBottom: 16 }}>
         <h3 style={{ marginTop: 0, fontSize: '0.95rem' }}>Bibliothèque de la carte</h3>
         <p className="section-sub" style={{ fontSize: '0.82rem' }}>
-          PNG partagés pour cette carte. Utilisez « Définir framesBase sur la bibliothèque » puis des noms relatifs dans chaque état.
+          PNG partagés pour cette carte. Utilisez « Définir framesBase sur la bibliothèque » puis
+          des noms relatifs dans chaque état.
         </p>
-        <button type="button" className="btn btn-secondary btn-sm" style={{ marginRight: 8 }} onClick={onReloadLibrary}>
+        <button
+          type="button"
+          className="btn btn-secondary btn-sm"
+          style={{ marginRight: 8 }}
+          onClick={onReloadLibrary}
+        >
           Actualiser la liste
         </button>
         <button type="button" className="btn btn-primary btn-sm" onClick={onSetFramesBaseToLibrary}>
@@ -60,15 +66,30 @@ export default function MascotAssetsLibraryPanel({
         </button>
         <label className="btn btn-ghost btn-sm" style={{ marginLeft: 8, cursor: 'pointer' }}>
           Importer PNG…
-          <input type="file" accept="image/png" style={{ display: 'none' }} onChange={onLibUpload} />
+          <input
+            type="file"
+            accept="image/png"
+            style={{ display: 'none' }}
+            onChange={onLibUpload}
+          />
         </label>
-        {libMessage ? <p className="section-sub" style={{ marginTop: 8 }}>{libMessage}</p> : null}
+        {libMessage ? (
+          <p className="section-sub" role="status" aria-live="polite" style={{ marginTop: 8 }}>
+            {libMessage}
+          </p>
+        ) : null}
         {libLoading ? <p className="section-sub">Chargement…</p> : null}
         {libAssets.length === 0 && !libLoading ? (
-          <p className="section-sub" style={{ marginTop: 10 }}>Aucun PNG dans la bibliothèque pour cette carte.</p>
+          <p className="section-sub" style={{ marginTop: 10 }}>
+            Aucun PNG dans la bibliothèque pour cette carte.
+          </p>
         ) : null}
         {libAssets.length > 0 ? (
-          <ul className="mascot-pack-wysiwyg__asset-grid" style={{ marginTop: 12 }} aria-label="Sprites de la bibliothèque carte">
+          <ul
+            className="mascot-pack-wysiwyg__asset-grid"
+            style={{ marginTop: 12 }}
+            aria-label="Sprites de la bibliothèque carte"
+          >
             {libAssets.map((a) => (
               <li key={a.filename} className="mascot-pack-wysiwyg__asset-card">
                 <div
@@ -87,7 +108,11 @@ export default function MascotAssetsLibraryPanel({
                   <code>{a.filename}</code>
                 </div>
                 <div className="mascot-pack-wysiwyg__asset-actions">
-                  <button type="button" className="btn btn-danger btn-sm" onClick={() => onLibDelete(a.filename)}>
+                  <button
+                    type="button"
+                    className="btn btn-danger btn-sm"
+                    onClick={() => onLibDelete(a.filename)}
+                  >
                     Supprimer
                   </button>
                 </div>
@@ -100,9 +125,18 @@ export default function MascotAssetsLibraryPanel({
       <section>
         <h3 style={{ marginTop: 0, fontSize: '0.95rem' }}>Tous les assets mascotte du site</h3>
         <p className="section-sub" style={{ fontSize: '0.82rem' }}>
-          Vue globale : catalogue statique + assets des packs + bibliothèques cartes, sans dépendre de la mascotte en cours d’édition.
+          Vue globale : catalogue statique + assets des packs + bibliothèques cartes, sans dépendre
+          de la mascotte en cours d’édition.
         </p>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 8 }}>
+        <div
+          style={{
+            display: 'flex',
+            gap: 8,
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            marginBottom: 8,
+          }}
+        >
           <button type="button" className="btn btn-secondary btn-sm" onClick={onReloadGlobalAssets}>
             Actualiser assets site
           </button>
@@ -113,7 +147,10 @@ export default function MascotAssetsLibraryPanel({
             value={globalAssetSearch}
             onChange={(e) => onGlobalAssetSearchChange(e.target.value)}
           />
-          <label className="section-sub" style={{ fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          <label
+            className="section-sub"
+            style={{ fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+          >
             Insérer dans état
             <select
               className="form-select"
@@ -121,14 +158,27 @@ export default function MascotAssetsLibraryPanel({
               onChange={(e) => onGlobalTargetStateChange(e.target.value)}
             >
               {Object.values(VISIT_MASCOT_STATE).map((st) => (
-                <option key={st} value={st}>{STATE_LABELS[st] || st} ({st})</option>
+                <option key={st} value={st}>
+                  {STATE_LABELS[st] || st} ({st})
+                </option>
               ))}
             </select>
           </label>
         </div>
-        {globalAssetsMessage ? <p className="section-sub" style={{ marginTop: 8 }}>{globalAssetsMessage}</p> : null}
+        {globalAssetsMessage ? (
+          <p className="section-sub" style={{ marginTop: 8 }}>
+            {globalAssetsMessage}
+          </p>
+        ) : null}
         {globalAssetsLoading ? <p className="section-sub">Chargement assets globaux…</p> : null}
-        <div style={{ maxHeight: 330, overflow: 'auto', border: '1px solid rgba(26,71,49,0.12)', borderRadius: 8 }}>
+        <div
+          style={{
+            maxHeight: 330,
+            overflow: 'auto',
+            border: '1px solid rgba(26,71,49,0.12)',
+            borderRadius: 8,
+          }}
+        >
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
             <thead>
               <tr style={{ textAlign: 'left', borderBottom: '1px solid rgba(26,71,49,0.18)' }}>
@@ -162,7 +212,9 @@ export default function MascotAssetsLibraryPanel({
                         }}
                       />
                     ) : (
-                      <span className="section-sub" title="Pas d’aperçu pour ce type de fichier">—</span>
+                      <span className="section-sub" title="Pas d’aperçu pour ce type de fichier">
+                        —
+                      </span>
                     )}
                   </td>
                   <td style={{ padding: '6px 8px' }}>

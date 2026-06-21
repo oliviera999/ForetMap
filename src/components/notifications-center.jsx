@@ -24,10 +24,18 @@ function levelClass(level) {
 
 function preferenceCategoriesForRole(roleKey) {
   if (roleKey === 'student') {
-    return [NOTIFICATION_CATEGORY.DEADLINES, NOTIFICATION_CATEGORY.OPERATIONS, NOTIFICATION_CATEGORY.SECURITY];
+    return [
+      NOTIFICATION_CATEGORY.DEADLINES,
+      NOTIFICATION_CATEGORY.OPERATIONS,
+      NOTIFICATION_CATEGORY.SECURITY,
+    ];
   }
   if (roleKey === 'teacher') {
-    return [NOTIFICATION_CATEGORY.VALIDATIONS, NOTIFICATION_CATEGORY.PROPOSALS, NOTIFICATION_CATEGORY.OPERATIONS];
+    return [
+      NOTIFICATION_CATEGORY.VALIDATIONS,
+      NOTIFICATION_CATEGORY.PROPOSALS,
+      NOTIFICATION_CATEGORY.OPERATIONS,
+    ];
   }
   return [
     NOTIFICATION_CATEGORY.VALIDATIONS,
@@ -124,8 +132,12 @@ function NotificationCenter({
           </button>
         </div>
         <div className="notif-panel-actions">
-          <button type="button" className="btn btn-ghost btn-sm" onClick={onMarkAllRead}>Tout lu</button>
-          <button type="button" className="btn btn-ghost btn-sm" onClick={onClearRead}>Nettoyer lues</button>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={onMarkAllRead}>
+            Tout lu
+          </button>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={onClearRead}>
+            Nettoyer lues
+          </button>
         </div>
       </div>
       <div className="notif-prefs">
@@ -157,7 +169,11 @@ function NotificationCenter({
             <p className="notif-message">{item.message}</p>
             <div className="notif-item-actions">
               {!item.read && (
-                <button type="button" className="btn btn-ghost btn-sm" onClick={() => onMarkAsRead?.(item.id)}>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => onMarkAsRead?.(item.id)}
+                >
                   Marquer lu
                 </button>
               )}
@@ -173,7 +189,11 @@ function NotificationCenter({
                   Ouvrir
                 </button>
               )}
-              <button type="button" className="btn btn-ghost btn-sm" onClick={() => onRemove?.(item.id)}>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={() => onRemove?.(item.id)}
+              >
                 Retirer
               </button>
             </div>
@@ -187,7 +207,9 @@ function NotificationCenter({
           <span>Ouvertures panneau: {Number(metrics?.opened || 0).toLocaleString('fr-FR')}</span>
           <span>Actions ouvertes: {Number(metrics?.actions || 0).toLocaleString('fr-FR')}</span>
         </div>
-        <button type="button" className="btn btn-ghost btn-sm" onClick={onResetMetrics}>Réinitialiser</button>
+        <button type="button" className="btn btn-ghost btn-sm" onClick={onResetMetrics}>
+          Réinitialiser
+        </button>
       </details>
     </div>
   ) : null;
@@ -203,7 +225,9 @@ function NotificationCenter({
           onClick={openClose}
         >
           🔔
-          {unreadCount > 0 && <span className="notif-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>}
+          {unreadCount > 0 && (
+            <span className="notif-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>
+          )}
         </button>
       </Tooltip>
       {portalNode && panel ? createPortal(panel, portalNode) : null}

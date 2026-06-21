@@ -50,11 +50,11 @@ before(async () => {
     `UPDATE gl_chapter_markers
         SET event_type = 'question', event_config_json = ?
       WHERE chapter_id = ?`,
-    [eventConfig, chapter.id]
+    [eventConfig, chapter.id],
   );
   const marker = await queryOne(
     'SELECT id FROM gl_chapter_markers WHERE chapter_id = ? ORDER BY id DESC LIMIT 1',
-    [chapter.id]
+    [chapter.id],
   );
   markerId = Number(marker.id);
 
@@ -71,7 +71,7 @@ before(async () => {
   await execute(
     `INSERT INTO gl_team_members (game_id, team_id, player_id, joined_at)
      VALUES (?, ?, ?, NOW())`,
-    [gameId, teamId, player.id]
+    [gameId, teamId, player.id],
   );
 
   const tokens = await signTokens({
@@ -88,7 +88,7 @@ before(async () => {
   await execute(
     `INSERT INTO gl_qcm_categories (slug, nom, order_index, created_at, updated_at)
      VALUES ('test-cat', 'Test', 0, NOW(), NOW())
-     ON DUPLICATE KEY UPDATE nom = VALUES(nom), updated_at = NOW()`
+     ON DUPLICATE KEY UPDATE nom = VALUES(nom), updated_at = NOW()`,
   );
   await execute(
     `INSERT INTO gl_qcm_questions (
@@ -98,7 +98,7 @@ before(async () => {
        'QCM0001', 'sahara', 'test-cat', 1, 'Question test marker?',
        'A', 'B', 'C', 'D', 'E', 'A', 'actif', NOW(), NOW()
      )
-     ON DUPLICATE KEY UPDATE question = VALUES(question), updated_at = NOW()`
+     ON DUPLICATE KEY UPDATE question = VALUES(question), updated_at = NOW()`,
   );
 });
 
@@ -107,7 +107,11 @@ test('GET /api/gl/gameplay-settings expose markerQuestionRetrigger', async () =>
     .get('/api/gl/gameplay-settings')
     .set('Authorization', `Bearer ${playerToken}`)
     .expect(200);
-  assert.ok(['every_arrival', 'once_per_team', 'once_per_game'].includes(res.body?.settings?.markerQuestionRetrigger));
+  assert.ok(
+    ['every_arrival', 'once_per_team', 'once_per_game'].includes(
+      res.body?.settings?.markerQuestionRetrigger,
+    ),
+  );
 });
 
 test('POST present-question pour joueur membre', async () => {
@@ -143,7 +147,7 @@ test('POST qcm/answer pour joueur membre après présentation', async () => {
   assert.strictEqual(answer.body.correct, true);
   assert.ok(String(answer.body.feedback || '').trim().length > 0);
   const row = await queryOne(
-    `SELECT feedback_correct FROM gl_qcm_questions WHERE question_code = 'QCM0001' LIMIT 1`
+    `SELECT feedback_correct FROM gl_qcm_questions WHERE question_code = 'QCM0001' LIMIT 1`,
   );
   if (row?.feedback_correct) {
     assert.strictEqual(answer.body.feedback, String(row.feedback_correct).trim());
@@ -180,7 +184,7 @@ test('POST present-question refus once_per_team au second appel', async () => {
   await execute(
     `INSERT INTO gl_settings (\`key\`, value_json, updated_at)
      VALUES ('gameplay.marker_question_retrigger', '"once_per_team"', NOW())
-     ON DUPLICATE KEY UPDATE value_json = VALUES(value_json), updated_at = NOW()`
+     ON DUPLICATE KEY UPDATE value_json = VALUES(value_json), updated_at = NOW()`,
   );
   invalidateGameplayCache();
 
@@ -199,7 +203,7 @@ test('POST present-question refus once_per_team au second appel', async () => {
   await execute(
     `INSERT INTO gl_settings (\`key\`, value_json, updated_at)
      VALUES ('gameplay.marker_question_retrigger', '"every_arrival"', NOW())
-     ON DUPLICATE KEY UPDATE value_json = VALUES(value_json), updated_at = NOW()`
+     ON DUPLICATE KEY UPDATE value_json = VALUES(value_json), updated_at = NOW()`,
   );
   invalidateGameplayCache();
 });
@@ -238,12 +242,12 @@ test('POST present-question repère lore fixe LQCM', async () => {
   await execute(
     `INSERT INTO gl_qcm_lore_scopes (slug, nom, order_index, created_at, updated_at)
      VALUES ('tous', 'Transversal', 0, NOW(), NOW())
-     ON DUPLICATE KEY UPDATE nom = VALUES(nom), updated_at = NOW()`
+     ON DUPLICATE KEY UPDATE nom = VALUES(nom), updated_at = NOW()`,
   );
   await execute(
     `INSERT INTO gl_qcm_lore_categories (slug, nom, order_index, created_at, updated_at)
      VALUES ('test-lore-cat', 'Test lore', 0, NOW(), NOW())
-     ON DUPLICATE KEY UPDATE nom = VALUES(nom), updated_at = NOW()`
+     ON DUPLICATE KEY UPDATE nom = VALUES(nom), updated_at = NOW()`,
   );
   await execute(
     `INSERT INTO gl_qcm_lore_questions (
@@ -253,7 +257,7 @@ test('POST present-question repère lore fixe LQCM', async () => {
        'LQCM9999', 'tous', 'test-lore-cat', 1, 'cle', 'Question lore marker?',
        'A', 'B', 'C', 'D', 'E', 'A', 'actif', NOW(), NOW()
      )
-     ON DUPLICATE KEY UPDATE question = VALUES(question), updated_at = NOW()`
+     ON DUPLICATE KEY UPDATE question = VALUES(question), updated_at = NOW()`,
   );
 
   const loreEventConfig = serializeEventConfig({
@@ -269,7 +273,7 @@ test('POST present-question repère lore fixe LQCM', async () => {
     `UPDATE gl_chapter_markers
         SET event_type = 'question', event_config_json = ?
       WHERE id = ?`,
-    [loreEventConfig, markerId]
+    [loreEventConfig, markerId],
   );
 
   const res = await request(app)

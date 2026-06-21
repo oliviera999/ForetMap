@@ -35,18 +35,16 @@ describe('StudentBottomNav', () => {
 
   test('split desktop : entrée combinée avec compteur de tâches assignées', () => {
     render(
-      <StudentBottomNav
-        {...baseProps}
-        shouldUseDesktopSplit
-        studentActiveAssignedTasksCount={2}
-      />,
+      <StudentBottomNav {...baseProps} shouldUseDesktopSplit studentActiveAssignedTasksCount={2} />,
     );
     expect(screen.getByText('Cartes & tâches · tuto (2)')).toBeInTheDocument();
     expect(screen.getByText('Tâches · tuto (2)')).toBeInTheDocument();
   });
 
   test('sans accès carte/tâches → Carte et Tâches absents', () => {
-    render(<StudentBottomNav {...baseProps} canAccessStudentMapTasks={false} shouldUseDesktopSplit />);
+    render(
+      <StudentBottomNav {...baseProps} canAccessStudentMapTasks={false} shouldUseDesktopSplit />,
+    );
     expect(screen.queryByText('Carte')).toBeNull();
     expect(screen.queryByText(/Tâches/)).toBeNull();
     expect(screen.queryByText(/Cartes & tâches/)).toBeNull();

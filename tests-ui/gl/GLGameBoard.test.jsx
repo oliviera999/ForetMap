@@ -75,12 +75,7 @@ describe('GLGameBoard', () => {
   });
 
   test('affiche le fond plateau conventionnel après chargement des assets', async () => {
-    render(
-      <GLGameBoard
-        {...baseProps}
-        chapter={{ title: 'Savane', plateau_number: 2 }}
-      />,
-    );
+    render(<GLGameBoard {...baseProps} chapter={{ title: 'Savane', plateau_number: 2 }} />);
     await waitFor(() => {
       expect(plateauBoardImgMock).toHaveBeenCalledWith(2);
     });

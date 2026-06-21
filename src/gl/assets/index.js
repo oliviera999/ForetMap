@@ -3,7 +3,10 @@ import embeddedAudio from './manifest.audio.json';
 import placeholderUrl from './placeholder.svg?url';
 import { biomeAssetSlug } from '../data/biomes.registry.js';
 import { resolvePlateauBoardSlug } from '../utils/resolvePlateauBoardSlug.js';
-import { resolvePlateauAudioSlug, resolveIntroAudioSlug } from '../utils/resolvePlateauAudioSlug.js';
+import {
+  resolvePlateauAudioSlug,
+  resolveIntroAudioSlug,
+} from '../utils/resolvePlateauAudioSlug.js';
 import { normalizeGlMediaStableKey } from '../utils/glMediaStableKey.js';
 import { chapterRecitPrefix } from '../utils/glChapterRecitConvention.js';
 
@@ -154,15 +157,24 @@ export function introAudio() {
 }
 
 export function feuilletIllustration(code) {
-  const normalizedCode = String(code || '').trim().toLowerCase();
+  const normalizedCode = String(code || '')
+    .trim()
+    .toLowerCase();
   const prefix = `recit_feuillet-action_${normalizedCode}_`;
   if (!normalizedCode) return null;
   const images = getImagesManifest();
   const keys = getKeysIndex();
-  const match = Object.keys({ ...images, ...keys }).find((slug) => slug.startsWith(prefix));
-  if (!match) return null;
-  const url = img(match);
-  return url === placeholderUrl ? null : url;
+  const fromKeys = Object.keys(keys)
+    .filter((slug) => slug.startsWith(prefix))
+    .sort();
+  const fromImages = Object.keys(images)
+    .filter((slug) => slug.startsWith(prefix) && !keys[slug])
+    .sort();
+  for (const match of [...fromKeys, ...fromImages]) {
+    const url = img(match);
+    if (url && url !== placeholderUrl) return url;
+  }
+  return null;
 }
 
 /**
@@ -187,13 +199,17 @@ export function chapterIllustrationKeys(chapterNumber) {
 
 /** Méta éditoriale d'une scène (légende, ordre, couverture) lue dans `_keys.json`. */
 function chapterSceneMeta(entry) {
-  const caption = typeof entry?.recitCaption === 'string' && entry.recitCaption.trim()
-    ? entry.recitCaption.trim()
-    : null;
+  const caption =
+    typeof entry?.recitCaption === 'string' && entry.recitCaption.trim()
+      ? entry.recitCaption.trim()
+      : null;
   const orderRaw = entry?.recitOrder;
-  const order = orderRaw === null || orderRaw === undefined || orderRaw === ''
-    ? null
-    : (Number.isFinite(Number(orderRaw)) ? Number(orderRaw) : null);
+  const order =
+    orderRaw === null || orderRaw === undefined || orderRaw === ''
+      ? null
+      : Number.isFinite(Number(orderRaw))
+        ? Number(orderRaw)
+        : null;
   return { caption, order, cover: entry?.recitCover === true };
 }
 
@@ -250,6 +266,9 @@ export function plateauBoardImg(plateauNumber) {
 }
 
 export { resolvePlateauBoardSlug } from '../utils/resolvePlateauBoardSlug.js';
-export { resolvePlateauAudioSlug, resolveIntroAudioSlug } from '../utils/resolvePlateauAudioSlug.js';
+export {
+  resolvePlateauAudioSlug,
+  resolveIntroAudioSlug,
+} from '../utils/resolvePlateauAudioSlug.js';
 
 export { placeholderUrl as GL_ASSET_PLACEHOLDER_URL };

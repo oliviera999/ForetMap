@@ -45,7 +45,11 @@ export function VisitMapMascot({
           '--visit-mascot-dialog-x': faceRight ? 1 : -1,
         }}
       >
-        <VisitMapMascotRenderer mascotState={mascotState} mascotId={mascotId} extraCatalogEntries={extraCatalogEntries} />
+        <VisitMapMascotRenderer
+          mascotState={mascotState}
+          mascotId={mascotId}
+          extraCatalogEntries={extraCatalogEntries}
+        />
         {dialogVisible && dialog ? (
           <div className="visit-map-mascot-dialog" role="status" aria-live="polite">
             {dialog}

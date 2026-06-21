@@ -12,6 +12,9 @@ import React from 'react';
 export function TasksEmptyState({ count = 0 }) {
   if (count !== 0) return null;
   return (
-    <div className="empty"><div className="empty-icon">🌿</div><p>Rien à faire ici pour l’instant — reviens plus tard ou change tes filtres.</p></div>
+    <div className="empty">
+      <div className="empty-icon">🌿</div>
+      <p>Rien à faire ici pour l’instant — reviens plus tard ou change tes filtres.</p>
+    </div>
   );
 }

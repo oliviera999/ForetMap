@@ -48,10 +48,7 @@ async function alignWalkFrame(filePath) {
   const bbox = await bboxOfImage(buf);
   if (!bbox) return { file: path.basename(filePath), skipped: true, reason: 'empty' };
 
-  const cropped = await sharp(buf)
-    .extract(bbox)
-    .png()
-    .toBuffer();
+  const cropped = await sharp(buf).extract(bbox).png().toBuffer();
 
   const metaC = await sharp(cropped).metadata();
   const cw = metaC.width || 0;
@@ -76,7 +73,14 @@ async function alignWalkFrame(filePath) {
 }
 
 async function main() {
-  const files = ['cell-r1-c0.png', 'cell-r1-c1.png', 'cell-r1-c2.png', 'cell-r1-c3.png', 'cell-r1-c4.png', 'cell-r1-c5.png'];
+  const files = [
+    'cell-r1-c0.png',
+    'cell-r1-c1.png',
+    'cell-r1-c2.png',
+    'cell-r1-c3.png',
+    'cell-r1-c4.png',
+    'cell-r1-c5.png',
+  ];
   const results = [];
   for (const name of files) {
     const p = path.join(FRAMES_DIR, name);

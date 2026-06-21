@@ -43,7 +43,13 @@ describe('sortRolesForDisplay', () => {
 describe('deriveProfilesCapabilities', () => {
   test('sans élévation : actions élevées refusées', () => {
     const caps = deriveProfilesCapabilities({
-      authPerms: ['stats.export', 'students.import', 'students.delete', 'users.create', 'stats.read.all'],
+      authPerms: [
+        'stats.export',
+        'students.import',
+        'students.delete',
+        'users.create',
+        'stats.read.all',
+      ],
       authElevated: false,
       authNativePrivileged: false,
       authRoleSlug: 'prof',
@@ -57,7 +63,14 @@ describe('deriveProfilesCapabilities', () => {
   });
   test('avec élévation : actions ouvertes ; canDuplicate/canDeleteUi requièrent read.all', () => {
     const caps = deriveProfilesCapabilities({
-      authPerms: ['stats.export', 'students.import', 'students.delete', 'users.create', 'stats.read.all', 'admin.roles.manage'],
+      authPerms: [
+        'stats.export',
+        'students.import',
+        'students.delete',
+        'users.create',
+        'stats.read.all',
+        'admin.roles.manage',
+      ],
       authElevated: true,
       authRoleSlug: 'admin',
     });
@@ -82,7 +95,9 @@ describe('deriveProfilesCapabilities', () => {
     expect(caps.canDeleteUi).toBe(false);
   });
   test('canManageProfiles via assign_roles seul', () => {
-    expect(deriveProfilesCapabilities({ authPerms: ['admin.users.assign_roles'] }).canManageProfiles).toBe(true);
+    expect(
+      deriveProfilesCapabilities({ authPerms: ['admin.users.assign_roles'] }).canManageProfiles,
+    ).toBe(true);
     expect(deriveProfilesCapabilities({ authPerms: [] }).canManageProfiles).toBe(false);
   });
 });
@@ -97,12 +112,14 @@ describe('normalizeRoleEditFields', () => {
     });
   });
   test('valeurs normalisées (plancher entier ≥ 0) ; display_order défaut 0', () => {
-    expect(normalizeRoleEditFields({ emoji: '🌿', min_done_tasks: 5.9, display_order: 2 })).toEqual({
-      emoji: '🌿',
-      minDoneTasks: '5',
-      displayOrder: '2',
-      maxConcurrentTasks: '',
-    });
+    expect(normalizeRoleEditFields({ emoji: '🌿', min_done_tasks: 5.9, display_order: 2 })).toEqual(
+      {
+        emoji: '🌿',
+        minDoneTasks: '5',
+        displayOrder: '2',
+        maxConcurrentTasks: '',
+      },
+    );
     expect(normalizeRoleEditFields({}).displayOrder).toBe('0');
     expect(normalizeRoleEditFields({}).minDoneTasks).toBe('');
   });
@@ -150,7 +167,10 @@ describe('buildRoleReorderPatches', () => {
     ]);
   });
   test('ignore les profils sans id', () => {
-    const withNull = [{ id: 1, display_order: 0 }, { id: null, display_order: 1 }];
+    const withNull = [
+      { id: 1, display_order: 0 },
+      { id: null, display_order: 1 },
+    ];
     expect(buildRoleReorderPatches(withNull, 1, +1)).toEqual([{ id: 1, display_order: 1 }]);
   });
 });
@@ -176,7 +196,8 @@ describe('parseMaxConcurrentTasksLimit', () => {
   test('hors bornes ou non numérique → erreur', () => {
     for (const raw of ['-1', '100', 'abc']) {
       expect(parseMaxConcurrentTasksLimit(raw)).toEqual({
-        error: 'Plafond invalide : entier entre 0 et 99 (0 = pas de limite pour ce profil), ou champ vide pour hériter du réglage global',
+        error:
+          'Plafond invalide : entier entre 0 et 99 (0 = pas de limite pour ce profil), ou champ vide pour hériter du réglage global',
       });
     }
   });
@@ -189,7 +210,9 @@ describe('parseMinDoneTasksThreshold', () => {
   });
   test('vide, négatif ou non numérique → erreur', () => {
     for (const raw of ['', '   ', '-3', 'abc']) {
-      expect(parseMinDoneTasksThreshold(raw)).toEqual({ error: 'Seuil invalide : indiquez un entier ≥ 0' });
+      expect(parseMinDoneTasksThreshold(raw)).toEqual({
+        error: 'Seuil invalide : indiquez un entier ≥ 0',
+      });
     }
   });
 });

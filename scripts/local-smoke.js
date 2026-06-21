@@ -37,14 +37,16 @@ function main() {
   console.log(
     isFast
       ? 'Demarrage smoke local rapide (check + tests isoles)...'
-      : 'Demarrage smoke local (check + build + tests isoles)...'
+      : 'Demarrage smoke local (check + build + tests isoles)...',
   );
   step('Check environnement local', ['scripts/check-local-env.js'], baseEnv);
   if (!isFast) {
     step('Build production local', ['scripts/build-safe.js'], baseEnv);
   }
   step('Tests backend locaux isoles', ['scripts/test-local-isolated.js'], testEnv);
-  console.log(isFast ? '\nSmoke local rapide termine avec succes.' : '\nSmoke local termine avec succes.');
+  console.log(
+    isFast ? '\nSmoke local rapide termine avec succes.' : '\nSmoke local termine avec succes.',
+  );
 }
 
 main();

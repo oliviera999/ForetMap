@@ -3,7 +3,9 @@ import TurndownService from 'turndown';
 import { renderMarkdownToSafeHtml, sanitizeRichHtml } from '../utils/markdown.js';
 
 function normalizeHtmlForCompare(html) {
-  return String(html || '').replace(/\s+/g, ' ').trim();
+  return String(html || '')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 function markdownToEditableHtml(markdown, { allowImages = false } = {}) {
@@ -45,37 +47,46 @@ const DEFAULT_ACTIONS = [
   { id: 'unlink', label: 'Délier', title: 'Retirer le lien', command: 'unlink' },
 ];
 
-export const RichTextEditor = React.forwardRef(function RichTextEditor({
-  value,
-  onChange,
-  className = '',
-  placeholder = 'Saisissez votre texte…',
-  hint = 'Mise en forme enrichie : titres, listes, citations et liens.',
-  allowImages = false,
-  toolbar = true,
-  disabled = false,
-  readOnly = false,
-  id,
-  name,
-  rows = 3,
-  maxLength,
-  'aria-label': ariaLabel,
-  ...rest
-}, forwardedRef) {
+export const RichTextEditor = React.forwardRef(function RichTextEditor(
+  {
+    value,
+    onChange,
+    className = '',
+    placeholder = 'Saisissez votre texte…',
+    hint = 'Mise en forme enrichie : titres, listes, citations et liens.',
+    allowImages = false,
+    toolbar = true,
+    disabled = false,
+    readOnly = false,
+    id,
+    name,
+    rows = 3,
+    maxLength,
+    'aria-label': ariaLabel,
+    ...rest
+  },
+  forwardedRef,
+) {
   const editableRef = useRef(null);
   const lastMarkdownRef = useRef(null);
 
-  const setEditableRef = useCallback((element) => {
-    editableRef.current = element;
-    if (typeof forwardedRef === 'function') forwardedRef(element);
-    else if (forwardedRef) forwardedRef.current = element;
-  }, [forwardedRef]);
+  const setEditableRef = useCallback(
+    (element) => {
+      editableRef.current = element;
+      if (typeof forwardedRef === 'function') forwardedRef(element);
+      else if (forwardedRef) forwardedRef.current = element;
+    },
+    [forwardedRef],
+  );
 
-  const emitMarkdown = useCallback((markdown) => {
-    if (typeof onChange !== 'function') return;
-    lastMarkdownRef.current = markdown;
-    onChange({ target: { value: markdown, name }, currentTarget: { value: markdown, name } });
-  }, [name, onChange]);
+  const emitMarkdown = useCallback(
+    (markdown) => {
+      if (typeof onChange !== 'function') return;
+      lastMarkdownRef.current = markdown;
+      onChange({ target: { value: markdown, name }, currentTarget: { value: markdown, name } });
+    },
+    [name, onChange],
+  );
 
   const syncFromDom = useCallback(() => {
     const el = editableRef.current;
@@ -85,7 +96,11 @@ export const RichTextEditor = React.forwardRef(function RichTextEditor({
       el.innerHTML = sanitized;
     }
     let markdown = htmlToMarkdown(sanitized, { allowImages });
-    if (Number.isFinite(Number(maxLength)) && Number(maxLength) >= 0 && markdown.length > Number(maxLength)) {
+    if (
+      Number.isFinite(Number(maxLength)) &&
+      Number(maxLength) >= 0 &&
+      markdown.length > Number(maxLength)
+    ) {
       markdown = markdown.slice(0, Number(maxLength));
       el.innerHTML = markdownToEditableHtml(markdown, { allowImages });
     }
@@ -111,36 +126,48 @@ export const RichTextEditor = React.forwardRef(function RichTextEditor({
     editableRef.current?.focus();
   }, []);
 
-  const applyCommand = useCallback((command, commandValue = null) => {
-    if (disabled || readOnly) return;
-    focusEditable();
-    runExecCommand(command, commandValue);
-    syncFromDom();
-  }, [disabled, focusEditable, readOnly, syncFromDom]);
+  const applyCommand = useCallback(
+    (command, commandValue = null) => {
+      if (disabled || readOnly) return;
+      focusEditable();
+      runExecCommand(command, commandValue);
+      syncFromDom();
+    },
+    [disabled, focusEditable, readOnly, syncFromDom],
+  );
 
-  const applyAction = useCallback((action) => {
-    if (action.link) {
-      const url = typeof window !== 'undefined' ? window.prompt('URL du lien', 'https://') : 'https://';
-      if (!url) return;
-      applyCommand('createLink', url);
-      return;
-    }
-    if (action.block) {
-      applyCommand('formatBlock', `<${action.block}>`);
-      return;
-    }
-    applyCommand(action.command);
-  }, [applyCommand]);
+  const applyAction = useCallback(
+    (action) => {
+      if (action.link) {
+        const url =
+          typeof window !== 'undefined' ? window.prompt('URL du lien', 'https://') : 'https://';
+        if (!url) return;
+        applyCommand('createLink', url);
+        return;
+      }
+      if (action.block) {
+        applyCommand('formatBlock', `<${action.block}>`);
+        return;
+      }
+      applyCommand(action.command);
+    },
+    [applyCommand],
+  );
 
-  const editorClassName = useMemo(() => (
-    ['rich-text-editor', className].filter(Boolean).join(' ')
-  ), [className]);
+  const editorClassName = useMemo(
+    () => ['rich-text-editor', className].filter(Boolean).join(' '),
+    [className],
+  );
   const minHeight = Math.max(3, Number(rows) || 3) * 2.15;
 
   return (
     <div className={editorClassName} {...rest}>
       {toolbar ? (
-        <div className="rich-text-editor-toolbar" role="toolbar" aria-label="Mise en forme enrichie">
+        <div
+          className="rich-text-editor-toolbar"
+          role="toolbar"
+          aria-label="Mise en forme enrichie"
+        >
           {DEFAULT_ACTIONS.map((action) => (
             <button
               key={action.id}
@@ -175,7 +202,11 @@ export const RichTextEditor = React.forwardRef(function RichTextEditor({
       />
 
       {name ? <input type="hidden" name={name} value={String(value ?? '')} readOnly /> : null}
-      {toolbar && hint ? <p className="rich-text-editor-hint" aria-hidden="true">{hint}</p> : null}
+      {toolbar && hint ? (
+        <p className="rich-text-editor-hint" aria-hidden="true">
+          {hint}
+        </p>
+      ) : null}
     </div>
   );
 });

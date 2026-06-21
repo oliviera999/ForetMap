@@ -8,7 +8,9 @@ import {
 describe('glStaffView', () => {
   test('isGlStaffAuth exclut impersonation', () => {
     expect(isGlStaffAuth({ userType: 'gl_admin', roleSlug: 'gl_mj' })).toBe(true);
-    expect(isGlStaffAuth({ userType: 'gl_admin', roleSlug: 'gl_mj', impersonating: true })).toBe(false);
+    expect(isGlStaffAuth({ userType: 'gl_admin', roleSlug: 'gl_mj', impersonating: true })).toBe(
+      false,
+    );
     expect(isGlStaffAuth({ userType: 'gl_player', roleSlug: 'gl_player' })).toBe(false);
   });
 

@@ -21,7 +21,9 @@ function proposalSuffixFromTeacherNotifKey(key) {
 function stableProposedTaskKey(task) {
   if (task?.id != null && task.id !== '') return `id:${String(task.id)}`;
   if (task?.task_id != null && task.task_id !== '') return `task_id:${String(task.task_id)}`;
-  return `title:${String(task?.title || task?.name || '').trim().toLowerCase()}`;
+  return `title:${String(task?.title || task?.name || '')
+    .trim()
+    .toLowerCase()}`;
 }
 
 function nowIso() {
@@ -52,11 +54,7 @@ function makeStoreKey(prefix, roleKey) {
 
 function proposerNameFromTask(task) {
   const direct = String(
-    task?.proposer
-    || task?.proposed_by
-    || task?.proposed_by_name
-    || task?.proposedBy
-    || ''
+    task?.proposer || task?.proposed_by || task?.proposed_by_name || task?.proposedBy || '',
   ).trim();
   if (direct) return direct;
   const description = String(task?.description || '');
@@ -85,11 +83,13 @@ export function useNotificationCenter({
     ...(NOTIFICATION_PREFS_DEFAULTS[roleKey] || {}),
     ...safeJsonRead(prefsStorageKey, {}),
   }));
-  const [metrics, setMetrics] = useState(() => safeJsonRead(metricsStorageKey, {
-    created: 0,
-    opened: 0,
-    actions: 0,
-  }));
+  const [metrics, setMetrics] = useState(() =>
+    safeJsonRead(metricsStorageKey, {
+      created: 0,
+      opened: 0,
+      actions: 0,
+    }),
+  );
   const lastSeenKeysRef = useRef({});
   const lastTeacherProposedKeysRef = useRef(new Set());
   const firstMountRef = useRef(true);
@@ -101,21 +101,29 @@ export function useNotificationCenter({
     }));
   }, []);
 
-  const persistItems = useCallback((nextItems) => {
-    safeJsonWrite(notificationsStorageKey, nextItems);
-  }, [notificationsStorageKey]);
+  const persistItems = useCallback(
+    (nextItems) => {
+      safeJsonWrite(notificationsStorageKey, nextItems);
+    },
+    [notificationsStorageKey],
+  );
 
-  const persistPrefs = useCallback((nextPrefs) => {
-    safeJsonWrite(prefsStorageKey, nextPrefs);
-  }, [prefsStorageKey]);
+  const persistPrefs = useCallback(
+    (nextPrefs) => {
+      safeJsonWrite(prefsStorageKey, nextPrefs);
+    },
+    [prefsStorageKey],
+  );
 
   useEffect(() => {
     const loaded = safeJsonRead(notificationsStorageKey, []);
     const cutoff = Date.now() - KEEP_MS;
-    const sanitized = (Array.isArray(loaded) ? loaded : []).filter((item) => {
-      const ts = Date.parse(item?.createdAt || '');
-      return Number.isFinite(ts) && ts >= cutoff;
-    }).slice(0, MAX_ITEMS);
+    const sanitized = (Array.isArray(loaded) ? loaded : [])
+      .filter((item) => {
+        const ts = Date.parse(item?.createdAt || '');
+        return Number.isFinite(ts) && ts >= cutoff;
+      })
+      .slice(0, MAX_ITEMS);
     const restoredProposedKeys = new Set();
     setItems(sanitized);
     for (const item of sanitized) {
@@ -132,49 +140,55 @@ export function useNotificationCenter({
     safeJsonWrite(metricsStorageKey, metrics);
   }, [metrics, metricsStorageKey]);
 
-  const isCategoryEnabled = useCallback((category) => {
-    if (!category) return true;
-    return prefs[category] !== false;
-  }, [prefs]);
+  const isCategoryEnabled = useCallback(
+    (category) => {
+      if (!category) return true;
+      return prefs[category] !== false;
+    },
+    [prefs],
+  );
 
-  const addNotification = useCallback((payload) => {
-    const {
-      key,
-      level = NOTIFICATION_LEVEL.INFO,
-      category = null,
-      title,
-      message,
-      action = null,
-      force = false,
-    } = payload || {};
-    if (!title || !message) return false;
-    if (!force && !isCategoryEnabled(category)) return false;
-    const dedupKey = String(key || `${level}:${title}:${message}`);
-    const nowTs = Date.now();
-    const lastTs = lastSeenKeysRef.current[dedupKey] || 0;
-    // Une proposition ne doit pas repasser après expiration du cooldown si la tâche est encore « proposée ».
-    if (!force && dedupKey.startsWith(TEACHER_PROPOSED_NOTIF_PREFIX) && lastTs > 0) return false;
-    if (!force && nowTs - lastTs < DEDUP_COOLDOWN_MS) return false;
-    lastSeenKeysRef.current[dedupKey] = nowTs;
-    const item = {
-      id: makeId(),
-      key: dedupKey,
-      level,
-      category,
-      title,
-      message,
-      action,
-      read: false,
-      createdAt: nowIso(),
-    };
-    setItems((prev) => {
-      const next = [item, ...prev].slice(0, MAX_ITEMS);
-      persistItems(next);
-      return next;
-    });
-    bumpMetric('created');
-    return true;
-  }, [bumpMetric, isCategoryEnabled, persistItems]);
+  const addNotification = useCallback(
+    (payload) => {
+      const {
+        key,
+        level = NOTIFICATION_LEVEL.INFO,
+        category = null,
+        title,
+        message,
+        action = null,
+        force = false,
+      } = payload || {};
+      if (!title || !message) return false;
+      if (!force && !isCategoryEnabled(category)) return false;
+      const dedupKey = String(key || `${level}:${title}:${message}`);
+      const nowTs = Date.now();
+      const lastTs = lastSeenKeysRef.current[dedupKey] || 0;
+      // Une proposition ne doit pas repasser après expiration du cooldown si la tâche est encore « proposée ».
+      if (!force && dedupKey.startsWith(TEACHER_PROPOSED_NOTIF_PREFIX) && lastTs > 0) return false;
+      if (!force && nowTs - lastTs < DEDUP_COOLDOWN_MS) return false;
+      lastSeenKeysRef.current[dedupKey] = nowTs;
+      const item = {
+        id: makeId(),
+        key: dedupKey,
+        level,
+        category,
+        title,
+        message,
+        action,
+        read: false,
+        createdAt: nowIso(),
+      };
+      setItems((prev) => {
+        const next = [item, ...prev].slice(0, MAX_ITEMS);
+        persistItems(next);
+        return next;
+      });
+      bumpMetric('created');
+      return true;
+    },
+    [bumpMetric, isCategoryEnabled, persistItems],
+  );
 
   const markAllRead = useCallback(() => {
     setItems((prev) => {
@@ -184,27 +198,33 @@ export function useNotificationCenter({
     });
   }, [persistItems]);
 
-  const markAsRead = useCallback((id) => {
-    setItems((prev) => {
-      const next = prev.map((item) => (item.id === id ? { ...item, read: true } : item));
-      persistItems(next);
-      return next;
-    });
-  }, [persistItems]);
+  const markAsRead = useCallback(
+    (id) => {
+      setItems((prev) => {
+        const next = prev.map((item) => (item.id === id ? { ...item, read: true } : item));
+        persistItems(next);
+        return next;
+      });
+    },
+    [persistItems],
+  );
 
-  const removeNotification = useCallback((id) => {
-    setItems((prev) => {
-      const victim = prev.find((item) => item.id === id);
-      if (victim?.key) {
-        const suffix = proposalSuffixFromTeacherNotifKey(victim.key);
-        if (suffix) lastTeacherProposedKeysRef.current.delete(suffix);
-        delete lastSeenKeysRef.current[victim.key];
-      }
-      const next = prev.filter((item) => item.id !== id);
-      persistItems(next);
-      return next;
-    });
-  }, [persistItems]);
+  const removeNotification = useCallback(
+    (id) => {
+      setItems((prev) => {
+        const victim = prev.find((item) => item.id === id);
+        if (victim?.key) {
+          const suffix = proposalSuffixFromTeacherNotifKey(victim.key);
+          if (suffix) lastTeacherProposedKeysRef.current.delete(suffix);
+          delete lastSeenKeysRef.current[victim.key];
+        }
+        const next = prev.filter((item) => item.id !== id);
+        persistItems(next);
+        return next;
+      });
+    },
+    [persistItems],
+  );
 
   const clearRead = useCallback(() => {
     setItems((prev) => {
@@ -214,13 +234,16 @@ export function useNotificationCenter({
     });
   }, [persistItems]);
 
-  const updatePreference = useCallback((category, enabled) => {
-    setPrefs((prev) => {
-      const next = { ...prev, [category]: !!enabled };
-      persistPrefs(next);
-      return next;
-    });
-  }, [persistPrefs]);
+  const updatePreference = useCallback(
+    (category, enabled) => {
+      setPrefs((prev) => {
+        const next = { ...prev, [category]: !!enabled };
+        persistPrefs(next);
+        return next;
+      });
+    },
+    [persistPrefs],
+  );
 
   const trackOpenedPanel = useCallback(() => {
     bumpMetric('opened');
@@ -278,16 +301,26 @@ export function useNotificationCenter({
   // Règles de génération: n3beur
   useEffect(() => {
     if (isTeacher || !student) return;
-    const first = String(student.first_name || '').trim().toLowerCase();
-    const last = String(student.last_name || '').trim().toLowerCase();
-    const mine = tasksForActiveMap.filter((task) => (
-      (task.status === 'available' || task.status === 'in_progress')
-      && Array.isArray(task.assignments)
-      && task.assignments.some((a) => (
-        String(a.student_first_name || '').trim().toLowerCase() === first
-        && String(a.student_last_name || '').trim().toLowerCase() === last
-      ))
-    ));
+    const first = String(student.first_name || '')
+      .trim()
+      .toLowerCase();
+    const last = String(student.last_name || '')
+      .trim()
+      .toLowerCase();
+    const mine = tasksForActiveMap.filter(
+      (task) =>
+        (task.status === 'available' || task.status === 'in_progress') &&
+        Array.isArray(task.assignments) &&
+        task.assignments.some(
+          (a) =>
+            String(a.student_first_name || '')
+              .trim()
+              .toLowerCase() === first &&
+            String(a.student_last_name || '')
+              .trim()
+              .toLowerCase() === last,
+        ),
+    );
     let soonCount = 0;
     let overdueCount = 0;
     for (const task of mine) {
@@ -361,7 +394,10 @@ export function useNotificationCenter({
 
   useEffect(() => {
     if (!isAdmin) return;
-    if (publicSettings?.auth?.allow_google_student === false && publicSettings?.auth?.allow_google_teacher === false) {
+    if (
+      publicSettings?.auth?.allow_google_student === false &&
+      publicSettings?.auth?.allow_google_teacher === false
+    ) {
       addNotification({
         key: 'admin-google-disabled',
         level: NOTIFICATION_LEVEL.INFO,
@@ -371,8 +407,12 @@ export function useNotificationCenter({
         action: { tab: 'settings' },
       });
     }
-    const modulesDisabled = ['tutorials_enabled', 'visit_enabled', 'stats_enabled', 'observations_enabled']
-      .filter((key) => publicSettings?.modules?.[key] === false).length;
+    const modulesDisabled = [
+      'tutorials_enabled',
+      'visit_enabled',
+      'stats_enabled',
+      'observations_enabled',
+    ].filter((key) => publicSettings?.modules?.[key] === false).length;
     if (modulesDisabled > 0) {
       addNotification({
         key: `admin-modules-disabled-${modulesDisabled}`,
@@ -429,11 +469,11 @@ export function useNotificationCenter({
   const unreadCount = useMemo(() => items.filter((item) => !item.read).length, [items]);
   const criticalCount = useMemo(
     () => items.filter((item) => !item.read && item.level === NOTIFICATION_LEVEL.CRITICAL).length,
-    [items]
+    [items],
   );
   const latestCritical = useMemo(
     () => items.find((item) => !item.read && item.level === NOTIFICATION_LEVEL.CRITICAL) || null,
-    [items]
+    [items],
   );
 
   return {

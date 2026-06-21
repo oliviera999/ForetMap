@@ -1,15 +1,13 @@
 require('./helpers/setup');
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const {
-  pickScientificSeed,
-  computeEmptyGapKeys,
-  mergeSources,
-} = require('../lib/speciesAutofill');
+const { pickScientificSeed, computeEmptyGapKeys, mergeSources } = require('../lib/speciesAutofill');
 const { fetchOpenAiSpeciesGapFill } = require('../lib/speciesAutofillOpenAi');
 
 test('pickScientificSeed priorise hint_scientific binomial', () => {
-  const seed = pickScientificSeed('tomate en pot', [], { scientific_name: 'Solanum lycopersicum L.' });
+  const seed = pickScientificSeed('tomate en pot', [], {
+    scientific_name: 'Solanum lycopersicum L.',
+  });
   assert.equal(seed, 'Solanum lycopersicum L.');
 });
 
@@ -70,20 +68,25 @@ test('fetchOpenAiSpeciesGapFill mock HTTP', async () => {
   const fetchImpl = async () => ({
     ok: true,
     json: async () => ({
-      choices: [{
-        message: {
-          content: JSON.stringify({ habitat: 'Haies et lisières.', nutrition: 'ignorer' }),
+      choices: [
+        {
+          message: {
+            content: JSON.stringify({ habitat: 'Haies et lisières.', nutrition: 'ignorer' }),
+          },
         },
-      }],
+      ],
     }),
   });
-  const pack = await fetchOpenAiSpeciesGapFill({
-    query: 'Rosa',
-    scientificName: 'Rosa canina',
-    partialContext: 'Contexte',
-    keysToFill: ['habitat'],
-    knownFields: { description: 'Arbrisseau' },
-  }, { fetchImpl });
+  const pack = await fetchOpenAiSpeciesGapFill(
+    {
+      query: 'Rosa',
+      scientificName: 'Rosa canina',
+      partialContext: 'Contexte',
+      keysToFill: ['habitat'],
+      knownFields: { description: 'Arbrisseau' },
+    },
+    { fetchImpl },
+  );
   assert.ok(pack);
   assert.equal(pack.fields.habitat, 'Haies et lisières.');
   assert.equal(pack.fields.nutrition, undefined);

@@ -10,6 +10,9 @@ import {
   settingsToIdentityFields,
   areVitalityValuesValid,
   gameplayPresetChanges,
+  readMarkerBackgroundsSetting,
+  markerBackgroundUiMode,
+  markerBackgroundStoredValue,
 } from '../../src/gl/utils/glSettingsForm.js';
 
 describe('constantes de réglages', () => {
@@ -79,12 +82,14 @@ describe('normalizeInitialPoints', () => {
 
 describe('settingsToIdentityFields', () => {
   test('extrait titre/sous-titre/PV/PP', () => {
-    expect(settingsToIdentityFields({
-      'platform.title': 'Ma Plateforme',
-      'platform.subtitle': 'Sous-titre',
-      'gameplay.default_health_points': 4,
-      'gameplay.default_power_points': '6',
-    })).toEqual({
+    expect(
+      settingsToIdentityFields({
+        'platform.title': 'Ma Plateforme',
+        'platform.subtitle': 'Sous-titre',
+        'gameplay.default_health_points': 4,
+        'gameplay.default_power_points': '6',
+      }),
+    ).toEqual({
       title: 'Ma Plateforme',
       subtitle: 'Sous-titre',
       defaultHealthPoints: '4',
@@ -122,7 +127,9 @@ describe('areVitalityValuesValid', () => {
 describe('gameplayPresetChanges', () => {
   test('renvoie seulement les clés dont la valeur diffère', () => {
     const settings = { 'gameplay.turns_enabled': true, 'gameplay.scoring_enabled': false };
-    const preset = { settings: { 'gameplay.turns_enabled': true, 'gameplay.scoring_enabled': true } };
+    const preset = {
+      settings: { 'gameplay.turns_enabled': true, 'gameplay.scoring_enabled': true },
+    };
     expect(gameplayPresetChanges(settings, preset)).toEqual([['gameplay.scoring_enabled', true]]);
   });
 
@@ -135,5 +142,33 @@ describe('gameplayPresetChanges', () => {
   test('liste vide si preset sans settings', () => {
     expect(gameplayPresetChanges({}, {})).toEqual([]);
     expect(gameplayPresetChanges({}, null)).toEqual([]);
+  });
+});
+
+describe('readMarkerBackgroundsSetting', () => {
+  test('défaut transparent si absent', () => {
+    expect(readMarkerBackgroundsSetting({})).toEqual({
+      label: 'transparent',
+      emoji: 'transparent',
+      icon: 'transparent',
+    });
+  });
+
+  test('normalise la clé plateforme', () => {
+    expect(
+      readMarkerBackgroundsSetting({
+        'gameplay.marker_backgrounds': { label: 'classic', emoji: 'classic', icon: 'transparent' },
+      }),
+    ).toEqual({ label: 'classic', emoji: 'classic', icon: 'transparent' });
+  });
+});
+
+describe('markerBackgroundUiMode / markerBackgroundStoredValue', () => {
+  test('détecte custom hex', () => {
+    expect(markerBackgroundUiMode('#aabbcc')).toBe('custom');
+  });
+
+  test('custom hex valide stocké en minuscules', () => {
+    expect(markerBackgroundStoredValue('custom', '#AABBCC')).toBe('#aabbcc');
   });
 });

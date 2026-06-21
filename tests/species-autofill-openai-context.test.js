@@ -9,7 +9,13 @@ test('buildOpenAiPartialContext agrège Wikipedia, Wikidata et GBIF', () => {
     primaryResults: [
       { source: 'wikidata', fields: { name: 'Tomate', description: 'Espèce de Solanum.' } },
     ],
-    gbifRes: { fields: { scientific_name: 'Solanum lycopersicum', name: 'Solanum lycopersicum', group_3: 'Solanaceae' } },
+    gbifRes: {
+      fields: {
+        scientific_name: 'Solanum lycopersicum',
+        name: 'Solanum lycopersicum',
+        group_3: 'Solanaceae',
+      },
+    },
     gbifTraitsPack: { fields: { habitat: 'Cultures, climat tempéré.' } },
     secondaryResults: [
       { source: 'gbif_vernacular', fields: { second_name: 'Tomate, Tomate-cerise' } },

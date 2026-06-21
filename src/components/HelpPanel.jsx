@@ -53,10 +53,15 @@ function HelpPanel({
           showCloseButton
           closeButtonLabel={closeButtonText}
         >
-          <h3 className="fm-help-panel__title">{panelTitlePrefix ? `${panelTitlePrefix} ` : ''}{title}</h3>
+          <h3 className="fm-help-panel__title">
+            {panelTitlePrefix ? `${panelTitlePrefix} ` : ''}
+            {title}
+          </h3>
           <ul className="fm-help-panel__list">
             {visibleEntries.map((item) => (
-              <li key={item} className="fm-help-panel__item">{item}</li>
+              <li key={item} className="fm-help-panel__item">
+                {item}
+              </li>
             ))}
           </ul>
           <div className="fm-help-panel__actions">

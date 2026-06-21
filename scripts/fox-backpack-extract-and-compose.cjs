@@ -79,7 +79,13 @@ async function importSourceToAtlas(srcPath) {
   }
   fs.mkdirSync(path.dirname(ATLAS), { recursive: true });
   await pipeline.png().toFile(ATLAS);
-  console.log('Import planche → atlas', path.relative(ROOT, srcPath), '→', ATLAS_REL, `(${tw}×${th})`);
+  console.log(
+    'Import planche → atlas',
+    path.relative(ROOT, srcPath),
+    '→',
+    ATLAS_REL,
+    `(${tw}×${th})`,
+  );
 }
 
 async function transparentTilePng() {
@@ -90,7 +96,9 @@ async function transparentTilePng() {
       channels: 4,
       background: { r: 0, g: 0, b: 0, alpha: 0 },
     },
-  }).png().toBuffer();
+  })
+    .png()
+    .toBuffer();
 }
 
 async function extractAndCompose() {

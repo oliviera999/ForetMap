@@ -20,26 +20,37 @@ before(async () => {
   await execute(
     `INSERT INTO gl_admins (email, display_name, role, is_active, created_at, updated_at)
      VALUES (?, ?, 'admin', 1, NOW(), NOW())`,
-    [`games-roster-${stamp}@ecole.local`, `MJ roster ${stamp}`]
+    [`games-roster-${stamp}@ecole.local`, `MJ roster ${stamp}`],
   );
   const admin = await queryOne('SELECT id FROM gl_admins ORDER BY id DESC LIMIT 1');
   await execute(
     `INSERT INTO gl_classes (name, school, created_by, is_active, created_at, updated_at)
      VALUES (?, ?, ?, 1, NOW(), NOW())`,
-    [`Classe roster ${stamp}`, 'Lyautey', admin.id]
+    [`Classe roster ${stamp}`, 'Lyautey', admin.id],
   );
   const cls = await queryOne('SELECT id FROM gl_classes ORDER BY id DESC LIMIT 1');
-  const chapter = await queryOne('SELECT id FROM gl_chapters ORDER BY order_index ASC, id ASC LIMIT 1');
+  const chapter = await queryOne(
+    'SELECT id FROM gl_chapters ORDER BY order_index ASC, id ASC LIMIT 1',
+  );
 
   const gameRes = await request(app)
     .post('/api/gl/games')
-    .set('Authorization', `Bearer ${await signAuthToken({
-      product: 'gl',
-      userType: 'gl_admin',
-      userId: String(admin.id),
-      roleSlug: 'gl_admin',
-      permissions: ['gl.read', 'gl.players.manage', 'gl.game.manage', 'gl.team.manage', 'gl.event.emit'],
-    })}`)
+    .set(
+      'Authorization',
+      `Bearer ${await signAuthToken({
+        product: 'gl',
+        userType: 'gl_admin',
+        userId: String(admin.id),
+        roleSlug: 'gl_admin',
+        permissions: [
+          'gl.read',
+          'gl.players.manage',
+          'gl.game.manage',
+          'gl.team.manage',
+          'gl.event.emit',
+        ],
+      })}`,
+    )
     .send({ classId: cls.id, chapterId: chapter.id, name: `Partie roster ${stamp}` })
     .expect(201);
   gameId = Number(gameRes.body?.game?.id);
@@ -49,7 +60,13 @@ before(async () => {
     userType: 'gl_admin',
     userId: String(admin.id),
     roleSlug: 'gl_admin',
-    permissions: ['gl.read', 'gl.players.manage', 'gl.game.manage', 'gl.team.manage', 'gl.event.emit'],
+    permissions: [
+      'gl.read',
+      'gl.players.manage',
+      'gl.game.manage',
+      'gl.team.manage',
+      'gl.event.emit',
+    ],
   });
 
   const teamA = await request(app)

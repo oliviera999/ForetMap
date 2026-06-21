@@ -27,7 +27,10 @@ describe('computeReorderedProjectTaskIds', () => {
   });
 
   test('ids numériques tolérés (normalisation en strings) et liste absente', () => {
-    const tasks = [{ id: 1, project_id: 9 }, { id: 2, project_id: 9 }];
+    const tasks = [
+      { id: 1, project_id: 9 },
+      { id: 2, project_id: 9 },
+    ];
     expect(computeReorderedProjectTaskIds(tasks, '2', '9', '1')).toEqual(['2', '1']);
     expect(computeReorderedProjectTaskIds(null, 't', 'p1')).toEqual(['t']);
   });

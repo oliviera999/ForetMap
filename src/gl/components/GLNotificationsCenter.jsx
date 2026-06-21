@@ -19,13 +19,19 @@ export function GLNotificationsCenter({ items, unreadCount, onMarkAllRead, onCle
           <header>
             <strong>Notifications GL</strong>
             <div className="gl-inline-actions">
-              <GLButton type="button" size="sm" variant="secondary" onClick={onMarkAllRead}>Tout marquer lu</GLButton>
-              <GLButton type="button" size="sm" variant="ghost" onClick={onClear}>Vider</GLButton>
+              <GLButton type="button" size="sm" variant="secondary" onClick={onMarkAllRead}>
+                Tout marquer lu
+              </GLButton>
+              <GLButton type="button" size="sm" variant="ghost" onClick={onClear}>
+                Vider
+              </GLButton>
             </div>
           </header>
           {items.length === 0 ? (
             <p className="gl-empty gl-hint">
-              <span className="gl-empty-icon" aria-hidden>🔔</span>
+              <span className="gl-empty-icon" aria-hidden>
+                🔔
+              </span>
               Aucune notification.
             </p>
           ) : (

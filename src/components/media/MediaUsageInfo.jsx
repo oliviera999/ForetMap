@@ -9,10 +9,16 @@ export function formatUsageLocation(loc) {
 
 export function MediaUsageInfo({ usage, ready, limit = 3 }) {
   if (!ready) {
-    return <span className="media-library-menu__usage media-library-menu__usage--pending">Usage…</span>;
+    return (
+      <span className="media-library-menu__usage media-library-menu__usage--pending">Usage…</span>
+    );
   }
   if (!usage || !usage.count) {
-    return <span className="media-library-menu__usage media-library-menu__usage--unused">Inutilisée</span>;
+    return (
+      <span className="media-library-menu__usage media-library-menu__usage--unused">
+        Inutilisée
+      </span>
+    );
   }
   const locations = Array.isArray(usage.locations) ? usage.locations : [];
   const shown = locations.slice(0, limit);
@@ -25,7 +31,10 @@ export function MediaUsageInfo({ usage, ready, limit = 3 }) {
       </span>
       <span className="media-library-menu__usage-list">
         {shown.map((loc, index) => (
-          <span key={`${loc.kind}-${loc.id}-${loc.field}-${index}`} className="media-library-menu__usage-loc">
+          <span
+            key={`${loc.kind}-${loc.id}-${loc.field}-${index}`}
+            className="media-library-menu__usage-loc"
+          >
             {formatUsageLocation(loc)}
           </span>
         ))}

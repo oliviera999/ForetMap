@@ -67,7 +67,7 @@ before(async () => {
          lien_ordre_recit = VALUES(lien_ordre_recit),
          statut = 'actif',
          updated_at = NOW()`,
-      [code, `Feuillet pays 5 #${i + 1}`, i + 1, i + 1]
+      [code, `Feuillet pays 5 #${i + 1}`, i + 1, i + 1],
     );
   }
 
@@ -82,7 +82,7 @@ before(async () => {
        lien_canal = VALUES(lien_canal),
        lien_ref = VALUES(lien_ref),
        statut = 'actif',
-       updated_at = NOW()`
+       updated_at = NOW()`,
   );
 
   for (const code of TUNDRA_SPECIES) {
@@ -91,7 +91,7 @@ before(async () => {
          species_code, biome_slug, type, nom_commun, nom_scientifique, statut, created_at, updated_at
        ) VALUES (?, 'toundra', 'faune', ?, 'Testus tundra', 'actif', NOW(), NOW())
        ON DUPLICATE KEY UPDATE biome_slug = 'toundra', statut = 'actif', updated_at = NOW()`,
-      [code, `Espèce toundra ${code}`]
+      [code, `Espèce toundra ${code}`],
     );
   }
 
@@ -99,7 +99,7 @@ before(async () => {
     `INSERT INTO gl_species (
        species_code, biome_slug, type, nom_commun, nom_scientifique, statut, created_at, updated_at
      ) VALUES ('SP0049', 'toundra', 'faune', 'Ours polaire', 'Ursus maritimus', 'actif', NOW(), NOW())
-     ON DUPLICATE KEY UPDATE biome_slug = 'toundra', statut = 'actif', updated_at = NOW()`
+     ON DUPLICATE KEY UPDATE biome_slug = 'toundra', statut = 'actif', updated_at = NOW()`,
   );
 });
 
@@ -129,7 +129,7 @@ test('5 espèces toundra révèlent les feuillets espece_pays du pays 5 dans l o
     const state = await queryOne(
       `SELECT unlocked_via, status FROM gl_game_feuillet_states
         WHERE game_id = ? AND team_id = ? AND feuillet_code = ? LIMIT 1`,
-      [gameId, teamId, code]
+      [gameId, teamId, code],
     );
     assert.ok(state);
     assert.strictEqual(state.unlocked_via, 'espece');
@@ -162,7 +162,7 @@ test('POST sans gameId ne révèle pas de feuillet', async () => {
     `INSERT INTO gl_species (
        species_code, biome_slug, type, nom_commun, statut, created_at, updated_at
      ) VALUES (?, 'sahara', 'faune', 'Sans game', 'actif', NOW(), NOW())`,
-    [code]
+    [code],
   );
   const res = await request(app)
     .post(`/api/gl/learning/species/${code}`)
@@ -178,7 +178,7 @@ test('corpus importé expose les colonnes lien_* quand présentes', async () => 
     `SELECT feuillet_code, lien_canal, lien_pays, lien_ordre_recit
        FROM gl_lore_feuillets
       WHERE lien_canal IS NOT NULL
-      LIMIT 5`
+      LIMIT 5`,
   );
   if (rows.length === 0) return;
   for (const row of rows) {

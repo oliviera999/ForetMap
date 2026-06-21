@@ -37,122 +37,142 @@ function requireGlPlayer(req, res) {
 
 router.use(requireGlAuth);
 
-router.get('/me', asyncHandler(async (req, res) => {
-  if (!(await ensurePlayerJournalModuleEnabled(res))) return;
-  if (!requireGlPlayer(req, res)) return;
-  const data = await getJournalForPlayer(req.glAuth.userId);
-  return res.json(data);
-}));
+router.get(
+  '/me',
+  asyncHandler(async (req, res) => {
+    if (!(await ensurePlayerJournalModuleEnabled(res))) return;
+    if (!requireGlPlayer(req, res)) return;
+    const data = await getJournalForPlayer(req.glAuth.userId);
+    return res.json(data);
+  }),
+);
 
-router.put('/me', asyncHandler(async (req, res) => {
-  if (!(await ensurePlayerJournalModuleEnabled(res))) return;
-  if (!requireGlPlayer(req, res)) return;
-  const playerId = Number(req.glAuth.userId);
-  const bodyMarkdown = req.body?.bodyMarkdown != null ? String(req.body.bodyMarkdown) : '';
-  const validation = await validateJournalBody(bodyMarkdown, playerId);
-  if (validation.error) return res.status(400).json({ error: validation.error });
+router.put(
+  '/me',
+  asyncHandler(async (req, res) => {
+    if (!(await ensurePlayerJournalModuleEnabled(res))) return;
+    if (!requireGlPlayer(req, res)) return;
+    const playerId = Number(req.glAuth.userId);
+    const bodyMarkdown = req.body?.bodyMarkdown != null ? String(req.body.bodyMarkdown) : '';
+    const validation = await validateJournalBody(bodyMarkdown, playerId);
+    if (validation.error) return res.status(400).json({ error: validation.error });
 
-  await execute(
-    `INSERT INTO gl_player_journals (player_id, body_markdown, updated_at)
+    await execute(
+      `INSERT INTO gl_player_journals (player_id, body_markdown, updated_at)
        VALUES (?, ?, NOW())
        ON DUPLICATE KEY UPDATE body_markdown = VALUES(body_markdown), updated_at = NOW()`,
-    [playerId, validation.bodyMarkdown]
-  );
-  const data = await getJournalForPlayer(playerId);
-  return res.json(data);
-}));
+      [playerId, validation.bodyMarkdown],
+    );
+    const data = await getJournalForPlayer(playerId);
+    return res.json(data);
+  }),
+);
 
-router.post('/me/assets', asyncHandler(async (req, res) => {
-  if (!(await ensurePlayerJournalModuleEnabled(res))) return;
-  if (!requireGlPlayer(req, res)) return;
-  const playerId = Number(req.glAuth.userId);
-  const limits = await getPlayerJournalLimits();
-  const current = await countPlayerJournalAssets(playerId);
-  if (current >= limits.maxAssets) {
-    return res.status(400).json({
-      error: `Nombre maximum d’illustrations atteint (${limits.maxAssets})`,
-    });
-  }
+router.post(
+  '/me/assets',
+  asyncHandler(async (req, res) => {
+    if (!(await ensurePlayerJournalModuleEnabled(res))) return;
+    if (!requireGlPlayer(req, res)) return;
+    const playerId = Number(req.glAuth.userId);
+    const limits = await getPlayerJournalLimits();
+    const current = await countPlayerJournalAssets(playerId);
+    if (current >= limits.maxAssets) {
+      return res.status(400).json({
+        error: `Nombre maximum d’illustrations atteint (${limits.maxAssets})`,
+      });
+    }
 
-  const decoded = decodeUserContentImageBuffer(req.body?.imageData);
-  if (decoded.error) return res.status(400).json({ error: decoded.error });
+    const decoded = decodeUserContentImageBuffer(req.body?.imageData);
+    if (decoded.error) return res.status(400).json({ error: decoded.error });
 
-  const prefix = playerJournalUploadPrefix(playerId);
-  const rel = `${prefix}/${Date.now()}-${current}.${decoded.ext}`;
-  writeBufferToDisk(rel, decoded.buffer);
+    const prefix = playerJournalUploadPrefix(playerId);
+    const rel = `${prefix}/${Date.now()}-${current}.${decoded.ext}`;
+    writeBufferToDisk(rel, decoded.buffer);
 
-  const mimeType = decoded.ext === 'jpg' ? 'image/jpeg' : `image/${decoded.ext}`;
-  const result = await execute(
-    `INSERT INTO gl_player_journal_assets (player_id, asset_path, mime_type, byte_size, created_at)
+    const mimeType = decoded.ext === 'jpg' ? 'image/jpeg' : `image/${decoded.ext}`;
+    const result = await execute(
+      `INSERT INTO gl_player_journal_assets (player_id, asset_path, mime_type, byte_size, created_at)
        VALUES (?, ?, ?, ?, NOW())`,
-    [playerId, rel, mimeType, decoded.buffer.length]
-  );
-  const asset = await queryOne(
-    'SELECT id, asset_path, mime_type, byte_size, created_at FROM gl_player_journal_assets WHERE id = ? LIMIT 1',
-    [result.insertId]
-  );
-  return res.status(201).json({
-    asset: {
-      id: Number(asset.id),
-      url: `/uploads/${asset.asset_path}`,
-      mimeType: asset.mime_type,
-      byteSize: Number(asset.byte_size) || 0,
-      createdAt: asset.created_at,
-    },
-    usage: {
-      assetCount: current + 1,
-      maxAssets: limits.maxAssets,
-    },
-  });
-}));
+      [playerId, rel, mimeType, decoded.buffer.length],
+    );
+    const asset = await queryOne(
+      'SELECT id, asset_path, mime_type, byte_size, created_at FROM gl_player_journal_assets WHERE id = ? LIMIT 1',
+      [result.insertId],
+    );
+    return res.status(201).json({
+      asset: {
+        id: Number(asset.id),
+        url: `/uploads/${asset.asset_path}`,
+        mimeType: asset.mime_type,
+        byteSize: Number(asset.byte_size) || 0,
+        createdAt: asset.created_at,
+      },
+      usage: {
+        assetCount: current + 1,
+        maxAssets: limits.maxAssets,
+      },
+    });
+  }),
+);
 
-router.delete('/me/assets/:assetId', asyncHandler(async (req, res) => {
-  if (!(await ensurePlayerJournalModuleEnabled(res))) return;
-  if (!requireGlPlayer(req, res)) return;
-  const playerId = Number(req.glAuth.userId);
-  const assetId = Number(req.params.assetId);
-  if (!Number.isFinite(assetId)) return res.status(400).json({ error: 'Identifiant invalide' });
+router.delete(
+  '/me/assets/:assetId',
+  asyncHandler(async (req, res) => {
+    if (!(await ensurePlayerJournalModuleEnabled(res))) return;
+    if (!requireGlPlayer(req, res)) return;
+    const playerId = Number(req.glAuth.userId);
+    const assetId = Number(req.params.assetId);
+    if (!Number.isFinite(assetId)) return res.status(400).json({ error: 'Identifiant invalide' });
 
-  const asset = await queryOne(
-    'SELECT id, asset_path FROM gl_player_journal_assets WHERE id = ? AND player_id = ? LIMIT 1',
-    [assetId, playerId]
-  );
-  if (!asset) return res.status(404).json({ error: 'Illustration introuvable' });
+    const asset = await queryOne(
+      'SELECT id, asset_path FROM gl_player_journal_assets WHERE id = ? AND player_id = ? LIMIT 1',
+      [assetId, playerId],
+    );
+    if (!asset) return res.status(404).json({ error: 'Illustration introuvable' });
 
-  await execute('DELETE FROM gl_player_journal_assets WHERE id = ? AND player_id = ?', [assetId, playerId]);
-  if (asset.asset_path) deleteFile(asset.asset_path);
+    await execute('DELETE FROM gl_player_journal_assets WHERE id = ? AND player_id = ?', [
+      assetId,
+      playerId,
+    ]);
+    if (asset.asset_path) deleteFile(asset.asset_path);
 
-  const limits = await getPlayerJournalLimits();
-  const assetCount = await countPlayerJournalAssets(playerId);
-  return res.json({
-    ok: true,
-    usage: { assetCount, maxAssets: limits.maxAssets },
-  });
-}));
+    const limits = await getPlayerJournalLimits();
+    const assetCount = await countPlayerJournalAssets(playerId);
+    return res.json({
+      ok: true,
+      usage: { assetCount, maxAssets: limits.maxAssets },
+    });
+  }),
+);
 
-router.get('/players/:playerId', requireGlPermission('gl.players.manage'), asyncHandler(async (req, res) => {
-  if (!(await ensurePlayerJournalModuleEnabled(res))) return;
-  const targetId = Number(req.params.playerId);
-  if (!Number.isFinite(targetId)) return res.status(400).json({ error: 'Identifiant joueur invalide' });
-  if (!(await canStaffAccessPlayer(req.glAuth, targetId))) {
-    return res.status(404).json({ error: 'Joueur introuvable' });
-  }
-  const data = await getJournalForPlayer(targetId);
-  const player = await queryOne(
-    'SELECT id, pseudo, first_name, last_name FROM gl_players WHERE id = ? LIMIT 1',
-    [targetId]
-  );
-  return res.json({
-    ...data,
-    player: player
-      ? {
-        id: Number(player.id),
-        pseudo: player.pseudo,
-        firstName: player.first_name,
-        lastName: player.last_name,
-      }
-      : null,
-  });
-}));
+router.get(
+  '/players/:playerId',
+  requireGlPermission('gl.players.manage'),
+  asyncHandler(async (req, res) => {
+    if (!(await ensurePlayerJournalModuleEnabled(res))) return;
+    const targetId = Number(req.params.playerId);
+    if (!Number.isFinite(targetId))
+      return res.status(400).json({ error: 'Identifiant joueur invalide' });
+    if (!(await canStaffAccessPlayer(req.glAuth, targetId))) {
+      return res.status(404).json({ error: 'Joueur introuvable' });
+    }
+    const data = await getJournalForPlayer(targetId);
+    const player = await queryOne(
+      'SELECT id, pseudo, first_name, last_name FROM gl_players WHERE id = ? LIMIT 1',
+      [targetId],
+    );
+    return res.json({
+      ...data,
+      player: player
+        ? {
+            id: Number(player.id),
+            pseudo: player.pseudo,
+            firstName: player.first_name,
+            lastName: player.last_name,
+          }
+        : null,
+    });
+  }),
+);
 
 module.exports = router;

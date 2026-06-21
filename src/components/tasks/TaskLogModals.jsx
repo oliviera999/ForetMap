@@ -13,14 +13,7 @@ import { TimedToast } from '../../shared/components/TimedToast.jsx';
 import { ImageLightbox } from '../../shared/components/ImageLightbox.jsx';
 
 function Lightbox({ src, caption, onClose }) {
-  return (
-    <ImageLightbox
-      src={src}
-      caption={caption}
-      onClose={onClose}
-      useOverlayHistory
-    />
-  );
+  return <ImageLightbox src={src} caption={caption} onClose={onClose} useOverlayHistory />;
 }
 
 function LogModal({ task, student, onClose, onDone, onForceLogout }) {
@@ -72,9 +65,11 @@ function LogModal({ task, student, onClose, onDone, onForceLogout }) {
     setSaving(true);
     try {
       await api(`/api/tasks/${task.id}/done`, 'POST', {
-        comment, imageData,
-        firstName: student.first_name, lastName: student.last_name,
-        studentId: student.id
+        comment,
+        imageData,
+        firstName: student.first_name,
+        lastName: student.last_name,
+        studentId: student.id,
       });
       writeTaskLogCommentDraft(task.id, '');
       await onDone?.();
@@ -99,66 +94,95 @@ function LogModal({ task, student, onClose, onDone, onForceLogout }) {
       closeOnOverlay
       dialogRef={dialogRef}
     >
-        <button className="modal-close" aria-label="Fermer la fenêtre" onClick={onClose}>✕</button>
-        <h3>📋 Rapport de tâche</h3>
-        <p style={{ fontSize: '.85rem', color: '#777', marginBottom: 16 }}>
-          <strong>{task.title}</strong> — laisse un commentaire ou une photo avant de valider
-        </p>
-        {err && <p style={{ color: 'var(--alert)', fontSize: '.82rem', marginBottom: 8 }}>{err}</p>}
+      <button className="modal-close" aria-label="Fermer la fenêtre" onClick={onClose}>
+        ✕
+      </button>
+      <h3>📋 Rapport de tâche</h3>
+      <p style={{ fontSize: '.85rem', color: '#777', marginBottom: 16 }}>
+        <strong>{task.title}</strong> — laisse un commentaire ou une photo avant de valider
+      </p>
+      {err && <p style={{ color: 'var(--alert)', fontSize: '.82rem', marginBottom: 8 }}>{err}</p>}
 
-        <div className="field">
-          <label htmlFor={commentFieldId}>Commentaire (optionnel)</label>
-          <MarkdownTextarea id={commentFieldId} value={comment} onChange={e => setComment(e.target.value)} rows={3}
-            placeholder="Comment ça s'est passé ? Des observations sur l'être vivant ?" />
-        </div>
+      <div className="field">
+        <label htmlFor={commentFieldId}>Commentaire (optionnel)</label>
+        <MarkdownTextarea
+          id={commentFieldId}
+          value={comment}
+          onChange={(e) => setComment(e.target.value)}
+          rows={3}
+          placeholder="Comment ça s'est passé ? Des observations sur l'être vivant ?"
+        />
+      </div>
 
-        <div className="field">
-          <label>Photo (optionnel)</label>
-          {!preview ? (
-            <div className="img-upload-area img-upload-area--split" role="group" aria-label="Photo du rapport : galerie ou appareil photo">
-              <div style={{ fontSize: '2rem', marginBottom: 6 }}>📷</div>
-              <div style={{ fontSize: '.85rem', color: '#888', marginBottom: 10 }}>Galerie ou appareil photo</div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-sm"
-                  onClick={() => {
-                    if (galleryInputRef.current) galleryInputRef.current.value = '';
-                    armNativeFilePickerGuard();
-                    galleryInputRef.current?.click();
-                  }}
-                >
-                  📁 Choisir une photo
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-sm"
-                  onClick={() => {
-                    if (cameraInputRef.current) cameraInputRef.current.value = '';
-                    armNativeFilePickerGuard();
-                    cameraInputRef.current?.click();
-                  }}
-                >
-                  📸 Prendre une photo
-                </button>
-              </div>
-              <input ref={galleryInputRef} type="file" accept="image/*" onChange={handleFile} />
-              <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" onChange={handleFile} />
+      <div className="field">
+        <label>Photo (optionnel)</label>
+        {!preview ? (
+          <div
+            className="img-upload-area img-upload-area--split"
+            role="group"
+            aria-label="Photo du rapport : galerie ou appareil photo"
+          >
+            <div style={{ fontSize: '2rem', marginBottom: 6 }}>📷</div>
+            <div style={{ fontSize: '.85rem', color: '#888', marginBottom: 10 }}>
+              Galerie ou appareil photo
             </div>
-          ) : (
-            <div className="img-preview-wrap">
-              <img src={preview} className="img-preview" alt="preview" />
-              <button className="img-remove" onClick={() => { setImageData(null); setPreview(null); }}>✕</button>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => {
+                  if (galleryInputRef.current) galleryInputRef.current.value = '';
+                  armNativeFilePickerGuard();
+                  galleryInputRef.current?.click();
+                }}
+              >
+                📁 Choisir une photo
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => {
+                  if (cameraInputRef.current) cameraInputRef.current.value = '';
+                  armNativeFilePickerGuard();
+                  cameraInputRef.current?.click();
+                }}
+              >
+                📸 Prendre une photo
+              </button>
             </div>
-          )}
-        </div>
+            <input ref={galleryInputRef} type="file" accept="image/*" onChange={handleFile} />
+            <input
+              ref={cameraInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={handleFile}
+            />
+          </div>
+        ) : (
+          <div className="img-preview-wrap">
+            <img src={preview} className="img-preview" alt="preview" />
+            <button
+              className="img-remove"
+              onClick={() => {
+                setImageData(null);
+                setPreview(null);
+              }}
+            >
+              ✕
+            </button>
+          </div>
+        )}
+      </div>
 
-        <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
-          <button className="btn btn-primary" style={{ flex: 1 }} onClick={submit} disabled={saving}>
-            {saving ? 'Envoi...' : '✅ Marquer comme terminée'}
-          </button>
-          <button className="btn btn-ghost" onClick={onClose}>Annuler</button>
-        </div>
+      <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+        <button className="btn btn-primary" style={{ flex: 1 }} onClick={submit} disabled={saving}>
+          {saving ? 'Envoi...' : '✅ Marquer comme terminée'}
+        </button>
+        <button className="btn btn-ghost" onClick={onClose}>
+          Annuler
+        </button>
+      </div>
     </DialogShell>
   );
 }
@@ -201,7 +225,9 @@ function TaskLogsViewer({ task, onClose }) {
       await api(`/api/tasks/${task.id}/logs/${logId}`, 'DELETE');
       setToast('Rapport retiré — c’est noté.');
       loadLogs();
-    } catch (e) { setToast('Oups : ' + e.message); }
+    } catch (e) {
+      setToast('Oups : ' + e.message);
+    }
   };
 
   return (
@@ -216,29 +242,50 @@ function TaskLogsViewer({ task, onClose }) {
     >
       {big && <Lightbox src={big} caption="" onClose={() => setBig(null)} />}
       {toast && <TimedToast msg={toast} onDone={() => setToast(null)} />}
-      <button className="modal-close" aria-label="Fermer la fenêtre" onClick={onClose}>✕</button>
+      <button className="modal-close" aria-label="Fermer la fenêtre" onClick={onClose}>
+        ✕
+      </button>
       <h3>📋 Rapports — {task.title}</h3>
-      {logs.length === 0
-        ? <div className="empty"><div className="empty-icon">📭</div><p>Pas encore de retour sur cette mission — à toi d’ouvrir le bal !</p></div>
-        : logs.map(l => (
+      {logs.length === 0 ? (
+        <div className="empty">
+          <div className="empty-icon">📭</div>
+          <p>Pas encore de retour sur cette mission — à toi d’ouvrir le bal !</p>
+        </div>
+      ) : (
+        logs.map((l) => (
           <div key={l.id} className="log-entry fade-in">
             <div className="log-entry-header">
-              <span className="log-entry-author">{l.student_first_name} {l.student_last_name}</span>
+              <span className="log-entry-author">
+                {l.student_first_name} {l.student_last_name}
+              </span>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span>{formatDateTimeFr(l.created_at)}</span>
-                <button className="btn btn-danger btn-sm" style={{ padding: '4px 8px', minHeight: 'auto', fontSize: '.72rem' }}
-                  onClick={() => { if (confirm('Supprimer ce rapport ?')) deleteLog(l.id); }}
-                  title="Supprimer ce rapport">🗑️</button>
+                <button
+                  className="btn btn-danger btn-sm"
+                  style={{ padding: '4px 8px', minHeight: 'auto', fontSize: '.72rem' }}
+                  onClick={() => {
+                    if (confirm('Supprimer ce rapport ?')) deleteLog(l.id);
+                  }}
+                  title="Supprimer ce rapport"
+                >
+                  🗑️
+                </button>
               </div>
             </div>
             {l.comment && <MarkdownContent className="log-comment">{l.comment}</MarkdownContent>}
             {l.image_url && (
-              <img src={l.image_url} className="log-image" alt="rapport" loading="lazy" decoding="async"
-                onClick={() => setBig(l.image_url)} />
+              <img
+                src={l.image_url}
+                className="log-image"
+                alt="rapport"
+                loading="lazy"
+                decoding="async"
+                onClick={() => setBig(l.image_url)}
+              />
             )}
           </div>
         ))
-      }
+      )}
     </DialogShell>
   );
 }

@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { validateMascotPackV1 } from '../../utils/mascotPack.js';
 import { estimateStateDurationMs } from '../../utils/visitMascotPackTiming.js';
+import { STATE_LABELS } from '../../constants/mascotStateLabels.js';
 
 /**
  * Fiche récapitulative (lecture seule) d'un pack mascotte : métadonnées
@@ -11,7 +12,11 @@ import { estimateStateDurationMs } from '../../utils/visitMascotPackTiming.js';
 export default function PackBehaviorDetailTable({ pack }) {
   const validated = useMemo(() => validateMascotPackV1(pack, { relaxAssetPrefix: true }), [pack]);
   if (!validated.ok) {
-    return <p className="section-sub text-danger">Pack invalide pour la fiche — corrigez le JSON ou l’éditeur.</p>;
+    return (
+      <p className="section-sub text-danger">
+        Pack invalide pour la fiche — corrigez le JSON ou l’éditeur.
+      </p>
+    );
   }
   const states = Object.keys(validated.pack.stateFrames || {}).sort();
   const ver = Number(validated.pack.mascotPackVersion) === 2 ? 2 : 1;
@@ -30,11 +35,16 @@ export default function PackBehaviorDetailTable({ pack }) {
       {validated.pack.stateAliases && Object.keys(validated.pack.stateAliases).length > 0 ? (
         <p className="section-sub" style={{ fontSize: '0.82rem' }}>
           Alias :{' '}
-          {Object.entries(validated.pack.stateAliases).map(([a, t]) => `${a}→${t}`).join(', ')}
+          {Object.entries(validated.pack.stateAliases)
+            .map(([a, t]) => `${a}→${t}`)
+            .join(', ')}
         </p>
       ) : null}
       <div style={{ overflowX: 'auto' }}>
-        <table className="visit-mascot-pack-detail-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+        <table
+          className="visit-mascot-pack-detail-table"
+          style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}
+        >
           <thead>
             <tr style={{ textAlign: 'left', borderBottom: '1px solid rgba(26,71,49,0.2)' }}>
               <th style={{ padding: '6px 8px' }}>État</th>
@@ -47,15 +57,32 @@ export default function PackBehaviorDetailTable({ pack }) {
           <tbody>
             {states.map((st) => {
               const spec = validated.pack.stateFrames[st];
-              const n = Array.isArray(spec?.files) ? spec.files.length : (Array.isArray(spec?.srcs) ? spec.srcs.length : 0);
+              const n = Array.isArray(spec?.files)
+                ? spec.files.length
+                : Array.isArray(spec?.srcs)
+                  ? spec.srcs.length
+                  : 0;
               const dwell = Array.isArray(spec?.frameDwellMs) ? spec.frameDwellMs.join(', ') : '—';
               const dur = estimateStateDurationMs(validated.pack, st);
               return (
                 <tr key={st} style={{ borderBottom: '1px solid rgba(26,71,49,0.08)' }}>
-                  <td style={{ padding: '6px 8px' }}><code>{st}</code></td>
+                  <td style={{ padding: '6px 8px' }}>
+                    {STATE_LABELS[st] ? (
+                      <>
+                        {STATE_LABELS[st]}{' '}
+                        <code style={{ fontSize: '0.9em', opacity: 0.85 }}>({st})</code>
+                      </>
+                    ) : (
+                      <code>{st}</code>
+                    )}
+                  </td>
                   <td style={{ padding: '6px 8px' }}>{n}</td>
-                  <td style={{ padding: '6px 8px' }}>{spec?.fps != null ? String(spec.fps) : '—'}</td>
-                  <td style={{ padding: '6px 8px', maxWidth: 220, wordBreak: 'break-all' }}>{dwell}</td>
+                  <td style={{ padding: '6px 8px' }}>
+                    {spec?.fps != null ? String(spec.fps) : '—'}
+                  </td>
+                  <td style={{ padding: '6px 8px', maxWidth: 220, wordBreak: 'break-all' }}>
+                    {dwell}
+                  </td>
                   <td style={{ padding: '6px 8px' }}>{dur != null ? `${dur} ms` : '—'}</td>
                 </tr>
               );

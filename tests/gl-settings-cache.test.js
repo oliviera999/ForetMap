@@ -33,7 +33,7 @@ test('invalidateGameplayCache recharge depuis la BDD', async () => {
   await execute(
     `INSERT INTO gl_settings (\`key\`, value_json, updated_at)
      VALUES ('gameplay.turns_enabled', 'true', NOW())
-     ON DUPLICATE KEY UPDATE value_json = VALUES(value_json), updated_at = NOW()`
+     ON DUPLICATE KEY UPDATE value_json = VALUES(value_json), updated_at = NOW()`,
   );
   invalidateGameplayCache();
   const settings = await getGameplaySettings();

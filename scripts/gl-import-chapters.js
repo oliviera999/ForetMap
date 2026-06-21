@@ -12,10 +12,21 @@ const {
 } = require('../lib/glChaptersImport');
 const { initSchema, queryAll, execute, withTransaction } = require('../database');
 
-const DEFAULT_FILE = path.join(process.cwd(), 'data', 'gl', 'chapitres-gnomes-et-licornes-exemple.xlsx');
+const DEFAULT_FILE = path.join(
+  process.cwd(),
+  'data',
+  'gl',
+  'chapitres-gnomes-et-licornes-exemple.xlsx',
+);
 
 function parseArgs(argv) {
-  const args = { dryRun: true, apply: false, file: DEFAULT_FILE, syncReperes: false, syncZones: false };
+  const args = {
+    dryRun: true,
+    apply: false,
+    file: DEFAULT_FILE,
+    syncReperes: false,
+    syncZones: false,
+  };
   for (const raw of argv) {
     if (raw === '--apply') {
       args.apply = true;
@@ -52,15 +63,13 @@ async function main() {
 
   await initSchema();
 
-  const report = await withTransaction(async (tx) => applyChaptersImport(
-    { queryAll: tx.queryAll, execute: tx.execute },
-    parsed,
-    {
+  const report = await withTransaction(async (tx) =>
+    applyChaptersImport({ queryAll: tx.queryAll, execute: tx.execute }, parsed, {
       dryRun: args.dryRun,
       syncReperes: args.syncReperes,
       syncZones: args.syncZones,
-    }
-  ));
+    }),
+  );
 
   const mode = args.dryRun ? 'dry-run' : 'apply';
   console.log(`[gl-import-chapters] ${mode} OK — fichier: ${args.file}`);

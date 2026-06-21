@@ -145,7 +145,10 @@ describe('TaskTileCard — interactions (les handlers passés en props restent c
       />,
     );
     fireEvent.click(screen.getByRole('button', { name: /Valider/ }));
-    expect(setTaskStatus).toHaveBeenCalledWith(expect.objectContaining({ id: 'task-1' }), 'validated');
+    expect(setTaskStatus).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'task-1' }),
+      'validated',
+    );
   });
 
   test('côté n3beur : « Je m’en occupe » appelle assign ; « Me retirer » appelle unassign', () => {
@@ -183,7 +186,14 @@ describe('TaskTileCard — interactions (les handlers passés en props restent c
             title: 'Arroser les tomates',
             status: 'in_progress',
             required_students: 2,
-            assignments: [{ id: 'a1', student_id: 's1', student_first_name: 'Léa', student_last_name: 'Martin' }],
+            assignments: [
+              {
+                id: 'a1',
+                student_id: 's1',
+                student_first_name: 'Léa',
+                student_last_name: 'Martin',
+              },
+            ],
           },
         })}
       />,

@@ -9,9 +9,11 @@ test.describe('GL musique des zones', () => {
     const adminEmail = `e2e-zone-music-mj-${now}@example.org`;
     await execute(
       'INSERT INTO gl_admins (email, display_name, role, is_active, created_at, updated_at) VALUES (?, ?, ?, 1, NOW(), NOW())',
-      [adminEmail, `MJ Zone Music ${now}`, 'admin']
+      [adminEmail, `MJ Zone Music ${now}`, 'admin'],
     );
-    const adminRow = await queryOne('SELECT id FROM gl_admins WHERE email = ? LIMIT 1', [adminEmail]);
+    const adminRow = await queryOne('SELECT id FROM gl_admins WHERE email = ? LIMIT 1', [
+      adminEmail,
+    ]);
     const adminId = Number(adminRow?.id || 0);
     expect(adminId).toBeGreaterThan(0);
 
@@ -25,7 +27,9 @@ test.describe('GL musique des zones', () => {
     });
     const adminHeaders = { Authorization: `Bearer ${adminToken}` };
 
-    const chapter = await queryOne("SELECT id FROM gl_chapters WHERE slug = 'foret-magique' LIMIT 1");
+    const chapter = await queryOne(
+      "SELECT id FROM gl_chapters WHERE slug = 'foret-magique' LIMIT 1",
+    );
     const chapterId = Number(chapter?.id || 0);
     expect(chapterId).toBeGreaterThan(0);
 
@@ -68,19 +72,22 @@ test.describe('GL musique des zones', () => {
 
     await page.setExtraHTTPHeaders({ 'X-Foretmap-Product': 'gl' });
     await page.goto('/');
-    await page.evaluate((payload) => {
-      localStorage.setItem('gl_session', JSON.stringify(payload));
-      localStorage.setItem('gl_active_tab', 'maps');
-    }, {
-      token: seeded.playerToken,
-      auth: {
-        userType: 'gl_player',
-        roleSlug: 'gl_player',
-        displayName: seeded.playerPseudo,
-        teamId: seeded.teamId,
-        gameId: seeded.gameId,
+    await page.evaluate(
+      (payload) => {
+        localStorage.setItem('gl_session', JSON.stringify(payload));
+        localStorage.setItem('gl_active_tab', 'maps');
       },
-    });
+      {
+        token: seeded.playerToken,
+        auth: {
+          userType: 'gl_player',
+          roleSlug: 'gl_player',
+          displayName: seeded.playerPseudo,
+          teamId: seeded.teamId,
+          gameId: seeded.gameId,
+        },
+      },
+    );
     await page.reload();
 
     await expect(page.getByTestId('gl-zone-music-toggle')).toBeVisible();

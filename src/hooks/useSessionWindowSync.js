@@ -28,14 +28,14 @@ import { getAuthClaims, getStoredSession } from '../services/api';
  * @param {(user: object|null) => void} params.setSessionUser
  * @param {(message: string|null) => void} params.setToast
  */
-export function useSessionWindowSync({
-  setAuthClaims,
-  setIsTeacher,
-  setSessionUser,
-  setToast,
-}) {
+export function useSessionWindowSync({ setAuthClaims, setIsTeacher, setSessionUser, setToast }) {
   useEffect(() => {
-    const onExpired = () => { setIsTeacher(false); setAuthClaims(null); setSessionUser(null); setToast('Session n3boss expirée.'); };
+    const onExpired = () => {
+      setIsTeacher(false);
+      setAuthClaims(null);
+      setSessionUser(null);
+      setToast('Session n3boss expirée.');
+    };
     window.addEventListener('foretmap_teacher_expired', onExpired);
     return () => window.removeEventListener('foretmap_teacher_expired', onExpired);
   }, [setAuthClaims, setIsTeacher, setSessionUser, setToast]);
@@ -50,7 +50,9 @@ export function useSessionWindowSync({
         const sess = getStoredSession();
         const claims = getAuthClaims();
         setAuthClaims(claims);
-        setIsTeacher(Array.isArray(claims?.permissions) && claims.permissions.includes('teacher.access'));
+        setIsTeacher(
+          Array.isArray(claims?.permissions) && claims.permissions.includes('teacher.access'),
+        );
         setSessionUser(sess?.user || null);
       }, 0);
     };

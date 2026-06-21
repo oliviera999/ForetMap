@@ -12,7 +12,7 @@ describe('GLImageSourceField', () => {
         url="/maps/test.svg"
         onUrlChange={vi.fn()}
         onPickFile={vi.fn()}
-      />
+      />,
     );
     expect(screen.getByText('Image de carte')).toBeTruthy();
     expect(screen.getByDisplayValue('/maps/test.svg')).toBeTruthy();
@@ -28,7 +28,7 @@ describe('GLImageSourceField', () => {
           onUrlChange={vi.fn()}
           onPickFile={vi.fn()}
         />
-      </form>
+      </form>,
     );
     const input = screen.getByDisplayValue('/uploads/gl_chapters_maps/test.jpg');
     expect(input.getAttribute('type')).toBe('text');
@@ -38,7 +38,7 @@ describe('GLImageSourceField', () => {
   it('appelle onPickFile quand un fichier est choisi', () => {
     const onPickFile = vi.fn();
     const { container } = render(
-      <GLImageSourceField url="" onUrlChange={vi.fn()} onPickFile={onPickFile} />
+      <GLImageSourceField url="" onUrlChange={vi.fn()} onPickFile={onPickFile} />,
     );
     const input = container.querySelector('input[type="file"]:not([capture])');
     const file = new File(['x'], 'photo.jpg', { type: 'image/jpeg' });

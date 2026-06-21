@@ -25,10 +25,10 @@ test('glImageFrame frontend/backend restent alignés', () => {
   };
   assert.deepEqual(
     srcFrame.normalizeGlImageFrame(sample, 'brand-banner'),
-    libFrame.normalizeGlImageFrame(sample, 'brand-banner')
+    libFrame.normalizeGlImageFrame(sample, 'brand-banner'),
   );
   assert.deepEqual(
     srcFrame.parseGlImageFrameAttr('{bad-json}', 'chapter-map'),
-    libFrame.parseGlImageFrameAttr('{bad-json}', 'chapter-map')
+    libFrame.parseGlImageFrameAttr('{bad-json}', 'chapter-map'),
   );
 });

@@ -41,7 +41,7 @@ async function listE2eStudentIds() {
          OR LOWER(COALESCE(email, '')) LIKE 'e2e%@example.com'
          OR (pseudo IS NOT NULL AND pseudo LIKE 'e2e%')
        )
-     ORDER BY created_at ASC`
+     ORDER BY created_at ASC`,
   );
   return rows.map((r) => r.id);
 }
@@ -55,15 +55,13 @@ async function listNodeTestStudentIds() {
          (last_name = 'Task' AND first_name REGEXP '^St[0-9]+$')
          OR (last_name = 'Student' AND first_name REGEXP '^Del[0-9]+$')
        )
-     ORDER BY created_at ASC`
+     ORDER BY created_at ASC`,
   );
   return rows.map((r) => r.id);
 }
 
 async function countRecurringSpawnTasks() {
-  const row = await queryAll(
-    `SELECT COUNT(*) AS c FROM tasks WHERE parent_task_id IS NOT NULL`
-  );
+  const row = await queryAll(`SELECT COUNT(*) AS c FROM tasks WHERE parent_task_id IS NOT NULL`);
   return row[0] ? Number(row[0].c) : 0;
 }
 
@@ -74,7 +72,7 @@ async function listRecurringSpawnSample(limit = 20) {
      FROM tasks
      WHERE parent_task_id IS NOT NULL
      ORDER BY created_at DESC
-     LIMIT ${n}`
+     LIMIT ${n}`,
   );
 }
 
@@ -89,7 +87,7 @@ async function main() {
   console.log(
     opts.dryRun
       ? '[dry-run] Aucune suppression ne sera effectuée. Passez --apply pour exécuter.'
-      : '[apply] Suppressions en cours…'
+      : '[apply] Suppressions en cours…',
   );
 
   const e2eIds = await listE2eStudentIds();
@@ -112,7 +110,9 @@ async function main() {
   if (recurringCount > 0) {
     const sample = await listRecurringSpawnSample(15);
     for (const t of sample) {
-      console.log(`  - ${t.id} ← parent ${t.parent_task_id} | ${t.status} | ${String(t.title || '').slice(0, 60)}`);
+      console.log(
+        `  - ${t.id} ← parent ${t.parent_task_id} | ${t.status} | ${String(t.title || '').slice(0, 60)}`,
+      );
     }
     if (recurringCount > sample.length) {
       console.log(`  … et ${recurringCount - sample.length} autre(s)`);
@@ -123,10 +123,14 @@ async function main() {
     console.log('\nRésumé :');
     console.log(`  --apply supprimerait ${e2eIds.length} compte(s) e2e.`);
     if (opts.includeNodeTestStudents) {
-      console.log(`  --apply --include-node-test-students supprimerait en plus ${nodeIds.length} compte(s) tests Node.`);
+      console.log(
+        `  --apply --include-node-test-students supprimerait en plus ${nodeIds.length} compte(s) tests Node.`,
+      );
     }
     if (opts.recurringSpawns) {
-      console.log(`  --apply supprimerait ${recurringCount} tâche(s) clone(s) récurrence (sauf si --no-recurring-spawns).`);
+      console.log(
+        `  --apply supprimerait ${recurringCount} tâche(s) clone(s) récurrence (sauf si --no-recurring-spawns).`,
+      );
     } else {
       console.log('  Tâches récurrence : ignorées (--no-recurring-spawns).');
     }
@@ -168,7 +172,9 @@ async function main() {
     console.log('\nTâches clones récurrence : non supprimées (--no-recurring-spawns).');
   }
 
-  console.log(`\nTerminé : ${deletedStudents} compte(s) élève supprimé(s), ${failedStudents} échec(s).`);
+  console.log(
+    `\nTerminé : ${deletedStudents} compte(s) élève supprimé(s), ${failedStudents} échec(s).`,
+  );
   if (failedStudents > 0) process.exit(1);
 }
 

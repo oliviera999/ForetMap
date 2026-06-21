@@ -21,27 +21,31 @@ async function getAdminToken() {
   const loginEmail = String(process.env.TEACHER_ADMIN_EMAIL || '').trim();
   const teacher = await queryOne(
     "SELECT id FROM users WHERE user_type = 'teacher' AND LOWER(email) = LOWER(?) LIMIT 1",
-    [loginEmail]
+    [loginEmail],
   );
   const adminRole = await queryOne("SELECT id FROM roles WHERE slug = 'admin' LIMIT 1");
   assert.ok(teacher?.id, 'Compte admin enseignant introuvable');
   assert.ok(adminRole?.id, 'Rôle admin introuvable');
   const requiredPermissions = ['admin.roles.manage', 'admin.users.assign_roles'];
   for (const key of requiredPermissions) {
-    await execute(
-      'INSERT IGNORE INTO permissions (`key`, label, description) VALUES (?, ?, ?)',
-      [key, key, 'Permission auto-seed tests']
-    );
+    await execute('INSERT IGNORE INTO permissions (`key`, label, description) VALUES (?, ?, ?)', [
+      key,
+      key,
+      'Permission auto-seed tests',
+    ]);
     await execute(
       'INSERT IGNORE INTO role_permissions (role_id, permission_key, requires_elevation) VALUES (?, ?, 1)',
-      [adminRole.id, key]
+      [adminRole.id, key],
     );
   }
   if (teacher?.id && adminRole?.id) {
-    await execute('UPDATE user_roles SET is_primary = 0 WHERE user_type = ? AND user_id = ?', ['teacher', teacher.id]);
+    await execute('UPDATE user_roles SET is_primary = 0 WHERE user_type = ? AND user_id = ?', [
+      'teacher',
+      teacher.id,
+    ]);
     await execute(
       'INSERT INTO user_roles (user_type, user_id, role_id, is_primary) VALUES (?, ?, ?, 1) ON DUPLICATE KEY UPDATE is_primary = 1',
-      ['teacher', teacher.id, adminRole.id]
+      ['teacher', teacher.id, adminRole.id],
     );
   }
   const login = await request(app)
@@ -86,7 +90,7 @@ test('RBAC admin: lecture profils et utilisateurs', async () => {
 test('RBAC admin: PATCH compte utilisateur (n3beur)', async () => {
   const token = await getAdminToken();
   const student = await queryOne(
-    "SELECT id, first_name, last_name FROM users WHERE user_type = 'student' LIMIT 1"
+    "SELECT id, first_name, last_name FROM users WHERE user_type = 'student' LIMIT 1",
   );
   assert.ok(student?.id, 'Au moins un n3beur en base pour ce test');
   const prevFirst = student.first_name;
@@ -105,24 +109,26 @@ test('RBAC admin: PATCH compte utilisateur (n3beur)', async () => {
     })
     .expect(200);
   assert.strictEqual(res.body.first_name, newFirst);
-  await execute(
-    'UPDATE users SET first_name = ?, last_name = ? WHERE id = ? AND user_type = ?',
-    [prevFirst, prevLast, student.id, 'student']
-  );
+  await execute('UPDATE users SET first_name = ?, last_name = ? WHERE id = ? AND user_type = ?', [
+    prevFirst,
+    prevLast,
+    student.id,
+    'student',
+  ]);
   await execute(
     'UPDATE task_assignments SET student_first_name = ?, student_last_name = ? WHERE student_id = ?',
-    [prevFirst, prevLast, student.id]
+    [prevFirst, prevLast, student.id],
   );
   await execute(
     'UPDATE task_logs SET student_first_name = ?, student_last_name = ? WHERE student_id = ?',
-    [prevFirst, prevLast, student.id]
+    [prevFirst, prevLast, student.id],
   );
 });
 
 test('RBAC admin: GET un utilisateur pour édition', async () => {
   const token = await getAdminToken();
   const student = await queryOne(
-    "SELECT id, user_type FROM users WHERE user_type = 'student' LIMIT 1"
+    "SELECT id, user_type FROM users WHERE user_type = 'student' LIMIT 1",
   );
   assert.ok(student?.id);
   const res = await request(app)
@@ -223,9 +229,10 @@ test('RBAC admin: duplication de profil (permissions copiées, PIN non copié)',
   const token = await getAdminToken();
   const profRole = await queryOne('SELECT id FROM roles WHERE slug = ? LIMIT 1', ['prof']);
   assert.ok(profRole?.id);
-  const beforePerms = await queryAll('SELECT permission_key, requires_elevation FROM role_permissions WHERE role_id = ?', [
-    profRole.id,
-  ]);
+  const beforePerms = await queryAll(
+    'SELECT permission_key, requires_elevation FROM role_permissions WHERE role_id = ?',
+    [profRole.id],
+  );
   const dupSlug = `rbac_dup_test_${Date.now()}`;
   const res = await request(app)
     .post(`/api/rbac/profiles/${profRole.id}/duplicate`)
@@ -234,11 +241,14 @@ test('RBAC admin: duplication de profil (permissions copiées, PIN non copié)',
     .expect(201);
   assert.strictEqual(res.body.slug, dupSlug);
   assert.strictEqual(res.body.display_name, 'Prof copie test');
-  const afterPerms = await queryAll('SELECT permission_key, requires_elevation FROM role_permissions WHERE role_id = ?', [
+  const afterPerms = await queryAll(
+    'SELECT permission_key, requires_elevation FROM role_permissions WHERE role_id = ?',
+    [res.body.id],
+  );
+  assert.strictEqual(afterPerms.length, beforePerms.length);
+  const pinRow = await queryOne('SELECT role_id FROM role_pin_secrets WHERE role_id = ? LIMIT 1', [
     res.body.id,
   ]);
-  assert.strictEqual(afterPerms.length, beforePerms.length);
-  const pinRow = await queryOne('SELECT role_id FROM role_pin_secrets WHERE role_id = ? LIMIT 1', [res.body.id]);
   assert.ok(!pinRow, 'le PIN du profil source ne doit pas être copié');
   await execute('DELETE FROM roles WHERE id = ?', [res.body.id]);
 });
@@ -268,26 +278,35 @@ test('RBAC: profil n3boss dupliqué — enseignant traité comme palier staff (p
     .expect(201);
   const teacher = await queryOne(
     "SELECT id FROM users WHERE user_type = 'teacher' AND LOWER(email) = LOWER(?) LIMIT 1",
-    [String(process.env.TEACHER_ADMIN_EMAIL || '').trim()]
+    [String(process.env.TEACHER_ADMIN_EMAIL || '').trim()],
   );
   assert.ok(teacher?.id);
-  await execute('UPDATE user_roles SET is_primary = 0 WHERE user_type = ? AND user_id = ?', ['teacher', teacher.id]);
+  await execute('UPDATE user_roles SET is_primary = 0 WHERE user_type = ? AND user_id = ?', [
+    'teacher',
+    teacher.id,
+  ]);
   await execute(
     'INSERT INTO user_roles (user_type, user_id, role_id, is_primary) VALUES (?, ?, ?, 1) ON DUPLICATE KEY UPDATE is_primary = 1',
-    ['teacher', teacher.id, dup.body.id]
+    ['teacher', teacher.id, dup.body.id],
   );
   try {
     const payload = await buildAuthzPayload('teacher', teacher.id, false);
     assert.strictEqual(String(payload.roleSlug), dupSlug);
     assert.strictEqual(payload.nativePrivileged, true);
-    assert.ok(payload.permissions.includes('students.import'), 'import élèves exige élévation sur prof sans bypass staff');
+    assert.ok(
+      payload.permissions.includes('students.import'),
+      'import élèves exige élévation sur prof sans bypass staff',
+    );
   } finally {
-    await execute('UPDATE user_roles SET is_primary = 0 WHERE user_type = ? AND user_id = ?', ['teacher', teacher.id]);
+    await execute('UPDATE user_roles SET is_primary = 0 WHERE user_type = ? AND user_id = ?', [
+      'teacher',
+      teacher.id,
+    ]);
     const adminRole = await queryOne("SELECT id FROM roles WHERE slug = 'admin' LIMIT 1");
     if (adminRole?.id) {
       await execute(
         'INSERT INTO user_roles (user_type, user_id, role_id, is_primary) VALUES (?, ?, ?, 1) ON DUPLICATE KEY UPDATE is_primary = 1',
-        ['teacher', teacher.id, adminRole.id]
+        ['teacher', teacher.id, adminRole.id],
       );
     }
     await execute('DELETE FROM roles WHERE id = ?', [dup.body.id]);

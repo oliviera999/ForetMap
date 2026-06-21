@@ -36,10 +36,13 @@ async function resetNoviceEnrollmentLimits() {
 async function setStudentPrimaryRole(studentId, roleSlug) {
   const role = await queryOne('SELECT id FROM roles WHERE slug = ? LIMIT 1', [roleSlug]);
   assert.ok(role?.id, `Rôle introuvable: ${roleSlug}`);
-  await execute('UPDATE user_roles SET is_primary = 0 WHERE user_type = ? AND user_id = ?', ['student', studentId]);
+  await execute('UPDATE user_roles SET is_primary = 0 WHERE user_type = ? AND user_id = ?', [
+    'student',
+    studentId,
+  ]);
   await execute(
     'INSERT INTO user_roles (user_type, user_id, role_id, is_primary) VALUES (?, ?, ?, 1) ON DUPLICATE KEY UPDATE is_primary = 1',
-    ['student', studentId, role.id]
+    ['student', studentId, role.id],
   );
 }
 
@@ -201,12 +204,12 @@ test('GET /api/stats/me/:studentId inclut biodiversité et tutoriels lus', async
   const ts = new Date().toISOString();
   await execute(
     'INSERT INTO user_plant_observation_events (user_id, plant_id, observed_at) VALUES (?, ?, ?), (?, ?, ?), (?, ?, ?)',
-    [studentId, p1, ts, studentId, p1, ts, studentId, p2, ts]
+    [studentId, p1, ts, studentId, p1, ts, studentId, p2, ts],
   );
   await execute(
     `INSERT INTO user_tutorial_reads (user_id, tutorial_id, acknowledged_at) VALUES (?, ?, ?)
      ON DUPLICATE KEY UPDATE acknowledged_at = VALUES(acknowledged_at)`,
-    [studentId, tut.id, ts]
+    [studentId, tut.id, ts],
   );
   const res = await request(app)
     .get(`/api/stats/me/${studentId}`)
@@ -239,15 +242,29 @@ test('GET /api/stats/all renvoie students et agrégats site', async () => {
 test('GET /api/stats/me/:studentId synchronise le profil élève selon les seuils configurés', async () => {
   const teacherToken = await getAdminAuthToken();
 
-  await execute('UPDATE roles SET min_done_tasks = ?, emoji = ?, display_order = ? WHERE slug = ?', [0, '🪨', 50, 'eleve_novice']);
-  await execute('UPDATE roles SET min_done_tasks = ?, emoji = ?, display_order = ? WHERE slug = ?', [1, '🌿', 40, 'eleve_avance']);
-  await execute('UPDATE roles SET min_done_tasks = ?, emoji = ?, display_order = ? WHERE slug = ?', [2, '🏆', 30, 'eleve_chevronne']);
+  await execute(
+    'UPDATE roles SET min_done_tasks = ?, emoji = ?, display_order = ? WHERE slug = ?',
+    [0, '🪨', 50, 'eleve_novice'],
+  );
+  await execute(
+    'UPDATE roles SET min_done_tasks = ?, emoji = ?, display_order = ? WHERE slug = ?',
+    [1, '🌿', 40, 'eleve_avance'],
+  );
+  await execute(
+    'UPDATE roles SET min_done_tasks = ?, emoji = ?, display_order = ? WHERE slug = ?',
+    [2, '🏆', 30, 'eleve_chevronne'],
+  );
 
   const studentRes = await request(app)
     .post('/api/auth/register')
     .send({ firstName: 'Profil', lastName: `Sync${Date.now()}`, password: 'pass1234' })
     .expect(201);
-  const { id: studentId, first_name: firstName, last_name: lastName, authToken: studentAuthToken } = studentRes.body;
+  const {
+    id: studentId,
+    first_name: firstName,
+    last_name: lastName,
+    authToken: studentAuthToken,
+  } = studentRes.body;
   await setStudentPrimaryRole(studentId, 'eleve_novice');
 
   const zones = await request(app).get('/api/zones').expect(200);
@@ -256,7 +273,11 @@ test('GET /api/stats/me/:studentId synchronise le profil élève selon les seuil
     const task = await request(app)
       .post('/api/tasks')
       .set('Authorization', `Bearer ${teacherToken}`)
-      .send({ title: `Progression profil ${Date.now()}-${i}`, zone_id: zoneId, required_students: 1 })
+      .send({
+        title: `Progression profil ${Date.now()}-${i}`,
+        zone_id: zoneId,
+        required_students: 1,
+      })
       .expect(201);
     await request(app)
       .post(`/api/tasks/${task.body.id}/assign`)
@@ -286,16 +307,25 @@ test('GET /api/stats/me/:studentId synchronise le profil élève selon les seuil
        INNER JOIN roles r ON r.id = ur.role_id
       WHERE ur.user_type = 'student' AND ur.user_id = ? AND ur.is_primary = 1
       LIMIT 1`,
-    [studentId]
+    [studentId],
   );
   assert.ok(role?.slug);
   assert.ok(Number(role?.min_done_tasks || 0) <= 2);
   assert.strictEqual(stats.body?.progression?.roleSlug, role?.slug);
 
   // Remise aux valeurs par défaut.
-  await execute('UPDATE roles SET min_done_tasks = ?, emoji = ?, display_order = ? WHERE slug = ?', [0, '🪨', 50, 'eleve_novice']);
-  await execute('UPDATE roles SET min_done_tasks = ?, emoji = ?, display_order = ? WHERE slug = ?', [5, '🌿', 40, 'eleve_avance']);
-  await execute('UPDATE roles SET min_done_tasks = ?, emoji = ?, display_order = ? WHERE slug = ?', [10, '🏆', 30, 'eleve_chevronne']);
+  await execute(
+    'UPDATE roles SET min_done_tasks = ?, emoji = ?, display_order = ? WHERE slug = ?',
+    [0, '🪨', 50, 'eleve_novice'],
+  );
+  await execute(
+    'UPDATE roles SET min_done_tasks = ?, emoji = ?, display_order = ? WHERE slug = ?',
+    [5, '🌿', 40, 'eleve_avance'],
+  );
+  await execute(
+    'UPDATE roles SET min_done_tasks = ?, emoji = ?, display_order = ? WHERE slug = ?',
+    [10, '🏆', 30, 'eleve_chevronne'],
+  );
 });
 
 test('GET /api/rbac/profiles renvoie roles et progressionByValidatedTasksEnabled', async () => {
@@ -312,15 +342,29 @@ test('GET /api/stats/me/:studentId ne promeut pas le profil si la progression au
   const teacherToken = await getAdminAuthToken();
   await setSetting('rbac.progression_by_validated_tasks', false, {});
   try {
-    await execute('UPDATE roles SET min_done_tasks = ?, emoji = ?, display_order = ? WHERE slug = ?', [0, '🪨', 50, 'eleve_novice']);
-    await execute('UPDATE roles SET min_done_tasks = ?, emoji = ?, display_order = ? WHERE slug = ?', [1, '🌿', 40, 'eleve_avance']);
-    await execute('UPDATE roles SET min_done_tasks = ?, emoji = ?, display_order = ? WHERE slug = ?', [2, '🏆', 30, 'eleve_chevronne']);
+    await execute(
+      'UPDATE roles SET min_done_tasks = ?, emoji = ?, display_order = ? WHERE slug = ?',
+      [0, '🪨', 50, 'eleve_novice'],
+    );
+    await execute(
+      'UPDATE roles SET min_done_tasks = ?, emoji = ?, display_order = ? WHERE slug = ?',
+      [1, '🌿', 40, 'eleve_avance'],
+    );
+    await execute(
+      'UPDATE roles SET min_done_tasks = ?, emoji = ?, display_order = ? WHERE slug = ?',
+      [2, '🏆', 30, 'eleve_chevronne'],
+    );
 
     const studentRes = await request(app)
       .post('/api/auth/register')
       .send({ firstName: 'NoAuto', lastName: `Prog${Date.now()}`, password: 'pass1234' })
       .expect(201);
-    const { id: studentId, first_name: firstName, last_name: lastName, authToken: studentAuthToken } = studentRes.body;
+    const {
+      id: studentId,
+      first_name: firstName,
+      last_name: lastName,
+      authToken: studentAuthToken,
+    } = studentRes.body;
     await setStudentPrimaryRole(studentId, 'eleve_novice');
 
     const zones = await request(app).get('/api/zones').expect(200);
@@ -360,22 +404,28 @@ test('GET /api/stats/me/:studentId ne promeut pas le profil si la progression au
          INNER JOIN roles r ON r.id = ur.role_id
         WHERE ur.user_type = 'student' AND ur.user_id = ? AND ur.is_primary = 1
         LIMIT 1`,
-      [studentId]
+      [studentId],
     );
     assert.strictEqual(role?.slug, 'eleve_novice');
   } finally {
     await setSetting('rbac.progression_by_validated_tasks', true, {});
-    await execute('UPDATE roles SET min_done_tasks = ?, emoji = ?, display_order = ? WHERE slug = ?', [0, '🪨', 50, 'eleve_novice']);
-    await execute('UPDATE roles SET min_done_tasks = ?, emoji = ?, display_order = ? WHERE slug = ?', [5, '🌿', 40, 'eleve_avance']);
-    await execute('UPDATE roles SET min_done_tasks = ?, emoji = ?, display_order = ? WHERE slug = ?', [10, '🏆', 30, 'eleve_chevronne']);
+    await execute(
+      'UPDATE roles SET min_done_tasks = ?, emoji = ?, display_order = ? WHERE slug = ?',
+      [0, '🪨', 50, 'eleve_novice'],
+    );
+    await execute(
+      'UPDATE roles SET min_done_tasks = ?, emoji = ?, display_order = ? WHERE slug = ?',
+      [5, '🌿', 40, 'eleve_avance'],
+    );
+    await execute(
+      'UPDATE roles SET min_done_tasks = ?, emoji = ?, display_order = ? WHERE slug = ?',
+      [10, '🏆', 30, 'eleve_chevronne'],
+    );
   }
 });
 
 test('POST /api/auth/teacher avec mauvais PIN renvoie 401', async () => {
-  const res = await request(app)
-    .post('/api/auth/teacher')
-    .send({ pin: '0000' })
-    .expect(401);
+  const res = await request(app).post('/api/auth/teacher').send({ pin: '0000' }).expect(401);
   assert.ok(res.body.error);
 });
 
@@ -424,7 +474,11 @@ test('GET /api/tasks/:id/logs refuse le profil visiteur', async () => {
   await request(app)
     .post(`/api/tasks/${taskId}/assign`)
     .set('Authorization', `Bearer ${teacherToken}`)
-    .send({ firstName: studentRes.body.first_name, lastName: studentRes.body.last_name, studentId: studentRes.body.id })
+    .send({
+      firstName: studentRes.body.first_name,
+      lastName: studentRes.body.last_name,
+      studentId: studentRes.body.id,
+    })
     .expect(200);
   await request(app)
     .post(`/api/tasks/${taskId}/done`)
@@ -450,12 +504,10 @@ test('GET /api/tasks/:id/logs refuse le profil visiteur', async () => {
 });
 
 test('GET /api/maps renvoie les cartes configurées', async () => {
-  const res = await request(app)
-    .get('/api/maps')
-    .expect(200);
+  const res = await request(app).get('/api/maps').expect(200);
   assert.ok(Array.isArray(res.body));
-  assert.ok(res.body.some(m => m.id === 'foret'));
-  assert.ok(res.body.some(m => m.id === 'n3'));
+  assert.ok(res.body.some((m) => m.id === 'foret'));
+  assert.ok(res.body.some((m) => m.id === 'n3'));
 });
 
 // ─── Statuts tâches (assign / unassign) ───────────────────────────────────
@@ -485,7 +537,7 @@ test('Assign puis unassign met à jour le statut de la tâche', async () => {
     .expect(200);
   const assignmentRow = await queryOne(
     'SELECT student_id FROM task_assignments WHERE task_id = ? AND (student_id = ? OR (student_first_name = ? AND student_last_name = ?)) LIMIT 1',
-    [taskId, studentId, first_name, last_name]
+    [taskId, studentId, first_name, last_name],
   );
   assert.strictEqual(assignmentRow?.student_id, studentId);
   const afterAssign = await request(app).get(`/api/tasks/${taskId}`).expect(200);
@@ -523,7 +575,12 @@ test('Plafond auto-inscription n3beur : TASK_ENROLLMENT_LIMIT et GET /api/auth/m
     const enrollEmail = `enroll_${Date.now()}@foretmap.test`;
     const studentRes = await request(app)
       .post('/api/auth/register')
-      .send({ firstName: 'Limite', lastName: `N3b${Date.now()}`, password: 'pwd1', email: enrollEmail })
+      .send({
+        firstName: 'Limite',
+        lastName: `N3b${Date.now()}`,
+        password: 'pwd1',
+        email: enrollEmail,
+      })
       .expect(201);
     await setStudentPrimaryRole(studentRes.body.id, 'eleve_novice');
     const session = await loginStudentAfterRole(studentRes, 'pwd1', enrollEmail);
@@ -584,7 +641,12 @@ test('Plafond auto-inscription : tâche all_assignees_done avec partie individue
     const enrollEmail = `enroll_coll_${Date.now()}@foretmap.test`;
     const studentRes = await request(app)
       .post('/api/auth/register')
-      .send({ firstName: 'Coll', lastName: `N3b${Date.now()}`, password: 'pwd1', email: enrollEmail })
+      .send({
+        firstName: 'Coll',
+        lastName: `N3b${Date.now()}`,
+        password: 'pwd1',
+        email: enrollEmail,
+      })
       .expect(201);
     await setStudentPrimaryRole(studentRes.body.id, 'eleve_novice');
     const session = await loginStudentAfterRole(studentRes, 'pwd1', enrollEmail);
@@ -653,7 +715,12 @@ test('Plafond auto-inscription : le profil RBAC (max_concurrent_tasks) prime sur
     const enrollEmail = `enroll_role_${Date.now()}@foretmap.test`;
     const studentRes = await request(app)
       .post('/api/auth/register')
-      .send({ firstName: 'Limite', lastName: `Profil${Date.now()}`, password: 'pwd1', email: enrollEmail })
+      .send({
+        firstName: 'Limite',
+        lastName: `Profil${Date.now()}`,
+        password: 'pwd1',
+        email: enrollEmail,
+      })
       .expect(201);
     await setStudentPrimaryRole(studentRes.body.id, 'eleve_novice');
     const session = await loginStudentAfterRole(studentRes, 'pwd1', enrollEmail);
@@ -711,7 +778,12 @@ test('max_concurrent_tasks = 0 sur le profil : pas de limite même si le réglag
     const enrollEmail = `enroll_unlim_${Date.now()}@foretmap.test`;
     const studentRes = await request(app)
       .post('/api/auth/register')
-      .send({ firstName: 'Sans', lastName: `Limite${Date.now()}`, password: 'pwd1', email: enrollEmail })
+      .send({
+        firstName: 'Sans',
+        lastName: `Limite${Date.now()}`,
+        password: 'pwd1',
+        email: enrollEmail,
+      })
       .expect(201);
     await setStudentPrimaryRole(studentRes.body.id, 'eleve_novice');
     const session = await loginStudentAfterRole(studentRes, 'pwd1', enrollEmail);
@@ -880,12 +952,20 @@ test('GET /api/tasks côté élève expose assigned_count global', async () => {
   await request(app)
     .post(`/api/tasks/${taskId}/assign`)
     .set('Authorization', `Bearer ${teacherToken}`)
-    .send({ firstName: studentARes.body.first_name, lastName: studentARes.body.last_name, studentId: studentARes.body.id })
+    .send({
+      firstName: studentARes.body.first_name,
+      lastName: studentARes.body.last_name,
+      studentId: studentARes.body.id,
+    })
     .expect(200);
   await request(app)
     .post(`/api/tasks/${taskId}/assign`)
     .set('Authorization', `Bearer ${teacherToken}`)
-    .send({ firstName: studentBRes.body.first_name, lastName: studentBRes.body.last_name, studentId: studentBRes.body.id })
+    .send({
+      firstName: studentBRes.body.first_name,
+      lastName: studentBRes.body.last_name,
+      studentId: studentBRes.body.id,
+    })
     .expect(200);
 
   const listRes = await request(app)
@@ -1078,7 +1158,11 @@ test('POST /api/zones : description optionnelle à la création', async () => {
     .send({
       name: `Zone desc ${Date.now()}`,
       map_id: 'foret',
-      points: [{ xp: 10, yp: 10 }, { xp: 20, yp: 10 }, { xp: 15, yp: 20 }],
+      points: [
+        { xp: 10, yp: 10 },
+        { xp: 20, yp: 10 },
+        { xp: 15, yp: 20 },
+      ],
       stage: 'empty',
       description: 'Copie / note initiale',
     })
@@ -1095,7 +1179,11 @@ test('Zones et tâches supportent le filtrage multi-cartes', async () => {
     .send({
       name: 'Zone test N3',
       map_id: 'n3',
-      points: [{ xp: 10, yp: 10 }, { xp: 20, yp: 10 }, { xp: 15, yp: 20 }],
+      points: [
+        { xp: 10, yp: 10 },
+        { xp: 20, yp: 10 },
+        { xp: 15, yp: 20 },
+      ],
       stage: 'empty',
     })
     .expect(201);
@@ -1103,8 +1191,8 @@ test('Zones et tâches supportent le filtrage multi-cartes', async () => {
 
   const n3Zones = await request(app).get('/api/zones?map_id=n3').expect(200);
   const foretZones = await request(app).get('/api/zones?map_id=foret').expect(200);
-  assert.ok(n3Zones.body.some(z => z.id === zoneN3.body.id));
-  assert.ok(!foretZones.body.some(z => z.id === zoneN3.body.id));
+  assert.ok(n3Zones.body.some((z) => z.id === zoneN3.body.id));
+  assert.ok(!foretZones.body.some((z) => z.id === zoneN3.body.id));
 
   const n3Task = await request(app)
     .post('/api/tasks')
@@ -1120,18 +1208,20 @@ test('Zones et tâches supportent le filtrage multi-cartes', async () => {
     .expect(201);
 
   const tasksN3 = await request(app).get('/api/tasks?map_id=n3').expect(200);
-  assert.ok(tasksN3.body.some(t => t.id === n3Task.body.id));
-  assert.ok(tasksN3.body.some(t => (t.map_id_resolved || t.map_id || t.zone_map_id || null) == null));
+  assert.ok(tasksN3.body.some((t) => t.id === n3Task.body.id));
+  assert.ok(
+    tasksN3.body.some((t) => (t.map_id_resolved || t.map_id || t.zone_map_id || null) == null),
+  );
 
   const tasksForet = await request(app).get('/api/tasks?map_id=foret').expect(200);
-  assert.ok(!tasksForet.body.some(t => t.id === n3Task.body.id));
+  assert.ok(!tasksForet.body.some((t) => t.id === n3Task.body.id));
 });
 
 test('Tâche liée à plusieurs zones et repères sur la même carte', async () => {
   const token = await getAdminAuthToken();
 
   const zonesForet = await request(app).get('/api/zones?map_id=foret').expect(200);
-  const zList = (zonesForet.body || []).filter(z => !z.special);
+  const zList = (zonesForet.body || []).filter((z) => !z.special);
   const z1 = zList[0]?.id;
   const z2 = zList[1]?.id;
   if (!z1 || !z2) return;
@@ -1169,7 +1259,11 @@ test('Tâche liée à plusieurs zones et repères sur la même carte', async () 
     .send({
       name: 'Zone autre carte tâche',
       map_id: 'n3',
-      points: [{ xp: 10, yp: 10 }, { xp: 20, yp: 10 }, { xp: 15, yp: 20 }],
+      points: [
+        { xp: 10, yp: 10 },
+        { xp: 20, yp: 10 },
+        { xp: 15, yp: 20 },
+      ],
       stage: 'empty',
     })
     .expect(201);
@@ -1219,7 +1313,11 @@ test('Zones et repères acceptent plusieurs êtres vivants associés', async () 
     .send({
       name: 'Zone multi-vivants',
       map_id: 'foret',
-      points: [{ xp: 12, yp: 12 }, { xp: 22, yp: 12 }, { xp: 18, yp: 22 }],
+      points: [
+        { xp: 12, yp: 12 },
+        { xp: 22, yp: 12 },
+        { xp: 18, yp: 22 },
+      ],
       current_plant: 'Menthe',
       living_beings: ['Menthe', 'Tomate', 'Basilic'],
     })
@@ -1257,7 +1355,11 @@ test('PUT /api/zones/:id et /api/map/markers/:id permettent de renommer', async 
     .send({
       name: 'Zone renommage',
       map_id: 'foret',
-      points: [{ xp: 14, yp: 14 }, { xp: 24, yp: 14 }, { xp: 19, yp: 24 }],
+      points: [
+        { xp: 14, yp: 14 },
+        { xp: 24, yp: 14 },
+        { xp: 19, yp: 24 },
+      ],
       stage: 'empty',
     })
     .expect(201);
@@ -1371,7 +1473,10 @@ test('Photos repère : POST liste GET data DELETE', async () => {
     .set('Authorization', 'Bearer ' + token)
     .expect(200);
 
-  await request(app).delete(`/api/map/markers/${mid}`).set('Authorization', 'Bearer ' + token).expect(200);
+  await request(app)
+    .delete(`/api/map/markers/${mid}`)
+    .set('Authorization', 'Bearer ' + token)
+    .expect(200);
 });
 
 // ─── Suppression élève (cascade + statuts) ──────────────────────────────────
@@ -1407,7 +1512,7 @@ test('DELETE /api/students/:id supprime l’élève et recalcule les statuts des
 
   const assignments = await queryAll(
     'SELECT * FROM task_assignments WHERE student_first_name = ? AND student_last_name = ?',
-    [first_name, last_name]
+    [first_name, last_name],
   );
   assert.strictEqual(assignments.length, 0);
 
@@ -1427,10 +1532,7 @@ test('GET /api/admin/logs sans DEPLOY_SECRET → 403', async () => {
 test('GET /api/admin/logs avec mauvais secret → 403', async () => {
   const prev = process.env.DEPLOY_SECRET;
   process.env.DEPLOY_SECRET = 'secret-admin-logs-test';
-  const res = await request(app)
-    .get('/api/admin/logs')
-    .set('X-Deploy-Secret', 'wrong')
-    .expect(403);
+  const res = await request(app).get('/api/admin/logs').set('X-Deploy-Secret', 'wrong').expect(403);
   assert.ok(res.body.error);
   process.env.DEPLOY_SECRET = prev;
 });
@@ -1475,11 +1577,17 @@ test('GET /api/admin/diagnostics avec bon secret → 200', async () => {
   assert.ok(Array.isArray(res.body.metrics.recentHttp5xx));
   assert.ok(Array.isArray(res.body.metrics.recentHttp429));
   assert.ok(res.body.runtimeProcess && typeof res.body.runtimeProcess.pid === 'number');
-  assert.ok(res.body.runtimeProcess.cluster && typeof res.body.runtimeProcess.cluster.isWorker === 'boolean');
   assert.ok(
-    res.body.runtimeProcess.cluster.workerId === null || typeof res.body.runtimeProcess.cluster.workerId === 'number'
+    res.body.runtimeProcess.cluster &&
+      typeof res.body.runtimeProcess.cluster.isWorker === 'boolean',
   );
-  assert.ok(res.body.runtimeProcess.envHints && typeof res.body.runtimeProcess.envHints === 'object');
+  assert.ok(
+    res.body.runtimeProcess.cluster.workerId === null ||
+      typeof res.body.runtimeProcess.cluster.workerId === 'number',
+  );
+  assert.ok(
+    res.body.runtimeProcess.envHints && typeof res.body.runtimeProcess.envHints === 'object',
+  );
   assert.ok(res.body.visitMascotHint && Array.isArray(res.body.visitMascotHint.maps));
   assert.ok(res.body.mascotPackLibProbe && typeof res.body.mascotPackLibProbe === 'object');
   assert.ok(Array.isArray(res.body.mascotPackLibProbe.roots));
@@ -1488,12 +1596,12 @@ test('GET /api/admin/diagnostics avec bon secret → 200', async () => {
   assert.ok(
     res.body.visitMascotHint.maps.every(
       (row) =>
-        typeof row.map_id === 'string'
-        && typeof row.visitZonesInPublicApi === 'number'
-        && typeof row.visitMarkersInPublicApi === 'number'
-        && typeof row.visitTutorialsForContentApi === 'number'
-        && typeof row.mascotWouldRenderHint === 'boolean'
-    )
+        typeof row.map_id === 'string' &&
+        typeof row.visitZonesInPublicApi === 'number' &&
+        typeof row.visitMarkersInPublicApi === 'number' &&
+        typeof row.visitTutorialsForContentApi === 'number' &&
+        typeof row.mascotWouldRenderHint === 'boolean',
+    ),
   );
   process.env.DEPLOY_SECRET = prev;
 });
@@ -1533,280 +1641,558 @@ test('POST /api/plants/plantnet-identify rejette une liste d’images vide', asy
   assert.ok(String(res.body?.error || '').length > 0);
 });
 
-test('GET /api/plants/autofill renvoie une pré-saisie normalisée multi-sources', { concurrency: false }, async () => {
-  const token = await getAdminAuthToken();
-  const previousFetch = global.fetch;
-  global.fetch = async (url) => {
-    const raw = String(url || '');
-    if (raw.includes('fr.wikipedia.org/api/rest_v1/page/summary')) {
-      return {
-        ok: true,
-        status: 200,
-        async json() {
+test(
+  'GET /api/plants/autofill renvoie une pré-saisie normalisée multi-sources',
+  { concurrency: false },
+  async () => {
+    const token = await getAdminAuthToken();
+    const previousFetch = global.fetch;
+    global.fetch = async (url) => {
+      const raw = String(url || '');
+      if (raw.includes('fr.wikipedia.org/api/rest_v1/page/summary')) {
+        return {
+          ok: true,
+          status: 200,
+          async json() {
+            return {
+              title: 'Tomate',
+              extract: 'Plante potagère cultivée.',
+              thumbnail: { source: 'https://upload.wikimedia.org/tomato.jpg' },
+              content_urls: { desktop: { page: 'https://fr.wikipedia.org/wiki/Tomate' } },
+            };
+          },
+        };
+      }
+      if (raw.includes('wikidata.org/w/api.php')) {
+        return {
+          ok: true,
+          status: 200,
+          async json() {
+            return { search: [{ id: 'Q111' }, { id: 'Q23501' }] };
+          },
+        };
+      }
+      if (raw.includes('wikidata.org/wiki/Special:EntityData')) {
+        if (raw.includes('Q111')) {
           return {
-            title: 'Tomate',
-            extract: 'Plante potagère cultivée.',
-            thumbnail: { source: 'https://upload.wikimedia.org/tomato.jpg' },
-            content_urls: { desktop: { page: 'https://fr.wikipedia.org/wiki/Tomate' } },
+            ok: true,
+            status: 200,
+            async json() {
+              return {
+                entities: {
+                  Q111: {
+                    labels: { fr: { value: 'Tomate' } },
+                    descriptions: { fr: { value: 'chanteur brésilien' } },
+                    claims: {},
+                  },
+                },
+              };
+            },
           };
-        },
-      };
-    }
-    if (raw.includes('wikidata.org/w/api.php')) {
-      return {
-        ok: true,
-        status: 200,
-        async json() {
-          return { search: [{ id: 'Q111' }, { id: 'Q23501' }] };
-        },
-      };
-    }
-    if (raw.includes('wikidata.org/wiki/Special:EntityData')) {
-      if (raw.includes('Q111')) {
+        }
         return {
           ok: true,
           status: 200,
           async json() {
             return {
               entities: {
-                Q111: {
+                Q23501: {
                   labels: { fr: { value: 'Tomate' } },
-                  descriptions: { fr: { value: 'chanteur brésilien' } },
-                  claims: {},
+                  descriptions: { fr: { value: 'Espèce végétale' } },
+                  sitelinks: { frwiki: { title: 'Tomate' } },
+                  claims: {
+                    P31: [{ mainsnak: { datavalue: { value: { id: 'Q16521' } } } }],
+                    P105: [{ mainsnak: { datavalue: { value: { id: 'Q7432' } } } }],
+                    P225: [{ mainsnak: { datavalue: { value: 'Solanum lycopersicum' } } }],
+                    P18: [{ mainsnak: { datavalue: { value: 'Tomato_on_white_background.jpg' } } }],
+                  },
                 },
               },
             };
           },
         };
       }
-      return {
-        ok: true,
-        status: 200,
-        async json() {
-          return {
-            entities: {
-              Q23501: {
-                labels: { fr: { value: 'Tomate' } },
-                descriptions: { fr: { value: 'Espèce végétale' } },
-                sitelinks: { frwiki: { title: 'Tomate' } },
-                claims: {
-                  P31: [{ mainsnak: { datavalue: { value: { id: 'Q16521' } } } }],
-                  P105: [{ mainsnak: { datavalue: { value: { id: 'Q7432' } } } }],
-                  P225: [{ mainsnak: { datavalue: { value: 'Solanum lycopersicum' } } }],
-                  P18: [{ mainsnak: { datavalue: { value: 'Tomato_on_white_background.jpg' } } }],
+      if (raw.includes('api.gbif.org/v1/species/match')) {
+        return {
+          ok: true,
+          status: 200,
+          async json() {
+            return {
+              confidence: 96,
+              canonicalName: 'Tomate',
+              scientificName: 'Solanum lycopersicum',
+              family: 'Solanaceae',
+              order: 'Solanales',
+              kingdom: 'Plantae',
+              usageKey: 2930132,
+            };
+          },
+        };
+      }
+      if (raw.includes('/species/2930132/descriptions')) {
+        return {
+          ok: true,
+          status: 200,
+          async json() {
+            return { results: [] };
+          },
+        };
+      }
+      if (raw.includes('api.gbif.org/v1/species/2930132') && !raw.includes('vernacularNames')) {
+        return {
+          ok: true,
+          status: 200,
+          async json() {
+            return { taxonomicStatus: 'ACCEPTED' };
+          },
+        };
+      }
+      if (raw.includes('api.checklistbank.org/dataset/3LR/nameusage/search')) {
+        return {
+          ok: true,
+          status: 200,
+          async json() {
+            return {
+              result: [
+                {
+                  id: 'COL-2930132',
+                  name: 'Solanum lycopersicum',
+                  classification: [
+                    { rank: 'kingdom', name: 'Plantae' },
+                    { rank: 'order', name: 'Solanales' },
+                    { rank: 'family', name: 'Solanaceae' },
+                  ],
                 },
-              },
+              ],
+            };
+          },
+        };
+      }
+      if (raw.includes('api.inaturalist.org/v1/taxa')) {
+        return {
+          ok: true,
+          status: 200,
+          async json() {
+            return {
+              results: [
+                {
+                  id: 58698,
+                  rank: 'species',
+                  name: 'Solanum lycopersicum',
+                  observations_count: 1000,
+                  matched_term: 'tomate',
+                },
+              ],
+            };
+          },
+        };
+      }
+      if (raw.includes('api.gbif.org/v1/species/2930132/vernacularNames')) {
+        return {
+          ok: true,
+          status: 200,
+          async json() {
+            return { results: [{ vernacularName: 'Tomate-cerise', language: 'fra' }] };
+          },
+        };
+      }
+      if (raw.includes('en.wikipedia.org/api/rest_v1/page/summary')) {
+        return {
+          ok: true,
+          status: 200,
+          async json() {
+            return {
+              title: 'Tomato',
+              extract:
+                'The tomato is the edible berry of the plant Solanum lycopersicum, commonly known as a tomato plant.',
+              content_urls: { desktop: { page: 'https://en.wikipedia.org/wiki/Tomato' } },
+            };
+          },
+        };
+      }
+      throw new Error(`URL inattendue: ${raw}`);
+    };
+    try {
+      const res = await request(app)
+        .get('/api/plants/autofill?q=tomate')
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+      assert.strictEqual(res.body.query, 'tomate');
+      assert.strictEqual(typeof res.body.confidence, 'number');
+      assert.ok(res.body.confidence > 0);
+      assert.strictEqual(res.body.fields.scientific_name, 'Solanum lycopersicum');
+      assert.ok(Array.isArray(res.body.photos));
+      assert.ok(res.body.photos.length >= 1);
+      assert.ok(Array.isArray(res.body.sources));
+      assert.ok(res.body.sources.some((s) => s.source === 'wikipedia'));
+      assert.ok(res.body.sources.some((s) => s.source === 'wikidata'));
+      assert.ok(res.body.sources.some((s) => s.source === 'gbif'));
+    } finally {
+      global.fetch = previousFetch;
+    }
+  },
+);
+
+test(
+  'GET /api/plants/autofill sources=gbif évite Wikipedia et Wikidata',
+  { concurrency: false },
+  async () => {
+    const token = await getAdminAuthToken();
+    const previousFetch = global.fetch;
+    const urls = [];
+    global.fetch = async (url) => {
+      urls.push(String(url));
+      if (String(url).includes('api.gbif.org/v1/species/match')) {
+        return {
+          ok: true,
+          status: 200,
+          async json() {
+            return {
+              confidence: 95,
+              scientificName: 'Solanum lycopersicum',
+              canonicalName: 'Tomate',
+              usageKey: 2930132,
+            };
+          },
+        };
+      }
+      throw new Error(`URL inattendue: ${url}`);
+    };
+    try {
+      const res = await request(app)
+        .get('/api/plants/autofill?q=tomate&sources=gbif')
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+      assert.strictEqual(res.body.query, 'tomate');
+      assert.ok(!urls.some((u) => u.includes('wikidata.org')));
+      assert.ok(!urls.some((u) => u.includes('wikipedia.org')));
+      assert.ok(urls.some((u) => u.includes('api.gbif.org/v1/species/match')));
+      assert.ok((res.body.sources || []).some((s) => s.source === 'gbif'));
+    } finally {
+      global.fetch = previousFetch;
+    }
+  },
+);
+
+test(
+  'GET /api/plants/autofill aubergine avec OpenAI (mock GBIF + OpenAI)',
+  { concurrency: false },
+  async () => {
+    const { OPENAI_ALLOWED_FIELD_KEYS } = require('../lib/speciesAutofillOpenAi');
+    const allowedOpenAi = new Set(OPENAI_ALLOWED_FIELD_KEYS);
+    const prevOpenaiFlag = process.env.SPECIES_AUTOFILL_OPENAI;
+    const prevOpenaiKey = process.env.OPENAI_API_KEY;
+    process.env.SPECIES_AUTOFILL_OPENAI = '1';
+    process.env.OPENAI_API_KEY = 'sk-test-aubergine-api';
+    const token = await getAdminAuthToken();
+    const previousFetch = global.fetch;
+    let openAiPostCount = 0;
+    global.fetch = async (url, init) => {
+      const raw = String(url || '');
+      if (
+        raw.includes('api.gbif.org/v1/species/match') &&
+        raw.includes(`name=${encodeURIComponent('aubergine')}`)
+      ) {
+        return {
+          ok: true,
+          status: 200,
+          async json() {
+            return {
+              confidence: 95,
+              canonicalName: 'Aubergine',
+              scientificName: 'Solanum melongena',
+              family: 'Solanaceae',
+              order: 'Solanales',
+              kingdom: 'Plantae',
+              usageKey: 3084924,
+            };
+          },
+        };
+      }
+      if (
+        raw.includes('api.gbif.org/v1/species/3084924') &&
+        !raw.includes('vernacularNames') &&
+        !raw.includes('/descriptions')
+      ) {
+        return {
+          ok: true,
+          status: 200,
+          async json() {
+            return { taxonomicStatus: 'ACCEPTED', remarks: '' };
+          },
+        };
+      }
+      if (
+        raw.includes('api.checklistbank.org/dataset/3LR/nameusage/search') &&
+        raw.includes(`q=${encodeURIComponent('Solanum melongena')}`)
+      ) {
+        return {
+          ok: true,
+          status: 200,
+          async json() {
+            return {
+              result: [
+                {
+                  id: 'COL-AUB-3084924',
+                  name: 'Solanum melongena',
+                  classification: [
+                    { rank: 'kingdom', name: 'Plantae' },
+                    { rank: 'order', name: 'Solanales' },
+                    { rank: 'family', name: 'Solanaceae' },
+                  ],
+                },
+              ],
+            };
+          },
+        };
+      }
+      if (raw.includes('api.openai.com/v1/chat/completions')) {
+        openAiPostCount += 1;
+        let userContent = '';
+        try {
+          const body = JSON.parse(String(init?.body || '{}'));
+          const userMsg = Array.isArray(body.messages)
+            ? body.messages.find((m) => m.role === 'user')
+            : null;
+          userContent = typeof userMsg?.content === 'string' ? userMsg.content : '';
+        } catch {
+          userContent = '';
+        }
+        if (userContent.includes('cles_a_remplir')) {
+          return {
+            ok: true,
+            status: 200,
+            async json() {
+              return { choices: [{ message: { content: '{}' } }] };
             },
           };
-        },
-      };
-    }
-    if (raw.includes('api.gbif.org/v1/species/match')) {
-      return {
-        ok: true,
-        status: 200,
-        async json() {
-          return {
-            confidence: 96,
-            canonicalName: 'Tomate',
-            scientificName: 'Solanum lycopersicum',
-            family: 'Solanaceae',
-            order: 'Solanales',
-            kingdom: 'Plantae',
-            usageKey: 2930132,
-          };
-        },
-      };
-    }
-    if (raw.includes('/species/2930132/descriptions')) {
-      return { ok: true, status: 200, async json() { return { results: [] }; } };
-    }
-    if (raw.includes('api.gbif.org/v1/species/2930132') && !raw.includes('vernacularNames')) {
-      return { ok: true, status: 200, async json() { return { taxonomicStatus: 'ACCEPTED' }; } };
-    }
-    if (raw.includes('api.checklistbank.org/dataset/3LR/nameusage/search')) {
-      return {
-        ok: true,
-        status: 200,
-        async json() {
-          return {
-            result: [{
-              id: 'COL-2930132',
-              name: 'Solanum lycopersicum',
-              classification: [
-                { rank: 'kingdom', name: 'Plantae' },
-                { rank: 'order', name: 'Solanales' },
-                { rank: 'family', name: 'Solanaceae' },
+        }
+        return {
+          ok: true,
+          status: 200,
+          async json() {
+            return {
+              choices: [
+                {
+                  message: {
+                    content: JSON.stringify({
+                      habitat: 'Culture maraîchère ; sol profond, chaud et bien drainé.',
+                      harvest_part: 'Fruit charnu (baie) consommé cuit en légume.',
+                      human_utility: 'Alimentation (légume frais ou cuisiné).',
+                      agroecosystem_category:
+                        'Maraîchage, cultures légumières sous abri ou plein champ.',
+                    }),
+                  },
+                },
               ],
-            }],
-          };
-        },
-      };
-    }
-    if (raw.includes('api.inaturalist.org/v1/taxa')) {
-      return {
-        ok: true,
-        status: 200,
-        async json() {
-          return {
-            results: [{
-              id: 58698,
-              rank: 'species',
-              name: 'Solanum lycopersicum',
-              observations_count: 1000,
-              matched_term: 'tomate',
-            }],
-          };
-        },
-      };
-    }
-    if (raw.includes('api.gbif.org/v1/species/2930132/vernacularNames')) {
-      return {
-        ok: true,
-        status: 200,
-        async json() {
-          return { results: [{ vernacularName: 'Tomate-cerise', language: 'fra' }] };
-        },
-      };
-    }
-    if (raw.includes('en.wikipedia.org/api/rest_v1/page/summary')) {
-      return {
-        ok: true,
-        status: 200,
-        async json() {
-          return {
-            title: 'Tomato',
-            extract: 'The tomato is the edible berry of the plant Solanum lycopersicum, commonly known as a tomato plant.',
-            content_urls: { desktop: { page: 'https://en.wikipedia.org/wiki/Tomato' } },
-          };
-        },
-      };
-    }
-    throw new Error(`URL inattendue: ${raw}`);
-  };
-  try {
-    const res = await request(app)
-      .get('/api/plants/autofill?q=tomate')
-      .set('Authorization', `Bearer ${token}`)
-      .expect(200);
-    assert.strictEqual(res.body.query, 'tomate');
-    assert.strictEqual(typeof res.body.confidence, 'number');
-    assert.ok(res.body.confidence > 0);
-    assert.strictEqual(res.body.fields.scientific_name, 'Solanum lycopersicum');
-    assert.ok(Array.isArray(res.body.photos));
-    assert.ok(res.body.photos.length >= 1);
-    assert.ok(Array.isArray(res.body.sources));
-    assert.ok(res.body.sources.some((s) => s.source === 'wikipedia'));
-    assert.ok(res.body.sources.some((s) => s.source === 'wikidata'));
-    assert.ok(res.body.sources.some((s) => s.source === 'gbif'));
-  } finally {
-    global.fetch = previousFetch;
-  }
-});
-
-test('GET /api/plants/autofill sources=gbif évite Wikipedia et Wikidata', { concurrency: false }, async () => {
-  const token = await getAdminAuthToken();
-  const previousFetch = global.fetch;
-  const urls = [];
-  global.fetch = async (url) => {
-    urls.push(String(url));
-    if (String(url).includes('api.gbif.org/v1/species/match')) {
-      return {
-        ok: true,
-        status: 200,
-        async json() {
-          return {
-            confidence: 95,
-            scientificName: 'Solanum lycopersicum',
-            canonicalName: 'Tomate',
-            usageKey: 2930132,
-          };
-        },
-      };
-    }
-    throw new Error(`URL inattendue: ${url}`);
-  };
-  try {
-    const res = await request(app)
-      .get('/api/plants/autofill?q=tomate&sources=gbif')
-      .set('Authorization', `Bearer ${token}`)
-      .expect(200);
-    assert.strictEqual(res.body.query, 'tomate');
-    assert.ok(!urls.some((u) => u.includes('wikidata.org')));
-    assert.ok(!urls.some((u) => u.includes('wikipedia.org')));
-    assert.ok(urls.some((u) => u.includes('api.gbif.org/v1/species/match')));
-    assert.ok((res.body.sources || []).some((s) => s.source === 'gbif'));
-  } finally {
-    global.fetch = previousFetch;
-  }
-});
-
-test('GET /api/plants/autofill aubergine avec OpenAI (mock GBIF + OpenAI)', { concurrency: false }, async () => {
-  const { OPENAI_ALLOWED_FIELD_KEYS } = require('../lib/speciesAutofillOpenAi');
-  const allowedOpenAi = new Set(OPENAI_ALLOWED_FIELD_KEYS);
-  const prevOpenaiFlag = process.env.SPECIES_AUTOFILL_OPENAI;
-  const prevOpenaiKey = process.env.OPENAI_API_KEY;
-  process.env.SPECIES_AUTOFILL_OPENAI = '1';
-  process.env.OPENAI_API_KEY = 'sk-test-aubergine-api';
-  const token = await getAdminAuthToken();
-  const previousFetch = global.fetch;
-  let openAiPostCount = 0;
-  global.fetch = async (url, init) => {
-    const raw = String(url || '');
-    if (raw.includes('api.gbif.org/v1/species/match') && raw.includes(`name=${encodeURIComponent('aubergine')}`)) {
-      return {
-        ok: true,
-        status: 200,
-        async json() {
-          return {
-            confidence: 95,
-            canonicalName: 'Aubergine',
-            scientificName: 'Solanum melongena',
-            family: 'Solanaceae',
-            order: 'Solanales',
-            kingdom: 'Plantae',
-            usageKey: 3084924,
-          };
-        },
-      };
-    }
-    if (
-      raw.includes('api.gbif.org/v1/species/3084924')
-      && !raw.includes('vernacularNames')
-      && !raw.includes('/descriptions')
-    ) {
-      return { ok: true, status: 200, async json() { return { taxonomicStatus: 'ACCEPTED', remarks: '' }; } };
-    }
-    if (raw.includes('api.checklistbank.org/dataset/3LR/nameusage/search') && raw.includes(`q=${encodeURIComponent('Solanum melongena')}`)) {
-      return {
-        ok: true,
-        status: 200,
-        async json() {
-          return {
-            result: [{
-              id: 'COL-AUB-3084924',
-              name: 'Solanum melongena',
-              classification: [
-                { rank: 'kingdom', name: 'Plantae' },
-                { rank: 'order', name: 'Solanales' },
-                { rank: 'family', name: 'Solanaceae' },
-              ],
-            }],
-          };
-        },
-      };
-    }
-    if (raw.includes('api.openai.com/v1/chat/completions')) {
-      openAiPostCount += 1;
-      let userContent = '';
-      try {
-        const body = JSON.parse(String(init?.body || '{}'));
-        const userMsg = Array.isArray(body.messages) ? body.messages.find((m) => m.role === 'user') : null;
-        userContent = typeof userMsg?.content === 'string' ? userMsg.content : '';
-      } catch {
-        userContent = '';
+            };
+          },
+        };
       }
-      if (userContent.includes('cles_a_remplir')) {
+      throw new Error(`URL inattendue (aubergine autofill): ${raw}`);
+    };
+    try {
+      const res = await request(app)
+        .get('/api/plants/autofill?q=aubergine&sources=gbif%2Copenai')
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+      assert.strictEqual(res.body.query, 'aubergine');
+      assert.strictEqual(res.body.fields.scientific_name, 'Solanum melongena');
+      assert.ok((res.body.sources || []).some((s) => s.source === 'gbif'));
+      assert.ok((res.body.sources || []).some((s) => s.source === 'openai'));
+      assert.ok(openAiPostCount >= 1, 'au moins un POST OpenAI attendu');
+      assert.match(String(res.body.fields.habitat || ''), /maraîch|drainé|chaud/i);
+      assert.match(String(res.body.fields.harvest_part || ''), /Fruit|baie|cuit/i);
+      for (const [fieldKey, meta] of Object.entries(res.body.field_sources || {})) {
+        if (meta && meta.source === 'openai') {
+          assert.ok(
+            allowedOpenAi.has(fieldKey),
+            `clé « ${fieldKey} » attribuée à OpenAI doit être dans OPENAI_ALLOWED_FIELD_KEYS`,
+          );
+        }
+      }
+    } finally {
+      global.fetch = previousFetch;
+      if (prevOpenaiFlag === undefined) delete process.env.SPECIES_AUTOFILL_OPENAI;
+      else process.env.SPECIES_AUTOFILL_OPENAI = prevOpenaiFlag;
+      if (prevOpenaiKey === undefined) delete process.env.OPENAI_API_KEY;
+      else process.env.OPENAI_API_KEY = prevOpenaiKey;
+    }
+  },
+);
+
+test(
+  'GET /api/plants/autofill accepte hint_scientific et hint_name (cache distinct)',
+  { concurrency: false },
+  async () => {
+    const token = await getAdminAuthToken();
+    const previousFetch = global.fetch;
+    let hitCount = 0;
+    global.fetch = async (url) => {
+      hitCount += 1;
+      const raw = String(url || '');
+      if (raw.includes('fr.wikipedia.org/api/rest_v1/page/summary')) {
+        return {
+          ok: true,
+          status: 200,
+          async json() {
+            return {
+              title: 'Tomate',
+              extract: 'Plante potagère cultivée.',
+              thumbnail: { source: 'https://upload.wikimedia.org/tomato.jpg' },
+              content_urls: { desktop: { page: 'https://fr.wikipedia.org/wiki/Tomate' } },
+            };
+          },
+        };
+      }
+      if (raw.includes('wikidata.org/w/api.php')) {
+        return {
+          ok: true,
+          status: 200,
+          async json() {
+            return { search: [{ id: 'Q111' }, { id: 'Q23501' }] };
+          },
+        };
+      }
+      if (raw.includes('wikidata.org/wiki/Special:EntityData')) {
+        if (raw.includes('Q111')) {
+          return {
+            ok: true,
+            status: 200,
+            async json() {
+              return {
+                entities: {
+                  Q111: {
+                    labels: { fr: { value: 'Tomate' } },
+                    descriptions: { fr: { value: 'chanteur brésilien' } },
+                    claims: {},
+                  },
+                },
+              };
+            },
+          };
+        }
+        return {
+          ok: true,
+          status: 200,
+          async json() {
+            return {
+              entities: {
+                Q23501: {
+                  labels: { fr: { value: 'Tomate' } },
+                  descriptions: { fr: { value: 'Espèce végétale' } },
+                  sitelinks: { frwiki: { title: 'Tomate' } },
+                  claims: {
+                    P31: [{ mainsnak: { datavalue: { value: { id: 'Q16521' } } } }],
+                    P105: [{ mainsnak: { datavalue: { value: { id: 'Q7432' } } } }],
+                    P225: [{ mainsnak: { datavalue: { value: 'Solanum lycopersicum' } } }],
+                    P18: [{ mainsnak: { datavalue: { value: 'Tomato_on_white_background.jpg' } } }],
+                  },
+                },
+              },
+            };
+          },
+        };
+      }
+      if (raw.includes('api.gbif.org/v1/species/match')) {
+        return {
+          ok: true,
+          status: 200,
+          async json() {
+            return {
+              confidence: 96,
+              canonicalName: 'Tomate',
+              scientificName: 'Solanum lycopersicum',
+              family: 'Solanaceae',
+              order: 'Solanales',
+              kingdom: 'Plantae',
+              usageKey: 2930132,
+            };
+          },
+        };
+      }
+      if (raw.includes('/species/2930132/descriptions')) {
+        return {
+          ok: true,
+          status: 200,
+          async json() {
+            return { results: [] };
+          },
+        };
+      }
+      if (raw.includes('api.gbif.org/v1/species/2930132') && !raw.includes('vernacularNames')) {
+        return {
+          ok: true,
+          status: 200,
+          async json() {
+            return { taxonomicStatus: 'ACCEPTED' };
+          },
+        };
+      }
+      if (raw.includes('api.checklistbank.org/dataset/3LR/nameusage/search')) {
+        return {
+          ok: true,
+          status: 200,
+          async json() {
+            return {
+              result: [
+                {
+                  id: 'COL-2930132',
+                  name: 'Solanum lycopersicum',
+                  classification: [
+                    { rank: 'kingdom', name: 'Plantae' },
+                    { rank: 'order', name: 'Solanales' },
+                    { rank: 'family', name: 'Solanaceae' },
+                  ],
+                },
+              ],
+            };
+          },
+        };
+      }
+      if (raw.includes('api.inaturalist.org/v1/taxa')) {
+        return {
+          ok: true,
+          status: 200,
+          async json() {
+            return {
+              results: [
+                {
+                  id: 58698,
+                  rank: 'species',
+                  name: 'Solanum lycopersicum',
+                  observations_count: 1000,
+                  matched_term: 'tomate',
+                },
+              ],
+            };
+          },
+        };
+      }
+      if (raw.includes('api.gbif.org/v1/species/2930132/vernacularNames')) {
+        return {
+          ok: true,
+          status: 200,
+          async json() {
+            return { results: [{ vernacularName: 'Tomate-cerise', language: 'fra' }] };
+          },
+        };
+      }
+      if (raw.includes('en.wikipedia.org/api/rest_v1/page/summary')) {
+        return {
+          ok: true,
+          status: 200,
+          async json() {
+            return {
+              title: 'Tomato',
+              extract:
+                'The tomato is the edible berry of the plant Solanum lycopersicum, commonly known as a tomato plant.',
+              content_urls: { desktop: { page: 'https://en.wikipedia.org/wiki/Tomato' } },
+            };
+          },
+        };
+      }
+      if (raw.includes('api.openai.com')) {
         return {
           ok: true,
           status: 200,
@@ -1815,325 +2201,142 @@ test('GET /api/plants/autofill aubergine avec OpenAI (mock GBIF + OpenAI)', { co
           },
         };
       }
-      return {
-        ok: true,
-        status: 200,
-        async json() {
-          return {
-            choices: [{
-              message: {
-                content: JSON.stringify({
-                  habitat: 'Culture maraîchère ; sol profond, chaud et bien drainé.',
-                  harvest_part: 'Fruit charnu (baie) consommé cuit en légume.',
-                  human_utility: 'Alimentation (légume frais ou cuisiné).',
-                  agroecosystem_category: 'Maraîchage, cultures légumières sous abri ou plein champ.',
-                }),
-              },
-            }],
-          };
-        },
-      };
+      throw new Error(`URL inattendue: ${raw}`);
+    };
+    try {
+      const res = await request(app)
+        .get(
+          '/api/plants/autofill?q=tomate&hint_name=Tomate%20cerise&hint_scientific=Solanum%20lycopersicum',
+        )
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+      assert.strictEqual(res.body.query, 'tomate');
+      assert.ok(hitCount > 0);
+    } finally {
+      global.fetch = previousFetch;
     }
-    throw new Error(`URL inattendue (aubergine autofill): ${raw}`);
-  };
-  try {
-    const res = await request(app)
-      .get('/api/plants/autofill?q=aubergine&sources=gbif%2Copenai')
-      .set('Authorization', `Bearer ${token}`)
-      .expect(200);
-    assert.strictEqual(res.body.query, 'aubergine');
-    assert.strictEqual(res.body.fields.scientific_name, 'Solanum melongena');
-    assert.ok((res.body.sources || []).some((s) => s.source === 'gbif'));
-    assert.ok((res.body.sources || []).some((s) => s.source === 'openai'));
-    assert.ok(openAiPostCount >= 1, 'au moins un POST OpenAI attendu');
-    assert.match(String(res.body.fields.habitat || ''), /maraîch|drainé|chaud/i);
-    assert.match(String(res.body.fields.harvest_part || ''), /Fruit|baie|cuit/i);
-    for (const [fieldKey, meta] of Object.entries(res.body.field_sources || {})) {
-      if (meta && meta.source === 'openai') {
-        assert.ok(
-          allowedOpenAi.has(fieldKey),
-          `clé « ${fieldKey} » attribuée à OpenAI doit être dans OPENAI_ALLOWED_FIELD_KEYS`,
-        );
-      }
-    }
-  } finally {
-    global.fetch = previousFetch;
-    if (prevOpenaiFlag === undefined) delete process.env.SPECIES_AUTOFILL_OPENAI;
-    else process.env.SPECIES_AUTOFILL_OPENAI = prevOpenaiFlag;
-    if (prevOpenaiKey === undefined) delete process.env.OPENAI_API_KEY;
-    else process.env.OPENAI_API_KEY = prevOpenaiKey;
-  }
-});
+  },
+);
 
-test('GET /api/plants/autofill accepte hint_scientific et hint_name (cache distinct)', { concurrency: false }, async () => {
-  const token = await getAdminAuthToken();
-  const previousFetch = global.fetch;
-  let hitCount = 0;
-  global.fetch = async (url) => {
-    hitCount += 1;
-    const raw = String(url || '');
-    if (raw.includes('fr.wikipedia.org/api/rest_v1/page/summary')) {
-      return {
-        ok: true,
-        status: 200,
-        async json() {
-          return {
-            title: 'Tomate',
-            extract: 'Plante potagère cultivée.',
-            thumbnail: { source: 'https://upload.wikimedia.org/tomato.jpg' },
-            content_urls: { desktop: { page: 'https://fr.wikipedia.org/wiki/Tomate' } },
-          };
-        },
-      };
-    }
-    if (raw.includes('wikidata.org/w/api.php')) {
-      return {
-        ok: true,
-        status: 200,
-        async json() {
-          return { search: [{ id: 'Q111' }, { id: 'Q23501' }] };
-        },
-      };
-    }
-    if (raw.includes('wikidata.org/wiki/Special:EntityData')) {
-      if (raw.includes('Q111')) {
+test(
+  'GET /api/plants/autofill garde un fallback partiel si une source échoue',
+  { concurrency: false },
+  async () => {
+    const token = await getAdminAuthToken();
+    const previousFetch = global.fetch;
+    global.fetch = async (url) => {
+      const raw = String(url || '');
+      if (raw.includes('fr.wikipedia.org')) {
+        throw new Error('timeout');
+      }
+      if (raw.includes('wikidata.org/w/api.php')) {
+        return {
+          ok: true,
+          status: 200,
+          async json() {
+            return { search: [] };
+          },
+        };
+      }
+      if (raw.includes('api.gbif.org/v1/species/match')) {
         return {
           ok: true,
           status: 200,
           async json() {
             return {
-              entities: {
-                Q111: {
-                  labels: { fr: { value: 'Tomate' } },
-                  descriptions: { fr: { value: 'chanteur brésilien' } },
-                  claims: {},
-                },
-              },
+              confidence: 88,
+              canonicalName: 'Basilic',
+              scientificName: 'Ocimum basilicum',
+              usageKey: 3214412,
             };
           },
         };
       }
-      return {
-        ok: true,
-        status: 200,
-        async json() {
-          return {
-            entities: {
-              Q23501: {
-                labels: { fr: { value: 'Tomate' } },
-                descriptions: { fr: { value: 'Espèce végétale' } },
-                sitelinks: { frwiki: { title: 'Tomate' } },
-                claims: {
-                  P31: [{ mainsnak: { datavalue: { value: { id: 'Q16521' } } } }],
-                  P105: [{ mainsnak: { datavalue: { value: { id: 'Q7432' } } } }],
-                  P225: [{ mainsnak: { datavalue: { value: 'Solanum lycopersicum' } } }],
-                  P18: [{ mainsnak: { datavalue: { value: 'Tomato_on_white_background.jpg' } } }],
+      if (raw.includes('/species/3214412/descriptions')) {
+        return {
+          ok: true,
+          status: 200,
+          async json() {
+            return { results: [] };
+          },
+        };
+      }
+      if (raw.includes('api.gbif.org/v1/species/3214412') && !raw.includes('vernacularNames')) {
+        return {
+          ok: true,
+          status: 200,
+          async json() {
+            return { taxonomicStatus: 'ACCEPTED' };
+          },
+        };
+      }
+      if (raw.includes('api.checklistbank.org/dataset/3LR/nameusage/search')) {
+        return {
+          ok: true,
+          status: 200,
+          async json() {
+            return { result: [{ id: 'COL-3214412', name: 'Ocimum basilicum' }] };
+          },
+        };
+      }
+      if (raw.includes('api.inaturalist.org/v1/taxa')) {
+        return {
+          ok: true,
+          status: 200,
+          async json() {
+            return {
+              results: [
+                {
+                  id: 51734,
+                  rank: 'species',
+                  name: 'Ocimum basilicum',
+                  observations_count: 500,
+                  matched_term: 'basilic',
                 },
-              },
-            },
-          };
-        },
-      };
-    }
-    if (raw.includes('api.gbif.org/v1/species/match')) {
-      return {
-        ok: true,
-        status: 200,
-        async json() {
-          return {
-            confidence: 96,
-            canonicalName: 'Tomate',
-            scientificName: 'Solanum lycopersicum',
-            family: 'Solanaceae',
-            order: 'Solanales',
-            kingdom: 'Plantae',
-            usageKey: 2930132,
-          };
-        },
-      };
-    }
-    if (raw.includes('/species/2930132/descriptions')) {
-      return { ok: true, status: 200, async json() { return { results: [] }; } };
-    }
-    if (raw.includes('api.gbif.org/v1/species/2930132') && !raw.includes('vernacularNames')) {
-      return { ok: true, status: 200, async json() { return { taxonomicStatus: 'ACCEPTED' }; } };
-    }
-    if (raw.includes('api.checklistbank.org/dataset/3LR/nameusage/search')) {
-      return {
-        ok: true,
-        status: 200,
-        async json() {
-          return {
-            result: [{
-              id: 'COL-2930132',
-              name: 'Solanum lycopersicum',
-              classification: [
-                { rank: 'kingdom', name: 'Plantae' },
-                { rank: 'order', name: 'Solanales' },
-                { rank: 'family', name: 'Solanaceae' },
               ],
-            }],
-          };
-        },
-      };
+            };
+          },
+        };
+      }
+      if (raw.includes('api.gbif.org/v1/species/3214412/vernacularNames')) {
+        return {
+          ok: true,
+          status: 200,
+          async json() {
+            return { results: [] };
+          },
+        };
+      }
+      if (raw.includes('en.wikipedia.org/api/rest_v1/page/summary')) {
+        return {
+          ok: true,
+          status: 200,
+          async json() {
+            return {
+              title: 'Basil',
+              extract:
+                'Basil is a culinary herb of the family Lamiaceae (mints). It is a tender plant, and is used in cuisines worldwide.',
+              content_urls: { desktop: { page: 'https://en.wikipedia.org/wiki/Basil' } },
+            };
+          },
+        };
+      }
+      throw new Error(`URL inattendue: ${raw}`);
+    };
+    try {
+      const res = await request(app)
+        .get('/api/plants/autofill?q=basilic')
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+      assert.strictEqual(res.body.query, 'basilic');
+      assert.strictEqual(res.body.fields.scientific_name, 'Ocimum basilicum');
+      assert.ok(Array.isArray(res.body.warnings));
+      assert.ok(res.body.warnings.some((w) => String(w).includes('wikipedia')));
+    } finally {
+      global.fetch = previousFetch;
     }
-    if (raw.includes('api.inaturalist.org/v1/taxa')) {
-      return {
-        ok: true,
-        status: 200,
-        async json() {
-          return {
-            results: [{
-              id: 58698,
-              rank: 'species',
-              name: 'Solanum lycopersicum',
-              observations_count: 1000,
-              matched_term: 'tomate',
-            }],
-          };
-        },
-      };
-    }
-    if (raw.includes('api.gbif.org/v1/species/2930132/vernacularNames')) {
-      return {
-        ok: true,
-        status: 200,
-        async json() {
-          return { results: [{ vernacularName: 'Tomate-cerise', language: 'fra' }] };
-        },
-      };
-    }
-    if (raw.includes('en.wikipedia.org/api/rest_v1/page/summary')) {
-      return {
-        ok: true,
-        status: 200,
-        async json() {
-          return {
-            title: 'Tomato',
-            extract: 'The tomato is the edible berry of the plant Solanum lycopersicum, commonly known as a tomato plant.',
-            content_urls: { desktop: { page: 'https://en.wikipedia.org/wiki/Tomato' } },
-          };
-        },
-      };
-    }
-    if (raw.includes('api.openai.com')) {
-      return {
-        ok: true,
-        status: 200,
-        async json() {
-          return { choices: [{ message: { content: '{}' } }] };
-        },
-      };
-    }
-    throw new Error(`URL inattendue: ${raw}`);
-  };
-  try {
-    const res = await request(app)
-      .get('/api/plants/autofill?q=tomate&hint_name=Tomate%20cerise&hint_scientific=Solanum%20lycopersicum')
-      .set('Authorization', `Bearer ${token}`)
-      .expect(200);
-    assert.strictEqual(res.body.query, 'tomate');
-    assert.ok(hitCount > 0);
-  } finally {
-    global.fetch = previousFetch;
-  }
-});
-
-test('GET /api/plants/autofill garde un fallback partiel si une source échoue', { concurrency: false }, async () => {
-  const token = await getAdminAuthToken();
-  const previousFetch = global.fetch;
-  global.fetch = async (url) => {
-    const raw = String(url || '');
-    if (raw.includes('fr.wikipedia.org')) {
-      throw new Error('timeout');
-    }
-    if (raw.includes('wikidata.org/w/api.php')) {
-      return {
-        ok: true,
-        status: 200,
-        async json() {
-          return { search: [] };
-        },
-      };
-    }
-    if (raw.includes('api.gbif.org/v1/species/match')) {
-      return {
-        ok: true,
-        status: 200,
-        async json() {
-          return { confidence: 88, canonicalName: 'Basilic', scientificName: 'Ocimum basilicum', usageKey: 3214412 };
-        },
-      };
-    }
-    if (raw.includes('/species/3214412/descriptions')) {
-      return { ok: true, status: 200, async json() { return { results: [] }; } };
-    }
-    if (raw.includes('api.gbif.org/v1/species/3214412') && !raw.includes('vernacularNames')) {
-      return { ok: true, status: 200, async json() { return { taxonomicStatus: 'ACCEPTED' }; } };
-    }
-    if (raw.includes('api.checklistbank.org/dataset/3LR/nameusage/search')) {
-      return {
-        ok: true,
-        status: 200,
-        async json() {
-          return { result: [{ id: 'COL-3214412', name: 'Ocimum basilicum' }] };
-        },
-      };
-    }
-    if (raw.includes('api.inaturalist.org/v1/taxa')) {
-      return {
-        ok: true,
-        status: 200,
-        async json() {
-          return {
-            results: [{
-              id: 51734,
-              rank: 'species',
-              name: 'Ocimum basilicum',
-              observations_count: 500,
-              matched_term: 'basilic',
-            }],
-          };
-        },
-      };
-    }
-    if (raw.includes('api.gbif.org/v1/species/3214412/vernacularNames')) {
-      return {
-        ok: true,
-        status: 200,
-        async json() {
-          return { results: [] };
-        },
-      };
-    }
-    if (raw.includes('en.wikipedia.org/api/rest_v1/page/summary')) {
-      return {
-        ok: true,
-        status: 200,
-        async json() {
-          return {
-            title: 'Basil',
-            extract: 'Basil is a culinary herb of the family Lamiaceae (mints). It is a tender plant, and is used in cuisines worldwide.',
-            content_urls: { desktop: { page: 'https://en.wikipedia.org/wiki/Basil' } },
-          };
-        },
-      };
-    }
-    throw new Error(`URL inattendue: ${raw}`);
-  };
-  try {
-    const res = await request(app)
-      .get('/api/plants/autofill?q=basilic')
-      .set('Authorization', `Bearer ${token}`)
-      .expect(200);
-    assert.strictEqual(res.body.query, 'basilic');
-    assert.strictEqual(res.body.fields.scientific_name, 'Ocimum basilicum');
-    assert.ok(Array.isArray(res.body.warnings));
-    assert.ok(res.body.warnings.some((w) => String(w).includes('wikipedia')));
-  } finally {
-    global.fetch = previousFetch;
-  }
-});
+  },
+);
 
 test('GET /api/visit/content expose mascot_packs (tableau)', async () => {
   const res = await request(app).get('/api/visit/content?map_id=foret').expect(200);
@@ -2215,7 +2418,10 @@ test('visit mascot packs : PUT invalide renvoie details de validation exploitabl
       .expect(400);
     assert.equal(String(res.body.error || ''), 'Pack JSON invalide');
     assert.ok(res.body.details && typeof res.body.details === 'object');
-    assert.ok(res.body.details.framesBase || res.body.details._errors, 'Détails Zod attendus sur framesBase');
+    assert.ok(
+      res.body.details.framesBase || res.body.details._errors,
+      'Détails Zod attendus sur framesBase',
+    );
   } finally {
     await request(app)
       .delete(`/api/visit/mascot-packs/${packId}`)
@@ -2254,7 +2460,23 @@ test('visit mascot packs : filtrage strict par map_id dans la liste studio', asy
   }
 });
 
-const VISIT_LIB_TINY_PNG_B64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO5qXg8AAAAASUVORK5CYII=';
+const VISIT_LIB_TINY_PNG_B64 =
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO5qXg8AAAAASUVORK5CYII=';
+
+async function readZipResponseBody(agentReq) {
+  const chunks = [];
+  const res = await agentReq
+    .buffer(true)
+    .parse((resStream, callback) => {
+      resStream.on('data', (chunk) => chunks.push(chunk));
+      resStream.on('end', () => callback(null, Buffer.concat(chunks)));
+    })
+    .expect(200);
+  assert.ok(String(res.headers['content-type'] || '').includes('zip'));
+  if (Buffer.isBuffer(res.body)) return res.body;
+  if (chunks.length) return Buffer.concat(chunks);
+  return Buffer.from(String(res.text || ''), 'binary');
+}
 
 test('visit : bibliothèque sprites + clone catalogue + clone pack (assets)', async () => {
   const token = await getAdminAuthToken();
@@ -2315,8 +2537,14 @@ test('visit : bibliothèque sprites + clone catalogue + clone pack (assets)', as
     .expect(200);
   assert.ok(cloneAssets.body.assets.some((a) => a.filename === 'clone-src.png'));
 
-  await request(app).delete(`/api/visit/mascot-packs/${cloneId}`).set('Authorization', `Bearer ${token}`).expect(200);
-  await request(app).delete(`/api/visit/mascot-packs/${catPackId}`).set('Authorization', `Bearer ${token}`).expect(200);
+  await request(app)
+    .delete(`/api/visit/mascot-packs/${cloneId}`)
+    .set('Authorization', `Bearer ${token}`)
+    .expect(200);
+  await request(app)
+    .delete(`/api/visit/mascot-packs/${catPackId}`)
+    .set('Authorization', `Bearer ${token}`)
+    .expect(200);
   await request(app)
     .delete(`/api/visit/mascot-sprite-library/foret/assets/${encodeURIComponent(libName)}`)
     .set('Authorization', `Bearer ${token}`)
@@ -2384,9 +2612,21 @@ test('visit mascot assets : inventaire global catalogue + packs + bibliothèque'
       .set('Authorization', `Bearer ${token}`)
       .expect(200);
     assert.ok(Array.isArray(assetsRes.body.assets));
-    assert.ok(assetsRes.body.assets.some((a) => a.source === 'public' && String(a.url || '').includes('/assets/mascots/')));
-    assert.ok(assetsRes.body.assets.some((a) => a.source === 'pack' && a.pack_id === packId && a.filename === 'global-pack.png'));
-    assert.ok(assetsRes.body.assets.some((a) => a.source === 'library' && a.map_id === 'foret' && a.filename === libName));
+    assert.ok(
+      assetsRes.body.assets.some(
+        (a) => a.source === 'public' && String(a.url || '').includes('/assets/mascots/'),
+      ),
+    );
+    assert.ok(
+      assetsRes.body.assets.some(
+        (a) => a.source === 'pack' && a.pack_id === packId && a.filename === 'global-pack.png',
+      ),
+    );
+    assert.ok(
+      assetsRes.body.assets.some(
+        (a) => a.source === 'library' && a.map_id === 'foret' && a.filename === libName,
+      ),
+    );
     assert.ok(Number(assetsRes.body.counts?.total) >= 3);
   } finally {
     await request(app)
@@ -2395,6 +2635,123 @@ test('visit mascot assets : inventaire global catalogue + packs + bibliothèque'
       .expect(200);
     await request(app)
       .delete(`/api/visit/mascot-sprite-library/foret/assets/${encodeURIComponent(libName)}`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+  }
+});
+
+test('visit mascot assets : suppression catalogue statique public', async () => {
+  const fs = require('fs');
+  const path = require('path');
+  const token = await getAdminAuthToken();
+  const relDir = path.join(__dirname, '..', 'public', 'assets', 'mascots', '_test-delete');
+  const relUrl = '/assets/mascots/_test-delete/delete-me.png';
+  const absFile = path.join(relDir, 'delete-me.png');
+  fs.mkdirSync(relDir, { recursive: true });
+  fs.writeFileSync(absFile, Buffer.from(VISIT_LIB_TINY_PNG_B64, 'base64'));
+  try {
+    const before = await request(app)
+      .get('/api/visit/mascot-assets')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+    assert.ok(before.body.assets.some((a) => a.url === relUrl));
+
+    await request(app)
+      .delete('/api/visit/mascot-assets/public')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ url: relUrl })
+      .expect(200);
+
+    assert.ok(!fs.existsSync(absFile));
+
+    await request(app)
+      .delete('/api/visit/mascot-assets/public')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ url: relUrl })
+      .expect(404);
+
+    await request(app)
+      .delete('/api/visit/mascot-assets/public')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ url: '/uploads/evil.png' })
+      .expect(400);
+  } finally {
+    try {
+      fs.rmSync(relDir, { recursive: true, force: true });
+    } catch (_) {
+      /* ignore */
+    }
+  }
+});
+
+test('visit mascot packs : export ZIP et import create', async () => {
+  const token = await getAdminAuthToken();
+  const created = await request(app)
+    .post('/api/visit/mascot-packs')
+    .set('Authorization', `Bearer ${token}`)
+    .send({ map_id: 'foret', is_published: 0, label: 'zip-export-src' })
+    .expect(201);
+  const packId = created.body.id;
+  try {
+    await request(app)
+      .post(`/api/visit/mascot-packs/${packId}/assets`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ filename: 'zip-frame.png', image_data: VISIT_LIB_TINY_PNG_B64 })
+      .expect(201);
+    const fb = `/api/visit/mascot-packs/${packId}/assets/`;
+    const slimPack = {
+      ...created.body.pack,
+      framesBase: fb,
+      stateFrames: { idle: { files: ['zip-frame.png'], fps: 4 } },
+    };
+    await request(app)
+      .put(`/api/visit/mascot-packs/${packId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ map_id: 'foret', label: 'zip-export-src', pack: slimPack, is_published: 0 })
+      .expect(200);
+
+    const zipBody = await readZipResponseBody(
+      request(app)
+        .get(`/api/visit/mascot-packs/${packId}/export.zip`)
+        .set('Authorization', `Bearer ${token}`),
+    );
+    assert.ok(zipBody.length > 100);
+
+    const archiveB64 = zipBody.toString('base64');
+    const analyzeRes = await request(app)
+      .post('/api/visit/mascot-packs/import/analyze')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ archive: { fileName: 'test.zip', fileDataBase64: archiveB64 } })
+      .expect(200);
+    assert.strictEqual(analyzeRes.body.variant, 'visit');
+    assert.strictEqual(analyzeRes.body.ok, true);
+    assert.ok(Number(analyzeRes.body.assetCount) >= 1);
+
+    const imported = await request(app)
+      .post('/api/visit/mascot-packs/import')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        map_id: 'foret',
+        mode: 'create',
+        label: 'zip-imported',
+        archive: { fileName: 'test.zip', fileDataBase64: archiveB64 },
+      })
+      .expect(201);
+    const importedId = imported.body.id;
+    assert.notStrictEqual(importedId, packId);
+    const importedAssets = await request(app)
+      .get(`/api/visit/mascot-packs/${importedId}/assets`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+    assert.ok(importedAssets.body.assets.some((a) => a.filename === 'zip-frame.png'));
+
+    await request(app)
+      .delete(`/api/visit/mascot-packs/${importedId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+  } finally {
+    await request(app)
+      .delete(`/api/visit/mascot-packs/${packId}`)
       .set('Authorization', `Bearer ${token}`)
       .expect(200);
   }

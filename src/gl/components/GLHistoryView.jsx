@@ -4,6 +4,7 @@ import { GLChapterScenes } from './GLChapterIllustration.jsx';
 import { useGlAssetsReady } from './GLFeuilletIllustration.jsx';
 import { chapterIllustrations } from '../assets/index.js';
 import { applyStorySceneRefs } from '../utils/glStorySceneRefs.js';
+import { useGlMarkdownWithLegacyMedia } from '../hooks/useGlMarkdownWithLegacyMedia.js';
 
 export function GLHistoryView({ gameState, glossaryLinkItems = [], onOpenGlossaryTerm }) {
   const chapterNumber = gameState?.game?.chapter_plateau_number ?? null;
@@ -14,9 +15,10 @@ export function GLHistoryView({ gameState, glossaryLinkItems = [], onOpenGlossar
   );
   // Les références `![légende](scene:N)` du récit sont résolues vers les
   // scènes conventionnelles ; celles-ci quittent alors la galerie de fin.
+  const storyMarkdown = useGlMarkdownWithLegacyMedia(gameState?.game?.story_markdown || '');
   const { markdown, usedKeys } = useMemo(
-    () => applyStorySceneRefs(gameState?.game?.story_markdown || '', scenes),
-    [gameState?.game?.story_markdown, scenes],
+    () => applyStorySceneRefs(storyMarkdown, scenes),
+    [storyMarkdown, scenes],
   );
   return (
     <article className="gl-panel gl-markdown fade-in">

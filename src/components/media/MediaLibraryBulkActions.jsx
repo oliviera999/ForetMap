@@ -30,16 +30,36 @@ export function MediaLibraryBulkActions({
 }) {
   return (
     <div className="media-library-menu__bulk">
-      <button type="button" className="btn btn-secondary btn-sm" disabled={busy || visibleCount === 0} onClick={onSelectAll}>
+      <button
+        type="button"
+        className="btn btn-secondary btn-sm"
+        disabled={busy || visibleCount === 0}
+        onClick={onSelectAll}
+      >
         Tout sélectionner
       </button>
-      <button type="button" className="btn btn-secondary btn-sm" disabled={busy || selectedCount === 0} onClick={onDeselectAll}>
+      <button
+        type="button"
+        className="btn btn-secondary btn-sm"
+        disabled={busy || selectedCount === 0}
+        onClick={onDeselectAll}
+      >
         Tout désélectionner
       </button>
-      <button type="button" className="btn btn-secondary btn-sm" disabled={busy || selectedCount === 0} onClick={onDeleteSelected}>
+      <button
+        type="button"
+        className="btn btn-secondary btn-sm"
+        disabled={busy || selectedCount === 0}
+        onClick={onDeleteSelected}
+      >
         Supprimer la sélection{selectedCount > 0 ? ` (${selectedCount})` : ''}
       </button>
-      <button type="button" className="btn btn-secondary btn-sm gl-danger" disabled={busy || totalCount === 0} onClick={onClearLibrary}>
+      <button
+        type="button"
+        className="btn btn-secondary btn-sm gl-danger"
+        disabled={busy || totalCount === 0}
+        onClick={onClearLibrary}
+      >
         Vider la bibliothèque
       </button>
     </div>

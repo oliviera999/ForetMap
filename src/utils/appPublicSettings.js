@@ -22,6 +22,7 @@ export const DEFAULT_PUBLIC_SETTINGS = {
     emoji_label_center_gap: 14,
     overlay_emoji_size_percent: 100,
     overlay_label_size_percent: 100,
+    plateau_marker_size_percent: 100,
   },
   modules: {
     tutorials_enabled: true,
@@ -31,6 +32,7 @@ export const DEFAULT_PUBLIC_SETTINGS = {
     help_enabled: true,
     forum_enabled: true,
     context_comments_enabled: true,
+    reports_enabled: true,
   },
   help: {
     show_context_hints: true,
@@ -78,6 +80,17 @@ export function mergePublicSettings(prev, settings) {
         ...(next.visit?.mascot || {}),
         ...(settings.visit?.mascot || {}),
         dialog: settings.visit.mascot.dialog,
+      },
+    };
+  }
+  if (settings.content?.help?.registry) {
+    next.content = {
+      ...(prev.content || {}),
+      ...(settings.content || {}),
+      help: {
+        ...(prev.content?.help || {}),
+        ...(settings.content?.help || {}),
+        registry: settings.content.help.registry,
       },
     };
   }

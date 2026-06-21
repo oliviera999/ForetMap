@@ -6,7 +6,8 @@ import {
   SPECIES_PREFILL_SOURCE_CHECKBOXES,
 } from '../../../src/components/biodiv/PrefillSourcesSelector.jsx';
 
-const allChecked = () => Object.fromEntries(SPECIES_PREFILL_SOURCE_CHECKBOXES.map((o) => [o.id, true]));
+const allChecked = () =>
+  Object.fromEntries(SPECIES_PREFILL_SOURCE_CHECKBOXES.map((o) => [o.id, true]));
 
 describe('PrefillSourcesSelector', () => {
   test('rend le résumé et une case par source, état coché reflété', () => {
@@ -20,7 +21,9 @@ describe('PrefillSourcesSelector', () => {
   });
 
   test('case décochée dans le prop sources → input non coché', () => {
-    render(<PrefillSourcesSelector sources={{ ...allChecked(), openai: false }} onToggle={() => {}} />);
+    render(
+      <PrefillSourcesSelector sources={{ ...allChecked(), openai: false }} onToggle={() => {}} />,
+    );
     // l’id de la source apparaît en petit à côté du label
     expect(screen.getByText('(openai)')).toBeInTheDocument();
     const boxes = screen.getAllByRole('checkbox');

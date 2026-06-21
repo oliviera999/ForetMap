@@ -23,12 +23,20 @@ const baseSettings = {
   'gameplay.default_power_points': 3,
   'gameplay.marker_question_retrigger': 'every_arrival',
   'gameplay.zone_content_retrigger': 'once_per_game',
+  'gameplay.marker_backgrounds': {
+    label: 'transparent',
+    emoji: 'transparent',
+    icon: 'transparent',
+  },
 };
 
 describe('GLSettingsView', () => {
   beforeEach(() => {
     apiGlMock.mockReset();
-    vi.stubGlobal('confirm', vi.fn(() => true));
+    vi.stubGlobal(
+      'confirm',
+      vi.fn(() => true),
+    );
     apiGlMock.mockImplementation((path) => {
       if (path === '/api/gl/admin/settings') {
         return Promise.resolve({ settings: { ...baseSettings } });
@@ -60,8 +68,10 @@ describe('GLSettingsView', () => {
     fireEvent.click(mjTurnsButton);
 
     await waitFor(() => {
-      const puts = apiGlMock.mock.calls
-        .filter(([path, method]) => method === 'PUT' && String(path).includes('/api/gl/admin/settings/gameplay.'));
+      const puts = apiGlMock.mock.calls.filter(
+        ([path, method]) =>
+          method === 'PUT' && String(path).includes('/api/gl/admin/settings/gameplay.'),
+      );
       const keys = puts.map(([path]) => path.split('/').pop());
       expect(keys).toContain('gameplay.turns_enabled');
       expect(keys).toContain('gameplay.narration_enabled');
@@ -69,5 +79,13 @@ describe('GLSettingsView', () => {
       expect(keys).toContain('gameplay.qcm_mj_only');
       expect(keys).toContain('gameplay.spell_cast_mj_only');
     });
+  });
+
+  test('affiche les contrôles de fond des repères', async () => {
+    render(<GLSettingsView />);
+    await waitFor(() => expect(screen.getByText('Fond des repères sur la carte')).toBeTruthy());
+    expect(screen.getByText('Libellé (texte)')).toBeTruthy();
+    expect(screen.getByText('Emoji')).toBeTruthy();
+    expect(screen.getByText('Icône')).toBeTruthy();
   });
 });

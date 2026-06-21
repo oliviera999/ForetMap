@@ -1,15 +1,19 @@
 import React from 'react';
 import { GLQcmCatalogPanel } from './GLQcmCatalogPanel.jsx';
 
-export function GLQcmImportPanel() {
+export function GLQcmImportPanel({
+  glossaryLinkItems = [],
+  onOpenGlossaryTerm,
+}) {
   return (
     <GLQcmCatalogPanel
       title="Import QCM biomes (XLSX)"
-      hint={(
+      hint={
         <>
-          Fichier attendu : feuilles <code>categories</code> et <code>questions</code> (voir <code>data/gl/README.md</code>).
+          Fichier attendu : feuilles <code>categories</code> et <code>questions</code> (voir{' '}
+          <code>data/gl/README.md</code>).
         </>
-      )}
+      }
       scopeQueryKey="biomeSlug"
       scopeLabel="Biome slug"
       scopePlaceholder="sahara"
@@ -21,6 +25,9 @@ export function GLQcmImportPanel() {
       answerPath={(code) => `/api/gl/qcm/questions/${encodeURIComponent(code)}/answer`}
       templateFilename="foretmap-gl-modele-qcm.xlsx"
       exportFilename="foretmap-gl-export-qcm.xlsx"
+      qcmSet="biome"
+      glossaryLinkItems={glossaryLinkItems}
+      onOpenGlossaryTerm={onOpenGlossaryTerm}
     />
   );
 }

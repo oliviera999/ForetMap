@@ -49,7 +49,12 @@ export function ProfilesRoleQuickConfig({
           <span style={{ fontSize: '1.5rem', lineHeight: 1 }} title="Aperçu" aria-hidden>
             {roleEmoji.trim() || '—'}
           </span>
-          <button type="button" className="btn btn-secondary btn-sm" onClick={onSaveEmoji} disabled={loading}>
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={onSaveEmoji}
+            disabled={loading}
+          >
             Enregistrer l’emoji
           </button>
         </div>

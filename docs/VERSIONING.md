@@ -7,11 +7,11 @@
 
 ## Fichiers concernés
 
-| Fichier | Rôle |
-|---------|------|
-| `package.json` | Numéro officiel de l’application |
-| `CHANGELOG.md` | Historique lisible pour humains |
-| Tag Git `vX.Y.Z` | Repère de release (recommandé) |
+| Fichier          | Rôle                             |
+| ---------------- | -------------------------------- |
+| `package.json`   | Numéro officiel de l’application |
+| `CHANGELOG.md`   | Historique lisible pour humains  |
+| Tag Git `vX.Y.Z` | Repère de release (recommandé)   |
 
 ## Routine au quotidien
 

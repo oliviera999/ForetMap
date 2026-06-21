@@ -3,10 +3,7 @@ import { apiGL } from '../services/apiGL.js';
 import { GLBadge } from './ui/GLBadge.jsx';
 import { GLButton } from './ui/GLButton.jsx';
 import { useGLMascotCatalog } from '../context/GLMascotCatalogContext.jsx';
-import {
-  formatGameStatus,
-  gameStatusTone,
-} from '../utils/glGameStatus.js';
+import { formatGameStatus, gameStatusTone } from '../utils/glGameStatus.js';
 import {
   EMPTY_GAME_EDIT_FORM,
   buildGameEditPayload,
@@ -14,7 +11,9 @@ import {
   gameToEditForm,
 } from '../utils/glGameEditForm.js';
 
-const GLGameMasterConsoleActiveGameBanner = lazy(() => import('./mj/GLGameMasterConsoleActiveGameBanner.jsx'));
+const GLGameMasterConsoleActiveGameBanner = lazy(
+  () => import('./mj/GLGameMasterConsoleActiveGameBanner.jsx'),
+);
 const GLGameMasterConsoleParties = lazy(() => import('./mj/GLGameMasterConsoleParties.jsx'));
 const GLGameMasterConsoleTeams = lazy(() => import('./mj/GLGameMasterConsoleTeams.jsx'));
 const GLGameMasterConsoleLive = lazy(() => import('./mj/GLGameMasterConsoleLive.jsx'));
@@ -70,7 +69,7 @@ export function GLGameMasterConsole({
 
   const activeClasses = useMemo(
     () => (Array.isArray(classes) ? classes : []).filter((item) => Number(item.is_active) !== 0),
-    [classes]
+    [classes],
   );
 
   useEffect(() => {
@@ -98,7 +97,10 @@ export function GLGameMasterConsole({
   const vitalityEnabled = !!flags.vitalityEnabled;
 
   const effectiveSelectedTeamId = useMemo(() => {
-    if (selectedTeamId != null && teams.some((team) => Number(team.id) === Number(selectedTeamId))) {
+    if (
+      selectedTeamId != null &&
+      teams.some((team) => Number(team.id) === Number(selectedTeamId))
+    ) {
       return Number(selectedTeamId);
     }
     return teams.length > 0 ? Number(teams[0].id) : null;
@@ -106,7 +108,7 @@ export function GLGameMasterConsole({
 
   const mascotOptions = useMemo(
     () => (Array.isArray(mascotCatalog) ? mascotCatalog : []),
-    [mascotCatalog]
+    [mascotCatalog],
   );
 
   const selectableMascots = useMemo(() => {
@@ -121,15 +123,18 @@ export function GLGameMasterConsole({
     return list;
   }, [mascotOptions, teamForm.type, teamForm.mascotId]);
 
-  const defaultMascotByType = useCallback((type) => {
-    const list = mascotOptions;
-    if (!list.length) return type === 'unicorn' ? 'gl-licorne-aube' : 'gl-gnome-mousse';
-    const preferred = list.find((item) => item.source === 'gl' && item.type === type);
-    if (preferred?.id) return preferred.id;
-    const fallback = list.find((item) => item.type === type);
-    if (fallback?.id) return fallback.id;
-    return list[0]?.id || '';
-  }, [mascotOptions]);
+  const defaultMascotByType = useCallback(
+    (type) => {
+      const list = mascotOptions;
+      if (!list.length) return type === 'unicorn' ? 'gl-licorne-aube' : 'gl-gnome-mousse';
+      const preferred = list.find((item) => item.source === 'gl' && item.type === type);
+      if (preferred?.id) return preferred.id;
+      const fallback = list.find((item) => item.type === type);
+      if (fallback?.id) return fallback.id;
+      return list[0]?.id || '';
+    },
+    [mascotOptions],
+  );
 
   useEffect(() => {
     if (!mascotOptions.length) return;
@@ -142,9 +147,17 @@ export function GLGameMasterConsole({
   useEffect(() => {
     if (!game?.id) return;
     setEditGameForm(gameToEditForm(game));
-  }, [game?.id, game?.name, game?.chapter_id, game?.class_id, game?.zone_content_retrigger,
-    game?.lore_feuillet_retrigger, game?.lore_effacement_enabled,
-    game?.lore_gemme_costs_enabled, game?.lore_heart_rewards_enabled]);
+  }, [
+    game?.id,
+    game?.name,
+    game?.chapter_id,
+    game?.class_id,
+    game?.zone_content_retrigger,
+    game?.lore_feuillet_retrigger,
+    game?.lore_effacement_enabled,
+    game?.lore_gemme_costs_enabled,
+    game?.lore_heart_rewards_enabled,
+  ]);
 
   useEffect(() => {
     if (!feedback) return undefined;
@@ -218,7 +231,7 @@ export function GLGameMasterConsole({
       showFailure(
         activeClasses.length === 0
           ? 'Créez d’abord une classe active (onglet « Gestion utilisateurs »).'
-          : 'Choisissez une classe avant de créer la partie.'
+          : 'Choisissez une classe avant de créer la partie.',
       );
       return;
     }
@@ -282,7 +295,9 @@ export function GLGameMasterConsole({
   }
 
   async function removeGame(gameId) {
-    const ok = window.confirm('Supprimer cette partie ? (autorisé uniquement pour brouillon/terminée)');
+    const ok = window.confirm(
+      'Supprimer cette partie ? (autorisé uniquement pour brouillon/terminée)',
+    );
     if (!ok) return;
     setActionError('');
     setBusy(true);
@@ -312,11 +327,8 @@ export function GLGameMasterConsole({
       await apiGL(`/api/gl/games/${game.id}/${nextStatus}`, 'POST');
       await onReloadGame?.();
       await loadGames();
-      const statusLabel = nextStatus === 'start'
-        ? 'live'
-        : nextStatus === 'end'
-          ? 'ended'
-          : 'paused';
+      const statusLabel =
+        nextStatus === 'start' ? 'live' : nextStatus === 'end' ? 'ended' : 'paused';
       showSuccess(`Statut : ${formatGameStatus(statusLabel)}.`);
     } catch (err) {
       showFailure(err.message || `Action « ${nextStatus} » impossible`);
@@ -539,7 +551,13 @@ export function GLGameMasterConsole({
         >
           Modifier
         </GLButton>
-        <GLButton type="button" size="sm" variant="danger" onClick={() => removeGame(item.id)} disabled={busy}>
+        <GLButton
+          type="button"
+          size="sm"
+          variant="danger"
+          onClick={() => removeGame(item.id)}
+          disabled={busy}
+        >
           Supprimer
         </GLButton>
       </>
@@ -552,17 +570,31 @@ export function GLGameMasterConsole({
           <td>{item.id}</td>
           <td>{item.name}</td>
           <td>{item.className || item.classId}</td>
-          <td><GLBadge tone={gameStatusTone(item.status)}>{formatGameStatus(item.status)}</GLBadge></td>
+          <td>
+            <GLBadge tone={gameStatusTone(item.status)}>{formatGameStatus(item.status)}</GLBadge>
+          </td>
           <td>{item.teamsCount}</td>
           <td className="gl-admin-actions-cell">{rowActions}</td>
         </>
       ),
       mobileCells: (
         <>
-          <div className="gl-data-card-row"><span className="gl-data-card-label">Partie</span><strong>{item.name}</strong></div>
-          <div className="gl-data-card-row"><span className="gl-data-card-label">Classe</span><span>{item.className || item.classId}</span></div>
-          <div className="gl-data-card-row"><span className="gl-data-card-label">Statut</span><GLBadge tone={gameStatusTone(item.status)}>{formatGameStatus(item.status)}</GLBadge></div>
-          <div className="gl-data-card-row"><span className="gl-data-card-label">Équipes</span><span>{item.teamsCount}</span></div>
+          <div className="gl-data-card-row">
+            <span className="gl-data-card-label">Partie</span>
+            <strong>{item.name}</strong>
+          </div>
+          <div className="gl-data-card-row">
+            <span className="gl-data-card-label">Classe</span>
+            <span>{item.className || item.classId}</span>
+          </div>
+          <div className="gl-data-card-row">
+            <span className="gl-data-card-label">Statut</span>
+            <GLBadge tone={gameStatusTone(item.status)}>{formatGameStatus(item.status)}</GLBadge>
+          </div>
+          <div className="gl-data-card-row">
+            <span className="gl-data-card-label">Équipes</span>
+            <span>{item.teamsCount}</span>
+          </div>
           <div className="gl-data-card-actions">{rowActions}</div>
         </>
       ),
@@ -572,10 +604,22 @@ export function GLGameMasterConsole({
   const teamListRows = teams.map((team) => {
     const rowActions = (
       <>
-        <GLButton type="button" size="sm" variant="secondary" onClick={() => startEditTeam(team)} disabled={busy}>
+        <GLButton
+          type="button"
+          size="sm"
+          variant="secondary"
+          onClick={() => startEditTeam(team)}
+          disabled={busy}
+        >
           Modifier
         </GLButton>
-        <GLButton type="button" size="sm" variant="danger" onClick={() => removeTeam(team)} disabled={busy}>
+        <GLButton
+          type="button"
+          size="sm"
+          variant="danger"
+          onClick={() => removeTeam(team)}
+          disabled={busy}
+        >
           Supprimer
         </GLButton>
       </>
@@ -593,9 +637,18 @@ export function GLGameMasterConsole({
       ),
       mobileCells: (
         <>
-          <div className="gl-data-card-row"><span className="gl-data-card-label">Nom</span><strong>{team.name}</strong></div>
-          <div className="gl-data-card-row"><span className="gl-data-card-label">Type</span><span>{team.type}</span></div>
-          <div className="gl-data-card-row"><span className="gl-data-card-label">Mascotte</span><span>{team.mascot_id || '—'}</span></div>
+          <div className="gl-data-card-row">
+            <span className="gl-data-card-label">Nom</span>
+            <strong>{team.name}</strong>
+          </div>
+          <div className="gl-data-card-row">
+            <span className="gl-data-card-label">Type</span>
+            <span>{team.type}</span>
+          </div>
+          <div className="gl-data-card-row">
+            <span className="gl-data-card-label">Mascotte</span>
+            <span>{team.mascot_id || '—'}</span>
+          </div>
           <div className="gl-data-card-actions">{rowActions}</div>
         </>
       ),

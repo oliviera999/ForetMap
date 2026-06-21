@@ -26,10 +26,13 @@ async function registerStudent(prefix) {
   assert.ok(res.body?.authToken);
   const noviceRole = await queryOne("SELECT id FROM roles WHERE slug = 'eleve_novice' LIMIT 1");
   assert.ok(noviceRole?.id);
-  await execute('UPDATE user_roles SET is_primary = 0 WHERE user_type = ? AND user_id = ?', ['student', res.body.id]);
+  await execute('UPDATE user_roles SET is_primary = 0 WHERE user_type = ? AND user_id = ?', [
+    'student',
+    res.body.id,
+  ]);
   await execute(
     'INSERT INTO user_roles (user_type, user_id, role_id, is_primary) VALUES (?, ?, ?, 1) ON DUPLICATE KEY UPDATE is_primary = 1',
-    ['student', res.body.id, noviceRole.id]
+    ['student', res.body.id, noviceRole.id],
   );
   const login = await request(app)
     .post('/api/auth/login')
@@ -42,20 +45,22 @@ async function registerStudent(prefix) {
 }
 
 async function ensureStudentInForumGroup(studentId) {
-  let group = await queryOne('SELECT id FROM `groups` WHERE is_active = 1 ORDER BY name ASC LIMIT 1');
+  let group = await queryOne(
+    'SELECT id FROM `groups` WHERE is_active = 1 ORDER BY name ASC LIMIT 1',
+  );
   if (!group?.id) {
     const groupId = uuidv4();
     await execute(
       `INSERT INTO \`groups\` (id, slug, name, kind, is_active, created_at, updated_at)
        VALUES (?, ?, ?, 'class', 1, NOW(), NOW())`,
-      [groupId, `forum-test-${Date.now()}`, `Forum test ${Date.now()}`]
+      [groupId, `forum-test-${Date.now()}`, `Forum test ${Date.now()}`],
     );
     group = { id: groupId };
   }
   await execute(
     `INSERT IGNORE INTO group_members (group_id, user_id, user_type, role_in_group)
      VALUES (?, ?, 'student', 'member')`,
-    [group.id, studentId]
+    [group.id, studentId],
   );
 }
 
@@ -63,16 +68,19 @@ async function teacherToken() {
   const loginEmail = String(process.env.TEACHER_ADMIN_EMAIL || '').trim();
   const teacher = await queryOne(
     "SELECT id FROM users WHERE user_type = 'teacher' AND LOWER(email) = LOWER(?) LIMIT 1",
-    [loginEmail]
+    [loginEmail],
   );
   const adminRole = await queryOne("SELECT id FROM roles WHERE slug = 'admin' LIMIT 1");
   assert.ok(teacher?.id, 'Compte admin enseignant introuvable');
   assert.ok(adminRole?.id, 'Rôle admin introuvable');
   if (teacher?.id && adminRole?.id) {
-    await execute('UPDATE user_roles SET is_primary = 0 WHERE user_type = ? AND user_id = ?', ['teacher', teacher.id]);
+    await execute('UPDATE user_roles SET is_primary = 0 WHERE user_type = ? AND user_id = ?', [
+      'teacher',
+      teacher.id,
+    ]);
     await execute(
       'INSERT INTO user_roles (user_type, user_id, role_id, is_primary) VALUES (?, ?, ?, 1) ON DUPLICATE KEY UPDATE is_primary = 1',
-      ['teacher', teacher.id, adminRole.id]
+      ['teacher', teacher.id, adminRole.id],
     );
   }
   const login = await request(app)
@@ -115,10 +123,7 @@ test('Forum: module désactivé renvoie 503', async () => {
     .send({ value: false })
     .expect(200);
   const student = await registerStudent('ForumOff');
-  const res = await request(app)
-    .get('/api/forum/threads')
-    .set(auth(student.authToken))
-    .expect(503);
+  const res = await request(app).get('/api/forum/threads').set(auth(student.authToken)).expect(503);
   assert.match(String(res.body?.error || ''), /désactivé/i);
   await request(app)
     .put('/api/settings/admin/ui.modules.forum_enabled')
@@ -212,15 +217,9 @@ test('Forum: suppression de message selon droits', async () => {
     .expect(201);
   const postId = otherPost.body.id;
 
-  await request(app)
-    .delete(`/api/forum/posts/${postId}`)
-    .set(auth(owner.authToken))
-    .expect(403);
+  await request(app).delete(`/api/forum/posts/${postId}`).set(auth(owner.authToken)).expect(403);
 
-  await request(app)
-    .delete(`/api/forum/posts/${postId}`)
-    .set(auth(other.authToken))
-    .expect(200);
+  await request(app).delete(`/api/forum/posts/${postId}`).set(auth(other.authToken)).expect(200);
 });
 
 test('Forum: signalement de message et prévention des doublons', async () => {
@@ -251,6 +250,44 @@ test('Forum: signalement de message et prévention des doublons', async () => {
     .set(auth(reporter.authToken))
     .send({ reason: 'Second signalement identique.' })
     .expect(409);
+});
+
+test('Forum: signalements désactivés par réglage renvoie 403', async () => {
+  const teacher = await teacherToken();
+  const author = await registerStudent('AuthorForumOff');
+  const reporter = await registerStudent('ReporterForumOff');
+
+  const thread = await request(app)
+    .post('/api/forum/threads')
+    .set(auth(author.authToken))
+    .send({ title: `Sujet report off ${Date.now()}`, body: 'Post initial.' })
+    .expect(201);
+  const threadId = thread.body.thread.id;
+
+  const post = await request(app)
+    .post(`/api/forum/threads/${threadId}/posts`)
+    .set(auth(author.authToken))
+    .send({ body: 'Message à signaler.' })
+    .expect(201);
+
+  await request(app)
+    .put('/api/settings/admin/ui.modules.reports_enabled')
+    .set(auth(teacher))
+    .send({ value: false })
+    .expect(200);
+
+  const res = await request(app)
+    .post(`/api/forum/posts/${post.body.id}/report`)
+    .set(auth(reporter.authToken))
+    .send({ reason: 'Contenu inadapté.' })
+    .expect(403);
+  assert.strictEqual(res.body?.code, 'REPORTS_DISABLED');
+
+  await request(app)
+    .put('/api/settings/admin/ui.modules.reports_enabled')
+    .set(auth(teacher))
+    .send({ value: true })
+    .expect(200);
 });
 
 test('Forum: réactions emoji toggle et agrégées sur les messages', async () => {
@@ -307,21 +344,26 @@ test('Forum: réactions emoji toggle et agrégées sur les messages', async () =
 });
 
 test('Forum: n3beur sans participation — lecture OK, création sujet 403', async () => {
-  let forumRoRole = await queryOne("SELECT id FROM roles WHERE slug = 'eleve_forum_ro_test' LIMIT 1");
+  let forumRoRole = await queryOne(
+    "SELECT id FROM roles WHERE slug = 'eleve_forum_ro_test' LIMIT 1",
+  );
   if (!forumRoRole?.id) {
     await execute(
       `INSERT INTO roles (slug, display_name, emoji, min_done_tasks, display_order, \`rank\`, is_system, forum_participate, context_comment_participate)
-       VALUES ('eleve_forum_ro_test', 'Test forum lecture seule', '🧪', 0, 9989, 1, 0, 0, 1)`
+       VALUES ('eleve_forum_ro_test', 'Test forum lecture seule', '🧪', 0, 9989, 1, 0, 0, 1)`,
     );
     forumRoRole = await queryOne("SELECT id FROM roles WHERE slug = 'eleve_forum_ro_test' LIMIT 1");
   }
   assert.ok(forumRoRole?.id);
   const student = await registerStudent('ForumReadOnly');
-  await execute('UPDATE user_roles SET is_primary = 0 WHERE user_type = ? AND user_id = ?', ['student', student.id]);
+  await execute('UPDATE user_roles SET is_primary = 0 WHERE user_type = ? AND user_id = ?', [
+    'student',
+    student.id,
+  ]);
   await execute(
     `INSERT INTO user_roles (user_type, user_id, role_id, is_primary) VALUES ('student', ?, ?, 1)
      ON DUPLICATE KEY UPDATE is_primary = 1`,
-    [student.id, forumRoRole.id]
+    [student.id, forumRoRole.id],
   );
   const login = await request(app)
     .post('/api/auth/login')
@@ -358,7 +400,9 @@ test('Forum: premier message et réponse avec photos (image_urls)', async () => 
     .get(`/api/forum/threads/${threadId}`)
     .set(auth(student.authToken))
     .expect(200);
-  const firstPost = detail.body.posts.find((p) => Array.isArray(p.image_urls) && p.image_urls.length > 0);
+  const firstPost = detail.body.posts.find(
+    (p) => Array.isArray(p.image_urls) && p.image_urls.length > 0,
+  );
   assert.ok(firstPost);
   assert.match(firstPost.image_urls[0], /^\/uploads\/forum-posts\//);
 

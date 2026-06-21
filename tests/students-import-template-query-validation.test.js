@@ -16,12 +16,25 @@ function runValidation(query) {
   const res = {
     statusCode: 200,
     body: undefined,
-    status(c) { this.statusCode = c; return this; },
-    json(payload) { this.body = payload; return this; },
+    status(c) {
+      this.statusCode = c;
+      return this;
+    },
+    json(payload) {
+      this.body = payload;
+      return this;
+    },
   };
   let nextCalled = false;
-  validate({ query: importTemplateQuerySchema })(req, res, () => { nextCalled = true; });
-  return { nextCalled, status: res.statusCode, error: res.body?.error, validatedQuery: req.validatedQuery };
+  validate({ query: importTemplateQuerySchema })(req, res, () => {
+    nextCalled = true;
+  });
+  return {
+    nextCalled,
+    status: res.statusCode,
+    error: res.body?.error,
+    validatedQuery: req.validatedQuery,
+  };
 }
 
 // Réplique de la normalisation de l'ancien handler.
@@ -32,12 +45,12 @@ function legacyFormat(raw) {
 
 test('import/template : valeurs acceptées (csv/xlsx) normalisées, next appelé', () => {
   const cases = [
-    {},                      // format absent → csv
-    { format: undefined },   // → csv
-    { format: '' },          // falsy → csv
+    {}, // format absent → csv
+    { format: undefined }, // → csv
+    { format: '' }, // falsy → csv
     { format: 'csv' },
-    { format: 'CSV' },       // lowercase
-    { format: '  xlsx  ' },  // trim
+    { format: 'CSV' }, // lowercase
+    { format: '  xlsx  ' }, // trim
     { format: 'XLSX' },
   ];
   for (const query of cases) {
@@ -46,7 +59,11 @@ test('import/template : valeurs acceptées (csv/xlsx) normalisées, next appelé
     assert.ok(expected === 'csv' || expected === 'xlsx', `cas légitime: ${JSON.stringify(query)}`);
     assert.strictEqual(r.nextCalled, true, `next attendu pour ${JSON.stringify(query)}`);
     assert.strictEqual(r.status, 200, `pas de 400 pour ${JSON.stringify(query)}`);
-    assert.strictEqual(r.validatedQuery.format, expected, `format normalisé attendu pour ${JSON.stringify(query)}`);
+    assert.strictEqual(
+      r.validatedQuery.format,
+      expected,
+      `format normalisé attendu pour ${JSON.stringify(query)}`,
+    );
   }
 });
 
@@ -62,8 +79,16 @@ test('import/template : valeurs invalides → 400 "Format invalide (csv ou xlsx)
     const r = runValidation(query);
     const expected = legacyFormat(query.format);
     assert.ok(expected !== 'csv' && expected !== 'xlsx', `cas invalide: ${JSON.stringify(query)}`);
-    assert.strictEqual(r.nextCalled, false, `next ne doit pas être appelé pour ${JSON.stringify(query)}`);
+    assert.strictEqual(
+      r.nextCalled,
+      false,
+      `next ne doit pas être appelé pour ${JSON.stringify(query)}`,
+    );
     assert.strictEqual(r.status, 400, `status 400 attendu pour ${JSON.stringify(query)}`);
-    assert.strictEqual(r.error, 'Format invalide (csv ou xlsx)', `message exact pour ${JSON.stringify(query)}`);
+    assert.strictEqual(
+      r.error,
+      'Format invalide (csv ou xlsx)',
+      `message exact pour ${JSON.stringify(query)}`,
+    );
   }
 });

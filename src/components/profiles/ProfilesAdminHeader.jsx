@@ -16,8 +16,18 @@ function ProfilesAdminHeader({
   onDismiss,
 }) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
-      <h2 className="section-title" style={{ marginBottom: 0 }}>🛡️ Profils & utilisateurs</h2>
+    <div
+      style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        gap: 12,
+        flexWrap: 'wrap',
+      }}
+    >
+      <h2 className="section-title" style={{ marginBottom: 0 }}>
+        🛡️ Profils & utilisateurs
+      </h2>
       {isHelpEnabled && (
         <HelpPanel
           sectionId="profiles"

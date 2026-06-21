@@ -30,7 +30,7 @@ async function main() {
       `INSERT INTO role_pin_secrets (role_id, pin_hash)
        VALUES (?, ?)
        ON DUPLICATE KEY UPDATE pin_hash = VALUES(pin_hash), updated_at = NOW()`,
-      [role.id, hash]
+      [role.id, hash],
     );
     updated += 1;
   }

@@ -6,7 +6,9 @@ const { pathToFileURL } = require('url');
 const path = require('path');
 
 test('glMascotPackToVisit : map sprite_cut GL vers validation visite', async () => {
-  const mod = await import(pathToFileURL(path.join(__dirname, '..', 'src', 'utils', 'glMascotPackToVisit.js')).href);
+  const mod = await import(
+    pathToFileURL(path.join(__dirname, '..', 'src', 'utils', 'glMascotPackToVisit.js')).href
+  );
   const glPack = {
     id: 'gl-pack-test',
     name: 'Pack test',
@@ -25,7 +27,15 @@ test('glMascotPackToVisit : map sprite_cut GL vers validation visite', async () 
 });
 
 test('glMascotPackToVisit : refuse renderer non sprite_cut', async () => {
-  const mod = await import(pathToFileURL(path.join(__dirname, '..', 'src', 'utils', 'glMascotPackToVisit.js')).href);
-  const mapped = mod.glMascotPackSpriteCutToVisitValidation({ id: 'x', name: 'x', renderer: 'rive', assets: [], states: [] });
+  const mod = await import(
+    pathToFileURL(path.join(__dirname, '..', 'src', 'utils', 'glMascotPackToVisit.js')).href
+  );
+  const mapped = mod.glMascotPackSpriteCutToVisitValidation({
+    id: 'x',
+    name: 'x',
+    renderer: 'rive',
+    assets: [],
+    states: [],
+  });
   assert.equal(mapped.ok, false);
 });

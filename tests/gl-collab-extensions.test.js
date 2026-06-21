@@ -247,7 +247,15 @@ test('GL kingdom-map: refuse points hors plage', async () => {
   await request(app)
     .post('/api/gl/kingdom-map/zones')
     .set('Authorization', `Bearer ${adminToken}`)
-    .send({ chapterId, label: 'Hors plage', points: [{ x: -1, y: 50 }, { x: 50, y: 50 }, { x: 50, y: 150 }] })
+    .send({
+      chapterId,
+      label: 'Hors plage',
+      points: [
+        { x: -1, y: 50 },
+        { x: 50, y: 50 },
+        { x: 50, y: 150 },
+      ],
+    })
     .expect(400);
 });
 
@@ -258,6 +266,7 @@ test('GL kingdom-map: musique de zone — CRUD musicUrl et musicVolume', async (
     { x: 50, y: 80 },
   ];
   const musicUrl = '/uploads/media-library/audio/2026/05/test-ambiance.mp3';
+  const musicUrl2 = '/uploads/media-library/audio/2026/05/test-ambiance-2.mp3';
   const created = await request(app)
     .post('/api/gl/kingdom-map/zones')
     .set('Authorization', `Bearer ${adminToken}`)
@@ -271,6 +280,7 @@ test('GL kingdom-map: musique de zone — CRUD musicUrl et musicVolume', async (
     .expect(201);
   const zoneId = created.body?.id;
   assert.strictEqual(created.body?.musicUrl, musicUrl);
+  assert.deepStrictEqual(created.body?.musicUrls, [musicUrl]);
   assert.strictEqual(created.body?.musicVolume, 0.55);
 
   const updated = await request(app)
@@ -281,12 +291,21 @@ test('GL kingdom-map: musique de zone — CRUD musicUrl et musicVolume', async (
   assert.strictEqual(updated.body?.musicVolume, 0.9);
   assert.strictEqual(updated.body?.musicUrl, musicUrl);
 
+  const playlist = await request(app)
+    .put(`/api/gl/kingdom-map/zones/${zoneId}`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ musicUrls: [musicUrl, musicUrl2] })
+    .expect(200);
+  assert.deepStrictEqual(playlist.body?.musicUrls, [musicUrl, musicUrl2]);
+  assert.strictEqual(playlist.body?.musicUrl, musicUrl);
+
   const cleared = await request(app)
     .put(`/api/gl/kingdom-map/zones/${zoneId}`)
     .set('Authorization', `Bearer ${adminToken}`)
     .send({ musicUrl: null })
     .expect(200);
   assert.strictEqual(cleared.body?.musicUrl, null);
+  assert.deepStrictEqual(cleared.body?.musicUrls, []);
 
   await request(app)
     .delete(`/api/gl/kingdom-map/zones/${zoneId}`)

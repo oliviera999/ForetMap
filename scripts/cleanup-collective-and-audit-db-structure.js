@@ -66,7 +66,10 @@ function extractExpectedSchema() {
     const closeIdx = stmt.lastIndexOf(')');
     if (openIdx < 0 || closeIdx <= openIdx) continue;
     const inner = stmt.slice(openIdx + 1, closeIdx);
-    const lines = inner.split('\n').map((l) => l.trim()).filter(Boolean);
+    const lines = inner
+      .split('\n')
+      .map((l) => l.trim())
+      .filter(Boolean);
     const columns = [];
 
     for (const lineRaw of lines) {
@@ -88,7 +91,7 @@ async function getDbTables(dbName) {
        FROM information_schema.tables
       WHERE table_schema = ?
       ORDER BY table_name ASC`,
-    [dbName]
+    [dbName],
   );
   return rows.map((r) => String(r.table_name));
 }
@@ -100,7 +103,7 @@ async function getDbColumns(dbName, tableName) {
       WHERE table_schema = ?
         AND table_name = ?
       ORDER BY ordinal_position ASC`,
-    [dbName, tableName]
+    [dbName, tableName],
   );
   return rows.map((r) => String(r.column_name));
 }
@@ -131,8 +134,12 @@ async function main() {
   if (!dbName) throw new Error('DB_NAME manquant dans l’environnement');
 
   let exitCode = 0;
-  const markWarn = () => { if (exitCode < 1) exitCode = 1; };
-  const markFail = () => { exitCode = 2; };
+  const markWarn = () => {
+    if (exitCode < 1) exitCode = 1;
+  };
+  const markFail = () => {
+    exitCode = 2;
+  };
 
   printSection('Connexion BDD');
   await ping();
@@ -163,12 +170,18 @@ async function main() {
   }
 
   const missingTables = expectedTables.filter((t) => !dbTableSet.has(t));
-  const extraTables = dbTables.filter((t) => !expectedSchema.has(t) && !['schema_version'].includes(t));
+  const extraTables = dbTables.filter(
+    (t) => !expectedSchema.has(t) && !['schema_version'].includes(t),
+  );
 
   if (missingTables.length === 0) {
     printCheck('ok', 'Tables attendues', `${expectedTables.length} présentes`);
   } else {
-    printCheck('fail', 'Tables attendues', `${missingTables.length} manquante(s): ${missingTables.join(', ')}`);
+    printCheck(
+      'fail',
+      'Tables attendues',
+      `${missingTables.length} manquante(s): ${missingTables.join(', ')}`,
+    );
     markFail();
   }
 
@@ -217,5 +230,7 @@ main()
     process.exitCode = 2;
   })
   .finally(async () => {
-    try { await pool.end(); } catch (_) {}
+    try {
+      await pool.end();
+    } catch (_) {}
   });

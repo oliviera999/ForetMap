@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import VisitMapMascotSpriteCut from '../../components/VisitMapMascotSpriteCut.jsx';
 import VisitMascotFallbackSvg from '../../components/VisitMascotFallbackSvg.jsx';
+import { STATE_LABELS } from '../../constants/mascotStateLabels.js';
 
 /**
  * Prévisualisation sprite_cut (pack visite validé ou dérivé GL).
@@ -51,7 +52,9 @@ export function MascotPackSpriteCutPreview({
   return (
     <section className={previewClassName} style={{ marginTop: 20 }}>
       <h3 style={{ fontSize: '1.05rem', marginTop: 0 }}>{title}</h3>
-      <div style={{ marginBottom: 8, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+      <div
+        style={{ marginBottom: 8, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}
+      >
         <label>
           État :{' '}
           <select
@@ -61,7 +64,9 @@ export function MascotPackSpriteCutPreview({
             style={{ minWidth: 160 }}
           >
             {statesWithFrames.map((s) => (
-              <option key={s} value={s}>{s}</option>
+              <option key={s} value={s}>
+                {STATE_LABELS[s] ? `${STATE_LABELS[s]} (${s})` : s}
+              </option>
             ))}
           </select>
         </label>
@@ -86,12 +91,9 @@ export function MascotPackSpriteCutPreview({
           mascotId={mascotConfig.id}
           mascotState={previewState}
           mascotConfig={mascotConfig}
-          fallback={(
-            <VisitMascotFallbackSvg
-              silhouette={mascotConfig.fallbackSilhouette}
-              variant="forest"
-            />
-          )}
+          fallback={
+            <VisitMascotFallbackSvg silhouette={mascotConfig.fallbackSilhouette} variant="forest" />
+          }
         />
       </div>
     </section>

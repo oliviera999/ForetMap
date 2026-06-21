@@ -72,30 +72,36 @@ test('isEffectMarker détecte type event sans config', () => {
 });
 
 test('buildMarkerArrivalPayload assemble le résumé', () => {
-  const payload = buildMarkerArrivalPayload({
-    id: 3,
-    label: 'Souffle',
-    description: 'Chaleur',
-    event_type: 'souffle',
-    effet_mecanique: 'Moiteur',
-    event_config_json: JSON.stringify({
-      version: 2,
-      effects: { gnome: { label: 'Recule', deltaMove: -1 } },
-    }),
-  }, { type: 'gnome' });
+  const payload = buildMarkerArrivalPayload(
+    {
+      id: 3,
+      label: 'Souffle',
+      description: 'Chaleur',
+      event_type: 'souffle',
+      effet_mecanique: 'Moiteur',
+      event_config_json: JSON.stringify({
+        version: 2,
+        effects: { gnome: { label: 'Recule', deltaMove: -1 } },
+      }),
+    },
+    { type: 'gnome' },
+  );
   assert.strictEqual(payload.markerId, 3);
   assert.ok(payload.effectSummary.includes('Moiteur'));
   assert.ok(payload.hasEffects);
 });
 
 test('formatMarkerEffectSummary inclut effet mécanique et label peuple', () => {
-  const summary = formatMarkerEffectSummary({
-    effet_mecanique: 'Avance de 2 cases',
-    event_type: 'event',
-    event_config_json: JSON.stringify({
-      version: 2,
-      effects: { neutral: { deltaMove: 2 } },
-    }),
-  }, 'gnome');
+  const summary = formatMarkerEffectSummary(
+    {
+      effet_mecanique: 'Avance de 2 cases',
+      event_type: 'event',
+      event_config_json: JSON.stringify({
+        version: 2,
+        effects: { neutral: { deltaMove: 2 } },
+      }),
+    },
+    'gnome',
+  );
   assert.ok(summary.includes('Avance de 2 cases'));
 });

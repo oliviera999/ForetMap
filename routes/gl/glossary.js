@@ -73,7 +73,7 @@ async function loadActiveGlossaryForBiomes(biomeSlugs) {
               definition_complete, exemple, etymologie, all_biomes, statut
          FROM gl_glossary_terms
         WHERE statut = 'actif'
-        ORDER BY categorie ASC, terme ASC`
+        ORDER BY categorie ASC, terme ASC`,
     );
   }
   if (slugs.length === 1) {
@@ -86,7 +86,7 @@ async function loadActiveGlossaryForBiomes(biomeSlugs) {
         WHERE t.statut = 'actif'
           AND (t.all_biomes = 1 OR b.biome_slug = ?)
         ORDER BY t.categorie ASC, t.terme ASC`,
-      [slugs[0]]
+      [slugs[0]],
     );
   }
   const placeholders = slugs.map(() => '?').join(', ');
@@ -99,7 +99,7 @@ async function loadActiveGlossaryForBiomes(biomeSlugs) {
       WHERE t.statut = 'actif'
         AND (t.all_biomes = 1 OR b.biome_slug IN (${placeholders}))
       ORDER BY t.categorie ASC, t.terme ASC`,
-    slugs
+    slugs,
   );
 }
 
@@ -119,7 +119,8 @@ function filterGlossaryList(rows, { categorie, niveau, q }) {
   if (q) {
     const needle = String(q).toLowerCase();
     items = items.filter((row) => {
-      const hay = `${row.terme} ${row.variantes || ''} ${row.definition_courte || ''}`.toLowerCase();
+      const hay =
+        `${row.terme} ${row.variantes || ''} ${row.definition_courte || ''}`.toLowerCase();
       return hay.includes(needle);
     });
   }
@@ -127,97 +128,106 @@ function filterGlossaryList(rows, { categorie, niveau, q }) {
 }
 
 /** GET /api/gl/glossary — liste filtrée par biome(s) / catégorie / recherche. */
-router.get('/glossary', requireGlPermission('gl.read'), asyncHandler(async (req, res) => {
-  const biomeSlugs = parseBiomeSlugsFromQuery(req.query);
-  const categorie = normalizeOptionalFilter(req.query?.categorie);
-  const niveau = normalizeOptionalFilter(req.query?.niveau);
-  const q = normalizeOptionalFilter(req.query?.q);
+router.get(
+  '/glossary',
+  requireGlPermission('gl.read'),
+  asyncHandler(async (req, res) => {
+    const biomeSlugs = parseBiomeSlugsFromQuery(req.query);
+    const categorie = normalizeOptionalFilter(req.query?.categorie);
+    const niveau = normalizeOptionalFilter(req.query?.niveau);
+    const q = normalizeOptionalFilter(req.query?.q);
 
-  let biomes = [];
-  if (biomeSlugs.length > 0) {
-    biomes = await loadBiomeMetaBySlugs({ queryAll }, biomeSlugs);
-    if (biomes.length !== biomeSlugs.length) {
-      return res.status(404).json({ error: 'Biome introuvable' });
+    let biomes = [];
+    if (biomeSlugs.length > 0) {
+      biomes = await loadBiomeMetaBySlugs({ queryAll }, biomeSlugs);
+      if (biomes.length !== biomeSlugs.length) {
+        return res.status(404).json({ error: 'Biome introuvable' });
+      }
     }
-  }
 
-  const allRows = await loadActiveGlossaryForBiomes(biomeSlugs);
-  const learnedCodes = await loadGlossaryLearnedCodes(req.glAuth);
-  const items = markItemsLearned(
-    filterGlossaryList(allRows, { categorie, niveau, q }).map((row) => ({
-      glossary_code: row.glossary_code,
-      terme: row.terme,
-      variantes: row.variantes,
-      categorie: row.categorie,
-      categorie_label: GLOSSARY_CATEGORY_LABELS[row.categorie] || row.categorie,
-      niveau: row.niveau,
-      definition_courte: row.definition_courte,
-      all_biomes: !!row.all_biomes,
-    })),
-    learnedCodes,
-    'glossary_code'
-  );
+    const allRows = await loadActiveGlossaryForBiomes(biomeSlugs);
+    const learnedCodes = await loadGlossaryLearnedCodes(req.glAuth);
+    const items = markItemsLearned(
+      filterGlossaryList(allRows, { categorie, niveau, q }).map((row) => ({
+        glossary_code: row.glossary_code,
+        terme: row.terme,
+        variantes: row.variantes,
+        categorie: row.categorie,
+        categorie_label: GLOSSARY_CATEGORY_LABELS[row.categorie] || row.categorie,
+        niveau: row.niveau,
+        definition_courte: row.definition_courte,
+        all_biomes: !!row.all_biomes,
+      })),
+      learnedCodes,
+      'glossary_code',
+    );
 
-  return res.json({
-    biome: biomes.length === 1 ? biomes[0] : null,
-    biomes,
-    items,
-  });
-}));
+    return res.json({
+      biome: biomes.length === 1 ? biomes[0] : null,
+      biomes,
+      items,
+    });
+  }),
+);
 
 /** GET /api/gl/glossary/:code — fiche détaillée + termes liés + espèces liées. */
-router.get('/glossary/:code', requireGlPermission('gl.read'), validate({ params: glossaryCodeParamsSchema }), asyncHandler(async (req, res) => {
-  const code = String(req.params.code || '').trim();
-  if (!code) return res.status(400).json({ error: 'Code invalide' });
+router.get(
+  '/glossary/:code',
+  requireGlPermission('gl.read'),
+  validate({ params: glossaryCodeParamsSchema }),
+  asyncHandler(async (req, res) => {
+    const code = String(req.params.code || '').trim();
+    if (!code) return res.status(400).json({ error: 'Code invalide' });
 
-  const term = await queryOne(
-    `SELECT glossary_code, terme, variantes, categorie, niveau, definition_courte,
+    const term = await queryOne(
+      `SELECT glossary_code, terme, variantes, categorie, niveau, definition_courte,
             definition_complete, exemple, etymologie, present_dans_qcm, illustration_idee,
             all_biomes, statut
        FROM gl_glossary_terms
       WHERE glossary_code = ? AND statut = 'actif'
       LIMIT 1`,
-    [code]
-  );
-  if (!term) return res.status(404).json({ error: 'Terme introuvable' });
+      [code],
+    );
+    if (!term) return res.status(404).json({ error: 'Terme introuvable' });
 
-  const biomeSlugs = parseBiomeSlugsFromQuery(req.query);
+    const biomeSlugs = parseBiomeSlugsFromQuery(req.query);
 
-  const relatedTerms = await queryAll(
-    `SELECT t.glossary_code, t.terme, t.categorie, t.definition_courte
+    const relatedTerms = await queryAll(
+      `SELECT t.glossary_code, t.terme, t.categorie, t.definition_courte
        FROM gl_glossary_term_relations r
  INNER JOIN gl_glossary_terms t ON t.glossary_code = r.to_code
       WHERE r.from_code = ? AND t.statut = 'actif'
       ORDER BY t.terme ASC`,
-    [code]
-  );
+      [code],
+    );
 
-  let relatedSpecies = [];
-  if (biomeSlugs.length > 0) {
-    const placeholders = biomeSlugs.map(() => '?').join(', ');
-    const speciesRows = await queryAll(
-      `SELECT species_code, nom_commun, type, mots_cles
+    let relatedSpecies = [];
+    if (biomeSlugs.length > 0) {
+      const placeholders = biomeSlugs.map(() => '?').join(', ');
+      const speciesRows = await queryAll(
+        `SELECT species_code, nom_commun, type, mots_cles
          FROM gl_species
         WHERE biome_slug IN (${placeholders}) AND statut = 'actif'`,
-      biomeSlugs
-    );
-    relatedSpecies = matchSpeciesForGlossaryTerm(term, speciesRows);
-  }
+        biomeSlugs,
+      );
+      relatedSpecies = matchSpeciesForGlossaryTerm(term, speciesRows);
+    }
 
-  const learnedCodes = await loadGlossaryLearnedCodes(req.glAuth);
-  const learned = learnedCodes.includes(code);
+    const learnedCodes = await loadGlossaryLearnedCodes(req.glAuth);
+    const learned = learnedCodes.includes(code);
 
-  return res.json({
-    term: {
-      ...term,
-      categorie_label: GLOSSARY_CATEGORY_LABELS[term.categorie] || term.categorie,
-      all_biomes: !!term.all_biomes,
-      learned,
-    },
-    relatedTerms,
-    relatedSpecies,
-  });
-}));
+    return res.json({
+      term: {
+        ...term,
+        categorie_label: GLOSSARY_CATEGORY_LABELS[term.categorie] || term.categorie,
+        all_biomes: !!term.all_biomes,
+        learned,
+      },
+      relatedTerms,
+      relatedSpecies,
+    });
+  }),
+);
 
 const ADMIN_GLOSSARY_LIST_LIMIT = 500;
 
@@ -229,16 +239,16 @@ async function loadAdminGlossaryTermDetail(code) {
        FROM gl_glossary_terms
       WHERE glossary_code = ?
       LIMIT 1`,
-    [code]
+    [code],
   );
   if (!term) return null;
   const biomeSlugs = await queryAll(
     `SELECT biome_slug FROM gl_glossary_term_biomes WHERE glossary_code = ? ORDER BY biome_slug ASC`,
-    [code]
+    [code],
   );
   const relatedCodes = await queryAll(
     `SELECT to_code FROM gl_glossary_term_relations WHERE from_code = ? ORDER BY to_code ASC`,
-    [code]
+    [code],
   );
   return {
     ...term,
@@ -258,206 +268,252 @@ function handleGlossaryCrudError(res, err) {
 }
 
 /** GET /api/gl/admin/glossary/meta — catégories, niveaux, biomes. */
-router.get('/admin/glossary/meta', requireGlPermission('gl.content.manage'), asyncHandler(async (_req, res) => {
-  const biomes = await queryAll(
-    'SELECT slug, nom, order_index FROM gl_biomes ORDER BY order_index ASC, slug ASC'
-  );
-  return res.json({
-    categories: GLOSSARY_CATEGORIES.map((id) => ({
-      id,
-      label: GLOSSARY_CATEGORY_LABELS[id] || id,
-    })),
-    niveaux: [
-      { id: 'base', label: 'Base' },
-      { id: 'approfondissement', label: 'Approfondissement' },
-      { id: 'avance', label: 'Avancé' },
-    ],
-    biomes,
-  });
-}));
+router.get(
+  '/admin/glossary/meta',
+  requireGlPermission('gl.content.manage'),
+  asyncHandler(async (_req, res) => {
+    const biomes = await queryAll(
+      'SELECT slug, nom, order_index FROM gl_biomes ORDER BY order_index ASC, slug ASC',
+    );
+    return res.json({
+      categories: GLOSSARY_CATEGORIES.map((id) => ({
+        id,
+        label: GLOSSARY_CATEGORY_LABELS[id] || id,
+      })),
+      niveaux: [
+        { id: 'base', label: 'Base' },
+        { id: 'approfondissement', label: 'Approfondissement' },
+        { id: 'avance', label: 'Avancé' },
+      ],
+      biomes,
+    });
+  }),
+);
 
 /** GET /api/gl/admin/glossary/terms/next-code — prochain code GL#### suggéré. */
-router.get('/admin/glossary/terms/next-code', requireGlPermission('gl.content.manage'), asyncHandler(async (_req, res) => {
-  const code = await allocateNextGlossaryCode(queryAll);
-  return res.json({ glossary_code: code });
-}));
+router.get(
+  '/admin/glossary/terms/next-code',
+  requireGlPermission('gl.content.manage'),
+  asyncHandler(async (_req, res) => {
+    const code = await allocateNextGlossaryCode(queryAll);
+    return res.json({ glossary_code: code });
+  }),
+);
 
 /** GET /api/gl/admin/glossary/terms — liste admin. */
-router.get('/admin/glossary/terms', requireGlPermission('gl.content.manage'), asyncHandler(async (req, res) => {
-  const categorie = normalizeOptionalFilter(req.query?.categorie);
-  const q = normalizeOptionalFilter(req.query?.q);
-  const statutRaw = String(req.query?.statut || 'actif').toLowerCase();
-  const statut = statutRaw === 'all' ? null : 'actif';
+router.get(
+  '/admin/glossary/terms',
+  requireGlPermission('gl.content.manage'),
+  asyncHandler(async (req, res) => {
+    const categorie = normalizeOptionalFilter(req.query?.categorie);
+    const q = normalizeOptionalFilter(req.query?.q);
+    const statutRaw = String(req.query?.statut || 'actif').toLowerCase();
+    const statut = statutRaw === 'all' ? null : 'actif';
 
-  const rows = statut
-    ? await queryAll(
-      `SELECT glossary_code, terme, variantes, categorie, niveau, definition_courte, all_biomes, statut
+    const rows = statut
+      ? await queryAll(
+          `SELECT glossary_code, terme, variantes, categorie, niveau, definition_courte, all_biomes, statut
          FROM gl_glossary_terms
         WHERE statut = ?
         ORDER BY categorie ASC, terme ASC
         LIMIT ${ADMIN_GLOSSARY_LIST_LIMIT}`,
-      [statut]
-    )
-    : await queryAll(
-      `SELECT glossary_code, terme, variantes, categorie, niveau, definition_courte, all_biomes, statut
+          [statut],
+        )
+      : await queryAll(
+          `SELECT glossary_code, terme, variantes, categorie, niveau, definition_courte, all_biomes, statut
          FROM gl_glossary_terms
         ORDER BY categorie ASC, terme ASC
-        LIMIT ${ADMIN_GLOSSARY_LIST_LIMIT}`
-    );
+        LIMIT ${ADMIN_GLOSSARY_LIST_LIMIT}`,
+        );
 
-  const items = filterGlossaryList(rows, { categorie, niveau: null, q }).map((row) => ({
-    glossary_code: row.glossary_code,
-    terme: row.terme,
-    variantes: row.variantes,
-    categorie: row.categorie,
-    categorie_label: GLOSSARY_CATEGORY_LABELS[row.categorie] || row.categorie,
-    niveau: row.niveau,
-    definition_courte: row.definition_courte,
-    all_biomes: !!row.all_biomes,
-    statut: row.statut,
-  }));
+    const items = filterGlossaryList(rows, { categorie, niveau: null, q }).map((row) => ({
+      glossary_code: row.glossary_code,
+      terme: row.terme,
+      variantes: row.variantes,
+      categorie: row.categorie,
+      categorie_label: GLOSSARY_CATEGORY_LABELS[row.categorie] || row.categorie,
+      niveau: row.niveau,
+      definition_courte: row.definition_courte,
+      all_biomes: !!row.all_biomes,
+      statut: row.statut,
+    }));
 
-  return res.json({ items, total: items.length });
-}));
+    return res.json({ items, total: items.length });
+  }),
+);
 
 /** GET /api/gl/admin/glossary/terms/:code — fiche admin complète. */
-router.get('/admin/glossary/terms/:code', requireGlPermission('gl.content.manage'), validate({ params: glossaryCodeParamsSchema }), asyncHandler(async (req, res) => {
-  const code = String(req.params.code || '').trim();
-  if (!code) return res.status(400).json({ error: 'Code invalide' });
-  const term = await loadAdminGlossaryTermDetail(code);
-  if (!term) return res.status(404).json({ error: 'Terme introuvable' });
-  return res.json({ term });
-}));
+router.get(
+  '/admin/glossary/terms/:code',
+  requireGlPermission('gl.content.manage'),
+  validate({ params: glossaryCodeParamsSchema }),
+  asyncHandler(async (req, res) => {
+    const code = String(req.params.code || '').trim();
+    if (!code) return res.status(400).json({ error: 'Code invalide' });
+    const term = await loadAdminGlossaryTermDetail(code);
+    if (!term) return res.status(404).json({ error: 'Terme introuvable' });
+    return res.json({ term });
+  }),
+);
 
 /** POST /api/gl/admin/glossary/terms — création. */
-router.post('/admin/glossary/terms', requireGlPermission('gl.content.manage'), asyncHandler(async (req, res) => {
-  try {
-    const explicitCode = String(req.body?.glossary_code || '').trim();
-    const result = await upsertGlossaryTerm(
-      { queryAll, execute },
-      req.body || {},
-      { requireNew: Boolean(explicitCode) }
-    );
-    const term = await loadAdminGlossaryTermDetail(result.payload.glossary_code);
-    return res.status(201).json({ ok: true, created: result.created, term });
-  } catch (err) {
-    return handleGlossaryCrudError(res, err);
-  }
-}));
+router.post(
+  '/admin/glossary/terms',
+  requireGlPermission('gl.content.manage'),
+  asyncHandler(async (req, res) => {
+    try {
+      const explicitCode = String(req.body?.glossary_code || '').trim();
+      const result = await upsertGlossaryTerm({ queryAll, execute }, req.body || {}, {
+        requireNew: Boolean(explicitCode),
+      });
+      const term = await loadAdminGlossaryTermDetail(result.payload.glossary_code);
+      return res.status(201).json({ ok: true, created: result.created, term });
+    } catch (err) {
+      return handleGlossaryCrudError(res, err);
+    }
+  }),
+);
 
 /** PUT /api/gl/admin/glossary/terms/:code — mise à jour. */
-router.put('/admin/glossary/terms/:code', requireGlPermission('gl.content.manage'), validate({ params: glossaryCodeParamsSchema }), asyncHandler(async (req, res) => {
-  const code = String(req.params.code || '').trim();
-  if (!code) return res.status(400).json({ error: 'Code invalide' });
-  try {
-    const result = await upsertGlossaryTerm(
-      { queryAll, execute },
-      req.body || {},
-      { glossary_code: code, requireExisting: true }
-    );
-    const term = await loadAdminGlossaryTermDetail(result.payload.glossary_code);
-    return res.json({ ok: true, created: false, term });
-  } catch (err) {
-    return handleGlossaryCrudError(res, err);
-  }
-}));
+router.put(
+  '/admin/glossary/terms/:code',
+  requireGlPermission('gl.content.manage'),
+  validate({ params: glossaryCodeParamsSchema }),
+  asyncHandler(async (req, res) => {
+    const code = String(req.params.code || '').trim();
+    if (!code) return res.status(400).json({ error: 'Code invalide' });
+    try {
+      const result = await upsertGlossaryTerm({ queryAll, execute }, req.body || {}, {
+        glossary_code: code,
+        requireExisting: true,
+      });
+      const term = await loadAdminGlossaryTermDetail(result.payload.glossary_code);
+      return res.json({ ok: true, created: false, term });
+    } catch (err) {
+      return handleGlossaryCrudError(res, err);
+    }
+  }),
+);
 
 /** PATCH /api/gl/admin/glossary/terms/:code — archivage (statut). */
-router.patch('/admin/glossary/terms/:code', requireGlPermission('gl.content.manage'), validate({ params: glossaryCodeParamsSchema }), asyncHandler(async (req, res) => {
-  const code = String(req.params.code || '').trim();
-  if (!code) return res.status(400).json({ error: 'Code invalide' });
-  const existing = await queryOne(
-    'SELECT glossary_code FROM gl_glossary_terms WHERE glossary_code = ? LIMIT 1',
-    [code]
-  );
-  if (!existing) return res.status(404).json({ error: 'Terme introuvable' });
-  const statut = normalizeOptionalFilter(req.body?.statut) || 'inactif';
-  await execute(
-    'UPDATE gl_glossary_terms SET statut = ?, updated_at = NOW() WHERE glossary_code = ?',
-    [statut, code]
-  );
-  const term = await loadAdminGlossaryTermDetail(code);
-  return res.json({ ok: true, term });
-}));
+router.patch(
+  '/admin/glossary/terms/:code',
+  requireGlPermission('gl.content.manage'),
+  validate({ params: glossaryCodeParamsSchema }),
+  asyncHandler(async (req, res) => {
+    const code = String(req.params.code || '').trim();
+    if (!code) return res.status(400).json({ error: 'Code invalide' });
+    const existing = await queryOne(
+      'SELECT glossary_code FROM gl_glossary_terms WHERE glossary_code = ? LIMIT 1',
+      [code],
+    );
+    if (!existing) return res.status(404).json({ error: 'Terme introuvable' });
+    const statut = normalizeOptionalFilter(req.body?.statut) || 'inactif';
+    await execute(
+      'UPDATE gl_glossary_terms SET statut = ?, updated_at = NOW() WHERE glossary_code = ?',
+      [statut, code],
+    );
+    const term = await loadAdminGlossaryTermDetail(code);
+    return res.json({ ok: true, term });
+  }),
+);
 
 /** GET /api/gl/admin/glossary/stats — agrégats admin. */
-router.get('/admin/glossary/stats', requireGlPermission('gl.content.manage'), asyncHandler(async (_req, res) => {
-  const byCategory = await queryAll(
-    `SELECT categorie, COUNT(*) AS effectif
+router.get(
+  '/admin/glossary/stats',
+  requireGlPermission('gl.content.manage'),
+  asyncHandler(async (_req, res) => {
+    const byCategory = await queryAll(
+      `SELECT categorie, COUNT(*) AS effectif
        FROM gl_glossary_terms
       WHERE statut = 'actif'
       GROUP BY categorie
-      ORDER BY effectif DESC`
-  );
-  const byNiveau = await queryAll(
-    `SELECT niveau, COUNT(*) AS effectif
+      ORDER BY effectif DESC`,
+    );
+    const byNiveau = await queryAll(
+      `SELECT niveau, COUNT(*) AS effectif
        FROM gl_glossary_terms
       WHERE statut = 'actif'
       GROUP BY niveau
-      ORDER BY FIELD(niveau, 'base', 'approfondissement', 'avance')`
-  );
-  const total = await queryOne(
-    `SELECT COUNT(*) AS total FROM gl_glossary_terms WHERE statut = 'actif'`
-  );
-  return res.json({
-    total: Number(total?.total || 0),
-    byCategory,
-    byNiveau,
-  });
-}));
+      ORDER BY FIELD(niveau, 'base', 'approfondissement', 'avance')`,
+    );
+    const total = await queryOne(
+      `SELECT COUNT(*) AS total FROM gl_glossary_terms WHERE statut = 'actif'`,
+    );
+    return res.json({
+      total: Number(total?.total || 0),
+      byCategory,
+      byNiveau,
+    });
+  }),
+);
 
 /** GET /api/gl/admin/glossary/import/template — modèle XLSX vierge. */
-router.get('/admin/glossary/import/template', requireGlPermission('gl.content.manage'), asyncHandler(async (_req, res) => {
-  const buffer = await buildGlossaryTemplateWorkbook();
-  res.setHeader(
-    'Content-Type',
-    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-  );
-  res.setHeader('Content-Disposition', 'attachment; filename="foretmap-gl-modele-glossaire.xlsx"');
-  return res.send(buffer);
-}));
+router.get(
+  '/admin/glossary/import/template',
+  requireGlPermission('gl.content.manage'),
+  asyncHandler(async (_req, res) => {
+    const buffer = await buildGlossaryTemplateWorkbook();
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
+    res.setHeader(
+      'Content-Disposition',
+      'attachment; filename="foretmap-gl-modele-glossaire.xlsx"',
+    );
+    return res.send(buffer);
+  }),
+);
 
 /** GET /api/gl/admin/glossary/export — export XLSX ré-importable. */
-router.get('/admin/glossary/export', requireGlPermission('gl.content.manage'), asyncHandler(async (req, res) => {
-  const statutRaw = String(req.query?.statut || 'actif').toLowerCase();
-  const statut = statutRaw === 'all' ? 'all' : 'actif';
-  const rows = await loadGlossaryExportRows({ queryAll }, { statut });
-  const buffer = await buildGlossaryExportWorkbook(rows);
-  res.setHeader(
-    'Content-Type',
-    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-  );
-  res.setHeader('Content-Disposition', 'attachment; filename="foretmap-gl-export-glossaire.xlsx"');
-  return res.send(buffer);
-}));
+router.get(
+  '/admin/glossary/export',
+  requireGlPermission('gl.content.manage'),
+  asyncHandler(async (req, res) => {
+    const statutRaw = String(req.query?.statut || 'actif').toLowerCase();
+    const statut = statutRaw === 'all' ? 'all' : 'actif';
+    const rows = await loadGlossaryExportRows({ queryAll }, { statut });
+    const buffer = await buildGlossaryExportWorkbook(rows);
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
+    res.setHeader(
+      'Content-Disposition',
+      'attachment; filename="foretmap-gl-export-glossaire.xlsx"',
+    );
+    return res.send(buffer);
+  }),
+);
 
 /** POST /api/gl/admin/glossary/import — import XLSX glossaire. */
-router.post('/admin/glossary/import', requireGlPermission('gl.content.manage'), asyncHandler(async (req, res) => {
-  const dryRun = !!req.body?.dryRun;
-  let parsed;
-  try {
-    parsed = await resolveImportRows(req.body || {});
-  } catch (err) {
-    return res.status(400).json({ error: err.message || 'Fichier import invalide' });
-  }
-  const { glossaryRows } = parsed;
-  if (!Array.isArray(glossaryRows) || glossaryRows.length === 0) {
-    return res.status(400).json({ error: 'Feuille glossaire vide ou absente' });
-  }
-  if (glossaryRows.length > MAX_IMPORT_ROWS) {
-    return res.status(400).json({ error: `Trop de lignes (max ${MAX_IMPORT_ROWS})` });
-  }
-  try {
-    const report = await applyGlossaryImport(
-      { queryAll, execute },
-      glossaryRows,
-      { dryRun }
-    );
-    return res.json({ report });
-  } catch (err) {
-    return res.status(400).json({ error: err.message || 'Import impossible' });
-  }
-}));
+router.post(
+  '/admin/glossary/import',
+  requireGlPermission('gl.content.manage'),
+  asyncHandler(async (req, res) => {
+    const dryRun = !!req.body?.dryRun;
+    let parsed;
+    try {
+      parsed = await resolveImportRows(req.body || {});
+    } catch (err) {
+      return res.status(400).json({ error: err.message || 'Fichier import invalide' });
+    }
+    const { glossaryRows } = parsed;
+    if (!Array.isArray(glossaryRows) || glossaryRows.length === 0) {
+      return res.status(400).json({ error: 'Feuille glossaire vide ou absente' });
+    }
+    if (glossaryRows.length > MAX_IMPORT_ROWS) {
+      return res.status(400).json({ error: `Trop de lignes (max ${MAX_IMPORT_ROWS})` });
+    }
+    try {
+      const report = await applyGlossaryImport({ queryAll, execute }, glossaryRows, { dryRun });
+      return res.json({ report });
+    } catch (err) {
+      return res.status(400).json({ error: err.message || 'Import impossible' });
+    }
+  }),
+);
 
 module.exports = {
   router,

@@ -24,9 +24,7 @@ export function GLDiceCube({
   if (placeholder) classNames.push('is-placeholder');
   if (face != null && !rolling) classNames.push(`is-face-${face}`);
 
-  const style = rolling
-    ? { '--gl-dice-stagger': `${staggerIndex * 0.08}s` }
-    : undefined;
+  const style = rolling ? { '--gl-dice-stagger': `${staggerIndex * 0.08}s` } : undefined;
 
   return (
     <div

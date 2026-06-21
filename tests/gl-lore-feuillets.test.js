@@ -17,7 +17,10 @@ const {
   signTokens,
 } = require('./helpers/glFixtures');
 const { applyFeuilletsImport, parseFeuilletsWorkbook } = require('../lib/glLoreFeuilletsImport');
-const { applyLoreGlossaryImport, parseLoreGlossaryWorkbook } = require('../lib/glLoreGlossaryImport');
+const {
+  applyLoreGlossaryImport,
+  parseLoreGlossaryWorkbook,
+} = require('../lib/glLoreGlossaryImport');
 
 let adminToken = '';
 let playerToken = '';
@@ -58,11 +61,24 @@ before(async () => {
   playerToken = tokens.playerToken;
 
   const feuilletFile = path.join(process.cwd(), 'data', 'gl', 'corpus-feuillets-selene.xlsx');
-  const glossaryFile = path.join(process.cwd(), 'data', 'gl', 'glossaire-lore-gnomes-et-licornes.xlsx');
+  const glossaryFile = path.join(
+    process.cwd(),
+    'data',
+    'gl',
+    'glossaire-lore-gnomes-et-licornes.xlsx',
+  );
   const feuilletParsed = await parseFeuilletsWorkbook(fs.readFileSync(feuilletFile));
-  await applyFeuilletsImport({ queryAll: require('../database').queryAll, execute }, feuilletParsed, { dryRun: false });
+  await applyFeuilletsImport(
+    { queryAll: require('../database').queryAll, execute },
+    feuilletParsed,
+    { dryRun: false },
+  );
   const { glossaryRows } = await parseLoreGlossaryWorkbook(fs.readFileSync(glossaryFile));
-  await applyLoreGlossaryImport({ queryAll: require('../database').queryAll, execute }, glossaryRows, { dryRun: false });
+  await applyLoreGlossaryImport(
+    { queryAll: require('../database').queryAll, execute },
+    glossaryRows,
+    { dryRun: false },
+  );
 
   const created = await request(app)
     .post('/api/gl/kingdom-map/zones')
@@ -70,13 +86,17 @@ before(async () => {
     .send({
       chapterId: Number(chapter.id),
       label: 'Tropiques africains',
-      points: [{ x: 10, y: 10 }, { x: 90, y: 10 }, { x: 50, y: 90 }],
+      points: [
+        { x: 10, y: 10 },
+        { x: 90, y: 10 },
+        { x: 50, y: 90 },
+      ],
     });
   zoneId = Number(created.body?.id);
-  await execute(
-    'UPDATE gl_lore_feuillets SET kingdom_zone_id = ? WHERE feuillet_code = ?',
-    [zoneId, feuilletCode],
-  );
+  await execute('UPDATE gl_lore_feuillets SET kingdom_zone_id = ? WHERE feuillet_code = ?', [
+    zoneId,
+    feuilletCode,
+  ]);
 });
 
 test('GET /api/gl/lore/feuillets liste le corpus', async () => {
@@ -90,10 +110,10 @@ test('GET /api/gl/lore/feuillets liste le corpus', async () => {
 
 test('GET /api/gl/lore/feuillets expose imageUrl après mise à jour', async () => {
   const imageUrl = '/uploads/media-library/image/ep-IV-01-scene.png';
-  await execute(
-    'UPDATE gl_lore_feuillets SET image_url = ? WHERE feuillet_code = ?',
-    [imageUrl, feuilletCode],
-  );
+  await execute('UPDATE gl_lore_feuillets SET image_url = ? WHERE feuillet_code = ?', [
+    imageUrl,
+    feuilletCode,
+  ]);
   const res = await request(app)
     .get('/api/gl/lore/feuillets')
     .set('Authorization', `Bearer ${adminToken}`)

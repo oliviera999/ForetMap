@@ -78,7 +78,7 @@ Lu par le front au login via `GET /api/gl/auth/config`.
 - Studio front : `src/gl/components/GLMascotPackManager.jsx`,
   `GLMascotPackWysiwygEditor.jsx`, `GLMascotPackPreviewPanel.jsx`.
 - Renderer multi-mode : `src/gl/components/GLMascotRenderer.jsx`
-  + state machine `src/gl/hooks/useGLMascotStateMachine.js`.
+  - state machine `src/gl/hooks/useGLMascotStateMachine.js`.
 
 ## Cadres d'image GL
 

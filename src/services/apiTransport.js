@@ -13,7 +13,9 @@ const MAX_GATEWAY_MUTATION_ATTEMPTS = 4;
 const MAX_MUTATION_NETWORK_ATTEMPTS = 3;
 
 export function isHtmlLikeApiPayload(raw) {
-  const s = String(raw || '').trimStart().toLowerCase();
+  const s = String(raw || '')
+    .trimStart()
+    .toLowerCase();
   return s.startsWith('<!doctype') || s.startsWith('<html') || s.startsWith('<!');
 }
 
@@ -24,7 +26,9 @@ export function isHtmlLikeApiPayload(raw) {
 export function isGatewayStyleResponse(res, parsedBody) {
   const status = res?.status ?? 0;
   if (!TRANSIENT_HTTP_STATUSES.has(status)) return false;
-  const ct = String(res.headers?.get?.('content-type') || res.headers?.get?.('Content-Type') || '').toLowerCase();
+  const ct = String(
+    res.headers?.get?.('content-type') || res.headers?.get?.('Content-Type') || '',
+  ).toLowerCase();
   if (parsedBody?.error && typeof parsedBody.error === 'string') {
     const code = String(parsedBody.code || '').trim();
     if (code === 'SERVICE_RESTARTING' || code === 'SERVICE_NOT_READY') return true;
@@ -142,9 +146,12 @@ export function assertJsonApiBody(body, { ok } = {}) {
  */
 export function buildApiHttpErrorMessage(ctx) {
   const { res, errBody, authToken, sawGatewayResponse } = ctx;
-  const reqId = (typeof res.headers?.get === 'function'
-    && (res.headers.get('X-Request-Id') || res.headers.get('x-request-id'))) || '';
-  let errMsg = typeof errBody.error === 'string' && errBody.error.trim() ? errBody.error.trim() : '';
+  const reqId =
+    (typeof res.headers?.get === 'function' &&
+      (res.headers.get('X-Request-Id') || res.headers.get('x-request-id'))) ||
+    '';
+  let errMsg =
+    typeof errBody.error === 'string' && errBody.error.trim() ? errBody.error.trim() : '';
   if (res.status === 401 && !authToken && /^token requis$/i.test(errMsg)) {
     errMsg = 'Session locale incomplète : reconnecte-toi pour continuer.';
   }
@@ -156,16 +163,19 @@ export function buildApiHttpErrorMessage(ctx) {
       if (htmlLike && res.status >= 500 && sawGatewayResponse) {
         errMsg = gatewayUnavailableUserMessage();
       } else if (htmlLike) {
-        errMsg = res.status >= 500
-          ? gatewayUnavailableUserMessage()
-          : `Réponse inattendue du serveur (HTTP ${res.status}) — page HTML reçue à la place du JSON.`;
+        errMsg =
+          res.status >= 500
+            ? gatewayUnavailableUserMessage()
+            : `Réponse inattendue du serveur (HTTP ${res.status}) — page HTML reçue à la place du JSON.`;
       } else {
-        errMsg = res.status >= 500
-          ? `Le serveur a répondu par une page ou un texte inattendu (HTTP ${res.status}), pas par du JSON — souvent une mauvaise URL d’API, un proxy ou une panne temporaire.`
-          : `Réponse inattendue du serveur (HTTP ${res.status}).`;
+        errMsg =
+          res.status >= 500
+            ? `Le serveur a répondu par une page ou un texte inattendu (HTTP ${res.status}), pas par du JSON — souvent une mauvaise URL d’API, un proxy ou une panne temporaire.`
+            : `Réponse inattendue du serveur (HTTP ${res.status}).`;
       }
     } else {
-      errMsg = res.status >= 500 ? `Erreur serveur (HTTP ${res.status})` : `Erreur (HTTP ${res.status})`;
+      errMsg =
+        res.status >= 500 ? `Erreur serveur (HTTP ${res.status})` : `Erreur (HTTP ${res.status})`;
     }
   }
   errMsg = normalizeApiErrorMessage(errMsg, res.status);

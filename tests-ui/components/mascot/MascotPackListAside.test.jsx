@@ -47,7 +47,15 @@ describe('MascotPackListAside', () => {
 
   test('sélectionner un pack de la liste transmet son id', () => {
     const props = setup({
-      packs: [{ id: 'p1', label: 'Pack 1', catalog_id: 'sprout', is_published: 1, pack: { mascotPackVersion: 2 } }],
+      packs: [
+        {
+          id: 'p1',
+          label: 'Pack 1',
+          catalog_id: 'sprout',
+          is_published: 1,
+          pack: { mascotPackVersion: 2 },
+        },
+      ],
     });
     fireEvent.click(screen.getByRole('button', { name: 'Ouvrir le pack Pack 1' }));
     expect(props.onSelectPack).toHaveBeenCalledWith('p1');
@@ -57,6 +65,24 @@ describe('MascotPackListAside', () => {
     const props = setup();
     fireEvent.click(screen.getByRole('button', { name: 'Éditer sur cette carte' }));
     expect(props.onOpenCatalogModelForEdit).toHaveBeenCalledWith('sprout');
+  });
+
+  test('pack sélectionné invalide : enregistrer et publier désactivés', () => {
+    const props = setup({
+      selectedId: 'p1',
+      selectedRow: { id: 'p1', is_published: 0 },
+      selectedValidation: { ok: false },
+    });
+    expect(screen.getByRole('button', { name: 'Enregistrer sur le serveur' })).toHaveProperty(
+      'disabled',
+      true,
+    );
+    expect(screen.getByRole('button', { name: 'Publier sur la visite' })).toHaveProperty(
+      'disabled',
+      true,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer sur le serveur' }));
+    expect(props.onSave).not.toHaveBeenCalled();
   });
 
   test('pack sélectionné : enregistrer/publier/supprimer câblés et libellé édité', () => {
@@ -74,6 +100,15 @@ describe('MascotPackListAside', () => {
     expect(props.onDelete).toHaveBeenCalledTimes(1);
     fireEvent.change(screen.getByPlaceholderText('Nom du pack'), { target: { value: 'X' } });
     expect(props.onLabelDraftChange).toHaveBeenCalledWith('X');
+  });
+
+  test('isDirty : affiche la bannière modifications non enregistrées', () => {
+    setup({
+      selectedId: 'p1',
+      selectedRow: { id: 'p1', is_published: 0 },
+      isDirty: true,
+    });
+    expect(screen.getByText('Modifications non enregistrées')).toBeTruthy();
   });
 
   test('erreur d’action : affiche le message et les lignes d’issues', () => {

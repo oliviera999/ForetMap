@@ -18,9 +18,18 @@ import React from 'react';
  */
 export function MapViewWorldLayer({ worldRef, width, height, children }) {
   return (
-    <div ref={worldRef}
-      style={{ position: 'absolute', left: 0, top: 0, width, height,
-        transformOrigin: '0 0', willChange: 'transform' }}>
+    <div
+      ref={worldRef}
+      style={{
+        position: 'absolute',
+        left: 0,
+        top: 0,
+        width,
+        height,
+        transformOrigin: '0 0',
+        willChange: 'transform',
+      }}
+    >
       {children}
     </div>
   );

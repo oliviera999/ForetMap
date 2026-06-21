@@ -20,10 +20,22 @@ test('normalizeDisplayMode accepte label, emoji et icon', () => {
 });
 
 test('normalizeIconUrl refuse javascript et data URLs', () => {
-  assert.strictEqual(normalizeIconUrl('/uploads/media-library/image/x.png'), '/uploads/media-library/image/x.png');
-  assert.strictEqual(normalizeIconUrl('https://example.org/icon.png'), 'https://example.org/icon.png');
+  assert.strictEqual(
+    normalizeIconUrl('/uploads/media-library/image/x.png'),
+    '/uploads/media-library/image/x.png',
+  );
+  assert.strictEqual(
+    normalizeIconUrl('https://example.org/icon.png'),
+    'https://example.org/icon.png',
+  );
   assert.strictEqual(normalizeIconUrl('javascript:alert(1)'), null);
   assert.strictEqual(normalizeIconUrl('data:image/png;base64,abc'), null);
+});
+
+test('normalizeIconUrl accepte clés stables et local:/', () => {
+  assert.strictEqual(normalizeIconUrl('biome_sahara'), 'biome_sahara');
+  assert.strictEqual(normalizeIconUrl('local:/assets/gl/icon.png'), 'local:/assets/gl/icon.png');
+  assert.strictEqual(normalizeIconUrl('../etc/passwd'), null);
 });
 
 test('defaultAppearanceForEventType question → emoji ❓', () => {

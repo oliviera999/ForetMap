@@ -22,14 +22,14 @@ before(async () => {
     `INSERT INTO users (id, user_type, email, pseudo, display_name, password_hash, auth_provider, is_active, created_at, updated_at)
      VALUES (?, 'teacher', ?, ?, ?, ?, 'local', 1, NOW(), NOW())
      ON DUPLICATE KEY UPDATE password_hash = VALUES(password_hash), is_active = 1`,
-    [teacherId, teacherEmail, `teacher${stamp}`, `Teacher GL ${stamp}`, hash]
+    [teacherId, teacherEmail, `teacher${stamp}`, `Teacher GL ${stamp}`, hash],
   );
   const adminRole = await queryOne("SELECT id FROM roles WHERE slug = 'admin' LIMIT 1");
   await execute(
     `INSERT INTO user_roles (user_id, user_type, role_id, is_primary, assigned_at)
      VALUES (?, 'teacher', ?, 1, NOW())
      ON DUPLICATE KEY UPDATE role_id = VALUES(role_id), is_primary = 1`,
-    [teacherId, adminRole.id]
+    [teacherId, adminRole.id],
   );
 });
 
@@ -59,5 +59,8 @@ test('POST /api/gl/auth/staff/login rejette un mot de passe invalide', async () 
 });
 
 test('POST /api/gl/auth/staff/login valide les champs requis', async () => {
-  await request(app).post('/api/gl/auth/staff/login').send({ identifier: teacherEmail }).expect(400);
+  await request(app)
+    .post('/api/gl/auth/staff/login')
+    .send({ identifier: teacherEmail })
+    .expect(400);
 });

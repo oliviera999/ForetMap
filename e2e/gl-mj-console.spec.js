@@ -19,10 +19,13 @@ test.describe('GL MJ console flow', () => {
 
   test('le MJ voit et résout une action pending', async ({ request }) => {
     const seeded = await seedGlScenario('mj-console');
-    const enableActions = await request.put('/api/gl/admin/settings/gameplay.player_actions_enabled', {
-      headers: { Authorization: `Bearer ${seeded.adminToken}` },
-      data: { value: true },
-    });
+    const enableActions = await request.put(
+      '/api/gl/admin/settings/gameplay.player_actions_enabled',
+      {
+        headers: { Authorization: `Bearer ${seeded.adminToken}` },
+        data: { value: true },
+      },
+    );
     expect(enableActions.ok()).toBeTruthy();
 
     const created = await request.post(`/api/gl/games/${seeded.gameId}/actions`, {
@@ -38,17 +41,26 @@ test.describe('GL MJ console flow', () => {
     const pending = (await stateBefore.json()).pendingActions || [];
     expect(pending.some((a) => Number(a.id) === actionId)).toBeTruthy();
 
-    const resolved = await request.post(`/api/gl/games/${seeded.gameId}/actions/${actionId}/resolve`, {
-      headers: { Authorization: `Bearer ${seeded.adminToken}` },
-      data: { decision: 'refused', reason: 'E2E MJ console' },
-    });
+    const resolved = await request.post(
+      `/api/gl/games/${seeded.gameId}/actions/${actionId}/resolve`,
+      {
+        headers: { Authorization: `Bearer ${seeded.adminToken}` },
+        data: { decision: 'refused', reason: 'E2E MJ console' },
+      },
+    );
     expect(resolved.status()).toBe(200);
   });
 
-  test('MJ console : éditer une partie et changer de partie met à jour les équipes', async ({ page, request }) => {
+  test('MJ console : éditer une partie et changer de partie met à jour les équipes', async ({
+    page,
+    request,
+  }) => {
     const now = Date.now();
     const seeded = await seedGlScenario('mj-console-ui');
-    const gameRow = await queryOne('SELECT class_id, chapter_id FROM gl_games WHERE id = ? LIMIT 1', [seeded.gameId]);
+    const gameRow = await queryOne(
+      'SELECT class_id, chapter_id FROM gl_games WHERE id = ? LIMIT 1',
+      [seeded.gameId],
+    );
     const secondaryName = `Partie secondaire e2e ${now}`;
 
     const createRes = await request.post('/api/gl/games', {
@@ -62,15 +74,19 @@ test.describe('GL MJ console flow', () => {
     expect(createRes.status()).toBe(201);
     const secondGameId = Number((await createRes.json()).game.id);
 
-    await request.post(`/api/gl/games/${secondGameId}/teams`, {
-      headers: { Authorization: `Bearer ${seeded.adminToken}` },
-      data: { name: `Equipe Beta e2e ${now}`, type: 'unicorn', color: '#a855f7' },
-    }).then((r) => expect(r.status()).toBe(201));
+    await request
+      .post(`/api/gl/games/${secondGameId}/teams`, {
+        headers: { Authorization: `Bearer ${seeded.adminToken}` },
+        data: { name: `Equipe Beta e2e ${now}`, type: 'unicorn', color: '#a855f7' },
+      })
+      .then((r) => expect(r.status()).toBe(201));
 
     await loginGlAdmin(page, seeded, 'MJ console-ui');
     await page.waitForLoadState('domcontentloaded');
 
-    const gameMeta = await queryOne('SELECT name FROM gl_games WHERE id = ? LIMIT 1', [seeded.gameId]);
+    const gameMeta = await queryOne('SELECT name FROM gl_games WHERE id = ? LIMIT 1', [
+      seeded.gameId,
+    ]);
     const primaryGameName = String(gameMeta?.name || '');
 
     await expect(page.getByRole('heading', { name: 'Console MJ' })).toBeVisible({ timeout: 15000 });
@@ -83,12 +99,19 @@ test.describe('GL MJ console flow', () => {
     const nameInput = page.locator('.gl-active-game-banner input').first();
     await nameInput.fill('Partie MJ renommée e2e');
     await page.getByRole('button', { name: 'Enregistrer la partie' }).click();
-    await expect(page.locator('.gl-active-game-banner-title')).toHaveText('Partie MJ renommée e2e', { timeout: 10000 });
+    await expect(page.locator('.gl-active-game-banner-title')).toHaveText(
+      'Partie MJ renommée e2e',
+      { timeout: 10000 },
+    );
 
     const secondGameRow = page.locator('tr', { hasText: secondaryName }).first();
-    await expect(secondGameRow.getByRole('button', { name: 'Ouvrir' })).toBeEnabled({ timeout: 10000 });
+    await expect(secondGameRow.getByRole('button', { name: 'Ouvrir' })).toBeEnabled({
+      timeout: 10000,
+    });
     await secondGameRow.getByRole('button', { name: 'Ouvrir' }).click();
-    await expect(page.locator('.gl-active-game-banner-title')).toHaveText(secondaryName, { timeout: 10000 });
+    await expect(page.locator('.gl-active-game-banner-title')).toHaveText(secondaryName, {
+      timeout: 10000,
+    });
 
     await page.getByRole('tab', { name: 'Équipes & effectifs' }).click();
     const betaTeamName = `Equipe Beta e2e ${now}`;

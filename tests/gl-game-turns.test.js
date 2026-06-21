@@ -26,36 +26,46 @@ before(async () => {
     `INSERT INTO gl_admins (email, display_name, role, is_active, created_at, updated_at)
      VALUES (?, 'MJ Turns', 'admin', 1, NOW(), NOW())
      ON DUPLICATE KEY UPDATE is_active = 1, updated_at = NOW()`,
-    [adminEmail]
+    [adminEmail],
   );
   const admin = await queryOne('SELECT id FROM gl_admins WHERE email = ? LIMIT 1', [adminEmail]);
   await execute(
     `INSERT INTO gl_classes (name, school, created_by, is_active, created_at, updated_at)
      VALUES (?, 'Ecole Turns', ?, 1, NOW(), NOW())`,
-    [className, admin.id]
+    [className, admin.id],
   );
-  const cls = await queryOne('SELECT id FROM gl_classes WHERE name = ? ORDER BY id DESC LIMIT 1', [className]);
+  const cls = await queryOne('SELECT id FROM gl_classes WHERE name = ? ORDER BY id DESC LIMIT 1', [
+    className,
+  ]);
   const chapter = await queryOne("SELECT id FROM gl_chapters WHERE slug = 'foret-magique' LIMIT 1");
   await execute(
     `INSERT INTO gl_games (class_id, chapter_id, name, status, created_by, created_at, updated_at)
      VALUES (?, ?, ?, 'live', ?, NOW(), NOW())`,
-    [cls.id, chapter.id, gameName, admin.id]
+    [cls.id, chapter.id, gameName, admin.id],
   );
-  const game = await queryOne('SELECT id FROM gl_games WHERE name = ? ORDER BY id DESC LIMIT 1', [gameName]);
+  const game = await queryOne('SELECT id FROM gl_games WHERE name = ? ORDER BY id DESC LIMIT 1', [
+    gameName,
+  ]);
   gameId = Number(game.id);
 
   await execute(
     `INSERT INTO gl_teams (game_id, name, type, color, created_at, updated_at)
      VALUES (?, 'Eq1', 'gnome', '#65a30d', NOW(), NOW())`,
-    [gameId]
+    [gameId],
   );
-  team1Id = Number((await queryOne('SELECT id FROM gl_teams WHERE game_id = ? ORDER BY id ASC LIMIT 1', [gameId])).id);
+  team1Id = Number(
+    (await queryOne('SELECT id FROM gl_teams WHERE game_id = ? ORDER BY id ASC LIMIT 1', [gameId]))
+      .id,
+  );
   await execute(
     `INSERT INTO gl_teams (game_id, name, type, color, created_at, updated_at)
      VALUES (?, 'Eq2', 'unicorn', '#a855f7', NOW(), NOW())`,
-    [gameId]
+    [gameId],
   );
-  team2Id = Number((await queryOne('SELECT id FROM gl_teams WHERE game_id = ? ORDER BY id DESC LIMIT 1', [gameId])).id);
+  team2Id = Number(
+    (await queryOne('SELECT id FROM gl_teams WHERE game_id = ? ORDER BY id DESC LIMIT 1', [gameId]))
+      .id,
+  );
 
   adminToken = await signAuthToken({
     product: 'gl',
@@ -71,7 +81,7 @@ test('POST /turn/next refusé quand turns_enabled = false', async () => {
   await execute(
     `INSERT INTO gl_settings (\`key\`, value_json, updated_at)
      VALUES ('gameplay.turns_enabled', 'false', NOW())
-     ON DUPLICATE KEY UPDATE value_json = VALUES(value_json), updated_at = NOW()`
+     ON DUPLICATE KEY UPDATE value_json = VALUES(value_json), updated_at = NOW()`,
   );
   invalidateGameplayCache();
   await request(app)
@@ -84,7 +94,7 @@ test('POST /turn/next cycle bien les équipes quand activé', async () => {
   await execute(
     `INSERT INTO gl_settings (\`key\`, value_json, updated_at)
      VALUES ('gameplay.turns_enabled', 'true', NOW())
-     ON DUPLICATE KEY UPDATE value_json = 'true', updated_at = NOW()`
+     ON DUPLICATE KEY UPDATE value_json = 'true', updated_at = NOW()`,
   );
   invalidateGameplayCache();
 
@@ -111,7 +121,7 @@ test('POST /turn/next cycle bien les équipes quand activé', async () => {
   // Désactive le toggle pour ne pas polluer les autres tests.
   await execute(
     `UPDATE gl_settings SET value_json = 'false', updated_at = NOW()
-      WHERE \`key\` = 'gameplay.turns_enabled'`
+      WHERE \`key\` = 'gameplay.turns_enabled'`,
   );
   invalidateGameplayCache();
 });

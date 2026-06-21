@@ -1,14 +1,32 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useGLVirtualDice } from '../hooks/useGLVirtualDice.js';
 import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion.js';
 import { GLVirtualDicePopover } from './GLVirtualDicePopover.jsx';
+import { GLBoardActionButton } from './GLBoardActionButton.jsx';
 
-export function GLVirtualDiceDock({ themeStyle = null }) {
+export function GLVirtualDiceDock({
+  themeStyle = null,
+  enabled = true,
+  testId = 'gl-virtual-dice-fab',
+  showLabel = true,
+  onRollResult,
+}) {
   const fabRef = useRef(null);
   const [open, setOpen] = useState(false);
   const prefersReducedMotion = usePrefersReducedMotion();
   const dice = useGLVirtualDice({ prefersReducedMotion });
+  const lastRollKeyRef = useRef('');
+
+  useEffect(() => {
+    if (!onRollResult || dice.phase !== 'result' || !dice.lastRoll) return;
+    const rollKey = `${dice.lastRoll.values?.join(',')}:${dice.lastRoll.total}`;
+    if (lastRollKeyRef.current === rollKey) return;
+    lastRollKeyRef.current = rollKey;
+    onRollResult(dice.lastRoll);
+  }, [dice.phase, dice.lastRoll, onRollResult]);
+
+  if (!enabled) return null;
 
   function toggleOpen() {
     setOpen((prev) => {
@@ -43,24 +61,21 @@ export function GLVirtualDiceDock({ themeStyle = null }) {
   );
 
   return (
-    <div className="gl-dice-dock">
-      <button
+    <div className="gl-board-chrome-dock gl-board-chrome-dock--left">
+      <GLBoardActionButton
         ref={fabRef}
-        type="button"
-        className={`gl-dice-fab${open ? ' is-open' : ''}`}
-        data-testid="gl-virtual-dice-fab"
-        aria-expanded={open}
-        aria-haspopup="dialog"
-        aria-label={open ? 'Fermer le lanceur de dés' : 'Ouvrir le lanceur de dés'}
+        role="tool"
+        active={open}
+        icon="🎲"
+        label={showLabel ? 'Dés' : null}
+        testId={testId}
         title="Dés virtuels"
+        ariaLabel={open ? 'Fermer le lanceur de dés' : 'Ouvrir le lanceur de dés'}
+        ariaExpanded={open}
+        ariaHaspopup="dialog"
         onClick={toggleOpen}
-      >
-        <span className="gl-dice-fab__icon" aria-hidden>🎲</span>
-        <span className="gl-dice-fab__label">Dés</span>
-      </button>
-      {typeof document !== 'undefined'
-        ? createPortal(popover, document.body)
-        : popover}
+      />
+      {typeof document !== 'undefined' ? createPortal(popover, document.body) : popover}
     </div>
   );
 }

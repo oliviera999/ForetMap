@@ -24,6 +24,7 @@ description: Sécurise les commandes de commit Git sous PowerShell (messages mul
    git add -A
    ```
 2. Créer le message via here-string :
+
    ```powershell
    $msg = @'
    type(scope): titre
@@ -31,6 +32,7 @@ description: Sécurise les commandes de commit Git sous PowerShell (messages mul
    Pourquoi ce changement.
    '@
    ```
+
 3. Commit puis vérification :
    ```powershell
    git commit -m $msg

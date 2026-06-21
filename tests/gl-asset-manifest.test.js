@@ -23,7 +23,10 @@ const TINY_PNG = Buffer.from(
 test('deriveMediaStableKey retire GL_ et normalise', () => {
   assert.strictEqual(deriveMediaStableKey('GL_plateau-1_fond.png'), 'plateau-1_fond');
   assert.strictEqual(deriveMediaStableKey('GL_biome_jungle_afc.jpg'), 'biome_jungle_afc');
-  assert.strictEqual(deriveMediaStableKey('GL_reçit_feuillet-action_ep-V-03_scene.png'), 'recit_feuillet-action_ep-v-03_scene');
+  assert.strictEqual(
+    deriveMediaStableKey('GL_reçit_feuillet-action_ep-V-03_scene.png'),
+    'recit_feuillet-action_ep-v-03_scene',
+  );
 });
 
 test('saveMediaFromBuffer enregistre clé stable et manifeste auto', () => {
@@ -64,6 +67,9 @@ test('resolveMediaByStableKey accepte clé GL_ préfixée (intro)', () => {
   const saved = saveMediaFromBuffer(TINY_PNG, 'image/png', fileName, { skipManifestSync: true });
   syncAssetManifests();
   const resolved = resolveMediaByStableKey('GL_intro_01_la-boite');
-  assert.ok(resolved?.url?.includes(saved.relativePath.split('/').pop().split('.')[0].slice(0, 8)) || resolved?.url?.startsWith('/uploads/'));
+  assert.ok(
+    resolved?.url?.includes(saved.relativePath.split('/').pop().split('.')[0].slice(0, 8)) ||
+      resolved?.url?.startsWith('/uploads/'),
+  );
   deleteMediaLibraryItem(saved.relativePath);
 });

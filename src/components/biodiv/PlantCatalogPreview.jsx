@@ -13,7 +13,14 @@ import { useSession } from '../../contexts/SessionContext.jsx';
 import { useData } from '../../contexts/DataContext.jsx';
 import { normalizedPlantValue, isGenericPotagerLabel } from '../../utils/plantFormValues.js';
 import { plantLinkedToMapMarker, plantLinkedToMapZone } from '../../utils/plantFilters';
-import { PlantSummaryBadges, PlantEcosystemHumanLead } from './PlantSummaryBlocks.jsx';
+import {
+  PlantSummaryBadges,
+  PlantEcosystemHumanLead,
+  PlantTaxonomyLine,
+  PlantPedagoTraitBadges,
+  PlantRangeGauges,
+  PlantPedagoFetchedSections,
+} from './PlantSummaryBlocks.jsx';
 import { PlantBiodivHeroPhoto, PlantMetaSections } from './PlantMetaSections.jsx';
 import { PlantLocationPreviewMaps } from './BiodivLocationMaps.jsx';
 
@@ -34,14 +41,19 @@ export function PlantBiodiversityCatalogPreviewCard({
   onForceLogout = null,
   showContextComments = true,
   dataBiodivPlantId = null,
+  onOpenPlant = null,
+  onOpenGlossaryTerm = null,
+  onOpenQuizQuestion = null,
+  onNavigateToFoodWeb = null,
 }) {
   if (!plant) return null;
   const pZones = zones.filter((z) => plantLinkedToMapZone(plant, z));
   const pMarkers = markers.filter((m) => plantLinkedToMapMarker(plant, m));
   const hasMapLink = pZones.length > 0 || pMarkers.length > 0;
-  const dataAttr = dataBiodivPlantId != null && dataBiodivPlantId !== ''
-    ? { 'data-biodiv-plant-id': dataBiodivPlantId }
-    : {};
+  const dataAttr =
+    dataBiodivPlantId != null && dataBiodivPlantId !== ''
+      ? { 'data-biodiv-plant-id': dataBiodivPlantId }
+      : {};
   return (
     <article className="biodiv-card fade-in" {...dataAttr}>
       <div className="biodiv-card-head">
@@ -54,54 +66,96 @@ export function PlantBiodiversityCatalogPreviewCard({
             </p>
           </div>
         </div>
-        {normalizedPlantValue(plant.group_2) && (
-          <span className="task-chip">{plant.group_2}</span>
-        )}
+        {normalizedPlantValue(plant.group_2) && <span className="task-chip">{plant.group_2}</span>}
       </div>
 
       <div className="biodiv-card-body">
         {plant.description ? (
           <MarkdownContent className="plant-row-desc">{plant.description}</MarkdownContent>
         ) : (
-          <p className="plant-row-desc"><em style={{ color: '#bbb' }}>Pas de description</em></p>
+          <p className="plant-row-desc">
+            <em style={{ color: '#bbb' }}>Pas de description</em>
+          </p>
         )}
         <PlantBiodivHeroPhoto plant={plant} />
         <PlantEcosystemHumanLead plant={plant} />
+        <PlantTaxonomyLine plant={plant} />
+        <PlantPedagoTraitBadges plant={plant} />
+        <PlantRangeGauges plant={plant} />
         <CatalogRemarksSection plant={plant} />
         <div className="task-meta">
           {normalizedPlantValue(plant.habitat) && !isGenericPotagerLabel(plant.habitat) && (
             <span className="task-chip">🏡 {plant.habitat}</span>
           )}
-          {normalizedPlantValue(plant.agroecosystem_category) && !isGenericPotagerLabel(plant.agroecosystem_category) && (
-            <span className="task-chip">🌍 {plant.agroecosystem_category}</span>
-          )}
+          {normalizedPlantValue(plant.agroecosystem_category) &&
+            !isGenericPotagerLabel(plant.agroecosystem_category) && (
+              <span className="task-chip">🌍 {plant.agroecosystem_category}</span>
+            )}
         </div>
         <PlantSummaryBadges plant={plant} />
         <PlantMetaSections plant={plant} />
+        <PlantPedagoFetchedSections
+          plantId={plant.id}
+          onOpenPlant={onOpenPlant}
+          onOpenGlossaryTerm={onOpenGlossaryTerm}
+          onOpenQuizQuestion={onOpenQuizQuestion}
+          onNavigateToFoodWeb={onNavigateToFoodWeb}
+        />
         {hasMapLink ? (
           <div>
-            <div style={{ fontSize: '.74rem', fontWeight: 700, color: '#aaa', textTransform: 'uppercase', marginBottom: 4 }}>Sur la carte</div>
+            <div
+              style={{
+                fontSize: '.74rem',
+                fontWeight: 700,
+                color: '#aaa',
+                textTransform: 'uppercase',
+                marginBottom: 4,
+              }}
+            >
+              Sur la carte
+            </div>
             <PlantLocationPreviewMaps maps={maps} zones={pZones} markers={pMarkers} />
-            <div style={{ fontSize: '.74rem', fontWeight: 700, color: '#aaa', textTransform: 'uppercase', margin: '10px 0 4px' }}>Zones et repères</div>
+            <div
+              style={{
+                fontSize: '.74rem',
+                fontWeight: 700,
+                color: '#aaa',
+                textTransform: 'uppercase',
+                margin: '10px 0 4px',
+              }}
+            >
+              Zones et repères
+            </div>
             <div className="plant-zones">
               {pZones.map((z) => (
-                <span key={`zone-${z.id}`} className="plant-zone-chip">📍 {z.name}</span>
+                <span key={`zone-${z.id}`} className="plant-zone-chip">
+                  📍 {z.name}
+                </span>
               ))}
               {pMarkers.map((m) => (
-                <span key={`marker-${m.id}`} className="plant-zone-chip">📌 {m.label?.trim() ? m.label : 'Repère'}</span>
+                <span key={`marker-${m.id}`} className="plant-zone-chip">
+                  📌 {m.label?.trim() ? m.label : 'Repère'}
+                </span>
               ))}
             </div>
           </div>
         ) : (
-          <p style={{ fontSize: '.82rem', color: '#bbb', fontStyle: 'italic' }}>Pas encore associé à une zone ni à un repère sur la carte</p>
+          <p style={{ fontSize: '.82rem', color: '#bbb', fontStyle: 'italic' }}>
+            Pas encore associé à une zone ni à un repère sur la carte
+          </p>
         )}
-        <div className="plant-discovery-ack-row" style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+        <div
+          className="plant-discovery-ack-row"
+          style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}
+        >
           <PlantSpeciesDiscoveryAcknowledgeButton
             plantId={plant.id}
             speciesName={plant.name}
             myObservationCount={myObservationCount}
             siteObservationCount={siteObservationCount}
-            offerPlantCommentAfterObservation={contextCommentsEnabled && canParticipateContextComments}
+            offerPlantCommentAfterObservation={
+              contextCommentsEnabled && canParticipateContextComments
+            }
             onAcknowledged={(id, next) => {
               onObservationAcknowledged?.(id, next);
             }}
@@ -128,6 +182,10 @@ export function PlantCatalogPreviewModal({
   maps = [],
   onClose,
   onForceLogout = null,
+  onOpenPlant = null,
+  onOpenGlossaryTerm = null,
+  onOpenQuizQuestion = null,
+  onNavigateToFoodWeb = null,
 }) {
   const publicSettings = usePublicSettings();
   const { canParticipateContextComments = true } = useSession();
@@ -151,7 +209,9 @@ export function PlantCatalogPreviewModal({
         site: Number(row.site_observation_count) || 0,
       });
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [plant?.id]);
 
   if (!plant) return null;
@@ -165,7 +225,14 @@ export function PlantCatalogPreviewModal({
       closeOnOverlay
     >
       <div className="tuto-preview-modal__head">
-        <button type="button" className="modal-close" onClick={onClose} aria-label="Fermer l’aperçu">✕</button>
+        <button
+          type="button"
+          className="modal-close"
+          onClick={onClose}
+          aria-label="Fermer l’aperçu"
+        >
+          ✕
+        </button>
         <h3 id="plant-catalog-preview-title">🌱 {plant.name}</h3>
       </div>
       <div className="tuto-preview-modal__body tuto-preview-modal__body--biodiv-scroll">
@@ -187,6 +254,10 @@ export function PlantCatalogPreviewModal({
           onForceLogout={onForceLogout}
           showContextComments
           dataBiodivPlantId={null}
+          onOpenPlant={onOpenPlant}
+          onOpenGlossaryTerm={onOpenGlossaryTerm}
+          onOpenQuizQuestion={onOpenQuizQuestion}
+          onNavigateToFoodWeb={onNavigateToFoodWeb}
         />
       </div>
     </DialogShell>

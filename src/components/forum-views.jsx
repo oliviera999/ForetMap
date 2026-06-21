@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api, toggleForumPostReaction } from '../services/api';
+import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
 import { formatDateTimeFr } from '../utils/datetime-fr';
 import { AttachmentImagesPicker } from './attachment-images-picker';
 import { MarkdownTextarea } from './MarkdownTextarea.jsx';
@@ -43,25 +44,30 @@ function ForumView({ authClaims, canParticipateForum = true }) {
 
   const canModerate = useMemo(() => isForumModerator(authClaims), [authClaims]);
   const canUseForumActions = canParticipateForum || canModerate;
+  const publicSettings = usePublicSettings();
+  const reportsEnabled = publicSettings?.modules?.reports_enabled !== false;
   const currentUserType = String(authClaims?.userType || '').toLowerCase();
   const currentUserId = String(authClaims?.canonicalUserId || authClaims?.userId || '');
 
-  const loadThreads = useCallback(async (page = 1) => {
-    setThreadsLoading(true);
-    try {
-      const data = await api(`/api/forum/threads?page=${page}&page_size=${THREAD_PAGE_SIZE}`);
-      setThreads(Array.isArray(data?.items) ? data.items : []);
-      setThreadsTotal(Number(data?.total || 0));
-      setThreadsPage(Number(data?.page || page));
-      if (!selectedThreadId && Array.isArray(data?.items) && data.items[0]?.id) {
-        setSelectedThreadId(data.items[0].id);
+  const loadThreads = useCallback(
+    async (page = 1) => {
+      setThreadsLoading(true);
+      try {
+        const data = await api(`/api/forum/threads?page=${page}&page_size=${THREAD_PAGE_SIZE}`);
+        setThreads(Array.isArray(data?.items) ? data.items : []);
+        setThreadsTotal(Number(data?.total || 0));
+        setThreadsPage(Number(data?.page || page));
+        if (!selectedThreadId && Array.isArray(data?.items) && data.items[0]?.id) {
+          setSelectedThreadId(data.items[0].id);
+        }
+      } catch (err) {
+        setToast(`Erreur chargement forum : ${err.message}`);
+      } finally {
+        setThreadsLoading(false);
       }
-    } catch (err) {
-      setToast(`Erreur chargement forum : ${err.message}`);
-    } finally {
-      setThreadsLoading(false);
-    }
-  }, [selectedThreadId]);
+    },
+    [selectedThreadId],
+  );
 
   const loadThreadDetail = useCallback(async (threadId, page = 1) => {
     if (!threadId) {
@@ -76,7 +82,9 @@ function ForumView({ authClaims, canParticipateForum = true }) {
     const seq = ++threadDetailRequestSeqRef.current;
     setDetailLoading(true);
     try {
-      const data = await api(`/api/forum/threads/${encodeURIComponent(threadId)}?page=${page}&page_size=${POST_PAGE_SIZE}`);
+      const data = await api(
+        `/api/forum/threads/${encodeURIComponent(threadId)}?page=${page}&page_size=${POST_PAGE_SIZE}`,
+      );
       if (seq !== threadDetailRequestSeqRef.current) return;
       setThreadDetail(data?.thread || null);
       setPosts(Array.isArray(data?.posts) ? data.posts : []);
@@ -103,9 +111,10 @@ function ForumView({ authClaims, canParticipateForum = true }) {
   useEffect(() => {
     api('/api/settings/public')
       .then((d) => {
-        const configured = d?.settings?.ui?.reactions?.allowed_emojis
-          || d?.settings?.reactions?.allowed_emojis
-          || '';
+        const configured =
+          d?.settings?.ui?.reactions?.allowed_emojis ||
+          d?.settings?.reactions?.allowed_emojis ||
+          '';
         setReactionEmojis(parseReactionEmojiList(configured));
       })
       .catch(() => {
@@ -164,7 +173,11 @@ function ForumView({ authClaims, canParticipateForum = true }) {
     try {
       const payload = { body: replyBody.trim() || undefined };
       if (replyImages.length > 0) payload.images = replyImages;
-      await api(`/api/forum/threads/${encodeURIComponent(selectedThreadId)}/posts`, 'POST', payload);
+      await api(
+        `/api/forum/threads/${encodeURIComponent(selectedThreadId)}/posts`,
+        'POST',
+        payload,
+      );
       setReplyBody('');
       setReplyImages([]);
       setToast('Réponse publiée');
@@ -261,7 +274,9 @@ function ForumView({ authClaims, canParticipateForum = true }) {
                 >
                   <option value="">Tous les groupes visibles</option>
                   {groupOptions.map((group) => (
-                    <option key={group.id} value={group.id}>{group.name}</option>
+                    <option key={group.id} value={group.id}>
+                      {group.name}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -272,13 +287,20 @@ function ForumView({ authClaims, canParticipateForum = true }) {
               onNotify={(msg) => setToast(msg)}
               label="Photos du premier message (optionnel, max 3)"
             />
-            <button type="submit" className="btn btn-primary btn-sm">Publier le sujet</button>
+            <button type="submit" className="btn btn-primary btn-sm">
+              Publier le sujet
+            </button>
           </form>
         </section>
       ) : (
-        <section className="forum-panel" style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+        <section
+          className="forum-panel"
+          style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}
+        >
           <p className="forum-muted" style={{ margin: 0, lineHeight: 1.5 }}>
-            Tu consultes le forum en <strong>lecture seule</strong>. La participation (nouveaux sujets, réponses, réactions, signalements) n’est pas activée sur ton compte — contacte un n3boss si besoin.
+            Tu consultes le forum en <strong>lecture seule</strong>. La participation (nouveaux
+            sujets, réponses, réactions, signalements) n’est pas activée sur ton compte — contacte
+            un n3boss si besoin.
           </p>
         </section>
       )}
@@ -296,7 +318,9 @@ function ForumView({ authClaims, canParticipateForum = true }) {
               >
                 Précédent
               </button>
-              <span>{threadsPage}/{threadPages}</span>
+              <span>
+                {threadsPage}/{threadPages}
+              </span>
               <button
                 type="button"
                 className="btn btn-ghost btn-sm"
@@ -309,7 +333,11 @@ function ForumView({ authClaims, canParticipateForum = true }) {
           </div>
           <div className="forum-thread-list">
             {threadsLoading && <p className="forum-muted">Chargement…</p>}
-            {!threadsLoading && threads.length === 0 && <div className="empty"><p>Aucun sujet pour l’instant.</p></div>}
+            {!threadsLoading && threads.length === 0 && (
+              <div className="empty">
+                <p>Aucun sujet pour l’instant.</p>
+              </div>
+            )}
             {threads.map((t) => (
               <button
                 key={t.id}
@@ -322,7 +350,8 @@ function ForumView({ authClaims, canParticipateForum = true }) {
                   {t.author_display_name} · {Number(t.posts_count || 0)} message(s)
                 </span>
                 <span className="forum-meta-line">
-                  {t.is_locked ? '🔒 Verrouillé' : '💬 Ouvert'} · maj {formatDateTimeFr(t.last_post_at)}
+                  {t.is_locked ? '🔒 Verrouillé' : '💬 Ouvert'} · maj{' '}
+                  {formatDateTimeFr(t.last_post_at)}
                 </span>
               </button>
             ))}
@@ -331,14 +360,17 @@ function ForumView({ authClaims, canParticipateForum = true }) {
 
         <section className="forum-panel">
           {!threadDetail ? (
-            <div className="empty"><p>Choisis un sujet pour voir la discussion.</p></div>
+            <div className="empty">
+              <p>Choisis un sujet pour voir la discussion.</p>
+            </div>
           ) : (
             <>
               <div className="forum-head">
                 <div>
                   <h3>{threadDetail.title}</h3>
                   <p className="forum-muted">
-                    Par {threadDetail.author_display_name} · créé le {formatDateTimeFr(threadDetail.created_at)}
+                    Par {threadDetail.author_display_name} · créé le{' '}
+                    {formatDateTimeFr(threadDetail.created_at)}
                   </p>
                 </div>
                 {canModerate && (
@@ -357,7 +389,9 @@ function ForumView({ authClaims, canParticipateForum = true }) {
                 >
                   Précédent
                 </button>
-                <span>{postsPage}/{postPages}</span>
+                <span>
+                  {postsPage}/{postPages}
+                </span>
                 <button
                   type="button"
                   className="btn btn-ghost btn-sm"
@@ -370,24 +404,32 @@ function ForumView({ authClaims, canParticipateForum = true }) {
 
               <div className="forum-post-list">
                 {detailLoading && <p className="forum-muted">Chargement…</p>}
-                {!detailLoading && posts.map((p) => (
-                  <ForumPostCard
-                    key={p.id}
-                    post={p}
-                    canModerate={canModerate}
-                    canUseForumActions={canUseForumActions}
-                    isOwner={p.author_user_type === currentUserType && p.author_user_id === currentUserId}
-                    reactionEmojis={reactionEmojis}
-                    firstReactionEmoji={firstReactionEmoji}
-                    reactionsExpanded={!!expandedReactionsByPost[p.id]}
-                    reportReason={reportReasonByPost[p.id] || ''}
-                    onSetReactionsExpanded={(postId, expanded) => setExpandedReactionsByPost((prev) => ({ ...prev, [postId]: expanded }))}
-                    onReact={handleReactPost}
-                    onDelete={handleDeletePost}
-                    onReportReasonChange={(postId, value) => setReportReasonByPost((prev) => ({ ...prev, [postId]: value }))}
-                    onReport={handleReportPost}
-                  />
-                ))}
+                {!detailLoading &&
+                  posts.map((p) => (
+                    <ForumPostCard
+                      key={p.id}
+                      post={p}
+                      canModerate={canModerate}
+                      canUseForumActions={canUseForumActions}
+                      reportsEnabled={reportsEnabled}
+                      isOwner={
+                        p.author_user_type === currentUserType && p.author_user_id === currentUserId
+                      }
+                      reactionEmojis={reactionEmojis}
+                      firstReactionEmoji={firstReactionEmoji}
+                      reactionsExpanded={!!expandedReactionsByPost[p.id]}
+                      reportReason={reportReasonByPost[p.id] || ''}
+                      onSetReactionsExpanded={(postId, expanded) =>
+                        setExpandedReactionsByPost((prev) => ({ ...prev, [postId]: expanded }))
+                      }
+                      onReact={handleReactPost}
+                      onDelete={handleDeletePost}
+                      onReportReasonChange={(postId, value) =>
+                        setReportReasonByPost((prev) => ({ ...prev, [postId]: value }))
+                      }
+                      onReport={handleReportPost}
+                    />
+                  ))}
               </div>
 
               {canUseForumActions && (
@@ -411,7 +453,11 @@ function ForumView({ authClaims, canParticipateForum = true }) {
                     onNotify={(msg) => setToast(msg)}
                     label="Photos (optionnel, max 3)"
                   />
-                  <button type="submit" className="btn btn-primary btn-sm" disabled={!!threadDetail.is_locked}>
+                  <button
+                    type="submit"
+                    className="btn btn-primary btn-sm"
+                    disabled={!!threadDetail.is_locked}
+                  >
                     Envoyer
                   </button>
                 </form>

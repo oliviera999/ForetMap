@@ -34,7 +34,7 @@ describe('GLMarkerQuestionList', () => {
         mode="fixed"
         fixedQuestionCode=""
         onSelectFixed={onSelectFixed}
-      />
+      />,
     );
 
     expect(screen.getByText('Où vit le fennec ?')).toBeInTheDocument();
@@ -52,7 +52,7 @@ describe('GLMarkerQuestionList', () => {
         mode="random"
         selectedQuestionCodes={[]}
         onToggleCode={onToggleCode}
-      />
+      />,
     );
 
     await user.click(screen.getByLabelText('Inclure QCM0002'));

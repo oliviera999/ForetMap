@@ -24,6 +24,30 @@ function splitLabels(terme, variantes) {
  * @param {Array<{ glossary_code?: string, terme?: string, variantes?: string }>} items
  * @returns {Array<{ code: string, labels: string[] }>}
  */
+/**
+ * Fusionne l’index glossaire (auto-lien) avec les termes liés à une question.
+ * @param {Array<{ glossary_code?: string, terme?: string, variantes?: string }>} baseItems
+ * @param {Array<{ glossary_code?: string, terme?: string, variantes?: string }>} extraTerms
+ */
+export function mergeGlossaryLinkItems(baseItems = [], extraTerms = []) {
+  const byCode = new Map();
+  for (const item of baseItems || []) {
+    const code = String(item?.glossary_code || '').trim();
+    if (!code) continue;
+    byCode.set(code, item);
+  }
+  for (const term of extraTerms || []) {
+    const code = String(term?.glossary_code || '').trim();
+    if (!code || byCode.has(code)) continue;
+    byCode.set(code, {
+      glossary_code: code,
+      terme: term.terme,
+      variantes: term.variantes || '',
+    });
+  }
+  return [...byCode.values()];
+}
+
 export function buildGlossaryLinkEntries(items) {
   const entries = [];
   for (const item of items || []) {
@@ -75,7 +99,7 @@ export function autolinkPlainText(text, entries) {
 
   matches.sort((a, b) => {
     if (a.start !== b.start) return a.start - b.start;
-    return (b.end - b.start) - (a.end - a.start);
+    return b.end - b.start - (a.end - a.start);
   });
 
   const selected = [];
@@ -109,23 +133,25 @@ export function autolinkHtmlTextNodes(html, entries) {
   const tokens = source.split(/(<[^>]+>)/g);
   let skipDepth = 0;
 
-  return tokens.map((token) => {
-    if (!token.startsWith('<')) {
-      return skipDepth > 0 ? token : autolinkPlainText(token, entries);
-    }
+  return tokens
+    .map((token) => {
+      if (!token.startsWith('<')) {
+        return skipDepth > 0 ? token : autolinkPlainText(token, entries);
+      }
 
-    const close = /^<\/(\w+)/i.exec(token);
-    if (close && SKIP_TAGS.has(close[1].toLowerCase())) {
-      skipDepth = Math.max(0, skipDepth - 1);
+      const close = /^<\/(\w+)/i.exec(token);
+      if (close && SKIP_TAGS.has(close[1].toLowerCase())) {
+        skipDepth = Math.max(0, skipDepth - 1);
+        return token;
+      }
+
+      const open = /^<(\w+)/i.exec(token);
+      if (open && SKIP_TAGS.has(open[1].toLowerCase()) && !/\/>$/.test(token.trim())) {
+        skipDepth += 1;
+      }
       return token;
-    }
-
-    const open = /^<(\w+)/i.exec(token);
-    if (open && SKIP_TAGS.has(open[1].toLowerCase()) && !/\/>$/.test(token.trim())) {
-      skipDepth += 1;
-    }
-    return token;
-  }).join('');
+    })
+    .join('');
 }
 
 /**

@@ -74,9 +74,12 @@ export function GLGlossaryPopover({
     requestClose();
   });
 
-  useEffect(() => () => {
-    if (closeTimerRef.current) window.clearTimeout(closeTimerRef.current);
-  }, []);
+  useEffect(
+    () => () => {
+      if (closeTimerRef.current) window.clearTimeout(closeTimerRef.current);
+    },
+    [],
+  );
 
   useEffect(() => {
     if (open) {
@@ -111,9 +114,10 @@ export function GLGlossaryPopover({
     setError('');
     setDetail(null);
 
-    const params = Array.isArray(biomeSlugs) && biomeSlugs.length > 0
-      ? `?biomeSlugs=${encodeURIComponent(biomeSlugs.filter(Boolean).join(','))}`
-      : '';
+    const params =
+      Array.isArray(biomeSlugs) && biomeSlugs.length > 0
+        ? `?biomeSlugs=${encodeURIComponent(biomeSlugs.filter(Boolean).join(','))}`
+        : '';
 
     apiGL(`/api/gl/glossary/${encodeURIComponent(activeCode)}${params}`)
       .then((data) => {
@@ -167,10 +171,9 @@ export function GLGlossaryPopover({
   const activeGlossaryCode = String(activeCode || '').trim();
   const isLearned = learningProgress?.isGlossaryLearned?.(activeGlossaryCode) || !!term?.learned;
   const accent = categoryAccent(term?.categorie);
-  const overlayClass = [
-    'gl-glossary-popover',
-    isClosing ? 'is-closing' : '',
-  ].filter(Boolean).join(' ');
+  const overlayClass = ['gl-glossary-popover', isClosing ? 'is-closing' : '']
+    .filter(Boolean)
+    .join(' ');
 
   return createPortal(
     <div
@@ -208,9 +211,7 @@ export function GLGlossaryPopover({
           </button>
         </header>
 
-        {error ? (
-          <p className="gl-error gl-glossary-popover__error">{error}</p>
-        ) : null}
+        {error ? <p className="gl-error gl-glossary-popover__error">{error}</p> : null}
 
         {loading && !term && !error ? (
           <div className="gl-glossary-popover__body gl-glossary-popover__body--loading">
@@ -244,16 +245,12 @@ export function GLGlossaryPopover({
               ) : null}
               {term.exemple ? (
                 <p className="gl-glossary-popover__text">
-                  <strong>Exemple :</strong>
-                  {' '}
-                  {term.exemple}
+                  <strong>Exemple :</strong> {term.exemple}
                 </p>
               ) : null}
               {term.etymologie ? (
                 <p className="gl-glossary-popover__text">
-                  <strong>Étymologie :</strong>
-                  {' '}
-                  {term.etymologie}
+                  <strong>Étymologie :</strong> {term.etymologie}
                 </p>
               ) : null}
             </div>
@@ -286,13 +283,12 @@ export function GLGlossaryPopover({
               labelAction="Marquer comme appris"
               labelDone="✓ Appris"
               titleDone="Tu as confirmé avoir appris ce terme"
-              confirmIntro={(
+              confirmIntro={
                 <>
-                  En validant, tu confirmes avoir compris le terme
-                  {' '}
+                  En validant, tu confirmes avoir compris le terme{' '}
                   <strong>« {term?.terme || activeGlossaryCode} »</strong>.
                 </>
-              )}
+              }
               confirmCheckboxLabel="Je confirme avoir lu et compris cette définition."
               isDone={isLearned}
               onAcknowledged={() => learningProgress.markLocal('glossary', activeGlossaryCode)}
