@@ -16,6 +16,7 @@ const {
 } = require('../../lib/glZoneContentRetrigger');
 const { serializeZonePopoverRow, zoneHasPopoverContent } = require('../../lib/glZoneContent');
 const { MARKER_QUESTION_RETRIGGER_VALUES } = require('../../lib/glSettings');
+const { resolveBoardMovementMode } = require('../../lib/glBoardPath');
 // O10 — helpers runtime à I/O (DB) déplacés en l'état vers lib/gl/gamesRuntime.js
 // (déplacement pur byte-identique) ; débloque le découpage futur en sous-routeurs.
 const {
@@ -241,6 +242,12 @@ router.put(
     const hasLoreHeartRewardsEnabled =
       Object.prototype.hasOwnProperty.call(req.body || {}, 'loreHeartRewardsEnabled') ||
       Object.prototype.hasOwnProperty.call(req.body || {}, 'lore_heart_rewards_enabled');
+    const hasBoardMovementMode =
+      Object.prototype.hasOwnProperty.call(req.body || {}, 'boardMovementMode') ||
+      Object.prototype.hasOwnProperty.call(req.body || {}, 'board_movement_mode');
+    const hasBoardPathStartIndex =
+      Object.prototype.hasOwnProperty.call(req.body || {}, 'boardPathStartIndex') ||
+      Object.prototype.hasOwnProperty.call(req.body || {}, 'board_path_start_index');
     if (
       !hasName &&
       !hasChapterId &&
@@ -249,7 +256,9 @@ router.put(
       !hasLoreFeuilletRetrigger &&
       !hasLoreEffacementEnabled &&
       !hasLoreGemmeCostsEnabled &&
-      !hasLoreHeartRewardsEnabled
+      !hasLoreHeartRewardsEnabled &&
+      !hasBoardMovementMode &&
+      !hasBoardPathStartIndex
     ) {
       return res.status(400).json({ error: 'Aucune modification fournie' });
     }
@@ -341,6 +350,34 @@ router.put(
       ? parseOptionalBool(req.body?.loreHeartRewardsEnabled ?? req.body?.lore_heart_rewards_enabled)
       : undefined;
 
+    let nextBoardMovementMode = undefined;
+    if (hasBoardMovementMode) {
+      const raw = req.body?.boardMovementMode ?? req.body?.board_movement_mode;
+      if (raw == null || raw === '') {
+        nextBoardMovementMode = null;
+      } else {
+        const mode = String(raw).trim();
+        if (!['free', 'numbered_path'].includes(mode)) {
+          return res.status(400).json({ error: 'boardMovementMode invalide' });
+        }
+        nextBoardMovementMode = mode === 'free' ? null : mode;
+      }
+    }
+
+    let nextBoardPathStartIndex = undefined;
+    if (hasBoardPathStartIndex) {
+      const raw = req.body?.boardPathStartIndex ?? req.body?.board_path_start_index;
+      if (raw == null || raw === '') {
+        nextBoardPathStartIndex = null;
+      } else {
+        const idx = Number(raw);
+        if (idx !== 0 && idx !== 1) {
+          return res.status(400).json({ error: 'boardPathStartIndex invalide (0 ou 1)' });
+        }
+        nextBoardPathStartIndex = idx;
+      }
+    }
+
     try {
       await execute(
         `UPDATE gl_games
@@ -352,6 +389,8 @@ router.put(
               lore_effacement_enabled = ${hasLoreEffacementEnabled ? '?' : 'lore_effacement_enabled'},
               lore_gemme_costs_enabled = ${hasLoreGemmeCostsEnabled ? '?' : 'lore_gemme_costs_enabled'},
               lore_heart_rewards_enabled = ${hasLoreHeartRewardsEnabled ? '?' : 'lore_heart_rewards_enabled'},
+              board_movement_mode = ${hasBoardMovementMode ? '?' : 'board_movement_mode'},
+              board_path_start_index = ${hasBoardPathStartIndex ? '?' : 'board_path_start_index'},
               updated_at = NOW()
         WHERE id = ?`,
         [
@@ -363,6 +402,8 @@ router.put(
           ...(hasLoreEffacementEnabled ? [nextLoreEffacementEnabled] : []),
           ...(hasLoreGemmeCostsEnabled ? [nextLoreGemmeCostsEnabled] : []),
           ...(hasLoreHeartRewardsEnabled ? [nextLoreHeartRewardsEnabled] : []),
+          ...(hasBoardMovementMode ? [nextBoardMovementMode] : []),
+          ...(hasBoardPathStartIndex ? [nextBoardPathStartIndex] : []),
           gameId,
         ],
       );
@@ -443,6 +484,17 @@ router.post(
     }
     if (eventType === 'move' && moveMarkerId == null && !hasMovePctPayload) {
       return res.status(400).json({ error: 'payload move invalide (markerId ou xp/yp requis)' });
+    }
+    if (eventType === 'move' && teamId != null && moveMarkerId == null && hasMovePctPayload) {
+      const gameRow = await queryOne(
+        'SELECT board_movement_mode FROM gl_games WHERE id = ? LIMIT 1',
+        [gameId],
+      );
+      if (gameRow && resolveBoardMovementMode(gameRow) === 'numbered_path') {
+        return res.status(409).json({
+          error: 'Déplacement libre désactivé : mode repères numérotés (utilisez le dé)',
+        });
+      }
     }
     const settings = await getGameplaySettings();
     if (eventType === 'narration' && !settings.narrationEnabled) {

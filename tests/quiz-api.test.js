@@ -190,3 +190,13 @@ test('GET /api/quiz/admin/questions/next-code — auth requise', async () => {
     .expect(200);
   assert.match(String(res.body.question_code), /^QF\d{4,}$/);
 });
+
+test('GET /api/quiz/admin/questions — admin sans élévation PIN', async () => {
+  const token = await ensureAdminTeacherAuthToken({ elevated: false });
+  const res = await request(app)
+    .get('/api/quiz/admin/questions?statut=actif&sort=code')
+    .set('Authorization', `Bearer ${token}`)
+    .expect(200);
+  assert.ok(Array.isArray(res.body.items));
+  assert.ok(res.body.items.length > 0);
+});

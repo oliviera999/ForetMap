@@ -165,3 +165,43 @@ test('POST /api/gl/admin/qcm/import refuse sans gl.content.manage', async () => 
     .send({ fileDataBase64: 'e30=', dryRun: true })
     .expect(403);
 });
+
+test('GET /api/gl/admin/qcm/questions — liste admin complète', async () => {
+  const res = await request(app)
+    .get('/api/gl/admin/qcm/questions?biomeSlug=sahara&statut=actif&sort=code')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .expect(200);
+  assert.ok(Array.isArray(res.body.items));
+  assert.ok(res.body.items.length > 0);
+  assert.match(String(res.body.items[0].question_code), /^QCM/);
+});
+
+test('GET /api/gl/admin/qcm/questions/:code puis PUT mise à jour', async () => {
+  const list = await request(app)
+    .get('/api/gl/admin/qcm/questions?biomeSlug=sahara&statut=actif')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .expect(200);
+  const code = list.body.items[0]?.question_code;
+  assert.ok(code);
+
+  const detail = await request(app)
+    .get(`/api/gl/admin/qcm/questions/${encodeURIComponent(code)}`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .expect(200);
+  assert.strictEqual(detail.body.question.question_code, code);
+
+  const suffix = ` [test ${Date.now()}]`;
+  const updatedQuestion = `${detail.body.question.question}${suffix}`;
+  const put = await request(app)
+    .put(`/api/gl/admin/qcm/questions/${encodeURIComponent(code)}`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ ...detail.body.question, question: updatedQuestion })
+    .expect(200);
+  assert.strictEqual(put.body.question.question, updatedQuestion);
+
+  await request(app)
+    .put(`/api/gl/admin/qcm/questions/${encodeURIComponent(code)}`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ ...detail.body.question, question: detail.body.question.question })
+    .expect(200);
+});

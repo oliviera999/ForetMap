@@ -3,12 +3,34 @@ import { createPortal } from 'react-dom';
 import { apiGL } from '../services/apiGL.js';
 import { GLButton } from './ui/GLButton.jsx';
 
+function formatVitalitySummary(vitality) {
+  if (!vitality) return null;
+  const parts = [];
+  const health = Number(vitality.healthDelta) || 0;
+  const power = Number(vitality.powerDelta) || 0;
+  if (health !== 0) {
+    parts.push(
+      `${health > 0 ? '+' : ''}${health} cœur${Math.abs(health) > 1 ? 's' : ''}`,
+    );
+  }
+  if (power !== 0) {
+    parts.push(
+      `${power > 0 ? '+' : ''}${power} gemme${Math.abs(power) > 1 ? 's' : ''}`,
+    );
+  }
+  if (!parts.length) return null;
+  const targetLabel =
+    vitality.target === 'players' ? ' (joueurs ciblés)' : ' (équipe entière)';
+  return `${parts.join(', ')}${targetLabel}`;
+}
+
 export function GLMarkerEffectPopover({
   open,
   marker,
   gameId,
   teamId = null,
   arrival,
+  vitality = null,
   loading,
   error: externalError,
   canApplyEffects = false,
@@ -35,6 +57,16 @@ export function GLMarkerEffectPopover({
   }, [open]);
 
   if (!open) return null;
+
+  const vitalitySummary = formatVitalitySummary(vitality);
+  const vitalityApplied = vitality?.applied === true;
+  const vitalityAlreadyApplied = vitality?.alreadyApplied === true;
+  const showManualApply =
+    canApplyEffects &&
+    arrival?.resolvedEffect &&
+    !vitalityApplied &&
+    !vitalityAlreadyApplied &&
+    (Number(vitality?.healthDelta) !== 0 || Number(vitality?.powerDelta) !== 0);
 
   async function applyEffects() {
     if (!gameId || !marker?.id || teamId == null) return;
@@ -85,6 +117,17 @@ export function GLMarkerEffectPopover({
               </p>
             ) : null}
             {arrival.effectSummary ? <p>{arrival.effectSummary}</p> : null}
+            {vitalitySummary ? (
+              <p className="gl-feuillet-popover__mechanics" aria-label="Effets vitalité">
+                {vitalityApplied ? (
+                  <span className="gl-hint">Appliqué : {vitalitySummary}</span>
+                ) : vitalityAlreadyApplied ? (
+                  <span className="gl-hint">Effets déjà appliqués pour cette équipe.</span>
+                ) : (
+                  <span>{vitalitySummary}</span>
+                )}
+              </p>
+            ) : null}
             {arrival.passTurn ? (
               <p className="gl-hint">Cette équipe doit passer son tour.</p>
             ) : null}
@@ -97,7 +140,7 @@ export function GLMarkerEffectPopover({
           </div>
         ) : null}
         <footer className="gl-marker-effect-popover__footer">
-          {canApplyEffects && arrival?.resolvedEffect ? (
+          {showManualApply ? (
             <GLButton type="button" onClick={applyEffects}>
               Appliquer les effets (MJ)
             </GLButton>

@@ -131,6 +131,16 @@ test('GET /api/gl/lore/glossary liste les termes lore', async () => {
   assert.ok(res.body.items.some((row) => String(row.lore_code).startsWith('LR')));
 });
 
+test('GET /api/gl/lore/glossary/link-index renvoie l’index auto-liens (pas confondu avec :code)', async () => {
+  const res = await request(app)
+    .get('/api/gl/lore/glossary/link-index')
+    .set('Authorization', `Bearer ${playerToken}`)
+    .expect(200);
+  assert.ok(Array.isArray(res.body?.items));
+  assert.ok(res.body.items.length > 0);
+  assert.ok(res.body.items.every((row) => row.lore_code && row.terme));
+});
+
 test('POST present feuillet découvre et journalise', async () => {
   const res = await request(app)
     .post(`/api/gl/lore/games/${gameId}/feuillets/${feuilletCode}/present`)

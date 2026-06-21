@@ -19,7 +19,7 @@ export function GLQcmLoreImportPanel({ loreGlossaryLinkItems = [], onOpenLoreTer
         `(${item.chapitre_slug} / ${item.categorie_slug} / ${item.tier_lore || 'recit'})`
       }
       adminBasePath="/api/gl/lore/admin/qcm"
-      questionsListPath="/api/gl/lore/qcm/questions"
+      questionsListPath="/api/gl/lore/admin/qcm/questions"
       presentPath={(code) => `/api/gl/lore/qcm/questions/${encodeURIComponent(code)}/present`}
       answerPath={(code) => `/api/gl/lore/qcm/questions/${encodeURIComponent(code)}/answer`}
       templateFilename="foretmap-gl-modele-qcm-lore.xlsx"

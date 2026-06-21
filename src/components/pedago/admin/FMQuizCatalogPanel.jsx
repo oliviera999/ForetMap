@@ -59,7 +59,7 @@ const FM_QCM_CLASS_NAMES = {
   },
 };
 
-export function FMQuizCatalogPanel({ showQuestionList = false }) {
+export function FMQuizCatalogPanel({ showQuestionList = true, onEditQuestion = null }) {
   return (
     <QcmCatalogPanel
       title="Catalogue Quiz (QCM)"
@@ -83,6 +83,7 @@ export function FMQuizCatalogPanel({ showQuestionList = false }) {
       exportFilename="foretmap-export-qcm.xlsx"
       showQuestionList={showQuestionList}
       enableAdminFilters={showQuestionList}
+      onEditQuestion={onEditQuestion}
       request={api}
       downloadFile={downloadApiFile}
       FeedbackBlock={PedagoQcmFeedbackBlock}

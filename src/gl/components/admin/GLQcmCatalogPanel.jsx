@@ -27,6 +27,9 @@ export function GLQcmCatalogPanel({
   loreGlossaryLinkItems = [],
   onOpenGlossaryTerm,
   onOpenLoreTerm,
+  showQuestionList = false,
+  enableAdminFilters = false,
+  onEditQuestion = null,
 }) {
   return (
     <QcmCatalogPanel
@@ -55,6 +58,9 @@ export function GLQcmCatalogPanel({
       loreGlossaryLinkItems={loreGlossaryLinkItems}
       onOpenGlossaryTerm={onOpenGlossaryTerm}
       onOpenLoreTerm={onOpenLoreTerm}
+      showQuestionList={showQuestionList}
+      enableAdminFilters={enableAdminFilters}
+      onEditQuestion={onEditQuestion}
     />
   );
 }

@@ -7,6 +7,25 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### GL — correctifs admin Contenus (QCM lore + glossaire)
+
+- **fix(gl)** : `GET /api/gl/lore/glossary/link-index` — route déclarée avant `/glossary/:code` (sinon 404 « Terme introuvable »).
+- **fix(gl)** : migration QCM lore renommée `138_gl_qcm_lore.sql` (conflit avec `120_gl_chapters_plateau_number.sql` : la table `schema_version` ne déclenchait jamais la création des tables `gl_qcm_lore_*`, d’où les 500 sur `/api/gl/lore/qcm/categories` et `/scopes` en prod).
+- **Tests** : `tests/gl-lore-feuillets.test.js` (link-index), `tests/migrations-unique-numbers.test.js`.
+
+### GL — déplacement repères numérotés + dé
+
+- **Partie** : réglages `board_movement_mode` (`free` | `numbered_path`) et `board_path_start_index` (0 ou 1) sur `gl_games` (migration `137_gl_board_movement.sql`) ; formulaire console MJ « Déplacement sur le plateau ».
+- **Mode repères numérotés** : repères affichés avec numéro (ordre `order_index`) ; au démarrage, placement de toutes les équipes sur le repère de départ ; le MJ avance via le dé virtuel (total = nombre de cases) ; déplacement libre clic carte/repère désactivé (API `409`).
+- **Module** : `glBoardPathCore` ; tests `tests-ui/gl/glBoardPathCore.test.js`, `glGameEditForm.test.js`.
+
+### GL — effets vitalité des repères à l’arrivée
+
+- **Arrivée sur repère** : `POST .../present-arrival` applique automatiquement les bonus/malus cœurs (❤️) et gemmes (💎) à **chaque joueur de l’équipe** (même mécanique que les zones feuillets et les sortilèges côté solde par joueur), une seule fois par repère et équipe (`marker_effect`).
+- **API** : réponse enrichie `vitality: { applied, alreadyApplied, healthDelta, powerDelta, results, target }` ; `POST .../apply-effects` accepte `playerIds[]` optionnel pour cibler des joueurs ; refus `409` si déjà appliqué.
+- **UI** : popover repère affiche l’application automatique ; bouton MJ conservé en secours si la vitalité n’a pas pu s’appliquer.
+- **Module** : `lib/glMarkerVitalityEffects.js` ; tests `tests/gl-marker-vitality-effects.test.js`, `tests/gl-marker-present-arrival-vitality.test.js`.
+
 ### ForetMap + GL — lightbox image globale
 
 - **Clic image** : `ImageLightboxProvider` (ForetMap + GL) ouvre la lightbox partagée `fm-lightbox-*` sur les illustrations et photos standalone (légende via `figcaption` / `alt`, repli `data-lightbox-src`).

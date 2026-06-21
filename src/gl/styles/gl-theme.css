@@ -1504,6 +1504,24 @@ body.gl-map-fullscreen-active .gl-qcm-popover-overlay {
   text-shadow: var(--gl-marker-label-text-shadow, none);
 }
 
+.gl-board-marker__path-number {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 1.1rem;
+  height: 1.1rem;
+  padding: 0 3px;
+  border-radius: 999px;
+  background: #111827;
+  color: #fff;
+  font-size: 0.62rem;
+  font-weight: 700;
+  line-height: 1.1rem;
+  text-align: center;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.35);
+  pointer-events: none;
+}
+
 .gl-board-marker.is-selected {
   outline: 2px solid #2563eb;
   box-shadow: 0 0 0 2px rgba(147, 197, 253, 0.85);
@@ -5467,6 +5485,65 @@ body.gl-map-fullscreen-active .gl-qcm-popover-overlay {
   padding: 0.75rem;
   border: 1px solid var(--gl-color-border, #e2e8f0);
   border-radius: 10px;
+}
+
+.gl-qcm-editor__grid {
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) minmax(320px, 1.2fr);
+  gap: 1rem;
+  margin-top: 0.75rem;
+}
+
+.gl-qcm-editor__list-pane {
+  min-width: 0;
+}
+
+.gl-qcm-editor__list {
+  max-height: 420px;
+  overflow: auto;
+}
+
+.gl-qcm-editor__list-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--gl-color-border, #e2e8f0);
+  border-radius: 10px;
+  background: var(--gl-color-surface, #fff);
+  cursor: pointer;
+}
+
+.gl-qcm-editor__list-item.is-selected {
+  border-color: var(--gl-color-accent, #0d9488);
+  box-shadow: 0 0 0 1px var(--gl-color-accent, #0d9488);
+}
+
+.gl-qcm-editor__list-item p {
+  margin: 0.35rem 0 0;
+  font-size: 0.92rem;
+}
+
+.gl-qcm-editor__form {
+  min-width: 0;
+  padding: 0.75rem;
+  border: 1px solid var(--gl-color-border, #e2e8f0);
+  border-radius: 10px;
+  background: var(--gl-color-surface-muted, #f8fafc);
+}
+
+.gl-qcm-editor__fields {
+  display: grid;
+  gap: 0.65rem;
+  max-height: 520px;
+  overflow: auto;
+  margin: 0.75rem 0;
+}
+
+@media (max-width: 900px) {
+  .gl-qcm-editor__grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* ——— Glossaire popover (fiche rapide) ——— */

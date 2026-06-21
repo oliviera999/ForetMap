@@ -5,8 +5,6 @@ const { normalizeEventRow } = require('../../../lib/glGameEvents');
 const { emitGlGameEvent } = require('../../../lib/realtime');
 const { getGameplaySettings } = require('../../../lib/glSettings');
 const {
-  parseVitalityDelta,
-  applyTeamVitalityDelta,
   resolveVitalityError,
 } = require('../../../lib/glVitality');
 const { canAccessGlGame } = require('../../../lib/glGameAccess');
@@ -14,8 +12,12 @@ const { MARKER_SELECT, formatMarkerRow, isQuestionMarker } = require('../../../l
 const {
   buildMarkerArrivalPayload,
   hasApplicableMarkerEffects,
-  resolveMarkerEffects,
 } = require('../../../lib/glMarkerEffects');
+const {
+  applyMarkerVitalityEffects,
+  buildMarkerEffectEventPayload,
+  hasMarkerVitalityApplied,
+} = require('../../../lib/glMarkerVitalityEffects');
 const { drawQuestionFromMarker } = require('../../../lib/glMarkerQuestionPool');
 const { canPresentMarkerQuestion } = require('../../../lib/glMarkerQuestionRetrigger');
 const { loadBiomesForChapterIds } = require('../../../lib/glChapterBiomes');
@@ -268,22 +270,87 @@ router.post('/games/:id/markers/:markerId/present-arrival', requireGlAuth, async
 
   const arrival = buildMarkerArrivalPayload(marker, team);
   const actorType = req.glAuth.userType === 'gl_admin' ? 'mj' : 'team';
-  await execute(
-    `INSERT INTO gl_game_events (game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at)
-     VALUES (?, ?, ?, ?, 'marker_arrival', ?, NOW())`,
-    [
-      gameId,
-      teamId,
-      actorType,
-      String(req.glAuth.userId),
-      JSON.stringify({
-        markerId,
-        markerLabel: marker.label,
-        eventType: marker.event_type,
-        effectSummary: arrival.effectSummary,
-      }),
-    ],
-  );
+  const actorId = String(req.glAuth.userId);
+  const reason = String(marker.label || 'Repère').trim();
+
+  const playerIdsRaw = req.body?.playerIds;
+  const playerIds = Array.isArray(playerIdsRaw)
+    ? playerIdsRaw
+    : playerIdsRaw != null
+      ? [playerIdsRaw]
+      : null;
+
+  let vitalityPayload = null;
+  try {
+    await withTransaction(async (tx) => {
+      vitalityPayload = await applyMarkerVitalityEffects(tx, {
+        gameId,
+        teamId,
+        marker,
+        teamType: team.type,
+        settings,
+        playerIds,
+        skipIfAlreadyApplied: true,
+      });
+
+      if (vitalityPayload?.applied) {
+        await recordVitalityChangeEvent(tx, {
+          gameId,
+          teamId,
+          actorId,
+          healthDelta: vitalityPayload.healthDelta,
+          powerDelta: vitalityPayload.powerDelta,
+          reason,
+          results: vitalityPayload.vitalityResults,
+        });
+        await tx.execute(
+          `INSERT INTO gl_game_events (game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at)
+           VALUES (?, ?, ?, ?, 'marker_effect', ?, NOW())`,
+          [
+            gameId,
+            teamId,
+            actorType,
+            actorId,
+            JSON.stringify(
+              buildMarkerEffectEventPayload({
+                marker,
+                resolved: vitalityPayload.resolvedEffect,
+                healthDelta: vitalityPayload.healthDelta,
+                powerDelta: vitalityPayload.powerDelta,
+                moveDelta: vitalityPayload.moveDelta,
+                passTurn: vitalityPayload.passTurn,
+                reason,
+                vitalityTarget: vitalityPayload.vitalityTarget,
+                vitalityPlayerIds: vitalityPayload.vitalityPlayerIds,
+              }),
+            ),
+          ],
+        );
+      }
+
+      await tx.execute(
+        `INSERT INTO gl_game_events (game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at)
+         VALUES (?, ?, ?, ?, 'marker_arrival', ?, NOW())`,
+        [
+          gameId,
+          teamId,
+          actorType,
+          actorId,
+          JSON.stringify({
+            markerId,
+            markerLabel: marker.label,
+            eventType: marker.event_type,
+            effectSummary: arrival.effectSummary,
+          }),
+        ],
+      );
+    });
+  } catch (err) {
+    const mapped = resolveVitalityError(err);
+    if (mapped) return res.status(mapped.status).json({ error: mapped.error });
+    throw err;
+  }
+
   const evt = await queryOne(
     `SELECT id, game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at
        FROM gl_game_events WHERE game_id = ? ORDER BY id DESC LIMIT 1`,
@@ -291,7 +358,21 @@ router.post('/games/:id/markers/:markerId/present-arrival', requireGlAuth, async
   );
   if (evt) emitGlGameEvent(gameId, normalizeEventRow(evt));
 
-  return res.json({ ...arrival, teamId: Number(teamId), teamType: team.type });
+  return res.json({
+    ...arrival,
+    teamId: Number(teamId),
+    teamType: team.type,
+    vitality: vitalityPayload
+      ? {
+          applied: vitalityPayload.applied === true,
+          alreadyApplied: vitalityPayload.alreadyApplied === true,
+          healthDelta: vitalityPayload.healthDelta,
+          powerDelta: vitalityPayload.powerDelta,
+          results: vitalityPayload.vitalityResults,
+          target: vitalityPayload.vitalityTarget || 'team',
+        }
+      : null,
+  });
 });
 
 /** POST /api/gl/games/:id/markers/:markerId/apply-effects — applique les effets vitalité du repère (MJ). */
@@ -326,64 +407,94 @@ router.post(
     );
     if (!team) return res.status(404).json({ error: 'Équipe introuvable' });
 
-    const resolved = resolveMarkerEffects(marker, team.type);
-    if (!resolved) {
-      return res.status(409).json({ error: 'Aucun effet applicable sur ce repère' });
-    }
-
-    const healthDelta = parseVitalityDelta(resolved.deltaPv);
-    const powerDelta = parseVitalityDelta(resolved.deltaGems);
-    const moveDelta = parseVitalityDelta(resolved.deltaMove);
     const settings = await getGameplaySettings();
     const reason = String(req.body?.reason || marker.label || 'Repère').trim();
+    const actorId = String(req.glAuth.userId);
 
-    let vitalityResults = null;
-    if (settings.vitalityEnabled && (healthDelta !== 0 || powerDelta !== 0)) {
-      try {
-        await withTransaction(async (tx) => {
-          vitalityResults = await applyTeamVitalityDelta(tx, {
-            gameId,
-            teamId,
-            healthDelta,
-            powerDelta,
-          });
+    const playerIdsRaw = req.body?.playerIds;
+    const playerIds = Array.isArray(playerIdsRaw)
+      ? playerIdsRaw
+      : playerIdsRaw != null
+        ? [playerIdsRaw]
+        : null;
+
+    const alreadyApplied = await hasMarkerVitalityApplied({ queryAll }, { gameId, teamId, markerId });
+    if (alreadyApplied) {
+      return res.status(409).json({ error: 'Effets vitalité déjà appliqués pour ce repère et cette équipe' });
+    }
+
+    let vitalityPayload = null;
+    try {
+      await withTransaction(async (tx) => {
+        vitalityPayload = await applyMarkerVitalityEffects(tx, {
+          gameId,
+          teamId,
+          marker,
+          teamType: team.type,
+          settings,
+          playerIds,
+          skipIfAlreadyApplied: false,
+        });
+
+        if (!vitalityPayload?.resolvedEffect) {
+          const err = new Error('NO_MARKER_EFFECT');
+          err.status = 409;
+          throw err;
+        }
+
+        if (vitalityPayload.vitalityRequired && !vitalityPayload.applied) {
+          const err = new Error('NO_VITALITY_TO_APPLY');
+          err.status = 409;
+          throw err;
+        }
+
+        if (vitalityPayload.applied) {
           await recordVitalityChangeEvent(tx, {
             gameId,
             teamId,
-            actorId: String(req.glAuth.userId),
-            healthDelta,
-            powerDelta,
+            actorId,
+            healthDelta: vitalityPayload.healthDelta,
+            powerDelta: vitalityPayload.powerDelta,
             reason,
-            results: vitalityResults,
+            results: vitalityPayload.vitalityResults,
           });
-        });
-      } catch (err) {
-        const mapped = resolveVitalityError(err);
-        if (mapped) return res.status(mapped.status).json({ error: mapped.error });
-        throw err;
+        }
+
+        await tx.execute(
+          `INSERT INTO gl_game_events (game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at)
+           VALUES (?, ?, 'mj', ?, 'marker_effect', ?, NOW())`,
+          [
+            gameId,
+            teamId,
+            actorId,
+            JSON.stringify(
+              buildMarkerEffectEventPayload({
+                marker,
+                resolved: vitalityPayload.resolvedEffect,
+                healthDelta: vitalityPayload.healthDelta,
+                powerDelta: vitalityPayload.powerDelta,
+                moveDelta: vitalityPayload.moveDelta,
+                passTurn: vitalityPayload.passTurn,
+                reason,
+                vitalityTarget: vitalityPayload.vitalityTarget,
+                vitalityPlayerIds: vitalityPayload.vitalityPlayerIds,
+              }),
+            ),
+          ],
+        );
+      });
+    } catch (err) {
+      if (err?.message === 'NO_MARKER_EFFECT') {
+        return res.status(409).json({ error: 'Aucun effet applicable sur ce repère' });
       }
+      if (err?.message === 'NO_VITALITY_TO_APPLY') {
+        return res.status(409).json({ error: 'Aucun delta cœur ou gemme à appliquer sur ce repère' });
+      }
+      const mapped = resolveVitalityError(err);
+      if (mapped) return res.status(mapped.status).json({ error: mapped.error });
+      throw err;
     }
 
-    await execute(
-      `INSERT INTO gl_game_events (game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at)
-     VALUES (?, ?, 'mj', ?, 'marker_effect', ?, NOW())`,
-      [
-        gameId,
-        teamId,
-        String(req.glAuth.userId),
-        JSON.stringify({
-          markerId,
-          markerLabel: marker.label,
-          eventType: marker.event_type,
-          branch: resolved.branch,
-          healthDelta,
-          powerDelta,
-          moveDelta,
-          passTurn: Boolean(resolved.passTurn),
-          reason,
-        }),
-      ],
-    );
     const evt = await queryOne(
       `SELECT id, game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at
        FROM gl_game_events WHERE game_id = ? ORDER BY id DESC LIMIT 1`,
@@ -395,11 +506,12 @@ router.post(
       ok: true,
       markerId,
       teamId,
-      resolvedEffect: resolved,
-      moveDelta,
-      passTurn: Boolean(resolved.passTurn),
-      vitalityResults,
-      vitalityRequired: settings.vitalityEnabled && (healthDelta !== 0 || powerDelta !== 0),
+      resolvedEffect: vitalityPayload.resolvedEffect,
+      moveDelta: vitalityPayload.moveDelta,
+      passTurn: vitalityPayload.passTurn,
+      vitalityResults: vitalityPayload.vitalityResults,
+      vitalityRequired: vitalityPayload.vitalityRequired,
+      vitalityTarget: vitalityPayload.vitalityTarget,
     });
   },
 );

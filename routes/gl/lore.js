@@ -63,6 +63,12 @@ const {
   loadQcmLoreExportRows,
   MAX_IMPORT_ROWS: QCM_LORE_MAX_IMPORT_ROWS,
 } = require('../../lib/glQcmLoreImport');
+const {
+  loadAdminQuestionDetail: loadAdminLoreQuestionDetail,
+  allocateNextGlQcmLoreQuestionCode,
+  listAdminQuestions: listAdminLoreQuestions,
+  upsertGlQcmLoreQuestion,
+} = require('../../lib/glQcmLoreCrud');
 const { verifyPresentationAnswer, resolveQcmAnswerFeedback } = require('../../lib/glQcmChoices');
 const { buildLorePresentation } = require('../../lib/glQcmLoreQuestionQuery');
 const { previewLoreQuestionPool } = require('../../lib/glMarkerLoreQuestionPool');
@@ -503,6 +509,24 @@ router.get(
   }),
 );
 
+/** GET /api/gl/lore/glossary/link-index — auto-liens front (avant /glossary/:code) */
+router.get(
+  '/glossary/link-index',
+  requireGlAuth,
+  asyncHandler(async (_req, res) => {
+    const rows = await queryAll(
+      `SELECT lore_code, terme, variantes FROM gl_lore_glossary_terms WHERE statut = 'actif'`,
+    );
+    return res.json({
+      items: rows.map((row) => ({
+        lore_code: row.lore_code,
+        terme: row.terme,
+        variantes: row.variantes,
+      })),
+    });
+  }),
+);
+
 /** GET /api/gl/lore/glossary/:code */
 router.get(
   '/glossary/:code',
@@ -543,24 +567,6 @@ router.get(
       },
       relatedTerms: related,
       spoilerMaxLevel: gameplay.loreSpoilerMaxLevel,
-    });
-  }),
-);
-
-/** GET /api/gl/lore/glossary/link-index — auto-liens front */
-router.get(
-  '/glossary/link-index',
-  requireGlAuth,
-  asyncHandler(async (_req, res) => {
-    const rows = await queryAll(
-      `SELECT lore_code, terme, variantes FROM gl_lore_glossary_terms WHERE statut = 'actif'`,
-    );
-    return res.json({
-      items: rows.map((row) => ({
-        lore_code: row.lore_code,
-        terme: row.terme,
-        variantes: row.variantes,
-      })),
     });
   }),
 );
@@ -1069,6 +1075,89 @@ router.post(
       return res.json({ report });
     } catch (err) {
       return res.status(400).json({ error: err.message || 'Import impossible' });
+    }
+  }),
+);
+
+/** GET /api/gl/lore/admin/qcm/questions — liste complète (catalogue admin). */
+router.get(
+  '/admin/qcm/questions',
+  requireGlPermission('gl.content.manage'),
+  asyncHandler(async (req, res) => {
+    const items = await listAdminLoreQuestions(
+      { queryAll },
+      {
+        chapitreSlug: req.query?.chapitreSlug,
+        categorieSlug: req.query?.categorieSlug,
+        tierLore: req.query?.tierLore,
+        q: req.query?.q,
+        statut: req.query?.statut,
+        sort: req.query?.sort,
+      },
+    );
+    return res.json({ items, total: items.length });
+  }),
+);
+
+/** GET /api/gl/lore/admin/qcm/questions/next-code */
+router.get(
+  '/admin/qcm/questions/next-code',
+  requireGlPermission('gl.content.manage'),
+  asyncHandler(async (_req, res) => {
+    const question_code = await allocateNextGlQcmLoreQuestionCode({ queryOne });
+    return res.json({ question_code });
+  }),
+);
+
+/** GET /api/gl/lore/admin/qcm/questions/:code */
+router.get(
+  '/admin/qcm/questions/:code',
+  requireGlPermission('gl.content.manage'),
+  asyncHandler(async (req, res) => {
+    const code = normalizeLoreQuestionCode(req.params.code);
+    if (!code) return res.status(400).json({ error: 'Code invalide' });
+    const question = await loadAdminLoreQuestionDetail({ queryOne }, code);
+    if (!question) return res.status(404).json({ error: 'Question introuvable' });
+    return res.json({ question });
+  }),
+);
+
+/** POST /api/gl/lore/admin/qcm/questions */
+router.post(
+  '/admin/qcm/questions',
+  requireGlPermission('gl.content.manage'),
+  asyncHandler(async (req, res) => {
+    try {
+      const result = await upsertGlQcmLoreQuestion(
+        { queryAll, queryOne, execute },
+        req.body || {},
+        { requireNew: true },
+      );
+      return res.status(201).json({ ok: true, created: true, question: result.question });
+    } catch (err) {
+      const status = err.statusCode || 400;
+      return res.status(status).json({ error: err.message || 'Création impossible' });
+    }
+  }),
+);
+
+/** PUT /api/gl/lore/admin/qcm/questions/:code */
+router.put(
+  '/admin/qcm/questions/:code',
+  requireGlPermission('gl.content.manage'),
+  asyncHandler(async (req, res) => {
+    const code = normalizeLoreQuestionCode(req.params.code);
+    if (!code) return res.status(400).json({ error: 'Code invalide' });
+    try {
+      const result = await upsertGlQcmLoreQuestion(
+        { queryAll, queryOne, execute },
+        req.body || {},
+        { question_code: code, requireExisting: true },
+      );
+      return res.json({ ok: true, created: false, question: result.question });
+    } catch (err) {
+      const status = err.statusCode || 400;
+      return res.status(status).json({ error: err.message || 'Mise à jour impossible' });
     }
   }),
 );

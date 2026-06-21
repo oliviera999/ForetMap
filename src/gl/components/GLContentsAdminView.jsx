@@ -8,7 +8,9 @@ import { GLSpeciesEditorPanel } from './admin/GLSpeciesEditorPanel.jsx';
 import { GLGlossaryImportPanel } from './admin/GLGlossaryImportPanel.jsx';
 import { GLGlossaryEditorPanel } from './admin/GLGlossaryEditorPanel.jsx';
 import { GLQcmImportPanel } from './admin/GLQcmImportPanel.jsx';
+import { GLQcmQuestionEditorPanel } from './admin/GLQcmQuestionEditorPanel.jsx';
 import { GLQcmLoreImportPanel } from './admin/GLQcmLoreImportPanel.jsx';
+import { GLQcmLoreQuestionEditorPanel } from './admin/GLQcmLoreQuestionEditorPanel.jsx';
 import { GLSpellsEditorPanel } from './admin/GLSpellsEditorPanel.jsx';
 import { GLSpellsImportPanel } from './admin/GLSpellsImportPanel.jsx';
 import { GLLoreFeuilletsImportPanel } from './admin/GLLoreFeuilletsImportPanel.jsx';
@@ -211,14 +213,28 @@ export function GLContentsAdminView({
       ) : section === 'library' ? (
         <GLContentLibraryView onOpenSubTab={setSection} />
       ) : section === 'qcm-lore' ? (
-        <GLQcmLoreImportPanel
-          loreGlossaryLinkItems={loreGlossaryLinkItems}
-          onOpenLoreTerm={onOpenLoreTerm}
+        <GLContentCatalogPanel
+          manualLabel="Édition des questions"
+          importLabel="Import / export XLSX"
+          ManualPanel={GLQcmLoreQuestionEditorPanel}
+          ImportPanel={() => (
+            <GLQcmLoreImportPanel
+              loreGlossaryLinkItems={loreGlossaryLinkItems}
+              onOpenLoreTerm={onOpenLoreTerm}
+            />
+          )}
         />
       ) : (
-        <GLQcmImportPanel
-          glossaryLinkItems={glossaryLinkItems}
-          onOpenGlossaryTerm={onOpenGlossaryTerm}
+        <GLContentCatalogPanel
+          manualLabel="Édition des questions"
+          importLabel="Import / export XLSX"
+          ManualPanel={GLQcmQuestionEditorPanel}
+          ImportPanel={() => (
+            <GLQcmImportPanel
+              glossaryLinkItems={glossaryLinkItems}
+              onOpenGlossaryTerm={onOpenGlossaryTerm}
+            />
+          )}
         />
       )}
     </section>

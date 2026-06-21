@@ -361,7 +361,7 @@ router.get(
   }),
 );
 
-const quizManagePermission = requirePermission('plants.manage', { needsElevation: true });
+const quizManagePermission = requirePermission('plants.manage');
 
 /** GET /api/quiz/admin/questions — liste complète (catalogue admin). */
 router.get(

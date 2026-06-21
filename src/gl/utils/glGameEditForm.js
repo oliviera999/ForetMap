@@ -9,6 +9,8 @@ export const EMPTY_GAME_EDIT_FORM = {
   loreEffacementEnabled: '',
   loreGemmeCostsEnabled: '',
   loreHeartRewardsEnabled: '',
+  boardMovementMode: '',
+  boardPathStartIndex: '',
 };
 
 function toTriStateString(value) {
@@ -34,6 +36,10 @@ export function gameToEditForm(game) {
     loreEffacementEnabled: toTriStateString(game.lore_effacement_enabled),
     loreGemmeCostsEnabled: toTriStateString(game.lore_gemme_costs_enabled),
     loreHeartRewardsEnabled: toTriStateString(game.lore_heart_rewards_enabled),
+    boardMovementMode:
+      game.board_movement_mode != null ? String(game.board_movement_mode) : '',
+    boardPathStartIndex:
+      game.board_path_start_index != null ? String(game.board_path_start_index) : '',
   };
 }
 
@@ -60,6 +66,12 @@ export function buildGameEditPayload(form, status) {
   }
   if (form.loreHeartRewardsEnabled !== '') {
     payload.loreHeartRewardsEnabled = form.loreHeartRewardsEnabled === '1';
+  }
+  payload.boardMovementMode = form.boardMovementMode || null;
+  if (form.boardPathStartIndex !== '') {
+    payload.boardPathStartIndex = Number(form.boardPathStartIndex);
+  } else {
+    payload.boardPathStartIndex = null;
   }
   return payload;
 }
