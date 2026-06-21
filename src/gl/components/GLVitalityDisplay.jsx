@@ -4,13 +4,15 @@ export function GLVitalityCounts({ health = 0, power = 0, className = '' }) {
   return (
     <span className={`gl-vitality-counts ${className}`.trim()}>
       <span className="gl-vitality-count gl-vitality-count--health" title="Points de vie">
-        <span className="foretmap-emoji-text-mixed" aria-hidden>❤️</span>
-        {' '}
+        <span className="foretmap-emoji-text-mixed" aria-hidden>
+          ❤️
+        </span>{' '}
         <span className="gl-vitality-count-value">{Number(health) || 0}</span>
       </span>
       <span className="gl-vitality-count gl-vitality-count--power" title="Points de pouvoir">
-        <span className="foretmap-emoji-text-mixed" aria-hidden>💎</span>
-        {' '}
+        <span className="foretmap-emoji-text-mixed" aria-hidden>
+          💎
+        </span>{' '}
         <span className="gl-vitality-count-value">{Number(power) || 0}</span>
       </span>
     </span>
@@ -33,7 +35,11 @@ export function GLVitalityBadge({ health = 0, power = 0, onClick = null }) {
     );
   }
   return (
-    <span className="gl-vitality-badge" role="status" aria-label={`${health} points de vie, ${power} points de pouvoir`}>
+    <span
+      className="gl-vitality-badge"
+      role="status"
+      aria-label={`${health} points de vie, ${power} points de pouvoir`}
+    >
       {content}
     </span>
   );
@@ -52,7 +58,9 @@ export function GLVitalityAdjustButtons({
         <GLVitalityCounts health={health} power={power} />
       </div>
       <div className="gl-vitality-adjust-row">
-        <span className="gl-vitality-adjust-label foretmap-emoji-text-mixed" aria-hidden>❤️</span>
+        <span className="gl-vitality-adjust-label foretmap-emoji-text-mixed" aria-hidden>
+          ❤️
+        </span>
         <button
           type="button"
           className="gl-vitality-btn"
@@ -73,7 +81,9 @@ export function GLVitalityAdjustButtons({
         </button>
       </div>
       <div className="gl-vitality-adjust-row">
-        <span className="gl-vitality-adjust-label foretmap-emoji-text-mixed" aria-hidden>💎</span>
+        <span className="gl-vitality-adjust-label foretmap-emoji-text-mixed" aria-hidden>
+          💎
+        </span>
         <button
           type="button"
           className="gl-vitality-btn"

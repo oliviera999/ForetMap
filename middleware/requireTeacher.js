@@ -8,7 +8,9 @@ const { ensureRbacBootstrap, buildAuthzPayload } = require('../lib/rbac');
 const { getAuthJwtTtls } = require('../lib/settings');
 const { getUserAccessibleGroupIds } = require('../lib/groupScope');
 
-const JWT_SECRET = process.env.JWT_SECRET || (process.env.NODE_ENV === 'production' ? null : 'dev-secret-change-in-production');
+const JWT_SECRET =
+  process.env.JWT_SECRET ||
+  (process.env.NODE_ENV === 'production' ? null : 'dev-secret-change-in-production');
 
 function requireJwtConfigured(res) {
   if (!JWT_SECRET) {
@@ -143,14 +145,18 @@ function requirePermission(permissionKey, options = {}) {
       return res.status(401).json({ error: 'Token invalide ou expiré' });
     }
     if (!hasPermission(req.auth, permissionKey, needsElevation)) {
-      return res.status(403).json({ error: needsElevation ? 'Élévation PIN requise' : 'Permission insuffisante' });
+      return res
+        .status(403)
+        .json({ error: needsElevation ? 'Élévation PIN requise' : 'Permission insuffisante' });
     }
     return next();
   };
 }
 
 function requireProduct(expectedProduct) {
-  const expected = String(expectedProduct || '').trim().toLowerCase();
+  const expected = String(expectedProduct || '')
+    .trim()
+    .toLowerCase();
   return async (req, res, next) => {
     if (!requireJwtConfigured(res)) return;
     await ensureRbacBootstrap();

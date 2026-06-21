@@ -22,11 +22,19 @@ function run(schemas, req) {
   const res = {
     statusCode: 200,
     payload: undefined,
-    status(c) { this.statusCode = c; return this; },
-    json(p) { this.payload = p; return this; },
+    status(c) {
+      this.statusCode = c;
+      return this;
+    },
+    json(p) {
+      this.payload = p;
+      return this;
+    },
   };
   let nextCalled = false;
-  validate(schemas)(r, res, () => { nextCalled = true; });
+  validate(schemas)(r, res, () => {
+    nextCalled = true;
+  });
   return { nextCalled, status: res.statusCode, error: res.payload && res.payload.error, req: r };
 }
 
@@ -59,7 +67,14 @@ test('param :code valide -> next, params inchangés', () => {
 });
 
 test('param :code vide/manquant/trop long -> 400 message exact', () => {
-  const cases = [{}, { code: '' }, { code: '   ' }, { code: null }, { code: undefined }, { code: 'a'.repeat(65) }];
+  const cases = [
+    {},
+    { code: '' },
+    { code: '   ' },
+    { code: null },
+    { code: undefined },
+    { code: 'a'.repeat(65) },
+  ];
   for (const params of cases) {
     const r = run({ params: learningCodeParamsSchema }, { params });
     assert.strictEqual(r.nextCalled, false, `p=${JSON.stringify(params)}`);
@@ -79,7 +94,16 @@ test('param :id numérique positif -> next, params inchangés', () => {
 });
 
 test('param :id non numérique / <= 0 / infini -> 400 message exact', () => {
-  const cases = [{}, { id: '' }, { id: 'abc' }, { id: '0' }, { id: 0 }, { id: '-3' }, { id: 'Infinity' }, { id: null }];
+  const cases = [
+    {},
+    { id: '' },
+    { id: 'abc' },
+    { id: '0' },
+    { id: 0 },
+    { id: '-3' },
+    { id: 'Infinity' },
+    { id: null },
+  ];
   for (const params of cases) {
     const r = run({ params: tutorialIdParamsSchema }, { params });
     assert.strictEqual(r.nextCalled, false, `p=${JSON.stringify(params)}`);
@@ -92,7 +116,7 @@ test('param :id non numérique / <= 0 / infini -> 400 message exact', () => {
 test('body invalide ET code invalide -> 400 confirm (body évalué avant params)', () => {
   const r = run(
     { body: confirmBodySchema, params: learningCodeParamsSchema },
-    { body: {}, params: { code: '' } }
+    { body: {}, params: { code: '' } },
   );
   assert.strictEqual(r.nextCalled, false);
   assert.strictEqual(r.status, 400);

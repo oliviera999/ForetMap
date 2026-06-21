@@ -5,6 +5,7 @@ import { GLBrandEditor } from './GLBrandEditor.jsx';
 import { GLGameplayTogglesList } from './settings/GLGameplayTogglesList.jsx';
 import { GLGameplayPresetsPanel } from './settings/GLGameplayPresetsPanel.jsx';
 import { GLSpellCastSettings } from './settings/GLSpellCastSettings.jsx';
+import { GLMarkerBackgroundSettings } from './settings/GLMarkerBackgroundSettings.jsx';
 import { GLButton } from './ui/GLButton.jsx';
 import { GLField } from './ui/GLField.jsx';
 import { GLInput } from './ui/GLInput.jsx';
@@ -13,13 +14,17 @@ import { normalizeBrand } from '../hooks/useGLBrandTheme.js';
 import { GAMEPLAY_PRESETS } from '../constants/gameplayPresets.js';
 import {
   GAMEPLAY_TOGGLES,
+  MAP_DISPLAY_TOGGLES,
   MODULE_TOGGLES,
   readGameplayFlag,
+  readPlateauMarkersVisibleSetting,
   readSelectSetting,
   settingsToIdentityFields,
   areVitalityValuesValid,
   gameplayPresetChanges,
 } from '../utils/glSettingsForm.js';
+import { useGlMapOverlaySettings } from '../context/GlMapOverlaySettingsContext.jsx';
+import { readPlateauMarkerSizePercent } from '../../shared/mapOverlayScale.js';
 
 export function GLSettingsView() {
   const [settings, setSettings] = useState({});
@@ -33,6 +38,8 @@ export function GLSettingsView() {
   const [savingBrand, setSavingBrand] = useState(false);
   const [defaultHealthPoints, setDefaultHealthPoints] = useState('3');
   const [defaultPowerPoints, setDefaultPowerPoints] = useState('3');
+  const { mapSettings, reload: reloadMapOverlaySettings } = useGlMapOverlaySettings();
+  const [plateauMarkerSizePercent, setPlateauMarkerSizePercent] = useState('100');
   const [brandDraft, setBrandDraft] = useState(() => normalizeBrand({}));
 
   async function load() {
@@ -55,6 +62,10 @@ export function GLSettingsView() {
   useEffect(() => {
     load();
   }, []);
+
+  useEffect(() => {
+    setPlateauMarkerSizePercent(String(readPlateauMarkerSizePercent(mapSettings)));
+  }, [mapSettings]);
 
   async function savePlatformIdentity(event) {
     event.preventDefault();
@@ -116,7 +127,7 @@ export function GLSettingsView() {
       return;
     }
     const ok = window.confirm(
-      `Appliquer le profil « ${preset.label} » ?\n${changes.length} réglage(s) gameplay seront modifiés.`
+      `Appliquer le profil « ${preset.label} » ?\n${changes.length} réglage(s) gameplay seront modifiés.`,
     );
     if (!ok) return;
 
@@ -142,7 +153,9 @@ export function GLSettingsView() {
     setError('');
     setSuccessMessage('');
     try {
-      await apiGL('/api/gl/admin/settings/platform.brand', 'PUT', { value: normalizeBrand(brandDraft) });
+      await apiGL('/api/gl/admin/settings/platform.brand', 'PUT', {
+        value: normalizeBrand(brandDraft),
+      });
       await load();
       setSuccessMessage('Charte visuelle enregistree.');
     } catch (err) {
@@ -156,7 +169,11 @@ export function GLSettingsView() {
     <GLSurface className="fade-in">
       <h2>Réglages plateforme</h2>
       {error ? <p className="gl-error">{error}</p> : null}
-      {successMessage ? <div className="gl-success-banner" role="status">{successMessage}</div> : null}
+      {successMessage ? (
+        <div className="gl-success-banner" role="status">
+          {successMessage}
+        </div>
+      ) : null}
 
       <form onSubmit={savePlatformIdentity} className="gl-form">
         <GLField label="Titre plateforme">
@@ -179,7 +196,9 @@ export function GLSettingsView() {
           <GLBrandEditor
             value={brandDraft}
             onChange={(updater) => {
-              setBrandDraft((prev) => normalizeBrand(typeof updater === 'function' ? updater(prev) : updater));
+              setBrandDraft((prev) =>
+                normalizeBrand(typeof updater === 'function' ? updater(prev) : updater),
+              );
             }}
             onStatus={(message, isError) => {
               if (isError) setError(message);
@@ -196,8 +215,8 @@ export function GLSettingsView() {
 
       <h3>Gameplay</h3>
       <p className="gl-hint">
-        Tous les toggles sont désactivés par défaut. Le MJ active progressivement les modes
-        standard puis complet selon la séance.
+        Tous les toggles sont désactivés par défaut. Le MJ active progressivement les modes standard
+        puis complet selon la séance.
       </p>
 
       <GLGameplayPresetsPanel
@@ -214,10 +233,79 @@ export function GLSettingsView() {
         onToggle={toggleGameplayFlag}
       />
 
+      <h4>Affichage carte plateau</h4>
+      <p className="gl-hint">
+        Contrôle la visibilité des repères et des zones feuillets sur la carte en partie. Chaque
+        chapitre peut surcharger ces défauts.
+      </p>
+      <GLGameplayTogglesList
+        toggles={MAP_DISPLAY_TOGGLES}
+        isChecked={(currentSettings, key) => {
+          const toggle = MAP_DISPLAY_TOGGLES.find((item) => item.key === key);
+          return toggle?.readChecked?.(currentSettings) ?? readGameplayFlag(currentSettings, key);
+        }}
+        settings={settings}
+        savingKey={savingKey}
+        onToggle={toggleGameplayFlag}
+      />
+
+      <div className="gl-form gl-plateau-marker-scale">
+        <h4>Taille des repères sur le plateau</h4>
+        <p className="gl-hint">
+          Ratio repères / plateau en pourcentage (100 = référence à ~480 px de hauteur affichée).
+          Réglage partagé avec ForetMap (carte tâches et visite).
+        </p>
+        <div className="gl-inline-actions">
+          <GLField label="Taille des repères (%)">
+            <GLInput
+              type="number"
+              min={50}
+              max={200}
+              value={plateauMarkerSizePercent}
+              disabled={savingKey === 'ui.map.plateau_marker_size_percent'}
+              onChange={(event) => setPlateauMarkerSizePercent(event.target.value)}
+            />
+          </GLField>
+          <GLButton
+            type="button"
+            disabled={savingKey === 'ui.map.plateau_marker_size_percent'}
+            onClick={async () => {
+              const n = Number(plateauMarkerSizePercent);
+              if (!Number.isInteger(n) || n < 50 || n > 200) {
+                setError('La taille des repères doit être un entier entre 50 et 200.');
+                return;
+              }
+              setSavingKey('ui.map.plateau_marker_size_percent');
+              setError('');
+              try {
+                await apiGL('/api/gl/admin/settings/ui.map.plateau_marker_size_percent', 'PUT', {
+                  value: n,
+                });
+                await reloadMapOverlaySettings();
+                setSuccessMessage('Taille des repères enregistrée.');
+              } catch (err) {
+                setError(err.message || 'Enregistrement impossible');
+              } finally {
+                setSavingKey('');
+              }
+            }}
+          >
+            Enregistrer la taille des repères
+          </GLButton>
+        </div>
+      </div>
+
+      <GLMarkerBackgroundSettings
+        settings={settings}
+        savingKey={savingKey}
+        onSave={saveSetting}
+      />
+
       <div className="gl-vitality-defaults gl-form">
         <h4>Valeurs initiales (nouveaux joueurs)</h4>
         <p className="gl-hint">
-          S&apos;appliquent uniquement à la création d&apos;un joueur. Les comptes existants ne sont pas réinitialisés.
+          S&apos;appliquent uniquement à la création d&apos;un joueur. Les comptes existants ne sont
+          pas réinitialisés.
         </p>
         <div className="gl-inline-actions">
           <GLField label="PV initiaux (❤️)">
@@ -242,7 +330,10 @@ export function GLSettingsView() {
           </GLField>
           <GLButton
             type="button"
-            disabled={savingKey === 'gameplay.default_health_points' || savingKey === 'gameplay.default_power_points'}
+            disabled={
+              savingKey === 'gameplay.default_health_points' ||
+              savingKey === 'gameplay.default_power_points'
+            }
             onClick={async () => {
               const health = Number(defaultHealthPoints);
               const power = Number(defaultPowerPoints);
@@ -253,8 +344,12 @@ export function GLSettingsView() {
               setSavingKey('gameplay.default_health_points');
               setError('');
               try {
-                await apiGL('/api/gl/admin/settings/gameplay.default_health_points', 'PUT', { value: health });
-                await apiGL('/api/gl/admin/settings/gameplay.default_power_points', 'PUT', { value: power });
+                await apiGL('/api/gl/admin/settings/gameplay.default_health_points', 'PUT', {
+                  value: health,
+                });
+                await apiGL('/api/gl/admin/settings/gameplay.default_power_points', 'PUT', {
+                  value: power,
+                });
                 await load();
                 setSuccessMessage('Valeurs initiales enregistrées.');
               } catch (err) {
@@ -288,13 +383,19 @@ export function GLSettingsView() {
         <label>
           Re-déclenchement des questions sur repère
           <select
-            value={readSelectSetting(settings, 'gameplay.marker_question_retrigger', 'every_arrival')}
+            value={readSelectSetting(
+              settings,
+              'gameplay.marker_question_retrigger',
+              'every_arrival',
+            )}
             disabled={savingKey === 'gameplay.marker_question_retrigger'}
             onChange={async (event) => {
               const next = event.target.value;
               setSavingKey('gameplay.marker_question_retrigger');
               try {
-                await apiGL('/api/gl/admin/settings/gameplay.marker_question_retrigger', 'PUT', { value: next });
+                await apiGL('/api/gl/admin/settings/gameplay.marker_question_retrigger', 'PUT', {
+                  value: next,
+                });
                 await load();
               } catch (err) {
                 setError(err.message || 'Enregistrement impossible');
@@ -320,7 +421,9 @@ export function GLSettingsView() {
               const next = event.target.value;
               setSavingKey('gameplay.zone_content_retrigger');
               try {
-                await apiGL('/api/gl/admin/settings/gameplay.zone_content_retrigger', 'PUT', { value: next });
+                await apiGL('/api/gl/admin/settings/gameplay.zone_content_retrigger', 'PUT', {
+                  value: next,
+                });
                 await load();
               } catch (err) {
                 setError(err.message || 'Enregistrement impossible');
@@ -335,7 +438,8 @@ export function GLSettingsView() {
           </select>
         </label>
         <p className="gl-hint">
-          Contrôle l&apos;affichage du popover texte/images quand une équipe entre ou traverse une zone.
+          Contrôle l&apos;affichage du popover texte/images quand une équipe entre ou traverse une
+          zone.
         </p>
         <h4>Carnet de Sélène (lore)</h4>
         <label>
@@ -346,7 +450,9 @@ export function GLSettingsView() {
             onChange={async (event) => {
               setSavingKey('gameplay.lore_feuillet_retrigger');
               try {
-                await apiGL('/api/gl/admin/settings/gameplay.lore_feuillet_retrigger', 'PUT', { value: event.target.value });
+                await apiGL('/api/gl/admin/settings/gameplay.lore_feuillet_retrigger', 'PUT', {
+                  value: event.target.value,
+                });
                 await load();
               } catch (err) {
                 setError(err.message || 'Enregistrement impossible');
@@ -368,7 +474,9 @@ export function GLSettingsView() {
             onChange={async (event) => {
               setSavingKey('gameplay.lore_spoiler_max_level');
               try {
-                await apiGL('/api/gl/admin/settings/gameplay.lore_spoiler_max_level', 'PUT', { value: event.target.value });
+                await apiGL('/api/gl/admin/settings/gameplay.lore_spoiler_max_level', 'PUT', {
+                  value: event.target.value,
+                });
                 await load();
               } catch (err) {
                 setError(err.message || 'Enregistrement impossible');
@@ -395,7 +503,9 @@ export function GLSettingsView() {
               onChange={async (event) => {
                 setSavingKey(key);
                 try {
-                  await apiGL(`/api/gl/admin/settings/${key}`, 'PUT', { value: event.target.checked });
+                  await apiGL(`/api/gl/admin/settings/${key}`, 'PUT', {
+                    value: event.target.checked,
+                  });
                   await load();
                 } catch (err) {
                   setError(err.message || 'Enregistrement impossible');
@@ -409,16 +519,10 @@ export function GLSettingsView() {
         ))}
       </div>
 
-      <GLSpellCastSettings
-        settings={settings}
-        savingKey={savingKey}
-        onSaveSetting={saveSetting}
-      />
+      <GLSpellCastSettings settings={settings} savingKey={savingKey} onSaveSetting={saveSetting} />
 
       <h3>Modules GL</h3>
-      <p className="gl-hint">
-        Ces drapeaux activent/désactivent les modules GL côté interface.
-      </p>
+      <p className="gl-hint">Ces drapeaux activent/désactivent les modules GL côté interface.</p>
       <GLGameplayTogglesList
         toggles={MODULE_TOGGLES}
         isChecked={readGameplayFlag}

@@ -68,7 +68,18 @@ export function useTabNavigationGuards({
     if (tab === 'notebook' && observationsEnabled === false) setTab('map');
     if (tab === 'forum' && !canAccessForum) setTab('about');
     if (tab === 'media_library' && !effectiveIsTeacher) setTab('about');
-  }, [tab, tutorialsEnabled, statsEnabled, visitEnabled, observationsEnabled, forumEnabled, canAccessForum, canViewGeneralStats, effectiveIsTeacher, setTab]);
+  }, [
+    tab,
+    tutorialsEnabled,
+    statsEnabled,
+    visitEnabled,
+    observationsEnabled,
+    forumEnabled,
+    canAccessForum,
+    canViewGeneralStats,
+    effectiveIsTeacher,
+    setTab,
+  ]);
 
   /** Avec une zone/repère au focus, l'onglet Tuto est fusionné avec Tâches (navigation vers la vue Tâches). */
   useEffect(() => {

@@ -15,10 +15,17 @@ function runQuery(query) {
   let nextCalled = false;
   const res = {
     statusCode: 200,
-    status(c) { this.statusCode = c; return this; },
-    json() { return this; },
+    status(c) {
+      this.statusCode = c;
+      return this;
+    },
+    json() {
+      return this;
+    },
   };
-  validate({ query: glStatsClassQuerySchema })(req, res, () => { nextCalled = true; });
+  validate({ query: glStatsClassQuerySchema })(req, res, () => {
+    nextCalled = true;
+  });
   return { nextCalled, status: res.statusCode, validated: req.validatedQuery };
 }
 
@@ -30,7 +37,22 @@ function legacyRequestedClassId(raw) {
   return requested ? Number(requested) : null;
 }
 
-const EDGE_CASES = [undefined, '', '  ', 'abc', '0', '3', ' 7 ', '-1', '2.5', '999999', 'Infinity', '12abc', ['1', '2'], [' 4 ']];
+const EDGE_CASES = [
+  undefined,
+  '',
+  '  ',
+  'abc',
+  '0',
+  '3',
+  ' 7 ',
+  '-1',
+  '2.5',
+  '999999',
+  'Infinity',
+  '12abc',
+  ['1', '2'],
+  [' 4 '],
+];
 
 test('class_id : équivalence exacte avec la logique historique (NaN conservé), jamais de 400 issu du schéma', () => {
   for (const raw of EDGE_CASES) {
@@ -43,7 +65,7 @@ test('class_id : équivalence exacte avec la logique historique (NaN conservé),
     // l'ancien code tentait le lookup DB avec NaN au lieu de retomber sur la classe du token).
     assert.ok(
       Object.is(validated.class_id, legacyRequestedClassId(raw)),
-      `${label} : attendu ${legacyRequestedClassId(raw)}, obtenu ${validated.class_id}`
+      `${label} : attendu ${legacyRequestedClassId(raw)}, obtenu ${validated.class_id}`,
     );
   }
 });

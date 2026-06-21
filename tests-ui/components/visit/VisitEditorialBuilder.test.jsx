@@ -85,7 +85,9 @@ describe('VisitEditorialBuilder', () => {
   test('taille et légende d’un bloc image → onUpdate ciblé', () => {
     const { onUpdate } = setup();
     fireEvent.change(screen.getByRole('combobox'), { target: { value: 'sm' } });
-    fireEvent.change(screen.getByPlaceholderText('Légende du bloc (optionnel)'), { target: { value: 'X' } });
+    fireEvent.change(screen.getByPlaceholderText('Légende du bloc (optionnel)'), {
+      target: { value: 'X' },
+    });
     expect(onUpdate).toHaveBeenCalledWith('c', { size: 'sm' });
     expect(onUpdate).toHaveBeenCalledWith('c', { caption: 'X' });
   });

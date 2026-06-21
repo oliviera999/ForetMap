@@ -9,13 +9,32 @@ function mockReqRes({ body, query, params } = {}) {
   const res = {
     statusCode: 200,
     jsonBody: undefined,
-    status(code) { this.statusCode = code; return this; },
-    json(payload) { this.jsonBody = payload; return this; },
+    status(code) {
+      this.statusCode = code;
+      return this;
+    },
+    json(payload) {
+      this.jsonBody = payload;
+      return this;
+    },
   };
   let nextCalled = false;
   let nextErr;
-  const next = (err) => { nextCalled = true; nextErr = err; };
-  return { req, res, next, get nextCalled() { return nextCalled; }, get nextErr() { return nextErr; } };
+  const next = (err) => {
+    nextCalled = true;
+    nextErr = err;
+  };
+  return {
+    req,
+    res,
+    next,
+    get nextCalled() {
+      return nextCalled;
+    },
+    get nextErr() {
+      return nextErr;
+    },
+  };
 }
 
 test('validate: corps valide -> next() et req.body coerce', () => {

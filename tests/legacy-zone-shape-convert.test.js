@@ -21,13 +21,26 @@ describe('legacyZoneShapeConvert', () => {
   });
 
   it('conserve les points polygon existants', () => {
-    const raw = JSON.stringify([{ xp: 1, yp: 2 }, { xp: 3, yp: 4 }, { xp: 5, yp: 6 }]);
-    const out = resolveZonePointsJson({ shape: 'rect', points: raw, x: 1, y: 2, width: 3, height: 4 });
+    const raw = JSON.stringify([
+      { xp: 1, yp: 2 },
+      { xp: 3, yp: 4 },
+      { xp: 5, yp: 6 },
+    ]);
+    const out = resolveZonePointsJson({
+      shape: 'rect',
+      points: raw,
+      x: 1,
+      y: 2,
+      width: 3,
+      height: 4,
+    });
     assert.equal(out, raw);
   });
 
   it('mappe cultures vers living_beings', () => {
-    const cultures = parseCulturesJson('[{"plant":"Choux","stage":"growing"},{"plant":"Fèves","stage":"ready"}]');
+    const cultures = parseCulturesJson(
+      '[{"plant":"Choux","stage":"growing"},{"plant":"Fèves","stage":"ready"}]',
+    );
     assert.equal(cultures.length, 2);
     const mapped = mapZoneLivingFields({
       cultures: JSON.stringify(cultures),

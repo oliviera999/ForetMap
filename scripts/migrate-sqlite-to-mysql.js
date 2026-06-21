@@ -48,8 +48,15 @@ async function main() {
     await conn.query('SET FOREIGN_KEY_CHECKS = 0');
 
     const deleteOrder = [
-      'task_logs', 'task_assignments', 'zone_photos', 'zone_history',
-      'tasks', 'zones', 'users', 'plants', 'map_markers'
+      'task_logs',
+      'task_assignments',
+      'zone_photos',
+      'zone_history',
+      'tasks',
+      'zones',
+      'users',
+      'plants',
+      'map_markers',
     ];
     for (const table of deleteOrder) {
       await conn.query(`DELETE FROM \`${table}\``);
@@ -69,10 +76,22 @@ async function main() {
         `INSERT INTO zones (id, map_id, name, x, y, width, height, current_plant, living_beings, stage, special, shape, points, color, description)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
-          row.id, row.map_id, row.name, row.x, row.y, row.width, row.height,
-          row.current_plant, row.living_beings, row.stage, row.special, row.shape,
-          row.points, row.color, row.description,
-        ]
+          row.id,
+          row.map_id,
+          row.name,
+          row.x,
+          row.y,
+          row.width,
+          row.height,
+          row.current_plant,
+          row.living_beings,
+          row.stage,
+          row.special,
+          row.shape,
+          row.points,
+          row.color,
+          row.description,
+        ],
       );
       zonesInserted += 1;
     }
@@ -83,7 +102,7 @@ async function main() {
     for (const h of zoneHistory) {
       await conn.execute(
         'INSERT INTO zone_history (zone_id, plant, harvested_at) VALUES (?, ?, ?)',
-        [h.zone_id, h.plant, h.harvested_at]
+        [h.zone_id, h.plant, h.harvested_at],
       );
     }
     console.log('zone_history:', zoneHistory.length);
@@ -91,10 +110,12 @@ async function main() {
     // ─── plants ───
     const plants = sqlite.prepare('SELECT * FROM plants').all();
     for (const p of plants) {
-      await conn.execute(
-        'INSERT INTO plants (id, name, emoji, description) VALUES (?, ?, ?, ?)',
-        [p.id, p.name, p.emoji ?? null, p.description ?? null]
-      );
+      await conn.execute('INSERT INTO plants (id, name, emoji, description) VALUES (?, ?, ?, ?)', [
+        p.id,
+        p.name,
+        p.emoji ?? null,
+        p.description ?? null,
+      ]);
     }
     console.log('plants:', plants.length);
 
@@ -105,7 +126,14 @@ async function main() {
         `INSERT INTO users
           (id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name, description, avatar_path, affiliation, password_hash, auth_provider, is_active, last_seen, created_at, updated_at)
          VALUES (?, 'student', NULL, NULL, NULL, ?, ?, ?, NULL, NULL, 'both', ?, 'local', 1, ?, NOW(), NOW())`,
-        [s.id, s.first_name, s.last_name, `${s.first_name || ''} ${s.last_name || ''}`.trim(), s.password ?? null, s.last_seen ?? null]
+        [
+          s.id,
+          s.first_name,
+          s.last_name,
+          `${s.first_name || ''} ${s.last_name || ''}`.trim(),
+          s.password ?? null,
+          s.last_seen ?? null,
+        ],
       );
     }
     console.log('users/students:', students.length);
@@ -117,9 +145,15 @@ async function main() {
         `INSERT INTO tasks (id, title, description, zone_id, due_date, required_students, status, created_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         [
-          t.id, t.title, t.description ?? null, t.zone_id ?? null, t.due_date ?? null,
-          t.required_students ?? 1, t.status ?? 'available', t.created_at ?? null
-        ]
+          t.id,
+          t.title,
+          t.description ?? null,
+          t.zone_id ?? null,
+          t.due_date ?? null,
+          t.required_students ?? 1,
+          t.status ?? 'available',
+          t.created_at ?? null,
+        ],
       );
     }
     console.log('tasks:', tasks.length);
@@ -129,7 +163,13 @@ async function main() {
     for (const a of taskAssignments) {
       await conn.execute(
         'INSERT INTO task_assignments (task_id, student_id, student_first_name, student_last_name, assigned_at) VALUES (?, ?, ?, ?, ?)',
-        [a.task_id, a.student_id ?? null, a.student_first_name, a.student_last_name, a.assigned_at ?? null]
+        [
+          a.task_id,
+          a.student_id ?? null,
+          a.student_first_name,
+          a.student_last_name,
+          a.assigned_at ?? null,
+        ],
       );
     }
     console.log('task_assignments:', taskAssignments.length);
@@ -141,14 +181,22 @@ async function main() {
         `INSERT INTO task_logs (task_id, student_id, student_first_name, student_last_name, comment, image_path, created_at)
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
         [
-          l.task_id, l.student_id ?? null, l.student_first_name, l.student_last_name,
-          l.comment ?? null, null, l.created_at ?? null
-        ]
+          l.task_id,
+          l.student_id ?? null,
+          l.student_first_name,
+          l.student_last_name,
+          l.comment ?? null,
+          null,
+          l.created_at ?? null,
+        ],
       );
       if (l.image_data) {
         const relativePath = `task-logs/${l.task_id}_${inserted.insertId}.jpg`;
         saveBase64ToDisk(relativePath, l.image_data);
-        await conn.execute('UPDATE task_logs SET image_path = ? WHERE id = ?', [relativePath, inserted.insertId]);
+        await conn.execute('UPDATE task_logs SET image_path = ? WHERE id = ?', [
+          relativePath,
+          inserted.insertId,
+        ]);
       }
     }
     console.log('task_logs:', taskLogs.length);
@@ -158,12 +206,15 @@ async function main() {
     for (const p of zonePhotos) {
       const [inserted] = await conn.execute(
         'INSERT INTO zone_photos (zone_id, image_path, caption, uploaded_at) VALUES (?, ?, ?, ?)',
-        [p.zone_id, null, p.caption ?? '', p.uploaded_at ?? null]
+        [p.zone_id, null, p.caption ?? '', p.uploaded_at ?? null],
       );
       if (p.image_data) {
         const relativePath = `zones/${p.zone_id}/${inserted.insertId}.jpg`;
         saveBase64ToDisk(relativePath, p.image_data);
-        await conn.execute('UPDATE zone_photos SET image_path = ? WHERE id = ?', [relativePath, inserted.insertId]);
+        await conn.execute('UPDATE zone_photos SET image_path = ? WHERE id = ?', [
+          relativePath,
+          inserted.insertId,
+        ]);
       }
     }
     console.log('zone_photos:', zonePhotos.length);
@@ -181,9 +232,17 @@ async function main() {
         `INSERT INTO map_markers (id, map_id, x_pct, y_pct, label, plant_name, living_beings, note, emoji, created_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
-          row.id, row.map_id, row.x_pct, row.y_pct, row.label, row.plant_name,
-          row.living_beings, row.note, row.emoji, row.created_at,
-        ]
+          row.id,
+          row.map_id,
+          row.x_pct,
+          row.y_pct,
+          row.label,
+          row.plant_name,
+          row.living_beings,
+          row.note,
+          row.emoji,
+          row.created_at,
+        ],
       );
       markersInserted += 1;
     }

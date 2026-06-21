@@ -10,7 +10,9 @@ import React from 'react';
  * @param {{ source?: string }} [props.sourceMeta] métadonnées du champ (clé `source`)
  */
 export function PrefillSourceBadge({ sourceMeta }) {
-  const src = String(sourceMeta?.source || '').trim().toLowerCase();
+  const src = String(sourceMeta?.source || '')
+    .trim()
+    .toLowerCase();
   if (!src) return null;
   const isOpenAi = src === 'openai' || src === 'openai_gap';
   const label = isOpenAi ? '🧠 OpenAI' : `🔎 ${src}`;
@@ -29,9 +31,11 @@ export function PrefillSourceBadge({ sourceMeta }) {
         color: isOpenAi ? '#5b21b6' : '#155e75',
         border: `1px solid ${isOpenAi ? '#c4b5fd' : '#a5f3fc'}`,
       }}
-      title={isOpenAi
-        ? 'Champ proposé par OpenAI à partir du contexte multi-sources'
-        : `Champ proposé par la source ${src}`}
+      title={
+        isOpenAi
+          ? 'Champ proposé par OpenAI à partir du contexte multi-sources'
+          : `Champ proposé par la source ${src}`
+      }
     >
       {label}
     </span>

@@ -36,19 +36,11 @@ test('presentQuestion mélange les choix', () => {
 test('verifyPresentationAnswer valide la bonne réponse', () => {
   const presentation = presentQuestion(SAMPLE_QUESTION);
   const correctId = presentation.choices.findIndex((c) => c.text === 'Alpha');
-  const ok = verifyPresentationAnswer(
-    presentation.presentationToken,
-    'QCM0001',
-    correctId
-  );
+  const ok = verifyPresentationAnswer(presentation.presentationToken, 'QCM0001', correctId);
   assert.strictEqual(ok.correct, true);
 
   const wrongId = presentation.choices.findIndex((c) => c.text !== 'Alpha');
-  const ko = verifyPresentationAnswer(
-    presentation.presentationToken,
-    'QCM0001',
-    wrongId
-  );
+  const ko = verifyPresentationAnswer(presentation.presentationToken, 'QCM0001', wrongId);
   assert.strictEqual(ko.correct, false);
 });
 
@@ -60,26 +52,22 @@ test('resolveQcmAnswerFeedback utilise le feedback du choix sélectionné', () =
   };
   assert.strictEqual(
     resolveQcmAnswerFeedback(row, { correct: true, selectedLetter: 'A' }),
-    'Exact !'
+    'Exact !',
   );
   assert.strictEqual(
     resolveQcmAnswerFeedback(row, { correct: false, selectedLetter: 'B' }),
-    'Msg B'
+    'Msg B',
   );
   assert.match(
     resolveQcmAnswerFeedback(row, { correct: false, selectedLetter: null }),
-    /pas la bonne/i
+    /pas la bonne/i,
   );
 });
 
 test('verifyPresentationAnswer expose selectedLetter via JWT', () => {
   const presentation = presentQuestion(SAMPLE_QUESTION);
   const wrongId = presentation.choices.findIndex((c) => c.text !== 'Alpha');
-  const ko = verifyPresentationAnswer(
-    presentation.presentationToken,
-    'QCM0001',
-    wrongId
-  );
+  const ko = verifyPresentationAnswer(presentation.presentationToken, 'QCM0001', wrongId);
   assert.strictEqual(ko.correct, false);
   assert.ok(ko.selectedLetter);
   assert.notStrictEqual(ko.selectedLetter, 'A');

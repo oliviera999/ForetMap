@@ -35,7 +35,9 @@ const AUDIO_BY_PLATEAU_BIOME = {
 };
 
 export function inferSaisonFromBiomeSlug(biomeSlug) {
-  const raw = String(biomeSlug || '').trim().toLowerCase();
+  const raw = String(biomeSlug || '')
+    .trim()
+    .toLowerCase();
   if (!raw) return null;
   if (raw.includes('hiver')) return 'hiver';
   if (raw.includes('ete') || raw.includes('été')) return 'ete';
@@ -54,7 +56,12 @@ function pickExistingKey(candidates, knownSlugs) {
   return null;
 }
 
-export function resolvePlateauAudioSlug(plateauNumber, biomeSlug = null, saison = null, knownSlugs = []) {
+export function resolvePlateauAudioSlug(
+  plateauNumber,
+  biomeSlug = null,
+  saison = null,
+  knownSlugs = [],
+) {
   const n = Number(plateauNumber);
   if (!Number.isFinite(n) || n < 1 || n > 5) return null;
 
@@ -78,9 +85,7 @@ export function resolvePlateauAudioSlug(plateauNumber, biomeSlug = null, saison 
   }
 
   const prefix = `plateau-${n}_`;
-  const prefixMatches = [...set]
-    .filter((slug) => slug.startsWith(prefix))
-    .sort();
+  const prefixMatches = [...set].filter((slug) => slug.startsWith(prefix)).sort();
   if (prefixMatches.length > 0) return prefixMatches[0];
 
   return pickExistingKey([plateauMap._default], set);
@@ -88,8 +93,10 @@ export function resolvePlateauAudioSlug(plateauNumber, biomeSlug = null, saison 
 
 export function resolveIntroAudioSlug(knownSlugs = []) {
   const set = knownSlugs instanceof Set ? knownSlugs : new Set(knownSlugs || []);
-  return pickExistingKey(['intro_ambiance', 'intro_loop', 'intro_01_la-boite'], set)
-    || [...set].find((slug) => slug.startsWith('intro_') && slug.includes('audio'))
-    || [...set].filter((slug) => slug.startsWith('intro_')).sort()[0]
-    || null;
+  return (
+    pickExistingKey(['intro_ambiance', 'intro_loop', 'intro_01_la-boite'], set) ||
+    [...set].find((slug) => slug.startsWith('intro_') && slug.includes('audio')) ||
+    [...set].filter((slug) => slug.startsWith('intro_')).sort()[0] ||
+    null
+  );
 }

@@ -14,18 +14,18 @@ Ce document décrit l'architecture du second mode **Gnomes & Licornes** (GL) dan
 
 Couches **autorisées** (sans fusionner auth, thème `gl-theme` ni catalogues métier) :
 
-| Couche | Emplacement | Usage |
-|--------|-------------|--------|
-| Infra | `server.js`, `database.js`, `lib/productResolver.js` | Un serveur, isolation JWT `product` |
-| Utilitaires | `src/utils/image.js` (`IMAGE_COMPRESSION_PRESETS`), `markdown.js`, `visitMascotState.js`, `mapViewMascotMotion.js` | ForetMap + imports depuis `src/gl/` |
-| Noyaux | `src/shared/*`, `lib/shared/*Core.js` | Parité front/back (cadres image, repères, etc.) |
-| Packs mascotte | `src/shared/mascot-pack/` (validation UI, preview sprite_cut), `src/utils/glMascotPackToVisit.js` | Studio GL + mapper `sprite_cut` → format visite |
-| Miroir serveur GL | `lib/gl-pack/mascotPack.js` via **`npm run sync:gl-pack-lib`** (enchaîné par **`npm run build`**) | Validation Zod `/api/gl/mascots/packs*` sans `src/` |
-| Miroir serveur visite | `lib/visit-pack/` via **`npm run sync:visit-pack-lib`** | Validation packs visite |
-| Renderer mascotte | `VisitMapMascotRenderer` via `GLMascotRenderer` | Mascottes `foretmap` dans le plateau GL |
-| Collab | `lib/shared/contextCommentsCore.js`, `lib/shared/reactionEmojiCore.js` | Routeurs fins `routes/context-comments.js` et `routes/gl/context-comments.js` |
-| Progression lecture | `lib/shared/learningAckCore.js`, `src/shared/components/LearningAcknowledgeButton.jsx` | Accusés « lu / appris / étudié » (ForêtMap tutos + GL espèces, glossaire, tutos via `routes/gl/learning.js` et table `gl_learning_acknowledgements`) |
-| Statistiques joueurs | `lib/glPlayerStats.js`, `routes/gl/stats.js`, `src/gl/components/GLStatsView.jsx` | Stats perso (`GET /api/gl/stats/me`) et collectives classe (`GET /api/gl/stats/class`, permission `gl.players.manage`) — vitalité + apprentissages |
+| Couche                | Emplacement                                                                                                        | Usage                                                                                                                                                |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Infra                 | `server.js`, `database.js`, `lib/productResolver.js`                                                               | Un serveur, isolation JWT `product`                                                                                                                  |
+| Utilitaires           | `src/utils/image.js` (`IMAGE_COMPRESSION_PRESETS`), `markdown.js`, `visitMascotState.js`, `mapViewMascotMotion.js` | ForetMap + imports depuis `src/gl/`                                                                                                                  |
+| Noyaux                | `src/shared/*`, `lib/shared/*Core.js`                                                                              | Parité front/back (cadres image, repères, etc.)                                                                                                      |
+| Packs mascotte        | `src/shared/mascot-pack/` (validation UI, preview sprite_cut), `src/utils/glMascotPackToVisit.js`                  | Studio GL + mapper `sprite_cut` → format visite                                                                                                      |
+| Miroir serveur GL     | `lib/gl-pack/mascotPack.js` via **`npm run sync:gl-pack-lib`** (enchaîné par **`npm run build`**)                  | Validation Zod `/api/gl/mascots/packs*` sans `src/`                                                                                                  |
+| Miroir serveur visite | `lib/visit-pack/` via **`npm run sync:visit-pack-lib`**                                                            | Validation packs visite                                                                                                                              |
+| Renderer mascotte     | `VisitMapMascotRenderer` via `GLMascotRenderer`                                                                    | Mascottes `foretmap` dans le plateau GL                                                                                                              |
+| Collab                | `lib/shared/contextCommentsCore.js`, `lib/shared/reactionEmojiCore.js`                                             | Routeurs fins `routes/context-comments.js` et `routes/gl/context-comments.js`                                                                        |
+| Progression lecture   | `lib/shared/learningAckCore.js`, `src/shared/components/LearningAcknowledgeButton.jsx`                             | Accusés « lu / appris / étudié » (ForêtMap tutos + GL espèces, glossaire, tutos via `routes/gl/learning.js` et table `gl_learning_acknowledgements`) |
+| Statistiques joueurs  | `lib/glPlayerStats.js`, `routes/gl/stats.js`, `src/gl/components/GLStatsView.jsx`                                  | Stats perso (`GET /api/gl/stats/me`) et collectives classe (`GET /api/gl/stats/class`, permission `gl.players.manage`) — vitalité + apprentissages   |
 
 **À ne pas mutualiser** : tables `gl_*`, RBAC GL, catalogue `glMascotCatalog.js` (ids `gl-*`), styles couleur GL.
 
@@ -101,17 +101,17 @@ Les endpoints GL exigent un JWT avec claim `product = "gl"`.
 
 Chaque toggle est une clé dans `gl_settings` (modifiable via `PUT /api/gl/admin/settings/:key`, permission `gl.settings.manage`). Tous **désactivés par défaut** → comportement minimal (déplacement de mascotte uniquement, comme avant Lot 2A).
 
-| Toggle (clé `gl_settings`) | Effet quand `true` |
-|---|---|
-| `gameplay.turns_enabled` | Active la rotation cyclique des équipes (`current_team_id` sur `gl_games`, événement `turn_change`). Les actions joueurs (si activées) ne sont autorisées que pour l'équipe du tour courant. |
-| `gameplay.narration_enabled` | Le MJ peut envoyer un événement `narration` (texte affiché en bandeau temporaire chez les joueurs). |
-| `gameplay.player_actions_enabled` | Les joueurs peuvent soumettre une demande d'action sur un marker via la modale carte ; insérée dans `gl_action_requests` (`status=pending`). |
-| `gameplay.scoring_enabled` | Activation du tableau de scores par équipe (`gl_team_scores`) ; bonus possible à la résolution d'une action acceptée. |
-| `gameplay.vitality_enabled` | Points de vie (❤️) et points de pouvoir (💎) **persistants par joueur** (`gl_players`) ; ajustements MJ par joueur ou par équipe (`POST .../vitality/player`, `POST .../vitality/team`), événement `vitality_change`. Pas de réinitialisation entre les parties. |
-| `gameplay.default_health_points` | PV initiaux des **nouveaux** joueurs (entier 0–99, défaut `3`). |
-| `gameplay.default_power_points` | PP initiaux des **nouveaux** joueurs (entier 0–99, défaut `3`). |
-| `gameplay.qcm_mj_only` | Seul le staff MJ peut présenter et valider les QCM en partie (`present-question`, `qcm/answer`) ; les joueurs n’ont plus le popover à l’arrivée sur un repère. |
-| `gameplay.spell_cast_mj_only` | Seul le staff MJ peut ouvrir l’assistant de lancement de sortilèges. |
+| Toggle (clé `gl_settings`)        | Effet quand `true`                                                                                                                                                                                                                                               |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `gameplay.turns_enabled`          | Active la rotation cyclique des équipes (`current_team_id` sur `gl_games`, événement `turn_change`). Les actions joueurs (si activées) ne sont autorisées que pour l'équipe du tour courant.                                                                     |
+| `gameplay.narration_enabled`      | Le MJ peut envoyer un événement `narration` (texte affiché en bandeau temporaire chez les joueurs).                                                                                                                                                              |
+| `gameplay.player_actions_enabled` | Les joueurs peuvent soumettre une demande d'action sur un marker via la modale carte ; insérée dans `gl_action_requests` (`status=pending`).                                                                                                                     |
+| `gameplay.scoring_enabled`        | Activation du tableau de scores par équipe (`gl_team_scores`) ; bonus possible à la résolution d'une action acceptée.                                                                                                                                            |
+| `gameplay.vitality_enabled`       | Points de vie (❤️) et points de pouvoir (💎) **persistants par joueur** (`gl_players`) ; ajustements MJ par joueur ou par équipe (`POST .../vitality/player`, `POST .../vitality/team`), événement `vitality_change`. Pas de réinitialisation entre les parties. |
+| `gameplay.default_health_points`  | PV initiaux des **nouveaux** joueurs (entier 0–99, défaut `3`).                                                                                                                                                                                                  |
+| `gameplay.default_power_points`   | PP initiaux des **nouveaux** joueurs (entier 0–99, défaut `3`).                                                                                                                                                                                                  |
+| `gameplay.qcm_mj_only`            | Seul le staff MJ peut présenter et valider les QCM en partie (`present-question`, `qcm/answer`) ; les joueurs n’ont plus le popover à l’arrivée sur un repère.                                                                                                   |
+| `gameplay.spell_cast_mj_only`     | Seul le staff MJ peut ouvrir l’assistant de lancement de sortilèges.                                                                                                                                                                                             |
 
 **Profils de séance** : combinaisons recommandées applicables en un clic dans Réglages GL — voir [GL_GAMEPLAY_PRESETS.md](GL_GAMEPLAY_PRESETS.md).
 
@@ -196,14 +196,14 @@ Tables GL préfixées `gl_` :
 
 #### Quand utiliser quoi (effets visuels)
 
-| Besoin | Classe / composant |
-|--------|-------------------|
+| Besoin        | Classe / composant                                                       |
+| ------------- | ------------------------------------------------------------------------ |
 | Entrée de vue | `.fade-in` sur un wrapper (ex. `.gl-main-inner`, pas sur `<main>` fixed) |
-| Liste décalée | `.stagger` |
-| Modale | `DialogShell` + `fm-modal-overlay` / `fm-modal-panel` |
-| Toast fixe | `FixedToast` ou `.fm-toast-anchor` + `.fm-toast` |
-| Pulse aide | `.is-attention-pulse` |
-| Stats animées | keyframe `statPop` via `.stat-card` / `.gl-stat-card` |
+| Liste décalée | `.stagger`                                                               |
+| Modale        | `DialogShell` + `fm-modal-overlay` / `fm-modal-panel`                    |
+| Toast fixe    | `FixedToast` ou `.fm-toast-anchor` + `.fm-toast`                         |
+| Pulse aide    | `.is-attention-pulse`                                                    |
+| Stats animées | keyframe `statPop` via `.stat-card` / `.gl-stat-card`                    |
 
 - Hook partagé : [`src/shared/hooks/usePrefersReducedMotion.js`](../src/shared/hooks/usePrefersReducedMotion.js) (popovers, plateau, etc.).
 - Variables modale/toast thématisées sous `.gl-app` : `--fm-modal-*`, `--fm-toast-*`.
@@ -219,17 +219,17 @@ Tables GL préfixées `gl_` :
 
 Deux lexiques **distincts** : glossaire SVT (`gl_glossary_*`, routes `/api/gl/glossary/*`) et glossaire lore (`gl_lore_glossary_*`, routes `/api/gl/lore/glossary/*`). Seul le rendu des feuillets combine les auto-liens (SVT sur `ancrage_scientifique`, lore sur `texte`).
 
-| Couche | Emplacement | Rôle |
-|--------|-------------|------|
-| Schéma | migration `117_gl_lore_carnet.sql` | `gl_lore_plateaux`, `gl_lore_feuillets`, `gl_lore_glossary_terms`, `gl_lore_glossary_relations`, `gl_game_feuillet_states` ; surcharges partie sur `gl_games` (`lore_*`) |
-| Import | `lib/glLoreFeuilletsImport.js`, `lib/glLoreGlossaryImport.js` | XLSX `data/gl/corpus-feuillets-selene.xlsx`, `glossaire-lore-gnomes-et-licornes.xlsx` ; scripts `npm run gl:import:lore-feuillets`, `gl:import:lore-glossary` |
-| Runtime | `lib/glLoreFeuillets.js`, `glLoreFeuilletRetrigger.js`, `glLoreFeuilletEffects.js`, `glLoreGlossaryMatch.js` | Progression, re-déclenchement, effacement/gemmes/cœurs, filtre spoiler |
-| API | `routes/gl/lore.js` (`/api/gl/lore/*`) | Lecture feuillets/glossaire, `present`/`read`/`hold`, admin import/export |
-| Réglages | `lib/glSettings.js`, `GLSettingsView`, console MJ | Modules `lore_carnet_enabled`, `lore_glossary_enabled` ; gameplay `lore_feuillet_retrigger`, `lore_effacement_enabled`, `lore_gemme_costs_enabled`, `lore_heart_rewards_enabled`, `lore_spoiler_max_level` ; cascade NULL sur `gl_games` → plateforme |
-| Carte | `useGLLoreFeuilletArrival`, `GLFeuilletDiscoveryPopover` | Déclenchement à l’entrée zone (`kingdom_zone_id` ou heuristique `zone_label` / `plateau_number` / `biome_slug`) |
-| UI joueur | `GLSeleneCarnetView`, `GLLoreGlossaryView`, `GLLoreGlossaryPopover`, `GLLoreGlossaryMarkdown` | Onglets `selene-carnet`, `lore-glossary` ; styles `mode_apparition` / effacement dans `gl-theme.css` |
-| Admin | `GLContentsAdminView` (sous-onglets Carnet Sélène / Glossaire lore), `GLKingdomZoneFeuilletLinker` | Import XLSX, liaison feuillet ↔ zone polygonale |
-| Journal | `lib/glJournalPresent.js` | Types `feuillet_discovered`, `feuillet_read`, `feuillet_held`, `feuillet_effaced` |
+| Couche    | Emplacement                                                                                                  | Rôle                                                                                                                                                                                                                                                  |
+| --------- | ------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Schéma    | migration `117_gl_lore_carnet.sql`                                                                           | `gl_lore_plateaux`, `gl_lore_feuillets`, `gl_lore_glossary_terms`, `gl_lore_glossary_relations`, `gl_game_feuillet_states` ; surcharges partie sur `gl_games` (`lore_*`)                                                                              |
+| Import    | `lib/glLoreFeuilletsImport.js`, `lib/glLoreGlossaryImport.js`                                                | XLSX `data/gl/corpus-feuillets-selene.xlsx`, `glossaire-lore-gnomes-et-licornes.xlsx` ; scripts `npm run gl:import:lore-feuillets`, `gl:import:lore-glossary`                                                                                         |
+| Runtime   | `lib/glLoreFeuillets.js`, `glLoreFeuilletRetrigger.js`, `glLoreFeuilletEffects.js`, `glLoreGlossaryMatch.js` | Progression, re-déclenchement, effacement/gemmes/cœurs, filtre spoiler                                                                                                                                                                                |
+| API       | `routes/gl/lore.js` (`/api/gl/lore/*`)                                                                       | Lecture feuillets/glossaire, `present`/`read`/`hold`, admin import/export                                                                                                                                                                             |
+| Réglages  | `lib/glSettings.js`, `GLSettingsView`, console MJ                                                            | Modules `lore_carnet_enabled`, `lore_glossary_enabled` ; gameplay `lore_feuillet_retrigger`, `lore_effacement_enabled`, `lore_gemme_costs_enabled`, `lore_heart_rewards_enabled`, `lore_spoiler_max_level` ; cascade NULL sur `gl_games` → plateforme |
+| Carte     | `useGLLoreFeuilletArrival`, `GLFeuilletDiscoveryPopover`                                                     | Déclenchement à l’entrée zone (`kingdom_zone_id` ou heuristique `zone_label` / `plateau_number` / `biome_slug`)                                                                                                                                       |
+| UI joueur | `GLSeleneCarnetView`, `GLLoreGlossaryView`, `GLLoreGlossaryPopover`, `GLLoreGlossaryMarkdown`                | Onglets `selene-carnet`, `lore-glossary` ; styles `mode_apparition` / effacement dans `gl-theme.css`                                                                                                                                                  |
+| Admin     | `GLContentsAdminView` (sous-onglets Carnet Sélène / Glossaire lore), `GLKingdomZoneFeuilletLinker`           | Import XLSX, liaison feuillet ↔ zone polygonale                                                                                                                                                                                                       |
+| Journal   | `lib/glJournalPresent.js`                                                                                    | Types `feuillet_discovered`, `feuillet_read`, `feuillet_held`, `feuillet_effaced`                                                                                                                                                                     |
 
 **Zone narrative vs zone carte** : le champ Excel `zone` alimente `zone_label` / `plateau_number` ; la FK `kingdom_zone_id` reste NULL jusqu’à assignation admin (studio carte).
 

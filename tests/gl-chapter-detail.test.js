@@ -18,13 +18,15 @@ before(async () => {
     `INSERT INTO gl_admins (email, display_name, role, is_active, created_at, updated_at)
      VALUES (?, 'MJ Chapter Detail', 'admin', 1, NOW(), NOW())
      ON DUPLICATE KEY UPDATE is_active = 1, updated_at = NOW()`,
-    [`chapter.mj.${stamp}@ecole.local`]
+    [`chapter.mj.${stamp}@ecole.local`],
   );
-  const admin = await queryOne('SELECT id FROM gl_admins WHERE email = ? LIMIT 1', [`chapter.mj.${stamp}@ecole.local`]);
+  const admin = await queryOne('SELECT id FROM gl_admins WHERE email = ? LIMIT 1', [
+    `chapter.mj.${stamp}@ecole.local`,
+  ]);
   await execute(
     `INSERT INTO gl_classes (name, school, created_by, is_active, created_at, updated_at)
      VALUES (?, 'Ecole', ?, 1, NOW(), NOW())`,
-    [`Classe Chapter ${stamp}`, admin.id]
+    [`Classe Chapter ${stamp}`, admin.id],
   );
   const cls = await queryOne('SELECT id FROM gl_classes ORDER BY id DESC LIMIT 1');
   const player = await createGlPlayer({

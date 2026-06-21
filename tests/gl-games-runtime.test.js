@@ -10,31 +10,28 @@
 // sont couverts par les tests DB en CI.
 const test = require('node:test');
 const assert = require('node:assert');
-const {
-  resolveRosterError,
-  recordVitalityChangeEvent,
-} = require('../lib/gl/gamesRuntime');
+const { resolveRosterError, recordVitalityChangeEvent } = require('../lib/gl/gamesRuntime');
 
 test('resolveRosterError mappe les 404 connus vers leur message FR', () => {
-  assert.deepStrictEqual(
-    resolveRosterError({ status: 404, message: 'TEAM_NOT_FOUND' }),
-    { status: 404, error: 'Équipe introuvable' }
-  );
-  assert.deepStrictEqual(
-    resolveRosterError({ status: 404, message: 'PLAYER_NOT_FOUND' }),
-    { status: 404, error: 'Joueur introuvable' }
-  );
-  assert.deepStrictEqual(
-    resolveRosterError({ status: 404, message: 'GAME_NOT_FOUND' }),
-    { status: 404, error: 'Partie introuvable' }
-  );
+  assert.deepStrictEqual(resolveRosterError({ status: 404, message: 'TEAM_NOT_FOUND' }), {
+    status: 404,
+    error: 'Équipe introuvable',
+  });
+  assert.deepStrictEqual(resolveRosterError({ status: 404, message: 'PLAYER_NOT_FOUND' }), {
+    status: 404,
+    error: 'Joueur introuvable',
+  });
+  assert.deepStrictEqual(resolveRosterError({ status: 404, message: 'GAME_NOT_FOUND' }), {
+    status: 404,
+    error: 'Partie introuvable',
+  });
 });
 
 test('resolveRosterError : 404 inconnu → message générique', () => {
-  assert.deepStrictEqual(
-    resolveRosterError({ status: 404, message: 'WHATEVER' }),
-    { status: 404, error: 'Ressource introuvable' }
-  );
+  assert.deepStrictEqual(resolveRosterError({ status: 404, message: 'WHATEVER' }), {
+    status: 404,
+    error: 'Ressource introuvable',
+  });
 });
 
 test('resolveRosterError : 409 ou PLAYER_CLASS_MISMATCH → 409 classe', () => {
@@ -52,7 +49,9 @@ test('resolveRosterError : erreur non mappée → null (relancée par le handler
 test('recordVitalityChangeEvent insère un event vitality_change avec le payload normalisé', async () => {
   const calls = [];
   const tx = {
-    async execute(sql, params) { calls.push({ sql, params }); },
+    async execute(sql, params) {
+      calls.push({ sql, params });
+    },
   };
   await recordVitalityChangeEvent(tx, {
     gameId: 7,
@@ -81,7 +80,11 @@ test('recordVitalityChangeEvent insère un event vitality_change avec le payload
 
 test('recordVitalityChangeEvent : deltas nuls/absents → 0, reason vide → null', async () => {
   const calls = [];
-  const tx = { async execute(sql, params) { calls.push(params); } };
+  const tx = {
+    async execute(sql, params) {
+      calls.push(params);
+    },
+  };
   await recordVitalityChangeEvent(tx, {
     gameId: 1,
     teamId: null,

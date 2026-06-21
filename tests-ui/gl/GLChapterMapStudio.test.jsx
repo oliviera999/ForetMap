@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, test, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 
 const apiGlMock = vi.fn();
 
@@ -50,12 +50,18 @@ describe('GLChapterMapStudio', () => {
     apiGlMock.mockImplementation(async (url) => {
       if (String(url).includes('/api/gl/kingdom-map/zones')) {
         return {
-          zones: [{
-            id: 1,
-            label: 'Zone test',
-            color: '#22c55e',
-            points: [{ x: 10, y: 10 }, { x: 20, y: 10 }, { x: 15, y: 20 }],
-          }],
+          zones: [
+            {
+              id: 1,
+              label: 'Zone test',
+              color: '#22c55e',
+              points: [
+                { x: 10, y: 10 },
+                { x: 20, y: 10 },
+                { x: 15, y: 20 },
+              ],
+            },
+          ],
         };
       }
       return { items: [] };
@@ -82,5 +88,86 @@ describe('GLChapterMapStudio', () => {
     });
     expect(screen.getByRole('button', { name: /Ajouter un repère/i })).toBeTruthy();
     expect(screen.getByText('Zone test')).toBeTruthy();
+  });
+
+  test('déplace un repère sélectionné au clic sur la carte', async () => {
+    const onReload = vi.fn();
+    const onInfo = vi.fn();
+    render(
+      <GLChapterMapStudio
+        chapterId={42}
+        chapterSlug="foret-magique"
+        chapterTitle="Forêt magique"
+        mapImageUrl="/maps/map-foret.svg"
+        markers={[{ id: 9, label: 'Repère test', x_pct: 10, y_pct: 20, order_index: 0 }]}
+        zoneMusicEnabled={false}
+        onReload={onReload}
+        onError={vi.fn()}
+        onInfo={onInfo}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /Repère test/i })).toBeTruthy();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /Repère test/i }));
+    fireEvent.click(screen.getByTestId('map-canvas'));
+
+    await waitFor(() => {
+      expect(apiGlMock).toHaveBeenCalledWith(
+        '/api/gl/chapters/admin/markers/9',
+        'PUT',
+        expect.objectContaining({ xPct: 50, yPct: 50 }),
+      );
+    });
+    expect(onInfo).toHaveBeenCalledWith('Position du repère mise à jour');
+  });
+
+  test('duplique un repère depuis la liste', async () => {
+    const onReload = vi.fn();
+    const onInfo = vi.fn();
+    render(
+      <GLChapterMapStudio
+        chapterId={42}
+        chapterSlug="foret-magique"
+        chapterTitle="Forêt magique"
+        mapImageUrl="/maps/map-foret.svg"
+        markers={[
+          {
+            id: 9,
+            label: 'Repère test',
+            x_pct: 10,
+            y_pct: 20,
+            order_index: 0,
+            event_type: 'question',
+            event_config: { version: 1 },
+          },
+        ]}
+        zoneMusicEnabled={false}
+        onReload={onReload}
+        onError={vi.fn()}
+        onInfo={onInfo}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /^Dupliquer$/i })).toBeTruthy();
+    });
+
+    fireEvent.click(screen.getAllByRole('button', { name: /^Dupliquer$/i })[0]);
+
+    await waitFor(() => {
+      expect(apiGlMock).toHaveBeenCalledWith(
+        '/api/gl/chapters/admin/42/markers',
+        'POST',
+        expect.objectContaining({
+          label: 'Repère test (copie)',
+          xPct: 13,
+          yPct: 23,
+        }),
+      );
+    });
+    expect(onInfo).toHaveBeenCalledWith('Repère dupliqué');
   });
 });

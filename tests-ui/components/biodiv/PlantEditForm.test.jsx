@@ -5,7 +5,9 @@ import { api } from '../../../src/services/api';
 import { EMPTY_PLANT_FORM } from '../../../src/utils/plantFormValues.js';
 
 vi.mock('../../../src/services/api', () => ({ api: vi.fn(async () => ({})) }));
-vi.mock('../../../src/utils/image', () => ({ compressImageWithPreset: vi.fn(async () => 'data:image/jpeg;base64,XXX') }));
+vi.mock('../../../src/utils/image', () => ({
+  compressImageWithPreset: vi.fn(async () => 'data:image/jpeg;base64,XXX'),
+}));
 vi.mock('../../../src/utils/overlayHistory', () => ({
   armNativeFilePickerGuard: vi.fn(),
   disarmNativeFilePickerGuard: vi.fn(),
@@ -39,7 +41,9 @@ function setup(overrides = {}) {
 /** Input file caché du bouton (`📁 Galerie` ou `📸 Appareil photo`) du champ photo `label`. */
 function photoFileInput(buttonText, fieldLabel) {
   const field = screen.getByText(`${fieldLabel} (URL directe)`).closest('.field');
-  const btn = Array.from(field.querySelectorAll('label.btn')).find((l) => l.textContent.includes(buttonText));
+  const btn = Array.from(field.querySelectorAll('label.btn')).find((l) =>
+    l.textContent.includes(buttonText),
+  );
   return btn.querySelector('input[type=file]');
 }
 
@@ -65,9 +69,13 @@ describe('PlantEditForm', () => {
   test('saisie du nom et clic emoji → setForm (updater fonctionnel)', () => {
     // L'updater lit e.target.value : on l'applique pendant l'événement (input contrôlé).
     let applied = null;
-    const setForm = vi.fn((updater) => { applied = updater({ ...EMPTY_PLANT_FORM }); });
+    const setForm = vi.fn((updater) => {
+      applied = updater({ ...EMPTY_PLANT_FORM });
+    });
     setup({ setForm });
-    fireEvent.change(screen.getByPlaceholderText('Ex: Aubergine'), { target: { value: 'Pommier' } });
+    fireEvent.change(screen.getByPlaceholderText('Ex: Aubergine'), {
+      target: { value: 'Pommier' },
+    });
     expect(setForm).toHaveBeenCalled();
     expect(applied).toMatchObject({ name: 'Pommier' });
 
@@ -88,7 +96,9 @@ describe('PlantEditForm', () => {
     api.mockResolvedValueOnce({ url: '/uploads/p.jpg' });
     const { onToast, setForm } = setup();
     const input = photoFileInput('📸 Appareil photo', 'Photo (générale)');
-    fireEvent.change(input, { target: { files: [new File(['x'], 'p.jpg', { type: 'image/jpeg' })] } });
+    fireEvent.change(input, {
+      target: { files: [new File(['x'], 'p.jpg', { type: 'image/jpeg' })] },
+    });
     await waitFor(() => {
       expect(api).toHaveBeenCalledWith('/api/plants/42/photo-upload', 'POST', {
         field: 'photo',
@@ -103,9 +113,11 @@ describe('PlantEditForm', () => {
   test('upload sans plantId ni onEnsurePlantId → toast de garde, aucun appel serveur', async () => {
     const { onToast } = setup({ plantId: null });
     const input = photoFileInput('📸 Appareil photo', 'Photo espèce');
-    fireEvent.change(input, { target: { files: [new File(['x'], 'p.jpg', { type: 'image/jpeg' })] } });
+    fireEvent.change(input, {
+      target: { files: [new File(['x'], 'p.jpg', { type: 'image/jpeg' })] },
+    });
     await waitFor(() => {
-      expect(onToast).toHaveBeenCalledWith('Crée d\'abord la fiche, puis ajoute les photos.');
+      expect(onToast).toHaveBeenCalledWith("Crée d'abord la fiche, puis ajoute les photos.");
     });
     expect(api).not.toHaveBeenCalled();
   });
@@ -119,7 +131,17 @@ describe('PlantEditForm', () => {
     ];
     fireEvent.change(input, { target: { files } });
     await waitFor(() => expect(onToast).toHaveBeenCalledWith('2 photos importées ✓'));
-    expect(api).toHaveBeenNthCalledWith(1, '/api/plants/42/photo-upload', 'POST', expect.objectContaining({ field: 'photo_species', position: 'append' }));
-    expect(api).toHaveBeenNthCalledWith(2, '/api/plants/42/photo-upload', 'POST', expect.objectContaining({ field: 'photo_leaf', position: 'append' }));
+    expect(api).toHaveBeenNthCalledWith(
+      1,
+      '/api/plants/42/photo-upload',
+      'POST',
+      expect.objectContaining({ field: 'photo_species', position: 'append' }),
+    );
+    expect(api).toHaveBeenNthCalledWith(
+      2,
+      '/api/plants/42/photo-upload',
+      'POST',
+      expect.objectContaining({ field: 'photo_leaf', position: 'append' }),
+    );
   });
 });

@@ -20,7 +20,8 @@ const OAUTH_ERROR_MESSAGES = {
   oauth_claims_invalid: 'Connexion Google refusée (compte non vérifié).',
   oauth_email_not_allowed: 'Adresse Google non autorisée.',
   oauth_gl_staff_denied: 'Ce compte Google n’a pas accès Gnomes & Licornes.',
-  oauth_gl_player_denied: 'Aucun compte joueur Gnomes & Licornes n’est associé à cette adresse Google.',
+  oauth_gl_player_denied:
+    'Aucun compte joueur Gnomes & Licornes n’est associé à cette adresse Google.',
   oauth_gl_login_denied: 'Ce compte Google n’a pas accès Gnomes & Licornes.',
   oauth_server_error: 'Erreur serveur pendant la connexion Google.',
 };
@@ -49,6 +50,7 @@ export function GLAuthView({ onLogin, oauthNotice, config, appVersion = null }) 
   const [modules, setModules] = useState(config?.modules || null);
   const [modulesLoaded, setModulesLoaded] = useState(Boolean(config?.modules));
   const [allowGoogle, setAllowGoogle] = useState(false);
+  const [guestModeEnabled, setGuestModeEnabled] = useState(Boolean(config?.guestModeEnabled));
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
   const [busy, setBusy] = useState(false);
@@ -59,8 +61,10 @@ export function GLAuthView({ onLogin, oauthNotice, config, appVersion = null }) 
   const [forceIntro, setForceIntro] = useState(false);
   const [introDismissed, setIntroDismissed] = useState(false);
 
-  const introModuleEnabled = modulesLoaded && isModuleEnabled(modules || config?.modules, 'introEnabled');
-  const shouldShowIntro = introModuleEnabled && !introDismissed && (forceIntro || !hasSeenGlIntro());
+  const introModuleEnabled =
+    modulesLoaded && isModuleEnabled(modules || config?.modules, 'introEnabled');
+  const shouldShowIntro =
+    introModuleEnabled && !introDismissed && (forceIntro || !hasSeenGlIntro());
 
   const fieldIdPrefix = useId();
   const fieldIds = {
@@ -82,6 +86,9 @@ export function GLAuthView({ onLogin, oauthNotice, config, appVersion = null }) 
         setModulesLoaded(true);
         const googleReady = !!(data?.allowGoogleStaff || data?.allowGooglePlayer);
         setAllowGoogle(googleReady);
+        if (typeof data?.guestModeEnabled === 'boolean') {
+          setGuestModeEnabled(data.guestModeEnabled);
+        }
       })
       .catch(() => {
         setAllowGoogle(false);
@@ -98,6 +105,9 @@ export function GLAuthView({ onLogin, oauthNotice, config, appVersion = null }) 
     if (config?.modules) {
       setModules(config.modules);
       setModulesLoaded(true);
+    }
+    if (typeof config?.guestModeEnabled === 'boolean') {
+      setGuestModeEnabled(config.guestModeEnabled);
     }
   }, [config]);
 
@@ -133,6 +143,24 @@ export function GLAuthView({ onLogin, oauthNotice, config, appVersion = null }) 
       onLogin(data);
     } catch (err) {
       setError(err.message || 'Connexion impossible');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function enterGuestMode() {
+    setBusy(true);
+    setError('');
+    setInfo('');
+    try {
+      const data = await apiGL('/api/gl/auth/guest', 'POST');
+      if (!data?.authToken || !data?.auth) {
+        setError('Réponse serveur invalide');
+        return;
+      }
+      onLogin({ authToken: data.authToken, auth: data.auth });
+    } catch (err) {
+      setError(err.message || 'Mode découverte indisponible');
     } finally {
       setBusy(false);
     }
@@ -204,7 +232,8 @@ export function GLAuthView({ onLogin, oauthNotice, config, appVersion = null }) 
         <h1>{platformTitle}</h1>
         {platformSubtitle ? <p className="gl-hint">{platformSubtitle}</p> : null}
         <p className="gl-hint">
-          Connecte-toi avec ton pseudo ou ton identifiant. Ton profil (joueur, MJ ou admin) est déterminé après connexion.
+          Connecte-toi avec ton pseudo ou ton identifiant. Ton profil (joueur, MJ ou admin) est
+          déterminé après connexion.
         </p>
         {introModuleEnabled ? (
           <GLButton
@@ -271,12 +300,24 @@ export function GLAuthView({ onLogin, oauthNotice, config, appVersion = null }) 
               Continuer avec Google
             </GLButton>
           ) : null}
+          {guestModeEnabled ? (
+            <GLButton
+              type="button"
+              variant="ghost"
+              className="gl-btn--full"
+              onClick={enterGuestMode}
+              disabled={busy}
+            >
+              Découvrir sans compte
+            </GLButton>
+          ) : null}
         </form>
 
         {showForgot ? (
           <div className="gl-forgot-panel gl-form">
             <p className="gl-hint" style={{ marginTop: 0 }}>
-              Saisis l’adresse e-mail de ton compte joueur ou MJ/Admin. Si elle est reconnue, un lien de réinitialisation t’est envoyé.
+              Saisis l’adresse e-mail de ton compte joueur ou MJ/Admin. Si elle est reconnue, un
+              lien de réinitialisation t’est envoyé.
             </p>
             <GLField htmlFor={fieldIds.forgotEmail} label="E-mail">
               <GLInput
@@ -288,15 +329,13 @@ export function GLAuthView({ onLogin, oauthNotice, config, appVersion = null }) 
                 placeholder="moi@exemple.com"
               />
             </GLField>
-            <GLButton
-              type="button"
-              variant="ghost"
-              onClick={requestPasswordReset}
-              disabled={busy}
-            >
+            <GLButton type="button" variant="ghost" onClick={requestPasswordReset} disabled={busy}>
               Envoyer un lien de réinitialisation
             </GLButton>
-            <GLField htmlFor={fieldIds.resetToken} label="Code reçu par e-mail (si le lien ne s’ouvre pas)">
+            <GLField
+              htmlFor={fieldIds.resetToken}
+              label="Code reçu par e-mail (si le lien ne s’ouvre pas)"
+            >
               <GLInput
                 id={fieldIds.resetToken}
                 value={resetToken}
@@ -314,12 +353,7 @@ export function GLAuthView({ onLogin, oauthNotice, config, appVersion = null }) 
                 autoComplete="new-password"
               />
             </GLField>
-            <GLButton
-              type="button"
-              variant="ghost"
-              onClick={confirmPasswordReset}
-              disabled={busy}
-            >
+            <GLButton type="button" variant="ghost" onClick={confirmPasswordReset} disabled={busy}>
               Valider la réinitialisation
             </GLButton>
           </div>

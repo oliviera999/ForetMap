@@ -36,11 +36,7 @@ export function canEditContributionRow({
   return false;
 }
 
-export function needsOtherPlayerConfirm({
-  contributionMode,
-  actorPlayerId,
-  targetPlayerId,
-}) {
+export function needsOtherPlayerConfirm({ contributionMode, actorPlayerId, targetPlayerId }) {
   if (contributionMode !== 'both') return false;
   return Number(actorPlayerId) !== Number(targetPlayerId);
 }
@@ -174,11 +170,17 @@ export function buildSpellCastResultViewModel({ event, draft } = {}) {
   const evt = event || {};
   const payload = evt.payload || {};
   const eventId = evt.id != null ? Number(evt.id) : null;
-  const spellCode = String(payload.spellCode || draft?.spellCode || '').trim().toUpperCase() || null;
+  const spellCode =
+    String(payload.spellCode || draft?.spellCode || '')
+      .trim()
+      .toUpperCase() || null;
   const spellName = String(payload.spellName || draft?.spell?.nom || spellCode || 'Sortilège');
-  const spellEmoji = payload.spellEmoji != null
-    ? String(payload.spellEmoji)
-    : (draft?.spell?.emoji != null ? String(draft.spell.emoji) : '✨');
+  const spellEmoji =
+    payload.spellEmoji != null
+      ? String(payload.spellEmoji)
+      : draft?.spell?.emoji != null
+        ? String(draft.spell.emoji)
+        : '✨';
   const costLabel = formatSpellCost(payload.cost || draft?.required);
   const casters = resolveCastersFromPayload(payload, draft?.roster);
 

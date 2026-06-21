@@ -18,7 +18,7 @@ before(async () => {
   const loginEmail = String(process.env.TEACHER_ADMIN_EMAIL || '').trim();
   const teacher = await queryOne(
     "SELECT id FROM users WHERE user_type = 'teacher' AND LOWER(email) = LOWER(?) LIMIT 1",
-    [loginEmail]
+    [loginEmail],
   );
   const adminRole = await queryOne("SELECT id FROM roles WHERE slug = 'admin' LIMIT 1");
   assert.ok(teacher?.id, 'Compte admin enseignant introuvable');
@@ -33,7 +33,7 @@ before(async () => {
       roleDisplayName: 'Administrateur',
       elevated: false,
     },
-    false
+    false,
   );
 });
 
@@ -49,7 +49,10 @@ describe('Tâches — importance_level', () => {
         importance_level: 'urgentissime',
       })
       .expect(400);
-    assert.ok(String(res.body?.error || '').includes('importance') || String(res.body?.error || '').includes('Importance'));
+    assert.ok(
+      String(res.body?.error || '').includes('importance') ||
+        String(res.body?.error || '').includes('Importance'),
+    );
   });
 
   it('POST puis PUT gèrent importance_level (null explicite)', async () => {

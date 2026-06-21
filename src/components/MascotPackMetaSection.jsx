@@ -51,8 +51,12 @@ export default function MascotPackMetaSection({
           value={String(pack.framesBase ?? '')}
           onChange={(ev) => patchPack({ framesBase: ev.target.value })}
         />
-        <span className="section-sub" style={{ display: 'block', marginTop: 4, fontSize: '0.78rem' }}>
-          Utilisez idéalement une URL serveur du type <code>/api/visit/mascot-packs/…/assets/</code> ou <code>/api/visit/mascot-sprite-library/…/assets/</code>.
+        <span
+          className="section-sub"
+          style={{ display: 'block', marginTop: 4, fontSize: '0.78rem' }}
+        >
+          Utilisez idéalement une URL serveur du type <code>/api/visit/mascot-packs/…/assets/</code>{' '}
+          ou <code>/api/visit/mascot-sprite-library/…/assets/</code>.
         </span>
       </label>
       {packUuid ? (
@@ -116,7 +120,9 @@ export default function MascotPackMetaSection({
           onChange={(ev) => patchPack({ fallbackSilhouette: ev.target.value })}
         >
           {MASCOT_PACK_FALLBACK_SILHOUETTES.map((s) => (
-            <option key={s} value={s}>{s}</option>
+            <option key={s} value={s}>
+              {s}
+            </option>
           ))}
         </select>
       </label>
@@ -134,7 +140,9 @@ export default function MascotPackMetaSection({
         >
           <strong>Avertissements non bloquants</strong>
           <ul style={{ margin: '6px 0 0', paddingLeft: 16 }}>
-            {packWarnings.map((w) => <li key={w}>{w}</li>)}
+            {packWarnings.map((w) => (
+              <li key={w}>{w}</li>
+            ))}
           </ul>
         </div>
       ) : null}

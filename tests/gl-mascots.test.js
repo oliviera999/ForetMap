@@ -6,7 +6,13 @@ const assert = require('node:assert');
 const request = require('supertest');
 const { app } = require('../server');
 const { initSchema, queryOne, execute } = require('../database');
-const { createGlAdmin, createGlClass, createGlGameWithTeams, createGlPlayer, signTokens } = require('./helpers/glFixtures');
+const {
+  createGlAdmin,
+  createGlClass,
+  createGlGameWithTeams,
+  createGlPlayer,
+  signTokens,
+} = require('./helpers/glFixtures');
 const { signAuthToken } = require('../middleware/requireTeacher');
 
 let adminToken = '';
@@ -20,6 +26,21 @@ const adminEmail = `mascots.mj.${stamp}@ecole.local`;
 const className = `Classe Mascots ${stamp}`;
 const gameName = `Partie Mascots ${stamp}`;
 const playerPseudo = `mascots-player-${stamp}`;
+
+async function readZipResponseBody(agentReq) {
+  const chunks = [];
+  const res = await agentReq
+    .buffer(true)
+    .parse((resStream, callback) => {
+      resStream.on('data', (chunk) => chunks.push(chunk));
+      resStream.on('end', () => callback(null, Buffer.concat(chunks)));
+    })
+    .expect(200);
+  assert.ok(String(res.headers['content-type'] || '').includes('zip'));
+  if (Buffer.isBuffer(res.body)) return res.body;
+  if (chunks.length) return Buffer.concat(chunks);
+  return Buffer.from(String(res.text || ''), 'binary');
+}
 
 before(async () => {
   await initSchema();
@@ -128,7 +149,9 @@ test('GET /api/gl/mascots?gameId=... renvoie les assignations actuelles', async 
     .get(`/api/gl/mascots?gameId=${gameId}`)
     .set('Authorization', `Bearer ${adminToken}`)
     .expect(200);
-  const map = Object.fromEntries((res.body?.assignments || []).map((a) => [Number(a.team_id), a.mascot_id]));
+  const map = Object.fromEntries(
+    (res.body?.assignments || []).map((a) => [Number(a.team_id), a.mascot_id]),
+  );
   assert.strictEqual(map[Number(teamAId)], 'renard2-cut-spritesheet');
   assert.strictEqual(map[Number(teamBId)], 'gl-licorne-aube');
 });
@@ -198,6 +221,87 @@ test('CRUD pack mascotte GL + assets', async () => {
     .expect(200);
 });
 
+test('GL mascot packs : export ZIP et import create', async () => {
+  const dataBase64 = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO5qXg8AAAAASUVORK5CYII=',
+    'base64',
+  ).toString('base64');
+  const created = await request(app)
+    .post('/api/gl/mascots/packs')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({
+      chapterId: 1,
+      name: 'Pack ZIP GL',
+      payload: {
+        id: `gl-zip-${stamp}`,
+        name: 'Pack ZIP GL',
+        type: 'gnome',
+        renderer: 'sprite_cut',
+        assets: [{ key: 'atlas', src: '/uploads/placeholder.png' }],
+        states: [{ key: 'idle', frames: [0], loop: true, fps: 8 }],
+      },
+    })
+    .expect(201);
+  const packId = Number(created.body?.pack?.id);
+  assert.ok(Number.isFinite(packId) && packId > 0);
+
+  await request(app)
+    .post(`/api/gl/mascots/packs/${packId}/assets`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ filename: 'atlas.png', mimeType: 'image/png', dataBase64 })
+    .expect(201);
+
+  const assets = await request(app)
+    .get(`/api/gl/mascots/packs/${packId}/assets`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .expect(200);
+  const atlasUrl = assets.body?.assets?.find((a) => a.filename === 'atlas.png')?.url;
+  assert.ok(atlasUrl);
+
+  await request(app)
+    .put(`/api/gl/mascots/packs/${packId}`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({
+      payload: {
+        id: `gl-zip-${stamp}`,
+        name: 'Pack ZIP GL',
+        type: 'gnome',
+        renderer: 'sprite_cut',
+        assets: [{ key: 'atlas', src: atlasUrl }],
+        states: [{ key: 'idle', frames: [0], loop: true, fps: 8 }],
+      },
+    })
+    .expect(200);
+
+  const zipBody = await readZipResponseBody(
+    request(app)
+      .get(`/api/gl/mascots/packs/${packId}/export.zip`)
+      .set('Authorization', `Bearer ${adminToken}`),
+  );
+  const archiveB64 = zipBody.toString('base64');
+  const imported = await request(app)
+    .post('/api/gl/mascots/packs/import')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({
+      mode: 'create',
+      chapterId: 1,
+      archive: { fileName: 'gl-pack.zip', fileDataBase64: archiveB64 },
+    })
+    .expect(201);
+  const importedId = Number(imported.body?.pack?.id);
+  assert.ok(Number.isFinite(importedId) && importedId > 0);
+  assert.notStrictEqual(importedId, packId);
+
+  await request(app)
+    .delete(`/api/gl/mascots/packs/${importedId}`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .expect(200);
+  await request(app)
+    .delete(`/api/gl/mascots/packs/${packId}`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .expect(200);
+});
+
 test('sprite library GL: ajout, liste, suppression', async () => {
   const dataBase64 = Buffer.from('sprite-test', 'utf8').toString('base64');
   const created = await request(app)
@@ -238,18 +342,23 @@ test('GET /api/gl/mascots expose les packs visit publiés et GL persistés', asy
     .send({ name: 'Pack GL catalogue', payload: glPayload })
     .expect(201);
 
-  const teacher = await queryOne("SELECT id FROM users WHERE user_type = 'teacher' ORDER BY id ASC LIMIT 1");
+  const teacher = await queryOne(
+    "SELECT id FROM users WHERE user_type = 'teacher' ORDER BY id ASC LIMIT 1",
+  );
   const adminRole = await queryOne("SELECT id FROM roles WHERE slug = 'admin' LIMIT 1");
   assert.ok(teacher?.id && adminRole?.id);
-  const teacherToken = await signAuthToken({
-    userType: 'teacher',
-    userId: teacher.id,
-    canonicalUserId: teacher.id,
-    roleId: adminRole.id,
-    roleSlug: 'admin',
-    roleDisplayName: 'Administrateur',
-    elevated: true,
-  }, true);
+  const teacherToken = await signAuthToken(
+    {
+      userType: 'teacher',
+      userId: teacher.id,
+      canonicalUserId: teacher.id,
+      roleId: adminRole.id,
+      roleSlug: 'admin',
+      roleDisplayName: 'Administrateur',
+      elevated: true,
+    },
+    true,
+  );
 
   const visitCreated = await request(app)
     .post('/api/visit/mascot-packs')

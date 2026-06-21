@@ -27,7 +27,10 @@ describe('GLAppBanners', () => {
     const onStopImpersonation = vi.fn();
     render(
       <GLAppBanners
-        impersonationBanner={{ title: 'Prise de contrôle (MJ GL)', stopLabel: 'Revenir à mon compte MJ' }}
+        impersonationBanner={{
+          title: 'Prise de contrôle (MJ GL)',
+          stopLabel: 'Revenir à mon compte MJ',
+        }}
         impersonatedDisplayName="Luna"
         onStopImpersonation={onStopImpersonation}
       />,
@@ -39,7 +42,11 @@ describe('GLAppBanners', () => {
   });
 
   test('identité absente → repli sur « joueur »', () => {
-    render(<GLAppBanners impersonationBanner={{ title: 'Prise de contrôle (admin GL)', stopLabel: 'Stop' }} />);
+    render(
+      <GLAppBanners
+        impersonationBanner={{ title: 'Prise de contrôle (admin GL)', stopLabel: 'Stop' }}
+      />,
+    );
     expect(screen.getByText('joueur')).toBeInTheDocument();
   });
 

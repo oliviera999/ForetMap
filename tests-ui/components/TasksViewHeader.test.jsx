@@ -32,7 +32,9 @@ describe('TasksViewHeader', () => {
     fireEvent.click(screen.getByRole('button', { name: '+ Projet' }));
     expect(h.setEditProject).toHaveBeenCalledWith(null);
     expect(h.setShowProjectForm).toHaveBeenCalledWith(true);
-    expect(screen.getByText('Piloter les missions, valider les retours et traiter les idées du terrain')).toBeTruthy();
+    expect(
+      screen.getByText('Piloter les missions, valider les retours et traiter les idées du terrain'),
+    ).toBeTruthy();
   });
 
   test('élève auto-inscriptible : bouton « + Proposer » ouvre la proposition', () => {
@@ -61,14 +63,21 @@ describe('TasksViewHeader', () => {
   });
 
   test('astuce masquée sans showContextHints', () => {
-    renderHeader({ isHelpEnabled: true, showContextHints: false, helpHintPrefix: 'Astuce :', tasksQuickTip: 'Filtre par carte.' });
+    renderHeader({
+      isHelpEnabled: true,
+      showContextHints: false,
+      helpHintPrefix: 'Astuce :',
+      tasksQuickTip: 'Filtre par carte.',
+    });
     expect(screen.queryByText('Astuce :')).toBeNull();
   });
 
   test('élève au quota : bandeau limite d’inscriptions', () => {
     renderHeader({
       isTeacher: false,
-      student: { taskEnrollment: { maxActiveAssignments: 3, currentActiveAssignments: 3, atLimit: true } },
+      student: {
+        taskEnrollment: { maxActiveAssignments: 3, currentActiveAssignments: 3, atLimit: true },
+      },
     });
     expect(screen.getByText(/paquet max de missions en cours \(3\/3/)).toBeTruthy();
   });
@@ -76,7 +85,9 @@ describe('TasksViewHeader', () => {
   test('élève sous le quota : bandeau de suivi des missions actives', () => {
     renderHeader({
       isTeacher: false,
-      student: { taskEnrollment: { maxActiveAssignments: 3, currentActiveAssignments: 1, atLimit: false } },
+      student: {
+        taskEnrollment: { maxActiveAssignments: 3, currentActiveAssignments: 1, atLimit: false },
+      },
     });
     expect(screen.getByText(/Missions actives pour toi : 1\/3/)).toBeTruthy();
   });

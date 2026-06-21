@@ -16,7 +16,11 @@ const root = path.resolve(__dirname, '..');
 const { extractZipEntries } = require('../lib/contentLibraryBulk.js');
 const { saveMediaFromBuffer, syncAssetManifests } = require('../lib/mediaLibrary.js');
 const { copyManifestSnapshotsToSrcAssets } = require('../lib/glAssetManifest.js');
-const { auditGlMediaKeys, formatAuditReport, loadKeysIndexFromFile } = require('../lib/glMediaKeysAudit.js');
+const {
+  auditGlMediaKeys,
+  formatAuditReport,
+  loadKeysIndexFromFile,
+} = require('../lib/glMediaKeysAudit.js');
 
 const args = process.argv.slice(2);
 const flags = new Set(args.filter((a) => a.startsWith('--')));
@@ -27,7 +31,7 @@ const imagesOnly = flags.has('--images-only');
 const audioOnly = flags.has('--audio-only');
 const dirFlag = args.find((a) => a.startsWith('--dir='));
 const sourceDir = path.resolve(
-  dirFlag ? dirFlag.slice('--dir='.length) : (positionalDir || path.join(root, 'médias')),
+  dirFlag ? dirFlag.slice('--dir='.length) : positionalDir || path.join(root, 'médias'),
 );
 
 const audioPackDir = path.join(root, 'data', 'gl', 'audio-pack');
@@ -167,7 +171,9 @@ function main() {
   const manifest = syncAssetManifests();
   copyManifestSnapshotsToSrcAssets(root);
 
-  log(`\nManifestes synchronisés (${manifest.imageCount} clés images, ${Object.keys(manifest.audio).length} slots audio).`);
+  log(
+    `\nManifestes synchronisés (${manifest.imageCount} clés images, ${Object.keys(manifest.audio).length} slots audio).`,
+  );
   if (manifest.warnings?.length) {
     log(`Avertissements manifeste (${manifest.warnings.length}) :`);
     for (const w of manifest.warnings.slice(0, 10)) {

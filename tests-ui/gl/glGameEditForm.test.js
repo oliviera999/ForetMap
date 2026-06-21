@@ -80,7 +80,7 @@ describe('buildGameEditPayload', () => {
   test('retriggers vides deviennent null', () => {
     const payload = buildGameEditPayload(
       { ...fullForm, zoneContentRetrigger: '', loreFeuilletRetrigger: '' },
-      'draft'
+      'draft',
     );
     expect(payload.zoneContentRetrigger).toBeNull();
     expect(payload.loreFeuilletRetrigger).toBeNull();

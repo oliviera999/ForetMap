@@ -44,7 +44,7 @@ export function GLContentLibraryView({ onOpenSubTab }) {
 
   const applyableEntries = useMemo(
     () => analysisEntries.filter((entry) => entry.canApply && !entry.error),
-    [analysisEntries]
+    [analysisEntries],
   );
 
   useEffect(() => {
@@ -56,7 +56,8 @@ export function GLContentLibraryView({ onOpenSubTab }) {
         setLimits({
           maxArchiveBytes: data.maxArchiveBytes || DEFAULT_CONTENT_LIBRARY_LIMITS.maxArchiveBytes,
           maxFileBytes: data.maxFileBytes || DEFAULT_CONTENT_LIBRARY_LIMITS.maxFileBytes,
-          maxDecompressedBytes: data.maxDecompressedBytes || DEFAULT_CONTENT_LIBRARY_LIMITS.maxDecompressedBytes,
+          maxDecompressedBytes:
+            data.maxDecompressedBytes || DEFAULT_CONTENT_LIBRARY_LIMITS.maxDecompressedBytes,
           maxFileCount: data.maxFileCount || DEFAULT_CONTENT_LIBRARY_LIMITS.maxFileCount,
         });
       } catch (_) {
@@ -86,9 +87,11 @@ export function GLContentLibraryView({ onOpenSubTab }) {
     const warnings = Array.isArray(saved?.assetWarnings)
       ? saved.assetWarnings.map((w) => w.message).filter(Boolean)
       : [];
-    setMsg(warnings.length
-      ? `Média ajouté à la bibliothèque — ⚠ ${warnings.join(' · ')}`
-      : 'Média ajouté à la bibliothèque');
+    setMsg(
+      warnings.length
+        ? `Média ajouté à la bibliothèque — ⚠ ${warnings.join(' · ')}`
+        : 'Média ajouté à la bibliothèque',
+    );
   };
 
   const runConventionAudit = async () => {
@@ -135,13 +138,17 @@ export function GLContentLibraryView({ onOpenSubTab }) {
   }
 
   function selectAllApplyable() {
-    setSelectedKeys(new Set(applyableEntries.map((entry, index) => entryKey(entry, analysisEntries.indexOf(entry)))));
+    setSelectedKeys(
+      new Set(
+        applyableEntries.map((entry, index) => entryKey(entry, analysisEntries.indexOf(entry))),
+      ),
+    );
   }
 
   function updateFileRow(fileName, patch) {
-    setFileRows((prev) => prev.map((row) => (
-      row.file.name === fileName ? { ...row, ...patch } : row
-    )));
+    setFileRows((prev) =>
+      prev.map((row) => (row.file.name === fileName ? { ...row, ...patch } : row)),
+    );
   }
 
   async function analyzeArchive(zipFile) {
@@ -174,7 +181,11 @@ export function GLContentLibraryView({ onOpenSubTab }) {
       updateFileRow(file.name, { status: 'ok', progress: 100 });
       return data;
     } catch (e) {
-      updateFileRow(file.name, { status: 'error', progress: 0, error: e.message || 'Analyse impossible' });
+      updateFileRow(file.name, {
+        status: 'error',
+        progress: 0,
+        error: e.message || 'Analyse impossible',
+      });
       throw e;
     }
   }
@@ -216,7 +227,9 @@ export function GLContentLibraryView({ onOpenSubTab }) {
         if (entry.canApply && !entry.error) keys.add(entryKey(entry, index));
       });
       setSelectedKeys(keys);
-      setMsg(`Analyse terminée : ${entries.length} fichier(s), ${merged?.summary?.applyable || 0} applicable(s).`);
+      setMsg(
+        `Analyse terminée : ${entries.length} fichier(s), ${merged?.summary?.applyable || 0} applicable(s).`,
+      );
     } catch (e) {
       setErr(e.message || 'Analyse impossible');
       setAnalysisEntries([]);
@@ -289,11 +302,13 @@ export function GLContentLibraryView({ onOpenSubTab }) {
 
       const failedRows = (data?.results || []).filter((row) => !row.ok);
       if (failedRows.length > 0) {
-        setAnalysisEntries((prev) => prev.map((entry) => {
-          const failed = failedRows.find((row) => row.fileName === entry.fileName);
-          if (!failed) return entry;
-          return { ...entry, error: failed.error || entry.error || 'Application impossible' };
-        }));
+        setAnalysisEntries((prev) =>
+          prev.map((entry) => {
+            const failed = failedRows.find((row) => row.fileName === entry.fileName);
+            if (!failed) return entry;
+            return { ...entry, error: failed.error || entry.error || 'Application impossible' };
+          }),
+        );
         const details = failedRows.map((row) => `${row.fileName}: ${row.error}`).join(' · ');
         setErr(details || 'Certains fichiers n’ont pas pu être importés');
       }
@@ -310,9 +325,9 @@ export function GLContentLibraryView({ onOpenSubTab }) {
   return (
     <div className="gl-content-library">
       <p className="gl-hint">
-        Médiathèque Gnomes &amp; Licornes (images, audio, vidéo) et imports catalogue G&amp;L (XLSX).
-        Cloisonnée : séparée de la médiathèque ForetMap. L’analyse classe les fichiers sans écrire en base ;
-        l’application est explicite.
+        Médiathèque Gnomes &amp; Licornes (images, audio, vidéo) et imports catalogue G&amp;L
+        (XLSX). Cloisonnée : séparée de la médiathèque ForetMap. L’analyse classe les fichiers sans
+        écrire en base ; l’application est explicite.
       </p>
       <p className="gl-content-library__limits-banner">{limitsBanner}</p>
       {err ? <p className="gl-error">{err}</p> : null}
@@ -339,7 +354,11 @@ export function GLContentLibraryView({ onOpenSubTab }) {
         />
       </section>
 
-      <GLContentLibraryAuditPanel report={auditReport} busy={auditBusy} onRun={runConventionAudit} />
+      <GLContentLibraryAuditPanel
+        report={auditReport}
+        busy={auditBusy}
+        onRun={runConventionAudit}
+      />
 
       <section className="gl-content-library__section">
         <h3>Import en masse</h3>
@@ -365,8 +384,10 @@ export function GLContentLibraryView({ onOpenSubTab }) {
                   setArchiveFile(resolved.zipFile);
                   setSelectionWarnings(
                     resolved.ignoredCount > 0
-                      ? [`Archive ZIP détectée : les ${resolved.ignoredCount} autre(s) fichier(s) seront ignorés.`]
-                      : []
+                      ? [
+                          `Archive ZIP détectée : les ${resolved.ignoredCount} autre(s) fichier(s) seront ignorés.`,
+                        ]
+                      : [],
                   );
                   setAnalysisEntries([]);
                   setSelectedKeys(new Set());
@@ -387,7 +408,11 @@ export function GLContentLibraryView({ onOpenSubTab }) {
             >
               Appliquer la sélection
             </GLButton>
-            <GLButton type="button" disabled={busy || applyableEntries.length === 0} onClick={selectAllApplyable}>
+            <GLButton
+              type="button"
+              disabled={busy || applyableEntries.length === 0}
+              onClick={selectAllApplyable}
+            >
               Tout sélectionner (applicables)
             </GLButton>
           </div>
@@ -401,11 +426,15 @@ export function GLContentLibraryView({ onOpenSubTab }) {
           {fileRows.length > 0 ? (
             <ul className="gl-content-library__file-list">
               {fileRows.map((row) => (
-                <li key={`${row.file.name}-${row.file.size}`} className="gl-content-library__file-item">
+                <li
+                  key={`${row.file.name}-${row.file.size}`}
+                  className="gl-content-library__file-item"
+                >
                   <div className="gl-content-library__file-head">
                     <span>{row.file.name}</span>
                     <span className="gl-hint">
-                      {formatBytesLabel(row.file.size)} · {FILE_STATUS_LABEL[row.status] || row.status}
+                      {formatBytesLabel(row.file.size)} ·{' '}
+                      {FILE_STATUS_LABEL[row.status] || row.status}
                     </span>
                   </div>
                   {row.status === 'uploading' || row.status === 'analyzing' ? (

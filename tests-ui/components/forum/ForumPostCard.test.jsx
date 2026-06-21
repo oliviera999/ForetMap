@@ -38,7 +38,7 @@ function renderCard(props = {}) {
       reportReason=""
       {...handlers}
       {...props}
-    />
+    />,
   );
   return handlers;
 }
@@ -79,7 +79,12 @@ describe('ForumPostCard', () => {
   test('lecture seule : seules les réactions comptabilisées s’affichent, sans actions', () => {
     renderCard({
       canUseForumActions: false,
-      post: post({ reactions: [{ emoji: '👍', count: 3 }, { emoji: '❤️', count: 0 }] }),
+      post: post({
+        reactions: [
+          { emoji: '👍', count: 3 },
+          { emoji: '❤️', count: 0 },
+        ],
+      }),
     });
     expect(screen.getByText('👍')).toBeInTheDocument();
     expect(screen.getByText('3')).toBeInTheDocument();
@@ -102,5 +107,12 @@ describe('ForumPostCard', () => {
     expect(h.onReportReasonChange).toHaveBeenCalledWith('p1', 'spam!');
     fireEvent.click(screen.getByRole('button', { name: 'Signaler' }));
     expect(h.onReport).toHaveBeenCalledWith('p1');
+  });
+
+  test('signalements désactivés : pas de champ ni bouton Signaler', () => {
+    renderCard({ reportsEnabled: false, isOwner: true });
+    expect(screen.getByRole('button', { name: 'Supprimer' })).toBeInTheDocument();
+    expect(screen.queryByPlaceholderText('Motif de signalement')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Signaler' })).not.toBeInTheDocument();
   });
 });

@@ -9,13 +9,18 @@ import {
   GL_PLAYER_TABS,
   GL_ADMIN_EXTRA_TABS,
   GL_VALID_TABS,
+  GL_DISCOVERY_TAB,
+  GL_GUEST_TAB_IDS,
 } from '../constants/app-runtime.js';
 import { isModuleEnabled } from '../constants/modules.js';
+import { isGlGuest } from './glGuestMode.js';
 
 /** Décode un payload base64url (retour OAuth dans le hash d'URL) en objet JSON, `null` si invalide. */
 export function decodeBase64UrlJson(value) {
   try {
-    const normalized = String(value || '').replace(/-/g, '+').replace(/_/g, '/');
+    const normalized = String(value || '')
+      .replace(/-/g, '+')
+      .replace(/_/g, '/');
     const padded = normalized + '='.repeat((4 - (normalized.length % 4)) % 4);
     return JSON.parse(atob(padded));
   } catch (_) {
@@ -38,8 +43,9 @@ export function isGlAdminRole(auth) {
   return auth?.userType === 'gl_admin';
 }
 
-/** Onglet d'atterrissage : console MJ pour le staff, cartes pour les joueurs. */
+/** Onglet d'atterrissage : console MJ pour le staff, découverte pour invité, cartes pour les joueurs. */
 export function defaultTabForGlAuth(auth) {
+  if (isGlGuest(auth)) return 'discovery';
   return isGlAdminRole(auth) ? 'mj' : 'maps';
 }
 
@@ -80,7 +86,14 @@ export function parseGlOauthHash(hashRaw) {
  * Onglets visibles : onglets joueur filtrés par modules (et vitalité pour le
  * marché), suivis des onglets admin si l'UI staff est affichée.
  */
-export function filterGlTabs({ modules, vitalityEnabled, showStaffAdminUi }) {
+export function filterGlTabs({ modules, vitalityEnabled, showStaffAdminUi, isGuest = false }) {
+  if (isGuest) {
+    return GL_GUEST_TAB_IDS.map((id) => {
+      if (id === GL_DISCOVERY_TAB.id) return GL_DISCOVERY_TAB;
+      return GL_PLAYER_TABS.find((tab) => tab.id === id);
+    }).filter(Boolean);
+  }
+
   const playerTabs = GL_PLAYER_TABS.filter((tab) => {
     if (tab.id === 'history') return isModuleEnabled(modules, 'journalEnabled');
     if (tab.id === 'tutorials') return isModuleEnabled(modules, 'tutorialsEnabled');

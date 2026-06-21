@@ -10,7 +10,9 @@ let buildAffiliationSelectOptions;
 
 describe('affiliationSelectOptions', () => {
   before(async () => {
-    const mod = await import(pathToFileURL(join(__dirname, '../src/utils/affiliationSelectOptions.js')).href);
+    const mod = await import(
+      pathToFileURL(join(__dirname, '../src/utils/affiliationSelectOptions.js')).href
+    );
     buildAffiliationSelectOptions = mod.buildAffiliationSelectOptions;
   });
 
@@ -33,7 +35,10 @@ describe('affiliationSelectOptions', () => {
     ]);
     assert.ok(options.some((opt) => opt.value === 'n3'));
     assert.ok(options.some((opt) => opt.value === 'foret'));
-    assert.ok(options.some((opt) => opt.value === 'potager' && opt.label === 'Potager pédagogique uniquement'));
+    assert.ok(
+      options.some(
+        (opt) => opt.value === 'potager' && opt.label === 'Potager pédagogique uniquement',
+      ),
+    );
   });
 });
-

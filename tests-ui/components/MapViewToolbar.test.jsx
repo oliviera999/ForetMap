@@ -3,10 +3,16 @@ import { describe, test, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MapViewToolbar } from '../../src/components/map/MapViewToolbar.jsx';
 
-const MAPS_2 = [{ id: 'foret', label: 'Forêt' }, { id: 'jardin', label: 'Jardin' }];
+const MAPS_2 = [
+  { id: 'foret', label: 'Forêt' },
+  { id: 'jardin', label: 'Jardin' },
+];
 const MAPS_5 = [
-  { id: 'a', label: 'A' }, { id: 'b', label: 'B' }, { id: 'c', label: 'C' },
-  { id: 'd', label: 'D' }, { id: 'e', label: 'E' },
+  { id: 'a', label: 'A' },
+  { id: 'b', label: 'B' },
+  { id: 'c', label: 'C' },
+  { id: 'd', label: 'D' },
+  { id: 'e', label: 'E' },
 ];
 
 function renderToolbar(overrides = {}) {
@@ -42,7 +48,7 @@ function renderToolbar(overrides = {}) {
       txRef={{ current: { s: 1 } }}
       {...handlers}
       {...overrides}
-    />
+    />,
   );
   return handlers;
 }

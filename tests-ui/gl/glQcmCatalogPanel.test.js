@@ -1,16 +1,23 @@
 import { describe, test, expect } from 'vitest';
-import {
-  buildExportQuery,
-  buildQuestionsListQuery,
-} from '../../src/gl/utils/glQcmCatalogPanel.js';
+import { buildExportQuery, buildQuestionsListQuery } from '../../src/gl/utils/glQcmCatalogPanel.js';
 
 describe('glQcmCatalogPanel - buildExportQuery', () => {
   test('ajoute statut=all uniquement pour l’export complet', () => {
     expect(
-      buildExportQuery({ exportStatut: 'all', scopeQueryKey: 'biomeSlug', scopeSlug: '', categorieSlug: '' }),
+      buildExportQuery({
+        exportStatut: 'all',
+        scopeQueryKey: 'biomeSlug',
+        scopeSlug: '',
+        categorieSlug: '',
+      }),
     ).toBe('statut=all');
     expect(
-      buildExportQuery({ exportStatut: 'actif', scopeQueryKey: 'biomeSlug', scopeSlug: '', categorieSlug: '' }),
+      buildExportQuery({
+        exportStatut: 'actif',
+        scopeQueryKey: 'biomeSlug',
+        scopeSlug: '',
+        categorieSlug: '',
+      }),
     ).toBe('');
   });
 

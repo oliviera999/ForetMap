@@ -40,7 +40,10 @@ describe('GLAuthView', () => {
   test('affiche le panneau mot de passe oublié et envoie la demande', async () => {
     apiGlMock
       .mockResolvedValueOnce({ title: 'G&L', subtitle: '', allowGoogleStaff: false })
-      .mockResolvedValueOnce({ ok: true, message: 'Si un compte existe, un email de réinitialisation a été envoyé.' });
+      .mockResolvedValueOnce({
+        ok: true,
+        message: 'Si un compte existe, un email de réinitialisation a été envoyé.',
+      });
     render(<GLAuthView onLogin={() => {}} />);
 
     fireEvent.click(screen.getByRole('button', { name: /Mot de passe oublié/i }));
@@ -48,7 +51,9 @@ describe('GLAuthView', () => {
     fireEvent.click(screen.getByRole('button', { name: /Envoyer un lien de réinitialisation/i }));
 
     await waitFor(() => {
-      expect(apiGlMock).toHaveBeenCalledWith('/api/gl/auth/forgot-password', 'POST', { email: 'mj@ecole.local' });
+      expect(apiGlMock).toHaveBeenCalledWith('/api/gl/auth/forgot-password', 'POST', {
+        email: 'mj@ecole.local',
+      });
     });
     expect(screen.getByText(/email de réinitialisation/i)).toBeInTheDocument();
   });

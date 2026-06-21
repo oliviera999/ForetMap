@@ -95,13 +95,19 @@ describe('taskEffectiveStatus', () => {
     expect(taskEffectiveStatus({ status: 'proposed' })).toBe('proposed');
   });
   test('statut projet prioritaire si non terminal', () => {
-    expect(taskEffectiveStatus({ status: 'available', project_status: 'validated' })).toBe('project_validated');
-    expect(taskEffectiveStatus({ status: 'available', project_status: 'completed' })).toBe('project_completed');
+    expect(taskEffectiveStatus({ status: 'available', project_status: 'validated' })).toBe(
+      'project_validated',
+    );
+    expect(taskEffectiveStatus({ status: 'available', project_status: 'completed' })).toBe(
+      'project_completed',
+    );
   });
   test('on_hold via statut, projet, flag ou date de départ future', () => {
     expect(taskEffectiveStatus({ status: 'on_hold' })).toBe('on_hold');
     expect(taskEffectiveStatus({ status: 'available', project_status: 'on_hold' })).toBe('on_hold');
-    expect(taskEffectiveStatus({ status: 'available', is_before_start_date: true })).toBe('on_hold');
+    expect(taskEffectiveStatus({ status: 'available', is_before_start_date: true })).toBe(
+      'on_hold',
+    );
     expect(taskEffectiveStatus({ status: 'available', start_date: '2999-01-01' })).toBe('on_hold');
   });
   test('défaut available', () => {
@@ -126,7 +132,10 @@ describe('projectStatusLabel / normalizeProjectUiStatus', () => {
 });
 
 describe('mapLabelFromMaps', () => {
-  const maps = [{ id: 'foret', label: 'Forêt' }, { id: 'verger', label: 'Verger' }];
+  const maps = [
+    { id: 'foret', label: 'Forêt' },
+    { id: 'verger', label: 'Verger' },
+  ];
   test('sans mapId → Globale', () => {
     expect(mapLabelFromMaps('', maps)).toBe('Globale');
   });
@@ -172,8 +181,9 @@ describe('taskHasLocation', () => {
 
 describe('tutorialPicker* helpers', () => {
   test('tutorialPickerLocationIds dédoublonne et nettoie', () => {
-    expect(tutorialPickerLocationIds({ zone_ids: [' z1 ', 'z1', ''], marker_ids: ['m1'] }))
-      .toEqual({ zoneIds: ['z1'], markerIds: ['m1'] });
+    expect(tutorialPickerLocationIds({ zone_ids: [' z1 ', 'z1', ''], marker_ids: ['m1'] })).toEqual(
+      { zoneIds: ['z1'], markerIds: ['m1'] },
+    );
     expect(tutorialPickerLocationIds(null)).toEqual({ zoneIds: [], markerIds: [] });
   });
   test('tutorialPickerHasLocation', () => {
@@ -184,9 +194,15 @@ describe('tutorialPicker* helpers', () => {
     expect(tutorialPickerHasLocation(tu, '')).toBe(true);
   });
   test('tutorialPickerLinkedToSameMap', () => {
-    expect(tutorialPickerLinkedToSameMap({ zones_linked: [{ map_id: 'foret' }] }, 'foret')).toBe(true);
-    expect(tutorialPickerLinkedToSameMap({ zones_linked: [{ map_id: 'foret' }] }, 'verger')).toBe(false);
-    expect(tutorialPickerLinkedToSameMap({ zones_linked: [], markers_linked: [] }, 'foret')).toBe(true);
+    expect(tutorialPickerLinkedToSameMap({ zones_linked: [{ map_id: 'foret' }] }, 'foret')).toBe(
+      true,
+    );
+    expect(tutorialPickerLinkedToSameMap({ zones_linked: [{ map_id: 'foret' }] }, 'verger')).toBe(
+      false,
+    );
+    expect(tutorialPickerLinkedToSameMap({ zones_linked: [], markers_linked: [] }, 'foret')).toBe(
+      true,
+    );
     expect(tutorialPickerLinkedToSameMap({}, '')).toBe(true);
   });
 });
@@ -194,7 +210,11 @@ describe('tutorialPicker* helpers', () => {
 describe('dedupeTutorialsByIdForTasks', () => {
   test('dédoublonne par id, ignore les entrées sans id', () => {
     const out = dedupeTutorialsByIdForTasks([
-      { id: 1, t: 'a' }, { id: 1, t: 'b' }, { id: 2 }, null, { t: 'sans id' },
+      { id: 1, t: 'a' },
+      { id: 1, t: 'b' },
+      { id: 2 },
+      null,
+      { t: 'sans id' },
     ]);
     expect(out.map((x) => x.id)).toEqual([1, 2]);
     expect(out[0].t).toBe('a');
@@ -206,8 +226,13 @@ describe('taskLinkedTutorialRefsForPicker', () => {
     expect(taskLinkedTutorialRefsForPicker({ tutorials_linked: [{ id: 1 }] })).toEqual([{ id: 1 }]);
   });
   test('repli sur tutorial_ids résolus via catalogue', () => {
-    const catalog = [{ id: 1, name: 'Un' }, { id: 2, name: 'Deux' }];
-    expect(taskLinkedTutorialRefsForPicker({ tutorial_ids: [2, 99] }, catalog)).toEqual([{ id: 2, name: 'Deux' }]);
+    const catalog = [
+      { id: 1, name: 'Un' },
+      { id: 2, name: 'Deux' },
+    ];
+    expect(taskLinkedTutorialRefsForPicker({ tutorial_ids: [2, 99] }, catalog)).toEqual([
+      { id: 2, name: 'Deux' },
+    ]);
   });
   test('rien → []', () => {
     expect(taskLinkedTutorialRefsForPicker(null)).toEqual([]);
@@ -219,7 +244,12 @@ describe('tutorialRefsFromTasksAtLocationFilter', () => {
   test('agrège les tutoriels des tâches actives au lieu, dédoublonnés', () => {
     const tasks = [
       { id: 't1', status: 'available', zone_ids: ['z1'], tutorials_linked: [{ id: 1 }] },
-      { id: 't2', status: 'in_progress', zone_ids: ['z1'], tutorials_linked: [{ id: 1 }, { id: 2 }] },
+      {
+        id: 't2',
+        status: 'in_progress',
+        zone_ids: ['z1'],
+        tutorials_linked: [{ id: 1 }, { id: 2 }],
+      },
       { id: 't3', status: 'done', zone_ids: ['z1'], tutorials_linked: [{ id: 9 }] }, // exclue (done)
       { id: 't4', status: 'available', zone_ids: ['zX'], tutorials_linked: [{ id: 5 }] }, // autre lieu
     ];

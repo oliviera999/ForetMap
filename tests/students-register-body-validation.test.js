@@ -15,11 +15,19 @@ function runValidation(body) {
   const res = {
     statusCode: 200,
     body: undefined,
-    status(c) { this.statusCode = c; return this; },
-    json(payload) { this.body = payload; return this; },
+    status(c) {
+      this.statusCode = c;
+      return this;
+    },
+    json(payload) {
+      this.body = payload;
+      return this;
+    },
   };
   let nextCalled = false;
-  validate({ body: registerBodySchema })(req, res, () => { nextCalled = true; });
+  validate({ body: registerBodySchema })(req, res, () => {
+    nextCalled = true;
+  });
   return { nextCalled, status: res.statusCode, error: res.body?.error };
 }
 
@@ -39,14 +47,26 @@ test('register : rejet 400 "studentId requis" pour les valeurs falsy', () => {
   ];
   for (const body of falsyCases) {
     const r = runValidation(body);
-    assert.strictEqual(legacyRejects(body.studentId), true, `legacy devrait rejeter ${JSON.stringify(body)}`);
-    assert.strictEqual(r.nextCalled, false, `next ne doit pas être appelé pour ${JSON.stringify(body)}`);
+    assert.strictEqual(
+      legacyRejects(body.studentId),
+      true,
+      `legacy devrait rejeter ${JSON.stringify(body)}`,
+    );
+    assert.strictEqual(
+      r.nextCalled,
+      false,
+      `next ne doit pas être appelé pour ${JSON.stringify(body)}`,
+    );
     assert.strictEqual(r.status, 400, `status 400 attendu pour ${JSON.stringify(body)}`);
-    assert.strictEqual(r.error, 'studentId requis', `message exact attendu pour ${JSON.stringify(body)}`);
+    assert.strictEqual(
+      r.error,
+      'studentId requis',
+      `message exact attendu pour ${JSON.stringify(body)}`,
+    );
   }
 });
 
-test('register : laisse passer les valeurs truthy (y compris chaînes d\'espaces)', () => {
+test("register : laisse passer les valeurs truthy (y compris chaînes d'espaces)", () => {
   const truthyCases = [
     { studentId: 'abc-123' },
     { studentId: '   ' }, // chaîne d'espaces : truthy → passe ici (403 plus loin, pas 400)
@@ -56,7 +76,11 @@ test('register : laisse passer les valeurs truthy (y compris chaînes d\'espaces
   ];
   for (const body of truthyCases) {
     const r = runValidation(body);
-    assert.strictEqual(legacyRejects(body.studentId), false, `legacy ne devrait pas rejeter ${JSON.stringify(body)}`);
+    assert.strictEqual(
+      legacyRejects(body.studentId),
+      false,
+      `legacy ne devrait pas rejeter ${JSON.stringify(body)}`,
+    );
     assert.strictEqual(r.nextCalled, true, `next doit être appelé pour ${JSON.stringify(body)}`);
     assert.strictEqual(r.status, 200, `pas de 400 pour ${JSON.stringify(body)}`);
   }

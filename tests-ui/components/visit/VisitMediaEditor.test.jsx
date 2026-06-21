@@ -73,8 +73,12 @@ describe('VisitMediaEditor', () => {
     const rows = document.querySelectorAll('.visit-media-row');
     const dataTransfer = {
       data: {},
-      setData(type, val) { this.data[type] = val; },
-      getData(type) { return this.data[type]; },
+      setData(type, val) {
+        this.data[type] = val;
+      },
+      getData(type) {
+        return this.data[type];
+      },
     };
     fireEvent.dragStart(rows[1], { dataTransfer });
     fireEvent.drop(rows[0], { dataTransfer });

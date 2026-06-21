@@ -68,12 +68,11 @@ before(async () => {
     `INSERT INTO gl_admins (email, display_name, role, is_active, created_at, updated_at)
      VALUES (?, 'MJ Export', 'admin', 1, NOW(), NOW())
      ON DUPLICATE KEY UPDATE is_active = 1, updated_at = NOW()`,
-    [`export.admin.${stamp}@ecole.local`]
+    [`export.admin.${stamp}@ecole.local`],
   );
-  const admin = await queryOne(
-    'SELECT id FROM gl_admins WHERE email = ? LIMIT 1',
-    [`export.admin.${stamp}@ecole.local`]
-  );
+  const admin = await queryOne('SELECT id FROM gl_admins WHERE email = ? LIMIT 1', [
+    `export.admin.${stamp}@ecole.local`,
+  ]);
   adminToken = await signAuthToken({
     product: 'gl',
     userType: 'gl_admin',
@@ -84,15 +83,19 @@ before(async () => {
   await execute(
     `INSERT INTO gl_classes (name, school, created_by, is_active, created_at, updated_at)
      VALUES (?, 'Ecole', ?, 1, NOW(), NOW())`,
-    [`Classe Export ${stamp}`, admin.id]
+    [`Classe Export ${stamp}`, admin.id],
   );
-  const cls = await queryOne('SELECT id FROM gl_classes WHERE name = ? LIMIT 1', [`Classe Export ${stamp}`]);
+  const cls = await queryOne('SELECT id FROM gl_classes WHERE name = ? LIMIT 1', [
+    `Classe Export ${stamp}`,
+  ]);
   await execute(
     `INSERT INTO gl_players (class_id, pseudo, password_hash, is_active, created_at, updated_at)
      VALUES (?, ?, 'x', 1, NOW(), NOW())`,
-    [cls.id, `export-player-${stamp}`]
+    [cls.id, `export-player-${stamp}`],
   );
-  const player = await queryOne('SELECT id FROM gl_players WHERE pseudo = ? LIMIT 1', [`export-player-${stamp}`]);
+  const player = await queryOne('SELECT id FROM gl_players WHERE pseudo = ? LIMIT 1', [
+    `export-player-${stamp}`,
+  ]);
   playerToken = await signAuthToken({
     product: 'gl',
     userType: 'gl_player',
@@ -103,7 +106,11 @@ before(async () => {
 });
 
 test('GET /api/gl/admin/glossary/import/template retourne un modèle XLSX', async () => {
-  const buf = await getXlsxBuffer(request(app), '/api/gl/admin/glossary/import/template', adminToken);
+  const buf = await getXlsxBuffer(
+    request(app),
+    '/api/gl/admin/glossary/import/template',
+    adminToken,
+  );
   assert.ok(buf.length > 100);
   const { glossaryRows } = await parseGlossaryWorkbook(buf);
   assert.ok(glossaryRows.length >= 1);
@@ -128,13 +135,13 @@ test('GET /api/gl/admin/glossary/export round-trip ré-importable', async () => 
       all_biomes, statut, created_at, updated_at
     ) VALUES (?, 'Terme export test', NULL, 'biome', 'base', 'Définition courte', NULL, NULL, NULL, NULL, NULL, 1, 'actif', NOW(), NOW())
     ON DUPLICATE KEY UPDATE terme = VALUES(terme), statut = 'actif', updated_at = NOW()`,
-    [code]
+    [code],
   );
 
   const buf = await getXlsxBuffer(
     request(app),
     `/api/gl/admin/glossary/export?statut=actif`,
-    adminToken
+    adminToken,
   );
   const { glossaryRows } = await parseGlossaryWorkbook(buf);
   const exported = glossaryRows.find((row) => {
@@ -163,13 +170,13 @@ test('GET /api/gl/admin/qcm/export round-trip ré-importable', async () => {
     `INSERT INTO gl_biomes (slug, nom, order_index, created_at, updated_at)
      VALUES (?, 'Biome export test', 999, NOW(), NOW())
      ON DUPLICATE KEY UPDATE updated_at = NOW()`,
-    [biomeSlug]
+    [biomeSlug],
   );
   await execute(
     `INSERT INTO gl_qcm_categories (slug, nom, emoji, description, order_index, created_at, updated_at)
      VALUES (?, 'Catégorie export', '🧪', 'Test', 1, NOW(), NOW())
      ON DUPLICATE KEY UPDATE nom = VALUES(nom), updated_at = NOW()`,
-    [catSlug]
+    [catSlug],
   );
   await execute(
     `INSERT INTO gl_qcm_questions (
@@ -177,13 +184,13 @@ test('GET /api/gl/admin/qcm/export round-trip ré-importable', async () => {
       choix_a, choix_b, choix_c, choix_d, choix_e, reponse_correcte, statut, created_at, updated_at
     ) VALUES (?, ?, ?, 1, 'Question export test ?', 'A', 'B', 'C', 'D', 'E', 'A', 'actif', NOW(), NOW())
     ON DUPLICATE KEY UPDATE question = VALUES(question), statut = 'actif', updated_at = NOW()`,
-    [qCode, biomeSlug, catSlug]
+    [qCode, biomeSlug, catSlug],
   );
 
   const buf = await getXlsxBuffer(
     request(app),
     `/api/gl/admin/qcm/export?biomeSlug=${encodeURIComponent(biomeSlug)}`,
-    adminToken
+    adminToken,
   );
   const { categoryRows, questionRows } = await parseQcmWorkbook(buf);
   assert.ok(categoryRows.some((row) => buildCategoryPayload(row).slug === catSlug));
@@ -195,7 +202,7 @@ test('GET /api/gl/admin/qcm/export round-trip ré-importable', async () => {
     buildQuestionPayload(exportedQ),
     2,
     knownBiomes,
-    knownCategories
+    knownCategories,
   );
   assert.strictEqual(qErrors.length, 0);
 });
@@ -212,7 +219,11 @@ test('GET template/export glossaire refuse sans permission', async () => {
 });
 
 test('GET /api/gl/admin/species/import/template retourne un modèle XLSX biocénose', async () => {
-  const buf = await getXlsxBuffer(request(app), '/api/gl/admin/species/import/template', adminToken);
+  const buf = await getXlsxBuffer(
+    request(app),
+    '/api/gl/admin/species/import/template',
+    adminToken,
+  );
   const { speciesRows, biomeRows } = await parseSpeciesWorkbook(buf);
   assert.ok(speciesRows.length >= 1);
   assert.ok(biomeRows.length >= 1);
@@ -227,20 +238,20 @@ test('GET /api/gl/admin/species/export round-trip ré-importable', async () => {
     `INSERT INTO gl_biomes (slug, nom, order_index, created_at, updated_at)
      VALUES (?, 'Biome export espèces', 999, NOW(), NOW())
      ON DUPLICATE KEY UPDATE nom = VALUES(nom), updated_at = NOW()`,
-    [biomeSlug]
+    [biomeSlug],
   );
   await execute(
     `INSERT INTO gl_species (
       species_code, biome_slug, type, nom_commun, statut, created_at, updated_at
     ) VALUES (?, ?, 'faune', 'Espèce export test', 'actif', NOW(), NOW())
     ON DUPLICATE KEY UPDATE nom_commun = VALUES(nom_commun), statut = 'actif', updated_at = NOW()`,
-    [code, biomeSlug]
+    [code, biomeSlug],
   );
 
   const buf = await getXlsxBuffer(
     request(app),
     `/api/gl/admin/species/export?biomeSlug=${encodeURIComponent(biomeSlug)}`,
-    adminToken
+    adminToken,
   );
   const { speciesRows, biomeRows } = await parseSpeciesWorkbook(buf);
   const exported = speciesRows.find((row) => buildSpeciesPayload(row).species_code === code);
@@ -253,14 +264,17 @@ test('GET /api/gl/chapters/admin/import/template retourne un modèle XLSX (scope
   const buf = await getXlsxBuffer(
     request(app),
     '/api/gl/chapters/admin/import/template?scope=full',
-    adminToken
+    adminToken,
   );
   const parsed = await parseChaptersWorkbook(buf);
   assert.ok(parsed.chapterRows.length >= 1);
   assert.ok(parsed.markerRows.length >= 1);
   assert.ok(parsed.zoneRows.length >= 1);
   assert.ok(parsed.charteRows.length >= 1);
-  assert.strictEqual(validateChapterPayload(buildChapterPayload(parsed.chapterRows[0]), 2).length, 0);
+  assert.strictEqual(
+    validateChapterPayload(buildChapterPayload(parsed.chapterRows[0]), 2).length,
+    0,
+  );
   const wb = require('xlsx').read(buf, { type: 'buffer' });
   assert.ok(wb.SheetNames.includes(CHAPTERS_SHEET));
   assert.ok(wb.SheetNames.includes(MARKERS_SHEET));
@@ -272,7 +286,7 @@ test('GET /api/gl/chapters/admin/export scope full round-trip dry-run', async ()
   const buf = await getXlsxBuffer(
     request(app),
     '/api/gl/chapters/admin/export?scope=full&slug=foret-magique',
-    adminToken
+    adminToken,
   );
   const parsed = await parseChaptersWorkbook(buf);
   assert.ok(parsed.chapterRows.length >= 1);
@@ -289,7 +303,7 @@ test('GET /api/gl/chapters/admin/charte/import/template retourne un modèle XLSX
   const buf = await getXlsxBuffer(
     request(app),
     '/api/gl/chapters/admin/charte/import/template',
-    adminToken
+    adminToken,
   );
   const { rows } = await parseChapterCharteWorkbook(buf);
   assert.ok(rows.length >= 1);
@@ -306,10 +320,6 @@ test('GET /api/gl/chapters/admin/charte/export refuse sans permission', async ()
 });
 
 test('GET template/export QCM refuse sans authentification', async () => {
-  await request(app)
-    .get('/api/gl/admin/qcm/import/template')
-    .expect(401);
-  await request(app)
-    .get('/api/gl/admin/qcm/export')
-    .expect(401);
+  await request(app).get('/api/gl/admin/qcm/import/template').expect(401);
+  await request(app).get('/api/gl/admin/qcm/export').expect(401);
 });

@@ -49,18 +49,12 @@ export function GLChapterSpellsFieldset({
         </GLButton>
       </div>
       {selectedCodes.length > 0 ? (
-        <p className="gl-hint">
-          {selectedCodes.length}
-          {' '}
-          sort(s) sélectionné(s).
-        </p>
+        <p className="gl-hint">{selectedCodes.length} sort(s) sélectionné(s).</p>
       ) : (
         <p className="gl-hint">Aucun sort sélectionné.</p>
       )}
       {spellsByCategory.length === 0 ? (
-        <p className="gl-hint">
-          Catalogue vide — importez des sorts dans Contenus → Sortilèges.
-        </p>
+        <p className="gl-hint">Catalogue vide — importez des sorts dans Contenus → Sortilèges.</p>
       ) : (
         spellsByCategory.map((group) => {
           const groupCodes = group.spells.map((s) => s.spell_code);
@@ -73,17 +67,9 @@ export function GLChapterSpellsFieldset({
                   type="button"
                   size="sm"
                   variant="secondary"
-                  onClick={() => (
-                    allInGroup
-                      ? onDeselectAll(groupCodes)
-                      : onSelectAll(groupCodes)
-                  )}
+                  onClick={() => (allInGroup ? onDeselectAll(groupCodes) : onSelectAll(groupCodes))}
                 >
-                  {allInGroup ? 'Tout décocher' : 'Tout cocher'}
-                  {' '}
-                  (
-                  {group.spells.length}
-                  )
+                  {allInGroup ? 'Tout décocher' : 'Tout cocher'} ({group.spells.length})
                 </GLButton>
               </div>
               <ul className="gl-chapter-spells-options">
@@ -98,10 +84,7 @@ export function GLChapterSpellsFieldset({
                           checked={checked}
                           onChange={(event) => onToggleSpell(code, event.target.checked)}
                         />
-                        <span aria-hidden="true">{spell.emoji || '✨'}</span>
-                        {' '}
-                        {spell.nom}
-                        {' '}
+                        <span aria-hidden="true">{spell.emoji || '✨'}</span> {spell.nom}{' '}
                         <span className="gl-hint">({code})</span>
                       </label>
                     </li>

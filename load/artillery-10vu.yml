@@ -2,7 +2,7 @@
 # Aucun en-tête X-ForetMap-Load-Test : le rate limiting Express s’applique comme en prod / classe (Wi‑Fi).
 # maxVusers: 10 plafonne les VU concurrents par phase.
 config:
-  target: "http://127.0.0.1:3000"
+  target: 'http://127.0.0.1:3000'
   http:
     timeout: 20
   defaults:

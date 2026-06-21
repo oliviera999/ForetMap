@@ -13,12 +13,15 @@ export function useGLVirtualDice({ prefersReducedMotion = false } = {}) {
   const [lastRoll, setLastRoll] = useState(null);
   const rollTimerRef = useRef(null);
 
-  useEffect(() => () => {
-    if (rollTimerRef.current != null) {
-      clearTimeout(rollTimerRef.current);
-      rollTimerRef.current = null;
-    }
-  }, []);
+  useEffect(
+    () => () => {
+      if (rollTimerRef.current != null) {
+        clearTimeout(rollTimerRef.current);
+        rollTimerRef.current = null;
+      }
+    },
+    [],
+  );
 
   const setCount = useCallback((next) => {
     const clamped = clampDiceCount(next);

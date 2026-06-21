@@ -6,9 +6,7 @@ const assert = require('node:assert');
 const request = require('supertest');
 const { app } = require('../server');
 const { initSchema, execute, queryOne } = require('../database');
-const {
-  invalidateGameplayCache,
-} = require('../lib/glSettings');
+const { invalidateGameplayCache } = require('../lib/glSettings');
 const {
   createGlAdmin,
   createGlClass,
@@ -38,7 +36,7 @@ async function setVitalityEnabled(enabled) {
     `INSERT INTO gl_settings (\`key\`, value_json, updated_at)
      VALUES ('gameplay.vitality_enabled', ?, NOW())
      ON DUPLICATE KEY UPDATE value_json = VALUES(value_json), updated_at = NOW()`,
-    [JSON.stringify(!!enabled)]
+    [JSON.stringify(!!enabled)],
   );
   invalidateGameplayCache();
 }
@@ -95,7 +93,7 @@ before(async () => {
         powerDelta: -1,
         results: [{ playerId: playerAId, health: 7, power: 3 }],
       }),
-    ]
+    ],
   );
 
   await execute(
@@ -108,23 +106,23 @@ before(async () => {
       JSON.stringify({
         contributions: [{ playerId: playerAId, gems: 1, hearts: 0 }],
       }),
-    ]
+    ],
   );
 
   await execute(
     `INSERT INTO gl_market_trades
       (class_id, player_low_id, player_high_id, initiator_player_id, status, created_at, updated_at, completed_at)
      VALUES (?, ?, ?, ?, 'completed', NOW(), NOW(), NOW())`,
-    [classId, playerAId, playerBId, playerAId]
+    [classId, playerAId, playerBId, playerAId],
   );
   const trade = await queryOne(
     'SELECT id FROM gl_market_trades WHERE class_id = ? ORDER BY id DESC LIMIT 1',
-    [classId]
+    [classId],
   );
   await execute(
     `INSERT INTO gl_market_trade_sides (trade_id, player_id, offer_health, offer_power, accepted)
      VALUES (?, ?, 1, 0, 1), (?, ?, 0, 1, 1)`,
-    [trade.id, playerAId, trade.id, playerBId]
+    [trade.id, playerAId, trade.id, playerBId],
   );
 
   await execute(
@@ -132,18 +130,14 @@ before(async () => {
       (reader_user_type, reader_user_id, target_type, target_code, acknowledged_at)
      VALUES ('gl_player', ?, 'species', 'SP001', NOW()),
             ('gl_player', ?, 'glossary', 'GL0001', NOW())`,
-    [String(playerAId), String(playerAId)]
+    [String(playerAId), String(playerAId)],
   );
 
   const tokens = await signTokens({
     adminId: admin.id,
     playerId: playerAId,
     playerPseudo: playerA.pseudo,
-    adminPermissions: [
-      'gl.read',
-      'gl.players.manage',
-      'gl.game.manage',
-    ],
+    adminPermissions: ['gl.read', 'gl.players.manage', 'gl.game.manage'],
   });
   mjToken = tokens.adminToken;
   playerToken = tokens.playerToken;
@@ -159,14 +153,10 @@ test('agrégation pure : vitality_change, spell_cast, marché', () => {
   applySpellCastEvent(flows, {
     contributions: [{ playerId: playerAId, gems: 1, hearts: 0 }],
   });
-  applyMarketTrade(
-    flows,
-    { player_low_id: playerAId, player_high_id: playerBId },
-    [
-      { player_id: playerAId, offer_health: 1, offer_power: 0 },
-      { player_id: playerBId, offer_health: 0, offer_power: 1 },
-    ]
-  );
+  applyMarketTrade(flows, { player_low_id: playerAId, player_high_id: playerBId }, [
+    { player_id: playerAId, offer_health: 1, offer_power: 0 },
+    { player_id: playerBId, offer_health: 0, offer_power: 1 },
+  ]);
   assert.strictEqual(flows[playerAId].heartsGained, 2);
   assert.strictEqual(flows[playerAId].heartsLost, 1);
   assert.strictEqual(flows[playerAId].gemsGained, 1);

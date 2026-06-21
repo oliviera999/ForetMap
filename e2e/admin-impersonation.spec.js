@@ -19,5 +19,7 @@ test('parcours admin: bandeau impersonation visible après prise de contrôle', 
   }
 
   await impersonateBtn.click();
-  await expect(page.getByText(/prise de contrôle|Voir comme|reconnecté/i).first()).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByText(/prise de contrôle|Voir comme|reconnecté/i).first()).toBeVisible({
+    timeout: 20_000,
+  });
 });

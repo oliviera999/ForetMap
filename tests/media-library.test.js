@@ -25,29 +25,30 @@ async function createTeacherToken(label = 'media') {
   await execute(
     `INSERT INTO users (id, user_type, email, pseudo, display_name, password_hash, auth_provider, is_active, created_at, updated_at)
      VALUES (?, 'teacher', ?, ?, ?, 'x', 'local', 1, NOW(), NOW())`,
-    [teacherId, teacherEmail, teacherId, 'Prof médiathèque']
+    [teacherId, teacherEmail, teacherId, 'Prof médiathèque'],
   );
   await execute(
     `INSERT INTO user_roles (user_type, user_id, role_id, is_primary)
      VALUES ('teacher', ?, ?, 1)
      ON DUPLICATE KEY UPDATE role_id = VALUES(role_id), is_primary = 1`,
-    [teacherId, profRole.id]
+    [teacherId, profRole.id],
   );
-  return signAuthToken({
-    userType: 'teacher',
-    userId: teacherId,
-    canonicalUserId: teacherId,
-    roleId: profRole.id,
-    roleSlug: 'prof',
-    roleDisplayName: 'n3boss',
-    elevated: false,
-  }, false);
+  return signAuthToken(
+    {
+      userType: 'teacher',
+      userId: teacherId,
+      canonicalUserId: teacherId,
+      roleId: profRole.id,
+      roleSlug: 'prof',
+      roleDisplayName: 'n3boss',
+      elevated: false,
+    },
+    false,
+  );
 }
 
 test('GET /api/media-library exige un compte n3boss ForetMap', async () => {
-  await request(app)
-    .get('/api/media-library')
-    .expect(401);
+  await request(app).get('/api/media-library').expect(401);
 
   const glToken = await signAuthToken({
     product: 'gl',
@@ -111,7 +112,10 @@ test('media-library ForetMap: la suppression refuse la traversée hors médiath�
       .send({ relative_path: `media-library/../${outsideRelativePath}` })
       .expect(400);
 
-    assert.ok(fs.existsSync(outsideAbsolutePath), 'Le fichier hors médiathèque ne doit pas être supprimé');
+    assert.ok(
+      fs.existsSync(outsideAbsolutePath),
+      'Le fichier hors médiathèque ne doit pas être supprimé',
+    );
   } finally {
     fs.rmSync(outsideAbsolutePath, { force: true });
   }

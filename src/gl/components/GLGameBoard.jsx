@@ -18,14 +18,14 @@ import { GLZoneContentPopover } from './GLZoneContentPopover.jsx';
 import { GLFeuilletDiscoveryPopover } from './GLFeuilletDiscoveryPopover.jsx';
 import { GLFeuilletPopover } from './GLFeuilletPopover.jsx';
 import { GLFeuilletZoneOverlay } from './GLFeuilletZoneOverlay.jsx';
-import { GLFeuilletZoneEditor } from './GLFeuilletZoneEditor.jsx';
+import { GLPlateauMapEditor } from './GLPlateauMapEditor.jsx';
 import { apiGL } from '../services/apiGL.js';
 import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion.js';
-import { GLZoneMusicMuteButton } from './GLZoneMusicMuteButton.jsx';
-import { GLVirtualDiceDock } from './GLVirtualDiceDock.jsx';
+import { GLBoardChrome } from './GLBoardChrome.jsx';
 import { GLButton } from './ui/GLButton.jsx';
-import { GLGameBoardHud, GLGameBoardHudToolbar } from './GLGameBoardHud.jsx';
+import { GLGameBoardHud } from './GLGameBoardHud.jsx';
 import { plateauBoardImg, chapterIllustration, GL_ASSET_PLACEHOLDER_URL } from '../assets/index.js';
+import { resolveGlBoardImageUrl } from '../utils/glLegacyMediaUrl.js';
 import { useGlAssetsReady } from './GLFeuilletIllustration.jsx';
 import { DialogShell } from '../../components/DialogShell.jsx';
 
@@ -63,6 +63,8 @@ export function GLGameBoard({
   virtualDiceEnabled = false,
   feuilletZones = [],
   feuilletZoneEditMode = false,
+  showPlateauMarkers = true,
+  showPlateauZones = false,
 }) {
   const assetsReady = useGlAssetsReady();
   const plateauNumber = chapter?.chapter_plateau_number ?? chapter?.plateau_number ?? null;
@@ -74,12 +76,16 @@ export function GLGameBoard({
     if (!assetsReady || plateauNumber == null) return null;
     return chapterIllustration(plateauNumber);
   }, [assetsReady, plateauNumber]);
-  const imageUrl = useMemo(() => (
-    chapter?.map_image_url
-    || (conventionBoard && conventionBoard !== GL_ASSET_PLACEHOLDER_URL ? conventionBoard : null)
-    || conventionChapter
-    || '/maps/map-foret.svg'
-  ), [chapter?.map_image_url, conventionBoard, conventionChapter]);
+  const imageUrl = useMemo(
+    () =>
+      resolveGlBoardImageUrl({
+        mapImageUrl: chapter?.map_image_url,
+        conventionBoard,
+        conventionChapter,
+        placeholderUrl: GL_ASSET_PLACEHOLDER_URL,
+      }),
+    [chapter?.map_image_url, conventionBoard, conventionChapter],
+  );
   const [pendingMarker, setPendingMarker] = useState(null);
   const [actionType, setActionType] = useState('explore');
   const [mapFullscreen, setMapFullscreen] = useState(false);
@@ -104,11 +110,7 @@ export function GLGameBoard({
     enabled: Boolean(gameId && watchTeamId != null && markerArrivalEnabled),
   });
 
-  const {
-    getPositionForTeam,
-    getMotionForTeam,
-    moveTeamTo,
-  } = useGLBoardMascotMotion({
+  const { getPositionForTeam, getMotionForTeam, moveTeamTo } = useGLBoardMascotMotion({
     teams,
     boardHeightPx,
     prefersReducedMotion,
@@ -145,10 +147,21 @@ export function GLGameBoard({
 
   const [presentedFeuilletZoneIds, setPresentedFeuilletZoneIds] = useState([]);
   const [editZones, setEditZones] = useState(feuilletZones);
+  const [editableMarkers, setEditableMarkers] = useState(markers);
+  const [plateauPlacement, setPlateauPlacement] = useState({
+    handleMapClick: null,
+    mapCursor: 'default',
+    selectedMarkerId: null,
+    selectMarker: null,
+  });
 
   useEffect(() => {
     setEditZones(feuilletZones);
   }, [feuilletZones]);
+
+  useEffect(() => {
+    setEditableMarkers(Array.isArray(markers) ? markers : []);
+  }, [markers]);
 
   useEffect(() => {
     if (!gameId || watchTeamId == null) {
@@ -168,10 +181,14 @@ export function GLGameBoard({
         if (!cancelled) setPresentedFeuilletZoneIds([]);
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [gameId, watchTeamId]);
 
   const activeFeuilletZones = feuilletZoneEditMode ? editZones : feuilletZones;
+  const displayMarkers = feuilletZoneEditMode || showPlateauMarkers;
+  const displayFeuilletZones = feuilletZoneEditMode || showPlateauZones;
 
   const {
     popover: feuilletZonePopover,
@@ -182,7 +199,9 @@ export function GLGameBoard({
     gameId,
     watchTeamId,
     presentedZoneIds: presentedFeuilletZoneIds,
-    enabled: Boolean(gameId && watchTeamId != null && activeFeuilletZones.length > 0) && !feuilletZoneEditMode,
+    enabled:
+      Boolean(gameId && watchTeamId != null && activeFeuilletZones.length > 0) &&
+      !feuilletZoneEditMode,
     qcmOpen: modalOpen,
     loreCarnetEnabled,
   });
@@ -204,9 +223,18 @@ export function GLGameBoard({
 
   useEffect(() => {
     if (watchTeamId == null || !watchPosition) return undefined;
-    const cleanupZone = handleZoneContentPositionChange({ xp: watchPosition.xp, yp: watchPosition.yp });
-    const cleanupFeuillet = handleFeuilletPositionChange({ xp: watchPosition.xp, yp: watchPosition.yp });
-    const cleanupFeuilletZone = handleFeuilletZonePositionChange({ xp: watchPosition.xp, yp: watchPosition.yp });
+    const cleanupZone = handleZoneContentPositionChange({
+      xp: watchPosition.xp,
+      yp: watchPosition.yp,
+    });
+    const cleanupFeuillet = handleFeuilletPositionChange({
+      xp: watchPosition.xp,
+      yp: watchPosition.yp,
+    });
+    const cleanupFeuilletZone = handleFeuilletZonePositionChange({
+      xp: watchPosition.xp,
+      yp: watchPosition.yp,
+    });
     return () => {
       cleanupZone?.();
       cleanupFeuillet?.();
@@ -250,26 +278,35 @@ export function GLGameBoard({
     return list.length > 0 ? Number(list[0].id) : null;
   }, [teams, selectedTeamId, watchTeamId]);
 
-  const handleBoardMove = useCallback((xp, yp) => {
-    const teamId = resolveActiveTeamId();
-    if (teamId == null) return;
-    moveTeamTo(teamId, xp, yp);
-    onBoardClick?.({ xp, yp });
-  }, [resolveActiveTeamId, moveTeamTo, onBoardClick]);
+  const handleBoardMove = useCallback(
+    (xp, yp) => {
+      const teamId = resolveActiveTeamId();
+      if (teamId == null) return;
+      moveTeamTo(teamId, xp, yp);
+      onBoardClick?.({ xp, yp });
+    },
+    [resolveActiveTeamId, moveTeamTo, onBoardClick],
+  );
 
-  const handleMarkerMove = useCallback((marker) => {
-    const teamId = resolveActiveTeamId();
-    if (teamId == null) return;
-    const xp = Number(marker.x_pct);
-    const yp = Number(marker.y_pct);
-    moveTeamTo(teamId, xp, yp, { triggerHappy: true, arrival: 'marker' });
-    onMarkerClick?.(marker);
-    if (isQuestionMarker(marker) || shouldPresentMarkerOnArrival(marker)) {
-      schedulePresentOnArrival(marker, teamId, { force: true });
-    }
-  }, [resolveActiveTeamId, moveTeamTo, onMarkerClick, schedulePresentOnArrival]);
+  const handleMarkerMove = useCallback(
+    (marker) => {
+      const teamId = resolveActiveTeamId();
+      if (teamId == null) return;
+      const xp = Number(marker.x_pct);
+      const yp = Number(marker.y_pct);
+      moveTeamTo(teamId, xp, yp, { triggerHappy: true, arrival: 'marker' });
+      onMarkerClick?.(marker);
+      if (isQuestionMarker(marker) || shouldPresentMarkerOnArrival(marker)) {
+        schedulePresentOnArrival(marker, teamId, { force: true });
+      }
+    },
+    [resolveActiveTeamId, moveTeamTo, onMarkerClick, schedulePresentOnArrival],
+  );
 
   function handleMarkerClick(marker) {
+    if (feuilletZoneEditMode) {
+      return;
+    }
     if (canMoveMascot) {
       handleMarkerMove(marker);
       return;
@@ -278,6 +315,17 @@ export function GLGameBoard({
       setPendingMarker(marker);
     }
   }
+
+  const handlePlateauPlacementReady = useCallback((handlers) => {
+    setPlateauPlacement(handlers);
+  }, []);
+
+  const handleMarkerPositionSave = useCallback(async (markerId, xPct, yPct) => {
+    await apiGL(`/api/gl/chapters/admin/markers/${markerId}`, 'PUT', {
+      xPct: Number(xPct),
+      yPct: Number(yPct),
+    });
+  }, []);
 
   function confirmActionRequest() {
     if (!pendingMarker) return;
@@ -296,57 +344,70 @@ export function GLGameBoard({
   const boardClass = mapFullscreen ? 'gl-board gl-board--fullscreen' : 'gl-board';
 
   const boardShell = (
-    <div className={boardShellClass} data-testid={mapFullscreen ? 'gl-map-fullscreen-layer' : undefined}>
-      {mapFullscreen ? (
-        <button
-          type="button"
-          className="gl-map-fullscreen-close"
-          data-testid="gl-map-fullscreen-close"
-          aria-label="Quitter le plein écran"
-          onClick={() => setMapFullscreen(false)}
-        >
-          Fermer
-        </button>
-      ) : null}
+    <div
+      className={boardShellClass}
+      data-testid={mapFullscreen ? 'gl-map-fullscreen-layer' : undefined}
+    >
       <GLPctMapCanvas
         imageUrl={imageUrl}
         imageAlt={chapter?.title || 'Carte du chapitre'}
         mapGestures={mapGestures}
         className={boardClass}
+        cursor={feuilletZoneEditMode ? plateauPlacement.mapCursor : undefined}
         onFitLayout={({ height }) => {
           if (!Number.isFinite(height) || height <= 0) return;
           boardHeightPxRef.current = height;
           setBoardHeightPx(height);
         }}
         onMapPointerDown={() => onZoneMusicUnlock?.()}
-        onMapClick={(pct) => {
+        onMapClick={(pct, event) => {
           onZoneMusicUnlock?.();
+          if (feuilletZoneEditMode) {
+            plateauPlacement.handleMapClick?.(pct, event);
+            return;
+          }
           if (!canMoveMascot) return;
-          const clamped = clampMapMascotPctForViewport(
-            pct.x,
-            pct.y,
-            boardHeightPxRef.current,
-          );
+          const clamped = clampMapMascotPctForViewport(pct.x, pct.y, boardHeightPxRef.current);
           handleBoardMove(clamped.xp, clamped.yp);
         }}
       >
         {feuilletZoneEditMode ? (
-          <GLFeuilletZoneEditor
+          <GLPlateauMapEditor
             zones={editZones}
             onZonesChange={setEditZones}
+            markers={editableMarkers}
+            editableMarkers={editableMarkers}
+            onEditableMarkersChange={setEditableMarkers}
+            onMarkerSave={handleMarkerPositionSave}
             presentedZoneIds={presentedFeuilletZoneIds}
             mapGestures={mapGestures}
             plateauNumber={plateauNumber}
+            showMarkers
+            showZones
+            panelTitle="Édition plateau"
+            onPlacementReady={handlePlateauPlacementReady}
           />
-        ) : (
+        ) : displayFeuilletZones ? (
           <GLFeuilletZoneOverlay
             zones={activeFeuilletZones}
             presentedZoneIds={presentedFeuilletZoneIds}
             watchPosition={watchPosition}
           />
-        )}
+        ) : null}
 
-        <GLBoardMarkers markers={markers} onMarkerClick={handleMarkerClick} />
+        {displayMarkers ? (
+          <GLBoardMarkers
+            markers={feuilletZoneEditMode ? editableMarkers : markers}
+            selectedMarkerId={
+              feuilletZoneEditMode ? plateauPlacement.selectedMarkerId : null
+            }
+            onMarkerClick={
+              feuilletZoneEditMode
+                ? (marker) => plateauPlacement.selectMarker?.(marker.id)
+                : handleMarkerClick
+            }
+          />
+        ) : null}
 
         {teamList.map((team) => {
           const position = getPositionForTeam(team.id);
@@ -360,7 +421,9 @@ export function GLGameBoard({
               motion={motion}
               mascotState={mascotState}
               prefersReducedMotion={prefersReducedMotion}
-              zIndex={6 + (selectedTeamId != null && Number(selectedTeamId) === Number(team.id) ? 2 : 0)}
+              zIndex={
+                6 + (selectedTeamId != null && Number(selectedTeamId) === Number(team.id) ? 2 : 0)
+              }
             />
           );
         })}
@@ -397,17 +460,19 @@ export function GLGameBoard({
         })}
       </GLPctMapCanvas>
 
-      {virtualDiceEnabled && gameId ? (
-        <GLVirtualDiceDock themeStyle={brandThemeStyle} />
-      ) : null}
-
-      {!mapFullscreen ? (
-        <GLGameBoardHudToolbar
-          canSpellCast={canSpellCast}
-          onLaunchSpell={onLaunchSpell}
-          onOpenFullscreen={() => setMapFullscreen(true)}
-        />
-      ) : null}
+      <GLBoardChrome
+        mapFullscreen={mapFullscreen}
+        onCloseFullscreen={() => setMapFullscreen(false)}
+        canSpellCast={canSpellCast}
+        onLaunchSpell={onLaunchSpell}
+        onOpenFullscreen={() => setMapFullscreen(true)}
+        virtualDiceEnabled={virtualDiceEnabled}
+        gameId={gameId}
+        themeStyle={brandThemeStyle}
+        zoneMusicEnabled={zoneMusicEnabled}
+        zoneMusicMuted={zoneMusicMuted}
+        onZoneMusicToggle={onZoneMusicToggle}
+      />
 
       <GLZoneContentPopover
         open={Boolean(zoneContentPopover)}
@@ -486,9 +551,10 @@ export function GLGameBoard({
     </div>
   );
 
-  const boardShellNode = mapFullscreen && typeof document !== 'undefined' && document.body
-    ? createPortal(boardShell, document.body)
-    : boardShell;
+  const boardShellNode =
+    mapFullscreen && typeof document !== 'undefined' && document.body
+      ? createPortal(boardShell, document.body)
+      : boardShell;
 
   return (
     <section className={mapFullscreen ? 'gl-panel gl-panel--map-fullscreen-active' : 'gl-panel'}>
@@ -501,15 +567,6 @@ export function GLGameBoard({
         />
       ) : null}
       {boardShellNode}
-
-      {zoneMusicEnabled ? (
-        <GLZoneMusicMuteButton
-          visible
-          muted={zoneMusicMuted}
-          onToggle={onZoneMusicToggle}
-          className="gl-zone-music-toggle--board"
-        />
-      ) : null}
 
       <DialogShell
         open={!!pendingMarker}
@@ -529,8 +586,12 @@ export function GLGameBoard({
           </select>
         </label>
         <div className="gl-inline-actions">
-          <GLButton type="button" onClick={confirmActionRequest}>Envoyer la demande</GLButton>
-          <GLButton type="button" variant="secondary" onClick={() => setPendingMarker(null)}>Annuler</GLButton>
+          <GLButton type="button" onClick={confirmActionRequest}>
+            Envoyer la demande
+          </GLButton>
+          <GLButton type="button" variant="secondary" onClick={() => setPendingMarker(null)}>
+            Annuler
+          </GLButton>
         </div>
       </DialogShell>
     </section>

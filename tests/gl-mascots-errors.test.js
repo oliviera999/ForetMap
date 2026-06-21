@@ -5,7 +5,12 @@ const { test, before } = require('node:test');
 const request = require('supertest');
 const { app } = require('../server');
 const { initSchema, queryOne } = require('../database');
-const { createGlAdmin, createGlClass, createGlGameWithTeams, signTokens } = require('./helpers/glFixtures');
+const {
+  createGlAdmin,
+  createGlClass,
+  createGlGameWithTeams,
+  signTokens,
+} = require('./helpers/glFixtures');
 
 let adminToken = '';
 let gameId = null;

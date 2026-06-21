@@ -17,6 +17,8 @@ export const EMPTY_CHAPTER_FORM = {
   sortilegesMarkdown: '',
   orderIndex: 0,
   plateauNumber: '',
+  mapMarkersVisible: '',
+  mapZonesVisible: '',
   mapImageFrame: normalizeGlImageFrame(null, 'chapter-map'),
   theme: { ...EMPTY_CHAPTER_THEME },
 };
@@ -44,9 +46,7 @@ export function chapterDetailToForm(data) {
     slug: data.chapter.slug,
     title: data.chapter.title || '',
     biome: data.chapter.biome || '',
-    biomeSlugs: Array.isArray(data.chapter.biomes)
-      ? data.chapter.biomes.map((b) => b.slug)
-      : [],
+    biomeSlugs: Array.isArray(data.chapter.biomes) ? data.chapter.biomes.map((b) => b.slug) : [],
     spellCodes: Array.isArray(data.chapter.spells)
       ? data.chapter.spells.map((s) => s.spell_code)
       : [],
@@ -58,6 +58,8 @@ export function chapterDetailToForm(data) {
     sortilegesMarkdown: data.chapter.sortileges_markdown || '',
     orderIndex: Number(data.chapter.order_index || 0),
     plateauNumber: data.chapter.plateau_number != null ? String(data.chapter.plateau_number) : '',
+    mapMarkersVisible: chapterMapVisibilityToFormValue(data.chapter.map_markers_visible),
+    mapZonesVisible: chapterMapVisibilityToFormValue(data.chapter.map_zones_visible),
     theme: normalizeChapterTheme(data.chapter.theme),
   };
 }
@@ -74,7 +76,21 @@ export function chapterFormToPayload(chapterForm) {
     theme: normalizeChapterTheme(chapterForm.theme),
     orderIndex: Number(chapterForm.orderIndex) || 0,
     plateauNumber: chapterForm.plateauNumber === '' ? null : Number(chapterForm.plateauNumber),
+    mapMarkersVisible: chapterMapVisibilityToPayload(chapterForm.mapMarkersVisible),
+    mapZonesVisible: chapterMapVisibilityToPayload(chapterForm.mapZonesVisible),
   };
+}
+
+function chapterMapVisibilityToFormValue(value) {
+  if (value == null) return '';
+  return value === true || value === 1 ? 'true' : 'false';
+}
+
+function chapterMapVisibilityToPayload(value) {
+  if (value == null || value === '') return null;
+  if (value === true || value === 'true') return true;
+  if (value === false || value === 'false') return false;
+  return null;
 }
 
 /**

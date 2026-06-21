@@ -18,7 +18,10 @@ import React from 'react';
 export function ObservationNotebookStatus({ loading, loadError, entryCount = 0, onRetry }) {
   if (loading) {
     return (
-      <div className="loader" style={{height:'40vh'}}><div className="loader-leaf">🌿</div><p>Chargement...</p></div>
+      <div className="loader" style={{ height: '40vh' }}>
+        <div className="loader-leaf">🌿</div>
+        <p>Chargement...</p>
+      </div>
     );
   }
   if (loadError) {
@@ -34,7 +37,10 @@ export function ObservationNotebookStatus({ loading, loadError, entryCount = 0, 
   }
   if (entryCount === 0) {
     return (
-      <div className="empty"><div className="empty-icon">📓</div><p>Ton carnet est vide. Ajoute ta première observation !</p></div>
+      <div className="empty">
+        <div className="empty-icon">📓</div>
+        <p>Ton carnet est vide. Ajoute ta première observation !</p>
+      </div>
     );
   }
   return null;

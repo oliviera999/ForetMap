@@ -8,9 +8,11 @@ test.describe('GL carte royaume — edition zones', () => {
     const adminEmail = `e2e-kingdom-editor-mj-${now}@example.org`;
     await execute(
       'INSERT INTO gl_admins (email, display_name, role, is_active, created_at, updated_at) VALUES (?, ?, ?, 1, NOW(), NOW())',
-      [adminEmail, `MJ Kingdom ${now}`, 'admin']
+      [adminEmail, `MJ Kingdom ${now}`, 'admin'],
     );
-    const adminRow = await queryOne('SELECT id FROM gl_admins WHERE email = ? LIMIT 1', [adminEmail]);
+    const adminRow = await queryOne('SELECT id FROM gl_admins WHERE email = ? LIMIT 1', [
+      adminEmail,
+    ]);
     const adminId = Number(adminRow?.id || 0);
     expect(adminId).toBeGreaterThan(0);
 
@@ -24,7 +26,9 @@ test.describe('GL carte royaume — edition zones', () => {
     });
     const adminHeaders = { Authorization: `Bearer ${adminToken}` };
 
-    const chapter = await queryOne("SELECT id FROM gl_chapters WHERE slug = 'foret-magique' LIMIT 1");
+    const chapter = await queryOne(
+      "SELECT id FROM gl_chapters WHERE slug = 'foret-magique' LIMIT 1",
+    );
     const chapterId = Number(chapter?.id || 0);
     expect(chapterId).toBeGreaterThan(0);
 

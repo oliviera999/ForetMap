@@ -39,18 +39,28 @@ export default function MascotPackStateEditor({
   const files = Array.isArray(spec.files) ? spec.files.map(String) : [];
   const srcs = Array.isArray(spec.srcs) ? spec.srcs.map(String) : [];
   const fps = Number(spec.fps) || 8;
-  const dwell = Array.isArray(spec.frameDwellMs) ? spec.frameDwellMs.map((n) => Number(n) || 100) : [];
+  const dwell = Array.isArray(spec.frameDwellMs)
+    ? spec.frameDwellMs.map((n) => Number(n) || 100)
+    : [];
 
   return (
     <details className="mascot-pack-wysiwyg__state" open={active}>
       <summary className="mascot-pack-wysiwyg__state-summary">
-        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }} onClick={(ev) => ev.preventDefault()}>
+        <label
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}
+          onClick={(ev) => ev.preventDefault()}
+        >
           <input
             type="checkbox"
             checked={active}
             onChange={(ev) => onToggleState(stateKey, ev.target.checked)}
           />
-          <strong>{STATE_LABELS[stateKey] || stateKey} <span className="section-sub" style={{ fontSize: '0.78rem' }}>({stateKey})</span></strong>
+          <strong>
+            {STATE_LABELS[stateKey] || stateKey}{' '}
+            <span className="section-sub" style={{ fontSize: '0.78rem' }}>
+              ({stateKey})
+            </span>
+          </strong>
         </label>
       </summary>
       {active ? (
@@ -86,7 +96,12 @@ export default function MascotPackStateEditor({
             <ul className="mascot-pack-wysiwyg__frame-list">
               {files.map((f, idx) => (
                 <li key={`${f}-${idx}`} className="mascot-pack-wysiwyg__frame-row">
-                  <img className="mascot-pack-wysiwyg__frame-thumb" src={resolveFrameUrl(pack, f)} alt="" loading="lazy" />
+                  <img
+                    className="mascot-pack-wysiwyg__frame-thumb"
+                    src={resolveFrameUrl(pack, f)}
+                    alt=""
+                    loading="lazy"
+                  />
                   <code className="mascot-pack-wysiwyg__frame-name">{f}</code>
                   <div className="mascot-pack-wysiwyg__frame-move">
                     <button
@@ -94,7 +109,10 @@ export default function MascotPackStateEditor({
                       className="btn btn-ghost btn-sm"
                       disabled={idx === 0}
                       onClick={() => {
-                        onUpdateStateEntry(stateKey, swapFrames(spec, files, dwell, fps, idx - 1, idx));
+                        onUpdateStateEntry(
+                          stateKey,
+                          swapFrames(spec, files, dwell, fps, idx - 1, idx),
+                        );
                       }}
                     >
                       Monter
@@ -104,7 +122,10 @@ export default function MascotPackStateEditor({
                       className="btn btn-ghost btn-sm"
                       disabled={idx >= files.length - 1}
                       onClick={() => {
-                        onUpdateStateEntry(stateKey, swapFrames(spec, files, dwell, fps, idx, idx + 1));
+                        onUpdateStateEntry(
+                          stateKey,
+                          swapFrames(spec, files, dwell, fps, idx, idx + 1),
+                        );
                       }}
                     >
                       Descendre
@@ -134,8 +155,15 @@ export default function MascotPackStateEditor({
                       height={44}
                       loading="lazy"
                       decoding="async"
-                      onLoad={() => setSrcPreviewStatus((prev) => ({ ...prev, [`${stateKey}:${idx}`]: 'ok' }))}
-                      onError={() => setSrcPreviewStatus((prev) => ({ ...prev, [`${stateKey}:${idx}`]: 'error' }))}
+                      onLoad={() =>
+                        setSrcPreviewStatus((prev) => ({ ...prev, [`${stateKey}:${idx}`]: 'ok' }))
+                      }
+                      onError={() =>
+                        setSrcPreviewStatus((prev) => ({
+                          ...prev,
+                          [`${stateKey}:${idx}`]: 'error',
+                        }))
+                      }
                       style={{
                         width: 44,
                         height: 44,
@@ -182,7 +210,11 @@ export default function MascotPackStateEditor({
                   >
                     {!String(u || '').trim()
                       ? 'vide'
-                      : (srcPreviewStatus[`${stateKey}:${idx}`] === 'ok' ? 'chargée' : (srcPreviewStatus[`${stateKey}:${idx}`] === 'error' ? 'non trouvée' : 'test...'))}
+                      : srcPreviewStatus[`${stateKey}:${idx}`] === 'ok'
+                        ? 'chargée'
+                        : srcPreviewStatus[`${stateKey}:${idx}`] === 'error'
+                          ? 'non trouvée'
+                          : 'test...'}
                   </span>
                   <button
                     type="button"
@@ -203,8 +235,12 @@ export default function MascotPackStateEditor({
               >
                 + URL
               </button>
-              <p className="section-sub" style={{ fontSize: '0.76rem', marginTop: 6, marginBottom: 0 }}>
-                Formats conseillés: <code>https://...</code>, <code>blob:...</code> ou URL de l’application (ex: <code>/api/visit/...</code>).
+              <p
+                className="section-sub"
+                style={{ fontSize: '0.76rem', marginTop: 6, marginBottom: 0 }}
+              >
+                Formats conseillés: <code>https://...</code>, <code>blob:...</code> ou URL de
+                l’application (ex: <code>/api/visit/...</code>).
               </p>
             </div>
           )}
@@ -218,11 +254,13 @@ export default function MascotPackStateEditor({
               min={1}
               max={120}
               value={fps}
-              onChange={(ev) => onUpdateStateEntry(stateKey, {
-                ...spec,
-                ...(useSrcs ? { srcs } : { files }),
-                fps: Number(ev.target.value) || 8,
-              })}
+              onChange={(ev) =>
+                onUpdateStateEntry(stateKey, {
+                  ...spec,
+                  ...(useSrcs ? { srcs } : { files }),
+                  fps: Number(ev.target.value) || 8,
+                })
+              }
             />
           </label>
 

@@ -21,9 +21,12 @@ export const BIODIV_HERO_PHOTO_KEYS = ['photo', 'photo_species'];
  * (accents ou articles élidés), sinon le premier. Retourne '' si la liste est vide.
  */
 export function pickPlantnetVernacularName(commonNames) {
-  const list = Array.isArray(commonNames) ? commonNames.map((x) => String(x || '').trim()).filter(Boolean) : [];
+  const list = Array.isArray(commonNames)
+    ? commonNames.map((x) => String(x || '').trim()).filter(Boolean)
+    : [];
   if (!list.length) return '';
-  const frHint = (s) => /[àâäéèêëïîôùûüçœæ]/i.test(s) || /\b(l'|d'|de la |des |le |la |les |du |au )\b/i.test(` ${s} `);
+  const frHint = (s) =>
+    /[àâäéèêëïîôùûüçœæ]/i.test(s) || /\b(l'|d'|de la |des |le |la |les |du |au )\b/i.test(` ${s} `);
   const scored = list.map((s) => ({ s, score: frHint(s) ? 2 : 0 }));
   scored.sort((a, b) => b.score - a.score);
   if (scored[0].score > 0) return scored[0].s;
@@ -41,7 +44,9 @@ export function prefillPhotoSlotKey(field, idx) {
  */
 export function findFirstBiodivHeroPhotoCandidate(plant) {
   for (const key of BIODIV_HERO_PHOTO_KEYS) {
-    const entries = parseLinkCandidates(plant[key]).filter((e) => isHttpLink(e) || isLocalUploadsPath(e));
+    const entries = parseLinkCandidates(plant[key]).filter(
+      (e) => isHttpLink(e) || isLocalUploadsPath(e),
+    );
     for (const entry of entries) {
       if (isLikelyDirectImageUrl(entry)) return { kind: 'direct', src: entry };
       const fileSrc = commonsFilePageToDisplaySrc(entry);

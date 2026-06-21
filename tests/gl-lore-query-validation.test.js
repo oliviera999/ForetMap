@@ -22,10 +22,17 @@ function runSchema(schema, query) {
   let nextCalled = false;
   const res = {
     statusCode: 200,
-    status(c) { this.statusCode = c; return this; },
-    json() { return this; },
+    status(c) {
+      this.statusCode = c;
+      return this;
+    },
+    json() {
+      return this;
+    },
   };
-  validate({ query: schema })(req, res, () => { nextCalled = true; });
+  validate({ query: schema })(req, res, () => {
+    nextCalled = true;
+  });
   return { nextCalled, status: res.statusCode, validated: req.validatedQuery };
 }
 
@@ -46,7 +53,23 @@ function legacyParseDifficulteQuery(value) {
   return i;
 }
 
-const EDGE_CASES = [undefined, '', 'abc', '0', '3', '5', '6', '-1', '2.5', '5.9', '0.5', '999999', '12abc', ['1', '2'], ['4']];
+const EDGE_CASES = [
+  undefined,
+  '',
+  'abc',
+  '0',
+  '3',
+  '5',
+  '6',
+  '-1',
+  '2.5',
+  '5.9',
+  '0.5',
+  '999999',
+  '12abc',
+  ['1', '2'],
+  ['4'],
+];
 
 test('le schéma de la route lore est bien le schéma partagé de lib/glQuerySchemas (commun avec qcm)', () => {
   assert.strictEqual(glQcmPoolPreviewQuerySchema, shared.glQcmPoolPreviewQuerySchema);
@@ -56,14 +79,27 @@ test('chapterId : équivalence exacte avec la logique historique, jamais de 400 
   for (const raw of EDGE_CASES) {
     const query = raw === undefined ? {} : { chapterId: raw };
     const { nextCalled, status, validated } = runQuery(query);
-    assert.strictEqual(nextCalled, true, `chapterId=${JSON.stringify(raw)} ne doit jamais être rejeté par le schéma`);
+    assert.strictEqual(
+      nextCalled,
+      true,
+      `chapterId=${JSON.stringify(raw)} ne doit jamais être rejeté par le schéma`,
+    );
     assert.strictEqual(status, 200);
     // Branche historique : lookup plateau ssi chapterId != null && Number.isFinite(chapterId).
     const legacy = legacyChapterId(raw);
     const legacyBranch = legacy != null && Number.isFinite(legacy);
     const currentBranch = validated.chapterId != null && Number.isFinite(validated.chapterId);
-    assert.strictEqual(currentBranch, legacyBranch, `branche chapterId pour ${JSON.stringify(raw)}`);
-    if (legacyBranch) assert.strictEqual(validated.chapterId, legacy, `valeur chapterId pour ${JSON.stringify(raw)}`);
+    assert.strictEqual(
+      currentBranch,
+      legacyBranch,
+      `branche chapterId pour ${JSON.stringify(raw)}`,
+    );
+    if (legacyBranch)
+      assert.strictEqual(
+        validated.chapterId,
+        legacy,
+        `valeur chapterId pour ${JSON.stringify(raw)}`,
+      );
   }
   // '' → Number('') === 0 : fini, passait la branche historique (lookup chapitre 0), conservé.
   assert.strictEqual(runQuery({ chapterId: '' }).validated.chapterId, 0);
@@ -77,13 +113,28 @@ test('chapterId : équivalence exacte avec la logique historique, jamais de 400 
 test('difficulteMin/difficulteMax : équivalence exacte avec parseDifficulteQuery historique', () => {
   for (const raw of EDGE_CASES) {
     const query = {};
-    if (raw !== undefined) { query.difficulteMin = raw; query.difficulteMax = raw; }
+    if (raw !== undefined) {
+      query.difficulteMin = raw;
+      query.difficulteMax = raw;
+    }
     const { nextCalled, status, validated } = runQuery(query);
-    assert.strictEqual(nextCalled, true, `difficulte=${JSON.stringify(raw)} ne doit jamais être rejeté par le schéma`);
+    assert.strictEqual(
+      nextCalled,
+      true,
+      `difficulte=${JSON.stringify(raw)} ne doit jamais être rejeté par le schéma`,
+    );
     assert.strictEqual(status, 200);
     const legacy = legacyParseDifficulteQuery(raw === undefined ? undefined : raw);
-    assert.strictEqual(validated.difficulteMin, legacy, `difficulteMin pour ${JSON.stringify(raw)}`);
-    assert.strictEqual(validated.difficulteMax, legacy, `difficulteMax pour ${JSON.stringify(raw)}`);
+    assert.strictEqual(
+      validated.difficulteMin,
+      legacy,
+      `difficulteMin pour ${JSON.stringify(raw)}`,
+    );
+    assert.strictEqual(
+      validated.difficulteMax,
+      legacy,
+      `difficulteMax pour ${JSON.stringify(raw)}`,
+    );
   }
   // Bornes et replis notables : décimal → floor, hors [1;5]/vide/non numérique → null.
   assert.strictEqual(runQuery({ difficulteMax: '5.9' }).validated.difficulteMax, 5);
@@ -103,7 +154,24 @@ function legacyParseGlId(value) {
 }
 
 test('GET /feuillets(/:code) — gameId/teamId : équivalence exacte avec parseId historique, jamais de 400 issu du schéma', () => {
-  const cases = [undefined, '', '  ', 'abc', '0', '3', '-1', '2.5', '2.9', '999999', 'Infinity', '-Infinity', '0.5', '12abc', ['1', '2'], ['4']];
+  const cases = [
+    undefined,
+    '',
+    '  ',
+    'abc',
+    '0',
+    '3',
+    '-1',
+    '2.5',
+    '2.9',
+    '999999',
+    'Infinity',
+    '-Infinity',
+    '0.5',
+    '12abc',
+    ['1', '2'],
+    ['4'],
+  ];
   for (const rawGameId of cases) {
     for (const rawTeamId of cases) {
       const query = {};
@@ -120,14 +188,15 @@ test('GET /feuillets(/:code) — gameId/teamId : équivalence exacte avec parseI
       assert.strictEqual(
         Boolean(validated.gameId && validated.teamId),
         Boolean(legacyParseGlId(rawGameId) && legacyParseGlId(rawTeamId)),
-        `branche progression pour ${label}`
+        `branche progression pour ${label}`,
       );
     }
   }
 });
 
 test('GET /feuillets(/:code) — gameId/teamId : bornes et replis notables conservés', () => {
-  const one = (raw) => runSchema(glLoreFeuilletQuerySchema, raw === undefined ? {} : { gameId: raw }).validated.gameId;
+  const one = (raw) =>
+    runSchema(glLoreFeuilletQuerySchema, raw === undefined ? {} : { gameId: raw }).validated.gameId;
   // Absent / vide / non numérique / zéro / négatif / Infinity → null (pas de progression chargée).
   assert.strictEqual(one(undefined), null);
   assert.strictEqual(one(''), null); // Number('') === 0, non > 0

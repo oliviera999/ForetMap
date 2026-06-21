@@ -34,6 +34,7 @@ const {
   sourcesAllowedCacheFingerprint,
 } = require('../lib/speciesAutofill');
 const { plantnetIdentifyFromImages } = require('../lib/speciesAutofillPlantnet');
+const { enrichPlantRow } = require('../lib/biodivReadModel');
 const { z, validate } = require('../lib/validate');
 
 const router = express.Router();
@@ -50,7 +51,10 @@ const acknowledgeDiscoveryBodySchema = z
     message: 'Confirmation explicite requise (confirm: true)',
   });
 const plantsListCache = getNamedMemoryTtlCache('plants:list:v1', { ttlMs: 20000, maxEntries: 5 });
-const plantsAutofillCache = getNamedMemoryTtlCache('plants:autofill:v1', { ttlMs: 10 * 60 * 1000, maxEntries: 120 });
+const plantsAutofillCache = getNamedMemoryTtlCache('plants:autofill:v1', {
+  ttlMs: 10 * 60 * 1000,
+  maxEntries: 120,
+});
 
 function invalidatePlantsListCache() {
   plantsListCache.delete('all');
@@ -88,7 +92,7 @@ function requestText(url, timeoutMs = 15000) {
           }
         });
         res.on('end', () => resolve(body));
-      }
+      },
     );
     req.setTimeout(timeoutMs, () => req.destroy(new Error(`Timeout HTTP (${timeoutMs}ms)`)));
     req.on('error', reject);
@@ -106,7 +110,8 @@ async function resolveImportRows(body = {}) {
     const raw = fileData.includes(',') ? fileData.split(',')[1] : fileData;
     const buf = Buffer.from(raw, 'base64');
     if (!buf || buf.length === 0) throw new Error('Fichier import vide');
-    if (buf.length > MAX_IMPORT_FILE_BYTES) throw new Error('Fichier import trop volumineux (max 8 Mo)');
+    if (buf.length > MAX_IMPORT_FILE_BYTES)
+      throw new Error('Fichier import trop volumineux (max 8 Mo)');
     return parseWorkbookRowsFromBuffer(buf);
   }
 
@@ -131,7 +136,7 @@ router.get('/me/discovered-ids', requireAuth, async (req, res) => {
     }
     const rows = await queryAll(
       'SELECT DISTINCT plant_id FROM user_plant_observation_events WHERE user_id = ? ORDER BY plant_id ASC',
-      [String(userId)]
+      [String(userId)],
     );
     res.json({ plant_ids: rows.map((r) => Number(r.plant_id)).filter((n) => Number.isFinite(n)) });
   } catch (e) {
@@ -159,11 +164,11 @@ router.get('/me/observation-counts', requireAuth, async (req, res) => {
     const [siteRows, myRows] = await Promise.all([
       queryAll(
         `SELECT plant_id, COUNT(*) AS c FROM user_plant_observation_events WHERE plant_id IN (${placeholders}) GROUP BY plant_id`,
-        ids
+        ids,
       ),
       queryAll(
         `SELECT plant_id, COUNT(*) AS c FROM user_plant_observation_events WHERE user_id = ? AND plant_id IN (${placeholders}) GROUP BY plant_id`,
-        [uid, ...ids]
+        [uid, ...ids],
       ),
     ]);
     const siteByPlant = new Map(siteRows.map((r) => [Number(r.plant_id), Number(r.c) || 0]));
@@ -186,337 +191,468 @@ router.get('/me/observation-counts', requireAuth, async (req, res) => {
  * Enregistre une observation (engagement terrain + lecture de fiche) pour une entrée du catalogue plants.
  * Corps JSON : { "confirm": true } (obligatoire). Chaque confirmation ajoute une ligne (compteur incrémenté).
  */
-router.post('/:id/acknowledge-discovery', requireAuth, validate({ body: acknowledgeDiscoveryBodySchema }), async (req, res) => {
-  try {
-    const userId = req.auth.userId;
-    if (userId == null || userId === '') {
-      return res.status(403).json({ error: 'Profil utilisateur invalide' });
+router.post(
+  '/:id/acknowledge-discovery',
+  requireAuth,
+  validate({ body: acknowledgeDiscoveryBodySchema }),
+  async (req, res) => {
+    try {
+      const userId = req.auth.userId;
+      if (userId == null || userId === '') {
+        return res.status(403).json({ error: 'Profil utilisateur invalide' });
+      }
+      const pid = Number(req.params.id);
+      if (!Number.isFinite(pid) || pid <= 0) {
+        return res.status(400).json({ error: 'Identifiant de fiche invalide' });
+      }
+      const plant = await queryOne('SELECT id FROM plants WHERE id = ?', [pid]);
+      if (!plant) return res.status(404).json({ error: 'Fiche introuvable' });
+      const now = new Date().toISOString();
+      await execute(
+        'INSERT INTO user_plant_observation_events (user_id, plant_id, observed_at) VALUES (?, ?, ?)',
+        [String(userId), pid, now],
+      );
+      const myRow = await queryOne(
+        'SELECT COUNT(*) AS c FROM user_plant_observation_events WHERE user_id = ? AND plant_id = ?',
+        [String(userId), pid],
+      );
+      const siteRow = await queryOne(
+        'SELECT COUNT(*) AS c FROM user_plant_observation_events WHERE plant_id = ?',
+        [pid],
+      );
+      res.json({
+        success: true,
+        plant_id: pid,
+        observed_at: now,
+        my_observation_count: Number(myRow?.c) || 0,
+        site_observation_count: Number(siteRow?.c) || 0,
+      });
+    } catch (e) {
+      logRouteError(e, req, 'Accusé découverte espèce en échec');
+      if (e && (e.code === 'ER_NO_SUCH_TABLE' || e.errno === 1146)) {
+        return res.status(503).json({
+          error:
+            'Observations espèce indisponibles : la base doit être migrée (table user_plant_observation_events). Contactez l’administrateur.',
+        });
+      }
+      res.status(500).json({ error: 'Erreur serveur' });
     }
-    const pid = Number(req.params.id);
-    if (!Number.isFinite(pid) || pid <= 0) {
-      return res.status(400).json({ error: 'Identifiant de fiche invalide' });
+  },
+);
+
+router.post(
+  '/:id/photo-upload',
+  requirePermission('plants.manage', { needsElevation: true }),
+  asyncHandler(async (req, res) => {
+    const plant = await queryOne('SELECT * FROM plants WHERE id = ?', [req.params.id]);
+    if (!plant) return res.status(404).json({ error: 'Plante introuvable' });
+
+    const field = asTrimmedString(req.body?.field);
+    const imageData = asTrimmedString(req.body?.imageData);
+    if (!PHOTO_FIELDS.includes(field)) {
+      return res.status(400).json({ error: 'Champ photo invalide' });
     }
-    const plant = await queryOne('SELECT id FROM plants WHERE id = ?', [pid]);
-    if (!plant) return res.status(404).json({ error: 'Fiche introuvable' });
-    const now = new Date().toISOString();
-    await execute(
-      'INSERT INTO user_plant_observation_events (user_id, plant_id, observed_at) VALUES (?, ?, ?)',
-      [String(userId), pid, now]
-    );
-    const myRow = await queryOne(
-      'SELECT COUNT(*) AS c FROM user_plant_observation_events WHERE user_id = ? AND plant_id = ?',
-      [String(userId), pid]
-    );
-    const siteRow = await queryOne(
-      'SELECT COUNT(*) AS c FROM user_plant_observation_events WHERE plant_id = ?',
-      [pid]
-    );
-    res.json({
-      success: true,
-      plant_id: pid,
-      observed_at: now,
-      my_observation_count: Number(myRow?.c) || 0,
-      site_observation_count: Number(siteRow?.c) || 0,
+    if (!imageData) {
+      return res.status(400).json({ error: 'Image requise' });
+    }
+
+    const ext = detectImageExtensionFromDataUrl(imageData);
+    if (!ext) {
+      return res.status(400).json({ error: 'Format image invalide (png/jpg/webp/gif/bmp/avif)' });
+    }
+    const base64Payload = imageData.includes(',') ? imageData.split(',')[1] : imageData;
+    const bytes = Buffer.byteLength(base64Payload, 'base64');
+    if (bytes > MAX_PLANT_PHOTO_BYTES) {
+      return res.status(400).json({ error: 'Image trop lourde (max 5 Mo)' });
+    }
+
+    const relativePath = `plants/${plant.id}/${field}-${Date.now()}.${ext}`;
+    saveBase64ToDisk(relativePath, imageData);
+    const publicUrl = `/uploads/${relativePath}`;
+    const position = asTrimmedString(req.body?.position) === 'prepend' ? 'prepend' : 'append';
+    const nextPhotoValue = mergePlantPhotoUploadValue(plant[field], publicUrl, position);
+
+    await execute(`UPDATE plants SET ${field} = ? WHERE id = ?`, [nextPhotoValue, plant.id]);
+    const updated = await queryOne('SELECT * FROM plants WHERE id = ?', [plant.id]);
+    invalidatePlantsListCache();
+    emitGardenChanged({ reason: 'update_plant_photo', plantId: plant.id });
+    res.json({ field, url: publicUrl, value: nextPhotoValue, plant: updated });
+  }),
+);
+
+router.post(
+  '/import',
+  requirePermission('plants.manage', { needsElevation: true }),
+  asyncHandler(async (req, res) => {
+    const strategy = asTrimmedString(req.body?.strategy) || 'upsert_name';
+    const dryRun = !!req.body?.dryRun;
+    const sourceType = asTrimmedString(req.body?.sourceType) || 'unknown';
+    if (!IMPORT_STRATEGIES.has(strategy)) {
+      return res.status(400).json({ error: 'Stratégie d’import invalide' });
+    }
+
+    const rawRows = await resolveImportRows(req.body || {});
+    if (!Array.isArray(rawRows) || rawRows.length === 0) {
+      return res.status(400).json({ error: 'Aucune ligne importable détectée' });
+    }
+    if (rawRows.length > MAX_IMPORT_ROWS) {
+      return res.status(400).json({ error: `Import limité à ${MAX_IMPORT_ROWS} lignes` });
+    }
+
+    const report = buildImportReportBase(strategy, dryRun, sourceType, rawRows.length);
+    const validRows = [];
+
+    rawRows.forEach((rawRow, idx) => {
+      const rowNumber = idx + 2;
+      const { payload, errors } = validateImportPayloadRow(rawRow, rowNumber);
+      if (!payload || errors.length > 0) {
+        report.totals.skipped_invalid += 1;
+        report.errors.push(...errors);
+        return;
+      }
+      validRows.push(payload);
+      if (report.preview.length < 10) {
+        report.preview.push({
+          row: rowNumber,
+          name: payload.name,
+          scientific_name: payload.scientific_name || null,
+        });
+      }
     });
-  } catch (e) {
-    logRouteError(e, req, 'Accusé découverte espèce en échec');
-    if (e && (e.code === 'ER_NO_SUCH_TABLE' || e.errno === 1146)) {
-      return res.status(503).json({
-        error: 'Observations espèce indisponibles : la base doit être migrée (table user_plant_observation_events). Contactez l’administrateur.',
+
+    report.totals.valid = validRows.length;
+    if (strategy === 'replace_all' && report.errors.length > 0 && !dryRun) {
+      return res.status(400).json({
+        error: 'Import interrompu: corrige les lignes invalides avant un remplacement complet',
+        report,
       });
     }
-    res.status(500).json({ error: 'Erreur serveur' });
-  }
-});
-
-router.post('/:id/photo-upload', requirePermission('plants.manage', { needsElevation: true }), asyncHandler(async (req, res) => {
-  const plant = await queryOne('SELECT * FROM plants WHERE id = ?', [req.params.id]);
-  if (!plant) return res.status(404).json({ error: 'Plante introuvable' });
-
-  const field = asTrimmedString(req.body?.field);
-  const imageData = asTrimmedString(req.body?.imageData);
-  if (!PHOTO_FIELDS.includes(field)) {
-    return res.status(400).json({ error: 'Champ photo invalide' });
-  }
-  if (!imageData) {
-    return res.status(400).json({ error: 'Image requise' });
-  }
-
-  const ext = detectImageExtensionFromDataUrl(imageData);
-  if (!ext) {
-    return res.status(400).json({ error: 'Format image invalide (png/jpg/webp/gif/bmp/avif)' });
-  }
-  const base64Payload = imageData.includes(',') ? imageData.split(',')[1] : imageData;
-  const bytes = Buffer.byteLength(base64Payload, 'base64');
-  if (bytes > MAX_PLANT_PHOTO_BYTES) {
-    return res.status(400).json({ error: 'Image trop lourde (max 5 Mo)' });
-  }
-
-  const relativePath = `plants/${plant.id}/${field}-${Date.now()}.${ext}`;
-  saveBase64ToDisk(relativePath, imageData);
-  const publicUrl = `/uploads/${relativePath}`;
-  const position = asTrimmedString(req.body?.position) === 'prepend' ? 'prepend' : 'append';
-  const nextPhotoValue = mergePlantPhotoUploadValue(plant[field], publicUrl, position);
-
-  await execute(`UPDATE plants SET ${field} = ? WHERE id = ?`, [nextPhotoValue, plant.id]);
-  const updated = await queryOne('SELECT * FROM plants WHERE id = ?', [plant.id]);
-  invalidatePlantsListCache();
-  emitGardenChanged({ reason: 'update_plant_photo', plantId: plant.id });
-  res.json({ field, url: publicUrl, value: nextPhotoValue, plant: updated });
-}));
-
-router.post('/import', requirePermission('plants.manage', { needsElevation: true }), asyncHandler(async (req, res) => {
-  const strategy = asTrimmedString(req.body?.strategy) || 'upsert_name';
-  const dryRun = !!req.body?.dryRun;
-  const sourceType = asTrimmedString(req.body?.sourceType) || 'unknown';
-  if (!IMPORT_STRATEGIES.has(strategy)) {
-    return res.status(400).json({ error: 'Stratégie d’import invalide' });
-  }
-
-  const rawRows = await resolveImportRows(req.body || {});
-  if (!Array.isArray(rawRows) || rawRows.length === 0) {
-    return res.status(400).json({ error: 'Aucune ligne importable détectée' });
-  }
-  if (rawRows.length > MAX_IMPORT_ROWS) {
-    return res.status(400).json({ error: `Import limité à ${MAX_IMPORT_ROWS} lignes` });
-  }
-
-  const report = buildImportReportBase(strategy, dryRun, sourceType, rawRows.length);
-  const validRows = [];
-
-  rawRows.forEach((rawRow, idx) => {
-    const rowNumber = idx + 2;
-    const { payload, errors } = validateImportPayloadRow(rawRow, rowNumber);
-    if (!payload || errors.length > 0) {
-      report.totals.skipped_invalid += 1;
-      report.errors.push(...errors);
-      return;
+    if (dryRun || validRows.length === 0) {
+      return res.json({ report });
     }
-    validRows.push(payload);
-    if (report.preview.length < 10) {
-      report.preview.push({
-        row: rowNumber,
-        name: payload.name,
-        scientific_name: payload.scientific_name || null,
-      });
-    }
-  });
 
-  report.totals.valid = validRows.length;
-  if (strategy === 'replace_all' && report.errors.length > 0 && !dryRun) {
-    return res.status(400).json({
-      error: 'Import interrompu: corrige les lignes invalides avant un remplacement complet',
-      report,
-    });
-  }
-  if (dryRun || validRows.length === 0) {
-    return res.json({ report });
-  }
+    const insertSql = `INSERT INTO plants (${PLANT_COLUMNS.join(', ')}) VALUES (${PLANT_COLUMNS.map(() => '?').join(', ')})`;
+    const updateSql = `UPDATE plants SET ${PLANT_COLUMNS.map((c) => `${c}=?`).join(', ')} WHERE id=?`;
 
-  const insertSql = `INSERT INTO plants (${PLANT_COLUMNS.join(', ')}) VALUES (${PLANT_COLUMNS.map(() => '?').join(', ')})`;
-  const updateSql = `UPDATE plants SET ${PLANT_COLUMNS.map((c) => `${c}=?`).join(', ')} WHERE id=?`;
-
-  const conn = await pool.getConnection();
-  try {
-    await conn.beginTransaction();
-    if (strategy === 'replace_all') {
-      await conn.execute('DELETE FROM plants');
-      // INSERT multi-valeurs par lots au lieu d'un INSERT par ligne (cette branche ne dépend
-      // d'aucun insertId). Lots bornés : 33 colonnes × MAX_IMPORT_ROWS dépasseraient la limite
-      // de placeholders d'une requête préparée.
-      const INSERT_CHUNK = 200;
-      const rowPlaceholder = `(${PLANT_COLUMNS.map(() => '?').join(', ')})`;
-      for (let i = 0; i < validRows.length; i += INSERT_CHUNK) {
-        const chunk = validRows.slice(i, i + INSERT_CHUNK);
-        const placeholders = chunk.map(() => rowPlaceholder).join(', ');
-        const params = [];
-        for (const payload of chunk) {
-          for (const c of PLANT_COLUMNS) params.push(payload[c]);
+    const conn = await pool.getConnection();
+    try {
+      await conn.beginTransaction();
+      if (strategy === 'replace_all') {
+        await conn.execute('DELETE FROM plants');
+        // INSERT multi-valeurs par lots au lieu d'un INSERT par ligne (cette branche ne dépend
+        // d'aucun insertId). Lots bornés : 33 colonnes × MAX_IMPORT_ROWS dépasseraient la limite
+        // de placeholders d'une requête préparée.
+        const INSERT_CHUNK = 200;
+        const rowPlaceholder = `(${PLANT_COLUMNS.map(() => '?').join(', ')})`;
+        for (let i = 0; i < validRows.length; i += INSERT_CHUNK) {
+          const chunk = validRows.slice(i, i + INSERT_CHUNK);
+          const placeholders = chunk.map(() => rowPlaceholder).join(', ');
+          const params = [];
+          for (const payload of chunk) {
+            for (const c of PLANT_COLUMNS) params.push(payload[c]);
+          }
+          await conn.execute(
+            `INSERT INTO plants (${PLANT_COLUMNS.join(', ')}) VALUES ${placeholders}`,
+            params,
+          );
+          report.totals.created += chunk.length;
         }
-        await conn.execute(
-          `INSERT INTO plants (${PLANT_COLUMNS.join(', ')}) VALUES ${placeholders}`,
-          params
-        );
-        report.totals.created += chunk.length;
-      }
-    } else {
-      const [existingRows] = await conn.execute('SELECT id, name FROM plants');
-      const existing = Array.isArray(existingRows) ? existingRows : [];
-      const existingByName = new Map(existing.map((p) => [asTrimmedString(p.name).toLowerCase(), p]));
-
-      for (const payload of validRows) {
-        const key = asTrimmedString(payload.name).toLowerCase();
-        const found = existingByName.get(key);
-        if (found && strategy === 'insert_only') {
-          report.totals.skipped_existing += 1;
-          continue;
-        }
-        if (found && strategy === 'upsert_name') {
-          await conn.execute(updateSql, [...PLANT_COLUMNS.map((c) => payload[c]), found.id]);
-          report.totals.updated += 1;
-          continue;
-        }
-        const [insertResult] = await conn.execute(insertSql, PLANT_COLUMNS.map((c) => payload[c]));
-        report.totals.created += 1;
-        existingByName.set(key, { id: insertResult.insertId, name: payload.name });
-      }
-    }
-    await conn.commit();
-  } catch (err) {
-    await conn.rollback();
-    throw err;
-  } finally {
-    conn.release();
-  }
-
-  invalidatePlantsListCache();
-  emitGardenChanged({ reason: 'import_plants' });
-  res.json({ report });
-}));
-
-router.get('/', asyncHandler(async (req, res) => {
-  const cached = plantsListCache.get('all');
-  if (cached) return res.json(cached);
-  const rows = await queryAll('SELECT * FROM plants ORDER BY name');
-  plantsListCache.set('all', rows);
-  res.json(rows);
-}));
-
-router.get('/autofill', requirePermission('plants.manage', { needsElevation: true }), async (req, res) => {
-  try {
-    const query = asTrimmedString(req.query?.q);
-    if (!query || query.length < 2) {
-      return res.status(400).json({ error: 'Paramètre q requis (min 2 caractères)' });
-    }
-    if (query.length > 120) {
-      return res.status(400).json({ error: 'Paramètre q trop long (max 120 caractères)' });
-    }
-
-    const hintScientific = asTrimmedString(req.query?.hint_scientific).slice(0, 120);
-    const hintName = asTrimmedString(req.query?.hint_name).slice(0, 120);
-    const sourcesAllowed = parseAutofillSourcesQueryParam(req.query?.sources);
-    const sourcesFp = sourcesAllowedCacheFingerprint(sourcesAllowed);
-    const openAiOnlyRequest = !!(sourcesAllowed instanceof Set && sourcesAllowed.size === 1 && sourcesAllowed.has('openai'));
-    const hasAutofillFields = (payload) => Object.keys(payload?.fields || {})
-      .some((key) => asTrimmedString(payload?.fields?.[key]).length > 0);
-
-    const hintsPart = `${hintScientific.toLowerCase()}\x1e${hintName.toLowerCase()}`;
-    const cacheKey = crypto.createHash('sha256').update(`${query.toLowerCase()}\x1e${hintsPart}\x1e${sourcesFp}`).digest('hex').slice(0, 48);
-    const cached = plantsAutofillCache.get(cacheKey);
-    if (cached && !(openAiOnlyRequest && !hasAutofillFields(cached))) return res.json(cached);
-
-    /** Budget global wall-clock (évite 503 HTML des proxies si Wikidata + sources s’enchaînent trop longtemps). */
-    const hints = {};
-    if (hintScientific) hints.scientific_name = hintScientific;
-    if (hintName) hints.name = hintName;
-    const payload = await buildSpeciesAutofill(query, { budgetMs: 12000, hints, sourcesAllowed });
-    const photoValidationPayload = {};
-    for (const photo of payload?.photos || []) {
-      if (!PHOTO_FIELDS.includes(photo.field)) continue;
-      if (photoValidationPayload[photo.field]) {
-        photoValidationPayload[photo.field] += `\n${photo.url}`;
       } else {
-        photoValidationPayload[photo.field] = photo.url;
+        const [existingRows] = await conn.execute('SELECT id, name FROM plants');
+        const existing = Array.isArray(existingRows) ? existingRows : [];
+        const existingByName = new Map(
+          existing.map((p) => [asTrimmedString(p.name).toLowerCase(), p]),
+        );
+
+        for (const payload of validRows) {
+          const key = asTrimmedString(payload.name).toLowerCase();
+          const found = existingByName.get(key);
+          if (found && strategy === 'insert_only') {
+            report.totals.skipped_existing += 1;
+            continue;
+          }
+          if (found && strategy === 'upsert_name') {
+            await conn.execute(updateSql, [...PLANT_COLUMNS.map((c) => payload[c]), found.id]);
+            report.totals.updated += 1;
+            continue;
+          }
+          const [insertResult] = await conn.execute(
+            insertSql,
+            PLANT_COLUMNS.map((c) => payload[c]),
+          );
+          report.totals.created += 1;
+          existingByName.set(key, { id: insertResult.insertId, name: payload.name });
+        }
       }
+      await conn.commit();
+    } catch (err) {
+      await conn.rollback();
+      throw err;
+    } finally {
+      conn.release();
     }
-    const photoErr = validateHttpsPhotoLinks(photoValidationPayload);
-    if (photoErr) {
-      payload.warnings = Array.from(new Set([...(payload.warnings || []), `Photos filtrées: ${photoErr}`]));
-      payload.photos = [];
+
+    invalidatePlantsListCache();
+    emitGardenChanged({ reason: 'import_plants' });
+    res.json({ report });
+  }),
+);
+
+router.get(
+  '/',
+  asyncHandler(async (req, res) => {
+    const cached = plantsListCache.get('all');
+    if (cached) return res.json(cached.map(enrichPlantRow));
+    const rows = await queryAll('SELECT * FROM plants ORDER BY name');
+    const enriched = rows.map(enrichPlantRow);
+    plantsListCache.set('all', enriched);
+    res.json(enriched);
+  }),
+);
+
+router.get(
+  '/:id/interactions',
+  asyncHandler(async (req, res) => {
+    const plantId = Number(req.params.id);
+    if (!Number.isInteger(plantId) || plantId <= 0) {
+      return res.status(400).json({ error: 'Identifiant invalide' });
     }
-    // Évite de figer 10 min un « 0% » quand la requête est OpenAI-only et vide.
-    if (!(openAiOnlyRequest && !hasAutofillFields(payload))) {
-      plantsAutofillCache.set(cacheKey, payload);
+    const plant = await queryOne('SELECT id, name FROM plants WHERE id = ? LIMIT 1', [plantId]);
+    if (!plant) return res.status(404).json({ error: 'Plante introuvable' });
+
+    const asSource = await queryAll(
+      `SELECT si.id, si.interaction_type, si.description,
+              pt.id AS to_id, pt.name AS to_name, pt.emoji AS to_emoji
+         FROM species_interactions si
+         LEFT JOIN plants pt ON pt.id = si.to_plant_id
+        WHERE si.from_plant_id = ?
+        ORDER BY si.interaction_type ASC, pt.name ASC`,
+      [plantId],
+    );
+    const asTarget = await queryAll(
+      `SELECT si.id, si.interaction_type, si.description,
+              pf.id AS from_id, pf.name AS from_name, pf.emoji AS from_emoji
+         FROM species_interactions si
+         JOIN plants pf ON pf.id = si.from_plant_id
+        WHERE si.to_plant_id = ?
+        ORDER BY si.interaction_type ASC, pf.name ASC`,
+      [plantId],
+    );
+
+    return res.json({ plantId, asSource, asTarget });
+  }),
+);
+
+router.get(
+  '/:id/glossary-terms',
+  asyncHandler(async (req, res) => {
+    const plantId = Number(req.params.id);
+    if (!Number.isInteger(plantId) || plantId <= 0) {
+      return res.status(400).json({ error: 'Identifiant invalide' });
     }
-    res.json(payload);
-  } catch (e) {
-    logRouteError(e, req, 'Pré-saisie biodiversité externe en échec');
-    res.status(502).json({ error: 'Impossible de récupérer une pré-saisie pour le moment' });
-  }
-});
+    const plant = await queryOne('SELECT id, name FROM plants WHERE id = ? LIMIT 1', [plantId]);
+    if (!plant) return res.status(404).json({ error: 'Plante introuvable' });
+
+    const terms = await queryAll(
+      `SELECT g.glossary_code, g.terme, g.variantes, g.categorie, g.niveau, g.definition_courte
+         FROM glossary_term_species gts
+         JOIN glossary_terms g ON g.glossary_code = gts.glossary_code
+        WHERE gts.plant_id = ? AND g.statut = 'actif'
+        ORDER BY g.terme ASC`,
+      [plantId],
+    );
+    return res.json({ plantId, terms });
+  }),
+);
+
+router.get(
+  '/:id/quiz-questions',
+  asyncHandler(async (req, res) => {
+    const plantId = Number(req.params.id);
+    if (!Number.isInteger(plantId) || plantId <= 0) {
+      return res.status(400).json({ error: 'Identifiant invalide' });
+    }
+    const plant = await queryOne('SELECT id, name FROM plants WHERE id = ? LIMIT 1', [plantId]);
+    if (!plant) return res.status(404).json({ error: 'Plante introuvable' });
+
+    const questions = await queryAll(
+      `SELECT qq.question_code, qq.question, qq.categorie_slug, qq.niveau, qq.difficulte,
+              qq.photo_url, qq.photo_legende
+         FROM quiz_question_species qqs
+         JOIN quiz_questions qq ON qq.question_code = qqs.question_code
+        WHERE qqs.plant_id = ? AND qq.statut = 'actif'
+        ORDER BY qq.categorie_slug ASC, qq.numero_dans_categorie ASC`,
+      [plantId],
+    );
+    return res.json({ plantId, questions });
+  }),
+);
+
+router.get(
+  '/autofill',
+  requirePermission('plants.manage', { needsElevation: true }),
+  async (req, res) => {
+    try {
+      const query = asTrimmedString(req.query?.q);
+      if (!query || query.length < 2) {
+        return res.status(400).json({ error: 'Paramètre q requis (min 2 caractères)' });
+      }
+      if (query.length > 120) {
+        return res.status(400).json({ error: 'Paramètre q trop long (max 120 caractères)' });
+      }
+
+      const hintScientific = asTrimmedString(req.query?.hint_scientific).slice(0, 120);
+      const hintName = asTrimmedString(req.query?.hint_name).slice(0, 120);
+      const sourcesAllowed = parseAutofillSourcesQueryParam(req.query?.sources);
+      const sourcesFp = sourcesAllowedCacheFingerprint(sourcesAllowed);
+      const openAiOnlyRequest = !!(
+        sourcesAllowed instanceof Set &&
+        sourcesAllowed.size === 1 &&
+        sourcesAllowed.has('openai')
+      );
+      const hasAutofillFields = (payload) =>
+        Object.keys(payload?.fields || {}).some(
+          (key) => asTrimmedString(payload?.fields?.[key]).length > 0,
+        );
+
+      const hintsPart = `${hintScientific.toLowerCase()}\x1e${hintName.toLowerCase()}`;
+      const cacheKey = crypto
+        .createHash('sha256')
+        .update(`${query.toLowerCase()}\x1e${hintsPart}\x1e${sourcesFp}`)
+        .digest('hex')
+        .slice(0, 48);
+      const cached = plantsAutofillCache.get(cacheKey);
+      if (cached && !(openAiOnlyRequest && !hasAutofillFields(cached))) return res.json(cached);
+
+      /** Budget global wall-clock (évite 503 HTML des proxies si Wikidata + sources s’enchaînent trop longtemps). */
+      const hints = {};
+      if (hintScientific) hints.scientific_name = hintScientific;
+      if (hintName) hints.name = hintName;
+      const payload = await buildSpeciesAutofill(query, { budgetMs: 12000, hints, sourcesAllowed });
+      const photoValidationPayload = {};
+      for (const photo of payload?.photos || []) {
+        if (!PHOTO_FIELDS.includes(photo.field)) continue;
+        if (photoValidationPayload[photo.field]) {
+          photoValidationPayload[photo.field] += `\n${photo.url}`;
+        } else {
+          photoValidationPayload[photo.field] = photo.url;
+        }
+      }
+      const photoErr = validateHttpsPhotoLinks(photoValidationPayload);
+      if (photoErr) {
+        payload.warnings = Array.from(
+          new Set([...(payload.warnings || []), `Photos filtrées: ${photoErr}`]),
+        );
+        payload.photos = [];
+      }
+      // Évite de figer 10 min un « 0% » quand la requête est OpenAI-only et vide.
+      if (!(openAiOnlyRequest && !hasAutofillFields(payload))) {
+        plantsAutofillCache.set(cacheKey, payload);
+      }
+      res.json(payload);
+    } catch (e) {
+      logRouteError(e, req, 'Pré-saisie biodiversité externe en échec');
+      res.status(502).json({ error: 'Impossible de récupérer une pré-saisie pour le moment' });
+    }
+  },
+);
 
 /**
  * Identification d’espèce via Pl@ntNet (images) — proxy serveur, clé jamais exposée au client.
  * Corps JSON : { images: [{ organ, imageData }], project?, nbResults?, lang? }
  */
-router.post('/plantnet-identify', requirePermission('plants.manage', { needsElevation: true }), async (req, res) => {
-  try {
-    const body = req.body && typeof req.body === 'object' ? req.body : {};
-    const images = Array.isArray(body.images) ? body.images : [];
-    const project = asOptionalText(body.project);
-    const nbResults = body.nbResults != null ? Number(body.nbResults) : undefined;
-    const lang = asOptionalText(body.lang);
+router.post(
+  '/plantnet-identify',
+  requirePermission('plants.manage', { needsElevation: true }),
+  async (req, res) => {
+    try {
+      const body = req.body && typeof req.body === 'object' ? req.body : {};
+      const images = Array.isArray(body.images) ? body.images : [];
+      const project = asOptionalText(body.project);
+      const nbResults = body.nbResults != null ? Number(body.nbResults) : undefined;
+      const lang = asOptionalText(body.lang);
 
-    const out = await plantnetIdentifyFromImages({
-      images,
-      project: project || undefined,
-      nbResults,
-      lang: lang || undefined,
-      timeoutMs: 16000,
-    });
-
-    if (!out.ok) {
-      const hs = Number(out.httpStatus);
-      const status = Number.isFinite(hs) && hs >= 400 && hs < 600 ? hs : 400;
-      return res.status(status).json({
-        error: out.error || 'Identification indisponible',
+      const out = await plantnetIdentifyFromImages({
+        images,
+        project: project || undefined,
+        nbResults,
+        lang: lang || undefined,
+        timeoutMs: 16000,
       });
+
+      if (!out.ok) {
+        const hs = Number(out.httpStatus);
+        const status = Number.isFinite(hs) && hs >= 400 && hs < 600 ? hs : 400;
+        return res.status(status).json({
+          error: out.error || 'Identification indisponible',
+        });
+      }
+
+      res.json({
+        ...out.data,
+        attribution:
+          'Résultats fournis par le service Pl@ntNet — respecter les conditions d’usage (my.plantnet.org).',
+      });
+    } catch (e) {
+      logRouteError(e, req, 'Identification Pl@ntNet en échec');
+      res.status(502).json({ error: 'Identification Pl@ntNet temporairement indisponible' });
     }
+  },
+);
 
-    res.json({
-      ...out.data,
-      attribution: 'Résultats fournis par le service Pl@ntNet — respecter les conditions d’usage (my.plantnet.org).',
-    });
-  } catch (e) {
-    logRouteError(e, req, 'Identification Pl@ntNet en échec');
-    res.status(502).json({ error: 'Identification Pl@ntNet temporairement indisponible' });
-  }
-});
+router.post(
+  '/',
+  requirePermission('plants.manage', { needsElevation: true }),
+  asyncHandler(async (req, res) => {
+    const photoError = validateHttpsPhotoLinks(req.body);
+    if (photoError) return res.status(400).json({ error: photoError });
+    const payload = buildPlantPayload(req.body);
+    if (!payload.name) return res.status(400).json({ error: 'Nom requis' });
+    const placeholders = PLANT_COLUMNS.map(() => '?').join(', ');
+    const values = PLANT_COLUMNS.map((col) => payload[col]);
+    const result = await execute(
+      `INSERT INTO plants (${PLANT_COLUMNS.join(', ')}) VALUES (${placeholders})`,
+      values,
+    );
+    const plant = await queryOne('SELECT * FROM plants WHERE id = ?', [result.insertId]);
+    invalidatePlantsListCache();
+    emitGardenChanged({ reason: 'create_plant', plantId: result.insertId });
+    res.status(201).json(plant);
+  }),
+);
 
-router.post('/', requirePermission('plants.manage', { needsElevation: true }), asyncHandler(async (req, res) => {
-  const photoError = validateHttpsPhotoLinks(req.body);
-  if (photoError) return res.status(400).json({ error: photoError });
-  const payload = buildPlantPayload(req.body);
-  if (!payload.name) return res.status(400).json({ error: 'Nom requis' });
-  const placeholders = PLANT_COLUMNS.map(() => '?').join(', ');
-  const values = PLANT_COLUMNS.map(col => payload[col]);
-  const result = await execute(
-    `INSERT INTO plants (${PLANT_COLUMNS.join(', ')}) VALUES (${placeholders})`,
-    values
-  );
-  const plant = await queryOne('SELECT * FROM plants WHERE id = ?', [result.insertId]);
-  invalidatePlantsListCache();
-  emitGardenChanged({ reason: 'create_plant', plantId: result.insertId });
-  res.status(201).json(plant);
-}));
+router.put(
+  '/:id',
+  requirePermission('plants.manage', { needsElevation: true }),
+  asyncHandler(async (req, res) => {
+    const plant = await queryOne('SELECT * FROM plants WHERE id = ?', [req.params.id]);
+    if (!plant) return res.status(404).json({ error: 'Plante introuvable' });
+    const photoError = validateHttpsPhotoLinks(req.body);
+    if (photoError) return res.status(400).json({ error: photoError });
+    const payload = buildPlantPayload(req.body, plant);
+    if (!payload.name) return res.status(400).json({ error: 'Nom requis' });
+    const setClause = PLANT_COLUMNS.map((col) => `${col}=?`).join(', ');
+    const values = [...PLANT_COLUMNS.map((col) => payload[col]), plant.id];
+    await execute(`UPDATE plants SET ${setClause} WHERE id=?`, values);
+    const updated = await queryOne('SELECT * FROM plants WHERE id = ?', [plant.id]);
+    invalidatePlantsListCache();
+    emitGardenChanged({ reason: 'update_plant', plantId: plant.id });
+    res.json(updated);
+  }),
+);
 
-router.put('/:id', requirePermission('plants.manage', { needsElevation: true }), asyncHandler(async (req, res) => {
-  const plant = await queryOne('SELECT * FROM plants WHERE id = ?', [req.params.id]);
-  if (!plant) return res.status(404).json({ error: 'Plante introuvable' });
-  const photoError = validateHttpsPhotoLinks(req.body);
-  if (photoError) return res.status(400).json({ error: photoError });
-  const payload = buildPlantPayload(req.body, plant);
-  if (!payload.name) return res.status(400).json({ error: 'Nom requis' });
-  const setClause = PLANT_COLUMNS.map(col => `${col}=?`).join(', ');
-  const values = [...PLANT_COLUMNS.map(col => payload[col]), plant.id];
-  await execute(
-    `UPDATE plants SET ${setClause} WHERE id=?`,
-    values
-  );
-  const updated = await queryOne('SELECT * FROM plants WHERE id = ?', [plant.id]);
-  invalidatePlantsListCache();
-  emitGardenChanged({ reason: 'update_plant', plantId: plant.id });
-  res.json(updated);
-}));
-
-router.delete('/:id', requirePermission('plants.manage', { needsElevation: true }), asyncHandler(async (req, res) => {
-  const plant = await queryOne('SELECT * FROM plants WHERE id = ?', [req.params.id]);
-  if (!plant) return res.status(404).json({ error: 'Plante introuvable' });
-  await execute('DELETE FROM plants WHERE id = ?', [req.params.id]);
-  invalidatePlantsListCache();
-  emitGardenChanged({ reason: 'delete_plant', plantId: req.params.id });
-  res.json({ success: true });
-}));
+router.delete(
+  '/:id',
+  requirePermission('plants.manage', { needsElevation: true }),
+  asyncHandler(async (req, res) => {
+    const plant = await queryOne('SELECT * FROM plants WHERE id = ?', [req.params.id]);
+    if (!plant) return res.status(404).json({ error: 'Plante introuvable' });
+    await execute('DELETE FROM plants WHERE id = ?', [req.params.id]);
+    invalidatePlantsListCache();
+    emitGardenChanged({ reason: 'delete_plant', plantId: req.params.id });
+    res.json({ success: true });
+  }),
+);
 
 module.exports = router;
 // Exporté pour le test no-DB du contrat de validation O7.

@@ -5,7 +5,9 @@ import { ObservationNotebookStatus } from '../../src/components/ObservationNoteb
 
 describe('ObservationNotebookStatus', () => {
   test('loading → rend le loader', () => {
-    const { container } = render(<ObservationNotebookStatus loading entryCount={0} onRetry={vi.fn()} />);
+    const { container } = render(
+      <ObservationNotebookStatus loading entryCount={0} onRetry={vi.fn()} />,
+    );
     expect(container.querySelector('.loader')).toBeInTheDocument();
     expect(screen.getByText('Chargement...')).toBeInTheDocument();
   });
@@ -13,7 +15,12 @@ describe('ObservationNotebookStatus', () => {
   test('loadError → rend l’erreur et le bouton Réessayer', () => {
     const onRetry = vi.fn();
     render(
-      <ObservationNotebookStatus loading={false} loadError="Boom" entryCount={0} onRetry={onRetry} />,
+      <ObservationNotebookStatus
+        loading={false}
+        loadError="Boom"
+        entryCount={0}
+        onRetry={onRetry}
+      />,
     );
     expect(screen.getByText('Boom')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Réessayer' }));
@@ -21,13 +28,17 @@ describe('ObservationNotebookStatus', () => {
   });
 
   test('carnet vide → rend le placeholder vide', () => {
-    const { container } = render(<ObservationNotebookStatus loading={false} entryCount={0} onRetry={vi.fn()} />);
+    const { container } = render(
+      <ObservationNotebookStatus loading={false} entryCount={0} onRetry={vi.fn()} />,
+    );
     expect(container.querySelector('.empty-icon')).toHaveTextContent('📓');
     expect(screen.getByText(/Ton carnet est vide/)).toBeInTheDocument();
   });
 
   test('au moins une observation → ne rend rien', () => {
-    const { container } = render(<ObservationNotebookStatus loading={false} entryCount={2} onRetry={vi.fn()} />);
+    const { container } = render(
+      <ObservationNotebookStatus loading={false} entryCount={2} onRetry={vi.fn()} />,
+    );
     expect(container).toBeEmptyDOMElement();
   });
 

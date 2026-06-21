@@ -9,6 +9,21 @@ function nv(value) {
   return s;
 }
 
+export function plantTaxonomyValue(plant, level) {
+  const tax = plant?.taxonomy;
+  if (tax && typeof tax === 'object') {
+    if (level === 'kingdom') return nv(tax.kingdom);
+    if (level === 'group') return nv(tax.group);
+    if (level === 'family') return nv(tax.family);
+    if (level === 'genus') return nv(tax.genus);
+  }
+  if (level === 'kingdom') return nv(plant?.taxon_kingdom) || nv(plant?.group_1);
+  if (level === 'group') return nv(plant?.taxon_group) || nv(plant?.group_2);
+  if (level === 'family') return nv(plant?.taxon_family) || nv(plant?.group_3);
+  if (level === 'genus') return nv(plant?.taxon_genus) || nv(plant?.group_4);
+  return '';
+}
+
 /** Présence sur la carte (zone : `living_beings_list` ou `current_plant`). */
 export const ZONE_PRESENCE_FILTER = {
   ALL: '',
@@ -59,11 +74,13 @@ export function plantLinkedToMapMarker(plant, marker) {
 /**
  * Sous-ensemble après application des filtres taxonomiques seuls (pour options en cascade).
  */
-export function filterPlantsByTaxonomy(plants, { group1, group2, group3 } = {}) {
+export function filterPlantsByTaxonomy(plants, { group1, group2, group3, trophicRole, habitatType } = {}) {
   return plants.filter((p) => {
-    if (group1 && nv(p.group_1) !== group1) return false;
-    if (group2 && nv(p.group_2) !== group2) return false;
-    if (group3 && nv(p.group_3) !== group3) return false;
+    if (group1 && plantTaxonomyValue(p, 'kingdom') !== group1) return false;
+    if (group2 && plantTaxonomyValue(p, 'group') !== group2) return false;
+    if (group3 && plantTaxonomyValue(p, 'family') !== group3) return false;
+    if (trophicRole && nv(p.trophic_role) !== trophicRole) return false;
+    if (habitatType && nv(p.habitat_type) !== habitatType) return false;
     return true;
   });
 }
@@ -71,17 +88,23 @@ export function filterPlantsByTaxonomy(plants, { group1, group2, group3 } = {}) 
 export function distinctPlantFieldValues(plants, fieldKey) {
   const set = new Set();
   for (const p of plants) {
-    const val = nv(p[fieldKey]);
+    let val = '';
+    if (fieldKey === 'taxon_kingdom') val = plantTaxonomyValue(p, 'kingdom');
+    else if (fieldKey === 'taxon_group') val = plantTaxonomyValue(p, 'group');
+    else if (fieldKey === 'taxon_family') val = plantTaxonomyValue(p, 'family');
+    else val = nv(p[fieldKey]);
     if (val) set.add(val);
   }
   return [...set].sort((a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base' }));
 }
 
 export function plantMatchesStructuredFilters(plant, f) {
-  if (f.group1 && nv(plant.group_1) !== f.group1) return false;
-  if (f.group2 && nv(plant.group_2) !== f.group2) return false;
-  if (f.group3 && nv(plant.group_3) !== f.group3) return false;
+  if (f.group1 && plantTaxonomyValue(plant, 'kingdom') !== f.group1) return false;
+  if (f.group2 && plantTaxonomyValue(plant, 'group') !== f.group2) return false;
+  if (f.group3 && plantTaxonomyValue(plant, 'family') !== f.group3) return false;
   if (f.habitat && nv(plant.habitat) !== f.habitat) return false;
+  if (f.trophicRole && nv(plant.trophic_role) !== f.trophicRole) return false;
+  if (f.habitatType && nv(plant.habitat_type) !== f.habitatType) return false;
   if (f.agroecosystemCategory && nv(plant.agroecosystem_category) !== f.agroecosystemCategory) {
     return false;
   }
@@ -96,10 +119,11 @@ export function plantTextMatchesQuery(plant, queryTrimmedLower) {
     plant.description,
     plant.scientific_name,
     plant.habitat,
-    plant.group_1,
-    plant.group_2,
-    plant.group_3,
-    plant.group_4,
+    plantTaxonomyValue(plant, 'kingdom'),
+    plantTaxonomyValue(plant, 'group'),
+    plantTaxonomyValue(plant, 'family'),
+    plantTaxonomyValue(plant, 'genus'),
+    plant.trophic_role,
     plant.geographic_origin,
     plant.harvest_part,
   ];
@@ -111,13 +135,19 @@ export function plantMatchesZonePresence(plant, zones, markers, presence) {
   const zl = Array.isArray(zones) ? zones : [];
   const ml = Array.isArray(markers) ? markers : [];
   const has =
-    zl.some((z) => plantLinkedToMapZone(plant, z)) || ml.some((m) => plantLinkedToMapMarker(plant, m));
+    zl.some((z) => plantLinkedToMapZone(plant, z)) ||
+    ml.some((m) => plantLinkedToMapMarker(plant, m));
   if (presence === ZONE_PRESENCE_FILTER.IN_MAP) return has;
   if (presence === ZONE_PRESENCE_FILTER.NOT_IN_MAP) return !has;
   return true;
 }
 
-export function plantMatchesAllFilters(plant, { structured, queryTrimmedLower, zonePresence }, zones, markers) {
+export function plantMatchesAllFilters(
+  plant,
+  { structured, queryTrimmedLower, zonePresence },
+  zones,
+  markers,
+) {
   if (!plantMatchesStructuredFilters(plant, structured)) return false;
   if (!plantTextMatchesQuery(plant, queryTrimmedLower)) return false;
   if (!plantMatchesZonePresence(plant, zones, markers, zonePresence)) return false;

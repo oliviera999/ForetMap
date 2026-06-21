@@ -19,13 +19,22 @@ export function GLChapterScenesAdminPanel({ plateauNumber, onInfo, onError }) {
     if (!hasChapter) return;
     setLoading(true);
     try {
-      const data = await apiGL(`/api/gl/admin/media-library/chapter-scenes?chapter=${chapterNumber}`);
+      const data = await apiGL(
+        `/api/gl/admin/media-library/chapter-scenes?chapter=${chapterNumber}`,
+      );
       const list = Array.isArray(data?.scenes) ? data.scenes : [];
       setScenes(list);
-      setDrafts(Object.fromEntries(list.map((scene) => [scene.stableKey, {
-        caption: scene.caption || '',
-        order: scene.order != null ? String(scene.order) : '',
-      }])));
+      setDrafts(
+        Object.fromEntries(
+          list.map((scene) => [
+            scene.stableKey,
+            {
+              caption: scene.caption || '',
+              order: scene.order != null ? String(scene.order) : '',
+            },
+          ]),
+        ),
+      );
     } catch (err) {
       onError?.(err.message || 'Chargement des scènes impossible');
     } finally {
@@ -41,8 +50,8 @@ export function GLChapterScenesAdminPanel({ plateauNumber, onInfo, onError }) {
   if (!hasChapter) {
     return (
       <p className="gl-hint">
-        Définissez le plateau narratif du chapitre pour relier ses scènes de récit
-        (fichiers médiathèque <code>GL_recit_0N-chapN_*</code>).
+        Définissez le plateau narratif du chapitre pour relier ses scènes de récit (fichiers
+        médiathèque <code>GL_recit_0N-chapN_*</code>).
       </p>
     );
   }
@@ -70,17 +79,23 @@ export function GLChapterScenesAdminPanel({ plateauNumber, onInfo, onError }) {
   return (
     <div className="gl-chapter-scenes-admin">
       <p className="gl-hint">
-        Scènes détectées par convention <code>GL_recit_0{chapterNumber}-{chapterNumber === 0 ? 'prologue' : `chap${chapterNumber}`}_*</code>{' '}
-        (plateau {chapterNumber || 'prologue'}). Elles s’affichent dans l’Histoire dans l’ordre ci-dessous
-        (champ « Ordre », sinon ordre alphabétique des clés). La scène « couverture » illustre la Biocénose
-        et sert de repli au fond de plateau. Dans le texte de l’Histoire, <code>![légende](scene:N)</code>{' '}
-        intercale la N-ième scène à cet endroit.
+        Scènes détectées par convention{' '}
+        <code>
+          GL_recit_0{chapterNumber}-{chapterNumber === 0 ? 'prologue' : `chap${chapterNumber}`}_*
+        </code>{' '}
+        (plateau {chapterNumber || 'prologue'}). Elles s’affichent dans l’Histoire dans l’ordre
+        ci-dessous (champ « Ordre », sinon ordre alphabétique des clés). La scène « couverture »
+        illustre la Biocénose et sert de repli au fond de plateau. Dans le texte de l’Histoire,{' '}
+        <code>![légende](scene:N)</code> intercale la N-ième scène à cet endroit.
       </p>
       {loading ? <p className="gl-hint">Chargement…</p> : null}
       {!loading && scenes.length === 0 ? (
         <p className="gl-hint">
           Aucune scène en médiathèque pour ce chapitre. Déposez des images nommées{' '}
-          <code>GL_recit_0{chapterNumber}-{chapterNumber === 0 ? 'prologue' : `chap${chapterNumber}`}_&lt;titre&gt;.png</code>{' '}
+          <code>
+            GL_recit_0{chapterNumber}-{chapterNumber === 0 ? 'prologue' : `chap${chapterNumber}`}
+            _&lt;titre&gt;.png
+          </code>{' '}
           via Contenus → Bibliothèque.
         </p>
       ) : null}
@@ -88,8 +103,9 @@ export function GLChapterScenesAdminPanel({ plateauNumber, onInfo, onError }) {
         <ul className="gl-chapter-scenes-admin__list">
           {scenes.map((scene, index) => {
             const draft = drafts[scene.stableKey] || { caption: '', order: '' };
-            const dirty = draft.caption !== (scene.caption || '')
-              || draft.order !== (scene.order != null ? String(scene.order) : '');
+            const dirty =
+              draft.caption !== (scene.caption || '') ||
+              draft.order !== (scene.order != null ? String(scene.order) : '');
             return (
               <li key={scene.stableKey} className="gl-chapter-scenes-admin__item">
                 <img
@@ -109,7 +125,9 @@ export function GLChapterScenesAdminPanel({ plateauNumber, onInfo, onError }) {
                     <input
                       value={draft.caption}
                       placeholder="Scène du récit"
-                      onChange={(event) => setDraft(scene.stableKey, { caption: event.target.value })}
+                      onChange={(event) =>
+                        setDraft(scene.stableKey, { caption: event.target.value })
+                      }
                     />
                   </label>
                   <label>
@@ -127,10 +145,12 @@ export function GLChapterScenesAdminPanel({ plateauNumber, onInfo, onError }) {
                       type="button"
                       size="sm"
                       disabled={!dirty || savingKey === scene.stableKey}
-                      onClick={() => saveScene(scene.stableKey, {
-                        caption: draft.caption.trim() || null,
-                        order: draft.order.trim() === '' ? null : Number(draft.order),
-                      })}
+                      onClick={() =>
+                        saveScene(scene.stableKey, {
+                          caption: draft.caption.trim() || null,
+                          order: draft.order.trim() === '' ? null : Number(draft.order),
+                        })
+                      }
                     >
                       Enregistrer
                     </GLButton>

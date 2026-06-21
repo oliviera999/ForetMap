@@ -35,8 +35,10 @@ export function editPtsSnapshotEqual(a, b) {
 /** Décale le polygone (%) pour une copie visible à côté de l’original. */
 export function offsetDuplicateZonePoints(pts, dx = 2.5, dy = 2.5) {
   if (!Array.isArray(pts) || pts.length < 3) return null;
-  return pts.map((p) => clampEditZonePct({
-    xp: (Number(p.xp) || 0) + dx,
-    yp: (Number(p.yp) || 0) + dy,
-  }));
+  return pts.map((p) =>
+    clampEditZonePct({
+      xp: (Number(p.xp) || 0) + dx,
+      yp: (Number(p.yp) || 0) + dy,
+    }),
+  );
 }

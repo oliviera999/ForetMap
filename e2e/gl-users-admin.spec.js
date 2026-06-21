@@ -11,7 +11,13 @@ test.describe('GL users admin flow', () => {
       userType: 'gl_admin',
       userId: String(seeded.adminId),
       roleSlug: 'gl_admin',
-      permissions: ['gl.read', 'gl.players.manage', 'gl.game.manage', 'gl.team.manage', 'gl.event.emit'],
+      permissions: [
+        'gl.read',
+        'gl.players.manage',
+        'gl.game.manage',
+        'gl.team.manage',
+        'gl.event.emit',
+      ],
     });
 
     await page.setExtraHTTPHeaders({ 'X-Foretmap-Product': 'gl' });
@@ -47,7 +53,11 @@ test.describe('GL users admin flow', () => {
 
     const gameRes = await request.post('/api/gl/games', {
       headers: { Authorization: `Bearer ${adminManageToken}` },
-      data: { classId: createdClass.id, chapterId: Number(chapters[0].id), name: 'Partie UI admin' },
+      data: {
+        classId: createdClass.id,
+        chapterId: Number(chapters[0].id),
+        name: 'Partie UI admin',
+      },
     });
     expect(gameRes.status()).toBe(201);
     const game = await gameRes.json();
@@ -56,7 +66,12 @@ test.describe('GL users admin flow', () => {
 
     const teamRes = await request.post(`/api/gl/games/${gameId}/teams`, {
       headers: { Authorization: `Bearer ${adminManageToken}` },
-      data: { name: 'Equipe Admin UI', type: 'gnome', mascotId: 'gl-gnome-mousse', color: '#22c55e' },
+      data: {
+        name: 'Equipe Admin UI',
+        type: 'gnome',
+        mascotId: 'gl-gnome-mousse',
+        color: '#22c55e',
+      },
     });
     expect(teamRes.status()).toBe(201);
     const team = await teamRes.json();
@@ -87,7 +102,14 @@ test.describe('GL users admin flow', () => {
         userId: String(seeded.adminId),
         roleSlug: 'gl_admin',
         displayName: 'MJ impersonation',
-        permissions: ['gl.read', 'gl.players.manage', 'gl.game.manage', 'gl.team.manage', 'gl.event.emit', 'gl.settings.manage'],
+        permissions: [
+          'gl.read',
+          'gl.players.manage',
+          'gl.game.manage',
+          'gl.team.manage',
+          'gl.event.emit',
+          'gl.settings.manage',
+        ],
       },
       tab: 'users',
     });
@@ -100,12 +122,24 @@ test.describe('GL users admin flow', () => {
     const players = await playersRes.json();
     expect(players.some((row) => row.pseudo === seeded.playerPseudo)).toBeTruthy();
 
-    const playerRow = page.locator('tr, .gl-data-card').filter({ hasText: seeded.playerPseudo }).first();
+    const playerRow = page
+      .locator('tr, .gl-data-card')
+      .filter({ hasText: seeded.playerPseudo })
+      .first();
     await playerRow.scrollIntoViewIfNeeded();
     await expect(playerRow).toBeVisible({ timeout: 15_000 });
+    const impersonateDone = page.waitForResponse(
+      (r) =>
+        r.url().includes('/api/gl/auth/admin/impersonate') &&
+        r.request().method() === 'POST' &&
+        !r.url().includes('/stop'),
+      { timeout: 30_000 },
+    );
     await playerRow.getByRole('button', { name: 'Voir comme' }).click({ timeout: 15_000 });
+    const impersonateResp = await impersonateDone;
+    expect(impersonateResp.ok()).toBeTruthy();
 
-    await expect(page.getByText('Prise de contrôle (admin GL)')).toBeVisible();
+    await expect(page.getByText('Prise de contrôle (admin GL)')).toBeVisible({ timeout: 20_000 });
     await expect(page.getByRole('button', { name: 'Revenir à mon compte admin' })).toBeVisible();
 
     await page.getByRole('button', { name: 'Revenir à mon compte admin' }).click();
@@ -121,7 +155,13 @@ test.describe('GL users admin flow', () => {
       userType: 'gl_admin',
       userId: String(seeded.adminId),
       roleSlug: 'gl_mj',
-      permissions: ['gl.read', 'gl.players.manage', 'gl.game.manage', 'gl.team.manage', 'gl.event.emit'],
+      permissions: [
+        'gl.read',
+        'gl.players.manage',
+        'gl.game.manage',
+        'gl.team.manage',
+        'gl.event.emit',
+      ],
       displayName: 'MJ impersonation',
     });
 
@@ -133,12 +173,21 @@ test.describe('GL users admin flow', () => {
         userId: String(seeded.adminId),
         roleSlug: 'gl_mj',
         displayName: 'MJ impersonation',
-        permissions: ['gl.read', 'gl.players.manage', 'gl.game.manage', 'gl.team.manage', 'gl.event.emit'],
+        permissions: [
+          'gl.read',
+          'gl.players.manage',
+          'gl.game.manage',
+          'gl.team.manage',
+          'gl.event.emit',
+        ],
       },
       tab: 'users',
     });
 
-    const playerRow = page.locator('tr, .gl-data-card').filter({ hasText: seeded.playerPseudo }).first();
+    const playerRow = page
+      .locator('tr, .gl-data-card')
+      .filter({ hasText: seeded.playerPseudo })
+      .first();
     await playerRow.scrollIntoViewIfNeeded();
     await expect(playerRow).toBeVisible({ timeout: 15_000 });
     await playerRow.getByRole('button', { name: 'Voir comme' }).click({ timeout: 15_000 });

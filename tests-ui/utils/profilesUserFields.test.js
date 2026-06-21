@@ -113,7 +113,7 @@ describe('mergeRbacUserRowsForEdit', () => {
   test('champs participation lus en loose (false préservé)', () => {
     const merged = mergeRbacUserRowsForEdit(
       { id: 5, forum_participate: false, context_comment_participate: 1 },
-      null
+      null,
     );
     expect(merged.forum_participate).toBe(false);
     expect(merged.context_comment_participate).toBe(1);
@@ -127,24 +127,38 @@ describe('mergeRbacUserRowsForEdit', () => {
 
 describe('buildUserEditInitialFields', () => {
   test('utilise prénom/nom directs quand présents', () => {
-    const out = buildUserEditInitialFields({ first_name: 'Léa', last_name: 'Martin', email: 'lea@ex.fr' });
+    const out = buildUserEditInitialFields({
+      first_name: 'Léa',
+      last_name: 'Martin',
+      email: 'lea@ex.fr',
+    });
     expect(out.firstName).toBe('Léa');
     expect(out.lastName).toBe('Martin');
     expect(out.email).toBe('lea@ex.fr');
   });
 
   test('affiliation par défaut « both » quand absente', () => {
-    expect(buildUserEditInitialFields({ first_name: 'A', last_name: 'B' }).affiliation).toBe('both');
-    expect(buildUserEditInitialFields({ first_name: 'A', last_name: 'B', affiliation: '' }).affiliation).toBe('both');
+    expect(buildUserEditInitialFields({ first_name: 'A', last_name: 'B' }).affiliation).toBe(
+      'both',
+    );
+    expect(
+      buildUserEditInitialFields({ first_name: 'A', last_name: 'B', affiliation: '' }).affiliation,
+    ).toBe('both');
   });
 
   test('affiliation normalisée en minuscules', () => {
-    expect(buildUserEditInitialFields({ first_name: 'A', last_name: 'B', affiliation: 'N3' }).affiliation).toBe('n3');
+    expect(
+      buildUserEditInitialFields({ first_name: 'A', last_name: 'B', affiliation: 'N3' })
+        .affiliation,
+    ).toBe('n3');
   });
 
   test('description null → chaîne vide, sinon préservée (sans trim)', () => {
     expect(buildUserEditInitialFields({ first_name: 'A', last_name: 'B' }).description).toBe('');
-    expect(buildUserEditInitialFields({ first_name: 'A', last_name: 'B', description: '  texte  ' }).description).toBe('  texte  ');
+    expect(
+      buildUserEditInitialFields({ first_name: 'A', last_name: 'B', description: '  texte  ' })
+        .description,
+    ).toBe('  texte  ');
   });
 
   test('sans prénom/nom : déduit du display_name (non-email) — premier mot prénom, reste nom', () => {
@@ -178,7 +192,12 @@ describe('buildUserEditInitialFields', () => {
   });
 
   test('pseudo et email trimés', () => {
-    const out = buildUserEditInitialFields({ first_name: 'A', last_name: 'B', pseudo: '  lea_m  ', email: '  lea@ex.fr  ' });
+    const out = buildUserEditInitialFields({
+      first_name: 'A',
+      last_name: 'B',
+      pseudo: '  lea_m  ',
+      email: '  lea@ex.fr  ',
+    });
     expect(out.pseudo).toBe('lea_m');
     expect(out.email).toBe('lea@ex.fr');
   });
@@ -195,24 +214,39 @@ describe('validateUserIdentityFields', () => {
 
   test('champs valides → null (avec ou sans mot de passe requis)', () => {
     expect(validateUserIdentityFields(valid)).toBeNull();
-    expect(validateUserIdentityFields({ ...valid, password: 'secret', requirePassword: true })).toBeNull();
+    expect(
+      validateUserIdentityFields({ ...valid, password: 'secret', requirePassword: true }),
+    ).toBeNull();
     expect(validateUserIdentityFields({ firstName: 'A', lastName: 'B' })).toBeNull(); // optionnels vides
   });
 
   test('prénom/nom requis ; message création avec mot de passe requis', () => {
-    expect(validateUserIdentityFields({ firstName: '  ', lastName: 'B' })).toBe('Prénom et nom sont requis');
-    expect(validateUserIdentityFields({ firstName: 'A', lastName: '' })).toBe('Prénom et nom sont requis');
-    expect(validateUserIdentityFields({ ...valid, requirePassword: true }))
-      .toBe('Prénom, nom et mot de passe sont requis');
-    expect(validateUserIdentityFields({ firstName: '', lastName: '', password: 'x', requirePassword: true }))
-      .toBe('Prénom, nom et mot de passe sont requis');
+    expect(validateUserIdentityFields({ firstName: '  ', lastName: 'B' })).toBe(
+      'Prénom et nom sont requis',
+    );
+    expect(validateUserIdentityFields({ firstName: 'A', lastName: '' })).toBe(
+      'Prénom et nom sont requis',
+    );
+    expect(validateUserIdentityFields({ ...valid, requirePassword: true })).toBe(
+      'Prénom, nom et mot de passe sont requis',
+    );
+    expect(
+      validateUserIdentityFields({
+        firstName: '',
+        lastName: '',
+        password: 'x',
+        requirePassword: true,
+      }),
+    ).toBe('Prénom, nom et mot de passe sont requis');
   });
 
   test('pseudo invalide (format ou longueur)', () => {
-    expect(validateUserIdentityFields({ ...valid, pseudo: 'ab' }))
-      .toBe('Pseudo invalide (3-30 caractères, lettres/chiffres/._-)');
-    expect(validateUserIdentityFields({ ...valid, pseudo: 'léa!' }))
-      .toBe('Pseudo invalide (3-30 caractères, lettres/chiffres/._-)');
+    expect(validateUserIdentityFields({ ...valid, pseudo: 'ab' })).toBe(
+      'Pseudo invalide (3-30 caractères, lettres/chiffres/._-)',
+    );
+    expect(validateUserIdentityFields({ ...valid, pseudo: 'léa!' })).toBe(
+      'Pseudo invalide (3-30 caractères, lettres/chiffres/._-)',
+    );
     expect(validateUserIdentityFields({ ...valid, pseudo: '  ' })).toBeNull(); // vide après trim → ignoré
   });
 
@@ -222,21 +256,24 @@ describe('validateUserIdentityFields', () => {
   });
 
   test('description > 300 caractères refusée', () => {
-    expect(validateUserIdentityFields({ ...valid, description: 'x'.repeat(301) }))
-      .toBe('Description trop longue (max 300 caractères)');
+    expect(validateUserIdentityFields({ ...valid, description: 'x'.repeat(301) })).toBe(
+      'Description trop longue (max 300 caractères)',
+    );
     expect(validateUserIdentityFields({ ...valid, description: 'x'.repeat(300) })).toBeNull();
   });
 });
 
 describe('buildUserEditPatchPayload', () => {
   test('champs trimés, optionnels vides → null', () => {
-    expect(buildUserEditPatchPayload({
-      firstName: ' Léa ',
-      lastName: ' Martin ',
-      pseudo: '  ',
-      email: ' lea@ex.fr ',
-      description: '',
-    })).toEqual({
+    expect(
+      buildUserEditPatchPayload({
+        firstName: ' Léa ',
+        lastName: ' Martin ',
+        pseudo: '  ',
+        email: ' lea@ex.fr ',
+        description: '',
+      }),
+    ).toEqual({
       first_name: 'Léa',
       last_name: 'Martin',
       pseudo: null,
@@ -246,14 +283,26 @@ describe('buildUserEditPatchPayload', () => {
   });
 
   test('affiliation seulement pour un n3beur (student)', () => {
-    expect(buildUserEditPatchPayload({ firstName: 'A', lastName: 'B', affiliation: 'lyon', isStudent: true }).affiliation)
-      .toBe('lyon');
-    expect('affiliation' in buildUserEditPatchPayload({ firstName: 'A', lastName: 'B', affiliation: 'lyon' }))
-      .toBe(false);
+    expect(
+      buildUserEditPatchPayload({
+        firstName: 'A',
+        lastName: 'B',
+        affiliation: 'lyon',
+        isStudent: true,
+      }).affiliation,
+    ).toBe('lyon');
+    expect(
+      'affiliation' in
+        buildUserEditPatchPayload({ firstName: 'A', lastName: 'B', affiliation: 'lyon' }),
+    ).toBe(false);
   });
 
   test('mot de passe inclus tel quel uniquement s’il est non vide après trim', () => {
-    expect('password' in buildUserEditPatchPayload({ firstName: 'A', lastName: 'B', password: '   ' })).toBe(false);
-    expect(buildUserEditPatchPayload({ firstName: 'A', lastName: 'B', password: ' s3cret ' }).password).toBe(' s3cret ');
+    expect(
+      'password' in buildUserEditPatchPayload({ firstName: 'A', lastName: 'B', password: '   ' }),
+    ).toBe(false);
+    expect(
+      buildUserEditPatchPayload({ firstName: 'A', lastName: 'B', password: ' s3cret ' }).password,
+    ).toBe(' s3cret ');
   });
 });

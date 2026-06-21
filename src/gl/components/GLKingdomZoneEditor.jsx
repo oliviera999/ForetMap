@@ -1,6 +1,6 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import { useGlPctMapGestures } from '../hooks/useGlPctMapGestures.js';
-import { useGLKingdomZoneEditor } from '../hooks/useGLKingdomZoneEditor.js';
+import { useGLKingdomZoneEditor, zoneDuplicateCreatePayloadFromZone } from '../hooks/useGLKingdomZoneEditor.js';
 import { GLPctMapCanvas } from './GLPctMapCanvas.jsx';
 import { GLKingdomZoneMapOverlay } from './GLKingdomZoneMapOverlay.jsx';
 import { GLKingdomZoneSidePanels } from './GLKingdomZoneSidePanels.jsx';
@@ -31,13 +31,21 @@ export function GLKingdomZoneEditor({
     onPreviewZoneMusic,
   });
 
-  const {
-    selectedZone,
-    isEditingShape,
-    handleMapClick,
-    mapCursor,
-    selectZone,
-  } = zoneEditor;
+  const { selectedZone, isEditingShape, handleMapClick, mapCursor, selectZone } = zoneEditor;
+
+  const handleDuplicateZone = useCallback(
+    async (zoneOrId) => {
+      const source =
+        typeof zoneOrId === 'object' && zoneOrId != null
+          ? zoneOrId
+          : zones.find((zone) => Number(zone.id) === Number(zoneOrId));
+      if (!source) return;
+      const payload = zoneDuplicateCreatePayloadFromZone(source);
+      if (!payload) return;
+      await onCreateZone?.(payload);
+    },
+    [zones, onCreateZone],
+  );
 
   useEffect(() => {
     if (isEditingShape) {
@@ -54,6 +62,7 @@ export function GLKingdomZoneEditor({
         canManage={canManage}
         zoneMusicEnabled={zoneMusicEnabled}
         onDeleteZone={onDeleteZone}
+        onDuplicateZone={handleDuplicateZone}
         fetchMediaLibrary={fetchMediaLibrary}
         uploadMediaLibrary={uploadMediaLibrary}
         removeMediaLibrary={removeMediaLibrary}

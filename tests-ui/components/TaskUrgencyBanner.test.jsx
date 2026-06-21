@@ -1,7 +1,10 @@
 import React from 'react';
 import { describe, test, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { TaskUrgencyBanner, urgencyDueLabel } from '../../src/components/tasks/TaskUrgencyBanner.jsx';
+import {
+  TaskUrgencyBanner,
+  urgencyDueLabel,
+} from '../../src/components/tasks/TaskUrgencyBanner.jsx';
 
 // Isolation : on remplace les helpers de calcul (échéances + sélection) par des sondes
 // déterministes — la logique pure réelle reste couverte par les tests de taskSectioning/badges.

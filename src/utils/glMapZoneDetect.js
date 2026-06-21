@@ -2,9 +2,7 @@ import { isPointInPolygon, polygonArea } from './glPointInPolygon.js';
 
 const TRAVERSE_SAMPLES = 10;
 
-const defaultGetZonePoints = (zone) => (
-  Array.isArray(zone?.points) ? zone.points : []
-);
+const defaultGetZonePoints = (zone) => (Array.isArray(zone?.points) ? zone.points : []);
 
 function pickSmallestZone(candidates, getZonePoints = defaultGetZonePoints) {
   if (!candidates.length) return null;

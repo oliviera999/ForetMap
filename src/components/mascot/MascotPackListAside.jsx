@@ -19,6 +19,8 @@ import { toMascotPackIssueLines } from '../../utils/mascotPackValidationUi.js';
  *   onNewFromCatalog: () => void,
  *   onRefresh: () => void,
  *   onDuplicateSelected: () => void,
+ *   onExportZip?: () => void,
+ *   onOpenImport?: () => void,
  *   listError: string,
  *   loading: boolean,
  *   packs: Array<Record<string, unknown>>,
@@ -32,6 +34,7 @@ import { toMascotPackIssueLines } from '../../utils/mascotPackValidationUi.js';
  *   onDelete: () => void,
  *   selectedValidation: { ok: boolean },
  *   editorWarnings: string[],
+ *   isDirty?: boolean,
  *   actionError: string,
  *   actionIssues: Array<Record<string, unknown>>,
  * }} props
@@ -48,6 +51,8 @@ export default function MascotPackListAside({
   onNewFromCatalog,
   onRefresh,
   onDuplicateSelected,
+  onExportZip,
+  onOpenImport,
   listError,
   loading,
   packs,
@@ -61,11 +66,13 @@ export default function MascotPackListAside({
   onDelete,
   selectedValidation,
   editorWarnings,
+  isDirty = false,
   actionError,
   actionIssues,
 }) {
   return (
     <aside
+      className="visit-mascot-pack-manager__aside"
       style={{
         flex: '0 0 280px',
         minWidth: 240,
@@ -79,8 +86,9 @@ export default function MascotPackListAside({
         <br />
         Les packs <strong>publiés</strong> apparaissent sur la visite (sélecteur mascotte).
         <br />
-        Les <strong>modèles intégrés</strong> (SPR0UT, Renard 2, …) ne se modifient pas directement : utilisez
-        {' '}<strong>Éditer sur cette carte</strong> pour ouvrir une copie modifiable (sprites, comportements).
+        Les <strong>modèles intégrés</strong> (SPR0UT, Renard 2, …) ne se modifient pas directement
+        : utilisez <strong>Éditer sur cette carte</strong> pour ouvrir une copie modifiable
+        (sprites, comportements).
       </p>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
         <button
@@ -92,8 +100,20 @@ export default function MascotPackListAside({
           Nouveau brouillon
         </button>
         <div style={{ width: '100%' }}>
-          <p className="section-sub" style={{ fontSize: '0.78rem', margin: '4px 0 6px' }}>Modèles intégrés (catalogue)</p>
-          <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 8, maxHeight: 220, overflowY: 'auto' }}>
+          <p className="section-sub" style={{ fontSize: '0.78rem', margin: '4px 0 6px' }}>
+            Modèles intégrés (catalogue)
+          </p>
+          <ul
+            style={{
+              listStyle: 'none',
+              padding: 0,
+              margin: 0,
+              display: 'grid',
+              gap: 8,
+              maxHeight: 220,
+              overflowY: 'auto',
+            }}
+          >
             {catalogModelOptions.map((opt) => {
               const linkedPack = findPackForCatalogModel(opt.id);
               return (
@@ -108,7 +128,14 @@ export default function MascotPackListAside({
                   >
                     {opt.label}
                     {linkedPack ? (
-                      <span style={{ display: 'block', fontSize: '0.72rem', opacity: 0.85, fontWeight: 400 }}>
+                      <span
+                        style={{
+                          display: 'block',
+                          fontSize: '0.72rem',
+                          opacity: 0.85,
+                          fontWeight: 400,
+                        }}
+                      >
                         Copie sur carte : {linkedPack.label || linkedPack.catalog_id}
                       </span>
                     ) : null}
@@ -119,9 +146,11 @@ export default function MascotPackListAside({
                     style={{ width: '100%' }}
                     disabled={actionBusy}
                     onClick={() => onOpenCatalogModelForEdit(opt.id)}
-                    title={linkedPack
-                      ? 'Ouvrir la copie modifiable déjà créée pour cette carte'
-                      : 'Créer puis ouvrir une copie modifiable de ce modèle'}
+                    title={
+                      linkedPack
+                        ? 'Ouvrir la copie modifiable déjà créée pour cette carte'
+                        : 'Créer puis ouvrir une copie modifiable de ce modèle'
+                    }
                   >
                     {linkedPack ? 'Éditer la copie' : 'Éditer sur cette carte'}
                   </button>
@@ -139,29 +168,69 @@ export default function MascotPackListAside({
         >
           Nouvelle copie depuis ce modèle
         </button>
-        <button type="button" className="btn btn-ghost btn-sm" disabled={actionBusy} onClick={onRefresh}>
+        <button
+          type="button"
+          className="btn btn-ghost btn-sm"
+          disabled={actionBusy}
+          onClick={onRefresh}
+        >
           Actualiser
         </button>
       </div>
       {selectedId ? (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            disabled={actionBusy}
+            onClick={onDuplicateSelected}
+          >
+            Dupliquer le pack sélectionné
+          </button>
+          {onExportZip ? (
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              disabled={actionBusy}
+              onClick={onExportZip}
+              title="Télécharger une archive ZIP portable (JSON + images)"
+            >
+              Exporter ZIP
+            </button>
+          ) : null}
+          {onOpenImport ? (
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              disabled={actionBusy}
+              onClick={onOpenImport}
+              title="Importer une archive ZIP (nouveau brouillon ou remplacement)"
+            >
+              Importer ZIP…
+            </button>
+          ) : null}
+        </div>
+      ) : onOpenImport ? (
         <button
           type="button"
           className="btn btn-ghost btn-sm"
           style={{ marginBottom: 10 }}
           disabled={actionBusy}
-          onClick={onDuplicateSelected}
+          onClick={onOpenImport}
         >
-          Dupliquer le pack sélectionné
+          Importer ZIP…
         </button>
       ) : null}
       {listError ? (
-        <p className="text-danger" role="alert" style={{ fontSize: '0.85rem' }}>{listError}</p>
+        <p className="text-danger" role="alert" style={{ fontSize: '0.85rem' }}>
+          {listError}
+        </p>
       ) : null}
       {loading ? <p className="section-sub">Chargement…</p> : null}
       {!loading && packs.length === 0 ? (
         <p className="section-sub">
-          Aucun pack pour la carte <strong>{mapTitle}</strong> — créez un brouillon
-          {' '}ou changez de carte dans l’onglet studio.
+          Aucun pack pour la carte <strong>{mapTitle}</strong> — créez un brouillon ou changez de
+          carte dans l’onglet studio.
         </p>
       ) : null}
       <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
@@ -189,8 +258,23 @@ export default function MascotPackListAside({
       </ul>
       {selectedId ? (
         <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {isDirty ? (
+            <p
+              className="visit-mascot-pack-manager__dirty-banner"
+              role="status"
+              aria-live="polite"
+            >
+              <span className="visit-mascot-pack-manager__dirty-dot" aria-hidden="true" />
+              Modifications non enregistrées
+            </p>
+          ) : null}
           <label>
-            <span className="section-sub" style={{ fontSize: '0.75rem', display: 'block', marginBottom: 4 }}>Libellé (liste)</span>
+            <span
+              className="section-sub"
+              style={{ fontSize: '0.75rem', display: 'block', marginBottom: 4 }}
+            >
+              Libellé (liste)
+            </span>
             <input
               className="form-input"
               value={labelDraft}
@@ -198,10 +282,30 @@ export default function MascotPackListAside({
               placeholder="Nom du pack"
             />
           </label>
-          <button type="button" className="btn btn-primary btn-sm" disabled={actionBusy} onClick={onSave}>
+          <button
+            type="button"
+            className={`btn btn-primary btn-sm${isDirty ? ' visit-mascot-pack-manager__save--dirty' : ''}`}
+            disabled={actionBusy || !selectedValidation.ok}
+            title={
+              selectedValidation.ok
+                ? 'Enregistrer les modifications sur le serveur'
+                : 'Corrigez les erreurs de validation avant enregistrement'
+            }
+            onClick={onSave}
+          >
             Enregistrer sur le serveur
           </button>
-          <button type="button" className="btn btn-ghost btn-sm" disabled={actionBusy} onClick={onTogglePublish}>
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            disabled={actionBusy || !selectedValidation.ok}
+            title={
+              selectedValidation.ok
+                ? undefined
+                : 'Corrigez les erreurs de validation avant publication'
+            }
+            onClick={onTogglePublish}
+          >
             {selectedRow?.is_published ? 'Retirer de la visite publique' : 'Publier sur la visite'}
           </button>
           {selectedValidation.ok ? (
@@ -215,10 +319,17 @@ export default function MascotPackListAside({
           )}
           {editorWarnings.length > 0 ? (
             <ul style={{ margin: 0, paddingLeft: 16, fontSize: '0.78rem' }}>
-              {editorWarnings.map((w) => <li key={w}>{w}</li>)}
+              {editorWarnings.map((w) => (
+                <li key={w}>{w}</li>
+              ))}
             </ul>
           ) : null}
-          <button type="button" className="btn btn-danger btn-sm" disabled={actionBusy} onClick={onDelete}>
+          <button
+            type="button"
+            className="btn btn-danger btn-sm"
+            disabled={actionBusy}
+            onClick={onDelete}
+          >
             Supprimer…
           </button>
         </div>
@@ -228,7 +339,9 @@ export default function MascotPackListAside({
           <p style={{ margin: 0 }}>{actionError}</p>
           {actionIssues.length > 0 ? (
             <ul style={{ margin: '6px 0 0', paddingLeft: 16 }}>
-              {toMascotPackIssueLines(actionIssues).map((line) => <li key={line}>{line}</li>)}
+              {toMascotPackIssueLines(actionIssues).map((line) => (
+                <li key={line}>{line}</li>
+              ))}
             </ul>
           ) : null}
         </div>

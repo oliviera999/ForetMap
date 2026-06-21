@@ -15,7 +15,8 @@ function esmGlMascotPackToCjs(text) {
   let out = text.replace(/^import \{ z \} from 'zod';\s*/m, "const { z } = require('zod');\n");
   out = out.replace(/^export const /gm, 'const ');
   out = out.replace(/^export function /gm, 'function ');
-  out += '\nmodule.exports = {\n  glMascotPackSchema,\n  parseGlMascotPack,\n  validateGlMascotPack,\n};\n';
+  out +=
+    '\nmodule.exports = {\n  glMascotPackSchema,\n  parseGlMascotPack,\n  validateGlMascotPack,\n};\n';
   return out;
 }
 
@@ -24,7 +25,9 @@ function main() {
   const to = path.join(outDir, outName);
   if (!fs.existsSync(from)) {
     if (fs.existsSync(to)) {
-      console.warn('[sync-gl-pack-server-lib] Sources absentes — lib/gl-pack/ conservé (bundle runtime).');
+      console.warn(
+        '[sync-gl-pack-server-lib] Sources absentes — lib/gl-pack/ conservé (bundle runtime).',
+      );
       return;
     }
     console.error('[sync-gl-pack-server-lib] Ni sources ni lib/gl-pack/mascotPack.js.');

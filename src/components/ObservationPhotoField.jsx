@@ -16,11 +16,23 @@ import { armNativeFilePickerGuard, disarmNativeFilePickerGuard } from '../utils/
  * @param {(e: import('react').ChangeEvent<HTMLInputElement>) => void} props.onFile appelé avec l'événement change d'un input fichier
  * @param {() => void} props.onRemove retire l'aperçu courant
  */
-export function ObservationPhotoField({ preview, galleryFileRef, cameraFileRef, onFile, onRemove }) {
+export function ObservationPhotoField({
+  preview,
+  galleryFileRef,
+  cameraFileRef,
+  onFile,
+  onRemove,
+}) {
   return !preview ? (
-    <div className="img-upload-area img-upload-area--split" role="group" aria-label="Photo d'observation : galerie ou appareil photo">
-      <div style={{fontSize:'1.5rem', marginBottom:4}}>📷</div>
-      <div style={{fontSize:'.82rem', color:'#888', marginBottom: 10}}>Galerie ou appareil photo</div>
+    <div
+      className="img-upload-area img-upload-area--split"
+      role="group"
+      aria-label="Photo d'observation : galerie ou appareil photo"
+    >
+      <div style={{ fontSize: '1.5rem', marginBottom: 4 }}>📷</div>
+      <div style={{ fontSize: '.82rem', color: '#888', marginBottom: 10 }}>
+        Galerie ou appareil photo
+      </div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
         <button
           type="button"
@@ -67,8 +79,10 @@ export function ObservationPhotoField({ preview, galleryFileRef, cameraFileRef, 
     </div>
   ) : (
     <div className="img-preview-wrap">
-      <img src={preview} className="img-preview" alt="preview"/>
-      <button className="img-remove" onClick={onRemove}>✕</button>
+      <img src={preview} className="img-preview" alt="preview" />
+      <button className="img-remove" onClick={onRemove}>
+        ✕
+      </button>
     </div>
   );
 }

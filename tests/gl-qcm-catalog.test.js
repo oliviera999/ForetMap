@@ -10,7 +10,13 @@ const { app } = require('../server');
 const { initSchema, execute, queryOne } = require('../database');
 const { signAuthToken } = require('../middleware/requireTeacher');
 
-const XLSX_PATH = path.join(__dirname, '..', 'data', 'gl', 'qcm-biomes-gnomes-et-licornes-consolide.xlsx');
+const XLSX_PATH = path.join(
+  __dirname,
+  '..',
+  'data',
+  'gl',
+  'qcm-biomes-gnomes-et-licornes-consolide.xlsx',
+);
 const GLOSSARY_XLSX = path.join(__dirname, '..', 'data', 'gl', 'glossaire-gnomes-et-licornes.xlsx');
 
 let adminToken = '';
@@ -23,12 +29,11 @@ before(async () => {
     `INSERT INTO gl_admins (email, display_name, role, is_active, created_at, updated_at)
      VALUES (?, 'MJ QCM', 'admin', 1, NOW(), NOW())
      ON DUPLICATE KEY UPDATE is_active = 1, updated_at = NOW()`,
-    [`qcm.admin.${stamp}@ecole.local`]
+    [`qcm.admin.${stamp}@ecole.local`],
   );
-  const admin = await queryOne(
-    'SELECT id FROM gl_admins WHERE email = ? LIMIT 1',
-    [`qcm.admin.${stamp}@ecole.local`]
-  );
+  const admin = await queryOne('SELECT id FROM gl_admins WHERE email = ? LIMIT 1', [
+    `qcm.admin.${stamp}@ecole.local`,
+  ]);
   adminToken = await signAuthToken({
     product: 'gl',
     userType: 'gl_admin',
@@ -39,15 +44,19 @@ before(async () => {
   await execute(
     `INSERT INTO gl_classes (name, school, created_by, is_active, created_at, updated_at)
      VALUES (?, 'Ecole', ?, 1, NOW(), NOW())`,
-    [`Classe QCM ${stamp}`, admin.id]
+    [`Classe QCM ${stamp}`, admin.id],
   );
-  const cls = await queryOne('SELECT id FROM gl_classes WHERE name = ? LIMIT 1', [`Classe QCM ${stamp}`]);
+  const cls = await queryOne('SELECT id FROM gl_classes WHERE name = ? LIMIT 1', [
+    `Classe QCM ${stamp}`,
+  ]);
   await execute(
     `INSERT INTO gl_players (class_id, pseudo, password_hash, is_active, created_at, updated_at)
      VALUES (?, ?, 'x', 1, NOW(), NOW())`,
-    [cls.id, `qcm-player-${stamp}`]
+    [cls.id, `qcm-player-${stamp}`],
   );
-  const player = await queryOne('SELECT id FROM gl_players WHERE pseudo = ? LIMIT 1', [`qcm-player-${stamp}`]);
+  const player = await queryOne('SELECT id FROM gl_players WHERE pseudo = ? LIMIT 1', [
+    `qcm-player-${stamp}`,
+  ]);
   playerToken = await signAuthToken({
     product: 'gl',
     userType: 'gl_player',
@@ -87,7 +96,7 @@ test('POST /api/gl/admin/qcm/import apply upsert le catalogue', async () => {
     .expect(200);
   assert.ok(res.body?.report?.totals?.created + res.body?.report?.totals?.updated >= 650);
   const row = await queryOne(
-    "SELECT question FROM gl_qcm_questions WHERE question_code = 'QCM0001' LIMIT 1"
+    "SELECT question FROM gl_qcm_questions WHERE question_code = 'QCM0001' LIMIT 1",
   );
   assert.ok(String(row?.question || '').includes('fennec'));
 });
@@ -113,7 +122,7 @@ test('POST /api/gl/qcm/questions/:code/answer valide une réponse', async () => 
     .expect(200);
   const row = await queryOne(
     `SELECT reponse_correcte, choix_a, choix_b, choix_c, choix_d, choix_e, feedback_correct
-       FROM gl_qcm_questions WHERE question_code = 'QCM0001'`
+       FROM gl_qcm_questions WHERE question_code = 'QCM0001'`,
   );
   const letter = String(row.reponse_correcte).toLowerCase();
   const correctText = row[`choix_${letter}`];

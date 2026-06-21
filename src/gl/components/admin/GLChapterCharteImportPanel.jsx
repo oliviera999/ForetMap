@@ -42,7 +42,7 @@ export function GLChapterCharteImportPanel({ onImportApplied }) {
     return runDownload(
       '/api/gl/chapters/admin/charte/import/template',
       'foretmap-gl-modele-chapitres-charte.xlsx',
-      'Modèle XLSX téléchargé (feuille chapitres_charte).'
+      'Modèle XLSX téléchargé (feuille chapitres_charte).',
     );
   }
 
@@ -53,7 +53,7 @@ export function GLChapterCharteImportPanel({ onImportApplied }) {
     return runDownload(
       `/api/gl/chapters/admin/charte/export${query ? `?${query}` : ''}`,
       'foretmap-gl-export-chapitres-charte.xlsx',
-      'Export XLSX généré.'
+      'Export XLSX généré.',
     );
   }
 
@@ -90,10 +90,9 @@ export function GLChapterCharteImportPanel({ onImportApplied }) {
     <section className="gl-admin-section fade-in">
       <h3>Import / export charte chapitres (XLSX)</h3>
       <p className="gl-hint">
-        Couleurs du thème (héritage plateforme si vide), image de carte et cadre. Feuille
-        {' '}
-        <code>chapitres_charte</code>
-        . Cellule vide = ne pas modifier ; « reset » ou « - » = réinitialiser une couleur.
+        Couleurs du thème (héritage plateforme si vide), image de carte et cadre. Feuille{' '}
+        <code>chapitres_charte</code>. Cellule vide = ne pas modifier ; « reset » ou « - » =
+        réinitialiser une couleur.
       </p>
       {error ? <p className="gl-error">{error}</p> : null}
       {info ? <p className="gl-hint">{info}</p> : null}
@@ -123,7 +122,10 @@ export function GLChapterCharteImportPanel({ onImportApplied }) {
           />
         </GLField>
         <GLField label="Mode">
-          <GLSelect value={dryRun ? 'dry' : 'apply'} onChange={(e) => setDryRun(e.target.value === 'dry')}>
+          <GLSelect
+            value={dryRun ? 'dry' : 'apply'}
+            onChange={(e) => setDryRun(e.target.value === 'dry')}
+          >
             <option value="dry">Simulation (dry-run)</option>
             <option value="apply">Importer réellement</option>
           </GLSelect>

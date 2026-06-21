@@ -41,28 +41,28 @@ description: Donne le contexte du projet ForetMap (forêt comestible, Lycée Lya
 
 ## Fichiers clés
 
-| Fichier | Rôle |
-|---------|------|
-| `server.js` | Montage des routeurs `/api/*`, CORS, static, fallback SPA, routes de santé |
-| `database.js` | Pool MySQL, `initDatabase()`, schéma, seed |
-| `routes/*.js` | Routeurs (zones, plants, tasks, auth, stats, students, map, observations, audit) |
-| `middleware/requireTeacher.js` | Middleware JWT pour les routes professeur |
-| `lib/logger.js` | Logger Pino (`redact` sensibles) |
-| `lib/helpers.js` | Fonctions métier partagées (`getTaskWithAssignments`, `studentStats`) |
-| `lib/routeLog.js` | `logRouteError` (erreurs 500 + `requestId`) |
-| `lib/requestId.js` | En-tête `X-Request-Id` |
-| `lib/httpRequestLog.js` | Logs fin de requête HTTP (`FORETMAP_HTTP_LOG`) |
-| `lib/logMetrics.js` | Métriques pour `/api/admin/diagnostics` |
-| `lib/env.js` | Validation des variables d'environnement |
-| `lib/uploads.js` | Gestion des fichiers uploadés |
-| `lib/speciesAutofill.js` | Agrégation multi-sources pour la pré-saisie d’espèces |
-| `index.vite.html` | Point d'entrée HTML de l'application Vite |
-| `src/main.jsx` | Bootstrap React et montage de l'app |
-| `src/components/`, `src/hooks/`, `src/services/` | Modules UI, logique locale et accès API |
-| `src/utils/visitMascotCatalog.js` | Catalogue mascottes, renderer cible, états supportés |
-| `src/hooks/useVisitMascotStateMachine.js` | États preview/runtime mascotte + comportements dynamiques |
-| `tests/` | Tests `node:test` : API, géométrie visite, mascotte (`visit-mascot-*.test.js`), etc. |
-| `e2e/` | Playwright : smoke, cycles tâches, **visite / mascotte** (`visit-mascot.spec.js`), … |
+| Fichier                                          | Rôle                                                                                 |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------ |
+| `server.js`                                      | Montage des routeurs `/api/*`, CORS, static, fallback SPA, routes de santé           |
+| `database.js`                                    | Pool MySQL, `initDatabase()`, schéma, seed                                           |
+| `routes/*.js`                                    | Routeurs (zones, plants, tasks, auth, stats, students, map, observations, audit)     |
+| `middleware/requireTeacher.js`                   | Middleware JWT pour les routes professeur                                            |
+| `lib/logger.js`                                  | Logger Pino (`redact` sensibles)                                                     |
+| `lib/helpers.js`                                 | Fonctions métier partagées (`getTaskWithAssignments`, `studentStats`)                |
+| `lib/routeLog.js`                                | `logRouteError` (erreurs 500 + `requestId`)                                          |
+| `lib/requestId.js`                               | En-tête `X-Request-Id`                                                               |
+| `lib/httpRequestLog.js`                          | Logs fin de requête HTTP (`FORETMAP_HTTP_LOG`)                                       |
+| `lib/logMetrics.js`                              | Métriques pour `/api/admin/diagnostics`                                              |
+| `lib/env.js`                                     | Validation des variables d'environnement                                             |
+| `lib/uploads.js`                                 | Gestion des fichiers uploadés                                                        |
+| `lib/speciesAutofill.js`                         | Agrégation multi-sources pour la pré-saisie d’espèces                                |
+| `index.vite.html`                                | Point d'entrée HTML de l'application Vite                                            |
+| `src/main.jsx`                                   | Bootstrap React et montage de l'app                                                  |
+| `src/components/`, `src/hooks/`, `src/services/` | Modules UI, logique locale et accès API                                              |
+| `src/utils/visitMascotCatalog.js`                | Catalogue mascottes, renderer cible, états supportés                                 |
+| `src/hooks/useVisitMascotStateMachine.js`        | États preview/runtime mascotte + comportements dynamiques                            |
+| `tests/`                                         | Tests `node:test` : API, géométrie visite, mascotte (`visit-mascot-*.test.js`), etc. |
+| `e2e/`                                           | Playwright : smoke, cycles tâches, **visite / mascotte** (`visit-mascot.spec.js`), … |
 
 ## Voir aussi
 

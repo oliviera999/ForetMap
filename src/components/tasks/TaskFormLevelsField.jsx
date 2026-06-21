@@ -19,7 +19,8 @@ export function TaskFormLevelsField({
 }) {
   return (
     <div className="row">
-      <div className="field"><label>Niveau de danger</label>
+      <div className="field">
+        <label>Niveau de danger</label>
         <select value={dangerLevel} onChange={onDangerChange}>
           <option value="">Non renseigné</option>
           <option value="safe">Sans danger</option>
@@ -28,7 +29,8 @@ export function TaskFormLevelsField({
           <option value="very_dangerous">Très dangereux</option>
         </select>
       </div>
-      <div className="field"><label>Niveau de difficulté</label>
+      <div className="field">
+        <label>Niveau de difficulté</label>
         <select value={difficultyLevel} onChange={onDifficultyChange}>
           <option value="">Non renseigné</option>
           <option value="easy">Facile</option>
@@ -37,7 +39,8 @@ export function TaskFormLevelsField({
           <option value="very_hard">Super compliqué</option>
         </select>
       </div>
-      <div className="field"><label>Degré d&apos;importance</label>
+      <div className="field">
+        <label>Degré d&apos;importance</label>
         <select value={importanceLevel} onChange={onImportanceChange}>
           <option value="">Non renseigné</option>
           <option value="not_important">Pas important</option>

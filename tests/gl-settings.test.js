@@ -8,6 +8,7 @@ const { app } = require('../server');
 const { initSchema, execute, queryOne } = require('../database');
 const { signAuthToken } = require('../middleware/requireTeacher');
 const { invalidateGameplayCache } = require('../lib/glSettings');
+const { DEFAULT_MARKER_BACKGROUNDS } = require('../lib/glMarkerBackgrounds');
 
 let adminToken = '';
 let playerToken = '';
@@ -26,7 +27,7 @@ before(async () => {
     `INSERT INTO gl_admins (email, display_name, role, is_active, created_at, updated_at)
      VALUES (?, 'MJ Settings', 'admin', 1, NOW(), NOW())
      ON DUPLICATE KEY UPDATE is_active = 1, updated_at = NOW()`,
-    [adminEmail]
+    [adminEmail],
   );
   const admin = await queryOne('SELECT id FROM gl_admins WHERE email = ? LIMIT 1', [adminEmail]);
   adminToken = await signAuthToken({
@@ -41,16 +42,20 @@ before(async () => {
   await execute(
     `INSERT INTO gl_classes (name, school, created_by, is_active, created_at, updated_at)
      VALUES (?, 'Ecole Test', ?, 1, NOW(), NOW())`,
-    [className, admin.id]
+    [className, admin.id],
   );
-  const cls = await queryOne('SELECT id FROM gl_classes WHERE name = ? ORDER BY id DESC LIMIT 1', [className]);
+  const cls = await queryOne('SELECT id FROM gl_classes WHERE name = ? ORDER BY id DESC LIMIT 1', [
+    className,
+  ]);
   await execute(
     `INSERT INTO gl_players
       (class_id, first_name, last_name, pseudo, password_must_reset, password_hash, is_active, created_at, updated_at)
      VALUES (?, 'Jean', 'Test', ?, 0, '$2a$10$abcdefghijklmnopqrstuvabcdefghijklmnopqrstuvabcd', 1, NOW(), NOW())`,
-    [cls.id, playerPseudo]
+    [cls.id, playerPseudo],
   );
-  const player = await queryOne('SELECT id FROM gl_players WHERE pseudo = ? LIMIT 1', [playerPseudo]);
+  const player = await queryOne('SELECT id FROM gl_players WHERE pseudo = ? LIMIT 1', [
+    playerPseudo,
+  ]);
   playerToken = await signAuthToken({
     product: 'gl',
     userType: 'gl_player',
@@ -76,8 +81,14 @@ test('GET /api/gl/gameplay-settings expose les 4 toggles (joueur)', async () => 
   assert.strictEqual(typeof s.vitalityEnabled, 'boolean');
   assert.strictEqual(typeof s.defaultHealthPoints, 'number');
   assert.strictEqual(typeof s.defaultPowerPoints, 'number');
-  assert.ok(['every_arrival', 'once_per_team', 'once_per_game'].includes(s.markerQuestionRetrigger));
+  assert.ok(
+    ['every_arrival', 'once_per_team', 'once_per_game'].includes(s.markerQuestionRetrigger),
+  );
   assert.ok(['every_arrival', 'once_per_team', 'once_per_game'].includes(s.zoneContentRetrigger));
+  assert.strictEqual(typeof s.plateauMarkersVisible, 'boolean');
+  assert.strictEqual(typeof s.plateauZonesVisible, 'boolean');
+  assert.strictEqual(s.plateauMarkersVisible, true);
+  assert.strictEqual(s.plateauZonesVisible, false);
 });
 
 test('PUT défauts vitalité invalide → 400', async () => {
@@ -94,7 +105,10 @@ test('PUT /api/gl/admin/settings/:key garde la permission gl.settings.manage', a
     .set('Authorization', `Bearer ${playerToken}`)
     .send({ value: true })
     .expect((res) => {
-      assert.ok(res.status === 403 || res.status === 401, `Statut attendu 401/403, reçu ${res.status}`);
+      assert.ok(
+        res.status === 403 || res.status === 401,
+        `Statut attendu 401/403, reçu ${res.status}`,
+      );
     });
 });
 
@@ -144,10 +158,93 @@ test('PUT gameplay.qcm_mj_only persiste et est lu par /gameplay-settings', async
   invalidateGameplayCache();
 });
 
-test('GET /api/gl/auth/config expose les modules GL', async () => {
-  const res = await request(app)
-    .get('/api/gl/auth/config')
+test('PUT gameplay.plateau_* persiste et est lu par /gameplay-settings', async () => {
+  await request(app)
+    .put('/api/gl/admin/settings/gameplay.plateau_markers_visible')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ value: false })
     .expect(200);
+  await request(app)
+    .put('/api/gl/admin/settings/gameplay.plateau_zones_visible')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ value: true })
+    .expect(200);
+
+  invalidateGameplayCache();
+
+  const res = await request(app)
+    .get('/api/gl/gameplay-settings')
+    .set('Authorization', `Bearer ${playerToken}`)
+    .expect(200);
+  assert.strictEqual(res.body.settings.plateauMarkersVisible, false);
+  assert.strictEqual(res.body.settings.plateauZonesVisible, true);
+
+  await request(app)
+    .put('/api/gl/admin/settings/gameplay.plateau_markers_visible')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ value: true })
+    .expect(200);
+  await request(app)
+    .put('/api/gl/admin/settings/gameplay.plateau_zones_visible')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ value: false })
+    .expect(200);
+  invalidateGameplayCache();
+});
+
+test('PUT ui.map.plateau_marker_size_percent via admin GL persiste dans app_settings', async () => {
+  await request(app)
+    .put('/api/gl/admin/settings/ui.map.plateau_marker_size_percent')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ value: 125 })
+    .expect(200);
+
+  const pub = await request(app).get('/api/settings/public').expect(200);
+  assert.strictEqual(pub.body?.settings?.ui?.map?.plateau_marker_size_percent, 125);
+
+  await request(app)
+    .put('/api/gl/admin/settings/ui.map.plateau_marker_size_percent')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ value: 100 })
+    .expect(200);
+});
+
+test('PUT gameplay.marker_backgrounds persiste et est lu par /gameplay-settings', async () => {
+  const payload = {
+    label: 'classic',
+    emoji: '#ffffff',
+    icon: 'transparent',
+  };
+  await request(app)
+    .put('/api/gl/admin/settings/gameplay.marker_backgrounds')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ value: payload })
+    .expect(200);
+
+  invalidateGameplayCache();
+
+  const res = await request(app)
+    .get('/api/gl/gameplay-settings')
+    .set('Authorization', `Bearer ${playerToken}`)
+    .expect(200);
+  assert.deepStrictEqual(res.body.settings.markerBackgrounds, payload);
+
+  await request(app)
+    .put('/api/gl/admin/settings/gameplay.marker_backgrounds')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ value: { label: 'bad', emoji: 'transparent', icon: 'transparent' } })
+    .expect(400);
+
+  await request(app)
+    .put('/api/gl/admin/settings/gameplay.marker_backgrounds')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ value: DEFAULT_MARKER_BACKGROUNDS })
+    .expect(200);
+  invalidateGameplayCache();
+});
+
+test('GET /api/gl/auth/config expose les modules GL', async () => {
+  const res = await request(app).get('/api/gl/auth/config').expect(200);
   assert.ok(res.body?.modules);
   assert.strictEqual(typeof res.body.modules.journalEnabled, 'boolean');
   assert.strictEqual(typeof res.body.modules.playerJournalEnabled, 'boolean');
@@ -161,9 +258,7 @@ test('PUT /api/gl/admin/settings/modules.* valide booléen et persiste', async (
     .send({ value: false })
     .expect(200);
 
-  const cfg = await request(app)
-    .get('/api/gl/auth/config')
-    .expect(200);
+  const cfg = await request(app).get('/api/gl/auth/config').expect(200);
   assert.strictEqual(cfg.body?.modules?.journalEnabled, false);
 
   await request(app)
@@ -186,9 +281,7 @@ test('PUT modules.virtual_dice_enabled persiste et expose virtualDiceEnabled', a
     .send({ value: true })
     .expect(200);
 
-  const cfg = await request(app)
-    .get('/api/gl/auth/config')
-    .expect(200);
+  const cfg = await request(app).get('/api/gl/auth/config').expect(200);
   assert.strictEqual(cfg.body?.modules?.virtualDiceEnabled, true);
 
   await request(app)
@@ -205,9 +298,7 @@ test('PUT modules.zone_music_enabled persiste et expose zoneMusicEnabled', async
     .send({ value: true })
     .expect(200);
 
-  const cfg = await request(app)
-    .get('/api/gl/auth/config')
-    .expect(200);
+  const cfg = await request(app).get('/api/gl/auth/config').expect(200);
   assert.strictEqual(cfg.body?.modules?.zoneMusicEnabled, true);
 
   await request(app)
@@ -228,7 +319,9 @@ test('media-library GL: upload, liste et suppression (gl.content.manage)', async
   const contentAdminToken = await signAuthToken({
     product: 'gl',
     userType: 'gl_admin',
-    userId: String((await queryOne('SELECT id FROM gl_admins WHERE email = ? LIMIT 1', [adminEmail])).id),
+    userId: String(
+      (await queryOne('SELECT id FROM gl_admins WHERE email = ? LIMIT 1', [adminEmail])).id,
+    ),
     roleSlug: 'gl_admin',
     permissions: ['gl.read', 'gl.content.manage'],
     displayName: 'MJ Content',

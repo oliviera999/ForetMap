@@ -100,7 +100,9 @@ export function PlantSpeciesDiscoveryAcknowledgeButton({
     const trimmed = String(enrichBody || '').trim();
     const imgs = Array.isArray(enrichImages) ? enrichImages : [];
     if (trimmed.length < MIN_CONTEXT_COMMENT_CHARS && imgs.length === 0) {
-      setEnrichError(`Saisis au moins ${MIN_CONTEXT_COMMENT_CHARS} caractères ou ajoute une photo.`);
+      setEnrichError(
+        `Saisis au moins ${MIN_CONTEXT_COMMENT_CHARS} caractères ou ajoute une photo.`,
+      );
       return;
     }
     setEnrichSaving(true);
@@ -139,44 +141,60 @@ export function PlantSpeciesDiscoveryAcknowledgeButton({
       closeButtonLabel="Fermer"
       closeButtonDisabled={busy}
     >
-        <h3 id="plant-discovery-enrich-title">Enrichir ta observation ?</h3>
-        <p className="tuto-read-ack-intro">
-          Tu peux publier un court commentaire sur la fiche
-          {' '}
-          <strong>« {speciesName || 'cette espèce'} »</strong>
-          {' '}
-          (lieu, comportement, stade…) et joindre jusqu’à trois photos. Ce passage est optionnel.
-        </p>
-        <div style={{ marginBottom: 8 }}>
-          <MarkdownTextarea
-            className="task-log-comment-input"
-            style={{ width: '100%', minHeight: 72, marginTop: 6, resize: 'vertical' }}
-            rows={3}
-            maxLength={4000}
-            value={enrichBody}
-            onChange={(e) => setEnrichBody(e.target.value)}
-            disabled={enrichSaving}
-            placeholder="Ex. : vu près du compost, fleurs blanches, plusieurs pieds…"
-            aria-label="Commentaire pour enrichir l’observation"
-          />
-        </div>
-        <AttachmentImagesPicker
-          value={enrichImages}
-          onChange={setEnrichImages}
+      <h3 id="plant-discovery-enrich-title">Enrichir ta observation ?</h3>
+      <p className="tuto-read-ack-intro">
+        Tu peux publier un court commentaire sur la fiche{' '}
+        <strong>« {speciesName || 'cette espèce'} »</strong> (lieu, comportement, stade…) et joindre
+        jusqu’à trois photos. Ce passage est optionnel.
+      </p>
+      <div style={{ marginBottom: 8 }}>
+        <MarkdownTextarea
+          className="task-log-comment-input"
+          style={{ width: '100%', minHeight: 72, marginTop: 6, resize: 'vertical' }}
+          rows={3}
+          maxLength={4000}
+          value={enrichBody}
+          onChange={(e) => setEnrichBody(e.target.value)}
           disabled={enrichSaving}
-          onNotify={(msg) => setEnrichToast(msg)}
-          label="Photos (optionnel, max 3, JPEG / PNG / WebP)"
+          placeholder="Ex. : vu près du compost, fleurs blanches, plusieurs pieds…"
+          aria-label="Commentaire pour enrichir l’observation"
         />
-        {enrichError ? <p className="tuto-read-ack-error">{enrichError}</p> : null}
-        {enrichToast ? <p className="tuto-read-ack-intro" style={{ marginTop: 6, color: 'var(--leaf)' }} role="status">{enrichToast}</p> : null}
-        <div className="tuto-read-ack-actions">
-          <button type="button" className="btn btn-ghost btn-sm" disabled={enrichSaving} onClick={skipEnrichment}>
-            Plus tard
-          </button>
-          <button type="button" className="btn btn-primary btn-sm" disabled={enrichSaving} onClick={submitEnrichment}>
-            {enrichSaving ? 'Publication…' : 'Publier sur la fiche'}
-          </button>
-        </div>
+      </div>
+      <AttachmentImagesPicker
+        value={enrichImages}
+        onChange={setEnrichImages}
+        disabled={enrichSaving}
+        onNotify={(msg) => setEnrichToast(msg)}
+        label="Photos (optionnel, max 3, JPEG / PNG / WebP)"
+      />
+      {enrichError ? <p className="tuto-read-ack-error">{enrichError}</p> : null}
+      {enrichToast ? (
+        <p
+          className="tuto-read-ack-intro"
+          style={{ marginTop: 6, color: 'var(--leaf)' }}
+          role="status"
+        >
+          {enrichToast}
+        </p>
+      ) : null}
+      <div className="tuto-read-ack-actions">
+        <button
+          type="button"
+          className="btn btn-ghost btn-sm"
+          disabled={enrichSaving}
+          onClick={skipEnrichment}
+        >
+          Plus tard
+        </button>
+        <button
+          type="button"
+          className="btn btn-primary btn-sm"
+          disabled={enrichSaving}
+          onClick={submitEnrichment}
+        >
+          {enrichSaving ? 'Publication…' : 'Publier sur la fiche'}
+        </button>
+      </div>
     </DialogShell>
   );
 
@@ -194,44 +212,60 @@ export function PlantSpeciesDiscoveryAcknowledgeButton({
           </button>
           <PlantDiscoveryObservedCounts my={my} site={site} />
         </div>
-        {modalOpen && (phase === 'enrich' ? renderEnrichStep() : (
-          <DialogShell
-            open={modalOpen}
-            onClose={() => !saving && setModalOpen(false)}
-            overlayClassName="modal-overlay"
-            dialogClassName="log-modal fade-in tuto-read-ack-modal"
-            ariaLabelledBy="plant-discovery-ack-title-new"
-            closeOnOverlay={!saving}
-            showCloseButton
-            closeButtonLabel="Fermer"
-            closeButtonDisabled={saving}
-          >
+        {modalOpen &&
+          (phase === 'enrich' ? (
+            renderEnrichStep()
+          ) : (
+            <DialogShell
+              open={modalOpen}
+              onClose={() => !saving && setModalOpen(false)}
+              overlayClassName="modal-overlay"
+              dialogClassName="log-modal fade-in tuto-read-ack-modal"
+              ariaLabelledBy="plant-discovery-ack-title-new"
+              closeOnOverlay={!saving}
+              showCloseButton
+              closeButtonLabel="Fermer"
+              closeButtonDisabled={saving}
+            >
               <h3 id="plant-discovery-ack-title-new">Nouvelle observation</h3>
               <p className="tuto-read-ack-intro">
-                Tu confirmes une observation supplémentaire pour l&apos;espèce
-                {' '}
-                <strong>« {speciesName || 'cette fiche'} »</strong>
-                {' '}
-                : observation réelle sur le terrain et prise de connaissance des informations de la fiche.
+                Tu confirmes une observation supplémentaire pour l&apos;espèce{' '}
+                <strong>« {speciesName || 'cette fiche'} »</strong> : observation réelle sur le
+                terrain et prise de connaissance des informations de la fiche.
               </p>
               <label className="tuto-read-ack-check">
-                <input type="checkbox" checked={checked} onChange={(e) => setChecked(e.target.checked)} disabled={saving} />
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={(e) => setChecked(e.target.checked)}
+                  disabled={saving}
+                />
                 <span>
-                  J&apos;ai observé réellement l&apos;espèce sur le terrain et pris connaissance des informations de la
-                  fiche.
+                  J&apos;ai observé réellement l&apos;espèce sur le terrain et pris connaissance des
+                  informations de la fiche.
                 </span>
               </label>
               {error ? <p className="tuto-read-ack-error">{error}</p> : null}
               <div className="tuto-read-ack-actions">
-                <button type="button" className="btn btn-ghost btn-sm" disabled={saving} onClick={() => setModalOpen(false)}>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  disabled={saving}
+                  onClick={() => setModalOpen(false)}
+                >
                   Annuler
                 </button>
-                <button type="button" className="btn btn-primary btn-sm" disabled={!checked || saving} onClick={submit}>
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  disabled={!checked || saving}
+                  onClick={submit}
+                >
                   {saving ? 'Enregistrement…' : 'Confirmer'}
                 </button>
               </div>
-          </DialogShell>
-        ))}
+            </DialogShell>
+          ))}
       </>
     );
   }
@@ -241,45 +275,61 @@ export function PlantSpeciesDiscoveryAcknowledgeButton({
       <button type="button" className="btn btn-secondary btn-sm" onClick={() => setModalOpen(true)}>
         Espèce découverte
       </button>
-      {modalOpen && (phase === 'enrich' ? renderEnrichStep() : (
-        <DialogShell
-          open={modalOpen}
-          onClose={() => !saving && setModalOpen(false)}
-          overlayClassName="modal-overlay"
-          dialogClassName="log-modal fade-in tuto-read-ack-modal"
-          ariaLabelledBy="plant-discovery-ack-title"
-          closeOnOverlay={!saving}
-          showCloseButton
-          closeButtonLabel="Fermer"
-          closeButtonDisabled={saving}
-        >
+      {modalOpen &&
+        (phase === 'enrich' ? (
+          renderEnrichStep()
+        ) : (
+          <DialogShell
+            open={modalOpen}
+            onClose={() => !saving && setModalOpen(false)}
+            overlayClassName="modal-overlay"
+            dialogClassName="log-modal fade-in tuto-read-ack-modal"
+            ariaLabelledBy="plant-discovery-ack-title"
+            closeOnOverlay={!saving}
+            showCloseButton
+            closeButtonLabel="Fermer"
+            closeButtonDisabled={saving}
+          >
             <h3 id="plant-discovery-ack-title">Confirmer la découverte</h3>
             <p className="tuto-read-ack-intro">
-              En validant, tu confirmes pour l&apos;espèce
-              {' '}
-              <strong>« {speciesName || 'cette fiche'} »</strong>
-              {' '}
-              que tu as réellement observé l&apos;être vivant sur le terrain et pris connaissance des informations
-              présentées sur la fiche.
+              En validant, tu confirmes pour l&apos;espèce{' '}
+              <strong>« {speciesName || 'cette fiche'} »</strong> que tu as réellement observé
+              l&apos;être vivant sur le terrain et pris connaissance des informations présentées sur
+              la fiche.
             </p>
             <label className="tuto-read-ack-check">
-              <input type="checkbox" checked={checked} onChange={(e) => setChecked(e.target.checked)} disabled={saving} />
+              <input
+                type="checkbox"
+                checked={checked}
+                onChange={(e) => setChecked(e.target.checked)}
+                disabled={saving}
+              />
               <span>
-                J&apos;ai observé réellement l&apos;espèce sur le terrain et pris connaissance des informations de la
-                fiche.
+                J&apos;ai observé réellement l&apos;espèce sur le terrain et pris connaissance des
+                informations de la fiche.
               </span>
             </label>
             {error ? <p className="tuto-read-ack-error">{error}</p> : null}
             <div className="tuto-read-ack-actions">
-              <button type="button" className="btn btn-ghost btn-sm" disabled={saving} onClick={() => setModalOpen(false)}>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                disabled={saving}
+                onClick={() => setModalOpen(false)}
+              >
                 Annuler
               </button>
-              <button type="button" className="btn btn-primary btn-sm" disabled={!checked || saving} onClick={submit}>
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                disabled={!checked || saving}
+                onClick={submit}
+              >
                 {saving ? 'Enregistrement…' : 'Confirmer'}
               </button>
             </div>
-        </DialogShell>
-      ))}
+          </DialogShell>
+        ))}
     </>
   );
 }

@@ -23,18 +23,35 @@ function run(kind, schema, value) {
   const res = {
     statusCode: 200,
     payload: undefined,
-    status(c) { this.statusCode = c; return this; },
-    json(p) { this.payload = p; return this; },
+    status(c) {
+      this.statusCode = c;
+      return this;
+    },
+    json(p) {
+      this.payload = p;
+      return this;
+    },
   };
   let nextCalled = false;
-  validate({ [kind]: schema })(req, res, () => { nextCalled = true; });
-  return { nextCalled, status: res.statusCode, error: res.payload && res.payload.error, value: req[kind] };
+  validate({ [kind]: schema })(req, res, () => {
+    nextCalled = true;
+  });
+  return {
+    nextCalled,
+    status: res.statusCode,
+    error: res.payload && res.payload.error,
+    value: req[kind],
+  };
 }
 
 // --- query spellCodes (GET /spells) ---------------------------------------------------------
 // Parité avec parseSpellCodesFromQuery : accepte spellCodes='SL001,SL002' ou spellCode='SL001'.
 test('query spellCodes valide -> next, query inchangée', () => {
-  for (const q of [{ spellCodes: 'SL001,SL002' }, { spellCodes: 'SL001' }, { spellCode: 'SL003' }]) {
+  for (const q of [
+    { spellCodes: 'SL001,SL002' },
+    { spellCodes: 'SL001' },
+    { spellCode: 'SL003' },
+  ]) {
     const r = run('query', spellCodesQuerySchema, q);
     assert.strictEqual(r.nextCalled, true, `q=${JSON.stringify(q)}`);
     assert.strictEqual(r.status, 200);
@@ -64,7 +81,14 @@ test('query categorySlug valide -> next, query inchangée', () => {
 });
 
 test('query categorySlug manquant/vide -> 400 message exact (sans préfixe de chemin)', () => {
-  const cases = [{}, { categorySlug: '' }, { categorySlug: '   ' }, { categorySlug: null }, null, undefined];
+  const cases = [
+    {},
+    { categorySlug: '' },
+    { categorySlug: '   ' },
+    { categorySlug: null },
+    null,
+    undefined,
+  ];
   for (const q of cases) {
     const r = run('query', categorySlugQuerySchema, q);
     assert.strictEqual(r.nextCalled, false, `q=${JSON.stringify(q)}`);

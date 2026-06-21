@@ -1,9 +1,71 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { api } from '../services/api';
 import { wheelZoomScaleFactor } from '../utils/mapWheelZoom';
 import { pointToContainedRectPct } from '../shared/pct-map/pctMapPointer.js';
 
-function useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh, embedded = false, mapLayoutOuterRef = null }) {
+const FM_MAP_FULLSCREEN_LAYER_SELECTOR = '.fm-map-fullscreen-layer';
+const EMBEDDED_H_FLOOR = 96;
+const FULLSCREEN_H_FLOOR = 64;
+
+/**
+ * Zone utile (px) pour le cadre carte dans `map-view-canvas-outer`.
+ * En plein écran (portail body), on s’appuie sur les dimensions du conteneur / viewport,
+ * pas sur `.main` (absent du portail) — évite un cadre 1×1 et un plan invisible.
+ */
+function resolveMapLayoutAvailBox(outer, { embedded, padL, padR, padT, padB, mapFullscreen = false }) {
+  const inFullscreenLayer =
+    mapFullscreen || !!outer?.closest?.(FM_MAP_FULLSCREEN_LAYER_SELECTOR);
+  const availW = Math.max(1, outer.clientWidth - padL - padR);
+
+  if (inFullscreenLayer) {
+    const vh = window.visualViewport?.height ?? window.innerHeight;
+    const vw = window.visualViewport?.width ?? window.innerWidth;
+    let availH = outer.clientHeight - padT - padB;
+    let availW = outer.clientWidth - padL - padR;
+    if (!Number.isFinite(availH) || availH < FULLSCREEN_H_FLOOR) {
+      availH = vh - padT - padB;
+    }
+    if (!Number.isFinite(availW) || availW < FULLSCREEN_H_FLOOR) {
+      availW = vw - padL - padR;
+    }
+    return { availW: Math.max(1, availW), availH: Math.max(1, availH) };
+  }
+
+  let availH;
+  if (embedded) {
+    availH = Math.max(1, outer.clientHeight - padT - padB);
+    if (availH < EMBEDDED_H_FLOOR) {
+      const vh = window.visualViewport?.height ?? window.innerHeight;
+      const oRect = outer.getBoundingClientRect();
+      const mainEl = outer.closest('.main, .teacher-main');
+      const mRect = mainEl?.getBoundingClientRect();
+      const bottomLimit = mRect ? Math.min(mRect.bottom, vh) : vh;
+      const maxOuterBoxH = Math.max(0, bottomLimit - oRect.top - 2);
+      const fromViewport = Math.max(1, Math.floor(maxOuterBoxH - padT - padB));
+      availH = Math.max(availH, fromViewport);
+    }
+  } else {
+    const vh = window.visualViewport?.height ?? window.innerHeight;
+    const oRect = outer.getBoundingClientRect();
+    const main = outer.closest('.main, .teacher-main');
+    const mRect = main?.getBoundingClientRect();
+    const bottomLimit = mRect ? Math.min(mRect.bottom, vh) : vh;
+    const maxOuterBoxH = Math.max(0, bottomLimit - oRect.top - 2);
+    availH = Math.max(1, Math.floor(maxOuterBoxH - padT - padB));
+  }
+
+  return { availW, availH };
+}
+
+function useMapGestures({
+  mapImageSrc,
+  activeMapId,
+  mode,
+  onRefresh,
+  embedded = false,
+  mapLayoutOuterRef = null,
+  mapFullscreen = false,
+}) {
   const containerRef = useRef(null);
   const worldRef = useRef(null);
   const imgRef = useRef(null);
@@ -50,7 +112,8 @@ function useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh, embedded = 
     tx.current = { x, y, s };
     applyTransform();
     setCommitted((prev) => {
-      if (Math.abs(prev.x - x) < 0.5 && Math.abs(prev.y - y) < 0.5 && Math.abs(prev.s - s) < 1e-4) return prev;
+      if (Math.abs(prev.x - x) < 0.5 && Math.abs(prev.y - y) < 0.5 && Math.abs(prev.s - s) < 1e-4)
+        return prev;
       return { x, y, s };
     });
   };
@@ -144,7 +207,8 @@ function useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh, embedded = 
       imgSizeRef.current = { w: img.naturalWidth, h: img.naturalHeight };
       setImgSize({ w: img.naturalWidth, h: img.naturalHeight });
     };
-    if (img.complete) onLoad(); else img.addEventListener('load', onLoad);
+    if (img.complete) onLoad();
+    else img.addEventListener('load', onLoad);
     return () => img.removeEventListener('load', onLoad);
   }, [mapImageSrc]);
 
@@ -160,7 +224,7 @@ function useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh, embedded = 
     };
 
     const measureAndFit = () => {
-      if (imgSizeRef.current.w <= 1) {
+      if (imgSizeRef.current.w < 2 || imgSizeRef.current.h < 2) {
         syncToolbarWidth(0);
         return;
       }
@@ -183,36 +247,18 @@ function useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh, embedded = 
       const padR = parseFloat(st.paddingRight) || 0;
       const padT = parseFloat(st.paddingTop) || 0;
       const padB = parseFloat(st.paddingBottom) || 0;
-      const availW = Math.max(1, outer.clientWidth - padL - padR);
-
-      let availH;
-      if (embedded) {
-        availH = Math.max(1, outer.clientHeight - padT - padB);
-        /* Premiers layouts / flex+grid : clientHeight peut rester quasi nul ; reprendre la logique vue solo. */
-        const EMBEDDED_H_FLOOR = 96;
-        if (availH < EMBEDDED_H_FLOOR) {
-          const vh = window.visualViewport?.height ?? window.innerHeight;
-          const oRect = outer.getBoundingClientRect();
-          const mainEl = outer.closest('.main, .teacher-main');
-          const mRect = mainEl?.getBoundingClientRect();
-          const bottomLimit = mRect ? Math.min(mRect.bottom, vh) : vh;
-          const maxOuterBoxH = Math.max(0, bottomLimit - oRect.top - 2);
-          const fromViewport = Math.max(1, Math.floor(maxOuterBoxH - padT - padB));
-          availH = Math.max(availH, fromViewport);
-        }
-      } else {
-        const vh = window.visualViewport?.height ?? window.innerHeight;
-        const oRect = outer.getBoundingClientRect();
-        const main = outer.closest('.main, .teacher-main');
-        const mRect = main?.getBoundingClientRect();
-        const bottomLimit = mRect ? Math.min(mRect.bottom, vh) : vh;
-        const maxOuterBoxH = Math.max(0, bottomLimit - oRect.top - 2);
-        availH = Math.max(1, Math.floor(maxOuterBoxH - padT - padB));
-      }
+      const { availW, availH } = resolveMapLayoutAvailBox(outer, {
+        embedded,
+        padL,
+        padR,
+        padT,
+        padB,
+        mapFullscreen,
+      });
 
       /* Cadre = toute la zone disponible ; le « contain » de l’image reste assuré par s, x, y sur le monde (zoom mobile / plans larges ex. N3). */
-      const cw = Math.max(1, availW);
-      const ch = Math.max(1, availH);
+      const cw = availW;
+      const ch = availH;
 
       c.style.width = `${cw}px`;
       c.style.height = `${ch}px`;
@@ -234,13 +280,15 @@ function useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh, embedded = 
       }, 120);
     };
 
-    const ro = typeof ResizeObserver !== 'undefined'
-      ? new ResizeObserver(schedule)
-      : null;
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(schedule) : null;
     if (ro) {
       ro.observe(c);
       const outerEl = mapLayoutOuterRef?.current;
-      if (outerEl) ro.observe(outerEl);
+      if (outerEl) {
+        ro.observe(outerEl);
+        const layerEl = outerEl.closest(FM_MAP_FULLSCREEN_LAYER_SELECTOR);
+        if (layerEl) ro.observe(layerEl);
+      }
     }
 
     window.addEventListener('resize', schedule);
@@ -257,7 +305,45 @@ function useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh, embedded = 
       const root = c.closest('.map-view-root');
       if (root) root.style.removeProperty('--fm-map-canvas-w');
     };
-  }, [imgSize, embedded, mapLayoutOuterRef]);
+  }, [imgSize, embedded, mapLayoutOuterRef, mapFullscreen]);
+
+  const remeasureMap = useCallback(() => {
+    const c = containerRef.current;
+    const outer = mapLayoutOuterRef?.current;
+    if (!c || imgSizeRef.current.w < 2 || imgSizeRef.current.h < 2) return;
+
+    const { w: iw, h: ih } = imgSizeRef.current;
+
+    if (!outer) {
+      const cw = Math.max(1, c.clientWidth);
+      const ch = Math.max(1, c.clientHeight);
+      const s = Math.min(cw / iw, ch / ih, 1);
+      const x = (cw - iw * s) / 2;
+      const y = (ch - ih * s) / 2;
+      commitFitLayout(x, y, s);
+      return;
+    }
+
+    const st = getComputedStyle(outer);
+    const padL = parseFloat(st.paddingLeft) || 0;
+    const padR = parseFloat(st.paddingRight) || 0;
+    const padT = parseFloat(st.paddingTop) || 0;
+    const padB = parseFloat(st.paddingBottom) || 0;
+    const { availW, availH } = resolveMapLayoutAvailBox(outer, {
+      embedded,
+      padL,
+      padR,
+      padT,
+      padB,
+      mapFullscreen,
+    });
+    c.style.width = `${availW}px`;
+    c.style.height = `${availH}px`;
+    const s = Math.min(availW / iw, availH / ih, 1);
+    const x = (availW - iw * s) / 2;
+    const y = (availH - ih * s) / 2;
+    commitFitLayout(x, y, s);
+  }, [embedded, mapLayoutOuterRef, mapFullscreen]);
 
   const toImagePct = (clientX, clientY) => {
     const c = containerRef.current;
@@ -269,7 +355,7 @@ function useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh, embedded = 
       c,
       { x, y, s },
       { offsetX: 0, offsetY: 0, width: w, height: h },
-      { clamp: false }
+      { clamp: false },
     );
   };
 
@@ -293,7 +379,9 @@ function useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh, embedded = 
       if (isPanning.current) {
         if (!moved.current) {
           moved.current = true;
-          try { el.setPointerCapture(e.pointerId); } catch (_) {}
+          try {
+            el.setPointerCapture(e.pointerId);
+          } catch (_) {}
         }
         tx.current.x = e.clientX - panStart.current.x;
         tx.current.y = e.clientY - panStart.current.y;
@@ -322,13 +410,17 @@ function useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh, embedded = 
         const id = draggingMarkerRef.current;
         const mel = draggingMarkerEl.current;
         if (mel?._pct) {
-          api(`/api/map/markers/${id}`, 'PUT', { x_pct: mel._pct.xp, y_pct: mel._pct.yp }).then(onRefresh);
+          api(`/api/map/markers/${id}`, 'PUT', { x_pct: mel._pct.xp, y_pct: mel._pct.yp }).then(
+            onRefresh,
+          );
           delete mel._pct;
         }
         draggingMarkerRef.current = null;
         draggingMarkerEl.current = null;
       }
-      setTimeout(() => { moved.current = false; }, 0);
+      setTimeout(() => {
+        moved.current = false;
+      }, 0);
     };
 
     const onWH = (e) => {
@@ -410,16 +502,7 @@ function useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh, embedded = 
 
   const fitMap = () => {
     cancelToolbarZoomAnim();
-    const c = containerRef.current;
-    if (!c) return;
-    const { w, h } = imgSizeRef.current;
-    if (w <= 1 || h <= 1) return;
-    const cw = Math.max(1, c.clientWidth);
-    const ch = Math.max(1, c.clientHeight);
-    const s = Math.min(cw / w, ch / h, 1);
-    const x = (cw - w * s) / 2;
-    const y = (ch - h * s) / 2;
-    commitFitLayout(x, y, s);
+    remeasureMap();
   };
 
   const beginMarkerDrag = (id, target, pointerId) => {
@@ -429,7 +512,8 @@ function useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh, embedded = 
     enableMapInteraction();
   };
 
-  const prefersPageScroll = isCoarsePointer && mode === 'view' && committed.s <= 1.05 && !mapInteractionEnabled;
+  const prefersPageScroll =
+    isCoarsePointer && mode === 'view' && committed.s <= 1.05 && !mapInteractionEnabled;
   const touchAction = prefersPageScroll ? 'pan-y' : 'none';
 
   return {
@@ -444,6 +528,7 @@ function useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh, embedded = 
     applyTransform,
     commit,
     fitMap,
+    remeasureMap,
     toImagePct,
     beginMarkerDrag,
     isCoarsePointer,
@@ -456,4 +541,4 @@ function useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh, embedded = 
   };
 }
 
-export { useMapGestures };
+export { useMapGestures, resolveMapLayoutAvailBox };

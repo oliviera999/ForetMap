@@ -7,14 +7,25 @@ import {
   removePctPointAt,
 } from '../../shared/pct-map/pctPolygon.js';
 import { usePctPolygonEditSession } from '../../shared/pct-map/usePctPolygonEditSession.js';
+import { duplicateMapLabel, offsetPctPoints } from '../utils/glMapDuplicate.js';
 
 export const GL_KINGDOM_ZONE_DEFAULT_COLOR = '#22c55e';
 const DEFAULT_MUSIC_VOLUME = 0.7;
 
 export function readZoneMusicUrl(zone) {
-  const url = zone?.musicUrl ?? zone?.music_url ?? null;
-  if (url == null) return '';
-  return String(url).trim();
+  const urls = readZoneMusicUrls(zone);
+  return urls[0] || '';
+}
+
+export function readZoneMusicUrls(zone) {
+  const urls = zone?.musicUrls ?? zone?.music_urls;
+  if (Array.isArray(urls)) {
+    return urls.map((url) => String(url || '').trim()).filter(Boolean);
+  }
+  const legacy = zone?.musicUrl ?? zone?.music_url ?? null;
+  if (legacy == null) return [];
+  const s = String(legacy).trim();
+  return s.length > 0 ? [s] : [];
 }
 
 export function readZoneMusicVolume(zone) {
@@ -30,16 +41,37 @@ export function readZonePopoverMarkdown(zone) {
 
 export function readZonePopoverImages(zone) {
   const images = zone?.popoverImages ?? zone?.popover_images;
-  return Array.isArray(images) ? images.map((img, index) => ({
-    url: String(img?.url || '').trim(),
-    caption: img?.caption != null ? String(img.caption) : '',
-    sortOrder: Number.isFinite(Number(img?.sortOrder ?? img?.sort_order)) ? Number(img.sortOrder ?? img.sort_order) : index,
-  })).filter((img) => img.url) : [];
+  return Array.isArray(images)
+    ? images
+        .map((img, index) => ({
+          url: String(img?.url || '').trim(),
+          caption: img?.caption != null ? String(img.caption) : '',
+          sortOrder: Number.isFinite(Number(img?.sortOrder ?? img?.sort_order))
+            ? Number(img.sortOrder ?? img.sort_order)
+            : index,
+        }))
+        .filter((img) => img.url)
+    : [];
 }
 
 export function zoneHasPopoverDraft(markdown, images) {
   if (String(markdown || '').trim()) return true;
   return Array.isArray(images) && images.some((img) => String(img?.url || '').trim());
+}
+
+/** Payload de création pour dupliquer une zone royaume (contenu + contour décalés). */
+export function zoneDuplicateCreatePayloadFromZone(zone, { offset } = {}) {
+  if (!zone) return null;
+  return {
+    label: duplicateMapLabel(zone.label),
+    color: zone.color || GL_KINGDOM_ZONE_DEFAULT_COLOR,
+    points: offsetPctPoints(zone.points, offset),
+    musicUrls: readZoneMusicUrls(zone),
+    musicVolume: readZoneMusicVolume(zone),
+    popoverMarkdown: readZonePopoverMarkdown(zone) || null,
+    popoverImages: readZonePopoverImages(zone),
+    description: zone.description ?? null,
+  };
 }
 
 /**
@@ -67,7 +99,7 @@ export function useGLKingdomZoneEditor({
   const [selectedZoneId, setSelectedZoneId] = useState(null);
   const [draftLabel, setDraftLabel] = useState('');
   const [draftColor, setDraftColor] = useState(GL_KINGDOM_ZONE_DEFAULT_COLOR);
-  const [draftMusicUrl, setDraftMusicUrl] = useState('');
+  const [draftMusicUrls, setDraftMusicUrls] = useState([]);
   const [draftMusicVolumePct, setDraftMusicVolumePct] = useState(70);
   const [draftPopoverMarkdown, setDraftPopoverMarkdown] = useState('');
   const [draftPopoverImages, setDraftPopoverImages] = useState([]);
@@ -75,8 +107,11 @@ export function useGLKingdomZoneEditor({
   const [insertVertexMode, setInsertVertexMode] = useState(false);
 
   const selectedZone = useMemo(
-    () => (Array.isArray(zones) ? zones.find((zone) => Number(zone.id) === Number(selectedZoneId)) : null) || null,
-    [zones, selectedZoneId]
+    () =>
+      (Array.isArray(zones)
+        ? zones.find((zone) => Number(zone.id) === Number(selectedZoneId))
+        : null) || null,
+    [zones, selectedZoneId],
   );
 
   const shapeSession = usePctPolygonEditSession({
@@ -93,7 +128,7 @@ export function useGLKingdomZoneEditor({
     if (!selectedZone) {
       setDraftLabel('');
       setDraftColor(GL_KINGDOM_ZONE_DEFAULT_COLOR);
-      setDraftMusicUrl('');
+      setDraftMusicUrls([]);
       setDraftMusicVolumePct(Math.round(DEFAULT_MUSIC_VOLUME * 100));
       setDraftPopoverMarkdown('');
       setDraftPopoverImages([]);
@@ -101,7 +136,7 @@ export function useGLKingdomZoneEditor({
     }
     setDraftLabel(selectedZone.label || '');
     setDraftColor(selectedZone.color || GL_KINGDOM_ZONE_DEFAULT_COLOR);
-    setDraftMusicUrl(readZoneMusicUrl(selectedZone));
+    setDraftMusicUrls(readZoneMusicUrls(selectedZone));
     setDraftMusicVolumePct(Math.round(readZoneMusicVolume(selectedZone) * 100));
     setDraftPopoverMarkdown(readZonePopoverMarkdown(selectedZone));
     setDraftPopoverImages(readZonePopoverImages(selectedZone));
@@ -116,13 +151,16 @@ export function useGLKingdomZoneEditor({
     });
   }, [zones, isEditingShape, selectedZoneId, shapeSession.points]);
 
-  const selectZone = useCallback((zoneId) => {
-    if (isEditingShape) return;
-    setSelectedZoneId(zoneId);
-    setMode('edit');
-    setSelectedVertexIndex(null);
-    setInsertVertexMode(false);
-  }, [isEditingShape]);
+  const selectZone = useCallback(
+    (zoneId) => {
+      if (isEditingShape) return;
+      setSelectedZoneId(zoneId);
+      setMode('edit');
+      setSelectedVertexIndex(null);
+      setInsertVertexMode(false);
+    },
+    [isEditingShape],
+  );
 
   const startShapeEdit = useCallback(() => {
     if (!selectedZone?.points?.length) return;
@@ -166,7 +204,8 @@ export function useGLKingdomZoneEditor({
       color: draftColor || GL_KINGDOM_ZONE_DEFAULT_COLOR,
     };
     if (zoneMusicEnabled) {
-      payload.musicUrl = draftMusicUrl.trim() || null;
+      const urls = draftMusicUrls.map((url) => String(url || '').trim()).filter(Boolean);
+      payload.musicUrls = urls;
       payload.musicVolume = Math.max(0, Math.min(1, Number(draftMusicVolumePct) / 100));
     }
     payload.popoverMarkdown = draftPopoverMarkdown.trim() || null;
@@ -183,7 +222,7 @@ export function useGLKingdomZoneEditor({
     draftLabel,
     draftColor,
     zoneMusicEnabled,
-    draftMusicUrl,
+    draftMusicUrls,
     draftMusicVolumePct,
     draftPopoverMarkdown,
     draftPopoverImages,
@@ -192,15 +231,15 @@ export function useGLKingdomZoneEditor({
 
   const clearZoneMusic = useCallback(async () => {
     if (!selectedZoneId) return;
-    setDraftMusicUrl('');
-    await onUpdateZone?.(selectedZoneId, { musicUrl: null });
+    setDraftMusicUrls([]);
+    await onUpdateZone?.(selectedZoneId, { musicUrls: [] });
   }, [selectedZoneId, onUpdateZone]);
 
   const previewDraftMusic = useCallback(() => {
-    const url = draftMusicUrl.trim();
-    if (!url) return;
-    onPreviewZoneMusic?.(url, Math.max(0, Math.min(1, Number(draftMusicVolumePct) / 100)));
-  }, [draftMusicUrl, draftMusicVolumePct, onPreviewZoneMusic]);
+    const urls = draftMusicUrls.map((url) => String(url || '').trim()).filter(Boolean);
+    if (urls.length === 0) return;
+    onPreviewZoneMusic?.(urls, Math.max(0, Math.min(1, Number(draftMusicVolumePct) / 100)));
+  }, [draftMusicUrls, draftMusicVolumePct, onPreviewZoneMusic]);
 
   const removeSelectedVertex = useCallback(() => {
     if (!isEditingShape || selectedVertexIndex == null) return;
@@ -211,34 +250,43 @@ export function useGLKingdomZoneEditor({
     setSelectedVertexIndex(null);
   }, [isEditingShape, selectedVertexIndex, shapeSession]);
 
-  const handleMapClick = useCallback((pct, event) => {
-    if (!canManage) return;
-    if (event.target.closest('.gl-pct-edit-pt') || event.target.closest('.gl-pct-edit-zone-translate')) return;
+  const handleMapClick = useCallback(
+    (pct, event) => {
+      if (!canManage) return;
+      if (
+        event.target.closest('.gl-pct-edit-pt') ||
+        event.target.closest('.gl-pct-edit-zone-translate')
+      )
+        return;
 
-    if (isEditingShape) {
-      if (insertVertexMode) {
-        const hit = findNearestEdgeInsertion(shapeSession.points, pct, 4);
-        if (hit) {
-          shapeSession.setPoints(insertPctPointAt(shapeSession.points, hit.insertIndex, hit.point));
-          shapeSession.scheduleRecordHistory();
-          setSelectedVertexIndex(hit.insertIndex);
-        } else {
-          const next = [...shapeSession.points, normalizePctPoint(pct)];
-          shapeSession.setPoints(next);
-          shapeSession.scheduleRecordHistory();
-          setSelectedVertexIndex(next.length - 1);
+      if (isEditingShape) {
+        if (insertVertexMode) {
+          const hit = findNearestEdgeInsertion(shapeSession.points, pct, 4);
+          if (hit) {
+            shapeSession.setPoints(
+              insertPctPointAt(shapeSession.points, hit.insertIndex, hit.point),
+            );
+            shapeSession.scheduleRecordHistory();
+            setSelectedVertexIndex(hit.insertIndex);
+          } else {
+            const next = [...shapeSession.points, normalizePctPoint(pct)];
+            shapeSession.setPoints(next);
+            shapeSession.scheduleRecordHistory();
+            setSelectedVertexIndex(next.length - 1);
+          }
+          setInsertVertexMode(false);
         }
-        setInsertVertexMode(false);
+        return;
       }
-      return;
-    }
 
-    if (event.target.closest('.gl-kingdom-zone-polygon')) return;
+      if (event.target.closest('.gl-kingdom-zone-polygon')) return;
 
-    if (mode === 'draw') {
-      setDrawPoints((prev) => [...prev, normalizePctPoint(pct)]);
-    }
-  }, [canManage, isEditingShape, insertVertexMode, shapeSession, mode]);
+      if (mode === 'draw') {
+        setDrawPoints((prev) => [...prev, normalizePctPoint(pct)]);
+      }
+    },
+    [canManage, isEditingShape, insertVertexMode, shapeSession, mode],
+  );
 
   const editStrokeColor = draftColor || selectedZone?.color || GL_KINGDOM_ZONE_DEFAULT_COLOR;
   const mapCursor = mode === 'draw' || insertVertexMode ? 'crosshair' : 'default';
@@ -267,8 +315,8 @@ export function useGLKingdomZoneEditor({
     setDraftLabel,
     draftColor,
     setDraftColor,
-    draftMusicUrl,
-    setDraftMusicUrl,
+    draftMusicUrls,
+    setDraftMusicUrls,
     draftMusicVolumePct,
     setDraftMusicVolumePct,
     draftPopoverMarkdown,

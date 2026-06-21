@@ -102,14 +102,20 @@ describe('studentRouteHelpers (logique pure de routes/students.js, sans DB)', ()
     assert.equal(normalizeImportHeader(' Prénom '), 'prenom');
     assert.equal(normalizeImportHeader('Rôle'), 'role');
     assert.equal(normalizeImportHeader('Mot de passe'), 'mot_de_passe');
-    assert.equal(normalizeImportHeader('Affiliation (n3|foret|both|id_carte)'), 'affiliation_n3_foret_both_id_carte');
+    assert.equal(
+      normalizeImportHeader('Affiliation (n3|foret|both|id_carte)'),
+      'affiliation_n3_foret_both_id_carte',
+    );
     assert.equal(normalizeImportHeader('__x__'), 'x');
   });
 
   it('IMPORT_HEADER_ALIASES : tous les en-têtes du modèle officiel sont reconnus', () => {
     for (const column of TEMPLATE_COLUMNS) {
       const normalized = normalizeImportHeader(column);
-      assert.ok(IMPORT_HEADER_ALIASES.has(normalized), `en-tête non mappé : ${column} (${normalized})`);
+      assert.ok(
+        IMPORT_HEADER_ALIASES.has(normalized),
+        `en-tête non mappé : ${column} (${normalized})`,
+      );
     }
   });
 
@@ -124,8 +130,8 @@ describe('studentRouteHelpers (logique pure de routes/students.js, sans DB)', ()
     const csv = '﻿Prénom;Nom\r\nAda;Lovelace\r\nAlan;Turing\r\n';
     const rows = parseCsvRowsFromBuffer(Buffer.from(csv, 'utf8'));
     assert.deepEqual(rows, [
-      { 'Prénom': 'Ada', Nom: 'Lovelace' },
-      { 'Prénom': 'Alan', Nom: 'Turing' },
+      { Prénom: 'Ada', Nom: 'Lovelace' },
+      { Prénom: 'Alan', Nom: 'Turing' },
     ]);
   });
 
@@ -137,8 +143,8 @@ describe('studentRouteHelpers (logique pure de routes/students.js, sans DB)', ()
 
   it('mapImportRowToStudentShape : alias d’en-têtes, colonnes inconnues ignorées', () => {
     const mapped = mapImportRowToStudentShape({
-      'Rôle': 'eleve',
-      'Prénom': 'Ada',
+      Rôle: 'eleve',
+      Prénom: 'Ada',
       Nom: 'Lovelace',
       'Mot de passe': 'azerty123',
       'Colonne inconnue': 'x',
@@ -153,8 +159,8 @@ describe('studentRouteHelpers (logique pure de routes/students.js, sans DB)', ()
 
   it('buildImportStudentPayload : payload normalisé complet', () => {
     const payload = buildImportStudentPayload({
-      'Rôle': 'prof',
-      'Prénom': ' Ada ',
+      Rôle: 'prof',
+      Prénom: ' Ada ',
       Nom: ' Lovelace ',
       'Mot de passe': ' azerty123 ',
       Affiliation: 'N3',
@@ -176,24 +182,40 @@ describe('studentRouteHelpers (logique pure de routes/students.js, sans DB)', ()
 
   it('validateImportStudentPayload : payload valide → aucune erreur', () => {
     const payload = buildImportStudentPayload({
-      'Rôle': 'eleve', 'Prénom': 'Ada', Nom: 'Lovelace', 'Mot de passe': 'azerty123', Affiliation: 'both',
+      Rôle: 'eleve',
+      Prénom: 'Ada',
+      Nom: 'Lovelace',
+      'Mot de passe': 'azerty123',
+      Affiliation: 'both',
     });
     assert.deepEqual(validateImportStudentPayload(payload, 2), []);
   });
 
   it('validateImportStudentPayload : cumul des erreurs avec numéro de ligne et champ', () => {
-    const errors = validateImportStudentPayload({
-      userType: null,
-      firstName: '',
-      lastName: '',
-      password: 'abc',
-      affiliation: null,
-      pseudo: 'a!',
-      email: 'pas-un-email',
-      description: 'x'.repeat(MAX_DESCRIPTION_LEN + 1),
-    }, 5);
+    const errors = validateImportStudentPayload(
+      {
+        userType: null,
+        firstName: '',
+        lastName: '',
+        password: 'abc',
+        affiliation: null,
+        pseudo: 'a!',
+        email: 'pas-un-email',
+        description: 'x'.repeat(MAX_DESCRIPTION_LEN + 1),
+      },
+      5,
+    );
     const fields = errors.map((e) => e.field).sort();
-    assert.deepEqual(fields, ['affiliation', 'description', 'email', 'firstName', 'lastName', 'password', 'pseudo', 'userType']);
+    assert.deepEqual(fields, [
+      'affiliation',
+      'description',
+      'email',
+      'firstName',
+      'lastName',
+      'password',
+      'pseudo',
+      'userType',
+    ]);
     assert.ok(errors.every((e) => e.row === 5));
   });
 
@@ -201,7 +223,7 @@ describe('studentRouteHelpers (logique pure de routes/students.js, sans DB)', ()
     const csv = 'Prénom;Nom\nAda;Lovelace\n';
     const b64 = Buffer.from(csv, 'utf8').toString('base64');
     const direct = await resolveImportRows({ fileName: 'import.CSV', fileDataBase64: b64 });
-    assert.deepEqual(direct, [{ 'Prénom': 'Ada', Nom: 'Lovelace' }]);
+    assert.deepEqual(direct, [{ Prénom: 'Ada', Nom: 'Lovelace' }]);
     const dataUrl = await resolveImportRows({
       fileName: 'import.csv',
       fileDataBase64: `data:text/csv;base64,${b64}`,
@@ -211,11 +233,14 @@ describe('studentRouteHelpers (logique pure de routes/students.js, sans DB)', ()
 
   it('resolveImportRows : fichier requis, vide ou trop volumineux → erreur', async () => {
     await assert.rejects(() => resolveImportRows({}), /Fichier requis/);
-    await assert.rejects(() => resolveImportRows({ fileDataBase64: 'data:text/csv;base64,' }), /Fichier import vide/);
+    await assert.rejects(
+      () => resolveImportRows({ fileDataBase64: 'data:text/csv;base64,' }),
+      /Fichier import vide/,
+    );
     const big = Buffer.alloc(MAX_IMPORT_FILE_BYTES + 1, 97).toString('base64');
     await assert.rejects(
       () => resolveImportRows({ fileName: 'gros.csv', fileDataBase64: big }),
-      /trop volumineux/
+      /trop volumineux/,
     );
   });
 

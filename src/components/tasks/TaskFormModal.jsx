@@ -49,9 +49,12 @@ function TaskFormModal({
   // Pas de useOverlayHistoryBack ici : le retour caméra / fichier déclenche des popstate qui
   // dépilent l’entrée history de la surcouche et ferment la modale avant le `change` de l’input.
   const terms = roleTerms || getRoleTerms(false);
-  const defaultProjectForNew = !editTask && !isProposal && defaultProjectId
-    ? taskProjects.find((p) => String(p.id || '').trim() === String(defaultProjectId || '').trim())
-    : null;
+  const defaultProjectForNew =
+    !editTask && !isProposal && defaultProjectId
+      ? taskProjects.find(
+          (p) => String(p.id || '').trim() === String(defaultProjectId || '').trim(),
+        )
+      : null;
   const initialMapId = initialTaskFormMapId(editTask, defaultProjectForNew, activeMapId);
   const initialZoneIds = (() => {
     const ids = initialLocationIds(editTask, 'zone_ids', 'zone_id');
@@ -61,18 +64,20 @@ function TaskFormModal({
     const ids = initialLocationIds(editTask, 'marker_ids', 'marker_id');
     return ids.length ? ids : initialLinkedObjectIds(editTask, 'markers_linked');
   })();
-  const [form, setForm] = useState(() => buildInitialTaskForm({
-    editTask,
-    isDuplicate,
-    initialMapId,
-    initialZoneIds,
-    initialMarkerIds,
-    defaultProjectForNew,
-  }));
+  const [form, setForm] = useState(() =>
+    buildInitialTaskForm({
+      editTask,
+      isDuplicate,
+      initialMapId,
+      initialZoneIds,
+      initialMarkerIds,
+      defaultProjectForNew,
+    }),
+  );
   const [taskImageData, setTaskImageData] = useState(null);
-  const [taskImagePreview, setTaskImagePreview] = useState(() => (
-    editTask && !isDuplicate && editTask.image_url ? withAppBase(editTask.image_url) : null
-  ));
+  const [taskImagePreview, setTaskImagePreview] = useState(() =>
+    editTask && !isDuplicate && editTask.image_url ? withAppBase(editTask.image_url) : null,
+  );
   const [taskImageRemoved, setTaskImageRemoved] = useState(false);
   const [taskImageBusy, setTaskImageBusy] = useState(false);
   const taskImageGalleryInputRef = useRef(null);
@@ -83,50 +88,58 @@ function TaskFormModal({
   const [referentSearch, setReferentSearch] = useState('');
   const [assignInitialSearch, setAssignInitialSearch] = useState('');
 
-  const set = k => e => {
+  const set = (k) => (e) => {
     const value = e.target.value;
     if (k === 'map_id') {
-      setForm(f => {
+      setForm((f) => {
         const next = { ...f, map_id: value };
         const selectedProject = taskProjects.find((p) => p.id === f.project_id);
         if (selectedProject && value && selectedProject.map_id !== value) {
           next.project_id = '';
         }
         if (value) {
-          next.zone_ids = f.zone_ids.filter((id) => (
-            zones.find((z) => String(z.id || '').trim() === String(id || '').trim())?.map_id === value
-          ));
-          next.marker_ids = f.marker_ids.filter((id) => (
-            markers.find((m) => String(m.id || '').trim() === String(id || '').trim())?.map_id === value
-          ));
+          next.zone_ids = f.zone_ids.filter(
+            (id) =>
+              zones.find((z) => String(z.id || '').trim() === String(id || '').trim())?.map_id ===
+              value,
+          );
+          next.marker_ids = f.marker_ids.filter(
+            (id) =>
+              markers.find((m) => String(m.id || '').trim() === String(id || '').trim())?.map_id ===
+              value,
+          );
         }
         return next;
       });
       return;
     }
     if (k === 'project_id') {
-      setForm(f => {
+      setForm((f) => {
         const next = { ...f, project_id: value };
         const selectedProject = taskProjects.find((p) => p.id === value);
         if (!selectedProject) return next;
         next.map_id = selectedProject.map_id;
-        next.zone_ids = f.zone_ids.filter((id) => (
-          zones.find((z) => String(z.id || '').trim() === String(id || '').trim())?.map_id === selectedProject.map_id
-        ));
-        next.marker_ids = f.marker_ids.filter((id) => (
-          markers.find((m) => String(m.id || '').trim() === String(id || '').trim())?.map_id === selectedProject.map_id
-        ));
+        next.zone_ids = f.zone_ids.filter(
+          (id) =>
+            zones.find((z) => String(z.id || '').trim() === String(id || '').trim())?.map_id ===
+            selectedProject.map_id,
+        );
+        next.marker_ids = f.marker_ids.filter(
+          (id) =>
+            markers.find((m) => String(m.id || '').trim() === String(id || '').trim())?.map_id ===
+            selectedProject.map_id,
+        );
         return next;
       });
       return;
     }
-    setForm(f => ({ ...f, [k]: value }));
+    setForm((f) => ({ ...f, [k]: value }));
   };
 
   const toggleZoneId = (zoneId) => {
     const normalizedZoneId = String(zoneId || '').trim();
     if (!normalizedZoneId) return;
-    setForm(f => {
+    setForm((f) => {
       const has = f.zone_ids.includes(normalizedZoneId);
       const zoneIds = has
         ? f.zone_ids.filter((id) => id !== normalizedZoneId)
@@ -139,7 +152,7 @@ function TaskFormModal({
   const toggleMarkerId = (markerId) => {
     const normalizedMarkerId = String(markerId || '').trim();
     if (!normalizedMarkerId) return;
-    setForm(f => {
+    setForm((f) => {
       const has = f.marker_ids.includes(normalizedMarkerId);
       const marker_ids = has
         ? f.marker_ids.filter((id) => id !== normalizedMarkerId)
@@ -152,7 +165,7 @@ function TaskFormModal({
   const toggleTutorialId = (tutorialId) => {
     const id = Number.parseInt(tutorialId, 10);
     if (!Number.isFinite(id) || id <= 0) return;
-    setForm(f => {
+    setForm((f) => {
       const tutorialIds = normalizeTutorialIds(f.tutorial_ids);
       const has = tutorialIds.includes(id);
       return {
@@ -179,7 +192,9 @@ function TaskFormModal({
     const id = String(studentId || '').trim();
     if (!id) return;
     setForm((f) => {
-      const cur = [...new Set((f.assign_student_ids || []).map((x) => String(x || '').trim()).filter(Boolean))];
+      const cur = [
+        ...new Set((f.assign_student_ids || []).map((x) => String(x || '').trim()).filter(Boolean)),
+      ];
       const has = cur.includes(id);
       return {
         ...f,
@@ -212,7 +227,7 @@ function TaskFormModal({
     try {
       const compressed = await compressImageWithPreset(file, 'taskLog');
       const payload = String(compressed || '').split(',')[1] || '';
-      const padding = payload.endsWith('==') ? 2 : (payload.endsWith('=') ? 1 : 0);
+      const padding = payload.endsWith('==') ? 2 : payload.endsWith('=') ? 1 : 0;
       const approxBytes = Math.floor((payload.length * 3) / 4) - padding;
       if (approxBytes > 3 * 1024 * 1024) {
         setErr('Image trop lourde après compression (max 3 Mo)');
@@ -241,12 +256,19 @@ function TaskFormModal({
       taskImageRemoved,
     });
     setSaving(true);
-    try { await onSave(payload); onClose(); }
-    catch (e) { setErr(e.message); setSaving(false); }
+    try {
+      await onSave(payload);
+      onClose();
+    } catch (e) {
+      setErr(e.message);
+      setSaving(false);
+    }
   };
 
-  const selectableZones = zones.filter(z => !z.special && (!form.map_id || z.map_id === form.map_id));
-  const selectableMarkers = markers.filter(m => !form.map_id || m.map_id === form.map_id);
+  const selectableZones = zones.filter(
+    (z) => !z.special && (!form.map_id || z.map_id === form.map_id),
+  );
+  const selectableMarkers = markers.filter((m) => !form.map_id || m.map_id === form.map_id);
   /** Inclut le projet déjà lié même s’il est hors filtre carte / absent de la liste chargée (évite d’envoyer project_id null par erreur). */
   const selectableProjects = useMemo(() => {
     const byMap = taskProjects.filter((p) => !form.map_id || p.map_id === form.map_id);
@@ -274,51 +296,72 @@ function TaskFormModal({
   ]);
   const normalizedTutorialIds = useMemo(
     () => normalizeTutorialIds(form.tutorial_ids),
-    [form.tutorial_ids]
+    [form.tutorial_ids],
   );
   const searchableTutorials = useMemo(
-    () => [...tutorials].sort((a, b) => String(a.title || '').localeCompare(String(b.title || ''), 'fr')),
-    [tutorials]
+    () =>
+      [...tutorials].sort((a, b) =>
+        String(a.title || '').localeCompare(String(b.title || ''), 'fr'),
+      ),
+    [tutorials],
   );
   const filteredTutorials = useMemo(() => {
     const q = tutorialSearch.trim().toLowerCase();
     if (!q) return searchableTutorials;
-    return searchableTutorials.filter((t) => String(t.title || '').toLowerCase().includes(q));
+    return searchableTutorials.filter((t) =>
+      String(t.title || '')
+        .toLowerCase()
+        .includes(q),
+    );
   }, [searchableTutorials, tutorialSearch]);
 
   const teacherReferentCandidates = useMemo(
     () => referentCandidates.filter((c) => c.user_type === 'teacher'),
-    [referentCandidates]
+    [referentCandidates],
   );
   const studentReferentCandidates = useMemo(
     () => referentCandidates.filter((c) => c.user_type === 'student'),
-    [referentCandidates]
+    [referentCandidates],
   );
   const filteredTeacherReferents = useMemo(() => {
     const q = referentSearch.trim().toLowerCase();
     if (!q) return teacherReferentCandidates;
-    return teacherReferentCandidates.filter((c) => referentCandidateLabel(c).toLowerCase().includes(q));
+    return teacherReferentCandidates.filter((c) =>
+      referentCandidateLabel(c).toLowerCase().includes(q),
+    );
   }, [teacherReferentCandidates, referentSearch]);
   const filteredStudentReferents = useMemo(() => {
     const q = referentSearch.trim().toLowerCase();
     if (!q) return studentReferentCandidates;
-    return studentReferentCandidates.filter((c) => referentCandidateLabel(c).toLowerCase().includes(q));
+    return studentReferentCandidates.filter((c) =>
+      referentCandidateLabel(c).toLowerCase().includes(q),
+    );
   }, [studentReferentCandidates, referentSearch]);
   const selectedReferentCount = useMemo(
-    () => [...new Set((form.referent_user_ids || []).map((id) => String(id || '').trim()).filter(Boolean))].length,
-    [form.referent_user_ids]
+    () =>
+      [
+        ...new Set(
+          (form.referent_user_ids || []).map((id) => String(id || '').trim()).filter(Boolean),
+        ),
+      ].length,
+    [form.referent_user_ids],
   );
   const normalizedAssignStudentIds = useMemo(
-    () => [...new Set((form.assign_student_ids || []).map((id) => String(id || '').trim()).filter(Boolean))],
-    [form.assign_student_ids]
+    () => [
+      ...new Set(
+        (form.assign_student_ids || []).map((id) => String(id || '').trim()).filter(Boolean),
+      ),
+    ],
+    [form.assign_student_ids],
   );
   const searchableStudentsForAssign = useMemo(
-    () => [...students].sort((a, b) => {
-      const na = `${a.first_name || ''} ${a.last_name || ''}`.trim().toLocaleLowerCase('fr');
-      const nb = `${b.first_name || ''} ${b.last_name || ''}`.trim().toLocaleLowerCase('fr');
-      return na.localeCompare(nb, 'fr');
-    }),
-    [students]
+    () =>
+      [...students].sort((a, b) => {
+        const na = `${a.first_name || ''} ${a.last_name || ''}`.trim().toLocaleLowerCase('fr');
+        const nb = `${b.first_name || ''} ${b.last_name || ''}`.trim().toLocaleLowerCase('fr');
+        return na.localeCompare(nb, 'fr');
+      }),
+    [students],
   );
   const filteredStudentsForAssign = useMemo(() => {
     const q = assignInitialSearch.trim().toLowerCase();
@@ -335,234 +378,332 @@ function TaskFormModal({
       onClose={onClose}
       overlayClassName="modal-overlay"
       dialogClassName="modal fade-in"
-      ariaLabel={isDuplicate ? 'Dupliquer la tâche' : editTask ? 'Modifier la tâche' : isProposal ? 'Proposer une tâche' : 'Nouvelle tâche'}
+      ariaLabel={
+        isDuplicate
+          ? 'Dupliquer la tâche'
+          : editTask
+            ? 'Modifier la tâche'
+            : isProposal
+              ? 'Proposer une tâche'
+              : 'Nouvelle tâche'
+      }
       closeOnOverlay
       dialogRef={dialogRef}
     >
-        <button className="modal-close" aria-label="Fermer la fenêtre" onClick={onClose}>✕</button>
-        <h3>{isDuplicate ? 'Dupliquer la tâche' : editTask ? 'Modifier la tâche' : isProposal ? 'Proposer une tâche' : 'Nouvelle tâche'}</h3>
-        {err && <p style={{ color: var_alert, marginBottom: 12, fontSize: '.85rem' }}>{err}</p>}
-        <div className="field"><label htmlFor="task-form-title">Titre *</label><input id="task-form-title" value={form.title} onChange={set('title')} placeholder="Ex: Arroser les tomates" /></div>
-        <div className="field"><label htmlFor="task-form-description">Description</label><MarkdownTextarea id="task-form-description" aria-label="Description" value={form.description} onChange={set('description')} rows={2} placeholder="Instructions détaillées..." /></div>
-        <TaskFormImageField
-          preview={taskImagePreview}
-          busy={taskImageBusy}
-          galleryInputRef={taskImageGalleryInputRef}
-          cameraInputRef={taskImageCameraInputRef}
-          onFile={onTaskImageFile}
-          onClear={clearTaskImage}
+      <button className="modal-close" aria-label="Fermer la fenêtre" onClick={onClose}>
+        ✕
+      </button>
+      <h3>
+        {isDuplicate
+          ? 'Dupliquer la tâche'
+          : editTask
+            ? 'Modifier la tâche'
+            : isProposal
+              ? 'Proposer une tâche'
+              : 'Nouvelle tâche'}
+      </h3>
+      {err && <p style={{ color: var_alert, marginBottom: 12, fontSize: '.85rem' }}>{err}</p>}
+      <div className="field">
+        <label htmlFor="task-form-title">Titre *</label>
+        <input
+          id="task-form-title"
+          value={form.title}
+          onChange={set('title')}
+          placeholder="Ex: Arroser les tomates"
         />
-        <div className="row">
-          <div className="field"><label>Carte</label>
-            <select value={form.map_id} onChange={set('map_id')}>
-              <option value="">🌐 Globale (toutes cartes)</option>
-              {maps.map(mp => <option key={mp.id} value={mp.id}>{mp.label}</option>)}
-            </select>
-          </div>
-        </div>
-        {!isProposal && (
-          <div className="field"><label>Projet (optionnel)</label>
-            <select value={form.project_id} onChange={set('project_id')}>
-              <option value="">Aucun projet</option>
-              {selectableProjects.map((p) => (
-                <option key={p.id} value={p.id}>
-                  📁 {p.title}{projectStatusLabel(p.status)}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-        <div className="field"><label>Zones et repères (plusieurs possibles)</label>
-          <div className="task-form-pick-list">
-            {selectableZones.length === 0 && selectableMarkers.length === 0 ? (
-              <p className="task-form-pick-empty">Aucune zone ni repère pour cette carte.</p>
-            ) : (
-              <>
-                {selectableZones.length > 0 && (
-                  <>
-                    {selectableMarkers.length > 0 && (
-                      <div className="task-form-pick-subheading" aria-hidden="true">Zones</div>
-                    )}
-                    {selectableZones.map((z) => (
-                      <label key={z.id} className="task-form-pick-item">
-                        <input
-                          type="checkbox"
-                          className="task-form-pick-checkbox"
-                          checked={form.zone_ids.includes(String(z.id || '').trim())}
-                          onChange={() => toggleZoneId(z.id)}
-                        />
-                        <span className="task-form-pick-text">{zonePickDisplayName(z)}</span>
-                      </label>
-                    ))}
-                  </>
-                )}
-                {selectableMarkers.length > 0 && (
-                  <>
-                    {selectableZones.length > 0 && (
-                      <div className="task-form-pick-subheading" aria-hidden="true">Repères</div>
-                    )}
-                    {selectableMarkers.map((m) => (
-                      <label key={m.id} className="task-form-pick-item">
-                        <input
-                          type="checkbox"
-                          className="task-form-pick-checkbox"
-                          checked={form.marker_ids.includes(String(m.id || '').trim())}
-                          onChange={() => toggleMarkerId(m.id)}
-                        />
-                        <span className="task-form-pick-text">{m.emoji ? `${m.emoji} ` : '📍 '}{m.label}</span>
-                      </label>
-                    ))}
-                  </>
-                )}
-              </>
-            )}
-          </div>
-        </div>
+      </div>
+      <div className="field">
+        <label htmlFor="task-form-description">Description</label>
+        <MarkdownTextarea
+          id="task-form-description"
+          aria-label="Description"
+          value={form.description}
+          onChange={set('description')}
+          rows={2}
+          placeholder="Instructions détaillées..."
+        />
+      </div>
+      <TaskFormImageField
+        preview={taskImagePreview}
+        busy={taskImageBusy}
+        galleryInputRef={taskImageGalleryInputRef}
+        cameraInputRef={taskImageCameraInputRef}
+        onFile={onTaskImageFile}
+        onClear={clearTaskImage}
+      />
+      <div className="row">
         <div className="field">
-          <label>Êtres vivants (biodiversité)</label>
-          <p style={{ fontSize: '.74rem', color: '#64748b', margin: '0 0 6px', lineHeight: 1.4 }}>
-            Optionnel — comme pour les zones et les repères. Ctrl / Cmd + clic pour en choisir plusieurs.
-          </p>
-          {plants.length === 0 ? (
-            <p className="task-form-pick-empty">Catalogue biodiversité indisponible ici.</p>
+          <label>Carte</label>
+          <select value={form.map_id} onChange={set('map_id')}>
+            <option value="">🌐 Globale (toutes cartes)</option>
+            {maps.map((mp) => (
+              <option key={mp.id} value={mp.id}>
+                {mp.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+      {!isProposal && (
+        <div className="field">
+          <label>Projet (optionnel)</label>
+          <select value={form.project_id} onChange={set('project_id')}>
+            <option value="">Aucun projet</option>
+            {selectableProjects.map((p) => (
+              <option key={p.id} value={p.id}>
+                📁 {p.title}
+                {projectStatusLabel(p.status)}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+      <div className="field">
+        <label>Zones et repères (plusieurs possibles)</label>
+        <div className="task-form-pick-list">
+          {selectableZones.length === 0 && selectableMarkers.length === 0 ? (
+            <p className="task-form-pick-empty">Aucune zone ni repère pour cette carte.</p>
           ) : (
-            <select
-              multiple
-              size={Math.min(8, Math.max(4, plants.length + 1))}
-              value={form.living_beings}
-              onChange={(e) => {
-                const picked = Array.from(e.target.selectedOptions).map((opt) => opt.value);
-                setForm((f) => ({
-                  ...f,
-                  living_beings: nextLivingBeingsFromMultiSelect(f.living_beings, picked, plants),
-                }));
-              }}
-            >
-              {plants.map((p) => (
-                <option key={p.id} value={p.name}>{p.emoji} {p.name}</option>
-              ))}
-            </select>
-          )}
-        </div>
-        {!isProposal && (
-          <TaskFormTutorialsField
-            tutorials={tutorials}
-            filteredTutorials={filteredTutorials}
-            search={tutorialSearch}
-            onSearchChange={setTutorialSearch}
-            selectedIds={form.tutorial_ids}
-            onToggle={toggleTutorialId}
-            onSelectAll={() => setForm((f) => ({ ...f, tutorial_ids: normalizeTutorialIds(tutorials.map((t) => t.id)) }))}
-            onClear={() => setForm((f) => ({ ...f, tutorial_ids: [] }))}
-          />
-        )}
-        {!isProposal && (
-          <TaskFormReferentsField
-            terms={terms}
-            candidates={referentCandidates}
-            search={referentSearch}
-            onSearchChange={setReferentSearch}
-            selectedCount={selectedReferentCount}
-            filteredTeacher={filteredTeacherReferents}
-            filteredStudent={filteredStudentReferents}
-            selectedIds={form.referent_user_ids}
-            onToggle={toggleReferentUserId}
-            onClear={() => setForm((f) => ({ ...f, referent_user_ids: [] }))}
-          />
-        )}
-        <div className="row">
-          <div className="field"><label>{terms.studentPlural.charAt(0).toUpperCase() + terms.studentPlural.slice(1)} requis</label>
-            <input type="number" min="1" max="10" value={form.required_students} onChange={set('required_students')} />
-          </div>
-          <div className="field"><label>Date de départ</label><input type="date" value={form.start_date} onChange={set('start_date')} /></div>
-          <div className="field"><label>Date limite</label><input type="date" value={form.due_date} onChange={set('due_date')} /></div>
-        </div>
-        {enableInitialAssignment && !isProposal && !editTask && !isDuplicate && (
-          <div className="field">
-            <label>Attribuer dès la création (optionnel)</label>
-            <p style={{ fontSize: '.8rem', color: '#555', margin: '0 0 8px', lineHeight: 1.45 }}>
-              Tu peux inscrire plusieurs {terms.studentPlural} dès la création. Si besoin, le nombre de places requis est relevé automatiquement pour correspondre à ta sélection.
-            </p>
-            {students.length > 0 && (
-              <div style={{ display: 'grid', gap: 8, marginBottom: 8 }}>
-                <input
-                  value={assignInitialSearch}
-                  onChange={(e) => setAssignInitialSearch(e.target.value)}
-                  placeholder={`🔍 Filtrer les ${terms.studentPlural}…`}
-                />
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: '.8rem', color: '#666' }}>
-                    {normalizedAssignStudentIds.length} sélectionné{normalizedAssignStudentIds.length > 1 ? 's' : ''}
-                  </span>
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-sm"
-                    onClick={() => setForm((f) => ({ ...f, assign_student_ids: [] }))}
-                  >
-                    Effacer la sélection
-                  </button>
-                </div>
-              </div>
-            )}
-            <div className="task-form-pick-list">
-              {students.length === 0 ? (
-                <p className="task-form-pick-empty">Aucun compte {terms.studentSingular} chargé (liste stats).</p>
-              ) : filteredStudentsForAssign.length === 0 ? (
-                <p className="task-form-pick-empty">Aucun résultat pour ce filtre.</p>
-              ) : (
-                filteredStudentsForAssign.map((s) => {
-                  const sid = String(s.id || '').trim();
-                  return (
-                    <label key={sid} className="task-form-pick-item">
+            <>
+              {selectableZones.length > 0 && (
+                <>
+                  {selectableMarkers.length > 0 && (
+                    <div className="task-form-pick-subheading" aria-hidden="true">
+                      Zones
+                    </div>
+                  )}
+                  {selectableZones.map((z) => (
+                    <label key={z.id} className="task-form-pick-item">
                       <input
                         type="checkbox"
                         className="task-form-pick-checkbox"
-                        checked={normalizedAssignStudentIds.includes(sid)}
-                        onChange={() => toggleAssignStudentId(sid)}
+                        checked={form.zone_ids.includes(String(z.id || '').trim())}
+                        onChange={() => toggleZoneId(z.id)}
+                      />
+                      <span className="task-form-pick-text">{zonePickDisplayName(z)}</span>
+                    </label>
+                  ))}
+                </>
+              )}
+              {selectableMarkers.length > 0 && (
+                <>
+                  {selectableZones.length > 0 && (
+                    <div className="task-form-pick-subheading" aria-hidden="true">
+                      Repères
+                    </div>
+                  )}
+                  {selectableMarkers.map((m) => (
+                    <label key={m.id} className="task-form-pick-item">
+                      <input
+                        type="checkbox"
+                        className="task-form-pick-checkbox"
+                        checked={form.marker_ids.includes(String(m.id || '').trim())}
+                        onChange={() => toggleMarkerId(m.id)}
                       />
                       <span className="task-form-pick-text">
-                        👤 {`${s.first_name || ''} ${s.last_name || ''}`.trim()}
+                        {m.emoji ? `${m.emoji} ` : '📍 '}
+                        {m.label}
                       </span>
                     </label>
-                  );
-                })
+                  ))}
+                </>
               )}
-            </div>
-          </div>
+            </>
+          )}
+        </div>
+      </div>
+      <div className="field">
+        <label>Êtres vivants (biodiversité)</label>
+        <p style={{ fontSize: '.74rem', color: '#64748b', margin: '0 0 6px', lineHeight: 1.4 }}>
+          Optionnel — comme pour les zones et les repères. Ctrl / Cmd + clic pour en choisir
+          plusieurs.
+        </p>
+        {plants.length === 0 ? (
+          <p className="task-form-pick-empty">Catalogue biodiversité indisponible ici.</p>
+        ) : (
+          <select
+            multiple
+            size={Math.min(8, Math.max(4, plants.length + 1))}
+            value={form.living_beings}
+            onChange={(e) => {
+              const picked = Array.from(e.target.selectedOptions).map((opt) => opt.value);
+              setForm((f) => ({
+                ...f,
+                living_beings: nextLivingBeingsFromMultiSelect(f.living_beings, picked, plants),
+              }));
+            }}
+          >
+            {plants.map((p) => (
+              <option key={p.id} value={p.name}>
+                {p.emoji} {p.name}
+              </option>
+            ))}
+          </select>
         )}
-        <TaskFormLevelsField
-          dangerLevel={form.danger_level || ''}
-          difficultyLevel={form.difficulty_level || ''}
-          importanceLevel={form.importance_level || ''}
-          onDangerChange={set('danger_level')}
-          onDifficultyChange={set('difficulty_level')}
-          onImportanceChange={set('importance_level')}
+      </div>
+      {!isProposal && (
+        <TaskFormTutorialsField
+          tutorials={tutorials}
+          filteredTutorials={filteredTutorials}
+          search={tutorialSearch}
+          onSearchChange={setTutorialSearch}
+          selectedIds={form.tutorial_ids}
+          onToggle={toggleTutorialId}
+          onSelectAll={() =>
+            setForm((f) => ({
+              ...f,
+              tutorial_ids: normalizeTutorialIds(tutorials.map((t) => t.id)),
+            }))
+          }
+          onClear={() => setForm((f) => ({ ...f, tutorial_ids: [] }))}
         />
-        {!isProposal && (
-          <div className="row">
-            <div className="field"><label>Mode de validation</label>
-              <select value={form.completion_mode || 'single_done'} onChange={set('completion_mode')}>
-                <option value="single_done">Individuel (un n3beur termine la tâche)</option>
-                <option value="all_assignees_done">Collectif (tous les assignés doivent terminer)</option>
-              </select>
+      )}
+      {!isProposal && (
+        <TaskFormReferentsField
+          terms={terms}
+          candidates={referentCandidates}
+          search={referentSearch}
+          onSearchChange={setReferentSearch}
+          selectedCount={selectedReferentCount}
+          filteredTeacher={filteredTeacherReferents}
+          filteredStudent={filteredStudentReferents}
+          selectedIds={form.referent_user_ids}
+          onToggle={toggleReferentUserId}
+          onClear={() => setForm((f) => ({ ...f, referent_user_ids: [] }))}
+        />
+      )}
+      <div className="row">
+        <div className="field">
+          <label>
+            {terms.studentPlural.charAt(0).toUpperCase() + terms.studentPlural.slice(1)} requis
+          </label>
+          <input
+            type="number"
+            min="1"
+            max="10"
+            value={form.required_students}
+            onChange={set('required_students')}
+          />
+        </div>
+        <div className="field">
+          <label>Date de départ</label>
+          <input type="date" value={form.start_date} onChange={set('start_date')} />
+        </div>
+        <div className="field">
+          <label>Date limite</label>
+          <input type="date" value={form.due_date} onChange={set('due_date')} />
+        </div>
+      </div>
+      {enableInitialAssignment && !isProposal && !editTask && !isDuplicate && (
+        <div className="field">
+          <label>Attribuer dès la création (optionnel)</label>
+          <p style={{ fontSize: '.8rem', color: '#555', margin: '0 0 8px', lineHeight: 1.45 }}>
+            Tu peux inscrire plusieurs {terms.studentPlural} dès la création. Si besoin, le nombre
+            de places requis est relevé automatiquement pour correspondre à ta sélection.
+          </p>
+          {students.length > 0 && (
+            <div style={{ display: 'grid', gap: 8, marginBottom: 8 }}>
+              <input
+                value={assignInitialSearch}
+                onChange={(e) => setAssignInitialSearch(e.target.value)}
+                placeholder={`🔍 Filtrer les ${terms.studentPlural}…`}
+              />
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 8,
+                  flexWrap: 'wrap',
+                }}
+              >
+                <span style={{ fontSize: '.8rem', color: '#666' }}>
+                  {normalizedAssignStudentIds.length} sélectionné
+                  {normalizedAssignStudentIds.length > 1 ? 's' : ''}
+                </span>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => setForm((f) => ({ ...f, assign_student_ids: [] }))}
+                >
+                  Effacer la sélection
+                </button>
+              </div>
             </div>
+          )}
+          <div className="task-form-pick-list">
+            {students.length === 0 ? (
+              <p className="task-form-pick-empty">
+                Aucun compte {terms.studentSingular} chargé (liste stats).
+              </p>
+            ) : filteredStudentsForAssign.length === 0 ? (
+              <p className="task-form-pick-empty">Aucun résultat pour ce filtre.</p>
+            ) : (
+              filteredStudentsForAssign.map((s) => {
+                const sid = String(s.id || '').trim();
+                return (
+                  <label key={sid} className="task-form-pick-item">
+                    <input
+                      type="checkbox"
+                      className="task-form-pick-checkbox"
+                      checked={normalizedAssignStudentIds.includes(sid)}
+                      onChange={() => toggleAssignStudentId(sid)}
+                    />
+                    <span className="task-form-pick-text">
+                      👤 {`${s.first_name || ''} ${s.last_name || ''}`.trim()}
+                    </span>
+                  </label>
+                );
+              })
+            )}
           </div>
-        )}
-        {!isProposal && (
-          <div className="row">
-            <div className="field"><label>Récurrence</label>
-              <select value={form.recurrence || ''} onChange={set('recurrence')}>
-                <option value="">Aucune (unique)</option>
-                <option value="weekly">Hebdomadaire</option>
-                <option value="biweekly">Toutes les 2 semaines</option>
-                <option value="monthly">Mensuelle</option>
-              </select>
-            </div>
+        </div>
+      )}
+      <TaskFormLevelsField
+        dangerLevel={form.danger_level || ''}
+        difficultyLevel={form.difficulty_level || ''}
+        importanceLevel={form.importance_level || ''}
+        onDangerChange={set('danger_level')}
+        onDifficultyChange={set('difficulty_level')}
+        onImportanceChange={set('importance_level')}
+      />
+      {!isProposal && (
+        <div className="row">
+          <div className="field">
+            <label>Mode de validation</label>
+            <select value={form.completion_mode || 'single_done'} onChange={set('completion_mode')}>
+              <option value="single_done">Individuel (un n3beur termine la tâche)</option>
+              <option value="all_assignees_done">
+                Collectif (tous les assignés doivent terminer)
+              </option>
+            </select>
           </div>
-        )}
-        <button className="btn btn-primary btn-full" onClick={submit} disabled={saving}>
-          {saving ? 'Sauvegarde...' : isDuplicate ? 'Créer la copie' : editTask ? 'Modifier' : isProposal ? 'Envoyer la proposition' : 'Créer la tâche'}
-        </button>
+        </div>
+      )}
+      {!isProposal && (
+        <div className="row">
+          <div className="field">
+            <label>Récurrence</label>
+            <select value={form.recurrence || ''} onChange={set('recurrence')}>
+              <option value="">Aucune (unique)</option>
+              <option value="weekly">Hebdomadaire</option>
+              <option value="biweekly">Toutes les 2 semaines</option>
+              <option value="monthly">Mensuelle</option>
+            </select>
+          </div>
+        </div>
+      )}
+      <button className="btn btn-primary btn-full" onClick={submit} disabled={saving}>
+        {saving
+          ? 'Sauvegarde...'
+          : isDuplicate
+            ? 'Créer la copie'
+            : editTask
+              ? 'Modifier'
+              : isProposal
+                ? 'Envoyer la proposition'
+                : 'Créer la tâche'}
+      </button>
     </DialogShell>
   );
 }

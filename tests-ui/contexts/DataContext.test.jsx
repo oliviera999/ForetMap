@@ -5,7 +5,11 @@ import { DataProvider, useData } from '../../src/contexts/DataContext.jsx';
 
 function Probe() {
   const { zones = [], tasks = [], activeMapId = 'foret' } = useData();
-  return <span data-testid="v">{zones.length}|{tasks.length}|{activeMapId}</span>;
+  return (
+    <span data-testid="v">
+      {zones.length}|{tasks.length}|{activeMapId}
+    </span>
+  );
 }
 
 describe('DataContext', () => {

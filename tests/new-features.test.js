@@ -12,10 +12,13 @@ let studentData;
 async function setStudentPrimaryRole(studentId, roleSlug) {
   const role = await queryOne('SELECT id FROM roles WHERE slug = ? LIMIT 1', [roleSlug]);
   assert.ok(role?.id, `Rôle introuvable: ${roleSlug}`);
-  await execute('UPDATE user_roles SET is_primary = 0 WHERE user_type = ? AND user_id = ?', ['student', studentId]);
+  await execute('UPDATE user_roles SET is_primary = 0 WHERE user_type = ? AND user_id = ?', [
+    'student',
+    studentId,
+  ]);
   await execute(
     'INSERT INTO user_roles (user_type, user_id, role_id, is_primary) VALUES (?, ?, ?, 1) ON DUPLICATE KEY UPDATE is_primary = 1',
-    ['student', studentId, role.id]
+    ['student', studentId, role.id],
   );
 }
 
@@ -79,9 +82,7 @@ test('CRUD /api/task-projects fonctionne (prof)', async () => {
 
   const projectId = createRes.body.id;
 
-  const listRes = await request(app)
-    .get('/api/task-projects?map_id=foret')
-    .expect(200);
+  const listRes = await request(app).get('/api/task-projects?map_id=foret').expect(200);
   assert.ok(Array.isArray(listRes.body));
   assert.ok(listRes.body.some((p) => p.id === projectId));
 
@@ -129,7 +130,9 @@ test('POST/PUT /api/task-projects : zones, repères et tutoriels associés', asy
   assert.ok((createRes.body.zone_ids || []).includes(zoneRow.id));
   assert.ok((createRes.body.tutorial_ids || []).map(Number).includes(Number(tutoRow.id)));
   assert.ok((createRes.body.zones_linked || []).some((z) => z.id === zoneRow.id));
-  assert.ok((createRes.body.tutorials_linked || []).some((t) => Number(t.id) === Number(tutoRow.id)));
+  assert.ok(
+    (createRes.body.tutorials_linked || []).some((t) => Number(t.id) === Number(tutoRow.id)),
+  );
   if (markerRow?.id) {
     assert.ok((createRes.body.marker_ids || []).includes(markerRow.id));
     assert.ok((createRes.body.markers_linked || []).some((m) => m.id === markerRow.id));
@@ -366,8 +369,12 @@ test('projet : la synchro auto ne remplace pas un statut validated', async () =>
 });
 
 test('projet : duplication structurelle sans assignations', async () => {
-  const linkedZone = await queryOne("SELECT id FROM zones WHERE map_id = 'foret' ORDER BY id ASC LIMIT 1");
-  const linkedMarker = await queryOne("SELECT id FROM map_markers WHERE map_id = 'foret' ORDER BY id ASC LIMIT 1");
+  const linkedZone = await queryOne(
+    "SELECT id FROM zones WHERE map_id = 'foret' ORDER BY id ASC LIMIT 1",
+  );
+  const linkedMarker = await queryOne(
+    "SELECT id FROM map_markers WHERE map_id = 'foret' ORDER BY id ASC LIMIT 1",
+  );
   assert.ok(linkedZone?.id, 'Zone foret introuvable pour test duplication');
   assert.ok(linkedMarker?.id, 'Repère foret introuvable pour test duplication');
   const projectRes = await request(app)
@@ -401,11 +408,11 @@ test('projet : duplication structurelle sans assignations', async () => {
 
   await execute(
     'INSERT INTO task_assignments (task_id, student_id, student_first_name, student_last_name, assigned_at) VALUES (?, ?, ?, ?, ?)',
-    [sourceTaskId, studentData.id, 'Test', 'Eleve', new Date().toISOString()]
+    [sourceTaskId, studentData.id, 'Test', 'Eleve', new Date().toISOString()],
   );
   await execute(
     'INSERT INTO task_logs (task_id, student_id, student_first_name, student_last_name, comment, created_at) VALUES (?, ?, ?, ?, ?, ?)',
-    [sourceTaskId, studentData.id, 'Test', 'Eleve', 'Log test', new Date().toISOString()]
+    [sourceTaskId, studentData.id, 'Test', 'Eleve', 'Log test', new Date().toISOString()],
   );
   // Simule un ancien enregistrement avec localisation portée seulement par les colonnes legacy.
   await execute('DELETE FROM task_zones WHERE task_id = ?', [sourceTaskId]);
@@ -423,7 +430,7 @@ test('projet : duplication structurelle sans assignations', async () => {
 
   const cloneTask = await queryOne(
     'SELECT id, status, description, required_students, completion_mode, start_date FROM tasks WHERE project_id = ? LIMIT 1',
-    [dupRes.body.project.id]
+    [dupRes.body.project.id],
   );
   assert.ok(cloneTask);
   assert.strictEqual(cloneTask.status, 'available');
@@ -435,19 +442,22 @@ test('projet : duplication structurelle sans assignations', async () => {
   const cloneStartDate = String(cloneTask.start_date || '').slice(0, 10);
   assert.strictEqual(cloneStartDate, expectedStartDate);
 
-  const cloneZoneRows = await queryAll('SELECT zone_id FROM task_zones WHERE task_id = ?', [cloneTask.id]);
-  const cloneMarkerRows = await queryAll('SELECT marker_id FROM task_markers WHERE task_id = ?', [cloneTask.id]);
+  const cloneZoneRows = await queryAll('SELECT zone_id FROM task_zones WHERE task_id = ?', [
+    cloneTask.id,
+  ]);
+  const cloneMarkerRows = await queryAll('SELECT marker_id FROM task_markers WHERE task_id = ?', [
+    cloneTask.id,
+  ]);
   assert.ok(cloneZoneRows.some((row) => String(row.zone_id) === String(linkedZone.id)));
   assert.ok(cloneMarkerRows.some((row) => String(row.marker_id) === String(linkedMarker.id)));
 
   const assignCount = await queryOne(
     'SELECT COUNT(*) AS n FROM task_assignments WHERE task_id = ?',
-    [cloneTask.id]
+    [cloneTask.id],
   );
-  const logCount = await queryOne(
-    'SELECT COUNT(*) AS n FROM task_logs WHERE task_id = ?',
-    [cloneTask.id]
-  );
+  const logCount = await queryOne('SELECT COUNT(*) AS n FROM task_logs WHERE task_id = ?', [
+    cloneTask.id,
+  ]);
   assert.strictEqual(Number(assignCount.n), 0);
   assert.strictEqual(Number(logCount.n), 0);
 });
@@ -546,9 +556,7 @@ test('DELETE /api/task-projects conserve les tâches et remet project_id à NULL
     .set('Authorization', 'Bearer ' + teacherToken)
     .expect(200);
 
-  const taskAfter = await request(app)
-    .get(`/api/tasks/${taskId}`)
-    .expect(200);
+  const taskAfter = await request(app).get(`/api/tasks/${taskId}`).expect(200);
   assert.strictEqual(taskAfter.body.id, taskId);
   assert.strictEqual(taskAfter.body.project_id, null);
 });
@@ -565,12 +573,21 @@ test('DELETE /api/tasks/:id/logs/:logId supprime un log', async () => {
   await request(app)
     .post(`/api/tasks/${taskId}/assign`)
     .set('Authorization', 'Bearer ' + teacherToken)
-    .send({ firstName: studentData.first_name, lastName: studentData.last_name, studentId: studentData.id });
+    .send({
+      firstName: studentData.first_name,
+      lastName: studentData.last_name,
+      studentId: studentData.id,
+    });
 
   await request(app)
     .post(`/api/tasks/${taskId}/done`)
     .set('Authorization', 'Bearer ' + teacherToken)
-    .send({ comment: 'Test commentaire', firstName: studentData.first_name, lastName: studentData.last_name, studentId: studentData.id });
+    .send({
+      comment: 'Test commentaire',
+      firstName: studentData.first_name,
+      lastName: studentData.last_name,
+      studentId: studentData.id,
+    });
 
   const logsRes = await request(app)
     .get(`/api/tasks/${taskId}/logs`)
@@ -588,11 +605,11 @@ test('DELETE /api/tasks/:id/logs/:logId supprime un log', async () => {
     .get(`/api/tasks/${taskId}/logs`)
     .set('Authorization', 'Bearer ' + teacherToken)
     .expect(200);
-  assert.ok(!afterRes.body.find(l => l.id === logId));
+  assert.ok(!afterRes.body.find((l) => l.id === logId));
 });
 
 // ─── Audit log ───────────────────────────────────────────────────────────────
-test('GET /api/audit renvoie un tableau d\'actions', async () => {
+test("GET /api/audit renvoie un tableau d'actions", async () => {
   const res = await request(app)
     .get('/api/audit')
     .set('Authorization', 'Bearer ' + teacherToken)
@@ -639,7 +656,8 @@ test('DELETE /api/observations/:id supprime une observation', async () => {
 
 // ─── Profil élève enrichi ────────────────────────────────────────────────────
 test('PATCH /api/students/:id/profile met à jour pseudo/email/description', async () => {
-  const tinyAvatar = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/a9sAAAAASUVORK5CYII=';
+  const tinyAvatar =
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/a9sAAAAASUVORK5CYII=';
   const res = await request(app)
     .patch(`/api/students/${studentData.id}/profile`)
     .set('Authorization', `Bearer ${studentData.authToken}`)
@@ -676,10 +694,10 @@ test('PATCH /api/students/:id/profile préserve une affiliation stockée non ré
     })
     .expect(201);
   const storedAffiliation = `missing_${stamp % 100000}`;
-  await execute(
-    "UPDATE users SET affiliation = ? WHERE id = ? AND user_type = 'student'",
-    [storedAffiliation, reg.body.id]
-  );
+  await execute("UPDATE users SET affiliation = ? WHERE id = ? AND user_type = 'student'", [
+    storedAffiliation,
+    reg.body.id,
+  ]);
 
   const res = await request(app)
     .patch(`/api/students/${reg.body.id}/profile`)
@@ -691,7 +709,10 @@ test('PATCH /api/students/:id/profile préserve une affiliation stockée non ré
     .expect(200);
 
   assert.strictEqual(res.body.affiliation, storedAffiliation);
-  const row = await queryOne("SELECT affiliation FROM users WHERE id = ? AND user_type = 'student' LIMIT 1", [reg.body.id]);
+  const row = await queryOne(
+    "SELECT affiliation FROM users WHERE id = ? AND user_type = 'student' LIMIT 1",
+    [reg.body.id],
+  );
   assert.strictEqual(row.affiliation, storedAffiliation);
 });
 
@@ -771,7 +792,11 @@ test('GET /api/visit/content expose les contenus visite et les tutos choisis', a
     .send({
       map_id: 'foret',
       name: `Zone visite ${Date.now()}`,
-      points: [{ xp: 10, yp: 10 }, { xp: 24, yp: 11 }, { xp: 18, yp: 23 }],
+      points: [
+        { xp: 10, yp: 10 },
+        { xp: 24, yp: 11 },
+        { xp: 18, yp: 23 },
+      ],
     })
     .expect(201);
   const zoneId = zoneRes.body.id;
@@ -785,9 +810,7 @@ test('GET /api/visit/content expose les contenus visite et les tutos choisis', a
       short_description: 'Description zone visite',
       details_title: 'Détails zone',
       details_text: 'Contenu dépliable zone',
-      visit_editorial_blocks: [
-        { type: 'paragraph', markdown: 'Bloc introduction zone' },
-      ],
+      visit_editorial_blocks: [{ type: 'paragraph', markdown: 'Bloc introduction zone' }],
       sort_order: 1,
       is_active: true,
     })
@@ -823,8 +846,8 @@ test('GET /api/visit/content expose les contenus visite et les tutos choisis', a
 
   const tutosRes = await request(app).get('/api/tutorials').expect(200);
   const firstTutorial =
-    tutosRes.body.find((tutorial) => Number(tutorial?.is_active ?? 1) === 1)?.id
-    ?? tutosRes.body[0]?.id;
+    tutosRes.body.find((tutorial) => Number(tutorial?.is_active ?? 1) === 1)?.id ??
+    tutosRes.body[0]?.id;
   assert.ok(firstTutorial);
 
   await request(app)
@@ -859,7 +882,11 @@ test('GET /api/visit/content expose map_lead_photo (première photo galerie cart
     .send({
       name: `Zone map_lead_photo ${Date.now()}`,
       map_id: 'foret',
-      points: [{ xp: 12, yp: 12 }, { xp: 20, yp: 12 }, { xp: 16, yp: 19 }],
+      points: [
+        { xp: 12, yp: 12 },
+        { xp: 20, yp: 12 },
+        { xp: 16, yp: 19 },
+      ],
       stage: 'empty',
     })
     .expect(201);
@@ -889,23 +916,35 @@ test('GET /api/visit/content expose map_lead_photo (première photo galerie cart
   await request(app)
     .post(`/api/zones/${zone.body.id}/photos`)
     .set('Authorization', 'Bearer ' + teacherToken)
-    .send({ image_data: `data:image/jpeg;base64,${TINY_JPEG_B64}`, caption: 'Légende photo carte zone' })
+    .send({
+      image_data: `data:image/jpeg;base64,${TINY_JPEG_B64}`,
+      caption: 'Légende photo carte zone',
+    })
     .expect(201);
   await request(app)
     .post(`/api/map/markers/${marker.body.id}/photos`)
     .set('Authorization', 'Bearer ' + teacherToken)
-    .send({ image_data: `data:image/jpeg;base64,${TINY_JPEG_B64}`, caption: 'Légende photo carte repère' })
+    .send({
+      image_data: `data:image/jpeg;base64,${TINY_JPEG_B64}`,
+      caption: 'Légende photo carte repère',
+    })
     .expect(201);
 
   await request(app)
     .post(`/api/zones/${zone.body.id}/photos`)
     .set('Authorization', 'Bearer ' + teacherToken)
-    .send({ image_data: `data:image/jpeg;base64,${TINY_JPEG_B64}`, caption: 'Deuxième photo zone carte' })
+    .send({
+      image_data: `data:image/jpeg;base64,${TINY_JPEG_B64}`,
+      caption: 'Deuxième photo zone carte',
+    })
     .expect(201);
   await request(app)
     .post(`/api/map/markers/${marker.body.id}/photos`)
     .set('Authorization', 'Bearer ' + teacherToken)
-    .send({ image_data: `data:image/jpeg;base64,${TINY_JPEG_B64}`, caption: 'Deuxième photo repère carte' })
+    .send({
+      image_data: `data:image/jpeg;base64,${TINY_JPEG_B64}`,
+      caption: 'Deuxième photo repère carte',
+    })
     .expect(201);
 
   const content = await request(app).get('/api/visit/content?map_id=foret').expect(200);
@@ -923,11 +962,19 @@ test('GET /api/visit/content expose map_lead_photo (première photo galerie cart
   assert.strictEqual(vm.map_lead_photo.caption, 'Légende photo carte repère');
   assert.ok(Array.isArray(vm.map_extra_photos));
   assert.strictEqual(vm.map_extra_photos.length, 1);
-  assert.ok(String(vm.map_extra_photos[0].image_url).includes(`/uploads/markers/${marker.body.id}/`));
+  assert.ok(
+    String(vm.map_extra_photos[0].image_url).includes(`/uploads/markers/${marker.body.id}/`),
+  );
   assert.strictEqual(vm.map_extra_photos[0].caption, 'Deuxième photo repère carte');
 
-  await request(app).delete(`/api/map/markers/${marker.body.id}`).set('Authorization', 'Bearer ' + teacherToken).expect(200);
-  await request(app).delete(`/api/zones/${zone.body.id}`).set('Authorization', 'Bearer ' + teacherToken).expect(200);
+  await request(app)
+    .delete(`/api/map/markers/${marker.body.id}`)
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .expect(200);
+  await request(app)
+    .delete(`/api/zones/${zone.body.id}`)
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .expect(200);
   await request(app)
     .post('/api/visit/rebuild-from-map')
     .set('Authorization', 'Bearer ' + teacherToken)
@@ -942,7 +989,11 @@ test('PUT /api/zones/:id/photos/reorder réordonne les photos zone', async () =>
     .send({
       name: `Zone reorder photos ${Date.now()}`,
       map_id: 'foret',
-      points: [{ xp: 12, yp: 12 }, { xp: 20, yp: 12 }, { xp: 16, yp: 19 }],
+      points: [
+        { xp: 12, yp: 12 },
+        { xp: 20, yp: 12 },
+        { xp: 16, yp: 19 },
+      ],
       stage: 'empty',
     })
     .expect(201);
@@ -971,7 +1022,10 @@ test('PUT /api/zones/:id/photos/reorder réordonne les photos zone', async () =>
   assert.strictEqual(list.body[0].id, p2.body.id);
   assert.strictEqual(list.body[1].id, p1.body.id);
 
-  await request(app).delete(`/api/zones/${zone.body.id}`).set('Authorization', 'Bearer ' + teacherToken).expect(200);
+  await request(app)
+    .delete(`/api/zones/${zone.body.id}`)
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .expect(200);
 });
 
 test('PUT /api/map/markers/:id/photos/reorder réordonne les photos repère', async () => {
@@ -1011,7 +1065,10 @@ test('PUT /api/map/markers/:id/photos/reorder réordonne les photos repère', as
   assert.strictEqual(list.body[0].id, p2.body.id);
   assert.strictEqual(list.body[1].id, p1.body.id);
 
-  await request(app).delete(`/api/map/markers/${marker.body.id}`).set('Authorization', 'Bearer ' + teacherToken).expect(200);
+  await request(app)
+    .delete(`/api/map/markers/${marker.body.id}`)
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .expect(200);
 });
 
 test('PUT /api/visit/media/reorder réordonne les médias', async () => {
@@ -1122,7 +1179,9 @@ test('POST /api/visit/media avec image_data, GET /data et contenu public', async
     })
     .expect(201);
 
-  assert.ok(String(postRes.body.image_url || '').includes(`/api/visit/media/${postRes.body.id}/data`));
+  assert.ok(
+    String(postRes.body.image_url || '').includes(`/api/visit/media/${postRes.body.id}/data`),
+  );
   assert.ok(!postRes.body.image_path);
 
   await request(app).get(`/api/visit/media/${postRes.body.id}/data`).expect(200);
@@ -1153,7 +1212,11 @@ test('POST /api/visit/sync importe de manière sélective carte -> visite', asyn
     .send({
       name: `Zone source visite A ${Date.now()}`,
       map_id: 'foret',
-      points: [{ xp: 11, yp: 11 }, { xp: 19, yp: 11 }, { xp: 15, yp: 20 }],
+      points: [
+        { xp: 11, yp: 11 },
+        { xp: 19, yp: 11 },
+        { xp: 15, yp: 20 },
+      ],
       stage: 'empty',
     })
     .expect(201);
@@ -1163,7 +1226,11 @@ test('POST /api/visit/sync importe de manière sélective carte -> visite', asyn
     .send({
       name: `Zone source visite B ${Date.now()}`,
       map_id: 'foret',
-      points: [{ xp: 21, yp: 21 }, { xp: 29, yp: 21 }, { xp: 25, yp: 30 }],
+      points: [
+        { xp: 21, yp: 21 },
+        { xp: 29, yp: 21 },
+        { xp: 25, yp: 30 },
+      ],
       stage: 'empty',
     })
     .expect(201);
@@ -1219,7 +1286,11 @@ test('POST /api/visit/sync importe de manière sélective visite -> carte', asyn
     .send({
       map_id: 'foret',
       name: `Zone source carte A ${Date.now()}`,
-      points: [{ xp: 61, yp: 61 }, { xp: 70, yp: 61 }, { xp: 66, yp: 69 }],
+      points: [
+        { xp: 61, yp: 61 },
+        { xp: 70, yp: 61 },
+        { xp: 66, yp: 69 },
+      ],
     })
     .expect(201);
   const visitZoneB = await request(app)
@@ -1228,7 +1299,11 @@ test('POST /api/visit/sync importe de manière sélective visite -> carte', asyn
     .send({
       map_id: 'foret',
       name: `Zone source carte B ${Date.now()}`,
-      points: [{ xp: 71, yp: 71 }, { xp: 79, yp: 71 }, { xp: 75, yp: 78 }],
+      points: [
+        { xp: 71, yp: 71 },
+        { xp: 79, yp: 71 },
+        { xp: 75, yp: 78 },
+      ],
     })
     .expect(201);
 
@@ -1279,7 +1354,11 @@ test('POST /api/visit/sync importe de manière sélective visite -> carte', asyn
 
 test('POST /api/visit/rebuild-from-map conserve l’éditorial par id et retire la visite hors carte', async () => {
   const ts = Date.now();
-  const points = [{ xp: 31, yp: 31 }, { xp: 39, yp: 31 }, { xp: 35, yp: 38 }];
+  const points = [
+    { xp: 31, yp: 31 },
+    { xp: 39, yp: 31 },
+    { xp: 35, yp: 38 },
+  ];
   const zoneMap = await request(app)
     .post('/api/zones')
     .set('Authorization', 'Bearer ' + teacherToken)
@@ -1327,7 +1406,11 @@ test('POST /api/visit/rebuild-from-map conserve l’éditorial par id et retire 
     .send({
       map_id: 'foret',
       name: `Zone visite seule ${ts}`,
-      points: [{ xp: 80, yp: 80 }, { xp: 88, yp: 80 }, { xp: 84, yp: 87 }],
+      points: [
+        { xp: 80, yp: 80 },
+        { xp: 88, yp: 80 },
+        { xp: 84, yp: 87 },
+      ],
     })
     .expect(201);
 
@@ -1347,7 +1430,10 @@ test('POST /api/visit/rebuild-from-map conserve l’éditorial par id et retire 
   assert.strictEqual(z.visit_subtitle, editorial);
   assert.ok(!content.body.zones.some((x) => x.id === orphan.body.id));
 
-  await request(app).delete(`/api/zones/${zoneMap.body.id}`).set('Authorization', 'Bearer ' + teacherToken).expect(200);
+  await request(app)
+    .delete(`/api/zones/${zoneMap.body.id}`)
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .expect(200);
   await request(app)
     .post('/api/visit/rebuild-from-map')
     .set('Authorization', 'Bearer ' + teacherToken)
@@ -1362,7 +1448,11 @@ test('Progression visite anonyme persiste via cookie signé', async () => {
     .send({
       map_id: 'foret',
       name: `Zone progress ${Date.now()}`,
-      points: [{ xp: 42, yp: 42 }, { xp: 53, yp: 42 }, { xp: 46, yp: 50 }],
+      points: [
+        { xp: 42, yp: 42 },
+        { xp: 53, yp: 42 },
+        { xp: 46, yp: 50 },
+      ],
     })
     .expect(201);
   const zoneId = zoneRes.body.id;
@@ -1378,7 +1468,11 @@ test('Progression visite anonyme persiste via cookie signé', async () => {
     .expect(200);
 
   const secondProgress = await agent.get('/api/visit/progress').expect(200);
-  assert.ok(secondProgress.body.seen.some((item) => item.target_type === 'zone' && item.target_id === zoneId));
+  assert.ok(
+    secondProgress.body.seen.some(
+      (item) => item.target_type === 'zone' && item.target_id === zoneId,
+    ),
+  );
 });
 
 test('Progression visite élève connecté persiste en BDD', async () => {
@@ -1415,7 +1509,9 @@ test('Progression visite élève connecté persiste en BDD', async () => {
     .expect(200);
 
   assert.strictEqual(progress.body.mode, 'student');
-  assert.ok(progress.body.seen.some((item) => item.target_type === 'marker' && item.target_id === markerId));
+  assert.ok(
+    progress.body.seen.some((item) => item.target_type === 'marker' && item.target_id === markerId),
+  );
 });
 
 test('GET /api/visit/progress?student_id refuse sans jeton élève', async () => {
@@ -1541,7 +1637,11 @@ test('GET /api/visit/stats calcule correctement sessions, complétion et visites
     .send({
       map_id: 'foret',
       name: `Zone stats ${Date.now()}`,
-      points: [{ xp: 12, yp: 13 }, { xp: 24, yp: 14 }, { xp: 18, yp: 26 }],
+      points: [
+        { xp: 12, yp: 13 },
+        { xp: 24, yp: 14 },
+        { xp: 18, yp: 26 },
+      ],
     })
     .expect(201);
   const markerRes = await request(app)

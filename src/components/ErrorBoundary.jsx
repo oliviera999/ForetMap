@@ -29,7 +29,11 @@ export class ErrorBoundary extends Component {
           }}
         >
           <p style={{ marginBottom: 16 }}>Une erreur s’est produite.</p>
-          <button type="button" className="btn btn-primary" onClick={() => window.location.reload()}>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => window.location.reload()}
+          >
             Recharger la page
           </button>
         </div>

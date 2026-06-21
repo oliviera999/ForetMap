@@ -17,8 +17,9 @@ describe('buildZoneName', () => {
   });
 
   test('retire un emoji déjà présent en tête du nom saisi avant de re-préfixer', () => {
-    expect(buildZoneName('🌳 Verger', '🌱', { markerEmojis: [], emojiParsingList: ['🌳'] }))
-      .toBe('🌱 Verger');
+    expect(buildZoneName('🌳 Verger', '🌱', { markerEmojis: [], emojiParsingList: ['🌳'] })).toBe(
+      '🌱 Verger',
+    );
   });
 
   test('nom vide (ou réduit à un emoji parsé) → null pour bloquer la sauvegarde', () => {
@@ -65,6 +66,11 @@ describe('réexports mutualisés depuis markerModalForm', () => {
   test('computeZoneVisitImageBlocks : corps vide → blocs par défaut depuis les médias', () => {
     const blocks = computeZoneVisitImageBlocks('', [{ id: 5, caption: ' Vue ' }]);
     expect(blocks).toHaveLength(1);
-    expect(blocks[0]).toMatchObject({ id: 'default-img-5', media_ids: [5], size: 'lg', caption: 'Vue' });
+    expect(blocks[0]).toMatchObject({
+      id: 'default-img-5',
+      media_ids: [5],
+      size: 'lg',
+      caption: 'Vue',
+    });
   });
 });

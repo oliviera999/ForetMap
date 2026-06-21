@@ -3,11 +3,7 @@ import { pointsToSvgPolygon } from '../../shared/pct-map/pctPolygon.js';
 import { PctPolygonEditOverlay } from '../../shared/pct-map/PctPolygonEditOverlay.jsx';
 import { GL_KINGDOM_ZONE_DEFAULT_COLOR } from '../hooks/useGLKingdomZoneEditor.js';
 
-export function GLKingdomZoneMapOverlay({
-  zoneEditor,
-  mapGestures,
-  onZonePolygonClick,
-}) {
+export function GLKingdomZoneMapOverlay({ zoneEditor, mapGestures, onZonePolygonClick }) {
   const {
     displayZones,
     selectedZoneId,

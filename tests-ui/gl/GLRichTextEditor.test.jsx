@@ -6,12 +6,7 @@ import { GLRichTextEditor } from '../../src/gl/components/ui/GLRichTextEditor.js
 
 describe('GLRichTextEditor', () => {
   it('affiche le markdown initial dans la surface editable', () => {
-    render(
-      <GLRichTextEditor
-        value="# Titre\n\nParagraphe."
-        onChange={vi.fn()}
-      />
-    );
+    render(<GLRichTextEditor value="# Titre\n\nParagraphe." onChange={vi.fn()} />);
 
     const editor = screen.getByRole('textbox');
     expect(editor.innerHTML).toContain('Titre');
@@ -35,11 +30,26 @@ describe('GLRichTextEditor', () => {
     const onChange = vi.fn();
     render(<GLRichTextEditor value="" onChange={onChange} />);
     const editor = screen.getByRole('textbox');
-    editor.innerHTML = '<p>Intro</p><img src="/uploads/test.jpg" alt="Photo" class="gl-content-image" data-gl-frame=\'{"aspectRatio":"1/1"}\' loading="lazy" />';
+    editor.innerHTML =
+      '<p>Intro</p><figure class="gl-content-image-wrap"><img src="/uploads/test.jpg" alt="Photo" class="gl-content-image" data-gl-frame=\'{"aspectRatio":"1/1"}\' loading="lazy" /></figure>';
     fireEvent.input(editor);
 
     const lastValue = onChange.mock.calls.at(-1)?.[0]?.target?.value || '';
     expect(lastValue).toContain('<img src="/uploads/test.jpg"');
     expect(lastValue).toContain('data-gl-frame=');
+    expect(lastValue).not.toContain('<figure');
+  });
+
+  it('affiche les images markdown avec un cadre wrap au chargement', () => {
+    render(
+      <GLRichTextEditor
+        value={'Texte\n\n<img src="/uploads/test.jpg" alt="Photo" class="gl-content-image" data-gl-frame=\'{"aspectRatio":"16/9"}\' loading="lazy" />'}
+        onChange={vi.fn()}
+      />,
+    );
+
+    const editor = screen.getByRole('textbox');
+    expect(editor.querySelector('.gl-content-image-wrap')).toBeTruthy();
+    expect(editor.querySelector('.gl-content-image-wrap img.gl-content-image')).toBeTruthy();
   });
 });

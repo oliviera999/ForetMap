@@ -43,14 +43,21 @@ Contexte par défaut :
 
 ## Images markdown
 
-- Insertion : `GLMarkdownImageInsert` ouvre `GLImageFrameEditor`, puis injecte :
+- Insertion : `GLMarkdownImageInsert` ouvre `GLImageFrameEditor`, puis injecte (stockage) :
 
 ```html
-<img src="/uploads/..." alt="..." class="gl-content-image" data-gl-frame='{"aspectRatio":"16/9",...}' loading="lazy" />
+<img
+  src="/uploads/..."
+  alt="..."
+  class="gl-content-image"
+  data-gl-frame='{"aspectRatio":"16/9",...}'
+  loading="lazy"
+/>
 ```
 
-- Sanitization : `renderMarkdownToSafeHtml` autorise `class`, `data-gl-frame`, `style`.
-- `DOMPurify` recalcule un frame normalisé et applique le style sécurisé (`object-fit`, `object-position`, ratio, dimensions max).
+- **Rendu joueur / aperçu** : `renderMarkdownToSafeHtml` et `sanitizeRichHtml(..., { allowImages: true })` enveloppent chaque image dans un cadre `<figure class="gl-content-image-wrap">` (styles `glImageFrameToWrapStyle`) ; l’`<img>` reçoit `glImageFrameToImgFillStyle` — même pattern que le hub marque (`GLBrandHub`).
+- Sanitization : `DOMPurify` normalise `data-gl-frame` ; les styles inline sont recalculés (pas de style libre utilisateur).
+- L’éditeur WYSIWYG (`GLRichTextEditor`) ré-enregistre uniquement la balise `<img>` (Turndown dé-enveloppe le `<figure>`).
 
 ## Cartes chapitre
 

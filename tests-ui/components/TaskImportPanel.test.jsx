@@ -57,14 +57,25 @@ describe('TaskImportPanel', () => {
     expect(body.fileName).toBe('import.csv');
     expect(body.dryRun).toBe(false);
     expect(String(body.fileDataBase64)).toContain('base64');
-    await waitFor(() => expect(setToast).toHaveBeenCalledWith('Import OK : 2 projet(s), 5 tâche(s) — la forêt grossit !'));
+    await waitFor(() =>
+      expect(setToast).toHaveBeenCalledWith(
+        'Import OK : 2 projet(s), 5 tâche(s) — la forêt grossit !',
+      ),
+    );
     expect(onRefresh).toHaveBeenCalledTimes(1);
   });
 
   test('simulation : dryRun envoyé, rapport affiché, pas de onRefresh', async () => {
     api.mockResolvedValue({
       report: {
-        totals: { received: 3, valid: 2, created_projects: 0, created_tasks: 0, skipped_existing: 1, skipped_invalid: 1 },
+        totals: {
+          received: 3,
+          valid: 2,
+          created_projects: 0,
+          created_tasks: 0,
+          skipped_existing: 1,
+          skipped_invalid: 1,
+        },
         errors: [{ row: 3, field: 'titre', error: 'requis' }],
       },
     });
@@ -74,7 +85,11 @@ describe('TaskImportPanel', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Importer' }));
     await waitFor(() => expect(api).toHaveBeenCalledTimes(1));
     expect(api.mock.calls[0][2].dryRun).toBe(true);
-    await waitFor(() => expect(setToast).toHaveBeenCalledWith('Simulation terminée — regarde le rapport ci-dessous ✓'));
+    await waitFor(() =>
+      expect(setToast).toHaveBeenCalledWith(
+        'Simulation terminée — regarde le rapport ci-dessous ✓',
+      ),
+    );
     expect(onRefresh).not.toHaveBeenCalled();
     expect(screen.getByText('Ligne 3 (titre): requis')).toBeTruthy();
   });

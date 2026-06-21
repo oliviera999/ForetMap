@@ -1,7 +1,6 @@
 import React from 'react';
 import {
   glImageFrameToImgFillStyle,
-  glImageFrameToStyle,
   glImageFrameToWrapStyle,
   normalizeGlImageFrame,
 } from '../../utils/glImageFrame.js';
@@ -17,10 +16,14 @@ export function GLBrandHub({ slots, onOpenTab, compact = false }) {
   const hero = slots?.hero;
   const heroImage = String(hero?.imageUrl || '').trim();
   const heroFrame = normalizeGlImageFrame(hero?.frame, 'brand-hero');
-  const cards = CARD_SLOT_IDS
-    .map((id) => ({ id, ...slots?.[id] }))
-    .filter((card) => String(card?.imageUrl || '').trim() || String(card?.title || '').trim());
-  const [cardsRef, cardsVisible] = useScrollReveal({ once: true, threshold: 0.01, rootMargin: '0px' });
+  const cards = CARD_SLOT_IDS.map((id) => ({ id, ...slots?.[id] })).filter(
+    (card) => String(card?.imageUrl || '').trim() || String(card?.title || '').trim(),
+  );
+  const [cardsRef, cardsVisible] = useScrollReveal({
+    once: true,
+    threshold: 0.01,
+    rootMargin: '0px',
+  });
 
   if (!heroImage && cards.length === 0) return null;
 
@@ -80,7 +83,10 @@ export function GLBrandHub({ slots, onOpenTab, compact = false }) {
                     />
                   </div>
                 ) : (
-                  <div className="gl-brand-hub__card-image gl-brand-hub__card-image--placeholder" aria-hidden />
+                  <div
+                    className="gl-brand-hub__card-image gl-brand-hub__card-image--placeholder"
+                    aria-hidden
+                  />
                 )}
                 {title ? <span className="gl-brand-hub__card-title">{title}</span> : null}
               </Tag>
@@ -92,7 +98,7 @@ export function GLBrandHub({ slots, onOpenTab, compact = false }) {
   );
 }
 
-/** Bannière d’une page éditoriale (carte associée au slug GL). */
+/** Bannière d'une page éditoriale (carte associée au slug GL). */
 export function GLBrandPageBanner({ slot }) {
   const imageUrl = String(slot?.imageUrl || '').trim();
   const title = String(slot?.title || '').trim();
@@ -104,7 +110,17 @@ export function GLBrandPageBanner({ slot }) {
       ref={bannerRef}
       className={`gl-brand-page-banner scroll-reveal${bannerVisible ? ' is-visible' : ''}`}
     >
-      <img src={imageUrl} alt={title || ''} loading="lazy" style={glImageFrameToStyle(frame)} />
+      <div
+        className="gl-brand-page-banner__image-wrap"
+        style={glImageFrameToWrapStyle(frame, 'brand-banner')}
+      >
+        <img
+          src={imageUrl}
+          alt={title || ''}
+          loading="lazy"
+          style={glImageFrameToImgFillStyle(frame, 'brand-banner')}
+        />
+      </div>
       {title ? <figcaption>{title}</figcaption> : null}
     </figure>
   );

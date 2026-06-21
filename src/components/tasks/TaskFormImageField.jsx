@@ -20,7 +20,8 @@ export function TaskFormImageField({
     <div className="field">
       <label>Photo illustrative (optionnel)</label>
       <p style={{ fontSize: '.8rem', color: '#555', margin: '0 0 8px', lineHeight: 1.45 }}>
-        Depuis la galerie ou l’appareil photo : lieu, outil, plante… (JPEG/PNG/WebP, compressée à l’envoi)
+        Depuis la galerie ou l’appareil photo : lieu, outil, plante… (JPEG/PNG/WebP, compressée à
+        l’envoi)
       </p>
       {!preview ? (
         <div
@@ -61,12 +62,7 @@ export function TaskFormImageField({
               📸 Prendre une photo
             </button>
           </div>
-          <input
-            ref={galleryInputRef}
-            type="file"
-            accept="image/*"
-            onChange={onFile}
-          />
+          <input ref={galleryInputRef} type="file" accept="image/*" onChange={onFile} />
           <input
             ref={cameraInputRef}
             type="file"
@@ -78,7 +74,14 @@ export function TaskFormImageField({
       ) : (
         <div className="img-preview-wrap">
           <img src={preview} className="img-preview" alt="Aperçu photo tâche" />
-          <button type="button" className="img-remove" onClick={onClear} aria-label="Retirer la photo">✕</button>
+          <button
+            type="button"
+            className="img-remove"
+            onClick={onClear}
+            aria-label="Retirer la photo"
+          >
+            ✕
+          </button>
         </div>
       )}
     </div>

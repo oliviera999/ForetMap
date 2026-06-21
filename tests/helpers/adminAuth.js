@@ -35,7 +35,7 @@ async function ensureAdminTeacherAuthToken(options = {}) {
   const loginEmail = String(process.env.TEACHER_ADMIN_EMAIL || 'admin.test@foretmap.local').trim();
   const teacher = await queryOne(
     "SELECT id FROM users WHERE user_type = 'teacher' AND LOWER(email) = LOWER(?) LIMIT 1",
-    [loginEmail]
+    [loginEmail],
   );
   const adminRole = await queryOne("SELECT id FROM roles WHERE slug = 'admin' LIMIT 1");
   assert.ok(teacher?.id, 'Compte admin enseignant introuvable');
@@ -46,13 +46,14 @@ async function ensureAdminTeacherAuthToken(options = {}) {
   ];
 
   for (const key of permissionKeys) {
-    await execute(
-      'INSERT IGNORE INTO permissions (`key`, label, description) VALUES (?, ?, ?)',
-      [key, key, 'Permission auto-seed tests']
-    );
+    await execute('INSERT IGNORE INTO permissions (`key`, label, description) VALUES (?, ?, ?)', [
+      key,
+      key,
+      'Permission auto-seed tests',
+    ]);
     await execute(
       'INSERT IGNORE INTO role_permissions (role_id, permission_key, requires_elevation) VALUES (?, ?, 0)',
-      [adminRole.id, key]
+      [adminRole.id, key],
     );
   }
 
@@ -62,7 +63,7 @@ async function ensureAdminTeacherAuthToken(options = {}) {
   ]);
   await execute(
     'INSERT INTO user_roles (user_type, user_id, role_id, is_primary) VALUES (?, ?, ?, 1) ON DUPLICATE KEY UPDATE is_primary = 1',
-    ['teacher', teacher.id, adminRole.id]
+    ['teacher', teacher.id, adminRole.id],
   );
 
   return signAuthToken(
@@ -75,7 +76,7 @@ async function ensureAdminTeacherAuthToken(options = {}) {
       roleDisplayName: 'Administrateur',
       elevated,
     },
-    elevated
+    elevated,
   );
 }
 
@@ -83,7 +84,7 @@ async function getAdminTeacherUserId() {
   const loginEmail = String(process.env.TEACHER_ADMIN_EMAIL || 'admin.test@foretmap.local').trim();
   const teacher = await queryOne(
     "SELECT id FROM users WHERE user_type = 'teacher' AND LOWER(email) = LOWER(?) LIMIT 1",
-    [loginEmail]
+    [loginEmail],
   );
   assert.ok(teacher?.id, 'Compte admin enseignant introuvable');
   return teacher.id;

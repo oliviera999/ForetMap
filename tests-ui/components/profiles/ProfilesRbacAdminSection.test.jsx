@@ -21,9 +21,7 @@ const CATALOG = [
   { key: 'stats.read.all', label: 'Lire toutes les stats' },
 ];
 
-const USERS = [
-  { user_type: 'student', id: 11, display_name: 'Léa Martin', role_id: 2 },
-];
+const USERS = [{ user_type: 'student', id: 11, display_name: 'Léa Martin', role_id: 2 }];
 
 function setup(overrides = {}) {
   const props = {
@@ -99,7 +97,9 @@ describe('ProfilesRbacAdminSection', () => {
 
   test('saisie d’emoji et enregistrement du PIN remontent au parent', () => {
     const { onRoleEmojiChange, onSavePin } = setup();
-    fireEvent.change(screen.getByLabelText('Emoji pour le profil Novice'), { target: { value: '🌿' } });
+    fireEvent.change(screen.getByLabelText('Emoji pour le profil Novice'), {
+      target: { value: '🌿' },
+    });
     expect(onRoleEmojiChange).toHaveBeenCalledWith('🌿');
     fireEvent.click(screen.getByRole('button', { name: 'Enregistrer PIN' }));
     expect(onSavePin).toHaveBeenCalledTimes(1);

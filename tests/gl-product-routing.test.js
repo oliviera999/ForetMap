@@ -38,9 +38,7 @@ test('resolveProductFromRequest reconnaît www.gl.*', () => {
 });
 
 test('fallback SPA accepte override x-foretmap-product=gl', async () => {
-  const res = await request(app)
-    .get('/quelque-chose')
-    .set('X-Foretmap-Product', 'gl');
+  const res = await request(app).get('/quelque-chose').set('X-Foretmap-Product', 'gl');
   assert.strictEqual(res.status, 200);
   assert.match(String(res.headers['content-type'] || ''), /html/i);
 });
@@ -53,9 +51,11 @@ test('token GL refusé sur API ForetMap (/api/tasks)', async () => {
     roleSlug: 'gl_player',
     permissions: ['gl.read'],
   });
-  const res = await request(app)
-    .get('/api/tasks')
-    .set('Authorization', `Bearer ${token}`);
+  const res = await request(app).get('/api/tasks').set('Authorization', `Bearer ${token}`);
   assert.strictEqual(res.status, 403);
-  assert.ok(String(res.body?.error || '').toLowerCase().includes('gnomes'));
+  assert.ok(
+    String(res.body?.error || '')
+      .toLowerCase()
+      .includes('gnomes'),
+  );
 });

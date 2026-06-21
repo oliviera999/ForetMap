@@ -8,6 +8,7 @@ import {
   normalizeDisplayMode,
   normalizeMarkerEmoji,
 } from '../../utils/glMarkerAppearance.js';
+import { useResolveGlMarkerIconDisplayUrl } from '../hooks/useResolveGlMarkerIconDisplayUrl.js';
 
 const DISPLAY_MODE_OPTIONS = [
   { value: 'label', label: 'Texte (titre)' },
@@ -53,6 +54,8 @@ export function GLMarkerAppearanceEditor({
   const displayMode = value?.displayMode || 'label';
   const emoji = value?.emoji ?? '';
   const iconUrl = value?.iconUrl ?? '';
+  const resolveIconUrl = useResolveGlMarkerIconDisplayUrl();
+  const previewIconUrl = iconUrl ? resolveIconUrl(iconUrl) || iconUrl : '';
 
   function patch(next) {
     onChange?.({
@@ -82,9 +85,7 @@ export function GLMarkerAppearanceEditor({
   return (
     <fieldset className="gl-marker-appearance-editor">
       <legend>Affichage sur la carte</legend>
-      <p className="gl-hint">
-        Le label reste utilisé dans les modales et pour l’accessibilité.
-      </p>
+      <p className="gl-hint">Le label reste utilisé dans les modales et pour l’accessibilité.</p>
       <label>
         Mode d’affichage
         <select
@@ -92,7 +93,9 @@ export function GLMarkerAppearanceEditor({
           onChange={(event) => handleDisplayModeChange(event.target.value)}
         >
           {DISPLAY_MODE_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>{option.label}</option>
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
           ))}
         </select>
       </label>
@@ -108,13 +111,22 @@ export function GLMarkerAppearanceEditor({
               spellCheck={false}
               maxLength={MAP_MARKER_EMOJI_MAX_LEN}
               value={emoji}
-              onChange={(event) => patch({
-                emoji: normalizeMarkerEmoji(event.target.value, { allowEmpty: true, fallback: '' }),
-              })}
+              onChange={(event) =>
+                patch({
+                  emoji: normalizeMarkerEmoji(event.target.value, {
+                    allowEmpty: true,
+                    fallback: '',
+                  }),
+                })
+              }
               style={{ fontSize: '1.2rem', maxWidth: 140 }}
             />
           </label>
-          <div className="gl-marker-appearance-editor__emoji-quick" role="group" aria-label="Emojis suggérés">
+          <div
+            className="gl-marker-appearance-editor__emoji-quick"
+            role="group"
+            aria-label="Emojis suggérés"
+          >
             {QUICK_EMOJIS.map((item) => (
               <button
                 key={item}
@@ -140,10 +152,10 @@ export function GLMarkerAppearanceEditor({
               placeholder="/uploads/media-library/..."
             />
           </label>
-          {iconUrl ? (
+          {previewIconUrl ? (
             <img
               className="gl-marker-appearance-editor__icon-preview"
-              src={iconUrl}
+              src={previewIconUrl}
               alt=""
               aria-hidden
             />
@@ -167,7 +179,7 @@ export function appearanceToPayload(appearanceForm) {
   if (!appearanceForm) return {};
   return {
     displayMode: appearanceForm.displayMode,
-    emoji: appearanceForm.displayMode === 'emoji' ? (appearanceForm.emoji || null) : null,
-    iconUrl: appearanceForm.displayMode === 'icon' ? (appearanceForm.iconUrl || null) : null,
+    emoji: appearanceForm.displayMode === 'emoji' ? appearanceForm.emoji || null : null,
+    iconUrl: appearanceForm.displayMode === 'icon' ? appearanceForm.iconUrl || null : null,
   };
 }

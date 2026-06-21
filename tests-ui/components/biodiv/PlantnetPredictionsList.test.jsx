@@ -22,7 +22,12 @@ describe('PlantnetPredictionsList', () => {
   });
 
   test('score absent/non fini → pas de « % »', () => {
-    render(<PlantnetPredictionsList predictions={[{ scientificName: 'Taxus', commonNames: [] }]} onApply={() => {}} />);
+    render(
+      <PlantnetPredictionsList
+        predictions={[{ scientificName: 'Taxus', commonNames: [] }]}
+        onApply={() => {}}
+      />,
+    );
     expect(screen.getByText('Taxus')).toBeInTheDocument();
   });
 

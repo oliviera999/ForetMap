@@ -33,7 +33,10 @@ test('parseFeuilletsWorkbook lit le fichier de référence', async () => {
 });
 
 test('buildFeuilletPayload valide le code', () => {
-  const { payload, errors } = buildFeuilletPayload({ feuillet_code: 'test-feui', type: 'feuillet' });
+  const { payload, errors } = buildFeuilletPayload({
+    feuillet_code: 'test-feui',
+    type: 'feuillet',
+  });
   assert.strictEqual(errors.length, 0);
   assert.strictEqual(payload.feuillet_code, 'test-feui');
 });
@@ -96,8 +99,22 @@ test('maskFeuilletText masque le texte', () => {
 
 test('filterLoreGlossaryList respecte le plafond spoiler', () => {
   const rows = [
-    { lore_code: 'LR1', terme: 'A', categorie: 'concept', niveau: 'cle', chapitre_scope: 'tous', statut: 'actif' },
-    { lore_code: 'LR2', terme: 'B', categorie: 'concept', niveau: 'secret', chapitre_scope: 'tous', statut: 'actif' },
+    {
+      lore_code: 'LR1',
+      terme: 'A',
+      categorie: 'concept',
+      niveau: 'cle',
+      chapitre_scope: 'tous',
+      statut: 'actif',
+    },
+    {
+      lore_code: 'LR2',
+      terme: 'B',
+      categorie: 'concept',
+      niveau: 'secret',
+      chapitre_scope: 'tous',
+      statut: 'actif',
+    },
   ];
   const filtered = filterLoreGlossaryList(rows, { maxSpoilerLevel: 'recit', isMj: false });
   assert.strictEqual(filtered.length, 1);
@@ -166,8 +183,17 @@ test('applyFeuilletsImport dry-run sans erreur fatale', async () => {
   const file = path.join(process.cwd(), 'data', 'gl', 'corpus-feuillets-selene.xlsx');
   const parsed = await parseFeuilletsWorkbook(fs.readFileSync(file));
   const catalogBiomes = [
-    'sahara', 'jungle_afc', 'toundra', 'foret_caducifoliee', 'savane', 'mangrove',
-    'taiga', 'foret_mediterraneenne', 'prairie_steppe', 'desert_froid', 'landes',
+    'sahara',
+    'jungle_afc',
+    'toundra',
+    'foret_caducifoliee',
+    'savane',
+    'mangrove',
+    'taiga',
+    'foret_mediterraneenne',
+    'prairie_steppe',
+    'desert_froid',
+    'landes',
   ];
   const deps = {
     queryAll: async (sql) => {

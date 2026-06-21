@@ -76,7 +76,10 @@ test.describe('GL responsive & accessibilité', () => {
     await expect(mapsTab).toHaveAttribute('aria-controls', 'gl-tabpanel-maps');
 
     await page.getByRole('tab', { name: 'Glossaire' }).click();
-    await expect(page.getByRole('tab', { name: 'Glossaire' })).toHaveAttribute('aria-selected', 'true');
+    await expect(page.getByRole('tab', { name: 'Glossaire' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
     await expect(page.locator('#gl-tabpanel-glossary')).toBeVisible();
   });
 
@@ -90,7 +93,10 @@ test.describe('GL responsive & accessibilité', () => {
     await expect(partiesTab).toHaveAttribute('aria-selected', 'true');
 
     await page.getByRole('tab', { name: /Équipes/ }).click();
-    await expect(page.getByRole('tab', { name: /Équipes/ })).toHaveAttribute('aria-selected', 'true');
+    await expect(page.getByRole('tab', { name: /Équipes/ })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
   });
 
   test('carte : HUD mobile et plein écran au clavier', async ({ page }) => {

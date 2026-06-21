@@ -9,10 +9,14 @@ import { createRequire } from 'module';
 
 const require = createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const { auditGlMediaKeys, formatAuditReport, loadKeysIndexFromFile } = require('../lib/glMediaKeysAudit.js');
+const {
+  auditGlMediaKeys,
+  formatAuditReport,
+  loadKeysIndexFromFile,
+} = require('../lib/glMediaKeysAudit.js');
 
-const keysPath = process.argv[2]
-  || path.join(__dirname, '..', 'uploads', 'media-library', '_keys.json');
+const keysPath =
+  process.argv[2] || path.join(__dirname, '..', 'uploads', 'media-library', '_keys.json');
 
 const index = loadKeysIndexFromFile(keysPath);
 const report = auditGlMediaKeys(index, { keysPath });

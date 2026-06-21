@@ -31,7 +31,10 @@ describe('mapAffiliation', () => {
 
     const scoped = mapsForAffiliationScope(maps, ['potager']);
 
-    assert.deepEqual(scoped.map((m) => m.id), ['potager']);
+    assert.deepEqual(
+      scoped.map((m) => m.id),
+      ['potager'],
+    );
   });
 
   it('retourne les cartes actives pour une affiliation both', () => {
@@ -43,6 +46,9 @@ describe('mapAffiliation', () => {
 
     const visible = mapsForAffiliationScope(maps, null);
 
-    assert.deepEqual(visible.map((m) => m.id), ['foret', 'potager']);
+    assert.deepEqual(
+      visible.map((m) => m.id),
+      ['foret', 'potager'],
+    );
   });
 });

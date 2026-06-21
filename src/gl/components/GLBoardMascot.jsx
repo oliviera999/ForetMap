@@ -14,11 +14,12 @@ export function GLBoardMascot({
   zIndex = 8,
 }) {
   const animationState = useMemo(
-    () => resolveVisitMascotState({
-      state: motion?.transientState || mascotState,
-      walking: motion?.walking,
-      happy: motion?.happy,
-    }),
+    () =>
+      resolveVisitMascotState({
+        state: motion?.transientState || mascotState,
+        walking: motion?.walking,
+        happy: motion?.happy,
+      }),
     [mascotState, motion?.walking, motion?.happy, motion?.transientState],
   );
 
@@ -40,11 +41,7 @@ export function GLBoardMascot({
           transform: `translate(-50%, -100%) scaleX(${faceRight ? 1 : -1})`,
         }}
       >
-        <GLMascotRenderer
-          mascotId={team.mascot_id}
-          mascotState={animationState}
-          boardMode
-        />
+        <GLMascotRenderer mascotId={team.mascot_id} mascotState={animationState} boardMode />
       </div>
     </div>
   );

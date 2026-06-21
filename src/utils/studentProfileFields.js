@@ -11,7 +11,7 @@ import { getVisitMascotCatalog } from './visitMascotCatalog.js';
 export function estimateDataUrlBytes(dataUrl) {
   const payload = String(dataUrl || '').split(',')[1] || '';
   if (!payload) return 0;
-  const padding = payload.endsWith('==') ? 2 : (payload.endsWith('=') ? 1 : 0);
+  const padding = payload.endsWith('==') ? 2 : payload.endsWith('=') ? 1 : 0;
   return Math.floor((payload.length * 3) / 4) - padding;
 }
 
@@ -31,7 +31,12 @@ export function deriveProfileTypeLabel(student, roleTerms) {
 export function isTeacherLikeAccount(student) {
   const roleSlug = String(student?.auth?.roleSlug || '').toLowerCase();
   const userType = String(student?.auth?.userType || student?.user_type || '').toLowerCase();
-  return roleSlug === 'admin' || roleSlug.startsWith('prof') || userType === 'teacher' || userType === 'user';
+  return (
+    roleSlug === 'admin' ||
+    roleSlug.startsWith('prof') ||
+    userType === 'teacher' ||
+    userType === 'user'
+  );
 }
 
 /** Endpoint PATCH de mise à jour du profil selon le type de compte. */

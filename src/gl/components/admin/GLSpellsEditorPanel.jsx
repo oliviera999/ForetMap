@@ -150,9 +150,17 @@ export function GLSpellsEditorPanel() {
       {info ? <p className="gl-hint">{info}</p> : null}
 
       <GLField label="Catégorie">
-        <GLSelect value={categorySlug} onChange={(e) => { setCategorySlug(e.target.value); setSelectedCode(null); }}>
+        <GLSelect
+          value={categorySlug}
+          onChange={(e) => {
+            setCategorySlug(e.target.value);
+            setSelectedCode(null);
+          }}
+        >
           {categories.map((c) => (
-            <option key={c.slug} value={c.slug}>{c.nom || c.slug}</option>
+            <option key={c.slug} value={c.slug}>
+              {c.nom || c.slug}
+            </option>
           ))}
         </GLSelect>
       </GLField>
@@ -160,7 +168,11 @@ export function GLSpellsEditorPanel() {
       <div className="gl-chapters-admin-grid">
         <aside>
           <GLField label="Recherche">
-            <GLInput value={filterQ} onChange={(e) => setFilterQ(e.target.value)} placeholder="Nom ou code…" />
+            <GLInput
+              value={filterQ}
+              onChange={(e) => setFilterQ(e.target.value)}
+              placeholder="Nom ou code…"
+            />
           </GLField>
           <ul className="gl-chapters-admin-list">
             {filteredItems.map((row) => (
@@ -170,15 +182,18 @@ export function GLSpellsEditorPanel() {
                   className={selectedCode === row.spell_code ? 'is-active' : ''}
                   onClick={() => loadSpell(row.spell_code)}
                 >
-                  <span aria-hidden="true">{row.emoji || '✨'}</span>
-                  {' '}
-                  <strong>{row.nom}</strong>
+                  <span aria-hidden="true">{row.emoji || '✨'}</span> <strong>{row.nom}</strong>
                   <span className="gl-hint">{row.spell_code}</span>
                 </button>
               </li>
             ))}
           </ul>
-          <GLButton type="button" variant="secondary" onClick={startNewSpell} disabled={loading || !categorySlug}>
+          <GLButton
+            type="button"
+            variant="secondary"
+            onClick={startNewSpell}
+            disabled={loading || !categorySlug}
+          >
             + Nouveau sort
           </GLButton>
         </aside>

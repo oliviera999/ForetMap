@@ -29,7 +29,10 @@ export function clampVisitMascotPctForViewport(xp, yp, fitHeightPx = 0) {
   const nx = Math.max(0, Math.min(100, Number(xp) || 0));
   const rawY = Math.max(0, Math.min(100, Number(yp) || 0));
   if (!(fitHeightPx > 0)) return { xp: nx, yp: rawY };
-  const minVisibleY = Math.max(6, (VISIT_MAP_MASCOT_ESTIMATED_HEIGHT_PX / Math.max(1, fitHeightPx)) * 100);
+  const minVisibleY = Math.max(
+    6,
+    (VISIT_MAP_MASCOT_ESTIMATED_HEIGHT_PX / Math.max(1, fitHeightPx)) * 100,
+  );
   const ny = Math.max(minVisibleY, Math.min(99.2, rawY));
   return { xp: nx, yp: ny };
 }

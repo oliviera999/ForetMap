@@ -17,7 +17,7 @@ describe('visitZoneSvgTextUniformYTransform', () => {
   test('transform SVG quand largeur ≠ hauteur', () => {
     // ratio = 200/100 = 2
     expect(visitZoneSvgTextUniformYTransform(50, 30, 200, 100)).toBe(
-      'translate(50,30) scale(1,2) translate(-50,-30)'
+      'translate(50,30) scale(1,2) translate(-50,-30)',
     );
   });
 });

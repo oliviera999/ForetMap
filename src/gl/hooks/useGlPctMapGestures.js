@@ -11,11 +11,14 @@ export function useGlPctMapGestures() {
     return point;
   }, []);
 
-  const api = useMemo(() => ({
-    containerRef,
-    imageRef,
-    toImagePct,
-  }), [toImagePct]);
+  const api = useMemo(
+    () => ({
+      containerRef,
+      imageRef,
+      toImagePct,
+    }),
+    [toImagePct],
+  );
 
   return api;
 }

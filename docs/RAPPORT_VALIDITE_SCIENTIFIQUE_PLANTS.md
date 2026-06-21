@@ -43,14 +43,14 @@ Impact: ces fiches affichent une information scientifiquement fausse.
 
 ### C) Noms scientifiques à fiabilité faible / ambigus
 
-- `Planorbe` (`id=24`) -> `Planorbia sp.`  
+- `Planorbe` (`id=24`) -> `Planorbia sp.`
   - Non reconnu par GBIF en l’état.
   - Très probable confusion avec **Planorbidae** (famille) ou un autre genre.
-- `Chara` (`id=34`) -> `Chara sp.`  
+- `Chara` (`id=34`) -> `Chara sp.`
   - Forme acceptable dans l’absolu, mais trop générique (genre non déterminé).
-- `Vers de terre` (`id=26`) -> `Eisenia sp.`  
+- `Vers de terre` (`id=26`) -> `Eisenia sp.`
   - Forme acceptable, mais taxon non déterminé au niveau espèce.
-- `Pléco albinos` (`id=39`) -> `Plécostomus plecostomus`  
+- `Pléco albinos` (`id=39`) -> `Plécostomus plecostomus`
   - Nom reconnu comme forme synonyme/ancienne (orthographe avec accent non standard en taxonomie).
   - Préférer une forme canonique sans accent.
 
@@ -83,4 +83,3 @@ La table `plants` est globalement exploitable, mais contient des erreurs scienti
 - quelques noms scientifiques manquants ou à normaliser.
 
 Une passe de correction ciblée sur ~11 entrées permettrait d’atteindre un niveau de fiabilité scientifique nettement meilleur.
-

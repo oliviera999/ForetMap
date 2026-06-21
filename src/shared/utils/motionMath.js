@@ -38,7 +38,12 @@ export function parseRootMargin(rootMargin = '0px') {
     return { top: v0, right: v1, bottom: v0, left: v1 };
   }
   if (parts.length === 3) {
-    return { top: toPx(parts[0]), right: toPx(parts[1]), bottom: toPx(parts[2]), left: toPx(parts[1]) };
+    return {
+      top: toPx(parts[0]),
+      right: toPx(parts[1]),
+      bottom: toPx(parts[2]),
+      left: toPx(parts[1]),
+    };
   }
   return {
     top: toPx(parts[0]),
@@ -55,11 +60,7 @@ export function parseRootMargin(rootMargin = '0px') {
  */
 export function isElementScrollRevealVisible(el, options = {}) {
   if (!el || typeof el.getBoundingClientRect !== 'function') return false;
-  const {
-    rootMargin = '0px 0px -80px 0px',
-    threshold = 0.08,
-    viewport = null,
-  } = options;
+  const { rootMargin = '0px 0px -80px 0px', threshold = 0.08, viewport = null } = options;
   const vp = viewport || {
     top: 0,
     left: 0,

@@ -56,9 +56,7 @@ describe('GLSpellCastResultPopover', () => {
 
   test('affiche casters, coût et description du sort', async () => {
     const onClose = vi.fn();
-    render(
-      <GLSpellCastResultPopover open result={mockResult} onClose={onClose} />,
-    );
+    render(<GLSpellCastResultPopover open result={mockResult} onClose={onClose} />);
 
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     expect(screen.getByText('Bouclier magique')).toBeInTheDocument();
@@ -75,9 +73,7 @@ describe('GLSpellCastResultPopover', () => {
 
   test('ferme via le bouton Compris', async () => {
     const onClose = vi.fn();
-    render(
-      <GLSpellCastResultPopover open result={mockResult} onClose={onClose} />,
-    );
+    render(<GLSpellCastResultPopover open result={mockResult} onClose={onClose} />);
     await userEvent.click(screen.getByRole('button', { name: /Compris/i }));
     expect(onClose).toHaveBeenCalled();
   });

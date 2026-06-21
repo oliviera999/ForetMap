@@ -33,14 +33,8 @@ test('normalizeVisitMascotId respecte la liste autorisée et le défaut configur
     allowedMascotIds: ['sprout-rive', 'renard2-cut-spritesheet'],
     defaultMascotId: 'sprout-rive',
   };
-  assert.equal(
-    normalizeVisitMascotId('sprout-rive', [], options),
-    'sprout-rive',
-  );
-  assert.equal(
-    normalizeVisitMascotId('fox-backpack-spritesheet', [], options),
-    'sprout-rive',
-  );
+  assert.equal(normalizeVisitMascotId('sprout-rive', [], options), 'sprout-rive');
+  assert.equal(normalizeVisitMascotId('fox-backpack-spritesheet', [], options), 'sprout-rive');
   assert.equal(
     getDefaultVisitMascotId(options.allowedMascotIds, [], options.defaultMascotId),
     'sprout-rive',
@@ -49,13 +43,19 @@ test('normalizeVisitMascotId respecte la liste autorisée et le défaut configur
 
 test('buildVisitMascotSelectionOptions inclut toujours les packs serveur publiés', async () => {
   const { buildVisitMascotSelectionOptions, normalizeVisitMascotId } = await loadModule();
-  const extras = [{
-    id: 'srv-pack-test',
-    label: 'Pack test',
-    renderer: 'sprite_cut',
-    fallbackSilhouette: 'gnome',
-    spriteCut: { frameWidth: 32, frameHeight: 32, stateFrames: { idle: { srcs: ['/x.png'], fps: 8 } } },
-  }];
+  const extras = [
+    {
+      id: 'srv-pack-test',
+      label: 'Pack test',
+      renderer: 'sprite_cut',
+      fallbackSilhouette: 'gnome',
+      spriteCut: {
+        frameWidth: 32,
+        frameHeight: 32,
+        stateFrames: { idle: { srcs: ['/x.png'], fps: 8 } },
+      },
+    },
+  ];
   const allowed = ['renard2-cut-spritesheet'];
   const options = buildVisitMascotSelectionOptions(extras, allowed);
   assert.ok(options.some((entry) => entry.id === 'renard2-cut-spritesheet'));
@@ -67,10 +67,7 @@ test('buildVisitMascotSelectionOptions inclut toujours les packs serveur publié
 });
 
 test('catalogue inclut SPR0UT et SCR4P avec états étendus', async () => {
-  const {
-    getVisitMascotById,
-    getVisitMascotSupportedStates,
-  } = await loadModule();
+  const { getVisitMascotById, getVisitMascotSupportedStates } = await loadModule();
 
   const sprout = getVisitMascotById('sprout-rive');
   const scrap = getVisitMascotById('scrap-rive');

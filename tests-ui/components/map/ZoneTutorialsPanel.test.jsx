@@ -38,9 +38,13 @@ describe('ZoneTutorialsTeacherPanel', () => {
 
   test('bouton « Lier » désactivé tant que linkTutorialId vide, actif sinon', () => {
     const onLink = vi.fn();
-    const { rerender } = render(<ZoneTutorialsTeacherPanel {...baseProps} onLinkTutorial={onLink} />);
+    const { rerender } = render(
+      <ZoneTutorialsTeacherPanel {...baseProps} onLinkTutorial={onLink} />,
+    );
     expect(screen.getByText('🔗 Lier le tutoriel').disabled).toBe(true);
-    rerender(<ZoneTutorialsTeacherPanel {...baseProps} linkTutorialId="7" onLinkTutorial={onLink} />);
+    rerender(
+      <ZoneTutorialsTeacherPanel {...baseProps} linkTutorialId="7" onLinkTutorial={onLink} />,
+    );
     const btn = screen.getByText('🔗 Lier le tutoriel');
     expect(btn.disabled).toBe(false);
     fireEvent.click(btn);
@@ -61,7 +65,9 @@ describe('ZoneTutorialsTeacherPanel', () => {
 
 describe('ZoneTutorialsStudentPanel', () => {
   test('état vide → message zone', () => {
-    render(<ZoneTutorialsStudentPanel tutorials={[]} zoneId={1} onOpenTutorialPreview={() => {}} />);
+    render(
+      <ZoneTutorialsStudentPanel tutorials={[]} zoneId={1} onOpenTutorialPreview={() => {}} />,
+    );
     expect(screen.getByText('Aucun tutoriel lié à cette zone.')).toBeTruthy();
   });
 

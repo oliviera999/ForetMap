@@ -15,12 +15,15 @@ import { GLLoreFeuilletsImportPanel } from './admin/GLLoreFeuilletsImportPanel.j
 import { GLLoreGlossaryImportPanel } from './admin/GLLoreGlossaryImportPanel.jsx';
 import { GLContentLibraryView } from './admin/GLContentLibraryView.jsx';
 import { GLIntroAdminPanel } from './admin/GLIntroAdminPanel.jsx';
+import { GLHelpContentAdminPanel } from './admin/GLHelpContentAdminPanel.jsx';
 
 export function GLContentsAdminView({
   auth,
   onNavigateTab,
   glossaryLinkItems = [],
+  loreGlossaryLinkItems = [],
   onOpenGlossaryTerm,
+  onOpenLoreTerm,
 }) {
   const [section, setSection] = useState('pages');
   const [items, setItems] = useState([]);
@@ -131,6 +134,14 @@ export function GLContentsAdminView({
         </button>
         <button
           type="button"
+          className={section === 'help' ? 'is-active' : ''}
+          onClick={() => setSection('help')}
+          data-subtab="help"
+        >
+          Bulles d'aide
+        </button>
+        <button
+          type="button"
           className={section === 'library' ? 'is-active' : ''}
           onClick={() => setSection('library')}
           data-subtab="library"
@@ -195,12 +206,20 @@ export function GLContentsAdminView({
         <GLLoreGlossaryImportPanel />
       ) : section === 'intro' ? (
         <GLIntroAdminPanel />
+      ) : section === 'help' ? (
+        <GLHelpContentAdminPanel />
       ) : section === 'library' ? (
         <GLContentLibraryView onOpenSubTab={setSection} />
       ) : section === 'qcm-lore' ? (
-        <GLQcmLoreImportPanel />
+        <GLQcmLoreImportPanel
+          loreGlossaryLinkItems={loreGlossaryLinkItems}
+          onOpenLoreTerm={onOpenLoreTerm}
+        />
       ) : (
-        <GLQcmImportPanel />
+        <GLQcmImportPanel
+          glossaryLinkItems={glossaryLinkItems}
+          onOpenGlossaryTerm={onOpenGlossaryTerm}
+        />
       )}
     </section>
   );

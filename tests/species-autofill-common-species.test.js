@@ -59,8 +59,12 @@ function createAutofillFetchMock(f) {
         return jsonResponse({
           title: f.wdLabel || q.charAt(0).toUpperCase() + q.slice(1),
           extract: f.wikipediaExtract,
-          thumbnail: { source: `https://upload.wikimedia.org/wikipedia/commons/thumb/mock/${f.usageKey}.jpg/320px-mock.jpg` },
-          content_urls: { desktop: { page: `https://fr.wikipedia.org/wiki/${encodeURIComponent(q)}` } },
+          thumbnail: {
+            source: `https://upload.wikimedia.org/wikipedia/commons/thumb/mock/${f.usageKey}.jpg/320px-mock.jpg`,
+          },
+          content_urls: {
+            desktop: { page: `https://fr.wikipedia.org/wiki/${encodeURIComponent(q)}` },
+          },
         });
       }
     }
@@ -89,7 +93,10 @@ function createAutofillFetchMock(f) {
       });
     }
 
-    if (raw.includes('api.gbif.org/v1/species/match') && raw.includes(`name=${encodeURIComponent(q)}`)) {
+    if (
+      raw.includes('api.gbif.org/v1/species/match') &&
+      raw.includes(`name=${encodeURIComponent(q)}`)
+    ) {
       return jsonResponse({
         confidence: 96,
         canonicalName: f.wdLabel || q,
@@ -104,16 +111,24 @@ function createAutofillFetchMock(f) {
     if (raw.includes(`/species/${f.usageKey}/descriptions`)) {
       return jsonResponse({
         results: [
-          { type: 'habit', language: 'fra', description: f.gbifHabit || 'plante herbacée bisannuelle ou vivace' },
-          { type: 'native range', language: 'fra', description: f.gbifRange || 'zones tempérées et subtropicales' },
+          {
+            type: 'habit',
+            language: 'fra',
+            description: f.gbifHabit || 'plante herbacée bisannuelle ou vivace',
+          },
+          {
+            type: 'native range',
+            language: 'fra',
+            description: f.gbifRange || 'zones tempérées et subtropicales',
+          },
         ],
       });
     }
 
     if (
-      raw.includes(`api.gbif.org/v1/species/${f.usageKey}`)
-      && !raw.includes('vernacularNames')
-      && !raw.includes('/descriptions')
+      raw.includes(`api.gbif.org/v1/species/${f.usageKey}`) &&
+      !raw.includes('vernacularNames') &&
+      !raw.includes('/descriptions')
     ) {
       return jsonResponse({ taxonomicStatus: 'ACCEPTED', remarks: '' });
     }
@@ -127,37 +142,47 @@ function createAutofillFetchMock(f) {
       });
     }
 
-    if (raw.includes('api.checklistbank.org/dataset/3LR/nameusage/search') && raw.includes(`q=${encodeURIComponent(sci)}`)) {
+    if (
+      raw.includes('api.checklistbank.org/dataset/3LR/nameusage/search') &&
+      raw.includes(`q=${encodeURIComponent(sci)}`)
+    ) {
       return jsonResponse({
-        result: [{
-          id: `COL-FM-${f.usageKey}`,
-          name: sci,
-          classification: [
-            { rank: 'kingdom', name: f.kingdom },
-            { rank: 'order', name: f.order },
-            { rank: 'family', name: f.family },
-          ],
-        }],
+        result: [
+          {
+            id: `COL-FM-${f.usageKey}`,
+            name: sci,
+            classification: [
+              { rank: 'kingdom', name: f.kingdom },
+              { rank: 'order', name: f.order },
+              { rank: 'family', name: f.family },
+            ],
+          },
+        ],
       });
     }
 
     if (raw.includes('api.inaturalist.org/v1/taxa')) {
-      if (raw.includes(`q=${encodeURIComponent(q)}`) || raw.includes(`q=${encodeURIComponent(sci)}`)) {
+      if (
+        raw.includes(`q=${encodeURIComponent(q)}`) ||
+        raw.includes(`q=${encodeURIComponent(sci)}`)
+      ) {
         return jsonResponse({
-          results: [{
-            id: Math.floor(50000 + (f.usageKey % 9000)),
-            rank: 'species',
-            name: sci,
-            preferred_common_name: f.iNatCommon || q.charAt(0).toUpperCase() + q.slice(1),
-            observations_count: 18000,
-            matched_term: q,
-            default_photo: {
-              url: `https://inaturalist-open-data.s3.amazonaws.com/photos/${f.usageKey}/medium.jpg`,
-              license_code: 'cc-by',
-              attribution: '(c) Test communautaire, CC BY',
+          results: [
+            {
+              id: Math.floor(50000 + (f.usageKey % 9000)),
+              rank: 'species',
+              name: sci,
+              preferred_common_name: f.iNatCommon || q.charAt(0).toUpperCase() + q.slice(1),
+              observations_count: 18000,
+              matched_term: q,
+              default_photo: {
+                url: `https://inaturalist-open-data.s3.amazonaws.com/photos/${f.usageKey}/medium.jpg`,
+                license_code: 'cc-by',
+                attribution: '(c) Test communautaire, CC BY',
+              },
+              wikipedia_summary: `Taxon ${sci} fréquent en milieu cultivé et naturel (données de test).`,
             },
-            wikipedia_summary: `Taxon ${sci} fréquent en milieu cultivé et naturel (données de test).`,
-          }],
+          ],
         });
       }
     }
@@ -165,9 +190,12 @@ function createAutofillFetchMock(f) {
     if (raw.includes('en.wikipedia.org/api/rest_v1/page/summary')) {
       return jsonResponse({
         title: sci,
-        extract:
-          `${sci} is a widespread species used in agriculture and gardens; long extract for tests.`,
-        content_urls: { desktop: { page: `https://en.wikipedia.org/wiki/${encodeURIComponent(sci.replace(/ /g, '_'))}` } },
+        extract: `${sci} is a widespread species used in agriculture and gardens; long extract for tests.`,
+        content_urls: {
+          desktop: {
+            page: `https://en.wikipedia.org/wiki/${encodeURIComponent(sci.replace(/ /g, '_'))}`,
+          },
+        },
       });
     }
 
@@ -264,18 +292,34 @@ describe('Pré-saisie — espèces communes (mocks HTTP)', () => {
       const fetchImpl = createAutofillFetchMock(spec);
       const result = await buildSpeciesAutofill(spec.query, { fetchImpl, timeoutMs: 2500 });
       assert.equal(result.query, spec.query);
-      assert.equal(result.fields.scientific_name, spec.scientific, `scientific_name pour ${spec.query}`);
+      assert.equal(
+        result.fields.scientific_name,
+        spec.scientific,
+        `scientific_name pour ${spec.query}`,
+      );
       assert.ok(result.confidence > 0.2, `confiance > 0 pour ${spec.query}`);
-      assert.ok((result.sources || []).some((s) => s.source === 'gbif'), `source gbif pour ${spec.query}`);
-      assert.ok((result.sources || []).some((s) => s.source === 'wikidata'), `source wikidata pour ${spec.query}`);
-      assert.ok((result.sources || []).some((s) => s.source === 'wikipedia'), `source wikipedia pour ${spec.query}`);
+      assert.ok(
+        (result.sources || []).some((s) => s.source === 'gbif'),
+        `source gbif pour ${spec.query}`,
+      );
+      assert.ok(
+        (result.sources || []).some((s) => s.source === 'wikidata'),
+        `source wikidata pour ${spec.query}`,
+      );
+      assert.ok(
+        (result.sources || []).some((s) => s.source === 'wikipedia'),
+        `source wikipedia pour ${spec.query}`,
+      );
       assert.ok((result.photos || []).length >= 1, `au moins une photo pour ${spec.query}`);
     });
   }
 
   test('indices formulaire : hint scientifique binomial prioritaire pour pickScientificSeed', () => {
     assert.equal(
-      pickScientificSeed('pomme de terre', [], { scientific_name: 'Solanum tuberosum', name: 'pomme de terre' }),
+      pickScientificSeed('pomme de terre', [], {
+        scientific_name: 'Solanum tuberosum',
+        name: 'pomme de terre',
+      }),
       'Solanum tuberosum',
     );
   });
@@ -303,9 +347,18 @@ describe('Pré-saisie — espèces communes (mocks HTTP)', () => {
       sourcesAllowed: ['wikipedia', 'gbif'],
     });
     assert.ok(!urls.some((u) => u.includes('wikidata.org')), 'Wikidata ne doit pas être appelé');
-    assert.ok(!urls.some((u) => u.includes('inaturalist.org')), 'iNaturalist ne doit pas être appelé');
-    assert.ok(urls.some((u) => u.includes('wikipedia.org')), 'Wikipedia doit être appelé');
-    assert.ok(urls.some((u) => u.includes('api.gbif.org/v1/species/match')), 'GBIF match doit être appelé');
+    assert.ok(
+      !urls.some((u) => u.includes('inaturalist.org')),
+      'iNaturalist ne doit pas être appelé',
+    );
+    assert.ok(
+      urls.some((u) => u.includes('wikipedia.org')),
+      'Wikipedia doit être appelé',
+    );
+    assert.ok(
+      urls.some((u) => u.includes('api.gbif.org/v1/species/match')),
+      'GBIF match doit être appelé',
+    );
     assert.equal(result.fields.scientific_name, 'Solanum lycopersicum');
   });
 });

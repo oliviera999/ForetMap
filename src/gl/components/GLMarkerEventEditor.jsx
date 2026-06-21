@@ -41,10 +41,7 @@ export function GLMarkerEventEditor({
 
   const isLoreSet = form.questionSet === 'lore';
 
-  const chapterBiomeSlugs = useMemo(
-    () => chapterBiomeSlugsFrom(chapterBiomes),
-    [chapterBiomes]
-  );
+  const chapterBiomeSlugs = useMemo(() => chapterBiomeSlugsFrom(chapterBiomes), [chapterBiomes]);
 
   useEffect(() => {
     setForm(formFromMarker(marker));
@@ -68,11 +65,17 @@ export function GLMarkerEventEditor({
           apiGL('/api/gl/lore/qcm/scopes'),
         ]);
         if (cancelled) return;
-        setAllBiomes(Array.isArray(biomesData) ? biomesData : (biomesData?.items || []));
+        setAllBiomes(Array.isArray(biomesData) ? biomesData : biomesData?.items || []);
         setLoreScopes(Array.isArray(scopeData) ? scopeData : []);
-        setCategories(isLoreSet
-          ? (Array.isArray(loreCatData) ? loreCatData : [])
-          : (Array.isArray(biomeCatData) ? biomeCatData : []));
+        setCategories(
+          isLoreSet
+            ? Array.isArray(loreCatData)
+              ? loreCatData
+              : []
+            : Array.isArray(biomeCatData)
+              ? biomeCatData
+              : [],
+        );
       } catch (_) {
         if (!cancelled) {
           setAllBiomes([]);
@@ -81,12 +84,14 @@ export function GLMarkerEventEditor({
         }
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [isLoreSet]);
 
   const effectiveBiomeSlugs = useMemo(
     () => computeEffectiveBiomeSlugs(form.pool, chapterBiomeSlugs),
-    [form.pool, chapterBiomeSlugs]
+    [form.pool, chapterBiomeSlugs],
   );
 
   const loadPoolPreview = useCallback(async () => {
@@ -150,13 +155,10 @@ export function GLMarkerEventEditor({
 
   const additionalBiomeOptions = useMemo(
     () => buildAdditionalBiomeOptions(allBiomes, chapterBiomeSlugs),
-    [allBiomes, chapterBiomeSlugs]
+    [allBiomes, chapterBiomeSlugs],
   );
 
-  const categoryOptions = useMemo(
-    () => buildCategoryOptions(categories),
-    [categories]
-  );
+  const categoryOptions = useMemo(() => buildCategoryOptions(categories), [categories]);
 
   const niveauOptions = useMemo(() => buildNiveauOptions(poolItems), [poolItems]);
 
@@ -180,17 +182,17 @@ export function GLMarkerEventEditor({
     }));
   }
 
-  const loreScopeOptions = useMemo(
-    () => buildLoreScopeOptions(loreScopes),
-    [loreScopes]
-  );
+  const loreScopeOptions = useMemo(() => buildLoreScopeOptions(loreScopes), [loreScopes]);
 
   const tierLoreOptions = TIER_LORE_OPTIONS;
 
   function toggleSelectedCode(code) {
     setForm((prev) => ({
       ...prev,
-      pool: { ...prev.pool, selectedQuestionCodes: toggleCodeInList(prev.pool.selectedQuestionCodes, code) },
+      pool: {
+        ...prev.pool,
+        selectedQuestionCodes: toggleCodeInList(prev.pool.selectedQuestionCodes, code),
+      },
     }));
   }
 
@@ -282,9 +284,7 @@ export function GLMarkerEventEditor({
               {form.fixedQuestionCode ? (
                 <>
                   {' '}
-                  Sélection actuelle :
-                  {' '}
-                  <strong>{form.fixedQuestionCode}</strong>
+                  Sélection actuelle : <strong>{form.fixedQuestionCode}</strong>
                 </>
               ) : null}
             </p>
@@ -309,10 +309,7 @@ export function GLMarkerEventEditor({
           />
         </>
       ) : (
-        <GLMarkerEffectsEditor
-          eventConfig={marker?.event_config}
-          onChange={onEffectsDraftChange}
-        />
+        <GLMarkerEffectsEditor eventConfig={marker?.event_config} onChange={onEffectsDraftChange} />
       )}
     </div>
   );

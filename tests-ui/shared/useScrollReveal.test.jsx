@@ -34,20 +34,26 @@ describe('useScrollReveal', () => {
     };
 
     Object.defineProperty(window, 'innerWidth', { value: 800, configurable: true, writable: true });
-    Object.defineProperty(window, 'innerHeight', { value: 600, configurable: true, writable: true });
-
-    rectSpy = vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function mockRect() {
-      return {
-        top: 40,
-        left: 0,
-        bottom: 140,
-        right: 320,
-        width: 320,
-        height: 100,
-        x: 0,
-        y: 40,
-      };
+    Object.defineProperty(window, 'innerHeight', {
+      value: 600,
+      configurable: true,
+      writable: true,
     });
+
+    rectSpy = vi
+      .spyOn(Element.prototype, 'getBoundingClientRect')
+      .mockImplementation(function mockRect() {
+        return {
+          top: 40,
+          left: 0,
+          bottom: 140,
+          right: 320,
+          width: 320,
+          height: 100,
+          x: 0,
+          y: 40,
+        };
+      });
 
     render(<TestReveal rootMargin="0px" threshold={0.01} />);
 
@@ -68,20 +74,26 @@ describe('useScrollReveal', () => {
     };
 
     Object.defineProperty(window, 'innerWidth', { value: 800, configurable: true, writable: true });
-    Object.defineProperty(window, 'innerHeight', { value: 600, configurable: true, writable: true });
-
-    rectSpy = vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function mockRect() {
-      return {
-        top: 40,
-        left: 0,
-        bottom: 140,
-        right: 320,
-        width: 320,
-        height: 100,
-        x: 0,
-        y: 40,
-      };
+    Object.defineProperty(window, 'innerHeight', {
+      value: 600,
+      configurable: true,
+      writable: true,
     });
+
+    rectSpy = vi
+      .spyOn(Element.prototype, 'getBoundingClientRect')
+      .mockImplementation(function mockRect() {
+        return {
+          top: 40,
+          left: 0,
+          bottom: 140,
+          right: 320,
+          width: 320,
+          height: 100,
+          x: 0,
+          y: 40,
+        };
+      });
 
     function TestDelayedReveal() {
       const [show, setShow] = useState(false);

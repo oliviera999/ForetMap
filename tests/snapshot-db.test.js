@@ -3,7 +3,11 @@ const assert = require('node:assert/strict');
 const request = require('supertest');
 
 if (String(process.env.FORETMAP_SNAPSHOT_TESTS || '').trim() !== '1') {
-  test('snapshot DB: désactivé', { skip: 'Définir FORETMAP_SNAPSHOT_TESTS=1 pour activer ce test.' }, () => {});
+  test(
+    'snapshot DB: désactivé',
+    { skip: 'Définir FORETMAP_SNAPSHOT_TESTS=1 pour activer ce test.' },
+    () => {},
+  );
 } else {
   require('./helpers/setup');
   const { app } = require('../server');

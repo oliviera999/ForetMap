@@ -11,7 +11,7 @@ function deploySecretFromEnv() {
     process.env.DEPLOY_SECRET ||
       process.env.FORETMAP_DEPLOY_CHECK_SECRET ||
       process.env.FORETMAP_DEPLOY_SECRET ||
-      ''
+      '',
   ).trim();
 }
 

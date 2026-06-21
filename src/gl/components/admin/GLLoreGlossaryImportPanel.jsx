@@ -47,22 +47,45 @@ export function GLLoreGlossaryImportPanel() {
   return (
     <section className="gl-admin-import-panel">
       <h3>Import glossaire lore (XLSX)</h3>
-      <p className="gl-hint">Feuille attendue : glossaire (cf. data/gl/glossaire-lore-gnomes-et-licornes.xlsx).</p>
+      <p className="gl-hint">
+        Feuille attendue : glossaire (cf. data/gl/glossaire-lore-gnomes-et-licornes.xlsx).
+      </p>
       <div className="gl-admin-import-actions">
-        <GLButton type="button" disabled={loading} onClick={() => downloadGlFile('/api/gl/lore/admin/glossary/import/template', 'modele-glossaire-lore.xlsx')}>
+        <GLButton
+          type="button"
+          disabled={loading}
+          onClick={() =>
+            downloadGlFile(
+              '/api/gl/lore/admin/glossary/import/template',
+              'modele-glossaire-lore.xlsx',
+            )
+          }
+        >
           Modèle XLSX
         </GLButton>
-        <GLButton type="button" disabled={loading} onClick={() => downloadGlFile('/api/gl/lore/admin/glossary/export', 'export-glossaire-lore.xlsx')}>
+        <GLButton
+          type="button"
+          disabled={loading}
+          onClick={() =>
+            downloadGlFile('/api/gl/lore/admin/glossary/export', 'export-glossaire-lore.xlsx')
+          }
+        >
           Exporter le catalogue
         </GLButton>
       </div>
       <form onSubmit={runImport}>
-        <input type="file" accept=".xlsx,.xls" onChange={(e) => setFile(e.target.files?.[0] || null)} />
+        <input
+          type="file"
+          accept=".xlsx,.xls"
+          onChange={(e) => setFile(e.target.files?.[0] || null)}
+        />
         <label>
           <input type="checkbox" checked={dryRun} onChange={(e) => setDryRun(e.target.checked)} />
           Simulation (dry-run)
         </label>
-        <GLButton type="submit" disabled={loading}>{loading ? 'Import…' : 'Importer'}</GLButton>
+        <GLButton type="submit" disabled={loading}>
+          {loading ? 'Import…' : 'Importer'}
+        </GLButton>
       </form>
       {error ? <p className="gl-error">{error}</p> : null}
       {info ? <p className="gl-success">{info}</p> : null}

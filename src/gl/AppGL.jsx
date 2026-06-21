@@ -20,6 +20,8 @@ import {
   computePlayerVitality,
   findPlayerMascotId,
 } from './utils/glGameplayRules.js';
+import { resolvePlateauMapVisibility } from './utils/glPlateauMapVisibility.js';
+import { markerBackgroundStyleFromSettings } from './utils/glMarkerBackgrounds.js';
 import { GLAuthView } from './components/GLAuthView.jsx';
 import { GLTopBar, GL_TAB_ID_PREFIX, GL_TABPANEL_ID_PREFIX } from './components/GLTopBar.jsx';
 import { useGlCompactNav } from './hooks/useGlCompactNav.js';
@@ -43,28 +45,52 @@ import { useGLSpellCast } from './hooks/useGLSpellCast.js';
 import { buildSpellCastResultViewModel } from './utils/glSpellCastRules.js';
 // Vues d'onglet chargees a la demande (lazy) : restent hors du chunk gl initial.
 // Vues staff/admin (rarement chargees par un joueur) + onglets secondaires souvent module-gated.
-const GLHistoryView = lazy(() => import('./components/GLHistoryView.jsx').then((m) => ({ default: m.GLHistoryView })));
-const GLUsersAdminView = lazy(() => import('./components/GLUsersAdminView.jsx').then((m) => ({ default: m.GLUsersAdminView })));
-const GLContentsAdminView = lazy(() => import('./components/GLContentsAdminView.jsx').then((m) => ({ default: m.GLContentsAdminView })));
-const GLSettingsView = lazy(() => import('./components/GLSettingsView.jsx').then((m) => ({ default: m.GLSettingsView })));
-const GLMascotsAdminView = lazy(() => import('./components/GLMascotsAdminView.jsx').then((m) => ({ default: m.GLMascotsAdminView })));
-const GLGameMasterConsole = lazy(() => import('./components/GLGameMasterConsole.jsx').then((m) => ({ default: m.GLGameMasterConsole })));
+const GLHistoryView = lazy(() =>
+  import('./components/GLHistoryView.jsx').then((m) => ({ default: m.GLHistoryView })),
+);
+const GLUsersAdminView = lazy(() =>
+  import('./components/GLUsersAdminView.jsx').then((m) => ({ default: m.GLUsersAdminView })),
+);
+const GLContentsAdminView = lazy(() =>
+  import('./components/GLContentsAdminView.jsx').then((m) => ({ default: m.GLContentsAdminView })),
+);
+const GLSettingsView = lazy(() =>
+  import('./components/GLSettingsView.jsx').then((m) => ({ default: m.GLSettingsView })),
+);
+const GLMascotsAdminView = lazy(() =>
+  import('./components/GLMascotsAdminView.jsx').then((m) => ({ default: m.GLMascotsAdminView })),
+);
+const GLGameMasterConsole = lazy(() =>
+  import('./components/GLGameMasterConsole.jsx').then((m) => ({ default: m.GLGameMasterConsole })),
+);
 import { useGLMascotStateMachine } from './hooks/useGLMascotStateMachine.js';
 import { useGLNotificationCenter } from './hooks/useGLNotificationCenter.js';
-const GLForumView = lazy(() => import('./components/GLForumView.jsx').then((m) => ({ default: m.GLForumView })));
-const GLMarketView = lazy(() => import('./components/GLMarketView.jsx').then((m) => ({ default: m.GLMarketView })));
-const GLTutorialsView = lazy(() => import('./components/GLTutorialsView.jsx').then((m) => ({ default: m.GLTutorialsView })));
-const GLJournalView = lazy(() => import('./components/GLJournalView.jsx').then((m) => ({ default: m.GLJournalView })));
-const GLPlayerJournalView = lazy(() => import('./components/GLPlayerJournalView.jsx').then((m) => ({ default: m.GLPlayerJournalView })));
+const GLForumView = lazy(() =>
+  import('./components/GLForumView.jsx').then((m) => ({ default: m.GLForumView })),
+);
+const GLMarketView = lazy(() =>
+  import('./components/GLMarketView.jsx').then((m) => ({ default: m.GLMarketView })),
+);
+const GLTutorialsView = lazy(() =>
+  import('./components/GLTutorialsView.jsx').then((m) => ({ default: m.GLTutorialsView })),
+);
+const GLJournalView = lazy(() =>
+  import('./components/GLJournalView.jsx').then((m) => ({ default: m.GLJournalView })),
+);
+const GLPlayerJournalView = lazy(() =>
+  import('./components/GLPlayerJournalView.jsx').then((m) => ({ default: m.GLPlayerJournalView })),
+);
 import { GLNotificationsCenter } from './components/GLNotificationsCenter.jsx';
 import { GLButton } from './components/ui/GLButton.jsx';
 import { GLAppBanners } from './components/GLAppBanners.jsx';
-import { GLHelpPanel } from './components/GLHelpPanel.jsx';
+import { GLGuestDemoBoard } from './components/GLGuestDemoBoard.jsx';
+import { GLTabHelpPanel } from './components/GLTabHelpPanel.jsx';
 import { GLProfileModal } from './components/GLProfileModal.jsx';
 import { GLStatsView } from './components/GLStatsView.jsx';
 import { GLPasswordResetGate } from './components/GLPasswordResetGate.jsx';
 import { useGLBrandTheme } from './hooks/useGLBrandTheme.js';
 import { GLMascotCatalogProvider } from './context/GLMascotCatalogContext.jsx';
+import { GlMapOverlaySettingsProvider } from './context/GlMapOverlaySettingsContext.jsx';
 import { MusicPlayer } from './components/MusicPlayer.jsx';
 import { loadGlAssetRuntime } from './assets/index.js';
 import { pickZoneAtPct } from '../utils/glZoneAtPct.js';
@@ -81,11 +107,13 @@ import {
   canGlStaffImpersonate,
   glImpersonationBannerCopy,
 } from './utils/glStaffView.js';
+import { isGlGuest } from './utils/glGuestMode.js';
 
 export function AppGL() {
   const { session, auth, token, updateSession, logout } = useGLSession();
+  const isGuest = isGlGuest(auth);
   const compactNav = useGlCompactNav();
-  const learningProgress = useGlLearningProgress(token);
+  const learningProgress = useGlLearningProgress(isGuest ? null : token);
   const [tab, setTab] = useState(() => readStoredGlTab());
   const [chapters, setChapters] = useState([]);
   const [classes, setClasses] = useState([]);
@@ -100,6 +128,7 @@ export function AppGL() {
   const [modules, setModules] = useState(GL_MODULE_DEFAULTS);
   const [glProfile, setGlProfile] = useState(null);
   const [glConfig, setGlConfig] = useState({});
+  const [guestChapter, setGuestChapter] = useState(null);
   const { showProfile, setShowProfile, showPlayerStats, setShowPlayerStats } = useGLOverlays();
   const [glossaryFocusCode, setGlossaryFocusCode] = useState(null);
   const [glossaryPopoverCode, setGlossaryPopoverCode] = useState(null);
@@ -126,7 +155,18 @@ export function AppGL() {
     return chapters.find((c) => Number(c.id) === themeChapterId) || null;
   }, [chapters, themeChapterId]);
 
-  const { brand: glBrand, style: glBrandStyle } = useGLBrandTheme(glConfig?.brand, themeChapter?.theme);
+  const { brand: glBrand, style: glBrandStyle } = useGLBrandTheme(
+    glConfig?.brand,
+    themeChapter?.theme,
+  );
+
+  const glAppStyle = useMemo(
+    () => ({
+      ...glBrandStyle,
+      ...markerBackgroundStyleFromSettings(gameplaySettings),
+    }),
+    [glBrandStyle, gameplaySettings],
+  );
 
   const chapterBiomeSlugs = useMemo(() => {
     const biomes = gameState?.game?.chapter_biomes;
@@ -135,7 +175,7 @@ export function AppGL() {
   }, [gameState?.game?.chapter_biomes]);
 
   const glossaryLinkItems = useGlGlossaryLinkIndex(token, chapterBiomeSlugs);
-  const loreGlossaryLinkItems = useGlLoreGlossaryLinkIndex(token);
+  const loreGlossaryLinkItems = useGlLoreGlossaryLinkIndex(isGuest ? null : token);
 
   const openGlossaryPopover = useCallback((code) => {
     const trimmed = String(code || '').trim();
@@ -165,7 +205,9 @@ export function AppGL() {
   }, []);
 
   const openSpellPopover = useCallback((code) => {
-    const trimmed = String(code || '').trim().toUpperCase();
+    const trimmed = String(code || '')
+      .trim()
+      .toUpperCase();
     setSpellPopoverCode(trimmed || null);
   }, []);
 
@@ -194,7 +236,7 @@ export function AppGL() {
   const showsPlayerChrome = !isAdmin || isStaffPlayerPreview;
   const impersonationBanner = useMemo(
     () => (isImpersonating ? glImpersonationBannerCopy(auth?.impersonatedBy) : null),
-    [isImpersonating, auth?.impersonatedBy]
+    [isImpersonating, auth?.impersonatedBy],
   );
   const zoneMusicEnabled = isModuleEnabled(modules, 'zoneMusicEnabled');
   const virtualDiceEnabled = isModuleEnabled(modules, 'virtualDiceEnabled');
@@ -215,6 +257,15 @@ export function AppGL() {
     if (chapterPlateauNumber == null) return [];
     return getRuntimeFeuilletZonesForPlateau(chapterPlateauNumber);
   }, [chapterPlateauNumber]);
+
+  const plateauMapVisibility = useMemo(
+    () =>
+      resolvePlateauMapVisibility({
+        gameplaySettings,
+        chapter: gameState?.game,
+      }),
+    [gameplaySettings, gameState?.game],
+  );
 
   const activeZoneForMusic = useMemo(() => {
     if (!watchTeamPct) return null;
@@ -299,12 +350,14 @@ export function AppGL() {
     setOauthNotice({ error: 'oauth_invalid_payload' });
   }, [updateSession]);
   const tabs = useMemo(
-    () => filterGlTabs({
-      modules,
-      vitalityEnabled: gameplaySettings.vitalityEnabled,
-      showStaffAdminUi,
-    }),
-    [showStaffAdminUi, modules, gameplaySettings.vitalityEnabled]
+    () =>
+      filterGlTabs({
+        modules,
+        vitalityEnabled: gameplaySettings.vitalityEnabled,
+        showStaffAdminUi,
+        isGuest,
+      }),
+    [showStaffAdminUi, modules, gameplaySettings.vitalityEnabled, isGuest],
   );
 
   useEffect(() => {
@@ -322,7 +375,7 @@ export function AppGL() {
   }, [tabs, tab, auth]);
 
   const reloadGameplaySettings = useCallback(async () => {
-    if (!token) return;
+    if (!token || isGuest) return;
     try {
       const data = await apiGL('/api/gl/gameplay-settings');
       const next = data?.settings || {};
@@ -330,18 +383,21 @@ export function AppGL() {
     } catch (_) {
       // toggles silencieusement défaut
     }
-  }, [token]);
+  }, [token, isGuest]);
 
   const reloadProfile = useCallback(async () => {
-    if (!token) return;
+    if (!token || isGuest) return;
     try {
       const data = await apiGL('/api/gl/auth/me');
       setGlProfile(data?.profile || null);
       if (data?.auth) {
         updateSession({ auth: data.auth });
-        const nextGameId = data.auth.gameId != null
-          ? Number(data.auth.gameId)
-          : (data.profile?.activeGameId != null ? Number(data.profile.activeGameId) : null);
+        const nextGameId =
+          data.auth.gameId != null
+            ? Number(data.auth.gameId)
+            : data.profile?.activeGameId != null
+              ? Number(data.profile.activeGameId)
+              : null;
         if (!isAdmin && nextGameId != null && Number.isFinite(nextGameId) && nextGameId > 0) {
           setActiveGameId(nextGameId);
         }
@@ -350,22 +406,25 @@ export function AppGL() {
     } catch (err) {
       setError(err.message || 'Chargement profil impossible');
     }
-  }, [token, isAdmin, updateSession]);
+  }, [token, isAdmin, updateSession, isGuest]);
 
-  const applyGlImpersonation = useCallback((payload) => {
-    if (!payload?.authToken || !payload?.auth) {
-      setError('Réponse serveur invalide');
-      return;
-    }
-    setGlViewMode('native');
-    updateSession({ token: payload.authToken, auth: payload.auth });
-    const nextGameId = payload.auth?.gameId != null ? Number(payload.auth.gameId) : null;
-    if (Number.isFinite(nextGameId) && nextGameId > 0) {
-      setActiveGameId(nextGameId);
-    }
-    setTab('maps');
-    setError('');
-  }, [updateSession]);
+  const applyGlImpersonation = useCallback(
+    (payload) => {
+      if (!payload?.authToken || !payload?.auth) {
+        setError('Réponse serveur invalide');
+        return;
+      }
+      setGlViewMode('native');
+      updateSession({ token: payload.authToken, auth: payload.auth });
+      const nextGameId = payload.auth?.gameId != null ? Number(payload.auth.gameId) : null;
+      if (Number.isFinite(nextGameId) && nextGameId > 0) {
+        setActiveGameId(nextGameId);
+      }
+      setTab('maps');
+      setError('');
+    },
+    [updateSession],
+  );
 
   const stopGlImpersonation = useCallback(async () => {
     try {
@@ -386,6 +445,31 @@ export function AppGL() {
   useEffect(() => {
     if (!token) return;
     let cancelled = false;
+    if (isGuest) {
+      Promise.all([
+        apiGL('/api/gl/chapters').catch(() => []),
+        apiGL('/api/gl/auth/config').catch(() => ({})),
+      ]).then(async ([chaptersData, configData]) => {
+        if (cancelled) return;
+        setChapters(Array.isArray(chaptersData) ? chaptersData : []);
+        setModules(normalizeGlModules(configData?.modules));
+        setGlConfig(configData || {});
+        const first = Array.isArray(chaptersData) ? chaptersData[0] : null;
+        if (first?.slug) {
+          try {
+            const detail = await apiGL(`/api/gl/chapters/${encodeURIComponent(first.slug)}`);
+            if (!cancelled) setGuestChapter(detail?.chapter || null);
+          } catch {
+            if (!cancelled) setGuestChapter(null);
+          }
+        } else if (!cancelled) {
+          setGuestChapter(null);
+        }
+      });
+      return () => {
+        cancelled = true;
+      };
+    }
     const classListPromise = isAdmin
       ? apiGL('/api/gl/admin/classes').catch(() => [])
       : Promise.resolve([]);
@@ -403,9 +487,12 @@ export function AppGL() {
       setGlProfile(profileData?.profile || null);
       if (profileData?.auth) {
         updateSession({ auth: profileData.auth });
-        const nextGameId = profileData.auth.gameId != null
-          ? Number(profileData.auth.gameId)
-          : (profileData.profile?.activeGameId != null ? Number(profileData.profile.activeGameId) : null);
+        const nextGameId =
+          profileData.auth.gameId != null
+            ? Number(profileData.auth.gameId)
+            : profileData.profile?.activeGameId != null
+              ? Number(profileData.profile.activeGameId)
+              : null;
         if (!isAdmin && nextGameId != null && Number.isFinite(nextGameId) && nextGameId > 0) {
           setActiveGameId(nextGameId);
         }
@@ -415,7 +502,7 @@ export function AppGL() {
     return () => {
       cancelled = true;
     };
-  }, [token, reloadGameplaySettings, isAdmin, updateSession]);
+  }, [token, reloadGameplaySettings, isAdmin, updateSession, isGuest]);
 
   useEffect(() => {
     const nextTitle = String(glConfig?.title || '').trim();
@@ -424,16 +511,17 @@ export function AppGL() {
   }, [glConfig?.title]);
 
   useEffect(() => {
+    if (isGuest) return;
     if (isAdmin) return;
     if (activeGameId) return;
     const hintedGameId = auth?.gameId != null ? Number(auth.gameId) : null;
     if (hintedGameId != null && Number.isFinite(hintedGameId) && hintedGameId > 0) {
       setActiveGameId(hintedGameId);
     }
-  }, [isAdmin, activeGameId, auth?.gameId]);
+  }, [isAdmin, activeGameId, auth?.gameId, isGuest]);
 
   const reloadGame = useCallback(async () => {
-    if (!activeGameId) return;
+    if (isGuest || !activeGameId) return;
     try {
       const data = await apiGL(`/api/gl/games/${activeGameId}`);
       setGameState(toGameViewModel(data));
@@ -441,7 +529,7 @@ export function AppGL() {
     } catch (err) {
       setError(err.message || 'Chargement partie impossible');
     }
-  }, [activeGameId]);
+  }, [activeGameId, isGuest]);
 
   const showSpellCastResult = useCallback((source) => {
     const vm = buildSpellCastResultViewModel(source);
@@ -451,11 +539,12 @@ export function AppGL() {
   }, []);
 
   useEffect(() => {
+    if (isGuest) return;
     reloadGame();
-  }, [reloadGame]);
+  }, [reloadGame, isGuest]);
 
   useEffect(() => {
-    if (!token || !activeGameId) return undefined;
+    if (isGuest || !token || !activeGameId) return undefined;
     const socket = io(withAppBase(''), {
       path: '/socket.io',
       transports: ['polling', 'websocket'],
@@ -481,7 +570,7 @@ export function AppGL() {
     return () => {
       socket.close();
     };
-  }, [token, activeGameId, reloadGame, showSpellCastResult]);
+  }, [token, activeGameId, reloadGame, showSpellCastResult, isGuest]);
 
   useEffect(() => {
     if (!narrationToast) return undefined;
@@ -527,7 +616,12 @@ export function AppGL() {
       await apiGL(`/api/gl/games/${gameState.game.id}/events`, 'POST', {
         teamId,
         eventType: 'move',
-        payload: { markerId: marker.id, markerLabel: marker.label, xp: marker.x_pct, yp: marker.y_pct },
+        payload: {
+          markerId: marker.id,
+          markerLabel: marker.label,
+          xp: marker.x_pct,
+          yp: marker.y_pct,
+        },
       });
       await reloadGame();
     } catch (err) {
@@ -563,9 +657,8 @@ export function AppGL() {
       const me = await apiGL('/api/gl/auth/me');
       if (me?.auth) {
         updateSession({ auth: me.auth });
-        const nextGameId = me.auth.gameId != null
-          ? Number(me.auth.gameId)
-          : Number(gameState.game.id);
+        const nextGameId =
+          me.auth.gameId != null ? Number(me.auth.gameId) : Number(gameState.game.id);
         if (Number.isFinite(nextGameId) && nextGameId > 0) setActiveGameId(nextGameId);
       } else {
         updateSession({ auth: { ...auth, teamId, gameId: Number(gameState.game.id) } });
@@ -589,8 +682,10 @@ export function AppGL() {
   }, [gameState]);
 
   const canRequestAction = useMemo(
-    () => computeCanRequestAction({ showStaffAdminUi, gameplaySettings, auth, currentTeamId }),
-    [showStaffAdminUi, gameplaySettings, auth, currentTeamId]
+    () =>
+      !isGuest &&
+      computeCanRequestAction({ showStaffAdminUi, gameplaySettings, auth, currentTeamId }),
+    [isGuest, showStaffAdminUi, gameplaySettings, auth, currentTeamId],
   );
 
   const markerArrivalEnabled = useMemo(() => {
@@ -599,7 +694,19 @@ export function AppGL() {
   }, [showStaffAdminUi, gameplaySettings.qcmMjOnly]);
 
   const canSpellCast = useMemo(
-    () => computeCanSpellCast({
+    () =>
+      !isGuest &&
+      computeCanSpellCast({
+        modules,
+        gameplaySettings,
+        gameState,
+        auth,
+        currentTeamId,
+        showsPlayerChrome,
+        showStaffAdminUi,
+      }),
+    [
+      isGuest,
       modules,
       gameplaySettings,
       gameState,
@@ -607,8 +714,7 @@ export function AppGL() {
       currentTeamId,
       showsPlayerChrome,
       showStaffAdminUi,
-    }),
-    [modules, gameplaySettings, gameState, auth, currentTeamId, showsPlayerChrome, showStaffAdminUi]
+    ],
   );
 
   const spellCast = useGLSpellCast({
@@ -637,18 +743,19 @@ export function AppGL() {
 
   const playerMascotId = useMemo(
     () => findPlayerMascotId({ showsPlayerChrome, auth, teams: gameState?.teams }),
-    [showsPlayerChrome, auth, gameState]
+    [showsPlayerChrome, auth, gameState],
   );
 
   const playerVitality = useMemo(
-    () => computePlayerVitality({
-      showsPlayerChrome,
-      vitalityEnabled: gameplaySettings.vitalityEnabled,
-      auth,
-      gameState,
-      profile: glProfile,
-    }),
-    [showsPlayerChrome, gameplaySettings.vitalityEnabled, auth, gameState, glProfile]
+    () =>
+      computePlayerVitality({
+        showsPlayerChrome,
+        vitalityEnabled: gameplaySettings.vitalityEnabled,
+        auth,
+        gameState,
+        profile: glProfile,
+      }),
+    [showsPlayerChrome, gameplaySettings.vitalityEnabled, auth, gameState, glProfile],
   );
 
   const notifications = useGLNotificationCenter();
@@ -670,424 +777,462 @@ export function AppGL() {
     return chapters[0] || null;
   }, [chapters, gameState]);
 
+  const effectiveGameState = useMemo(() => {
+    if (!isGuest) return gameState;
+    if (!guestChapter) return null;
+    return {
+      game: {
+        biotope_markdown: guestChapter.biotope_markdown,
+        biocenose_markdown: guestChapter.biocenose_markdown,
+        chapter_biomes: guestChapter.biomes || [],
+        chapter_plateau_number: guestChapter.plateau_number ?? 1,
+      },
+    };
+  }, [isGuest, gameState, guestChapter]);
+
+  const quitGuestMode = useCallback(() => {
+    logout();
+    setGameState(null);
+    setActiveGameId(null);
+    setGlProfile(null);
+    setShowProfile(false);
+    setGlViewMode('native');
+    setTab('world');
+    setError('');
+  }, [logout, setShowProfile]);
+
   if (!session?.token) {
     return (
-      <div className="gl-app gl-app--guest" style={glBrandStyle}>
-      <GLAuthView
-        config={glConfig}
-        oauthNotice={oauthNotice}
-        appVersion={appVersion}
-        onLogin={(data) => {
-          updateSession({ token: data.authToken, auth: data.auth });
-          setTab(defaultTabForGlAuth(data?.auth));
-          setError('');
-          setOauthNotice(null);
-        }}
-      />
+      <div className="gl-app gl-app--guest" style={glAppStyle}>
+        <GLAuthView
+          config={glConfig}
+          oauthNotice={oauthNotice}
+          appVersion={appVersion}
+          onLogin={(data) => {
+            updateSession({ token: data.authToken, auth: data.auth });
+            setTab(defaultTabForGlAuth(data?.auth));
+            setError('');
+            setOauthNotice(null);
+          }}
+        />
       </div>
     );
   }
 
   return (
-    <GLMascotCatalogProvider token={token}>
-    <div className={`gl-app${compactNav ? ' gl-app--has-bottom-nav' : ''}`} style={glBrandStyle}>
-      <GLPasswordResetGate
-        open={!isAdmin && auth?.passwordMustReset === true}
-        onCompleted={() => {
-          updateSession({ auth: { ...auth, passwordMustReset: false } });
-        }}
-      />
-      <GLTopBar
-        tabs={tabs}
-        activeTab={tab}
-        onTabChange={setTab}
-        auth={auth}
-        platformTitle={glConfig?.title}
-        platformSubtitle={glConfig?.subtitle}
-        brandLogoUrl={glBrand?.logoUrl}
-        playerMascotId={playerMascotId}
-        vitalityEnabled={!!gameplaySettings.vitalityEnabled}
-        playerHealthPoints={playerVitality?.health}
-        playerPowerPoints={playerVitality?.power}
-        onOpenProfile={() => setShowProfile(true)}
-        onOpenStats={showsPlayerChrome ? () => setShowPlayerStats(true) : undefined}
-        canSwitchGlPlayerView={isStaff}
-        glViewMode={glViewMode}
-        onGlViewModeNative={() => {
-          setGlViewMode('native');
-          setTab(defaultTabForGlAuth(auth));
-        }}
-        onGlViewModePlayer={() => {
-          setGlViewMode('player');
-          setTab('maps');
-        }}
-        onLogout={() => {
-          logout();
-          setGameState(null);
-          setActiveGameId(null);
-          setGlProfile(null);
-          setShowProfile(false);
-          setGlViewMode('native');
-        }}
-        showVersion={showStaffAdminUi}
-        appVersion={appVersion}
-      />
+    <GlMapOverlaySettingsProvider>
+    <GLMascotCatalogProvider token={isGuest ? null : token}>
+      <div
+        className={`gl-app${compactNav ? ' gl-app--has-bottom-nav' : ''}${isGuest ? ' gl-app--discovery' : ''}`}
+        style={glAppStyle}
+      >
+        <GLPasswordResetGate
+          open={!isGuest && !isAdmin && auth?.passwordMustReset === true}
+          onCompleted={() => {
+            updateSession({ auth: { ...auth, passwordMustReset: false } });
+          }}
+        />
+        <GLTopBar
+          tabs={tabs}
+          activeTab={tab}
+          onTabChange={setTab}
+          auth={auth}
+          platformTitle={glConfig?.title}
+          platformSubtitle={glConfig?.subtitle}
+          brandLogoUrl={glBrand?.logoUrl}
+          playerMascotId={playerMascotId}
+          vitalityEnabled={!!gameplaySettings.vitalityEnabled}
+          playerHealthPoints={playerVitality?.health}
+          playerPowerPoints={playerVitality?.power}
+          onOpenProfile={() => setShowProfile(true)}
+          onOpenStats={showsPlayerChrome && !isGuest ? () => setShowPlayerStats(true) : undefined}
+          canSwitchGlPlayerView={isStaff && !isGuest}
+          glViewMode={glViewMode}
+          onGlViewModeNative={() => {
+            setGlViewMode('native');
+            setTab(defaultTabForGlAuth(auth));
+          }}
+          onGlViewModePlayer={() => {
+            setGlViewMode('player');
+            setTab('maps');
+          }}
+          onLogout={isGuest ? quitGuestMode : () => {
+            logout();
+            setGameState(null);
+            setActiveGameId(null);
+            setGlProfile(null);
+            setShowProfile(false);
+            setGlViewMode('native');
+          }}
+          isGuestMode={isGuest}
+          showVersion={showStaffAdminUi}
+          appVersion={appVersion}
+        />
 
-      <GLAppBanners
-        error={error}
-        isStaffPlayerPreview={isStaffPlayerPreview}
-        impersonationBanner={isImpersonating ? impersonationBanner : null}
-        impersonatedDisplayName={auth?.displayName}
-        onStopImpersonation={stopGlImpersonation}
-        narrationText={narrationToast?.text}
-        turnTeamLabel={turnToast ? (turnToastTeam?.name || `équipe #${turnToast.teamId}`) : null}
-      />
+        <GLAppBanners
+          error={error}
+          isGuestMode={isGuest}
+          onQuitGuest={quitGuestMode}
+          onGuestLogin={quitGuestMode}
+          isStaffPlayerPreview={isStaffPlayerPreview}
+          impersonationBanner={isImpersonating ? impersonationBanner : null}
+          impersonatedDisplayName={auth?.displayName}
+          onStopImpersonation={stopGlImpersonation}
+          narrationText={narrationToast?.text}
+          turnTeamLabel={turnToast ? turnToastTeam?.name || `équipe #${turnToast.teamId}` : null}
+        />
 
-      <main className="gl-main" id="gl-main-content">
-        <div
-          className="gl-main-inner fade-in"
-          role="tabpanel"
-          id={`${GL_TABPANEL_ID_PREFIX}-${tab}`}
-          aria-labelledby={`${GL_TAB_ID_PREFIX}-${tab}`}
-        >
-        <Suspense fallback={<div className="gl-tab-loading" aria-busy="true" />}>
-        {tab === 'world' && (
-          <GLWorldView
-            auth={auth}
-            brandSlots={glBrand?.slots}
-            onNavigateTab={setTab}
-            glossaryLinkItems={glossaryLinkItems}
-            onOpenGlossaryTerm={openGlossaryPopover}
-          />
-        )}
-        {tab === 'rules' && (
-          <GLRulesView
-            auth={auth}
-            brandSlots={glBrand?.slots}
-            onNavigateTab={setTab}
-            glossaryLinkItems={glossaryLinkItems}
-            onOpenGlossaryTerm={openGlossaryPopover}
-          />
-        )}
-        {tab === 'spells' && (
-          <GLSpellsView
-            gameState={gameState}
-            brandSlots={glBrand?.slots}
-            onOpenSpell={openSpellPopover}
-            canSpellCast={canSpellCast}
-            onLaunchSpell={openSpellCastWizard}
-            glossaryLinkItems={glossaryLinkItems}
-            onOpenGlossaryTerm={openGlossaryPopover}
-          />
-        )}
-        {tab === 'maps' && (
-          <>
-            <GLMapView
-              gameState={gameState}
-              onMoveMascot={moveMascotToMarker}
-              onMoveMascotToPct={moveMascotToPct}
-              onPlayerActionRequest={submitPlayerActionRequest}
-              onSelectTeam={setSelectedTeamId}
-              onOpenGlossaryTerm={openGlossaryPopover}
-              glossaryLinkItems={glossaryLinkItems}
-              onOpenLoreTerm={openLoreGlossaryPopover}
-              loreGlossaryLinkItems={loreGlossaryLinkItems}
-              loreCarnetEnabled={isModuleEnabled(modules, 'loreCarnetEnabled')}
-              onQcmAnswered={reloadGame}
-              canMoveMascot={isMjMapControls}
-              canRequestAction={canRequestAction}
-              markerArrivalEnabled={markerArrivalEnabled}
-              canSpellCast={canSpellCast}
-              onLaunchSpell={() => openSpellCastWizard(null)}
-              selectedTeamId={selectedTeamId}
-              currentTeamId={currentTeamId}
-              playerTeamId={auth?.teamId != null ? Number(auth.teamId) : null}
-              mascotStateMachine={mascotStateMachine}
-              kingdomZones={kingdomZones}
-              zoneMusicEnabled={zoneMusicEnabled}
-              zoneMusicMuted={zoneMusicMuted}
-              onZoneMusicToggle={handleZoneMusicToggle}
-              onWatchTeamPctChange={handleWatchTeamPctChange}
-              onZoneMusicUnlock={unlockZoneMusic}
-              brandThemeStyle={glBrandStyle}
-              virtualDiceEnabled={virtualDiceEnabled}
-              feuilletZones={feuilletZones}
-              feuilletZoneEditMode={feuilletZoneEditMode}
-            />
-            {showsPlayerChrome && gameState?.game && auth?.teamId == null && (
-              <section className="gl-panel">
-                <h3>Rejoindre une équipe</h3>
-                <p className="gl-hint" style={{ marginTop: 0 }}>
-                  Sélectionnez une équipe sur la carte, puis confirmez l’affectation joueur.
-                </p>
-                <GLButton type="button" onClick={joinSelectedTeam}>
-                  Rejoindre l’équipe sélectionnée
-                </GLButton>
-              </section>
-            )}
-          </>
-        )}
-        {tab === 'biotope' && (
-          <GLBiotopeView
-            gameState={gameState}
-            glossaryLinkItems={glossaryLinkItems}
-            onOpenGlossaryTerm={openGlossaryPopover}
-          />
-        )}
-        {tab === 'biocenose' && (
-          <GLBiocenoseView
-            gameState={gameState}
-            onOpenGlossaryTerm={openGlossaryPopover}
-            learningProgress={learningProgress}
-            glossaryLinkItems={glossaryLinkItems}
-            loreCarnetEnabled={isModuleEnabled(modules, 'loreCarnetEnabled')}
-          />
-        )}
-        {tab === 'glossary' && (
-          <GLGlossaryView
-            gameState={gameState}
-            focusCode={glossaryFocusCode}
-            activeTermCode={glossaryPopoverCode}
-            onOpenPopover={openGlossaryPopover}
-            onFocusHandled={clearGlossaryFocus}
-            learningProgress={learningProgress}
-          />
-        )}
-        {tab === 'lore-glossary' && isModuleEnabled(modules, 'loreGlossaryEnabled') && (
-          <GLLoreGlossaryView
-            focusCode={loreGlossaryFocusCode}
-            activeTermCode={loreGlossaryPopoverCode}
-            onOpenPopover={openLoreGlossaryPopover}
-            onFocusHandled={clearLoreGlossaryFocus}
-          />
-        )}
-        {tab === 'selene-carnet' && isModuleEnabled(modules, 'loreCarnetEnabled') && (
-          <GLSeleneCarnetView
-            gameState={gameState}
-            glossaryLinkItems={glossaryLinkItems}
-            loreGlossaryLinkItems={loreGlossaryLinkItems}
-            onOpenGlossaryTerm={openGlossaryPopover}
-            onOpenLoreTerm={openLoreGlossaryPopover}
-            isMj={showStaffAdminUi}
-          />
-        )}
-        {tab === 'history' && (
-          <GLHistoryView
-            gameState={gameState}
-            glossaryLinkItems={glossaryLinkItems}
-            onOpenGlossaryTerm={openGlossaryPopover}
-          />
-        )}
-        {tab === 'stats' && showStaffAdminUi && (
-          <GLStatsView
-            mode="class"
-            classes={classes}
-            auth={auth}
-            vitalityEnabled={!!gameplaySettings.vitalityEnabled}
-          />
-        )}
-        {tab === 'users' && showStaffAdminUi && (
-          <GLUsersAdminView
-            auth={auth}
-            onImpersonationApplied={applyGlImpersonation}
-          />
-        )}
-        {tab === 'contents' && showStaffAdminUi && (
-          <GLContentsAdminView
-            auth={auth}
-            onNavigateTab={setTab}
-            glossaryLinkItems={glossaryLinkItems}
-            onOpenGlossaryTerm={openGlossaryPopover}
-          />
-        )}
-        {tab === 'settings' && showStaffAdminUi && <GLSettingsView />}
-        {tab === 'mascots' && showStaffAdminUi && (
-          <GLMascotsAdminView
-            gameState={gameState}
-            onReloadGame={reloadGame}
-            mascotPacksEnabled={isModuleEnabled(modules, 'mascotPacksEnabled')}
-          />
-        )}
-        {tab === 'mj' && showStaffAdminUi && (
-          <GLGameMasterConsole
-            chapters={chapters}
-            classes={classes}
-            gameState={gameState}
-            gameplaySettings={gameplaySettings}
-            selectedTeamId={selectedTeamId}
-            onSelectTeam={setSelectedTeamId}
-            canImpersonate={canGlStaffImpersonate(auth)}
-            onImpersonationApplied={applyGlImpersonation}
-            onGameStateChange={(state) => {
-              const vm = toGameViewModel(state);
-              setGameState(vm);
-              const nextId = vm?.game?.id ? Number(vm.game.id) : null;
-              setActiveGameId((prevId) => {
-                if (Number(prevId) !== Number(nextId)) {
-                  setSelectedTeamId(null);
+        <main className="gl-main" id="gl-main-content">
+          <div
+            className="gl-main-inner fade-in"
+            role="tabpanel"
+            id={`${GL_TABPANEL_ID_PREFIX}-${tab}`}
+            aria-labelledby={`${GL_TAB_ID_PREFIX}-${tab}`}
+          >
+            <Suspense fallback={<div className="gl-tab-loading" aria-busy="true" />}>
+              {tab === 'world' && (
+                <GLWorldView
+                  auth={auth}
+                  brandSlots={glBrand?.slots}
+                  onNavigateTab={setTab}
+                  glossaryLinkItems={glossaryLinkItems}
+                  onOpenGlossaryTerm={openGlossaryPopover}
+                />
+              )}
+              {tab === 'rules' && (
+                <GLRulesView
+                  auth={auth}
+                  brandSlots={glBrand?.slots}
+                  onNavigateTab={setTab}
+                  glossaryLinkItems={glossaryLinkItems}
+                  onOpenGlossaryTerm={openGlossaryPopover}
+                />
+              )}
+              {tab === 'discovery' && isGuest ? (
+                <GLGuestDemoBoard onExitGuest={quitGuestMode} brandThemeStyle={glBrandStyle} />
+              ) : null}
+              {tab === 'spells' && (
+                <GLSpellsView
+                  gameState={gameState}
+                  brandSlots={glBrand?.slots}
+                  onOpenSpell={openSpellPopover}
+                  canSpellCast={canSpellCast}
+                  onLaunchSpell={openSpellCastWizard}
+                  glossaryLinkItems={glossaryLinkItems}
+                  onOpenGlossaryTerm={openGlossaryPopover}
+                />
+              )}
+              {tab === 'maps' && (
+                <>
+                  <GLMapView
+                    gameState={gameState}
+                    onMoveMascot={moveMascotToMarker}
+                    onMoveMascotToPct={moveMascotToPct}
+                    onPlayerActionRequest={submitPlayerActionRequest}
+                    onSelectTeam={setSelectedTeamId}
+                    onOpenGlossaryTerm={openGlossaryPopover}
+                    glossaryLinkItems={glossaryLinkItems}
+                    onOpenLoreTerm={openLoreGlossaryPopover}
+                    loreGlossaryLinkItems={loreGlossaryLinkItems}
+                    loreCarnetEnabled={isModuleEnabled(modules, 'loreCarnetEnabled')}
+                    onQcmAnswered={reloadGame}
+                    canMoveMascot={isMjMapControls}
+                    canRequestAction={canRequestAction}
+                    markerArrivalEnabled={markerArrivalEnabled}
+                    canSpellCast={canSpellCast}
+                    onLaunchSpell={() => openSpellCastWizard(null)}
+                    selectedTeamId={selectedTeamId}
+                    currentTeamId={currentTeamId}
+                    playerTeamId={auth?.teamId != null ? Number(auth.teamId) : null}
+                    mascotStateMachine={mascotStateMachine}
+                    kingdomZones={kingdomZones}
+                    zoneMusicEnabled={zoneMusicEnabled}
+                    zoneMusicMuted={zoneMusicMuted}
+                    onZoneMusicToggle={handleZoneMusicToggle}
+                    onWatchTeamPctChange={handleWatchTeamPctChange}
+                    onZoneMusicUnlock={unlockZoneMusic}
+                    brandThemeStyle={glBrandStyle}
+                    virtualDiceEnabled={virtualDiceEnabled}
+                    feuilletZones={feuilletZones}
+                    feuilletZoneEditMode={feuilletZoneEditMode}
+                    showPlateauMarkers={plateauMapVisibility.markersVisible}
+                    showPlateauZones={plateauMapVisibility.zonesVisible}
+                  />
+                  {showsPlayerChrome && gameState?.game && auth?.teamId == null && (
+                    <section className="gl-panel">
+                      <h3>Rejoindre une équipe</h3>
+                      <p className="gl-hint" style={{ marginTop: 0 }}>
+                        Sélectionnez une équipe sur la carte, puis confirmez l’affectation joueur.
+                      </p>
+                      <GLButton type="button" onClick={joinSelectedTeam}>
+                        Rejoindre l’équipe sélectionnée
+                      </GLButton>
+                    </section>
+                  )}
+                </>
+              )}
+              {tab === 'biotope' && (
+                <GLBiotopeView
+                  gameState={effectiveGameState}
+                  glossaryLinkItems={glossaryLinkItems}
+                  onOpenGlossaryTerm={openGlossaryPopover}
+                />
+              )}
+              {tab === 'biocenose' && (
+                <GLBiocenoseView
+                  gameState={effectiveGameState}
+                  onOpenGlossaryTerm={openGlossaryPopover}
+                  learningProgress={isGuest ? null : learningProgress}
+                  glossaryLinkItems={glossaryLinkItems}
+                  loreCarnetEnabled={false}
+                />
+              )}
+              {tab === 'glossary' && (
+                <GLGlossaryView
+                  gameState={effectiveGameState}
+                  focusCode={glossaryFocusCode}
+                  activeTermCode={glossaryPopoverCode}
+                  onOpenPopover={openGlossaryPopover}
+                  onFocusHandled={clearGlossaryFocus}
+                  learningProgress={isGuest ? null : learningProgress}
+                />
+              )}
+              {tab === 'lore-glossary' && isModuleEnabled(modules, 'loreGlossaryEnabled') && (
+                <GLLoreGlossaryView
+                  focusCode={loreGlossaryFocusCode}
+                  activeTermCode={loreGlossaryPopoverCode}
+                  onOpenPopover={openLoreGlossaryPopover}
+                  onFocusHandled={clearLoreGlossaryFocus}
+                />
+              )}
+              {tab === 'selene-carnet' && isModuleEnabled(modules, 'loreCarnetEnabled') && (
+                <GLSeleneCarnetView
+                  gameState={gameState}
+                  glossaryLinkItems={glossaryLinkItems}
+                  loreGlossaryLinkItems={loreGlossaryLinkItems}
+                  onOpenGlossaryTerm={openGlossaryPopover}
+                  onOpenLoreTerm={openLoreGlossaryPopover}
+                  isMj={showStaffAdminUi}
+                />
+              )}
+              {tab === 'history' && (
+                <GLHistoryView
+                  gameState={gameState}
+                  glossaryLinkItems={glossaryLinkItems}
+                  onOpenGlossaryTerm={openGlossaryPopover}
+                />
+              )}
+              {tab === 'stats' && showStaffAdminUi && (
+                <GLStatsView
+                  mode="class"
+                  classes={classes}
+                  auth={auth}
+                  vitalityEnabled={!!gameplaySettings.vitalityEnabled}
+                />
+              )}
+              {tab === 'users' && showStaffAdminUi && (
+                <GLUsersAdminView auth={auth} onImpersonationApplied={applyGlImpersonation} />
+              )}
+              {tab === 'contents' && showStaffAdminUi && (
+                <GLContentsAdminView
+                  auth={auth}
+                  onNavigateTab={setTab}
+                  glossaryLinkItems={glossaryLinkItems}
+                  loreGlossaryLinkItems={loreGlossaryLinkItems}
+                  onOpenGlossaryTerm={openGlossaryPopover}
+                  onOpenLoreTerm={openLoreGlossaryPopover}
+                />
+              )}
+              {tab === 'settings' && showStaffAdminUi && <GLSettingsView />}
+              {tab === 'mascots' && showStaffAdminUi && (
+                <GLMascotsAdminView
+                  gameState={gameState}
+                  onReloadGame={reloadGame}
+                  mascotPacksEnabled={isModuleEnabled(modules, 'mascotPacksEnabled')}
+                />
+              )}
+              {tab === 'mj' && showStaffAdminUi && (
+                <GLGameMasterConsole
+                  chapters={chapters}
+                  classes={classes}
+                  gameState={gameState}
+                  gameplaySettings={gameplaySettings}
+                  selectedTeamId={selectedTeamId}
+                  onSelectTeam={setSelectedTeamId}
+                  canImpersonate={canGlStaffImpersonate(auth)}
+                  onImpersonationApplied={applyGlImpersonation}
+                  onGameStateChange={(state) => {
+                    const vm = toGameViewModel(state);
+                    setGameState(vm);
+                    const nextId = vm?.game?.id ? Number(vm.game.id) : null;
+                    setActiveGameId((prevId) => {
+                      if (Number(prevId) !== Number(nextId)) {
+                        setSelectedTeamId(null);
+                      }
+                      return nextId;
+                    });
+                    reloadGameplaySettings();
+                  }}
+                  onReloadGame={async () => {
+                    await reloadGame();
+                    await reloadGameplaySettings();
+                  }}
+                  canSpellCast={canSpellCast}
+                  onLaunchSpell={openSpellCastWizard}
+                />
+              )}
+              {tab === 'forum' && isModuleEnabled(modules, 'forumEnabled') && (
+                <GLForumView canModerate={showStaffAdminUi} />
+              )}
+              {tab === 'market' &&
+                isModuleEnabled(modules, 'marketEnabled') &&
+                gameplaySettings.vitalityEnabled &&
+                showsPlayerChrome && (
+                  <GLMarketView
+                    token={token}
+                    classId={auth?.classId ?? glProfile?.class_id}
+                    playerId={auth?.userId}
+                    onTradeCompleted={() => {
+                      reloadProfile();
+                    }}
+                  />
+                )}
+              {tab === 'tutorials' && isModuleEnabled(modules, 'tutorialsEnabled') && (
+                <GLTutorialsView
+                  canManage={showStaffAdminUi}
+                  learningProgress={learningProgress}
+                  glossaryLinkItems={glossaryLinkItems}
+                  onOpenGlossaryTerm={openGlossaryPopover}
+                />
+              )}
+              {tab === 'journal' && isModuleEnabled(modules, 'journalEnabled') && (
+                <GLJournalView
+                  gameId={activeGameId}
+                  token={token}
+                  canEmit={showStaffAdminUi}
+                  defaultTeamId={selectedTeamId}
+                  narrationEnabled={!!gameplaySettings.narrationEnabled}
+                />
+              )}
+              {tab === 'my-journal' && isModuleEnabled(modules, 'playerJournalEnabled') && (
+                <GLPlayerJournalView gameState={gameState} />
+              )}
+              {isModuleEnabled(modules, 'helpEnabled') && tab !== 'my-journal' ? (
+                <GLTabHelpPanel tab={tab} defaultOpen={false} />
+              ) : null}
+              {isModuleEnabled(modules, 'notificationsEnabled') && !isGuest ? (
+                <GLNotificationsCenter
+                  items={notifications.items}
+                  unreadCount={notifications.unreadCount}
+                  onMarkAllRead={notifications.markAllRead}
+                  onClear={notifications.clear}
+                />
+              ) : null}
+            </Suspense>
+          </div>
+        </main>
+        {showStaffAdminUi ? (
+          <footer className="gl-app-footer" aria-label="Version de l’application">
+            Version {appVersion != null ? appVersion : '…'}
+          </footer>
+        ) : null}
+        <GLProfileModal
+          open={!isGuest && showProfile}
+          onClose={() => setShowProfile(false)}
+          auth={auth}
+          profile={glProfile}
+          config={glConfig}
+          onReloadProfile={reloadProfile}
+          onOpenStats={
+            showsPlayerChrome
+              ? () => {
+                  setShowProfile(false);
+                  setShowPlayerStats(true);
                 }
-                return nextId;
-              });
-              reloadGameplaySettings();
-            }}
-            onReloadGame={async () => {
-              await reloadGame();
-              await reloadGameplaySettings();
-            }}
-            canSpellCast={canSpellCast}
-            onLaunchSpell={openSpellCastWizard}
-          />
-        )}
-        {tab === 'forum' && isModuleEnabled(modules, 'forumEnabled') && (
-          <GLForumView canModerate={showStaffAdminUi} />
-        )}
-        {tab === 'market' && isModuleEnabled(modules, 'marketEnabled') && gameplaySettings.vitalityEnabled && showsPlayerChrome && (
-          <GLMarketView
-            token={token}
-            classId={auth?.classId ?? glProfile?.class_id}
-            playerId={auth?.userId}
-            onTradeCompleted={() => {
-              reloadProfile();
-            }}
-          />
-        )}
-        {tab === 'tutorials' && isModuleEnabled(modules, 'tutorialsEnabled') && (
-          <GLTutorialsView
-            canManage={showStaffAdminUi}
-            learningProgress={learningProgress}
-            glossaryLinkItems={glossaryLinkItems}
-            onOpenGlossaryTerm={openGlossaryPopover}
-          />
-        )}
-        {tab === 'journal' && isModuleEnabled(modules, 'journalEnabled') && (
-          <GLJournalView
-            gameId={activeGameId}
-            token={token}
-            canEmit={showStaffAdminUi}
-            defaultTeamId={selectedTeamId}
-            narrationEnabled={!!gameplaySettings.narrationEnabled}
-          />
-        )}
-        {tab === 'my-journal' && isModuleEnabled(modules, 'playerJournalEnabled') && (
-          <GLPlayerJournalView gameState={gameState} />
-        )}
-        {isModuleEnabled(modules, 'helpEnabled') ? (
-          <GLHelpPanel helpKey={`tab:${tab}`} title="Aide GL" defaultOpen={false}>
-            <p>
-              Onglet courant&nbsp;: <strong>{tab}</strong>. Astuce&nbsp;: les modules visibles
-              dépendent des réglages MJ. Désactive un module dans <strong>Réglages plateforme</strong>
-              pour épurer la navigation joueur.
-            </p>
-          </GLHelpPanel>
-        ) : null}
-        {isModuleEnabled(modules, 'notificationsEnabled') ? (
-          <GLNotificationsCenter
-            items={notifications.items}
-            unreadCount={notifications.unreadCount}
-            onMarkAllRead={notifications.markAllRead}
-            onClear={notifications.clear}
-          />
-        ) : null}
-        </Suspense>
-        </div>
-      </main>
-      {showStaffAdminUi ? (
-        <footer className="gl-app-footer" aria-label="Version de l’application">
-          Version {appVersion != null ? appVersion : '…'}
-        </footer>
-      ) : null}
-      <GLProfileModal
-        open={showProfile}
-        onClose={() => setShowProfile(false)}
-        auth={auth}
-        profile={glProfile}
-        config={glConfig}
-        onReloadProfile={reloadProfile}
-        onOpenStats={showsPlayerChrome ? () => {
-          setShowProfile(false);
-          setShowPlayerStats(true);
-        } : null}
-        onSessionUpdated={(payload) => {
-          if (payload?.authToken || payload?.auth) {
-            updateSession({
-              token: payload?.authToken || token,
-              auth: payload?.auth || auth,
-            });
+              : null
           }
-          if (payload?.profile) setGlProfile(payload.profile);
-        }}
-      />
-      {showPlayerStats && showsPlayerChrome ? (
-        <DialogShell
-          open={showPlayerStats}
-          onClose={() => setShowPlayerStats(false)}
-          overlayClassName="fm-modal-overlay gl-stats-modal-overlay"
-          dialogClassName="fm-modal-panel gl-stats-modal-panel animate-pop fm-modal-panel--scroll-body"
-          ariaLabel="Mes statistiques"
-        >
-          <GLStatsView
-            mode="self"
-            auth={auth}
-            vitalityEnabled={!!gameplaySettings.vitalityEnabled}
-            compact
+          onSessionUpdated={(payload) => {
+            if (payload?.authToken || payload?.auth) {
+              updateSession({
+                token: payload?.authToken || token,
+                auth: payload?.auth || auth,
+              });
+            }
+            if (payload?.profile) setGlProfile(payload.profile);
+          }}
+        />
+        {showPlayerStats && showsPlayerChrome ? (
+          <DialogShell
+            open={showPlayerStats}
             onClose={() => setShowPlayerStats(false)}
-          />
-        </DialogShell>
-      ) : null}
-      <GLGlossaryPopover
-        open={!!glossaryPopoverCode}
-        glossaryCode={glossaryPopoverCode}
-        biomeSlugs={chapterBiomeSlugs}
-        onClose={closeGlossaryPopover}
-        onOpenFullGlossary={openGlossaryFullTab}
-        showFullGlossaryLink={tab !== 'glossary'}
-        learningProgress={learningProgress}
-      />
-      <GLLoreGlossaryPopover
-        open={!!loreGlossaryPopoverCode}
-        loreCode={loreGlossaryPopoverCode}
-        onClose={closeLoreGlossaryPopover}
-        onOpenFullGlossary={openLoreGlossaryFullTab}
-      />
-      <GLSpellPopover
-        open={!!spellPopoverCode}
-        spellCode={spellPopoverCode}
-        onClose={closeSpellPopover}
-        canLaunch={canSpellCast}
-        onLaunchSpell={() => openSpellCastWizard(spellPopoverCode)}
-      />
-      <GLSpellCastResultPopover
-        open={!!spellCastResult}
-        result={spellCastResult}
-        onClose={() => setSpellCastResult(null)}
-      />
-      <GLSpellCastWizard
-        open={spellCastOpen}
-        onClose={() => {
-          setSpellCastOpen(false);
-          setSpellCastInitialCode(null);
-        }}
-        spellCode={spellCastInitialCode}
-        teams={gameState?.teams || []}
-        gameId={gameState?.game?.id}
-        playerId={auth?.userId != null ? Number(auth.userId) : null}
-        playerTeamId={auth?.teamId != null ? Number(auth.teamId) : null}
-        currentTeamId={currentTeamId}
-        turnsEnabled={!!gameplaySettings.turnsEnabled}
-        contributionMode={gameplaySettings.spellCastContributionMode || 'both'}
-        teamScope={gameplaySettings.spellCastTeamScope || 'any_team'}
-        isStaff={showStaffAdminUi}
-        spellCast={spellCast}
-        chapterSpells={gameState?.game?.chapter_spells || []}
-        onPickSpell={(code) => setSpellCastInitialCode(code)}
-      />
-      <MusicPlayer
-        enabled={Boolean(token && gameState?.game)}
-        plateauNumber={chapterPlateauNumber}
-        introActive={chapterPlateauNumber == null && Boolean(gameState?.game)}
-        biomeSlug={chapterMusicBiomeSlug}
-      />
-    </div>
+            overlayClassName="fm-modal-overlay gl-stats-modal-overlay"
+            dialogClassName="fm-modal-panel gl-stats-modal-panel animate-pop fm-modal-panel--scroll-body"
+            ariaLabel="Mes statistiques"
+          >
+            <GLStatsView
+              mode="self"
+              auth={auth}
+              vitalityEnabled={!!gameplaySettings.vitalityEnabled}
+              compact
+              onClose={() => setShowPlayerStats(false)}
+            />
+          </DialogShell>
+        ) : null}
+        <GLGlossaryPopover
+          open={!!glossaryPopoverCode}
+          glossaryCode={glossaryPopoverCode}
+          biomeSlugs={chapterBiomeSlugs}
+          onClose={closeGlossaryPopover}
+          onOpenFullGlossary={openGlossaryFullTab}
+          showFullGlossaryLink={tab !== 'glossary'}
+          learningProgress={learningProgress}
+        />
+        <GLLoreGlossaryPopover
+          open={!!loreGlossaryPopoverCode}
+          loreCode={loreGlossaryPopoverCode}
+          onClose={closeLoreGlossaryPopover}
+          onOpenFullGlossary={openLoreGlossaryFullTab}
+        />
+        <GLSpellPopover
+          open={!!spellPopoverCode}
+          spellCode={spellPopoverCode}
+          onClose={closeSpellPopover}
+          canLaunch={canSpellCast}
+          onLaunchSpell={() => openSpellCastWizard(spellPopoverCode)}
+        />
+        <GLSpellCastResultPopover
+          open={!!spellCastResult}
+          result={spellCastResult}
+          onClose={() => setSpellCastResult(null)}
+        />
+        <GLSpellCastWizard
+          open={spellCastOpen}
+          onClose={() => {
+            setSpellCastOpen(false);
+            setSpellCastInitialCode(null);
+          }}
+          spellCode={spellCastInitialCode}
+          teams={gameState?.teams || []}
+          gameId={gameState?.game?.id}
+          playerId={auth?.userId != null ? Number(auth.userId) : null}
+          playerTeamId={auth?.teamId != null ? Number(auth.teamId) : null}
+          currentTeamId={currentTeamId}
+          turnsEnabled={!!gameplaySettings.turnsEnabled}
+          contributionMode={gameplaySettings.spellCastContributionMode || 'both'}
+          teamScope={gameplaySettings.spellCastTeamScope || 'any_team'}
+          isStaff={showStaffAdminUi}
+          spellCast={spellCast}
+          chapterSpells={gameState?.game?.chapter_spells || []}
+          onPickSpell={(code) => setSpellCastInitialCode(code)}
+        />
+        <MusicPlayer
+          enabled={Boolean(token && gameState?.game)}
+          plateauNumber={chapterPlateauNumber}
+          introActive={chapterPlateauNumber == null && Boolean(gameState?.game)}
+          biomeSlug={chapterMusicBiomeSlug}
+        />
+      </div>
     </GLMascotCatalogProvider>
+    </GlMapOverlaySettingsProvider>
   );
 }

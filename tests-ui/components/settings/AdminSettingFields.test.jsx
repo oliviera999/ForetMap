@@ -41,7 +41,10 @@ describe('AdminTextSettingField', () => {
   });
 
   test('multiline via _multiline ou maxLength > 100 → textarea avec maxLength', () => {
-    renderText({ row: { _multiline: false, constraints: { maxLength: 500 } }, serverValue: 'Texte' });
+    renderText({
+      row: { _multiline: false, constraints: { maxLength: 500 } },
+      serverValue: 'Texte',
+    });
     const area = screen.getByDisplayValue('Texte');
     expect(area.tagName).toBe('TEXTAREA');
     expect(area.maxLength).toBe(500);

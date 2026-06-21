@@ -49,31 +49,35 @@ function fail(message) {
 }
 
 if (!commandExists('npm')) {
-  fail("Commande introuvable: npm. Installe Node.js/npm puis réessaie.");
+  fail('Commande introuvable: npm. Installe Node.js/npm puis réessaie.');
 }
 
 if (!skipInstall) {
   console.log('==> Installation des dépendances (npm ci --include=dev)');
   console.log('    (PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 — pas de navigateurs e2e)');
   if (!runCommand('npm', ['ci', '--include=dev'], { env: envForNpmBundle() })) {
-    console.warn('npm ci a échoué (lockfile potentiellement désynchronisé). Bascule sur npm install --include=dev...');
+    console.warn(
+      'npm ci a échoué (lockfile potentiellement désynchronisé). Bascule sur npm install --include=dev...',
+    );
     if (!runCommand('npm', ['install', '--include=dev'], { env: envForNpmBundle() })) {
-      fail("Échec installation dépendances (npm ci puis npm install).");
+      fail('Échec installation dépendances (npm ci puis npm install).');
     }
   }
 } else {
   console.log('==> Installation sautée (--skip-install)');
   if (!fs.existsSync(viteBinPath)) {
-    console.warn("Vite absent (devDependencies non installées). Installation automatique via npm install --include=dev...");
+    console.warn(
+      'Vite absent (devDependencies non installées). Installation automatique via npm install --include=dev...',
+    );
     if (!runCommand('npm', ['install', '--include=dev'], { env: envForNpmBundle() })) {
-      fail("Échec installation des dépendances dev requises pour le build.");
+      fail('Échec installation des dépendances dev requises pour le build.');
     }
   }
 }
 
 console.log('==> Build frontend (npm run build)');
 if (!runCommand('npm', ['run', 'build'], { env: envForNpmBundle() })) {
-  fail("Échec du build frontend (npm run build).");
+  fail('Échec du build frontend (npm run build).');
 }
 
 const distPath = path.join(rootDir, 'dist');
@@ -112,4 +116,6 @@ if (archived) {
   console.log("- Archive ZIP non générée (commande 'zip' ou 'powershell' indisponible).");
   console.log('- Upload le dossier dist/ directement sur le serveur.');
 }
-console.log("Upload le dossier dist/ (ou l'archive ZIP) sur le serveur, puis redémarre l'app Node.js.");
+console.log(
+  "Upload le dossier dist/ (ou l'archive ZIP) sur le serveur, puis redémarre l'app Node.js.",
+);

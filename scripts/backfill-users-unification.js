@@ -6,10 +6,10 @@ const { queryAll, queryOne, execute } = require('../database');
 
 async function backfillUsers(report) {
   const hasStudentsTable = await queryOne(
-    "SELECT COUNT(*) AS c FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'students'"
+    "SELECT COUNT(*) AS c FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'students'",
   );
   const hasTeachersTable = await queryOne(
-    "SELECT COUNT(*) AS c FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'teachers'"
+    "SELECT COUNT(*) AS c FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'teachers'",
   );
   if (Number(hasStudentsTable?.c || 0) > 0) {
     await execute(
@@ -22,9 +22,11 @@ async function backfillUsers(report) {
          TRIM(CONCAT(COALESCE(s.first_name, ''), ' ', COALESCE(s.last_name, ''))),
          s.description, s.avatar_path, COALESCE(s.affiliation, 'both'), s.password, 'local', 1, s.last_seen
        FROM students s
-       WHERE NOT EXISTS (SELECT 1 FROM users u WHERE u.id = s.id)`
+       WHERE NOT EXISTS (SELECT 1 FROM users u WHERE u.id = s.id)`,
     );
-    const countStudents = await queryOne("SELECT COUNT(*) AS c FROM users WHERE user_type = 'student'");
+    const countStudents = await queryOne(
+      "SELECT COUNT(*) AS c FROM users WHERE user_type = 'student'",
+    );
     report.users.students = Number(countStudents?.c || 0);
   }
   if (Number(hasTeachersTable?.c || 0) > 0) {
@@ -38,9 +40,11 @@ async function backfillUsers(report) {
          COALESCE(NULLIF(t.display_name, ''), t.email),
          NULL, NULL, 'both', t.password_hash, 'local', COALESCE(t.is_active, 1), t.last_seen
        FROM teachers t
-       WHERE NOT EXISTS (SELECT 1 FROM users u WHERE u.id = t.id)`
+       WHERE NOT EXISTS (SELECT 1 FROM users u WHERE u.id = t.id)`,
     );
-    const countTeachers = await queryOne("SELECT COUNT(*) AS c FROM users WHERE user_type = 'teacher'");
+    const countTeachers = await queryOne(
+      "SELECT COUNT(*) AS c FROM users WHERE user_type = 'teacher'",
+    );
     report.users.teachers = Number(countTeachers?.c || 0);
   }
 }
@@ -52,7 +56,7 @@ async function backfillTaskAssignments(report) {
   LEFT JOIN users s
          ON s.user_type = 'student'
         AND LOWER(s.first_name) = LOWER(ta.student_first_name)
-        AND LOWER(s.last_name) = LOWER(ta.student_last_name)`
+        AND LOWER(s.last_name) = LOWER(ta.student_last_name)`,
   );
   for (const row of rows) {
     if (!row.student_id) {
@@ -64,7 +68,10 @@ async function backfillTaskAssignments(report) {
       });
       continue;
     }
-    await execute('UPDATE task_assignments SET student_id = ? WHERE id = ? AND student_id IS NULL', [row.student_id, row.id]);
+    await execute(
+      'UPDATE task_assignments SET student_id = ? WHERE id = ? AND student_id IS NULL',
+      [row.student_id, row.id],
+    );
     report.backfill.task_assignments += 1;
   }
 }
@@ -76,7 +83,7 @@ async function backfillTaskLogs(report) {
   LEFT JOIN users s
          ON s.user_type = 'student'
         AND LOWER(s.first_name) = LOWER(tl.student_first_name)
-        AND LOWER(s.last_name) = LOWER(tl.student_last_name)`
+        AND LOWER(s.last_name) = LOWER(tl.student_last_name)`,
   );
   for (const row of rows) {
     if (!row.student_id) {
@@ -88,7 +95,10 @@ async function backfillTaskLogs(report) {
       });
       continue;
     }
-    await execute('UPDATE task_logs SET student_id = ? WHERE id = ? AND student_id IS NULL', [row.student_id, row.id]);
+    await execute('UPDATE task_logs SET student_id = ? WHERE id = ? AND student_id IS NULL', [
+      row.student_id,
+      row.id,
+    ]);
     report.backfill.task_logs += 1;
   }
 }
@@ -99,19 +109,21 @@ async function collectIntegrityReport(report) {
        FROM users
       WHERE email IS NOT NULL AND email <> ''
       GROUP BY LOWER(email)
-     HAVING COUNT(*) > 1`
+     HAVING COUNT(*) > 1`,
   );
   const duplicatesByPseudo = await queryAll(
     `SELECT LOWER(pseudo) AS pseudo_key, COUNT(*) AS c
        FROM users
       WHERE pseudo IS NOT NULL AND pseudo <> ''
       GROUP BY LOWER(pseudo)
-     HAVING COUNT(*) > 1`
+     HAVING COUNT(*) > 1`,
   );
   report.integrity.duplicate_emails = duplicatesByEmail;
   report.integrity.duplicate_pseudos = duplicatesByPseudo;
 
-  const nullAssignments = await queryOne('SELECT COUNT(*) AS c FROM task_assignments WHERE student_id IS NULL');
+  const nullAssignments = await queryOne(
+    'SELECT COUNT(*) AS c FROM task_assignments WHERE student_id IS NULL',
+  );
   const nullLogs = await queryOne('SELECT COUNT(*) AS c FROM task_logs WHERE student_id IS NULL');
   report.integrity.assignments_without_student_id = Number(nullAssignments?.c || 0);
   report.integrity.logs_without_student_id = Number(nullLogs?.c || 0);
@@ -135,8 +147,12 @@ async function main() {
   const outPath = path.join(process.cwd(), 'tmp-users-backfill-report.json');
   fs.writeFileSync(outPath, JSON.stringify(report, null, 2), 'utf8');
   console.log(`Backfill terminé. Rapport: ${outPath}`);
-  console.log(`Users créés/synchronisés: élèves=${report.users.students}, profs=${report.users.teachers}`);
-  console.log(`Liens backfill: task_assignments=${report.backfill.task_assignments}, task_logs=${report.backfill.task_logs}`);
+  console.log(
+    `Users créés/synchronisés: élèves=${report.users.students}, profs=${report.users.teachers}`,
+  );
+  console.log(
+    `Liens backfill: task_assignments=${report.backfill.task_assignments}, task_logs=${report.backfill.task_logs}`,
+  );
   if (report.warnings.length) console.log(`Avertissements: ${report.warnings.length}`);
   if (report.errors.length) {
     console.log(`Erreurs: ${report.errors.length}`);

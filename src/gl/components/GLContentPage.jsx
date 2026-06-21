@@ -47,7 +47,8 @@ export function GLContentPage({
   const [bodyRef, bodyVisible] = useScrollReveal({ once: true, threshold: 0.05 });
 
   const displayTitle = content?.title || fallbackTitle || slug;
-  const previewMarkdown = manageable && editing ? draftBody : (content?.bodyMarkdown || draftBody || '');
+  const previewMarkdown =
+    manageable && editing ? draftBody : content?.bodyMarkdown || draftBody || '';
   const pageSlotKey = GL_CONTENT_PAGE_SLOT_BY_SLUG[slug];
   const pageBannerSlot = pageSlotKey && brandSlots ? brandSlots[pageSlotKey] : null;
 
@@ -123,7 +124,9 @@ export function GLContentPage({
       <div className="gl-panel gl-error">
         <p>{loadError}</p>
         <div className="gl-inline-actions">
-          <GLButton type="button" onClick={retryLoad}>Réessayer</GLButton>
+          <GLButton type="button" onClick={retryLoad}>
+            Réessayer
+          </GLButton>
           {loadHttpStatus === 401 ? (
             <GLButton type="button" variant="secondary" onClick={reconnect}>
               Se reconnecter
@@ -155,7 +158,14 @@ export function GLContentPage({
 
       {manageable && !editing ? (
         <div className="gl-inline-actions" style={{ marginBottom: 12 }}>
-          <GLButton type="button" onClick={() => { setSaveError(''); setSavedMessage(''); setEditing(true); }}>
+          <GLButton
+            type="button"
+            onClick={() => {
+              setSaveError('');
+              setSavedMessage('');
+              setEditing(true);
+            }}
+          >
             Modifier le contenu
           </GLButton>
           {typeof onNavigateTab === 'function' ? (
@@ -169,8 +179,8 @@ export function GLContentPage({
       {manageable && editing ? (
         <section className="gl-form">
           <p className="gl-hint">
-            Cette page est affichée aux joueurs dans l’onglet correspondant. Vous pouvez la modifier plus tard
-            depuis l’onglet <strong>Contenus</strong>.
+            Cette page est affichée aux joueurs dans l’onglet correspondant. Vous pouvez la modifier
+            plus tard depuis l’onglet <strong>Contenus</strong>.
           </p>
           <GLField label="Titre">
             <GLInput value={draftTitle} onChange={(event) => setDraftTitle(event.target.value)} />

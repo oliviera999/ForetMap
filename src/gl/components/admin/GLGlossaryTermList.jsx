@@ -43,10 +43,15 @@ export function GLGlossaryTermList({
           />
         </GLField>
         <GLField label="Catégorie">
-          <GLSelect value={filterCategorie} onChange={(e) => onFilterCategorieChange(e.target.value)}>
+          <GLSelect
+            value={filterCategorie}
+            onChange={(e) => onFilterCategorieChange(e.target.value)}
+          >
             <option value="">Toutes</option>
             {categories.map((cat) => (
-              <option key={cat.id} value={cat.id}>{cat.label}</option>
+              <option key={cat.id} value={cat.id}>
+                {cat.label}
+              </option>
             ))}
           </GLSelect>
         </GLField>

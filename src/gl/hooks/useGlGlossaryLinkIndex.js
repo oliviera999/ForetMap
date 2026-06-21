@@ -17,7 +17,7 @@ export function useGlGlossaryLinkIndex(authToken, biomeSlugs = []) {
   const [items, setItems] = useState([]);
   const slugKey = useMemo(
     () => (Array.isArray(biomeSlugs) ? biomeSlugs.filter(Boolean).sort().join(',') : ''),
-    [biomeSlugs]
+    [biomeSlugs],
   );
 
   useEffect(() => {

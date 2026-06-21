@@ -5,16 +5,19 @@ import { RichTextEditor } from './RichTextEditor.jsx';
  * Éditeur visuel compatible avec les anciennes props de textarea + value/onChange.
  * La valeur reste du Markdown pour préserver les contrats API existants.
  */
-const MarkdownTextarea = React.forwardRef(function MarkdownTextarea({
-  value,
-  onChange,
-  rows = 3,
-  className = '',
-  toolbar = true,
-  hint = 'Mise en forme visuelle : titres, listes, citations et liens. Le contenu reste enregistré en Markdown.',
-  rich = true,
-  ...rest
-}, forwardedRef) {
+const MarkdownTextarea = React.forwardRef(function MarkdownTextarea(
+  {
+    value,
+    onChange,
+    rows = 3,
+    className = '',
+    toolbar = true,
+    hint = 'Mise en forme visuelle : titres, listes, citations et liens. Le contenu reste enregistré en Markdown.',
+    rich = true,
+    ...rest
+  },
+  forwardedRef,
+) {
   if (rich) {
     return (
       <RichTextEditor
@@ -41,7 +44,9 @@ const MarkdownTextarea = React.forwardRef(function MarkdownTextarea({
         {...rest}
       />
       {hint && (
-        <p className="markdown-textarea-hint" aria-hidden="true">{hint}</p>
+        <p className="markdown-textarea-hint" aria-hidden="true">
+          {hint}
+        </p>
       )}
     </div>
   );

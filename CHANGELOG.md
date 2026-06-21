@@ -7,6 +7,166 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Studio Packs mascotte — sprites site, export et aperçu
+
+- **API** : `DELETE /api/visit/mascot-assets/public` — suppression des fichiers statiques sous `public/assets/mascots/` (auth `visit.manage` + élévation PIN).
+- **Panneau Images** : filtre « Site » limité au catalogue public ; suppression contextuelle (site / pack courant / bibliothèque carte) ; boutons **Copier URL** et **Télécharger** rétablis.
+- **Correctifs** : import bibliothèque carte sans pack sélectionné ; aperçu global remonte au changement de mascotte (`key` sur le renderer Rive/sprites) ; brouillon du pack en cours reflété dans l’onglet **Aperçu global**.
+- **Tests** : `tests/api.test.js`, `tests-ui/components/mascot/MascotPackImagesPanel.test.jsx`, extensions `visitMascotPackManager.test.js` et `VisitMascotStudioPreviewSection.test.jsx`.
+- **Doc** : `docs/API.md`.
+
+### Carte — ratio repères / plateau (ForetMap + GL)
+
+- **Module partagé** : `src/shared/mapOverlayScale.js` — facteur `(fitHeightPx / 480) × (sizePercent / 100)` ; refactor `resolveMapOverlayTypography` (hauteur affichée du plan au lieu de `inv`).
+- **ForetMap** : carte tâches et visite — repères proportionnels au plan ; visite sans contre-échelle zoom sur `.visit-marker-btn`.
+- **GL** : repères plateau via `--map-overlay-scale` sur `GLPctMapCanvas` ; contexte `GlMapOverlaySettingsProvider`.
+- **Réglage** : `ui.map.plateau_marker_size_percent` (50–200, défaut 100), éditable admin ForetMap et réglages GL (`PUT /api/gl/admin/settings/ui.map.plateau_marker_size_percent`).
+- **Tests** : `tests/map-overlay-scale.test.js`, `tests/map-overlay-typography.test.js`, extensions `settings.test.js` / `gl-settings.test.js`.
+
+### GL — unification boutons carte plateau
+
+- **Composants** : `GLBoardActionButton` (rôles `primary` / `display` / `tool`) et `GLBoardChrome` (docks coins, barre mobile, fermer plein écran).
+- **Style** : famille visuelle unifiée dans `gl-theme.css` (`.gl-board-action*`, `.gl-board-chrome*`).
+- **Agencement** : outils (dés, musique) ancrés dans `gl-board-shell` ; toggle musique zones corrigé (plus de positionnement fragile hors shell).
+- **Refactor** : `GLGameBoardHud`, `GLVirtualDiceDock`, `GLZoneMusicMuteButton`, `GLGuestDemoBoard` ; suppression `GLGameBoardHudToolbar`.
+
+### GL — fonds des repères configurables (défaut transparent)
+
+- **Réglage** : `gameplay.marker_backgrounds` (`{ label, emoji, icon }`) — transparent (défaut), `classic` (orange/blanc historique) ou couleur hex `#RRGGBB` par mode.
+- **UI** : Réglages plateforme GL → « Affichage carte plateau » → « Fond des repères sur la carte ».
+- **Runtime** : variables CSS `--gl-marker-bg-*` sur `.gl-app` ; exposé via `GET /api/gl/gameplay-settings` (`markerBackgrounds`).
+- **Tests** : `tests/gl-marker-backgrounds.test.js`, extension `tests/gl-settings.test.js`, tests UI `glMarkerBackgrounds`, `glSettingsForm`, `GLSettingsView`.
+
+### Réglages — désactivation des signalements
+
+- **Réglage** : `ui.modules.reports_enabled` (public, défaut `true`) dans Paramètres admin → section Modules.
+- **Effet** : masque les contrôles « Signaler » (forum, commentaires de contexte) et refuse `POST …/report` avec `403` / `code: "REPORTS_DISABLED"` (y compris GL context-comments).
+- **Tests** : `tests/forum.test.js`, `tests/context-comments.test.js`, `tests/settings.test.js`, tests UI `ContextCommentItem` / `ForumPostCard`.
+
+### Admin — édition des bulles d'aide (ForetMap + GL)
+
+- **ForetMap** : registre `content.help.registry` (tooltips, panneaux ?, mini-astuces, libellés chrome, bandeaux carte, infobulles temps réel prof) ; sous-onglet **Bulles d'aide** dans Réglages admin ; API `GET/PUT/POST reset /api/settings/admin/help-content` ; défauts `data/help.default.json`.
+- **GL** : registre `content.help` par onglet (`tab:{id}`) ; sous-onglet **Bulles d'aide** dans Contenus admin ; API `GET/PUT/POST reset /api/gl/admin/content/help` et lecture `GET /api/gl/content/help`.
+- **Runtime** : `src/utils/helpResolve.js` (ForetMap), `useGlHelpContent` + `GLTabHelpPanel` (GL).
+- **Tests** : `tests/help-content.test.js`, `tests/gl-help-content.test.js`, `tests/gl-help.test.js`, `tests-ui/shared/helpResolve.test.js`, extension `tests/settings.test.js`.
+
+### Correctif — plein écran carte (fond vert sans plan)
+
+- **Cause** : après portail `body`, le cadre carte pouvait rester à ~1×1 px (`MapView`, calcul via `.main` absent) ou conserver d’anciennes dimensions pixels (`VisitView`).
+- **MapView** : `resolveMapLayoutAvailBox` + prop `mapFullscreen`, `remeasureMap` / `useLayoutEffect`, repli viewport.
+- **Visite** : calque `visit-map-fit-layer` en 100 % en immersion ; recentrage zoom à l’entrée plein écran.
+- **Styles** : shell plein écran en flex (remplissage viewport).
+- **Tests** : `tests-ui/shared/resolveMapLayoutAvailBox.test.js` ; e2e visite (image visible en plein écran).
+
+### Packs mascotte — archive ZIP portable (visite + GL)
+
+- **Format** : `foretmap-mascot-pack-archive` v1 (`manifest.json`, `pack.json`, `assets/`) — module `lib/mascotPackArchive.js`.
+- **API visite** : `GET …/export.zip`, `POST …/import/analyze`, `POST …/import` (`create` / `replace`).
+- **API GL** : routes équivalentes sous `/api/gl/mascots/packs/…`.
+- **UI** : boutons Export/Import ZIP dans le studio visite (`MascotPackListAside`) et GL (`GLMascotPackManager`) ; modale partagée `MascotPackArchiveImportDialog`.
+- **Tests** : `tests/mascot-pack-archive.test.js`, extension `api.test.js` et `gl-mascots.test.js`.
+- **Doc** : `docs/MASCOT_PACK.md` (section Archive ZIP), `docs/API.md`.
+
+### Packs mascotte visite — audit UX (quick wins)
+
+- **Libellés FR** : aperçu global (boutons d’état), sélecteur de prévisualisation WYSIWYG et fiche récap utilisent `STATE_LABELS` au lieu de clés techniques / anglais.
+- **Actions** : boutons Enregistrer / Publier désactivés tant que la validation Zod échoue (infobulle explicative).
+- **Accessibilité** : onglets éditeur avec `aria-controls` / `tabpanel` ; retours copie JSON et messages upload en `role="status"`.
+- **Mobile** : mise en page studio empilée ≤768px, zones tactiles 44px sur onglets et actions frames.
+- **Modifications non enregistrées** : bannière + surbrillance Enregistrer, confirmation avant changement de pack/mode, garde `beforeunload`.
+- **Panneau Images unifié** : fusion médiathèque pack, bibliothèque carte et assets site (`MascotPackImagesPanel`) avec filtre par origine et insertion unique vers l’état cible.
+- **Tests** : extension `MascotPackListAside.test.jsx`, `visitMascotPackManager.test.js`.
+
+### ForetMap — plein écran carte (aligné GL)
+
+- **Visite** : le bouton « Plein écran » porte la carte en viewport complet (portail `body`, fermeture **Fermer** / **Échap**, préférence persistée) ; remplace l’ancien agrandissement « Plein plan ».
+- **Carte jardin (`MapView`)** : bouton **Plein écran** dans la barre d’outils ; même mécanisme portail + modales au-dessus.
+- **Partagé** : `useMapFullscreen`, `MapFullscreenShell`, styles `map-fullscreen.css`.
+- **Tests** : `tests-ui/shared/useMapFullscreen.test.js` ; e2e `visit-mode.spec.js`, `teacher-auth-map.spec.js`.
+
+### Mutualisation ForetMap ↔ GL (composants partagés)
+
+- **QCM feedback** : logique unifiée dans `src/shared/qcm/qcmFeedback.js` ; `PedagoQcmFeedbackBlock` et `glQcmDisplay.js` réexportent le module partagé.
+- **DialogShell** : déplacé vers `src/shared/components/DialogShell.jsx` ; réexport de compatibilité dans `src/components/DialogShell.jsx`.
+- **MediaLibraryMenu** : déplacé vers `src/shared/components/MediaLibraryMenu.jsx` ; réexport dans `src/components/MediaLibraryMenu.jsx`.
+- **Tests** : `tests/qcm-feedback.test.js`.
+
+### GL — glossaire dans les questions QCM (popover)
+
+- **Clic terme / terme lié** : énoncé, choix et feedback hyperliés ; puces « Glossaire » / « Lexique lore » ouvrent le popover de définition (plateau et admin Contenus → QCM).
+- **Fusion index** : termes liés à la question (`glossaryTerms` / `loreGlossaryTerms`) complètent l’index d’auto-lien pour couvrir les mots-clés hors biome courant.
+- **Utilitaires** : `mergeGlossaryLinkItems`, `mergeLoreGlossaryLinkItems`.
+- **Tests** : extension `gl-glossary-autolink.test.js`, `GLQcmPopover.test.jsx`.
+
+### GL — affichage des icônes de repères sur le plateau
+
+- **Emojis** : police Noto Color Emoji préchargée, variables `--font-emoji-stack` dans `gl-base.css`, `font-variant-emoji` sur les repères ; restauration de `foretmap-emoji-text-mixed` (évite rectangles / glyphes incorrects sous Caudex).
+- **Icônes image** : résolution des clés stables médiathèque via `resolveGlMarkerIconDisplayUrl` / `useResolveGlMarkerIconDisplayUrl` (legacy `gl-*`, `local:/`, `/uploads/`) ; acceptation des clés stables dans `normalizeIconUrl`.
+- **Tests** : `tests-ui/gl/resolveGlMarkerIconDisplayUrl.test.js`, extension `GLBoardMarkers.test.jsx`.
+
+### GL — duplication repères et zones (studio carte chapitre)
+
+- **Repères** : bouton « Dupliquer » dans la liste et le formulaire ; copie label « (copie) », position décalée (+3 %), événement et apparence conservés.
+- **Zones royaume** : bouton « Dupliquer » dans la liste et le panneau d’édition ; copie contour (décalé), couleur, popover et musique.
+- **Utilitaires** : `glMapDuplicate.js`, `markerDuplicatePayloadFromMarker`, `zoneDuplicateCreatePayloadFromZone`.
+- **Tests** : `tests-ui/gl/glMapDuplicate.test.js`, extension `GLChapterMapStudio.test.jsx`.
+
+### Build — correctifs imports et artefacts `dist/`
+
+- **FMQuizCatalogPanel** : chemins `api` / `downloadApiFile` corrigés (`../../../`).
+- **Quiz admin ForetMap** : liste complète du catalogue par défaut avec filtres, tris, import/export XLSX ; édition manuelle des questions (`FMQuizQuestionEditorPanel`, API `GET|POST|PUT /api/quiz/admin/questions*`).
+- **useGlMarkdownWithLegacyMedia** : import `applyGlLegacyMediaRefs` depuis `glLegacyMediaUrl.js`.
+- **dist/** : build production régénéré (ForetMap + GL).
+
+### GL — déplacement zones feuillets et repères au clic
+
+- **Placement au clic** : sélectionner une zone feuillet ou un repère puis cliquer sur la carte (curseur crosshair) ; glisser-déposer des zones conservé.
+- **Plateau en partie** : mode `?editPlateau=1` (alias `?editFeuilletZones=1`) — panneau unifié zones + repères ; repères persistés via API admin.
+- **Admin chapitres** : repère sélectionné déplaçable au clic dans le studio carte ; section « Zones feuillets — plateau N » avec export JSON.
+- **Utilitaires** : `translateFeuilletZoneToPoint`, hook `useGlPlateauClickPlacement`, composant `GLPlateauMapEditor`.
+- **Tests** : `tests/pct-polygon.test.js`, `tests-ui/gl/GLPlateauMapEditor.test.jsx`, `GLChapterMapStudio.test.jsx` ; doc `docs/GL_FEUILLET_ZONES.md`.
+
+### GL — mise en page (images, texte éditorial, admin)
+
+- **Images markdown** : rendu wrap+fill (`gl-content-image-wrap`) aligné sur le hub marque ; post-traitement dans `renderMarkdownToSafeHtml` / `sanitizeRichHtml`.
+- **Texte éditorial** : largeur prose portée à 90 % (titres h2–h4 inclus) au lieu de 72ch.
+- **Bannières pages** : `GLBrandPageBanner` en wrap+fill ; garde-fous WYSIWYG, popover zones, table bibliothèque contenu.
+- **Admin responsive** : grille chapitres 1 col à ≤1024px ; grille cadre image 1 col à ≤520px.
+- **Tests** : `tests/markdown.test.js`, `tests-ui/gl/GLRichTextEditor.test.jsx` ; doc `docs/GL_IMAGE_FRAMES.md`.
+
+### Biodiversité pédagogique (glossaire, QCM, réseau trophique)
+
+- **Migrations** : 122–132 (taxonomie plants, junction `*_species`, interactions/vues, glossaire, quiz ; **129** retrait colonnes legacy plants ; **130** retrait JSON `living_beings` ; **131** audit_log utf8mb4 ; **132** correctif AUTO_INCREMENT).
+- **Import** : `npm run db:import:biodiv` (scripts + `sql/foretmap_bdd_complete.sql`).
+- **API** : `/api/glossary`, `/api/quiz`, `/api/food-web` ; fiches plantes enrichies (`/:id/interactions`, `/glossary-terms`, `/quiz-questions`).
+- **Lecture espèces** : `zone_species`, `marker_species`, `task_species` uniquement (plus de dual-write JSON).
+- **Post-migration 130** : retrait résiduel de `living_beings` (tâches récurrentes, duplication projet, sync visite, propositions élève) ; import OpenAI species autofill ; tests quiz/plants-import alignés.
+- **Schéma / seed** : `sql/schema_foretmap.sql` et seed `database.js` alignés sur le contrat post-129/130.
+- **Scripts** : `scripts/backfill-gbif-keys.js`, `scripts/fix-auto-increment.js` (`npm run db:fix-auto-increment` si documenté).
+- **UI élève** : Glossaire, Quiz, réseau trophique (libellés interactions alignés enum SQL), fiches espèces enrichies.
+- **Tests** : `biodiv-read-model`, `glossary-api`, `glossary-search`, `quiz-api`, `food-web-api`, `plant-payload-sync`, `species-junction-read` ; e2e `pedago-quiz`, `pedago-food-web`, `pedago-glossary`.
+- **Quiz — visibilité et admin prof** : onglet Quiz (élève : après Biodiversité ; prof : onglet dédié) ; catalogue import/export XLSX (`lib/fmQuizImport.js`, `plants.manage` + élévation) ; `GET /api/quiz/questions`, `/api/quiz/admin/*` ; panneau partagé `src/shared/qcm/` (GL + FM) ; tests `fm-quiz-import`.
+
+### GL — images plateau / histoire (URLs legacy)
+
+- **Médiathèque** : `npm run gl:import:media` + `npm run gl:audit:media-keys` ; résolution convention `plateau-N_*` / `recit_0N-chapN_*` via `_keys.json`.
+- **Runtime** : priorité convention sur `map_image_url` legacy (`gl-plateau-*`) ; réécriture markdown `gl-*` (Histoire, Biotope, Biocénose).
+- **Migration BDD** : `npm run gl:migrate:chapter-media -- --apply` ; migration SQL `133_gl_chapter_media_legacy_cleanup.sql` (héros → `scene:1`, feuillets copiste).
+- **Tests** : `gl-legacy-media-url`, `gl-migrate-chapter-media`.
+
+### GL — Mode Découverte (visiteur sans compte)
+
+- **Auth** : `POST /api/gl/auth/guest` (token `gl_guest`, permission `gl.read` seule) ; `guestModeEnabled` dans `GET /api/gl/auth/config` ; désactivation via `platform.guest_mode_enabled=false` ou `GL_GUEST_MODE_DISABLED=1`.
+- **Sécurité** : `requireGlAuth` refuse explicitement les invités (`guestBlocked`) ; `GET /api/gl/lore/demo-feuillets` (allowlist `ep-I-01`…`04`, indépendant du module carnet).
+- **Front** : bouton « Découvrir sans compte », shell réduit (Monde, Règles, Découverte, glossaire SVT, biotope/biocénose), plateau P1 en bac à sable client (dé + 4 feuillets + mur de fin).
+- **Tests** : `tests/gl-guest-mode.test.js`, `e2e/gl-guest-discovery.spec.js` (parcours dé → feuillets → mur de fin).
+
+### Tests e2e (stabilisation des 13 échecs)
+
+- **Fixtures partagées** (`e2e/fixtures/auth.fixture.js`) : sélecteur « Nouvelle tâche » via `hasText` (évite le blocage Playwright sur `getByRole` avec `+`) ; onglet Tâches robuste (split desktop « Cartes & tâches ») ; modales tâche via `aria-label` ; carte zone (`waitForTeacherMapReady`, repli clic) ; `disableTeacherMode` via cadenas header ; `createTeacherTask({ skipReload })`.
+- **Scénarios** : `modals-responsive` (fixtures unifiées, timeouts réduits, fermeture modale) ; `teacher-auth-invalid-pin` (attente API 401) ; `gl-users-admin` (wait impersonate + bannière 20 s) ; `realtime-multi-session` / cycles tâches (`serial`, skip reload).
+- **Playwright** : `retries: 1` en local. Suite complète : **84 passés**, 1 ignoré.
+
 ### GL — scènes de récit des chapitres (répartition automatique des images de l'Histoire)
 
 - **Convention partagée** : préfixes `recit_0N-chapN_*` / `recit_00-prologue_*` centralisés dans `src/gl/utils/glChapterRecitConvention.js` (une seule source client + serveur : resolver assets, audit, scanner d'usage) ; bornes de chapitres en constantes (`GL_CHAPTER_RECIT_MIN/MAX`).

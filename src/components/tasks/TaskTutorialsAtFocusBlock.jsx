@@ -45,7 +45,9 @@ export function TaskTutorialsAtFocusBlock({
 
   const linkedTutorialsAtFocus = useMemo(() => {
     if (!filterZone || !tutorialsModuleEnabled) return [];
-    const fromLocation = (tutorials || []).filter((tu) => tutorialPickerHasLocation(tu, filterZone));
+    const fromLocation = (tutorials || []).filter((tu) =>
+      tutorialPickerHasLocation(tu, filterZone),
+    );
     const fromTasks = tutorialRefsFromTasksAtLocationFilter(filterZone, tasks, tutorials || []);
     const merged = dedupeTutorialsByIdForTasks([...fromLocation, ...fromTasks]);
     if (isTeacher) return merged;
@@ -54,28 +56,43 @@ export function TaskTutorialsAtFocusBlock({
 
   const assignableTutorialsAtFocus = useMemo(() => {
     if (!filterZone || !isTeacher || !tutorialsModuleEnabled || !focusMapIdForTutorials) return [];
-    return (tutorials || []).filter((tu) => (
-      tu.is_active !== false
-      && !tutorialPickerHasLocation(tu, filterZone)
-      && tutorialPickerLinkedToSameMap(tu, focusMapIdForTutorials)
-    ));
+    return (tutorials || []).filter(
+      (tu) =>
+        tu.is_active !== false &&
+        !tutorialPickerHasLocation(tu, filterZone) &&
+        tutorialPickerLinkedToSameMap(tu, focusMapIdForTutorials),
+    );
   }, [filterZone, tutorials, isTeacher, tutorialsModuleEnabled, focusMapIdForTutorials]);
 
-  const linkTutorialAtFocus = useCallback((tutorialId) => withLoad(`tuto-link-${tutorialId}`, async () => {
-    const tu = (tutorials || []).find((x) => Number(x.id) === Number(tutorialId));
-    if (!tu || !filterZone) return;
-    const { zoneIds, markerIds } = tutorialLocationIdsAfterLink(tu, filterZone);
-    await api(`/api/tutorials/${tutorialId}`, 'PUT', { zone_ids: zoneIds, marker_ids: markerIds });
-    setQuickTutoLinkId('');
-    setToast('Tutoriel lié à ce lieu ✓');
-  }), [withLoad, tutorials, filterZone, setToast]);
+  const linkTutorialAtFocus = useCallback(
+    (tutorialId) =>
+      withLoad(`tuto-link-${tutorialId}`, async () => {
+        const tu = (tutorials || []).find((x) => Number(x.id) === Number(tutorialId));
+        if (!tu || !filterZone) return;
+        const { zoneIds, markerIds } = tutorialLocationIdsAfterLink(tu, filterZone);
+        await api(`/api/tutorials/${tutorialId}`, 'PUT', {
+          zone_ids: zoneIds,
+          marker_ids: markerIds,
+        });
+        setQuickTutoLinkId('');
+        setToast('Tutoriel lié à ce lieu ✓');
+      }),
+    [withLoad, tutorials, filterZone, setToast],
+  );
 
-  const unlinkTutorialAtFocus = useCallback((tuRow) => withLoad(`tuto-unlink-${tuRow.id}`, async () => {
-    if (!filterZone) return;
-    const { zoneIds, markerIds } = tutorialLocationIdsAfterUnlink(tuRow, filterZone);
-    await api(`/api/tutorials/${tuRow.id}`, 'PUT', { zone_ids: zoneIds, marker_ids: markerIds });
-    setToast('Tutoriel dissocié de ce lieu ✓');
-  }), [withLoad, filterZone, setToast]);
+  const unlinkTutorialAtFocus = useCallback(
+    (tuRow) =>
+      withLoad(`tuto-unlink-${tuRow.id}`, async () => {
+        if (!filterZone) return;
+        const { zoneIds, markerIds } = tutorialLocationIdsAfterUnlink(tuRow, filterZone);
+        await api(`/api/tutorials/${tuRow.id}`, 'PUT', {
+          zone_ids: zoneIds,
+          marker_ids: markerIds,
+        });
+        setToast('Tutoriel dissocié de ce lieu ✓');
+      }),
+    [withLoad, filterZone, setToast],
+  );
 
   return (
     <div className="tasks-section" style={{ marginTop: 14, marginBottom: 8 }}>
@@ -84,11 +101,16 @@ export function TaskTutorialsAtFocusBlock({
         <>
           <div style={{ marginTop: 8 }}>
             {linkedTutorialsAtFocus.length === 0 ? (
-              <p style={{ color: '#999', fontSize: '.85rem', margin: 0 }}>Aucun tutoriel lié à ce lieu.</p>
+              <p style={{ color: '#999', fontSize: '.85rem', margin: 0 }}>
+                Aucun tutoriel lié à ce lieu.
+              </p>
             ) : (
               linkedTutorialsAtFocus.map((tu) => (
                 <div key={tu.id} className="history-item" style={{ alignItems: 'center' }}>
-                  <span>{tu.title}{tu.is_active === false ? ' (archivé)' : ''}</span>
+                  <span>
+                    {tu.title}
+                    {tu.is_active === false ? ' (archivé)' : ''}
+                  </span>
                   {tutorialPickerHasLocation(tu, filterZone) ? (
                     <button
                       type="button"
@@ -99,7 +121,9 @@ export function TaskTutorialsAtFocusBlock({
                       Délier
                     </button>
                   ) : (
-                    <span style={{ fontSize: '.72rem', color: '#64748b', flexShrink: 0 }}>via mission</span>
+                    <span style={{ fontSize: '.72rem', color: '#64748b', flexShrink: 0 }}>
+                      via mission
+                    </span>
                   )}
                 </div>
               ))
@@ -114,7 +138,9 @@ export function TaskTutorialsAtFocusBlock({
             >
               <option value="">— Choisir un tutoriel —</option>
               {assignableTutorialsAtFocus.map((tu) => (
-                <option key={tu.id} value={String(tu.id)}>{tu.title}</option>
+                <option key={tu.id} value={String(tu.id)}>
+                  {tu.title}
+                </option>
               ))}
             </select>
           </div>
@@ -132,12 +158,18 @@ export function TaskTutorialsAtFocusBlock({
       {!isTeacher && (
         <div style={{ marginTop: 8, display: 'grid', gap: 12 }}>
           {linkedTutorialsAtFocus.length === 0 ? (
-            <p style={{ color: '#999', fontSize: '.85rem', margin: 0 }}>Aucun tutoriel lié à ce lieu.</p>
+            <p style={{ color: '#999', fontSize: '.85rem', margin: 0 }}>
+              Aucun tutoriel lié à ce lieu.
+            </p>
           ) : (
             linkedTutorialsAtFocus.map((tu) => {
               const [fk, fid] = String(filterZone).split(':');
-              const otherZones = (tu.zones_linked || []).filter((z) => !(fk === 'zone' && String(z.id) === String(fid)));
-              const otherMarkers = (tu.markers_linked || []).filter((mk) => !(fk === 'marker' && String(mk.id) === String(fid)));
+              const otherZones = (tu.zones_linked || []).filter(
+                (z) => !(fk === 'zone' && String(z.id) === String(fid)),
+              );
+              const otherMarkers = (tu.markers_linked || []).filter(
+                (mk) => !(fk === 'marker' && String(mk.id) === String(fid)),
+              );
               return (
                 <div
                   key={tu.id}
@@ -150,7 +182,16 @@ export function TaskTutorialsAtFocusBlock({
                 >
                   <div style={{ fontWeight: 700, color: 'var(--forest)' }}>{tu.title}</div>
                   {tu.summary && (
-                    <p style={{ margin: '8px 0 0', fontSize: '.82rem', color: '#555', lineHeight: 1.45 }}>{tu.summary}</p>
+                    <p
+                      style={{
+                        margin: '8px 0 0',
+                        fontSize: '.82rem',
+                        color: '#555',
+                        lineHeight: 1.45,
+                      }}
+                    >
+                      {tu.summary}
+                    </p>
                   )}
                   {otherZones.length > 0 && (
                     <p style={{ margin: '10px 0 0', fontSize: '.76rem', color: '#64748b' }}>
@@ -159,7 +200,10 @@ export function TaskTutorialsAtFocusBlock({
                   )}
                   {otherMarkers.length > 0 && (
                     <p style={{ margin: '6px 0 0', fontSize: '.76rem', color: '#64748b' }}>
-                      <strong>Repères</strong> : {otherMarkers.map((m) => `${m.emoji ? `${m.emoji} ` : ''}${m.label}`).join(', ')}
+                      <strong>Repères</strong> :{' '}
+                      {otherMarkers
+                        .map((m) => `${m.emoji ? `${m.emoji} ` : ''}${m.label}`)
+                        .join(', ')}
                     </p>
                   )}
                   {tutorialPreviewCanEmbed(tu) ? (

@@ -11,9 +11,17 @@
  * (ou en fin de liste si absent / introuvable). La tâche glissée est d'abord exclue
  * pour gérer le réordonnancement au sein du même projet.
  */
-export function computeReorderedProjectTaskIds(tasks, dragTaskId, targetProjectId, beforeTaskId = '') {
+export function computeReorderedProjectTaskIds(
+  tasks,
+  dragTaskId,
+  targetProjectId,
+  beforeTaskId = '',
+) {
   const targetIdsWithoutDragged = (tasks || [])
-    .filter((task) => String(task.id) !== dragTaskId && String(task.project_id || '').trim() === targetProjectId)
+    .filter(
+      (task) =>
+        String(task.id) !== dragTaskId && String(task.project_id || '').trim() === targetProjectId,
+    )
     .map((task) => String(task.id));
   let insertAt = targetIdsWithoutDragged.length;
   if (beforeTaskId) {

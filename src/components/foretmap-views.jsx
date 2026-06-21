@@ -20,7 +20,11 @@ import {
   PlantSpeciesDiscoveryAcknowledgeButton,
   fetchPlantObservationCounts,
 } from './PlantSpeciesDiscoveryAcknowledge';
-import { HELP_PANELS, HELP_TOOLTIPS, resolveRoleText } from '../constants/help';
+import {
+  resolveHelpPanelSection,
+  resolveHelpChrome,
+  resolveTooltipKey,
+} from '../utils/helpResolve';
 import {
   ZONE_PRESENCE_FILTER,
   distinctPlantFieldValues,
@@ -57,32 +61,30 @@ import { PlantLocationPreviewMaps } from './biodiv/BiodivLocationMaps.jsx';
 
 // ── INTERACTIVE MAP ──────────────────────────────────────────────────────────
 
-
 // ── FILTRES CATALOGUE BIODIVERSITÉ (élève + prof) ─────────────────────────────
 // ── PLANT MANAGER (teacher) ───────────────────────────────────────────────────
-function PlantManager({
-  onRefresh,
-  maps = [],
-  onForceLogout = null,
-}) {
+function PlantManager({ onRefresh, maps = [], onForceLogout = null }) {
   const publicSettings = usePublicSettings();
   const { canParticipateContextComments = true } = useSession();
   const { plants = [], zones = [], markers = [] } = useData();
   const contextCommentsEnabled = publicSettings?.modules?.context_comments_enabled !== false;
-  const [editId,  setEditId]  = useState(null);
-  const [form,    setForm]    = useState({ ...EMPTY_PLANT_FORM });
+  const [editId, setEditId] = useState(null);
+  const [form, setForm] = useState({ ...EMPTY_PLANT_FORM });
   const [showAdd, setShowAdd] = useState(false);
-  const [saving,  setSaving]  = useState(false);
-  const [toast,   setToast]   = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState(null);
   const [search, setSearch] = useState('');
   const [group1, setGroup1] = useState('');
   const [group2, setGroup2] = useState('');
   const [group3, setGroup3] = useState('');
   const [habitatFilter, setHabitatFilter] = useState('');
-  const [agroFilter, setAgroFilter] = useState('');
+  const [trophicRoleFilter, setTrophicRoleFilter] = useState('');
+  const [habitatTypeFilter, setHabitatTypeFilter] = useState('');
   const [plantObservationCounts, setPlantObservationCounts] = useState(() => ({}));
-  const { isHelpEnabled, hasSeenSection, markSectionSeen, trackPanelOpen, trackPanelDismiss } = useHelp({ publicSettings, isTeacher: true });
-  const tooltipText = (entry) => resolveRoleText(entry, true);
+  const { isHelpEnabled, hasSeenSection, markSectionSeen, trackPanelOpen, trackPanelDismiss } =
+    useHelp({ publicSettings, isTeacher: true });
+  const tooltipText = (path) => resolveTooltipKey(path, publicSettings, true);
+  const helpPlants = resolveHelpPanelSection('plants', publicSettings);
 
   const structured = useMemo(
     () => ({
@@ -90,9 +92,10 @@ function PlantManager({
       group2,
       group3,
       habitat: habitatFilter,
-      agroecosystemCategory: agroFilter,
+      trophicRole: trophicRoleFilter,
+      habitatType: habitatTypeFilter,
     }),
-    [group1, group2, group3, habitatFilter, agroFilter],
+    [group1, group2, group3, habitatFilter, trophicRoleFilter, habitatTypeFilter],
   );
 
   const queryTrimmedLower = search.trim().toLowerCase();
@@ -143,49 +146,63 @@ function PlantManager({
   const zonesForPlant = (p) => zones.filter((z) => plantLinkedToMapZone(p, z));
   const markersForPlant = (p) => markers.filter((m) => plantLinkedToMapMarker(p, m));
 
-  const startEdit = p => {
+  const startEdit = (p) => {
     setEditId(p.id);
     setForm(extractPlantForm(p));
     setShowAdd(false);
   };
 
-  const cancelEdit = () => { setEditId(null); setShowAdd(false); };
+  const cancelEdit = () => {
+    setEditId(null);
+    setShowAdd(false);
+  };
 
   const save = async () => {
     if (!form.name.trim()) return;
     setSaving(true);
     try {
       if (editId) await api(`/api/plants/${editId}`, 'PUT', form);
-      else        await api('/api/plants', 'POST', form);
+      else await api('/api/plants', 'POST', form);
       await onRefresh();
       setEditId(null);
       setShowAdd(false);
       setForm({ ...EMPTY_PLANT_FORM });
       setToast(editId ? 'Entrée biodiversité modifiée ✓' : 'Entrée biodiversité ajoutée ✓');
-    } catch(e) { setToast('Erreur : ' + e.message); }
+    } catch (e) {
+      setToast('Erreur : ' + e.message);
+    }
     setSaving(false);
   };
 
-  const del = async p => {
+  const del = async (p) => {
     if (!confirm(`Supprimer "${p.name}" ?`)) return;
     try {
       await api(`/api/plants/${p.id}`, 'DELETE');
       await onRefresh();
       setToast('Entrée biodiversité supprimée');
-    } catch(e) { setToast('Erreur : ' + e.message); }
+    } catch (e) {
+      setToast('Erreur : ' + e.message);
+    }
   };
 
   return (
     <div>
       {toast && <TimedToast msg={toast} onDone={() => setToast(null)} />}
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:4}}>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: 4,
+        }}
+      >
         <h2 className="section-title">🌱 Base biodiversité</h2>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           {isHelpEnabled && (
             <HelpPanel
               sectionId="plants"
-              title={HELP_PANELS.plants.title}
-              entries={HELP_PANELS.plants.items}
+              title={helpPlants.title}
+              entries={helpPlants.items}
               isTeacher
               isPulsing={!hasSeenSection('plants')}
               onMarkSeen={markSectionSeen}
@@ -194,14 +211,21 @@ function PlantManager({
             />
           )}
           {!showAdd && !editId && (
-            <button className="btn btn-primary btn-sm" onClick={() => { setShowAdd(true); setForm({ ...EMPTY_PLANT_FORM }); }}>
+            <button
+              className="btn btn-primary btn-sm"
+              onClick={() => {
+                setShowAdd(true);
+                setForm({ ...EMPTY_PLANT_FORM });
+              }}
+            >
               + Ajouter
             </button>
           )}
         </div>
       </div>
       <p className="section-sub">
-        {filteredPlants.length} / {plants.length} êtres vivants à l’écran — fouille la biodiversité !
+        {filteredPlants.length} / {plants.length} êtres vivants à l’écran — fouille la biodiversité
+        !
       </p>
 
       <PlantCatalogFilterPanel
@@ -216,8 +240,10 @@ function PlantManager({
         setGroup3={setGroup3}
         habitat={habitatFilter}
         setHabitat={setHabitatFilter}
-        agro={agroFilter}
-        setAgro={setAgroFilter}
+        trophicRole={trophicRoleFilter}
+        setTrophicRole={setTrophicRoleFilter}
+        habitatType={habitatTypeFilter}
+        setHabitatType={setHabitatTypeFilter}
       />
 
       <PlantImportPanel setToast={setToast} onRefresh={onRefresh} />
@@ -225,13 +251,16 @@ function PlantManager({
       {showAdd && (
         <PlantEditForm
           title="Nouvel être vivant"
-          form={form} setForm={setForm}
-          onSave={save} onCancel={cancelEdit} saving={saving}
+          form={form}
+          setForm={setForm}
+          onSave={save}
+          onCancel={cancelEdit}
+          saving={saving}
           plantId={null}
           onToast={setToast}
           onEnsurePlantId={async () => {
             if (!form.name.trim()) {
-              setToast('Indique un nom pour la fiche avant d\'importer une photo.');
+              setToast("Indique un nom pour la fiche avant d'importer une photo.");
               return null;
             }
             setSaving(true);
@@ -253,117 +282,182 @@ function PlantManager({
       )}
 
       <div className="biodiv-grid">
-        {filteredPlants.map(p => {
+        {filteredPlants.map((p) => {
           const pZones = zonesForPlant(p);
           const pMarkers = markersForPlant(p);
           const hasMapLink = pZones.length > 0 || pMarkers.length > 0;
           return (
-          <div key={p.id} data-biodiv-plant-id={p.id}>
-            {editId === p.id ? (
-              <div className="biodiv-card biodiv-card-edit fade-in">
-                <PlantEditForm
-                  title={`Modifier — ${p.name}`}
-                  form={form} setForm={setForm}
-                  onSave={save} onCancel={cancelEdit} saving={saving}
-                  plantId={p.id}
-                  onToast={setToast}
-                />
-              </div>
-            ) : (
-              <article className="biodiv-card fade-in">
-                <div className="biodiv-card-head">
-                  <div className="biodiv-card-title-wrap">
-                    <span className="biodiv-emoji">{p.emoji}</span>
-                    <div className="biodiv-card-title-content">
-                      <h3>{p.name}</h3>
-                      <p className="plant-scientific">
-                        {normalizedPlantValue(p.scientific_name) || 'Nom scientifique non renseigne'}
-                      </p>
-                    </div>
-                  </div>
-                  {normalizedPlantValue(p.group_2) && (
-                    <span className="task-chip">{p.group_2}</span>
-                  )}
+            <div key={p.id} data-biodiv-plant-id={p.id}>
+              {editId === p.id ? (
+                <div className="biodiv-card biodiv-card-edit fade-in">
+                  <PlantEditForm
+                    title={`Modifier — ${p.name}`}
+                    form={form}
+                    setForm={setForm}
+                    onSave={save}
+                    onCancel={cancelEdit}
+                    saving={saving}
+                    plantId={p.id}
+                    onToast={setToast}
+                  />
                 </div>
-
-                <div className="biodiv-card-body">
-                  {p.description ? (
-                    <MarkdownContent className="plant-row-desc">{p.description}</MarkdownContent>
-                  ) : (
-                    <p className="plant-row-desc"><em style={{color:'#bbb'}}>Pas de description</em></p>
-                  )}
-                  <PlantBiodivHeroPhoto plant={p} />
-                  <PlantEcosystemHumanLead plant={p} />
-                  <CatalogRemarksSection plant={p} />
-                  <div className="task-meta">
-                    {normalizedPlantValue(p.habitat) && !isGenericPotagerLabel(p.habitat) && (
-                      <span className="task-chip">🏡 {p.habitat}</span>
-                    )}
-                    {normalizedPlantValue(p.agroecosystem_category) && !isGenericPotagerLabel(p.agroecosystem_category) && (
-                      <span className="task-chip">🌍 {p.agroecosystem_category}</span>
-                    )}
-                  </div>
-                  <PlantSummaryBadges plant={p}/>
-                  <PlantMetaSections plant={p}/>
-                  {hasMapLink ? (
-                    <div>
-                      <div style={{ fontSize: '.74rem', fontWeight: 700, color: '#aaa', textTransform: 'uppercase', marginBottom: 4 }}>Sur la carte</div>
-                      <PlantLocationPreviewMaps maps={maps} zones={pZones} markers={pMarkers} />
-                      <div style={{ fontSize: '.74rem', fontWeight: 700, color: '#aaa', textTransform: 'uppercase', margin: '10px 0 4px' }}>Zones et repères</div>
-                      <div className="plant-zones">
-                        {pZones.map((z) => (
-                          <span key={`zone-${z.id}`} className="plant-zone-chip">📍 {z.name}</span>
-                        ))}
-                        {pMarkers.map((m) => (
-                          <span key={`marker-${m.id}`} className="plant-zone-chip">📌 {m.label?.trim() ? m.label : 'Repère'}</span>
-                        ))}
+              ) : (
+                <article className="biodiv-card fade-in">
+                  <div className="biodiv-card-head">
+                    <div className="biodiv-card-title-wrap">
+                      <span className="biodiv-emoji">{p.emoji}</span>
+                      <div className="biodiv-card-title-content">
+                        <h3>{p.name}</h3>
+                        <p className="plant-scientific">
+                          {normalizedPlantValue(p.scientific_name) ||
+                            'Nom scientifique non renseigne'}
+                        </p>
                       </div>
                     </div>
-                  ) : (
-                    <p style={{ fontSize: '.82rem', color: '#bbb', fontStyle: 'italic' }}>Pas encore associé à une zone ni à un repère sur la carte</p>
-                  )}
-                  <div className="plant-discovery-ack-row" style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
-                    <PlantSpeciesDiscoveryAcknowledgeButton
-                      plantId={p.id}
-                      speciesName={p.name}
-                      myObservationCount={plantObservationCounts[String(p.id)]?.my_observation_count ?? 0}
-                      siteObservationCount={plantObservationCounts[String(p.id)]?.site_observation_count ?? 0}
-                      offerPlantCommentAfterObservation={contextCommentsEnabled && canParticipateContextComments}
-                      onAcknowledged={(id, next) => {
-                        setPlantObservationCounts((prev) => ({
-                          ...prev,
-                          [String(id)]: {
-                            my_observation_count: next.my_observation_count,
-                            site_observation_count: next.site_observation_count,
-                          },
-                        }));
-                      }}
-                      onForceLogout={onForceLogout}
-                    />
+                    {(normalizedPlantValue(p.taxonomy?.group) ||
+                      normalizedPlantValue(p.taxon_group) ||
+                      normalizedPlantValue(p.group_2)) && (
+                      <span className="task-chip">
+                        {normalizedPlantValue(p.taxonomy?.group) ||
+                          normalizedPlantValue(p.taxon_group) ||
+                          normalizedPlantValue(p.group_2)}
+                      </span>
+                    )}
                   </div>
-                </div>
 
-                {contextCommentsEnabled && (
-                  <ContextComments
-                    contextType="plant"
-                    contextId={String(p.id)}
-                    title="Commentaires sur cette fiche"
-                    placeholder="Remarque ou question sur cet être vivant…"
-                    canParticipateContextComments={canParticipateContextComments}
-                  />
-                )}
+                  <div className="biodiv-card-body">
+                    {p.description ? (
+                      <MarkdownContent className="plant-row-desc">{p.description}</MarkdownContent>
+                    ) : (
+                      <p className="plant-row-desc">
+                        <em style={{ color: '#bbb' }}>Pas de description</em>
+                      </p>
+                    )}
+                    <PlantBiodivHeroPhoto plant={p} />
+                    <PlantEcosystemHumanLead plant={p} />
+                    <CatalogRemarksSection plant={p} />
+                    <div className="task-meta">
+                      {normalizedPlantValue(p.habitat) && !isGenericPotagerLabel(p.habitat) && (
+                        <span className="task-chip">🏡 {p.habitat}</span>
+                      )}
+                      {normalizedPlantValue(p.trophic_role) && (
+                        <span className="task-chip">🔗 {p.trophic_role}</span>
+                      )}
+                    </div>
+                    <PlantSummaryBadges plant={p} />
+                    <PlantMetaSections plant={p} />
+                    {hasMapLink ? (
+                      <div>
+                        <div
+                          style={{
+                            fontSize: '.74rem',
+                            fontWeight: 700,
+                            color: '#aaa',
+                            textTransform: 'uppercase',
+                            marginBottom: 4,
+                          }}
+                        >
+                          Sur la carte
+                        </div>
+                        <PlantLocationPreviewMaps maps={maps} zones={pZones} markers={pMarkers} />
+                        <div
+                          style={{
+                            fontSize: '.74rem',
+                            fontWeight: 700,
+                            color: '#aaa',
+                            textTransform: 'uppercase',
+                            margin: '10px 0 4px',
+                          }}
+                        >
+                          Zones et repères
+                        </div>
+                        <div className="plant-zones">
+                          {pZones.map((z) => (
+                            <span key={`zone-${z.id}`} className="plant-zone-chip">
+                              📍 {z.name}
+                            </span>
+                          ))}
+                          {pMarkers.map((m) => (
+                            <span key={`marker-${m.id}`} className="plant-zone-chip">
+                              📌 {m.label?.trim() ? m.label : 'Repère'}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <p style={{ fontSize: '.82rem', color: '#bbb', fontStyle: 'italic' }}>
+                        Pas encore associé à une zone ni à un repère sur la carte
+                      </p>
+                    )}
+                    <div
+                      className="plant-discovery-ack-row"
+                      style={{
+                        marginTop: 10,
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        gap: 8,
+                        alignItems: 'center',
+                      }}
+                    >
+                      <PlantSpeciesDiscoveryAcknowledgeButton
+                        plantId={p.id}
+                        speciesName={p.name}
+                        myObservationCount={
+                          plantObservationCounts[String(p.id)]?.my_observation_count ?? 0
+                        }
+                        siteObservationCount={
+                          plantObservationCounts[String(p.id)]?.site_observation_count ?? 0
+                        }
+                        offerPlantCommentAfterObservation={
+                          contextCommentsEnabled && canParticipateContextComments
+                        }
+                        onAcknowledged={(id, next) => {
+                          setPlantObservationCounts((prev) => ({
+                            ...prev,
+                            [String(id)]: {
+                              my_observation_count: next.my_observation_count,
+                              site_observation_count: next.site_observation_count,
+                            },
+                          }));
+                        }}
+                        onForceLogout={onForceLogout}
+                      />
+                    </div>
+                  </div>
 
-                <div className="task-actions">
-                  <Tooltip text={tooltipText(HELP_TOOLTIPS.plants.edit)}>
-                    <button className="btn btn-ghost btn-sm" aria-label="Modifier la fiche biodiversité" onClick={() => startEdit(p)}>✏️</button>
-                  </Tooltip>
-                  <Tooltip text={tooltipText(HELP_TOOLTIPS.plants.delete)}>
-                    <button className="btn btn-danger btn-sm" aria-label="Supprimer la fiche biodiversité" onClick={() => del(p)}>🗑️</button>
-                  </Tooltip>
-                </div>
-              </article>
-            )}
-          </div>
+                  {contextCommentsEnabled && (
+                    <ContextComments
+                      contextType="plant"
+                      contextId={String(p.id)}
+                      title="Commentaires sur cette fiche"
+                      placeholder="Remarque ou question sur cet être vivant…"
+                      canParticipateContextComments={canParticipateContextComments}
+                    />
+                  )}
+
+                  <div className="task-actions">
+                    <Tooltip text={tooltipText('plants.edit')}>
+                      <button
+                        className="btn btn-ghost btn-sm"
+                        aria-label="Modifier la fiche biodiversité"
+                        onClick={() => startEdit(p)}
+                      >
+                        ✏️
+                      </button>
+                    </Tooltip>
+                    <Tooltip text={tooltipText('plants.delete')}>
+                      <button
+                        className="btn btn-danger btn-sm"
+                        aria-label="Supprimer la fiche biodiversité"
+                        onClick={() => del(p)}
+                      >
+                        🗑️
+                      </button>
+                    </Tooltip>
+                  </div>
+                </article>
+              )}
+            </div>
           );
         })}
       </div>
@@ -390,7 +484,9 @@ function ObservationNotebook({ student, onForceLogout = null }) {
   const load = useCallback(async () => {
     setLoadError('');
     try {
-      const data = await api(`/api/observations/student/${student.id}?studentId=${encodeURIComponent(student.id)}`);
+      const data = await api(
+        `/api/observations/student/${student.id}?studentId=${encodeURIComponent(student.id)}`,
+      );
       setEntries(data);
     } catch (e) {
       if (e instanceof AccountDeletedError) {
@@ -409,7 +505,9 @@ function ObservationNotebook({ student, onForceLogout = null }) {
     setLoadError('');
     (async () => {
       try {
-        const data = await api(`/api/observations/student/${student.id}?studentId=${encodeURIComponent(student.id)}`);
+        const data = await api(
+          `/api/observations/student/${student.id}?studentId=${encodeURIComponent(student.id)}`,
+        );
         if (cancelled) return;
         setEntries(data);
       } catch (e) {
@@ -430,11 +528,16 @@ function ObservationNotebook({ student, onForceLogout = null }) {
     };
   }, [student.id, onForceLogout]);
 
-  const handleFile = e => {
+  const handleFile = (e) => {
     const file = e.target.files[0];
     e.target.value = '';
     if (!file) return;
-    compressImage(file).then(d => { setImageData(d); setPreview(d); }).catch(() => {});
+    compressImage(file)
+      .then((d) => {
+        setImageData(d);
+        setPreview(d);
+      })
+      .catch(() => {});
   };
 
   const submit = async () => {
@@ -447,7 +550,10 @@ function ObservationNotebook({ student, onForceLogout = null }) {
         content: content.trim(),
         imageData,
       });
-      setContent(''); setZoneId(''); setImageData(null); setPreview(null);
+      setContent('');
+      setZoneId('');
+      setImageData(null);
+      setPreview(null);
       setShowForm(false);
       setToast('Observation enregistrée ✓');
       await load();
@@ -478,51 +584,93 @@ function ObservationNotebook({ student, onForceLogout = null }) {
   return (
     <div className="fade-in">
       {toast && <TimedToast msg={toast} onDone={() => setToast(null)} />}
-      <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:4}}>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: 4,
+        }}
+      >
         <h2 className="section-title">📓 Mon carnet</h2>
-        {!showForm && <button className="btn btn-primary btn-sm" onClick={() => setShowForm(true)}>+ Observation</button>}
+        {!showForm && (
+          <button className="btn btn-primary btn-sm" onClick={() => setShowForm(true)}>
+            + Observation
+          </button>
+        )}
       </div>
       <p className="section-sub">Tes observations sur la forêt comestible</p>
 
       {showForm && (
-        <div className="plant-edit-form fade-in" style={{marginBottom:16}}>
+        <div className="plant-edit-form fade-in" style={{ marginBottom: 16 }}>
           <h4>Nouvelle observation</h4>
-          <div className="field"><label>Zone (optionnel)</label>
-            <select value={zoneId} onChange={e => setZoneId(e.target.value)}>
+          <div className="field">
+            <label>Zone (optionnel)</label>
+            <select value={zoneId} onChange={(e) => setZoneId(e.target.value)}>
               <option value="">— Aucune zone —</option>
-              {zones.map(z => <option key={z.id} value={z.id}>{z.name}</option>)}
+              {zones.map((z) => (
+                <option key={z.id} value={z.id}>
+                  {z.name}
+                </option>
+              ))}
             </select>
           </div>
-          <div className="field"><label>Observation *</label>
-            <MarkdownTextarea value={content} onChange={e => setContent(e.target.value)} rows={3}
-              placeholder="Qu'as-tu observé ? Croissance, insectes, couleur des feuilles..." autoFocus/>
+          <div className="field">
+            <label>Observation *</label>
+            <MarkdownTextarea
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              rows={3}
+              placeholder="Qu'as-tu observé ? Croissance, insectes, couleur des feuilles..."
+              autoFocus
+            />
           </div>
-          <div className="field"><label>Photo (optionnel)</label>
+          <div className="field">
+            <label>Photo (optionnel)</label>
             <ObservationPhotoField
               preview={preview}
               galleryFileRef={galleryFileRef}
               cameraFileRef={cameraFileRef}
               onFile={handleFile}
-              onRemove={() => { setImageData(null); setPreview(null); }}
+              onRemove={() => {
+                setImageData(null);
+                setPreview(null);
+              }}
             />
           </div>
-          <div style={{display:'flex', gap:8}}>
-            <button className="btn btn-primary btn-sm" onClick={submit} disabled={saving || !content.trim()}>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              className="btn btn-primary btn-sm"
+              onClick={submit}
+              disabled={saving || !content.trim()}
+            >
               {saving ? '...' : '💾 Enregistrer'}
             </button>
-            <button className="btn btn-ghost btn-sm" onClick={() => { setShowForm(false); setContent(''); setImageData(null); setPreview(null); }}>
+            <button
+              className="btn btn-ghost btn-sm"
+              onClick={() => {
+                setShowForm(false);
+                setContent('');
+                setImageData(null);
+                setPreview(null);
+              }}
+            >
               Annuler
             </button>
           </div>
         </div>
       )}
 
-      {loading || loadError || entries.length === 0
-        ? <ObservationNotebookStatus loading={loading} loadError={loadError} entryCount={entries.length} onRetry={load} />
-        : entries.map(e => (
-            <ObservationCard key={e.id} entry={e} onDelete={deleteObs} />
-          ))
-      }
+      {loading || loadError || entries.length === 0 ? (
+        <ObservationNotebookStatus
+          loading={loading}
+          loadError={loadError}
+          entryCount={entries.length}
+          onRetry={load}
+        />
+      ) : (
+        entries.map((e) => <ObservationCard key={e.id} entry={e} onDelete={deleteObs} />)
+      )}
     </div>
   );
 }
@@ -531,6 +679,9 @@ function ObservationNotebook({ student, onForceLogout = null }) {
 function PlantViewer({
   maps = [],
   onForceLogout = null,
+  onOpenPlant = null,
+  onOpenGlossaryTerm = null,
+  onNavigateToFoodWeb = null,
 }) {
   const publicSettings = usePublicSettings();
   const { canParticipateContextComments = true } = useSession();
@@ -541,10 +692,13 @@ function PlantViewer({
   const [group2, setGroup2] = useState('');
   const [group3, setGroup3] = useState('');
   const [habitatFilter, setHabitatFilter] = useState('');
-  const [agroFilter, setAgroFilter] = useState('');
+  const [trophicRoleFilter, setTrophicRoleFilter] = useState('');
+  const [habitatTypeFilter, setHabitatTypeFilter] = useState('');
   const [zonePresence, setZonePresence] = useState(ZONE_PRESENCE_FILTER.ALL);
   const [plantObservationCounts, setPlantObservationCounts] = useState(() => ({}));
-  const { isHelpEnabled, hasSeenSection, markSectionSeen, trackPanelOpen, trackPanelDismiss } = useHelp({ publicSettings, isTeacher: false });
+  const { isHelpEnabled, hasSeenSection, markSectionSeen, trackPanelOpen, trackPanelDismiss } =
+    useHelp({ publicSettings, isTeacher: false });
+  const helpPlants = resolveHelpPanelSection('plants', publicSettings);
 
   const structured = useMemo(
     () => ({
@@ -552,9 +706,10 @@ function PlantViewer({
       group2,
       group3,
       habitat: habitatFilter,
-      agroecosystemCategory: agroFilter,
+      trophicRole: trophicRoleFilter,
+      habitatType: habitatTypeFilter,
     }),
-    [group1, group2, group3, habitatFilter, agroFilter],
+    [group1, group2, group3, habitatFilter, trophicRoleFilter, habitatTypeFilter],
   );
 
   const queryTrimmedLower = search.trim().toLowerCase();
@@ -599,13 +754,15 @@ function PlantViewer({
 
   return (
     <div className="fade-in">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+      <div
+        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}
+      >
         <h2 className="section-title">🌱 Catalogue de biodiversité</h2>
         {isHelpEnabled && (
           <HelpPanel
             sectionId="plants"
-            title={HELP_PANELS.plants.title}
-            entries={HELP_PANELS.plants.items}
+            title={helpPlants.title}
+            entries={helpPlants.items}
             isTeacher={false}
             isPulsing={!hasSeenSection('plants')}
             onMarkSeen={markSectionSeen}
@@ -632,15 +789,21 @@ function PlantViewer({
         setGroup3={setGroup3}
         habitat={habitatFilter}
         setHabitat={setHabitatFilter}
-        agro={agroFilter}
-        setAgro={setAgroFilter}
+        trophicRole={trophicRoleFilter}
+        setTrophicRole={setTrophicRoleFilter}
+        habitatType={habitatTypeFilter}
+        setHabitatType={setHabitatTypeFilter}
         zonePresence={zonePresence}
         setZonePresence={setZonePresence}
       />
 
-      {filtered.length === 0
-        ? <div className="empty"><div className="empty-icon">🌿</div><p>Aucun être vivant ne colle à ta recherche — essaie un autre mot.</p></div>
-        : <div className="biodiv-grid">
+      {filtered.length === 0 ? (
+        <div className="empty">
+          <div className="empty-icon">🌿</div>
+          <p>Aucun être vivant ne colle à ta recherche — essaie un autre mot.</p>
+        </div>
+      ) : (
+        <div className="biodiv-grid">
           {filtered.map((p) => (
             <PlantBiodiversityCatalogPreviewCard
               key={p.id}
@@ -649,7 +812,9 @@ function PlantViewer({
               markers={markers}
               maps={maps}
               myObservationCount={plantObservationCounts[String(p.id)]?.my_observation_count ?? 0}
-              siteObservationCount={plantObservationCounts[String(p.id)]?.site_observation_count ?? 0}
+              siteObservationCount={
+                plantObservationCounts[String(p.id)]?.site_observation_count ?? 0
+              }
               onObservationAcknowledged={(id, next) => {
                 setPlantObservationCounts((prev) => ({
                   ...prev,
@@ -664,10 +829,13 @@ function PlantViewer({
               onForceLogout={onForceLogout}
               showContextComments
               dataBiodivPlantId={null}
+              onOpenPlant={onOpenPlant}
+              onOpenGlossaryTerm={onOpenGlossaryTerm}
+              onNavigateToFoodWeb={onNavigateToFoodWeb}
             />
           ))}
         </div>
-      }
+      )}
     </div>
   );
 }

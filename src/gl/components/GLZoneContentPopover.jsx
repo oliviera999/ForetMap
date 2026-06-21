@@ -83,7 +83,11 @@ export function GLZoneContentPopover({
               <div className="gl-zone-content-popover__gallery">
                 {images.map((img) => (
                   <figure key={img.url} className="gl-zone-content-popover__figure">
-                    <img src={img.url} alt={img.caption || zone?.label || 'Illustration zone'} loading="lazy" />
+                    <img
+                      src={img.url}
+                      alt={img.caption || zone?.label || 'Illustration zone'}
+                      loading="lazy"
+                    />
                     {img.caption ? <figcaption>{img.caption}</figcaption> : null}
                   </figure>
                 ))}

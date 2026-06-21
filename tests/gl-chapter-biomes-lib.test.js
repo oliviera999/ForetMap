@@ -9,10 +9,10 @@ const {
 } = require('../lib/glChapterBiomes');
 
 test('normalizeBiomeSlugList dédoublonne en conservant l’ordre', () => {
-  assert.deepStrictEqual(
-    normalizeBiomeSlugList(['sahara', '  ', 'sahara', 'toundra']),
-    ['sahara', 'toundra']
-  );
+  assert.deepStrictEqual(normalizeBiomeSlugList(['sahara', '  ', 'sahara', 'toundra']), [
+    'sahara',
+    'toundra',
+  ]);
 });
 
 test('parseBiomeSlugsFromBody lit biomeSlugs ou biomeSlug legacy', () => {
@@ -23,7 +23,10 @@ test('parseBiomeSlugsFromBody lit biomeSlugs ou biomeSlug legacy', () => {
 });
 
 test('parseBiomeSlugsFromQuery lit biomeSlugs csv ou biomeSlug simple', () => {
-  assert.deepStrictEqual(parseBiomeSlugsFromQuery({ biomeSlugs: 'sahara,toundra' }), ['sahara', 'toundra']);
+  assert.deepStrictEqual(parseBiomeSlugsFromQuery({ biomeSlugs: 'sahara,toundra' }), [
+    'sahara',
+    'toundra',
+  ]);
   assert.deepStrictEqual(parseBiomeSlugsFromQuery({ biomeSlug: 'jungle_afc' }), ['jungle_afc']);
   assert.deepStrictEqual(parseBiomeSlugsFromQuery({}), []);
 });

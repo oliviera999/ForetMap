@@ -8,9 +8,11 @@ test.describe('GL chapitres — edition visuelle repere', () => {
     const adminEmail = `e2e-map-editor-mj-${now}@example.org`;
     await execute(
       'INSERT INTO gl_admins (email, display_name, role, is_active, created_at, updated_at) VALUES (?, ?, ?, 1, NOW(), NOW())',
-      [adminEmail, `MJ Map ${now}`, 'admin']
+      [adminEmail, `MJ Map ${now}`, 'admin'],
     );
-    const adminRow = await queryOne('SELECT id FROM gl_admins WHERE email = ? LIMIT 1', [adminEmail]);
+    const adminRow = await queryOne('SELECT id FROM gl_admins WHERE email = ? LIMIT 1', [
+      adminEmail,
+    ]);
     const adminId = Number(adminRow?.id || 0);
     expect(adminId).toBeGreaterThan(0);
 

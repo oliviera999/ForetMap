@@ -26,9 +26,10 @@ test('buildSearchQueries déduplique et ajoute le nom scientifique', () => {
     'tomate',
     'Solanum lycopersicum',
   ]);
-  assert.deepEqual(buildSearchQueries('Solanum lycopersicum', { scientificName: 'Solanum lycopersicum' }), [
-    'Solanum lycopersicum',
-  ]);
+  assert.deepEqual(
+    buildSearchQueries('Solanum lycopersicum', { scientificName: 'Solanum lycopersicum' }),
+    ['Solanum lycopersicum'],
+  );
 });
 
 test('mergeSources favorise Wikidata pour le champ description (rang source)', () => {
@@ -154,24 +155,28 @@ test('buildSpeciesAutofill fusionne les sources et retourne des photos', async (
               P105: [{ mainsnak: { datavalue: { value: { id: 'Q7432' } } } }],
               P225: [{ mainsnak: { datavalue: { value: 'Solanum lycopersicum' } } }],
               P18: [{ mainsnak: { datavalue: { value: 'Tomato_je.jpg' } } }],
-              P366: [{
-                mainsnak: {
-                  snaktype: 'value',
-                  datavalue: {
-                    type: 'wikibase-entityid',
-                    value: { id: 'Q2095', 'entity-type': 'item', 'numeric-id': 2095 },
+              P366: [
+                {
+                  mainsnak: {
+                    snaktype: 'value',
+                    datavalue: {
+                      type: 'wikibase-entityid',
+                      value: { id: 'Q2095', 'entity-type': 'item', 'numeric-id': 2095 },
+                    },
                   },
                 },
-              }],
-              P183: [{
-                mainsnak: {
-                  snaktype: 'value',
-                  datavalue: {
-                    type: 'wikibase-entityid',
-                    value: { id: 'Q142', 'entity-type': 'item', 'numeric-id': 142 },
+              ],
+              P183: [
+                {
+                  mainsnak: {
+                    snaktype: 'value',
+                    datavalue: {
+                      type: 'wikibase-entityid',
+                      value: { id: 'Q142', 'entity-type': 'item', 'numeric-id': 142 },
+                    },
                   },
                 },
-              }],
+              ],
             },
           },
         },
@@ -179,15 +184,17 @@ test('buildSpeciesAutofill fusionne les sources et retourne des photos', async (
     }
     if (raw.includes('api.checklistbank.org/dataset/3LR/nameusage/search')) {
       return jsonResponse({
-        result: [{
-          id: 'COL-123',
-          name: 'Solanum lycopersicum',
-          classification: [
-            { rank: 'kingdom', name: 'Plantae' },
-            { rank: 'order', name: 'Solanales' },
-            { rank: 'family', name: 'Solanaceae' },
-          ],
-        }],
+        result: [
+          {
+            id: 'COL-123',
+            name: 'Solanum lycopersicum',
+            classification: [
+              { rank: 'kingdom', name: 'Plantae' },
+              { rank: 'order', name: 'Solanales' },
+              { rank: 'family', name: 'Solanaceae' },
+            ],
+          },
+        ],
       });
     }
     if (raw.includes('api.gbif.org/v1/species/match')) {
@@ -214,20 +221,22 @@ test('buildSpeciesAutofill fusionne les sources et retourne des photos', async (
     }
     if (raw.includes('api.inaturalist.org/v1/taxa')) {
       return jsonResponse({
-        results: [{
-          id: 58698,
-          rank: 'species',
-          name: 'Solanum lycopersicum',
-          preferred_common_name: 'Tomate-cerise (test)',
-          observations_count: 40000,
-          matched_term: 'tomate',
-          default_photo: {
-            url: 'https://inaturalist-open-data.s3.amazonaws.com/photos/1/medium.jpg',
-            license_code: 'cc-by',
-            attribution: '(c) Test, CC BY',
+        results: [
+          {
+            id: 58698,
+            rank: 'species',
+            name: 'Solanum lycopersicum',
+            preferred_common_name: 'Tomate-cerise (test)',
+            observations_count: 40000,
+            matched_term: 'tomate',
+            default_photo: {
+              url: 'https://inaturalist-open-data.s3.amazonaws.com/photos/1/medium.jpg',
+              license_code: 'cc-by',
+              attribution: '(c) Test, CC BY',
+            },
+            wikipedia_summary: 'Espèce de plantes potagères du genre Solanum.',
           },
-          wikipedia_summary: 'Espèce de plantes potagères du genre Solanum.',
-        }],
+        ],
       });
     }
     if (raw.includes('api.gbif.org/v1/species/2930132/vernacularNames')) {
@@ -242,7 +251,8 @@ test('buildSpeciesAutofill fusionne les sources et retourne des photos', async (
     if (raw.includes('en.wikipedia.org/api/rest_v1/page/summary')) {
       return jsonResponse({
         title: 'Tomato',
-        extract: 'The tomato is the edible berry of the plant Solanum lycopersicum, commonly known as a tomato plant.',
+        extract:
+          'The tomato is the edible berry of the plant Solanum lycopersicum, commonly known as a tomato plant.',
         content_urls: { desktop: { page: 'https://en.wikipedia.org/wiki/Tomato' } },
       });
     }
@@ -272,7 +282,8 @@ test('buildSpeciesAutofill ajoute un warning si une source échoue', async () =>
     if (raw.includes('fr.wikipedia.org')) throw new Error('timeout');
     if (raw.includes('wikidata.org/w/api.php')) return jsonResponse({ search: [] });
     if (raw.includes('api.gbif.org/v1/species/match')) return jsonResponse({ matchType: 'NONE' });
-    if (raw.includes('api.checklistbank.org/dataset/3LR/nameusage/search')) return jsonResponse({ result: [] });
+    if (raw.includes('api.checklistbank.org/dataset/3LR/nameusage/search'))
+      return jsonResponse({ result: [] });
     if (raw.includes('api.inaturalist.org/v1/taxa')) return jsonResponse({ results: [] });
     if (raw.includes('vernacularNames')) return jsonResponse({ results: [] });
     if (raw.includes('en.wikipedia.org')) return jsonResponse({ title: 'X', extract: 'Short' });
@@ -323,7 +334,12 @@ test('buildSpeciesAutofill évite un homonyme wikidata non taxonomique', async (
       });
     }
     if (raw.includes('api.gbif.org/v1/species/match')) {
-      return jsonResponse({ confidence: 90, scientificName: 'Solanum lycopersicum', canonicalName: 'Tomate', usageKey: 2930132 });
+      return jsonResponse({
+        confidence: 90,
+        scientificName: 'Solanum lycopersicum',
+        canonicalName: 'Tomate',
+        usageKey: 2930132,
+      });
     }
     if (raw.includes('/species/2930132/descriptions')) {
       return jsonResponse({ results: [] });
@@ -336,13 +352,15 @@ test('buildSpeciesAutofill évite un homonyme wikidata non taxonomique', async (
     }
     if (raw.includes('api.inaturalist.org/v1/taxa')) {
       return jsonResponse({
-        results: [{
-          id: 58698,
-          rank: 'species',
-          name: 'Solanum lycopersicum',
-          observations_count: 1000,
-          matched_term: 'tomate',
-        }],
+        results: [
+          {
+            id: 58698,
+            rank: 'species',
+            name: 'Solanum lycopersicum',
+            observations_count: 1000,
+            matched_term: 'tomate',
+          },
+        ],
       });
     }
     if (raw.includes('api.gbif.org/v1/species/2930132/vernacularNames')) {
@@ -351,7 +369,8 @@ test('buildSpeciesAutofill évite un homonyme wikidata non taxonomique', async (
     if (raw.includes('en.wikipedia.org/api/rest_v1/page/summary')) {
       return jsonResponse({
         title: 'Tomato',
-        extract: 'The tomato is the edible berry of the plant Solanum lycopersicum, commonly known as a tomato plant.',
+        extract:
+          'The tomato is the edible berry of the plant Solanum lycopersicum, commonly known as a tomato plant.',
         content_urls: { desktop: { page: 'https://en.wikipedia.org/wiki/Tomato' } },
       });
     }
@@ -359,7 +378,11 @@ test('buildSpeciesAutofill évite un homonyme wikidata non taxonomique', async (
   };
   const result = await buildSpeciesAutofill('tomate', { fetchImpl, timeoutMs: 1200 });
   assert.equal(result.fields.scientific_name, 'Solanum lycopersicum');
-  assert.ok(!String(result.fields.description || '').toLowerCase().includes('chanteur'));
+  assert.ok(
+    !String(result.fields.description || '')
+      .toLowerCase()
+      .includes('chanteur'),
+  );
 });
 
 test('buildSpeciesAutofill avec sourcesAllowed gbif seul n’interroge pas Wikipedia ni Wikidata', async () => {
@@ -407,15 +430,35 @@ test('buildSpeciesAutofill avec gbif+openai : OpenAI complète sans écraser GBI
     }
     if (raw.includes('api.openai.com/v1/chat/completions')) {
       const body = JSON.parse(String(init?.body || '{}'));
-      const user = Array.isArray(body.messages) ? body.messages.find((m) => m.role === 'user') : null;
+      const user = Array.isArray(body.messages)
+        ? body.messages.find((m) => m.role === 'user')
+        : null;
       const content = String(user?.content || '');
       if (content.includes('cles_a_remplir')) {
         return jsonResponse({
-          choices: [{ message: { content: JSON.stringify({ habitat: 'Prairies sèches, friches fleuries.', nutrition: 'Nectar et pollen.' }) } }],
+          choices: [
+            {
+              message: {
+                content: JSON.stringify({
+                  habitat: 'Prairies sèches, friches fleuries.',
+                  nutrition: 'Nectar et pollen.',
+                }),
+              },
+            },
+          ],
         });
       }
       return jsonResponse({
-        choices: [{ message: { content: JSON.stringify({ name: 'Nom inventé OpenAI', habitat: 'Milieux ouverts et chauds.' }) } }],
+        choices: [
+          {
+            message: {
+              content: JSON.stringify({
+                name: 'Nom inventé OpenAI',
+                habitat: 'Milieux ouverts et chauds.',
+              }),
+            },
+          },
+        ],
       });
     }
     throw new Error(`URL inattendue: ${raw}`);
@@ -432,7 +475,7 @@ test('buildSpeciesAutofill avec gbif+openai : OpenAI complète sans écraser GBI
     });
     assert.equal(result.fields.name, 'Cétoine funeste');
     assert.equal(result.fields.scientific_name, 'Oxythyrea funesta');
-    assert.equal(result.fields.group_1, 'Animalia');
+    assert.equal(result.fields.taxon_kingdom, 'Animalia');
     assert.match(String(result.fields.habitat || ''), /prair|ouvert|chaud/i);
     assert.ok((result.sources || []).some((s) => s.source === 'gbif'));
     assert.ok((result.sources || []).some((s) => s.source === 'openai'));

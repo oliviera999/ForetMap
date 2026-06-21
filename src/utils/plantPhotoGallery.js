@@ -46,7 +46,9 @@ export function planGalleryPhotoSlots(photoFields, startFieldKey, fileCount) {
 export function galleryUploadToastMessages({ ok, skipped, startLabel }) {
   const messages = [];
   if (skipped > 0) {
-    messages.push(`${skipped} photo(s) non importée(s) — plus de champ disponible après « ${startLabel} ».`);
+    messages.push(
+      `${skipped} photo(s) non importée(s) — plus de champ disponible après « ${startLabel} ».`,
+    );
   }
   if (ok === 1 && skipped === 0) {
     messages.push('Photo importée ✓');

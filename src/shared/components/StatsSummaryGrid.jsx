@@ -3,7 +3,9 @@ import { useCountUp } from '../hooks/useCountUp.js';
 
 function parseCountValue(value) {
   if (typeof value === 'number' && Number.isFinite(value)) return value;
-  const raw = String(value ?? '').trim().replace(/\s/g, '');
+  const raw = String(value ?? '')
+    .trim()
+    .replace(/\s/g, '');
   if (/^\d+$/.test(raw)) return Number(raw);
   return null;
 }
@@ -13,9 +15,7 @@ function StatNumber({ value, animateCount, numberClassName }) {
   const { ref, value: animated } = useCountUp(numeric ?? 0, {
     enabled: animateCount && numeric != null,
   });
-  const display = animateCount && numeric != null
-    ? animated.toLocaleString('fr-FR')
-    : value;
+  const display = animateCount && numeric != null ? animated.toLocaleString('fr-FR') : value;
   return (
     <div ref={animateCount && numeric != null ? ref : undefined} className={numberClassName}>
       {display}
@@ -51,11 +51,7 @@ export function StatCard({
   );
 }
 
-export function StatsSummaryGrid({
-  children,
-  className = 'stats-grid',
-  style,
-}) {
+export function StatsSummaryGrid({ children, className = 'stats-grid', style }) {
   return (
     <div className={className} style={style}>
       {children}

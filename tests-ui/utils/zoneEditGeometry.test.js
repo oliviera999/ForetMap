@@ -17,7 +17,15 @@ describe('clampEditZonePct', () => {
 
 describe('clampEditPts', () => {
   test('borne tous les points, tolère null', () => {
-    expect(clampEditPts([{ xp: 200, yp: -1 }, { xp: 10, yp: 10 }])).toEqual([{ xp: 100, yp: 0 }, { xp: 10, yp: 10 }]);
+    expect(
+      clampEditPts([
+        { xp: 200, yp: -1 },
+        { xp: 10, yp: 10 },
+      ]),
+    ).toEqual([
+      { xp: 100, yp: 0 },
+      { xp: 10, yp: 10 },
+    ]);
     expect(clampEditPts(null)).toEqual([]);
   });
 });
@@ -45,15 +53,34 @@ describe('editPtsSnapshotEqual', () => {
 
 describe('offsetDuplicateZonePoints', () => {
   test('décale et borne, défaut +2.5', () => {
-    expect(offsetDuplicateZonePoints([{ xp: 10, yp: 10 }, { xp: 20, yp: 20 }, { xp: 30, yp: 30 }]))
-      .toEqual([{ xp: 12.5, yp: 12.5 }, { xp: 22.5, yp: 22.5 }, { xp: 32.5, yp: 32.5 }]);
+    expect(
+      offsetDuplicateZonePoints([
+        { xp: 10, yp: 10 },
+        { xp: 20, yp: 20 },
+        { xp: 30, yp: 30 },
+      ]),
+    ).toEqual([
+      { xp: 12.5, yp: 12.5 },
+      { xp: 22.5, yp: 22.5 },
+      { xp: 32.5, yp: 32.5 },
+    ]);
   });
   test('borne à 100 après décalage', () => {
-    expect(offsetDuplicateZonePoints([{ xp: 99, yp: 99 }, { xp: 50, yp: 50 }, { xp: 10, yp: 10 }])[0])
-      .toEqual({ xp: 100, yp: 100 });
+    expect(
+      offsetDuplicateZonePoints([
+        { xp: 99, yp: 99 },
+        { xp: 50, yp: 50 },
+        { xp: 10, yp: 10 },
+      ])[0],
+    ).toEqual({ xp: 100, yp: 100 });
   });
   test('moins de 3 points / non-tableau → null', () => {
-    expect(offsetDuplicateZonePoints([{ xp: 1, yp: 1 }, { xp: 2, yp: 2 }])).toBeNull();
+    expect(
+      offsetDuplicateZonePoints([
+        { xp: 1, yp: 1 },
+        { xp: 2, yp: 2 },
+      ]),
+    ).toBeNull();
     expect(offsetDuplicateZonePoints(null)).toBeNull();
   });
 });

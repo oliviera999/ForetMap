@@ -13,15 +13,17 @@ import { apiGL } from '../../src/gl/services/apiGL.js';
 describe('GLSeleneCarnetView', () => {
   beforeEach(() => {
     vi.mocked(apiGL).mockResolvedValue({
-      items: [{
-        feuilletCode: 'test-feui',
-        titre: 'Feuillet test',
-        displayText: 'Contenu accessible',
-        liasse: 'I',
-        ordreVoyage: 1,
-        ordreLiasse: 1,
-        progressStatus: 'discovered',
-      }],
+      items: [
+        {
+          feuilletCode: 'test-feui',
+          titre: 'Feuillet test',
+          displayText: 'Contenu accessible',
+          liasse: 'I',
+          ordreVoyage: 1,
+          ordreLiasse: 1,
+          progressStatus: 'discovered',
+        },
+      ],
     });
   });
 
@@ -35,13 +37,15 @@ describe('GLSeleneCarnetView', () => {
 describe('GLLoreGlossaryView', () => {
   beforeEach(() => {
     vi.mocked(apiGL).mockResolvedValue({
-      items: [{
-        lore_code: 'LR0001',
-        terme: 'la Trame',
-        categorie: 'cosmologie',
-        categorie_label: 'Cosmologie',
-        definition_courte: 'Définition',
-      }],
+      items: [
+        {
+          lore_code: 'LR0001',
+          terme: 'la Trame',
+          categorie: 'cosmologie',
+          categorie_label: 'Cosmologie',
+          definition_courte: 'Définition',
+        },
+      ],
     });
   });
 

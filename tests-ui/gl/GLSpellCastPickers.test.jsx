@@ -1,7 +1,5 @@
 import React from 'react';
-import {
-  describe, test, expect, vi,
-} from 'vitest';
+import { describe, test, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import {
   GLSpellCastSpellPicker,
@@ -54,7 +52,9 @@ describe('GLSpellCastTeamPicker', () => {
 
   test('remonte onSelectTeam(id) au clic', () => {
     const onSelectTeam = vi.fn();
-    render(<GLSpellCastTeamPicker teams={TEAMS} selectedTeamId={null} onSelectTeam={onSelectTeam} />);
+    render(
+      <GLSpellCastTeamPicker teams={TEAMS} selectedTeamId={null} onSelectTeam={onSelectTeam} />,
+    );
     fireEvent.click(screen.getByText('Bleus'));
     expect(onSelectTeam).toHaveBeenCalledWith(2);
   });

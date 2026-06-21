@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { GLLoreGlossaryMarkdown } from './GLLoreGlossaryMarkdown.jsx';
 import { GLGlossaryMarkdown } from './GLGlossaryMarkdown.jsx';
-import { GLFeuilletIllustration } from './GLFeuilletIllustration.jsx';
+import { GLFeuilletIllustration, GLFeuilletCoupeIllustration } from './GLFeuilletIllustration.jsx';
 import { GLButton } from './ui/GLButton.jsx';
 
 export function GLFeuilletDiscoveryPopover({
@@ -18,6 +18,7 @@ export function GLFeuilletDiscoveryPopover({
   glossaryLinkItems = [],
   loreGlossaryLinkItems = [],
   themeStyle = null,
+  showMarkRead = true,
 }) {
   useEffect(() => {
     if (!open) return undefined;
@@ -34,7 +35,11 @@ export function GLFeuilletDiscoveryPopover({
     ? `gl-feui-${String(feuillet.modeApparition).replace(/_/g, '-')}`
     : 'gl-feui-boite';
   const effPct = Number(feuillet?.effacementPct) || 0;
-  const hasBody = feuillet?.displayText || feuillet?.imageUrl || feuillet?.imageCoupeUrl || feuillet?.feuilletCode;
+  const hasBody =
+    feuillet?.displayText ||
+    feuillet?.imageUrl ||
+    feuillet?.imageCoupeUrl ||
+    feuillet?.feuilletCode;
 
   return createPortal(
     <div
@@ -55,8 +60,17 @@ export function GLFeuilletDiscoveryPopover({
             {zone?.label ? `Zone · ${zone.label}` : 'Carnet de Sélène'}
           </p>
           <h3>{feuillet?.titre || 'Feuillet'}</h3>
-          {feuillet?.incipit ? <p className="gl-feui-discovery__incipit">{feuillet.incipit}</p> : null}
-          <button type="button" className="gl-feui-discovery__close" onClick={() => onClose?.()} aria-label="Fermer">✕</button>
+          {feuillet?.incipit ? (
+            <p className="gl-feui-discovery__incipit">{feuillet.incipit}</p>
+          ) : null}
+          <button
+            type="button"
+            className="gl-feui-discovery__close"
+            onClick={() => onClose?.()}
+            aria-label="Fermer"
+          >
+            ✕
+          </button>
         </header>
 
         {error ? <p className="gl-error">{error}</p> : null}
@@ -65,7 +79,9 @@ export function GLFeuilletDiscoveryPopover({
         {!loading && hasBody ? (
           <div
             className="gl-feui-discovery__body"
-            style={effPct > 0 && effPct < 100 ? { opacity: Math.max(0.35, 1 - effPct / 100) } : undefined}
+            style={
+              effPct > 0 && effPct < 100 ? { opacity: Math.max(0.35, 1 - effPct / 100) } : undefined
+            }
           >
             <GLFeuilletIllustration
               feuilletCode={feuillet?.feuilletCode}
@@ -83,9 +99,10 @@ export function GLFeuilletDiscoveryPopover({
             {feuillet.imageCoupeUrl ? (
               <details className="gl-feui-discovery__coupe">
                 <summary>Coupe</summary>
-                <figure className="gl-feui-discovery__illu">
-                  <img src={feuillet.imageCoupeUrl} alt="Coupe pédagogique" loading="lazy" />
-                </figure>
+                <GLFeuilletCoupeIllustration
+                  url={feuillet.imageCoupeUrl}
+                  figureClassName="gl-feui-discovery__illu"
+                />
               </details>
             ) : null}
             {feuillet.ancrageScientifique ? (
@@ -102,16 +119,20 @@ export function GLFeuilletDiscoveryPopover({
         ) : null}
 
         <footer className="gl-feui-discovery__foot">
-          <GLButton type="button" variant="ghost" onClick={() => onClose?.()}>Fermer</GLButton>
-          <GLButton
-            type="button"
-            onClick={() => {
-              onMarkRead?.();
-              onClose?.();
-            }}
-          >
-            Marquer comme lu
+          <GLButton type="button" variant="ghost" onClick={() => onClose?.()}>
+            Fermer
           </GLButton>
+          {showMarkRead ? (
+            <GLButton
+              type="button"
+              onClick={() => {
+                onMarkRead?.();
+                onClose?.();
+              }}
+            >
+              Marquer comme lu
+            </GLButton>
+          ) : null}
         </footer>
       </div>
     </div>,
