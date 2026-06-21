@@ -21,6 +21,8 @@ export function GLAppBanners({
   onStopImpersonation,
   narrationText,
   turnTeamLabel,
+  roundLabel,
+  spellRejectedText,
 }) {
   return (
     <>
@@ -104,6 +106,18 @@ export function GLAppBanners({
       {turnTeamLabel ? (
         <FixedToast className="fm-toast--turn gl-turn-toast">
           C’est au tour de <strong>{turnTeamLabel}</strong>.
+        </FixedToast>
+      ) : null}
+
+      {roundLabel ? (
+        <FixedToast className="fm-toast--turn gl-turn-toast">
+          Nouveau tour : <strong>{roundLabel}</strong>. À vous de jouer !
+        </FixedToast>
+      ) : null}
+
+      {spellRejectedText ? (
+        <FixedToast className="fm-toast--turn gl-spell-rejected-toast">
+          Sortilège refusé par le MJ : <strong>{spellRejectedText}</strong>.
         </FixedToast>
       ) : null}
     </>

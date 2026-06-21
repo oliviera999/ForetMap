@@ -116,17 +116,7 @@ router.post('/games/:id/qcm/answer', requireGlAuth, async (req, res) => {
     return res.status(403).json({ error: 'QCM réservé au maître du jeu' });
   }
 
-  if (settings.turnsEnabled) {
-    const gameTurn = await queryOne('SELECT current_team_id FROM gl_games WHERE id = ? LIMIT 1', [
-      gameId,
-    ]);
-    if (
-      gameTurn?.current_team_id != null &&
-      Number(gameTurn.current_team_id) !== Number(teamIdForGame)
-    ) {
-      return res.status(409).json({ error: 'Ce n’est pas le tour de votre équipe' });
-    }
-  }
+  // Mode classique : toutes les équipes jouent simultanément, plus de blocage « pas votre tour ».
 
   const questionRow = await loadAnyActiveQuestion({ queryOne }, questionCode);
   if (!questionRow) return res.status(404).json({ error: 'Question introuvable' });

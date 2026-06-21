@@ -12,6 +12,9 @@ export default function GLGameMasterConsoleLive({
   effectiveSelectedTeamId,
   currentTeamId,
   turnsEnabled,
+  roundNumber,
+  pendingSpellCasts = [],
+  onResolveSpellCast,
   narrationEnabled,
   playerActionsEnabled,
   scoringEnabled,
@@ -67,12 +70,12 @@ export default function GLGameMasterConsoleLive({
           <div className="gl-team-selector-list">
             {teams.map((team) => {
               const isSelected = effectiveSelectedTeamId === Number(team.id);
-              const isCurrentTurn = turnsEnabled && currentTeamId === Number(team.id);
+              const hasMoved = turnsEnabled && team.hasMovedThisRound === true;
               return (
                 <button
                   key={team.id}
                   type="button"
-                  className={`gl-team-chip${isSelected ? ' is-selected' : ''}${isCurrentTurn ? ' is-current-turn' : ''}`}
+                  className={`gl-team-chip${isSelected ? ' is-selected' : ''}${hasMoved ? ' is-moved' : ''}`}
                   onClick={() => onSelectTeam?.(Number(team.id))}
                   style={{ borderColor: team.color || '#22c55e' }}
                   data-team-id={team.id}
@@ -87,7 +90,11 @@ export default function GLGameMasterConsoleLive({
                   {team.mascot_id ? (
                     <span className="gl-team-chip-mascot">{team.mascot_id}</span>
                   ) : null}
-                  {isCurrentTurn ? <span className="gl-team-chip-badge">Tour</span> : null}
+                  {hasMoved ? (
+                    <span className="gl-team-chip-badge" title="Mascotte déplacée ce tour">
+                      ✓ déplacée
+                    </span>
+                  ) : null}
                 </button>
               );
             })}
@@ -111,19 +118,67 @@ export default function GLGameMasterConsoleLive({
         <div className="gl-gameplay-block">
           <h3>Tour de jeu</h3>
           <p>
-            Équipe courante :{' '}
+            Tour courant :{' '}
             <strong>
-              {currentTeamId != null
-                ? teams.find((team) => Number(team.id) === currentTeamId)?.name ||
-                  `#${currentTeamId}`
-                : 'aucune'}
+              {Number(roundNumber) > 0 ? `n°${roundNumber}` : 'aucun (pas encore lancé)'}
             </strong>
           </p>
+          <p className="gl-hint">
+            Toutes les équipes jouent simultanément. Lancer un nouveau tour réautorise le
+            déplacement de chaque mascotte.
+          </p>
           <GLButton type="button" onClick={nextTurn} disabled={busy}>
-            Tour suivant
+            {Number(roundNumber) > 0 ? 'Lancer le tour suivant' : 'Lancer le premier tour'}
           </GLButton>
         </div>
       )}
+
+      {pendingSpellCasts.length > 0 ? (
+        <div className="gl-gameplay-block gl-spell-approval-queue">
+          <h3>Sortilèges à valider ({pendingSpellCasts.length})</h3>
+          <p className="gl-hint">Les gemmes / cœurs ne sont débités qu&apos;après votre accord.</p>
+          <ul className="gl-pending-actions">
+            {pendingSpellCasts.map((draft) => {
+              const team = teams.find((t) => Number(t.id) === Number(draft.teamId));
+              const spellName = draft.spell?.nom || draft.spellCode;
+              const cost = draft.required || draft.spell?.required || {};
+              return (
+                <li key={draft.id} className="gl-pending-action">
+                  <div className="gl-pending-action-head">
+                    <strong>
+                      {draft.spell?.emoji ? `${draft.spell.emoji} ` : ''}
+                      {spellName}
+                    </strong>
+                    <span className="gl-hint">{team?.name || `Équipe #${draft.teamId}`}</span>
+                  </div>
+                  <div className="gl-hint">
+                    Coût : {Number(cost.gems) || 0} 💎 · {Number(cost.hearts) || 0} ❤️
+                  </div>
+                  <div className="gl-inline-actions">
+                    <GLButton
+                      type="button"
+                      size="sm"
+                      onClick={() => onResolveSpellCast?.(draft.id, 'accept')}
+                      disabled={busy}
+                    >
+                      Valider
+                    </GLButton>
+                    <GLButton
+                      type="button"
+                      size="sm"
+                      variant="danger"
+                      onClick={() => onResolveSpellCast?.(draft.id, 'reject')}
+                      disabled={busy}
+                    >
+                      Refuser
+                    </GLButton>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ) : null}
 
       {narrationEnabled && (
         <form className="gl-gameplay-block" onSubmit={sendNarration}>

@@ -17,8 +17,8 @@ function parseId(value) {
 
 /**
  * Demande d'action emise par un joueur. Le MJ resout via /actions/:actionId/resolve.
- * Refus si `gameplay.player_actions_enabled = false` ou si le joueur n'est pas dans
- * l'equipe active (lorsque les tours sont actives).
+ * Refus si `gameplay.player_actions_enabled = false`. Mode classique : pas de blocage
+ * « tour de l'équipe » (toutes les équipes jouent simultanément).
  */
 router.post(
   '/games/:id/actions',
@@ -47,14 +47,7 @@ router.post(
       return res.status(403).json({ error: 'Joueur non rattaché à cette partie' });
     }
     const teamIdForGame = teamMembership.team_id;
-    if (settings.turnsEnabled) {
-      const game = await queryOne('SELECT current_team_id FROM gl_games WHERE id = ? LIMIT 1', [
-        gameId,
-      ]);
-      if (game?.current_team_id != null && Number(game.current_team_id) !== Number(teamIdForGame)) {
-        return res.status(409).json({ error: 'Ce n’est pas le tour de votre équipe' });
-      }
-    }
+    // Mode classique : toutes les équipes jouent simultanément, plus de blocage « pas votre tour ».
 
     let actionRequestId = null;
     await withTransaction(async (tx) => {
