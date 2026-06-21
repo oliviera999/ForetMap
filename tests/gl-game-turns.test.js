@@ -72,56 +72,92 @@ before(async () => {
     userType: 'gl_admin',
     userId: String(admin.id),
     roleSlug: 'gl_admin',
-    permissions: ['gl.read', 'gl.game.manage', 'gl.settings.manage'],
+    permissions: ['gl.read', 'gl.game.manage', 'gl.event.emit', 'gl.settings.manage'],
     displayName: 'MJ Turns',
   });
 });
 
-test('POST /turn/next refusé quand turns_enabled = false', async () => {
+async function setTurnsEnabled(value) {
   await execute(
     `INSERT INTO gl_settings (\`key\`, value_json, updated_at)
-     VALUES ('gameplay.turns_enabled', 'false', NOW())
+     VALUES ('gameplay.turns_enabled', ?, NOW())
      ON DUPLICATE KEY UPDATE value_json = VALUES(value_json), updated_at = NOW()`,
+    [value ? 'true' : 'false'],
   );
   invalidateGameplayCache();
+}
+
+test('POST /turn/next refusé quand turns_enabled = false', async () => {
+  await setTurnsEnabled(false);
   await request(app)
     .post(`/api/gl/games/${gameId}/turn/next`)
     .set('Authorization', `Bearer ${adminToken}`)
     .expect(409);
 });
 
-test('POST /turn/next cycle bien les équipes quand activé', async () => {
+test('POST /turn/next incrémente le numéro de tour (mode classique)', async () => {
+  await setTurnsEnabled(true);
   await execute(
-    `INSERT INTO gl_settings (\`key\`, value_json, updated_at)
-     VALUES ('gameplay.turns_enabled', 'true', NOW())
-     ON DUPLICATE KEY UPDATE value_json = 'true', updated_at = NOW()`,
+    'UPDATE gl_games SET current_round_number = 0, current_round_started_at = NULL WHERE id = ?',
+    [gameId],
   );
-  invalidateGameplayCache();
-
-  await execute('UPDATE gl_games SET current_team_id = NULL WHERE id = ?', [gameId]);
 
   const res1 = await request(app)
     .post(`/api/gl/games/${gameId}/turn/next`)
     .set('Authorization', `Bearer ${adminToken}`)
     .expect(200);
-  assert.strictEqual(res1.body.currentTeamId, team1Id);
+  assert.strictEqual(res1.body.roundNumber, 1);
+  assert.strictEqual(res1.body.event.eventType, 'round_start');
 
   const res2 = await request(app)
-    .post(`/api/gl/games/${gameId}/turn/next`)
+    .post(`/api/gl/games/${gameId}/turn/start`)
     .set('Authorization', `Bearer ${adminToken}`)
     .expect(200);
-  assert.strictEqual(res2.body.currentTeamId, team2Id);
+  assert.strictEqual(res2.body.roundNumber, 2);
+});
 
-  const res3 = await request(app)
-    .post(`/api/gl/games/${gameId}/turn/next`)
-    .set('Authorization', `Bearer ${adminToken}`)
-    .expect(200);
-  assert.strictEqual(res3.body.currentTeamId, team1Id);
-
-  // Désactive le toggle pour ne pas polluer les autres tests.
+test('un déplacement consomme le tour, un nouveau tour le réarme', async () => {
+  await setTurnsEnabled(true);
   await execute(
-    `UPDATE gl_settings SET value_json = 'false', updated_at = NOW()
-      WHERE \`key\` = 'gameplay.turns_enabled'`,
+    'UPDATE gl_games SET current_round_number = 0, current_round_started_at = NULL WHERE id = ?',
+    [gameId],
   );
-  invalidateGameplayCache();
+  await execute('UPDATE gl_teams SET last_move_round_number = 0 WHERE game_id = ?', [gameId]);
+
+  // Tour 1
+  await request(app)
+    .post(`/api/gl/games/${gameId}/turn/next`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .expect(200);
+
+  // Déplacement MJ de l'équipe 1 (libre)
+  await request(app)
+    .post(`/api/gl/games/${gameId}/events`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ teamId: team1Id, eventType: 'move', payload: { xp: 40, yp: 60 } })
+    .expect(201);
+
+  const turn1 = await request(app)
+    .get(`/api/gl/games/${gameId}/turn`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .expect(200);
+  const t1 = turn1.body.teams.find((t) => t.teamId === team1Id);
+  const t2 = turn1.body.teams.find((t) => t.teamId === team2Id);
+  assert.strictEqual(turn1.body.roundNumber, 1);
+  assert.strictEqual(t1.hasMovedThisRound, true);
+  assert.strictEqual(t2.hasMovedThisRound, false);
+
+  // Tour 2 : l'équipe 1 peut de nouveau bouger
+  await request(app)
+    .post(`/api/gl/games/${gameId}/turn/next`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .expect(200);
+  const turn2 = await request(app)
+    .get(`/api/gl/games/${gameId}/turn`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .expect(200);
+  assert.strictEqual(turn2.body.roundNumber, 2);
+  assert.strictEqual(turn2.body.teams.find((t) => t.teamId === team1Id).hasMovedThisRound, false);
+
+  await setTurnsEnabled(false);
 });

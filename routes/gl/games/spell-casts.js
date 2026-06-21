@@ -13,6 +13,7 @@ const {
   getDraftById,
   updateDraftContributions,
   launchDraft,
+  resolveDraftApproval,
   cancelDraft,
   isStaff,
 } = require('../../../lib/glSpellCast');
@@ -66,6 +67,7 @@ router.get('/spell-cast-settings', requireGlAuth, async (_req, res) => {
       contributionMode: config.contributionMode,
       teamScope: config.teamScope,
       mjOnly: config.mjOnly,
+      approvalMode: config.approvalMode,
     },
   });
 });
@@ -133,7 +135,7 @@ router.post(
     return handleSpellCastRoute(req, res, async ({ gameId, config }) => {
       const draftId = parseId(req.params.draftId);
       if (!draftId) return res.status(400).json({ error: 'draftId invalide' });
-      const { draft, eventPayload, eventId } = await launchDraft({
+      const { draft, eventPayload, eventId, pending } = await launchDraft({
         gameId,
         draftId,
         auth: req.glAuth,
@@ -154,6 +156,23 @@ router.post(
           .json({ error: 'Événement de sortilège introuvable après lancement' });
       }
       const normalized = normalizeEventRow(evt);
+      // Sort soumis à validation MJ : pas de débit, brouillon en attente.
+      if (pending) {
+        if (normalized.eventType !== 'spell_cast_request') {
+          return res
+            .status(500)
+            .json({ error: 'Événement de sortilège incohérent après soumission' });
+        }
+        emitGlGameEvent(gameId, normalized);
+        emitGlSpellCastDraftChanged(gameId, { draftId: draft.id, type: 'draft_pending', draft });
+        return res.json({
+          ok: true,
+          pending: true,
+          draft,
+          event: normalized,
+          payload: eventPayload,
+        });
+      }
       if (normalized.eventType !== 'spell_cast') {
         return res.status(500).json({ error: 'Événement de sortilège incohérent après lancement' });
       }
@@ -163,6 +182,45 @@ router.post(
     });
   },
 );
+
+/**
+ * Résolution MJ d'un sortilège en attente de validation (accept = débit + cast ; reject = annulé).
+ * Réservé au staff disposant de gl.game.manage.
+ */
+router.post('/games/:id/spell-casts/drafts/:draftId/resolve', requireGlAuth, async (req, res) => {
+  if (!hasGlPermission(req.glAuth, 'gl.game.manage')) {
+    return res.status(403).json({ error: 'Réservé au maître du jeu' });
+  }
+  return handleSpellCastRoute(req, res, async ({ gameId }) => {
+    const draftId = parseId(req.params.draftId);
+    if (!draftId) return res.status(400).json({ error: 'draftId invalide' });
+    const decision = String(req.body?.decision || '').toLowerCase();
+    if (!['accept', 'reject'].includes(decision)) {
+      return res.status(400).json({ error: 'Décision invalide (accept|reject)' });
+    }
+    const { draft, eventId } = await resolveDraftApproval({
+      gameId,
+      draftId,
+      decision,
+      auth: req.glAuth,
+    });
+    const evt = eventId
+      ? await queryOne(
+          `SELECT id, game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at
+               FROM gl_game_events WHERE id = ? AND game_id = ? LIMIT 1`,
+          [eventId, gameId],
+        )
+      : null;
+    const normalized = evt ? normalizeEventRow(evt) : null;
+    if (normalized) emitGlGameEvent(gameId, normalized);
+    emitGlSpellCastDraftChanged(gameId, {
+      draftId: draft.id,
+      type: decision === 'accept' ? 'draft_cast' : 'draft_rejected',
+      draft,
+    });
+    return res.json({ ok: true, decision, draft, event: normalized });
+  });
+});
 
 router.delete(
   '/games/:id/spell-casts/drafts/:draftId',
