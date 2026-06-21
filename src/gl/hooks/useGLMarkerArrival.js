@@ -130,6 +130,7 @@ export function useGLMarkerArrival({
           loading: false,
           error: '',
           arrival: data,
+          vitality: data?.vitality || null,
         });
       } catch (err) {
         setEffectPopover({

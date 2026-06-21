@@ -45,6 +45,7 @@ function MarkerVisual({ appearance, label, resolveIconUrl }) {
 export function GLBoardMarkers({
   markers,
   selectedMarkerId = null,
+  markerPathNumbers = null,
   onMarkerClick,
   onMarkerPointerDown,
   className = 'gl-board-marker',
@@ -54,9 +55,16 @@ export function GLBoardMarkers({
   return markers.map((marker) => {
     const appearance = resolveMarkerAppearance(marker);
     const isSelected = selectedMarkerId != null && Number(selectedMarkerId) === Number(marker.id);
+    const pathNumber =
+      markerPathNumbers instanceof Map
+        ? markerPathNumbers.get(Number(marker.id))
+        : null;
     const classes = [className, `gl-board-marker--${appearance.displayMode}`];
     if (isSelected) classes.push('is-selected');
-    const ariaLabel = appearance.ariaLabel;
+    const ariaLabel =
+      pathNumber != null
+        ? `Repère ${pathNumber}${appearance.ariaLabel ? ` — ${appearance.ariaLabel}` : ''}`
+        : appearance.ariaLabel;
     return (
       <button
         key={marker.id}
@@ -69,12 +77,18 @@ export function GLBoardMarkers({
         title={ariaLabel}
         aria-label={ariaLabel}
         data-marker-id={marker.id}
+        data-path-number={pathNumber != null ? pathNumber : undefined}
         onClick={(event) => {
           event.stopPropagation();
           onMarkerClick?.(marker);
         }}
         onPointerDown={(event) => onMarkerPointerDown?.(event, marker)}
       >
+        {pathNumber != null ? (
+          <span className="gl-board-marker__path-number" aria-hidden>
+            {pathNumber}
+          </span>
+        ) : null}
         <MarkerVisual
           appearance={appearance}
           label={marker.label}

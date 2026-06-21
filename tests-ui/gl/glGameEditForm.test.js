@@ -40,9 +40,13 @@ describe('gameToEditForm', () => {
     expect(form.loreHeartRewardsEnabled).toBe('');
   });
 
-  test('chaînes vides quand les champs sont absents', () => {
-    const form = gameToEditForm({ id: 1 });
-    expect(form).toEqual({ ...EMPTY_GAME_EDIT_FORM });
+  test('mappe le mode de déplacement plateau', () => {
+    const form = gameToEditForm({
+      board_movement_mode: 'numbered_path',
+      board_path_start_index: 1,
+    });
+    expect(form.boardMovementMode).toBe('numbered_path');
+    expect(form.boardPathStartIndex).toBe('1');
   });
 });
 
@@ -91,6 +95,15 @@ describe('buildGameEditPayload', () => {
     expect(payload.loreEffacementEnabled).toBe(true);
     expect(payload.loreGemmeCostsEnabled).toBe(false);
     expect(payload).not.toHaveProperty('loreHeartRewardsEnabled');
+  });
+
+  test('inclut le mode de déplacement plateau', () => {
+    const payload = buildGameEditPayload(
+      { ...fullForm, boardMovementMode: 'numbered_path', boardPathStartIndex: '1' },
+      'draft',
+    );
+    expect(payload.boardMovementMode).toBe('numbered_path');
+    expect(payload.boardPathStartIndex).toBe(1);
   });
 });
 

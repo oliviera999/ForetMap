@@ -194,7 +194,45 @@ export default function GLGameMasterConsoleActiveGameBanner({
               <option value="0">Désactivé</option>
             </GLSelect>
           </GLField>
+          <GLField label="Déplacement sur le plateau">
+            <GLSelect
+              value={editGameForm.boardMovementMode}
+              onChange={(event) =>
+                setEditGameForm((prev) => ({
+                  ...prev,
+                  boardMovementMode: event.target.value,
+                }))
+              }
+            >
+              <option value="">Libre (MJ place les équipes)</option>
+              <option value="numbered_path">Repères numérotés + dé</option>
+            </GLSelect>
+          </GLField>
+          {editGameForm.boardMovementMode === 'numbered_path' ? (
+            <GLField label="Repère de départ">
+              <GLSelect
+                value={editGameForm.boardPathStartIndex}
+                onChange={(event) =>
+                  setEditGameForm((prev) => ({
+                    ...prev,
+                    boardPathStartIndex: event.target.value,
+                  }))
+                }
+              >
+                <option value="">Repère 0 (premier du parcours)</option>
+                <option value="0">0</option>
+                <option value="1">1</option>
+              </GLSelect>
+            </GLField>
+          ) : null}
         </div>
+        {editGameForm.boardMovementMode === 'numbered_path' ? (
+          <p className="gl-hint">
+            Les repères sont numérotés selon leur ordre sur la carte. Au démarrage, chaque équipe
+            est placée sur le repère de départ ; le MJ avance avec le dé virtuel (score = nombre de
+            cases).
+          </p>
+        ) : null}
         {!canEditGameChapter(gameStatus) ? (
           <p className="gl-hint">Chapitre modifiable uniquement en brouillon ou pause.</p>
         ) : null}

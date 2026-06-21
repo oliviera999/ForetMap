@@ -14,6 +14,7 @@ export function GLBoardChrome({
   onLaunchSpell,
   onOpenFullscreen,
   virtualDiceEnabled = false,
+  onRollResult = null,
   gameId = null,
   themeStyle = null,
   zoneMusicEnabled = false,
@@ -33,7 +34,9 @@ export function GLBoardChrome({
         />
       ) : null}
 
-      {virtualDiceEnabled && gameId ? <GLVirtualDiceDock themeStyle={themeStyle} enabled /> : null}
+      {virtualDiceEnabled && gameId ? (
+        <GLVirtualDiceDock themeStyle={themeStyle} enabled onRollResult={onRollResult} />
+      ) : null}
 
       {!mapFullscreen ? (
         <div className="gl-board-chrome-bar" role="toolbar" aria-label="Actions carte">

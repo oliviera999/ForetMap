@@ -21,6 +21,11 @@ import {
   findPlayerMascotId,
 } from './utils/glGameplayRules.js';
 import { resolvePlateauMapVisibility } from './utils/glPlateauMapVisibility.js';
+import {
+  resolveBoardMovementConfig,
+  sortMarkersByPath,
+  targetMarkerAfterDice,
+} from './utils/glBoardPath.js';
 import { markerBackgroundStyleFromSettings } from './utils/glMarkerBackgrounds.js';
 import { GLAuthView } from './components/GLAuthView.jsx';
 import { GLTopBar, GL_TAB_ID_PREFIX, GL_TABPANEL_ID_PREFIX } from './components/GLTopBar.jsx';
@@ -233,6 +238,11 @@ export function AppGL() {
   const isStaffPlayerPreview = isStaff && glViewMode === 'player';
   const showStaffAdminUi = isAdmin && !isStaffPlayerPreview;
   const isMjMapControls = showStaffAdminUi;
+  const boardMovement = useMemo(
+    () => resolveBoardMovementConfig(gameState?.game || {}),
+    [gameState?.game],
+  );
+  const canMoveMascotFree = isMjMapControls && !boardMovement.isNumberedPath;
   const showsPlayerChrome = !isAdmin || isStaffPlayerPreview;
   const impersonationBanner = useMemo(
     () => (isImpersonating ? glImpersonationBannerCopy(auth?.impersonatedBy) : null),
@@ -240,6 +250,8 @@ export function AppGL() {
   );
   const zoneMusicEnabled = isModuleEnabled(modules, 'zoneMusicEnabled');
   const virtualDiceEnabled = isModuleEnabled(modules, 'virtualDiceEnabled');
+  const canDiceAdvancePath =
+    isMjMapControls && boardMovement.isNumberedPath && virtualDiceEnabled && Boolean(gameState?.game?.id);
   const feuilletZoneEditMode = isFeuilletZoneEditMode() && showStaffAdminUi;
   const chapterPlateauNumber = gameState?.game?.chapter_plateau_number ?? null;
   const chapterMusicBiomeSlug = useMemo(() => {
@@ -629,6 +641,24 @@ export function AppGL() {
     }
   }
 
+  /** MJ — mode repères numérotés : avance l'équipe active du score obtenu aux dés. */
+  async function handleDiceRollAdvance(roll) {
+    if (!canDiceAdvancePath || !gameState?.game?.id) return;
+    const teamId = resolveTargetTeamId();
+    if (teamId == null) return;
+    const teams = Array.isArray(gameState?.teams) ? gameState.teams : [];
+    const team = teams.find((item) => Number(item.id) === Number(teamId));
+    const sortedMarkers = sortMarkersByPath(gameState?.markers || []);
+    const target = targetMarkerAfterDice(
+      sortedMarkers,
+      team,
+      roll?.total,
+      boardMovement.startIndex,
+    );
+    if (!target?.marker) return;
+    await moveMascotToMarker(target.marker);
+  }
+
   /** Joueur : soumet une demande d'action (validée par le MJ). */
   async function submitPlayerActionRequest({ marker, actionType }) {
     if (!gameState?.game?.id) return;
@@ -940,7 +970,9 @@ export function AppGL() {
                       loreGlossaryLinkItems={loreGlossaryLinkItems}
                       loreCarnetEnabled={isModuleEnabled(modules, 'loreCarnetEnabled')}
                       onQcmAnswered={reloadGame}
-                      canMoveMascot={isMjMapControls}
+                      canMoveMascot={canMoveMascotFree}
+                      boardMovement={boardMovement}
+                      onDiceRollResult={canDiceAdvancePath ? handleDiceRollAdvance : null}
                       canRequestAction={canRequestAction}
                       markerArrivalEnabled={markerArrivalEnabled}
                       canSpellCast={canSpellCast}

@@ -29,6 +29,10 @@ import { resolveGlBoardImageUrl } from '../utils/glLegacyMediaUrl.js';
 import { useGlAssetsReady } from './GLFeuilletIllustration.jsx';
 import { DialogShell } from '../../components/DialogShell.jsx';
 import { GLGameBoardRoster } from './GLGameBoardRoster.jsx';
+import {
+  buildMarkerPathNumberMap,
+  sortMarkersByPath,
+} from '../utils/glBoardPath.js';
 
 export function GLGameBoard({
   chapter,
@@ -47,6 +51,8 @@ export function GLGameBoard({
   loreCarnetEnabled = false,
   onQcmAnswered,
   canMoveMascot,
+  boardMovement = null,
+  onDiceRollResult = null,
   canRequestAction,
   markerArrivalEnabled = true,
   selectedTeamId,
@@ -81,6 +87,12 @@ export function GLGameBoard({
     if (!assetsReady || plateauNumber == null) return null;
     return chapterIllustration(plateauNumber);
   }, [assetsReady, plateauNumber]);
+
+  const markerPathNumbers = useMemo(() => {
+    if (!boardMovement?.showPathNumbers) return null;
+    const sorted = sortMarkersByPath(markers);
+    return buildMarkerPathNumberMap(sorted, boardMovement.startIndex);
+  }, [boardMovement, markers]);
   const imageUrl = useMemo(
     () =>
       resolveGlBoardImageUrl({
@@ -404,6 +416,7 @@ export function GLGameBoard({
           <GLBoardMarkers
             markers={feuilletZoneEditMode ? editableMarkers : markers}
             selectedMarkerId={feuilletZoneEditMode ? plateauPlacement.selectedMarkerId : null}
+            markerPathNumbers={markerPathNumbers}
             onMarkerClick={
               feuilletZoneEditMode
                 ? (marker) => plateauPlacement.selectMarker?.(marker.id)
@@ -470,6 +483,7 @@ export function GLGameBoard({
         onLaunchSpell={onLaunchSpell}
         onOpenFullscreen={() => setMapFullscreen(true)}
         virtualDiceEnabled={virtualDiceEnabled}
+        onRollResult={onDiceRollResult}
         gameId={gameId}
         themeStyle={brandThemeStyle}
         zoneMusicEnabled={zoneMusicEnabled}
@@ -545,10 +559,12 @@ export function GLGameBoard({
         gameId={gameId}
         teamId={effectPopover?.teamId ?? watchTeamId}
         arrival={effectPopover?.arrival}
+        vitality={effectPopover?.vitality}
         loading={effectPopover?.loading}
         error={effectPopover?.error}
         canApplyEffects={canMoveMascot}
         onClose={closeEffectPopover}
+        onApplied={onQcmAnswered}
         themeStyle={brandThemeStyle}
       />
     </div>

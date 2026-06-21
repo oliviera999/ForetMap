@@ -778,7 +778,12 @@ function App() {
     return true;
   }, [effectiveIsTeacher, studentForUi]);
   const canManageMediaLibrary = !!authClaims?.elevated || !!authClaims?.nativePrivileged;
-  const canManageQuiz = !!authClaims?.elevated && hasPermission('plants.manage');
+  const canManageQuiz = useMemo(() => {
+    const roleSlug = effectiveRoleContext.roleSlug;
+    const nativePrivileged = !!authClaims?.nativePrivileged;
+    const allowedRole = roleSlug === 'prof' || roleSlug === 'admin' || nativePrivileged;
+    return allowedRole && hasPermissionInRole('plants.manage');
+  }, [effectiveRoleContext.roleSlug, hasPermissionInRole, authClaims?.nativePrivileged]);
   const canManageFoodWeb = !!authClaims?.elevated && hasPermission('plants.manage');
 
   const canParticipateContextComments = useMemo(() => {

@@ -12,6 +12,12 @@ const {
   combineKeywords,
 } = require('../../lib/glQcmImport');
 const {
+  loadAdminQuestionDetail,
+  allocateNextGlQcmQuestionCode,
+  listAdminQuestions,
+  upsertGlQcmQuestion,
+} = require('../../lib/glQcmCrud');
+const {
   presentQuestion,
   verifyPresentationAnswer,
   resolveQcmAnswerFeedback,
@@ -371,6 +377,86 @@ router.post(
       return res.json({ report });
     } catch (err) {
       return res.status(400).json({ error: err.message || 'Import impossible' });
+    }
+  }),
+);
+
+/** GET /api/gl/admin/qcm/questions — liste complète (catalogue admin). */
+router.get(
+  '/admin/qcm/questions',
+  requireGlPermission('gl.content.manage'),
+  asyncHandler(async (req, res) => {
+    const items = await listAdminQuestions(
+      { queryAll },
+      {
+        biomeSlug: req.query?.biomeSlug,
+        categorieSlug: req.query?.categorieSlug,
+        niveau: req.query?.niveau,
+        q: req.query?.q,
+        statut: req.query?.statut,
+        sort: req.query?.sort,
+      },
+    );
+    return res.json({ items, total: items.length });
+  }),
+);
+
+/** GET /api/gl/admin/qcm/questions/next-code */
+router.get(
+  '/admin/qcm/questions/next-code',
+  requireGlPermission('gl.content.manage'),
+  asyncHandler(async (_req, res) => {
+    const question_code = await allocateNextGlQcmQuestionCode({ queryOne });
+    return res.json({ question_code });
+  }),
+);
+
+/** GET /api/gl/admin/qcm/questions/:code */
+router.get(
+  '/admin/qcm/questions/:code',
+  requireGlPermission('gl.content.manage'),
+  asyncHandler(async (req, res) => {
+    const code = normalizeQuestionCode(req.params.code);
+    if (!code) return res.status(400).json({ error: 'Code invalide' });
+    const question = await loadAdminQuestionDetail({ queryOne }, code);
+    if (!question) return res.status(404).json({ error: 'Question introuvable' });
+    return res.json({ question });
+  }),
+);
+
+/** POST /api/gl/admin/qcm/questions */
+router.post(
+  '/admin/qcm/questions',
+  requireGlPermission('gl.content.manage'),
+  asyncHandler(async (req, res) => {
+    try {
+      const result = await upsertGlQcmQuestion({ queryAll, queryOne, execute }, req.body || {}, {
+        requireNew: true,
+      });
+      return res.status(201).json({ ok: true, created: true, question: result.question });
+    } catch (err) {
+      const status = err.statusCode || 400;
+      return res.status(status).json({ error: err.message || 'Création impossible' });
+    }
+  }),
+);
+
+/** PUT /api/gl/admin/qcm/questions/:code */
+router.put(
+  '/admin/qcm/questions/:code',
+  requireGlPermission('gl.content.manage'),
+  asyncHandler(async (req, res) => {
+    const code = normalizeQuestionCode(req.params.code);
+    if (!code) return res.status(400).json({ error: 'Code invalide' });
+    try {
+      const result = await upsertGlQcmQuestion({ queryAll, queryOne, execute }, req.body || {}, {
+        question_code: code,
+        requireExisting: true,
+      });
+      return res.json({ ok: true, created: false, question: result.question });
+    } catch (err) {
+      const status = err.statusCode || 400;
+      return res.status(status).json({ error: err.message || 'Mise à jour impossible' });
     }
   }),
 );

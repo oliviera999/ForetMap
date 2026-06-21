@@ -171,3 +171,43 @@ test('GET /api/gl/lore/qcm/pool-preview admin', async () => {
   assert.ok(Array.isArray(res.body.items));
   assert.ok(res.body.items.some((item) => item.question_code?.startsWith('LQCM')));
 });
+
+test('GET /api/gl/lore/admin/qcm/questions — liste admin complète', async () => {
+  const res = await request(app)
+    .get('/api/gl/lore/admin/qcm/questions?chapitreSlug=tous&statut=actif&sort=code')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .expect(200);
+  assert.ok(Array.isArray(res.body.items));
+  assert.ok(res.body.items.length > 0);
+  assert.match(String(res.body.items[0].question_code), /^LQCM/);
+});
+
+test('GET /api/gl/lore/admin/qcm/questions/:code puis PUT mise à jour', async () => {
+  const list = await request(app)
+    .get('/api/gl/lore/admin/qcm/questions?chapitreSlug=tous&statut=actif')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .expect(200);
+  const code = list.body.items[0]?.question_code;
+  assert.ok(code);
+
+  const detail = await request(app)
+    .get(`/api/gl/lore/admin/qcm/questions/${encodeURIComponent(code)}`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .expect(200);
+  assert.strictEqual(detail.body.question.question_code, code);
+
+  const suffix = ` [test ${Date.now()}]`;
+  const updatedQuestion = `${detail.body.question.question}${suffix}`;
+  const put = await request(app)
+    .put(`/api/gl/lore/admin/qcm/questions/${encodeURIComponent(code)}`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ ...detail.body.question, question: updatedQuestion })
+    .expect(200);
+  assert.strictEqual(put.body.question.question, updatedQuestion);
+
+  await request(app)
+    .put(`/api/gl/lore/admin/qcm/questions/${encodeURIComponent(code)}`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ ...detail.body.question, question: detail.body.question.question })
+    .expect(200);
+});
