@@ -111,6 +111,39 @@ export function GLGameRosterPanel({
     }
   }
 
+  async function autoAssignRoster(mode) {
+    if (!teams || teams.length === 0) {
+      setError('Créez au moins une équipe avant de répartir les joueurs.');
+      return;
+    }
+    if (mode === 'reset') {
+      const confirmed =
+        typeof window === 'undefined' ||
+        window.confirm(
+          'Redistribuer aléatoirement TOUS les joueurs ? Les équipes actuelles seront recomposées.',
+        );
+      if (!confirmed) return;
+    }
+    setBusy(true);
+    setError('');
+    setInfo('');
+    try {
+      const result = await apiGL(`/api/gl/games/${gameId}/roster/auto-assign`, 'POST', { mode });
+      const count = Number(result?.assignedCount || 0);
+      setInfo(
+        mode === 'reset'
+          ? `Répartition aléatoire effectuée (${count} joueur(s) répartis).`
+          : `Joueurs non assignés répartis aléatoirement (${count} joueur(s)).`,
+      );
+      await loadRoster();
+      await onRosterChanged?.();
+    } catch (err) {
+      setError(err.message || 'Répartition automatique impossible');
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function adjustPlayerVitality(playerId, deltas) {
     setVitalityBusyId(playerId);
     setError('');
@@ -131,10 +164,33 @@ export function GLGameRosterPanel({
   }
 
   const colSpan = vitalityEnabled ? (canImpersonate ? 8 : 7) : canImpersonate ? 6 : 5;
+  const unassignedCount = rows.filter((item) => !item.teamId).length;
+  const hasTeams = Array.isArray(teams) && teams.length > 0;
 
   return (
     <section className="gl-gameplay-block">
       <h3>Effectifs de la partie</h3>
+      <div className="gl-inline-actions">
+        <GLButton
+          type="button"
+          size="sm"
+          onClick={() => autoAssignRoster('fill')}
+          disabled={busy || !hasTeams || unassignedCount === 0}
+          title="Répartir aléatoirement les joueurs non assignés entre les équipes (les équipes existantes sont conservées)"
+        >
+          Compléter aléatoirement ({unassignedCount})
+        </GLButton>
+        <GLButton
+          type="button"
+          size="sm"
+          variant="secondary"
+          onClick={() => autoAssignRoster('reset')}
+          disabled={busy || !hasTeams || rows.length === 0}
+          title="Redistribuer aléatoirement tous les joueurs entre les équipes"
+        >
+          Tout redistribuer
+        </GLButton>
+      </div>
       {error ? <p className="gl-error">{error}</p> : null}
       {info ? <p className="gl-hint">{info}</p> : null}
       <div className="gl-admin-table-wrap">
