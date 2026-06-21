@@ -1939,7 +1939,7 @@ function App() {
                     {tab === 'foodweb' && (
                       <TabSuspense>
                         <FoodWebViewLazy
-                          mapZones={mapZones}
+                          mapZones={zones}
                           onOpenPlant={openPlantCatalogPreviewById}
                           onOpenGlossaryTerm={openPedagoGlossaryTerm}
                           highlightPlantId={foodWebHighlightPlantId}
@@ -2125,7 +2125,7 @@ function App() {
                       {tab === 'foodweb' && (
                         <TabSuspense>
                           <FoodWebViewLazy
-                            mapZones={mapZones}
+                            mapZones={zones}
                             onOpenPlant={openPlantCatalogPreviewById}
                             onOpenGlossaryTerm={openPedagoGlossaryTerm}
                             highlightPlantId={foodWebHighlightPlantId}
