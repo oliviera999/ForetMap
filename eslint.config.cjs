@@ -60,6 +60,9 @@ module.exports = [
       'no-func-assign': 'error',
       'no-undef': 'error',
       'no-unreachable': 'warn',
+      // Le code de prod (server/database/lib/middleware/routes) ne doit pas logger via
+      // console (utiliser pino) ; désactivé pour scripts/** et tests/** plus bas.
+      'no-console': 'warn',
       'no-unused-vars': [
         'warn',
         { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' },
@@ -176,6 +179,8 @@ module.exports = [
         'warn',
         { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' },
       ],
+      // Pas de console.log en prod front ; warn/error tolérés (logs d'erreur légitimes).
+      'no-console': ['warn', { allow: ['warn', 'error'] }],
       // Regles des Hooks : violations reelles bloquantes (hook conditionnel, etc.) ;
       // dependances manquantes en avertissement pour guider la stabilisation (useCallback/useMemo).
       'react-hooks/rules-of-hooks': 'error',
@@ -193,5 +198,10 @@ module.exports = [
         sessionStorage: 'readonly',
       },
     },
+  },
+  {
+    // Outils CLI (scripts/**) et tests : l'usage de console y est légitime.
+    files: ['scripts/**/*.js', 'tests/**/*.js'],
+    rules: { 'no-console': 'off' },
   },
 ];
