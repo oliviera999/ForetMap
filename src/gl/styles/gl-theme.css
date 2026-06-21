@@ -6912,9 +6912,9 @@ fieldset .media-library-menu__gallery {
 
 .gl-feuillet-zone-handle {
   position: absolute;
-  width: 18px;
-  height: 18px;
-  margin: -9px 0 0 -9px;
+  width: 22px;
+  height: 22px;
+  margin: -11px 0 0 -11px;
   border-radius: 50%;
   border: 2px solid #fff;
   background: #b45309;
@@ -6923,6 +6923,18 @@ fieldset .media-library-menu__gallery {
   z-index: 8;
   pointer-events: auto;
   padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gl-feuillet-zone-handle__number {
+  color: #fff;
+  font-size: 0.62rem;
+  font-weight: 700;
+  line-height: 1;
+  pointer-events: none;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.35);
 }
 
 .gl-feuillet-zone-handle.is-selected {
@@ -7027,6 +7039,7 @@ fieldset .media-library-menu__gallery {
   width: 100%;
   display: flex;
   justify-content: space-between;
+  align-items: center;
   gap: 0.5rem;
   text-align: left;
   padding: 0.35rem 0.4rem;
@@ -7034,6 +7047,16 @@ fieldset .media-library-menu__gallery {
   border: none;
   background: transparent;
   cursor: pointer;
+}
+
+.gl-plateau-edit-list .gl-markers-list__path-number {
+  margin-right: 0;
+  flex-shrink: 0;
+}
+
+.gl-plateau-edit-list__label {
+  flex: 1;
+  min-width: 0;
 }
 
 .gl-plateau-edit-list button.is-active {
