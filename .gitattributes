@@ -1,0 +1,9 @@
+# Stratégies de fusion — réduit les conflits récurrents sur les fichiers « cumulatifs ».
+#
+# CHANGELOG.md : driver `union` → lors d'un merge, Git conserve AUTOMATIQUEMENT les
+# lignes des DEUX côtés au lieu de produire un conflit. C'est exactement le
+# comportement voulu pour la section [Non publié] qui accumule des entrées en
+# parallèle sur plusieurs branches. Voir scripts/auto-resolve-conflicts.js et
+# .github/workflows/auto-resolve-conflicts.yml pour la résolution automatisée
+# côté CI (qui gère aussi les bumps de version package.json / package-lock.json).
+CHANGELOG.md merge=union

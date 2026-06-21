@@ -1,0 +1,62 @@
+name: Auto-resolve merge conflicts
+
+# Vérifie et corrige automatiquement les conflits de merge des PR ouvertes vers
+# `main`. Résout sans risque les conflits récurrents (CHANGELOG.md par union,
+# bumps de version package.json/package-lock.json) et pousse la résolution ;
+# signale (label `merge-conflict` + commentaire) les conflits de code qui
+# nécessitent une intervention humaine. Voir scripts/auto-resolve-conflicts.js.
+
+on:
+  # Quand `main` avance, les PR peuvent partir en conflit → on repasse dessus.
+  push:
+    branches: [main]
+  # Filet de sécurité périodique (les PR ouvertes en parallèle se télescopent).
+  schedule:
+    - cron: '0 * * * *' # toutes les heures
+  # Déclenchement manuel (avec option simulation).
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Simulation (aucune écriture ni push)'
+        type: boolean
+        default: false
+      include_drafts:
+        description: 'Traiter aussi les PR en brouillon'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+# Une seule exécution à la fois : évite des pushs concurrents sur les branches.
+concurrency:
+  group: auto-resolve-conflicts
+  cancel-in-progress: false
+
+jobs:
+  resolve:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (historique complet)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          # AUTO_MERGE_PAT (optionnel) : un PAT permet de RE-DÉCLENCHER la CI sur
+          # la branche de PR après push (le GITHUB_TOKEN par défaut ne le fait
+          # pas). À défaut, la résolution est poussée sans relancer la CI.
+          token: ${{ secrets.AUTO_MERGE_PAT || secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Résolution automatique des conflits
+        run: node scripts/auto-resolve-conflicts.js
+        env:
+          GH_TOKEN: ${{ secrets.AUTO_MERGE_PAT || secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          AUTO_RESOLVE_BASE: main
+          AUTO_RESOLVE_DRY_RUN: ${{ (github.event_name == 'workflow_dispatch' && inputs.dry_run) && '1' || '0' }}
+          AUTO_RESOLVE_INCLUDE_DRAFTS: ${{ (github.event_name == 'workflow_dispatch' && inputs.include_drafts) && '1' || '0' }}
