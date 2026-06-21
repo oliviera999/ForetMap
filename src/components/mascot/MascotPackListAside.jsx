@@ -13,7 +13,8 @@ import { toMascotPackIssueLines } from '../../utils/mascotPackValidationUi.js';
  *   catalogModelOptions: Array<{ id: string, label: string }>,
  *   selectedCatalogModelId: string,
  *   onSelectCatalogModel: (id: string) => void,
- *   findPackForCatalogModel: (modelId: string) => Record<string, unknown> | null,
+ *   findPacksForCatalogModel: (modelId: string) => Array<Record<string, unknown>>,
+ *   catalogCopyHint?: string,
  *   onNewDraft: () => void,
  *   onOpenCatalogModelForEdit: (modelId: string) => void,
  *   onNewFromCatalog: () => void,
@@ -45,7 +46,8 @@ export default function MascotPackListAside({
   catalogModelOptions,
   selectedCatalogModelId,
   onSelectCatalogModel,
-  findPackForCatalogModel,
+  findPacksForCatalogModel,
+  catalogCopyHint = '',
   onNewDraft,
   onOpenCatalogModelForEdit,
   onNewFromCatalog,
@@ -115,7 +117,8 @@ export default function MascotPackListAside({
             }}
           >
             {catalogModelOptions.map((opt) => {
-              const linkedPack = findPackForCatalogModel(opt.id);
+              const linkedCopies = findPacksForCatalogModel(opt.id);
+              const linkedPack = linkedCopies.length === 1 ? linkedCopies[0] : null;
               return (
                 <li key={opt.id} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                   <button
@@ -127,7 +130,7 @@ export default function MascotPackListAside({
                     disabled={actionBusy}
                   >
                     {opt.label}
-                    {linkedPack ? (
+                    {linkedCopies.length === 1 ? (
                       <span
                         style={{
                           display: 'block',
@@ -136,7 +139,19 @@ export default function MascotPackListAside({
                           fontWeight: 400,
                         }}
                       >
-                        Copie sur carte : {linkedPack.label || linkedPack.catalog_id}
+                        Copie sur carte : {linkedPack?.label || linkedPack?.catalog_id}
+                      </span>
+                    ) : linkedCopies.length > 1 ? (
+                      <span
+                        style={{
+                          display: 'block',
+                          fontSize: '0.72rem',
+                          opacity: 0.85,
+                          fontWeight: 400,
+                        }}
+                      >
+                        {linkedCopies.length} copies sur carte — sélectionnez dans la liste ou
+                        « Éditer la copie »
                       </span>
                     ) : null}
                   </button>
@@ -147,12 +162,14 @@ export default function MascotPackListAside({
                     disabled={actionBusy}
                     onClick={() => onOpenCatalogModelForEdit(opt.id)}
                     title={
-                      linkedPack
-                        ? 'Ouvrir la copie modifiable déjà créée pour cette carte'
+                      linkedCopies.length > 0
+                        ? linkedCopies.length === 1
+                          ? 'Ouvrir la copie modifiable déjà créée pour cette carte'
+                          : 'Ouvrir la copie la plus récente (ou celle sélectionnée si elle correspond)'
                         : 'Créer puis ouvrir une copie modifiable de ce modèle'
                     }
                   >
-                    {linkedPack ? 'Éditer la copie' : 'Éditer sur cette carte'}
+                    {linkedCopies.length > 0 ? 'Éditer la copie' : 'Éditer sur cette carte'}
                   </button>
                 </li>
               );
@@ -220,6 +237,11 @@ export default function MascotPackListAside({
         >
           Importer ZIP…
         </button>
+      ) : null}
+      {catalogCopyHint ? (
+        <p className="section-sub" role="status" style={{ fontSize: '0.78rem', marginTop: 8 }}>
+          {catalogCopyHint}
+        </p>
       ) : null}
       {listError ? (
         <p className="text-danger" role="alert" style={{ fontSize: '0.85rem' }}>

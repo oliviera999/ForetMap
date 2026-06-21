@@ -12,9 +12,12 @@ import {
 const GLOBAL_SCOPE = '__global__';
 
 /**
- * @param {{ onForceLogout?: () => void }} props
+ * @param {{ onForceLogout?: () => void, catalogModelOptions?: Array<{ id: string, label: string }> }} props
  */
-export default function VisitMascotDialogStudioView({ onForceLogout }) {
+export default function VisitMascotDialogStudioView({
+  onForceLogout,
+  catalogModelOptions = null,
+}) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -23,16 +26,22 @@ export default function VisitMascotDialogStudioView({ onForceLogout }) {
   const [catalogOverrides, setCatalogOverrides] = useState({});
   const [selectedScope, setSelectedScope] = useState(GLOBAL_SCOPE);
 
-  const catalogOptions = useMemo(
-    () =>
-      getVisitMascotCatalog()
+  const catalogOptions = useMemo(() => {
+    if (Array.isArray(catalogModelOptions) && catalogModelOptions.length > 0) {
+      return catalogModelOptions
         .map((m) => ({
           id: String(m?.id || '').trim(),
           label: String(m?.label || m?.id || '').trim(),
         }))
-        .filter((m) => m.id),
-    [],
-  );
+        .filter((m) => m.id);
+    }
+    return getVisitMascotCatalog()
+      .map((m) => ({
+        id: String(m?.id || '').trim(),
+        label: String(m?.label || m?.id || '').trim(),
+      }))
+      .filter((m) => m.id);
+  }, [catalogModelOptions]);
 
   const loadSettings = useCallback(async () => {
     setLoading(true);

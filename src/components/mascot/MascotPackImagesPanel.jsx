@@ -224,9 +224,9 @@ export default function MascotPackImagesPanel({
           Importer sur la carte…
           <input
             type="file"
-            accept="image/png"
-            style={{ display: 'none' }}
-            onChange={onMapUpload}
+          accept="image/*"
+          style={{ display: 'none' }}
+          onChange={onMapUpload}
           />
         </label>
         <button type="button" className="btn btn-ghost btn-sm" onClick={onSetFramesBaseMap}>

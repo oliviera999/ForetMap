@@ -2,6 +2,7 @@ import {
   serverMascotPackAssetsPrefix,
   serverMascotSpriteLibraryAssetsPrefix,
   MASCOT_PACK_FALLBACK_SILHOUETTES,
+  parsePackJson,
   stringifyPack,
 } from './mascotPackEditorModel.js';
 import { validateMascotPackV1 } from './mascotPack.js';
@@ -127,6 +128,68 @@ export function isMascotPackEditorDirty(snapshot, pack, label) {
   if (!snapshot) return false;
   const current = createMascotPackEditorSnapshot(pack, label);
   return snapshot.label !== current.label || snapshot.packJson !== current.packJson;
+}
+
+/**
+ * Détecte un JSON brouillon non appliqué par rapport au pack éditeur courant.
+ * @param {string} jsonDraft
+ * @param {Record<string, unknown> | null | undefined} editorPack
+ */
+export function isJsonDraftDirty(jsonDraft, editorPack) {
+  const parsed = parsePackJson(jsonDraft);
+  if (!parsed.ok) return String(jsonDraft || '').trim().length > 0;
+  const draftJson = stringifyPack(sanitizeMascotPackDraft(parsed.pack), 0);
+  const currentJson = stringifyPack(sanitizeMascotPackDraft(editorPack || {}), 0);
+  return draftJson !== currentJson;
+}
+
+/**
+ * ID mascotte catalogue pour l’héritage des dialogues (modèle source, pas srv-{uuid}).
+ * @param {Record<string, unknown> | null | undefined} editorPack
+ * @param {Record<string, unknown> | null | undefined} selectedRow
+ */
+export function resolvePackDialogMascotId(editorPack, selectedRow) {
+  const cloned = String(editorPack?.clonedFromCatalogId || '').trim();
+  if (cloned) return cloned;
+  const catalogId = String(selectedRow?.catalog_id || editorPack?.id || '').trim();
+  if (catalogId && !catalogId.startsWith('srv-')) return catalogId;
+  return '';
+}
+
+/**
+ * Packs serveur clonés depuis un modèle catalogue intégré.
+ * @param {Array<Record<string, unknown>>} packs
+ * @param {string} modelId
+ */
+export function findPacksForCatalogModel(packs, modelId) {
+  const mid = String(modelId || '').trim();
+  if (!mid) return [];
+  return (Array.isArray(packs) ? packs : []).filter(
+    (p) => String(p?.pack?.clonedFromCatalogId || '').trim() === mid,
+  );
+}
+
+/**
+ * Choisit la copie catalogue à ouvrir (pack sélectionné, unique, ou la plus récente).
+ * @param {Array<Record<string, unknown>>} copies
+ * @param {string | null | undefined} selectedId
+ * @returns {{ pack: Record<string, unknown>, ambiguous: boolean } | null}
+ */
+export function pickPreferredCatalogModelPack(copies, selectedId) {
+  const list = Array.isArray(copies) ? copies : [];
+  if (list.length === 0) return null;
+  const sel = String(selectedId || '').trim();
+  const selectedMatch = sel ? list.find((p) => String(p?.id || '') === sel) : null;
+  if (selectedMatch) {
+    return { pack: selectedMatch, ambiguous: list.length > 1 };
+  }
+  if (list.length === 1) return { pack: list[0], ambiguous: false };
+  const sorted = [...list].sort((a, b) => {
+    const ta = String(a?.updated_at || a?.created_at || '').trim();
+    const tb = String(b?.updated_at || b?.created_at || '').trim();
+    return tb.localeCompare(ta);
+  });
+  return { pack: sorted[0], ambiguous: true };
 }
 
 /**
@@ -269,8 +332,13 @@ export function buildUnifiedMascotImageEntries(opts = {}) {
     });
   }
 
+  const searchQuery = String(opts.search || '').trim();
+  const globalAssetsForEntries = searchQuery
+    ? filterGlobalAssets(globalAssets, searchQuery)
+    : globalAssets;
+
   const seenUrls = new Set(entries.map((e) => e.url).filter(Boolean));
-  for (const a of globalAssets) {
+  for (const a of globalAssetsForEntries) {
     const url = String(a?.url || '').trim();
     if (!url || seenUrls.has(url)) continue;
     seenUrls.add(url);

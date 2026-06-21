@@ -10,7 +10,7 @@ function setup(extra = {}) {
     catalogModelOptions: [{ id: 'sprout', label: 'SPR0UT' }],
     selectedCatalogModelId: 'sprout',
     onSelectCatalogModel: vi.fn(),
-    findPackForCatalogModel: vi.fn(() => null),
+    findPacksForCatalogModel: vi.fn(() => []),
     onNewDraft: vi.fn(),
     onOpenCatalogModelForEdit: vi.fn(),
     onNewFromCatalog: vi.fn(),
@@ -65,6 +65,26 @@ describe('MascotPackListAside', () => {
     const props = setup();
     fireEvent.click(screen.getByRole('button', { name: 'Éditer sur cette carte' }));
     expect(props.onOpenCatalogModelForEdit).toHaveBeenCalledWith('sprout');
+  });
+
+  test('copie catalogue unique : libellé affiché sous le modèle', () => {
+    setup({
+      findPacksForCatalogModel: vi.fn(() => [
+        { id: 'p1', label: 'SPR0UT carte', catalog_id: 'srv-1', pack: { clonedFromCatalogId: 'sprout' } },
+      ]),
+    });
+    expect(screen.getByText(/Copie sur carte : SPR0UT carte/)).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Éditer la copie' })).toBeTruthy();
+  });
+
+  test('plusieurs copies catalogue : mention du nombre', () => {
+    setup({
+      findPacksForCatalogModel: vi.fn(() => [
+        { id: 'p1', label: 'A', pack: { clonedFromCatalogId: 'sprout' } },
+        { id: 'p2', label: 'B', pack: { clonedFromCatalogId: 'sprout' } },
+      ]),
+    });
+    expect(screen.getByText(/2 copies sur carte/)).toBeTruthy();
   });
 
   test('pack sélectionné invalide : enregistrer et publier désactivés', () => {
