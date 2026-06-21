@@ -9,7 +9,11 @@ import {
 import { getRoleTerms } from '../utils/n3-terminology';
 import { useHelp } from '../hooks/useHelp';
 import { HelpPanel } from './HelpPanel';
-import { resolveHelpChrome, resolveHelpPanelSection, resolveHelpQuickTip } from '../utils/helpResolve';
+import {
+  resolveHelpChrome,
+  resolveHelpPanelSection,
+  resolveHelpQuickTip,
+} from '../utils/helpResolve';
 import { getContentText } from '../utils/content';
 import { resolveMapOverlayTypography } from '../utils/mapOverlayTypography';
 import {
@@ -384,9 +388,7 @@ function VisitViewImpl({
     (stageEl, { fullscreen = visitImmersionRef.current } = {}) => {
       if (!stageEl) return;
       const { cw, ch } = resolveMapStageClientBox(stageEl, { fullscreen });
-      setVisitMapFit(
-        computeMapImageContainRect(visitImgNatural.w, visitImgNatural.h, cw, ch),
-      );
+      setVisitMapFit(computeMapImageContainRect(visitImgNatural.w, visitImgNatural.h, cw, ch));
     },
     [visitImgNatural.w, visitImgNatural.h],
   );
@@ -1347,187 +1349,191 @@ function VisitViewImpl({
                   touchAction: canPanAndZoom ? 'none' : 'auto',
                 }}
               >
-              <div
-                className="visit-map-world"
-                style={{
-                  transform: `translate(${mapTransform.x}px, ${mapTransform.y}px) scale(${mapTransform.s})`,
-                }}
-              >
                 <div
-                  className="visit-map-fit-layer"
+                  className="visit-map-world"
                   style={{
-                    ...(visitImmersion
-                      ? { left: 0, top: 0, width: '100%', height: '100%' }
-                      : visitMapFit.width > 0 && visitMapFit.height > 0
-                        ? {
-                            left: visitMapFit.offsetX,
-                            top: visitMapFit.offsetY,
-                            width: visitMapFit.width,
-                            height: visitMapFit.height,
-                          }
-                        : { left: 0, top: 0, width: '100%', height: '100%' }),
-                    '--map-overlay-scale': visitZoneSvgTypography.overlayScale,
+                    transform: `translate(${mapTransform.x}px, ${mapTransform.y}px) scale(${mapTransform.s})`,
                   }}
                 >
-                  <img
-                    ref={imgRef}
-                    src={visitMapImageSrc}
-                    alt={`Plan ${currentMap?.label || 'Forêt'}`}
-                    className="visit-map-img"
-                    onLoad={(e) => {
-                      const el = e.currentTarget;
-                      setVisitImgNatural({ w: el.naturalWidth || 0, h: el.naturalHeight || 0 });
+                  <div
+                    className="visit-map-fit-layer"
+                    style={{
+                      ...(visitImmersion
+                        ? { left: 0, top: 0, width: '100%', height: '100%' }
+                        : visitMapFit.width > 0 && visitMapFit.height > 0
+                          ? {
+                              left: visitMapFit.offsetX,
+                              top: visitMapFit.offsetY,
+                              width: visitMapFit.width,
+                              height: visitMapFit.height,
+                            }
+                          : { left: 0, top: 0, width: '100%', height: '100%' }),
+                      '--map-overlay-scale': visitZoneSvgTypography.overlayScale,
                     }}
-                    onError={() =>
-                      setVisitMapImageIdx((idx) =>
-                        idx < visitMapImageCandidates.length - 1 ? idx + 1 : idx,
-                      )
-                    }
-                  />
+                  >
+                    <img
+                      ref={imgRef}
+                      src={visitMapImageSrc}
+                      alt={`Plan ${currentMap?.label || 'Forêt'}`}
+                      className="visit-map-img"
+                      onLoad={(e) => {
+                        const el = e.currentTarget;
+                        setVisitImgNatural({ w: el.naturalWidth || 0, h: el.naturalHeight || 0 });
+                      }}
+                      onError={() =>
+                        setVisitMapImageIdx((idx) =>
+                          idx < visitMapImageCandidates.length - 1 ? idx + 1 : idx,
+                        )
+                      }
+                    />
 
-                  <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="visit-map-zones">
-                    {(content.zones || []).map((z) => {
-                      const points = parsePctPoints(z.points);
-                      if (points.length < 3) return null;
-                      const p = points.map((pt) => `${pt.xp},${pt.yp}`).join(' ');
-                      const isSeen = seen.has(itemSeenKey('zone', z.id));
-                      const mx = points.reduce((s, pt) => s + pt.xp, 0) / points.length;
-                      const my = points.reduce((s, pt) => s + pt.yp, 0) / points.length;
-                      const zoneEmoji = detectLeadingMarkerEmoji(z.name || '', markerEmojis);
-                      const zoneLabel = stripLeadingMarkerEmoji(z.name || '', markerEmojis);
-                      const { emojiU, labelU, gapU, strokeU } = visitZoneSvgTypography;
-                      const fw = visitMapFit.width;
-                      const fh = visitMapFit.height;
-                      const titleY = my;
-                      const titleUniform = visitZoneSvgTextUniformYTransform(mx, titleY, fw, fh);
-                      const showZoneLabel = Boolean(String(zoneLabel || '').trim() || z.name);
+                    <svg
+                      viewBox="0 0 100 100"
+                      preserveAspectRatio="none"
+                      className="visit-map-zones"
+                    >
+                      {(content.zones || []).map((z) => {
+                        const points = parsePctPoints(z.points);
+                        if (points.length < 3) return null;
+                        const p = points.map((pt) => `${pt.xp},${pt.yp}`).join(' ');
+                        const isSeen = seen.has(itemSeenKey('zone', z.id));
+                        const mx = points.reduce((s, pt) => s + pt.xp, 0) / points.length;
+                        const my = points.reduce((s, pt) => s + pt.yp, 0) / points.length;
+                        const zoneEmoji = detectLeadingMarkerEmoji(z.name || '', markerEmojis);
+                        const zoneLabel = stripLeadingMarkerEmoji(z.name || '', markerEmojis);
+                        const { emojiU, labelU, gapU, strokeU } = visitZoneSvgTypography;
+                        const fw = visitMapFit.width;
+                        const fh = visitMapFit.height;
+                        const titleY = my;
+                        const titleUniform = visitZoneSvgTextUniformYTransform(mx, titleY, fw, fh);
+                        const showZoneLabel = Boolean(String(zoneLabel || '').trim() || z.name);
+                        return (
+                          <g
+                            key={z.id}
+                            className="visit-zone-hit"
+                            style={{ cursor: 'pointer' }}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              if (consumeSkipClick()) return;
+                              if (mode === 'view') {
+                                const c = visitZoneCentroidPct(z);
+                                const fromPct = { ...visitMapMascotPctRef.current };
+                                if (c) moveVisitMapMascotTo(c.xp, c.yp);
+                                triggerMascotTransientState(VISIT_MASCOT_STATE.MAP_READ, 1200);
+                                showMascotDialog('map_read');
+                                if (c) scheduleVisitDetailPanelOpen(z, 'zone', c.xp, c.yp, fromPct);
+                                else {
+                                  setSelected(z);
+                                  setSelectedType('zone');
+                                }
+                              } else {
+                                setSelected(z);
+                                setSelectedType('zone');
+                              }
+                            }}
+                          >
+                            <polygon
+                              points={p}
+                              className={`visit-zone-poly ${isSeen ? 'is-seen' : 'is-unseen'}`}
+                            />
+                            {zoneEmoji || showZoneLabel ? (
+                              <g transform={titleUniform}>
+                                {zoneEmoji ? (
+                                  <text
+                                    x={mx}
+                                    y={titleY}
+                                    textAnchor="middle"
+                                    dominantBaseline="middle"
+                                    fontSize={emojiU}
+                                    className="visit-zone-label visit-zone-label--emoji"
+                                  >
+                                    {zoneEmoji}
+                                  </text>
+                                ) : null}
+                                {showZoneLabel ? (
+                                  <text
+                                    x={mx}
+                                    y={titleY + (zoneEmoji ? gapU : 0)}
+                                    textAnchor="middle"
+                                    dominantBaseline="middle"
+                                    fontSize={labelU}
+                                    fontWeight="700"
+                                    fontFamily="DM Sans, sans-serif"
+                                    fill="#1a4731"
+                                    stroke="rgba(255,255,255,0.88)"
+                                    strokeWidth={strokeU}
+                                    paintOrder="stroke"
+                                    className="visit-zone-label visit-zone-label--title"
+                                  >
+                                    {zoneLabel || z.name}
+                                  </text>
+                                ) : null}
+                              </g>
+                            ) : null}
+                          </g>
+                        );
+                      })}
+                      {mode === 'draw-zone' && drawPoints.length >= 1 && (
+                        <VisitDrawZonePreview points={drawPoints} />
+                      )}
+                    </svg>
+
+                    {showVisitMapMascot ? (
+                      <VisitMapMascot
+                        renderPct={visitMapMascotRenderPct}
+                        walking={visitMapMascotWalking}
+                        happy={visitMapMascotHappy}
+                        prefersReducedMotion={prefersReducedMotion}
+                        faceRight={visitMapMascotFaceRight}
+                        mascotState={visitMascotAnimationState}
+                        mascotId={visitMascotId}
+                        extraCatalogEntries={visitMascotCatalogExtras}
+                        dialogVisible={visitMascotDialogVisible}
+                        dialog={visitMascotDialog}
+                      />
+                    ) : null}
+
+                    {(content.markers || []).map((m) => {
+                      const isSeen = seen.has(itemSeenKey('marker', m.id));
                       return (
-                        <g
-                          key={z.id}
-                          className="visit-zone-hit"
-                          style={{ cursor: 'pointer' }}
+                        <VisitMapMarkerButton
+                          key={m.id}
+                          marker={m}
+                          isSeen={isSeen}
                           onClick={(event) => {
                             event.stopPropagation();
                             if (consumeSkipClick()) return;
                             if (mode === 'view') {
-                              const c = visitZoneCentroidPct(z);
                               const fromPct = { ...visitMapMascotPctRef.current };
-                              if (c) moveVisitMapMascotTo(c.xp, c.yp);
-                              triggerMascotTransientState(VISIT_MASCOT_STATE.MAP_READ, 1200);
-                              showMascotDialog('map_read');
-                              if (c) scheduleVisitDetailPanelOpen(z, 'zone', c.xp, c.yp, fromPct);
-                              else {
-                                setSelected(z);
-                                setSelectedType('zone');
-                              }
+                              moveVisitMapMascotTo(Number(m.x_pct), Number(m.y_pct));
+                              triggerMascotTransientState(VISIT_MASCOT_STATE.INSPECT, 1200);
+                              showMascotDialog('inspect');
+                              scheduleVisitDetailPanelOpen(
+                                m,
+                                'marker',
+                                Number(m.x_pct),
+                                Number(m.y_pct),
+                                fromPct,
+                              );
                             } else {
-                              setSelected(z);
-                              setSelectedType('zone');
+                              setSelected(m);
+                              setSelectedType('marker');
                             }
                           }}
-                        >
-                          <polygon
-                            points={p}
-                            className={`visit-zone-poly ${isSeen ? 'is-seen' : 'is-unseen'}`}
-                          />
-                          {zoneEmoji || showZoneLabel ? (
-                            <g transform={titleUniform}>
-                              {zoneEmoji ? (
-                                <text
-                                  x={mx}
-                                  y={titleY}
-                                  textAnchor="middle"
-                                  dominantBaseline="middle"
-                                  fontSize={emojiU}
-                                  className="visit-zone-label visit-zone-label--emoji"
-                                >
-                                  {zoneEmoji}
-                                </text>
-                              ) : null}
-                              {showZoneLabel ? (
-                                <text
-                                  x={mx}
-                                  y={titleY + (zoneEmoji ? gapU : 0)}
-                                  textAnchor="middle"
-                                  dominantBaseline="middle"
-                                  fontSize={labelU}
-                                  fontWeight="700"
-                                  fontFamily="DM Sans, sans-serif"
-                                  fill="#1a4731"
-                                  stroke="rgba(255,255,255,0.88)"
-                                  strokeWidth={strokeU}
-                                  paintOrder="stroke"
-                                  className="visit-zone-label visit-zone-label--title"
-                                >
-                                  {zoneLabel || z.name}
-                                </text>
-                              ) : null}
-                            </g>
-                          ) : null}
-                        </g>
+                        />
                       );
                     })}
-                    {mode === 'draw-zone' && drawPoints.length >= 1 && (
-                      <VisitDrawZonePreview points={drawPoints} />
-                    )}
-                  </svg>
-
-                  {showVisitMapMascot ? (
-                    <VisitMapMascot
-                      renderPct={visitMapMascotRenderPct}
-                      walking={visitMapMascotWalking}
-                      happy={visitMapMascotHappy}
-                      prefersReducedMotion={prefersReducedMotion}
-                      faceRight={visitMapMascotFaceRight}
-                      mascotState={visitMascotAnimationState}
-                      mascotId={visitMascotId}
-                      extraCatalogEntries={visitMascotCatalogExtras}
-                      dialogVisible={visitMascotDialogVisible}
-                      dialog={visitMascotDialog}
-                    />
-                  ) : null}
-
-                  {(content.markers || []).map((m) => {
-                    const isSeen = seen.has(itemSeenKey('marker', m.id));
-                    return (
-                      <VisitMapMarkerButton
-                        key={m.id}
-                        marker={m}
-                        isSeen={isSeen}
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          if (consumeSkipClick()) return;
-                          if (mode === 'view') {
-                            const fromPct = { ...visitMapMascotPctRef.current };
-                            moveVisitMapMascotTo(Number(m.x_pct), Number(m.y_pct));
-                            triggerMascotTransientState(VISIT_MASCOT_STATE.INSPECT, 1200);
-                            showMascotDialog('inspect');
-                            scheduleVisitDetailPanelOpen(
-                              m,
-                              'marker',
-                              Number(m.x_pct),
-                              Number(m.y_pct),
-                              fromPct,
-                            );
-                          } else {
-                            setSelected(m);
-                            setSelectedType('marker');
-                          }
-                        }}
-                      />
-                    );
-                  })}
+                  </div>
                 </div>
+                <VisitMapZoomControls
+                  onZoomIn={() => zoomFromCenterAnimated(1.2)}
+                  onZoomOut={() => zoomFromCenterAnimated(0.84)}
+                  onReset={resetMapTransform}
+                />
               </div>
-              <VisitMapZoomControls
-                onZoomIn={() => zoomFromCenterAnimated(1.2)}
-                onZoomOut={() => zoomFromCenterAnimated(0.84)}
-                onReset={resetMapTransform}
-              />
-            </div>
-            {!selected ? (
-              <p className="visit-map-empty-hint section-sub">{visitEmptySelection}</p>
-            ) : null}
+              {!selected ? (
+                <p className="visit-map-empty-hint section-sub">{visitEmptySelection}</p>
+              ) : null}
             </MapFullscreenShell>
           </div>
         </div>

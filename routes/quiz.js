@@ -2,7 +2,10 @@
 
 const express = require('express');
 const { queryAll, queryOne, execute } = require('../database');
-const { requireAuth, requirePermission, parseBearerToken,
+const {
+  requireAuth,
+  requirePermission,
+  parseBearerToken,
   hydrateAuthFromTokenClaims,
   JWT_SECRET,
 } = require('../middleware/requireTeacher');
@@ -114,7 +117,9 @@ router.get(
           GROUP BY categorie_slug`,
         [niveau],
       );
-      const countBySlug = new Map(counts.map((row) => [row.categorie_slug, Number(row.total || 0)]));
+      const countBySlug = new Map(
+        counts.map((row) => [row.categorie_slug, Number(row.total || 0)]),
+      );
       return res.json({
         categories: categories.map((cat) => ({
           ...cat,
@@ -428,11 +433,10 @@ router.put(
     const code = normalizeQuestionCode(req.params.code);
     if (!code) return res.status(400).json({ error: 'Code invalide' });
     try {
-      const result = await upsertQuizQuestion(
-        { queryAll, queryOne, execute },
-        req.body || {},
-        { question_code: code, requireExisting: true },
-      );
+      const result = await upsertQuizQuestion({ queryAll, queryOne, execute }, req.body || {}, {
+        question_code: code,
+        requireExisting: true,
+      });
       return res.json({ ok: true, created: false, question: result.question });
     } catch (err) {
       const status = err.statusCode || 400;
@@ -533,9 +537,14 @@ router.post(
       return res.status(400).json({ error: `Trop de lignes (max ${MAX_IMPORT_ROWS})` });
     }
     try {
-      const report = await applyFmQuizImport({ queryAll, execute }, categoryRows || [], questionRows, {
-        dryRun,
-      });
+      const report = await applyFmQuizImport(
+        { queryAll, execute },
+        categoryRows || [],
+        questionRows,
+        {
+          dryRun,
+        },
+      );
       return res.json({ report });
     } catch (err) {
       return res.status(400).json({ error: err.message || 'Import impossible' });

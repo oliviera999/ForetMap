@@ -272,9 +272,7 @@ export function QcmCatalogPanel({
         </Button>
       </form>
 
-      {importReport ? (
-        <pre className={report}>{JSON.stringify(importReport, null, 2)}</pre>
-      ) : null}
+      {importReport ? <pre className={report}>{JSON.stringify(importReport, null, 2)}</pre> : null}
 
       <hr className={divider} />
 
@@ -349,7 +347,11 @@ export function QcmCatalogPanel({
                 </div>
                 <div className={actions}>
                   {onEditQuestion ? (
-                    <Button type="button" variant="secondary" onClick={() => onEditQuestion(item.question_code)}>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={() => onEditQuestion(item.question_code)}
+                    >
                       Éditer
                     </Button>
                   ) : null}

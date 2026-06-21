@@ -53,7 +53,9 @@ export default function VisitMascotStudioPreviewSection({
       ...(ver === 2 && relaxed.pack.interactionProfile
         ? { interactionProfile: relaxed.pack.interactionProfile }
         : {}),
-      ...(ver === 2 && relaxed.pack.dialogProfile ? { dialogProfile: relaxed.pack.dialogProfile } : {}),
+      ...(ver === 2 && relaxed.pack.dialogProfile
+        ? { dialogProfile: relaxed.pack.dialogProfile }
+        : {}),
       mascotPackVersion: ver,
     };
     const withoutCurrent = base.filter((entry) => entry.id !== catalogId);

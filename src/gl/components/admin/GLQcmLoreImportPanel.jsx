@@ -1,10 +1,7 @@
 import React from 'react';
 import { GLQcmCatalogPanel } from './GLQcmCatalogPanel.jsx';
 
-export function GLQcmLoreImportPanel({
-  loreGlossaryLinkItems = [],
-  onOpenLoreTerm,
-}) {
+export function GLQcmLoreImportPanel({ loreGlossaryLinkItems = [], onOpenLoreTerm }) {
   return (
     <GLQcmCatalogPanel
       title="Import QCM lore (XLSX)"

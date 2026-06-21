@@ -14,7 +14,9 @@ const INTERACTION_LABELS = {
 };
 
 function interactionLabel(type) {
-  const key = String(type || '').trim().toLowerCase();
+  const key = String(type || '')
+    .trim()
+    .toLowerCase();
   return INTERACTION_LABELS[key] || type || 'Interaction';
 }
 
@@ -124,7 +126,8 @@ export function FoodWebView({
       <header className="pedago-view__head">
         <h2 className="section-title">🕸️ Réseau trophique</h2>
         <p className="section-sub">
-          Relations entre espèces du site — clique une flèche pour le glossaire, une espèce pour sa fiche.
+          Relations entre espèces du site — clique une flèche pour le glossaire, une espèce pour sa
+          fiche.
         </p>
       </header>
 
@@ -132,7 +135,11 @@ export function FoodWebView({
         {mapZones.length > 0 ? (
           <label className="pedago-filter-field">
             <span>Zone</span>
-            <select className="form-select" value={zoneId} onChange={(e) => setZoneId(e.target.value)}>
+            <select
+              className="form-select"
+              value={zoneId}
+              onChange={(e) => setZoneId(e.target.value)}
+            >
               <option value="">Tout le site</option>
               {mapZones.map((z) => (
                 <option key={z.id} value={z.id}>
@@ -159,18 +166,28 @@ export function FoodWebView({
         </label>
         <label className="pedago-filter-field">
           <span>Affichage</span>
-          <select className="form-select" value={viewMode} onChange={(e) => setViewMode(e.target.value)}>
+          <select
+            className="form-select"
+            value={viewMode}
+            onChange={(e) => setViewMode(e.target.value)}
+          >
             <option value="list">Liste</option>
             <option value="graph">Graphe</option>
           </select>
         </label>
       </div>
 
-      {loading ? <p className="section-sub card" style={{ padding: 16 }}>Chargement…</p> : null}
+      {loading ? (
+        <p className="section-sub card" style={{ padding: 16 }}>
+          Chargement…
+        </p>
+      ) : null}
       {error ? <p className="pedago-error">{error}</p> : null}
 
       {!loading && !error && filteredItems.length === 0 ? (
-        <p className="section-sub card" style={{ padding: 16 }}>Aucune interaction enregistrée.</p>
+        <p className="section-sub card" style={{ padding: 16 }}>
+          Aucune interaction enregistrée.
+        </p>
       ) : null}
 
       {!loading && !error && viewMode === 'graph' && filteredItems.length > 0 ? (

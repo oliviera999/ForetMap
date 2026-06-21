@@ -114,20 +114,12 @@ function MapViewImpl({
   const [mapTutorialPreview, setMapTutorialPreview] = useState(null);
   const [tutorialReadIds, setTutorialReadIds] = useState(() => new Set());
   const [markerPositionUnlocked, setMarkerPositionUnlocked] = useState(false);
-  const {
-    mapFullscreen,
-    setMapFullscreen,
-    openMapFullscreen,
-    closeMapFullscreen,
-  } = useMapFullscreen({
-    escapeBlocked: Boolean(
-      selectedZone ||
-        selectedMarker ||
-        pendingZone ||
-        pendingMarker ||
-        mapTutorialPreview,
-    ),
-  });
+  const { mapFullscreen, setMapFullscreen, openMapFullscreen, closeMapFullscreen } =
+    useMapFullscreen({
+      escapeBlocked: Boolean(
+        selectedZone || selectedMarker || pendingZone || pendingMarker || mapTutorialPreview,
+      ),
+    });
   const configuredLocationEmojis = String(
     publicSettings?.ui?.map?.location_emojis || publicSettings?.map?.location_emojis || '',
   );
@@ -188,7 +180,15 @@ function MapViewImpl({
     prefersPageScroll,
     touchAction,
     animateZoomTowardScale,
-  } = useMapGestures({ mapImageSrc, activeMapId, mode, onRefresh, embedded, mapLayoutOuterRef, mapFullscreen });
+  } = useMapGestures({
+    mapImageSrc,
+    activeMapId,
+    mode,
+    onRefresh,
+    embedded,
+    mapLayoutOuterRef,
+    mapFullscreen,
+  });
   const {
     mascotId: mapMascotId,
     showMascot: showMapMascot,
@@ -1103,121 +1103,127 @@ function MapViewImpl({
               : { padding: mapFramePaddingPx }),
           }}
         >
-        <div className="map-view-canvas-slot">
-          <div
-            ref={containerRef}
-            className="map-view-canvas"
-            style={{
-              cursor,
-              touchAction,
-              userSelect: 'none',
-              WebkitUserSelect: 'none',
-            }}
-            onClick={onMapClick}
-          >
-            <MapViewWorldLayer worldRef={worldRef} width={iw} height={ih}>
-              <MapViewBackgroundImage
-                imgRef={imgRef}
-                src={mapImageSrc}
-                alt={`Plan ${activeMap?.label || 'du jardin'}`}
-                width={iw}
-                height={ih}
-                onError={() =>
-                  setMapImageIdx((idx) => (idx < mapImageCandidates.length - 1 ? idx + 1 : idx))
-                }
-              />
-
-              <svg
-                style={{
-                  position: 'absolute',
-                  left: 0,
-                  top: 0,
-                  width: iw,
-                  height: ih,
-                  overflow: 'visible',
-                  pointerEvents: 'none',
-                }}
-              >
-                <g style={{ pointerEvents: 'all' }}>
-                  {zones.map((z) => renderZonePoly(z))}
-                  {renderDrawing()}
-                  {renderEditPts()}
-                </g>
-              </svg>
-
-              <MapViewMascotOverlay
-                show={showMapMascot}
-                mascotClassName={mapMascotClassName}
-                embedded={embedded}
-                renderPct={mapMascotRenderPct}
-                fitScale={mapMascotFitScale}
-                faceRight={mapMascotFaceRight}
-                animationState={mapMascotAnimationState}
-                mascotId={mapMascotId}
-                dialogVisible={mapMascotDialogVisible}
-                dialog={mapMascotDialog}
-              />
-
-              {markers.map((m) => {
-                const markerTaskVisual = markerTaskVisualById.get(m.id);
-                const markerTaskLabel = markerTaskVisual ? TASK_VISUAL_LABEL[markerTaskVisual] : '';
-                const markerTutorialCount = markerTutorialCountById.get(m.id) || 0;
-                const markerTutorialLabel =
-                  markerTutorialCount === 0
-                    ? ''
-                    : markerTutorialCount === 1
-                      ? '1 tutoriel lié'
-                      : `${markerTutorialCount} tutoriels liés`;
-                const markerAriaLabel = [m.label || 'Repère', markerTaskLabel, markerTutorialLabel]
-                  .filter(Boolean)
-                  .join(' — ');
-                const markerDraggable = isTeacher && markerPositionUnlocked;
-                const openMarker = (e) => {
-                  e.stopPropagation();
-                  if (!moved.current) {
-                    if (mode === 'view' && showMapMascot)
-                      onMapMascotMarkerClick(m, setSelectedMarker);
-                    else setSelectedMarker(m);
+          <div className="map-view-canvas-slot">
+            <div
+              ref={containerRef}
+              className="map-view-canvas"
+              style={{
+                cursor,
+                touchAction,
+                userSelect: 'none',
+                WebkitUserSelect: 'none',
+              }}
+              onClick={onMapClick}
+            >
+              <MapViewWorldLayer worldRef={worldRef} width={iw} height={ih}>
+                <MapViewBackgroundImage
+                  imgRef={imgRef}
+                  src={mapImageSrc}
+                  alt={`Plan ${activeMap?.label || 'du jardin'}`}
+                  width={iw}
+                  height={ih}
+                  onError={() =>
+                    setMapImageIdx((idx) => (idx < mapImageCandidates.length - 1 ? idx + 1 : idx))
                   }
-                };
-                return (
-                  <MapViewMarkerBubble
-                    key={m.id}
-                    marker={m}
-                    ariaLabel={markerAriaLabel}
-                    showLabels={showLabels}
-                    isCoarsePointer={isCoarsePointer}
-                    draggable={markerDraggable}
-                    emojiFontSize={`${mapEmojiFontPx}px`}
-                    labelFontSize={`${mapLabelFontPx}px`}
-                    labelMarginTop={markerLabelMarginTop}
-                    taskVisual={markerTaskVisual}
-                    taskLabel={markerTaskLabel}
-                    tutorialCount={markerTutorialCount}
-                    tutorialLabel={markerTutorialLabel}
-                    onOpen={openMarker}
-                    onPointerDown={
-                      markerDraggable
-                        ? (e) => {
-                            e.stopPropagation();
-                            beginMarkerDrag(m.id, e.currentTarget, e.pointerId);
-                          }
-                        : undefined
-                    }
-                  />
-                );
-              })}
-            </MapViewWorldLayer>
+                />
 
-            <MapCanvasHints
-              mode={mode}
-              drawPointsCount={drawPoints.length}
-              prefersPageScroll={prefersPageScroll}
-              isCoarsePointer={isCoarsePointer}
-              hintTexts={mapCanvasHintTexts}
-            />
+                <svg
+                  style={{
+                    position: 'absolute',
+                    left: 0,
+                    top: 0,
+                    width: iw,
+                    height: ih,
+                    overflow: 'visible',
+                    pointerEvents: 'none',
+                  }}
+                >
+                  <g style={{ pointerEvents: 'all' }}>
+                    {zones.map((z) => renderZonePoly(z))}
+                    {renderDrawing()}
+                    {renderEditPts()}
+                  </g>
+                </svg>
+
+                <MapViewMascotOverlay
+                  show={showMapMascot}
+                  mascotClassName={mapMascotClassName}
+                  embedded={embedded}
+                  renderPct={mapMascotRenderPct}
+                  fitScale={mapMascotFitScale}
+                  faceRight={mapMascotFaceRight}
+                  animationState={mapMascotAnimationState}
+                  mascotId={mapMascotId}
+                  dialogVisible={mapMascotDialogVisible}
+                  dialog={mapMascotDialog}
+                />
+
+                {markers.map((m) => {
+                  const markerTaskVisual = markerTaskVisualById.get(m.id);
+                  const markerTaskLabel = markerTaskVisual
+                    ? TASK_VISUAL_LABEL[markerTaskVisual]
+                    : '';
+                  const markerTutorialCount = markerTutorialCountById.get(m.id) || 0;
+                  const markerTutorialLabel =
+                    markerTutorialCount === 0
+                      ? ''
+                      : markerTutorialCount === 1
+                        ? '1 tutoriel lié'
+                        : `${markerTutorialCount} tutoriels liés`;
+                  const markerAriaLabel = [
+                    m.label || 'Repère',
+                    markerTaskLabel,
+                    markerTutorialLabel,
+                  ]
+                    .filter(Boolean)
+                    .join(' — ');
+                  const markerDraggable = isTeacher && markerPositionUnlocked;
+                  const openMarker = (e) => {
+                    e.stopPropagation();
+                    if (!moved.current) {
+                      if (mode === 'view' && showMapMascot)
+                        onMapMascotMarkerClick(m, setSelectedMarker);
+                      else setSelectedMarker(m);
+                    }
+                  };
+                  return (
+                    <MapViewMarkerBubble
+                      key={m.id}
+                      marker={m}
+                      ariaLabel={markerAriaLabel}
+                      showLabels={showLabels}
+                      isCoarsePointer={isCoarsePointer}
+                      draggable={markerDraggable}
+                      emojiFontSize={`${mapEmojiFontPx}px`}
+                      labelFontSize={`${mapLabelFontPx}px`}
+                      labelMarginTop={markerLabelMarginTop}
+                      taskVisual={markerTaskVisual}
+                      taskLabel={markerTaskLabel}
+                      tutorialCount={markerTutorialCount}
+                      tutorialLabel={markerTutorialLabel}
+                      onOpen={openMarker}
+                      onPointerDown={
+                        markerDraggable
+                          ? (e) => {
+                              e.stopPropagation();
+                              beginMarkerDrag(m.id, e.currentTarget, e.pointerId);
+                            }
+                          : undefined
+                      }
+                    />
+                  );
+                })}
+              </MapViewWorldLayer>
+
+              <MapCanvasHints
+                mode={mode}
+                drawPointsCount={drawPoints.length}
+                prefersPageScroll={prefersPageScroll}
+                isCoarsePointer={isCoarsePointer}
+                hintTexts={mapCanvasHintTexts}
+              />
+            </div>
           </div>
-        </div>
         </div>
       </MapFullscreenShell>
     </div>

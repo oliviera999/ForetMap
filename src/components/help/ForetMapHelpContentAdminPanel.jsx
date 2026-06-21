@@ -103,7 +103,8 @@ export function ForetMapHelpContentAdminPanel() {
   }
 
   async function resetDefaults() {
-    if (!window.confirm('Réinitialiser tous les textes d’aide ForetMap aux valeurs par défaut ?')) return;
+    if (!window.confirm('Réinitialiser tous les textes d’aide ForetMap aux valeurs par défaut ?'))
+      return;
     setBusy(true);
     setError('');
     try {
@@ -167,7 +168,9 @@ export function ForetMapHelpContentAdminPanel() {
               <div style={{ marginTop: 8, display: 'grid', gap: 10 }}>
                 {(tooltipGroups[id] || []).map(({ key, action, entry }) => (
                   <div key={key} style={{ borderTop: '1px solid #f1f5f9', paddingTop: 8 }}>
-                    <div style={{ fontSize: '.78rem', color: '#64748b', marginBottom: 4 }}>{action}</div>
+                    <div style={{ fontSize: '.78rem', color: '#64748b', marginBottom: 4 }}>
+                      {action}
+                    </div>
                     {'text' in entry || !entry.textTeacher ? (
                       <div className="field">
                         <label>{roleTerms.studentSingular}</label>
@@ -303,9 +306,7 @@ export function ForetMapHelpContentAdminPanel() {
                 <input
                   type="text"
                   value={draft.mapCanvasHints?.[key] || ''}
-                  onChange={(e) =>
-                    updateNested(setDraft, ['mapCanvasHints', key], e.target.value)
-                  }
+                  onChange={(e) => updateNested(setDraft, ['mapCanvasHints', key], e.target.value)}
                 />
               </div>
             ))}

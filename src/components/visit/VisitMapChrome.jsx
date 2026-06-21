@@ -81,7 +81,9 @@ export function VisitMapChrome({
             data-testid="visit-map-fullscreen-open"
             onClick={onToggleImmersion}
             aria-pressed={visitImmersion}
-            aria-label={visitImmersion ? 'Quitter le plein écran' : 'Afficher la carte en plein écran'}
+            aria-label={
+              visitImmersion ? 'Quitter le plein écran' : 'Afficher la carte en plein écran'
+            }
           >
             <span aria-hidden>⛶</span> Plein écran
           </button>

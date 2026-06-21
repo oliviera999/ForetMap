@@ -395,7 +395,10 @@ router.post(
     const finalDescription = [baseDescription, proposer ? `Proposition n3beur: ${proposer}` : '']
       .filter(Boolean)
       .join('\n\n');
-    const proposalLivingNames = Object.prototype.hasOwnProperty.call(req.body || {}, 'living_beings')
+    const proposalLivingNames = Object.prototype.hasOwnProperty.call(
+      req.body || {},
+      'living_beings',
+    )
       ? living_beings
       : undefined;
     await execute(

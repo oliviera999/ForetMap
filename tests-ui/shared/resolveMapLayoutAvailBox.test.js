@@ -18,8 +18,8 @@ describe('resolveMapLayoutAvailBox', () => {
     const layer = document.createElement('div');
     layer.className = 'fm-map-fullscreen-layer';
     const outer = document.createElement('div');
-  layer.style.width = '1200px';
-  layer.style.height = '800px';
+    layer.style.width = '1200px';
+    layer.style.height = '800px';
     layer.appendChild(outer);
     document.body.appendChild(layer);
 
@@ -67,7 +67,14 @@ describe('resolveMapLayoutAvailBox', () => {
 
     Object.defineProperty(outer, 'clientWidth', { value: 640, configurable: true });
     Object.defineProperty(outer, 'clientHeight', { value: 400, configurable: true });
-    outer.getBoundingClientRect = () => ({ top: 100, bottom: 500, left: 0, right: 640, width: 640, height: 400 });
+    outer.getBoundingClientRect = () => ({
+      top: 100,
+      bottom: 500,
+      left: 0,
+      right: 640,
+      width: 640,
+      height: 400,
+    });
 
     const box = resolveMapLayoutAvailBox(outer, {
       embedded: true,

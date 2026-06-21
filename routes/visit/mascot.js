@@ -575,7 +575,8 @@ router.post(
         const payload = readAnalyzeUploadPayload(req);
         if (payload.archive?.buffer) buffer = payload.archive.buffer;
       }
-      if (!buffer) return res.status(400).json({ error: 'Archive ZIP requise (archive ou fileDataBase64)' });
+      if (!buffer)
+        return res.status(400).json({ error: 'Archive ZIP requise (archive ou fileDataBase64)' });
       const parsed = parseMascotPackZipBuffer(buffer);
       if (parsed.manifest.variant !== 'visit') {
         return res.status(400).json({ error: 'Archive GL — importez depuis le studio GL' });
@@ -681,17 +682,11 @@ router.post(
       }
 
       const label = String(
-        req.body?.label ||
-          parsed.pack?.label ||
-          parsed.manifest?.source?.label ||
-          'Pack importé',
+        req.body?.label || parsed.pack?.label || parsed.manifest?.source?.label || 'Pack importé',
       )
         .trim()
         .slice(0, 120);
-      const isPublished =
-        mode === 'replace' && existingRow
-          ? Number(existingRow.is_published)
-          : 0;
+      const isPublished = mode === 'replace' && existingRow ? Number(existingRow.is_published) : 0;
       const now = nowIso();
       const createdBy = await resolveVisitMascotPackCreatedBy(req.auth);
 

@@ -259,11 +259,7 @@ export default function MascotPackListAside({
       {selectedId ? (
         <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
           {isDirty ? (
-            <p
-              className="visit-mascot-pack-manager__dirty-banner"
-              role="status"
-              aria-live="polite"
-            >
+            <p className="visit-mascot-pack-manager__dirty-banner" role="status" aria-live="polite">
               <span className="visit-mascot-pack-manager__dirty-dot" aria-hidden="true" />
               Modifications non enregistrées
             </p>

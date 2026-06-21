@@ -26,7 +26,11 @@ test('normalizeMarkerBackgrounds accepte hex et presets', () => {
 });
 
 test('validateMarkerBackgrounds rejette valeur invalide', () => {
-  const invalid = validateMarkerBackgrounds({ label: 'orange', emoji: 'transparent', icon: 'transparent' });
+  const invalid = validateMarkerBackgrounds({
+    label: 'orange',
+    emoji: 'transparent',
+    icon: 'transparent',
+  });
   assert.ok(invalid.error);
   const valid = validateMarkerBackgrounds({
     label: 'classic',
@@ -52,10 +56,7 @@ test('resolveMarkerBackgroundCssVars transparent avec text-shadow label', () => 
 
 test('resolveBackgroundCssValue classic label orange', () => {
   assert.strictEqual(resolveBackgroundCssValue('label', 'classic'), '#fb923c');
-  assert.strictEqual(
-    resolveBackgroundCssValue('emoji', 'classic'),
-    'rgba(255, 255, 255, 0.92)',
-  );
+  assert.strictEqual(resolveBackgroundCssValue('emoji', 'classic'), 'rgba(255, 255, 255, 0.92)');
 });
 
 test('resolveMarkerBackgroundCssVars classic emoji avec ombre', () => {

@@ -370,382 +370,386 @@ function SettingsAdminView() {
         <ForetMapHelpContentAdminPanel />
       ) : (
         <>
-      <div
-        style={{
-          background: 'white',
-          border: '1px solid #e5e7eb',
-          borderRadius: 12,
-          padding: 12,
-          marginBottom: 12,
-        }}
-      >
-        <div className="field" style={{ marginBottom: 8 }}>
-          <label>Recherche dans les paramètres</label>
-          <input
-            type="text"
-            value={searchQuery}
-            placeholder="Ex: maintenance, oauth, jwt, carte, public..."
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 8,
-            flexWrap: 'wrap',
-          }}
-        >
-          <div style={{ fontSize: '.82rem', color: '#6b7280' }}>
-            {filteredCount} paramètre(s) affiché(s) sur {settings.length}
-          </div>
-          {searchQuery && (
-            <button className="btn btn-secondary btn-sm" onClick={() => setSearchQuery('')}>
-              Réinitialiser le filtre
-            </button>
-          )}
-        </div>
-      </div>
-
-      <div className="settings-admin-grid">
-        {filteredSettingSections.map((section) => (
           <div
-            key={section.id}
             style={{
               background: 'white',
               border: '1px solid #e5e7eb',
               borderRadius: 12,
               padding: 12,
-              minWidth: 0,
+              marginBottom: 12,
             }}
           >
-            <h3 style={{ marginTop: 0 }}>{section.title}</h3>
-            {section.rows.map((row) => renderSettingField(row))}
+            <div className="field" style={{ marginBottom: 8 }}>
+              <label>Recherche dans les paramètres</label>
+              <input
+                type="text"
+                value={searchQuery}
+                placeholder="Ex: maintenance, oauth, jwt, carte, public..."
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 8,
+                flexWrap: 'wrap',
+              }}
+            >
+              <div style={{ fontSize: '.82rem', color: '#6b7280' }}>
+                {filteredCount} paramètre(s) affiché(s) sur {settings.length}
+              </div>
+              {searchQuery && (
+                <button className="btn btn-secondary btn-sm" onClick={() => setSearchQuery('')}>
+                  Réinitialiser le filtre
+                </button>
+              )}
+            </div>
           </div>
-        ))}
-      </div>
-      {filteredCount === 0 && (
-        <div className="empty" style={{ marginTop: 12 }}>
-          <p>Aucun paramètre ne correspond au filtre saisi.</p>
-        </div>
-      )}
 
-      <div
-        style={{
-          background: 'white',
-          border: '1px solid #e5e7eb',
-          borderRadius: 12,
-          padding: 12,
-          marginTop: 12,
-        }}
-      >
-        <h3 style={{ marginTop: 0 }}>Cartes & plans</h3>
-        <p style={{ fontSize: '.82rem', color: '#6b7280', marginBottom: 10, lineHeight: 1.45 }}>
-          Nouveau plan : identifiant technique stable (ex. <code>potager</code>), libellé affiché
-          dans l’app, puis image (URL ou upload). Les élèves « les deux espaces » voient toutes les
-          cartes actives ; une affiliation peut cibler un seul plan (y compris ceux ajoutés ici).
-        </p>
-        <div
-          style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: 8,
-            alignItems: 'flex-end',
-            marginBottom: 12,
-            paddingBottom: 12,
-            borderBottom: '1px solid #e5e7eb',
-          }}
-        >
-          <div className="field" style={{ margin: 0, flex: '1 1 120px' }}>
-            <label>Identifiant (slug)</label>
-            <input
-              value={newMapId}
-              onChange={(e) => setNewMapId(e.target.value)}
-              placeholder="ex. potager"
-              autoComplete="off"
-            />
+          <div className="settings-admin-grid">
+            {filteredSettingSections.map((section) => (
+              <div
+                key={section.id}
+                style={{
+                  background: 'white',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: 12,
+                  padding: 12,
+                  minWidth: 0,
+                }}
+              >
+                <h3 style={{ marginTop: 0 }}>{section.title}</h3>
+                {section.rows.map((row) => renderSettingField(row))}
+              </div>
+            ))}
           </div>
-          <div className="field" style={{ margin: 0, flex: '1 1 180px' }}>
-            <label>Libellé</label>
-            <input
-              value={newMapLabel}
-              onChange={(e) => setNewMapLabel(e.target.value)}
-              placeholder="ex. Potager pédagogique"
-              autoComplete="off"
-            />
-          </div>
-          <div className="field" style={{ margin: 0, width: 96 }}>
-            <label>Ordre</label>
-            <input
-              type="number"
-              min={0}
-              value={newMapSort}
-              onChange={(e) => setNewMapSort(e.target.value)}
-            />
-          </div>
-          <button
-            type="button"
-            className="btn btn-primary btn-sm"
-            onClick={createMap}
-            disabled={savingKey === 'map:create'}
+          {filteredCount === 0 && (
+            <div className="empty" style={{ marginTop: 12 }}>
+              <p>Aucun paramètre ne correspond au filtre saisi.</p>
+            </div>
+          )}
+
+          <div
+            style={{
+              background: 'white',
+              border: '1px solid #e5e7eb',
+              borderRadius: 12,
+              padding: 12,
+              marginTop: 12,
+            }}
           >
-            {savingKey === 'map:create' ? '…' : '+ Ajouter la carte'}
-          </button>
-        </div>
-        <div className="settings-admin-maps-list">
-          {maps.map((m) => (
-            <div key={m.id} style={{ border: '1px solid #e5e7eb', borderRadius: 10, padding: 10 }}>
-              <div className="settings-admin-map-row">
-                <div>
-                  <div style={{ fontWeight: 700 }}>{m.label}</div>
-                  <div style={{ fontSize: '.75rem', color: '#6b7280' }}>{m.id}</div>
-                </div>
+            <h3 style={{ marginTop: 0 }}>Cartes & plans</h3>
+            <p style={{ fontSize: '.82rem', color: '#6b7280', marginBottom: 10, lineHeight: 1.45 }}>
+              Nouveau plan : identifiant technique stable (ex. <code>potager</code>), libellé
+              affiché dans l’app, puis image (URL ou upload). Les élèves « les deux espaces » voient
+              toutes les cartes actives ; une affiliation peut cibler un seul plan (y compris ceux
+              ajoutés ici).
+            </p>
+            <div
+              style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: 8,
+                alignItems: 'flex-end',
+                marginBottom: 12,
+                paddingBottom: 12,
+                borderBottom: '1px solid #e5e7eb',
+              }}
+            >
+              <div className="field" style={{ margin: 0, flex: '1 1 120px' }}>
+                <label>Identifiant (slug)</label>
                 <input
-                  defaultValue={m.label}
-                  placeholder="Libellé"
-                  onBlur={(e) =>
-                    e.target.value.trim() && saveMap(m.id, { label: e.target.value.trim() })
-                  }
+                  value={newMapId}
+                  onChange={(e) => setNewMapId(e.target.value)}
+                  placeholder="ex. potager"
+                  autoComplete="off"
                 />
+              </div>
+              <div className="field" style={{ margin: 0, flex: '1 1 180px' }}>
+                <label>Libellé</label>
+                <input
+                  value={newMapLabel}
+                  onChange={(e) => setNewMapLabel(e.target.value)}
+                  placeholder="ex. Potager pédagogique"
+                  autoComplete="off"
+                />
+              </div>
+              <div className="field" style={{ margin: 0, width: 96 }}>
+                <label>Ordre</label>
                 <input
                   type="number"
-                  defaultValue={m.sort_order ?? 0}
-                  placeholder="Ordre"
-                  onBlur={(e) =>
-                    saveMap(m.id, { sort_order: parseInt(e.target.value || '0', 10) || 0 })
-                  }
-                />
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={!!m.is_active}
-                    onChange={(e) => saveMap(m.id, { is_active: e.target.checked })}
-                  />{' '}
-                  Active
-                </label>
-              </div>
-              <div className="field" style={{ marginTop: 8 }}>
-                <label>URL image du plan</label>
-                <input
-                  defaultValue={m.map_image_url || ''}
-                  onBlur={(e) => saveMap(m.id, { map_image_url: e.target.value || '' })}
+                  min={0}
+                  value={newMapSort}
+                  onChange={(e) => setNewMapSort(e.target.value)}
                 />
               </div>
-              <MediaLibraryMenu
-                title="Bibliothèque globale (images, audio, vidéo)"
-                fetchItems={fetchMediaLibrary}
-                uploadDataUrl={uploadMediaLibrary}
-                removeItem={deleteMediaLibrary}
-                onPickUrl={(url) =>
-                  saveMap(
-                    m.id,
-                    { map_image_url: url },
-                    'URL de carte définie depuis la bibliothèque',
-                  )
-                }
-              />
-              <div className="settings-admin-map-tools">
-                <div className="field">
-                  <label>Padding cadre (0-32 px)</label>
-                  <input
-                    type="number"
-                    min={0}
-                    max={32}
-                    defaultValue={m.frame_padding_px ?? ''}
-                    onBlur={(e) =>
-                      saveMap(m.id, {
-                        frame_padding_px:
-                          e.target.value === '' ? null : parseInt(e.target.value || '0', 10),
-                      })
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                onClick={createMap}
+                disabled={savingKey === 'map:create'}
+              >
+                {savingKey === 'map:create' ? '…' : '+ Ajouter la carte'}
+              </button>
+            </div>
+            <div className="settings-admin-maps-list">
+              {maps.map((m) => (
+                <div
+                  key={m.id}
+                  style={{ border: '1px solid #e5e7eb', borderRadius: 10, padding: 10 }}
+                >
+                  <div className="settings-admin-map-row">
+                    <div>
+                      <div style={{ fontWeight: 700 }}>{m.label}</div>
+                      <div style={{ fontSize: '.75rem', color: '#6b7280' }}>{m.id}</div>
+                    </div>
+                    <input
+                      defaultValue={m.label}
+                      placeholder="Libellé"
+                      onBlur={(e) =>
+                        e.target.value.trim() && saveMap(m.id, { label: e.target.value.trim() })
+                      }
+                    />
+                    <input
+                      type="number"
+                      defaultValue={m.sort_order ?? 0}
+                      placeholder="Ordre"
+                      onBlur={(e) =>
+                        saveMap(m.id, { sort_order: parseInt(e.target.value || '0', 10) || 0 })
+                      }
+                    />
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={!!m.is_active}
+                        onChange={(e) => saveMap(m.id, { is_active: e.target.checked })}
+                      />{' '}
+                      Active
+                    </label>
+                  </div>
+                  <div className="field" style={{ marginTop: 8 }}>
+                    <label>URL image du plan</label>
+                    <input
+                      defaultValue={m.map_image_url || ''}
+                      onBlur={(e) => saveMap(m.id, { map_image_url: e.target.value || '' })}
+                    />
+                  </div>
+                  <MediaLibraryMenu
+                    title="Bibliothèque globale (images, audio, vidéo)"
+                    fetchItems={fetchMediaLibrary}
+                    uploadDataUrl={uploadMediaLibrary}
+                    removeItem={deleteMediaLibrary}
+                    onPickUrl={(url) =>
+                      saveMap(
+                        m.id,
+                        { map_image_url: url },
+                        'URL de carte définie depuis la bibliothèque',
+                      )
                     }
                   />
+                  <div className="settings-admin-map-tools">
+                    <div className="field">
+                      <label>Padding cadre (0-32 px)</label>
+                      <input
+                        type="number"
+                        min={0}
+                        max={32}
+                        defaultValue={m.frame_padding_px ?? ''}
+                        onBlur={(e) =>
+                          saveMap(m.id, {
+                            frame_padding_px:
+                              e.target.value === '' ? null : parseInt(e.target.value || '0', 10),
+                          })
+                        }
+                      />
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => {
+                          const el = mapGalleryFileRefs.current[m.id];
+                          if (el) el.value = '';
+                          el?.click();
+                        }}
+                        disabled={savingKey === `map-image:${m.id}`}
+                      >
+                        {savingKey === `map-image:${m.id}` ? 'Envoi…' : '📁 Galerie'}
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => {
+                          const el = mapCameraFileRefs.current[m.id];
+                          if (el) el.value = '';
+                          el?.click();
+                        }}
+                        disabled={savingKey === `map-image:${m.id}`}
+                      >
+                        {savingKey === `map-image:${m.id}` ? 'Envoi…' : '📸 Appareil photo'}
+                      </button>
+                      <input
+                        ref={(el) => {
+                          mapGalleryFileRefs.current[m.id] = el;
+                        }}
+                        type="file"
+                        accept="image/*"
+                        style={{ display: 'none' }}
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          e.target.value = '';
+                          uploadMapImage(m.id, f);
+                        }}
+                      />
+                      <input
+                        ref={(el) => {
+                          mapCameraFileRefs.current[m.id] = el;
+                        }}
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        style={{ display: 'none' }}
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          e.target.value = '';
+                          uploadMapImage(m.id, f);
+                        }}
+                      />
+                    </div>
+                  </div>
                 </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                  <button
-                    type="button"
-                    className="btn btn-secondary btn-sm"
-                    onClick={() => {
-                      const el = mapGalleryFileRefs.current[m.id];
-                      if (el) el.value = '';
-                      el?.click();
-                    }}
-                    disabled={savingKey === `map-image:${m.id}`}
-                  >
-                    {savingKey === `map-image:${m.id}` ? 'Envoi…' : '📁 Galerie'}
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-secondary btn-sm"
-                    onClick={() => {
-                      const el = mapCameraFileRefs.current[m.id];
-                      if (el) el.value = '';
-                      el?.click();
-                    }}
-                    disabled={savingKey === `map-image:${m.id}`}
-                  >
-                    {savingKey === `map-image:${m.id}` ? 'Envoi…' : '📸 Appareil photo'}
-                  </button>
-                  <input
-                    ref={(el) => {
-                      mapGalleryFileRefs.current[m.id] = el;
-                    }}
-                    type="file"
-                    accept="image/*"
-                    style={{ display: 'none' }}
-                    onChange={(e) => {
-                      const f = e.target.files?.[0];
-                      e.target.value = '';
-                      uploadMapImage(m.id, f);
-                    }}
-                  />
-                  <input
-                    ref={(el) => {
-                      mapCameraFileRefs.current[m.id] = el;
-                    }}
-                    type="file"
-                    accept="image/*"
-                    capture="environment"
-                    style={{ display: 'none' }}
-                    onChange={(e) => {
-                      const f = e.target.files?.[0];
-                      e.target.value = '';
-                      uploadMapImage(m.id, f);
-                    }}
-                  />
-                </div>
-              </div>
+              ))}
             </div>
-          ))}
-        </div>
-      </div>
-
-      <div
-        className="settings-admin-grid settings-admin-grid--single-on-mobile"
-        style={{ marginTop: 12 }}
-      >
-        <div
-          style={{
-            background: 'white',
-            border: '1px solid #e5e7eb',
-            borderRadius: 12,
-            padding: 12,
-            minWidth: 0,
-          }}
-        >
-          <h3 style={{ marginTop: 0 }}>Actions système</h3>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <button className="btn btn-secondary btn-sm" onClick={fetchSystemDiagnostics}>
-              Diagnostic complet
-            </button>
-            <button className="btn btn-secondary btn-sm" onClick={fetchLogs}>
-              Charger logs
-            </button>
-            <button className="btn btn-secondary btn-sm" onClick={fetchOauthDebug}>
-              Diagnostic OAuth
-            </button>
-            <button
-              type="button"
-              className="btn btn-secondary btn-sm"
-              onClick={fetchSpeciesAutofillProvidersTest}
-              disabled={savingKey === 'species-autofill-test'}
-            >
-              {savingKey === 'species-autofill-test'
-                ? 'Test…'
-                : 'Test connectivité (Pl@ntNet / OpenAI)'}
-            </button>
-            <button
-              className="btn btn-danger btn-sm"
-              onClick={triggerRestart}
-              disabled={savingKey === 'restart'}
-            >
-              {savingKey === 'restart' ? '...' : 'Redémarrer'}
-            </button>
           </div>
-          <p style={{ margin: '8px 0 0', fontSize: '.78rem', color: '#6b7280' }}>
-            Vérifie les clés <code>PLANTNET_API_KEY</code> et <code>OPENAI_API_KEY</code> définies
-            sur le serveur (variables d’environnement). Aucune clé n’est affichée ni enregistrée
-            ici.
-          </p>
-        </div>
-      </div>
 
-      {(logs.length > 0 || oauthDebug || speciesAutofillTest || systemDiagnostics) && (
-        <div
-          style={{
-            background: 'white',
-            border: '1px solid #e5e7eb',
-            borderRadius: 12,
-            padding: 12,
-            marginTop: 12,
-          }}
-        >
-          <h3 style={{ marginTop: 0 }}>Diagnostics</h3>
-          {systemDiagnostics && (
-            <pre
+          <div
+            className="settings-admin-grid settings-admin-grid--single-on-mobile"
+            style={{ marginTop: 12 }}
+          >
+            <div
               style={{
-                whiteSpace: 'pre-wrap',
-                maxHeight: 280,
-                overflow: 'auto',
-                fontSize: '.78rem',
-                background: '#eff6ff',
-                borderRadius: 8,
-                padding: 8,
-                marginBottom: oauthDebug || logs.length > 0 || speciesAutofillTest ? 8 : 0,
+                background: 'white',
+                border: '1px solid #e5e7eb',
+                borderRadius: 12,
+                padding: 12,
+                minWidth: 0,
               }}
             >
-              {JSON.stringify(systemDiagnostics, null, 2)}
-            </pre>
-          )}
-          {speciesAutofillTest && (
-            <pre
+              <h3 style={{ marginTop: 0 }}>Actions système</h3>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <button className="btn btn-secondary btn-sm" onClick={fetchSystemDiagnostics}>
+                  Diagnostic complet
+                </button>
+                <button className="btn btn-secondary btn-sm" onClick={fetchLogs}>
+                  Charger logs
+                </button>
+                <button className="btn btn-secondary btn-sm" onClick={fetchOauthDebug}>
+                  Diagnostic OAuth
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={fetchSpeciesAutofillProvidersTest}
+                  disabled={savingKey === 'species-autofill-test'}
+                >
+                  {savingKey === 'species-autofill-test'
+                    ? 'Test…'
+                    : 'Test connectivité (Pl@ntNet / OpenAI)'}
+                </button>
+                <button
+                  className="btn btn-danger btn-sm"
+                  onClick={triggerRestart}
+                  disabled={savingKey === 'restart'}
+                >
+                  {savingKey === 'restart' ? '...' : 'Redémarrer'}
+                </button>
+              </div>
+              <p style={{ margin: '8px 0 0', fontSize: '.78rem', color: '#6b7280' }}>
+                Vérifie les clés <code>PLANTNET_API_KEY</code> et <code>OPENAI_API_KEY</code>{' '}
+                définies sur le serveur (variables d’environnement). Aucune clé n’est affichée ni
+                enregistrée ici.
+              </p>
+            </div>
+          </div>
+
+          {(logs.length > 0 || oauthDebug || speciesAutofillTest || systemDiagnostics) && (
+            <div
               style={{
-                whiteSpace: 'pre-wrap',
-                maxHeight: 280,
-                overflow: 'auto',
-                fontSize: '.78rem',
-                background: '#f0fdf4',
-                borderRadius: 8,
-                padding: 8,
-                marginBottom: oauthDebug || logs.length > 0 ? 8 : 0,
+                background: 'white',
+                border: '1px solid #e5e7eb',
+                borderRadius: 12,
+                padding: 12,
+                marginTop: 12,
               }}
             >
-              {JSON.stringify(speciesAutofillTest, null, 2)}
-            </pre>
+              <h3 style={{ marginTop: 0 }}>Diagnostics</h3>
+              {systemDiagnostics && (
+                <pre
+                  style={{
+                    whiteSpace: 'pre-wrap',
+                    maxHeight: 280,
+                    overflow: 'auto',
+                    fontSize: '.78rem',
+                    background: '#eff6ff',
+                    borderRadius: 8,
+                    padding: 8,
+                    marginBottom: oauthDebug || logs.length > 0 || speciesAutofillTest ? 8 : 0,
+                  }}
+                >
+                  {JSON.stringify(systemDiagnostics, null, 2)}
+                </pre>
+              )}
+              {speciesAutofillTest && (
+                <pre
+                  style={{
+                    whiteSpace: 'pre-wrap',
+                    maxHeight: 280,
+                    overflow: 'auto',
+                    fontSize: '.78rem',
+                    background: '#f0fdf4',
+                    borderRadius: 8,
+                    padding: 8,
+                    marginBottom: oauthDebug || logs.length > 0 ? 8 : 0,
+                  }}
+                >
+                  {JSON.stringify(speciesAutofillTest, null, 2)}
+                </pre>
+              )}
+              {oauthDebug && (
+                <pre
+                  style={{
+                    whiteSpace: 'pre-wrap',
+                    maxHeight: 220,
+                    overflow: 'auto',
+                    fontSize: '.78rem',
+                    background: '#f9fafb',
+                    borderRadius: 8,
+                    padding: 8,
+                  }}
+                >
+                  {JSON.stringify(oauthDebug, null, 2)}
+                </pre>
+              )}
+              {logs.length > 0 && (
+                <pre
+                  style={{
+                    whiteSpace: 'pre-wrap',
+                    maxHeight: 260,
+                    overflow: 'auto',
+                    fontSize: '.75rem',
+                    background: '#111827',
+                    color: '#f9fafb',
+                    borderRadius: 8,
+                    padding: 8,
+                  }}
+                >
+                  {logs.join('\n')}
+                </pre>
+              )}
+            </div>
           )}
-          {oauthDebug && (
-            <pre
-              style={{
-                whiteSpace: 'pre-wrap',
-                maxHeight: 220,
-                overflow: 'auto',
-                fontSize: '.78rem',
-                background: '#f9fafb',
-                borderRadius: 8,
-                padding: 8,
-              }}
-            >
-              {JSON.stringify(oauthDebug, null, 2)}
-            </pre>
-          )}
-          {logs.length > 0 && (
-            <pre
-              style={{
-                whiteSpace: 'pre-wrap',
-                maxHeight: 260,
-                overflow: 'auto',
-                fontSize: '.75rem',
-                background: '#111827',
-                color: '#f9fafb',
-                borderRadius: 8,
-                padding: 8,
-              }}
-            >
-              {logs.join('\n')}
-            </pre>
-          )}
-        </div>
-      )}
         </>
       )}
     </div>

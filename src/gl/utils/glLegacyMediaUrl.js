@@ -59,9 +59,14 @@ export function normalizeLegacyMediaBasename(basename) {
 }
 
 function keySetFromKnown(knownKeys) {
-  if (Array.isArray(knownKeys)) return new Set(knownKeys.map((k) => String(k || '').trim()).filter(Boolean));
+  if (Array.isArray(knownKeys))
+    return new Set(knownKeys.map((k) => String(k || '').trim()).filter(Boolean));
   if (knownKeys && typeof knownKeys === 'object') {
-    return new Set(Object.keys(knownKeys).map((k) => String(k || '').trim()).filter(Boolean));
+    return new Set(
+      Object.keys(knownKeys)
+        .map((k) => String(k || '').trim())
+        .filter(Boolean),
+    );
   }
   return new Set();
 }
@@ -152,8 +157,7 @@ export function resolveGlBoardImageUrl({
   fallbackUrl = '/maps/map-foret.svg',
 }) {
   const legacyMap = mapImageUrl && isLegacyGlMediaUrl(mapImageUrl);
-  const board =
-    conventionBoard && conventionBoard !== placeholderUrl ? conventionBoard : null;
+  const board = conventionBoard && conventionBoard !== placeholderUrl ? conventionBoard : null;
   const chapterCover = conventionChapter || null;
 
   if (legacyMap && board) return board;

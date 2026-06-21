@@ -33,7 +33,9 @@ describe('resolveFeuilletExplicitMediaUrl', () => {
 
   test('retourne null pour une clé non résolue (placeholder)', () => {
     vi.mocked(img).mockReturnValue('/placeholder.svg');
-    expect(resolveFeuilletExplicitMediaUrl('recit_feuillet-action_inconnue_scene', true)).toBeNull();
+    expect(
+      resolveFeuilletExplicitMediaUrl('recit_feuillet-action_inconnue_scene', true),
+    ).toBeNull();
   });
 });
 
@@ -47,11 +49,7 @@ describe('resolveFeuilletImageUrl', () => {
   test('privilégie la convention médiathèque sur imageUrl explicite', () => {
     vi.mocked(feuilletIllustration).mockReturnValue('/uploads/media-library/image/convention.png');
     expect(
-      resolveFeuilletImageUrl(
-        'ep-V-03',
-        '/uploads/media-library/image/explicite.png',
-        true,
-      ),
+      resolveFeuilletImageUrl('ep-V-03', '/uploads/media-library/image/explicite.png', true),
     ).toBe('/uploads/media-library/image/convention.png');
   });
 

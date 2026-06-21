@@ -212,12 +212,7 @@ export function GLPlayerJournalView({ gameState }) {
         </div>
       </header>
 
-      <GLHelpPanel
-        helpKey="tab:my-journal"
-        title={helpTitle}
-        body={helpBody}
-        defaultOpen={false}
-      />
+      <GLHelpPanel helpKey="tab:my-journal" title={helpTitle} body={helpBody} defaultOpen={false} />
 
       <div className="gl-player-journal__quotas" aria-live="polite">
         <span

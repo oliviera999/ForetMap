@@ -43,7 +43,9 @@ describe('GLRichTextEditor', () => {
   it('affiche les images markdown avec un cadre wrap au chargement', () => {
     render(
       <GLRichTextEditor
-        value={'Texte\n\n<img src="/uploads/test.jpg" alt="Photo" class="gl-content-image" data-gl-frame=\'{"aspectRatio":"16/9"}\' loading="lazy" />'}
+        value={
+          'Texte\n\n<img src="/uploads/test.jpg" alt="Photo" class="gl-content-image" data-gl-frame=\'{"aspectRatio":"16/9"}\' loading="lazy" />'
+        }
         onChange={vi.fn()}
       />,
     );
