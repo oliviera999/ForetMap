@@ -6,6 +6,7 @@ const assert = require('node:assert');
 const request = require('supertest');
 const { initSchema, execute, queryOne } = require('../database');
 const { app } = require('../server');
+const { ensureAdminTeacherAuthToken } = require('./helpers/adminAuth');
 
 const stamp = Date.now();
 let plantFromId = 0;
@@ -105,4 +106,72 @@ test('GET /api/food-web?zoneId= — filtre par zone avec junction', async () => 
 
   const zone = await queryOne('SELECT id FROM zones WHERE id = ?', [zoneId]);
   assert.ok(zone);
+});
+
+test('GET /api/food-web/interaction-types — catalogue public', async () => {
+  const res = await request(app).get('/api/food-web/interaction-types').expect(200);
+  assert.ok(Array.isArray(res.body.types));
+  assert.ok(res.body.types.includes('pollinisation'));
+  assert.ok(res.body.types.includes('symbiose'));
+});
+
+test('POST /api/food-web/interactions — refus sans authentification', async () => {
+  await request(app)
+    .post('/api/food-web/interactions')
+    .send({ from_id: plantFromId, to_id: plantToId, interaction_type: 'symbiose' })
+    .expect((res) => {
+      assert.ok([401, 403].includes(res.status), `statut inattendu: ${res.status}`);
+    });
+});
+
+test('CRUD /api/food-web/interactions — créer, doublon, modifier, supprimer', async () => {
+  const token = await ensureAdminTeacherAuthToken();
+  const auth = `Bearer ${token}`;
+
+  // Création
+  const created = await request(app)
+    .post('/api/food-web/interactions')
+    .set('Authorization', auth)
+    .send({
+      from_id: plantToId,
+      to_id: plantFromId,
+      interaction_type: 'symbiose',
+      description: 'Test sym',
+    })
+    .expect(201);
+  const newId = Number(created.body.interaction.id);
+  assert.ok(newId > 0);
+  assert.strictEqual(created.body.interaction.interaction_type, 'symbiose');
+  assert.strictEqual(Number(created.body.interaction.from_id), plantToId);
+
+  // Doublon → 409
+  await request(app)
+    .post('/api/food-web/interactions')
+    .set('Authorization', auth)
+    .send({ from_id: plantToId, to_id: plantFromId, interaction_type: 'symbiose' })
+    .expect(409);
+
+  // Type invalide → 400
+  await request(app)
+    .post('/api/food-web/interactions')
+    .set('Authorization', auth)
+    .send({ from_id: plantToId, to_id: plantFromId, interaction_type: 'bidon' })
+    .expect(400);
+
+  // Modification
+  const updated = await request(app)
+    .put(`/api/food-web/interactions/${newId}`)
+    .set('Authorization', auth)
+    .send({ from_id: plantToId, to_id: plantFromId, interaction_type: 'competition' })
+    .expect(200);
+  assert.strictEqual(updated.body.interaction.interaction_type, 'competition');
+
+  // Suppression
+  await request(app)
+    .delete(`/api/food-web/interactions/${newId}`)
+    .set('Authorization', auth)
+    .expect(200);
+
+  const gone = await queryOne('SELECT id FROM species_interactions WHERE id = ?', [newId]);
+  assert.ok(!gone, 'interaction supprimée');
 });

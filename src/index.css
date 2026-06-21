@@ -6102,6 +6102,23 @@
   display: grid;
   gap: 10px;
 }
+.pedago-foodweb__admin {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.pedago-foodweb__admin-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+  align-items: end;
+}
+.pedago-foodweb__admin-desc {
+  grid-column: 1 / -1;
+}
+.pedago-foodweb__delete {
+  margin-left: auto;
+}
 .pedago-foodweb__edge-line {
   display: flex;
   flex-wrap: wrap;
