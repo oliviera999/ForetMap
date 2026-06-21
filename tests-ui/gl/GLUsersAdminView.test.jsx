@@ -40,6 +40,21 @@ describe('GLUsersAdminView', () => {
     expect(screen.getAllByText('Joueurs').length).toBeGreaterThan(0);
   });
 
+  test('notifie le parent (onClassesChange) avec la liste des classes rechargée', async () => {
+    const onClassesChange = vi.fn();
+    apiGlMock
+      .mockResolvedValueOnce([{ id: 1, name: '6e A', players_count: 1, is_active: 1 }])
+      .mockResolvedValueOnce([{ id: 10, pseudo: 'team_a', class_id: 1, is_active: 1 }]);
+
+    render(<GLUsersAdminView onClassesChange={onClassesChange} />);
+
+    await waitFor(() => {
+      expect(onClassesChange).toHaveBeenCalledWith([
+        { id: 1, name: '6e A', players_count: 1, is_active: 1 },
+      ]);
+    });
+  });
+
   test('filtre les joueurs par classe', async () => {
     apiGlMock
       .mockResolvedValueOnce([{ id: 1, name: '6e A', players_count: 1, is_active: 1 }])

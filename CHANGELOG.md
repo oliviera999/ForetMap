@@ -7,6 +7,11 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### GL — sélection des classes pour la création de partie
+
+- **fix(gl)** : une classe créée (ou (ré)activée) dans « Gestion utilisateurs » apparaît désormais immédiatement dans le sélecteur de classe de la console MJ, sans rechargement de page. `GLUsersAdminView` notifie `AppGL` (`onClassesChange`) qui resynchronise la liste partagée `classes`.
+- **Tests** : `GLUsersAdminView` — appel de `onClassesChange` avec la liste rechargée.
+
 ### Qualité — CI vert (lint + format)
 
 - **Correctif** : `src/gl/components/GLProfileEditor.jsx` — `useMemo` et `useDebouncedAutoSave` appelés après un `return` conditionnel (`react-hooks/rules-of-hooks`) ; garde `!profile` déplacée après tous les Hooks (comportement inchangé).
