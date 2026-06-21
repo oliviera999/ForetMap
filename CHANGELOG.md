@@ -40,6 +40,16 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **fix(gl)** : `gl-admin-grid-2` (formulaires console MJ) en `minmax(min(170px, 100%), 1fr)` → la colonne se réduit au lieu de déborder sur écran étroit.
 - **fix(gl)** : nom de joueur du roster (`gl-map-roster-player__name`) avec `min-width:0` + `overflow-wrap:anywhere` → un nom long ne pousse plus la vitalité hors écran.
 
+### GL — création d’équipes (partiellement) aléatoire
+
+- **feat(gl)** : répartition aléatoire **équilibrée** des effectifs d’une partie via `POST /api/gl/games/:id/roster/auto-assign`.
+  - Mode `fill` (défaut) : seuls les joueurs non assignés sont répartis, les équipes déjà constituées sont conservées → mode « partiellement aléatoire ».
+  - Mode `reset` : tous les joueurs actifs de la classe sont redistribués.
+  - Paramètre `teamIds` optionnel pour restreindre les équipes cibles ; équilibrage des effectifs (écart ≤ 1).
+- **Console MJ** : boutons « Compléter aléatoirement (N) » et « Tout redistribuer » dans le panneau Effectifs (`GLGameRosterPanel`).
+- **Backend** : helpers purs `computeBalancedAssignments` / `shuffleInPlace` et `autoAssignRosterTx` dans `lib/glRoster.js`.
+- **Tests** : `tests/gl-roster-balance.test.js` (unitaires purs) et flux route dans `tests/gl-games-roster.test.js` ; doc `docs/API.md`.
+
 ### GL — déplacement au dé (repères numérotés)
 
 - **fix(gl)** : la mascotte traverse chaque repère intermédiaire dans l’ordre (plus de saut direct) ; ancrage centré sur le repère à chaque étape (`snapCenter`, coordonnées exactes sans clamp viewport).
