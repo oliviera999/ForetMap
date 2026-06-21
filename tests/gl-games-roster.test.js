@@ -165,6 +165,88 @@ test('roster assign/unassign met à jour les affectations', async () => {
   assert.equal(playerUnassigned?.teamId, null);
 });
 
+test('roster auto-assign répartit les joueurs non assignés (mode fill)', async () => {
+  // Crée plusieurs joueurs supplémentaires dans la classe de la partie.
+  const game = await queryOne('SELECT class_id FROM gl_games WHERE id = ? LIMIT 1', [gameId]);
+  const extraPlayerIds = [];
+  for (let i = 0; i < 6; i += 1) {
+    const created = await request(app)
+      .post('/api/gl/admin/players')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        classId: game.class_id,
+        firstName: `Auto${i}`,
+        lastName: `Joueur${i}`,
+        pseudo: `auto-roster-${stamp}-${i}`,
+        password: '1234',
+      })
+      .expect(201);
+    extraPlayerIds.push(Number(created.body?.id));
+  }
+
+  // Pré-assigne un joueur à l'équipe A → doit rester en équipe A après fill.
+  await request(app)
+    .post(`/api/gl/games/${gameId}/roster/assign`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ playerId: extraPlayerIds[0], teamId: teamAId })
+    .expect(200);
+
+  const res = await request(app)
+    .post(`/api/gl/games/${gameId}/roster/auto-assign`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ mode: 'fill' })
+    .expect(200);
+  assert.equal(res.body?.ok, true);
+  assert.ok(res.body?.assignedCount >= 1);
+
+  const roster = await request(app)
+    .get(`/api/gl/games/${gameId}/roster`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .expect(200);
+
+  // Le joueur pré-assigné est conservé en équipe A.
+  const preAssigned = roster.body.find((row) => Number(row.id) === extraPlayerIds[0]);
+  assert.equal(Number(preAssigned?.teamId), teamAId);
+
+  // Plus aucun joueur non assigné.
+  const stillUnassigned = roster.body.filter((row) => row.teamId == null);
+  assert.equal(stillUnassigned.length, 0);
+
+  // Effectifs équilibrés entre les deux équipes (écart ≤ 1).
+  const countA = roster.body.filter((row) => Number(row.teamId) === teamAId).length;
+  const countB = roster.body.filter((row) => Number(row.teamId) === teamBId).length;
+  assert.ok(Math.abs(countA - countB) <= 1, `écart d'effectifs trop grand: ${countA} vs ${countB}`);
+
+  // Nettoyage : on retire tous les joueurs des équipes pour les tests suivants.
+  for (const row of roster.body) {
+    if (row.teamId != null) {
+      await request(app)
+        .post(`/api/gl/games/${gameId}/roster/unassign`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ playerId: Number(row.id) })
+        .expect(200);
+    }
+  }
+});
+
+test('roster auto-assign refuse 409 si aucune équipe', async () => {
+  // Crée une partie sans équipe puis tente la répartition.
+  const game = await queryOne('SELECT class_id, chapter_id FROM gl_games WHERE id = ? LIMIT 1', [
+    gameId,
+  ]);
+  const emptyGameRes = await request(app)
+    .post('/api/gl/games')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ classId: game.class_id, chapterId: game.chapter_id, name: `Partie vide ${stamp}` })
+    .expect(201);
+  const emptyGameId = Number(emptyGameRes.body?.game?.id);
+  await request(app)
+    .post(`/api/gl/games/${emptyGameId}/roster/auto-assign`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ mode: 'fill' })
+    .expect(409);
+});
+
 test('DELETE /api/gl/games/:id/teams/:teamId refuse si équipe non vide', async () => {
   await request(app)
     .post(`/api/gl/games/${gameId}/roster/assign`)
