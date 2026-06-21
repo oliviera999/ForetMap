@@ -39,14 +39,6 @@ export function GLProfileEditor({ auth, profile, config, onSessionUpdated, onRel
     return 'Joueur';
   }, [auth]);
 
-  if (!profile) {
-    return (
-      <section className="gl-panel">
-        <p className="gl-hint">Chargement du profil...</p>
-      </section>
-    );
-  }
-
   async function saveProfile() {
     setBusy(true);
     setError('');
@@ -107,6 +99,14 @@ export function GLProfileEditor({ auth, profile, config, onSessionUpdated, onRel
     enabled: Boolean(String(currentPassword || '').trim()),
     onSave: saveProfile,
   });
+
+  if (!profile) {
+    return (
+      <section className="gl-panel">
+        <p className="gl-hint">Chargement du profil...</p>
+      </section>
+    );
+  }
 
   return (
     <div className="gl-profile-layout">
