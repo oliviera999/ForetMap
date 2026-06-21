@@ -108,7 +108,10 @@ export function formToPayload(form) {
   };
 }
 
-export function filterQcmItems(items, { filterBiome = '', filterCategorie = '', filterQ = '' } = {}) {
+export function filterQcmItems(
+  items,
+  { filterBiome = '', filterCategorie = '', filterQ = '' } = {},
+) {
   const q = filterQ.trim().toLowerCase();
   return (Array.isArray(items) ? items : []).filter((item) => {
     if (filterBiome && item.biome_slug !== filterBiome) return false;

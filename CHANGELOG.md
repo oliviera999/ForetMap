@@ -7,6 +7,12 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Qualité — CI vert (lint + format)
+
+- **Correctif** : `src/gl/components/GLProfileEditor.jsx` — `useMemo` et `useDebouncedAutoSave` appelés après un `return` conditionnel (`react-hooks/rules-of-hooks`) ; garde `!profile` déplacée après tous les Hooks (comportement inchangé).
+- **Config** : `eslint.config.cjs` — ajout de `tests/auto-save.test.js` à l'override `sourceType: 'module'` (corrige le `Parsing error`).
+- **Format** : `prettier --write .` sur les fichiers non formatés introduits par les lots récents (étape CI `format:check`).
+
 ### GL — déplacement au dé (repères numérotés)
 
 - **fix(gl)** : la mascotte traverse chaque repère intermédiaire dans l’ordre (plus de saut direct) ; ancrage centré sur le repère à chaque étape (`snapCenter`, coordonnées exactes sans clamp viewport).

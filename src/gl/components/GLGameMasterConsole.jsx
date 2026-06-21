@@ -178,10 +178,7 @@ export function GLGameMasterConsole({
     }
   }, [game?.id, editGameForm, gameStatus, onGameStateChange]);
 
-  const {
-    status: gameSaveStatus,
-    error: gameSaveError,
-  } = useDebouncedAutoSave({
+  const { status: gameSaveStatus, error: gameSaveError } = useDebouncedAutoSave({
     value: editGameForm,
     resetKey: game?.id,
     enabled: Boolean(game?.id),
@@ -220,10 +217,7 @@ export function GLGameMasterConsole({
     }
   }, [game?.id, editingTeamId, teamForm, onReloadGame, defaultMascotByType]);
 
-  const {
-    status: teamSaveStatus,
-    error: teamSaveError,
-  } = useDebouncedAutoSave({
+  const { status: teamSaveStatus, error: teamSaveError } = useDebouncedAutoSave({
     value: teamForm,
     resetKey: editingTeamId ?? 'new-team',
     enabled: Boolean(game?.id) && String(teamForm.name || '').trim().length > 0,
