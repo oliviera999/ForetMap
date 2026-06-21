@@ -96,16 +96,8 @@ export function GLQcmPopover({
     }
   }
 
-  if (!open || typeof document === 'undefined') return null;
-
-  const displayError = externalError || error;
+  // Les Hooks doivent précéder tout return conditionnel (react-hooks/rules-of-hooks).
   const displayResult = answerResult ?? result;
-  const showAnswer = shouldShowQcmAnswerPhase(displayResult);
-  const showChoices = !loading && !showAnswer && presentation;
-  const resolvedQcmSet =
-    qcmSet || presentation?.qcmSet || (isLoreQcmCode(questionCode) ? 'lore' : 'biome');
-  const isLore = resolvedQcmSet === 'lore';
-  const InlineText = isLore ? GLLoreGlossaryInlineText : GLGlossaryInlineText;
   const mergedGlossaryItems = useMemo(
     () =>
       mergeGlossaryLinkItems(glossaryLinkItems, [
@@ -122,6 +114,16 @@ export function GLQcmPopover({
       ]),
     [loreGlossaryLinkItems, presentation?.loreGlossaryTerms, displayResult?.loreGlossaryTerms],
   );
+
+  if (!open || typeof document === 'undefined') return null;
+
+  const displayError = externalError || error;
+  const showAnswer = shouldShowQcmAnswerPhase(displayResult);
+  const showChoices = !loading && !showAnswer && presentation;
+  const resolvedQcmSet =
+    qcmSet || presentation?.qcmSet || (isLoreQcmCode(questionCode) ? 'lore' : 'biome');
+  const isLore = resolvedQcmSet === 'lore';
+  const InlineText = isLore ? GLLoreGlossaryInlineText : GLGlossaryInlineText;
   const inlineGlossaryProps = isLore
     ? { loreGlossaryItems: mergedLoreGlossaryItems, onOpenLoreTerm: onOpenLoreTerm }
     : { glossaryItems: mergedGlossaryItems, onOpenGlossaryTerm: onOpenGlossaryTerm };

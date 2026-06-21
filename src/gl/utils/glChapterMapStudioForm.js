@@ -10,10 +10,7 @@ import {
   appearanceFormFromMarker,
   appearanceToPayload,
 } from '../components/GLMarkerAppearanceEditor.jsx';
-import {
-  duplicateMapLabel,
-  offsetPctCoordinate,
-} from './glMapDuplicate.js';
+import { duplicateMapLabel, offsetPctCoordinate } from './glMapDuplicate.js';
 
 /** Formulaire de repère vide (valeurs par défaut). */
 export const EMPTY_MARKER_FORM = {

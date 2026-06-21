@@ -27,10 +27,7 @@ export function GLAppBanners({
       {error ? <div className="gl-error-banner">{error}</div> : null}
 
       {isGuestMode ? (
-        <div
-          className="role-preview-banner role-preview-banner--guest fade-in"
-          role="status"
-        >
+        <div className="role-preview-banner role-preview-banner--guest fade-in" role="status">
           <span className="role-preview-banner__icon" aria-hidden>
             🧭
           </span>

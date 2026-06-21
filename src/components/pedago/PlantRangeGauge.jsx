@@ -4,15 +4,7 @@ import React from 'react';
  * Jauge visuelle min–max (pH, température °C, etc.).
  * @param {{ label: string, unit?: string, min: number, max: number, domainMin?: number, domainMax?: number, icon?: string }} props
  */
-export function PlantRangeGauge({
-  label,
-  unit = '',
-  min,
-  max,
-  domainMin,
-  domainMax,
-  icon = '',
-}) {
+export function PlantRangeGauge({ label, unit = '', min, max, domainMin, domainMax, icon = '' }) {
   const lo = Number(min);
   const hi = Number(max);
   if (!Number.isFinite(lo) || !Number.isFinite(hi)) return null;

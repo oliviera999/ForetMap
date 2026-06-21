@@ -75,7 +75,11 @@ export function GLBoardMarkers({
         }}
         onPointerDown={(event) => onMarkerPointerDown?.(event, marker)}
       >
-        <MarkerVisual appearance={appearance} label={marker.label} resolveIconUrl={resolveIconUrl} />
+        <MarkerVisual
+          appearance={appearance}
+          label={marker.label}
+          resolveIconUrl={resolveIconUrl}
+        />
       </button>
     );
   });

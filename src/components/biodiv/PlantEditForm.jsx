@@ -215,7 +215,13 @@ function PlantEditForm({
         <div className="field">
           <label>Comestible</label>
           <select
-            value={form.is_edible === 1 || form.is_edible === '1' ? '1' : form.is_edible === 0 || form.is_edible === '0' ? '0' : ''}
+            value={
+              form.is_edible === 1 || form.is_edible === '1'
+                ? '1'
+                : form.is_edible === 0 || form.is_edible === '0'
+                  ? '0'
+                  : ''
+            }
             onChange={set('is_edible')}
           >
             <option value="">—</option>
@@ -255,19 +261,11 @@ function PlantEditForm({
         </div>
         <div className="field">
           <label>Température min (°C)</label>
-          <input
-            value={form.temp_min_c}
-            onChange={set('temp_min_c')}
-            placeholder="Ex: 10"
-          />
+          <input value={form.temp_min_c} onChange={set('temp_min_c')} placeholder="Ex: 10" />
         </div>
         <div className="field">
           <label>Température max (°C)</label>
-          <input
-            value={form.temp_max_c}
-            onChange={set('temp_max_c')}
-            placeholder="Ex: 25"
-          />
+          <input value={form.temp_max_c} onChange={set('temp_max_c')} placeholder="Ex: 25" />
         </div>
         <div className="field">
           <label>pH min</label>
@@ -295,15 +293,27 @@ function PlantEditForm({
         </div>
         <div className="field">
           <label>Règne (taxon)</label>
-          <input value={form.taxon_kingdom} onChange={set('taxon_kingdom')} placeholder="Animal, Végétal..." />
+          <input
+            value={form.taxon_kingdom}
+            onChange={set('taxon_kingdom')}
+            placeholder="Animal, Végétal..."
+          />
         </div>
         <div className="field">
           <label>Grand groupe</label>
-          <input value={form.taxon_group} onChange={set('taxon_group')} placeholder="Angiosperme..." />
+          <input
+            value={form.taxon_group}
+            onChange={set('taxon_group')}
+            placeholder="Angiosperme..."
+          />
         </div>
         <div className="field">
           <label>Famille</label>
-          <input value={form.taxon_family} onChange={set('taxon_family')} placeholder="Famille..." />
+          <input
+            value={form.taxon_family}
+            onChange={set('taxon_family')}
+            placeholder="Famille..."
+          />
         </div>
         <div className="field">
           <label>Genre</label>
@@ -311,7 +321,11 @@ function PlantEditForm({
         </div>
         <div className="field">
           <label>Clé GBIF</label>
-          <input value={form.gbif_key} onChange={set('gbif_key')} placeholder="Identifiant numérique" />
+          <input
+            value={form.gbif_key}
+            onChange={set('gbif_key')}
+            placeholder="Identifiant numérique"
+          />
         </div>
       </div>
       <div className="field">

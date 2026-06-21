@@ -112,13 +112,17 @@ export function formToPayload(form) {
  * @param {{ filterTheme?: string, filterCategorie?: string, filterQ?: string }} filters
  * @returns {Array}
  */
-export function filterQuizItems(items, { filterTheme = '', filterCategorie = '', filterQ = '' } = {}) {
+export function filterQuizItems(
+  items,
+  { filterTheme = '', filterCategorie = '', filterQ = '' } = {},
+) {
   const q = filterQ.trim().toLowerCase();
   return (Array.isArray(items) ? items : []).filter((item) => {
     if (filterTheme && item.theme !== filterTheme) return false;
     if (filterCategorie && item.categorie_slug !== filterCategorie) return false;
     if (!q) return true;
-    const hay = `${item.question_code} ${item.question} ${item.categorie_slug} ${item.tags || ''}`.toLowerCase();
+    const hay =
+      `${item.question_code} ${item.question} ${item.categorie_slug} ${item.tags || ''}`.toLowerCase();
     return hay.includes(q);
   });
 }

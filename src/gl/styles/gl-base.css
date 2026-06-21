@@ -115,6 +115,5 @@ textarea {
   --font-emoji-stack:
     'ForetMapColorEmoji', 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
   --font-sans-with-emoji:
-    'Caudex', 'ForetMapColorEmoji', 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji',
-    serif;
+    'Caudex', 'ForetMapColorEmoji', 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', serif;
 }

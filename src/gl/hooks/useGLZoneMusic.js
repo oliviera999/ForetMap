@@ -158,11 +158,7 @@ export function useGLZoneMusic({
       if (!audios || !url) return;
 
       const outgoing =
-        activeSlotRef.current === 'a'
-          ? audios.a
-          : activeSlotRef.current === 'b'
-            ? audios.b
-            : null;
+        activeSlotRef.current === 'a' ? audios.a : activeSlotRef.current === 'b' ? audios.b : null;
       const incomingSlot = activeSlotRef.current === 'a' ? 'b' : 'a';
       const incoming = incomingSlot === 'a' ? audios.a : audios.b;
 

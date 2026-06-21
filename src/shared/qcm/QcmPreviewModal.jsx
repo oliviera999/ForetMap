@@ -45,8 +45,7 @@ export function QcmPreviewModal({
     glossary = 'gl-qcm-modal__glossary',
   } = classNames;
 
-  const resolvedQcmSet =
-    qcmSet || (isLoreQcmCode(previewCode) ? 'lore' : 'biome');
+  const resolvedQcmSet = qcmSet || (isLoreQcmCode(previewCode) ? 'lore' : 'biome');
   const isLore = resolvedQcmSet === 'lore';
   const hasGlossaryUi = Boolean(onOpenGlossaryTerm || onOpenLoreTerm);
   const InlineText = isLore ? GLLoreGlossaryInlineText : GLGlossaryInlineText;
