@@ -1,11 +1,13 @@
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { GLButton } from './ui/GLButton.jsx';
 import { GLDiceCube } from './GLDiceCube.jsx';
+import { computeGlDicePopoverPosition } from '../utils/glDicePopoverPosition.js';
 import { formatDiceBreakdown, MAX_DICE_COUNT } from '../utils/glVirtualDice.js';
 
 export function GLVirtualDicePopover({
   open,
   anchorRef,
+  avoidRectRef = null,
   phase,
   diceCount,
   lastRoll,
@@ -22,22 +24,33 @@ export function GLVirtualDicePopover({
   const panelRef = useRef(null);
   const [position, setPosition] = useState({ top: 0, left: 0 });
 
-  useLayoutEffect(() => {
+  const updatePosition = useCallback(() => {
     if (!open || !anchorRef?.current) return;
     const anchor = anchorRef.current.getBoundingClientRect();
     const panel = panelRef.current;
     const panelWidth = panel?.offsetWidth || 300;
     const panelHeight = panel?.offsetHeight || 280;
-    const margin = 8;
-    let left = anchor.left;
-    let top = anchor.top - panelHeight - margin;
-    if (top < margin) {
-      top = anchor.bottom + margin;
-    }
-    left = Math.max(margin, Math.min(left, window.innerWidth - panelWidth - margin));
-    top = Math.max(margin, Math.min(top, window.innerHeight - panelHeight - margin));
-    setPosition({ top, left });
-  }, [open, anchorRef, phase, diceCount, lastRoll]);
+    const avoidRect = avoidRectRef?.current?.getBoundingClientRect?.() || null;
+    const next = computeGlDicePopoverPosition({
+      anchorRect: anchor,
+      panelWidth,
+      panelHeight,
+      avoidRect,
+      viewportWidth: window.innerWidth,
+      viewportHeight: window.innerHeight,
+    });
+    setPosition(next);
+  }, [open, anchorRef, avoidRectRef]);
+
+  useLayoutEffect(() => {
+    updatePosition();
+  }, [updatePosition, phase, diceCount, lastRoll]);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    window.addEventListener('resize', updatePosition);
+    return () => window.removeEventListener('resize', updatePosition);
+  }, [open, updatePosition]);
 
   useEffect(() => {
     if (!open) return undefined;

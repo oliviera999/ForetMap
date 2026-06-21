@@ -11,6 +11,7 @@ export function GLVirtualDiceDock({
   testId = 'gl-virtual-dice-fab',
   showLabel = true,
   onRollResult,
+  boardShellRef = null,
 }) {
   const fabRef = useRef(null);
   const [open, setOpen] = useState(false);
@@ -45,6 +46,7 @@ export function GLVirtualDiceDock({
     <GLVirtualDicePopover
       open={open}
       anchorRef={fabRef}
+      avoidRectRef={boardShellRef}
       phase={dice.phase}
       diceCount={dice.diceCount}
       lastRoll={dice.lastRoll}

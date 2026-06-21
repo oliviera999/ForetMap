@@ -68,6 +68,26 @@ describe('GLBoardMarkers', () => {
     expect(emojiSpan.classList.contains('foretmap-emoji-text-mixed')).toBe(false);
   });
 
+  test('affiche le numéro de parcours quand markerPathNumbers est fourni', () => {
+    const pathNumbers = new Map([
+      [1, 1],
+      [2, 2],
+    ]);
+    render(
+      <GLBoardMarkers
+        markers={[
+          { id: 1, label: 'Départ', x_pct: 10, y_pct: 20, order_index: 0 },
+          { id: 2, label: 'Arrivée', x_pct: 80, y_pct: 70, order_index: 1 },
+        ]}
+        markerPathNumbers={pathNumbers}
+      />,
+    );
+    expect(screen.getByRole('button', { name: 'Repère 1 — Départ' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Repère 2 — Arrivée' })).toBeTruthy();
+    expect(document.querySelectorAll('.gl-board-marker__path-number')).toHaveLength(2);
+    expect(document.querySelector('.gl-board-marker__path-number')?.textContent).toBe('1');
+  });
+
   test('affiche icône en mode icon', () => {
     render(
       <GLBoardMarkers
