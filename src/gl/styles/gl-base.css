@@ -21,7 +21,10 @@ html {
 }
 
 body.gl-body {
-  font-family: 'Caudex', 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', serif;
+  /* 'ForetMapColorEmoji' (Noto Color Emoji auto-hébergé) en dernier recours : emojis garantis sur
+     tout appareil, téléchargé à la demande uniquement si aucune police emoji native n'est présente. */
+  font-family:
+    'Caudex', 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', 'ForetMapColorEmoji', serif;
   min-height: 100vh;
   min-height: 100dvh;
   width: 100%;
@@ -111,7 +114,10 @@ textarea {
 }
 
 :root {
-  --font-sans: 'Caudex', 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', serif;
+  /* 'ForetMapColorEmoji' en fallback universel : tout texte GL (héritant de --font-sans) affiche les
+     emojis quel que soit le périphérique. Chargement à la demande (cmap emoji uniquement). */
+  --font-sans:
+    'Caudex', 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', 'ForetMapColorEmoji', serif;
   --font-emoji-stack:
     'ForetMapColorEmoji', 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
   --font-sans-with-emoji:
