@@ -1281,31 +1281,59 @@ test('Tâche liée à plusieurs zones et repères sur la même carte', async () 
 
 test('Les tâches acceptent des êtres vivants (biodiversité) associés', async () => {
   const token = await getAdminAuthToken();
+  // Contrat junction-only (migration 130) : les êtres vivants doivent référencer des
+  // plantes du catalogue. Test auto-suffisant : on crée nos propres plantes (pas de
+  // dépendance au seed, qui n'est pas garanti dans l'ordre d'exécution de `npm test`).
+  const suffix = Date.now();
+  const lbA = `BiodivTâcheA ${suffix}`;
+  const lbB = `BiodivTâcheB ${suffix}`;
+  const lbC = `BiodivTâcheC ${suffix}`;
+  for (const name of [lbA, lbB, lbC]) {
+    await request(app)
+      .post('/api/plants')
+      .set('Authorization', 'Bearer ' + token)
+      .send({ name })
+      .expect(201);
+  }
   const created = await request(app)
     .post('/api/tasks')
     .set('Authorization', 'Bearer ' + token)
     .send({
-      title: `Tâche biodiv ${Date.now()}`,
+      title: `Tâche biodiv ${suffix}`,
       map_id: 'foret',
       required_students: 1,
-      living_beings: ['Menthe', 'Tomate'],
+      living_beings: [lbA, lbB],
     })
     .expect(201);
   assert.ok(Array.isArray(created.body.living_beings_list));
-  assert.ok(created.body.living_beings_list.includes('Menthe'));
-  assert.ok(created.body.living_beings_list.includes('Tomate'));
+  assert.ok(created.body.living_beings_list.includes(lbA));
+  assert.ok(created.body.living_beings_list.includes(lbB));
   assert.strictEqual(created.body.living_beings, undefined);
 
   const updated = await request(app)
     .put(`/api/tasks/${created.body.id}`)
     .set('Authorization', 'Bearer ' + token)
-    .send({ living_beings: ['Basilic'] })
+    .send({ living_beings: [lbC] })
     .expect(200);
-  assert.deepStrictEqual(updated.body.living_beings_list, ['Basilic']);
+  assert.deepStrictEqual(updated.body.living_beings_list, [lbC]);
 });
 
 test('Zones et repères acceptent plusieurs êtres vivants associés', async () => {
   const token = await getAdminAuthToken();
+  // Test auto-suffisant : plantes de catalogue créées localement (cf. contrat junction-only).
+  const suffix = Date.now();
+  const zoneA = `BiodivZoneA ${suffix}`;
+  const zoneB = `BiodivZoneB ${suffix}`;
+  const zoneC = `BiodivZoneC ${suffix}`;
+  const markA = `BiodivRepèreA ${suffix}`;
+  const markB = `BiodivRepèreB ${suffix}`;
+  for (const name of [zoneA, zoneB, zoneC, markA, markB]) {
+    await request(app)
+      .post('/api/plants')
+      .set('Authorization', 'Bearer ' + token)
+      .send({ name })
+      .expect(201);
+  }
 
   const zoneRes = await request(app)
     .post('/api/zones')
@@ -1318,13 +1346,13 @@ test('Zones et repères acceptent plusieurs êtres vivants associés', async () 
         { xp: 22, yp: 12 },
         { xp: 18, yp: 22 },
       ],
-      current_plant: 'Menthe',
-      living_beings: ['Menthe', 'Tomate', 'Basilic'],
+      current_plant: zoneA,
+      living_beings: [zoneA, zoneB, zoneC],
     })
     .expect(201);
   assert.ok(Array.isArray(zoneRes.body.living_beings_list));
-  assert.ok(zoneRes.body.living_beings_list.includes('Menthe'));
-  assert.ok(zoneRes.body.living_beings_list.includes('Tomate'));
+  assert.ok(zoneRes.body.living_beings_list.includes(zoneA));
+  assert.ok(zoneRes.body.living_beings_list.includes(zoneB));
   assert.strictEqual(String(zoneRes.body.current_plant || '').trim(), '');
 
   const markerRes = await request(app)
@@ -1335,14 +1363,14 @@ test('Zones et repères acceptent plusieurs êtres vivants associés', async () 
       x_pct: 30,
       y_pct: 30,
       label: 'Repère multi-vivants',
-      plant_name: 'Laitue',
-      living_beings: ['Laitue', 'Carotte'],
+      plant_name: markA,
+      living_beings: [markA, markB],
       emoji: '🌱',
     })
     .expect(201);
   assert.ok(Array.isArray(markerRes.body.living_beings_list));
-  assert.ok(markerRes.body.living_beings_list.includes('Laitue'));
-  assert.ok(markerRes.body.living_beings_list.includes('Carotte'));
+  assert.ok(markerRes.body.living_beings_list.includes(markA));
+  assert.ok(markerRes.body.living_beings_list.includes(markB));
   assert.strictEqual(String(markerRes.body.plant_name || '').trim(), '');
 });
 
