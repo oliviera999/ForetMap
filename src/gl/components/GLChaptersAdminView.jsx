@@ -258,16 +258,17 @@ export function GLChaptersAdminView() {
   const plateauNumber = Number(chapterForm.plateauNumber);
   const hasPlateau = Number.isInteger(plateauNumber) && plateauNumber >= 1 && plateauNumber <= 5;
   const resolvedMapImageUrl = useMemo(() => {
-    if (!previewMapImageUrl) return '';
     const conventionBoard = assetsReady && hasPlateau ? plateauBoardImg(plateauNumber) : null;
     const conventionChapter = assetsReady && hasPlateau ? chapterIllustration(plateauNumber) : null;
     return resolveGlBoardImageUrl({
-      mapImageUrl: previewMapImageUrl,
+      mapImageUrl: previewMapImageUrl || null,
       conventionBoard,
       conventionChapter,
       placeholderUrl: GL_ASSET_PLACEHOLDER_URL,
     });
   }, [previewMapImageUrl, assetsReady, hasPlateau, plateauNumber]);
+
+  const showMapPreview = Boolean(previewMapImageUrl || (assetsReady && hasPlateau));
 
   const resolveStoryMarkdown = useMemo(
     () => (markdown) => resolveChapterMarkdown(markdown, { withSceneRefs: true }),
@@ -433,7 +434,7 @@ export function GLChaptersAdminView() {
               removeItem={removeMediaLibrary}
               onPickUrl={(url) => setChapterForm((prev) => ({ ...prev, mapImageUrl: url }))}
             />
-            {resolvedMapImageUrl ? (
+            {showMapPreview && resolvedMapImageUrl ? (
               <div className="gl-map-url-preview">
                 <p className="gl-hint">
                   Aperçu de la carte
