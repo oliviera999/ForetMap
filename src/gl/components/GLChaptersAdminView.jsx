@@ -171,13 +171,7 @@ export function GLChaptersAdminView() {
     }
     await loadChapters();
     return chapterForm;
-  }, [
-    chapterForm,
-    selectedId,
-    pendingMapImageFile,
-    loadChapters,
-    uploadChapterMapImage,
-  ]);
+  }, [chapterForm, selectedId, pendingMapImageFile, loadChapters, uploadChapterMapImage]);
 
   const { status: saveStatus, error: saveError } = useDebouncedAutoSave({
     value: chapterForm,

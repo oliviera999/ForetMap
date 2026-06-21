@@ -86,7 +86,9 @@ describe('GLPlateauMapEditor', () => {
 
   test('affiche les numéros de zones feuillets sur la carte et dans la liste', () => {
     const { container } = renderEditor();
-    const listNumbers = container.querySelectorAll('.gl-plateau-edit-list .gl-markers-list__path-number');
+    const listNumbers = container.querySelectorAll(
+      '.gl-plateau-edit-list .gl-markers-list__path-number',
+    );
     expect(listNumbers).toHaveLength(2);
     expect(listNumbers[0]?.textContent).toBe('1');
     expect(listNumbers[1]?.textContent).toBe('2');

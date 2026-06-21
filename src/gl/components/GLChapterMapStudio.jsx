@@ -149,10 +149,7 @@ export function GLChapterMapStudio({
     [editableMarkers, selectedMarkerId],
   );
 
-  const markersInPathOrder = useMemo(
-    () => sortMarkersByPath(editableMarkers),
-    [editableMarkers],
-  );
+  const markersInPathOrder = useMemo(() => sortMarkersByPath(editableMarkers), [editableMarkers]);
 
   const markerPathNumbers = useMemo(
     () => buildMarkerPathNumberMap(markersInPathOrder, 1),
@@ -515,41 +512,41 @@ export function GLChapterMapStudio({
         {markersInPathOrder.map((marker) => {
           const pathNumber = markerPathNumbers.get(Number(marker.id));
           return (
-          <li
-            key={marker.id}
-            data-marker-id={marker.id}
-            className={Number(marker.id) === Number(selectedMarkerId) ? 'is-selected' : ''}
-          >
-            <button
-              type="button"
-              className="gl-marker-row-btn"
-              disabled={zoneEditActive}
-              onClick={() => selectMarker(marker)}
+            <li
+              key={marker.id}
+              data-marker-id={marker.id}
+              className={Number(marker.id) === Number(selectedMarkerId) ? 'is-selected' : ''}
             >
-              {pathNumber != null ? (
-                <span className="gl-markers-list__path-number" aria-hidden>
-                  {pathNumber}
-                </span>
-              ) : null}
-              <GLChapterMarkerListVisual marker={marker} />
-              <strong>{marker.label}</strong> — x:
-              {Number(marker.x_pct).toFixed(1)}
-              %, y:
-              {Number(marker.y_pct).toFixed(1)}%
-            </button>
-            {!zoneEditActive ? (
-              <GLButton
+              <button
                 type="button"
-                size="sm"
-                variant="secondary"
-                disabled={saving}
-                onClick={() => duplicateMarker(marker)}
-                title="Dupliquer ce repère"
+                className="gl-marker-row-btn"
+                disabled={zoneEditActive}
+                onClick={() => selectMarker(marker)}
               >
-                Dupliquer
-              </GLButton>
-            ) : null}
-          </li>
+                {pathNumber != null ? (
+                  <span className="gl-markers-list__path-number" aria-hidden>
+                    {pathNumber}
+                  </span>
+                ) : null}
+                <GLChapterMarkerListVisual marker={marker} />
+                <strong>{marker.label}</strong> — x:
+                {Number(marker.x_pct).toFixed(1)}
+                %, y:
+                {Number(marker.y_pct).toFixed(1)}%
+              </button>
+              {!zoneEditActive ? (
+                <GLButton
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  disabled={saving}
+                  onClick={() => duplicateMarker(marker)}
+                  title="Dupliquer ce repère"
+                >
+                  Dupliquer
+                </GLButton>
+              ) : null}
+            </li>
           );
         })}
         {editableMarkers.length === 0 ? (
