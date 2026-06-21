@@ -7,6 +7,13 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### CI — résolution automatique des conflits de merge des PR
+
+- **feat(ci)** : nouveau workflow `.github/workflows/auto-resolve-conflicts.yml` (push sur `main` + cron horaire + déclenchement manuel) qui vérifie les PR ouvertes vers `main` et **corrige automatiquement** les conflits récurrents et sûrs — `CHANGELOG.md` (union des entrées) et bumps de version `package.json` / `package-lock.json` (version la plus haute) — puis pousse la résolution. Les conflits de code restants sont signalés (label `merge-conflict` + commentaire listant les fichiers).
+- **Script** : `scripts/auto-resolve-conflicts.js` (fonctions pures de résolution exportées et testées) ; option `AUTO_RESOLVE_DRY_RUN` pour simuler, `AUTO_MERGE_PAT` (secret optionnel) pour relancer la CI après push.
+- **`.gitattributes`** : `CHANGELOG.md merge=union` — réduit les conflits dès les merges locaux.
+- **Tests** : `tests/auto-resolve-conflicts.test.js` (union changelog, semver max, garde-fous version-only).
+
 ### GL — sélection des classes pour la création de partie
 
 - **fix(gl)** : une classe créée (ou (ré)activée) dans « Gestion utilisateurs » apparaît désormais immédiatement dans le sélecteur de classe de la console MJ, sans rechargement de page. `GLUsersAdminView` notifie `AppGL` (`onClassesChange`) qui resynchronise la liste partagée `classes`.
