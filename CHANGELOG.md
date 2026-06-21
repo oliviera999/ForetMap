@@ -28,6 +28,15 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Correctif** : `src/App.jsx` — onglet « foodweb » passait `mapZones={mapZones}` (variable inexistante) ; corrigé en `mapZones={zones}` comme les autres usages de `FoodWebViewLazy`.
 - **Correctif** : `src/gl/components/GLQcmPopover.jsx` — `useMemo` appelés après un `return` conditionnel (violation `react-hooks/rules-of-hooks`) ; hooks remontés avant l'early return (comportement inchangé).
 
+### Outillage IA — CLAUDE.md & skills Claude Code
+
+- **`CLAUDE.md`** : mémoire projet pour Claude Code (vue d'ensemble, architecture, commandes,
+  conventions, pièges critiques, workflow Git) ; synthèse renvoyant à `.cursor/` et `docs/` comme
+  sources de vérité pour éviter la dérive.
+- **`.claude/skills/`** : jeu de 7 skills natifs Claude Code (`foretmap-context`, `foretmap-database`,
+  `foretmap-testing`, `foretmap-gl`, `foretmap-biodiversity`, `foretmap-observability`,
+  `foretmap-release`), adaptés des règles/skills Cursor existants.
+
 ### Studio Packs mascotte — sprites site, export et aperçu
 
 - **API** : `DELETE /api/visit/mascot-assets/public` — suppression des fichiers statiques sous `public/assets/mascots/` (auth `visit.manage` + élévation PIN).
