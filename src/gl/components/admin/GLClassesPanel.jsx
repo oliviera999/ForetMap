@@ -1,7 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import { apiGL } from '../../services/apiGL.js';
-import { AutoSaveStatus } from '../../shared/components/AutoSaveStatus.jsx';
-import { useDebouncedAutoSave } from '../../shared/hooks/useDebouncedAutoSave.js';
+import { AutoSaveStatus } from '../../../shared/components/AutoSaveStatus.jsx';
+import { useDebouncedAutoSave } from '../../../shared/hooks/useDebouncedAutoSave.js';
 import { GLBadge } from '../ui/GLBadge.jsx';
 import { GLButton } from '../ui/GLButton.jsx';
 import { GLDataList } from '../ui/GLDataList.jsx';

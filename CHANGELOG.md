@@ -21,6 +21,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 - **Réglage** : `gameplay.plateau_marker_numbers_visible` ; toggle dans Réglages → Affichage carte plateau ; doc `docs/API.md`.
 - **Partie** : numéros affichés si mode `numbered_path` actif et réglage plateforme activé (`glPlateauMapVisibility`).
+- **fix(gl)** : clé autorisée côté `PUT /api/gl/admin/settings` (`adminRouteHelpers`) pour persister le toggle.
 
 ### GL — panneau édition zones feuillets sous la carte
 

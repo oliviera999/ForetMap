@@ -87,8 +87,10 @@ test('GET /api/gl/gameplay-settings expose les 4 toggles (joueur)', async () => 
   assert.ok(['every_arrival', 'once_per_team', 'once_per_game'].includes(s.zoneContentRetrigger));
   assert.strictEqual(typeof s.plateauMarkersVisible, 'boolean');
   assert.strictEqual(typeof s.plateauZonesVisible, 'boolean');
+  assert.strictEqual(typeof s.plateauMarkerNumbersVisible, 'boolean');
   assert.strictEqual(s.plateauMarkersVisible, true);
   assert.strictEqual(s.plateauZonesVisible, false);
+  assert.strictEqual(s.plateauMarkerNumbersVisible, false);
 });
 
 test('PUT défauts vitalité invalide → 400', async () => {
