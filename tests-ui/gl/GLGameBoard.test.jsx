@@ -41,7 +41,10 @@ vi.mock('../../src/gl/hooks/useGLBoardMascotMotion.js', () => ({
 
 vi.mock('../../src/gl/components/GLBoardMarkers.jsx', () => ({
   GLBoardMarkers: ({ markerPathNumbers }) => (
-    <div data-testid="board-markers" data-has-path-numbers={markerPathNumbers != null ? '1' : '0'} />
+    <div
+      data-testid="board-markers"
+      data-has-path-numbers={markerPathNumbers != null ? '1' : '0'}
+    />
   ),
 }));
 

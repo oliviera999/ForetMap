@@ -150,8 +150,14 @@ describe('GLChapterMapStudio', () => {
     expect(numbers).toHaveLength(2);
     expect(numbers[0]?.textContent).toBe('1');
     expect(numbers[1]?.textContent).toBe('2');
-    expect(screen.getByText('Repère A').closest('button')?.querySelector('.gl-markers-list__path-number')?.textContent).toBe('1');
-    expect(screen.getByText('Repère B').closest('button')?.querySelector('.gl-markers-list__path-number')?.textContent).toBe('2');
+    expect(
+      screen.getByText('Repère A').closest('button')?.querySelector('.gl-markers-list__path-number')
+        ?.textContent,
+    ).toBe('1');
+    expect(
+      screen.getByText('Repère B').closest('button')?.querySelector('.gl-markers-list__path-number')
+        ?.textContent,
+    ).toBe('2');
   });
 
   test('duplique un repère depuis la liste', async () => {

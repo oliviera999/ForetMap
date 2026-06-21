@@ -20,7 +20,7 @@ describe('splitMarkdownByBiomes', () => {
       'Intro commune',
       '## Désert chaud (Sahara)',
       'Milieu aride.',
-      '## Jungle d\'Afrique centrale',
+      "## Jungle d'Afrique centrale",
       'Milieu humide.',
     ].join('\n\n');
     const map = splitMarkdownByBiomes(markdown, biomes);
@@ -49,7 +49,7 @@ describe('buildEcosystemSections', () => {
         { slug: 'jungle_afc', nom: "Jungle d'Afrique centrale" },
       ],
       '## Désert chaud (Sahara)\n\nSec',
-      '## Jungle d\'Afrique centrale\n\nHumide',
+      "## Jungle d'Afrique centrale\n\nHumide",
     );
     expect(sections).toHaveLength(2);
     expect(sections[0].biotopeMarkdown).toMatch(/Sec/);
