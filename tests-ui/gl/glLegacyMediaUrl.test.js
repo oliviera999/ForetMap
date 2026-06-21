@@ -25,6 +25,15 @@ describe('glLegacyMediaUrl', () => {
     expect(url).toBe(custom);
   });
 
+  it('retombe sur le fond convention plateau sans map_image_url', () => {
+    const url = resolveGlBoardImageUrl({
+      mapImageUrl: null,
+      conventionBoard: '/board-resolved.jpg',
+      placeholderUrl: '/ph.svg',
+    });
+    expect(url).toBe('/board-resolved.jpg');
+  });
+
   it('détecte les chemins gl-*', () => {
     expect(isLegacyGlMediaUrl('/uploads/media-library/image/gl-scene-ch1-x.png')).toBe(true);
     expect(isLegacyGlMediaUrl('/uploads/media-library/image/2026/06/x.png')).toBe(false);

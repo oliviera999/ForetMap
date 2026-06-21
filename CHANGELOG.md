@@ -18,7 +18,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ### GL — édition chapitres (images et emojis repères)
 
 - **Markdown admin** : résolution legacy `gl-*` et `scene:N` dans `GLRichTextEditor` (Contenus → Chapitres) — même logique que les pages joueur ; round-trip via `data-gl-md-src`.
-- **Carte chapitre** : aperçu formulaire, studio repères et éditeur de cadre utilisent `resolveGlBoardImageUrl` (URLs legacy remappées).
+- **Carte chapitre** : aperçu formulaire, studio repères et éditeur de cadre utilisent `resolveGlBoardImageUrl` (URLs legacy remappées) ; repli sur le fond convention plateau quand `map_image_url` est vide (migration 133).
 - **Emojis repères** : retrait de `foretmap-emoji-text-mixed` sur carte/liste ; pile `--font-emoji-stack` sur l’input emoji du studio ; couverture police (`🌿`, `⭐`, `🚩`, `❓`).
 - **Tests** : `tests-ui/gl/glMarkdownEditorDisplay.test.js`, extensions `GLRichTextEditor`, `GLBoardMarkers`, `GLChapterMarkerListVisual`.
 
