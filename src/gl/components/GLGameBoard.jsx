@@ -32,8 +32,8 @@ import { GLGameBoardRoster } from './GLGameBoardRoster.jsx';
 import {
   buildMarkerPathNumberMap,
   sortMarkersByPath,
-  targetMarkerAfterDice,
 } from '../utils/glBoardPath.js';
+import { resolveDicePathAdvance } from '../utils/glDicePathAdvance.js';
 
 export function GLGameBoard({
   chapter,
@@ -324,45 +324,35 @@ export function GLGameBoard({
 
   const handleDiceRollResult = useCallback(
     async (roll) => {
-      if (boardMovement?.isNumberedPath && onDiceRollResult) {
-        const teamId = resolveActiveTeamId();
-        if (teamId != null) {
-          const team = (Array.isArray(teams) ? teams : []).find(
-            (item) => Number(item.id) === Number(teamId),
-          );
-          const sortedMarkers = sortMarkersByPath(markers);
-          const target = targetMarkerAfterDice(
-            sortedMarkers,
-            team,
-            roll?.total,
-            boardMovement.startIndex,
-          );
-          if (target?.marker) {
-            const marker = target.marker;
-            moveTeamTo(teamId, Number(marker.x_pct), Number(marker.y_pct), {
-              triggerHappy: true,
-              arrival: 'marker',
-            });
-            if (
-              markerArrivalEnabled &&
-              (isQuestionMarker(marker) || shouldPresentMarkerOnArrival(marker))
-            ) {
-              schedulePresentOnArrival(marker, teamId, { force: true });
-            }
-          }
+      const plan = resolveDicePathAdvance({
+        markers,
+        team: (Array.isArray(teams) ? teams : []).find(
+          (item) => Number(item.id) === Number(resolveActiveTeamId()),
+        ),
+        roll,
+        boardMovement,
+        teamId: resolveActiveTeamId(),
+        markerArrivalEnabled,
+      });
+      if (plan && onDiceRollResult) {
+        moveTeamTo(plan.teamId, Number(plan.marker.x_pct), Number(plan.marker.y_pct), {
+          triggerHappy: true,
+          arrival: 'marker',
+        });
+        if (plan.shouldPresent) {
+          schedulePresentOnArrival(plan.marker, plan.teamId, { force: true });
         }
       }
       await onDiceRollResult?.(roll);
     },
     [
-      boardMovement?.isNumberedPath,
-      boardMovement?.startIndex,
+      markers,
+      teams,
+      boardMovement,
       onDiceRollResult,
       resolveActiveTeamId,
-      teams,
-      markers,
-      moveTeamTo,
       markerArrivalEnabled,
+      moveTeamTo,
       schedulePresentOnArrival,
     ],
   );
