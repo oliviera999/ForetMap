@@ -52,10 +52,7 @@ describe('GLPlateauMapEditor', () => {
     await waitFor(() => {
       expect(handleMapClick).toBeTypeOf('function');
     });
-    const placed = handleMapClick(
-      { x: 30, y: 40 },
-      { target: { closest: () => null } },
-    );
+    const placed = handleMapClick({ x: 30, y: 40 }, { target: { closest: () => null } });
     expect(placed).toBe(true);
     expect(onZonesChange).toHaveBeenCalledTimes(1);
     const nextZones = onZonesChange.mock.calls[0][0];

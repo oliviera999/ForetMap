@@ -447,8 +447,7 @@ router.post(
       packId = targetPackId;
     } else {
       const name = normalizeOptionalString(req.body?.name || parsed.pack?.name) || 'Pack importé';
-      const version =
-        normalizeOptionalString(req.body?.version || parsed.pack?.version) || '1.0';
+      const version = normalizeOptionalString(req.body?.version || parsed.pack?.version) || '1.0';
       const draftPayload = rewriteGlPayloadForServerImport(parsed.pack, new Map());
       const precheck = validateGlMascotPack(draftPayload);
       if (!precheck.success) {
@@ -460,13 +459,7 @@ router.post(
       const result = await execute(
         `INSERT INTO gl_mascot_packs (chapter_id, name, version, payload_json, created_by, created_at, updated_at)
          VALUES (?, ?, ?, ?, ?, NOW(), NOW())`,
-        [
-          chapterId,
-          name,
-          version,
-          JSON.stringify(precheck.data),
-          req.glAuth.userId,
-        ],
+        [chapterId, name, version, JSON.stringify(precheck.data), req.glAuth.userId],
       );
       packId = Number(result?.insertId);
       if (!Number.isFinite(packId) || packId <= 0) {
@@ -488,7 +481,8 @@ router.post(
     }
 
     const name =
-      normalizeOptionalString(req.body?.name || parsed.pack?.name || existing?.name) || 'Pack importé';
+      normalizeOptionalString(req.body?.name || parsed.pack?.name || existing?.name) ||
+      'Pack importé';
     const version =
       normalizeOptionalString(req.body?.version || parsed.pack?.version || existing?.version) ||
       '1.0';
@@ -501,13 +495,7 @@ router.post(
             payload_json = ?,
             updated_at = NOW()
       WHERE id = ?`,
-      [
-        chapterId,
-        name,
-        version,
-        JSON.stringify(validated.data),
-        packId,
-      ],
+      [chapterId, name, version, JSON.stringify(validated.data), packId],
     );
 
     const updated = await queryOne(

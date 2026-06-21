@@ -96,7 +96,9 @@ test('GET /api/food-web?zoneId= — filtre par zone avec junction', async () => 
     plantToId,
   ]);
 
-  const res = await request(app).get(`/api/food-web?zoneId=${encodeURIComponent(zoneId)}`).expect(200);
+  const res = await request(app)
+    .get(`/api/food-web?zoneId=${encodeURIComponent(zoneId)}`)
+    .expect(200);
   assert.strictEqual(res.body.zoneId, zoneId);
   assert.ok(Array.isArray(res.body.items));
   assert.ok(res.body.items.some((row) => Number(row.id) === interactionId));

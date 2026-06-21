@@ -601,17 +601,25 @@ router.get(
     const proposedTaskIds = tasks
       .filter((t) => normalizeTaskStatusForRead(t?.status) === 'proposed')
       .map((t) => t.id);
-    const [zm, mm, tutorialsMap, referentsMap, proposerByTask, assignments, countRows, taskSpeciesMap] =
-      await Promise.all([
-        fetchZonesForTasks(taskIds),
-        fetchMarkersForTasks(taskIds),
-        fetchTutorialsForTasks(taskIds),
-        fetchReferentsForTasks(taskIds),
-        fetchTaskProposerMap(proposedTaskIds),
-        fetchTaskListAssignments(auth, taskIds),
-        fetchTaskAssignmentAggregates(taskIds),
-        loadTaskSpeciesMap(dbSpecies, taskIds),
-      ]);
+    const [
+      zm,
+      mm,
+      tutorialsMap,
+      referentsMap,
+      proposerByTask,
+      assignments,
+      countRows,
+      taskSpeciesMap,
+    ] = await Promise.all([
+      fetchZonesForTasks(taskIds),
+      fetchMarkersForTasks(taskIds),
+      fetchTutorialsForTasks(taskIds),
+      fetchReferentsForTasks(taskIds),
+      fetchTaskProposerMap(proposedTaskIds),
+      fetchTaskListAssignments(auth, taskIds),
+      fetchTaskAssignmentAggregates(taskIds),
+      loadTaskSpeciesMap(dbSpecies, taskIds),
+    ]);
     const assignmentsByTask = new Map();
     for (const a of assignments) {
       if (!assignmentsByTask.has(a.task_id)) assignmentsByTask.set(a.task_id, []);
@@ -925,7 +933,10 @@ router.post(
     await setTaskTutorials(id, tutorialIds);
     await setTaskReferents(id, referentValidation.userIds);
     await syncLegacyLocationColumns(id, zIds, mIds);
-    if (Object.prototype.hasOwnProperty.call(req.body || {}, 'living_beings') || Object.prototype.hasOwnProperty.call(req.body || {}, 'species_ids')) {
+    if (
+      Object.prototype.hasOwnProperty.call(req.body || {}, 'living_beings') ||
+      Object.prototype.hasOwnProperty.call(req.body || {}, 'species_ids')
+    ) {
       await syncTaskSpecies(dbSpecies, id, req.body.species_ids, living_beings);
     }
     if (decodedTaskImage) {
@@ -1219,7 +1230,10 @@ router.put('/:id', async (req, res) => {
     await setTaskMarkers(task.id, nextMarkerIds);
     await setTaskTutorials(task.id, nextTutorialIds);
     await setTaskReferents(task.id, referentValidation.userIds);
-    if (Object.prototype.hasOwnProperty.call(req.body, 'living_beings') || Object.prototype.hasOwnProperty.call(req.body, 'species_ids')) {
+    if (
+      Object.prototype.hasOwnProperty.call(req.body, 'living_beings') ||
+      Object.prototype.hasOwnProperty.call(req.body, 'species_ids')
+    ) {
       await syncTaskSpecies(dbSpecies, task.id, req.body.species_ids, living_beings);
     }
     await syncLegacyLocationColumns(task.id, nextZoneIds, nextMarkerIds);

@@ -12,9 +12,11 @@ const FULLSCREEN_H_FLOOR = 64;
  * En plein écran (portail body), on s’appuie sur les dimensions du conteneur / viewport,
  * pas sur `.main` (absent du portail) — évite un cadre 1×1 et un plan invisible.
  */
-function resolveMapLayoutAvailBox(outer, { embedded, padL, padR, padT, padB, mapFullscreen = false }) {
-  const inFullscreenLayer =
-    mapFullscreen || !!outer?.closest?.(FM_MAP_FULLSCREEN_LAYER_SELECTOR);
+function resolveMapLayoutAvailBox(
+  outer,
+  { embedded, padL, padR, padT, padB, mapFullscreen = false },
+) {
+  const inFullscreenLayer = mapFullscreen || !!outer?.closest?.(FM_MAP_FULLSCREEN_LAYER_SELECTOR);
   const availW = Math.max(1, outer.clientWidth - padL - padR);
 
   if (inFullscreenLayer) {

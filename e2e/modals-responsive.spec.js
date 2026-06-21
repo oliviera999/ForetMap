@@ -55,13 +55,11 @@ async function expectDialogStableAndFitting(dialog, viewportHeight, options = {}
 async function closeDialogSafely(page, dialog) {
   const closeBtn = dialog.locator('.modal-close').first();
   if (await closeBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
-    await closeBtn
-      .click({ force: true, noWaitAfter: true, timeout: 8000 })
-      .catch(() =>
-        closeBtn.evaluate((el) => {
-          el.click();
-        }),
-      );
+    await closeBtn.click({ force: true, noWaitAfter: true, timeout: 8000 }).catch(() =>
+      closeBtn.evaluate((el) => {
+        el.click();
+      }),
+    );
   } else {
     await page.keyboard.press('Escape');
   }
@@ -101,7 +99,10 @@ for (const vp of VIEWPORTS) {
       await expectDialogStableAndFitting(taskModal, vp.height, { allowTallModal: vp.width <= 720 });
       await closeDialogSafely(page, taskModal);
 
-      await page.locator('.teacher-main .top-tabs').getByRole('button', { name: /Carte & Zones/ }).click();
+      await page
+        .locator('.teacher-main .top-tabs')
+        .getByRole('button', { name: /Carte & Zones/ })
+        .click();
       await page
         .waitForResponse(
           (r) => r.url().includes('/api/zones') && r.request().method() === 'GET' && r.ok(),

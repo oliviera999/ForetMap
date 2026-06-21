@@ -22,9 +22,7 @@ export async function downloadApiFile(path, filename) {
         throw new Error(msg || 'Permission insuffisante (élévation PIN requise).');
       }
       if (res.status === 404) {
-        throw new Error(
-          msg || 'Route introuvable — déployez la dernière version du serveur.',
-        );
+        throw new Error(msg || 'Route introuvable — déployez la dernière version du serveur.');
       }
       throw new Error(msg || `Téléchargement impossible (HTTP ${res.status}).`);
     }

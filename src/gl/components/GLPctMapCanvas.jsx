@@ -25,8 +25,7 @@ export function GLPctMapCanvas({
   const imageRef = mapGestures?.imageRef;
   const { fitLayerStyle, onImageLoad, fitHeightPx } = useGlBoardImageFit(containerRef, imageRef);
   const { mapSettings } = useGlMapOverlaySettings();
-  const markerSizePercent =
-    markerSizePercentProp ?? readPlateauMarkerSizePercent(mapSettings);
+  const markerSizePercent = markerSizePercentProp ?? readPlateauMarkerSizePercent(mapSettings);
 
   const fitLayerStyleWithScale = useMemo(() => {
     const overlayScale = resolveMapOverlayScaleCssValue({

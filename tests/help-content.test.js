@@ -3,11 +3,7 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 
-const {
-  loadDefaultHelpConfig,
-  normalizeHelpConfig,
-  PANEL_IDS,
-} = require('../lib/helpContent');
+const { loadDefaultHelpConfig, normalizeHelpConfig, PANEL_IDS } = require('../lib/helpContent');
 
 test('loadDefaultHelpConfig contient tooltips, panneaux et hints carte', () => {
   const defaults = loadDefaultHelpConfig();

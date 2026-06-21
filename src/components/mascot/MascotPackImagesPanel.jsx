@@ -93,7 +93,13 @@ export default function MascotPackImagesPanel({
   );
 
   const loading = packAssetsLoading || libLoading || globalAssetsLoading;
-  const statusMessage = [packAssetsMessage, libMessage, globalAssetsMessage, insertFeedback, copyFeedback]
+  const statusMessage = [
+    packAssetsMessage,
+    libMessage,
+    globalAssetsMessage,
+    insertFeedback,
+    copyFeedback,
+  ]
     .map((m) => String(m || '').trim())
     .filter(Boolean)
     .join(' · ');
@@ -255,12 +261,7 @@ export default function MascotPackImagesPanel({
                   title={`Ajouter à l’état « ${targetLabel} »`}
                 >
                   {previewable ? (
-                    <img
-                      src={withAppBase(entry.url)}
-                      alt=""
-                      loading="lazy"
-                      decoding="async"
-                    />
+                    <img src={withAppBase(entry.url)} alt="" loading="lazy" decoding="async" />
                   ) : (
                     <span className="section-sub" style={{ fontSize: '0.72rem', padding: 8 }}>
                       Pas d’aperçu

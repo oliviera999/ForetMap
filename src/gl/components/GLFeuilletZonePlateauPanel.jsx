@@ -53,7 +53,9 @@ export function GLFeuilletZonePlateauPanel({
 
   if (!plateauNumber || plateauNumber < 1 || plateauNumber > 5) {
     return (
-      <p className="gl-hint">Renseignez un numéro de plateau narratif (1–5) pour éditer les zones feuillets.</p>
+      <p className="gl-hint">
+        Renseignez un numéro de plateau narratif (1–5) pour éditer les zones feuillets.
+      </p>
     );
   }
 

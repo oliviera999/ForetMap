@@ -14,7 +14,7 @@ describe('GLChapterMarkerListVisual', () => {
     expect(span.classList.contains('foretmap-emoji-text-mixed')).toBe(false);
   });
 
-  test("rend le rameau sans classe foretmap-emoji-text-mixed", () => {
+  test('rend le rameau sans classe foretmap-emoji-text-mixed', () => {
     const { container } = render(
       <GLChapterMarkerListVisual marker={{ display_mode: 'emoji', emoji: '🌿' }} />,
     );

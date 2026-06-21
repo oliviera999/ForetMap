@@ -68,9 +68,7 @@ turndownService.remove(['script', 'style']);
 turndownService.keep(['hr']);
 
 function turndownGlImageMarkup(node) {
-  const src = String(
-    node.getAttribute('data-gl-md-src') || node.getAttribute('src') || '',
-  ).trim();
+  const src = String(node.getAttribute('data-gl-md-src') || node.getAttribute('src') || '').trim();
   if (!src) return '';
   const alt = String(node.getAttribute('alt') || 'Image').replace(/"/g, '&quot;');
   const frame = String(node.getAttribute('data-gl-frame') || '').replace(/'/g, '&apos;');

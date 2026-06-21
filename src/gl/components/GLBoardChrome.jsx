@@ -33,9 +33,7 @@ export function GLBoardChrome({
         />
       ) : null}
 
-      {virtualDiceEnabled && gameId ? (
-        <GLVirtualDiceDock themeStyle={themeStyle} enabled />
-      ) : null}
+      {virtualDiceEnabled && gameId ? <GLVirtualDiceDock themeStyle={themeStyle} enabled /> : null}
 
       {!mapFullscreen ? (
         <div className="gl-board-chrome-bar" role="toolbar" aria-label="Actions carte">
@@ -63,11 +61,7 @@ export function GLBoardChrome({
 
       {zoneMusicEnabled ? (
         <div className="gl-board-chrome-dock gl-board-chrome-dock--right">
-          <GLZoneMusicMuteButton
-            visible
-            muted={zoneMusicMuted}
-            onToggle={onZoneMusicToggle}
-          />
+          <GLZoneMusicMuteButton visible muted={zoneMusicMuted} onToggle={onZoneMusicToggle} />
         </div>
       ) : null}
     </>

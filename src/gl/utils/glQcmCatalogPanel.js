@@ -1,1 +1,4 @@
-export { buildExportQuery, buildQuestionsListQuery } from '../../shared/qcm/qcmCatalogPanelQuery.js';
+export {
+  buildExportQuery,
+  buildQuestionsListQuery,
+} from '../../shared/qcm/qcmCatalogPanelQuery.js';
