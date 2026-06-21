@@ -70,6 +70,8 @@ describe('toGameViewModel', () => {
       scores: {},
       pendingActions: [],
       events: [],
+      roster: [],
+      vitality: null,
     });
   });
 
@@ -81,6 +83,8 @@ describe('toGameViewModel', () => {
       scores: { 9: 3 },
       pendingActions: [{ id: 'a' }],
       events: [{ id: 'e' }],
+      roster: [{ playerId: 2, teamId: 9 }],
+      vitality: { enabled: true, byPlayerId: { 2: { health: 3, power: 3 } } },
     };
     expect(toGameViewModel(raw)).toEqual(raw);
   });

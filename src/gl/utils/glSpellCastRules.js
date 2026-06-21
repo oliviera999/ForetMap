@@ -106,6 +106,24 @@ export function groupRosterByTeam(roster = []) {
   return [...groups.values()];
 }
 
+/**
+ * Roster carte : une entrée par équipe de la partie (même vide), joueurs triés.
+ */
+export function buildMapRosterGroups(teams = [], roster = []) {
+  const grouped = groupRosterByTeam(roster);
+  const byTeamId = new Map(grouped.map((group) => [Number(group.teamId), group]));
+  return (Array.isArray(teams) ? teams : []).map((team) => {
+    const teamId = Number(team.id);
+    const existing = byTeamId.get(teamId);
+    return {
+      teamId,
+      teamName: team.name || existing?.teamName || `Équipe ${teamId}`,
+      teamColor: team.color || null,
+      players: existing?.players || [],
+    };
+  });
+}
+
 /** Coût affiché à partir des champs catalogue ou du brouillon. */
 export function formatSpellCost(spellOrRequired) {
   const req = spellOrRequired?.required || spellOrRequired;

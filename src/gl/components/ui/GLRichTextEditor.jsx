@@ -8,6 +8,33 @@ import {
   serializeGlImageFrameAttr,
 } from '../../../utils/glImageFrame.js';
 import { GLImageInlineInsertControls } from '../GLImageInlineInsertControls.jsx';
+import { annotateEditorHtmlWithOriginalSrc } from '../../utils/glMarkdownEditorDisplay.js';
+
+function normalizeResolveDisplayResult(markdown, resolveDisplayMarkdown) {
+  if (typeof resolveDisplayMarkdown !== 'function') {
+    return { displayMarkdown: markdown, originalSrcByResolved: new Map() };
+  }
+  const result = resolveDisplayMarkdown(markdown);
+  if (result && typeof result === 'object' && 'displayMarkdown' in result) {
+    return {
+      displayMarkdown: String(result.displayMarkdown ?? ''),
+      originalSrcByResolved:
+        result.originalSrcByResolved instanceof Map ? result.originalSrcByResolved : new Map(),
+    };
+  }
+  return { displayMarkdown: String(result ?? markdown), originalSrcByResolved: new Map() };
+}
+
+function markdownToEditableHtml(markdown, resolveDisplayMarkdown) {
+  const { displayMarkdown, originalSrcByResolved } = normalizeResolveDisplayResult(
+    markdown,
+    resolveDisplayMarkdown,
+  );
+  const html = renderMarkdownToSafeHtml(displayMarkdown, { allowImages: true });
+  if (!String(html || '').trim()) return '';
+  const sanitized = sanitizeRichHtml(html, { allowImages: true });
+  return annotateEditorHtmlWithOriginalSrc(sanitized, originalSrcByResolved);
+}
 
 function styleObjectToString(style) {
   return Object.entries(style || {})
@@ -31,12 +58,6 @@ function normalizeHtmlForCompare(html) {
     .trim();
 }
 
-function markdownToEditableHtml(markdown) {
-  const html = renderMarkdownToSafeHtml(markdown, { allowImages: true });
-  if (!String(html || '').trim()) return '';
-  return sanitizeRichHtml(html, { allowImages: true });
-}
-
 const turndownService = new TurndownService({
   headingStyle: 'atx',
   bulletListMarker: '-',
@@ -47,7 +68,9 @@ turndownService.remove(['script', 'style']);
 turndownService.keep(['hr']);
 
 function turndownGlImageMarkup(node) {
-  const src = String(node.getAttribute('src') || '').trim();
+  const src = String(
+    node.getAttribute('data-gl-md-src') || node.getAttribute('src') || '',
+  ).trim();
   if (!src) return '';
   const alt = String(node.getAttribute('alt') || 'Image').replace(/"/g, '&quot;');
   const frame = String(node.getAttribute('data-gl-frame') || '').replace(/'/g, '&apos;');
@@ -103,6 +126,7 @@ export const GLRichTextEditor = React.forwardRef(function GLRichTextEditor(
     placeholder = 'Saisissez votre texte…',
     hint = 'Mise en forme enrichie : titres, listes, citations, liens et images.',
     imageLegend = 'Photos dans le texte',
+    resolveDisplayMarkdown = null,
   },
   forwardedRef,
 ) {
@@ -140,12 +164,12 @@ export const GLRichTextEditor = React.forwardRef(function GLRichTextEditor(
       lastMarkdownRef.current = nextMarkdown;
       return;
     }
-    const nextHtml = markdownToEditableHtml(nextMarkdown);
+    const nextHtml = markdownToEditableHtml(nextMarkdown, resolveDisplayMarkdown);
     if (normalizeHtmlForCompare(el.innerHTML) !== normalizeHtmlForCompare(nextHtml)) {
       el.innerHTML = nextHtml;
     }
     lastMarkdownRef.current = nextMarkdown;
-  }, [value]);
+  }, [value, resolveDisplayMarkdown]);
 
   const focusEditable = useCallback(() => {
     editableRef.current?.focus();
