@@ -18,6 +18,7 @@ import {
   GAMEPLAY_TOGGLES,
   MAP_DISPLAY_TOGGLES,
   MODULE_TOGGLES,
+  MASCOT_MOVE_ACTOR_OPTIONS,
   readGameplayFlag,
   readPlateauMarkersVisibleSetting,
   readSelectSetting,
@@ -264,6 +265,27 @@ export function GLSettingsView() {
         savingKey={savingKey}
         onToggle={toggleGameplayFlag}
       />
+
+      <div className="gl-form gl-mascot-move-actor">
+        <label>
+          Déplacement de la mascotte (mode classique)
+          <select
+            value={readSelectSetting(settings, 'gameplay.mascot_move_actor', 'mj')}
+            disabled={savingKey === 'gameplay.mascot_move_actor'}
+            onChange={(event) => saveSetting('gameplay.mascot_move_actor', event.target.value)}
+          >
+            {MASCOT_MOVE_ACTOR_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <p className="gl-hint">
+          Détermine qui avance la mascotte sur le plateau : le MJ, ou chaque équipe une fois par
+          tour.
+        </p>
+      </div>
 
       <h4>Affichage carte plateau</h4>
       <p className="gl-hint">

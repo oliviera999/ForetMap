@@ -2,6 +2,7 @@ import React from 'react';
 import {
   SPELL_CAST_CONTRIBUTION_OPTIONS,
   SPELL_CAST_TEAM_SCOPE_OPTIONS,
+  SPELL_CAST_APPROVAL_MODE_OPTIONS,
   readGameplayFlag,
   readSelectSetting,
 } from '../../utils/glSettingsForm.js';
@@ -49,6 +50,26 @@ export function GLSpellCastSettings({ settings, savingKey, onSaveSetting }) {
           ))}
         </select>
       </label>
+      <label>
+        Validation des sortilèges (mode classique)
+        <select
+          value={readSelectSetting(settings, 'gameplay.spell_cast_approval_mode', 'per_spell')}
+          disabled={savingKey === 'gameplay.spell_cast_approval_mode'}
+          onChange={(event) =>
+            onSaveSetting('gameplay.spell_cast_approval_mode', event.target.value)
+          }
+        >
+          {SPELL_CAST_APPROVAL_MODE_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+      </label>
+      <p className="gl-hint">
+        En mode « validation MJ », un sort soumis par un joueur attend l&apos;accord du MJ avant
+        tout débit de gemmes / cœurs.
+      </p>
       <label className="gl-gameplay-toggle-row">
         <input
           type="checkbox"
