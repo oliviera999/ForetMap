@@ -8,13 +8,13 @@
       "title": "Aide GL",
       "body": "Onglet Cartes : consulte les cartes du monde. Les modules visibles dépendent des réglages MJ. Désactive un module dans Réglages plateforme pour épurer la navigation joueur."
     },
-    "tab:biotope": {
+    "tab:ecosystemes": {
       "title": "Aide GL",
-      "body": "Onglet Biotope : explore les milieux et écosystèmes. Les modules visibles dépendent des réglages MJ. Désactive un module dans Réglages plateforme pour épurer la navigation joueur."
+      "body": "Onglet Écosystèmes : biotopes et biocénoses du chapitre. Les modules visibles dépendent des réglages MJ. Désactive un module dans Réglages plateforme pour épurer la navigation joueur."
     },
-    "tab:biocenose": {
+    "tab:biodiversite": {
       "title": "Aide GL",
-      "body": "Onglet Biocénose : découvre les espèces et interactions. Les modules visibles dépendent des réglages MJ. Désactive un module dans Réglages plateforme pour épurer la navigation joueur."
+      "body": "Onglet Biodiversité : fiches des espèces du chapitre. Les modules visibles dépendent des réglages MJ. Désactive un module dans Réglages plateforme pour épurer la navigation joueur."
     },
     "tab:glossary": {
       "title": "Aide GL",

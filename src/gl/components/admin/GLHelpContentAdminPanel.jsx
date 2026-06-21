@@ -10,8 +10,8 @@ import { invalidateGlHelpConfigCache } from '../../hooks/useGlHelpContent.js';
 const TAB_LABELS = {
   'tab:discovery': 'Découverte',
   'tab:maps': 'Cartes',
-  'tab:biotope': 'Biotope',
-  'tab:biocenose': 'Biocénose',
+  'tab:ecosystemes': 'Écosystèmes',
+  'tab:biodiversite': 'Biodiversité',
   'tab:glossary': 'Glossaire',
   'tab:lore-glossary': 'Lexique lore',
   'tab:selene-carnet': 'Carnet Sélène',

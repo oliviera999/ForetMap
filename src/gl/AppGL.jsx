@@ -30,8 +30,8 @@ import { GLWorldView } from './components/GLWorldView.jsx';
 import { GLRulesView } from './components/GLRulesView.jsx';
 import { GLSpellsView } from './components/GLSpellsView.jsx';
 import { GLMapView } from './components/GLMapView.jsx';
-import { GLBiotopeView } from './components/GLBiotopeView.jsx';
-import { GLBiocenoseView } from './components/GLBiocenoseView.jsx';
+import { GLEcosystemsView } from './components/GLEcosystemsView.jsx';
+import { GLBiodiversityView } from './components/GLBiodiversityView.jsx';
 import { GLGlossaryView } from './components/GLGlossaryView.jsx';
 import { GLGlossaryPopover } from './components/GLGlossaryPopover.jsx';
 import { GLLoreGlossaryView } from './components/GLLoreGlossaryView.jsx';
@@ -983,19 +983,18 @@ export function AppGL() {
                     )}
                   </>
                 )}
-                {tab === 'biotope' && (
-                  <GLBiotopeView
+                {tab === 'ecosystemes' && (
+                  <GLEcosystemsView
                     gameState={effectiveGameState}
                     glossaryLinkItems={glossaryLinkItems}
                     onOpenGlossaryTerm={openGlossaryPopover}
                   />
                 )}
-                {tab === 'biocenose' && (
-                  <GLBiocenoseView
+                {tab === 'biodiversite' && (
+                  <GLBiodiversityView
                     gameState={effectiveGameState}
                     onOpenGlossaryTerm={openGlossaryPopover}
                     learningProgress={isGuest ? null : learningProgress}
-                    glossaryLinkItems={glossaryLinkItems}
                     loreCarnetEnabled={false}
                   />
                 )}

@@ -38,6 +38,13 @@ describe('readStoredGlTab', () => {
     expect(readStoredGlTab()).toBe('glossary');
   });
 
+  test('mappe les anciens identifiants d’onglet vers les nouveaux libellés', () => {
+    localStorage.setItem(GL_TAB_STORAGE_KEY, 'biotope');
+    expect(readStoredGlTab()).toBe('ecosystemes');
+    localStorage.setItem(GL_TAB_STORAGE_KEY, 'biocenose');
+    expect(readStoredGlTab()).toBe('biodiversite');
+  });
+
   test('replie sur world si absent ou inconnu', () => {
     expect(readStoredGlTab()).toBe('world');
     localStorage.setItem(GL_TAB_STORAGE_KEY, 'onglet-fantome');

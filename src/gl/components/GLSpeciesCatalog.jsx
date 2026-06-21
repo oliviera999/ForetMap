@@ -1,7 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { apiGL } from '../services/apiGL.js';
-import { biomeImg } from '../assets/index.js';
-import { useGlAssetsReady } from './GLFeuilletIllustration.jsx';
 import { GLSpeciesDetailModal } from './GLSpeciesDetailModal.jsx';
 
 const TYPE_LABELS = {
@@ -64,7 +62,6 @@ function GLSpeciesCatalogPanel({
   onOpenGlossaryTerm,
   learningProgress,
 }) {
-  const assetsReady = useGlAssetsReady();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [items, setItems] = useState([]);
@@ -109,15 +106,8 @@ function GLSpeciesCatalogPanel({
     );
   }
 
-  const biocenoseArt = assetsReady && biomeSlug ? biomeImg(biomeSlug, 'biocenose') : null;
-
   return (
     <div className="gl-species-catalog">
-      {biocenoseArt ? (
-        <figure className="gl-species-catalog__biome-art">
-          <img src={biocenoseArt} alt="" loading="lazy" />
-        </figure>
-      ) : null}
       {biomeNom ? (
         <p className="gl-species-catalog__intro">
           Biome : <strong>{biomeNom}</strong> — {items.length} espèce(s)
@@ -214,9 +204,10 @@ export function GLSpeciesCatalog({
       {normalizedBiomes.length > 1 ? (
         <>
           <p className="gl-species-catalog__intro">
-            Biomes de ce chapitre : <strong>{normalizedBiomes.map((b) => b.nom).join(', ')}</strong>
+            Écosystèmes de ce chapitre :{' '}
+            <strong>{normalizedBiomes.map((b) => b.nom).join(', ')}</strong>
           </p>
-          <div className="gl-species-catalog__tabs" role="tablist" aria-label="Biomes du chapitre">
+          <div className="gl-species-catalog__tabs" role="tablist" aria-label="Écosystèmes du chapitre">
             {normalizedBiomes.map((biome) => (
               <button
                 key={biome.slug}

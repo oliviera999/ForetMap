@@ -28,11 +28,17 @@ export function decodeBase64UrlJson(value) {
   }
 }
 
+const GL_LEGACY_TAB_ALIASES = Object.freeze({
+  biotope: 'ecosystemes',
+  biocenose: 'biodiversite',
+});
+
 /** Onglet mémorisé en localStorage, replié sur `world` si absent ou inconnu. */
 export function readStoredGlTab() {
   try {
     const raw = String(localStorage.getItem(GL_TAB_STORAGE_KEY) || '').trim();
-    if (GL_VALID_TABS.has(raw)) return raw;
+    const resolved = GL_LEGACY_TAB_ALIASES[raw] || raw;
+    if (GL_VALID_TABS.has(resolved)) return resolved;
   } catch (_) {
     // noop
   }
