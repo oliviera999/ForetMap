@@ -14,6 +14,12 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **`.gitattributes`** : `CHANGELOG.md merge=union` — réduit les conflits dès les merges locaux.
 - **Tests** : `tests/auto-resolve-conflicts.test.js` (union changelog, semver max, garde-fous version-only).
 
+### Sécurité — élévation legacy & import carte non destructif
+
+- **Correctif élévation legacy** : `POST /api/auth/teacher` exige désormais une session valide (`requireAuth`) et vérifie le PIN du **rôle RBAC courant réhydraté depuis la base**, empêchant l'utilisation d'un JWT non expiré portant un ancien `roleId` (après changement/révocation de rôle) pour obtenir une session élevée.
+- **Correctif sûreté import carte** : le SQL généré (`lib/sqliteGardenSqlExport.js`, fichier exemple `data/import/foret-comestible-garden.sql`) n'abaisse plus `FOREIGN_KEY_CHECKS`, s'exécute dans une **transaction** (`START TRANSACTION` / `COMMIT`) et **nettoie explicitement** les liaisons tâches/projets/tutoriels/visite avant remplacement des zones/repères (plus d'orphelins ni de réattachement silencieux en cas de réutilisation d'id).
+- **Tests** : `tests/auth.test.js` (non-régression PIN rôle courant vs JWT obsolète) et `tests/legacy-zone-shape-convert.test.js` (SQL transactionnel + nettoyage des dépendances).
+
 ### GL — sélection des classes pour la création de partie
 
 - **fix(gl)** : une classe créée (ou (ré)activée) dans « Gestion utilisateurs » apparaît désormais immédiatement dans le sélecteur de classe de la console MJ, sans rechargement de page. `GLUsersAdminView` notifie `AppGL` (`onClassesChange`) qui resynchronise la liste partagée `classes`.
@@ -29,6 +35,33 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 - **`.githooks/pre-commit`** : vérifie `prettier --check` et `eslint` sur les **fichiers stagés** avant chaque commit, pour éviter que `main` ne re-régresse sur les étapes CI `lint` / `format:check`. Contournement ponctuel : `git commit --no-verify`.
 - **`scripts/setup-git-hooks.js`** + script npm **`prepare`** : active `core.hooksPath=.githooks` automatiquement après `npm install` (no-op hors dépôt Git).
+
+### Emojis multi-périphériques (police auto-hébergée en fallback universel)
+
+- **fix** : la police Noto Color Emoji de Google déjà auto-hébergée (`public/fonts/noto-color-emoji.woff2`, `@font-face 'ForetMapColorEmoji'`) est désormais ajoutée en **dernier recours** des stacks de texte courant (`--font-sans` ForetMap et GL, titres `h1/h2/h3`, `body.gl-body`). Les emojis s'affichent ainsi **quel que soit le périphérique**, y compris ceux dépourvus de police emoji native (certains Linux, vieux Android, navigateurs minimaux).
+- **Perf** : la police restant prioritaire aux polices système et son `cmap` ne contenant que des emojis, elle n'est téléchargée **à la demande** (cascade par caractère) que lorsqu'aucune police emoji native ne couvre le glyphe — aucun surcoût sur les appareils déjà équipés.
+
+### Responsive — homogénéité de l’affichage ForetMap
+
+- **Espacements fluides** : nouveaux tokens `--space-page-x`, `--space-card`, `--space-card-lg(-x)` (`clamp`) appliqués aux conteneurs `.main`/`.teacher-main`, aux cartes `.task-card`, `.pin-card`, `.auth-card` et aux états vides `.empty` → moins de marges perdues sur petit mobile, confort conservé sur tablette/desktop.
+- **Grilles dégradables** : `.stats-grid` et `.plant-form-grid` passent en `auto-fit` + `minmax(min(…, 100%), 1fr)` (plus de colonnes minuscules ni de débordement sur écran étroit) ; vignettes `.plant-photo-thumb` en largeur fluide `clamp(96px, 30vw, 140px)`.
+- **Anti-débordement images** : garde-fou global `img, video { max-width: 100% }` (les règles dédiées restent prioritaires) ; `.profile-promo-card__glow` resserré pour ne pas dépasser le conteneur.
+
+### GL — homogénéité responsive (console MJ, joueurs, écosystèmes)
+
+- **fix(gl)** : padding fluide de `.gl-main` (`clamp(10px, 3vw, 16px)`) → moins de marge perdue sur petit mobile, confort conservé sur desktop.
+- **fix(gl)** : `gl-admin-grid-2` (formulaires console MJ) en `minmax(min(170px, 100%), 1fr)` → la colonne se réduit au lieu de déborder sur écran étroit.
+- **fix(gl)** : nom de joueur du roster (`gl-map-roster-player__name`) avec `min-width:0` + `overflow-wrap:anywhere` → un nom long ne pousse plus la vitalité hors écran.
+
+### GL — création d’équipes (partiellement) aléatoire
+
+- **feat(gl)** : répartition aléatoire **équilibrée** des effectifs d’une partie via `POST /api/gl/games/:id/roster/auto-assign`.
+  - Mode `fill` (défaut) : seuls les joueurs non assignés sont répartis, les équipes déjà constituées sont conservées → mode « partiellement aléatoire ».
+  - Mode `reset` : tous les joueurs actifs de la classe sont redistribués.
+  - Paramètre `teamIds` optionnel pour restreindre les équipes cibles ; équilibrage des effectifs (écart ≤ 1).
+- **Console MJ** : boutons « Compléter aléatoirement (N) » et « Tout redistribuer » dans le panneau Effectifs (`GLGameRosterPanel`).
+- **Backend** : helpers purs `computeBalancedAssignments` / `shuffleInPlace` et `autoAssignRosterTx` dans `lib/glRoster.js`.
+- **Tests** : `tests/gl-roster-balance.test.js` (unitaires purs) et flux route dans `tests/gl-games-roster.test.js` ; doc `docs/API.md`.
 
 ### GL — déplacement au dé (repères numérotés)
 
