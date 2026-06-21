@@ -1,6 +1,6 @@
 {
   "name": "foretmap",
-  "version": "1.60.1",
+  "version": "1.61.0",
   "description": "Application de gestion de la forêt comestible - Lycée Lyautey",
   "main": "server.js",
   "engines": {
@@ -47,6 +47,7 @@
     }
   },
   "scripts": {
+    "prepare": "node scripts/setup-git-hooks.js",
     "start": "node server.js",
     "start:e2e": "node server.js --foretmap-e2e-no-rate-limit",
     "dev": "nodemon server.js",

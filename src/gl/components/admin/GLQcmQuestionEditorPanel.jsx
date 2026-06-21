@@ -145,7 +145,10 @@ export function GLQcmQuestionEditorPanel({ initialQuestionCode = null }) {
     if (key === 'biome_slug') {
       return (
         <GLField key={key} label="Biome">
-          <GLSelect value={form.biome_slug} onChange={(e) => setField('biome_slug', e.target.value)}>
+          <GLSelect
+            value={form.biome_slug}
+            onChange={(e) => setField('biome_slug', e.target.value)}
+          >
             <option value="">— Choisir —</option>
             {biomes.map((biome) => (
               <option key={biome.slug} value={biome.slug}>
@@ -333,9 +336,7 @@ export function GLQcmQuestionEditorPanel({ initialQuestionCode = null }) {
         <div className="gl-qcm-editor__form">
           <h4>{selectedCode ? `Modifier ${selectedCode}` : 'Nouvelle question'}</h4>
           <AutoSaveStatus status={saveStatus} className="gl-hint" />
-          <div className="gl-qcm-editor__fields">
-            {FORM_FIELDS.map((key) => renderField(key))}
-          </div>
+          <div className="gl-qcm-editor__fields">{FORM_FIELDS.map((key) => renderField(key))}</div>
         </div>
       </div>
     </section>

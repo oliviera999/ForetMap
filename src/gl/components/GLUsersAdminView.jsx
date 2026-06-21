@@ -6,7 +6,11 @@ import { GLPlayersImportPanel } from './admin/GLPlayersImportPanel.jsx';
 import { GLPlayersExportPanel } from './admin/GLPlayersExportPanel.jsx';
 import { canGlStaffImpersonate } from '../utils/glStaffView.js';
 
-export function GLUsersAdminView({ auth = null, onImpersonationApplied = null }) {
+export function GLUsersAdminView({
+  auth = null,
+  onImpersonationApplied = null,
+  onClassesChange = null,
+}) {
   const [classes, setClasses] = useState([]);
   const [players, setPlayers] = useState([]);
   const [error, setError] = useState('');
@@ -24,6 +28,8 @@ export function GLUsersAdminView({ auth = null, onImpersonationApplied = null })
       setClasses(nextClasses || []);
       setPlayers(nextPlayers || []);
       setError('');
+      // Synchronise la liste partagée (sélecteur de création de partie côté MJ).
+      onClassesChange?.(nextClasses || []);
     } catch (err) {
       setError(err.message || 'Chargement impossible');
     }

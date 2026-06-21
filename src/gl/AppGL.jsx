@@ -425,6 +425,23 @@ export function AppGL() {
     }
   }, [token, isAdmin, updateSession, isGuest]);
 
+  const reloadClasses = useCallback(
+    async (preloaded) => {
+      if (!isAdmin) return;
+      if (Array.isArray(preloaded)) {
+        setClasses(preloaded);
+        return;
+      }
+      try {
+        const data = await apiGL('/api/gl/admin/classes');
+        setClasses(Array.isArray(data) ? data : []);
+      } catch (_) {
+        // conserve silencieusement la liste précédente
+      }
+    },
+    [isAdmin],
+  );
+
   const applyGlImpersonation = useCallback(
     (payload) => {
       if (!payload?.authToken || !payload?.auth) {
@@ -1162,7 +1179,11 @@ export function AppGL() {
                   />
                 )}
                 {tab === 'users' && showStaffAdminUi && (
-                  <GLUsersAdminView auth={auth} onImpersonationApplied={applyGlImpersonation} />
+                  <GLUsersAdminView
+                    auth={auth}
+                    onImpersonationApplied={applyGlImpersonation}
+                    onClassesChange={reloadClasses}
+                  />
                 )}
                 {tab === 'contents' && showStaffAdminUi && (
                   <GLContentsAdminView

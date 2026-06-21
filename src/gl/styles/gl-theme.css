@@ -435,7 +435,8 @@ body.gl-body {
   flex: 1 1 auto;
   max-width: 1200px;
   margin: 0 auto;
-  padding: 16px;
+  /* Padding fluide : moins de marge perdue sur petit mobile, confort conservé sur desktop. */
+  padding: clamp(10px, 3vw, 16px);
   width: 100%;
   box-sizing: border-box;
 }
@@ -1203,6 +1204,9 @@ a.gl-glossary-inline-link:hover,
 
 .gl-map-roster-player__name {
   font-size: 0.9rem;
+  /* Évite qu'un nom long ne déborde la ligne du roster et ne pousse la vitalité hors écran. */
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .gl-map-roster-player__you {
@@ -3393,7 +3397,8 @@ body.gl-map-fullscreen-active .gl-qcm-popover-overlay {
 .gl-admin-grid-2 {
   display: grid;
   gap: 10px;
-  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  /* min(170px, 100%) : la colonne se réduit sous 170px au lieu de déborder sur écran étroit. */
+  grid-template-columns: repeat(auto-fit, minmax(min(170px, 100%), 1fr));
 }
 
 .gl-admin-inline-edit {
