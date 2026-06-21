@@ -22,8 +22,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Réglage** : `gameplay.plateau_marker_numbers_visible` ; toggle dans Réglages → Affichage carte plateau ; doc `docs/API.md`.
 - **Partie** : numéros affichés si mode `numbered_path` actif et réglage plateforme activé (`glPlateauMapVisibility`).
 - **fix(gl)** : clé autorisée côté `PUT /api/gl/admin/settings` (`adminRouteHelpers`) pour persister le toggle.
+- **Tests** : `gl-admin-helpers` — décompte 24 clés gameplay.
 
-### GL — panneau édition zones feuillets sous la carte
+### Build production
 
 - **fix(gl)** : le panneau de configuration (liste zones/repères, export JSON) s’affiche sous la carte au lieu d’un overlay `position: fixed` qui se déplaçait de façon incohérente (admin chapitres et mode debug `?editPlateau=1`).
 - **Refactor** : `GLPlateauMapEditor` scindé en `Provider` / `MapLayer` / `Panel`.
