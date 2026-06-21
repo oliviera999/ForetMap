@@ -7,6 +7,17 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### GL — système de tour « mode classique »
+
+- **feat(gl)** : la rotation séquentielle (une seule équipe active) est remplacée par des **tours globaux**. Le MJ lance un tour (`POST /api/gl/games/:id/turn/next` ou `/turn/start`) → événement `round_start` `{ roundNumber }` ; toutes les équipes jouent simultanément.
+- **feat(gl)** : chaque équipe peut **déplacer sa mascotte une fois par tour** (réarmement au nouveau tour). Acteur réglable via `gameplay.mascot_move_actor` (`players` | `mj`, exclusif) ; route joueur `POST /api/gl/games/:id/teams/:teamId/move` ; `GET /api/gl/games/:id/turn` expose l'état (`hasMovedThisRound` par équipe).
+- **feat(gl)** : **sortilèges avec approbation MJ** selon `gameplay.spell_cast_approval_mode` (`auto` | `mj_required` | `per_spell` → `gl_spells.approval_mode`). Un sort soumis par un joueur passe en `pending_approval` **sans débit** ; le MJ tranche via `POST /api/gl/games/:id/spell-casts/drafts/:draftId/resolve` (`accept` = débit + `spell_cast` ; `reject` = `spell_cast_rejected`).
+- **feat(gl)** : **portée solo/collectif** des sorts (`gl_spells.cast_scope` = `solo` | `collective` | `any`).
+- **Mode classique** : suppression du blocage « ce n'est pas le tour de votre équipe » sur QCM, actions joueur et sortilèges (joueurs libres de leurs actions).
+- **BDD** : migration `139_gl_game_turn_classic.sql` (`gl_games.current_round_number`/`current_round_started_at`, `gl_teams.last_move_round_number`, table `gl_game_rounds`, `gl_spells.approval_mode`/`cast_scope`, colonnes d'approbation sur `gl_spell_cast_drafts`, réglages par défaut, permission `gl.mascot.position` accordée au profil joueur).
+- **Réglages** : `gameplay.mascot_move_actor`, `gameplay.spell_cast_approval_mode` (lecture/validation `glSettings` + `PUT /api/gl/admin/settings`).
+- **Tests** : `tests/gl-game-turns.test.js` (réécrit mode classique), `tests/gl-game-turn-classic.test.js` (approbation sorts, portées, déplacement joueur 1×/tour). Doc `docs/API.md`.
+
 ### GL — déplacement au dé (repères numérotés)
 
 - **fix(gl)** : la mascotte traverse chaque repère intermédiaire dans l’ordre (plus de saut direct) ; ancrage centré sur le repère à chaque étape (`snapCenter`, coordonnées exactes sans clamp viewport).

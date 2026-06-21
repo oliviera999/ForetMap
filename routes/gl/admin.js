@@ -10,6 +10,8 @@ const {
   LORE_SPOILER_LEVELS,
   SPELL_CAST_CONTRIBUTION_MODES,
   SPELL_CAST_TEAM_SCOPES,
+  SPELL_CAST_APPROVAL_MODES,
+  MASCOT_MOVE_ACTORS,
   getGameplaySettings,
 } = require('../../lib/glSettings');
 const { getDefaultVitalityFromSettings, clampVitality } = require('../../lib/glVitality');
@@ -862,6 +864,22 @@ router.put(
           .status(400)
           .json({ error: 'La valeur de spell_cast_mj_only doit être booléenne' });
       }
+    }
+    if (key === 'gameplay.spell_cast_approval_mode') {
+      const mode = typeof value === 'string' ? value.trim() : String(value || '').trim();
+      if (!SPELL_CAST_APPROVAL_MODES.has(mode)) {
+        return res
+          .status(400)
+          .json({ error: 'Mode d’approbation invalide (auto, mj_required, per_spell)' });
+      }
+      value = mode;
+    }
+    if (key === 'gameplay.mascot_move_actor') {
+      const actor = typeof value === 'string' ? value.trim() : String(value || '').trim();
+      if (!MASCOT_MOVE_ACTORS.has(actor)) {
+        return res.status(400).json({ error: 'Acteur de déplacement invalide (players, mj)' });
+      }
+      value = actor;
     }
     if (key === 'gameplay.qcm_mj_only') {
       if (typeof value !== 'boolean') {
