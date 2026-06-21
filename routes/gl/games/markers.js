@@ -4,9 +4,7 @@ const { requireGlAuth, requireGlPermission } = require('../../../middleware/requ
 const { normalizeEventRow } = require('../../../lib/glGameEvents');
 const { emitGlGameEvent } = require('../../../lib/realtime');
 const { getGameplaySettings } = require('../../../lib/glSettings');
-const {
-  resolveVitalityError,
-} = require('../../../lib/glVitality');
+const { resolveVitalityError } = require('../../../lib/glVitality');
 const { canAccessGlGame } = require('../../../lib/glGameAccess');
 const { MARKER_SELECT, formatMarkerRow, isQuestionMarker } = require('../../../lib/glMarkerRow');
 const {
@@ -418,9 +416,14 @@ router.post(
         ? [playerIdsRaw]
         : null;
 
-    const alreadyApplied = await hasMarkerVitalityApplied({ queryAll }, { gameId, teamId, markerId });
+    const alreadyApplied = await hasMarkerVitalityApplied(
+      { queryAll },
+      { gameId, teamId, markerId },
+    );
     if (alreadyApplied) {
-      return res.status(409).json({ error: 'Effets vitalité déjà appliqués pour ce repère et cette équipe' });
+      return res
+        .status(409)
+        .json({ error: 'Effets vitalité déjà appliqués pour ce repère et cette équipe' });
     }
 
     let vitalityPayload = null;
@@ -488,7 +491,9 @@ router.post(
         return res.status(409).json({ error: 'Aucun effet applicable sur ce repère' });
       }
       if (err?.message === 'NO_VITALITY_TO_APPLY') {
-        return res.status(409).json({ error: 'Aucun delta cœur ou gemme à appliquer sur ce repère' });
+        return res
+          .status(409)
+          .json({ error: 'Aucun delta cœur ou gemme à appliquer sur ce repère' });
       }
       const mapped = resolveVitalityError(err);
       if (mapped) return res.status(mapped.status).json({ error: mapped.error });

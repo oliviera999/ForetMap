@@ -156,9 +156,7 @@ export function GLContentPage({
         </div>
       ) : null}
 
-      {saveError || autoSaveError ? (
-        <p className="gl-error">{saveError || autoSaveError}</p>
-      ) : null}
+      {saveError || autoSaveError ? <p className="gl-error">{saveError || autoSaveError}</p> : null}
 
       {manageable && !editing ? (
         <div className="gl-inline-actions" style={{ marginBottom: 12 }}>

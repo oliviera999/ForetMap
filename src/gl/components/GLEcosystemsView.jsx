@@ -102,7 +102,9 @@ export function GLEcosystemsView({ gameState, glossaryLinkItems = [], onOpenGlos
   const biocenoseMarkdown = gameState?.game?.biocenose_markdown || '';
   const biotopeMarkdown =
     rawBiotope || (String(biocenoseMarkdown || '').trim() ? '' : 'Biotope non renseigné.');
-  const biomes = Array.isArray(gameState?.game?.chapter_biomes) ? gameState.game.chapter_biomes : [];
+  const biomes = Array.isArray(gameState?.game?.chapter_biomes)
+    ? gameState.game.chapter_biomes
+    : [];
   const chapterNumber = gameState?.game?.chapter_plateau_number ?? null;
 
   const sections = useMemo(

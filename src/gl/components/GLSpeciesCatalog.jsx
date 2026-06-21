@@ -207,7 +207,11 @@ export function GLSpeciesCatalog({
             Écosystèmes de ce chapitre :{' '}
             <strong>{normalizedBiomes.map((b) => b.nom).join(', ')}</strong>
           </p>
-          <div className="gl-species-catalog__tabs" role="tablist" aria-label="Écosystèmes du chapitre">
+          <div
+            className="gl-species-catalog__tabs"
+            role="tablist"
+            aria-label="Écosystèmes du chapitre"
+          >
             {normalizedBiomes.map((biome) => (
               <button
                 key={biome.slug}

@@ -71,6 +71,7 @@ module.exports = [
   },
   {
     files: [
+      'tests/auto-save.test.js',
       'tests/fetch-all-loop-guard.test.js',
       'tests/map-overlay-scale.test.js',
       'tests/map-overlay-typography.test.js',
