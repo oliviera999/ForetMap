@@ -7,6 +7,21 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### GL — déplacement au dé (repères numérotés)
+
+- **fix(gl)** : la mascotte traverse chaque repère intermédiaire dans l’ordre (plus de saut direct) ; ancrage centré sur le repère à chaque étape (`snapCenter`, coordonnées exactes sans clamp viewport).
+- **Utilitaire** : `markersAlongDicePath` ; `moveTeamAlongPath` dans `useGLBoardMascotMotion` ; tests `glBoardPathCore`, `glDicePathAdvance`, `useGLBoardMascotMotion`.
+
+### GL — auto-save formulaires admin
+
+- **Admin GL / ForetMap** : enregistrement automatique debouncé (800 ms) sur les formulaires d’édition via `useDebouncedAutoSave` + indicateur `AutoSaveStatus`.
+- **Tests** : `tests/auto-save.test.js`, `tests-ui/shared/AutoSaveStatus.test.jsx`.
+
+### GL — numéros de parcours sur les repères (partie)
+
+- **Réglage** : `gameplay.plateau_marker_numbers_visible` ; toggle dans Réglages → Affichage carte plateau ; doc `docs/API.md`.
+- **Partie** : numéros affichés si mode `numbered_path` actif et réglage plateforme activé (`glPlateauMapVisibility`).
+
 ### GL — panneau édition zones feuillets sous la carte
 
 - **fix(gl)** : le panneau de configuration (liste zones/repères, export JSON) s’affiche sous la carte au lieu d’un overlay `position: fixed` qui se déplaçait de façon incohérente (admin chapitres et mode debug `?editPlateau=1`).
@@ -30,7 +45,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ### GL — studio carte chapitre et dé numéroté
 
 - **Admin Contenus** : numéros de parcours (1, 2, 3…) sur les repères de la carte et dans la liste « Repères » du studio chapitre, triés par `order_index`.
-- **Partie** : jet du dé virtuel en mode `numbered_path` déplace la mascotte sur le repère cible et planifie le popover repère (question / effet).
+- **Partie** : jet du dé virtuel en mode `numbered_path` déplace la mascotte repère par repère le long du chemin et planifie le popover repère (question / effet) à l’arrivée finale.
 - **Utilitaire** : `glDicePathAdvance.js` (plan d’avancement après jet de dés) ; tests `glDicePathAdvance`.
 - **UI** : popover du dé virtuel repositionné pour ne pas masquer la carte plateau (`glDicePopoverPosition`).
 - **Tests** : `GLChapterMapStudio`, `GLBoardMarkers`, `GLGameBoard`, `glDicePopoverPosition`.

@@ -736,8 +736,7 @@ export default function VisitMascotPackManager({
       setLibMessage('Envoi en cours…');
       try {
         const dataUrl = await fileToPngDataUrl(file);
-        const safeName =
-          file.name.replace(/[^a-zA-Z0-9._-]+/g, '-').toLowerCase() || 'import.png';
+        const safeName = file.name.replace(/[^a-zA-Z0-9._-]+/g, '-').toLowerCase() || 'import.png';
         await api(`/api/visit/mascot-sprite-library/${encodeURIComponent(mid)}/assets`, 'POST', {
           filename: safeName.endsWith('.png') ? safeName : `${safeName}.png`,
           image_data: dataUrl,

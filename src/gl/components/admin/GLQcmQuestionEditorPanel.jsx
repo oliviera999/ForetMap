@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { apiGL } from '../../services/apiGL.js';
+import { AutoSaveStatus } from '../../../shared/components/AutoSaveStatus.jsx';
+import { useDebouncedAutoSave } from '../../../shared/hooks/useDebouncedAutoSave.js';
 import {
   EMPTY_FORM,
   FORM_FIELDS,
@@ -111,30 +113,29 @@ export function GLQcmQuestionEditorPanel({ initialQuestionCode = null }) {
     }
   }
 
-  async function saveQuestion(event) {
-    event.preventDefault();
-    setLoading(true);
-    setError('');
-    setInfo('');
-    try {
-      const payload = formToPayload(form);
-      const isEdit = Boolean(selectedCode);
-      const path = isEdit
-        ? `/api/gl/admin/qcm/questions/${encodeURIComponent(selectedCode)}`
-        : '/api/gl/admin/qcm/questions';
-      const method = isEdit ? 'PUT' : 'POST';
-      const data = await apiGL(path, method, payload);
-      const code = data?.question?.question_code || form.question_code;
-      setSelectedCode(code);
-      setForm(questionToForm(data?.question));
-      setInfo(isEdit ? 'Question mise à jour.' : 'Question créée.');
-      await loadList();
-    } catch (err) {
-      setError(err.message || 'Enregistrement impossible');
-    } finally {
-      setLoading(false);
-    }
-  }
+  const persistQuestion = useCallback(async () => {
+    const payload = formToPayload(form);
+    const isEdit = Boolean(selectedCode);
+    const path = isEdit
+      ? `/api/gl/admin/qcm/questions/${encodeURIComponent(selectedCode)}`
+      : '/api/gl/admin/qcm/questions';
+    const method = isEdit ? 'PUT' : 'POST';
+    const data = await apiGL(path, method, payload);
+    const code = data?.question?.question_code || form.question_code;
+    setSelectedCode(code);
+    const nextForm = questionToForm(data?.question);
+    setForm(nextForm);
+    setInfo(isEdit ? 'Question mise à jour.' : 'Question créée.');
+    await loadList();
+    return nextForm;
+  }, [form, selectedCode, loadList]);
+
+  const { status: saveStatus, error: saveError } = useDebouncedAutoSave({
+    value: form,
+    resetKey: selectedCode ?? `new:${form.question_code}`,
+    enabled: String(form.question || '').trim().length > 0,
+    onSave: persistQuestion,
+  });
 
   function setField(key, value) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -240,6 +241,8 @@ export function GLQcmQuestionEditorPanel({ initialQuestionCode = null }) {
         une nouvelle.
       </p>
       {error ? <p className="gl-error">{error}</p> : null}
+      {saveError ? <p className="gl-error">{saveError}</p> : null}
+      <AutoSaveStatus status={saveStatus} className="gl-hint" />
       {info ? <p className="gl-hint">{info}</p> : null}
 
       <div className="gl-qcm-editor__grid">
@@ -327,17 +330,13 @@ export function GLQcmQuestionEditorPanel({ initialQuestionCode = null }) {
           </div>
         </div>
 
-        <form className="gl-qcm-editor__form" onSubmit={saveQuestion}>
+        <div className="gl-qcm-editor__form">
           <h4>{selectedCode ? `Modifier ${selectedCode}` : 'Nouvelle question'}</h4>
+          <AutoSaveStatus status={saveStatus} className="gl-hint" />
           <div className="gl-qcm-editor__fields">
             {FORM_FIELDS.map((key) => renderField(key))}
           </div>
-          <div className="gl-inline-actions">
-            <GLButton type="submit" disabled={loading}>
-              {loading ? 'Enregistrement…' : selectedCode ? 'Enregistrer' : 'Créer'}
-            </GLButton>
-          </div>
-        </form>
+        </div>
       </div>
     </section>
   );

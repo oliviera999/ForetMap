@@ -49,6 +49,7 @@ export function GLGuestDemoBoard({ onExitGuest, brandThemeStyle = null }) {
   const boardShellRef = useRef(null);
   const [presentedZoneIds, setPresentedZoneIds] = useState([]);
   const [pathIndex, setPathIndex] = useState(0);
+  const pathIndexRef = useRef(0);
   const [demoFeuillets, setDemoFeuillets] = useState([]);
   const [discoveryFeuillet, setDiscoveryFeuillet] = useState(null);
   const [discoveryZone, setDiscoveryZone] = useState(null);
@@ -56,7 +57,7 @@ export function GLGuestDemoBoard({ onExitGuest, brandThemeStyle = null }) {
   const [loadError, setLoadError] = useState('');
 
   const teams = useMemo(() => [DEMO_TEAM], []);
-  const { getPositionForTeam, getMotionForTeam, moveTeamTo } = useGLBoardMascotMotion({
+  const { getPositionForTeam, getMotionForTeam, moveTeamAlongPath } = useGLBoardMascotMotion({
     teams,
     boardHeightPx,
     prefersReducedMotion,
@@ -118,18 +119,20 @@ export function GLGuestDemoBoard({ onExitGuest, brandThemeStyle = null }) {
   }, [watchPosition?.xp, watchPosition?.yp, handleFeuilletZonePositionChange]);
 
   const advanceAlongPath = useCallback(
-    (steps) => {
+    async (steps) => {
       const delta = Math.max(1, Number(steps) || 1);
-      setPathIndex((prev) => {
-        const next = Math.min(prev + delta, pathWaypoints.length - 1);
-        const target = pathWaypoints[next];
-        if (target) {
-          moveTeamTo(DEMO_TEAM_ID, target.xp, target.yp, { triggerHappy: true });
-        }
-        return next;
-      });
+      const start = pathIndexRef.current;
+      const end = Math.min(start + delta, pathWaypoints.length - 1);
+      const waypoints = pathWaypoints.slice(start + 1, end + 1).map((point) => ({
+        x_pct: point.xp,
+        y_pct: point.yp,
+      }));
+      if (!waypoints.length) return;
+      await moveTeamAlongPath(DEMO_TEAM_ID, waypoints, { triggerHappy: true });
+      pathIndexRef.current = end;
+      setPathIndex(end);
     },
-    [moveTeamTo, pathWaypoints],
+    [moveTeamAlongPath, pathWaypoints],
   );
 
   const handleDiceRollResult = useCallback(

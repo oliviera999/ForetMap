@@ -222,12 +222,7 @@ export default function MascotPackImagesPanel({
         ) : null}
         <label className="btn btn-ghost btn-sm" style={{ cursor: 'pointer' }}>
           Importer sur la carte…
-          <input
-            type="file"
-          accept="image/*"
-          style={{ display: 'none' }}
-          onChange={onMapUpload}
-          />
+          <input type="file" accept="image/*" style={{ display: 'none' }} onChange={onMapUpload} />
         </label>
         <button type="button" className="btn btn-ghost btn-sm" onClick={onSetFramesBaseMap}>
           framesBase → carte

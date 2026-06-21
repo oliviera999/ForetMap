@@ -1,5 +1,7 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { apiGL } from '../services/apiGL.js';
+import { AutoSaveStatus } from '../../shared/components/AutoSaveStatus.jsx';
+import { useDebouncedAutoSave } from '../../shared/hooks/useDebouncedAutoSave.js';
 import { compressImageWithPreset, isLikelyImageFile } from '../../utils/image.js';
 import { GLChapterMapStudio } from './GLChapterMapStudio.jsx';
 import { isModuleEnabled } from '../constants/modules.js';
@@ -37,6 +39,7 @@ export function GLChaptersAdminView() {
   const [selectedId, setSelectedId] = useState(null);
   const [detail, setDetail] = useState(null);
   const [chapterForm, setChapterForm] = useState(EMPTY_CHAPTER_FORM);
+  const [chapterFormRevision, setChapterFormRevision] = useState(0);
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
   const [uploadingMapImage, setUploadingMapImage] = useState(false);
@@ -93,6 +96,7 @@ export function GLChaptersAdminView() {
       setDetail(data);
       setChapterForm(chapterDetailToForm(data));
       setSelectedId(Number(data.chapter.id));
+      setChapterFormRevision((value) => value + 1);
       clearPendingMapImage();
     } catch (err) {
       setError(err.message || 'Détail introuvable');
@@ -127,6 +131,7 @@ export function GLChaptersAdminView() {
     setChapterForm(EMPTY_CHAPTER_FORM);
     setSelectedId(null);
     setDetail(null);
+    setChapterFormRevision((value) => value + 1);
     clearPendingMapImage();
   }
 
@@ -137,31 +142,52 @@ export function GLChaptersAdminView() {
     [pendingMapPreviewUrl],
   );
 
-  async function submitChapter(event) {
-    event.preventDefault();
+  const persistChapter = useCallback(async () => {
     setError('');
     setInfo('');
     const payload = chapterFormToPayload(chapterForm);
-    try {
-      let chapterId = selectedId;
-      if (selectedId) {
-        const data = await apiGL(`/api/gl/chapters/admin/${selectedId}`, 'PUT', payload);
-        setDetail(data);
-        setInfo('Chapitre mis à jour');
-      } else {
-        const data = await apiGL('/api/gl/chapters/admin', 'POST', payload);
-        setDetail(data);
-        chapterId = Number(data?.chapter?.id || null);
-        setSelectedId(chapterId);
-        setInfo('Chapitre créé');
+    let chapterId = selectedId;
+    if (selectedId) {
+      const data = await apiGL(`/api/gl/chapters/admin/${selectedId}`, 'PUT', payload);
+      setDetail(data);
+      setInfo('Chapitre mis à jour');
+      if (data?.chapter) {
+        setChapterForm(chapterDetailToForm(data.chapter, data));
+        setChapterFormRevision((value) => value + 1);
       }
-      if (pendingMapImageFile && chapterId) {
-        await uploadChapterMapImage(pendingMapImageFile, chapterId);
+    } else {
+      const data = await apiGL('/api/gl/chapters/admin', 'POST', payload);
+      setDetail(data);
+      chapterId = Number(data?.chapter?.id || null);
+      setSelectedId(chapterId);
+      setInfo('Chapitre créé');
+      if (data?.chapter) {
+        setChapterForm(chapterDetailToForm(data.chapter, data));
+        setChapterFormRevision((value) => value + 1);
       }
-      await loadChapters();
-    } catch (err) {
-      setError(err.message || 'Enregistrement impossible');
     }
+    if (pendingMapImageFile && chapterId) {
+      await uploadChapterMapImage(pendingMapImageFile, chapterId);
+    }
+    await loadChapters();
+    return chapterForm;
+  }, [
+    chapterForm,
+    selectedId,
+    pendingMapImageFile,
+    loadChapters,
+    uploadChapterMapImage,
+  ]);
+
+  const { status: saveStatus, error: saveError } = useDebouncedAutoSave({
+    value: chapterForm,
+    resetKey: `${selectedId ?? 'new'}:${chapterFormRevision}`,
+    enabled: String(chapterForm.slug || '').trim() && String(chapterForm.title || '').trim(),
+    onSave: persistChapter,
+  });
+
+  async function submitChapter(event) {
+    event.preventDefault();
   }
 
   async function deleteChapter() {
@@ -336,6 +362,8 @@ export function GLChaptersAdminView() {
     <section className="gl-panel">
       <h2>Chapitres</h2>
       {error ? <p className="gl-error">{error}</p> : null}
+      {saveError ? <p className="gl-error">{saveError}</p> : null}
+      <AutoSaveStatus status={saveStatus} className="gl-hint" />
       {info ? <p className="gl-info">{info}</p> : null}
 
       <details className="plant-more" style={{ marginBottom: 16 }}>
@@ -596,8 +624,8 @@ export function GLChaptersAdminView() {
                 resolveDisplayMarkdown={resolvePlainMarkdown}
               />
             </label>
+            <AutoSaveStatus status={saveStatus} className="gl-hint" />
             <div className="gl-inline-actions">
-              <GLButton type="submit">{selectedId ? 'Enregistrer' : 'Créer'}</GLButton>
               {selectedId ? (
                 <GLButton type="button" variant="danger" onClick={deleteChapter}>
                   Supprimer

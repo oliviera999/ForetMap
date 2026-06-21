@@ -1,8 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 
 import { MediaLibraryMenu } from '../../../components/MediaLibraryMenu.jsx';
 import { withAppBase } from '../../../services/api.js';
 import { apiGL } from '../../services/apiGL.js';
+import { AutoSaveStatus } from '../../../shared/components/AutoSaveStatus.jsx';
+import { useDebouncedAutoSave } from '../../../shared/hooks/useDebouncedAutoSave.js';
 import { GLButton } from '../ui/GLButton.jsx';
 import { GLField } from '../ui/GLField.jsx';
 import { GLInput } from '../ui/GLInput.jsx';
@@ -26,6 +28,7 @@ function emptyDraft() {
 
 export function GLIntroAdminPanel() {
   const [draft, setDraft] = useState(emptyDraft);
+  const [loadRevision, setLoadRevision] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
@@ -34,6 +37,7 @@ export function GLIntroAdminPanel() {
     setError('');
     const data = await apiGL('/api/gl/admin/content/intro');
     setDraft(data || emptyDraft());
+    setLoadRevision((value) => value + 1);
   }
 
   useEffect(() => {
@@ -47,20 +51,17 @@ export function GLIntroAdminPanel() {
     }));
   }
 
-  async function save() {
-    setBusy(true);
-    setError('');
-    setInfo('');
-    try {
-      await apiGL('/api/gl/admin/content/intro', 'PUT', draft);
-      setInfo('Intro enregistrée.');
-      await load();
-    } catch (err) {
-      setError(err.message || 'Enregistrement impossible');
-    } finally {
-      setBusy(false);
-    }
-  }
+  const persistIntro = useCallback(async () => {
+    await apiGL('/api/gl/admin/content/intro', 'PUT', draft);
+    setInfo('Intro enregistrée.');
+    return draft;
+  }, [draft]);
+
+  const { status: saveStatus, error: saveError } = useDebouncedAutoSave({
+    value: draft,
+    resetKey: loadRevision,
+    onSave: persistIntro,
+  });
 
   async function resetDefaults() {
     if (
@@ -100,12 +101,11 @@ export function GLIntroAdminPanel() {
       </p>
 
       {error ? <p className="gl-error">{error}</p> : null}
+      {saveError ? <p className="gl-error">{saveError}</p> : null}
       {info ? <div className="gl-success-banner">{info}</div> : null}
 
       <div className="gl-intro-admin__toolbar">
-        <GLButton type="button" variant="primary" onClick={save} loading={busy}>
-          Enregistrer
-        </GLButton>
+        <AutoSaveStatus status={saveStatus} className="gl-hint" />
         <GLButton type="button" variant="ghost" onClick={openPreview} disabled={busy}>
           Aperçu
         </GLButton>

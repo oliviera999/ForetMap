@@ -42,7 +42,7 @@ describe('GLGlossaryEditorPanel', () => {
     });
   });
 
-  test('affiche le formulaire et crée un terme', async () => {
+  test('affiche le formulaire et crée un terme automatiquement', async () => {
     render(<GLGlossaryEditorPanel />);
 
     await waitFor(() => {
@@ -56,16 +56,18 @@ describe('GLGlossaryEditorPanel', () => {
     });
 
     fireEvent.change(screen.getByLabelText('Terme *'), { target: { value: 'Photosynthèse test' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
 
-    await waitFor(() => {
-      expect(apiGlMock).toHaveBeenCalledWith(
-        '/api/gl/admin/glossary/terms',
-        'POST',
-        expect.objectContaining({
-          terme: 'Photosynthèse test',
-        }),
-      );
-    });
+    await waitFor(
+      () => {
+        expect(apiGlMock).toHaveBeenCalledWith(
+          '/api/gl/admin/glossary/terms',
+          'POST',
+          expect.objectContaining({
+            terme: 'Photosynthèse test',
+          }),
+        );
+      },
+      { timeout: 3000 },
+    );
   });
 });

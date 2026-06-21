@@ -9,7 +9,6 @@ function renderForm(props = {}) {
     <GLGlossaryTermForm
       form={{ ...EMPTY_FORM }}
       onField={vi.fn()}
-      onSubmit={vi.fn()}
       onArchive={vi.fn()}
       selectedCode={null}
       loading={false}
@@ -30,22 +29,10 @@ describe('GLGlossaryTermForm', () => {
     expect(onField).toHaveBeenCalledWith('glossary_code', 'GL0009');
   });
 
-  test('appelle onSubmit à la soumission du formulaire', () => {
-    const onSubmit = vi.fn((e) => e.preventDefault());
-    const { container } = renderForm({ onSubmit });
-    fireEvent.submit(container.querySelector('form'));
-    expect(onSubmit).toHaveBeenCalledTimes(1);
-  });
-
-  test('désactive le code et affiche Archiver en édition', () => {
-    renderForm({ selectedCode: 'GL0001', form: { ...EMPTY_FORM, glossary_code: 'GL0001' } });
-    expect(screen.getByDisplayValue('GL0001')).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Archiver' })).toBeInTheDocument();
-  });
-
   test('masque Archiver à la création', () => {
     renderForm({ selectedCode: null });
     expect(screen.queryByRole('button', { name: 'Archiver' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Enregistrer' })).not.toBeInTheDocument();
   });
 
   test('appelle onArchive au clic sur Archiver', () => {
@@ -55,14 +42,27 @@ describe('GLGlossaryTermForm', () => {
     expect(onArchive).toHaveBeenCalledTimes(1);
   });
 
-  test('libellé Enregistrer reflète l’état loading', () => {
-    const { rerender } = renderForm({ loading: false });
-    expect(screen.getByRole('button', { name: 'Enregistrer' })).not.toBeDisabled();
+  test('désactive le code et affiche Archiver en édition', () => {
+    renderForm({ selectedCode: 'GL0001', form: { ...EMPTY_FORM, glossary_code: 'GL0001' } });
+    expect(screen.getByDisplayValue('GL0001')).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Archiver' })).toBeInTheDocument();
+  });
+
+  test('pas de bouton Enregistrer (auto-save parent)', () => {
+    const { rerender } =     renderForm({
+      onField: vi.fn(),
+      onArchive: vi.fn(),
+      selectedCode: null,
+      loading: false,
+      categories: [],
+      niveaux: [],
+      biomeOptions: [],
+    });
+    expect(screen.queryByRole('button', { name: 'Enregistrer' })).not.toBeInTheDocument();
     rerender(
       <GLGlossaryTermForm
         form={{ ...EMPTY_FORM }}
         onField={vi.fn()}
-        onSubmit={vi.fn()}
         onArchive={vi.fn()}
         selectedCode={null}
         loading
@@ -71,7 +71,7 @@ describe('GLGlossaryTermForm', () => {
         biomeOptions={[]}
       />,
     );
-    expect(screen.getByRole('button', { name: 'Enregistrement…' })).toBeDisabled();
+    expect(screen.queryByRole('button', { name: 'Enregistrement…' })).not.toBeInTheDocument();
   });
 
   test('affiche le sélecteur de biomes quand all_biomes est faux', () => {

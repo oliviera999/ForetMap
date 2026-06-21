@@ -1,4 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { AutoSaveStatus } from '../../shared/components/AutoSaveStatus.jsx';
+import { useDebouncedAutoSave } from '../../shared/hooks/useDebouncedAutoSave.js';
 import { GLButton } from './ui/GLButton.jsx';
 import { validateGlMascotPackForUi } from '../../shared/mascot-pack/glPackValidationUi.js';
 import { MascotPackValidationList } from '../../shared/mascot-pack/MascotPackValidationList.jsx';
@@ -64,12 +66,17 @@ export function GLMascotPackWysiwygEditor({ initialPack, onSave, onDelete }) {
 
   function submit(event) {
     event.preventDefault();
-    if (!parsedPayload.ok) {
-      setParseError(parsedPayload.error);
-      return;
-    }
-    if (!validation.ok) return;
-    onSave?.({
+  }
+
+  const editorDraft = useMemo(
+    () => ({ name, chapterId, packType, jsonText }),
+    [name, chapterId, packType, jsonText],
+  );
+
+  const persistPack = useCallback(async () => {
+    if (!parsedPayload.ok) throw new Error(parsedPayload.error);
+    if (!validation.ok) return editorDraft;
+    await onSave?.({
       id: initialPack?.id || null,
       name: String(name || '').trim() || 'Pack GL',
       chapterId: chapterId ? Number(chapterId) : null,
@@ -79,7 +86,24 @@ export function GLMascotPackWysiwygEditor({ initialPack, onSave, onDelete }) {
       },
     });
     setParseError('');
-  }
+    return editorDraft;
+  }, [
+    parsedPayload,
+    validation.ok,
+    onSave,
+    initialPack?.id,
+    name,
+    chapterId,
+    packType,
+    editorDraft,
+  ]);
+
+  const { status: saveStatus, error: saveError } = useDebouncedAutoSave({
+    value: editorDraft,
+    resetKey: initialPack?.id ?? 'new',
+    enabled: validation.ok && parsedPayload.ok,
+    onSave: persistPack,
+  });
 
   return (
     <form className="gl-form" onSubmit={submit}>
@@ -106,7 +130,7 @@ export function GLMascotPackWysiwygEditor({ initialPack, onSave, onDelete }) {
           rows={14}
         />
       </label>
-      {parseError ? <p className="gl-error">{parseError}</p> : null}
+      {parseError || saveError ? <p className="gl-error">{parseError || saveError}</p> : null}
       <MascotPackValidationList
         issueLines={validation.issueLines}
         className="gl-error-block"
@@ -122,9 +146,7 @@ export function GLMascotPackWysiwygEditor({ initialPack, onSave, onDelete }) {
         />
       ) : null}
       <div className="gl-inline-actions">
-        <GLButton type="submit" disabled={!validation.ok || !!parseError}>
-          Enregistrer le pack
-        </GLButton>
+        <AutoSaveStatus status={saveStatus} className="gl-hint" />
         {initialPack?.id ? (
           <GLButton type="button" variant="danger" onClick={() => onDelete?.(initialPack.id)}>
             Supprimer le pack

@@ -1,5 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { apiGL } from '../services/apiGL.js';
+import { AutoSaveStatus } from '../../shared/components/AutoSaveStatus.jsx';
+import { useDebouncedAutoSave } from '../../shared/hooks/useDebouncedAutoSave.js';
 import { GLBrandHub } from './GLBrandHub.jsx';
 import { GLBrandEditor } from './GLBrandEditor.jsx';
 import { GLGameplayTogglesList } from './settings/GLGameplayTogglesList.jsx';
@@ -34,8 +36,7 @@ export function GLSettingsView() {
   const [successMessage, setSuccessMessage] = useState('');
   const [savingKey, setSavingKey] = useState('');
   const [applyingPresetId, setApplyingPresetId] = useState('');
-  const [savingTitle, setSavingTitle] = useState(false);
-  const [savingBrand, setSavingBrand] = useState(false);
+  const [settingsLoadRevision, setSettingsLoadRevision] = useState(0);
   const [defaultHealthPoints, setDefaultHealthPoints] = useState('3');
   const [defaultPowerPoints, setDefaultPowerPoints] = useState('3');
   const { mapSettings, reload: reloadMapOverlaySettings } = useGlMapOverlaySettings();
@@ -53,6 +54,7 @@ export function GLSettingsView() {
       setBrandDraft(normalizeBrand(next['platform.brand'] || {}));
       setDefaultHealthPoints(identity.defaultHealthPoints);
       setDefaultPowerPoints(identity.defaultPowerPoints);
+      setSettingsLoadRevision((value) => value + 1);
       setError('');
     } catch (err) {
       setError(err.message || 'Chargement impossible');
@@ -67,29 +69,77 @@ export function GLSettingsView() {
     setPlateauMarkerSizePercent(String(readPlateauMarkerSizePercent(mapSettings)));
   }, [mapSettings]);
 
-  async function savePlatformIdentity(event) {
-    event.preventDefault();
+  const platformIdentity = { title, subtitle };
+
+  const persistPlatformIdentity = useCallback(async () => {
     const titleTrim = String(title || '').trim();
     const subtitleTrim = String(subtitle || '').trim();
-    if (!titleTrim) {
-      setError('Le titre plateforme est obligatoire.');
-      setSuccessMessage('');
-      return;
+    if (!titleTrim) throw new Error('Le titre plateforme est obligatoire.');
+    await apiGL('/api/gl/admin/settings/platform.title', 'PUT', { value: titleTrim });
+    await apiGL('/api/gl/admin/settings/platform.subtitle', 'PUT', { value: subtitleTrim });
+    await load();
+    setSuccessMessage('Identité plateforme enregistrée.');
+    return { title: titleTrim, subtitle: subtitleTrim };
+  }, [title, subtitle]);
+
+  const persistBrand = useCallback(async () => {
+    const normalized = normalizeBrand(brandDraft);
+    await apiGL('/api/gl/admin/settings/platform.brand', 'PUT', { value: normalized });
+    await load();
+    setSuccessMessage('Charte visuelle enregistrée.');
+    return normalized;
+  }, [brandDraft]);
+
+  const persistMarkerSize = useCallback(async () => {
+    const n = Number(plateauMarkerSizePercent);
+    if (!Number.isInteger(n) || n < 50 || n > 200) {
+      throw new Error('La taille des repères doit être un entier entre 50 et 200.');
     }
-    setSavingTitle(true);
-    setError('');
-    setSuccessMessage('');
-    try {
-      await apiGL('/api/gl/admin/settings/platform.title', 'PUT', { value: titleTrim });
-      await apiGL('/api/gl/admin/settings/platform.subtitle', 'PUT', { value: subtitleTrim });
-      await load();
-      setSuccessMessage('Identité plateforme enregistrée.');
-    } catch (err) {
-      setError(err.message || 'Enregistrement impossible');
-    } finally {
-      setSavingTitle(false);
+    await apiGL('/api/gl/admin/settings/ui.map.plateau_marker_size_percent', 'PUT', { value: n });
+    await reloadMapOverlaySettings();
+    setSuccessMessage('Taille des repères enregistrée.');
+    return String(n);
+  }, [plateauMarkerSizePercent, reloadMapOverlaySettings]);
+
+  const vitalityDefaults = { defaultHealthPoints, defaultPowerPoints };
+
+  const persistVitalityDefaults = useCallback(async () => {
+    const health = Number(defaultHealthPoints);
+    const power = Number(defaultPowerPoints);
+    if (!areVitalityValuesValid(health, power)) {
+      throw new Error('Les valeurs initiales doivent être des entiers entre 0 et 99.');
     }
-  }
+    await apiGL('/api/gl/admin/settings/gameplay.default_health_points', 'PUT', { value: health });
+    await apiGL('/api/gl/admin/settings/gameplay.default_power_points', 'PUT', { value: power });
+    await load();
+    setSuccessMessage('Valeurs initiales enregistrées.');
+    return { defaultHealthPoints: String(health), defaultPowerPoints: String(power) };
+  }, [defaultHealthPoints, defaultPowerPoints]);
+
+  const identitySave = useDebouncedAutoSave({
+    value: platformIdentity,
+    resetKey: settingsLoadRevision,
+    canSave: () => String(title || '').trim().length > 0,
+    onSave: persistPlatformIdentity,
+  });
+
+  const brandSave = useDebouncedAutoSave({
+    value: brandDraft,
+    resetKey: settingsLoadRevision,
+    onSave: persistBrand,
+  });
+
+  const markerSizeSave = useDebouncedAutoSave({
+    value: plateauMarkerSizePercent,
+    resetKey: `${settingsLoadRevision}:${readPlateauMarkerSizePercent(mapSettings)}`,
+    onSave: persistMarkerSize,
+  });
+
+  const vitalitySave = useDebouncedAutoSave({
+    value: vitalityDefaults,
+    resetKey: settingsLoadRevision,
+    onSave: persistVitalityDefaults,
+  });
 
   async function toggleGameplayFlag(toggleKey, nextValue) {
     setSavingKey(toggleKey);
@@ -147,24 +197,6 @@ export function GLSettingsView() {
     }
   }
 
-  async function saveBrandSettings(event) {
-    event.preventDefault();
-    setSavingBrand(true);
-    setError('');
-    setSuccessMessage('');
-    try {
-      await apiGL('/api/gl/admin/settings/platform.brand', 'PUT', {
-        value: normalizeBrand(brandDraft),
-      });
-      await load();
-      setSuccessMessage('Charte visuelle enregistree.');
-    } catch (err) {
-      setError(err.message || 'Enregistrement impossible');
-    } finally {
-      setSavingBrand(false);
-    }
-  }
-
   return (
     <GLSurface className="fade-in">
       <h2>Réglages plateforme</h2>
@@ -175,16 +207,18 @@ export function GLSettingsView() {
         </div>
       ) : null}
 
-      <form onSubmit={savePlatformIdentity} className="gl-form">
+      <form className="gl-form" onSubmit={(event) => event.preventDefault()}>
         <GLField label="Titre plateforme">
           <GLInput value={title} onChange={(event) => setTitle(event.target.value)} />
         </GLField>
         <GLField label="Sous-titre plateforme">
           <GLInput value={subtitle} onChange={(event) => setSubtitle(event.target.value)} />
         </GLField>
-        <GLButton type="submit" loading={savingTitle} disabled={savingTitle}>
-          {savingTitle ? 'Enregistrement…' : 'Enregistrer'}
-        </GLButton>
+        <AutoSaveStatus
+          status={identitySave.status}
+          error={identitySave.error}
+          className="gl-hint"
+        />
       </form>
 
       <GLSurface style={{ marginTop: 12 }} variant="inset">
@@ -192,7 +226,7 @@ export function GLSettingsView() {
         <p className="gl-hint">
           Couleurs, images hero/cartes et cadres de la charte plateforme (`platform.brand`).
         </p>
-        <form onSubmit={saveBrandSettings} className="gl-form">
+        <div className="gl-form">
           <GLBrandEditor
             value={brandDraft}
             onChange={(updater) => {
@@ -204,12 +238,10 @@ export function GLSettingsView() {
               if (isError) setError(message);
               else setSuccessMessage(message);
             }}
-            disabled={savingBrand}
+            disabled={brandSave.status === 'saving'}
           />
-          <GLButton type="submit" loading={savingBrand} disabled={savingBrand}>
-            {savingBrand ? 'Enregistrement…' : 'Enregistrer la charte visuelle'}
-          </GLButton>
-        </form>
+          <AutoSaveStatus status={brandSave.status} error={brandSave.error} className="gl-hint" />
+        </div>
         <GLBrandHub slots={brandDraft?.slots} compact />
       </GLSurface>
 
@@ -262,36 +294,15 @@ export function GLSettingsView() {
               min={50}
               max={200}
               value={plateauMarkerSizePercent}
-              disabled={savingKey === 'ui.map.plateau_marker_size_percent'}
+              disabled={markerSizeSave.status === 'saving'}
               onChange={(event) => setPlateauMarkerSizePercent(event.target.value)}
             />
           </GLField>
-          <GLButton
-            type="button"
-            disabled={savingKey === 'ui.map.plateau_marker_size_percent'}
-            onClick={async () => {
-              const n = Number(plateauMarkerSizePercent);
-              if (!Number.isInteger(n) || n < 50 || n > 200) {
-                setError('La taille des repères doit être un entier entre 50 et 200.');
-                return;
-              }
-              setSavingKey('ui.map.plateau_marker_size_percent');
-              setError('');
-              try {
-                await apiGL('/api/gl/admin/settings/ui.map.plateau_marker_size_percent', 'PUT', {
-                  value: n,
-                });
-                await reloadMapOverlaySettings();
-                setSuccessMessage('Taille des repères enregistrée.');
-              } catch (err) {
-                setError(err.message || 'Enregistrement impossible');
-              } finally {
-                setSavingKey('');
-              }
-            }}
-          >
-            Enregistrer la taille des repères
-          </GLButton>
+          <AutoSaveStatus
+            status={markerSizeSave.status}
+            error={markerSizeSave.error}
+            className="gl-hint"
+          />
         </div>
       </div>
 
@@ -310,7 +321,7 @@ export function GLSettingsView() {
               min={0}
               max={99}
               value={defaultHealthPoints}
-              disabled={savingKey === 'gameplay.default_health_points'}
+              disabled={vitalitySave.status === 'saving'}
               onChange={(event) => setDefaultHealthPoints(event.target.value)}
             />
           </GLField>
@@ -320,43 +331,15 @@ export function GLSettingsView() {
               min={0}
               max={99}
               value={defaultPowerPoints}
-              disabled={savingKey === 'gameplay.default_power_points'}
+              disabled={vitalitySave.status === 'saving'}
               onChange={(event) => setDefaultPowerPoints(event.target.value)}
             />
           </GLField>
-          <GLButton
-            type="button"
-            disabled={
-              savingKey === 'gameplay.default_health_points' ||
-              savingKey === 'gameplay.default_power_points'
-            }
-            onClick={async () => {
-              const health = Number(defaultHealthPoints);
-              const power = Number(defaultPowerPoints);
-              if (!areVitalityValuesValid(health, power)) {
-                setError('Les valeurs initiales doivent être des entiers entre 0 et 99.');
-                return;
-              }
-              setSavingKey('gameplay.default_health_points');
-              setError('');
-              try {
-                await apiGL('/api/gl/admin/settings/gameplay.default_health_points', 'PUT', {
-                  value: health,
-                });
-                await apiGL('/api/gl/admin/settings/gameplay.default_power_points', 'PUT', {
-                  value: power,
-                });
-                await load();
-                setSuccessMessage('Valeurs initiales enregistrées.');
-              } catch (err) {
-                setError(err.message || 'Enregistrement impossible');
-              } finally {
-                setSavingKey('');
-              }
-            }}
-          >
-            Enregistrer les valeurs initiales
-          </GLButton>
+          <AutoSaveStatus
+            status={vitalitySave.status}
+            error={vitalitySave.error}
+            className="gl-hint"
+          />
         </div>
       </div>
 

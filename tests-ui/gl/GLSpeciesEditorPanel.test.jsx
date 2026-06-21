@@ -37,7 +37,7 @@ describe('GLSpeciesEditorPanel', () => {
     });
   });
 
-  test('affiche le formulaire biocénose et enregistre une espèce', async () => {
+  test('affiche le formulaire biocénose et enregistre une espèce automatiquement', async () => {
     render(<GLSpeciesEditorPanel />);
 
     await waitFor(() => {
@@ -52,16 +52,18 @@ describe('GLSpeciesEditorPanel', () => {
 
     const nomInput = screen.getByLabelText(/Nom commun/i);
     fireEvent.change(nomInput, { target: { value: 'Fennec test' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
 
-    await waitFor(() => {
-      expect(apiGlMock).toHaveBeenCalledWith(
-        '/api/gl/admin/species',
-        'POST',
-        expect.objectContaining({
-          nom_commun: 'Fennec test',
-        }),
-      );
-    });
+    await waitFor(
+      () => {
+        expect(apiGlMock).toHaveBeenCalledWith(
+          '/api/gl/admin/species',
+          'POST',
+          expect.objectContaining({
+            nom_commun: 'Fennec test',
+          }),
+        );
+      },
+      { timeout: 3000 },
+    );
   });
 });

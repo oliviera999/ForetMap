@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { apiGL } from '../services/apiGL.js';
+import { AutoSaveStatus } from '../../shared/components/AutoSaveStatus.jsx';
+import { useDebouncedAutoSave } from '../../shared/hooks/useDebouncedAutoSave.js';
 import { useGlPctMapGestures } from '../hooks/useGlPctMapGestures.js';
 import { useGLKingdomZones } from '../hooks/useGLKingdomZones.js';
 import { useGLKingdomZoneEditor } from '../hooks/useGLKingdomZoneEditor.js';
@@ -251,13 +253,18 @@ export function GLChapterMapStudio({
   }
 
   async function submitMarker(event) {
-    event.preventDefault();
-    if (!chapterId) return;
+    event?.preventDefault?.();
+  }
+
+  const markerDraft = useMemo(
+    () => ({ markerForm, eventDraft, appearanceForm, effectsDraft }),
+    [markerForm, eventDraft, appearanceForm, effectsDraft],
+  );
+
+  const persistMarker = useCallback(async () => {
+    if (!chapterId) return markerDraft;
     const payload = toMarkerPayload(markerForm, eventDraft, appearanceForm);
-    if (!payload.label) {
-      onError?.('Le label du repère est requis');
-      return;
-    }
+    if (!payload.label) throw new Error('Le label du repère est requis');
     setSaving(true);
     try {
       if (selectedMarkerId != null && !isAddMode) {
@@ -270,12 +277,37 @@ export function GLChapterMapStudio({
       setIsAddMode(false);
       resetForm();
       await onReload?.(chapterSlug);
+      return markerDraft;
     } catch (err) {
       onError?.(err.message || 'Enregistrement du repère impossible');
+      throw err;
     } finally {
       setSaving(false);
     }
-  }
+  }, [
+    chapterId,
+    markerForm,
+    eventDraft,
+    appearanceForm,
+    selectedMarkerId,
+    isAddMode,
+    onInfo,
+    onError,
+    onReload,
+    chapterSlug,
+    markerDraft,
+  ]);
+
+  const { status: markerSaveStatus, error: markerSaveError } = useDebouncedAutoSave({
+    value: markerDraft,
+    resetKey: selectedMarkerId ?? (isAddMode ? 'add' : 'none'),
+    enabled:
+      Boolean(chapterId) &&
+      !zoneEditActive &&
+      (selectedMarkerId != null || isAddMode) &&
+      String(markerForm.label || '').trim().length > 0,
+    onSave: persistMarker,
+  });
 
   async function deleteMarker() {
     if (selectedMarkerId == null) return;
@@ -618,9 +650,8 @@ export function GLChapterMapStudio({
           />
         </label>
         <div className="gl-inline-actions">
-          <GLButton type="submit" disabled={saving || zoneEditActive} loading={saving}>
-            {selectedMarker ? 'Enregistrer le repère' : 'Ajouter le repère'}
-          </GLButton>
+          {markerSaveError ? <p className="gl-error">{markerSaveError}</p> : null}
+          <AutoSaveStatus status={markerSaveStatus} className="gl-hint" />
           {selectedMarker ? (
             <>
               <GLButton

@@ -248,7 +248,9 @@ function useGLPlateauMapEditorState({
 export function GLPlateauMapEditorProvider({ children, ...props }) {
   const value = useGLPlateauMapEditorState(props);
   return (
-    <GLPlateauMapEditorContext.Provider value={value}>{children}</GLPlateauMapEditorContext.Provider>
+    <GLPlateauMapEditorContext.Provider value={value}>
+      {children}
+    </GLPlateauMapEditorContext.Provider>
   );
 }
 

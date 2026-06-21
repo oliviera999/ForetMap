@@ -74,10 +74,10 @@ describe('GLGameMasterConsoleActiveGameBanner', () => {
     expect(screen.getByText(/Classe modifiable uniquement/)).toBeInTheDocument();
   });
 
-  test('soumettre le formulaire appelle saveGameEdits', () => {
-    const { props } = renderBanner();
-    fireEvent.click(screen.getByText('Enregistrer la partie'));
-    expect(props.saveGameEdits).toHaveBeenCalled();
+  test('indicateur auto-save sans bouton Enregistrer', () => {
+    renderBanner({ gameSaveStatus: 'saved' });
+    expect(screen.queryByText('Enregistrer la partie')).not.toBeInTheDocument();
+    expect(screen.getByText('Enregistré ✓')).toBeInTheDocument();
   });
 
   test('éditer le nom remonte vers setEditGameForm', () => {

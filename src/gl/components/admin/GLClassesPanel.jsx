@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { apiGL } from '../../services/apiGL.js';
+import { AutoSaveStatus } from '../../shared/components/AutoSaveStatus.jsx';
+import { useDebouncedAutoSave } from '../../shared/hooks/useDebouncedAutoSave.js';
 import { GLBadge } from '../ui/GLBadge.jsx';
 import { GLButton } from '../ui/GLButton.jsx';
 import { GLDataList } from '../ui/GLDataList.jsx';
@@ -57,12 +59,22 @@ export function GLClassesPanel({ classes, onReload }) {
       setEditSchool('');
       setInfo('Classe mise à jour.');
       await onReload?.();
+      return { name: editName, school: editSchool };
     } catch (err) {
       setError(err.message || 'Mise à jour impossible');
+      throw err;
     } finally {
       setBusy(false);
     }
   }
+
+  const editDraft = { name: editName, school: editSchool };
+  const { status: saveStatus, error: saveError } = useDebouncedAutoSave({
+    value: editDraft,
+    resetKey: editId,
+    enabled: Boolean(editId) && String(editName || '').trim().length > 0,
+    onSave: saveEdit,
+  });
 
   async function toggleActive(item) {
     setBusy(true);
@@ -101,6 +113,7 @@ export function GLClassesPanel({ classes, onReload }) {
     <section className="gl-admin-section fade-in">
       <h3>Classes</h3>
       {error ? <p className="gl-error">{error}</p> : null}
+      {saveError ? <p className="gl-error">{saveError}</p> : null}
       {info ? <p className="gl-hint">{info}</p> : null}
 
       <form className="gl-form" onSubmit={createClass}>
@@ -128,9 +141,7 @@ export function GLClassesPanel({ classes, onReload }) {
           const isEditing = editId === Number(item.id);
           const actions = isEditing ? (
             <>
-              <GLButton type="button" onClick={saveEdit} disabled={busy}>
-                Enregistrer
-              </GLButton>
+              <AutoSaveStatus status={saveStatus} className="gl-hint" />
               <GLButton
                 type="button"
                 variant="secondary"

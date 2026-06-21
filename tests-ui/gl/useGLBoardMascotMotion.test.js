@@ -50,5 +50,31 @@ describe('useGLBoardMascotMotion', () => {
       result.current.moveTeamTo(4, 52, 51, { arrival: 'marker' });
     });
     expect(result.current.getMotionForTeam(4).transientState).toBe(VISIT_MASCOT_STATE.INSPECT);
+    act(() => {
+      vi.advanceTimersByTime(560);
+    });
+    expect(result.current.getMotionForTeam(4).snapCenter).toBe(true);
+  });
+
+  it('aligne la mascotte sur chaque repère lors d’un déplacement séquentiel', async () => {
+    const teams = [{ id: 5, position_x_pct: 10, position_y_pct: 10 }];
+    const { result } = renderHook(() => useGLBoardMascotMotion({ teams, boardHeightPx: 500 }));
+    let pending;
+    act(() => {
+      pending = result.current.moveTeamAlongPath(5, [
+        { x_pct: 20, y_pct: 20 },
+        { x_pct: 30, y_pct: 30 },
+      ]);
+    });
+    expect(result.current.getPositionForTeam(5).xp).toBe(20);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(560);
+    });
+    expect(result.current.getPositionForTeam(5).xp).toBe(30);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(560);
+    });
+    await expect(pending).resolves.toBe(true);
+    expect(result.current.getMotionForTeam(5).snapCenter).toBe(true);
   });
 });

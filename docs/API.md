@@ -248,6 +248,8 @@ Note UX admin GL : l’édition des chapitres (repères + zones polygonales sur 
 
 **Réglage `gameplay.marker_backgrounds`** (objet JSON, défaut `{ "label": "transparent", "emoji": "transparent", "icon": "transparent" }`) : fond des repères sur la carte plateau (modes d'affichage label / emoji / icône). Chaque clé accepte `transparent` (défaut), `classic` (rendu historique : orange pour le libellé, blanc semi-transparent pour l'emoji, icône sans fond) ou une couleur hex `#RRGGBB`. Exposé côté client dans `GET /api/gl/gameplay-settings` sous `markerBackgrounds` ; appliqué via variables CSS sur le conteneur `.gl-app`. Modifiable dans Réglages plateforme GL → section « Affichage carte plateau ».
 
+**Réglage `gameplay.plateau_marker_numbers_visible`** (booléen, défaut `false`) : affiche les numéros de parcours (1, 2, 3…) sur les repères en partie lorsque la partie est en mode `numbered_path`. Exposé sous `plateauMarkerNumbersVisible` dans `GET /api/gl/gameplay-settings`. Toggle « Numéros de parcours sur les repères » dans Réglages → Affichage carte plateau.
+
 ### Administration GL
 
 | Méthode | URL                                        | Body                                                                                                                                                                                                                                                                                                                                                                                                                                                           | Permission                                                                   |

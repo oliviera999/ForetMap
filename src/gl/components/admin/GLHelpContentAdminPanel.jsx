@@ -1,6 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 
 import { apiGL } from '../../services/apiGL.js';
+import { AutoSaveStatus } from '../../../shared/components/AutoSaveStatus.jsx';
+import { useDebouncedAutoSave } from '../../../shared/hooks/useDebouncedAutoSave.js';
 import { GLButton } from '../ui/GLButton.jsx';
 import { GLField } from '../ui/GLField.jsx';
 import { GLInput } from '../ui/GLInput.jsx';
@@ -35,6 +37,7 @@ const TAB_LABELS = {
 export function GLHelpContentAdminPanel() {
   const [draft, setDraft] = useState({ entries: {} });
   const [activeKey, setActiveKey] = useState('tab:maps');
+  const [loadRevision, setLoadRevision] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
@@ -43,6 +46,7 @@ export function GLHelpContentAdminPanel() {
     setError('');
     const data = await apiGL('/api/gl/admin/content/help');
     setDraft(data || { entries: {} });
+    setLoadRevision((value) => value + 1);
     const keys = Object.keys(data?.entries || {});
     if (keys.length && !keys.includes(activeKey)) {
       setActiveKey(keys[0]);
@@ -63,21 +67,18 @@ export function GLHelpContentAdminPanel() {
     }));
   }
 
-  async function save() {
-    setBusy(true);
-    setError('');
-    setInfo('');
-    try {
-      await apiGL('/api/gl/admin/content/help', 'PUT', draft);
-      invalidateGlHelpConfigCache();
-      setInfo('Bulles d’aide GL enregistrées.');
-      await load();
-    } catch (err) {
-      setError(err.message || 'Enregistrement impossible');
-    } finally {
-      setBusy(false);
-    }
-  }
+  const persistHelp = useCallback(async () => {
+    await apiGL('/api/gl/admin/content/help', 'PUT', draft);
+    invalidateGlHelpConfigCache();
+    setInfo('Bulles d’aide GL enregistrées.');
+    return draft;
+  }, [draft]);
+
+  const { status: saveStatus, error: saveError } = useDebouncedAutoSave({
+    value: draft,
+    resetKey: loadRevision,
+    onSave: persistHelp,
+  });
 
   async function resetDefaults() {
     if (!window.confirm('Réinitialiser tous les textes d’aide GL aux valeurs par défaut ?')) return;
@@ -107,6 +108,8 @@ export function GLHelpContentAdminPanel() {
         commençant par « • » pour une liste.
       </p>
       {error && <div className="auth-error">⚠️ {error}</div>}
+      {saveError ? <div className="auth-error">⚠️ {saveError}</div> : null}
+      <AutoSaveStatus status={saveStatus} className="gl-hint" />
       {info && <div className="auth-success">{info}</div>}
 
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-start' }}>
@@ -145,9 +148,6 @@ export function GLHelpContentAdminPanel() {
       </div>
 
       <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
-        <GLButton variant="primary" disabled={busy} onClick={save}>
-          {busy ? 'Enregistrement…' : 'Enregistrer'}
-        </GLButton>
         <GLButton variant="secondary" disabled={busy} onClick={resetDefaults}>
           Réinitialiser aux défauts
         </GLButton>

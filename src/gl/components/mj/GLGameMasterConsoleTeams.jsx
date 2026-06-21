@@ -1,4 +1,5 @@
 import React from 'react';
+import { AutoSaveStatus } from '../../../shared/components/AutoSaveStatus.jsx';
 import { GLGameRosterPanel } from '../admin/GLGameRosterPanel.jsx';
 import { GLButton } from '../ui/GLButton.jsx';
 import { GLDataList } from '../ui/GLDataList.jsx';
@@ -26,6 +27,8 @@ export default function GLGameMasterConsoleTeams({
   setRosterRefreshKey,
   onGoToParties,
   busy,
+  teamSaveStatus = 'idle',
+  teamSaveError = '',
 }) {
   if (!game?.id) {
     return (
@@ -117,10 +120,9 @@ export default function GLGameMasterConsoleTeams({
               />
             </GLField>
           </div>
+          {teamSaveError ? <p className="gl-error">{teamSaveError}</p> : null}
+          <AutoSaveStatus status={teamSaveStatus} className="gl-hint" />
           <div className="gl-inline-actions">
-            <GLButton type="submit" disabled={busy}>
-              {editingTeamId ? 'Enregistrer équipe' : 'Créer équipe'}
-            </GLButton>
             {editingTeamId ? (
               <GLButton
                 type="button"
