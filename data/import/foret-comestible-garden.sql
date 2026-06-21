@@ -7,14 +7,31 @@
 -- Par défaut, supprime les zones/repères existants de cette carte avant insertion.
 
 SET NAMES utf8mb4;
-SET FOREIGN_KEY_CHECKS = 0;
+START TRANSACTION;
 
 -- Nettoyage carte « foret »
+DELETE vms FROM visit_media vms INNER JOIN visit_zones vz ON vz.id = vms.target_id WHERE vms.target_type = 'zone' AND vz.map_id = 'foret';
+DELETE vms FROM visit_media vms INNER JOIN visit_markers vm ON vm.id = vms.target_id WHERE vms.target_type = 'marker' AND vm.map_id = 'foret';
+DELETE vss FROM visit_seen_students vss INNER JOIN visit_zones vz ON vz.id = vss.target_id WHERE vss.target_type = 'zone' AND vz.map_id = 'foret';
+DELETE vss FROM visit_seen_students vss INNER JOIN visit_markers vm ON vm.id = vss.target_id WHERE vss.target_type = 'marker' AND vm.map_id = 'foret';
+DELETE vsa FROM visit_seen_anonymous vsa INNER JOIN visit_zones vz ON vz.id = vsa.target_id WHERE vsa.target_type = 'zone' AND vz.map_id = 'foret';
+DELETE vsa FROM visit_seen_anonymous vsa INNER JOIN visit_markers vm ON vm.id = vsa.target_id WHERE vsa.target_type = 'marker' AND vm.map_id = 'foret';
+DELETE FROM visit_markers WHERE map_id = 'foret';
+DELETE FROM visit_zones WHERE map_id = 'foret';
+UPDATE tasks t INNER JOIN zones z ON z.id = t.zone_id SET t.zone_id = NULL WHERE z.map_id = 'foret';
+UPDATE tasks t INNER JOIN map_markers m ON m.id = t.marker_id SET t.marker_id = NULL WHERE m.map_id = 'foret';
+UPDATE observation_logs ol INNER JOIN zones z ON z.id = ol.zone_id SET ol.zone_id = NULL WHERE z.map_id = 'foret';
+DELETE tz FROM task_zones tz INNER JOIN zones z ON z.id = tz.zone_id WHERE z.map_id = 'foret';
+DELETE tm FROM task_markers tm INNER JOIN map_markers m ON m.id = tm.marker_id WHERE m.map_id = 'foret';
+DELETE pz FROM project_zones pz INNER JOIN zones z ON z.id = pz.zone_id WHERE z.map_id = 'foret';
+DELETE pm FROM project_markers pm INNER JOIN map_markers m ON m.id = pm.marker_id WHERE m.map_id = 'foret';
+DELETE tz FROM tutorial_zones tz INNER JOIN zones z ON z.id = tz.zone_id WHERE z.map_id = 'foret';
+DELETE tm FROM tutorial_markers tm INNER JOIN map_markers m ON m.id = tm.marker_id WHERE m.map_id = 'foret';
 DELETE mp FROM marker_photos mp INNER JOIN map_markers m ON m.id = mp.marker_id WHERE m.map_id = 'foret';
 DELETE zp FROM zone_photos zp INNER JOIN zones z ON z.id = zp.zone_id WHERE z.map_id = 'foret';
 DELETE zh FROM zone_history zh INNER JOIN zones z ON z.id = zh.zone_id WHERE z.map_id = 'foret';
-DELETE FROM visit_markers WHERE map_id = 'foret';
-DELETE FROM visit_zones WHERE map_id = 'foret';
+DELETE vmc FROM visit_marker_content vmc INNER JOIN map_markers m ON m.id = vmc.marker_id WHERE m.map_id = 'foret';
+DELETE vzc FROM visit_zone_content vzc INNER JOIN zones z ON z.id = vzc.zone_id WHERE z.map_id = 'foret';
 DELETE FROM map_markers WHERE map_id = 'foret';
 DELETE FROM zones WHERE map_id = 'foret';
 
@@ -79,4 +96,4 @@ INSERT INTO map_markers (id, map_id, x_pct, y_pct, label, plant_name, living_bei
 INSERT INTO map_markers (id, map_id, x_pct, y_pct, label, plant_name, living_beings, note, emoji, created_at) VALUES ('5344a6c8-04a1-4037-baef-f6021f36a618', 'foret', 41.46074962254553, 33.13688873144925, 'Vigne noire', 'Raisin', '["Raisin"]', 'Des tiges se développent au printemps avec l''apparition des grappes de fleurs. Raisins à maturité en juillet', '🌱', '2026-03-24 14:47:40');
 INSERT INTO map_markers (id, map_id, x_pct, y_pct, label, plant_name, living_beings, note, emoji, created_at) VALUES ('d1adea85-e298-4a94-9f48-cec2dc513364', 'foret', 84.55432223835128, 54.4338044818088, 'Zone sauvage', '', NULL, 'Zone sans entretien, beaucoup de moutardes sauvages sous les eucalyptus ', '🌸', '2026-04-05 18:28:25');
 
-SET FOREIGN_KEY_CHECKS = 1;
+COMMIT;

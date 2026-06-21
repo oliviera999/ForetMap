@@ -1074,59 +1074,49 @@ router.post(
 
 // Compatibilité historique: "mode prof via PIN".
 // Désormais, ce endpoint exige d'être déjà connecté puis élève la session.
-router.post('/teacher', async (req, res) => {
-  try {
+router.post(
+  '/teacher',
+  requireAuth,
+  asyncHandler(async (req, res) => {
     const allowPinElevation = await getSettingValue('security.allow_pin_elevation', true);
     if (!allowPinElevation) return res.status(403).json({ error: 'Élévation PIN désactivée' });
     const pin = normalizeOptionalString(req.body?.pin);
     if (!pin) return res.status(400).json({ error: 'PIN requis' });
-    const bearer = req.headers.authorization;
-    const tokenIn = bearer && bearer.startsWith('Bearer ') ? bearer.slice(7) : null;
-    if (tokenIn) {
-      let claims;
-      try {
-        claims = jwt.verify(tokenIn, JWT_SECRET);
-      } catch (_) {
-        logger.warn(
-          { requestId: req.requestId, event: 'auth_teacher_legacy_token_invalid' },
-          'Token JWT invalide (endpoint teacher legacy)',
-        );
-        return res.status(401).json({ error: 'Token invalide ou expiré' });
-      }
-      const ok = await verifyRolePin(claims.roleId, pin);
-      if (!ok) {
-        logger.warn(
-          {
-            requestId: req.requestId,
-            event: 'auth_teacher_legacy_pin_invalid',
-            userType: claims.userType,
-          },
-          'PIN incorrect (endpoint teacher legacy)',
-        );
-        return res.status(401).json({ error: 'PIN incorrect' });
-      }
-      const session = await buildSessionPayload(claims.userType, claims.userId, true);
-      if (!session) return res.status(403).json({ error: 'Aucun profil attribué' });
-      const token = await signAuthToken(session.tokenPayload, true);
-      await logAudit(
-        'auth_teacher_legacy_elevate',
-        'auth',
-        claims.userId,
-        `Élévation via endpoint legacy (${claims.userType})`,
+    if (!req.auth?.roleId) return res.status(401).json({ error: 'Session invalide' });
+
+    // Sécurité : le PIN est vérifié sur le rôle RBAC *courant* réhydraté depuis la base
+    // (via requireAuth/req.auth), pas sur le roleId potentiellement obsolète d'un JWT encore
+    // valide — un token émis avant un changement/révocation de rôle ne peut plus élever.
+    const ok = await verifyRolePin(req.auth.roleId, pin);
+    if (!ok) {
+      logger.warn(
         {
-          req,
-          actorUserType: claims.userType,
-          actorUserId: claims.userId,
-          payload: { role_id: claims.roleId, elevated: true },
+          requestId: req.requestId,
+          event: 'auth_teacher_legacy_pin_invalid',
+          userType: req.auth.userType,
         },
+        'PIN incorrect (endpoint teacher legacy)',
       );
-      return res.json({ token, auth: exposeAuth(session.tokenPayload) });
+      return res.status(401).json({ error: 'PIN incorrect' });
     }
-    return res.status(401).json({ error: 'Token requis avant élévation PIN' });
-  } catch (e) {
-    respondInternalError(res, req, e);
-  }
-});
+    const session = await buildSessionPayload(req.auth.userType, req.auth.userId, true);
+    if (!session) return res.status(403).json({ error: 'Aucun profil attribué' });
+    const token = await signAuthToken(session.tokenPayload, true);
+    await logAudit(
+      'auth_teacher_legacy_elevate',
+      'auth',
+      req.auth.userId,
+      `Élévation via endpoint legacy (${req.auth.userType})`,
+      {
+        req,
+        actorUserType: req.auth.userType,
+        actorUserId: req.auth.userId,
+        payload: { role_id: req.auth.roleId, elevated: true },
+      },
+    );
+    return res.json({ token, auth: exposeAuth(session.tokenPayload) });
+  }),
+);
 
 router.post('/admin/impersonate', requirePermission('admin.impersonate'), async (req, res) => {
   try {
