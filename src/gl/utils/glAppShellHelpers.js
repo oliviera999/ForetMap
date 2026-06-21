@@ -57,7 +57,19 @@ export function toGameViewModel(raw) {
   const markers = Array.isArray(raw?.markers) ? raw.markers : [];
   const scores = raw?.scores || {};
   const pendingActions = Array.isArray(raw?.pendingActions) ? raw.pendingActions : [];
-  return { game, teams, markers, scores, pendingActions, events: raw?.events || [] };
+  const roster = Array.isArray(raw?.roster) ? raw.roster : [];
+  const vitality =
+    raw?.vitality && typeof raw.vitality === 'object' ? raw.vitality : null;
+  return {
+    game,
+    teams,
+    markers,
+    scores,
+    pendingActions,
+    events: raw?.events || [],
+    roster,
+    vitality,
+  };
 }
 
 /**

@@ -38,6 +38,7 @@ const ALLOWED_ATTR_WITH_IMAGES = [
   'loading',
   'class',
   'data-gl-frame',
+  'data-gl-md-src',
   'style',
 ];
 const ALLOWED_TAGS_WITH_JOURNAL = [...ALLOWED_TAGS_WITH_IMAGES, 'aside'];
@@ -244,7 +245,7 @@ export function sanitizeRichHtml(html, options = {}) {
   const sanitized = DOMPurify.sanitize(html, {
     ALLOWED_TAGS: tags,
     ALLOWED_ATTR: attrs,
-    ALLOW_DATA_ATTR: allowJournalEmbeds || allowGlossaryLinks,
+    ALLOW_DATA_ATTR: allowJournalEmbeds || allowGlossaryLinks || allowImages,
   });
   if (allowImages) {
     return wrapMarkdownContentImages(sanitized);

@@ -27,6 +27,14 @@ import {
   chapterFormToPayload,
   groupSpellsByCategory,
 } from '../utils/glChapterAdminForm.js';
+import { useGlChapterEditorMarkdownResolver } from '../hooks/useGlChapterEditorMarkdownResolver.js';
+import { resolveGlBoardImageUrl } from '../utils/glLegacyMediaUrl.js';
+import {
+  chapterIllustration,
+  plateauBoardImg,
+  GL_ASSET_PLACEHOLDER_URL,
+} from '../assets/index.js';
+import { useGlAssetsReady } from './GLFeuilletIllustration.jsx';
 
 export function GLChaptersAdminView() {
   const [chapters, setChapters] = useState([]);
@@ -44,6 +52,8 @@ export function GLChaptersAdminView() {
   const [platformBrand, setPlatformBrand] = useState(null);
   const [glModules, setGlModules] = useState(null);
   const previewMapGestures = useGlPctMapGestures();
+  const assetsReady = useGlAssetsReady();
+  const resolveChapterMarkdown = useGlChapterEditorMarkdownResolver(chapterForm.plateauNumber);
 
   async function loadPlatformBrand() {
     try {
@@ -249,6 +259,31 @@ export function GLChaptersAdminView() {
   }
 
   const previewMapImageUrl = chapterForm.mapImageUrl || pendingMapPreviewUrl || '';
+  const plateauNumber = Number(chapterForm.plateauNumber);
+  const hasPlateau = Number.isInteger(plateauNumber) && plateauNumber >= 1 && plateauNumber <= 5;
+  const resolvedMapImageUrl = useMemo(() => {
+    if (!previewMapImageUrl) return '';
+    const conventionBoard =
+      assetsReady && hasPlateau ? plateauBoardImg(plateauNumber) : null;
+    const conventionChapter =
+      assetsReady && hasPlateau ? chapterIllustration(plateauNumber) : null;
+    return resolveGlBoardImageUrl({
+      mapImageUrl: previewMapImageUrl,
+      conventionBoard,
+      conventionChapter,
+      placeholderUrl: GL_ASSET_PLACEHOLDER_URL,
+    });
+  }, [previewMapImageUrl, assetsReady, hasPlateau, plateauNumber]);
+
+  const resolveStoryMarkdown = useMemo(
+    () => (markdown) => resolveChapterMarkdown(markdown, { withSceneRefs: true }),
+    [resolveChapterMarkdown],
+  );
+
+  const resolvePlainMarkdown = useMemo(
+    () => (markdown) => resolveChapterMarkdown(markdown, { withSceneRefs: false }),
+    [resolveChapterMarkdown],
+  );
   const mapImagePickHint =
     !selectedId && pendingMapImageFile
       ? 'L’image sera importée sur le serveur à l’enregistrement du chapitre.'
@@ -404,7 +439,7 @@ export function GLChaptersAdminView() {
               removeItem={removeMediaLibrary}
               onPickUrl={(url) => setChapterForm((prev) => ({ ...prev, mapImageUrl: url }))}
             />
-            {previewMapImageUrl ? (
+            {resolvedMapImageUrl ? (
               <div className="gl-map-url-preview">
                 <p className="gl-hint">
                   Aperçu de la carte
@@ -413,7 +448,7 @@ export function GLChaptersAdminView() {
                     : ''}
                 </p>
                 <GLPctMapCanvas
-                  imageUrl={previewMapImageUrl}
+                  imageUrl={resolvedMapImageUrl}
                   imageAlt="Aperçu carte chapitre"
                   mapGestures={previewMapGestures}
                   className="gl-board gl-board--mini"
@@ -525,6 +560,7 @@ export function GLChaptersAdminView() {
                   setChapterForm({ ...chapterForm, storyMarkdown: event.target.value })
                 }
                 imageLegend="Images de l'histoire"
+                resolveDisplayMarkdown={resolveStoryMarkdown}
               />
               <span className="gl-hint">
                 Astuce : <code>![légende](scene:N)</code> intercale la N-ième scène de récit du
@@ -540,6 +576,7 @@ export function GLChaptersAdminView() {
                   setChapterForm({ ...chapterForm, biotopeMarkdown: event.target.value })
                 }
                 imageLegend="Images du biotope"
+                resolveDisplayMarkdown={resolvePlainMarkdown}
               />
             </label>
             <label>
@@ -550,6 +587,7 @@ export function GLChaptersAdminView() {
                   setChapterForm({ ...chapterForm, biocenoseMarkdown: event.target.value })
                 }
                 imageLegend="Images de la biocénose"
+                resolveDisplayMarkdown={resolvePlainMarkdown}
               />
             </label>
             <label>
@@ -560,6 +598,7 @@ export function GLChaptersAdminView() {
                   setChapterForm({ ...chapterForm, sortilegesMarkdown: event.target.value })
                 }
                 imageLegend="Images du grimoire"
+                resolveDisplayMarkdown={resolvePlainMarkdown}
               />
             </label>
             <div className="gl-inline-actions">
@@ -586,7 +625,7 @@ export function GLChaptersAdminView() {
                 chapterSlug={chapterForm.slug}
                 chapterTitle={chapterForm.title}
                 chapterBiomes={detail?.chapter?.biomes || []}
-                mapImageUrl={chapterForm.mapImageUrl}
+                mapImageUrl={resolvedMapImageUrl}
                 mapImageFrame={chapterForm.mapImageFrame}
                 markers={markers}
                 zoneMusicEnabled={isModuleEnabled(glModules, 'zoneMusicEnabled')}
@@ -642,7 +681,7 @@ export function GLChaptersAdminView() {
         open={frameEditorOpen}
         title="Cadre image - carte chapitre"
         context="chapter-map"
-        imageUrl={previewMapImageUrl}
+        imageUrl={resolvedMapImageUrl}
         initialFrame={chapterForm.mapImageFrame}
         onApply={({ frame }) => {
           setChapterForm((prev) => ({

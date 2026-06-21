@@ -7,6 +7,21 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### GL — édition chapitres (images et emojis repères)
+
+- **Markdown admin** : résolution legacy `gl-*` et `scene:N` dans `GLRichTextEditor` (Contenus → Chapitres) — même logique que les pages joueur ; round-trip via `data-gl-md-src`.
+- **Carte chapitre** : aperçu formulaire, studio repères et éditeur de cadre utilisent `resolveGlBoardImageUrl` (URLs legacy remappées).
+- **Emojis repères** : retrait de `foretmap-emoji-text-mixed` sur carte/liste ; pile `--font-emoji-stack` sur l’input emoji du studio ; couverture police (`🌿`, `⭐`, `🚩`, `❓`).
+- **Tests** : `tests-ui/gl/glMarkdownEditorDisplay.test.js`, extensions `GLRichTextEditor`, `GLBoardMarkers`, `GLChapterMarkerListVisual`.
+
+### GL — panneau équipes/joueurs sur la carte
+
+- **API** : `GET /api/gl/games/:id` inclut `roster` (joueurs assignés par équipe ; `healthPoints` / `powerPoints` si vitalité active).
+- **UI** : panneau latéral responsive (droite desktop, dessous mobile) sur l’onglet Cartes — noms, ❤️/💎, badge « Tour », joueur courant mis en évidence ; masqué en plein écran.
+- **Correctif** : `toGameViewModel` préserve `vitality` (top bar joueur).
+- **Tests** : `tests/gl-games-roster.test.js`, `tests-ui/gl/GLGameBoardRoster.test.jsx`, `buildMapRosterGroups.test.js`, e2e `gl-game-flow.spec.js`.
+- **Doc** : `docs/API.md`.
+
 ### Qualité — lint ESLint vert
 
 - **Config** : `eslint.config.cjs` — ajout des tests ESM `map-overlay-scale`, `map-overlay-typography`, `pct-polygon`, `qcm-feedback` à l'override `sourceType: 'module'` (corrige les `Parsing error` qui bloquaient le job CI), + déduplication de la liste.

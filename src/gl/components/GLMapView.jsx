@@ -34,6 +34,10 @@ export function GLMapView({
   feuilletZoneEditMode = false,
   showPlateauMarkers = true,
   showPlateauZones = false,
+  roster = [],
+  vitalityEnabled = false,
+  vitalityByPlayerId = null,
+  playerId = null,
 }) {
   const watchTeamId = useMemo(() => {
     if (canMoveMascot) {
@@ -82,6 +86,10 @@ export function GLMapView({
       feuilletZoneEditMode={feuilletZoneEditMode}
       showPlateauMarkers={showPlateauMarkers}
       showPlateauZones={showPlateauZones}
+      roster={roster}
+      vitalityEnabled={vitalityEnabled}
+      vitalityByPlayerId={vitalityByPlayerId}
+      playerId={playerId}
     />
   );
 }
