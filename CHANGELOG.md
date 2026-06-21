@@ -7,6 +7,12 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Sécurité — élévation legacy & import carte non destructif
+
+- **Correctif élévation legacy** : `POST /api/auth/teacher` exige désormais une session valide (`requireAuth`) et vérifie le PIN du **rôle RBAC courant réhydraté depuis la base**, empêchant l'utilisation d'un JWT non expiré portant un ancien `roleId` (après changement/révocation de rôle) pour obtenir une session élevée.
+- **Correctif sûreté import carte** : le SQL généré (`lib/sqliteGardenSqlExport.js`, fichier exemple `data/import/foret-comestible-garden.sql`) n'abaisse plus `FOREIGN_KEY_CHECKS`, s'exécute dans une **transaction** (`START TRANSACTION` / `COMMIT`) et **nettoie explicitement** les liaisons tâches/projets/tutoriels/visite avant remplacement des zones/repères (plus d'orphelins ni de réattachement silencieux en cas de réutilisation d'id).
+- **Tests** : `tests/auth.test.js` (non-régression PIN rôle courant vs JWT obsolète) et `tests/legacy-zone-shape-convert.test.js` (SQL transactionnel + nettoyage des dépendances).
+
 ### GL — sélection des classes pour la création de partie
 
 - **fix(gl)** : une classe créée (ou (ré)activée) dans « Gestion utilisateurs » apparaît désormais immédiatement dans le sélecteur de classe de la console MJ, sans rechargement de page. `GLUsersAdminView` notifie `AppGL` (`onClassesChange`) qui resynchronise la liste partagée `classes`.
