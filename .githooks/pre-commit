@@ -1,0 +1,39 @@
+#!/bin/sh
+# Pre-commit ForetMap — bloque les commits non conformes aux étapes CI `lint` et `format:check`.
+# Ne vérifie que les fichiers stagés (rapide). Forcer un commit (déconseillé) : git commit --no-verify
+#
+# Activé via `core.hooksPath=.githooks` (script npm `prepare` → scripts/setup-git-hooks.js).
+
+staged=$(git diff --cached --name-only --diff-filter=ACMR)
+[ -z "$staged" ] && exit 0
+
+fail=0
+
+# Prettier — mêmes extensions que `prettier --check .` (respecte .prettierignore).
+fmt=$(printf '%s\n' "$staged" | grep -Ei '\.(jsx?|tsx?|css|json|md|html|ya?ml)$' || true)
+if [ -n "$fmt" ]; then
+  if ! printf '%s\n' "$fmt" | tr '\n' '\0' | xargs -0 npx prettier --check; then
+    echo "" >&2
+    echo "✖ Prettier : fichiers non formatés. Corrige puis re-stage :" >&2
+    echo "    npx prettier --write <fichiers>" >&2
+    fail=1
+  fi
+fi
+
+# ESLint — sources JS/JSX (eslint.config.cjs gère ses propres ignores ; les warnings ne bloquent pas).
+lint=$(printf '%s\n' "$staged" | grep -Ei '\.jsx?$' || true)
+if [ -n "$lint" ]; then
+  if ! printf '%s\n' "$lint" | tr '\n' '\0' | xargs -0 npx eslint; then
+    echo "" >&2
+    echo "✖ ESLint : erreurs détectées. Corrige puis re-stage :" >&2
+    echo "    npx eslint --fix <fichiers>" >&2
+    fail=1
+  fi
+fi
+
+if [ "$fail" -ne 0 ]; then
+  echo "" >&2
+  echo "Commit bloqué par le hook pre-commit (cf. CI lint + format:check)." >&2
+  exit 1
+fi
+exit 0
