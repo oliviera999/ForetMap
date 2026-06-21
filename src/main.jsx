@@ -3,12 +3,15 @@ import ReactDOM from 'react-dom/client';
 import './index.css';
 import { App } from './App.jsx';
 import { ErrorBoundary } from './components/ErrorBoundary.jsx';
+import { ImageLightboxProvider } from './shared/components/ImageLightboxProvider.jsx';
 import { withAppBase } from './services/api';
 import { safeSessionStorageSetItem } from './utils/browserStorage.js';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <ErrorBoundary>
-    <App />
+    <ImageLightboxProvider>
+      <App />
+    </ImageLightboxProvider>
   </ErrorBoundary>,
 );
 

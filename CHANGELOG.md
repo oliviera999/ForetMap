@@ -7,6 +7,13 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### ForetMap + GL — lightbox image globale
+
+- **Clic image** : `ImageLightboxProvider` (ForetMap + GL) ouvre la lightbox partagée `fm-lightbox-*` sur les illustrations et photos standalone (légende via `figcaption` / `alt`, repli `data-lightbox-src`).
+- **Exclusions** : cartes interactives, mascottes, uploads, boutons/labels, logos ; opt-out `data-no-lightbox`.
+- **Visite** : aperçu éditorial unifié sur `ImageLightbox` (suppression du doublon local).
+- **Tests** : `tests/image-lightbox-click.test.js`, `tests-ui/shared/ImageLightboxProvider.test.jsx`.
+
 ### GL — onglets Écosystèmes et Biodiversité
 
 - **Navigation** : l’onglet « Biotope » devient **Écosystèmes** (`ecosystemes`) ; « Biocénose » devient **Biodiversité** (`biodiversite`), aligné sur ForetMap. Redirection des identifiants mémorisés (`biotope` → `ecosystemes`, `biocenose` → `biodiversite`).
