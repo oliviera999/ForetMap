@@ -1,8 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { createPortal } from 'react-dom';
+import React, { useMemo, useState } from 'react';
 import { withAppBase } from '../services/api';
-import { useDialogA11y } from '../hooks/useDialogA11y';
-import { lockBodyScroll } from '../utils/body-scroll-lock';
+import { ImageLightbox } from '../shared/components/ImageLightbox.jsx';
 
 /** Vignette (préfère thumb_url). */
 export function editorialPhotoThumbSrc(photo) {
@@ -22,49 +20,6 @@ function editorialPhotoLabel(photo) {
   const id = photo?.id;
   if (id != null && Number.isFinite(Number(id))) return `Photo #${id}`;
   return 'Photo';
-}
-
-function EditorialPhotoLightbox({ src, caption, onClose }) {
-  const el = useMemo(() => document.createElement('div'), []);
-  const dialogRef = useDialogA11y(onClose);
-  useEffect(() => {
-    const releaseBodyScroll = lockBodyScroll();
-    document.body.appendChild(el);
-    return () => {
-      try {
-        if (document.body.contains(el)) document.body.removeChild(el);
-      } finally {
-        releaseBodyScroll();
-      }
-    };
-  }, [el]);
-
-  const content = (
-    <div className="editorial-photo-lightbox" onClick={onClose} role="presentation">
-      <div
-        ref={dialogRef}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Aperçu image"
-        tabIndex={-1}
-        className="editorial-photo-lightbox__dialog"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <img src={src} alt={caption || ''} decoding="async" onClick={(e) => e.stopPropagation()} />
-        {caption ? <p className="editorial-photo-lightbox__caption">{caption}</p> : null}
-        <button
-          type="button"
-          className="editorial-photo-lightbox__close"
-          aria-label="Fermer l'aperçu"
-          onClick={onClose}
-        >
-          ✕
-        </button>
-      </div>
-    </div>
-  );
-
-  return createPortal(content, el);
 }
 
 /** Miniature cliquable : aperçu plein écran, ou sélection (mode picker). */
@@ -120,7 +75,7 @@ export function VisitEditorialPhotoThumb({
   return (
     <>
       {previewOpen ? (
-        <EditorialPhotoLightbox src={fullSrc} caption={cap} onClose={() => setPreviewOpen(false)} />
+        <ImageLightbox src={fullSrc} caption={cap} onClose={() => setPreviewOpen(false)} />
       ) : null}
       <button
         type="button"

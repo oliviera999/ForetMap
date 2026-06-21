@@ -257,6 +257,23 @@
   }
 }
 
+/* Clic → lightbox globale (ImageLightboxProvider) ; exclusions ci-dessous. */
+img:not([data-no-lightbox]) {
+  cursor: zoom-in;
+}
+
+.fm-lightbox-overlay img,
+.map-view-canvas img,
+.gl-board-fit-layer img,
+button img,
+label img,
+.visit-map-mascot img,
+.img-upload-area img,
+.gl-brand-logo,
+.gl-auth-logo {
+  cursor: inherit;
+}
+
 .fm-lightbox-overlay {
   position: fixed;
   inset: 0;
