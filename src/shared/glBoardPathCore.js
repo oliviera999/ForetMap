@@ -39,7 +39,6 @@ export function resolveBoardMovementConfig(game = {}) {
     mode,
     startIndex,
     isNumberedPath: mode === 'numbered_path',
-    showPathNumbers: mode === 'numbered_path',
   };
 }
 
@@ -63,14 +62,18 @@ export function teamPathIndex(team, sortedMarkers) {
 
 export function startMarker(sortedMarkers, startIndex = 0) {
   if (!sortedMarkers.length) return null;
-  const idx = Math.max(0, Math.min(normalizeBoardPathStartIndex(startIndex), sortedMarkers.length - 1));
+  const idx = Math.max(
+    0,
+    Math.min(normalizeBoardPathStartIndex(startIndex), sortedMarkers.length - 1),
+  );
   return { index: idx, marker: sortedMarkers[idx] };
 }
 
 export function advancePathIndex(currentIndex, steps, pathLength, startIndex = 0) {
   const safeLength = Math.max(0, Number(pathLength) || 0);
   if (safeLength === 0) return 0;
-  const base = currentIndex != null ? Number(currentIndex) : normalizeBoardPathStartIndex(startIndex);
+  const base =
+    currentIndex != null ? Number(currentIndex) : normalizeBoardPathStartIndex(startIndex);
   const delta = Math.max(1, Number(steps) || 1);
   const max = safeLength - 1;
   return Math.min(Math.max(0, base) + delta, max);
@@ -81,4 +84,14 @@ export function targetMarkerAfterDice(sortedMarkers, team, steps, startIndex = 0
   const current = teamPathIndex(team, sortedMarkers);
   const nextIdx = advancePathIndex(current, steps, sortedMarkers.length, startIndex);
   return { index: nextIdx, marker: sortedMarkers[nextIdx] };
+}
+
+/** Repères traversés entre la position courante et la cible (inclus), dans l'ordre du chemin. */
+export function markersAlongDicePath(sortedMarkers, team, steps, startIndex = 0) {
+  if (!sortedMarkers.length) return [];
+  const current = teamPathIndex(team, sortedMarkers);
+  const base = current != null ? current : normalizeBoardPathStartIndex(startIndex);
+  const targetIdx = advancePathIndex(current, steps, sortedMarkers.length, startIndex);
+  if (targetIdx <= base) return [];
+  return sortedMarkers.slice(base + 1, targetIdx + 1);
 }

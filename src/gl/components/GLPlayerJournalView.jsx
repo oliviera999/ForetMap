@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { apiGL } from '../services/apiGL.js';
+import { AutoSaveStatus } from '../../shared/components/AutoSaveStatus.jsx';
+import { useDebouncedAutoSave } from '../../shared/hooks/useDebouncedAutoSave.js';
 import {
   applyJournalEmbed,
   applyMarkdownHtmlImage,
@@ -17,15 +19,13 @@ function formatQuota(current, max) {
 
 export function GLPlayerJournalView({ gameState }) {
   const textareaRef = useRef(null);
-  const saveTimerRef = useRef(null);
   const [body, setBody] = useState('');
+  const [loadRevision, setLoadRevision] = useState(0);
   const [limits, setLimits] = useState({ maxChars: 20000, maxAssets: 30 });
   const [usage, setUsage] = useState({ charCount: 0, assetCount: 0 });
   const [assets, setAssets] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
-  const [saveOk, setSaveOk] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [embedPickerOpen, setEmbedPickerOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -56,6 +56,7 @@ export function GLPlayerJournalView({ gameState }) {
       setLimits(data?.limits || { maxChars: 20000, maxAssets: 30 });
       setUsage(data?.usage || { charCount: 0, assetCount: 0 });
       setAssets(Array.isArray(data?.assets) ? data.assets : []);
+      setLoadRevision((value) => value + 1);
     } catch (err) {
       setSaveError(err.message || 'Chargement impossible');
     } finally {
@@ -67,52 +68,30 @@ export function GLPlayerJournalView({ gameState }) {
     reload();
   }, [reload]);
 
-  const persist = useCallback(
-    async (markdown) => {
-      if (charsOver) {
-        setSaveError(`Texte trop long (${charCount} / ${limits.maxChars} caractères)`);
-        return;
-      }
-      setSaving(true);
-      setSaveError('');
-      setSaveOk(false);
-      try {
-        const data = await apiGL('/api/gl/player-journal/me', 'PUT', { bodyMarkdown: markdown });
-        setBody(String(data?.bodyMarkdown || markdown));
-        setLimits(data?.limits || limits);
-        setUsage(data?.usage || usage);
-        setAssets(Array.isArray(data?.assets) ? data.assets : []);
-        setSaveOk(true);
-        setTimeout(() => setSaveOk(false), 2000);
-      } catch (err) {
-        setSaveError(err.message || 'Enregistrement impossible');
-      } finally {
-        setSaving(false);
-      }
-    },
-    [charCount, charsOver, limits, usage],
-  );
+  const persistJournal = useCallback(async () => {
+    const data = await apiGL('/api/gl/player-journal/me', 'PUT', { bodyMarkdown: body });
+    const nextBody = String(data?.bodyMarkdown || body);
+    setBody(nextBody);
+    setLimits(data?.limits || limits);
+    setUsage(data?.usage || usage);
+    setAssets(Array.isArray(data?.assets) ? data.assets : []);
+    return nextBody;
+  }, [body, limits, usage]);
 
-  const scheduleSave = useCallback(
-    (markdown) => {
-      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-      saveTimerRef.current = setTimeout(() => {
-        persist(markdown);
-      }, 800);
+  const { status: saveStatus, error: autoSaveError } = useDebouncedAutoSave({
+    value: body,
+    resetKey: loadRevision,
+    enabled: !loading,
+    canSave: () => {
+      if (charsOver) return `Texte trop long (${charCount} / ${limits.maxChars} caractères)`;
+      return true;
     },
-    [persist],
-  );
-
-  useEffect(
-    () => () => {
-      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    },
-    [],
-  );
+    onSave: persistJournal,
+  });
 
   function handleBodyChange(next) {
     setBody(next);
-    if (!charsOver) scheduleSave(next);
+    if (autoSaveError) setSaveError('');
   }
 
   async function handleImageUpload(file) {
@@ -225,11 +204,16 @@ export function GLPlayerJournalView({ gameState }) {
         >
           Illustrations&nbsp;: {formatQuota(usage.assetCount, limits.maxAssets)}
         </span>
-        {saving ? <span className="gl-hint">Enregistrement…</span> : null}
-        {saveOk ? <span className="gl-hint gl-player-journal__saved">Enregistré ✓</span> : null}
+        {saveStatus === 'saving' || saveStatus === 'pending' ? (
+          <span className="gl-hint">Enregistrement…</span>
+        ) : (
+          <AutoSaveStatus status={saveStatus} className="gl-hint gl-player-journal__saved" />
+        )}
       </div>
 
-      {saveError ? <p className="gl-error">{saveError}</p> : null}
+      {saveError || autoSaveError ? (
+        <p className="gl-error">{saveError || autoSaveError}</p>
+      ) : null}
 
       <div className="gl-player-journal__toolbar gl-inline-actions">
         <GLButton type="button" variant="secondary" onClick={() => setEmbedPickerOpen(true)}>
@@ -254,9 +238,6 @@ export function GLPlayerJournalView({ gameState }) {
         </label>
         <GLButton type="button" variant="secondary" onClick={() => setShowPreview((v) => !v)}>
           {showPreview ? 'Masquer l’aperçu' : 'Aperçu'}
-        </GLButton>
-        <GLButton type="button" onClick={() => persist(body)} disabled={saving || charsOver}>
-          Enregistrer
         </GLButton>
       </div>
 

@@ -11,4 +11,5 @@ export {
   startMarker,
   advancePathIndex,
   targetMarkerAfterDice,
+  markersAlongDicePath,
 } from '../../shared/glBoardPathCore.js';

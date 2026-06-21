@@ -1,5 +1,7 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { apiGL } from '../services/apiGL.js';
+import { AutoSaveStatus } from '../../shared/components/AutoSaveStatus.jsx';
+import { useDebouncedAutoSave } from '../../shared/hooks/useDebouncedAutoSave.js';
 import { GLProfileAvatar } from './GLProfileAvatar.jsx';
 import { GLPasswordChangeForm } from './GLPasswordChangeForm.jsx';
 import { GLForetmapLinkPanel } from './GLForetmapLinkPanel.jsx';
@@ -45,8 +47,7 @@ export function GLProfileEditor({ auth, profile, config, onSessionUpdated, onRel
     );
   }
 
-  async function saveProfile(event) {
-    event.preventDefault();
+  async function saveProfile() {
     setBusy(true);
     setError('');
     setOk('');
@@ -70,12 +71,42 @@ export function GLProfileEditor({ auth, profile, config, onSessionUpdated, onRel
       setOk('Profil mis a jour.');
       onSessionUpdated?.(data);
       await onReloadProfile?.();
+      return {
+        pseudo,
+        email,
+        displayName,
+        description,
+        avatarData: null,
+        removeAvatar: false,
+        currentPassword: '',
+      };
     } catch (err) {
       setError(err.message || 'Mise a jour impossible');
+      throw err;
     } finally {
       setBusy(false);
     }
   }
+
+  const profileDraft = useMemo(
+    () => ({
+      pseudo,
+      email,
+      displayName,
+      description,
+      avatarData,
+      removeAvatar,
+      currentPassword,
+    }),
+    [pseudo, email, displayName, description, avatarData, removeAvatar, currentPassword],
+  );
+
+  const { status: saveStatus, error: saveError } = useDebouncedAutoSave({
+    value: profileDraft,
+    resetKey: profile?.id,
+    enabled: Boolean(String(currentPassword || '').trim()),
+    onSave: saveProfile,
+  });
 
   return (
     <div className="gl-profile-layout">
@@ -85,8 +116,13 @@ export function GLProfileEditor({ auth, profile, config, onSessionUpdated, onRel
           Role actuel : <strong>{roleLabel}</strong>
         </p>
         {error ? <p className="gl-error">{error}</p> : null}
+        {saveError ? <p className="gl-error">{saveError}</p> : null}
         {ok ? <p className="gl-profile-ok">{ok}</p> : null}
-        <form className="gl-form" onSubmit={saveProfile}>
+        <AutoSaveStatus status={saveStatus} className="gl-hint" />
+        <p className="gl-hint">
+          Saisissez votre mot de passe actuel : les modifications sont enregistrées automatiquement.
+        </p>
+        <form className="gl-form" onSubmit={(event) => event.preventDefault()}>
           <GLProfileAvatar
             profile={profile}
             auth={auth}
@@ -140,9 +176,6 @@ export function GLProfileEditor({ auth, profile, config, onSessionUpdated, onRel
               autoComplete="current-password"
             />
           </GLField>
-          <GLButton type="submit" disabled={busy}>
-            {busy ? '...' : 'Enregistrer'}
-          </GLButton>
         </form>
       </section>
 

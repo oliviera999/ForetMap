@@ -26,10 +26,11 @@ export function GLBoardMascot({
   const walking = Boolean(motion?.walking);
   const happy = Boolean(motion?.happy);
   const faceRight = motion?.faceRight !== false;
+  const snapCenter = Boolean(motion?.snapCenter);
 
   return (
     <div
-      className={`visit-map-mascot gl-board-mascot${walking ? ' visit-map-mascot--walking' : ''}${happy ? ' visit-map-mascot--happy' : ''}${prefersReducedMotion ? ' visit-map-mascot--reduced-motion' : ''}`}
+      className={`visit-map-mascot gl-board-mascot${walking ? ' visit-map-mascot--walking' : ''}${happy ? ' visit-map-mascot--happy' : ''}${prefersReducedMotion ? ' visit-map-mascot--reduced-motion' : ''}${snapCenter ? ' gl-board-mascot--on-marker' : ''}`}
       style={{ left: `${position.xp}%`, top: `${position.yp}%`, zIndex }}
       aria-hidden="true"
       data-team-id={team.id}
@@ -38,7 +39,9 @@ export function GLBoardMascot({
       <div
         className="visit-map-mascot-inner"
         style={{
-          transform: `translate(-50%, -100%) scaleX(${faceRight ? 1 : -1})`,
+          transform: snapCenter
+            ? `translate(-50%, -50%) scaleX(${faceRight ? 1 : -1})`
+            : `translate(-50%, -100%) scaleX(${faceRight ? 1 : -1})`,
         }}
       >
         <GLMascotRenderer mascotId={team.mascot_id} mascotState={animationState} boardMode />

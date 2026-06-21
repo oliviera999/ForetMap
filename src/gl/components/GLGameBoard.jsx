@@ -33,10 +33,7 @@ import { resolveGlBoardImageUrl } from '../utils/glLegacyMediaUrl.js';
 import { useGlAssetsReady } from './GLFeuilletIllustration.jsx';
 import { DialogShell } from '../../components/DialogShell.jsx';
 import { GLGameBoardRoster } from './GLGameBoardRoster.jsx';
-import {
-  buildMarkerPathNumberMap,
-  sortMarkersByPath,
-} from '../utils/glBoardPath.js';
+import { buildMarkerPathNumberMap, sortMarkersByPath } from '../utils/glBoardPath.js';
 import { resolveDicePathAdvance } from '../utils/glDicePathAdvance.js';
 
 export function GLGameBoard({
@@ -77,6 +74,7 @@ export function GLGameBoard({
   feuilletZoneEditMode = false,
   showPlateauMarkers = true,
   showPlateauZones = false,
+  showMarkerPathNumbers = false,
   roster = [],
   vitalityEnabled = false,
   vitalityByPlayerId = null,
@@ -94,10 +92,10 @@ export function GLGameBoard({
   }, [assetsReady, plateauNumber]);
 
   const markerPathNumbers = useMemo(() => {
-    if (!boardMovement?.showPathNumbers) return null;
+    if (!showMarkerPathNumbers || !boardMovement?.isNumberedPath) return null;
     const sorted = sortMarkersByPath(markers);
     return buildMarkerPathNumberMap(sorted, boardMovement.startIndex);
-  }, [boardMovement, markers]);
+  }, [showMarkerPathNumbers, boardMovement, markers]);
   const imageUrl = useMemo(
     () =>
       resolveGlBoardImageUrl({
@@ -133,11 +131,12 @@ export function GLGameBoard({
     enabled: Boolean(gameId && watchTeamId != null && markerArrivalEnabled),
   });
 
-  const { getPositionForTeam, getMotionForTeam, moveTeamTo, moveTeamAlongPath } = useGLBoardMascotMotion({
-    teams,
-    boardHeightPx,
-    prefersReducedMotion,
-  });
+  const { getPositionForTeam, getMotionForTeam, moveTeamTo, moveTeamAlongPath } =
+    useGLBoardMascotMotion({
+      teams,
+      boardHeightPx,
+      prefersReducedMotion,
+    });
 
   const qcmOpen = Boolean(questionPopover);
   const effectOpen = Boolean(effectPopover);

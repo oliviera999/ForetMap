@@ -2,6 +2,7 @@ import { describe, test, expect } from 'vitest';
 import {
   advancePathIndex,
   buildMarkerPathNumberMap,
+  markersAlongDicePath,
   resolveBoardMovementConfig,
   sortMarkersByPath,
   startMarker,
@@ -42,6 +43,13 @@ describe('glBoardPathCore', () => {
     expect(capped.marker.id).toBe(4);
   });
 
+  test('markersAlongDicePath liste chaque repère intermédiaire', () => {
+    const markers = [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }];
+    const teamAtStart = { position_marker_id: 1 };
+    const along = markersAlongDicePath(markers, teamAtStart, 3, 0);
+    expect(along.map((m) => m.id)).toEqual([2, 3, 4]);
+  });
+
   test('startMarker respecte l index de départ 0 ou 1', () => {
     const markers = [{ id: 1 }, { id: 2 }];
     expect(startMarker(markers, 0).marker.id).toBe(1);
@@ -50,9 +58,9 @@ describe('glBoardPathCore', () => {
 
   test('resolveBoardMovementConfig', () => {
     expect(resolveBoardMovementConfig({}).mode).toBe('free');
-    expect(resolveBoardMovementConfig({ board_movement_mode: 'numbered_path' }).isNumberedPath).toBe(
-      true,
-    );
+    expect(
+      resolveBoardMovementConfig({ board_movement_mode: 'numbered_path' }).isNumberedPath,
+    ).toBe(true);
     expect(resolveBoardMovementConfig({ board_path_start_index: 1 }).startIndex).toBe(1);
   });
 

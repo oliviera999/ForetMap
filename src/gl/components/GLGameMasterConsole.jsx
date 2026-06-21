@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState, Suspense, lazy } from 'react';
 import { apiGL } from '../services/apiGL.js';
+import { AutoSaveStatus } from '../../shared/components/AutoSaveStatus.jsx';
+import { useDebouncedAutoSave } from '../../shared/hooks/useDebouncedAutoSave.js';
 import { GLBadge } from './ui/GLBadge.jsx';
 import { GLButton } from './ui/GLButton.jsx';
 import { useGLMascotCatalog } from '../context/GLMascotCatalogContext.jsx';
@@ -159,6 +161,75 @@ export function GLGameMasterConsole({
     game?.lore_heart_rewards_enabled,
   ]);
 
+  const persistGameEdits = useCallback(async () => {
+    if (!game?.id) return editGameForm;
+    try {
+      const payload = buildGameEditPayload(editGameForm, gameStatus);
+      const updated = await apiGL(`/api/gl/games/${game.id}`, 'PUT', payload);
+      onGameStateChange(updated);
+      showSuccess('Partie mise à jour.');
+      await loadGames();
+      const nextForm = gameToEditForm(updated?.game || updated);
+      setEditGameForm(nextForm);
+      return nextForm;
+    } catch (err) {
+      showFailure(err.message || 'Mise à jour de partie impossible');
+      throw err;
+    }
+  }, [game?.id, editGameForm, gameStatus, onGameStateChange]);
+
+  const {
+    status: gameSaveStatus,
+    error: gameSaveError,
+  } = useDebouncedAutoSave({
+    value: editGameForm,
+    resetKey: game?.id,
+    enabled: Boolean(game?.id),
+    canSave: () => String(editGameForm.name || '').trim().length > 0,
+    onSave: persistGameEdits,
+  });
+
+  const persistTeam = useCallback(async () => {
+    if (!game?.id) return teamForm;
+    try {
+      if (editingTeamId) {
+        await apiGL(`/api/gl/games/${game.id}/teams/${editingTeamId}`, 'PUT', {
+          name: teamForm.name,
+          type: teamForm.type,
+          mascotId: teamForm.mascotId || null,
+          color: teamForm.color || '#22c55e',
+        });
+        showSuccess('Équipe mise à jour.');
+      } else {
+        await apiGL(`/api/gl/games/${game.id}/teams`, 'POST', {
+          name: teamForm.name,
+          type: teamForm.type,
+          mascotId: teamForm.mascotId || null,
+          color: teamForm.color || '#22c55e',
+        });
+        showSuccess('Équipe créée.');
+      }
+      resetTeamEditing();
+      await onReloadGame?.();
+      await loadGames();
+      setRosterRefreshKey((value) => value + 1);
+      return { ...DEFAULT_TEAM_FORM, mascotId: defaultMascotByType('gnome') };
+    } catch (err) {
+      showFailure(err.message || 'Sauvegarde équipe impossible');
+      throw err;
+    }
+  }, [game?.id, editingTeamId, teamForm, onReloadGame, defaultMascotByType]);
+
+  const {
+    status: teamSaveStatus,
+    error: teamSaveError,
+  } = useDebouncedAutoSave({
+    value: teamForm,
+    resetKey: editingTeamId ?? 'new-team',
+    enabled: Boolean(game?.id) && String(teamForm.name || '').trim().length > 0,
+    onSave: persistTeam,
+  });
+
   useEffect(() => {
     if (!feedback) return undefined;
     const id = setTimeout(() => setFeedback(null), 5000);
@@ -277,21 +348,7 @@ export function GLGameMasterConsole({
   }
 
   async function saveGameEdits(event) {
-    event.preventDefault();
-    if (!game?.id) return;
-    setBusy(true);
-    setActionError('');
-    try {
-      const payload = buildGameEditPayload(editGameForm, gameStatus);
-      const updated = await apiGL(`/api/gl/games/${game.id}`, 'PUT', payload);
-      onGameStateChange(updated);
-      showSuccess('Partie mise à jour.');
-      await loadGames();
-    } catch (err) {
-      showFailure(err.message || 'Mise à jour de partie impossible');
-    } finally {
-      setBusy(false);
-    }
+    event?.preventDefault?.();
   }
 
   async function removeGame(gameId) {
@@ -363,40 +420,7 @@ export function GLGameMasterConsole({
   }
 
   async function upsertTeam(event) {
-    event.preventDefault();
-    if (!game?.id) {
-      showFailure('Créez ou chargez une partie.');
-      return;
-    }
-    setBusy(true);
-    setActionError('');
-    try {
-      if (editingTeamId) {
-        await apiGL(`/api/gl/games/${game.id}/teams/${editingTeamId}`, 'PUT', {
-          name: teamForm.name,
-          type: teamForm.type,
-          mascotId: teamForm.mascotId || null,
-          color: teamForm.color || '#22c55e',
-        });
-        showSuccess('Équipe mise à jour.');
-      } else {
-        await apiGL(`/api/gl/games/${game.id}/teams`, 'POST', {
-          name: teamForm.name,
-          type: teamForm.type,
-          mascotId: teamForm.mascotId || null,
-          color: teamForm.color || '#22c55e',
-        });
-        showSuccess('Équipe créée.');
-      }
-      resetTeamEditing();
-      await onReloadGame?.();
-      await loadGames();
-      setRosterRefreshKey((value) => value + 1);
-    } catch (err) {
-      showFailure(err.message || 'Sauvegarde équipe impossible');
-    } finally {
-      setBusy(false);
-    }
+    event?.preventDefault?.();
   }
 
   function startEditTeam(team) {
@@ -678,6 +702,8 @@ export function GLGameMasterConsole({
             setEditGameForm={setEditGameForm}
             setStatus={setStatus}
             saveGameEdits={saveGameEdits}
+            gameSaveStatus={gameSaveStatus}
+            gameSaveError={gameSaveError}
             busy={busy}
           />
         </Suspense>
@@ -757,6 +783,8 @@ export function GLGameMasterConsole({
             setRosterRefreshKey={setRosterRefreshKey}
             onGoToParties={() => setMjSection('parties')}
             busy={busy}
+            teamSaveStatus={teamSaveStatus}
+            teamSaveError={teamSaveError}
           />
         )}
         {mjSection === 'live' && (

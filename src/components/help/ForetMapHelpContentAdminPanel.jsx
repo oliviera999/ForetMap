@@ -1,6 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 
 import { api } from '../../services/api';
+import { AutoSaveStatus } from '../../shared/components/AutoSaveStatus.jsx';
+import { useDebouncedAutoSave } from '../../shared/hooks/useDebouncedAutoSave.js';
 import { getRoleTerms } from '../../utils/n3-terminology';
 import { useSession } from '../../contexts/SessionContext.jsx';
 
@@ -73,6 +75,7 @@ export function ForetMapHelpContentAdminPanel() {
   const roleTerms = getRoleTerms(isN3Affiliated);
   const [draft, setDraft] = useState(null);
   const [section, setSection] = useState('tooltips');
+  const [loadRevision, setLoadRevision] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
@@ -81,26 +84,26 @@ export function ForetMapHelpContentAdminPanel() {
     setError('');
     const data = await api('/api/settings/admin/help-content');
     setDraft(data);
+    setLoadRevision((value) => value + 1);
   }
 
   useEffect(() => {
     load().catch((err) => setError(err.message || 'Chargement impossible'));
   }, []);
 
-  async function save() {
-    setBusy(true);
-    setError('');
-    setInfo('');
-    try {
-      await api('/api/settings/admin/help-content', 'PUT', draft);
-      setInfo('Bulles d’aide enregistrées.');
-      await load();
-    } catch (err) {
-      setError(err.message || 'Enregistrement impossible');
-    } finally {
-      setBusy(false);
-    }
-  }
+  const persistHelp = useCallback(async () => {
+    if (!draft) return draft;
+    await api('/api/settings/admin/help-content', 'PUT', draft);
+    setInfo('Bulles d’aide enregistrées.');
+    return draft;
+  }, [draft]);
+
+  const { status: saveStatus, error: saveError } = useDebouncedAutoSave({
+    value: draft,
+    resetKey: loadRevision,
+    enabled: draft != null,
+    onSave: persistHelp,
+  });
 
   async function resetDefaults() {
     if (!window.confirm('Réinitialiser tous les textes d’aide ForetMap aux valeurs par défaut ?'))
@@ -130,6 +133,7 @@ export function ForetMapHelpContentAdminPanel() {
         Tooltips, panneaux ?, mini-astuces, bandeaux carte et infobulles temps réel prof.
       </p>
       {error && <div className="auth-error">⚠️ {error}</div>}
+      {saveError ? <div className="auth-error">⚠️ {saveError}</div> : null}
       {info && <div className="auth-success">{info}</div>}
 
       <nav className="gl-subtabs" style={{ marginBottom: 12 }}>
@@ -330,9 +334,7 @@ export function ForetMapHelpContentAdminPanel() {
       </div>
 
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-        <button type="button" className="btn btn-primary" disabled={busy} onClick={save}>
-          {busy ? 'Enregistrement…' : 'Enregistrer'}
-        </button>
+        <AutoSaveStatus status={saveStatus} />
         <button type="button" className="btn btn-secondary" disabled={busy} onClick={resetDefaults}>
           Réinitialiser aux défauts
         </button>

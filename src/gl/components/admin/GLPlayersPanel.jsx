@@ -1,5 +1,7 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { apiGL } from '../../services/apiGL.js';
+import { AutoSaveStatus } from '../../../shared/components/AutoSaveStatus.jsx';
+import { useDebouncedAutoSave } from '../../../shared/hooks/useDebouncedAutoSave.js';
 import { GLBadge } from '../ui/GLBadge.jsx';
 import { GLButton } from '../ui/GLButton.jsx';
 import { GLDataList } from '../ui/GLDataList.jsx';
@@ -98,14 +100,24 @@ export function GLPlayersPanel({
         classId: Number(edit.classId),
       });
       setEditId(null);
+      setEdit({ firstName: '', lastName: '', pseudo: '', classId: '' });
       setInfo('Joueur mis à jour.');
       await onReload?.();
+      return edit;
     } catch (err) {
       setError(err.message || 'Mise à jour impossible');
+      throw err;
     } finally {
       setBusy(false);
     }
   }
+
+  const { status: saveStatus, error: saveError } = useDebouncedAutoSave({
+    value: edit,
+    resetKey: editId,
+    enabled: Boolean(editId) && String(edit.pseudo || '').trim().length > 0,
+    onSave: saveEdit,
+  });
 
   async function toggleActive(player) {
     setBusy(true);
@@ -196,6 +208,7 @@ export function GLPlayersPanel({
     <section className="gl-admin-section fade-in">
       <h3>Joueurs</h3>
       {error ? <p className="gl-error">{error}</p> : null}
+      {saveError ? <p className="gl-error">{saveError}</p> : null}
       {info ? <p className="gl-hint">{info}</p> : null}
 
       <form className="gl-form" onSubmit={createPlayer}>
@@ -290,9 +303,7 @@ export function GLPlayersPanel({
           const displayName = playerDisplayName(player);
           const actionButtons = isEditing ? (
             <>
-              <GLButton type="button" onClick={saveEdit} disabled={busy}>
-                Enregistrer
-              </GLButton>
+              <AutoSaveStatus status={saveStatus} className="gl-hint" />
               <GLButton
                 type="button"
                 variant="secondary"

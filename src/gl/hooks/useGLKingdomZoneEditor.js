@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useDebouncedAutoSave } from '../../shared/hooks/useDebouncedAutoSave.js';
 import {
   findNearestEdgeInsertion,
   insertPctPointAt,
@@ -229,6 +230,32 @@ export function useGLKingdomZoneEditor({
     onUpdateZone,
   ]);
 
+  const zoneMetaDraft = useMemo(
+    () => ({
+      label: draftLabel,
+      color: draftColor,
+      draftMusicUrls,
+      draftMusicVolumePct,
+      draftPopoverMarkdown,
+      draftPopoverImages,
+    }),
+    [
+      draftLabel,
+      draftColor,
+      draftMusicUrls,
+      draftMusicVolumePct,
+      draftPopoverMarkdown,
+      draftPopoverImages,
+    ],
+  );
+
+  const { status: zoneSaveStatus, error: zoneSaveError } = useDebouncedAutoSave({
+    value: zoneMetaDraft,
+    resetKey: selectedZoneId,
+    enabled: Boolean(selectedZoneId) && mode === 'edit' && !isEditingShape,
+    onSave: saveZoneMeta,
+  });
+
   const clearZoneMusic = useCallback(async () => {
     if (!selectedZoneId) return;
     setDraftMusicUrls([]);
@@ -345,5 +372,7 @@ export function useGLKingdomZoneEditor({
     mapCursor,
     cancelDrawMode,
     toggleDrawMode,
+    zoneSaveStatus,
+    zoneSaveError,
   };
 }

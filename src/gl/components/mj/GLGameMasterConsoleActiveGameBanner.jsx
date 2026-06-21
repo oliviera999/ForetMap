@@ -1,4 +1,5 @@
 import React from 'react';
+import { AutoSaveStatus } from '../../../shared/components/AutoSaveStatus.jsx';
 import { GLBadge } from '../ui/GLBadge.jsx';
 import { GLButton } from '../ui/GLButton.jsx';
 import { GLField } from '../ui/GLField.jsx';
@@ -24,6 +25,8 @@ export default function GLGameMasterConsoleActiveGameBanner({
   setEditGameForm,
   setStatus,
   saveGameEdits,
+  gameSaveStatus = 'idle',
+  gameSaveError = '',
   busy,
 }) {
   if (!game?.id) return null;
@@ -74,6 +77,8 @@ export default function GLGameMasterConsoleActiveGameBanner({
         </GLButton>
       </div>
       <form className="gl-form" onSubmit={saveGameEdits}>
+        {gameSaveError ? <p className="gl-error">{gameSaveError}</p> : null}
+        <AutoSaveStatus status={gameSaveStatus} className="gl-hint" />
         <div className="gl-admin-grid-2">
           <GLField label="Nom de partie">
             <GLInput
@@ -241,9 +246,6 @@ export default function GLGameMasterConsoleActiveGameBanner({
             Classe modifiable uniquement en brouillon (sans joueurs assignés).
           </p>
         ) : null}
-        <GLButton type="submit" disabled={busy}>
-          Enregistrer la partie
-        </GLButton>
       </form>
     </div>
   );

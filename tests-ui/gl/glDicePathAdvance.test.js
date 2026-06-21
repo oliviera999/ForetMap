@@ -14,10 +14,7 @@ const questionMarker = {
 describe('resolveDicePathAdvance', () => {
   test('retourne la cible et shouldPresent pour un repère QCM', () => {
     const plan = resolveDicePathAdvance({
-      markers: [
-        { id: 1, label: 'Départ', x_pct: 10, y_pct: 70, order_index: 1 },
-        questionMarker,
-      ],
+      markers: [{ id: 1, label: 'Départ', x_pct: 10, y_pct: 70, order_index: 1 }, questionMarker],
       team: { id: 1, position_marker_id: 1 },
       roll: { total: 1 },
       boardMovement: { isNumberedPath: true, startIndex: 0 },
@@ -26,14 +23,12 @@ describe('resolveDicePathAdvance', () => {
     });
     expect(plan?.marker?.id).toBe(2);
     expect(plan?.shouldPresent).toBe(true);
+    expect(plan?.waypoints?.map((m) => m.id)).toEqual([2]);
   });
 
   test('ne planifie pas de présentation si markerArrivalEnabled=false', () => {
     const plan = resolveDicePathAdvance({
-      markers: [
-        { id: 1, label: 'Départ', x_pct: 10, y_pct: 70, order_index: 1 },
-        questionMarker,
-      ],
+      markers: [{ id: 1, label: 'Départ', x_pct: 10, y_pct: 70, order_index: 1 }, questionMarker],
       team: { id: 1, position_marker_id: 1 },
       roll: { total: 1 },
       boardMovement: { isNumberedPath: true, startIndex: 0 },

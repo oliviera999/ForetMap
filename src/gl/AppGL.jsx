@@ -993,6 +993,7 @@ export function AppGL() {
                       feuilletZoneEditMode={feuilletZoneEditMode}
                       showPlateauMarkers={plateauMapVisibility.markersVisible}
                       showPlateauZones={plateauMapVisibility.zonesVisible}
+                      showMarkerPathNumbers={plateauMapVisibility.markerNumbersVisible}
                       roster={gameState?.roster || []}
                       vitalityEnabled={!!gameplaySettings.vitalityEnabled}
                       vitalityByPlayerId={gameState?.vitality?.byPlayerId || null}

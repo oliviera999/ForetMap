@@ -150,8 +150,8 @@ export default function MascotPackListAside({
                           fontWeight: 400,
                         }}
                       >
-                        {linkedCopies.length} copies sur carte — sélectionnez dans la liste ou
-                        « Éditer la copie »
+                        {linkedCopies.length} copies sur carte — sélectionnez dans la liste ou «
+                        Éditer la copie »
                       </span>
                     ) : null}
                   </button>

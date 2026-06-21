@@ -1,4 +1,5 @@
 import React from 'react';
+import { AutoSaveStatus } from '../../shared/components/AutoSaveStatus.jsx';
 import { MediaLibraryMenu } from '../../components/MediaLibraryMenu.jsx';
 import { GLButton } from './ui/GLButton.jsx';
 import {
@@ -57,6 +58,8 @@ export function GLKingdomZoneSidePanels({
     previewDraftMusic,
     removeSelectedVertex,
     toggleDrawMode,
+    zoneSaveStatus,
+    zoneSaveError,
   } = zoneEditor;
 
   const canUseMediaLibrary = typeof fetchMediaLibrary === 'function';
@@ -421,7 +424,8 @@ export function GLKingdomZoneSidePanels({
               </div>
             </fieldset>
           ) : null}
-          <GLButton type="submit">Enregistrer la zone</GLButton>
+          {zoneSaveError ? <p className="gl-error">{zoneSaveError}</p> : null}
+          <AutoSaveStatus status={zoneSaveStatus} className="gl-hint" />
         </form>
       ) : null}
     </>

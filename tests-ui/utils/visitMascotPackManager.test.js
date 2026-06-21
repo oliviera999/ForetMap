@@ -249,10 +249,7 @@ describe('buildUnifiedMascotImageEntries', () => {
 describe('resolvePackDialogMascotId', () => {
   test('priorise clonedFromCatalogId', () => {
     expect(
-      resolvePackDialogMascotId(
-        { clonedFromCatalogId: 'sprout-rive' },
-        { catalog_id: 'srv-abc' },
-      ),
+      resolvePackDialogMascotId({ clonedFromCatalogId: 'sprout-rive' }, { catalog_id: 'srv-abc' }),
     ).toBe('sprout-rive');
   });
 

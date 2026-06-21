@@ -169,6 +169,11 @@ test('PUT gameplay.plateau_* persiste et est lu par /gameplay-settings', async (
     .set('Authorization', `Bearer ${adminToken}`)
     .send({ value: true })
     .expect(200);
+  await request(app)
+    .put('/api/gl/admin/settings/gameplay.plateau_marker_numbers_visible')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ value: true })
+    .expect(200);
 
   invalidateGameplayCache();
 
@@ -178,6 +183,7 @@ test('PUT gameplay.plateau_* persiste et est lu par /gameplay-settings', async (
     .expect(200);
   assert.strictEqual(res.body.settings.plateauMarkersVisible, false);
   assert.strictEqual(res.body.settings.plateauZonesVisible, true);
+  assert.strictEqual(res.body.settings.plateauMarkerNumbersVisible, true);
 
   await request(app)
     .put('/api/gl/admin/settings/gameplay.plateau_markers_visible')
@@ -186,6 +192,11 @@ test('PUT gameplay.plateau_* persiste et est lu par /gameplay-settings', async (
     .expect(200);
   await request(app)
     .put('/api/gl/admin/settings/gameplay.plateau_zones_visible')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ value: false })
+    .expect(200);
+  await request(app)
+    .put('/api/gl/admin/settings/gameplay.plateau_marker_numbers_visible')
     .set('Authorization', `Bearer ${adminToken}`)
     .send({ value: false })
     .expect(200);

@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { apiGL } from '../services/apiGL.js';
+import { AutoSaveStatus } from '../../shared/components/AutoSaveStatus.jsx';
+import { useDebouncedAutoSave } from '../../shared/hooks/useDebouncedAutoSave.js';
 import { GLButton } from './ui/GLButton.jsx';
 import { GLField } from './ui/GLField.jsx';
 import { GLInput } from './ui/GLInput.jsx';
@@ -52,29 +54,37 @@ export function GLTutorialsView({
   const readIds = learningProgress?.tutorialIds ?? [];
   const isTutorialRead = (id) => learningProgress?.isTutorialRead?.(id) ?? false;
 
+  async function persistTutorial() {
+    if (draft.id) {
+      await apiGL(`/api/gl/tutorials/${draft.id}`, 'PUT', {
+        title: draft.title,
+        bodyMarkdown: draft.bodyMarkdown,
+        isPublished: !!draft.isPublished,
+      });
+    } else {
+      await apiGL('/api/gl/tutorials', 'POST', {
+        slug: draft.slug || `tuto-${Date.now()}`,
+        title: draft.title,
+        bodyMarkdown: draft.bodyMarkdown,
+        isPublished: !!draft.isPublished,
+      });
+    }
+    const nextDraft = { id: null, slug: '', title: '', bodyMarkdown: '', isPublished: true };
+    setDraft(nextDraft);
+    setEditing(false);
+    await reload();
+    return nextDraft;
+  }
+
+  const { status: saveStatus, error: saveError } = useDebouncedAutoSave({
+    value: draft,
+    resetKey: draft.id ?? (editing ? 'new' : 'idle'),
+    enabled: editing && canManage && String(draft.title || '').trim().length > 0,
+    onSave: persistTutorial,
+  });
+
   async function createDraft(event) {
     event.preventDefault();
-    try {
-      if (draft.id) {
-        await apiGL(`/api/gl/tutorials/${draft.id}`, 'PUT', {
-          title: draft.title,
-          bodyMarkdown: draft.bodyMarkdown,
-          isPublished: !!draft.isPublished,
-        });
-      } else {
-        await apiGL('/api/gl/tutorials', 'POST', {
-          slug: draft.slug || `tuto-${Date.now()}`,
-          title: draft.title,
-          bodyMarkdown: draft.bodyMarkdown,
-          isPublished: !!draft.isPublished,
-        });
-      }
-      setDraft({ id: null, slug: '', title: '', bodyMarkdown: '', isPublished: true });
-      setEditing(false);
-      await reload();
-    } catch (err) {
-      setError(err.message || 'Création impossible');
-    }
   }
 
   async function startEdit(id) {
@@ -172,7 +182,8 @@ export function GLTutorialsView({
             />{' '}
             Publié
           </label>
-          <GLButton type="submit">{draft.id ? 'Enregistrer' : 'Publier'}</GLButton>
+          {saveError ? <p className="gl-error">{saveError}</p> : null}
+          <AutoSaveStatus status={saveStatus} className="gl-hint" />
         </form>
       ) : null}
 

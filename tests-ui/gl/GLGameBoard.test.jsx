@@ -39,6 +39,16 @@ vi.mock('../../src/gl/hooks/useGLBoardMascotMotion.js', () => ({
   }),
 }));
 
+vi.mock('../../src/gl/components/GLBoardMarkers.jsx', () => ({
+  GLBoardMarkers: ({ markerPathNumbers }) => (
+    <div data-testid="board-markers" data-has-path-numbers={markerPathNumbers != null ? '1' : '0'} />
+  ),
+}));
+
+vi.mock('../../src/gl/components/GLBoardChrome.jsx', () => ({
+  GLBoardChrome: () => null,
+}));
+
 vi.mock('../../src/gl/hooks/useGlPctMapGestures.js', () => ({
   useGlPctMapGestures: () => ({}),
 }));
@@ -85,5 +95,26 @@ describe('GLGameBoard', () => {
       'src',
       '/uploads/media-library/image/2026/06/plateau-2.jpg',
     );
+  test('masque les numéros de parcours par défaut', () => {
+    const { container } = render(
+      <GLGameBoard
+        {...baseProps}
+        markers={[{ id: 1, label: 'Départ', x_pct: 10, y_pct: 20, order_index: 0 }]}
+        boardMovement={{ isNumberedPath: true, startIndex: 1 }}
+      />,
+    );
+    expect(container.querySelector('[data-has-path-numbers="0"]')).toBeTruthy();
+  });
+
+  test('affiche les numéros de parcours si réglage actif en mode numéroté', () => {
+    const { container } = render(
+      <GLGameBoard
+        {...baseProps}
+        markers={[{ id: 1, label: 'Départ', x_pct: 10, y_pct: 20, order_index: 0 }]}
+        boardMovement={{ isNumberedPath: true, startIndex: 1 }}
+        showMarkerPathNumbers
+      />,
+    );
+    expect(container.querySelector('[data-has-path-numbers="1"]')).toBeTruthy();
   });
 });

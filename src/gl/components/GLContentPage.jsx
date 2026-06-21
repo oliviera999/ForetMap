@@ -1,5 +1,7 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { apiGL, clearGlSession } from '../services/apiGL.js';
+import { AutoSaveStatus } from '../../shared/components/AutoSaveStatus.jsx';
+import { useDebouncedAutoSave } from '../../shared/hooks/useDebouncedAutoSave.js';
 import { GLBrandPageBanner } from './GLBrandHub.jsx';
 import { GL_CONTENT_PAGE_SLOT_BY_SLUG } from '../hooks/useGLBrandTheme.js';
 import { GLButton } from './ui/GLButton.jsx';
@@ -39,11 +41,39 @@ export function GLContentPage({
   const [draftTitle, setDraftTitle] = useState('');
   const [draftBody, setDraftBody] = useState('');
   const [editing, setEditing] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [savedMessage, setSavedMessage] = useState('');
   const bodyTextareaRef = useRef(null);
 
   const manageable = canManageContent(auth);
+  const contentDraft = { title: draftTitle, bodyMarkdown: draftBody };
+
+  const persistContent = useCallback(async () => {
+    if (!manageable) return contentDraft;
+    const titleTrim = String(draftTitle || '').trim();
+    if (!titleTrim) throw new Error('Le titre est obligatoire.');
+    const data = await apiGL(`/api/gl/content/${encodeURIComponent(slug)}`, 'PUT', {
+      title: titleTrim,
+      bodyMarkdown: draftBody,
+    });
+    setContent(data);
+    setDraftTitle(String(data?.title || titleTrim));
+    setDraftBody(String(data?.bodyMarkdown || draftBody));
+    setSavedMessage('Contenu enregistré.');
+    if (typeof onSaved === 'function') onSaved(data);
+    return {
+      title: String(data?.title || titleTrim),
+      bodyMarkdown: String(data?.bodyMarkdown || draftBody),
+    };
+  }, [manageable, draftTitle, draftBody, slug, onSaved, contentDraft]);
+
+  const { status: saveStatus, error: autoSaveError } = useDebouncedAutoSave({
+    value: contentDraft,
+    resetKey: `${slug}:${reloadKey}:${editing ? 'edit' : 'view'}`,
+    enabled: manageable && editing,
+    canSave: () => String(draftTitle || '').trim().length > 0,
+    onSave: persistContent,
+  });
+
   const [bodyRef, bodyVisible] = useScrollReveal({ once: true, threshold: 0.05 });
 
   const displayTitle = content?.title || fallbackTitle || slug;
@@ -90,34 +120,6 @@ export function GLContentPage({
     window.location.reload();
   }
 
-  async function save() {
-    if (!manageable || saving) return;
-    const titleTrim = String(draftTitle || '').trim();
-    if (!titleTrim) {
-      setSaveError('Le titre est obligatoire.');
-      return;
-    }
-    setSaving(true);
-    setSaveError('');
-    setSavedMessage('');
-    try {
-      const data = await apiGL(`/api/gl/content/${encodeURIComponent(slug)}`, 'PUT', {
-        title: titleTrim,
-        bodyMarkdown: draftBody,
-      });
-      setContent(data);
-      setDraftTitle(String(data?.title || titleTrim));
-      setDraftBody(String(data?.bodyMarkdown || draftBody));
-      setEditing(false);
-      setSavedMessage('Contenu enregistré.');
-      if (typeof onSaved === 'function') onSaved(data);
-    } catch (err) {
-      setSaveError(err.message || 'Enregistrement impossible');
-    } finally {
-      setSaving(false);
-    }
-  }
-
   if (loading) return <div className="gl-panel">Chargement…</div>;
   if (loadError) {
     return (
@@ -154,7 +156,9 @@ export function GLContentPage({
         </div>
       ) : null}
 
-      {saveError ? <p className="gl-error">{saveError}</p> : null}
+      {saveError || autoSaveError ? (
+        <p className="gl-error">{saveError || autoSaveError}</p>
+      ) : null}
 
       {manageable && !editing ? (
         <div className="gl-inline-actions" style={{ marginBottom: 12 }}>
@@ -195,15 +199,13 @@ export function GLContentPage({
             />
           </GLField>
           <GLImageFrameHelp context="markdown" />
+          <AutoSaveStatus status={saveStatus} className="gl-hint" />
           <div className="gl-inline-actions">
-            <GLButton type="button" onClick={save} loading={saving} disabled={saving}>
-              {saving ? 'Enregistrement…' : 'Enregistrer'}
-            </GLButton>
             {hasExistingContent(content) ? (
               <GLButton
                 type="button"
                 variant="secondary"
-                disabled={saving}
+                disabled={saveStatus === 'saving'}
                 onClick={() => {
                   setSaveError('');
                   setSavedMessage('');

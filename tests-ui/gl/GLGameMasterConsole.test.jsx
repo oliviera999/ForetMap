@@ -94,7 +94,7 @@ describe('GLGameMasterConsole', () => {
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: 'Partie active' })).toBeTruthy();
     });
-    expect(screen.getByRole('button', { name: 'Enregistrer la partie' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Enregistrer la partie' })).toBeNull();
     expect(document.querySelector('.gl-active-game-banner .gl-badge')).toBeTruthy();
   });
 

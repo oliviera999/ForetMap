@@ -1,4 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { AutoSaveStatus } from '../../shared/components/AutoSaveStatus.jsx';
+import { useDebouncedAutoSave } from '../../shared/hooks/useDebouncedAutoSave.js';
 import { apiGL } from '../services/apiGL.js';
 import { useGlPctMapGestures } from '../hooks/useGlPctMapGestures.js';
 import { GLPctMapCanvas } from './GLPctMapCanvas.jsx';
@@ -192,13 +194,18 @@ export function GLChapterMapEditor({
   }
 
   async function submitMarker(event) {
-    event.preventDefault();
-    if (!chapterId) return;
+    event?.preventDefault?.();
+  }
+
+  const markerDraft = useMemo(
+    () => ({ markerForm, eventDraft, appearanceForm }),
+    [markerForm, eventDraft, appearanceForm],
+  );
+
+  const persistMarker = useCallback(async () => {
+    if (!chapterId) return markerDraft;
     const payload = toMarkerPayload(markerForm, eventDraft, appearanceForm);
-    if (!payload.label) {
-      onError?.('Le label du repère est requis');
-      return;
-    }
+    if (!payload.label) throw new Error('Le label du repère est requis');
     setSaving(true);
     try {
       if (selectedMarkerId != null && !isAddMode) {
@@ -211,12 +218,36 @@ export function GLChapterMapEditor({
       setIsAddMode(false);
       resetForm();
       await onReload?.(chapterSlug);
+      return markerDraft;
     } catch (err) {
       onError?.(err.message || 'Enregistrement du repère impossible');
+      throw err;
     } finally {
       setSaving(false);
     }
-  }
+  }, [
+    chapterId,
+    markerForm,
+    eventDraft,
+    appearanceForm,
+    selectedMarkerId,
+    isAddMode,
+    onInfo,
+    onError,
+    onReload,
+    chapterSlug,
+    markerDraft,
+  ]);
+
+  const { status: markerSaveStatus, error: markerSaveError } = useDebouncedAutoSave({
+    value: markerDraft,
+    resetKey: selectedMarkerId ?? (isAddMode ? 'add' : 'none'),
+    enabled:
+      Boolean(chapterId) &&
+      (selectedMarkerId != null || isAddMode) &&
+      String(markerForm.label || '').trim().length > 0,
+    onSave: persistMarker,
+  });
 
   async function deleteMarker() {
     if (selectedMarkerId == null) return;
@@ -369,9 +400,7 @@ export function GLChapterMapEditor({
           />
         </label>
         <div className="gl-inline-actions">
-          <GLButton type="submit" disabled={saving} loading={saving}>
-            {selectedMarker ? 'Enregistrer le repère' : 'Ajouter le repère'}
-          </GLButton>
+          <AutoSaveStatus status={markerSaveStatus} error={markerSaveError} className="gl-hint" />
           {selectedMarker ? (
             <GLButton type="button" variant="danger" onClick={deleteMarker}>
               Supprimer

@@ -6,6 +6,7 @@
 export const DEFAULT_PLATEAU_MAP_VISIBILITY = Object.freeze({
   markersVisible: true,
   zonesVisible: false,
+  markerNumbersVisible: false,
 });
 
 /** Normalise un override chapitre (null = hériter du défaut plateforme). */
@@ -30,13 +31,22 @@ export function readPlatformPlateauZonesVisible(gameplaySettings = {}) {
   return raw === true || raw === 'true';
 }
 
+export function readPlatformPlateauMarkerNumbersVisible(gameplaySettings = {}) {
+  const raw =
+    gameplaySettings.plateauMarkerNumbersVisible ??
+    gameplaySettings['gameplay.plateau_marker_numbers_visible'];
+  if (raw == null) return DEFAULT_PLATEAU_MAP_VISIBILITY.markerNumbersVisible;
+  return raw === true || raw === 'true';
+}
+
 /**
  * @param {{ gameplaySettings?: object, chapter?: object }} options
- * @returns {{ markersVisible: boolean, zonesVisible: boolean }}
+ * @returns {{ markersVisible: boolean, zonesVisible: boolean, markerNumbersVisible: boolean }}
  */
 export function resolvePlateauMapVisibility({ gameplaySettings = {}, chapter = {} } = {}) {
   const platformMarkers = readPlatformPlateauMarkersVisible(gameplaySettings);
   const platformZones = readPlatformPlateauZonesVisible(gameplaySettings);
+  const markerNumbersVisible = readPlatformPlateauMarkerNumbersVisible(gameplaySettings);
 
   const chapterMarkers = parseChapterMapVisibilityOverride(
     chapter.map_markers_visible ?? chapter.mapMarkersVisible,
@@ -48,5 +58,6 @@ export function resolvePlateauMapVisibility({ gameplaySettings = {}, chapter = {
   return {
     markersVisible: chapterMarkers ?? platformMarkers,
     zonesVisible: chapterZones ?? platformZones,
+    markerNumbersVisible,
   };
 }

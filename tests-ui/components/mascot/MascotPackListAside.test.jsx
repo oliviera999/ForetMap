@@ -70,7 +70,12 @@ describe('MascotPackListAside', () => {
   test('copie catalogue unique : libellé affiché sous le modèle', () => {
     setup({
       findPacksForCatalogModel: vi.fn(() => [
-        { id: 'p1', label: 'SPR0UT carte', catalog_id: 'srv-1', pack: { clonedFromCatalogId: 'sprout' } },
+        {
+          id: 'p1',
+          label: 'SPR0UT carte',
+          catalog_id: 'srv-1',
+          pack: { clonedFromCatalogId: 'sprout' },
+        },
       ]),
     });
     expect(screen.getByText(/Copie sur carte : SPR0UT carte/)).toBeTruthy();

@@ -13,7 +13,6 @@ import { GLMultiCheckDropdown } from '../GLMultiCheckDropdown.jsx';
  *
  * @param {object} props.form valeurs courantes du formulaire
  * @param {(key: string, value: *) => void} props.onField
- * @param {(event: Event) => void} props.onSubmit
  * @param {() => void} props.onArchive
  * @param {string|null} props.selectedCode
  * @param {boolean} props.loading
@@ -24,7 +23,6 @@ import { GLMultiCheckDropdown } from '../GLMultiCheckDropdown.jsx';
 export function GLGlossaryTermForm({
   form,
   onField,
-  onSubmit,
   onArchive,
   selectedCode,
   loading,
@@ -33,7 +31,7 @@ export function GLGlossaryTermForm({
   biomeOptions,
 }) {
   return (
-    <form className="gl-form" onSubmit={onSubmit}>
+    <div className="gl-form">
       <GLField
         label="Code (id)"
         hint="Laisser vide à la création pour génération automatique GL####"
@@ -141,15 +139,12 @@ export function GLGlossaryTermForm({
         />
       </GLField>
       <div className="gl-inline-actions">
-        <GLButton type="submit" disabled={loading}>
-          {loading ? 'Enregistrement…' : 'Enregistrer'}
-        </GLButton>
         {selectedCode ? (
           <GLButton type="button" variant="secondary" onClick={onArchive} disabled={loading}>
             Archiver
           </GLButton>
         ) : null}
       </div>
-    </form>
+    </div>
   );
 }

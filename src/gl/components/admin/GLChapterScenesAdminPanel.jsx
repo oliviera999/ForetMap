@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { apiGL } from '../../services/apiGL.js';
-import { GLButton } from '../ui/GLButton.jsx';
+import { GLChapterSceneDraftRow } from './GLChapterSceneDraftRow.jsx';
 
 /**
  * Scènes de récit conventionnelles d'un chapitre (médiathèque `recit_0N-chapN_*`) :
@@ -101,85 +101,18 @@ export function GLChapterScenesAdminPanel({ plateauNumber, onInfo, onError }) {
       ) : null}
       {scenes.length > 0 ? (
         <ul className="gl-chapter-scenes-admin__list">
-          {scenes.map((scene, index) => {
-            const draft = drafts[scene.stableKey] || { caption: '', order: '' };
-            const dirty =
-              draft.caption !== (scene.caption || '') ||
-              draft.order !== (scene.order != null ? String(scene.order) : '');
-            return (
-              <li key={scene.stableKey} className="gl-chapter-scenes-admin__item">
-                <img
-                  src={scene.url}
-                  alt={scene.caption || scene.stableKey}
-                  loading="lazy"
-                  width={96}
-                  style={{ maxWidth: 96, borderRadius: 6 }}
-                />
-                <div className="gl-chapter-scenes-admin__fields">
-                  <strong>
-                    #{index + 1} · <code>{scene.stableKey}</code>
-                    {scene.cover ? ' · couverture' : ''}
-                  </strong>
-                  <label>
-                    Légende (alt + figcaption)
-                    <input
-                      value={draft.caption}
-                      placeholder="Scène du récit"
-                      onChange={(event) =>
-                        setDraft(scene.stableKey, { caption: event.target.value })
-                      }
-                    />
-                  </label>
-                  <label>
-                    Ordre
-                    <input
-                      type="number"
-                      value={draft.order}
-                      placeholder="auto"
-                      style={{ width: 90 }}
-                      onChange={(event) => setDraft(scene.stableKey, { order: event.target.value })}
-                    />
-                  </label>
-                  <span className="gl-inline-actions">
-                    <GLButton
-                      type="button"
-                      size="sm"
-                      disabled={!dirty || savingKey === scene.stableKey}
-                      onClick={() =>
-                        saveScene(scene.stableKey, {
-                          caption: draft.caption.trim() || null,
-                          order: draft.order.trim() === '' ? null : Number(draft.order),
-                        })
-                      }
-                    >
-                      Enregistrer
-                    </GLButton>
-                    {!scene.cover ? (
-                      <GLButton
-                        type="button"
-                        size="sm"
-                        variant="secondary"
-                        disabled={savingKey === scene.stableKey}
-                        onClick={() => saveScene(scene.stableKey, { cover: true })}
-                      >
-                        Définir couverture
-                      </GLButton>
-                    ) : (
-                      <GLButton
-                        type="button"
-                        size="sm"
-                        variant="secondary"
-                        disabled={savingKey === scene.stableKey}
-                        onClick={() => saveScene(scene.stableKey, { cover: false })}
-                      >
-                        Retirer couverture
-                      </GLButton>
-                    )}
-                  </span>
-                </div>
-              </li>
-            );
-          })}
+          {scenes.map((scene, index) => (
+            <GLChapterSceneDraftRow
+              key={scene.stableKey}
+              scene={scene}
+              index={index}
+              draft={drafts[scene.stableKey] || { caption: '', order: '' }}
+              onDraftChange={setDraft}
+              onPersist={saveScene}
+              onSetCover={(stableKey, cover) => saveScene(stableKey, { cover })}
+              savingKey={savingKey}
+            />
+          ))}
         </ul>
       ) : null}
     </div>

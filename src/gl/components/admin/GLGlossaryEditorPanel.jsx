@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { apiGL } from '../../services/apiGL.js';
+import { AutoSaveStatus } from '../../../shared/components/AutoSaveStatus.jsx';
+import { useDebouncedAutoSave } from '../../../shared/hooks/useDebouncedAutoSave.js';
 import { GLGlossaryTermList } from './GLGlossaryTermList.jsx';
 import { GLGlossaryTermForm } from './GLGlossaryTermForm.jsx';
 import {
@@ -88,30 +90,34 @@ export function GLGlossaryEditorPanel() {
     }
   }
 
-  async function saveTerm(event) {
-    event.preventDefault();
-    setLoading(true);
-    setError('');
-    setInfo('');
-    try {
-      const payload = formToPayload(form);
-      const isEdit = Boolean(selectedCode);
-      const path = isEdit
-        ? `/api/gl/admin/glossary/terms/${encodeURIComponent(selectedCode)}`
-        : '/api/gl/admin/glossary/terms';
-      const method = isEdit ? 'PUT' : 'POST';
-      const data = await apiGL(path, method, payload);
-      const code = data?.term?.glossary_code || form.glossary_code;
-      setSelectedCode(code);
-      setForm(termToForm(data?.term));
-      setInfo(isEdit ? 'Terme mis à jour.' : 'Terme créé.');
-      await loadList();
-    } catch (err) {
-      setError(err.message || 'Enregistrement impossible');
-    } finally {
-      setLoading(false);
-    }
-  }
+  const persistTerm = useCallback(async () => {
+    const payload = formToPayload(form);
+    const isEdit = Boolean(selectedCode);
+    const path = isEdit
+      ? `/api/gl/admin/glossary/terms/${encodeURIComponent(selectedCode)}`
+      : '/api/gl/admin/glossary/terms';
+    const method = isEdit ? 'PUT' : 'POST';
+    const data = await apiGL(path, method, payload);
+    const code = data?.term?.glossary_code || form.glossary_code;
+    setSelectedCode(code);
+    const nextForm = termToForm(data?.term);
+    setForm(nextForm);
+    setInfo(isEdit ? 'Terme mis à jour.' : 'Terme créé.');
+    await loadList();
+    return nextForm;
+  }, [form, selectedCode, loadList]);
+
+  const { status: saveStatus, error: saveError } = useDebouncedAutoSave({
+    value: form,
+    resetKey: selectedCode ?? `new:${form.glossary_code}`,
+    enabled: String(form.terme || '').trim().length > 0,
+    canSave: () => {
+      if (!String(form.terme || '').trim()) return false;
+      if (!form.categorie || !form.niveau) return 'Catégorie et niveau requis';
+      return true;
+    },
+    onSave: persistTerm,
+  });
 
   async function archiveTerm() {
     if (!selectedCode) return;
@@ -144,6 +150,8 @@ export function GLGlossaryEditorPanel() {
         séparés par des virgules.
       </p>
       {error ? <p className="gl-error">{error}</p> : null}
+      {saveError ? <p className="gl-error">{saveError}</p> : null}
+      <AutoSaveStatus status={saveStatus} className="gl-hint" />
       {info ? <p className="gl-hint">{info}</p> : null}
 
       <div className="gl-chapters-admin-grid">
@@ -164,10 +172,9 @@ export function GLGlossaryEditorPanel() {
           <GLGlossaryTermForm
             form={form}
             onField={setField}
-            onSubmit={saveTerm}
             onArchive={archiveTerm}
             selectedCode={selectedCode}
-            loading={loading}
+            loading={loading || saveStatus === 'saving'}
             categories={meta.categories}
             niveaux={meta.niveaux}
             biomeOptions={biomeOptions}

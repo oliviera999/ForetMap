@@ -14,10 +14,7 @@ const GLOBAL_SCOPE = '__global__';
 /**
  * @param {{ onForceLogout?: () => void, catalogModelOptions?: Array<{ id: string, label: string }> }} props
  */
-export default function VisitMascotDialogStudioView({
-  onForceLogout,
-  catalogModelOptions = null,
-}) {
+export default function VisitMascotDialogStudioView({ onForceLogout, catalogModelOptions = null }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');

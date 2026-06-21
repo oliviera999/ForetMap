@@ -36,6 +36,7 @@ export function GLMapView({
   feuilletZoneEditMode = false,
   showPlateauMarkers = true,
   showPlateauZones = false,
+  showMarkerPathNumbers = false,
   roster = [],
   vitalityEnabled = false,
   vitalityByPlayerId = null,
@@ -91,6 +92,7 @@ export function GLMapView({
       feuilletZoneEditMode={feuilletZoneEditMode}
       showPlateauMarkers={showPlateauMarkers}
       showPlateauZones={showPlateauZones}
+      showMarkerPathNumbers={showMarkerPathNumbers}
       roster={roster}
       vitalityEnabled={vitalityEnabled}
       vitalityByPlayerId={vitalityByPlayerId}

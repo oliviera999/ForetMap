@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { apiGL } from '../../services/apiGL.js';
+import { AutoSaveStatus } from '../../../shared/components/AutoSaveStatus.jsx';
+import { useDebouncedAutoSave } from '../../../shared/hooks/useDebouncedAutoSave.js';
 import { GL_SPECIES_DETAIL_SECTIONS } from '../../utils/glSpeciesFieldLabels.js';
 import {
   EMPTY_FORM,
@@ -98,30 +100,29 @@ export function GLSpeciesEditorPanel() {
     }
   }
 
-  async function saveSpecies(event) {
-    event.preventDefault();
-    setLoading(true);
-    setError('');
-    setInfo('');
-    try {
-      const payload = formToPayload({ ...form, biome_slug: biomeSlug || form.biome_slug });
-      const isEdit = Boolean(selectedCode);
-      const path = isEdit
-        ? `/api/gl/admin/species/${encodeURIComponent(selectedCode)}`
-        : '/api/gl/admin/species';
-      const method = isEdit ? 'PUT' : 'POST';
-      const data = await apiGL(path, method, payload);
-      const code = data?.species?.species_code || form.species_code;
-      setSelectedCode(code);
-      setForm(speciesToForm(data?.species));
-      setInfo(isEdit ? 'Espèce mise à jour.' : 'Espèce créée.');
-      await loadList();
-    } catch (err) {
-      setError(err.message || 'Enregistrement impossible');
-    } finally {
-      setLoading(false);
-    }
-  }
+  const persistSpecies = useCallback(async () => {
+    const payload = formToPayload({ ...form, biome_slug: biomeSlug || form.biome_slug });
+    const isEdit = Boolean(selectedCode);
+    const path = isEdit
+      ? `/api/gl/admin/species/${encodeURIComponent(selectedCode)}`
+      : '/api/gl/admin/species';
+    const method = isEdit ? 'PUT' : 'POST';
+    const data = await apiGL(path, method, payload);
+    const code = data?.species?.species_code || form.species_code;
+    setSelectedCode(code);
+    const nextForm = speciesToForm(data?.species);
+    setForm(nextForm);
+    setInfo(isEdit ? 'Espèce mise à jour.' : 'Espèce créée.');
+    await loadList();
+    return nextForm;
+  }, [form, selectedCode, biomeSlug, loadList]);
+
+  const { status: saveStatus, error: saveError } = useDebouncedAutoSave({
+    value: form,
+    resetKey: selectedCode ?? `new:${form.species_code}`,
+    enabled: Boolean(biomeSlug) && String(form.nom_commun || '').trim().length > 0,
+    onSave: persistSpecies,
+  });
 
   async function archiveSpecies() {
     if (!selectedCode) return;
@@ -165,6 +166,8 @@ export function GLSpeciesEditorPanel() {
         virgules).
       </p>
       {error ? <p className="gl-error">{error}</p> : null}
+      {saveError ? <p className="gl-error">{saveError}</p> : null}
+      <AutoSaveStatus status={saveStatus} className="gl-hint" />
       {info ? <p className="gl-hint">{info}</p> : null}
 
       <GLField label="Biome du catalogue">
@@ -227,7 +230,7 @@ export function GLSpeciesEditorPanel() {
         </aside>
 
         <div>
-          <form className="gl-form" onSubmit={saveSpecies}>
+          <div className="gl-form">
             <h4>Identification</h4>
             {coreFields.map((key) => (
               <GLSpeciesField
@@ -250,21 +253,18 @@ export function GLSpeciesEditorPanel() {
             ))}
 
             <div className="gl-inline-actions">
-              <GLButton type="submit" disabled={loading || !biomeSlug}>
-                {loading ? 'Enregistrement…' : 'Enregistrer'}
-              </GLButton>
               {selectedCode ? (
                 <GLButton
                   type="button"
                   variant="secondary"
                   onClick={archiveSpecies}
-                  disabled={loading}
+                  disabled={loading || saveStatus === 'saving'}
                 >
                   Archiver
                 </GLButton>
               ) : null}
             </div>
-          </form>
+          </div>
         </div>
       </div>
     </section>

@@ -1,10 +1,10 @@
 import { isQuestionMarker } from '../../utils/glMarkerEventConfig.js';
 import { shouldPresentMarkerOnArrival } from '../../utils/glMarkerEffects.js';
-import { sortMarkersByPath, targetMarkerAfterDice } from './glBoardPath.js';
+import { markersAlongDicePath, sortMarkersByPath, targetMarkerAfterDice } from './glBoardPath.js';
 
 /**
  * Calcule la cible d'avancement après un jet de dés (chemin numéroté).
- * @returns {{ teamId: number, marker: object, shouldPresent: boolean } | null}
+ * @returns {{ teamId: number, marker: object, waypoints: object[], shouldPresent: boolean } | null}
  */
 export function resolveDicePathAdvance({
   markers = [],
@@ -16,16 +16,16 @@ export function resolveDicePathAdvance({
 }) {
   if (!boardMovement?.isNumberedPath || teamId == null) return null;
   const sortedMarkers = sortMarkersByPath(markers);
-  const target = targetMarkerAfterDice(
+  const target = targetMarkerAfterDice(sortedMarkers, team, roll?.total, boardMovement.startIndex);
+  if (!target?.marker) return null;
+  const marker = target.marker;
+  const waypoints = markersAlongDicePath(
     sortedMarkers,
     team,
     roll?.total,
     boardMovement.startIndex,
   );
-  if (!target?.marker) return null;
-  const marker = target.marker;
   const shouldPresent =
-    markerArrivalEnabled &&
-    (isQuestionMarker(marker) || shouldPresentMarkerOnArrival(marker));
-  return { teamId: Number(teamId), marker, shouldPresent };
+    markerArrivalEnabled && (isQuestionMarker(marker) || shouldPresentMarkerOnArrival(marker));
+  return { teamId: Number(teamId), marker, waypoints, shouldPresent };
 }

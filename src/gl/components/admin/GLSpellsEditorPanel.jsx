@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { apiGL } from '../../services/apiGL.js';
+import { AutoSaveStatus } from '../../../shared/components/AutoSaveStatus.jsx';
+import { useDebouncedAutoSave } from '../../../shared/hooks/useDebouncedAutoSave.js';
 import {
   EMPTY_FORM,
   FORM_FIELDS,
@@ -93,30 +95,29 @@ export function GLSpellsEditorPanel() {
     }
   }
 
-  async function saveSpell(event) {
-    event.preventDefault();
-    setLoading(true);
-    setError('');
-    setInfo('');
-    try {
-      const payload = formToPayload({ ...form, category_slug: categorySlug || form.category_slug });
-      const isEdit = Boolean(selectedCode);
-      const path = isEdit
-        ? `/api/gl/admin/spells/${encodeURIComponent(selectedCode)}`
-        : '/api/gl/admin/spells';
-      const method = isEdit ? 'PUT' : 'POST';
-      const data = await apiGL(path, method, payload);
-      const code = data?.spell?.spell_code || form.spell_code;
-      setSelectedCode(code);
-      setForm(spellToForm(data?.spell));
-      setInfo(isEdit ? 'Sort mis à jour.' : 'Sort créé.');
-      await loadList();
-    } catch (err) {
-      setError(err.message || 'Enregistrement impossible');
-    } finally {
-      setLoading(false);
-    }
-  }
+  const persistSpell = useCallback(async () => {
+    const payload = formToPayload({ ...form, category_slug: categorySlug || form.category_slug });
+    const isEdit = Boolean(selectedCode);
+    const path = isEdit
+      ? `/api/gl/admin/spells/${encodeURIComponent(selectedCode)}`
+      : '/api/gl/admin/spells';
+    const method = isEdit ? 'PUT' : 'POST';
+    const data = await apiGL(path, method, payload);
+    const code = data?.spell?.spell_code || form.spell_code;
+    setSelectedCode(code);
+    const nextForm = spellToForm(data?.spell);
+    setForm(nextForm);
+    setInfo(isEdit ? 'Sort mis à jour.' : 'Sort créé.');
+    await loadList();
+    return nextForm;
+  }, [form, selectedCode, categorySlug, loadList]);
+
+  const { status: saveStatus, error: saveError } = useDebouncedAutoSave({
+    value: form,
+    resetKey: selectedCode ?? `new:${form.spell_code}`,
+    enabled: Boolean(categorySlug) && String(form.nom || '').trim().length > 0,
+    onSave: persistSpell,
+  });
 
   async function deleteSpell() {
     if (!selectedCode) return;
@@ -147,6 +148,8 @@ export function GLSpellsEditorPanel() {
         Fiches de sorts par catégorie. Liez les sorts aux chapitres dans Contenus → Chapitres.
       </p>
       {error ? <p className="gl-error">{error}</p> : null}
+      {saveError ? <p className="gl-error">{saveError}</p> : null}
+      <AutoSaveStatus status={saveStatus} className="gl-hint" />
       {info ? <p className="gl-hint">{info}</p> : null}
 
       <GLField label="Catégorie">
@@ -199,7 +202,7 @@ export function GLSpellsEditorPanel() {
         </aside>
 
         <div>
-          <form className="gl-form" onSubmit={saveSpell}>
+          <div className="gl-form">
             {FORM_FIELDS.map((key) => (
               <GLSpellFormField
                 key={key}
@@ -210,16 +213,18 @@ export function GLSpellsEditorPanel() {
               />
             ))}
             <div className="gl-inline-actions">
-              <GLButton type="submit" disabled={loading || !categorySlug}>
-                {loading ? 'Enregistrement…' : 'Enregistrer'}
-              </GLButton>
               {selectedCode ? (
-                <GLButton type="button" variant="danger" onClick={deleteSpell} disabled={loading}>
+                <GLButton
+                  type="button"
+                  variant="danger"
+                  onClick={deleteSpell}
+                  disabled={loading || saveStatus === 'saving'}
+                >
                   Supprimer
                 </GLButton>
               ) : null}
             </div>
-          </form>
+          </div>
         </div>
       </div>
     </section>

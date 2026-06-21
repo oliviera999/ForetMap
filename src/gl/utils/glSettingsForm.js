@@ -53,6 +53,13 @@ export function readPlateauMarkersVisibleSetting(settings) {
   return value === true || value === 'true';
 }
 
+/** Numéros de parcours masqués par défaut sur la carte en partie. */
+export function readPlateauMarkerNumbersVisibleSetting(settings) {
+  const value = settings?.['gameplay.plateau_marker_numbers_visible'];
+  if (value == null) return false;
+  return value === true || value === 'true';
+}
+
 /** Toggles d'affichage repères / zones feuillets sur la carte en partie. */
 export const MAP_DISPLAY_TOGGLES = [
   {
@@ -60,6 +67,12 @@ export const MAP_DISPLAY_TOGGLES = [
     label: 'Repères visibles sur la carte',
     hint: 'Affiche les repères interactifs sur le plateau en partie (défaut : visible).',
     readChecked: readPlateauMarkersVisibleSetting,
+  },
+  {
+    key: 'gameplay.plateau_marker_numbers_visible',
+    label: 'Numéros de parcours sur les repères',
+    hint: 'Affiche 1, 2, 3… sur chaque repère en mode « parcours numéroté » (défaut : masqué).',
+    readChecked: readPlateauMarkerNumbersVisibleSetting,
   },
   {
     key: 'gameplay.plateau_zones_visible',
