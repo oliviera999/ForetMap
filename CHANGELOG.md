@@ -13,6 +13,12 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Grilles dégradables** : `.stats-grid` et `.plant-form-grid` passent en `auto-fit` + `minmax(min(…, 100%), 1fr)` (plus de colonnes minuscules ni de débordement sur écran étroit) ; vignettes `.plant-photo-thumb` en largeur fluide `clamp(96px, 30vw, 140px)`.
 - **Anti-débordement images** : garde-fou global `img, video { max-width: 100% }` (les règles dédiées restent prioritaires) ; `.profile-promo-card__glow` resserré pour ne pas dépasser le conteneur.
 
+### GL — homogénéité responsive (console MJ, joueurs, écosystèmes)
+
+- **fix(gl)** : padding fluide de `.gl-main` (`clamp(10px, 3vw, 16px)`) → moins de marge perdue sur petit mobile, confort conservé sur desktop.
+- **fix(gl)** : `gl-admin-grid-2` (formulaires console MJ) en `minmax(min(170px, 100%), 1fr)` → la colonne se réduit au lieu de déborder sur écran étroit.
+- **fix(gl)** : nom de joueur du roster (`gl-map-roster-player__name`) avec `min-width:0` + `overflow-wrap:anywhere` → un nom long ne pousse plus la vitalité hors écran.
+
 ### GL — déplacement au dé (repères numérotés)
 
 - **fix(gl)** : la mascotte traverse chaque repère intermédiaire dans l’ordre (plus de saut direct) ; ancrage centré sur le repère à chaque étape (`snapCenter`, coordonnées exactes sans clamp viewport).
