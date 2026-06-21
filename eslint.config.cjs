@@ -78,6 +78,7 @@ module.exports = [
       'tests/motion-hooks.test.js',
       'tests/pct-polygon.test.js',
       'tests/qcm-feedback.test.js',
+      'tests/image-lightbox-click.test.js',
       'tests/visit-editorial-blocks.test.js',
     ],
     languageOptions: {
