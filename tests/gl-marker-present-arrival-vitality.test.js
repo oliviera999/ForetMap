@@ -123,9 +123,10 @@ test('present-arrival applique gemmes et coeurs a toute l equipe', async () => {
   assert.strictEqual(res.body?.vitality?.target, 'team');
   assert.strictEqual(res.body?.vitality?.results?.length, 2);
 
-  const playerA = await queryOne('SELECT health_points, power_points FROM gl_players WHERE id = ?', [
-    playerAId,
-  ]);
+  const playerA = await queryOne(
+    'SELECT health_points, power_points FROM gl_players WHERE id = ?',
+    [playerAId],
+  );
   assert.strictEqual(Number(playerA.health_points), 4);
   assert.strictEqual(Number(playerA.power_points), 2);
 
@@ -148,9 +149,10 @@ test('present-arrival ne reapplique pas les effets vitalite', async () => {
   assert.strictEqual(res.body?.vitality?.applied, false);
   assert.strictEqual(res.body?.vitality?.alreadyApplied, true);
 
-  const playerA = await queryOne('SELECT health_points, power_points FROM gl_players WHERE id = ?', [
-    playerAId,
-  ]);
+  const playerA = await queryOne(
+    'SELECT health_points, power_points FROM gl_players WHERE id = ?',
+    [playerAId],
+  );
   assert.strictEqual(Number(playerA.health_points), 4);
   assert.strictEqual(Number(playerA.power_points), 2);
 });

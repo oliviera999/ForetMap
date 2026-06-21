@@ -56,9 +56,7 @@ export function GLBoardMarkers({
     const appearance = resolveMarkerAppearance(marker);
     const isSelected = selectedMarkerId != null && Number(selectedMarkerId) === Number(marker.id);
     const pathNumber =
-      markerPathNumbers instanceof Map
-        ? markerPathNumbers.get(Number(marker.id))
-        : null;
+      markerPathNumbers instanceof Map ? markerPathNumbers.get(Number(marker.id)) : null;
     const classes = [className, `gl-board-marker--${appearance.displayMode}`];
     if (isSelected) classes.push('is-selected');
     const ariaLabel =

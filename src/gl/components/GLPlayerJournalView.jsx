@@ -211,9 +211,7 @@ export function GLPlayerJournalView({ gameState }) {
         )}
       </div>
 
-      {saveError || autoSaveError ? (
-        <p className="gl-error">{saveError || autoSaveError}</p>
-      ) : null}
+      {saveError || autoSaveError ? <p className="gl-error">{saveError || autoSaveError}</p> : null}
 
       <div className="gl-player-journal__toolbar gl-inline-actions">
         <GLButton type="button" variant="secondary" onClick={() => setEmbedPickerOpen(true)}>
