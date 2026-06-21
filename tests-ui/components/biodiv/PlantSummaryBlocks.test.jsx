@@ -16,7 +16,13 @@ describe('PlantSummaryBadges', () => {
   test('nutrition + température + pH → 3 pastilles', () => {
     render(
       <PlantSummaryBadges
-        plant={{ nutrition: 'Autotrophe', ideal_temperature_c: '18', optimal_ph: '6.5' }}
+        plant={{
+          nutrition: 'Autotrophe',
+          temp_min_c: '18',
+          temp_max_c: '18',
+          ph_min: '6.5',
+          ph_max: '6.5',
+        }}
       />,
     );
     expect(screen.getByText('🍽️ Autotrophe')).toBeInTheDocument();
@@ -37,8 +43,10 @@ describe('PlantSummaryBadges', () => {
       <PlantSummaryBadges
         plant={{
           nutrition: 'x',
-          ideal_temperature_c: '1',
-          optimal_ph: '2',
+          temp_min_c: '1',
+          temp_max_c: '1',
+          ph_min: '2',
+          ph_max: '2',
           preferred_nutrients: 'y',
         }}
       />,
