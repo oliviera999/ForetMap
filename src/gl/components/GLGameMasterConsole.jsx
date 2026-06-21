@@ -67,6 +67,7 @@ export function GLGameMasterConsole({
   const [editingTeamId, setEditingTeamId] = useState(null);
   const [rosterRefreshKey, setRosterRefreshKey] = useState(0);
   const [busy, setBusy] = useState(false);
+  const [pendingSpellCasts, setPendingSpellCasts] = useState([]);
   const { mascots: mascotCatalog } = useGLMascotCatalog();
 
   const activeClasses = useMemo(
@@ -178,10 +179,7 @@ export function GLGameMasterConsole({
     }
   }, [game?.id, editGameForm, gameStatus, onGameStateChange]);
 
-  const {
-    status: gameSaveStatus,
-    error: gameSaveError,
-  } = useDebouncedAutoSave({
+  const { status: gameSaveStatus, error: gameSaveError } = useDebouncedAutoSave({
     value: editGameForm,
     resetKey: game?.id,
     enabled: Boolean(game?.id),
@@ -220,10 +218,7 @@ export function GLGameMasterConsole({
     }
   }, [game?.id, editingTeamId, teamForm, onReloadGame, defaultMascotByType]);
 
-  const {
-    status: teamSaveStatus,
-    error: teamSaveError,
-  } = useDebouncedAutoSave({
+  const { status: teamSaveStatus, error: teamSaveError } = useDebouncedAutoSave({
     value: teamForm,
     resetKey: editingTeamId ?? 'new-team',
     enabled: Boolean(game?.id) && String(teamForm.name || '').trim().length > 0,
@@ -455,11 +450,45 @@ export function GLGameMasterConsole({
     if (!game?.id) return;
     setBusy(true);
     try {
-      await apiGL(`/api/gl/games/${game.id}/turn/next`, 'POST');
+      const data = await apiGL(`/api/gl/games/${game.id}/turn/next`, 'POST');
       await onReloadGame?.();
-      showSuccess('Tour suivant.');
+      showSuccess(`Tour n°${data?.roundNumber ?? ''} lancé.`);
     } catch (err) {
-      showFailure(err.message || 'Tour suivant impossible');
+      showFailure(err.message || 'Lancement du tour impossible');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const loadPendingSpellCasts = useCallback(async () => {
+    if (!game?.id || !canSpellCast || gameStatus !== 'live') {
+      setPendingSpellCasts([]);
+      return;
+    }
+    try {
+      const data = await apiGL(`/api/gl/games/${game.id}/spell-casts/pending`);
+      setPendingSpellCasts(Array.isArray(data?.drafts) ? data.drafts : []);
+    } catch (_) {
+      // file d'attente non bloquante : on ignore les erreurs de rafraîchissement
+    }
+  }, [game?.id, canSpellCast, gameStatus]);
+
+  useEffect(() => {
+    loadPendingSpellCasts();
+  }, [loadPendingSpellCasts, gameState]);
+
+  async function resolveSpellCast(draftId, decision) {
+    if (!game?.id || draftId == null) return;
+    setBusy(true);
+    try {
+      await apiGL(`/api/gl/games/${game.id}/spell-casts/drafts/${draftId}/resolve`, 'POST', {
+        decision,
+      });
+      await loadPendingSpellCasts();
+      await onReloadGame?.();
+      showSuccess(decision === 'accept' ? 'Sortilège validé.' : 'Sortilège refusé.');
+    } catch (err) {
+      showFailure(err.message || 'Résolution du sortilège impossible');
     } finally {
       setBusy(false);
     }
@@ -795,6 +824,9 @@ export function GLGameMasterConsole({
             effectiveSelectedTeamId={effectiveSelectedTeamId}
             currentTeamId={currentTeamId}
             turnsEnabled={turnsEnabled}
+            roundNumber={game?.current_round_number}
+            pendingSpellCasts={pendingSpellCasts}
+            onResolveSpellCast={resolveSpellCast}
             narrationEnabled={narrationEnabled}
             playerActionsEnabled={playerActionsEnabled}
             scoringEnabled={scoringEnabled}

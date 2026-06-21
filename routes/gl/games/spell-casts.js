@@ -14,6 +14,7 @@ const {
   updateDraftContributions,
   launchDraft,
   resolveDraftApproval,
+  listPendingApprovalDrafts,
   cancelDraft,
   isStaff,
 } = require('../../../lib/glSpellCast');
@@ -182,6 +183,19 @@ router.post(
     });
   },
 );
+
+/**
+ * Liste des sortilèges en attente de validation MJ (mode classique). Réservé au staff.
+ */
+router.get('/games/:id/spell-casts/pending', requireGlAuth, async (req, res) => {
+  if (!hasGlPermission(req.glAuth, 'gl.game.manage')) {
+    return res.status(403).json({ error: 'Réservé au maître du jeu' });
+  }
+  return handleSpellCastRoute(req, res, async ({ gameId }) => {
+    const drafts = await listPendingApprovalDrafts(gameId);
+    return res.json({ drafts });
+  });
+});
 
 /**
  * Résolution MJ d'un sortilège en attente de validation (accept = débit + cast ; reject = annulé).

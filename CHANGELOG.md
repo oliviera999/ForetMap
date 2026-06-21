@@ -16,7 +16,8 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Mode classique** : suppression du blocage « ce n'est pas le tour de votre équipe » sur QCM, actions joueur et sortilèges (joueurs libres de leurs actions).
 - **BDD** : migration `139_gl_game_turn_classic.sql` (`gl_games.current_round_number`/`current_round_started_at`, `gl_teams.last_move_round_number`, table `gl_game_rounds`, `gl_spells.approval_mode`/`cast_scope`, colonnes d'approbation sur `gl_spell_cast_drafts`, réglages par défaut, permission `gl.mascot.position` accordée au profil joueur).
 - **Réglages** : `gameplay.mascot_move_actor`, `gameplay.spell_cast_approval_mode` (lecture/validation `glSettings` + `PUT /api/gl/admin/settings`).
-- **Tests** : `tests/gl-game-turns.test.js` (réécrit mode classique), `tests/gl-game-turn-classic.test.js` (approbation sorts, portées, déplacement joueur 1×/tour). Doc `docs/API.md`.
+- **Front (mode classique)** : console MJ — indicateur de tour + bouton « Lancer le tour », file de validation des sortilèges (valider / refuser), badge « déplacée » par équipe. Vue joueur — bandeaux temps réel `round_start` / sort refusé, état « en attente du MJ » dans l'assistant de sortilège, action « Déplacer ma mascotte » (plateau libre, 1×/tour) quand `mascot_move_actor='players'`. Réglages — sélecteurs « Validation des sortilèges » et « Déplacement de la mascotte ». Endpoint MJ `GET /spell-casts/pending`.
+- **Tests** : `tests/gl-game-turns.test.js` (réécrit mode classique), `tests/gl-game-turn-classic.test.js` (approbation sorts, portées, déplacement joueur 1×/tour, file MJ). Doc `docs/API.md`.
 
 ### GL — déplacement au dé (repères numérotés)
 

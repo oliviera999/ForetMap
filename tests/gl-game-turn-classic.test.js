@@ -192,6 +192,16 @@ test('sort mj_required : joueur soumet → pending, aucun débit ; MJ accepte �
   );
   assert.strictEqual(pendingBalance, before);
 
+  // La file MJ liste le sort en attente.
+  const pendingList = await request(app)
+    .get(`/api/gl/games/${gameId}/spell-casts/pending`)
+    .set('Authorization', `Bearer ${mjToken}`)
+    .expect(200);
+  assert.ok(
+    pendingList.body.drafts.some((d) => Number(d.id) === Number(draftId)),
+    'le brouillon en attente doit apparaître dans la file MJ',
+  );
+
   const accept = await request(app)
     .post(`/api/gl/games/${gameId}/spell-casts/drafts/${draftId}/resolve`)
     .set('Authorization', `Bearer ${mjToken}`)
