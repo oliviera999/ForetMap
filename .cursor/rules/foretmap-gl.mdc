@@ -1,11 +1,87 @@
-# Règles spécifiques Gnomes & Licornes (GL)
+---
+description: Règles du sous-produit Gnomes & Licornes (GL) — routage host, auth produit (joueur/invité/MJ/admin), isolement cross-produit, modules activables, contenus (chapitres/lore/carte/marché/sorts/QCM), mascottes & cadres d'image GL, styles, tests séquentiels
+globs: routes/gl/**/*.js, src/gl/**/*.jsx, src/gl/**/*.js, src/gl/**/*.css, lib/gl-pack/**/*.js, lib/glSettings.js, lib/glImageFrame.js, lib/productResolver.js, src/utils/gl*.js, src/shared/mascot-pack/**/*, middleware/requireGlAuth.js, gl.html, tests/gl-*.test.js, tests/snapshot-gl.test.js, e2e/gl-*.spec.js, scripts/gl-*.js
+alwaysApply: false
+---
 
-- **Routage host** : `gl.*` ou `X-Foretmap-Product: gl` → SPA `gl.html` ; les routes API sont préfixées **`/api/gl/*`**.
-- **Token GL** : JWT avec claim `product: 'gl'` ; signé via `signAuthToken({ product: 'gl', ... })`. Vérifié par `middleware/requireGlAuth.js`.
-- **Isolement cross-produit** : un JWT `product: 'gl'` est explicitement rejeté sur les routes ForetMap principales (`server.js`). Ne pas brancher de route GL sous `/api/<autre>`.
-- **Tests GL** : exécution séquentielle obligatoire (`--test-concurrency=1 --test-force-exit`) — la BDD est partagée, sinon deadlocks d'`initSchema()`.
-- **Modules GL** : tout nouvel onglet/feature exposé côté `src/gl/AppGL.jsx` doit avoir un drapeau `modules.*` correspondant dans `lib/glSettings.js` et être validé strictement (booléen) côté `routes/gl/admin.js`.
-- **Mascottes GL** : préfixe id `gl-*` ; renderer multi-mode via `GLMascotRenderer` ; packs persistés validés par `lib/gl-pack/mascotPack.js` (Zod).
-- **Cadres d'image GL** : tout nouveau cadrage image (charte, markdown, chapitres, avatar) doit passer par `src/utils/glImageFrame.js` (et `lib/glImageFrame.js` côté serveur), avec validation/normalisation stricte et tests associés.
-- **Diagnostics** : section `gl` dans `GET /api/admin/diagnostics` (compteurs parties, joueurs actifs, types d'évènements récents, packs).
-- **Convention commits** : préfixe Conventional Commits `feat(gl)`, `fix(gl)`, `chore(gl)`, etc. quand le lot est exclusivement GL.
+# Gnomes & Licornes (GL) — règles du sous-produit
+
+> GL est un sous-produit du monorepo ForetMap, **isolé** du produit principal et désormais
+> large (auth dédiée, chapitres, carte du royaume, lore, marché, sorts, QCM, journal…).
+> Détail d'architecture : skill **foretmap-gl-project** et `docs/GL_ARCHITECTURE.md`.
+> QA par personae : skill **foretmap-gl-qa-personae**.
+
+## Routage & isolement (non négociable)
+- Routage host via `lib/productResolver.js` : `gl.*` (ou header `X-Foretmap-Product: gl`)
+  → SPA `gl.html` (`src/gl/main.jsx` → `src/gl/AppGL.jsx`). API préfixée **`/api/gl/*`**.
+- **Isolement cross-produit strict** : un JWT `product: 'gl'` est rejeté sur les routes
+  ForetMap principales (`server.js`), et réciproquement. Ne jamais brancher une route GL
+  hors de `/api/gl/*`, ni mélanger les tables (préfixe `gl_*`). Garder un test couvrant ce rejet.
+
+## Auth & RBAC
+- Token GL : JWT claim `product: 'gl'`, signé via `signAuthToken({ product: 'gl', ... })`,
+  vérifié par `middleware/requireGlAuth.js`.
+- Profils : **joueur** (identifiant + mot de passe), **invité** (`gl.auth.guest`, mode lecture
+  encadré), **MJ / admin** (staff). L'impersonation MJ→joueur passe par
+  `gl.auth.impersonate.start` / `gl.auth.impersonate.stop`.
+- Permissions (source de vérité côté serveur) : `gl.read`, `gl.content.manage`,
+  `gl.players.manage`, `gl.game.manage`, `gl.team.manage`, `gl.event.emit`,
+  `gl.mascot.position`, `gl.settings.manage`, `gl.action.request`, `gl.spell_cast`,
+  `gl.auth.guest`, `gl.auth.impersonate.start`, `gl.auth.impersonate.stop`.
+  Toute route admin/MJ GL doit refuser explicitement un joueur (401/403), pas de blocage silencieux.
+
+## Modules activables (feature flags)
+- Source de vérité : `lib/glSettings.js` (clés `modules.*_enabled` : `forum`, `notifications`,
+  `tutorials`, `help`, `intro`, `narration`, `turns`, `scoring`, `player_actions`,
+  `context_comments`, `journal`, `player_journal`, `mascot_packs`, `market`, `spell_cast`,
+  `virtual_dice`, `vitality`, `zone_music`, `lore_carnet`, `lore_glossary`,
+  `lore_effacement`, `lore_gemme_costs`, `lore_heart_rewards`).
+- Tout nouvel onglet/feature de `src/gl/AppGL.jsx` doit : (1) déclarer son drapeau `modules.*`
+  dans `lib/glSettings.js`, (2) être validé **strictement booléen** côté `routes/gl/admin.js`
+  (toggle `PUT /api/gl/admin/settings/modules.*`), (3) être lu au login via `GET /api/gl/auth/config`.
+
+## Contenus & gameplay
+- Domaines servis sous `routes/gl/*` : `chapters`, `kingdom-map`, `lore`, `glossary`, `market`,
+  `spells`, `qcm`, `journal` / `player-journal`, `learning`, `forum`, `context-comments`,
+  `tutorials`, `species`, `stats`, `games`, `mascots`, `content`, `admin`, `auth`.
+- **Seed de contenu** : utiliser les scripts dédiés `npm run gl:import:*` (`chapters`, `species`,
+  `spells`, `glossary`, `qcm`, `qcm-lore`, `lore-feuillets`, `lore-glossary`, `wp`, `media`) ;
+  ne pas écrire de contenu en dur dans le code applicatif.
+
+## Mascottes & packs GL
+- Préfixe id `gl-*` ; renderer multi-mode `GLMascotRenderer` + state machine
+  `src/gl/hooks/useGLMascotStateMachine.js`. UI/preview partagée : `src/shared/mascot-pack/`.
+- Validation Zod `src/utils/glMascotPack.js` avec **miroir CJS** `lib/gl-pack/mascotPack.js`
+  maintenu par **`npm run sync:gl-pack-lib`** (enchaîné au build) — indispensable pour la prod
+  « runtime » sans `src/`. Conversion `src/utils/glMascotPackToVisit.js` pour `sprite_cut`.
+
+## Cadres d'image GL
+- Tout cadrage image (charte, markdown, chapitres, avatar) passe par `src/utils/glImageFrame.js`
+  (front) et `lib/glImageFrame.js` (back), avec validation/normalisation stricte + tests.
+  Référence : `docs/GL_IMAGE_FRAMES.md`.
+
+## UI / styles GL
+- Le front GL **ne charge pas** tout `index.css` : seulement `src/shared/styles/*`
+  (motion, modal-shell, toast-shell) + `src/gl/styles/gl-base.css` + `gl-theme.css`.
+- Garder la **palette GL locale** (hex dans `gl-theme.css`, préfixe `gl-`) ;
+  ne pas réutiliser `--forest`, `--leaf`, etc.
+- Réutiliser les briques partagées : `DialogShell` / `fm-modal-*`, `FixedToast` / `fm-toast`,
+  classes motion (`.fade-in`, `.stagger`…), hook `usePrefersReducedMotion`. Animation d'entrée :
+  préférer `.gl-main-inner.fade-in` (évite le piège `transform` sur les portails).
+
+## Tests (même lot que le code)
+- Backend : `tests/gl-*.test.js` + helpers `tests/helpers/glFixtures.js`.
+  **Exécution séquentielle obligatoire** (`--test-concurrency=1 --test-force-exit`) —
+  BDD partagée, sinon deadlocks `initSchema()`.
+- Snapshot DB GL : `npm run test:snapshot:gl`. Charge : `npm run test:load:gl`.
+- e2e : `e2e/gl-*.spec.js` via `npm run start:e2e`. Matrice complète : `docs/GL_TESTS.md`.
+- Temps réel : valider au moins un event `gl:game:event` reçu côté client sur les flux concernés.
+
+## Migrations, diagnostics & commits
+- Schéma GL : migrations dédiées **idempotentes** sous `migrations/NNN_gl_*.sql` (numérotation
+  continue, déjà au-delà de `135_*`). Pas de migration destructive sans avertissement.
+- Diagnostics : section `gl` dans `GET /api/admin/diagnostics` (parties, joueurs actifs, types
+  d'évènements récents, packs) ; MCP `gl_public_health` / `gl_diagnostics`.
+- Toute nouvelle route GL publique : documenter dans `docs/API.md` (+ `docs/GL_ARCHITECTURE.md`
+  si structurant).
+- Commits exclusivement GL : préfixe Conventional Commits `feat(gl)`, `fix(gl)`, `chore(gl)`…
