@@ -779,6 +779,7 @@ function App() {
   }, [effectiveIsTeacher, studentForUi]);
   const canManageMediaLibrary = !!authClaims?.elevated || !!authClaims?.nativePrivileged;
   const canManageQuiz = !!authClaims?.elevated && hasPermission('plants.manage');
+  const canManageFoodWeb = !!authClaims?.elevated && hasPermission('plants.manage');
 
   const canParticipateContextComments = useMemo(() => {
     if (effectiveIsTeacher) return true;
@@ -1947,6 +1948,7 @@ function App() {
                           onOpenPlant={openPlantCatalogPreviewById}
                           onOpenGlossaryTerm={openPedagoGlossaryTerm}
                           highlightPlantId={foodWebHighlightPlantId}
+                          canManage={canManageFoodWeb}
                         />
                       </TabSuspense>
                     )}
@@ -2133,6 +2135,7 @@ function App() {
                             onOpenPlant={openPlantCatalogPreviewById}
                             onOpenGlossaryTerm={openPedagoGlossaryTerm}
                             highlightPlantId={foodWebHighlightPlantId}
+                            canManage={canManageFoodWeb}
                           />
                         </TabSuspense>
                       )}

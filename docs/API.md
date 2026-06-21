@@ -1294,7 +1294,11 @@ Routes publiques (lecture) sauf progression quiz. Voir aussi les routes GL `/api
 | GET | `/api/quiz/admin/export` | prof (`plants.manage` + élévation) | Export ré-importable (`statut`, `theme`, `categorieSlug`) |
 | POST | `/api/quiz/admin/import` | prof (`plants.manage` + élévation) | Import XLSX (`dryRun` optionnel) |
 | GET | `/api/food-web` | non | Réseau trophique (`?zoneId=`) |
+| GET | `/api/food-web/interaction-types` | non | Catalogue des types d'interaction |
 | GET | `/api/food-web/interactions/:id/glossary` | non | Termes glossaire liés à une interaction |
+| POST | `/api/food-web/interactions` | prof (`plants.manage` + élévation) | Créer une interaction |
+| PUT | `/api/food-web/interactions/:id` | prof (`plants.manage` + élévation) | Modifier une interaction |
+| DELETE | `/api/food-web/interactions/:id` | prof (`plants.manage` + élévation) | Supprimer une interaction |
 | GET | `/api/plants/:id/interactions` | non | Interactions espèce |
 | GET | `/api/plants/:id/glossary-terms` | non | Termes liés |
 | GET | `/api/plants/:id/quiz-questions` | non | Questions QCM liées |

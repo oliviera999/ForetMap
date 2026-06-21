@@ -82,7 +82,7 @@ describe('VisitMapChrome', () => {
   test('bascules : plein plan toujours, aperçu élève réservé au prof', () => {
     const { props } = setup({ isTeacher: false });
     expect(screen.queryByTestId('visit-teacher-preview-toggle')).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Plein plan' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Afficher la carte en plein écran' }));
     expect(props.onToggleImmersion).toHaveBeenCalledTimes(1);
 
     const teacher = setup({ isTeacher: true, teacherPreviewAsStudent: true });

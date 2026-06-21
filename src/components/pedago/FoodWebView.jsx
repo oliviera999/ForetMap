@@ -1,30 +1,19 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '../../services/api';
 import { FoodWebGraph } from './FoodWebGraph.jsx';
+import {
+  INTERACTION_TYPES,
+  interactionTypeLabel as interactionLabel,
+} from '../../shared/foodWebTypes.js';
 
-const INTERACTION_LABELS = {
-  pollinisation: 'Pollinisation',
-  herbivorie: 'Herbivorie',
-  predation: 'Prédation',
-  plante_hote: 'Plante hôte',
-  decomposition: 'Décomposition',
-  nitrification: 'Nitrification',
-  symbiose: 'Symbiose',
-  competition: 'Compétition',
-};
-
-function interactionLabel(type) {
-  const key = String(type || '')
-    .trim()
-    .toLowerCase();
-  return INTERACTION_LABELS[key] || type || 'Interaction';
-}
+const EMPTY_FORM = { fromId: '', toId: '', type: INTERACTION_TYPES[0], description: '' };
 
 export function FoodWebView({
   mapZones = [],
   onOpenPlant,
   onOpenGlossaryTerm,
   highlightPlantId = null,
+  canManage = false,
 }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -35,6 +24,10 @@ export function FoodWebView({
   const [selectedEdgeId, setSelectedEdgeId] = useState(null);
   const [edgeGlossary, setEdgeGlossary] = useState([]);
   const [edgeLoading, setEdgeLoading] = useState(false);
+  const [speciesOptions, setSpeciesOptions] = useState([]);
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [saving, setSaving] = useState(false);
+  const [adminError, setAdminError] = useState('');
 
   const loadFoodWeb = useCallback(async () => {
     setLoading(true);
@@ -54,6 +47,75 @@ export function FoodWebView({
   useEffect(() => {
     loadFoodWeb();
   }, [loadFoodWeb]);
+
+  useEffect(() => {
+    if (!canManage) return undefined;
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await api('/api/plants');
+        if (cancelled) return;
+        const list = Array.isArray(data) ? data : [];
+        setSpeciesOptions(
+          list
+            .map((p) => ({ id: Number(p.id), name: p.name, emoji: p.emoji || '' }))
+            .filter((p) => Number.isFinite(p.id) && p.id > 0)
+            .sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'fr')),
+        );
+      } catch (_) {
+        if (!cancelled) setSpeciesOptions([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [canManage]);
+
+  const createInteraction = useCallback(
+    async (event) => {
+      event.preventDefault();
+      setAdminError('');
+      const fromId = Number(form.fromId);
+      if (!Number.isInteger(fromId) || fromId <= 0) {
+        setAdminError('Choisis une espèce source.');
+        return;
+      }
+      setSaving(true);
+      try {
+        await api('/api/food-web/interactions', 'POST', {
+          from_id: fromId,
+          to_id: form.toId ? Number(form.toId) : null,
+          interaction_type: form.type,
+          description: form.description.trim() || null,
+        });
+        setForm((prev) => ({ ...EMPTY_FORM, type: prev.type }));
+        await loadFoodWeb();
+      } catch (err) {
+        setAdminError(err.message || 'Création impossible');
+      } finally {
+        setSaving(false);
+      }
+    },
+    [form, loadFoodWeb],
+  );
+
+  const deleteInteraction = useCallback(
+    async (interactionId) => {
+      if (!interactionId) return;
+      setAdminError('');
+      try {
+        await api(`/api/food-web/interactions/${interactionId}`, 'DELETE');
+        if (selectedEdgeId === interactionId) {
+          setSelectedEdgeId(null);
+          setEdgeGlossary([]);
+        }
+        await loadFoodWeb();
+      } catch (err) {
+        setAdminError(err.message || 'Suppression impossible');
+      }
+    },
+    [loadFoodWeb, selectedEdgeId],
+  );
 
   const filteredItems = useMemo(() => {
     if (!interactionFilter) return items;
@@ -130,6 +192,76 @@ export function FoodWebView({
           fiche.
         </p>
       </header>
+
+      {canManage ? (
+        <form className="card pedago-foodweb__admin" onSubmit={createInteraction}>
+          <h3 className="pedago-panel-title">➕ Ajouter une interaction</h3>
+          <div className="pedago-foodweb__admin-fields">
+            <label className="pedago-filter-field">
+              <span>Espèce source</span>
+              <select
+                className="form-select"
+                value={form.fromId}
+                onChange={(e) => setForm((p) => ({ ...p, fromId: e.target.value }))}
+                required
+              >
+                <option value="">— choisir —</option>
+                {speciesOptions.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.emoji ? `${s.emoji} ` : ''}
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="pedago-filter-field">
+              <span>Type d&apos;interaction</span>
+              <select
+                className="form-select"
+                value={form.type}
+                onChange={(e) => setForm((p) => ({ ...p, type: e.target.value }))}
+              >
+                {INTERACTION_TYPES.map((t) => (
+                  <option key={t} value={t}>
+                    {interactionLabel(t)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="pedago-filter-field">
+              <span>Espèce cible (optionnel)</span>
+              <select
+                className="form-select"
+                value={form.toId}
+                onChange={(e) => setForm((p) => ({ ...p, toId: e.target.value }))}
+              >
+                <option value="">— environnement / aucune —</option>
+                {speciesOptions.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.emoji ? `${s.emoji} ` : ''}
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="pedago-filter-field pedago-foodweb__admin-desc">
+              <span>Description (optionnel)</span>
+              <input
+                type="text"
+                className="form-input"
+                maxLength={255}
+                value={form.description}
+                onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
+                placeholder="Ex. Transport du pollen entre fleurs"
+              />
+            </label>
+          </div>
+          {adminError ? <p className="pedago-error">{adminError}</p> : null}
+          <button type="submit" className="btn btn-primary btn-sm" disabled={saving}>
+            {saving ? 'Enregistrement…' : 'Ajouter'}
+          </button>
+        </form>
+      ) : null}
 
       <div className="pedago-filters card pedago-foodweb__filters">
         {mapZones.length > 0 ? (
@@ -224,6 +356,17 @@ export function FoodWebView({
                         <span className="pedago-foodweb__edge-label">{interactionLabel(type)}</span>
                       </button>
                       {renderNode(row.to_id, row.to_name, row.to_emoji)}
+                      {canManage ? (
+                        <button
+                          type="button"
+                          className="btn btn-danger btn-sm pedago-foodweb__delete"
+                          onClick={() => deleteInteraction(row.id)}
+                          title="Supprimer cette interaction"
+                          aria-label="Supprimer cette interaction"
+                        >
+                          🗑️
+                        </button>
+                      ) : null}
                     </div>
                     {row.description ? (
                       <p className="pedago-foodweb__desc">{row.description}</p>
