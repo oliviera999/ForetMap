@@ -6,6 +6,7 @@
 /** Silhouettes acceptées par VisitMascotFallbackSvg (liste UI). */
 export const MASCOT_PACK_FALLBACK_SILHOUETTES = [
   'gnome',
+  'gnome1',
   'sprout',
   'scrap',
   'olu',

@@ -2,6 +2,7 @@ import { describe, test, expect } from 'vitest';
 import {
   appendFileToStateFrames,
   computePackMediaWarnings,
+  normalizePackFrameFileRef,
   removeFrameAt,
   resolveFrameUrl,
   resolveSrcPreviewUrl,
@@ -51,6 +52,24 @@ describe('resolveFrameUrl', () => {
     expect(url).toBe(
       '/api/visit/mascot-packs/uuid/assets/cell-r0-c1.png?preview_token=abc',
     );
+  });
+
+  test('accepte un chemin absolu déjà sous /api/visit/', () => {
+    const pack = { framesBase: '/api/visit/mascot-packs/uuid/assets/' };
+    expect(
+      resolveFrameUrl(pack, '/api/visit/mascot-packs/uuid/assets/cell-r0-c0.png'),
+    ).toBe('/api/visit/mascot-packs/uuid/assets/cell-r0-c0.png');
+  });
+});
+
+describe('normalizePackFrameFileRef', () => {
+  test('extrait le basename depuis une URL pack', () => {
+    expect(
+      normalizePackFrameFileRef(
+        '/api/visit/mascot-packs/uuid/assets/cell-r0-c1.png',
+        '/api/visit/mascot-packs/uuid/assets/',
+      ),
+    ).toBe('cell-r0-c1.png');
   });
 });
 
