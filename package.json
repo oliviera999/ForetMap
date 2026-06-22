@@ -130,6 +130,7 @@
     "sync:visit-pack-lib": "node scripts/sync-visit-pack-server-lib.js",
     "sync:gl-pack-lib": "node scripts/sync-gl-pack-server-lib.js",
     "build": "node scripts/build-safe.js",
+    "ship": "node scripts/build-ship.js",
     "preview": "vite preview",
     "deploy:prepare": "node scripts/prepare-dist-deploy.js",
     "deploy:prepare:fast": "node scripts/prepare-dist-deploy.js --skip-install",
