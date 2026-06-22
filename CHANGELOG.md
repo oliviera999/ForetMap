@@ -7,6 +7,11 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Visite — studio packs mascotte (import ZIP)
+
+- **fix** : `rewriteVisitPackForServerImport` conserve des **basenames** dans `stateFrames.files` (`cell-r0-c0.png`) avec `framesBase` API — ne réinjecte plus d’URLs `/api/visit/mascot-packs/…/assets/…` (régression export/import site).
+- **Tests** : `tests/mascot-pack-archive.test.js`.
+
 ### Visite — studio packs mascotte (références frames)
 
 - **fix** : normalisation des `stateFrames.files` (chemins `/api/visit/…` → basenames), import catalogue → médiathèque pack (bouton gnome1 / renard2 / renard sac), silhouette **`gnome1`** reconnue, clone serveur **`gnome1`** via `clone_from_catalog_id`.
