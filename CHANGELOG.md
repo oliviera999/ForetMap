@@ -7,6 +7,11 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Carte — mascotte issue d'un pack serveur/importé (rendu)
+
+- **fix** : la carte (`map-views`) résout et rend désormais une mascotte issue d'un **pack serveur publié** (`catalog_id` `srv-…`, ex. pack importé), au lieu de retomber sur le catalogue statique. Nouveau hook `useVisitMascotCatalogExtras` (récupère `GET /api/visit/content` → `mascot_packs` publiés → `extraCatalogEntries`), passés à `useMapViewMascot` et à `MapViewMascotOverlay` → `VisitMapMascotRenderer`. Traite le constat **A** de `docs/MASCOT_AUDIT.md`.
+- **Tests** : `tests-ui/hooks/useVisitMascotCatalogExtras.test.jsx`, `tests-ui/utils/visitMascotPackExtras.test.js`.
+
 ### Visite — import pack mascotte publié par défaut (affichage immédiat)
 
 - **fix** : un pack importé (`POST /api/visit/mascot-packs/import`, mode `create`) est désormais **publié par défaut** (`is_published = 1`) → visible immédiatement en visite (la visite publique ne sert que `is_published = 1`). Avant, l'import forçait un brouillon → mascotte invisible côté élève et `403` sur les assets. Override possible : `is_published: 0` (import en brouillon) ; `replace` conserve l'état du pack cible. Nouveau helper pur `resolveVisitMascotImportPublishState`.
