@@ -7,6 +7,12 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Studio packs mascotte — rendu final interactif
+
+- **feat** : panneau **Rendu final** dans le studio packs (`MascotPackRenderPreview`) — scène cliquable, puces animations et comportements visite (même logique que la carte).
+- **UI** : onglets Édition guidée et Comportements visite ; bouton **▶ Tester** par règle d’interaction ; outil pack autonome aligné.
+- **Tests** : `tests-ui/components/mascot/MascotPackRenderPreview.test.jsx`.
+
 ### Correctif — `npm install` en production (hook `prepare`)
 
 - **fix** : le hook npm `prepare` (`node scripts/setup-git-hooks.js`) ne fait plus échouer `npm install` lorsque le script de hooks est introuvable ou exécuté hors dépôt Git (hébergement CloudLinux/cPanel `nodevenv/.../lib`, installation via tarball ou CI). Ajout d'un garde-fou `|| exit 0` : l'installation des dépendances aboutit toujours en production, tandis que la configuration des hooks Git versionnés (`core.hooksPath = .githooks`, pre-commit lint + format) reste active en développement.

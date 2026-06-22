@@ -49,4 +49,20 @@ describe('MascotInteractionProfileEditor', () => {
       mode: 'none',
     });
   });
+
+  test('bouton Tester déclenche onTestBehavior quand fourni', () => {
+    const onTestBehavior = vi.fn();
+    render(
+      <MascotInteractionProfileEditor
+        pack={{ mascotPackVersion: 2, interactionProfile: {} }}
+        onUpgradeToV2={vi.fn()}
+        onPatchRule={vi.fn()}
+        onTestBehavior={onTestBehavior}
+      />,
+    );
+    const testers = screen.getAllByRole('button', { name: /Tester/i });
+    expect(testers.length).toBeGreaterThan(0);
+    fireEvent.click(testers[0]);
+    expect(onTestBehavior).toHaveBeenCalledWith(VISIT_MASCOT_INTERACTION_EVENT_KEYS[0]);
+  });
 });

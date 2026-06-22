@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api, AccountDeletedError } from '../services/api';
 import MascotPackWysiwygEditor from './MascotPackWysiwygEditor.jsx';
 import {
@@ -32,6 +32,7 @@ import VisitMascotStudioPreviewSection from './mascot/VisitMascotStudioPreviewSe
 import MascotPackListAside from './mascot/MascotPackListAside.jsx';
 import MascotPackImagesPanel from './mascot/MascotPackImagesPanel.jsx';
 import MascotInteractionProfileEditor from './mascot/MascotInteractionProfileEditor.jsx';
+import MascotPackRenderPreview from './mascot/MascotPackRenderPreview.jsx';
 import MascotStudioModeTabs from './mascot/MascotStudioModeTabs.jsx';
 import MascotPackArchiveImportDialog from '../shared/mascot-pack/MascotPackArchiveImportDialog.jsx';
 import { downloadApiFile } from '../utils/downloadApiFile.js';
@@ -94,6 +95,7 @@ export default function VisitMascotPackManager({
   const [globalTargetState, setGlobalTargetState] = useState('idle');
   const [packAssets, setPackAssets] = useState([]);
   const [packAssetsLoading, setPackAssetsLoading] = useState(false);
+  const packPreviewRef = useRef(/** @type {{ playInteraction?: (k: string) => void } | null} */ (null));
   const [packAssetsMessage, setPackAssetsMessage] = useState('');
   const [insertFeedback, setInsertFeedback] = useState('');
   const [savedSnapshot, setSavedSnapshot] = useState(null);
@@ -994,6 +996,14 @@ export default function VisitMascotPackManager({
                     id="mascot-pack-tabpanel-workspace"
                     aria-labelledby="mascot-pack-tab-workspace"
                   >
+                    <MascotPackRenderPreview
+                      ref={packPreviewRef}
+                      pack={editorPack}
+                      catalogId={selectedRow?.catalog_id || ''}
+                      label={labelDraft || selectedRow?.label || ''}
+                      variant="studio"
+                      focusSection="all"
+                    />
                     <PackBehaviorDetailTable pack={editorPack} />
                     <div style={{ marginTop: 10 }}>
                       <MascotPackWysiwygEditor
@@ -1004,6 +1014,7 @@ export default function VisitMascotPackManager({
                         visitMapId={String(mapId || '').trim()}
                         packAssets={packAssets}
                         onForceLogout={onForceLogout}
+                        hidePreview
                       />
                     </div>
                     <MascotPackImagesPanel
@@ -1103,11 +1114,22 @@ export default function VisitMascotPackManager({
                     id="mascot-pack-tabpanel-interaction"
                     aria-labelledby="mascot-pack-tab-interaction"
                   >
-                    <MascotInteractionProfileEditor
+                    <MascotPackRenderPreview
+                      ref={packPreviewRef}
                       pack={editorPack}
-                      onUpgradeToV2={() => upgradePackToV2('interaction')}
-                      onPatchRule={patchInteractionRule}
+                      catalogId={selectedRow?.catalog_id || ''}
+                      label={labelDraft || selectedRow?.label || ''}
+                      variant="studio"
+                      focusSection="behaviors"
                     />
+                    <div style={{ marginTop: 12 }}>
+                      <MascotInteractionProfileEditor
+                        pack={editorPack}
+                        onUpgradeToV2={() => upgradePackToV2('interaction')}
+                        onPatchRule={patchInteractionRule}
+                        onTestBehavior={(key) => packPreviewRef.current?.playInteraction(key)}
+                      />
+                    </div>
                   </div>
                 ) : null}
                 {editorTab === 'dialog' ? (

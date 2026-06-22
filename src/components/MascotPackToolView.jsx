@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import { parsePackJson, stringifyPack } from '../utils/mascotPackEditorModel.js';
 import MascotPackWysiwygEditor from './MascotPackWysiwygEditor.jsx';
+import MascotPackRenderPreview from './mascot/MascotPackRenderPreview.jsx';
 
 const DEFAULT_PACK_JSON = `{
   "mascotPackVersion": 1,
@@ -112,12 +113,22 @@ export default function MascotPackToolView({
       </div>
 
       {editorTab === 'visual' ? (
-        <MascotPackWysiwygEditor
-          pack={pack}
-          onPackChange={setPack}
-          packUuid={null}
-          relaxAssetPrefix
-        />
+        <>
+          <MascotPackRenderPreview
+            pack={pack}
+            catalogId={String(pack?.id || '')}
+            label={String(pack?.label || '')}
+            variant="studio"
+            focusSection="all"
+          />
+          <MascotPackWysiwygEditor
+            pack={pack}
+            onPackChange={setPack}
+            packUuid={null}
+            relaxAssetPrefix
+            hidePreview
+          />
+        </>
       ) : (
         <div className="mascot-pack-json-tab">
           <textarea
