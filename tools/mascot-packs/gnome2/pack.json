@@ -1,0 +1,106 @@
+{
+  "mascotPackVersion": 2,
+  "id": "gnome2",
+  "label": "Gnome 2",
+  "renderer": "sprite_cut",
+  "framesBase": "./assets/",
+  "frameWidth": 150,
+  "frameHeight": 180,
+  "pixelated": true,
+  "displayScale": 1,
+  "fallbackSilhouette": "gnome",
+  "stateFrames": {
+    "idle": {
+      "files": [
+        "cell-r1-c0.png"
+      ],
+      "fps": 2
+    },
+    "walking": {
+      "files": [
+        "cell-r1-c2.png",
+        "cell-r1-c3.png",
+        "cell-r1-c4.png",
+        "cell-r1-c5.png",
+        "cell-r1-c6.png",
+        "cell-r1-c7.png"
+      ],
+      "fps": 8
+    },
+    "running": {
+      "files": [
+        "cell-r1-c2.png",
+        "cell-r1-c4.png",
+        "cell-r1-c6.png"
+      ],
+      "fps": 14
+    },
+    "talk": {
+      "files": [
+        "cell-r3-c0.png",
+        "cell-r3-c1.png"
+      ],
+      "fps": 5
+    },
+    "inspect": {
+      "files": [
+        "cell-r2-c8.png"
+      ],
+      "fps": 2
+    },
+    "map_read": {
+      "files": [
+        "cell-r3-c4.png"
+      ],
+      "fps": 1
+    },
+    "surprise": {
+      "files": [
+        "cell-r3-c2.png"
+      ],
+      "fps": 3
+    },
+    "alert": {
+      "files": [
+        "cell-r3-c2.png"
+      ],
+      "fps": 5
+    },
+    "angry": {
+      "files": [
+        "cell-r3-c2.png"
+      ],
+      "fps": 7
+    },
+    "spin": {
+      "files": [
+        "cell-r1-c0.png",
+        "cell-r1-c2.png",
+        "cell-r1-c1.png",
+        "cell-r2-c0.png"
+      ],
+      "fps": 10
+    },
+    "happy": {
+      "files": [
+        "cell-r3-c3.png",
+        "cell-r3-c6.png"
+      ],
+      "fps": 6
+    },
+    "happy_jump": {
+      "files": [
+        "cell-r3-c5.png",
+        "cell-r3-c8.png"
+      ],
+      "fps": 11
+    },
+    "celebrate": {
+      "files": [
+        "cell-r3-c5.png",
+        "cell-r3-c8.png"
+      ],
+      "fps": 9
+    }
+  }
+}

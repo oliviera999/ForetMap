@@ -151,7 +151,16 @@ export function useGLFeuilletZoneArrival({
         }
       };
     },
-    [enabled, gameId, feuilletZones, moveDelayMs, qcmOpen, isZoneEligible, presentFeuilletZone, presentedZonesReady],
+    [
+      enabled,
+      gameId,
+      feuilletZones,
+      moveDelayMs,
+      qcmOpen,
+      isZoneEligible,
+      presentFeuilletZone,
+      presentedZonesReady,
+    ],
   );
 
   useEffect(

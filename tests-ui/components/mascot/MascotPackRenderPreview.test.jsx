@@ -38,9 +38,7 @@ describe('MascotPackRenderPreview', () => {
   });
 
   test('affiche le titre et le renderer pour un pack valide', () => {
-    render(
-      <MascotPackRenderPreview pack={VALID_PACK} catalogId="demo-pack" label="Pack démo" />,
-    );
+    render(<MascotPackRenderPreview pack={VALID_PACK} catalogId="demo-pack" label="Pack démo" />);
     expect(screen.getByRole('heading', { name: 'Rendu final' })).toBeTruthy();
     expect(screen.getByTestId('mascot-renderer')).toBeTruthy();
     expect(screen.getByText(/État affiché/i)).toBeTruthy();
@@ -73,9 +71,7 @@ describe('MascotPackRenderPreview', () => {
 
   test('expose playInteraction via ref impérative', () => {
     const ref = React.createRef();
-    render(
-      <MascotPackRenderPreview ref={ref} pack={VALID_PACK} catalogId="demo-pack" />,
-    );
+    render(<MascotPackRenderPreview ref={ref} pack={VALID_PACK} catalogId="demo-pack" />);
     act(() => {
       ref.current?.playInteraction(VISIT_MASCOT_INTERACTION_EVENT.MARKER_MARKED_SEEN_HAPPY);
     });

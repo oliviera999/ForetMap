@@ -118,7 +118,10 @@ test('glZoneAtPct: detectZoneMusicOnTeamMove ignore déplacement intra-zone et c
     detectZoneMusicOnTeamMove({ xp: 10, yp: 10 }, { xp: 20, yp: 15 }, zones),
     null,
   );
-  assert.strictEqual(detectZoneMusicOnTeamMove({ xp: 10, yp: 10 }, { xp: 10, yp: 10 }, zones), null);
+  assert.strictEqual(
+    detectZoneMusicOnTeamMove({ xp: 10, yp: 10 }, { xp: 10, yp: 10 }, zones),
+    null,
+  );
   assert.strictEqual(
     detectZoneMusicOnTeamMove({ xp: 10, yp: 10 }, { xp: 75, yp: 25 }, zones)?.id,
     2,
