@@ -7,7 +7,7 @@
  * @see src/utils/mascotPackEditorModel.js
  */
 
-import { withAppBase } from '../services/api';
+import { withAppBase } from '../services/api.js';
 import {
   MASCOT_PACK_FALLBACK_SILHOUETTES,
   serverMascotPackAssetsPrefix,
