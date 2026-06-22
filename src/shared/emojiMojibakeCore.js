@@ -11,9 +11,14 @@ export const GL_TRAME_EMOJI = '🧵';
 const SUPPLEMENTARY_PLANE_OFFSET = 0x10000;
 const MOJIBAKE_LOW_MIN = 0xf000;
 const MOJIBAKE_LOW_MAX = 0xffff;
+const VARIATION_SELECTOR_MIN = 0xfe00;
+const VARIATION_SELECTOR_MAX = 0xfe0f;
+/** Artefact d'une réparation trop large de U+FE0F (sélecteur de présentation emoji). */
+const MISREPAIRED_VARIATION_SELECTOR = 0x1fe0f;
 
 function isRepairableEmojiMojibakeCodePoint(codePoint) {
   if (codePoint < MOJIBAKE_LOW_MIN || codePoint > MOJIBAKE_LOW_MAX) return false;
+  if (codePoint >= VARIATION_SELECTOR_MIN && codePoint <= VARIATION_SELECTOR_MAX) return false;
   const full = codePoint + SUPPLEMENTARY_PLANE_OFFSET;
   return full >= 0x1f000 && full <= 0x1ffff;
 }
@@ -31,6 +36,11 @@ export function repairSupplementaryPlaneEmojiMojibake(value) {
   for (let i = 0; i < s.length; ) {
     const codePoint = s.codePointAt(i);
     const charLen = codePoint > 0xffff ? 2 : 1;
+    if (codePoint === MISREPAIRED_VARIATION_SELECTOR) {
+      out += '\uFE0F';
+      i += charLen;
+      continue;
+    }
     if (isRepairableEmojiMojibakeCodePoint(codePoint)) {
       out += String.fromCodePoint(codePoint + SUPPLEMENTARY_PLANE_OFFSET);
       i += charLen;

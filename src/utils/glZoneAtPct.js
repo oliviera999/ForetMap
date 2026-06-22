@@ -53,4 +53,22 @@ export function pickZoneAtPct(zones, xPct, yPct) {
   return best;
 }
 
+/**
+ * Retourne la zone musicale cible lorsqu'une équipe change de zone (pas un simple déplacement intra-zone).
+ * @param {{ xp: number, yp: number }|null|undefined} prevPct
+ * @param {{ xp: number, yp: number }|null|undefined} nextPct
+ * @param {Array<object>} zones
+ * @returns {object|null}
+ */
+export function detectZoneMusicOnTeamMove(prevPct, nextPct, zones) {
+  if (!prevPct || !nextPct) return null;
+  if (prevPct.xp === nextPct.xp && prevPct.yp === nextPct.yp) return null;
+
+  const prevZone = pickZoneAtPct(zones, prevPct.xp, prevPct.yp);
+  const nextZone = pickZoneAtPct(zones, nextPct.xp, nextPct.yp);
+  if (!nextZone) return null;
+  if (prevZone?.id === nextZone.id) return null;
+  return nextZone;
+}
+
 export { zoneMusicUrl, zoneMusicUrls, zoneMusicVolume };

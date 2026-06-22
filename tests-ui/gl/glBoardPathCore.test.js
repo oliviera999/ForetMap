@@ -1,12 +1,15 @@
 import { describe, test, expect } from 'vitest';
 import {
   advancePathIndex,
+  advancePathIndexSigned,
   buildMarkerPathNumberMap,
   markersAlongDicePath,
+  markersAlongPathSteps,
   resolveBoardMovementConfig,
   sortMarkersByPath,
   startMarker,
   targetMarkerAfterDice,
+  targetMarkerAfterPathSteps,
   teamPathIndex,
 } from '../../src/shared/glBoardPathCore.js';
 
@@ -48,6 +51,17 @@ describe('glBoardPathCore', () => {
     const teamAtStart = { position_marker_id: 1 };
     const along = markersAlongDicePath(markers, teamAtStart, 3, 0);
     expect(along.map((m) => m.id)).toEqual([2, 3, 4]);
+  });
+
+  test('targetMarkerAfterPathSteps et markersAlongPathSteps gèrent les deltas signés', () => {
+    const markers = [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }];
+    const teamMid = { position_marker_id: 3 };
+    const forward = targetMarkerAfterPathSteps(markers, teamMid, 1, 0);
+    expect(forward.marker.id).toBe(4);
+    const backward = targetMarkerAfterPathSteps(markers, teamMid, -2, 0);
+    expect(backward.marker.id).toBe(1);
+    const alongBack = markersAlongPathSteps(markers, teamMid, -2, 0);
+    expect(alongBack.map((m) => m.id)).toEqual([2, 1]);
   });
 
   test('startMarker respecte l index de départ 0 ou 1', () => {

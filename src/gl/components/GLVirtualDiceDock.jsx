@@ -10,6 +10,9 @@ export function GLVirtualDiceDock({
   enabled = true,
   testId = 'gl-virtual-dice-fab',
   showLabel = true,
+  canRoll = true,
+  disableReroll = false,
+  onRecordRoll = null,
   onRollResult,
   boardShellRef = null,
 }) {
@@ -18,18 +21,44 @@ export function GLVirtualDiceDock({
   const prefersReducedMotion = usePrefersReducedMotion();
   const dice = useGLVirtualDice({ prefersReducedMotion });
   const lastRollKeyRef = useRef('');
+  const applyingRef = useRef(false);
+  const { reset: resetDice, phase, lastRoll } = dice;
 
   useEffect(() => {
-    if (!onRollResult || dice.phase !== 'result' || !dice.lastRoll) return;
-    const rollKey = `${dice.lastRoll.values?.join(',')}:${dice.lastRoll.total}`;
-    if (lastRollKeyRef.current === rollKey) return;
-    lastRollKeyRef.current = rollKey;
-    onRollResult(dice.lastRoll);
-  }, [dice.phase, dice.lastRoll, onRollResult]);
+    if (phase !== 'result' || !lastRoll) return undefined;
+    const rollKey = `${lastRoll.values?.join(',')}:${lastRoll.total}`;
+    if (lastRollKeyRef.current === rollKey || applyingRef.current) return undefined;
+
+    applyingRef.current = true;
+    let cancelled = false;
+
+    (async () => {
+      try {
+        if (onRecordRoll) {
+          const ok = await onRecordRoll(lastRoll);
+          if (!ok || cancelled) {
+            if (!cancelled) resetDice();
+            return;
+          }
+        }
+        lastRollKeyRef.current = rollKey;
+        if (onRollResult && !cancelled) {
+          await onRollResult(lastRoll);
+        }
+      } finally {
+        applyingRef.current = false;
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [phase, lastRoll, onRollResult, onRecordRoll, resetDice]);
 
   if (!enabled) return null;
 
   function toggleOpen() {
+    if (!canRoll) return;
     setOpen((prev) => {
       const next = !prev;
       if (!next) dice.reset();
@@ -58,6 +87,8 @@ export function GLVirtualDiceDock({
       canAddDie={dice.canAddDie}
       canRemoveDie={dice.canRemoveDie}
       isRolling={dice.isRolling}
+      disableReroll={disableReroll}
+      canRoll={canRoll}
       themeStyle={themeStyle}
     />
   );
@@ -71,10 +102,15 @@ export function GLVirtualDiceDock({
         icon="🎲"
         label={showLabel ? 'Dés' : null}
         testId={testId}
-        title="Dés virtuels"
+        title={
+          canRoll
+            ? 'Dés virtuels'
+            : 'Dés indisponibles (tour non lancé ou déjà lancé pour cette équipe)'
+        }
         ariaLabel={open ? 'Fermer le lanceur de dés' : 'Ouvrir le lanceur de dés'}
         ariaExpanded={open}
         ariaHaspopup="dialog"
+        disabled={!canRoll}
         onClick={toggleOpen}
       />
       {typeof document !== 'undefined' ? createPortal(popover, document.body) : popover}

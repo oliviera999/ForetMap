@@ -17,6 +17,7 @@ const {
 const { serializeZonePopoverRow, zoneHasPopoverContent } = require('../../lib/glZoneContent');
 const { MARKER_QUESTION_RETRIGGER_VALUES } = require('../../lib/glSettings');
 const { resolveBoardMovementMode } = require('../../lib/glBoardPath');
+const { parseDiceRollPayload } = require('../../lib/glDiceRoll');
 // O10 — helpers runtime à I/O (DB) déplacés en l'état vers lib/gl/gamesRuntime.js
 // (déplacement pur byte-identique) ; débloque le découpage futur en sous-routeurs.
 const {
@@ -669,7 +670,7 @@ router.get(
     if (!game) return res.status(404).json({ error: 'Partie introuvable' });
     const roundNumber = Number(game.current_round_number) || 0;
     const teams = await queryAll(
-      'SELECT id, name, last_move_round_number FROM gl_teams WHERE game_id = ? ORDER BY id ASC',
+      'SELECT id, name, last_move_round_number, last_dice_round_number FROM gl_teams WHERE game_id = ? ORDER BY id ASC',
       [gameId],
     );
     return res.json({
@@ -679,8 +680,104 @@ router.get(
         teamId: Number(t.id),
         name: t.name || '',
         hasMovedThisRound: roundNumber > 0 && Number(t.last_move_round_number || 0) >= roundNumber,
+        hasRolledDiceThisRound:
+          roundNumber > 0 && Number(t.last_dice_round_number || 0) >= roundNumber,
       })),
     });
+  }),
+);
+
+/**
+ * Enregistre le lancer de dés d'une équipe pour le tour courant (mode classique).
+ * MJ : toute équipe de la partie ; joueur : uniquement son équipe.
+ */
+router.post(
+  '/games/:id/teams/:teamId/dice-roll',
+  requireGlAuth,
+  asyncHandler(async (req, res) => {
+    const gameId = parseId(req.params.id);
+    const teamId = parseId(req.params.teamId);
+    if (!gameId || !teamId) return res.status(400).json({ error: 'Identifiants invalides' });
+
+    const roll = parseDiceRollPayload(req.body);
+    if (!roll) {
+      return res.status(400).json({ error: 'Jet de dés invalide (values[], total requis)' });
+    }
+
+    if (!(await canAccessGlGame(req.glAuth, gameId))) {
+      return res.status(403).json({ error: 'Accès partie refusé' });
+    }
+
+    const game = await queryOne(
+      'SELECT id, status, current_round_number FROM gl_games WHERE id = ? LIMIT 1',
+      [gameId],
+    );
+    if (!game) return res.status(404).json({ error: 'Partie introuvable' });
+    if (String(game.status || '').toLowerCase() !== 'live') {
+      return res.status(409).json({ error: 'La partie doit être en cours' });
+    }
+
+    const team = await queryOne(
+      'SELECT id, last_dice_round_number FROM gl_teams WHERE id = ? AND game_id = ? LIMIT 1',
+      [teamId, gameId],
+    );
+    if (!team) return res.status(404).json({ error: 'Équipe introuvable dans cette partie' });
+
+    const isStaff =
+      req.glAuth.userType === 'gl_admin' &&
+      (req.glAuth.permissions || []).some((perm) =>
+        ['gl.event.emit', 'gl.game.manage', 'gl.mascot.position'].includes(perm),
+      );
+
+    if (!isStaff) {
+      if (req.glAuth.userType !== 'gl_player') {
+        return res.status(403).json({ error: 'Action non autorisée' });
+      }
+      const membership = await getPlayerGameMembership(gameId, req.glAuth.userId);
+      if (!membership?.team_id || Number(membership.team_id) !== Number(teamId)) {
+        return res
+          .status(403)
+          .json({ error: 'Vous ne pouvez lancer les dés que pour votre équipe' });
+      }
+    }
+
+    const settings = await getGameplaySettings();
+    const roundNumber = Number(game.current_round_number) || 0;
+    if (settings.turnsEnabled) {
+      if (roundNumber === 0) {
+        return res.status(409).json({ error: 'Aucun tour en cours : attendez le lancement du MJ' });
+      }
+      if (Number(team.last_dice_round_number || 0) >= roundNumber) {
+        return res.status(409).json({ error: 'Dés déjà lancés pour ce tour' });
+      }
+    }
+
+    const actorType = isStaff ? 'mj' : 'team';
+    const actorId = String(req.glAuth.userId);
+    const payload = { values: roll.values, total: roll.total, roundNumber };
+
+    await withTransaction(async (tx) => {
+      await tx.execute(
+        `INSERT INTO gl_game_events (game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at)
+         VALUES (?, ?, ?, ?, 'dice_roll', ?, NOW())`,
+        [gameId, teamId, actorType, actorId, JSON.stringify(payload)],
+      );
+      if (settings.turnsEnabled && roundNumber > 0) {
+        await tx.execute(
+          'UPDATE gl_teams SET last_dice_round_number = ?, updated_at = NOW() WHERE id = ? AND game_id = ?',
+          [roundNumber, teamId, gameId],
+        );
+      }
+    });
+
+    const evt = await queryOne(
+      `SELECT id, game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at
+         FROM gl_game_events WHERE game_id = ? ORDER BY id DESC LIMIT 1`,
+      [gameId],
+    );
+    const normalized = normalizeEventRow(evt);
+    emitGlGameEvent(gameId, normalized);
+    return res.status(201).json(normalized);
   }),
 );
 

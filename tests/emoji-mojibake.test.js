@@ -1,6 +1,18 @@
 const test = require('node:test');
 const assert = require('node:assert');
 
+test('repairSupplementaryPlaneEmojiMojibake — ne corrompt pas U+FE0F ni les emojis déjà corrects', async () => {
+  const { repairSupplementaryPlaneEmojiMojibake, GL_SOUFFLE_EMOJI } =
+    await import('../src/shared/emojiMojibakeCore.js');
+
+  const alreadyFixed = String.fromCodePoint(0x1f32b) + '\uFE0F';
+  assert.strictEqual(repairSupplementaryPlaneEmojiMojibake(alreadyFixed), GL_SOUFFLE_EMOJI);
+  assert.strictEqual(repairSupplementaryPlaneEmojiMojibake('➡️'), '➡️');
+
+  const misrepaired = String.fromCodePoint(0x1f32b) + String.fromCodePoint(0x1fe0f);
+  assert.strictEqual(repairSupplementaryPlaneEmojiMojibake(misrepaired), GL_SOUFFLE_EMOJI);
+});
+
 test('repairSupplementaryPlaneEmojiMojibake — Souffle et Trame GL', async () => {
   const { repairSupplementaryPlaneEmojiMojibake, GL_SOUFFLE_EMOJI, GL_TRAME_EMOJI } =
     await import('../src/shared/emojiMojibakeCore.js');

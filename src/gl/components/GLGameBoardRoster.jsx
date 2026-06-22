@@ -28,6 +28,7 @@ export function GLGameBoardRoster({
   currentTeamId = null,
   selectedTeamId = null,
   playerId = null,
+  turnsEnabled = false,
 }) {
   const groups = useMemo(() => buildMapRosterGroups(teams, roster), [teams, roster]);
 
@@ -46,6 +47,8 @@ export function GLGameBoardRoster({
             currentTeamId != null && Number(currentTeamId) === Number(group.teamId);
           const isSelected =
             selectedTeamId != null && Number(selectedTeamId) === Number(group.teamId);
+          const teamRow = teams.find((team) => Number(team.id) === Number(group.teamId));
+          const hasRolledDice = turnsEnabled && teamRow?.hasRolledDiceThisRound === true;
           const groupClasses = ['gl-map-roster-group'];
           if (isCurrentTurn) groupClasses.push('is-current-turn');
           if (isSelected) groupClasses.push('is-selected');
@@ -65,6 +68,11 @@ export function GLGameBoardRoster({
                 <h4 className="gl-map-roster-group__title">{group.teamName}</h4>
                 {isCurrentTurn ? (
                   <span className="gl-map-roster-group__turn-badge">Tour</span>
+                ) : null}
+                {hasRolledDice ? (
+                  <span className="gl-map-roster-group__turn-badge gl-map-roster-group__dice-badge">
+                    🎲
+                  </span>
                 ) : null}
               </header>
               {group.players.length === 0 ? (

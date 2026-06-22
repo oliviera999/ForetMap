@@ -10,6 +10,9 @@ export {
   teamPathIndex,
   startMarker,
   advancePathIndex,
+  advancePathIndexSigned,
   targetMarkerAfterDice,
   markersAlongDicePath,
+  targetMarkerAfterPathSteps,
+  markersAlongPathSteps,
 } from '../../shared/glBoardPathCore.js';

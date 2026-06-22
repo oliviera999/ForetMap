@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState, lazy, Suspense } from 'react';
 import { io } from 'socket.io-client';
 import { withAppBase } from '../services/api.js';
-import { useGLSession } from './hooks/useGLSession.js';
 import { apiGL } from './services/apiGL.js';
+import { useGLSession } from './hooks/useGLSession.js';
+import { registerSkipMarkerArrival } from './utils/glMarkerArrivalSkip.js';
 import { GL_TAB_STORAGE_KEY } from './constants/app-runtime.js';
 import { GL_MODULE_DEFAULTS, normalizeGlModules, isModuleEnabled } from './constants/modules.js';
 import {
@@ -97,11 +98,13 @@ import { useGLBrandTheme } from './hooks/useGLBrandTheme.js';
 import { GLMascotCatalogProvider } from './context/GLMascotCatalogContext.jsx';
 import { GlMapOverlaySettingsProvider } from './context/GlMapOverlaySettingsContext.jsx';
 import { MusicPlayer } from './components/MusicPlayer.jsx';
+import { GLZoneMusicMuteButton } from './components/GLZoneMusicMuteButton.jsx';
 import { loadGlAssetRuntime } from './assets/index.js';
-import { pickZoneAtPct } from '../utils/glZoneAtPct.js';
 import { getRuntimeFeuilletZonesForPlateau } from './data/glFeuilletZonesBundle.js';
+import { pickZoneAtPct } from '../utils/glZoneAtPct.js';
 import { isFeuilletZoneEditMode } from './utils/glFeuilletZoneEditMode.js';
 import { useGLZoneMusic, readStoredMuted, writeStoredMuted } from './hooks/useGLZoneMusic.js';
+import { useGLZoneMusicArrival } from './hooks/useGLZoneMusicArrival.js';
 import { usePrefersReducedMotion } from './hooks/usePrefersReducedMotion.js';
 import { useAppVersion } from '../hooks/useAppVersion.js';
 import { useGlLearningProgress } from './hooks/useGlLearningProgress.js';
@@ -130,6 +133,7 @@ export function AppGL() {
   const [turnToast, setTurnToast] = useState(null); // { teamId, ts }
   const [roundToast, setRoundToast] = useState(null); // { roundNumber, ts }
   const [spellRejectedToast, setSpellRejectedToast] = useState(null); // { spellName, ts }
+  const [mapNextTurnBusy, setMapNextTurnBusy] = useState(false);
   const [error, setError] = useState('');
   const [oauthNotice, setOauthNotice] = useState(null);
   const [modules, setModules] = useState(GL_MODULE_DEFAULTS);
@@ -147,7 +151,7 @@ export function AppGL() {
   const [spellCastResult, setSpellCastResult] = useState(null);
   const lastShownSpellCastEventIdRef = useRef(null);
   const [kingdomZones, setKingdomZones] = useState([]);
-  const [watchTeamPct, setWatchTeamPct] = useState(null);
+  const [musicActiveZone, setMusicActiveZone] = useState(null);
   const [zoneMusicMuted, setZoneMusicMuted] = useState(() => readStoredMuted());
   const [glViewMode, setGlViewMode] = useState('native'); // native | player
   const prefersReducedMotion = usePrefersReducedMotion();
@@ -257,6 +261,8 @@ export function AppGL() {
     boardMovement.isNumberedPath &&
     virtualDiceEnabled &&
     Boolean(gameState?.game?.id);
+  const turnsEnabled = !!gameplaySettings.turnsEnabled;
+  const currentRoundNumber = Number(gameState?.game?.current_round_number) || 0;
   const feuilletZoneEditMode = isFeuilletZoneEditMode() && showStaffAdminUi;
   const chapterPlateauNumber = gameState?.game?.chapter_plateau_number ?? null;
   const chapterMusicBiomeSlug = useMemo(() => {
@@ -284,27 +290,45 @@ export function AppGL() {
     [gameplaySettings, gameState?.game],
   );
 
-  const activeZoneForMusic = useMemo(() => {
-    if (!watchTeamPct) return null;
-    return pickZoneAtPct(kingdomZones, watchTeamPct.xp, watchTeamPct.yp);
-  }, [kingdomZones, watchTeamPct]);
-
-  const zoneMusicRuntimeActive = tab === 'maps' && zoneMusicEnabled && Boolean(gameState?.game);
+  const zoneMusicRuntimeActive = zoneMusicEnabled && Boolean(gameState?.game);
 
   const { unlock: unlockZoneMusic, stopAll: stopZoneMusic } = useGLZoneMusic({
     enabled: zoneMusicRuntimeActive,
     userMuted: zoneMusicMuted,
-    activeZone: activeZoneForMusic,
+    activeZone: musicActiveZone,
     prefersReducedMotion,
+  });
+
+  const handleMusicZoneEnter = useCallback(
+    (zone) => {
+      if (!zone?.id) return;
+      unlockZoneMusic();
+      setMusicActiveZone((prev) => (prev?.id === zone.id ? prev : zone));
+    },
+    [unlockZoneMusic],
+  );
+
+  useGLZoneMusicArrival({
+    teams: gameState?.teams || [],
+    kingdomZones,
+    enabled: zoneMusicRuntimeActive,
+    onZoneMusicEnter: handleMusicZoneEnter,
   });
 
   useEffect(() => {
     if (zoneMusicRuntimeActive) return undefined;
+    setMusicActiveZone(null);
     stopZoneMusic();
     return undefined;
   }, [zoneMusicRuntimeActive, stopZoneMusic]);
 
-  const kingdomZonesRuntimeActive = tab === 'maps' && Boolean(gameState?.game?.chapter_id);
+  const musicGameId = gameState?.game?.id ?? null;
+  useEffect(() => {
+    setMusicActiveZone(null);
+    stopZoneMusic();
+  }, [musicGameId, stopZoneMusic]);
+
+  const kingdomZonesRuntimeActive = Boolean(gameState?.game?.chapter_id);
 
   useEffect(() => {
     if (!token || !kingdomZonesRuntimeActive) {
@@ -332,18 +356,30 @@ export function AppGL() {
     };
   }, [token, kingdomZonesRuntimeActive, gameState?.game?.chapter_id]);
 
-  const handleWatchTeamPctChange = useCallback((pct) => {
-    setWatchTeamPct(pct);
-  }, []);
+  const handleZoneMusicUnlock = useCallback(() => {
+    unlockZoneMusic();
+    setMusicActiveZone((prev) => {
+      if (prev) return prev;
+      for (const team of gameState?.teams || []) {
+        const zone = pickZoneAtPct(
+          kingdomZones,
+          Number(team?.position_x_pct ?? 50),
+          Number(team?.position_y_pct ?? 50),
+        );
+        if (zone) return zone;
+      }
+      return null;
+    });
+  }, [unlockZoneMusic, gameState?.teams, kingdomZones]);
 
   const handleZoneMusicToggle = useCallback(() => {
     setZoneMusicMuted((prev) => {
       const next = !prev;
       writeStoredMuted(next);
-      if (!next) unlockZoneMusic();
+      if (!next) handleZoneMusicUnlock();
       return next;
     });
-  }, [unlockZoneMusic]);
+  }, [handleZoneMusicUnlock]);
 
   useEffect(() => {
     const hashRaw = window.location.hash.startsWith('#') ? window.location.hash.slice(1) : '';
@@ -605,6 +641,13 @@ export function AppGL() {
       } else if (type === 'spell_cast_rejected') {
         const spellName = String(evt?.payload?.spellName || evt?.payload?.spellCode || 'sortilège');
         setSpellRejectedToast({ spellName, ts: Date.now() });
+      } else if (type === 'move' && evt?.payload?.skipDestinationEffects) {
+        const targetMarkerId =
+          evt?.payload?.markerId != null ? Number(evt.payload.markerId) : null;
+        const moveTeamId = evt?.teamId != null ? Number(evt.teamId) : null;
+        if (moveTeamId != null && targetMarkerId != null) {
+          registerSkipMarkerArrival(moveTeamId, targetMarkerId);
+        }
       }
       reloadGame();
     });
@@ -642,6 +685,38 @@ export function AppGL() {
     const fallbackTeamId = teams.length > 0 ? Number(teams[0].id) : null;
     return selectedTeamId != null ? Number(selectedTeamId) : fallbackTeamId;
   }
+
+  const activeDiceTeamId = useMemo(() => {
+    if (isMjMapControls) {
+      const teams = Array.isArray(gameState?.teams) ? gameState.teams : [];
+      const fallbackTeamId = teams.length > 0 ? Number(teams[0].id) : null;
+      return selectedTeamId != null ? Number(selectedTeamId) : fallbackTeamId;
+    }
+    if (auth?.teamId != null) return Number(auth.teamId);
+    return null;
+  }, [isMjMapControls, selectedTeamId, gameState?.teams, auth?.teamId]);
+
+  const activeDiceTeam = useMemo(() => {
+    if (activeDiceTeamId == null) return null;
+    return (gameState?.teams || []).find((team) => Number(team.id) === Number(activeDiceTeamId)) || null;
+  }, [activeDiceTeamId, gameState?.teams]);
+
+  const activeTeamHasRolledDice = activeDiceTeam?.hasRolledDiceThisRound === true;
+
+  const canRollDiceThisRound = useMemo(() => {
+    if (!virtualDiceEnabled || !gameState?.game?.id) return false;
+    if (!turnsEnabled) return true;
+    if (currentRoundNumber <= 0) return false;
+    if (activeDiceTeamId == null) return false;
+    return !activeTeamHasRolledDice;
+  }, [
+    virtualDiceEnabled,
+    gameState?.game?.id,
+    turnsEnabled,
+    currentRoundNumber,
+    activeDiceTeamId,
+    activeTeamHasRolledDice,
+  ]);
 
   /** MJ : déplacement libre de la mascotte de l'équipe active sélectionnée. */
   async function moveMascotToPct(point) {
@@ -725,6 +800,49 @@ export function AppGL() {
     );
     if (!target?.marker) return;
     await moveMascotToMarker(target.marker);
+  }
+
+  /** Rafraîchit l'état après un jet joueur (sans avancement automatique). */
+  async function refreshAfterDiceRoll() {
+    await reloadGame();
+  }
+
+  /** Enregistre le jet de dés côté serveur (1× par équipe et par tour). */
+  async function recordDiceRoll(roll) {
+    if (!turnsEnabled || !gameState?.game?.id) return true;
+    const teamId = activeDiceTeamId;
+    if (teamId == null) {
+      setError('Choisissez une équipe avant de lancer les dés.');
+      return false;
+    }
+    try {
+      await apiGL(`/api/gl/games/${gameState.game.id}/teams/${teamId}/dice-roll`, 'POST', {
+        values: roll?.values,
+        total: roll?.total,
+      });
+      return true;
+    } catch (err) {
+      setError(err.message || 'Lancer les dés impossible');
+      return false;
+    }
+  }
+
+  /** MJ : lance un nouveau tour global depuis la carte. */
+  async function startNextGameRoundFromMap() {
+    if (!showStaffAdminUi || !gameState?.game?.id || !turnsEnabled) return;
+    setMapNextTurnBusy(true);
+    try {
+      const data = await apiGL(`/api/gl/games/${gameState.game.id}/turn/next`, 'POST');
+      await reloadGame();
+      if (data?.roundNumber != null) {
+        setRoundToast({ roundNumber: Number(data.roundNumber), ts: Date.now() });
+      }
+      setError('');
+    } catch (err) {
+      setError(err.message || 'Lancement du tour impossible');
+    } finally {
+      setMapNextTurnBusy(false);
+    }
   }
 
   /** Joueur : soumet une demande d'action (validée par le MJ). */
@@ -1089,10 +1207,19 @@ export function AppGL() {
                       zoneMusicEnabled={zoneMusicEnabled}
                       zoneMusicMuted={zoneMusicMuted}
                       onZoneMusicToggle={handleZoneMusicToggle}
-                      onWatchTeamPctChange={handleWatchTeamPctChange}
-                      onZoneMusicUnlock={unlockZoneMusic}
+                      onZoneMusicUnlock={handleZoneMusicUnlock}
                       brandThemeStyle={glBrandStyle}
                       virtualDiceEnabled={virtualDiceEnabled}
+                      turnsEnabled={turnsEnabled}
+                      roundNumber={currentRoundNumber}
+                      canManageTurn={showStaffAdminUi && turnsEnabled}
+                      onNextTurn={startNextGameRoundFromMap}
+                      nextTurnBusy={mapNextTurnBusy}
+                      activeTeamRolled={turnsEnabled && activeTeamHasRolledDice}
+                      activeTeamName={activeDiceTeam?.name || null}
+                      canRollDice={canRollDiceThisRound}
+                      disableDiceReroll={turnsEnabled}
+                      onRecordDiceRoll={recordDiceRoll}
                       feuilletZones={feuilletZones}
                       feuilletZoneEditMode={feuilletZoneEditMode}
                       showPlateauMarkers={plateauMapVisibility.markersVisible}
@@ -1383,6 +1510,15 @@ export function AppGL() {
             introActive={chapterPlateauNumber == null && Boolean(gameState?.game)}
             biomeSlug={chapterMusicBiomeSlug}
           />
+          {zoneMusicEnabled && zoneMusicRuntimeActive && tab !== 'maps' && musicActiveZone ? (
+            <div className="gl-zone-music-global-dock" aria-hidden>
+              <GLZoneMusicMuteButton
+                visible
+                muted={zoneMusicMuted}
+                onToggle={handleZoneMusicToggle}
+              />
+            </div>
+          ) : null}
         </div>
       </GLMascotCatalogProvider>
     </GlMapOverlaySettingsProvider>

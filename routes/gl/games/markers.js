@@ -16,6 +16,8 @@ const {
   buildMarkerEffectEventPayload,
   hasMarkerVitalityApplied,
 } = require('../../../lib/glMarkerVitalityEffects');
+const { applyMarkerEffectAutoMoveTx } = require('../../../lib/glMarkerEffectAutoMove');
+const { resolveBoardMovementConfig } = require('../../../lib/shared/glBoardPathCore');
 const { drawQuestionFromMarker } = require('../../../lib/glMarkerQuestionPool');
 const { canPresentMarkerQuestion } = require('../../../lib/glMarkerQuestionRetrigger');
 const { loadBiomesForChapterIds } = require('../../../lib/glChapterBiomes');
@@ -46,6 +48,69 @@ const router = express.Router();
 function parseId(value) {
   const n = Number(value);
   return Number.isFinite(n) ? n : null;
+}
+
+async function loadChapterPathMarkers(tx, chapterId) {
+  return tx.queryAll(
+    `SELECT id, x_pct, y_pct, order_index, label
+       FROM gl_chapter_markers
+      WHERE chapter_id = ?
+      ORDER BY order_index ASC, id ASC`,
+    [chapterId],
+  );
+}
+
+function willAutoMoveMarkerEffect(game, settings, moveDelta) {
+  const steps = Number(moveDelta);
+  if (!settings?.markerEffectAutoMoveEnabled || !Number.isFinite(steps) || steps === 0) {
+    return false;
+  }
+  return resolveBoardMovementConfig(game).isNumberedPath;
+}
+
+async function maybeApplyMarkerEffectAutoMove(tx, {
+  gameId,
+  teamId,
+  team,
+  game,
+  chapterId,
+  moveDelta,
+  settings,
+  actorType,
+  actorId,
+  originMarkerId,
+}) {
+  if (!moveDelta) return null;
+  const gameRow =
+    game?.board_movement_mode != null
+      ? game
+      : await tx.queryOne(
+          `SELECT id, chapter_id, board_movement_mode, board_path_start_index
+             FROM gl_games WHERE id = ? LIMIT 1`,
+          [gameId],
+        );
+  const teamRow =
+    team?.position_marker_id != null
+      ? team
+      : await tx.queryOne(
+          `SELECT id, position_marker_id, position_x_pct, position_y_pct
+             FROM gl_teams WHERE id = ? AND game_id = ? LIMIT 1`,
+          [teamId, gameId],
+        );
+  const chapterMarkers = await loadChapterPathMarkers(tx, chapterId ?? gameRow?.chapter_id);
+  return applyMarkerEffectAutoMoveTx(tx, {
+    gameId,
+    teamId,
+    team: teamRow,
+    game: gameRow,
+    chapterMarkers,
+    moveDelta,
+    settings,
+    actorType,
+    actorId,
+    originMarkerId,
+    roundNumber: null,
+  });
 }
 
 async function loadGlossaryLookup() {
@@ -225,9 +290,10 @@ router.post('/games/:id/markers/:markerId/present-arrival', requireGlAuth, async
   const allowed = await canAccessGlGame(req.glAuth, gameId);
   if (!allowed) return res.status(403).json({ error: 'Accès partie refusé' });
 
-  const game = await queryOne('SELECT id, chapter_id, status FROM gl_games WHERE id = ? LIMIT 1', [
-    gameId,
-  ]);
+  const game = await queryOne(
+    'SELECT id, chapter_id, status, board_movement_mode, board_path_start_index FROM gl_games WHERE id = ? LIMIT 1',
+    [gameId],
+  );
   if (!game) return res.status(404).json({ error: 'Partie introuvable' });
 
   const markerRow = await queryOne(
@@ -279,6 +345,7 @@ router.post('/games/:id/markers/:markerId/present-arrival', requireGlAuth, async
       : null;
 
   let vitalityPayload = null;
+  let autoMove = null;
   try {
     await withTransaction(async (tx) => {
       vitalityPayload = await applyMarkerVitalityEffects(tx, {
@@ -320,6 +387,7 @@ router.post('/games/:id/markers/:markerId/present-arrival', requireGlAuth, async
                 reason,
                 vitalityTarget: vitalityPayload.vitalityTarget,
                 vitalityPlayerIds: vitalityPayload.vitalityPlayerIds,
+                autoMoveApplied: willAutoMoveMarkerEffect(game, settings, vitalityPayload.moveDelta),
               }),
             ),
           ],
@@ -342,6 +410,19 @@ router.post('/games/:id/markers/:markerId/present-arrival', requireGlAuth, async
           }),
         ],
       );
+
+      autoMove = await maybeApplyMarkerEffectAutoMove(tx, {
+        gameId,
+        teamId,
+        team,
+        game,
+        chapterId: game.chapter_id,
+        moveDelta: vitalityPayload?.moveDelta,
+        settings,
+        actorType,
+        actorId,
+        originMarkerId: markerId,
+      });
     });
   } catch (err) {
     const mapped = resolveVitalityError(err);
@@ -370,6 +451,7 @@ router.post('/games/:id/markers/:markerId/present-arrival', requireGlAuth, async
           target: vitalityPayload.vitalityTarget || 'team',
         }
       : null,
+    autoMove: autoMove?.applied ? autoMove : null,
   });
 });
 
@@ -385,9 +467,10 @@ router.post(
       return res.status(400).json({ error: 'gameId, markerId et teamId requis' });
     }
 
-    const game = await queryOne('SELECT id, chapter_id FROM gl_games WHERE id = ? LIMIT 1', [
-      gameId,
-    ]);
+    const game = await queryOne(
+      'SELECT id, chapter_id, board_movement_mode, board_path_start_index FROM gl_games WHERE id = ? LIMIT 1',
+      [gameId],
+    );
     if (!game) return res.status(404).json({ error: 'Partie introuvable' });
 
     const markerRow = await queryOne(
@@ -427,6 +510,7 @@ router.post(
     }
 
     let vitalityPayload = null;
+    let autoMove = null;
     try {
       await withTransaction(async (tx) => {
         vitalityPayload = await applyMarkerVitalityEffects(tx, {
@@ -446,9 +530,14 @@ router.post(
         }
 
         if (vitalityPayload.vitalityRequired && !vitalityPayload.applied) {
-          const err = new Error('NO_VITALITY_TO_APPLY');
-          err.status = 409;
-          throw err;
+          const hasMove =
+            Number.isFinite(Number(vitalityPayload.moveDelta)) &&
+            Number(vitalityPayload.moveDelta) !== 0;
+          if (!hasMove) {
+            const err = new Error('NO_VITALITY_TO_APPLY');
+            err.status = 409;
+            throw err;
+          }
         }
 
         if (vitalityPayload.applied) {
@@ -481,10 +570,24 @@ router.post(
                 reason,
                 vitalityTarget: vitalityPayload.vitalityTarget,
                 vitalityPlayerIds: vitalityPayload.vitalityPlayerIds,
+                autoMoveApplied: willAutoMoveMarkerEffect(game, settings, vitalityPayload.moveDelta),
               }),
             ),
           ],
         );
+
+        autoMove = await maybeApplyMarkerEffectAutoMove(tx, {
+          gameId,
+          teamId,
+          team,
+          game,
+          chapterId: game.chapter_id,
+          moveDelta: vitalityPayload.moveDelta,
+          settings,
+          actorType: 'mj',
+          actorId,
+          originMarkerId: markerId,
+        });
       });
     } catch (err) {
       if (err?.message === 'NO_MARKER_EFFECT') {
@@ -517,6 +620,7 @@ router.post(
       vitalityResults: vitalityPayload.vitalityResults,
       vitalityRequired: vitalityPayload.vitalityRequired,
       vitalityTarget: vitalityPayload.vitalityTarget,
+      autoMove: autoMove?.applied ? autoMove : null,
     });
   },
 );

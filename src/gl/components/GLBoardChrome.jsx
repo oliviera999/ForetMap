@@ -2,6 +2,7 @@ import React from 'react';
 import { GLBoardActionButton } from './GLBoardActionButton.jsx';
 import { GLVirtualDiceDock } from './GLVirtualDiceDock.jsx';
 import { GLZoneMusicMuteButton } from './GLZoneMusicMuteButton.jsx';
+import { GLBoardTurnHud } from './GLBoardTurnHud.jsx';
 
 /**
  * Chrome superposé à la carte plateau : outils (coins), barre mobile (actions),
@@ -21,6 +22,16 @@ export function GLBoardChrome({
   zoneMusicEnabled = false,
   zoneMusicMuted = false,
   onZoneMusicToggle,
+  turnsEnabled = false,
+  roundNumber = 0,
+  canManageTurn = false,
+  onNextTurn = null,
+  nextTurnBusy = false,
+  activeTeamRolled = false,
+  activeTeamName = null,
+  canRollDice = true,
+  disableDiceReroll = false,
+  onRecordDiceRoll = null,
 }) {
   return (
     <>
@@ -39,10 +50,23 @@ export function GLBoardChrome({
         <GLVirtualDiceDock
           themeStyle={themeStyle}
           enabled
+          canRoll={canRollDice}
+          disableReroll={disableDiceReroll}
+          onRecordRoll={onRecordDiceRoll}
           onRollResult={onRollResult}
           boardShellRef={boardShellRef}
         />
       ) : null}
+
+      <GLBoardTurnHud
+        turnsEnabled={turnsEnabled}
+        roundNumber={roundNumber}
+        canManageTurn={canManageTurn}
+        onNextTurn={onNextTurn}
+        nextTurnBusy={nextTurnBusy}
+        activeTeamRolled={activeTeamRolled}
+        activeTeamName={activeTeamName}
+      />
 
       {!mapFullscreen ? (
         <div className="gl-board-chrome-bar" role="toolbar" aria-label="Actions carte">
