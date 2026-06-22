@@ -40,7 +40,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **fix(gl)** : un auto-déplacement issu d’un repère ne peut plus être rejoué par double appel `present-arrival` (verrouillage équipe + détection de l’événement `move` d’origine).
 - **Réglage** : `gameplay.marker_effect_auto_move_enabled` (toggle Réglages → Affichage carte plateau).
 - **Utilitaires** : `advancePathIndexSigned`, `targetMarkerAfterPathSteps`, `markersAlongPathSteps`, `lib/glMarkerEffectAutoMove.js` ; animation front + registre `glMarkerArrivalSkip`.
-- **Tests** : `tests/gl-marker-effect-auto-move.test.js`, `glBoardPathCore` (delta signé).
+- **Tests** : `tests/gl-marker-effect-auto-move.test.js`, `tests/gl-marker-effect-auto-move-unit.test.js`, `glBoardPathCore` (delta signé).
 
 ### GL — tour de jeu sur la carte et dés (1×/équipe/tour)
 
