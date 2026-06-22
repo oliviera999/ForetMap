@@ -14,3 +14,6 @@ data/
 public/
 lib/visit-pack/
 lib/gl-pack/
+# Packs mascotte générés par build_*.py (sortie déterministe, non formatée Prettier)
+tools/mascot-packs/*/pack.json
+tools/mascot-packs/*/manifest.json

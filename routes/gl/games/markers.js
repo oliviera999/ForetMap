@@ -68,18 +68,21 @@ function willAutoMoveMarkerEffect(game, settings, moveDelta) {
   return resolveBoardMovementConfig(game).isNumberedPath;
 }
 
-async function maybeApplyMarkerEffectAutoMove(tx, {
-  gameId,
-  teamId,
-  team,
-  game,
-  chapterId,
-  moveDelta,
-  settings,
-  actorType,
-  actorId,
-  originMarkerId,
-}) {
+async function maybeApplyMarkerEffectAutoMove(
+  tx,
+  {
+    gameId,
+    teamId,
+    team,
+    game,
+    chapterId,
+    moveDelta,
+    settings,
+    actorType,
+    actorId,
+    originMarkerId,
+  },
+) {
   if (!moveDelta) return null;
   const gameRow =
     game?.board_movement_mode != null
@@ -387,7 +390,11 @@ router.post('/games/:id/markers/:markerId/present-arrival', requireGlAuth, async
                 reason,
                 vitalityTarget: vitalityPayload.vitalityTarget,
                 vitalityPlayerIds: vitalityPayload.vitalityPlayerIds,
-                autoMoveApplied: willAutoMoveMarkerEffect(game, settings, vitalityPayload.moveDelta),
+                autoMoveApplied: willAutoMoveMarkerEffect(
+                  game,
+                  settings,
+                  vitalityPayload.moveDelta,
+                ),
               }),
             ),
           ],
@@ -570,7 +577,11 @@ router.post(
                 reason,
                 vitalityTarget: vitalityPayload.vitalityTarget,
                 vitalityPlayerIds: vitalityPayload.vitalityPlayerIds,
-                autoMoveApplied: willAutoMoveMarkerEffect(game, settings, vitalityPayload.moveDelta),
+                autoMoveApplied: willAutoMoveMarkerEffect(
+                  game,
+                  settings,
+                  vitalityPayload.moveDelta,
+                ),
               }),
             ),
           ],

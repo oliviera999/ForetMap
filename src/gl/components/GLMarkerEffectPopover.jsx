@@ -131,8 +131,8 @@ export function GLMarkerEffectPopover({
               <p className="gl-hint">
                 Déplacement automatique : {autoMove.steps > 0 ? '+' : ''}
                 {autoMove.steps} case(s)
-                {autoMove.targetMarkerLabel ? ` → ${autoMove.targetMarkerLabel}` : ''}. Les effets de
-                la case d&apos;arrivée ne s&apos;appliquent pas.
+                {autoMove.targetMarkerLabel ? ` → ${autoMove.targetMarkerLabel}` : ''}. Les effets
+                de la case d&apos;arrivée ne s&apos;appliquent pas.
               </p>
             ) : arrival.resolvedEffect?.deltaMove ? (
               <p className="gl-hint">
