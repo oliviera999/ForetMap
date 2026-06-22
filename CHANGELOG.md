@@ -7,6 +7,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Visite — import pack mascotte publié par défaut (affichage immédiat)
+
+- **fix** : un pack importé (`POST /api/visit/mascot-packs/import`, mode `create`) est désormais **publié par défaut** (`is_published = 1`) → visible immédiatement en visite (la visite publique ne sert que `is_published = 1`). Avant, l'import forçait un brouillon → mascotte invisible côté élève et `403` sur les assets. Override possible : `is_published: 0` (import en brouillon) ; `replace` conserve l'état du pack cible. Nouveau helper pur `resolveVisitMascotImportPublishState`.
+- **UI** : case **« Publier dès l'import »** (cochée par défaut) dans le dialogue d'import ; libellé du mode `create` corrigé (« Nouveau pack »).
+- **Audit** : `docs/MASCOT_AUDIT.md` (flux, cause racine, modèle de sécurité publié/brouillon, constats secondaires : carte éditeur sans `extraCatalogEntries`, aperçu global non tokenisé, gnome1 hors catalogue).
+- **Tests** : `tests/visit-mascot-import-publish.test.js`. **Doc** : `docs/API.md`.
+- **chore(format)** : `prettier --write` sur fichiers préexistants non conformes (débloque `format:check`).
+
 ### Visite — studio packs mascotte (import ZIP)
 
 - **fix** : `rewriteVisitPackForServerImport` conserve des **basenames** dans `stateFrames.files` (`cell-r0-c0.png`) avec `framesBase` API — ne réinjecte plus d’URLs `/api/visit/mascot-packs/…/assets/…` (régression export/import site).

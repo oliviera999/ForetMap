@@ -91,9 +91,7 @@ export default function MascotPackWysiwygEditor({
 
   const setFramesBaseServer = useCallback(() => {
     if (!packUuid) return;
-    onPackChange(
-      normalizePackStateFramesForFramesBase(ensureServerFramesBase(pack, packUuid)),
-    );
+    onPackChange(normalizePackStateFramesForFramesBase(ensureServerFramesBase(pack, packUuid)));
   }, [pack, packUuid, onPackChange]);
 
   const stateFrames = useMemo(
