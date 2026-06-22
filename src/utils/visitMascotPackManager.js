@@ -6,7 +6,11 @@ import {
   stringifyPack,
 } from './mascotPackEditorModel.js';
 import { validateMascotPackV1 } from './mascotPack.js';
-import { appendFileToStateFrames } from './mascotPackEditorFrames.js';
+import {
+  appendFileToStateFrames,
+  collectPackReferencedFrameFilenames,
+  normalizePackStateFramesForFramesBase,
+} from './mascotPackEditorFrames.js';
 import { sanitizeMascotPackDraft } from './mascotPackValidationUi.js';
 
 /**
@@ -442,4 +446,36 @@ export function applyPackAssetPreviewUrlsToSpriteCut(spriteCut, previewByFilenam
     nextStateFrames[state] = { ...spec, ...(Array.isArray(srcs) ? { srcs } : {}) };
   }
   return { ...spriteCut, stateFrames: nextStateFrames };
+}
+
+const CATALOG_STATIC_FRAMES_BASE = {
+  gnome1: '/assets/mascots/gnome1/frames/',
+  'renard2-cut-spritesheet': '/assets/mascots/renard2-cut/frames/',
+  'fox-backpack-spritesheet': '/assets/mascots/fox-backpack/cells/',
+};
+
+/**
+ * Préfixe statique des frames catalogue (si connu).
+ * @param {string} catalogId
+ * @returns {string | null}
+ */
+export function resolveCatalogStaticFramesBase(catalogId) {
+  const id = String(catalogId || '').trim();
+  return CATALOG_STATIC_FRAMES_BASE[id] || null;
+}
+
+/**
+ * Fichiers référencés par le pack mais absents de la médiathèque serveur.
+ * @param {Record<string, unknown> | null | undefined} pack
+ * @param {Array<Record<string, unknown>> | null | undefined} packAssets
+ */
+export function listMissingPackFrameFilenames(pack, packAssets) {
+  const normalized = normalizePackStateFramesForFramesBase(pack || {});
+  const referenced = collectPackReferencedFrameFilenames(normalized);
+  const available = new Set(
+    (Array.isArray(packAssets) ? packAssets : [])
+      .map((a) => String(a?.filename || '').trim())
+      .filter(Boolean),
+  );
+  return referenced.filter((filename) => !available.has(filename));
 }

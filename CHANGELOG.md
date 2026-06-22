@@ -7,6 +7,11 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Visite — studio packs mascotte (références frames)
+
+- **fix** : normalisation des `stateFrames.files` (chemins `/api/visit/…` → basenames), import catalogue → médiathèque pack (bouton gnome1 / renard2 / renard sac), silhouette **`gnome1`** reconnue, clone serveur **`gnome1`** via `clone_from_catalog_id`.
+- **Tests** : extension `tests-ui/utils/mascotPackEditorFrames.test.js`.
+
 ### Visite — studio packs mascotte (aperçu brouillon)
 
 - **fix** : les PNG d’un pack **brouillon** (`framesBase` `/api/visit/mascot-packs/{id}/assets/`) sont prévisualisables dans le studio via **`preview_url`** / query **`preview_token`** (HMAC, TTL ~1 h) — les balises `<img>` n’envoient pas le JWT Bearer.

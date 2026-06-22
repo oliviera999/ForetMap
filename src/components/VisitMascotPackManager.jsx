@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { api, AccountDeletedError } from '../services/api';
+import { api, AccountDeletedError, withAppBase } from '../services/api';
 import MascotPackWysiwygEditor from './MascotPackWysiwygEditor.jsx';
 import {
   clonePackDeep,
@@ -19,7 +19,10 @@ import {
   findPacksForCatalogModel,
   pickPreferredCatalogModelPack,
   buildPackAssetPreviewByFilename,
+  listMissingPackFrameFilenames,
+  resolveCatalogStaticFramesBase,
 } from '../utils/visitMascotPackManager.js';
+import { normalizePackStateFramesForFramesBase } from '../utils/mascotPackEditorFrames.js';
 import PackBehaviorDetailTable from './mascot/PackBehaviorDetailTable.jsx';
 import { getVisitMascotCatalog } from '../utils/visitMascotCatalog.js';
 import {
@@ -298,7 +301,7 @@ export default function VisitMascotPackManager({
     setLabelDraft(label);
     const raw = row.pack && typeof row.pack === 'object' ? row.pack : {};
     const packClone = clonePackDeep(raw);
-    setEditorPack(packClone);
+    setEditorPack(sanitizeMascotPackDraft(packClone));
     setSavedSnapshot(createMascotPackEditorSnapshot(packClone, label));
     setJsonError('');
     setActionIssues([]);
@@ -816,8 +819,66 @@ export default function VisitMascotPackManager({
 
   const setFramesBaseToPack = useCallback(() => {
     if (!selectedId) return;
-    setEditorPack((p) => ensureServerFramesBase(p, selectedId));
+    setEditorPack((p) =>
+      normalizePackStateFramesForFramesBase(ensureServerFramesBase(p, selectedId)),
+    );
   }, [selectedId]);
+
+  const catalogModelId = useMemo(
+    () => resolvePackDialogMascotId(editorPack, selectedRow),
+    [editorPack, selectedRow],
+  );
+  const missingPackFrames = useMemo(
+    () => listMissingPackFrameFilenames(editorPack, packAssets),
+    [editorPack, packAssets],
+  );
+  const catalogStaticFramesBase = useMemo(
+    () => resolveCatalogStaticFramesBase(catalogModelId),
+    [catalogModelId],
+  );
+  const canImportMissingCatalogFrames =
+    !!selectedId && missingPackFrames.length > 0 && !!catalogStaticFramesBase;
+
+  const onImportMissingCatalogFrames = useCallback(async () => {
+    if (!selectedId || !catalogStaticFramesBase || missingPackFrames.length === 0) return;
+    setPackAssetsMessage('Import des PNG catalogue vers la médiathèque du pack…');
+    setPackAssetsLoading(true);
+    let imported = 0;
+    try {
+      for (const filename of missingPackFrames) {
+        const url = withAppBase(`${catalogStaticFramesBase}${filename}`);
+        const resp = await fetch(url);
+        if (!resp.ok) throw new Error(`Fichier catalogue introuvable : ${filename}`);
+        const blob = await resp.blob();
+        const file = new File([blob], filename, { type: blob.type || 'image/png' });
+        const dataUrl = await fileToPngDataUrl(file);
+        await api(`/api/visit/mascot-packs/${encodeURIComponent(selectedId)}/assets`, 'POST', {
+          filename,
+          image_data: dataUrl,
+        });
+        imported += 1;
+      }
+      setPackAssetsMessage(
+        imported > 0
+          ? `${imported} PNG importé(s) depuis le catalogue « ${catalogModelId} ».`
+          : 'Aucun fichier importé.',
+      );
+      await loadPackAssets();
+    } catch (e) {
+      if (e instanceof AccountDeletedError) onForceLogout?.();
+      else setPackAssetsMessage(e.message || 'Import catalogue impossible');
+    } finally {
+      setPackAssetsLoading(false);
+    }
+  }, [
+    selectedId,
+    catalogStaticFramesBase,
+    missingPackFrames,
+    catalogModelId,
+    fileToPngDataUrl,
+    loadPackAssets,
+    onForceLogout,
+  ]);
 
   const onPackUpload = useCallback(
     async (ev) => {
@@ -1022,6 +1083,9 @@ export default function VisitMascotPackManager({
                         packAssets={packAssets}
                         onForceLogout={onForceLogout}
                         hidePreview
+                        canImportMissingCatalogFrames={canImportMissingCatalogFrames}
+                        onImportMissingCatalogFrames={() => void onImportMissingCatalogFrames()}
+                        importMissingCatalogLabel={catalogModelId}
                       />
                     </div>
                     <MascotPackImagesPanel
