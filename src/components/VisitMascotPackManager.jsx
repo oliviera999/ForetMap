@@ -1253,6 +1253,7 @@ export default function VisitMascotPackManager({
                       selectedPackCatalogId={selectedRow?.catalog_id || ''}
                       selectedPackLabel={labelDraft || selectedRow?.label || ''}
                       editorPack={editorPack}
+                      assetPreviewByFilename={assetPreviewByFilename}
                     />
                   </div>
                 ) : null}

@@ -7,6 +7,11 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Visite — aperçu studio d'un pack mascotte brouillon (rendu tokenisé)
+
+- **fix** : l'**aperçu global** du studio (`VisitMascotStudioPreviewSection`) applique désormais les `preview_url` signées au pack **en cours d'édition** (`applyPackAssetPreviewUrlsToSpriteCut` + `assetPreviewByFilename` du manager) → un **brouillon** s'affiche au lieu de retomber sur la silhouette (les `<img>` ne portent pas le JWT → 403 sur assets non publiés). Suite de l'audit `docs/MASCOT_AUDIT.md` (constat B, partiel). Constat **A** (carte éditeur sans `extraCatalogEntries`) documenté, à traiter avec validation UI.
+- **Tests** : `tests-ui/utils/visitMascotPackManager.test.js` (`buildPackAssetPreviewByFilename`, `applyPackAssetPreviewUrlsToSpriteCut`).
+
 ### Visite — import pack mascotte publié par défaut (affichage immédiat)
 
 - **fix** : un pack importé (`POST /api/visit/mascot-packs/import`, mode `create`) est désormais **publié par défaut** (`is_published = 1`) → visible immédiatement en visite (la visite publique ne sert que `is_published = 1`). Avant, l'import forçait un brouillon → mascotte invisible côté élève et `403` sur les assets. Override possible : `is_published: 0` (import en brouillon) ; `replace` conserve l'état du pack cible. Nouveau helper pur `resolveVisitMascotImportPublishState`.
