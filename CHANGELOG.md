@@ -7,6 +7,10 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Correctif — `npm install` en production (hook `prepare`)
+
+- **fix** : le hook npm `prepare` (`node scripts/setup-git-hooks.js`) ne fait plus échouer `npm install` lorsque le script de hooks est introuvable ou exécuté hors dépôt Git (hébergement CloudLinux/cPanel `nodevenv/.../lib`, installation via tarball ou CI). Ajout d'un garde-fou `|| exit 0` : l'installation des dépendances aboutit toujours en production, tandis que la configuration des hooks Git versionnés (`core.hooksPath = .githooks`, pre-commit lint + format) reste active en développement.
+
 ### CI — résolution automatique des conflits de merge des PR
 
 - **feat(ci)** : nouveau workflow `.github/workflows/auto-resolve-conflicts.yml` (push sur `main` + cron horaire + déclenchement manuel) qui vérifie les PR ouvertes vers `main` et **corrige automatiquement** les conflits récurrents et sûrs — `CHANGELOG.md` (union des entrées) et bumps de version `package.json` / `package-lock.json` (version la plus haute) — puis pousse la résolution. Les conflits de code restants sont signalés (label `merge-conflict` + commentaire listant les fichiers).
