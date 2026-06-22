@@ -18,15 +18,15 @@ const files = [
   ['src/utils/browserStorage.js', 'browserStorage.js'],
   ['src/utils/visitMascotCatalog.js', 'visitMascotCatalog.js'],
   ['src/data/renard2-cut-manifest.js', 'data/renard2-cut-manifest.js'],
+  ['src/data/gnome1-cut-manifest.js', 'data/gnome1-cut-manifest.js'],
 ];
 
 function copyWithVisitCatalogImportFix(from, to) {
   if (to.endsWith(`${path.sep}visitMascotCatalog.js`)) {
     let text = fs.readFileSync(from, 'utf8');
-    text = text.replace(
-      "from '../data/renard2-cut-manifest.js'",
-      "from './data/renard2-cut-manifest.js'",
-    );
+    // Les manifests de data sont copiés à plat sous lib/visit-pack/data/ : on
+    // réaligne tout import relatif `../data/...` (source) sur `./data/...` (miroir).
+    text = text.replace(/from '\.\.\/data\//g, "from './data/");
     fs.writeFileSync(to, text, 'utf8');
     return;
   }
