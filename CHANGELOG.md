@@ -7,6 +7,26 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Réseau trophique — sens écologique de la flèche + graphe interactif
+
+- **Sens écologique** : la flèche du réseau trophique est désormais orientée « est mangée par »
+  (sens du flux d'énergie, de la ressource vers le consommateur). Inversion **par type**
+  d'interaction via le nouveau noyau partagé `INTERACTION_TYPE_META` / `orientInteraction`
+  (`lib/shared/foodWebCore.js`, miroir `src/shared/foodWebTypes.js`) : trophiques (`herbivorie`,
+  `predation`, `decomposition`) inversés, dirigés (`pollinisation`, `plante_hote`, `nitrification`)
+  conservés, mutuels (`symbiose`, `competition`) en double sens `↔`. Liste et graphe réordonnés en
+  conséquence ; légende + repère de saisie dans le formulaire prof.
+- **Graphe interactif** : têtes de flèches orientées, **zoom/pan** (molette + glisser), **nœuds
+  déplaçables**, **mise en évidence au survol** (nœud/arête + voisins), **infos au survol** des
+  arêtes (type + relation + description).
+- **Réseaux simplifiés** : **mode focus** (clic sur une espèce → isole son voisinage direct),
+  **disposition par niveau trophique** (producteurs → consommateurs → décomposeurs), filtres
+  zone/type dynamiques, **export PNG/SVG** du réseau affiché.
+- **API/BDD** : `GET /api/food-web` renvoie `from_role`/`to_role` (rôle trophique) ; migration
+  idempotente `143_food_web_trophic_roles.sql` (vue `v_food_web` enrichie). **Doc** : `docs/API.md`.
+- **Tests** : `tests/food-web-core.test.js` (méta + `orientInteraction`),
+  `tests-ui/components/pedago/foodWebGraphModel.test.js` et `FoodWebGraph.test.jsx`.
+
 ### Visite — import pack mascotte publié par défaut (affichage immédiat)
 
 - **fix** : un pack importé (`POST /api/visit/mascot-packs/import`, mode `create`) est désormais **publié par défaut** (`is_published = 1`) → visible immédiatement en visite (la visite publique ne sert que `is_published = 1`). Avant, l'import forçait un brouillon → mascotte invisible côté élève et `403` sur les assets. Override possible : `is_published: 0` (import en brouillon) ; `replace` conserve l'état du pack cible. Nouveau helper pur `resolveVisitMascotImportPublishState`.
