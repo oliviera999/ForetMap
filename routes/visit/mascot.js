@@ -30,6 +30,7 @@ const {
   sanitizeMascotPackAssetFilename,
   buildDefaultVisitMascotPackJson,
   listVisitMascotCatalogTemplateIds,
+  resolveVisitMascotImportPublishState,
   serializeVisitMascotPackRow,
   classifyMascotPackModuleError,
   mapVisitMascotPackSqlError,
@@ -697,7 +698,13 @@ router.post(
       )
         .trim()
         .slice(0, 120);
-      const isPublished = mode === 'replace' && existingRow ? Number(existingRow.is_published) : 0;
+      // Import publié par défaut (create) → le pack est immédiatement visible en visite ;
+      // replace conserve l'état du pack cible. Override : `is_published` du corps de requête.
+      const isPublished = resolveVisitMascotImportPublishState({
+        mode,
+        existingPublished: existingRow ? Number(existingRow.is_published) : null,
+        requested: req.body?.is_published,
+      });
       const now = nowIso();
       const createdBy = await resolveVisitMascotPackCreatedBy(req.auth);
 
