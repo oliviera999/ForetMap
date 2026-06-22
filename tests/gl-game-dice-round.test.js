@@ -129,10 +129,7 @@ test('parseDiceRollPayload valide un jet D6', () => {
 
 test('POST dice-roll refusé sans tour lancé', async () => {
   await setTurnsEnabled(true);
-  await execute(
-    'UPDATE gl_games SET current_round_number = 0 WHERE id = ?',
-    [gameId],
-  );
+  await execute('UPDATE gl_games SET current_round_number = 0 WHERE id = ?', [gameId]);
   await execute('UPDATE gl_teams SET last_dice_round_number = 0 WHERE game_id = ?', [gameId]);
 
   await request(app)

@@ -200,11 +200,7 @@ export function GLMarkerEventEditor({
         ...prev,
         pool: {
           ...prev.pool,
-          selectedQuestionCodes: toggleCodeInList(
-            prev.pool.selectedQuestionCodes,
-            code,
-            poolCodes,
-          ),
+          selectedQuestionCodes: toggleCodeInList(prev.pool.selectedQuestionCodes, code, poolCodes),
         },
       };
     });

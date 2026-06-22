@@ -49,12 +49,7 @@ function GLEcosystemMarkdownBlock({
   );
 }
 
-function GLEcosystemSection({
-  section,
-  showHeading,
-  glossaryLinkItems,
-  onOpenGlossaryTerm,
-}) {
+function GLEcosystemSection({ section, showHeading, glossaryLinkItems, onOpenGlossaryTerm }) {
   const hasBiotope = String(section.biotopeMarkdown || '').trim().length > 0;
   const hasBiocenose = String(section.biocenoseMarkdown || '').trim().length > 0;
   const slug = section.slug;
@@ -68,7 +63,10 @@ function GLEcosystemSection({
   const splitLayout = hasBiotope && (hasBiocenose || showBiocenoseArt);
 
   return (
-    <section className="gl-ecosystem-section" aria-labelledby={showHeading ? `gl-eco-${slug || 'default'}` : undefined}>
+    <section
+      className="gl-ecosystem-section"
+      aria-labelledby={showHeading ? `gl-eco-${slug || 'default'}` : undefined}
+    >
       {showHeading ? (
         <h3 id={`gl-eco-${slug || 'default'}`} className="gl-ecosystem-section__title">
           {section.nom}
@@ -164,7 +162,8 @@ export function GLEcosystemsView({ gameState, glossaryLinkItems = [], onOpenGlos
     return sections.filter((s) => s.slug === activeSlug);
   }, [sections, useTabs, activeSlug]);
 
-  const showSectionHeadings = !useTabs && (sections.length > 1 || (sections.length === 1 && sections[0].slug));
+  const showSectionHeadings =
+    !useTabs && (sections.length > 1 || (sections.length === 1 && sections[0].slug));
 
   return (
     <article className="gl-panel gl-markdown gl-ecosystems-view fade-in">
