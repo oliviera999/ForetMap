@@ -10,6 +10,29 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ### Correctif — `npm install` en production (hook `prepare`)
 
 - **fix** : le hook npm `prepare` (`node scripts/setup-git-hooks.js`) ne fait plus échouer `npm install` lorsque le script de hooks est introuvable ou exécuté hors dépôt Git (hébergement CloudLinux/cPanel `nodevenv/.../lib`, installation via tarball ou CI). Ajout d'un garde-fou `|| exit 0` : l'installation des dépendances aboutit toujours en production, tandis que la configuration des hooks Git versionnés (`core.hooksPath = .githooks`, pre-commit lint + format) reste active en développement.
+### GL — déplacement automatique (effet de case)
+
+- **feat(gl)** : en parcours numéroté, les repères avec `deltaMove` déplacent automatiquement l'équipe le long du chemin lors de `present-arrival` / `apply-effects` ; les effets du repère d'arrivée ne sont pas déclenchés (`skipDestinationEffects`).
+- **Réglage** : `gameplay.marker_effect_auto_move_enabled` (toggle Réglages → Affichage carte plateau).
+- **Utilitaires** : `advancePathIndexSigned`, `targetMarkerAfterPathSteps`, `markersAlongPathSteps`, `lib/glMarkerEffectAutoMove.js` ; animation front + registre `glMarkerArrivalSkip`.
+- **Tests** : `tests/gl-marker-effect-auto-move.test.js`, `glBoardPathCore` (delta signé).
+
+### GL — tour de jeu sur la carte et dés (1×/équipe/tour)
+
+- **feat(gl)** : compteur de tour visible sur la carte (`GLBoardTurnHud`) et bouton **Nouveau tour** pour le MJ (même API `POST /turn/next`).
+- **feat(gl)** : chaque équipe ne peut lancer les dés **qu'une fois par tour** quand `gameplay.turns_enabled=true` ; bouton dés désactivé si tour non lancé ou déjà lancé ; suppression du relancement dans le popover.
+- **BDD** : migration `142_gl_team_dice_round.sql` (`gl_teams.last_dice_round_number`).
+- **API** : `POST /api/gl/games/:id/teams/:teamId/dice-roll` (événement `dice_roll`) ; `GET /turn` expose `hasRolledDiceThisRound` par équipe.
+- **Tests** : `tests/gl-game-dice-round.test.js`, `tests/gl-dice-roll.test.js`.
+
+### GL — musique de zone (continuité inter-onglets)
+
+- **fix(gl)** : la musique de zone, une fois déclenchée par le déplacement d'une équipe, continue sur tous les onglets ; elle ne redémarre plus au changement d'équipe observée et ne change qu'à l'entrée réelle dans une autre zone musicale (`useGLZoneMusicArrival`, `detectZoneMusicOnTeamMove`). Bouton mute global hors onglet Cartes.
+
+### GL — emojis Souffle / Trame (sélecteur de variation)
+
+- **fix(gl)** : la réparation mojibake ne transforme plus `U+FE0F` en `U+1FE0F` (affichait 🸏 / rectangle après 🌫 ou ➡️) ; annulation des données déjà corrompues (migration `141_gl_emoji_variation_selector_repair.sql`) ; couverture Noto `➡️`.
+
 ### GL — emojis Souffle / Trame (mojibake Excel)
 
 - **fix(gl)** : réparation plateforme des emojis tronqués (U+F32B → 🌫️, U+F9F5 → 🧵) dans le grimoire chapitre, les repères plateau et l’import XLSX ; utilitaire partagé `emojiMojibakeCore`, pré-traitement markdown, normalisation `normalizeMarkerEmoji`, migration `140_gl_emoji_mojibake_repair.sql`, couverture police Noto (`🌫️`, `🧵`). Tests `tests/emoji-mojibake.test.js`.

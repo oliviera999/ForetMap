@@ -3,6 +3,11 @@ import { apiGL } from '../services/apiGL.js';
 import { isQuestionMarker } from '../../utils/glMarkerEventConfig.js';
 import { shouldPresentMarkerOnArrival } from '../../utils/glMarkerEffects.js';
 import { MAP_VIEW_MASCOT_MOVE_MS } from '../../utils/mapViewMascotMotion.js';
+import {
+  consumeSkipMarkerArrival,
+  registerSkipMarkerArrival,
+  shouldSkipMarkerArrival,
+} from '../utils/glMarkerArrivalSkip.js';
 
 const PRESENT_DEDUPE_MS = 3000;
 
@@ -20,6 +25,7 @@ export function useGLMarkerArrival({
   watchTeamId,
   enabled = true,
   moveDelayMs = MAP_VIEW_MASCOT_MOVE_MS,
+  onEffectAutoMove = null,
 }) {
   const prevMarkerByTeamRef = useRef(new Map());
   const recentPresentRef = useRef({ key: '', at: 0 });
@@ -124,6 +130,10 @@ export function useGLMarkerArrival({
           'POST',
           body,
         );
+        if (data?.autoMove?.applied && data.autoMove.targetMarkerId != null) {
+          registerSkipMarkerArrival(teamId, data.autoMove.targetMarkerId);
+          await onEffectAutoMove?.(data.autoMove, { teamId, originMarker: marker });
+        }
         setEffectPopover({
           marker,
           teamId,
@@ -131,6 +141,7 @@ export function useGLMarkerArrival({
           error: '',
           arrival: data,
           vitality: data?.vitality || null,
+          autoMove: data?.autoMove || null,
         });
       } catch (err) {
         setEffectPopover({
@@ -142,7 +153,7 @@ export function useGLMarkerArrival({
         });
       }
     },
-    [gameId, watchTeamId, wasRecentPresentation, markRecentPresentation],
+    [gameId, watchTeamId, wasRecentPresentation, markRecentPresentation, onEffectAutoMove],
   );
 
   const presentAtMarker = useCallback(
@@ -167,6 +178,7 @@ export function useGLMarkerArrival({
       const resolvedTeamId =
         teamId != null ? Number(teamId) : watchTeamId != null ? Number(watchTeamId) : null;
       if (resolvedTeamId == null) return undefined;
+      if (shouldSkipMarkerArrival(resolvedTeamId, marker.id)) return undefined;
       const delay = Math.max(0, Number(options.moveDelayMs ?? moveDelayMs) || 0);
       const timer = window.setTimeout(() => {
         presentAtMarker(marker, {
@@ -229,6 +241,7 @@ export function useGLMarkerArrival({
     if (!markerId) return undefined;
     const marker = (Array.isArray(markers) ? markers : []).find((m) => Number(m.id) === markerId);
     if (!marker) return undefined;
+    if (consumeSkipMarkerArrival(Number(watchTeamId), markerId)) return undefined;
     if (!isQuestionMarker(marker) && !shouldPresentMarkerOnArrival(marker)) return undefined;
 
     return schedulePresentOnArrival(marker, Number(watchTeamId));

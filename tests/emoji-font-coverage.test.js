@@ -11,5 +11,6 @@ test('couverture emoji UI (constantes + chaîne unique)', async () => {
   assert.ok(s.includes('🌱'));
   assert.ok(s.includes('🌫️'));
   assert.ok(s.includes('🧵'));
+  assert.ok(s.includes('➡️'));
   assert.ok(s.length > 50);
 });

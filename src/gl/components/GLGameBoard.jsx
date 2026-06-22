@@ -64,12 +64,21 @@ export function GLGameBoard({
   zoneMusicEnabled = false,
   zoneMusicMuted = false,
   onZoneMusicToggle,
-  onWatchTeamPctChange,
   onZoneMusicUnlock,
   brandThemeStyle = null,
   canSpellCast = false,
   onLaunchSpell,
   virtualDiceEnabled = false,
+  turnsEnabled = false,
+  roundNumber = 0,
+  canManageTurn = false,
+  onNextTurn = null,
+  nextTurnBusy = false,
+  activeTeamRolled = false,
+  activeTeamName = null,
+  canRollDice = true,
+  disableDiceReroll = false,
+  onRecordDiceRoll = null,
   feuilletZones = [],
   feuilletZoneEditMode = false,
   showPlateauMarkers = true,
@@ -115,6 +124,26 @@ export function GLGameBoard({
   const mapGestures = useGlPctMapGestures();
   const prefersReducedMotion = usePrefersReducedMotion();
 
+  const { getPositionForTeam, getMotionForTeam, moveTeamTo, moveTeamAlongPath } =
+    useGLBoardMascotMotion({
+      teams,
+      boardHeightPx,
+      prefersReducedMotion,
+    });
+
+  const handleEffectAutoMove = useCallback(
+    async (autoMove, { teamId }) => {
+      const list = Array.isArray(autoMove?.waypoints) ? autoMove.waypoints : [];
+      if (!list.length || teamId == null) return;
+      const markerObjs = list.map(
+        (wp) =>
+          (Array.isArray(markers) ? markers : []).find((m) => Number(m.id) === Number(wp.id)) || wp,
+      );
+      await moveTeamAlongPath(Number(teamId), markerObjs, { triggerHappy: true });
+    },
+    [markers, moveTeamAlongPath],
+  );
+
   const {
     popover: questionPopover,
     effectPopover,
@@ -129,14 +158,8 @@ export function GLGameBoard({
     gameId,
     watchTeamId,
     enabled: Boolean(gameId && watchTeamId != null && markerArrivalEnabled),
+    onEffectAutoMove: handleEffectAutoMove,
   });
-
-  const { getPositionForTeam, getMotionForTeam, moveTeamTo, moveTeamAlongPath } =
-    useGLBoardMascotMotion({
-      teams,
-      boardHeightPx,
-      prefersReducedMotion,
-    });
 
   const qcmOpen = Boolean(questionPopover);
   const effectOpen = Boolean(effectPopover);
@@ -237,11 +260,6 @@ export function GLGameBoard({
   }, [feuilletZonePopover?.zone?.zoneId, feuilletZonePopover?.loading]);
 
   const watchPosition = watchTeamId != null ? getPositionForTeam(watchTeamId) : null;
-
-  useEffect(() => {
-    if (watchTeamId == null || !watchPosition || typeof onWatchTeamPctChange !== 'function') return;
-    onWatchTeamPctChange({ xp: watchPosition.xp, yp: watchPosition.yp });
-  }, [watchTeamId, watchPosition?.xp, watchPosition?.yp, onWatchTeamPctChange]);
 
   useEffect(() => {
     if (watchTeamId == null || !watchPosition) return undefined;
@@ -551,6 +569,16 @@ export function GLGameBoard({
         zoneMusicEnabled={zoneMusicEnabled}
         zoneMusicMuted={zoneMusicMuted}
         onZoneMusicToggle={onZoneMusicToggle}
+        turnsEnabled={turnsEnabled}
+        roundNumber={roundNumber}
+        canManageTurn={canManageTurn}
+        onNextTurn={onNextTurn}
+        nextTurnBusy={nextTurnBusy}
+        activeTeamRolled={activeTeamRolled}
+        activeTeamName={activeTeamName}
+        canRollDice={canRollDice}
+        disableDiceReroll={disableDiceReroll}
+        onRecordDiceRoll={onRecordDiceRoll}
       />
 
       <GLZoneContentPopover
@@ -622,6 +650,7 @@ export function GLGameBoard({
         teamId={effectPopover?.teamId ?? watchTeamId}
         arrival={effectPopover?.arrival}
         vitality={effectPopover?.vitality}
+        autoMove={effectPopover?.autoMove}
         loading={effectPopover?.loading}
         error={effectPopover?.error}
         canApplyEffects={canMoveMascot}
@@ -660,6 +689,7 @@ export function GLGameBoard({
             currentTeamId={currentTeamId}
             selectedTeamId={selectedTeamId}
             playerId={playerId}
+            turnsEnabled={turnsEnabled}
           />
         ) : null}
       </div>

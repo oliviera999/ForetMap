@@ -1308,6 +1308,49 @@ a.gl-glossary-inline-link:hover,
   right: max(12px, env(safe-area-inset-right, 0px));
 }
 
+.gl-zone-music-global-dock {
+  position: fixed;
+  right: max(12px, env(safe-area-inset-right, 0px));
+  bottom: max(72px, calc(env(safe-area-inset-bottom, 0px) + 56px));
+  z-index: 90;
+}
+
+.gl-board-turn-hud {
+  position: absolute;
+  top: max(12px, env(safe-area-inset-top, 0px));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 12;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  max-width: calc(100% - 24px);
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(1, 58, 64, 0.88);
+  color: #f8fafc;
+  backdrop-filter: blur(10px);
+  box-shadow: var(--gl-shadow-md);
+}
+
+.gl-board-turn-hud__counter {
+  font-weight: 600;
+  font-size: 0.95rem;
+  white-space: nowrap;
+}
+
+.gl-board-turn-hud__hint {
+  font-size: 0.82rem;
+  opacity: 0.92;
+}
+
+.gl-board-action:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .gl-board-chrome-bar {
   position: absolute;
   left: 50%;
@@ -4411,44 +4454,90 @@ body.gl-map-fullscreen-active .gl-qcm-popover-overlay {
 }
 
 .gl-biocenose-intro,
-.gl-ecosystem-section__biocenose,
+.gl-ecosystem-section__block--biocenose,
 .gl-grimoire .gl-spells-intro {
-  margin-bottom: 1.25rem;
+  margin-bottom: 0;
+}
+
+.gl-ecosystems-view__chapter-cover {
+  margin: 0.5rem 0 1.25rem;
+}
+
+.gl-ecosystems-view__intro {
+  margin: 0 0 0.75rem;
+  color: var(--gl-color-text-muted, #5a6a66);
+  font-size: 0.95rem;
+}
+
+.gl-ecosystems-view__tabs {
+  margin-bottom: 1.1rem;
 }
 
 .gl-ecosystem-section {
-  margin-top: 1.5rem;
-  padding-top: 0.25rem;
-  border-top: 1px solid var(--gl-border, rgba(1, 58, 64, 0.12));
+  margin-top: 0;
+  padding: 1rem 1.1rem 1.15rem;
+  border: 1px solid var(--gl-border, rgba(1, 58, 64, 0.14));
+  border-radius: var(--gl-radius-md, 12px);
+  background: color-mix(in srgb, var(--gl-surface, #fff) 92%, var(--gl-color-primary, #013a40) 8%);
 }
 
-.gl-ecosystem-section:first-of-type {
-  margin-top: 0.75rem;
-  border-top: none;
-  padding-top: 0;
-}
-
-.gl-ecosystem-section > h3 {
-  margin: 0 0 0.75rem;
+.gl-ecosystem-section__title {
+  margin: 0 0 0.85rem;
   font-size: 1.15rem;
 }
 
+.gl-ecosystem-section__layout {
+  display: grid;
+  gap: 1.25rem;
+}
+
+@media (min-width: 768px) {
+  .gl-ecosystem-section__layout--split {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: start;
+    gap: 1.5rem;
+  }
+}
+
 .gl-ecosystem-section__block > h4 {
-  margin: 1rem 0 0.5rem;
-  font-size: 1rem;
+  margin: 0 0 0.55rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   color: var(--gl-color-link, #778c88);
 }
 
+.gl-ecosystem-section__block--biotope > h4 {
+  margin-top: 0;
+}
+
+.gl-ecosystem-section__biocenose-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  min-width: 0;
+}
+
 .gl-ecosystem-section__figure {
-  margin: 0.75rem 0 1rem;
+  margin: 0;
+}
+
+.gl-ecosystem-section__figure--hero {
+  margin: 0 0 1rem;
 }
 
 .gl-ecosystem-section__figure img {
   display: block;
   width: 100%;
-  max-width: 720px;
+  max-width: 100%;
   height: auto;
   border-radius: var(--gl-radius-sm, 8px);
+  box-shadow: 0 2px 12px rgba(1, 58, 64, 0.08);
+}
+
+.gl-ecosystem-section__figure--biocenose img {
+  max-width: 100%;
 }
 
 .gl-grimoire .gl-spell-catalog__intro {

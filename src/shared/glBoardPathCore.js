@@ -79,6 +79,18 @@ export function advancePathIndex(currentIndex, steps, pathLength, startIndex = 0
   return Math.min(Math.max(0, base) + delta, max);
 }
 
+/** Avance ou recule le long du chemin (delta signé, ex. effet de case -2 / +3). */
+export function advancePathIndexSigned(currentIndex, steps, pathLength, startIndex = 0) {
+  const safeLength = Math.max(0, Number(pathLength) || 0);
+  if (safeLength === 0) return 0;
+  const base =
+    currentIndex != null ? Number(currentIndex) : normalizeBoardPathStartIndex(startIndex);
+  const delta = Number(steps) || 0;
+  if (delta === 0) return Math.min(Math.max(0, base), safeLength - 1);
+  const max = safeLength - 1;
+  return Math.min(Math.max(0, base + delta), max);
+}
+
 export function targetMarkerAfterDice(sortedMarkers, team, steps, startIndex = 0) {
   if (!sortedMarkers.length) return null;
   const current = teamPathIndex(team, sortedMarkers);
@@ -94,4 +106,26 @@ export function markersAlongDicePath(sortedMarkers, team, steps, startIndex = 0)
   const targetIdx = advancePathIndex(current, steps, sortedMarkers.length, startIndex);
   if (targetIdx <= base) return [];
   return sortedMarkers.slice(base + 1, targetIdx + 1);
+}
+
+export function targetMarkerAfterPathSteps(sortedMarkers, team, steps, startIndex = 0) {
+  if (!sortedMarkers.length) return null;
+  const targetIdx = advancePathIndexSigned(
+    teamPathIndex(team, sortedMarkers),
+    steps,
+    sortedMarkers.length,
+    startIndex,
+  );
+  return { index: targetIdx, marker: sortedMarkers[targetIdx] };
+}
+
+/** Repères traversés pour un déplacement signé (effet de case), dans l'ordre du parcours. */
+export function markersAlongPathSteps(sortedMarkers, team, steps, startIndex = 0) {
+  if (!sortedMarkers.length) return [];
+  const current = teamPathIndex(team, sortedMarkers);
+  const base = current != null ? current : normalizeBoardPathStartIndex(startIndex);
+  const targetIdx = advancePathIndexSigned(current, steps, sortedMarkers.length, startIndex);
+  if (targetIdx === base) return [];
+  if (targetIdx > base) return sortedMarkers.slice(base + 1, targetIdx + 1);
+  return [...sortedMarkers.slice(targetIdx, base)].reverse();
 }

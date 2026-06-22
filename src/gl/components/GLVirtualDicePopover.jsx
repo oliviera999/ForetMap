@@ -19,6 +19,8 @@ export function GLVirtualDicePopover({
   canAddDie,
   canRemoveDie,
   isRolling,
+  disableReroll = false,
+  canRoll = true,
   themeStyle = null,
 }) {
   const panelRef = useRef(null);
@@ -103,7 +105,11 @@ export function GLVirtualDicePopover({
         </button>
       </header>
 
-      <p className="gl-dice-popover__hint">D6 — jusqu&apos;à {MAX_DICE_COUNT} dés</p>
+      <p className="gl-dice-popover__hint">
+        {canRoll
+          ? `D6 — jusqu'à ${MAX_DICE_COUNT} dés`
+          : 'Lancer indisponible pour cette équipe ce tour.'}
+      </p>
 
       <div className="gl-dice-popover__cubes" aria-live="polite">
         {Array.from({ length: diceCount }, (_, index) => {
@@ -163,22 +169,24 @@ export function GLVirtualDicePopover({
       <footer className="gl-dice-popover__footer">
         {phase === 'result' ? (
           <div className="gl-inline-actions">
-            <GLButton type="button" onClick={onStartRoll} data-testid="gl-dice-reroll">
-              Relancer
-            </GLButton>
+            {!disableReroll ? (
+              <GLButton type="button" onClick={onStartRoll} data-testid="gl-dice-reroll">
+                Relancer
+              </GLButton>
+            ) : null}
             <GLButton
               type="button"
               variant="secondary"
               onClick={onReset}
               data-testid="gl-dice-edit-count"
             >
-              Modifier le nombre
+              {disableReroll ? 'Fermer' : 'Modifier le nombre'}
             </GLButton>
           </div>
         ) : (
           <GLButton
             type="button"
-            disabled={isRolling}
+            disabled={isRolling || !canRoll}
             onClick={onStartRoll}
             data-testid="gl-dice-roll"
           >

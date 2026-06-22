@@ -26,12 +26,21 @@ export function GLMapView({
   zoneMusicEnabled = false,
   zoneMusicMuted = false,
   onZoneMusicToggle,
-  onWatchTeamPctChange,
   onZoneMusicUnlock,
   brandThemeStyle = null,
   canSpellCast = false,
   onLaunchSpell,
   virtualDiceEnabled = false,
+  turnsEnabled = false,
+  roundNumber = 0,
+  canManageTurn = false,
+  onNextTurn = null,
+  nextTurnBusy = false,
+  activeTeamRolled = false,
+  activeTeamName = null,
+  canRollDice = true,
+  disableDiceReroll = false,
+  onRecordDiceRoll = null,
   feuilletZones = [],
   feuilletZoneEditMode = false,
   showPlateauMarkers = true,
@@ -82,12 +91,21 @@ export function GLMapView({
       zoneMusicEnabled={zoneMusicEnabled}
       zoneMusicMuted={zoneMusicMuted}
       onZoneMusicToggle={onZoneMusicToggle}
-      onWatchTeamPctChange={onWatchTeamPctChange}
       onZoneMusicUnlock={onZoneMusicUnlock}
       brandThemeStyle={brandThemeStyle}
       canSpellCast={canSpellCast}
       onLaunchSpell={onLaunchSpell}
       virtualDiceEnabled={virtualDiceEnabled}
+      turnsEnabled={turnsEnabled}
+      roundNumber={roundNumber}
+      canManageTurn={canManageTurn}
+      onNextTurn={onNextTurn}
+      nextTurnBusy={nextTurnBusy}
+      activeTeamRolled={activeTeamRolled}
+      activeTeamName={activeTeamName}
+      canRollDice={canRollDice}
+      disableDiceReroll={disableDiceReroll}
+      onRecordDiceRoll={onRecordDiceRoll}
       feuilletZones={feuilletZones}
       feuilletZoneEditMode={feuilletZoneEditMode}
       showPlateauMarkers={showPlateauMarkers}

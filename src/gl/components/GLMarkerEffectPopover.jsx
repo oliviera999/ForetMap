@@ -26,6 +26,7 @@ export function GLMarkerEffectPopover({
   teamId = null,
   arrival,
   vitality = null,
+  autoMove = null,
   loading,
   error: externalError,
   canApplyEffects = false,
@@ -126,10 +127,18 @@ export function GLMarkerEffectPopover({
             {arrival.passTurn ? (
               <p className="gl-hint">Cette équipe doit passer son tour.</p>
             ) : null}
-            {arrival.resolvedEffect?.deltaMove ? (
+            {autoMove?.applied ? (
+              <p className="gl-hint">
+                Déplacement automatique : {autoMove.steps > 0 ? '+' : ''}
+                {autoMove.steps} case(s)
+                {autoMove.targetMarkerLabel ? ` → ${autoMove.targetMarkerLabel}` : ''}. Les effets de
+                la case d&apos;arrivée ne s&apos;appliquent pas.
+              </p>
+            ) : arrival.resolvedEffect?.deltaMove ? (
               <p className="gl-hint">
                 Déplacement suggéré : {arrival.resolvedEffect.deltaMove > 0 ? '+' : ''}
-                {arrival.resolvedEffect.deltaMove} case(s) — à appliquer manuellement sur la carte.
+                {arrival.resolvedEffect.deltaMove} case(s) — activez le déplacement auto dans les
+                réglages ou appliquez manuellement sur la carte.
               </p>
             ) : null}
           </div>

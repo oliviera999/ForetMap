@@ -86,3 +86,41 @@ test('glZoneAtPct: playlist musicUrls sur zone active', async () => {
   assert.strictEqual(picked?.musicUrl, urls[0]);
   assert.deepStrictEqual(zoneMusicUrls(zones[0]), urls);
 });
+
+test('glZoneAtPct: detectZoneMusicOnTeamMove ignore déplacement intra-zone et changement équipe observée', async () => {
+  const { detectZoneMusicOnTeamMove } = await import('../src/utils/glZoneAtPct.js');
+  const zones = [
+    {
+      id: 1,
+      label: 'Zone A',
+      musicUrl: '/uploads/media-library/audio/2026/05/a.mp3',
+      points: [
+        { x: 0, y: 0 },
+        { x: 50, y: 0 },
+        { x: 50, y: 50 },
+        { x: 0, y: 50 },
+      ],
+    },
+    {
+      id: 2,
+      label: 'Zone B',
+      musicUrl: '/uploads/media-library/audio/2026/05/b.mp3',
+      points: [
+        { x: 50, y: 0 },
+        { x: 100, y: 0 },
+        { x: 100, y: 50 },
+        { x: 50, y: 50 },
+      ],
+    },
+  ];
+
+  assert.strictEqual(
+    detectZoneMusicOnTeamMove({ xp: 10, yp: 10 }, { xp: 20, yp: 15 }, zones),
+    null,
+  );
+  assert.strictEqual(detectZoneMusicOnTeamMove({ xp: 10, yp: 10 }, { xp: 10, yp: 10 }, zones), null);
+  assert.strictEqual(
+    detectZoneMusicOnTeamMove({ xp: 10, yp: 10 }, { xp: 75, yp: 25 }, zones)?.id,
+    2,
+  );
+});
