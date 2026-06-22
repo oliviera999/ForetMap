@@ -642,8 +642,7 @@ export function AppGL() {
         const spellName = String(evt?.payload?.spellName || evt?.payload?.spellCode || 'sortilège');
         setSpellRejectedToast({ spellName, ts: Date.now() });
       } else if (type === 'move' && evt?.payload?.skipDestinationEffects) {
-        const targetMarkerId =
-          evt?.payload?.markerId != null ? Number(evt.payload.markerId) : null;
+        const targetMarkerId = evt?.payload?.markerId != null ? Number(evt.payload.markerId) : null;
         const moveTeamId = evt?.teamId != null ? Number(evt.teamId) : null;
         if (moveTeamId != null && targetMarkerId != null) {
           registerSkipMarkerArrival(moveTeamId, targetMarkerId);
@@ -698,7 +697,9 @@ export function AppGL() {
 
   const activeDiceTeam = useMemo(() => {
     if (activeDiceTeamId == null) return null;
-    return (gameState?.teams || []).find((team) => Number(team.id) === Number(activeDiceTeamId)) || null;
+    return (
+      (gameState?.teams || []).find((team) => Number(team.id) === Number(activeDiceTeamId)) || null
+    );
   }, [activeDiceTeamId, gameState?.teams]);
 
   const activeTeamHasRolledDice = activeDiceTeam?.hasRolledDiceThisRound === true;

@@ -95,7 +95,9 @@ export default function VisitMascotPackManager({
   const [globalTargetState, setGlobalTargetState] = useState('idle');
   const [packAssets, setPackAssets] = useState([]);
   const [packAssetsLoading, setPackAssetsLoading] = useState(false);
-  const packPreviewRef = useRef(/** @type {{ playInteraction?: (k: string) => void } | null} */ (null));
+  const packPreviewRef = useRef(
+    /** @type {{ playInteraction?: (k: string) => void } | null} */ (null),
+  );
   const [packAssetsMessage, setPackAssetsMessage] = useState('');
   const [insertFeedback, setInsertFeedback] = useState('');
   const [savedSnapshot, setSavedSnapshot] = useState(null);

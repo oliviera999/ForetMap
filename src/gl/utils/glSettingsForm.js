@@ -83,7 +83,7 @@ export const MAP_DISPLAY_TOGGLES = [
   {
     key: 'gameplay.marker_effect_auto_move_enabled',
     label: 'Déplacement auto (effet de case)',
-    hint: 'En parcours numéroté, applique automatiquement le delta de cases des repères (sans effet sur la case d\'arrivée).',
+    hint: "En parcours numéroté, applique automatiquement le delta de cases des repères (sans effet sur la case d'arrivée).",
     readChecked: readGameplayFlag,
   },
 ];
