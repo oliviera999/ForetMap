@@ -61,24 +61,34 @@ public (`authenticate` optionnel + lecture publique des packs publiés) → **sp
 
 ## 4. Autres constats (hors périmètre de ce correctif)
 
-| #   | Sévérité | Constat                                                                                                                                                                                                                                                          | Statut      |
-| --- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
-| A   | Moyenne  | **Carte éditeur** (`map-views.jsx` → `MapViewMascotOverlay`) ne passe pas `extraCatalogEntries` au renderer → packs importés non rendus dans la vue d'édition prof.                                                                                              | vérifié     |
-| B   | Moyenne  | **Aperçu global studio** (`VisitMascotStudioPreviewSection`) et `buildVisitMascotCatalogExtrasFromContent` n'appliquent pas les `preview_url` tokenisés → un **brouillon** y rend en 403 (l'aperçu d'édition `MascotPackRenderPreview`, lui, applique le token). | vérifié     |
-| C   | Faible   | **gnome1** : `buildGnome1CatalogPackTemplate` existe mais l'id n'est pas dans `VISIT_MASCOT_CATALOG_MODEL_META` → template absent de `listVisitMascotCatalogTemplateIds()` (clonage catalogue indisponible).                                                     | vérifié     |
-| D   | Faible   | **Export d'un pack à assets statiques** (`/assets/mascots/…`, ex. gnome1) : `collectVisitPackAssets` n'embarque pas ces fichiers → ZIP incomplète → réimport cassé.                                                                                              | à confirmer |
-| E   | Faible   | Asset brouillon non autorisé → **403** ; un **401** serait plus correct pour un `<img>` anonyme (impact mineur, le front retombe sur la silhouette via `onError`).                                                                                               | vérifié     |
-| F   | Info     | `preview_token` TTL 1 h (`lib/visitMascotPackAssetPreview.js:59`) : ré-émis à chaque réponse liste/upload, mais une session studio très longue peut voir expirer un aperçu.                                                                                      | vérifié     |
+| #   | Sévérité | Constat                                                                                                                                                                                                                                                          | Statut                                                                                                                                                                                                        |
+| --- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A   | Moyenne  | **Carte éditeur** (`map-views.jsx` → `MapViewMascotOverlay`) ne passe pas `extraCatalogEntries` au renderer → packs importés non rendus dans la vue d'édition prof.                                                                                              | vérifié                                                                                                                                                                                                       |
+| B   | Moyenne  | **Aperçu global studio** (`VisitMascotStudioPreviewSection`) et `buildVisitMascotCatalogExtrasFromContent` n'appliquent pas les `preview_url` tokenisés → un **brouillon** y rend en 403 (l'aperçu d'édition `MascotPackRenderPreview`, lui, applique le token). | **corrigé (partiel)** — le pack **en cours d'édition** est désormais tokenisé dans l'aperçu global (voir §5). Reste : les **autres** packs brouillons du sélecteur (rares depuis l'import publié par défaut). |
+| C   | Faible   | **gnome1** : `buildGnome1CatalogPackTemplate` existe mais l'id n'est pas dans `VISIT_MASCOT_CATALOG_MODEL_META` → template absent de `listVisitMascotCatalogTemplateIds()` (clonage catalogue indisponible).                                                     | vérifié                                                                                                                                                                                                       |
+| D   | Faible   | **Export d'un pack à assets statiques** (`/assets/mascots/…`, ex. gnome1) : `collectVisitPackAssets` n'embarque pas ces fichiers → ZIP incomplète → réimport cassé.                                                                                              | à confirmer                                                                                                                                                                                                   |
+| E   | Faible   | Asset brouillon non autorisé → **403** ; un **401** serait plus correct pour un `<img>` anonyme (impact mineur, le front retombe sur la silhouette via `onError`).                                                                                               | vérifié                                                                                                                                                                                                       |
+| F   | Info     | `preview_token` TTL 1 h (`lib/visitMascotPackAssetPreview.js:59`) : ré-émis à chaque réponse liste/upload, mais une session studio très longue peut voir expirer un aperçu.                                                                                      | vérifié                                                                                                                                                                                                       |
 
 ### Recommandations
 
-- **A/B** : passer `extraCatalogEntries` (et, pour les brouillons côté prof, les `spriteCut`
-  tokenisés via `applyPackAssetPreviewUrlsToSpriteCut`) au renderer de la carte éditeur et de
-  l'aperçu global, pour un rendu cohérent des brouillons côté prof.
+- **A** (reste à faire) : la carte éditeur ne charge **aucun** pack serveur (aucun fetch dans
+  `map-views.jsx`). Pour un rendu des packs importés en vue d'édition : fetch des packs (ex.
+  `GET /api/visit/:id` pour les publiés) → `buildVisitMascotCatalogExtrasFromContent` → passer
+  `extraCatalogEntries` à `useMapViewMascot` (déjà supporté) **et** à `MapViewMascotOverlay` /
+  `VisitMapMascotRenderer`. À valider en UI (non couvert ici).
 - **C** : enregistrer `gnome1` dans `VISIT_MASCOT_CATALOG_MODEL_META` si le clonage catalogue
   gnome1 est souhaité.
 - **D** : étendre `collectVisitPackAssets` pour embarquer les fichiers `/assets/mascots/…` à
   l'export (round-trip des templates statiques).
+
+## 5. Suivi (ce lot) — B partiel : aperçu d'un brouillon en cours d'édition
+
+`VisitMascotStudioPreviewSection` reçoit désormais `assetPreviewByFilename` (déjà calculé par le
+manager pour le pack sélectionné) et applique `applyPackAssetPreviewUrlsToSpriteCut` au `spriteCut`
+du pack **en cours d'édition** → un **brouillon** s'affiche dans l'aperçu global (au lieu du 403 /
+fallback). Tests : `tests-ui/utils/visitMascotPackManager.test.js`
+(`buildPackAssetPreviewByFilename`, `applyPackAssetPreviewUrlsToSpriteCut`).
 
 > Modèle de sécurité confirmé et **sain** : _publié = assets publics_ ; _brouillon = aperçu prof
 > via token signé_. Un visiteur anonyme ne doit jamais recevoir d'asset de brouillon — d'où le
