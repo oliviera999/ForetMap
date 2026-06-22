@@ -1,0 +1,81 @@
+name: Frontend dist
+
+# Garantit que le `dist/` (et les miroirs CJS `lib/visit-pack/` & `lib/gl-pack/`)
+# commités correspondent bien aux sources — l'invariant sur lequel repose le
+# déploiement par `git pull` du cron (scripts/auto-deploy-cron.sh).
+#
+# - Sur une PR du dépôt (non-fork) : si le rebuild produit une dérive, le job
+#   recommite automatiquement les artefacts régénérés sur la branche de PR (C).
+# - Sur une PR de fork (push impossible) ou sur push `main` : le job ÉCHOUE si
+#   une dérive subsiste, en garde-fou bloquant (A).
+
+on:
+  pull_request:
+    branches: [main, master]
+  push:
+    branches: [main, master]
+
+permissions:
+  contents: write
+
+# Évite deux rebuilds concurrents sur la même réf (le second annule le premier).
+concurrency:
+  group: frontend-dist-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  dist:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Sur une PR : on checkout la *branche source* (et non la merge-ref
+          # détachée) pour pouvoir recommiter ; sur push, réf par défaut.
+          ref: ${{ github.head_ref }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Rebuild front + miroirs (npm run build)
+        run: npm run build
+
+      - name: Détecter une dérive dist/ + miroirs
+        id: drift
+        run: |
+          if git diff --quiet -- dist/ lib/visit-pack/ lib/gl-pack/; then
+            echo "drift=false" >> "$GITHUB_OUTPUT"
+            echo "dist/ et miroirs à jour."
+          else
+            echo "drift=true" >> "$GITHUB_OUTPUT"
+            git --no-pager diff --stat -- dist/ lib/visit-pack/ lib/gl-pack/
+          fi
+
+      # --- C : PR du dépôt → recommit automatique du dist/ régénéré ---
+      - name: Auto-commit dist (PR du dépôt)
+        if: >-
+          steps.drift.outputs.drift == 'true' &&
+          github.event_name == 'pull_request' &&
+          github.event.pull_request.head.repo.full_name == github.repository
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add dist/ lib/visit-pack/ lib/gl-pack/
+          git commit -m "chore(build): régénère dist/ + miroirs (auto) [skip ci]"
+          # Le push avec GITHUB_TOKEN ne re-déclenche pas de workflow (anti-boucle).
+          git push origin "HEAD:${{ github.head_ref }}"
+
+      # --- A : garde-fou bloquant (push main, ou PR de fork sans auto-commit possible) ---
+      - name: Garde-fou dist à jour
+        if: >-
+          steps.drift.outputs.drift == 'true' &&
+          (github.event_name == 'push' ||
+           github.event.pull_request.head.repo.full_name != github.repository)
+        run: |
+          echo "::error::dist/ ou miroirs CJS périmés. Lance 'npm run build' (ou 'npm run ship') puis recommite dist/ + lib/visit-pack/ + lib/gl-pack/."
+          exit 1
