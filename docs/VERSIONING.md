@@ -98,3 +98,28 @@ Si le dépôt englobe plusieurs dossiers, travailler depuis **`ForetMap/`** ; le
 - Après chaque **lot livré** sur `main` : voir la sous-section **Lots livrés sur `main`** ci-dessus (**CHANGELOG** + **`bump:*`** + commit + push).
 - Pour une **release** nommée : **CHANGELOG d’abord** (renommer `[Non publié]` en section datée), puis **`bump:*` + commit groupé + tag**, sauf si on utilise volontairement **`release:*`** (deux commits possibles).
 - Le fichier **`CHANGELOG.md`** peut conserver une longue section **`[Non publié]`** entre deux releases datées : ce n’est pas une incohérence avec **`package.json`** tant que la version du manifeste suit les **`bump:*`** successifs.
+
+## Résolution automatique des conflits de merge (CI)
+
+Les PR ouvertes en parallèle se télescopent presque toujours sur les mêmes
+fichiers cumulatifs : **`CHANGELOG.md`** (section `[Non publié]`) et le **bump de
+version** (`package.json` / `package-lock.json`). Un mécanisme automatique gère
+ces conflits récurrents :
+
+- **`.gitattributes`** déclare `CHANGELOG.md merge=union` → lors d’un merge, Git
+  conserve les entrées des **deux** côtés au lieu de produire un conflit (vaut
+  aussi pour les merges locaux).
+- **Workflow** `.github/workflows/auto-resolve-conflicts.yml` (push sur `main`,
+  cron horaire, déclenchement manuel) exécute `scripts/auto-resolve-conflicts.js`
+  qui, pour chaque PR ouverte vers `main` :
+  - tente le merge de `main` ; si propre, ne touche à rien ;
+  - en cas de conflit, résout **automatiquement** `CHANGELOG.md` (union) et la
+    **version** des manifestes (semver le plus haut), puis **pousse** la
+    résolution ;
+  - tout autre conflit (code métier) reste **non résolu** : la PR est étiquetée
+    `merge-conflict` avec un commentaire listant les fichiers à traiter à la main.
+- Déclenchement manuel possible en **simulation** (`dry_run`) et pour inclure les
+  **brouillons** (`include_drafts`).
+- Secret optionnel **`AUTO_MERGE_PAT`** : si présent, le push de la résolution
+  **re-déclenche la CI** sur la branche de PR (le `GITHUB_TOKEN` par défaut ne le
+  fait pas).

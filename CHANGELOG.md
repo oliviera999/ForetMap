@@ -7,6 +7,12 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### CI — résolution automatique des conflits de merge des PR
+
+- **feat(ci)** : nouveau workflow `.github/workflows/auto-resolve-conflicts.yml` (push sur `main` + cron horaire + déclenchement manuel) qui vérifie les PR ouvertes vers `main` et **corrige automatiquement** les conflits récurrents et sûrs — `CHANGELOG.md` (union des entrées) et bumps de version `package.json` / `package-lock.json` (version la plus haute) — puis pousse la résolution. Les conflits de code restants sont signalés (label `merge-conflict` + commentaire listant les fichiers).
+- **Script** : `scripts/auto-resolve-conflicts.js` (fonctions pures de résolution exportées et testées) ; option `AUTO_RESOLVE_DRY_RUN` pour simuler, `AUTO_MERGE_PAT` (secret optionnel) pour relancer la CI après push.
+- **`.gitattributes`** : `CHANGELOG.md merge=union` — réduit les conflits dès les merges locaux.
+- **Tests** : `tests/auto-resolve-conflicts.test.js` (union changelog, semver max, garde-fous version-only).
 ### GL — système de tour « mode classique »
 
 - **feat(gl)** : la rotation séquentielle (une seule équipe active) est remplacée par des **tours globaux**. Le MJ lance un tour (`POST /api/gl/games/:id/turn/next` ou `/turn/start`) → événement `round_start` `{ roundNumber }` ; toutes les équipes jouent simultanément.
