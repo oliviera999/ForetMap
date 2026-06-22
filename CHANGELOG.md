@@ -7,6 +7,10 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### GL — emojis Souffle / Trame (mojibake Excel)
+
+- **fix(gl)** : réparation plateforme des emojis tronqués (U+F32B → 🌫️, U+F9F5 → 🧵) dans le grimoire chapitre, les repères plateau et l’import XLSX ; utilitaire partagé `emojiMojibakeCore`, pré-traitement markdown, normalisation `normalizeMarkerEmoji`, migration `140_gl_emoji_mojibake_repair.sql`, couverture police Noto (`🌫️`, `🧵`). Tests `tests/emoji-mojibake.test.js`.
+
 ### CI — résolution automatique des conflits de merge des PR
 
 - **feat(ci)** : nouveau workflow `.github/workflows/auto-resolve-conflicts.yml` (push sur `main` + cron horaire + déclenchement manuel) qui vérifie les PR ouvertes vers `main` et **corrige automatiquement** les conflits récurrents et sûrs — `CHANGELOG.md` (union des entrées) et bumps de version `package.json` / `package-lock.json` (version la plus haute) — puis pousse la résolution. Les conflits de code restants sont signalés (label `merge-conflict` + commentaire listant les fichiers).

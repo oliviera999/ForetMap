@@ -1,3 +1,5 @@
+import { repairSupplementaryPlaneEmojiMojibake } from './emojiMojibakeCore.js';
+
 const MAP_MARKER_EMOJI_MAX_LEN = 16;
 const MARKER_DISPLAY_MODES = new Set(['label', 'emoji', 'icon']);
 const DEFAULT_QUESTION_MARKER_EMOJI = '❓';
@@ -19,7 +21,7 @@ function normalizeMarkerEmoji(value, opts = {}) {
   if (!s) {
     return allowEmpty ? fallback : fallback || DEFAULT_QUESTION_MARKER_EMOJI;
   }
-  return s.slice(0, MAP_MARKER_EMOJI_MAX_LEN);
+  return repairSupplementaryPlaneEmojiMojibake(s).slice(0, MAP_MARKER_EMOJI_MAX_LEN);
 }
 
 const MARKER_ICON_STABLE_KEY_RE = /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$/;

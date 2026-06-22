@@ -9,5 +9,7 @@ test('couverture emoji UI (constantes + chaîne unique)', async () => {
   const s = buildEmojiFontCoverageString();
   assert.ok(s.includes('🪜'));
   assert.ok(s.includes('🌱'));
+  assert.ok(s.includes('🌫️'));
+  assert.ok(s.includes('🧵'));
   assert.ok(s.length > 50);
 });
