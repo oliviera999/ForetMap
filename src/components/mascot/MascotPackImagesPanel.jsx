@@ -245,7 +245,7 @@ export default function MascotPackImagesPanel({
       {entries.length > 0 ? (
         <ul className="mascot-pack-wysiwyg__asset-grid" style={{ marginTop: 12 }}>
           {entries.map((entry) => {
-            const previewable = isSpriteLibraryPreviewableUrl(entry.url);
+            const previewable = isSpriteLibraryPreviewableUrl(entry.previewUrl || entry.url);
             const isDownloading = downloadBusy === entry.url;
             return (
               <li key={entry.id} className="mascot-pack-wysiwyg__asset-card">
@@ -256,7 +256,12 @@ export default function MascotPackImagesPanel({
                   title={`Ajouter à l’état « ${targetLabel} »`}
                 >
                   {previewable ? (
-                    <img src={withAppBase(entry.url)} alt="" loading="lazy" decoding="async" />
+                    <img
+                      src={withAppBase(entry.previewUrl || entry.url)}
+                      alt=""
+                      loading="lazy"
+                      decoding="async"
+                    />
                   ) : (
                     <span className="section-sub" style={{ fontSize: '0.72rem', padding: 8 }}>
                       Pas d’aperçu

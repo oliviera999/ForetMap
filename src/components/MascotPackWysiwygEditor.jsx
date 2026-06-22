@@ -6,6 +6,7 @@ import {
   serverMascotSpriteLibraryAssetsPrefix,
 } from '../utils/mascotPackEditorModel.js';
 import { computePackMediaWarnings } from '../utils/mascotPackEditorFrames.js';
+import { buildPackAssetPreviewByFilename } from '../utils/visitMascotPackManager.js';
 import {
   extractMascotPackValidationIssues,
   sanitizeMascotPackDraft,
@@ -106,6 +107,11 @@ export default function MascotPackWysiwygEditor({
     [pack, packUuid, packAssets, stateFrames],
   );
 
+  const assetPreviewByFilename = useMemo(
+    () => buildPackAssetPreviewByFilename(packAssets),
+    [packAssets],
+  );
+
   const updateStateEntry = useCallback(
     (stateKey, spec) => {
       const next = { ...stateFrames };
@@ -167,6 +173,7 @@ export default function MascotPackWysiwygEditor({
               setSrcPreviewStatus={setSrcPreviewStatus}
               onToggleState={toggleState}
               onUpdateStateEntry={updateStateEntry}
+              assetPreviewByFilename={assetPreviewByFilename}
             />
           );
         })}
@@ -238,6 +245,7 @@ export default function MascotPackWysiwygEditor({
           pack={pack}
           catalogId={catalogId}
           label={String(pack?.label || '')}
+          assetPreviewByFilename={assetPreviewByFilename}
         />
       ) : null}
     </div>

@@ -18,6 +18,7 @@ import {
   resolvePackDialogMascotId,
   findPacksForCatalogModel,
   pickPreferredCatalogModelPack,
+  buildPackAssetPreviewByFilename,
 } from '../utils/visitMascotPackManager.js';
 import PackBehaviorDetailTable from './mascot/PackBehaviorDetailTable.jsx';
 import { getVisitMascotCatalog } from '../utils/visitMascotCatalog.js';
@@ -271,6 +272,10 @@ export default function VisitMascotPackManager({
     );
   }, [editorPack, selectedId, mapId]);
   const editorWarnings = useMemo(() => computeEditorWarnings(editorPack), [editorPack]);
+  const assetPreviewByFilename = useMemo(
+    () => buildPackAssetPreviewByFilename(packAssets),
+    [packAssets],
+  );
 
   const setActionErrorWithDetails = useCallback((message, details) => {
     const issues = extractMascotPackValidationIssues(details);
@@ -1003,6 +1008,8 @@ export default function VisitMascotPackManager({
                       label={labelDraft || selectedRow?.label || ''}
                       variant="studio"
                       focusSection="all"
+                      assetPreviewByFilename={assetPreviewByFilename}
+                      packAssets={packAssets}
                     />
                     <PackBehaviorDetailTable pack={editorPack} />
                     <div style={{ marginTop: 10 }}>
@@ -1121,6 +1128,8 @@ export default function VisitMascotPackManager({
                       label={labelDraft || selectedRow?.label || ''}
                       variant="studio"
                       focusSection="behaviors"
+                      assetPreviewByFilename={assetPreviewByFilename}
+                      packAssets={packAssets}
                     />
                     <div style={{ marginTop: 12 }}>
                       <MascotInteractionProfileEditor
