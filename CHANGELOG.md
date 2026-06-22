@@ -10,6 +10,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ### Correctif — `npm install` en production (hook `prepare`)
 
 - **fix** : le hook npm `prepare` (`node scripts/setup-git-hooks.js`) ne fait plus échouer `npm install` lorsque le script de hooks est introuvable ou exécuté hors dépôt Git (hébergement CloudLinux/cPanel `nodevenv/.../lib`, installation via tarball ou CI). Ajout d'un garde-fou `|| exit 0` : l'installation des dépendances aboutit toujours en production, tandis que la configuration des hooks Git versionnés (`core.hooksPath = .githooks`, pre-commit lint + format) reste active en développement.
+### GL — emojis Souffle / Trame (mojibake Excel)
+
+- **fix(gl)** : réparation plateforme des emojis tronqués (U+F32B → 🌫️, U+F9F5 → 🧵) dans le grimoire chapitre, les repères plateau et l’import XLSX ; utilitaire partagé `emojiMojibakeCore`, pré-traitement markdown, normalisation `normalizeMarkerEmoji`, migration `140_gl_emoji_mojibake_repair.sql`, couverture police Noto (`🌫️`, `🧵`). Tests `tests/emoji-mojibake.test.js`.
 
 ### CI — résolution automatique des conflits de merge des PR
 
