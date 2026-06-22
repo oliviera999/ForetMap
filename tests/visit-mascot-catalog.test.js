@@ -66,6 +66,26 @@ test('buildVisitMascotSelectionOptions inclut toujours les packs serveur publié
   );
 });
 
+test('resolveVisitMascotEntry priorise les packs serveur (extras) sur le catalogue statique', async () => {
+  const { resolveVisitMascotEntry } = await loadModule();
+  const extras = [
+    {
+      id: 'olu-spritesheet',
+      label: 'OLU pack',
+      renderer: 'sprite_cut',
+      fallbackSilhouette: 'olu',
+      spriteCut: {
+        frameWidth: 32,
+        frameHeight: 32,
+        stateFrames: { idle: { srcs: ['/pack/olu-idle.png'], fps: 8 } },
+      },
+    },
+  ];
+  const entry = resolveVisitMascotEntry('olu-spritesheet', extras);
+  assert.equal(entry?.renderer, 'sprite_cut');
+  assert.equal(entry?.spriteCut?.stateFrames?.idle?.srcs?.[0], '/pack/olu-idle.png');
+});
+
 test('catalogue inclut SPR0UT et SCR4P avec états étendus', async () => {
   const { getVisitMascotById, getVisitMascotSupportedStates } = await loadModule();
 

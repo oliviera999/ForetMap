@@ -162,12 +162,22 @@ export function buildNiveauOptions(poolItems) {
  * Bascule l'appartenance d'un code de question dans la liste des codes
  * sélectionnés (normalisé majuscule). Renvoie la liste inchangée si code vide.
  */
-export function toggleSelectedCode(selectedCodes, code) {
+export function toggleSelectedCode(selectedCodes, code, allPoolCodes = null) {
   const upper = String(code || '')
     .trim()
     .toUpperCase();
   const current = selectedCodes || [];
   if (!upper) return current;
+  if (current.length === 0 && Array.isArray(allPoolCodes) && allPoolCodes.length > 0) {
+    const allUpper = allPoolCodes
+      .map((item) =>
+        String(item || '')
+          .trim()
+          .toUpperCase(),
+      )
+      .filter(Boolean);
+    return allUpper.filter((item) => item !== upper);
+  }
   return current.includes(upper) ? current.filter((c) => c !== upper) : [...current, upper];
 }
 

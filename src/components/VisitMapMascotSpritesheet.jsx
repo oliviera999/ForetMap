@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { VISIT_MASCOT_STATE } from '../utils/visitMascotState.js';
 
 function resolveStateSpec(spritesheetConfig = null, mascotState = VISIT_MASCOT_STATE.IDLE) {
@@ -19,6 +19,10 @@ function VisitMapMascotSpritesheet({
 }) {
   const [imgError, setImgError] = useState(false);
   const sheet = mascotConfig?.spritesheet || null;
+
+  useEffect(() => {
+    setImgError(false);
+  }, [mascotId, sheet?.src]);
   const stateSpec = useMemo(() => resolveStateSpec(sheet, mascotState), [sheet, mascotState]);
   const canRender =
     !imgError && !!sheet?.src && Number(sheet?.frameWidth) > 0 && Number(sheet?.frameHeight) > 0;

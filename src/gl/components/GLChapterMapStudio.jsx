@@ -24,6 +24,7 @@ import { GLChapterMarkerListVisual } from './GLChapterMarkerListVisual.jsx';
 import {
   EMPTY_MARKER_FORM,
   markerDuplicatePayloadFromMarker,
+  eventDraftFromMarker,
   toFormFromMarker,
   toMarkerPayload,
 } from '../utils/glChapterMapStudioForm.js';
@@ -220,6 +221,7 @@ export function GLChapterMapStudio({
     setSelectedMarkerId(Number(marker.id));
     setMarkerForm(toFormFromMarker(marker));
     setAppearanceForm(appearanceFormFromMarker(marker));
+    setEventDraft(eventDraftFromMarker(marker));
     setEffectsDraft({
       effects: marker.event_config?.effects || null,
       eventMeta: marker.event_config?.eventMeta || null,
@@ -267,10 +269,11 @@ export function GLChapterMapStudio({
       if (selectedMarkerId != null && !isAddMode) {
         await apiGL(`/api/gl/chapters/admin/markers/${selectedMarkerId}`, 'PUT', payload);
         onInfo?.('Repère mis à jour');
-      } else {
-        await apiGL(`/api/gl/chapters/admin/${chapterId}/markers`, 'POST', payload);
-        onInfo?.('Repère ajouté');
+        await onReload?.(chapterSlug);
+        return markerDraft;
       }
+      await apiGL(`/api/gl/chapters/admin/${chapterId}/markers`, 'POST', payload);
+      onInfo?.('Repère ajouté');
       setIsAddMode(false);
       resetForm();
       await onReload?.(chapterSlug);

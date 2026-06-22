@@ -31,10 +31,15 @@ function VisitMapMascotRenderer({
   else if (renderer === 'sprite_cut') Active = VisitMapMascotSpriteCut;
   else Active = VisitMapMascotRive;
 
+  // Remount complet (Suspense + renderer lazy) à chaque changement de mascotte ou de type
+  // de renderer — évite sprites/états résiduels quand plusieurs instances coexistent (grille
+  // onboarding, catalogue GL) ou lors d’un changement dans l’aperçu studio.
+  const remountKey = `${selectedMascotId}:${renderer || 'rive'}`;
+
   return (
-    <Suspense fallback={fallback}>
+    <Suspense key={remountKey} fallback={fallback}>
       <Active
-        key={selectedMascotId}
+        key={remountKey}
         mascotState={mascotState}
         mascotConfig={selectedMascot}
         fallback={fallback}

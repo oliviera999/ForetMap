@@ -7,6 +7,24 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### GL — pool QCM repère question (contenus chapitre)
+
+- **fix(gl)** : le tirage `present-question` retrouve les questions sélectionnées dans le studio carte — synchro `eventDraft` à la sélection du repère, auto-save qui conserve le repère en édition, coches du pool (exclusion depuis « tout le pool »), aperçu admin aligné sur `selectedQuestionCodes`.
+- **Tests** : `tests/gl-marker-present-question.test.js`, `tests-ui/gl/glMarkerEventEditorForm.test.js`.
+
+### GL — carte plateau (sélection équipe, feuillets, musique)
+
+- **feat(gl)** : clic sur la mascotte d’une équipe sur la carte pour la sélectionner (MJ / observateur).
+- **fix(gl)** : arrivée feuillet — attente du chargement des zones déjà présentées avant auto-popover ; suivi local après présentation.
+- **fix(gl)** : popover QCM repère masqué sans erreur si question déjà présentée (409) ou pool vide (404).
+- **fix(gl)** : fondu musique zone/plateau — `clampAudioVolume` évite `IndexSizeError` sur volume hors [0, 1].
+- **Tests** : `tests-ui/gl/GLBoardMascot.test.jsx`, `tests-ui/gl/clampAudioVolume.test.js`.
+
+### Visite — mascottes (aperçu / catalogue)
+
+- **fix** : priorité des packs serveur (`extraCatalogEntries`) sur le catalogue statique ; remount renderer à chaque changement de mascotte ; reset erreur image spritesheet au changement d’atlas.
+- **Tests** : `tests/visit-mascot-catalog.test.js`.
+
 ### Studio packs mascotte — rendu final interactif
 
 - **feat** : panneau **Rendu final** dans le studio packs (`MascotPackRenderPreview`) — scène cliquable, puces animations et comportements visite (même logique que la carte).

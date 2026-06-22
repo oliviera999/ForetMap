@@ -207,7 +207,12 @@ export function GLMascotsAdminView({ gameState, onReloadGame, mascotPacksEnabled
                 data-mascot-id={mascot.id}
                 data-mascot-type={mascot.type}
               >
-                <GLMascotRenderer mascotId={mascot.id} mascotState={cardPreviewState} size={72} />
+                <GLMascotRenderer
+                  key={mascot.id}
+                  mascotId={mascot.id}
+                  mascotState={cardPreviewState}
+                  size={72}
+                />
                 <div className="gl-mascot-card-body">
                   <strong>{mascot.label}</strong>
                   <span className="gl-hint">

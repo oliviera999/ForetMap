@@ -111,6 +111,9 @@ export function GLMarkerEventEditor({
         if (pool.difficulteMin != null) params.set('difficulteMin', String(pool.difficulteMin));
         if (pool.difficulteMax != null) params.set('difficulteMax', String(pool.difficulteMax));
         if (pool.searchQuery) params.set('q', pool.searchQuery);
+        if (pool.selectedQuestionCodes.length) {
+          params.set('selectedQuestionCodes', pool.selectedQuestionCodes.join(','));
+        }
         const data = await apiGL(`/api/gl/lore/qcm/pool-preview?${params.toString()}`);
         setPoolItems(Array.isArray(data?.items) ? data.items : []);
       } catch (err) {
@@ -137,6 +140,10 @@ export function GLMarkerEventEditor({
       if (pool.difficulteMin != null) params.set('difficulteMin', String(pool.difficulteMin));
       if (pool.difficulteMax != null) params.set('difficulteMax', String(pool.difficulteMax));
       if (pool.searchQuery) params.set('q', pool.searchQuery);
+      if (pool.selectedQuestionCodes.length) {
+        params.set('selectedQuestionCodes', pool.selectedQuestionCodes.join(','));
+      }
+      if (marker?.chapter_id != null) params.set('chapterId', String(marker.chapter_id));
       const data = await apiGL(`/api/gl/qcm/pool-preview?${params.toString()}`);
       setPoolItems(Array.isArray(data?.items) ? data.items : []);
     } catch (err) {
@@ -187,13 +194,20 @@ export function GLMarkerEventEditor({
   const tierLoreOptions = TIER_LORE_OPTIONS;
 
   function toggleSelectedCode(code) {
-    setForm((prev) => ({
-      ...prev,
-      pool: {
-        ...prev.pool,
-        selectedQuestionCodes: toggleCodeInList(prev.pool.selectedQuestionCodes, code),
-      },
-    }));
+    setForm((prev) => {
+      const poolCodes = poolItems.map((item) => item.question_code);
+      return {
+        ...prev,
+        pool: {
+          ...prev.pool,
+          selectedQuestionCodes: toggleCodeInList(
+            prev.pool.selectedQuestionCodes,
+            code,
+            poolCodes,
+          ),
+        },
+      };
+    });
   }
 
   function selectAllPool() {

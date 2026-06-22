@@ -12,6 +12,9 @@ export function GLBoardMascot({
   mascotState,
   prefersReducedMotion = false,
   zIndex = 8,
+  selectable = false,
+  isSelected = false,
+  onSelect = null,
 }) {
   const animationState = useMemo(
     () =>
@@ -28,14 +31,27 @@ export function GLBoardMascot({
   const faceRight = motion?.faceRight !== false;
   const snapCenter = Boolean(motion?.snapCenter);
 
-  return (
-    <div
-      className={`visit-map-mascot gl-board-mascot${walking ? ' visit-map-mascot--walking' : ''}${happy ? ' visit-map-mascot--happy' : ''}${prefersReducedMotion ? ' visit-map-mascot--reduced-motion' : ''}${snapCenter ? ' gl-board-mascot--on-marker' : ''}`}
-      style={{ left: `${position.xp}%`, top: `${position.yp}%`, zIndex }}
-      aria-hidden="true"
-      data-team-id={team.id}
-      data-gl-board-mascot=""
-    >
+  const className = [
+    'visit-map-mascot',
+    'gl-board-mascot',
+    walking ? 'visit-map-mascot--walking' : '',
+    happy ? 'visit-map-mascot--happy' : '',
+    prefersReducedMotion ? 'visit-map-mascot--reduced-motion' : '',
+    snapCenter ? 'gl-board-mascot--on-marker' : '',
+    selectable ? 'gl-board-mascot--selectable' : '',
+    isSelected ? 'is-selected' : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+
+  const sharedProps = {
+    className,
+    style: { left: `${position.xp}%`, top: `${position.yp}%`, zIndex },
+    'data-team-id': team.id,
+    'data-gl-board-mascot': '',
+  };
+
+  const inner = (
       <div
         className="visit-map-mascot-inner"
         style={{
@@ -46,6 +62,28 @@ export function GLBoardMascot({
       >
         <GLMascotRenderer mascotId={team.mascot_id} mascotState={animationState} boardMode />
       </div>
+  );
+
+  if (selectable && onSelect) {
+    return (
+      <button
+        type="button"
+        {...sharedProps}
+        aria-label={`Sélectionner ${team.name}`}
+        aria-pressed={isSelected}
+        onClick={(event) => {
+          event.stopPropagation();
+          onSelect(Number(team.id));
+        }}
+      >
+        {inner}
+      </button>
+    );
+  }
+
+  return (
+    <div {...sharedProps} aria-hidden="true">
+      {inner}
     </div>
   );
 }

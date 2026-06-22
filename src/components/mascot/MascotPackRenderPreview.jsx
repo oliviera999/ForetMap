@@ -268,6 +268,7 @@ function MascotPackRenderPreview(
           title="Clic : simule l’ouverture d’un repère (inspection)"
         >
           <VisitMapMascotRenderer
+            key={mascotId}
             mascotState={displayState}
             mascotId={mascotId}
             extraCatalogEntries={extras}

@@ -175,11 +175,15 @@ describe("builders d'options", () => {
 
 describe('sélection de codes', () => {
   test('toggleSelectedCode ajoute en majuscule', () => {
-    expect(toggleSelectedCode([], 'ab1')).toEqual(['AB1']);
+    expect(toggleSelectedCode(['AB2'], 'ab1')).toEqual(['AB2', 'AB1']);
   });
 
   test('toggleSelectedCode retire si présent', () => {
     expect(toggleSelectedCode(['AB1'], 'ab1')).toEqual([]);
+  });
+
+  test('toggleSelectedCode exclut depuis le pool implicite (tout sélectionné)', () => {
+    expect(toggleSelectedCode([], 'AB2', ['AB1', 'AB2', 'AB3'])).toEqual(['AB1', 'AB3']);
   });
 
   test('toggleSelectedCode ignore un code vide', () => {

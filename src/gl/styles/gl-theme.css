@@ -1141,6 +1141,28 @@ a.gl-glossary-inline-link:hover,
   border-color: color-mix(in srgb, var(--gl-color-accent, #52b788) 55%, var(--gl-border));
 }
 
+.gl-map-roster-group--selectable {
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.gl-map-roster-group--selectable:hover {
+  border-color: color-mix(in srgb, var(--gl-color-accent, #52b788) 35%, var(--gl-border));
+}
+
+.gl-map-roster-group--selectable:focus-visible {
+  outline: 3px solid #1d4ed8;
+  outline-offset: 2px;
+}
+
+.gl-map-roster-group--selectable.is-selected {
+  box-shadow: 0 0 0 2px rgba(250, 204, 21, 0.55);
+}
+
 .gl-map-roster-group__head {
   display: flex;
   align-items: center;
@@ -1719,6 +1741,25 @@ body.gl-map-fullscreen-active .gl-qcm-popover-overlay {
 .gl-board .gl-board-mascot .gl-mascot-svg {
   width: 100%;
   height: 100%;
+}
+
+.gl-board .gl-board-mascot--selectable {
+  pointer-events: auto;
+  cursor: pointer;
+  border: none;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  appearance: none;
+}
+
+.gl-board .gl-board-mascot--selectable:focus-visible {
+  outline: 3px solid #1d4ed8;
+  outline-offset: 2px;
+}
+
+.gl-board .gl-board-mascot--selectable.is-selected .visit-map-mascot-inner {
+  filter: drop-shadow(0 0 6px rgba(250, 204, 21, 0.95));
 }
 
 /* Pastille nom d’équipe (sélection), décalée au-dessus des pieds de la mascotte */

@@ -379,10 +379,11 @@ function getDefaultVisitMascotId(
 /** Entrées mascotte additionnelles (ex. packs serveur `sprite_cut`) : mêmes champs que le catalogue statique. */
 function resolveVisitMascotEntry(mascotId, extraEntries = []) {
   const id = String(mascotId || '').trim();
-  const fromStatic = VISIT_MASCOT_CATALOG.find((m) => m.id === id);
-  if (fromStatic) return fromStatic;
+  if (!id) return null;
   const extras = Array.isArray(extraEntries) ? extraEntries : [];
-  return extras.find((m) => m && m.id === id) || null;
+  const fromExtra = extras.find((m) => m && String(m.id || '').trim() === id);
+  if (fromExtra) return fromExtra;
+  return VISIT_MASCOT_CATALOG.find((m) => m.id === id) || null;
 }
 
 function getVisitMascotById(mascotId) {

@@ -40,6 +40,7 @@ export function GLMascotRenderer({
   }
   return (
     <VisitMapMascotRenderer
+      key={mascotId}
       mascotState={mascotState}
       mascotId={mascotId}
       extraCatalogEntries={extraCatalogEntries}
