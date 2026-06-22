@@ -7,6 +7,25 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Réseau trophique — sens écologique de la flèche + graphe interactif
+
+- **Sens écologique** : la flèche du réseau trophique est désormais orientée « est mangée par »
+  (sens du flux d'énergie, de la ressource vers le consommateur). Inversion **par type**
+  d'interaction via le nouveau noyau partagé `INTERACTION_TYPE_META` / `orientInteraction`
+  (`lib/shared/foodWebCore.js`, miroir `src/shared/foodWebTypes.js`) : trophiques (`herbivorie`,
+  `predation`, `decomposition`) inversés, dirigés (`pollinisation`, `plante_hote`, `nitrification`)
+  conservés, mutuels (`symbiose`, `competition`) en double sens `↔`. Liste et graphe réordonnés en
+  conséquence ; légende + repère de saisie dans le formulaire prof.
+- **Graphe interactif** : têtes de flèches orientées, **zoom/pan** (molette + glisser), **nœuds
+  déplaçables**, **mise en évidence au survol** (nœud/arête + voisins), **infos au survol** des
+  arêtes (type + relation + description).
+- **Réseaux simplifiés** : **mode focus** (clic sur une espèce → isole son voisinage direct),
+  **disposition par niveau trophique** (producteurs → consommateurs → décomposeurs), filtres
+  zone/type dynamiques, **export PNG/SVG** du réseau affiché.
+- **API/BDD** : `GET /api/food-web` renvoie `from_role`/`to_role` (rôle trophique) ; migration
+  idempotente `143_food_web_trophic_roles.sql` (vue `v_food_web` enrichie). **Doc** : `docs/API.md`.
+- **Tests** : `tests/food-web-core.test.js` (méta + `orientInteraction`),
+  `tests-ui/components/pedago/foodWebGraphModel.test.js` et `FoodWebGraph.test.jsx`.
 ### Carte — mascotte issue d'un pack serveur/importé (rendu)
 
 - **fix** : la carte (`map-views`) résout et rend désormais une mascotte issue d'un **pack serveur publié** (`catalog_id` `srv-…`, ex. pack importé), au lieu de retomber sur le catalogue statique. Nouveau hook `useVisitMascotCatalogExtras` (récupère `GET /api/visit/content` → `mascot_packs` publiés → `extraCatalogEntries`), passés à `useMapViewMascot` et à `MapViewMascotOverlay` → `VisitMapMascotRenderer`. Traite le constat **A** de `docs/MASCOT_AUDIT.md`.

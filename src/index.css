@@ -6292,18 +6292,31 @@
 }
 .pedago-foodweb-graph {
   width: 100%;
-  max-width: 440px;
+  max-width: 720px;
   height: auto;
   display: block;
   margin: 0 auto;
+  touch-action: none;
+  background: #fbfdfc;
+  border-radius: 10px;
 }
 .pedago-foodweb-graph__line {
   stroke: #94a3b8;
-  stroke-width: 1.5;
+  stroke-width: 1.6;
+  fill: none;
 }
 .pedago-foodweb-graph__line.active {
   stroke: #16a34a;
-  stroke-width: 2.5;
+  stroke-width: 2.6;
+}
+.pedago-foodweb-graph__line.dim {
+  opacity: 0.12;
+}
+.pedago-foodweb-graph__arrowhead {
+  fill: #94a3b8;
+}
+.pedago-foodweb-graph__arrowhead.active {
+  fill: #16a34a;
 }
 .pedago-foodweb-graph__edge-hit {
   fill: none;
@@ -6330,4 +6343,78 @@
 }
 .pedago-foodweb__glossary--panel {
   margin-top: 12px;
+}
+.pedago-foodweb__legend {
+  background: #f1f8f3;
+  border: 1px solid #d6e8dc;
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-top: 6px;
+}
+.pedago-foodweb__admin-hint {
+  grid-column: 1 / -1;
+  font-size: 0.8rem;
+  margin: 0;
+}
+.pedago-foodweb-graph__node.dim,
+.pedago-foodweb-graph__label.dim {
+  opacity: 0.18;
+  transition: opacity 0.15s ease;
+}
+.pedago-foodweb-graph__node--env {
+  fill: #f3f4f6;
+  stroke: #94a3b8;
+  stroke-dasharray: 3 3;
+}
+.pedago-foodweb-graph__node-emoji {
+  font-size: 16px;
+  pointer-events: none;
+  user-select: none;
+}
+.pedago-foodweb-graph__node-group {
+  cursor: pointer;
+}
+.pedago-foodweb-graph__wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.pedago-foodweb-graph__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.pedago-foodweb-graph__tbgroup {
+  display: inline-flex;
+  gap: 2px;
+  background: #eef4f0;
+  border-radius: 8px;
+  padding: 2px;
+}
+.pedago-foodweb-graph__tbtn {
+  border: 1px solid transparent;
+  background: transparent;
+  border-radius: 6px;
+  padding: 6px 10px;
+  min-height: 36px;
+  font-size: 0.82rem;
+  cursor: pointer;
+  color: var(--forest, #1a3d2e);
+}
+.pedago-foodweb-graph__tbtn:hover {
+  background: #fff;
+}
+.pedago-foodweb-graph__tbtn.active {
+  background: #fff;
+  border-color: var(--sage, #7aab8a);
+  font-weight: 600;
+}
+.pedago-foodweb-graph__tbtn--focus {
+  background: #fde8e8;
+  border: 1px solid #f0b4b4;
+}
+.pedago-foodweb-graph__hint {
+  font-size: 0.78rem;
+  margin: 0;
 }

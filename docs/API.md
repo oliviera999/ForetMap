@@ -1312,6 +1312,14 @@ Routes publiques (lecture) sauf progression quiz. Voir aussi les routes GL `/api
 | POST | `/api/food-web/interactions` | prof (`plants.manage` + élévation) | Créer une interaction |
 | PUT | `/api/food-web/interactions/:id` | prof (`plants.manage` + élévation) | Modifier une interaction |
 | DELETE | `/api/food-web/interactions/:id` | prof (`plants.manage` + élévation) | Supprimer une interaction |
+
+> `GET /api/food-web` renvoie chaque interaction avec `from_id/from_name/from_emoji/from_role` et
+> `to_id/to_name/to_emoji/to_role` (le rôle trophique `producteur|consommateur|decomposeur` alimente
+> le regroupement par niveau du graphe). Convention d'affichage : la donnée stocke `from` = acteur /
+> `to` = cible, mais la flèche est rendue dans le sens écologique « est mangée par » (flux d'énergie
+> de la ressource vers le consommateur) pour les types trophiques ; voir
+> `lib/shared/foodWebCore.js` (`orientInteraction`).
+
 | GET | `/api/plants/:id/interactions` | non | Interactions espèce |
 | GET | `/api/plants/:id/glossary-terms` | non | Termes liés |
 | GET | `/api/plants/:id/quiz-questions` | non | Questions QCM liées |

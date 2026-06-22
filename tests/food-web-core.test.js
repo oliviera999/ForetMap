@@ -4,7 +4,10 @@ const test = require('node:test');
 const assert = require('node:assert');
 const {
   INTERACTION_TYPES,
+  INTERACTION_TYPE_META,
   interactionTypeLabel,
+  interactionTypeMeta,
+  orientInteraction,
   isInteractionType,
   normalizeInteractionInput,
   makeFoodWebStore,
@@ -32,6 +35,45 @@ test('interactionTypeLabel / isInteractionType', () => {
   assert.strictEqual(interactionTypeLabel('inconnu'), 'inconnu');
   assert.strictEqual(isInteractionType('symbiose'), true);
   assert.strictEqual(isInteractionType('nope'), false);
+});
+
+test('INTERACTION_TYPE_META — couvre tous les types', () => {
+  for (const type of INTERACTION_TYPES) {
+    const meta = INTERACTION_TYPE_META[type];
+    assert.ok(meta, `méta manquante pour ${type}`);
+    assert.ok(['directed', 'consumed', 'mutual'].includes(meta.orientation));
+    assert.ok(typeof meta.relation === 'string' && meta.relation.length > 0);
+  }
+  // repli neutre sur type inconnu
+  assert.strictEqual(interactionTypeMeta('inconnu').orientation, 'directed');
+});
+
+test('orientInteraction — sens écologique « est mangée par »', () => {
+  // Trophique : la flèche est inversée (de la proie/cible vers le consommateur).
+  const pred = orientInteraction(10, 20, 'predation');
+  assert.strictEqual(pred.tailId, 20);
+  assert.strictEqual(pred.headId, 10);
+  assert.strictEqual(pred.symmetric, false);
+  assert.strictEqual(pred.relation, 'est mangée par');
+
+  const herbi = orientInteraction(3, 7, 'herbivorie');
+  assert.strictEqual(herbi.tailId, 7);
+  assert.strictEqual(herbi.headId, 3);
+
+  // Dirigé : sens source → cible conservé.
+  const polli = orientInteraction(5, 9, 'pollinisation');
+  assert.strictEqual(polli.tailId, 5);
+  assert.strictEqual(polli.headId, 9);
+  assert.strictEqual(polli.symmetric, false);
+
+  // Mutuel : symétrique.
+  const symb = orientInteraction(1, 2, 'symbiose');
+  assert.strictEqual(symb.symmetric, true);
+
+  // Cible nulle (environnement) conservée comme null.
+  const env = orientInteraction(4, null, 'decomposition');
+  assert.strictEqual(env.tailId, null);
+  assert.strictEqual(env.headId, 4);
 });
 
 test('normalizeInteractionInput — cas valides et erreurs', () => {
