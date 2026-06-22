@@ -142,6 +142,20 @@ test('present-arrival applique le déplacement auto sans effet case finale', asy
   assert.strictEqual(movePayload.skipDestinationEffects, true);
   assert.strictEqual(movePayload.source, 'marker_effect');
   assert.strictEqual(Number(movePayload.markerId), markerDId);
+
+  const replay = await request(app)
+    .post(`/api/gl/games/${gameId}/markers/${markerBId}/present-arrival`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ teamId })
+    .expect(200);
+  assert.strictEqual(replay.body?.autoMove, null);
+
+  const moveCount = await queryOne(
+    `SELECT COUNT(*) AS c FROM gl_game_events
+      WHERE game_id = ? AND team_id = ? AND event_type = 'move'`,
+    [gameId, teamId],
+  );
+  assert.strictEqual(Number(moveCount.c), 1);
 });
 
 test('auto move désactivé : pas de déplacement', async () => {
