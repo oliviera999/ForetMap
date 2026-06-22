@@ -70,7 +70,23 @@ test('mascotPackArchive : parse et round-trip visit portable', () => {
 
   const serverPack = rewriteVisitPackForServerImport(parsed.pack, PACK_UUID);
   assert.ok(String(serverPack.framesBase).includes(PACK_UUID));
-  assert.ok(String(serverPack.stateFrames.idle.files[0]).includes('/api/visit/mascot-packs/'));
+  assert.deepStrictEqual(serverPack.stateFrames.idle.files, ['frame-a.png']);
+});
+
+test('mascotPackArchive : import répare les chemins API complets hérités dans files', () => {
+  const oldUuid = '11111111-2222-3333-4444-555555555555';
+  const pack = {
+    framesBase: PORTABLE_FRAMES_BASE,
+    stateFrames: {
+      idle: {
+        files: [`/api/visit/mascot-packs/${oldUuid}/assets/cell-r0-c0.png`, 'cell-r0-c1.png'],
+        fps: 3,
+      },
+    },
+  };
+  const serverPack = rewriteVisitPackForServerImport(pack, PACK_UUID);
+  assert.deepStrictEqual(serverPack.stateFrames.idle.files, ['cell-r0-c0.png', 'cell-r0-c1.png']);
+  assert.ok(String(serverPack.framesBase).endsWith('/assets/'));
 });
 
 test('mascotPackArchive : assets extraits restent sous assets/', () => {

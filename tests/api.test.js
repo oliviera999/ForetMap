@@ -2821,6 +2821,12 @@ test('visit mascot packs : export ZIP et import create', async () => {
       .set('Authorization', `Bearer ${token}`)
       .expect(200);
     assert.ok(importedAssets.body.assets.some((a) => a.filename === 'zip-frame.png'));
+    const importedIdleFiles = imported.body.pack?.stateFrames?.idle?.files || [];
+    assert.ok(importedIdleFiles.length > 0);
+    assert.ok(
+      importedIdleFiles.every((f) => !String(f).includes('/api/visit/mascot-packs/')),
+      'files importés doivent être des basenames, pas des URLs API',
+    );
 
     await request(app)
       .delete(`/api/visit/mascot-packs/${importedId}`)
