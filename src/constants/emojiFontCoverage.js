@@ -22,6 +22,8 @@ export const FORETMAP_UI_EMOJI_EXTRAS = [
   '🔍',
   '✏️',
   '📋',
+  '🌫️',
+  '🧵',
   '🪜',
   '🧗',
   '⛰️',
