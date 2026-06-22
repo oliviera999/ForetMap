@@ -7,6 +7,11 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Visite — pack mascotte « gnome2 » (asset importable)
+
+- **chore** : pack mascotte **importable** `gnome2` (renderer `sprite_cut`) découpé depuis une planche « GNOME SPRITE STANDARD » — `tools/mascot-packs/gnome2/` (script de build Pillow déterministe, planche source, 18 cellules 150×180, `gnome2.zip` prêt à importer, aperçu du mapping). 13 états canoniques couverts (idle, walking, running, spin, talk, happy, happy_jump, celebrate, inspect, map_read, surprise, alert, angry). Aucun code applicatif ni catalogue modifié.
+- **Outillage** : `.prettierignore` exclut les `pack.json` / `manifest.json` générés sous `tools/mascot-packs/`.
+
 ### GL — pool QCM repère question (contenus chapitre)
 
 - **fix(gl)** : le tirage `present-question` retrouve les questions sélectionnées dans le studio carte — synchro `eventDraft` à la sélection du repère, auto-save qui conserve le repère en édition, coches du pool (exclusion depuis « tout le pool »), aperçu admin aligné sur `selectedQuestionCodes`.
