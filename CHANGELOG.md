@@ -7,6 +7,21 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Pipeline build — garde-fou `dist/` à jour (CI + hook) et correctif sync miroir
+
+- **CI `frontend-dist.yml`** : reconstruit le front à chaque PR/push et garantit que le
+  `dist/` (+ miroirs CJS `lib/visit-pack/` & `lib/gl-pack/`) commité correspond aux sources —
+  l'invariant du déploiement par `git pull` du cron. Sur une PR du dépôt, le `dist/` régénéré
+  est **recommité automatiquement** ; sur push `main` ou PR de fork, le job **échoue** en
+  garde-fou bloquant.
+- **Hook `pre-push`** (`.githooks/pre-push`) : bloque en local tout push de modifications
+  frontend (`src/`, `index.vite.html`, `vite.config.js`, `public/`) sans mise à jour de
+  `dist/`, en complément du `pre-commit` (lint+format) existant.
+- **fix sync miroir** : `scripts/sync-visit-pack-server-lib.js` copie désormais
+  `gnome1-cut-manifest.js` et réécrit **tous** les imports `../data/…` → `./data/…`. Le
+  miroir serveur `lib/visit-pack/visitMascotCatalog.js` était périmé (mascotte `gnome1`
+  absente côté API alors qu'elle existe dans le front) → rebaseline complet de `dist/`.
+
 ### Réseau trophique — sens écologique de la flèche + graphe interactif
 
 - **Sens écologique** : la flèche du réseau trophique est désormais orientée « est mangée par »
