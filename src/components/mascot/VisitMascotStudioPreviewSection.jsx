@@ -7,6 +7,7 @@ import { STATE_LABELS } from '../../constants/mascotStateLabels.js';
 import useVisitMascotStateMachine from '../../hooks/useVisitMascotStateMachine.js';
 import { validateMascotPackV1 } from '../../utils/mascotPack.js';
 import { sanitizeMascotPackDraft } from '../../utils/mascotPackValidationUi.js';
+import { applyPackAssetPreviewUrlsToSpriteCut } from '../../utils/visitMascotPackManager.js';
 
 /**
  * Aperçu global des mascottes serveur (onglet « Aperçu global ») : sélecteur de
@@ -29,6 +30,7 @@ export default function VisitMascotStudioPreviewSection({
   selectedPackCatalogId = '',
   selectedPackLabel = '',
   editorPack = {},
+  assetPreviewByFilename = {},
 }) {
   const extras = useMemo(() => {
     const base = buildVisitMascotCatalogExtrasFromContent(
@@ -44,12 +46,19 @@ export default function VisitMascotStudioPreviewSection({
 
     const label = String(selectedPackLabel || relaxed.pack.label || catalogId).trim();
     const ver = Number(relaxed.pack.mascotPackVersion) === 2 ? 2 : 1;
+    // Pack en cours d'édition : tokenise les srcs (preview_url signées) pour qu'un **brouillon**
+    // s'affiche dans l'aperçu (les <img> ne portent pas le JWT → 403 sur assets non publiés).
+    const previewSpriteCut = applyPackAssetPreviewUrlsToSpriteCut(
+      relaxed.spriteCut,
+      assetPreviewByFilename,
+      relaxed.pack.framesBase,
+    );
     const draftEntry = {
       id: catalogId,
       label: label || catalogId,
       renderer: 'sprite_cut',
       fallbackSilhouette: relaxed.pack.fallbackSilhouette || 'gnome',
-      spriteCut: relaxed.spriteCut,
+      spriteCut: previewSpriteCut,
       ...(ver === 2 && relaxed.pack.interactionProfile
         ? { interactionProfile: relaxed.pack.interactionProfile }
         : {}),
@@ -60,7 +69,14 @@ export default function VisitMascotStudioPreviewSection({
     };
     const withoutCurrent = base.filter((entry) => entry.id !== catalogId);
     return [...withoutCurrent, draftEntry];
-  }, [packs, selectedPackId, selectedPackCatalogId, selectedPackLabel, editorPack]);
+  }, [
+    packs,
+    selectedPackId,
+    selectedPackCatalogId,
+    selectedPackLabel,
+    editorPack,
+    assetPreviewByFilename,
+  ]);
 
   const visitMascotOptions = useMemo(() => buildVisitMascotSelectionOptions(extras), [extras]);
   const {
