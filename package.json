@@ -47,7 +47,7 @@
     }
   },
   "scripts": {
-    "prepare": "node scripts/setup-git-hooks.js",
+    "prepare": "node scripts/setup-git-hooks.js || exit 0",
     "start": "node server.js",
     "start:e2e": "node server.js --foretmap-e2e-no-rate-limit",
     "dev": "nodemon server.js",
