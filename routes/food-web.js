@@ -64,7 +64,7 @@ router.get(
 
       const items = await queryAll(
         `SELECT fw.id, fw.interaction_type, fw.from_id, fw.from_name, fw.from_emoji,
-                fw.to_id, fw.to_name, fw.to_emoji, fw.description
+                fw.from_role, fw.to_id, fw.to_name, fw.to_emoji, fw.to_role, fw.description
            FROM v_food_web fw
           WHERE fw.from_id IN (
                   SELECT plant_id FROM v_zone_inventory WHERE zone_id = ?
@@ -79,8 +79,8 @@ router.get(
     }
 
     const items = await queryAll(
-      `SELECT id, interaction_type, from_id, from_name, from_emoji,
-              to_id, to_name, to_emoji, description
+      `SELECT id, interaction_type, from_id, from_name, from_emoji, from_role,
+              to_id, to_name, to_emoji, to_role, description
          FROM v_food_web
         ORDER BY interaction_type ASC, from_name ASC, to_name ASC`,
     );
