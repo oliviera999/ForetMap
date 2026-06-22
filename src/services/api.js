@@ -21,7 +21,7 @@ import {
  *   peuvent être réécrits vers l'accueil (symptôme: retour page d'accueil sans message).
  * - `import.meta.env.BASE_URL` est toujours suffixé par "/".
  */
-export const API = String(import.meta.env.BASE_URL || '/').replace(/\/+$/, '');
+export const API = String(import.meta.env?.BASE_URL || '/').replace(/\/+$/, '');
 
 export function withAppBase(path) {
   const raw = String(path || '');
