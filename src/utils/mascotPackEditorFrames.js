@@ -34,23 +34,28 @@ export function sanitizeClientFilename(name) {
  * Résout l'URL d'une frame relative au `framesBase` du pack.
  * @param {Record<string, unknown>} pack
  * @param {string} rel
+ * @param {{ assetPreviewByFilename?: Record<string, string> }} [opts]
  * @returns {string}
  */
-export function resolveFrameUrl(pack, rel) {
+export function resolveFrameUrl(pack, rel, opts = {}) {
   const s = String(rel || '').trim();
   if (!s) return '';
   if (s.startsWith('blob:') || s.startsWith('http://') || s.startsWith('https://')) return s;
+  const filename = s.replace(/^\//, '');
+  const preview = opts.assetPreviewByFilename?.[filename];
+  if (preview) return withAppBase(preview);
   let base = String(pack?.framesBase || '').trim();
   if (!base.endsWith('/')) base = `${base}/`;
-  return withAppBase(`${base}${s.replace(/^\//, '')}`);
+  return withAppBase(`${base}${filename}`);
 }
 
 /**
  * Résout l'URL d'aperçu d'un `src` absolu (laisse passer data/blob/http).
  * @param {string} raw
+ * @param {{ assetPreviewByFilename?: Record<string, string> }} [opts]
  * @returns {string}
  */
-export function resolveSrcPreviewUrl(raw) {
+export function resolveSrcPreviewUrl(raw, opts = {}) {
   const s = String(raw || '').trim();
   if (!s) return '';
   if (
@@ -60,6 +65,9 @@ export function resolveSrcPreviewUrl(raw) {
     s.startsWith('https://')
   )
     return s;
+  const basename = s.split('/').pop()?.split('?')[0] || '';
+  const preview = basename ? opts.assetPreviewByFilename?.[basename] : '';
+  if (preview) return withAppBase(preview);
   return withAppBase(s);
 }
 

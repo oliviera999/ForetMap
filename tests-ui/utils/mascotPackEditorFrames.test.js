@@ -40,6 +40,18 @@ describe('resolveFrameUrl', () => {
   test('chaîne vide → vide', () => {
     expect(resolveFrameUrl({ framesBase: '/base/' }, '')).toBe('');
   });
+
+  test('utilise preview_url signée si fournie', () => {
+    const pack = { framesBase: '/api/visit/mascot-packs/uuid/assets/' };
+    const url = resolveFrameUrl(pack, 'cell-r0-c1.png', {
+      assetPreviewByFilename: {
+        'cell-r0-c1.png': '/api/visit/mascot-packs/uuid/assets/cell-r0-c1.png?preview_token=abc',
+      },
+    });
+    expect(url).toBe(
+      '/api/visit/mascot-packs/uuid/assets/cell-r0-c1.png?preview_token=abc',
+    );
+  });
 });
 
 describe('resolveSrcPreviewUrl', () => {

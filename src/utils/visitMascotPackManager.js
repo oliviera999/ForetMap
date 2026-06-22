@@ -306,6 +306,7 @@ export function buildUnifiedMascotImageEntries(opts = {}) {
       sourceLabel: SOURCE_LABELS.pack,
       filename,
       url: String(a?.url || '').trim(),
+      previewUrl: String(a?.preview_url || a?.url || '').trim(),
       kind: 'pack-file',
       framesBaseHint: packPrefix,
       canDelete: true,
@@ -381,4 +382,64 @@ export function buildUnifiedMascotImageEntries(opts = {}) {
       .join(' ');
     return hay.includes(q);
   });
+}
+
+/**
+ * Mappe filename → preview_url signée (studio, packs brouillon).
+ * @param {Array<Record<string, unknown>> | null | undefined} packAssets
+ * @returns {Record<string, string>}
+ */
+export function buildPackAssetPreviewByFilename(packAssets) {
+  /** @type {Record<string, string>} */
+  const map = {};
+  for (const asset of Array.isArray(packAssets) ? packAssets : []) {
+    const filename = String(asset?.filename || '').trim();
+    const previewUrl = String(asset?.preview_url || '').trim();
+    if (filename && previewUrl) map[filename] = previewUrl;
+  }
+  return map;
+}
+
+/**
+ * Réécrit les `srcs` d’un `spriteCut` avec les URLs signées du studio.
+ * @param {Record<string, unknown> | null | undefined} spriteCut
+ * @param {Record<string, string>} previewByFilename
+ * @param {string} [packFramesBase]
+ * @returns {Record<string, unknown> | null | undefined}
+ */
+export function applyPackAssetPreviewUrlsToSpriteCut(spriteCut, previewByFilename, packFramesBase) {
+  if (!spriteCut || typeof spriteCut !== 'object') return spriteCut;
+  const map = previewByFilename && typeof previewByFilename === 'object' ? previewByFilename : {};
+  if (!Object.keys(map).length) return spriteCut;
+
+  const base = String(packFramesBase || '').trim();
+  const normalizedBase = base.endsWith('/') ? base : base ? `${base}/` : '';
+
+  const rewriteUrl = (rawUrl) => {
+    const url = String(rawUrl || '').trim();
+    if (!url) return url;
+    if (normalizedBase && url.startsWith(normalizedBase)) {
+      const filename = url.slice(normalizedBase.length).split('?')[0];
+      if (filename && map[filename]) return map[filename];
+    }
+    const basename = url.split('/').pop()?.split('?')[0] || '';
+    if (basename && map[basename]) return map[basename];
+    return url;
+  };
+
+  const stateFrames = spriteCut.stateFrames;
+  if (!stateFrames || typeof stateFrames !== 'object') return spriteCut;
+
+  const nextStateFrames = {};
+  for (const [state, spec] of Object.entries(stateFrames)) {
+    if (!spec || typeof spec !== 'object') {
+      nextStateFrames[state] = spec;
+      continue;
+    }
+    const srcs = Array.isArray(spec.srcs)
+      ? spec.srcs.map((u) => rewriteUrl(String(u || '')))
+      : spec.srcs;
+    nextStateFrames[state] = { ...spec, ...(Array.isArray(srcs) ? { srcs } : {}) };
+  }
+  return { ...spriteCut, stateFrames: nextStateFrames };
 }

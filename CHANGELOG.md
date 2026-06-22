@@ -7,6 +7,19 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Visite — studio packs mascotte (aperçu brouillon)
+
+- **fix** : les PNG d’un pack **brouillon** (`framesBase` `/api/visit/mascot-packs/{id}/assets/`) sont prévisualisables dans le studio via **`preview_url`** / query **`preview_token`** (HMAC, TTL ~1 h) — les balises `<img>` n’envoient pas le JWT Bearer.
+- **Backend** : `lib/visitMascotPackAssetPreview.js`, routes `GET/POST` assets pack.
+- **Frontend** : `VisitMascotPackManager`, `MascotPackRenderPreview`, vignettes WYSIWYG.
+- **Tests** : `tests/visit-mascot-pack-asset-preview.test.js`, extension `tests/api.test.js` ; doc **`docs/API.md`**.
+
+### Visite — mascotte gnome1 (pack importable)
+
+- **feat** : pack mascotte `gnome1` (`sprite_cut`) — découpe planche pixel art 9×3, mapping 13 états visite, archive ZIP importable (`npm run mascot:gnome1-pack` → Téléchargements), entrée catalogue statique.
+- **Scripts** : `mascot:gnome1-cut`, `mascot:gnome1-pack` ; pack source `docs/packs/gnome1-pack.json`.
+- **Tests** : `tests/visit-mascot-catalog.test.js` (entrée `gnome1`).
+
 ### GL — pool QCM repère question (contenus chapitre)
 
 - **fix(gl)** : le tirage `present-question` retrouve les questions sélectionnées dans le studio carte — synchro `eventDraft` à la sélection du repère, auto-save qui conserve le repère en édition, coches du pool (exclusion depuis « tout le pool »), aperçu admin aligné sur `selectedQuestionCodes`.
