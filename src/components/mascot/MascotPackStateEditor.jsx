@@ -35,10 +35,7 @@ export default function MascotPackStateEditor({
   onUpdateStateEntry,
   assetPreviewByFilename = {},
 }) {
-  const frameUrlOpts = useMemo(
-    () => ({ assetPreviewByFilename }),
-    [assetPreviewByFilename],
-  );
+  const frameUrlOpts = useMemo(() => ({ assetPreviewByFilename }), [assetPreviewByFilename]);
   const hasSrcMode = Object.prototype.hasOwnProperty.call(spec, 'srcs');
   const hasFileMode = Object.prototype.hasOwnProperty.call(spec, 'files');
   const useSrcs = hasSrcMode && !hasFileMode;

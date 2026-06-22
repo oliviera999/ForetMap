@@ -71,9 +71,7 @@ export function normalizePackStateFramesForFramesBase(pack) {
     }
     const next = { ...spec };
     if (Array.isArray(next.files) && next.files.length > 0) {
-      next.files = next.files
-        .map((f) => normalizePackFrameFileRef(f, framesBase))
-        .filter(Boolean);
+      next.files = next.files.map((f) => normalizePackFrameFileRef(f, framesBase)).filter(Boolean);
     }
     const hasFileMode = Object.prototype.hasOwnProperty.call(next, 'files');
     const hasSrcMode = Object.prototype.hasOwnProperty.call(next, 'srcs');
@@ -82,9 +80,7 @@ export function normalizePackStateFramesForFramesBase(pack) {
       const srcs = next.srcs.map((u) => String(u || '').trim()).filter(Boolean);
       const allLocal = srcs.every(
         (u) =>
-          u.startsWith(normBase) ||
-          u.startsWith('/assets/mascots/') ||
-          u.startsWith('/api/visit/'),
+          u.startsWith(normBase) || u.startsWith('/assets/mascots/') || u.startsWith('/api/visit/'),
       );
       const filesEmpty = !Array.isArray(next.files) || next.files.length === 0;
       if (allLocal && filesEmpty) {
@@ -106,8 +102,7 @@ export function normalizePackStateFramesForFramesBase(pack) {
  * @returns {string[]}
  */
 export function collectPackReferencedFrameFilenames(pack) {
-  const sf =
-    pack?.stateFrames && typeof pack.stateFrames === 'object' ? pack.stateFrames : {};
+  const sf = pack?.stateFrames && typeof pack.stateFrames === 'object' ? pack.stateFrames : {};
   const out = new Set();
   for (const spec of Object.values(sf)) {
     if (!spec || typeof spec !== 'object') continue;
