@@ -84,6 +84,15 @@ npm run release:patch   # ou release:minor / release:major
 
 → Incrémente `package.json`, **commit + tag** Git. Mettre à jour le **CHANGELOG** dans un commit **avant** ou **juste après** cette commande pour rester cohérent.
 
+## Tag & release automatiques sur `main`
+
+Le workflow **`.github/workflows/release-tag.yml`** crée, à chaque push sur `main`, le tag
+**`v<version de package.json>`** s'il n'existe pas encore, avec une **GitHub Release** dont les
+notes sont extraites du `CHANGELOG.md` (section `[X.Y.Z]` datée si présente, sinon `[Non publié]`).
+C'est **idempotent** : un push sans changement de version (ex. auto-commit `dist/` du bot
+`frontend-dist`) ne crée aucun tag. Le `bump:*` (via `npm run ship` ou manuel) suffit donc à
+déclencher la pose du tag une fois mergé sur `main` — plus besoin de `git tag` manuel.
+
 ## Sans Git
 
 Éditer manuellement `version` dans `package.json` et `CHANGELOG.md` ; pas de tag.

@@ -1,0 +1,77 @@
+name: Release tag
+
+# Sur push `main`, si le tag v<version de package.json> n'existe pas encore,
+# crée le tag annoté + une GitHub Release (notes extraites du CHANGELOG).
+# Idempotent : un push sans changement de version (ex. auto-commit dist du bot)
+# ne crée aucun tag. Voir docs/VERSIONING.md.
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-tag
+  cancel-in-progress: false
+
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # nécessaire pour lister les tags existants
+
+      - name: Lire la version
+        id: ver
+        run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Tag déjà présent ?
+        id: check
+        run: |
+          if git rev-parse -q --verify "refs/tags/v${{ steps.ver.outputs.version }}" >/dev/null; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "Tag v${{ steps.ver.outputs.version }} déjà présent — rien à faire."
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Extraire les notes du CHANGELOG
+        if: steps.check.outputs.exists == 'false'
+        id: notes
+        run: |
+          VERSION="${{ steps.ver.outputs.version }}"
+          # Priorité à une section datée « ## [X.Y.Z] - … » ; sinon « ## [Non publié] ».
+          notes="$(awk -v ver="$VERSION" '
+            $0 ~ "^## \\[" ver "\\]" {grab=1; next}
+            grab && /^## / {exit}
+            grab {print}
+          ' CHANGELOG.md)"
+          if [ -z "$(printf '%s' "$notes" | tr -d '[:space:]')" ]; then
+            notes="$(awk '
+              /^## \[Non publié\]/ {grab=1; next}
+              grab && /^## / {exit}
+              grab {print}
+            ' CHANGELOG.md)"
+          fi
+          [ -z "$(printf '%s' "$notes" | tr -d '[:space:]')" ] && notes="Release v$VERSION."
+          {
+            echo "body<<__NOTES__"
+            printf '%s\n' "$notes"
+            echo "__NOTES__"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Créer le tag + la release
+        if: steps.check.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="${{ steps.ver.outputs.version }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "v$VERSION" -m "v$VERSION"
+          git push origin "v$VERSION"
+          printf '%s\n' "${{ steps.notes.outputs.body }}" >/tmp/notes.md
+          gh release create "v$VERSION" --title "v$VERSION" --notes-file /tmp/notes.md
