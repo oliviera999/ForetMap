@@ -15,6 +15,9 @@ import { MASCOT_PACK_FALLBACK_SILHOUETTES } from '../utils/mascotPackEditorModel
  * @param {string | null} [props.packUuid] UUID du pack (active le bouton URL serveur)
  * @param {() => void} props.setFramesBaseServer remplit framesBase avec l'URL serveur du pack
  * @param {string[]} props.packWarnings avertissements non bloquants à afficher
+ * @param {boolean} [props.canImportMissingCatalogFrames]
+ * @param {() => void} [props.onImportMissingCatalogFrames]
+ * @param {string} [props.importMissingCatalogLabel]
  */
 export default function MascotPackMetaSection({
   pack,
@@ -22,6 +25,9 @@ export default function MascotPackMetaSection({
   packUuid = null,
   setFramesBaseServer,
   packWarnings,
+  canImportMissingCatalogFrames = false,
+  onImportMissingCatalogFrames,
+  importMissingCatalogLabel = '',
 }) {
   return (
     <section className="mascot-pack-wysiwyg__meta">
@@ -144,6 +150,18 @@ export default function MascotPackMetaSection({
               <li key={w}>{w}</li>
             ))}
           </ul>
+          {canImportMissingCatalogFrames && onImportMissingCatalogFrames ? (
+            <p style={{ marginTop: 10, marginBottom: 0 }}>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={onImportMissingCatalogFrames}
+              >
+                Importer les PNG manquants depuis le catalogue
+                {importMissingCatalogLabel ? ` « ${importMissingCatalogLabel} »` : ''}
+              </button>
+            </p>
+          ) : null}
         </div>
       ) : null}
     </section>

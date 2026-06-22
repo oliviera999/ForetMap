@@ -7,10 +7,28 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
-### Visite — pack mascotte « gnome2 » (asset importable)
+### Visite — studio packs mascotte (import ZIP)
 
-- **chore** : pack mascotte **importable** `gnome2` (renderer `sprite_cut`) découpé depuis une planche « GNOME SPRITE STANDARD » — `tools/mascot-packs/gnome2/` (script de build Pillow déterministe, planche source, 18 cellules 150×180, `gnome2.zip` prêt à importer, aperçu du mapping). 13 états canoniques couverts (idle, walking, running, spin, talk, happy, happy_jump, celebrate, inspect, map_read, surprise, alert, angry). Aucun code applicatif ni catalogue modifié.
-- **Outillage** : `.prettierignore` exclut les `pack.json` / `manifest.json` générés sous `tools/mascot-packs/`.
+- **fix** : `rewriteVisitPackForServerImport` conserve des **basenames** dans `stateFrames.files` (`cell-r0-c0.png`) avec `framesBase` API — ne réinjecte plus d’URLs `/api/visit/mascot-packs/…/assets/…` (régression export/import site).
+- **Tests** : `tests/mascot-pack-archive.test.js`.
+
+### Visite — studio packs mascotte (références frames)
+
+- **fix** : normalisation des `stateFrames.files` (chemins `/api/visit/…` → basenames), import catalogue → médiathèque pack (bouton gnome1 / renard2 / renard sac), silhouette **`gnome1`** reconnue, clone serveur **`gnome1`** via `clone_from_catalog_id`.
+- **Tests** : extension `tests-ui/utils/mascotPackEditorFrames.test.js`.
+
+### Visite — studio packs mascotte (aperçu brouillon)
+
+- **fix** : les PNG d’un pack **brouillon** (`framesBase` `/api/visit/mascot-packs/{id}/assets/`) sont prévisualisables dans le studio via **`preview_url`** / query **`preview_token`** (HMAC, TTL ~1 h) — les balises `<img>` n’envoient pas le JWT Bearer.
+- **Backend** : `lib/visitMascotPackAssetPreview.js`, routes `GET/POST` assets pack.
+- **Frontend** : `VisitMascotPackManager`, `MascotPackRenderPreview`, vignettes WYSIWYG.
+- **Tests** : `tests/visit-mascot-pack-asset-preview.test.js`, extension `tests/api.test.js` ; doc **`docs/API.md`**.
+
+### Visite — mascotte gnome1 (pack importable)
+
+- **feat** : pack mascotte `gnome1` (`sprite_cut`) — découpe planche pixel art 9×3, mapping 13 états visite, archive ZIP importable (`npm run mascot:gnome1-pack` → Téléchargements), entrée catalogue statique.
+- **Scripts** : `mascot:gnome1-cut`, `mascot:gnome1-pack` ; pack source `docs/packs/gnome1-pack.json`.
+- **Tests** : `tests/visit-mascot-catalog.test.js` (entrée `gnome1`).
 
 ### GL — pool QCM repère question (contenus chapitre)
 

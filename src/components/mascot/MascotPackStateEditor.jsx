@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   removeFrameAt,
   resolveFrameUrl,
@@ -21,6 +21,7 @@ import { STATE_LABELS } from '../../constants/mascotStateLabels.js';
  *   setSrcPreviewStatus: (updater: (prev: Record<string, string>) => Record<string, string>) => void,
  *   onToggleState: (stateKey: string, enabled: boolean) => void,
  *   onUpdateStateEntry: (stateKey: string, spec: Record<string, unknown> | null) => void,
+ *   assetPreviewByFilename?: Record<string, string>,
  * }} props
  */
 export default function MascotPackStateEditor({
@@ -32,7 +33,12 @@ export default function MascotPackStateEditor({
   setSrcPreviewStatus,
   onToggleState,
   onUpdateStateEntry,
+  assetPreviewByFilename = {},
 }) {
+  const frameUrlOpts = useMemo(
+    () => ({ assetPreviewByFilename }),
+    [assetPreviewByFilename],
+  );
   const hasSrcMode = Object.prototype.hasOwnProperty.call(spec, 'srcs');
   const hasFileMode = Object.prototype.hasOwnProperty.call(spec, 'files');
   const useSrcs = hasSrcMode && !hasFileMode;
@@ -98,7 +104,7 @@ export default function MascotPackStateEditor({
                 <li key={`${f}-${idx}`} className="mascot-pack-wysiwyg__frame-row">
                   <img
                     className="mascot-pack-wysiwyg__frame-thumb"
-                    src={resolveFrameUrl(pack, f)}
+                    src={resolveFrameUrl(pack, f, frameUrlOpts)}
                     alt=""
                     loading="lazy"
                   />
@@ -149,7 +155,7 @@ export default function MascotPackStateEditor({
                 <div key={idx} style={{ display: 'flex', gap: 8, marginBottom: 6 }}>
                   {String(u || '').trim() ? (
                     <img
-                      src={resolveSrcPreviewUrl(u)}
+                      src={resolveSrcPreviewUrl(u, frameUrlOpts)}
                       alt={`Aperçu URL ${idx + 1}`}
                       width={44}
                       height={44}

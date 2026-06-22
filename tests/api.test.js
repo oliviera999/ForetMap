@@ -2491,6 +2491,55 @@ test('visit mascot packs : filtrage strict par map_id dans la liste studio', asy
 const VISIT_LIB_TINY_PNG_B64 =
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO5qXg8AAAAASUVORK5CYII=';
 
+test('visit mascot packs : assets brouillon — preview_token et publication', async () => {
+  const token = await getAdminAuthToken();
+  const filename = 'preview-token-test.png';
+  const created = await request(app)
+    .post('/api/visit/mascot-packs')
+    .set('Authorization', `Bearer ${token}`)
+    .send({ map_id: 'foret', is_published: 0 })
+    .expect(201);
+  const packId = created.body.id;
+  try {
+    await request(app)
+      .post(`/api/visit/mascot-packs/${packId}/assets`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ filename, image_data: VISIT_LIB_TINY_PNG_B64 })
+      .expect(201);
+
+    const canonicalUrl = `/api/visit/mascot-packs/${packId}/assets/${encodeURIComponent(filename)}`;
+    await request(app).get(canonicalUrl).expect(403);
+
+    const assetsList = await request(app)
+      .get(`/api/visit/mascot-packs/${packId}/assets`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+    const row = assetsList.body.assets.find((a) => a.filename === filename);
+    assert.ok(row?.preview_url);
+    assert.match(String(row.preview_url), /preview_token=/);
+
+    await request(app).get(row.preview_url).expect(200);
+
+    await request(app)
+      .put(`/api/visit/mascot-packs/${packId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        map_id: 'foret',
+        label: 'Pack publié assets',
+        pack: created.body.pack,
+        is_published: 1,
+      })
+      .expect(200);
+
+    await request(app).get(canonicalUrl).expect(200);
+  } finally {
+    await request(app)
+      .delete(`/api/visit/mascot-packs/${packId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+  }
+});
+
 async function readZipResponseBody(agentReq) {
   const chunks = [];
   const res = await agentReq
@@ -2772,6 +2821,12 @@ test('visit mascot packs : export ZIP et import create', async () => {
       .set('Authorization', `Bearer ${token}`)
       .expect(200);
     assert.ok(importedAssets.body.assets.some((a) => a.filename === 'zip-frame.png'));
+    const importedIdleFiles = imported.body.pack?.stateFrames?.idle?.files || [];
+    assert.ok(importedIdleFiles.length > 0);
+    assert.ok(
+      importedIdleFiles.every((f) => !String(f).includes('/api/visit/mascot-packs/')),
+      'files importés doivent être des basenames, pas des URLs API',
+    );
 
     await request(app)
       .delete(`/api/visit/mascot-packs/${importedId}`)

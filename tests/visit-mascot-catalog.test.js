@@ -195,3 +195,22 @@ test('catalogue inclut Renard 2 sprite_cut (srcs multiples, pas d’atlas)', asy
   assert.ok(states.includes('idle'));
   assert.ok(states.includes('walking'));
 });
+
+test('catalogue inclut gnome1 sprite_cut (planche pixel art découpée)', async () => {
+  const { getVisitMascotById, getVisitMascotSupportedStates } = await loadModule();
+  const gnome = getVisitMascotById('gnome1');
+  assert.ok(gnome);
+  assert.equal(gnome.renderer, 'sprite_cut');
+  assert.equal(gnome.fallbackSilhouette, 'gnome');
+  assert.equal(gnome.spriteCut.frameWidth, 113);
+  assert.equal(gnome.spriteCut.frameHeight, 173);
+  assert.equal(gnome.spriteCut.pixelated, true);
+  const idle = gnome.spriteCut.stateFrames.idle;
+  assert.ok(Array.isArray(idle.srcs));
+  assert.equal(idle.srcs.length, 3);
+  assert.ok(idle.srcs.every((u) => String(u).startsWith('/assets/mascots/gnome1/frames/')));
+  const states = getVisitMascotSupportedStates('gnome1');
+  for (const wanted of ['idle', 'walking', 'celebrate', 'talk', 'running']) {
+    assert.ok(states.includes(wanted), `gnome1 etat manquant: ${wanted}`);
+  }
+});
