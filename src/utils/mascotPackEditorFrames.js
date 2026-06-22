@@ -31,26 +31,127 @@ export function sanitizeClientFilename(name) {
 }
 
 /**
+ * Ramène une référence frame (relative, absolue app ou URL) au nom de fichier attendu
+ * dans `stateFrames.<état>.files` (ex. `cell-r0-c0.png`).
+ * @param {string} ref
+ * @param {string} [framesBase]
+ * @returns {string}
+ */
+export function normalizePackFrameFileRef(ref, framesBase = '') {
+  const s = String(ref || '').trim();
+  if (!s || s.startsWith('blob:') || s.startsWith('data:') || /^https?:\/\//i.test(s)) {
+    return s;
+  }
+  const normBase = String(framesBase || '').trim();
+  const base = normBase.endsWith('/') ? normBase : normBase ? `${normBase}/` : '';
+  if (base && s.startsWith(base)) {
+    return s.slice(base.length).split('?')[0];
+  }
+  if (s.startsWith('/api/') || s.startsWith('/assets/')) {
+    return s.split('/').pop()?.split('?')[0] || s;
+  }
+  return s.replace(/^\//, '');
+}
+
+/**
+ * Normalise `stateFrames` : basenames dans `files`, conversion `srcs` locaux → `files`.
+ * @param {Record<string, unknown>} pack
+ * @returns {Record<string, unknown>}
+ */
+export function normalizePackStateFramesForFramesBase(pack) {
+  if (!pack || typeof pack !== 'object') return pack;
+  const framesBase = String(pack.framesBase || '').trim();
+  const sf = pack.stateFrames;
+  if (!sf || typeof sf !== 'object') return pack;
+  const nextSf = {};
+  for (const [state, spec] of Object.entries(sf)) {
+    if (!spec || typeof spec !== 'object') {
+      nextSf[state] = spec;
+      continue;
+    }
+    const next = { ...spec };
+    if (Array.isArray(next.files) && next.files.length > 0) {
+      next.files = next.files
+        .map((f) => normalizePackFrameFileRef(f, framesBase))
+        .filter(Boolean);
+    }
+    const hasFileMode = Object.prototype.hasOwnProperty.call(next, 'files');
+    const hasSrcMode = Object.prototype.hasOwnProperty.call(next, 'srcs');
+    if (Array.isArray(next.srcs) && next.srcs.length > 0 && framesBase) {
+      const normBase = framesBase.endsWith('/') ? framesBase : `${framesBase}/`;
+      const srcs = next.srcs.map((u) => String(u || '').trim()).filter(Boolean);
+      const allLocal = srcs.every(
+        (u) =>
+          u.startsWith(normBase) ||
+          u.startsWith('/assets/mascots/') ||
+          u.startsWith('/api/visit/'),
+      );
+      const filesEmpty = !Array.isArray(next.files) || next.files.length === 0;
+      if (allLocal && filesEmpty) {
+        next.files = srcs.map((u) => normalizePackFrameFileRef(u, framesBase)).filter(Boolean);
+        delete next.srcs;
+      }
+    }
+    if (hasSrcMode && !hasFileMode && Array.isArray(next.srcs)) {
+      // conserve srcs externes (blob, http)
+    }
+    nextSf[state] = next;
+  }
+  return { ...pack, stateFrames: nextSf };
+}
+
+/**
+ * Liste les noms de fichiers `.png` référencés (mode `files`) dans un pack.
+ * @param {Record<string, unknown> | null | undefined} pack
+ * @returns {string[]}
+ */
+export function collectPackReferencedFrameFilenames(pack) {
+  const sf =
+    pack?.stateFrames && typeof pack.stateFrames === 'object' ? pack.stateFrames : {};
+  const out = new Set();
+  for (const spec of Object.values(sf)) {
+    if (!spec || typeof spec !== 'object') continue;
+    const files = Array.isArray(spec.files) ? spec.files : [];
+    for (const file of files) {
+      const name = normalizePackFrameFileRef(file, String(pack?.framesBase || ''));
+      if (name && name.toLowerCase().endsWith('.png')) out.add(name);
+    }
+  }
+  return [...out];
+}
+
+/**
  * Résout l'URL d'une frame relative au `framesBase` du pack.
  * @param {Record<string, unknown>} pack
  * @param {string} rel
+ * @param {{ assetPreviewByFilename?: Record<string, string> }} [opts]
  * @returns {string}
  */
-export function resolveFrameUrl(pack, rel) {
+export function resolveFrameUrl(pack, rel, opts = {}) {
   const s = String(rel || '').trim();
   if (!s) return '';
   if (s.startsWith('blob:') || s.startsWith('http://') || s.startsWith('https://')) return s;
-  let base = String(pack?.framesBase || '').trim();
+  const framesBase = String(pack?.framesBase || '').trim();
+  if (s.startsWith('/api/') || s.startsWith('/assets/')) {
+    const basename = s.split('/').pop()?.split('?')[0] || '';
+    const preview = basename ? opts.assetPreviewByFilename?.[basename] : '';
+    return withAppBase(preview || s);
+  }
+  const filename = normalizePackFrameFileRef(s, framesBase);
+  const preview = opts.assetPreviewByFilename?.[filename];
+  if (preview) return withAppBase(preview);
+  let base = framesBase;
   if (!base.endsWith('/')) base = `${base}/`;
-  return withAppBase(`${base}${s.replace(/^\//, '')}`);
+  return withAppBase(`${base}${filename}`);
 }
 
 /**
  * Résout l'URL d'aperçu d'un `src` absolu (laisse passer data/blob/http).
  * @param {string} raw
+ * @param {{ assetPreviewByFilename?: Record<string, string> }} [opts]
  * @returns {string}
  */
-export function resolveSrcPreviewUrl(raw) {
+export function resolveSrcPreviewUrl(raw, opts = {}) {
   const s = String(raw || '').trim();
   if (!s) return '';
   if (
@@ -60,6 +161,9 @@ export function resolveSrcPreviewUrl(raw) {
     s.startsWith('https://')
   )
     return s;
+  const basename = s.split('/').pop()?.split('?')[0] || '';
+  const preview = basename ? opts.assetPreviewByFilename?.[basename] : '';
+  if (preview) return withAppBase(preview);
   return withAppBase(s);
 }
 
@@ -167,8 +271,8 @@ export function computePackMediaWarnings(pack, packUuid, assets, stateFrames) {
       if (!spec || typeof spec !== 'object') continue;
       const files = Array.isArray(spec.files) ? spec.files : [];
       for (const file of files) {
-        const name = String(file || '').trim();
-        if (name) referenced.add(name);
+        const name = normalizePackFrameFileRef(file, normalizedBase);
+        if (name && name.toLowerCase().endsWith('.png')) referenced.add(name);
       }
     }
     const missing = [...referenced].filter((f) => !available.has(f));

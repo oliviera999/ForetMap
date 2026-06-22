@@ -692,6 +692,7 @@ function VisitMascotFallbackSvg({ silhouette = 'gnome', variant = 'forest' }) {
       return <SeedVisitMascotSvg />;
     case 'swarm':
       return <SwarmVisitMascotSvg />;
+    case 'gnome1':
     case 'gnome':
     default:
       return <GnomeVisitMascotSvg variant={variant} />;
