@@ -29,6 +29,7 @@ export default function MascotPackArchiveImportDialog({
   const titleId = useId();
   const fileRef = useRef(null);
   const [mode, setMode] = useState('create');
+  const [publishOnImport, setPublishOnImport] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [analysis, setAnalysis] = useState(null);
@@ -44,6 +45,7 @@ export default function MascotPackArchiveImportDialog({
     setError('');
     setAnalysis(null);
     setMode('create');
+    setPublishOnImport(true);
     if (fileRef.current) fileRef.current.value = '';
   };
 
@@ -106,6 +108,8 @@ export default function MascotPackArchiveImportDialog({
       if (variant === 'visit') {
         body.map_id = String(mapId || '').trim();
         if (mode === 'replace' && targetPackId) body.target_pack_id = String(targetPackId);
+        // create : publié par défaut pour être visible en visite immédiatement (override possible).
+        if (mode === 'create') body.is_published = publishOnImport ? 1 : 0;
       } else {
         if (chapterId != null) body.chapterId = chapterId;
         if (mode === 'replace' && targetPackId != null) body.target_pack_id = Number(targetPackId);
@@ -152,7 +156,7 @@ export default function MascotPackArchiveImportDialog({
               disabled={busy}
               onChange={() => setMode('create')}
             />{' '}
-            Nouveau brouillon
+            Nouveau pack
           </label>
           <label style={{ display: 'block' }}>
             <input
@@ -171,6 +175,18 @@ export default function MascotPackArchiveImportDialog({
             )}
           </label>
         </fieldset>
+        {variant === 'visit' && mode === 'create' ? (
+          <label style={{ display: 'block', marginBottom: 12 }}>
+            <input
+              type="checkbox"
+              checked={publishOnImport}
+              disabled={busy}
+              onChange={(e) => setPublishOnImport(e.target.checked)}
+            />{' '}
+            Publier dès l’import
+            <span className="section-sub"> (visible en visite ; sinon importé en brouillon)</span>
+          </label>
+        ) : null}
         {analysis ? (
           <div
             role="status"

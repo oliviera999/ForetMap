@@ -49,16 +49,14 @@ describe('resolveFrameUrl', () => {
         'cell-r0-c1.png': '/api/visit/mascot-packs/uuid/assets/cell-r0-c1.png?preview_token=abc',
       },
     });
-    expect(url).toBe(
-      '/api/visit/mascot-packs/uuid/assets/cell-r0-c1.png?preview_token=abc',
-    );
+    expect(url).toBe('/api/visit/mascot-packs/uuid/assets/cell-r0-c1.png?preview_token=abc');
   });
 
   test('accepte un chemin absolu déjà sous /api/visit/', () => {
     const pack = { framesBase: '/api/visit/mascot-packs/uuid/assets/' };
-    expect(
-      resolveFrameUrl(pack, '/api/visit/mascot-packs/uuid/assets/cell-r0-c0.png'),
-    ).toBe('/api/visit/mascot-packs/uuid/assets/cell-r0-c0.png');
+    expect(resolveFrameUrl(pack, '/api/visit/mascot-packs/uuid/assets/cell-r0-c0.png')).toBe(
+      '/api/visit/mascot-packs/uuid/assets/cell-r0-c0.png',
+    );
   });
 });
 
