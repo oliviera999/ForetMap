@@ -26,6 +26,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   idempotente `143_food_web_trophic_roles.sql` (vue `v_food_web` enrichie). **Doc** : `docs/API.md`.
 - **Tests** : `tests/food-web-core.test.js` (méta + `orientInteraction`),
   `tests-ui/components/pedago/foodWebGraphModel.test.js` et `FoodWebGraph.test.jsx`.
+### Carte — mascotte issue d'un pack serveur/importé (rendu)
+
+- **fix** : la carte (`map-views`) résout et rend désormais une mascotte issue d'un **pack serveur publié** (`catalog_id` `srv-…`, ex. pack importé), au lieu de retomber sur le catalogue statique. Nouveau hook `useVisitMascotCatalogExtras` (récupère `GET /api/visit/content` → `mascot_packs` publiés → `extraCatalogEntries`), passés à `useMapViewMascot` et à `MapViewMascotOverlay` → `VisitMapMascotRenderer`. Traite le constat **A** de `docs/MASCOT_AUDIT.md`.
+- **Tests** : `tests-ui/hooks/useVisitMascotCatalogExtras.test.jsx`, `tests-ui/utils/visitMascotPackExtras.test.js`.
+### Visite — aperçu studio d'un pack mascotte brouillon (rendu tokenisé)
+
+- **fix** : l'**aperçu global** du studio (`VisitMascotStudioPreviewSection`) applique désormais les `preview_url` signées au pack **en cours d'édition** (`applyPackAssetPreviewUrlsToSpriteCut` + `assetPreviewByFilename` du manager) → un **brouillon** s'affiche au lieu de retomber sur la silhouette (les `<img>` ne portent pas le JWT → 403 sur assets non publiés). Suite de l'audit `docs/MASCOT_AUDIT.md` (constat B, partiel). Constat **A** (carte éditeur sans `extraCatalogEntries`) documenté, à traiter avec validation UI.
+- **Tests** : `tests-ui/utils/visitMascotPackManager.test.js` (`buildPackAssetPreviewByFilename`, `applyPackAssetPreviewUrlsToSpriteCut`).
 
 ### Visite — import pack mascotte publié par défaut (affichage immédiat)
 

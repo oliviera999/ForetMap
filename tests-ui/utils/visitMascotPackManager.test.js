@@ -12,6 +12,8 @@ import {
   pickPreferredCatalogModelPack,
   getPackStrictValidation,
   buildUnifiedMascotImageEntries,
+  buildPackAssetPreviewByFilename,
+  applyPackAssetPreviewUrlsToSpriteCut,
 } from '../../src/utils/visitMascotPackManager.js';
 
 describe('computeEditorWarnings', () => {
@@ -330,5 +332,59 @@ describe('getPackStrictValidation', () => {
     };
     const result = getPackStrictValidation(pack, packId, mapId);
     expect(result.ok).toBe(true);
+  });
+});
+
+describe('buildPackAssetPreviewByFilename', () => {
+  test('mappe filename → preview_url (ignore les entrées incomplètes)', () => {
+    const map = buildPackAssetPreviewByFilename([
+      {
+        filename: 'a.png',
+        preview_url: '/api/visit/mascot-packs/X/assets/a.png?preview_token=tok',
+      },
+      { filename: 'b.png', url: '/api/visit/mascot-packs/X/assets/b.png' }, // sans preview_url
+      { preview_url: 'sans-filename' },
+    ]);
+    expect(map['a.png']).toBe('/api/visit/mascot-packs/X/assets/a.png?preview_token=tok');
+    expect(map['b.png']).toBeUndefined();
+  });
+
+  test('entrée vide → objet vide', () => {
+    expect(buildPackAssetPreviewByFilename(null)).toEqual({});
+    expect(buildPackAssetPreviewByFilename([])).toEqual({});
+  });
+});
+
+describe('applyPackAssetPreviewUrlsToSpriteCut', () => {
+  const framesBase = '/api/visit/mascot-packs/X/assets/';
+  const spriteCut = {
+    frameWidth: 32,
+    frameHeight: 32,
+    stateFrames: {
+      idle: { srcs: [`${framesBase}a.png`, `${framesBase}b.png`], fps: 8 },
+      walking: { srcs: [`${framesBase}a.png`], fps: 6 },
+    },
+  };
+
+  test('réécrit les srcs connues vers les preview_url tokenisées', () => {
+    const preview = { 'a.png': `${framesBase}a.png?preview_token=tok` };
+    const out = applyPackAssetPreviewUrlsToSpriteCut(spriteCut, preview, framesBase);
+    expect(out.stateFrames.idle.srcs[0]).toBe(`${framesBase}a.png?preview_token=tok`);
+    // b.png n'a pas de preview → src inchangée
+    expect(out.stateFrames.idle.srcs[1]).toBe(`${framesBase}b.png`);
+    expect(out.stateFrames.walking.srcs[0]).toBe(`${framesBase}a.png?preview_token=tok`);
+    // immutabilité de l'entrée
+    expect(spriteCut.stateFrames.idle.srcs[0]).toBe(`${framesBase}a.png`);
+  });
+
+  test('map de preview vide → spriteCut inchangé', () => {
+    const out = applyPackAssetPreviewUrlsToSpriteCut(spriteCut, {}, framesBase);
+    expect(out).toBe(spriteCut);
+  });
+
+  test('résout aussi par basename si la base ne correspond pas', () => {
+    const preview = { 'a.png': 'https://cdn/x/a.png?preview_token=tok' };
+    const out = applyPackAssetPreviewUrlsToSpriteCut(spriteCut, preview, '/autre/base/');
+    expect(out.stateFrames.idle.srcs[0]).toBe('https://cdn/x/a.png?preview_token=tok');
   });
 });
