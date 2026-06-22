@@ -19,6 +19,7 @@ import VisitMapMascotRenderer from './VisitMapMascotRenderer.jsx';
  * @param {boolean} props.faceRight oriente la mascotte vers la droite quand vrai
  * @param {string} props.animationState état d'animation transmis au renderer
  * @param {string} props.mascotId identifiant de la mascotte à rendre
+ * @param {Array<object>} [props.extraCatalogEntries] entrées catalogue serveur (packs importés)
  * @param {boolean} props.dialogVisible affiche la bulle de dialogue quand vrai
  * @param {React.ReactNode} [props.dialog] contenu de la bulle de dialogue
  */
@@ -31,6 +32,7 @@ export function MapViewMascotOverlay({
   faceRight,
   animationState,
   mascotId,
+  extraCatalogEntries = [],
   dialogVisible,
   dialog,
 }) {
@@ -48,7 +50,11 @@ export function MapViewMascotOverlay({
           '--visit-mascot-dialog-x': faceRight ? 1 : -1,
         }}
       >
-        <VisitMapMascotRenderer mascotState={animationState} mascotId={mascotId} />
+        <VisitMapMascotRenderer
+          mascotState={animationState}
+          mascotId={mascotId}
+          extraCatalogEntries={extraCatalogEntries}
+        />
         {dialogVisible && dialog ? (
           <div className="visit-map-mascot-dialog" role="status" aria-live="polite">
             {dialog}

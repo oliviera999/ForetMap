@@ -35,6 +35,7 @@ import { MapViewMarkerBubble } from './MapViewMarkerBubble.jsx';
 import { MapViewBackgroundImage } from './MapViewBackgroundImage.jsx';
 import { MapViewWorldLayer } from './MapViewWorldLayer.jsx';
 import useMapViewMascot from '../hooks/useMapViewMascot.js';
+import useVisitMascotCatalogExtras from '../hooks/useVisitMascotCatalogExtras.js';
 import { useMapGestures } from '../hooks/useMapGestures.js';
 
 import { TimedToast } from '../shared/components/TimedToast.jsx';
@@ -141,6 +142,11 @@ function MapViewImpl({
     return [];
   }, [publicSettings?.visit?.mascot?.allowed_ids]);
   const visitMascotDefaultId = String(publicSettings?.visit?.mascot?.default_id || '').trim();
+  // Packs mascotte serveur publiés de la carte → la mascotte peut être un pack importé (srv-…).
+  const visitMascotCatalogExtras = useVisitMascotCatalogExtras({
+    mapId: activeMapId,
+    enabled: mode === 'view',
+  });
   const mapMarkersOnActiveMap = useMemo(
     () => (markers || []).filter((m) => m.map_id === activeMapId),
     [markers, activeMapId],
@@ -208,6 +214,7 @@ function MapViewImpl({
     markers: mapMarkersOnActiveMap,
     fitHeightPx: imgSize.h,
     enabled: mode === 'view',
+    extraCatalogEntries: visitMascotCatalogExtras,
     preferredMascotId: student?.visit_mascot_catalog_id,
     allowedMascotIds: visitMascotAllowedIds,
     defaultMascotId: visitMascotDefaultId,
@@ -1154,6 +1161,7 @@ function MapViewImpl({
                   faceRight={mapMascotFaceRight}
                   animationState={mapMascotAnimationState}
                   mascotId={mapMascotId}
+                  extraCatalogEntries={visitMascotCatalogExtras}
                   dialogVisible={mapMascotDialogVisible}
                   dialog={mapMascotDialog}
                 />
