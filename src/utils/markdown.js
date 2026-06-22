@@ -3,6 +3,7 @@
  */
 import { marked } from 'marked';
 import DOMPurify from 'isomorphic-dompurify';
+import { repairSupplementaryPlaneEmojiMojibake } from '../shared/emojiMojibakeCore.js';
 import {
   glImageFrameToImgFillStyle,
   glImageFrameToWrapStyle,
@@ -193,7 +194,7 @@ DOMPurify.addHook('afterSanitizeAttributes', (node) => {
  * @returns {string} HTML sécurisé (chaîne vide si entrée vide)
  */
 export function renderMarkdownToSafeHtml(markdown, options = {}) {
-  const raw = String(markdown ?? '').trim();
+  const raw = repairSupplementaryPlaneEmojiMojibake(String(markdown ?? '').trim());
   if (!raw) return '';
   const parsed = marked.parse(raw, { async: false });
   const html = typeof parsed === 'string' ? parsed : '';
