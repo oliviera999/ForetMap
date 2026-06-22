@@ -191,6 +191,7 @@ export function GLGameBoard({
   });
 
   const [presentedFeuilletZoneIds, setPresentedFeuilletZoneIds] = useState([]);
+  const [presentedFeuilletZonesLoaded, setPresentedFeuilletZonesLoaded] = useState(false);
   const [editZones, setEditZones] = useState(feuilletZones);
   const [editableMarkers, setEditableMarkers] = useState(markers);
   const [plateauPlacement, setPlateauPlacement] = useState({
@@ -211,9 +212,11 @@ export function GLGameBoard({
   useEffect(() => {
     if (!gameId || watchTeamId == null) {
       setPresentedFeuilletZoneIds([]);
+      setPresentedFeuilletZonesLoaded(false);
       return undefined;
     }
     let cancelled = false;
+    setPresentedFeuilletZonesLoaded(false);
     (async () => {
       try {
         const data = await apiGL(
@@ -224,12 +227,19 @@ export function GLGameBoard({
         }
       } catch {
         if (!cancelled) setPresentedFeuilletZoneIds([]);
+      } finally {
+        if (!cancelled) setPresentedFeuilletZonesLoaded(true);
       }
     })();
     return () => {
       cancelled = true;
     };
   }, [gameId, watchTeamId]);
+
+  const handleFeuilletZonePresented = useCallback((zoneId) => {
+    const id = String(zoneId);
+    setPresentedFeuilletZoneIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
+  }, []);
 
   const activeFeuilletZones = feuilletZoneEditMode ? editZones : feuilletZones;
   const displayMarkers = feuilletZoneEditMode || showPlateauMarkers;
@@ -244,11 +254,13 @@ export function GLGameBoard({
     gameId,
     watchTeamId,
     presentedZoneIds: presentedFeuilletZoneIds,
+    presentedZonesReady: presentedFeuilletZonesLoaded,
     enabled:
       Boolean(gameId && watchTeamId != null && activeFeuilletZones.length > 0) &&
       !feuilletZoneEditMode,
     qcmOpen: modalOpen,
     loreCarnetEnabled,
+    onZonePresented: handleFeuilletZonePresented,
   });
 
   useEffect(() => {
@@ -413,6 +425,14 @@ export function GLGameBoard({
   }
 
   const teamList = Array.isArray(teams) ? teams : [];
+  const canSelectTeam = Boolean(onSelectTeam) && teamList.length > 0;
+
+  const handleSelectTeam = useCallback(
+    (teamId) => {
+      onSelectTeam?.(Number(teamId));
+    },
+    [onSelectTeam],
+  );
 
   const boardShellClass = mapFullscreen
     ? 'gl-board-shell gl-board-shell--fullscreen'
@@ -464,6 +484,7 @@ export function GLGameBoard({
         const position = getPositionForTeam(team.id);
         const motion = getMotionForTeam(team.id);
         const mascotState = mascotStateMachine?.getStateForTeam?.(team.id);
+        const isSelected = selectedTeamId != null && Number(selectedTeamId) === Number(team.id);
         return (
           <GLBoardMascot
             key={`mascot-${team.id}`}
@@ -472,9 +493,10 @@ export function GLGameBoard({
             motion={motion}
             mascotState={mascotState}
             prefersReducedMotion={prefersReducedMotion}
-            zIndex={
-              6 + (selectedTeamId != null && Number(selectedTeamId) === Number(team.id) ? 2 : 0)
-            }
+            selectable={canSelectTeam}
+            isSelected={isSelected}
+            onSelect={handleSelectTeam}
+            zIndex={6 + (isSelected ? 2 : 0)}
           />
         );
       })}
@@ -502,7 +524,7 @@ export function GLGameBoard({
             data-team-mascot={team.mascot_id || ''}
             onClick={(event) => {
               event.stopPropagation();
-              onSelectTeam?.(Number(team.id));
+              handleSelectTeam(team.id);
             }}
           >
             <span className="gl-board-team-pin-label">{team.name}</span>
@@ -690,6 +712,7 @@ export function GLGameBoard({
             selectedTeamId={selectedTeamId}
             playerId={playerId}
             turnsEnabled={turnsEnabled}
+            onSelectTeam={canSelectTeam ? handleSelectTeam : null}
           />
         ) : null}
       </div>

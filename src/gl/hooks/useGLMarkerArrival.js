@@ -88,6 +88,10 @@ export function useGLMarkerArrival({
           result: null,
         });
       } catch (err) {
+        if (err?.status === 409 || err?.status === 404) {
+          setQuestionPopover(null);
+          return;
+        }
         setQuestionPopover({
           marker,
           teamId,

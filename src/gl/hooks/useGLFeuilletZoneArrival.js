@@ -22,10 +22,12 @@ export function useGLFeuilletZoneArrival({
   gameId,
   watchTeamId,
   presentedZoneIds = [],
+  presentedZonesReady = true,
   enabled = true,
   moveDelayMs = MAP_VIEW_MASCOT_MOVE_MS,
   qcmOpen = false,
   loreCarnetEnabled = false,
+  onZonePresented,
 }) {
   const prevPctByTeamRef = useRef(new Map());
   const recentPresentRef = useRef({ key: '', at: 0 });
@@ -34,7 +36,9 @@ export function useGLFeuilletZoneArrival({
   const presentedSet = useRef(new Set(presentedZoneIds.map(String)));
 
   useEffect(() => {
-    presentedSet.current = new Set(presentedZoneIds.map(String));
+    const merged = new Set(presentedZoneIds.map(String));
+    for (const zoneId of presentedSet.current) merged.add(zoneId);
+    presentedSet.current = merged;
   }, [presentedZoneIds]);
 
   const closePopover = useCallback(() => {
@@ -77,6 +81,7 @@ export function useGLFeuilletZoneArrival({
           { teamId },
         );
         markPresentedLocal(zone.zoneId);
+        onZonePresented?.(zone.zoneId);
         setPopover({
           zone: data?.zone ? { ...zone, ...data.zone } : zone,
           teamId,
@@ -101,6 +106,7 @@ export function useGLFeuilletZoneArrival({
       } catch (err) {
         if (err?.status === 409) {
           markPresentedLocal(zone.zoneId);
+          onZonePresented?.(zone.zoneId);
           setPopover(null);
           return;
         }
@@ -117,13 +123,14 @@ export function useGLFeuilletZoneArrival({
         });
       }
     },
-    [gameId, loreCarnetEnabled, markPresentedLocal],
+    [gameId, loreCarnetEnabled, markPresentedLocal, onZonePresented],
   );
 
   const scheduleOnMove = useCallback(
     (prev, next, teamId) => {
       if (!enabled || !gameId || teamId == null || qcmOpen || !feuilletZones.length)
         return undefined;
+      if (!presentedZonesReady) return undefined;
       const zone = findZoneTriggeredOnMoveGeneric(
         prev,
         next,
@@ -144,7 +151,7 @@ export function useGLFeuilletZoneArrival({
         }
       };
     },
-    [enabled, gameId, feuilletZones, moveDelayMs, qcmOpen, isZoneEligible, presentFeuilletZone],
+    [enabled, gameId, feuilletZones, moveDelayMs, qcmOpen, isZoneEligible, presentFeuilletZone, presentedZonesReady],
   );
 
   useEffect(

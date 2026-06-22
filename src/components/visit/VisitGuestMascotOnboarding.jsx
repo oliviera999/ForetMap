@@ -56,8 +56,9 @@ export function VisitGuestMascotOnboarding({
               >
                 <span className="visit-mascot-onboarding__preview" aria-hidden="true">
                   <VisitMapMascotRenderer
+                    key={mascot.id}
                     mascotId={mascot.id}
-                    state={VISIT_MASCOT_STATE.IDLE}
+                    mascotState={VISIT_MASCOT_STATE.IDLE}
                     extraCatalogEntries={extraCatalogEntries}
                   />
                 </span>

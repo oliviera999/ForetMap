@@ -1,6 +1,6 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
-import { describe, test, expect } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, test, expect, vi } from 'vitest';
 import { GLGameBoardRoster } from '../../src/gl/components/GLGameBoardRoster.jsx';
 
 describe('GLGameBoardRoster', () => {
@@ -49,5 +49,19 @@ describe('GLGameBoardRoster', () => {
   test('masqué si aucune équipe', () => {
     const { container } = render(<GLGameBoardRoster teams={[]} roster={[]} />);
     expect(container.firstChild).toBeNull();
+  });
+
+  test('remonte onSelectTeam au clic sur la case équipe', () => {
+    const onSelectTeam = vi.fn();
+    render(
+      <GLGameBoardRoster
+        teams={teams}
+        roster={roster}
+        selectedTeamId={null}
+        onSelectTeam={onSelectTeam}
+      />,
+    );
+    fireEvent.click(screen.getByTestId('gl-map-roster-team-2'));
+    expect(onSelectTeam).toHaveBeenCalledWith(2);
   });
 });

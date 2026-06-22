@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import VisitMapMascotRenderer from '../VisitMapMascotRenderer.jsx';
 import { buildVisitMascotCatalogExtrasFromContent } from '../../utils/visitMascotPackExtras.js';
-import { getVisitMascotCatalog } from '../../utils/visitMascotCatalog.js';
+import { buildVisitMascotSelectionOptions } from '../../utils/visitMascotCatalog.js';
 import { VISIT_MASCOT_STATE } from '../../utils/visitMascotState.js';
 import { STATE_LABELS } from '../../constants/mascotStateLabels.js';
 import useVisitMascotStateMachine from '../../hooks/useVisitMascotStateMachine.js';
@@ -62,7 +62,7 @@ export default function VisitMascotStudioPreviewSection({
     return [...withoutCurrent, draftEntry];
   }, [packs, selectedPackId, selectedPackCatalogId, selectedPackLabel, editorPack]);
 
-  const visitMascotOptions = useMemo(() => [...getVisitMascotCatalog(), ...extras], [extras]);
+  const visitMascotOptions = useMemo(() => buildVisitMascotSelectionOptions(extras), [extras]);
   const {
     visitMascotId,
     visitMascotPreviewState,
@@ -161,6 +161,7 @@ export default function VisitMascotStudioPreviewSection({
         style={{ minHeight: 200 }}
       >
         <VisitMapMascotRenderer
+          key={visitMascotId}
           mascotState={visitMascotPreviewState}
           mascotId={visitMascotId}
           extraCatalogEntries={extras}

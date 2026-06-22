@@ -15,6 +15,7 @@ import {
 } from './GLMarkerAppearanceEditor.jsx';
 import { glImageFrameToStyle, normalizeGlImageFrame } from '../../utils/glImageFrame.js';
 import { defaultEventConfigForQuestion } from '../../utils/glMarkerEventConfig.js';
+import { eventDraftFromMarker } from '../utils/glChapterMapStudioForm.js';
 import { GLButton } from './ui/GLButton.jsx';
 import { GLChapterMarkerListVisual } from './GLChapterMarkerListVisual.jsx';
 
@@ -167,6 +168,7 @@ export function GLChapterMapEditor({
     setSelectedMarkerId(Number(marker.id));
     setMarkerForm(toFormFromMarker(marker));
     setAppearanceForm(appearanceFormFromMarker(marker));
+    setEventDraft(eventDraftFromMarker(marker));
   }
 
   function resetForm() {
@@ -209,10 +211,11 @@ export function GLChapterMapEditor({
       if (selectedMarkerId != null && !isAddMode) {
         await apiGL(`/api/gl/chapters/admin/markers/${selectedMarkerId}`, 'PUT', payload);
         onInfo?.('Repère mis à jour');
-      } else {
-        await apiGL(`/api/gl/chapters/admin/${chapterId}/markers`, 'POST', payload);
-        onInfo?.('Repère ajouté');
+        await onReload?.(chapterSlug);
+        return markerDraft;
       }
+      await apiGL(`/api/gl/chapters/admin/${chapterId}/markers`, 'POST', payload);
+      onInfo?.('Repère ajouté');
       setIsAddMode(false);
       resetForm();
       await onReload?.(chapterSlug);

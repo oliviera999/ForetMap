@@ -93,4 +93,46 @@ describe('useGLMarkerArrival', () => {
 
     expect(apiGL).toHaveBeenCalledTimes(1);
   });
+
+  test('ferme le popover sans erreur si present-question renvoie 404', async () => {
+    const err = new Error('Repère question introuvable');
+    err.status = 404;
+    vi.mocked(apiGL).mockRejectedValue(err);
+
+    const { result } = renderHook(() =>
+      useGLMarkerArrival({
+        teams: [{ id: 1, position_marker_id: null }],
+        markers: [QUESTION_MARKER],
+        gameId: 42,
+        watchTeamId: 1,
+      }),
+    );
+
+    await act(async () => {
+      await result.current.presentAtMarker(QUESTION_MARKER, { teamId: 1, force: true });
+    });
+
+    expect(result.current.popover).toBeNull();
+  });
+
+  test('ferme le popover sans erreur si present-question renvoie 409', async () => {
+    const err = new Error('Question déjà présentée pour ce repère selon les réglages');
+    err.status = 409;
+    vi.mocked(apiGL).mockRejectedValue(err);
+
+    const { result } = renderHook(() =>
+      useGLMarkerArrival({
+        teams: [{ id: 1, position_marker_id: null }],
+        markers: [QUESTION_MARKER],
+        gameId: 42,
+        watchTeamId: 1,
+      }),
+    );
+
+    await act(async () => {
+      await result.current.presentAtMarker(QUESTION_MARKER, { teamId: 1, force: true });
+    });
+
+    expect(result.current.popover).toBeNull();
+  });
 });

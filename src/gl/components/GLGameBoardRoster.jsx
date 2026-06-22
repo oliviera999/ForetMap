@@ -29,6 +29,7 @@ export function GLGameBoardRoster({
   selectedTeamId = null,
   playerId = null,
   turnsEnabled = false,
+  onSelectTeam = null,
 }) {
   const groups = useMemo(() => buildMapRosterGroups(teams, roster), [teams, roster]);
 
@@ -52,12 +53,30 @@ export function GLGameBoardRoster({
           const groupClasses = ['gl-map-roster-group'];
           if (isCurrentTurn) groupClasses.push('is-current-turn');
           if (isSelected) groupClasses.push('is-selected');
+          if (onSelectTeam) groupClasses.push('gl-map-roster-group--selectable');
+
+          const groupProps = onSelectTeam
+            ? {
+                role: 'button',
+                tabIndex: 0,
+                'aria-pressed': isSelected,
+                'aria-label': `Sélectionner ${group.teamName} pour le jet de dés`,
+                onClick: () => onSelectTeam(Number(group.teamId)),
+                onKeyDown: (event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    onSelectTeam(Number(group.teamId));
+                  }
+                },
+              }
+            : {};
 
           return (
             <section
               key={group.teamId}
               className={groupClasses.join(' ')}
               data-testid={`gl-map-roster-team-${group.teamId}`}
+              {...groupProps}
             >
               <header className="gl-map-roster-group__head">
                 <span

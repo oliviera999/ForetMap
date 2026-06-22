@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { introAudio, loadGlAssetRuntime, plateauAudio } from '../assets/index.js';
 import { GL_ZONE_MUSIC_FADE_MS, GL_ZONE_MUSIC_MUTED_KEY } from './useGLZoneMusic.js';
+import { clampAudioVolume } from '../utils/clampAudioVolume.js';
 
 function readStoredMuted() {
   try {
@@ -27,17 +28,19 @@ function cancelFade(rafRef) {
 
 function runCrossfade({ outgoing, incoming, outFrom, inTo, durationMs, rafRef, onDone }) {
   cancelFade(rafRef);
+  const safeOutFrom = clampAudioVolume(outFrom);
+  const safeInTo = clampAudioVolume(inTo);
   if (durationMs <= 0) {
     if (outgoing) outgoing.volume = 0;
-    if (incoming) incoming.volume = inTo;
+    if (incoming) incoming.volume = safeInTo;
     onDone?.();
     return;
   }
   const start = performance.now();
   const step = (now) => {
     const t = Math.min(1, (now - start) / durationMs);
-    if (outgoing) outgoing.volume = outFrom * (1 - t);
-    if (incoming) incoming.volume = inTo * t;
+    if (outgoing) outgoing.volume = clampAudioVolume(safeOutFrom * (1 - t));
+    if (incoming) incoming.volume = clampAudioVolume(safeInTo * t);
     if (t < 1) {
       rafRef.current = requestAnimationFrame(step);
     } else {

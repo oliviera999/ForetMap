@@ -238,6 +238,46 @@ test('PUT marker avec eventConfig', async () => {
   assert.deepStrictEqual(res.body.event_config.question.pool.selectedQuestionCodes, ['QCM0001']);
 });
 
+test('POST present-question repère random avec selectedQuestionCodes', async () => {
+  const chapter = await queryOne('SELECT chapter_id FROM gl_games WHERE id = ? LIMIT 1', [gameId]);
+  await execute(
+    `INSERT INTO gl_biomes (slug, nom, order_index, created_at, updated_at)
+     VALUES ('sahara', 'Sahara', 0, NOW(), NOW())
+     ON DUPLICATE KEY UPDATE nom = VALUES(nom), updated_at = NOW()`,
+  );
+  await execute(
+    `INSERT INTO gl_chapter_biomes (chapter_id, biome_slug, order_index)
+     VALUES (?, 'sahara', 0)
+     ON DUPLICATE KEY UPDATE order_index = VALUES(order_index)`,
+    [chapter.chapter_id],
+  );
+
+  const eventConfig = serializeEventConfig({
+    version: 2,
+    question: {
+      mode: 'random',
+      pool: {
+        biomeMode: 'chapter',
+        selectedQuestionCodes: ['QCM0001'],
+      },
+    },
+  });
+  await execute(
+    `UPDATE gl_chapter_markers
+        SET event_type = 'question', event_config_json = ?
+      WHERE id = ?`,
+    [eventConfig, markerId],
+  );
+
+  const res = await request(app)
+    .post(`/api/gl/games/${gameId}/markers/${markerId}/present-question`)
+    .set('Authorization', `Bearer ${playerToken}`)
+    .send({})
+    .expect(200);
+  assert.strictEqual(res.body.questionCode, 'QCM0001');
+  assert.ok(res.body.presentation?.question);
+});
+
 test('POST present-question repère lore fixe LQCM', async () => {
   await execute(
     `INSERT INTO gl_qcm_lore_scopes (slug, nom, order_index, created_at, updated_at)
