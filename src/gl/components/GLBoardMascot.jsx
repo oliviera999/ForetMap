@@ -52,16 +52,16 @@ export function GLBoardMascot({
   };
 
   const inner = (
-      <div
-        className="visit-map-mascot-inner"
-        style={{
-          transform: snapCenter
-            ? `translate(-50%, -50%) scaleX(${faceRight ? 1 : -1})`
-            : `translate(-50%, -100%) scaleX(${faceRight ? 1 : -1})`,
-        }}
-      >
-        <GLMascotRenderer mascotId={team.mascot_id} mascotState={animationState} boardMode />
-      </div>
+    <div
+      className="visit-map-mascot-inner"
+      style={{
+        transform: snapCenter
+          ? `translate(-50%, -50%) scaleX(${faceRight ? 1 : -1})`
+          : `translate(-50%, -100%) scaleX(${faceRight ? 1 : -1})`,
+      }}
+    >
+      <GLMascotRenderer mascotId={team.mascot_id} mascotState={animationState} boardMode />
+    </div>
   );
 
   if (selectable && onSelect) {

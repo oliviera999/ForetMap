@@ -1,0 +1,14 @@
+{
+  "format": "foretmap-mascot-pack-archive",
+  "formatVersion": 1,
+  "variant": "visit",
+  "exportedAt": "2026-06-22T14:23:45.000Z",
+  "source": {
+    "pack_id": "gnome2",
+    "map_id": "foret",
+    "catalog_id": "src-gnome2",
+    "label": "Gnome 2",
+    "is_published": true
+  },
+  "warnings": []
+}

@@ -21,7 +21,10 @@ const REDUNDANT_HEADING_RE = /^##\s+biotope\s*$|^##\s+bioc[eé]nose\s*$/gim;
  * @param {Array<'biome'|'realiste'|'biocenose'>} kinds
  * @returns {Set<string>}
  */
-export function collectBiomeIllustrationKeys(biomeSlug, kinds = ['biome', 'realiste', 'biocenose']) {
+export function collectBiomeIllustrationKeys(
+  biomeSlug,
+  kinds = ['biome', 'realiste', 'biocenose'],
+) {
   const keys = new Set();
   for (const kind of kinds) {
     const stable = biomeAssetSlug(biomeSlug, kind);
