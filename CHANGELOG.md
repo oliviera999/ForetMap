@@ -37,6 +37,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ### GL — déplacement automatique (effet de case)
 
 - **feat(gl)** : en parcours numéroté, les repères avec `deltaMove` déplacent automatiquement l'équipe le long du chemin lors de `present-arrival` / `apply-effects` ; les effets du repère d'arrivée ne sont pas déclenchés (`skipDestinationEffects`).
+- **fix(gl)** : un auto-déplacement issu d’un repère ne peut plus être rejoué par double appel `present-arrival` (verrouillage équipe + détection de l’événement `move` d’origine).
 - **Réglage** : `gameplay.marker_effect_auto_move_enabled` (toggle Réglages → Affichage carte plateau).
 - **Utilitaires** : `advancePathIndexSigned`, `targetMarkerAfterPathSteps`, `markersAlongPathSteps`, `lib/glMarkerEffectAutoMove.js` ; animation front + registre `glMarkerArrivalSkip`.
 - **Tests** : `tests/gl-marker-effect-auto-move.test.js`, `glBoardPathCore` (delta signé).
