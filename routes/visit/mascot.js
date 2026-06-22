@@ -22,6 +22,10 @@ const {
 } = require('../../lib/mascotPackValidatorResolve');
 const { resolveDefaultMapId } = require('../../lib/settings');
 const {
+  verifyVisitMascotPackAssetPreview,
+  appendPreviewTokenToAssetUrl,
+} = require('../../lib/visitMascotPackAssetPreview');
+const {
   visitMascotPackAssetRelativeDir,
   sanitizeMascotPackAssetFilename,
   buildDefaultVisitMascotPackJson,
@@ -285,6 +289,15 @@ async function writeVisitArchiveAssetsFromMap(packUuid, assetsMap) {
   }
 }
 
+function canReadVisitMascotPackAsset(req, packId, filename, published) {
+  if (published) return true;
+  const previewToken = String(req.query.preview_token || '').trim();
+  if (previewToken && verifyVisitMascotPackAssetPreview(previewToken, packId, filename)) {
+    return true;
+  }
+  return !!(req.auth && hasPermission(req.auth, 'visit.manage', true));
+}
+
 router.get('/mascot-packs/:packId/assets/:filename', authenticate, async (req, res) => {
   try {
     const packId = String(req.params.packId || '').trim();
@@ -298,10 +311,8 @@ router.get('/mascot-packs/:packId/assets/:filename', authenticate, async (req, r
     );
     if (!row) return res.status(404).json({ error: 'Pack introuvable' });
     const published = !!Number(row.is_published);
-    if (!published) {
-      if (!req.auth || !hasPermission(req.auth, 'visit.manage', true)) {
-        return res.status(403).json({ error: 'Accès refusé' });
-      }
+    if (!canReadVisitMascotPackAsset(req, packId, filename, published)) {
+      return res.status(403).json({ error: 'Accès refusé' });
     }
     const rel = `${visitMascotPackAssetRelativeDir(packId)}/${filename}`;
     const abs = getAbsolutePath(rel);
@@ -769,10 +780,14 @@ router.get(
       ]);
       if (!row) return res.status(404).json({ error: 'Pack introuvable' });
       const filenames = listVisitMascotPackAssetFilenames(packId);
-      const assets = filenames.map((filename) => ({
-        filename,
-        url: `/api/visit/mascot-packs/${packId}/assets/${encodeURIComponent(filename)}`,
-      }));
+      const assets = filenames.map((filename) => {
+        const url = `/api/visit/mascot-packs/${packId}/assets/${encodeURIComponent(filename)}`;
+        return {
+          filename,
+          url,
+          preview_url: appendPreviewTokenToAssetUrl(url, packId, filename),
+        };
+      });
       res.json({ pack_id: packId, assets });
     } catch (err) {
       logRouteError(err, req);
@@ -809,7 +824,12 @@ router.post(
         return res.status(400).json({ error: 'Image invalide ou trop volumineuse' });
       }
       const publicUrl = `/api/visit/mascot-packs/${packId}/assets/${encodeURIComponent(filename)}`;
-      res.status(201).json({ ok: true, url: publicUrl, filename });
+      res.status(201).json({
+        ok: true,
+        url: publicUrl,
+        preview_url: appendPreviewTokenToAssetUrl(publicUrl, packId, filename),
+        filename,
+      });
     } catch (err) {
       logRouteError(err, req);
       const mapped = mapVisitMascotPackSqlError(err);
