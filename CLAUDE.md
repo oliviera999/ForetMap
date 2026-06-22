@@ -37,6 +37,7 @@ sous **`.claude/skills/`**.
 ```bash
 npm run dev              # serveur en watch (nodemon)
 npm run build            # build Vite (build-safe : enchaîne sync:*-pack-lib)
+npm run ship -- -m "…"   # routine tout-en-un : build + lint/format/test + bump + commit + push
 npm test                 # tests backend (node:test, séquentiel, force-exit)
 npm run test:ui          # tests React (Vitest, tests-ui/**)
 npm run test:e2e         # Playwright (libère le port puis start:e2e)
