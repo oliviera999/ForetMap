@@ -4,6 +4,7 @@ import { FoodWebGraph } from './FoodWebGraph.jsx';
 import {
   INTERACTION_TYPES,
   interactionTypeLabel as interactionLabel,
+  orientInteraction,
 } from '../../shared/foodWebTypes.js';
 
 const EMPTY_FORM = { fromId: '', toId: '', type: INTERACTION_TYPES[0], description: '' };
@@ -191,6 +192,11 @@ export function FoodWebView({
           Relations entre espèces du site — clique une flèche pour le glossaire, une espèce pour sa
           fiche.
         </p>
+        <p className="section-sub pedago-foodweb__legend">
+          🧭 Sens écologique : la flèche <strong>→</strong> signifie «&nbsp;est mangée par&nbsp;»
+          (sens du flux d&apos;énergie, de la ressource vers le consommateur). Les relations
+          mutuelles (symbiose, compétition) utilisent <strong>↔</strong>.
+        </p>
       </header>
 
       {canManage ? (
@@ -256,6 +262,12 @@ export function FoodWebView({
               />
             </label>
           </div>
+          <p className="section-sub pedago-foodweb__admin-hint">
+            Saisis la <strong>source</strong> = l&apos;espèce qui agit (pour la
+            prédation/herbivorie, le <em>consommateur</em>) et la <strong>cible</strong> =
+            l&apos;espèce subissant l&apos;action (la proie / ressource). L&apos;affichage inverse
+            automatiquement la flèche dans le sens écologique «&nbsp;est mangée par&nbsp;».
+          </p>
           {adminError ? <p className="pedago-error">{adminError}</p> : null}
           <button type="submit" className="btn btn-primary btn-sm" disabled={saving}>
             {saving ? 'Enregistrement…' : 'Ajouter'}
@@ -340,39 +352,50 @@ export function FoodWebView({
             <section key={type} className="card pedago-foodweb__group">
               <h3 className="pedago-panel-title">{interactionLabel(type)}</h3>
               <ul className="pedago-foodweb__edges">
-                {rows.map((row) => (
-                  <li key={row.id} className="pedago-foodweb__row">
-                    <div className="pedago-foodweb__edge-line">
-                      {renderNode(row.from_id, row.from_name, row.from_emoji)}
-                      <button
-                        type="button"
-                        className={`pedago-foodweb__edge${selectedEdgeId === row.id ? ' active' : ''}`}
-                        onClick={() => selectEdge(row.id)}
-                        title={row.description || interactionLabel(type)}
-                      >
-                        <span className="pedago-foodweb__edge-arrow" aria-hidden="true">
-                          →
-                        </span>
-                        <span className="pedago-foodweb__edge-label">{interactionLabel(type)}</span>
-                      </button>
-                      {renderNode(row.to_id, row.to_name, row.to_emoji)}
-                      {canManage ? (
+                {rows.map((row) => {
+                  const oriented = orientInteraction(row.from_id, row.to_id, row.interaction_type);
+                  const endpoint = (id) => {
+                    if (id == null) return { id: null };
+                    return Number(id) === Number(row.from_id)
+                      ? { id: row.from_id, name: row.from_name, emoji: row.from_emoji }
+                      : { id: row.to_id, name: row.to_name, emoji: row.to_emoji };
+                  };
+                  const tail = endpoint(oriented.tailId);
+                  const head = endpoint(oriented.headId);
+                  return (
+                    <li key={row.id} className="pedago-foodweb__row">
+                      <div className="pedago-foodweb__edge-line">
+                        {renderNode(tail.id, tail.name, tail.emoji)}
                         <button
                           type="button"
-                          className="btn btn-danger btn-sm pedago-foodweb__delete"
-                          onClick={() => deleteInteraction(row.id)}
-                          title="Supprimer cette interaction"
-                          aria-label="Supprimer cette interaction"
+                          className={`pedago-foodweb__edge${selectedEdgeId === row.id ? ' active' : ''}`}
+                          onClick={() => selectEdge(row.id)}
+                          title={`${interactionLabel(type)}${row.description ? ` — ${row.description}` : ''}`}
                         >
-                          🗑️
+                          <span className="pedago-foodweb__edge-arrow" aria-hidden="true">
+                            {oriented.symmetric ? '↔' : '→'}
+                          </span>
+                          <span className="pedago-foodweb__edge-label">{oriented.relation}</span>
                         </button>
+                        {renderNode(head.id, head.name, head.emoji)}
+                        {canManage ? (
+                          <button
+                            type="button"
+                            className="btn btn-danger btn-sm pedago-foodweb__delete"
+                            onClick={() => deleteInteraction(row.id)}
+                            title="Supprimer cette interaction"
+                            aria-label="Supprimer cette interaction"
+                          >
+                            🗑️
+                          </button>
+                        ) : null}
+                      </div>
+                      {row.description ? (
+                        <p className="pedago-foodweb__desc">{row.description}</p>
                       ) : null}
-                    </div>
-                    {row.description ? (
-                      <p className="pedago-foodweb__desc">{row.description}</p>
-                    ) : null}
-                  </li>
-                ))}
+                    </li>
+                  );
+                })}
               </ul>
             </section>
           ))}
