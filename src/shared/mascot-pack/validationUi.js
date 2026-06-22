@@ -3,6 +3,8 @@
  * en messages lisibles/actionnables.
  */
 
+import { normalizePackStateFramesForFramesBase } from '../../utils/mascotPackEditorFrames.js';
+
 export function sanitizeFrameEntries(values) {
   if (!Array.isArray(values)) return [];
   return values.map((v) => String(v || '').trim()).filter(Boolean);
@@ -55,7 +57,7 @@ export function sanitizeMascotPackDraft(pack) {
     cleanedStates[stateKey] = cleaned;
   }
   next.stateFrames = cleanedStates;
-  return next;
+  return normalizePackStateFramesForFramesBase(next);
 }
 
 export function extractZodValidationIssues(details) {

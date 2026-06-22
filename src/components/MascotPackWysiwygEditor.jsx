@@ -5,7 +5,9 @@ import {
   serverMascotPackAssetsPrefix,
   serverMascotSpriteLibraryAssetsPrefix,
 } from '../utils/mascotPackEditorModel.js';
+import { normalizePackStateFramesForFramesBase } from '../utils/mascotPackEditorFrames.js';
 import { computePackMediaWarnings } from '../utils/mascotPackEditorFrames.js';
+import { buildPackAssetPreviewByFilename } from '../utils/visitMascotPackManager.js';
 import {
   extractMascotPackValidationIssues,
   sanitizeMascotPackDraft,
@@ -28,6 +30,9 @@ import { STATE_OPTIONS } from '../constants/mascotStateLabels.js';
  *   relaxAssetPrefix?: boolean,
  *   onForceLogout?: () => void,
  *   hidePreview?: boolean,
+ *   canImportMissingCatalogFrames?: boolean,
+ *   onImportMissingCatalogFrames?: () => void,
+ *   importMissingCatalogLabel?: string,
  * }} props
  */
 export default function MascotPackWysiwygEditor({
@@ -39,6 +44,9 @@ export default function MascotPackWysiwygEditor({
   packAssets = [],
   relaxAssetPrefix = false,
   hidePreview = false,
+  canImportMissingCatalogFrames = false,
+  onImportMissingCatalogFrames,
+  importMissingCatalogLabel = '',
 }) {
   const [validated, setValidated] = useState(null);
   const [validationIssues, setValidationIssues] = useState([]);
@@ -83,7 +91,9 @@ export default function MascotPackWysiwygEditor({
 
   const setFramesBaseServer = useCallback(() => {
     if (!packUuid) return;
-    onPackChange(ensureServerFramesBase(pack, packUuid));
+    onPackChange(
+      normalizePackStateFramesForFramesBase(ensureServerFramesBase(pack, packUuid)),
+    );
   }, [pack, packUuid, onPackChange]);
 
   const stateFrames = useMemo(
@@ -104,6 +114,11 @@ export default function MascotPackWysiwygEditor({
   const packWarnings = useMemo(
     () => computePackMediaWarnings(pack, packUuid, packAssets, stateFrames),
     [pack, packUuid, packAssets, stateFrames],
+  );
+
+  const assetPreviewByFilename = useMemo(
+    () => buildPackAssetPreviewByFilename(packAssets),
+    [packAssets],
   );
 
   const updateStateEntry = useCallback(
@@ -141,6 +156,9 @@ export default function MascotPackWysiwygEditor({
         packUuid={packUuid}
         setFramesBaseServer={setFramesBaseServer}
         packWarnings={packWarnings}
+        canImportMissingCatalogFrames={canImportMissingCatalogFrames}
+        onImportMissingCatalogFrames={onImportMissingCatalogFrames}
+        importMissingCatalogLabel={importMissingCatalogLabel}
       />
 
       <section className="mascot-pack-wysiwyg__states">
@@ -167,6 +185,7 @@ export default function MascotPackWysiwygEditor({
               setSrcPreviewStatus={setSrcPreviewStatus}
               onToggleState={toggleState}
               onUpdateStateEntry={updateStateEntry}
+              assetPreviewByFilename={assetPreviewByFilename}
             />
           );
         })}
@@ -238,6 +257,7 @@ export default function MascotPackWysiwygEditor({
           pack={pack}
           catalogId={catalogId}
           label={String(pack?.label || '')}
+          assetPreviewByFilename={assetPreviewByFilename}
         />
       ) : null}
     </div>

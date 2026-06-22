@@ -13,6 +13,10 @@ import useVisitMascotStateMachine from '../../hooks/useVisitMascotStateMachine.j
 import { validateMascotPackV1 } from '../../utils/mascotPack.js';
 import { sanitizeMascotPackDraft } from '../../utils/mascotPackValidationUi.js';
 import { buildVisitMascotCatalogExtraFromValidated } from '../../utils/visitMascotPackExtras.js';
+import {
+  applyPackAssetPreviewUrlsToSpriteCut,
+  buildPackAssetPreviewByFilename,
+} from '../../utils/visitMascotPackManager.js';
 import { VISIT_MASCOT_STATE } from '../../utils/visitMascotState.js';
 import {
   VISIT_MASCOT_INTERACTION_EVENT,
@@ -81,11 +85,21 @@ function describeInteractionResult(result) {
  *   label?: string,
  *   focusSection?: 'all' | 'animations' | 'behaviors',
  *   variant?: 'studio' | 'embedded',
+ *   assetPreviewByFilename?: Record<string, string>,
+ *   packAssets?: Array<Record<string, unknown>>,
  * }} props
  * @param {React.Ref<MascotPackRenderPreviewHandle>} ref
  */
 function MascotPackRenderPreview(
-  { pack, catalogId = '', label = '', focusSection = 'all', variant = 'studio' },
+  {
+    pack,
+    catalogId = '',
+    label = '',
+    focusSection = 'all',
+    variant = 'studio',
+    assetPreviewByFilename: assetPreviewByFilenameProp = {},
+    packAssets = [],
+  },
   ref,
 ) {
   const prefersReducedMotion = usePrefersReducedMotion();
@@ -100,11 +114,27 @@ function MascotPackRenderPreview(
     [pack],
   );
 
+  const assetPreviewByFilename = useMemo(() => {
+    const fromProp =
+      assetPreviewByFilenameProp && typeof assetPreviewByFilenameProp === 'object'
+        ? assetPreviewByFilenameProp
+        : {};
+    if (Object.keys(fromProp).length > 0) return fromProp;
+    return buildPackAssetPreviewByFilename(packAssets);
+  }, [assetPreviewByFilenameProp, packAssets]);
+
   const catalogExtra = useMemo(() => {
     if (!validated.ok) return null;
     const id = String(catalogId || validated.pack.id || '').trim();
-    return buildVisitMascotCatalogExtraFromValidated(validated, id, label);
-  }, [validated, catalogId, label]);
+    const base = buildVisitMascotCatalogExtraFromValidated(validated, id, label);
+    if (!base) return null;
+    const spriteCut = applyPackAssetPreviewUrlsToSpriteCut(
+      base.spriteCut,
+      assetPreviewByFilename,
+      String(validated.pack.framesBase || ''),
+    );
+    return spriteCut && spriteCut !== base.spriteCut ? { ...base, spriteCut } : base;
+  }, [validated, catalogId, label, assetPreviewByFilename]);
 
   const extras = useMemo(() => (catalogExtra ? [catalogExtra] : []), [catalogExtra]);
   const mascotId = catalogExtra?.id || '';
