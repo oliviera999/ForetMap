@@ -15,9 +15,15 @@ import {
  *   pack: Record<string, unknown>,
  *   onUpgradeToV2: () => void,
  *   onPatchRule: (key: string, partial: Record<string, unknown>) => void,
+ *   onTestBehavior?: (key: string) => void,
  * }} props
  */
-export default function MascotInteractionProfileEditor({ pack, onUpgradeToV2, onPatchRule }) {
+export default function MascotInteractionProfileEditor({
+  pack,
+  onUpgradeToV2,
+  onPatchRule,
+  onTestBehavior,
+}) {
   return (
     <div>
       <p className="section-sub" style={{ fontSize: '0.82rem', marginBottom: 10 }}>
@@ -42,9 +48,29 @@ export default function MascotInteractionProfileEditor({ pack, onUpgradeToV2, on
                 key={key}
                 style={{ border: '1px solid rgba(26,71,49,0.12)', borderRadius: 8, padding: 10 }}
               >
-                <strong style={{ fontSize: '0.88rem' }}>
-                  {VISIT_MASCOT_INTERACTION_LABELS[key] || key}
-                </strong>
+                <div
+                  style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: 8,
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                  }}
+                >
+                  <strong style={{ fontSize: '0.88rem' }}>
+                    {VISIT_MASCOT_INTERACTION_LABELS[key] || key}
+                  </strong>
+                  {onTestBehavior ? (
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      onClick={() => onTestBehavior(key)}
+                      aria-label={`Tester ${VISIT_MASCOT_INTERACTION_LABELS[key] || key}`}
+                    >
+                      ▶ Tester
+                    </button>
+                  ) : null}
+                </div>
                 <div
                   style={{
                     marginTop: 6,

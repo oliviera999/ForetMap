@@ -27,6 +27,7 @@ import { STATE_OPTIONS } from '../constants/mascotStateLabels.js';
  *   packAssets?: Array<Record<string, unknown>>,
  *   relaxAssetPrefix?: boolean,
  *   onForceLogout?: () => void,
+ *   hidePreview?: boolean,
  * }} props
  */
 export default function MascotPackWysiwygEditor({
@@ -37,6 +38,7 @@ export default function MascotPackWysiwygEditor({
   visitMapId = '',
   packAssets = [],
   relaxAssetPrefix = false,
+  hidePreview = false,
 }) {
   const [validated, setValidated] = useState(null);
   const [validationIssues, setValidationIssues] = useState([]);
@@ -231,7 +233,13 @@ export default function MascotPackWysiwygEditor({
         </div>
       ) : null}
 
-      <MascotPackPreviewPanel validated={validated} />
+      {!hidePreview ? (
+        <MascotPackPreviewPanel
+          pack={pack}
+          catalogId={catalogId}
+          label={String(pack?.label || '')}
+        />
+      ) : null}
     </div>
   );
 }
