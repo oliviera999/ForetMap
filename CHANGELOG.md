@@ -7,6 +7,19 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Conditionnement « lu/appris » — génération de questions liées (enrichissement contenu)
+
+- **`scripts/generate-linked-questions.js`** (`npm run learning:generate-questions`) : génère, pour
+  chaque ressource sans question liée (status='approved'), une question dont la réponse EST dans la
+  ressource (identité d'espèce GL, définition de glossaire FM/GL/lore, idée-clé/incipit de feuillet,
+  identité de plante FM), avec distracteurs tirés des pools réels et bonne réponse placée
+  aléatoirement. Lien créé en `origin='generated'`, `status='approved'`, `is_gating=1`. Dry-run par
+  défaut, `--apply` pour écrire, idempotent (ne cible que les ressources non couvertes).
+- **`scripts/suggest-learning-links.js`** : option `--types=…` pour cibler/exclure des types de
+  ressources (ex. exclure `species`).
+- **`lib/shared/resourceQuestionGatingCore.js`** : ajout de l'origine de lien `'generated'`.
+- Catégorie quiz FM `glossaire_definitions` (créée à la volée) pour les questions de vocabulaire.
+
 ### Corrigé
 
 - **GL — Carnet de Sélène (admin « Contenus › Carnet Sélène »)** : l'onglet d'édition des feuillets

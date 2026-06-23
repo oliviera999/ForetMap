@@ -30,6 +30,7 @@ function parseArgs(argv) {
     limit: 0,
     apply: false,
     verbose: false,
+    types: null,
   };
   for (const arg of argv) {
     const [k, v] = arg.includes('=') ? arg.split('=') : [arg, null];
@@ -40,6 +41,12 @@ function parseArgs(argv) {
     else if (k === '--limit') opts.limit = Number(v);
     else if (k === '--apply') opts.apply = true;
     else if (k === '--verbose') opts.verbose = true;
+    else if (k === '--types') {
+      opts.types = String(v || '')
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+    }
   }
   return opts;
 }
@@ -276,6 +283,9 @@ async function main() {
     minConfidence: opts.minConfidence,
     maxPerQuestion: opts.maxPerQuestion,
   });
+  if (opts.types && opts.types.length) {
+    candidates = candidates.filter((c) => opts.types.includes(c.resource_type));
+  }
   if (opts.limit > 0) candidates = candidates.slice(0, opts.limit);
 
   report(candidates, opts);

@@ -1405,7 +1405,15 @@ npm run learning:suggest-links -- --product=foretmap --min-confidence=0.6       
 npm run learning:suggest-links -- --product=foretmap --apply                       # insère en 'suggested'
 npm run learning:suggest-links -- --product=gl --dataset=qcm                        # GL écologie
 npm run learning:suggest-links -- --product=gl --dataset=qcm_lore                   # GL lore
+npm run learning:suggest-links -- --product=gl --dataset=qcm --types=glossary       # cibler des types
 ```
+
+**Génération de questions liées** (`scripts/generate-linked-questions.js`, alias
+`npm run learning:generate-questions`) : pour chaque ressource sans question approuvée, crée une
+question dont la réponse EST dans la ressource (identité d'espèce, définition de glossaire,
+idée-clé/incipit de feuillet, identité de plante) + le lien `origin='generated'`, `status='approved'`,
+`is_gating=1`. Dry-run par défaut, `--apply` pour écrire, idempotent. Sert à rendre chaque fiche/terme
+« apprenable » par au moins une question fiable.
 
 Validation par le prof/MJ via les suggestions (`GET …/learning-links?status=suggested`) puis en masse :
 
