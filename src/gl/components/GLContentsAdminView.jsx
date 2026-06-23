@@ -14,6 +14,7 @@ import { GLQcmLoreQuestionEditorPanel } from './admin/GLQcmLoreQuestionEditorPan
 import { GLSpellsEditorPanel } from './admin/GLSpellsEditorPanel.jsx';
 import { GLSpellsImportPanel } from './admin/GLSpellsImportPanel.jsx';
 import { GLLoreFeuilletsImportPanel } from './admin/GLLoreFeuilletsImportPanel.jsx';
+import { GLLoreFeuilletsEditorPanel } from './admin/GLLoreFeuilletsEditorPanel.jsx';
 import { GLLoreGlossaryImportPanel } from './admin/GLLoreGlossaryImportPanel.jsx';
 import { GLContentLibraryView } from './admin/GLContentLibraryView.jsx';
 import { GLIntroAdminPanel } from './admin/GLIntroAdminPanel.jsx';
@@ -203,7 +204,12 @@ export function GLContentsAdminView({
           ImportPanel={GLSpellsImportPanel}
         />
       ) : section === 'lore-carnet' ? (
-        <GLLoreFeuilletsImportPanel />
+        <GLContentCatalogPanel
+          manualLabel="Feuillets"
+          importLabel="Import / export XLSX"
+          ManualPanel={GLLoreFeuilletsEditorPanel}
+          ImportPanel={GLLoreFeuilletsImportPanel}
+        />
       ) : section === 'lore-glossary' ? (
         <GLLoreGlossaryImportPanel />
       ) : section === 'intro' ? (

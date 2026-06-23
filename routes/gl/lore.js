@@ -20,6 +20,7 @@ const {
   loadFeuilletStates,
   findFeuilletsForZone,
   upsertFeuilletState,
+  updateFeuilletFields,
 } = require('../../lib/glLoreFeuillets');
 const { GL_DEMO_FEUILLET_CODES } = require('../../lib/gl/demoFeuillets');
 const { canPresentFeuillet } = require('../../lib/glLoreFeuilletRetrigger');
@@ -628,6 +629,76 @@ router.put(
       [kingdomZoneId, code],
     );
     return res.json({ ok: true, feuilletCode: code, kingdomZoneId });
+  }),
+);
+
+// PUT /admin/feuillets/:code — édition unitaire d'un feuillet (carnet de Sélène).
+router.put(
+  '/admin/feuillets/:code',
+  requireGlPermission('gl.content.manage'),
+  asyncHandler(async (req, res) => {
+    const code = String(req.params.code || '').trim();
+    if (!code) return res.status(400).json({ error: 'Code invalide' });
+    const existing = await queryOne(
+      'SELECT feuillet_code FROM gl_lore_feuillets WHERE feuillet_code = ? LIMIT 1',
+      [code],
+    );
+    if (!existing) return res.status(404).json({ error: 'Feuillet introuvable' });
+
+    // Réutilise la normalisation de l'import (type/mode/url/biome alias, etc.).
+    const { payload, errors } = buildFeuilletPayload({ ...(req.body || {}), feuillet_code: code });
+    if (errors.length) {
+      return res.status(400).json({ error: errors[0].error, errors });
+    }
+    // buildFeuilletPayload force statut='actif' : on autorise actif/inactif côté éditeur.
+    payload.statut =
+      String(req.body?.statut || '').toLowerCase() === 'inactif' ? 'inactif' : 'actif';
+
+    // Tolérance biome cohérente avec l'import : hors-référentiel → enregistré sans biome.
+    let warning = null;
+    if (payload.biome_slug) {
+      const biomeRows = await queryAll('SELECT slug FROM gl_biomes');
+      const knownBiomes = new Set(biomeRows.map((r) => String(r.slug)));
+      if (!knownBiomes.has(payload.biome_slug)) {
+        warning = {
+          field: 'biome_slug',
+          warning: `Biome inconnu « ${payload.biome_slug} » ignoré (enregistré sans biome)`,
+        };
+        payload.biome_slug = null;
+      }
+    }
+
+    await updateFeuilletFields({ execute }, code, payload);
+    const row = await queryOne(
+      `SELECT ${FEUILLET_SELECT} FROM gl_lore_feuillets f WHERE f.feuillet_code = ? LIMIT 1`,
+      [code],
+    );
+    return res.json({ ok: true, feuillet: formatFeuilletRow(row, { isMj: true }), warning });
+  }),
+);
+
+// PATCH /admin/feuillets/:code — archivage / réactivation (statut).
+router.patch(
+  '/admin/feuillets/:code',
+  requireGlPermission('gl.content.manage'),
+  asyncHandler(async (req, res) => {
+    const code = String(req.params.code || '').trim();
+    if (!code) return res.status(400).json({ error: 'Code invalide' });
+    const existing = await queryOne(
+      'SELECT feuillet_code FROM gl_lore_feuillets WHERE feuillet_code = ? LIMIT 1',
+      [code],
+    );
+    if (!existing) return res.status(404).json({ error: 'Feuillet introuvable' });
+    const statut = String(req.body?.statut || '').toLowerCase() === 'actif' ? 'actif' : 'inactif';
+    await execute(
+      'UPDATE gl_lore_feuillets SET statut = ?, updated_at = NOW() WHERE feuillet_code = ?',
+      [statut, code],
+    );
+    const row = await queryOne(
+      `SELECT ${FEUILLET_SELECT} FROM gl_lore_feuillets f WHERE f.feuillet_code = ? LIMIT 1`,
+      [code],
+    );
+    return res.json({ ok: true, feuillet: formatFeuilletRow(row, { isMj: true }) });
   }),
 );
 

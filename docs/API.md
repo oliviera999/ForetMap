@@ -146,6 +146,8 @@ Le script accepte aussi :
 | GET          | `/api/gl/lore/glossary/link-index`                            | —                                                                                                                                                                                                                                                                                                                         | Auth GL — index auto-liens front (`lore_code`, `terme`, `variantes`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | GET          | `/api/gl/lore/admin/feuillets`                                | `?q=`                                                                                                                                                                                                                                                                                                                     | `gl.content.manage`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | PUT          | `/api/gl/lore/admin/feuillets/:code/kingdom-zone`             | `{ kingdomZoneId \| null }`                                                                                                                                                                                                                                                                                               | `gl.content.manage`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| PUT          | `/api/gl/lore/admin/feuillets/:code`                          | `{ ...champs feuillet }`                                                                                                                                                                                                                                                                                                  | `gl.content.manage` — édition unitaire d'un feuillet ; renvoie `{ ok, feuillet, warning? }` (biome hors-référentiel → `biome_slug = NULL` + `warning`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| PATCH        | `/api/gl/lore/admin/feuillets/:code`                          | `{ statut }`                                                                                                                                                                                                                                                                                                              | `gl.content.manage` — archivage / réactivation (`actif` / `inactif`) ; renvoie `{ ok, feuillet }`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | POST         | `/api/gl/lore/admin/feuillets/import`                         | `{ fileDataBase64, dryRun? }`                                                                                                                                                                                                                                                                                             | `gl.content.manage` (feuilles `feuillets`, `plateaux` ; **noms de feuilles insensibles à la casse/accents**, feuilles et colonnes en trop **ignorées** ; colonnes `image_url`, `image_coupe_url` optionnelles ; cellule vide = inchangé en mise à jour ; **biome hors-référentiel → feuillet importé sans biome** + `report.feuillets.warnings`, jamais de skip ; `type`/`mode_apparition` inconnus → valeurs par défaut)                                                                                                                                                                                                                                       |
 | GET          | `/api/gl/lore/admin/feuillets/import/template`                | —                                                                                                                                                                                                                                                                                                                         | `gl.content.manage` (modèle inclut `image_url`, `image_coupe_url`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | GET          | `/api/gl/lore/admin/feuillets/export`                         | —                                                                                                                                                                                                                                                                                                                         | `gl.content.manage` (export XLSX avec `image_url`, `image_coupe_url`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
@@ -1335,6 +1337,86 @@ Import local : `npm run db:import:biodiv` (après `npm run db:migrate`).
 - **404** : Ressource introuvable.
 - **409** : Conflit (ex. compte déjà existant).
 - **503** : Mode n3boss non configuré (`TEACHER_PIN` ou `JWT_SECRET` manquant en production).
+
+---
+
+## Liens ressources ↔ questions & conditionnement du marquage
+
+Backbone permettant d'associer une **ressource** (fiche espèce, tutoriel, terme de glossaire, feuillet…)
+aux **questions** dont la réponse s'y trouve (relation N-N), puis de **conditionner** le marquage
+« lu/appris » à la réussite de ces questions. **Désactivé par défaut** : aucun effet runtime tant que
+le flag de gating est à `false` ; les routes ci-dessous servent à préparer/configurer les liens.
+
+Modèle polymorphe : `resource_type` (liste ouverte) + `resource_ref` (id ou code) ↔ `question_code`.
+Politique par ressource : `mode` ∈ `inherit|off|any|all|threshold`, `required_correct`, `enabled`
+(résolue avec les défauts du site).
+
+### ForetMap — `/api/learning-links` (prof, permission `plants.manage`)
+
+| Méthode | Route                                                   | Description                                                                                                      |
+| ------- | ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| GET     | `/api/learning-links`                                   | Liste filtrable (`resourceType`, `resourceRef`, `questionCode`, `status`).                                       |
+| POST    | `/api/learning-links`                                   | Crée/MAJ un lien (idempotent sur `resource_type+resource_ref+question_code`). `404` si la question n'existe pas. |
+| PATCH   | `/api/learning-links/:id`                               | Modifie `is_gating` / `weight` / `status` / `note`.                                                              |
+| DELETE  | `/api/learning-links/:id`                               | Supprime un lien.                                                                                                |
+| GET     | `/api/learning-links/policy?resourceType=&resourceRef=` | Politique brute + **effective** (fusion avec les défauts du site).                                               |
+| PUT     | `/api/learning-links/policy`                            | Définit la politique d'une ressource (`mode`, `required_correct`, `enabled`).                                    |
+| GET     | `/api/learning-links/config`                            | Réglages site effectifs (lecture seule ; écriture via `/api/settings`).                                          |
+
+Réglages site (table `app_settings`, scope `teacher`, modifiables via `/api/settings`) :
+`learning.gating.enabled` (def. `false`), `learning.gating.auto_mark_on_correct` (def. `true`),
+`learning.gating.default_mode` (`off|any|all|threshold`, def. `any`),
+`learning.gating.default_required_correct` (1–50, def. `1`).
+
+### GL — `/api/gl/learning-links` (MJ/admin, JWT `product:'gl'`)
+
+Types de ressources : `species|glossary|lore_glossary|tutorial|feuillet`. `question_dataset` obligatoire
+(`qcm` | `qcm_lore`). Permission `gl.content.manage` (liens/politique), `gl.settings.manage` (réglages).
+
+| Méthode        | Route                                        | Description                                                                                   |
+| -------------- | -------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| GET            | `/api/gl/learning-links`                     | Liste filtrable (`questionDataset`, `resourceType`, `resourceRef`, `questionCode`, `status`). |
+| POST           | `/api/gl/learning-links`                     | Crée/MAJ un lien (idempotent). `404` si la question n'existe pas dans le dataset visé.        |
+| PATCH / DELETE | `/api/gl/learning-links/:id`                 | Modifie / supprime un lien.                                                                   |
+| GET / PUT      | `/api/gl/learning-links/policy`              | Politique de conditionnement par ressource (idem ForetMap).                                   |
+| GET            | `/api/gl/learning-links/settings`            | Réglages de gating GL effectifs.                                                              |
+| PUT            | `/api/gl/learning-links/settings`            | Modifie un réglage (`gl.settings.manage`) : `{ key, value }`.                                 |
+| PUT            | `/api/gl/learning-links/chapter-granularity` | Surcharge granularité d'un chapitre de jeu (`{ chapterId, granularity }`, `null` = hérite).   |
+| PUT            | `/api/gl/learning-links/scope-granularity`   | Surcharge granularité d'un scope lore (`{ scopeSlug, granularity }`).                         |
+
+Réglages site GL (table `gl_settings`) : `gating.enabled` (def. `false`),
+`gating.granularity` (`player|team|per_resource`, def. `player`), `gating.auto_mark_on_correct`,
+`gating.default_mode`, `gating.default_required_correct`. Persistance des tentatives QCM par lecteur :
+table `gl_qcm_attempts` (alimente le mode `player`).
+
+> **Isolement** : un JWT `product:'gl'` est rejeté sur `/api/learning-links` et inversement (couvert par tests).
+
+### Suggestion automatique de liens (phase 2)
+
+Génération de liens candidats par rapprochement **textuel** (énoncé + tags + mots-clés des
+questions ↔ libellés des ressources : termes/variantes, noms d'espèces, titres de feuillets/tutoriels).
+Moteur pur `lib/shared/resourceQuestionMatch.js` ; script `scripts/suggest-learning-links.js` (alias
+`npm run learning:suggest-links`). **Dry-run par défaut** (rapport sans écriture) ; `--apply` insère en
+`origin='auto'`, `status='suggested'`. Idempotent (ne re-suggère jamais un couple déjà présent, tous
+statuts confondus).
+
+```bash
+npm run learning:suggest-links -- --product=foretmap --min-confidence=0.6          # rapport
+npm run learning:suggest-links -- --product=foretmap --apply                       # insère en 'suggested'
+npm run learning:suggest-links -- --product=gl --dataset=qcm                        # GL écologie
+npm run learning:suggest-links -- --product=gl --dataset=qcm_lore                   # GL lore
+```
+
+Validation par le prof/MJ via les suggestions (`GET …/learning-links?status=suggested`) puis en masse :
+
+| Méthode | Route                           | Description                                                                              |
+| ------- | ------------------------------- | ---------------------------------------------------------------------------------------- |
+| POST    | `/api/learning-links/review`    | `{ ids:[…], action:'approve'\|'reject' }` → bascule le `status` (prof, `plants.manage`). |
+| POST    | `/api/gl/learning-links/review` | Idem côté GL (`gl.content.manage`).                                                      |
+
+> Le **runtime** (auto-marquage sur bonne réponse + enregistrement des tentatives) n'est volontairement
+> **pas encore branché** : il ne doit considérer que les liens `status='approved'`. C'est l'étape
+> suivante de la phase 2, une fois les liens validés sur le contenu réel.
 
 ---
 
