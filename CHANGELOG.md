@@ -22,7 +22,8 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   `DEPLOY_DB_PRE_MIGRATE_BACKUP` (voir `.env.example`).
 - **Tag/release auto** : `.github/workflows/release-tag.yml` pose `vX.Y.Z` + GitHub Release
   (notes depuis le CHANGELOG) quand la version change sur `main` (idempotent).
-- **Doc** : `docs/EXPLOITATION.md` (section « Sauvegardes, rollback et alertes »), `docs/VERSIONING.md`.
+- **Doc** : `docs/EXPLOITATION.md` (section « Sauvegardes, rollback et alertes »), `docs/VERSIONING.md`,
+  `docs/CRONTAB.md` (mémo crontab serveur prêt à coller : deploy + sauvegarde + uptime).
 - **Tests** : `tests/ops-alert.test.js` (`sendOpsAlert`, transport JSON).
 
 ### Pipeline build — garde-fou `dist/` à jour (CI + hook) et correctif sync miroir
