@@ -76,9 +76,11 @@ describe('GLAuthView', () => {
   test('affiche la page de garde (titre, accroche tournante, baseline, CTA miroir)', async () => {
     render(<GLAuthView onLogin={() => {}} />);
 
-    expect(await screen.findByText(/De l'équateur au pôle/i)).toBeInTheDocument();
+    expect(await screen.findByText(/réécrivez le monde vivant/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Franchir le miroir' })).toBeInTheDocument();
     const tagline = screen.getByTestId('gl-auth-tagline');
     expect(tagline.textContent.trim().length).toBeGreaterThan(0);
+    expect(screen.getByText('Lire la quatrième de couverture')).toBeInTheDocument();
+    expect(screen.getByText(/Une voyageuse est partie avant vous/i)).toBeInTheDocument();
   });
 });

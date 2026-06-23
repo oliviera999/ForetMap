@@ -32,6 +32,17 @@ export const GL_AUTH_TAGLINES = Object.freeze([
 export const GL_AUTH_BASELINE =
   "De l'équateur au pôle, réécrivez le monde vivant avant que le Souffle ne l'efface.";
 
+/**
+ * Quatrième de couverture (≈ 85 mots) — dépliée à la demande sur la page de garde
+ * (« Lire la quatrième de couverture »). Tableau de paragraphes pour une typographie
+ * soignée. Source unique de ce texte dans l'application.
+ */
+export const GL_AUTH_BACK_COVER = Object.freeze([
+  "Une voyageuse est partie avant vous — de l'équateur au pôle Nord, pour connaître et nommer tout le vivant. Elle a tout consigné dans un carnet. Puis le carnet est revenu seul. Et il s'efface.",
+  "Car une force le ronge : le Souffle, qui dessèche le monde jusqu'au nom des êtres. Franchissez le miroir, devenez Gnome qui répare ou Licorne qui révèle, et reprenez sa route. Observer, comprendre, nommer le vivant suffit à le faire réapparaître.",
+  "Une année entière pour réécrire le carnet — avant qu'il ne disparaisse.",
+]);
+
 export const GL_AUTH_CTA_LABEL = 'Franchir le miroir';
 
 /**

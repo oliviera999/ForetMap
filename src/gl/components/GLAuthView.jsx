@@ -5,7 +5,12 @@ import { apiGL } from '../services/apiGL.js';
 import { GLBrandHub } from './GLBrandHub.jsx';
 import { GLIntroOverlay, hasSeenGlIntro } from './GLIntroOverlay.jsx';
 import { isModuleEnabled } from '../constants/modules.js';
-import { GL_AUTH_BASELINE, GL_AUTH_CTA_LABEL, pickGlAuthTagline } from '../constants/authCover.js';
+import {
+  GL_AUTH_BACK_COVER,
+  GL_AUTH_BASELINE,
+  GL_AUTH_CTA_LABEL,
+  pickGlAuthTagline,
+} from '../constants/authCover.js';
 import { GLButton } from './ui/GLButton.jsx';
 import { GLField } from './ui/GLField.jsx';
 import { GLInput } from './ui/GLInput.jsx';
@@ -240,6 +245,14 @@ export function GLAuthView({ onLogin, oauthNotice, config, appVersion = null }) 
           <p className="gl-auth-baseline gl-hint">{GL_AUTH_BASELINE}</p>
           {platformSubtitle ? <p className="gl-hint">{platformSubtitle}</p> : null}
         </header>
+        <details className="gl-auth-backcover">
+          <summary>Lire la quatrième de couverture</summary>
+          {GL_AUTH_BACK_COVER.map((paragraph) => (
+            <p key={paragraph.slice(0, 24)} className="gl-auth-backcover__text">
+              {paragraph}
+            </p>
+          ))}
+        </details>
         <p className="gl-hint">
           Connecte-toi avec ton pseudo ou ton identifiant. Ton profil (joueur, MJ ou admin) est
           déterminé après connexion.

@@ -3,6 +3,7 @@ import { describe, test, expect } from 'vitest';
 import {
   GL_AUTH_TAGLINES,
   GL_AUTH_BASELINE,
+  GL_AUTH_BACK_COVER,
   GL_AUTH_CTA_LABEL,
   pickGlAuthTagline,
 } from '../../src/gl/constants/authCover.js';
@@ -25,6 +26,20 @@ describe('authCover (page de garde GL)', () => {
     expect(GL_AUTH_CTA_LABEL).toBe('Franchir le miroir');
     expect(GL_AUTH_BASELINE).toMatch(/équateur au pôle/i);
     expect(GL_AUTH_BASELINE).toMatch(/Souffle/);
+  });
+
+  test('quatrième de couverture : trois paragraphes fidèles au lore (~85 mots)', () => {
+    expect(Array.isArray(GL_AUTH_BACK_COVER)).toBe(true);
+    expect(GL_AUTH_BACK_COVER).toHaveLength(3);
+    const full = GL_AUTH_BACK_COVER.join(' ');
+    expect(full).toMatch(/équateur au pôle Nord/i);
+    expect(full).toMatch(/le Souffle/);
+    expect(full).toMatch(/Franchissez le miroir/i);
+    expect(full).toMatch(/Gnome/);
+    expect(full).toMatch(/Licorne/);
+    const words = full.split(/\s+/).filter(Boolean).length;
+    expect(words).toBeGreaterThanOrEqual(70);
+    expect(words).toBeLessThanOrEqual(100);
   });
 
   test('pickGlAuthTagline couvre tout l’éventail selon le tirage', () => {
