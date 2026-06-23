@@ -19,6 +19,12 @@ set -euo pipefail
 #   (ex. docs seulement) — opt-in, défaut 0 = toujours redémarrer après pull
 # - DEPLOY_SOFT_CHANGE_REGEX : ERE grep (défaut: CHANGELOG, README, LICENSE, docs/, .github/, .cursor/)
 # - DEPLOY_SKIP_SYNC_VISIT_PACK_LIB : 1 pour ne pas exécuter scripts/sync-visit-pack-server-lib.js après pull
+# - DEPLOY_AUTO_ROLLBACK : 1 (défaut) pour revenir au commit précédent si post-deploy-check
+#   échoue après redémarrage (reset --hard + re-sync + npm ci + restart + re-check) ;
+#   0 pour désactiver. NB : le rollback annule le CODE, pas une migration BDD déjà
+#   appliquée (schéma forward-only) — d'où le snapshot pré-migration (scripts/db-backup.sh).
+# - DEPLOY_DB_PRE_MIGRATE_BACKUP : 1 (défaut) pour un dump BDD juste avant db:migrate.
+# - OPS_ALERT_TO / SMTP_* : alerte email sur échec/rollback (voir scripts/ops-alert.js).
 #
 # Prérequis:
 # - DEPLOY_SECRET requis uniquement si un redémarrage est prévu (défaut ou après
@@ -43,6 +49,43 @@ DEPLOY_AUTO_MIGRATE="${DEPLOY_AUTO_MIGRATE:-0}"
 DEPLOY_SKIP_RESTART_IF_SOFT_ONLY="${DEPLOY_SKIP_RESTART_IF_SOFT_ONLY:-0}"
 DEPLOY_SOFT_CHANGE_REGEX="${DEPLOY_SOFT_CHANGE_REGEX:-^(CHANGELOG\.md|README\.md|LICENSE(\.txt)?|\.gitattributes|docs/|\.github/|\.cursor/)}"
 DEPLOY_SKIP_SYNC_VISIT_PACK_LIB="${DEPLOY_SKIP_SYNC_VISIT_PACK_LIB:-0}"
+DEPLOY_AUTO_ROLLBACK="${DEPLOY_AUTO_ROLLBACK:-1}"
+DEPLOY_DB_PRE_MIGRATE_BACKUP="${DEPLOY_DB_PRE_MIGRATE_BACKUP:-1}"
+
+# Alerte d'exploitation par email (best-effort, ne casse jamais le flux).
+alert() {
+  local subject="$1"
+  shift
+  node "$APP_DIR/scripts/ops-alert.js" "$subject" "$*" >/dev/null 2>&1 || true
+}
+
+# Retour au commit précédent puis re-vérification. Utilise les globales
+# PREV_SHA / CHANGED_FILES / DEPLOY_* au moment de l'appel. Termine le script.
+rollback_to() {
+  log "ROLLBACK vers $PREV_SHA"
+  git reset --hard "$PREV_SHA"
+
+  if [[ "$DEPLOY_SKIP_SYNC_VISIT_PACK_LIB" != "1" ]] && [[ -f "$APP_DIR/scripts/sync-visit-pack-server-lib.js" ]]; then
+    node scripts/sync-visit-pack-server-lib.js || true
+  fi
+  if grep -Eq '(^|/)(package\.json|package-lock\.json)$' <<<"$CHANGED_FILES"; then
+    npm ci --omit=dev --no-audit --no-fund || true
+  fi
+  if [[ -n "${DEPLOY_SECRET:-}" ]]; then
+    curl -fsS -X POST "$DEPLOY_BASE_URL/api/admin/restart" \
+      -H "X-Deploy-Secret: $DEPLOY_SECRET" -H "Content-Type: application/json" >/dev/null 2>&1 || true
+  fi
+
+  log "Re-vérification après rollback"
+  if node scripts/post-deploy-check.js --base-url "$DEPLOY_BASE_URL"; then
+    log "Rollback OK : service rétabli sur $PREV_SHA."
+    alert "Rollback réussi" "Déploiement vers $REMOTE_SHA en échec : retour sur $PREV_SHA, service vérifié OK."
+  else
+    log "ÉCHEC : service toujours KO après rollback."
+    alert "Rollback EN ÉCHEC" "Service toujours KO après retour sur $PREV_SHA — intervention manuelle requise."
+  fi
+  exit 1
+}
 
 # Lock simple anti-cron concurrent
 if ! mkdir "$DEPLOY_LOCK_DIR" 2>/dev/null; then
@@ -83,6 +126,7 @@ if [[ "$LOCAL_SHA" == "$REMOTE_SHA" ]]; then
 fi
 
 log "Mise à jour détectée: $LOCAL_SHA -> $REMOTE_SHA"
+PREV_SHA="$LOCAL_SHA" # cible de rollback si le déploiement échoue
 
 # Détermine les fichiers changés pour déclencher les étapes utiles.
 CHANGED_FILES="$(git diff --name-only "$LOCAL_SHA" "$REMOTE_SHA" || true)"
@@ -147,22 +191,47 @@ if grep -Eq '(^|/)(package\.json|package-lock\.json)$' <<<"$CHANGED_FILES"; then
 fi
 
 if [[ "$DEPLOY_AUTO_MIGRATE" == "1" ]] && grep -Eq '^migrations/' <<<"$CHANGED_FILES"; then
+  if [[ "$DEPLOY_DB_PRE_MIGRATE_BACKUP" == "1" ]] && [[ -f "$APP_DIR/scripts/db-backup.sh" ]]; then
+    log "Snapshot BDD pré-migration"
+    APP_DIR="$APP_DIR" DEPLOY_ENV_FILE="$DEPLOY_ENV_FILE" bash "$APP_DIR/scripts/db-backup.sh" --label pre-migrate ||
+      log "Snapshot pré-migration en échec (non bloquant)."
+  fi
   log "Migrations détectées: npm run db:migrate"
-  npm run db:migrate
+  if ! npm run db:migrate; then
+    log "ÉCHEC de db:migrate."
+    alert "Migration BDD ÉCHEC" "npm run db:migrate a échoué ($PREV_SHA -> $REMOTE_SHA). Snapshot pré-migration disponible dans backups/."
+    if [[ "$DEPLOY_AUTO_ROLLBACK" == "1" ]]; then
+      rollback_to
+    fi
+    exit 1
+  fi
 fi
 
 if [[ "$DO_DEPLOY_RESTART" == "1" ]]; then
   log "Redémarrage applicatif via /api/admin/restart"
-  curl -fsS -X POST "$DEPLOY_BASE_URL/api/admin/restart" \
+  # Tolérant : une réponse passerelle pendant l'arrêt gracieux n'est pas fatale ;
+  # post-deploy-check ci-dessous est l'arbitre. On alerte seulement.
+  if ! curl -fsS -X POST "$DEPLOY_BASE_URL/api/admin/restart" \
     -H "X-Deploy-Secret: $DEPLOY_SECRET" \
-    -H "Content-Type: application/json" \
-    >/dev/null
+    -H "Content-Type: application/json" >/dev/null 2>&1; then
+    log "Appel /api/admin/restart non confirmé (le check post-déploiement tranchera)."
+    alert "Restart non confirmé" "POST /api/admin/restart sans réponse 2xx ($PREV_SHA -> $REMOTE_SHA)."
+  fi
 else
   log "Aucun redémarrage applicatif (déploiement sans impact processus Node)."
 fi
 
 log "Vérification post-déploiement"
-node scripts/post-deploy-check.js --base-url "$DEPLOY_BASE_URL"
-
-NEW_SHA="$(git rev-parse HEAD)"
-log "Déploiement terminé avec succès sur $NEW_SHA"
+if node scripts/post-deploy-check.js --base-url "$DEPLOY_BASE_URL"; then
+  NEW_SHA="$(git rev-parse HEAD)"
+  log "Déploiement terminé avec succès sur $NEW_SHA"
+else
+  log "post-deploy-check en échec après déploiement."
+  alert "Post-deploy-check ÉCHEC" "Déploiement $PREV_SHA -> $REMOTE_SHA : la vérification a échoué."
+  if [[ "$DEPLOY_AUTO_ROLLBACK" == "1" ]]; then
+    rollback_to
+  else
+    log "Rollback auto désactivé (DEPLOY_AUTO_ROLLBACK=0) : service potentiellement dégradé."
+    exit 1
+  fi
+fi
