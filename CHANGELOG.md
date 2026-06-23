@@ -7,6 +7,16 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### GL — correctif import partiel des feuillets Sélène
+
+- **Correctif critique** : l’upsert des feuillets GL respecte maintenant le contrat
+  « cellule vide = champ inchangé » pour les mises à jour partielles. Un import limité à
+  quelques colonnes ne remet plus à `NULL` les textes, biomes, images, liens ou compteurs
+  existants, et ne force plus `type`, `mode_apparition`, `effacement` ou `statut` à leurs
+  valeurs par défaut.
+- **Tests** : couverture ciblée dans `tests/gl-lore-import.test.js` sur les drapeaux de mise à
+  jour générés pour une feuille `code,titre`.
+
 ### GL — import carnet de Sélène : tolérance maximale + corpus v3 (157 feuillets)
 
 - **Import feuillets robuste** (`lib/glLoreFeuilletsImport.js`) — ce type de fichier ne doit jamais
