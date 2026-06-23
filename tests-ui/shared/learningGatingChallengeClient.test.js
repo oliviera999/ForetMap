@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { pendingChallengeQuestions } from '../../src/shared/utils/learningGatingChallengeClient.js';
+import {
+  pendingChallengeQuestions,
+  buildGatingQuizIntroMessage,
+} from '../../src/shared/utils/learningGatingChallengeClient.js';
 
 describe('pendingChallengeQuestions', () => {
   it('retourne les questions sans bonne réponse', () => {
@@ -18,5 +21,24 @@ describe('pendingChallengeQuestions', () => {
     expect(
       pendingChallengeQuestions({ required: false, questions: [{ question_code: 'Q1' }] }),
     ).toEqual([]);
+  });
+});
+
+describe('buildGatingQuizIntroMessage', () => {
+  it('formule au singulier', () => {
+    const msg = buildGatingQuizIntroMessage(1, 'Gnou bleu');
+    expect(msg).toContain('une question');
+    expect(msg).toContain('sera posée');
+    expect(msg).toContain('Gnou bleu');
+  });
+
+  it('formule au pluriel', () => {
+    const msg = buildGatingQuizIntroMessage(3, 'Tutoriel');
+    expect(msg).toContain('3 questions');
+    expect(msg).toContain('seront posées');
+  });
+
+  it('retourne vide si aucune question', () => {
+    expect(buildGatingQuizIntroMessage(0)).toBe('');
   });
 });
