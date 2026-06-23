@@ -5,6 +5,7 @@ import { apiGL } from '../services/apiGL.js';
 import { GLBrandHub } from './GLBrandHub.jsx';
 import { GLIntroOverlay, hasSeenGlIntro } from './GLIntroOverlay.jsx';
 import { isModuleEnabled } from '../constants/modules.js';
+import { GL_AUTH_BASELINE, GL_AUTH_CTA_LABEL, pickGlAuthTagline } from '../constants/authCover.js';
 import { GLButton } from './ui/GLButton.jsx';
 import { GLField } from './ui/GLField.jsx';
 import { GLInput } from './ui/GLInput.jsx';
@@ -60,6 +61,8 @@ export function GLAuthView({ onLogin, oauthNotice, config, appVersion = null }) 
   const [resetPassword, setResetPassword] = useState('');
   const [forceIntro, setForceIntro] = useState(false);
   const [introDismissed, setIntroDismissed] = useState(false);
+  // Accroche tirée une fois par chargement (les trois registres tournent au hasard).
+  const [tagline] = useState(() => pickGlAuthTagline());
 
   const introModuleEnabled =
     modulesLoaded && isModuleEnabled(modules || config?.modules, 'introEnabled');
@@ -229,8 +232,14 @@ export function GLAuthView({ onLogin, oauthNotice, config, appVersion = null }) 
           </div>
         ) : null}
 
-        <h1>{platformTitle}</h1>
-        {platformSubtitle ? <p className="gl-hint">{platformSubtitle}</p> : null}
+        <header className="gl-auth-cover">
+          <h1 className="gl-auth-title">{platformTitle}</h1>
+          <p className="gl-auth-tagline" data-testid="gl-auth-tagline">
+            {tagline.text}
+          </p>
+          <p className="gl-auth-baseline gl-hint">{GL_AUTH_BASELINE}</p>
+          {platformSubtitle ? <p className="gl-hint">{platformSubtitle}</p> : null}
+        </header>
         <p className="gl-hint">
           Connecte-toi avec ton pseudo ou ton identifiant. Ton profil (joueur, MJ ou admin) est
           déterminé après connexion.
@@ -274,7 +283,7 @@ export function GLAuthView({ onLogin, oauthNotice, config, appVersion = null }) 
             />
           </GLField>
           <GLButton type="submit" variant="primary" loading={busy}>
-            {busy ? '…' : 'Se connecter'}
+            {busy ? '…' : GL_AUTH_CTA_LABEL}
           </GLButton>
           <GLButton
             type="button"
