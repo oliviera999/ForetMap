@@ -16,6 +16,28 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   valeurs par défaut.
 - **Tests** : couverture ciblée dans `tests/gl-lore-import.test.js` sur les drapeaux de mise à
   jour générés pour une feuille `code,titre`.
+### GL — page de garde de la connexion : titre, accroches tournantes, « Franchir le miroir », 4ᵉ de couverture
+
+- **Écran de connexion** (`src/gl/components/GLAuthView.jsx`) : nouvelle page de garde —
+  titre de couverture, **accroche narrative tirée au hasard** parmi trois registres
+  (Mystère / Mission / Émerveillement) à chaque chargement, baseline
+  « De l'équateur au pôle, réécrivez le monde vivant avant que le Souffle ne l'efface. »,
+  et bouton d'entrée renommé **« Franchir le miroir »** (remplace « Se connecter »).
+  Le formulaire (identifiant, mot de passe, Google, mode découverte) reste visible et inchangé.
+- **Quatrième de couverture** : dépliant accessible « Lire la quatrième de couverture »
+  (`<details>`, cible tactile ≥ 44 px) sous la couverture — le texte (≈ 85 mots, trois paragraphes)
+  prolonge la métaphore du livre (couverture → on retourne le livre).
+- **Métadonnées de partage** (`vite.config.js`, plugin `gl-share-meta`) : la 4ᵉ de couverture est
+  aussi injectée comme `description` + Open Graph (`og:title/description/type/site_name/locale`) +
+  Twitter Card dans **`gl.html` uniquement** (aperçus de lien / SEO), depuis la même source unique.
+- **Contenus isolés** (`src/gl/constants/authCover.js`) : accroches, baseline, **4ᵉ de couverture**,
+  libellé du CTA et helper `pickGlAuthTagline()` (RNG injectable) — source unique des textes,
+  prévue pour un pilotage ultérieur via `gl_settings` sans retoucher le composant.
+- **Intro cinématique inchangée** : la métaphore « boîte / copiste » est conservée ; le « miroir »
+  ne se superpose pour l'instant que sur l'écran de connexion.
+- **Tests** (`tests-ui/gl/glAuthCover.test.js`, `tests-ui/gl/GLAuthView.test.jsx`) : tirage des
+  accroches, conformité CTA/baseline/4ᵉ de couverture, rendu de la page de garde ; libellé du
+  submit mis à jour.
 ### Conditionnement « lu/appris » — phase 2 (pré-préparation : suggestion + validation des liens)
 
 - **Moteur de suggestion textuelle** `lib/shared/resourceQuestionMatch.js` (pur, sans BDD) :
