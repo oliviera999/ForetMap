@@ -1,5 +1,6 @@
 const express = require('express');
 const { queryAll, queryOne, execute, withTransaction } = require('../../database');
+const { recordGlAttemptAndAutoMark } = require('../../lib/learningGatingRuntime');
 const { requireGlPermission } = require('../../middleware/requireGlAuth');
 const { getGameplaySettings } = require('../../lib/glSettings');
 const {
@@ -270,6 +271,11 @@ router.post(
       );
       const glossaryByKey = await loadGlossaryLookup();
       const glossaryTerms = await enrichQuestionWithGlossary(row, glossaryByKey);
+      // Tentative par lecteur + auto-marquage des ressources liees (inerte si gating OFF).
+      await recordGlAttemptAndAutoMark(
+        { queryAll, queryOne, execute },
+        { glAuth: req.glAuth, dataset: 'qcm', questionCode: code, isCorrect: result.correct },
+      );
       return res.json({
         correct: result.correct,
         feedback: resolveQcmAnswerFeedback(row, result),
