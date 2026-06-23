@@ -206,9 +206,60 @@ test('applyFeuilletsImport dry-run sans erreur fatale', async () => {
   };
   const report = await applyFeuilletsImport(deps, parsed, { dryRun: true });
   assert.strictEqual(report.dryRun, true);
-  assert.strictEqual(report.feuillets.upserted, 144);
+  // Pas de compteur figé : l'assertion suit le nombre réellement parsé, pour que toute
+  // évolution du corpus (ajout/retrait de feuillets) ne casse pas la CI.
+  assert.strictEqual(report.feuillets.upserted, parsed.feuilletRows.length);
+  assert.ok(report.feuillets.upserted >= 100, 'corpus de référence attendu (>= 100 feuillets)');
   assert.strictEqual(report.feuillets.skipped, 0);
   assert.strictEqual(report.feuillets.errors.length, 0);
+});
+
+test('applyFeuilletsImport tolère un biome inconnu (import sans biome + avertissement)', async () => {
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(
+    wb,
+    XLSX.utils.aoa_to_sheet([
+      ['code', 'type', 'titre', 'biome_slug'],
+      ['feui-biome-inconnu', 'feuillet', 'Biome hors référentiel', 'biome_inexistant_xyz'],
+    ]),
+    'feuillets',
+  );
+  const parsed = await parseFeuilletsWorkbook(XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }));
+  assert.strictEqual(parsed.feuilletRows.length, 1);
+
+  let capturedParams = null;
+  const deps = {
+    queryAll: async (sql) => (String(sql).includes('gl_biomes') ? [{ slug: 'sahara' }] : []),
+    execute: async (_sql, params) => {
+      capturedParams = params;
+      return { affectedRows: 1 };
+    },
+  };
+  const report = await applyFeuilletsImport(deps, parsed, { dryRun: false });
+  assert.strictEqual(report.feuillets.upserted, 1);
+  assert.strictEqual(report.feuillets.skipped, 0);
+  assert.strictEqual(report.feuillets.errors.length, 0);
+  assert.ok(
+    report.feuillets.warnings.some((w) => w.code === 'feui-biome-inconnu'),
+    'avertissement biome attendu',
+  );
+  // biome_slug est le 7e paramètre (index 6) de l'INSERT → forcé à NULL.
+  assert.strictEqual(capturedParams[6], null);
+});
+
+test('parseFeuilletsWorkbook tolère un nom de feuille « Feuillets » (casse)', async () => {
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(
+    wb,
+    XLSX.utils.aoa_to_sheet([
+      ['code', 'type', 'titre'],
+      ['feui-casse', 'feuillet', 'Nom de feuille en majuscule'],
+    ]),
+    'Feuillets',
+  );
+  const parsed = await parseFeuilletsWorkbook(XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }));
+  assert.strictEqual(parsed.feuilletRows.length, 1);
+  assert.strictEqual(parsed.feuilletRows[0].feuillet_code, 'feui-casse');
 });
 
 test('applyLoreGlossaryImport dry-run', async () => {
