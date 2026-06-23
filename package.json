@@ -1,6 +1,6 @@
 {
   "name": "foretmap",
-  "version": "1.63.1",
+  "version": "1.64.1",
   "description": "Application de gestion de la forêt comestible - Lycée Lyautey",
   "main": "server.js",
   "engines": {
@@ -56,6 +56,7 @@
     "debug:dev": "nodemon --inspect server.js",
     "db:init": "node -e \"require('dotenv').config(); const { initSchema, seedData } = require('./database'); (async () => { await initSchema(); await seedData(); console.log('DB init OK'); process.exit(0); })()\"",
     "db:migrate": "node -e \"require('dotenv').config(); const { initSchema } = require('./database'); (async () => { await initSchema(); console.log('Migrations OK'); process.exit(0); })()\"",
+    "learning:suggest-links": "node scripts/suggest-learning-links.js",
     "db:seed:teacher": "node scripts/seed-teacher-admin.js",
     "db:import:dump": "node scripts/import-foretmap-dump.js",
     "db:reset:role-pins:local": "node scripts/reset-local-role-pins-from-env.js",

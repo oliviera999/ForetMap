@@ -16,6 +16,57 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   valeurs par défaut.
 - **Tests** : couverture ciblée dans `tests/gl-lore-import.test.js` sur les drapeaux de mise à
   jour générés pour une feuille `code,titre`.
+### Conditionnement « lu/appris » — phase 2 (pré-préparation : suggestion + validation des liens)
+
+- **Moteur de suggestion textuelle** `lib/shared/resourceQuestionMatch.js` (pur, sans BDD) :
+  rapproche l'énoncé/tags/mots-clés des questions des libellés des ressources (termes/variantes,
+  noms d'espèces, titres de feuillets/tutoriels), avec score de confiance et raison.
+- **Script** `scripts/suggest-learning-links.js` (`npm run learning:suggest-links`) : charge la BDD,
+  produit un rapport **dry-run** par défaut, et `--apply` insère les candidats en `origin='auto'`,
+  `status='suggested'` (idempotent : ne re-suggère jamais un couple déjà présent).
+- **Validation en masse** : `POST /api/learning-links/review` et `POST /api/gl/learning-links/review`
+  (`{ ids, action: 'approve'|'reject' }`) pour prof/MJ.
+- **Tests** : `tests/resource-question-match.test.js` (moteur) + cas `/review` dans les tests
+  d'intégration ; **doc** `docs/API.md` (§ « Suggestion automatique de liens »).
+- Le branchement runtime (auto-marquage + tentatives, sur liens `status='approved'`) reste à venir.
+
+### Conditionnement « lu/appris » par réussite au quiz — backbone structurel (gating OFF par défaut)
+
+- **Modèle polymorphe de liens ressource ↔ question** (N-N) : tables `resource_question_links`
+  (ForetMap) et `gl_resource_question_links` (GL, + `question_dataset` qcm/qcm_lore). Reprise **non
+  destructive** des liens d'enrichissement quiz existants (`quiz_question_*`,
+  `gl_qcm_*_question_glossary`) dans le modèle unifié.
+- **Politique de conditionnement par ressource** : `resource_gating_policy` /
+  `gl_resource_gating_policy` (`mode` off|any|all|threshold, `required_correct`, `enabled`) + défauts
+  **configurables** : `learning.gating.*` (`app_settings`, prof) et `gating.*` (`gl_settings`, MJ —
+  dont `granularity` player|team|per_resource, surchargeable par chapitre
+  `gl_chapters.gating_granularity` et scope lore `gl_qcm_lore_scopes.gating_granularity`).
+- **Persistance des tentatives QCM GL par lecteur** : table `gl_qcm_attempts` (alimente le mode `player`).
+- **Endpoints CRUD** prof (`/api/learning-links`) et MJ (`/api/gl/learning-links`), avec isolement
+  cross-produit. Cœur de logique partagé `lib/shared/resourceQuestionGatingCore.js`.
+- **Migrations** : `144_resource_question_links.sql`, `145_gl_learning_resource_links.sql`.
+- **Désactivé par défaut** : aucun changement de comportement tant que le gating n'est pas activé
+  (branchement du marquage/auto-mark et de l'enregistrement des tentatives prévus au lot suivant).
+- **Tests** : `tests/resource-question-gating-core.test.js` (unitaire pur),
+  `tests/learning-links.test.js`, `tests/gl-learning-links.test.js` (intégration + isolement).
+- **Doc** : `docs/API.md` (section « Liens ressources ↔ questions & conditionnement »).
+### GL — éditeur des feuillets du carnet de Sélène (liste + édition)
+
+- **Onglet Contenus → Carnet de Sélène** : sous-onglets « Feuillets » (éditeur) / « Import / export »
+  (comme espèces, glossaire, sortilèges), via `GLContentCatalogPanel`.
+- **Liste** tabulaire des feuillets avec leurs caractéristiques principales (code, titre, type, liasse,
+  biome, zone, mode, ordre, statut) + filtres recherche / type / biome / statut (`GLDataList`).
+- **Édition unitaire** de toutes les colonnes utiles, regroupées en sections (identité, récit & ordre,
+  localisation, effacement & jeu, ancrage scientifique, liens espèce/pays, textes, images) +
+  **archivage / réactivation**. Composant `GLLoreFeuilletsEditorPanel` + utilitaires
+  `glFeuilletEditorForm` / `glFeuilletFieldLabels`.
+- **API** : `PUT /api/gl/lore/admin/feuillets/:code` (réutilise la normalisation d'import + tolérance
+  biome : hors-référentiel → `biome_slug = NULL` + `warning`) et `PATCH …/:code` (statut). Helper
+  `updateFeuilletFields` (`lib/glLoreFeuillets.js`, UPDATE paramétré sans COALESCE : vider un champ le
+  vide bien en base).
+- **Tests** : `tests/gl-lore-feuillet-admin.test.js` (routes PUT/PATCH/404/403),
+  `tests/gl-lore-feuillet-update.test.js` (helper SQL, sans BDD),
+  `tests-ui/gl/glFeuilletEditorForm.test.js` (logique de formulaire). Doc `docs/API.md`.
 
 ### GL — import carnet de Sélène : tolérance maximale + corpus v3 (157 feuillets)
 
