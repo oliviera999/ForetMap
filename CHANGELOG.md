@@ -7,6 +7,24 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### GL — éditeur des feuillets du carnet de Sélène (liste + édition)
+
+- **Onglet Contenus → Carnet de Sélène** : sous-onglets « Feuillets » (éditeur) / « Import / export »
+  (comme espèces, glossaire, sortilèges), via `GLContentCatalogPanel`.
+- **Liste** tabulaire des feuillets avec leurs caractéristiques principales (code, titre, type, liasse,
+  biome, zone, mode, ordre, statut) + filtres recherche / type / biome / statut (`GLDataList`).
+- **Édition unitaire** de toutes les colonnes utiles, regroupées en sections (identité, récit & ordre,
+  localisation, effacement & jeu, ancrage scientifique, liens espèce/pays, textes, images) +
+  **archivage / réactivation**. Composant `GLLoreFeuilletsEditorPanel` + utilitaires
+  `glFeuilletEditorForm` / `glFeuilletFieldLabels`.
+- **API** : `PUT /api/gl/lore/admin/feuillets/:code` (réutilise la normalisation d'import + tolérance
+  biome : hors-référentiel → `biome_slug = NULL` + `warning`) et `PATCH …/:code` (statut). Helper
+  `updateFeuilletFields` (`lib/glLoreFeuillets.js`, UPDATE paramétré sans COALESCE : vider un champ le
+  vide bien en base).
+- **Tests** : `tests/gl-lore-feuillet-admin.test.js` (routes PUT/PATCH/404/403),
+  `tests/gl-lore-feuillet-update.test.js` (helper SQL, sans BDD),
+  `tests-ui/gl/glFeuilletEditorForm.test.js` (logique de formulaire). Doc `docs/API.md`.
+
 ### GL — import carnet de Sélène : tolérance maximale + corpus v3 (157 feuillets)
 
 - **Import feuillets robuste** (`lib/glLoreFeuilletsImport.js`) — ce type de fichier ne doit jamais
