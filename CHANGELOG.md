@@ -7,6 +7,32 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Conditionnement « lu/appris » — runtime d'auto-marquage (branchement)
+
+- **`lib/learningGatingRuntime.js`** : sur **bonne réponse** à un QCM, marque automatiquement les
+  ressources liées (status='approved', is_gating) selon la politique effective. Additif (le marquage
+  manuel reste possible), **gardé par le flag** (`learning.gating.enabled` / `gating.enabled`, OFF par
+  défaut), **défensif** (toute erreur avalée — ne casse jamais la réponse).
+  - ForetMap : `tutorial` → `user_tutorial_reads`, `plant` → `user_plant_observation_events`.
+  - GL : enregistre la tentative par lecteur (`gl_qcm_attempts`) puis marque
+    `species|glossary|tutorial` → `gl_learning_acknowledgements`.
+- Branché dans les 3 routes de réponse : `POST /api/quiz/questions/:code/answer`,
+  `POST /api/gl/qcm/questions/:code/answer`, `POST /api/gl/lore/qcm/questions/:code/answer`.
+- Tests : `tests/learning-gating-runtime.test.js` (ON marque / OFF n'écrit rien / mauvaise réponse).
+
+### Conditionnement « lu/appris » — génération de questions liées (enrichissement contenu)
+
+- **`scripts/generate-linked-questions.js`** (`npm run learning:generate-questions`) : génère, pour
+  chaque ressource sans question liée (status='approved'), une question dont la réponse EST dans la
+  ressource (identité d'espèce GL, définition de glossaire FM/GL/lore, idée-clé/incipit de feuillet,
+  identité de plante FM), avec distracteurs tirés des pools réels et bonne réponse placée
+  aléatoirement. Lien créé en `origin='generated'`, `status='approved'`, `is_gating=1`. Dry-run par
+  défaut, `--apply` pour écrire, idempotent (ne cible que les ressources non couvertes).
+- **`scripts/suggest-learning-links.js`** : option `--types=…` pour cibler/exclure des types de
+  ressources (ex. exclure `species`).
+- **`lib/shared/resourceQuestionGatingCore.js`** : ajout de l'origine de lien `'generated'`.
+- Catégorie quiz FM `glossaire_definitions` (créée à la volée) pour les questions de vocabulaire.
+
 ### Corrigé
 
 - **GL — Carnet de Sélène (admin « Contenus › Carnet Sélène »)** : l'onglet d'édition des feuillets
