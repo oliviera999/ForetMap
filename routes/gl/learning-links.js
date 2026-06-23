@@ -349,4 +349,34 @@ router.put(
   },
 );
 
+/** POST /api/gl/learning-links/review — valider/rejeter en masse (phase 2 : liens auto-suggeres). */
+router.post(
+  '/review',
+  requireGlAuth,
+  requireGlPermission('gl.content.manage'),
+  async (req, res) => {
+    try {
+      const body = req.body || {};
+      const action = String(body.action || '').trim();
+      if (!['approve', 'reject'].includes(action)) {
+        return res.status(400).json({ error: "Action attendue: 'approve' ou 'reject'" });
+      }
+      const ids = (Array.isArray(body.ids) ? body.ids : [])
+        .map((n) => Number(n))
+        .filter((n) => Number.isFinite(n) && n > 0);
+      if (!ids.length) return res.status(400).json({ error: 'Aucun identifiant fourni' });
+      const status = action === 'approve' ? 'approved' : 'rejected';
+      const placeholders = ids.map(() => '?').join(', ');
+      const result = await execute(
+        `UPDATE gl_resource_question_links SET status = ?, updated_at = NOW() WHERE id IN (${placeholders})`,
+        [status, ...ids],
+      );
+      return res.json({ success: true, status, updated: result.affectedRows });
+    } catch (err) {
+      logRouteError(err, req, 'gl-learning-links:review');
+      return respondInternalError(res, req, err);
+    }
+  },
+);
+
 module.exports = router;

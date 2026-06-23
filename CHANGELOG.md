@@ -7,6 +7,20 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Conditionnement « lu/appris » — phase 2 (pré-préparation : suggestion + validation des liens)
+
+- **Moteur de suggestion textuelle** `lib/shared/resourceQuestionMatch.js` (pur, sans BDD) :
+  rapproche l'énoncé/tags/mots-clés des questions des libellés des ressources (termes/variantes,
+  noms d'espèces, titres de feuillets/tutoriels), avec score de confiance et raison.
+- **Script** `scripts/suggest-learning-links.js` (`npm run learning:suggest-links`) : charge la BDD,
+  produit un rapport **dry-run** par défaut, et `--apply` insère les candidats en `origin='auto'`,
+  `status='suggested'` (idempotent : ne re-suggère jamais un couple déjà présent).
+- **Validation en masse** : `POST /api/learning-links/review` et `POST /api/gl/learning-links/review`
+  (`{ ids, action: 'approve'|'reject' }`) pour prof/MJ.
+- **Tests** : `tests/resource-question-match.test.js` (moteur) + cas `/review` dans les tests
+  d'intégration ; **doc** `docs/API.md` (§ « Suggestion automatique de liens »).
+- Le branchement runtime (auto-marquage + tentatives, sur liens `status='approved'`) reste à venir.
+
 ### Conditionnement « lu/appris » par réussite au quiz — backbone structurel (gating OFF par défaut)
 
 - **Modèle polymorphe de liens ressource ↔ question** (N-N) : tables `resource_question_links`
