@@ -40,6 +40,14 @@ Il reflète l’état réel du dépôt (avril 2026) et priorise la suite en comm
 
 ## 1.2 Partiellement réalisé / restant
 
+- **Conditionnement « lu/appris » par réussite au quiz — backbone livré (gating OFF par défaut)** :
+  modèle polymorphe de liens ressource ↔ question (`resource_question_links` /
+  `gl_resource_question_links`), politiques par ressource (`*_gating_policy`), réglages site/chapitre,
+  persistance des tentatives QCM GL par lecteur (`gl_qcm_attempts`), endpoints CRUD prof/MJ et cœur
+  partagé `lib/shared/resourceQuestionGatingCore.js` (migrations `144`/`145`). **Reste à faire** :
+  brancher le runtime (auto-marquage sur bonne réponse + enregistrement des tentatives au moment de la
+  réponse), faire converger les lectures d'enrichissement (`quiz_question_*`) vers le modèle unifié,
+  génération « intelligente » des liens à partir du contenu réel de la BDD, et UI prof/MJ de gestion.
 - **Observabilité externe (hors scope court terme)** : intégration **Sentry**, **OpenTelemetry** ou agrégation fichier/ELK pour historiser au-delà du tampon mémoire Pino — à trancher selon budget hébergeur et besoin de rétention ; l’app expose déjà stdout, `/api/admin/logs`, `/api/admin/diagnostics` (inclut désormais **`visitMascotHint`** pour diagnostiquer une visite « vide » / mascotte absente côté données) et **`X-Request-Id`** pour corrélation.
 - **Frontend (partiellement réalisé)** :
   - `auth`, `tâches`, `carte`, `stats`, `audit`, `about` sont désormais extraits en modules dédiés.

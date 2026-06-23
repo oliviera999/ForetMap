@@ -7,6 +7,27 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Conditionnement « lu/appris » par réussite au quiz — backbone structurel (gating OFF par défaut)
+
+- **Modèle polymorphe de liens ressource ↔ question** (N-N) : tables `resource_question_links`
+  (ForetMap) et `gl_resource_question_links` (GL, + `question_dataset` qcm/qcm_lore). Reprise **non
+  destructive** des liens d'enrichissement quiz existants (`quiz_question_*`,
+  `gl_qcm_*_question_glossary`) dans le modèle unifié.
+- **Politique de conditionnement par ressource** : `resource_gating_policy` /
+  `gl_resource_gating_policy` (`mode` off|any|all|threshold, `required_correct`, `enabled`) + défauts
+  **configurables** : `learning.gating.*` (`app_settings`, prof) et `gating.*` (`gl_settings`, MJ —
+  dont `granularity` player|team|per_resource, surchargeable par chapitre
+  `gl_chapters.gating_granularity` et scope lore `gl_qcm_lore_scopes.gating_granularity`).
+- **Persistance des tentatives QCM GL par lecteur** : table `gl_qcm_attempts` (alimente le mode `player`).
+- **Endpoints CRUD** prof (`/api/learning-links`) et MJ (`/api/gl/learning-links`), avec isolement
+  cross-produit. Cœur de logique partagé `lib/shared/resourceQuestionGatingCore.js`.
+- **Migrations** : `144_resource_question_links.sql`, `145_gl_learning_resource_links.sql`.
+- **Désactivé par défaut** : aucun changement de comportement tant que le gating n'est pas activé
+  (branchement du marquage/auto-mark et de l'enregistrement des tentatives prévus au lot suivant).
+- **Tests** : `tests/resource-question-gating-core.test.js` (unitaire pur),
+  `tests/learning-links.test.js`, `tests/gl-learning-links.test.js` (intégration + isolement).
+- **Doc** : `docs/API.md` (section « Liens ressources ↔ questions & conditionnement »).
+
 ### Pipeline opérationnel — sauvegardes BDD, rollback auto, alertes email, tag/release auto
 
 - **Sauvegarde BDD** : `scripts/db-backup.sh` (`mysqldump` compressé + rotation
