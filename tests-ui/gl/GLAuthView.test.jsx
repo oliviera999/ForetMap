@@ -28,7 +28,7 @@ describe('GLAuthView', () => {
 
     fireEvent.change(screen.getByLabelText(/Identifiant/), { target: { value: 'teamA' } });
     fireEvent.change(screen.getByLabelText('Mot de passe'), { target: { value: '1234' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Se connecter' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Franchir le miroir' }));
 
     await waitFor(() => expect(onLogin).toHaveBeenCalledTimes(1));
     expect(apiGlMock).toHaveBeenCalledWith('/api/gl/auth/login', 'POST', {
@@ -66,10 +66,19 @@ describe('GLAuthView', () => {
 
     fireEvent.change(screen.getByLabelText(/Identifiant/), { target: { value: 'teamA' } });
     fireEvent.change(screen.getByLabelText('Mot de passe'), { target: { value: 'bad' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Se connecter' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Franchir le miroir' }));
 
     await waitFor(() => {
       expect(screen.getByText(/Identifiant ou mot de passe incorrect/)).toBeInTheDocument();
     });
+  });
+
+  test('affiche la page de garde (titre, accroche tournante, baseline, CTA miroir)', async () => {
+    render(<GLAuthView onLogin={() => {}} />);
+
+    expect(await screen.findByText(/De l'équateur au pôle/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Franchir le miroir' })).toBeInTheDocument();
+    const tagline = screen.getByTestId('gl-auth-tagline');
+    expect(tagline.textContent.trim().length).toBeGreaterThan(0);
   });
 });
