@@ -1389,6 +1389,33 @@ table `gl_qcm_attempts` (alimente le mode `player`).
 
 > **Isolement** : un JWT `product:'gl'` est rejeté sur `/api/learning-links` et inversement (couvert par tests).
 
+### Suggestion automatique de liens (phase 2)
+
+Génération de liens candidats par rapprochement **textuel** (énoncé + tags + mots-clés des
+questions ↔ libellés des ressources : termes/variantes, noms d'espèces, titres de feuillets/tutoriels).
+Moteur pur `lib/shared/resourceQuestionMatch.js` ; script `scripts/suggest-learning-links.js` (alias
+`npm run learning:suggest-links`). **Dry-run par défaut** (rapport sans écriture) ; `--apply` insère en
+`origin='auto'`, `status='suggested'`. Idempotent (ne re-suggère jamais un couple déjà présent, tous
+statuts confondus).
+
+```bash
+npm run learning:suggest-links -- --product=foretmap --min-confidence=0.6          # rapport
+npm run learning:suggest-links -- --product=foretmap --apply                       # insère en 'suggested'
+npm run learning:suggest-links -- --product=gl --dataset=qcm                        # GL écologie
+npm run learning:suggest-links -- --product=gl --dataset=qcm_lore                   # GL lore
+```
+
+Validation par le prof/MJ via les suggestions (`GET …/learning-links?status=suggested`) puis en masse :
+
+| Méthode | Route                           | Description                                                                              |
+| ------- | ------------------------------- | ---------------------------------------------------------------------------------------- |
+| POST    | `/api/learning-links/review`    | `{ ids:[…], action:'approve'\|'reject' }` → bascule le `status` (prof, `plants.manage`). |
+| POST    | `/api/gl/learning-links/review` | Idem côté GL (`gl.content.manage`).                                                      |
+
+> Le **runtime** (auto-marquage sur bonne réponse + enregistrement des tentatives) n'est volontairement
+> **pas encore branché** : il ne doit considérer que les liens `status='approved'`. C'est l'étape
+> suivante de la phase 2, une fois les liens validés sur le contenu réel.
+
 ---
 
 ## Accessibilité (a11y)

@@ -131,6 +131,35 @@ test('GET config — gating desactive par defaut (site)', async () => {
   assert.ok(Array.isArray(res.body.resource_types));
 });
 
+test('POST /review — approbation en masse (phase 2)', async () => {
+  const ref = `${resourceRef}R`.slice(0, 64);
+  const created = await request(app)
+    .post('/api/learning-links')
+    .set(auth())
+    .send({
+      resource_type: 'glossary',
+      resource_ref: ref,
+      question_code: qcode,
+      status: 'suggested',
+    })
+    .expect(201);
+  assert.equal(created.body.link.status, 'suggested');
+
+  const ok = await request(app)
+    .post('/api/learning-links/review')
+    .set(auth())
+    .send({ ids: [created.body.link.id], action: 'approve' })
+    .expect(200);
+  assert.equal(ok.body.status, 'approved');
+  assert.equal(ok.body.updated, 1);
+
+  await request(app)
+    .post('/api/learning-links/review')
+    .set(auth())
+    .send({ ids: [created.body.link.id], action: 'bidon' })
+    .expect(400);
+});
+
 test('DELETE supprime le lien', async () => {
   const list = await request(app).get(`/api/learning-links?questionCode=${qcode}`).set(auth());
   const id = list.body.links.find((l) => l.resource_ref === resourceRef).id;

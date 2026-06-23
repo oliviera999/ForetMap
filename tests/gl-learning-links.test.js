@@ -179,6 +179,29 @@ test('isolement cross-produit : jeton GL rejete sur route ForetMap', async () =>
   assert.ok([401, 403].includes(res.status), `statut inattendu ${res.status}`);
 });
 
+test('POST /review — rejet en masse (phase 2)', async () => {
+  const ref = `${resourceRef}R`.slice(0, 64);
+  const created = await request(app)
+    .post('/api/gl/learning-links')
+    .set(glAuth())
+    .send({
+      question_dataset: 'qcm_lore',
+      resource_type: 'lore_glossary',
+      resource_ref: ref,
+      question_code: lqcode,
+      status: 'suggested',
+    })
+    .expect(201);
+
+  const r = await request(app)
+    .post('/api/gl/learning-links/review')
+    .set(glAuth())
+    .send({ ids: [created.body.link.id], action: 'reject' })
+    .expect(200);
+  assert.equal(r.body.status, 'rejected');
+  assert.equal(r.body.updated, 1);
+});
+
 test('DELETE supprime le lien', async () => {
   const list = await request(app)
     .get(`/api/gl/learning-links?questionCode=${lqcode}`)
