@@ -7,6 +7,19 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Conditionnement « lu/appris » — runtime d'auto-marquage (branchement)
+
+- **`lib/learningGatingRuntime.js`** : sur **bonne réponse** à un QCM, marque automatiquement les
+  ressources liées (status='approved', is_gating) selon la politique effective. Additif (le marquage
+  manuel reste possible), **gardé par le flag** (`learning.gating.enabled` / `gating.enabled`, OFF par
+  défaut), **défensif** (toute erreur avalée — ne casse jamais la réponse).
+  - ForetMap : `tutorial` → `user_tutorial_reads`, `plant` → `user_plant_observation_events`.
+  - GL : enregistre la tentative par lecteur (`gl_qcm_attempts`) puis marque
+    `species|glossary|tutorial` → `gl_learning_acknowledgements`.
+- Branché dans les 3 routes de réponse : `POST /api/quiz/questions/:code/answer`,
+  `POST /api/gl/qcm/questions/:code/answer`, `POST /api/gl/lore/qcm/questions/:code/answer`.
+- Tests : `tests/learning-gating-runtime.test.js` (ON marque / OFF n'écrit rien / mauvaise réponse).
+
 ### Conditionnement « lu/appris » — génération de questions liées (enrichissement contenu)
 
 - **`scripts/generate-linked-questions.js`** (`npm run learning:generate-questions`) : génère, pour
