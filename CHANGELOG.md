@@ -18,6 +18,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Quatrième de couverture** : dépliant accessible « Lire la quatrième de couverture »
   (`<details>`, cible tactile ≥ 44 px) sous la couverture — le texte (≈ 85 mots, trois paragraphes)
   prolonge la métaphore du livre (couverture → on retourne le livre).
+- **Métadonnées de partage** (`vite.config.js`, plugin `gl-share-meta`) : la 4ᵉ de couverture est
+  aussi injectée comme `description` + Open Graph (`og:title/description/type/site_name/locale`) +
+  Twitter Card dans **`gl.html` uniquement** (aperçus de lien / SEO), depuis la même source unique.
 - **Contenus isolés** (`src/gl/constants/authCover.js`) : accroches, baseline, **4ᵉ de couverture**,
   libellé du CTA et helper `pickGlAuthTagline()` (RNG injectable) — source unique des textes,
   prévue pour un pilotage ultérieur via `gl_settings` sans retoucher le composant.
