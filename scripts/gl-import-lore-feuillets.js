@@ -29,7 +29,7 @@ function parseArgs(argv) {
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   const buffer = await fs.readFile(args.file);
-  const parsed = parseFeuilletsWorkbook(buffer);
+  const parsed = await parseFeuilletsWorkbook(buffer);
   await initSchema();
   const report = await applyFeuilletsImport({ queryAll, execute }, parsed, { dryRun: args.dryRun });
   const mode = args.dryRun ? 'dry-run' : 'apply';
