@@ -7,6 +7,23 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### GL — import carnet de Sélène : tolérance maximale + corpus v3 (157 feuillets)
+
+- **Import feuillets robuste** (`lib/glLoreFeuilletsImport.js`) — ce type de fichier ne doit jamais
+  faire échouer l'import :
+  - **Biome hors-référentiel** → feuillet importé **sans biome** (`biome_slug = NULL`) + avertissement
+    `report.feuillets.warnings`, au lieu d'un skip/erreur (respecte la FK `gl_biomes`, colonne nullable).
+  - Noms de feuilles **insensibles à la casse/aux accents** (`Feuillets`, `PLATEAUX`, …) ; feuilles
+    (`README`, `biomes`) et colonnes en trop **ignorées** ; `type`/`mode_apparition` inconnus → défaut.
+  - Plafond de lignes relevé **500 → 1000**.
+- **Corpus de référence** : `data/gl/corpus-feuillets-selene.xlsx` mis à jour en **v3** (144 → 157
+  feuillets ; sur-ensemble strict — aucun code retiré, 4 codes du mode Découverte conservés).
+- **Correctif** : `scripts/gl-import-lore-feuillets.js` n'attendait pas (`await`) le parsing →
+  l'import CLI n'écrivait rien silencieusement.
+- **Tests** (`tests/gl-lore-import.test.js`) : compteur figé `144` remplacé par une assertion liée
+  au nombre réellement parsé ; nouveaux tests « biome inconnu toléré » et « nom de feuille en casse ».
+- **Doc** : `docs/API.md` (endpoint import feuillets), `data/gl/README.md`.
+
 ### Pipeline opérationnel — sauvegardes BDD, rollback auto, alertes email, tag/release auto
 
 - **Sauvegarde BDD** : `scripts/db-backup.sh` (`mysqldump` compressé + rotation

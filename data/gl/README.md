@@ -141,6 +141,16 @@ Liens auto vers le glossaire lore (`gl_lore_glossary_terms`) via `mots_cles` / `
 
 Fichier de référence : `corpus-feuillets-selene.xlsx` (feuilles `feuillets`, `plateaux`, `biomes`).
 
+Import **tolérant** (conçu pour ne jamais échouer sur ce type de fichiers) :
+
+- Noms de feuilles **insensibles à la casse/aux accents** ; feuilles supplémentaires
+  (`README`, `biomes`, …) et colonnes inconnues simplement **ignorées**.
+- **Biome hors-référentiel** (`gl_biomes`) → feuillet importé **sans biome**
+  (`biome_slug = NULL`) avec un avertissement dans `report.feuillets.warnings` — jamais de skip.
+- `type` / `mode_apparition` inconnus → valeur par défaut (`feuillet` / `boite`).
+- Mise à jour : upsert sur `feuillet_code` ; cellule vide = champ inchangé.
+- Plafonds : **1000** lignes, **8 Mo** par fichier (`FORETMAP_GL_IMPORT_MAX_FILE_BYTES`).
+
 Colonnes optionnelles sur la feuille `feuillets` :
 
 - **`image_url`** — illustration de scène (`/uploads/media-library/image/<nom>.png`, voir `MANIFESTE-images.md` dans la bibliothèque média).
