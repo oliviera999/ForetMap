@@ -88,7 +88,7 @@ export function formToPayload(form) {
 
 /**
  * Filtre la liste de feuillets (recherche + type + biome + statut), sans muter
- * la source. Les lignes proviennent de GET /api/gl/admin/feuillets (snake_case).
+ * la source. Les lignes proviennent de GET /api/gl/lore/admin/feuillets (snake_case).
  * @param {Array<object>} items
  * @param {{ q?: string, type?: string, biome?: string, statut?: string }} [filters]
  * @returns {Array<object>}
