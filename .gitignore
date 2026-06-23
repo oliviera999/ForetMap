@@ -24,6 +24,10 @@ uploads/
 médias/
 medias/
 
+# Sauvegardes BDD (scripts/db-backup.sh) — ne jamais versionner (PII)
+backups/
+*.sql.gz
+
 # Logs
 logs/
 *.log

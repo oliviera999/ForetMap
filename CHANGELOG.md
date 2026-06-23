@@ -7,6 +7,25 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Pipeline opérationnel — sauvegardes BDD, rollback auto, alertes email, tag/release auto
+
+- **Sauvegarde BDD** : `scripts/db-backup.sh` (`mysqldump` compressé + rotation
+  `BACKUP_RETENTION_DAYS`, dossier `backups/` non versionné). Snapshot **pré-migration**
+  automatique dans `scripts/auto-deploy-cron.sh` avant `db:migrate`. Cron quotidien documenté.
+- **Rollback auto** : si `post-deploy-check` échoue après redémarrage, le cron revient au
+  commit précédent (`git reset --hard` + re-sync + `npm ci` + restart + re-check). Activé par
+  défaut (`DEPLOY_AUTO_ROLLBACK=1`). Annule le code, pas une migration BDD déjà appliquée.
+- **Alertes email** : `lib/mailer.js` → `sendOpsAlert()` + CLI `scripts/ops-alert.js` ; le cron
+  alerte sur échec migration / restart non confirmé / post-deploy-check KO / issue du rollback.
+  Sonde de disponibilité `scripts/uptime-check.sh` (alerte au changement d'état). Variables
+  `OPS_ALERT_TO`, `BACKUP_DIR`, `BACKUP_RETENTION_DAYS`, `DEPLOY_AUTO_ROLLBACK`,
+  `DEPLOY_DB_PRE_MIGRATE_BACKUP` (voir `.env.example`).
+- **Tag/release auto** : `.github/workflows/release-tag.yml` pose `vX.Y.Z` + GitHub Release
+  (notes depuis le CHANGELOG) quand la version change sur `main` (idempotent).
+- **Doc** : `docs/EXPLOITATION.md` (section « Sauvegardes, rollback et alertes »), `docs/VERSIONING.md`,
+  `docs/CRONTAB.md` (mémo crontab serveur prêt à coller : deploy + sauvegarde + uptime).
+- **Tests** : `tests/ops-alert.test.js` (`sendOpsAlert`, transport JSON).
+
 ### Pipeline build — garde-fou `dist/` à jour (CI + hook) et correctif sync miroir
 
 - **CI `frontend-dist.yml`** : reconstruit le front à chaque PR/push et garantit que le
