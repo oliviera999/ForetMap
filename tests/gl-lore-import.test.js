@@ -247,6 +247,49 @@ test('applyFeuilletsImport tolère un biome inconnu (import sans biome + avertis
   assert.strictEqual(capturedParams[6], null);
 });
 
+test('applyFeuilletsImport préserve les champs absents lors d’une mise à jour partielle', async () => {
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(
+    wb,
+    XLSX.utils.aoa_to_sheet([
+      ['code', 'titre'],
+      ['feui-partiel', 'Titre mis à jour'],
+    ]),
+    'feuillets',
+  );
+  const parsed = await parseFeuilletsWorkbook(XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }));
+
+  let capturedSql = '';
+  let capturedParams = [];
+  const deps = {
+    queryAll: async (sql) => (String(sql).includes('gl_biomes') ? [{ slug: 'jungle_afc' }] : []),
+    execute: async (sql, params) => {
+      capturedSql = String(sql);
+      capturedParams = params;
+      return { affectedRows: 1 };
+    },
+  };
+
+  const report = await applyFeuilletsImport(deps, parsed, { dryRun: false });
+  assert.strictEqual(report.feuillets.skipped, 0);
+
+  const updateFields = [...capturedSql.matchAll(/\n       ([a-z_]+) = IF\(\?, VALUES/g)].map(
+    (match) => match[1],
+  );
+  const insertParamCount = capturedParams.length - updateFields.length;
+  const flagsByField = Object.fromEntries(
+    updateFields.map((field, index) => [field, capturedParams[insertParamCount + index]]),
+  );
+
+  assert.strictEqual(flagsByField.titre, 1);
+  assert.strictEqual(flagsByField.type, 0);
+  assert.strictEqual(flagsByField.incipit, 0);
+  assert.strictEqual(flagsByField.biome_slug, 0);
+  assert.strictEqual(flagsByField.mode_apparition, 0);
+  assert.strictEqual(flagsByField.texte, 0);
+  assert.strictEqual(flagsByField.statut, 0);
+});
+
 test('parseFeuilletsWorkbook tolère un nom de feuille « Feuillets » (casse)', async () => {
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(
