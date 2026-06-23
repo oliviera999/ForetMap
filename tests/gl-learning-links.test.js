@@ -1,7 +1,7 @@
 'use strict';
 
 require('./helpers/setup');
-const { test, before } = require('node:test');
+const { test, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const request = require('supertest');
 const { app } = require('../server');
@@ -48,6 +48,24 @@ before(async () => {
      VALUES (?, ?, ?, 1, 'Q lore ?', 'A', 'B', 'C', 'D', 'A')`,
     [lqcode, scopeSlug, catSlug],
   );
+});
+
+after(async () => {
+  // Hermetique : supprimer toutes les donnees creees (liens, question/categorie/scope, chapitre).
+  await execute('DELETE FROM gl_resource_question_links WHERE question_code = ?', [lqcode]).catch(
+    () => {},
+  );
+  await execute('DELETE FROM gl_resource_gating_policy WHERE resource_ref = ?', [
+    resourceRef,
+  ]).catch(() => {});
+  await execute('DELETE FROM gl_qcm_lore_questions WHERE question_code = ?', [lqcode]).catch(
+    () => {},
+  );
+  await execute('DELETE FROM gl_qcm_lore_categories WHERE slug = ?', [catSlug]).catch(() => {});
+  await execute('DELETE FROM gl_qcm_lore_scopes WHERE slug = ?', [scopeSlug]).catch(() => {});
+  if (chapterId) {
+    await execute('DELETE FROM gl_chapters WHERE id = ?', [chapterId]).catch(() => {});
+  }
 });
 
 const glAuth = () => ({ Authorization: `Bearer ${adminToken}` });

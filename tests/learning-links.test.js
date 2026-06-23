@@ -1,7 +1,7 @@
 'use strict';
 
 require('./helpers/setup');
-const { test, before } = require('node:test');
+const { test, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const request = require('supertest');
 const { app } = require('../server');
@@ -11,6 +11,10 @@ const { ensureAdminTeacherAuthToken } = require('./helpers/adminAuth');
 const stamp = Date.now();
 const qcode = `QFT${stamp}`.slice(0, 16);
 const resourceRef = `T${stamp}`.slice(0, 64);
+// Categorie dediee UNIQUE par run : evite tout conflit de cle unique
+// (categorie_slug, numero_dans_categorie) si la base de test est reutilisee entre
+// deux passes (en CI, `npm test` puis `test:coverage` partagent la meme base).
+const catSlug = `tgcat${stamp}`.slice(0, 64);
 let token = '';
 
 before(async () => {
@@ -20,14 +24,27 @@ before(async () => {
   // Question quiz dediee (FK question_code -> quiz_questions).
   await execute(
     `INSERT IGNORE INTO quiz_categories (slug, nom, theme, order_index)
-     VALUES ('test_gating', 'Test gating', 'sciences', 999)`,
+     VALUES (?, 'Test gating', 'sciences', 999)`,
+    [catSlug],
   );
   await execute(
     `INSERT IGNORE INTO quiz_questions
       (question_code, categorie_slug, numero_dans_categorie, question, choix_a, choix_b, choix_c, reponse_correcte, niveau)
-     VALUES (?, 'test_gating', 1, 'Question test ?', 'A', 'B', 'C', 'A', 'college')`,
-    [qcode],
+     VALUES (?, ?, 1, 'Question test ?', 'A', 'B', 'C', 'A', 'college')`,
+    [qcode, catSlug],
   );
+});
+
+after(async () => {
+  // Hermetique : ne laisser aucune donnee derriere soi (pollution inter-runs/inter-tests).
+  await execute('DELETE FROM resource_question_links WHERE question_code = ?', [qcode]).catch(
+    () => {},
+  );
+  await execute('DELETE FROM resource_gating_policy WHERE resource_ref = ?', [resourceRef]).catch(
+    () => {},
+  );
+  await execute('DELETE FROM quiz_questions WHERE question_code = ?', [qcode]).catch(() => {});
+  await execute('DELETE FROM quiz_categories WHERE slug = ?', [catSlug]).catch(() => {});
 });
 
 const auth = () => ({ Authorization: `Bearer ${token}` });
