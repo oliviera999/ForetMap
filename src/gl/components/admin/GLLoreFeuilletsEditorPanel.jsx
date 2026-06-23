@@ -51,7 +51,7 @@ export function GLLoreFeuilletsEditorPanel() {
   );
 
   const loadList = useCallback(async () => {
-    const data = await apiGL('/api/gl/admin/feuillets');
+    const data = await apiGL('/api/gl/lore/admin/feuillets');
     setItems(Array.isArray(data?.items) ? data.items : []);
   }, []);
 
@@ -75,7 +75,7 @@ export function GLLoreFeuilletsEditorPanel() {
     setInfo('');
     setWarning('');
     try {
-      const data = await apiGL(`/api/gl/admin/feuillets/${encodeURIComponent(code)}`);
+      const data = await apiGL(`/api/gl/lore/admin/feuillets/${encodeURIComponent(code)}`);
       setForm(feuilletToForm(data?.feuillet));
       setSelectedCode(code);
     } catch (err) {
@@ -105,7 +105,7 @@ export function GLLoreFeuilletsEditorPanel() {
     setWarning('');
     try {
       const data = await apiGL(
-        `/api/gl/admin/feuillets/${encodeURIComponent(selectedCode)}`,
+        `/api/gl/lore/admin/feuillets/${encodeURIComponent(selectedCode)}`,
         'PUT',
         formToPayload(form),
       );
@@ -133,7 +133,7 @@ export function GLLoreFeuilletsEditorPanel() {
     setError('');
     try {
       const data = await apiGL(
-        `/api/gl/admin/feuillets/${encodeURIComponent(selectedCode)}`,
+        `/api/gl/lore/admin/feuillets/${encodeURIComponent(selectedCode)}`,
         'PATCH',
         { statut: nextStatut },
       );
