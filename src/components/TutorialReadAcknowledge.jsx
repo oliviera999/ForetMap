@@ -1,6 +1,7 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { api, AccountDeletedError, getAuthToken } from '../services/api';
 import { LearningAcknowledgeButton } from '../shared/components/LearningAcknowledgeButton.jsx';
+import { createFmGatingHandlers } from '../shared/utils/learningGatingChallengeClient.js';
 
 /**
  * Bouton + modal pour marquer un tutoriel comme lu après confirmation explicite.
@@ -14,6 +15,11 @@ export function TutorialReadAcknowledgeButton({
   onForceLogout,
 }) {
   const hasToken = typeof getAuthToken === 'function' && !!getAuthToken();
+  const gatingHandlers = useMemo(() => createFmGatingHandlers(api), []);
+  const gatingResource = useMemo(
+    () => ({ resourceType: 'tutorial', resourceRef: String(tutorialId) }),
+    [tutorialId],
+  );
 
   const submit = useCallback(async () => {
     await api(`/api/tutorials/${tutorialId}/acknowledge-read`, 'POST', { confirm: true });
@@ -44,6 +50,9 @@ export function TutorialReadAcknowledgeButton({
       }
       confirmCheckboxLabel="Je confirme avoir lu et compris ce contenu."
       isDone={isRead}
+      gatingHandlers={gatingHandlers}
+      gatingResource={gatingResource}
+      enableGating={!isRead}
       onSubmit={async () => {
         try {
           await submit();

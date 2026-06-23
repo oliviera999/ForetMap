@@ -2,7 +2,6 @@
 
 const express = require('express');
 const { queryAll, queryOne, execute } = require('../database');
-const { autoMarkFmOnAnswer } = require('../lib/learningGatingRuntime');
 const {
   requireAuth,
   requirePermission,
@@ -277,12 +276,6 @@ router.post(
           [auth.userId, code, row.categorie_slug || null, result.correct ? 1 : 0],
         );
       }
-
-      // Auto-marquage « lu/appris » des ressources liees (inerte si gating OFF).
-      await autoMarkFmOnAnswer(
-        { queryAll, queryOne, execute },
-        { userId: auth?.userId, questionCode: code, isCorrect: result.correct },
-      );
 
       return res.json({
         correct: result.correct,

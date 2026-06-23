@@ -2,7 +2,7 @@
 
 const express = require('express');
 const { queryAll, queryOne, execute, withTransaction } = require('../../database');
-const { recordGlAttemptAndAutoMark } = require('../../lib/learningGatingRuntime');
+const { recordGlQcmAttemptIfGatingEnabled } = require('../../lib/learningGatingRuntime');
 const { requireGlAuth, requireGlPermission } = require('../../middleware/requireGlAuth');
 const { canAccessGlGame } = require('../../lib/glGameAccess');
 const {
@@ -1044,8 +1044,7 @@ router.post(
       );
       const glossaryByKey = await loadLoreGlossaryLookupForQcm();
       const loreGlossaryTerms = await enrichLoreQuestionWithGlossary(row, glossaryByKey);
-      // Tentative par lecteur + auto-marquage des ressources liees (inerte si gating OFF).
-      await recordGlAttemptAndAutoMark(
+      await recordGlQcmAttemptIfGatingEnabled(
         { queryAll, queryOne, execute },
         { glAuth: req.glAuth, dataset: 'qcm_lore', questionCode: code, isCorrect: result.correct },
       );

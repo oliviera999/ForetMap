@@ -3015,6 +3015,55 @@
       color:#166534;
     }
 
+    .learning-gating-quiz__code {
+      font-size:0.8rem;
+      color:var(--muted, #64748b);
+      margin:0 0 6px;
+    }
+    .learning-gating-quiz__question {
+      font-size:1rem;
+      line-height:1.45;
+      margin:0 0 12px;
+    }
+    .learning-gating-quiz__choices {
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      margin:0 0 12px;
+    }
+    .learning-gating-quiz__choice {
+      display:flex;
+      align-items:flex-start;
+      gap:8px;
+      padding:8px 10px;
+      border:1px solid rgba(0,0,0,.12);
+      border-radius:8px;
+      cursor:pointer;
+    }
+    .learning-gating-quiz__choice input {
+      margin-top:3px;
+      flex-shrink:0;
+    }
+    .learning-gating-quiz__photo img {
+      max-width:100%;
+      border-radius:8px;
+      margin-bottom:10px;
+    }
+    .learning-gating-quiz__feedback {
+      margin:0 0 12px;
+      padding:10px 12px;
+      border-radius:8px;
+      font-size:0.95rem;
+    }
+    .learning-gating-quiz__feedback--ok {
+      background:rgba(34,197,94,.12);
+      color:#166534;
+    }
+    .learning-gating-quiz__feedback--ko {
+      background:rgba(239,68,68,.1);
+      color:#b91c1c;
+    }
+
     .plant-discovery-observed-wrap {
       display:flex;
       flex-wrap:wrap;
