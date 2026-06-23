@@ -2,7 +2,10 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useOverlayHistoryBack } from '../../hooks/useOverlayHistoryBack';
 import { DialogShell } from './DialogShell.jsx';
 import { LearningGatingQuestionPanel } from './LearningGatingQuestionPanel.jsx';
-import { pendingChallengeQuestions } from '../utils/learningGatingChallengeClient.js';
+import {
+  pendingChallengeQuestions,
+  buildGatingQuizIntroMessage,
+} from '../utils/learningGatingChallengeClient.js';
 
 /**
  * Bouton + modal de confirmation pour marquer un contenu comme lu / appris / étudié.
@@ -84,7 +87,7 @@ export function LearningAcknowledgeButton({
       if (pending.length > 0) {
         setPendingQuestions(pending);
         setQuestionIndex(0);
-        setFlowPhase('quiz');
+        setFlowPhase('quizIntro');
       } else {
         setFlowPhase('confirm');
       }
@@ -139,6 +142,7 @@ export function LearningAcknowledgeButton({
   );
 
   const currentQuestion = pendingQuestions[questionIndex] || null;
+  const quizIntroMessage = buildGatingQuizIntroMessage(pendingQuestions.length, itemTitle);
 
   return (
     <>
@@ -161,6 +165,34 @@ export function LearningAcknowledgeButton({
             <>
               <h3 id="learning-ack-title">Chargement…</h3>
               <p className="tuto-read-ack-intro">Préparation du contrôle de compréhension…</p>
+            </>
+          ) : null}
+
+          {flowPhase === 'quizIntro' ? (
+            <>
+              <h3 id="learning-ack-title">Contrôle de compréhension</h3>
+              <p className="tuto-read-ack-intro learning-gating-quiz-intro">{quizIntroMessage}</p>
+              <p className="learning-gating-quiz-intro__hint">
+                {pendingQuestions.length === 1
+                  ? '1 question à réussir'
+                  : `${pendingQuestions.length} questions à réussir`}
+              </p>
+              <div className="tuto-read-ack-actions">
+                <button
+                  type="button"
+                  className={ghostBtnClassName || 'btn btn-ghost btn-sm'}
+                  onClick={closeModal}
+                >
+                  Annuler
+                </button>
+                <button
+                  type="button"
+                  className={primaryBtnClassName || 'btn btn-primary btn-sm'}
+                  onClick={() => setFlowPhase('quiz')}
+                >
+                  Commencer
+                </button>
+              </div>
             </>
           ) : null}
 

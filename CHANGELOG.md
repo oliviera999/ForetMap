@@ -7,6 +7,11 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Conditionnement « lu/appris » — aperçu avant quiz gating
+
+- **UI** : étape « Contrôle de compréhension » avant le quiz (résumé du nombre de questions,
+  **Commencer** / **Annuler**) dans `LearningAcknowledgeButton`.
+
 ### Conditionnement « lu/appris » — gating pull à l'accusé (phase 3)
 
 - **`lib/learningGatingAcknowledge.js`** : challenge (`GET …/gating/challenge`) et garde **403** sur les

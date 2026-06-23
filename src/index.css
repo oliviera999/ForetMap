@@ -3063,6 +3063,12 @@
       background:rgba(239,68,68,.1);
       color:#b91c1c;
     }
+    .learning-gating-quiz-intro__hint {
+      font-size:0.9rem;
+      color:var(--muted, #64748b);
+      margin:0 0 12px;
+      font-weight:600;
+    }
 
     .plant-discovery-observed-wrap {
       display:flex;
