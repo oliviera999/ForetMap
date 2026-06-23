@@ -7,6 +7,15 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### GL — correctif import partiel des feuillets Sélène
+
+- **Correctif critique** : l’upsert des feuillets GL respecte maintenant le contrat
+  « cellule vide = champ inchangé » pour les mises à jour partielles. Un import limité à
+  quelques colonnes ne remet plus à `NULL` les textes, biomes, images, liens ou compteurs
+  existants, et ne force plus `type`, `mode_apparition`, `effacement` ou `statut` à leurs
+  valeurs par défaut.
+- **Tests** : couverture ciblée dans `tests/gl-lore-import.test.js` sur les drapeaux de mise à
+  jour générés pour une feuille `code,titre`.
 ### GL — page de garde de la connexion : titre, accroches tournantes, « Franchir le miroir », 4ᵉ de couverture
 
 - **Écran de connexion** (`src/gl/components/GLAuthView.jsx`) : nouvelle page de garde —
