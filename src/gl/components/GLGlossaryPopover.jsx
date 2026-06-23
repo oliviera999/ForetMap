@@ -279,6 +279,8 @@ export function GLGlossaryPopover({
           {activeGlossaryCode && learningProgress ? (
             <GLLearningAcknowledgeButton
               acknowledgePath={`/api/gl/learning/glossary/${encodeURIComponent(activeGlossaryCode)}`}
+              resourceType="glossary"
+              resourceRef={activeGlossaryCode}
               itemTitle={term?.terme}
               labelAction="Marquer comme appris"
               labelDone="✓ Appris"

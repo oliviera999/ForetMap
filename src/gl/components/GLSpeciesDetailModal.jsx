@@ -209,6 +209,8 @@ export function GLSpeciesDetailModal({
               <GLLearningAcknowledgeButton
                 acknowledgePath={`/api/gl/learning/species/${encodeURIComponent(speciesCode)}`}
                 requestBody={acknowledgeBody}
+                resourceType="species"
+                resourceRef={speciesCode}
                 itemTitle={nomCommun}
                 labelAction="Marquer comme étudiée"
                 labelDone="✓ Étudiée"

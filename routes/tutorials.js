@@ -3,6 +3,7 @@ const fs = require('fs');
 const { queryAll, queryOne, execute, withTransaction } = require('../database');
 const { authenticate, requirePermission, requireAuth } = require('../middleware/requireTeacher');
 const asyncHandler = require('../lib/asyncHandler');
+const { assertGatingSatisfiedForAcknowledge } = require('../lib/learningGatingAcknowledge');
 const { emitTasksChanged } = require('../lib/realtime');
 const { saveBase64ToDisk, deleteFile } = require('../lib/uploads');
 const {
@@ -341,6 +342,28 @@ router.post(
       tid,
     ]);
     if (!tutorial) return res.status(404).json({ error: 'Tutoriel introuvable' });
+
+    const existingRead = await queryOne(
+      'SELECT tutorial_id FROM user_tutorial_reads WHERE user_id = ? AND tutorial_id = ? LIMIT 1',
+      [String(userId), tid],
+    );
+    const gating = await assertGatingSatisfiedForAcknowledge(
+      { queryAll, queryOne, execute },
+      {
+        product: 'fm',
+        resourceType: 'tutorial',
+        resourceRef: String(tid),
+        userId,
+        skipGating: !!existingRead,
+      },
+    );
+    if (!gating.ok) {
+      return res.status(gating.status || 403).json({
+        error: gating.error,
+        missing_question_codes: gating.missing_question_codes || [],
+      });
+    }
+
     const now = new Date().toISOString();
     await execute(
       `INSERT INTO user_tutorial_reads (user_id, tutorial_id, acknowledged_at)

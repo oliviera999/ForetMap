@@ -16,6 +16,17 @@ const {
   groupLearningAcksByType,
 } = require('../../lib/shared/learningAckCore');
 const { z, validate } = require('../../lib/validate');
+const asyncHandler = require('../../lib/asyncHandler');
+const {
+  assertGatingSatisfiedForAcknowledge,
+  getChallengeState,
+} = require('../../lib/learningGatingAcknowledge');
+const {
+  normalizeResourceType,
+  normalizeResourceRef,
+  GL_RESOURCE_TYPES,
+} = require('../../lib/shared/resourceQuestionGatingCore');
+const { GL_MARKABLE } = require('../../lib/learningGatingRuntime');
 
 const router = express.Router();
 
@@ -63,6 +74,40 @@ const tutorialIdParamsSchema = z.unknown().superRefine((p, ctx) => {
   }
 });
 
+/** GET /api/gl/learning/gating/challenge?resourceType=&resourceRef= */
+router.get(
+  '/gating/challenge',
+  requireGlAuth,
+  asyncHandler(async (req, res) => {
+    const resourceType = normalizeResourceType(req.query.resourceType, GL_RESOURCE_TYPES);
+    const resourceRef = normalizeResourceRef(req.query.resourceRef);
+    if (!resourceType || !resourceRef || !GL_MARKABLE.has(resourceType)) {
+      return res.status(400).json({ error: 'Paramètres de ressource invalides' });
+    }
+    const reader = buildReaderKey(req.glAuth);
+    if (!reader) return res.status(403).json({ error: 'Profil invalide' });
+
+    const alreadyAcked = await hasExistingLearningAck(reader, resourceType, resourceRef);
+    const state = await getChallengeState(db, {
+      product: 'gl',
+      resourceType,
+      resourceRef,
+      glAuth: req.glAuth,
+      skipGating: alreadyAcked,
+    });
+    if (!state.ok) {
+      return res.status(state.status || 400).json({ error: state.error || 'Challenge invalide' });
+    }
+    return res.json({
+      gating_enabled: state.gating_enabled,
+      required: state.required,
+      mode: state.mode,
+      questions: state.questions,
+      pending_count: state.pending_count,
+    });
+  }),
+);
+
 /** GET /api/gl/learning/me — progression du lecteur connecté. */
 router.get('/me', requireGlAuth, async (req, res) => {
   const reader = buildReaderKey(req.glAuth);
@@ -71,7 +116,7 @@ router.get('/me', requireGlAuth, async (req, res) => {
   return res.json(groupLearningAcksByType(rows));
 });
 
-async function handleAcknowledge(req, res, { targetType, resolveTarget }) {
+async function handleAcknowledge(req, res, { targetType, resolveTarget, skipGating = false }) {
   const confirm = parseConfirmBody(req.body);
   if (!confirm.ok) return res.status(400).json({ error: confirm.error });
   const reader = buildReaderKey(req.glAuth);
@@ -80,6 +125,21 @@ async function handleAcknowledge(req, res, { targetType, resolveTarget }) {
   if (!code) return res.status(400).json({ error: 'Identifiant invalide' });
   const exists = await resolveTarget(code);
   if (!exists) return res.status(404).json({ error: 'Ressource introuvable' });
+
+  const gating = await assertGatingSatisfiedForAcknowledge(db, {
+    product: 'gl',
+    resourceType: targetType,
+    resourceRef: code,
+    glAuth: req.glAuth,
+    skipGating,
+  });
+  if (!gating.ok) {
+    return res.status(gating.status || 403).json({
+      error: gating.error,
+      missing_question_codes: gating.missing_question_codes || [],
+    });
+  }
+
   await upsertLearningAck(db, reader, targetType, code);
   return res.json({ success: true, target_type: targetType, target_code: code });
 }
@@ -115,6 +175,21 @@ router.post(
     if (!species) return res.status(404).json({ error: 'Ressource introuvable' });
 
     const alreadyStudied = await hasExistingLearningAck(reader, 'species', code);
+
+    const gating = await assertGatingSatisfiedForAcknowledge(db, {
+      product: 'gl',
+      resourceType: 'species',
+      resourceRef: code,
+      glAuth: req.glAuth,
+      skipGating: alreadyStudied,
+    });
+    if (!gating.ok) {
+      return res.status(gating.status || 403).json({
+        error: gating.error,
+        missing_question_codes: gating.missing_question_codes || [],
+      });
+    }
+
     await upsertLearningAck(db, reader, 'species', code);
 
     const response = {
@@ -159,8 +234,13 @@ router.post(
   requireGlAuth,
   validate({ body: confirmBodySchema, params: learningCodeParamsSchema }),
   async (req, res) => {
+    const reader = buildReaderKey(req.glAuth);
+    const code = normalizeTargetCode(req.params.code);
+    const alreadyAcked =
+      reader && code ? await hasExistingLearningAck(reader, 'glossary', code) : false;
     return handleAcknowledge(req, res, {
       targetType: 'glossary',
+      skipGating: alreadyAcked,
       resolveTarget: async (targetCode) => {
         const row = await queryOne(
           "SELECT glossary_code FROM gl_glossary_terms WHERE glossary_code = ? AND statut = 'actif' LIMIT 1",
@@ -183,8 +263,13 @@ router.post(
       return res.status(400).json({ error: 'Identifiant invalide' });
     }
     req.params.code = String(id);
+    const reader = buildReaderKey(req.glAuth);
+    const alreadyAcked = reader
+      ? await hasExistingLearningAck(reader, 'tutorial', String(id))
+      : false;
     return handleAcknowledge(req, res, {
       targetType: 'tutorial',
+      skipGating: alreadyAcked,
       resolveTarget: async (targetCode) => {
         const tid = Number(targetCode);
         if (!Number.isFinite(tid) || tid <= 0) return false;

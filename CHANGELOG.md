@@ -7,18 +7,22 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
-### Conditionnement « lu/appris » — runtime d'auto-marquage (branchement)
+### Conditionnement « lu/appris » — gating pull à l'accusé (phase 3)
 
-- **`lib/learningGatingRuntime.js`** : sur **bonne réponse** à un QCM, marque automatiquement les
-  ressources liées (status='approved', is_gating) selon la politique effective. Additif (le marquage
-  manuel reste possible), **gardé par le flag** (`learning.gating.enabled` / `gating.enabled`, OFF par
-  défaut), **défensif** (toute erreur avalée — ne casse jamais la réponse).
-  - ForetMap : `tutorial` → `user_tutorial_reads`, `plant` → `user_plant_observation_events`.
-  - GL : enregistre la tentative par lecteur (`gl_qcm_attempts`) puis marque
-    `species|glossary|tutorial` → `gl_learning_acknowledgements`.
-- Branché dans les 3 routes de réponse : `POST /api/quiz/questions/:code/answer`,
-  `POST /api/gl/qcm/questions/:code/answer`, `POST /api/gl/lore/qcm/questions/:code/answer`.
-- Tests : `tests/learning-gating-runtime.test.js` (ON marque / OFF n'écrit rien / mauvaise réponse).
+- **`lib/learningGatingAcknowledge.js`** : challenge (`GET …/gating/challenge`) et garde **403** sur les
+  `POST` d'accusé si une question liée n'a pas de bonne réponse en BDD (mode **all**).
+- **UI** : au clic « Marquer comme lu/appris/étudié », enchaînement quiz → confirmation
+  (`LearningGatingQuestionPanel`, essais illimités, abandon). Branché FM (tutoriels, plantes) et GL
+  (espèces, glossaire, tutoriels).
+- **Suppression de l'auto-marquage push** : les réponses QCM enregistrent les tentatives uniquement
+  (`recordGlQcmAttemptIfGatingEnabled`, y compris QCM en partie GL).
+- Routes : `GET /api/learning/gating/challenge`, `GET /api/gl/learning/gating/challenge`.
+- Tests : `tests/learning-gating-acknowledge.test.js`, `tests/gl-learning-gating-acknowledge.test.js`,
+  `tests-ui/shared/learningGatingChallengeClient.test.js`.
+
+### Conditionnement « lu/appris » — runtime d'auto-marquage (branchement) — remplacé
+
+- L'auto-marquage sur bonne réponse (phase 2) est **retiré** au profit du flux pull ci-dessus.
 
 ### Conditionnement « lu/appris » — génération de questions liées (enrichissement contenu)
 

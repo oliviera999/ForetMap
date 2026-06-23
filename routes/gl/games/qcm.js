@@ -1,5 +1,5 @@
 const express = require('express');
-const { queryAll, queryOne, withTransaction } = require('../../../database');
+const { queryAll, queryOne, execute, withTransaction } = require('../../../database');
 const { requireGlAuth, hasGlPermission } = require('../../../middleware/requireGlAuth');
 const { normalizeEventRow } = require('../../../lib/glGameEvents');
 const { emitGlGameEvent } = require('../../../lib/realtime');
@@ -17,6 +17,7 @@ const {
 } = require('../../../lib/glLoreGlossaryMatch');
 const { loadAnyActiveQuestion, isLoreQuestionCode } = require('../../../lib/glQcmResolve');
 const { canAccessGlGame } = require('../../../lib/glGameAccess');
+const { recordGlQcmAttemptIfGatingEnabled } = require('../../../lib/learningGatingRuntime');
 
 const router = express.Router();
 
@@ -121,6 +122,8 @@ router.post('/games/:id/qcm/answer', requireGlAuth, async (req, res) => {
   const questionRow = await loadAnyActiveQuestion({ queryOne }, questionCode);
   if (!questionRow) return res.status(404).json({ error: 'Question introuvable' });
 
+  const isLore = isLoreQuestionCode(questionCode);
+
   let verification;
   try {
     verification = verifyPresentationAnswer(
@@ -131,6 +134,19 @@ router.post('/games/:id/qcm/answer', requireGlAuth, async (req, res) => {
   } catch (err) {
     return res.status(400).json({ error: err.message || 'Réponse invalide' });
   }
+
+  const dataset = isLore ? 'qcm_lore' : 'qcm';
+  await recordGlQcmAttemptIfGatingEnabled(
+    { queryAll, queryOne, execute },
+    {
+      glAuth: req.glAuth,
+      dataset,
+      questionCode,
+      isCorrect: verification.correct,
+      gameId,
+      teamId: teamIdForGame,
+    },
+  );
 
   let scoreDelta = 0;
   const markerIdRaw = req.body?.markerId;
@@ -178,7 +194,6 @@ router.post('/games/:id/qcm/answer', requireGlAuth, async (req, res) => {
     }
   });
 
-  const isLore = isLoreQuestionCode(questionCode);
   const glossaryRows = await queryAll(
     isLore
       ? `SELECT lore_code, terme, variantes, categorie, definition_courte, niveau

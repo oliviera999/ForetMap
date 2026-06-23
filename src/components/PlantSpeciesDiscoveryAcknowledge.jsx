@@ -1,10 +1,12 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { api, AccountDeletedError, createContextComment, getAuthToken } from '../services/api';
 import { useOverlayHistoryBack } from '../hooks/useOverlayHistoryBack';
 import { AttachmentImagesPicker } from './attachment-images-picker';
 import { DialogShell } from './DialogShell';
 import { MarkdownTextarea } from './MarkdownTextarea.jsx';
 import { PlantDiscoveryObservedCounts } from './PlantDiscoveryObservedCounts.jsx';
+import { LearningAcknowledgeButton } from '../shared/components/LearningAcknowledgeButton.jsx';
+import { createFmGatingHandlers } from '../shared/utils/learningGatingChallengeClient.js';
 
 const MIN_CONTEXT_COMMENT_CHARS = 2;
 
@@ -23,6 +25,7 @@ export function PlantSpeciesDiscoveryAcknowledgeButton({
   onForceLogout,
   offerPlantCommentAfterObservation = false,
 }) {
+  const [enrichOpen, setEnrichOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [phase, setPhase] = useState('confirm');
   const [checked, setChecked] = useState(false);
@@ -35,6 +38,11 @@ export function PlantSpeciesDiscoveryAcknowledgeButton({
   const [enrichToast, setEnrichToast] = useState('');
 
   const hasToken = typeof getAuthToken === 'function' && !!getAuthToken();
+  const gatingHandlers = useMemo(() => createFmGatingHandlers(api), []);
+  const gatingResource = useMemo(
+    () => ({ resourceType: 'plant', resourceRef: String(plantId) }),
+    [plantId],
+  );
   const my = Math.max(0, Number(myObservationCount) || 0);
   const site = Math.max(0, Number(siteObservationCount) || 0);
   const hasObserved = my > 0;
@@ -62,6 +70,21 @@ export function PlantSpeciesDiscoveryAcknowledgeButton({
     const t = setTimeout(() => setEnrichToast(''), 2400);
     return () => clearTimeout(t);
   }, [enrichToast]);
+
+  const submitDiscovery = useCallback(async () => {
+    const pid = Number(plantId);
+    if (!Number.isFinite(pid) || pid <= 0) {
+      throw new Error('Fiche espèce invalide — recharge la page ou rouvre le catalogue.');
+    }
+    const res = await api(`/api/plants/${pid}/acknowledge-discovery`, 'POST', { confirm: true });
+    if (!res || res.success !== true) {
+      throw new Error('Réponse serveur inattendue. Réessayez ou recharge la page.');
+    }
+    onAcknowledged?.(pid, {
+      my_observation_count: Number(res.my_observation_count) || 0,
+      site_observation_count: Number(res.site_observation_count) || 0,
+    });
+  }, [plantId, onAcknowledged]);
 
   const submit = useCallback(async () => {
     if (!checked) return;
@@ -96,43 +119,46 @@ export function PlantSpeciesDiscoveryAcknowledgeButton({
     }
   }, [checked, plantId, onAcknowledged, onForceLogout, offerPlantCommentAfterObservation]);
 
-  const submitEnrichment = useCallback(async () => {
-    const trimmed = String(enrichBody || '').trim();
-    const imgs = Array.isArray(enrichImages) ? enrichImages : [];
-    if (trimmed.length < MIN_CONTEXT_COMMENT_CHARS && imgs.length === 0) {
-      setEnrichError(
-        `Saisis au moins ${MIN_CONTEXT_COMMENT_CHARS} caractères ou ajoute une photo.`,
-      );
-      return;
-    }
-    setEnrichSaving(true);
-    setEnrichError('');
-    try {
-      await createContextComment({
-        contextType: 'plant',
-        contextId: String(plantId),
-        body: trimmed.length >= MIN_CONTEXT_COMMENT_CHARS ? trimmed : undefined,
-        images: imgs.length ? imgs : undefined,
-      });
-      setModalOpen(false);
-    } catch (e) {
-      if (e instanceof AccountDeletedError) onForceLogout?.();
-      setEnrichError(e?.message || 'Erreur');
-    } finally {
-      setEnrichSaving(false);
-    }
-  }, [enrichBody, enrichImages, plantId, onForceLogout]);
+  const submitEnrichment = useCallback(
+    async (onClose) => {
+      const trimmed = String(enrichBody || '').trim();
+      const imgs = Array.isArray(enrichImages) ? enrichImages : [];
+      if (trimmed.length < MIN_CONTEXT_COMMENT_CHARS && imgs.length === 0) {
+        setEnrichError(
+          `Saisis au moins ${MIN_CONTEXT_COMMENT_CHARS} caractères ou ajoute une photo.`,
+        );
+        return;
+      }
+      setEnrichSaving(true);
+      setEnrichError('');
+      try {
+        await createContextComment({
+          contextType: 'plant',
+          contextId: String(plantId),
+          body: trimmed.length >= MIN_CONTEXT_COMMENT_CHARS ? trimmed : undefined,
+          images: imgs.length ? imgs : undefined,
+        });
+        onClose?.();
+      } catch (e) {
+        if (e instanceof AccountDeletedError) onForceLogout?.();
+        setEnrichError(e?.message || 'Erreur');
+      } finally {
+        setEnrichSaving(false);
+      }
+    },
+    [enrichBody, enrichImages, plantId, onForceLogout],
+  );
 
-  const skipEnrichment = useCallback(() => {
+  const skipEnrichmentLegacy = useCallback(() => {
     setModalOpen(false);
   }, []);
 
   if (!hasToken) return null;
 
-  const renderEnrichStep = () => (
+  const renderEnrichStep = (open, onClose) => (
     <DialogShell
-      open={modalOpen}
-      onClose={() => !busy && setModalOpen(false)}
+      open={open}
+      onClose={() => !busy && onClose()}
       overlayClassName="modal-overlay"
       dialogClassName="log-modal fade-in tuto-read-ack-modal"
       ariaLabelledBy="plant-discovery-enrich-title"
@@ -182,7 +208,7 @@ export function PlantSpeciesDiscoveryAcknowledgeButton({
           type="button"
           className="btn btn-ghost btn-sm"
           disabled={enrichSaving}
-          onClick={skipEnrichment}
+          onClick={onClose}
         >
           Plus tard
         </button>
@@ -190,7 +216,7 @@ export function PlantSpeciesDiscoveryAcknowledgeButton({
           type="button"
           className="btn btn-primary btn-sm"
           disabled={enrichSaving}
-          onClick={submitEnrichment}
+          onClick={() => submitEnrichment(onClose)}
         >
           {enrichSaving ? 'Publication…' : 'Publier sur la fiche'}
         </button>
@@ -214,7 +240,7 @@ export function PlantSpeciesDiscoveryAcknowledgeButton({
         </div>
         {modalOpen &&
           (phase === 'enrich' ? (
-            renderEnrichStep()
+            renderEnrichStep(modalOpen, skipEnrichmentLegacy)
           ) : (
             <DialogShell
               open={modalOpen}
@@ -272,64 +298,36 @@ export function PlantSpeciesDiscoveryAcknowledgeButton({
 
   return (
     <>
-      <button type="button" className="btn btn-secondary btn-sm" onClick={() => setModalOpen(true)}>
-        Espèce découverte
-      </button>
-      {modalOpen &&
-        (phase === 'enrich' ? (
-          renderEnrichStep()
-        ) : (
-          <DialogShell
-            open={modalOpen}
-            onClose={() => !saving && setModalOpen(false)}
-            overlayClassName="modal-overlay"
-            dialogClassName="log-modal fade-in tuto-read-ack-modal"
-            ariaLabelledBy="plant-discovery-ack-title"
-            closeOnOverlay={!saving}
-            showCloseButton
-            closeButtonLabel="Fermer"
-            closeButtonDisabled={saving}
-          >
-            <h3 id="plant-discovery-ack-title">Confirmer la découverte</h3>
-            <p className="tuto-read-ack-intro">
-              En validant, tu confirmes pour l&apos;espèce{' '}
-              <strong>« {speciesName || 'cette fiche'} »</strong> que tu as réellement observé
-              l&apos;être vivant sur le terrain et pris connaissance des informations présentées sur
-              la fiche.
-            </p>
-            <label className="tuto-read-ack-check">
-              <input
-                type="checkbox"
-                checked={checked}
-                onChange={(e) => setChecked(e.target.checked)}
-                disabled={saving}
-              />
-              <span>
-                J&apos;ai observé réellement l&apos;espèce sur le terrain et pris connaissance des
-                informations de la fiche.
-              </span>
-            </label>
-            {error ? <p className="tuto-read-ack-error">{error}</p> : null}
-            <div className="tuto-read-ack-actions">
-              <button
-                type="button"
-                className="btn btn-ghost btn-sm"
-                disabled={saving}
-                onClick={() => setModalOpen(false)}
-              >
-                Annuler
-              </button>
-              <button
-                type="button"
-                className="btn btn-primary btn-sm"
-                disabled={!checked || saving}
-                onClick={submit}
-              >
-                {saving ? 'Enregistrement…' : 'Confirmer'}
-              </button>
-            </div>
-          </DialogShell>
-        ))}
+      <LearningAcknowledgeButton
+        labelAction="Espèce découverte"
+        labelDone="✓ Observée"
+        titleDone="Tu as confirmé cette observation"
+        itemTitle={speciesName}
+        confirmIntro={
+          <>
+            En validant, tu confirmes pour l&apos;espèce{' '}
+            <strong>« {speciesName || 'cette fiche'} »</strong> que tu as réellement observé
+            l&apos;être vivant sur le terrain et pris connaissance des informations présentées sur
+            la fiche.
+          </>
+        }
+        confirmCheckboxLabel="J'ai observé réellement l'espèce sur le terrain et pris connaissance des informations de la fiche."
+        gatingHandlers={gatingHandlers}
+        gatingResource={gatingResource}
+        enableGating
+        onSubmit={async () => {
+          try {
+            await submitDiscovery();
+          } catch (e) {
+            if (e instanceof AccountDeletedError) onForceLogout?.();
+            throw e;
+          }
+        }}
+        onDone={() => {
+          if (offerPlantCommentAfterObservation) setEnrichOpen(true);
+        }}
+      />
+      {enrichOpen ? renderEnrichStep(enrichOpen, () => setEnrichOpen(false)) : null}
     </>
   );
 }

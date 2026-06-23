@@ -6,6 +6,7 @@ const { pool, queryAll, queryOne, execute } = require('../database');
 const { requirePermission, requireAuth } = require('../middleware/requireTeacher');
 const { logRouteError, respondInternalError } = require('../lib/routeLog');
 const asyncHandler = require('../lib/asyncHandler');
+const { assertGatingSatisfiedForAcknowledge } = require('../lib/learningGatingAcknowledge');
 const { emitGardenChanged } = require('../lib/realtime');
 const { saveBase64ToDisk } = require('../lib/uploads');
 const { getNamedMemoryTtlCache } = require('../lib/memoryTtlCache');
@@ -207,6 +208,29 @@ router.post(
       }
       const plant = await queryOne('SELECT id FROM plants WHERE id = ?', [pid]);
       if (!plant) return res.status(404).json({ error: 'Fiche introuvable' });
+
+      const priorRow = await queryOne(
+        'SELECT COUNT(*) AS c FROM user_plant_observation_events WHERE user_id = ? AND plant_id = ?',
+        [String(userId), pid],
+      );
+      const priorCount = Number(priorRow?.c) || 0;
+      const gating = await assertGatingSatisfiedForAcknowledge(
+        { queryAll, queryOne, execute },
+        {
+          product: 'fm',
+          resourceType: 'plant',
+          resourceRef: String(pid),
+          userId,
+          skipGating: priorCount > 0,
+        },
+      );
+      if (!gating.ok) {
+        return res.status(gating.status || 403).json({
+          error: gating.error,
+          missing_question_codes: gating.missing_question_codes || [],
+        });
+      }
+
       const now = new Date().toISOString();
       await execute(
         'INSERT INTO user_plant_observation_events (user_id, plant_id, observed_at) VALUES (?, ?, ?)',

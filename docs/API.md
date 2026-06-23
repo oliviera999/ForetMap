@@ -1344,8 +1344,10 @@ Import local : `npm run db:import:biodiv` (après `npm run db:migrate`).
 
 Backbone permettant d'associer une **ressource** (fiche espèce, tutoriel, terme de glossaire, feuillet…)
 aux **questions** dont la réponse s'y trouve (relation N-N), puis de **conditionner** le marquage
-« lu/appris » à la réussite de ces questions. **Désactivé par défaut** : aucun effet runtime tant que
-le flag de gating est à `false` ; les routes ci-dessous servent à préparer/configurer les liens.
+« lu/appris » à la réussite de ces questions au moment du clic **« Marquer comme lu/appris/étudié »**
+(mode **all** : toutes les questions liées `is_gating=1` et `status='approved'`). **Désactivé par défaut**
+: aucun quiz à l'accusé tant que le flag de gating est à `false` ; sans lien gating, le flux reste une
+simple confirmation (case à cocher).
 
 Modèle polymorphe : `resource_type` (liste ouverte) + `resource_ref` (id ou code) ↔ `question_code`.
 Politique par ressource : `mode` ∈ `inherit|off|any|all|threshold`, `required_correct`, `enabled`
@@ -1364,9 +1366,17 @@ Politique par ressource : `mode` ∈ `inherit|off|any|all|threshold`, `required_
 | GET     | `/api/learning-links/config`                            | Réglages site effectifs (lecture seule ; écriture via `/api/settings`).                                          |
 
 Réglages site (table `app_settings`, scope `teacher`, modifiables via `/api/settings`) :
-`learning.gating.enabled` (def. `false`), `learning.gating.auto_mark_on_correct` (def. `true`),
-`learning.gating.default_mode` (`off|any|all|threshold`, def. `any`),
+`learning.gating.enabled` (def. `false`), `learning.gating.auto_mark_on_correct` (**déprécié**, ignoré),
+`learning.gating.default_mode` (`off|any|all|threshold`, def. `any` — non utilisé pour l'accusé, toujours **all**),
 `learning.gating.default_required_correct` (1–50, def. `1`).
+
+### Challenge & accusé (phase 3 — runtime pull)
+
+| Méthode | Route                                                       | Auth                       | Description                                                                                                                       |
+| ------- | ----------------------------------------------------------- | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| GET     | `/api/learning/gating/challenge?resourceType=&resourceRef=` | élève/prof (`requireAuth`) | État du quiz requis avant accusé (`required`, `mode: 'all'`, `questions[]`, `pending_count`). Types : `tutorial`, `plant`.        |
+| POST    | `/api/tutorials/:id/acknowledge-read`                       | `requireAuth`              | Marque le tutoriel lu. **403** `{ error, missing_question_codes }` si gating ON et questions non réussies (`user_quiz_attempts`). |
+| POST    | `/api/plants/:id/acknowledge-discovery`                     | `requireAuth`              | Première observation : même garde gating ; ré-observations ultérieures : confirmation seule.                                      |
 
 ### GL — `/api/gl/learning-links` (MJ/admin, JWT `product:'gl'`)
 
@@ -1385,9 +1395,16 @@ Types de ressources : `species|glossary|lore_glossary|tutorial|feuillet`. `quest
 | PUT            | `/api/gl/learning-links/scope-granularity`   | Surcharge granularité d'un scope lore (`{ scopeSlug, granularity }`).                         |
 
 Réglages site GL (table `gl_settings`) : `gating.enabled` (def. `false`),
-`gating.granularity` (`player|team|per_resource`, def. `player`), `gating.auto_mark_on_correct`,
+`gating.granularity` (`player|team|per_resource`, def. `player`), `gating.auto_mark_on_correct` (**déprécié**, ignoré),
 `gating.default_mode`, `gating.default_required_correct`. Persistance des tentatives QCM par lecteur :
-table `gl_qcm_attempts` (alimente le mode `player`).
+table `gl_qcm_attempts` (alimente la vérification à l'accusé et les réponses plateau/catalogue).
+
+| Méthode | Route                                                          | Auth   | Description                                                                         |
+| ------- | -------------------------------------------------------------- | ------ | ----------------------------------------------------------------------------------- |
+| GET     | `/api/gl/learning/gating/challenge?resourceType=&resourceRef=` | JWT GL | Idem ForetMap. Types : `species`, `glossary`, `tutorial`.                           |
+| POST    | `/api/gl/learning/species/:code`                               | JWT GL | Marque l'espèce étudiée. **403** si quiz incomplet. Pas de re-quiz si déjà accusée. |
+| POST    | `/api/gl/learning/glossary/:code`                              | JWT GL | Marque le terme appris (même garde).                                                |
+| POST    | `/api/gl/learning/tutorials/:id`                               | JWT GL | Marque le tutoriel GL lu (même garde).                                              |
 
 > **Isolement** : un JWT `product:'gl'` est rejeté sur `/api/learning-links` et inversement (couvert par tests).
 
@@ -1422,9 +1439,10 @@ Validation par le prof/MJ via les suggestions (`GET …/learning-links?status=su
 | POST    | `/api/learning-links/review`    | `{ ids:[…], action:'approve'\|'reject' }` → bascule le `status` (prof, `plants.manage`). |
 | POST    | `/api/gl/learning-links/review` | Idem côté GL (`gl.content.manage`).                                                      |
 
-> Le **runtime** (auto-marquage sur bonne réponse + enregistrement des tentatives) n'est volontairement
-> **pas encore branché** : il ne doit considérer que les liens `status='approved'`. C'est l'étape
-> suivante de la phase 2, une fois les liens validés sur le contenu réel.
+> **Runtime (phase 3)** : les bonnes réponses QCM **n'auto-marquent plus** les ressources. Elles sont
+> enregistrées (`user_quiz_attempts` / `gl_qcm_attempts`, y compris QCM en partie GL) et vérifiées
+> lors du `POST` d'accusé ou du `GET` challenge. L'UI enchaîne quiz → confirmation au clic
+> « Marquer comme… ».
 
 ---
 

@@ -233,6 +233,8 @@ export function GLTutorialsView({
             {learningProgress ? (
               <GLLearningAcknowledgeButton
                 acknowledgePath={`/api/gl/learning/tutorials/${active.id}`}
+                resourceType="tutorial"
+                resourceRef={active.id}
                 itemTitle={active.title}
                 labelAction="✓ Marquer comme lu"
                 labelDone="✓ Lu"
