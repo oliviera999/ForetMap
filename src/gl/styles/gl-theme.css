@@ -539,6 +539,38 @@ body.gl-body {
   font-size: 0.92rem;
 }
 
+.gl-auth-backcover {
+  margin: 0 auto 4px;
+  max-width: 46ch;
+  text-align: left;
+}
+
+.gl-auth-backcover > summary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  cursor: pointer;
+  font-style: italic;
+  color: var(--gl-color-link-hover, #2c5959);
+  list-style: none;
+}
+
+.gl-auth-backcover > summary::-webkit-details-marker {
+  display: none;
+}
+
+.gl-auth-backcover[open] > summary {
+  margin-bottom: 2px;
+}
+
+.gl-auth-backcover__text {
+  margin: 0 0 8px;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: var(--gl-color-text, #262626);
+}
+
 .gl-forgot-panel {
   margin-top: 12px;
   padding-top: 12px;

@@ -7,7 +7,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
-### GL — page de garde de la connexion : titre, accroches tournantes, « Franchir le miroir »
+### GL — page de garde de la connexion : titre, accroches tournantes, « Franchir le miroir », 4ᵉ de couverture
 
 - **Écran de connexion** (`src/gl/components/GLAuthView.jsx`) : nouvelle page de garde —
   titre de couverture, **accroche narrative tirée au hasard** parmi trois registres
@@ -15,13 +15,17 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   « De l'équateur au pôle, réécrivez le monde vivant avant que le Souffle ne l'efface. »,
   et bouton d'entrée renommé **« Franchir le miroir »** (remplace « Se connecter »).
   Le formulaire (identifiant, mot de passe, Google, mode découverte) reste visible et inchangé.
-- **Contenus isolés** (`src/gl/constants/authCover.js`) : accroches, baseline, libellé du CTA et
-  helper `pickGlAuthTagline()` (RNG injectable) — prévus pour être pilotés via `gl_settings`
-  ultérieurement sans retoucher le composant.
+- **Quatrième de couverture** : dépliant accessible « Lire la quatrième de couverture »
+  (`<details>`, cible tactile ≥ 44 px) sous la couverture — le texte (≈ 85 mots, trois paragraphes)
+  prolonge la métaphore du livre (couverture → on retourne le livre).
+- **Contenus isolés** (`src/gl/constants/authCover.js`) : accroches, baseline, **4ᵉ de couverture**,
+  libellé du CTA et helper `pickGlAuthTagline()` (RNG injectable) — source unique des textes,
+  prévue pour un pilotage ultérieur via `gl_settings` sans retoucher le composant.
 - **Intro cinématique inchangée** : la métaphore « boîte / copiste » est conservée ; le « miroir »
   ne se superpose pour l'instant que sur l'écran de connexion.
 - **Tests** (`tests-ui/gl/glAuthCover.test.js`, `tests-ui/gl/GLAuthView.test.jsx`) : tirage des
-  accroches, conformité CTA/baseline, rendu de la page de garde ; libellé du submit mis à jour.
+  accroches, conformité CTA/baseline/4ᵉ de couverture, rendu de la page de garde ; libellé du
+  submit mis à jour.
 
 ### GL — import carnet de Sélène : tolérance maximale + corpus v3 (157 feuillets)
 
