@@ -7,6 +7,15 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé
+
+- **GL — Carnet de Sélène (admin « Contenus › Carnet Sélène »)** : l'onglet d'édition des feuillets
+  affichait « Impossible de charger le contenu — le serveur a renvoyé une page HTML (vérifiez l'API /
+  le proxy) ». Le panneau `GLLoreFeuilletsEditorPanel` appelait `/api/gl/admin/feuillets` (préfixe
+  `/lore` manquant) : la requête retombait sur le fallback SPA (HTML 200) au lieu d'atteindre la route
+  `/api/gl/lore/admin/feuillets`. Chemins corrigés (liste, détail, PUT, PATCH) + test UI de
+  non-régression `tests-ui/gl/GLLoreFeuilletsEditorPanel.test.jsx`.
+
 ### GL — correctif import partiel des feuillets Sélène
 
 - **Correctif critique** : l’upsert des feuillets GL respecte maintenant le contrat
