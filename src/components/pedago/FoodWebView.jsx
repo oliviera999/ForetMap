@@ -22,7 +22,7 @@ export function FoodWebView({
   const [error, setError] = useState('');
   const [zoneId, setZoneId] = useState('');
   const [interactionFilter, setInteractionFilter] = useState('');
-  const [viewMode, setViewMode] = useState('list');
+  const [viewMode, setViewMode] = useState('graph');
   const [selectedEdgeId, setSelectedEdgeId] = useState(null);
   const [edgeGlossary, setEdgeGlossary] = useState([]);
   const [edgeLoading, setEdgeLoading] = useState(false);
