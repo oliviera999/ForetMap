@@ -22,6 +22,9 @@ export const INTERACTION_EDGE_STYLES = Object.freeze({
   competition: { color: '#4b5563', dash: '4 4', width: 1.8 },
 });
 
+/** Types « flux trophique » (sens écologique « est mangée par »). */
+export const TROPHIC_EDGE_TYPES = Object.freeze(['herbivorie', 'predation', 'decomposition']);
+
 const DEFAULT_EDGE_STYLE = Object.freeze({ color: '#94a3b8', dash: null, width: 1.6 });
 
 const ACTIVE_EDGE_COLOR = '#16a34a';
@@ -31,6 +34,10 @@ function normalizeType(type) {
   return String(type || '')
     .trim()
     .toLowerCase();
+}
+
+export function isTrophicEdgeType(type) {
+  return TROPHIC_EDGE_TYPES.includes(normalizeType(type));
 }
 
 /** Style de base d'un type d'interaction (couleur + figuré). */

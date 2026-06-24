@@ -31,6 +31,8 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Graphe** : couleur et figuré (plein, pointillés) distincts par type d'interaction ; légende
   visuelle sous le graphe (flèche simple ↔ double sens) ; export PNG/SVG aligné.
 - **Liste** : barre colorée sur chaque relation selon le type.
+- **Affichage** : en-tête fixe (plus de rognage en mode prof) ; bouton « Flux trophiques » et
+  légende cliquable pour masquer/afficher les relations (par type ou flux trophique d'un coup).
 - **Code** : `src/shared/foodWebEdgeStyle.js`, `FoodWebEdgeLegend.jsx` ; tests UI associés.
 
 ### Conditionnement « lu/appris » — aperçu avant quiz gating

@@ -74,4 +74,21 @@ describe('FoodWebGraph', () => {
     fireEvent.click(hit);
     expect(onSelectEdge).toHaveBeenCalledWith(1);
   });
+
+  test('masque les flux trophiques au clic sur le bouton dédié', () => {
+    const { getByRole, container } = render(<FoodWebGraph items={ITEMS} />);
+    const btn = getByRole('button', { name: /Flux trophiques/i });
+    expect(container.querySelectorAll('.pedago-foodweb-graph__line').length).toBe(2);
+    fireEvent.click(btn);
+    expect(container.querySelectorAll('.pedago-foodweb-graph__line').length).toBe(0);
+    fireEvent.click(btn);
+    expect(container.querySelectorAll('.pedago-foodweb-graph__line').length).toBe(2);
+  });
+
+  test('masque un type via la légende cliquable', () => {
+    const { getByRole, container } = render(<FoodWebGraph items={ITEMS} />);
+    fireEvent.click(getByRole('button', { name: /Masquer : Prédation/i }));
+    expect(container.querySelectorAll('.pedago-foodweb-graph__line').length).toBe(1);
+    expect(container.querySelector('.pedago-foodweb-graph__line--herbivorie')).toBeTruthy();
+  });
 });

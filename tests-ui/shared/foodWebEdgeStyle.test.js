@@ -2,9 +2,11 @@ import { describe, test, expect } from 'vitest';
 import {
   INTERACTION_EDGE_STYLES,
   LEGEND_ENTRIES,
+  TROPHIC_EDGE_TYPES,
   buildEdgeExportCss,
   edgeStyleClass,
   edgeStyleForType,
+  isTrophicEdgeType,
   resolveEdgeRenderStyle,
 } from '../../src/shared/foodWebEdgeStyle.js';
 import { INTERACTION_TYPES } from '../../src/shared/foodWebTypes.js';
@@ -39,5 +41,11 @@ describe('foodWebEdgeStyle', () => {
     const css = buildEdgeExportCss();
     expect(css).toContain('.pedago-foodweb-graph__line--symbiose');
     expect(css).toContain('#0f766e');
+  });
+
+  test('isTrophicEdgeType identifie les flux trophiques', () => {
+    expect(TROPHIC_EDGE_TYPES).toEqual(['herbivorie', 'predation', 'decomposition']);
+    expect(isTrophicEdgeType('predation')).toBe(true);
+    expect(isTrophicEdgeType('pollinisation')).toBe(false);
   });
 });

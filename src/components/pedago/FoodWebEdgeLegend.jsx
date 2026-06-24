@@ -55,7 +55,33 @@ function LegendSample({ type, symmetric, active = false }) {
  * @param {{ presentTypes?: string[]|null, compact?: boolean }} props
  *   `presentTypes` : si fourni, n'affiche que les types présents dans le graphe.
  */
-export function FoodWebEdgeLegend({ presentTypes = null, compact = false }) {
+function LegendItem({ type, label, symmetric, hidden, onToggle }) {
+  const interactive = typeof onToggle === 'function';
+  const Tag = interactive ? 'button' : 'div';
+  return (
+    <Tag
+      type={interactive ? 'button' : undefined}
+      className={`pedago-foodweb-legend__item${hidden ? ' pedago-foodweb-legend__item--hidden' : ''}${interactive ? ' pedago-foodweb-legend__item--toggle' : ''}`}
+      onClick={interactive ? () => onToggle(type) : undefined}
+      aria-pressed={interactive ? !hidden : undefined}
+      aria-label={interactive ? (hidden ? `Afficher : ${label}` : `Masquer : ${label}`) : undefined}
+      title={interactive ? (hidden ? `Afficher : ${label}` : `Masquer : ${label}`) : undefined}
+    >
+      <LegendSample type={type} symmetric={symmetric} />
+      <span className="pedago-foodweb-legend__label">{label}</span>
+    </Tag>
+  );
+}
+
+/**
+ * @param {{ presentTypes?: string[]|null, compact?: boolean, hiddenTypes?: Set<string>, onToggleType?: (type: string) => void }} props
+ */
+export function FoodWebEdgeLegend({
+  presentTypes = null,
+  compact = false,
+  hiddenTypes = null,
+  onToggleType = null,
+}) {
   const entries = useMemo(() => {
     if (!presentTypes || presentTypes.length === 0) return LEGEND_ENTRIES;
     const set = new Set(presentTypes.map((t) => String(t || '').toLowerCase()));
@@ -76,6 +102,7 @@ export function FoodWebEdgeLegend({ presentTypes = null, compact = false }) {
       <p className="pedago-foodweb-legend__hint">
         Couleur et trait = type d&apos;interaction. La flèche suit le sens écologique («&nbsp;est
         mangée par&nbsp;» pour les flux trophiques).
+        {onToggleType ? ' Clique une entrée pour l’afficher ou la masquer.' : ''}
       </p>
 
       {directed.length > 0 ? (
@@ -83,11 +110,14 @@ export function FoodWebEdgeLegend({ presentTypes = null, compact = false }) {
           <span className="pedago-foodweb-legend__group-label">Flèche simple →</span>
           <ul className="pedago-foodweb-legend__list">
             {directed.map(({ type, label, symmetric }) => (
-              <li key={type} className="pedago-foodweb-legend__item">
-                <LegendSample type={type} symmetric={symmetric} />
-                <span className="pedago-foodweb-legend__label">
-                  {label || interactionTypeLabel(type)}
-                </span>
+              <li key={type}>
+                <LegendItem
+                  type={type}
+                  label={label || interactionTypeLabel(type)}
+                  symmetric={symmetric}
+                  hidden={hiddenTypes?.has(type)}
+                  onToggle={onToggleType}
+                />
               </li>
             ))}
           </ul>
@@ -99,11 +129,14 @@ export function FoodWebEdgeLegend({ presentTypes = null, compact = false }) {
           <span className="pedago-foodweb-legend__group-label">Double sens ↔</span>
           <ul className="pedago-foodweb-legend__list">
             {mutual.map(({ type, label, symmetric }) => (
-              <li key={type} className="pedago-foodweb-legend__item">
-                <LegendSample type={type} symmetric={symmetric} />
-                <span className="pedago-foodweb-legend__label">
-                  {label || interactionTypeLabel(type)}
-                </span>
+              <li key={type}>
+                <LegendItem
+                  type={type}
+                  label={label || interactionTypeLabel(type)}
+                  symmetric={symmetric}
+                  hidden={hiddenTypes?.has(type)}
+                  onToggle={onToggleType}
+                />
               </li>
             ))}
           </ul>
