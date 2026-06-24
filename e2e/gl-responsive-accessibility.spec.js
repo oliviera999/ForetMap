@@ -55,13 +55,20 @@ test.describe('GL responsive & accessibilité', () => {
 
     await expect(page.locator('.gl-bottom-nav')).toBeVisible();
     await expect(page.getByRole('tab', { name: 'Cartes' })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Le monde G&L' })).toBeVisible();
     await expect(page.getByRole('button', { name: /Plus d'onglets/ })).toBeVisible();
+
+    await page.getByRole('tab', { name: 'Le monde G&L' }).click();
+    await expect(page.getByRole('tab', { name: 'Le monde G&L' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
 
     await page.getByRole('button', { name: /Plus d'onglets/ }).click();
     await expect(page.getByRole('dialog', { name: 'Navigation' })).toBeVisible();
-    await expect(page.getByRole('tab', { name: 'Le monde de G&L' })).toBeVisible();
+    await expect(page.getByRole('tab', { name: "L'aventure" })).toBeVisible();
 
-    await page.getByRole('tab', { name: 'Le monde de G&L' }).click();
+    await page.getByRole('tab', { name: "L'aventure" }).click();
     await expect(page.getByRole('dialog', { name: 'Navigation' })).toBeHidden();
     await expect(page.getByRole('button', { name: /Plus d'onglets/ })).toHaveClass(/is-active/);
   });
@@ -75,12 +82,17 @@ test.describe('GL responsive & accessibilité', () => {
     await expect(mapsTab).toHaveAttribute('aria-selected', 'true');
     await expect(mapsTab).toHaveAttribute('aria-controls', 'gl-tabpanel-maps');
 
+    await page.getByRole('tab', { name: 'La nature' }).click();
+    await expect(page.getByRole('tab', { name: 'La nature' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
     await page.getByRole('tab', { name: 'Glossaire' }).click();
     await expect(page.getByRole('tab', { name: 'Glossaire' })).toHaveAttribute(
       'aria-selected',
       'true',
     );
-    await expect(page.locator('#gl-tabpanel-glossary')).toBeVisible();
+    await expect(page.locator('#gl-tabpanel-nature')).toBeVisible();
   });
 
   test('console MJ : sous-onglets accessibles au clavier', async ({ page }) => {

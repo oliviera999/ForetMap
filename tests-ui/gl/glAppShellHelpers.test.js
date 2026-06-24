@@ -149,8 +149,24 @@ describe('filterGlTabs', () => {
     });
     const ids = tabs.map((t) => t.id);
     expect(ids).toContain('maps');
-    expect(ids).toContain('market');
-    expect(ids).toContain('lore-glossary');
+    expect(ids).toContain('joueurs');
+    expect(ids).toContain('nature');
+    expect(ids).toContain('adventure');
+    expect(ids).toContain('monde-gl');
+    expect(ids).toContain('joueurs');
+    expect(ids).not.toContain('ecosystemes');
+    expect(ids).not.toContain('biodiversite');
+    expect(ids).not.toContain('glossary');
+    expect(ids).not.toContain('history');
+    expect(ids).not.toContain('selene-carnet');
+    expect(ids).not.toContain('spells');
+    expect(ids).not.toContain('world');
+    expect(ids).not.toContain('rules');
+    expect(ids).not.toContain('tutorials');
+    expect(ids).not.toContain('lore-glossary');
+    expect(ids).not.toContain('forum');
+    expect(ids).not.toContain('market');
+    expect(ids).not.toContain('stats');
     expect(ids).not.toContain('mj');
     expect(ids).not.toContain('settings');
   });
@@ -163,9 +179,8 @@ describe('filterGlTabs', () => {
     });
     const ids = tabs.map((t) => t.id);
     expect(ids.indexOf('mj')).toBeGreaterThan(ids.indexOf('maps'));
-    expect(ids).toEqual(
-      expect.arrayContaining(['stats', 'users', 'contents', 'settings', 'mascots', 'mj']),
-    );
+    expect(ids).toEqual(expect.arrayContaining(['users', 'contents', 'settings', 'mascots', 'mj']));
+    expect(ids).not.toContain('stats');
   });
 
   test('modules coupés → onglets gérés masqués', () => {
@@ -181,33 +196,175 @@ describe('filterGlTabs', () => {
     const ids = filterGlTabs({ modules, vitalityEnabled: true, showStaffAdminUi: false }).map(
       (t) => t.id,
     );
-    for (const hidden of [
-      'history',
-      'journal',
-      'tutorials',
-      'forum',
-      'my-journal',
-      'selene-carnet',
-      'lore-glossary',
-    ]) {
+    for (const hidden of ['journal', 'forum', 'my-journal']) {
       expect(ids).not.toContain(hidden);
     }
     expect(ids).toContain('maps');
-    expect(ids).toContain('glossary');
+    expect(ids).toContain('nature');
+    expect(ids).toContain('adventure');
+    expect(ids).toContain('monde-gl');
+    expect(ids).toContain('joueurs');
+    expect(ids).not.toContain('tutorials');
+    expect(ids).not.toContain('lore-glossary');
+    expect(ids).not.toContain('market');
   });
 
-  test('marché : exige le module ET la vitalité gameplay', () => {
-    const withoutVitality = filterGlTabs({
-      modules: allModules,
+  test('marché : exige le module ET la vitalité gameplay', async () => {
+    const { filterGlJoueursSubTabs } = await import('../../src/gl/utils/glAppShellHelpers.js');
+    const withoutVitality = filterGlJoueursSubTabs(allModules, {
       vitalityEnabled: false,
-      showStaffAdminUi: false,
+      includeMarket: true,
     });
     expect(withoutVitality.map((t) => t.id)).not.toContain('market');
-    const moduleOff = filterGlTabs({
-      modules: { ...allModules, marketEnabled: false },
-      vitalityEnabled: true,
-      showStaffAdminUi: false,
-    });
+    const moduleOff = filterGlJoueursSubTabs(
+      { ...allModules, marketEnabled: false },
+      { vitalityEnabled: true, includeMarket: true },
+    );
     expect(moduleOff.map((t) => t.id)).not.toContain('market');
+  });
+});
+
+describe('onglet La nature', () => {
+  test('resolveGlNavActiveTab regroupe les sous-onglets SVT', async () => {
+    const {
+      resolveGlNavActiveTab,
+      resolveGlNatureSubTab,
+      resolveGlMainTabChange,
+      isGlNatureSubTab,
+      isGlTabVisibleInNav,
+    } = await import('../../src/gl/utils/glAppShellHelpers.js');
+    const allModules = Object.fromEntries(
+      Object.keys((await import('../../src/gl/constants/modules.js')).GL_MODULE_DEFAULTS).map(
+        (k) => [k, true],
+      ),
+    );
+
+    expect(resolveGlNavActiveTab('glossary')).toBe('nature');
+    expect(resolveGlNavActiveTab('ecosystemes')).toBe('nature');
+    expect(resolveGlNavActiveTab('maps')).toBe('maps');
+    expect(resolveGlNatureSubTab('biodiversite')).toBe('biodiversite');
+    expect(resolveGlNatureSubTab('nature')).toBe('ecosystemes');
+    expect(resolveGlMainTabChange('nature', allModules)).toBe('ecosystemes');
+    expect(isGlNatureSubTab('glossary')).toBe(true);
+    expect(isGlNatureSubTab('maps')).toBe(false);
+    expect(isGlTabVisibleInNav('glossary', [{ id: 'nature' }, { id: 'maps' }], allModules)).toBe(
+      true,
+    );
+    expect(isGlTabVisibleInNav('forum', [{ id: 'nature' }, { id: 'maps' }], allModules)).toBe(
+      false,
+    );
+  });
+
+  test('readStoredGlTab mappe nature vers écosystèmes', () => {
+    localStorage.setItem(GL_TAB_STORAGE_KEY, 'nature');
+    expect(readStoredGlTab()).toBe('ecosystemes');
+  });
+});
+
+describe("onglet L'aventure", () => {
+  test('resolveGlNavActiveTab regroupe histoire, carnet et sortilèges', async () => {
+    const {
+      resolveGlNavActiveTab,
+      resolveGlAdventureSubTab,
+      resolveGlMainTabChange,
+      isGlAdventureSubTab,
+      filterGlAdventureSubTabs,
+      isGlTabVisibleInNav,
+    } = await import('../../src/gl/utils/glAppShellHelpers.js');
+    const { GL_MODULE_DEFAULTS } = await import('../../src/gl/constants/modules.js');
+    const allModules = Object.fromEntries(Object.keys(GL_MODULE_DEFAULTS).map((k) => [k, true]));
+    const modulesOff = { ...allModules, journalEnabled: false, loreCarnetEnabled: false };
+
+    expect(resolveGlNavActiveTab('history')).toBe('adventure');
+    expect(resolveGlNavActiveTab('spells')).toBe('adventure');
+    expect(resolveGlAdventureSubTab('spells', allModules)).toBe('spells');
+    expect(resolveGlAdventureSubTab('history', modulesOff)).toBe('spells');
+    expect(resolveGlMainTabChange('adventure', allModules)).toBe('history');
+    expect(resolveGlMainTabChange('adventure', modulesOff)).toBe('spells');
+    expect(isGlAdventureSubTab('selene-carnet')).toBe(true);
+    expect(filterGlAdventureSubTabs(modulesOff).map((t) => t.id)).toEqual(['spells']);
+    expect(isGlTabVisibleInNav('history', [{ id: 'adventure' }], modulesOff)).toBe(false);
+    expect(isGlTabVisibleInNav('spells', [{ id: 'adventure' }], modulesOff)).toBe(true);
+  });
+
+  test('readStoredGlTab mappe adventure vers histoire', () => {
+    localStorage.setItem(GL_TAB_STORAGE_KEY, 'adventure');
+    expect(readStoredGlTab()).toBe('history');
+  });
+});
+
+describe('onglet Le monde G&L', () => {
+  test('resolveGlNavActiveTab regroupe introduction, règles, lore et tutoriels', async () => {
+    const {
+      resolveGlNavActiveTab,
+      resolveGlMondeSubTab,
+      resolveGlMainTabChange,
+      isGlMondeSubTab,
+      filterGlMondeSubTabs,
+      isGlTabVisibleInNav,
+    } = await import('../../src/gl/utils/glAppShellHelpers.js');
+    const { GL_MODULE_DEFAULTS } = await import('../../src/gl/constants/modules.js');
+    const allModules = Object.fromEntries(Object.keys(GL_MODULE_DEFAULTS).map((k) => [k, true]));
+    const modulesOff = { ...allModules, loreGlossaryEnabled: false, tutorialsEnabled: false };
+
+    expect(resolveGlNavActiveTab('world')).toBe('monde-gl');
+    expect(resolveGlNavActiveTab('rules')).toBe('monde-gl');
+    expect(resolveGlMondeSubTab('rules', allModules)).toBe('rules');
+    expect(resolveGlMondeSubTab('tutorials', modulesOff)).toBe('world');
+    expect(resolveGlMainTabChange('monde-gl', allModules)).toBe('world');
+    expect(isGlMondeSubTab('lore-glossary')).toBe(true);
+    expect(filterGlMondeSubTabs(modulesOff).map((t) => t.id)).toEqual(['world', 'rules']);
+    expect(isGlTabVisibleInNav('tutorials', [{ id: 'monde-gl' }], modulesOff)).toBe(false);
+    expect(isGlTabVisibleInNav('world', [{ id: 'monde-gl' }], modulesOff)).toBe(true);
+  });
+
+  test('readStoredGlTab mappe monde-gl vers introduction', () => {
+    localStorage.setItem(GL_TAB_STORAGE_KEY, 'monde-gl');
+    expect(readStoredGlTab()).toBe('world');
+  });
+});
+
+describe('onglet Les joueurs', () => {
+  test('resolveGlNavActiveTab regroupe forum, marché et statistiques', async () => {
+    const {
+      resolveGlNavActiveTab,
+      resolveGlJoueursSubTab,
+      resolveGlMainTabChange,
+      isGlJoueursSubTab,
+      filterGlJoueursSubTabs,
+      isGlTabVisibleInNav,
+    } = await import('../../src/gl/utils/glAppShellHelpers.js');
+    const { GL_MODULE_DEFAULTS } = await import('../../src/gl/constants/modules.js');
+    const allModules = Object.fromEntries(Object.keys(GL_MODULE_DEFAULTS).map((k) => [k, true]));
+    const modulesOff = { ...allModules, forumEnabled: false, marketEnabled: false };
+    const joueursOptions = { vitalityEnabled: true, includeMarket: true };
+
+    expect(resolveGlNavActiveTab('forum')).toBe('joueurs');
+    expect(resolveGlNavActiveTab('stats')).toBe('joueurs');
+    expect(resolveGlJoueursSubTab('stats', modulesOff, joueursOptions)).toBe('stats');
+    expect(resolveGlJoueursSubTab('forum', modulesOff, joueursOptions)).toBe('stats');
+    expect(resolveGlMainTabChange('joueurs', allModules, joueursOptions)).toBe('forum');
+    expect(isGlJoueursSubTab('market')).toBe(true);
+    expect(filterGlJoueursSubTabs(allModules, joueursOptions).map((t) => t.id)).toEqual([
+      'forum',
+      'market',
+      'stats',
+    ]);
+    expect(
+      filterGlJoueursSubTabs(modulesOff, { vitalityEnabled: false, includeMarket: false }).map(
+        (t) => t.id,
+      ),
+    ).toEqual(['stats']);
+    expect(isGlTabVisibleInNav('forum', [{ id: 'joueurs' }], modulesOff, joueursOptions)).toBe(
+      false,
+    );
+    expect(isGlTabVisibleInNav('stats', [{ id: 'joueurs' }], modulesOff, joueursOptions)).toBe(
+      true,
+    );
+  });
+
+  test('readStoredGlTab mappe joueurs vers statistiques', () => {
+    localStorage.setItem(GL_TAB_STORAGE_KEY, 'joueurs');
+    expect(readStoredGlTab()).toBe('stats');
   });
 });

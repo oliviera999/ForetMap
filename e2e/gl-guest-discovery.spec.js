@@ -25,8 +25,9 @@ test.describe('Gnomes & Licornes — Mode Découverte', () => {
       timeout: 30_000,
     });
     await expect(page.getByRole('tab', { name: 'Découverte' })).toBeVisible();
-    await expect(page.getByRole('tab', { name: 'Le monde de G&L' })).toBeVisible();
-    await expect(page.getByRole('tab', { name: 'Glossaire' })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Le monde G&L' })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'La nature' })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Glossaire' })).toHaveCount(0);
     await expect(page.getByRole('tab', { name: 'Forum' })).toHaveCount(0);
     await expect(page.getByRole('tab', { name: 'Console MJ' })).toHaveCount(0);
 

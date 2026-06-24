@@ -7,6 +7,15 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### GL — navigation par onglets regroupés
+
+- **La nature** : Écosystèmes, Biodiversité et Glossaire SVT sous un onglet parent.
+- **L'aventure** : Histoire, Carnet Sélène et Sortilèges (sous-onglets filtrés par modules).
+- **Le monde G&L** : Introduction, Règles du jeu, Lexique lore et Tutoriels.
+- **Les joueurs** : Forum, Marché et Statistiques (marché selon vitalité ; stats classe MJ / perso joueur).
+- **Introduction** : ancien onglet « Le monde de G&L » renommé en sous-onglet.
+- **Tests** : vues groupées (`GLNatureView`, `GLAdventureView`, `GLMondeView`, `GLJoueursView`), `glAppShellHelpers`, e2e navigation GL.
+
 ### GL — onglet Écosystèmes et hyperliens glossaire
 
 - **Écosystèmes** : retrait de l’illustration de couverture dupliquée (déjà dans Histoire) ; biotope et biocénose fusionnés sous le nom de l’écosystème (sans titres « Biotope » / « Biocénose »).

@@ -2570,6 +2570,13 @@ body.gl-map-fullscreen-active .gl-qcm-popover-overlay {
   z-index: 2;
 }
 
+.gl-nature-view__tabs,
+.gl-adventure-view__tabs,
+.gl-monde-view__tabs,
+.gl-joueurs-view__tabs {
+  margin-top: 0;
+}
+
 .gl-subtabs {
   display: flex;
   gap: 6px;
