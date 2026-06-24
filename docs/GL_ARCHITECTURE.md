@@ -26,8 +26,9 @@ Couches **autorisées** (sans fusionner auth, thème `gl-theme` ni catalogues m�
 | Collab                | `lib/shared/contextCommentsCore.js`, `lib/shared/reactionEmojiCore.js`                                             | Routeurs fins `routes/context-comments.js` et `routes/gl/context-comments.js`                                                                        |
 | Progression lecture   | `lib/shared/learningAckCore.js`, `src/shared/components/LearningAcknowledgeButton.jsx`                             | Accusés « lu / appris / étudié » (ForêtMap tutos + GL espèces, glossaire, tutos via `routes/gl/learning.js` et table `gl_learning_acknowledgements`) |
 | Statistiques joueurs  | `lib/glPlayerStats.js`, `routes/gl/stats.js`, `src/gl/components/GLStatsView.jsx`                                  | Stats perso (`GET /api/gl/stats/me`) et collectives classe (`GET /api/gl/stats/class`, permission `gl.players.manage`) — vitalité + apprentissages   |
+| Identité / groupes    | `lib/glGroupBridge.js`, `groups` + `group_members`, `gl_classes.foretmap_group_id`                                 | Chaque classe GL a un groupe ForetMap miroir ; les nouveaux joueurs GL sont liés à `users` et membres du groupe                                      |
 
-**À ne pas mutualiser** : tables `gl_*`, RBAC GL, catalogue `glMascotCatalog.js` (ids `gl-*`), styles couleur GL.
+**À ne pas mutualiser** : tables gameplay `gl_*` (hors lien groupe), RBAC JWT GL, catalogue `glMascotCatalog.js` (ids `gl-*`), styles couleur GL.
 
 **Commentaires contextuels** : types `gl_*` uniquement sur **`/api/gl/context-comments`** (retirés de l’API ForetMap standard pour éviter deux chemins JWT).
 

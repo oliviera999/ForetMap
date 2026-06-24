@@ -41,13 +41,20 @@ export function decodeBase64UrlJson(value) {
   return JSON.parse(window.atob(padded));
 }
 
-/** Onglet mémorisé en localStorage, replié sur `map` si absent ou inconnu. */
-export function readStoredTab() {
+/** Onglet mémorisé en localStorage, replié selon le rôle visiteur ou élève. */
+export function readStoredTab(options = {}) {
+  const isVisitor = !!options.isVisitor;
+  const visitEnabled = options.visitEnabled !== false;
+  const fallback = isVisitor ? (visitEnabled ? 'visit' : 'plants') : 'map';
   const raw = String(safeLocalStorageGetItem(TAB_STORAGE_KEY, '') || '')
     .trim()
     .toLowerCase();
-  if (!raw) return 'map';
-  return KNOWN_TAB_VALUES.has(raw) ? raw : 'map';
+  if (!raw) return fallback;
+  if (!KNOWN_TAB_VALUES.has(raw)) return fallback;
+  if (isVisitor && ['map', 'tasks', 'maptasks', 'tuto'].includes(raw)) {
+    return visitEnabled ? 'visit' : 'plants';
+  }
+  return raw;
 }
 
 /** Vrai sur iPhone / iPad / iPod (bannière d'installation iOS). */

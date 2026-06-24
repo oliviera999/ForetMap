@@ -803,12 +803,12 @@ function App() {
     'app.footer_version_prefix',
     'Version',
   );
-  const canAccessStudentMapTasks = true;
+  const isVisitor = effectiveRoleContext.roleSlug === 'visiteur';
+  const canAccessStudentMapTasks = !isVisitor;
   /** Met à jour le filtre lieu du volet Tâches (sans changer d’onglet). */
   const handleMapLocationTasksFocus = useCallback((focus) => {
     setTasksLocationFocus(focus);
   }, []);
-  const isVisitor = effectiveRoleContext.roleSlug === 'visiteur';
   const canAccessForum = !isVisitor && publicSettings?.modules?.forum_enabled !== false;
   const canParticipateForum = useMemo(() => {
     if (effectiveIsTeacher) return true;
@@ -1041,12 +1041,21 @@ function App() {
     setTab,
     effectiveIsTeacher,
     canAccessStudentMapTasks,
+    isVisitor,
     shouldUseDesktopSplit,
     canAccessForum,
     canViewGeneralStats,
     mergeTasksTutoNav,
     modules: publicSettings?.modules,
   });
+
+  useEffect(() => {
+    if (effectiveIsTeacher || !isVisitor || !student) return;
+    const visitOk = publicSettings?.modules?.visit_enabled !== false;
+    if (['map', 'tasks', 'maptasks', 'tuto'].includes(tab)) {
+      setTab(visitOk ? 'visit' : 'plants');
+    }
+  }, [effectiveIsTeacher, isVisitor, student, tab, publicSettings?.modules?.visit_enabled, setTab]);
 
   // Auto-refresh adaptatif (ralenti quand le push est actif, ralenti en arrière-plan).
   const pollingIntervalMs = useMemo(() => {
@@ -1237,6 +1246,11 @@ function App() {
                   Array.isArray(claims?.permissions) &&
                     claims.permissions.includes('teacher.access'),
                 );
+                const roleSlug = String(claims?.roleSlug || '').toLowerCase();
+                if (userType !== 'teacher' && roleSlug === 'visiteur') {
+                  const visitOk = publicSettings?.modules?.visit_enabled !== false;
+                  setTab(visitOk ? 'visit' : 'plants');
+                }
               }}
               appVersion={appVersion}
               uiSettings={publicSettings}
@@ -2198,6 +2212,7 @@ function App() {
                   tab={tab}
                   onTabChange={setTab}
                   canAccessStudentMapTasks={canAccessStudentMapTasks}
+                  isVisitor={isVisitor}
                   shouldUseDesktopSplit={shouldUseDesktopSplit}
                   tutorialsModuleEnabled={tutorialsModuleEnabled}
                   mergeTasksTutoNav={mergeTasksTutoNav}

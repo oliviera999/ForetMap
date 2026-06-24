@@ -42,6 +42,7 @@ const {
 } = require('../lib/studentTaskEnrollment');
 const { logAudit, logSecurityEvent } = require('./audit');
 const { ensureCanonicalUserByAuth, resolveLoginAccountByIdentifier } = require('../lib/identity');
+const { syncStudentRoleFromGroups } = require('../lib/groupRole');
 const { saveBase64ToDisk, deleteFile } = require('../lib/uploads');
 const { resolveStudentAffiliationForPersist } = require('../lib/studentAffiliation');
 const { resolveOAuthPublicOrigin, resolveOAuthRedirectUri } = require('../lib/oauthPublicUrl');
@@ -247,6 +248,18 @@ router.get('/me', requireAuth, async (req, res) => {
     /* Jeton déjà validé par requireAuth ; ignorer les écarts de décodage marginaux */
   }
   if (req.auth?.userType === 'student' && req.auth?.userId) {
+    const groupSync = await syncStudentRoleFromGroups(req.auth.userId);
+    if (groupSync.changed) {
+      const session = await buildSessionPayload(
+        req.auth.userType,
+        req.auth.userId,
+        !!req.auth.elevated,
+      );
+      if (session) {
+        body.refreshedToken = await signAuthToken(session.tokenPayload, !!req.auth.elevated);
+        body.auth = exposeAuth(session.tokenPayload);
+      }
+    }
     const promo = consumePendingAutoProfilePromotion(req.auth.userId);
     if (promo) body.autoProfilePromotion = promo;
     const u = await queryOne(
@@ -493,6 +506,7 @@ router.post('/register', async (req, res) => {
       throw err;
     }
     await ensurePrimaryRole('student', id, 'visiteur');
+    await syncStudentRoleFromGroups(id);
     const student = await queryOne("SELECT * FROM users WHERE id = ? AND user_type = 'student'", [
       id,
     ]);
@@ -632,13 +646,7 @@ router.post(
     const preferredRole = userType === 'teacher' || userType === 'user' ? 'prof' : 'eleve_novice';
     await ensurePrimaryRole(userType, account.id, preferredRole);
     if (userType === 'student') {
-      const primary = await getPrimaryRoleForUser('student', account.id);
-      if (primary && String(primary.slug || '').toLowerCase() === 'visiteur') {
-        const noviceRole = await queryOne(
-          "SELECT id FROM roles WHERE slug = 'eleve_novice' LIMIT 1",
-        );
-        if (noviceRole?.id) await setPrimaryRole('student', account.id, noviceRole.id);
-      }
+      await syncStudentRoleFromGroups(account.id);
     }
     await execute('UPDATE users SET last_seen = ?, updated_at = NOW() WHERE id = ?', [
       new Date().toISOString(),
@@ -853,6 +861,7 @@ router.get('/google/callback', async (req, res) => {
       await ensurePrimaryRole('student', id, 'visiteur');
       emitStudentsChanged({ reason: 'register_google', studentId: id });
       student = await queryOne("SELECT * FROM users WHERE id = ? AND user_type = 'student'", [id]);
+      await syncStudentRoleFromGroups(id);
     } else {
       await execute("UPDATE users SET last_seen = ? WHERE id = ? AND user_type = 'student'", [
         new Date().toISOString(),
@@ -861,6 +870,7 @@ router.get('/google/callback', async (req, res) => {
       student = await queryOne("SELECT * FROM users WHERE id = ? AND user_type = 'student'", [
         student.id,
       ]);
+      await syncStudentRoleFromGroups(student.id);
     }
 
     const session = await buildSessionPayload('student', student.id, false);

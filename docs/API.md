@@ -1008,15 +1008,16 @@ Réponse:
 
 Toutes les routes ci-dessous exigent un utilisateur connecté (`Authorization: Bearer <token>`).
 
-| Méthode | URL                       | n3boss                                  | Description                                                                                                               |
-| ------- | ------------------------- | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| GET     | `/api/groups/options`     | non                                     | Liste compacte des groupes accessibles (id, nom, parent) pour les filtres UI                                              |
-| GET     | `/api/groups`             | oui (`groups.read` ou `groups.manage`)  | Liste détaillée + arborescence + membres + scopes                                                                         |
-| POST    | `/api/groups`             | oui (`groups.manage`)                   | Créer un groupe                                                                                                           |
-| PATCH   | `/api/groups/:id`         | oui (`groups.manage`)                   | Mettre à jour nom/slug/type/parent/activation                                                                             |
-| DELETE  | `/api/groups/:id`         | oui (`groups.manage`)                   | Supprimer un groupe (les enfants sont détachés)                                                                           |
-| GET     | `/api/groups/:id/members` | oui (`groups.read` ou périmètre groupe) | Lire les membres d’un groupe                                                                                              |
-| PUT     | `/api/groups/:id/members` | oui (`groups.manage`)                   | Remplacer membres (`member_user_ids`), responsables (`manager_user_ids`) et scopes (`scope_map_ids`, `scope_project_ids`) |
+| Méthode | URL                                  | n3boss                                  | Description                                                                                                                                                         |
+| ------- | ------------------------------------ | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET     | `/api/groups/options`                | non                                     | Liste compacte des groupes accessibles (id, nom, parent) pour les filtres UI                                                                                        |
+| GET     | `/api/groups`                        | oui (`groups.read` ou `groups.manage`)  | Liste détaillée + arborescence + membres + scopes                                                                                                                   |
+| POST    | `/api/groups`                        | oui (`groups.manage`)                   | Créer un groupe                                                                                                                                                     |
+| PATCH   | `/api/groups/:id`                    | oui (`groups.manage`)                   | Mettre à jour nom/slug/type/parent/activation, `default_role_id`, `grants_n3beur_access`                                                                            |
+| DELETE  | `/api/groups/:id`                    | oui (`groups.manage`)                   | Supprimer un groupe (les enfants sont détachés)                                                                                                                     |
+| GET     | `/api/groups/:id/members`            | oui (`groups.read` ou périmètre groupe) | Lire les membres d’un groupe                                                                                                                                        |
+| PUT     | `/api/groups/:id/members`            | oui (`groups.manage`)                   | Remplacer membres (`member_user_ids`), responsables (`manager_user_ids`) et scopes (`scope_map_ids`, `scope_project_ids`) ; resynchronise le profil RBAC des élèves |
+| POST    | `/api/groups/:id/apply-default-role` | oui (`groups.manage`)                   | Applique le profil par défaut du groupe à tous les membres élèves                                                                                                   |
 
 Contrat principal :
 

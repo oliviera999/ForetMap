@@ -11,6 +11,7 @@ const {
   getUserAccessibleGroupIds,
 } = require('../lib/groupScope');
 const { z, validate } = require('../lib/validate');
+const { syncStudentRoleFromGroups, syncStudentRolesForGroupMembers } = require('../lib/groupRole');
 
 const router = express.Router();
 
@@ -55,6 +56,45 @@ function normalizeKind(value) {
 
 function uniqueStrings(values) {
   return [...new Set((values || []).map((v) => String(v || '').trim()).filter(Boolean))];
+}
+
+function parseBooleanFlag(value, fallback = false) {
+  if (value === undefined || value === null) return fallback;
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'number') return value !== 0;
+  const s = String(value).trim().toLowerCase();
+  if (['1', 'true', 'yes', 'on'].includes(s)) return true;
+  if (['0', 'false', 'no', 'off'].includes(s)) return false;
+  return fallback;
+}
+
+async function validateDefaultRoleId(roleId) {
+  const normalized = roleId == null || roleId === '' ? null : Number(roleId);
+  if (normalized == null) return null;
+  if (!Number.isFinite(normalized) || normalized <= 0) return false;
+  const row = await queryOne('SELECT id FROM roles WHERE id = ? LIMIT 1', [normalized]);
+  return row ? normalized : false;
+}
+
+async function enrichGroupRow(row) {
+  if (!row) return row;
+  const role = row.default_role_id
+    ? await queryOne('SELECT id, slug, display_name FROM roles WHERE id = ? LIMIT 1', [
+        row.default_role_id,
+      ])
+    : null;
+  const glClass = await queryOne(
+    'SELECT id, name FROM gl_classes WHERE foretmap_group_id = ? LIMIT 1',
+    [row.id],
+  );
+  return {
+    ...row,
+    default_role_slug: role?.slug ?? row.default_role_slug ?? null,
+    default_role_display_name: role?.display_name ?? row.default_role_display_name ?? null,
+    grants_n3beur_access: Number(row.grants_n3beur_access) !== 0,
+    gl_class_id: glClass?.id ?? row.gl_class_id ?? null,
+    gl_class_name: glClass?.name ?? null,
+  };
 }
 
 // O7 — Schéma zod du corps de POST / (création de groupe). Reproduit exactement la validation
@@ -159,6 +199,8 @@ router.get(
         slug: g.slug,
         kind: g.kind,
         parent_group_id: g.parent_group_id || null,
+        default_role_id: g.default_role_id ?? null,
+        grants_n3beur_access: Number(g.grants_n3beur_access) !== 0,
       })),
     });
   }),
@@ -184,13 +226,18 @@ router.get(
       fetchGroupScopes(ids),
     ]);
 
-    const list = visibleRows.map((row) => ({
-      ...row,
-      parent_group_id: row.parent_group_id || null,
-      is_active: Number(row.is_active) !== 0,
-      members: membersByGroup.get(row.id) || [],
-      scopes: scopesByGroup.get(row.id) || [],
-    }));
+    const list = await Promise.all(
+      visibleRows.map(async (row) => {
+        const enriched = await enrichGroupRow(row);
+        return {
+          ...enriched,
+          parent_group_id: enriched.parent_group_id || null,
+          is_active: Number(enriched.is_active) !== 0,
+          members: membersByGroup.get(row.id) || [],
+          scopes: scopesByGroup.get(row.id) || [],
+        };
+      }),
+    );
     res.json({
       can_manage: canManage,
       groups: list,
@@ -205,6 +252,11 @@ router.post(
   validate({ body: createGroupBodySchema }),
   asyncHandler(async (req, res) => {
     const { slug, name, description, kind, parent_group_id: parentGroupId } = req.body;
+    const defaultRoleId = await validateDefaultRoleId(req.body?.default_role_id);
+    if (defaultRoleId === false) {
+      return res.status(400).json({ error: 'default_role_id invalide' });
+    }
+    const grantsN3beur = parseBooleanFlag(req.body?.grants_n3beur_access, false);
     if (parentGroupId) {
       const parent = await queryOne('SELECT id FROM `groups` WHERE id = ? LIMIT 1', [
         parentGroupId,
@@ -214,14 +266,26 @@ router.post(
     const id = uuidv4();
     try {
       await execute(
-        `INSERT INTO \`groups\` (id, slug, name, description, kind, parent_group_id, is_active, created_by)
-       VALUES (?, ?, ?, ?, ?, ?, 1, ?)`,
-        [id, slug, name, description, kind, parentGroupId, normalizeId(req.auth?.userId)],
+        `INSERT INTO \`groups\` (id, slug, name, description, kind, parent_group_id, default_role_id, grants_n3beur_access, is_active, created_by)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?)`,
+        [
+          id,
+          slug,
+          name,
+          description,
+          kind,
+          parentGroupId,
+          defaultRoleId,
+          grantsN3beur ? 1 : 0,
+          normalizeId(req.auth?.userId),
+        ],
       );
     } catch (err) {
       rethrowSlugConflict(err);
     }
-    const created = await queryOne('SELECT * FROM `groups` WHERE id = ? LIMIT 1', [id]);
+    const created = await enrichGroupRow(
+      await queryOne('SELECT * FROM `groups` WHERE id = ? LIMIT 1', [id]),
+    );
     res.status(201).json(created);
   }),
 );
@@ -253,6 +317,17 @@ router.patch(
         : Number(group.is_active) !== 0
           ? 1
           : 0;
+    const defaultRoleId =
+      req.body?.default_role_id !== undefined
+        ? await validateDefaultRoleId(req.body.default_role_id)
+        : group.default_role_id;
+    if (defaultRoleId === false) {
+      return res.status(400).json({ error: 'default_role_id invalide' });
+    }
+    const grantsN3beur =
+      req.body?.grants_n3beur_access !== undefined
+        ? parseBooleanFlag(req.body.grants_n3beur_access, false)
+        : Number(group.grants_n3beur_access) !== 0;
     if (!slug || !name) return res.status(400).json({ error: 'slug et name requis' });
     if (!kind) return res.status(400).json({ error: 'kind invalide (class|team|unit|club)' });
     if (parentGroupId && parentGroupId === id)
@@ -267,14 +342,27 @@ router.patch(
     try {
       await execute(
         `UPDATE \`groups\`
-          SET slug = ?, name = ?, description = ?, kind = ?, parent_group_id = ?, is_active = ?, updated_at = NOW()
+          SET slug = ?, name = ?, description = ?, kind = ?, parent_group_id = ?,
+              default_role_id = ?, grants_n3beur_access = ?, is_active = ?, updated_at = NOW()
         WHERE id = ?`,
-        [slug, name, description, kind, parentGroupId, isActive, id],
+        [
+          slug,
+          name,
+          description,
+          kind,
+          parentGroupId,
+          defaultRoleId,
+          grantsN3beur ? 1 : 0,
+          isActive,
+          id,
+        ],
       );
     } catch (err) {
       rethrowSlugConflict(err);
     }
-    const updated = await queryOne('SELECT * FROM `groups` WHERE id = ? LIMIT 1', [id]);
+    const updated = await enrichGroupRow(
+      await queryOne('SELECT * FROM `groups` WHERE id = ? LIMIT 1', [id]),
+    );
     res.json(updated);
   }),
 );
@@ -432,6 +520,18 @@ router.put(
       }
     });
 
+    const affectedStudentIds = uniqueStrings([...memberUserIds, ...managerUserIds]);
+    if (affectedStudentIds.length > 0) {
+      const studentRows = await queryAll(
+        `SELECT id FROM users WHERE id IN (${affectedStudentIds.map(() => '?').join(',')})
+           AND user_type = 'student' AND is_active = 1`,
+        affectedStudentIds,
+      );
+      for (const row of studentRows) {
+        await syncStudentRoleFromGroups(row.id);
+      }
+    }
+
     const [membersByGroup, scopesByGroup] = await Promise.all([
       fetchGroupMembers([groupId]),
       fetchGroupScopes([groupId]),
@@ -440,6 +540,28 @@ router.put(
       group_id: groupId,
       members: membersByGroup.get(groupId) || [],
       scopes: scopesByGroup.get(groupId) || [],
+    });
+  }),
+);
+
+router.post(
+  '/:id/apply-default-role',
+  asyncHandler(async (req, res) => {
+    if (!canManageGroups(req.auth)) {
+      return res.status(403).json({ error: 'Permission insuffisante' });
+    }
+    const groupId = normalizeId(req.params.id);
+    const group = await queryOne('SELECT id FROM `groups` WHERE id = ? LIMIT 1', [groupId]);
+    if (!group) return res.status(404).json({ error: 'Groupe introuvable' });
+
+    const results = await syncStudentRolesForGroupMembers(groupId, {
+      force: true,
+      groupId,
+    });
+    res.json({
+      group_id: groupId,
+      applied: results.filter((r) => r.changed).length,
+      results,
     });
   }),
 );

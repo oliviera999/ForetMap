@@ -7,6 +7,12 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Utilisateurs / groupes partagés ForetMap ↔ GL et rôle visiteur
+
+- **Groupes** : `default_role_id`, `grants_n3beur_access` ; résolution RBAC élève via `lib/groupRole.js` ; `POST /api/groups/:id/apply-default-role`.
+- **Visiteur ForetMap** : persistance après login (plus de promotion auto `visiteur` → `eleve_novice`) ; UI sans onglets carte/tâches, arrivée sur **Visite**.
+- **Pont GL** : `gl_classes.foretmap_group_id`, création joueur synchronisée (`users` + `group_members` + `linked_foretmap_user_id`), login GL accepte le mot de passe du compte ForetMap lié.
+
 ### Tutoriels — import des fiches `tutos/` manquantes
 
 - **`lib/importTutosFromFilesystem.js`** : scan du dossier `tutos/*.html`, détection des fiches déjà en BDD

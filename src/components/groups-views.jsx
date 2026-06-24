@@ -8,6 +8,120 @@ function normalizeIds(values = []) {
   return [...new Set(values.map((v) => String(v || '').trim()).filter(Boolean))];
 }
 
+function GroupSettingsPanel({ group, roles, onClose, onSaved }) {
+  const [defaultRoleId, setDefaultRoleId] = useState('');
+  const [grantsN3beur, setGrantsN3beur] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [applying, setApplying] = useState(false);
+  const [err, setErr] = useState('');
+  const [msg, setMsg] = useState('');
+
+  useEffect(() => {
+    setDefaultRoleId(group?.default_role_id != null ? String(group.default_role_id) : '');
+    setGrantsN3beur(!!group?.grants_n3beur_access);
+  }, [group]);
+
+  const studentRoles = useMemo(
+    () =>
+      (Array.isArray(roles) ? roles : []).filter((r) => {
+        const slug = String(r.slug || '').toLowerCase();
+        return (
+          slug === 'visiteur' ||
+          slug.startsWith('eleve_') ||
+          (Number(r.rank) > 0 && Number(r.rank) < 400 && !slug.startsWith('gl_'))
+        );
+      }),
+    [roles],
+  );
+
+  const saveSettings = async () => {
+    setSaving(true);
+    setErr('');
+    setMsg('');
+    try {
+      await api(`/api/groups/${encodeURIComponent(group.id)}`, 'PATCH', {
+        default_role_id: defaultRoleId ? Number(defaultRoleId) : null,
+        grants_n3beur_access: grantsN3beur,
+      });
+      setMsg('Paramètres enregistrés');
+      await onSaved();
+    } catch (e) {
+      setErr(e.message || 'Erreur enregistrement');
+    }
+    setSaving(false);
+  };
+
+  const applyDefaultRole = async () => {
+    if (
+      !window.confirm(`Appliquer le profil par défaut à tous les membres de « ${group.name} » ?`)
+    ) {
+      return;
+    }
+    setApplying(true);
+    setErr('');
+    setMsg('');
+    try {
+      const result = await api(
+        `/api/groups/${encodeURIComponent(group.id)}/apply-default-role`,
+        'POST',
+      );
+      setMsg(`Profil appliqué à ${result?.applied ?? 0} membre(s)`);
+      await onSaved();
+    } catch (e) {
+      setErr(e.message || 'Erreur application profil');
+    }
+    setApplying(false);
+  };
+
+  return (
+    <div className="log-modal fade-in" style={{ marginBottom: 12 }}>
+      <h3 style={{ marginTop: 0 }}>Profil par défaut — {group.name}</h3>
+      <p style={{ fontSize: '.82rem', color: '#64748b', marginTop: 0 }}>
+        Les membres sans groupe n3beur restent visiteurs. Un profil <code>eleve_*</code> ou le flag
+        n3beur transforme le groupe en groupe n3beur.
+      </p>
+      {group?.gl_class_id && (
+        <p style={{ fontSize: '.82rem', color: '#0f766e' }}>
+          Lié GL : classe #{group.gl_class_id}
+          {group.gl_class_name ? ` (${group.gl_class_name})` : ''}
+        </p>
+      )}
+      {err && <div className="auth-error">⚠️ {err}</div>}
+      {msg && <div className="auth-success">{msg}</div>}
+      <div className="field">
+        <label>Profil par défaut du groupe</label>
+        <select value={defaultRoleId} onChange={(e) => setDefaultRoleId(e.target.value)}>
+          <option value="">— Aucun (règle automatique) —</option>
+          {studentRoles.map((r) => (
+            <option key={r.id} value={r.id}>
+              {r.display_name || r.slug}
+            </option>
+          ))}
+        </select>
+      </div>
+      <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: '.86rem' }}>
+        <input
+          type="checkbox"
+          checked={grantsN3beur}
+          onChange={(e) => setGrantsN3beur(e.target.checked)}
+        />
+        Accorde le statut n3beur (accès carte/tâches ForetMap)
+      </label>
+      <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+        <button className="btn btn-primary btn-sm" disabled={saving} onClick={saveSettings}>
+          {saving ? 'Enregistrement…' : 'Enregistrer'}
+        </button>
+        <button className="btn btn-secondary btn-sm" disabled={applying} onClick={applyDefaultRole}>
+          {applying ? 'Application…' : 'Appliquer à tous les membres'}
+        </button>
+        <button className="btn btn-ghost btn-sm" onClick={onClose} disabled={saving || applying}>
+          Fermer
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function GroupMembersEditor({ group, users, maps, projects, onClose, onSaved }) {
   const [memberIds, setMemberIds] = useState([]);
   const [managerIds, setManagerIds] = useState([]);
@@ -174,6 +288,8 @@ export function GroupsAdminView() {
   const [maps, setMaps] = useState([]);
   const [projects, setProjects] = useState([]);
   const [editingGroup, setEditingGroup] = useState(null);
+  const [settingsGroup, setSettingsGroup] = useState(null);
+  const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState('');
   const [msg, setMsg] = useState('');
@@ -181,16 +297,18 @@ export function GroupsAdminView() {
 
   const load = async () => {
     setErr('');
-    const [groupPayload, userRows, mapsRows, projectRows] = await Promise.all([
+    const [groupPayload, userRows, mapsRows, projectRows, roleRows] = await Promise.all([
       api('/api/groups'),
       api('/api/rbac/users'),
       api('/api/maps'),
       api('/api/task-projects'),
+      api('/api/rbac/profiles').catch(() => []),
     ]);
     setGroups(Array.isArray(groupPayload?.groups) ? groupPayload.groups : []);
     setUsers(Array.isArray(userRows) ? userRows : []);
     setMaps(Array.isArray(mapsRows) ? mapsRows : []);
     setProjects(Array.isArray(projectRows) ? projectRows : []);
+    setRoles(Array.isArray(roleRows) ? roleRows : []);
   };
 
   useEffect(() => {
@@ -302,8 +420,23 @@ export function GroupsAdminView() {
                 <strong>{g.name}</strong>
                 <span style={{ color: '#64748b' }}> · {g.kind}</span>
                 {g.parent_group_id && <span style={{ color: '#94a3b8' }}> · sous-groupe</span>}
+                {g.gl_class_id && (
+                  <span style={{ color: '#0f766e', fontSize: '.76rem' }}> · Lié GL</span>
+                )}
+                {g.default_role_display_name && (
+                  <span style={{ color: '#64748b', fontSize: '.76rem' }}>
+                    {' '}
+                    · Profil : {g.default_role_display_name}
+                  </span>
+                )}
+                {g.grants_n3beur_access && (
+                  <span style={{ color: '#0369a1', fontSize: '.76rem' }}> · n3beur</span>
+                )}
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
+                <button className="btn btn-ghost btn-sm" onClick={() => setSettingsGroup(g)}>
+                  Profil
+                </button>
                 <button className="btn btn-ghost btn-sm" onClick={() => setEditingGroup(g)}>
                   Membres
                 </button>
@@ -326,6 +459,16 @@ export function GroupsAdminView() {
           </div>
         ))}
       </div>
+      {settingsGroup && (
+        <div style={{ marginTop: 12 }}>
+          <GroupSettingsPanel
+            group={settingsGroup}
+            roles={roles}
+            onClose={() => setSettingsGroup(null)}
+            onSaved={load}
+          />
+        </div>
+      )}
       {editingGroup && (
         <div style={{ marginTop: 12 }}>
           <GroupMembersEditor

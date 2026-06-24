@@ -603,14 +603,18 @@ CREATE TABLE IF NOT EXISTS `groups` (
   description TEXT DEFAULT NULL,
   kind VARCHAR(32) NOT NULL DEFAULT 'class',
   parent_group_id VARCHAR(64) DEFAULT NULL,
+  default_role_id INT UNSIGNED DEFAULT NULL,
+  grants_n3beur_access TINYINT(1) NOT NULL DEFAULT 0,
   is_active TINYINT(1) NOT NULL DEFAULT 1,
   created_by VARCHAR(64) DEFAULT NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   UNIQUE KEY uq_groups_slug (slug),
   INDEX idx_groups_parent (parent_group_id),
+  INDEX idx_groups_default_role (default_role_id),
   INDEX idx_groups_kind_active (kind, is_active),
   CONSTRAINT fk_groups_parent FOREIGN KEY (parent_group_id) REFERENCES `groups`(id) ON DELETE SET NULL,
+  CONSTRAINT fk_groups_default_role FOREIGN KEY (default_role_id) REFERENCES roles(id) ON DELETE SET NULL,
   CONSTRAINT fk_groups_created_by FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

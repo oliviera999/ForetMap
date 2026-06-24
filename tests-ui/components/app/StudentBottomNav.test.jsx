@@ -41,6 +41,16 @@ describe('StudentBottomNav', () => {
     expect(screen.getByText('Tâches · tuto (2)')).toBeInTheDocument();
   });
 
+  test('visiteur : Visite en premier, pas de Carte/Tâches', () => {
+    render(
+      <StudentBottomNav {...baseProps} canAccessStudentMapTasks={false} isVisitor tab="visit" />,
+    );
+    const buttons = screen.getAllByRole('button');
+    expect(buttons[0]).toHaveTextContent('Visite');
+    expect(screen.queryByText('Carte')).toBeNull();
+    expect(screen.queryByText(/Tâches/)).toBeNull();
+  });
+
   test('sans accès carte/tâches → Carte et Tâches absents', () => {
     render(
       <StudentBottomNav {...baseProps} canAccessStudentMapTasks={false} shouldUseDesktopSplit />,
