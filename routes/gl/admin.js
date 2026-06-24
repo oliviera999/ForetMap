@@ -61,6 +61,7 @@ const { validateMarkerBackgrounds } = require('../../lib/glMarkerBackgrounds');
 const {
   ensureForetmapGroupForGlClass,
   upsertForetmapUserForGlPlayer,
+  syncForetmapUserForGlPlayer,
 } = require('../../lib/glGroupBridge');
 const { sendXlsxAttachment, wrapXlsxRoute } = require('../../lib/glXlsxAttachment');
 const {
@@ -456,8 +457,15 @@ router.put(
     }
     params.push(id);
     await execute(`UPDATE gl_players SET ${setParts.join(', ')} WHERE id = ?`, params);
+    const syncResult = await syncForetmapUserForGlPlayer(id);
+    if (!syncResult.ok) {
+      return res
+        .status(500)
+        .json({ error: syncResult.error || 'Synchronisation ForetMap impossible' });
+    }
     const updated = await queryOne(
-      `SELECT id, class_id, team_id, first_name, last_name, pseudo, email, password_must_reset, is_active
+      `SELECT id, class_id, team_id, first_name, last_name, pseudo, email, password_must_reset, is_active,
+              linked_foretmap_user_id
        FROM gl_players
       WHERE id = ?
       LIMIT 1`,
