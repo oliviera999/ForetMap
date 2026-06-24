@@ -1,0 +1,2 @@
+-- Rattrapage pont GL joueurs → comptes ForetMap + group_members.
+-- La logique applicative est exécutée au démarrage (lib/glGroupBridge.js, initSchema).

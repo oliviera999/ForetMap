@@ -370,6 +370,22 @@ async function initSchema() {
     conn.release();
   }
   try {
+    const {
+      countPendingGlPlayersForetmapSync,
+      backfillGlPlayersForetmapLinks,
+    } = require('./lib/glGroupBridge');
+    const pendingGlSync = await countPendingGlPlayersForetmapSync();
+    if (pendingGlSync > 0) {
+      const result = await backfillGlPlayersForetmapLinks();
+      logger.info(
+        { pendingGlSync, result },
+        'Pont GL → ForetMap : synchronisation joueurs existants',
+      );
+    }
+  } catch (err) {
+    logger.warn({ err }, 'Pont GL → ForetMap : backfill joueurs ignoré');
+  }
+  try {
     await inlineLegacyTutorialHtmlToDb({ queryAll, execute });
   } catch (err) {
     logger.warn({ err }, 'Incorporation fichiers tutoriels HTML (après schéma) ignorée');
