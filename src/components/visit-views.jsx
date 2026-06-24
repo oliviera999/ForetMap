@@ -660,9 +660,21 @@ function VisitViewImpl({
     setVisitMascotDialogVisible(false);
   }, [mapId, resetMapTransform, resetMascotTransientState]);
 
+  const visitMascotMarkerPlacementKey = useMemo(() => {
+    const markers = Array.isArray(content.markers) ? content.markers : [];
+    return markers
+      .map(
+        (m) =>
+          `${m.id ?? ''}:${m.x_pct ?? ''}:${m.y_pct ?? ''}:${String(m.label ?? '')
+            .trim()
+            .toLowerCase()}`,
+      )
+      .join('|');
+  }, [content.markers]);
+
   useLayoutEffect(() => {
     visitMascotStartPlacedForMapRef.current = null;
-  }, [mapId]);
+  }, [mapId, visitMascotMarkerPlacementKey]);
 
   useLayoutEffect(() => {
     if (loading) return;

@@ -107,7 +107,22 @@ async function registerStudentWithProfile(page) {
   await page.getByLabel('Pseudo (optionnel)').fill(pseudo);
   await page.getByLabel('Email (optionnel)').fill(email);
   await page.getByLabel('Confirmer le mot de passe', { exact: true }).fill(password);
+  const registerDone = page.waitForResponse(
+    (r) => r.url().includes('/api/auth/register') && r.request().method() === 'POST',
+    { timeout: 90_000 },
+  );
   await page.getByRole('button', { name: 'Créer le compte' }).click();
+  const registerResp = await registerDone;
+  if (!registerResp.ok()) {
+    const snippet = await registerResp.text().catch(() => '');
+    throw new Error(
+      `Inscription élève refusée (HTTP ${registerResp.status()}). ${snippet.slice(0, 240)}`,
+    );
+  }
+  const registerBody = await registerResp.json().catch(() => ({}));
+  if (registerBody?.id) {
+    await ensureStudentInN3beurGroup(page, registerBody.id);
+  }
   await page
     .getByRole('button', { name: /Déconnexion/ })
     .waitFor({ state: 'visible', timeout: 60_000 });
@@ -357,42 +372,6 @@ async function disableTeacherMode(page) {
     .getByRole('button', { name: /Déconnexion/ })
     .waitFor({ state: 'visible', timeout: 60_000 });
   await meWait.catch(() => {});
-  await page.waitForFunction(
-    () => {
-      try {
-        const raw = localStorage.getItem('foretmap_session');
-        if (!raw) return false;
-        const session = JSON.parse(raw);
-        if (session?.user?.userType !== 'student' || !session?.token) return false;
-        const b64 = String(session.token).split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
-        const pad = '='.repeat((4 - (b64.length % 4)) % 4);
-        const claims = JSON.parse(atob(b64 + pad));
-        return claims.elevated !== true;
-      } catch (_) {
-        return false;
-      }
-    },
-    null,
-    { timeout: 45_000 },
-  );
-  await page
-    .waitForResponse(
-      (r) => r.url().includes('/api/students/register') && r.request().method() === 'POST',
-      { timeout: 60_000 },
-    )
-    .catch(() => {});
-  await page.waitForFunction(
-    () => {
-      try {
-        const student = JSON.parse(localStorage.getItem('foretmap_student') || 'null');
-        return !!(student?.id && student?.first_name && student?.last_name);
-      } catch (_) {
-        return false;
-      }
-    },
-    null,
-    { timeout: 45_000 },
-  );
   await syncStudentSessionToken(page);
   await dismissProfilePromotionModalIfPresent(page);
 }
@@ -475,6 +454,24 @@ async function syncStudentSessionToken(page) {
     };
     localStorage.setItem('foretmap_session', JSON.stringify(nextSession));
     const perms = Array.isArray(meBody?.auth?.permissions) ? meBody.auth.permissions : [];
+    const roleSlug = String(meBody?.auth?.roleSlug || claims?.roleSlug || '').toLowerCase();
+    const finalClaims = decodeJwt(finalToken);
+    if (finalClaims?.elevated === true) {
+      return {
+        ok: false,
+        reason: 'token encore élevé',
+        roleSlug,
+        permissions: perms.filter((p) => p.startsWith('tasks.')),
+      };
+    }
+    if (roleSlug === 'visiteur') {
+      return {
+        ok: false,
+        reason: 'role visiteur',
+        roleSlug,
+        permissions: perms.filter((p) => p.startsWith('tasks.')),
+      };
+    }
     return {
       ok: perms.includes('tasks.assign_self') || perms.includes('tasks.unassign_self'),
       roleSlug: meBody?.auth?.roleSlug || null,
@@ -525,6 +522,41 @@ async function assignStudentToTaskAsTeacher(page, taskId) {
       `Affectation prof→élève refusée (HTTP ${result.status}). ${result.error || ''}`,
     );
   }
+}
+
+/** Attend qu'une tâche assignée soit visible côté élève (GET /api/tasks). */
+async function waitForStudentAssignedTask(page, taskTitle) {
+  await syncStudentSessionToken(page);
+  await expect
+    .poll(
+      async () => {
+        const result = await page.evaluate(async (title) => {
+          const readToken = () => {
+            try {
+              const session = JSON.parse(localStorage.getItem('foretmap_session') || 'null');
+              if (session?.user?.userType === 'student' && session?.token) return session.token;
+            } catch (_) {
+              /* ignore */
+            }
+            try {
+              const student = JSON.parse(localStorage.getItem('foretmap_student') || 'null');
+              return student?.authToken || null;
+            } catch (_) {
+              return null;
+            }
+          };
+          const token = readToken();
+          if (!token) return false;
+          const r = await fetch('/api/tasks', { headers: { Authorization: `Bearer ${token}` } });
+          if (!r.ok) return false;
+          const tasks = await r.json().catch(() => []);
+          return Array.isArray(tasks) && tasks.some((t) => String(t?.title || '').includes(title));
+        }, taskTitle);
+        return result;
+      },
+      { timeout: 60_000 },
+    )
+    .toBe(true);
 }
 
 /** Vue tâches prof (split desktop ou onglet Tâches seul). */
@@ -771,6 +803,7 @@ function parseCreatedTaskId(response) {
 }
 
 async function unassignTaskByApi(page, taskId) {
+  await syncStudentSessionToken(page);
   const result = await page.evaluate(async (id) => {
     const decodeJwt = (token) => {
       try {
@@ -813,20 +846,45 @@ async function unassignTaskByApi(page, taskId) {
     const auth = pickStudentAuth();
     if (!auth?.token) return { ok: false, status: 0, error: 'JWT élève absent' };
     const student = auth.student || {};
+    const claims = decodeJwt(auth.token);
+    const studentId =
+      claims?.userId != null
+        ? String(claims.userId)
+        : student?.id != null
+          ? String(student.id)
+          : undefined;
+    const meResp = await fetch('/api/auth/me', {
+      headers: { Authorization: `Bearer ${auth.token}` },
+    });
+    const meBody = meResp.ok ? await meResp.json().catch(() => null) : null;
     const r = await fetch(`/api/tasks/${id}/unassign`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${auth.token}` },
       body: JSON.stringify({
         firstName: student.first_name || '',
         lastName: student.last_name || '',
-        studentId: student.id || undefined,
+        ...(studentId ? { studentId } : {}),
       }),
     });
     const text = await r.text();
-    return { ok: r.ok, status: r.status, error: text.slice(0, 240) };
+    return {
+      ok: r.ok,
+      status: r.status,
+      error: text.slice(0, 240),
+      debug: {
+        roleSlug: meBody?.auth?.roleSlug || claims?.roleSlug || null,
+        elevated: claims?.elevated === true,
+        jwtUserId: claims?.userId ?? null,
+        bodyStudentId: studentId || null,
+        storedStudentId: student?.id ?? null,
+        permissions: (meBody?.auth?.permissions || []).filter((p) => p.startsWith('tasks.')),
+      },
+    };
   }, taskId);
   if (!result.ok) {
-    throw new Error(`Retrait tâche (API) refusé (HTTP ${result.status}). ${result.error || ''}`);
+    throw new Error(
+      `Retrait tâche (API) refusé (HTTP ${result.status}). ${result.error || ''} ${JSON.stringify(result.debug || {})}`,
+    );
   }
 }
 
@@ -884,6 +942,13 @@ async function assignTaskByApi(page, taskId) {
       return { ok: false, status: 0, error: 'JWT élève non élevé absent' };
     }
     const student = auth.student || {};
+    const claims = decodeJwt(auth.token);
+    const studentId =
+      claims?.userId != null
+        ? String(claims.userId)
+        : student?.id != null
+          ? String(student.id)
+          : undefined;
     const meResp = await fetch('/api/auth/me', {
       headers: { Authorization: `Bearer ${auth.token}` },
     });
@@ -894,11 +959,10 @@ async function assignTaskByApi(page, taskId) {
       body: JSON.stringify({
         firstName: student.first_name || '',
         lastName: student.last_name || '',
-        studentId: student.id || undefined,
+        ...(studentId ? { studentId } : {}),
       }),
     });
     const text = await r.text();
-    const claims = decodeJwt(auth.token);
     return {
       ok: r.ok,
       status: r.status,
@@ -907,7 +971,7 @@ async function assignTaskByApi(page, taskId) {
         roleSlug: claims?.roleSlug || meBody?.auth?.roleSlug || null,
         elevated: claims?.elevated === true,
         userId: claims?.userId || null,
-        studentId: student?.id || null,
+        studentId: studentId || null,
         permissions: meBody?.auth?.permissions || claims?.permissions || [],
       },
     };
@@ -1140,6 +1204,7 @@ module.exports = {
   dismissProfilePromotionModalIfPresent,
   enableTeacherMode,
   disableTeacherMode,
+  syncStudentSessionToken,
   openFirstZoneModalFromMap,
   openTeacherTasksTab,
   openStudentTasksTab,
@@ -1147,6 +1212,8 @@ module.exports = {
   clickTeacherNewTask,
   createTeacherTask,
   assignStudentToTaskAsTeacher,
+  waitForStudentAssignedTask,
+  assignTaskByApi,
   unassignTaskByApi,
   submitTaskFormDialog,
   fillTaskDescription,

@@ -111,6 +111,7 @@ test.describe('GL marché', () => {
     await loginGlPlayer(pageA, seeded, 'A');
     await loginGlPlayer(pageB, seeded, 'B');
 
+    await pageA.getByRole('tab', { name: /Les joueurs/i }).click();
     await pageA.getByRole('tab', { name: 'Marché' }).click();
     await expect(pageA.getByRole('note', { name: 'Règles du marché' })).toBeVisible();
     await expect(pageA.getByText('Comment fonctionne le marché ?')).toBeVisible();
@@ -121,6 +122,7 @@ test.describe('GL marché', () => {
     await pageA.getByLabel('Cœurs ❤️').blur();
     await offerPatchA;
 
+    await pageB.getByRole('tab', { name: /Les joueurs/i }).click();
     await pageB.getByRole('tab', { name: 'Marché' }).click();
     await pageB.getByRole('button', { name: seeded.pseudoA }).click();
     await expect(

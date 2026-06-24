@@ -7,6 +7,27 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Réseau trophique — mise en page et filtre par carte
+
+- **Graphe** : colonne latérale pour les filtres, zone de représentation agrandie (880×560), légende à côté sur grand écran.
+- **Liste** : groupes par type d'interaction en grille multi-colonnes ; contrôles compacts en tête.
+- **Filtre carte** : « Toutes les cartes » ou une carte précise ; sous-filtre zone optionnel sur la carte choisie.
+- **API** : `GET /api/food-web?mapId=` (documenté dans `docs/API.md`) ; tests `food-web-api`.
+
+### Studio pack mascotte — actions en lot sur les images
+
+- **Sélection multiple** : barre d'outils bulk (insertion, suppression, renommage, remplacement d'images).
+- **Interactions** : dialogue d'application groupée des profils d'interaction sur les cellules sélectionnées.
+- **Tests** : `mascotPackEditorFrames`, `visitMascotPackManager`, `MascotPackImagesPanel` ; routes visit mascotte étendues.
+
+### GL — marché sous l'onglet Les joueurs
+
+- **MJ sans aperçu joueur** : message explicite au lieu d'un marché vide ; sous-onglet Marché toujours visible si le module vitalité est actif.
+
+### Groupes — création
+
+- **Validation** : `default_role_id` et `grants_n3beur_access` acceptés à la création (`POST /api/groups`) ; tests associés.
+
 ### GL — navigation par onglets regroupés
 
 - **La nature** : Écosystèmes, Biodiversité et Glossaire SVT sous un onglet parent.

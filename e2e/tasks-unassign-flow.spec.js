@@ -4,9 +4,12 @@ const {
   enableTeacherMode,
   disableTeacherMode,
   createTeacherTask,
-  assignStudentToTaskAsTeacher,
+  assignTaskByApi,
+  waitForStudentAssignedTask,
   unassignTaskByApi,
   openStudentTasksTab,
+  expectTaskCardWithTitle,
+  syncStudentSessionToken,
 } = require('./fixtures/auth.fixture');
 
 test.describe.configure({ mode: 'serial' });
@@ -17,17 +20,33 @@ test('élève peut se retirer d’une tâche prise en charge', async ({ page }) 
 
   await loginAsNewStudent(page);
   await enableTeacherMode(page);
-  const taskId = await createTeacherTask(page, taskTitle, { skipReload: true });
-  await assignStudentToTaskAsTeacher(page, taskId);
-
+  const taskId = await createTeacherTask(page, taskTitle);
   await disableTeacherMode(page);
+
+  const studentTasksLoad = page.waitForResponse(
+    (r) => r.url().includes('/api/tasks') && r.request().method() === 'GET' && r.status() === 200,
+    { timeout: 45_000 },
+  );
   await openStudentTasksTab(page);
-  const search = page.getByPlaceholder('🔍 Rechercher une tâche...');
-  if (await search.isVisible({ timeout: 5000 }).catch(() => false)) {
-    await search.fill(taskTitle, { force: true, timeout: 10_000 }).catch(() => {});
-  }
+  await studentTasksLoad.catch(() => {});
+
+  await assignTaskByApi(page, taskId);
+  await waitForStudentAssignedTask(page, taskTitle);
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await page
+    .getByRole('button', { name: /Déconnexion/ })
+    .waitFor({ state: 'visible', timeout: 60_000 });
+  await syncStudentSessionToken(page);
+
+  const tasksAfterReload = page.waitForResponse(
+    (r) => r.url().includes('/api/tasks') && r.request().method() === 'GET' && r.status() === 200,
+    { timeout: 45_000 },
+  );
+  await openStudentTasksTab(page);
+  await tasksAfterReload.catch(() => {});
+
   const studentTaskCard = page.locator('.task-card', { hasText: taskTitle }).first();
-  await expect(studentTaskCard).toBeVisible({ timeout: 45_000 });
+  await expectTaskCardWithTitle(page, taskTitle);
   const unassignBtn = studentTaskCard.getByRole('button', { name: /Me retirer/i });
   await expect(unassignBtn).toBeVisible({ timeout: 45_000 });
 

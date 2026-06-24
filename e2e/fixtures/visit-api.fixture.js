@@ -71,6 +71,45 @@ async function deleteVisitMarker(page, token, markerId) {
 }
 
 /**
+ * Efface la position mascotte persistée (localStorage) pour éviter les fuites entre specs e2e.
+ * @param {import('@playwright/test').Page} page
+ * @param {string} [mapId]
+ */
+async function clearVisitMascotPositionStorage(page, mapId = 'n3') {
+  await page.evaluate((id) => {
+    localStorage.removeItem(`foretmap_visit_mascot_pct_v1:${encodeURIComponent(String(id ?? ''))}`);
+  }, mapId);
+}
+
+/**
+ * Attend que le contenu visite expose au moins un repère « entrée N3 » (après seed prof).
+ * @param {import('@playwright/test').Page} page
+ * @param {string} [mapId]
+ */
+async function waitForVisitN3EntranceMarker(page, mapId = 'n3') {
+  const deadline = Date.now() + 30_000;
+  while (Date.now() < deadline) {
+    const res = await page.request.get(`/api/visit/content?map_id=${encodeURIComponent(mapId)}`);
+    if (res.ok()) {
+      const body = await res.json();
+      const markers = Array.isArray(body?.markers) ? body.markers : [];
+      const entrance = markers.find((mk) =>
+        VISIT_N3_ENTRANCE_LABEL_RE.test(String(mk?.label || '').trim()),
+      );
+      if (
+        entrance &&
+        Number.isFinite(Number(entrance.x_pct)) &&
+        Number.isFinite(Number(entrance.y_pct))
+      ) {
+        return { x_pct: Number(entrance.x_pct), y_pct: Number(entrance.y_pct) };
+      }
+    }
+    await page.waitForTimeout(250);
+  }
+  throw new Error(`Repère entrée N3 absent du contenu visite (map_id=${mapId}) après seed.`);
+}
+
+/**
  * Crée zone + repères sur la carte **n3** (repère « entrée » pour le placement initial mascotte).
  * @param {import('@playwright/test').Page} page
  * @returns {Promise<{ token: string, suffix: string, entrancePct: { x_pct: number, y_pct: number }, n3: { zoneId: string, markerAId: string, markerBId: string, entranceId: string } }>}
@@ -166,6 +205,8 @@ module.exports = {
   getTeacherBearerToken,
   seedVisitMascotContent,
   cleanupVisitMascotContent,
+  clearVisitMascotPositionStorage,
+  waitForVisitN3EntranceMarker,
   postVisitZone,
   postVisitMarker,
   deleteVisitZone,

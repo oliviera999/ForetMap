@@ -2628,6 +2628,78 @@ test('visit : bibliothèque sprites + clone catalogue + clone pack (assets)', as
     .expect(200);
 });
 
+test('visit mascot assets : PATCH rename pack et bibliothèque carte', async () => {
+  const token = await getAdminAuthToken();
+  const packCreated = await request(app)
+    .post('/api/visit/mascot-packs')
+    .set('Authorization', `Bearer ${token}`)
+    .send({ map_id: 'foret', is_published: 0 })
+    .expect(201);
+  const packId = packCreated.body.id;
+  const packOrig = 'rename-pack-orig.png';
+  const packRenamed = 'rename-pack-new.png';
+  const libOrig = `rename-lib-${Date.now()}.png`;
+  const libRenamed = `rename-lib-new-${Date.now()}.png`;
+
+  try {
+    await request(app)
+      .post(`/api/visit/mascot-packs/${packId}/assets`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ filename: packOrig, image_data: VISIT_LIB_TINY_PNG_B64 })
+      .expect(201);
+
+    const packRename = await request(app)
+      .patch(`/api/visit/mascot-packs/${packId}/assets/${encodeURIComponent(packOrig)}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ new_filename: packRenamed })
+      .expect(200);
+    assert.strictEqual(packRename.body.filename, packRenamed);
+    assert.strictEqual(packRename.body.previous_filename, packOrig);
+
+    const packList = await request(app)
+      .get(`/api/visit/mascot-packs/${packId}/assets`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+    assert.ok(packList.body.assets.some((a) => a.filename === packRenamed));
+    assert.ok(!packList.body.assets.some((a) => a.filename === packOrig));
+
+    await request(app)
+      .patch(`/api/visit/mascot-packs/${packId}/assets/${encodeURIComponent(packRenamed)}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ new_filename: packRenamed })
+      .expect(400);
+
+    await request(app)
+      .post('/api/visit/mascot-sprite-library/foret/assets')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ filename: libOrig, image_data: VISIT_LIB_TINY_PNG_B64 })
+      .expect(201);
+
+    const libRename = await request(app)
+      .patch(`/api/visit/mascot-sprite-library/foret/assets/${encodeURIComponent(libOrig)}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ new_filename: libRenamed })
+      .expect(200);
+    assert.strictEqual(libRename.body.filename, libRenamed);
+
+    const libList = await request(app)
+      .get('/api/visit/mascot-sprite-library/foret/assets')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+    assert.ok(libList.body.assets.some((a) => a.filename === libRenamed));
+
+    await request(app)
+      .delete(`/api/visit/mascot-sprite-library/foret/assets/${encodeURIComponent(libRenamed)}`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+  } finally {
+    await request(app)
+      .delete(`/api/visit/mascot-packs/${packId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+  }
+});
+
 test('visit mascot packs : clone_from_catalog_id accepte d’autres mascottes catalogue', async () => {
   const token = await getAdminAuthToken();
   const fromCatalog = await request(app)

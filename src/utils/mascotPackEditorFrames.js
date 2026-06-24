@@ -237,6 +237,153 @@ export function appendFileToStateFrames(stateFrames, stateKey, filename) {
 }
 
 /**
+ * Renomme un fichier dans tous les `stateFrames.*.files` d'un pack.
+ * @param {Record<string, unknown> | null | undefined} pack
+ * @param {string} oldName
+ * @param {string} newName
+ * @returns {Record<string, unknown>}
+ */
+export function renameFilenameInPackStateFrames(pack, oldName, newName) {
+  const from = String(oldName || '').trim();
+  const to = String(newName || '').trim();
+  if (!from || !to || from === to) return { ...(pack || {}) };
+  const framesBase = String(pack?.framesBase || '').trim();
+  const sf = pack?.stateFrames && typeof pack.stateFrames === 'object' ? pack.stateFrames : {};
+  const nextSf = {};
+  for (const [state, spec] of Object.entries(sf)) {
+    if (!spec || typeof spec !== 'object') {
+      nextSf[state] = spec;
+      continue;
+    }
+    const files = Array.isArray(spec.files) ? spec.files : [];
+    if (files.length === 0) {
+      nextSf[state] = spec;
+      continue;
+    }
+    const nextFiles = files.map((f) => {
+      const name = normalizePackFrameFileRef(f, framesBase);
+      return name === from ? to : f;
+    });
+    nextSf[state] = { ...spec, files: nextFiles };
+  }
+  return { ...(pack || {}), stateFrames: nextSf };
+}
+
+/**
+ * Retire des noms de fichiers d'un état (mode `files` uniquement).
+ * @param {Record<string, unknown>} stateFrames
+ * @param {string} stateKey
+ * @param {string[]} filenames
+ * @returns {Record<string, unknown>}
+ */
+export function removeFilenamesFromStateFrames(stateFrames, stateKey, filenames) {
+  const map =
+    stateFrames && typeof stateFrames === 'object' && !Array.isArray(stateFrames)
+      ? stateFrames
+      : {};
+  const cur = map[stateKey];
+  if (!cur || typeof cur !== 'object') return { ...map };
+  const toRemove = new Set(
+    (Array.isArray(filenames) ? filenames : []).map((f) => String(f || '').trim()).filter(Boolean),
+  );
+  if (toRemove.size === 0) return { ...map };
+  const files = Array.isArray(cur.files) ? cur.files : [];
+  const fps = Math.max(1, Number(cur.fps) || 8);
+  const dwell = Array.isArray(cur.frameDwellMs)
+    ? cur.frameDwellMs.map((n) => Number(n) || 100)
+    : [];
+  const nextFiles = [];
+  const nextDwell = [];
+  for (let i = 0; i < files.length; i += 1) {
+    const f = String(files[i] || '').trim();
+    if (toRemove.has(f)) continue;
+    nextFiles.push(f);
+    if (dwell.length === files.length) nextDwell.push(dwell[i]);
+  }
+  if (nextFiles.length === 0) {
+    const next = { ...map };
+    delete next[stateKey];
+    return next;
+  }
+  return {
+    ...map,
+    [stateKey]: {
+      ...cur,
+      files: nextFiles,
+      fps,
+      ...(nextDwell.length ? { frameDwellMs: nextDwell } : {}),
+    },
+  };
+}
+
+/**
+ * Déplace un bloc contigu de frames dans un état (monter / descendre).
+ * @param {Record<string, unknown>} spec
+ * @param {string[]} files
+ * @param {number[]} dwell
+ * @param {number} fps
+ * @param {number} blockStart index du premier élément du bloc
+ * @param {number} blockLen longueur du bloc
+ * @param {'up' | 'down'} direction
+ * @returns {Record<string, unknown> | null} null si déplacement impossible
+ */
+export function moveFilenameBlockInStateFrames(
+  spec,
+  files,
+  dwell,
+  fps,
+  blockStart,
+  blockLen,
+  direction,
+) {
+  const len = Math.max(1, blockLen);
+  const start = blockStart;
+  if (start < 0 || start + len > files.length) return null;
+  const targetStart = direction === 'up' ? start - 1 : start + 1;
+  if (targetStart < 0 || targetStart + len > files.length) return null;
+
+  const nextFiles = [...files];
+  const block = nextFiles.splice(start, len);
+  nextFiles.splice(targetStart, 0, ...block);
+
+  let nextDwell;
+  if (dwell.length === files.length) {
+    const d = [...dwell];
+    const blockDwell = d.splice(start, len);
+    d.splice(targetStart, 0, ...blockDwell);
+    nextDwell = d;
+  }
+
+  return {
+    ...spec,
+    files: nextFiles,
+    fps,
+    ...(nextDwell ? { frameDwellMs: nextDwell } : {}),
+  };
+}
+
+/**
+ * Indices contigus d'un sous-ensemble de fichiers dans la liste d'un état.
+ * @param {string[]} files
+ * @param {string[]} subset
+ * @returns {{ start: number, len: number } | null}
+ */
+export function findContiguousFilenameBlock(files, subset) {
+  const list = Array.isArray(files) ? files : [];
+  const wanted = (Array.isArray(subset) ? subset : [])
+    .map((f) => String(f || '').trim())
+    .filter(Boolean);
+  if (wanted.length === 0 || wanted.length > list.length) return null;
+  outer: for (let i = 0; i <= list.length - wanted.length; i += 1) {
+    for (let j = 0; j < wanted.length; j += 1) {
+      if (list[i + j] !== wanted[j]) continue outer;
+    }
+    return { start: i, len: wanted.length };
+  }
+  return null;
+}
+
+/**
  * Calcule les avertissements non bloquants d'un pack en édition :
  * silhouette inconnue, et fichiers référencés absents de la médiathèque
  * serveur (uniquement si `framesBase` pointe vers le dossier serveur du pack).

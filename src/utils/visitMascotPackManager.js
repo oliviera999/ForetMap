@@ -228,6 +228,101 @@ export function insertMascotImageIntoPackState(prevPack, targetState, asset) {
   return insertAssetUrlIntoPackState(next, state, url);
 }
 
+/**
+ * Insère plusieurs images dans l'état ciblé (ordre préservé, sans doublons).
+ * @param {Record<string, unknown> | null | undefined} prevPack
+ * @param {string} targetState
+ * @param {Array<Record<string, unknown>>} assets
+ * @returns {{ pack: Record<string, unknown>, addedCount: number }}
+ */
+export function insertMascotImagesIntoPackState(prevPack, targetState, assets) {
+  const list = Array.isArray(assets) ? assets : [];
+  let pack = { ...(prevPack || {}) };
+  let addedCount = 0;
+  for (const asset of list) {
+    const next = insertMascotImageIntoPackState(pack, targetState, asset);
+    const beforeJson = stringifyPack(sanitizeMascotPackDraft(pack), 0);
+    const afterJson = stringifyPack(sanitizeMascotPackDraft(next), 0);
+    if (afterJson !== beforeJson) addedCount += 1;
+    pack = next;
+  }
+  return { pack, addedCount };
+}
+
+/**
+ * Élaguer la sélection après rechargement des entrées.
+ * @param {Set<string> | Iterable<string>} selectedIds
+ * @param {Array<Record<string, unknown>>} entries
+ */
+export function pruneMascotImageSelection(selectedIds, entries) {
+  const valid = new Set(
+    (Array.isArray(entries) ? entries : []).map((e) => String(e?.id || '').trim()).filter(Boolean),
+  );
+  return new Set([...(selectedIds || [])].filter((id) => valid.has(id)));
+}
+
+/**
+ * Fichiers référencés dans un état donné (mode `files`).
+ * @param {Record<string, unknown> | null | undefined} pack
+ * @param {string} stateKey
+ * @returns {Set<string>}
+ */
+export function getFilenamesInPackState(pack, stateKey) {
+  const state = String(stateKey || '').trim();
+  const sf = pack?.stateFrames && typeof pack.stateFrames === 'object' ? pack.stateFrames : {};
+  const spec = sf[state];
+  const files = spec && typeof spec === 'object' && Array.isArray(spec.files) ? spec.files : [];
+  return new Set(files.map((f) => String(f || '').trim()).filter(Boolean));
+}
+
+/**
+ * Filtre les entrées selon un critère de sélection groupée.
+ * @param {Array<Record<string, unknown>>} entries
+ * @param {string} criterion
+ * @param {{ pack?: Record<string, unknown>, targetState?: string, sourceFilter?: string }} ctx
+ */
+export function filterMascotImageEntriesForSelectionCriterion(entries, criterion, ctx = {}) {
+  const list = Array.isArray(entries) ? entries : [];
+  const key = String(criterion || '').trim();
+  if (!key || key === 'visible') return list;
+
+  if (key === 'deletable') return list.filter((e) => e.canDelete === true);
+
+  if (key === 'unreferenced') {
+    const referenced = new Set(collectPackReferencedFrameFilenames(ctx.pack || {}));
+    return list.filter((e) => {
+      const fn = String(e?.filename || '').trim();
+      return fn && !referenced.has(fn);
+    });
+  }
+
+  if (key === 'in_target_state') {
+    const inState = getFilenamesInPackState(ctx.pack, ctx.targetState);
+    return list.filter((e) => {
+      const fn = String(e?.filename || '').trim();
+      return fn && inState.has(fn);
+    });
+  }
+
+  if (key === 'source_filter') {
+    const sf = String(ctx.sourceFilter || 'all').trim();
+    if (sf === 'all' || sf === 'site') return list;
+    return list.filter((e) => e.source === sf);
+  }
+
+  return list;
+}
+
+/**
+ * Résout les entrées sélectionnées dans l'ordre d'affichage.
+ * @param {Set<string>} selectedIds
+ * @param {Array<Record<string, unknown>>} entries
+ */
+export function resolveSelectedMascotImageEntries(selectedIds, entries) {
+  const ids = selectedIds instanceof Set ? selectedIds : new Set(selectedIds || []);
+  return (Array.isArray(entries) ? entries : []).filter((e) => ids.has(String(e?.id || '')));
+}
+
 const SOURCE_LABELS = {
   pack: 'Ce pack',
   map: 'Carte',

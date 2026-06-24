@@ -49,15 +49,12 @@ const GL_ADVENTURE_SUB_TAB_SET = new Set(GL_ADVENTURE_SUB_TAB_IDS);
 const GL_MONDE_SUB_TAB_SET = new Set(GL_MONDE_SUB_TAB_IDS);
 const GL_JOUEURS_SUB_TAB_SET = new Set(GL_JOUEURS_SUB_TAB_IDS);
 
-/** Sous-onglets visibles de « Les joueurs » selon modules et contexte gameplay. */
-export function filterGlJoueursSubTabs(
-  modules,
-  { vitalityEnabled = false, includeMarket = true } = {},
-) {
+/** Sous-onglets visibles de « Les joueurs » selon modules et vitalité gameplay. */
+export function filterGlJoueursSubTabs(modules, { vitalityEnabled = false } = {}) {
   return GL_JOUEURS_SUB_TABS.filter((subTab) => {
     if (subTab.id === 'stats') return true;
     if (subTab.requiresVitality) {
-      return includeMarket && isModuleEnabled(modules, subTab.module) && !!vitalityEnabled;
+      return isModuleEnabled(modules, subTab.module) && !!vitalityEnabled;
     }
     if (subTab.module) return isModuleEnabled(modules, subTab.module);
     return true;
@@ -65,11 +62,8 @@ export function filterGlJoueursSubTabs(
 }
 
 /** Premier sous-onglet disponible de « Les joueurs ». */
-export function defaultGlJoueursSubTab(
-  modules,
-  { vitalityEnabled = false, includeMarket = true } = {},
-) {
-  return filterGlJoueursSubTabs(modules, { vitalityEnabled, includeMarket })[0]?.id || 'stats';
+export function defaultGlJoueursSubTab(modules, { vitalityEnabled = false } = {}) {
+  return filterGlJoueursSubTabs(modules, { vitalityEnabled })[0]?.id || 'stats';
 }
 
 /** Sous-onglets visibles de « Le monde G&L » selon les modules activés. */
@@ -274,12 +268,7 @@ export function filterGlTabs({ modules, vitalityEnabled, showStaffAdminUi, isGue
 
   const playerTabs = GL_PLAYER_TABS.filter((tab) => {
     if (tab.id === GL_JOUEURS_TAB.id) {
-      return (
-        filterGlJoueursSubTabs(modules, {
-          vitalityEnabled,
-          includeMarket: !showStaffAdminUi,
-        }).length > 0
-      );
+      return filterGlJoueursSubTabs(modules, { vitalityEnabled }).length > 0;
     }
     if (tab.id === 'journal') return isModuleEnabled(modules, 'journalEnabled');
     if (tab.id === 'my-journal') return isModuleEnabled(modules, 'playerJournalEnabled');

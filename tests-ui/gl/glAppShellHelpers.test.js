@@ -213,14 +213,15 @@ describe('filterGlTabs', () => {
     const { filterGlJoueursSubTabs } = await import('../../src/gl/utils/glAppShellHelpers.js');
     const withoutVitality = filterGlJoueursSubTabs(allModules, {
       vitalityEnabled: false,
-      includeMarket: true,
     });
     expect(withoutVitality.map((t) => t.id)).not.toContain('market');
     const moduleOff = filterGlJoueursSubTabs(
       { ...allModules, marketEnabled: false },
-      { vitalityEnabled: true, includeMarket: true },
+      { vitalityEnabled: true },
     );
     expect(moduleOff.map((t) => t.id)).not.toContain('market');
+    const staffOptions = filterGlJoueursSubTabs(allModules, { vitalityEnabled: true });
+    expect(staffOptions.map((t) => t.id)).toContain('market');
   });
 });
 
@@ -337,7 +338,7 @@ describe('onglet Les joueurs', () => {
     const { GL_MODULE_DEFAULTS } = await import('../../src/gl/constants/modules.js');
     const allModules = Object.fromEntries(Object.keys(GL_MODULE_DEFAULTS).map((k) => [k, true]));
     const modulesOff = { ...allModules, forumEnabled: false, marketEnabled: false };
-    const joueursOptions = { vitalityEnabled: true, includeMarket: true };
+    const joueursOptions = { vitalityEnabled: true };
 
     expect(resolveGlNavActiveTab('forum')).toBe('joueurs');
     expect(resolveGlNavActiveTab('stats')).toBe('joueurs');
@@ -350,11 +351,9 @@ describe('onglet Les joueurs', () => {
       'market',
       'stats',
     ]);
-    expect(
-      filterGlJoueursSubTabs(modulesOff, { vitalityEnabled: false, includeMarket: false }).map(
-        (t) => t.id,
-      ),
-    ).toEqual(['stats']);
+    expect(filterGlJoueursSubTabs(modulesOff, { vitalityEnabled: false }).map((t) => t.id)).toEqual(
+      ['stats'],
+    );
     expect(isGlTabVisibleInNav('forum', [{ id: 'joueurs' }], modulesOff, joueursOptions)).toBe(
       false,
     );
