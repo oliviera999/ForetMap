@@ -4,6 +4,7 @@ import {
   buildEdgeExportCss,
   edgeStyleClass,
   resolveEdgeRenderStyle,
+  TROPHIC_EDGE_TYPES,
 } from '../../shared/foodWebEdgeStyle.js';
 import { FoodWebEdgeLegend } from './FoodWebEdgeLegend.jsx';
 import {
@@ -66,8 +67,50 @@ export function FoodWebGraph({
   const [hoverNode, setHoverNode] = useState(null);
   const [hoverEdge, setHoverEdge] = useState(null);
   const [focusId, setFocusId] = useState(null);
+  const [hiddenTypes, setHiddenTypes] = useState(() => new Set());
 
   const { nodes, edges } = useMemo(() => buildGraphModel(items), [items]);
+
+  const visibleEdges = useMemo(
+    () => edges.filter((edge) => !hiddenTypes.has(String(edge.type || '').toLowerCase())),
+    [edges, hiddenTypes],
+  );
+
+  const presentTrophicTypes = useMemo(
+    () =>
+      TROPHIC_EDGE_TYPES.filter((type) =>
+        edges.some((e) => String(e.type || '').toLowerCase() === type),
+      ),
+    [edges],
+  );
+
+  const trophicVisible = useMemo(
+    () =>
+      presentTrophicTypes.length > 0 && presentTrophicTypes.every((type) => !hiddenTypes.has(type)),
+    [presentTrophicTypes, hiddenTypes],
+  );
+
+  const toggleEdgeType = useCallback((type) => {
+    const key = String(type || '').toLowerCase();
+    setHiddenTypes((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }, []);
+
+  const toggleTrophicEdges = useCallback(() => {
+    setHiddenTypes((prev) => {
+      const next = new Set(prev);
+      const hideAll = presentTrophicTypes.every((type) => !next.has(type));
+      for (const type of presentTrophicTypes) {
+        if (hideAll) next.add(type);
+        else next.delete(type);
+      }
+      return next;
+    });
+  }, [presentTrophicTypes]);
 
   const presentTypes = useMemo(
     () => [
@@ -95,7 +138,7 @@ export function FoodWebGraph({
   // Ensembles « actifs » (pleine opacité). Le reste est estompé.
   const { activeNodes, activeEdges, hasFilter } = useMemo(() => {
     if (focusId != null) {
-      const subset = focusSubset(edges, focusId);
+      const subset = focusSubset(visibleEdges, focusId);
       return {
         activeNodes: subset.visibleNodes,
         activeEdges: subset.visibleEdges,
@@ -103,20 +146,22 @@ export function FoodWebGraph({
       };
     }
     if (hoverNode != null) {
-      const ns = neighborIds(edges, hoverNode);
+      const ns = neighborIds(visibleEdges, hoverNode);
       ns.add(hoverNode);
       const es = new Set(
-        edges.filter((e) => e.tailId === hoverNode || e.headId === hoverNode).map((e) => e.id),
+        visibleEdges
+          .filter((e) => e.tailId === hoverNode || e.headId === hoverNode)
+          .map((e) => e.id),
       );
       return { activeNodes: ns, activeEdges: es, hasFilter: true };
     }
     if (hoverEdge != null) {
-      const edge = edges.find((e) => e.id === hoverEdge);
+      const edge = visibleEdges.find((e) => e.id === hoverEdge);
       const ns = new Set(edge ? [edge.tailId, edge.headId] : []);
       return { activeNodes: ns, activeEdges: new Set(edge ? [edge.id] : []), hasFilter: true };
     }
     return { activeNodes: null, activeEdges: null, hasFilter: false };
-  }, [edges, focusId, hoverNode, hoverEdge]);
+  }, [visibleEdges, focusId, hoverNode, hoverEdge]);
 
   const nodeDimmed = useCallback(
     (id) => hasFilter && !(activeNodes && activeNodes.has(id)),
@@ -343,6 +388,19 @@ export function FoodWebGraph({
             +
           </button>
         </div>
+        {presentTrophicTypes.length > 0 ? (
+          <div className="pedago-foodweb-graph__tbgroup" role="group" aria-label="Flux trophiques">
+            <button
+              type="button"
+              className={`pedago-foodweb-graph__tbtn${trophicVisible ? ' active' : ''}`}
+              onClick={toggleTrophicEdges}
+              aria-pressed={trophicVisible}
+              title="Afficher ou masquer herbivorie, prédation et décomposition"
+            >
+              🍃 Flux trophiques
+            </button>
+          </div>
+        ) : null}
         {focusId != null ? (
           <button
             type="button"
@@ -432,7 +490,7 @@ export function FoodWebGraph({
         </defs>
 
         <g data-fw-viewport transform={transform}>
-          {edges.map((edge) => {
+          {visibleEdges.map((edge) => {
             const from = posOf(edge.tailId);
             const to = posOf(edge.headId);
             if (!from || !to) return null;
@@ -531,7 +589,11 @@ export function FoodWebGraph({
         </g>
       </svg>
 
-      <FoodWebEdgeLegend presentTypes={presentTypes} />
+      <FoodWebEdgeLegend
+        presentTypes={presentTypes}
+        hiddenTypes={hiddenTypes}
+        onToggleType={toggleEdgeType}
+      />
 
       <p className="pedago-foodweb-graph__hint section-sub">
         Clique une espèce pour isoler son réseau, double-clique pour sa fiche. Molette : zoom ·
