@@ -5,6 +5,7 @@ import { usePrefersReducedMotion } from '../../shared/hooks/usePrefersReducedMot
 import { apiGL } from '../services/apiGL.js';
 import { GLButton } from './ui/GLButton.jsx';
 import { GLLearningAcknowledgeButton } from './GLLearningAcknowledgeButton.jsx';
+import { GLGlossaryInlineText } from './GLGlossaryMarkdown.jsx';
 
 const CLOSE_MS = 200;
 
@@ -47,6 +48,7 @@ export function GLGlossaryPopover({
   onOpenFullGlossary,
   showFullGlossaryLink = true,
   learningProgress,
+  glossaryLinkItems = [],
 }) {
   const titleId = useId();
   const [activeCode, setActiveCode] = useState(null);
@@ -157,6 +159,13 @@ export function GLGlossaryPopover({
     setActiveCode(next);
   }
 
+  function openGlossaryTerm(code) {
+    const next = String(code || '').trim();
+    if (!next) return;
+    if (next === activeCode) return;
+    openRelatedTerm(next);
+  }
+
   function openFullGlossary() {
     const code = activeCode;
     onClose?.();
@@ -238,19 +247,41 @@ export function GLGlossaryPopover({
 
             <div className="gl-glossary-popover__body">
               {term.definition_courte ? (
-                <p className="gl-glossary-popover__lead">{term.definition_courte}</p>
+                <p className="gl-glossary-popover__lead">
+                  <GLGlossaryInlineText
+                    text={term.definition_courte}
+                    glossaryItems={glossaryLinkItems}
+                    onOpenGlossaryTerm={openGlossaryTerm}
+                  />
+                </p>
               ) : null}
               {term.definition_complete ? (
-                <p className="gl-glossary-popover__text">{term.definition_complete}</p>
+                <p className="gl-glossary-popover__text">
+                  <GLGlossaryInlineText
+                    text={term.definition_complete}
+                    glossaryItems={glossaryLinkItems}
+                    onOpenGlossaryTerm={openGlossaryTerm}
+                  />
+                </p>
               ) : null}
               {term.exemple ? (
                 <p className="gl-glossary-popover__text">
-                  <strong>Exemple :</strong> {term.exemple}
+                  <strong>Exemple :</strong>{' '}
+                  <GLGlossaryInlineText
+                    text={term.exemple}
+                    glossaryItems={glossaryLinkItems}
+                    onOpenGlossaryTerm={openGlossaryTerm}
+                  />
                 </p>
               ) : null}
               {term.etymologie ? (
                 <p className="gl-glossary-popover__text">
-                  <strong>Étymologie :</strong> {term.etymologie}
+                  <strong>Étymologie :</strong>{' '}
+                  <GLGlossaryInlineText
+                    text={term.etymologie}
+                    glossaryItems={glossaryLinkItems}
+                    onOpenGlossaryTerm={openGlossaryTerm}
+                  />
                 </p>
               ) : null}
             </div>

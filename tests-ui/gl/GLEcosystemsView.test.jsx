@@ -32,8 +32,8 @@ describe('GLEcosystemsView', () => {
 
     expect(screen.getByRole('heading', { name: 'Écosystèmes' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Désert chaud (Sahara)' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Biotope' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Biocénose' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Biotope' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Biocénose' })).not.toBeInTheDocument();
     expect(screen.getByText('Milieu sec')).toBeInTheDocument();
     expect(screen.getByText('Espèces associées')).toBeInTheDocument();
   });

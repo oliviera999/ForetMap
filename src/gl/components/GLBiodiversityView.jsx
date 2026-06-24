@@ -4,6 +4,7 @@ import { GLSpeciesCatalog } from './GLSpeciesCatalog.jsx';
 export function GLBiodiversityView({
   gameState,
   onOpenGlossaryTerm,
+  glossaryLinkItems = [],
   learningProgress,
   loreCarnetEnabled = false,
 }) {
@@ -19,6 +20,7 @@ export function GLBiodiversityView({
         gameId={gameState?.game?.id ?? null}
         loreCarnetEnabled={loreCarnetEnabled}
         onOpenGlossaryTerm={onOpenGlossaryTerm}
+        glossaryLinkItems={glossaryLinkItems}
         learningProgress={learningProgress}
       />
     </article>

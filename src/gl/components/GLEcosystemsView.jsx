@@ -1,9 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { GLGlossaryMarkdown } from './GLGlossaryMarkdown.jsx';
-import { GLChapterIllustration } from './GLChapterIllustration.jsx';
 import { useGlMarkdownWithLegacyMedia } from '../hooks/useGlMarkdownWithLegacyMedia.js';
 import { buildEcosystemSections } from '../utils/glEcosystemSections.js';
-import { prepareEcosystemMarkdown } from '../utils/glEcosystemMarkdown.js';
+import { prepareEcosystemSectionMarkdown } from '../utils/glEcosystemMarkdown.js';
 import { biomeAssetSlug } from '../data/biomes.registry.js';
 import { biomeImg } from '../assets/index.js';
 import { useGlAssetsReady } from './GLFeuilletIllustration.jsx';
@@ -20,47 +19,22 @@ function GLEcosystemIllustration({ biomeSlug, kind, className }) {
   );
 }
 
-function GLEcosystemMarkdownBlock({
-  title,
-  markdown,
-  className,
-  biomeSlug,
-  stripKinds = [],
-  glossaryLinkItems,
-  onOpenGlossaryTerm,
-}) {
-  const stripKey = stripKinds.join(',');
-  const prepared = useMemo(
-    () => prepareEcosystemMarkdown(markdown, biomeSlug, stripKey ? stripKey.split(',') : []),
-    [markdown, biomeSlug, stripKey],
-  );
-  const resolved = useGlMarkdownWithLegacyMedia(prepared);
-  if (!resolved) return null;
-  return (
-    <section className={`gl-ecosystem-section__block ${className || ''}`.trim()}>
-      <h4>{title}</h4>
-      <GLGlossaryMarkdown
-        markdown={resolved}
-        glossaryItems={glossaryLinkItems}
-        onOpenGlossaryTerm={onOpenGlossaryTerm}
-        allowImages
-      />
-    </section>
-  );
-}
-
 function GLEcosystemSection({ section, showHeading, glossaryLinkItems, onOpenGlossaryTerm }) {
-  const hasBiotope = String(section.biotopeMarkdown || '').trim().length > 0;
-  const hasBiocenose = String(section.biocenoseMarkdown || '').trim().length > 0;
   const slug = section.slug;
   const showBiomeHero = !!slug && !!biomeAssetSlug(slug, 'biome');
   const showBiocenoseArt = !!slug && !!biomeAssetSlug(slug, 'biocenose');
 
-  if (!hasBiotope && !hasBiocenose && !showBiomeHero && !showBiocenoseArt) return null;
+  const preparedMarkdown = useMemo(
+    () =>
+      prepareEcosystemSectionMarkdown(section.biotopeMarkdown, section.biocenoseMarkdown, slug, {
+        showBiomeHero,
+        showBiocenoseArt,
+      }),
+    [section.biotopeMarkdown, section.biocenoseMarkdown, slug, showBiomeHero, showBiocenoseArt],
+  );
+  const resolved = useGlMarkdownWithLegacyMedia(preparedMarkdown);
 
-  const biotopeStripKinds = showBiomeHero ? ['biome', 'realiste'] : [];
-  const biocenoseStripKinds = showBiocenoseArt ? ['biocenose'] : [];
-  const splitLayout = hasBiotope && (hasBiocenose || showBiocenoseArt);
+  if (!resolved && !showBiomeHero && !showBiocenoseArt) return null;
 
   return (
     <section
@@ -81,48 +55,22 @@ function GLEcosystemSection({ section, showHeading, glossaryLinkItems, onOpenGlo
         />
       ) : null}
 
-      <div
-        className={
-          splitLayout
-            ? 'gl-ecosystem-section__layout gl-ecosystem-section__layout--split'
-            : 'gl-ecosystem-section__layout'
-        }
-      >
-        {hasBiotope ? (
-          <GLEcosystemMarkdownBlock
-            title="Biotope"
-            markdown={section.biotopeMarkdown}
-            className="gl-ecosystem-section__block--biotope"
-            biomeSlug={slug}
-            stripKinds={biotopeStripKinds}
-            glossaryLinkItems={glossaryLinkItems}
-            onOpenGlossaryTerm={onOpenGlossaryTerm}
-          />
-        ) : null}
+      {showBiocenoseArt ? (
+        <GLEcosystemIllustration
+          biomeSlug={slug}
+          kind="biocenose"
+          className="gl-ecosystem-section__figure gl-ecosystem-section__figure--biocenose"
+        />
+      ) : null}
 
-        {hasBiocenose || showBiocenoseArt ? (
-          <div className="gl-ecosystem-section__biocenose-col">
-            {showBiocenoseArt ? (
-              <GLEcosystemIllustration
-                biomeSlug={slug}
-                kind="biocenose"
-                className="gl-ecosystem-section__figure gl-ecosystem-section__figure--biocenose"
-              />
-            ) : null}
-            {hasBiocenose ? (
-              <GLEcosystemMarkdownBlock
-                title="Biocénose"
-                markdown={section.biocenoseMarkdown}
-                className="gl-ecosystem-section__block--biocenose gl-biocenose-intro"
-                biomeSlug={slug}
-                stripKinds={biocenoseStripKinds}
-                glossaryLinkItems={glossaryLinkItems}
-                onOpenGlossaryTerm={onOpenGlossaryTerm}
-              />
-            ) : null}
-          </div>
-        ) : null}
-      </div>
+      {resolved ? (
+        <GLGlossaryMarkdown
+          markdown={resolved}
+          glossaryItems={glossaryLinkItems}
+          onOpenGlossaryTerm={onOpenGlossaryTerm}
+          allowImages
+        />
+      ) : null}
     </section>
   );
 }
@@ -135,7 +83,6 @@ export function GLEcosystemsView({ gameState, glossaryLinkItems = [], onOpenGlos
   const biomes = Array.isArray(gameState?.game?.chapter_biomes)
     ? gameState.game.chapter_biomes
     : [];
-  const chapterNumber = gameState?.game?.chapter_plateau_number ?? null;
 
   const sections = useMemo(
     () => buildEcosystemSections(biomes, biotopeMarkdown, biocenoseMarkdown),
@@ -168,17 +115,12 @@ export function GLEcosystemsView({ gameState, glossaryLinkItems = [], onOpenGlos
   return (
     <article className="gl-panel gl-markdown gl-ecosystems-view fade-in">
       <h2>Écosystèmes</h2>
-      <GLChapterIllustration
-        chapterNumber={chapterNumber}
-        alt="Illustration du chapitre"
-        figureClassName="gl-chapter-illustration gl-chapter-illustration--cover gl-ecosystems-view__chapter-cover"
-      />
 
       {useTabs ? (
         <>
           <p className="gl-ecosystems-view__intro">
-            Ce chapitre explore plusieurs écosystèmes. Choisissez un biome pour afficher son biotope
-            et sa biocénose.
+            Ce chapitre explore plusieurs écosystèmes. Choisissez un écosystème pour afficher son
+            contenu.
           </p>
           <div
             className="gl-ecosystems-view__tabs gl-species-catalog__tabs"

@@ -1,4 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
+import { GLGlossaryInlineText } from './GLGlossaryMarkdown.jsx';
 import { DialogShell } from '../../components/DialogShell.jsx';
 import {
   GL_SPECIES_DETAIL_SECTIONS,
@@ -8,12 +9,20 @@ import {
   hasGlSpeciesFieldValue,
   isGlSpeciesUrlField,
 } from '../utils/glSpeciesFieldLabels.js';
+import { mergeGlossaryLinkItems } from '../../utils/glGlossaryAutolink.js';
 import { GLButton } from './ui/GLButton.jsx';
 import { GLLearningAcknowledgeButton } from './GLLearningAcknowledgeButton.jsx';
 import { GLFeuilletDiscoveryPopover } from './GLFeuilletDiscoveryPopover.jsx';
 import { apiGL } from '../services/apiGL.js';
 
-function SpeciesFieldValue({ fieldKey, value, biomeNom, species }) {
+function SpeciesFieldValue({
+  fieldKey,
+  value,
+  biomeNom,
+  species,
+  glossaryLinkItems,
+  onOpenGlossaryTerm,
+}) {
   const formatted = formatGlSpeciesFieldValue(fieldKey, value, { biomeNom });
   if (!formatted) return null;
 
@@ -35,10 +44,16 @@ function SpeciesFieldValue({ fieldKey, value, biomeNom, species }) {
     );
   }
 
-  return <span>{formatted}</span>;
+  return (
+    <GLGlossaryInlineText
+      text={formatted}
+      glossaryItems={glossaryLinkItems}
+      onOpenGlossaryTerm={onOpenGlossaryTerm}
+    />
+  );
 }
 
-function buildSpeciesDetailRows(species, fields, biomeNom) {
+function buildSpeciesDetailRows(species, fields, biomeNom, glossaryLinkItems, onOpenGlossaryTerm) {
   return fields
     .map((key) => {
       if (key === 'wikipedia_title' && hasGlSpeciesFieldValue(species.wikipedia_url)) {
@@ -50,7 +65,14 @@ function buildSpeciesDetailRows(species, fields, biomeNom) {
         <div key={key} className="gl-species-detail-modal__row">
           <dt>{getGlSpeciesFieldLabel(key)}</dt>
           <dd>
-            <SpeciesFieldValue fieldKey={key} value={value} biomeNom={biomeNom} species={species} />
+            <SpeciesFieldValue
+              fieldKey={key}
+              value={value}
+              biomeNom={biomeNom}
+              species={species}
+              glossaryLinkItems={glossaryLinkItems}
+              onOpenGlossaryTerm={onOpenGlossaryTerm}
+            />
           </dd>
         </div>
       );
@@ -58,8 +80,21 @@ function buildSpeciesDetailRows(species, fields, biomeNom) {
     .filter(Boolean);
 }
 
-function SpeciesDetailFieldsSection({ title, species, fields, biomeNom }) {
-  const rows = buildSpeciesDetailRows(species, fields, biomeNom);
+function SpeciesDetailFieldsSection({
+  title,
+  species,
+  fields,
+  biomeNom,
+  glossaryLinkItems,
+  onOpenGlossaryTerm,
+}) {
+  const rows = buildSpeciesDetailRows(
+    species,
+    fields,
+    biomeNom,
+    glossaryLinkItems,
+    onOpenGlossaryTerm,
+  );
   if (rows.length === 0) return null;
   return (
     <section className="gl-species-detail-modal__section">
@@ -69,7 +104,7 @@ function SpeciesDetailFieldsSection({ title, species, fields, biomeNom }) {
   );
 }
 
-function SpeciesGlossarySection({ species, glossaryTerms, onOpenGlossaryTerm }) {
+function SpeciesGlossarySection({ species, glossaryTerms, onOpenGlossaryTerm, glossaryLinkItems }) {
   const hasMotsCles = hasGlSpeciesFieldValue(species.mots_cles);
   if (glossaryTerms.length === 0 && !hasMotsCles) return null;
   return (
@@ -96,7 +131,13 @@ function SpeciesGlossarySection({ species, glossaryTerms, onOpenGlossaryTerm }) 
         <dl className="gl-species-detail-modal__dl">
           <div className="gl-species-detail-modal__row">
             <dt>{getGlSpeciesFieldLabel('mots_cles')}</dt>
-            <dd>{String(species.mots_cles).trim()}</dd>
+            <dd>
+              <GLGlossaryInlineText
+                text={String(species.mots_cles).trim()}
+                glossaryItems={glossaryLinkItems}
+                onOpenGlossaryTerm={onOpenGlossaryTerm}
+              />
+            </dd>
           </div>
         </dl>
       ) : null}
@@ -112,6 +153,7 @@ function SpeciesGlossarySection({ species, glossaryTerms, onOpenGlossaryTerm }) 
  *   loreCarnetEnabled?: boolean,
  *   onClose: () => void,
  *   onOpenGlossaryTerm?: (code: string) => void,
+ *   glossaryLinkItems?: Array<{ glossary_code?: string, terme?: string, variantes?: string }>,
  * }} props
  */
 export function GLSpeciesDetailModal({
@@ -121,6 +163,7 @@ export function GLSpeciesDetailModal({
   loreCarnetEnabled = false,
   onClose,
   onOpenGlossaryTerm,
+  glossaryLinkItems = [],
   learningProgress,
 }) {
   const [feuilletDiscovery, setFeuilletDiscovery] = useState(null);
@@ -159,11 +202,16 @@ export function GLSpeciesDetailModal({
     }
   }, [feuilletDiscovery?.feuilletCode, gameId]);
 
+  const glossaryTerms = Array.isArray(species?.glossaryTerms) ? species.glossaryTerms : [];
+  const mergedGlossaryLinkItems = useMemo(
+    () => mergeGlossaryLinkItems(glossaryLinkItems, glossaryTerms),
+    [glossaryLinkItems, glossaryTerms],
+  );
+
   if (!species) return null;
 
   const nomCommun = String(species.nom_commun || '').trim() || 'Espèce';
   const typeLabel = GL_SPECIES_TYPE_LABELS[species.type === 'flore' ? 'flore' : 'faune'] || '';
-  const glossaryTerms = Array.isArray(species.glossaryTerms) ? species.glossaryTerms : [];
   const speciesCode = String(species.species_code || '').trim();
   const isLearned = learningProgress?.isSpeciesLearned?.(speciesCode) || !!species.learned;
 
@@ -254,12 +302,15 @@ export function GLSpeciesDetailModal({
               species={species}
               fields={section.fields}
               biomeNom={biomeNom}
+              glossaryLinkItems={mergedGlossaryLinkItems}
+              onOpenGlossaryTerm={onOpenGlossaryTerm}
             />
           ))}
           <SpeciesGlossarySection
             species={species}
             glossaryTerms={glossaryTerms}
             onOpenGlossaryTerm={onOpenGlossaryTerm}
+            glossaryLinkItems={mergedGlossaryLinkItems}
           />
         </div>
       </DialogShell>
@@ -269,6 +320,7 @@ export function GLSpeciesDetailModal({
         onClose={closeFeuilletDiscovery}
         onMarkRead={markFeuilletRead}
         onOpenGlossaryTerm={onOpenGlossaryTerm}
+        glossaryLinkItems={mergedGlossaryLinkItems}
       />
     </>
   );

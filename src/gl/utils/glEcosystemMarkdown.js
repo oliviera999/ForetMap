@@ -95,3 +95,25 @@ export function prepareEcosystemMarkdown(markdown, biomeSlug, stripKinds = []) {
   }
   return text;
 }
+
+/**
+ * Fusionne biotope et biocénose d’un écosystème pour un seul bloc markdown.
+ * @param {string} biotopeMarkdown
+ * @param {string} biocenoseMarkdown
+ * @param {string|null} biomeSlug
+ * @param {{ showBiomeHero?: boolean, showBiocenoseArt?: boolean }} options
+ */
+export function prepareEcosystemSectionMarkdown(
+  biotopeMarkdown,
+  biocenoseMarkdown,
+  biomeSlug,
+  { showBiomeHero = false, showBiocenoseArt = false } = {},
+) {
+  const biotopeStripKinds = showBiomeHero ? ['biome', 'realiste'] : [];
+  const biocenoseStripKinds = showBiocenoseArt ? ['biocenose'] : [];
+  const parts = [
+    prepareEcosystemMarkdown(biotopeMarkdown, biomeSlug, biotopeStripKinds),
+    prepareEcosystemMarkdown(biocenoseMarkdown, biomeSlug, biocenoseStripKinds),
+  ].filter((part) => String(part || '').trim().length > 0);
+  return parts.join('\n\n').trim();
+}

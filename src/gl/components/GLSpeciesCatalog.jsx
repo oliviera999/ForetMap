@@ -60,6 +60,7 @@ function GLSpeciesCatalogPanel({
   gameId,
   loreCarnetEnabled,
   onOpenGlossaryTerm,
+  glossaryLinkItems = [],
   learningProgress,
 }) {
   const [loading, setLoading] = useState(false);
@@ -152,6 +153,7 @@ function GLSpeciesCatalogPanel({
         loreCarnetEnabled={loreCarnetEnabled}
         onClose={() => setSelectedSpecies(null)}
         onOpenGlossaryTerm={onOpenGlossaryTerm}
+        glossaryLinkItems={glossaryLinkItems}
         learningProgress={learningProgress}
       />
     </div>
@@ -166,6 +168,7 @@ export function GLSpeciesCatalog({
   gameId = null,
   loreCarnetEnabled = false,
   onOpenGlossaryTerm,
+  glossaryLinkItems = [],
   learningProgress,
 }) {
   const normalizedBiomes = useMemo(
@@ -234,6 +237,7 @@ export function GLSpeciesCatalog({
         gameId={gameId}
         loreCarnetEnabled={loreCarnetEnabled}
         onOpenGlossaryTerm={onOpenGlossaryTerm}
+        glossaryLinkItems={glossaryLinkItems}
         learningProgress={learningProgress}
       />
     </div>

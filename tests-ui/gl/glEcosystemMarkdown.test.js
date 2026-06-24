@@ -5,6 +5,7 @@ import {
   stripMarkdownCatalogImages,
   stripRedundantEcosystemHeadings,
   prepareEcosystemMarkdown,
+  prepareEcosystemSectionMarkdown,
 } from '../../src/gl/utils/glEcosystemMarkdown.js';
 
 describe('collectBiomeIllustrationKeys', () => {
@@ -60,5 +61,20 @@ describe('prepareEcosystemMarkdown', () => {
     expect(out).not.toMatch(/## Biotope/);
     expect(out).not.toMatch(/!\[/);
     expect(out).toMatch(/Description/);
+  });
+});
+
+describe('prepareEcosystemSectionMarkdown', () => {
+  test('fusionne biotope et biocénose sans titres redondants', () => {
+    const out = prepareEcosystemSectionMarkdown(
+      '## Biotope\n\nMilieu sec',
+      '## Biocénose\n\nEspèces',
+      'sahara',
+      { showBiomeHero: false, showBiocenoseArt: false },
+    );
+    expect(out).toMatch(/Milieu sec/);
+    expect(out).toMatch(/Espèces/);
+    expect(out).not.toMatch(/## Biotope/);
+    expect(out).not.toMatch(/## Biocénose/);
   });
 });
