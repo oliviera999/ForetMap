@@ -1,5 +1,11 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
-import { interactionTypeLabel } from '../../shared/foodWebTypes.js';
+import { INTERACTION_TYPES, interactionTypeLabel } from '../../shared/foodWebTypes.js';
+import {
+  buildEdgeExportCss,
+  edgeStyleClass,
+  resolveEdgeRenderStyle,
+} from '../../shared/foodWebEdgeStyle.js';
+import { FoodWebEdgeLegend } from './FoodWebEdgeLegend.jsx';
 import {
   ENV_NODE_ID,
   buildGraphModel,
@@ -17,11 +23,7 @@ const CLICK_MOVE_THRESHOLD = 4;
 
 /** Styles embarqués pour l'export SVG/PNG (le CSS de la page ne s'applique pas hors DOM). */
 const EXPORT_STYLE = `
-  .pedago-foodweb-graph__line{stroke:#94a3b8;stroke-width:1.6;fill:none}
-  .pedago-foodweb-graph__line.active{stroke:#16a34a;stroke-width:2.6}
-  .pedago-foodweb-graph__line.dim{opacity:.12}
-  .pedago-foodweb-graph__arrowhead{fill:#94a3b8}
-  .pedago-foodweb-graph__arrowhead.active{fill:#16a34a}
+  ${buildEdgeExportCss()}
   .pedago-foodweb-graph__node{fill:#dcfce7;stroke:#16a34a;stroke-width:1.5}
   .pedago-foodweb-graph__node.highlight{fill:#bbf7d0;stroke-width:2.6}
   .pedago-foodweb-graph__node.dim{opacity:.18}
@@ -66,6 +68,13 @@ export function FoodWebGraph({
   const [focusId, setFocusId] = useState(null);
 
   const { nodes, edges } = useMemo(() => buildGraphModel(items), [items]);
+
+  const presentTypes = useMemo(
+    () => [
+      ...new Set((edges || []).map((e) => String(e.type || '').toLowerCase()).filter(Boolean)),
+    ],
+    [edges],
+  );
 
   const baseLayout = useMemo(
     () =>
@@ -366,8 +375,37 @@ export function FoodWebGraph({
         onPointerLeave={onPointerUp}
       >
         <defs>
+          {INTERACTION_TYPES.map((type) => (
+            <React.Fragment key={type}>
+              <marker
+                id={`fw-arrow-${type}`}
+                markerWidth="9"
+                markerHeight="9"
+                refX="7.5"
+                refY="3"
+                orient="auto"
+                markerUnits="userSpaceOnUse"
+              >
+                <path
+                  d="M0,0 L8,3 L0,6 Z"
+                  className={`pedago-foodweb-graph__arrowhead pedago-foodweb-graph__arrowhead--${type}`}
+                />
+              </marker>
+              <marker
+                id={`fw-arrow-${type}-active`}
+                markerWidth="11"
+                markerHeight="11"
+                refX="8"
+                refY="3.5"
+                orient="auto"
+                markerUnits="userSpaceOnUse"
+              >
+                <path d="M0,0 L9,3.5 L0,7 Z" className="pedago-foodweb-graph__arrowhead active" />
+              </marker>
+            </React.Fragment>
+          ))}
           <marker
-            id="fw-arrow"
+            id="fw-arrow-default"
             markerWidth="9"
             markerHeight="9"
             refX="7.5"
@@ -375,10 +413,13 @@ export function FoodWebGraph({
             orient="auto"
             markerUnits="userSpaceOnUse"
           >
-            <path d="M0,0 L8,3 L0,6 Z" className="pedago-foodweb-graph__arrowhead" />
+            <path
+              d="M0,0 L8,3 L0,6 Z"
+              className="pedago-foodweb-graph__arrowhead pedago-foodweb-graph__arrowhead--default"
+            />
           </marker>
           <marker
-            id="fw-arrow-active"
+            id="fw-arrow-default-active"
             markerWidth="11"
             markerHeight="11"
             refX="8"
@@ -410,7 +451,12 @@ export function FoodWebGraph({
             const midY = (y1 + y2) / 2;
             const active = selectedEdgeId === edge.id;
             const dim = edgeDimmed(edge.id);
-            const markerId = active ? 'url(#fw-arrow-active)' : 'url(#fw-arrow)';
+            const edgeType = String(edge.type || '').toLowerCase();
+            const markerKey = INTERACTION_TYPES.includes(edgeType) ? edgeType : 'default';
+            const markerId = active
+              ? `url(#fw-arrow-${markerKey}-active)`
+              : `url(#fw-arrow-${markerKey})`;
+            const renderStyle = resolveEdgeRenderStyle(edge.type, { active });
             return (
               <g key={edge.id}>
                 <line
@@ -418,7 +464,10 @@ export function FoodWebGraph({
                   y1={y1}
                   x2={x2}
                   y2={y2}
-                  className={`pedago-foodweb-graph__line${active ? ' active' : ''}${dim ? ' dim' : ''}`}
+                  className={`pedago-foodweb-graph__line ${edgeStyleClass(edge.type)}${active ? ' active' : ''}${dim ? ' dim' : ''}`}
+                  stroke={renderStyle.color}
+                  strokeWidth={renderStyle.width}
+                  strokeDasharray={renderStyle.dash || undefined}
                   markerEnd={markerId}
                   markerStart={edge.symmetric ? markerId : undefined}
                 />
@@ -482,9 +531,11 @@ export function FoodWebGraph({
         </g>
       </svg>
 
+      <FoodWebEdgeLegend presentTypes={presentTypes} />
+
       <p className="pedago-foodweb-graph__hint section-sub">
-        Flèche = sens écologique « est mangée par » (flux d&apos;énergie). Clique une espèce pour
-        isoler son réseau, double-clique pour sa fiche. Molette : zoom · glisser : déplacer.
+        Clique une espèce pour isoler son réseau, double-clique pour sa fiche. Molette : zoom ·
+        glisser : déplacer.
       </p>
     </div>
   );

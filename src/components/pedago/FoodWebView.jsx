@@ -6,6 +6,7 @@ import {
   interactionTypeLabel as interactionLabel,
   orientInteraction,
 } from '../../shared/foodWebTypes.js';
+import { edgeStyleForType } from '../../shared/foodWebEdgeStyle.js';
 
 const EMPTY_FORM = { fromId: '', toId: '', type: INTERACTION_TYPES[0], description: '' };
 
@@ -193,9 +194,9 @@ export function FoodWebView({
           fiche.
         </p>
         <p className="section-sub pedago-foodweb__legend">
-          🧭 Sens écologique : la flèche <strong>→</strong> signifie «&nbsp;est mangée par&nbsp;»
-          (sens du flux d&apos;énergie, de la ressource vers le consommateur). Les relations
-          mutuelles (symbiose, compétition) utilisent <strong>↔</strong>.
+          Chaque type de relation a une <strong>couleur et un trait distincts</strong> (voir la
+          légende en mode graphe). Sens écologique : flèche simple <strong>→</strong> = «&nbsp;est
+          mangée par&nbsp;» ; double sens <strong>↔</strong> = symbiose ou compétition.
         </p>
       </header>
 
@@ -368,9 +369,10 @@ export function FoodWebView({
                         {renderNode(tail.id, tail.name, tail.emoji)}
                         <button
                           type="button"
-                          className={`pedago-foodweb__edge${selectedEdgeId === row.id ? ' active' : ''}`}
+                          className={`pedago-foodweb__edge pedago-foodweb__edge--${String(type || 'default').toLowerCase()}${selectedEdgeId === row.id ? ' active' : ''}`}
                           onClick={() => selectEdge(row.id)}
                           title={`${interactionLabel(type)}${row.description ? ` — ${row.description}` : ''}`}
+                          style={{ '--fw-edge-color': edgeStyleForType(type).color }}
                         >
                           <span className="pedago-foodweb__edge-arrow" aria-hidden="true">
                             {oriented.symmetric ? '↔' : '→'}

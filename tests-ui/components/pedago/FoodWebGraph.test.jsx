@@ -33,12 +33,19 @@ const ITEMS = [
 ];
 
 describe('FoodWebGraph', () => {
-  test('rend des têtes de flèche orientées (markers)', () => {
+  test('rend des têtes de flèche orientées (markers par type)', () => {
     const { container } = render(<FoodWebGraph items={ITEMS} />);
-    expect(container.querySelector('marker#fw-arrow')).toBeTruthy();
+    expect(container.querySelector('marker#fw-arrow-predation')).toBeTruthy();
     const lines = container.querySelectorAll('.pedago-foodweb-graph__line');
     expect(lines.length).toBe(2);
-    expect(lines[0].getAttribute('marker-end')).toContain('fw-arrow');
+    expect(lines[0].getAttribute('marker-end')).toContain('fw-arrow-predation');
+    expect(lines[0].classList.contains('pedago-foodweb-graph__line--predation')).toBe(true);
+  });
+
+  test('affiche la légende des types de relations', () => {
+    const { getByLabelText } = render(<FoodWebGraph items={ITEMS} />);
+    expect(getByLabelText(/Légende des types de relations/i)).toBeTruthy();
+    expect(getByLabelText(/Légende des types de relations/i).textContent).toMatch(/Prédation/);
   });
 
   test('affiche un message si aucun nœud', () => {
