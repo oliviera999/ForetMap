@@ -2,6 +2,9 @@ import { useEffect, useMemo } from 'react';
 import { normalizeGlImageFrame } from '../../utils/glImageFrame.js';
 import { mergeBrandWithChapterTheme } from '../../utils/glBrandTheme.js';
 
+/** Favicon statique GL (public/gl/) — défaut avant chargement React. */
+export const GL_DEFAULT_FAVICON_HREF = '/gl/favicon.svg';
+
 export const GL_CONTENT_PAGE_SLOT_BY_SLUG = {
   world: 'card_world',
   rules: 'card_rules',
@@ -138,6 +141,22 @@ function toCssFontFamily(value, fallbackStack = 'serif') {
   return `"${raw}", ${fallbackStack}`;
 }
 
+function upsertBrandFaviconLink(href) {
+  if (typeof document === 'undefined') return;
+  const url = String(href || '').trim();
+  if (!url) return;
+  let node = document.getElementById('gl-brand-favicon');
+  if (!node) {
+    node = document.createElement('link');
+    node.id = 'gl-brand-favicon';
+    node.rel = 'icon';
+    document.head.appendChild(node);
+  }
+  const lower = url.toLowerCase();
+  node.type = lower.endsWith('.svg') ? 'image/svg+xml' : 'image/png';
+  node.href = url;
+}
+
 function upsertFontLink(families) {
   if (typeof document === 'undefined') return;
   const uniqueFamilies = [
@@ -164,6 +183,10 @@ export function useGLBrandTheme(rawBrand, chapterTheme) {
   useEffect(() => {
     upsertFontLink(brand.fonts.googleFamilies);
   }, [brand]);
+
+  useEffect(() => {
+    if (brand.faviconUrl) upsertBrandFaviconLink(brand.faviconUrl);
+  }, [brand.faviconUrl]);
 
   const style = useMemo(
     () => ({

@@ -17,4 +17,16 @@ describe('useGLBrandTheme', () => {
     expect(result.current.brand.colors.primary).toBe('#112233');
     expect(result.current.brand.fonts.heading).toBeTruthy();
   });
+
+  it('remplace le favicon quand brand.faviconUrl est renseigné', () => {
+    document.head.innerHTML = '';
+    const { unmount } = renderHook(() =>
+      useGLBrandTheme({ faviconUrl: '/uploads/gl_brand/favicon.png' }, null),
+    );
+    const link = document.getElementById('gl-brand-favicon');
+    expect(link).toBeTruthy();
+    expect(link.getAttribute('href')).toContain('/uploads/gl_brand/favicon.png');
+    expect(link.getAttribute('type')).toBe('image/png');
+    unmount();
+  });
 });
