@@ -503,9 +503,11 @@ export function GLGameBoard({
 
       {teamList.map((team) => {
         const position = getPositionForTeam(team.id);
+        const motion = getMotionForTeam(team.id);
         const isSelected = selectedTeamId != null && Number(selectedTeamId) === Number(team.id);
         const isCurrentTurn = currentTeamId != null && Number(currentTeamId) === Number(team.id);
         const classes = ['gl-board-team-pin'];
+        if (motion?.snapCenter) classes.push('is-on-marker');
         if (isSelected) classes.push('is-selected');
         if (isCurrentTurn) classes.push('is-current-turn');
         return (
