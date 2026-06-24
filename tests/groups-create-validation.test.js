@@ -53,7 +53,21 @@ test('corps valide : normalise les champs et appelle next', () => {
     description: 'une desc',
     kind: 'team',
     parent_group_id: 'p-1',
+    default_role_id: null,
+    grants_n3beur_access: undefined,
   });
+});
+
+test('corps valide : conserve default_role_id et grants_n3beur_access pour le handler', () => {
+  const { nextCalled, body } = run({
+    name: 'Classe n3',
+    kind: 'class',
+    default_role_id: 42,
+    grants_n3beur_access: true,
+  });
+  assert.strictEqual(nextCalled, true);
+  assert.strictEqual(body.default_role_id, 42);
+  assert.strictEqual(body.grants_n3beur_access, true);
 });
 
 test('slug dérivé du name quand slug absent ; defaults permissifs', () => {
@@ -64,6 +78,8 @@ test('slug dérivé du name quand slug absent ; defaults permissifs', () => {
   assert.strictEqual(body.description, null);
   assert.strictEqual(body.kind, 'class'); // normalizeKind('') -> 'class'
   assert.strictEqual(body.parent_group_id, null);
+  assert.strictEqual(body.default_role_id, null);
+  assert.strictEqual(body.grants_n3beur_access, undefined);
 });
 
 test('slug et name manquants -> 400 "slug et name requis" (priorité la plus haute)', () => {

@@ -27,7 +27,7 @@ export function GLJoueursView({
   playerId,
   onTradeCompleted,
 }) {
-  const visibleSubTabs = filterGlJoueursSubTabs(modules, { vitalityEnabled, includeMarket });
+  const visibleSubTabs = filterGlJoueursSubTabs(modules, { vitalityEnabled });
 
   return (
     <div className="gl-joueurs-view fade-in">
@@ -61,7 +61,7 @@ export function GLJoueursView({
             <GLForumView canModerate={canModerateForum} />
           </Suspense>
         ) : null}
-        {activeSubTab === 'market' ? (
+        {activeSubTab === 'market' && includeMarket ? (
           <Suspense fallback={<div className="gl-tab-loading" aria-busy="true" />}>
             <GLMarketView
               token={token}
@@ -70,6 +70,12 @@ export function GLJoueursView({
               onTradeCompleted={onTradeCompleted}
             />
           </Suspense>
+        ) : null}
+        {activeSubTab === 'market' && !includeMarket ? (
+          <p className="gl-market-placeholder" role="status">
+            Le marché d&apos;échanges est réservé aux joueurs. Activez l&apos;aperçu joueur depuis
+            la barre supérieure pour le tester.
+          </p>
         ) : null}
         {activeSubTab === 'stats' ? (
           <GLStatsView

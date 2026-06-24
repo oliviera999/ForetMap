@@ -872,6 +872,53 @@ router.delete(
   },
 );
 
+router.patch(
+  '/mascot-packs/:id/assets/:filename',
+  requirePermission('visit.manage', { needsElevation: true }),
+  async (req, res) => {
+    try {
+      const packId = String(req.params.id || '').trim();
+      const filename = sanitizeMascotPackAssetFilename(req.params.filename);
+      const newFilename = sanitizeMascotPackAssetFilename(req.body?.new_filename);
+      if (!/^[0-9a-f-]{36}$/i.test(packId) || !filename || !newFilename) {
+        return res.status(400).json({ error: 'Paramètres invalides' });
+      }
+      if (filename === newFilename) {
+        return res.status(400).json({ error: 'Le nouveau nom est identique à l’actuel' });
+      }
+      const row = await queryOne('SELECT id FROM visit_mascot_packs WHERE id = ? LIMIT 1', [
+        packId,
+      ]);
+      if (!row) return res.status(404).json({ error: 'Pack introuvable' });
+      const relDir = visitMascotPackAssetRelativeDir(packId);
+      const relFrom = `${relDir}/${filename}`;
+      const relTo = `${relDir}/${newFilename}`;
+      const absFrom = getAbsolutePath(relFrom);
+      const absTo = getAbsolutePath(relTo);
+      if (!fs.existsSync(absFrom)) {
+        return res.status(404).json({ error: 'Fichier introuvable' });
+      }
+      if (fs.existsSync(absTo)) {
+        return res.status(409).json({ error: 'Un fichier porte déjà ce nom' });
+      }
+      await fs.promises.rename(absFrom, absTo);
+      const publicUrl = `/api/visit/mascot-packs/${packId}/assets/${encodeURIComponent(newFilename)}`;
+      res.json({
+        ok: true,
+        filename: newFilename,
+        url: publicUrl,
+        preview_url: appendPreviewTokenToAssetUrl(publicUrl, packId, newFilename),
+        previous_filename: filename,
+      });
+    } catch (err) {
+      logRouteError(err, req);
+      const mapped = mapVisitMascotPackSqlError(err);
+      if (mapped) return jsonVisitMascotPackError(res, req, mapped.status, mapped.body);
+      res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });
+    }
+  },
+);
+
 /** PNG bibliothèque sprites (public si la ligne existe — utilisé par les packs publiés). */
 router.get(
   '/mascot-assets',
@@ -1096,6 +1143,65 @@ router.delete(
       deleteFile(rel);
       await execute('DELETE FROM visit_mascot_sprite_library WHERE id = ?', [row.id]);
       res.json({ ok: true });
+    } catch (err) {
+      logRouteError(err, req);
+      const mapped = mapVisitMascotSpriteLibSqlError(err);
+      if (mapped) return jsonVisitMascotPackError(res, req, mapped.status, mapped.body);
+      res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });
+    }
+  },
+);
+
+router.patch(
+  '/mascot-sprite-library/:mapId/assets/:filename',
+  requirePermission('visit.manage', { needsElevation: true }),
+  async (req, res) => {
+    try {
+      const mapId = String(req.params.mapId || '').trim();
+      const filename = sanitizeMascotPackAssetFilename(req.params.filename);
+      const newFilename = sanitizeMascotPackAssetFilename(req.body?.new_filename);
+      if (!visitMascotSpriteLibraryRelativeDir(mapId) || !filename || !newFilename) {
+        return res.status(400).json({ error: 'Paramètres invalides' });
+      }
+      if (filename === newFilename) {
+        return res.status(400).json({ error: 'Le nouveau nom est identique à l’actuel' });
+      }
+      if (!(await mapExists(mapId))) return res.status(400).json({ error: 'Carte introuvable' });
+      const row = await queryOne(
+        'SELECT id FROM visit_mascot_sprite_library WHERE map_id = ? AND filename = ? LIMIT 1',
+        [mapId, filename],
+      );
+      if (!row) return res.status(404).json({ error: 'Entrée introuvable' });
+      const collision = await queryOne(
+        'SELECT id FROM visit_mascot_sprite_library WHERE map_id = ? AND filename = ? LIMIT 1',
+        [mapId, newFilename],
+      );
+      if (collision) {
+        return res.status(409).json({ error: 'Un fichier porte déjà ce nom' });
+      }
+      const relDir = visitMascotSpriteLibraryRelativeDir(mapId);
+      const relFrom = `${relDir}/${filename}`;
+      const relTo = `${relDir}/${newFilename}`;
+      const absFrom = getAbsolutePath(relFrom);
+      const absTo = getAbsolutePath(relTo);
+      if (!fs.existsSync(absFrom)) {
+        return res.status(404).json({ error: 'Fichier introuvable' });
+      }
+      if (fs.existsSync(absTo)) {
+        return res.status(409).json({ error: 'Un fichier porte déjà ce nom' });
+      }
+      await fs.promises.rename(absFrom, absTo);
+      await execute('UPDATE visit_mascot_sprite_library SET filename = ? WHERE id = ?', [
+        newFilename,
+        row.id,
+      ]);
+      const publicUrl = `/api/visit/mascot-sprite-library/${mapId}/assets/${encodeURIComponent(newFilename)}`;
+      res.json({
+        ok: true,
+        filename: newFilename,
+        url: publicUrl,
+        previous_filename: filename,
+      });
     } catch (err) {
       logRouteError(err, req);
       const mapped = mapVisitMascotSpriteLibSqlError(err);

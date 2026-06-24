@@ -6,9 +6,11 @@ const {
   dismissProfilePromotionModalIfPresent,
   createTeacherTask,
   assignStudentToTaskAsTeacher,
+  waitForStudentAssignedTask,
   fillTaskDescription,
   openTeacherTasksTab,
   openStudentTasksTab,
+  expectTaskCardWithTitle,
 } = require('./fixtures/auth.fixture');
 
 test.describe.configure({ mode: 'serial' });
@@ -26,6 +28,7 @@ test('cycle complet tâche: création prof -> prise élève -> soumission -> val
   await assignStudentToTaskAsTeacher(page, taskId);
 
   await disableTeacherMode(page);
+  await waitForStudentAssignedTask(page, taskTitle);
   const studentTasksLoad = page.waitForResponse(
     (r) => r.url().includes('/api/tasks') && r.request().method() === 'GET' && r.status() === 200,
     { timeout: 45_000 },
@@ -34,7 +37,7 @@ test('cycle complet tâche: création prof -> prise élève -> soumission -> val
   await studentTasksLoad.catch(() => {});
 
   const studentTaskCard = page.locator('.task-card', { hasText: taskTitle }).first();
-  await expect(studentTaskCard).toBeVisible({ timeout: 45_000 });
+  await expectTaskCardWithTitle(page, taskTitle);
   await expect(studentTaskCard.getByRole('button', { name: /Marquer terminée/ })).toBeVisible({
     timeout: 45_000,
   });

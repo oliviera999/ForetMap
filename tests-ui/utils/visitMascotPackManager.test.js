@@ -14,6 +14,10 @@ import {
   buildUnifiedMascotImageEntries,
   buildPackAssetPreviewByFilename,
   applyPackAssetPreviewUrlsToSpriteCut,
+  insertMascotImagesIntoPackState,
+  pruneMascotImageSelection,
+  filterMascotImageEntriesForSelectionCriterion,
+  getFilenamesInPackState,
 } from '../../src/utils/visitMascotPackManager.js';
 
 describe('computeEditorWarnings', () => {
@@ -145,6 +149,82 @@ describe('insertMascotImageIntoPackState', () => {
     });
     expect(next.stateFrames.idle.files).toEqual(['a.png']);
     expect(next.stateFrames.idle.srcs).toBeUndefined();
+  });
+});
+
+describe('insertMascotImagesIntoPackState', () => {
+  test('insère plusieurs fichiers sans doublons', () => {
+    const packId = '00000000-0000-4000-8000-000000000001';
+    const prefix = `/api/visit/mascot-packs/${packId}/assets/`;
+    const prev = { framesBase: prefix, stateFrames: {} };
+    const assets = [
+      {
+        kind: 'pack-file',
+        filename: 'a.png',
+        url: `${prefix}a.png`,
+        framesBaseHint: prefix,
+      },
+      {
+        kind: 'pack-file',
+        filename: 'b.png',
+        url: `${prefix}b.png`,
+        framesBaseHint: prefix,
+      },
+      {
+        kind: 'pack-file',
+        filename: 'a.png',
+        url: `${prefix}a.png`,
+        framesBaseHint: prefix,
+      },
+    ];
+    const { pack, addedCount } = insertMascotImagesIntoPackState(prev, 'idle', assets);
+    expect(pack.stateFrames.idle.files).toEqual(['a.png', 'b.png']);
+    expect(addedCount).toBe(2);
+  });
+});
+
+describe('pruneMascotImageSelection', () => {
+  test('conserve uniquement les ids encore visibles', () => {
+    const entries = [{ id: 'pack:a.png' }, { id: 'map:b.png' }];
+    const pruned = pruneMascotImageSelection(new Set(['pack:a.png', 'gone']), entries);
+    expect([...pruned]).toEqual(['pack:a.png']);
+  });
+});
+
+describe('filterMascotImageEntriesForSelectionCriterion', () => {
+  const entries = [
+    { id: 'pack:a', filename: 'a.png', canDelete: true, source: 'pack' },
+    { id: 'map:b', filename: 'b.png', canDelete: true, source: 'map' },
+    { id: 'site:c', filename: 'c.png', canDelete: false, source: 'site' },
+  ];
+
+  test('deletable', () => {
+    const out = filterMascotImageEntriesForSelectionCriterion(entries, 'deletable');
+    expect(out).toHaveLength(2);
+  });
+
+  test('unreferenced', () => {
+    const pack = { stateFrames: { idle: { files: ['a.png'] } } };
+    const out = filterMascotImageEntriesForSelectionCriterion(entries, 'unreferenced', { pack });
+    expect(out.map((e) => e.filename)).toEqual(['b.png', 'c.png']);
+  });
+
+  test('in_target_state', () => {
+    const pack = { stateFrames: { idle: { files: ['b.png'] } } };
+    const out = filterMascotImageEntriesForSelectionCriterion(entries, 'in_target_state', {
+      pack,
+      targetState: 'idle',
+    });
+    expect(out).toHaveLength(1);
+    expect(out[0].filename).toBe('b.png');
+  });
+});
+
+describe('getFilenamesInPackState', () => {
+  test('retourne les fichiers de l’état', () => {
+    const pack = { stateFrames: { walk: { files: ['x.png', 'y.png'] } } };
+    const set = getFilenamesInPackState(pack, 'walk');
+    expect([...set]).toEqual(['x.png', 'y.png']);
   });
 });
 

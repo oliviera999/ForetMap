@@ -16,6 +16,7 @@ const {
   verifyRolePin,
   syncStudentPrimaryRoleFromProgress,
 } = require('../../lib/rbac');
+const { syncStudentRoleFromGroups } = require('../../lib/groupRole');
 const {
   countStudentActiveTaskAssignments,
   getEffectiveMaxActiveTaskAssignments,
@@ -213,6 +214,7 @@ async function getTaskWithAssignments(taskId) {
 }
 
 async function ensureStudentPermission({ studentId, permissionKey, profilePin }) {
+  await syncStudentRoleFromGroups(studentId);
   await ensurePrimaryRole('student', studentId, 'eleve_novice');
   await syncStudentPrimaryRoleFromProgress(studentId, null, null, { recordPromotionNotice: true });
   const base = await buildAuthzPayload('student', studentId, false);

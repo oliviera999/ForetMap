@@ -8,6 +8,10 @@ import {
   resolveSrcPreviewUrl,
   sanitizeClientFilename,
   swapFrames,
+  renameFilenameInPackStateFrames,
+  removeFilenamesFromStateFrames,
+  moveFilenameBlockInStateFrames,
+  findContiguousFilenameBlock,
 } from '../../src/utils/mascotPackEditorFrames.js';
 
 describe('sanitizeClientFilename', () => {
@@ -158,6 +162,49 @@ describe('appendFileToStateFrames', () => {
     const prev = { idle: { fps: 8, files: ['a.png'] } };
     appendFileToStateFrames(prev, 'idle', 'b.png');
     expect(prev.idle.files).toEqual(['a.png']);
+  });
+});
+
+describe('renameFilenameInPackStateFrames', () => {
+  test('renomme dans tous les états', () => {
+    const pack = {
+      stateFrames: {
+        idle: { files: ['old.png', 'keep.png'] },
+        walk: { files: ['old.png'] },
+      },
+    };
+    const next = renameFilenameInPackStateFrames(pack, 'old.png', 'new.png');
+    expect(next.stateFrames.idle.files).toEqual(['new.png', 'keep.png']);
+    expect(next.stateFrames.walk.files).toEqual(['new.png']);
+  });
+});
+
+describe('removeFilenamesFromStateFrames', () => {
+  test('retire plusieurs fichiers et synchronise dwell', () => {
+    const sf = {
+      idle: { files: ['a.png', 'b.png', 'c.png'], fps: 8, frameDwellMs: [10, 20, 30] },
+    };
+    const next = removeFilenamesFromStateFrames(sf, 'idle', ['b.png']);
+    expect(next.idle.files).toEqual(['a.png', 'c.png']);
+    expect(next.idle.frameDwellMs).toEqual([10, 30]);
+  });
+});
+
+describe('moveFilenameBlockInStateFrames', () => {
+  test('déplace un bloc vers le bas', () => {
+    const spec = { files: ['a', 'b', 'c', 'd'], fps: 8 };
+    const out = moveFilenameBlockInStateFrames(spec, spec.files, [], 8, 1, 2, 'down');
+    expect(out.files).toEqual(['a', 'd', 'b', 'c']);
+  });
+});
+
+describe('findContiguousFilenameBlock', () => {
+  test('trouve un bloc contigu', () => {
+    expect(findContiguousFilenameBlock(['a', 'b', 'c', 'd'], ['b', 'c'])).toEqual({
+      start: 1,
+      len: 2,
+    });
+    expect(findContiguousFilenameBlock(['a', 'b', 'c'], ['a', 'c'])).toBeNull();
   });
 });
 

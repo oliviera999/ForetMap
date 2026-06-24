@@ -64,4 +64,25 @@ describe('GLJoueursView', () => {
     expect(screen.queryByRole('tab', { name: /Marché/ })).not.toBeInTheDocument();
     expect(screen.getByRole('tab', { name: /Statistiques/ })).toBeInTheDocument();
   });
+
+  test('affiche un message staff sur le marché hors aperçu joueur', () => {
+    render(
+      <GLJoueursView
+        activeSubTab="market"
+        onSubTabChange={() => {}}
+        modules={allModules}
+        vitalityEnabled
+        includeMarket={false}
+        showStaffAdminUi
+        canModerateForum
+        auth={{ userType: 'gl_admin' }}
+        classes={[]}
+        token="tok"
+        onTradeCompleted={() => {}}
+      />,
+    );
+
+    expect(screen.getByRole('tab', { name: /Marché/ })).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent(/aperçu joueur/i);
+  });
 });

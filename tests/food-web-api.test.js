@@ -75,6 +75,47 @@ test('GET /api/food-web/interactions/:id/glossary — interaction inconnue 404',
   await request(app).get('/api/food-web/interactions/999999999/glossary').expect(404);
 });
 
+test('GET /api/food-web?mapId= — carte inconnue 404', async () => {
+  await request(app).get('/api/food-web?mapId=carte-inexistante').expect(404);
+});
+
+test('GET /api/food-web?mapId= — filtre par carte', async () => {
+  const mapId = `fw-map-${stamp}`;
+  const zoneId = `fw-map-zone-${stamp}`;
+  await execute(
+    `INSERT INTO maps (id, label, sort_order, is_active) VALUES (?, ?, 999, 1)
+     ON DUPLICATE KEY UPDATE label = VALUES(label)`,
+    [mapId, `Carte FW ${stamp}`],
+  );
+  await execute(
+    `INSERT INTO zones (id, map_id, name, x, y, width, height, current_plant, stage, special, shape, points, color)
+     VALUES (?, ?, ?, 0, 0, 0, 0, '', 'empty', 0, 'rect', ?, '#86efac80')`,
+    [
+      zoneId,
+      mapId,
+      `Zone carte FW ${stamp}`,
+      JSON.stringify([
+        { xp: 10, yp: 10 },
+        { xp: 20, yp: 10 },
+        { xp: 15, yp: 20 },
+      ]),
+    ],
+  );
+  await execute('INSERT INTO zone_species (zone_id, plant_id) VALUES (?, ?), (?, ?)', [
+    zoneId,
+    plantFromId,
+    zoneId,
+    plantToId,
+  ]);
+
+  const res = await request(app)
+    .get(`/api/food-web?mapId=${encodeURIComponent(mapId)}`)
+    .expect(200);
+  assert.strictEqual(res.body.mapId, mapId);
+  assert.ok(Array.isArray(res.body.items));
+  assert.ok(res.body.items.some((row) => Number(row.id) === interactionId));
+});
+
 test('GET /api/food-web?zoneId= — filtre par zone avec junction', async () => {
   const zoneId = `fw-zone-${stamp}`;
   await execute(

@@ -1,10 +1,19 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { withAppBase } from '../../services/api';
 import { isSpriteLibraryPreviewableUrl } from '../../utils/visitMascotPackTiming.js';
 import { VISIT_MASCOT_STATE } from '../../utils/visitMascotState.js';
 import { STATE_LABELS } from '../../constants/mascotStateLabels.js';
-import { buildUnifiedMascotImageEntries } from '../../utils/visitMascotPackManager.js';
+import {
+  buildUnifiedMascotImageEntries,
+  filterMascotImageEntriesForSelectionCriterion,
+  pruneMascotImageSelection,
+  resolveSelectedMascotImageEntries,
+  getFilenamesInPackState,
+} from '../../utils/visitMascotPackManager.js';
+import { findContiguousFilenameBlock } from '../../utils/mascotPackEditorFrames.js';
 import { downloadApiFile } from '../../utils/downloadApiFile.js';
+import MascotPackImagesBulkBar from './MascotPackImagesBulkBar.jsx';
+import MascotPackInteractionBulkDialog from './MascotPackInteractionBulkDialog.jsx';
 
 const SOURCE_FILTERS = [
   { id: 'all', label: 'Toutes' },
@@ -15,36 +24,7 @@ const SOURCE_FILTERS = [
 
 /**
  * Panneau Images unifié : médiathèque du pack, bibliothèque carte et assets globaux
- * avec un seul sélecteur d’état cible et l’action « Ajouter à l’état ».
- * @param {{
- *   packUuid: string | null,
- *   mapId: string,
- *   packAssets: Array<Record<string, unknown>>,
- *   packAssetsLoading: boolean,
- *   packAssetsMessage: string,
- *   libAssets: Array<Record<string, unknown>>,
- *   libLoading: boolean,
- *   libMessage: string,
- *   globalAssets: Array<Record<string, unknown>>,
- *   globalAssetsLoading: boolean,
- *   globalAssetsMessage: string,
- *   targetState: string,
- *   onTargetStateChange: (value: string) => void,
- *   sourceFilter: string,
- *   onSourceFilterChange: (value: string) => void,
- *   search: string,
- *   onSearchChange: (value: string) => void,
- *   onReloadAll: () => void,
- *   onPackUpload: (ev: React.ChangeEvent<HTMLInputElement>) => void,
- *   onMapUpload: (ev: React.ChangeEvent<HTMLInputElement>) => void,
- *   onSetFramesBasePack: () => void,
- *   onSetFramesBaseMap: () => void,
- *   onInsertImage: (entry: Record<string, unknown>) => void,
- *   onDeletePackAsset: (filename: string) => void,
- *   onDeleteMapAsset: (filename: string) => void,
- *   onDeletePublicAsset: (url: string) => void,
- *   insertFeedback?: string,
- * }} props
+ * avec sélection multiple et actions groupées.
  */
 export default function MascotPackImagesPanel({
   packUuid,
@@ -58,6 +38,8 @@ export default function MascotPackImagesPanel({
   globalAssets,
   globalAssetsLoading,
   globalAssetsMessage,
+  editorPack = {},
+  packVersion = 1,
   targetState,
   onTargetStateChange,
   sourceFilter,
@@ -70,13 +52,30 @@ export default function MascotPackImagesPanel({
   onSetFramesBasePack,
   onSetFramesBaseMap,
   onInsertImage,
+  onBulkInsert,
   onDeletePackAsset,
   onDeleteMapAsset,
   onDeletePublicAsset,
+  onBulkDelete,
+  onBulkRename,
+  onBulkReplace,
+  onRemoveFromTargetState,
+  onMoveInTargetState,
+  onBulkInteractionApply,
+  onUpgradeToV2,
+  bulkBusy = false,
   insertFeedback = '',
 }) {
   const [copyFeedback, setCopyFeedback] = useState('');
   const [downloadBusy, setDownloadBusy] = useState('');
+  const [selectedIds, setSelectedIds] = useState(() => new Set());
+  const [interactionOpen, setInteractionOpen] = useState(false);
+  const [renameOpen, setRenameOpen] = useState(false);
+  const [renamePrefix, setRenamePrefix] = useState('');
+  const [renameSuffix, setRenameSuffix] = useState('');
+  const [renameFind, setRenameFind] = useState('');
+  const [renameReplace, setRenameReplace] = useState('');
+  const replaceInputRef = useRef(null);
 
   const entries = useMemo(
     () =>
@@ -92,7 +91,21 @@ export default function MascotPackImagesPanel({
     [packAssets, libAssets, globalAssets, packUuid, mapId, sourceFilter, search],
   );
 
-  const loading = packAssetsLoading || libLoading || globalAssetsLoading;
+  useEffect(() => {
+    setSelectedIds((prev) => pruneMascotImageSelection(prev, entries));
+  }, [entries]);
+
+  const selectedEntries = useMemo(
+    () => resolveSelectedMascotImageEntries(selectedIds, entries),
+    [selectedIds, entries],
+  );
+
+  const selectionCtx = useMemo(
+    () => ({ pack: editorPack, targetState, sourceFilter }),
+    [editorPack, targetState, sourceFilter],
+  );
+
+  const loading = packAssetsLoading || libLoading || globalAssetsLoading || bulkBusy;
   const statusMessage = [
     packAssetsMessage,
     libMessage,
@@ -105,6 +118,65 @@ export default function MascotPackImagesPanel({
     .join(' · ');
 
   const targetLabel = STATE_LABELS[targetState] || targetState;
+
+  const canRename = selectedEntries.every(
+    (e) => e.deleteScope === 'pack' || e.deleteScope === 'map',
+  );
+  const canReplace = selectedEntries.every(
+    (e) => e.deleteScope === 'pack' || e.deleteScope === 'map',
+  );
+  const targetFilenames = useMemo(
+    () => getFilenamesInPackState(editorPack, targetState),
+    [editorPack, targetState],
+  );
+  const selectedFilenamesInTarget = selectedEntries
+    .map((e) => String(e.filename || '').trim())
+    .filter((fn) => fn && targetFilenames.has(fn));
+  const canRemoveFromState = selectedFilenamesInTarget.length > 0;
+
+  const blockInfo = useMemo(() => {
+    const spec = editorPack?.stateFrames?.[targetState];
+    const files = spec && typeof spec === 'object' && Array.isArray(spec.files) ? spec.files : [];
+    if (selectedFilenamesInTarget.length === 0) return null;
+    return findContiguousFilenameBlock(files, selectedFilenamesInTarget);
+  }, [editorPack, targetState, selectedFilenamesInTarget]);
+
+  const toggleSelection = useCallback((entryId, checked) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      const id = String(entryId || '').trim();
+      if (!id) return prev;
+      if (checked) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  }, []);
+
+  const selectEntries = useCallback((list) => {
+    setSelectedIds(new Set(list.map((e) => String(e.id))));
+  }, []);
+
+  const selectAllVisible = useCallback(() => selectEntries(entries), [entries, selectEntries]);
+  const deselectAll = useCallback(() => setSelectedIds(new Set()), []);
+  const invertSelection = useCallback(() => {
+    setSelectedIds((prev) => {
+      const next = new Set();
+      for (const e of entries) {
+        const id = String(e.id);
+        if (!prev.has(id)) next.add(id);
+      }
+      return next;
+    });
+  }, [entries]);
+
+  const selectByCriterion = useCallback(
+    (criterion) => {
+      selectEntries(
+        filterMascotImageEntriesForSelectionCriterion(entries, criterion, selectionCtx),
+      );
+    },
+    [entries, selectionCtx, selectEntries],
+  );
 
   const copyUrl = useCallback((url) => {
     const value = String(url || '').trim();
@@ -134,7 +206,7 @@ export default function MascotPackImagesPanel({
     }
   }, []);
 
-  const handleDelete = useCallback(
+  const handleDeleteOne = useCallback(
     (entry) => {
       const scope = entry?.deleteScope;
       if (scope === 'pack') onDeletePackAsset(entry.filename);
@@ -144,6 +216,66 @@ export default function MascotPackImagesPanel({
     [onDeletePackAsset, onDeleteMapAsset, onDeletePublicAsset],
   );
 
+  const handleBulkInsert = useCallback(() => {
+    if (selectedEntries.length === 0) return;
+    onBulkInsert?.(selectedEntries);
+  }, [selectedEntries, onBulkInsert]);
+
+  const handleBulkDelete = useCallback(() => {
+    if (selectedEntries.length === 0) return;
+    onBulkDelete?.(selectedEntries);
+  }, [selectedEntries, onBulkDelete]);
+
+  const previewRename = useCallback(
+    (filename) => {
+      let name = String(filename || '').trim();
+      if (renameFind) {
+        name = name.split(renameFind).join(renameReplace);
+      }
+      if (renamePrefix) name = `${renamePrefix}${name}`;
+      if (renameSuffix) {
+        if (name.toLowerCase().endsWith('.png')) {
+          name = `${name.slice(0, -4)}${renameSuffix}.png`;
+        } else {
+          name = `${name}${renameSuffix}.png`;
+        }
+      }
+      return name;
+    },
+    [renameFind, renameReplace, renamePrefix, renameSuffix],
+  );
+
+  const handleConfirmRename = useCallback(() => {
+    const pairs = selectedEntries
+      .filter((e) => e.deleteScope === 'pack' || e.deleteScope === 'map')
+      .map((e) => ({
+        entry: e,
+        newFilename: previewRename(e.filename),
+      }))
+      .filter((p) => p.newFilename && p.newFilename !== p.entry.filename);
+    if (pairs.length === 0) return;
+    onBulkRename?.(pairs);
+    setRenameOpen(false);
+    setRenamePrefix('');
+    setRenameSuffix('');
+    setRenameFind('');
+    setRenameReplace('');
+  }, [selectedEntries, previewRename, onBulkRename]);
+
+  const handleReplacePick = useCallback(() => {
+    replaceInputRef.current?.click();
+  }, []);
+
+  const handleReplaceFiles = useCallback(
+    (ev) => {
+      const files = ev.target?.files;
+      ev.target.value = '';
+      if (!files?.length || selectedEntries.length === 0) return;
+      onBulkReplace?.(selectedEntries, files);
+    },
+    [selectedEntries, onBulkReplace],
+  );
+
   return (
     <section
       className="mascot-pack-images-panel mascot-pack-wysiwyg__library"
@@ -151,8 +283,8 @@ export default function MascotPackImagesPanel({
     >
       <h3 className="mascot-pack-wysiwyg__h">Images</h3>
       <p className="section-sub" style={{ fontSize: '0.82rem', marginTop: 0 }}>
-        Médiathèque du pack, bibliothèque partagée de la carte et catalogue du site — choisissez
-        l’état cible puis ajoutez une image en un clic.
+        Médiathèque du pack, bibliothèque partagée de la carte et catalogue du site — cochez des
+        sprites puis utilisez les actions groupées, ou ajoutez une image via « + État ».
       </p>
 
       <div className="mascot-pack-images-panel__toolbar">
@@ -199,6 +331,41 @@ export default function MascotPackImagesPanel({
           </button>
         ))}
       </div>
+
+      <MascotPackImagesBulkBar
+        busy={loading}
+        selectedCount={selectedIds.size}
+        visibleCount={entries.length}
+        targetLabel={targetLabel}
+        canRename={canRename && selectedEntries.length > 0}
+        canReplace={canReplace && selectedEntries.length > 0}
+        canRemoveFromState={canRemoveFromState}
+        canMoveBlock={Boolean(blockInfo)}
+        onSelectAll={selectAllVisible}
+        onDeselectAll={deselectAll}
+        onInvertSelection={invertSelection}
+        onSelectDeletable={() => selectByCriterion('deletable')}
+        onSelectUnreferenced={() => selectByCriterion('unreferenced')}
+        onSelectInTargetState={() => selectByCriterion('in_target_state')}
+        onSelectSourceFilter={() => selectByCriterion('source_filter')}
+        onBulkInsert={handleBulkInsert}
+        onBulkDelete={handleBulkDelete}
+        onBulkRename={() => setRenameOpen(true)}
+        onBulkReplace={handleReplacePick}
+        onRemoveFromTargetState={() => onRemoveFromTargetState?.(selectedFilenamesInTarget)}
+        onMoveBlockUp={() => onMoveInTargetState?.(selectedFilenamesInTarget, 'up', blockInfo)}
+        onMoveBlockDown={() => onMoveInTargetState?.(selectedFilenamesInTarget, 'down', blockInfo)}
+        onOpenInteractionDialog={() => setInteractionOpen(true)}
+      />
+
+      <input
+        ref={replaceInputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        style={{ display: 'none' }}
+        onChange={handleReplaceFiles}
+      />
 
       <div className="mascot-pack-images-panel__actions">
         <button type="button" className="btn btn-secondary btn-sm" onClick={onReloadAll}>
@@ -247,13 +414,25 @@ export default function MascotPackImagesPanel({
           {entries.map((entry) => {
             const previewable = isSpriteLibraryPreviewableUrl(entry.previewUrl || entry.url);
             const isDownloading = downloadBusy === entry.url;
+            const isSelected = selectedIds.has(String(entry.id));
             return (
-              <li key={entry.id} className="mascot-pack-wysiwyg__asset-card">
+              <li
+                key={entry.id}
+                className={`mascot-pack-wysiwyg__asset-card${isSelected ? ' is-selected' : ''}`}
+              >
+                <label className="mascot-pack-images-panel__select">
+                  <input
+                    type="checkbox"
+                    checked={isSelected}
+                    aria-label={`Sélectionner ${entry.filename}`}
+                    onChange={(ev) => toggleSelection(entry.id, ev.target.checked)}
+                  />
+                </label>
                 <button
                   type="button"
                   className="mascot-pack-wysiwyg__asset-thumb"
-                  onClick={() => onInsertImage(entry)}
-                  title={`Ajouter à l’état « ${targetLabel} »`}
+                  onClick={() => toggleSelection(entry.id, !isSelected)}
+                  title={isSelected ? 'Désélectionner' : 'Sélectionner'}
                 >
                   {previewable ? (
                     <img
@@ -304,7 +483,7 @@ export default function MascotPackImagesPanel({
                     <button
                       type="button"
                       className="btn btn-danger btn-sm"
-                      onClick={() => handleDelete(entry)}
+                      onClick={() => handleDeleteOne(entry)}
                     >
                       Supprimer
                     </button>
@@ -314,6 +493,98 @@ export default function MascotPackImagesPanel({
             );
           })}
         </ul>
+      ) : null}
+
+      <MascotPackInteractionBulkDialog
+        open={interactionOpen}
+        onClose={() => setInteractionOpen(false)}
+        packVersion={packVersion}
+        defaultTargetState={targetState}
+        onUpgradeToV2={onUpgradeToV2}
+        onApply={onBulkInteractionApply}
+      />
+
+      {renameOpen ? (
+        <div className="modal-overlay" role="presentation" onClick={() => setRenameOpen(false)}>
+          <div
+            className="modal-content mascot-pack-images-rename-dialog"
+            role="dialog"
+            aria-labelledby="mascot-rename-title"
+            aria-modal="true"
+            onClick={(ev) => ev.stopPropagation()}
+          >
+            <h3 id="mascot-rename-title" className="mascot-pack-wysiwyg__h">
+              Renommer la sélection ({selectedEntries.length})
+            </h3>
+            <p className="section-sub" style={{ fontSize: '0.82rem' }}>
+              Pack ou bibliothèque carte uniquement. Les références dans le JSON du pack seront
+              mises à jour.
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 10 }}>
+              <label>
+                Préfixe{' '}
+                <input
+                  className="form-input"
+                  value={renamePrefix}
+                  onChange={(e) => setRenamePrefix(e.target.value)}
+                />
+              </label>
+              <label>
+                Suffixe (avant .png){' '}
+                <input
+                  className="form-input"
+                  value={renameSuffix}
+                  onChange={(e) => setRenameSuffix(e.target.value)}
+                />
+              </label>
+              <label>
+                Remplacer dans le nom{' '}
+                <input
+                  className="form-input"
+                  placeholder="texte à chercher"
+                  value={renameFind}
+                  onChange={(e) => setRenameFind(e.target.value)}
+                />
+              </label>
+              <label>
+                Par{' '}
+                <input
+                  className="form-input"
+                  value={renameReplace}
+                  onChange={(e) => setRenameReplace(e.target.value)}
+                />
+              </label>
+            </div>
+            <ul className="mascot-pack-images-rename-dialog__preview">
+              {selectedEntries.slice(0, 6).map((e) => (
+                <li key={e.id}>
+                  <code>{e.filename}</code>
+                  {' → '}
+                  <code>{previewRename(e.filename)}</code>
+                </li>
+              ))}
+              {selectedEntries.length > 6 ? (
+                <li className="section-sub">… et {selectedEntries.length - 6} autre(s)</li>
+              ) : null}
+            </ul>
+            <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                onClick={handleConfirmRename}
+              >
+                Renommer
+              </button>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={() => setRenameOpen(false)}
+              >
+                Annuler
+              </button>
+            </div>
+          </div>
+        </div>
       ) : null}
     </section>
   );

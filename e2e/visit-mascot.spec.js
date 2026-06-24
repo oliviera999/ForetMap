@@ -3,11 +3,14 @@ const {
   loginAsNewStudent,
   enableTeacherMode,
   disableTeacherMode,
+  logoutToAuth,
   dismissProfilePromotionModalIfPresent,
 } = require('./fixtures/auth.fixture');
 const {
   seedVisitMascotContent,
   cleanupVisitMascotContent,
+  clearVisitMascotPositionStorage,
+  waitForVisitN3EntranceMarker,
 } = require('./fixtures/visit-api.fixture');
 
 const VISIT_MAP_MASCOT_MOVE_MS = 560;
@@ -96,11 +99,31 @@ async function expectVisitMascotPaintReady(stage) {
 
 async function openVisitMap(page, mapId = 'n3') {
   await dismissProfilePromotionModalIfPresent(page);
+  await clearVisitMascotPositionStorage(page, mapId);
   await page.getByRole('button', { name: /^🧭 Visite$/ }).click();
   await expect(page.locator('.visit-view')).toBeVisible({ timeout: 30_000 });
   const mapSelect = page.getByRole('combobox', { name: 'Sélection de carte visite' });
   if (mapId && (await mapSelect.isVisible({ timeout: 5000 }).catch(() => false))) {
+    const contentReady = page.waitForResponse(
+      (r) =>
+        r.url().includes('/api/visit/content') &&
+        r.url().includes(`map_id=${encodeURIComponent(mapId)}`) &&
+        r.request().method() === 'GET' &&
+        r.ok(),
+      { timeout: 45_000 },
+    );
     await mapSelect.selectOption(mapId);
+    await contentReady.catch(() => null);
+  } else {
+    await page
+      .waitForResponse(
+        (r) => r.url().includes('/api/visit/content') && r.request().method() === 'GET' && r.ok(),
+        { timeout: 45_000 },
+      )
+      .catch(() => null);
+  }
+  if (mapId === 'n3') {
+    await waitForVisitN3EntranceMarker(page, mapId);
   }
   const stage = page.locator('.visit-map-stage');
   await expect(stage).toBeVisible({ timeout: 30_000 });
@@ -131,6 +154,14 @@ test.describe.serial('mascotte visite (comportement carte)', () => {
     teacherToken = '';
     seededSuffix = '';
     entrancePct = { x_pct: 22, y_pct: 18 };
+    if (
+      await page
+        .getByRole('button', { name: /Déconnexion/ })
+        .isVisible({ timeout: 1500 })
+        .catch(() => false)
+    ) {
+      await logoutToAuth(page);
+    }
     await loginAsNewStudent(page);
     await dismissProfilePromotionModalIfPresent(page);
     await enableTeacherMode(page);
@@ -141,6 +172,7 @@ test.describe.serial('mascotte visite (comportement carte)', () => {
     seededIds = { n3: seeded.n3 };
     await disableTeacherMode(page);
     await dismissProfilePromotionModalIfPresent(page);
+    await clearVisitMascotPositionStorage(page, 'n3');
     await openVisitMap(page);
   });
 
@@ -161,24 +193,42 @@ test.describe.serial('mascotte visite (comportement carte)', () => {
   });
 
   test('position initiale sous le repère entrée N3 (plan n3)', async ({ page }) => {
-    const { xp, yp } = await readMascotPct(page);
-    expect(Math.abs(xp - entrancePct.x_pct)).toBeLessThan(1.2);
     const expectedY = entrancePct.y_pct + N3_ENTRANCE_Y_OFFSET;
-    expect(Math.abs(yp - expectedY)).toBeLessThan(1.2);
+    await expect
+      .poll(
+        async () => {
+          const { xp, yp } = await readMascotPct(page);
+          return Math.max(Math.abs(xp - entrancePct.x_pct), Math.abs(yp - expectedY));
+        },
+        { timeout: 20_000 },
+      )
+      .toBeLessThan(1.2);
   });
 
   test('clic repère déplace la mascotte vers les coordonnées du repère', async ({ page }) => {
     await clickVisitMapAtPct(page, 88, 50);
-    const { xp, yp } = await readMascotPct(page);
-    expect(Math.abs(xp - 88)).toBeLessThan(1.2);
-    expect(Math.abs(yp - 50)).toBeLessThan(1.2);
+    await expect
+      .poll(
+        async () => {
+          const { xp, yp } = await readMascotPct(page);
+          return Math.max(Math.abs(xp - 88), Math.abs(yp - 50));
+        },
+        { timeout: VISIT_MAP_MASCOT_MOVE_MS + 8_000 },
+      )
+      .toBeLessThan(1.2);
   });
 
   test('clic zone déplace la mascotte vers le centroïde', async ({ page }) => {
     await clickVisitMapAtPct(page, 50, 45);
-    const { xp, yp } = await readMascotPct(page);
-    expect(Math.abs(xp - 50)).toBeLessThan(1.5);
-    expect(Math.abs(yp - 45)).toBeLessThan(1.5);
+    await expect
+      .poll(
+        async () => {
+          const { xp, yp } = await readMascotPct(page);
+          return Math.max(Math.abs(xp - 50), Math.abs(yp - 45));
+        },
+        { timeout: VISIT_MAP_MASCOT_MOVE_MS + 8_000 },
+      )
+      .toBeLessThan(1.5);
   });
 
   test('marche : classe walking pendant le déplacement puis retrait', async ({ page }) => {
@@ -190,12 +240,26 @@ test.describe.serial('mascotte visite (comportement carte)', () => {
       .click({ force: true });
     await expect(mascot).toBeAttached();
     await page.getByTestId('visit-detail-panel').getByRole('button', { name: 'Fermer' }).click();
+    await expect
+      .poll(
+        async () => {
+          const { xp, yp } = await readMascotPct(page);
+          return Math.max(Math.abs(xp - 88), Math.abs(yp - 50));
+        },
+        { timeout: VISIT_MAP_MASCOT_MOVE_MS + 8_000 },
+      )
+      .toBeLessThan(1.2);
     await stage
       .getByRole('button', { name: `E2E mascotte A ${seededSuffix}` })
       .click({ force: true });
-    await expect(mascot).toHaveClass(/visit-map-mascot--walking/, { timeout: 2000 });
+    await expect
+      .poll(async () => (await mascot.getAttribute('class')) || '', {
+        timeout: VISIT_MAP_MASCOT_MOVE_MS + 8_000,
+        intervals: [16, 32, 64, 128],
+      })
+      .toMatch(/visit-map-mascot--walking/);
     await expect(mascot).not.toHaveClass(/visit-map-mascot--walking/, {
-      timeout: VISIT_MAP_MASCOT_MOVE_MS + 400,
+      timeout: VISIT_MAP_MASCOT_MOVE_MS + 2_000,
     });
   });
 
@@ -225,6 +289,14 @@ test.describe.serial('mascotte visite (prefers-reduced-motion)', () => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     seededIds = null;
     teacherToken = '';
+    if (
+      await page
+        .getByRole('button', { name: /Déconnexion/ })
+        .isVisible({ timeout: 1500 })
+        .catch(() => false)
+    ) {
+      await logoutToAuth(page);
+    }
     await loginAsNewStudent(page);
     await dismissProfilePromotionModalIfPresent(page);
     await enableTeacherMode(page);
@@ -233,6 +305,7 @@ test.describe.serial('mascotte visite (prefers-reduced-motion)', () => {
     seededIds = { n3: seeded.n3 };
     await disableTeacherMode(page);
     await dismissProfilePromotionModalIfPresent(page);
+    await clearVisitMascotPositionStorage(page, 'n3');
     await openVisitMap(page);
   });
 

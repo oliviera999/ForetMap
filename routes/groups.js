@@ -113,6 +113,11 @@ const createGroupBodySchema = z
     description: normalizeId(b.description),
     kind: normalizeKind(b.kind),
     parent_group_id: normalizeId(b.parent_group_id),
+    default_role_id:
+      b.default_role_id === undefined || b.default_role_id === null || b.default_role_id === ''
+        ? null
+        : b.default_role_id,
+    grants_n3beur_access: b.grants_n3beur_access,
   }))
   .superRefine((d, ctx) => {
     if (!d.slug || !d.name)

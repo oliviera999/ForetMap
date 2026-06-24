@@ -52,19 +52,28 @@ function normalizeZoneId(value) {
   return s.length > 0 ? s : null;
 }
 
-/** GET /api/food-web?zoneId= */
+function normalizeMapId(value) {
+  if (value == null) return null;
+  const s = String(value).trim();
+  return s.length > 0 ? s : null;
+}
+
+const FOOD_WEB_SELECT = `fw.id, fw.interaction_type, fw.from_id, fw.from_name, fw.from_emoji,
+                fw.from_role, fw.to_id, fw.to_name, fw.to_emoji, fw.to_role, fw.description`;
+
+/** GET /api/food-web?mapId=&zoneId= */
 router.get(
   '/',
   asyncHandler(async (req, res) => {
     const zoneId = normalizeZoneId(req.query?.zoneId);
+    const mapId = normalizeMapId(req.query?.mapId);
 
     if (zoneId) {
       const zone = await queryOne('SELECT id FROM zones WHERE id = ? LIMIT 1', [zoneId]);
       if (!zone) return res.status(404).json({ error: 'Zone introuvable' });
 
       const items = await queryAll(
-        `SELECT fw.id, fw.interaction_type, fw.from_id, fw.from_name, fw.from_emoji,
-                fw.from_role, fw.to_id, fw.to_name, fw.to_emoji, fw.to_role, fw.description
+        `SELECT ${FOOD_WEB_SELECT}
            FROM v_food_web fw
           WHERE fw.from_id IN (
                   SELECT plant_id FROM v_zone_inventory WHERE zone_id = ?
@@ -76,6 +85,25 @@ router.get(
         [zoneId, zoneId],
       );
       return res.json({ zoneId, items });
+    }
+
+    if (mapId) {
+      const map = await queryOne('SELECT id FROM maps WHERE id = ? LIMIT 1', [mapId]);
+      if (!map) return res.status(404).json({ error: 'Carte introuvable' });
+
+      const items = await queryAll(
+        `SELECT ${FOOD_WEB_SELECT}
+           FROM v_food_web fw
+          WHERE fw.from_id IN (
+                  SELECT plant_id FROM v_zone_inventory WHERE map_id = ?
+                )
+            AND (fw.to_id IS NULL OR fw.to_id IN (
+                  SELECT plant_id FROM v_zone_inventory WHERE map_id = ?
+                ))
+          ORDER BY fw.interaction_type ASC, fw.from_name ASC, fw.to_name ASC`,
+        [mapId, mapId],
+      );
+      return res.json({ mapId, items });
     }
 
     const items = await queryAll(

@@ -85,6 +85,55 @@ test('Groupes: CRUD basique + membres + scopes', async () => {
   assert.ok(Array.isArray(fromList.members));
 });
 
+test('Groupes: POST conserve grants_n3beur_access et promeut un membre visiteur', async () => {
+  const token = await getAdminToken();
+  const student = await createStudentForGroups('N3');
+  const visitorRole = await queryOne("SELECT id FROM roles WHERE slug = 'visiteur' LIMIT 1");
+  assert.ok(visitorRole?.id);
+  await execute(
+    `UPDATE user_roles SET role_id = ?, is_primary = 1
+      WHERE user_type = 'student' AND user_id = ?`,
+    [visitorRole.id, student.id],
+  );
+
+  const created = await request(app)
+    .post('/api/groups')
+    .set('Authorization', `Bearer ${token}`)
+    .send({
+      name: `Classe n3beur ${Date.now()}`,
+      slug: `classe-n3beur-${Date.now()}`,
+      kind: 'class',
+      grants_n3beur_access: true,
+    })
+    .expect(201);
+  assert.strictEqual(created.body?.grants_n3beur_access, true);
+
+  const row = await queryOne('SELECT grants_n3beur_access FROM `groups` WHERE id = ? LIMIT 1', [
+    created.body.id,
+  ]);
+  assert.strictEqual(Number(row?.grants_n3beur_access), 1);
+
+  await request(app)
+    .put(`/api/groups/${created.body.id}/members`)
+    .set('Authorization', `Bearer ${token}`)
+    .send({
+      member_user_ids: [student.id],
+      manager_user_ids: [],
+      scope_map_ids: [],
+      scope_project_ids: [],
+    })
+    .expect(200);
+
+  const roleRow = await queryOne(
+    `SELECT r.slug FROM user_roles ur
+       INNER JOIN roles r ON r.id = ur.role_id
+      WHERE ur.user_type = 'student' AND ur.user_id = ? AND ur.is_primary = 1
+      LIMIT 1`,
+    [student.id],
+  );
+  assert.strictEqual(roleRow?.slug, 'eleve_novice');
+});
+
 async function createProfTeacherToken(label) {
   const stamp = `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
   const teacherId = `teacher-prof-${label}-${stamp}`.slice(0, 64);

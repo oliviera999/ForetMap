@@ -16,8 +16,8 @@ import {
   neighborIds,
 } from './foodWebGraphModel.js';
 
-const BASE_W = 640;
-const BASE_H = 440;
+const BASE_W = 880;
+const BASE_H = 560;
 const NODE_R = 20;
 const ENV_POS = { x: BASE_W / 2, y: 28 };
 const CLICK_MOVE_THRESHOLD = 4;
@@ -57,6 +57,7 @@ export function FoodWebGraph({
   selectedEdgeId,
   highlightPlantId,
   onOpenPlant,
+  legendCompact = false,
 }) {
   const svgRef = useRef(null);
   const dragRef = useRef(null);
@@ -593,6 +594,7 @@ export function FoodWebGraph({
         presentTypes={presentTypes}
         hiddenTypes={hiddenTypes}
         onToggleType={toggleEdgeType}
+        compact={legendCompact}
       />
 
       <p className="pedago-foodweb-graph__hint section-sub">

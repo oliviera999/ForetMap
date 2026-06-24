@@ -64,9 +64,21 @@ function useMapViewMascot({
 
   const showMascot = enabled && !!mascotId;
 
+  const mascotMarkerPlacementKey = useMemo(() => {
+    const list = Array.isArray(markers) ? markers : [];
+    return list
+      .map(
+        (m) =>
+          `${m.id ?? ''}:${m.x_pct ?? ''}:${m.y_pct ?? ''}:${String(m.label ?? '')
+            .trim()
+            .toLowerCase()}`,
+      )
+      .join('|');
+  }, [markers]);
+
   useLayoutEffect(() => {
     startPlacedForMapRef.current = null;
-  }, [mapId]);
+  }, [mapId, mascotMarkerPlacementKey]);
 
   useLayoutEffect(() => {
     if (!showMascot) return;
@@ -84,7 +96,7 @@ function useMapViewMascot({
     mascotPctRef.current = start;
     setMascotPct(start);
     saveVisitMascotPositionPct(mapId, start);
-  }, [mapId, markers, showMascot]);
+  }, [mapId, markers, showMascot, mascotMarkerPlacementKey]);
 
   useEffect(() => {
     mascotPctRef.current = mascotPct;
