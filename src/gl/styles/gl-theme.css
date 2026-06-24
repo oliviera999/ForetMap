@@ -1567,6 +1567,8 @@ body.gl-map-fullscreen-active .gl-qcm-popover-overlay {
   border-radius: 12px;
   border: 1px solid #bae6fd;
   background: #e0f2fe;
+  --gl-board-mascot-h: clamp(54px, 10vw, 72px);
+  --gl-board-team-label-gap: 6px;
 }
 
 .gl-board-image {
@@ -1795,7 +1797,7 @@ body.gl-map-fullscreen-active .gl-qcm-popover-overlay {
 .gl-board .gl-board-mascot .visit-map-mascot-spritesheet-shell,
 .gl-board .gl-board-mascot .visit-map-mascot-sprite-cut {
   width: clamp(48px, 9vw, 64px);
-  height: clamp(54px, 10vw, 72px);
+  height: var(--gl-board-mascot-h);
 }
 
 .gl-board .gl-board-mascot .visit-map-mascot-static svg,
@@ -1823,10 +1825,13 @@ body.gl-map-fullscreen-active .gl-qcm-popover-overlay {
   filter: drop-shadow(0 0 6px rgba(250, 204, 21, 0.95));
 }
 
-/* Pastille nom d’équipe (sélection), décalée au-dessus des pieds de la mascotte */
+/* Pastille nom d’équipe (sélection), calée au-dessus de la mascotte (pieds ou centre sur repère) */
 .gl-board-team-pin {
   position: absolute;
-  transform: translate(-50%, calc(-100% - clamp(58px, 11vw, 78px)));
+  transform: translate(
+    -50%,
+    calc(-100% - var(--gl-board-mascot-h) - var(--gl-board-team-label-gap))
+  );
   max-width: min(120px, 28vw);
   padding: 2px 8px;
   border: 2px solid var(--gl-team-color, #22c55e);
@@ -1841,6 +1846,13 @@ body.gl-map-fullscreen-active .gl-qcm-popover-overlay {
   appearance: none;
   box-shadow: 0 2px 8px rgba(15, 23, 42, 0.35);
   pointer-events: auto;
+}
+
+.gl-board-team-pin.is-on-marker {
+  transform: translate(
+    -50%,
+    calc(-100% - var(--gl-board-mascot-h) * 0.5 - var(--gl-board-team-label-gap))
+  );
 }
 
 .gl-board-team-pin-label {
