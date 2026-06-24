@@ -7,6 +7,11 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Identité visuelle GL — favicon
+
+- **Favicon** : logo gnome + licorne (`public/gl/`) déclaré dans `gl.html` ; script `npm run icons:gl` ; route `/favicon.ico` sensible au produit (`gl.*` vs ForetMap).
+- **Charte** : `brand.faviconUrl` (upload MJ) appliqué via `useGLBrandTheme`.
+
 ### Utilisateurs / groupes partagés ForetMap ↔ GL et rôle visiteur
 
 - **Groupes** : `default_role_id`, `grants_n3beur_access` ; résolution RBAC élève via `lib/groupRole.js` ; `POST /api/groups/:id/apply-default-role`.

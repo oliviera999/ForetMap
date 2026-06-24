@@ -374,6 +374,19 @@ app.use((req, res, next) => {
   if (resolveProductFromRequest(req) !== 'gl') return next();
   return res.redirect(302, '/');
 });
+// Avant express.static : /favicon.ico ne doit pas toujours servir l’icône ForetMap.
+app.get('/favicon.ico', (req, res) => {
+  const glFavicon = path.join(staticRoot, 'gl', 'favicon.ico');
+  if (resolveProductFromRequest(req) === 'gl' && fs.existsSync(glFavicon)) {
+    res.type('image/png');
+    return res.sendFile(glFavicon);
+  }
+  const foretFavicon = path.join(staticRoot, 'favicon.ico');
+  if (fs.existsSync(foretFavicon)) {
+    return res.sendFile(foretFavicon);
+  }
+  return res.status(204).end();
+});
 app.use(express.static(staticRoot, staticServeOptions));
 const { PUBLIC_IMAGE_CACHE_CONTROL } = require('./lib/httpImageCache');
 const uploadsStaticRoot = path.join(__dirname, 'uploads');
@@ -716,9 +729,6 @@ app.get('/api/site-issues.json', (req, res) => {
   res.type('application/json; charset=utf-8');
   res.sendFile(path.resolve(__dirname, 'docs', 'SITE_ISSUES.json'));
 });
-
-// Favicon : évite le fallback SPA et un éventuel 500
-app.get('/favicon.ico', (req, res) => res.status(204).end());
 
 // Fallback SPA (build Vite en prod, sinon page d'aide locale)
 const { createSpaFallbackHandler, registerSpaFallbackRoutes } = require('./lib/spaFallback');

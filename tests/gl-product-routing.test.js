@@ -59,3 +59,20 @@ test('token GL refusé sur API ForetMap (/api/tasks)', async () => {
       .includes('gnomes'),
   );
 });
+
+test('GET /favicon.ico sert l’icône GL sur host gl.*', async () => {
+  const res = await request(app)
+    .get('/favicon.ico')
+    .set('Host', 'gl.olution.info')
+    .set('X-Foretmap-Product', 'gl');
+  assert.strictEqual(res.status, 200);
+  assert.match(String(res.headers['content-type'] || ''), /image\/png/i);
+  assert.ok(res.body && res.body.length > 0);
+});
+
+test('GET /favicon.ico sert l’icône ForetMap par défaut', async () => {
+  const res = await request(app).get('/favicon.ico').set('Host', 'foretmap.olution.info');
+  assert.strictEqual(res.status, 200);
+  assert.match(String(res.headers['content-type'] || ''), /image\/(png|vnd\.microsoft\.icon)/i);
+  assert.ok(res.body && res.body.length > 0);
+});
