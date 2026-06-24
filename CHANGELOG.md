@@ -7,6 +7,13 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Réseau trophique — légende et styles par type de relation
+
+- **Graphe** : couleur et figuré (plein, pointillés) distincts par type d'interaction ; légende
+  visuelle sous le graphe (flèche simple ↔ double sens) ; export PNG/SVG aligné.
+- **Liste** : barre colorée sur chaque relation selon le type.
+- **Code** : `src/shared/foodWebEdgeStyle.js`, `FoodWebEdgeLegend.jsx` ; tests UI associés.
+
 ### Conditionnement « lu/appris » — aperçu avant quiz gating
 
 - **UI** : étape « Contrôle de compréhension » avant le quiz (résumé du nombre de questions,
