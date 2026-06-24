@@ -95,6 +95,10 @@ function TutorialsView({ isTeacher, onRefresh, onForceLogout, maps = [] }) {
   const [showReorder, setShowReorder] = useState(false);
   const [reorderDraft, setReorderDraft] = useState([]);
   const [reorderSaving, setReorderSaving] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importScan, setImportScan] = useState(null);
+  const [importLoading, setImportLoading] = useState(false);
+  const [importDryRun, setImportDryRun] = useState(false);
   const [tutorialReadIds, setTutorialReadIds] = useState(() => new Set());
   const [linkedTasksModal, setLinkedTasksModal] = useState(null);
 
@@ -170,6 +174,57 @@ function TutorialsView({ isTeacher, onRefresh, onForceLogout, maps = [] }) {
   };
 
   useOverlayHistoryBack(showReorder, closeReorder);
+
+  const closeImportModal = useCallback(() => {
+    setShowImportModal(false);
+    setImportScan(null);
+    setImportDryRun(false);
+  }, []);
+
+  useOverlayHistoryBack(showImportModal, closeImportModal);
+
+  const openImportModal = useCallback(async () => {
+    setShowImportModal(true);
+    setImportScan(null);
+    setImportLoading(true);
+    try {
+      const res = await api('/api/tutorials/import/scan');
+      setImportScan(res?.report || null);
+    } catch (e) {
+      if (e instanceof AccountDeletedError) onForceLogout?.();
+      showToast(e.message || 'Scan impossible');
+      setShowImportModal(false);
+    } finally {
+      setImportLoading(false);
+    }
+  }, [onForceLogout]);
+
+  const runTutosImport = async () => {
+    setImportLoading(true);
+    try {
+      const res = await api('/api/tutorials/import/files', 'POST', { dryRun: importDryRun });
+      const report = res?.report;
+      setImportScan(report || null);
+      if (importDryRun) {
+        showToast(
+          report?.totals?.pending
+            ? `${report.totals.pending} fiche(s) seraient importée(s)`
+            : 'Aucune nouvelle fiche à importer',
+        );
+      } else if (report?.totals?.imported > 0) {
+        showToast(`${report.totals.imported} tutoriel(s) importé(s)`);
+        onRefresh?.();
+        closeImportModal();
+      } else {
+        showToast('Aucune nouvelle fiche à importer');
+      }
+    } catch (e) {
+      if (e instanceof AccountDeletedError) onForceLogout?.();
+      showToast(e.message || 'Import impossible');
+    } finally {
+      setImportLoading(false);
+    }
+  };
 
   const onReorderDragStart = (e, index) => {
     e.dataTransfer.setData('text/plain', String(index));
@@ -401,6 +456,87 @@ function TutorialsView({ isTeacher, onRefresh, onForceLogout, maps = [] }) {
           </div>
         </DialogShell>
       )}
+      {showImportModal && (
+        <DialogShell
+          open={showImportModal}
+          onClose={closeImportModal}
+          overlayClassName="modal-overlay"
+          dialogClassName="log-modal tuto-import-modal"
+          ariaLabelledBy="tuto-import-title"
+          closeOnOverlay
+          showCloseButton
+          closeButtonLabel="Fermer"
+        >
+          <h3 id="tuto-import-title">Importer depuis /tutos/</h3>
+          <p className="tuto-import-subtitle">
+            Détecte les fiches HTML du dossier serveur <code>tutos/</code> absentes de la base.
+          </p>
+          {importLoading && !importScan ? (
+            <p className="tuto-import-loading">Analyse des fichiers…</p>
+          ) : importScan ? (
+            <>
+              <div className="tuto-import-totals">
+                <span>
+                  Sur disque : <strong>{importScan.totals?.on_disk ?? 0}</strong>
+                </span>
+                <span>
+                  Déjà en BDD : <strong>{importScan.totals?.already_imported ?? 0}</strong>
+                </span>
+                <span>
+                  À importer : <strong>{importScan.totals?.pending ?? 0}</strong>
+                </span>
+              </div>
+              {importScan.items?.some((item) => item.status === 'pending') ? (
+                <ul className="tuto-import-list">
+                  {importScan.items
+                    .filter((item) => item.status === 'pending')
+                    .map((item) => (
+                      <li key={item.filename}>
+                        <strong>{item.title || item.filename}</strong>
+                        <span className="tuto-import-filename">{item.filename}</span>
+                      </li>
+                    ))}
+                </ul>
+              ) : (
+                <p className="tuto-import-empty">Toutes les fiches présentes sont déjà en base.</p>
+              )}
+              <label className="tuto-import-dryrun">
+                <input
+                  type="checkbox"
+                  checked={importDryRun}
+                  onChange={(e) => setImportDryRun(e.target.checked)}
+                  disabled={importLoading}
+                />
+                Simulation (sans création)
+              </label>
+              <div className="tuto-import-footer">
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  disabled={importLoading || (importScan.totals?.pending ?? 0) === 0}
+                  onClick={runTutosImport}
+                >
+                  {importLoading
+                    ? 'Traitement…'
+                    : importDryRun
+                      ? 'Simuler l’import'
+                      : 'Importer les nouvelles fiches'}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  disabled={importLoading}
+                  onClick={closeImportModal}
+                >
+                  Fermer
+                </button>
+              </div>
+            </>
+          ) : (
+            <p className="tuto-import-error">Impossible de lire le dossier tutos/.</p>
+          )}
+        </DialogShell>
+      )}
       <div className="fade-in">
         {toast ? <FixedToast>{toast}</FixedToast> : null}
 
@@ -422,6 +558,9 @@ function TutorialsView({ isTeacher, onRefresh, onForceLogout, maps = [] }) {
                   ⇅ Ordre
                 </button>
               )}
+              <button type="button" className="btn btn-ghost btn-sm" onClick={openImportModal}>
+                ⬇ Importer /tutos/
+              </button>
               <button type="button" className="btn btn-primary btn-sm" onClick={beginCreate}>
                 + Ajouter
               </button>

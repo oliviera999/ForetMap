@@ -7,6 +7,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Tutoriels — import des fiches `tutos/` manquantes
+
+- **`lib/importTutosFromFilesystem.js`** : scan du dossier `tutos/*.html`, détection des fiches déjà en BDD
+  (chemin, contenu, slug, titre, nom de fichier) et import idempotent des nouvelles fiches (HTML en base).
+- **API** : `GET /api/tutorials/import/scan`, `POST /api/tutorials/import/files` (`dryRun` optionnel).
+- **UI prof** : bouton « Importer /tutos/ » sur l’écran Tutoriels.
+- **Tests** : `tests/tutorials.test.js` ; doc `docs/API.md`.
+
 ### Réseau trophique — légende et styles par type de relation
 
 - **Graphe** : couleur et figuré (plein, pointillés) distincts par type d'interaction ; légende

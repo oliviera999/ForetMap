@@ -1,10 +1,17 @@
 require('./helpers/setup');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
 const test = require('node:test');
 const assert = require('node:assert');
 const request = require('supertest');
 const { app } = require('../server');
 const { initSchema, queryOne, queryAll, execute } = require('../database');
 const { ensureAdminTeacherAuthToken } = require('./helpers/adminAuth');
+const {
+  extractTitleFromTutorialHtml,
+  importMissingTutosFromFilesystem,
+} = require('../lib/importTutosFromFilesystem');
 
 let teacherToken;
 
@@ -113,6 +120,84 @@ test('POST /api/tutorials avec seulement source_file_path intègre le HTML en ba
     .expect(200);
   assert.ok(detail.body.html_content && String(detail.body.html_content).trim().length > 80);
   await execute('DELETE FROM tutorials WHERE id = ?', [create.body.id]);
+});
+
+test('extractTitleFromTutorialHtml retire le suffixe ForêtMap', () => {
+  const title = extractTitleFromTutorialHtml(
+    "<html><head><title>L'arrosage au potager – ForêtMap n³</title></head></html>",
+  );
+  assert.strictEqual(title, "L'arrosage au potager");
+});
+
+test('GET /api/tutorials/import/scan liste les fiches tutos/ déjà en BDD', async () => {
+  const res = await request(app)
+    .get('/api/tutorials/import/scan')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .expect(200);
+  assert.ok(res.body.report);
+  assert.ok(res.body.report.totals.on_disk >= 10);
+  assert.strictEqual(res.body.report.totals.pending, 0);
+  assert.ok(res.body.report.totals.already_imported >= 10);
+  assert.ok(
+    res.body.report.items.some(
+      (item) => item.filename === 'fiche-arrosage-punk.html' && item.status === 'already_imported',
+    ),
+  );
+});
+
+test('POST /api/tutorials/import/files importe une nouvelle fiche HTML', async () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'foretmap-tutos-import-'));
+  const filename = `fiche-import-test-${Date.now()}.html`;
+  const html = `<!doctype html><html lang="fr"><head><title>Nouveau tuto test – ForêtMap n³</title></head><body><p>Contenu import test unique ${Date.now()}</p></body></html>`;
+  fs.writeFileSync(path.join(tmpDir, filename), html, 'utf8');
+
+  const dry = await importMissingTutosFromFilesystem(
+    { queryAll, queryOne, execute },
+    {
+      tutosDir: tmpDir,
+      dryRun: true,
+    },
+  );
+  assert.strictEqual(dry.totals.pending, 1);
+
+  const applied = await importMissingTutosFromFilesystem(
+    { queryAll, queryOne, execute },
+    {
+      tutosDir: tmpDir,
+      dryRun: false,
+    },
+  );
+  assert.strictEqual(applied.totals.imported, 1);
+  const imported = applied.items.find((item) => item.filename === filename);
+  assert.ok(imported?.tutorial_id);
+  const row = await queryOne('SELECT title, html_content FROM tutorials WHERE id = ?', [
+    imported.tutorial_id,
+  ]);
+  assert.strictEqual(row.title, 'Nouveau tuto test');
+  assert.ok(String(row.html_content).includes('Contenu import test unique'));
+
+  const second = await importMissingTutosFromFilesystem(
+    { queryAll, queryOne, execute },
+    {
+      tutosDir: tmpDir,
+      dryRun: false,
+    },
+  );
+  assert.strictEqual(second.totals.imported, 0);
+  assert.strictEqual(second.totals.pending, 0);
+
+  await execute('DELETE FROM tutorials WHERE id = ?', [imported.tutorial_id]);
+  fs.rmSync(tmpDir, { recursive: true, force: true });
+});
+
+test('POST /api/tutorials/import/files via API (dryRun)', async () => {
+  const res = await request(app)
+    .post('/api/tutorials/import/files')
+    .set('Authorization', 'Bearer ' + teacherToken)
+    .send({ dryRun: true })
+    .expect(200);
+  assert.strictEqual(res.body.report.dryRun, true);
+  assert.strictEqual(res.body.report.totals.pending, 0);
 });
 
 test('inlineLegacyTutorialHtmlToDb remplit html_content depuis source_file_path', async () => {

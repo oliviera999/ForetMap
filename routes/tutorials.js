@@ -29,6 +29,10 @@ const {
   autolinkHtmlTextNodes,
   injectGlossaryAutolinkScript,
 } = require('../lib/foretmapGlossaryAutolink');
+const {
+  scanTutosForImport,
+  importMissingTutosFromFilesystem,
+} = require('../lib/importTutosFromFilesystem');
 
 let glossaryAutolinkCache = null;
 let glossaryAutolinkCacheAt = 0;
@@ -316,6 +320,39 @@ router.get(
     res.json({
       tutorial_ids: rows.map((r) => Number(r.tutorial_id)).filter((n) => Number.isFinite(n)),
     });
+  }),
+);
+
+/** Scan des fiches HTML du dossier `tutos/` : détecte celles absentes de la BDD. */
+router.get(
+  '/import/scan',
+  requirePermission('tutorials.manage', { needsElevation: true }),
+  asyncHandler(async (req, res) => {
+    if (!canManageTutorials(req)) return res.status(403).json({ error: 'Permission insuffisante' });
+    const report = await scanTutosForImport({ queryAll, queryOne, execute });
+    res.json({ report });
+  }),
+);
+
+/** Importe en BDD les fiches `tutos/*.html` pas encore présentes (`dryRun` optionnel). */
+router.post(
+  '/import/files',
+  requirePermission('tutorials.manage', { needsElevation: true }),
+  asyncHandler(async (req, res) => {
+    if (!canManageTutorials(req)) return res.status(403).json({ error: 'Permission insuffisante' });
+    const dryRun = !!req.body?.dryRun;
+    const report = await importMissingTutosFromFilesystem(
+      { queryAll, queryOne, execute },
+      { dryRun },
+    );
+    if (!dryRun && report.totals.imported > 0) {
+      for (const item of report.items) {
+        if (item.status === 'imported' && item.tutorial_id) {
+          await emitTutorialTasksChanged('tutorial_create', Number(item.tutorial_id));
+        }
+      }
+    }
+    res.json({ report });
   }),
 );
 
