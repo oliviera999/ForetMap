@@ -7,6 +7,12 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### GL — onglet Écosystèmes et hyperliens glossaire
+
+- **Écosystèmes** : retrait de l’illustration de couverture dupliquée (déjà dans Histoire) ; biotope et biocénose fusionnés sous le nom de l’écosystème (sans titres « Biotope » / « Biocénose »).
+- **Glossaire** : auto-liens étendus aux fiches espèces (Biodiversité), au popover glossaire et aux champs texte des définitions.
+- **Tests** : `GLEcosystemsView`, `glEcosystemMarkdown`.
+
 ### Identité visuelle GL — favicon
 
 - **Favicon** : logo gnome + licorne (`public/gl/`) déclaré dans `gl.html` ; script `npm run icons:gl` ; route `/favicon.ico` sensible au produit (`gl.*` vs ForetMap).

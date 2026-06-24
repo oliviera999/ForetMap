@@ -1259,6 +1259,7 @@ export function AppGL() {
                   <GLBiodiversityView
                     gameState={effectiveGameState}
                     onOpenGlossaryTerm={openGlossaryPopover}
+                    glossaryLinkItems={glossaryLinkItems}
                     learningProgress={isGuest ? null : learningProgress}
                     loreCarnetEnabled={false}
                   />
@@ -1466,6 +1467,7 @@ export function AppGL() {
             onOpenFullGlossary={openGlossaryFullTab}
             showFullGlossaryLink={tab !== 'glossary'}
             learningProgress={learningProgress}
+            glossaryLinkItems={glossaryLinkItems}
           />
           <GLLoreGlossaryPopover
             open={!!loreGlossaryPopoverCode}
