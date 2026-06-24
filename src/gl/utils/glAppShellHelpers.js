@@ -11,6 +11,17 @@ import {
   GL_VALID_TABS,
   GL_DISCOVERY_TAB,
   GL_GUEST_TAB_IDS,
+  GL_NATURE_SUB_TAB_IDS,
+  GL_NATURE_TAB,
+  GL_ADVENTURE_SUB_TABS,
+  GL_ADVENTURE_SUB_TAB_IDS,
+  GL_ADVENTURE_TAB,
+  GL_MONDE_SUB_TABS,
+  GL_MONDE_SUB_TAB_IDS,
+  GL_MONDE_TAB,
+  GL_JOUEURS_SUB_TABS,
+  GL_JOUEURS_SUB_TAB_IDS,
+  GL_JOUEURS_TAB,
 } from '../constants/app-runtime.js';
 import { isModuleEnabled } from '../constants/modules.js';
 import { isGlGuest } from './glGuestMode.js';
@@ -33,16 +44,163 @@ const GL_LEGACY_TAB_ALIASES = Object.freeze({
   biocenose: 'biodiversite',
 });
 
+const GL_NATURE_SUB_TAB_SET = new Set(GL_NATURE_SUB_TAB_IDS);
+const GL_ADVENTURE_SUB_TAB_SET = new Set(GL_ADVENTURE_SUB_TAB_IDS);
+const GL_MONDE_SUB_TAB_SET = new Set(GL_MONDE_SUB_TAB_IDS);
+const GL_JOUEURS_SUB_TAB_SET = new Set(GL_JOUEURS_SUB_TAB_IDS);
+
+/** Sous-onglets visibles de « Les joueurs » selon modules et contexte gameplay. */
+export function filterGlJoueursSubTabs(
+  modules,
+  { vitalityEnabled = false, includeMarket = true } = {},
+) {
+  return GL_JOUEURS_SUB_TABS.filter((subTab) => {
+    if (subTab.id === 'stats') return true;
+    if (subTab.requiresVitality) {
+      return includeMarket && isModuleEnabled(modules, subTab.module) && !!vitalityEnabled;
+    }
+    if (subTab.module) return isModuleEnabled(modules, subTab.module);
+    return true;
+  });
+}
+
+/** Premier sous-onglet disponible de « Les joueurs ». */
+export function defaultGlJoueursSubTab(
+  modules,
+  { vitalityEnabled = false, includeMarket = true } = {},
+) {
+  return filterGlJoueursSubTabs(modules, { vitalityEnabled, includeMarket })[0]?.id || 'stats';
+}
+
+/** Sous-onglets visibles de « Le monde G&L » selon les modules activés. */
+export function filterGlMondeSubTabs(modules) {
+  return GL_MONDE_SUB_TABS.filter((subTab) => {
+    if (!subTab.module) return true;
+    return isModuleEnabled(modules, subTab.module);
+  });
+}
+
+/** Premier sous-onglet disponible de « Le monde G&L ». */
+export function defaultGlMondeSubTab(modules) {
+  return filterGlMondeSubTabs(modules)[0]?.id || 'world';
+}
+
+/** Sous-onglets visibles de « L'aventure » selon les modules activés. */
+export function filterGlAdventureSubTabs(modules) {
+  return GL_ADVENTURE_SUB_TABS.filter((subTab) => {
+    if (!subTab.module) return true;
+    return isModuleEnabled(modules, subTab.module);
+  });
+}
+
+/** Premier sous-onglet disponible de « L'aventure ». */
+export function defaultGlAdventureSubTab(modules) {
+  return filterGlAdventureSubTabs(modules)[0]?.id || 'spells';
+}
+
+/** Sous-onglet actif de « La nature » (écosystèmes par défaut). */
+export function resolveGlNatureSubTab(tab) {
+  const resolved = GL_LEGACY_TAB_ALIASES[tab] || tab;
+  if (GL_NATURE_SUB_TAB_SET.has(resolved)) return resolved;
+  return 'ecosystemes';
+}
+
+/** Sous-onglet actif de « L'aventure » (premier disponible par défaut). */
+export function resolveGlAdventureSubTab(tab, modules) {
+  const resolved = tab;
+  const visibleIds = new Set(filterGlAdventureSubTabs(modules).map((subTab) => subTab.id));
+  if (visibleIds.has(resolved)) return resolved;
+  if (resolved === GL_ADVENTURE_TAB.id) return defaultGlAdventureSubTab(modules);
+  return defaultGlAdventureSubTab(modules);
+}
+
+/** Sous-onglet actif de « Le monde G&L » (introduction par défaut). */
+export function resolveGlMondeSubTab(tab, modules) {
+  const resolved = tab;
+  const visibleIds = new Set(filterGlMondeSubTabs(modules).map((subTab) => subTab.id));
+  if (visibleIds.has(resolved)) return resolved;
+  if (resolved === GL_MONDE_TAB.id) return defaultGlMondeSubTab(modules);
+  return defaultGlMondeSubTab(modules);
+}
+
+/** Sous-onglet actif de « Les joueurs » (premier disponible par défaut). */
+export function resolveGlJoueursSubTab(tab, modules, joueursOptions = {}) {
+  const resolved = tab;
+  const visibleIds = new Set(
+    filterGlJoueursSubTabs(modules, joueursOptions).map((subTab) => subTab.id),
+  );
+  if (visibleIds.has(resolved)) return resolved;
+  if (resolved === GL_JOUEURS_TAB.id) return defaultGlJoueursSubTab(modules, joueursOptions);
+  return defaultGlJoueursSubTab(modules, joueursOptions);
+}
+
+export function isGlNatureSubTab(tab) {
+  return GL_NATURE_SUB_TAB_SET.has(GL_LEGACY_TAB_ALIASES[tab] || tab);
+}
+
+export function isGlAdventureSubTab(tab) {
+  return GL_ADVENTURE_SUB_TAB_SET.has(tab);
+}
+
+export function isGlMondeSubTab(tab) {
+  return GL_MONDE_SUB_TAB_SET.has(tab);
+}
+
+export function isGlJoueursSubTab(tab) {
+  return GL_JOUEURS_SUB_TAB_SET.has(tab);
+}
+
+/** Onglet principal mis en surbrillance dans la barre de navigation. */
+export function resolveGlNavActiveTab(tab) {
+  if (tab === GL_NATURE_TAB.id || isGlNatureSubTab(tab)) return GL_NATURE_TAB.id;
+  if (tab === GL_ADVENTURE_TAB.id || isGlAdventureSubTab(tab)) return GL_ADVENTURE_TAB.id;
+  if (tab === GL_MONDE_TAB.id || isGlMondeSubTab(tab)) return GL_MONDE_TAB.id;
+  if (tab === GL_JOUEURS_TAB.id || isGlJoueursSubTab(tab)) return GL_JOUEURS_TAB.id;
+  return tab;
+}
+
 /** Onglet mémorisé en localStorage, replié sur `world` si absent ou inconnu. */
 export function readStoredGlTab() {
   try {
     const raw = String(localStorage.getItem(GL_TAB_STORAGE_KEY) || '').trim();
     const resolved = GL_LEGACY_TAB_ALIASES[raw] || raw;
+    if (resolved === GL_NATURE_TAB.id) return 'ecosystemes';
+    if (resolved === GL_ADVENTURE_TAB.id) return 'history';
+    if (resolved === GL_MONDE_TAB.id) return 'world';
+    if (resolved === GL_JOUEURS_TAB.id) return 'stats';
     if (GL_VALID_TABS.has(resolved)) return resolved;
   } catch (_) {
     // noop
   }
   return 'world';
+}
+
+/** Changement d’onglet depuis la barre principale (parents → sous-onglet par défaut). */
+export function resolveGlMainTabChange(tabId, modules, joueursOptions = {}) {
+  if (tabId === GL_NATURE_TAB.id) return 'ecosystemes';
+  if (tabId === GL_ADVENTURE_TAB.id) return defaultGlAdventureSubTab(modules);
+  if (tabId === GL_MONDE_TAB.id) return defaultGlMondeSubTab(modules);
+  if (tabId === GL_JOUEURS_TAB.id) return defaultGlJoueursSubTab(modules, joueursOptions);
+  return tabId;
+}
+
+export function isGlTabVisibleInNav(tab, tabs, modules, joueursOptions = {}) {
+  if (isGlNatureSubTab(tab)) {
+    return tabs.some((current) => current.id === GL_NATURE_TAB.id);
+  }
+  if (isGlAdventureSubTab(tab)) {
+    if (!tabs.some((current) => current.id === GL_ADVENTURE_TAB.id)) return false;
+    return filterGlAdventureSubTabs(modules).some((subTab) => subTab.id === tab);
+  }
+  if (isGlMondeSubTab(tab)) {
+    if (!tabs.some((current) => current.id === GL_MONDE_TAB.id)) return false;
+    return filterGlMondeSubTabs(modules).some((subTab) => subTab.id === tab);
+  }
+  if (isGlJoueursSubTab(tab)) {
+    if (!tabs.some((current) => current.id === GL_JOUEURS_TAB.id)) return false;
+    return filterGlJoueursSubTabs(modules, joueursOptions).some((subTab) => subTab.id === tab);
+  }
+  return tabs.some((current) => current.id === tab);
 }
 
 export function isGlAdminRole(auth) {
@@ -107,21 +265,24 @@ export function filterGlTabs({ modules, vitalityEnabled, showStaffAdminUi, isGue
   if (isGuest) {
     return GL_GUEST_TAB_IDS.map((id) => {
       if (id === GL_DISCOVERY_TAB.id) return GL_DISCOVERY_TAB;
+      if (id === GL_NATURE_TAB.id) return GL_NATURE_TAB;
+      if (id === GL_ADVENTURE_TAB.id) return GL_ADVENTURE_TAB;
+      if (id === GL_MONDE_TAB.id) return GL_MONDE_TAB;
       return GL_PLAYER_TABS.find((tab) => tab.id === id);
     }).filter(Boolean);
   }
 
   const playerTabs = GL_PLAYER_TABS.filter((tab) => {
-    if (tab.id === 'history') return isModuleEnabled(modules, 'journalEnabled');
-    if (tab.id === 'tutorials') return isModuleEnabled(modules, 'tutorialsEnabled');
-    if (tab.id === 'forum') return isModuleEnabled(modules, 'forumEnabled');
-    if (tab.id === 'market') {
-      return isModuleEnabled(modules, 'marketEnabled') && !!vitalityEnabled;
+    if (tab.id === GL_JOUEURS_TAB.id) {
+      return (
+        filterGlJoueursSubTabs(modules, {
+          vitalityEnabled,
+          includeMarket: !showStaffAdminUi,
+        }).length > 0
+      );
     }
     if (tab.id === 'journal') return isModuleEnabled(modules, 'journalEnabled');
     if (tab.id === 'my-journal') return isModuleEnabled(modules, 'playerJournalEnabled');
-    if (tab.id === 'selene-carnet') return isModuleEnabled(modules, 'loreCarnetEnabled');
-    if (tab.id === 'lore-glossary') return isModuleEnabled(modules, 'loreGlossaryEnabled');
     return true;
   });
   return showStaffAdminUi ? [...playerTabs, ...GL_ADMIN_EXTRA_TABS] : playerTabs;

@@ -13,6 +13,13 @@ import {
   toGameViewModel,
   parseGlOauthHash,
   filterGlTabs,
+  resolveGlNavActiveTab,
+  resolveGlMainTabChange,
+  resolveGlNatureSubTab,
+  resolveGlAdventureSubTab,
+  resolveGlMondeSubTab,
+  resolveGlJoueursSubTab,
+  isGlTabVisibleInNav,
 } from './utils/glAppShellHelpers.js';
 import {
   GL_DEFAULT_GAMEPLAY,
@@ -32,17 +39,13 @@ import { GLAuthView } from './components/GLAuthView.jsx';
 import { GLTopBar, GL_TAB_ID_PREFIX, GL_TABPANEL_ID_PREFIX } from './components/GLTopBar.jsx';
 import { useGlCompactNav } from './hooks/useGlCompactNav.js';
 import { useGLOverlays } from './hooks/useGLOverlays.js';
-import { GLWorldView } from './components/GLWorldView.jsx';
-import { GLRulesView } from './components/GLRulesView.jsx';
-import { GLSpellsView } from './components/GLSpellsView.jsx';
 import { GLMapView } from './components/GLMapView.jsx';
-import { GLEcosystemsView } from './components/GLEcosystemsView.jsx';
-import { GLBiodiversityView } from './components/GLBiodiversityView.jsx';
-import { GLGlossaryView } from './components/GLGlossaryView.jsx';
+import { GLNatureView } from './components/GLNatureView.jsx';
+import { GLAdventureView } from './components/GLAdventureView.jsx';
+import { GLMondeView } from './components/GLMondeView.jsx';
+import { GLJoueursView } from './components/GLJoueursView.jsx';
 import { GLGlossaryPopover } from './components/GLGlossaryPopover.jsx';
-import { GLLoreGlossaryView } from './components/GLLoreGlossaryView.jsx';
 import { GLLoreGlossaryPopover } from './components/GLLoreGlossaryPopover.jsx';
-import { GLSeleneCarnetView } from './components/GLSeleneCarnetView.jsx';
 import { DialogShell } from '../components/DialogShell.jsx';
 import { GLSpellPopover } from './components/GLSpellPopover.jsx';
 import { GLSpellCastWizard } from './components/GLSpellCastWizard.jsx';
@@ -51,9 +54,6 @@ import { useGLSpellCast } from './hooks/useGLSpellCast.js';
 import { buildSpellCastResultViewModel } from './utils/glSpellCastRules.js';
 // Vues d'onglet chargees a la demande (lazy) : restent hors du chunk gl initial.
 // Vues staff/admin (rarement chargees par un joueur) + onglets secondaires souvent module-gated.
-const GLHistoryView = lazy(() =>
-  import('./components/GLHistoryView.jsx').then((m) => ({ default: m.GLHistoryView })),
-);
 const GLUsersAdminView = lazy(() =>
   import('./components/GLUsersAdminView.jsx').then((m) => ({ default: m.GLUsersAdminView })),
 );
@@ -71,15 +71,6 @@ const GLGameMasterConsole = lazy(() =>
 );
 import { useGLMascotStateMachine } from './hooks/useGLMascotStateMachine.js';
 import { useGLNotificationCenter } from './hooks/useGLNotificationCenter.js';
-const GLForumView = lazy(() =>
-  import('./components/GLForumView.jsx').then((m) => ({ default: m.GLForumView })),
-);
-const GLMarketView = lazy(() =>
-  import('./components/GLMarketView.jsx').then((m) => ({ default: m.GLMarketView })),
-);
-const GLTutorialsView = lazy(() =>
-  import('./components/GLTutorialsView.jsx').then((m) => ({ default: m.GLTutorialsView })),
-);
 const GLJournalView = lazy(() =>
   import('./components/GLJournalView.jsx').then((m) => ({ default: m.GLJournalView })),
 );
@@ -250,6 +241,23 @@ export function AppGL() {
   );
   const canMoveMascotFree = isMjMapControls && !boardMovement.isNumberedPath;
   const showsPlayerChrome = !isAdmin || isStaffPlayerPreview;
+  const joueursNavOptions = useMemo(
+    () => ({
+      vitalityEnabled: !!gameplaySettings.vitalityEnabled,
+      includeMarket: showsPlayerChrome,
+    }),
+    [gameplaySettings.vitalityEnabled, showsPlayerChrome],
+  );
+  const handleTabChange = useCallback(
+    (tabId) => {
+      setTab(resolveGlMainTabChange(tabId, modules, joueursNavOptions));
+    },
+    [modules, joueursNavOptions],
+  );
+  const natureSubTab = resolveGlNatureSubTab(tab);
+  const adventureSubTab = resolveGlAdventureSubTab(tab, modules);
+  const mondeSubTab = resolveGlMondeSubTab(tab, modules);
+  const joueursSubTab = resolveGlJoueursSubTab(tab, modules, joueursNavOptions);
   const impersonationBanner = useMemo(
     () => (isImpersonating ? glImpersonationBannerCopy(auth?.impersonatedBy) : null),
     [isImpersonating, auth?.impersonatedBy],
@@ -422,10 +430,31 @@ export function AppGL() {
   }, [tab]);
 
   useEffect(() => {
-    if (!tabs.some((current) => current.id === tab)) {
+    if (resolveGlNavActiveTab(tab) === 'adventure') {
+      const normalized = resolveGlAdventureSubTab(tab, modules);
+      if (tab !== normalized) {
+        setTab(normalized);
+        return;
+      }
+    }
+    if (resolveGlNavActiveTab(tab) === 'monde-gl') {
+      const normalized = resolveGlMondeSubTab(tab, modules);
+      if (tab !== normalized) {
+        setTab(normalized);
+        return;
+      }
+    }
+    if (resolveGlNavActiveTab(tab) === 'joueurs') {
+      const normalized = resolveGlJoueursSubTab(tab, modules, joueursNavOptions);
+      if (tab !== normalized) {
+        setTab(normalized);
+        return;
+      }
+    }
+    if (!isGlTabVisibleInNav(tab, tabs, modules, joueursNavOptions)) {
       setTab(defaultTabForGlAuth(auth));
     }
-  }, [tabs, tab, auth]);
+  }, [tabs, tab, auth, modules, joueursNavOptions]);
 
   const reloadGameplaySettings = useCallback(async () => {
     if (!token || isGuest) return;
@@ -1069,8 +1098,8 @@ export function AppGL() {
           />
           <GLTopBar
             tabs={tabs}
-            activeTab={tab}
-            onTabChange={setTab}
+            activeTab={resolveGlNavActiveTab(tab)}
+            onTabChange={handleTabChange}
             auth={auth}
             platformTitle={glConfig?.title}
             platformSubtitle={glConfig?.subtitle}
@@ -1127,42 +1156,48 @@ export function AppGL() {
             <div
               className="gl-main-inner fade-in"
               role="tabpanel"
-              id={`${GL_TABPANEL_ID_PREFIX}-${tab}`}
-              aria-labelledby={`${GL_TAB_ID_PREFIX}-${tab}`}
+              id={`${GL_TABPANEL_ID_PREFIX}-${resolveGlNavActiveTab(tab)}`}
+              aria-labelledby={`${GL_TAB_ID_PREFIX}-${resolveGlNavActiveTab(tab)}`}
             >
               <Suspense fallback={<div className="gl-tab-loading" aria-busy="true" />}>
-                {tab === 'world' && (
-                  <GLWorldView
+                {resolveGlNavActiveTab(tab) === 'monde-gl' ? (
+                  <GLMondeView
+                    activeSubTab={mondeSubTab}
+                    onSubTabChange={setTab}
+                    modules={modules}
                     auth={auth}
                     brandSlots={glBrand?.slots}
-                    onNavigateTab={setTab}
                     glossaryLinkItems={glossaryLinkItems}
-                    onOpenGlossaryTerm={openGlossaryPopover}
-                  />
-                )}
-                {tab === 'rules' && (
-                  <GLRulesView
-                    auth={auth}
-                    brandSlots={glBrand?.slots}
                     onNavigateTab={setTab}
-                    glossaryLinkItems={glossaryLinkItems}
                     onOpenGlossaryTerm={openGlossaryPopover}
+                    loreGlossaryFocusCode={loreGlossaryFocusCode}
+                    loreGlossaryPopoverCode={loreGlossaryPopoverCode}
+                    onOpenLoreGlossaryPopover={openLoreGlossaryPopover}
+                    onLoreGlossaryFocusHandled={clearLoreGlossaryFocus}
+                    canManageTutorials={showStaffAdminUi}
+                    learningProgress={isGuest ? null : learningProgress}
                   />
-                )}
+                ) : null}
                 {tab === 'discovery' && isGuest ? (
                   <GLGuestDemoBoard onExitGuest={quitGuestMode} brandThemeStyle={glBrandStyle} />
                 ) : null}
-                {tab === 'spells' && (
-                  <GLSpellsView
+                {resolveGlNavActiveTab(tab) === 'adventure' ? (
+                  <GLAdventureView
+                    activeSubTab={adventureSubTab}
+                    onSubTabChange={setTab}
+                    modules={modules}
                     gameState={gameState}
                     brandSlots={glBrand?.slots}
+                    glossaryLinkItems={glossaryLinkItems}
+                    loreGlossaryLinkItems={loreGlossaryLinkItems}
+                    onOpenGlossaryTerm={openGlossaryPopover}
+                    onOpenLoreTerm={openLoreGlossaryPopover}
                     onOpenSpell={openSpellPopover}
                     canSpellCast={canSpellCast}
                     onLaunchSpell={openSpellCastWizard}
-                    glossaryLinkItems={glossaryLinkItems}
-                    onOpenGlossaryTerm={openGlossaryPopover}
+                    isMj={showStaffAdminUi}
                   />
-                )}
+                ) : null}
                 {tab === 'maps' && (
                   <>
                     <GLMapView
@@ -1248,65 +1283,36 @@ export function AppGL() {
                     )}
                   </>
                 )}
-                {tab === 'ecosystemes' && (
-                  <GLEcosystemsView
+                {resolveGlNavActiveTab(tab) === 'nature' ? (
+                  <GLNatureView
+                    activeSubTab={natureSubTab}
+                    onSubTabChange={setTab}
                     gameState={effectiveGameState}
                     glossaryLinkItems={glossaryLinkItems}
                     onOpenGlossaryTerm={openGlossaryPopover}
-                  />
-                )}
-                {tab === 'biodiversite' && (
-                  <GLBiodiversityView
-                    gameState={effectiveGameState}
-                    onOpenGlossaryTerm={openGlossaryPopover}
-                    glossaryLinkItems={glossaryLinkItems}
-                    learningProgress={isGuest ? null : learningProgress}
-                    loreCarnetEnabled={false}
-                  />
-                )}
-                {tab === 'glossary' && (
-                  <GLGlossaryView
-                    gameState={effectiveGameState}
-                    focusCode={glossaryFocusCode}
-                    activeTermCode={glossaryPopoverCode}
-                    onOpenPopover={openGlossaryPopover}
-                    onFocusHandled={clearGlossaryFocus}
+                    glossaryFocusCode={glossaryFocusCode}
+                    glossaryPopoverCode={glossaryPopoverCode}
+                    onGlossaryFocusHandled={clearGlossaryFocus}
                     learningProgress={isGuest ? null : learningProgress}
                   />
-                )}
-                {tab === 'lore-glossary' && isModuleEnabled(modules, 'loreGlossaryEnabled') && (
-                  <GLLoreGlossaryView
-                    focusCode={loreGlossaryFocusCode}
-                    activeTermCode={loreGlossaryPopoverCode}
-                    onOpenPopover={openLoreGlossaryPopover}
-                    onFocusHandled={clearLoreGlossaryFocus}
-                  />
-                )}
-                {tab === 'selene-carnet' && isModuleEnabled(modules, 'loreCarnetEnabled') && (
-                  <GLSeleneCarnetView
-                    gameState={gameState}
-                    glossaryLinkItems={glossaryLinkItems}
-                    loreGlossaryLinkItems={loreGlossaryLinkItems}
-                    onOpenGlossaryTerm={openGlossaryPopover}
-                    onOpenLoreTerm={openLoreGlossaryPopover}
-                    isMj={showStaffAdminUi}
-                  />
-                )}
-                {tab === 'history' && (
-                  <GLHistoryView
-                    gameState={gameState}
-                    glossaryLinkItems={glossaryLinkItems}
-                    onOpenGlossaryTerm={openGlossaryPopover}
-                  />
-                )}
-                {tab === 'stats' && showStaffAdminUi && (
-                  <GLStatsView
-                    mode="class"
-                    classes={classes}
-                    auth={auth}
+                ) : null}
+                {resolveGlNavActiveTab(tab) === 'joueurs' ? (
+                  <GLJoueursView
+                    activeSubTab={joueursSubTab}
+                    onSubTabChange={setTab}
+                    modules={modules}
                     vitalityEnabled={!!gameplaySettings.vitalityEnabled}
+                    includeMarket={showsPlayerChrome}
+                    showStaffAdminUi={showStaffAdminUi}
+                    canModerateForum={showStaffAdminUi}
+                    auth={auth}
+                    classes={classes}
+                    token={token}
+                    classId={auth?.classId ?? glProfile?.class_id}
+                    playerId={auth?.userId}
+                    onTradeCompleted={reloadProfile}
                   />
-                )}
+                ) : null}
                 {tab === 'users' && showStaffAdminUi && (
                   <GLUsersAdminView
                     auth={auth}
@@ -1360,30 +1366,6 @@ export function AppGL() {
                     }}
                     canSpellCast={canSpellCast}
                     onLaunchSpell={openSpellCastWizard}
-                  />
-                )}
-                {tab === 'forum' && isModuleEnabled(modules, 'forumEnabled') && (
-                  <GLForumView canModerate={showStaffAdminUi} />
-                )}
-                {tab === 'market' &&
-                  isModuleEnabled(modules, 'marketEnabled') &&
-                  gameplaySettings.vitalityEnabled &&
-                  showsPlayerChrome && (
-                    <GLMarketView
-                      token={token}
-                      classId={auth?.classId ?? glProfile?.class_id}
-                      playerId={auth?.userId}
-                      onTradeCompleted={() => {
-                        reloadProfile();
-                      }}
-                    />
-                  )}
-                {tab === 'tutorials' && isModuleEnabled(modules, 'tutorialsEnabled') && (
-                  <GLTutorialsView
-                    canManage={showStaffAdminUi}
-                    learningProgress={learningProgress}
-                    glossaryLinkItems={glossaryLinkItems}
-                    onOpenGlossaryTerm={openGlossaryPopover}
                   />
                 )}
                 {tab === 'journal' && isModuleEnabled(modules, 'journalEnabled') && (

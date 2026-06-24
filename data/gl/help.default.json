@@ -8,6 +8,10 @@
       "title": "Aide GL",
       "body": "Onglet Cartes : consulte les cartes du monde. Les modules visibles dépendent des réglages MJ. Désactive un module dans Réglages plateforme pour épurer la navigation joueur."
     },
+    "tab:nature": {
+      "title": "Aide GL",
+      "body": "Onglet La nature : écosystèmes, biodiversité et glossaire SVT du chapitre. Les modules visibles dépendent des réglages MJ. Désactive un module dans Réglages plateforme pour épurer la navigation joueur."
+    },
     "tab:ecosystemes": {
       "title": "Aide GL",
       "body": "Onglet Écosystèmes : biotopes et biocénoses du chapitre. Les modules visibles dépendent des réglages MJ. Désactive un module dans Réglages plateforme pour épurer la navigation joueur."
@@ -28,13 +32,21 @@
       "title": "Aide GL",
       "body": "Onglet Carnet Sélène : feuillets et récits. Les modules visibles dépendent des réglages MJ. Désactive un module dans Réglages plateforme pour épurer la navigation joueur."
     },
+    "tab:adventure": {
+      "title": "Aide GL",
+      "body": "Onglet L'aventure : histoire, carnet Sélène et sortilèges du chapitre. Les modules visibles dépendent des réglages MJ. Désactive un module dans Réglages plateforme pour épurer la navigation joueur."
+    },
     "tab:history": {
       "title": "Aide GL",
       "body": "Onglet Histoire : chronologie et contexte. Les modules visibles dépendent des réglages MJ. Désactive un module dans Réglages plateforme pour épurer la navigation joueur."
     },
+    "tab:monde-gl": {
+      "title": "Aide GL",
+      "body": "Onglet Le monde G&L : introduction, règles, lexique lore et tutoriels. Les modules visibles dépendent des réglages MJ. Désactive un module dans Réglages plateforme pour épurger la navigation joueur."
+    },
     "tab:world": {
       "title": "Aide GL",
-      "body": "Onglet Le monde de G&L : présentation générale. Les modules visibles dépendent des réglages MJ. Désactive un module dans Réglages plateforme pour épurer la navigation joueur."
+      "body": "Onglet Introduction : présentation générale du jeu. Les modules visibles dépendent des réglages MJ. Désactive un module dans Réglages plateforme pour épurger la navigation joueur."
     },
     "tab:spells": {
       "title": "Aide GL",
@@ -47,6 +59,10 @@
     "tab:tutorials": {
       "title": "Aide GL",
       "body": "Onglet Tutoriels : parcours guidés. Les modules visibles dépendent des réglages MJ. Désactive un module dans Réglages plateforme pour épurer la navigation joueur."
+    },
+    "tab:joueurs": {
+      "title": "Aide GL",
+      "body": "Onglet Les joueurs : forum, marché et statistiques. Les modules visibles dépendent des réglages MJ. Désactive un module dans Réglages plateforme pour épurger la navigation joueur."
     },
     "tab:forum": {
       "title": "Aide GL",

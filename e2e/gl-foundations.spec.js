@@ -42,7 +42,7 @@ test.describe('Gnomes & Licornes foundations', () => {
     });
 
     await expect(page.getByRole('tab', { name: 'Cartes' })).toBeVisible();
-    await expect(page.getByRole('tab', { name: 'Le monde de G&L' })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Le monde G&L' })).toBeVisible();
     await expect(page.locator('.gl-notifications-bell')).toBeVisible();
   });
 });
