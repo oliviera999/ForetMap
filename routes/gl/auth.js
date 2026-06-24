@@ -425,7 +425,7 @@ router.post(
 
     const player = await queryOne(
       `SELECT p.id, p.class_id, p.team_id, p.pseudo, p.first_name, p.last_name,
-            p.password_hash, p.password_must_reset, p.is_active
+            p.password_hash, p.password_must_reset, p.is_active, p.linked_foretmap_user_id
        FROM gl_players p
       WHERE LOWER(p.pseudo) = LOWER(?)
       LIMIT 1`,
@@ -437,6 +437,15 @@ router.post(
         return res.status(401).json({ error: 'Identifiant ou mot de passe incorrect' });
       }
       playerPasswordOk = await bcrypt.compare(password, String(player.password_hash || ''));
+      if (!playerPasswordOk && player.linked_foretmap_user_id) {
+        const linkedUser = await queryOne(
+          "SELECT password_hash FROM users WHERE id = ? AND user_type = 'student' AND is_active = 1 LIMIT 1",
+          [String(player.linked_foretmap_user_id)],
+        );
+        if (linkedUser?.password_hash) {
+          playerPasswordOk = await bcrypt.compare(password, String(linkedUser.password_hash));
+        }
+      }
       if (playerPasswordOk) {
         return res.json(await issueGlPlayerSession(player));
       }

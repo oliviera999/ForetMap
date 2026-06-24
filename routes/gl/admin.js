@@ -58,6 +58,10 @@ const {
 } = require('../../lib/contentLibraryUpload');
 const { normalizeBrand } = require('../../lib/glBrand');
 const { validateMarkerBackgrounds } = require('../../lib/glMarkerBackgrounds');
+const {
+  ensureForetmapGroupForGlClass,
+  upsertForetmapUserForGlPlayer,
+} = require('../../lib/glGroupBridge');
 const { sendXlsxAttachment, wrapXlsxRoute } = require('../../lib/glXlsxAttachment');
 const {
   buildGlossaryTemplateWorkbook,
@@ -164,9 +168,12 @@ router.get(
   requireGlPermission('gl.players.manage'),
   asyncHandler(async (_req, res) => {
     const rows = await queryAll(
-      `SELECT c.id, c.name, c.school, c.is_active, c.created_at, c.updated_at, COUNT(p.id) AS players_count
+      `SELECT c.id, c.name, c.school, c.is_active, c.foretmap_group_id, c.created_at, c.updated_at,
+              COUNT(p.id) AS players_count,
+              g.slug AS foretmap_group_slug, g.name AS foretmap_group_name
        FROM gl_classes c
   LEFT JOIN gl_players p ON p.class_id = c.id
+  LEFT JOIN \`groups\` g ON g.id = c.foretmap_group_id
    GROUP BY c.id
    ORDER BY c.id DESC`,
     );
@@ -186,7 +193,22 @@ router.post(
       [name, school, req.glAuth.userId],
     );
     const created = await queryOne('SELECT * FROM gl_classes ORDER BY id DESC LIMIT 1');
-    return res.status(201).json(created);
+    const defaultRoleId =
+      req.body?.defaultRoleId != null ? Number(req.body.defaultRoleId) : undefined;
+    const grantsN3beur = !!req.body?.grantsN3beurAccess;
+    await ensureForetmapGroupForGlClass(created, {
+      defaultRoleId: Number.isFinite(defaultRoleId) ? defaultRoleId : undefined,
+      grantsN3beurAccess: grantsN3beur,
+    });
+    const enriched = await queryOne(
+      `SELECT c.*, g.slug AS foretmap_group_slug, g.name AS foretmap_group_name
+         FROM gl_classes c
+         LEFT JOIN \`groups\` g ON g.id = c.foretmap_group_id
+        WHERE c.id = ?
+        LIMIT 1`,
+      [created.id],
+    );
+    return res.status(201).json(enriched || created);
   }),
 );
 
@@ -325,11 +347,22 @@ router.post(
       passwordMustResetInput == null ? (password ? 0 : 1) : passwordMustResetInput ? 1 : 0;
     const passwordHash = await bcrypt.hash(effectivePassword, 10);
     const gameplayDefaults = getDefaultVitalityFromSettings(await getGameplaySettings());
+    const foretmapLink = await upsertForetmapUserForGlPlayer({
+      classId,
+      firstName,
+      lastName,
+      pseudo,
+      email,
+      passwordHash,
+    });
+    if (!foretmapLink.ok) {
+      return res.status(500).json({ error: foretmapLink.error || 'Liaison ForetMap impossible' });
+    }
     await execute(
       `INSERT INTO gl_players
       (class_id, team_id, first_name, last_name, email, pseudo, password_must_reset, password_hash,
        linked_foretmap_user_id, is_active, health_points, power_points, created_at, updated_at)
-     VALUES (?, NULL, ?, ?, ?, ?, ?, ?, NULL, 1, ?, ?, NOW(), NOW())`,
+     VALUES (?, NULL, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, NOW(), NOW())`,
       [
         classId,
         firstName,
@@ -338,13 +371,15 @@ router.post(
         pseudo,
         passwordMustReset,
         passwordHash,
+        foretmapLink.user.id,
         gameplayDefaults.health,
         gameplayDefaults.power,
       ],
     );
     const created = await queryOne(
-      `SELECT p.id, p.class_id, p.team_id, p.first_name, p.last_name, p.pseudo, p.email, p.password_must_reset, p.is_active,
-            p.health_points, p.power_points
+      `SELECT p.id, p.class_id, p.team_id, p.first_name, p.last_name, p.pseudo, p.email,
+              p.password_must_reset, p.is_active, p.health_points, p.power_points,
+              p.linked_foretmap_user_id
        FROM gl_players p
       WHERE p.class_id = ? AND p.pseudo = ?
       ORDER BY p.id DESC
@@ -697,11 +732,27 @@ router.post(
         const passwordMustReset = row.password ? 0 : 1;
         try {
           const gameplayDefaults = getDefaultVitalityFromSettings(await getGameplaySettings());
+          const foretmapLink = await upsertForetmapUserForGlPlayer({
+            classId: row.classId,
+            firstName: row.firstName,
+            lastName: row.lastName,
+            pseudo: row.pseudo,
+            email: row.email,
+            passwordHash,
+          });
+          if (!foretmapLink.ok) {
+            errors.push({
+              row: row.rowNumber,
+              field: 'pseudo',
+              error: foretmapLink.error || 'Liaison ForetMap impossible',
+            });
+            continue;
+          }
           await execute(
             `INSERT INTO gl_players
             (class_id, team_id, first_name, last_name, email, pseudo, password_must_reset, password_hash,
              linked_foretmap_user_id, is_active, health_points, power_points, created_at, updated_at)
-           VALUES (?, NULL, ?, ?, ?, ?, ?, ?, NULL, 1, ?, ?, NOW(), NOW())`,
+           VALUES (?, NULL, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, NOW(), NOW())`,
             [
               row.classId,
               row.firstName,
@@ -710,6 +761,7 @@ router.post(
               row.pseudo,
               passwordMustReset,
               passwordHash,
+              foretmapLink.user.id,
               gameplayDefaults.health,
               gameplayDefaults.power,
             ],

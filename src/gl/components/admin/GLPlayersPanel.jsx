@@ -292,6 +292,7 @@ export function GLPlayersPanel({
           { key: 'pseudo', label: 'Pseudo' },
           { key: 'nom', label: 'Nom' },
           { key: 'classe', label: 'Classe' },
+          { key: 'foretmap', label: 'ForetMap' },
           { key: 'actif', label: 'Actif' },
           { key: 'reset', label: 'Reset mdp' },
           { key: 'actions', label: 'Actions' },
@@ -402,6 +403,13 @@ export function GLPlayersPanel({
                   )}
                 </td>
                 <td>
+                  {player.linked_foretmap_user_id ? (
+                    <GLBadge tone="success">Lié</GLBadge>
+                  ) : (
+                    <span className="gl-hint">—</span>
+                  )}
+                </td>
+                <td>
                   <GLBadge tone={toBool(player.is_active) ? 'success' : 'danger'}>
                     {toBool(player.is_active) ? 'Oui' : 'Non'}
                   </GLBadge>
@@ -427,6 +435,10 @@ export function GLPlayersPanel({
                 <div className="gl-data-card-row">
                   <span className="gl-data-card-label">Classe</span>
                   <span>{className}</span>
+                </div>
+                <div className="gl-data-card-row">
+                  <span className="gl-data-card-label">ForetMap</span>
+                  <span>{player.linked_foretmap_user_id ? 'Compte lié' : '—'}</span>
                 </div>
                 <div className="gl-data-card-row">
                   <span className="gl-data-card-label">Actif</span>

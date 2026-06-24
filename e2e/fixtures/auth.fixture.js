@@ -1,5 +1,50 @@
 const { expect } = require('@playwright/test');
 
+async function ensureStudentInN3beurGroup(page, studentId) {
+  const teacherEmail = process.env.TEACHER_ADMIN_EMAIL || 'admin.test@foretmap.local';
+  const teacherPassword = process.env.TEACHER_ADMIN_PASSWORD || 'admin1234';
+  const loginResp = await page.request.post('/api/auth/login', {
+    data: { identifier: teacherEmail, password: teacherPassword },
+  });
+  if (!loginResp.ok()) {
+    const snippet = await loginResp.text().catch(() => '');
+    throw new Error(
+      `Connexion admin e2e impossible (HTTP ${loginResp.status()}). ${snippet.slice(0, 200)}`,
+    );
+  }
+  const loginBody = await loginResp.json();
+  const token = loginBody?.authToken;
+  if (!token) throw new Error('Connexion admin e2e : authToken absent');
+
+  const slug = `e2e-n3-${Date.now()}`;
+  const groupResp = await page.request.post('/api/groups', {
+    headers: { Authorization: `Bearer ${token}` },
+    data: { name: `E2E n3beur ${slug}`, slug, kind: 'class', grants_n3beur_access: true },
+  });
+  if (!groupResp.ok()) {
+    const snippet = await groupResp.text().catch(() => '');
+    throw new Error(
+      `Création groupe e2e impossible (HTTP ${groupResp.status()}). ${snippet.slice(0, 200)}`,
+    );
+  }
+  const group = await groupResp.json();
+  const membersResp = await page.request.put(`/api/groups/${group.id}/members`, {
+    headers: { Authorization: `Bearer ${token}` },
+    data: {
+      member_user_ids: [studentId],
+      manager_user_ids: [],
+      scope_map_ids: [],
+      scope_project_ids: [],
+    },
+  });
+  if (!membersResp.ok()) {
+    const snippet = await membersResp.text().catch(() => '');
+    throw new Error(
+      `Ajout membre groupe e2e impossible (HTTP ${membersResp.status()}). ${snippet.slice(0, 200)}`,
+    );
+  }
+}
+
 async function loginAsNewStudent(page) {
   const nonce = `${Date.now()}-${Math.floor(Math.random() * 1e9)}`;
   const firstName = `E2E${nonce}`;
@@ -28,11 +73,16 @@ async function loginAsNewStudent(page) {
       `Inscription élève refusée (HTTP ${registerResp.status()}). ${snippet.slice(0, 240)}`,
     );
   }
+  const registerBody = await registerResp.json().catch(() => ({}));
+  const studentId = registerBody?.id;
+  if (studentId) {
+    await ensureStudentInN3beurGroup(page, studentId);
+  }
 
   await page
     .getByRole('button', { name: /Déconnexion/ })
     .waitFor({ state: 'visible', timeout: 60_000 });
-  // Inscription = profil visiteur ; la 1re connexion identifiant/mot de passe promeut en n3beur novice (droits tâches).
+  // Inscription = visiteur ; ajout au groupe n3beur e2e puis reconnexion pour droits tâches.
   await logoutToAuth(page);
   await page.goto('/');
   await loginByIdentifier(page, email, password);

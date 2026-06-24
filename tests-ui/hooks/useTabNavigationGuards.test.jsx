@@ -27,8 +27,13 @@ describe('useTabNavigationGuards', () => {
     expect(setTab).not.toHaveBeenCalled();
   });
 
+  it('renvoie un visiteur sans accès carte/tâches vers visit', () => {
+    const setTab = run({ tab: 'tasks', canAccessStudentMapTasks: false, isVisitor: true });
+    expect(setTab).toHaveBeenCalledWith('visit');
+  });
+
   it('renvoie un élève sans accès carte/tâches vers plants', () => {
-    const setTab = run({ tab: 'tasks', canAccessStudentMapTasks: false });
+    const setTab = run({ tab: 'tasks', canAccessStudentMapTasks: false, isVisitor: false });
     expect(setTab).toHaveBeenCalledWith('plants');
   });
 

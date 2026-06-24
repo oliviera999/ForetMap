@@ -11,6 +11,7 @@ export function StudentBottomNav({
   tab,
   onTabChange,
   canAccessStudentMapTasks,
+  isVisitor = false,
   shouldUseDesktopSplit,
   tutorialsModuleEnabled,
   mergeTasksTutoNav,
@@ -20,8 +21,18 @@ export function StudentBottomNav({
   visitEnabled,
   canAccessForum,
 }) {
+  const visitButton = visitEnabled ? (
+    <button
+      className={`nav-btn ${tab === 'visit' ? 'active' : ''}`}
+      onClick={() => onTabChange('visit')}
+    >
+      <span className="nav-icon">🧭</span> Visite
+    </button>
+  ) : null;
+
   return (
     <nav className="bottom-nav">
+      {isVisitor && visitButton}
       {canAccessStudentMapTasks && shouldUseDesktopSplit && (
         <button
           className={`nav-btn ${tab === 'maptasks' ? 'active' : ''}`}
@@ -89,7 +100,7 @@ export function StudentBottomNav({
       >
         <span className="nav-icon">🕸️</span> Réseau
       </button>
-      {tutorialsModuleEnabled && !mergeTasksTutoNav && (
+      {tutorialsModuleEnabled && !mergeTasksTutoNav && canAccessStudentMapTasks && (
         <button
           className={`nav-btn ${tab === 'tuto' ? 'active' : ''}`}
           type="button"
@@ -114,14 +125,7 @@ export function StudentBottomNav({
           <span className="nav-icon">📓</span> Carnet
         </button>
       )}
-      {visitEnabled && (
-        <button
-          className={`nav-btn ${tab === 'visit' ? 'active' : ''}`}
-          onClick={() => onTabChange('visit')}
-        >
-          <span className="nav-icon">🧭</span> Visite
-        </button>
-      )}
+      {!isVisitor && visitButton}
       {canAccessForum && (
         <button
           className={`nav-btn ${tab === 'forum' ? 'active' : ''}`}

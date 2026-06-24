@@ -23,6 +23,7 @@ import { useEffect } from 'react';
  * @param {(next: string) => void} params.setTab - Setter de l'onglet actif.
  * @param {boolean} params.effectiveIsTeacher
  * @param {boolean} params.canAccessStudentMapTasks
+ * @param {boolean} [params.isVisitor]
  * @param {boolean} params.shouldUseDesktopSplit
  * @param {boolean} params.canAccessForum
  * @param {boolean} params.canViewGeneralStats
@@ -34,6 +35,7 @@ export function useTabNavigationGuards({
   setTab,
   effectiveIsTeacher,
   canAccessStudentMapTasks,
+  isVisitor = false,
   shouldUseDesktopSplit,
   canAccessForum,
   canViewGeneralStats,
@@ -49,9 +51,17 @@ export function useTabNavigationGuards({
   useEffect(() => {
     if (effectiveIsTeacher) return;
     if (!canAccessStudentMapTasks && (tab === 'map' || tab === 'tasks' || tab === 'maptasks')) {
-      setTab('plants');
+      if (isVisitor && visitEnabled !== false) setTab('visit');
+      else setTab('plants');
     }
-  }, [effectiveIsTeacher, canAccessStudentMapTasks, tab, setTab]);
+  }, [effectiveIsTeacher, canAccessStudentMapTasks, isVisitor, visitEnabled, tab, setTab]);
+
+  useEffect(() => {
+    if (effectiveIsTeacher || !isVisitor) return;
+    if (tab === 'map' || tab === 'tasks' || tab === 'maptasks' || tab === 'tuto') {
+      setTab(visitEnabled !== false ? 'visit' : 'plants');
+    }
+  }, [effectiveIsTeacher, isVisitor, visitEnabled, tab, setTab]);
 
   useEffect(() => {
     if (tab === 'maptasks' && !shouldUseDesktopSplit) {
@@ -60,12 +70,13 @@ export function useTabNavigationGuards({
   }, [shouldUseDesktopSplit, tab, setTab]);
 
   useEffect(() => {
-    if (tab === 'tuto' && tutorialsEnabled === false) setTab('map');
-    if (tab === 'stats' && statsEnabled === false) setTab('map');
-    if (tab === 'stats' && statsEnabled !== false && !canViewGeneralStats) setTab('map');
-    if (tab === 'visit' && visitEnabled === false) setTab('map');
-    if (tab === 'mascot_packs' && visitEnabled === false) setTab('map');
-    if (tab === 'notebook' && observationsEnabled === false) setTab('map');
+    if (tab === 'tuto' && tutorialsEnabled === false) setTab(isVisitor ? 'visit' : 'map');
+    if (tab === 'stats' && statsEnabled === false) setTab(isVisitor ? 'visit' : 'map');
+    if (tab === 'stats' && statsEnabled !== false && !canViewGeneralStats)
+      setTab(isVisitor ? 'visit' : 'map');
+    if (tab === 'visit' && visitEnabled === false) setTab(isVisitor ? 'plants' : 'map');
+    if (tab === 'mascot_packs' && visitEnabled === false) setTab(isVisitor ? 'plants' : 'map');
+    if (tab === 'notebook' && observationsEnabled === false) setTab(isVisitor ? 'visit' : 'map');
     if (tab === 'forum' && !canAccessForum) setTab('about');
     if (tab === 'media_library' && !effectiveIsTeacher) setTab('about');
   }, [
@@ -78,6 +89,7 @@ export function useTabNavigationGuards({
     canAccessForum,
     canViewGeneralStats,
     effectiveIsTeacher,
+    isVisitor,
     setTab,
   ]);
 

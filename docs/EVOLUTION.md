@@ -9,6 +9,7 @@ Il reflète l’état réel du dépôt (avril 2026) et priorise la suite en comm
 
 ## 1.1 Réalisé
 
+- **Juin 2026 — groupes partagés ForetMap/GL + visiteur** : profil par défaut par groupe (`default_role_id`, `grants_n3beur_access`), résolution RBAC via appartenance groupe n3beur (`lib/groupRole.js`), pont `gl_classes` ↔ `groups`, visiteurs ForetMap limités à l’onglet Visite (sans carte/tâches).
 - **Auth professeur côté serveur** : `POST /api/auth/teacher`, token JWT, middleware `requireTeacher` sur les routes sensibles.
 - **Suppression du PIN en dur côté client** : plus de vérification locale ; le front passe par l’API auth.
 - **CORS conditionnel** : origine restreinte en production via `FRONTEND_ORIGIN`.

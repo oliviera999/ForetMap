@@ -133,6 +133,7 @@ export function GLClassesPanel({ classes, onReload }) {
           { key: 'name', label: 'Classe' },
           { key: 'school', label: 'Établissement' },
           { key: 'players', label: 'Joueurs' },
+          { key: 'foretmap', label: 'Groupe ForetMap' },
           { key: 'status', label: 'Statut' },
           { key: 'actions', label: 'Actions' },
         ]}
@@ -195,6 +196,15 @@ export function GLClassesPanel({ classes, onReload }) {
                 </td>
                 <td>{Number(item.players_count || 0)}</td>
                 <td>
+                  {item.foretmap_group_id ? (
+                    <span className="gl-hint" title={item.foretmap_group_name || ''}>
+                      Groupe FM
+                    </span>
+                  ) : (
+                    '—'
+                  )}
+                </td>
+                <td>
                   <GLBadge tone={Number(item.is_active) ? 'success' : 'danger'}>
                     {statusLabel}
                   </GLBadge>
@@ -215,6 +225,10 @@ export function GLClassesPanel({ classes, onReload }) {
                 <div className="gl-data-card-row">
                   <span className="gl-data-card-label">Joueurs</span>
                   <span>{Number(item.players_count || 0)}</span>
+                </div>
+                <div className="gl-data-card-row">
+                  <span className="gl-data-card-label">Groupe ForetMap</span>
+                  <span>{item.foretmap_group_id ? item.foretmap_group_name || 'Lié' : '—'}</span>
                 </div>
                 <div className="gl-data-card-row">
                   <span className="gl-data-card-label">Statut</span>
