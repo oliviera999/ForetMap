@@ -11,7 +11,11 @@ const {
   getUserAccessibleGroupIds,
 } = require('../lib/groupScope');
 const { z, validate } = require('../lib/validate');
-const { syncStudentRoleFromGroups, syncStudentRolesForGroupMembers } = require('../lib/groupRole');
+const {
+  getAllowedGroupDefaultRole,
+  syncStudentRoleFromGroups,
+  syncStudentRolesForGroupMembers,
+} = require('../lib/groupRole');
 
 const router = express.Router();
 
@@ -72,7 +76,7 @@ async function validateDefaultRoleId(roleId) {
   const normalized = roleId == null || roleId === '' ? null : Number(roleId);
   if (normalized == null) return null;
   if (!Number.isFinite(normalized) || normalized <= 0) return false;
-  const row = await queryOne('SELECT id FROM roles WHERE id = ? LIMIT 1', [normalized]);
+  const row = await getAllowedGroupDefaultRole(normalized);
   return row ? normalized : false;
 }
 
