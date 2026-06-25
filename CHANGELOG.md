@@ -7,6 +7,12 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Sécurité — groupes, pont GL et imports bulk
+
+- **Groupes** : `default_role_id` refuse désormais les profils staff/GL ou avec permissions non élèves ; la synchronisation ignore aussi un rôle dangereux déjà présent en base.
+- **Pont GL → ForetMap** : un joueur GL non lié ne peut plus capturer un compte ForetMap par collision pseudo/email, et la synchronisation n’écrase plus le mot de passe d’un compte ForetMap existant.
+- **Imports bulk GL** : les archives ZIP avec plusieurs fichiers de même nom (dans des dossiers différents) sont refusées pour éviter qu’un fichier prévisualisé soit remplacé par un autre à l’application.
+
 ### Réseau trophique — mise en page et filtre par carte
 
 - **Graphe** : colonne latérale pour les filtres, zone de représentation agrandie (880×560), légende à côté sur grand écran.
