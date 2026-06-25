@@ -96,3 +96,22 @@ test('profil par défaut du groupe est appliqué en force', async () => {
   const primary = await getPrimaryRoleForUser('student', studentId);
   assert.strictEqual(primary.slug, 'eleve_avance');
 });
+
+test('profil par défaut dangereux ignoré lors de la synchronisation de groupe', async () => {
+  const studentId = await createStudent('unsafe_default');
+  const groupId = await createGroup({
+    slug: `unsafe-default-${Date.now()}`,
+    grantsN3beur: true,
+    defaultRoleSlug: 'admin',
+  });
+  await execute(
+    `INSERT INTO group_members (group_id, user_id, user_type, role_in_group)
+     VALUES (?, ?, 'student', 'member')`,
+    [groupId, studentId],
+  );
+
+  const sync = await syncStudentRoleFromGroups(studentId, { force: true, groupId });
+  assert.strictEqual(sync.changed, true);
+  const primary = await getPrimaryRoleForUser('student', studentId);
+  assert.strictEqual(primary.slug, 'eleve_novice');
+});
