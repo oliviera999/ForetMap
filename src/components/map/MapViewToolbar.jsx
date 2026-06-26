@@ -308,11 +308,13 @@ export function MapViewToolbar({
                   whiteSpace: 'nowrap',
                 }}
               >
-                {gps.active
-                  ? gps.status === 'denied' || gps.feedback === 'out_of_bounds'
+                {!gps.active
+                  ? '📍 Me suivre'
+                  : gps.status === 'denied' || gps.feedback === 'out_of_bounds'
                     ? '📍 ⚠️'
-                    : '📍 Suivi'
-                  : '📍 Me suivre'}
+                    : gps.feedback === 'low_accuracy'
+                      ? '📍 📶'
+                      : '📍 Suivi'}
               </button>
             </Tooltip>
           ) : null}
