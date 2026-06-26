@@ -18,7 +18,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Outil prof « Calage GPS »** : dans Réglages → Cartes, poser 3 repères sur le plan + saisir/capturer leurs coordonnées GPS, puis activer le suivi par plan (`MapGeorefPanel`).
 - **API** : `PUT /api/settings/admin/maps/:id/georef` ; champs `georef`/`gps_enabled` exposés par `GET /api/maps` (cf. `docs/API.md`). Migration `148_map_georef.sql` (colonnes `geo_anchors_json`, `gps_enabled`).
 - **Dégradation** : bouton masqué si capteur absent (`navigator.geolocation`) ou plan non calé ; HTTPS requis. Seuil de précision + détection hors-zone pour éviter les sauts.
-- **Calage prof — ergonomie** : plan affiché en pleine largeur (plus de plafond à 240 px) ; clic direct sur le plan pour poser les repères (ciblage automatique du point suivant, plus besoin d'armer un bouton), bannière de guidage et curseur réticule.
+- **Calage prof — ergonomie** : plan affiché en pleine largeur (plus de plafond à 240 px) ; clic direct sur le plan pour poser les repères (ciblage automatique du point suivant, plus besoin d'armer un bouton), bannière de guidage et curseur réticule. Image du plan exclue de la lightbox globale (`data-no-lightbox`) : le clic pose un repère au lieu d'ouvrir l'aperçu plein écran.
 - **Tests** : `map-geo-transform`, `settings-maps-georef`, `useGeolocation`, `useMascotGpsFollow`, `MapGeorefPanel`.
 
 ### Réseau trophique — mise en page et filtre par carte
