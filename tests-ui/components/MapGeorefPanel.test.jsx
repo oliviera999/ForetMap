@@ -23,6 +23,8 @@ describe('MapGeorefPanel', () => {
     expect(screen.getByText(/placer le point 1/i)).toBeTruthy();
 
     const img = screen.getByAltText('Plan Forêt');
+    // L'image doit être exclue de la lightbox globale, sinon le clic ouvre l'aperçu plein écran.
+    expect(img.hasAttribute('data-no-lightbox')).toBe(true);
     fireEvent.click(img, { clientX: 100, clientY: 50 });
 
     // 50 % / 50 % attendus, et le ciblage avance vers le point 2.
