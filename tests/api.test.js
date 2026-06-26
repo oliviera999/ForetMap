@@ -7,6 +7,7 @@ const { app } = require('../server');
 const request = require('supertest');
 const { ensureRbacBootstrap } = require('../lib/rbac');
 const { ensureAdminTeacherAuthToken } = require('./helpers/adminAuth');
+const { setStudentPrimaryRole } = require('./helpers/studentRoles');
 
 test.before(async () => {
   await initSchema();
@@ -31,19 +32,6 @@ async function resetNoviceEnrollmentLimits() {
     await execute('UPDATE roles SET max_concurrent_tasks = NULL WHERE id = ?', [noviceRole.id]);
   }
   await setSetting('tasks.student_max_active_assignments', 0, {});
-}
-
-async function setStudentPrimaryRole(studentId, roleSlug) {
-  const role = await queryOne('SELECT id FROM roles WHERE slug = ? LIMIT 1', [roleSlug]);
-  assert.ok(role?.id, `Rôle introuvable: ${roleSlug}`);
-  await execute('UPDATE user_roles SET is_primary = 0 WHERE user_type = ? AND user_id = ?', [
-    'student',
-    studentId,
-  ]);
-  await execute(
-    'INSERT INTO user_roles (user_type, user_id, role_id, is_primary) VALUES (?, ?, ?, 1) ON DUPLICATE KEY UPDATE is_primary = 1',
-    ['student', studentId, role.id],
-  );
 }
 
 async function loginStudentAfterRole(studentRes, password, identifier) {

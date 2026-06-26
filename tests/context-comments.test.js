@@ -4,6 +4,7 @@ const assert = require('node:assert');
 const request = require('supertest');
 const { app } = require('../server');
 const { initSchema, execute, queryOne } = require('../database');
+const { setStudentPrimaryRole } = require('./helpers/studentRoles');
 
 test.before(async () => {
   await initSchema();
@@ -22,16 +23,9 @@ async function registerStudent(prefix) {
     .expect(201);
   assert.ok(res.body?.id);
   assert.ok(res.body?.authToken);
-  const noviceRole = await queryOne("SELECT id FROM roles WHERE slug = 'eleve_novice' LIMIT 1");
-  assert.ok(noviceRole?.id);
-  await execute('UPDATE user_roles SET is_primary = 0 WHERE user_type = ? AND user_id = ?', [
-    'student',
-    res.body.id,
-  ]);
-  await execute(
-    'INSERT INTO user_roles (user_type, user_id, role_id, is_primary) VALUES (?, ?, ?, 1) ON DUPLICATE KEY UPDATE is_primary = 1',
-    ['student', res.body.id, noviceRole.id],
-  );
+  // Rôle élève + appartenance à un groupe n3beur AVANT le login, sinon le
+  // syncStudentRoleFromGroups du login redémoterait l'élève en `visiteur`.
+  await setStudentPrimaryRole(res.body.id, 'eleve_novice');
   const login = await request(app)
     .post('/api/auth/login')
     .send({ identifier: res.body.email, password: 'pass1234' })

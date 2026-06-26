@@ -2,9 +2,9 @@ require('./helpers/setup');
 const test = require('node:test');
 const assert = require('node:assert');
 const request = require('supertest');
-const { v4: uuidv4 } = require('uuid');
 const { app } = require('../server');
 const { initDatabase, queryOne, execute } = require('../database');
+const { setStudentPrimaryRole } = require('./helpers/studentRoles');
 
 test.before(async () => {
   await initDatabase();
@@ -24,44 +24,16 @@ async function registerStudent(prefix) {
     .expect(201);
   assert.ok(res.body?.id);
   assert.ok(res.body?.authToken);
-  const noviceRole = await queryOne("SELECT id FROM roles WHERE slug = 'eleve_novice' LIMIT 1");
-  assert.ok(noviceRole?.id);
-  await execute('UPDATE user_roles SET is_primary = 0 WHERE user_type = ? AND user_id = ?', [
-    'student',
-    res.body.id,
-  ]);
-  await execute(
-    'INSERT INTO user_roles (user_type, user_id, role_id, is_primary) VALUES (?, ?, ?, 1) ON DUPLICATE KEY UPDATE is_primary = 1',
-    ['student', res.body.id, noviceRole.id],
-  );
+  // Rôle élève + appartenance à un groupe n3beur AVANT le login, sinon le
+  // syncStudentRoleFromGroups du login redémoterait l'élève en `visiteur`.
+  await setStudentPrimaryRole(res.body.id, 'eleve_novice');
   const login = await request(app)
     .post('/api/auth/login')
     .send({ identifier: res.body.email, password: 'pass1234' })
     .expect(200);
   assert.ok(login.body?.authToken);
   res.body.authToken = login.body.authToken;
-  await ensureStudentInForumGroup(res.body.id);
   return res.body;
-}
-
-async function ensureStudentInForumGroup(studentId) {
-  let group = await queryOne(
-    'SELECT id FROM `groups` WHERE is_active = 1 ORDER BY name ASC LIMIT 1',
-  );
-  if (!group?.id) {
-    const groupId = uuidv4();
-    await execute(
-      `INSERT INTO \`groups\` (id, slug, name, kind, is_active, created_at, updated_at)
-       VALUES (?, ?, ?, 'class', 1, NOW(), NOW())`,
-      [groupId, `forum-test-${Date.now()}`, `Forum test ${Date.now()}`],
-    );
-    group = { id: groupId };
-  }
-  await execute(
-    `INSERT IGNORE INTO group_members (group_id, user_id, user_type, role_in_group)
-     VALUES (?, ?, 'student', 'member')`,
-    [group.id, studentId],
-  );
 }
 
 async function teacherToken() {
@@ -365,11 +337,10 @@ test('Forum: n3beur sans participation — lecture OK, création sujet 403', asy
      ON DUPLICATE KEY UPDATE is_primary = 1`,
     [student.id, forumRoRole.id],
   );
-  const login = await request(app)
-    .post('/api/auth/login')
-    .send({ identifier: student.email, password: 'pass1234' })
-    .expect(200);
-  const token = login.body.authToken;
+  // Pas de re-login ici : le rôle effectif est résolu en direct (live lookup).
+  // Un nouveau login relancerait syncStudentRoleFromGroups qui, via le groupe n3beur
+  // de test, restaurerait `eleve_novice` et masquerait le profil lecture seule.
+  const token = student.authToken;
   await request(app).get('/api/forum/threads').set(auth(token)).expect(200);
   const res = await request(app)
     .post('/api/forum/threads')

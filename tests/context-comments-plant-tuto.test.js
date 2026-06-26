@@ -4,6 +4,7 @@ const assert = require('node:assert');
 const request = require('supertest');
 const { app } = require('../server');
 const { initSchema, execute } = require('../database');
+const { setStudentPrimaryRole } = require('./helpers/studentRoles');
 
 test.before(async () => {
   await initSchema();
@@ -20,6 +21,8 @@ async function registerStudent(prefix) {
       password: 'pass1234',
     })
     .expect(201);
+  // Rôle élève + groupe n3beur AVANT le login (sinon démotion en `visiteur` au login).
+  await setStudentPrimaryRole(res.body.id, 'eleve_novice');
   const login = await request(app)
     .post('/api/auth/login')
     .send({ identifier: res.body.email, password: 'pass1234' })
