@@ -7,6 +7,11 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Tests — isolation RBAC (élèves bloqués en profil visiteur)
+
+- **Cause** : avec le modèle d'accès n3beur par groupes, `syncStudentRoleFromGroups` (exécuté au login/inscription) démote tout élève sans **groupe n3beur** vers `visiteur`. Les helpers de test affectaient le rôle `eleve_novice` uniquement via `user_roles` puis se reconnectaient, ce qui le faisait redémoter → écritures refusées en `403` (suite CI rouge : `api`, `forum`, `context-comments*`).
+- **Correctif** : nouveau helper partagé `tests/helpers/studentRoles.js` (`setStudentPrimaryRole`) qui rattache l'élève à un groupe n3beur de test (`grants_n3beur_access = 1`, `default_role_id`) avant le login, pour que le rôle survive à la synchronisation. Helpers des fichiers concernés alignés. Aucun changement de comportement applicatif.
+
 ### Sécurité — groupes, pont GL et imports bulk
 
 - **Groupes** : `default_role_id` refuse désormais les profils staff/GL ou avec permissions non élèves ; la synchronisation ignore aussi un rôle dangereux déjà présent en base.
