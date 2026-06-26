@@ -11,6 +11,7 @@ import {
 import { getRoleTerms } from '../utils/n3-terminology';
 import { MediaLibraryMenu } from './MediaLibraryMenu.jsx';
 import { AdminTextSettingField, AdminNumberSettingField } from './settings/AdminSettingFields.jsx';
+import { MapGeorefPanel } from './settings/MapGeorefPanel.jsx';
 import { ForetMapHelpContentAdminPanel } from './help/ForetMapHelpContentAdminPanel.jsx';
 import { useSession } from '../contexts/SessionContext.jsx';
 
@@ -619,6 +620,16 @@ function SettingsAdminView() {
                       />
                     </div>
                   </div>
+                  <MapGeorefPanel
+                    map={m}
+                    imageUrl={m.map_image_url}
+                    onSaved={(okMsg) => {
+                      setMsg(okMsg);
+                      setErr('');
+                      load();
+                    }}
+                    onError={(errMsg) => setErr(errMsg)}
+                  />
                 </div>
               ))}
             </div>
