@@ -12,6 +12,13 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Groupes** : `default_role_id` refuse désormais les profils staff/GL ou avec permissions non élèves ; la synchronisation ignore aussi un rôle dangereux déjà présent en base.
 - **Pont GL → ForetMap** : un joueur GL non lié ne peut plus capturer un compte ForetMap par collision pseudo/email, et la synchronisation n’écrase plus le mot de passe d’un compte ForetMap existant.
 - **Imports bulk GL** : les archives ZIP avec plusieurs fichiers de même nom (dans des dossiers différents) sont refusées pour éviter qu’un fichier prévisualisé soit remplacé par un autre à l’application.
+### Mascotte — suivi GPS (smartphone)
+
+- **Suivi de position** : sur un plan calé, la mascotte suit la position GPS réelle de l'élève via un bouton « 📍 Me suivre » (toolbar carte). Conversion lat/lng → % par transformation affine à 3 points (`src/utils/mapGeoTransform.js`). Position traitée 100 % côté client (jamais envoyée au serveur).
+- **Outil prof « Calage GPS »** : dans Réglages → Cartes, poser 3 repères sur le plan + saisir/capturer leurs coordonnées GPS, puis activer le suivi par plan (`MapGeorefPanel`).
+- **API** : `PUT /api/settings/admin/maps/:id/georef` ; champs `georef`/`gps_enabled` exposés par `GET /api/maps` (cf. `docs/API.md`). Migration `148_map_georef.sql` (colonnes `geo_anchors_json`, `gps_enabled`).
+- **Dégradation** : bouton masqué si capteur absent (`navigator.geolocation`) ou plan non calé ; HTTPS requis. Seuil de précision + détection hors-zone pour éviter les sauts.
+- **Tests** : `map-geo-transform`, `settings-maps-georef`, `useGeolocation`, `useMascotGpsFollow`.
 
 ### Réseau trophique — mise en page et filtre par carte
 

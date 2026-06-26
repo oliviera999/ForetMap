@@ -42,6 +42,7 @@ export function MapViewToolbar({
   onToggleMapInteraction,
   showLabels,
   onToggleLabels,
+  gps,
   containerRef,
   txRef,
   fitMap,
@@ -271,6 +272,50 @@ export function MapViewToolbar({
               </button>
             </Tooltip>
           )}
+          {gps?.available && mode === 'view' ? (
+            <Tooltip text="Faire suivre votre position GPS par la mascotte">
+              <button
+                type="button"
+                className={`map-gps-follow-toggle ${gps.active ? 'is-on' : ''}`}
+                onClick={gps.toggle}
+                aria-pressed={gps.active}
+                aria-label={
+                  gps.active ? 'Désactiver le suivi GPS' : 'Suivre ma position avec la mascotte'
+                }
+                title={
+                  !gps.active
+                    ? 'Suivre ma position'
+                    : gps.status === 'denied'
+                      ? 'Localisation refusée — autorisez l’accès'
+                      : gps.feedback === 'out_of_bounds'
+                        ? 'Vous semblez hors de la zone du plan'
+                        : gps.feedback === 'low_accuracy'
+                          ? 'Signal GPS faible'
+                          : gps.status === 'prompt'
+                            ? 'Acquisition de la position…'
+                            : 'Suivi GPS actif'
+                }
+                style={{
+                  background: gps.active ? 'var(--forest)' : 'transparent',
+                  border: '1.5px solid var(--mint)',
+                  color: gps.active ? 'white' : 'var(--forest)',
+                  borderRadius: 8,
+                  padding: '6px 10px',
+                  cursor: 'pointer',
+                  fontSize: '.78rem',
+                  fontWeight: 700,
+                  minHeight: 36,
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {gps.active
+                  ? gps.status === 'denied' || gps.feedback === 'out_of_bounds'
+                    ? '📍 ⚠️'
+                    : '📍 Suivi'
+                  : '📍 Me suivre'}
+              </button>
+            </Tooltip>
+          ) : null}
           <Tooltip text={tooltipText('map.toggleLabels')}>
             <button
               aria-label={showLabels ? 'Masquer les noms' : 'Afficher les noms'}
