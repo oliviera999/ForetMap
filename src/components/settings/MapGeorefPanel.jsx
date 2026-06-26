@@ -52,14 +52,21 @@ export function MapGeorefPanel({ map, imageUrl, busy = false, onSaved, onError }
     setPoints((prev) => prev.map((p, i) => (i === index ? { ...p, ...patch } : p)));
   };
 
+  // Index du premier point sans position (xp/yp) posée, ou -1 si tous placés.
+  const firstUnplaced = points.findIndex((p) => p.xp == null || p.yp == null);
+  // Point qui sera posé au prochain clic : celui armé manuellement, sinon le prochain non placé.
+  const armTarget = activePoint != null ? activePoint : firstUnplaced >= 0 ? firstUnplaced : null;
+
   const handleMapClick = (e) => {
-    if (activePoint == null || !imgRef.current) return;
+    if (!imgRef.current || armTarget == null) return;
     const rect = imgRef.current.getBoundingClientRect();
     if (!(rect.width > 0) || !(rect.height > 0)) return;
     const xp = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
     const yp = Math.max(0, Math.min(100, ((e.clientY - rect.top) / rect.height) * 100));
-    updatePoint(activePoint, { xp: Number(xp.toFixed(2)), yp: Number(yp.toFixed(2)) });
-    setActivePoint(null);
+    updatePoint(armTarget, { xp: Number(xp.toFixed(2)), yp: Number(yp.toFixed(2)) });
+    // Avance automatiquement vers le prochain point sans position.
+    const next = points.findIndex((p, i) => i !== armTarget && (p.xp == null || p.yp == null));
+    setActivePoint(next >= 0 ? next : null);
   };
 
   const applyMyPositionTo = (index) => {
@@ -109,20 +116,22 @@ export function MapGeorefPanel({ map, imageUrl, busy = false, onSaved, onError }
     >
       <h4 style={{ margin: '0 0 6px', fontSize: '.92rem' }}>📍 Calage GPS (suivi mascotte)</h4>
       <p style={{ margin: '0 0 8px', fontSize: '.75rem', color: '#6b7280' }}>
-        Place 3 repères connus sur le plan puis indique leurs coordonnées GPS. Utilise « Point N »
-        pour cliquer l’emplacement sur l’image, et « Ma position » sur le terrain.
+        Cliquez directement sur le plan pour placer les 3 repères (point suivant auto-sélectionné),
+        puis indiquez leurs coordonnées GPS. « Point N » re-cible un repère précis ; « Ma position »
+        renseigne les coordonnées du terrain.
       </p>
 
       {imageUrl ? (
         <div
           style={{
             position: 'relative',
-            display: 'inline-block',
-            maxWidth: '100%',
-            cursor: activePoint != null ? 'crosshair' : 'default',
-            border: activePoint != null ? '2px solid #2563eb' : '1px solid #e5e7eb',
+            display: 'block',
+            width: '100%',
+            cursor: armTarget != null ? 'crosshair' : 'default',
+            border: armTarget != null ? '2px solid #2563eb' : '1px solid #e5e7eb',
             borderRadius: 8,
             overflow: 'hidden',
+            background: '#f8fafc',
           }}
         >
           <img
@@ -130,8 +139,28 @@ export function MapGeorefPanel({ map, imageUrl, busy = false, onSaved, onError }
             src={imageUrl}
             alt={`Plan ${map.label}`}
             onClick={handleMapClick}
-            style={{ display: 'block', maxWidth: '100%', height: 'auto', maxHeight: 240 }}
+            style={{ display: 'block', width: '100%', height: 'auto' }}
           />
+          {armTarget != null ? (
+            <div
+              style={{
+                position: 'absolute',
+                top: 8,
+                left: 8,
+                right: 8,
+                background: 'rgba(37, 99, 235, 0.92)',
+                color: 'white',
+                fontSize: '.78rem',
+                fontWeight: 700,
+                padding: '6px 10px',
+                borderRadius: 8,
+                pointerEvents: 'none',
+                textAlign: 'center',
+              }}
+            >
+              Cliquez sur le plan pour placer le point {armTarget + 1}
+            </div>
+          ) : null}
           {points.map((p, i) =>
             p.xp != null && p.yp != null ? (
               <span
@@ -142,6 +171,7 @@ export function MapGeorefPanel({ map, imageUrl, busy = false, onSaved, onError }
                   left: `${p.xp}%`,
                   top: `${p.yp}%`,
                   transform: 'translate(-50%, -50%)',
+                  pointerEvents: 'none',
                   width: 22,
                   height: 22,
                   borderRadius: '50%',
@@ -168,12 +198,13 @@ export function MapGeorefPanel({ map, imageUrl, busy = false, onSaved, onError }
           <div key={i} style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
             <button
               type="button"
-              className={`btn btn-sm ${activePoint === i ? 'btn-primary' : 'btn-secondary'}`}
-              onClick={() => setActivePoint(activePoint === i ? null : i)}
+              className={`btn btn-sm ${armTarget === i ? 'btn-primary' : 'btn-secondary'}`}
+              onClick={() => setActivePoint(i)}
               disabled={disabled}
               style={{ minWidth: 76 }}
+              title={`Cibler le point ${i + 1} pour le (re)placer sur le plan`}
             >
-              {activePoint === i ? `Cliquez…` : `Point ${i + 1}`}
+              {armTarget === i ? `▶ Point ${i + 1}` : `Point ${i + 1}`}
             </button>
             <input
               type="number"
