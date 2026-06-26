@@ -2,6 +2,7 @@ require('./helpers/setup');
 const test = require('node:test');
 const assert = require('node:assert');
 const bcrypt = require('bcryptjs');
+const { v4: uuidv4 } = require('uuid');
 const { initSchema, queryOne, execute } = require('../database');
 const { createGlAdmin, createGlClass, createGlPlayer } = require('./helpers/glFixtures');
 const {
@@ -13,6 +14,19 @@ const {
 test.before(async () => {
   await initSchema();
 });
+
+async function createForetmapStudent({ pseudo, email, password }) {
+  const id = uuidv4();
+  const hash = await bcrypt.hash(password, 10);
+  await execute(
+    `INSERT INTO users
+      (id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name,
+       affiliation, password_hash, auth_provider, is_active, created_at, updated_at)
+     VALUES (?, 'student', NULL, ?, ?, 'Foret', 'Map', 'Foret Map', 'both', ?, 'local', 1, NOW(), NOW())`,
+    [id, email, pseudo, hash],
+  );
+  return { id, hash };
+}
 
 test('syncForetmapUserForGlPlayer lie un joueur GL existant au groupe ForetMap de sa classe', async () => {
   const admin = await createGlAdmin();
@@ -104,4 +118,68 @@ test('syncForetmapUserForGlPlayer déplace le membre lors d un changement de cla
   );
   assert.ok(inB);
   assert.ok(!inA);
+});
+
+test('syncForetmapUserForGlPlayer ne rapproche pas un joueur non lié par pseudo/email ForetMap', async () => {
+  const admin = await createGlAdmin();
+  const glClass = await createGlClass({ adminId: admin.id, name: `Collision ${Date.now()}` });
+  await ensureForetmapGroupForGlClass(glClass);
+  const pseudo = `gl_collision_${Date.now()}`;
+  const email = `${pseudo}@example.com`;
+  const existing = await createForetmapStudent({
+    pseudo,
+    email,
+    password: 'foretmap-secret',
+  });
+  const glPasswordHash = await bcrypt.hash('gl-secret', 10);
+  const player = await createGlPlayer({
+    classId: glClass.id,
+    pseudo,
+    email,
+    passwordHash: glPasswordHash,
+    linkedForetmapUserId: null,
+  });
+
+  const sync = await syncForetmapUserForGlPlayer(player.id);
+  assert.strictEqual(sync.ok, true);
+  assert.notStrictEqual(String(sync.user.id), String(existing.id));
+
+  const preserved = await queryOne('SELECT password_hash FROM users WHERE id = ? LIMIT 1', [
+    existing.id,
+  ]);
+  assert.strictEqual(await bcrypt.compare('foretmap-secret', preserved.password_hash), true);
+
+  const linked = await queryOne(
+    'SELECT linked_foretmap_user_id FROM gl_players WHERE id = ? LIMIT 1',
+    [player.id],
+  );
+  assert.strictEqual(String(linked.linked_foretmap_user_id), String(sync.user.id));
+});
+
+test('syncForetmapUserForGlPlayer ne remplace pas le mot de passe ForetMap lié', async () => {
+  const admin = await createGlAdmin();
+  const glClass = await createGlClass({ adminId: admin.id, name: `Linked password ${Date.now()}` });
+  await ensureForetmapGroupForGlClass(glClass);
+  const existing = await createForetmapStudent({
+    pseudo: `linked_fm_${Date.now()}`,
+    email: `linked-fm-${Date.now()}@example.com`,
+    password: 'foretmap-stays',
+  });
+  const glPasswordHash = await bcrypt.hash('gl-should-not-copy', 10);
+  const player = await createGlPlayer({
+    classId: glClass.id,
+    pseudo: `linked_gl_${Date.now()}`,
+    passwordHash: glPasswordHash,
+    linkedForetmapUserId: existing.id,
+  });
+
+  const sync = await syncForetmapUserForGlPlayer(player.id);
+  assert.strictEqual(sync.ok, true);
+  assert.strictEqual(String(sync.user.id), String(existing.id));
+
+  const preserved = await queryOne('SELECT password_hash FROM users WHERE id = ? LIMIT 1', [
+    existing.id,
+  ]);
+  assert.strictEqual(await bcrypt.compare('foretmap-stays', preserved.password_hash), true);
+  assert.strictEqual(await bcrypt.compare('gl-should-not-copy', preserved.password_hash), false);
 });
