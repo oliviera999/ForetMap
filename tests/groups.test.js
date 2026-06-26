@@ -134,6 +134,27 @@ test('Groupes: POST conserve grants_n3beur_access et promeut un membre visiteur'
   assert.strictEqual(roleRow?.slug, 'eleve_novice');
 });
 
+test('Groupes: refuse un profil par défaut admin/prof pour les élèves', async () => {
+  const token = await getAdminToken();
+  const adminRole = await queryOne("SELECT id FROM roles WHERE slug = 'admin' LIMIT 1");
+  assert.ok(adminRole?.id);
+
+  await request(app)
+    .post('/api/groups')
+    .set('Authorization', `Bearer ${token}`)
+    .send({
+      name: `Classe unsafe role ${Date.now()}`,
+      slug: `classe-unsafe-role-${Date.now()}`,
+      kind: 'class',
+      default_role_id: adminRole.id,
+      grants_n3beur_access: true,
+    })
+    .expect(400)
+    .expect((res) => {
+      assert.strictEqual(res.body?.error, 'default_role_id invalide');
+    });
+});
+
 async function createProfTeacherToken(label) {
   const stamp = `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
   const teacherId = `teacher-prof-${label}-${stamp}`.slice(0, 64);
