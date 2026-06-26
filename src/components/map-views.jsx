@@ -35,6 +35,7 @@ import { MapViewMarkerBubble } from './MapViewMarkerBubble.jsx';
 import { MapViewBackgroundImage } from './MapViewBackgroundImage.jsx';
 import { MapViewWorldLayer } from './MapViewWorldLayer.jsx';
 import useMapViewMascot from '../hooks/useMapViewMascot.js';
+import useMascotGpsFollow from '../hooks/useMascotGpsFollow.js';
 import useVisitMascotCatalogExtras from '../hooks/useVisitMascotCatalogExtras.js';
 import { useMapGestures } from '../hooks/useMapGestures.js';
 
@@ -219,6 +220,11 @@ function MapViewImpl({
     allowedMascotIds: visitMascotAllowedIds,
     defaultMascotId: visitMascotDefaultId,
     mascotDialogSettings: publicSettings?.visit?.mascot?.dialog,
+  });
+  const mascotGps = useMascotGpsFollow({
+    georef: activeMap?.georef ?? null,
+    gpsEnabled: !!activeMap?.gps_enabled && mode === 'view' && showMapMascot,
+    moveTo: moveMapMascotTo,
   });
   const { zoneTaskVisualById, markerTaskVisualById } = useMemo(
     () => computeTaskVisualByLocation(tasks),
@@ -1078,6 +1084,7 @@ function MapViewImpl({
           onToggleMapInteraction={toggleMapInteraction}
           showLabels={showLabels}
           onToggleLabels={() => setShowLabels((l) => !l)}
+          gps={mascotGps}
           containerRef={containerRef}
           txRef={tx}
           fitMap={fitMap}
