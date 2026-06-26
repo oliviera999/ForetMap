@@ -36,6 +36,7 @@ const {
 } = require('../lib/helpContent');
 const { runSpeciesAutofillProviderSelfTest } = require('../lib/speciesAutofillProviderSelfTest');
 const { normalizeMapImageUrl } = require('../lib/mapImageUrl');
+const { withMapGeoref, isValidAnchors, sanitizeAnchors } = require('../lib/mapGeoref');
 const { MAP_SLUG_RE } = require('../lib/studentAffiliation');
 const { getRuntimeProcessSnapshot } = require('../lib/runtimeDiagnostics');
 const logMetrics = require('../lib/logMetrics');
@@ -52,13 +53,13 @@ function parseBoolean(value, fallback) {
 async function getMapById(id) {
   try {
     return await queryOne(
-      'SELECT id, label, map_image_url, sort_order, frame_padding_px, is_active FROM maps WHERE id = ? LIMIT 1',
+      'SELECT id, label, map_image_url, sort_order, frame_padding_px, is_active, geo_anchors_json, gps_enabled FROM maps WHERE id = ? LIMIT 1',
       [id],
     );
   } catch (e) {
     if (!(e && (e.errno === 1054 || e.code === 'ER_BAD_FIELD_ERROR'))) throw e;
     return queryOne(
-      'SELECT id, label, map_image_url, sort_order, NULL AS frame_padding_px, 1 AS is_active FROM maps WHERE id = ? LIMIT 1',
+      'SELECT id, label, map_image_url, sort_order, NULL AS frame_padding_px, 1 AS is_active, NULL AS geo_anchors_json, 0 AS gps_enabled FROM maps WHERE id = ? LIMIT 1',
       [id],
     );
   }
@@ -67,14 +68,23 @@ async function getMapById(id) {
 async function listMaps() {
   try {
     return await queryAll(
-      'SELECT id, label, map_image_url, sort_order, frame_padding_px, is_active FROM maps ORDER BY sort_order ASC, label ASC',
+      'SELECT id, label, map_image_url, sort_order, frame_padding_px, is_active, geo_anchors_json, gps_enabled FROM maps ORDER BY sort_order ASC, label ASC',
     );
   } catch (e) {
     if (!(e && (e.errno === 1054 || e.code === 'ER_BAD_FIELD_ERROR'))) throw e;
     return queryAll(
-      'SELECT id, label, map_image_url, sort_order, NULL AS frame_padding_px, 1 AS is_active FROM maps ORDER BY sort_order ASC, label ASC',
+      'SELECT id, label, map_image_url, sort_order, NULL AS frame_padding_px, 1 AS is_active, NULL AS geo_anchors_json, 0 AS gps_enabled FROM maps ORDER BY sort_order ASC, label ASC',
     );
   }
+}
+
+/** Sérialise une ligne `maps` pour l'API (URL image normalisée, booléens, géoréférencement). */
+function serializeMap(row) {
+  return withMapGeoref({
+    ...row,
+    map_image_url: normalizeMapImageUrl(row.id, row.map_image_url),
+    is_active: !!row.is_active,
+  });
 }
 
 router.get(
@@ -92,11 +102,7 @@ router.get(
     const [settingsRows, maps] = await Promise.all([listAdminSettings(), listMaps()]);
     res.json({
       settings: settingsRows,
-      maps: maps.map((row) => ({
-        ...row,
-        map_image_url: normalizeMapImageUrl(row.id, row.map_image_url),
-        is_active: !!row.is_active,
-      })),
+      maps: maps.map(serializeMap),
     });
   }),
 );
@@ -236,11 +242,7 @@ router.post(
       req,
       payload: { id, label, map_image_url: mapImageUrl, sort_order: sortOrder },
     });
-    res.status(201).json({
-      ...created,
-      map_image_url: normalizeMapImageUrl(created.id, created.map_image_url),
-      is_active: !!created.is_active,
-    });
+    res.status(201).json(serializeMap(created));
   }),
 );
 
@@ -296,11 +298,7 @@ router.put(
         is_active: !!updated.is_active,
       },
     });
-    res.json({
-      ...updated,
-      map_image_url: normalizeMapImageUrl(updated.id, updated.map_image_url),
-      is_active: !!updated.is_active,
-    });
+    res.json(serializeMap(updated));
   }),
 );
 
@@ -327,11 +325,43 @@ router.post(
       payload: { map_id: map.id, map_image_url: nextUrl },
     });
     const updated = await getMapById(map.id);
-    res.json({
-      ...updated,
-      map_image_url: normalizeMapImageUrl(updated.id, updated.map_image_url),
-      is_active: !!updated.is_active,
+    res.json(serializeMap(updated));
+  }),
+);
+
+router.put(
+  '/admin/maps/:id/georef',
+  requirePermission('admin.settings.write', { needsElevation: true }),
+  asyncHandler(async (req, res) => {
+    const map = await getMapById(req.params.id);
+    if (!map) return res.status(404).json({ error: 'Carte introuvable' });
+
+    const rawAnchors = req.body?.anchors;
+    const hasAnchors =
+      rawAnchors != null && !(Array.isArray(rawAnchors) && rawAnchors.length === 0);
+    let anchorsJson = null;
+    if (hasAnchors) {
+      if (!isValidAnchors(rawAnchors)) {
+        return res.status(400).json({
+          error: 'Calage GPS invalide : 3 points distincts requis (xp/yp en %, lat/lng valides).',
+        });
+      }
+      anchorsJson = JSON.stringify(sanitizeAnchors(rawAnchors));
+    }
+    const gpsEnabled = parseBoolean(req.body?.gps_enabled, false) && !!anchorsJson;
+
+    await execute('UPDATE maps SET geo_anchors_json = ?, gps_enabled = ? WHERE id = ?', [
+      anchorsJson,
+      gpsEnabled ? 1 : 0,
+      map.id,
+    ]);
+    invalidateMapsListCache();
+    const updated = await getMapById(map.id);
+    await logAudit('settings_map_georef', 'map', map.id, 'Calage GPS du plan mis à jour', {
+      req,
+      payload: { map_id: map.id, gps_enabled: gpsEnabled, has_anchors: !!anchorsJson },
     });
+    res.json(serializeMap(updated));
   }),
 );
 
