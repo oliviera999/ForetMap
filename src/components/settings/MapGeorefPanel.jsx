@@ -123,6 +123,7 @@ export function MapGeorefPanel({ map, imageUrl, busy = false, onSaved, onError }
 
       {imageUrl ? (
         <div
+          data-no-lightbox
           style={{
             position: 'relative',
             display: 'block',
@@ -136,6 +137,7 @@ export function MapGeorefPanel({ map, imageUrl, busy = false, onSaved, onError }
         >
           <img
             ref={imgRef}
+            data-no-lightbox
             src={imageUrl}
             alt={`Plan ${map.label}`}
             onClick={handleMapClick}
