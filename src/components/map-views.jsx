@@ -36,6 +36,7 @@ import { MapViewBackgroundImage } from './MapViewBackgroundImage.jsx';
 import { MapViewWorldLayer } from './MapViewWorldLayer.jsx';
 import useMapViewMascot from '../hooks/useMapViewMascot.js';
 import useMascotGpsFollow from '../hooks/useMascotGpsFollow.js';
+import { MascotGpsStatusBanner } from './MascotGpsStatusBanner.jsx';
 import useVisitMascotCatalogExtras from '../hooks/useVisitMascotCatalogExtras.js';
 import { useMapGestures } from '../hooks/useMapGestures.js';
 
@@ -1092,6 +1093,8 @@ function MapViewImpl({
           onOpenFullscreen={openMapFullscreen}
         />
       ) : null}
+
+      <MascotGpsStatusBanner gps={mascotGps} />
 
       <MapFullscreenShell
         active={mapFullscreen}
