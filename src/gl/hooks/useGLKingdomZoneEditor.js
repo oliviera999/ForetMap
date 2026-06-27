@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useDebouncedAutoSave } from '../../shared/hooks/useDebouncedAutoSave.js';
 import {
   findNearestEdgeInsertion,
@@ -125,8 +125,15 @@ export function useGLKingdomZoneEditor({
   const isEditingShape = shapeSession.active && mode === 'edit-shape';
   const zoneEditActive = mode === 'draw' || isEditingShape;
 
+  // Mémorise la zone dont les brouillons sont actuellement chargés afin de NE PAS
+  // les recharger lorsqu'un simple `reload()` post-autosave recrée l'objet zone
+  // (nouvelle référence, même id). Sans cette garde, l'autovalidation écrasait
+  // l'édition en cours : la piste audio ajoutée disparaissait et le MediaLibraryMenu
+  // ouvert se démontait (« le menu se replie trop vite »).
+  const loadedZoneIdRef = useRef(null);
   useEffect(() => {
     if (!selectedZone) {
+      loadedZoneIdRef.current = null;
       setDraftLabel('');
       setDraftColor(GL_KINGDOM_ZONE_DEFAULT_COLOR);
       setDraftMusicUrls([]);
@@ -135,6 +142,8 @@ export function useGLKingdomZoneEditor({
       setDraftPopoverImages([]);
       return;
     }
+    if (loadedZoneIdRef.current === Number(selectedZone.id)) return;
+    loadedZoneIdRef.current = Number(selectedZone.id);
     setDraftLabel(selectedZone.label || '');
     setDraftColor(selectedZone.color || GL_KINGDOM_ZONE_DEFAULT_COLOR);
     setDraftMusicUrls(readZoneMusicUrls(selectedZone));
