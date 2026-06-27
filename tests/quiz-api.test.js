@@ -15,6 +15,11 @@ const GL_RQL_GLOSSARY_CODE = `RQ${GL_RQL_STAMP}`;
 const GL_RQL_QUESTION_CODE = `QF9${GL_RQL_STAMP}`;
 const GL_RQL_QUESTION_ID = Number(GL_RQL_QUESTION_CODE.slice(2));
 const GL_RQL_TAG = `rqlterm${GL_RQL_STAMP}`;
+// Catégorie dédiée et unique par run : évite la collision avec le seed sur la clé unique
+// quiz_questions(categorie_slug, numero_dans_categorie). Sinon l'upsert d'import (ON DUPLICATE
+// KEY UPDATE) mettrait à jour une question seedée existante au lieu de créer QF9… → la question
+// du test n'existerait jamais (lien RQL via FK question_code silencieusement ignoré, present 404).
+const GL_RQL_CATEGORY_SLUG = `rqlcat${GL_RQL_STAMP}`;
 
 test.before(async () => {
   await initSchema();
@@ -222,8 +227,8 @@ test('GET /api/quiz/admin/questions — admin sans élévation PIN', async () =>
 
 const GL_RQL_CATEGORY_ROWS = [
   {
-    categorie_slug: 'vivant_classification',
-    categorie_nom: 'Le vivant et sa classification',
+    categorie_slug: GL_RQL_CATEGORY_SLUG,
+    categorie_nom: 'Catégorie de test liens RQL',
     theme: 'sciences',
     ordre: 1,
   },
@@ -233,7 +238,7 @@ function buildGlRqlQuestionRows() {
   return [
     {
       id: GL_RQL_QUESTION_ID,
-      categorie_slug: 'vivant_classification',
+      categorie_slug: GL_RQL_CATEGORY_SLUG,
       numero_dans_categorie: 1,
       question: `Question de test liens RQL ${GL_RQL_STAMP} ?`,
       choix_a: 'A',

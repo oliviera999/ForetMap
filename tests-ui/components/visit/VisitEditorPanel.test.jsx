@@ -111,6 +111,64 @@ describe('VisitEditorPanel', () => {
     await waitFor(() => expect(onSaved).toHaveBeenCalled());
   });
 
+  test('action média (reload de la même sélection) ne réinitialise pas la saisie en cours', () => {
+    const { rerender } = render(
+      <VisitEditorPanel
+        selected={ZONE}
+        selectedType="zone"
+        onSaved={vi.fn()}
+        onForceLogout={vi.fn()}
+        isTeacher
+        roleTerms={ROLE_TERMS}
+      />,
+    );
+    // L'enseignant modifie le sous-titre sans avoir cliqué « Sauver ».
+    fireEvent.change(screen.getByDisplayValue('Sous-titre'), {
+      target: { value: 'Sous-titre en cours' },
+    });
+    expect(screen.getByDisplayValue('Sous-titre en cours')).toBeInTheDocument();
+
+    // Une action média recharge la sélection côté parent : nouvel objet `selected` (même id).
+    rerender(
+      <VisitEditorPanel
+        selected={{ ...ZONE }}
+        selectedType="zone"
+        onSaved={vi.fn()}
+        onForceLogout={vi.fn()}
+        isTeacher
+        roleTerms={ROLE_TERMS}
+      />,
+    );
+
+    // La saisie non sauvegardée survit (pas de reset-clobber).
+    expect(screen.getByDisplayValue('Sous-titre en cours')).toBeInTheDocument();
+  });
+
+  test('changer d’élément sélectionné recharge bien le formulaire', () => {
+    const { rerender } = render(
+      <VisitEditorPanel
+        selected={ZONE}
+        selectedType="zone"
+        onSaved={vi.fn()}
+        onForceLogout={vi.fn()}
+        isTeacher
+        roleTerms={ROLE_TERMS}
+      />,
+    );
+    expect(screen.getByDisplayValue('Sous-titre')).toBeInTheDocument();
+    rerender(
+      <VisitEditorPanel
+        selected={{ ...ZONE, id: 8, name: '🌿 Autre', visit_subtitle: 'Autre sous-titre' }}
+        selectedType="zone"
+        onSaved={vi.fn()}
+        onForceLogout={vi.fn()}
+        isTeacher
+        roleTerms={ROLE_TERMS}
+      />,
+    );
+    expect(screen.getByDisplayValue('Autre sous-titre')).toBeInTheDocument();
+  });
+
   test('repère : PUT /api/visit/markers/:id avec label + emoji', async () => {
     setup({
       selected: { ...ZONE, id: 9, label: 'Pommier', emoji: '🍎', name: undefined },
