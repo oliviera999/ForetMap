@@ -7,6 +7,24 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### ForetMap — Cartes : zoom plus profond et étiquettes de zones/repères plus lisibles
+
+- **Étiquettes à taille apparente constante (zones SVG + repères HTML, carte des tâches et plan de
+  visite)** : `resolveMapOverlayTypography` (`src/utils/mapOverlayTypography.js`) calcule désormais les
+  tailles en **px-écran** puis les contre-échelonne par `worldScale`. Les planchers de lisibilité étaient
+  exprimés en unités-monde : au-delà d'un zoom ~2,3× ils se déclenchaient et **faisaient gonfler** les
+  libellés (ex. ~36 px à ×6 au lieu des ~14 px voulus). Les textes gardent maintenant une taille apparente
+  **stable quel que soit le zoom**. L'écart emoji/libellé suit la même logique (plus de décalage géant en
+  zoomant).
+- **Étiquettes légèrement plus petites** : tailles de référence ramenées de 19→17 px (emoji) et 14→12 px
+  (libellé) pour des repères plus discrets sur les plans denses.
+- **Zoom plus profond sur les deux cartes** : échelle maximale portée de **6 à 8** (carte des tâches via
+  `MAP_VIEW_SCALE_MAX` dans `useMapGestures.js` — molette, pinch, boutons +/− et barre d'outils ; plan de
+  visite via `VISIT_MAP_SCALE_MAX`). La hausse de zoom est sans effet de bord visuel grâce à la correction
+  ci-dessus.
+- Tests : `tests/map-overlay-typography.test.js` (tailles de référence, invariance de la taille apparente
+  à fort zoom, planchers) et `tests-ui/utils/visitMapTransform.test.js` (bornes `[1, 8]`).
+
 ### GL — Pistes audio de zone (carte du royaume) : la sélection ne s'appliquait pas / le menu se repliait
 
 - **Persistance de la playlist multi-pistes** : `useGLKingdomZones` (`createZone` / `updateZone`) ne
