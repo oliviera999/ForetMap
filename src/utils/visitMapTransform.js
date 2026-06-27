@@ -5,9 +5,9 @@
  */
 
 export const VISIT_MAP_SCALE_MIN = 1;
-export const VISIT_MAP_SCALE_MAX = 6;
+export const VISIT_MAP_SCALE_MAX = 8;
 
-/** Échelle bornée [1, 6] ; valeurs non numériques / nulles → échelle minimale. */
+/** Échelle bornée [1, 8] ; valeurs non numériques / nulles → échelle minimale. */
 export function clampVisitMapScale(scale) {
   const s = Number(scale) || VISIT_MAP_SCALE_MIN;
   return Math.max(VISIT_MAP_SCALE_MIN, Math.min(VISIT_MAP_SCALE_MAX, s));

@@ -10,6 +10,7 @@ import {
   resolveTooltipKey,
 } from '../../utils/helpResolve';
 import { usePublicSettings } from '../../contexts/PublicSettingsContext.jsx';
+import { MAP_VIEW_SCALE_MIN, MAP_VIEW_SCALE_MAX } from '../../hooks/useMapGestures.js';
 
 /**
  * Barre d'outils de `MapView` + astuce contextuelle : sélecteur de carte, modes
@@ -362,8 +363,8 @@ export function MapViewToolbar({
                     const my = c.clientHeight / 2;
                     const ns =
                       factor > 1
-                        ? Math.min(txRef.current.s * factor, 6)
-                        : Math.max(txRef.current.s * factor, 0.15);
+                        ? Math.min(txRef.current.s * factor, MAP_VIEW_SCALE_MAX)
+                        : Math.max(txRef.current.s * factor, MAP_VIEW_SCALE_MIN);
                     animateZoomTowardScale(ns, mx, my);
                   }}
                   aria-label={ariaLabel}
