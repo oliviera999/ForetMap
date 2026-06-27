@@ -36,7 +36,12 @@ const {
 } = require('../lib/helpContent');
 const { runSpeciesAutofillProviderSelfTest } = require('../lib/speciesAutofillProviderSelfTest');
 const { normalizeMapImageUrl } = require('../lib/mapImageUrl');
-const { withMapGeoref, isValidAnchors, sanitizeAnchors, parseAnchors } = require('../lib/mapGeoref');
+const {
+  withMapGeoref,
+  isValidAnchors,
+  sanitizeAnchors,
+  parseAnchors,
+} = require('../lib/mapGeoref');
 const { MAP_SLUG_RE } = require('../lib/studentAffiliation');
 const { getRuntimeProcessSnapshot } = require('../lib/runtimeDiagnostics');
 const logMetrics = require('../lib/logMetrics');
