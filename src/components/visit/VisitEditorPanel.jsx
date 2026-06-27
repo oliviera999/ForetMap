@@ -83,7 +83,18 @@ export function VisitEditorPanel({
     return list;
   }, [selected]);
 
+  // Identité de l'élément dont le formulaire est actuellement chargé. Une action média
+  // (ajout/suppression de photo, légende, réordonnancement, association carte) déclenche un
+  // reload du parent (visit-views loadData) qui recrée l'objet `selected` (nouvelle référence,
+  // même id) : sans cette garde, l'effet réécrasait le texte ET les blocs éditoriaux en cours
+  // de saisie non encore sauvegardés. On ne recharge donc le formulaire qu'au changement
+  // d'élément sélectionné (type + id).
+  const loadedKeyRef = useRef(null);
   useEffect(() => {
+    const identityKey = selected && selectedType ? `${selectedType}:${selected.id}` : null;
+    if (loadedKeyRef.current === identityKey) return;
+    loadedKeyRef.current = identityKey;
+    if (!selected || !selectedType) return;
     const nextTitle = selectedType === 'zone' ? selected?.name || '' : selected?.label || '';
     const trimmedTitle = String(nextTitle || '').trim();
     const detectedZoneEmoji = detectLeadingMarkerEmoji(trimmedTitle, markerEmojis);

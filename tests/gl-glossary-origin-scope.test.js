@@ -107,6 +107,7 @@ test('resync glossaire QCM : préserve origin=manual, régénère uniquement ori
       choix_b: 'B',
       choix_c: 'C',
       choix_d: 'D',
+      choix_e: 'E',
       reponse_correcte: 'A',
       mots_cles: termMatchTerme,
     },
