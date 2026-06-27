@@ -7,6 +7,24 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### GL — liens glossaire ↔ questions : source de vérité unifiée
+
+- **Refactor (écritures seulement)** : les liens « glossaire » QCM ne sont plus écrits dans les tables
+  de jonction héritées `gl_qcm_question_glossary` / `gl_qcm_lore_question_glossary` mais redirigés vers
+  la table unifiée `gl_resource_question_links` (cf. migration `145`), pour une **source de vérité unique**
+  sans casser création/édition/import de questions (tous types).
+- **Détail** : `lib/glQcmCrud.js` et `lib/glQcmLoreCrud.js` (sync à l'unité, `DELETE` scopé
+  `question_dataset`+`resource_type`+`status='approved'`+`question_code`), `lib/glQcmImport.js` et
+  `lib/glQcmLoreImport.js` (sync à l'import — `DELETE` désormais **scopé** au type glossaire/`approved`,
+  il n'efface plus `species`/`feuillet`/`lore`/`suggested`). Valeurs réutilisées de la 145 :
+  `origin='import'`, `status='approved'`, `is_gating=1` ; `resource_type='glossary'` (qcm) /
+  `'lore_glossary'` (qcm_lore). `INSERT IGNORE` (clé unique `uq_glrql`).
+- **Stats** : les compteurs `glossaryLinks` de `GET /api/gl/admin/qcm/stats` (`routes/gl/qcm.js`) et des
+  stats lore (`routes/gl/lore.js`) lisent maintenant l'unifiée (`COUNT` filtré `dataset`/`type`/`approved`).
+- **Tables héritées conservées** (non transformées en vues dans ce lot) : plus aucun code applicatif n'y
+  écrit ni n'y lit. Pas de changement de comportement métier visible (l'affichage des termes après une
+  bonne réponse est recalculé à la volée, indépendant de ces tables).
+
 ### Tests — isolation RBAC (élèves bloqués en profil visiteur)
 
 - **Cause** : avec le modèle d'accès n3beur par groupes, `syncStudentRoleFromGroups` (exécuté au login/inscription) démote tout élève sans **groupe n3beur** vers `visiteur`. Les helpers de test affectaient le rôle `eleve_novice` uniquement via `user_roles` puis se reconnectaient, ce qui le faisait redémoter → écritures refusées en `403` (suite CI rouge : `api`, `forum`, `context-comments*`).

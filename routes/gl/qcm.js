@@ -311,7 +311,10 @@ router.get(
        FROM gl_qcm_questions WHERE statut = 'actif'
       GROUP BY difficulte ORDER BY difficulte ASC`,
     );
-    const glossaryLinks = await queryOne('SELECT COUNT(*) AS total FROM gl_qcm_question_glossary');
+    const glossaryLinks = await queryOne(
+      `SELECT COUNT(*) AS total FROM gl_resource_question_links
+        WHERE question_dataset = 'qcm' AND resource_type = 'glossary' AND status = 'approved'`,
+    );
     return res.json({
       total: Number(total?.total || 0),
       glossaryLinks: Number(glossaryLinks?.total || 0),

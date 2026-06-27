@@ -1085,7 +1085,8 @@ router.get(
       GROUP BY tier_lore ORDER BY tier_lore ASC`,
     );
     const glossaryLinks = await queryOne(
-      'SELECT COUNT(*) AS total FROM gl_qcm_lore_question_glossary',
+      `SELECT COUNT(*) AS total FROM gl_resource_question_links
+        WHERE question_dataset = 'qcm_lore' AND resource_type = 'lore_glossary' AND status = 'approved'`,
     );
     return res.json({
       total: Number(total?.total || 0),
