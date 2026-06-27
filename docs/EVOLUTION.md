@@ -9,6 +9,7 @@ Il reflète l’état réel du dépôt (avril 2026) et priorise la suite en comm
 
 ## 1.1 Réalisé
 
+- **Juin 2026 — GL : régularisation des constantes de game design** : deux tables créées manuellement en production hors pipeline sont régularisées par la migration `151_gl_game_constants.sql` afin de garantir la reproductibilité (base neuve = prod). `gl_game_constants` (14 constantes : nombre de cases, positions Départ/Frontière/Arrivée, soins, gemmes, etc.) et `gl_game_constant_refs` (13 liens souples constante → question lore `qcm_lore`, sans FK, à la manière de la migration `144`). Ces tables sont une **source documentaire uniquement, NON câblée au runtime** : aucune route/API ne les lit, aucun comportement métier n'en dépend. Test `tests/gl-game-constants.test.js` (présence des 14 + 13 lignes, valeurs clés, idempotence au rejeu).
 - **Juin 2026 — groupes partagés ForetMap/GL + visiteur** : profil par défaut par groupe (`default_role_id`, `grants_n3beur_access`), résolution RBAC via appartenance groupe n3beur (`lib/groupRole.js`), pont `gl_classes` ↔ `groups`, visiteurs ForetMap limités à l’onglet Visite (sans carte/tâches).
 - **Auth professeur côté serveur** : `POST /api/auth/teacher`, token JWT, middleware `requireTeacher` sur les routes sensibles.
 - **Suppression du PIN en dur côté client** : plus de vérification locale ; le front passe par l’API auth.
@@ -66,6 +67,33 @@ Il reflète l’état réel du dépôt (avril 2026) et priorise la suite en comm
   - **Livré** : lazy renderers mascotte + `sourcemap:false` prod (O1/O11) ; cache TTL RBAC (O3) ; INSERT multi-valeurs jointures tâches (O10) ; `helmet` + `timingSafeEqual` + `startupVersion` (O13/O14) ; outillage react-hooks/Prettier + correctif hooks conditionnels (O12) ; nettoyage fichiers morts (O14). Couche helpers partagés (O9, en cours).
   - **Reste à faire (structurel, multi-lots)** : Contexts par domaine pour casser le prop-drilling d'`App.jsx` (O5) ; découpage des méga-composants avec tests UI préalables (O6) ; adoption `zod` par middleware `validate(schema)` sur les 39 routeurs (O7) ; wrapper `asyncHandler` (O8) ; couche service par domaine (O10) ; lazy-loading des vues GL ; CSS-modules progressifs.
   - **Décision produit en attente** : migration `xlsx@0.18.5` (CVE) — `exceljs` (npm) vs SheetJS CDN (O4).
+
+## 1.2bis Dette / nettoyage différé — vues et tables mortes (juin 2026)
+
+> Section dédiée au suivi de la dette de schéma SQL (objets non consommés par le
+> code). À tenir à jour au fil des suppressions effectives.
+
+- **Vues mortes supprimées (migration `152_drop_dead_views.sql`)** : `v_species`
+  (créée par la migration `124`) et `v_gl_food_web` (créée par la migration
+  `136`) ne sont consommées **nulle part** dans le code (vérifié par grep récursif
+  sur `lib/`, `routes/`, `scripts/`, `src/`, `tests/`). `v_gl_food_web` avait été
+  provisionnée en amont d'une **UI réseau-trophique GL jamais branchée**. Drop sans
+  risque (re-création triviale via les définitions des migrations 124/136 si besoin).
+  Les vues `v_food_web` et `v_zone_inventory` sont **conservées** : elles sont lues
+  par `routes/food-web.js`.
+- **Tables QCM héritées — DROP différé d'une release** : `gl_qcm_question_glossary`
+  (≈ 2776 lignes) et `gl_qcm_lore_question_glossary` (≈ 161 lignes) ne sont plus ni
+  écrites ni lues depuis le refactor vers le modèle unifié `gl_resource_question_links`.
+  La **parité clé-à-clé** entre ces tables héritées et `gl_resource_question_links` a
+  été vérifiée. Leur suppression est **prévue au lot suivant** (migration `154` à
+  venir, **non incluse ici**), après **reconfirmation de parité sur la prod réelle**
+  pour éviter toute perte de liaison ressource ↔ question.
+- **À statuer séparément** : la table `gl_species_interactions` (≈ 67 lignes), qui
+  alimentait l'ex-vue `v_gl_food_web`, n'est plus exploitée une fois la vue
+  supprimée. Décision (conservation comme amorce de contenu GL vs suppression) à
+  trancher indépendamment du présent lot.
+
+---
 
 ## 1.3 Fonctionnalité livrée — Projets de tâches (V1 minimale)
 
