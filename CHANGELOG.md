@@ -25,6 +25,31 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   duplication avec musique) et `tests-ui/gl/useGLKingdomZoneEditor.test.js` (le brouillon survit à un
   reload de la même zone ; changer de zone recharge bien les valeurs serveur).
 
+### Éditeurs — récurrences d'autovalidation / persistance (audit du bug pistes audio)
+
+- **Éditeur de visite (`VisitEditorPanel`)** : l'effet de chargement du formulaire se redéclenchait à
+  chaque reload post-action média (`visit-views` recrée l'objet `selected`), écrasant le texte et les
+  blocs éditoriaux en cours de saisie. Rechargement désormais **gardé par identité (type + id)** : on ne
+  réinitialise le formulaire qu'au changement d'élément sélectionné.
+- **Chapitres GL (`GLChaptersAdminView`)** : `persistChapter` appelait `chapterDetailToForm(data.chapter, …)`
+  au lieu de `chapterDetailToForm(data)` → `TypeError` à chaque autovalidation (refresh cassé, image de
+  carte jamais uploadée à la création). Argument corrigé.
+- **Éditeurs QCM (`GLQcmQuestionEditorPanel` + lore)** : `setForm(nextForm)` après save écrasait les
+  frappes saisies pendant la requête en vol. Nouveau helper `src/gl/utils/mergeAutoSaveForm.js` :
+  applique la version serveur sauf pour les champs édités entre-temps.
+- **Effacement de feedback QCM (FM quiz, GL QCM, GL QCM lore)** : l'upsert d'import
+  (`feedback_x = COALESCE(NULLIF(VALUES(…), ''), feedback_x)`, volontaire pour l'import XLSX partiel)
+  était réutilisé par l'éditeur, empêchant d'effacer un feedback existant. Nouvelle variante
+  `QUESTION_UPSERT_SQL_FORM` (`feedback_x = VALUES(…)`) dérivée via `lib/shared/feedbackUpsertSql.js`,
+  utilisée par les chemins éditeur (`*Crud.upsert*Question`) ; l'import conserve sa sémantique.
+- **Tests glossaire RQL rouges depuis #205** (`tests/quiz-api.test.js`, `tests/gl-glossary-origin-scope.test.js`) :
+  le fixture entrait en collision avec le seed sur la clé unique
+  `quiz_questions(categorie_slug, numero_dans_categorie)` → l'upsert d'import mettait à jour une question
+  seedée au lieu de créer la question de test (lien RQL ignoré via FK `question_code`, `present` en 404).
+  Corrigé côté test (catégorie dédiée + 5e choix manquant) ; la feature de liaison glossaire est correcte.
+- Tests : `tests/feedback-upsert-sql.test.js`, `tests-ui/gl/mergeAutoSaveForm.test.js`,
+  `tests-ui/components/visit/VisitEditorPanel.test.jsx`.
+
 ### GL & ForetMap — liens glossaire ↔ questions : source de vérité unifiée
 
 - **GL (écritures + lectures)** : les liens « glossaire » QCM ne transitent plus par les tables de
