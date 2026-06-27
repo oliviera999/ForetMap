@@ -48,6 +48,7 @@ export function useGLKingdomZones(chapterId, { zoneMusicEnabled = false } = {}) 
       color,
       points,
       musicUrl,
+      musicUrls,
       musicVolume,
       popoverMarkdown,
       popoverImages,
@@ -64,9 +65,11 @@ export function useGLKingdomZones(chapterId, { zoneMusicEnabled = false } = {}) 
       if (description != null) payload.description = description;
       if (popoverMarkdown !== undefined) payload.popoverMarkdown = popoverMarkdown;
       if (popoverImages !== undefined) payload.popoverImages = popoverImages;
-      if (zoneMusicEnabled && musicUrl) {
-        payload.musicUrl = musicUrl;
-        payload.musicVolume = musicVolume;
+      if (zoneMusicEnabled) {
+        // Playlist multi-pistes (modèle courant) ; `musicUrl` (singulier) conservé en repli legacy.
+        if (musicUrls !== undefined) payload.musicUrls = musicUrls;
+        else if (musicUrl) payload.musicUrl = musicUrl;
+        if (musicVolume != null) payload.musicVolume = musicVolume;
       }
       await apiGL('/api/gl/kingdom-map/zones', 'POST', payload);
       setError('');
@@ -82,6 +85,9 @@ export function useGLKingdomZones(chapterId, { zoneMusicEnabled = false } = {}) 
       if (patch?.label != null) payload.label = patch.label;
       if (patch?.color != null) payload.color = patch.color;
       if (patch?.points != null) payload.points = patch.points;
+      // Playlist multi-pistes : `musicUrls` (pluriel) doit être transmis tel quel à l'API,
+      // sinon la sélection de piste n'est jamais persistée. `musicUrl` reste un repli legacy.
+      if (patch?.musicUrls !== undefined) payload.musicUrls = patch.musicUrls;
       if (patch?.musicUrl !== undefined) payload.musicUrl = patch.musicUrl;
       if (patch?.musicVolume != null) payload.musicVolume = patch.musicVolume;
       if (patch?.popoverMarkdown !== undefined) payload.popoverMarkdown = patch.popoverMarkdown;
