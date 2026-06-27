@@ -7,23 +7,45 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
-### GL — liens glossaire ↔ questions : source de vérité unifiée
+### GL & ForetMap — liens glossaire ↔ questions : source de vérité unifiée
 
-- **Refactor (écritures seulement)** : les liens « glossaire » QCM ne sont plus écrits dans les tables
-  de jonction héritées `gl_qcm_question_glossary` / `gl_qcm_lore_question_glossary` mais redirigés vers
-  la table unifiée `gl_resource_question_links` (cf. migration `145`), pour une **source de vérité unique**
-  sans casser création/édition/import de questions (tous types).
-- **Détail** : `lib/glQcmCrud.js` et `lib/glQcmLoreCrud.js` (sync à l'unité, `DELETE` scopé
-  `question_dataset`+`resource_type`+`status='approved'`+`question_code`), `lib/glQcmImport.js` et
-  `lib/glQcmLoreImport.js` (sync à l'import — `DELETE` désormais **scopé** au type glossaire/`approved`,
-  il n'efface plus `species`/`feuillet`/`lore`/`suggested`). Valeurs réutilisées de la 145 :
-  `origin='import'`, `status='approved'`, `is_gating=1` ; `resource_type='glossary'` (qcm) /
-  `'lore_glossary'` (qcm_lore). `INSERT IGNORE` (clé unique `uq_glrql`).
-- **Stats** : les compteurs `glossaryLinks` de `GET /api/gl/admin/qcm/stats` (`routes/gl/qcm.js`) et des
-  stats lore (`routes/gl/lore.js`) lisent maintenant l'unifiée (`COUNT` filtré `dataset`/`type`/`approved`).
-- **Tables héritées conservées** (non transformées en vues dans ce lot) : plus aucun code applicatif n'y
-  écrit ni n'y lit. Pas de changement de comportement métier visible (l'affichage des termes après une
-  bonne réponse est recalculé à la volée, indépendant de ces tables).
+- **GL (écritures + lectures)** : les liens « glossaire » QCM ne transitent plus par les tables de
+  jonction héritées `gl_qcm_question_glossary` / `gl_qcm_lore_question_glossary` mais par la table
+  unifiée `gl_resource_question_links` (cf. migration `145`). `lib/glQcmCrud.js`, `lib/glQcmLoreCrud.js`,
+  `lib/glQcmImport.js`, `lib/glQcmLoreImport.js` : `INSERT IGNORE` (`origin='import'`, `status='approved'`,
+  `is_gating=1`, `resource_type='glossary'` / `'lore_glossary'`). Les compteurs `glossaryLinks` de
+  `routes/gl/qcm.js` et `routes/gl/lore.js` lisent l'unifiée.
+- **Scope du `DELETE` de resync = `origin='import'`** (et non `status='approved'`) : le matcher
+  déterministe ne supprime QUE les liens qu'il sait recréer, préservant les liens curatés
+  (`manual`/`auto`/`generated`/`suggested`) des autres pipelines. Migration `149` : requalifie les
+  19 liens manuels `origin='point4'` en `origin='manual'` (couplé au nouveau scope — sinon ils seraient
+  effacés au prochain resync).
+- **ForetMap (miroir)** : `lib/fmQuizCrud.js` et `lib/fmQuizImport.js` écrivent désormais dans
+  `resource_question_links` (migration `144`) au lieu de `quiz_question_glossary` ; `routes/quiz.js`
+  (COUNT admin + affichage des termes après réponse, **recalculé à la volée** via le matcher, sans
+  lecture de table de liens) et `routes/glossary.js` (questions liées à un terme) lisent l'unifiée.
+  Même scope `origin='import'`. Tests `tests/quiz-api.test.js`, `tests/glossary-api.test.js`,
+  `tests/fm-quiz-import.test.js`, `tests/gl-glossary-origin-scope.test.js`.
+- **Tables héritées conservées** (non droppées dans ce lot) : plus aucun code applicatif ne les touche.
+  Pas de changement de comportement métier visible.
+
+### BDD — intégrité, régularisation et nettoyage (suite à l'audit du dump)
+
+- **Intégrité `task_*`** (migration `150`) : recréation idempotente et défensive des FK
+  `fk_task_assignments_student` / `fk_task_logs_student` (`student_id → users(id) ON DELETE SET NULL`),
+  absentes en prod (drift hors-migration) ; purge préalable des orphelins (`SET NULL`) puis index garanti
+  avant la FK (pré-requis InnoDB). Test `tests/task-student-fk.test.js`.
+- **Constantes de jeu GL** (migration `151`) : régularisation des tables `gl_game_constants` (14) et
+  `gl_game_constant_refs` (13), créées manuellement hors pipeline ; **source documentaire NON câblée au
+  runtime**, recréées en collation projet `utf8mb4_unicode_ci`. Test `tests/gl-game-constants.test.js`,
+  note `docs/EVOLUTION.md`.
+- **Colonnes legacy/seed-only supprimées** (migration `153`) : `tasks.recurrence_end` et
+  `quiz_questions.photo_species_id` / `photo_source` / `photo_licence_url` / `photo_sujet` (jamais lues
+  ni écrites ; l'affichage/import s'appuie sur `photo_url` / `photo_credit` / `photo_licence` /
+  `photo_legende`, conservées). Tables GL homonymes non touchées. Test `tests/drop-legacy-columns.test.js`.
+- **Vues mortes supprimées** (migration `152`) : `v_species` et `v_gl_food_web` (jamais consommées) ;
+  `v_food_web` / `v_zone_inventory` conservées. Test `tests/gl-dead-views-dropped.test.js`. DROP des tables
+  QCM héritées GL prévu au lot suivant (cf. `docs/EVOLUTION.md`, § 1.2bis).
 
 ### Tests — isolation RBAC (élèves bloqués en profil visiteur)
 
