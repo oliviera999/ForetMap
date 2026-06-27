@@ -1,0 +1,24 @@
+-- =====================================================================
+-- GL (Gnomes & Licornes) — Requalification des liens glossaire 'point4' en 'manual'
+--
+-- Contexte : 19 liens de gl_resource_question_links ont ete inseres a la main le
+-- 24/06/2026 avec origin='point4' (epinglage manuel d'enrichissement glossaire).
+-- Le scope du DELETE des resync glossaire vient d'etre restreint de status='approved'
+-- a origin='import' (matcher-owned) : seuls les liens reellement regenerables par le
+-- matcher sont desormais effaces a chaque resync.
+--
+-- Pourquoi requalifier : 'point4' n'exprime pas l'intention metier (lien epingle, NON
+-- regenere par le matcher). On le remappe sur 'manual' — la convention deja utilisee
+-- par defaut (cf. migration 145, gl_resource_question_links.origin DEFAULT 'manual')
+-- pour les liens crees manuellement. Cela rend le scope du DELETE lisible : tout ce
+-- qui n'est pas origin='import' est preserve.
+--
+-- Sûr UNIQUEMENT couplé au changement de scope ci-dessus : tant que le DELETE filtrait
+-- sur status='approved', ces lignes 'point4' approuvees auraient ete effacees a la resync.
+-- Avec le scope origin='import', 'manual' (comme 'point4') est desormais protege.
+--
+-- NE touche PAS origin='axe3' (autre pipeline, hors perimetre).
+-- Idempotent : rejouable sans effet une fois 'point4' eteint (UPDATE no-op).
+-- =====================================================================
+
+UPDATE gl_resource_question_links SET origin = 'manual' WHERE origin = 'point4';
