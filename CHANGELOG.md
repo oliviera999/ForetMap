@@ -7,6 +7,24 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### GL — Pistes audio de zone (carte du royaume) : la sélection ne s'appliquait pas / le menu se repliait
+
+- **Persistance de la playlist multi-pistes** : `useGLKingdomZones` (`createZone` / `updateZone`) ne
+  transmettait que le champ legacy `musicUrl` (singulier) et **ignorait `musicUrls` (pluriel)** envoyé
+  par l'éditeur (`saveZoneMeta`, `clearZoneMusic`) et par la duplication de zone
+  (`zoneDuplicateCreatePayloadFromZone`). Conséquence : la piste audio sélectionnée n'était jamais
+  enregistrée, « Retirer la musique » ne persistait pas, et dupliquer une zone perdait sa musique et son
+  volume. Le pluriel est désormais forwardé à l'API (déjà accepté côté serveur, cf. `lib/glZoneMusic.js`).
+- **Autovalidation qui repliait le menu et écrasait l'édition en cours** : l'effet de chargement des
+  brouillons de zone (`useGLKingdomZoneEditor`) se redéclenchait à chaque `reload()` post-autosave
+  (nouveaux objets zone, même id), réinitialisant `draftMusicUrls` / `draftPopoverImages`… La ligne de
+  piste vide disparaissait et le `MediaLibraryMenu` ouvert se démontait (« le menu se replie trop vite »).
+  Le rechargement des brouillons est maintenant **gardé par id de zone** : un simple refresh de la même
+  zone ne réécrase plus une saisie en cours.
+- Tests : `tests-ui/gl/useGLKingdomZones.test.js` (forwarding `musicUrls`/volume, playlist vide,
+  duplication avec musique) et `tests-ui/gl/useGLKingdomZoneEditor.test.js` (le brouillon survit à un
+  reload de la même zone ; changer de zone recharge bien les valeurs serveur).
+
 ### GL & ForetMap — liens glossaire ↔ questions : source de vérité unifiée
 
 - **GL (écritures + lectures)** : les liens « glossaire » QCM ne transitent plus par les tables de
