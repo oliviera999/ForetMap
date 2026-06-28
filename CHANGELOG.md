@@ -7,6 +7,15 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### GL — Autosave QCM : création sans perte de saisie en vol
+
+- **Éditeurs QCM biomes + lore** : après la création initiale d'une question, le passage du brouillon
+  (`new:<code>`) à la fiche persistée (`<code>`) rebaselinait l'autosave avec la saisie courante. Une
+  frappe effectuée pendant le `POST` de création restait visible à l'écran mais pouvait ne jamais être
+  envoyée en `PUT`, puis disparaître au rechargement. La clé de reset de l'autosave est maintenant pilotée
+  uniquement par les chargements explicites de fiche/brouillon, et un test UI couvre le second autosave
+  attendu après création.
+
 ### ForetMap — Cartes : zoom plus profond et étiquettes de zones/repères plus lisibles
 
 - **Étiquettes à taille apparente constante (zones SVG + repères HTML, carte des tâches et plan de
