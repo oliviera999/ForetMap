@@ -93,6 +93,35 @@ test('glMascotPackToVisit : refuse renderer non sprite_cut', async () => {
   assert.equal(mapped.ok, false);
 });
 
+test('glMascotPackToVisit : collision de clé custom — dernière occurrence gagne (libellé + frames), comme l’ancien pont', async () => {
+  const mod = await import(
+    pathToFileURL(path.join(__dirname, '..', 'src', 'utils', 'glMascotPackToVisit.js')).href
+  );
+  // « cast spell » et « cast_spell » sont sanitizés vers la même clé visite « cast_spell ».
+  const glPack = {
+    id: 'gl-collide',
+    name: 'GL collide',
+    renderer: 'sprite_cut',
+    assets: [
+      { key: 'a', src: 'https://example.com/a.png' },
+      { key: 'b', src: 'https://example.com/b.png' },
+    ],
+    states: [
+      { key: 'cast spell', label: 'Premier', frames: [0] },
+      { key: 'cast_spell', label: 'Second', frames: [1] },
+    ],
+  };
+  const mapped = mod.glMascotPackSpriteCutToVisitValidation(glPack, { relaxAssetPrefix: true });
+  assert.equal(mapped.ok, true);
+  // Une seule entrée custom malgré la collision.
+  const collisions = mapped.pack.customStates.filter((c) => c.key === 'cast_spell');
+  assert.equal(collisions.length, 1);
+  // Dernière occurrence : libellé « Second » et frame de la 2e entrée (b.png).
+  assert.equal(collisions[0].label, 'Second');
+  assert.equal(mapped.spriteCut.stateFrames.cast_spell.srcs[0], 'https://example.com/b.png');
+  assert.equal(mapped.spriteCut.customStates.find((c) => c.key === 'cast_spell').label, 'Second');
+});
+
 test('glMascotPackToVisit : defaults d’animation viennent du seul chemin visite (fps/pixelated/displayScale)', async () => {
   const mod = await import(
     pathToFileURL(path.join(__dirname, '..', 'src', 'utils', 'glMascotPackToVisit.js')).href
