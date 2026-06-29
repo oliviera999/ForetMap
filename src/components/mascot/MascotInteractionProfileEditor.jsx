@@ -1,8 +1,9 @@
-import React from 'react';
-import { VISIT_MASCOT_STATE } from '../../utils/visitMascotState.js';
-import { STATE_LABELS } from '../../constants/mascotStateLabels.js';
+import React, { useMemo } from 'react';
 import {
-  VISIT_MASCOT_INTERACTION_EVENT_KEYS,
+  buildStateOptions,
+  INTERACTION_EVENT_OPTIONS,
+} from '../../utils/visitMascotBehaviorRegistry.js';
+import {
   VISIT_MASCOT_INTERACTION_LABELS,
   DEFAULT_VISIT_MASCOT_INTERACTION_PROFILE,
 } from '../../utils/visitMascotInteractionEvents.js';
@@ -24,6 +25,8 @@ export default function MascotInteractionProfileEditor({
   onPatchRule,
   onTestBehavior,
 }) {
+  // États proposés comme cible transitoire : palette canonique + états personnalisés du pack.
+  const stateOptions = useMemo(() => buildStateOptions(pack), [pack]);
   return (
     <div>
       <p className="section-sub" style={{ fontSize: '0.82rem', marginBottom: 10 }}>
@@ -36,7 +39,7 @@ export default function MascotInteractionProfileEditor({
         </button>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {VISIT_MASCOT_INTERACTION_EVENT_KEYS.map((key) => {
+          {INTERACTION_EVENT_OPTIONS.map(({ key }) => {
             const def = DEFAULT_VISIT_MASCOT_INTERACTION_PROFILE[key] || { mode: 'none' };
             const prof =
               pack.interactionProfile && typeof pack.interactionProfile === 'object'
@@ -121,9 +124,10 @@ export default function MascotInteractionProfileEditor({
                             })
                           }
                         >
-                          {Object.values(VISIT_MASCOT_STATE).map((st) => (
-                            <option key={st} value={st}>
-                              {STATE_LABELS[st] || st} ({st})
+                          {stateOptions.map((opt) => (
+                            <option key={opt.key} value={opt.key}>
+                              {opt.label}
+                              {opt.custom ? ' (perso)' : ''} ({opt.key})
                             </option>
                           ))}
                         </select>

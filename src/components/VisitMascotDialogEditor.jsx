@@ -24,6 +24,7 @@ import {
  *   },
  *   allowInheritToggle?: boolean,
  *   previewClassName?: string,
+ *   customTriggers?: Array<{ key: string, label?: string, dialog?: string[] }>,
  * }} props
  */
 export default function VisitMascotDialogEditor({
@@ -32,6 +33,7 @@ export default function VisitMascotDialogEditor({
   inheritedContext = null,
   allowInheritToggle = false,
   previewClassName = 'visit-map-mascot-dialog',
+  customTriggers = [],
 }) {
   const [previewEventKey, setPreviewEventKey] = useState('');
   const [previewText, setPreviewText] = useState('');
@@ -254,6 +256,121 @@ export default function VisitMascotDialogEditor({
           );
         })}
       </div>
+
+      {Array.isArray(customTriggers) && customTriggers.length > 0 ? (
+        <div style={{ marginTop: 16 }}>
+          <h4 className="mascot-pack-wysiwyg__h" style={{ marginBottom: 6 }}>
+            Bulles des comportements personnalisés
+          </h4>
+          <p className="section-sub" style={{ fontSize: '0.78rem', marginTop: 0 }}>
+            Bulles jouées par vos déclencheurs personnalisés (priorité sur les bulles définies dans
+            l’éditeur de comportements).
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {customTriggers
+              .filter((trig) => trig && trig.key)
+              .map((trig) => {
+                const key = String(trig.key);
+                const hasOverride = Object.prototype.hasOwnProperty.call(safeProfile, key);
+                const inlineLines = Array.isArray(trig.dialog) ? trig.dialog : [];
+                const lines = hasOverride ? safeProfile[key] || [] : inlineLines;
+                return (
+                  <section
+                    key={key}
+                    style={{
+                      border: '1px solid rgba(26,71,49,0.12)',
+                      borderRadius: 8,
+                      padding: 10,
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        gap: 8,
+                        alignItems: 'center',
+                        marginBottom: 8,
+                      }}
+                    >
+                      <strong style={{ fontSize: '0.88rem' }}>{trig.label || key}</strong>
+                      <code style={{ fontSize: '0.72rem', opacity: 0.8 }}>{key}</code>
+                      <span
+                        style={{
+                          fontSize: '0.68rem',
+                          padding: '2px 6px',
+                          borderRadius: 4,
+                          background: 'rgba(26,71,49,0.12)',
+                          color: 'var(--forest, #1a4731)',
+                        }}
+                      >
+                        {trig.type === 'tap' ? 'Au tap' : 'Périodique'}
+                      </span>
+                    </div>
+                    <ul
+                      style={{
+                        listStyle: 'none',
+                        padding: 0,
+                        margin: '0 0 8px',
+                        display: 'grid',
+                        gap: 6,
+                      }}
+                    >
+                      {(lines.length > 0 ? lines : ['']).map((line, idx) => (
+                        <li
+                          key={`${key}-${idx}`}
+                          style={{ display: 'flex', gap: 6, alignItems: 'center' }}
+                        >
+                          <input
+                            className="form-input"
+                            type="text"
+                            maxLength={160}
+                            value={line}
+                            placeholder="Texte de bulle…"
+                            onChange={(ev) => {
+                              const nextLines = [...lines];
+                              nextLines[idx] = ev.target.value;
+                              patchEventLines(key, nextLines);
+                            }}
+                            style={{ flex: 1 }}
+                          />
+                          <button
+                            type="button"
+                            className="btn btn-ghost btn-sm"
+                            aria-label="Supprimer cette ligne"
+                            onClick={() =>
+                              patchEventLines(
+                                key,
+                                lines.filter((_, i) => i !== idx),
+                              )
+                            }
+                          >
+                            ✕
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => patchEventLines(key, [...lines, ''])}
+                      >
+                        Ajouter une ligne
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm"
+                        onClick={() => runPreview(key)}
+                      >
+                        Aperçu bulle
+                      </button>
+                    </div>
+                  </section>
+                );
+              })}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

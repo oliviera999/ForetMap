@@ -34,6 +34,7 @@ export default function MascotPackStateEditor({
   onToggleState,
   onUpdateStateEntry,
   assetPreviewByFilename = {},
+  labelOverride = '',
 }) {
   const frameUrlOpts = useMemo(() => ({ assetPreviewByFilename }), [assetPreviewByFilename]);
   const hasSrcMode = Object.prototype.hasOwnProperty.call(spec, 'srcs');
@@ -59,7 +60,7 @@ export default function MascotPackStateEditor({
             onChange={(ev) => onToggleState(stateKey, ev.target.checked)}
           />
           <strong>
-            {STATE_LABELS[stateKey] || stateKey}{' '}
+            {labelOverride || STATE_LABELS[stateKey] || stateKey}{' '}
             <span className="section-sub" style={{ fontSize: '0.78rem' }}>
               ({stateKey})
             </span>
