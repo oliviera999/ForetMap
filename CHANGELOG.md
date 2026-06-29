@@ -7,6 +7,18 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### ForetMap — Carte `lyautey` : zones « bâtiments » du centre importables
+
+- **Nouveau fichier importable `sql/zones_lyautey_batiments.sql`** : 12 zones polygonales
+  représentant les bâtiments de la partie centrale du campus (carte `lyautey`), prêtes à charger
+  en base (`mysql … < sql/zones_lyautey_batiments.sql`). Import **idempotent** (ids stables
+  `lyautey-bat-01..12`, `ON DUPLICATE KEY UPDATE`), couleur gris semi-transparent pour distinguer
+  les bâtiments des zones de culture.
+- **Générateur `scripts/gen-zones-lyautey-batiments.js`** : les coordonnées (sommets en % de
+  l'image, `{xp,yp}`) sont relevées visuellement sur la capture de la carte (premier jet) ; pour
+  les affiner, éditer le tableau `BATIMENTS` puis relancer le script — le SQL est régénéré avec un
+  JSON `points` toujours valide.
+
 ### ForetMap — Cartes : étiquettes nettes au zoom (fin de la pixellisation)
 
 - **Texte et emojis ne pixellisent plus en zoomant.** Les deux cartes (carte des tâches et plan de
