@@ -22,6 +22,7 @@ export const DEFAULT_PUBLIC_SETTINGS = {
     emoji_label_center_gap: 14,
     overlay_emoji_size_percent: 100,
     overlay_label_size_percent: 100,
+    overlay_zoom_growth_percent: 35,
     plateau_marker_size_percent: 100,
   },
   modules: {

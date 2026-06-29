@@ -91,6 +91,9 @@ function useMapGestures({
   const draggingMarkerEl = useRef(null);
   const [isCoarsePointer, setIsCoarsePointer] = useState(false);
   const [mapInteractionEnabled, setMapInteractionEnabled] = useState(true);
+  // Échelle « ajustée » (zoom au repos) : ne change qu’au fit/remesure, jamais au zoom.
+  // Sert à dimensionner les étiquettes par rapport à la taille au repos (cf. mapOverlayTypography).
+  const [fitScale, setFitScale] = useState(1);
 
   const applyTransform = () => {
     if (!worldRef.current) return;
@@ -117,6 +120,9 @@ function useMapGestures({
   const commitFitLayout = (x, y, s) => {
     tx.current = { x, y, s };
     applyTransform();
+    // `commitFitLayout` n’est appelé que pour un ajustement (fit/remesure), jamais au zoom :
+    // `s` est donc toujours l’échelle au repos.
+    setFitScale((prev) => (Math.abs(prev - s) < 1e-4 ? prev : s));
     setCommitted((prev) => {
       if (Math.abs(prev.x - x) < 0.5 && Math.abs(prev.y - y) < 0.5 && Math.abs(prev.s - s) < 1e-4)
         return prev;
@@ -528,6 +534,7 @@ function useMapGestures({
     imgRef,
     tx,
     committed,
+    fitScale,
     imgSize,
     imgSizeRef,
     moved,
