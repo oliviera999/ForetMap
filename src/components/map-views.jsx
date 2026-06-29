@@ -174,6 +174,7 @@ function MapViewImpl({
     imgRef,
     tx,
     committed,
+    fitScale,
     imgSize,
     moved,
     applyTransform,
@@ -585,7 +586,11 @@ function MapViewImpl({
   const { w: iw, h: ih } = imgSize;
   const inv = 1 / cs;
   const mapMascotFitScale = Math.max(1, inv);
-  const mapFitHeightPx = ih * cs;
+  // Hauteur affichée du plan AU REPOS (ajusté), indépendante du zoom : dimensionne les étiquettes
+  // à une taille stable, le grossissement au zoom étant porté séparément par `mapZoomRatio`.
+  const safeFitScale = fitScale > 0 ? fitScale : 1;
+  const mapFitHeightPx = ih * safeFitScale;
+  const mapZoomRatio = cs / safeFitScale;
   const mapSettings =
     publicSettings?.map && typeof publicSettings.map === 'object' ? publicSettings.map : null;
   const mapCanvasHintTexts = useMemo(
@@ -602,7 +607,10 @@ function MapViewImpl({
     [publicSettings, drawPoints.length],
   );
   const { mapEmojiLabelCenterGap, mapEmojiFontPx, mapLabelFontPx, markerLabelMarginTop } =
-    resolveMapOverlayTypography(mapSettings, mapFitHeightPx, { worldScale: cs });
+    resolveMapOverlayTypography(mapSettings, mapFitHeightPx, {
+      worldScale: cs,
+      zoomRatio: mapZoomRatio,
+    });
 
   const toWorld = (p) => ({ cx: (p.xp / 100) * iw, cy: (p.yp / 100) * ih });
 

@@ -99,6 +99,43 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   `tests-ui/hooks/useAmbientMascotBehavior.test.js`,
   `tests-ui/components/mascot/MascotPackCustomBehaviorsEditor.test.jsx`. Docs `docs/MASCOT_PACK.md`
   et `docs/MASCOT_ARCHITECTURE_CONVERGENCE.md`.
+### ForetMap — Cartes : étiquettes plus grandes, grossissement au zoom configurable
+
+- **Étiquettes un peu plus grandes** : tailles de référence portées de 17→**19 px** (emoji) et 12→**14 px**
+  (libellé) dans `resolveMapOverlayTypography` (`src/utils/mapOverlayTypography.js`).
+- **Grossissement progressif au zoom** : les étiquettes (emojis + noms, zones et repères) peuvent
+  désormais **grossir légèrement quand on zoome**, au lieu de garder une taille apparente strictement
+  constante. Formule `taille = base × ratio_zoom^g` où `g = overlay_zoom_growth_percent / 100`. Appliqué
+  de façon **cohérente aux deux cartes** : la carte des tâches passe une hauteur au repos stable +
+  un `zoomRatio` (nouvelle échelle d’ajustement `fitScale` exposée par `useMapGestures`), le plan de
+  visite utilise le `zoomRatio` par défaut (= zoom courant, repos à 1).
+- **Configurable dans les réglages** : nouveau réglage public `ui.map.overlay_zoom_growth_percent`
+  (entier 0–100, défaut **35** ; `0` = taille constante, `100` = grossissement linéaire), éditable depuis
+  l’admin (section Modules) au même endroit que les autres réglages carte. Backend `lib/settings.js`,
+  défaut public `src/utils/appPublicSettings.js`, libellé admin `src/constants/settingsAdminMeta.js`.
+- Tests : `tests/map-overlay-typography.test.js` (tailles de référence 19/14, grossissement 0 %/100 %/défaut,
+  bornage `clampZoomGrowthPercent`). Doc : `docs/API.md` (réglages `ui.map.*`).
+### ForetMap — Mode visite/découverte (onboarding guidé par onglet)
+
+- **Découverte « petit à petit » à la première ouverture de chaque onglet** : un nouveau mode visite
+  présente les éléments de la page sous forme de coach marks (spotlight + carte explicative,
+  Précédent / Suivant / Passer). Le parcours démarre automatiquement **la première fois qu'un onglet est
+  ouvert**, puis ne se relance plus seul (mémorisé par onglet dans `localStorage`,
+  clé `foretmap_discovery_seen_v1`).
+- **Relance depuis le bouton d'aide** : chaque panneau d'aide « ? » (`HelpPanel`) propose désormais un
+  bouton **« ▶ Visite guidée »** qui rejoue le parcours de la page courante.
+- **Contenu adapté au rôle** : textes différenciés élève / n3boss, étapes réservées à un rôle
+  (ex. Profils, Paramètres), et étapes dont la cible est absente du DOM automatiquement ignorées
+  (on ne montre que ce qui figure à l'écran).
+- **Activation** : respecte `modules.help_enabled` et un nouveau drapeau `help.discovery_tour` des
+  réglages publics ; l'auto-démarrage attend que l'application soit prête et qu'aucun onboarding mascotte
+  invité ne soit en attente.
+- Nouveaux fichiers : `src/constants/discoveryTour.js` (définitions des parcours), `src/hooks/useDiscoveryTour.js`
+  (état + persistance), `src/components/DiscoveryTour.jsx` (overlay/coach marks),
+  `src/contexts/TourContext.jsx` (provider + auto-démarrage). Câblage dans `src/App.jsx`, `HelpPanel.jsx`
+  et styles dans `src/index.css`.
+- Tests : `tests-ui/hooks/useDiscoveryTour.test.jsx` (persistance, filtrage par rôle, démarrage/progression)
+  et `tests-ui/components/DiscoveryTour.test.jsx` (rendu, navigation, texte prof).
 
 ### ForetMap — Cartes : zoom plus profond et étiquettes de zones/repères plus lisibles
 
@@ -216,6 +253,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Suivi de position** : sur un plan calé, la mascotte suit la position GPS réelle de l'élève via un bouton « 📍 Me suivre » (toolbar carte). Conversion lat/lng → % par transformation affine à 3 points (`src/utils/mapGeoTransform.js`). Position traitée 100 % côté client (jamais envoyée au serveur).
 - **Outil prof « Calage GPS »** : dans Réglages → Cartes, poser 3 repères sur le plan + saisir/capturer leurs coordonnées GPS, puis activer le suivi par plan (`MapGeorefPanel`).
 - **API** : `PUT /api/settings/admin/maps/:id/georef` ; champs `georef`/`gps_enabled` exposés par `GET /api/maps` (cf. `docs/API.md`). Migration `148_map_georef.sql` (colonnes `geo_anchors_json`, `gps_enabled`).
+- **Correctif calage GPS** : un brouillon incomplet dans l'outil prof n'envoie plus `anchors: []` et ne peut donc plus effacer silencieusement le calage existant ; côté API, omettre `anchors` conserve désormais les ancres stockées.
 - **Dégradation** : bouton masqué si capteur absent (`navigator.geolocation`) ou plan non calé ; HTTPS requis. Seuil de précision + détection hors-zone pour éviter les sauts.
 - **Calage prof — ergonomie** : plan affiché en pleine largeur (plus de plafond à 240 px) ; clic direct sur le plan pour poser les repères (ciblage automatique du point suivant, plus besoin d'armer un bouton), bannière de guidage et curseur réticule. Image du plan exclue de la lightbox globale (`data-no-lightbox`) : le clic pose un repère au lieu d'ouvrir l'aperçu plein écran.
 - **Suivi — légende de statut** : légende textuelle sous la barre d'outils carte (`MascotGpsStatusBanner`) explicitant l'état du suivi (actif + précision, localisation refusée, hors zone du plan, signal faible, acquisition en cours), avec icône dédiée par état. Le bouton « 📍 » distingue désormais le signal faible (📶) de l'erreur bloquante (⚠️).
