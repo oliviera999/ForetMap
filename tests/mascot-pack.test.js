@@ -347,6 +347,84 @@ test('customTriggers : refus périodique sans everyMs et clé réservée', async
   assert.equal(reserved.ok, false);
 });
 
+test('schéma unifié : un pack en forme states[] est accepté et désucré', async () => {
+  const { validateMascotPackV1 } = await loadMascotPack();
+  const r = validateMascotPackV1(
+    {
+      mascotPackVersion: 1,
+      id: 'unified',
+      label: 'Unifié',
+      renderer: 'sprite_cut',
+      framesBase: '/assets/mascots/unified/frames/',
+      frameWidth: 32,
+      frameHeight: 32,
+      fallbackSilhouette: 'gnome',
+      states: [
+        { key: 'idle', files: ['a.png'], fps: 2 },
+        { key: 'magie', label: 'Magie', files: ['m.png'], fps: 8 },
+      ],
+    },
+    { relaxAssetPrefix: false },
+  );
+  assert.equal(r.ok, true);
+  // L'état custom est auto-déclaré dans customStates depuis states[].
+  assert.equal(r.pack.customStates[0].key, 'magie');
+  assert.equal(r.pack.customStates[0].label, 'Magie');
+  assert.ok(r.spriteCut.stateFrames.idle);
+  assert.ok(r.spriteCut.stateFrames.magie);
+});
+
+test('schéma unifié : states[] à clé custom mal formée (majuscule) refusé', async () => {
+  const { validateMascotPackV1 } = await loadMascotPack();
+  const r = validateMascotPackV1(
+    {
+      mascotPackVersion: 1,
+      id: 'unified-bad',
+      label: 'X',
+      renderer: 'sprite_cut',
+      framesBase: '/assets/mascots/unified-bad/frames/',
+      frameWidth: 16,
+      frameHeight: 16,
+      fallbackSilhouette: 'gnome',
+      states: [
+        { key: 'idle', files: ['a.png'], fps: 1 },
+        { key: 'MaGie', files: ['m.png'], fps: 4 },
+      ],
+    },
+    { relaxAssetPrefix: false },
+  );
+  assert.equal(r.ok, false);
+});
+
+test('mascotPackToUnifiedStates : conversion inverse (round-trip)', async () => {
+  const { validateMascotPackV1, mascotPackToUnifiedStates } = await loadMascotPack();
+  const r = validateMascotPackV1(
+    {
+      mascotPackVersion: 1,
+      id: 'roundtrip',
+      label: 'RT',
+      renderer: 'sprite_cut',
+      framesBase: '/assets/mascots/roundtrip/frames/',
+      frameWidth: 16,
+      frameHeight: 16,
+      fallbackSilhouette: 'gnome',
+      customStates: [{ key: 'magie', label: 'Magie' }],
+      stateFrames: {
+        idle: { files: ['a.png'], fps: 2 },
+        magie: { files: ['m.png'], fps: 8 },
+      },
+    },
+    { relaxAssetPrefix: false },
+  );
+  assert.equal(r.ok, true);
+  const states = mascotPackToUnifiedStates(r.pack);
+  const magie = states.find((s) => s.key === 'magie');
+  assert.equal(magie.label, 'Magie');
+  assert.deepEqual(magie.files, ['m.png']);
+  const idle = states.find((s) => s.key === 'idle');
+  assert.equal(idle.label, undefined); // pas de label pour un état canonique
+});
+
 test('relaxAssetPrefix autorise framesBase hors /assets/', async () => {
   const { validateMascotPackV1 } = await loadMascotPack();
   const r = validateMascotPackV1(

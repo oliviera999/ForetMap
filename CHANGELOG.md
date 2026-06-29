@@ -7,6 +7,17 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Mascotte — Schéma de pack unifié `states[]` en lecture (étape 5 convergence)
+
+- **Forme `states[]` acceptée côté FM** (alignée sur GL) : un pack peut déclarer ses états en
+  tableau `[{ key, label?, files?|srcs?, fps?, frameDwellMs? }]`. `normalizeUnifiedStates`
+  (`mascotPack.js`) désucre cette forme vers `stateFrames`/`customStates` **avant validation** —
+  validation/expansion/runtime inchangés. Une entrée à clé non canonique **déclare** l'état.
+  Helper inverse `mascotPackToUnifiedStates`. **Non cassant** : packs historiques toujours valides,
+  persistance en forme canonique. Miroir `lib/visit-pack/` resync.
+- Tests : `tests/mascot-pack.test.js` (states[] désucré, clé custom mal formée refusée, round-trip).
+  Docs `docs/MASCOT_PACK.md` et `docs/MASCOT_ARCHITECTURE_CONVERGENCE.md`.
+
 ### Mascotte — Émetteurs d'événements déclaratifs + l'interactionProfile agit sur le plan live (étape 4 convergence)
 
 - **`emitMascotEvent(eventKey)`** (`visit-views.jsx`) : les sites d'émission (déplacement long/très

@@ -26,6 +26,13 @@ l'éditeur WYSIWYG ; GL : champs JSON `states` / `triggers`).
 | `customStates`   | tableau (optionnel) | États d'animation personnalisés : `{ key, label }`. `key` en kebab/snake-case (`^[a-z0-9]+(?:[-_][a-z0-9]+)*$`, ≤ 40 car.), **unique** et **différente** des états canoniques. Donnez-leur des images via `stateFrames.<key>`. Utilisables comme cible d'alias, de règle d'interaction et de déclencheur. Max 24.                                                                                                                 |
 | `customTriggers` | tableau (optionnel) | Déclencheurs pilotés par les données : `{ key, label, type, state, durationMs, everyMs?, dialog? }`. `type: 'periodic'` joue `state` pendant `durationMs` toutes les `everyMs` ms (≥ 1000) — comportement ambiant ; `type: 'tap'` joue `state` au clic/tap sur la mascotte. `state` = état canonique **ou** `customStates`. `dialog` = bulles optionnelles (≤ 12 × 160 car.). Clé non réservée (≠ événements prédéfinis). Max 16. |
 
+**Forme unifiée `states[]` (entrée, aligné GL)** : au lieu de `stateFrames` (objet) + `customStates`,
+un pack peut déclarer ses états en **tableau** : `states: [{ key, label?, files?|srcs?, fps?,
+frameDwellMs? }]`. À la lecture, `normalizeUnifiedStates` désucre cette forme vers
+`stateFrames`/`customStates` (une entrée à clé non canonique **déclare** l'état). Les deux formes
+sont acceptées ; la persistance reste en forme canonique. Conversion inverse :
+`mascotPackToUnifiedStates(pack)`.
+
 Déclencheur d'interaction **général** ajouté à la palette v2 : **`mascotTap`** (tap/clic direct sur
 la mascotte), configurable dans `interactionProfile` comme les autres événements.
 
