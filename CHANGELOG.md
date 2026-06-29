@@ -24,6 +24,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - Test : `tests-ui/gl/GLChapterMapStudio.test.jsx` (régression — le drag persiste la position finale,
   jamais une position intermédiaire périmée).
 
+### GL — Autosave QCM : création sans perte de saisie en vol
+
+- **Éditeurs QCM biomes + lore** : après la création initiale d'une question, le passage du brouillon
+  (`new:<code>`) à la fiche persistée (`<code>`) rebaselinait l'autosave avec la saisie courante. Une
+  frappe effectuée pendant le `POST` de création restait visible à l'écran mais pouvait ne jamais être
+  envoyée en `PUT`, puis disparaître au rechargement. La clé de reset de l'autosave est maintenant pilotée
+  uniquement par les chargements explicites de fiche/brouillon, et un test UI couvre le second autosave
+  attendu après création.
 ### ForetMap — Cartes : étiquettes plus grandes, grossissement au zoom configurable
 
 - **Étiquettes un peu plus grandes** : tailles de référence portées de 17→**19 px** (emoji) et 12→**14 px**
@@ -178,6 +186,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Suivi de position** : sur un plan calé, la mascotte suit la position GPS réelle de l'élève via un bouton « 📍 Me suivre » (toolbar carte). Conversion lat/lng → % par transformation affine à 3 points (`src/utils/mapGeoTransform.js`). Position traitée 100 % côté client (jamais envoyée au serveur).
 - **Outil prof « Calage GPS »** : dans Réglages → Cartes, poser 3 repères sur le plan + saisir/capturer leurs coordonnées GPS, puis activer le suivi par plan (`MapGeorefPanel`).
 - **API** : `PUT /api/settings/admin/maps/:id/georef` ; champs `georef`/`gps_enabled` exposés par `GET /api/maps` (cf. `docs/API.md`). Migration `148_map_georef.sql` (colonnes `geo_anchors_json`, `gps_enabled`).
+- **Correctif calage GPS** : un brouillon incomplet dans l'outil prof n'envoie plus `anchors: []` et ne peut donc plus effacer silencieusement le calage existant ; côté API, omettre `anchors` conserve désormais les ancres stockées.
 - **Dégradation** : bouton masqué si capteur absent (`navigator.geolocation`) ou plan non calé ; HTTPS requis. Seuil de précision + détection hors-zone pour éviter les sauts.
 - **Calage prof — ergonomie** : plan affiché en pleine largeur (plus de plafond à 240 px) ; clic direct sur le plan pour poser les repères (ciblage automatique du point suivant, plus besoin d'armer un bouton), bannière de guidage et curseur réticule. Image du plan exclue de la lightbox globale (`data-no-lightbox`) : le clic pose un repère au lieu d'ouvrir l'aperçu plein écran.
 - **Suivi — légende de statut** : légende textuelle sous la barre d'outils carte (`MascotGpsStatusBanner`) explicitant l'état du suivi (actif + précision, localisation refusée, hors zone du plan, signal faible, acquisition en cours), avec icône dédiée par état. Le bouton « 📍 » distingue désormais le signal faible (📶) de l'erreur bloquante (⚠️).
