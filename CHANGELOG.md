@@ -7,6 +7,26 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Mascotte — Runtime commun mono+multi : `useMascotTransientState` (étape 7 convergence)
+
+- **Hook partagé** `src/hooks/useMascotTransientState.js` : factorise la mécanique « état
+  transitoire + timeout + garde anti-idle » des deux runtimes mascotte, **paramétrée par arité**
+  via une *clé* (un timer par clé). Le runtime **mono** (visite) utilise une clé fixe ; le runtime
+  **multi** (plateau GL) utilise l'identifiant d'équipe.
+- **Consommé par** `useVisitMascotStateMachine` (`triggerMascotTransientState` /
+  `resetMascotTransientState`) **et** `useGLBoardMascotMotion` (`triggerTransient(teamId, …)`). La
+  logique dupliquée (refs de timeout, garde anti-idle, clamp de durée, nettoyage au démontage)
+  disparaît des deux côtés.
+- Chaque produit ne fournit que ses spécificités : `resolveState` (visite :
+  `resolveVisitMascotState({ extraStates })` ; GL : trim brut), `idleState`, durées (visite `1500`,
+  GL `900`) et les applicateurs d'état (visite `setState` ; GL `patchMotion`).
+- **Comportement observable strictement préservé** : priorité `transient > happy > walking`,
+  localStorage de l'id mascotte, aperçu/reset (visite) ; `walking`/`happy`/`faceRight`/`snapCenter`,
+  timers de déplacement, ambiant per-équipe et états personnalisés (GL).
+- Tests : `tests-ui/hooks/useMascotTransientState.test.js` (garde anti-idle, arité N, re-déclenche,
+  reset, résolution de durée, identité stable) ; suites existantes (mono / GL / ambiant) restées
+  vertes. Docs `docs/MASCOT_ARCHITECTURE_CONVERGENCE.md`.
+
 ### Mascotte — Write-side WYSIWYG : forme unifiée `states[]` (export/import archive + aperçu)
 
 - **Décision (Option 1, faible risque)** : le modèle interne de l'éditeur visuel reste en forme
