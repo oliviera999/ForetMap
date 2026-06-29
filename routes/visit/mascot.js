@@ -550,10 +550,16 @@ router.get(
       } catch (_) {
         packJson = {};
       }
+      const unified = ['1', 'true', 'states', 'unified'].includes(
+        String(req.query.unified || '')
+          .trim()
+          .toLowerCase(),
+      );
       const built = buildVisitExportArchive({
         packRow: row,
         packJson,
         mapId: row.map_id,
+        unified,
       });
       const zipBuffer = buildMascotPackZipBuffer({
         manifest: built.manifest,

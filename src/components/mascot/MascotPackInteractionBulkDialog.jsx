@@ -1,8 +1,9 @@
 import React, { useMemo, useState } from 'react';
-import { VISIT_MASCOT_STATE } from '../../utils/visitMascotState.js';
-import { STATE_LABELS } from '../../constants/mascotStateLabels.js';
 import {
-  VISIT_MASCOT_INTERACTION_EVENT_KEYS,
+  buildStateOptions,
+  INTERACTION_EVENT_OPTIONS,
+} from '../../utils/visitMascotBehaviorRegistry.js';
+import {
   VISIT_MASCOT_INTERACTION_LABELS,
   DEFAULT_VISIT_MASCOT_INTERACTION_PROFILE,
 } from '../../utils/visitMascotInteractionEvents.js';
@@ -15,9 +16,12 @@ export default function MascotPackInteractionBulkDialog({
   onClose,
   packVersion = 1,
   defaultTargetState = 'idle',
+  pack = null,
   onUpgradeToV2,
   onApply,
 }) {
+  // États proposés : palette canonique + états personnalisés du pack (registre).
+  const stateOptions = useMemo(() => buildStateOptions(pack), [pack]);
   const [selectedKeys, setSelectedKeys] = useState(() => new Set());
   const [mode, setMode] = useState('transient');
   const [state, setState] = useState(defaultTargetState);
@@ -35,7 +39,7 @@ export default function MascotPackInteractionBulkDialog({
   };
 
   const selectAllKeys = () => {
-    setSelectedKeys(new Set(VISIT_MASCOT_INTERACTION_EVENT_KEYS));
+    setSelectedKeys(new Set(INTERACTION_EVENT_OPTIONS.map((o) => o.key)));
   };
 
   const clearKeys = () => setSelectedKeys(new Set());
@@ -97,7 +101,7 @@ export default function MascotPackInteractionBulkDialog({
         </div>
 
         <ul className="mascot-pack-interaction-bulk-dialog__keys">
-          {VISIT_MASCOT_INTERACTION_EVENT_KEYS.map((key) => {
+          {INTERACTION_EVENT_OPTIONS.map(({ key }) => {
             const def = DEFAULT_VISIT_MASCOT_INTERACTION_PROFILE[key] || { mode: 'none' };
             return (
               <li key={key}>
@@ -145,9 +149,10 @@ export default function MascotPackInteractionBulkDialog({
                   value={state}
                   onChange={(e) => setState(e.target.value)}
                 >
-                  {Object.values(VISIT_MASCOT_STATE).map((st) => (
-                    <option key={st} value={st}>
-                      {STATE_LABELS[st] || st}
+                  {stateOptions.map((opt) => (
+                    <option key={opt.key} value={opt.key}>
+                      {opt.label}
+                      {opt.custom ? ' (perso)' : ''}
                     </option>
                   ))}
                 </select>
