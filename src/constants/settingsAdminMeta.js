@@ -247,6 +247,12 @@ export const KEY_META = {
     section: 'modules',
     order: 73,
   },
+  'ui.map.overlay_zoom_growth_percent': {
+    label:
+      'Carte — grossissement des étiquettes au zoom (% : 0 = taille constante, 35 = défaut, 100 = linéaire)',
+    section: 'modules',
+    order: 73.5,
+  },
   'ui.map.plateau_marker_size_percent': {
     label: 'Carte / plateau GL — taille des repères (% du plateau, ForetMap + GL)',
     section: 'modules',
