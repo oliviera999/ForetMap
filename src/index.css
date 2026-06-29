@@ -3854,7 +3854,8 @@
       width:100%;
       height:100%;
       transform-origin:0 0;
-      will-change:transform;
+      /* `will-change: transform` est posé impérativement pendant les gestes (cf. markVisitInteracting)
+         puis retiré au repos : le calque se re-pixellise net à l'échelle affichée (texte/emoji). */
     }
     /* Calque aligné sur le rectangle réel de l’image (comme MapView), pas sur toute la scène 16:10 — évite décalage/distorsion des % avec object-fit:contain. */
     .visit-map-fit-layer {
