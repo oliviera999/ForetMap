@@ -68,7 +68,6 @@ import { useData } from '../contexts/DataContext.jsx';
 
 import { buildVisitMascotCatalogExtrasFromContent } from '../utils/visitMascotPackExtras.js';
 import { resolveMascotDialogLine } from '../utils/visitMascotDialogApply.js';
-import { VISIT_MASCOT_STATE } from '../utils/visitMascotState.js';
 import { VISIT_MASCOT_INTERACTION_EVENT } from '../utils/visitMascotInteractionEvents.js';
 import { resolveVisitMascotInteraction } from '../utils/visitMascotInteractionApply.js';
 import { getTapActions, runBehaviorAction } from '../utils/mascotBehaviorEngine.js';
@@ -784,6 +783,26 @@ function VisitViewImpl({
     }, VISIT_MAP_MASCOT_HAPPY_MS);
   }, []);
 
+  /**
+   * Émetteur déclaratif : un événement d'interaction nommé est résolu via le
+   * profil du pack actif (`interactionProfile`, défaut = comportement historique)
+   * puis appliqué. Découple les vues des états/durées câblés en dur.
+   */
+  const emitMascotEvent = useCallback(
+    (eventKey) => {
+      const resolved = resolveVisitMascotInteraction(eventKey, {
+        mascotId: visitMascotId,
+        extraCatalogEntries: visitMascotCatalogExtras,
+      });
+      if (resolved?.kind === 'happy') {
+        triggerMascotHappy();
+      } else if (resolved?.kind === 'transient' && resolved.state) {
+        triggerMascotTransientState(resolved.state, resolved.durationMs);
+      }
+    },
+    [visitMascotId, visitMascotCatalogExtras, triggerMascotHappy, triggerMascotTransientState],
+  );
+
   const moveVisitMapMascotTo = useCallback(
     (xp, yp) => {
       if (!Number.isFinite(xp) || !Number.isFinite(yp)) return;
@@ -807,10 +826,10 @@ function VisitViewImpl({
       } else {
         setVisitMapMascotWalking(true);
         if (dist > 15) {
-          triggerMascotTransientState(VISIT_MASCOT_STATE.RUNNING, 1000);
+          emitMascotEvent(VISIT_MASCOT_INTERACTION_EVENT.MASCOT_DRAG_VERY_LARGE);
           showMascotDialog('running');
         } else if (dist > 9) {
-          triggerMascotTransientState(VISIT_MASCOT_STATE.SURPRISE, 900);
+          emitMascotEvent(VISIT_MASCOT_INTERACTION_EVENT.MASCOT_DRAG_LARGE);
           showMascotDialog('surprise');
         }
         if (dist > 4) showMascotDialog('move');
@@ -824,7 +843,7 @@ function VisitViewImpl({
       setVisitMapMascotPct({ xp: nx, yp: ny });
       saveVisitMascotPositionPct(mapId, { xp: nx, yp: ny });
     },
-    [mapId, prefersReducedMotion, showMascotDialog, triggerMascotTransientState],
+    [mapId, prefersReducedMotion, showMascotDialog, emitMascotEvent],
   );
 
   /**
@@ -924,10 +943,10 @@ function VisitViewImpl({
   }, [clampTransform]);
 
   const onMascotSeenCelebration = useCallback(() => {
-    triggerMascotHappy();
-    triggerMascotTransientState(VISIT_MASCOT_STATE.CELEBRATE, 1450);
+    emitMascotEvent(VISIT_MASCOT_INTERACTION_EVENT.MARKER_MARKED_SEEN_HAPPY);
+    emitMascotEvent(VISIT_MASCOT_INTERACTION_EVENT.MARKER_MARKED_SEEN);
     showMascotDialog('mark_seen', { force: true });
-  }, [triggerMascotHappy, triggerMascotTransientState, showMascotDialog]);
+  }, [emitMascotEvent, showMascotDialog]);
 
   // Comportements ambiants data-driven (déclencheurs `periodic` du pack actif).
   useAmbientMascotBehavior({
@@ -940,29 +959,14 @@ function VisitViewImpl({
 
   /** Tap/clic direct sur la mascotte : déclencheur général `mascotTap` + déclencheurs `tap` du pack. */
   const onMascotTap = useCallback(() => {
-    const resolved = resolveVisitMascotInteraction(VISIT_MASCOT_INTERACTION_EVENT.MASCOT_TAP, {
-      mascotId: visitMascotId,
-      extraCatalogEntries: visitMascotCatalogExtras,
-    });
-    if (resolved?.kind === 'happy') {
-      triggerMascotHappy();
-    } else if (resolved?.kind === 'transient' && resolved.state) {
-      triggerMascotTransientState(resolved.state, resolved.durationMs);
-    }
+    emitMascotEvent(VISIT_MASCOT_INTERACTION_EVENT.MASCOT_TAP);
     for (const action of getTapActions(activeMascotEntry)) {
       runBehaviorAction(action, {
         playState: triggerMascotTransientState,
         showDialog: showMascotDialogLines,
       });
     }
-  }, [
-    visitMascotId,
-    visitMascotCatalogExtras,
-    activeMascotEntry,
-    triggerMascotHappy,
-    triggerMascotTransientState,
-    showMascotDialogLines,
-  ]);
+  }, [emitMascotEvent, activeMascotEntry, triggerMascotTransientState, showMascotDialogLines]);
 
   const queueSeenChangeLocally = useCallback((payloadType, payloadId, nextSeen) => {
     const compact = enqueueVisitSeenAction({
@@ -1486,7 +1490,7 @@ function VisitViewImpl({
                                 const c = visitZoneCentroidPct(z);
                                 const fromPct = { ...visitMapMascotPctRef.current };
                                 if (c) moveVisitMapMascotTo(c.xp, c.yp);
-                                triggerMascotTransientState(VISIT_MASCOT_STATE.MAP_READ, 1200);
+                                emitMascotEvent(VISIT_MASCOT_INTERACTION_EVENT.MAP_READ_OPEN);
                                 showMascotDialog('map_read');
                                 if (c) scheduleVisitDetailPanelOpen(z, 'zone', c.xp, c.yp, fromPct);
                                 else {
@@ -1574,7 +1578,7 @@ function VisitViewImpl({
                             if (mode === 'view') {
                               const fromPct = { ...visitMapMascotPctRef.current };
                               moveVisitMapMascotTo(Number(m.x_pct), Number(m.y_pct));
-                              triggerMascotTransientState(VISIT_MASCOT_STATE.INSPECT, 1200);
+                              emitMascotEvent(VISIT_MASCOT_INTERACTION_EVENT.MARKER_INSPECT_OPEN);
                               showMascotDialog('inspect');
                               scheduleVisitDetailPanelOpen(
                                 m,

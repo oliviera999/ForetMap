@@ -7,6 +7,19 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Mascotte — Émetteurs d'événements déclaratifs + l'interactionProfile agit sur le plan live (étape 4 convergence)
+
+- **`emitMascotEvent(eventKey)`** (`visit-views.jsx`) : les sites d'émission (déplacement long/très
+  long, marquage « vu », ouverture zone/repère, tap) émettent un événement nommé résolu via
+  `resolveVisitMascotInteraction` (profil du pack, défaut = comportement historique) au lieu d'états
+  câblés en dur.
+- **Correctif notable** : le **profil d'interaction (`interactionProfile`) d'un pack agit désormais
+  sur le plan de visite *live*** — il n'avait auparavant d'effet qu'en aperçu studio (les vues
+  ignoraient le profil et jouaient des états/durées figés). Comportement par défaut inchangé (les
+  défauts du profil correspondent aux valeurs historiques) ; contrat verrouillé par
+  `tests/visit-mascot-interaction.test.js`.
+- Docs `docs/MASCOT_ARCHITECTURE_CONVERGENCE.md`.
+
 ### Mascotte — Moteur de comportement unifié FM/GL (étape 3 convergence)
 
 - **Moteur partagé** `src/utils/mascotBehaviorEngine.js` : `resolveTriggerAction(entry, trigger)` →
