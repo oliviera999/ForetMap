@@ -7,6 +7,24 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Mascotte — Retrait du pont GL→visite : adaptateur mince (étape 6 convergence)
+
+- **`glMascotPackSpriteCutToVisitValidation` réduit à un adaptateur mince** : il ne fait plus que
+  la **spécificité GL** (résoudre les indices `frames` → `srcs` depuis `assets`, remapper les clés
+  d'état via `mapGlMascotStateKeyToVisit`, porter les `triggers` GL vers `customTriggers`, fournir
+  les defaults de cadrage absents du schéma GL). Il produit désormais la **forme unifiée `states[]`**
+  et **délègue entièrement** à `validateMascotPack` (désucrage via `normalizeUnifiedStates` +
+  clamp/defaults d'animation `fps`/`pixelated`/`displayScale` via `expandMascotPackToSpriteCut`).
+- **Suppression de la logique dupliquée** : construction manuelle de `stateFrames`, des libellés
+  d'états personnalisés et des `customStates`, ainsi que les defaults `fps`/`pixelated`/`displayScale`
+  re-codés dans le pont — désormais un **seul chemin** (le cœur visite).
+- **Non cassant** : `expandGlMascotPackSpriteCut`, la prévisualisation GL
+  (`GLMascotPackPreviewPanel`, `GLMascotPackWysiwygEditor`), `buildGlMascotExtraCatalogEntries` et le
+  catalogue serveur (`lib/glMascotPackCatalog.js`) fonctionnent à l'identique (états personnalisés +
+  triggers + dialogProfile préservés).
+- Tests : `tests/gl-mascot-pack-to-visit.test.js` étendu (mêmes assertions + vérification que les
+  defaults/clamp viennent du seul chemin visite). Docs `docs/MASCOT_ARCHITECTURE_CONVERGENCE.md`.
+
 ### Mascotte — Schéma de pack unifié `states[]` en lecture (étape 5 convergence)
 
 - **Forme `states[]` acceptée côté FM** (alignée sur GL) : un pack peut déclarer ses états en
