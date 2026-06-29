@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { apiGL } from '../services/apiGL.js';
 import { AutoSaveStatus } from '../../shared/components/AutoSaveStatus.jsx';
 import { useDebouncedAutoSave } from '../../shared/hooks/useDebouncedAutoSave.js';
@@ -51,6 +51,11 @@ export function GLChaptersAdminView() {
   const [platformBrand, setPlatformBrand] = useState(null);
   const [glModules, setGlModules] = useState(null);
   const previewMapGestures = useGlPctMapGestures();
+  // Numéro de séquence des rechargements de détail : seule la réponse du
+  // rechargement le plus récent est appliquée. Empêche qu'une réponse arrivée
+  // dans le désordre (après plusieurs déplacements de repères enchaînés) écrase
+  // l'état frais et fasse « revenir » des repères à leur ancienne position.
+  const detailLoadSeqRef = useRef(0);
   const assetsReady = useGlAssetsReady();
   const resolveChapterMarkdown = useGlChapterEditorMarkdownResolver(chapterForm.plateauNumber);
 
@@ -91,14 +96,18 @@ export function GLChaptersAdminView() {
 
   async function loadDetail(slug) {
     if (!slug) return;
+    const seq = (detailLoadSeqRef.current += 1);
     try {
       const data = await apiGL(`/api/gl/chapters/${encodeURIComponent(slug)}`);
+      // Réponse périmée : un rechargement plus récent a été lancé entre-temps.
+      if (seq !== detailLoadSeqRef.current) return;
       setDetail(data);
       setChapterForm(chapterDetailToForm(data));
       setSelectedId(Number(data.chapter.id));
       setChapterFormRevision((value) => value + 1);
       clearPendingMapImage();
     } catch (err) {
+      if (seq !== detailLoadSeqRef.current) return;
       setError(err.message || 'Détail introuvable');
     }
   }

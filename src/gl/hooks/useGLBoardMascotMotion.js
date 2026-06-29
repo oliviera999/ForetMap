@@ -277,5 +277,6 @@ export function useGLBoardMascotMotion({
     getMotionForTeam,
     moveTeamTo,
     moveTeamAlongPath,
+    triggerTransient,
   };
 }

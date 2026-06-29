@@ -1,8 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { withAppBase } from '../../services/api';
 import { isSpriteLibraryPreviewableUrl } from '../../utils/visitMascotPackTiming.js';
-import { VISIT_MASCOT_STATE } from '../../utils/visitMascotState.js';
-import { STATE_LABELS } from '../../constants/mascotStateLabels.js';
+import { buildStateOptions, getStateLabel } from '../../utils/visitMascotBehaviorRegistry.js';
 import {
   buildUnifiedMascotImageEntries,
   filterMascotImageEntriesForSelectionCriterion,
@@ -117,7 +116,8 @@ export default function MascotPackImagesPanel({
     .filter(Boolean)
     .join(' · ');
 
-  const targetLabel = STATE_LABELS[targetState] || targetState;
+  const targetLabel = getStateLabel(targetState, editorPack);
+  const stateOptions = buildStateOptions(editorPack);
 
   const canRename = selectedEntries.every(
     (e) => e.deleteScope === 'pack' || e.deleteScope === 'map',
@@ -298,9 +298,10 @@ export default function MascotPackImagesPanel({
             onChange={(e) => onTargetStateChange(e.target.value)}
             aria-label="État d’animation cible pour l’insertion d’images"
           >
-            {Object.values(VISIT_MASCOT_STATE).map((st) => (
-              <option key={st} value={st}>
-                {STATE_LABELS[st] || st} ({st})
+            {stateOptions.map((opt) => (
+              <option key={opt.key} value={opt.key}>
+                {opt.label}
+                {opt.custom ? ' (perso)' : ''} ({opt.key})
               </option>
             ))}
           </select>
@@ -500,6 +501,7 @@ export default function MascotPackImagesPanel({
         onClose={() => setInteractionOpen(false)}
         packVersion={packVersion}
         defaultTargetState={targetState}
+        pack={editorPack}
         onUpgradeToV2={onUpgradeToV2}
         onApply={onBulkInteractionApply}
       />

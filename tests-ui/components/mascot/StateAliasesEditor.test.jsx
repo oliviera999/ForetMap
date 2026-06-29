@@ -51,21 +51,29 @@ describe('StateAliasesEditor', () => {
 
   test('+ Alias désactivé quand tous les états sont déjà mappés', () => {
     const allStates = {};
-    // Mappe les 13 états canoniques (clés = STATE_OPTIONS) pour saturer.
+    // Mappe tous les états canoniques (clés = STATE_OPTIONS) pour saturer.
     [
       'alert',
       'angry',
       'celebrate',
+      'dance',
+      'eat',
       'happy',
       'happy_jump',
       'idle',
       'inspect',
+      'love',
       'map_read',
+      'point',
       'running',
+      'sad',
+      'search',
+      'sleep',
       'spin',
       'surprise',
       'talk',
       'walking',
+      'wave',
     ].forEach((s) => {
       allStates[s] = 'idle';
     });

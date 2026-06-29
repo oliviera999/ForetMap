@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { VISIT_MASCOT_STATE, resolveVisitMascotState } from '../utils/visitMascotState.js';
+import { getEntryCustomStateKeys } from '../utils/visitMascotCustomBehaviors.js';
 import {
   buildVisitMascotSelectionOptions,
   getDefaultVisitMascotId,
@@ -26,6 +27,14 @@ const VISIT_MASCOT_PREVIEW_STATE_META = {
   [VISIT_MASCOT_STATE.ALERT]: { label: 'Alerte', icon: '⚠️' },
   [VISIT_MASCOT_STATE.ANGRY]: { label: 'Colère', icon: '😠' },
   [VISIT_MASCOT_STATE.SURPRISE]: { label: 'Surprise', icon: '😲' },
+  [VISIT_MASCOT_STATE.SLEEP]: { label: 'Sommeil', icon: '😴' },
+  [VISIT_MASCOT_STATE.WAVE]: { label: 'Salut', icon: '👋' },
+  [VISIT_MASCOT_STATE.DANCE]: { label: 'Danse', icon: '💃' },
+  [VISIT_MASCOT_STATE.EAT]: { label: 'Repas', icon: '🍃' },
+  [VISIT_MASCOT_STATE.SEARCH]: { label: 'Recherche', icon: '🔦' },
+  [VISIT_MASCOT_STATE.SAD]: { label: 'Triste', icon: '😢' },
+  [VISIT_MASCOT_STATE.LOVE]: { label: 'Cœur', icon: '💚' },
+  [VISIT_MASCOT_STATE.POINT]: { label: 'Désigne', icon: '👉' },
 };
 
 function useVisitMascotStateMachine({
@@ -56,6 +65,17 @@ function useVisitMascotStateMachine({
   const visitMascotOptions = useMemo(
     () => buildVisitMascotSelectionOptions(extraCatalogEntries, allowedMascotIds),
     [extraCatalogEntries, allowedMascotIds],
+  );
+
+  /** Entrée catalogue active (porte d'éventuels états/déclencheurs personnalisés). */
+  const activeMascotEntry = useMemo(
+    () => resolveVisitMascotEntry(visitMascotId, extraCatalogEntries),
+    [visitMascotId, extraCatalogEntries],
+  );
+  /** Clés d'états personnalisés du pack actif : acceptées comme états transitoires jouables. */
+  const activeCustomStateKeys = useMemo(
+    () => getEntryCustomStateKeys(activeMascotEntry),
+    [activeMascotEntry],
   );
 
   useEffect(() => {
@@ -93,6 +113,14 @@ function useVisitMascotStateMachine({
       VISIT_MASCOT_STATE.ALERT,
       VISIT_MASCOT_STATE.ANGRY,
       VISIT_MASCOT_STATE.SURPRISE,
+      VISIT_MASCOT_STATE.SLEEP,
+      VISIT_MASCOT_STATE.WAVE,
+      VISIT_MASCOT_STATE.DANCE,
+      VISIT_MASCOT_STATE.EAT,
+      VISIT_MASCOT_STATE.SEARCH,
+      VISIT_MASCOT_STATE.SAD,
+      VISIT_MASCOT_STATE.LOVE,
+      VISIT_MASCOT_STATE.POINT,
     ];
     const supported = getVisitMascotSupportedStates(visitMascotId, extraCatalogEntries);
     const fromCatalog = resolveVisitMascotEntry(visitMascotId, extraCatalogEntries);
@@ -149,7 +177,7 @@ function useVisitMascotStateMachine({
 
   const triggerMascotTransientState = useCallback(
     (state, durationMs = transientDurationMs) => {
-      const wanted = resolveVisitMascotState({ state });
+      const wanted = resolveVisitMascotState({ state, extraStates: activeCustomStateKeys });
       if (!wanted || wanted === VISIT_MASCOT_STATE.IDLE) return;
       if (visitMapMascotTransientStateTimeoutRef.current) {
         clearTimeout(visitMapMascotTransientStateTimeoutRef.current);
@@ -163,7 +191,7 @@ function useVisitMascotStateMachine({
         Math.max(300, Number(durationMs) || VISIT_MASCOT_TRANSIENT_STATE_MS),
       );
     },
-    [transientDurationMs],
+    [transientDurationMs, activeCustomStateKeys],
   );
 
   const visitMascotAnimationState = useMemo(
@@ -172,8 +200,9 @@ function useVisitMascotStateMachine({
         state: visitMapMascotTransientState,
         happy,
         walking,
+        extraStates: activeCustomStateKeys,
       }),
-    [visitMapMascotTransientState, happy, walking],
+    [visitMapMascotTransientState, happy, walking, activeCustomStateKeys],
   );
 
   const onChangeVisitMascotId = useCallback(
@@ -190,6 +219,8 @@ function useVisitMascotStateMachine({
     visitMascotPreviewState,
     visitMascotPreviewStateOptions,
     visitMascotAnimationState,
+    activeMascotEntry,
+    activeCustomStateKeys,
     onChangeVisitMascotId,
     setVisitMascotPreviewState,
     triggerMascotTransientState,

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { apiGL } from '../services/apiGL.js';
 import { AutoSaveStatus } from '../../shared/components/AutoSaveStatus.jsx';
 import { useDebouncedAutoSave } from '../../shared/hooks/useDebouncedAutoSave.js';
@@ -57,6 +57,9 @@ export function GLChapterMapStudio({
   const [editableMarkers, setEditableMarkers] = useState([]);
   const [dragState, setDragState] = useState(null);
   const [saving, setSaving] = useState(false);
+  // Dernière position pointée pendant un glisser-déposer : lue par le `pointerup`
+  // sans dépendre d'un re-render React (sinon la fin du déplacement est perdue).
+  const dragLatestPctRef = useRef(null);
 
   const imageStyle = useMemo(
     () => glImageFrameToStyle(normalizeGlImageFrame(mapImageFrame, 'chapter-map')),
@@ -159,9 +162,13 @@ export function GLChapterMapStudio({
 
   useEffect(() => {
     if (!dragState || !mapGestures?.toImagePct || zoneEditActive) return undefined;
+    // Réinitialise la position pointée à l'amorce du glisser : un nouveau drag ne
+    // doit jamais réutiliser la dernière position d'un drag précédent.
+    dragLatestPctRef.current = null;
     const onMove = (event) => {
       const pct = mapGestures.toImagePct(event.clientX, event.clientY);
       if (!pct) return;
+      dragLatestPctRef.current = { x: pct.x, y: pct.y };
       setEditableMarkers((prev) =>
         prev.map((marker) =>
           Number(marker.id) === Number(dragState.markerId)
@@ -172,13 +179,19 @@ export function GLChapterMapStudio({
       setMarkerForm((prev) => ({ ...prev, xPct: pct.x, yPct: pct.y }));
     };
     const onUp = async () => {
-      const marker = editableMarkers.find((item) => Number(item.id) === Number(dragState.markerId));
       setDragState(null);
-      if (!marker) return;
+      // On lit la dernière position via la ref (et non via la closure
+      // `editableMarkers`, qui reflète le dernier re-render committé et peut
+      // être en retard sur le point de lâcher → fin du déplacement perdue).
+      const pct = dragLatestPctRef.current;
+      dragLatestPctRef.current = null;
+      if (!pct) return;
+      const xPct = Number(pct.x);
+      const yPct = Number(pct.y);
       try {
         await apiGL(`/api/gl/chapters/admin/markers/${dragState.markerId}`, 'PUT', {
-          xPct: Number(marker.x_pct),
-          yPct: Number(marker.y_pct),
+          xPct,
+          yPct,
         });
         onInfo?.('Position du repère mise à jour');
         await onReload?.(chapterSlug);
@@ -193,16 +206,7 @@ export function GLChapterMapStudio({
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerup', onUp);
     };
-  }, [
-    dragState,
-    mapGestures,
-    editableMarkers,
-    onError,
-    onInfo,
-    onReload,
-    chapterSlug,
-    zoneEditActive,
-  ]);
+  }, [dragState, mapGestures, onError, onInfo, onReload, chapterSlug, zoneEditActive]);
 
   useEffect(() => {
     if (zoneEditActive) {

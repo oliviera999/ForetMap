@@ -10,6 +10,9 @@ import { GLMarkerEffectPopover } from './GLMarkerEffectPopover.jsx';
 import { GLPctMapCanvas } from './GLPctMapCanvas.jsx';
 import { useGlPctMapGestures } from '../hooks/useGlPctMapGestures.js';
 import { useGLBoardMascotMotion } from '../hooks/useGLBoardMascotMotion.js';
+import { useGLBoardAmbientBehavior } from '../hooks/useGLBoardAmbientBehavior.js';
+import { useGLMascotCatalog } from '../context/GLMascotCatalogContext.jsx';
+import { resolveVisitMascotEntry } from '../../utils/visitMascotCatalog.js';
 import { useGLMarkerArrival } from '../hooks/useGLMarkerArrival.js';
 import { useGLZoneContentArrival } from '../hooks/useGLZoneContentArrival.js';
 import { useGLLoreFeuilletArrival } from '../hooks/useGLLoreFeuilletArrival.js';
@@ -124,12 +127,25 @@ export function GLGameBoard({
   const mapGestures = useGlPctMapGestures();
   const prefersReducedMotion = usePrefersReducedMotion();
 
-  const { getPositionForTeam, getMotionForTeam, moveTeamTo, moveTeamAlongPath } =
+  const { getPositionForTeam, getMotionForTeam, moveTeamTo, moveTeamAlongPath, triggerTransient } =
     useGLBoardMascotMotion({
       teams,
       boardHeightPx,
       prefersReducedMotion,
     });
+
+  // Comportements ambiants data-driven par équipe (moteur partagé FM/GL).
+  const { extraCatalogEntries: glMascotExtras } = useGLMascotCatalog();
+  const resolveTeamMascotEntry = useCallback(
+    (team) => resolveVisitMascotEntry(team?.mascot_id, glMascotExtras),
+    [glMascotExtras],
+  );
+  useGLBoardAmbientBehavior({
+    teams,
+    resolveEntry: resolveTeamMascotEntry,
+    triggerTransient,
+    prefersReducedMotion,
+  });
 
   const handleEffectAutoMove = useCallback(
     async (autoMove, { teamId }) => {
