@@ -65,8 +65,8 @@ Le « partage » réel se limite à : le **format pivot `sprite_cut`**, le **ren
    avec timeout, garde anti-`idle`, normalisation) avec des différences subtiles. C'est la
    dette la plus coûteuse : elle a empêché de câbler proprement le **playback ambiant
    per-équipe** côté GL (le board n'a pas d'accès structuré aux `customTriggers` par équipe).
-   _Partiellement levé_ : moteur partagé (étape 3) + ambiant GL câblé ; reste à fusionner les
-   deux machines à états (étape 7).
+   _Levé_ : moteur partagé (étape 3) + ambiant GL câblé ; **mécanique transitoire désormais
+   factorisée** dans `useMascotTransientState` (étape 7), consommée par les deux runtimes.
 
 5. **Déclencheurs câblés en dur = points de couplage.** Chaque émission d'événement
    (`markerMarkedSeen`, `mapReadOpen`, mouvement…) est codée dans les vues
@@ -185,11 +185,27 @@ dupliquée (construction manuelle de `stateFrames`/`customStates`, defaults re-c
 **Non cassant** : prévisualisation GL, `expandGlMascotPackSpriteCut`, catalogue serveur et
 `buildGlMascotExtraCatalogEntries` inchangés. Couvert par `tests/gl-mascot-pack-to-visit.test.js`.
 
-### Étape 7 — Runtime commun (L, risque élevé)
+### Étape 7 — Runtime commun (L, risque élevé) ✅ réalisée
 
-Factoriser la mécanique transient (état + timeout + garde) en un hook paramétrable par
-**arité** (1 mascotte FM / N équipes GL). Débloque le playback ambiant per-équipe côté GL
-(limite connue actuelle) et supprime les divergences subtiles de normalisation.
+Hook partagé **`src/hooks/useMascotTransientState.js`** : factorise la mécanique « état transitoire
+
+- timeout + garde anti-idle » en un primitif **paramétré par arité** via une _clé_ — le runtime
+  **mono** (`useVisitMascotStateMachine`, `triggerMascotTransientState`) utilise une **clé fixe** ;
+  le runtime **multi** (`useGLBoardMascotMotion`, `triggerTransient(teamId, …)`) utilise
+  l'**identifiant d'équipe**. Le hook gère le registre de timers (un par clé), l'annulation du timer
+  précédent, la résolution de durée (`Math.max(min, Number(durationMs ?? default) || fallback)`) et le
+  nettoyage au démontage. Chaque produit ne fournit que ses spécificités : `resolveState`
+  (visite résout via `resolveVisitMascotState({ extraStates })` ; GL trim brut), `idleState`,
+  durées (visite `1500`, GL `900`), et les _applicateurs_ d'état (visite : `setState` ; GL :
+  `patchMotion(teamId, { transientState })`).
+
+**Comportement observable strictement préservé** : priorité `transient > happy > walking` de la
+visite, localStorage de l'id mascotte, aperçu/reset ; côté GL `walking`/`happy`/`faceRight`/
+`snapCenter`, timers de déplacement (`moveTeamTo`/`moveTeamAlongPath`), ambiant per-équipe
+(`useGLBoardAmbientBehavior`) et états personnalisés (`GLBoardMascot`). La logique transitoire
+dupliquée (refs de timeout, garde, clamp) disparaît des deux runtimes. Couvert par
+`tests-ui/hooks/useMascotTransientState.test.js` + les suites existantes (mono/GL/ambiant) restées
+vertes.
 
 ## 6. Garde-fous
 
