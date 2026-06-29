@@ -1,24 +1,27 @@
 import React, { useMemo } from 'react';
 import { VISIT_MASCOT_STATE } from '../../utils/visitMascotState.js';
-import { STATE_OPTIONS, STATE_LABELS } from '../../constants/mascotStateLabels.js';
+import { buildStateOptions } from '../../utils/visitMascotBehaviorRegistry.js';
 
 /**
- * Éditeur d'alias d'états (feuille) : mappe un état canonique vers un autre.
- * La cible par défaut d'un nouvel alias privilégie un état possédant des frames
+ * Éditeur d'alias d'états (feuille) : mappe un état (canonique ou personnalisé)
+ * vers un autre. La cible par défaut privilégie un état possédant des frames
  * (idle prioritaire). État détenu par le parent via `onChange`.
  * @param {{
  *   stateFrames: Record<string, unknown>,
  *   aliases: Record<string, string>,
  *   onChange: (next: Record<string, string>) => void,
+ *   pack?: Record<string, unknown>,
  * }} props
  */
-export default function StateAliasesEditor({ stateFrames, aliases, onChange }) {
+export default function StateAliasesEditor({ stateFrames, aliases, onChange, pack = null }) {
   const keys = Object.keys(stateFrames || {});
   const rows = useMemo(() => Object.entries(aliases || {}), [aliases]);
+  // Options d'états (canonique + personnalisés du pack) via le registre central.
+  const stateOptions = useMemo(() => buildStateOptions(pack), [pack]);
 
   const addRow = () => {
     const used = new Set(rows.map(([a]) => a));
-    const aliasKey = STATE_OPTIONS.find((s) => !used.has(s)) || STATE_OPTIONS[0];
+    const aliasKey = stateOptions.find((o) => !used.has(o.key))?.key || stateOptions[0]?.key;
     const withFrames = keys.filter((k) => {
       const sf = stateFrames[k];
       if (!sf || typeof sf !== 'object') return false;
@@ -61,9 +64,10 @@ export default function StateAliasesEditor({ stateFrames, aliases, onChange }) {
                   onChange(next);
                 }}
               >
-                {STATE_OPTIONS.map((s) => (
-                  <option key={s} value={s}>
-                    {STATE_LABELS[s] || s} ({s})
+                {stateOptions.map((o) => (
+                  <option key={o.key} value={o.key}>
+                    {o.label}
+                    {o.custom ? ' (perso)' : ''} ({o.key})
                   </option>
                 ))}
               </select>
@@ -75,9 +79,10 @@ export default function StateAliasesEditor({ stateFrames, aliases, onChange }) {
                   onChange({ ...aliases, [alias]: ev.target.value });
                 }}
               >
-                {STATE_OPTIONS.map((s) => (
-                  <option key={s} value={s}>
-                    {STATE_LABELS[s] || s} ({s})
+                {stateOptions.map((o) => (
+                  <option key={o.key} value={o.key}>
+                    {o.label}
+                    {o.custom ? ' (perso)' : ''} ({o.key})
                   </option>
                 ))}
               </select>
@@ -100,7 +105,7 @@ export default function StateAliasesEditor({ stateFrames, aliases, onChange }) {
         type="button"
         className="btn btn-ghost btn-sm"
         onClick={addRow}
-        disabled={rows.length >= STATE_OPTIONS.length}
+        disabled={rows.length >= stateOptions.length}
       >
         + Alias
       </button>

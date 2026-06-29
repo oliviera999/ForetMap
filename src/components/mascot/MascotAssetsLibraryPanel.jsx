@@ -1,8 +1,7 @@
 import React from 'react';
 import { withAppBase } from '../../services/api';
 import { isSpriteLibraryPreviewableUrl } from '../../utils/visitMascotPackTiming.js';
-import { VISIT_MASCOT_STATE } from '../../utils/visitMascotState.js';
-import { STATE_LABELS } from '../../constants/mascotStateLabels.js';
+import { buildStateOptions } from '../../utils/visitMascotBehaviorRegistry.js';
 
 /**
  * Onglet « Édition guidée » — sections bibliothèque carte + assets globaux du site.
@@ -44,7 +43,9 @@ export default function MascotAssetsLibraryPanel({
   onGlobalTargetStateChange,
   onReloadGlobalAssets,
   onInsertGlobalAsset,
+  editorPack = null,
 }) {
+  const stateOptions = buildStateOptions(editorPack);
   return (
     <div>
       <section style={{ marginBottom: 16 }}>
@@ -157,9 +158,10 @@ export default function MascotAssetsLibraryPanel({
               value={globalTargetState}
               onChange={(e) => onGlobalTargetStateChange(e.target.value)}
             >
-              {Object.values(VISIT_MASCOT_STATE).map((st) => (
-                <option key={st} value={st}>
-                  {STATE_LABELS[st] || st} ({st})
+              {stateOptions.map((opt) => (
+                <option key={opt.key} value={opt.key}>
+                  {opt.label}
+                  {opt.custom ? ' (perso)' : ''} ({opt.key})
                 </option>
               ))}
             </select>

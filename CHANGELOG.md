@@ -7,6 +7,98 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Mascotte — Schéma de pack unifié `states[]` en lecture (étape 5 convergence)
+
+- **Forme `states[]` acceptée côté FM** (alignée sur GL) : un pack peut déclarer ses états en
+  tableau `[{ key, label?, files?|srcs?, fps?, frameDwellMs? }]`. `normalizeUnifiedStates`
+  (`mascotPack.js`) désucre cette forme vers `stateFrames`/`customStates` **avant validation** —
+  validation/expansion/runtime inchangés. Une entrée à clé non canonique **déclare** l'état.
+  Helper inverse `mascotPackToUnifiedStates`. **Non cassant** : packs historiques toujours valides,
+  persistance en forme canonique. Miroir `lib/visit-pack/` resync.
+- **Write-side studio (JSON)** : l'onglet **JSON** du studio accepte la forme `states[]` à
+  l'application (désucrée) et offre un bouton **« Forme unifiée states[] »** (`packToUnifiedForm`)
+  pour réécrire le brouillon. Modèle de l'éditeur visuel et persistance restent canoniques.
+- Tests : `tests/mascot-pack.test.js` (states[] désucré, clé custom mal formée refusée, round-trip),
+  `tests-ui/utils/mascotPackEditorModelUnified.test.js` (`packToUnifiedForm` + round-trip).
+  Docs `docs/MASCOT_PACK.md` et `docs/MASCOT_ARCHITECTURE_CONVERGENCE.md`.
+
+### Mascotte — Émetteurs d'événements déclaratifs + l'interactionProfile agit sur le plan live (étape 4 convergence)
+
+- **`emitMascotEvent(eventKey)`** (`visit-views.jsx`) : les sites d'émission (déplacement long/très
+  long, marquage « vu », ouverture zone/repère, tap) émettent un événement nommé résolu via
+  `resolveVisitMascotInteraction` (profil du pack, défaut = comportement historique) au lieu d'états
+  câblés en dur.
+- **Correctif notable** : le **profil d'interaction (`interactionProfile`) d'un pack agit désormais
+  sur le plan de visite *live*** — il n'avait auparavant d'effet qu'en aperçu studio (les vues
+  ignoraient le profil et jouaient des états/durées figés). Comportement par défaut inchangé (les
+  défauts du profil correspondent aux valeurs historiques) ; contrat verrouillé par
+  `tests/visit-mascot-interaction.test.js`.
+- Docs `docs/MASCOT_ARCHITECTURE_CONVERGENCE.md`.
+
+### Mascotte — Moteur de comportement unifié FM/GL (étape 3 convergence)
+
+- **Moteur partagé** `src/utils/mascotBehaviorEngine.js` : `resolveTriggerAction(entry, trigger)` →
+  action produit-agnostique (`state`, `durationMs`, `dialog`, `everyMs`), `getAmbientActions` /
+  `getTapActions`, et `runBehaviorAction(action, { playState, showDialog })`. La visite
+  (`useAmbientMascotBehavior` + tap) consomme désormais ce moteur au lieu d'une logique ad-hoc.
+- **Plateau GL : comportements ambiants par équipe enfin câblés** — nouveau hook
+  `src/gl/hooks/useGLBoardAmbientBehavior.js` (par équipe via `triggerTransient(teamId, …)` exposé
+  par `useGLBoardMascotMotion`), branché dans `GLGameBoard` avec résolution d'entrée par
+  `resolveVisitMascotEntry` + catalogue GL. Les entrées catalogue GL portent désormais
+  `customStates`/`customTriggers`/`dialogProfile` (`glMascotCatalogExtras`). Lève la limite connue
+  des étapes 1-2 (ambiant GL non câblé).
+- Tests : `tests-ui/utils/mascotBehaviorEngine.test.js`, `tests-ui/gl/useGLBoardAmbientBehavior.test.js`.
+  Docs `docs/MASCOT_PACK.md` et `docs/MASCOT_ARCHITECTURE_CONVERGENCE.md`.
+
+### Mascotte — Dialogues data-driven (étape 2 convergence)
+
+- **Profil de dialogue extensible** : `dialogProfile` n'est plus une énumération figée
+  (`.strict()`) — il accepte désormais les événements connus **ou** des clés personnalisées
+  (`a-z0-9_-`), validées par format ; `sanitizeDialogProfile` les conserve. Une clé mal formée
+  (camelCase) reste rejetée.
+- **Bulle des déclencheurs personnalisés centralisable** : `resolveTriggerDialogLines` résout la
+  bulle d'un `customTriggers` via `dialogProfile[clé]` (prioritaire) puis l'inline ; éditable au
+  **studio dialogue** (`VisitMascotDialogEditor` liste les déclencheurs personnalisés du pack).
+  Runtime (moteur ambiant + tap) câblé sur ce helper.
+- Tests : `tests/visit-mascot-dialog.test.js` (clés perso acceptées/rejetées, `sanitizeDialogProfile`,
+  `resolveTriggerDialogLines`), `tests-ui/components/VisitMascotDialogEditor.test.jsx`. Miroir
+  `lib/visit-pack/` resync. Docs `docs/MASCOT_PACK.md` et `docs/MASCOT_ARCHITECTURE_CONVERGENCE.md`.
+
+### Mascotte (visite + GL) — Comportements extensibles : palette élargie, états & déclencheurs personnalisés (studio prof)
+
+- **Palette d'états élargie** : 8 nouveaux états d'animation prédéfinis communs visite + GL —
+  `sleep`, `wave`, `dance`, `eat`, `search`, `sad`, `love`, `point` (`VISIT_MASCOT_STATE`,
+  libellés FR dans `src/constants/mascotStateLabels.js` et aperçu studio). Alias GL→visite
+  ajoutés (`src/utils/glMascotPackToVisit.js`).
+- **États personnalisés par pack (`customStates`)** : le prof crée ses propres états (clé + libellé)
+  dans le studio (visite : nouvel onglet « Comportements personnalisés » de l'éditeur WYSIWYG ;
+  GL : champ `states` libre + `label` optionnel). Validés (collision/doublon), rendus via
+  `stateFrames`, utilisables comme cibles d'alias, de règles d'interaction et de déclencheurs.
+- **Déclencheur général `mascotTap`** : tap/clic direct sur la mascotte (palette d'interaction v2 +
+  câblage runtime `VisitMapMascot`).
+- **Déclencheurs personnalisés (`customTriggers` / GL `triggers`)** : comportements pilotés par les
+  données du pack — `periodic` (joue un état toutes les `everyMs`, moteur ambiant
+  `useAmbientMascotBehavior`) ou `tap` (au clic). Bulles optionnelles. Édition au studio.
+- **Schéma & validation** : `mascotPack.js` (visite, v1/v2) et `glMascotPack.js` (GL) étendus
+  (Zod : clés uniques, non réservées, état cible valide, `everyMs` requis si périodique). Règle
+  d'interaction `transient` : l'appartenance de l'état (canonique **ou** personnalisé) est vérifiée
+  au niveau pack. Miroirs serveur `lib/visit-pack/` et `lib/gl-pack/` resynchronisés.
+- **Runtime** : `resolveVisitMascotState({ extraStates })` accepte les états personnalisés du pack
+  actif ; la machine à états visite expose l'entrée active et joue les états/déclencheurs custom ;
+  le plateau GL (`GLBoardMascot`) respecte les états personnalisés déclenchés.
+- **Registre central des comportements** (`src/utils/visitMascotBehaviorRegistry.js`, étape 1 du
+  plan de convergence) : source unique dérivant les options d'états/déclencheurs depuis
+  `(palette canonique ⊕ pack actif)`. Les éditeurs (profil d'interaction, alias, comportements
+  personnalisés, WYSIWYG, lot d'interaction, panneaux images) ne dépendent plus de constantes
+  figées : **les états personnalisés sont désormais sélectionnables partout** (cibles d'alias,
+  d'interaction, d'insertion d'images), plus seulement dans l'éditeur dédié. Voir
+  `docs/MASCOT_ARCHITECTURE_CONVERGENCE.md`.
+- Tests : `tests/mascot-pack.test.js` (palette, `customStates`, `customTriggers`),
+  `tests/gl-mascot-pack-to-visit.test.js` (préservation d'état GL + portage des triggers),
+  `tests-ui/utils/visitMascotCustomBehaviors.test.js`, `tests-ui/utils/visitMascotBehaviorRegistry.test.js`,
+  `tests-ui/hooks/useAmbientMascotBehavior.test.js`,
+  `tests-ui/components/mascot/MascotPackCustomBehaviorsEditor.test.jsx`. Docs `docs/MASCOT_PACK.md`
+  et `docs/MASCOT_ARCHITECTURE_CONVERGENCE.md`.
 ### GL — Édition du plateau : déplacement de repères enregistré de façon fiable (fix)
 
 - **Fin du glisser-déposer perdue** : lors du déplacement d'un repère sur la carte du chapitre

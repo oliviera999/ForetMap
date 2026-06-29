@@ -14,6 +14,38 @@ test('parseDialogProfileJson refuse une clé inconnue', async () => {
   assert.equal(r.ok, false);
 });
 
+test('parseDialogProfileJson accepte une clé personnalisée (snake-case)', async () => {
+  const { parseDialogProfileJson } = await import('../src/utils/visitMascotDialogEvents.js');
+  const ok = parseDialogProfileJson({ ambient_yawn: ['Hmm...'] });
+  assert.equal(ok.ok, true);
+  assert.deepEqual(ok.profile.ambient_yawn, ['Hmm...']);
+  // Une clé camelCase non connue reste rejetée (format invalide).
+  const bad = parseDialogProfileJson({ notAnEvent: ['x'] });
+  assert.equal(bad.ok, false);
+});
+
+test('sanitizeDialogProfile conserve les clés personnalisées valides', async () => {
+  const { sanitizeDialogProfile } = await import('../src/utils/visitMascotDialogEvents.js');
+  const cleaned = sanitizeDialogProfile({
+    move: ['  Bonjour  '],
+    ambient_yawn: ['Baille'],
+    'MAUVAISE CLE': ['nope'],
+  });
+  assert.deepEqual(cleaned.move, ['Bonjour']);
+  assert.deepEqual(cleaned.ambient_yawn, ['Baille']);
+  assert.equal(cleaned['MAUVAISE CLE'], undefined);
+});
+
+test('resolveTriggerDialogLines : profil central prioritaire sur inline', async () => {
+  const { resolveTriggerDialogLines } = await import('../src/utils/visitMascotCustomBehaviors.js');
+  const trigger = { key: 'amb', dialog: ['inline'] };
+  const entry = { dialogProfile: { amb: ['central'] } };
+  assert.deepEqual(resolveTriggerDialogLines(entry, trigger), ['central']);
+  // Sans profil central : repli sur la bulle inline du déclencheur.
+  assert.deepEqual(resolveTriggerDialogLines({}, trigger), ['inline']);
+  assert.deepEqual(resolveTriggerDialogLines(null, { key: 'x' }), []);
+});
+
 test('resolveMascotDialogLine priorise pack puis catalogue puis global', async () => {
   const { resolveMascotDialogLine } = await import('../src/utils/visitMascotDialogApply.js');
   const extras = [

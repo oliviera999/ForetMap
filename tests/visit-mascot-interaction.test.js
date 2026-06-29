@@ -13,6 +13,25 @@ test('resolveVisitMascotInteraction utilise les défauts hors pack', async () =>
   assert.equal(r.state, VISIT_MASCOT_STATE.RUNNING);
 });
 
+test('resolveVisitMascotInteraction : défauts historiques de tous les événements (contrat emitMascotEvent)', async () => {
+  const { resolveVisitMascotInteraction, VISIT_MASCOT_INTERACTION_EVENT } =
+    await import('../src/utils/visitMascotInteractionApply.js');
+  const { VISIT_MASCOT_STATE } = await import('../src/utils/visitMascotState.js');
+  const ctx = { mascotId: 'sprout-rive', extraCatalogEntries: [] };
+  const E = VISIT_MASCOT_INTERACTION_EVENT;
+  const expectTransient = (key, state) => {
+    const r = resolveVisitMascotInteraction(key, ctx);
+    assert.equal(r.kind, 'transient', `${key} doit être transient`);
+    assert.equal(r.state, state, `${key} → ${state}`);
+  };
+  expectTransient(E.MASCOT_DRAG_VERY_LARGE, VISIT_MASCOT_STATE.RUNNING);
+  expectTransient(E.MASCOT_DRAG_LARGE, VISIT_MASCOT_STATE.SURPRISE);
+  expectTransient(E.MARKER_MARKED_SEEN, VISIT_MASCOT_STATE.CELEBRATE);
+  expectTransient(E.MAP_READ_OPEN, VISIT_MASCOT_STATE.MAP_READ);
+  expectTransient(E.MARKER_INSPECT_OPEN, VISIT_MASCOT_STATE.INSPECT);
+  assert.equal(resolveVisitMascotInteraction(E.MARKER_MARKED_SEEN_HAPPY, ctx).kind, 'happy');
+});
+
 test('resolveVisitMascotInteraction applique le profil pack v2', async () => {
   const { resolveVisitMascotInteraction, VISIT_MASCOT_INTERACTION_EVENT } =
     await import('../src/utils/visitMascotInteractionApply.js');
