@@ -126,11 +126,14 @@ via `dialogProfile[clé-du-déclencheur]` (`resolveTriggerDialogLines`, priorita
 s'édite au **studio dialogue** (`VisitMascotDialogEditor` liste les `customTriggers` du pack). Une
 clé mal formée (ex. camelCase) reste rejetée — rétrocompatibilité des tests préservée.
 
-### Étape 3 — Moteur de comportement unifié (M)
+### Étape 3 — Moteur de comportement unifié (M) ✅ réalisée
 
-Extraire un `resolveBehavior(trigger, ctx) → action` partagé, consommé par FM **et** GL.
-`useAmbientMascotBehavior` (déjà data-driven) en est le premier client ; étendre aux
-déclencheurs `tap` et, à terme, aux événements de gameplay.
+Module partagé `src/utils/mascotBehaviorEngine.js` : `resolveTriggerAction(entry, trigger) → action`
+(`{ state, durationMs, dialog, everyMs }`), `getAmbientActions` / `getTapActions`, et
+`runBehaviorAction(action, { playState, showDialog })` exécuté via les primitives du produit.
+Clients : visite (`useAmbientMascotBehavior` + tap) **et** GL (`useGLBoardAmbientBehavior`, par
+équipe via `triggerTransient(teamId, …)`, câblé dans `GLGameBoard`). **Conséquence : le playback
+ambiant per-équipe du plateau GL — limite connue des étapes précédentes — est désormais câblé.**
 
 ### Étape 4 — Émetteurs déclaratifs (M)
 

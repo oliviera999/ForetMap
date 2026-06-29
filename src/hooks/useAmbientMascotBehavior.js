@@ -2,8 +2,8 @@ import { useEffect, useRef } from 'react';
 import {
   getPeriodicTriggers,
   periodicTriggersSignature,
-  resolveTriggerDialogLines,
 } from '../utils/visitMascotCustomBehaviors.js';
+import { resolveTriggerAction, runBehaviorAction } from '../utils/mascotBehaviorEngine.js';
 
 /**
  * Moteur de comportements ambiants data-driven : joue les déclencheurs `periodic`
@@ -41,14 +41,12 @@ export default function useAmbientMascotBehavior({
     if (typeof window === 'undefined' || !periodic.length) return undefined;
     const timers = periodic.map((trig) =>
       window.setInterval(() => {
-        if (typeof triggerRef.current === 'function') {
-          triggerRef.current(trig.state, Number(trig.durationMs) || 1000);
-        }
-        // Bulle : profil de dialogue central (dialogProfile[clé]) ou inline.
-        const lines = resolveTriggerDialogLines(entryRef.current, trig);
-        if (lines.length && typeof showRef.current === 'function') {
-          showRef.current(lines);
-        }
+        // Résolution + exécution via le moteur de comportement partagé (FM/GL).
+        const action = resolveTriggerAction(entryRef.current, trig);
+        runBehaviorAction(action, {
+          playState: (state, durationMs) => triggerRef.current?.(state, durationMs),
+          showDialog: (lines) => showRef.current?.(lines),
+        });
       }, Number(trig.everyMs)),
     );
     return () => timers.forEach((id) => window.clearInterval(id));
