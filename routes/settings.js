@@ -36,7 +36,12 @@ const {
 } = require('../lib/helpContent');
 const { runSpeciesAutofillProviderSelfTest } = require('../lib/speciesAutofillProviderSelfTest');
 const { normalizeMapImageUrl } = require('../lib/mapImageUrl');
-const { withMapGeoref, isValidAnchors, sanitizeAnchors } = require('../lib/mapGeoref');
+const {
+  withMapGeoref,
+  isValidAnchors,
+  sanitizeAnchors,
+  parseAnchors,
+} = require('../lib/mapGeoref');
 const { MAP_SLUG_RE } = require('../lib/studentAffiliation');
 const { getRuntimeProcessSnapshot } = require('../lib/runtimeDiagnostics');
 const logMetrics = require('../lib/logMetrics');
@@ -336,19 +341,28 @@ router.put(
     const map = await getMapById(req.params.id);
     if (!map) return res.status(404).json({ error: 'Carte introuvable' });
 
-    const rawAnchors = req.body?.anchors;
-    const hasAnchors =
-      rawAnchors != null && !(Array.isArray(rawAnchors) && rawAnchors.length === 0);
-    let anchorsJson = null;
-    if (hasAnchors) {
-      if (!isValidAnchors(rawAnchors)) {
-        return res.status(400).json({
-          error: 'Calage GPS invalide : 3 points distincts requis (xp/yp en %, lat/lng valides).',
-        });
+    const body = req.body || {};
+    const hasAnchorsField = Object.prototype.hasOwnProperty.call(body, 'anchors');
+    const rawAnchors = body.anchors;
+    let anchorsJson = map.geo_anchors_json || null;
+    let hasValidAnchors = !!parseAnchors(anchorsJson);
+
+    if (hasAnchorsField) {
+      const hasAnchors =
+        rawAnchors != null && !(Array.isArray(rawAnchors) && rawAnchors.length === 0);
+      anchorsJson = null;
+      hasValidAnchors = false;
+      if (hasAnchors) {
+        if (!isValidAnchors(rawAnchors)) {
+          return res.status(400).json({
+            error: 'Calage GPS invalide : 3 points distincts requis (xp/yp en %, lat/lng valides).',
+          });
+        }
+        anchorsJson = JSON.stringify(sanitizeAnchors(rawAnchors));
+        hasValidAnchors = true;
       }
-      anchorsJson = JSON.stringify(sanitizeAnchors(rawAnchors));
     }
-    const gpsEnabled = parseBoolean(req.body?.gps_enabled, false) && !!anchorsJson;
+    const gpsEnabled = parseBoolean(body.gps_enabled, !!map.gps_enabled) && hasValidAnchors;
 
     await execute('UPDATE maps SET geo_anchors_json = ?, gps_enabled = ? WHERE id = ?', [
       anchorsJson,

@@ -4,6 +4,7 @@ import { useGeolocation } from '../../hooks/useGeolocation.js';
 import { isValidAnchors, pctToGeo } from '../../utils/mapGeoTransform.js';
 
 const EMPTY_POINT = { xp: null, yp: null, lat: null, lng: null };
+const CALAGE_FIELDS = ['xp', 'yp', 'lat', 'lng'];
 
 function toAnchorsArray(points) {
   return points.map((p) => ({
@@ -16,6 +17,10 @@ function toAnchorsArray(points) {
 
 function isPointComplete(p) {
   return [p.xp, p.yp, p.lat, p.lng].every((v) => v != null && Number.isFinite(Number(v)));
+}
+
+function hasAnyCalibrationValue(points) {
+  return points.some((p) => CALAGE_FIELDS.some((field) => p[field] != null && p[field] !== ''));
 }
 
 /**
@@ -39,6 +44,7 @@ export function MapGeorefPanel({ map, imageUrl, busy = false, onSaved, onError }
   const geo = useGeolocation();
 
   const completePoints = points.filter(isPointComplete);
+  const hasCalibrationDraft = hasAnyCalibrationValue(points);
   const anchorsValid =
     completePoints.length === 3 && isValidAnchors(toAnchorsArray(completePoints));
 
@@ -86,6 +92,12 @@ export function MapGeorefPanel({ map, imageUrl, busy = false, onSaved, onError }
   };
 
   const save = async () => {
+    if (!anchorsValid && hasCalibrationDraft) {
+      onError?.(
+        'Calage GPS incomplet : complétez les 3 points ou rechargez la page pour annuler les modifications.',
+      );
+      return;
+    }
     if (gpsEnabled && !anchorsValid) {
       onError?.('3 points complets et distincts sont requis pour activer le suivi GPS.');
       return;
