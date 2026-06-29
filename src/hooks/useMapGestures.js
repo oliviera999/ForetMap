@@ -101,9 +101,20 @@ function useMapGestures({
     worldRef.current.style.transform = `translate(${x}px,${y}px) scale(${s})`;
   };
 
+  /**
+   * Active `will-change: transform` pendant les gestes (fluidité GPU) et le retire au repos.
+   * Au repos, le calque n'est plus mis en cache à 1× : le navigateur re-pixellise son contenu
+   * (texte SVG + repères + emojis) à l'échelle affichée → étiquettes nettes même à fort zoom.
+   */
+  const setWorldWillChange = (on) => {
+    const el = worldRef.current;
+    if (el) el.style.willChange = on ? 'transform' : 'auto';
+  };
+
   const commit = () => {
     const snap = { ...tx.current };
     setCommitted(snap);
+    setWorldWillChange(false);
     cancelAnimationFrame(commitRef.current);
     commitRef.current = requestAnimationFrame(applyTransform);
   };
@@ -120,6 +131,7 @@ function useMapGestures({
   const commitFitLayout = (x, y, s) => {
     tx.current = { x, y, s };
     applyTransform();
+    setWorldWillChange(false);
     // `commitFitLayout` n’est appelé que pour un ajustement (fit/remesure), jamais au zoom :
     // `s` est donc toujours l’échelle au repos.
     setFitScale((prev) => (Math.abs(prev - s) < 1e-4 ? prev : s));
@@ -154,6 +166,7 @@ function useMapGestures({
     const start = { ...tx.current };
     const clampedTarget = Math.min(Math.max(targetS, MAP_VIEW_SCALE_MIN), MAP_VIEW_SCALE_MAX);
     if (!Number.isFinite(clampedTarget) || Math.abs(clampedTarget - start.s) < 1e-6) return;
+    setWorldWillChange(true);
     const duration = reducedMotionRef.current ? 0 : 200;
     const easeOutCubic = (u) => 1 - (1 - u) ** 3;
     if (duration <= 0) {
@@ -391,6 +404,7 @@ function useMapGestures({
       if (isPanning.current) {
         if (!moved.current) {
           moved.current = true;
+          setWorldWillChange(true);
           try {
             el.setPointerCapture(e.pointerId);
           } catch (_) {}
@@ -438,6 +452,7 @@ function useMapGestures({
     const onWH = (e) => {
       e.preventDefault();
       cancelToolbarZoomAnim();
+      setWorldWillChange(true);
       const r = el.getBoundingClientRect();
       const mx = e.clientX - r.left;
       const my = e.clientY - r.top;
@@ -457,6 +472,7 @@ function useMapGestures({
       cancelToolbarZoomAnim();
       isPanning.current = false;
       pinching.current = true;
+      setWorldWillChange(true);
       const t0 = e.touches[0];
       const t1 = e.touches[1];
       const rect = el.getBoundingClientRect();
