@@ -7,6 +7,21 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Mascotte — Moteur de comportement unifié FM/GL (étape 3 convergence)
+
+- **Moteur partagé** `src/utils/mascotBehaviorEngine.js` : `resolveTriggerAction(entry, trigger)` →
+  action produit-agnostique (`state`, `durationMs`, `dialog`, `everyMs`), `getAmbientActions` /
+  `getTapActions`, et `runBehaviorAction(action, { playState, showDialog })`. La visite
+  (`useAmbientMascotBehavior` + tap) consomme désormais ce moteur au lieu d'une logique ad-hoc.
+- **Plateau GL : comportements ambiants par équipe enfin câblés** — nouveau hook
+  `src/gl/hooks/useGLBoardAmbientBehavior.js` (par équipe via `triggerTransient(teamId, …)` exposé
+  par `useGLBoardMascotMotion`), branché dans `GLGameBoard` avec résolution d'entrée par
+  `resolveVisitMascotEntry` + catalogue GL. Les entrées catalogue GL portent désormais
+  `customStates`/`customTriggers`/`dialogProfile` (`glMascotCatalogExtras`). Lève la limite connue
+  des étapes 1-2 (ambiant GL non câblé).
+- Tests : `tests-ui/utils/mascotBehaviorEngine.test.js`, `tests-ui/gl/useGLBoardAmbientBehavior.test.js`.
+  Docs `docs/MASCOT_PACK.md` et `docs/MASCOT_ARCHITECTURE_CONVERGENCE.md`.
+
 ### Mascotte — Dialogues data-driven (étape 2 convergence)
 
 - **Profil de dialogue extensible** : `dialogProfile` n'est plus une énumération figée

@@ -29,7 +29,10 @@ l'éditeur WYSIWYG ; GL : champs JSON `states` / `triggers`).
 Déclencheur d'interaction **général** ajouté à la palette v2 : **`mascotTap`** (tap/clic direct sur
 la mascotte), configurable dans `interactionProfile` comme les autres événements.
 
-Runtime : le moteur ambiant **`useAmbientMascotBehavior`** lance les déclencheurs `periodic`
+Runtime : le **moteur de comportement partagé** (`src/utils/mascotBehaviorEngine.js`,
+`resolveTriggerAction` / `runBehaviorAction`) est consommé par la visite
+(**`useAmbientMascotBehavior`** + tap) **et** par le plateau GL
+(**`useGLBoardAmbientBehavior`**, par équipe). Il lance les déclencheurs `periodic`
 (respecte `prefers-reduced-motion`) ; `resolveVisitMascotState({ extraStates })` accepte les états
 personnalisés du pack actif. Côté **GL**, le pack JSON accepte `states[].label` et un tableau
 `triggers` (mêmes types) ; la conversion `glMascotPackToVisit` **préserve** les clés d'état non
