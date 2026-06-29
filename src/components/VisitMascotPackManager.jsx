@@ -1570,6 +1570,9 @@ export default function VisitMascotPackManager({
                         onProfileChange={patchDialogProfile}
                         inheritedContext={packDialogInheritedContext}
                         allowInheritToggle
+                        customTriggers={
+                          Array.isArray(editorPack.customTriggers) ? editorPack.customTriggers : []
+                        }
                       />
                     )}
                   </div>

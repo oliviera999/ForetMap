@@ -117,11 +117,14 @@ de validation. Effet de bord positif : les états personnalisés sont sélection
 (cibles d'alias, d'interaction, d'insertion d'images). Reste hors périmètre de l'étape : les
 **dialogues** (cf. étape 2) et les **émetteurs** runtime (étape 4).
 
-### Étape 2 — Dialogues data-driven (S)
+### Étape 2 — Dialogues data-driven (S) ✅ réalisée
 
-Aligner `dialogProfile` sur le modèle déjà retenu pour `customTriggers` : retirer le
-`.strict()`, autoriser des clés d'événements personnalisées, valider au niveau pack. Cohérent
-avec ce qui existe désormais pour états/déclencheurs.
+`dialogProfile` aligné sur le modèle `customTriggers` : `.strict()` remplacé par un **record
+validé par format** (événement connu **ou** clé personnalisée `a-z0-9_-`). `sanitizeDialogProfile`
+conserve désormais les clés personnalisées. La bulle d'un **déclencheur personnalisé** se résout
+via `dialogProfile[clé-du-déclencheur]` (`resolveTriggerDialogLines`, prioritaire sur l'inline) et
+s'édite au **studio dialogue** (`VisitMascotDialogEditor` liste les `customTriggers` du pack). Une
+clé mal formée (ex. camelCase) reste rejetée — rétrocompatibilité des tests préservée.
 
 ### Étape 3 — Moteur de comportement unifié (M)
 

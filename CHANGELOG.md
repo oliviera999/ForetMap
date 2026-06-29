@@ -7,6 +7,20 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Mascotte — Dialogues data-driven (étape 2 convergence)
+
+- **Profil de dialogue extensible** : `dialogProfile` n'est plus une énumération figée
+  (`.strict()`) — il accepte désormais les événements connus **ou** des clés personnalisées
+  (`a-z0-9_-`), validées par format ; `sanitizeDialogProfile` les conserve. Une clé mal formée
+  (camelCase) reste rejetée.
+- **Bulle des déclencheurs personnalisés centralisable** : `resolveTriggerDialogLines` résout la
+  bulle d'un `customTriggers` via `dialogProfile[clé]` (prioritaire) puis l'inline ; éditable au
+  **studio dialogue** (`VisitMascotDialogEditor` liste les déclencheurs personnalisés du pack).
+  Runtime (moteur ambiant + tap) câblé sur ce helper.
+- Tests : `tests/visit-mascot-dialog.test.js` (clés perso acceptées/rejetées, `sanitizeDialogProfile`,
+  `resolveTriggerDialogLines`), `tests-ui/components/VisitMascotDialogEditor.test.jsx`. Miroir
+  `lib/visit-pack/` resync. Docs `docs/MASCOT_PACK.md` et `docs/MASCOT_ARCHITECTURE_CONVERGENCE.md`.
+
 ### Mascotte (visite + GL) — Comportements extensibles : palette élargie, états & déclencheurs personnalisés (studio prof)
 
 - **Palette d'états élargie** : 8 nouveaux états d'animation prédéfinis communs visite + GL —
