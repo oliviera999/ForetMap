@@ -67,10 +67,7 @@ Critere de classement recommande:
 - ## Points forts:
   -
   -
-- 3 chantiers structurels prioritaires:
-  1.
-  2.
-  3.
+- 3 chantiers structurels prioritaires: 1. 2. 3.
 
 ## Annexes (optionnel)
 
