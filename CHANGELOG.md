@@ -7,6 +7,29 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Mascotte — Write-side WYSIWYG : forme unifiée `states[]` (export/import archive + aperçu)
+
+- **Décision (Option 1, faible risque)** : le modèle interne de l'éditeur visuel reste en forme
+  **canonique** (`stateFrames`) ; on ajoute la **lecture/écriture** de la forme unifiée `states[]`
+  aux frontières (export/import archive + aperçu), sans aucune régression du modèle interne.
+- **Import d'archive rétro-compatible (les deux formes)** : `rewriteVisitPackForServerImport`
+  accepte désormais un `pack.json` en forme **`states[]`** (réécrit les refs d'assets dans chaque
+  entrée et conserve la forme tableau ; `normalizeUnifiedStates` la désucre à la validation) **et**
+  la forme historique `stateFrames`. La logique de réécriture des refs est factorisée
+  (`rewriteImportedStateSpec`).
+- **Export d'archive en forme `states[]` (opt-in)** : `buildVisitExportArchive({ unified: true })`
+  émet `pack.json` en `states[]` (helper CJS `visitPackToUnifiedForm`, miroir de
+  `mascotPackToUnifiedStates`) + `manifest.statesForm`. Exposé via `GET …/export.zip?unified=1` et
+  un bouton **« Exporter ZIP (states[]) »** au studio (`MascotPackListAside`).
+- **Aperçu « forme unifiée `states[]` »** (lecture seule + copie) dans l'éditeur WYSIWYG
+  (`MascotPackWysiwygEditor`) : réintégrable tel quel à l'import / onglet JSON.
+- **Round-trip sans perte** : export `states[]` → import → `normalizeUnifiedStates` re-dérive
+  `customStates` à partir des clés non canoniques. Persistance serveur inchangée (forme canonique).
+- Tests : `tests/mascot-pack-archive.test.js` (import `states[]`, export `unified`,
+  `visitPackToUnifiedForm`), `tests-ui/components/mascot/MascotPackListAside.test.jsx` (bouton
+  dédié), `tests-ui/components/MascotPackWysiwygEditorUnified.test.jsx` (aperçu). Docs
+  `docs/MASCOT_PACK.md`.
+
 ### Mascotte — Retrait du pont GL→visite : adaptateur mince (étape 6 convergence)
 
 - **`glMascotPackSpriteCutToVisitValidation` réduit à un adaptateur mince** : il ne fait plus que

@@ -163,8 +163,13 @@ valides et la persistance reste en forme canonique.
 **Write-side (studio JSON)** : l'onglet **JSON** du studio accepte la forme `states[]` à
 l'application (désucrée via `normalizeUnifiedStates`) et propose un bouton **« Forme unifiée
 states[] »** (`packToUnifiedForm` → `mascotPackToUnifiedStates`) pour réécrire le brouillon. Le
-modèle de l'éditeur visuel et la persistance restent en forme canonique (transform à la frontière)
-— l'éditeur WYSIWYG et l'export archive en forme `states[]` restent un follow-up à froid.
+modèle de l'éditeur visuel et la persistance restent en forme canonique (transform à la frontière).
+
+**Write-side WYSIWYG (follow-up livré)** ✅ : le follow-up « éditeur visuel + export archive en
+forme `states[]` » est livré via l'**Option 1** (faible risque, modèle interne canonique inchangé) —
+voir l'annotation de l'**étape 6** ci-dessous. L'**import d'archive accepte les deux formes**, un
+**export `states[]`** opt-in est disponible (`?unified=1`), et l'éditeur WYSIWYG affiche un
+**aperçu « forme unifiée `states[]` »** (lecture seule + copie).
 
 ### Étape 6 — Retrait du pont (M) ✅ réalisée
 

@@ -12,6 +12,8 @@ const {
   buildMascotPackZipBuffer,
   buildPortableVisitPack,
   rewriteVisitPackForServerImport,
+  visitPackToUnifiedForm,
+  buildVisitExportArchive,
   buildGlExportArchive,
   analyzeVisitArchive,
   slugifyArchiveFilename,
@@ -135,4 +137,89 @@ test('mascotPackArchive : buildGlExportArchive structure', () => {
 
 test('slugifyArchiveFilename nettoie les libellés', () => {
   assert.strictEqual(slugifyArchiveFilename('Mon Renard !'), 'mon-renard');
+});
+
+test('mascotPackArchive : visitPackToUnifiedForm produit states[] (label custom préservé)', () => {
+  const pack = {
+    mascotPackVersion: 2,
+    id: 'p',
+    label: 'P',
+    renderer: 'sprite_cut',
+    framesBase: PORTABLE_FRAMES_BASE,
+    frameWidth: 64,
+    frameHeight: 64,
+    fallbackSilhouette: 'gnome',
+    stateFrames: {
+      idle: { files: ['a.png', 'b.png'], fps: 8 },
+      cast_spell: { files: ['c.png'], fps: 6 },
+    },
+    customStates: [{ key: 'cast_spell', label: 'Incantation' }],
+  };
+  const unified = visitPackToUnifiedForm(pack);
+  assert.ok(Array.isArray(unified.states));
+  assert.strictEqual(unified.stateFrames, undefined);
+  assert.strictEqual(unified.customStates, undefined);
+  const idle = unified.states.find((s) => s.key === 'idle');
+  const cast = unified.states.find((s) => s.key === 'cast_spell');
+  assert.deepStrictEqual(idle.files, ['a.png', 'b.png']);
+  assert.strictEqual(cast.label, 'Incantation');
+  assert.strictEqual(cast.fps, 6);
+});
+
+test('mascotPackArchive : import accepte la forme states[] (réécrit les refs, conserve la forme)', () => {
+  const pack = {
+    mascotPackVersion: 2,
+    id: 'test-pack',
+    label: 'Pack test',
+    renderer: 'sprite_cut',
+    fallbackSilhouette: 'gnome',
+    framesBase: PORTABLE_FRAMES_BASE,
+    frameWidth: 64,
+    frameHeight: 64,
+    states: [
+      { key: 'idle', files: ['frame-a.png'], fps: 8 },
+      { key: 'cast_spell', label: 'Incantation', files: ['frame-b.png'], fps: 6 },
+    ],
+  };
+  const serverPack = rewriteVisitPackForServerImport(pack, PACK_UUID);
+  assert.ok(String(serverPack.framesBase).includes(PACK_UUID));
+  // Forme tableau préservée (validateMascotPack désucrera via normalizeUnifiedStates).
+  assert.ok(Array.isArray(serverPack.states));
+  assert.strictEqual(serverPack.stateFrames, undefined);
+  const idle = serverPack.states.find((s) => s.key === 'idle');
+  const cast = serverPack.states.find((s) => s.key === 'cast_spell');
+  assert.deepStrictEqual(idle.files, ['frame-a.png']);
+  assert.deepStrictEqual(cast.files, ['frame-b.png']);
+  assert.strictEqual(cast.label, 'Incantation');
+});
+
+test('mascotPackArchive : buildVisitExportArchive unified émet pack.json en states[]', () => {
+  const built = buildVisitExportArchive({
+    packRow: {
+      id: PACK_UUID,
+      label: 'Pack test',
+      map_id: 'm1',
+      catalog_id: 'srv-x',
+      is_published: 1,
+    },
+    packJson: buildSampleVisitPack(),
+    mapId: 'm1',
+    unified: true,
+  });
+  assert.strictEqual(built.manifest.variant, 'visit');
+  assert.strictEqual(built.manifest.statesForm, 'unified');
+  assert.ok(Array.isArray(built.pack.states));
+  assert.strictEqual(built.pack.stateFrames, undefined);
+  assert.ok(built.pack.states.find((s) => s.key === 'idle'));
+});
+
+test('mascotPackArchive : buildVisitExportArchive (défaut) reste en stateFrames', () => {
+  const built = buildVisitExportArchive({
+    packRow: { id: PACK_UUID, label: 'Pack test', map_id: 'm1' },
+    packJson: buildSampleVisitPack(),
+    mapId: 'm1',
+  });
+  assert.strictEqual(built.manifest.statesForm, 'stateFrames');
+  assert.ok(built.pack.stateFrames && typeof built.pack.stateFrames === 'object');
+  assert.strictEqual(built.pack.states, undefined);
 });

@@ -118,6 +118,7 @@ mon-pack.zip
 ```
 
 - **Visite** : `GET /api/visit/mascot-packs/:id/export.zip` ; import `POST …/import` (`mode: create` ou `replace` + `target_pack_id`). Studio : boutons **Exporter ZIP** / **Importer ZIP** dans `VisitMascotPackManager`.
+- **Forme `states[]` à l'export (opt-in)** : `GET …/export.zip?unified=1` (bouton **Exporter ZIP (states[])**) émet `pack.json` en **forme unifiée `states[]`** (aligné GL) au lieu de `stateFrames` ; `manifest.statesForm` vaut `unified` (sinon `stateFrames`). **L'import accepte les deux formes** : un `pack.json` en `states[]` est réécrit puis désucré par `normalizeUnifiedStates` (round-trip sans perte, `customStates` re-dérivés). La persistance serveur reste en forme canonique.
 - **GL** : routes équivalentes sous `/api/gl/mascots/packs/…` ; studio `GLMascotPackManager`.
 - **Limites** : mêmes bornes que la médiathèque (`FORETMAP_CONTENT_LIBRARY_MAX_*`, défaut 50 Mo archive / 100 Mo décompressé / 200 fichiers).
 - **URLs externes** (`https://…`) : non téléchargées ; listées dans `manifest.warnings`.
