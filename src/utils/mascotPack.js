@@ -238,6 +238,80 @@ function normalizeFramesBase(base) {
   return b;
 }
 
+/**
+ * Schéma de pack **unifié** (étape 5 convergence, aligné sur GL) : `states` peut être
+ * fourni comme **tableau** `[{ key, label?, files?|srcs?, fps?, frameDwellMs? }]` au lieu
+ * de l'objet `stateFrames` + `customStates`. Cette fonction **désucre** la forme tableau
+ * vers la représentation interne (`stateFrames` + `customStates`) **avant** validation,
+ * de sorte que tout l'aval (validation, expansion, runtime) reste inchangé.
+ *
+ * Non cassant : les packs en forme historique (`stateFrames`/`customStates`) passent tels
+ * quels. Une entrée `states[]` à clé non canonique **déclare** l'état (→ `customStates`).
+ *
+ * @param {unknown} raw
+ * @returns {unknown}
+ */
+export function normalizeUnifiedStates(raw) {
+  if (!raw || typeof raw !== 'object' || !Array.isArray(raw.states)) return raw;
+  const stateFrames = {};
+  const customStates = [];
+  const seenCustom = new Set();
+  for (const entry of raw.states) {
+    if (!entry || typeof entry !== 'object') continue;
+    const key = String(entry.key || '').trim();
+    if (!key) continue;
+    const spec = {};
+    if (Array.isArray(entry.srcs)) spec.srcs = entry.srcs;
+    if (Array.isArray(entry.files)) spec.files = entry.files;
+    if (entry.fps != null) spec.fps = entry.fps;
+    if (Array.isArray(entry.frameDwellMs)) spec.frameDwellMs = entry.frameDwellMs;
+    stateFrames[key] = spec;
+    if (!CANONICAL_STATE_KEYS.has(key) && !seenCustom.has(key)) {
+      seenCustom.add(key);
+      customStates.push({ key, label: String(entry.label || key).slice(0, 60) });
+    }
+  }
+  const { states: _drop, ...rest } = raw;
+  const out = {
+    ...rest,
+    // `states[]` prime sur un éventuel `stateFrames` historique en cas de collision de clés.
+    stateFrames: {
+      ...(rest.stateFrames && typeof rest.stateFrames === 'object' ? rest.stateFrames : {}),
+      ...stateFrames,
+    },
+  };
+  if (customStates.length) {
+    const existing = Array.isArray(rest.customStates) ? rest.customStates : [];
+    const existingKeys = new Set(existing.map((c) => c && c.key).filter(Boolean));
+    out.customStates = [...existing, ...customStates.filter((c) => !existingKeys.has(c.key))];
+  }
+  return out;
+}
+
+/**
+ * Forme inverse : produit le tableau `states[]` unifié depuis un pack validé
+ * (`stateFrames` + `customStates`). Utile pour l'export portable et l'édition future.
+ * @param {{ stateFrames?: object, customStates?: Array<{key:string,label?:string}> }} pack
+ * @returns {Array<object>}
+ */
+export function mascotPackToUnifiedStates(pack) {
+  const labelByKey = {};
+  for (const cs of Array.isArray(pack?.customStates) ? pack.customStates : []) {
+    if (cs && cs.key) labelByKey[cs.key] = cs.label || cs.key;
+  }
+  const states = [];
+  for (const [key, spec] of Object.entries(pack?.stateFrames || {})) {
+    const entry = { key };
+    if (labelByKey[key]) entry.label = labelByKey[key];
+    if (Array.isArray(spec?.srcs)) entry.srcs = spec.srcs;
+    if (Array.isArray(spec?.files)) entry.files = spec.files;
+    if (spec?.fps != null) entry.fps = spec.fps;
+    if (Array.isArray(spec?.frameDwellMs)) entry.frameDwellMs = spec.frameDwellMs;
+    states.push(entry);
+  }
+  return states;
+}
+
 /** Préfixe API autorisé pour la médiathèque sprites partagée par carte. */
 export function visitMascotSpriteLibraryAssetsPrefix(mapId) {
   const mid = String(mapId || '').trim();
@@ -264,6 +338,8 @@ export function parseMascotPack(raw, opts = {}) {
   if (candidate && typeof candidate === 'object' && candidate.mascotPackVersion == null) {
     candidate = { ...candidate, mascotPackVersion: 1 };
   }
+  // Schéma unifié : désucre `states[]` (forme tableau) vers `stateFrames`/`customStates`.
+  candidate = normalizeUnifiedStates(candidate);
   const parsed = mascotPackSchemaUnion.safeParse(candidate);
   if (!parsed.success) return parsed;
   const data = parsed.data;

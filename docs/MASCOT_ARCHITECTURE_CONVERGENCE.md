@@ -149,12 +149,17 @@ visite _live_ — il n'avait jusque-là d'effet qu'en aperçu studio.** Contrat 
 par `tests/visit-mascot-interaction.test.js`. Reste : `useMapViewMascot` (carte des tâches forêt)
 suit le même schéma câblé — à aligner si des packs serveur y sont exposés.
 
-### Étape 5 — Schéma de pack unifié (L, risque élevé)
+### Étape 5 — Schéma de pack unifié (L, risque élevé) ✅ lecture réalisée
 
-`states` en `Array<{key,label?,frames,fps?,frameDwellMs?}>` côté FM aussi. Migration douce :
-accepter **les deux** formes en lecture (`stateFrames` objet _ou_ `states` tableau),
-normaliser à l'entrée, n'émettre que la nouvelle forme à l'écriture. Les packs `pack_json`
-existants restent valides. `customStates` devient un alias rétro-compatible.
+Côté FM, un pack peut désormais être fourni en forme **tableau** `states: [{ key, label?,
+files?|srcs?, fps?, frameDwellMs? }]` (alignée sur GL). `normalizeUnifiedStates` (dans
+`mascotPack.js`) **désucre** cette forme vers la représentation interne (`stateFrames` +
+`customStates`) **avant validation** — tout l'aval (validation/expansion/runtime) reste inchangé.
+Une entrée à clé non canonique **déclare** l'état (plus besoin de `customStates` séparé :
+« tout état est de premier ordre »). Helper inverse `mascotPackToUnifiedStates` pour l'export /
+l'édition future. **Non cassant** : les packs `pack_json` historiques (forme `stateFrames`) restent
+valides et la persistance reste en forme canonique. _Reste (write-side)_ : faire **émettre** la
+forme `states[]` par l'éditeur WYSIWYG et l'export archive — follow-up, plus risqué.
 
 ### Étape 6 — Retrait du pont (M)
 
