@@ -65,6 +65,10 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   (`GLMascotPackPreviewPanel`, `GLMascotPackWysiwygEditor`), `buildGlMascotExtraCatalogEntries` et le
   catalogue serveur (`lib/glMascotPackCatalog.js`) fonctionnent à l'identique (états personnalisés +
   triggers + dialogProfile préservés).
+- **Collision de clés d'état** : l'adaptateur dédoublonne par clé visite (`Map`) pour préserver le
+  comportement « **dernière occurrence gagne** » (libellé + frames) de l'ancien pont — sinon le
+  désucrage `normalizeUnifiedStates` (première occurrence) aurait changé le libellé retenu. Couvert
+  par un test de non-régression dédié.
 - Tests : `tests/gl-mascot-pack-to-visit.test.js` étendu (mêmes assertions + vérification que les
   defaults/clamp viennent du seul chemin visite). Docs `docs/MASCOT_ARCHITECTURE_CONVERGENCE.md`.
 

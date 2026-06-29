@@ -88,7 +88,10 @@ export function glMascotPackSpriteCutToVisitValidation(glPack, opts = {}) {
 
   // Spécificité GL : indices `frames` → `srcs` + remappage de clé, en FORME UNIFIÉE `states[]`.
   // Le désucrage (stateFrames/customStates) et le default `fps` sont délégués au cœur visite.
-  const states = [];
+  // Collision de clé visite (ex. clés GL sanitizées identiques) : la **dernière** occupation
+  // l'emporte (srcs + libellé), à l'identique de l'ancien pont (objet `stateFrames` + `Map` de
+  // libellés), tout en conservant l'ordre de **première apparition** de chaque clé.
+  const statesByKey = new Map();
   for (const st of glPack.states || []) {
     const key = mapGlMascotStateKeyToVisit(st.key);
     const srcs = (Array.isArray(st.frames) ? st.frames : [])
@@ -100,8 +103,9 @@ export function glMascotPackSpriteCutToVisitValidation(glPack, opts = {}) {
     if (srcs.length === 0) continue;
     const entry = { key, srcs, label: String(st.label || st.key || key).slice(0, 60) };
     if (Number(st.fps) > 0) entry.fps = Number(st.fps);
-    states.push(entry);
+    statesByKey.set(key, entry);
   }
+  const states = [...statesByKey.values()];
   if (states.length === 0) {
     return { ok: false, error: new Error('Aucun état avec images résolues') };
   }
