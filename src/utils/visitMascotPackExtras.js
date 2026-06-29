@@ -23,6 +23,12 @@ export function buildVisitMascotCatalogExtraFromValidated(validated, catalogId, 
     ...(ver === 2 && validated.pack.dialogProfile
       ? { dialogProfile: validated.pack.dialogProfile }
       : {}),
+    ...(Array.isArray(validated.pack.customStates) && validated.pack.customStates.length
+      ? { customStates: validated.pack.customStates }
+      : {}),
+    ...(Array.isArray(validated.pack.customTriggers) && validated.pack.customTriggers.length
+      ? { customTriggers: validated.pack.customTriggers }
+      : {}),
     mascotPackVersion: ver,
   };
 }
@@ -54,6 +60,12 @@ export function buildVisitMascotCatalogExtrasFromContent(mascotPacks) {
         : {}),
       ...(ver === 2 && relaxed.pack.dialogProfile
         ? { dialogProfile: relaxed.pack.dialogProfile }
+        : {}),
+      ...(Array.isArray(relaxed.pack.customStates) && relaxed.pack.customStates.length
+        ? { customStates: relaxed.pack.customStates }
+        : {}),
+      ...(Array.isArray(relaxed.pack.customTriggers) && relaxed.pack.customTriggers.length
+        ? { customTriggers: relaxed.pack.customTriggers }
         : {}),
       mascotPackVersion: ver,
     });

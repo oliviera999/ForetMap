@@ -16,15 +16,18 @@ export function GLBoardMascot({
   isSelected = false,
   onSelect = null,
 }) {
-  const animationState = useMemo(
-    () =>
-      resolveVisitMascotState({
-        state: motion?.transientState || mascotState,
-        walking: motion?.walking,
-        happy: motion?.happy,
-      }),
-    [mascotState, motion?.walking, motion?.happy, motion?.transientState],
-  );
+  const animationState = useMemo(() => {
+    // L'état transitoire (déclenché par `triggerTransient`) peut être un état personnalisé
+    // du pack (clé hors palette canonique) : on le respecte tel quel plutôt que de le
+    // normaliser vers `idle`. Le reste passe par la résolution standard.
+    const transient = String(motion?.transientState || '').trim();
+    if (transient) return transient;
+    return resolveVisitMascotState({
+      state: mascotState,
+      walking: motion?.walking,
+      happy: motion?.happy,
+    });
+  }, [mascotState, motion?.walking, motion?.happy, motion?.transientState]);
 
   const walking = Boolean(motion?.walking);
   const happy = Boolean(motion?.happy);
