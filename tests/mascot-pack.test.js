@@ -176,6 +176,177 @@ test('validateMascotPack v2 + dialogProfile', async () => {
   assert.equal(bad.ok, false);
 });
 
+test('palette élargie : un nouvel état canonique (wave) est accepté', async () => {
+  const { validateMascotPackV1 } = await loadMascotPack();
+  const r = validateMascotPackV1(
+    {
+      mascotPackVersion: 1,
+      id: 'palette-wave',
+      label: 'Palette',
+      renderer: 'sprite_cut',
+      framesBase: '/assets/mascots/palette-wave/frames/',
+      frameWidth: 32,
+      frameHeight: 32,
+      fallbackSilhouette: 'gnome',
+      stateFrames: {
+        idle: { files: ['a.png'], fps: 1 },
+        wave: { files: ['w.png'], fps: 4 },
+        dance: { files: ['d.png'], fps: 6 },
+      },
+    },
+    { relaxAssetPrefix: false },
+  );
+  assert.equal(r.ok, true);
+  assert.ok(r.spriteCut.stateFrames.wave);
+  assert.ok(r.spriteCut.stateFrames.dance);
+});
+
+test('customStates : états personnalisés acceptés dans stateFrames + alias + interaction', async () => {
+  const { validateMascotPackV1 } = await loadMascotPack();
+  const r = validateMascotPackV1(
+    {
+      mascotPackVersion: 2,
+      id: 'custom-states',
+      label: 'Custom',
+      renderer: 'sprite_cut',
+      framesBase: '/assets/mascots/custom-states/frames/',
+      frameWidth: 32,
+      frameHeight: 32,
+      fallbackSilhouette: 'gnome',
+      customStates: [{ key: 'magic_spell', label: 'Sort magique' }],
+      stateFrames: {
+        idle: { files: ['a.png'], fps: 1 },
+        magic_spell: { files: ['m.png'], fps: 8 },
+      },
+      stateAliases: { magic_spell: 'idle' },
+      interactionProfile: {
+        markerInspectOpen: { mode: 'transient', state: 'magic_spell', durationMs: 1000 },
+      },
+    },
+    { relaxAssetPrefix: false },
+  );
+  assert.equal(r.ok, true);
+  assert.equal(r.spriteCut.customStates[0].key, 'magic_spell');
+});
+
+test('customStates : refus si la clé entre en collision avec un état canonique', async () => {
+  const { validateMascotPackV1 } = await loadMascotPack();
+  const r = validateMascotPackV1(
+    {
+      mascotPackVersion: 1,
+      id: 'custom-collision',
+      label: 'X',
+      renderer: 'sprite_cut',
+      framesBase: '/assets/mascots/custom-collision/frames/',
+      frameWidth: 16,
+      frameHeight: 16,
+      fallbackSilhouette: 'gnome',
+      customStates: [{ key: 'idle', label: 'Doublon' }],
+      stateFrames: { idle: { files: ['a.png'], fps: 1 } },
+    },
+    { relaxAssetPrefix: false },
+  );
+  assert.equal(r.ok, false);
+});
+
+test('customStates : refus si interactionProfile cible un état inexistant', async () => {
+  const { validateMascotPackV1 } = await loadMascotPack();
+  const r = validateMascotPackV1(
+    {
+      mascotPackVersion: 2,
+      id: 'custom-badstate',
+      label: 'X',
+      renderer: 'sprite_cut',
+      framesBase: '/assets/mascots/custom-badstate/frames/',
+      frameWidth: 16,
+      frameHeight: 16,
+      fallbackSilhouette: 'gnome',
+      stateFrames: { idle: { files: ['a.png'], fps: 1 } },
+      interactionProfile: {
+        markerInspectOpen: { mode: 'transient', state: 'pas_un_etat', durationMs: 1000 },
+      },
+    },
+    { relaxAssetPrefix: false },
+  );
+  assert.equal(r.ok, false);
+});
+
+test('customTriggers : déclencheur périodique + tap valides', async () => {
+  const { validateMascotPackV1 } = await loadMascotPack();
+  const r = validateMascotPackV1(
+    {
+      mascotPackVersion: 2,
+      id: 'custom-triggers',
+      label: 'Triggers',
+      renderer: 'sprite_cut',
+      framesBase: '/assets/mascots/custom-triggers/frames/',
+      frameWidth: 16,
+      frameHeight: 16,
+      fallbackSilhouette: 'gnome',
+      customStates: [{ key: 'yawn', label: 'Bâillement' }],
+      stateFrames: {
+        idle: { files: ['a.png'], fps: 1 },
+        yawn: { files: ['y.png'], fps: 3 },
+      },
+      customTriggers: [
+        {
+          key: 'ambient_yawn',
+          label: 'Bâille de temps en temps',
+          type: 'periodic',
+          state: 'yawn',
+          durationMs: 1200,
+          everyMs: 8000,
+          dialog: ['Hmm...'],
+        },
+        { key: 'tap_dance', label: 'Danse au tap', type: 'tap', state: 'dance', durationMs: 900 },
+      ],
+    },
+    { relaxAssetPrefix: false },
+  );
+  assert.equal(r.ok, true);
+  assert.equal(r.spriteCut.customTriggers.length, 2);
+});
+
+test('customTriggers : refus périodique sans everyMs et clé réservée', async () => {
+  const { validateMascotPackV1 } = await loadMascotPack();
+  const noEvery = validateMascotPackV1(
+    {
+      mascotPackVersion: 2,
+      id: 'trig-noevery',
+      label: 'X',
+      renderer: 'sprite_cut',
+      framesBase: '/assets/mascots/trig-noevery/frames/',
+      frameWidth: 16,
+      frameHeight: 16,
+      fallbackSilhouette: 'gnome',
+      stateFrames: { idle: { files: ['a.png'], fps: 1 } },
+      customTriggers: [
+        { key: 'ambient_x', label: 'X', type: 'periodic', state: 'idle', durationMs: 900 },
+      ],
+    },
+    { relaxAssetPrefix: false },
+  );
+  assert.equal(noEvery.ok, false);
+  const reserved = validateMascotPackV1(
+    {
+      mascotPackVersion: 2,
+      id: 'trig-reserved',
+      label: 'X',
+      renderer: 'sprite_cut',
+      framesBase: '/assets/mascots/trig-reserved/frames/',
+      frameWidth: 16,
+      frameHeight: 16,
+      fallbackSilhouette: 'gnome',
+      stateFrames: { idle: { files: ['a.png'], fps: 1 } },
+      customTriggers: [
+        { key: 'mascotTap', label: 'X', type: 'tap', state: 'idle', durationMs: 900 },
+      ],
+    },
+    { relaxAssetPrefix: false },
+  );
+  assert.equal(reserved.ok, false);
+});
+
 test('relaxAssetPrefix autorise framesBase hors /assets/', async () => {
   const { validateMascotPackV1 } = await loadMascotPack();
   const r = validateMascotPackV1(

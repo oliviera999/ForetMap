@@ -17,12 +17,27 @@ const VISIT_MASCOT_STATE = {
   ALERT: 'alert',
   ANGRY: 'angry',
   SURPRISE: 'surprise',
+  // Palette élargie (lot « comportements ») : nouveaux états prédéfinis, communs visite + GL.
+  SLEEP: 'sleep',
+  WAVE: 'wave',
+  DANCE: 'dance',
+  EAT: 'eat',
+  SEARCH: 'search',
+  SAD: 'sad',
+  LOVE: 'love',
+  POINT: 'point',
 };
 
 function pickMascotDialog(eventKey = 'idle') {
   return pickMascotDialogFromDefaults(eventKey);
 }
 
+/**
+ * Normalise un état d'animation visite.
+ * @param {object} [params]
+ * @param {Iterable<string>} [params.extraStates] États personnalisés (clés de pack `customStates`)
+ *   acceptés en plus des états canoniques : permet de jouer un état défini par le prof.
+ */
 function resolveVisitMascotState({
   state = '',
   happy = false,
@@ -36,6 +51,7 @@ function resolveVisitMascotState({
   alert = false,
   angry = false,
   surprise = false,
+  extraStates = null,
 } = {}) {
   const explicitState = state;
   const normalizedState = String(explicitState || '')
@@ -43,6 +59,10 @@ function resolveVisitMascotState({
     .toLowerCase();
   const knownStates = new Set(Object.values(VISIT_MASCOT_STATE));
   if (knownStates.has(normalizedState)) return normalizedState;
+  if (normalizedState && extraStates) {
+    const extras = extraStates instanceof Set ? extraStates : new Set(extraStates);
+    if (extras.has(normalizedState)) return normalizedState;
+  }
   if (celebrating) return VISIT_MASCOT_STATE.CELEBRATE;
   if (spinning) return VISIT_MASCOT_STATE.SPIN;
   if (angry) return VISIT_MASCOT_STATE.ANGRY;

@@ -12,14 +12,14 @@ export const VISIT_MASCOT_INTERACTION_EVENT = {
   MARKER_MARKED_SEEN_HAPPY: 'markerMarkedSeenHappy',
   MAP_READ_OPEN: 'mapReadOpen',
   MARKER_INSPECT_OPEN: 'markerInspectOpen',
+  // Déclencheur général (palette élargie) : tap/clic direct sur la mascotte.
+  MASCOT_TAP: 'mascotTap',
 };
 
 /** @type {string[]} */
 export const VISIT_MASCOT_INTERACTION_EVENT_KEYS = Object.freeze(
   Object.values(VISIT_MASCOT_INTERACTION_EVENT),
 );
-
-const STATE_VALUES = Object.values(VISIT_MASCOT_STATE);
 
 export const interactionRuleSchema = z
   .object({
@@ -29,12 +29,15 @@ export const interactionRuleSchema = z
   })
   .superRefine((data, ctx) => {
     if (data.mode === 'transient') {
+      // Présence/format de l'état requis ; l'appartenance (canonique OU `customStates`
+      // du pack) est vérifiée au niveau du pack (refineMascotPackBody) où les états
+      // personnalisés sont connus.
       const st = String(data.state || '').trim();
-      if (!STATE_VALUES.includes(st)) {
+      if (!st) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ['state'],
-          message: `État transitoire requis (une valeur de VISIT_MASCOT_STATE).`,
+          message: `État transitoire requis (un état canonique ou personnalisé du pack).`,
         });
       }
     }
@@ -67,6 +70,7 @@ export const VISIT_MASCOT_INTERACTION_LABELS = Object.freeze({
   [VISIT_MASCOT_INTERACTION_EVENT.MARKER_MARKED_SEEN_HAPPY]: 'Animation joyeuse au marquage vu',
   [VISIT_MASCOT_INTERACTION_EVENT.MAP_READ_OPEN]: 'Ouverture d’une zone (mascotte lit la carte)',
   [VISIT_MASCOT_INTERACTION_EVENT.MARKER_INSPECT_OPEN]: 'Ouverture d’un repère (inspection)',
+  [VISIT_MASCOT_INTERACTION_EVENT.MASCOT_TAP]: 'Tape / clic direct sur la mascotte',
 });
 
 export const DEFAULT_VISIT_MASCOT_INTERACTION_PROFILE = Object.freeze({
@@ -96,4 +100,5 @@ export const DEFAULT_VISIT_MASCOT_INTERACTION_PROFILE = Object.freeze({
     state: VISIT_MASCOT_STATE.INSPECT,
     durationMs: 1200,
   },
+  [VISIT_MASCOT_INTERACTION_EVENT.MASCOT_TAP]: { mode: 'happy' },
 });

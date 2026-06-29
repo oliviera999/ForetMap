@@ -26,6 +26,59 @@ test('glMascotPackToVisit : map sprite_cut GL vers validation visite', async () 
   assert.equal(mod.mapGlMascotStateKeyToVisit('talking'), mod.mapGlMascotStateKeyToVisit('talk'));
 });
 
+test('glMascotPackToVisit : préserve un état GL personnalisé + porte les triggers', async () => {
+  const mod = await import(
+    pathToFileURL(path.join(__dirname, '..', 'src', 'utils', 'glMascotPackToVisit.js')).href
+  );
+  const glPack = {
+    id: 'gl-custom',
+    name: 'GL custom',
+    renderer: 'sprite_cut',
+    assets: [
+      { key: 'a', src: 'https://example.com/a.png' },
+      { key: 'b', src: 'https://example.com/b.png' },
+    ],
+    states: [
+      { key: 'idle', frames: [0] },
+      { key: 'cast_spell', label: 'Incantation', frames: [1] },
+    ],
+    triggers: [
+      {
+        key: 'ambient_cast',
+        label: 'Incante régulièrement',
+        type: 'periodic',
+        state: 'cast_spell',
+        durationMs: 1200,
+        everyMs: 9000,
+      },
+    ],
+  };
+  const mapped = mod.glMascotPackSpriteCutToVisitValidation(glPack, { relaxAssetPrefix: true });
+  assert.equal(mapped.ok, true);
+  // L'état GL non canonique est préservé (et non écrasé en idle).
+  assert.ok(mapped.spriteCut.stateFrames.cast_spell);
+  assert.ok(Array.isArray(mapped.pack.customStates));
+  assert.equal(mapped.pack.customStates[0].key, 'cast_spell');
+  assert.equal(mapped.pack.mascotPackVersion, 2);
+  assert.equal(mapped.pack.customTriggers[0].state, 'cast_spell');
+  assert.equal(mapped.pack.customTriggers[0].type, 'periodic');
+});
+
+test('glMascotPack : refuse un trigger périodique sans everyMs', async () => {
+  const mod = await import(
+    pathToFileURL(path.join(__dirname, '..', 'src', 'utils', 'glMascotPack.js')).href
+  );
+  const r = mod.validateGlMascotPack({
+    id: 'gl-bad-trig',
+    name: 'X',
+    renderer: 'sprite_cut',
+    assets: [{ key: 'a', src: 'x' }],
+    states: [{ key: 'idle', frames: [0] }],
+    triggers: [{ key: 'amb', label: 'A', type: 'periodic', state: 'idle', durationMs: 900 }],
+  });
+  assert.equal(r.success, false);
+});
+
 test('glMascotPackToVisit : refuse renderer non sprite_cut', async () => {
   const mod = await import(
     pathToFileURL(path.join(__dirname, '..', 'src', 'utils', 'glMascotPackToVisit.js')).href

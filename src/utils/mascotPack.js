@@ -5,10 +5,38 @@
  */
 import { z } from 'zod';
 import { VISIT_MASCOT_STATE } from './visitMascotState.js';
-import { interactionProfileSchema } from './visitMascotInteractionEvents.js';
+import {
+  interactionProfileSchema,
+  VISIT_MASCOT_INTERACTION_EVENT_KEYS,
+} from './visitMascotInteractionEvents.js';
 import { dialogProfileSchema } from './visitMascotDialogEvents.js';
 
 const CANONICAL_STATE_KEYS = new Set(Object.values(VISIT_MASCOT_STATE));
+const RESERVED_TRIGGER_KEYS = new Set(VISIT_MASCOT_INTERACTION_EVENT_KEYS);
+
+/** Format commun des clés personnalisées (états & déclencheurs) : kebab/snake-case. */
+const CUSTOM_KEY_RE = /^[a-z0-9]+(?:[-_][a-z0-9]+)*$/;
+
+/** État d'animation personnalisé déclaré par le pack (clé + libellé prof). */
+const customStateSchema = z.object({
+  key: z.string().regex(CUSTOM_KEY_RE).max(40),
+  label: z.string().min(1).max(60),
+});
+
+/**
+ * Déclencheur personnalisé (comportement piloté par les données du pack) :
+ * - `periodic` : joue `state` toutes les `everyMs` (comportement ambiant) ;
+ * - `tap` : joue `state` au clic/tap sur la mascotte.
+ */
+const customTriggerSchema = z.object({
+  key: z.string().regex(CUSTOM_KEY_RE).max(40),
+  label: z.string().min(1).max(60),
+  type: z.enum(['periodic', 'tap']),
+  state: z.string().min(1).max(40),
+  durationMs: z.number().int().min(200).max(60_000),
+  everyMs: z.number().int().min(1000).max(600_000).optional(),
+  dialog: z.array(z.string().max(160)).max(12).optional(),
+});
 
 const stateFrameSchemaV1 = z
   .object({
@@ -64,21 +92,60 @@ const packBodyObjectSchema = z.object({
   clonedFromCatalogId: z.string().max(64).optional(),
   stateAliases: z.record(z.string(), z.string()).optional(),
   stateFrames: z.record(z.string(), stateFrameSchemaV1),
+  /** États d'animation personnalisés (au-delà de la palette canonique VISIT_MASCOT_STATE). */
+  customStates: z.array(customStateSchema).max(24).optional(),
+  /** Déclencheurs personnalisés (comportements ambiants / au tap) pilotés par le pack. */
+  customTriggers: z.array(customTriggerSchema).max(16).optional(),
 });
 
+/** Ensemble des clés d'état acceptées par un pack : canoniques + `customStates`. */
+function collectAllowedStateKeys(data) {
+  const allowed = new Set(CANONICAL_STATE_KEYS);
+  if (Array.isArray(data.customStates)) {
+    for (const cs of data.customStates) {
+      if (cs && typeof cs.key === 'string') allowed.add(cs.key);
+    }
+  }
+  return allowed;
+}
+
 function refineMascotPackBody(data, ctx) {
+  const allowedStates = collectAllowedStateKeys(data);
+
+  // États personnalisés : pas de collision avec la palette canonique, clés uniques.
+  if (Array.isArray(data.customStates)) {
+    const seen = new Set();
+    data.customStates.forEach((cs, idx) => {
+      if (CANONICAL_STATE_KEYS.has(cs.key)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['customStates', idx, 'key'],
+          message: `« ${cs.key} » est déjà un état canonique : choisir une autre clé.`,
+        });
+      }
+      if (seen.has(cs.key)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['customStates', idx, 'key'],
+          message: `État personnalisé en double : ${cs.key}.`,
+        });
+      }
+      seen.add(cs.key);
+    });
+  }
+
   for (const key of Object.keys(data.stateFrames)) {
-    if (!CANONICAL_STATE_KEYS.has(key)) {
+    if (!allowedStates.has(key)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['stateFrames', key],
-        message: `État inconnu « ${key} » (hors VISIT_MASCOT_STATE).`,
+        message: `État inconnu « ${key} » (hors VISIT_MASCOT_STATE et customStates).`,
       });
     }
   }
   if (data.stateAliases) {
     for (const [alias, target] of Object.entries(data.stateAliases)) {
-      if (!CANONICAL_STATE_KEYS.has(alias)) {
+      if (!allowedStates.has(alias)) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ['stateAliases', alias],
@@ -92,6 +159,55 @@ function refineMascotPackBody(data, ctx) {
         });
       }
     }
+  }
+
+  // Règles d'interaction (v2) : l'état transitoire doit exister (canonique ou personnalisé).
+  if (data.interactionProfile && typeof data.interactionProfile === 'object') {
+    for (const [eventKey, rule] of Object.entries(data.interactionProfile)) {
+      if (rule && rule.mode === 'transient' && !allowedStates.has(String(rule.state || ''))) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['interactionProfile', eventKey, 'state'],
+          message: `État « ${rule.state} » inconnu (hors VISIT_MASCOT_STATE et customStates).`,
+        });
+      }
+    }
+  }
+
+  // Déclencheurs personnalisés : clés uniques, non réservées, état valide, everyMs si périodique.
+  if (Array.isArray(data.customTriggers)) {
+    const seen = new Set();
+    data.customTriggers.forEach((trig, idx) => {
+      if (RESERVED_TRIGGER_KEYS.has(trig.key)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['customTriggers', idx, 'key'],
+          message: `« ${trig.key} » est un déclencheur prédéfini : choisir une autre clé.`,
+        });
+      }
+      if (seen.has(trig.key)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['customTriggers', idx, 'key'],
+          message: `Déclencheur personnalisé en double : ${trig.key}.`,
+        });
+      }
+      seen.add(trig.key);
+      if (!allowedStates.has(String(trig.state || ''))) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['customTriggers', idx, 'state'],
+          message: `État « ${trig.state} » inconnu (hors VISIT_MASCOT_STATE et customStates).`,
+        });
+      }
+      if (trig.type === 'periodic' && !(Number(trig.everyMs) >= 1000)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['customTriggers', idx, 'everyMs'],
+          message: 'Un déclencheur périodique nécessite `everyMs` (≥ 1000 ms).',
+        });
+      }
+    });
   }
 }
 
@@ -220,6 +336,12 @@ export function expandMascotPackToSpriteCut(pack) {
     stateAliases:
       pack.stateAliases && Object.keys(pack.stateAliases).length ? pack.stateAliases : undefined,
     stateFrames,
+    customStates:
+      Array.isArray(pack.customStates) && pack.customStates.length ? pack.customStates : undefined,
+    customTriggers:
+      Array.isArray(pack.customTriggers) && pack.customTriggers.length
+        ? pack.customTriggers
+        : undefined,
   };
 }
 
