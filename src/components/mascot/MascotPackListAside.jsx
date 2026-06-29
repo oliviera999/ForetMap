@@ -21,6 +21,7 @@ import { toMascotPackIssueLines } from '../../utils/mascotPackValidationUi.js';
  *   onRefresh: () => void,
  *   onDuplicateSelected: () => void,
  *   onExportZip?: () => void,
+ *   onExportZipUnified?: () => void,
  *   onOpenImport?: () => void,
  *   listError: string,
  *   loading: boolean,
@@ -54,6 +55,7 @@ export default function MascotPackListAside({
   onRefresh,
   onDuplicateSelected,
   onExportZip,
+  onExportZipUnified,
   onOpenImport,
   listError,
   loading,
@@ -213,6 +215,17 @@ export default function MascotPackListAside({
               title="Télécharger une archive ZIP portable (JSON + images)"
             >
               Exporter ZIP
+            </button>
+          ) : null}
+          {onExportZipUnified ? (
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              disabled={actionBusy}
+              onClick={onExportZipUnified}
+              title="Archive ZIP avec pack.json en forme unifiée states[] (aligné GL)"
+            >
+              Exporter ZIP (states[])
             </button>
           ) : null}
           {onOpenImport ? (

@@ -92,3 +92,77 @@ test('glMascotPackToVisit : refuse renderer non sprite_cut', async () => {
   });
   assert.equal(mapped.ok, false);
 });
+
+test('glMascotPackToVisit : collision de clé custom — dernière occurrence gagne (libellé + frames), comme l’ancien pont', async () => {
+  const mod = await import(
+    pathToFileURL(path.join(__dirname, '..', 'src', 'utils', 'glMascotPackToVisit.js')).href
+  );
+  // « cast spell » et « cast_spell » sont sanitizés vers la même clé visite « cast_spell ».
+  const glPack = {
+    id: 'gl-collide',
+    name: 'GL collide',
+    renderer: 'sprite_cut',
+    assets: [
+      { key: 'a', src: 'https://example.com/a.png' },
+      { key: 'b', src: 'https://example.com/b.png' },
+    ],
+    states: [
+      { key: 'cast spell', label: 'Premier', frames: [0] },
+      { key: 'cast_spell', label: 'Second', frames: [1] },
+    ],
+  };
+  const mapped = mod.glMascotPackSpriteCutToVisitValidation(glPack, { relaxAssetPrefix: true });
+  assert.equal(mapped.ok, true);
+  // Une seule entrée custom malgré la collision.
+  const collisions = mapped.pack.customStates.filter((c) => c.key === 'cast_spell');
+  assert.equal(collisions.length, 1);
+  // Dernière occurrence : libellé « Second » et frame de la 2e entrée (b.png).
+  assert.equal(collisions[0].label, 'Second');
+  assert.equal(mapped.spriteCut.stateFrames.cast_spell.srcs[0], 'https://example.com/b.png');
+  assert.equal(mapped.spriteCut.customStates.find((c) => c.key === 'cast_spell').label, 'Second');
+});
+
+test('glMascotPackToVisit : defaults d’animation viennent du seul chemin visite (fps/pixelated/displayScale)', async () => {
+  const mod = await import(
+    pathToFileURL(path.join(__dirname, '..', 'src', 'utils', 'glMascotPackToVisit.js')).href
+  );
+  // Aucun fps / pixelated / displayScale fourni : tout doit être défauté par le cœur visite.
+  const mapped = mod.glMascotPackSpriteCutToVisitValidation(
+    {
+      id: 'gl-defaults',
+      name: 'GL defaults',
+      renderer: 'sprite_cut',
+      assets: [{ key: 'a', src: 'https://example.com/a.png' }],
+      states: [{ key: 'idle', frames: [0] }],
+    },
+    { relaxAssetPrefix: true },
+  );
+  assert.equal(mapped.ok, true);
+  // fps : default 8 appliqué par expandMascotPackToSpriteCut (pas par l’adaptateur GL).
+  assert.equal(mapped.spriteCut.stateFrames.idle.fps, 8);
+  // pixelated : default true (cœur visite) ; displayScale : default 1 (cœur visite).
+  assert.equal(mapped.spriteCut.pixelated, true);
+  assert.equal(mapped.spriteCut.displayScale, 1);
+});
+
+test('glMascotPackToVisit : clamp displayScale appliqué par le cœur visite (un seul chemin)', async () => {
+  const mod = await import(
+    pathToFileURL(path.join(__dirname, '..', 'src', 'utils', 'glMascotPackToVisit.js')).href
+  );
+  // displayScale < 0.25 : accepté par le schéma (positif) puis clampé à 0.25 par l’expansion.
+  const mapped = mod.glMascotPackSpriteCutToVisitValidation(
+    {
+      id: 'gl-scale',
+      name: 'GL scale',
+      renderer: 'sprite_cut',
+      displayScale: 0.1,
+      assets: [{ key: 'a', src: 'https://example.com/a.png' }],
+      states: [{ key: 'idle', frames: [0], fps: 12 }],
+    },
+    { relaxAssetPrefix: true },
+  );
+  assert.equal(mapped.ok, true);
+  assert.equal(mapped.spriteCut.displayScale, 0.25);
+  // fps explicite préservé (transmis tel quel, sans re-duplication de default).
+  assert.equal(mapped.spriteCut.stateFrames.idle.fps, 12);
+});

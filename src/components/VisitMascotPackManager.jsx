@@ -502,28 +502,34 @@ export default function VisitMascotPackManager({
     await postNewPack({ clone_from_pack_id: selectedId });
   }, [selectedId, postNewPack, confirmLeaveIfDirty]);
 
-  const onExportZip = useCallback(async () => {
-    if (!selectedId) return;
-    setActionBusy(true);
-    setActionError('');
-    try {
-      const row = packs.find((p) => p.id === selectedId);
-      const slug = String(row?.label || 'pack')
-        .trim()
-        .toLowerCase()
-        .replace(/[^a-z0-9._-]+/g, '-')
-        .slice(0, 40);
-      await downloadApiFile(
-        `/api/visit/mascot-packs/${encodeURIComponent(selectedId)}/export.zip`,
-        `mascot-pack-${slug || 'pack'}.zip`,
-      );
-    } catch (e) {
-      if (e instanceof AccountDeletedError) onForceLogout?.();
-      else setActionError(e.message || 'Export ZIP impossible');
-    } finally {
-      setActionBusy(false);
-    }
-  }, [selectedId, packs, onForceLogout]);
+  const onExportZip = useCallback(
+    async ({ unified = false } = {}) => {
+      if (!selectedId) return;
+      setActionBusy(true);
+      setActionError('');
+      try {
+        const row = packs.find((p) => p.id === selectedId);
+        const slug = String(row?.label || 'pack')
+          .trim()
+          .toLowerCase()
+          .replace(/[^a-z0-9._-]+/g, '-')
+          .slice(0, 40);
+        const suffix = unified ? '-states' : '';
+        await downloadApiFile(
+          `/api/visit/mascot-packs/${encodeURIComponent(selectedId)}/export.zip${
+            unified ? '?unified=1' : ''
+          }`,
+          `mascot-pack-${slug || 'pack'}${suffix}.zip`,
+        );
+      } catch (e) {
+        if (e instanceof AccountDeletedError) onForceLogout?.();
+        else setActionError(e.message || 'Export ZIP impossible');
+      } finally {
+        setActionBusy(false);
+      }
+    },
+    [selectedId, packs, onForceLogout],
+  );
 
   const onOpenImport = useCallback(() => {
     if (!confirmLeaveIfDirty()) return;
@@ -1334,6 +1340,7 @@ export default function VisitMascotPackManager({
             onRefresh={() => void onRefresh()}
             onDuplicateSelected={() => void onDuplicateSelected()}
             onExportZip={() => void onExportZip()}
+            onExportZipUnified={() => void onExportZip({ unified: true })}
             onOpenImport={onOpenImport}
             listError={listError}
             loading={loading}
