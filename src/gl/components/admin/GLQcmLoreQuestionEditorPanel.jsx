@@ -11,6 +11,7 @@ import {
   questionToForm,
   sortQcmItems,
 } from '../../utils/glQcmLoreEditorForm.js';
+import { mergeAutoSaveForm } from '../../utils/mergeAutoSaveForm.js';
 import { GLButton } from '../ui/GLButton.jsx';
 import { GLField } from '../ui/GLField.jsx';
 import { GLInput } from '../ui/GLInput.jsx';
@@ -125,7 +126,9 @@ export function GLQcmLoreQuestionEditorPanel({ initialQuestionCode = null }) {
     const code = data?.question?.question_code || form.question_code;
     setSelectedCode(code);
     const nextForm = questionToForm(data?.question);
-    setForm(nextForm);
+    // Préserve les frappes saisies pendant la requête en vol (sinon elles seraient écrasées
+    // par la version serveur et rebaselinées comme « enregistrées »).
+    setForm((current) => mergeAutoSaveForm(current, form, nextForm));
     setInfo(isEdit ? 'Question mise à jour.' : 'Question créée.');
     await loadList();
     return nextForm;

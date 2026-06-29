@@ -4,13 +4,33 @@ require('./helpers/setup');
 const test = require('node:test');
 const assert = require('node:assert');
 const request = require('supertest');
-const { initSchema, queryOne } = require('../database');
+const { initSchema, queryOne, queryAll, execute } = require('../database');
 const { app } = require('../server');
 const { ensureAdminTeacherAuthToken } = require('./helpers/adminAuth');
-const { buildFmQuizTemplateWorkbook } = require('../lib/fmQuizImport');
+const { buildFmQuizTemplateWorkbook, applyFmQuizImport } = require('../lib/fmQuizImport');
+
+// Fixtures partagées pour les tests « liens glossaire RQL » (CHANTIER 1).
+const GL_RQL_STAMP = String(Date.now()).slice(-5);
+const GL_RQL_GLOSSARY_CODE = `RQ${GL_RQL_STAMP}`;
+const GL_RQL_QUESTION_CODE = `QF9${GL_RQL_STAMP}`;
+const GL_RQL_QUESTION_ID = Number(GL_RQL_QUESTION_CODE.slice(2));
+const GL_RQL_TAG = `rqlterm${GL_RQL_STAMP}`;
+// Catégorie dédiée et unique par run : évite la collision avec le seed sur la clé unique
+// quiz_questions(categorie_slug, numero_dans_categorie). Sinon l'upsert d'import (ON DUPLICATE
+// KEY UPDATE) mettrait à jour une question seedée existante au lieu de créer QF9… → la question
+// du test n'existerait jamais (lien RQL via FK question_code silencieusement ignoré, present 404).
+const GL_RQL_CATEGORY_SLUG = `rqlcat${GL_RQL_STAMP}`;
 
 test.before(async () => {
   await initSchema();
+  // Terme glossaire actif dont la clé normalisée == le tag de la question importée.
+  await execute(
+    `INSERT INTO glossary_terms (
+       glossary_code, terme, variantes, categorie, niveau, definition_courte, statut, created_at, updated_at
+     ) VALUES (?, ?, '', 'flore', 'base', 'Terme de test pour liens RQL', 'actif', NOW(), NOW())
+     ON DUPLICATE KEY UPDATE statut = 'actif'`,
+    [GL_RQL_GLOSSARY_CODE, GL_RQL_TAG],
+  );
 });
 
 test('GET /api/quiz/categories — public', async () => {
@@ -199,4 +219,132 @@ test('GET /api/quiz/admin/questions — admin sans élévation PIN', async () =>
     .expect(200);
   assert.ok(Array.isArray(res.body.items));
   assert.ok(res.body.items.length > 0);
+});
+
+// =====================================================================
+// CHANTIER 1 — Source de vérité unifiée des liens glossaire (RQL).
+// =====================================================================
+
+const GL_RQL_CATEGORY_ROWS = [
+  {
+    categorie_slug: GL_RQL_CATEGORY_SLUG,
+    categorie_nom: 'Catégorie de test liens RQL',
+    theme: 'sciences',
+    ordre: 1,
+  },
+];
+
+function buildGlRqlQuestionRows() {
+  return [
+    {
+      id: GL_RQL_QUESTION_ID,
+      categorie_slug: GL_RQL_CATEGORY_SLUG,
+      numero_dans_categorie: 1,
+      question: `Question de test liens RQL ${GL_RQL_STAMP} ?`,
+      choix_a: 'A',
+      choix_b: 'B',
+      choix_c: 'C',
+      reponse_correcte: 'A',
+      niveau: 'college',
+      tags: GL_RQL_TAG,
+    },
+  ];
+}
+
+test('import écrit les liens glossaire dans RQL (origin=import) et pas dans quiz_question_glossary', async () => {
+  await applyFmQuizImport({ queryAll, execute }, GL_RQL_CATEGORY_ROWS, buildGlRqlQuestionRows(), {
+    dryRun: false,
+  });
+
+  const rqlRows = await queryAll(
+    `SELECT resource_ref, status, origin FROM resource_question_links
+      WHERE resource_type = 'glossary' AND question_code = ?`,
+    [GL_RQL_QUESTION_CODE],
+  );
+  assert.ok(
+    rqlRows.some((r) => r.resource_ref === GL_RQL_GLOSSARY_CODE && r.origin === 'import'),
+    'le lien glossaire doit exister dans resource_question_links avec origin=import',
+  );
+
+  const legacy = await queryAll(
+    'SELECT 1 AS ok FROM quiz_question_glossary WHERE question_code = ?',
+    [GL_RQL_QUESTION_CODE],
+  );
+  assert.strictEqual(legacy.length, 0, 'aucun lien ne doit être écrit dans quiz_question_glossary');
+});
+
+test('non-régression : un lien glossaire origin=generated/approved survit à un ré-import', async () => {
+  // Pré-condition : la question existe (créée par le test d'import précédent).
+  // Le couple (resource_type, resource_ref, question_code) est UNIQUE : on emploie un autre
+  // glossary_code pour matérialiser le lien generated à préserver.
+  const generatedRef = `${GL_RQL_GLOSSARY_CODE}G`;
+  await execute(
+    `INSERT INTO glossary_terms (
+       glossary_code, terme, variantes, categorie, niveau, definition_courte, statut, created_at, updated_at
+     ) VALUES (?, ?, '', 'flore', 'base', 'Terme generated', 'actif', NOW(), NOW())
+     ON DUPLICATE KEY UPDATE statut = 'actif'`,
+    [generatedRef, `${GL_RQL_TAG}gen`],
+  );
+  await execute(
+    `INSERT IGNORE INTO resource_question_links
+       (resource_type, resource_ref, question_code, status, origin, is_gating)
+     VALUES ('glossary', ?, ?, 'approved', 'generated', 1)`,
+    [generatedRef, GL_RQL_QUESTION_CODE],
+  );
+
+  // Ré-import : le DELETE scopé origin='import' ne doit PAS toucher le lien generated.
+  await applyFmQuizImport({ queryAll, execute }, GL_RQL_CATEGORY_ROWS, buildGlRqlQuestionRows(), {
+    dryRun: false,
+  });
+
+  const survived = await queryAll(
+    `SELECT 1 AS ok FROM resource_question_links
+      WHERE resource_type = 'glossary' AND question_code = ? AND resource_ref = ?
+        AND origin = 'generated' AND status = 'approved'`,
+    [GL_RQL_QUESTION_CODE, generatedRef],
+  );
+  assert.strictEqual(
+    survived.length,
+    1,
+    'le lien origin=generated/approved doit survivre au ré-import',
+  );
+
+  // Et le lien d'import est bien re-créé.
+  const importLink = await queryAll(
+    `SELECT 1 AS ok FROM resource_question_links
+      WHERE resource_type = 'glossary' AND question_code = ?
+        AND resource_ref = ? AND origin = 'import'`,
+    [GL_RQL_QUESTION_CODE, GL_RQL_GLOSSARY_CODE],
+  );
+  assert.strictEqual(
+    importLink.length,
+    1,
+    'le lien origin=import doit être présent après ré-import',
+  );
+});
+
+test('present/answer renvoient les glossaryTerms recalculés (option A)', async () => {
+  const present = await request(app)
+    .get(`/api/quiz/questions/${GL_RQL_QUESTION_CODE}/present`)
+    .expect(200);
+  assert.ok(present.body.presentationToken);
+  assert.ok(Array.isArray(present.body.glossaryTerms));
+  assert.ok(
+    present.body.glossaryTerms.some((t) => t.glossary_code === GL_RQL_GLOSSARY_CODE),
+    'le terme glossaire matché doit apparaître dans la présentation',
+  );
+
+  // Réponse correcte (A) → glossaryTerms renvoyés.
+  const correctChoice = present.body.choices.find((c) => c.text === 'A');
+  assert.ok(correctChoice, 'le choix correct doit être présent');
+  const answer = await request(app)
+    .post(`/api/quiz/questions/${GL_RQL_QUESTION_CODE}/answer`)
+    .send({ presentationToken: present.body.presentationToken, choiceId: correctChoice.id })
+    .expect(200);
+  assert.strictEqual(answer.body.correct, true);
+  assert.ok(Array.isArray(answer.body.glossaryTerms));
+  assert.ok(
+    answer.body.glossaryTerms.some((t) => t.glossary_code === GL_RQL_GLOSSARY_CODE),
+    'la bonne réponse doit renvoyer le terme glossaire recalculé',
+  );
 });

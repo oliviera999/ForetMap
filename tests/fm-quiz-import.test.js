@@ -78,3 +78,75 @@ test('buildFmQuizTemplateWorkbook parse en dry-run', async () => {
   assert.strictEqual(report.dryRun, true);
   assert.ok(report.totals.valid >= 1);
 });
+
+test('applyFmQuizImport écrit les liens glossaire dans resource_question_links (origin=import)', async () => {
+  // Glossaire actif : terme « Photosynthèse » dont la clé normalisée matche le tag de la question.
+  const glossaryRows = [
+    {
+      glossary_code: 'GLFM01',
+      terme: 'Photosynthèse',
+      variantes: '',
+      categorie: 'flore',
+      definition_courte: 'Production de matière par la lumière',
+    },
+  ];
+
+  const executed = [];
+  const deps = {
+    queryAll: async (sql) => {
+      if (/FROM glossary_terms/i.test(sql)) return glossaryRows;
+      // SELECT question_code FROM quiz_questions (existants) → aucun
+      return [];
+    },
+    execute: async (sql, params) => {
+      executed.push({ sql, params });
+      return { insertId: 0 };
+    },
+  };
+
+  const categoryRows = [
+    {
+      categorie_slug: 'vivant_classification',
+      categorie_nom: 'Le vivant',
+      theme: 'sciences',
+      ordre: 1,
+    },
+  ];
+  const questionRows = [
+    {
+      id: 9001,
+      categorie_slug: 'vivant_classification',
+      numero_dans_categorie: 1,
+      question: 'Comment les plantes fabriquent-elles leur matière ?',
+      choix_a: 'Photosynthèse',
+      choix_b: 'Respiration',
+      choix_c: 'Digestion',
+      reponse_correcte: 'A',
+      niveau: 'college',
+      tags: 'photosynthese',
+    },
+  ];
+
+  const report = await applyFmQuizImport(deps, categoryRows, questionRows, { dryRun: false });
+  assert.strictEqual(report.totals.glossary_links_synced, 1);
+
+  // (a) Plus aucune écriture sur l'ancienne table de jonction.
+  assert.ok(
+    !executed.some((e) => /quiz_question_glossary/i.test(e.sql)),
+    'aucune écriture ne doit cibler quiz_question_glossary',
+  );
+
+  // DELETE global scopé origin='import' + resource_type='glossary', sans clause status.
+  const del = executed.find((e) => /DELETE FROM resource_question_links/i.test(e.sql));
+  assert.ok(del, 'un DELETE sur resource_question_links est attendu');
+  assert.match(del.sql, /resource_type\s*=\s*'glossary'/i);
+  assert.match(del.sql, /origin\s*=\s*'import'/i);
+  assert.ok(!/status/i.test(del.sql), 'le DELETE ne doit PAS être scopé sur status');
+
+  // INSERT IGNORE vers RQL avec origin='import' et resource_ref = glossary_code.
+  const ins = executed.find((e) => /INSERT IGNORE INTO resource_question_links/i.test(e.sql));
+  assert.ok(ins, 'un INSERT IGNORE sur resource_question_links est attendu');
+  assert.match(ins.sql, /'glossary'/i);
+  assert.match(ins.sql, /'import'/i);
+  assert.deepStrictEqual(ins.params, ['GLFM01', 'QF9001']);
+});

@@ -28,7 +28,9 @@ const {
   buildFmQuizTemplateWorkbook,
   buildFmQuizExportWorkbook,
   loadFmQuizExportRows,
+  combineKeywords,
 } = require('../lib/fmQuizImport');
+const { buildGlossaryLookupMap, matchGlossaryTermsForSpecies } = require('../lib/glGlossaryMatch');
 const asyncHandler = require('../lib/asyncHandler');
 const { z, validate } = require('../lib/validate');
 
@@ -58,6 +60,7 @@ const QUESTION_SELECT = `
   SELECT question_code, categorie_slug, numero_dans_categorie, question,
          choix_a, choix_b, choix_c, choix_d, choix_e,
          reponse_correcte, reponse_texte, niveau, difficulte, difficulte_label,
+         tags,
          feedback_correct, feedback_a, feedback_b, feedback_c, feedback_d, feedback_e,
          photo_url, photo_credit, photo_licence, photo_legende, statut
     FROM quiz_questions
@@ -69,15 +72,19 @@ async function loadActiveQuestion(code) {
   ]);
 }
 
-async function loadQuestionGlossaryTerms(code) {
-  return queryAll(
-    `SELECT g.glossary_code, g.terme, g.variantes, g.categorie, g.definition_courte
-       FROM quiz_question_glossary qqg
-       JOIN glossary_terms g ON g.glossary_code = qqg.glossary_code
-      WHERE qqg.question_code = ? AND g.statut = 'actif'
-      ORDER BY g.terme ASC`,
-    [code],
+// Affichage des termes glossaire RECALCULÉ à la volée via le matcher (zéro lecture de la table de
+// liens, iso-comportement avec l'écriture import/CRUD) — même patron que routes/gl/qcm.js.
+async function loadGlossaryLookup() {
+  const rows = await queryAll(
+    `SELECT glossary_code, terme, variantes, categorie, definition_courte
+       FROM glossary_terms WHERE statut = 'actif'`,
   );
+  return buildGlossaryLookupMap(rows);
+}
+
+function enrichQuestionWithGlossary(questionRow, glossaryByKey) {
+  if (!questionRow) return [];
+  return matchGlossaryTermsForSpecies(combineKeywords(questionRow), glossaryByKey);
 }
 
 async function tryHydrateAuth(req) {
@@ -238,7 +245,8 @@ router.get(
     const row = await loadActiveQuestion(code);
     if (!row) return res.status(404).json({ error: 'Question introuvable' });
 
-    const glossaryTerms = await loadQuestionGlossaryTerms(code);
+    const glossaryByKey = await loadGlossaryLookup();
+    const glossaryTerms = enrichQuestionWithGlossary(row, glossaryByKey);
     try {
       const presentation = presentQuestion(row, glossaryTerms, QCM_OPTIONS);
       return res.json(presentation);
@@ -266,7 +274,8 @@ router.post(
         req.body?.choiceId,
         QCM_OPTIONS,
       );
-      const glossaryTerms = await loadQuestionGlossaryTerms(code);
+      const glossaryByKey = await loadGlossaryLookup();
+      const glossaryTerms = enrichQuestionWithGlossary(row, glossaryByKey);
 
       const auth = await tryHydrateAuth(req);
       if (auth?.userId) {
@@ -471,7 +480,10 @@ router.get(
          FROM quiz_questions WHERE statut = 'actif'
         GROUP BY difficulte ORDER BY difficulte ASC`,
     );
-    const glossaryLinks = await queryOne('SELECT COUNT(*) AS total FROM quiz_question_glossary');
+    const glossaryLinks = await queryOne(
+      `SELECT COUNT(*) AS total FROM resource_question_links
+        WHERE resource_type = 'glossary' AND status = 'approved'`,
+    );
     return res.json({
       total: Number(total?.total || 0),
       glossaryLinks: Number(glossaryLinks?.total || 0),

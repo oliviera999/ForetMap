@@ -7,6 +7,145 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### ForetMap — Cartes : étiquettes plus grandes, grossissement au zoom configurable
+
+- **Étiquettes un peu plus grandes** : tailles de référence portées de 17→**19 px** (emoji) et 12→**14 px**
+  (libellé) dans `resolveMapOverlayTypography` (`src/utils/mapOverlayTypography.js`).
+- **Grossissement progressif au zoom** : les étiquettes (emojis + noms, zones et repères) peuvent
+  désormais **grossir légèrement quand on zoome**, au lieu de garder une taille apparente strictement
+  constante. Formule `taille = base × ratio_zoom^g` où `g = overlay_zoom_growth_percent / 100`. Appliqué
+  de façon **cohérente aux deux cartes** : la carte des tâches passe une hauteur au repos stable +
+  un `zoomRatio` (nouvelle échelle d’ajustement `fitScale` exposée par `useMapGestures`), le plan de
+  visite utilise le `zoomRatio` par défaut (= zoom courant, repos à 1).
+- **Configurable dans les réglages** : nouveau réglage public `ui.map.overlay_zoom_growth_percent`
+  (entier 0–100, défaut **35** ; `0` = taille constante, `100` = grossissement linéaire), éditable depuis
+  l’admin (section Modules) au même endroit que les autres réglages carte. Backend `lib/settings.js`,
+  défaut public `src/utils/appPublicSettings.js`, libellé admin `src/constants/settingsAdminMeta.js`.
+- Tests : `tests/map-overlay-typography.test.js` (tailles de référence 19/14, grossissement 0 %/100 %/défaut,
+  bornage `clampZoomGrowthPercent`). Doc : `docs/API.md` (réglages `ui.map.*`).
+### ForetMap — Mode visite/découverte (onboarding guidé par onglet)
+
+- **Découverte « petit à petit » à la première ouverture de chaque onglet** : un nouveau mode visite
+  présente les éléments de la page sous forme de coach marks (spotlight + carte explicative,
+  Précédent / Suivant / Passer). Le parcours démarre automatiquement **la première fois qu'un onglet est
+  ouvert**, puis ne se relance plus seul (mémorisé par onglet dans `localStorage`,
+  clé `foretmap_discovery_seen_v1`).
+- **Relance depuis le bouton d'aide** : chaque panneau d'aide « ? » (`HelpPanel`) propose désormais un
+  bouton **« ▶ Visite guidée »** qui rejoue le parcours de la page courante.
+- **Contenu adapté au rôle** : textes différenciés élève / n3boss, étapes réservées à un rôle
+  (ex. Profils, Paramètres), et étapes dont la cible est absente du DOM automatiquement ignorées
+  (on ne montre que ce qui figure à l'écran).
+- **Activation** : respecte `modules.help_enabled` et un nouveau drapeau `help.discovery_tour` des
+  réglages publics ; l'auto-démarrage attend que l'application soit prête et qu'aucun onboarding mascotte
+  invité ne soit en attente.
+- Nouveaux fichiers : `src/constants/discoveryTour.js` (définitions des parcours), `src/hooks/useDiscoveryTour.js`
+  (état + persistance), `src/components/DiscoveryTour.jsx` (overlay/coach marks),
+  `src/contexts/TourContext.jsx` (provider + auto-démarrage). Câblage dans `src/App.jsx`, `HelpPanel.jsx`
+  et styles dans `src/index.css`.
+- Tests : `tests-ui/hooks/useDiscoveryTour.test.jsx` (persistance, filtrage par rôle, démarrage/progression)
+  et `tests-ui/components/DiscoveryTour.test.jsx` (rendu, navigation, texte prof).
+
+### ForetMap — Cartes : zoom plus profond et étiquettes de zones/repères plus lisibles
+
+- **Étiquettes à taille apparente constante (zones SVG + repères HTML, carte des tâches et plan de
+  visite)** : `resolveMapOverlayTypography` (`src/utils/mapOverlayTypography.js`) calcule désormais les
+  tailles en **px-écran** puis les contre-échelonne par `worldScale`. Les planchers de lisibilité étaient
+  exprimés en unités-monde : au-delà d'un zoom ~2,3× ils se déclenchaient et **faisaient gonfler** les
+  libellés (ex. ~36 px à ×6 au lieu des ~14 px voulus). Les textes gardent maintenant une taille apparente
+  **stable quel que soit le zoom**. L'écart emoji/libellé suit la même logique (plus de décalage géant en
+  zoomant).
+- **Étiquettes légèrement plus petites** : tailles de référence ramenées de 19→17 px (emoji) et 14→12 px
+  (libellé) pour des repères plus discrets sur les plans denses.
+- **Zoom plus profond sur les deux cartes** : échelle maximale portée de **6 à 8** (carte des tâches via
+  `MAP_VIEW_SCALE_MAX` dans `useMapGestures.js` — molette, pinch, boutons +/− et barre d'outils ; plan de
+  visite via `VISIT_MAP_SCALE_MAX`). La hausse de zoom est sans effet de bord visuel grâce à la correction
+  ci-dessus.
+- Tests : `tests/map-overlay-typography.test.js` (tailles de référence, invariance de la taille apparente
+  à fort zoom, planchers) et `tests-ui/utils/visitMapTransform.test.js` (bornes `[1, 8]`).
+
+### GL — Pistes audio de zone (carte du royaume) : la sélection ne s'appliquait pas / le menu se repliait
+
+- **Persistance de la playlist multi-pistes** : `useGLKingdomZones` (`createZone` / `updateZone`) ne
+  transmettait que le champ legacy `musicUrl` (singulier) et **ignorait `musicUrls` (pluriel)** envoyé
+  par l'éditeur (`saveZoneMeta`, `clearZoneMusic`) et par la duplication de zone
+  (`zoneDuplicateCreatePayloadFromZone`). Conséquence : la piste audio sélectionnée n'était jamais
+  enregistrée, « Retirer la musique » ne persistait pas, et dupliquer une zone perdait sa musique et son
+  volume. Le pluriel est désormais forwardé à l'API (déjà accepté côté serveur, cf. `lib/glZoneMusic.js`).
+- **Autovalidation qui repliait le menu et écrasait l'édition en cours** : l'effet de chargement des
+  brouillons de zone (`useGLKingdomZoneEditor`) se redéclenchait à chaque `reload()` post-autosave
+  (nouveaux objets zone, même id), réinitialisant `draftMusicUrls` / `draftPopoverImages`… La ligne de
+  piste vide disparaissait et le `MediaLibraryMenu` ouvert se démontait (« le menu se replie trop vite »).
+  Le rechargement des brouillons est maintenant **gardé par id de zone** : un simple refresh de la même
+  zone ne réécrase plus une saisie en cours.
+- Tests : `tests-ui/gl/useGLKingdomZones.test.js` (forwarding `musicUrls`/volume, playlist vide,
+  duplication avec musique) et `tests-ui/gl/useGLKingdomZoneEditor.test.js` (le brouillon survit à un
+  reload de la même zone ; changer de zone recharge bien les valeurs serveur).
+
+### Éditeurs — récurrences d'autovalidation / persistance (audit du bug pistes audio)
+
+- **Éditeur de visite (`VisitEditorPanel`)** : l'effet de chargement du formulaire se redéclenchait à
+  chaque reload post-action média (`visit-views` recrée l'objet `selected`), écrasant le texte et les
+  blocs éditoriaux en cours de saisie. Rechargement désormais **gardé par identité (type + id)** : on ne
+  réinitialise le formulaire qu'au changement d'élément sélectionné.
+- **Chapitres GL (`GLChaptersAdminView`)** : `persistChapter` appelait `chapterDetailToForm(data.chapter, …)`
+  au lieu de `chapterDetailToForm(data)` → `TypeError` à chaque autovalidation (refresh cassé, image de
+  carte jamais uploadée à la création). Argument corrigé.
+- **Éditeurs QCM (`GLQcmQuestionEditorPanel` + lore)** : `setForm(nextForm)` après save écrasait les
+  frappes saisies pendant la requête en vol. Nouveau helper `src/gl/utils/mergeAutoSaveForm.js` :
+  applique la version serveur sauf pour les champs édités entre-temps.
+- **Effacement de feedback QCM (FM quiz, GL QCM, GL QCM lore)** : l'upsert d'import
+  (`feedback_x = COALESCE(NULLIF(VALUES(…), ''), feedback_x)`, volontaire pour l'import XLSX partiel)
+  était réutilisé par l'éditeur, empêchant d'effacer un feedback existant. Nouvelle variante
+  `QUESTION_UPSERT_SQL_FORM` (`feedback_x = VALUES(…)`) dérivée via `lib/shared/feedbackUpsertSql.js`,
+  utilisée par les chemins éditeur (`*Crud.upsert*Question`) ; l'import conserve sa sémantique.
+- **Tests glossaire RQL rouges depuis #205** (`tests/quiz-api.test.js`, `tests/gl-glossary-origin-scope.test.js`) :
+  le fixture entrait en collision avec le seed sur la clé unique
+  `quiz_questions(categorie_slug, numero_dans_categorie)` → l'upsert d'import mettait à jour une question
+  seedée au lieu de créer la question de test (lien RQL ignoré via FK `question_code`, `present` en 404).
+  Corrigé côté test (catégorie dédiée + 5e choix manquant) ; la feature de liaison glossaire est correcte.
+- Tests : `tests/feedback-upsert-sql.test.js`, `tests-ui/gl/mergeAutoSaveForm.test.js`,
+  `tests-ui/components/visit/VisitEditorPanel.test.jsx`.
+
+### GL & ForetMap — liens glossaire ↔ questions : source de vérité unifiée
+
+- **GL (écritures + lectures)** : les liens « glossaire » QCM ne transitent plus par les tables de
+  jonction héritées `gl_qcm_question_glossary` / `gl_qcm_lore_question_glossary` mais par la table
+  unifiée `gl_resource_question_links` (cf. migration `145`). `lib/glQcmCrud.js`, `lib/glQcmLoreCrud.js`,
+  `lib/glQcmImport.js`, `lib/glQcmLoreImport.js` : `INSERT IGNORE` (`origin='import'`, `status='approved'`,
+  `is_gating=1`, `resource_type='glossary'` / `'lore_glossary'`). Les compteurs `glossaryLinks` de
+  `routes/gl/qcm.js` et `routes/gl/lore.js` lisent l'unifiée.
+- **Scope du `DELETE` de resync = `origin='import'`** (et non `status='approved'`) : le matcher
+  déterministe ne supprime QUE les liens qu'il sait recréer, préservant les liens curatés
+  (`manual`/`auto`/`generated`/`suggested`) des autres pipelines. Migration `149` : requalifie les
+  19 liens manuels `origin='point4'` en `origin='manual'` (couplé au nouveau scope — sinon ils seraient
+  effacés au prochain resync).
+- **ForetMap (miroir)** : `lib/fmQuizCrud.js` et `lib/fmQuizImport.js` écrivent désormais dans
+  `resource_question_links` (migration `144`) au lieu de `quiz_question_glossary` ; `routes/quiz.js`
+  (COUNT admin + affichage des termes après réponse, **recalculé à la volée** via le matcher, sans
+  lecture de table de liens) et `routes/glossary.js` (questions liées à un terme) lisent l'unifiée.
+  Même scope `origin='import'`. Tests `tests/quiz-api.test.js`, `tests/glossary-api.test.js`,
+  `tests/fm-quiz-import.test.js`, `tests/gl-glossary-origin-scope.test.js`.
+- **Tables héritées conservées** (non droppées dans ce lot) : plus aucun code applicatif ne les touche.
+  Pas de changement de comportement métier visible.
+
+### BDD — intégrité, régularisation et nettoyage (suite à l'audit du dump)
+
+- **Intégrité `task_*`** (migration `150`) : recréation idempotente et défensive des FK
+  `fk_task_assignments_student` / `fk_task_logs_student` (`student_id → users(id) ON DELETE SET NULL`),
+  absentes en prod (drift hors-migration) ; purge préalable des orphelins (`SET NULL`) puis index garanti
+  avant la FK (pré-requis InnoDB). Test `tests/task-student-fk.test.js`.
+- **Constantes de jeu GL** (migration `151`) : régularisation des tables `gl_game_constants` (14) et
+  `gl_game_constant_refs` (13), créées manuellement hors pipeline ; **source documentaire NON câblée au
+  runtime**, recréées en collation projet `utf8mb4_unicode_ci`. Test `tests/gl-game-constants.test.js`,
+  note `docs/EVOLUTION.md`.
+- **Colonnes legacy/seed-only supprimées** (migration `153`) : `tasks.recurrence_end` et
+  `quiz_questions.photo_species_id` / `photo_source` / `photo_licence_url` / `photo_sujet` (jamais lues
+  ni écrites ; l'affichage/import s'appuie sur `photo_url` / `photo_credit` / `photo_licence` /
+  `photo_legende`, conservées). Tables GL homonymes non touchées. Test `tests/drop-legacy-columns.test.js`.
+- **Vues mortes supprimées** (migration `152`) : `v_species` et `v_gl_food_web` (jamais consommées) ;
+  `v_food_web` / `v_zone_inventory` conservées. Test `tests/gl-dead-views-dropped.test.js`. DROP des tables
+  QCM héritées GL prévu au lot suivant (cf. `docs/EVOLUTION.md`, § 1.2bis).
+
 ### Tests — isolation RBAC (élèves bloqués en profil visiteur)
 
 - **Cause** : avec le modèle d'accès n3beur par groupes, `syncStudentRoleFromGroups` (exécuté au login/inscription) démote tout élève sans **groupe n3beur** vers `visiteur`. Les helpers de test affectaient le rôle `eleve_novice` uniquement via `user_roles` puis se reconnectaient, ce qui le faisait redémoter → écritures refusées en `403` (suite CI rouge : `api`, `forum`, `context-comments*`).

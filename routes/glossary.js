@@ -103,9 +103,10 @@ router.get(
 
     const linkedQuizQuestions = await queryAll(
       `SELECT qq.question_code, qq.question, qq.categorie_slug, qq.niveau, qq.difficulte
-         FROM quiz_question_glossary qqg
-         JOIN quiz_questions qq ON qq.question_code = qqg.question_code
-        WHERE qqg.glossary_code = ? AND qq.statut = 'actif'
+         FROM resource_question_links r
+         JOIN quiz_questions qq ON qq.question_code = r.question_code
+        WHERE r.resource_ref = ? AND r.resource_type = 'glossary'
+          AND r.status = 'approved' AND qq.statut = 'actif'
         ORDER BY qq.categorie_slug ASC, qq.numero_dans_categorie ASC`,
       [code],
     );

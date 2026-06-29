@@ -7,6 +7,10 @@ const FM_MAP_FULLSCREEN_LAYER_SELECTOR = '.fm-map-fullscreen-layer';
 const EMBEDDED_H_FLOOR = 96;
 const FULLSCREEN_H_FLOOR = 64;
 
+/** Bornes d’échelle de la carte des zones (molette, pinch, boutons +/−). */
+const MAP_VIEW_SCALE_MIN = 0.15;
+const MAP_VIEW_SCALE_MAX = 8;
+
 /**
  * Zone utile (px) pour le cadre carte dans `map-view-canvas-outer`.
  * En plein écran (portail body), on s’appuie sur les dimensions du conteneur / viewport,
@@ -87,6 +91,9 @@ function useMapGestures({
   const draggingMarkerEl = useRef(null);
   const [isCoarsePointer, setIsCoarsePointer] = useState(false);
   const [mapInteractionEnabled, setMapInteractionEnabled] = useState(true);
+  // Échelle « ajustée » (zoom au repos) : ne change qu’au fit/remesure, jamais au zoom.
+  // Sert à dimensionner les étiquettes par rapport à la taille au repos (cf. mapOverlayTypography).
+  const [fitScale, setFitScale] = useState(1);
 
   const applyTransform = () => {
     if (!worldRef.current) return;
@@ -113,6 +120,9 @@ function useMapGestures({
   const commitFitLayout = (x, y, s) => {
     tx.current = { x, y, s };
     applyTransform();
+    // `commitFitLayout` n’est appelé que pour un ajustement (fit/remesure), jamais au zoom :
+    // `s` est donc toujours l’échelle au repos.
+    setFitScale((prev) => (Math.abs(prev - s) < 1e-4 ? prev : s));
     setCommitted((prev) => {
       if (Math.abs(prev.x - x) < 0.5 && Math.abs(prev.y - y) < 0.5 && Math.abs(prev.s - s) < 1e-4)
         return prev;
@@ -142,7 +152,7 @@ function useMapGestures({
   const animateZoomTowardScale = (targetS, pivotLocalX, pivotLocalY) => {
     cancelToolbarZoomAnim();
     const start = { ...tx.current };
-    const clampedTarget = Math.min(Math.max(targetS, 0.15), 6);
+    const clampedTarget = Math.min(Math.max(targetS, MAP_VIEW_SCALE_MIN), MAP_VIEW_SCALE_MAX);
     if (!Number.isFinite(clampedTarget) || Math.abs(clampedTarget - start.s) < 1e-6) return;
     const duration = reducedMotionRef.current ? 0 : 200;
     const easeOutCubic = (u) => 1 - (1 - u) ** 3;
@@ -432,7 +442,7 @@ function useMapGestures({
       const mx = e.clientX - r.left;
       const my = e.clientY - r.top;
       const d = wheelZoomScaleFactor(e, { containerClientHeight: el.clientHeight });
-      const ns = Math.min(Math.max(tx.current.s * d, 0.15), 6);
+      const ns = Math.min(Math.max(tx.current.s * d, MAP_VIEW_SCALE_MIN), MAP_VIEW_SCALE_MAX);
       tx.current.x = mx - (mx - tx.current.x) * (ns / tx.current.s);
       tx.current.y = my - (my - tx.current.y) * (ns / tx.current.s);
       tx.current.s = ns;
@@ -524,6 +534,7 @@ function useMapGestures({
     imgRef,
     tx,
     committed,
+    fitScale,
     imgSize,
     imgSizeRef,
     moved,
@@ -543,4 +554,4 @@ function useMapGestures({
   };
 }
 
-export { useMapGestures, resolveMapLayoutAvailBox };
+export { useMapGestures, resolveMapLayoutAvailBox, MAP_VIEW_SCALE_MIN, MAP_VIEW_SCALE_MAX };

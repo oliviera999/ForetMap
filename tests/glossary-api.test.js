@@ -4,7 +4,7 @@ require('./helpers/setup');
 const test = require('node:test');
 const assert = require('node:assert');
 const request = require('supertest');
-const { initSchema, execute } = require('../database');
+const { initSchema, execute, queryOne } = require('../database');
 const { app } = require('../server');
 
 const stamp = Date.now();
@@ -47,4 +47,27 @@ test('GET /api/glossary/terms/:code — détail avec liens', async () => {
 
 test('GET /api/glossary/terms/inconnu — 404', async () => {
   await request(app).get('/api/glossary/terms/FM9999').expect(404);
+});
+
+test('GET /api/glossary/terms/:code — linkedQuizQuestions lus depuis resource_question_links', async () => {
+  // Question active existante (catégorie seedée) à lier.
+  const q = await queryOne(
+    `SELECT question_code FROM quiz_questions
+      WHERE statut = 'actif' AND categorie_slug = 'vivant_classification' LIMIT 1`,
+  );
+  assert.ok(q?.question_code, 'une question active doit exister pour le test');
+
+  await execute(
+    `INSERT IGNORE INTO resource_question_links
+       (resource_type, resource_ref, question_code, status, origin, is_gating)
+     VALUES ('glossary', ?, ?, 'approved', 'import', 1)`,
+    [glossaryCode, q.question_code],
+  );
+
+  const res = await request(app).get(`/api/glossary/terms/${glossaryCode}`).expect(200);
+  assert.ok(Array.isArray(res.body.linkedQuizQuestions));
+  assert.ok(
+    res.body.linkedQuizQuestions.some((item) => item.question_code === q.question_code),
+    'la fiche glossaire doit lister la question liée via RQL',
+  );
 });

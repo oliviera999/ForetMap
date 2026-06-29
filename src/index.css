@@ -5414,6 +5414,90 @@
   gap: 8px;
   flex-wrap: wrap;
 }
+.fm-help-panel__tour-cta {
+  margin-right: auto;
+}
+
+/* ── Mode visite/découverte (coach marks) ──────────────────────────────── */
+.discovery-tour {
+  position: fixed;
+  inset: 0;
+  z-index: 4000;
+  pointer-events: none;
+}
+.discovery-tour__backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 31, 23, 0.55);
+  pointer-events: auto;
+}
+.discovery-tour__spotlight {
+  border-radius: 12px;
+  box-shadow:
+    0 0 0 9999px rgba(15, 31, 23, 0.55),
+    0 0 0 3px var(--mint, #7dd3a8);
+  pointer-events: none;
+  transition:
+    top 0.2s ease,
+    left 0.2s ease,
+    width 0.2s ease,
+    height 0.2s ease;
+}
+.discovery-tour__card {
+  pointer-events: auto;
+  background: var(--cream, #fff);
+  border: 1.5px solid var(--mint, #7dd3a8);
+  border-radius: 14px;
+  box-shadow: var(--shadow, 0 10px 30px rgba(0, 0, 0, 0.25));
+  padding: 16px 18px;
+  max-width: 92vw;
+  animation: fadeIn 0.18s ease;
+}
+.discovery-tour__progress {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--leaf, #2f7d4f);
+  text-transform: uppercase;
+}
+.discovery-tour__title {
+  margin: 4px 0 6px;
+  font-size: 1.05rem;
+  color: var(--forest, #14361f);
+}
+.discovery-tour__body {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  color: #1e2b24;
+}
+.discovery-tour__dots {
+  display: flex;
+  gap: 6px;
+  margin: 12px 0 4px;
+}
+.discovery-tour__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--mint, #7dd3a8);
+  opacity: 0.4;
+}
+.discovery-tour__dot.is-active {
+  opacity: 1;
+  background: var(--forest, #14361f);
+}
+.discovery-tour__actions {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.discovery-tour__nav {
+  display: flex;
+  gap: 8px;
+}
 
 .fm-help-inline {
   display: flex;
