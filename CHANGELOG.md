@@ -19,6 +19,25 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   dans `useMapGestures` (activé sur molette/pinch/pan/boutons, retiré au commit/ajustement),
   `MapViewWorldLayer` ne pose plus le `will-change` en dur. Plan de visite : `markVisitInteracting()`
   (pose + retombée après ~180 ms d'inactivité), `.visit-map-world` sans `will-change` statique.
+### Mascotte — Import souple : auto-déclaration des comportements personnalisés
+
+- **Problème** : un pack mascotte révisé (forme objet `stateFrames`) comportant des états
+  d'animation **non canoniques** non déclarés dans `customStates` (ex. `dig`, `campfire`,
+  `idle_back`, `treasure`…) était refusé à l'import (« Archive lisible mais pack invalide »),
+  alors que la forme `states[]` les auto-déclarait déjà. L'intégralité du pack devenait
+  inimportable pour un seul oubli de déclaration à la source.
+- **Correctif** : l'import d'archive visite (`POST …/import` et `…/import/analyze`) déclare
+  désormais automatiquement en `customStates` toute clé `stateFrames.<état>` non canonique non
+  déclarée, à condition de respecter le format des clés (`^[a-z0-9]+(?:[-_][a-z0-9]+)*$`, ≤ 40
+  car.). Un libellé prof est dérivé de la clé (`idle_back` → « Idle back »). Option opt-in
+  `autoDeclareCustomStates` de `parseMascotPack`/`validateMascotPack` (`src/utils/mascotPack.js`,
+  miroir `lib/visit-pack/`).
+- **Studio inchangé (validation stricte)** : `POST`/`PUT` packs n'activent pas l'option — une clé
+  d'état inconnue y reste une erreur (faute de frappe révélée).
+- **Remontée UI** : les états auto-déclarés sont exposés dans `autoDeclaredStates` et `warnings`
+  (analyse + import), pour informer le prof des comportements créés.
+- Tests : `tests/mascot-pack.test.js` (auto-déclaration souple, contraste strict/souple,
+  préservation des `customStates` existants). Docs `docs/MASCOT_PACK.md`, `docs/API.md`.
 
 ### Mascotte — Runtime commun mono+multi : `useMascotTransientState` (étape 7 convergence)
 
