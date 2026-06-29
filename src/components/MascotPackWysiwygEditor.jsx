@@ -18,7 +18,7 @@ import MascotPackMetaSection from './MascotPackMetaSection.jsx';
 import MascotPackStateEditor from './mascot/MascotPackStateEditor.jsx';
 import MascotPackCustomBehaviorsEditor from './mascot/MascotPackCustomBehaviorsEditor.jsx';
 import StateAliasesEditor from './mascot/StateAliasesEditor.jsx';
-import { STATE_OPTIONS } from '../constants/mascotStateLabels.js';
+import { buildStateOptions } from '../utils/visitMascotBehaviorRegistry.js';
 
 /**
  * @param {{
@@ -103,21 +103,11 @@ export default function MascotPackWysiwygEditor({
     [pack.stateFrames],
   );
 
-  /** Libellés des états personnalisés (clé → libellé) pour la liste des états. */
-  const customStateLabelByKey = useMemo(() => {
-    const out = {};
-    const list = Array.isArray(pack.customStates) ? pack.customStates : [];
-    for (const cs of list) {
-      if (cs && cs.key) out[cs.key] = cs.label || cs.key;
-    }
-    return out;
-  }, [pack.customStates]);
-
-  /** États proposés à l'édition de frames : palette canonique + états personnalisés valides. */
-  const editableStateKeys = useMemo(() => {
-    const customKeys = Object.keys(customStateLabelByKey);
-    return [...STATE_OPTIONS, ...customKeys.filter((k) => !STATE_OPTIONS.includes(k))];
-  }, [customStateLabelByKey]);
+  /**
+   * États proposés à l'édition de frames : palette canonique + états personnalisés
+   * du pack, dérivés du registre central (`{ key, label, custom }`).
+   */
+  const stateOptions = useMemo(() => buildStateOptions(pack), [pack]);
 
   const setStateFrames = useCallback(
     (next) => {
@@ -183,7 +173,7 @@ export default function MascotPackWysiwygEditor({
           image par état activé avant enregistrement. Les images se gèrent dans le panneau{' '}
           <strong>Images</strong> ci-dessous.
         </p>
-        {editableStateKeys.map((stateKey) => {
+        {stateOptions.map(({ key: stateKey, label, custom }) => {
           const active = Object.prototype.hasOwnProperty.call(stateFrames, stateKey);
           const spec =
             active && stateFrames[stateKey] && typeof stateFrames[stateKey] === 'object'
@@ -201,7 +191,7 @@ export default function MascotPackWysiwygEditor({
               onToggleState={toggleState}
               onUpdateStateEntry={updateStateEntry}
               assetPreviewByFilename={assetPreviewByFilename}
-              labelOverride={customStateLabelByKey[stateKey] || ''}
+              labelOverride={custom ? label : ''}
             />
           );
         })}
@@ -214,9 +204,10 @@ export default function MascotPackWysiwygEditor({
       <section className="mascot-pack-wysiwyg__aliases">
         <h3 className="mascot-pack-wysiwyg__h">Alias d’états (optionnel)</h3>
         <p className="section-sub" style={{ fontSize: '0.8rem' }}>
-          Mappe un état canonique vers un autre (clé et cible parmi les états du schéma).
+          Mappe un état (canonique ou personnalisé) vers un autre possédant des images.
         </p>
         <StateAliasesEditor
+          pack={pack}
           stateFrames={stateFrames}
           aliases={
             pack.stateAliases && typeof pack.stateAliases === 'object' ? pack.stateAliases : {}
