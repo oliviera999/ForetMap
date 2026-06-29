@@ -166,11 +166,19 @@ states[] »** (`packToUnifiedForm` → `mascotPackToUnifiedStates`) pour réécr
 modèle de l'éditeur visuel et la persistance restent en forme canonique (transform à la frontière)
 — l'éditeur WYSIWYG et l'export archive en forme `states[]` restent un follow-up à froid.
 
-### Étape 6 — Retrait du pont (M)
+### Étape 6 — Retrait du pont (M) ✅ réalisée
 
-Une fois le schéma unifié, `glMascotPackToVisit` n'a plus qu'à résoudre `assets[idx] → src`
-(spécificité GL) puis déléguer à `expandMascotPackToSpriteCut`. La logique dupliquée
-(clamp/defaults) disparaît.
+`glMascotPackSpriteCutToVisitValidation` est désormais un **adaptateur mince** : il ne fait que la
+**spécificité GL** — résoudre `assets[idx] → src`, remapper les clés d'état
+(`mapGlMascotStateKeyToVisit`), porter les `triggers` vers `customTriggers`, et fournir les defaults
+de **cadrage** que le schéma GL ne porte pas (`frameWidth/Height`, `fallbackSilhouette`, `id`,
+`framesBase`). Il produit la **forme unifiée `states[]`** et **délègue entièrement** à
+`validateMascotPack` : le désucrage (`normalizeUnifiedStates` → `stateFrames`/`customStates`) **et**
+les clamp/defaults d'animation (`fps`, `pixelated`, `displayScale` via
+`expandMascotPackToSpriteCut`) ne vivent plus qu'à **un seul endroit** (le cœur visite). La logique
+dupliquée (construction manuelle de `stateFrames`/`customStates`, defaults re-codés) a disparu.
+**Non cassant** : prévisualisation GL, `expandGlMascotPackSpriteCut`, catalogue serveur et
+`buildGlMascotExtraCatalogEntries` inchangés. Couvert par `tests/gl-mascot-pack-to-visit.test.js`.
 
 ### Étape 7 — Runtime commun (L, risque élevé)
 

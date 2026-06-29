@@ -64,6 +64,18 @@ export function mapGlMascotStateKeyToVisit(key) {
 }
 
 /**
+ * Adaptateur **mince** GL → visite (étape 6 de convergence). Ne fait QUE la spécificité GL :
+ * - résoudre les indices `frames` → `srcs` (depuis `assets`) ;
+ * - remapper les clés d'état GL vers la convention visite (`mapGlMascotStateKeyToVisit`) ;
+ * - porter les `triggers` GL vers `customTriggers` (états remappés) ;
+ * - fournir les **defaults de cadrage** que le schéma GL ne porte pas (frameWidth/Height,
+ *   fallbackSilhouette, id, framesBase).
+ *
+ * Tout le reste — désucrage de la **forme unifiée `states[]`** vers `stateFrames`/`customStates`
+ * (`normalizeUnifiedStates`) **et** les clamp/defaults d'animation (`fps`, `pixelated`,
+ * `displayScale`) — est délégué à `validateMascotPack` / `expandMascotPackToSpriteCut`.
+ * Plus aucune logique clamp/defaults dupliquée : un seul chemin (cœur visite).
+ *
  * @param {import('zod').infer<typeof import('./glMascotPack.js').glMascotPackSchema>} glPack
  * @param {{ relaxAssetPrefix?: boolean }} [opts]
  * @returns {{ ok: true, pack: object, spriteCut: object, visitPack: object } | { ok: false, error: unknown }}
@@ -73,12 +85,12 @@ export function glMascotPackSpriteCutToVisitValidation(glPack, opts = {}) {
     return { ok: false, error: new Error('Pack GL non sprite_cut') };
   }
   const assets = Array.isArray(glPack.assets) ? glPack.assets : [];
-  const canonicalStates = new Set(Object.values(VISIT_MASCOT_STATE));
-  const stateFrames = {};
-  /** Libellés des états personnalisés (clé visite → libellé). */
-  const customStateLabels = new Map();
+
+  // Spécificité GL : indices `frames` → `srcs` + remappage de clé, en FORME UNIFIÉE `states[]`.
+  // Le désucrage (stateFrames/customStates) et le default `fps` sont délégués au cœur visite.
+  const states = [];
   for (const st of glPack.states || []) {
-    const visitState = mapGlMascotStateKeyToVisit(st.key);
+    const key = mapGlMascotStateKeyToVisit(st.key);
     const srcs = (Array.isArray(st.frames) ? st.frames : [])
       .map((idx) => {
         const asset = assets[Number(idx)];
@@ -86,18 +98,14 @@ export function glMascotPackSpriteCutToVisitValidation(glPack, opts = {}) {
       })
       .filter(Boolean);
     if (srcs.length === 0) continue;
-    stateFrames[visitState] = {
-      srcs,
-      fps: Math.max(1, Number(st.fps) || 8),
-    };
-    if (!canonicalStates.has(visitState)) {
-      customStateLabels.set(visitState, String(st.label || st.key || visitState).slice(0, 60));
-    }
+    const entry = { key, srcs, label: String(st.label || st.key || key).slice(0, 60) };
+    if (Number(st.fps) > 0) entry.fps = Number(st.fps);
+    states.push(entry);
   }
-  if (Object.keys(stateFrames).length === 0) {
+  if (states.length === 0) {
     return { ok: false, error: new Error('Aucun état avec images résolues') };
   }
-  const customStates = [...customStateLabels.entries()].map(([key, label]) => ({ key, label }));
+
   // Déclencheurs personnalisés GL → format visite (`customTriggers`), états remappés.
   const customTriggers = (Array.isArray(glPack.triggers) ? glPack.triggers : [])
     .map((trig) => {
@@ -115,6 +123,7 @@ export function glMascotPackSpriteCutToVisitValidation(glPack, opts = {}) {
       return out;
     })
     .filter((t) => t.key && t.state);
+
   const visitPack = {
     mascotPackVersion: customTriggers.length ? 2 : 1,
     id:
@@ -125,13 +134,15 @@ export function glMascotPackSpriteCutToVisitValidation(glPack, opts = {}) {
     label: String(glPack.name || glPack.id || 'Pack GL').slice(0, 120),
     renderer: 'sprite_cut',
     framesBase: '/assets/mascots/gl-pack/',
+    // Defaults de cadrage spécifiques GL (le schéma GL ne porte pas ces champs).
     frameWidth: Math.max(8, Number(glPack.frameWidth) || 64),
     frameHeight: Math.max(8, Number(glPack.frameHeight) || 64),
-    pixelated: glPack.pixelated !== false,
-    displayScale: glPack.displayScale != null ? Number(glPack.displayScale) : 1,
     fallbackSilhouette: String(glPack.fallbackSilhouette || 'gnome').slice(0, 40),
-    stateFrames,
-    ...(customStates.length ? { customStates } : {}),
+    // `pixelated`/`displayScale` : transmis tels quels ; defaults/clamp appliqués par le cœur visite.
+    ...(typeof glPack.pixelated === 'boolean' ? { pixelated: glPack.pixelated } : {}),
+    ...(glPack.displayScale != null ? { displayScale: Number(glPack.displayScale) } : {}),
+    // Forme unifiée : `normalizeUnifiedStates` désucre vers stateFrames + customStates.
+    states,
     ...(customTriggers.length ? { customTriggers } : {}),
   };
   const validated = validateMascotPack(visitPack, {
