@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, test, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, act } from '@testing-library/react';
 
 const apiGlMock = vi.fn();
 
@@ -10,6 +10,16 @@ vi.mock('../../src/gl/services/apiGL.js', () => ({
 
 vi.mock('../../src/gl/hooks/useGLZoneMusic.js', () => ({
   useGLZoneMusic: () => ({ previewUrl: vi.fn(), stopAll: vi.fn() }),
+}));
+
+// Renvoie directement les coordonnées client comme pourcentages image, pour
+// piloter le glisser-déposer depuis les tests (jsdom n'a pas de layout réel).
+vi.mock('../../src/gl/hooks/useGlPctMapGestures.js', () => ({
+  useGlPctMapGestures: () => ({
+    containerRef: { current: null },
+    imageRef: { current: null },
+    toImagePct: (clientX, clientY) => ({ x: clientX, y: clientY }),
+  }),
 }));
 
 vi.mock('../../src/gl/components/GLPctMapCanvas.jsx', () => ({
@@ -26,9 +36,29 @@ vi.mock('../../src/gl/components/GLPctMapCanvas.jsx', () => ({
   ),
 }));
 
+// Expose une poignée de glisser-déposer par repère sans interférer avec les
+// requêtes par nom de bouton des autres tests (libellé technique distinct).
 vi.mock('../../src/gl/components/GLBoardMarkers.jsx', () => ({
-  GLBoardMarkers: () => null,
+  GLBoardMarkers: ({ markers = [], onMarkerPointerDown }) => (
+    <div data-testid="board-markers">
+      {markers.map((marker) => (
+        <button
+          key={marker.id}
+          type="button"
+          aria-label={`drag-marker-${marker.id}`}
+          onPointerDown={(event) => onMarkerPointerDown?.(event, marker)}
+        />
+      ))}
+    </div>
+  ),
 }));
+
+function dispatchPointerEvent(type, clientX, clientY) {
+  const event = new Event(type, { bubbles: true, cancelable: true });
+  event.clientX = clientX;
+  event.clientY = clientY;
+  window.dispatchEvent(event);
+}
 
 vi.mock('../../src/gl/components/GLMarkerEventEditor.jsx', () => ({
   GLMarkerEventEditor: () => null,
@@ -122,6 +152,50 @@ describe('GLChapterMapStudio', () => {
       );
     });
     expect(onInfo).toHaveBeenCalledWith('Position du repère mise à jour');
+  });
+
+  test('enregistre la position finale du glisser-déposer (pas une position intermédiaire)', async () => {
+    const onReload = vi.fn();
+    render(
+      <GLChapterMapStudio
+        chapterId={42}
+        chapterSlug="foret-magique"
+        chapterTitle="Forêt magique"
+        mapImageUrl="/maps/map-foret.svg"
+        markers={[{ id: 9, label: 'Repère test', x_pct: 10, y_pct: 20, order_index: 0 }]}
+        zoneMusicEnabled={false}
+        onReload={onReload}
+        onError={vi.fn()}
+        onInfo={vi.fn()}
+      />,
+    );
+
+    const handle = await screen.findByLabelText('drag-marker-9');
+
+    // Amorce du glisser : sélection + dragState (re-render committé séparément).
+    fireEvent.pointerDown(handle);
+
+    // Plusieurs déplacements puis le relâchement dans le même lot : les setState
+    // des `pointermove` ne sont pas encore committés quand `pointerup` s'exécute.
+    // Le PUT doit néanmoins porter la position finale (70/80), via la ref.
+    await act(async () => {
+      dispatchPointerEvent('pointermove', 30, 30);
+      dispatchPointerEvent('pointermove', 70, 80);
+      dispatchPointerEvent('pointerup', 70, 80);
+    });
+
+    await waitFor(() => {
+      expect(apiGlMock).toHaveBeenCalledWith('/api/gl/chapters/admin/markers/9', 'PUT', {
+        xPct: 70,
+        yPct: 80,
+      });
+    });
+    // Aucune persistance d'une position périmée (10/20 = position de départ).
+    expect(apiGlMock).not.toHaveBeenCalledWith(
+      '/api/gl/chapters/admin/markers/9',
+      'PUT',
+      expect.objectContaining({ xPct: 10, yPct: 20 }),
+    );
   });
 
   test('affiche les numéros de parcours dans la liste des repères', async () => {
