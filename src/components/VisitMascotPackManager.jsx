@@ -6,7 +6,9 @@ import {
   parsePackJson,
   stringifyPack,
   ensureServerFramesBase,
+  packToUnifiedForm,
 } from '../utils/mascotPackEditorModel.js';
+import { normalizeUnifiedStates } from '../utils/mascotPack.js';
 import {
   sanitizeClientFilename,
   renameFilenameInPackStateFrames,
@@ -376,9 +378,18 @@ export default function VisitMascotPackManager({
       return;
     }
     setJsonError('');
-    setEditorPack(clonePackDeep(parsed.pack));
+    // Accepte la forme unifiée `states[]` : désucrée vers le modèle interne (stateFrames).
+    setEditorPack(clonePackDeep(normalizeUnifiedStates(parsed.pack)));
     setEditorTab('workspace');
   }, [jsonDraft]);
+
+  /** Réécrit le brouillon JSON dans la forme unifiée `states[]` (aligné GL). */
+  const convertJsonToUnified = useCallback(() => {
+    const parsed = parsePackJson(jsonDraft);
+    const base = parsed.ok ? normalizeUnifiedStates(parsed.pack) : editorPack;
+    setJsonDraft(stringifyPack(packToUnifiedForm(base), 2));
+    setJsonError('');
+  }, [jsonDraft, editorPack]);
 
   const postNewPack = useCallback(
     async (bodyExtra = {}) => {
@@ -1464,7 +1475,8 @@ export default function VisitMascotPackManager({
                     aria-labelledby="mascot-pack-tab-json"
                   >
                     <p className="section-sub" style={{ fontSize: '0.82rem' }}>
-                      Modifiez le JSON puis « Appliquer ».
+                      Modifiez le JSON puis « Appliquer ». La forme unifiée <code>states[]</code>{' '}
+                      (alignée GL) est acceptée à l’application.
                     </p>
                     <textarea
                       value={jsonDraft}
@@ -1496,6 +1508,13 @@ export default function VisitMascotPackManager({
                         onClick={applyJsonDraft}
                       >
                         Appliquer le JSON
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm"
+                        onClick={convertJsonToUnified}
+                      >
+                        Forme unifiée states[]
                       </button>
                       <button
                         type="button"
