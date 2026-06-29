@@ -7,6 +7,24 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### ForetMap — Visite : suppression carte propagée à la couche visite (fin des repères/zones « fantômes »)
+
+- **Correctif** : supprimer une zone (`DELETE /api/zones/:id`) ou un repère (`DELETE /api/map/markers/:id`)
+  **côté carte** ne retirait pas la cible **visite** de même `id`. La ligne `visit_zones` / `visit_markers`
+  (avec son nom/sa position figés au moment de la synchro), ses médias et la progression vue survivaient,
+  si bien que **l'onglet Visite continuait d'afficher des repères/zones obsolètes** déjà retirés de la
+  carte (`GET /api/visit/content` lit la couche visite, jointure `LEFT JOIN` tolérante aux orphelins).
+- La suppression carte cascade désormais sur la couche visite : ligne `visit_zones` / `visit_markers`,
+  médias `visit_media` (fichiers disque + lignes) et progression (`visit_seen_students`,
+  `visit_seen_anonymous`). Logique de nettoyage factorisée dans **`lib/visitTargetCleanup.js`**
+  (`deleteVisitTargetCascade`), réutilisée par les suppressions côté visite (`routes/visit/zones.js`,
+  `routes/visit/markers.js`) — source unique, plus de duplication.
+- Pour réaligner d'un coup une visite déjà désynchronisée (renommages/déplacements antérieurs),
+  l'outil prof **« Tout réaligner sur la carte »** (`POST /api/visit/rebuild-from-map`) reste la voie
+  recommandée (textes/médias conservés par `id`).
+- Tests : `tests/visit-target-cleanup.test.js` (cascade zone/repère, best-effort fichiers, no-op type
+  inconnu). Docs : `docs/API.md` (notes `DELETE /api/zones/:id` et `DELETE /api/map/markers/:id`).
+
 ### ForetMap — Cartes : étiquettes nettes au zoom (fin de la pixellisation)
 
 - **Texte et emojis ne pixellisent plus en zoomant.** Les deux cartes (carte des tâches et plan de
