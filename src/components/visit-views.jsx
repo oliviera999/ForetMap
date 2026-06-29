@@ -69,6 +69,10 @@ import { useData } from '../contexts/DataContext.jsx';
 import { buildVisitMascotCatalogExtrasFromContent } from '../utils/visitMascotPackExtras.js';
 import { resolveMascotDialogLine } from '../utils/visitMascotDialogApply.js';
 import { VISIT_MASCOT_STATE } from '../utils/visitMascotState.js';
+import { VISIT_MASCOT_INTERACTION_EVENT } from '../utils/visitMascotInteractionEvents.js';
+import { resolveVisitMascotInteraction } from '../utils/visitMascotInteractionApply.js';
+import { getTapTriggers } from '../utils/visitMascotCustomBehaviors.js';
+import useAmbientMascotBehavior from '../hooks/useAmbientMascotBehavior.js';
 import {
   loadVisitMascotPositionPct,
   saveVisitMascotPositionPct,
@@ -261,6 +265,7 @@ function VisitViewImpl({
     visitMascotId,
     visitMascotOptions,
     visitMascotAnimationState,
+    activeMascotEntry,
     onChangeVisitMascotId,
     triggerMascotTransientState,
     resetMascotTransientState,
@@ -752,6 +757,21 @@ function VisitViewImpl({
     [visitMascotId, visitMascotCatalogExtras, mascotDialogSettings],
   );
 
+  /** Affiche une bulle à partir de lignes brutes (déclencheurs personnalisés du pack). */
+  const showMascotDialogLines = useCallback((lines) => {
+    const arr = Array.isArray(lines) ? lines.filter((l) => String(l || '').trim()) : [];
+    if (!arr.length) return;
+    const text = String(arr[Math.floor(Math.random() * arr.length)] || '').trim();
+    if (!text) return;
+    if (visitMascotDialogTimeoutRef.current) clearTimeout(visitMascotDialogTimeoutRef.current);
+    setVisitMascotDialog(text);
+    setVisitMascotDialogVisible(true);
+    visitMascotDialogTimeoutRef.current = window.setTimeout(() => {
+      setVisitMascotDialogVisible(false);
+      visitMascotDialogTimeoutRef.current = null;
+    }, VISIT_MASCOT_DIALOG_MS);
+  }, []);
+
   const triggerMascotHappy = useCallback(() => {
     if (visitMapMascotHappyTimeoutRef.current) {
       clearTimeout(visitMapMascotHappyTimeoutRef.current);
@@ -908,6 +928,39 @@ function VisitViewImpl({
     triggerMascotTransientState(VISIT_MASCOT_STATE.CELEBRATE, 1450);
     showMascotDialog('mark_seen', { force: true });
   }, [triggerMascotHappy, triggerMascotTransientState, showMascotDialog]);
+
+  // Comportements ambiants data-driven (déclencheurs `periodic` du pack actif).
+  useAmbientMascotBehavior({
+    entry: activeMascotEntry,
+    triggerTransientState: triggerMascotTransientState,
+    enabled: !prefersReducedMotion,
+    prefersReducedMotion,
+    showDialog: showMascotDialogLines,
+  });
+
+  /** Tap/clic direct sur la mascotte : déclencheur général `mascotTap` + déclencheurs `tap` du pack. */
+  const onMascotTap = useCallback(() => {
+    const resolved = resolveVisitMascotInteraction(VISIT_MASCOT_INTERACTION_EVENT.MASCOT_TAP, {
+      mascotId: visitMascotId,
+      extraCatalogEntries: visitMascotCatalogExtras,
+    });
+    if (resolved?.kind === 'happy') {
+      triggerMascotHappy();
+    } else if (resolved?.kind === 'transient' && resolved.state) {
+      triggerMascotTransientState(resolved.state, resolved.durationMs);
+    }
+    for (const trig of getTapTriggers(activeMascotEntry)) {
+      triggerMascotTransientState(trig.state, Number(trig.durationMs) || 900);
+      if (Array.isArray(trig.dialog) && trig.dialog.length) showMascotDialogLines(trig.dialog);
+    }
+  }, [
+    visitMascotId,
+    visitMascotCatalogExtras,
+    activeMascotEntry,
+    triggerMascotHappy,
+    triggerMascotTransientState,
+    showMascotDialogLines,
+  ]);
 
   const queueSeenChangeLocally = useCallback((payloadType, payloadId, nextSeen) => {
     const compact = enqueueVisitSeenAction({
@@ -1502,6 +1555,7 @@ function VisitViewImpl({
                         extraCatalogEntries={visitMascotCatalogExtras}
                         dialogVisible={visitMascotDialogVisible}
                         dialog={visitMascotDialog}
+                        onMascotTap={onMascotTap}
                       />
                     ) : null}
 

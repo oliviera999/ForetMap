@@ -14,6 +14,27 @@ Ce document décrit le JSON **mascot pack** versions **1** et **2** : source de 
 
 **Bibliothèque sprites** : `framesBase` peut aussi être `/api/visit/mascot-sprite-library/{mapId}/assets/` (PNG partagés par carte, voir **`docs/API.md`**).
 
+### Comportements extensibles (états & déclencheurs personnalisés)
+
+Au-delà de la palette d'états **prédéfinis** (`VISIT_MASCOT_STATE`, élargie aux états `sleep`,
+`wave`, `dance`, `eat`, `search`, `sad`, `love`, `point`), un pack peut **déclarer ses propres
+comportements**. Édition au **studio prof** (visite : onglet _Comportements personnalisés_ de
+l'éditeur WYSIWYG ; GL : champs JSON `states` / `triggers`).
+
+| Champ            | Type                | Description                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| ---------------- | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `customStates`   | tableau (optionnel) | États d'animation personnalisés : `{ key, label }`. `key` en kebab/snake-case (`^[a-z0-9]+(?:[-_][a-z0-9]+)*$`, ≤ 40 car.), **unique** et **différente** des états canoniques. Donnez-leur des images via `stateFrames.<key>`. Utilisables comme cible d'alias, de règle d'interaction et de déclencheur. Max 24.                                                                                                                 |
+| `customTriggers` | tableau (optionnel) | Déclencheurs pilotés par les données : `{ key, label, type, state, durationMs, everyMs?, dialog? }`. `type: 'periodic'` joue `state` pendant `durationMs` toutes les `everyMs` ms (≥ 1000) — comportement ambiant ; `type: 'tap'` joue `state` au clic/tap sur la mascotte. `state` = état canonique **ou** `customStates`. `dialog` = bulles optionnelles (≤ 12 × 160 car.). Clé non réservée (≠ événements prédéfinis). Max 16. |
+
+Déclencheur d'interaction **général** ajouté à la palette v2 : **`mascotTap`** (tap/clic direct sur
+la mascotte), configurable dans `interactionProfile` comme les autres événements.
+
+Runtime : le moteur ambiant **`useAmbientMascotBehavior`** lance les déclencheurs `periodic`
+(respecte `prefers-reduced-motion`) ; `resolveVisitMascotState({ extraStates })` accepte les états
+personnalisés du pack actif. Côté **GL**, le pack JSON accepte `states[].label` et un tableau
+`triggers` (mêmes types) ; la conversion `glMascotPackToVisit` **préserve** les clés d'état non
+canoniques (déclarées en `customStates`) et **porte** les `triggers` vers `customTriggers`.
+
 ## Champs racine (v1 et v2)
 
 | Champ                | Type                | Description                                                                                                                                                                                     |

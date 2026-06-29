@@ -19,6 +19,7 @@ import VisitMapMascotRenderer from './VisitMapMascotRenderer.jsx';
  * @param {Array} props.extraCatalogEntries entrées de catalogue supplémentaires (packs)
  * @param {boolean} props.dialogVisible bulle de dialogue affichée
  * @param {string} props.dialog texte de la bulle de dialogue
+ * @param {() => void} [props.onMascotTap] tap/clic direct sur la mascotte (déclencheur `mascotTap`)
  */
 export function VisitMapMascot({
   renderPct,
@@ -31,7 +32,9 @@ export function VisitMapMascot({
   extraCatalogEntries,
   dialogVisible,
   dialog,
+  onMascotTap,
 }) {
+  const tappable = typeof onMascotTap === 'function';
   return (
     <div
       className={`visit-map-mascot${walking ? ' visit-map-mascot--walking' : ''}${happy ? ' visit-map-mascot--happy' : ''}${prefersReducedMotion ? ' visit-map-mascot--reduced-motion' : ''}`}
@@ -43,7 +46,14 @@ export function VisitMapMascot({
         style={{
           transform: `translate(-50%, -100%) scaleX(${faceRight ? 1 : -1})`,
           '--visit-mascot-dialog-x': faceRight ? 1 : -1,
+          ...(tappable ? { cursor: 'pointer', pointerEvents: 'auto' } : {}),
         }}
+        {...(tappable
+          ? {
+              onClick: onMascotTap,
+              onPointerDown: (e) => e.stopPropagation(),
+            }
+          : {})}
       >
         <VisitMapMascotRenderer
           mascotState={mascotState}

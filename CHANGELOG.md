@@ -7,6 +7,33 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Mascotte (visite + GL) — Comportements extensibles : palette élargie, états & déclencheurs personnalisés (studio prof)
+
+- **Palette d'états élargie** : 8 nouveaux états d'animation prédéfinis communs visite + GL —
+  `sleep`, `wave`, `dance`, `eat`, `search`, `sad`, `love`, `point` (`VISIT_MASCOT_STATE`,
+  libellés FR dans `src/constants/mascotStateLabels.js` et aperçu studio). Alias GL→visite
+  ajoutés (`src/utils/glMascotPackToVisit.js`).
+- **États personnalisés par pack (`customStates`)** : le prof crée ses propres états (clé + libellé)
+  dans le studio (visite : nouvel onglet « Comportements personnalisés » de l'éditeur WYSIWYG ;
+  GL : champ `states` libre + `label` optionnel). Validés (collision/doublon), rendus via
+  `stateFrames`, utilisables comme cibles d'alias, de règles d'interaction et de déclencheurs.
+- **Déclencheur général `mascotTap`** : tap/clic direct sur la mascotte (palette d'interaction v2 +
+  câblage runtime `VisitMapMascot`).
+- **Déclencheurs personnalisés (`customTriggers` / GL `triggers`)** : comportements pilotés par les
+  données du pack — `periodic` (joue un état toutes les `everyMs`, moteur ambiant
+  `useAmbientMascotBehavior`) ou `tap` (au clic). Bulles optionnelles. Édition au studio.
+- **Schéma & validation** : `mascotPack.js` (visite, v1/v2) et `glMascotPack.js` (GL) étendus
+  (Zod : clés uniques, non réservées, état cible valide, `everyMs` requis si périodique). Règle
+  d'interaction `transient` : l'appartenance de l'état (canonique **ou** personnalisé) est vérifiée
+  au niveau pack. Miroirs serveur `lib/visit-pack/` et `lib/gl-pack/` resynchronisés.
+- **Runtime** : `resolveVisitMascotState({ extraStates })` accepte les états personnalisés du pack
+  actif ; la machine à états visite expose l'entrée active et joue les états/déclencheurs custom ;
+  le plateau GL (`GLBoardMascot`) respecte les états personnalisés déclenchés.
+- Tests : `tests/mascot-pack.test.js` (palette, `customStates`, `customTriggers`),
+  `tests/gl-mascot-pack-to-visit.test.js` (préservation d'état GL + portage des triggers),
+  `tests-ui/utils/visitMascotCustomBehaviors.test.js`, `tests-ui/hooks/useAmbientMascotBehavior.test.js`,
+  `tests-ui/components/mascot/MascotPackCustomBehaviorsEditor.test.jsx`. Doc `docs/MASCOT_PACK.md`.
+
 ### ForetMap — Cartes : zoom plus profond et étiquettes de zones/repères plus lisibles
 
 - **Étiquettes à taille apparente constante (zones SVG + repères HTML, carte des tâches et plan de

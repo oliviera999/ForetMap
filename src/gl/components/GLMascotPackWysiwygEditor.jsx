@@ -130,6 +130,12 @@ export function GLMascotPackWysiwygEditor({ initialPack, onSave, onDelete }) {
           rows={14}
         />
       </label>
+      <p className="gl-hint" style={{ fontSize: '0.82rem' }}>
+        États personnalisés : ajoutez des entrées <code>states</code> avec une clé libre (et un{' '}
+        <code>label</code> optionnel). Comportements : tableau <code>triggers</code> —{' '}
+        <code>{'{ key, label, type: "periodic"|"tap", state, durationMs, everyMs? }'}</code> (
+        <code>everyMs</code> requis pour <code>periodic</code>).
+      </p>
       {parseError || saveError ? <p className="gl-error">{parseError || saveError}</p> : null}
       <MascotPackValidationList
         issueLines={validation.issueLines}
