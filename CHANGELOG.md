@@ -23,6 +23,27 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   défaut public `src/utils/appPublicSettings.js`, libellé admin `src/constants/settingsAdminMeta.js`.
 - Tests : `tests/map-overlay-typography.test.js` (tailles de référence 19/14, grossissement 0 %/100 %/défaut,
   bornage `clampZoomGrowthPercent`). Doc : `docs/API.md` (réglages `ui.map.*`).
+### ForetMap — Mode visite/découverte (onboarding guidé par onglet)
+
+- **Découverte « petit à petit » à la première ouverture de chaque onglet** : un nouveau mode visite
+  présente les éléments de la page sous forme de coach marks (spotlight + carte explicative,
+  Précédent / Suivant / Passer). Le parcours démarre automatiquement **la première fois qu'un onglet est
+  ouvert**, puis ne se relance plus seul (mémorisé par onglet dans `localStorage`,
+  clé `foretmap_discovery_seen_v1`).
+- **Relance depuis le bouton d'aide** : chaque panneau d'aide « ? » (`HelpPanel`) propose désormais un
+  bouton **« ▶ Visite guidée »** qui rejoue le parcours de la page courante.
+- **Contenu adapté au rôle** : textes différenciés élève / n3boss, étapes réservées à un rôle
+  (ex. Profils, Paramètres), et étapes dont la cible est absente du DOM automatiquement ignorées
+  (on ne montre que ce qui figure à l'écran).
+- **Activation** : respecte `modules.help_enabled` et un nouveau drapeau `help.discovery_tour` des
+  réglages publics ; l'auto-démarrage attend que l'application soit prête et qu'aucun onboarding mascotte
+  invité ne soit en attente.
+- Nouveaux fichiers : `src/constants/discoveryTour.js` (définitions des parcours), `src/hooks/useDiscoveryTour.js`
+  (état + persistance), `src/components/DiscoveryTour.jsx` (overlay/coach marks),
+  `src/contexts/TourContext.jsx` (provider + auto-démarrage). Câblage dans `src/App.jsx`, `HelpPanel.jsx`
+  et styles dans `src/index.css`.
+- Tests : `tests-ui/hooks/useDiscoveryTour.test.jsx` (persistance, filtrage par rôle, démarrage/progression)
+  et `tests-ui/components/DiscoveryTour.test.jsx` (rendu, navigation, texte prof).
 
 ### ForetMap — Cartes : zoom plus profond et étiquettes de zones/repères plus lisibles
 

@@ -114,6 +114,7 @@ import { DialogShell } from './components/DialogShell';
 import { PublicSettingsProvider } from './contexts/PublicSettingsContext.jsx';
 import { SessionProvider } from './contexts/SessionContext.jsx';
 import { DataProvider } from './contexts/DataContext.jsx';
+import { TourProvider } from './contexts/TourContext.jsx';
 import { readStoredTab } from './utils/appShellHelpers';
 import { useAppBootstrap } from './hooks/useAppBootstrap';
 import { useTabNavigationGuards } from './hooks/useTabNavigationGuards';
@@ -214,6 +215,16 @@ function App() {
     (path) => resolveTooltipKey(path, publicSettings, effectiveIsTeacher),
     [effectiveIsTeacher, publicSettings],
   );
+
+  // Auto-démarrage du mode visite/découverte : modules activés, app prête,
+  // session établie et pas d'onboarding mascotte invité en attente.
+  const discoveryTourAutoEnabled =
+    publicSettingsReady &&
+    !loading &&
+    publicSettings?.modules?.help_enabled !== false &&
+    publicSettings?.help?.discovery_tour !== false &&
+    !guestVisitNeedsMascotChoice &&
+    !!(sessionUser || student || showPublicVisit);
 
   const hasPermission = useCallback(
     (perm) => {
@@ -1284,748 +1295,490 @@ function App() {
     <PublicSettingsProvider value={publicSettings}>
       <SessionProvider value={sessionContextValue}>
         <DataProvider value={dataContextValue}>
-          <div id="app">
-            {plantCatalogPreview && (
-              <Suspense fallback={null}>
-                <PlantCatalogPreviewModalLazy
-                  plant={plantCatalogPreview}
-                  maps={visibleMaps}
-                  onClose={() => setPlantCatalogPreview(null)}
-                  onForceLogout={forceLogout}
-                  onOpenPlant={openPlantCatalogPreviewById}
-                  onOpenGlossaryTerm={openPedagoGlossaryTerm}
-                  onNavigateToFoodWeb={openPedagoFoodWeb}
-                  onOpenQuizQuestion={openPedagoQuizQuestion}
-                />
-              </Suspense>
-            )}
-            {showIosInstallHint && !deferredInstallPrompt && !isStandaloneMode && (
-              <div className="fade-in install-ios-banner" role="status" aria-live="polite">
-                <span>
-                  Pour installer ForetMap sur iPhone ou iPad : ouvre Safari, touche Partager, puis «
-                  Sur l’écran d’accueil ».
-                </span>
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-sm"
-                  onClick={() => {
-                    safeLocalStorageSetItem(IOS_INSTALL_HINT_DISMISSED_KEY, '1');
-                    setShowIosInstallHint(false);
+          <TourProvider tab={tab} isTeacher={effectiveIsTeacher} enabled={discoveryTourAutoEnabled}>
+            <div id="app">
+              {plantCatalogPreview && (
+                <Suspense fallback={null}>
+                  <PlantCatalogPreviewModalLazy
+                    plant={plantCatalogPreview}
+                    maps={visibleMaps}
+                    onClose={() => setPlantCatalogPreview(null)}
+                    onForceLogout={forceLogout}
+                    onOpenPlant={openPlantCatalogPreviewById}
+                    onOpenGlossaryTerm={openPedagoGlossaryTerm}
+                    onNavigateToFoodWeb={openPedagoFoodWeb}
+                    onOpenQuizQuestion={openPedagoQuizQuestion}
+                  />
+                </Suspense>
+              )}
+              {showIosInstallHint && !deferredInstallPrompt && !isStandaloneMode && (
+                <div className="fade-in install-ios-banner" role="status" aria-live="polite">
+                  <span>
+                    Pour installer ForetMap sur iPhone ou iPad : ouvre Safari, touche Partager, puis
+                    « Sur l’écran d’accueil ».
+                  </span>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => {
+                      safeLocalStorageSetItem(IOS_INSTALL_HINT_DISMISSED_KEY, '1');
+                      setShowIosInstallHint(false);
+                    }}
+                  >
+                    Masquer
+                  </button>
+                </div>
+              )}
+              {serverDown && (
+                <div
+                  className="fade-in"
+                  role="alert"
+                  style={{
+                    margin: '8px 12px 0',
+                    padding: '10px 14px',
+                    borderRadius: 12,
+                    background: '#fef3c7',
+                    border: '1px solid #f59e0b',
+                    color: '#78350f',
+                    fontSize: '.9rem',
                   }}
                 >
-                  Masquer
-                </button>
-              </div>
-            )}
-            {serverDown && (
-              <div
-                className="fade-in"
-                role="alert"
-                style={{
-                  margin: '8px 12px 0',
-                  padding: '10px 14px',
-                  borderRadius: 12,
-                  background: '#fef3c7',
-                  border: '1px solid #f59e0b',
-                  color: '#78350f',
-                  fontSize: '.9rem',
-                }}
-              >
-                {appServerDownNotice}
-                <button
-                  type="button"
-                  className="btn btn-sm"
-                  style={{ marginLeft: 10, verticalAlign: 'middle' }}
-                  onClick={() => {
-                    failCountRef.current = 0;
-                    setRefreshMs(DATA_REFRESH_INTERVAL_MS);
-                    setServerDown(false);
-                    fetchAll();
+                  {appServerDownNotice}
+                  <button
+                    type="button"
+                    className="btn btn-sm"
+                    style={{ marginLeft: 10, verticalAlign: 'middle' }}
+                    onClick={() => {
+                      failCountRef.current = 0;
+                      setRefreshMs(DATA_REFRESH_INTERVAL_MS);
+                      setServerDown(false);
+                      fetchAll();
+                    }}
+                  >
+                    {appRetryNow}
+                  </button>
+                </div>
+              )}
+              {!serverDown && latestCriticalNotification && (
+                <div className="fade-in notif-critical-banner" role="alert">
+                  <strong>{latestCriticalNotification.title}</strong>{' '}
+                  {latestCriticalNotification.message}
+                </div>
+              )}
+              {sessionValidationError && studentForUi && !effectiveIsTeacher && (
+                <div
+                  className="fade-in"
+                  role="alert"
+                  style={{
+                    margin: '8px 12px 0',
+                    padding: '10px 14px',
+                    borderRadius: 12,
+                    background: '#eff6ff',
+                    border: '1px solid #93c5fd',
+                    color: '#1e3a8a',
+                    fontSize: '.9rem',
                   }}
                 >
-                  {appRetryNow}
-                </button>
-              </div>
-            )}
-            {!serverDown && latestCriticalNotification && (
-              <div className="fade-in notif-critical-banner" role="alert">
-                <strong>{latestCriticalNotification.title}</strong>{' '}
-                {latestCriticalNotification.message}
-              </div>
-            )}
-            {sessionValidationError && studentForUi && !effectiveIsTeacher && (
-              <div
-                className="fade-in"
-                role="alert"
-                style={{
-                  margin: '8px 12px 0',
-                  padding: '10px 14px',
-                  borderRadius: 12,
-                  background: '#eff6ff',
-                  border: '1px solid #93c5fd',
-                  color: '#1e3a8a',
-                  fontSize: '.9rem',
-                }}
-              >
-                <strong>Session pas encore recollée au serveur.</strong> Les infos peuvent être un
-                peu vieilles — un clic pour rafraîchir.
-                <button
-                  type="button"
-                  className="btn btn-sm"
-                  style={{ marginLeft: 10, verticalAlign: 'middle' }}
-                  onClick={() => {
-                    setSessionValidationError(false);
-                    validateStudentSession(studentForUi);
+                  <strong>Session pas encore recollée au serveur.</strong> Les infos peuvent être un
+                  peu vieilles — un clic pour rafraîchir.
+                  <button
+                    type="button"
+                    className="btn btn-sm"
+                    style={{ marginLeft: 10, verticalAlign: 'middle' }}
+                    onClick={() => {
+                      setSessionValidationError(false);
+                      validateStudentSession(studentForUi);
+                    }}
+                  >
+                    Réessayer
+                  </button>
+                </div>
+              )}
+              {toast && <Toast msg={toast} onDone={() => setToast(null)} />}
+              {profilePromotion &&
+                !effectiveIsTeacher &&
+                studentForUi &&
+                !studentForUi.preview_mode && (
+                  <AutoProfilePromotionModal
+                    data={profilePromotion}
+                    roleTerms={roleTerms}
+                    onClose={() => setProfilePromotion(null)}
+                  />
+                )}
+              {showPin && (
+                <PinModal
+                  onSuccess={() => {
+                    const claims = getAuthClaims();
+                    setPinSuccessFetchAllTick((n) => n + 1);
+                    setAuthClaims(claims);
+                    setIsTeacher(
+                      Array.isArray(claims?.permissions) &&
+                        claims.permissions.includes('teacher.access'),
+                    );
+                    setShowPin(false);
+                    setToast(
+                      claims?.elevated
+                        ? 'Droits étendus activés — c’est bon 🔓'
+                        : 'Session mise à jour, tout roule',
+                    );
                   }}
-                >
-                  Réessayer
-                </button>
-              </div>
-            )}
-            {toast && <Toast msg={toast} onDone={() => setToast(null)} />}
-            {profilePromotion &&
-              !effectiveIsTeacher &&
-              studentForUi &&
-              !studentForUi.preview_mode && (
-                <AutoProfilePromotionModal
-                  data={profilePromotion}
-                  roleTerms={roleTerms}
-                  onClose={() => setProfilePromotion(null)}
+                  onClose={() => setShowPin(false)}
+                  uiSettings={publicSettings}
+                  isN3Affiliated={isN3Affiliated}
                 />
               )}
-            {showPin && (
-              <PinModal
-                onSuccess={() => {
-                  const claims = getAuthClaims();
-                  setPinSuccessFetchAllTick((n) => n + 1);
-                  setAuthClaims(claims);
-                  setIsTeacher(
-                    Array.isArray(claims?.permissions) &&
-                      claims.permissions.includes('teacher.access'),
-                  );
-                  setShowPin(false);
-                  setToast(
-                    claims?.elevated
-                      ? 'Droits étendus activés — c’est bon 🔓'
-                      : 'Session mise à jour, tout roule',
-                  );
-                }}
-                onClose={() => setShowPin(false)}
-                uiSettings={publicSettings}
-                isN3Affiliated={isN3Affiliated}
-              />
-            )}
-            {showStats && canOpenUserDialogs && (
-              <DialogShell
-                open={showStats}
-                onClose={() => setShowStats(false)}
-                overlayClassName="modal-overlay"
-                dialogClassName="log-modal log-modal--with-close fade-in"
-                dialogStyle={{ maxHeight: '88vh' }}
-                ariaLabel="Statistiques utilisateur"
-                closeOnOverlay
-              >
-                <div className="log-modal__head">
-                  <button
-                    type="button"
-                    className="modal-close"
-                    aria-label="Fermer la fenêtre des statistiques"
-                    onClick={() => setShowStats(false)}
-                  >
-                    ✕
-                  </button>
+              {showStats && canOpenUserDialogs && (
+                <DialogShell
+                  open={showStats}
+                  onClose={() => setShowStats(false)}
+                  overlayClassName="modal-overlay"
+                  dialogClassName="log-modal log-modal--with-close fade-in"
+                  dialogStyle={{ maxHeight: '88vh' }}
+                  ariaLabel="Statistiques utilisateur"
+                  closeOnOverlay
+                >
+                  <div className="log-modal__head">
+                    <button
+                      type="button"
+                      className="modal-close"
+                      aria-label="Fermer la fenêtre des statistiques"
+                      onClick={() => setShowStats(false)}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  <div className="log-modal__scroll">
+                    <Suspense fallback={null}>
+                      <StudentStatsLazy student={{ id: profileTargetUserId }} />
+                    </Suspense>
+                  </div>
+                </DialogShell>
+              )}
+              {showProfile && canOpenUserDialogs && profileTargetUser && (
+                <DialogShell
+                  open={showProfile}
+                  onClose={() => setShowProfile(false)}
+                  overlayClassName="modal-overlay"
+                  dialogClassName="log-modal log-modal--with-close fade-in"
+                  dialogStyle={{ maxHeight: '88vh' }}
+                  ariaLabel="Profil utilisateur"
+                  closeOnOverlay
+                >
+                  <div className="log-modal__head">
+                    <button
+                      type="button"
+                      className="modal-close"
+                      aria-label="Fermer la fenêtre du profil"
+                      onClick={() => setShowProfile(false)}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  <div className="log-modal__scroll">
+                    <Suspense fallback={null}>
+                      <StudentProfileEditorLazy
+                        student={profileTargetUser}
+                        maps={maps}
+                        onUpdated={(updated) => {
+                          if (effectiveIsTeacher) {
+                            updateTeacherSession(updated);
+                            return;
+                          }
+                          updateStudentSession(updated);
+                        }}
+                        onClose={() => setShowProfile(false)}
+                      />
+                    </Suspense>
+                  </div>
+                </DialogShell>
+              )}
+
+              <header className="app-header">
+                <div className="logo">
+                  <img
+                    className="app-header-logo"
+                    src={withAppBase('/app-logo-n3.png')}
+                    alt=""
+                    width={28}
+                    height={28}
+                    decoding="async"
+                  />
+                  <span className="logo-title">ForêtMap</span>
                 </div>
-                <div className="log-modal__scroll">
-                  <Suspense fallback={null}>
-                    <StudentStatsLazy student={{ id: profileTargetUserId }} />
-                  </Suspense>
-                </div>
-              </DialogShell>
-            )}
-            {showProfile && canOpenUserDialogs && profileTargetUser && (
-              <DialogShell
-                open={showProfile}
-                onClose={() => setShowProfile(false)}
-                overlayClassName="modal-overlay"
-                dialogClassName="log-modal log-modal--with-close fade-in"
-                dialogStyle={{ maxHeight: '88vh' }}
-                ariaLabel="Profil utilisateur"
-                closeOnOverlay
-              >
-                <div className="log-modal__head">
-                  <button
-                    type="button"
-                    className="modal-close"
-                    aria-label="Fermer la fenêtre du profil"
-                    onClick={() => setShowProfile(false)}
-                  >
-                    ✕
-                  </button>
-                </div>
-                <div className="log-modal__scroll">
-                  <Suspense fallback={null}>
-                    <StudentProfileEditorLazy
-                      student={profileTargetUser}
-                      maps={maps}
-                      onUpdated={(updated) => {
-                        if (effectiveIsTeacher) {
-                          updateTeacherSession(updated);
+                <div className="header-right">
+                  {!isStandaloneMode && deferredInstallPrompt && (
+                    <button
+                      type="button"
+                      className="lock-btn install-btn"
+                      aria-label="Installer l'application"
+                      title="Installer l'application"
+                      onClick={handleInstallClick}
+                    >
+                      ⬇️ <span className="lock-label">Installer</span>
+                    </button>
+                  )}
+                  {isTeacher && (
+                    <span
+                      className="app-version-badge"
+                      title={`Version installée: ${appVersion != null ? appVersion : 'chargement...'}`}
+                      aria-label={`Version ${appVersion != null ? appVersion : 'en chargement'}`}
+                    >
+                      <span className="app-version-badge__version">
+                        v{appVersion != null ? appVersion : '…'}
+                      </span>
+                      <span className="app-version-badge__status">à jour</span>
+                    </span>
+                  )}
+                  {effectiveIsTeacher && (
+                    <span
+                      className="realtime-prof-wrap"
+                      title={resolveRealtimeTooltip(teacherSyncStatus, publicSettings)}
+                      aria-label={
+                        resolveRealtimeTooltip(teacherSyncStatus, publicSettings) ||
+                        'État du temps réel'
+                      }
+                      role="status"
+                    >
+                      <span
+                        className={`realtime-dot realtime-dot--${teacherSyncStatus}`}
+                        aria-hidden
+                      />
+                    </span>
+                  )}
+                  <NotificationCenter
+                    roleKey={notificationRoleKey}
+                    unreadCount={notificationsUnreadCount}
+                    items={notifications}
+                    prefs={notificationPrefs}
+                    metrics={notificationMetrics}
+                    onTogglePref={updatePreference}
+                    onOpenAction={openNotificationAction}
+                    onMarkAsRead={markAsRead}
+                    onMarkAllRead={markAllRead}
+                    onRemove={removeNotification}
+                    onClearRead={clearRead}
+                    onOpenPanel={trackOpenedPanel}
+                    onResetMetrics={resetMetrics}
+                    helpText={helpText('header.notifications')}
+                  />
+                  <Tooltip text={helpText('header.userBadge')}>
+                    <button
+                      type="button"
+                      className="user-badge"
+                      onClick={() => {
+                        if (canOpenUserDialogs) {
+                          setShowStats(true);
                           return;
                         }
-                        updateStudentSession(updated);
+                        if (canOpenTeacherStatsFromBadge) {
+                          setTab('stats');
+                        }
                       }}
-                      onClose={() => setShowProfile(false)}
-                    />
-                  </Suspense>
-                </div>
-              </DialogShell>
-            )}
-
-            <header className="app-header">
-              <div className="logo">
-                <img
-                  className="app-header-logo"
-                  src={withAppBase('/app-logo-n3.png')}
-                  alt=""
-                  width={28}
-                  height={28}
-                  decoding="async"
-                />
-                <span className="logo-title">ForêtMap</span>
-              </div>
-              <div className="header-right">
-                {!isStandaloneMode && deferredInstallPrompt && (
-                  <button
-                    type="button"
-                    className="lock-btn install-btn"
-                    aria-label="Installer l'application"
-                    title="Installer l'application"
-                    onClick={handleInstallClick}
-                  >
-                    ⬇️ <span className="lock-label">Installer</span>
-                  </button>
-                )}
-                {isTeacher && (
-                  <span
-                    className="app-version-badge"
-                    title={`Version installée: ${appVersion != null ? appVersion : 'chargement...'}`}
-                    aria-label={`Version ${appVersion != null ? appVersion : 'en chargement'}`}
-                  >
-                    <span className="app-version-badge__version">
-                      v{appVersion != null ? appVersion : '…'}
-                    </span>
-                    <span className="app-version-badge__status">à jour</span>
-                  </span>
-                )}
-                {effectiveIsTeacher && (
-                  <span
-                    className="realtime-prof-wrap"
-                    title={resolveRealtimeTooltip(teacherSyncStatus, publicSettings)}
-                    aria-label={
-                      resolveRealtimeTooltip(teacherSyncStatus, publicSettings) ||
-                      'État du temps réel'
-                    }
-                    role="status"
-                  >
-                    <span
-                      className={`realtime-dot realtime-dot--${teacherSyncStatus}`}
-                      aria-hidden
-                    />
-                  </span>
-                )}
-                <NotificationCenter
-                  roleKey={notificationRoleKey}
-                  unreadCount={notificationsUnreadCount}
-                  items={notifications}
-                  prefs={notificationPrefs}
-                  metrics={notificationMetrics}
-                  onTogglePref={updatePreference}
-                  onOpenAction={openNotificationAction}
-                  onMarkAsRead={markAsRead}
-                  onMarkAllRead={markAllRead}
-                  onRemove={removeNotification}
-                  onClearRead={clearRead}
-                  onOpenPanel={trackOpenedPanel}
-                  onResetMetrics={resetMetrics}
-                  helpText={helpText('header.notifications')}
-                />
-                <Tooltip text={helpText('header.userBadge')}>
-                  <button
-                    type="button"
-                    className="user-badge"
-                    onClick={() => {
-                      if (canOpenUserDialogs) {
-                        setShowStats(true);
-                        return;
+                      style={{
+                        cursor:
+                          canOpenUserDialogs || canOpenTeacherStatsFromBadge
+                            ? 'pointer'
+                            : 'default',
+                      }}
+                      aria-label={
+                        canOpenUserDialogs
+                          ? 'Voir mes statistiques'
+                          : canOpenTeacherStatsFromBadge
+                            ? `Ouvrir les statistiques ${roleTerms.studentPlural}`
+                            : 'Badge utilisateur'
                       }
-                      if (canOpenTeacherStatsFromBadge) {
-                        setTab('stats');
-                      }
-                    }}
-                    style={{
-                      cursor:
-                        canOpenUserDialogs || canOpenTeacherStatsFromBadge ? 'pointer' : 'default',
-                    }}
-                    aria-label={
-                      canOpenUserDialogs
-                        ? 'Voir mes statistiques'
-                        : canOpenTeacherStatsFromBadge
-                          ? `Ouvrir les statistiques ${roleTerms.studentPlural}`
-                          : 'Badge utilisateur'
-                    }
-                  >
-                    <StudentAvatar student={currentUser} size={20} style={{ border: 'none' }} />
-                    <span className="user-badge-text">{currentUserLabel}</span>
-                  </button>
-                </Tooltip>
-                {canOpenUserDialogs && (
-                  <Tooltip text={helpText('header.profileEdit')}>
-                    <button
-                      className="lock-btn"
-                      aria-label="Modifier mon profil"
-                      onClick={() => setShowProfile(true)}
                     >
-                      ✏️
+                      <StudentAvatar student={currentUser} size={20} style={{ border: 'none' }} />
+                      <span className="user-badge-text">{currentUserLabel}</span>
                     </button>
                   </Tooltip>
-                )}
-                {isTeacher && (
-                  <>
-                    {roleViewMode !== 'native' && (
-                      <Tooltip text={helpText('header.roleReset')}>
-                        <button
-                          className="lock-btn"
-                          aria-label="Revenir au rôle normal"
-                          onClick={() => {
-                            setRoleViewMode('native');
-                            setTab('map');
-                            setShowStats(false);
-                            setShowProfile(false);
-                          }}
-                        >
-                          ↩️
-                        </button>
-                      </Tooltip>
-                    )}
-                    {roleViewMode !== 'student' && canSwitchToStudentView && (
-                      <Tooltip text={helpText('header.roleStudent')}>
-                        <button
-                          className="lock-btn"
-                          aria-label={`Passer en vue ${roleTerms.studentSingular}`}
-                          onClick={() => {
-                            setRoleViewMode('student');
-                            setTab('map');
-                            setShowStats(false);
-                            setShowProfile(false);
-                          }}
-                        >
-                          🎓
-                        </button>
-                      </Tooltip>
-                    )}
-                    {roleViewMode !== 'teacher' && canSwitchToTeacherView && (
-                      <Tooltip text={helpText('header.roleTeacher')}>
-                        <button
-                          className="lock-btn"
-                          aria-label={`Passer en vue ${roleTerms.teacherShort}`}
-                          onClick={() => {
-                            setRoleViewMode('teacher');
-                            setTab('map');
-                            setShowStats(false);
-                            setShowProfile(false);
-                          }}
-                        >
-                          🧑‍🏫
-                        </button>
-                      </Tooltip>
-                    )}
-                  </>
-                )}
-                <Tooltip text={helpText('header.elevatedMode')}>
-                  <button
-                    className={`lock-btn ${authClaims?.elevated ? 'active' : ''}`}
-                    aria-label={
-                      authClaims?.elevated
-                        ? 'Désactiver les droits étendus'
-                        : 'Activer les droits étendus'
-                    }
-                    onClick={() => {
-                      if (authClaims?.elevated) {
-                        safeLocalStorageRemoveItem('foretmap_teacher_token');
-                        let storedStudent = null;
-                        try {
-                          const raw = safeLocalStorageGetItem('foretmap_student', null);
-                          if (raw) storedStudent = JSON.parse(raw);
-                        } catch (_) {
-                          storedStudent = null;
-                        }
-                        const fromElevation =
-                          storedStudent && typeof storedStudent.elevationStudentToken === 'string'
-                            ? storedStudent.elevationStudentToken.trim()
-                            : '';
-                        const fromAuth =
-                          storedStudent && typeof storedStudent.authToken === 'string'
-                            ? storedStudent.authToken.trim()
-                            : '';
-                        const baseStudentToken = fromElevation || fromAuth || null;
-                        if (baseStudentToken) {
-                          const cleanedStudent = { ...storedStudent, authToken: baseStudentToken };
-                          delete cleanedStudent.elevationStudentToken;
-                          safeLocalStorageSetItem('foretmap_auth_token', baseStudentToken);
-                          saveStoredSession({
-                            token: baseStudentToken,
-                            user: {
-                              id: cleanedStudent.auth?.canonicalUserId || cleanedStudent.id || null,
-                              userType: 'student',
-                              displayName:
-                                cleanedStudent.pseudo ||
-                                `${cleanedStudent.first_name || ''} ${cleanedStudent.last_name || ''}`.trim() ||
-                                'Utilisateur',
-                              email: cleanedStudent.email || null,
-                              avatar_path:
-                                cleanedStudent.avatar_path ?? cleanedStudent.avatarPath ?? null,
-                            },
-                            student: cleanedStudent,
-                          });
-                          saveLegacyStudentSnapshot(cleanedStudent);
-                          updateStudentSession(cleanedStudent);
-                        } else {
-                          const authToken = safeLocalStorageGetItem('foretmap_auth_token', null);
-                          if (authToken) saveStoredSession({ token: authToken });
-                        }
-                        const claims = getAuthClaims();
-                        setAuthClaims(claims);
-                        setIsTeacher(
-                          Array.isArray(claims?.permissions) &&
-                            claims.permissions.includes('teacher.access'),
-                        );
-                        setToast('Droits étendus coupés — mode léger');
-                      } else {
-                        setShowPin(true);
-                      }
-                    }}
-                  >
-                    {authClaims?.elevated ? (
-                      <>
-                        🔓 <span className="lock-label">Élevé</span>
-                      </>
-                    ) : (
-                      '🔒'
-                    )}
-                  </button>
-                </Tooltip>
-                <Tooltip text={helpText('header.logout')}>
-                  <button
-                    className="lock-btn"
-                    aria-label="Déconnexion"
-                    onClick={() => {
-                      clearStoredSession();
-                      studentRef.current = null;
-                      setStudent(null);
-                      setSessionUser(null);
-                      setIsTeacher(false);
-                      setAuthClaims(null);
-                    }}
-                  >
-                    ↩️
-                  </button>
-                </Tooltip>
-              </div>
-            </header>
-
-            <RolePreviewBanners
-              authClaims={authClaims}
-              isTeacher={isTeacher}
-              roleViewMode={roleViewMode}
-              helpText={helpText}
-              onStopImpersonation={stopAdminImpersonation}
-            />
-
-            {effectiveIsTeacher ? (
-              <div
-                className={`main teacher-main app-main-shell app-main-shell--teacher ${useWideMain ? 'main--wide' : ''} ${mapChromeCompactVisible ? 'teacher-main--map-visible' : ''} ${useSplitMapTasks ? 'main--maptasks-split' : ''}`}
-              >
-                <TeacherTopTabs
-                  tab={tab}
-                  onTabChange={handleTeacherTabChange}
-                  shouldUseDesktopSplit={shouldUseDesktopSplit}
-                  mapTasksSplitLabel={mapTasksSplitLabel}
-                  tasksTabLabel={tasksTabLabel}
-                  teacherPendingValidationCount={teacherPendingValidationCount}
-                  mergeTasksTutoNav={mergeTasksTutoNav}
-                  tutorialsModuleEnabled={tutorialsModuleEnabled}
-                  statsEnabled={publicSettings?.modules?.stats_enabled !== false}
-                  visitEnabled={publicSettings?.modules?.visit_enabled !== false}
-                  canAccessForum={canAccessForum}
-                  isN3Affiliated={isN3Affiliated}
-                  hasPermission={hasPermission}
-                  hasPermissionInRole={hasPermissionInRole}
-                />
-                {loading ? (
-                  <div className="loader" style={{ height: '60vh' }}>
-                    <div className="loader-leaf">🌿</div>
-                    <p>{appLoaderText}</p>
-                  </div>
-                ) : (
-                  <>
-                    {useSplitMapTasks && (
-                      <div
-                        className="desktop-split-view"
-                        role="region"
-                        aria-label={
-                          tutorialsModuleEnabled
-                            ? 'Vue carte, tâches et tutoriels'
-                            : 'Vue carte et tâches'
-                        }
+                  {canOpenUserDialogs && (
+                    <Tooltip text={helpText('header.profileEdit')}>
+                      <button
+                        className="lock-btn"
+                        aria-label="Modifier mon profil"
+                        onClick={() => setShowProfile(true)}
                       >
-                        <section className="desktop-split-pane desktop-split-pane--map">
-                          <MapView
-                            maps={visibleMaps}
-                            onMapChange={setActiveMapId}
-                            isTeacher
-                            student={currentUser}
-                            onZoneUpdate={updateZone}
-                            onRefresh={fetchAll}
-                            embedded
-                            onLocationTasksFocus={handleMapLocationTasksFocus}
-                            onOpenPlantCatalogPreview={openPlantCatalogPreviewById}
-                            onForceLogout={forceLogout}
-                          />
-                        </section>
-                        <section className="desktop-split-pane desktop-split-pane--tasks">
-                          <div className="desktop-split-scroll">
-                            <TasksView
-                              maps={visibleMaps}
-                              isTeacher
-                              student={currentUser}
-                              canSelfAssignTasks
-                              canViewOtherUsersIdentity
-                              hasPermission={hasPermission}
-                              hasPermissionInRole={hasPermissionInRole}
-                              onRefresh={fetchAll}
-                              onForceLogout={forceLogout}
-                              onTaskFormOverlayOpenChange={onTaskFormOverlayOpenChange}
-                              mapLocationFocus={tasksLocationFocus}
-                              onMapLocationFocusChange={setTasksLocationFocus}
-                              onOpenPlantCatalogPreview={openPlantCatalogPreviewById}
-                            />
-                          </div>
-                        </section>
-                      </div>
-                    )}
-                    {!useSplitMapTasks && tab === 'map' && (
-                      <MapView
-                        maps={visibleMaps}
-                        onMapChange={setActiveMapId}
-                        isTeacher
-                        student={currentUser}
-                        canSelfAssignTasks
-                        onZoneUpdate={updateZone}
-                        onRefresh={fetchAll}
-                        onLocationTasksFocus={handleMapLocationTasksFocus}
-                        onNavigateToTasksForLocation={
-                          effectiveIsTeacher || canAccessStudentMapTasks
-                            ? navigateToTasksForLocation
-                            : undefined
-                        }
-                        onOpenPlantCatalogPreview={openPlantCatalogPreviewById}
-                        onForceLogout={forceLogout}
-                      />
-                    )}
-                    {!useSplitMapTasks && tab === 'tasks' && (
-                      <TasksView
-                        maps={visibleMaps}
-                        isTeacher
-                        student={currentUser}
-                        canSelfAssignTasks
-                        canViewOtherUsersIdentity
-                        hasPermission={hasPermission}
-                        hasPermissionInRole={hasPermissionInRole}
-                        onRefresh={fetchAll}
-                        onForceLogout={forceLogout}
-                        onTaskFormOverlayOpenChange={onTaskFormOverlayOpenChange}
-                        mapLocationFocus={tasksLocationFocus}
-                        onMapLocationFocusChange={setTasksLocationFocus}
-                        onOpenPlantCatalogPreview={openPlantCatalogPreviewById}
-                      />
-                    )}
-                    {tab === 'plants' && (
-                      <TabSuspense>
-                        <PlantManagerLazy
-                          onRefresh={fetchAll}
-                          maps={visibleMaps}
-                          onForceLogout={forceLogout}
-                        />
-                      </TabSuspense>
-                    )}
-                    {publicSettings?.modules?.tutorials_enabled !== false && tab === 'tuto' && (
-                      <TabSuspense>
-                        <TutorialsViewLazy
-                          maps={visibleMaps}
-                          isTeacher
-                          onRefresh={fetchAll}
-                          onForceLogout={forceLogout}
-                        />
-                      </TabSuspense>
-                    )}
-                    {publicSettings?.modules?.stats_enabled !== false &&
-                      tab === 'stats' &&
-                      (hasPermission('stats.read.all') ? (
-                        <TabSuspense>
-                          <TeacherStatsLazy />
-                        </TabSuspense>
-                      ) : (
-                        <div className="empty">
-                          <p>
-                            Pas l’accès stats ici — demande un coup de main côté n3boss si besoin.
-                          </p>
-                        </div>
-                      ))}
-                    {tab === 'profiles' && (
-                      <TabSuspense>
-                        <ProfilesAdminViewLazy
-                          maps={maps}
-                          onImpersonationApplied={handleAdminImpersonationApplied}
-                        />
-                      </TabSuspense>
-                    )}
-                    {tab === 'audit' &&
-                      (hasPermission('audit.read') ? (
-                        <TabSuspense>
-                          <AuditLogLazy />
-                        </TabSuspense>
-                      ) : (
-                        <div className="empty">
-                          <p>Journal d’audit réservé — il te manque un droit pour l’ouvrir.</p>
-                        </div>
-                      ))}
-                    {publicSettings?.modules?.visit_enabled !== false && tab === 'visit' && (
-                      <TabSuspense>
-                        <VisitViewLazy
-                          student={currentUser}
-                          isTeacher
-                          availableTutorials={tutorials}
-                          initialMapId={activeMapId}
-                          onForceLogout={forceLogout}
-                          onOpenMascotPackStudioTab={openMascotPackStudioTab}
-                          profileVisitMascotId={currentUser?.visit_mascot_catalog_id || null}
-                          mapZones={zones}
-                          mapMarkers={markers}
-                          catalogTutorials={tutorials}
-                          onOpenPlantCatalogPreview={openPlantCatalogPreviewById}
-                        />
-                      </TabSuspense>
-                    )}
-                    {publicSettings?.modules?.visit_enabled !== false && tab === 'mascot_packs' && (
-                      <div
-                        className="mascot-pack-studio-page"
-                        style={{ padding: '12px 16px 24px' }}
-                      >
-                        <h2 className="section-title" style={{ marginTop: 0 }}>
-                          Packs mascotte (visite)
-                        </h2>
-                        <p className="section-sub" style={{ marginBottom: 14 }}>
-                          Carte active :{' '}
-                          <select
-                            className="form-select"
-                            style={{
-                              display: 'inline-block',
-                              maxWidth: 280,
-                              verticalAlign: 'middle',
+                        ✏️
+                      </button>
+                    </Tooltip>
+                  )}
+                  {isTeacher && (
+                    <>
+                      {roleViewMode !== 'native' && (
+                        <Tooltip text={helpText('header.roleReset')}>
+                          <button
+                            className="lock-btn"
+                            aria-label="Revenir au rôle normal"
+                            onClick={() => {
+                              setRoleViewMode('native');
+                              setTab('map');
+                              setShowStats(false);
+                              setShowProfile(false);
                             }}
-                            value={activeMapId}
-                            onChange={(e) => handleMascotStudioMapChange(e.target.value)}
-                            aria-label="Choisir la carte pour les packs mascotte"
                           >
-                            {visibleMaps.map((m) => (
-                              <option key={m.id} value={m.id}>
-                                {m.label || m.id}
-                              </option>
-                            ))}
-                          </select>
-                        </p>
-                        <Suspense
-                          fallback={
-                            <div
-                              className="loader"
-                              style={{ padding: '24px 16px', minHeight: 120 }}
-                            >
-                              <div className="loader-leaf">🌿</div>
-                              <p className="section-sub">Chargement de l’éditeur packs mascotte…</p>
-                            </div>
+                            ↩️
+                          </button>
+                        </Tooltip>
+                      )}
+                      {roleViewMode !== 'student' && canSwitchToStudentView && (
+                        <Tooltip text={helpText('header.roleStudent')}>
+                          <button
+                            className="lock-btn"
+                            aria-label={`Passer en vue ${roleTerms.studentSingular}`}
+                            onClick={() => {
+                              setRoleViewMode('student');
+                              setTab('map');
+                              setShowStats(false);
+                              setShowProfile(false);
+                            }}
+                          >
+                            🎓
+                          </button>
+                        </Tooltip>
+                      )}
+                      {roleViewMode !== 'teacher' && canSwitchToTeacherView && (
+                        <Tooltip text={helpText('header.roleTeacher')}>
+                          <button
+                            className="lock-btn"
+                            aria-label={`Passer en vue ${roleTerms.teacherShort}`}
+                            onClick={() => {
+                              setRoleViewMode('teacher');
+                              setTab('map');
+                              setShowStats(false);
+                              setShowProfile(false);
+                            }}
+                          >
+                            🧑‍🏫
+                          </button>
+                        </Tooltip>
+                      )}
+                    </>
+                  )}
+                  <Tooltip text={helpText('header.elevatedMode')}>
+                    <button
+                      className={`lock-btn ${authClaims?.elevated ? 'active' : ''}`}
+                      aria-label={
+                        authClaims?.elevated
+                          ? 'Désactiver les droits étendus'
+                          : 'Activer les droits étendus'
+                      }
+                      onClick={() => {
+                        if (authClaims?.elevated) {
+                          safeLocalStorageRemoveItem('foretmap_teacher_token');
+                          let storedStudent = null;
+                          try {
+                            const raw = safeLocalStorageGetItem('foretmap_student', null);
+                            if (raw) storedStudent = JSON.parse(raw);
+                          } catch (_) {
+                            storedStudent = null;
                           }
-                        >
-                          <VisitMascotPackManagerLazy
-                            variant="page"
-                            mapId={activeMapId}
-                            mapLabel={mascotStudioMapLabel}
-                            onPacksChanged={fetchAll}
-                            onForceLogout={forceLogout}
-                            mascotDialogSettings={publicSettings?.visit?.mascot?.dialog}
-                            onDirtyChange={onMascotPackDirtyChange}
-                          />
-                        </Suspense>
-                      </div>
-                    )}
-                    {tab === 'settings' && (
-                      <TabSuspense>
-                        <SettingsAdminViewLazy />
-                      </TabSuspense>
-                    )}
-                    {tab === 'media_library' && (
-                      <TabSuspense>
-                        <MediaLibraryViewLazy canManage={canManageMediaLibrary} />
-                      </TabSuspense>
-                    )}
-                    {tab === 'forum' && canAccessForum && (
-                      <TabSuspense>
-                        <ForumViewLazy authClaims={authClaims} canParticipateForum />
-                      </TabSuspense>
-                    )}
-                    {tab === 'glossary' && (
-                      <TabSuspense>
-                        <GlossaryViewLazy
-                          onOpenPlant={openPlantCatalogPreviewById}
-                          onOpenQuizQuestion={openPedagoQuizQuestion}
-                          selectedCode={pedagoGlossaryCode}
-                          onSelectedCodeChange={setPedagoGlossaryCode}
-                        />
-                      </TabSuspense>
-                    )}
-                    {tab === 'quiz' && (
-                      <TabSuspense>
-                        <QuizAdminViewLazy
-                          canManageQuiz={canManageQuiz}
-                          onOpenPlant={openPlantCatalogPreviewById}
-                          onOpenGlossaryTerm={openPedagoGlossaryTerm}
-                          initialQuestionCode={pedagoQuizQuestionCode}
-                        />
-                      </TabSuspense>
-                    )}
-                    {tab === 'foodweb' && (
-                      <TabSuspense>
-                        <FoodWebViewLazy
-                          maps={visibleMaps}
-                          onOpenPlant={openPlantCatalogPreviewById}
-                          onOpenGlossaryTerm={openPedagoGlossaryTerm}
-                          highlightPlantId={foodWebHighlightPlantId}
-                          canManage={canManageFoodWeb}
-                        />
-                      </TabSuspense>
-                    )}
-                    {tab === 'about' && (
-                      <TabSuspense>
-                        <AboutViewLazy appVersion={appVersion} isTeacher={effectiveIsTeacher} />
-                      </TabSuspense>
-                    )}
-                  </>
-                )}
-              </div>
-            ) : (
-              <>
+                          const fromElevation =
+                            storedStudent && typeof storedStudent.elevationStudentToken === 'string'
+                              ? storedStudent.elevationStudentToken.trim()
+                              : '';
+                          const fromAuth =
+                            storedStudent && typeof storedStudent.authToken === 'string'
+                              ? storedStudent.authToken.trim()
+                              : '';
+                          const baseStudentToken = fromElevation || fromAuth || null;
+                          if (baseStudentToken) {
+                            const cleanedStudent = {
+                              ...storedStudent,
+                              authToken: baseStudentToken,
+                            };
+                            delete cleanedStudent.elevationStudentToken;
+                            safeLocalStorageSetItem('foretmap_auth_token', baseStudentToken);
+                            saveStoredSession({
+                              token: baseStudentToken,
+                              user: {
+                                id:
+                                  cleanedStudent.auth?.canonicalUserId || cleanedStudent.id || null,
+                                userType: 'student',
+                                displayName:
+                                  cleanedStudent.pseudo ||
+                                  `${cleanedStudent.first_name || ''} ${cleanedStudent.last_name || ''}`.trim() ||
+                                  'Utilisateur',
+                                email: cleanedStudent.email || null,
+                                avatar_path:
+                                  cleanedStudent.avatar_path ?? cleanedStudent.avatarPath ?? null,
+                              },
+                              student: cleanedStudent,
+                            });
+                            saveLegacyStudentSnapshot(cleanedStudent);
+                            updateStudentSession(cleanedStudent);
+                          } else {
+                            const authToken = safeLocalStorageGetItem('foretmap_auth_token', null);
+                            if (authToken) saveStoredSession({ token: authToken });
+                          }
+                          const claims = getAuthClaims();
+                          setAuthClaims(claims);
+                          setIsTeacher(
+                            Array.isArray(claims?.permissions) &&
+                              claims.permissions.includes('teacher.access'),
+                          );
+                          setToast('Droits étendus coupés — mode léger');
+                        } else {
+                          setShowPin(true);
+                        }
+                      }}
+                    >
+                      {authClaims?.elevated ? (
+                        <>
+                          🔓 <span className="lock-label">Élevé</span>
+                        </>
+                      ) : (
+                        '🔒'
+                      )}
+                    </button>
+                  </Tooltip>
+                  <Tooltip text={helpText('header.logout')}>
+                    <button
+                      className="lock-btn"
+                      aria-label="Déconnexion"
+                      onClick={() => {
+                        clearStoredSession();
+                        studentRef.current = null;
+                        setStudent(null);
+                        setSessionUser(null);
+                        setIsTeacher(false);
+                        setAuthClaims(null);
+                      }}
+                    >
+                      ↩️
+                    </button>
+                  </Tooltip>
+                </div>
+              </header>
+
+              <RolePreviewBanners
+                authClaims={authClaims}
+                isTeacher={isTeacher}
+                roleViewMode={roleViewMode}
+                helpText={helpText}
+                onStopImpersonation={stopAdminImpersonation}
+              />
+
+              {effectiveIsTeacher ? (
                 <div
-                  className={`main app-main-shell app-main-shell--student ${useWideMain ? 'main--wide' : ''} ${mapChromeCompactVisible ? 'main--map-visible' : ''} ${useSplitMapTasks ? 'main--maptasks-split' : ''}`}
+                  className={`main teacher-main app-main-shell app-main-shell--teacher ${useWideMain ? 'main--wide' : ''} ${mapChromeCompactVisible ? 'teacher-main--map-visible' : ''} ${useSplitMapTasks ? 'main--maptasks-split' : ''}`}
                 >
+                  <TeacherTopTabs
+                    tab={tab}
+                    onTabChange={handleTeacherTabChange}
+                    shouldUseDesktopSplit={shouldUseDesktopSplit}
+                    mapTasksSplitLabel={mapTasksSplitLabel}
+                    tasksTabLabel={tasksTabLabel}
+                    teacherPendingValidationCount={teacherPendingValidationCount}
+                    mergeTasksTutoNav={mergeTasksTutoNav}
+                    tutorialsModuleEnabled={tutorialsModuleEnabled}
+                    statsEnabled={publicSettings?.modules?.stats_enabled !== false}
+                    visitEnabled={publicSettings?.modules?.visit_enabled !== false}
+                    canAccessForum={canAccessForum}
+                    isN3Affiliated={isN3Affiliated}
+                    hasPermission={hasPermission}
+                    hasPermissionInRole={hasPermissionInRole}
+                  />
                   {loading ? (
                     <div className="loader" style={{ height: '60vh' }}>
                       <div className="loader-leaf">🌿</div>
@@ -2047,10 +1800,8 @@ function App() {
                             <MapView
                               maps={visibleMaps}
                               onMapChange={setActiveMapId}
-                              isTeacher={false}
-                              student={studentForUi}
-                              canSelfAssignTasks={canSelfAssignTasks}
-                              canEnrollOnTasks={canSelfAssignMoreTasks}
+                              isTeacher
+                              student={currentUser}
                               onZoneUpdate={updateZone}
                               onRefresh={fetchAll}
                               embedded
@@ -2063,11 +1814,12 @@ function App() {
                             <div className="desktop-split-scroll">
                               <TasksView
                                 maps={visibleMaps}
-                                isTeacher={false}
-                                student={studentForUi}
-                                canSelfAssignTasks={canSelfAssignTasks}
-                                canEnrollOnTasks={canSelfAssignMoreTasks}
-                                canViewOtherUsersIdentity={canViewOtherUsersIdentity}
+                                isTeacher
+                                student={currentUser}
+                                canSelfAssignTasks
+                                canViewOtherUsersIdentity
+                                hasPermission={hasPermission}
+                                hasPermissionInRole={hasPermissionInRole}
                                 onRefresh={fetchAll}
                                 onForceLogout={forceLogout}
                                 onTaskFormOverlayOpenChange={onTaskFormOverlayOpenChange}
@@ -2079,30 +1831,34 @@ function App() {
                           </section>
                         </div>
                       )}
-                      {!useSplitMapTasks && tab === 'map' && canAccessStudentMapTasks && (
+                      {!useSplitMapTasks && tab === 'map' && (
                         <MapView
                           maps={visibleMaps}
                           onMapChange={setActiveMapId}
-                          isTeacher={false}
-                          student={studentForUi}
-                          canSelfAssignTasks={canSelfAssignTasks}
-                          canEnrollOnTasks={canSelfAssignMoreTasks}
+                          isTeacher
+                          student={currentUser}
+                          canSelfAssignTasks
                           onZoneUpdate={updateZone}
                           onRefresh={fetchAll}
                           onLocationTasksFocus={handleMapLocationTasksFocus}
-                          onNavigateToTasksForLocation={navigateToTasksForLocation}
+                          onNavigateToTasksForLocation={
+                            effectiveIsTeacher || canAccessStudentMapTasks
+                              ? navigateToTasksForLocation
+                              : undefined
+                          }
                           onOpenPlantCatalogPreview={openPlantCatalogPreviewById}
                           onForceLogout={forceLogout}
                         />
                       )}
-                      {!useSplitMapTasks && tab === 'tasks' && canAccessStudentMapTasks && (
+                      {!useSplitMapTasks && tab === 'tasks' && (
                         <TasksView
                           maps={visibleMaps}
-                          isTeacher={false}
-                          student={studentForUi}
-                          canSelfAssignTasks={canSelfAssignTasks}
-                          canEnrollOnTasks={canSelfAssignMoreTasks}
-                          canViewOtherUsersIdentity={canViewOtherUsersIdentity}
+                          isTeacher
+                          student={currentUser}
+                          canSelfAssignTasks
+                          canViewOtherUsersIdentity
+                          hasPermission={hasPermission}
+                          hasPermissionInRole={hasPermissionInRole}
                           onRefresh={fetchAll}
                           onForceLogout={forceLogout}
                           onTaskFormOverlayOpenChange={onTaskFormOverlayOpenChange}
@@ -2113,12 +1869,10 @@ function App() {
                       )}
                       {tab === 'plants' && (
                         <TabSuspense>
-                          <PlantViewerLazy
+                          <PlantManagerLazy
+                            onRefresh={fetchAll}
                             maps={visibleMaps}
                             onForceLogout={forceLogout}
-                            onOpenPlant={openPlantCatalogPreviewById}
-                            onOpenGlossaryTerm={openPedagoGlossaryTerm}
-                            onNavigateToFoodWeb={openPedagoFoodWeb}
                           />
                         </TabSuspense>
                       )}
@@ -2126,35 +1880,53 @@ function App() {
                         <TabSuspense>
                           <TutorialsViewLazy
                             maps={visibleMaps}
-                            isTeacher={false}
+                            isTeacher
                             onRefresh={fetchAll}
                             onForceLogout={forceLogout}
                           />
                         </TabSuspense>
                       )}
-                      {tab === 'stats' && canViewGeneralStats && (
+                      {publicSettings?.modules?.stats_enabled !== false &&
+                        tab === 'stats' &&
+                        (hasPermission('stats.read.all') ? (
+                          <TabSuspense>
+                            <TeacherStatsLazy />
+                          </TabSuspense>
+                        ) : (
+                          <div className="empty">
+                            <p>
+                              Pas l’accès stats ici — demande un coup de main côté n3boss si besoin.
+                            </p>
+                          </div>
+                        ))}
+                      {tab === 'profiles' && (
                         <TabSuspense>
-                          <TeacherStatsLazy />
+                          <ProfilesAdminViewLazy
+                            maps={maps}
+                            onImpersonationApplied={handleAdminImpersonationApplied}
+                          />
                         </TabSuspense>
                       )}
-                      {publicSettings?.modules?.observations_enabled !== false &&
-                        tab === 'notebook' && (
+                      {tab === 'audit' &&
+                        (hasPermission('audit.read') ? (
                           <TabSuspense>
-                            <ObservationNotebookLazy
-                              student={studentForUi}
-                              onForceLogout={forceLogout}
-                            />
+                            <AuditLogLazy />
                           </TabSuspense>
-                        )}
+                        ) : (
+                          <div className="empty">
+                            <p>Journal d’audit réservé — il te manque un droit pour l’ouvrir.</p>
+                          </div>
+                        ))}
                       {publicSettings?.modules?.visit_enabled !== false && tab === 'visit' && (
                         <TabSuspense>
                           <VisitViewLazy
-                            student={studentForUi}
-                            isTeacher={false}
+                            student={currentUser}
+                            isTeacher
                             availableTutorials={tutorials}
                             initialMapId={activeMapId}
                             onForceLogout={forceLogout}
-                            profileVisitMascotId={studentForUi?.visit_mascot_catalog_id || null}
+                            onOpenMascotPackStudioTab={openMascotPackStudioTab}
+                            profileVisitMascotId={currentUser?.visit_mascot_catalog_id || null}
                             mapZones={zones}
                             mapMarkers={markers}
                             catalogTutorials={tutorials}
@@ -2162,12 +1934,73 @@ function App() {
                           />
                         </TabSuspense>
                       )}
+                      {publicSettings?.modules?.visit_enabled !== false &&
+                        tab === 'mascot_packs' && (
+                          <div
+                            className="mascot-pack-studio-page"
+                            style={{ padding: '12px 16px 24px' }}
+                          >
+                            <h2 className="section-title" style={{ marginTop: 0 }}>
+                              Packs mascotte (visite)
+                            </h2>
+                            <p className="section-sub" style={{ marginBottom: 14 }}>
+                              Carte active :{' '}
+                              <select
+                                className="form-select"
+                                style={{
+                                  display: 'inline-block',
+                                  maxWidth: 280,
+                                  verticalAlign: 'middle',
+                                }}
+                                value={activeMapId}
+                                onChange={(e) => handleMascotStudioMapChange(e.target.value)}
+                                aria-label="Choisir la carte pour les packs mascotte"
+                              >
+                                {visibleMaps.map((m) => (
+                                  <option key={m.id} value={m.id}>
+                                    {m.label || m.id}
+                                  </option>
+                                ))}
+                              </select>
+                            </p>
+                            <Suspense
+                              fallback={
+                                <div
+                                  className="loader"
+                                  style={{ padding: '24px 16px', minHeight: 120 }}
+                                >
+                                  <div className="loader-leaf">🌿</div>
+                                  <p className="section-sub">
+                                    Chargement de l’éditeur packs mascotte…
+                                  </p>
+                                </div>
+                              }
+                            >
+                              <VisitMascotPackManagerLazy
+                                variant="page"
+                                mapId={activeMapId}
+                                mapLabel={mascotStudioMapLabel}
+                                onPacksChanged={fetchAll}
+                                onForceLogout={forceLogout}
+                                mascotDialogSettings={publicSettings?.visit?.mascot?.dialog}
+                                onDirtyChange={onMascotPackDirtyChange}
+                              />
+                            </Suspense>
+                          </div>
+                        )}
+                      {tab === 'settings' && (
+                        <TabSuspense>
+                          <SettingsAdminViewLazy />
+                        </TabSuspense>
+                      )}
+                      {tab === 'media_library' && (
+                        <TabSuspense>
+                          <MediaLibraryViewLazy canManage={canManageMediaLibrary} />
+                        </TabSuspense>
+                      )}
                       {tab === 'forum' && canAccessForum && (
                         <TabSuspense>
-                          <ForumViewLazy
-                            authClaims={authClaims}
-                            canParticipateForum={canParticipateForum}
-                          />
+                          <ForumViewLazy authClaims={authClaims} canParticipateForum />
                         </TabSuspense>
                       )}
                       {tab === 'glossary' && (
@@ -2182,7 +2015,8 @@ function App() {
                       )}
                       {tab === 'quiz' && (
                         <TabSuspense>
-                          <QuizViewLazy
+                          <QuizAdminViewLazy
+                            canManageQuiz={canManageQuiz}
                             onOpenPlant={openPlantCatalogPreviewById}
                             onOpenGlossaryTerm={openPedagoGlossaryTerm}
                             initialQuestionCode={pedagoQuizQuestionCode}
@@ -2202,32 +2036,220 @@ function App() {
                       )}
                       {tab === 'about' && (
                         <TabSuspense>
-                          <AboutViewLazy appVersion={appVersion} isTeacher={false} />
+                          <AboutViewLazy appVersion={appVersion} isTeacher={effectiveIsTeacher} />
                         </TabSuspense>
                       )}
                     </>
                   )}
                 </div>
-                <StudentBottomNav
-                  tab={tab}
-                  onTabChange={setTab}
-                  canAccessStudentMapTasks={canAccessStudentMapTasks}
-                  isVisitor={isVisitor}
-                  shouldUseDesktopSplit={shouldUseDesktopSplit}
-                  tutorialsModuleEnabled={tutorialsModuleEnabled}
-                  mergeTasksTutoNav={mergeTasksTutoNav}
-                  studentActiveAssignedTasksCount={studentActiveAssignedTasksCount}
-                  canViewGeneralStats={canViewGeneralStats}
-                  observationsEnabled={publicSettings?.modules?.observations_enabled !== false}
-                  visitEnabled={publicSettings?.modules?.visit_enabled !== false}
-                  canAccessForum={canAccessForum}
-                />
-              </>
-            )}
-            <footer className="app-footer">
-              {appFooterVersionPrefix} {appVersion != null ? appVersion : '…'}
-            </footer>
-          </div>
+              ) : (
+                <>
+                  <div
+                    className={`main app-main-shell app-main-shell--student ${useWideMain ? 'main--wide' : ''} ${mapChromeCompactVisible ? 'main--map-visible' : ''} ${useSplitMapTasks ? 'main--maptasks-split' : ''}`}
+                  >
+                    {loading ? (
+                      <div className="loader" style={{ height: '60vh' }}>
+                        <div className="loader-leaf">🌿</div>
+                        <p>{appLoaderText}</p>
+                      </div>
+                    ) : (
+                      <>
+                        {useSplitMapTasks && (
+                          <div
+                            className="desktop-split-view"
+                            role="region"
+                            aria-label={
+                              tutorialsModuleEnabled
+                                ? 'Vue carte, tâches et tutoriels'
+                                : 'Vue carte et tâches'
+                            }
+                          >
+                            <section className="desktop-split-pane desktop-split-pane--map">
+                              <MapView
+                                maps={visibleMaps}
+                                onMapChange={setActiveMapId}
+                                isTeacher={false}
+                                student={studentForUi}
+                                canSelfAssignTasks={canSelfAssignTasks}
+                                canEnrollOnTasks={canSelfAssignMoreTasks}
+                                onZoneUpdate={updateZone}
+                                onRefresh={fetchAll}
+                                embedded
+                                onLocationTasksFocus={handleMapLocationTasksFocus}
+                                onOpenPlantCatalogPreview={openPlantCatalogPreviewById}
+                                onForceLogout={forceLogout}
+                              />
+                            </section>
+                            <section className="desktop-split-pane desktop-split-pane--tasks">
+                              <div className="desktop-split-scroll">
+                                <TasksView
+                                  maps={visibleMaps}
+                                  isTeacher={false}
+                                  student={studentForUi}
+                                  canSelfAssignTasks={canSelfAssignTasks}
+                                  canEnrollOnTasks={canSelfAssignMoreTasks}
+                                  canViewOtherUsersIdentity={canViewOtherUsersIdentity}
+                                  onRefresh={fetchAll}
+                                  onForceLogout={forceLogout}
+                                  onTaskFormOverlayOpenChange={onTaskFormOverlayOpenChange}
+                                  mapLocationFocus={tasksLocationFocus}
+                                  onMapLocationFocusChange={setTasksLocationFocus}
+                                  onOpenPlantCatalogPreview={openPlantCatalogPreviewById}
+                                />
+                              </div>
+                            </section>
+                          </div>
+                        )}
+                        {!useSplitMapTasks && tab === 'map' && canAccessStudentMapTasks && (
+                          <MapView
+                            maps={visibleMaps}
+                            onMapChange={setActiveMapId}
+                            isTeacher={false}
+                            student={studentForUi}
+                            canSelfAssignTasks={canSelfAssignTasks}
+                            canEnrollOnTasks={canSelfAssignMoreTasks}
+                            onZoneUpdate={updateZone}
+                            onRefresh={fetchAll}
+                            onLocationTasksFocus={handleMapLocationTasksFocus}
+                            onNavigateToTasksForLocation={navigateToTasksForLocation}
+                            onOpenPlantCatalogPreview={openPlantCatalogPreviewById}
+                            onForceLogout={forceLogout}
+                          />
+                        )}
+                        {!useSplitMapTasks && tab === 'tasks' && canAccessStudentMapTasks && (
+                          <TasksView
+                            maps={visibleMaps}
+                            isTeacher={false}
+                            student={studentForUi}
+                            canSelfAssignTasks={canSelfAssignTasks}
+                            canEnrollOnTasks={canSelfAssignMoreTasks}
+                            canViewOtherUsersIdentity={canViewOtherUsersIdentity}
+                            onRefresh={fetchAll}
+                            onForceLogout={forceLogout}
+                            onTaskFormOverlayOpenChange={onTaskFormOverlayOpenChange}
+                            mapLocationFocus={tasksLocationFocus}
+                            onMapLocationFocusChange={setTasksLocationFocus}
+                            onOpenPlantCatalogPreview={openPlantCatalogPreviewById}
+                          />
+                        )}
+                        {tab === 'plants' && (
+                          <TabSuspense>
+                            <PlantViewerLazy
+                              maps={visibleMaps}
+                              onForceLogout={forceLogout}
+                              onOpenPlant={openPlantCatalogPreviewById}
+                              onOpenGlossaryTerm={openPedagoGlossaryTerm}
+                              onNavigateToFoodWeb={openPedagoFoodWeb}
+                            />
+                          </TabSuspense>
+                        )}
+                        {publicSettings?.modules?.tutorials_enabled !== false && tab === 'tuto' && (
+                          <TabSuspense>
+                            <TutorialsViewLazy
+                              maps={visibleMaps}
+                              isTeacher={false}
+                              onRefresh={fetchAll}
+                              onForceLogout={forceLogout}
+                            />
+                          </TabSuspense>
+                        )}
+                        {tab === 'stats' && canViewGeneralStats && (
+                          <TabSuspense>
+                            <TeacherStatsLazy />
+                          </TabSuspense>
+                        )}
+                        {publicSettings?.modules?.observations_enabled !== false &&
+                          tab === 'notebook' && (
+                            <TabSuspense>
+                              <ObservationNotebookLazy
+                                student={studentForUi}
+                                onForceLogout={forceLogout}
+                              />
+                            </TabSuspense>
+                          )}
+                        {publicSettings?.modules?.visit_enabled !== false && tab === 'visit' && (
+                          <TabSuspense>
+                            <VisitViewLazy
+                              student={studentForUi}
+                              isTeacher={false}
+                              availableTutorials={tutorials}
+                              initialMapId={activeMapId}
+                              onForceLogout={forceLogout}
+                              profileVisitMascotId={studentForUi?.visit_mascot_catalog_id || null}
+                              mapZones={zones}
+                              mapMarkers={markers}
+                              catalogTutorials={tutorials}
+                              onOpenPlantCatalogPreview={openPlantCatalogPreviewById}
+                            />
+                          </TabSuspense>
+                        )}
+                        {tab === 'forum' && canAccessForum && (
+                          <TabSuspense>
+                            <ForumViewLazy
+                              authClaims={authClaims}
+                              canParticipateForum={canParticipateForum}
+                            />
+                          </TabSuspense>
+                        )}
+                        {tab === 'glossary' && (
+                          <TabSuspense>
+                            <GlossaryViewLazy
+                              onOpenPlant={openPlantCatalogPreviewById}
+                              onOpenQuizQuestion={openPedagoQuizQuestion}
+                              selectedCode={pedagoGlossaryCode}
+                              onSelectedCodeChange={setPedagoGlossaryCode}
+                            />
+                          </TabSuspense>
+                        )}
+                        {tab === 'quiz' && (
+                          <TabSuspense>
+                            <QuizViewLazy
+                              onOpenPlant={openPlantCatalogPreviewById}
+                              onOpenGlossaryTerm={openPedagoGlossaryTerm}
+                              initialQuestionCode={pedagoQuizQuestionCode}
+                            />
+                          </TabSuspense>
+                        )}
+                        {tab === 'foodweb' && (
+                          <TabSuspense>
+                            <FoodWebViewLazy
+                              maps={visibleMaps}
+                              onOpenPlant={openPlantCatalogPreviewById}
+                              onOpenGlossaryTerm={openPedagoGlossaryTerm}
+                              highlightPlantId={foodWebHighlightPlantId}
+                              canManage={canManageFoodWeb}
+                            />
+                          </TabSuspense>
+                        )}
+                        {tab === 'about' && (
+                          <TabSuspense>
+                            <AboutViewLazy appVersion={appVersion} isTeacher={false} />
+                          </TabSuspense>
+                        )}
+                      </>
+                    )}
+                  </div>
+                  <StudentBottomNav
+                    tab={tab}
+                    onTabChange={setTab}
+                    canAccessStudentMapTasks={canAccessStudentMapTasks}
+                    isVisitor={isVisitor}
+                    shouldUseDesktopSplit={shouldUseDesktopSplit}
+                    tutorialsModuleEnabled={tutorialsModuleEnabled}
+                    mergeTasksTutoNav={mergeTasksTutoNav}
+                    studentActiveAssignedTasksCount={studentActiveAssignedTasksCount}
+                    canViewGeneralStats={canViewGeneralStats}
+                    observationsEnabled={publicSettings?.modules?.observations_enabled !== false}
+                    visitEnabled={publicSettings?.modules?.visit_enabled !== false}
+                    canAccessForum={canAccessForum}
+                  />
+                </>
+              )}
+              <footer className="app-footer">
+                {appFooterVersionPrefix} {appVersion != null ? appVersion : '…'}
+              </footer>
+            </div>
+          </TourProvider>
         </DataProvider>
       </SessionProvider>
     </PublicSettingsProvider>
