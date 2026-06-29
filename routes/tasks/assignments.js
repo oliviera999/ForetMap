@@ -253,9 +253,9 @@ async function resolveStudentActionContext(req, payload = {}, permissionKey) {
     const student = await byId(providedStudentId);
     if (!student) return { errorStatus: 401, error: 'Compte supprimé', deleted: true };
     if (!isTeacherAction) {
-      if (!(
-        auth?.userType === 'student' && String(auth?.userId || '') === String(providedStudentId)
-      )) {
+      if (
+        !(auth?.userType === 'student' && String(auth?.userId || '') === String(providedStudentId))
+      ) {
         return { errorStatus: 403, error: 'Session n3beur requise' };
       }
       const permission = await ensureStudentPermission({

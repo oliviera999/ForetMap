@@ -197,6 +197,11 @@ function VisitViewImpl({
   const [drawPoints, setDrawPoints] = useState([]);
   const [creating, setCreating] = useState(false);
   const stageRef = useRef(null);
+  // Calque monde + minuterie de retombée : `will-change: transform` actif pendant les
+  // gestes (fluidité), retiré au repos pour que le contenu se re-pixellise net à l'échelle
+  // affichée (sinon texte/emojis flous en zoomant, cf. MapView).
+  const visitWorldRef = useRef(null);
+  const visitWillChangeTimerRef = useRef(null);
   const dragRef = useRef({
     active: false,
     moved: false,
@@ -437,6 +442,21 @@ function VisitViewImpl({
     }
   }, []);
 
+  /**
+   * Marque une interaction (pan/zoom) en cours : pose `will-change: transform` pour la fluidité,
+   * puis programme son retrait après une courte inactivité pour que le calque se re-pixellise net.
+   */
+  const markVisitInteracting = useCallback(() => {
+    const el = visitWorldRef.current;
+    if (el) el.style.willChange = 'transform';
+    if (visitWillChangeTimerRef.current) clearTimeout(visitWillChangeTimerRef.current);
+    visitWillChangeTimerRef.current = setTimeout(() => {
+      visitWillChangeTimerRef.current = null;
+      const node = visitWorldRef.current;
+      if (node) node.style.willChange = 'auto';
+    }, 180);
+  }, []);
+
   const zoomAroundClientPoint = useCallback((clientX, clientY, factor) => {
     const stage = stageRef.current;
     if (!stage) return;
@@ -480,6 +500,7 @@ function VisitViewImpl({
         const t = Math.min(1, (now - t0) / duration);
         const u = easeOutCubic(t);
         const curS = fromS + (toS - fromS) * u;
+        markVisitInteracting();
         setMapTransform(zoomVisitTransformToScale(start, px, py, curS, rect));
         if (t < 1) {
           visitZoomAnimRafRef.current = requestAnimationFrame(step);
@@ -490,7 +511,7 @@ function VisitViewImpl({
       };
       visitZoomAnimRafRef.current = requestAnimationFrame(step);
     },
-    [prefersReducedMotion, cancelVisitZoomAnim],
+    [prefersReducedMotion, cancelVisitZoomAnim, markVisitInteracting],
   );
 
   const resetMapTransform = useCallback(() => {
@@ -1152,6 +1173,7 @@ function VisitViewImpl({
     if (hasMoved) {
       drag.moved = true;
       skipClickRef.current = true;
+      markVisitInteracting();
     }
     const next = clampTransform(
       { x: drag.baseX + dx, y: drag.baseY + dy, s: mapTransform.s },
@@ -1194,6 +1216,7 @@ function VisitViewImpl({
     if (!canPanAndZoom) return;
     event.preventDefault();
     cancelVisitZoomAnim();
+    markVisitInteracting();
     const stage = stageRef.current;
     const factor = wheelZoomScaleFactor(event, { containerClientHeight: stage?.clientHeight });
     zoomAroundClientPoint(event.clientX, event.clientY, factor);
@@ -1232,6 +1255,7 @@ function VisitViewImpl({
     const dist = Math.hypot(t0.clientX - t1.clientX, t0.clientY - t1.clientY);
     const rect = stage.getBoundingClientRect();
     const pinch = pinchRef.current;
+    markVisitInteracting();
     const next = zoomVisitTransformToScale(
       { x: pinch.startX, y: pinch.startY, s: pinch.startScale },
       pinch.midX,
@@ -1421,6 +1445,7 @@ function VisitViewImpl({
                 }}
               >
                 <div
+                  ref={visitWorldRef}
                   className="visit-map-world"
                   style={{
                     transform: `translate(${mapTransform.x}px, ${mapTransform.y}px) scale(${mapTransform.s})`,
