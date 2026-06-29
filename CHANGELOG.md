@@ -7,6 +7,19 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### ForetMap — Cartes : étiquettes nettes au zoom (fin de la pixellisation)
+
+- **Texte et emojis ne pixellisent plus en zoomant.** Les deux cartes (carte des tâches et plan de
+  visite) appliquaient le zoom via un calque `transform: scale()` marqué `will-change: transform` en
+  permanence : le calque était mis en cache GPU à l'échelle 1× puis **agrandi** → texte SVG flou et
+  emojis couleur (glyphes bitmap) pixellisés à fort zoom.
+- `will-change: transform` n'est désormais posé **que pendant les gestes** (fluidité), puis **retiré
+  au repos** : le navigateur re-pixellise alors le contenu (texte + repères + emojis) à l'échelle
+  réellement affichée → étiquettes nettes une fois le zoom posé. Carte des tâches : pilotage impératif
+  dans `useMapGestures` (activé sur molette/pinch/pan/boutons, retiré au commit/ajustement),
+  `MapViewWorldLayer` ne pose plus le `will-change` en dur. Plan de visite : `markVisitInteracting()`
+  (pose + retombée après ~180 ms d'inactivité), `.visit-map-world` sans `will-change` statique.
+
 ### ForetMap — Cartes : étiquettes plus grandes, grossissement au zoom configurable
 
 - **Étiquettes un peu plus grandes** : tailles de référence portées de 17→**19 px** (emoji) et 12→**14 px**
