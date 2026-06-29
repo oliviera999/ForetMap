@@ -7,6 +7,23 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### GL — Édition du plateau : déplacement de repères enregistré de façon fiable (fix)
+
+- **Fin du glisser-déposer perdue** : lors du déplacement d'un repère sur la carte du chapitre
+  (`GLChapterMapStudio`), le `pointerup` lisait la position finale via la closure `editableMarkers`,
+  qui reflète le dernier rendu React committé et pouvait être **en retard sur le point de lâcher**.
+  Le `PUT` enregistrait alors une position intermédiaire et le repère « se replaçait » au rechargement.
+  La position est désormais lue via une **ref** (`dragLatestPctRef`) mise à jour à chaque `pointermove`,
+  garantissant l'enregistrement exact du point de lâcher. Les écouteurs ne se ré-abonnent plus à chaque
+  mouvement (sortie de `editableMarkers` des dépendances de l'effet).
+- **Rechargements concurrents dans le désordre** : plusieurs déplacements enchaînés déclenchaient
+  autant de `loadDetail` non sérialisés ; une réponse périmée pouvait écraser l'état frais et faire
+  revenir des repères à leur ancienne position. Ajout d'un **garde-fou de séquence**
+  (`detailLoadSeqRef`) dans `GLChaptersAdminView.loadDetail` : seule la réponse du rechargement le plus
+  récent est appliquée.
+- Test : `tests-ui/gl/GLChapterMapStudio.test.jsx` (régression — le drag persiste la position finale,
+  jamais une position intermédiaire périmée).
+
 ### GL — Autosave QCM : création sans perte de saisie en vol
 
 - **Éditeurs QCM biomes + lore** : après la création initiale d'une question, le passage du brouillon
