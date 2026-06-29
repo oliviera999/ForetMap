@@ -84,6 +84,29 @@ test('PUT /admin/maps/:id/georef enregistre le calage et l’expose via GET /api
   await execute('DELETE FROM maps WHERE id = ?', [id]);
 });
 
+test('PUT /admin/maps/:id/georef conserve les ancres quand anchors est omis', async () => {
+  const token = await ensureAdminTeacherAuthToken();
+  const id = await createTempMap(token);
+  await request(app)
+    .put(`/api/settings/admin/maps/${id}/georef`)
+    .set('Authorization', `Bearer ${token}`)
+    .send({ anchors: VALID_ANCHORS, gps_enabled: true })
+    .expect(200);
+
+  const disabled = await request(app)
+    .put(`/api/settings/admin/maps/${id}/georef`)
+    .set('Authorization', `Bearer ${token}`)
+    .send({ gps_enabled: false })
+    .expect(200);
+
+  assert.strictEqual(disabled.body.gps_enabled, false);
+  assert.ok(Array.isArray(disabled.body.georef));
+  assert.strictEqual(disabled.body.georef.length, 3);
+  assert.strictEqual(disabled.body.georef[1].lng, VALID_ANCHORS[1].lng);
+
+  await execute('DELETE FROM maps WHERE id = ?', [id]);
+});
+
 test('PUT /admin/maps/:id/georef force gps_enabled=false sans ancres', async () => {
   const token = await ensureAdminTeacherAuthToken();
   const id = await createTempMap(token);
