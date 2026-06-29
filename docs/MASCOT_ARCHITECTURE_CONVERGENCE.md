@@ -158,8 +158,13 @@ files?|srcs?, fps?, frameDwellMs? }]` (alignée sur GL). `normalizeUnifiedStates
 Une entrée à clé non canonique **déclare** l'état (plus besoin de `customStates` séparé :
 « tout état est de premier ordre »). Helper inverse `mascotPackToUnifiedStates` pour l'export /
 l'édition future. **Non cassant** : les packs `pack_json` historiques (forme `stateFrames`) restent
-valides et la persistance reste en forme canonique. _Reste (write-side)_ : faire **émettre** la
-forme `states[]` par l'éditeur WYSIWYG et l'export archive — follow-up, plus risqué.
+valides et la persistance reste en forme canonique.
+
+**Write-side (studio JSON)** : l'onglet **JSON** du studio accepte la forme `states[]` à
+l'application (désucrée via `normalizeUnifiedStates`) et propose un bouton **« Forme unifiée
+states[] »** (`packToUnifiedForm` → `mascotPackToUnifiedStates`) pour réécrire le brouillon. Le
+modèle de l'éditeur visuel et la persistance restent en forme canonique (transform à la frontière)
+— l'éditeur WYSIWYG et l'export archive en forme `states[]` restent un follow-up à froid.
 
 ### Étape 6 — Retrait du pont (M)
 

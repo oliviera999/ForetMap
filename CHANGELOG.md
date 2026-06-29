@@ -15,7 +15,11 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   validation/expansion/runtime inchangés. Une entrée à clé non canonique **déclare** l'état.
   Helper inverse `mascotPackToUnifiedStates`. **Non cassant** : packs historiques toujours valides,
   persistance en forme canonique. Miroir `lib/visit-pack/` resync.
-- Tests : `tests/mascot-pack.test.js` (states[] désucré, clé custom mal formée refusée, round-trip).
+- **Write-side studio (JSON)** : l'onglet **JSON** du studio accepte la forme `states[]` à
+  l'application (désucrée) et offre un bouton **« Forme unifiée states[] »** (`packToUnifiedForm`)
+  pour réécrire le brouillon. Modèle de l'éditeur visuel et persistance restent canoniques.
+- Tests : `tests/mascot-pack.test.js` (states[] désucré, clé custom mal formée refusée, round-trip),
+  `tests-ui/utils/mascotPackEditorModelUnified.test.js` (`packToUnifiedForm` + round-trip).
   Docs `docs/MASCOT_PACK.md` et `docs/MASCOT_ARCHITECTURE_CONVERGENCE.md`.
 
 ### Mascotte — Émetteurs d'événements déclaratifs + l'interactionProfile agit sur le plan live (étape 4 convergence)

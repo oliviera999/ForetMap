@@ -2,6 +2,7 @@
  * Aide à l’édition WYSIWYG des mascot packs v1 (hors validation Zod).
  * @see src/utils/mascotPack.js
  */
+import { mascotPackToUnifiedStates } from './mascotPack.js';
 
 /** Silhouettes acceptées par VisitMascotFallbackSvg (liste UI). */
 export const MASCOT_PACK_FALLBACK_SILHOUETTES = [
@@ -85,4 +86,17 @@ export function stringifyPack(pack, space = 2) {
 export function clonePackDeep(pack) {
   const parsed = parsePackJson(stringifyPack(pack, 0));
   return parsed.ok ? parsed.pack : {};
+}
+
+/**
+ * Réécrit un pack dans la **forme unifiée** : remplace `stateFrames` + `customStates`
+ * par un tableau `states[]` (aligné GL). Forme acceptée en lecture par `parseMascotPack`
+ * (désucrée), donc round-trip sans perte. Conserve les autres champs (alias, profils…).
+ * @param {Record<string, unknown>} pack
+ * @returns {Record<string, unknown>}
+ */
+export function packToUnifiedForm(pack) {
+  if (!pack || typeof pack !== 'object') return pack;
+  const { stateFrames: _sf, customStates: _cs, ...rest } = pack;
+  return { ...rest, states: mascotPackToUnifiedStates(pack) };
 }
