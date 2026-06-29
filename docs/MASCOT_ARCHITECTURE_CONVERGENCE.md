@@ -107,12 +107,15 @@ les schémas/tests existants, sans rupture de compatibilité des packs déjà st
 Lister tous les points d'itération sur les enums (`grep` `STATE_OPTIONS`,
 `*_EVENT_KEYS`, `Object.values(VISIT_MASCOT_STATE)`). Sert de checklist pour 1/3. Aucun code.
 
-### Étape 1 — Registre central (S, faible risque)
+### Étape 1 — Registre central (S, faible risque) ✅ réalisée
 
-Introduire un module unique qui **dérive** les options d'états/déclencheurs depuis
-`(palette canonique ⊕ pack actif)` au lieu d'importer des constantes figées. Brancher les
-éditeurs et les dropdowns dessus. Les enums restent comme **valeurs par défaut**, pas comme
-frontière de validation. Bénéfice immédiat : plus de double-maintenance à chaque ajout.
+Module `src/utils/visitMascotBehaviorRegistry.js` : **dérive** les options d'états/déclencheurs
+depuis `(palette canonique ⊕ pack actif)` au lieu d'importer des constantes figées. Branché sur
+les éditeurs (profil d'interaction, alias, comportements personnalisés, WYSIWYG, lot
+d'interaction, panneaux images/assets). Les enums restent **valeurs par défaut**, pas frontière
+de validation. Effet de bord positif : les états personnalisés sont sélectionnables partout
+(cibles d'alias, d'interaction, d'insertion d'images). Reste hors périmètre de l'étape : les
+**dialogues** (cf. étape 2) et les **émetteurs** runtime (étape 4).
 
 ### Étape 2 — Dialogues data-driven (S)
 

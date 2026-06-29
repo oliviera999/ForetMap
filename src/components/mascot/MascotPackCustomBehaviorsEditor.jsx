@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo } from 'react';
-import { STATE_LABELS } from '../../constants/mascotStateLabels.js';
+import { buildStateOptions } from '../../utils/visitMascotBehaviorRegistry.js';
 
 /**
  * Éditeur des comportements personnalisés d'un pack mascotte (studio prof) :
@@ -35,17 +35,8 @@ export default function MascotPackCustomBehaviorsEditor({ pack, patchPack }) {
     [pack.customTriggers],
   );
 
-  /** Options d'état pour les déclencheurs : canoniques + personnalisés. */
-  const stateOptions = useMemo(() => {
-    const canonical = Object.keys(STATE_LABELS).map((key) => ({
-      key,
-      label: STATE_LABELS[key],
-    }));
-    const customs = customStates
-      .filter((s) => s && s.key)
-      .map((s) => ({ key: s.key, label: `${s.label || s.key} (perso)` }));
-    return [...canonical, ...customs];
-  }, [customStates]);
+  /** Options d'état pour les déclencheurs : canoniques + personnalisés (registre central). */
+  const stateOptions = useMemo(() => buildStateOptions(pack), [pack]);
 
   const patchCustomStates = useCallback(
     (next) => {
@@ -269,7 +260,8 @@ export default function MascotPackCustomBehaviorsEditor({ pack, patchPack }) {
                   >
                     {stateOptions.map((opt) => (
                       <option key={opt.key} value={opt.key}>
-                        {opt.label} ({opt.key})
+                        {opt.label}
+                        {opt.custom ? ' (perso)' : ''} ({opt.key})
                       </option>
                     ))}
                   </select>

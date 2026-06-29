@@ -29,10 +29,19 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Runtime** : `resolveVisitMascotState({ extraStates })` accepte les états personnalisés du pack
   actif ; la machine à états visite expose l'entrée active et joue les états/déclencheurs custom ;
   le plateau GL (`GLBoardMascot`) respecte les états personnalisés déclenchés.
+- **Registre central des comportements** (`src/utils/visitMascotBehaviorRegistry.js`, étape 1 du
+  plan de convergence) : source unique dérivant les options d'états/déclencheurs depuis
+  `(palette canonique ⊕ pack actif)`. Les éditeurs (profil d'interaction, alias, comportements
+  personnalisés, WYSIWYG, lot d'interaction, panneaux images) ne dépendent plus de constantes
+  figées : **les états personnalisés sont désormais sélectionnables partout** (cibles d'alias,
+  d'interaction, d'insertion d'images), plus seulement dans l'éditeur dédié. Voir
+  `docs/MASCOT_ARCHITECTURE_CONVERGENCE.md`.
 - Tests : `tests/mascot-pack.test.js` (palette, `customStates`, `customTriggers`),
   `tests/gl-mascot-pack-to-visit.test.js` (préservation d'état GL + portage des triggers),
-  `tests-ui/utils/visitMascotCustomBehaviors.test.js`, `tests-ui/hooks/useAmbientMascotBehavior.test.js`,
-  `tests-ui/components/mascot/MascotPackCustomBehaviorsEditor.test.jsx`. Doc `docs/MASCOT_PACK.md`.
+  `tests-ui/utils/visitMascotCustomBehaviors.test.js`, `tests-ui/utils/visitMascotBehaviorRegistry.test.js`,
+  `tests-ui/hooks/useAmbientMascotBehavior.test.js`,
+  `tests-ui/components/mascot/MascotPackCustomBehaviorsEditor.test.jsx`. Docs `docs/MASCOT_PACK.md`
+  et `docs/MASCOT_ARCHITECTURE_CONVERGENCE.md`.
 
 ### ForetMap — Cartes : zoom plus profond et étiquettes de zones/repères plus lisibles
 
