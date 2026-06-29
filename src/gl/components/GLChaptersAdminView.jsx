@@ -152,7 +152,7 @@ export function GLChaptersAdminView() {
       setDetail(data);
       setInfo('Chapitre mis à jour');
       if (data?.chapter) {
-        setChapterForm(chapterDetailToForm(data.chapter, data));
+        setChapterForm(chapterDetailToForm(data));
         setChapterFormRevision((value) => value + 1);
       }
     } else {
@@ -162,7 +162,7 @@ export function GLChaptersAdminView() {
       setSelectedId(chapterId);
       setInfo('Chapitre créé');
       if (data?.chapter) {
-        setChapterForm(chapterDetailToForm(data.chapter, data));
+        setChapterForm(chapterDetailToForm(data));
         setChapterFormRevision((value) => value + 1);
       }
     }

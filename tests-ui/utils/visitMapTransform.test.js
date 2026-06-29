@@ -10,7 +10,7 @@ import {
 const RECT = { width: 400, height: 300 };
 
 describe('clampVisitMapScale', () => {
-  test('borne l’échelle dans [1, 6]', () => {
+  test('borne l’échelle dans [1, 8]', () => {
     expect(clampVisitMapScale(0.3)).toBe(VISIT_MAP_SCALE_MIN);
     expect(clampVisitMapScale(2.5)).toBe(2.5);
     expect(clampVisitMapScale(42)).toBe(VISIT_MAP_SCALE_MAX);
@@ -53,7 +53,7 @@ describe('clampVisitMapTransform', () => {
   test('échelle hors bornes : transform résultant borné aussi', () => {
     expect(clampVisitMapTransform({ x: -10, y: -10, s: 0.4 }, RECT)).toEqual({ x: 0, y: 0, s: 1 });
     const out = clampVisitMapTransform({ x: -10, y: -10, s: 99 }, RECT);
-    expect(out.s).toBe(6);
+    expect(out.s).toBe(8);
     expect(out.x).toBe(-10);
     expect(out.y).toBe(-10);
   });
@@ -70,9 +70,9 @@ describe('zoomVisitTransformToScale', () => {
 
   test('échelle cible bornée, puis transform clampé au cadre', () => {
     const from = { x: 0, y: 0, s: 1 };
-    // Cible 99 → bornée à 6 ; zoom au coin (0,0) ne crée pas de translation positive.
+    // Cible 99 → bornée à 8 ; zoom au coin (0,0) ne crée pas de translation positive.
     const out = zoomVisitTransformToScale(from, 0, 0, 99, RECT);
-    expect(out).toEqual({ x: 0, y: 0, s: 6 });
+    expect(out).toEqual({ x: 0, y: 0, s: 8 });
   });
 
   test('dézoom complet → recentrage à l’échelle 1', () => {
