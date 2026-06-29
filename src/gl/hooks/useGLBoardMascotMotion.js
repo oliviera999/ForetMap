@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { VISIT_MASCOT_STATE } from '../../utils/visitMascotState.js';
+import { useMascotTransientState } from '../../hooks/useMascotTransientState.js';
 import {
   MAP_VIEW_MASCOT_MOVE_MS,
   MAP_VIEW_MASCOT_HAPPY_MS,
@@ -43,7 +44,6 @@ export function useGLBoardMascotMotion({
   const animatingRef = useRef(new Set());
   const moveTimeoutRef = useRef(new Map());
   const happyTimeoutRef = useRef(new Map());
-  const transientTimeoutRef = useRef(new Map());
   const pathChainRef = useRef(new Map());
 
   useEffect(() => {
@@ -78,10 +78,8 @@ export function useGLBoardMascotMotion({
     () => () => {
       for (const id of moveTimeoutRef.current.values()) clearTimeout(id);
       for (const id of happyTimeoutRef.current.values()) clearTimeout(id);
-      for (const id of transientTimeoutRef.current.values()) clearTimeout(id);
       moveTimeoutRef.current.clear();
       happyTimeoutRef.current.clear();
-      transientTimeoutRef.current.clear();
       pathChainRef.current.clear();
     },
     [],
@@ -103,26 +101,18 @@ export function useGLBoardMascotMotion({
     });
   }, []);
 
+  // Mécanique transitoire (état + timeout + garde anti-idle) factorisée avec le runtime visite
+  // (étape 7). Arité N : la clé du registre de timers est l'identifiant d'équipe.
+  const { trigger: triggerTransientByTeam } = useMascotTransientState({
+    idleState: VISIT_MASCOT_STATE.IDLE,
+    defaultDurationMs: 900,
+    setTransient: (id, wanted) => patchMotion(id, { transientState: wanted }),
+    clearTransient: (id) => patchMotion(id, { transientState: '' }),
+  });
+
   const triggerTransient = useCallback(
-    (teamId, state, durationMs) => {
-      const wanted = String(state || '').trim();
-      if (!wanted || wanted === VISIT_MASCOT_STATE.IDLE) return;
-      const id = Number(teamId);
-      const prev = transientTimeoutRef.current.get(id);
-      if (prev) clearTimeout(prev);
-      patchMotion(id, { transientState: wanted });
-      transientTimeoutRef.current.set(
-        id,
-        window.setTimeout(
-          () => {
-            transientTimeoutRef.current.delete(id);
-            patchMotion(id, { transientState: '' });
-          },
-          Math.max(300, Number(durationMs) || 900),
-        ),
-      );
-    },
-    [patchMotion],
+    (teamId, state, durationMs) => triggerTransientByTeam(Number(teamId), state, durationMs),
+    [triggerTransientByTeam],
   );
 
   const moveTeamTo = useCallback(
@@ -277,5 +267,6 @@ export function useGLBoardMascotMotion({
     getMotionForTeam,
     moveTeamTo,
     moveTeamAlongPath,
+    triggerTransient,
   };
 }

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { apiGL } from '../../services/apiGL.js';
 import { AutoSaveStatus } from '../../../shared/components/AutoSaveStatus.jsx';
 import { useDebouncedAutoSave } from '../../../shared/hooks/useDebouncedAutoSave.js';
@@ -32,6 +32,8 @@ export function GLQcmLoreQuestionEditorPanel({ initialQuestionCode = null }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
+  const draftResetSeqRef = useRef(0);
+  const [autoSaveResetKey, setAutoSaveResetKey] = useState('empty');
 
   const filteredItems = useMemo(() => {
     const filtered = filterQcmItems(items, {
@@ -85,6 +87,7 @@ export function GLQcmLoreQuestionEditorPanel({ initialQuestionCode = null }) {
       const data = await apiGL(`/api/gl/lore/admin/qcm/questions/${encodeURIComponent(code)}`);
       setForm(questionToForm(data?.question));
       setSelectedCode(code);
+      setAutoSaveResetKey(`question:${code}`);
       if (data?.question?.chapitre_slug) setFilterChapitre(data.question.chapitre_slug);
     } catch (err) {
       setError(err.message || 'Fiche introuvable');
@@ -99,17 +102,21 @@ export function GLQcmLoreQuestionEditorPanel({ initialQuestionCode = null }) {
     setInfo('');
     try {
       const data = await apiGL('/api/gl/lore/admin/qcm/questions/next-code');
+      const questionCode = data?.question_code || '';
+      draftResetSeqRef.current += 1;
       setSelectedCode(null);
       setForm({
         ...EMPTY_FORM,
-        question_code: data?.question_code || '',
+        question_code: questionCode,
         chapitre_slug: filterChapitre || scopes[0]?.slug || 'tous',
         categorie_slug: filterCategorie || categories[0]?.slug || '',
       });
+      setAutoSaveResetKey(`new:${questionCode}:${draftResetSeqRef.current}`);
     } catch (err) {
       setError(err.message || 'Impossible de préparer une nouvelle question');
       setSelectedCode(null);
       setForm({ ...EMPTY_FORM });
+      setAutoSaveResetKey('empty');
     } finally {
       setLoading(false);
     }
@@ -136,7 +143,7 @@ export function GLQcmLoreQuestionEditorPanel({ initialQuestionCode = null }) {
 
   const { status: saveStatus, error: saveError } = useDebouncedAutoSave({
     value: form,
-    resetKey: selectedCode ?? `new:${form.question_code}`,
+    resetKey: autoSaveResetKey,
     enabled: String(form.question || '').trim().length > 0,
     onSave: persistQuestion,
   });

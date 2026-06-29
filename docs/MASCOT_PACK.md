@@ -6,13 +6,44 @@ Ce document décrit le JSON **mascot pack** versions **1** et **2** : source de 
 
 ## Version 2 — champs supplémentaires
 
-| Champ                | Type              | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| -------------------- | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `mascotPackVersion`  | `2`               | Active le profil d’interaction ci-dessous.                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| `interactionProfile` | objet (optionnel) | Clés stables listées dans [`visitMascotInteractionEvents.js`](../src/utils/visitMascotInteractionEvents.js) (miroir prod : **`lib/visit-pack/visitMascotInteractionEvents.js`**) ; chaque valeur : `{ mode: 'none' \| 'happy' \| 'transient', state?: état canonique, durationMs?: nombre }` (pour `transient`, `state` requis). Absence d’entrée = **comportement par défaut** (équivalent historique ForetMap).                                                                                                      |
-| `dialogProfile`      | objet (optionnel) | Clés stables listées dans [`visitMascotDialogEvents.js`](../src/utils/visitMascotDialogEvents.js) (miroir prod : **`lib/visit-pack/visitMascotDialogEvents.js`**) ; chaque valeur : tableau de lignes de bulle (`string[]`, max 12 lignes × 160 car.). Priorité runtime : **pack** → surcharges catalogue (`content.visit.mascot_dialog.catalog_overrides`) → défauts globaux (`content.visit.mascot_dialog.defaults`) → textes code. Studio prof : onglet **Bulles de dialogue** + vue **Dialogues** du studio packs. |
+| Champ                | Type              | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| -------------------- | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `mascotPackVersion`  | `2`               | Active le profil d’interaction ci-dessous.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| `interactionProfile` | objet (optionnel) | Clés stables listées dans [`visitMascotInteractionEvents.js`](../src/utils/visitMascotInteractionEvents.js) (miroir prod : **`lib/visit-pack/visitMascotInteractionEvents.js`**) ; chaque valeur : `{ mode: 'none' \| 'happy' \| 'transient', state?: état canonique, durationMs?: nombre }` (pour `transient`, `state` requis). Absence d’entrée = **comportement par défaut** (équivalent historique ForetMap).                                                                                                                                                                                                                                          |
+| `dialogProfile`      | objet (optionnel) | Clés = événements stables de [`visitMascotDialogEvents.js`](../src/utils/visitMascotDialogEvents.js) **ou** clés personnalisées (`a-z0-9_-`, ex. clé d’un `customTriggers`) ; chaque valeur : tableau de lignes de bulle (`string[]`, max 12 lignes × 160 car.). Une clé personnalisée prend le pas sur la bulle inline du déclencheur (`resolveTriggerDialogLines`). Priorité runtime : **pack** → surcharges catalogue (`content.visit.mascot_dialog.catalog_overrides`) → défauts globaux (`content.visit.mascot_dialog.defaults`) → textes code. Studio prof : onglet **Bulles de dialogue** (qui liste aussi les déclencheurs personnalisés du pack). |
 
 **Bibliothèque sprites** : `framesBase` peut aussi être `/api/visit/mascot-sprite-library/{mapId}/assets/` (PNG partagés par carte, voir **`docs/API.md`**).
+
+### Comportements extensibles (états & déclencheurs personnalisés)
+
+Au-delà de la palette d'états **prédéfinis** (`VISIT_MASCOT_STATE`, élargie aux états `sleep`,
+`wave`, `dance`, `eat`, `search`, `sad`, `love`, `point`), un pack peut **déclarer ses propres
+comportements**. Édition au **studio prof** (visite : onglet _Comportements personnalisés_ de
+l'éditeur WYSIWYG ; GL : champs JSON `states` / `triggers`).
+
+| Champ            | Type                | Description                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| ---------------- | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `customStates`   | tableau (optionnel) | États d'animation personnalisés : `{ key, label }`. `key` en kebab/snake-case (`^[a-z0-9]+(?:[-_][a-z0-9]+)*$`, ≤ 40 car.), **unique** et **différente** des états canoniques. Donnez-leur des images via `stateFrames.<key>`. Utilisables comme cible d'alias, de règle d'interaction et de déclencheur. Max 24.                                                                                                                 |
+| `customTriggers` | tableau (optionnel) | Déclencheurs pilotés par les données : `{ key, label, type, state, durationMs, everyMs?, dialog? }`. `type: 'periodic'` joue `state` pendant `durationMs` toutes les `everyMs` ms (≥ 1000) — comportement ambiant ; `type: 'tap'` joue `state` au clic/tap sur la mascotte. `state` = état canonique **ou** `customStates`. `dialog` = bulles optionnelles (≤ 12 × 160 car.). Clé non réservée (≠ événements prédéfinis). Max 16. |
+
+**Forme unifiée `states[]` (entrée, aligné GL)** : au lieu de `stateFrames` (objet) + `customStates`,
+un pack peut déclarer ses états en **tableau** : `states: [{ key, label?, files?|srcs?, fps?,
+frameDwellMs? }]`. À la lecture, `normalizeUnifiedStates` désucre cette forme vers
+`stateFrames`/`customStates` (une entrée à clé non canonique **déclare** l'état). Les deux formes
+sont acceptées ; la persistance reste en forme canonique. Conversion inverse :
+`mascotPackToUnifiedStates(pack)`.
+
+Déclencheur d'interaction **général** ajouté à la palette v2 : **`mascotTap`** (tap/clic direct sur
+la mascotte), configurable dans `interactionProfile` comme les autres événements.
+
+Runtime : le **moteur de comportement partagé** (`src/utils/mascotBehaviorEngine.js`,
+`resolveTriggerAction` / `runBehaviorAction`) est consommé par la visite
+(**`useAmbientMascotBehavior`** + tap) **et** par le plateau GL
+(**`useGLBoardAmbientBehavior`**, par équipe). Il lance les déclencheurs `periodic`
+(respecte `prefers-reduced-motion`) ; `resolveVisitMascotState({ extraStates })` accepte les états
+personnalisés du pack actif. Côté **GL**, le pack JSON accepte `states[].label` et un tableau
+`triggers` (mêmes types) ; la conversion `glMascotPackToVisit` **préserve** les clés d'état non
+canoniques (déclarées en `customStates`) et **porte** les `triggers` vers `customTriggers`.
 
 ## Champs racine (v1 et v2)
 
@@ -87,6 +118,7 @@ mon-pack.zip
 ```
 
 - **Visite** : `GET /api/visit/mascot-packs/:id/export.zip` ; import `POST …/import` (`mode: create` ou `replace` + `target_pack_id`). Studio : boutons **Exporter ZIP** / **Importer ZIP** dans `VisitMascotPackManager`.
+- **Forme `states[]` à l'export (opt-in)** : `GET …/export.zip?unified=1` (bouton **Exporter ZIP (states[])**) émet `pack.json` en **forme unifiée `states[]`** (aligné GL) au lieu de `stateFrames` ; `manifest.statesForm` vaut `unified` (sinon `stateFrames`). **L'import accepte les deux formes** : un `pack.json` en `states[]` est réécrit puis désucré par `normalizeUnifiedStates` (round-trip sans perte, `customStates` re-dérivés). La persistance serveur reste en forme canonique.
 - **GL** : routes équivalentes sous `/api/gl/mascots/packs/…` ; studio `GLMascotPackManager`.
 - **Limites** : mêmes bornes que la médiathèque (`FORETMAP_CONTENT_LIBRARY_MAX_*`, défaut 50 Mo archive / 100 Mo décompressé / 200 fichiers).
 - **URLs externes** (`https://…`) : non téléchargées ; listées dans `manifest.warnings`.

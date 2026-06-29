@@ -17,6 +17,13 @@ export function buildGlMascotExtraCatalogEntries(mascots) {
       fallbackSilhouette: row.fallbackSilhouette || 'gnome',
       spriteCut: row.spriteCut,
       ...(row.interactionProfile ? { interactionProfile: row.interactionProfile } : {}),
+      ...(row.dialogProfile ? { dialogProfile: row.dialogProfile } : {}),
+      ...(Array.isArray(row.customStates) && row.customStates.length
+        ? { customStates: row.customStates }
+        : {}),
+      ...(Array.isArray(row.customTriggers) && row.customTriggers.length
+        ? { customTriggers: row.customTriggers }
+        : {}),
       ...(row.mascotPackVersion ? { mascotPackVersion: row.mascotPackVersion } : {}),
     });
   }

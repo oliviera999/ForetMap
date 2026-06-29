@@ -20,6 +20,188 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   `MapViewWorldLayer` ne pose plus le `will-change` en dur. Plan de visite : `markVisitInteracting()`
   (pose + retombée après ~180 ms d'inactivité), `.visit-map-world` sans `will-change` statique.
 
+### Mascotte — Runtime commun mono+multi : `useMascotTransientState` (étape 7 convergence)
+
+- **Hook partagé** `src/hooks/useMascotTransientState.js` : factorise la mécanique « état
+  transitoire + timeout + garde anti-idle » des deux runtimes mascotte, **paramétrée par arité**
+  via une *clé* (un timer par clé). Le runtime **mono** (visite) utilise une clé fixe ; le runtime
+  **multi** (plateau GL) utilise l'identifiant d'équipe.
+- **Consommé par** `useVisitMascotStateMachine` (`triggerMascotTransientState` /
+  `resetMascotTransientState`) **et** `useGLBoardMascotMotion` (`triggerTransient(teamId, …)`). La
+  logique dupliquée (refs de timeout, garde anti-idle, clamp de durée, nettoyage au démontage)
+  disparaît des deux côtés.
+- Chaque produit ne fournit que ses spécificités : `resolveState` (visite :
+  `resolveVisitMascotState({ extraStates })` ; GL : trim brut), `idleState`, durées (visite `1500`,
+  GL `900`) et les applicateurs d'état (visite `setState` ; GL `patchMotion`).
+- **Comportement observable strictement préservé** : priorité `transient > happy > walking`,
+  localStorage de l'id mascotte, aperçu/reset (visite) ; `walking`/`happy`/`faceRight`/`snapCenter`,
+  timers de déplacement, ambiant per-équipe et états personnalisés (GL).
+- Tests : `tests-ui/hooks/useMascotTransientState.test.js` (garde anti-idle, arité N, re-déclenche,
+  reset, résolution de durée, identité stable) ; suites existantes (mono / GL / ambiant) restées
+  vertes. Docs `docs/MASCOT_ARCHITECTURE_CONVERGENCE.md`.
+
+### Mascotte — Write-side WYSIWYG : forme unifiée `states[]` (export/import archive + aperçu)
+
+- **Décision (Option 1, faible risque)** : le modèle interne de l'éditeur visuel reste en forme
+  **canonique** (`stateFrames`) ; on ajoute la **lecture/écriture** de la forme unifiée `states[]`
+  aux frontières (export/import archive + aperçu), sans aucune régression du modèle interne.
+- **Import d'archive rétro-compatible (les deux formes)** : `rewriteVisitPackForServerImport`
+  accepte désormais un `pack.json` en forme **`states[]`** (réécrit les refs d'assets dans chaque
+  entrée et conserve la forme tableau ; `normalizeUnifiedStates` la désucre à la validation) **et**
+  la forme historique `stateFrames`. La logique de réécriture des refs est factorisée
+  (`rewriteImportedStateSpec`).
+- **Export d'archive en forme `states[]` (opt-in)** : `buildVisitExportArchive({ unified: true })`
+  émet `pack.json` en `states[]` (helper CJS `visitPackToUnifiedForm`, miroir de
+  `mascotPackToUnifiedStates`) + `manifest.statesForm`. Exposé via `GET …/export.zip?unified=1` et
+  un bouton **« Exporter ZIP (states[]) »** au studio (`MascotPackListAside`).
+- **Aperçu « forme unifiée `states[]` »** (lecture seule + copie) dans l'éditeur WYSIWYG
+  (`MascotPackWysiwygEditor`) : réintégrable tel quel à l'import / onglet JSON.
+- **Round-trip sans perte** : export `states[]` → import → `normalizeUnifiedStates` re-dérive
+  `customStates` à partir des clés non canoniques. Persistance serveur inchangée (forme canonique).
+- Tests : `tests/mascot-pack-archive.test.js` (import `states[]`, export `unified`,
+  `visitPackToUnifiedForm`), `tests-ui/components/mascot/MascotPackListAside.test.jsx` (bouton
+  dédié), `tests-ui/components/MascotPackWysiwygEditorUnified.test.jsx` (aperçu). Docs
+  `docs/MASCOT_PACK.md`.
+
+### Mascotte — Retrait du pont GL→visite : adaptateur mince (étape 6 convergence)
+
+- **`glMascotPackSpriteCutToVisitValidation` réduit à un adaptateur mince** : il ne fait plus que
+  la **spécificité GL** (résoudre les indices `frames` → `srcs` depuis `assets`, remapper les clés
+  d'état via `mapGlMascotStateKeyToVisit`, porter les `triggers` GL vers `customTriggers`, fournir
+  les defaults de cadrage absents du schéma GL). Il produit désormais la **forme unifiée `states[]`**
+  et **délègue entièrement** à `validateMascotPack` (désucrage via `normalizeUnifiedStates` +
+  clamp/defaults d'animation `fps`/`pixelated`/`displayScale` via `expandMascotPackToSpriteCut`).
+- **Suppression de la logique dupliquée** : construction manuelle de `stateFrames`, des libellés
+  d'états personnalisés et des `customStates`, ainsi que les defaults `fps`/`pixelated`/`displayScale`
+  re-codés dans le pont — désormais un **seul chemin** (le cœur visite).
+- **Non cassant** : `expandGlMascotPackSpriteCut`, la prévisualisation GL
+  (`GLMascotPackPreviewPanel`, `GLMascotPackWysiwygEditor`), `buildGlMascotExtraCatalogEntries` et le
+  catalogue serveur (`lib/glMascotPackCatalog.js`) fonctionnent à l'identique (états personnalisés +
+  triggers + dialogProfile préservés).
+- **Collision de clés d'état** : l'adaptateur dédoublonne par clé visite (`Map`) pour préserver le
+  comportement « **dernière occurrence gagne** » (libellé + frames) de l'ancien pont — sinon le
+  désucrage `normalizeUnifiedStates` (première occurrence) aurait changé le libellé retenu. Couvert
+  par un test de non-régression dédié.
+- Tests : `tests/gl-mascot-pack-to-visit.test.js` étendu (mêmes assertions + vérification que les
+  defaults/clamp viennent du seul chemin visite). Docs `docs/MASCOT_ARCHITECTURE_CONVERGENCE.md`.
+
+### Mascotte — Schéma de pack unifié `states[]` en lecture (étape 5 convergence)
+
+- **Forme `states[]` acceptée côté FM** (alignée sur GL) : un pack peut déclarer ses états en
+  tableau `[{ key, label?, files?|srcs?, fps?, frameDwellMs? }]`. `normalizeUnifiedStates`
+  (`mascotPack.js`) désucre cette forme vers `stateFrames`/`customStates` **avant validation** —
+  validation/expansion/runtime inchangés. Une entrée à clé non canonique **déclare** l'état.
+  Helper inverse `mascotPackToUnifiedStates`. **Non cassant** : packs historiques toujours valides,
+  persistance en forme canonique. Miroir `lib/visit-pack/` resync.
+- **Write-side studio (JSON)** : l'onglet **JSON** du studio accepte la forme `states[]` à
+  l'application (désucrée) et offre un bouton **« Forme unifiée states[] »** (`packToUnifiedForm`)
+  pour réécrire le brouillon. Modèle de l'éditeur visuel et persistance restent canoniques.
+- Tests : `tests/mascot-pack.test.js` (states[] désucré, clé custom mal formée refusée, round-trip),
+  `tests-ui/utils/mascotPackEditorModelUnified.test.js` (`packToUnifiedForm` + round-trip).
+  Docs `docs/MASCOT_PACK.md` et `docs/MASCOT_ARCHITECTURE_CONVERGENCE.md`.
+
+### Mascotte — Émetteurs d'événements déclaratifs + l'interactionProfile agit sur le plan live (étape 4 convergence)
+
+- **`emitMascotEvent(eventKey)`** (`visit-views.jsx`) : les sites d'émission (déplacement long/très
+  long, marquage « vu », ouverture zone/repère, tap) émettent un événement nommé résolu via
+  `resolveVisitMascotInteraction` (profil du pack, défaut = comportement historique) au lieu d'états
+  câblés en dur.
+- **Correctif notable** : le **profil d'interaction (`interactionProfile`) d'un pack agit désormais
+  sur le plan de visite *live*** — il n'avait auparavant d'effet qu'en aperçu studio (les vues
+  ignoraient le profil et jouaient des états/durées figés). Comportement par défaut inchangé (les
+  défauts du profil correspondent aux valeurs historiques) ; contrat verrouillé par
+  `tests/visit-mascot-interaction.test.js`.
+- Docs `docs/MASCOT_ARCHITECTURE_CONVERGENCE.md`.
+
+### Mascotte — Moteur de comportement unifié FM/GL (étape 3 convergence)
+
+- **Moteur partagé** `src/utils/mascotBehaviorEngine.js` : `resolveTriggerAction(entry, trigger)` →
+  action produit-agnostique (`state`, `durationMs`, `dialog`, `everyMs`), `getAmbientActions` /
+  `getTapActions`, et `runBehaviorAction(action, { playState, showDialog })`. La visite
+  (`useAmbientMascotBehavior` + tap) consomme désormais ce moteur au lieu d'une logique ad-hoc.
+- **Plateau GL : comportements ambiants par équipe enfin câblés** — nouveau hook
+  `src/gl/hooks/useGLBoardAmbientBehavior.js` (par équipe via `triggerTransient(teamId, …)` exposé
+  par `useGLBoardMascotMotion`), branché dans `GLGameBoard` avec résolution d'entrée par
+  `resolveVisitMascotEntry` + catalogue GL. Les entrées catalogue GL portent désormais
+  `customStates`/`customTriggers`/`dialogProfile` (`glMascotCatalogExtras`). Lève la limite connue
+  des étapes 1-2 (ambiant GL non câblé).
+- Tests : `tests-ui/utils/mascotBehaviorEngine.test.js`, `tests-ui/gl/useGLBoardAmbientBehavior.test.js`.
+  Docs `docs/MASCOT_PACK.md` et `docs/MASCOT_ARCHITECTURE_CONVERGENCE.md`.
+
+### Mascotte — Dialogues data-driven (étape 2 convergence)
+
+- **Profil de dialogue extensible** : `dialogProfile` n'est plus une énumération figée
+  (`.strict()`) — il accepte désormais les événements connus **ou** des clés personnalisées
+  (`a-z0-9_-`), validées par format ; `sanitizeDialogProfile` les conserve. Une clé mal formée
+  (camelCase) reste rejetée.
+- **Bulle des déclencheurs personnalisés centralisable** : `resolveTriggerDialogLines` résout la
+  bulle d'un `customTriggers` via `dialogProfile[clé]` (prioritaire) puis l'inline ; éditable au
+  **studio dialogue** (`VisitMascotDialogEditor` liste les déclencheurs personnalisés du pack).
+  Runtime (moteur ambiant + tap) câblé sur ce helper.
+- Tests : `tests/visit-mascot-dialog.test.js` (clés perso acceptées/rejetées, `sanitizeDialogProfile`,
+  `resolveTriggerDialogLines`), `tests-ui/components/VisitMascotDialogEditor.test.jsx`. Miroir
+  `lib/visit-pack/` resync. Docs `docs/MASCOT_PACK.md` et `docs/MASCOT_ARCHITECTURE_CONVERGENCE.md`.
+
+### Mascotte (visite + GL) — Comportements extensibles : palette élargie, états & déclencheurs personnalisés (studio prof)
+
+- **Palette d'états élargie** : 8 nouveaux états d'animation prédéfinis communs visite + GL —
+  `sleep`, `wave`, `dance`, `eat`, `search`, `sad`, `love`, `point` (`VISIT_MASCOT_STATE`,
+  libellés FR dans `src/constants/mascotStateLabels.js` et aperçu studio). Alias GL→visite
+  ajoutés (`src/utils/glMascotPackToVisit.js`).
+- **États personnalisés par pack (`customStates`)** : le prof crée ses propres états (clé + libellé)
+  dans le studio (visite : nouvel onglet « Comportements personnalisés » de l'éditeur WYSIWYG ;
+  GL : champ `states` libre + `label` optionnel). Validés (collision/doublon), rendus via
+  `stateFrames`, utilisables comme cibles d'alias, de règles d'interaction et de déclencheurs.
+- **Déclencheur général `mascotTap`** : tap/clic direct sur la mascotte (palette d'interaction v2 +
+  câblage runtime `VisitMapMascot`).
+- **Déclencheurs personnalisés (`customTriggers` / GL `triggers`)** : comportements pilotés par les
+  données du pack — `periodic` (joue un état toutes les `everyMs`, moteur ambiant
+  `useAmbientMascotBehavior`) ou `tap` (au clic). Bulles optionnelles. Édition au studio.
+- **Schéma & validation** : `mascotPack.js` (visite, v1/v2) et `glMascotPack.js` (GL) étendus
+  (Zod : clés uniques, non réservées, état cible valide, `everyMs` requis si périodique). Règle
+  d'interaction `transient` : l'appartenance de l'état (canonique **ou** personnalisé) est vérifiée
+  au niveau pack. Miroirs serveur `lib/visit-pack/` et `lib/gl-pack/` resynchronisés.
+- **Runtime** : `resolveVisitMascotState({ extraStates })` accepte les états personnalisés du pack
+  actif ; la machine à états visite expose l'entrée active et joue les états/déclencheurs custom ;
+  le plateau GL (`GLBoardMascot`) respecte les états personnalisés déclenchés.
+- **Registre central des comportements** (`src/utils/visitMascotBehaviorRegistry.js`, étape 1 du
+  plan de convergence) : source unique dérivant les options d'états/déclencheurs depuis
+  `(palette canonique ⊕ pack actif)`. Les éditeurs (profil d'interaction, alias, comportements
+  personnalisés, WYSIWYG, lot d'interaction, panneaux images) ne dépendent plus de constantes
+  figées : **les états personnalisés sont désormais sélectionnables partout** (cibles d'alias,
+  d'interaction, d'insertion d'images), plus seulement dans l'éditeur dédié. Voir
+  `docs/MASCOT_ARCHITECTURE_CONVERGENCE.md`.
+- Tests : `tests/mascot-pack.test.js` (palette, `customStates`, `customTriggers`),
+  `tests/gl-mascot-pack-to-visit.test.js` (préservation d'état GL + portage des triggers),
+  `tests-ui/utils/visitMascotCustomBehaviors.test.js`, `tests-ui/utils/visitMascotBehaviorRegistry.test.js`,
+  `tests-ui/hooks/useAmbientMascotBehavior.test.js`,
+  `tests-ui/components/mascot/MascotPackCustomBehaviorsEditor.test.jsx`. Docs `docs/MASCOT_PACK.md`
+  et `docs/MASCOT_ARCHITECTURE_CONVERGENCE.md`.
+### GL — Édition du plateau : déplacement de repères enregistré de façon fiable (fix)
+
+- **Fin du glisser-déposer perdue** : lors du déplacement d'un repère sur la carte du chapitre
+  (`GLChapterMapStudio`), le `pointerup` lisait la position finale via la closure `editableMarkers`,
+  qui reflète le dernier rendu React committé et pouvait être **en retard sur le point de lâcher**.
+  Le `PUT` enregistrait alors une position intermédiaire et le repère « se replaçait » au rechargement.
+  La position est désormais lue via une **ref** (`dragLatestPctRef`) mise à jour à chaque `pointermove`,
+  garantissant l'enregistrement exact du point de lâcher. Les écouteurs ne se ré-abonnent plus à chaque
+  mouvement (sortie de `editableMarkers` des dépendances de l'effet).
+- **Rechargements concurrents dans le désordre** : plusieurs déplacements enchaînés déclenchaient
+  autant de `loadDetail` non sérialisés ; une réponse périmée pouvait écraser l'état frais et faire
+  revenir des repères à leur ancienne position. Ajout d'un **garde-fou de séquence**
+  (`detailLoadSeqRef`) dans `GLChaptersAdminView.loadDetail` : seule la réponse du rechargement le plus
+  récent est appliquée.
+- Test : `tests-ui/gl/GLChapterMapStudio.test.jsx` (régression — le drag persiste la position finale,
+  jamais une position intermédiaire périmée).
+
+### GL — Autosave QCM : création sans perte de saisie en vol
+
+- **Éditeurs QCM biomes + lore** : après la création initiale d'une question, le passage du brouillon
+  (`new:<code>`) à la fiche persistée (`<code>`) rebaselinait l'autosave avec la saisie courante. Une
+  frappe effectuée pendant le `POST` de création restait visible à l'écran mais pouvait ne jamais être
+  envoyée en `PUT`, puis disparaître au rechargement. La clé de reset de l'autosave est maintenant pilotée
+  uniquement par les chargements explicites de fiche/brouillon, et un test UI couvre le second autosave
+  attendu après création.
 ### ForetMap — Cartes : étiquettes plus grandes, grossissement au zoom configurable
 
 - **Étiquettes un peu plus grandes** : tailles de référence portées de 17→**19 px** (emoji) et 12→**14 px**
@@ -174,6 +356,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Suivi de position** : sur un plan calé, la mascotte suit la position GPS réelle de l'élève via un bouton « 📍 Me suivre » (toolbar carte). Conversion lat/lng → % par transformation affine à 3 points (`src/utils/mapGeoTransform.js`). Position traitée 100 % côté client (jamais envoyée au serveur).
 - **Outil prof « Calage GPS »** : dans Réglages → Cartes, poser 3 repères sur le plan + saisir/capturer leurs coordonnées GPS, puis activer le suivi par plan (`MapGeorefPanel`).
 - **API** : `PUT /api/settings/admin/maps/:id/georef` ; champs `georef`/`gps_enabled` exposés par `GET /api/maps` (cf. `docs/API.md`). Migration `148_map_georef.sql` (colonnes `geo_anchors_json`, `gps_enabled`).
+- **Correctif calage GPS** : un brouillon incomplet dans l'outil prof n'envoie plus `anchors: []` et ne peut donc plus effacer silencieusement le calage existant ; côté API, omettre `anchors` conserve désormais les ancres stockées.
 - **Dégradation** : bouton masqué si capteur absent (`navigator.geolocation`) ou plan non calé ; HTTPS requis. Seuil de précision + détection hors-zone pour éviter les sauts.
 - **Calage prof — ergonomie** : plan affiché en pleine largeur (plus de plafond à 240 px) ; clic direct sur le plan pour poser les repères (ciblage automatique du point suivant, plus besoin d'armer un bouton), bannière de guidage et curseur réticule. Image du plan exclue de la lightbox globale (`data-no-lightbox`) : le clic pose un repère au lieu d'ouvrir l'aperçu plein écran.
 - **Suivi — légende de statut** : légende textuelle sous la barre d'outils carte (`MascotGpsStatusBanner`) explicitant l'état du suivi (actif + précision, localisation refusée, hors zone du plan, signal faible, acquisition en cours), avec icône dédiée par état. Le bouton « 📍 » distingue désormais le signal faible (📶) de l'erreur bloquante (⚠️).

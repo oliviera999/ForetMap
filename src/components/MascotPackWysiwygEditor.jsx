@@ -2,8 +2,10 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { validateMascotPackV1 } from '../utils/mascotPack.js';
 import {
   ensureServerFramesBase,
+  packToUnifiedForm,
   serverMascotPackAssetsPrefix,
   serverMascotSpriteLibraryAssetsPrefix,
+  stringifyPack,
 } from '../utils/mascotPackEditorModel.js';
 import { normalizePackStateFramesForFramesBase } from '../utils/mascotPackEditorFrames.js';
 import { computePackMediaWarnings } from '../utils/mascotPackEditorFrames.js';
@@ -16,8 +18,9 @@ import {
 import MascotPackPreviewPanel from './MascotPackPreviewPanel.jsx';
 import MascotPackMetaSection from './MascotPackMetaSection.jsx';
 import MascotPackStateEditor from './mascot/MascotPackStateEditor.jsx';
+import MascotPackCustomBehaviorsEditor from './mascot/MascotPackCustomBehaviorsEditor.jsx';
 import StateAliasesEditor from './mascot/StateAliasesEditor.jsx';
-import { STATE_OPTIONS } from '../constants/mascotStateLabels.js';
+import { buildStateOptions } from '../utils/visitMascotBehaviorRegistry.js';
 
 /**
  * @param {{
@@ -102,6 +105,12 @@ export default function MascotPackWysiwygEditor({
     [pack.stateFrames],
   );
 
+  /**
+   * États proposés à l'édition de frames : palette canonique + états personnalisés
+   * du pack, dérivés du registre central (`{ key, label, custom }`).
+   */
+  const stateOptions = useMemo(() => buildStateOptions(pack), [pack]);
+
   const setStateFrames = useCallback(
     (next) => {
       patchPack({ stateFrames: next });
@@ -140,6 +149,23 @@ export default function MascotPackWysiwygEditor({
     [updateStateEntry],
   );
 
+  /** Aperçu (lecture seule) de la forme unifiée `states[]` du pack courant (aligné GL). */
+  const unifiedFormJson = useMemo(() => {
+    try {
+      return stringifyPack(packToUnifiedForm(pack), 2);
+    } catch (_) {
+      return '';
+    }
+  }, [pack]);
+
+  const copyUnifiedForm = useCallback(() => {
+    try {
+      navigator?.clipboard?.writeText?.(unifiedFormJson);
+    } catch (_) {
+      /* presse-papiers indisponible : aperçu sélectionnable manuellement */
+    }
+  }, [unifiedFormJson]);
+
   return (
     <div className="mascot-pack-wysiwyg">
       {catalogId ? (
@@ -166,7 +192,7 @@ export default function MascotPackWysiwygEditor({
           image par état activé avant enregistrement. Les images se gèrent dans le panneau{' '}
           <strong>Images</strong> ci-dessous.
         </p>
-        {STATE_OPTIONS.map((stateKey) => {
+        {stateOptions.map(({ key: stateKey, label, custom }) => {
           const active = Object.prototype.hasOwnProperty.call(stateFrames, stateKey);
           const spec =
             active && stateFrames[stateKey] && typeof stateFrames[stateKey] === 'object'
@@ -184,17 +210,23 @@ export default function MascotPackWysiwygEditor({
               onToggleState={toggleState}
               onUpdateStateEntry={updateStateEntry}
               assetPreviewByFilename={assetPreviewByFilename}
+              labelOverride={custom ? label : ''}
             />
           );
         })}
       </section>
 
+      <section className="mascot-pack-wysiwyg__custom-behaviors" style={{ marginTop: 16 }}>
+        <MascotPackCustomBehaviorsEditor pack={pack} patchPack={patchPack} />
+      </section>
+
       <section className="mascot-pack-wysiwyg__aliases">
         <h3 className="mascot-pack-wysiwyg__h">Alias d’états (optionnel)</h3>
         <p className="section-sub" style={{ fontSize: '0.8rem' }}>
-          Mappe un état canonique vers un autre (clé et cible parmi les états du schéma).
+          Mappe un état (canonique ou personnalisé) vers un autre possédant des images.
         </p>
         <StateAliasesEditor
+          pack={pack}
           stateFrames={stateFrames}
           aliases={
             pack.stateAliases && typeof pack.stateAliases === 'object' ? pack.stateAliases : {}
@@ -249,6 +281,43 @@ export default function MascotPackWysiwygEditor({
           </ul>
         </div>
       ) : null}
+
+      <details className="mascot-pack-wysiwyg__unified" style={{ marginTop: 14 }}>
+        <summary style={{ cursor: 'pointer', fontWeight: 600 }}>
+          Forme unifiée <code>states[]</code> (aperçu, aligné GL)
+        </summary>
+        <p className="section-sub" style={{ fontSize: '0.8rem', marginTop: 8 }}>
+          Représentation du pack en tableau <code>states[]</code> : réintégrable telle quelle à l’
+          <strong>import d’archive</strong> ou dans l’onglet <strong>JSON</strong>. Le modèle
+          interne de l’éditeur et la persistance restent en forme canonique (
+          <code>stateFrames</code>
+          ).
+        </p>
+        <button
+          type="button"
+          className="btn btn-ghost btn-sm"
+          onClick={copyUnifiedForm}
+          style={{ marginBottom: 8 }}
+        >
+          Copier
+        </button>
+        <pre
+          className="mascot-pack-wysiwyg__unified-json"
+          aria-label="Forme unifiée states[]"
+          style={{
+            maxHeight: 240,
+            overflow: 'auto',
+            padding: 10,
+            borderRadius: 8,
+            border: '1px solid rgba(26,71,49,0.18)',
+            background: 'rgba(248,250,245,0.95)',
+            fontSize: 12,
+            whiteSpace: 'pre',
+          }}
+        >
+          {unifiedFormJson}
+        </pre>
+      </details>
 
       {!hidePreview ? (
         <MascotPackPreviewPanel
