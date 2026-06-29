@@ -601,6 +601,8 @@ router.post(
       }
       const validated = await validateMascotPackForDb(parsed.pack, {
         relaxAssetPrefix: true,
+        // Import souple : les comportements personnalisés non déclarés à la source sont créés.
+        autoDeclareCustomStates: true,
       });
       if (validated.moduleError) {
         return jsonVisitMascotPackError(
@@ -619,6 +621,18 @@ router.post(
             ? validated.error.format()
             : String(validated.error || 'Pack invalide'),
         });
+      }
+      const autoDeclared = Array.isArray(validated.autoDeclaredStates)
+        ? validated.autoDeclaredStates
+        : [];
+      if (autoDeclared.length) {
+        analysis.autoDeclaredStates = autoDeclared;
+        analysis.warnings = [
+          ...analysis.warnings,
+          `${autoDeclared.length} comportement(s) personnalisé(s) seront créés à l'import : ${autoDeclared
+            .map((s) => s.key)
+            .join(', ')}.`,
+        ];
       }
       return res.json(analysis);
     } catch (err) {
@@ -682,6 +696,8 @@ router.post(
       serverPack.id = catalogId;
       const validated = await validateMascotPackForDb(serverPack, {
         allowedFramesBasePrefixes: mascotPackAllowedFramesPrefixesForMap(mapId, packUuid),
+        // Import souple : crée les comportements personnalisés implicites (états non déclarés).
+        autoDeclareCustomStates: true,
       });
       if (validated.moduleError) {
         return jsonVisitMascotPackError(
@@ -742,9 +758,21 @@ router.post(
       const row = await queryOne('SELECT * FROM visit_mascot_packs WHERE id = ? LIMIT 1', [
         packUuid,
       ]);
+      const autoDeclared = Array.isArray(validated.autoDeclaredStates)
+        ? validated.autoDeclaredStates
+        : [];
+      const warnings = [...analyzeVisitArchive(parsed).warnings];
+      if (autoDeclared.length) {
+        warnings.push(
+          `${autoDeclared.length} comportement(s) personnalisé(s) créé(s) à l'import : ${autoDeclared
+            .map((s) => s.key)
+            .join(', ')}.`,
+        );
+      }
       return res.status(mode === 'replace' ? 200 : 201).json({
         ...serializeVisitMascotPackRow(row),
-        warnings: analyzeVisitArchive(parsed).warnings,
+        warnings,
+        autoDeclaredStates: autoDeclared,
       });
     } catch (err) {
       logRouteError(err, req);
