@@ -736,6 +736,7 @@ Affichage carte (zones SVG + repères sur l’onglet Carte, visite et plateau GL
 - `emoji_label_center_gap` (entier 6–32, défaut `14`) : distance entre les **centres** de l’emoji et du libellé (zones et repères).
 - `overlay_emoji_size_percent` (entier 50–200, défaut `100`) : échelle des emojis zones et repères, en **% du ratio repère/plateau** (100 = hauteur affichée du plan ~480 px).
 - `overlay_label_size_percent` (entier 50–200, défaut `100`) : échelle des noms affichés sous les repères (et sous les emojis des zones), même sémantique ratio repère/plateau.
+- `overlay_zoom_growth_percent` (entier 0–100, défaut `35`) : grossissement des étiquettes (emojis + noms, zones et repères) **au zoom**. `0` = taille apparente constante quel que soit le zoom ; `100` = grossissement linéaire avec le zoom ; valeurs intermédiaires = grossissement progressif (`taille = base × ratio_zoom^(pourcent/100)`). Vaut pour la carte des tâches et le plan de visite.
 - `plateau_marker_size_percent` (entier 50–200, défaut `100`) : ratio repères / plateau partagé **ForetMap + GL** ; prioritaire pour l’échelle des repères GL si présent (sinon repli sur `overlay_emoji_size_percent`). Modifiable depuis les réglages ForetMap admin ou `PUT /api/gl/admin/settings/ui.map.plateau_marker_size_percent` (staff GL).
 
 Contenus éditables du site (micro-CMS texte brut) :
