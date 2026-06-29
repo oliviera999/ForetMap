@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import {
   getPeriodicTriggers,
   periodicTriggersSignature,
+  resolveTriggerDialogLines,
 } from '../utils/visitMascotCustomBehaviors.js';
 
 /**
@@ -29,6 +30,8 @@ export default function useAmbientMascotBehavior({
   triggerRef.current = triggerTransientState;
   const showRef = useRef(showDialog);
   showRef.current = showDialog;
+  const entryRef = useRef(entry);
+  entryRef.current = entry;
 
   const periodic = getPeriodicTriggers(entry);
   const signature = periodicTriggersSignature(periodic);
@@ -41,12 +44,10 @@ export default function useAmbientMascotBehavior({
         if (typeof triggerRef.current === 'function') {
           triggerRef.current(trig.state, Number(trig.durationMs) || 1000);
         }
-        if (
-          Array.isArray(trig.dialog) &&
-          trig.dialog.length &&
-          typeof showRef.current === 'function'
-        ) {
-          showRef.current(trig.dialog);
+        // Bulle : profil de dialogue central (dialogProfile[clé]) ou inline.
+        const lines = resolveTriggerDialogLines(entryRef.current, trig);
+        if (lines.length && typeof showRef.current === 'function') {
+          showRef.current(lines);
         }
       }, Number(trig.everyMs)),
     );

@@ -71,7 +71,7 @@ import { resolveMascotDialogLine } from '../utils/visitMascotDialogApply.js';
 import { VISIT_MASCOT_STATE } from '../utils/visitMascotState.js';
 import { VISIT_MASCOT_INTERACTION_EVENT } from '../utils/visitMascotInteractionEvents.js';
 import { resolveVisitMascotInteraction } from '../utils/visitMascotInteractionApply.js';
-import { getTapTriggers } from '../utils/visitMascotCustomBehaviors.js';
+import { getTapTriggers, resolveTriggerDialogLines } from '../utils/visitMascotCustomBehaviors.js';
 import useAmbientMascotBehavior from '../hooks/useAmbientMascotBehavior.js';
 import {
   loadVisitMascotPositionPct,
@@ -951,7 +951,8 @@ function VisitViewImpl({
     }
     for (const trig of getTapTriggers(activeMascotEntry)) {
       triggerMascotTransientState(trig.state, Number(trig.durationMs) || 900);
-      if (Array.isArray(trig.dialog) && trig.dialog.length) showMascotDialogLines(trig.dialog);
+      const lines = resolveTriggerDialogLines(activeMascotEntry, trig);
+      if (lines.length) showMascotDialogLines(lines);
     }
   }, [
     visitMascotId,

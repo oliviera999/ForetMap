@@ -7,6 +7,7 @@
  * - `tap` : joue un état au clic/tap sur la mascotte.
  * @see src/utils/mascotPack.js (schéma) · src/hooks/useAmbientMascotBehavior.js (moteur)
  */
+import { sanitizeDialogLines } from './visitMascotDialogEvents.js';
 
 /** @param {object|null} entry Entrée catalogue (peut porter `customStates` / `spriteCut`). */
 export function getEntryCustomStates(entry) {
@@ -43,6 +44,25 @@ export function getPeriodicTriggers(entry) {
 /** Déclencheurs au tap valides. */
 export function getTapTriggers(entry) {
   return getEntryCustomTriggers(entry).filter((t) => t && t.type === 'tap' && t.state);
+}
+
+/**
+ * Lignes de bulle d'un déclencheur personnalisé. Priorité : profil de dialogue
+ * central du pack (`dialogProfile[trigger.key]`) → bulles inline du déclencheur
+ * (`trigger.dialog`). Permet d'éditer la bulle au studio dialogue.
+ * @param {object|null} entry
+ * @param {object} trigger
+ * @returns {string[]}
+ */
+export function resolveTriggerDialogLines(entry, trigger) {
+  const key = String(trigger?.key || '').trim();
+  const fromProfile =
+    key && entry?.dialogProfile && typeof entry.dialogProfile === 'object'
+      ? entry.dialogProfile[key]
+      : null;
+  const central = sanitizeDialogLines(fromProfile);
+  if (central.length) return central;
+  return sanitizeDialogLines(trigger?.dialog);
 }
 
 /**
