@@ -52,8 +52,8 @@ Le « partage » réel se limite à : le **format pivot `sprite_cut`**, le **ren
 2. **Conception « enum-first ».** Le frontend itère partout sur des constantes importées en
    dur (`STATE_OPTIONS`, `VISIT_MASCOT_INTERACTION_EVENT_KEYS`, `VISIT_MASCOT_DIALOG_EVENT_KEYS`).
    Chaque dose d'extensibilité oblige à « dériver dynamiquement depuis le pack » à chaque
-   point d'itération + assouplir un `.strict()`. On l'a fait pour les états & déclencheurs
-   personnalisés ; les **dialogues** restent figés (`dialogProfileSchema` en `.strict()`).
+   point d'itération + assouplir un `.strict()`. _Largement levé_ : registre central (étape 1)
+   pour états/déclencheurs ; dialogues data-driven (étape 2).
 
 3. **Le pont `glMascotPackToVisit` est lossy et redondant.** Historiquement, un état GL
    inconnu retombait silencieusement sur `idle` (corrigé : clés non canoniques désormais
@@ -65,11 +65,14 @@ Le « partage » réel se limite à : le **format pivot `sprite_cut`**, le **ren
    avec timeout, garde anti-`idle`, normalisation) avec des différences subtiles. C'est la
    dette la plus coûteuse : elle a empêché de câbler proprement le **playback ambiant
    per-équipe** côté GL (le board n'a pas d'accès structuré aux `customTriggers` par équipe).
+   _Partiellement levé_ : moteur partagé (étape 3) + ambiant GL câblé ; reste à fusionner les
+   deux machines à états (étape 7).
 
 5. **Déclencheurs câblés en dur = points de couplage.** Chaque émission d'événement
    (`markerMarkedSeen`, `mapReadOpen`, mouvement…) est codée dans les vues
    (`visit-views.jsx`, `useMapViewMascot.js`, board GL). Ajouter un déclencheur « réel »
-   suppose toujours d'éditer le runtime, jamais seulement la donnée.
+   suppose toujours d'éditer le runtime, jamais seulement la donnée. _Levé pour `visit-views`
+   (étape 4 : `emitMascotEvent`) ; `useMapViewMascot` reste à aligner._
 
 ## 4. Architecture cible
 
@@ -135,12 +138,16 @@ Clients : visite (`useAmbientMascotBehavior` + tap) **et** GL (`useGLBoardAmbien
 équipe via `triggerTransient(teamId, …)`, câblé dans `GLGameBoard`). **Conséquence : le playback
 ambiant per-équipe du plateau GL — limite connue des étapes précédentes — est désormais câblé.**
 
-### Étape 4 — Émetteurs déclaratifs (M)
+### Étape 4 — Émetteurs déclaratifs (M) ✅ réalisée (visite)
 
-Remplacer les appels en dur (`triggerMascotTransientState(STATE, ms)` disséminés) par des
-**émissions d'événements nommés** (`emit('markerMarkedSeen')`) que le moteur (étape 3) résout
-via le profil du pack. Découple le runtime de la donnée : un nouveau déclencheur devient une
-entrée de pack, plus une édition de vue.
+`emitMascotEvent(eventKey)` dans `visit-views.jsx` résout l'événement via
+`resolveVisitMascotInteraction` (profil du pack, défaut = comportement historique) puis applique
+l'action. Les appels en dur `triggerMascotTransientState(STATE, ms)` des sites d'émission
+(déplacement long/très long, marquage « vu », ouverture zone/repère, tap) sont remplacés. **Effet
+notable : le profil d'interaction (`interactionProfile`) d'un pack agit désormais sur le plan de
+visite _live_ — il n'avait jusque-là d'effet qu'en aperçu studio.** Contrat des défauts verrouillé
+par `tests/visit-mascot-interaction.test.js`. Reste : `useMapViewMascot` (carte des tâches forêt)
+suit le même schéma câblé — à aligner si des packs serveur y sont exposés.
 
 ### Étape 5 — Schéma de pack unifié (L, risque élevé)
 
