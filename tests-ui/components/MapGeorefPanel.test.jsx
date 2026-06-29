@@ -4,11 +4,18 @@ import { fireEvent, render, screen } from '@testing-library/react';
 
 vi.mock('../../src/services/api', () => ({ api: vi.fn(() => Promise.resolve({})) }));
 
+import { api } from '../../src/services/api';
 import { MapGeorefPanel } from '../../src/components/settings/MapGeorefPanel.jsx';
 
 const MAP = { id: 'foret', label: 'Forêt', georef: null, gps_enabled: false };
+const VALID_GEOREF = [
+  { xp: 10, yp: 10, lat: 48.85, lng: 2.3 },
+  { xp: 90, yp: 10, lat: 48.85, lng: 2.31 },
+  { xp: 10, yp: 90, lat: 48.84, lng: 2.3 },
+];
 
 beforeEach(() => {
+  vi.clearAllMocks();
   // Position/dimension déterministes pour la conversion clic → %.
   Object.defineProperty(HTMLImageElement.prototype, 'getBoundingClientRect', {
     configurable: true,
@@ -44,5 +51,22 @@ describe('MapGeorefPanel', () => {
     expect(screen.getByText('x10 y10')).toBeTruthy();
     expect(screen.getByText('x90 y10')).toBeTruthy();
     expect(screen.getByText('x10 y90')).toBeTruthy();
+  });
+
+  test('refuse un calage partiel au lieu d’envoyer un effacement implicite', () => {
+    const onError = vi.fn();
+    render(
+      <MapGeorefPanel
+        map={{ ...MAP, georef: VALID_GEOREF, gps_enabled: false }}
+        imageUrl="/maps/map-foret.svg"
+        onError={onError}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText('Latitude point 1'), { target: { value: '' } });
+    fireEvent.click(screen.getByRole('button', { name: /Enregistrer le calage GPS/i }));
+
+    expect(onError).toHaveBeenCalledWith(expect.stringMatching(/incomplet/i));
+    expect(api).not.toHaveBeenCalled();
   });
 });
