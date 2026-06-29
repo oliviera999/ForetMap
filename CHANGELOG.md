@@ -7,6 +7,71 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Mascotte — Runtime commun mono+multi : `useMascotTransientState` (étape 7 convergence)
+
+- **Hook partagé** `src/hooks/useMascotTransientState.js` : factorise la mécanique « état
+  transitoire + timeout + garde anti-idle » des deux runtimes mascotte, **paramétrée par arité**
+  via une *clé* (un timer par clé). Le runtime **mono** (visite) utilise une clé fixe ; le runtime
+  **multi** (plateau GL) utilise l'identifiant d'équipe.
+- **Consommé par** `useVisitMascotStateMachine` (`triggerMascotTransientState` /
+  `resetMascotTransientState`) **et** `useGLBoardMascotMotion` (`triggerTransient(teamId, …)`). La
+  logique dupliquée (refs de timeout, garde anti-idle, clamp de durée, nettoyage au démontage)
+  disparaît des deux côtés.
+- Chaque produit ne fournit que ses spécificités : `resolveState` (visite :
+  `resolveVisitMascotState({ extraStates })` ; GL : trim brut), `idleState`, durées (visite `1500`,
+  GL `900`) et les applicateurs d'état (visite `setState` ; GL `patchMotion`).
+- **Comportement observable strictement préservé** : priorité `transient > happy > walking`,
+  localStorage de l'id mascotte, aperçu/reset (visite) ; `walking`/`happy`/`faceRight`/`snapCenter`,
+  timers de déplacement, ambiant per-équipe et états personnalisés (GL).
+- Tests : `tests-ui/hooks/useMascotTransientState.test.js` (garde anti-idle, arité N, re-déclenche,
+  reset, résolution de durée, identité stable) ; suites existantes (mono / GL / ambiant) restées
+  vertes. Docs `docs/MASCOT_ARCHITECTURE_CONVERGENCE.md`.
+
+### Mascotte — Write-side WYSIWYG : forme unifiée `states[]` (export/import archive + aperçu)
+
+- **Décision (Option 1, faible risque)** : le modèle interne de l'éditeur visuel reste en forme
+  **canonique** (`stateFrames`) ; on ajoute la **lecture/écriture** de la forme unifiée `states[]`
+  aux frontières (export/import archive + aperçu), sans aucune régression du modèle interne.
+- **Import d'archive rétro-compatible (les deux formes)** : `rewriteVisitPackForServerImport`
+  accepte désormais un `pack.json` en forme **`states[]`** (réécrit les refs d'assets dans chaque
+  entrée et conserve la forme tableau ; `normalizeUnifiedStates` la désucre à la validation) **et**
+  la forme historique `stateFrames`. La logique de réécriture des refs est factorisée
+  (`rewriteImportedStateSpec`).
+- **Export d'archive en forme `states[]` (opt-in)** : `buildVisitExportArchive({ unified: true })`
+  émet `pack.json` en `states[]` (helper CJS `visitPackToUnifiedForm`, miroir de
+  `mascotPackToUnifiedStates`) + `manifest.statesForm`. Exposé via `GET …/export.zip?unified=1` et
+  un bouton **« Exporter ZIP (states[]) »** au studio (`MascotPackListAside`).
+- **Aperçu « forme unifiée `states[]` »** (lecture seule + copie) dans l'éditeur WYSIWYG
+  (`MascotPackWysiwygEditor`) : réintégrable tel quel à l'import / onglet JSON.
+- **Round-trip sans perte** : export `states[]` → import → `normalizeUnifiedStates` re-dérive
+  `customStates` à partir des clés non canoniques. Persistance serveur inchangée (forme canonique).
+- Tests : `tests/mascot-pack-archive.test.js` (import `states[]`, export `unified`,
+  `visitPackToUnifiedForm`), `tests-ui/components/mascot/MascotPackListAside.test.jsx` (bouton
+  dédié), `tests-ui/components/MascotPackWysiwygEditorUnified.test.jsx` (aperçu). Docs
+  `docs/MASCOT_PACK.md`.
+
+### Mascotte — Retrait du pont GL→visite : adaptateur mince (étape 6 convergence)
+
+- **`glMascotPackSpriteCutToVisitValidation` réduit à un adaptateur mince** : il ne fait plus que
+  la **spécificité GL** (résoudre les indices `frames` → `srcs` depuis `assets`, remapper les clés
+  d'état via `mapGlMascotStateKeyToVisit`, porter les `triggers` GL vers `customTriggers`, fournir
+  les defaults de cadrage absents du schéma GL). Il produit désormais la **forme unifiée `states[]`**
+  et **délègue entièrement** à `validateMascotPack` (désucrage via `normalizeUnifiedStates` +
+  clamp/defaults d'animation `fps`/`pixelated`/`displayScale` via `expandMascotPackToSpriteCut`).
+- **Suppression de la logique dupliquée** : construction manuelle de `stateFrames`, des libellés
+  d'états personnalisés et des `customStates`, ainsi que les defaults `fps`/`pixelated`/`displayScale`
+  re-codés dans le pont — désormais un **seul chemin** (le cœur visite).
+- **Non cassant** : `expandGlMascotPackSpriteCut`, la prévisualisation GL
+  (`GLMascotPackPreviewPanel`, `GLMascotPackWysiwygEditor`), `buildGlMascotExtraCatalogEntries` et le
+  catalogue serveur (`lib/glMascotPackCatalog.js`) fonctionnent à l'identique (états personnalisés +
+  triggers + dialogProfile préservés).
+- **Collision de clés d'état** : l'adaptateur dédoublonne par clé visite (`Map`) pour préserver le
+  comportement « **dernière occurrence gagne** » (libellé + frames) de l'ancien pont — sinon le
+  désucrage `normalizeUnifiedStates` (première occurrence) aurait changé le libellé retenu. Couvert
+  par un test de non-régression dédié.
+- Tests : `tests/gl-mascot-pack-to-visit.test.js` étendu (mêmes assertions + vérification que les
+  defaults/clamp viennent du seul chemin visite). Docs `docs/MASCOT_ARCHITECTURE_CONVERGENCE.md`.
+
 ### Mascotte — Schéma de pack unifié `states[]` en lecture (étape 5 convergence)
 
 - **Forme `states[]` acceptée côté FM** (alignée sur GL) : un pack peut déclarer ses états en
