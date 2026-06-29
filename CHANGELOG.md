@@ -7,6 +7,23 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### ForetMap — Cartes : étiquettes plus grandes, grossissement au zoom configurable
+
+- **Étiquettes un peu plus grandes** : tailles de référence portées de 17→**19 px** (emoji) et 12→**14 px**
+  (libellé) dans `resolveMapOverlayTypography` (`src/utils/mapOverlayTypography.js`).
+- **Grossissement progressif au zoom** : les étiquettes (emojis + noms, zones et repères) peuvent
+  désormais **grossir légèrement quand on zoome**, au lieu de garder une taille apparente strictement
+  constante. Formule `taille = base × ratio_zoom^g` où `g = overlay_zoom_growth_percent / 100`. Appliqué
+  de façon **cohérente aux deux cartes** : la carte des tâches passe une hauteur au repos stable +
+  un `zoomRatio` (nouvelle échelle d’ajustement `fitScale` exposée par `useMapGestures`), le plan de
+  visite utilise le `zoomRatio` par défaut (= zoom courant, repos à 1).
+- **Configurable dans les réglages** : nouveau réglage public `ui.map.overlay_zoom_growth_percent`
+  (entier 0–100, défaut **35** ; `0` = taille constante, `100` = grossissement linéaire), éditable depuis
+  l’admin (section Modules) au même endroit que les autres réglages carte. Backend `lib/settings.js`,
+  défaut public `src/utils/appPublicSettings.js`, libellé admin `src/constants/settingsAdminMeta.js`.
+- Tests : `tests/map-overlay-typography.test.js` (tailles de référence 19/14, grossissement 0 %/100 %/défaut,
+  bornage `clampZoomGrowthPercent`). Doc : `docs/API.md` (réglages `ui.map.*`).
+
 ### ForetMap — Cartes : zoom plus profond et étiquettes de zones/repères plus lisibles
 
 - **Étiquettes à taille apparente constante (zones SVG + repères HTML, carte des tâches et plan de
