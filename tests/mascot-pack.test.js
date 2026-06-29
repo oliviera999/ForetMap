@@ -43,6 +43,101 @@ test('validateMascotPackV1 refuse un état inconnu', async () => {
   assert.equal(r.ok, false);
 });
 
+test('autoDeclareCustomStates : import souple accepte les états stateFrames non déclarés', async () => {
+  const { validateMascotPackV1 } = await loadMascotPack();
+  const r = validateMascotPackV1(
+    {
+      mascotPackVersion: 2,
+      id: 'olu-revised',
+      label: 'Olu révisé',
+      renderer: 'sprite_cut',
+      framesBase: '/assets/mascots/olu/frames/',
+      frameWidth: 153,
+      frameHeight: 160,
+      fallbackSilhouette: 'backpackFox2',
+      // Aucun customStates déclaré : `dig`, `campfire`, `idle_back` sont non canoniques.
+      stateFrames: {
+        idle: { files: ['idle_00.png'], fps: 4 },
+        dig: { files: ['dig_00.png', 'dig_01.png'], fps: 5 },
+        campfire: { files: ['campfire_00.png'], fps: 3 },
+        idle_back: { files: ['idle_back_00.png'], fps: 2 },
+      },
+    },
+    { relaxAssetPrefix: true, autoDeclareCustomStates: true },
+  );
+  assert.equal(r.ok, true);
+  const keys = r.pack.customStates.map((c) => c.key).sort();
+  assert.deepEqual(keys, ['campfire', 'dig', 'idle_back']);
+  // Libellé prof dérivé de la clé (séparateurs → espaces, capitalisation).
+  const idleBack = r.pack.customStates.find((c) => c.key === 'idle_back');
+  assert.equal(idleBack.label, 'Idle back');
+  // L'état canonique `idle` n'est pas déclaré comme personnalisé.
+  assert.ok(!keys.includes('idle'));
+  // Les états personnalisés sont étendus dans le spriteCut (jouables au runtime).
+  assert.ok(r.spriteCut.stateFrames.dig);
+  assert.ok(r.spriteCut.stateFrames.campfire);
+  // Liste des états auto-déclarés exposée pour l'UI d'import.
+  assert.equal(r.autoDeclaredStates.length, 3);
+});
+
+test('autoDeclareCustomStates : sans le flag, un état stateFrames non déclaré reste refusé', async () => {
+  const { validateMascotPackV1 } = await loadMascotPack();
+  const base = {
+    mascotPackVersion: 2,
+    id: 'strict-pack',
+    label: 'Strict',
+    renderer: 'sprite_cut',
+    framesBase: '/assets/mascots/strict/frames/',
+    frameWidth: 32,
+    frameHeight: 32,
+    fallbackSilhouette: 'gnome',
+    stateFrames: {
+      idle: { files: ['a.png'], fps: 2 },
+      treasure: { files: ['t.png'], fps: 4 },
+    },
+  };
+  // Studio (validation stricte) : `treasure` non déclaré → rejet.
+  assert.equal(validateMascotPackV1(base, { relaxAssetPrefix: true }).ok, false);
+  // Import souple : auto-déclaré → accepté.
+  assert.equal(
+    validateMascotPackV1(base, { relaxAssetPrefix: true, autoDeclareCustomStates: true }).ok,
+    true,
+  );
+});
+
+test('autoDeclareCustomStates : préserve les customStates déjà déclarés (pas de doublon)', async () => {
+  const { validateMascotPackV1 } = await loadMascotPack();
+  const r = validateMascotPackV1(
+    {
+      mascotPackVersion: 2,
+      id: 'mixed-pack',
+      label: 'Mixte',
+      renderer: 'sprite_cut',
+      framesBase: '/assets/mascots/mixed/frames/',
+      frameWidth: 32,
+      frameHeight: 32,
+      fallbackSilhouette: 'gnome',
+      customStates: [{ key: 'dig', label: 'Creuser' }],
+      stateFrames: {
+        idle: { files: ['a.png'], fps: 2 },
+        dig: { files: ['d.png'], fps: 5 },
+        climb: { files: ['c.png'], fps: 6 },
+      },
+    },
+    { relaxAssetPrefix: true, autoDeclareCustomStates: true },
+  );
+  assert.equal(r.ok, true);
+  const dig = r.pack.customStates.filter((c) => c.key === 'dig');
+  assert.equal(dig.length, 1);
+  assert.equal(dig[0].label, 'Creuser'); // libellé existant conservé
+  assert.ok(r.pack.customStates.some((c) => c.key === 'climb'));
+  // Seul `climb` a été auto-déclaré (`dig` était déjà présent).
+  assert.deepEqual(
+    r.autoDeclaredStates.map((s) => s.key),
+    ['climb'],
+  );
+});
+
 test('validateMascotPackV1 refuse frameDwellMs de mauvaise longueur', async () => {
   const { validateMascotPackV1 } = await loadMascotPack();
   const r = validateMascotPackV1(
