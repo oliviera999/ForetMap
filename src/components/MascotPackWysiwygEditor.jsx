@@ -2,8 +2,10 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { validateMascotPackV1 } from '../utils/mascotPack.js';
 import {
   ensureServerFramesBase,
+  packToUnifiedForm,
   serverMascotPackAssetsPrefix,
   serverMascotSpriteLibraryAssetsPrefix,
+  stringifyPack,
 } from '../utils/mascotPackEditorModel.js';
 import { normalizePackStateFramesForFramesBase } from '../utils/mascotPackEditorFrames.js';
 import { computePackMediaWarnings } from '../utils/mascotPackEditorFrames.js';
@@ -147,6 +149,23 @@ export default function MascotPackWysiwygEditor({
     [updateStateEntry],
   );
 
+  /** Aperçu (lecture seule) de la forme unifiée `states[]` du pack courant (aligné GL). */
+  const unifiedFormJson = useMemo(() => {
+    try {
+      return stringifyPack(packToUnifiedForm(pack), 2);
+    } catch (_) {
+      return '';
+    }
+  }, [pack]);
+
+  const copyUnifiedForm = useCallback(() => {
+    try {
+      navigator?.clipboard?.writeText?.(unifiedFormJson);
+    } catch (_) {
+      /* presse-papiers indisponible : aperçu sélectionnable manuellement */
+    }
+  }, [unifiedFormJson]);
+
   return (
     <div className="mascot-pack-wysiwyg">
       {catalogId ? (
@@ -262,6 +281,43 @@ export default function MascotPackWysiwygEditor({
           </ul>
         </div>
       ) : null}
+
+      <details className="mascot-pack-wysiwyg__unified" style={{ marginTop: 14 }}>
+        <summary style={{ cursor: 'pointer', fontWeight: 600 }}>
+          Forme unifiée <code>states[]</code> (aperçu, aligné GL)
+        </summary>
+        <p className="section-sub" style={{ fontSize: '0.8rem', marginTop: 8 }}>
+          Représentation du pack en tableau <code>states[]</code> : réintégrable telle quelle à l’
+          <strong>import d’archive</strong> ou dans l’onglet <strong>JSON</strong>. Le modèle
+          interne de l’éditeur et la persistance restent en forme canonique (
+          <code>stateFrames</code>
+          ).
+        </p>
+        <button
+          type="button"
+          className="btn btn-ghost btn-sm"
+          onClick={copyUnifiedForm}
+          style={{ marginBottom: 8 }}
+        >
+          Copier
+        </button>
+        <pre
+          className="mascot-pack-wysiwyg__unified-json"
+          aria-label="Forme unifiée states[]"
+          style={{
+            maxHeight: 240,
+            overflow: 'auto',
+            padding: 10,
+            borderRadius: 8,
+            border: '1px solid rgba(26,71,49,0.18)',
+            background: 'rgba(248,250,245,0.95)',
+            fontSize: 12,
+            whiteSpace: 'pre',
+          }}
+        >
+          {unifiedFormJson}
+        </pre>
+      </details>
 
       {!hidePreview ? (
         <MascotPackPreviewPanel

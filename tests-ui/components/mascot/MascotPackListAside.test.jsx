@@ -127,6 +127,21 @@ describe('MascotPackListAside', () => {
     expect(props.onLabelDraftChange).toHaveBeenCalledWith('X');
   });
 
+  test('export ZIP states[] : bouton dédié câblé sur onExportZipUnified', () => {
+    const props = setup({
+      selectedId: 'p1',
+      selectedRow: { id: 'p1', is_published: 0 },
+      selectedValidation: { ok: true },
+      onExportZip: vi.fn(),
+      onExportZipUnified: vi.fn(),
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Exporter ZIP (states[])' }));
+    expect(props.onExportZipUnified).toHaveBeenCalledTimes(1);
+    expect(props.onExportZip).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Exporter ZIP' }));
+    expect(props.onExportZip).toHaveBeenCalledTimes(1);
+  });
+
   test('isDirty : affiche la bannière modifications non enregistrées', () => {
     setup({
       selectedId: 'p1',
