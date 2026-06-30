@@ -1331,6 +1331,18 @@ a.gl-glossary-inline-link:hover,
   display: none;
 }
 
+/* Boutons du plateau réduits à leur icône (libellé en infobulle/aria). */
+.gl-board-action--icon-only {
+  gap: 0;
+  min-width: 44px;
+  padding: 8px;
+  justify-content: center;
+}
+
+.gl-board-action--icon-only .gl-board-action__icon {
+  font-size: 1.2rem;
+}
+
 .gl-board-action--primary {
   background: var(--gl-color-primary);
   border-color: var(--gl-color-primary);
