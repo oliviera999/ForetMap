@@ -5,7 +5,7 @@ const { test, before } = require('node:test');
 const assert = require('node:assert');
 const request = require('supertest');
 const { app } = require('../server');
-const { initSchema, execute, queryOne } = require('../database');
+const { initSchema, execute } = require('../database');
 const { invalidateModulesCache, invalidateGameplayCache } = require('../lib/glSettings');
 const {
   createGlAdmin,
