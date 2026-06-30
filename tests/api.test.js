@@ -540,6 +540,113 @@ test('Assign puis unassign met à jour le statut de la tâche', async () => {
   assert.strictEqual(afterUnassign.body.status, 'available');
 });
 
+test('Unassign élève : pas de bascule progression custom sans unassign_self avant le contrôle permission', async () => {
+  await execute(
+    "DELETE rp FROM role_permissions rp INNER JOIN roles r ON r.id = rp.role_id WHERE r.slug LIKE 'test_baby_%'",
+  );
+  await execute("DELETE FROM roles WHERE slug LIKE 'test_baby_%'");
+  const slug = `test_baby_${Date.now()}`;
+  let customRoleId = null;
+  let groupId = null;
+  try {
+    await execute(
+      'INSERT INTO roles (slug, display_name, emoji, min_done_tasks, display_order, `rank`, is_system) VALUES (?, ?, ?, 0, 1, 120, 0)',
+      [slug, 'Test bébé e2e', '🐣'],
+    );
+    const customRole = await queryOne('SELECT id FROM roles WHERE slug = ? LIMIT 1', [slug]);
+    assert.ok(customRole?.id);
+    customRoleId = customRole.id;
+    await execute(
+      'INSERT IGNORE INTO role_permissions (role_id, permission_key, requires_elevation) VALUES (?, ?, 0)',
+      [customRoleId, 'tasks.assign_self'],
+    );
+
+    const studentRes = await request(app)
+      .post('/api/auth/register')
+      .send({ firstName: 'Baby', lastName: 'Unassign' + Date.now(), password: 'pwd1' })
+      .expect(201);
+    const { first_name, last_name, id: studentId, authToken: registerToken } = studentRes.body;
+
+    const teacherToken = await getAdminAuthToken();
+    const createdGroup = await request(app)
+      .post('/api/groups')
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .send({
+        name: `Groupe unassign ${Date.now()}`,
+        slug: `grp-unassign-${Date.now()}`,
+        kind: 'class',
+        grants_n3beur_access: true,
+      })
+      .expect(201);
+    groupId = createdGroup.body.id;
+    await request(app)
+      .put(`/api/groups/${groupId}/members`)
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .send({
+        member_user_ids: [studentId],
+        manager_user_ids: [],
+        scope_map_ids: [],
+        scope_project_ids: [],
+      })
+      .expect(200);
+
+    await setStudentPrimaryRole(studentId, 'eleve_novice');
+    const { syncStudentPrimaryRoleFromProgress } = require('../lib/rbac');
+    await syncStudentPrimaryRoleFromProgress(studentId);
+    const roleBefore = await queryOne(
+      `SELECT r.slug FROM user_roles ur INNER JOIN roles r ON r.id = ur.role_id
+        WHERE ur.user_type = 'student' AND ur.user_id = ? AND ur.is_primary = 1 LIMIT 1`,
+      [studentId],
+    );
+    assert.notStrictEqual(roleBefore?.slug, 'eleve_novice');
+    assert.notStrictEqual(roleBefore?.slug, 'visiteur');
+
+    const meRes = await request(app)
+      .get('/api/auth/me')
+      .set('Authorization', `Bearer ${registerToken}`)
+      .expect(200);
+    const studentToken = meRes.body.refreshedToken || registerToken;
+
+    const zones = await request(app).get('/api/zones').expect(200);
+    const zoneId = zones.body[0]?.id || 'pg';
+    const createRes = await request(app)
+      .post('/api/tasks')
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .send({ title: `Unassign progression ${Date.now()}`, zone_id: zoneId, required_students: 1 })
+      .expect(201);
+    const taskId = createRes.body.id;
+
+    await request(app)
+      .post(`/api/tasks/${taskId}/assign`)
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .send({ firstName: first_name, lastName: last_name, studentId })
+      .expect(200);
+
+    await request(app)
+      .post(`/api/tasks/${taskId}/unassign`)
+      .set('Authorization', `Bearer ${studentToken}`)
+      .send({ firstName: first_name, lastName: last_name, studentId })
+      .expect(200);
+
+    const roleAfter = await queryOne(
+      `SELECT r.slug FROM user_roles ur INNER JOIN roles r ON r.id = ur.role_id
+        WHERE ur.user_type = 'student' AND ur.user_id = ? AND ur.is_primary = 1 LIMIT 1`,
+      [studentId],
+    );
+    assert.strictEqual(roleAfter?.slug, 'eleve_novice');
+  } finally {
+    if (customRoleId) {
+      await execute('DELETE FROM role_permissions WHERE role_id = ?', [customRoleId]);
+      await execute('DELETE FROM roles WHERE id = ?', [customRoleId]);
+    }
+    if (groupId) {
+      await execute('DELETE FROM group_members WHERE group_id = ?', [groupId]);
+      await execute('DELETE FROM group_scopes WHERE group_id = ?', [groupId]);
+      await execute('DELETE FROM `groups` WHERE id = ?', [groupId]);
+    }
+  }
+});
+
 test('Plafond auto-inscription n3beur : TASK_ENROLLMENT_LIMIT et GET /api/auth/me', async () => {
   try {
     await resetNoviceEnrollmentLimits();

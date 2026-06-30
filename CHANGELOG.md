@@ -16,6 +16,44 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   de leur liste. La réponse expose `{ ok, deleted, unlinkedChapters }` (nombre de chapitres déliés),
   et le panneau d'administration des sortilèges en informe l'opérateur (confirmation + message).
 
+### ForetMap — Carte `lyautey` : tracé fidèle et étiqueté des bâtiments
+
+- **`sql/zones_lyautey_batiments.sql` retravaillé** sur la vue OpenStreetMap **étiquetée** du
+  campus : 12 zones nommées d'après le plan réel (Bâtiments G, D, S, M, I, L, K, H + Salle
+  Delacroix, Infirmerie, CDI, Vie scolaire), polygones en quads suivant l'inclinaison du quartier
+  (au lieu des rectangles génériques de la 1re passe). Ids parlants (`lyautey-bat-g`,
+  `lyautey-cdi`…) ; l'import supprime au passage les anciens `lyautey-bat-01..12`.
+- ⚠ Les coordonnées (`{xp,yp}`, %) sont relatives au **cadrage de l'image OSM** : le fond de la
+  carte `lyautey` doit être cette image pour que les zones s'alignent (sinon re-mapper).
+
+### ForetMap — Tâches : retrait élève sans promotion de rôle parasite
+
+- **Correctif** : `ensureStudentPermission` (assignations et propositions) n'appelait plus
+  `syncStudentPrimaryRoleFromProgress` avant le contrôle de permission — ce qui pouvait promouvoir
+  un élève (rôle groupe / progression) et faire échouer son propre `unassign` faute de
+  `tasks.unassign_self` sur le nouveau profil.
+- Résolution du rôle via groupe (`resolveDefaultRoleForStudent` + `setPrimaryRole`) uniquement si
+  la permission manque encore après synchro groupe.
+- Tests : `tests/api.test.js` (non-régression unassign), `e2e/tasks-unassign-flow.spec.js`
+  (parcours simplifié via assignation prof).
+
+### ForetMap — Visite : suppression carte propagée à la couche visite (fin des repères/zones « fantômes »)
+
+- **Correctif** : supprimer une zone (`DELETE /api/zones/:id`) ou un repère (`DELETE /api/map/markers/:id`)
+  **côté carte** ne retirait pas la cible **visite** de même `id`. La ligne `visit_zones` / `visit_markers`
+  (avec son nom/sa position figés au moment de la synchro), ses médias et la progression vue survivaient,
+  si bien que **l'onglet Visite continuait d'afficher des repères/zones obsolètes** déjà retirés de la
+  carte (`GET /api/visit/content` lit la couche visite, jointure `LEFT JOIN` tolérante aux orphelins).
+- La suppression carte cascade désormais sur la couche visite : ligne `visit_zones` / `visit_markers`,
+  médias `visit_media` (fichiers disque + lignes) et progression (`visit_seen_students`,
+  `visit_seen_anonymous`). Logique de nettoyage factorisée dans **`lib/visitTargetCleanup.js`**
+  (`deleteVisitTargetCascade`), réutilisée par les suppressions côté visite (`routes/visit/zones.js`,
+  `routes/visit/markers.js`) — source unique, plus de duplication.
+- Pour réaligner d'un coup une visite déjà désynchronisée (renommages/déplacements antérieurs),
+  l'outil prof **« Tout réaligner sur la carte »** (`POST /api/visit/rebuild-from-map`) reste la voie
+  recommandée (textes/médias conservés par `id`).
+- Tests : `tests/visit-target-cleanup.test.js` (cascade zone/repère, best-effort fichiers, no-op type
+  inconnu). Docs : `docs/API.md` (notes `DELETE /api/zones/:id` et `DELETE /api/map/markers/:id`).
 ### ForetMap — Carte `lyautey` : zones « bâtiments » du centre importables
 
 - **Nouveau fichier importable `sql/zones_lyautey_batiments.sql`** : 12 zones polygonales

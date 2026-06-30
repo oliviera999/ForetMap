@@ -14,9 +14,9 @@ const {
   ensurePrimaryRole,
   buildAuthzPayload,
   verifyRolePin,
-  syncStudentPrimaryRoleFromProgress,
+  setPrimaryRole,
 } = require('../../lib/rbac');
-const { syncStudentRoleFromGroups } = require('../../lib/groupRole');
+const { syncStudentRoleFromGroups, resolveDefaultRoleForStudent } = require('../../lib/groupRole');
 const {
   countStudentActiveTaskAssignments,
   getEffectiveMaxActiveTaskAssignments,
@@ -216,9 +216,16 @@ async function getTaskWithAssignments(taskId) {
 async function ensureStudentPermission({ studentId, permissionKey, profilePin }) {
   await syncStudentRoleFromGroups(studentId);
   await ensurePrimaryRole('student', studentId, 'eleve_novice');
-  await syncStudentPrimaryRoleFromProgress(studentId, null, null, { recordPromotionNotice: true });
-  const base = await buildAuthzPayload('student', studentId, false);
+  let base = await buildAuthzPayload('student', studentId, false);
   if (!base) return { ok: false, error: 'Profil introuvable' };
+  if (!base.permissions.includes(permissionKey)) {
+    const resolved = await resolveDefaultRoleForStudent(studentId);
+    if (resolved?.roleId && resolved.source === 'group') {
+      await setPrimaryRole('student', studentId, resolved.roleId);
+      base = await buildAuthzPayload('student', studentId, false);
+      if (!base) return { ok: false, error: 'Profil introuvable' };
+    }
+  }
   if (base.permissions.includes(permissionKey)) return { ok: true, elevated: false };
   if (!profilePin) return { ok: false, error: 'Permission insuffisante' };
   const pinOk = await verifyRolePin(base.roleId, profilePin);
@@ -253,9 +260,9 @@ async function resolveStudentActionContext(req, payload = {}, permissionKey) {
     const student = await byId(providedStudentId);
     if (!student) return { errorStatus: 401, error: 'Compte supprimé', deleted: true };
     if (!isTeacherAction) {
-      if (!(
-        auth?.userType === 'student' && String(auth?.userId || '') === String(providedStudentId)
-      )) {
+      if (
+        !(auth?.userType === 'student' && String(auth?.userId || '') === String(providedStudentId))
+      ) {
         return { errorStatus: 403, error: 'Session n3beur requise' };
       }
       const permission = await ensureStudentPermission({
