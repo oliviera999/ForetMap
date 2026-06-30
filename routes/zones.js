@@ -527,15 +527,17 @@ router.delete(
     const photos = await queryAll('SELECT image_path FROM zone_photos WHERE zone_id = ?', [
       req.params.id,
     ]);
+    await withTransaction(async (tx) => {
+      await tx.execute('DELETE FROM zone_history WHERE zone_id = ?', [req.params.id]);
+      await tx.execute('DELETE FROM zone_photos WHERE zone_id = ?', [req.params.id]);
+      await tx.execute('DELETE FROM zones WHERE id = ?', [req.params.id]);
+      // La couche visite partage le même id : on retire la cible visite « fantôme »
+      // (ligne, médias, progression) dans la même transaction que la suppression carte.
+      await deleteVisitTargetCascade('zone', req.params.id, tx);
+    });
     for (const p of photos) {
       if (p && p.image_path) deleteMapPhotoMainAndThumb(p.image_path);
     }
-    await execute('DELETE FROM zone_history WHERE zone_id = ?', [req.params.id]);
-    await execute('DELETE FROM zone_photos WHERE zone_id = ?', [req.params.id]);
-    await execute('DELETE FROM zones WHERE id = ?', [req.params.id]);
-    // La couche visite partage le même id : on retire la cible visite « fantôme »
-    // (ligne, médias, progression) pour qu'elle ne survive pas à la suppression carte.
-    await deleteVisitTargetCascade('zone', req.params.id);
     emitGardenChanged({ reason: 'delete_zone', zoneId: req.params.id, mapId: zone.map_id });
     res.json({ success: true });
   }),

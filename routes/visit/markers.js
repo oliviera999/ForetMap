@@ -5,7 +5,7 @@
 // N'importe AUCUN symbole de visit.js (zéro import circulaire) — uniquement lib/, database, middleware.
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');
-const { queryOne, execute } = require('../../database');
+const { queryOne, execute, withTransaction } = require('../../database');
 const { requirePermission } = require('../../middleware/requireTeacher');
 const asyncHandler = require('../../lib/asyncHandler');
 const { deleteVisitTargetCascade } = require('../../lib/visitTargetCleanup');
@@ -162,7 +162,7 @@ router.delete(
   asyncHandler(async (req, res) => {
     const markerId = String(req.params.id || '').trim();
     if (!markerId) return res.status(400).json({ error: 'Repère invalide' });
-    await deleteVisitTargetCascade('marker', markerId);
+    await withTransaction((tx) => deleteVisitTargetCascade('marker', markerId, tx));
     res.json({ ok: true });
   }),
 );

@@ -39,8 +39,10 @@ const IMG_H = 682;
 // culture (vert `#86efac80` par défaut).
 const COULEUR_BATIMENT = '#9ca3af80';
 
-// Anciennes zones grossières (rectangles génériques de la 1re passe) — supprimées
-// à l'import pour laisser place au tracé étiqueté ci-dessous (no-op si absentes).
+// Anciennes zones grossières (rectangles génériques de la 1re passe). Elles sont
+// conservées si déjà présentes : leurs ids peuvent être référencés par des
+// tâches, photos, tutoriels ou contenus visite, donc un import SQL ne doit pas
+// les supprimer automatiquement.
 const ANCIENS_IDS = Array.from(
   { length: 12 },
   (_, i) => `lyautey-bat-${String(i + 1).padStart(2, '0')}`,
@@ -218,25 +220,28 @@ function buildSql() {
     )}, 3);`,
   );
   lignes.push('');
-  lignes.push('-- Nettoyage des rectangles génériques de la 1re passe (no-op si absents).');
+  lignes.push('-- Garde-fou anti-perte : si les anciens ids génériques existent déjà,');
+  lignes.push('-- ne pas les remplacer automatiquement (ils peuvent porter des liens métier).');
   lignes.push(
-    `DELETE FROM zones WHERE map_id = ${sqlStr(MAP_ID)} AND id IN (${ANCIENS_IDS.map(sqlStr).join(
-      ', ',
-    )});`,
+    `SET @foretmap_lyautey_has_legacy_batiments := EXISTS (SELECT 1 FROM zones WHERE map_id = ${sqlStr(
+      MAP_ID,
+    )} AND id IN (${ANCIENS_IDS.map(sqlStr).join(', ')}));`,
   );
+  lignes.push("-- Si ce garde-fou vaut 1, l'import ci-dessous devient un no-op volontaire.");
   lignes.push('');
 
   for (const b of BATIMENTS) {
     lignes.push(`-- ${b.name}`);
     lignes.push(
-      'INSERT INTO zones (id, map_id, name, x, y, width, height, current_plant, stage, special, shape, points, color, description) VALUES',
+      'INSERT INTO zones (id, map_id, name, x, y, width, height, current_plant, stage, special, shape, points, color, description)',
     );
     lignes.push(
-      `  (${sqlStr(b.id)}, ${sqlStr(MAP_ID)}, ${sqlStr(b.name)}, 0, 0, 0, 0, '', 'special', 1, ` +
+      `SELECT ${sqlStr(b.id)}, ${sqlStr(MAP_ID)}, ${sqlStr(b.name)}, 0, 0, 0, 0, '', 'special', 1, ` +
         `'rect', ${sqlStr(pointsJson(b.points))}, ${sqlStr(COULEUR_BATIMENT)}, ${sqlStr(
           b.description,
-        )})`,
+        )}`,
     );
+    lignes.push('WHERE @foretmap_lyautey_has_legacy_batiments = 0');
     lignes.push('ON DUPLICATE KEY UPDATE');
     lignes.push('  map_id = VALUES(map_id),');
     lignes.push('  name = VALUES(name),');
@@ -259,6 +264,7 @@ module.exports = {
   COULEUR_BATIMENT,
   ANCIENS_IDS,
   BATIMENTS,
+  buildSql,
   pointsJson,
   sqlStr,
 };
