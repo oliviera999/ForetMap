@@ -19,6 +19,7 @@ const {
   serializeVisitEditorialBlocks,
 } = require('../lib/visitEditorialBlocks');
 const { resolveDefaultMapId } = require('../lib/settings');
+const { deleteVisitTargetCascade } = require('../lib/visitTargetCleanup');
 const {
   loadMarkerSpeciesMap,
   syncMarkerSpecies,
@@ -459,6 +460,9 @@ router.delete(
     }
     await execute('DELETE FROM marker_photos WHERE marker_id = ?', [req.params.id]);
     await execute('DELETE FROM map_markers WHERE id = ?', [req.params.id]);
+    // La couche visite partage le même id : on retire la cible visite « fantôme »
+    // (ligne, médias, progression) pour qu'elle ne survive pas à la suppression carte.
+    await deleteVisitTargetCascade('marker', req.params.id);
     emitGardenChanged({ reason: 'delete_marker', markerId: req.params.id, mapId: m.map_id });
     res.json({ success: true });
   }),

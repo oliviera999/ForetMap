@@ -121,12 +121,22 @@ export function GLSpellsEditorPanel() {
 
   async function deleteSpell() {
     if (!selectedCode) return;
-    if (!window.confirm('Supprimer définitivement ce sort du catalogue ?')) return;
+    if (
+      !window.confirm(
+        'Supprimer définitivement ce sort du catalogue ? Il sera aussi retiré des chapitres auxquels il est lié.',
+      )
+    )
+      return;
     setLoading(true);
     setError('');
     try {
-      await apiGL(`/api/gl/admin/spells/${encodeURIComponent(selectedCode)}`, 'DELETE');
-      setInfo('Sort supprimé.');
+      const res = await apiGL(`/api/gl/admin/spells/${encodeURIComponent(selectedCode)}`, 'DELETE');
+      const unlinked = Number(res?.unlinkedChapters || 0);
+      setInfo(
+        unlinked > 0
+          ? `Sort supprimé (retiré de ${unlinked} chapitre${unlinked > 1 ? 's' : ''}).`
+          : 'Sort supprimé.',
+      );
       setSelectedCode(null);
       setForm({ ...EMPTY_FORM, category_slug: categorySlug });
       await loadList();
