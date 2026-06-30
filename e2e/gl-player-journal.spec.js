@@ -53,7 +53,9 @@ test.describe('GL carnet personnel (Mon journal)', () => {
     await textarea.fill(note);
     await saveResponse;
 
-    await expect(page.getByText(/Enregistré/i)).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('.gl-player-journal__saved').getByText(/Enregistré/i)).toBeVisible({
+      timeout: 10000,
+    });
 
     const reloadGet = page.waitForResponse(
       (res) =>
