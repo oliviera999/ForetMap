@@ -5,7 +5,7 @@
 // N'importe AUCUN symbole de visit.js (zéro import circulaire) — uniquement lib/, database, middleware.
 const express = require('express');
 const crypto = require('node:crypto');
-const { queryOne, execute } = require('../../database');
+const { queryOne, execute, withTransaction } = require('../../database');
 const { requirePermission } = require('../../middleware/requireTeacher');
 const asyncHandler = require('../../lib/asyncHandler');
 const { deleteVisitTargetCascade } = require('../../lib/visitTargetCleanup');
@@ -136,7 +136,7 @@ router.delete(
   asyncHandler(async (req, res) => {
     const zoneId = String(req.params.id || '').trim();
     if (!zoneId) return res.status(400).json({ error: 'Zone invalide' });
-    await deleteVisitTargetCascade('zone', zoneId);
+    await withTransaction((tx) => deleteVisitTargetCascade('zone', zoneId, tx));
     res.json({ ok: true });
   }),
 );
