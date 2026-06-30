@@ -1,5 +1,5 @@
 const express = require('express');
-const { queryAll, queryOne, execute } = require('../../database');
+const { queryAll, queryOne, execute, withTransaction } = require('../../database');
 const { requireGlPermission } = require('../../middleware/requireGlAuth');
 const {
   resolveImportRows,
@@ -393,18 +393,19 @@ router.delete(
       [code],
     );
     if (!existing) return res.status(404).json({ error: 'Sort introuvable' });
-    const linked = await queryOne(
-      'SELECT chapter_id FROM gl_chapter_spells WHERE spell_code = ? LIMIT 1',
-      [code],
-    );
-    if (linked) {
-      return res.status(409).json({
-        error:
-          'Ce sort est lié à au moins un chapitre ; retirez-le des chapitres avant suppression.',
-      });
-    }
-    await execute('DELETE FROM gl_spells WHERE spell_code = ?', [code]);
-    return res.json({ ok: true, deleted: code });
+    // Suppression complète même si le sort est lié à des chapitres : la FK
+    // gl_chapter_spells → gl_spells est en ON DELETE RESTRICT, on retire donc
+    // d'abord les liens chapitre dans la même transaction (les chapitres restent,
+    // ils perdent simplement ce sort de leur liste). Compteur exposé pour info UI.
+    const unlinkedChapters = await withTransaction(async (tx) => {
+      const { affectedRows } = await tx.execute(
+        'DELETE FROM gl_chapter_spells WHERE spell_code = ?',
+        [code],
+      );
+      await tx.execute('DELETE FROM gl_spells WHERE spell_code = ?', [code]);
+      return Number(affectedRows || 0);
+    });
+    return res.json({ ok: true, deleted: code, unlinkedChapters });
   }),
 );
 
