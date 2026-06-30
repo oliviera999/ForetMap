@@ -213,8 +213,14 @@ test('POST /api/gl/games/:id/events move met à jour la position', async () => {
     .expect(200);
   const movedTeam = (state.body.teams || []).find((item) => Number(item.id) === Number(team.id));
   assert.strictEqual(Number(movedTeam.position_marker_id), Number(marker.id));
-  assert.strictEqual(Number(movedTeam.position_x_pct), Number(marker.x_pct));
-  assert.strictEqual(Number(movedTeam.position_y_pct), Number(marker.y_pct));
+  assert.ok(
+    Math.abs(Number(movedTeam.position_x_pct) - Number(marker.x_pct)) < 0.01,
+    `position_x_pct attendu ~${marker.x_pct}, reçu ${movedTeam.position_x_pct}`,
+  );
+  assert.ok(
+    Math.abs(Number(movedTeam.position_y_pct) - Number(marker.y_pct)) < 0.01,
+    `position_y_pct attendu ~${marker.y_pct}, reçu ${movedTeam.position_y_pct}`,
+  );
 });
 
 test('POST /api/gl/games/:id/events move accepte xp/yp libres', async () => {

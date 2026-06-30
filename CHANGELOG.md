@@ -7,6 +7,15 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### ForetMap — Tests : stabilité BDD partagée et build local
+
+- **Correctif tests** : `repairSystemN3beurParticipationDefaults()` rétablit forum / commentaires
+  sur les paliers `eleve_*` système après `initSchema()` (pollution RBAC entre fichiers de test).
+- **E2E GL** : sélecteurs moins ambigus (intro, carnet joueur « Enregistré »).
+- **Backend** : tolérance arrondi coords plateau GL ; reset gating learning-links ; seed tutoriel
+  `arrosage-potager` ; filtre QCM standard dans le catalogue admin.
+- **Build** : régénération complète `dist/` (Vite prod + sync packs).
+
 ### GL — Carnet personnel : plus de limite explicite par défaut
 
 - **Le carnet personnel du joueur n'impose plus de plafond de caractères ni de nombre

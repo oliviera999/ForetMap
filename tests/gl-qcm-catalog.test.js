@@ -173,7 +173,11 @@ test('GET /api/gl/admin/qcm/questions — liste admin complète', async () => {
     .expect(200);
   assert.ok(Array.isArray(res.body.items));
   assert.ok(res.body.items.length > 0);
-  assert.match(String(res.body.items[0].question_code), /^QCM/);
+  const standardQcm = res.body.items.filter((item) =>
+    /^QCM\d/i.test(String(item.question_code || '')),
+  );
+  assert.ok(standardQcm.length > 0, 'au moins une question QCM standard attendue');
+  assert.match(String(standardQcm[0].question_code), /^QCM/i);
 });
 
 test('GET /api/gl/admin/qcm/questions/:code puis PUT mise à jour', async () => {

@@ -21,6 +21,9 @@ if (typeof rbac.resetRbacBootstrapForTests === 'function') {
     // Middleware /api (SERVICE_NOT_READY) exige initDatabase() ; la plupart des fichiers
     // de test n’appellent que initSchema() — marquer la BDD prête après chaque init.
     await originalInitDatabase(...args);
+    if (typeof rbac.repairSystemN3beurParticipationDefaults === 'function') {
+      await rbac.repairSystemN3beurParticipationDefaults();
+    }
     return result;
   };
 

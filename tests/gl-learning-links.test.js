@@ -121,6 +121,11 @@ test('GET liste filtree', async () => {
 });
 
 test('settings GET puis PUT granularite', async () => {
+  await request(app)
+    .put('/api/gl/learning-links/settings')
+    .set(glAuth())
+    .send({ key: 'gating.enabled', value: false })
+    .expect(200);
   const get = await request(app).get('/api/gl/learning-links/settings').set(glAuth()).expect(200);
   assert.equal(get.body.gating.enabled, false);
   assert.equal(get.body.gating.granularity, 'player');

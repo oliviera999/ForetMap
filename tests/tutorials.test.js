@@ -32,7 +32,27 @@ test.beforeEach(async () => {
   teacherToken = await ensureAdminTeacherAuthToken({ elevated: true });
 });
 
+async function ensureSeedTutorialArrosagePotager() {
+  const existing = await queryOne('SELECT id, is_active FROM tutorials WHERE slug = ? LIMIT 1', [
+    'arrosage-potager',
+  ]);
+  if (existing?.id) {
+    if (Number(existing.is_active) !== 1) {
+      await execute('UPDATE tutorials SET is_active = 1, updated_at = NOW() WHERE id = ?', [
+        existing.id,
+      ]);
+    }
+    return;
+  }
+  await execute(
+    `INSERT INTO tutorials (title, slug, type, summary, source_file_path, sort_order, is_active, created_at, updated_at)
+     VALUES (?, 'arrosage-potager', 'html', ?, '/tutos/fiche-arrosage-punk.html', 1, 1, NOW(), NOW())`,
+    ['Arrosage au potager', 'Tutoriel pratique pour bien arroser au potager.'],
+  );
+}
+
 test('GET /api/tutorials renvoie les tutoriels seedés', async () => {
+  await ensureSeedTutorialArrosagePotager();
   const res = await request(app).get('/api/tutorials').expect(200);
   assert.ok(Array.isArray(res.body));
   assert.ok(res.body.length >= 4);
