@@ -5,10 +5,10 @@
 // N'importe AUCUN symbole de visit.js (zéro import circulaire) — uniquement lib/, database, middleware.
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');
-const { queryAll, queryOne, execute } = require('../../database');
+const { queryOne, execute } = require('../../database');
 const { requirePermission } = require('../../middleware/requireTeacher');
 const asyncHandler = require('../../lib/asyncHandler');
-const { deleteFile } = require('../../lib/uploads');
+const { deleteVisitTargetCascade } = require('../../lib/visitTargetCleanup');
 const { resolveDefaultMapId } = require('../../lib/settings');
 const {
   parseVisitEditorialBlocksInput,
@@ -35,16 +35,6 @@ async function resolveVisitMapId(rawMapId) {
 async function mapExists(mapId) {
   const row = await queryOne('SELECT id FROM maps WHERE id = ? LIMIT 1', [mapId]);
   return !!row;
-}
-
-async function deleteVisitMediaFilesForTarget(targetType, targetId) {
-  const rows = await queryAll(
-    'SELECT image_path FROM visit_media WHERE target_type = ? AND target_id = ?',
-    [targetType, targetId],
-  );
-  for (const r of rows) {
-    if (r.image_path) deleteFile(r.image_path);
-  }
 }
 
 router.post(
@@ -172,19 +162,7 @@ router.delete(
   asyncHandler(async (req, res) => {
     const markerId = String(req.params.id || '').trim();
     if (!markerId) return res.status(400).json({ error: 'Repère invalide' });
-    await deleteVisitMediaFilesForTarget('marker', markerId);
-    await execute('DELETE FROM visit_markers WHERE id = ?', [markerId]);
-    await execute(`DELETE FROM visit_media WHERE target_type = 'marker' AND target_id = ?`, [
-      markerId,
-    ]);
-    await execute(
-      `DELETE FROM visit_seen_students WHERE target_type = 'marker' AND target_id = ?`,
-      [markerId],
-    );
-    await execute(
-      `DELETE FROM visit_seen_anonymous WHERE target_type = 'marker' AND target_id = ?`,
-      [markerId],
-    );
+    await deleteVisitTargetCascade('marker', markerId);
     res.json({ ok: true });
   }),
 );
