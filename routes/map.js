@@ -455,14 +455,16 @@ router.delete(
     const photos = await queryAll('SELECT image_path FROM marker_photos WHERE marker_id = ?', [
       req.params.id,
     ]);
+    await withTransaction(async (tx) => {
+      await tx.execute('DELETE FROM marker_photos WHERE marker_id = ?', [req.params.id]);
+      await tx.execute('DELETE FROM map_markers WHERE id = ?', [req.params.id]);
+      // La couche visite partage le même id : on retire la cible visite « fantôme »
+      // (ligne, médias, progression) dans la même transaction que la suppression carte.
+      await deleteVisitTargetCascade('marker', req.params.id, tx);
+    });
     for (const p of photos) {
       if (p && p.image_path) deleteMapPhotoMainAndThumb(p.image_path);
     }
-    await execute('DELETE FROM marker_photos WHERE marker_id = ?', [req.params.id]);
-    await execute('DELETE FROM map_markers WHERE id = ?', [req.params.id]);
-    // La couche visite partage le même id : on retire la cible visite « fantôme »
-    // (ligne, médias, progression) pour qu'elle ne survive pas à la suppression carte.
-    await deleteVisitTargetCascade('marker', req.params.id);
     emitGardenChanged({ reason: 'delete_marker', markerId: req.params.id, mapId: m.map_id });
     res.json({ success: true });
   }),
