@@ -7,6 +7,15 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### GL — Sortilèges : suppression complète même si liés à un chapitre
+
+- **`DELETE /api/gl/admin/spells/:code` supprime désormais un sort lié à un ou plusieurs chapitres.**
+  Auparavant l'API renvoyait `409` et exigeait de retirer manuellement le sort de chaque chapitre.
+  La suppression retire d'abord les liens `gl_chapter_spells` (FK `ON DELETE RESTRICT`) puis le sort,
+  le tout dans une **transaction** ; les chapitres concernés subsistent et perdent simplement ce sort
+  de leur liste. La réponse expose `{ ok, deleted, unlinkedChapters }` (nombre de chapitres déliés),
+  et le panneau d'administration des sortilèges en informe l'opérateur (confirmation + message).
+
 ### ForetMap — Carte `lyautey` : zones « bâtiments » du centre importables
 
 - **Nouveau fichier importable `sql/zones_lyautey_batiments.sql`** : 12 zones polygonales
