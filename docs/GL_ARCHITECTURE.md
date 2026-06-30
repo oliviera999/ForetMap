@@ -212,7 +212,7 @@ Tables GL préfixées `gl_` :
 
 ### Carnet personnel joueur
 
-- Module `modules.player_journal_enabled` ; limites `gameplay.player_journal_max_chars` / `player_journal_max_assets`.
+- Module `modules.player_journal_enabled` ; limites `gameplay.player_journal_max_chars` / `player_journal_max_assets` (défaut `0` = illimité, plafond optionnel réglable par le MJ/admin).
 - Tables `gl_player_journals`, `gl_player_journal_assets` ; API `routes/gl/player-journal.js`.
 - UI `GLPlayerJournalView` (joueur), lecture MJ via `GLPlayerJournalReadModal` (statistiques classe, `gl.players.manage`).
 
