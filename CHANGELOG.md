@@ -7,6 +7,16 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### ForetMap — Carte `lyautey` : tracé fidèle et étiqueté des bâtiments
+
+- **`sql/zones_lyautey_batiments.sql` retravaillé** sur la vue OpenStreetMap **étiquetée** du
+  campus : 12 zones nommées d'après le plan réel (Bâtiments G, D, S, M, I, L, K, H + Salle
+  Delacroix, Infirmerie, CDI, Vie scolaire), polygones en quads suivant l'inclinaison du quartier
+  (au lieu des rectangles génériques de la 1re passe). Ids parlants (`lyautey-bat-g`,
+  `lyautey-cdi`…) ; l'import supprime au passage les anciens `lyautey-bat-01..12`.
+- ⚠ Les coordonnées (`{xp,yp}`, %) sont relatives au **cadrage de l'image OSM** : le fond de la
+  carte `lyautey` doit être cette image pour que les zones s'alignent (sinon re-mapper).
+
 ### ForetMap — Tâches : retrait élève sans promotion de rôle parasite
 
 - **Correctif** : `ensureStudentPermission` (assignations et propositions) n'appelait plus
