@@ -32,6 +32,7 @@ export function GLBoardChrome({
   canRollDice = true,
   disableDiceReroll = false,
   onRecordDiceRoll = null,
+  arrivalPopoverOpen = false,
 }) {
   return (
     <>
@@ -39,6 +40,7 @@ export function GLBoardChrome({
         <GLBoardActionButton
           role="display"
           className="gl-map-fullscreen-close"
+          icon="✕"
           label="Fermer"
           testId="gl-map-fullscreen-close"
           ariaLabel="Quitter le plein écran"
@@ -55,6 +57,7 @@ export function GLBoardChrome({
           onRecordRoll={onRecordDiceRoll}
           onRollResult={onRollResult}
           boardShellRef={boardShellRef}
+          forceClose={arrivalPopoverOpen}
         />
       ) : null}
 
