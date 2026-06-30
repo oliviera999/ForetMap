@@ -7,6 +7,19 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### GL — Plateau : popovers de repères au-dessus des dés et boutons en icônes
+
+- **Popovers d'arrivée (QCM / effet de repère) lisibles à l'arrivée du pion.** Le lanceur de dés
+  passait au-dessus (z-index élevé) et masquait le popover du repère ; un même clic refermait alors
+  les deux fenêtres, donnant l'impression que le popover s'ouvrait puis se fermait aussitôt. Le
+  lanceur de dés se **referme automatiquement** dès qu'un popover d'arrivée s'ouvre
+  (`GLVirtualDiceDock` : prop `forceClose`, câblée via `GLBoardChrome`/`GLGameBoard` et le plateau
+  démo invité), laissant le popover du repère seul au premier plan.
+- **Boutons du plateau réduits à leur icône.** Les boutons d'action superposés à la carte
+  (sortilège, plein écran, dés, son, fermeture plein écran) n'affichent plus le libellé texte à côté
+  de l'icône ; le libellé reste disponible en infobulle (`title`) et pour les lecteurs d'écran
+  (`aria-label`).
+
 ### ForetMap — Carte `lyautey` : zones « bâtiments » du centre importables
 
 - **Nouveau fichier importable `sql/zones_lyautey_batiments.sql`** : 12 zones polygonales
