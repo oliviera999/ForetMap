@@ -152,3 +152,46 @@ test('GET /api/gl/auth/config expose playerJournalEnabled', async () => {
   const res = await request(app).get('/api/gl/auth/config').expect(200);
   assert.strictEqual(typeof res.body.modules.playerJournalEnabled, 'boolean');
 });
+
+// --- Limites désactivées (0 = illimité) : aucun plafond explicite ---
+test('limites à 0 = illimité : pas de plafond caractères ni illustrations', async () => {
+  await execute(
+    `INSERT INTO gl_settings (\`key\`, value_json, updated_at)
+     VALUES ('gameplay.player_journal_max_chars', '0', NOW())
+     ON DUPLICATE KEY UPDATE value_json = VALUES(value_json), updated_at = NOW()`,
+  );
+  await execute(
+    `INSERT INTO gl_settings (\`key\`, value_json, updated_at)
+     VALUES ('gameplay.player_journal_max_assets', '0', NOW())
+     ON DUPLICATE KEY UPDATE value_json = VALUES(value_json), updated_at = NOW()`,
+  );
+  invalidateGameplayCache();
+
+  // limites exposées à 0 (illimité)
+  const meRes = await request(app)
+    .get('/api/gl/player-journal/me')
+    .set('Authorization', `Bearer ${playerToken}`)
+    .expect(200);
+  assert.strictEqual(meRes.body.limits.maxChars, 0);
+  assert.strictEqual(meRes.body.limits.maxAssets, 0);
+
+  // texte largement au-delà de l'ancien plafond (500) : accepté
+  const longText = 'y'.repeat(5000);
+  const putRes = await request(app)
+    .put('/api/gl/player-journal/me')
+    .set('Authorization', `Bearer ${playerToken}`)
+    .send({ bodyMarkdown: longText })
+    .expect(200);
+  assert.strictEqual(putRes.body.usage.charCount, 5000);
+
+  // illustrations au-delà de l'ancien plafond (2) : acceptées
+  const pngBase64 =
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+  for (let i = 0; i < 3; i += 1) {
+    await request(app)
+      .post('/api/gl/player-journal/me/assets')
+      .set('Authorization', `Bearer ${playerToken}`)
+      .send({ imageData: pngBase64 })
+      .expect(201);
+  }
+});

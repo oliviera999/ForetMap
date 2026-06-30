@@ -76,7 +76,8 @@ router.post(
     const playerId = Number(req.glAuth.userId);
     const limits = await getPlayerJournalLimits();
     const current = await countPlayerJournalAssets(playerId);
-    if (current >= limits.maxAssets) {
+    // maxAssets = 0 → illimité : aucun plafond d'illustrations n'est appliqué.
+    if (limits.maxAssets > 0 && current >= limits.maxAssets) {
       return res.status(400).json({
         error: `Nombre maximum d’illustrations atteint (${limits.maxAssets})`,
       });

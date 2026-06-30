@@ -7,6 +7,21 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### GL — Carnet personnel : plus de limite explicite par défaut
+
+- **Le carnet personnel du joueur n'impose plus de plafond de caractères ni de nombre
+  d'illustrations par défaut.** Les réglages `gameplay.player_journal_max_chars` et
+  `gameplay.player_journal_max_assets` valent désormais **`0` = illimité** (nouveau défaut),
+  et la validation backend comme le frontend ne bloquent plus la saisie ou l'ajout d'images
+  tant qu'aucun plafond n'est défini.
+- **Plafond toujours réglable** : un MJ/admin peut fixer une limite optionnelle
+  (`max_chars` : 500–200000, `max_assets` : 1–200) via les réglages GL ; remettre `0` rétablit
+  l'illimité. Le compteur affiché dans le carnet devient purement informatif lorsqu'aucun
+  plafond n'est défini.
+- **Migration `154_gl_player_journal_unlimited_default.sql`** : bascule à `0` les installations
+  encore réglées sur l'ancien défaut seedé (20000 / 30), en conservant toute valeur déjà
+  personnalisée.
+
 ### ForetMap — Carte `lyautey` : zones « bâtiments » du centre importables
 
 - **Nouveau fichier importable `sql/zones_lyautey_batiments.sql`** : 12 zones polygonales
