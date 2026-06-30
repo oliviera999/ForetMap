@@ -15,6 +15,7 @@ export function GLVirtualDiceDock({
   onRecordRoll = null,
   onRollResult,
   boardShellRef = null,
+  forceClose = false,
 }) {
   const fabRef = useRef(null);
   const [open, setOpen] = useState(false);
@@ -54,6 +55,14 @@ export function GLVirtualDiceDock({
       cancelled = true;
     };
   }, [phase, lastRoll, onRollResult, onRecordRoll, resetDice]);
+
+  // Quand un popover d'arrivée (QCM / effet de repère) s'ouvre, on referme le lanceur
+  // de dés : il passait au-dessus (z-index) et masquait/parasitait le popover du repère.
+  useEffect(() => {
+    if (!forceClose) return;
+    setOpen(false);
+    resetDice();
+  }, [forceClose, resetDice]);
 
   if (!enabled) return null;
 

@@ -29,7 +29,14 @@ export const GLBoardActionButton = forwardRef(function GLBoardActionButton(
   ref,
 ) {
   const roleClass = `gl-board-action--${role}`;
-  const stateClasses = [active ? 'is-active' : '', muted ? 'is-muted' : ''].filter(Boolean);
+  const hasIcon = icon != null;
+  // Boutons du plateau : icône seule (le libellé reste en title/aria pour l'accessibilité).
+  const iconOnly = hasIcon && children == null;
+  const stateClasses = [
+    active ? 'is-active' : '',
+    muted ? 'is-muted' : '',
+    iconOnly ? 'gl-board-action--icon-only' : '',
+  ].filter(Boolean);
 
   return (
     <button
@@ -44,30 +51,31 @@ export const GLBoardActionButton = forwardRef(function GLBoardActionButton(
       aria-haspopup={ariaHaspopup}
       {...props}
     >
-      {icon != null ? (
+      {hasIcon ? (
         <span className="gl-board-action__icon" aria-hidden>
           {icon}
         </span>
       ) : null}
-      {children ?? (
-        <>
-          {labelShort ? (
-            <span className="gl-board-action__label gl-board-action__label--short">
-              {labelShort}
-            </span>
-          ) : null}
-          {label ? (
-            <span
-              className={joinClassNames(
-                'gl-board-action__label',
-                labelShort ? 'gl-board-action__label--long' : '',
-              )}
-            >
-              {label}
-            </span>
-          ) : null}
-        </>
-      )}
+      {children ??
+        (hasIcon ? null : (
+          <>
+            {labelShort ? (
+              <span className="gl-board-action__label gl-board-action__label--short">
+                {labelShort}
+              </span>
+            ) : null}
+            {label ? (
+              <span
+                className={joinClassNames(
+                  'gl-board-action__label',
+                  labelShort ? 'gl-board-action__label--long' : '',
+                )}
+              >
+                {label}
+              </span>
+            ) : null}
+          </>
+        ))}
     </button>
   );
 });

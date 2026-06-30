@@ -619,6 +619,7 @@ export function GLGameBoard({
         canRollDice={canRollDice}
         disableDiceReroll={disableDiceReroll}
         onRecordDiceRoll={onRecordDiceRoll}
+        arrivalPopoverOpen={modalOpen}
       />
 
       <GLZoneContentPopover
