@@ -4,11 +4,7 @@ require('./helpers/setup');
 const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
 
-const {
-  ANCIENS_IDS,
-  BATIMENTS,
-  buildSql,
-} = require('../scripts/gen-zones-lyautey-batiments');
+const { ANCIENS_IDS, BATIMENTS, buildSql } = require('../scripts/gen-zones-lyautey-batiments');
 
 describe('zones Lyautey — SQL import bâtiments', () => {
   it('ne supprime pas les anciens ids génériques déjà référencés', () => {
@@ -25,9 +21,9 @@ describe('zones Lyautey — SQL import bâtiments', () => {
     const sql = buildSql();
 
     assert.equal(
-      (sql.match(/WHERE @foretmap_lyautey_has_legacy_batiments = 0/g) || []).length,
+      (sql.match(/^WHERE @foretmap_lyautey_has_legacy_batiments = 0$/gm) || []).length,
       BATIMENTS.length,
     );
-    assert.equal((sql.match(/ON DUPLICATE KEY UPDATE/g) || []).length, BATIMENTS.length);
+    assert.equal((sql.match(/^ON DUPLICATE KEY UPDATE$/gm) || []).length, BATIMENTS.length);
   });
 });
