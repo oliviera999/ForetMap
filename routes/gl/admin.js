@@ -960,15 +960,27 @@ router.put(
     }
     if (key === 'gameplay.player_journal_max_chars') {
       const n = Number(value);
-      if (!Number.isFinite(n) || !Number.isInteger(n) || n < 500 || n > 200000) {
-        return res.status(400).json({ error: 'La valeur doit être un entier entre 500 et 200000' });
+      // 0 = illimité (pas de plafond) ; sinon entier entre 500 et 200000.
+      if (
+        !Number.isFinite(n) ||
+        !Number.isInteger(n) ||
+        n < 0 ||
+        n > 200000 ||
+        (n > 0 && n < 500)
+      ) {
+        return res
+          .status(400)
+          .json({ error: 'La valeur doit être 0 (illimité) ou un entier entre 500 et 200000' });
       }
       value = n;
     }
     if (key === 'gameplay.player_journal_max_assets') {
       const n = Number(value);
-      if (!Number.isFinite(n) || !Number.isInteger(n) || n < 1 || n > 200) {
-        return res.status(400).json({ error: 'La valeur doit être un entier entre 1 et 200' });
+      // 0 = illimité (pas de plafond) ; sinon entier entre 1 et 200.
+      if (!Number.isFinite(n) || !Number.isInteger(n) || n < 0 || n > 200) {
+        return res
+          .status(400)
+          .json({ error: 'La valeur doit être 0 (illimité) ou un entier entre 1 et 200' });
       }
       value = n;
     }

@@ -14,14 +14,18 @@ import { GLHelpPanel } from './GLHelpPanel.jsx';
 import { useGlHelpContent } from '../hooks/useGlHelpContent.js';
 
 function formatQuota(current, max) {
-  return `${Number(current || 0).toLocaleString('fr-FR')} / ${Number(max || 0).toLocaleString('fr-FR')}`;
+  const count = Number(current || 0).toLocaleString('fr-FR');
+  // max = 0 (ou absent) → illimité : on n'affiche qu'un compteur informatif, sans plafond.
+  if (!Number(max)) return count;
+  return `${count} / ${Number(max).toLocaleString('fr-FR')}`;
 }
 
 export function GLPlayerJournalView({ gameState }) {
   const textareaRef = useRef(null);
   const [body, setBody] = useState('');
   const [loadRevision, setLoadRevision] = useState(0);
-  const [limits, setLimits] = useState({ maxChars: 20000, maxAssets: 30 });
+  // 0 = illimité (pas de plafond explicite) : valeur par défaut du carnet personnel.
+  const [limits, setLimits] = useState({ maxChars: 0, maxAssets: 0 });
   const [usage, setUsage] = useState({ charCount: 0, assetCount: 0 });
   const [assets, setAssets] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -39,8 +43,10 @@ export function GLPlayerJournalView({ gameState }) {
   }, [gameState?.game?.chapter_spells]);
 
   const charCount = useMemo(() => [...body].length, [body]);
-  const charsOver = charCount > limits.maxChars;
-  const assetsOver = usage.assetCount > limits.maxAssets;
+  // Une limite à 0 signifie « illimité » : aucun dépassement possible dans ce cas.
+  const charsOver = limits.maxChars > 0 && charCount > limits.maxChars;
+  const assetsOver = limits.maxAssets > 0 && usage.assetCount > limits.maxAssets;
+  const assetsFull = limits.maxAssets > 0 && usage.assetCount >= limits.maxAssets;
 
   const previewHtml = useMemo(() => {
     if (!showPreview || !body.trim()) return '';
@@ -53,7 +59,7 @@ export function GLPlayerJournalView({ gameState }) {
     try {
       const data = await apiGL('/api/gl/player-journal/me');
       setBody(String(data?.bodyMarkdown || ''));
-      setLimits(data?.limits || { maxChars: 20000, maxAssets: 30 });
+      setLimits(data?.limits || { maxChars: 0, maxAssets: 0 });
       setUsage(data?.usage || { charCount: 0, assetCount: 0 });
       setAssets(Array.isArray(data?.assets) ? data.assets : []);
       setLoadRevision((value) => value + 1);
@@ -99,7 +105,7 @@ export function GLPlayerJournalView({ gameState }) {
       setSaveError('Format d’image non reconnu (JPEG, PNG ou WebP).');
       return;
     }
-    if (usage.assetCount >= limits.maxAssets) {
+    if (assetsFull) {
       setSaveError(`Nombre maximum d’illustrations atteint (${limits.maxAssets}).`);
       return;
     }
@@ -226,7 +232,7 @@ export function GLPlayerJournalView({ gameState }) {
             type="file"
             accept="image/*"
             style={{ display: 'none' }}
-            disabled={uploading || usage.assetCount >= limits.maxAssets}
+            disabled={uploading || assetsFull}
             onChange={(e) => {
               const file = e.target.files?.[0];
               e.target.value = '';
@@ -253,8 +259,7 @@ export function GLPlayerJournalView({ gameState }) {
         />
       </label>
       <p id="gl-player-journal-quotas-hint" className="gl-hint">
-        Les images doivent être ajoutées via le bouton dédié pour respecter le quota
-        d’illustrations.
+        Les images doivent être ajoutées via le bouton dédié pour être enregistrées avec ton carnet.
       </p>
 
       {showPreview && previewHtml ? (
