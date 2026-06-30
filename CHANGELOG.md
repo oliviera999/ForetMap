@@ -7,6 +7,17 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### ForetMap — Tâches : retrait élève sans promotion de rôle parasite
+
+- **Correctif** : `ensureStudentPermission` (assignations et propositions) n'appelait plus
+  `syncStudentPrimaryRoleFromProgress` avant le contrôle de permission — ce qui pouvait promouvoir
+  un élève (rôle groupe / progression) et faire échouer son propre `unassign` faute de
+  `tasks.unassign_self` sur le nouveau profil.
+- Résolution du rôle via groupe (`resolveDefaultRoleForStudent` + `setPrimaryRole`) uniquement si
+  la permission manque encore après synchro groupe.
+- Tests : `tests/api.test.js` (non-régression unassign), `e2e/tasks-unassign-flow.spec.js`
+  (parcours simplifié via assignation prof).
+
 ### ForetMap — Visite : suppression carte propagée à la couche visite (fin des repères/zones « fantômes »)
 
 - **Correctif** : supprimer une zone (`DELETE /api/zones/:id`) ou un repère (`DELETE /api/map/markers/:id`)
