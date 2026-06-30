@@ -206,6 +206,7 @@ export function GLGuestDemoBoard({ onExitGuest, brandThemeStyle = null }) {
           themeStyle={brandThemeStyle}
           onRollResult={handleDiceRollResult}
           boardShellRef={boardShellRef}
+          forceClose={Boolean(feuilletZonePopover) || Boolean(discoveryFeuillet || discoveryZone)}
         />
       </div>
 

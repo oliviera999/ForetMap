@@ -21,6 +21,27 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Migration `154_gl_player_journal_unlimited_default.sql`** : bascule à `0` les installations
   encore réglées sur l'ancien défaut seedé (20000 / 30), en conservant toute valeur déjà
   personnalisée.
+### GL — Plateau : popovers de repères au-dessus des dés et boutons en icônes
+
+- **Popovers d'arrivée (QCM / effet de repère) lisibles à l'arrivée du pion.** Le lanceur de dés
+  passait au-dessus (z-index élevé) et masquait le popover du repère ; un même clic refermait alors
+  les deux fenêtres, donnant l'impression que le popover s'ouvrait puis se fermait aussitôt. Le
+  lanceur de dés se **referme automatiquement** dès qu'un popover d'arrivée s'ouvre
+  (`GLVirtualDiceDock` : prop `forceClose`, câblée via `GLBoardChrome`/`GLGameBoard` et le plateau
+  démo invité), laissant le popover du repère seul au premier plan.
+- **Boutons du plateau réduits à leur icône.** Les boutons d'action superposés à la carte
+  (sortilège, plein écran, dés, son, fermeture plein écran) n'affichent plus le libellé texte à côté
+  de l'icône ; le libellé reste disponible en infobulle (`title`) et pour les lecteurs d'écran
+  (`aria-label`).
+
+### GL — Sortilèges : suppression complète même si liés à un chapitre
+
+- **`DELETE /api/gl/admin/spells/:code` supprime désormais un sort lié à un ou plusieurs chapitres.**
+  Auparavant l'API renvoyait `409` et exigeait de retirer manuellement le sort de chaque chapitre.
+  La suppression retire d'abord les liens `gl_chapter_spells` (FK `ON DELETE RESTRICT`) puis le sort,
+  le tout dans une **transaction** ; les chapitres concernés subsistent et perdent simplement ce sort
+  de leur liste. La réponse expose `{ ok, deleted, unlinkedChapters }` (nombre de chapitres déliés),
+  et le panneau d'administration des sortilèges en informe l'opérateur (confirmation + message).
 
 ### ForetMap — Carte `lyautey` : tracé fidèle et étiqueté des bâtiments
 
