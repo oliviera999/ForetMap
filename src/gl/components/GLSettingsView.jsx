@@ -25,6 +25,9 @@ import {
   settingsToIdentityFields,
   areVitalityValuesValid,
   gameplayPresetChanges,
+  FEUILLET_PREVIEW_FIELD_OPTIONS,
+  readFeuilletPreviewFields,
+  toggleFeuilletPreviewField,
 } from '../utils/glSettingsForm.js';
 import { useGlMapOverlaySettings } from '../context/GlMapOverlaySettingsContext.jsx';
 import { readPlateauMarkerSizePercent } from '../../shared/mapOverlayScale.js';
@@ -491,6 +494,41 @@ export function GLSettingsView() {
             <option value="secret">Secret (MJ)</option>
           </select>
         </label>
+        <fieldset className="gl-settings__preview-fields">
+          <legend>Aperçu d’un feuillet non découvert</legend>
+          <p className="gl-hint">
+            Par défaut un feuillet n’est pas lisible tant qu’il n’a pas été trouvé sur la carte : le
+            joueur n’en voit que le titre. Cochez les champs à révéler en aperçu (titre toujours
+            visible).
+          </p>
+          {FEUILLET_PREVIEW_FIELD_OPTIONS.map(({ value, label }) => {
+            const current = readFeuilletPreviewFields(settings);
+            const key = 'gameplay.lore_feuillet_preview_fields';
+            return (
+              <label key={value} className="gl-checkbox-row">
+                <input
+                  type="checkbox"
+                  checked={current.includes(value)}
+                  disabled={savingKey === key}
+                  onChange={async (event) => {
+                    setSavingKey(key);
+                    try {
+                      await apiGL(`/api/gl/admin/settings/${key}`, 'PUT', {
+                        value: toggleFeuilletPreviewField(current, value, event.target.checked),
+                      });
+                      await load();
+                    } catch (err) {
+                      setError(err.message || 'Enregistrement impossible');
+                    } finally {
+                      setSavingKey('');
+                    }
+                  }}
+                />
+                {label}
+              </label>
+            );
+          })}
+        </fieldset>
         {[
           ['gameplay.lore_effacement_enabled', 'Effacement des feuillets'],
           ['gameplay.lore_gemme_costs_enabled', 'Coûts en gemmes (feuillets)'],

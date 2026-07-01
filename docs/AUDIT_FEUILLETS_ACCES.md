@@ -189,20 +189,20 @@ console (`docs/GL_FEUILLET_ZONES.md`).
 
 ## 9. Points d'attention (findings)
 
-> Classés par priorité. À valider avec l'équipe avant tout correctif — ce document n'apporte
-> **aucune** modification de comportement.
+> Classés par priorité. Le **finding #1** a depuis été traité (voir ci-dessous) ; les autres
+> restent des observations à valider avec l'équipe avant tout correctif.
 
-1. **[À confirmer — accès contenu] Le carnet expose tout le contenu narratif à tout compte GL,
-   indépendamment de la progression.** `GET /api/gl/lore/feuillets` (`lore.js:138-182`) renvoie
-   **tous** les feuillets `actif` avec leur `displayText` (= `texte_accessible`) à n'importe quel
-   utilisateur authentifié (y compris un joueur), sans exiger `gameId/teamId` ni découverte
-   préalable. Le champ `progressStatus` vaut `locked` mais **le texte est quand même renvoyé**.
-   De même, `GET /feuillets/:code` ne renvoie 403 que si une **ligne d'état `locked` existe** ;
-   sans `gameId/teamId`, `progress` est `null` et le feuillet est servi librement. → Le
-   verrouillage « découverte » est **cosmétique côté affichage**, pas appliqué au serveur.
-   Impact : un joueur curieux peut énumérer tout le récit (spoilers) via l'API. À arbitrer :
-   est-ce voulu (le carnet est une bibliothèque ouverte) ou faut-il gater par progression ?
-   Seul garde-fou actuel : le module `loreCarnetEnabled`.
+1. **[RÉSOLU] Le carnet exposait tout le contenu narratif à tout compte GL, indépendamment de la
+   progression.** Historiquement, `GET /api/gl/lore/feuillets` renvoyait **tous** les feuillets
+   `actif` avec leur `displayText` à n'importe quel joueur (verrouillage seulement cosmétique).
+   → **Corrigé** : côté joueur, la liste est désormais scopée **côté serveur** aux biomes des
+   chapitres joués (∪ feuillets trouvés) et le contenu est masqué (**aperçu verrouillé** : titre +
+   champs de `gameplay.lore_feuillet_preview_fields`, défaut `incipit`) tant que le feuillet n'a
+   pas été **trouvé** ; `GET /feuillets/:code` répond `404` hors périmètre. MJ/Admin conservent
+   l'accès intégral. Voir `lib/glLoreFeuilletPreview.js`, `routes/gl/lore.js`, helpers
+   `resolveAccessiblePlayerBiomes` / `loadPlayerFeuilletStates` (`lib/glLoreFeuillets.js`),
+   migration `155_gl_lore_feuillet_preview_fields.sql`, tests `gl-lore-feuillet-access` /
+   `gl-lore-feuillet-preview`.
 
 2. **[Mineur — granularité rôle] MJ et Admin sont indistinguables pour les feuillets.**
    Les sessions staff GL (MJ **et** admin) portent toutes `userType: 'gl_admin'` ; seul le
@@ -239,5 +239,75 @@ console (`docs/GL_FEUILLET_ZONES.md`).
   ce qui coûte des gemmes / rapporte des cœurs et l'inscrit au carnet de l'équipe.
 - **Gouvernance** : le contenu s'administre via import/édition XLSX et le calque de zones via
   un fichier JSON versionné, sous permission `gl.content.manage`.
-- **Principal arbitrage** : décider si le carnet doit rester une **bibliothèque ouverte** (état
-  actuel) ou **gater le contenu par progression** côté serveur (finding #1).
+- **Lisibilité (décidée)** : par défaut, un joueur ne peut **pas lire** un feuillet — il n'en voit
+  que la liste (biomes des chapitres joués) jusqu'à l'avoir **trouvé** sur la carte ; l'aperçu des
+  feuillets verrouillés est configurable au niveau plateforme (`gameplay.lore_feuillet_preview_fields`).
+  Cf. finding #1 (résolu). Les autres moyens d'obtention sont explorés en §11.
+
+---
+
+## 11. Acquisition des feuillets — canaux (état + pistes de conception)
+
+> **Objectif métier** (à concevoir) : que **tout élément consultable du site** puisse mener à
+> l'acquisition de feuillets, et qu'un joueur ayant **parcouru les 5 chapitres** ait pu obtenir
+> **tous** les feuillets. Ce chapitre inventorie l'existant et propose des stratégies ; il ne
+> décrit **pas encore** un comportement implémenté (hors canaux déjà live signalés).
+
+### 11.1 Canaux d'acquisition déjà présents dans le code
+
+| Canal                           | Déclencheur                                                                          | Mécanisme (`unlocked_via`) | État                                                      |
+| ------------------------------- | ------------------------------------------------------------------------------------ | -------------------------- | --------------------------------------------------------- |
+| **Zone feuillet**               | Traversée d'un polygone (`zones_feuillets.json`)                                     | `zone`                     | **Live** (~24 zones, arcs I & III)                        |
+| **Étude d'espèce (directe)**    | 1ʳᵉ étude d'une espèce liée (`lien_canal='espece'`, `lien_ref=SPxxxx`)               | `espece`                   | **Live** (`POST /api/gl/learning/species/:code`)          |
+| **Étude d'espèce (route pays)** | Étude d'une espèce d'un biome du pays (`lien_canal='espece_pays'`, `lien_pays=1..5`) | `espece`                   | **Live** — révèle le feuillet suivant de la route du pays |
+| **Zone du royaume**             | Association `kingdom_zone_id`                                                        | `story`/`zone`             | Partiel (liaison admin)                                   |
+| **Intro / route copiste**       | `lien_canal='intro_pays'` (feuillets `copiste` cop-mov)                              | —                          | Donnée présente, branchement à confirmer                  |
+
+`lien_canal` est un **champ générique** (valeurs actuelles : `espece`, `espece_pays`, `intro_pays`) :
+c'est le point d'extension naturel pour de nouveaux canaux. `BIOME_TO_PAYS`
+(`lib/glLoreFeuilletSpeciesReveal.js`) mappe les 9 biomes → **5 pays** (ordre équateur→pôle),
+alignés sur les 5 plateaux/chapitres.
+
+### 11.2 Types de feuillets ↔ élément consultable naturel (proposition de mapping)
+
+| `type` / `mode_apparition`                 | Élément consultable naturel          | Déclencheur d'acquisition proposé                                        |
+| ------------------------------------------ | ------------------------------------ | ------------------------------------------------------------------------ |
+| `feuillet` (biome, ancre_biome)            | Carte / zones / fiches espèces       | Traversée de zone **ou** étude d'espèce du biome                         |
+| `copiste` (cop-mov, carnet_route)          | Intro / progression de route         | Entrée dans un nouveau pays/plateau                                      |
+| `message` (corbeau)                        | Repères « événement » / le corbeau   | Arrivée sur un repère à effet / événement                                |
+| `reponse`                                  | QCM (biome ou lore)                  | **Bonne réponse** à la question liée (`lien_qcm_biome` / learning-links) |
+| `scene`                                    | Récit du chapitre (onglet Histoire)  | Lecture / atteinte d'une scène de récit                                  |
+| `vierge` (page blanche)                    | Effacement / carnet                  | Récupérée en fin de parcours (filet), ou via effacement                  |
+| `feuillet` (cover, preface, cloture, pole) | Ouverture / clôture de chapitre, fin | Début/fin de chapitre, feuillets de pôle en chapitre 5                   |
+
+### 11.3 Trois stratégies (à arbitrer)
+
+1. **Minimale — réutiliser l'existant.** Brancher côté UI les canaux déjà codés (zone + espèce) et
+   ajouter **un** canal `qcm` pour les feuillets `reponse` (bonne réponse → révélation). Faible coût.
+   Couverture partielle : dépend du taux de feuillets rattachés à une zone/espèce/QCM.
+2. **Couverture complète par canal typé.** Un canal dédié **par type** de feuillet, mappé sur
+   l'élément consultable naturel (§11.2), + un **filet de clôture de chapitre** : à la fin d'un
+   chapitre, tout feuillet non encore trouvé de ce chapitre (par biome/plateau/pays) est attribué.
+   → **Garantit** « 5 chapitres = tous les feuillets ». Coût moyen (généraliser `lien_canal`,
+   déclencheurs par élément, sweep de clôture).
+3. **Exploration libre / gamifiée.** Toute **première consultation** d'un élément (espèce, terme,
+   repère, sort…) puise dans le **pool du chapitre** et peut attribuer un feuillet ; un _pity timer_
+   (compteur garantissant l'attribution) et un **sweep de clôture** assurent l'exhaustivité.
+   Plus ludique, plus de développement et de réglages.
+
+### 11.4 Garantie d'exhaustivité (commune aux stratégies 2 et 3)
+
+Définir, par chapitre, un **pool de feuillets** = feuillets dont `biome_slug` ∈ biomes du chapitre
+**ou** `lien_pays` = pays du plateau **ou** `plateau_number` = plateau du chapitre. À la **clôture**
+du chapitre (partie `ended` ou marqueur de fin), attribuer les feuillets du pool non encore trouvés.
+Ce filet borne le risque « feuillet inatteignable » et rend l'objectif vérifiable (test : union des
+pools des 5 chapitres = catalogue `actif`).
+
+### 11.5 Points à trancher
+
+- **Granularité** : acquisition par **équipe** (comme aujourd'hui) ou par **joueur** ?
+- **Consultation seule vs gating** : « consulter » suffit-il, ou faut-il **réussir un QCM** ?
+  (le backbone learning-links `feuillet` + gating QCM existe déjà et pourrait conditionner).
+- **Coût/récompense** : les canaux hors-zone appliquent-ils aussi `cout_gemme`/`gain_coeur` ?
+- **Corpus** : cartographier le catalogue réel (nombre de feuillets par `type`/`mode`/pays) pour
+  dimensionner la couverture et repérer les feuillets aujourd'hui rattachés à **aucun** canal.
