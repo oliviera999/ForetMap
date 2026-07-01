@@ -13,10 +13,10 @@
 
 ## 1. Deux notions de « feuillet » qui coexistent
 
-| Notion | Source de vérité | Nature |
-| --- | --- | --- |
-| **Feuillet de lore** (carnet de Sélène) | Table `gl_lore_feuillets` (BDD) | Contenu narratif complet : `texte`, `texte_accessible`, incipit, idée-clé, biome, ordre de récit, effets (`cout_gemme`, `gain_coeur`, `effacement`, `tenir`)… |
-| **Zone feuillet** (calque carte) | Fichier statique `src/gl/data/zones_feuillets.json` | Petit polygone sur le plateau ; à la 1ʳᵉ traversée, affiche un `popover` court et applique les effets gemmes/cœurs. Chaque zone porte un `feuillet_code` qui **relie** la zone au feuillet de lore complet. |
+| Notion                                  | Source de vérité                                    | Nature                                                                                                                                                                                                      |
+| --------------------------------------- | --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Feuillet de lore** (carnet de Sélène) | Table `gl_lore_feuillets` (BDD)                     | Contenu narratif complet : `texte`, `texte_accessible`, incipit, idée-clé, biome, ordre de récit, effets (`cout_gemme`, `gain_coeur`, `effacement`, `tenir`)…                                               |
+| **Zone feuillet** (calque carte)        | Fichier statique `src/gl/data/zones_feuillets.json` | Petit polygone sur le plateau ; à la 1ʳᵉ traversée, affiche un `popover` court et applique les effets gemmes/cœurs. Chaque zone porte un `feuillet_code` qui **relie** la zone au feuillet de lore complet. |
 
 Les deux sont liés par le champ `feuillet_code`. Le catalogue de zones compte
 **24 zones réparties sur 5 plateaux** (voir §7).
@@ -51,12 +51,12 @@ hors `/api/gl/*` (isolement produit). Deux gardes :
 
 Rôles et permissions feuillets (`lib/rbac.js:30-250`) :
 
-| Rôle (`userType` / `roleSlug`) | `gl.read` | `gl.content.manage` | Accès feuillets |
-| --- | :---: | :---: | --- |
-| `gl_guest` (Visiteur, `gl_observateur`) | ✅ (token invité) | ❌ | **Uniquement** `GET /api/gl/lore/demo-feuillets` (4 feuillets curés). Bloqué partout ailleurs par `requireGlAuth`. |
-| `gl_player` (Joueur) | ✅ | ❌ | Lecture carnet + découverte en jeu (rattaché à une équipe). |
-| `gl_mj` (MJ) | ✅ | ✅ | + gestion contenu (édition/import/export). |
-| `gl_admin` (MJ Admin) | ✅ | ✅ | Idem MJ + voit le `texte` intégral (`isMj`). |
+| Rôle (`userType` / `roleSlug`)          |     `gl.read`     | `gl.content.manage` | Accès feuillets                                                                                                    |
+| --------------------------------------- | :---------------: | :-----------------: | ------------------------------------------------------------------------------------------------------------------ |
+| `gl_guest` (Visiteur, `gl_observateur`) | ✅ (token invité) |         ❌          | **Uniquement** `GET /api/gl/lore/demo-feuillets` (4 feuillets curés). Bloqué partout ailleurs par `requireGlAuth`. |
+| `gl_player` (Joueur)                    |        ✅         |         ❌          | Lecture carnet + découverte en jeu (rattaché à une équipe).                                                        |
+| `gl_mj` (MJ)                            |        ✅         |         ✅          | + gestion contenu (édition/import/export).                                                                         |
+| `gl_admin` (MJ Admin)                   |        ✅         |         ✅          | Idem MJ + voit le `texte` intégral (`isMj`).                                                                       |
 
 > Le token invité est émis par `POST /api/gl/auth/guest` avec `permissions: ['gl.read']`
 > (`routes/gl/auth.js:186-196`).
@@ -125,17 +125,17 @@ Routes `routes/gl/lore.js`, toutes sous `requireGlAuth` + module `loreCarnetEnab
 
 ## 5. Inventaire des routes & contrôle d'accès
 
-| Méthode & route | Garde | Accès effectif |
-| --- | --- | --- |
-| `GET /api/gl/lore/demo-feuillets` | `gl.read` | Invité, joueur, MJ, admin |
-| `GET /api/gl/lore/feuillets` | `requireGlAuth` + `loreCarnetEnabled` | Tout compte GL (**pas** invité) |
-| `GET /api/gl/lore/feuillets/:code` | `requireGlAuth` + `loreCarnetEnabled` | Tout compte GL |
-| `POST /api/gl/lore/games/:id/feuillets/:code/present\|read\|hold` | `requireGlAuth` + `canAccessGlGame` | Joueur (son équipe) / MJ |
-| `GET /api/gl/lore/games/:id/zones/:zoneId/feuillets` | `requireGlAuth` + `canAccessGlGame` | Joueur / MJ |
-| `GET /api/gl/games/:id/feuillet-zones/presented` | `requireGlAuth` + `canAccessGlGame` | Joueur / MJ |
-| `POST /api/gl/games/:id/feuillet-zones/:zoneId/present` | `requireGlAuth` + `canAccessGlGame` | Joueur (son équipe) / MJ |
-| `GET/PUT/PATCH /api/gl/lore/admin/feuillets…` | `gl.content.manage` | MJ / admin |
-| `GET …/admin/feuillets/import/template` · `export` · `POST …/import` | `gl.content.manage` | MJ / admin |
+| Méthode & route                                                      | Garde                                 | Accès effectif                  |
+| -------------------------------------------------------------------- | ------------------------------------- | ------------------------------- |
+| `GET /api/gl/lore/demo-feuillets`                                    | `gl.read`                             | Invité, joueur, MJ, admin       |
+| `GET /api/gl/lore/feuillets`                                         | `requireGlAuth` + `loreCarnetEnabled` | Tout compte GL (**pas** invité) |
+| `GET /api/gl/lore/feuillets/:code`                                   | `requireGlAuth` + `loreCarnetEnabled` | Tout compte GL                  |
+| `POST /api/gl/lore/games/:id/feuillets/:code/present\|read\|hold`    | `requireGlAuth` + `canAccessGlGame`   | Joueur (son équipe) / MJ        |
+| `GET /api/gl/lore/games/:id/zones/:zoneId/feuillets`                 | `requireGlAuth` + `canAccessGlGame`   | Joueur / MJ                     |
+| `GET /api/gl/games/:id/feuillet-zones/presented`                     | `requireGlAuth` + `canAccessGlGame`   | Joueur / MJ                     |
+| `POST /api/gl/games/:id/feuillet-zones/:zoneId/present`              | `requireGlAuth` + `canAccessGlGame`   | Joueur (son équipe) / MJ        |
+| `GET/PUT/PATCH /api/gl/lore/admin/feuillets…`                        | `gl.content.manage`                   | MJ / admin                      |
+| `GET …/admin/feuillets/import/template` · `export` · `POST …/import` | `gl.content.manage`                   | MJ / admin                      |
 
 ---
 
@@ -157,13 +157,13 @@ Routes `routes/gl/lore.js`, toutes sous `requireGlAuth` + module `loreCarnetEnab
 24 zones, coords normalisées 0–1, déclenchement `traversee_unique`, `cout_gemme`/`gain_coeur`
 = 1/1 par défaut (quelques exceptions à 0) :
 
-| Plateau | Zones | Codes feuillets |
-| :---: | --- | --- |
-| 1 | zf-p1-01 → 04 | ep-I-01, ep-I-02, ep-I-03, ep-I-04 |
-| 2 | zf-p2-05 → 07 | ep-I-05, ep-I-06, ep-I-08 |
-| 3 | zf-p3-08 → 11 | ep-I-07, ep-I-09, ep-I-10, ep-III-05 |
-| 4 | zf-p4-12 → 16 | ep-I-11, ep-I-12, ep-III-01, ep-III-02, ep-III-03 |
-| 5 | zf-p5-17 → 24 | ep-I-14, ep-III-04, ep-I-16, ep-I-13, ep-I-15, ep-III-06, ep-III-07, ep-I-17 |
+| Plateau | Zones         | Codes feuillets                                                              |
+| :-----: | ------------- | ---------------------------------------------------------------------------- |
+|    1    | zf-p1-01 → 04 | ep-I-01, ep-I-02, ep-I-03, ep-I-04                                           |
+|    2    | zf-p2-05 → 07 | ep-I-05, ep-I-06, ep-I-08                                                    |
+|    3    | zf-p3-08 → 11 | ep-I-07, ep-I-09, ep-I-10, ep-III-05                                         |
+|    4    | zf-p4-12 → 16 | ep-I-11, ep-I-12, ep-III-01, ep-III-02, ep-III-03                            |
+|    5    | zf-p5-17 → 24 | ep-I-14, ep-III-04, ep-I-16, ep-I-13, ep-I-15, ep-III-06, ep-III-07, ep-I-17 |
 
 Exceptions d'effets : `zf-p5-20` et `zf-p5-22` (0/0), `zf-p5-21` (1/0).
 Validation Zod au chargement ; `zone_id` unique ; zone invalide ignorée avec avertissement
