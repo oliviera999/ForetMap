@@ -4,6 +4,7 @@ import { apiGL } from '../services/apiGL.js';
 import { renderMarkdownToSafeHtml } from '../../utils/markdown.js';
 import { GLButton } from './ui/GLButton.jsx';
 import { importTypeMeta } from '../utils/glJournalImportMeta.js';
+import { useGlJournalEmbedTitles } from '../hooks/useGlJournalEmbedTitles.js';
 
 function playerLabel(player) {
   if (!player) return 'Joueur';
@@ -31,6 +32,7 @@ function ReadArticle({ article }) {
         : '',
     [article?.bodyMarkdown],
   );
+  const hydratedHtml = useGlJournalEmbedTitles(html);
   return (
     <article className="gl-player-journal-read-article">
       <header>
@@ -46,7 +48,7 @@ function ReadArticle({ article }) {
       {html ? (
         <div
           className="gl-markdown gl-player-journal-preview"
-          dangerouslySetInnerHTML={{ __html: html }}
+          dangerouslySetInnerHTML={{ __html: hydratedHtml }}
         />
       ) : (
         <p className="gl-hint">Article sans texte.</p>

@@ -351,3 +351,32 @@ test('GET /me/imports/refs — refs légères (type + ref) reflètent l’état 
     .set('Authorization', `Bearer ${playerToken}`)
     .expect(200);
 });
+
+test('POST /embeds/resolve — titre réel des encarts (espèce + module_stub)', async () => {
+  const speciesCode = `EMB${stamp}`.slice(0, 64);
+  await execute(
+    `INSERT INTO gl_species (
+      species_code, biome_slug, type, nom_commun, nom_scientifique, statut, created_at, updated_at
+    ) VALUES (?, 'savane', 'faune', 'Renard des encarts', 'Vulpes embedii', 'actif', NOW(), NOW())`,
+    [speciesCode],
+  );
+
+  const res = await request(app)
+    .post('/api/gl/player-journal/embeds/resolve')
+    .set('Authorization', `Bearer ${playerToken}`)
+    .send({
+      embeds: [
+        { type: 'species', ref: speciesCode },
+        { type: 'module_stub', ref: 'narrative' },
+        { type: 'species', ref: `absent-${stamp}` },
+      ],
+    })
+    .expect(200);
+
+  assert.strictEqual(res.body.titles[`species|${speciesCode}`], 'Renard des encarts');
+  assert.strictEqual(res.body.titles['module_stub|narrative'], 'Module narratif (à venir)');
+  // Ref introuvable : omise (repli client sur « type · ref »)
+  assert.ok(!(`species|absent-${stamp}` in res.body.titles));
+
+  await execute('DELETE FROM gl_species WHERE species_code = ?', [speciesCode]).catch(() => {});
+});
