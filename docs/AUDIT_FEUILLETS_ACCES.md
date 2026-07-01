@@ -315,6 +315,33 @@ alignés sur les 5 plateaux/chapitres.
 
 - **Câbler les canaux restants** au moteur (récit/`scene`, QCM `reponse`, corbeau `message`,
   copiste route) au-delà de l'entrée générique déjà en place.
-- **Cartographier le corpus réel** (`corpus-feuillets-selene.xlsx`) : feuillets par
-  `type`/`mode`/pays, et surtout ceux rattachés à **aucun** canal (pour ajuster `lien_*`).
 - **Affiner le gate** (« sauf exception ») et, plus tard, décider du coût/récompense hors-zone.
+
+### 11.6 Cartographie du corpus (snapshot 2026-07-01)
+
+Mesurée par `scripts/gl-audit-feuillet-coverage.py` (sans dépendance ; relance à volonté).
+
+- **157 feuillets** — par type : `scene` 59, `feuillet` 42, `copiste` 40, `reponse` 9, `vierge` 6,
+  `message` 1.
+- **Couverture par canal actuel** (zone de traversée + pool `biome_slug`/`plateau`) :
+  zone **24** · biome **30** · plateau **17** · **orphelins 86 / 157 (55 %)**.
+- **Les 86 orphelins** = **tous les `copiste` (40)** + **45 `scene`** + 1 `message` : ni zone, ni
+  `biome_slug`, ni `plateau`.
+
+**Deux constats :**
+
+1. **Corpus sous-tagué** : la feuille `feuillets` n'a **pas** les colonnes `lien_canal`/`lien_ref`/
+   `lien_pays` → le canal « espèce » n'est alimenté par **aucune** donnée ; et des feuillets qui
+   devraient relever d'un biome ne le portent pas (ex. `cop-bio-savane`, `cop-bio-sahara`… ont le
+   biome **dans le code** mais `biome_slug` vide).
+2. **Deux trous fonctionnels** : le **récit** (`scene`, 45 orphelins) et le **copiste** (40) n'ont
+   pas de canal câblé. En l'état, « 5 chapitres = tout le corpus » **n'est pas atteignable**.
+
+**Deux chantiers (complémentaires) :**
+
+- **(A) Enrichir la donnée** (éditorial, peu de code) : renseigner `biome_slug`/`plateau` (voire
+  `lien_*`) sur les orphelins → beaucoup deviennent atteignables **immédiatement** via le pool.
+  Piste déterministe : `cop-bio-<biome>` → `biome_slug` d'après le suffixe du code. Le reste
+  (scènes → plateau, cop-mov → pays) demande un arbitrage éditorial.
+- **(B) Câbler les canaux typés** (code) : **récit `scene`** (45 feuillets, plus gros levier),
+  puis **copiste route** et **QCM `reponse`**.
