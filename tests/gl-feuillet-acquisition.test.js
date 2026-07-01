@@ -33,8 +33,12 @@ before(async () => {
   await initSchema();
   const admin = await createGlAdmin({ email: `gl.acq.${stamp}@ecole.local` });
   const cls = await createGlClass({ name: `Classe Acq ${stamp}`, adminId: admin.id });
+  // plateau_number = NULL : le pool d'attribution est un OR (biome_slug OU plateau_number
+  // OU lien_pays). Avec un plateau partagé (ex. 1), des feuillets seedés par d'autres tests
+  // (plateau=1) entraient dans le pool malgré le biome unique. En laissant le plateau NULL,
+  // seule la branche biome (unique au run) subsiste → pool hermétique.
   await execute(
-    'INSERT INTO gl_chapters (slug, title, plateau_number, order_index) VALUES (?, ?, 1, 901)',
+    'INSERT INTO gl_chapters (slug, title, plateau_number, order_index) VALUES (?, ?, NULL, 901)',
     [`acq-${stamp}`, `Chapitre Acq ${stamp}`],
   );
   const chapter = await queryOne('SELECT id FROM gl_chapters WHERE slug = ? LIMIT 1', [
