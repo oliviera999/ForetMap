@@ -380,3 +380,73 @@ test('POST /embeds/resolve — titre réel des encarts (espèce + module_stub)',
 
   await execute('DELETE FROM gl_species WHERE species_code = ?', [speciesCode]).catch(() => {});
 });
+
+test('A.3 — import ecosystem : slug non enregistré (gl_biomes) refusé (404)', async () => {
+  // Slug bien formé mais absent de gl_biomes → resourceExists doit renvoyer faux.
+  await request(app)
+    .post('/api/gl/player-journal/me/imports')
+    .set('Authorization', `Bearer ${playerToken}`)
+    .send({ resourceType: 'ecosystem', resourceRef: `zzz-not-a-biome-${stamp}` })
+    .expect(404);
+
+  // Biome réel (savane) : resourceExists passe → on est bloqué plus loin (403 non appris),
+  // ce qui prouve que la validation d'existence a réussi.
+  await request(app)
+    .post('/api/gl/player-journal/me/imports')
+    .set('Authorization', `Bearer ${playerToken}`)
+    .send({ resourceType: 'ecosystem', resourceRef: 'savane' })
+    .expect(403);
+});
+
+test('A.4 — titre d’import résolu à l’affichage (renommage de la source)', async () => {
+  const slug = `a4-page-${stamp}`;
+  await execute(
+    `INSERT INTO gl_content_pages (slug, title, body_markdown)
+     VALUES (?, 'Titre A4 initial', '# A4')
+     ON DUPLICATE KEY UPDATE title = VALUES(title)`,
+    [slug],
+  );
+  await execute(
+    `INSERT INTO gl_learning_acknowledgements
+       (reader_user_type, reader_user_id, target_type, target_code, acknowledged_at)
+     VALUES ('gl_player', ?, 'content_page', ?, NOW())
+     ON DUPLICATE KEY UPDATE acknowledged_at = NOW()`,
+    [String(playerAId), slug],
+  );
+  const imp = await request(app)
+    .post('/api/gl/player-journal/me/imports')
+    .set('Authorization', `Bearer ${playerToken}`)
+    .send({ resourceType: 'content_page', resourceRef: slug })
+    .expect(201);
+
+  // La source est renommée après l'import…
+  await execute('UPDATE gl_content_pages SET title = ? WHERE slug = ?', ['Titre A4 renommé', slug]);
+
+  // …le carnet affiche le titre COURANT (résolu à l'affichage), pas le titre figé.
+  const me = await request(app)
+    .get('/api/gl/player-journal/me')
+    .set('Authorization', `Bearer ${playerToken}`)
+    .expect(200);
+  const found = me.body.imports.find(
+    (i) => i.resourceType === 'content_page' && i.resourceRef === slug,
+  );
+  assert.ok(found);
+  assert.strictEqual(found.title, 'Titre A4 renommé');
+
+  // Repli sur le titre figé si la source disparaît.
+  await execute('DELETE FROM gl_content_pages WHERE slug = ?', [slug]);
+  const me2 = await request(app)
+    .get('/api/gl/player-journal/me')
+    .set('Authorization', `Bearer ${playerToken}`)
+    .expect(200);
+  const found2 = me2.body.imports.find(
+    (i) => i.resourceType === 'content_page' && i.resourceRef === slug,
+  );
+  assert.ok(found2);
+  assert.ok(found2.title && found2.title.length > 0); // titre figé conservé
+
+  await request(app)
+    .delete(`/api/gl/player-journal/me/imports/${imp.body.import.id}`)
+    .set('Authorization', `Bearer ${playerToken}`)
+    .expect(200);
+});

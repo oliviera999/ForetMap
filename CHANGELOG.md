@@ -7,6 +7,19 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### GL — Carnet : validation écosystème resserrée & titres d'import frais (A.3 + A.4)
+
+- **A.3 — validation `ecosystem`** : `resourceExists('ecosystem', slug)` valide désormais le biome
+  contre la table de registre **`gl_biomes`** (source de vérité, cible de la FK `gl_chapter_biomes`)
+  au lieu de la seule présence d'espèces. Un slug bien formé mais non enregistré est **rejeté**
+  (404 à l'import / accusé). `resolveResourceTitle('ecosystem')` renvoie maintenant `gl_biomes.nom`.
+- **A.4 — titres d'import à jour** : à l'affichage du carnet, le titre de chaque import est
+  **re-résolu** depuis la source (reflète un renommage), avec **repli sur le titre figé** si la
+  source est supprimée/non résolvable. Résolutions en parallèle dans `getPlayerJournalImports`.
+- **Tests** : extension de `tests/gl-player-journal.test.js` (rejet slug écosystème inconnu,
+  résolution/renommage/repli du titre d'import).
+- **Docs** : `docs/GL_CARNET_JOUEUR.md` (section 4).
+
 ### GL — Carnet : encarts d'article hydratés (titre réel) (B.6)
 
 - **Problème** : dans le corps d'un article, un encart `gl-journal-embed` (sortilège, espèce,
