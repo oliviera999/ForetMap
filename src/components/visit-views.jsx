@@ -1454,16 +1454,18 @@ function VisitViewImpl({
                   <div
                     className="visit-map-fit-layer"
                     style={{
-                      ...(visitImmersion
-                        ? { left: 0, top: 0, width: '100%', height: '100%' }
-                        : visitMapFit.width > 0 && visitMapFit.height > 0
-                          ? {
-                              left: visitMapFit.offsetX,
-                              top: visitMapFit.offsetY,
-                              width: visitMapFit.width,
-                              height: visitMapFit.height,
-                            }
-                          : { left: 0, top: 0, width: '100%', height: '100%' }),
+                      // Toujours aligner le calque (image + SVG zones + repères + mascotte) sur le
+                      // rectangle réel de l'image « object-fit:contain » — y compris en plein écran,
+                      // sinon le SVG (preserveAspectRatio="none") et les % s'étirent sur toute la
+                      // scène letterboxée et ne suivent plus la taille du fond de carte.
+                      ...(visitMapFit.width > 0 && visitMapFit.height > 0
+                        ? {
+                            left: visitMapFit.offsetX,
+                            top: visitMapFit.offsetY,
+                            width: visitMapFit.width,
+                            height: visitMapFit.height,
+                          }
+                        : { left: 0, top: 0, width: '100%', height: '100%' }),
                       '--map-overlay-scale': visitZoneSvgTypography.overlayScale,
                     }}
                   >
