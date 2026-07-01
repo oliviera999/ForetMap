@@ -53,6 +53,7 @@ async function loginAsNewStudent(page) {
   const email = `e2e_${String(nonce).replace(/[^a-zA-Z0-9]/g, '_')}@example.com`;
 
   await page.goto('/');
+  await markAllDiscoveryToursSeen(page);
   await page.getByRole('button', { name: 'Créer un compte' }).click();
   await page.getByLabel('Prénom', { exact: true }).waitFor({ state: 'visible' });
   await page.getByLabel('Prénom', { exact: true }).fill(firstName);
@@ -98,6 +99,7 @@ async function registerStudentWithProfile(page) {
   const password = '1234';
 
   await page.goto('/');
+  await markAllDiscoveryToursSeen(page);
   await page.getByRole('button', { name: 'Créer un compte' }).click();
   await page.getByLabel('Prénom', { exact: true }).waitFor({ state: 'visible' });
   await page.getByLabel('Prénom', { exact: true }).fill(firstName);
@@ -150,6 +152,53 @@ async function dismissProfilePromotionModalIfPresent(page) {
   if (await cta.isVisible({ timeout: 1200 }).catch(() => false)) {
     await cta.click();
     await cta.waitFor({ state: 'detached', timeout: 8000 }).catch(() => {});
+  }
+}
+
+/** Clés d'onglets du tour de découverte (`foretmap_discovery_seen_v1`). */
+const DISCOVERY_TOUR_TAB_KEYS = [
+  'map',
+  'tasks',
+  'plants',
+  'visit',
+  'stats',
+  'quiz',
+  'glossary',
+  'foodweb',
+  'notebook',
+  'forum',
+  'tuto',
+  'profiles',
+  'settings',
+];
+
+async function markAllDiscoveryToursSeen(page) {
+  await page.evaluate((keys) => {
+    try {
+      const seen = {};
+      for (const key of keys) seen[key] = true;
+      localStorage.setItem('foretmap_discovery_seen_v1', JSON.stringify(seen));
+    } catch (_) {
+      /* ignore */
+    }
+  }, DISCOVERY_TOUR_TAB_KEYS);
+}
+
+/** Ferme le coach mark s'il recouvre la page (PIN, carte, modales). */
+async function dismissDiscoveryTourIfPresent(page) {
+  const tour = page.locator('.discovery-tour');
+  for (let i = 0; i < 8; i += 1) {
+    if (!(await tour.isVisible({ timeout: 800 }).catch(() => false))) return;
+    const skip = tour.getByRole('button', { name: /Passer|Fermer/i }).first();
+    const next = tour.getByRole('button', { name: /Suivant|Terminer/i }).first();
+    if (await skip.isVisible().catch(() => false)) {
+      await skip.click();
+    } else if (await next.isVisible().catch(() => false)) {
+      await next.click();
+    } else {
+      await page.keyboard.press('Escape').catch(() => {});
+    }
+    await tour.waitFor({ state: 'hidden', timeout: 4000 }).catch(() => {});
   }
 }
 
@@ -212,7 +261,9 @@ async function loginByIdentifier(page, identifier, password) {
     }
   });
   await syncStudentSessionToken(page);
+  await markAllDiscoveryToursSeen(page);
   await dismissProfilePromotionModalIfPresent(page);
+  await dismissDiscoveryTourIfPresent(page);
 }
 
 async function enableTeacherMode(
@@ -221,8 +272,9 @@ async function enableTeacherMode(
   options = {},
 ) {
   const { pinCardAlreadyOpen = false } = options;
-  /* La promo « nouveau palier » recouvre l’en-tête ; la désactiver avant le cadenas évite des PIN bloqués ou une 2e élévation lente. */
+  /* La promo « nouveau palier » recouvre l'en-tête ; la désactiver avant le cadenas évite des PIN bloqués ou une 2e élévation lente. */
   await dismissProfilePromotionModalIfPresent(page);
+  await dismissDiscoveryTourIfPresent(page);
   await page.locator('header').waitFor({ state: 'visible', timeout: 25_000 });
   const lockBtn = page.locator('header button.lock-btn[aria-label*="droits étendus"]').first();
   await lockBtn.waitFor({ state: 'attached', timeout: 25_000 });
@@ -575,6 +627,7 @@ function teacherNewTaskButton(page) {
 
 async function waitForTeacherMapReady(page) {
   await dismissProfilePromotionModalIfPresent(page);
+  await dismissDiscoveryTourIfPresent(page);
   await page.locator('img[alt^="Plan "]').first().waitFor({ state: 'visible', timeout: 45_000 });
   await page
     .locator('.map-view-root .loader')
@@ -710,6 +763,7 @@ async function fillTaskTitle(dialog, title) {
 
 async function openTeacherTasksTab(page) {
   await dismissProfilePromotionModalIfPresent(page);
+  await dismissDiscoveryTourIfPresent(page);
   await page.locator('.teacher-main .top-tabs').waitFor({ state: 'visible', timeout: 60_000 });
   const tasksView = teacherTasksViewLocator(page);
   if (!(await tasksView.isVisible().catch(() => false))) {
@@ -1159,6 +1213,7 @@ async function createTeacherTask(page, taskTitle, options = {}) {
 
 async function clickTeacherNewTask(page) {
   await dismissProfilePromotionModalIfPresent(page);
+  await dismissDiscoveryTourIfPresent(page);
   const elevated =
     (await page
       .locator('header button.lock-btn.active')
@@ -1202,6 +1257,8 @@ module.exports = {
   logoutToAuth,
   loginByIdentifier,
   dismissProfilePromotionModalIfPresent,
+  dismissDiscoveryTourIfPresent,
+  markAllDiscoveryToursSeen,
   enableTeacherMode,
   disableTeacherMode,
   syncStudentSessionToken,

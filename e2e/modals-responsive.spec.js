@@ -7,6 +7,7 @@ const {
   clickTeacherNewTask,
   fillTaskDescription,
   fillTaskTitle,
+  dismissDiscoveryTourIfPresent,
 } = require('./fixtures/auth.fixture');
 
 const VIEWPORTS = [
@@ -84,6 +85,7 @@ for (const vp of VIEWPORTS) {
 
       await loginAsNewStudent(page);
 
+      await dismissDiscoveryTourIfPresent(page);
       await page
         .getByRole('button', { name: 'Activer les droits étendus' })
         .click({ timeout: 25_000 });

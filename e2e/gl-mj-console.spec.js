@@ -91,17 +91,35 @@ test.describe('GL MJ console flow', () => {
 
     await expect(page.getByRole('heading', { name: 'Console MJ' })).toBeVisible({ timeout: 15000 });
     await expect(page.getByRole('tab', { name: 'Parties' })).toBeVisible();
+    await page
+      .waitForResponse(
+        (r) => r.url().includes('/api/gl/games') && r.request().method() === 'GET' && r.ok(),
+        { timeout: 20_000 },
+      )
+      .catch(() => {});
 
     const firstGameRow = page.locator('tr', { hasText: primaryGameName }).first();
+    await expect(firstGameRow.getByRole('button', { name: 'Ouvrir' })).toBeEnabled({
+      timeout: 15_000,
+    });
     await firstGameRow.getByRole('button', { name: 'Ouvrir' }).click();
     await expect(page.locator('.gl-active-game-banner-title')).toContainText(primaryGameName);
 
-    const nameInput = page.locator('.gl-active-game-banner input').first();
+    const banner = page.locator('.gl-active-game-banner');
+    const nameInput = banner.locator('input').first();
+    const saveDone = page.waitForResponse(
+      (r) =>
+        r.url().includes(`/api/gl/games/${seeded.gameId}`) &&
+        r.request().method() === 'PUT' &&
+        r.ok(),
+      { timeout: 20_000 },
+    );
     await nameInput.fill('Partie MJ renommée e2e');
-    await page.getByRole('button', { name: 'Enregistrer la partie' }).click();
+    await saveDone;
+    await expect(banner.locator('.auto-save-status--saved')).toBeVisible({ timeout: 15_000 });
     await expect(page.locator('.gl-active-game-banner-title')).toHaveText(
       'Partie MJ renommée e2e',
-      { timeout: 10000 },
+      { timeout: 10_000 },
     );
 
     const secondGameRow = page.locator('tr', { hasText: secondaryName }).first();
