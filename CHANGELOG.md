@@ -7,6 +7,28 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### GL — Feuillets non lisibles par défaut (anti-spoiler du carnet)
+
+- **Évolution métier** : côté joueur, les feuillets du carnet de Sélène ne sont **plus lisibles par
+  défaut**. Le joueur ne voit que la **liste** des feuillets associés aux biomes des chapitres
+  auxquels il a **participé** (parties `live`/`paused`/`ended`). Un feuillet ne devient **consultable**
+  qu'une fois **trouvé** sur le site (p. ex. traversée d'une zone feuillet). Les autres moyens
+  d'obtention seront détaillés ultérieurement.
+- **Backend** (`routes/gl/lore.js`) : `GET /api/gl/lore/feuillets` et `GET /api/gl/lore/feuillets/:code`
+  scopent désormais la liste joueur **côté serveur** (biomes des chapitres joués ∪ feuillets trouvés)
+  et renvoient un **aperçu verrouillé** (titre + champs configurés, `texte`/`displayText`/images `null`)
+  tant que le feuillet n'est pas trouvé ; `:code` répond `404` hors périmètre. **MJ/Admin** : accès
+  intégral inchangé. Nouveaux helpers `resolveAccessiblePlayerBiomes`, `loadPlayerFeuilletStates`,
+  `isFeuilletFound` (`lib/glLoreFeuillets.js`) et module `lib/glLoreFeuilletPreview.js`.
+- **Réglage plateforme** : `gameplay.lore_feuillet_preview_fields` (liste, défaut `["incipit"]`) pilote
+  les champs révélés en aperçu (parmi `incipit`, `ideeCle`, `imageUrl`, `ancrageScientifique`).
+  Réglable dans **Réglages GL → Carnet de Sélène**. Migration idempotente `155_gl_lore_feuillet_preview_fields.sql`.
+- **Frontend** (`GLSeleneCarnetView.jsx`) : feuillet verrouillé cliquable (badge 🔒) affichant l'aperçu
+  + un rappel « trouvez-le sur la carte » ; aucune vignette ni texte tant qu'il n'est pas révélé.
+  Sélecteur des champs d'aperçu dans `GLSettingsView.jsx` (`glSettingsForm.js`).
+- **Tests** : unitaires (`gl-lore-feuillet-preview`) + intégration (`gl-lore-feuillet-access` :
+  scoping biomes, masquage/aperçu, révélation via réglage, accès MJ intégral, `404` hors périmètre).
+- **Doc** : `docs/API.md` (feuillets joueur/MJ, nouveau réglage), `docs/AUDIT_FEUILLETS_ACCES.md`.
 ### GL — Carnet personnel : import d'éléments appris
 
 - **Le joueur peut faire figurer dans son carnet les éléments du site qui l'intéressent** :

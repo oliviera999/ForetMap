@@ -189,6 +189,37 @@ export const MODULE_TOGGLES = [
   },
 ];
 
+/** Champs de contenu révélables en aperçu d'un feuillet verrouillé (liste du carnet). */
+export const FEUILLET_PREVIEW_FIELD_OPTIONS = Object.freeze([
+  { value: 'incipit', label: 'Incipit (phrase d’accroche)' },
+  { value: 'ideeCle', label: 'Idée-clé' },
+  { value: 'imageUrl', label: 'Illustration (vignette)' },
+  { value: 'ancrageScientifique', label: 'Ancrage scientifique' },
+]);
+
+const FEUILLET_PREVIEW_FIELD_VALUES = new Set(FEUILLET_PREVIEW_FIELD_OPTIONS.map((o) => o.value));
+
+/**
+ * Lit la liste des champs d'aperçu (feuillet non découvert) depuis les réglages.
+ * Défaut : `['incipit']` si le réglage est absent. Filtre les valeurs inconnues.
+ */
+export function readFeuilletPreviewFields(settings) {
+  const raw = settings?.['gameplay.lore_feuillet_preview_fields'];
+  if (!Array.isArray(raw)) return ['incipit'];
+  const out = [];
+  for (const value of raw) {
+    const field = String(value || '').trim();
+    if (FEUILLET_PREVIEW_FIELD_VALUES.has(field) && !out.includes(field)) out.push(field);
+  }
+  return out;
+}
+
+/** Calcule la nouvelle liste d'aperçu après (dé)cochage d'un champ. */
+export function toggleFeuilletPreviewField(current, field, checked) {
+  const base = Array.isArray(current) ? current.filter((f) => f !== field) : [];
+  return checked && FEUILLET_PREVIEW_FIELD_VALUES.has(field) ? [...base, field] : base;
+}
+
 /** Options du mode de contribution au lancement de sortilèges. */
 export const SPELL_CAST_CONTRIBUTION_OPTIONS = [
   { value: 'both', label: 'Les deux (soi + répartition équipe avec confirmation)' },
