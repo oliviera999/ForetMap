@@ -82,6 +82,17 @@ describe('useDiscoveryTour', () => {
     expect(result.current.hasSeenTour('map')).toBe(true);
   });
 
+  it('marque l’onglet vu dès le démarrage, avant la fin du parcours', () => {
+    const { result } = renderHook(() => useDiscoveryTour({ isTeacher: false }));
+    act(() => {
+      result.current.startTour('map', { force: true });
+    });
+    // Parcours toujours actif mais déjà mémorisé : recharger/revenir ne le relancera pas.
+    expect(result.current.isActive).toBe(true);
+    expect(result.current.hasSeenTour('map')).toBe(true);
+    expect(JSON.parse(localStorage.getItem(SEEN_KEY)).map).toBe(true);
+  });
+
   it('ne relance pas un parcours déjà vu sans force', () => {
     const { result } = renderHook(() => useDiscoveryTour({ isTeacher: false }));
     act(() => {

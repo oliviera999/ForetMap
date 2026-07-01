@@ -57,12 +57,19 @@ export function useDiscoveryTour({ isTeacher = false } = {}) {
   /**
    * Démarre le parcours d'un onglet. Les étapes dont la cible est absente du DOM
    * sont écartées, afin de ne présenter que les éléments réellement affichés.
+   *
+   * L'onglet est marqué « découvert » **dès le démarrage** (et persisté), pas
+   * seulement à la fin : c'est bien la première découverte qui doit déclencher la
+   * visite. Ainsi, quitter la page, recharger ou se reconnecter ne relance jamais
+   * le parcours d'un onglet déjà présenté.
    * @returns {boolean} true si un parcours a effectivement démarré.
    */
   const startTour = useCallback(
     (tabKey, { force = false } = {}) => {
       if (!tabKey) return false;
       if (!force && seen?.[tabKey]) return false;
+      // Marque immédiatement l'onglet comme vu (écriture localStorage hors updater).
+      markTourSeen(tabKey);
       const allSteps = getDiscoverySteps(tabKey, isTeacher);
       const usable = allSteps.filter((step) => {
         if (!step.target) return true;
@@ -72,38 +79,26 @@ export function useDiscoveryTour({ isTeacher = false } = {}) {
           return false;
         }
       });
-      if (usable.length === 0) {
-        // Rien à montrer : on considère l'onglet comme vu pour ne pas réessayer en boucle.
-        markTourSeen(tabKey);
-        return false;
-      }
+      if (usable.length === 0) return false;
       setActive({ tab: tabKey, steps: usable, index: 0 });
       return true;
     },
     [seen, isTeacher, markTourSeen],
   );
 
-  const stopTour = useCallback(
-    ({ markSeen = true } = {}) => {
-      setActive((prev) => {
-        if (prev && markSeen) markTourSeen(prev.tab);
-        return null;
-      });
-    },
-    [markTourSeen],
-  );
+  // L'onglet est déjà marqué vu au démarrage : arrêter/terminer ne fait que fermer.
+  const stopTour = useCallback(() => {
+    setActive(null);
+  }, []);
 
   const nextStep = useCallback(() => {
     setActive((prev) => {
       if (!prev) return prev;
       const nextIndex = prev.index + 1;
-      if (nextIndex >= prev.steps.length) {
-        markTourSeen(prev.tab);
-        return null;
-      }
+      if (nextIndex >= prev.steps.length) return null;
       return { ...prev, index: nextIndex };
     });
-  }, [markTourSeen]);
+  }, []);
 
   const prevStep = useCallback(() => {
     setActive((prev) => {
