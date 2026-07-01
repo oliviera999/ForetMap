@@ -248,10 +248,9 @@ console (`docs/GL_FEUILLET_ZONES.md`).
 
 ## 11. Acquisition des feuillets — canaux (état + pistes de conception)
 
-> **Objectif métier** (à concevoir) : que **tout élément consultable du site** puisse mener à
-> l'acquisition de feuillets, et qu'un joueur ayant **parcouru les 5 chapitres** ait pu obtenir
-> **tous** les feuillets. Ce chapitre inventorie l'existant et propose des stratégies ; il ne
-> décrit **pas encore** un comportement implémenté (hors canaux déjà live signalés).
+> **Objectif métier** : que **tout élément consultable du site** puisse mener à l'acquisition de
+> feuillets. La **stratégie ③** a été retenue (§11.3) et son **socle** est implémenté (§11.4) ;
+> le câblage de tous les canaux et l'affinage corpus restent à faire (§11.5).
 
 ### 11.1 Canaux d'acquisition déjà présents dans le code
 
@@ -280,34 +279,42 @@ alignés sur les 5 plateaux/chapitres.
 | `vierge` (page blanche)                    | Effacement / carnet                  | Récupérée en fin de parcours (filet), ou via effacement                  |
 | `feuillet` (cover, preface, cloture, pole) | Ouverture / clôture de chapitre, fin | Début/fin de chapitre, feuillets de pôle en chapitre 5                   |
 
-### 11.3 Trois stratégies (à arbitrer)
+### 11.3 Décisions retenues (stratégie ③)
 
-1. **Minimale — réutiliser l'existant.** Brancher côté UI les canaux déjà codés (zone + espèce) et
-   ajouter **un** canal `qcm` pour les feuillets `reponse` (bonne réponse → révélation). Faible coût.
-   Couverture partielle : dépend du taux de feuillets rattachés à une zone/espèce/QCM.
-2. **Couverture complète par canal typé.** Un canal dédié **par type** de feuillet, mappé sur
-   l'élément consultable naturel (§11.2), + un **filet de clôture de chapitre** : à la fin d'un
-   chapitre, tout feuillet non encore trouvé de ce chapitre (par biome/plateau/pays) est attribué.
-   → **Garantit** « 5 chapitres = tous les feuillets ». Coût moyen (généraliser `lien_canal`,
-   déclencheurs par élément, sweep de clôture).
-3. **Exploration libre / gamifiée.** Toute **première consultation** d'un élément (espèce, terme,
-   repère, sort…) puise dans le **pool du chapitre** et peut attribuer un feuillet ; un _pity timer_
-   (compteur garantissant l'attribution) et un **sweep de clôture** assurent l'exhaustivité.
-   Plus ludique, plus de développement et de réglages.
+- **Stratégie ③ — exploration libre.** Toute **première consultation** d'un élément consultable
+  puise dans le **pool du chapitre** et peut attribuer un feuillet.
+- **Granularité** : acquisition **au niveau équipe** (le feuillet gagné est partagé par l'équipe).
+- **Attribution** : le **nom du joueur** qui a découvert le feuillet est mémorisé et affiché.
+- **Carnet cumulatif par joueur** : chacun repart avec ses feuillets gagnés et en collecte de
+  nouveaux au chapitre suivant.
+- **Gate QCM** : sauf exception, il faut **réussir le QCM lié** (assuré par le flux d'acquittement
+  gaté `learning`). Un feuillet sans QCM lié est acquis directement.
+- **Pas de filet de clôture** : l'exhaustivité n'est **pas** garantie (choix produit assumé).
+- **Coût/récompense** : laissés de côté pour l'instant.
 
-### 11.4 Garantie d'exhaustivité (commune aux stratégies 2 et 3)
+### 11.4 Socle implémenté (le « dur »)
 
-Définir, par chapitre, un **pool de feuillets** = feuillets dont `biome_slug` ∈ biomes du chapitre
-**ou** `lien_pays` = pays du plateau **ou** `plateau_number` = plateau du chapitre. À la **clôture**
-du chapitre (partie `ended` ou marqueur de fin), attribuer les feuillets du pool non encore trouvés.
-Ce filet borne le risque « feuillet inatteignable » et rend l'objectif vérifiable (test : union des
-pools des 5 chapitres = catalogue `actif`).
+- **Attribution** : colonnes `discovered_by_player_id` / `discovered_by_name` / `discovered_source`
+  sur `gl_game_feuillet_states` (migration `157_gl_feuillet_attribution.sql`), posées une seule fois
+  (premier découvreur) ; surfacées en `discoveredBy` dans le carnet (« Découvert par … »).
+- **Moteur générique** `lib/glFeuilletAcquisition.js` : `awardFeuilletFromConsultation` (pick +
+  commit) ; picking = lien direct (`lien_canal`/`lien_ref`) puis **pool du chapitre**
+  (`lib/glFeuilletChapterPool.js` : biome ∈ chapitre **ou** `plateau_number` **ou** `lien_pays`).
+  Chemin d'écriture unique `commitFeuilletDiscovery` (effets + état + événement + attribution).
+- **Branchement** sur le flux d'acquittement gaté (`routes/gl/learning.js` : `mark/:type/:ref` +
+  glossaire/tutoriel) → à la **première** consultation réussie, tente une attribution ; réponse
+  enrichie de `feuilletRevealed`. Le canal **espèce** existant gagne l'attribution.
+- **Config plateforme** (pilotage MJ, `gameplay.*`) : `lore_feuillet_acquisition_enabled`
+  (défaut **off**) et `lore_feuillet_acquisition_channels` (liste, défaut = tous). Réglages GL →
+  Carnet de Sélène.
+- **Flexibilité** : `discovered_source` en **texte libre** (pas d'ENUM) ; canaux et mapping fin
+  pilotés par la **donnée** (`lien_*`, `biome_slug`, `plateau_number`) — affinables via le corpus
+  sans toucher au code.
 
-### 11.5 Points à trancher
+### 11.5 Reste à faire (affinage)
 
-- **Granularité** : acquisition par **équipe** (comme aujourd'hui) ou par **joueur** ?
-- **Consultation seule vs gating** : « consulter » suffit-il, ou faut-il **réussir un QCM** ?
-  (le backbone learning-links `feuillet` + gating QCM existe déjà et pourrait conditionner).
-- **Coût/récompense** : les canaux hors-zone appliquent-ils aussi `cout_gemme`/`gain_coeur` ?
-- **Corpus** : cartographier le catalogue réel (nombre de feuillets par `type`/`mode`/pays) pour
-  dimensionner la couverture et repérer les feuillets aujourd'hui rattachés à **aucun** canal.
+- **Câbler les canaux restants** au moteur (récit/`scene`, QCM `reponse`, corbeau `message`,
+  copiste route) au-delà de l'entrée générique déjà en place.
+- **Cartographier le corpus réel** (`corpus-feuillets-selene.xlsx`) : feuillets par
+  `type`/`mode`/pays, et surtout ceux rattachés à **aucun** canal (pour ajuster `lien_*`).
+- **Affiner le gate** (« sauf exception ») et, plus tard, décider du coût/récompense hors-zone.

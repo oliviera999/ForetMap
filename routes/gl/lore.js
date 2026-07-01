@@ -226,6 +226,9 @@ router.get(
         isMj: false,
         progressStatus: found ? state.status : 'locked',
         effacementPct: found ? state.effacement_pct : 0,
+        discoveredBy: found ? state.discovered_by_name : null,
+        discoveredByPlayerId: found ? state.discovered_by_player_id : null,
+        discoveredSource: found ? state.discovered_source : null,
       });
       return found ? formatted : maskLockedFeuillet(formatted, previewFields);
     });
@@ -289,6 +292,9 @@ router.get(
           isMj: false,
           progressStatus: state.status,
           effacementPct: state.effacement_pct,
+          discoveredBy: state.discovered_by_name,
+          discoveredByPlayerId: state.discovered_by_player_id,
+          discoveredSource: state.discovered_source,
         }),
       });
     }

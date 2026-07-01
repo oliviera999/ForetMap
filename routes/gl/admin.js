@@ -15,6 +15,7 @@ const {
   getGameplaySettings,
 } = require('../../lib/glSettings');
 const { normalizeFeuilletPreviewFields } = require('../../lib/glLoreFeuilletPreview');
+const { normalizeAcquisitionChannels } = require('../../lib/glFeuilletAcquisitionChannels');
 const { getDefaultVitalityFromSettings, clampVitality } = require('../../lib/glVitality');
 const {
   MAX_IMPORT_ROWS,
@@ -1006,6 +1007,21 @@ router.put(
           .json({ error: 'La valeur de lore_feuillet_preview_fields doit être une liste' });
       }
       value = normalizeFeuilletPreviewFields(value);
+    }
+    if (key === 'gameplay.lore_feuillet_acquisition_enabled') {
+      if (typeof value !== 'boolean') {
+        return res
+          .status(400)
+          .json({ error: 'La valeur de lore_feuillet_acquisition_enabled doit être booléenne' });
+      }
+    }
+    if (key === 'gameplay.lore_feuillet_acquisition_channels') {
+      if (!Array.isArray(value)) {
+        return res
+          .status(400)
+          .json({ error: 'La valeur de lore_feuillet_acquisition_channels doit être une liste' });
+      }
+      value = normalizeAcquisitionChannels(value);
     }
     if (
       key === 'gameplay.lore_effacement_enabled' ||
