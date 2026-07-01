@@ -7,6 +7,23 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### GL — Acquisition des feuillets rendue visible (popover générique + progression du carnet)
+
+- **Frontend** : le flux d'acquittement générique (`GLLearnAndImport` : lore, écosystème, page
+  de contenu, tutoriel) affiche désormais le popover « nouveau feuillet ! »
+  (`GLFeuilletDiscoveryPopover`) quand la réponse `mark/:type/:ref` contient `feuilletRevealed` —
+  même expérience que la découverte de zone/espèce. `GLLearnAndImport` transmet `gameId`/`teamId`
+  au backend (corps de requête) quand ils sont connus (carnet, écosystèmes) ; à défaut le backend
+  retombe sur le contexte JWT.
+- **Carnet de Sélène** (`GLSeleneCarnetView`) : indicateur de progression
+  « **N trouvés / M du chapitre** » et filtres **Tous / Trouvés / Verrouillés** (basés sur
+  `progressStatus`). Masqués pour le MJ (accès intégral).
+- **Tests** : `tests-ui/gl/GLLearnAndImport.test.jsx` (popover + transmission `gameId`/`teamId`)
+  et compléments dans `tests-ui/gl/GLSeleneCarnetView.test.jsx` (compteur, filtre, masquage MJ).
+- **Rappel** : l'acquisition ③ reste **désactivée par défaut**
+  (`gameplay.lore_feuillet_acquisition_enabled`). Contrat d'API inchangé (`feuilletRevealed`
+  déjà exposé).
+
 ### GL — Backfill biome des feuillets « cop-bio » (couverture d'acquisition)
 
 - **Données** : migration idempotente `159_gl_feuillet_copbio_biome_backfill.sql` — pose
