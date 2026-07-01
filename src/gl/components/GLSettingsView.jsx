@@ -28,6 +28,9 @@ import {
   FEUILLET_PREVIEW_FIELD_OPTIONS,
   readFeuilletPreviewFields,
   toggleFeuilletPreviewField,
+  FEUILLET_ACQUISITION_CHANNEL_OPTIONS,
+  readFeuilletAcquisitionChannels,
+  toggleFeuilletAcquisitionChannel,
 } from '../utils/glSettingsForm.js';
 import { useGlMapOverlaySettings } from '../context/GlMapOverlaySettingsContext.jsx';
 import { readPlateauMarkerSizePercent } from '../../shared/mapOverlayScale.js';
@@ -515,6 +518,67 @@ export function GLSettingsView() {
                     try {
                       await apiGL(`/api/gl/admin/settings/${key}`, 'PUT', {
                         value: toggleFeuilletPreviewField(current, value, event.target.checked),
+                      });
+                      await load();
+                    } catch (err) {
+                      setError(err.message || 'Enregistrement impossible');
+                    } finally {
+                      setSavingKey('');
+                    }
+                  }}
+                />
+                {label}
+              </label>
+            );
+          })}
+        </fieldset>
+        <fieldset className="gl-settings__acquisition">
+          <legend>Acquisition de feuillets par consultation</legend>
+          <p className="gl-hint">
+            Quand un joueur consulte un élément du site et réussit son QCM lié, il gagne un feuillet
+            du pool du chapitre pour son équipe (le découvreur est mémorisé). Choisissez les
+            éléments consultables qui peuvent en donner.
+          </p>
+          <label className="gl-checkbox-row">
+            <input
+              type="checkbox"
+              checked={readGameplayFlag(settings, 'gameplay.lore_feuillet_acquisition_enabled')}
+              disabled={savingKey === 'gameplay.lore_feuillet_acquisition_enabled'}
+              onChange={async (event) => {
+                const key = 'gameplay.lore_feuillet_acquisition_enabled';
+                setSavingKey(key);
+                try {
+                  await apiGL(`/api/gl/admin/settings/${key}`, 'PUT', {
+                    value: event.target.checked,
+                  });
+                  await load();
+                } catch (err) {
+                  setError(err.message || 'Enregistrement impossible');
+                } finally {
+                  setSavingKey('');
+                }
+              }}
+            />
+            Activer l’acquisition par consultation
+          </label>
+          {FEUILLET_ACQUISITION_CHANNEL_OPTIONS.map(({ value, label }) => {
+            const current = readFeuilletAcquisitionChannels(settings);
+            const key = 'gameplay.lore_feuillet_acquisition_channels';
+            return (
+              <label key={value} className="gl-checkbox-row gl-checkbox-row--indent">
+                <input
+                  type="checkbox"
+                  checked={current.includes(value)}
+                  disabled={savingKey === key}
+                  onChange={async (event) => {
+                    setSavingKey(key);
+                    try {
+                      await apiGL(`/api/gl/admin/settings/${key}`, 'PUT', {
+                        value: toggleFeuilletAcquisitionChannel(
+                          current,
+                          value,
+                          event.target.checked,
+                        ),
                       });
                       await load();
                     } catch (err) {
