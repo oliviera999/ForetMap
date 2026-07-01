@@ -7,6 +7,18 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### ForetMap — Mode visite/découverte : ne se relance plus qu'à la première découverte
+
+- **Correctif** : la visite guidée se relançait à chaque connexion (voire à chaque visite d'onglet)
+  au lieu de la seule première fois. L'onglet n'était marqué « vu » qu'à la fin/fermeture explicite du
+  parcours, via un `setSeen` **imbriqué dans l'updater de `setActive`** (`nextStep`/`stopTour`) — un
+  effet de bord dans un updater, non fiable : l'écriture `localStorage` (clé `foretmap_discovery_seen_v1`)
+  pouvait ne jamais se produire, si bien qu'aucun onglet n'était réellement mémorisé.
+- **Correction** : l'onglet est désormais marqué « découvert » **dès le démarrage** de la visite
+  (`useDiscoveryTour.startTour`), avec une écriture `localStorage` hors updater. Quitter la page,
+  recharger ou se reconnecter ne relance plus le parcours d'un onglet déjà présenté ; `stopTour`/`nextStep`
+  se contentent de fermer. Nouveau test : marquage « vu » dès le démarrage (avant la fin du parcours).
+
 ### ForetMap — Tests : stabilité BDD partagée et build local
 
 - **Correctif tests** : `repairSystemN3beurParticipationDefaults()` rétablit forum / commentaires
