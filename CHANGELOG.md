@@ -7,6 +7,19 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### GL — Carnet : approfondissements onboarding, a11y clavier & e2e (B.8, B.9, E.13)
+
+- **Onboarding (B.8)** : aide contextuelle `tab:my-journal` enrichie (geste clé « marquer appris →
+  importer », sens du quiz, épinglage, recherche/filtre/tri) dans `data/gl/help.default.json` ;
+  indice du bouton d'import renforcé (« … parfois après un court quiz »).
+- **Accessibilité clavier (B.9)** : `GLLoreGlossaryPopover` passe au hook partagé `useDialogA11y`
+  (focus initial, piège de focus, Échap, retour du focus au déclencheur) + `role="dialog"` /
+  `aria-modal` / `aria-labelledby` ; `GLGlossaryPopover` et `GLSpellPopover` étaient déjà conformes.
+  Nouveaux tests `GLLoreGlossaryPopover.test.jsx` et `GLSpellPopover.test.jsx`.
+- **e2e (E.13)** : scénario Playwright du **flux d'import complet** (appris → importé → visible dans
+  le fil, bouton « Voir ») via API pour le marquage/import et l'UI pour la vérification ; helper
+  `seedGlGlossaryTerm` (`e2e/fixtures/gl.fixture.js`).
+
 ### GL — Carnet : lien « Voir » profond des espèces (B.5, complément)
 
 - **Deep-link espèce** : « Voir » sur une fiche biodiversité importée ouvre désormais **la fiche

@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useId, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useDialogA11y } from '../../hooks/useDialogA11y.js';
 import { apiGL } from '../services/apiGL.js';
 import { GLButton } from './ui/GLButton.jsx';
 import { GLLearnAndImport } from './GLLearnAndImport.jsx';
@@ -23,10 +24,17 @@ export function GLLoreGlossaryPopover({
   onClose,
   onOpenFullGlossary,
 }) {
+  const titleId = useId();
   const [term, setTerm] = useState(null);
   const [related, setRelated] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Accessibilité clavier : focus initial dans le popover, piège de focus (Tab/Shift+Tab),
+  // fermeture sur Échap et retour du focus à l'élément déclencheur à la fermeture.
+  const dialogRef = useDialogA11y(() => {
+    onClose?.();
+  });
 
   useEffect(() => {
     if (!open || !loreCode) {
@@ -57,15 +65,6 @@ export function GLLoreGlossaryPopover({
     };
   }, [open, loreCode]);
 
-  useEffect(() => {
-    if (!open) return undefined;
-    const onKey = (e) => {
-      if (e.key === 'Escape') onClose?.();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [open, onClose]);
-
   if (!open) return null;
 
   const accent = CATEGORY_ACCENT[String(term?.categorie || '').toLowerCase()] || '#047c8c';
@@ -77,9 +76,13 @@ export function GLLoreGlossaryPopover({
       onClick={() => onClose?.()}
     >
       <div
+        ref={dialogRef}
         className="gl-lore-glossary-popover"
         role="dialog"
-        aria-label={term?.terme || 'Lexique du lore'}
+        aria-modal="true"
+        aria-labelledby={term?.terme ? titleId : undefined}
+        aria-label={term?.terme ? undefined : 'Lexique du lore'}
+        tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
         style={{ '--gl-lore-accent': accent }}
       >
@@ -87,7 +90,7 @@ export function GLLoreGlossaryPopover({
           <p className="gl-lore-glossary-popover__cat">
             {term?.categorie_label || term?.categorie}
           </p>
-          <h3>{term?.terme || '…'}</h3>
+          <h3 id={titleId}>{term?.terme || '…'}</h3>
           <button
             type="button"
             className="gl-lore-glossary-popover__close"
