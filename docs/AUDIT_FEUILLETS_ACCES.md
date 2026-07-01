@@ -315,6 +315,47 @@ alignés sur les 5 plateaux/chapitres.
 
 - **Câbler les canaux restants** au moteur (récit/`scene`, QCM `reponse`, corbeau `message`,
   copiste route) au-delà de l'entrée générique déjà en place.
-- **Cartographier le corpus réel** (`corpus-feuillets-selene.xlsx`) : feuillets par
-  `type`/`mode`/pays, et surtout ceux rattachés à **aucun** canal (pour ajuster `lien_*`).
 - **Affiner le gate** (« sauf exception ») et, plus tard, décider du coût/récompense hors-zone.
+
+### 11.6 Cartographie du corpus (snapshot 2026-07-01)
+
+> ⚠️ **Le corpus XLSX est périmé.** `scripts/gl-audit-feuillet-coverage.py` lit
+> `data/gl/corpus-feuillets-selene.xlsx` (**157 feuillets, sans colonnes `lien_*`**), mais la
+> **base de production** contient **201 feuillets** avec les colonnes `lien_canal`/`lien_ref`/
+> `lien_pays` **renseignées**. **La BDD fait autorité.** Chiffres ci-dessous = production.
+
+**Production : 201 feuillets (tous `actif`)** — par type : `feuillet` 75, `scene` 70, `copiste` 40,
+`reponse` 9, `vierge` 6, `message` 1.
+
+**Couverture des champs** : `biome_slug` 136/201 · `plateau_number` 155/201 · `zone_label` 143/201 ·
+`lien_canal` 51/201 (`espece_pays` 44, `intro_pays` 6, `espece` 1) · `lien_qcm_biome` 66/201 ·
+`kingdom_zone_id` **0** · `image_url` 22.
+
+**Couverture par canal** (zone traversée + `lien_canal` espèce/route + pool `biome`/`plateau`/`pays`) :
+zone **24** · `lien_canal` **51** · biome **69** · plateau **17** → **orphelins 40 / 201 (20 %)**.
+
+**Les 40 orphelins** (ni zone, ni biome, ni plateau, ni `lien_*`) sont **quasi tous `copiste`** :
+9 `cop-marg` (marginalia), 8 `cop-bio-<biome>`, 6 `cop-insert`, 3 `cop-acte`, 8 autres `cop-*`
+(cover, preface, finale, close, confession, doute, origine, trame) — **+ 5 `ep-echo-0N`** (feuillet
+« Écho ») et **1 `message-boite`** (le corbeau, « À la classe qui vient »). **Aucune `scene`
+orpheline.**
+
+**Ce que ça change (vs analyse XLSX) :**
+
+1. Le canal **espèce/route est déjà alimenté** (`lien_canal` sur 51 feuillets) → beaucoup plus de
+   couverture que ne le laissait croire le XLSX.
+2. **Le canal récit `scene` n'est PAS nécessaire** : les 70 `scene` sont déjà atteignables (biome/
+   plateau). ⟵ corrige la reco précédente.
+3. Le vrai trou = **l'arc `copiste` (34 orphelins) + 5 échos + 1 message**, tous sans biome/plateau.
+
+**Chantiers révisés :**
+
+- **(A) Enrichir la donnée** — quick win déterministe **✅ fait** (migration
+  `159_gl_feuillet_copbio_biome_backfill.sql`) : les **8 `cop-bio-<biome>`** reçoivent leur
+  `biome_slug` d'après le suffixe du code (idempotent) → **40 → 32 orphelins**, atteignables via le
+  pool du chapitre. Le reste (marg/insert/acte/cover/preface/finale, échos, message) demande un
+  **arbitrage éditorial** : plateau/pays d'appartenance, ou statut « hors collecte carte »
+  (feuillets de cadre : couverture, préface, finale) — **à traiter plus tard**.
+- **(B) Canal(aux) dédié(s)** — pour les copiste/échos non ancrables à un biome : soit un canal
+  **QCM `reponse`** (échos = récompenses de bonne réponse), soit un déblocage **par progression**
+  (cover/preface au début, finale/close en fin de chapitre 5).
