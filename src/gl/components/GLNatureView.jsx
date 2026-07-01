@@ -18,6 +18,8 @@ export function GLNatureView({
   onGlossaryFocusHandled,
   ecosystemFocusSlug,
   onEcosystemFocusHandled,
+  speciesFocusCode,
+  onSpeciesFocusHandled,
   learningProgress,
   journalImportEnabled = false,
 }) {
@@ -65,6 +67,8 @@ export function GLNatureView({
             glossaryLinkItems={glossaryLinkItems}
             learningProgress={learningProgress}
             loreCarnetEnabled={false}
+            speciesFocusCode={speciesFocusCode}
+            onSpeciesFocusHandled={onSpeciesFocusHandled}
           />
         ) : null}
         {activeSubTab === 'glossary' ? (

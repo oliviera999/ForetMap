@@ -7,6 +7,16 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### GL — Carnet : lien « Voir » profond des espèces (B.5, complément)
+
+- **Deep-link espèce** : « Voir » sur une fiche biodiversité importée ouvre désormais **la fiche
+  précise** (et plus seulement l'onglet). Nouvel endpoint `GET /api/gl/species/:code` (`gl.read`,
+  `{ species }` enrichi `glossaryTerms[]` + `learned`) ; `GLBiodiversityView` monte
+  `GLSpeciesDetailModal` sur `speciesFocusCode` (récupération par code, indépendante de l'onglet
+  biome). Complète les 6 autres types déjà profonds.
+- **Tests** : `GET /species/:code` (200 + 404) dans `tests/gl-species-catalog.test.js`. `dist/` reconstruit.
+- **Docs** : `docs/API.md` + `docs/GL_CARNET_JOUEUR.md` (le suivi « espèces » est levé).
+
 ### GL — Carnet : épinglage, onboarding, a11y & libellés harmonisés (B.7 pin, B.8, B.9, D.11, D.12, E.13)
 
 - **Épinglage (B.7)** : articles et imports peuvent être **épinglés** ; les entrées épinglées
