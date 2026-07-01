@@ -17,6 +17,7 @@ export function GLNatureView({
   glossaryPopoverCode,
   onGlossaryFocusHandled,
   learningProgress,
+  journalImportEnabled = false,
 }) {
   return (
     <div className="gl-nature-view fade-in">
@@ -50,6 +51,7 @@ export function GLNatureView({
             gameState={gameState}
             glossaryLinkItems={glossaryLinkItems}
             onOpenGlossaryTerm={onOpenGlossaryTerm}
+            journalImportEnabled={journalImportEnabled}
           />
         ) : null}
         {activeSubTab === 'biodiversite' ? (

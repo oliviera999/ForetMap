@@ -1,38 +1,24 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { apiGL } from '../services/apiGL.js';
-import { AutoSaveStatus } from '../../shared/components/AutoSaveStatus.jsx';
-import { useDebouncedAutoSave } from '../../shared/hooks/useDebouncedAutoSave.js';
-import {
-  applyJournalEmbed,
-  applyMarkdownHtmlImage,
-  renderMarkdownToSafeHtml,
-} from '../../utils/markdown.js';
-import { compressImageWithPreset, isLikelyImageFile } from '../../utils/image.js';
 import { GLButton } from './ui/GLButton.jsx';
-import { GLPlayerJournalEmbedPicker } from './GLPlayerJournalEmbedPicker.jsx';
+import { GLPlayerJournalArticleCard } from './GLPlayerJournalArticleCard.jsx';
+import { GLPlayerJournalImportCard } from './GLPlayerJournalImportCard.jsx';
 import { GLHelpPanel } from './GLHelpPanel.jsx';
 import { useGlHelpContent } from '../hooks/useGlHelpContent.js';
 
-function formatQuota(current, max) {
-  const count = Number(current || 0).toLocaleString('fr-FR');
-  // max = 0 (ou absent) → illimité : on n'affiche qu'un compteur informatif, sans plafond.
-  if (!Number(max)) return count;
-  return `${count} / ${Number(max).toLocaleString('fr-FR')}`;
+function timeValue(v) {
+  const t = v ? new Date(v).getTime() : 0;
+  return Number.isFinite(t) ? t : 0;
 }
 
-export function GLPlayerJournalView({ gameState }) {
-  const textareaRef = useRef(null);
-  const [body, setBody] = useState('');
-  const [loadRevision, setLoadRevision] = useState(0);
+export function GLPlayerJournalView({ gameState, onNavigateTab }) {
   // 0 = illimité (pas de plafond explicite) : valeur par défaut du carnet personnel.
   const [limits, setLimits] = useState({ maxChars: 0, maxAssets: 0 });
-  const [usage, setUsage] = useState({ charCount: 0, assetCount: 0 });
-  const [assets, setAssets] = useState([]);
+  const [articles, setArticles] = useState([]);
+  const [imports, setImports] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [saveError, setSaveError] = useState('');
-  const [showPreview, setShowPreview] = useState(false);
-  const [embedPickerOpen, setEmbedPickerOpen] = useState(false);
-  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState('');
+  const [creating, setCreating] = useState(false);
   const { title: helpTitle, body: helpBody } = useGlHelpContent('tab:my-journal');
 
   const chapterSpells = useMemo(() => {
@@ -42,29 +28,16 @@ export function GLPlayerJournalView({ gameState }) {
     return rows.map((r) => String(r.spell_code || r.spellCode || '').trim()).filter(Boolean);
   }, [gameState?.game?.chapter_spells]);
 
-  const charCount = useMemo(() => [...body].length, [body]);
-  // Une limite à 0 signifie « illimité » : aucun dépassement possible dans ce cas.
-  const charsOver = limits.maxChars > 0 && charCount > limits.maxChars;
-  const assetsOver = limits.maxAssets > 0 && usage.assetCount > limits.maxAssets;
-  const assetsFull = limits.maxAssets > 0 && usage.assetCount >= limits.maxAssets;
-
-  const previewHtml = useMemo(() => {
-    if (!showPreview || !body.trim()) return '';
-    return renderMarkdownToSafeHtml(body, { allowImages: true, allowJournalEmbeds: true });
-  }, [body, showPreview]);
-
   const reload = useCallback(async () => {
     setLoading(true);
-    setSaveError('');
+    setError('');
     try {
       const data = await apiGL('/api/gl/player-journal/me');
-      setBody(String(data?.bodyMarkdown || ''));
       setLimits(data?.limits || { maxChars: 0, maxAssets: 0 });
-      setUsage(data?.usage || { charCount: 0, assetCount: 0 });
-      setAssets(Array.isArray(data?.assets) ? data.assets : []);
-      setLoadRevision((value) => value + 1);
+      setArticles(Array.isArray(data?.articles) ? data.articles : []);
+      setImports(Array.isArray(data?.imports) ? data.imports : []);
     } catch (err) {
-      setSaveError(err.message || 'Chargement impossible');
+      setError(err.message || 'Chargement impossible');
     } finally {
       setLoading(false);
     }
@@ -74,115 +47,39 @@ export function GLPlayerJournalView({ gameState }) {
     reload();
   }, [reload]);
 
-  const persistJournal = useCallback(async () => {
-    const data = await apiGL('/api/gl/player-journal/me', 'PUT', { bodyMarkdown: body });
-    const nextBody = String(data?.bodyMarkdown || body);
-    setBody(nextBody);
-    setLimits(data?.limits || limits);
-    setUsage(data?.usage || usage);
-    setAssets(Array.isArray(data?.assets) ? data.assets : []);
-    return nextBody;
-  }, [body, limits, usage]);
-
-  const { status: saveStatus, error: autoSaveError } = useDebouncedAutoSave({
-    value: body,
-    resetKey: loadRevision,
-    enabled: !loading,
-    canSave: () => {
-      if (charsOver) return `Texte trop long (${charCount} / ${limits.maxChars} caractères)`;
-      return true;
-    },
-    onSave: persistJournal,
-  });
-
-  function handleBodyChange(next) {
-    setBody(next);
-    if (autoSaveError) setSaveError('');
-  }
-
-  async function handleImageUpload(file) {
-    if (!file || !isLikelyImageFile(file)) {
-      setSaveError('Format d’image non reconnu (JPEG, PNG ou WebP).');
-      return;
-    }
-    if (assetsFull) {
-      setSaveError(`Nombre maximum d’illustrations atteint (${limits.maxAssets}).`);
-      return;
-    }
-    setUploading(true);
-    setSaveError('');
+  const handleNewArticle = useCallback(async () => {
+    if (creating) return;
+    setCreating(true);
+    setError('');
     try {
-      const mediaData = await compressImageWithPreset(file, 'glInline');
-      const saved = await apiGL('/api/gl/player-journal/me/assets', 'POST', {
-        imageData: mediaData,
-      });
-      const url = String(saved?.asset?.url || '').trim();
-      if (!url) throw new Error('URL illustration manquante');
-      const el = textareaRef.current;
-      const start = el?.selectionStart ?? body.length;
-      const end = el?.selectionEnd ?? start;
-      const result = applyMarkdownHtmlImage(
-        body,
-        start,
-        end,
-        url,
-        file.name || 'Illustration',
-        null,
-      );
-      handleBodyChange(result.value);
-      setUsage((u) => ({
-        ...u,
-        assetCount: saved?.usage?.assetCount ?? u.assetCount + 1,
-      }));
-      if (saved?.asset) {
-        setAssets((prev) => [...prev, saved.asset]);
-      }
-      requestAnimationFrame(() => {
-        if (!el) return;
-        el.focus();
-        el.setSelectionRange(result.selectionStart, result.selectionEnd);
-      });
+      const data = await apiGL('/api/gl/player-journal/me/articles', 'POST', { bodyMarkdown: '' });
+      if (data?.article) setArticles((prev) => [data.article, ...prev]);
     } catch (err) {
-      setSaveError(err.message || 'Import image impossible');
+      setError(err.message || 'Création impossible');
     } finally {
-      setUploading(false);
+      setCreating(false);
     }
-  }
+  }, [creating]);
 
-  function insertEmbed(type, ref) {
-    const el = textareaRef.current;
-    const start = el?.selectionStart ?? body.length;
-    const end = el?.selectionEnd ?? start;
-    const result = applyJournalEmbed(body, start, end, type, ref);
-    handleBodyChange(result.value);
-    requestAnimationFrame(() => {
-      if (!el) return;
-      el.focus();
-      el.setSelectionRange(result.selectionStart, result.selectionEnd);
-    });
-  }
+  const handleDeleteArticle = useCallback(async (articleId) => {
+    await apiGL(`/api/gl/player-journal/me/articles/${articleId}`, 'DELETE');
+    setArticles((prev) => prev.filter((a) => a.id !== articleId));
+  }, []);
 
-  async function removeAsset(assetId) {
-    try {
-      const res = await apiGL(`/api/gl/player-journal/me/assets/${assetId}`, 'DELETE');
-      setAssets((prev) => prev.filter((a) => a.id !== assetId));
-      setUsage((u) => ({
-        ...u,
-        assetCount: res?.usage?.assetCount ?? Math.max(0, u.assetCount - 1),
-      }));
-    } catch (err) {
-      setSaveError(err.message || 'Suppression impossible');
-    }
-  }
+  const handleDeleteImport = useCallback(async (importId) => {
+    await apiGL(`/api/gl/player-journal/me/imports/${importId}`, 'DELETE');
+    setImports((prev) => prev.filter((i) => i.id !== importId));
+  }, []);
 
-  if (loading) {
-    return (
-      <section className="gl-panel gl-player-journal">
-        <h2>Mon journal</h2>
-        <p className="gl-hint">Chargement de ton carnet…</p>
-      </section>
-    );
-  }
+  // Fil chronologique unifié : articles rédigés + éléments importés (du plus récent au plus ancien).
+  const timeline = useMemo(() => {
+    const items = [
+      ...articles.map((a) => ({ kind: 'article', at: timeValue(a.createdAt), data: a })),
+      ...imports.map((i) => ({ kind: 'import', at: timeValue(i.createdAt), data: i })),
+    ];
+    items.sort((x, y) => y.at - x.at);
+    return items;
+  }, [articles, imports]);
 
   return (
     <section className="gl-panel gl-player-journal fade-in">
@@ -190,112 +87,53 @@ export function GLPlayerJournalView({ gameState }) {
         <div>
           <h2>Mon journal</h2>
           <p className="gl-hint gl-player-journal__intro">
-            Ton carnet personnel : notes libres, illustrations et rappels de sorts, espèces ou
-            termes du glossaire. Tu peux le modifier à tout moment. Le maître du jeu peut le
-            consulter pour t’accompagner (recette, pas pour noter).
+            Ton carnet personnel, en ordre chronologique : clique sur « Nouvel article » pour noter
+            ce que tu veux (texte, images ou médias seuls). Tu peux aussi importer ici les éléments
+            du site que tu as appris (feuillets, écosystèmes, fiches biodiversité, tutos,
+            définitions…) depuis leur page. Le maître du jeu peut te consulter pour t’accompagner.
           </p>
         </div>
       </header>
 
       <GLHelpPanel helpKey="tab:my-journal" title={helpTitle} body={helpBody} defaultOpen={false} />
 
-      <div className="gl-player-journal__quotas" aria-live="polite">
-        <span
-          className={charsOver ? 'gl-player-journal__quota is-over' : 'gl-player-journal__quota'}
-        >
-          Caractères&nbsp;: {formatQuota(charCount, limits.maxChars)}
-        </span>
-        <span
-          className={assetsOver ? 'gl-player-journal__quota is-over' : 'gl-player-journal__quota'}
-        >
-          Illustrations&nbsp;: {formatQuota(usage.assetCount, limits.maxAssets)}
-        </span>
-        {saveStatus === 'saving' || saveStatus === 'pending' ? (
-          <span className="gl-hint">Enregistrement…</span>
-        ) : (
-          <AutoSaveStatus status={saveStatus} className="gl-hint gl-player-journal__saved" />
-        )}
-      </div>
-
-      {saveError || autoSaveError ? <p className="gl-error">{saveError || autoSaveError}</p> : null}
-
-      <div className="gl-player-journal__toolbar gl-inline-actions">
-        <GLButton type="button" variant="secondary" onClick={() => setEmbedPickerOpen(true)}>
-          Insérer un élément
-        </GLButton>
-        <label
-          className="gl-btn gl-btn--secondary"
-          style={{ cursor: uploading ? 'wait' : 'pointer' }}
-        >
-          {uploading ? 'Envoi…' : 'Ajouter une image'}
-          <input
-            type="file"
-            accept="image/*"
-            style={{ display: 'none' }}
-            disabled={uploading || assetsFull}
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              e.target.value = '';
-              handleImageUpload(file);
-            }}
-          />
-        </label>
-        <GLButton type="button" variant="secondary" onClick={() => setShowPreview((v) => !v)}>
-          {showPreview ? 'Masquer l’aperçu' : 'Aperçu'}
+      <div className="gl-player-journal__actions gl-inline-actions">
+        <GLButton type="button" onClick={handleNewArticle} disabled={creating}>
+          {creating ? 'Création…' : '+ Nouvel article'}
         </GLButton>
       </div>
 
-      <label className="gl-player-journal__editor-label" htmlFor="gl-player-journal-body">
-        Contenu du carnet
-        <textarea
-          id="gl-player-journal-body"
-          ref={textareaRef}
-          className="gl-player-journal__textarea"
-          rows={16}
-          value={body}
-          onChange={(e) => handleBodyChange(e.target.value)}
-          placeholder="Écris ici tes notes, souvenirs de partie, sorts préférés…"
-          aria-describedby="gl-player-journal-quotas-hint"
-        />
-      </label>
-      <p id="gl-player-journal-quotas-hint" className="gl-hint">
-        Les images doivent être ajoutées via le bouton dédié pour être enregistrées avec ton carnet.
-      </p>
+      {error ? <p className="gl-error">{error}</p> : null}
 
-      {showPreview && previewHtml ? (
-        <div className="gl-player-journal__preview">
-          <h3>Aperçu</h3>
-          <div className="gl-markdown" dangerouslySetInnerHTML={{ __html: previewHtml }} />
+      {loading ? (
+        <p className="gl-hint">Chargement de ton carnet…</p>
+      ) : timeline.length === 0 ? (
+        <p className="gl-hint gl-player-journal__empty">
+          Ton carnet est vide. Crée ton premier article, ou importe un élément appris depuis sa
+          page.
+        </p>
+      ) : (
+        <div className="gl-player-journal__articles">
+          {timeline.map((entry) =>
+            entry.kind === 'article' ? (
+              <GLPlayerJournalArticleCard
+                key={`a-${entry.data.id}`}
+                article={entry.data}
+                limits={limits}
+                chapterSpells={chapterSpells}
+                onDelete={handleDeleteArticle}
+              />
+            ) : (
+              <GLPlayerJournalImportCard
+                key={`i-${entry.data.id}`}
+                item={entry.data}
+                onNavigateTab={onNavigateTab}
+                onDelete={handleDeleteImport}
+              />
+            ),
+          )}
         </div>
-      ) : null}
-
-      {assets.length > 0 ? (
-        <details className="gl-player-journal__assets">
-          <summary>Mes illustrations ({assets.length})</summary>
-          <ul>
-            {assets.map((asset) => (
-              <li key={asset.id}>
-                <img
-                  src={asset.url}
-                  alt=""
-                  loading="lazy"
-                  className="gl-player-journal__asset-thumb"
-                />
-                <GLButton type="button" variant="secondary" onClick={() => removeAsset(asset.id)}>
-                  Supprimer
-                </GLButton>
-              </li>
-            ))}
-          </ul>
-        </details>
-      ) : null}
-
-      <GLPlayerJournalEmbedPicker
-        open={embedPickerOpen}
-        onClose={() => setEmbedPickerOpen(false)}
-        onInsert={insertEmbed}
-        chapterSpells={chapterSpells}
-      />
+      )}
     </section>
   );
 }

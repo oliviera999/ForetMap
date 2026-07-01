@@ -10,6 +10,7 @@ import { GLInput } from './ui/GLInput.jsx';
 import { GLRichTextEditor } from './ui/GLRichTextEditor.jsx';
 import { GLImageFrameHelp } from './GLImageFrameHelp.jsx';
 import { GLGlossaryMarkdown } from './GLGlossaryMarkdown.jsx';
+import { GLLearnAndImport } from './GLLearnAndImport.jsx';
 import { ScrollProgressBar } from '../../shared/components/ScrollProgressBar.jsx';
 import { useScrollReveal } from '../../shared/hooks/useScrollReveal.js';
 
@@ -231,6 +232,16 @@ export function GLContentPage({
           allowImages
         />
       </div>
+
+      {!editing && hasExistingContent(content) ? (
+        <GLLearnAndImport
+          resourceType="content_page"
+          resourceRef={slug}
+          title={displayTitle}
+          acknowledgeLabel="Marquer cette page comme lue"
+          learnedLabel="✓ Page lue"
+        />
+      ) : null}
     </article>
   );
 }

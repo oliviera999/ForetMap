@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { DialogShell } from '../../components/DialogShell.jsx';
 import { apiGL } from '../services/apiGL.js';
 import { renderMarkdownToSafeHtml } from '../../utils/markdown.js';
 import { GLButton } from './ui/GLButton.jsx';
+import { importTypeMeta } from '../utils/glJournalImportMeta.js';
 
 function playerLabel(player) {
   if (!player) return 'Joueur';
@@ -10,6 +11,48 @@ function playerLabel(player) {
   const name = `${player.firstName || ''} ${player.lastName || ''}`.trim();
   if (pseudo && name) return `${pseudo} (${name})`;
   return pseudo || name || `Joueur #${player.id}`;
+}
+
+function formatDateTime(value) {
+  if (!value) return '';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleString('fr-FR');
+}
+
+function ReadArticle({ article }) {
+  const html = useMemo(
+    () =>
+      article?.bodyMarkdown
+        ? renderMarkdownToSafeHtml(article.bodyMarkdown, {
+            allowImages: true,
+            allowJournalEmbeds: true,
+          })
+        : '',
+    [article?.bodyMarkdown],
+  );
+  return (
+    <article className="gl-player-journal-read-article">
+      <header>
+        <h3>{article.title?.trim() || 'Article sans titre'}</h3>
+        <p className="gl-hint gl-player-journal-read-meta">
+          {article.updatedAt ? <>Modifié le {formatDateTime(article.updatedAt)}</> : null}
+          {article.createdAt ? <> · créé le {formatDateTime(article.createdAt)}</> : null}
+          {' · '}
+          {article.usage?.charCount ?? 0} caractères · {article.usage?.assetCount ?? 0}{' '}
+          illustration(s)
+        </p>
+      </header>
+      {html ? (
+        <div
+          className="gl-markdown gl-player-journal-preview"
+          dangerouslySetInnerHTML={{ __html: html }}
+        />
+      ) : (
+        <p className="gl-hint">Article sans texte.</p>
+      )}
+    </article>
+  );
 }
 
 export function GLPlayerJournalReadModal({ playerId, open, onClose }) {
@@ -40,9 +83,8 @@ export function GLPlayerJournalReadModal({ playerId, open, onClose }) {
     };
   }, [open, playerId]);
 
-  const previewHtml = data?.bodyMarkdown
-    ? renderMarkdownToSafeHtml(data.bodyMarkdown, { allowImages: true, allowJournalEmbeds: true })
-    : '';
+  const articles = Array.isArray(data?.articles) ? data.articles : [];
+  const imports = Array.isArray(data?.imports) ? data.imports : [];
 
   return (
     <DialogShell
@@ -62,23 +104,31 @@ export function GLPlayerJournalReadModal({ playerId, open, onClose }) {
         {loading ? <p className="gl-hint">Chargement…</p> : null}
         {error ? <p className="gl-error">{error}</p> : null}
         {!loading && !error && data ? (
-          <>
-            <p className="gl-hint gl-player-journal-read-meta">
-              {data.usage?.charCount ?? 0} caractères · {data.usage?.assetCount ?? 0}{' '}
-              illustration(s)
-              {data.updatedAt ? (
-                <> · modifié le {new Date(data.updatedAt).toLocaleString('fr-FR')}</>
+          articles.length > 0 || imports.length > 0 ? (
+            <div className="gl-player-journal-read-list">
+              {articles.map((article) => (
+                <ReadArticle key={`a-${article.id}`} article={article} />
+              ))}
+              {imports.length > 0 ? (
+                <section className="gl-player-journal-read-imports">
+                  <h3>Éléments importés ({imports.length})</h3>
+                  <ul>
+                    {imports.map((item) => {
+                      const meta = importTypeMeta(item.resourceType);
+                      return (
+                        <li key={`i-${item.id}`}>
+                          <span aria-hidden="true">{meta.icon}</span> {meta.label} —{' '}
+                          <strong>{item.title || item.resourceRef}</strong>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </section>
               ) : null}
-            </p>
-            {previewHtml ? (
-              <div
-                className="gl-markdown gl-player-journal-preview"
-                dangerouslySetInnerHTML={{ __html: previewHtml }}
-              />
-            ) : (
-              <p className="gl-hint">Ce joueur n’a pas encore rédigé de contenu dans son carnet.</p>
-            )}
-          </>
+            </div>
+          ) : (
+            <p className="gl-hint">Ce joueur n’a pas encore rédigé d’article dans son carnet.</p>
+          )
         ) : null}
       </div>
       <GLButton type="button" variant="secondary" onClick={onClose}>

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { GLGlossaryMarkdown } from './GLGlossaryMarkdown.jsx';
+import { GLLearnAndImport } from './GLLearnAndImport.jsx';
 import { useGlMarkdownWithLegacyMedia } from '../hooks/useGlMarkdownWithLegacyMedia.js';
 import { buildEcosystemSections } from '../utils/glEcosystemSections.js';
 import { prepareEcosystemSectionMarkdown } from '../utils/glEcosystemMarkdown.js';
@@ -19,7 +20,13 @@ function GLEcosystemIllustration({ biomeSlug, kind, className }) {
   );
 }
 
-function GLEcosystemSection({ section, showHeading, glossaryLinkItems, onOpenGlossaryTerm }) {
+function GLEcosystemSection({
+  section,
+  showHeading,
+  glossaryLinkItems,
+  onOpenGlossaryTerm,
+  journalImportEnabled,
+}) {
   const slug = section.slug;
   const showBiomeHero = !!slug && !!biomeAssetSlug(slug, 'biome');
   const showBiocenoseArt = !!slug && !!biomeAssetSlug(slug, 'biocenose');
@@ -71,11 +78,27 @@ function GLEcosystemSection({ section, showHeading, glossaryLinkItems, onOpenGlo
           allowImages
         />
       ) : null}
+
+      {slug ? (
+        <GLLearnAndImport
+          resourceType="ecosystem"
+          resourceRef={slug}
+          title={`Écosystème : ${section.nom || slug}`}
+          journalEnabled={journalImportEnabled}
+          acknowledgeLabel="Marquer cet écosystème comme étudié"
+          learnedLabel="✓ Écosystème étudié"
+        />
+      ) : null}
     </section>
   );
 }
 
-export function GLEcosystemsView({ gameState, glossaryLinkItems = [], onOpenGlossaryTerm }) {
+export function GLEcosystemsView({
+  gameState,
+  glossaryLinkItems = [],
+  onOpenGlossaryTerm,
+  journalImportEnabled = false,
+}) {
   const rawBiotope = String(gameState?.game?.biotope_markdown || '').trim();
   const biocenoseMarkdown = gameState?.game?.biocenose_markdown || '';
   const biotopeMarkdown =
@@ -150,6 +173,7 @@ export function GLEcosystemsView({ gameState, glossaryLinkItems = [], onOpenGlos
           showHeading={showSectionHeadings}
           glossaryLinkItems={glossaryLinkItems}
           onOpenGlossaryTerm={onOpenGlossaryTerm}
+          journalImportEnabled={journalImportEnabled}
         />
       ))}
     </article>

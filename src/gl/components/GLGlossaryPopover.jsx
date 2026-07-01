@@ -5,6 +5,7 @@ import { usePrefersReducedMotion } from '../../shared/hooks/usePrefersReducedMot
 import { apiGL } from '../services/apiGL.js';
 import { GLButton } from './ui/GLButton.jsx';
 import { GLLearningAcknowledgeButton } from './GLLearningAcknowledgeButton.jsx';
+import { GLJournalImportButton } from './GLJournalImportButton.jsx';
 import { GLGlossaryInlineText } from './GLGlossaryMarkdown.jsx';
 
 const CLOSE_MS = 200;
@@ -325,6 +326,14 @@ export function GLGlossaryPopover({
               confirmCheckboxLabel="Je confirme avoir lu et compris cette définition."
               isDone={isLearned}
               onAcknowledged={() => learningProgress.markLocal('glossary', activeGlossaryCode)}
+            />
+          ) : null}
+          {activeGlossaryCode ? (
+            <GLJournalImportButton
+              resourceType="glossary"
+              resourceRef={activeGlossaryCode}
+              title={term?.terme}
+              learned={isLearned}
             />
           ) : null}
           {showFullGlossaryLink ? (
