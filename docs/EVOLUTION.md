@@ -9,6 +9,20 @@ Il reflète l’état réel du dépôt (avril 2026) et priorise la suite en comm
 
 ## 1.1 Réalisé
 
+- **Juillet 2026 — GL : acquisition des feuillets par consultation (stratégie ③)** : socle
+  permettant qu'un élément consultable du site donne un feuillet. À la **première consultation
+  gatée** (QCM lié réussi), le joueur gagne un feuillet du **pool du chapitre** (biome ∈ chapitre
+  **ou** `plateau_number` **ou** `lien_pays`) **pour son équipe** ; le **découvreur** est mémorisé
+  (`gl_game_feuillet_states.discovered_by_*`, migration `157`) et affiché. Acquisition au niveau
+  équipe, carnet cumulatif par joueur, **sans filet de clôture** (choix produit). Moteur
+  `lib/glFeuilletAcquisition.js` + pool `glFeuilletChapterPool.js`, branché sur le flux
+  `routes/gl/learning.js` ; réglages `gameplay.lore_feuillet_acquisition_enabled` (**off** par
+  défaut) / `_channels`. Détail `docs/AUDIT_FEUILLETS_ACCES.md` (§11).
+- **Juillet 2026 — GL : feuillets non lisibles par défaut (anti-spoiler)** : côté joueur, la liste
+  du carnet est **scopée côté serveur** aux biomes des chapitres joués et le contenu est **masqué**
+  (aperçu verrouillé configurable, `gameplay.lore_feuillet_preview_fields`) tant que le feuillet
+  n'a pas été **trouvé** ; MJ inchangé. `routes/gl/lore.js`, `lib/glLoreFeuilletPreview.js`,
+  migration `158`.
 - **Juillet 2026 — GL : refonte du carnet personnel « Mon journal »** (doc dédiée : [`docs/GL_CARNET_JOUEUR.md`](GL_CARNET_JOUEUR.md)). Trois évolutions successives : (1) **suppression des limites explicites** de caractères/médias (réglages `gameplay.player_journal_max_chars` / `player_journal_max_assets` par défaut `0` = illimité, plafond optionnel réglable) ; (2) **refonte en articles** (titre optionnel + texte markdown et/ou illustrations, article « média seul », horodatage création/modif) — tables `gl_player_journal_articles` / `gl_player_journal_article_assets` (migration `155`) ; (3) **import d'éléments appris** dans le carnet (feuillet, écosystème, fiche espèce, tutoriel, glossaire écologie/lore, page de contenu) affichés en fil chronologique avec titre réel + lien — table `gl_player_journal_imports` (migration `156`), gaté sur le marquage « appris » (`gl_learning_acknowledgements`, quiz-gating possible). Backend : accusé générique `POST /api/gl/learning/mark/:resourceType/:ref`, registre `lib/glLearnableResources.js` ; front : contrôle réutilisable `GLLearnAndImport` / `GLJournalImportButton`, timeline `GLPlayerJournalView`. Tests backend (`tests/gl-player-journal.test.js`) et UI (`tests-ui/gl/GLContentPage.test.jsx`).
 - **Juin 2026 — GL : régularisation des constantes de game design** : deux tables créées manuellement en production hors pipeline sont régularisées par la migration `151_gl_game_constants.sql` afin de garantir la reproductibilité (base neuve = prod). `gl_game_constants` (14 constantes : nombre de cases, positions Départ/Frontière/Arrivée, soins, gemmes, etc.) et `gl_game_constant_refs` (13 liens souples constante → question lore `qcm_lore`, sans FK, à la manière de la migration `144`). Ces tables sont une **source documentaire uniquement, NON câblée au runtime** : aucune route/API ne les lit, aucun comportement métier n'en dépend. Test `tests/gl-game-constants.test.js` (présence des 14 + 13 lignes, valeurs clés, idempotence au rejeu).
 - **Juin 2026 — groupes partagés ForetMap/GL + visiteur** : profil par défaut par groupe (`default_role_id`, `grants_n3beur_access`), résolution RBAC via appartenance groupe n3beur (`lib/groupRole.js`), pont `gl_classes` ↔ `groups`, visiteurs ForetMap limités à l’onglet Visite (sans carte/tâches).

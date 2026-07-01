@@ -37,6 +37,7 @@ Ce document centralise les commandes et la matrice de couverture pour Gnomes & L
 - `gl-chapter-biomes.test.js`, `gl-chapter-biomes-lib.test.js`, `gl-chapter-charte-import.test.js`, `gl-chapter-spells.test.js`
 - `gl-content.test.js`, `gl-content-import-export.test.js`, `gl-import-wp.test.js`
 - `gl-lore-helpers.test.js`, `gl-lore-feuillets.test.js`, `gl-lore-feuillet-species-reveal.test.js`, `gl-lore-import.test.js`, `gl-lore-query-validation.test.js`
+- **Accès & acquisition feuillets** : `gl-lore-feuillet-preview.test.js` (aperçu verrouillé), `gl-lore-feuillet-access.test.js` (scoping biomes joués, masquage, réglage aperçu), `gl-feuillet-acquisition-pure.test.js` (pool chapitre / pays, canaux), `gl-feuillet-acquisition.test.js` (attribution + pool ③)
 - `gl-media-chapter-link.test.js` — scènes récit, métas `_keys.json`, collisions clé stable
 
 ### Glossaire, QCM, espèces, sorts

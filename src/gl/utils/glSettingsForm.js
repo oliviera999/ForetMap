@@ -220,6 +220,38 @@ export function toggleFeuilletPreviewField(current, field, checked) {
   return checked && FEUILLET_PREVIEW_FIELD_VALUES.has(field) ? [...base, field] : base;
 }
 
+/** Canaux d'acquisition ③ : élément consultable dont la consultation gatée peut donner un feuillet. */
+export const FEUILLET_ACQUISITION_CHANNEL_OPTIONS = Object.freeze([
+  { value: 'species', label: 'Fiches espèces' },
+  { value: 'glossary', label: 'Glossaire SVT' },
+  { value: 'lore_glossary', label: 'Lexique du lore' },
+  { value: 'tutorial', label: 'Tutoriels' },
+  { value: 'content_page', label: 'Pages de contenu' },
+  { value: 'ecosystem', label: 'Écosystèmes' },
+]);
+
+const FEUILLET_ACQUISITION_CHANNEL_VALUES = new Set(
+  FEUILLET_ACQUISITION_CHANNEL_OPTIONS.map((o) => o.value),
+);
+
+/** Lit la liste des canaux d'acquisition activés (défaut : tous). */
+export function readFeuilletAcquisitionChannels(settings) {
+  const raw = settings?.['gameplay.lore_feuillet_acquisition_channels'];
+  if (!Array.isArray(raw)) return FEUILLET_ACQUISITION_CHANNEL_OPTIONS.map((o) => o.value);
+  const out = [];
+  for (const v of raw) {
+    const c = String(v || '').trim();
+    if (FEUILLET_ACQUISITION_CHANNEL_VALUES.has(c) && !out.includes(c)) out.push(c);
+  }
+  return out;
+}
+
+/** Calcule la nouvelle liste de canaux après (dé)cochage. */
+export function toggleFeuilletAcquisitionChannel(current, channel, checked) {
+  const base = Array.isArray(current) ? current.filter((c) => c !== channel) : [];
+  return checked && FEUILLET_ACQUISITION_CHANNEL_VALUES.has(channel) ? [...base, channel] : base;
+}
+
 /** Options du mode de contribution au lancement de sortilèges. */
 export const SPELL_CAST_CONTRIBUTION_OPTIONS = [
   { value: 'both', label: 'Les deux (soi + répartition équipe avec confirmation)' },

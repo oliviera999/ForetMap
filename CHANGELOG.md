@@ -7,6 +7,32 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### GL — Socle d'acquisition des feuillets par consultation (stratégie ③)
+
+- **Évolution métier** : pose le socle permettant qu'un élément consultable du site donne un
+  feuillet. À la **première consultation gatée réussie** (QCM lié passé), le joueur gagne un
+  feuillet du **pool du chapitre** **pour son équipe** ; le **nom du découvreur** est mémorisé et
+  affiché dans le carnet (« Découvert par … »). Acquisition **au niveau équipe**, carnet
+  **cumulatif par joueur**, **sans filet de clôture** (exhaustivité non garantie, choix produit).
+- **Base de données** : migration `157_gl_feuillet_attribution.sql` — colonnes
+  `discovered_by_player_id`, `discovered_by_name`, `discovered_source` (texte libre) sur
+  `gl_game_feuillet_states`, posées une seule fois (premier découvreur).
+- **Backend** : moteur générique `lib/glFeuilletAcquisition.js`
+  (`awardFeuilletFromConsultation` + `commitFeuilletDiscovery`), pool de chapitre
+  `lib/glFeuilletChapterPool.js` (biome ∈ chapitre **ou** `plateau_number` **ou** `lien_pays`),
+  mapping biome→pays extrait en module pur `lib/glBiomePays.js`. Branchement sur le flux
+  d'acquittement gaté (`routes/gl/learning.js` : `mark/:type/:ref`, glossaire, tutoriel) →
+  `feuilletRevealed?`. Canal **espèce** existant enrichi de l'attribution.
+- **Réglages plateforme** : `gameplay.lore_feuillet_acquisition_enabled` (défaut **off**) et
+  `gameplay.lore_feuillet_acquisition_channels` (liste, défaut = tous), pilotables dans
+  **Réglages GL → Carnet de Sélène**.
+- **Frontend** : « Découvert par … » dans le carnet ; toggle + canaux dans les réglages
+  (`GLSettingsView.jsx`, `glSettingsForm.js`).
+- **Tests** : unitaires purs (`gl-feuillet-acquisition-pure` : pool pays/clause, canaux) +
+  intégration (`gl-feuillet-acquisition` : attribution, pool, idempotence).
+- **Doc** : `docs/API.md` (learning `feuilletRevealed`, réglages), `docs/AUDIT_FEUILLETS_ACCES.md`
+  (§11 décisions + socle). Reste à câbler les canaux `scene`/`reponse`/`message` et affiner via le corpus.
+
 ### GL — Feuillets non lisibles par défaut (anti-spoiler du carnet)
 
 - **Évolution métier** : côté joueur, les feuillets du carnet de Sélène ne sont **plus lisibles par
@@ -22,7 +48,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   `isFeuilletFound` (`lib/glLoreFeuillets.js`) et module `lib/glLoreFeuilletPreview.js`.
 - **Réglage plateforme** : `gameplay.lore_feuillet_preview_fields` (liste, défaut `["incipit"]`) pilote
   les champs révélés en aperçu (parmi `incipit`, `ideeCle`, `imageUrl`, `ancrageScientifique`).
-  Réglable dans **Réglages GL → Carnet de Sélène**. Migration idempotente `155_gl_lore_feuillet_preview_fields.sql`.
+  Réglable dans **Réglages GL → Carnet de Sélène**. Migration idempotente `158_gl_lore_feuillet_preview_fields.sql`.
 - **Frontend** (`GLSeleneCarnetView.jsx`) : feuillet verrouillé cliquable (badge 🔒) affichant l'aperçu
   + un rappel « trouvez-le sur la carte » ; aucune vignette ni texte tant qu'il n'est pas révélé.
   Sélecteur des champs d'aperçu dans `GLSettingsView.jsx` (`glSettingsForm.js`).
