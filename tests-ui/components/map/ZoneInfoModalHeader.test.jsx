@@ -73,10 +73,10 @@ describe('ZoneInfoModalHeader', () => {
     expect(screen.queryByRole('button', { name: '🗑️' })).toBeNull();
   });
 
-  test("zone spéciale : pas d'actions même pour un prof", () => {
+  test('zone spéciale : actions de gestion disponibles pour un prof (désormais éditable)', () => {
     renderHeader({ zone: { ...ZONE, special: true } });
-    expect(screen.queryByRole('button', { name: '📋 Copie' })).toBeNull();
-    expect(screen.queryByRole('button', { name: '🗑️' })).toBeNull();
+    expect(screen.getByRole('button', { name: '📋 Copie' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '🗑️' })).toBeTruthy();
   });
 
   test('bouton Copie absent si onDuplicate non fourni, Supprimer toujours présent', () => {

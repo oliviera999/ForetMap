@@ -7,6 +7,27 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### ForetMap — Zones spéciales désormais éditables
+
+- **Évolution** : les zones spéciales (bâtiments, mares, ruches, compostage…) étaient jusqu'ici
+  entièrement verrouillées côté interface (aucun onglet « Modifier », ni actions Copie/Supprimer,
+  ni édition du contour), alors que le backend ne les protégeait pas. Elles sont maintenant
+  **pleinement éditables par les profs** au même titre qu'une zone normale.
+- **Frontend** : l'onglet « ✏️ Modifier », les actions Copie/Supprimer et l'édition du contour
+  sont réaffichés pour les zones spéciales (`ZoneInfoModal`, `ZoneInfoModalHeader`). Ajout d'une
+  case à cocher **« Zone spéciale (bâtiment / infrastructure) »** dans le formulaire d'édition
+  et dans le formulaire de création (`ZoneDrawModal`) pour **basculer** le statut ou **créer**
+  directement une zone spéciale. La duplication préserve le drapeau `special`.
+- **Backend** : `PUT /api/zones/:id` prend désormais en compte le champ `special` (bascule dans les
+  deux sens ; omis = valeur inchangée) et `POST /api/zones` accepte `special` à la création
+  (défaut `0`). Nouveau helper `normalizeSpecialFlag` (booléen / nombre / chaîne → bit MySQL).
+  Réponse `POST` uniformisée (`special` renvoyé en booléen comme `GET`/`PUT`).
+- **Inchangé** : les zones spéciales restent exclues des associations tâches/tutoriels et de la
+  section biodiversité de la fiche visite (choix de périmètre).
+- **Tests** : backend (création spéciale, bascule du drapeau dans les deux sens, préservation
+  quand `special` est omis) ; UI (case à cocher `ZoneDrawModal`, actions prof sur zone spéciale).
+- **Doc** : `docs/API.md` (colonnes `special` de `POST`/`PUT /api/zones`).
+
 ### ForetMap — Mode visite/découverte : ne se relance plus qu'à la première découverte
 
 - **Correctif** : la visite guidée se relançait à chaque connexion (voire à chaque visite d'onglet)

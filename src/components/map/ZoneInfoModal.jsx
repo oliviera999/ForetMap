@@ -88,6 +88,7 @@ function ZoneInfoModal({
     orderedLivingBeingsForForm(zone.living_beings_list || zone.living_beings, zone.current_plant),
   );
   const [stage, setStage] = useState(zone.stage || 'empty');
+  const [special, setSpecial] = useState(!!zone.special);
   const [zoneColor, setZoneColor] = useState(zone.color || ZONE_COLORS[0]);
   const [desc, setDesc] = useState(zone.description || '');
   const [visitSubtitle, setVisitSubtitle] = useState(zone.visit_subtitle || '');
@@ -186,6 +187,7 @@ function ZoneInfoModal({
       orderedLivingBeingsForForm(zone.living_beings_list || zone.living_beings, zone.current_plant),
     );
     setStage(zone.stage || 'empty');
+    setSpecial(!!zone.special);
     setZoneColor(zone.color || ZONE_COLORS[0]);
     setDesc(zone.description || '');
     setVisitSubtitle(zone.visit_subtitle || '');
@@ -199,6 +201,7 @@ function ZoneInfoModal({
     zone.living_beings_list,
     zone.current_plant,
     zone.stage,
+    zone.special,
     zone.color,
     zone.description,
     zone.visit_subtitle,
@@ -264,6 +267,7 @@ function ZoneInfoModal({
           {
             livingBeings,
             stage,
+            special,
             zoneColor,
             desc,
             visitSubtitle,
@@ -336,7 +340,7 @@ function ZoneInfoModal({
     ...(showTutorialsTab ? [{ id: 'tutorials', label: '📘 Tutoriels' }] : []),
     { id: 'info', label: 'ℹ️ Info' },
     { id: 'photos', label: '📷 Photos' },
-    ...(isTeacher && !zone.special ? [{ id: 'edit', label: '✏️ Modifier' }] : []),
+    ...(isTeacher ? [{ id: 'edit', label: '✏️ Modifier' }] : []),
   ];
 
   return (
@@ -563,7 +567,7 @@ function ZoneInfoModal({
         </div>
       )}
 
-      {tab === 'edit' && isTeacher && !zone.special && (
+      {tab === 'edit' && isTeacher && (
         <div className="fade-in">
           <div className="field">
             <label>Nom de la zone *</label>
@@ -611,6 +615,26 @@ function ZoneInfoModal({
               <option value="growing">En croissance</option>
               <option value="ready">Prêt à récolter</option>
             </select>
+          </div>
+          <div className="field">
+            <label
+              style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}
+              title="Une zone spéciale représente un bâtiment ou une infrastructure (mare, ruches, compostage…) plutôt qu'une culture."
+            >
+              <input
+                type="checkbox"
+                checked={special}
+                onChange={(e) => {
+                  const checked = e.target.checked;
+                  setSpecial(checked);
+                  // Évite un `stage` résiduel « special » (zones seedées) qui, une fois la
+                  // case décochée, afficherait à tort la pastille « Zone spéciale ».
+                  if (!checked && stage === 'special') setStage('empty');
+                }}
+                style={{ width: 18, height: 18 }}
+              />
+              Zone spéciale (bâtiment / infrastructure)
+            </label>
           </div>
           <div className="field">
             <label>Description</label>

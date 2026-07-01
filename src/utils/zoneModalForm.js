@@ -40,7 +40,8 @@ export function buildZoneName(
 /**
  * Payload de sauvegarde de la zone (champs de formulaire + blocs éditoriaux normalisés).
  * `name` est le nom complet déjà calculé par `buildZoneName`. `current_plant` est forcé vide
- * (l'édition passe désormais par `living_beings`).
+ * (l'édition passe désormais par `living_beings`). `special` est normalisé en bit (0/1) pour
+ * le drapeau « zone spéciale » (bâtiment / infrastructure).
  */
 export function buildZonePayload(name, form, visitEditorialBlocks) {
   return {
@@ -48,6 +49,7 @@ export function buildZonePayload(name, form, visitEditorialBlocks) {
     current_plant: '',
     living_beings: form.livingBeings,
     stage: form.stage,
+    special: form.special ? 1 : 0,
     color: form.zoneColor,
     description: form.desc,
     visit_subtitle: form.visitSubtitle,
