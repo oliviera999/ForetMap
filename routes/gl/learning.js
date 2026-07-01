@@ -4,9 +4,10 @@ const express = require('express');
 const { queryOne, queryAll, execute } = require('../../database');
 const { requireGlAuth } = require('../../middleware/requireGlAuth');
 const { canAccessGlGame } = require('../../lib/glGameAccess');
-const { getGlModulesSettings } = require('../../lib/glSettings');
+const { getGlModulesSettings, getGameplaySettings } = require('../../lib/glSettings');
 const { parseGlId, resolveTeamContext } = require('../../lib/glTeamContext');
 const { revealFeuilletForSpeciesStudy } = require('../../lib/glLoreFeuilletSpeciesReveal');
+const { awardFeuilletFromConsultation } = require('../../lib/glFeuilletAcquisition');
 const {
   parseConfirmBody,
   normalizeTargetCode,
@@ -117,6 +118,37 @@ router.get('/me', requireGlAuth, async (req, res) => {
   return res.json(groupLearningAcksByType(rows));
 });
 
+/**
+ * Socle d'acquisition ③ : après une consultation gatée réussie (QCM lié passé),
+ * tente d'attribuer un feuillet du pool du chapitre à l'équipe, attribué au joueur.
+ * Best-effort — n'échoue jamais l'acquittement principal. Renvoie le feuillet ou null.
+ */
+async function maybeAwardFeuilletFromConsultation(req, { source, sourceRef }) {
+  try {
+    const gameplay = await getGameplaySettings();
+    if (!gameplay.loreFeuilletAcquisitionEnabled) return null;
+    if (!(gameplay.loreFeuilletAcquisitionChannels || []).includes(source)) return null;
+    const gameId = parseGlId(req.body?.gameId ?? req.glAuth.gameId);
+    if (!gameId) return null;
+    const modules = await getGlModulesSettings();
+    if (!modules.loreCarnetEnabled) return null;
+    if (!(await canAccessGlGame(req.glAuth, gameId))) return null;
+    const teamCtx = await resolveTeamContext(req, gameId, req.body?.teamId);
+    if (teamCtx.error) return null;
+    return await awardFeuilletFromConsultation(db, {
+      gameId,
+      teamId: teamCtx.teamId,
+      playerId: req.glAuth.userId,
+      playerName: req.glAuth.displayName,
+      source,
+      sourceRef,
+      isMj: req.glAuth.userType === 'gl_admin',
+    });
+  } catch (_) {
+    return null; // acquisition best-effort : ne bloque jamais l'acquittement
+  }
+}
+
 async function handleAcknowledge(req, res, { targetType, resolveTarget, skipGating = false }) {
   const confirm = parseConfirmBody(req.body);
   if (!confirm.ok) return res.status(400).json({ error: confirm.error });
@@ -142,7 +174,16 @@ async function handleAcknowledge(req, res, { targetType, resolveTarget, skipGati
   }
 
   await upsertLearningAck(db, reader, targetType, code);
-  return res.json({ success: true, target_type: targetType, target_code: code });
+  const response = { success: true, target_type: targetType, target_code: code };
+  // Première consultation seulement (skipGating == déjà acquitté).
+  if (!skipGating) {
+    const feuilletRevealed = await maybeAwardFeuilletFromConsultation(req, {
+      source: targetType,
+      sourceRef: code,
+    });
+    if (feuilletRevealed) response.feuilletRevealed = feuilletRevealed;
+  }
+  return res.json(response);
 }
 
 async function hasExistingLearningAck(reader, targetType, targetCode) {
@@ -215,6 +256,7 @@ router.post(
               biomeSlug: species.biome_slug,
               actorType,
               actorId: String(req.glAuth.userId),
+              actorName: req.glAuth.displayName,
               isMj,
             });
             if (feuilletRevealed) {
@@ -321,7 +363,15 @@ router.post(
     }
 
     await upsertLearningAck(db, reader, resourceType, ref);
-    return res.json({ success: true, target_type: resourceType, target_code: ref });
+    const response = { success: true, target_type: resourceType, target_code: ref };
+    if (!alreadyAcked) {
+      const feuilletRevealed = await maybeAwardFeuilletFromConsultation(req, {
+        source: resourceType,
+        sourceRef: ref,
+      });
+      if (feuilletRevealed) response.feuilletRevealed = feuilletRevealed;
+    }
+    return res.json(response);
   }),
 );
 
