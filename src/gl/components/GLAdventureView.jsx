@@ -24,6 +24,8 @@ export function GLAdventureView({
   onOpenSpell,
   canSpellCast,
   onLaunchSpell,
+  feuilletFocusCode,
+  onFeuilletFocusHandled,
   isMj,
 }) {
   const visibleSubTabs = GL_ADVENTURE_SUB_TABS.filter((subTab) => {
@@ -74,6 +76,8 @@ export function GLAdventureView({
             loreGlossaryLinkItems={loreGlossaryLinkItems}
             onOpenGlossaryTerm={onOpenGlossaryTerm}
             onOpenLoreTerm={onOpenLoreTerm}
+            focusFeuilletCode={feuilletFocusCode}
+            onFeuilletFocusHandled={onFeuilletFocusHandled}
             isMj={isMj}
           />
         ) : null}

@@ -16,6 +16,10 @@ export function GLNatureView({
   glossaryFocusCode,
   glossaryPopoverCode,
   onGlossaryFocusHandled,
+  ecosystemFocusSlug,
+  onEcosystemFocusHandled,
+  speciesFocusCode,
+  onSpeciesFocusHandled,
   learningProgress,
   journalImportEnabled = false,
 }) {
@@ -51,6 +55,8 @@ export function GLNatureView({
             gameState={gameState}
             glossaryLinkItems={glossaryLinkItems}
             onOpenGlossaryTerm={onOpenGlossaryTerm}
+            focusEcosystemSlug={ecosystemFocusSlug}
+            onEcosystemFocusHandled={onEcosystemFocusHandled}
             journalImportEnabled={journalImportEnabled}
           />
         ) : null}
@@ -61,6 +67,8 @@ export function GLNatureView({
             glossaryLinkItems={glossaryLinkItems}
             learningProgress={learningProgress}
             loreCarnetEnabled={false}
+            speciesFocusCode={speciesFocusCode}
+            onSpeciesFocusHandled={onSpeciesFocusHandled}
           />
         ) : null}
         {activeSubTab === 'glossary' ? (

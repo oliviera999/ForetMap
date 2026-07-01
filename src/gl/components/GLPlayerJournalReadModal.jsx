@@ -4,6 +4,7 @@ import { apiGL } from '../services/apiGL.js';
 import { renderMarkdownToSafeHtml } from '../../utils/markdown.js';
 import { GLButton } from './ui/GLButton.jsx';
 import { importTypeMeta } from '../utils/glJournalImportMeta.js';
+import { useGlJournalEmbedTitles } from '../hooks/useGlJournalEmbedTitles.js';
 
 function playerLabel(player) {
   if (!player) return 'Joueur';
@@ -20,6 +21,47 @@ function formatDateTime(value) {
   return d.toLocaleString('fr-FR');
 }
 
+// Construit un export texte (markdown) du carnet d'un joueur, pour l'accompagnement
+// pédagogique du MJ (lecture seule). N'inclut pas les illustrations (binaire).
+function buildJournalExport(player, articles, imports) {
+  const lines = [`# Carnet de ${playerLabel(player)}`, ''];
+  lines.push(`_${articles.length} article(s) · ${imports.length} import(s)_`, '');
+  if (articles.length) {
+    lines.push('## Articles', '');
+    for (const a of articles) {
+      lines.push(`### ${a.title?.trim() || 'Article sans titre'}`);
+      const meta = [];
+      if (a.createdAt) meta.push(`créé le ${formatDateTime(a.createdAt)}`);
+      if (a.updatedAt) meta.push(`modifié le ${formatDateTime(a.updatedAt)}`);
+      if (meta.length) lines.push(`_${meta.join(' · ')}_`);
+      lines.push('', String(a.bodyMarkdown || '').trim() || '_(sans texte)_', '');
+    }
+  }
+  if (imports.length) {
+    lines.push('## Éléments importés', '');
+    for (const it of imports) {
+      const meta = importTypeMeta(it.resourceType);
+      const when = it.createdAt ? ` (importé le ${formatDateTime(it.createdAt)})` : '';
+      lines.push(`- ${meta.label} — ${it.title || it.resourceRef}${when}`);
+    }
+    lines.push('');
+  }
+  return lines.join('\n');
+}
+
+function downloadTextFile(filename, content) {
+  if (typeof document === 'undefined') return;
+  const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 function ReadArticle({ article }) {
   const html = useMemo(
     () =>
@@ -31,6 +73,7 @@ function ReadArticle({ article }) {
         : '',
     [article?.bodyMarkdown],
   );
+  const hydratedHtml = useGlJournalEmbedTitles(html);
   return (
     <article className="gl-player-journal-read-article">
       <header>
@@ -46,7 +89,7 @@ function ReadArticle({ article }) {
       {html ? (
         <div
           className="gl-markdown gl-player-journal-preview"
-          dangerouslySetInnerHTML={{ __html: html }}
+          dangerouslySetInnerHTML={{ __html: hydratedHtml }}
         />
       ) : (
         <p className="gl-hint">Article sans texte.</p>
@@ -83,8 +126,16 @@ export function GLPlayerJournalReadModal({ playerId, open, onClose }) {
     };
   }, [open, playerId]);
 
+  const [importFilter, setImportFilter] = useState('all');
+
   const articles = Array.isArray(data?.articles) ? data.articles : [];
   const imports = Array.isArray(data?.imports) ? data.imports : [];
+  const importTypes = useMemo(() => [...new Set(imports.map((i) => i.resourceType))], [imports]);
+  const filteredImports = useMemo(
+    () =>
+      importFilter === 'all' ? imports : imports.filter((i) => i.resourceType === importFilter),
+    [imports, importFilter],
+  );
 
   return (
     <DialogShell
@@ -106,14 +157,51 @@ export function GLPlayerJournalReadModal({ playerId, open, onClose }) {
         {!loading && !error && data ? (
           articles.length > 0 || imports.length > 0 ? (
             <div className="gl-player-journal-read-list">
+              <div className="gl-player-journal-read-summary gl-inline-actions">
+                <p className="gl-hint" style={{ margin: 0 }}>
+                  <strong>{articles.length}</strong> article(s) · <strong>{imports.length}</strong>{' '}
+                  import(s)
+                </p>
+                <GLButton
+                  type="button"
+                  variant="secondary"
+                  onClick={() =>
+                    downloadTextFile(
+                      `carnet-${data?.player?.pseudo || data?.player?.id || 'joueur'}.md`,
+                      buildJournalExport(data?.player, articles, imports),
+                    )
+                  }
+                >
+                  Exporter (.md)
+                </GLButton>
+              </div>
               {articles.map((article) => (
                 <ReadArticle key={`a-${article.id}`} article={article} />
               ))}
               {imports.length > 0 ? (
                 <section className="gl-player-journal-read-imports">
-                  <h3>Éléments importés ({imports.length})</h3>
+                  <div className="gl-inline-actions">
+                    <h3 style={{ margin: 0 }}>Éléments importés ({filteredImports.length})</h3>
+                    {importTypes.length > 1 ? (
+                      <label className="gl-hint">
+                        Filtrer :{' '}
+                        <select
+                          value={importFilter}
+                          onChange={(e) => setImportFilter(e.target.value)}
+                          aria-label="Filtrer les imports par type"
+                        >
+                          <option value="all">Tous les types</option>
+                          {importTypes.map((t) => (
+                            <option key={t} value={t}>
+                              {importTypeMeta(t).label}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    ) : null}
+                  </div>
                   <ul>
-                    {imports.map((item) => {
+                    {filteredImports.map((item) => {
                       const meta = importTypeMeta(item.resourceType);
                       return (
                         <li key={`i-${item.id}`}>
