@@ -311,11 +311,24 @@ alignés sur les 5 plateaux/chapitres.
   pilotés par la **donnée** (`lien_*`, `biome_slug`, `plateau_number`) — affinables via le corpus
   sans toucher au code.
 
+### 11.4bis Acquisition rendue visible côté joueur (étape §1)
+
+- **Popover générique** : le contrôle partagé `GLLearnAndImport` (lore, écosystème, page de
+  contenu, tutoriel) affiche le popover `GLFeuilletDiscoveryPopover` dès que la réponse
+  `mark/:type/:ref` contient `feuilletRevealed` — auparavant seuls les canaux **zone** et
+  **espèce** le faisaient. `GLLearnAndImport` transmet `gameId`/`teamId` (corps de requête) quand
+  ils sont connus ; sinon le backend retombe sur le contexte JWT.
+- **Progression du carnet** (`GLSeleneCarnetView`) : indicateur « **N trouvés / M du chapitre** »
+  - filtres **Tous / Trouvés / Verrouillés** (dérivés de `progressStatus`). Masqués pour le MJ.
+- **Tests** : `tests-ui/gl/GLLearnAndImport.test.jsx` + compléments carnet.
+
 ### 11.5 Reste à faire (affinage)
 
 - **Câbler les canaux restants** au moteur (récit/`scene`, QCM `reponse`, corbeau `message`,
   copiste route) au-delà de l'entrée générique déjà en place.
 - **Affiner le gate** (« sauf exception ») et, plus tard, décider du coût/récompense hors-zone.
+- **Arbitrage éditorial des ~32 orphelins** (canal QCM `reponse` / progression, ou statut « hors
+  collecte ») : en attente de décision utilisateur.
 
 ### 11.6 Cartographie du corpus (snapshot 2026-07-01)
 

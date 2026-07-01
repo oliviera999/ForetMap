@@ -15,6 +15,7 @@ import { GLSpellsEditorPanel } from './admin/GLSpellsEditorPanel.jsx';
 import { GLSpellsImportPanel } from './admin/GLSpellsImportPanel.jsx';
 import { GLLoreFeuilletsImportPanel } from './admin/GLLoreFeuilletsImportPanel.jsx';
 import { GLLoreFeuilletsEditorPanel } from './admin/GLLoreFeuilletsEditorPanel.jsx';
+import { GLLoreFeuilletsOverviewPanel } from './admin/GLLoreFeuilletsOverviewPanel.jsx';
 import { GLLoreGlossaryImportPanel } from './admin/GLLoreGlossaryImportPanel.jsx';
 import { GLContentLibraryView } from './admin/GLContentLibraryView.jsx';
 import { GLIntroAdminPanel } from './admin/GLIntroAdminPanel.jsx';
@@ -205,8 +206,10 @@ export function GLContentsAdminView({
         />
       ) : section === 'lore-carnet' ? (
         <GLContentCatalogPanel
+          overviewLabel="Vue d'ensemble"
           manualLabel="Feuillets"
           importLabel="Import / export XLSX"
+          OverviewPanel={GLLoreFeuilletsOverviewPanel}
           ManualPanel={GLLoreFeuilletsEditorPanel}
           ImportPanel={GLLoreFeuilletsImportPanel}
         />

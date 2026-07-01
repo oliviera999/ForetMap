@@ -7,6 +7,47 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### GL — Activation de l'acquisition ③ + gestion admin des feuillets (vue d'ensemble & édition en masse)
+
+- **Activation** : `gameplay.lore_feuillet_acquisition_enabled` passe à **`true` par défaut** (tous
+  canaux) ; reste pilotable par partie via le toggle Réglages GL → Carnet de Sélène.
+- **Vue d'ensemble admin** (nouvel onglet « Vue d'ensemble » du panneau Feuillets) : couverture par
+  **canal d'acquisition** (zone / lien espèce / pool biome-plateau-pays / orphelins), **liens
+  résolus en noms** d'éléments (espèce, pays), **rattachement par chapitre** (déduit : biome ∈
+  chapitre / plateau / lien_pays), **stats de découverte** (parties/équipes), filtres et KPI.
+  Endpoint `GET /api/gl/lore/admin/feuillets/overview`.
+- **Édition en masse** : sélection multiple dans le panneau Feuillets + barre d'action (canal, réf,
+  pays, biome, plateau, statut, coût gemme, gain cœur). Endpoint
+  `POST /api/gl/lore/admin/feuillets/bulk` (patch partiel validé, biome hors-référentiel refusé).
+  La liste admin expose désormais les colonnes de lien/plateau/effets.
+- **Backend** : modules purs `lib/glFeuilletChannelClassify.js` (classification canal),
+  `lib/glFeuilletChapterMembership.js` (rattachement chapitre), `lib/glFeuilletBulkPatch.js`
+  (validation patch masse), `lib/glFeuilletAdminOverview.js` (assemblage vue d'ensemble) +
+  `getZoneFeuilletCodes` (catalogue zones). Tous testés sans BDD.
+- **Frontend** : `GLLoreFeuilletsOverviewPanel`, enrichissement de `GLLoreFeuilletsEditorPanel`
+  (sélection + masse) et de `GLContentCatalogPanel` (onglet vue d'ensemble optionnel),
+  util `glFeuilletChannelLabels`.
+- **Tests** : `tests/gl-feuillet-admin-pure.test.js` (19 cas purs), tests UI
+  (`GLLoreFeuilletsOverviewPanel`, bulk dans `GLLoreFeuilletsEditorPanel`, `glFeuilletChannelLabels`).
+- **Doc** : `docs/API.md` (overview + bulk + colonnes liste).
+
+### GL — Acquisition des feuillets rendue visible (popover générique + progression du carnet)
+
+- **Frontend** : le flux d'acquittement générique (`GLLearnAndImport` : lore, écosystème, page
+  de contenu, tutoriel) affiche désormais le popover « nouveau feuillet ! »
+  (`GLFeuilletDiscoveryPopover`) quand la réponse `mark/:type/:ref` contient `feuilletRevealed` —
+  même expérience que la découverte de zone/espèce. `GLLearnAndImport` transmet `gameId`/`teamId`
+  au backend (corps de requête) quand ils sont connus (carnet, écosystèmes) ; à défaut le backend
+  retombe sur le contexte JWT.
+- **Carnet de Sélène** (`GLSeleneCarnetView`) : indicateur de progression
+  « **N trouvés / M du chapitre** » et filtres **Tous / Trouvés / Verrouillés** (basés sur
+  `progressStatus`). Masqués pour le MJ (accès intégral).
+- **Tests** : `tests-ui/gl/GLLearnAndImport.test.jsx` (popover + transmission `gameId`/`teamId`)
+  et compléments dans `tests-ui/gl/GLSeleneCarnetView.test.jsx` (compteur, filtre, masquage MJ).
+- **Rappel** : l'acquisition ③ reste **désactivée par défaut**
+  (`gameplay.lore_feuillet_acquisition_enabled`). Contrat d'API inchangé (`feuilletRevealed`
+  déjà exposé).
+
 ### GL — Carnet : approfondissements onboarding, a11y clavier & e2e (B.8, B.9, E.13)
 
 - **Onboarding (B.8)** : aide contextuelle `tab:my-journal` enrichie (geste clé « marquer appris →

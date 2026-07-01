@@ -16,6 +16,11 @@ function groupByLiasse(items) {
   return groups;
 }
 
+/** Un feuillet est « trouvé » dès qu'il porte un statut de progression hors « locked ». */
+function isFeuilletFound(item) {
+  return !!item?.progressStatus && item.progressStatus !== 'locked';
+}
+
 export function GLSeleneCarnetView({
   gameState,
   glossaryLinkItems = [],
@@ -34,6 +39,7 @@ export function GLSeleneCarnetView({
   );
 
   const [viewMode, setViewMode] = useState('voyage');
+  const [filterMode, setFilterMode] = useState('all');
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -62,6 +68,17 @@ export function GLSeleneCarnetView({
     loadList();
   }, [loadList]);
 
+  const foundCount = useMemo(() => items.filter(isFeuilletFound).length, [items]);
+  const totalCount = items.length;
+
+  // Filtre joueur (Tous / Trouvés / Verrouillés). Le MJ voit tout : pas de filtre.
+  const filteredItems = useMemo(() => {
+    if (isMj || filterMode === 'all') return items;
+    if (filterMode === 'found') return items.filter(isFeuilletFound);
+    if (filterMode === 'locked') return items.filter((item) => !isFeuilletFound(item));
+    return items;
+  }, [items, filterMode, isMj]);
+
   // Deep-link depuis le carnet : ouvre le feuillet ciblé une fois la liste chargée
   // (s'il est accessible au joueur). onFocusHandled purge la cible.
   useEffect(() => {
@@ -72,13 +89,13 @@ export function GLSeleneCarnetView({
     onFeuilletFocusHandled?.();
   }, [focusFeuilletCode, loading, items, onFeuilletFocusHandled]);
 
-  const grouped = useMemo(() => groupByLiasse(items), [items]);
+  const grouped = useMemo(() => groupByLiasse(filteredItems), [filteredItems]);
   const sortedItems = useMemo(() => {
     if (viewMode === 'voyage') {
-      return [...items].sort((a, b) => (a.ordreVoyage || 0) - (b.ordreVoyage || 0));
+      return [...filteredItems].sort((a, b) => (a.ordreVoyage || 0) - (b.ordreVoyage || 0));
     }
-    return items;
-  }, [items, viewMode]);
+    return filteredItems;
+  }, [filteredItems, viewMode]);
 
   const active = items.find((item) => item.feuilletCode === activeCode) || null;
   const activeLocked = !!active && active.progressStatus === 'locked' && !isMj;
@@ -133,6 +150,41 @@ export function GLSeleneCarnetView({
             </label>
           ) : null}
         </div>
+        {!isMj ? (
+          <div className="gl-selene-carnet__progress">
+            <p className="gl-selene-carnet__count">
+              <strong>{foundCount}</strong> trouvé{foundCount > 1 ? 's' : ''} / {totalCount} du
+              chapitre
+            </p>
+            <div
+              className="gl-selene-carnet__filters"
+              role="group"
+              aria-label="Filtrer les feuillets"
+            >
+              <button
+                type="button"
+                className={filterMode === 'all' ? 'is-active' : ''}
+                onClick={() => setFilterMode('all')}
+              >
+                Tous
+              </button>
+              <button
+                type="button"
+                className={filterMode === 'found' ? 'is-active' : ''}
+                onClick={() => setFilterMode('found')}
+              >
+                Trouvés
+              </button>
+              <button
+                type="button"
+                className={filterMode === 'locked' ? 'is-active' : ''}
+                onClick={() => setFilterMode('locked')}
+              >
+                Verrouillés
+              </button>
+            </div>
+          </div>
+        ) : null}
       </header>
 
       {error ? <p className="gl-error">{error}</p> : null}
@@ -140,6 +192,13 @@ export function GLSeleneCarnetView({
 
       <div className="gl-selene-carnet__layout">
         <aside className="gl-selene-carnet__list">
+          {!loading && !filteredItems.length && items.length ? (
+            <p className="gl-hint">
+              {filterMode === 'found'
+                ? 'Aucun feuillet trouvé pour le moment.'
+                : 'Aucun feuillet verrouillé — vous les avez tous trouvés !'}
+            </p>
+          ) : null}
           {viewMode === 'liasse' ? (
             Object.entries(grouped).map(([liasse, rows]) => (
               <section key={liasse} className="gl-selene-carnet__liasse">
@@ -267,8 +326,14 @@ export function GLSeleneCarnetView({
                     resourceType="feuillet"
                     resourceRef={active.feuilletCode}
                     title={active.titre || active.feuilletCode}
-                    acknowledgeLabel="Marquer comme appris"
-                    learnedLabel="✓ Appris"
+                    acknowledgeLabel="Marquer comme découvert"
+                    learnedLabel="✓ Découvert"
+                    gameId={gameId}
+                    teamId={teamId}
+                    glossaryLinkItems={glossaryLinkItems}
+                    loreGlossaryLinkItems={loreGlossaryLinkItems}
+                    onOpenGlossaryTerm={onOpenGlossaryTerm}
+                    onOpenLoreTerm={onOpenLoreTerm}
                   />
                 ) : null}
               </div>
