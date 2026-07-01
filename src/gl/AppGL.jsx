@@ -136,6 +136,11 @@ export function AppGL() {
   const [glossaryPopoverCode, setGlossaryPopoverCode] = useState(null);
   const [loreGlossaryPopoverCode, setLoreGlossaryPopoverCode] = useState(null);
   const [loreGlossaryFocusCode, setLoreGlossaryFocusCode] = useState(null);
+  // Cibles de « deep-link » depuis le carnet (« Voir » d'un élément importé) : on ouvre
+  // l'élément précis dans sa vue (pas seulement l'onglet). null = aucune cible en attente.
+  const [ecosystemFocusSlug, setEcosystemFocusSlug] = useState(null);
+  const [tutorialFocusId, setTutorialFocusId] = useState(null);
+  const [feuilletFocusCode, setFeuilletFocusCode] = useState(null);
   const [spellPopoverCode, setSpellPopoverCode] = useState(null);
   const [spellCastOpen, setSpellCastOpen] = useState(false);
   const [spellCastInitialCode, setSpellCastInitialCode] = useState(null);
@@ -226,6 +231,40 @@ export function AppGL() {
 
   const clearGlossaryFocus = useCallback(() => {
     setGlossaryFocusCode(null);
+  }, []);
+
+  const clearEcosystemFocus = useCallback(() => setEcosystemFocusSlug(null), []);
+  const clearTutorialFocus = useCallback(() => setTutorialFocusId(null), []);
+  const clearFeuilletFocus = useCallback(() => setFeuilletFocusCode(null), []);
+
+  // Navigation « profonde » depuis le carnet : reçoit soit un id d'onglet (string, rétro-
+  // compatible), soit une cible { tab, focusType, focusRef }. Pose la cible de focus puis
+  // change d'onglet ; la vue destinataire ouvre l'élément via son useEffect de focus.
+  const handleNavigateFromImport = useCallback((target) => {
+    if (!target) return;
+    const t = typeof target === 'string' ? { tab: target } : target;
+    if (!t.tab) return;
+    switch (t.focusType) {
+      case 'glossary':
+        setGlossaryPopoverCode(null);
+        setGlossaryFocusCode(t.focusRef || null);
+        break;
+      case 'lore_glossary':
+        setLoreGlossaryFocusCode(t.focusRef || null);
+        break;
+      case 'ecosystem':
+        setEcosystemFocusSlug(t.focusRef || null);
+        break;
+      case 'tutorial':
+        setTutorialFocusId(t.focusRef || null);
+        break;
+      case 'feuillet':
+        setFeuilletFocusCode(t.focusRef || null);
+        break;
+      default:
+        break;
+    }
+    setTab(t.tab);
   }, []);
 
   const isAdmin = isGlAdminRole(auth);
@@ -1174,6 +1213,8 @@ export function AppGL() {
                     loreGlossaryPopoverCode={loreGlossaryPopoverCode}
                     onOpenLoreGlossaryPopover={openLoreGlossaryPopover}
                     onLoreGlossaryFocusHandled={clearLoreGlossaryFocus}
+                    tutorialFocusId={tutorialFocusId}
+                    onTutorialFocusHandled={clearTutorialFocus}
                     canManageTutorials={showStaffAdminUi}
                     learningProgress={isGuest ? null : learningProgress}
                   />
@@ -1195,6 +1236,8 @@ export function AppGL() {
                     onOpenSpell={openSpellPopover}
                     canSpellCast={canSpellCast}
                     onLaunchSpell={openSpellCastWizard}
+                    feuilletFocusCode={feuilletFocusCode}
+                    onFeuilletFocusHandled={clearFeuilletFocus}
                     isMj={showStaffAdminUi}
                   />
                 ) : null}
@@ -1293,6 +1336,8 @@ export function AppGL() {
                     glossaryFocusCode={glossaryFocusCode}
                     glossaryPopoverCode={glossaryPopoverCode}
                     onGlossaryFocusHandled={clearGlossaryFocus}
+                    ecosystemFocusSlug={ecosystemFocusSlug}
+                    onEcosystemFocusHandled={clearEcosystemFocus}
                     learningProgress={isGuest ? null : learningProgress}
                     journalImportEnabled={
                       !isGuest && isModuleEnabled(modules, 'playerJournalEnabled')
@@ -1381,7 +1426,10 @@ export function AppGL() {
                   />
                 )}
                 {tab === 'my-journal' && isModuleEnabled(modules, 'playerJournalEnabled') && (
-                  <GLPlayerJournalView gameState={gameState} onNavigateTab={setTab} />
+                  <GLPlayerJournalView
+                    gameState={gameState}
+                    onNavigateTab={handleNavigateFromImport}
+                  />
                 )}
                 {isModuleEnabled(modules, 'helpEnabled') && tab !== 'my-journal' ? (
                   <GLTabHelpPanel tab={tab} defaultOpen={false} />

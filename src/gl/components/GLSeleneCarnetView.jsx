@@ -22,6 +22,8 @@ export function GLSeleneCarnetView({
   loreGlossaryLinkItems = [],
   onOpenGlossaryTerm,
   onOpenLoreTerm,
+  focusFeuilletCode = null,
+  onFeuilletFocusHandled,
   isMj = false,
 }) {
   const gameId = gameState?.game?.id;
@@ -59,6 +61,16 @@ export function GLSeleneCarnetView({
   useEffect(() => {
     loadList();
   }, [loadList]);
+
+  // Deep-link depuis le carnet : ouvre le feuillet ciblé une fois la liste chargée
+  // (s'il est accessible au joueur). onFocusHandled purge la cible.
+  useEffect(() => {
+    if (!focusFeuilletCode || loading) return;
+    if (items.some((it) => it.feuilletCode === focusFeuilletCode)) {
+      setActiveCode(focusFeuilletCode);
+    }
+    onFeuilletFocusHandled?.();
+  }, [focusFeuilletCode, loading, items, onFeuilletFocusHandled]);
 
   const grouped = useMemo(() => groupByLiasse(items), [items]);
   const sortedItems = useMemo(() => {

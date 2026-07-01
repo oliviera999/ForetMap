@@ -304,3 +304,50 @@ test('import d’un élément appris (page de contenu) → carnet + retrait', as
     .set('Authorization', `Bearer ${playerToken}`)
     .expect(200);
 });
+
+test('GET /me/imports/refs — refs légères (type + ref) reflètent l’état importé', async () => {
+  const slug = `test-refs-${stamp}`;
+  await execute(
+    `INSERT INTO gl_content_pages (slug, title, body_markdown)
+     VALUES (?, ?, ?)
+     ON DUPLICATE KEY UPDATE title = VALUES(title)`,
+    [slug, 'Page refs', '# Refs'],
+  );
+
+  // Avant import : absent de la liste des refs
+  const before = await request(app)
+    .get('/api/gl/player-journal/me/imports/refs')
+    .set('Authorization', `Bearer ${playerToken}`)
+    .expect(200);
+  assert.ok(Array.isArray(before.body.refs));
+  assert.ok(
+    !before.body.refs.some((r) => r.resourceType === 'content_page' && r.resourceRef === slug),
+  );
+
+  await execute(
+    `INSERT INTO gl_learning_acknowledgements
+       (reader_user_type, reader_user_id, target_type, target_code, acknowledged_at)
+     VALUES ('gl_player', ?, 'content_page', ?, NOW())
+     ON DUPLICATE KEY UPDATE acknowledged_at = NOW()`,
+    [String(playerAId), slug],
+  );
+  const imp = await request(app)
+    .post('/api/gl/player-journal/me/imports')
+    .set('Authorization', `Bearer ${playerToken}`)
+    .send({ resourceType: 'content_page', resourceRef: slug })
+    .expect(201);
+
+  // Après import : présent dans les refs (sans titre ni article, réponse légère)
+  const after = await request(app)
+    .get('/api/gl/player-journal/me/imports/refs')
+    .set('Authorization', `Bearer ${playerToken}`)
+    .expect(200);
+  assert.ok(
+    after.body.refs.some((r) => r.resourceType === 'content_page' && r.resourceRef === slug),
+  );
+
+  await request(app)
+    .delete(`/api/gl/player-journal/me/imports/${imp.body.import.id}`)
+    .set('Authorization', `Bearer ${playerToken}`)
+    .expect(200);
+});

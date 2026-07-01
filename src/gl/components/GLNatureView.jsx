@@ -16,6 +16,8 @@ export function GLNatureView({
   glossaryFocusCode,
   glossaryPopoverCode,
   onGlossaryFocusHandled,
+  ecosystemFocusSlug,
+  onEcosystemFocusHandled,
   learningProgress,
   journalImportEnabled = false,
 }) {
@@ -51,6 +53,8 @@ export function GLNatureView({
             gameState={gameState}
             glossaryLinkItems={glossaryLinkItems}
             onOpenGlossaryTerm={onOpenGlossaryTerm}
+            focusEcosystemSlug={ecosystemFocusSlug}
+            onEcosystemFocusHandled={onEcosystemFocusHandled}
             journalImportEnabled={journalImportEnabled}
           />
         ) : null}

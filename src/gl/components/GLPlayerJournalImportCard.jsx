@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { GLButton } from './ui/GLButton.jsx';
-import { importTypeMeta, importTargetTab } from '../utils/glJournalImportMeta.js';
+import { importTypeMeta, importTargetNav } from '../utils/glJournalImportMeta.js';
 
 function formatDateTime(value) {
   if (!value) return '';
@@ -16,7 +16,7 @@ function formatDateTime(value) {
 export function GLPlayerJournalImportCard({ item, onNavigateTab, onDelete, readOnly = false }) {
   const [removing, setRemoving] = useState(false);
   const meta = importTypeMeta(item.resourceType);
-  const tab = importTargetTab(item.resourceType, item.resourceRef);
+  const nav = importTargetNav(item.resourceType, item.resourceRef);
 
   async function handleRemove() {
     if (removing) return;
@@ -45,8 +45,8 @@ export function GLPlayerJournalImportCard({ item, onNavigateTab, onDelete, readO
         </div>
       </div>
       <div className="gl-inline-actions gl-player-journal__import-actions">
-        {tab && onNavigateTab ? (
-          <GLButton type="button" variant="secondary" onClick={() => onNavigateTab(tab)}>
+        {nav && onNavigateTab ? (
+          <GLButton type="button" variant="secondary" onClick={() => onNavigateTab(nav)}>
             Voir
           </GLButton>
         ) : null}
