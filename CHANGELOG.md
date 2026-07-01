@@ -7,6 +7,18 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### ForetMap — Plein écran carte visite : les zones ne s'étirent plus hors du fond de carte
+
+- **Correctif** : en plein écran (immersion) pendant la visite, le calque `visit-map-fit-layer`
+  était forcé à `100% × 100%` de la scène au lieu du rectangle réel de l'image
+  (`object-fit: contain`). Le SVG des zones (`preserveAspectRatio="none"`) ainsi que les repères
+  et la mascotte, positionnés en `%` de ce calque, s'étiraient donc sur toute la scène letterboxée
+  sans tenir compte de la taille du fond de carte.
+- **Correction** : le calque est désormais **toujours** aligné sur le rectangle « contain » de
+  l'image (`visitMapFit`, déjà recalculé pour le plein écran via `applyVisitMapFit(..., { fullscreen: true })`),
+  comme en mode normal. Zones, repères et mascotte restent alignés sur le fond de carte, sans
+  distorsion, en plein écran comme en affichage classique.
+
 ### ForetMap — Mode visite/découverte : ne se relance plus qu'à la première découverte
 
 - **Correctif** : la visite guidée se relançait à chaque connexion (voire à chaque visite d'onglet)
