@@ -212,6 +212,8 @@ Tables GL préfixées `gl_` :
 
 ### Carnet personnel joueur
 
+> Documentation dédiée : **[docs/GL_CARNET_JOUEUR.md](GL_CARNET_JOUEUR.md)** (« Mon journal » — vue d'ensemble, articles, imports d'éléments appris, API, composants).
+
 - Carnet organisé en **articles** (titre optionnel + texte markdown et/ou illustrations ; article « média seul » possible). Module `modules.player_journal_enabled`.
 - Plafonds `gameplay.player_journal_max_chars` / `player_journal_max_assets` (défaut `0` = illimité, plafond optionnel **par article** réglable par le MJ/admin).
 - Tables `gl_player_journal_articles`, `gl_player_journal_article_assets`, `gl_player_journal_imports` ; API `routes/gl/player-journal.js` (CRUD articles + médias + imports).
