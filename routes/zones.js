@@ -83,6 +83,22 @@ function serializeLivingBeings(input, fallback = '') {
   return JSON.stringify(normalizeLivingBeings(input, fallback));
 }
 
+/**
+ * Normalise le drapeau `special` d'une zone en bit MySQL (0/1).
+ * Tolère booléen, nombre et chaîne ('0'/'false'/'' → 0, tout le reste → 1).
+ * `fallback` (valeur courante) est renvoyé quand l'entrée est `undefined`
+ * (champ non fourni dans un PATCH partiel).
+ */
+function normalizeSpecialFlag(value, fallback = 0) {
+  if (value === undefined) return fallback ? 1 : 0;
+  if (value === null) return 0;
+  if (typeof value === 'string') {
+    const v = value.trim().toLowerCase();
+    return v === '' || v === '0' || v === 'false' ? 0 : 1;
+  }
+  return value ? 1 : 0;
+}
+
 function withLivingBeings(zone) {
   return {
     ...zone,
@@ -239,6 +255,7 @@ router.put(
       color,
       map_id,
       species_ids,
+      special,
     } = req.body;
     if (name !== undefined && !String(name).trim()) {
       return res.status(400).json({ error: 'Nom requis' });
@@ -289,12 +306,13 @@ router.put(
       ]);
     }
     await execute(
-      'UPDATE zones SET map_id=?, name=?, current_plant=?, stage=?, description=?, points=?, color=? WHERE id=?',
+      'UPDATE zones SET map_id=?, name=?, current_plant=?, stage=?, special=?, description=?, points=?, color=? WHERE id=?',
       [
         map_id != null ? String(map_id).trim() : zone.map_id,
         name !== undefined ? String(name).trim() : zone.name,
         nextCurrentPlant,
         stage ?? zone.stage,
+        normalizeSpecialFlag(special, zone.special),
         description !== undefined ? description : (zone.description ?? ''),
         points !== undefined ? JSON.stringify(points) : zone.points,
         color ?? zone.color,
@@ -482,6 +500,7 @@ router.post(
       map_id,
       description,
       species_ids,
+      special,
     } = req.body;
     if (!name?.trim()) return res.status(400).json({ error: 'Nom requis' });
     if (!points || points.length < 3)
@@ -493,14 +512,16 @@ router.post(
     const nextCurrentPlant = nextLiving.length > 0 ? '' : String(current_plant || '').trim();
     const desc = description !== undefined && description !== null ? String(description) : '';
     const id = 'zone-' + uuidv4().slice(0, 8);
+    const specialFlag = normalizeSpecialFlag(special, 0);
     await execute(
-      'INSERT INTO zones (id, map_id, name, x, y, width, height, current_plant, stage, special, points, color, description) VALUES (?, ?, ?, 0, 0, 0, 0, ?, ?, 0, ?, ?, ?)',
+      'INSERT INTO zones (id, map_id, name, x, y, width, height, current_plant, stage, special, points, color, description) VALUES (?, ?, ?, 0, 0, 0, 0, ?, ?, ?, ?, ?, ?)',
       [
         id,
         mapId,
         name.trim(),
         nextCurrentPlant,
         stage || 'empty',
+        specialFlag,
         JSON.stringify(points),
         color || '#86efac80',
         desc,
@@ -511,9 +532,13 @@ router.post(
     const speciesRows = await loadZoneSpeciesMap(db, [id]);
     emitGardenChanged({ reason: 'create_zone', zoneId: id, mapId });
     res.status(201).json(
-      attachSpeciesToEntity({ ...zone, history: [] }, speciesRows.get(id) || [], {
-        legacySingleName: zone.current_plant,
-      }),
+      attachSpeciesToEntity(
+        { ...zone, special: !!zone.special, history: [] },
+        speciesRows.get(id) || [],
+        {
+          legacySingleName: zone.current_plant,
+        },
+      ),
     );
   }),
 );

@@ -28,6 +28,7 @@ function ZoneDrawModal({
     zone_emoji: markerEmojis[0] || '📍',
     living_beings: [],
     stage: 'empty',
+    special: false,
     description: '',
     color: ZONE_COLORS[0],
   });
@@ -113,6 +114,20 @@ function ZoneDrawModal({
             <option value="ready">Prêt à récolter</option>
           </select>
         </div>
+      </div>
+      <div className="field">
+        <label
+          style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}
+          title="Une zone spéciale représente un bâtiment ou une infrastructure (mare, ruches, compostage…) plutôt qu'une culture."
+        >
+          <input
+            type="checkbox"
+            checked={form.special}
+            onChange={(e) => setForm((f) => ({ ...f, special: e.target.checked }))}
+            style={{ width: 18, height: 18 }}
+          />
+          Zone spéciale (bâtiment / infrastructure)
+        </label>
       </div>
       <div className="field">
         <label>Description</label>

@@ -48,4 +48,25 @@ describe('ZoneDrawModal', () => {
     expect(payload.points).toHaveLength(3);
     expect(payload.current_plant).toBe('');
   });
+
+  test('permet de créer une zone spéciale (case cochée → special dans le payload)', async () => {
+    const { onSave } = renderModal();
+    fireEvent.change(screen.getByPlaceholderText('Ex: Potager Est'), {
+      target: { value: 'Bâtiment G' },
+    });
+    fireEvent.click(screen.getByLabelText(/Zone spéciale/));
+    fireEvent.click(screen.getByRole('button', { name: /Créer la zone/ }));
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+    expect(onSave.mock.calls[0][0].special).toBe(true);
+  });
+
+  test('par défaut la zone n’est pas spéciale', async () => {
+    const { onSave } = renderModal();
+    fireEvent.change(screen.getByPlaceholderText('Ex: Potager Est'), {
+      target: { value: 'Potager Ouest' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /Créer la zone/ }));
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+    expect(onSave.mock.calls[0][0].special).toBe(false);
+  });
 });

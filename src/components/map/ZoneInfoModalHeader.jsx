@@ -3,8 +3,9 @@ import { stageBadge } from '../../utils/badges';
 
 /**
  * En-tête présentationnel de ZoneInfoModal : titre de la zone, pastille d'état,
- * et (pour les profs sur une zone non spéciale) les actions Copie / Supprimer.
- * Composant sans état : la logique métier reste dans ZoneInfoModal.
+ * et (pour les profs) les actions Copie / Supprimer — y compris sur les zones
+ * spéciales, désormais éditables. Composant sans état : la logique métier reste
+ * dans ZoneInfoModal.
  */
 function ZoneInfoModalHeader({
   zone,
@@ -16,7 +17,7 @@ function ZoneInfoModalHeader({
   onClose,
   onDuplicateError,
 }) {
-  const showTeacherActions = isTeacher && !zone.special;
+  const showTeacherActions = isTeacher;
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
