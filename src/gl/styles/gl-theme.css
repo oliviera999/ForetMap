@@ -4080,6 +4080,82 @@ body.gl-map-fullscreen-active .gl-qcm-popover-overlay {
   margin: 0 0 4px;
 }
 
+/* Éléments importés dans le carnet */
+.gl-player-journal__import {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  border: 1px solid #dbeafe;
+  border-left: 4px solid var(--gl-color-primary);
+}
+
+.gl-player-journal__import-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.gl-player-journal__import-icon {
+  font-size: 1.6rem;
+  line-height: 1;
+}
+
+.gl-player-journal__import-kind {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--gl-color-primary);
+}
+
+.gl-player-journal__import-title {
+  margin: 2px 0;
+  font-size: 1.05rem;
+}
+
+.gl-player-journal__import-actions {
+  flex: 0 0 auto;
+}
+
+.gl-journal-import {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.gl-journal-import__hint {
+  font-style: italic;
+}
+
+.gl-journal-import__done {
+  background: color-mix(in srgb, #fff 70%, #16a34a 30%);
+  color: #14532d;
+}
+
+.gl-journal-import__error {
+  display: block;
+  margin-top: 4px;
+}
+
+.gl-player-journal-read-imports {
+  margin-top: 8px;
+  border-top: 1px solid #e2e8f0;
+  padding-top: 10px;
+}
+
+.gl-player-journal-read-imports ul {
+  list-style: none;
+  padding: 0;
+  margin: 6px 0 0;
+  display: grid;
+  gap: 4px;
+}
+
 .gl-journal-embed {
   display: block;
   margin: 12px 0;

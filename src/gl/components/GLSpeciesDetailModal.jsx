@@ -12,6 +12,7 @@ import {
 import { mergeGlossaryLinkItems } from '../../utils/glGlossaryAutolink.js';
 import { GLButton } from './ui/GLButton.jsx';
 import { GLLearningAcknowledgeButton } from './GLLearningAcknowledgeButton.jsx';
+import { GLJournalImportButton } from './GLJournalImportButton.jsx';
 import { GLFeuilletDiscoveryPopover } from './GLFeuilletDiscoveryPopover.jsx';
 import { apiGL } from '../services/apiGL.js';
 
@@ -272,6 +273,14 @@ export function GLSpeciesDetailModal({
                 confirmCheckboxLabel="Je confirme avoir lu et compris cette fiche espèce."
                 isDone={isLearned}
                 onAcknowledged={handleAcknowledged}
+              />
+            ) : null}
+            {speciesCode ? (
+              <GLJournalImportButton
+                resourceType="species"
+                resourceRef={speciesCode}
+                title={nomCommun}
+                learned={isLearned}
               />
             ) : null}
             <GLButton type="button" variant="secondary" onClick={onClose}>
