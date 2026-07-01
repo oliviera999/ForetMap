@@ -498,6 +498,85 @@ test('GET /api/maps renvoie les cartes configurées', async () => {
   assert.ok(res.body.some((m) => m.id === 'n3'));
 });
 
+// ─── Zones spéciales (création + bascule du drapeau) ──────────────────────
+test('POST /api/zones peut créer une zone spéciale (special=true)', async () => {
+  const token = await getAdminAuthToken();
+  const res = await request(app)
+    .post('/api/zones')
+    .set('Authorization', `Bearer ${token}`)
+    .send({
+      name: `Bâtiment test ${Date.now()}`,
+      points: [
+        { xp: 10, yp: 10 },
+        { xp: 20, yp: 10 },
+        { xp: 20, yp: 20 },
+      ],
+      map_id: 'foret',
+      special: true,
+    })
+    .expect(201);
+  assert.ok(res.body.id);
+  const fetched = await request(app).get(`/api/zones/${res.body.id}`).expect(200);
+  assert.strictEqual(fetched.body.special, true);
+});
+
+test('PUT /api/zones/:id peut basculer le drapeau special dans les deux sens', async () => {
+  const token = await getAdminAuthToken();
+  const created = await request(app)
+    .post('/api/zones')
+    .set('Authorization', `Bearer ${token}`)
+    .send({
+      name: `Zone bascule ${Date.now()}`,
+      points: [
+        { xp: 30, yp: 30 },
+        { xp: 40, yp: 30 },
+        { xp: 40, yp: 40 },
+      ],
+      map_id: 'foret',
+    })
+    .expect(201);
+  const zoneId = created.body.id;
+  assert.strictEqual(created.body.special, false);
+
+  const toSpecial = await request(app)
+    .put(`/api/zones/${zoneId}`)
+    .set('Authorization', `Bearer ${token}`)
+    .send({ special: true })
+    .expect(200);
+  assert.strictEqual(toSpecial.body.special, true);
+
+  const backToNormal = await request(app)
+    .put(`/api/zones/${zoneId}`)
+    .set('Authorization', `Bearer ${token}`)
+    .send({ special: false })
+    .expect(200);
+  assert.strictEqual(backToNormal.body.special, false);
+});
+
+test('PUT /api/zones/:id sans champ special préserve le drapeau existant', async () => {
+  const token = await getAdminAuthToken();
+  const created = await request(app)
+    .post('/api/zones')
+    .set('Authorization', `Bearer ${token}`)
+    .send({
+      name: `Zone préservation ${Date.now()}`,
+      points: [
+        { xp: 50, yp: 50 },
+        { xp: 60, yp: 50 },
+        { xp: 60, yp: 60 },
+      ],
+      map_id: 'foret',
+      special: true,
+    })
+    .expect(201);
+  const updated = await request(app)
+    .put(`/api/zones/${created.body.id}`)
+    .set('Authorization', `Bearer ${token}`)
+    .send({ description: 'Modification sans toucher special' })
+    .expect(200);
+  assert.strictEqual(updated.body.special, true);
+});
+
 // ─── Statuts tâches (assign / unassign) ───────────────────────────────────
 test('Assign puis unassign met à jour le statut de la tâche', async () => {
   const token = await getAdminAuthToken();
