@@ -201,7 +201,7 @@ console (`docs/GL_FEUILLET_ZONES.md`).
    pas été **trouvé** ; `GET /feuillets/:code` répond `404` hors périmètre. MJ/Admin conservent
    l'accès intégral. Voir `lib/glLoreFeuilletPreview.js`, `routes/gl/lore.js`, helpers
    `resolveAccessiblePlayerBiomes` / `loadPlayerFeuilletStates` (`lib/glLoreFeuillets.js`),
-   migration `155_gl_lore_feuillet_preview_fields.sql`, tests `gl-lore-feuillet-access` /
+   migration `158_gl_lore_feuillet_preview_fields.sql`, tests `gl-lore-feuillet-access` /
    `gl-lore-feuillet-preview`.
 
 2. **[Mineur — granularité rôle] MJ et Admin sont indistinguables pour les feuillets.**

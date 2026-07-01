@@ -171,7 +171,9 @@ npm run gl:import:lore-feuillets -- --apply --file=chemin/vers/fichier.xlsx
 
 Depuis l’admin GL : **Contenus → Carnet Sélène** — import XLSX (boutons **Modèle XLSX** / **Exporter**, API `GET /api/gl/lore/admin/feuillets/import/template` et `GET /api/gl/lore/admin/feuillets/export`). Liaison optionnelle d’un feuillet à une zone polygonale : panneau zone du studio carte ou `PUT /api/gl/lore/admin/feuillets/:code/kingdom-zone`.
 
-Runtime : découverte à l’entrée en zone (`POST /api/gl/lore/games/:id/feuillets/:code/present`) **ou** à la première étude d’espèce (`POST /api/gl/learning/species/:code` avec `gameId`, voir `docs/API.md`), onglet joueur **Carnet de Sélène**, réglages plateforme/partie (`gameplay.lore_*`, `modules.lore_carnet_enabled`).
+Runtime — **accès** : les feuillets ne sont **pas lisibles par défaut**. Le joueur ne voit que la **liste** scopée aux biomes des chapitres qu'il a joués ; un feuillet non trouvé est servi en **aperçu verrouillé** (titre + champs de `gameplay.lore_feuillet_preview_fields`, défaut `incipit`). MJ : accès intégral.
+
+Runtime — **obtention** : découverte à l’entrée en zone (`POST /api/gl/lore/games/:id/feuillets/:code/present`), première étude d’espèce (`POST /api/gl/learning/species/:code` avec `gameId`), **ou** — si l'acquisition ③ est activée — toute **première consultation gatée** d'un élément consultable (`POST /api/gl/learning/mark/:type/:ref`, glossaire, tutoriel) qui attribue un feuillet du **pool du chapitre** à l'équipe (`feuilletRevealed`). Le **nom du découvreur** est mémorisé (`gl_game_feuillet_states.discovered_by_*`) et affiché (« Découvert par … »). Onglet joueur **Carnet de Sélène** ; réglages plateforme/partie (`gameplay.lore_*` dont `lore_feuillet_acquisition_enabled` / `_channels`, `modules.lore_carnet_enabled`). Détail : `docs/AUDIT_FEUILLETS_ACCES.md`.
 
 ## Glossaire narratif (lore)
 

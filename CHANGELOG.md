@@ -48,7 +48,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   `isFeuilletFound` (`lib/glLoreFeuillets.js`) et module `lib/glLoreFeuilletPreview.js`.
 - **Réglage plateforme** : `gameplay.lore_feuillet_preview_fields` (liste, défaut `["incipit"]`) pilote
   les champs révélés en aperçu (parmi `incipit`, `ideeCle`, `imageUrl`, `ancrageScientifique`).
-  Réglable dans **Réglages GL → Carnet de Sélène**. Migration idempotente `155_gl_lore_feuillet_preview_fields.sql`.
+  Réglable dans **Réglages GL → Carnet de Sélène**. Migration idempotente `158_gl_lore_feuillet_preview_fields.sql`.
 - **Frontend** (`GLSeleneCarnetView.jsx`) : feuillet verrouillé cliquable (badge 🔒) affichant l'aperçu
   + un rappel « trouvez-le sur la carte » ; aucune vignette ni texte tant qu'il n'est pas révélé.
   Sélecteur des champs d'aperçu dans `GLSettingsView.jsx` (`glSettingsForm.js`).
