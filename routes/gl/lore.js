@@ -27,6 +27,9 @@ const {
   updateFeuilletFields,
 } = require('../../lib/glLoreFeuillets');
 const { maskLockedFeuillet } = require('../../lib/glLoreFeuilletPreview');
+const { getZoneFeuilletCodes } = require('../../lib/glFeuilletZonesCatalog');
+const { assembleFeuilletOverview } = require('../../lib/glFeuilletAdminOverview');
+const { buildBulkPatch, buildBulkUpdateSql } = require('../../lib/glFeuilletBulkPatch');
 const { GL_DEMO_FEUILLET_CODES } = require('../../lib/gl/demoFeuillets');
 const { canPresentFeuillet } = require('../../lib/glLoreFeuilletRetrigger');
 const {
@@ -675,6 +678,7 @@ router.get(
     const q = String(req.query?.q || '').trim();
     const params = [];
     let sql = `SELECT feuillet_code, titre, type, liasse, biome_slug, zone_label, kingdom_zone_id,
+                     plateau_number, lien_canal, lien_ref, lien_pays, cout_gemme, gain_coeur,
                      mode_apparition, ordre_voyage, statut
                FROM gl_lore_feuillets WHERE 1=1`;
     if (q) {
@@ -685,6 +689,133 @@ router.get(
     sql += ' ORDER BY ordre_voyage ASC, ordre_liasse ASC LIMIT 500';
     const items = await queryAll(sql, params);
     return res.json({ items });
+  }),
+);
+
+// GET /admin/feuillets/overview — vue d'ensemble : couverture par canal, orphelins,
+// répartition par chapitre, liens résolus en noms et stats de découverte.
+// NB : déclarée AVANT `/admin/feuillets/:code` pour ne pas être capturée par le param.
+router.get(
+  '/admin/feuillets/overview',
+  requireGlPermission('gl.content.manage'),
+  asyncHandler(async (req, res) => {
+    const feuillets = await queryAll(
+      `SELECT feuillet_code, titre, type, statut, biome_slug, plateau_number,
+              lien_canal, lien_ref, lien_pays, kingdom_zone_id, cout_gemme, gain_coeur
+         FROM gl_lore_feuillets
+        ORDER BY ordre_voyage ASC, ordre_liasse ASC, feuillet_code ASC`,
+    );
+
+    // Chapitres + biomes (pour le rattachement déduit).
+    const chapterRows = await queryAll(
+      'SELECT id, title, plateau_number FROM gl_chapters ORDER BY order_index ASC, id ASC',
+    );
+    const biomeRows = await queryAll('SELECT chapter_id, biome_slug FROM gl_chapter_biomes');
+    const biomesByChapter = new Map();
+    for (const r of biomeRows) {
+      const list = biomesByChapter.get(r.chapter_id) || [];
+      if (r.biome_slug) list.push(String(r.biome_slug));
+      biomesByChapter.set(r.chapter_id, list);
+    }
+    const chapters = chapterRows.map((c) => ({
+      id: c.id,
+      name: c.title || `Chapitre ${c.id}`,
+      plateauNumber: c.plateau_number != null ? Number(c.plateau_number) : null,
+      biomeSlugs: biomesByChapter.get(c.id) || [],
+    }));
+
+    // Noms d'espèces pour résoudre les liens espèce.
+    const refCodes = [
+      ...new Set(
+        feuillets
+          .filter((f) => ['espece', 'espece_pays'].includes(String(f.lien_canal || '')))
+          .map((f) => String(f.lien_ref || '').trim())
+          .filter(Boolean),
+      ),
+    ];
+    const speciesNames = new Map();
+    if (refCodes.length) {
+      const rows = await queryAll(
+        `SELECT species_code, nom_commun FROM gl_species WHERE species_code IN (${refCodes
+          .map(() => '?')
+          .join(', ')})`,
+        refCodes,
+      );
+      for (const r of rows) speciesNames.set(String(r.species_code), r.nom_commun);
+    }
+
+    // Stats de découverte par feuillet (nombre de parties / équipes).
+    const statRows = await queryAll(
+      `SELECT feuillet_code,
+              COUNT(DISTINCT game_id) AS games,
+              COUNT(DISTINCT CONCAT(game_id, '-', team_id)) AS teams
+         FROM gl_game_feuillet_states
+        GROUP BY feuillet_code`,
+    );
+    const discoveryStats = new Map();
+    for (const r of statRows) {
+      discoveryStats.set(String(r.feuillet_code), {
+        games: Number(r.games) || 0,
+        teams: Number(r.teams) || 0,
+      });
+    }
+
+    const overview = assembleFeuilletOverview({
+      feuillets,
+      chapters,
+      zoneCodes: getZoneFeuilletCodes(),
+      speciesNames,
+      discoveryStats,
+    });
+    return res.json(overview);
+  }),
+);
+
+// POST /admin/feuillets/bulk — édition en masse d'une sélection de feuillets.
+// Body : { codes: string[], patch: { lien_canal?, lien_ref?, lien_pays?, biome_slug?,
+//          plateau_number?, statut?, cout_gemme?, gain_coeur? } }.
+router.post(
+  '/admin/feuillets/bulk',
+  requireGlPermission('gl.content.manage'),
+  asyncHandler(async (req, res) => {
+    const codes = [
+      ...new Set(
+        (Array.isArray(req.body?.codes) ? req.body.codes : [])
+          .map((c) => String(c || '').trim())
+          .filter(Boolean),
+      ),
+    ];
+    if (!codes.length) return res.status(400).json({ error: 'Aucun feuillet sélectionné' });
+
+    const { patch, errors } = buildBulkPatch(req.body?.patch || {});
+    if (errors.length) return res.status(400).json({ error: errors[0].error, errors });
+    if (!Object.keys(patch).length) {
+      return res.status(400).json({ error: 'Aucun champ à modifier' });
+    }
+
+    // Cohérent avec l'édition unitaire : biome hors référentiel refusé en masse.
+    if (patch.biome_slug) {
+      const known = new Set(
+        (await queryAll('SELECT slug FROM gl_biomes')).map((r) => String(r.slug)),
+      );
+      if (!known.has(patch.biome_slug)) {
+        return res.status(400).json({ error: `Biome inconnu « ${patch.biome_slug} »` });
+      }
+    }
+
+    const { setSql, params } = buildBulkUpdateSql(patch);
+    const placeholders = codes.map(() => '?').join(', ');
+    const result = await execute(
+      `UPDATE gl_lore_feuillets SET ${setSql}, updated_at = NOW()
+        WHERE feuillet_code IN (${placeholders})`,
+      [...params, ...codes],
+    );
+    return res.json({
+      ok: true,
+      requested: codes.length,
+      updated: result?.affectedRows ?? 0,
+      patch,
+    });
   }),
 );
 
