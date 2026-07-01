@@ -213,6 +213,11 @@ export function GLSeleneCarnetView({
               />
               <div className="gl-selene-carnet__content">
                 <h3>{active.titre}</h3>
+                {!activeLocked && active.discoveredBy ? (
+                  <p className="gl-hint gl-selene-carnet__discoverer">
+                    Découvert par <strong>{active.discoveredBy}</strong>
+                  </p>
+                ) : null}
                 {active.incipit ? (
                   <p className="gl-selene-carnet__incipit">{active.incipit}</p>
                 ) : null}

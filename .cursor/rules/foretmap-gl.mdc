@@ -36,6 +36,10 @@ alwaysApply: false
   `context_comments`, `journal`, `player_journal`, `mascot_packs`, `market`, `spell_cast`,
   `virtual_dice`, `vitality`, `zone_music`, `lore_carnet`, `lore_glossary`,
   `lore_effacement`, `lore_gemme_costs`, `lore_heart_rewards`).
+- Feuillets (carnet de Sélène) : **non lisibles par défaut** côté joueur (liste scopée aux biomes
+  des chapitres joués, aperçu verrouillé `gameplay.lore_feuillet_preview_fields`) ; acquisition ③
+  par consultation gatée (`gameplay.lore_feuillet_acquisition_enabled` / `_channels`) attribuant un
+  feuillet du pool du chapitre à l'équipe avec découvreur. Détail : `docs/AUDIT_FEUILLETS_ACCES.md`.
 - Tout nouvel onglet/feature de `src/gl/AppGL.jsx` doit : (1) déclarer son drapeau `modules.*`
   dans `lib/glSettings.js`, (2) être validé **strictement booléen** côté `routes/gl/admin.js`
   (toggle `PUT /api/gl/admin/settings/modules.*`), (3) être lu au login via `GET /api/gl/auth/config`.
