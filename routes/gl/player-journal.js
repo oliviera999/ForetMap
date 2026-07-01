@@ -15,8 +15,20 @@ const {
   countArticleAssets,
   getPlayerJournalLimits,
   playerJournalUploadPrefix,
+  getPlayerJournalImports,
+  hasLearnedResource,
   canStaffAccessPlayer,
 } = require('../../lib/glPlayerJournal');
+const {
+  normalizeResourceType,
+  normalizeResourceRef,
+  GL_RESOURCE_TYPES,
+} = require('../../lib/shared/resourceQuestionGatingCore');
+const {
+  isLearnableResourceType,
+  resourceExists,
+  resolveResourceTitle,
+} = require('../../lib/glLearnableResources');
 const asyncHandler = require('../../lib/asyncHandler');
 
 const router = express.Router();
@@ -56,7 +68,8 @@ router.get(
     if (!(await ensurePlayerJournalModuleEnabled(res))) return;
     if (!requireGlPlayer(req, res)) return;
     const data = await getArticlesForPlayer(req.glAuth.userId);
-    return res.json(data);
+    const imports = await getPlayerJournalImports(req.glAuth.userId);
+    return res.json({ ...data, imports });
   }),
 );
 
@@ -231,6 +244,84 @@ router.delete(
   }),
 );
 
+function normalizeImportTitle(raw) {
+  const s = raw == null ? '' : String(raw).trim();
+  if (!s) return null;
+  return [...s].slice(0, 255).join('');
+}
+
+// Import d'un élément du site (appris au préalable) dans le carnet.
+router.post(
+  '/me/imports',
+  asyncHandler(async (req, res) => {
+    if (!(await ensurePlayerJournalModuleEnabled(res))) return;
+    if (!requireGlPlayer(req, res)) return;
+    const playerId = Number(req.glAuth.userId);
+    const resourceType = normalizeResourceType(req.body?.resourceType, GL_RESOURCE_TYPES);
+    const resourceRef = normalizeResourceRef(req.body?.resourceRef);
+    if (!resourceType || !resourceRef || !isLearnableResourceType(resourceType)) {
+      return res.status(400).json({ error: 'Ressource invalide' });
+    }
+    const db = { queryOne };
+    if (!(await resourceExists(db, resourceType, resourceRef))) {
+      return res.status(404).json({ error: 'Ressource introuvable' });
+    }
+    if (!(await hasLearnedResource(playerId, resourceType, resourceRef))) {
+      return res
+        .status(403)
+        .json({ error: 'Marque d’abord cet élément comme appris pour l’importer' });
+    }
+    const clientTitle = normalizeImportTitle(req.body?.title);
+    const title =
+      clientTitle ||
+      (await resolveResourceTitle(db, resourceType, resourceRef)) ||
+      `${resourceType} · ${resourceRef}`;
+    await execute(
+      `INSERT INTO gl_player_journal_imports (player_id, resource_type, resource_ref, title, created_at)
+       VALUES (?, ?, ?, ?, NOW())
+       ON DUPLICATE KEY UPDATE title = VALUES(title)`,
+      [playerId, resourceType, resourceRef, title],
+    );
+    const row = await queryOne(
+      `SELECT id, resource_type, resource_ref, title, created_at
+         FROM gl_player_journal_imports
+        WHERE player_id = ? AND resource_type = ? AND resource_ref = ? LIMIT 1`,
+      [playerId, resourceType, resourceRef],
+    );
+    return res.status(201).json({
+      import: {
+        id: Number(row.id),
+        resourceType: row.resource_type,
+        resourceRef: row.resource_ref,
+        title: row.title || '',
+        createdAt: row.created_at,
+      },
+    });
+  }),
+);
+
+// Retrait d'un élément importé du carnet.
+router.delete(
+  '/me/imports/:importId',
+  asyncHandler(async (req, res) => {
+    if (!(await ensurePlayerJournalModuleEnabled(res))) return;
+    if (!requireGlPlayer(req, res)) return;
+    const playerId = Number(req.glAuth.userId);
+    const importId = Number(req.params.importId);
+    if (!Number.isFinite(importId)) return res.status(400).json({ error: 'Identifiant invalide' });
+    const row = await queryOne(
+      'SELECT id FROM gl_player_journal_imports WHERE id = ? AND player_id = ? LIMIT 1',
+      [importId, playerId],
+    );
+    if (!row) return res.status(404).json({ error: 'Import introuvable' });
+    await execute('DELETE FROM gl_player_journal_imports WHERE id = ? AND player_id = ?', [
+      importId,
+      playerId,
+    ]);
+    return res.json({ ok: true });
+  }),
+);
+
 // Lecture (MJ) des articles du carnet d'un joueur.
 router.get(
   '/players/:playerId',
@@ -244,12 +335,14 @@ router.get(
       return res.status(404).json({ error: 'Joueur introuvable' });
     }
     const data = await getArticlesForPlayer(targetId);
+    const imports = await getPlayerJournalImports(targetId);
     const player = await queryOne(
       'SELECT id, pseudo, first_name, last_name FROM gl_players WHERE id = ? LIMIT 1',
       [targetId],
     );
     return res.json({
       ...data,
+      imports,
       player: player
         ? {
             id: Number(player.id),

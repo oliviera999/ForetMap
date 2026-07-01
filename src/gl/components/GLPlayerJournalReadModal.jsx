@@ -3,6 +3,7 @@ import { DialogShell } from '../../components/DialogShell.jsx';
 import { apiGL } from '../services/apiGL.js';
 import { renderMarkdownToSafeHtml } from '../../utils/markdown.js';
 import { GLButton } from './ui/GLButton.jsx';
+import { importTypeMeta } from '../utils/glJournalImportMeta.js';
 
 function playerLabel(player) {
   if (!player) return 'Joueur';
@@ -83,6 +84,7 @@ export function GLPlayerJournalReadModal({ playerId, open, onClose }) {
   }, [open, playerId]);
 
   const articles = Array.isArray(data?.articles) ? data.articles : [];
+  const imports = Array.isArray(data?.imports) ? data.imports : [];
 
   return (
     <DialogShell
@@ -102,11 +104,27 @@ export function GLPlayerJournalReadModal({ playerId, open, onClose }) {
         {loading ? <p className="gl-hint">Chargement…</p> : null}
         {error ? <p className="gl-error">{error}</p> : null}
         {!loading && !error && data ? (
-          articles.length > 0 ? (
+          articles.length > 0 || imports.length > 0 ? (
             <div className="gl-player-journal-read-list">
               {articles.map((article) => (
-                <ReadArticle key={article.id} article={article} />
+                <ReadArticle key={`a-${article.id}`} article={article} />
               ))}
+              {imports.length > 0 ? (
+                <section className="gl-player-journal-read-imports">
+                  <h3>Éléments importés ({imports.length})</h3>
+                  <ul>
+                    {imports.map((item) => {
+                      const meta = importTypeMeta(item.resourceType);
+                      return (
+                        <li key={`i-${item.id}`}>
+                          <span aria-hidden="true">{meta.icon}</span> {meta.label} —{' '}
+                          <strong>{item.title || item.resourceRef}</strong>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </section>
+              ) : null}
             </div>
           ) : (
             <p className="gl-hint">Ce joueur n’a pas encore rédigé d’article dans son carnet.</p>

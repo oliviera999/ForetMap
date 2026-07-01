@@ -2,13 +2,20 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { apiGL } from '../services/apiGL.js';
 import { GLButton } from './ui/GLButton.jsx';
 import { GLPlayerJournalArticleCard } from './GLPlayerJournalArticleCard.jsx';
+import { GLPlayerJournalImportCard } from './GLPlayerJournalImportCard.jsx';
 import { GLHelpPanel } from './GLHelpPanel.jsx';
 import { useGlHelpContent } from '../hooks/useGlHelpContent.js';
 
-export function GLPlayerJournalView({ gameState }) {
+function timeValue(v) {
+  const t = v ? new Date(v).getTime() : 0;
+  return Number.isFinite(t) ? t : 0;
+}
+
+export function GLPlayerJournalView({ gameState, onNavigateTab }) {
   // 0 = illimité (pas de plafond explicite) : valeur par défaut du carnet personnel.
   const [limits, setLimits] = useState({ maxChars: 0, maxAssets: 0 });
   const [articles, setArticles] = useState([]);
+  const [imports, setImports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [creating, setCreating] = useState(false);
@@ -28,6 +35,7 @@ export function GLPlayerJournalView({ gameState }) {
       const data = await apiGL('/api/gl/player-journal/me');
       setLimits(data?.limits || { maxChars: 0, maxAssets: 0 });
       setArticles(Array.isArray(data?.articles) ? data.articles : []);
+      setImports(Array.isArray(data?.imports) ? data.imports : []);
     } catch (err) {
       setError(err.message || 'Chargement impossible');
     } finally {
@@ -58,15 +66,31 @@ export function GLPlayerJournalView({ gameState }) {
     setArticles((prev) => prev.filter((a) => a.id !== articleId));
   }, []);
 
+  const handleDeleteImport = useCallback(async (importId) => {
+    await apiGL(`/api/gl/player-journal/me/imports/${importId}`, 'DELETE');
+    setImports((prev) => prev.filter((i) => i.id !== importId));
+  }, []);
+
+  // Fil chronologique unifié : articles rédigés + éléments importés (du plus récent au plus ancien).
+  const timeline = useMemo(() => {
+    const items = [
+      ...articles.map((a) => ({ kind: 'article', at: timeValue(a.createdAt), data: a })),
+      ...imports.map((i) => ({ kind: 'import', at: timeValue(i.createdAt), data: i })),
+    ];
+    items.sort((x, y) => y.at - x.at);
+    return items;
+  }, [articles, imports]);
+
   return (
     <section className="gl-panel gl-player-journal fade-in">
       <header className="gl-player-journal__header">
         <div>
           <h2>Mon journal</h2>
           <p className="gl-hint gl-player-journal__intro">
-            Ton carnet personnel, organisé en articles : clique sur « Nouvel article » pour noter ce
-            que tu veux, associer des images à ton texte, ou simplement publier des médias. Tu peux
-            tout modifier à tout moment. Le maître du jeu peut le consulter pour t’accompagner.
+            Ton carnet personnel, en ordre chronologique : clique sur « Nouvel article » pour noter
+            ce que tu veux (texte, images ou médias seuls). Tu peux aussi importer ici les éléments
+            du site que tu as appris (feuillets, écosystèmes, fiches biodiversité, tutos,
+            définitions…) depuis leur page. Le maître du jeu peut te consulter pour t’accompagner.
           </p>
         </div>
       </header>
@@ -83,21 +107,31 @@ export function GLPlayerJournalView({ gameState }) {
 
       {loading ? (
         <p className="gl-hint">Chargement de ton carnet…</p>
-      ) : articles.length === 0 ? (
+      ) : timeline.length === 0 ? (
         <p className="gl-hint gl-player-journal__empty">
-          Ton carnet est vide. Crée ton premier article pour commencer.
+          Ton carnet est vide. Crée ton premier article, ou importe un élément appris depuis sa
+          page.
         </p>
       ) : (
         <div className="gl-player-journal__articles">
-          {articles.map((article) => (
-            <GLPlayerJournalArticleCard
-              key={article.id}
-              article={article}
-              limits={limits}
-              chapterSpells={chapterSpells}
-              onDelete={handleDeleteArticle}
-            />
-          ))}
+          {timeline.map((entry) =>
+            entry.kind === 'article' ? (
+              <GLPlayerJournalArticleCard
+                key={`a-${entry.data.id}`}
+                article={entry.data}
+                limits={limits}
+                chapterSpells={chapterSpells}
+                onDelete={handleDeleteArticle}
+              />
+            ) : (
+              <GLPlayerJournalImportCard
+                key={`i-${entry.data.id}`}
+                item={entry.data}
+                onNavigateTab={onNavigateTab}
+                onDelete={handleDeleteImport}
+              />
+            ),
+          )}
         </div>
       )}
     </section>
