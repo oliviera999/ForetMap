@@ -103,8 +103,8 @@ L'import (section 4) n'est possible que pour un élément **acquis** par le joue
 repose sur le système d'apprentissage GL (`gl_learning_acknowledgements`, état par joueur) :
 
 1. Le joueur **consulte** l'élément sur sa page.
-2. Il clique sur **« Marquer comme appris »** (le libellé varie selon le contenu : « étudié »,
-   « lu », « découvert »…).
+2. Il clique sur **« Marquer comme appris »** (libellé **harmonisé** sur toutes les pages :
+   même intitulé d'action « Marquer comme appris » et même état « ✓ Appris »).
 3. Si l'élément est **conditionné par un quiz** (gating configuré via `gl_resource_question_links`
    / `gl_resource_gating_policy`), un ou plusieurs **QCM** doivent être **réussis** avant de
    pouvoir confirmer.
@@ -214,6 +214,19 @@ Le bouton **« Voir »** ouvre l'**élément précis** dans sa vue (pas seulemen
 
 L'import est **réservé aux joueurs** (`gl_player`) : le bouton est masqué pour les invités et le
 MJ.
+
+### Épinglage, tri, recherche & accessibilité
+
+- **Épinglage** : chaque **article** et chaque **import** peut être **épinglé** (bouton « Épingler »
+  / « 📌 Épinglé »). Les entrées épinglées remontent **en tête** du fil (avant le tri
+  chronologique). Persisté côté serveur : colonne `pinned` (migration `159`), routes
+  `PUT /player-journal/me/articles/:id/pin` et `.../me/imports/:id/pin` (`{ pinned }`), booléen
+  `pinned` exposé dans `GET /me`.
+- **Recherche / filtre / tri** : la barre d'outils du fil (voir §1) filtre/rechercher/trie côté
+  client sur les données déjà chargées.
+- **Accessibilité** : boutons d'import et de carte porteurs d'`aria-label` explicites (« Voir
+  “…” », « Épingler “…” », « Retirer “…” »), `aria-pressed` sur les bascules d'épinglage,
+  contrôles natifs navigables au clavier ; cibles tactiles ≥ 44 px (composant `GLButton`).
 
 ---
 
@@ -384,6 +397,13 @@ Les contrôles `GLLearnAndImport` / `GLJournalImportButton` sont câblés sur : 
 - **Gating par quiz** de l'acquisition : configuré via les liens ressource ↔ question
   (`gl_resource_question_links`) et la politique de gating (`gl_resource_gating_policy` / réglages
   `gating.*`), indépendamment du carnet.
+
+> **Performance / pagination (évaluation)** : le fil est chargé en un seul appel `GET /me`
+> (articles + imports), puis filtré/trié **côté client**. Pour la volumétrie attendue (carnet
+> personnel d'un élève : quelques dizaines d'entrées au plus), c'est largement suffisant et la
+> pagination n'est **pas justifiée** à ce stade. Si un usage réel faisait apparaître des carnets
+> très volumineux, une pagination/chargement incrémental (curseur sur `created_at`/`id`) pourrait
+> être ajoutée sans changer le modèle ; ce n'est pas nécessaire aujourd'hui.
 
 ---
 

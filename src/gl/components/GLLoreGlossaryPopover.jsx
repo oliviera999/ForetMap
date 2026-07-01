@@ -129,8 +129,8 @@ export function GLLoreGlossaryPopover({
             resourceType="lore_glossary"
             resourceRef={loreCode}
             title={term.terme || loreCode}
-            acknowledgeLabel="Marquer comme découvert"
-            learnedLabel="✓ Découvert"
+            acknowledgeLabel="Marquer comme appris"
+            learnedLabel="✓ Appris"
           />
         ) : null}
         <footer>

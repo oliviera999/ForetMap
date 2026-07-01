@@ -255,8 +255,8 @@ export function GLTutorialsView({
                 resourceType="tutorial"
                 resourceRef={active.id}
                 itemTitle={active.title}
-                labelAction="✓ Marquer comme lu"
-                labelDone="✓ Lu"
+                labelAction="Marquer comme appris"
+                labelDone="✓ Appris"
                 titleDone="Tu as confirmé avoir lu et compris ce tutoriel"
                 confirmIntro={
                   <>

@@ -398,6 +398,130 @@ test('A.3 — import ecosystem : slug non enregistré (gl_biomes) refusé (404)'
     .expect(403);
 });
 
+// --- Épinglage des entrées (articles + imports) ---
+test('PUT /me/articles/:id/pin — épingle puis désépingle un article (reflété dans GET /me)', async () => {
+  const created = await request(app)
+    .post('/api/gl/player-journal/me/articles')
+    .set('Authorization', `Bearer ${playerToken}`)
+    .send({ title: 'À épingler', bodyMarkdown: 'Contenu' })
+    .expect(201);
+  const id = created.body.article.id;
+  // Par défaut : non épinglé.
+  assert.strictEqual(created.body.article.pinned, false);
+
+  // Épingle.
+  const pinRes = await request(app)
+    .put(`/api/gl/player-journal/me/articles/${id}/pin`)
+    .set('Authorization', `Bearer ${playerToken}`)
+    .send({ pinned: true })
+    .expect(200);
+  assert.strictEqual(pinRes.body.ok, true);
+  assert.strictEqual(pinRes.body.pinned, true);
+
+  // GET /me reflète pinned:true.
+  const me = await request(app)
+    .get('/api/gl/player-journal/me')
+    .set('Authorization', `Bearer ${playerToken}`)
+    .expect(200);
+  const found = me.body.articles.find((a) => a.id === id);
+  assert.ok(found);
+  assert.strictEqual(found.pinned, true);
+
+  // Désépingle.
+  const unpinRes = await request(app)
+    .put(`/api/gl/player-journal/me/articles/${id}/pin`)
+    .set('Authorization', `Bearer ${playerToken}`)
+    .send({ pinned: false })
+    .expect(200);
+  assert.strictEqual(unpinRes.body.pinned, false);
+
+  const me2 = await request(app)
+    .get('/api/gl/player-journal/me')
+    .set('Authorization', `Bearer ${playerToken}`)
+    .expect(200);
+  const found2 = me2.body.articles.find((a) => a.id === id);
+  assert.strictEqual(found2.pinned, false);
+});
+
+test('PUT /me/articles/:id/pin — article d’un autre joueur → 404', async () => {
+  const created = await request(app)
+    .post('/api/gl/player-journal/me/articles')
+    .set('Authorization', `Bearer ${playerToken}`)
+    .send({ bodyMarkdown: 'privé pin' })
+    .expect(201);
+  await request(app)
+    .put(`/api/gl/player-journal/me/articles/${created.body.article.id}/pin`)
+    .set('Authorization', `Bearer ${playerNoPermToken}`)
+    .send({ pinned: true })
+    .expect(404);
+});
+
+test('PUT /me/articles/:id/pin — pinned non booléen → 400', async () => {
+  const created = await request(app)
+    .post('/api/gl/player-journal/me/articles')
+    .set('Authorization', `Bearer ${playerToken}`)
+    .send({ bodyMarkdown: 'pin invalide' })
+    .expect(201);
+  await request(app)
+    .put(`/api/gl/player-journal/me/articles/${created.body.article.id}/pin`)
+    .set('Authorization', `Bearer ${playerToken}`)
+    .send({ pinned: 'yes' })
+    .expect(400);
+});
+
+test('PUT /me/imports/:id/pin — épingle un import (reflété dans GET /me) + 404 autre joueur', async () => {
+  const slug = `pin-page-${stamp}`;
+  await execute(
+    `INSERT INTO gl_content_pages (slug, title, body_markdown)
+     VALUES (?, 'Page à épingler', '# Pin')
+     ON DUPLICATE KEY UPDATE title = VALUES(title)`,
+    [slug],
+  );
+  await execute(
+    `INSERT INTO gl_learning_acknowledgements
+       (reader_user_type, reader_user_id, target_type, target_code, acknowledged_at)
+     VALUES ('gl_player', ?, 'content_page', ?, NOW())
+     ON DUPLICATE KEY UPDATE acknowledged_at = NOW()`,
+    [String(playerAId), slug],
+  );
+  const imp = await request(app)
+    .post('/api/gl/player-journal/me/imports')
+    .set('Authorization', `Bearer ${playerToken}`)
+    .send({ resourceType: 'content_page', resourceRef: slug })
+    .expect(201);
+  const importId = imp.body.import.id;
+
+  // Épingle.
+  const pinRes = await request(app)
+    .put(`/api/gl/player-journal/me/imports/${importId}/pin`)
+    .set('Authorization', `Bearer ${playerToken}`)
+    .send({ pinned: true })
+    .expect(200);
+  assert.strictEqual(pinRes.body.ok, true);
+  assert.strictEqual(pinRes.body.pinned, true);
+
+  // GET /me reflète pinned:true sur l'import.
+  const me = await request(app)
+    .get('/api/gl/player-journal/me')
+    .set('Authorization', `Bearer ${playerToken}`)
+    .expect(200);
+  const found = me.body.imports.find((i) => i.id === importId);
+  assert.ok(found);
+  assert.strictEqual(found.pinned, true);
+
+  // Import d'un autre joueur → 404.
+  await request(app)
+    .put(`/api/gl/player-journal/me/imports/${importId}/pin`)
+    .set('Authorization', `Bearer ${playerNoPermToken}`)
+    .send({ pinned: true })
+    .expect(404);
+
+  await request(app)
+    .delete(`/api/gl/player-journal/me/imports/${importId}`)
+    .set('Authorization', `Bearer ${playerToken}`)
+    .expect(200);
+});
+
 test('A.4 — titre d’import résolu à l’affichage (renommage de la source)', async () => {
   const slug = `a4-page-${stamp}`;
   await execute(

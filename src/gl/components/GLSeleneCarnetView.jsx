@@ -267,8 +267,8 @@ export function GLSeleneCarnetView({
                     resourceType="feuillet"
                     resourceRef={active.feuilletCode}
                     title={active.titre || active.feuilletCode}
-                    acknowledgeLabel="Marquer comme découvert"
-                    learnedLabel="✓ Découvert"
+                    acknowledgeLabel="Marquer comme appris"
+                    learnedLabel="✓ Appris"
                   />
                 ) : null}
               </div>
