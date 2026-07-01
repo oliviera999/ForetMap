@@ -189,20 +189,20 @@ console (`docs/GL_FEUILLET_ZONES.md`).
 
 ## 9. Points d'attention (findings)
 
-> Classés par priorité. À valider avec l'équipe avant tout correctif — ce document n'apporte
-> **aucune** modification de comportement.
+> Classés par priorité. Le **finding #1** a depuis été traité (voir ci-dessous) ; les autres
+> restent des observations à valider avec l'équipe avant tout correctif.
 
-1. **[À confirmer — accès contenu] Le carnet expose tout le contenu narratif à tout compte GL,
-   indépendamment de la progression.** `GET /api/gl/lore/feuillets` (`lore.js:138-182`) renvoie
-   **tous** les feuillets `actif` avec leur `displayText` (= `texte_accessible`) à n'importe quel
-   utilisateur authentifié (y compris un joueur), sans exiger `gameId/teamId` ni découverte
-   préalable. Le champ `progressStatus` vaut `locked` mais **le texte est quand même renvoyé**.
-   De même, `GET /feuillets/:code` ne renvoie 403 que si une **ligne d'état `locked` existe** ;
-   sans `gameId/teamId`, `progress` est `null` et le feuillet est servi librement. → Le
-   verrouillage « découverte » est **cosmétique côté affichage**, pas appliqué au serveur.
-   Impact : un joueur curieux peut énumérer tout le récit (spoilers) via l'API. À arbitrer :
-   est-ce voulu (le carnet est une bibliothèque ouverte) ou faut-il gater par progression ?
-   Seul garde-fou actuel : le module `loreCarnetEnabled`.
+1. **[RÉSOLU] Le carnet exposait tout le contenu narratif à tout compte GL, indépendamment de la
+   progression.** Historiquement, `GET /api/gl/lore/feuillets` renvoyait **tous** les feuillets
+   `actif` avec leur `displayText` à n'importe quel joueur (verrouillage seulement cosmétique).
+   → **Corrigé** : côté joueur, la liste est désormais scopée **côté serveur** aux biomes des
+   chapitres joués (∪ feuillets trouvés) et le contenu est masqué (**aperçu verrouillé** : titre +
+   champs de `gameplay.lore_feuillet_preview_fields`, défaut `incipit`) tant que le feuillet n'a
+   pas été **trouvé** ; `GET /feuillets/:code` répond `404` hors périmètre. MJ/Admin conservent
+   l'accès intégral. Voir `lib/glLoreFeuilletPreview.js`, `routes/gl/lore.js`, helpers
+   `resolveAccessiblePlayerBiomes` / `loadPlayerFeuilletStates` (`lib/glLoreFeuillets.js`),
+   migration `155_gl_lore_feuillet_preview_fields.sql`, tests `gl-lore-feuillet-access` /
+   `gl-lore-feuillet-preview`.
 
 2. **[Mineur — granularité rôle] MJ et Admin sont indistinguables pour les feuillets.**
    Les sessions staff GL (MJ **et** admin) portent toutes `userType: 'gl_admin'` ; seul le
@@ -239,5 +239,7 @@ console (`docs/GL_FEUILLET_ZONES.md`).
   ce qui coûte des gemmes / rapporte des cœurs et l'inscrit au carnet de l'équipe.
 - **Gouvernance** : le contenu s'administre via import/édition XLSX et le calque de zones via
   un fichier JSON versionné, sous permission `gl.content.manage`.
-- **Principal arbitrage** : décider si le carnet doit rester une **bibliothèque ouverte** (état
-  actuel) ou **gater le contenu par progression** côté serveur (finding #1).
+- **Lisibilité (décidée)** : par défaut, un joueur ne peut **pas lire** un feuillet — il n'en voit
+  que la liste (biomes des chapitres joués) jusqu'à l'avoir **trouvé** sur la carte ; l'aperçu des
+  feuillets verrouillés est configurable au niveau plateforme (`gameplay.lore_feuillet_preview_fields`).
+  Cf. finding #1 (résolu). Les autres moyens d'obtention restent à détailler.

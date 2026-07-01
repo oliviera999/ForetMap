@@ -14,6 +14,7 @@ const {
   MASCOT_MOVE_ACTORS,
   getGameplaySettings,
 } = require('../../lib/glSettings');
+const { normalizeFeuilletPreviewFields } = require('../../lib/glLoreFeuilletPreview');
 const { getDefaultVitalityFromSettings, clampVitality } = require('../../lib/glVitality');
 const {
   MAX_IMPORT_ROWS,
@@ -997,6 +998,14 @@ router.put(
         return res.status(400).json({ error: 'Niveau spoiler lore invalide (cle, recit, secret)' });
       }
       value = level;
+    }
+    if (key === 'gameplay.lore_feuillet_preview_fields') {
+      if (!Array.isArray(value)) {
+        return res
+          .status(400)
+          .json({ error: 'La valeur de lore_feuillet_preview_fields doit être une liste' });
+      }
+      value = normalizeFeuilletPreviewFields(value);
     }
     if (
       key === 'gameplay.lore_effacement_enabled' ||
