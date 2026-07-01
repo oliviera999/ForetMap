@@ -350,10 +350,12 @@ orpheline.**
 
 **Chantiers révisés :**
 
-- **(A) Enrichir la donnée** — quick win déterministe : les **8 `cop-bio-<biome>`** → `biome_slug`
-  d'après le suffixe du code (40 → 32 orphelins). Le reste (marg/insert/acte/cover/preface/finale,
-  échos, message) demande un **arbitrage éditorial** : plateau/pays d'appartenance, ou statut
-  « hors collecte carte » (feuillets de cadre : couverture, préface, finale).
+- **(A) Enrichir la donnée** — quick win déterministe **✅ fait** (migration
+  `159_gl_feuillet_copbio_biome_backfill.sql`) : les **8 `cop-bio-<biome>`** reçoivent leur
+  `biome_slug` d'après le suffixe du code (idempotent) → **40 → 32 orphelins**, atteignables via le
+  pool du chapitre. Le reste (marg/insert/acte/cover/preface/finale, échos, message) demande un
+  **arbitrage éditorial** : plateau/pays d'appartenance, ou statut « hors collecte carte »
+  (feuillets de cadre : couverture, préface, finale) — **à traiter plus tard**.
 - **(B) Canal(aux) dédié(s)** — pour les copiste/échos non ancrables à un biome : soit un canal
   **QCM `reponse`** (échos = récompenses de bonne réponse), soit un déblocage **par progression**
   (cover/preface au début, finale/close en fin de chapitre 5).

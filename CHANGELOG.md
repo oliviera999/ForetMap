@@ -7,6 +7,15 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### GL — Backfill biome des feuillets « cop-bio » (couverture d'acquisition)
+
+- **Données** : migration idempotente `159_gl_feuillet_copbio_biome_backfill.sql` — pose
+  `biome_slug` sur les 8 feuillets `cop-bio-<biome>` (savane, sahara, foret_mediterraneenne,
+  foret_caducifoliee, landes, taiga, toundra, desert_froid) d'après le suffixe de leur code, sans
+  écraser une valeur existante. Ces feuillets copiste, orphelins de tout canal, deviennent
+  atteignables via le **pool du chapitre** (biome). Réduit les orphelins du corpus de production de
+  **40 à 32**. Cf. `docs/AUDIT_FEUILLETS_ACCES.md` §11.6.
+
 ### GL — Socle d'acquisition des feuillets par consultation (stratégie ③)
 
 - **Évolution métier** : pose le socle permettant qu'un élément consultable du site donne un
