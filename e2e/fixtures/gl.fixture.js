@@ -87,6 +87,26 @@ async function seedGlScenario(label = 'default') {
   };
 }
 
+/**
+ * Insère un terme de glossaire GL « actif » (type simple et fiable à seeder pour
+ * le flux d'import du carnet). Renvoie le code (slug) et le terme lisible.
+ * NOTE: le glossaire n'est pas gaté par défaut (aucune question liée) → l'accusé
+ * « appris » via POST /api/gl/learning/glossary/:code { confirm:true } passe sans QCM.
+ */
+async function seedGlGlossaryTerm(label = 'journal-import') {
+  const stamp = Date.now();
+  // glossary_code : VARCHAR(16) → on reste court et unique (slug alphanumérique).
+  const code = `e2e${String(stamp).slice(-8)}`;
+  const terme = `Terme ${label} ${stamp}`;
+  await execute(
+    `INSERT INTO gl_glossary_terms
+       (glossary_code, terme, categorie, niveau, definition_courte, all_biomes, statut, created_at, updated_at)
+     VALUES (?, ?, 'ecologie', 'base', 'Définition e2e du carnet', 1, 'actif', NOW(), NOW())`,
+    [code, terme],
+  );
+  return { code, terme };
+}
+
 /** Prépare localStorage GL (intro passée) puis recharge la page. */
 async function mountGlSession(page, { token, auth, tab = null, skipIntro = true } = {}) {
   await page.setExtraHTTPHeaders({ 'X-Foretmap-Product': 'gl' });
@@ -108,4 +128,4 @@ async function mountGlSession(page, { token, auth, tab = null, skipIntro = true 
   await page.reload();
 }
 
-module.exports = { seedGlScenario, mountGlSession };
+module.exports = { seedGlScenario, mountGlSession, seedGlGlossaryTerm };

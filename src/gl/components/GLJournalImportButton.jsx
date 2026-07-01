@@ -48,7 +48,7 @@ export function GLJournalImportButton({
   if (!learned) {
     return (
       <span className="gl-hint gl-journal-import__hint">
-        Marque-le comme appris pour l’ajouter à ton journal.
+        Marque-le comme appris (parfois après un court quiz) pour l’ajouter à ton journal.
       </span>
     );
   }
