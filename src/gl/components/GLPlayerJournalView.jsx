@@ -19,6 +19,10 @@ export function GLPlayerJournalView({ gameState, onNavigateTab }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [creating, setCreating] = useState(false);
+  // B.7 — contrôles de tri/filtre/recherche du fil (côté client, sur les données déjà chargées).
+  const [kindFilter, setKindFilter] = useState('all'); // all | article | import
+  const [search, setSearch] = useState('');
+  const [sortOrder, setSortOrder] = useState('recent'); // recent | oldest
   const { title: helpTitle, body: helpBody } = useGlHelpContent('tab:my-journal');
 
   const chapterSpells = useMemo(() => {
@@ -71,15 +75,57 @@ export function GLPlayerJournalView({ gameState, onNavigateTab }) {
     setImports((prev) => prev.filter((i) => i.id !== importId));
   }, []);
 
-  // Fil chronologique unifié : articles rédigés + éléments importés (du plus récent au plus ancien).
+  const handlePinArticle = useCallback(async (articleId, pinned) => {
+    await apiGL(`/api/gl/player-journal/me/articles/${articleId}/pin`, 'PUT', { pinned });
+    setArticles((prev) => prev.map((a) => (a.id === articleId ? { ...a, pinned } : a)));
+  }, []);
+
+  const handlePinImport = useCallback(async (importId, pinned) => {
+    await apiGL(`/api/gl/player-journal/me/imports/${importId}/pin`, 'PUT', { pinned });
+    setImports((prev) => prev.map((i) => (i.id === importId ? { ...i, pinned } : i)));
+  }, []);
+
+  // Fil unifié : articles rédigés + éléments importés, filtré/recherché/trié (côté client).
   const timeline = useMemo(() => {
-    const items = [
+    let items = [
       ...articles.map((a) => ({ kind: 'article', at: timeValue(a.createdAt), data: a })),
       ...imports.map((i) => ({ kind: 'import', at: timeValue(i.createdAt), data: i })),
     ];
-    items.sort((x, y) => y.at - x.at);
+    if (kindFilter !== 'all') items = items.filter((it) => it.kind === kindFilter);
+    const q = search.trim().toLowerCase();
+    if (q) {
+      items = items.filter((it) => {
+        if (it.kind === 'article') {
+          return (
+            String(it.data.title || '')
+              .toLowerCase()
+              .includes(q) ||
+            String(it.data.bodyMarkdown || '')
+              .toLowerCase()
+              .includes(q)
+          );
+        }
+        return (
+          String(it.data.title || '')
+            .toLowerCase()
+            .includes(q) ||
+          String(it.data.resourceRef || '')
+            .toLowerCase()
+            .includes(q)
+        );
+      });
+    }
+    items.sort((x, y) => {
+      // Épinglés d'abord, puis tri chronologique choisi.
+      const px = x.data.pinned ? 1 : 0;
+      const py = y.data.pinned ? 1 : 0;
+      if (px !== py) return py - px;
+      return sortOrder === 'oldest' ? x.at - y.at : y.at - x.at;
+    });
     return items;
-  }, [articles, imports]);
+  }, [articles, imports, kindFilter, search, sortOrder]);
+
+  const totalCount = articles.length + imports.length;
 
   return (
     <section className="gl-panel gl-player-journal fade-in">
@@ -103,14 +149,64 @@ export function GLPlayerJournalView({ gameState, onNavigateTab }) {
         </GLButton>
       </div>
 
+      {!loading && totalCount > 0 ? (
+        <div className="gl-player-journal__toolbar gl-inline-actions">
+          <input
+            type="search"
+            className="gl-input gl-player-journal__search"
+            placeholder="Rechercher dans mon journal…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            aria-label="Rechercher dans mon journal"
+          />
+          <label className="gl-hint">
+            Afficher :{' '}
+            <select
+              value={kindFilter}
+              onChange={(e) => setKindFilter(e.target.value)}
+              aria-label="Filtrer par type d’entrée"
+            >
+              <option value="all">Tout</option>
+              <option value="article">Articles</option>
+              <option value="import">Imports</option>
+            </select>
+          </label>
+          <label className="gl-hint">
+            Trier :{' '}
+            <select
+              value={sortOrder}
+              onChange={(e) => setSortOrder(e.target.value)}
+              aria-label="Trier le fil"
+            >
+              <option value="recent">Plus récent d’abord</option>
+              <option value="oldest">Plus ancien d’abord</option>
+            </select>
+          </label>
+        </div>
+      ) : null}
+
       {error ? <p className="gl-error">{error}</p> : null}
 
       {loading ? (
         <p className="gl-hint">Chargement de ton carnet…</p>
+      ) : totalCount === 0 ? (
+        <div className="gl-player-journal__empty">
+          <p className="gl-hint">Ton carnet est encore vide. Deux façons de le remplir :</p>
+          <ul className="gl-hint">
+            <li>
+              <strong>Écris un article</strong> — clique sur « + Nouvel article » (texte, images, ou
+              les deux).
+            </li>
+            <li>
+              <strong>Importe un élément appris</strong> — sur la page d’un feuillet, d’une espèce,
+              d’une définition… clique « Marquer comme appris » (parfois après un petit quiz qui
+              valide ta lecture), puis « + Ajouter à mon journal ». Il apparaîtra ici.
+            </li>
+          </ul>
+        </div>
       ) : timeline.length === 0 ? (
         <p className="gl-hint gl-player-journal__empty">
-          Ton carnet est vide. Crée ton premier article, ou importe un élément appris depuis sa
-          page.
+          Aucune entrée ne correspond à ta recherche ou à ce filtre.
         </p>
       ) : (
         <div className="gl-player-journal__articles">
@@ -122,6 +218,7 @@ export function GLPlayerJournalView({ gameState, onNavigateTab }) {
                 limits={limits}
                 chapterSpells={chapterSpells}
                 onDelete={handleDeleteArticle}
+                onTogglePin={handlePinArticle}
               />
             ) : (
               <GLPlayerJournalImportCard
@@ -129,6 +226,7 @@ export function GLPlayerJournalView({ gameState, onNavigateTab }) {
                 item={entry.data}
                 onNavigateTab={onNavigateTab}
                 onDelete={handleDeleteImport}
+                onTogglePin={handlePinImport}
               />
             ),
           )}

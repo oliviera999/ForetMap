@@ -15,6 +15,8 @@ export function GLTutorialsView({
   learningProgress,
   glossaryLinkItems = [],
   onOpenGlossaryTerm,
+  focusTutorialId = null,
+  onTutorialFocusHandled,
 }) {
   const [items, setItems] = useState([]);
   const [active, setActive] = useState(null);
@@ -42,6 +44,22 @@ export function GLTutorialsView({
   useEffect(() => {
     reload();
   }, [reload]);
+
+  // Deep-link depuis le carnet : ouvre directement le tutoriel ciblé (fetch par id,
+  // indépendant de la liste). onFocusHandled purge la cible pour éviter la réouverture.
+  useEffect(() => {
+    if (focusTutorialId == null || focusTutorialId === '') return;
+    let cancelled = false;
+    apiGL(`/api/gl/tutorials/${focusTutorialId}`)
+      .then((data) => {
+        if (!cancelled) setActive(data || null);
+      })
+      .catch(() => {});
+    onTutorialFocusHandled?.();
+    return () => {
+      cancelled = true;
+    };
+  }, [focusTutorialId, onTutorialFocusHandled]);
 
   async function openTutorial(id) {
     try {
@@ -237,8 +255,8 @@ export function GLTutorialsView({
                 resourceType="tutorial"
                 resourceRef={active.id}
                 itemTitle={active.title}
-                labelAction="✓ Marquer comme lu"
-                labelDone="✓ Lu"
+                labelAction="Marquer comme appris"
+                labelDone="✓ Appris"
                 titleDone="Tu as confirmé avoir lu et compris ce tutoriel"
                 confirmIntro={
                   <>

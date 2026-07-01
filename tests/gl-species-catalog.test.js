@@ -120,6 +120,22 @@ test('GET /api/gl/species refuse sans biomeSlug', async () => {
     .expect(400);
 });
 
+test('GET /api/gl/species/:code retourne la fiche (deep-link carnet)', async () => {
+  const res = await request(app)
+    .get('/api/gl/species/SP0001')
+    .set('Authorization', `Bearer ${playerToken}`)
+    .expect(200);
+  assert.strictEqual(res.body.species.species_code, 'SP0001');
+  assert.ok(res.body.species.nom_commun);
+});
+
+test('GET /api/gl/species/:code — code inconnu → 404', async () => {
+  await request(app)
+    .get('/api/gl/species/SP-NOPE-0000')
+    .set('Authorization', `Bearer ${playerToken}`)
+    .expect(404);
+});
+
 test('GET /api/gl/admin/species/stats retourne des agrégats', async () => {
   const res = await request(app)
     .get('/api/gl/admin/species/stats')

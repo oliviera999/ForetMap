@@ -22,3 +22,14 @@ export function importTargetTab(resourceType, resourceRef) {
   if (resourceType === 'content_page') return String(resourceRef || '') || null;
   return IMPORT_TYPE_META[resourceType]?.tab || null;
 }
+
+// Cible de navigation « profonde » pour « Voir » : l'onglet ET l'élément précis à
+// ouvrir (focusType/focusRef, exploités par AppGL pour piloter modal/popover/scroll).
+// Pour content_page, l'onglet EST déjà la page (pas de focus intra-onglet).
+export function importTargetNav(resourceType, resourceRef) {
+  const ref = resourceRef == null ? '' : String(resourceRef);
+  const tab = importTargetTab(resourceType, resourceRef);
+  if (!tab) return null;
+  if (resourceType === 'content_page') return { tab, focusType: null, focusRef: null };
+  return { tab, focusType: resourceType, focusRef: ref || null };
+}

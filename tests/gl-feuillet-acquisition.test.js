@@ -1,7 +1,7 @@
 'use strict';
 
 require('./helpers/setup');
-const { test, before } = require('node:test');
+const { test, before, after } = require('node:test');
 const assert = require('node:assert');
 const request = require('supertest');
 const { app } = require('../server');
@@ -19,6 +19,11 @@ const {
 const db = { queryOne, queryAll, execute };
 const stamp = Date.now();
 const code = `test-acq-${stamp}`;
+// Biome UNIQUE au run : le pool d'attribution est scopé par chapitre → biomes → feuillets.
+// Utiliser un biome partagé (« savane ») laissait le pool inclure les feuillets seedés par
+// d'autres tests (`gl-lore-*`) et non nettoyés, polluant une 2e exécution de la suite
+// (`test` puis `test:coverage`) sur la même BDD. Un biome propre au run rend le test hermétique.
+const biomeSlug = `acqb${stamp}`.slice(0, 64);
 let playerToken = '';
 let gameId = null;
 let teamId = null;
@@ -28,17 +33,26 @@ before(async () => {
   await initSchema();
   const admin = await createGlAdmin({ email: `gl.acq.${stamp}@ecole.local` });
   const cls = await createGlClass({ name: `Classe Acq ${stamp}`, adminId: admin.id });
+  // plateau_number = NULL : le pool d'attribution est un OR (biome_slug OU plateau_number
+  // OU lien_pays). Avec un plateau partagé (ex. 1), des feuillets seedés par d'autres tests
+  // (plateau=1) entraient dans le pool malgré le biome unique. En laissant le plateau NULL,
+  // seule la branche biome (unique au run) subsiste → pool hermétique.
   await execute(
-    'INSERT INTO gl_chapters (slug, title, plateau_number, order_index) VALUES (?, ?, 1, 901)',
+    'INSERT INTO gl_chapters (slug, title, plateau_number, order_index) VALUES (?, ?, NULL, 901)',
     [`acq-${stamp}`, `Chapitre Acq ${stamp}`],
   );
   const chapter = await queryOne('SELECT id FROM gl_chapters WHERE slug = ? LIMIT 1', [
     `acq-${stamp}`,
   ]);
   const chapterId = Number(chapter.id);
+  // Biome propre au run (FK gl_chapter_biomes.biome_slug → gl_biomes.slug).
+  await execute('INSERT IGNORE INTO gl_biomes (slug, nom, order_index) VALUES (?, ?, 990)', [
+    biomeSlug,
+    `Biome Acq ${stamp}`,
+  ]);
   await execute(
     'INSERT INTO gl_chapter_biomes (chapter_id, biome_slug, order_index) VALUES (?, ?, 0)',
-    [chapterId, 'savane'],
+    [chapterId, biomeSlug],
   );
   const gameSeed = await createGlGameWithTeams({
     classId: cls.id,
@@ -59,8 +73,8 @@ before(async () => {
   // Un feuillet du pool (biome du chapitre).
   await execute(
     `INSERT INTO gl_lore_feuillets (feuillet_code, titre, incipit, texte_accessible, biome_slug, ordre_voyage)
-     VALUES (?, ?, ?, ?, 'savane', 1)`,
-    [code, 'Feuillet acquis', 'Incipit acquis', 'Texte accessible acquis'],
+     VALUES (?, ?, ?, ?, ?, 1)`,
+    [code, 'Feuillet acquis', 'Incipit acquis', 'Texte accessible acquis', biomeSlug],
   );
 });
 
@@ -109,4 +123,18 @@ test('awardFeuilletFromConsultation : rien de neuf → null (pool épuisé)', as
     sourceRef: 'ECO-2',
   });
   assert.strictEqual(again, null);
+});
+
+after(async () => {
+  // Isolation : sans ce nettoyage, le feuillet seedé reste dans le pool GLOBAL
+  // (gl_lore_feuillets) et pollue une SECONDE exécution de la suite sur la même
+  // BDD partagée (la CI enchaîne `npm test` puis `npm run test:coverage`) : le
+  // deuxième run attribuerait alors ce feuillet résiduel au lieu du sien.
+  await execute('DELETE FROM gl_game_feuillet_states WHERE feuillet_code = ?', [code]).catch(
+    () => {},
+  );
+  await execute('DELETE FROM gl_lore_feuillets WHERE feuillet_code = ?', [code]).catch(() => {});
+  // gl_chapter_biomes.biome_slug → gl_biomes (FK RESTRICT) : retirer les liaisons avant le biome.
+  await execute('DELETE FROM gl_chapter_biomes WHERE biome_slug = ?', [biomeSlug]).catch(() => {});
+  await execute('DELETE FROM gl_biomes WHERE slug = ?', [biomeSlug]).catch(() => {});
 });
