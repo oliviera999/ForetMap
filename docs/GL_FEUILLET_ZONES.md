@@ -2,6 +2,11 @@
 
 Calque de petits polygones sur la carte de jeu : à la **première traversée** par une équipe, un popover affiche le texte du feuillet (JSON) et applique les effets gemmes/cœurs.
 
+> **La traversée de zone n'est qu'un canal d'obtention parmi d'autres.** L'accès aux feuillets
+> (feuillets non lisibles par défaut, aperçu verrouillé) et les autres canaux d'acquisition
+> (étude d'espèce, **consultation gatée d'un élément** en stratégie ③, attribution du découvreur)
+> sont documentés dans [`AUDIT_FEUILLETS_ACCES.md`](AUDIT_FEUILLETS_ACCES.md).
+
 ## Fichier de données
 
 - **Source :** [`src/gl/data/zones_feuillets.json`](../src/gl/data/zones_feuillets.json)
