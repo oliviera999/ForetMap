@@ -137,7 +137,75 @@ MJ.
 
 ---
 
-## 5. Consultation par le MJ
+## 5. Exemples de flux joueur pas-à-pas
+
+Scénarios concrets, du point de vue de l'élève. Toutes les actions sont dans l'onglet indiqué ;
+le carnet est l'onglet **« Mon journal »**.
+
+### Flux A — Écrire un article texte
+
+1. Onglet **« Mon journal »** → bouton **« + Nouvel article »**.
+2. Un article vide apparaît en tête du fil. Saisir un **titre** (facultatif) puis le **texte** dans
+   la zone de rédaction.
+3. Ne rien faire de plus : l'**enregistrement est automatique** (mention « Enregistré » près de la
+   date). L'horodatage « Modifié le… » se met à jour.
+4. Pour revenir plus tard : rouvrir « Mon journal », l'article est toujours là, modifiable.
+
+### Flux B — Publier un article « média seul » (photos sans texte)
+
+1. « Mon journal » → **« + Nouvel article »** (laisser le titre et le texte vides si souhaité).
+2. Cliquer **« Ajouter une image »**, choisir une photo (JPEG/PNG/WebP). L'image est compressée,
+   envoyée, puis insérée dans l'article et listée dessous.
+3. Répéter pour ajouter d'autres images. L'article se sauvegarde tout seul.
+4. Résultat : une entrée du carnet composée uniquement d'illustrations.
+
+### Flux C — Insérer un encart vers un élément du site (dans un article)
+
+1. Dans l'éditeur d'un article, placer le curseur à l'endroit voulu, cliquer **« Insérer un
+   élément »**.
+2. Choisir le **type** (sortilège, espèce, glossaire, chapitre…) et saisir/choisir la **référence**.
+3. Valider : un encart est inséré dans le texte. À l'enregistrement, la référence est **vérifiée
+   côté serveur** ; si elle n'existe pas, l'enregistrement est refusé avec un message.
+
+### Flux D — Importer une définition apprise (avec quiz)
+
+1. Aller dans **« La nature » → « Glossaire »**, ouvrir la fiche d'un terme (popover).
+2. Cliquer **« Marquer comme appris »**.
+3. Si le terme est **conditionné par un quiz** : répondre aux **QCM** proposés. En cas de mauvaise
+   réponse, on peut réessayer ; il faut **réussir** pour continuer.
+4. Cocher la case de confirmation puis **« Confirmer »** : le terme devient « ✓ Appris ».
+5. Le bouton **« + Ajouter à mon journal »** apparaît → cliquer dessus.
+6. Ouvrir **« Mon journal »** : la définition figure dans le fil, à sa date, avec son **titre réel**
+   et un bouton **« Voir »** qui ramène au glossaire.
+
+### Flux E — Importer un écosystème (biotope / biocénose)
+
+1. Aller dans **« La nature » → « Écosystèmes »**. S'il y a plusieurs biomes, choisir l'onglet du
+   biome voulu.
+2. En bas de la section, cliquer **« Marquer cet écosystème comme étudié »** (réussir le quiz s'il
+   y en a un), puis confirmer.
+3. Cliquer **« + Ajouter à mon journal »**.
+4. Dans « Mon journal », l'écosystème apparaît (libellé « Écosystème »), avec **« Voir »** qui
+   ramène à l'onglet Écosystèmes.
+
+> Même principe pour les **feuillets** (onglet « L'aventure → Carnet de Sélène »), les **fiches
+> biodiversité** (« La nature → Biodiversité »), les **tutoriels** (« Le monde G&L → Tutoriels »),
+> le **lexique lore** (« Le monde G&L → Lexique lore ») et les **pages du monde**.
+
+### Flux F — Retirer une entrée
+
+- **Article** : dans l'éditeur de l'article, bouton **« Supprimer »** (retire aussi ses images).
+- **Import** : sur la carte de l'élément importé, bouton **« Retirer »** (retire l'entrée du carnet ;
+  l'élément d'origine et son statut « appris » ne sont pas affectés).
+
+### Ce que voit le MJ
+
+Le MJ n'écrit rien : depuis les statistiques de classe, il **consulte** le carnet d'un joueur en
+lecture seule (articles rendus + liste des éléments importés) pour l'accompagner.
+
+---
+
+## 6. Consultation par le MJ
 
 Depuis les statistiques de classe (`gl.players.manage`), le MJ ouvre le carnet d'un joueur en
 lecture seule (`GLPlayerJournalReadModal`) : liste des articles (titre, horodatages, rendu
@@ -146,7 +214,7 @@ accompagnement pédagogique, pas notation.
 
 ---
 
-## 6. Modèle de données
+## 7. Modèle de données
 
 | Table                              | Rôle                                                                                                         |
 | ---------------------------------- | ------------------------------------------------------------------------------------------------------------ |
@@ -160,7 +228,7 @@ Migrations : `155_gl_player_journal_articles.sql` (articles + assets), `156_gl_p
 
 ---
 
-## 7. API (résumé)
+## 8. API (résumé)
 
 Toutes les routes sont préfixées `/api/gl` et exigent une auth GL. Détail exhaustif dans
 `docs/API.md`.
@@ -200,7 +268,7 @@ Toutes les routes sont préfixées `/api/gl` et exigent une auth GL. Détail exh
 
 ---
 
-## 8. Frontend (composants clés)
+## 9. Frontend (composants clés)
 
 | Composant / fichier                                          | Rôle                                                                                      |
 | ------------------------------------------------------------ | ----------------------------------------------------------------------------------------- |
@@ -222,7 +290,7 @@ Les contrôles `GLLearnAndImport` / `GLJournalImportButton` sont câblés sur : 
 
 ---
 
-## 9. Réglages & activation
+## 10. Réglages & activation
 
 - **Activer/désactiver** le carnet : module `modules.player_journal_enabled`.
 - **Plafonds optionnels par article** : `gameplay.player_journal_max_chars` /
@@ -233,7 +301,7 @@ Les contrôles `GLLearnAndImport` / `GLJournalImportButton` sont câblés sur : 
 
 ---
 
-## 10. Historique
+## 11. Historique
 
 - Carnet initialement mono-document, sans limite explicite de caractères/médias.
 - Refonte en **articles** (titre optionnel, texte et/ou médias, horodatage création/modif).
