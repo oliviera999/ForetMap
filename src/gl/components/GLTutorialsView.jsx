@@ -7,6 +7,7 @@ import { GLField } from './ui/GLField.jsx';
 import { GLInput } from './ui/GLInput.jsx';
 import { GLRichTextEditor } from './ui/GLRichTextEditor.jsx';
 import { GLLearningAcknowledgeButton } from './GLLearningAcknowledgeButton.jsx';
+import { GLJournalImportButton } from './GLJournalImportButton.jsx';
 import { GLGlossaryMarkdown } from './GLGlossaryMarkdown.jsx';
 
 export function GLTutorialsView({
@@ -250,6 +251,12 @@ export function GLTutorialsView({
                 onAcknowledged={() => learningProgress.markLocal('tutorial', String(active.id))}
               />
             ) : null}
+            <GLJournalImportButton
+              resourceType="tutorial"
+              resourceRef={active.id}
+              title={active.title}
+              learned={isTutorialRead(active.id)}
+            />
           </div>
           {canManage ? (
             <div className="gl-inline-actions" style={{ marginBottom: 8 }}>

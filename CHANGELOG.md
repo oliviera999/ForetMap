@@ -7,6 +7,24 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### GL — Carnet personnel : import d'éléments appris
+
+- **Le joueur peut faire figurer dans son carnet les éléments du site qui l'intéressent** :
+  feuillets de Sélène, écosystèmes (biotope/biocénose), fiches biodiversité (espèces), tutoriels,
+  définitions (glossaire écologie **et** glossaire lore) et pages de contenu. L'import se fait
+  **depuis la page de l'élément**, une fois celui-ci **marqué appris / lu / découvert** — marquage
+  éventuellement **conditionné par un quiz** à réussir (système de gating existant).
+- **Les éléments importés s'affichent dans le carnet en ordre chronologique**, mêlés aux articles,
+  avec leur **vrai titre** et un **lien « Voir »** vers leur onglet d'origine ; ils sont retirables.
+- **Système « appris » étendu** aux nouveaux types : accusé générique
+  `POST /api/gl/learning/mark/:resourceType/:ref`, types ajoutés dans `GL_MARKABLE` /
+  `GL_RESOURCE_TYPES` / `LEARNING_TARGET_TYPES`, registre d'existence/titre `lib/glLearnableResources.js`.
+- **Nouvelle table `gl_player_journal_imports`** (migration `156`) ; endpoints
+  `POST`/`DELETE /api/gl/player-journal/me/imports`, imports inclus dans `GET /me` et la lecture MJ.
+- **Front** : contrôle réutilisable `GLLearnAndImport` (marquer + importer) et `GLJournalImportButton`,
+  câblés sur écosystèmes, biodiversité, glossaires, tutoriels, feuillets et pages de contenu ;
+  timeline `GLPlayerJournalView` fusionnant articles et imports, carte `GLPlayerJournalImportCard`.
+
 ### GL — Carnet personnel : refonte en articles
 
 - **Le carnet personnel du joueur fonctionne désormais par « articles ».** Le joueur clique sur

@@ -1294,6 +1294,9 @@ export function AppGL() {
                     glossaryPopoverCode={glossaryPopoverCode}
                     onGlossaryFocusHandled={clearGlossaryFocus}
                     learningProgress={isGuest ? null : learningProgress}
+                    journalImportEnabled={
+                      !isGuest && isModuleEnabled(modules, 'playerJournalEnabled')
+                    }
                   />
                 ) : null}
                 {resolveGlNavActiveTab(tab) === 'joueurs' ? (
@@ -1378,7 +1381,7 @@ export function AppGL() {
                   />
                 )}
                 {tab === 'my-journal' && isModuleEnabled(modules, 'playerJournalEnabled') && (
-                  <GLPlayerJournalView gameState={gameState} />
+                  <GLPlayerJournalView gameState={gameState} onNavigateTab={setTab} />
                 )}
                 {isModuleEnabled(modules, 'helpEnabled') && tab !== 'my-journal' ? (
                   <GLTabHelpPanel tab={tab} defaultOpen={false} />

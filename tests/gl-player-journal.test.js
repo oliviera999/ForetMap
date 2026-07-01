@@ -245,3 +245,62 @@ test('limites à 0 = illimité : article long et illustrations multiples accept�
       .expect(201);
   }
 });
+
+// --- Import d'éléments du site (appris) dans le carnet ---
+test('import d’un élément appris (page de contenu) → carnet + retrait', async () => {
+  const slug = `test-page-${stamp}`;
+  await execute(
+    `INSERT INTO gl_content_pages (slug, title, body_markdown)
+     VALUES (?, ?, ?)
+     ON DUPLICATE KEY UPDATE title = VALUES(title)`,
+    [slug, 'Page test', '# Bienvenue'],
+  );
+
+  // Sans marquage « appris » → 403
+  await request(app)
+    .post('/api/gl/player-journal/me/imports')
+    .set('Authorization', `Bearer ${playerToken}`)
+    .send({ resourceType: 'content_page', resourceRef: slug })
+    .expect(403);
+
+  // Ressource inexistante → 404
+  await request(app)
+    .post('/api/gl/player-journal/me/imports')
+    .set('Authorization', `Bearer ${playerToken}`)
+    .send({ resourceType: 'content_page', resourceRef: `nope-${stamp}` })
+    .expect(404);
+
+  // Marquage « appris » (accusé enregistré en base)
+  await execute(
+    `INSERT INTO gl_learning_acknowledgements
+       (reader_user_type, reader_user_id, target_type, target_code, acknowledged_at)
+     VALUES ('gl_player', ?, 'content_page', ?, NOW())
+     ON DUPLICATE KEY UPDATE acknowledged_at = NOW()`,
+    [String(playerAId), slug],
+  );
+
+  // Import accepté
+  const imp = await request(app)
+    .post('/api/gl/player-journal/me/imports')
+    .set('Authorization', `Bearer ${playerToken}`)
+    .send({ resourceType: 'content_page', resourceRef: slug, title: 'Page test' })
+    .expect(201);
+  assert.strictEqual(imp.body.import.resourceType, 'content_page');
+  assert.strictEqual(imp.body.import.title, 'Page test');
+
+  // Présent dans le carnet
+  const me = await request(app)
+    .get('/api/gl/player-journal/me')
+    .set('Authorization', `Bearer ${playerToken}`)
+    .expect(200);
+  assert.ok(Array.isArray(me.body.imports));
+  assert.ok(
+    me.body.imports.some((i) => i.resourceType === 'content_page' && i.resourceRef === slug),
+  );
+
+  // Retrait
+  await request(app)
+    .delete(`/api/gl/player-journal/me/imports/${imp.body.import.id}`)
+    .set('Authorization', `Bearer ${playerToken}`)
+    .expect(200);
+});
