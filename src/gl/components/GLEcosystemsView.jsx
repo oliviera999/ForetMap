@@ -85,8 +85,8 @@ function GLEcosystemSection({
           resourceRef={slug}
           title={`Écosystème : ${section.nom || slug}`}
           journalEnabled={journalImportEnabled}
-          acknowledgeLabel="Marquer cet écosystème comme étudié"
-          learnedLabel="✓ Écosystème étudié"
+          acknowledgeLabel="Marquer comme appris"
+          learnedLabel="✓ Appris"
         />
       ) : null}
     </section>
@@ -97,6 +97,8 @@ export function GLEcosystemsView({
   gameState,
   glossaryLinkItems = [],
   onOpenGlossaryTerm,
+  focusEcosystemSlug = null,
+  onEcosystemFocusHandled,
   journalImportEnabled = false,
 }) {
   const rawBiotope = String(gameState?.game?.biotope_markdown || '').trim();
@@ -126,6 +128,15 @@ export function GLEcosystemsView({
       return tabbedSections[0]?.slug ?? null;
     });
   }, [useTabs, tabbedSections]);
+
+  // Deep-link depuis le carnet : ouvre l'onglet du biome ciblé une fois les sections prêtes.
+  useEffect(() => {
+    if (!focusEcosystemSlug) return;
+    if (tabbedSections.some((s) => s.slug === focusEcosystemSlug)) {
+      setActiveSlug(focusEcosystemSlug);
+    }
+    onEcosystemFocusHandled?.();
+  }, [focusEcosystemSlug, tabbedSections, onEcosystemFocusHandled]);
 
   const visibleSections = useMemo(() => {
     if (!useTabs) return sections;

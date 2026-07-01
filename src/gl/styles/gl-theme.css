@@ -4173,6 +4173,19 @@ body.gl-map-fullscreen-active .gl-qcm-popover-overlay {
   color: var(--gl-color-primary);
 }
 
+/* Encart hydraté : affiche le vrai titre de l'élément (résolu côté client) au
+   lieu du code brut « type · ref ». Retombe sur la règle ci-dessus si non hydraté. */
+.gl-journal-embed[data-gl-title]::before {
+  content: '📎 ' attr(data-gl-title);
+}
+
+/* Entrée épinglée du carnet : léger surlignage pour la repérer en tête de fil. */
+.gl-player-journal__article.is-pinned,
+.gl-player-journal__import.is-pinned {
+  border-left: 4px solid var(--gl-color-primary);
+  background: color-mix(in srgb, #fff 92%, var(--gl-color-primary) 8%);
+}
+
 .gl-help-list {
   margin: 0;
   padding-left: 1.2rem;

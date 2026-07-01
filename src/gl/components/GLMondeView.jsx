@@ -25,6 +25,8 @@ export function GLMondeView({
   loreGlossaryPopoverCode,
   onOpenLoreGlossaryPopover,
   onLoreGlossaryFocusHandled,
+  tutorialFocusId,
+  onTutorialFocusHandled,
   canManageTutorials = false,
   learningProgress,
 }) {
@@ -93,6 +95,8 @@ export function GLMondeView({
               learningProgress={learningProgress}
               glossaryLinkItems={glossaryLinkItems}
               onOpenGlossaryTerm={onOpenGlossaryTerm}
+              focusTutorialId={tutorialFocusId}
+              onTutorialFocusHandled={onTutorialFocusHandled}
             />
           </Suspense>
         ) : null}

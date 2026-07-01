@@ -29,15 +29,28 @@ export function GLLearnAndImport({
   confirmIntro,
 }) {
   const [learned, setLearned] = useState(false);
+  const [alreadyImported, setAlreadyImported] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     if (!resourceType || resourceRef == null || resourceRef === '') return undefined;
+    const ref = String(resourceRef);
     // Défensif : tolère un apiGL qui lève ou renvoie une valeur non-promesse (tests isolés).
     Promise.resolve()
       .then(() => apiGL('/api/gl/learning/me'))
       .then((res) => {
-        if (!cancelled && isLearnedIn(res, resourceType, resourceRef)) setLearned(true);
+        if (!cancelled && isLearnedIn(res, resourceType, ref)) setLearned(true);
+      })
+      .catch(() => {});
+    // État « déjà dans mon journal » chargé dès l'affichage (endpoint léger : type + ref).
+    Promise.resolve()
+      .then(() => apiGL('/api/gl/player-journal/me/imports/refs'))
+      .then((res) => {
+        const refs = Array.isArray(res?.refs) ? res.refs : [];
+        const found = refs.some(
+          (r) => r?.resourceType === resourceType && String(r?.resourceRef) === ref,
+        );
+        if (!cancelled && found) setAlreadyImported(true);
       })
       .catch(() => {});
     return () => {
@@ -68,7 +81,9 @@ export function GLLearnAndImport({
         resourceRef={resourceRef}
         title={title}
         learned={learned}
+        alreadyImported={alreadyImported}
         enabled={journalEnabled}
+        onImported={() => setAlreadyImported(true)}
       />
     </div>
   );

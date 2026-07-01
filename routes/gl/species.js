@@ -120,6 +120,27 @@ router.get(
   }),
 );
 
+/** GET /api/gl/species/:code — fiche d'une espèce par code (deep-link « Voir » du carnet). */
+router.get(
+  '/species/:code',
+  requireGlPermission('gl.read'),
+  asyncHandler(async (req, res) => {
+    const code = String(req.params?.code || '').trim();
+    if (!code) return res.status(400).json({ error: 'Code espèce requis' });
+    const row = await loadAdminSpeciesDetail(code);
+    if (!row) return res.status(404).json({ error: 'Espèce introuvable' });
+    const glossaryRows = await loadActiveGlossaryForBiome(row.biome_slug);
+    const glossaryByKey = buildGlossaryLookupMap(glossaryRows);
+    const learnedCodes = await loadSpeciesLearnedCodes(req.glAuth);
+    const [species] = markItemsLearned(
+      [{ ...row, glossaryTerms: matchGlossaryTermsForSpecies(row.mots_cles, glossaryByKey) }],
+      learnedCodes,
+      'species_code',
+    );
+    return res.json({ species });
+  }),
+);
+
 const ADMIN_SPECIES_LIST_LIMIT = 500;
 
 function normalizeOptionalFilter(value) {

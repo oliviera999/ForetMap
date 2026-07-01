@@ -78,7 +78,7 @@
     },
     "tab:my-journal": {
       "title": "Aide — Mon journal",
-      "body": "• Le texte accepte le markdown (titres, listes, liens).\n• Illustration : bouton « Ajouter une image » (compte dans le quota).\n• Encart : référence un sort, une espèce, un terme ou un chapitre du site.\n• La sauvegarde est automatique après une courte pause de frappe."
+      "body": "• Geste clé : sur la page d'un élément (feuillet, espèce, définition, tutoriel, écosystème, page), clique « Marquer comme appris » (parfois après un court quiz qui valide la lecture).\n• Puis « + Ajouter à mon journal » : l'élément apparaît dans ton fil pour le retrouver facilement.\n• Épingle une entrée importante pour la garder en haut du fil.\n• Recherche, filtre et trie le fil pour retrouver rapidement une entrée.\n• Le texte accepte le markdown (titres, listes, liens).\n• Illustration : bouton « Ajouter une image » (compte dans le quota).\n• Encart : référence un sort, une espèce, un terme ou un chapitre du site.\n• La sauvegarde est automatique après une courte pause de frappe."
     },
     "tab:stats": {
       "title": "Aide GL",

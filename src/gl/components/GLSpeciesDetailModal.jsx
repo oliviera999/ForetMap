@@ -261,8 +261,8 @@ export function GLSpeciesDetailModal({
                 resourceType="species"
                 resourceRef={speciesCode}
                 itemTitle={nomCommun}
-                labelAction="Marquer comme étudiée"
-                labelDone="✓ Étudiée"
+                labelAction="Marquer comme appris"
+                labelDone="✓ Appris"
                 titleDone="Tu as confirmé avoir étudié cette espèce"
                 confirmIntro={
                   <>
