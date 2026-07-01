@@ -7,6 +7,16 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### GL — Carnet : recherche / filtre / tri du fil (B.7)
+
+- **Fil du carnet** (`GLPlayerJournalView`) : nouvelle **barre d'outils** côté joueur —
+  **recherche** texte (titre/corps des articles, titre/référence des imports), **filtre** par type
+  d'entrée (tout / articles / imports) et **tri** (plus récent / plus ancien). Contrôles **côté
+  client** sur les données déjà chargées (aucun appel réseau supplémentaire) ; message dédié quand
+  aucune entrée ne correspond. _(Épinglage : non inclus — nécessite une persistance dédiée, en suivi.)_
+- **Tests** : `tests-ui/gl/GLPlayerJournalViewFilter.test.jsx`. `dist/` reconstruit.
+- **Docs** : `docs/GL_CARNET_JOUEUR.md` (section 1).
+
 ### GL — Carnet : vue MJ enrichie (C.10)
 
 - **Consultation MJ** (`GLPlayerJournalReadModal`, lecture seule) enrichie pour l'accompagnement
