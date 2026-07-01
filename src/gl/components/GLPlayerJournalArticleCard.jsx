@@ -24,7 +24,13 @@ function formatDateTime(value) {
  * illustrations. Auto-save (titre + corps) par article, ajout/retrait de médias,
  * insertion d'encarts (sorts / espèces / glossaire / chapitre).
  */
-export function GLPlayerJournalArticleCard({ article, limits, chapterSpells = [], onDelete }) {
+export function GLPlayerJournalArticleCard({
+  article,
+  limits,
+  chapterSpells = [],
+  onDelete,
+  onTogglePin,
+}) {
   const textareaRef = useRef(null);
   const [title, setTitle] = useState(article.title || '');
   const [body, setBody] = useState(article.bodyMarkdown || '');
@@ -36,6 +42,8 @@ export function GLPlayerJournalArticleCard({ article, limits, chapterSpells = []
   const [showPreview, setShowPreview] = useState(false);
   const [embedPickerOpen, setEmbedPickerOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [pinning, setPinning] = useState(false);
+  const pinned = !!article.pinned;
 
   const maxChars = Number(limits?.maxChars) || 0;
   const maxAssets = Number(limits?.maxAssets) || 0;
@@ -166,8 +174,18 @@ export function GLPlayerJournalArticleCard({ article, limits, chapterSpells = []
     }
   }
 
+  async function handleTogglePin() {
+    if (pinning) return;
+    setPinning(true);
+    try {
+      await onTogglePin?.(article.id, !pinned);
+    } finally {
+      setPinning(false);
+    }
+  }
+
   return (
-    <article className="gl-panel gl-player-journal__article fade-in">
+    <article className={`gl-panel gl-player-journal__article fade-in${pinned ? ' is-pinned' : ''}`}>
       <header className="gl-player-journal__article-head">
         <input
           type="text"
@@ -178,6 +196,18 @@ export function GLPlayerJournalArticleCard({ article, limits, chapterSpells = []
           placeholder="Titre de l’article (optionnel)"
           aria-label="Titre de l’article"
         />
+        {onTogglePin ? (
+          <GLButton
+            type="button"
+            variant="secondary"
+            onClick={handleTogglePin}
+            disabled={pinning}
+            aria-pressed={pinned}
+            aria-label={pinned ? 'Désépingler l’article' : 'Épingler l’article'}
+          >
+            {pinned ? '📌 Épinglé' : 'Épingler'}
+          </GLButton>
+        ) : null}
         <GLButton
           type="button"
           variant="secondary"

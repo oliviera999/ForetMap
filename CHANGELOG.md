@@ -7,6 +7,30 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### GL — Carnet : épinglage, onboarding, a11y & libellés harmonisés (B.7 pin, B.8, B.9, D.11, D.12, E.13)
+
+- **Épinglage (B.7)** : articles et imports peuvent être **épinglés** ; les entrées épinglées
+  remontent en tête du fil. Persistance serveur : colonne `pinned` (migration **`159`**,
+  idempotente `ADD COLUMN IF NOT EXISTS`), routes `PUT /player-journal/me/articles/:id/pin` et
+  `.../me/imports/:id/pin` (`{ pinned }`), booléen `pinned` exposé dans `GET /me`. Front : bascule
+  d'épinglage sur chaque carte + tri « épinglés d'abord » (`GLPlayerJournalView`).
+- **Libellés harmonisés (D.11)** : intitulés « marquer appris » unifiés sur **toutes** les pages
+  (« Marquer comme appris » / « ✓ Appris ») au lieu des variantes « lu / étudié / découvert ».
+- **Onboarding & textes (B.8, D.12)** : état vide du carnet remanié en guide d'amorçage (écrire un
+  article **ou** marquer appris → importer), mention du **sens du quiz** (valider sa lecture).
+- **Accessibilité (B.9)** : `aria-label` explicites sur les boutons des cartes et le bouton
+  d'import (« Voir “…” », « Épingler “…” », « Retirer “…” », « Ajouter “…” »), `aria-pressed` sur
+  les bascules d'épinglage ; surlignage visuel des entrées épinglées (contraste).
+- **e2e (E.13)** : scénario Playwright du carnet (`e2e/gl-player-journal.spec.js`) — nouvel article
+  + auto-save + barre de recherche (résultat / message d'absence).
+- **Perf (E.14)** : évaluation documentée — pagination non justifiée à la volumétrie attendue
+  (chargement unique + filtrage client), piste conservée pour plus tard.
+- **Tests** : `GLPlayerJournalImportCard.test.jsx` (pin + a11y), tests backend d'épinglage
+  (`gl-player-journal.test.js`). `dist/` reconstruit.
+- **Correctif CI hérité de `main`** : isolation du test `gl-feuillet-acquisition.test.js` (ajout
+  d'un `after()` nettoyant le feuillet seedé — le pool global polluait la seconde exécution de la
+  suite `test`/`test:coverage` sur la BDD partagée) et compteur `ALLOWED_GAMEPLAY_SETTINGS` (27 → 30).
+
 ### GL — Carnet : recherche / filtre / tri du fil (B.7)
 
 - **Fil du carnet** (`GLPlayerJournalView`) : nouvelle **barre d'outils** côté joueur —

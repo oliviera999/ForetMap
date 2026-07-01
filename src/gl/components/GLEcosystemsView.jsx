@@ -85,8 +85,8 @@ function GLEcosystemSection({
           resourceRef={slug}
           title={`Écosystème : ${section.nom || slug}`}
           journalEnabled={journalImportEnabled}
-          acknowledgeLabel="Marquer cet écosystème comme étudié"
-          learnedLabel="✓ Écosystème étudié"
+          acknowledgeLabel="Marquer comme appris"
+          learnedLabel="✓ Appris"
         />
       ) : null}
     </section>

@@ -1,7 +1,7 @@
 'use strict';
 
 require('./helpers/setup');
-const { test, before } = require('node:test');
+const { test, before, after } = require('node:test');
 const assert = require('node:assert');
 const request = require('supertest');
 const { app } = require('../server');
@@ -109,4 +109,15 @@ test('awardFeuilletFromConsultation : rien de neuf → null (pool épuisé)', as
     sourceRef: 'ECO-2',
   });
   assert.strictEqual(again, null);
+});
+
+after(async () => {
+  // Isolation : sans ce nettoyage, le feuillet seedé reste dans le pool GLOBAL
+  // (gl_lore_feuillets) et pollue une SECONDE exécution de la suite sur la même
+  // BDD partagée (la CI enchaîne `npm test` puis `npm run test:coverage`) : le
+  // deuxième run attribuerait alors ce feuillet résiduel au lieu du sien.
+  await execute('DELETE FROM gl_game_feuillet_states WHERE feuillet_code = ?', [code]).catch(
+    () => {},
+  );
+  await execute('DELETE FROM gl_lore_feuillets WHERE feuillet_code = ?', [code]).catch(() => {});
 });

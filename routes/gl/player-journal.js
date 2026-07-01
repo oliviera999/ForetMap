@@ -17,6 +17,8 @@ const {
   playerJournalUploadPrefix,
   getPlayerJournalImports,
   getPlayerJournalImportRefs,
+  setArticlePinned,
+  setImportPinned,
   resolveJournalEmbedTitles,
   hasLearnedResource,
   canStaffAccessPlayer,
@@ -59,6 +61,17 @@ function parseArticleId(req, res) {
     return null;
   }
   return articleId;
+}
+
+// Valide le corps `{ pinned: boolean }`. N'accepte QUE des booléens stricts (pas
+// de coercition « truthy ») ; renvoie null et répond 400 sinon.
+function parsePinned(req, res) {
+  const value = req.body?.pinned;
+  if (value !== true && value !== false) {
+    res.status(400).json({ error: 'Le champ « pinned » doit être un booléen' });
+    return null;
+  }
+  return value;
 }
 
 router.use(requireGlAuth);
@@ -151,6 +164,24 @@ router.put(
     );
     const article = await getArticleDto(articleId);
     return res.json({ article });
+  }),
+);
+
+// Épinglage / désépinglage d'un article (propriétaire uniquement).
+router.put(
+  '/me/articles/:articleId/pin',
+  asyncHandler(async (req, res) => {
+    if (!(await ensurePlayerJournalModuleEnabled(res))) return;
+    if (!requireGlPlayer(req, res)) return;
+    const playerId = Number(req.glAuth.userId);
+    const articleId = parseArticleId(req, res);
+    if (articleId == null) return;
+    const pinned = parsePinned(req, res);
+    if (pinned == null) return;
+
+    const affected = await setArticlePinned(articleId, playerId, pinned);
+    if (!affected) return res.status(404).json({ error: 'Article introuvable' });
+    return res.json({ ok: true, pinned });
   }),
 );
 
@@ -347,6 +378,24 @@ router.delete(
       playerId,
     ]);
     return res.json({ ok: true });
+  }),
+);
+
+// Épinglage / désépinglage d'un import (propriétaire uniquement).
+router.put(
+  '/me/imports/:importId/pin',
+  asyncHandler(async (req, res) => {
+    if (!(await ensurePlayerJournalModuleEnabled(res))) return;
+    if (!requireGlPlayer(req, res)) return;
+    const playerId = Number(req.glAuth.userId);
+    const importId = Number(req.params.importId);
+    if (!Number.isFinite(importId)) return res.status(400).json({ error: 'Identifiant invalide' });
+    const pinned = parsePinned(req, res);
+    if (pinned == null) return;
+
+    const affected = await setImportPinned(importId, playerId, pinned);
+    if (!affected) return res.status(404).json({ error: 'Import introuvable' });
+    return res.json({ ok: true, pinned });
   }),
 );
 

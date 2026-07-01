@@ -75,6 +75,16 @@ export function GLPlayerJournalView({ gameState, onNavigateTab }) {
     setImports((prev) => prev.filter((i) => i.id !== importId));
   }, []);
 
+  const handlePinArticle = useCallback(async (articleId, pinned) => {
+    await apiGL(`/api/gl/player-journal/me/articles/${articleId}/pin`, 'PUT', { pinned });
+    setArticles((prev) => prev.map((a) => (a.id === articleId ? { ...a, pinned } : a)));
+  }, []);
+
+  const handlePinImport = useCallback(async (importId, pinned) => {
+    await apiGL(`/api/gl/player-journal/me/imports/${importId}/pin`, 'PUT', { pinned });
+    setImports((prev) => prev.map((i) => (i.id === importId ? { ...i, pinned } : i)));
+  }, []);
+
   // Fil unifié : articles rédigés + éléments importés, filtré/recherché/trié (côté client).
   const timeline = useMemo(() => {
     let items = [
@@ -105,7 +115,13 @@ export function GLPlayerJournalView({ gameState, onNavigateTab }) {
         );
       });
     }
-    items.sort((x, y) => (sortOrder === 'oldest' ? x.at - y.at : y.at - x.at));
+    items.sort((x, y) => {
+      // Épinglés d'abord, puis tri chronologique choisi.
+      const px = x.data.pinned ? 1 : 0;
+      const py = y.data.pinned ? 1 : 0;
+      if (px !== py) return py - px;
+      return sortOrder === 'oldest' ? x.at - y.at : y.at - x.at;
+    });
     return items;
   }, [articles, imports, kindFilter, search, sortOrder]);
 
@@ -174,10 +190,20 @@ export function GLPlayerJournalView({ gameState, onNavigateTab }) {
       {loading ? (
         <p className="gl-hint">Chargement de ton carnet…</p>
       ) : totalCount === 0 ? (
-        <p className="gl-hint gl-player-journal__empty">
-          Ton carnet est vide. Crée ton premier article, ou importe un élément appris depuis sa
-          page.
-        </p>
+        <div className="gl-player-journal__empty">
+          <p className="gl-hint">Ton carnet est encore vide. Deux façons de le remplir :</p>
+          <ul className="gl-hint">
+            <li>
+              <strong>Écris un article</strong> — clique sur « + Nouvel article » (texte, images, ou
+              les deux).
+            </li>
+            <li>
+              <strong>Importe un élément appris</strong> — sur la page d’un feuillet, d’une espèce,
+              d’une définition… clique « Marquer comme appris » (parfois après un petit quiz qui
+              valide ta lecture), puis « + Ajouter à mon journal ». Il apparaîtra ici.
+            </li>
+          </ul>
+        </div>
       ) : timeline.length === 0 ? (
         <p className="gl-hint gl-player-journal__empty">
           Aucune entrée ne correspond à ta recherche ou à ce filtre.
@@ -192,6 +218,7 @@ export function GLPlayerJournalView({ gameState, onNavigateTab }) {
                 limits={limits}
                 chapterSpells={chapterSpells}
                 onDelete={handleDeleteArticle}
+                onTogglePin={handlePinArticle}
               />
             ) : (
               <GLPlayerJournalImportCard
@@ -199,6 +226,7 @@ export function GLPlayerJournalView({ gameState, onNavigateTab }) {
                 item={entry.data}
                 onNavigateTab={onNavigateTab}
                 onDelete={handleDeleteImport}
+                onTogglePin={handlePinImport}
               />
             ),
           )}

@@ -82,6 +82,7 @@ export function GLJournalImportButton({
         variant="secondary"
         onClick={handleImport}
         disabled={state === 'saving'}
+        aria-label={title ? `Ajouter « ${title} » à mon journal` : 'Ajouter à mon journal'}
       >
         {state === 'saving' ? 'Ajout…' : '+ Ajouter à mon journal'}
       </GLButton>
