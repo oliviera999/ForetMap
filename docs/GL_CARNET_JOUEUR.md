@@ -28,6 +28,11 @@ Il n'y a **aucune notion de brouillon/publication** : tout est enregistré au fi
 (auto-save). Chaque article conserve ses horodatages de **création** et de **dernière
 modification**.
 
+Une **barre d'outils** (visible dès qu'il y a au moins une entrée) permet de **rechercher**
+(titre/texte des articles, titre/référence des imports), de **filtrer** par type d'entrée
+(tout / articles / imports) et de **trier** (plus récent ou plus ancien d'abord). Ces contrôles
+agissent **côté client** sur les données déjà chargées (aucun appel réseau supplémentaire).
+
 ### Ce qu'un joueur peut faire
 
 - Créer autant d'**articles** qu'il veut (bouton « Nouvel article »).
