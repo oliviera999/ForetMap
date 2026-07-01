@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { apiGL } from '../services/apiGL.js';
 import { GLButton } from './ui/GLButton.jsx';
 
@@ -36,6 +36,12 @@ export function GLJournalImportButton({
 }) {
   const [state, setState] = useState(alreadyImported ? 'done' : 'idle');
   const [error, setError] = useState('');
+
+  // L'info « déjà importé » peut arriver après le montage (chargement asynchrone) :
+  // on bascule alors le bouton en état final sans écraser un import en cours.
+  useEffect(() => {
+    if (alreadyImported) setState((prev) => (prev === 'saving' ? prev : 'done'));
+  }, [alreadyImported]);
 
   if (!enabled || !isGlPlayerSession()) return null;
 

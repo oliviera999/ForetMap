@@ -16,6 +16,7 @@ const {
   getPlayerJournalLimits,
   playerJournalUploadPrefix,
   getPlayerJournalImports,
+  getPlayerJournalImportRefs,
   hasLearnedResource,
   canStaffAccessPlayer,
 } = require('../../lib/glPlayerJournal');
@@ -70,6 +71,19 @@ router.get(
     const data = await getArticlesForPlayer(req.glAuth.userId);
     const imports = await getPlayerJournalImports(req.glAuth.userId);
     return res.json({ ...data, imports });
+  }),
+);
+
+// Références légères des éléments déjà importés (type + ref), pour l'état « déjà
+// dans mon journal » des boutons d'import sur les pages d'éléments. Volontairement
+// séparé de /me (qui charge tout le carnet) pour rester peu coûteux.
+router.get(
+  '/me/imports/refs',
+  asyncHandler(async (req, res) => {
+    if (!(await ensurePlayerJournalModuleEnabled(res))) return;
+    if (!requireGlPlayer(req, res)) return;
+    const refs = await getPlayerJournalImportRefs(req.glAuth.userId);
+    return res.json({ refs });
   }),
 );
 

@@ -159,21 +159,34 @@ Une fois l'élément acquis, un bouton **« Ajouter à mon journal »** apparaî
 - est **idempotent** (unique par `(joueur, type, référence)`),
 - est **refusé (403)** si l'élément n'a pas été appris au préalable.
 
+> **État « déjà dans mon journal »** : le bouton d'import reflète l'état **dès le chargement**
+> de la page de l'élément (« ✓ Dans mon journal » au lieu de « + Ajouter »). Il s'appuie sur un
+> endpoint léger `GET /player-journal/me/imports/refs` (liste des `(resourceType, resourceRef)`
+> déjà importés, sans charger tout le carnet).
+
 L'élément importé s'affiche comme une **carte** dans le fil chronologique : icône + libellé du
-type + **titre réel** + date d'import + bouton **« Voir »** (navigation vers l'onglet d'origine)
-et **« Retirer »**.
+type + **titre réel** + date d'import + bouton **« Voir »** et **« Retirer »**.
 
-Correspondance type → onglet (utilitaire `utils/glJournalImportMeta.js`) :
+### Lien « Voir » profond
 
-| Type            | Libellé            | Onglet cible « Voir » |
-| --------------- | ------------------ | --------------------- |
-| `species`       | Fiche biodiversité | `biodiversite`        |
-| `ecosystem`     | Écosystème         | `ecosystemes`         |
-| `glossary`      | Définition         | `glossary`            |
-| `lore_glossary` | Lexique lore       | `lore-glossary`       |
-| `tutorial`      | Tutoriel           | `tutorials`           |
-| `feuillet`      | Feuillet de Sélène | `selene-carnet`       |
-| `content_page`  | Page du monde      | slug de la page       |
+Le bouton **« Voir »** ouvre l'**élément précis** dans sa vue (pas seulement l'onglet). L'utilitaire
+`utils/glJournalImportMeta.js` (`importTargetNav`) produit une cible `{ tab, focusType, focusRef }` ;
+`AppGL` pose la cible de focus puis change d'onglet, et la vue destinataire ouvre l'élément via un
+`useEffect` de focus (modal/onglet/lecteur), sur le modèle du focus glossaire déjà existant.
+
+| Type            | Libellé            | Onglet cible    | Ouverture précise « Voir »                           |
+| --------------- | ------------------ | --------------- | ---------------------------------------------------- |
+| `species`       | Fiche biodiversité | `biodiversite`  | onglet (fiche : suivi — pas d'endpoint par code)     |
+| `ecosystem`     | Écosystème         | `ecosystemes`   | sélectionne l'onglet du biome (`focusEcosystemSlug`) |
+| `glossary`      | Définition         | `glossary`      | ouvre le terme (`focusCode` existant)                |
+| `lore_glossary` | Lexique lore       | `lore-glossary` | ouvre le terme (`focusCode` existant)                |
+| `tutorial`      | Tutoriel           | `tutorials`     | ouvre le tutoriel (`focusTutorialId`)                |
+| `feuillet`      | Feuillet de Sélène | `selene-carnet` | ouvre le feuillet accessible (`focusFeuilletCode`)   |
+| `content_page`  | Page du monde      | slug de la page | l'onglet **est** la page                             |
+
+> **Espèces** : l'ouverture directe de la fiche depuis le carnet reste un **suivi** — le catalogue
+> charge les espèces **par biome** et il n'existe pas d'endpoint `GET /species/:code` pour ouvrir
+> une fiche isolée ; « Voir » ouvre donc l'onglet Biodiversité (dégradation gracieuse).
 
 L'import est **réservé aux joueurs** (`gl_player`) : le bouton est masqué pour les invités et le
 MJ.
@@ -291,6 +304,7 @@ Toutes les routes sont préfixées `/api/gl` et exigent une auth GL. Détail exh
 
 | Méthode  | URL                                    | Rôle                                                                                  |
 | -------- | -------------------------------------- | ------------------------------------------------------------------------------------- |
+| `GET`    | `/player-journal/me/imports/refs`      | Refs légères des éléments importés (`refs: [{ resourceType, resourceRef }]`).         |
 | `POST`   | `/player-journal/me/imports`           | Importer un élément **appris** (`{ resourceType, resourceRef, title? }`) — 403 sinon. |
 | `DELETE` | `/player-journal/me/imports/:importId` | Retirer un élément importé.                                                           |
 

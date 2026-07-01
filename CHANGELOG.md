@@ -7,6 +7,25 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### GL — Carnet : lien « Voir » profond & état « déjà importé » (B.5 + A.2)
+
+- **A.2 — état « déjà dans mon journal »** : le bouton d'import reflète l'état **dès le chargement**
+  de la page de l'élément (plus besoin de cliquer). Nouvel endpoint léger
+  `GET /api/gl/player-journal/me/imports/refs` (liste des `(resourceType, resourceRef)` importés,
+  sans charger tout le carnet) ; `GLLearnAndImport` le consomme et `GLJournalImportButton` bascule
+  en « ✓ Dans mon journal » même quand l'info arrive en asynchrone.
+- **B.5 — lien « Voir » profond** : « Voir » ouvre désormais l'**élément précis** dans sa vue et
+  pas seulement l'onglet. `importTargetNav` produit une cible `{ tab, focusType, focusRef }` ;
+  `AppGL` pose un focus (nouveaux états `ecosystemFocusSlug` / `tutorialFocusId` / `feuilletFocusCode`,
+  en plus des focus glossaire/lore existants) puis navigue, et chaque vue ouvre l'élément via un
+  `useEffect` (écosystème → onglet du biome, tutoriel → lecture, feuillet → lecteur, glossaire/lore →
+  terme, page → onglet). **Espèces** : dégradation gracieuse (ouvre l'onglet Biodiversité — pas
+  d'endpoint `GET /species/:code`), noté en suivi.
+- **Tests** : `tests-ui/gl/glJournalImportMeta.test.js` (cibles de navigation), extension de
+  `tests/gl-player-journal.test.js` (endpoint `/me/imports/refs`). `dist/` reconstruit.
+- **Docs** : `docs/GL_CARNET_JOUEUR.md` (sections « État déjà importé » + « Lien Voir profond ») et
+  `docs/API.md` (endpoint refs).
+
 ### GL — Carnet : quiz-gating des nouveaux types marquables (A.1)
 
 - **Vérification & documentation** : le conditionnement par quiz (« marquer appris » exige un QCM)
