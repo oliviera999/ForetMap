@@ -219,7 +219,7 @@ MJ.
 
 - **Épinglage** : chaque **article** et chaque **import** peut être **épinglé** (bouton « Épingler »
   / « 📌 Épinglé »). Les entrées épinglées remontent **en tête** du fil (avant le tri
-  chronologique). Persisté côté serveur : colonne `pinned` (migration `159`), routes
+  chronologique). Persisté côté serveur : colonne `pinned` (migration `160`), routes
   `PUT /player-journal/me/articles/:id/pin` et `.../me/imports/:id/pin` (`{ pinned }`), booléen
   `pinned` exposé dans `GET /me`.
 - **Recherche / filtre / tri** : la barre d'outils du fil (voir §1) filtre/rechercher/trie côté

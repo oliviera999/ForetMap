@@ -3,10 +3,11 @@
 -- Colonnes ajoutées de façon idempotente (motif `ADD COLUMN IF NOT EXISTS`, cf. 157),
 -- avec un index secondaire `(player_id, pinned)` pour filtrer les épinglées d'un joueur.
 --
--- NB numérotation : le suffixe demandé était « 157_gl_player_journal_pinned » mais le
--- numéro 157 (et 158) sont déjà pris (157_gl_feuillet_attribution, 158_gl_lore_feuillet_preview_fields).
--- Le runner de migrations suit la version par NUMÉRO (`schema_version.version`) : un second
--- fichier « 157_* » serait ignoré (num <= current). On utilise donc le prochain numéro libre : 159.
+-- NB numérotation : le runner de migrations suit la version par NUMÉRO
+-- (`schema_version.version`) ; deux fichiers de même numéro entraîneraient un saut
+-- silencieux (num <= current). Les numéros 157/158/159 étant déjà pris
+-- (157_gl_feuillet_attribution, 158_gl_lore_feuillet_preview_fields,
+-- 159_gl_feuillet_copbio_biome_backfill), on utilise le prochain numéro libre : 160.
 
 ALTER TABLE gl_player_journal_articles
   ADD COLUMN IF NOT EXISTS pinned TINYINT(1) NOT NULL DEFAULT 0 AFTER body_markdown,

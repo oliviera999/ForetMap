@@ -33,7 +33,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ### GL — Carnet : épinglage, onboarding, a11y & libellés harmonisés (B.7 pin, B.8, B.9, D.11, D.12, E.13)
 
 - **Épinglage (B.7)** : articles et imports peuvent être **épinglés** ; les entrées épinglées
-  remontent en tête du fil. Persistance serveur : colonne `pinned` (migration **`159`**,
+  remontent en tête du fil. Persistance serveur : colonne `pinned` (migration **`160`**,
   idempotente `ADD COLUMN IF NOT EXISTS`), routes `PUT /player-journal/me/articles/:id/pin` et
   `.../me/imports/:id/pin` (`{ pinned }`), booléen `pinned` exposé dans `GET /me`. Front : bascule
   d'épinglage sur chaque carte + tri « épinglés d'abord » (`GLPlayerJournalView`).
