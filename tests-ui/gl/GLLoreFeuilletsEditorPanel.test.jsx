@@ -84,4 +84,36 @@ describe('GLLoreFeuilletsEditorPanel — chemins API', () => {
       );
     });
   });
+
+  test('édition en masse : POST /api/gl/lore/admin/feuillets/bulk avec la sélection', async () => {
+    apiGlMock.mockImplementation(async (path, method) => {
+      if (path === '/api/gl/biomes') return [{ slug: 'sahara', nom: 'Sahara' }];
+      if (path === '/api/gl/lore/admin/feuillets') return { items: [LIST_ITEM] };
+      if (path === '/api/gl/lore/admin/feuillets/bulk' && method === 'POST') {
+        return { ok: true, requested: 1, updated: 1 };
+      }
+      return {};
+    });
+
+    render(<GLLoreFeuilletsEditorPanel />);
+    await waitFor(() => {
+      expect(screen.getByLabelText('Sélectionner cop-cover')).toBeInTheDocument();
+    });
+
+    // Sélectionne le feuillet → la barre d'édition en masse apparaît.
+    fireEvent.click(screen.getAllByLabelText('Sélectionner cop-cover')[0]);
+    const fieldSelect = await screen.findByLabelText('Champ');
+    fireEvent.change(fieldSelect, { target: { value: 'statut' } });
+    const valueSelect = await screen.findByLabelText('Nouvelle valeur');
+    fireEvent.change(valueSelect, { target: { value: 'inactif' } });
+
+    fireEvent.click(screen.getByRole('button', { name: /Appliquer à 1/ }));
+
+    await waitFor(() => {
+      expect(apiGlMock).toHaveBeenCalledWith('/api/gl/lore/admin/feuillets/bulk', 'POST', {
+        codes: ['cop-cover'],
+        patch: { statut: 'inactif' },
+      });
+    });
+  });
 });
