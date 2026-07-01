@@ -1,14 +1,19 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { apiGL } from '../services/apiGL.js';
+import { LEARNING_TYPE_TO_FIELD as TYPE_TO_FIELD } from '../utils/glLearningFields.js';
 
 const EMPTY = Object.freeze({
   species_codes: [],
   glossary_codes: [],
   tutorial_ids: [],
+  lore_glossary_codes: [],
+  feuillet_codes: [],
+  content_page_slugs: [],
+  ecosystem_slugs: [],
 });
 
 /**
- * Progression « appris / étudié » du joueur GL (globale, inter-parties).
+ * Progression « appris / étudié / lu / découvert » du joueur GL (globale, inter-parties).
  */
 export function useGlLearningProgress(authToken) {
   const [data, setData] = useState(EMPTY);
@@ -22,10 +27,15 @@ export function useGlLearningProgress(authToken) {
     setLoading(true);
     try {
       const res = await apiGL('/api/gl/learning/me');
+      const pick = (key) => (Array.isArray(res?.[key]) ? res[key] : []);
       setData({
-        species_codes: Array.isArray(res?.species_codes) ? res.species_codes : [],
-        glossary_codes: Array.isArray(res?.glossary_codes) ? res.glossary_codes : [],
-        tutorial_ids: Array.isArray(res?.tutorial_ids) ? res.tutorial_ids : [],
+        species_codes: pick('species_codes'),
+        glossary_codes: pick('glossary_codes'),
+        tutorial_ids: pick('tutorial_ids'),
+        lore_glossary_codes: pick('lore_glossary_codes'),
+        feuillet_codes: pick('feuillet_codes'),
+        content_page_slugs: pick('content_page_slugs'),
+        ecosystem_slugs: pick('ecosystem_slugs'),
       });
     } catch {
       setData(EMPTY);
@@ -38,54 +48,48 @@ export function useGlLearningProgress(authToken) {
     reload();
   }, [reload]);
 
-  const speciesSet = useMemo(
-    () => new Set(data.species_codes.map((c) => String(c).trim()).filter(Boolean)),
-    [data.species_codes],
-  );
-  const glossarySet = useMemo(
-    () => new Set(data.glossary_codes.map((c) => String(c).trim()).filter(Boolean)),
-    [data.glossary_codes],
-  );
-  const tutorialSet = useMemo(
-    () => new Set(data.tutorial_ids.map((id) => Number(id)).filter((n) => Number.isFinite(n))),
-    [data.tutorial_ids],
+  const sets = useMemo(() => {
+    const out = {};
+    for (const [type, field] of Object.entries(TYPE_TO_FIELD)) {
+      out[type] = new Set((data[field] || []).map((c) => String(c).trim()).filter(Boolean));
+    }
+    return out;
+  }, [data]);
+
+  const isLearned = useCallback(
+    (type, ref) => {
+      const set = sets[type];
+      if (!set) return false;
+      return set.has(String(ref == null ? '' : ref).trim());
+    },
+    [sets],
   );
 
-  const markLocal = useCallback((type, code) => {
-    const key = String(code || '').trim();
-    if (!key) return;
+  const markLocal = useCallback((type, ref) => {
+    const field = TYPE_TO_FIELD[type];
+    const key = String(ref == null ? '' : ref).trim();
+    if (!field || !key) return;
     setData((prev) => {
-      if (type === 'species' && prev.species_codes.includes(key)) return prev;
-      if (type === 'glossary' && prev.glossary_codes.includes(key)) return prev;
+      const current = prev[field] || [];
       if (type === 'tutorial') {
         const id = Number(key);
-        if (!Number.isFinite(id) || prev.tutorial_ids.includes(id)) return prev;
-        return { ...prev, tutorial_ids: [...prev.tutorial_ids, id] };
+        if (!Number.isFinite(id) || current.includes(id)) return prev;
+        return { ...prev, [field]: [...current, id] };
       }
-      if (type === 'species') {
-        return { ...prev, species_codes: [...prev.species_codes, key] };
-      }
-      if (type === 'glossary') {
-        return { ...prev, glossary_codes: [...prev.glossary_codes, key] };
-      }
-      return prev;
+      if (current.includes(key)) return prev;
+      return { ...prev, [field]: [...current, key] };
     });
   }, []);
 
-  const isSpeciesLearned = useCallback(
-    (code) => speciesSet.has(String(code || '').trim()),
-    [speciesSet],
-  );
-  const isGlossaryLearned = useCallback(
-    (code) => glossarySet.has(String(code || '').trim()),
-    [glossarySet],
-  );
-  const isTutorialRead = useCallback((id) => tutorialSet.has(Number(id)), [tutorialSet]);
+  const isSpeciesLearned = useCallback((code) => isLearned('species', code), [isLearned]);
+  const isGlossaryLearned = useCallback((code) => isLearned('glossary', code), [isLearned]);
+  const isTutorialRead = useCallback((id) => isLearned('tutorial', id), [isLearned]);
 
   return {
     loading,
     reload,
     markLocal,
+    isLearned,
     isSpeciesLearned,
     isGlossaryLearned,
     isTutorialRead,

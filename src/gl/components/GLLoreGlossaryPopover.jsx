@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { apiGL } from '../services/apiGL.js';
 import { GLButton } from './ui/GLButton.jsx';
+import { GLLearnAndImport } from './GLLearnAndImport.jsx';
 
 const CATEGORY_ACCENT = {
   cosmologie: '#6d28d9',
@@ -122,6 +123,15 @@ export function GLLoreGlossaryPopover({
               </ul>
             ) : null}
           </div>
+        ) : null}
+        {term && loreCode ? (
+          <GLLearnAndImport
+            resourceType="lore_glossary"
+            resourceRef={loreCode}
+            title={term.terme || loreCode}
+            acknowledgeLabel="Marquer comme découvert"
+            learnedLabel="✓ Découvert"
+          />
         ) : null}
         <footer>
           {onOpenFullGlossary ? (

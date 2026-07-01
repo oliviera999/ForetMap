@@ -27,6 +27,7 @@ const {
   GL_RESOURCE_TYPES,
 } = require('../../lib/shared/resourceQuestionGatingCore');
 const { GL_MARKABLE } = require('../../lib/learningGatingRuntime');
+const { resourceExists } = require('../../lib/glLearnableResources');
 
 const router = express.Router();
 
@@ -278,6 +279,50 @@ router.post(
       },
     });
   },
+);
+
+/**
+ * POST /api/gl/learning/mark/:resourceType/:ref — accusé générique « appris / lu / découvert »
+ * pour les types sans endpoint dédié (glossaire lore, feuillet, page de contenu, écosystème…).
+ * Même contrat que les endpoints spécifiques : confirm:true, gating éventuel, ressource existante.
+ */
+router.post(
+  '/mark/:resourceType/:ref',
+  requireGlAuth,
+  asyncHandler(async (req, res) => {
+    const confirm = parseConfirmBody(req.body);
+    if (!confirm.ok) return res.status(400).json({ error: confirm.error });
+    const reader = buildReaderKey(req.glAuth);
+    if (!reader) return res.status(403).json({ error: 'Profil invalide' });
+
+    const resourceType = normalizeResourceType(req.params.resourceType, GL_RESOURCE_TYPES);
+    const ref = normalizeResourceRef(req.params.ref);
+    if (!resourceType || !ref || !GL_MARKABLE.has(resourceType)) {
+      return res.status(400).json({ error: 'Type de ressource non marquable' });
+    }
+
+    if (!(await resourceExists(db, resourceType, ref))) {
+      return res.status(404).json({ error: 'Ressource introuvable' });
+    }
+
+    const alreadyAcked = await hasExistingLearningAck(reader, resourceType, ref);
+    const gating = await assertGatingSatisfiedForAcknowledge(db, {
+      product: 'gl',
+      resourceType,
+      resourceRef: ref,
+      glAuth: req.glAuth,
+      skipGating: alreadyAcked,
+    });
+    if (!gating.ok) {
+      return res.status(gating.status || 403).json({
+        error: gating.error,
+        missing_question_codes: gating.missing_question_codes || [],
+      });
+    }
+
+    await upsertLearningAck(db, reader, resourceType, ref);
+    return res.json({ success: true, target_type: resourceType, target_code: ref });
+  }),
 );
 
 module.exports = router;

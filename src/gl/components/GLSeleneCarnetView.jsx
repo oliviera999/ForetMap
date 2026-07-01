@@ -4,6 +4,7 @@ import { GLLoreGlossaryMarkdown } from './GLLoreGlossaryMarkdown.jsx';
 import { GLGlossaryMarkdown } from './GLGlossaryMarkdown.jsx';
 import { GLFeuilletIllustration, GLFeuilletCoupeIllustration } from './GLFeuilletIllustration.jsx';
 import { GLButton } from './ui/GLButton.jsx';
+import { GLLearnAndImport } from './GLLearnAndImport.jsx';
 
 function groupByLiasse(items) {
   const groups = {};
@@ -218,6 +219,15 @@ export function GLSeleneCarnetView({
                   <GLButton type="button" onClick={() => markRead(active.feuilletCode)}>
                     Marquer comme lu
                   </GLButton>
+                ) : null}
+                {active.feuilletCode ? (
+                  <GLLearnAndImport
+                    resourceType="feuillet"
+                    resourceRef={active.feuilletCode}
+                    title={active.titre || active.feuilletCode}
+                    acknowledgeLabel="Marquer comme découvert"
+                    learnedLabel="✓ Découvert"
+                  />
                 ) : null}
               </div>
             </div>
