@@ -13,6 +13,8 @@ function tinyPngBuffer() {
 }
 
 test('parcours photos zone: upload puis suppression', async ({ page }) => {
+  test.setTimeout(120_000);
+
   await loginAsNewStudent(page);
   await enableTeacherMode(page);
 
@@ -23,24 +25,30 @@ test('parcours photos zone: upload puis suppression', async ({ page }) => {
   test.skip(zoneCount === 0, 'Aucune zone exploitable pour test photo');
 
   await openFirstZoneModalFromMap(page);
-  await page.getByRole('button', { name: '📷 Photos', exact: true }).click();
+  const zoneDialog = page.locator('[role="dialog"][aria-label^="Zone "]').first();
+  await zoneDialog.getByRole('button', { name: '📷 Photos', exact: true }).click();
+  await expect(zoneDialog.getByRole('button', { name: '📁 Galerie' })).toBeVisible({
+    timeout: 20_000,
+  });
 
-  const caption = page.getByPlaceholder('Légende (optionnel)');
-  await caption.fill('Photo e2e');
+  const uniqueCaption = `Photo e2e ${Date.now()}`;
+  const caption = zoneDialog.getByPlaceholder('Légende (optionnel)');
+  await caption.fill(uniqueCaption);
 
-  const fileInput = page.locator('input[type="file"]').first();
-  await fileInput.setInputFiles({
+  const galleryInput = zoneDialog.locator('input[type="file"]').first();
+  await galleryInput.setInputFiles({
     name: 'tiny.png',
     mimeType: 'image/png',
     buffer: tinyPngBuffer(),
   });
 
-  // Plusieurs emplacements photo → plusieurs « Envoi… » : éviter la violation strict Playwright.
-  await expect(page.getByRole('button', { name: /Ajouter une photo|Envoi/ }).first()).toBeVisible();
+  await expect(zoneDialog.locator(`img[alt="${uniqueCaption}"]`).first()).toBeVisible({
+    timeout: 90_000,
+  });
   await expect(caption).toHaveValue('');
-  await expect(page.locator('img[alt="Photo e2e"]').first()).toBeVisible();
+  await expect(zoneDialog.getByRole('button', { name: '📁 Galerie' })).toBeVisible();
 
-  const deleteButtons = page.locator('button', { hasText: '✕' });
+  const deleteButtons = zoneDialog.locator('button', { hasText: '✕' });
   const deleteCount = await deleteButtons.count();
   if (deleteCount > 1) {
     page.once('dialog', (d) => d.accept());

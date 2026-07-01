@@ -268,13 +268,11 @@ test.describe('Gnomes & Licornes game flow smoke', () => {
       socket.emit('subscribe:gl-game', { gameId });
       await new Promise((resolve) => setTimeout(resolve, 120));
 
-      // Capture les événements suivants : turn_change puis narration.
-      const received = [];
-      const turnPromise = new Promise((resolve, reject) => {
-        const timeout = setTimeout(() => reject(new Error('timeout turn_change')), 8000);
+      // Capture les événements suivants : round_start (nouveau tour) puis narration.
+      const roundPromise = new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => reject(new Error('timeout round_start')), 8000);
         const handler = (msg) => {
-          received.push(msg);
-          if (msg?.eventType === 'turn_change') {
+          if (msg?.eventType === 'round_start') {
             socket.off('gl:game:event', handler);
             clearTimeout(timeout);
             resolve(msg);
@@ -287,9 +285,10 @@ test.describe('Gnomes & Licornes game flow smoke', () => {
         headers: adminHeaders,
       });
       expect(turnRes.status()).toBe(200);
-      const turnMsg = await turnPromise;
-      expect(Number(turnMsg.gameId)).toBe(gameId);
-      expect(Number(turnMsg.payload.teamId)).toBe(teamId);
+      const roundMsg = await roundPromise;
+      expect(Number(roundMsg.gameId)).toBe(gameId);
+      expect(roundMsg.eventType).toBe('round_start');
+      expect(Number(roundMsg.payload.roundNumber)).toBe(1);
 
       const narrPromise = new Promise((resolve, reject) => {
         const timeout = setTimeout(() => reject(new Error('timeout narration')), 8000);

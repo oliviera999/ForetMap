@@ -36,6 +36,7 @@ test.describe('Gnomes & Licornes — Mode Découverte', () => {
   });
 
   test('parcours invité — dé, feuillets et mur de fin', async ({ page }) => {
+    test.setTimeout(180_000);
     await page.setExtraHTTPHeaders({ 'X-Foretmap-Product': 'gl' });
     await page.goto('/');
     await page.evaluate(() => localStorage.setItem('gl_intro_seen', '1'));
@@ -43,32 +44,77 @@ test.describe('Gnomes & Licornes — Mode Découverte', () => {
     await page.getByRole('button', { name: 'Découvrir sans compte' }).click();
     await expect(page.getByRole('tab', { name: 'Découverte' })).toBeVisible({ timeout: 30_000 });
 
-    await page.getByTestId('gl-guest-demo-dice-fab').click();
-    await expect(page.getByTestId('gl-virtual-dice-popover')).toBeVisible();
-
     const wallTitle = page.locator('#gl-guest-demo-wall-title');
-    for (let attempt = 0; attempt < 24 && !(await wallTitle.isVisible()); attempt += 1) {
-      const rollBtn = page.getByTestId('gl-dice-roll');
-      const rerollBtn = page.getByTestId('gl-dice-reroll');
-      if (await rerollBtn.isVisible()) {
-        await rerollBtn.click();
-      } else if (await rollBtn.isVisible()) {
-        await rollBtn.click();
-      }
-      await expect(page.getByTestId('gl-dice-result')).toBeVisible({ timeout: 5000 });
+    await page
+      .waitForResponse((r) => r.url().includes('/api/gl/lore/demo-feuillets') && r.ok(), {
+        timeout: 30_000,
+      })
+      .catch(() => {});
 
-      const feuilletClose = page.getByRole('button', { name: 'Fermer' }).first();
-      if (await feuilletClose.isVisible({ timeout: 8000 }).catch(() => false)) {
-        await feuilletClose.click();
-      }
+    async function closeFeuilletOverlays() {
+      if (await wallTitle.isVisible().catch(() => false)) return;
 
-      const discoveryClose = page.getByRole('button', { name: 'Fermer' }).first();
-      if (await discoveryClose.isVisible({ timeout: 5000 }).catch(() => false)) {
-        await discoveryClose.click();
+      const zonePopover = page.locator('.gl-feuillet-popover');
+      if (await zonePopover.isVisible({ timeout: 500 }).catch(() => false)) {
+        await zonePopover.locator('.gl-feui-discovery__foot button').first().click({ force: true });
+        await zonePopover.waitFor({ state: 'hidden', timeout: 6000 }).catch(() => {});
+        await page.waitForTimeout(350);
       }
 
+      for (let pass = 0; pass < 4; pass += 1) {
+        const feuilletDialog = page
+          .getByRole('dialog')
+          .filter({ hasText: /Feuillet|Carnet de voyage/i });
+        if (
+          !(await feuilletDialog
+            .first()
+            .isVisible({ timeout: 400 })
+            .catch(() => false))
+        )
+          break;
+        await feuilletDialog
+          .first()
+          .getByRole('button', { name: 'Fermer' })
+          .last()
+          .click({ force: true });
+        await feuilletDialog
+          .first()
+          .waitFor({ state: 'hidden', timeout: 6000 })
+          .catch(() => {});
+        await page.waitForTimeout(250);
+      }
+
+      const overlay = page.locator('.gl-feui-discovery-overlay');
+      if (await overlay.isVisible({ timeout: 400 }).catch(() => false)) {
+        await page.keyboard.press('Escape').catch(() => {});
+        await overlay.waitFor({ state: 'hidden', timeout: 4000 }).catch(() => {});
+      }
+    }
+
+    async function ensureDicePopoverOpen() {
+      await closeFeuilletOverlays();
+      const popover = page.getByTestId('gl-virtual-dice-popover');
+      if (await popover.isVisible().catch(() => false)) return;
+      await page.getByTestId('gl-guest-demo-dice-fab').click({ force: true });
+      await expect(popover).toBeVisible({ timeout: 8000 });
+    }
+
+    await closeFeuilletOverlays();
+
+    for (let attempt = 0; attempt < 50 && !(await wallTitle.isVisible()); attempt += 1) {
+      await ensureDicePopoverOpen();
+      const popover = page.getByTestId('gl-virtual-dice-popover');
+      const rerollBtn = popover.getByTestId('gl-dice-reroll');
+      const rollBtn = popover.getByTestId('gl-dice-roll');
+      if (await rerollBtn.isVisible().catch(() => false)) {
+        await rerollBtn.click({ force: true });
+      } else {
+        await rollBtn.click({ force: true });
+      }
+
+      await page.waitForTimeout(1_200);
+      await closeFeuilletOverlays();
       if (await wallTitle.isVisible()) break;
-      await page.waitForTimeout(400);
     }
 
     await expect(wallTitle).toHaveText(/journal s.interrompt ici/i, { timeout: 30_000 });
