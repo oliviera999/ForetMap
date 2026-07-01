@@ -97,7 +97,8 @@ describe('GLLoreFeuilletsEditorPanel — chemins API', () => {
 
     render(<GLLoreFeuilletsEditorPanel />);
     await waitFor(() => {
-      expect(screen.getByLabelText('Sélectionner cop-cover')).toBeInTheDocument();
+      // Rendu double (ligne desktop + carte mobile) → getAllByLabelText.
+      expect(screen.getAllByLabelText('Sélectionner cop-cover').length).toBeGreaterThan(0);
     });
 
     // Sélectionne le feuillet → la barre d'édition en masse apparaît.
