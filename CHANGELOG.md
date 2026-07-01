@@ -17,6 +17,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   pan/zoom visite), mutualisation backend (cluster tasks ×3, paires Lore/non-Lore GL) et frontend
   (`api`/`apiGL`, modales carte, éditeurs QCM), infra/CI (cache immutable des assets, suite backend
   exécutée deux fois en CI), plan d'exécution en 7 lots avec garde-fous anti-régression.
+- **Tests (fix GL)** : `tests-ui/gl/GLLoreFeuillets{EditorPanel,OverviewPanel}.test.jsx` alignés sur
+  le rendu double desktop/mobile des listes (table + cartes) — `getAllByText`/`getAllByLabelText`
+  au lieu de `getByText`/`getByLabelText` (CI verte rétablie, 3 tests réparés).
 
 ### GL — Activation de l'acquisition ③ + gestion admin des feuillets (vue d'ensemble & édition en masse)
 

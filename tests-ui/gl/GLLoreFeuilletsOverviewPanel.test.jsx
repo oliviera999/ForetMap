@@ -55,26 +55,28 @@ describe('GLLoreFeuilletsOverviewPanel', () => {
     apiGlMock.mockResolvedValue(OVERVIEW);
   });
 
+  // Chaque item est rendu deux fois (ligne de tableau desktop + carte mobile,
+  // alternance gérée en CSS) → toujours interroger via getAllByText/queryAllByText.
   test('affiche les KPI et la couverture par canal', async () => {
     render(<GLLoreFeuilletsOverviewPanel />);
-    await waitFor(() => expect(screen.getByText('Zone A')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getAllByText('Zone A').length).toBeGreaterThan(0));
     expect(apiGlMock).toHaveBeenCalledWith('/api/gl/lore/admin/feuillets/overview');
     // Lien résolu + libellé de canal.
-    expect(screen.getByText('espece · Fennec (SP0001)')).toBeInTheDocument();
-    expect(screen.getByText('Lien espèce')).toBeInTheDocument();
+    expect(screen.getAllByText('espece · Fennec (SP0001)').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Lien espèce').length).toBeGreaterThan(0);
   });
 
   test('filtre par canal via le clic sur la couverture', async () => {
     render(<GLLoreFeuilletsOverviewPanel />);
-    await waitFor(() => expect(screen.getByText('Zone A')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getAllByText('Zone A').length).toBeGreaterThan(0));
 
     // Clique sur le canal « Orphelin » dans la couverture → ne garde que l'orphelin.
     const coverage = document.querySelector('.gl-feuillets-overview__coverage');
     fireEvent.click(within(coverage).getByText('Orphelin').closest('button'));
 
     await waitFor(() => {
-      expect(screen.queryByText('Zone A')).not.toBeInTheDocument();
-      expect(screen.getByText('Orphelin')).toBeInTheDocument();
+      expect(screen.queryAllByText('Zone A')).toHaveLength(0);
+      expect(screen.getAllByText('Orphelin').length).toBeGreaterThan(0);
     });
   });
 });
