@@ -141,6 +141,7 @@ export function AppGL() {
   const [ecosystemFocusSlug, setEcosystemFocusSlug] = useState(null);
   const [tutorialFocusId, setTutorialFocusId] = useState(null);
   const [feuilletFocusCode, setFeuilletFocusCode] = useState(null);
+  const [speciesFocusCode, setSpeciesFocusCode] = useState(null);
   const [spellPopoverCode, setSpellPopoverCode] = useState(null);
   const [spellCastOpen, setSpellCastOpen] = useState(false);
   const [spellCastInitialCode, setSpellCastInitialCode] = useState(null);
@@ -236,6 +237,7 @@ export function AppGL() {
   const clearEcosystemFocus = useCallback(() => setEcosystemFocusSlug(null), []);
   const clearTutorialFocus = useCallback(() => setTutorialFocusId(null), []);
   const clearFeuilletFocus = useCallback(() => setFeuilletFocusCode(null), []);
+  const clearSpeciesFocus = useCallback(() => setSpeciesFocusCode(null), []);
 
   // Navigation « profonde » depuis le carnet : reçoit soit un id d'onglet (string, rétro-
   // compatible), soit une cible { tab, focusType, focusRef }. Pose la cible de focus puis
@@ -260,6 +262,9 @@ export function AppGL() {
         break;
       case 'feuillet':
         setFeuilletFocusCode(t.focusRef || null);
+        break;
+      case 'species':
+        setSpeciesFocusCode(t.focusRef || null);
         break;
       default:
         break;
@@ -1338,6 +1343,8 @@ export function AppGL() {
                     onGlossaryFocusHandled={clearGlossaryFocus}
                     ecosystemFocusSlug={ecosystemFocusSlug}
                     onEcosystemFocusHandled={clearEcosystemFocus}
+                    speciesFocusCode={speciesFocusCode}
+                    onSpeciesFocusHandled={clearSpeciesFocus}
                     learningProgress={isGuest ? null : learningProgress}
                     journalImportEnabled={
                       !isGuest && isModuleEnabled(modules, 'playerJournalEnabled')

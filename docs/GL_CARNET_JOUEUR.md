@@ -198,19 +198,19 @@ Le bouton **« Voir »** ouvre l'**élément précis** dans sa vue (pas seulemen
 `AppGL` pose la cible de focus puis change d'onglet, et la vue destinataire ouvre l'élément via un
 `useEffect` de focus (modal/onglet/lecteur), sur le modèle du focus glossaire déjà existant.
 
-| Type            | Libellé            | Onglet cible    | Ouverture précise « Voir »                           |
-| --------------- | ------------------ | --------------- | ---------------------------------------------------- |
-| `species`       | Fiche biodiversité | `biodiversite`  | onglet (fiche : suivi — pas d'endpoint par code)     |
-| `ecosystem`     | Écosystème         | `ecosystemes`   | sélectionne l'onglet du biome (`focusEcosystemSlug`) |
-| `glossary`      | Définition         | `glossary`      | ouvre le terme (`focusCode` existant)                |
-| `lore_glossary` | Lexique lore       | `lore-glossary` | ouvre le terme (`focusCode` existant)                |
-| `tutorial`      | Tutoriel           | `tutorials`     | ouvre le tutoriel (`focusTutorialId`)                |
-| `feuillet`      | Feuillet de Sélène | `selene-carnet` | ouvre le feuillet accessible (`focusFeuilletCode`)   |
-| `content_page`  | Page du monde      | slug de la page | l'onglet **est** la page                             |
+| Type            | Libellé            | Onglet cible    | Ouverture précise « Voir »                                           |
+| --------------- | ------------------ | --------------- | -------------------------------------------------------------------- |
+| `species`       | Fiche biodiversité | `biodiversite`  | ouvre la fiche espèce (`focusSpeciesCode`, via `GET /species/:code`) |
+| `ecosystem`     | Écosystème         | `ecosystemes`   | sélectionne l'onglet du biome (`focusEcosystemSlug`)                 |
+| `glossary`      | Définition         | `glossary`      | ouvre le terme (`focusCode` existant)                                |
+| `lore_glossary` | Lexique lore       | `lore-glossary` | ouvre le terme (`focusCode` existant)                                |
+| `tutorial`      | Tutoriel           | `tutorials`     | ouvre le tutoriel (`focusTutorialId`)                                |
+| `feuillet`      | Feuillet de Sélène | `selene-carnet` | ouvre le feuillet accessible (`focusFeuilletCode`)                   |
+| `content_page`  | Page du monde      | slug de la page | l'onglet **est** la page                                             |
 
-> **Espèces** : l'ouverture directe de la fiche depuis le carnet reste un **suivi** — le catalogue
-> charge les espèces **par biome** et il n'existe pas d'endpoint `GET /species/:code` pour ouvrir
-> une fiche isolée ; « Voir » ouvre donc l'onglet Biodiversité (dégradation gracieuse).
+> **Espèces** : « Voir » ouvre directement la **fiche** de l'espèce, indépendamment de l'onglet
+> biome courant, en la récupérant par code via `GET /api/gl/species/:code` (`GLBiodiversityView`
+> monte alors `GLSpeciesDetailModal`).
 
 L'import est **réservé aux joueurs** (`gl_player`) : le bouton est masqué pour les invités et le
 MJ.
