@@ -7,6 +7,15 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### GL — Carnet : vue MJ enrichie (C.10)
+
+- **Consultation MJ** (`GLPlayerJournalReadModal`, lecture seule) enrichie pour l'accompagnement
+  pédagogique : **récapitulatif** (nombre d'articles / d'imports), **filtre des imports par type**,
+  et **export markdown** du carnet (`Exporter (.md)` : articles + liste des imports, hors
+  illustrations). Aucune écriture, aucune nouvelle route (réutilise `GET /player-journal/players/:id`).
+- **Tests** : `tests-ui/gl/GLPlayerJournalReadModal.test.jsx` (comptages, filtre, export). `dist/` reconstruit.
+- **Docs** : `docs/GL_CARNET_JOUEUR.md` (section 6).
+
 ### GL — Carnet : validation écosystème resserrée & titres d'import frais (A.3 + A.4)
 
 - **A.3 — validation `ecosystem`** : `resourceExists('ecosystem', slug)` valide désormais le biome
