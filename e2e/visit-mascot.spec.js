@@ -206,11 +206,15 @@ test.describe.serial('mascotte visite (comportement carte)', () => {
   });
 
   test('clic repère déplace la mascotte vers les coordonnées du repère', async ({ page }) => {
-    await clickVisitMapAtPct(page, 88, 50);
+    const stage = page.locator('.visit-map-stage');
+    await stage
+      .getByRole('button', { name: `E2E mascotte B ${seededSuffix}` })
+      .click({ force: true });
     await expect
       .poll(
         async () => {
           const { xp, yp } = await readMascotPct(page);
+          if (!Number.isFinite(xp) || !Number.isFinite(yp)) return 999;
           return Math.max(Math.abs(xp - 88), Math.abs(yp - 50));
         },
         { timeout: VISIT_MAP_MASCOT_MOVE_MS + 8_000 },
@@ -219,11 +223,14 @@ test.describe.serial('mascotte visite (comportement carte)', () => {
   });
 
   test('clic zone déplace la mascotte vers le centroïde', async ({ page }) => {
+    const stage = page.locator('.visit-map-stage');
+    await stage.scrollIntoViewIfNeeded();
     await clickVisitMapAtPct(page, 50, 45);
     await expect
       .poll(
         async () => {
           const { xp, yp } = await readMascotPct(page);
+          if (!Number.isFinite(xp) || !Number.isFinite(yp)) return 999;
           return Math.max(Math.abs(xp - 50), Math.abs(yp - 45));
         },
         { timeout: VISIT_MAP_MASCOT_MOVE_MS + 8_000 },
@@ -264,7 +271,10 @@ test.describe.serial('mascotte visite (comportement carte)', () => {
   });
 
   test('marquer vu déclenche état happy et bulle', async ({ page }) => {
-    await clickVisitMapAtPct(page, 88, 50);
+    const stage = page.locator('.visit-map-stage');
+    await stage
+      .getByRole('button', { name: `E2E mascotte B ${seededSuffix}` })
+      .click({ force: true });
     /* Panneau lieu après fin de déplacement mascotte (délai aligné sur VISIT_MAP_MASCOT_MOVE_MS côté app). */
     await expect(
       page.getByRole('button', { name: /Marquer comme vu|Marqué comme vu/i }),

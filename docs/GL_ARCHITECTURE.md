@@ -212,9 +212,18 @@ Tables GL préfixées `gl_` :
 
 ### Carnet personnel joueur
 
-- Module `modules.player_journal_enabled` ; limites `gameplay.player_journal_max_chars` / `player_journal_max_assets` (défaut `0` = illimité, plafond optionnel réglable par le MJ/admin).
-- Tables `gl_player_journals`, `gl_player_journal_assets` ; API `routes/gl/player-journal.js`.
-- UI `GLPlayerJournalView` (joueur), lecture MJ via `GLPlayerJournalReadModal` (statistiques classe, `gl.players.manage`).
+> Documentation dédiée : **[docs/GL_CARNET_JOUEUR.md](GL_CARNET_JOUEUR.md)** (« Mon journal » — vue d'ensemble, articles, imports d'éléments appris, API, composants).
+
+- Carnet organisé en **articles** (titre optionnel + texte markdown et/ou illustrations ; article « média seul » possible). Module `modules.player_journal_enabled`.
+- Plafonds `gameplay.player_journal_max_chars` / `player_journal_max_assets` (défaut `0` = illimité, plafond optionnel **par article** réglable par le MJ/admin).
+- Tables `gl_player_journal_articles`, `gl_player_journal_article_assets`, `gl_player_journal_imports` ; API `routes/gl/player-journal.js` (CRUD articles + médias + imports).
+- UI `GLPlayerJournalView` (fil chronologique articles + imports) avec `GLPlayerJournalArticleCard` (éditeur) et `GLPlayerJournalImportCard` (élément importé), lecture MJ via `GLPlayerJournalReadModal` (statistiques classe, `gl.players.manage`).
+
+#### Import d'éléments appris
+
+- Le joueur peut **importer dans son carnet** un élément du site une fois **marqué appris/lu/découvert** (`gl_learning_acknowledgements`), marquage éventuellement **quiz-gaté** (`gl_resource_question_links` / `gl_resource_gating_policy`). Types couverts : espèce, glossaire, tutoriel, **glossaire lore, feuillet, page de contenu, écosystème (biome)**.
+- Backend : accusé générique `POST /api/gl/learning/mark/:resourceType/:ref` (types étendus dans `GL_MARKABLE`, `GL_RESOURCE_TYPES`, `LEARNING_TARGET_TYPES`) ; registre d'existence/titre `lib/glLearnableResources.js` ; import gaté sur l'acquisition (`POST /api/gl/player-journal/me/imports`).
+- Front : contrôle réutilisable `GLLearnAndImport` (marquer + importer) et `GLJournalImportButton`, déposés sur les pages d'éléments (écosystèmes, biodiversité, glossaires, tutoriels, feuillets, pages de contenu). L'onglet cible du lien « Voir » est mappé dans `utils/glJournalImportMeta.js`.
 
 ### Lore — Carnet de Sélène et glossaire narratif
 
