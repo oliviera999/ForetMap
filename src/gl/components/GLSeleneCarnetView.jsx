@@ -68,6 +68,7 @@ export function GLSeleneCarnetView({
   }, [items, viewMode]);
 
   const active = items.find((item) => item.feuilletCode === activeCode) || null;
+  const activeLocked = !!active && active.progressStatus === 'locked' && !isMj;
   const modeClass = active?.modeApparition
     ? `gl-feui-${String(active.modeApparition).replace(/_/g, '-')}`
     : '';
@@ -139,10 +140,16 @@ export function GLSeleneCarnetView({
                           type="button"
                           className={activeCode === item.feuilletCode ? 'is-active' : ''}
                           onClick={() => setActiveCode(item.feuilletCode)}
-                          disabled={item.progressStatus === 'locked' && !isMj}
                         >
                           <span>{item.titre || item.feuilletCode}</span>
-                          {item.progressStatus && item.progressStatus !== 'locked' ? (
+                          {!isMj && item.progressStatus === 'locked' ? (
+                            <span
+                              className="gl-selene-carnet__badge gl-selene-carnet__badge--locked"
+                              title="Feuillet non découvert"
+                            >
+                              🔒
+                            </span>
+                          ) : item.progressStatus && item.progressStatus !== 'locked' ? (
                             <span className="gl-selene-carnet__badge">{item.progressStatus}</span>
                           ) : null}
                         </button>
@@ -159,10 +166,17 @@ export function GLSeleneCarnetView({
                     type="button"
                     className={activeCode === item.feuilletCode ? 'is-active' : ''}
                     onClick={() => setActiveCode(item.feuilletCode)}
-                    disabled={item.progressStatus === 'locked' && !isMj}
                   >
                     <span className="gl-selene-carnet__ordre">{item.ordreVoyage || '·'}</span>
                     <span>{item.titre || item.feuilletCode}</span>
+                    {!isMj && item.progressStatus === 'locked' ? (
+                      <span
+                        className="gl-selene-carnet__badge gl-selene-carnet__badge--locked"
+                        title="Feuillet non découvert"
+                      >
+                        🔒
+                      </span>
+                    ) : null}
                   </button>
                 </li>
               ))}
@@ -180,7 +194,7 @@ export function GLSeleneCarnetView({
               }
             >
               <GLFeuilletIllustration
-                feuilletCode={active.feuilletCode}
+                feuilletCode={activeLocked ? null : active.feuilletCode}
                 fallbackUrl={active.imageUrl}
                 figureClassName="gl-selene-carnet__illu"
               />
@@ -189,12 +203,23 @@ export function GLSeleneCarnetView({
                 {active.incipit ? (
                   <p className="gl-selene-carnet__incipit">{active.incipit}</p>
                 ) : null}
-                <GLLoreGlossaryMarkdown
-                  markdown={showNarrative && active.texte ? active.texte : active.displayText}
-                  loreGlossaryItems={loreGlossaryLinkItems}
-                  onOpenLoreTerm={onOpenLoreTerm}
-                  className="gl-selene-carnet__text"
-                />
+                {activeLocked ? (
+                  <p className="gl-hint gl-selene-carnet__locked">
+                    🔒 Feuillet non découvert — trouvez-le sur la carte (traversée d’une zone
+                    feuillet) pour le lire.
+                  </p>
+                ) : null}
+                {(() => {
+                  const body = showNarrative && active.texte ? active.texte : active.displayText;
+                  return body ? (
+                    <GLLoreGlossaryMarkdown
+                      markdown={body}
+                      loreGlossaryItems={loreGlossaryLinkItems}
+                      onOpenLoreTerm={onOpenLoreTerm}
+                      className="gl-selene-carnet__text"
+                    />
+                  ) : null;
+                })()}
                 {active.imageCoupeUrl ? (
                   <details className="gl-selene-carnet__coupe">
                     <summary>Coupe</summary>
