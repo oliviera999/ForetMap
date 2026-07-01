@@ -26,6 +26,8 @@ function GLEcosystemSection({
   glossaryLinkItems,
   onOpenGlossaryTerm,
   journalImportEnabled,
+  gameId = null,
+  teamId = null,
 }) {
   const slug = section.slug;
   const showBiomeHero = !!slug && !!biomeAssetSlug(slug, 'biome');
@@ -87,6 +89,10 @@ function GLEcosystemSection({
           journalEnabled={journalImportEnabled}
           acknowledgeLabel="Marquer cet écosystème comme étudié"
           learnedLabel="✓ Écosystème étudié"
+          gameId={gameId}
+          teamId={teamId}
+          glossaryLinkItems={glossaryLinkItems}
+          onOpenGlossaryTerm={onOpenGlossaryTerm}
         />
       ) : null}
     </section>
@@ -106,6 +112,8 @@ export function GLEcosystemsView({
   const biomes = Array.isArray(gameState?.game?.chapter_biomes)
     ? gameState.game.chapter_biomes
     : [];
+  const gameId = gameState?.game?.id ?? null;
+  const teamId = gameState?.teams?.[0]?.id ?? null;
 
   const sections = useMemo(
     () => buildEcosystemSections(biomes, biotopeMarkdown, biocenoseMarkdown),
@@ -174,6 +182,8 @@ export function GLEcosystemsView({
           glossaryLinkItems={glossaryLinkItems}
           onOpenGlossaryTerm={onOpenGlossaryTerm}
           journalImportEnabled={journalImportEnabled}
+          gameId={gameId}
+          teamId={teamId}
         />
       ))}
     </article>

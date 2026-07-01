@@ -7063,6 +7063,22 @@ body.gl-glossary-popover-open {
 .gl-selene-carnet__head { margin-bottom: 1rem; }
 .gl-selene-carnet__modes { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.75rem; }
 .gl-selene-carnet__modes button.is-active { font-weight: 700; text-decoration: underline; }
+.gl-selene-carnet__progress { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1rem; margin-top: 0.6rem; }
+.gl-selene-carnet__count { margin: 0; font-size: 0.95rem; color: var(--gl-ink, #3b2f1e); }
+.gl-selene-carnet__count strong { color: var(--gl-primary, #047c8c); }
+.gl-selene-carnet__filters { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.gl-selene-carnet__filters button {
+  padding: 0.25rem 0.6rem;
+  border: 1px solid color-mix(in srgb, var(--gl-primary, #047c8c) 30%, transparent);
+  border-radius: 999px;
+  background: transparent;
+  font-size: 0.85rem;
+  min-height: 44px;
+}
+.gl-selene-carnet__filters button.is-active {
+  background: color-mix(in srgb, var(--gl-primary, #047c8c) 14%, white);
+  font-weight: 700;
+}
 .gl-selene-carnet__layout { display: grid; grid-template-columns: minmax(220px, 32%) 1fr; gap: 1rem; }
 @media (max-width: 860px) { .gl-selene-carnet__layout { grid-template-columns: 1fr; } }
 .gl-selene-carnet__list { border: 1px solid color-mix(in srgb, var(--gl-primary, #047c8c) 25%, transparent); border-radius: 12px; padding: 0.75rem; max-height: 60vh; overflow: auto; }
