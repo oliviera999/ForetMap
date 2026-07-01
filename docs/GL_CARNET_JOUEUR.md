@@ -284,8 +284,12 @@ lecture seule (articles rendus + liste des éléments importés) pour l'accompag
 
 Depuis les statistiques de classe (`gl.players.manage`), le MJ ouvre le carnet d'un joueur en
 lecture seule (`GLPlayerJournalReadModal`) : liste des articles (titre, horodatages, rendu
-markdown avec encarts, illustrations) **et** liste des éléments importés. Objectif :
+markdown avec **encarts hydratés**, illustrations) **et** liste des éléments importés. Objectif :
 accompagnement pédagogique, pas notation.
+
+La vue MJ affiche un **récapitulatif** (nombre d'articles / d'imports), un **filtre des imports par
+type**, et un bouton **« Exporter (.md) »** qui télécharge le carnet au format markdown (articles +
+liste des imports ; sans les illustrations). Tout reste **en lecture seule**.
 
 ---
 
