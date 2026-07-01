@@ -19,10 +19,14 @@ const {
   FEUILLET_ZONE_ORDER_SQL,
   formatFeuilletRow,
   loadFeuilletStates,
+  resolveAccessiblePlayerBiomes,
+  loadPlayerFeuilletStates,
+  isFeuilletFound,
   findFeuilletsForZone,
   upsertFeuilletState,
   updateFeuilletFields,
 } = require('../../lib/glLoreFeuillets');
+const { maskLockedFeuillet } = require('../../lib/glLoreFeuilletPreview');
 const { GL_DEMO_FEUILLET_CODES } = require('../../lib/gl/demoFeuillets');
 const { canPresentFeuillet } = require('../../lib/glLoreFeuilletRetrigger');
 const {
@@ -147,20 +151,66 @@ router.get(
 
     const gameId = req.validatedQuery?.gameId;
     const teamId = req.validatedQuery?.teamId;
-    const biomeSlugs = parseBiomeSlugsFromQuery(req.query?.biomeSlugs);
     const liasse = String(req.query?.liasse || '').trim();
+    const isMj = req.glAuth.userType === 'gl_admin';
 
-    let progressMap = new Map();
-    if (gameId && teamId) {
-      progressMap = await loadFeuilletStates(db, gameId, teamId);
+    // --- MJ / Admin : accès intégral, filtres libres (comportement historique). ---
+    if (isMj) {
+      const biomeSlugs = parseBiomeSlugsFromQuery(req.query?.biomeSlugs);
+      let progressMap = new Map();
+      if (gameId && teamId) {
+        progressMap = await loadFeuilletStates(db, gameId, teamId);
+      }
+      const params = [];
+      let sql = `SELECT ${FEUILLET_SELECT} FROM gl_lore_feuillets f WHERE f.statut = 'actif'`;
+      if (biomeSlugs.length) {
+        sql += ` AND (f.biome_slug IS NULL OR f.biome_slug IN (${biomeSlugs.map(() => '?').join(', ')}))`;
+        params.push(...biomeSlugs);
+      }
+      if (liasse) {
+        sql += ' AND f.liasse = ?';
+        params.push(liasse);
+      }
+      sql += ' ORDER BY f.ordre_voyage ASC, f.ordre_liasse ASC, f.feuillet_code ASC LIMIT 500';
+      const rows = await queryAll(sql, params);
+      const items = rows.map((row) => {
+        const progress = progressMap.get(String(row.feuillet_code));
+        return formatFeuilletRow(row, {
+          isMj: true,
+          progressStatus: progress?.status || (gameId ? 'locked' : null),
+          effacementPct: progress?.effacement_pct || 0,
+        });
+      });
+      return res.json({ items });
+    }
+
+    // --- Joueur : liste scopée aux biomes des chapitres joués + feuillets trouvés. ---
+    // Contenu masqué (aperçu) tant que le feuillet n'a pas été trouvé sur la carte.
+    const playerId = req.glAuth.userId;
+    const [accessibleBiomes, playerStates, gameplay] = await Promise.all([
+      resolveAccessiblePlayerBiomes(db, playerId),
+      loadPlayerFeuilletStates(db, playerId),
+      getGameplaySettings(),
+    ]);
+    const foundCodes = [...playerStates.keys()];
+
+    // Rien de joué et rien de trouvé → carnet vide.
+    if (!accessibleBiomes.length && !foundCodes.length) {
+      return res.json({ items: [] });
     }
 
     const params = [];
-    let sql = `SELECT ${FEUILLET_SELECT} FROM gl_lore_feuillets f WHERE f.statut = 'actif'`;
-    if (biomeSlugs.length) {
-      sql += ` AND (f.biome_slug IS NULL OR f.biome_slug IN (${biomeSlugs.map(() => '?').join(', ')}))`;
-      params.push(...biomeSlugs);
+    const orParts = [];
+    if (accessibleBiomes.length) {
+      orParts.push(`f.biome_slug IN (${accessibleBiomes.map(() => '?').join(', ')})`);
+      params.push(...accessibleBiomes);
     }
+    if (foundCodes.length) {
+      orParts.push(`f.feuillet_code IN (${foundCodes.map(() => '?').join(', ')})`);
+      params.push(...foundCodes);
+    }
+    let sql = `SELECT ${FEUILLET_SELECT} FROM gl_lore_feuillets f
+               WHERE f.statut = 'actif' AND (${orParts.join(' OR ')})`;
     if (liasse) {
       sql += ' AND f.liasse = ?';
       params.push(liasse);
@@ -168,14 +218,16 @@ router.get(
     sql += ' ORDER BY f.ordre_voyage ASC, f.ordre_liasse ASC, f.feuillet_code ASC LIMIT 500';
 
     const rows = await queryAll(sql, params);
-    const isMj = req.glAuth.userType === 'gl_admin';
+    const previewFields = gameplay.loreFeuilletPreviewFields;
     const items = rows.map((row) => {
-      const progress = progressMap.get(String(row.feuillet_code));
-      return formatFeuilletRow(row, {
-        isMj,
-        progressStatus: progress?.status || (gameId ? 'locked' : null),
-        effacementPct: progress?.effacement_pct || 0,
+      const state = playerStates.get(String(row.feuillet_code));
+      const found = !!state && isFeuilletFound(state.status);
+      const formatted = formatFeuilletRow(row, {
+        isMj: false,
+        progressStatus: found ? state.status : 'locked',
+        effacementPct: found ? state.effacement_pct : 0,
       });
+      return found ? formatted : maskLockedFeuillet(formatted, previewFields);
     });
     return res.json({ items });
   }),
@@ -194,6 +246,7 @@ router.get(
     const code = String(req.params.code || '').trim();
     const gameId = req.validatedQuery?.gameId;
     const teamId = req.validatedQuery?.teamId;
+    const isMj = req.glAuth.userType === 'gl_admin';
     const row = await queryOne(
       `SELECT ${FEUILLET_SELECT} FROM gl_lore_feuillets f WHERE f.feuillet_code = ? LIMIT 1`,
       [code],
@@ -201,24 +254,58 @@ router.get(
     if (!row || row.statut !== 'actif')
       return res.status(404).json({ error: 'Feuillet introuvable' });
 
-    let progress = null;
-    if (gameId && teamId) {
-      progress = await queryOne(
-        `SELECT status, effacement_pct FROM gl_game_feuillet_states
-        WHERE game_id = ? AND team_id = ? AND feuillet_code = ? LIMIT 1`,
-        [gameId, teamId, code],
-      );
+    // --- MJ / Admin : accès intégral (comportement historique). ---
+    if (isMj) {
+      let progress = null;
+      if (gameId && teamId) {
+        progress = await queryOne(
+          `SELECT status, effacement_pct FROM gl_game_feuillet_states
+          WHERE game_id = ? AND team_id = ? AND feuillet_code = ? LIMIT 1`,
+          [gameId, teamId, code],
+        );
+      }
+      return res.json({
+        feuillet: formatFeuilletRow(row, {
+          isMj: true,
+          progressStatus: progress?.status || null,
+          effacementPct: progress?.effacement_pct || 0,
+        }),
+      });
     }
-    const isMj = req.glAuth.userType === 'gl_admin';
-    if (progress?.status === 'locked' && !isMj) {
-      return res.status(403).json({ error: 'Feuillet non découvert' });
+
+    // --- Joueur : accès conditionné à la découverte. ---
+    const playerId = req.glAuth.userId;
+    const [accessibleBiomes, playerStates, gameplay] = await Promise.all([
+      resolveAccessiblePlayerBiomes(db, playerId),
+      loadPlayerFeuilletStates(db, playerId),
+      getGameplaySettings(),
+    ]);
+    const state = playerStates.get(code);
+    const found = !!state && isFeuilletFound(state.status);
+
+    if (found) {
+      return res.json({
+        feuillet: formatFeuilletRow(row, {
+          isMj: false,
+          progressStatus: state.status,
+          effacementPct: state.effacement_pct,
+        }),
+      });
     }
+
+    // Non trouvé : ne révéler l'aperçu que si le feuillet relève d'un biome joué,
+    // sinon masquer jusqu'à son existence (404).
+    const biome = row.biome_slug ? String(row.biome_slug) : null;
+    if (!biome || !accessibleBiomes.includes(biome)) {
+      return res.status(404).json({ error: 'Feuillet introuvable' });
+    }
+    const formatted = formatFeuilletRow(row, {
+      isMj: false,
+      progressStatus: 'locked',
+      effacementPct: 0,
+    });
     return res.json({
-      feuillet: formatFeuilletRow(row, {
-        isMj,
-        progressStatus: progress?.status || null,
-        effacementPct: progress?.effacement_pct || 0,
-      }),
+      feuillet: maskLockedFeuillet(formatted, gameplay.loreFeuilletPreviewFields),
     });
   }),
 );
