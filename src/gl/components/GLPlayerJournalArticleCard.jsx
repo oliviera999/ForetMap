@@ -10,6 +10,7 @@ import {
 import { compressImageWithPreset, isLikelyImageFile } from '../../utils/image.js';
 import { GLButton } from './ui/GLButton.jsx';
 import { GLPlayerJournalEmbedPicker } from './GLPlayerJournalEmbedPicker.jsx';
+import { useGlJournalEmbedTitles } from '../hooks/useGlJournalEmbedTitles.js';
 
 function formatDateTime(value) {
   if (!value) return '';
@@ -47,6 +48,7 @@ export function GLPlayerJournalArticleCard({ article, limits, chapterSpells = []
     if (!showPreview || !body.trim()) return '';
     return renderMarkdownToSafeHtml(body, { allowImages: true, allowJournalEmbeds: true });
   }, [body, showPreview]);
+  const hydratedPreview = useGlJournalEmbedTitles(previewHtml);
 
   const persist = useCallback(async () => {
     const data = await apiGL(`/api/gl/player-journal/me/articles/${article.id}`, 'PUT', {
@@ -247,7 +249,7 @@ export function GLPlayerJournalArticleCard({ article, limits, chapterSpells = []
       {showPreview && previewHtml ? (
         <div className="gl-player-journal__preview">
           <h3>Aperçu</h3>
-          <div className="gl-markdown" dangerouslySetInnerHTML={{ __html: previewHtml }} />
+          <div className="gl-markdown" dangerouslySetInnerHTML={{ __html: hydratedPreview }} />
         </div>
       ) : null}
 

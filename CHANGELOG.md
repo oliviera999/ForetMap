@@ -7,6 +7,21 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### GL — Carnet : encarts d'article hydratés (titre réel) (B.6)
+
+- **Problème** : dans le corps d'un article, un encart `gl-journal-embed` (sortilège, espèce,
+  glossaire, chapitre, module) s'affichait en **code brut** (« type · ref ») au lieu de son titre.
+- **Solution** : nouvel endpoint `POST /api/gl/player-journal/embeds/resolve` (batch, joueur **et**
+  MJ) qui résout le **titre réel** de chaque encart (`gl_spells.nom`, `gl_species.nom_commun`,
+  `gl_glossary_terms.terme`, `gl_chapters.title`, module statique). Côté client, le hook
+  `useGlJournalEmbedTitles` injecte ces titres en attribut `data-gl-title` sur le HTML **déjà
+  sécurisé** (aperçu d'article + lecture MJ) ; le CSS affiche le vrai titre, avec **repli** sur
+  « type · ref » si non résolu. **Le markdown stocké n'est jamais modifié** (round-trip d'édition
+  intact).
+- **Tests** : `tests-ui/gl/useGlJournalEmbedTitles.test.jsx` (hydratation client) + extension de
+  `tests/gl-player-journal.test.js` (endpoint `embeds/resolve`). `dist/` reconstruit.
+- **Docs** : `docs/GL_CARNET_JOUEUR.md` (section Encarts) + `docs/API.md`.
+
 ### GL — Carnet : lien « Voir » profond & état « déjà importé » (B.5 + A.2)
 
 - **A.2 — état « déjà dans mon journal »** : le bouton d'import reflète l'état **dès le chargement**

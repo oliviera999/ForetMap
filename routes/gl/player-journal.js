@@ -17,6 +17,7 @@ const {
   playerJournalUploadPrefix,
   getPlayerJournalImports,
   getPlayerJournalImportRefs,
+  resolveJournalEmbedTitles,
   hasLearnedResource,
   canStaffAccessPlayer,
 } = require('../../lib/glPlayerJournal');
@@ -84,6 +85,19 @@ router.get(
     if (!requireGlPlayer(req, res)) return;
     const refs = await getPlayerJournalImportRefs(req.glAuth.userId);
     return res.json({ refs });
+  }),
+);
+
+// Résolution batch des titres réels des encarts `gl-journal-embed` d'un article,
+// pour l'affichage hydraté (le corps stocke seulement type + ref). Accessible aux
+// joueurs comme au MJ (lecture des carnets), en lecture seule.
+router.post(
+  '/embeds/resolve',
+  asyncHandler(async (req, res) => {
+    if (!(await ensurePlayerJournalModuleEnabled(res))) return;
+    const raw = Array.isArray(req.body?.embeds) ? req.body.embeds.slice(0, 200) : [];
+    const titles = await resolveJournalEmbedTitles(raw);
+    return res.json({ titles });
   }),
 );
 
