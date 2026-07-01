@@ -78,6 +78,9 @@ describe('GLContentPage', () => {
     await waitFor(() => {
       expect(screen.getByRole('heading', { level: 2, name: 'Monde OK' })).toBeTruthy();
     });
-    expect(apiGlMock).toHaveBeenCalledTimes(2);
+    // Le contenu est rechargé exactement deux fois (échec initial + réessai), sans reload complet.
+    // (Le carnet peut émettre en plus un appel /api/gl/learning/me — non compté ici.)
+    const contentCalls = apiGlMock.mock.calls.filter((c) => c[0] === '/api/gl/content/world');
+    expect(contentCalls).toHaveLength(2);
   });
 });

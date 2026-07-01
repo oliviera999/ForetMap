@@ -33,7 +33,9 @@ export function GLLearnAndImport({
   useEffect(() => {
     let cancelled = false;
     if (!resourceType || resourceRef == null || resourceRef === '') return undefined;
-    apiGL('/api/gl/learning/me')
+    // Défensif : tolère un apiGL qui lève ou renvoie une valeur non-promesse (tests isolés).
+    Promise.resolve()
+      .then(() => apiGL('/api/gl/learning/me'))
       .then((res) => {
         if (!cancelled && isLearnedIn(res, resourceType, resourceRef)) setLearned(true);
       })
