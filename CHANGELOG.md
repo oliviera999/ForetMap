@@ -7,6 +7,17 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Audit de code — simplification, mutualisation, performance
+
+- **Documentation** : nouvel audit expert consolidé `docs/AUDIT_CODE_2026-07.md` (analyse en
+  lecture seule, aucun comportement modifié) : correctifs P0 (boucle de re-renders
+  MarkerModal/ZoneInfoModal vérifiée, `insertId` vs re-SELECT sur les événements GL, numéros de
+  migration dupliqués), performance BDD (index manquants, `LOWER()` non sargable, N+1 de
+  `stats /all`), performance frontend (identité des tableaux du polling, chaînes de mémoïsation,
+  pan/zoom visite), mutualisation backend (cluster tasks ×3, paires Lore/non-Lore GL) et frontend
+  (`api`/`apiGL`, modales carte, éditeurs QCM), infra/CI (cache immutable des assets, suite backend
+  exécutée deux fois en CI), plan d'exécution en 7 lots avec garde-fous anti-régression.
+
 ### GL — Activation de l'acquisition ③ + gestion admin des feuillets (vue d'ensemble & édition en masse)
 
 - **Activation** : `gameplay.lore_feuillet_acquisition_enabled` passe à **`true` par défaut** (tous
