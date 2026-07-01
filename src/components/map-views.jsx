@@ -511,6 +511,7 @@ function MapViewImpl({
       current_plant: '',
       living_beings: living,
       stage: z.stage || 'empty',
+      special: z.special ? 1 : 0,
       map_id: z.map_id || activeMapId,
       description: z.description || '',
     });
