@@ -162,6 +162,7 @@
     "gl:build:assets": "node scripts/build-asset-manifest.mjs",
     "gl:import:media": "node scripts/import-gl-media-local.mjs",
     "gl:audit:media-keys": "node scripts/audit-gl-media-keys.mjs",
+    "gl:audit:feuillet-coverage": "python3 scripts/gl-audit-feuillet-coverage.py",
     "gl:migrate:chapter-media": "node scripts/migrate-gl-chapter-media-urls.js",
     "tasks:spawn-recurring": "node scripts/spawn-recurring-tasks.js",
     "mcp:diag": "node scripts/mcp-foretmap-diagnostics.mjs",
