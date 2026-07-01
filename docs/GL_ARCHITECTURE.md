@@ -212,9 +212,10 @@ Tables GL préfixées `gl_` :
 
 ### Carnet personnel joueur
 
-- Module `modules.player_journal_enabled` ; limites `gameplay.player_journal_max_chars` / `player_journal_max_assets` (défaut `0` = illimité, plafond optionnel réglable par le MJ/admin).
-- Tables `gl_player_journals`, `gl_player_journal_assets` ; API `routes/gl/player-journal.js`.
-- UI `GLPlayerJournalView` (joueur), lecture MJ via `GLPlayerJournalReadModal` (statistiques classe, `gl.players.manage`).
+- Carnet organisé en **articles** (titre optionnel + texte markdown et/ou illustrations ; article « média seul » possible). Module `modules.player_journal_enabled`.
+- Plafonds `gameplay.player_journal_max_chars` / `player_journal_max_assets` (défaut `0` = illimité, plafond optionnel **par article** réglable par le MJ/admin).
+- Tables `gl_player_journal_articles`, `gl_player_journal_article_assets` ; API `routes/gl/player-journal.js` (CRUD articles + médias par article).
+- UI `GLPlayerJournalView` (liste + « Nouvel article ») avec `GLPlayerJournalArticleCard` (éditeur par article), lecture MJ via `GLPlayerJournalReadModal` (statistiques classe, `gl.players.manage`).
 
 ### Lore — Carnet de Sélène et glossaire narratif
 

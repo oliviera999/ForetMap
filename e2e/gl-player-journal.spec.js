@@ -16,7 +16,10 @@ async function loginGlPlayer(page, seeded, { tab = 'my-journal' } = {}) {
 }
 
 test.describe('GL carnet personnel (Mon journal)', () => {
-  test('onglet Mon journal : édition et sauvegarde automatique', async ({ page, request }) => {
+  test('onglet Mon journal : nouvel article et sauvegarde automatique', async ({
+    page,
+    request,
+  }) => {
     const seeded = await seedGlScenario('player-journal');
 
     const enableModule = await request.put(
@@ -31,21 +34,26 @@ test.describe('GL carnet personnel (Mon journal)', () => {
     await loginGlPlayer(page, seeded, { tab: 'my-journal' });
 
     await expect(page.getByRole('heading', { name: 'Mon journal', level: 2 })).toBeVisible();
-    await expect(page.getByLabel(/Contenu du carnet/i)).toBeVisible();
-    await expect(
-      page.locator('.gl-player-journal__quota').filter({ hasText: /Caractères/i }),
-    ).toBeVisible();
-    await expect(
-      page.locator('.gl-player-journal__quota').filter({ hasText: /^Illustrations/i }),
-    ).toBeVisible();
 
-    const textarea = page.getByLabel(/Contenu du carnet/i);
+    // Crée un nouvel article
+    const createResponse = page.waitForResponse(
+      (res) =>
+        res.request().method() === 'POST' &&
+        res.url().includes('/api/gl/player-journal/me/articles') &&
+        res.status() === 201,
+      { timeout: 15000 },
+    );
+    await page.getByRole('button', { name: /Nouvel article/i }).click();
+    await createResponse;
+
+    const textarea = page.getByLabel(/Contenu de l’article/i);
+    await expect(textarea).toBeVisible();
     const note = `Note e2e carnet ${Date.now()}`;
 
     const saveResponse = page.waitForResponse(
       (res) =>
         res.request().method() === 'PUT' &&
-        res.url().includes('/api/gl/player-journal/me') &&
+        res.url().includes('/api/gl/player-journal/me/articles/') &&
         res.status() === 200,
       { timeout: 15000 },
     );
@@ -67,7 +75,7 @@ test.describe('GL carnet personnel (Mon journal)', () => {
     await page.reload();
     await reloadGet;
 
-    await expect(textarea).toHaveValue(note);
+    await expect(page.getByLabel(/Contenu de l’article/i)).toHaveValue(note);
   });
 
   test('navigation : onglet Mon journal visible si module actif', async ({ page, request }) => {
@@ -94,11 +102,11 @@ test.describe('GL carnet personnel (Mon journal)', () => {
       data: { value: true },
     });
 
-    const putJournal = await request.put('/api/gl/player-journal/me', {
+    const createArticle = await request.post('/api/gl/player-journal/me/articles', {
       headers: { Authorization: `Bearer ${seeded.playerToken}` },
-      data: { bodyMarkdown: '## Carnet visible par le MJ\n\nContenu e2e MJ.' },
+      data: { title: 'Article MJ', bodyMarkdown: '## Carnet visible par le MJ\n\nContenu e2e MJ.' },
     });
-    expect(putJournal.ok()).toBeTruthy();
+    expect(createArticle.ok()).toBeTruthy();
 
     await page.setExtraHTTPHeaders({ 'X-Foretmap-Product': 'gl' });
     await page.goto('/');

@@ -7,6 +7,23 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### GL — Carnet personnel : refonte en articles
+
+- **Le carnet personnel du joueur fonctionne désormais par « articles ».** Le joueur clique sur
+  « Nouvel article » et saisit ce qu'il souhaite : un titre optionnel, un texte markdown, des
+  images associées au texte — ou tout simplement des médias (article « média seul », corps vide).
+  Chaque article conserve ses horodatages de **création** et de **dernière modification**.
+- **Nouveau modèle de données** (migration `155`) : tables `gl_player_journal_articles` et
+  `gl_player_journal_article_assets` (médias rattachés à l'article). L'ancien modèle mono-document
+  (`gl_player_journals` / `gl_player_journal_assets`) est supprimé — on repart de zéro.
+- **API** : `GET /me` renvoie la liste d'articles ; `POST/PUT/DELETE /me/articles[/:id]` pour le
+  CRUD ; `POST/DELETE /me/articles/:id/assets[/:assetId]` pour les médias par article ;
+  `GET /players/:id` (MJ) renvoie les articles du joueur. Les plafonds optionnels
+  (`gameplay.player_journal_max_chars/assets`, `0` = illimité) s'appliquent désormais **par article**.
+- **UI** : `GLPlayerJournalView` (fil d'articles + « Nouvel article ») avec un éditeur par article
+  `GLPlayerJournalArticleCard` (auto-save, images, encarts, aperçu) ; lecture MJ
+  (`GLPlayerJournalReadModal`) refondue en liste d'articles.
+
 ### ForetMap — Zones spéciales désormais éditables
 
 - **Évolution** : les zones spéciales (bâtiments, mares, ruches, compostage…) étaient jusqu'ici
