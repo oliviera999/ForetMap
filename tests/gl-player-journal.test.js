@@ -304,3 +304,273 @@ test('import d’un élément appris (page de contenu) → carnet + retrait', as
     .set('Authorization', `Bearer ${playerToken}`)
     .expect(200);
 });
+
+test('GET /me/imports/refs — refs légères (type + ref) reflètent l’état importé', async () => {
+  const slug = `test-refs-${stamp}`;
+  await execute(
+    `INSERT INTO gl_content_pages (slug, title, body_markdown)
+     VALUES (?, ?, ?)
+     ON DUPLICATE KEY UPDATE title = VALUES(title)`,
+    [slug, 'Page refs', '# Refs'],
+  );
+
+  // Avant import : absent de la liste des refs
+  const before = await request(app)
+    .get('/api/gl/player-journal/me/imports/refs')
+    .set('Authorization', `Bearer ${playerToken}`)
+    .expect(200);
+  assert.ok(Array.isArray(before.body.refs));
+  assert.ok(
+    !before.body.refs.some((r) => r.resourceType === 'content_page' && r.resourceRef === slug),
+  );
+
+  await execute(
+    `INSERT INTO gl_learning_acknowledgements
+       (reader_user_type, reader_user_id, target_type, target_code, acknowledged_at)
+     VALUES ('gl_player', ?, 'content_page', ?, NOW())
+     ON DUPLICATE KEY UPDATE acknowledged_at = NOW()`,
+    [String(playerAId), slug],
+  );
+  const imp = await request(app)
+    .post('/api/gl/player-journal/me/imports')
+    .set('Authorization', `Bearer ${playerToken}`)
+    .send({ resourceType: 'content_page', resourceRef: slug })
+    .expect(201);
+
+  // Après import : présent dans les refs (sans titre ni article, réponse légère)
+  const after = await request(app)
+    .get('/api/gl/player-journal/me/imports/refs')
+    .set('Authorization', `Bearer ${playerToken}`)
+    .expect(200);
+  assert.ok(
+    after.body.refs.some((r) => r.resourceType === 'content_page' && r.resourceRef === slug),
+  );
+
+  await request(app)
+    .delete(`/api/gl/player-journal/me/imports/${imp.body.import.id}`)
+    .set('Authorization', `Bearer ${playerToken}`)
+    .expect(200);
+});
+
+test('POST /embeds/resolve — titre réel des encarts (espèce + module_stub)', async () => {
+  const speciesCode = `EMB${stamp}`.slice(0, 64);
+  await execute(
+    `INSERT INTO gl_species (
+      species_code, biome_slug, type, nom_commun, nom_scientifique, statut, created_at, updated_at
+    ) VALUES (?, 'savane', 'faune', 'Renard des encarts', 'Vulpes embedii', 'actif', NOW(), NOW())`,
+    [speciesCode],
+  );
+
+  const res = await request(app)
+    .post('/api/gl/player-journal/embeds/resolve')
+    .set('Authorization', `Bearer ${playerToken}`)
+    .send({
+      embeds: [
+        { type: 'species', ref: speciesCode },
+        { type: 'module_stub', ref: 'narrative' },
+        { type: 'species', ref: `absent-${stamp}` },
+      ],
+    })
+    .expect(200);
+
+  assert.strictEqual(res.body.titles[`species|${speciesCode}`], 'Renard des encarts');
+  assert.strictEqual(res.body.titles['module_stub|narrative'], 'Module narratif (à venir)');
+  // Ref introuvable : omise (repli client sur « type · ref »)
+  assert.ok(!(`species|absent-${stamp}` in res.body.titles));
+
+  await execute('DELETE FROM gl_species WHERE species_code = ?', [speciesCode]).catch(() => {});
+});
+
+test('A.3 — import ecosystem : slug non enregistré (gl_biomes) refusé (404)', async () => {
+  // Slug bien formé mais absent de gl_biomes → resourceExists doit renvoyer faux.
+  await request(app)
+    .post('/api/gl/player-journal/me/imports')
+    .set('Authorization', `Bearer ${playerToken}`)
+    .send({ resourceType: 'ecosystem', resourceRef: `zzz-not-a-biome-${stamp}` })
+    .expect(404);
+
+  // Biome réel (savane) : resourceExists passe → on est bloqué plus loin (403 non appris),
+  // ce qui prouve que la validation d'existence a réussi.
+  await request(app)
+    .post('/api/gl/player-journal/me/imports')
+    .set('Authorization', `Bearer ${playerToken}`)
+    .send({ resourceType: 'ecosystem', resourceRef: 'savane' })
+    .expect(403);
+});
+
+// --- Épinglage des entrées (articles + imports) ---
+test('PUT /me/articles/:id/pin — épingle puis désépingle un article (reflété dans GET /me)', async () => {
+  const created = await request(app)
+    .post('/api/gl/player-journal/me/articles')
+    .set('Authorization', `Bearer ${playerToken}`)
+    .send({ title: 'À épingler', bodyMarkdown: 'Contenu' })
+    .expect(201);
+  const id = created.body.article.id;
+  // Par défaut : non épinglé.
+  assert.strictEqual(created.body.article.pinned, false);
+
+  // Épingle.
+  const pinRes = await request(app)
+    .put(`/api/gl/player-journal/me/articles/${id}/pin`)
+    .set('Authorization', `Bearer ${playerToken}`)
+    .send({ pinned: true })
+    .expect(200);
+  assert.strictEqual(pinRes.body.ok, true);
+  assert.strictEqual(pinRes.body.pinned, true);
+
+  // GET /me reflète pinned:true.
+  const me = await request(app)
+    .get('/api/gl/player-journal/me')
+    .set('Authorization', `Bearer ${playerToken}`)
+    .expect(200);
+  const found = me.body.articles.find((a) => a.id === id);
+  assert.ok(found);
+  assert.strictEqual(found.pinned, true);
+
+  // Désépingle.
+  const unpinRes = await request(app)
+    .put(`/api/gl/player-journal/me/articles/${id}/pin`)
+    .set('Authorization', `Bearer ${playerToken}`)
+    .send({ pinned: false })
+    .expect(200);
+  assert.strictEqual(unpinRes.body.pinned, false);
+
+  const me2 = await request(app)
+    .get('/api/gl/player-journal/me')
+    .set('Authorization', `Bearer ${playerToken}`)
+    .expect(200);
+  const found2 = me2.body.articles.find((a) => a.id === id);
+  assert.strictEqual(found2.pinned, false);
+});
+
+test('PUT /me/articles/:id/pin — article d’un autre joueur → 404', async () => {
+  const created = await request(app)
+    .post('/api/gl/player-journal/me/articles')
+    .set('Authorization', `Bearer ${playerToken}`)
+    .send({ bodyMarkdown: 'privé pin' })
+    .expect(201);
+  await request(app)
+    .put(`/api/gl/player-journal/me/articles/${created.body.article.id}/pin`)
+    .set('Authorization', `Bearer ${playerNoPermToken}`)
+    .send({ pinned: true })
+    .expect(404);
+});
+
+test('PUT /me/articles/:id/pin — pinned non booléen → 400', async () => {
+  const created = await request(app)
+    .post('/api/gl/player-journal/me/articles')
+    .set('Authorization', `Bearer ${playerToken}`)
+    .send({ bodyMarkdown: 'pin invalide' })
+    .expect(201);
+  await request(app)
+    .put(`/api/gl/player-journal/me/articles/${created.body.article.id}/pin`)
+    .set('Authorization', `Bearer ${playerToken}`)
+    .send({ pinned: 'yes' })
+    .expect(400);
+});
+
+test('PUT /me/imports/:id/pin — épingle un import (reflété dans GET /me) + 404 autre joueur', async () => {
+  const slug = `pin-page-${stamp}`;
+  await execute(
+    `INSERT INTO gl_content_pages (slug, title, body_markdown)
+     VALUES (?, 'Page à épingler', '# Pin')
+     ON DUPLICATE KEY UPDATE title = VALUES(title)`,
+    [slug],
+  );
+  await execute(
+    `INSERT INTO gl_learning_acknowledgements
+       (reader_user_type, reader_user_id, target_type, target_code, acknowledged_at)
+     VALUES ('gl_player', ?, 'content_page', ?, NOW())
+     ON DUPLICATE KEY UPDATE acknowledged_at = NOW()`,
+    [String(playerAId), slug],
+  );
+  const imp = await request(app)
+    .post('/api/gl/player-journal/me/imports')
+    .set('Authorization', `Bearer ${playerToken}`)
+    .send({ resourceType: 'content_page', resourceRef: slug })
+    .expect(201);
+  const importId = imp.body.import.id;
+
+  // Épingle.
+  const pinRes = await request(app)
+    .put(`/api/gl/player-journal/me/imports/${importId}/pin`)
+    .set('Authorization', `Bearer ${playerToken}`)
+    .send({ pinned: true })
+    .expect(200);
+  assert.strictEqual(pinRes.body.ok, true);
+  assert.strictEqual(pinRes.body.pinned, true);
+
+  // GET /me reflète pinned:true sur l'import.
+  const me = await request(app)
+    .get('/api/gl/player-journal/me')
+    .set('Authorization', `Bearer ${playerToken}`)
+    .expect(200);
+  const found = me.body.imports.find((i) => i.id === importId);
+  assert.ok(found);
+  assert.strictEqual(found.pinned, true);
+
+  // Import d'un autre joueur → 404.
+  await request(app)
+    .put(`/api/gl/player-journal/me/imports/${importId}/pin`)
+    .set('Authorization', `Bearer ${playerNoPermToken}`)
+    .send({ pinned: true })
+    .expect(404);
+
+  await request(app)
+    .delete(`/api/gl/player-journal/me/imports/${importId}`)
+    .set('Authorization', `Bearer ${playerToken}`)
+    .expect(200);
+});
+
+test('A.4 — titre d’import résolu à l’affichage (renommage de la source)', async () => {
+  const slug = `a4-page-${stamp}`;
+  await execute(
+    `INSERT INTO gl_content_pages (slug, title, body_markdown)
+     VALUES (?, 'Titre A4 initial', '# A4')
+     ON DUPLICATE KEY UPDATE title = VALUES(title)`,
+    [slug],
+  );
+  await execute(
+    `INSERT INTO gl_learning_acknowledgements
+       (reader_user_type, reader_user_id, target_type, target_code, acknowledged_at)
+     VALUES ('gl_player', ?, 'content_page', ?, NOW())
+     ON DUPLICATE KEY UPDATE acknowledged_at = NOW()`,
+    [String(playerAId), slug],
+  );
+  const imp = await request(app)
+    .post('/api/gl/player-journal/me/imports')
+    .set('Authorization', `Bearer ${playerToken}`)
+    .send({ resourceType: 'content_page', resourceRef: slug })
+    .expect(201);
+
+  // La source est renommée après l'import…
+  await execute('UPDATE gl_content_pages SET title = ? WHERE slug = ?', ['Titre A4 renommé', slug]);
+
+  // …le carnet affiche le titre COURANT (résolu à l'affichage), pas le titre figé.
+  const me = await request(app)
+    .get('/api/gl/player-journal/me')
+    .set('Authorization', `Bearer ${playerToken}`)
+    .expect(200);
+  const found = me.body.imports.find(
+    (i) => i.resourceType === 'content_page' && i.resourceRef === slug,
+  );
+  assert.ok(found);
+  assert.strictEqual(found.title, 'Titre A4 renommé');
+
+  // Repli sur le titre figé si la source disparaît.
+  await execute('DELETE FROM gl_content_pages WHERE slug = ?', [slug]);
+  const me2 = await request(app)
+    .get('/api/gl/player-journal/me')
+    .set('Authorization', `Bearer ${playerToken}`)
+    .expect(200);
+  const found2 = me2.body.imports.find(
+    (i) => i.resourceType === 'content_page' && i.resourceRef === slug,
+  );
+  assert.ok(found2);
+  assert.ok(found2.title && found2.title.length > 0); // titre figé conservé
+
+  await request(app)
+    .delete(`/api/gl/player-journal/me/imports/${imp.body.import.id}`)
+    .set('Authorization', `Bearer ${playerToken}`)
+    .expect(200);
+});

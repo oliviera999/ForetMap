@@ -238,8 +238,8 @@ export function GLContentPage({
           resourceType="content_page"
           resourceRef={slug}
           title={displayTitle}
-          acknowledgeLabel="Marquer cette page comme lue"
-          learnedLabel="✓ Page lue"
+          acknowledgeLabel="Marquer comme appris"
+          learnedLabel="✓ Appris"
         />
       ) : null}
     </article>

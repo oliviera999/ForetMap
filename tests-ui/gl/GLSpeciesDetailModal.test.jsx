@@ -13,8 +13,8 @@ const feuilletRevealFixture = {
 vi.mock('../../src/gl/components/GLLearningAcknowledgeButton.jsx', () => ({
   GLLearningAcknowledgeButton({
     onAcknowledged,
-    labelAction = 'Marquer comme étudiée',
-    labelDone = '✓ Étudiée',
+    labelAction = 'Marquer comme appris',
+    labelDone = '✓ Appris',
     titleDone = 'Tu as confirmé avoir étudié cette espèce',
     isDone = false,
   }) {
@@ -125,9 +125,7 @@ describe('GLSpeciesDetailModal', () => {
       />,
     );
     expect(screen.getByTitle(/étudié/i)).toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: /Marquer comme étudiée/i }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Marquer comme appris/i })).not.toBeInTheDocument();
   });
 
   test('affiche le bouton marquer comme étudiée si non appris', () => {
@@ -142,7 +140,7 @@ describe('GLSpeciesDetailModal', () => {
         learningProgress={learningProgress}
       />,
     );
-    expect(screen.getByRole('button', { name: /Marquer comme étudiée/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Marquer comme appris/i })).toBeInTheDocument();
   });
 
   test('affiche le popover feuillet après révélation à l étude', async () => {
@@ -159,7 +157,7 @@ describe('GLSpeciesDetailModal', () => {
         learningProgress={learningProgress}
       />,
     );
-    await userEvent.click(screen.getByRole('button', { name: /Marquer comme étudiée/i }));
+    await userEvent.click(screen.getByRole('button', { name: /Marquer comme appris/i }));
     expect(screen.getByRole('dialog', { name: /Feuillet : Ours polaire/i })).toBeInTheDocument();
     expect(screen.getByText('Texte du feuillet révélé.')).toBeInTheDocument();
   });

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { apiGL } from '../services/apiGL.js';
 import { GLButton } from './ui/GLButton.jsx';
 
@@ -37,12 +37,18 @@ export function GLJournalImportButton({
   const [state, setState] = useState(alreadyImported ? 'done' : 'idle');
   const [error, setError] = useState('');
 
+  // L'info « déjà importé » peut arriver après le montage (chargement asynchrone) :
+  // on bascule alors le bouton en état final sans écraser un import en cours.
+  useEffect(() => {
+    if (alreadyImported) setState((prev) => (prev === 'saving' ? prev : 'done'));
+  }, [alreadyImported]);
+
   if (!enabled || !isGlPlayerSession()) return null;
 
   if (!learned) {
     return (
       <span className="gl-hint gl-journal-import__hint">
-        Marque-le comme appris pour l’ajouter à ton journal.
+        Marque-le comme appris (parfois après un court quiz) pour l’ajouter à ton journal.
       </span>
     );
   }
@@ -76,6 +82,7 @@ export function GLJournalImportButton({
         variant="secondary"
         onClick={handleImport}
         disabled={state === 'saving'}
+        aria-label={title ? `Ajouter « ${title} » à mon journal` : 'Ajouter à mon journal'}
       >
         {state === 'saving' ? 'Ajout…' : '+ Ajouter à mon journal'}
       </GLButton>

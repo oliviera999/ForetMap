@@ -48,6 +48,133 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   (`gameplay.lore_feuillet_acquisition_enabled`). Contrat d'API inchangé (`feuilletRevealed`
   déjà exposé).
 
+### GL — Carnet : approfondissements onboarding, a11y clavier & e2e (B.8, B.9, E.13)
+
+- **Onboarding (B.8)** : aide contextuelle `tab:my-journal` enrichie (geste clé « marquer appris →
+  importer », sens du quiz, épinglage, recherche/filtre/tri) dans `data/gl/help.default.json` ;
+  indice du bouton d'import renforcé (« … parfois après un court quiz »).
+- **Accessibilité clavier (B.9)** : `GLLoreGlossaryPopover` passe au hook partagé `useDialogA11y`
+  (focus initial, piège de focus, Échap, retour du focus au déclencheur) + `role="dialog"` /
+  `aria-modal` / `aria-labelledby` ; `GLGlossaryPopover` et `GLSpellPopover` étaient déjà conformes.
+  Nouveaux tests `GLLoreGlossaryPopover.test.jsx` et `GLSpellPopover.test.jsx`.
+- **e2e (E.13)** : scénario Playwright du **flux d'import complet** (appris → importé → visible dans
+  le fil, bouton « Voir ») via API pour le marquage/import et l'UI pour la vérification ; helper
+  `seedGlGlossaryTerm` (`e2e/fixtures/gl.fixture.js`).
+
+### GL — Carnet : lien « Voir » profond des espèces (B.5, complément)
+
+- **Deep-link espèce** : « Voir » sur une fiche biodiversité importée ouvre désormais **la fiche
+  précise** (et plus seulement l'onglet). Nouvel endpoint `GET /api/gl/species/:code` (`gl.read`,
+  `{ species }` enrichi `glossaryTerms[]` + `learned`) ; `GLBiodiversityView` monte
+  `GLSpeciesDetailModal` sur `speciesFocusCode` (récupération par code, indépendante de l'onglet
+  biome). Complète les 6 autres types déjà profonds.
+- **Tests** : `GET /species/:code` (200 + 404) dans `tests/gl-species-catalog.test.js`. `dist/` reconstruit.
+- **Docs** : `docs/API.md` + `docs/GL_CARNET_JOUEUR.md` (le suivi « espèces » est levé).
+
+### GL — Carnet : épinglage, onboarding, a11y & libellés harmonisés (B.7 pin, B.8, B.9, D.11, D.12, E.13)
+
+- **Épinglage (B.7)** : articles et imports peuvent être **épinglés** ; les entrées épinglées
+  remontent en tête du fil. Persistance serveur : colonne `pinned` (migration **`160`**,
+  idempotente `ADD COLUMN IF NOT EXISTS`), routes `PUT /player-journal/me/articles/:id/pin` et
+  `.../me/imports/:id/pin` (`{ pinned }`), booléen `pinned` exposé dans `GET /me`. Front : bascule
+  d'épinglage sur chaque carte + tri « épinglés d'abord » (`GLPlayerJournalView`).
+- **Libellés harmonisés (D.11)** : intitulés « marquer appris » unifiés sur **toutes** les pages
+  (« Marquer comme appris » / « ✓ Appris ») au lieu des variantes « lu / étudié / découvert ».
+- **Onboarding & textes (B.8, D.12)** : état vide du carnet remanié en guide d'amorçage (écrire un
+  article **ou** marquer appris → importer), mention du **sens du quiz** (valider sa lecture).
+- **Accessibilité (B.9)** : `aria-label` explicites sur les boutons des cartes et le bouton
+  d'import (« Voir “…” », « Épingler “…” », « Retirer “…” », « Ajouter “…” »), `aria-pressed` sur
+  les bascules d'épinglage ; surlignage visuel des entrées épinglées (contraste).
+- **e2e (E.13)** : scénario Playwright du carnet (`e2e/gl-player-journal.spec.js`) — nouvel article
+  + auto-save + barre de recherche (résultat / message d'absence).
+- **Perf (E.14)** : évaluation documentée — pagination non justifiée à la volumétrie attendue
+  (chargement unique + filtrage client), piste conservée pour plus tard.
+- **Tests** : `GLPlayerJournalImportCard.test.jsx` (pin + a11y), tests backend d'épinglage
+  (`gl-player-journal.test.js`). `dist/` reconstruit.
+- **Correctif CI hérité de `main`** : isolation du test `gl-feuillet-acquisition.test.js` (ajout
+  d'un `after()` nettoyant le feuillet seedé — le pool global polluait la seconde exécution de la
+  suite `test`/`test:coverage` sur la BDD partagée) et compteur `ALLOWED_GAMEPLAY_SETTINGS` (27 → 30).
+
+### GL — Carnet : recherche / filtre / tri du fil (B.7)
+
+- **Fil du carnet** (`GLPlayerJournalView`) : nouvelle **barre d'outils** côté joueur —
+  **recherche** texte (titre/corps des articles, titre/référence des imports), **filtre** par type
+  d'entrée (tout / articles / imports) et **tri** (plus récent / plus ancien). Contrôles **côté
+  client** sur les données déjà chargées (aucun appel réseau supplémentaire) ; message dédié quand
+  aucune entrée ne correspond. _(Épinglage : non inclus — nécessite une persistance dédiée, en suivi.)_
+- **Tests** : `tests-ui/gl/GLPlayerJournalViewFilter.test.jsx`. `dist/` reconstruit.
+- **Docs** : `docs/GL_CARNET_JOUEUR.md` (section 1).
+
+### GL — Carnet : vue MJ enrichie (C.10)
+
+- **Consultation MJ** (`GLPlayerJournalReadModal`, lecture seule) enrichie pour l'accompagnement
+  pédagogique : **récapitulatif** (nombre d'articles / d'imports), **filtre des imports par type**,
+  et **export markdown** du carnet (`Exporter (.md)` : articles + liste des imports, hors
+  illustrations). Aucune écriture, aucune nouvelle route (réutilise `GET /player-journal/players/:id`).
+- **Tests** : `tests-ui/gl/GLPlayerJournalReadModal.test.jsx` (comptages, filtre, export). `dist/` reconstruit.
+- **Docs** : `docs/GL_CARNET_JOUEUR.md` (section 6).
+
+### GL — Carnet : validation écosystème resserrée & titres d'import frais (A.3 + A.4)
+
+- **A.3 — validation `ecosystem`** : `resourceExists('ecosystem', slug)` valide désormais le biome
+  contre la table de registre **`gl_biomes`** (source de vérité, cible de la FK `gl_chapter_biomes`)
+  au lieu de la seule présence d'espèces. Un slug bien formé mais non enregistré est **rejeté**
+  (404 à l'import / accusé). `resolveResourceTitle('ecosystem')` renvoie maintenant `gl_biomes.nom`.
+- **A.4 — titres d'import à jour** : à l'affichage du carnet, le titre de chaque import est
+  **re-résolu** depuis la source (reflète un renommage), avec **repli sur le titre figé** si la
+  source est supprimée/non résolvable. Résolutions en parallèle dans `getPlayerJournalImports`.
+- **Tests** : extension de `tests/gl-player-journal.test.js` (rejet slug écosystème inconnu,
+  résolution/renommage/repli du titre d'import).
+- **Docs** : `docs/GL_CARNET_JOUEUR.md` (section 4).
+
+### GL — Carnet : encarts d'article hydratés (titre réel) (B.6)
+
+- **Problème** : dans le corps d'un article, un encart `gl-journal-embed` (sortilège, espèce,
+  glossaire, chapitre, module) s'affichait en **code brut** (« type · ref ») au lieu de son titre.
+- **Solution** : nouvel endpoint `POST /api/gl/player-journal/embeds/resolve` (batch, joueur **et**
+  MJ) qui résout le **titre réel** de chaque encart (`gl_spells.nom`, `gl_species.nom_commun`,
+  `gl_glossary_terms.terme`, `gl_chapters.title`, module statique). Côté client, le hook
+  `useGlJournalEmbedTitles` injecte ces titres en attribut `data-gl-title` sur le HTML **déjà
+  sécurisé** (aperçu d'article + lecture MJ) ; le CSS affiche le vrai titre, avec **repli** sur
+  « type · ref » si non résolu. **Le markdown stocké n'est jamais modifié** (round-trip d'édition
+  intact).
+- **Tests** : `tests-ui/gl/useGlJournalEmbedTitles.test.jsx` (hydratation client) + extension de
+  `tests/gl-player-journal.test.js` (endpoint `embeds/resolve`). `dist/` reconstruit.
+- **Docs** : `docs/GL_CARNET_JOUEUR.md` (section Encarts) + `docs/API.md`.
+
+### GL — Carnet : lien « Voir » profond & état « déjà importé » (B.5 + A.2)
+
+- **A.2 — état « déjà dans mon journal »** : le bouton d'import reflète l'état **dès le chargement**
+  de la page de l'élément (plus besoin de cliquer). Nouvel endpoint léger
+  `GET /api/gl/player-journal/me/imports/refs` (liste des `(resourceType, resourceRef)` importés,
+  sans charger tout le carnet) ; `GLLearnAndImport` le consomme et `GLJournalImportButton` bascule
+  en « ✓ Dans mon journal » même quand l'info arrive en asynchrone.
+- **B.5 — lien « Voir » profond** : « Voir » ouvre désormais l'**élément précis** dans sa vue et
+  pas seulement l'onglet. `importTargetNav` produit une cible `{ tab, focusType, focusRef }` ;
+  `AppGL` pose un focus (nouveaux états `ecosystemFocusSlug` / `tutorialFocusId` / `feuilletFocusCode`,
+  en plus des focus glossaire/lore existants) puis navigue, et chaque vue ouvre l'élément via un
+  `useEffect` (écosystème → onglet du biome, tutoriel → lecture, feuillet → lecteur, glossaire/lore →
+  terme, page → onglet). **Espèces** : dégradation gracieuse (ouvre l'onglet Biodiversité — pas
+  d'endpoint `GET /species/:code`), noté en suivi.
+- **Tests** : `tests-ui/gl/glJournalImportMeta.test.js` (cibles de navigation), extension de
+  `tests/gl-player-journal.test.js` (endpoint `/me/imports/refs`). `dist/` reconstruit.
+- **Docs** : `docs/GL_CARNET_JOUEUR.md` (sections « État déjà importé » + « Lien Voir profond ») et
+  `docs/API.md` (endpoint refs).
+
+### GL — Carnet : quiz-gating des nouveaux types marquables (A.1)
+
+- **Vérification & documentation** : le conditionnement par quiz (« marquer appris » exige un QCM)
+  couvre désormais explicitement **les 7 types marquables** (`GL_MARKABLE`), dont `ecosystem`,
+  `feuillet`, `content_page` et `lore_glossary`, au même titre que `species`/`glossary`/`tutorial`.
+  Le core (`resourceQuestionGatingCore`, routes `learning`/`learning-links`, composant générique
+  `GLLearningAcknowledgeButton`) acceptait déjà ces types ; ce lot **verrouille et documente** le
+  flux de bout en bout (consulter → quiz → confirmer → appris), sans modification du comportement.
+- **Docs** : nouvelle section « Configurer un gating par quiz (prof/MJ) » dans
+  `docs/GL_CARNET_JOUEUR.md` (marche à suivre API `learning-links`, exemple de lien, réglages
+  `gating.*`) ; liste de types corrigée dans `docs/API.md` (endpoint `learning/gating/challenge`,
+  ajout de `learning/mark/:resourceType/:ref`).
+- **Tests** : `tests/gl-learning-gating-newtypes.test.js` (challenge + accusé générique `mark` pour
+  `content_page` et `ecosystem` : 403 sans bonne réponse, 200 après, accusé persisté).
 ### GL — Backfill biome des feuillets « cop-bio » (couverture d'acquisition)
 
 - **Données** : migration idempotente `159_gl_feuillet_copbio_biome_backfill.sql` — pose

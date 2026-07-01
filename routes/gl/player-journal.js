@@ -16,6 +16,10 @@ const {
   getPlayerJournalLimits,
   playerJournalUploadPrefix,
   getPlayerJournalImports,
+  getPlayerJournalImportRefs,
+  setArticlePinned,
+  setImportPinned,
+  resolveJournalEmbedTitles,
   hasLearnedResource,
   canStaffAccessPlayer,
 } = require('../../lib/glPlayerJournal');
@@ -59,6 +63,17 @@ function parseArticleId(req, res) {
   return articleId;
 }
 
+// Valide le corps `{ pinned: boolean }`. N'accepte QUE des booléens stricts (pas
+// de coercition « truthy ») ; renvoie null et répond 400 sinon.
+function parsePinned(req, res) {
+  const value = req.body?.pinned;
+  if (value !== true && value !== false) {
+    res.status(400).json({ error: 'Le champ « pinned » doit être un booléen' });
+    return null;
+  }
+  return value;
+}
+
 router.use(requireGlAuth);
 
 // Liste des articles du carnet du joueur courant.
@@ -70,6 +85,32 @@ router.get(
     const data = await getArticlesForPlayer(req.glAuth.userId);
     const imports = await getPlayerJournalImports(req.glAuth.userId);
     return res.json({ ...data, imports });
+  }),
+);
+
+// Références légères des éléments déjà importés (type + ref), pour l'état « déjà
+// dans mon journal » des boutons d'import sur les pages d'éléments. Volontairement
+// séparé de /me (qui charge tout le carnet) pour rester peu coûteux.
+router.get(
+  '/me/imports/refs',
+  asyncHandler(async (req, res) => {
+    if (!(await ensurePlayerJournalModuleEnabled(res))) return;
+    if (!requireGlPlayer(req, res)) return;
+    const refs = await getPlayerJournalImportRefs(req.glAuth.userId);
+    return res.json({ refs });
+  }),
+);
+
+// Résolution batch des titres réels des encarts `gl-journal-embed` d'un article,
+// pour l'affichage hydraté (le corps stocke seulement type + ref). Accessible aux
+// joueurs comme au MJ (lecture des carnets), en lecture seule.
+router.post(
+  '/embeds/resolve',
+  asyncHandler(async (req, res) => {
+    if (!(await ensurePlayerJournalModuleEnabled(res))) return;
+    const raw = Array.isArray(req.body?.embeds) ? req.body.embeds.slice(0, 200) : [];
+    const titles = await resolveJournalEmbedTitles(raw);
+    return res.json({ titles });
   }),
 );
 
@@ -123,6 +164,24 @@ router.put(
     );
     const article = await getArticleDto(articleId);
     return res.json({ article });
+  }),
+);
+
+// Épinglage / désépinglage d'un article (propriétaire uniquement).
+router.put(
+  '/me/articles/:articleId/pin',
+  asyncHandler(async (req, res) => {
+    if (!(await ensurePlayerJournalModuleEnabled(res))) return;
+    if (!requireGlPlayer(req, res)) return;
+    const playerId = Number(req.glAuth.userId);
+    const articleId = parseArticleId(req, res);
+    if (articleId == null) return;
+    const pinned = parsePinned(req, res);
+    if (pinned == null) return;
+
+    const affected = await setArticlePinned(articleId, playerId, pinned);
+    if (!affected) return res.status(404).json({ error: 'Article introuvable' });
+    return res.json({ ok: true, pinned });
   }),
 );
 
@@ -319,6 +378,24 @@ router.delete(
       playerId,
     ]);
     return res.json({ ok: true });
+  }),
+);
+
+// Épinglage / désépinglage d'un import (propriétaire uniquement).
+router.put(
+  '/me/imports/:importId/pin',
+  asyncHandler(async (req, res) => {
+    if (!(await ensurePlayerJournalModuleEnabled(res))) return;
+    if (!requireGlPlayer(req, res)) return;
+    const playerId = Number(req.glAuth.userId);
+    const importId = Number(req.params.importId);
+    if (!Number.isFinite(importId)) return res.status(400).json({ error: 'Identifiant invalide' });
+    const pinned = parsePinned(req, res);
+    if (pinned == null) return;
+
+    const affected = await setImportPinned(importId, playerId, pinned);
+    if (!affected) return res.status(404).json({ error: 'Import introuvable' });
+    return res.json({ ok: true, pinned });
   }),
 );
 
