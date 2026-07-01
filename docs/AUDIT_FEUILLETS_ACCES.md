@@ -319,29 +319,41 @@ alignés sur les 5 plateaux/chapitres.
 
 ### 11.6 Cartographie du corpus (snapshot 2026-07-01)
 
-Mesurée par `scripts/gl-audit-feuillet-coverage.py` (sans dépendance ; relance à volonté).
+> ⚠️ **Le corpus XLSX est périmé.** `scripts/gl-audit-feuillet-coverage.py` lit
+> `data/gl/corpus-feuillets-selene.xlsx` (**157 feuillets, sans colonnes `lien_*`**), mais la
+> **base de production** contient **201 feuillets** avec les colonnes `lien_canal`/`lien_ref`/
+> `lien_pays` **renseignées**. **La BDD fait autorité.** Chiffres ci-dessous = production.
 
-- **157 feuillets** — par type : `scene` 59, `feuillet` 42, `copiste` 40, `reponse` 9, `vierge` 6,
-  `message` 1.
-- **Couverture par canal actuel** (zone de traversée + pool `biome_slug`/`plateau`) :
-  zone **24** · biome **30** · plateau **17** · **orphelins 86 / 157 (55 %)**.
-- **Les 86 orphelins** = **tous les `copiste` (40)** + **45 `scene`** + 1 `message` : ni zone, ni
-  `biome_slug`, ni `plateau`.
+**Production : 201 feuillets (tous `actif`)** — par type : `feuillet` 75, `scene` 70, `copiste` 40,
+`reponse` 9, `vierge` 6, `message` 1.
 
-**Deux constats :**
+**Couverture des champs** : `biome_slug` 136/201 · `plateau_number` 155/201 · `zone_label` 143/201 ·
+`lien_canal` 51/201 (`espece_pays` 44, `intro_pays` 6, `espece` 1) · `lien_qcm_biome` 66/201 ·
+`kingdom_zone_id` **0** · `image_url` 22.
 
-1. **Corpus sous-tagué** : la feuille `feuillets` n'a **pas** les colonnes `lien_canal`/`lien_ref`/
-   `lien_pays` → le canal « espèce » n'est alimenté par **aucune** donnée ; et des feuillets qui
-   devraient relever d'un biome ne le portent pas (ex. `cop-bio-savane`, `cop-bio-sahara`… ont le
-   biome **dans le code** mais `biome_slug` vide).
-2. **Deux trous fonctionnels** : le **récit** (`scene`, 45 orphelins) et le **copiste** (40) n'ont
-   pas de canal câblé. En l'état, « 5 chapitres = tout le corpus » **n'est pas atteignable**.
+**Couverture par canal** (zone traversée + `lien_canal` espèce/route + pool `biome`/`plateau`/`pays`) :
+zone **24** · `lien_canal` **51** · biome **69** · plateau **17** → **orphelins 40 / 201 (20 %)**.
 
-**Deux chantiers (complémentaires) :**
+**Les 40 orphelins** (ni zone, ni biome, ni plateau, ni `lien_*`) sont **quasi tous `copiste`** :
+9 `cop-marg` (marginalia), 8 `cop-bio-<biome>`, 6 `cop-insert`, 3 `cop-acte`, 8 autres `cop-*`
+(cover, preface, finale, close, confession, doute, origine, trame) — **+ 5 `ep-echo-0N`** (feuillet
+« Écho ») et **1 `message-boite`** (le corbeau, « À la classe qui vient »). **Aucune `scene`
+orpheline.**
 
-- **(A) Enrichir la donnée** (éditorial, peu de code) : renseigner `biome_slug`/`plateau` (voire
-  `lien_*`) sur les orphelins → beaucoup deviennent atteignables **immédiatement** via le pool.
-  Piste déterministe : `cop-bio-<biome>` → `biome_slug` d'après le suffixe du code. Le reste
-  (scènes → plateau, cop-mov → pays) demande un arbitrage éditorial.
-- **(B) Câbler les canaux typés** (code) : **récit `scene`** (45 feuillets, plus gros levier),
-  puis **copiste route** et **QCM `reponse`**.
+**Ce que ça change (vs analyse XLSX) :**
+
+1. Le canal **espèce/route est déjà alimenté** (`lien_canal` sur 51 feuillets) → beaucoup plus de
+   couverture que ne le laissait croire le XLSX.
+2. **Le canal récit `scene` n'est PAS nécessaire** : les 70 `scene` sont déjà atteignables (biome/
+   plateau). ⟵ corrige la reco précédente.
+3. Le vrai trou = **l'arc `copiste` (34 orphelins) + 5 échos + 1 message**, tous sans biome/plateau.
+
+**Chantiers révisés :**
+
+- **(A) Enrichir la donnée** — quick win déterministe : les **8 `cop-bio-<biome>`** → `biome_slug`
+  d'après le suffixe du code (40 → 32 orphelins). Le reste (marg/insert/acte/cover/preface/finale,
+  échos, message) demande un **arbitrage éditorial** : plateau/pays d'appartenance, ou statut
+  « hors collecte carte » (feuillets de cadre : couverture, préface, finale).
+- **(B) Canal(aux) dédié(s)** — pour les copiste/échos non ancrables à un biome : soit un canal
+  **QCM `reponse`** (échos = récompenses de bonne réponse), soit un déblocage **par progression**
+  (cover/preface au début, finale/close en fin de chapitre 5).

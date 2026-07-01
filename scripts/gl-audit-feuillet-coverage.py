@@ -10,6 +10,10 @@ Lit le corpus XLSX (`data/gl/corpus-feuillets-selene.xlsx`) et le calque de zone
 Sans dépendance externe (bibliothèque standard uniquement — XLSX = ZIP de XML).
 Sert d'aide à la décision pour le câblage des canaux restants et l'enrichissement du corpus.
 
+ATTENTION : le corpus XLSX peut être **en retard** sur la base de production (colonnes `lien_*`
+absentes du fichier, feuillets ajoutés en base). La **BDD fait autorité** : voir §11.6 de
+`docs/AUDIT_FEUILLETS_ACCES.md` pour les chiffres de production (201 feuillets, ~40 orphelins).
+
 Usage : python3 scripts/gl-audit-feuillet-coverage.py [chemin_corpus.xlsx]
 """
 
