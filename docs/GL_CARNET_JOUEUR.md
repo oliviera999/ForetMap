@@ -162,9 +162,21 @@ pour les 7 types. Une fois l'élément appris, l'import dans le carnet est débl
 Une fois l'élément acquis, un bouton **« Ajouter à mon journal »** apparaît sur sa page. L'import :
 
 - crée une entrée dans le fil (table `gl_player_journal_imports`),
-- fige un **titre** (fourni par le client, sinon résolu côté serveur, sinon `type · ref`),
+- fige un **titre** (fourni par le client, sinon résolu côté serveur, sinon `type · ref`) — ce
+  titre figé sert désormais de **repli** (voir ci-dessous),
 - est **idempotent** (unique par `(joueur, type, référence)`),
-- est **refusé (403)** si l'élément n'a pas été appris au préalable.
+- est **refusé (404)** si la ressource n'existe pas, **(403)** si l'élément n'a pas été appris au
+  préalable.
+
+> **Titres résolus à l'affichage (A.4)** : à la lecture du carnet, le titre de chaque import est
+> **re-résolu** depuis la source (titre courant de l'espèce, du terme, du biome…), pour refléter un
+> éventuel **renommage**. Si la source est introuvable (supprimée) ou non résolvable, on **retombe
+> sur le titre figé** à l'import. Résolutions faites en parallèle (`resolveResourceTitle`).
+
+> **Validation des écosystèmes (A.3)** : l'existence d'un `ecosystem`/`biome_slug` est validée
+> contre la table de registre **`gl_biomes`** (source de vérité, cible de la FK `gl_chapter_biomes`),
+> et non plus contre la seule présence d'espèces — un slug bien formé mais non enregistré est
+> désormais **rejeté**.
 
 > **État « déjà dans mon journal »** : le bouton d'import reflète l'état **dès le chargement**
 > de la page de l'élément (« ✓ Dans mon journal » au lieu de « + Ajouter »). Il s'appuie sur un
