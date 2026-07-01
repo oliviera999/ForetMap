@@ -7,6 +7,21 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### GL — Carnet : quiz-gating des nouveaux types marquables (A.1)
+
+- **Vérification & documentation** : le conditionnement par quiz (« marquer appris » exige un QCM)
+  couvre désormais explicitement **les 7 types marquables** (`GL_MARKABLE`), dont `ecosystem`,
+  `feuillet`, `content_page` et `lore_glossary`, au même titre que `species`/`glossary`/`tutorial`.
+  Le core (`resourceQuestionGatingCore`, routes `learning`/`learning-links`, composant générique
+  `GLLearningAcknowledgeButton`) acceptait déjà ces types ; ce lot **verrouille et documente** le
+  flux de bout en bout (consulter → quiz → confirmer → appris), sans modification du comportement.
+- **Docs** : nouvelle section « Configurer un gating par quiz (prof/MJ) » dans
+  `docs/GL_CARNET_JOUEUR.md` (marche à suivre API `learning-links`, exemple de lien, réglages
+  `gating.*`) ; liste de types corrigée dans `docs/API.md` (endpoint `learning/gating/challenge`,
+  ajout de `learning/mark/:resourceType/:ref`).
+- **Tests** : `tests/gl-learning-gating-newtypes.test.js` (challenge + accusé générique `mark` pour
+  `content_page` et `ecosystem` : 403 sans bonne réponse, 200 après, accusé persisté).
+
 ### GL — Feuillets non lisibles par défaut (anti-spoiler du carnet)
 
 - **Évolution métier** : côté joueur, les feuillets du carnet de Sélène ne sont **plus lisibles par

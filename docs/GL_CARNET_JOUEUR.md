@@ -105,6 +105,49 @@ Types marquables (`GL_MARKABLE`) : `species`, `glossary`, `tutorial`, `lore_glos
 > du chapitre). Sur la **page Écosystèmes**, chaque écosystème est identifié **par biome**
 > (`ecosystem` / `biome_slug`) : c'est cette unité qui se marque et s'importe.
 
+### Configurer un gating par quiz (prof/MJ)
+
+Le conditionnement par quiz est **indépendant du carnet** : il vaut pour **tous** les types
+marquables (les 7 de `GL_MARKABLE`), y compris `ecosystem`, `feuillet`, `content_page` et
+`lore_glossary`. Aucune restriction ne lie un type de ressource à un jeu de questions précis :
+on peut conditionner n'importe quelle ressource par n'importe quelle question `qcm` (écologie) ou
+`qcm_lore` (narratif). **Pas d'UI dédiée pour l'instant** : la configuration passe par l'API GL
+`/api/gl/learning-links` (permission `gl.content.manage` pour les liens, `gl.settings.manage` pour
+les réglages). Marche à suivre :
+
+1. **Activer le gating** (réglage site, une fois) :
+   `PUT /api/gl/learning-links/settings` avec `{ "key": "gating.enabled", "value": true }`.
+2. **Lier une (ou plusieurs) question(s) à la ressource** — chaque lien bloquant (`is_gating: 1`)
+   doit être **réussi** avant l'accusé :
+   `POST /api/gl/learning-links` avec, par exemple pour un écosystème :
+
+   ```json
+   {
+     "questionDataset": "qcm",
+     "resourceType": "ecosystem",
+     "resourceRef": "savane",
+     "questionCode": "GQ042",
+     "isGating": 1,
+     "status": "approved"
+   }
+   ```
+
+   Adapter `resourceType`/`resourceRef` : `feuillet` → `feuillet_code`, `content_page` → `slug`,
+   `lore_glossary` → `lore_code` (dataset `qcm_lore` recommandé pour le narratif).
+
+3. **(Optionnel) régler la politique** de la ressource
+   (`PUT /api/gl/learning-links/policy` : `mode`, `required_correct`, `enabled`) ou la
+   **granularité** (site / chapitre / scope). Par défaut, le mode `all` exige **toutes** les
+   questions bloquantes.
+
+Côté joueur, dès que `gating.enabled` est vrai et qu'un lien `is_gating` approuvé existe pour la
+ressource, le bouton « Marquer comme appris » ouvre automatiquement le QCM (composant générique
+`GLLearningAcknowledgeButton`) : le flux **consulter → quiz → confirmer → appris** est identique
+pour les 7 types. Une fois l'élément appris, l'import dans le carnet est débloqué.
+
+> **Vérification** : le flux de bout en bout est verrouillé par
+> `tests/gl-learning-gating-newtypes.test.js` (challenge + `mark` de `content_page` et `ecosystem`).
+
 ---
 
 ## 4. Importer un élément dans le carnet

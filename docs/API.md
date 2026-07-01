@@ -1415,12 +1415,13 @@ Réglages site GL (table `gl_settings`) : `gating.enabled` (def. `false`),
 `gating.default_mode`, `gating.default_required_correct`. Persistance des tentatives QCM par lecteur :
 table `gl_qcm_attempts` (alimente la vérification à l'accusé et les réponses plateau/catalogue).
 
-| Méthode | Route                                                          | Auth   | Description                                                                         |
-| ------- | -------------------------------------------------------------- | ------ | ----------------------------------------------------------------------------------- |
-| GET     | `/api/gl/learning/gating/challenge?resourceType=&resourceRef=` | JWT GL | Idem ForetMap. Types : `species`, `glossary`, `tutorial`.                           |
-| POST    | `/api/gl/learning/species/:code`                               | JWT GL | Marque l'espèce étudiée. **403** si quiz incomplet. Pas de re-quiz si déjà accusée. |
-| POST    | `/api/gl/learning/glossary/:code`                              | JWT GL | Marque le terme appris (même garde).                                                |
-| POST    | `/api/gl/learning/tutorials/:id`                               | JWT GL | Marque le tutoriel GL lu (même garde).                                              |
+| Méthode | Route                                                          | Auth   | Description                                                                                                                                                       |
+| ------- | -------------------------------------------------------------- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET     | `/api/gl/learning/gating/challenge?resourceType=&resourceRef=` | JWT GL | État du quiz requis avant accusé. Types marquables (`GL_MARKABLE`) : `species`, `glossary`, `tutorial`, `lore_glossary`, `feuillet`, `content_page`, `ecosystem`. |
+| POST    | `/api/gl/learning/species/:code`                               | JWT GL | Marque l'espèce étudiée. **403** si quiz incomplet. Pas de re-quiz si déjà accusée.                                                                               |
+| POST    | `/api/gl/learning/glossary/:code`                              | JWT GL | Marque le terme appris (même garde).                                                                                                                              |
+| POST    | `/api/gl/learning/tutorials/:id`                               | JWT GL | Marque le tutoriel GL lu (même garde).                                                                                                                            |
+| POST    | `/api/gl/learning/mark/:resourceType/:ref`                     | JWT GL | Accusé **générique** (`lore_glossary`, `feuillet`, `content_page`, `ecosystem`). Même garde de quiz-gating.                                                       |
 
 > **Isolement** : un JWT `product:'gl'` est rejeté sur `/api/learning-links` et inversement (couvert par tests).
 
