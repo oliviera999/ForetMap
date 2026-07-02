@@ -6,36 +6,25 @@ if (process.argv.includes('--foretmap-e2e-no-rate-limit')) {
 const express = require('express');
 const http = require('http');
 const fs = require('fs');
-const crypto = require('crypto');
 const cors = require('cors');
 const helmet = require('helmet');
 const compression = require('compression');
 const path = require('path');
 const jwt = require('jsonwebtoken');
-const {
-  initDatabase,
-  ping: dbPing,
-  isApplicationDatabaseReady,
-  endPool,
-  queryAll,
-} = require('./database');
+const { initDatabase, isApplicationDatabaseReady, endPool } = require('./database');
 const { validateEnv } = require('./lib/env');
 const logger = require('./lib/logger');
 const { runRecurringTaskSpawnJob } = require('./lib/recurringTasks');
 const { initRealtime, shutdownRealtime } = require('./lib/realtime');
-const { getRuntimeProcessSnapshot } = require('./lib/runtimeDiagnostics');
-const { getMascotPackLibProbe } = require('./lib/mascotPackValidatorResolve');
-const { getVisitMascotHintSnapshot } = require('./lib/visitMascotDiagnostics');
-const { tailLogLines, getBufferedLineCount, getMaxLines } = require('./lib/logBuffer');
 const { checkCriticalAdminAccount } = require('./lib/rbac');
 const { assignRequestId } = require('./lib/requestId');
 const { createHttpRequestLogMiddleware } = require('./lib/httpRequestLog');
-const logMetrics = require('./lib/logMetrics');
 const { parseBearerToken, JWT_SECRET } = require('./middleware/requireTeacher');
 const { resolveProductFromRequest } = require('./lib/productResolver');
-const { resolveOAuthPublicOrigin, resolveOAuthRedirectUri } = require('./lib/oauthPublicUrl');
+const { generalLimiter, authLimiter } = require('./lib/rateLimit');
 
-const rateLimit = require('express-rate-limit');
+const healthRouter = require('./routes/health');
+const { createAdminOpsRouter } = require('./routes/admin-ops');
 const authRouter = require('./routes/auth');
 const zonesRouter = require('./routes/zones');
 const mapsRouter = require('./routes/maps');
@@ -105,8 +94,6 @@ function configureTrustProxy() {
 }
 configureTrustProxy();
 
-const { normalizeOptionalString } = require('./lib/shared/httpHelpers');
-
 function parseCorsOriginsFromEnv() {
   const raw = String(process.env.FRONTEND_ORIGINS || '').trim();
   if (!raw) return [];
@@ -141,13 +128,6 @@ app.use(
   }),
 );
 
-/** Comparaison de secret a temps constant (evite l'oracle temporel sur DEPLOY_SECRET). */
-function timingSafeSecretEqual(provided, expected) {
-  const a = Buffer.from(String(provided == null ? '' : provided));
-  const b = Buffer.from(String(expected == null ? '' : expected));
-  if (a.length !== b.length || a.length === 0) return false;
-  return crypto.timingSafeEqual(a, b);
-}
 app.use(
   compression({
     filter: (req, res) => {
@@ -160,119 +140,7 @@ app.use(
 );
 app.use(assignRequestId);
 
-function isTestEnv() {
-  return (
-    String(process.env.NODE_ENV || '')
-      .trim()
-      .toLowerCase() === 'test'
-  );
-}
-
-function isLoadTestBypass(req) {
-  const expected = String(process.env.LOAD_TEST_SECRET || '').trim();
-  if (!expected) return false;
-  const provided = String(req.get('x-foretmap-load-test') || '').trim();
-  return provided.length > 0 && provided === expected;
-}
-
-function shouldSkipRateLimit(req) {
-  return (
-    isTestEnv() ||
-    isLoadTestBypass(req) ||
-    String(process.env.E2E_DISABLE_RATE_LIMIT || '').trim() === '1'
-  );
-}
-
-function parseRateLimitLogSample() {
-  const raw = String(process.env.FORETMAP_RATE_LIMIT_LOG_SAMPLE || '0.01').trim();
-  const n = parseFloat(raw);
-  if (Number.isFinite(n) && n >= 0 && n <= 1) return n;
-  return 0.01;
-}
-
-/** Préfixe d’IP pour logs (pas d’adresse complète). */
-function truncateClientIp(ip) {
-  const s = String(ip || '').trim();
-  if (!s) return null;
-  if (s.includes('.')) {
-    const parts = s.split('.');
-    if (parts.length >= 2) return `${parts[0]}.${parts[1]}.*`;
-    return 'ipv4';
-  }
-  if (s.includes(':')) {
-    const parts = s.split(':').filter(Boolean);
-    if (parts.length >= 3) return `${parts.slice(0, 3).join(':')}::`;
-    return 'ipv6';
-  }
-  return '?';
-}
-
-const rateLimitLogSample = parseRateLimitLogSample();
-
-function createRateLimitHandler(messageBody) {
-  return (req, res, _next, options) => {
-    if (rateLimitLogSample > 0 && Math.random() < rateLimitLogSample) {
-      logMetrics.recordRateLimit429Sample();
-      logger.warn(
-        {
-          requestId: req.requestId,
-          path: req.path,
-          method: req.method,
-          clientIpTruncated: truncateClientIp(req.ip),
-          msg: 'rate_limit_429_sample',
-        },
-        '429 rate limit (echantillon)',
-      );
-    }
-    const status = options && typeof options.statusCode === 'number' ? options.statusCode : 429;
-    res.status(status);
-    res.json(messageBody);
-  };
-}
-
-/** Plafond /api/* par IP et fenêtre 1 min (SPA + plusieurs onglets derrière la même IP publique). */
-function parseGeneralApiRateLimitMax() {
-  const raw = String(process.env.FORETMAP_API_RATE_LIMIT_PER_MIN || '').trim();
-  const fallback = 1200;
-  if (!raw) return fallback;
-  const n = parseInt(raw, 10);
-  if (!Number.isFinite(n) || n < 60 || n > 20000) {
-    logger.warn({ raw }, 'FORETMAP_API_RATE_LIMIT_PER_MIN invalide — repli 1200');
-    return fallback;
-  }
-  return n;
-}
-
-const generalApiRateLimitMax = parseGeneralApiRateLimitMax();
-logger.debug(
-  { apiRateLimitPerMin: generalApiRateLimitMax },
-  'Limiteur général /api/* (fenêtre 1 min / IP)',
-);
-
-// Limiteur général : défaut 1200 req/min/IP (FORETMAP_API_RATE_LIMIT_PER_MIN) — express-rate-limit v8 : `limit`
-const generalLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  limit: generalApiRateLimitMax,
-  skip: (req) => shouldSkipRateLimit(req),
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: 'Trop de requêtes, réessayez dans une minute.' },
-  handler: createRateLimitHandler({ error: 'Trop de requêtes, réessayez dans une minute.' }),
-});
-
-// Limiteur strict pour les endpoints d'authentification : 20 tentatives / 15 min par IP
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  limit: 20,
-  skip: (req) => shouldSkipRateLimit(req),
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: 'Trop de tentatives de connexion, réessayez dans 15 minutes.' },
-  handler: createRateLimitHandler({
-    error: 'Trop de tentatives de connexion, réessayez dans 15 minutes.',
-  }),
-});
-
+// Rate-limiting : limiteurs et helpers factorisés dans lib/rateLimit.js (montages inchangés).
 app.use('/api/', generalLimiter);
 
 app.use('/api/auth/login', authLimiter);
@@ -400,49 +268,8 @@ app.use(
 );
 app.use('/tutos', express.static(path.join(__dirname, 'tutos')));
 
-// Route de santé sans BDD — pour le contrôle de disponibilité (o2switch / Passenger)
-app.get('/api/health', (req, res) => {
-  res.type('application/json').status(200).json({ ok: true });
-});
-app.get('/health', (req, res) => {
-  res.type('application/json').status(200).json({ ok: true });
-});
-
-app.get('/api/health/db', async (req, res) => {
-  try {
-    await dbPing();
-    res.type('application/json').status(200).json({ ok: true, database: true });
-  } catch (err) {
-    logger.warn({ err }, 'Health check BDD en échec');
-    res.status(503).json({ ok: false, error: 'Database unavailable' });
-  }
-});
-
-/**
- * Prêt à recevoir le trafic métier : init BDD terminée + ping courant OK.
- * 503 pendant le boot ou si MySQL est indisponible (sonde type load balancer / orchestrateur).
- */
-app.get('/api/ready', async (req, res) => {
-  if (!isApplicationDatabaseReady()) {
-    return res.status(503).type('application/json').json({
-      ok: false,
-      ready: false,
-      error: 'Service non prêt — initialisation base de données incomplète',
-    });
-  }
-  try {
-    await dbPing();
-    return res.type('application/json').status(200).json({ ok: true, ready: true, database: true });
-  } catch (err) {
-    logger.warn({ err }, 'Readiness : ping BDD en échec');
-    return res.status(503).type('application/json').json({
-      ok: false,
-      ready: false,
-      database: false,
-      error: 'Database unavailable',
-    });
-  }
-});
+// Routes de santé / readiness (extraites dans routes/health.js — chemins absolus, ordre inchangé)
+app.use(healthRouter);
 
 // Version de l'app (pied de page frontend)
 const startupVersion = require(path.join(__dirname, 'package.json')).version;
@@ -452,166 +279,9 @@ app.get('/api/version', (req, res) => {
   res.json({ version: startupVersion });
 });
 
-// Redémarrage déclenché après déploiement (secret requis ; le gestionnaire de process relance l'app)
-app.post('/api/admin/restart', (req, res) => {
-  const secret = req.headers['x-deploy-secret'] || req.body?.secret;
-  if (!process.env.DEPLOY_SECRET || !timingSafeSecretEqual(secret, process.env.DEPLOY_SECRET)) {
-    return res.status(403).json({ error: 'Secret invalide' });
-  }
-  res.json({ ok: true, message: 'Redémarrage gracieux' });
-  setTimeout(() => gracefulShutdown('restart'), 300);
-});
-
-// Dernières lignes de log Pino (tampon mémoire) — même secret que /api/admin/restart ; uniquement en HTTPS en prod
-app.get('/api/admin/logs', (req, res) => {
-  const secret = req.headers['x-deploy-secret'];
-  if (!process.env.DEPLOY_SECRET || !timingSafeSecretEqual(secret, process.env.DEPLOY_SECRET)) {
-    return res.status(403).json({ error: 'Secret invalide ou DEPLOY_SECRET non configuré' });
-  }
-  const raw = parseInt(req.query.lines, 10);
-  const n = Number.isFinite(raw) ? raw : 200;
-  const entries = tailLogLines(n);
-  res.type('application/json').json({
-    ok: true,
-    returned: entries.length,
-    bufferLines: getBufferedLineCount(),
-    bufferMax: getMaxLines(),
-    entries,
-  });
-});
-
-// Instantané d’exploitation (secret requis) : version, uptime, mémoire, latence BDD, tampon logs — pour diag à distance / MCP
-app.get('/api/admin/diagnostics', async (req, res) => {
-  const secret = req.headers['x-deploy-secret'];
-  if (!process.env.DEPLOY_SECRET || !timingSafeSecretEqual(secret, process.env.DEPLOY_SECRET)) {
-    return res.status(403).json({ error: 'Secret invalide ou DEPLOY_SECRET non configuré' });
-  }
-  const mem = process.memoryUsage();
-  const toMb = (n) => Math.round((n / 1024 / 1024) * 100) / 100;
-  let database = { ok: false };
-  const t0 = performance.now();
-  try {
-    await dbPing();
-    database = { ok: true, latencyMs: Math.round((performance.now() - t0) * 100) / 100 };
-  } catch (err) {
-    logger.warn({ err }, 'Diagnostics admin : ping BDD en échec');
-    database = { ok: false, error: 'Database unavailable' };
-  }
-  const pkgVersion = startupVersion;
-  let visitMascotHint = { maps: [], error: null };
-  try {
-    visitMascotHint = await getVisitMascotHintSnapshot(queryAll);
-  } catch (err) {
-    logger.warn({ err }, 'Diagnostics admin : agrégats visite (mascotte)');
-    visitMascotHint = { maps: [], error: 'visit_mascot_hint_unavailable' };
-  }
-  let glDiagnostics = { ok: false, error: null };
-  try {
-    const games = await queryAll(`SELECT status, COUNT(*) AS c FROM gl_games GROUP BY status`);
-    const playersRow = await queryAll('SELECT COUNT(*) AS c FROM gl_players WHERE is_active = 1');
-    const eventsRecent = await queryAll(
-      `SELECT event_type, COUNT(*) AS c
-         FROM gl_game_events
-        WHERE created_at > (NOW() - INTERVAL 24 HOUR)
-        GROUP BY event_type
-        ORDER BY c DESC
-        LIMIT 10`,
-    );
-    const packsRow = await queryAll('SELECT COUNT(*) AS c FROM gl_mascot_packs');
-    glDiagnostics = {
-      ok: true,
-      gamesByStatus: Object.fromEntries(games.map((row) => [row.status, Number(row.c)])),
-      activePlayers: Number(playersRow?.[0]?.c || 0),
-      recentEventTypes: eventsRecent.map((row) => ({
-        eventType: row.event_type,
-        count: Number(row.c),
-      })),
-      mascotPackCount: Number(packsRow?.[0]?.c || 0),
-    };
-  } catch (err) {
-    logger.warn({ err }, 'Diagnostics admin : agrégats GL');
-    glDiagnostics = { ok: false, error: 'gl_diagnostics_unavailable' };
-  }
-  res.type('application/json').json({
-    ok: true,
-    ts: new Date().toISOString(),
-    version: pkgVersion,
-    nodeEnv: process.env.NODE_ENV || null,
-    nodeVersion: process.version,
-    uptimeSeconds: Math.floor(process.uptime()),
-    memory: {
-      rssMb: toMb(mem.rss),
-      heapUsedMb: toMb(mem.heapUsed),
-      heapTotalMb: toMb(mem.heapTotal),
-    },
-    database,
-    logBuffer: {
-      linesCount: getBufferedLineCount(),
-      maxLines: getMaxLines(),
-    },
-    metrics: logMetrics.getMetrics(),
-    // Processus courant uniquement ; le nombre d’instances Passenger/PM2 se lit au panneau hébergeur.
-    runtimeProcess: getRuntimeProcessSnapshot(),
-    /** Par carte : volumes alignés sur GET /api/visit/content (mascotte si au moins un compteur public > 0). */
-    visitMascotHint,
-    /** Présence des fichiers `lib/visit-pack/*` (validation POST/PUT packs) — voir docs/EXPLOITATION.md si `libMirrorOk` est false. */
-    mascotPackLibProbe: getMascotPackLibProbe(),
-    /** Agrégats GL (Gnomes & Licornes) : statuts parties, joueurs actifs, types d'évènements récents, nb packs mascotte. */
-    gl: glDiagnostics,
-  });
-});
-
-// Diagnostic OAuth (sans secrets) : vérifie les URLs réellement résolues au runtime.
-app.get('/api/admin/oauth-debug', (req, res) => {
-  const secret = req.headers['x-deploy-secret'];
-  if (!process.env.DEPLOY_SECRET || !timingSafeSecretEqual(secret, process.env.DEPLOY_SECRET)) {
-    return res.status(403).json({ error: 'Secret invalide ou DEPLOY_SECRET non configuré' });
-  }
-
-  const frontendOrigin =
-    resolveOAuthPublicOrigin(req, process.env.FRONTEND_ORIGIN) ||
-    resolveOAuthPublicOrigin(req, process.env.PASSWORD_RESET_BASE_URL);
-  const redirectUri = resolveOAuthRedirectUri(req, {
-    envRedirectUri: process.env.GOOGLE_OAUTH_REDIRECT_URI,
-    callbackPath: '/api/auth/google/callback',
-  });
-  const glFrontendOrigin = resolveOAuthPublicOrigin(req, process.env.GL_FRONTEND_ORIGIN);
-  const glRedirectUri = resolveOAuthRedirectUri(req, {
-    envRedirectUri: process.env.GL_GOOGLE_OAUTH_REDIRECT_URI,
-    callbackPath: '/api/gl/auth/google/callback',
-  });
-
-  res.type('application/json').json({
-    ok: true,
-    runtime: {
-      pid: process.pid,
-      nodeEnv: process.env.NODE_ENV || null,
-      host: req.get('host') || null,
-      protocol: req.protocol || null,
-      forwardedProto: req.get('x-forwarded-proto') || null,
-      forwardedHost: req.get('x-forwarded-host') || null,
-    },
-    oauth: {
-      googleClientIdSet: !!normalizeOptionalString(process.env.GOOGLE_OAUTH_CLIENT_ID),
-      googleClientSecretSet: !!normalizeOptionalString(process.env.GOOGLE_OAUTH_CLIENT_SECRET),
-      googleRedirectUriEnv: normalizeOptionalString(process.env.GOOGLE_OAUTH_REDIRECT_URI),
-      frontendOriginEnv: normalizeOptionalString(process.env.FRONTEND_ORIGIN),
-      passwordResetBaseUrlEnv: normalizeOptionalString(process.env.PASSWORD_RESET_BASE_URL),
-      resolvedFrontendOrigin: frontendOrigin,
-      resolvedGoogleRedirectUri: redirectUri,
-      glClientIdSet: !!(
-        normalizeOptionalString(process.env.GL_GOOGLE_OAUTH_CLIENT_ID) ||
-        normalizeOptionalString(process.env.GOOGLE_OAUTH_CLIENT_ID)
-      ),
-      glRedirectUriEnv: normalizeOptionalString(process.env.GL_GOOGLE_OAUTH_REDIRECT_URI),
-      glFrontendOriginEnv: normalizeOptionalString(process.env.GL_FRONTEND_ORIGIN),
-      resolvedGlFrontendOrigin: glFrontendOrigin,
-      resolvedGlRedirectUri: glRedirectUri,
-      googleConsoleHint:
-        'Enregistrer chaque resolved*RedirectUri exactement dans Google Cloud Console → Identifiants → URI de redirection autorisés.',
-    },
-  });
-});
+// Endpoints d'exploitation admin protégés par DEPLOY_SECRET (extraits dans routes/admin-ops.js —
+// chemins absolus, ordre inchangé) : restart, logs, diagnostics, oauth-debug.
+app.use(createAdminOpsRouter({ gracefulShutdown }));
 
 app.use('/api/gl/auth', glAuthRouter);
 app.use('/api/gl/admin', glAdminRouter);
