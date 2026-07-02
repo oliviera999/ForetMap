@@ -1,15 +1,10 @@
 const express = require('express');
 const { queryOne, execute } = require('../../../database');
 const { requireGlPermission } = require('../../../middleware/requireGlAuth');
-const { normalizeOptionalString } = require('../../../lib/shared/httpHelpers');
+const { normalizeOptionalString, parseId } = require('../../../lib/shared/httpHelpers');
 const asyncHandler = require('../../../lib/asyncHandler');
 
 const router = express.Router();
-
-function parseId(value) {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : null;
-}
 
 router.post(
   '/games/:id/teams',
