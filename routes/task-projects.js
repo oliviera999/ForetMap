@@ -92,48 +92,55 @@ async function getProjectTutorialIds(projectId) {
   return rows.map((r) => Number(r.tutorial_id));
 }
 
+// DELETE + INSERT multi-valeurs (au lieu d'un INSERT par ligne — N+1).
+async function replaceProjectJunctionRows(table, childCol, projectId, ids) {
+  await execute(`DELETE FROM ${table} WHERE project_id = ?`, [projectId]);
+  if (!ids.length) return;
+  const placeholders = ids.map(() => '(?, ?)').join(', ');
+  const params = ids.flatMap((id) => [projectId, id]);
+  await execute(`INSERT INTO ${table} (project_id, ${childCol}) VALUES ${placeholders}`, params);
+}
+
 async function setProjectZones(projectId, zoneIds) {
-  await execute('DELETE FROM project_zones WHERE project_id = ?', [projectId]);
-  for (const zid of zoneIds) {
-    await execute('INSERT INTO project_zones (project_id, zone_id) VALUES (?, ?)', [
-      projectId,
-      zid,
-    ]);
-  }
+  await replaceProjectJunctionRows('project_zones', 'zone_id', projectId, zoneIds);
 }
 
 async function setProjectMarkers(projectId, markerIds) {
-  await execute('DELETE FROM project_markers WHERE project_id = ?', [projectId]);
-  for (const mid of markerIds) {
-    await execute('INSERT INTO project_markers (project_id, marker_id) VALUES (?, ?)', [
-      projectId,
-      mid,
-    ]);
-  }
+  await replaceProjectJunctionRows('project_markers', 'marker_id', projectId, markerIds);
 }
 
 async function setProjectTutorials(projectId, tutorialIds) {
-  await execute('DELETE FROM project_tutorials WHERE project_id = ?', [projectId]);
-  for (const tid of tutorialIds) {
-    await execute('INSERT INTO project_tutorials (project_id, tutorial_id) VALUES (?, ?)', [
-      projectId,
-      tid,
-    ]);
-  }
+  await replaceProjectJunctionRows('project_tutorials', 'tutorial_id', projectId, tutorialIds);
 }
 
 async function validateProjectLinksForMap(mapId, zoneIds, markerIds) {
-  for (const zid of zoneIds) {
-    const zone = await queryOne('SELECT map_id FROM zones WHERE id = ?', [zid]);
-    if (!zone) return { error: 'Zone introuvable' };
-    if (zone.map_id !== mapId)
-      return { error: 'Une zone ne fait pas partie de la carte du projet' };
+  // 2 requêtes IN au lieu d'un queryOne par id ; l'itération dans l'ordre des ids
+  // demandés préserve le message d'erreur du premier élément fautif.
+  if (zoneIds.length) {
+    const rows = await queryAll(
+      `SELECT id, map_id FROM zones WHERE id IN (${zoneIds.map(() => '?').join(',')})`,
+      zoneIds,
+    );
+    const byId = new Map(rows.map((r) => [String(r.id), r]));
+    for (const zid of zoneIds) {
+      const zone = byId.get(String(zid));
+      if (!zone) return { error: 'Zone introuvable' };
+      if (zone.map_id !== mapId)
+        return { error: 'Une zone ne fait pas partie de la carte du projet' };
+    }
   }
-  for (const mid of markerIds) {
-    const marker = await queryOne('SELECT map_id FROM map_markers WHERE id = ?', [mid]);
-    if (!marker) return { error: 'Repère introuvable' };
-    if (marker.map_id !== mapId)
-      return { error: 'Un repère ne fait pas partie de la carte du projet' };
+  if (markerIds.length) {
+    const rows = await queryAll(
+      `SELECT id, map_id FROM map_markers WHERE id IN (${markerIds.map(() => '?').join(',')})`,
+      markerIds,
+    );
+    const byId = new Map(rows.map((r) => [String(r.id), r]));
+    for (const mid of markerIds) {
+      const marker = byId.get(String(mid));
+      if (!marker) return { error: 'Repère introuvable' };
+      if (marker.map_id !== mapId)
+        return { error: 'Un repère ne fait pas partie de la carte du projet' };
+    }
   }
   return {};
 }

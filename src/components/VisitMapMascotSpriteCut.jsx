@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { usePrefersReducedMotion } from '../shared/hooks/usePrefersReducedMotion.js';
 import { VISIT_MASCOT_STATE } from '../utils/visitMascotState.js';
 
 function resolveSpriteCutStateSpec(spriteCutConfig = null, mascotState = VISIT_MASCOT_STATE.IDLE) {
@@ -23,23 +24,6 @@ function computeDwellMsForSrcs(stateSpec, srcsLength) {
     return custom.map((n) => Math.max(33, Math.round(Number(n) || uniform)));
   }
   return Array(srcsLength).fill(uniform);
-}
-
-function usePrefersReducedMotion() {
-  const [reduced, setReduced] = useState(
-    () =>
-      typeof window !== 'undefined' &&
-      window.matchMedia('(prefers-reduced-motion: reduce)').matches,
-  );
-  useEffect(() => {
-    if (typeof window === 'undefined') return undefined;
-    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const onChange = () => setReduced(mq.matches);
-    onChange();
-    mq.addEventListener('change', onChange);
-    return () => mq.removeEventListener('change', onChange);
-  }, []);
-  return reduced;
 }
 
 function VisitMapMascotSpriteCut({

@@ -8,6 +8,7 @@ import React, {
   useState,
 } from 'react';
 import VisitMapMascotRenderer from '../VisitMapMascotRenderer.jsx';
+import { usePrefersReducedMotion } from '../../shared/hooks/usePrefersReducedMotion.js';
 import { STATE_LABELS } from '../../constants/mascotStateLabels.js';
 import useVisitMascotStateMachine from '../../hooks/useVisitMascotStateMachine.js';
 import { validateMascotPackV1 } from '../../utils/mascotPack.js';
@@ -26,23 +27,6 @@ import {
 import { resolveVisitMascotInteraction } from '../../utils/visitMascotInteractionApply.js';
 
 const PREVIEW_HAPPY_MS = 1800;
-
-function usePrefersReducedMotion() {
-  const [reduced, setReduced] = useState(
-    () =>
-      typeof window !== 'undefined' &&
-      window.matchMedia('(prefers-reduced-motion: reduce)').matches,
-  );
-  useEffect(() => {
-    if (typeof window === 'undefined') return undefined;
-    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const onChange = () => setReduced(mq.matches);
-    onChange();
-    mq.addEventListener('change', onChange);
-    return () => mq.removeEventListener('change', onChange);
-  }, []);
-  return reduced;
-}
 
 function previewMotionClass(state) {
   if (state === VISIT_MASCOT_STATE.WALKING || state === VISIT_MASCOT_STATE.RUNNING) {

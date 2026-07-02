@@ -199,17 +199,30 @@ router.get(
     const zones = mapId
       ? await queryAll(`${ZONES_LIST_SQL} WHERE z.map_id = ?`, [mapId])
       : await queryAll(ZONES_LIST_SQL);
-    const history = await queryAll('SELECT * FROM zone_history ORDER BY harvested_at DESC');
-    const speciesMap = await loadZoneSpeciesMap(
-      db,
-      zones.map((z) => z.id),
-    );
+    // Historique restreint aux zones retournées + regroupement en Map :
+    // l'ancien SELECT chargeait toute la table puis filtrait en O(zones × historique).
+    const zoneIds = zones.map((z) => z.id);
+    const history = zoneIds.length
+      ? await queryAll(
+          `SELECT * FROM zone_history
+            WHERE zone_id IN (${zoneIds.map(() => '?').join(',')})
+            ORDER BY harvested_at DESC`,
+          zoneIds,
+        )
+      : [];
+    const historyByZoneId = new Map();
+    for (const h of history) {
+      const key = String(h.zone_id);
+      if (!historyByZoneId.has(key)) historyByZoneId.set(key, []);
+      historyByZoneId.get(key).push(h);
+    }
+    const speciesMap = await loadZoneSpeciesMap(db, zoneIds);
     const result = zones.map((z) =>
       attachSpeciesToEntity(
         {
           ...z,
           special: !!z.special,
-          history: history.filter((h) => h.zone_id === z.id),
+          history: historyByZoneId.get(String(z.id)) || [],
         },
         speciesMap.get(String(z.id)) || [],
         { legacySingleName: z.current_plant },
