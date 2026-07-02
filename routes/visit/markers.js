@@ -9,7 +9,7 @@ const { queryOne, execute } = require('../../database');
 const { requirePermission } = require('../../middleware/requireTeacher');
 const asyncHandler = require('../../lib/asyncHandler');
 const { deleteVisitTargetCascade } = require('../../lib/visitTargetCleanup');
-const { resolveDefaultMapId } = require('../../lib/settings');
+const { nowIso, resolveVisitMapId, mapExists } = require('../../lib/visitRouteShared');
 const {
   parseVisitEditorialBlocksInput,
   parseVisitEditorialBlocksStored,
@@ -19,23 +19,6 @@ const { normalizeMarkerEmoji } = require('../../lib/markerEmoji');
 const { normalizeCoord } = require('../../lib/visitContentHelpers');
 
 const router = express.Router();
-
-// Helpers partagés courts recopiés depuis visit.js (purs ou I/O triviale mono-requête) —
-// laissés AUSSI dans visit.js car ses routes hors-markers les utilisent encore.
-function nowIso() {
-  return new Date().toISOString();
-}
-
-async function resolveVisitMapId(rawMapId) {
-  const requested = String(rawMapId || '').trim();
-  if (requested) return requested;
-  return resolveDefaultMapId('visit');
-}
-
-async function mapExists(mapId) {
-  const row = await queryOne('SELECT id FROM maps WHERE id = ? LIMIT 1', [mapId]);
-  return !!row;
-}
 
 router.post(
   '/markers',

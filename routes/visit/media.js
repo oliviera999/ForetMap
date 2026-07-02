@@ -10,6 +10,7 @@ const asyncHandler = require('../../lib/asyncHandler');
 const { logRouteError } = require('../../lib/routeLog');
 const { emitGardenChanged } = require('../../lib/realtime');
 const { saveBase64ToDisk, getAbsolutePath, deleteFile } = require('../../lib/uploads');
+const { nowIso } = require('../../lib/visitRouteShared');
 const {
   sanitizeTargetType,
   sanitizeTargetId,
@@ -17,11 +18,6 @@ const {
 } = require('../../lib/visitContentHelpers');
 
 const router = express.Router();
-
-// Helper court recopié depuis visit.js (pur) — laissé AUSSI dans visit.js car ses autres routes l'utilisent.
-function nowIso() {
-  return new Date().toISOString();
-}
 
 router.put(
   '/media/reorder',

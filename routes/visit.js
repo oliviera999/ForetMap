@@ -6,7 +6,7 @@ const { requirePermission, JWT_SECRET, authenticate } = require('../middleware/r
 const { logRouteError } = require('../lib/routeLog');
 const asyncHandler = require('../lib/asyncHandler');
 const { visitContentRowIsPublicActive } = require('../lib/visitContentPublicActive');
-const { resolveDefaultMapId } = require('../lib/settings');
+const { nowIso, resolveVisitMapId, mapExists } = require('../lib/visitRouteShared');
 const {
   sanitizeTargetType,
   sanitizeTargetId,
@@ -22,16 +22,6 @@ const router = express.Router();
 
 const ANON_COOKIE_NAME = 'anon_visit_token';
 const ANON_TTL_SECONDS = 24 * 60 * 60;
-
-function nowIso() {
-  return new Date().toISOString();
-}
-
-async function resolveVisitMapId(rawMapId) {
-  const requested = String(rawMapId || '').trim();
-  if (requested) return requested;
-  return resolveDefaultMapId('visit');
-}
 
 function visitCookieSecret() {
   const fromEnv = String(process.env.VISIT_COOKIE_SECRET || '').trim();
@@ -96,11 +86,6 @@ function readOrCreateAnonToken(req, res) {
   const created = uuidv4();
   setAnonCookie(res, created);
   return created;
-}
-
-async function mapExists(mapId) {
-  const row = await queryOne('SELECT id FROM maps WHERE id = ? LIMIT 1', [mapId]);
-  return !!row;
 }
 
 async function cleanupAnonymousSeen() {
