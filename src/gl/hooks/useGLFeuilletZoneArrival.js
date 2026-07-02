@@ -2,8 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { apiGL } from '../services/apiGL.js';
 import { findZoneTriggeredOnMoveGeneric } from '../utils/glMapZoneDetect.js';
 import { MAP_VIEW_MASCOT_MOVE_MS } from '../../utils/mapViewMascotMotion.js';
-
-const PRESENT_DEDUPE_MS = 3000;
+import { useGLRecentPresentation, useGLZonePresence } from './useGLZonePresence.js';
 
 function presentationKey(teamId, zoneId) {
   return `${Number(teamId)}:${String(zoneId)}`;
@@ -29,10 +28,8 @@ export function useGLFeuilletZoneArrival({
   loreCarnetEnabled = false,
   onZonePresented,
 }) {
-  const prevPctByTeamRef = useRef(new Map());
-  const recentPresentRef = useRef({ key: '', at: 0 });
+  const { wasRecentPresentation, markRecentPresentation } = useGLRecentPresentation();
   const [popover, setPopover] = useState(null);
-  const pendingTimerRef = useRef(null);
   const presentedSet = useRef(new Set(presentedZoneIds.map(String)));
 
   useEffect(() => {
@@ -58,9 +55,8 @@ export function useGLFeuilletZoneArrival({
     async (zone, teamId) => {
       if (!gameId || !zone?.zoneId || teamId == null) return;
       const dedupeKey = presentationKey(teamId, zone.zoneId);
-      const { key, at } = recentPresentRef.current;
-      if (key === dedupeKey && Date.now() - at < PRESENT_DEDUPE_MS) return;
-      recentPresentRef.current = { key: dedupeKey, at: Date.now() };
+      if (wasRecentPresentation(dedupeKey)) return;
+      markRecentPresentation(dedupeKey);
 
       setPopover({
         zone,
@@ -123,69 +119,36 @@ export function useGLFeuilletZoneArrival({
         });
       }
     },
-    [gameId, loreCarnetEnabled, markPresentedLocal, onZonePresented],
+    [
+      gameId,
+      loreCarnetEnabled,
+      markPresentedLocal,
+      onZonePresented,
+      wasRecentPresentation,
+      markRecentPresentation,
+    ],
   );
 
-  const scheduleOnMove = useCallback(
-    (prev, next, teamId) => {
-      if (!enabled || !gameId || teamId == null || qcmOpen || !feuilletZones.length)
-        return undefined;
-      if (!presentedZonesReady) return undefined;
-      const zone = findZoneTriggeredOnMoveGeneric(
+  const resolveZoneOnMove = useCallback(
+    (prev, next) => {
+      if (!gameId || qcmOpen || !feuilletZones.length || !presentedZonesReady) return null;
+      return findZoneTriggeredOnMoveGeneric(
         prev,
         next,
         feuilletZones,
         feuilletZoneDetectOptions(isZoneEligible),
       );
-      if (!zone) return undefined;
-      const delay = Math.max(0, Number(moveDelayMs) || 0);
-      if (pendingTimerRef.current) window.clearTimeout(pendingTimerRef.current);
-      pendingTimerRef.current = window.setTimeout(() => {
-        pendingTimerRef.current = null;
-        presentFeuilletZone(zone, Number(teamId));
-      }, delay);
-      return () => {
-        if (pendingTimerRef.current) {
-          window.clearTimeout(pendingTimerRef.current);
-          pendingTimerRef.current = null;
-        }
-      };
     },
-    [
-      enabled,
-      gameId,
-      feuilletZones,
-      moveDelayMs,
-      qcmOpen,
-      isZoneEligible,
-      presentFeuilletZone,
-      presentedZonesReady,
-    ],
+    [gameId, qcmOpen, feuilletZones, presentedZonesReady, isZoneEligible],
   );
 
-  useEffect(
-    () => () => {
-      if (pendingTimerRef.current) window.clearTimeout(pendingTimerRef.current);
-    },
-    [],
-  );
-
-  const handlePositionChange = useCallback(
-    (pct) => {
-      if (!enabled || watchTeamId == null || !pct) return undefined;
-      const teamKey = Number(watchTeamId);
-      const prev = prevPctByTeamRef.current.get(teamKey);
-      if (!prevPctByTeamRef.current.has(teamKey)) {
-        prevPctByTeamRef.current.set(teamKey, { xp: pct.xp, yp: pct.yp });
-        return undefined;
-      }
-      if (prev.xp === pct.xp && prev.yp === pct.yp) return undefined;
-      const cleanup = scheduleOnMove(prev, pct, teamKey);
-      prevPctByTeamRef.current.set(teamKey, { xp: pct.xp, yp: pct.yp });
-      return cleanup;
-    },
-    [enabled, watchTeamId, scheduleOnMove],
-  );
+  const { handlePositionChange } = useGLZonePresence({
+    enabled,
+    watchTeamId,
+    resolveZoneOnMove,
+    moveDelayMs,
+    onEnter: presentFeuilletZone,
+  });
 
   return {
     popover,

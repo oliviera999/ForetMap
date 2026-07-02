@@ -8,8 +8,7 @@ import {
   registerSkipMarkerArrival,
   shouldSkipMarkerArrival,
 } from '../utils/glMarkerArrivalSkip.js';
-
-const PRESENT_DEDUPE_MS = 3000;
+import { useGLRecentPresentation } from './useGLZonePresence.js';
 
 function presentationKey(teamId, markerId) {
   return `${Number(teamId)}:${Number(markerId)}`;
@@ -17,6 +16,10 @@ function presentationKey(teamId, markerId) {
 
 /**
  * Détecte l'arrivée d'une équipe sur un repère et déclenche QCM ou effets plateau.
+ *
+ * NOTE refactor « arrival » : ce hook ne repose pas sur le noyau useGLZonePresence
+ * (détection par identifiant de repère — pas par position % — et timers multiples
+ * non annulés entre eux) ; il ne partage que la déduplication (useGLRecentPresentation).
  */
 export function useGLMarkerArrival({
   teams = [],
@@ -28,22 +31,10 @@ export function useGLMarkerArrival({
   onEffectAutoMove = null,
 }) {
   const prevMarkerByTeamRef = useRef(new Map());
-  const recentPresentRef = useRef({ key: '', at: 0 });
+  const { wasRecentPresentation, markRecentPresentation } = useGLRecentPresentation();
   const [questionPopover, setQuestionPopover] = useState(null);
   const [effectPopover, setEffectPopover] = useState(null);
   const excludeCodesRef = useRef([]);
-
-  const wasRecentPresentation = useCallback((teamId, markerId, windowMs = PRESENT_DEDUPE_MS) => {
-    const { key, at } = recentPresentRef.current;
-    return key === presentationKey(teamId, markerId) && Date.now() - at < windowMs;
-  }, []);
-
-  const markRecentPresentation = useCallback((teamId, markerId) => {
-    recentPresentRef.current = {
-      key: presentationKey(teamId, markerId),
-      at: Date.now(),
-    };
-  }, []);
 
   const presentQuestionAtMarker = useCallback(
     async (marker, options = {}) => {
@@ -54,10 +45,10 @@ export function useGLMarkerArrival({
           : watchTeamId != null
             ? Number(watchTeamId)
             : null;
-      if (!options.force && wasRecentPresentation(teamId, marker.id)) return;
+      if (!options.force && wasRecentPresentation(presentationKey(teamId, marker.id))) return;
 
       const excludeCodes = options.excludeCodes || excludeCodesRef.current || [];
-      markRecentPresentation(teamId, marker.id);
+      markRecentPresentation(presentationKey(teamId, marker.id));
       setEffectPopover(null);
       setQuestionPopover({
         marker,
@@ -115,9 +106,9 @@ export function useGLMarkerArrival({
           : watchTeamId != null
             ? Number(watchTeamId)
             : null;
-      if (!options.force && wasRecentPresentation(teamId, marker.id)) return;
+      if (!options.force && wasRecentPresentation(presentationKey(teamId, marker.id))) return;
 
-      markRecentPresentation(teamId, marker.id);
+      markRecentPresentation(presentationKey(teamId, marker.id));
       setQuestionPopover(null);
       setEffectPopover({
         marker,
