@@ -33,37 +33,16 @@ function parseBearerToken(req) {
 async function hydrateAuthFromTokenClaims(claims) {
   if (!claims || !claims.userType || claims.userId == null) return null;
   const elevated = !!claims.elevated;
-  if (claims.impersonating && claims.actorUserType && claims.actorUserId != null) {
+  const impersonating = !!(
+    claims.impersonating &&
+    claims.actorUserType &&
+    claims.actorUserId != null
+  );
+  if (impersonating) {
+    // L'acteur (compte réel) doit détenir admin.impersonate ; ses permissions non élevées font foi.
     const actorAuthz = await buildAuthzPayload(claims.actorUserType, claims.actorUserId, false);
     const actorPerms = Array.isArray(actorAuthz?.permissions) ? actorAuthz.permissions : [];
     if (!actorAuthz || !actorPerms.includes('admin.impersonate')) return null;
-    const authz = await buildAuthzPayload(claims.userType, claims.userId, elevated);
-    if (!authz) return null;
-    const groupIds = await getUserAccessibleGroupIds({
-      userId: claims.userId,
-      roleSlug: authz.roleSlug,
-      permissions: authz.permissions,
-    });
-    return {
-      userType: claims.userType,
-      userId: claims.userId,
-      product: claims.product || 'foret',
-      canonicalUserId: claims.canonicalUserId || null,
-      roleId: authz.roleId,
-      roleSlug: authz.roleSlug,
-      roleDisplayName: authz.roleDisplayName,
-      permissions: authz.permissions,
-      elevatedPermissions: authz.elevatedPermissions,
-      elevated,
-      nativePrivileged: !!authz.nativePrivileged,
-      groupIds,
-      impersonating: true,
-      impersonatedBy: {
-        userType: claims.actorUserType,
-        userId: claims.actorUserId,
-        canonicalUserId: claims.actorCanonicalUserId || null,
-      },
-    };
   }
   const authz = await buildAuthzPayload(claims.userType, claims.userId, elevated);
   if (!authz) return null;
@@ -85,7 +64,56 @@ async function hydrateAuthFromTokenClaims(claims) {
     elevated,
     nativePrivileged: !!authz.nativePrivileged,
     groupIds,
+    ...(impersonating
+      ? {
+          impersonating: true,
+          impersonatedBy: {
+            userType: claims.actorUserType,
+            userId: claims.actorUserId,
+            canonicalUserId: claims.actorCanonicalUserId || null,
+          },
+        }
+      : {}),
   };
+}
+
+/**
+ * Pipeline commun des middlewares stricts (requireAuth / requirePermission / requireProduct) :
+ * JWT configuré → bootstrap RBAC → token Bearer requis (401) → vérification JWT
+ * (contrainte produit si `product` fourni) → hydratation (403 « Aucun profil attribué »).
+ * Répond soi-même en cas d'échec (mêmes statuts/messages qu'avant factorisation) et
+ * retourne `null` ; sinon renseigne `req.auth` et le retourne.
+ */
+async function resolveAuthOrRespond(req, res, { product } = {}) {
+  if (!requireJwtConfigured(res)) return null;
+  await ensureRbacBootstrap();
+  const token = parseBearerToken(req);
+  if (!token) {
+    res.status(401).json({ error: 'Token requis' });
+    return null;
+  }
+  try {
+    let claims;
+    if (product != null) {
+      const verified = verifyJwtForProduct(token, JWT_SECRET, product);
+      if (verified.error) {
+        res.status(verified.status).json({ error: verified.error });
+        return null;
+      }
+      claims = verified.claims;
+    } else {
+      claims = verifyJwtToken(token, JWT_SECRET);
+    }
+    req.auth = await hydrateAuthFromTokenClaims(claims);
+  } catch (_) {
+    res.status(401).json({ error: 'Token invalide ou expiré' });
+    return null;
+  }
+  if (!req.auth) {
+    res.status(403).json({ error: 'Aucun profil attribué' });
+    return null;
+  }
+  return req.auth;
 }
 
 async function authenticate(req, res, next) {
@@ -106,18 +134,9 @@ async function authenticate(req, res, next) {
 }
 
 async function requireAuth(req, res, next) {
-  if (!requireJwtConfigured(res)) return;
-  await ensureRbacBootstrap();
-  const token = parseBearerToken(req);
-  if (!token) return res.status(401).json({ error: 'Token requis' });
-  try {
-    const claims = verifyJwtToken(token, JWT_SECRET);
-    req.auth = await hydrateAuthFromTokenClaims(claims);
-    if (!req.auth) return res.status(403).json({ error: 'Aucun profil attribué' });
-    next();
-  } catch (e) {
-    return res.status(401).json({ error: 'Token invalide ou expiré' });
-  }
+  const auth = await resolveAuthOrRespond(req, res);
+  if (!auth) return;
+  next();
 }
 
 function hasPermission(auth, permissionKey, needsElevation) {
@@ -133,18 +152,9 @@ function hasPermission(auth, permissionKey, needsElevation) {
 function requirePermission(permissionKey, options = {}) {
   const needsElevation = !!options.needsElevation;
   return async (req, res, next) => {
-    if (!requireJwtConfigured(res)) return;
-    await ensureRbacBootstrap();
-    const token = parseBearerToken(req);
-    if (!token) return res.status(401).json({ error: 'Token requis' });
-    try {
-      const claims = verifyJwtToken(token, JWT_SECRET);
-      req.auth = await hydrateAuthFromTokenClaims(claims);
-      if (!req.auth) return res.status(403).json({ error: 'Aucun profil attribué' });
-    } catch (e) {
-      return res.status(401).json({ error: 'Token invalide ou expiré' });
-    }
-    if (!hasPermission(req.auth, permissionKey, needsElevation)) {
+    const auth = await resolveAuthOrRespond(req, res);
+    if (!auth) return;
+    if (!hasPermission(auth, permissionKey, needsElevation)) {
       return res
         .status(403)
         .json({ error: needsElevation ? 'Élévation PIN requise' : 'Permission insuffisante' });
@@ -158,21 +168,9 @@ function requireProduct(expectedProduct) {
     .trim()
     .toLowerCase();
   return async (req, res, next) => {
-    if (!requireJwtConfigured(res)) return;
-    await ensureRbacBootstrap();
-    const token = parseBearerToken(req);
-    if (!token) return res.status(401).json({ error: 'Token requis' });
-    try {
-      const verified = verifyJwtForProduct(token, JWT_SECRET, expected);
-      if (verified.error) {
-        return res.status(verified.status).json({ error: verified.error });
-      }
-      req.auth = await hydrateAuthFromTokenClaims(verified.claims);
-      if (!req.auth) return res.status(403).json({ error: 'Aucun profil attribué' });
-      return next();
-    } catch (_) {
-      return res.status(401).json({ error: 'Token invalide ou expiré' });
-    }
+    const auth = await resolveAuthOrRespond(req, res, { product: expected });
+    if (!auth) return;
+    return next();
   };
 }
 
