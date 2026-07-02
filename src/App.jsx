@@ -8,7 +8,6 @@ import {
   saveLegacyStudentSnapshot,
   saveStoredSession,
   clearStoredSession,
-  withAppBase,
   isElevatedJwt,
 } from './services/api';
 import { useForetmapRealtime } from './hooks/useForetmapRealtime';
@@ -17,7 +16,7 @@ import { useNotificationCenter } from './hooks/useNotificationCenter';
 import { usePwaInstall } from './hooks/usePwaInstall';
 import { usePlantCatalogPreview } from './hooks/usePlantCatalogPreview';
 import { useViewportLayout } from './hooks/useViewportLayout';
-import { resolveTooltipKey, resolveRealtimeTooltip } from './utils/helpResolve';
+import { resolveTooltipKey } from './utils/helpResolve';
 import {
   FETCH_ALL_AUTO_DEBOUNCE_MS,
   getFetchAllLoopAbortReason,
@@ -38,8 +37,6 @@ const StudentStatsLazy = lazy(() =>
 const StudentProfileEditorLazy = lazy(() =>
   import('./components/stats-views').then((m) => ({ default: m.StudentProfileEditor })),
 );
-import { StudentAvatar } from './components/student-avatar';
-import { NotificationCenter } from './components/notifications-center';
 import { TabSuspense } from './components/TabSuspense.jsx';
 
 const VisitViewLazy = lazy(() =>
@@ -95,7 +92,6 @@ const FoodWebViewLazy = lazy(() =>
   import('./components/pedago-views').then((m) => ({ default: m.FoodWebView })),
 );
 const VisitMascotPackManagerLazy = lazy(() => import('./components/VisitMascotPackManager.jsx'));
-import { Tooltip } from './components/Tooltip';
 import { getRoleTerms, isN3OnlyAffiliation } from './utils/n3-terminology';
 import { allowedMapIdsFromAffiliation, mapsForAffiliationScope } from './utils/mapAffiliation';
 import { getContentText } from './utils/content';
@@ -108,6 +104,7 @@ import { useOverlayHistoryBack } from './hooks/useOverlayHistoryBack';
 import { abandonAllOverlays, pushOverlayClose } from './utils/overlayHistory';
 import { keepPrevIfEqual } from './utils/stableCollection';
 import { AutoProfilePromotionModal } from './components/AutoProfilePromotionModal.jsx';
+import { AppHeader } from './components/app/AppHeader.jsx';
 import { TeacherTopTabs } from './components/app/TeacherTopTabs.jsx';
 import { StudentBottomNav } from './components/app/StudentBottomNav.jsx';
 import { RolePreviewBanners } from './components/app/RolePreviewBanners.jsx';
@@ -922,6 +919,84 @@ function App() {
     pauseDataRefreshForTaskOverlaysRef.current = !!open;
   }, []);
 
+  // ── Callbacks du header (AppHeader) ─────────────────────────────────────────
+  const handleOpenStatsDialog = useCallback(() => setShowStats(true), []);
+  const handleOpenTeacherStatsTab = useCallback(() => setTab('stats'), []);
+  const handleOpenProfileDialog = useCallback(() => setShowProfile(true), []);
+  const handleRequestPin = useCallback(() => setShowPin(true), []);
+
+  /** Bascule de vue rôle (natif / élève / prof) : réinitialise onglet et dialogues. */
+  const handleRoleViewModeSelect = useCallback((mode) => {
+    setRoleViewMode(mode);
+    setTab('map');
+    setShowStats(false);
+    setShowProfile(false);
+  }, []);
+
+  /** Désélévation (retour au jeton élève/prof de base après une session PIN élevée). */
+  const handleDisableElevation = useCallback(() => {
+    safeLocalStorageRemoveItem('foretmap_teacher_token');
+    let storedStudent = null;
+    try {
+      const raw = safeLocalStorageGetItem('foretmap_student', null);
+      if (raw) storedStudent = JSON.parse(raw);
+    } catch (_) {
+      storedStudent = null;
+    }
+    const fromElevation =
+      storedStudent && typeof storedStudent.elevationStudentToken === 'string'
+        ? storedStudent.elevationStudentToken.trim()
+        : '';
+    const fromAuth =
+      storedStudent && typeof storedStudent.authToken === 'string'
+        ? storedStudent.authToken.trim()
+        : '';
+    const baseStudentToken = fromElevation || fromAuth || null;
+    if (baseStudentToken) {
+      const cleanedStudent = {
+        ...storedStudent,
+        authToken: baseStudentToken,
+      };
+      delete cleanedStudent.elevationStudentToken;
+      safeLocalStorageSetItem('foretmap_auth_token', baseStudentToken);
+      saveStoredSession({
+        token: baseStudentToken,
+        user: {
+          id: cleanedStudent.auth?.canonicalUserId || cleanedStudent.id || null,
+          userType: 'student',
+          displayName:
+            cleanedStudent.pseudo ||
+            `${cleanedStudent.first_name || ''} ${cleanedStudent.last_name || ''}`.trim() ||
+            'Utilisateur',
+          email: cleanedStudent.email || null,
+          avatar_path: cleanedStudent.avatar_path ?? cleanedStudent.avatarPath ?? null,
+        },
+        student: cleanedStudent,
+      });
+      saveLegacyStudentSnapshot(cleanedStudent);
+      updateStudentSession(cleanedStudent);
+    } else {
+      const authToken = safeLocalStorageGetItem('foretmap_auth_token', null);
+      if (authToken) saveStoredSession({ token: authToken });
+    }
+    const claims = getAuthClaims();
+    setAuthClaims(claims);
+    setIsTeacher(
+      Array.isArray(claims?.permissions) && claims.permissions.includes('teacher.access'),
+    );
+    setToast('Droits étendus coupés — mode léger');
+  }, [updateStudentSession]);
+
+  /** Déconnexion complète (session locale + états React). */
+  const handleLogout = useCallback(() => {
+    clearStoredSession();
+    studentRef.current = null;
+    setStudent(null);
+    setSessionUser(null);
+    setIsTeacher(false);
+    setAuthClaims(null);
+  }, [studentRef]);
+
   useOverlayHistoryBack(showStats && canOpenUserDialogs, () => setShowStats(false));
   useOverlayHistoryBack(showProfile && canOpenUserDialogs && !!profileTargetUser, () =>
     setShowProfile(false),
@@ -1503,263 +1578,46 @@ function App() {
                 </DialogShell>
               )}
 
-              <header className="app-header">
-                <div className="logo">
-                  <img
-                    className="app-header-logo"
-                    src={withAppBase('/app-logo-n3.png')}
-                    alt=""
-                    width={28}
-                    height={28}
-                    decoding="async"
-                  />
-                  <span className="logo-title">ForêtMap</span>
-                </div>
-                <div className="header-right">
-                  {!isStandaloneMode && deferredInstallPrompt && (
-                    <button
-                      type="button"
-                      className="lock-btn install-btn"
-                      aria-label="Installer l'application"
-                      title="Installer l'application"
-                      onClick={handleInstallClick}
-                    >
-                      ⬇️ <span className="lock-label">Installer</span>
-                    </button>
-                  )}
-                  {isTeacher && (
-                    <span
-                      className="app-version-badge"
-                      title={`Version installée: ${appVersion != null ? appVersion : 'chargement...'}`}
-                      aria-label={`Version ${appVersion != null ? appVersion : 'en chargement'}`}
-                    >
-                      <span className="app-version-badge__version">
-                        v{appVersion != null ? appVersion : '…'}
-                      </span>
-                      <span className="app-version-badge__status">à jour</span>
-                    </span>
-                  )}
-                  {effectiveIsTeacher && (
-                    <span
-                      className="realtime-prof-wrap"
-                      title={resolveRealtimeTooltip(teacherSyncStatus, publicSettings)}
-                      aria-label={
-                        resolveRealtimeTooltip(teacherSyncStatus, publicSettings) ||
-                        'État du temps réel'
-                      }
-                      role="status"
-                    >
-                      <span
-                        className={`realtime-dot realtime-dot--${teacherSyncStatus}`}
-                        aria-hidden
-                      />
-                    </span>
-                  )}
-                  <NotificationCenter
-                    roleKey={notificationRoleKey}
-                    unreadCount={notificationsUnreadCount}
-                    items={notifications}
-                    prefs={notificationPrefs}
-                    metrics={notificationMetrics}
-                    onTogglePref={updatePreference}
-                    onOpenAction={openNotificationAction}
-                    onMarkAsRead={markAsRead}
-                    onMarkAllRead={markAllRead}
-                    onRemove={removeNotification}
-                    onClearRead={clearRead}
-                    onOpenPanel={trackOpenedPanel}
-                    onResetMetrics={resetMetrics}
-                    helpText={helpText('header.notifications')}
-                  />
-                  <Tooltip text={helpText('header.userBadge')}>
-                    <button
-                      type="button"
-                      className="user-badge"
-                      onClick={() => {
-                        if (canOpenUserDialogs) {
-                          setShowStats(true);
-                          return;
-                        }
-                        if (canOpenTeacherStatsFromBadge) {
-                          setTab('stats');
-                        }
-                      }}
-                      style={{
-                        cursor:
-                          canOpenUserDialogs || canOpenTeacherStatsFromBadge
-                            ? 'pointer'
-                            : 'default',
-                      }}
-                      aria-label={
-                        canOpenUserDialogs
-                          ? 'Voir mes statistiques'
-                          : canOpenTeacherStatsFromBadge
-                            ? `Ouvrir les statistiques ${roleTerms.studentPlural}`
-                            : 'Badge utilisateur'
-                      }
-                    >
-                      <StudentAvatar student={currentUser} size={20} style={{ border: 'none' }} />
-                      <span className="user-badge-text">{currentUserLabel}</span>
-                    </button>
-                  </Tooltip>
-                  {canOpenUserDialogs && (
-                    <Tooltip text={helpText('header.profileEdit')}>
-                      <button
-                        className="lock-btn"
-                        aria-label="Modifier mon profil"
-                        onClick={() => setShowProfile(true)}
-                      >
-                        ✏️
-                      </button>
-                    </Tooltip>
-                  )}
-                  {isTeacher && (
-                    <>
-                      {roleViewMode !== 'native' && (
-                        <Tooltip text={helpText('header.roleReset')}>
-                          <button
-                            className="lock-btn"
-                            aria-label="Revenir au rôle normal"
-                            onClick={() => {
-                              setRoleViewMode('native');
-                              setTab('map');
-                              setShowStats(false);
-                              setShowProfile(false);
-                            }}
-                          >
-                            ↩️
-                          </button>
-                        </Tooltip>
-                      )}
-                      {roleViewMode !== 'student' && canSwitchToStudentView && (
-                        <Tooltip text={helpText('header.roleStudent')}>
-                          <button
-                            className="lock-btn"
-                            aria-label={`Passer en vue ${roleTerms.studentSingular}`}
-                            onClick={() => {
-                              setRoleViewMode('student');
-                              setTab('map');
-                              setShowStats(false);
-                              setShowProfile(false);
-                            }}
-                          >
-                            🎓
-                          </button>
-                        </Tooltip>
-                      )}
-                      {roleViewMode !== 'teacher' && canSwitchToTeacherView && (
-                        <Tooltip text={helpText('header.roleTeacher')}>
-                          <button
-                            className="lock-btn"
-                            aria-label={`Passer en vue ${roleTerms.teacherShort}`}
-                            onClick={() => {
-                              setRoleViewMode('teacher');
-                              setTab('map');
-                              setShowStats(false);
-                              setShowProfile(false);
-                            }}
-                          >
-                            🧑‍🏫
-                          </button>
-                        </Tooltip>
-                      )}
-                    </>
-                  )}
-                  <Tooltip text={helpText('header.elevatedMode')}>
-                    <button
-                      className={`lock-btn ${authClaims?.elevated ? 'active' : ''}`}
-                      aria-label={
-                        authClaims?.elevated
-                          ? 'Désactiver les droits étendus'
-                          : 'Activer les droits étendus'
-                      }
-                      onClick={() => {
-                        if (authClaims?.elevated) {
-                          safeLocalStorageRemoveItem('foretmap_teacher_token');
-                          let storedStudent = null;
-                          try {
-                            const raw = safeLocalStorageGetItem('foretmap_student', null);
-                            if (raw) storedStudent = JSON.parse(raw);
-                          } catch (_) {
-                            storedStudent = null;
-                          }
-                          const fromElevation =
-                            storedStudent && typeof storedStudent.elevationStudentToken === 'string'
-                              ? storedStudent.elevationStudentToken.trim()
-                              : '';
-                          const fromAuth =
-                            storedStudent && typeof storedStudent.authToken === 'string'
-                              ? storedStudent.authToken.trim()
-                              : '';
-                          const baseStudentToken = fromElevation || fromAuth || null;
-                          if (baseStudentToken) {
-                            const cleanedStudent = {
-                              ...storedStudent,
-                              authToken: baseStudentToken,
-                            };
-                            delete cleanedStudent.elevationStudentToken;
-                            safeLocalStorageSetItem('foretmap_auth_token', baseStudentToken);
-                            saveStoredSession({
-                              token: baseStudentToken,
-                              user: {
-                                id:
-                                  cleanedStudent.auth?.canonicalUserId || cleanedStudent.id || null,
-                                userType: 'student',
-                                displayName:
-                                  cleanedStudent.pseudo ||
-                                  `${cleanedStudent.first_name || ''} ${cleanedStudent.last_name || ''}`.trim() ||
-                                  'Utilisateur',
-                                email: cleanedStudent.email || null,
-                                avatar_path:
-                                  cleanedStudent.avatar_path ?? cleanedStudent.avatarPath ?? null,
-                              },
-                              student: cleanedStudent,
-                            });
-                            saveLegacyStudentSnapshot(cleanedStudent);
-                            updateStudentSession(cleanedStudent);
-                          } else {
-                            const authToken = safeLocalStorageGetItem('foretmap_auth_token', null);
-                            if (authToken) saveStoredSession({ token: authToken });
-                          }
-                          const claims = getAuthClaims();
-                          setAuthClaims(claims);
-                          setIsTeacher(
-                            Array.isArray(claims?.permissions) &&
-                              claims.permissions.includes('teacher.access'),
-                          );
-                          setToast('Droits étendus coupés — mode léger');
-                        } else {
-                          setShowPin(true);
-                        }
-                      }}
-                    >
-                      {authClaims?.elevated ? (
-                        <>
-                          🔓 <span className="lock-label">Élevé</span>
-                        </>
-                      ) : (
-                        '🔒'
-                      )}
-                    </button>
-                  </Tooltip>
-                  <Tooltip text={helpText('header.logout')}>
-                    <button
-                      className="lock-btn"
-                      aria-label="Déconnexion"
-                      onClick={() => {
-                        clearStoredSession();
-                        studentRef.current = null;
-                        setStudent(null);
-                        setSessionUser(null);
-                        setIsTeacher(false);
-                        setAuthClaims(null);
-                      }}
-                    >
-                      ↩️
-                    </button>
-                  </Tooltip>
-                </div>
-              </header>
+              <AppHeader
+                isStandaloneMode={isStandaloneMode}
+                deferredInstallPrompt={deferredInstallPrompt}
+                onInstallClick={handleInstallClick}
+                isTeacher={isTeacher}
+                effectiveIsTeacher={effectiveIsTeacher}
+                appVersion={appVersion}
+                teacherSyncStatus={teacherSyncStatus}
+                publicSettings={publicSettings}
+                notificationRoleKey={notificationRoleKey}
+                notifications={notifications}
+                notificationsUnreadCount={notificationsUnreadCount}
+                notificationPrefs={notificationPrefs}
+                notificationMetrics={notificationMetrics}
+                onNotificationTogglePref={updatePreference}
+                onNotificationOpenAction={openNotificationAction}
+                onNotificationMarkAsRead={markAsRead}
+                onNotificationMarkAllRead={markAllRead}
+                onNotificationRemove={removeNotification}
+                onNotificationClearRead={clearRead}
+                onNotificationOpenPanel={trackOpenedPanel}
+                onNotificationResetMetrics={resetMetrics}
+                currentUser={currentUser}
+                currentUserLabel={currentUserLabel}
+                canOpenUserDialogs={canOpenUserDialogs}
+                canOpenTeacherStatsFromBadge={canOpenTeacherStatsFromBadge}
+                roleTerms={roleTerms}
+                onOpenStats={handleOpenStatsDialog}
+                onOpenTeacherStatsTab={handleOpenTeacherStatsTab}
+                onOpenProfile={handleOpenProfileDialog}
+                roleViewMode={roleViewMode}
+                canSwitchToStudentView={canSwitchToStudentView}
+                canSwitchToTeacherView={canSwitchToTeacherView}
+                onRoleViewModeSelect={handleRoleViewModeSelect}
+                elevated={!!authClaims?.elevated}
+                onDisableElevation={handleDisableElevation}
+                onRequestPin={handleRequestPin}
+                onLogout={handleLogout}
+                helpText={helpText}
+              />
 
               <RolePreviewBanners
                 authClaims={authClaims}
