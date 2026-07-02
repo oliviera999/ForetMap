@@ -2,13 +2,16 @@ import React from 'react';
 import { LocationTutorialPreviewList } from './mapModalShared.jsx';
 
 /**
- * Onglet « Tutoriels » de ZoneInfoModal — variantes enseignant / consultation.
- * Feuille pilotée par props ; l'état (`linkTutorialId`) et les callbacks restent
- * détenus par le modal parent. Extrait de `ZoneInfoModal.jsx` (O6, 2e niveau).
+ * Onglet « Tutoriels » des modales de lieu (ZoneInfoModal / MarkerModal) — variantes
+ * enseignant / consultation. Feuille pilotée par props ; l'état (`linkTutorialId`)
+ * et les callbacks restent détenus par le modal parent. Extrait de `ZoneInfoModal.jsx`
+ * (O6, 2e niveau), paramétré par `locationKind` (libellés zone / repère) pour résorber
+ * les copies inline de MarkerModal (audit §5.3).
  */
 
 /** Vue enseignant : liste des tutoriels liés (directs + via tâches) + formulaire de liaison. */
 export function ZoneTutorialsTeacherPanel({
+  locationKind = 'zone',
   linkedTutorialsDirect,
   tutorialsOnlyViaTasks,
   assignableTutorials,
@@ -21,7 +24,11 @@ export function ZoneTutorialsTeacherPanel({
     <div className="fade-in">
       <div style={{ marginTop: 12 }}>
         {linkedTutorialsDirect.length === 0 && tutorialsOnlyViaTasks.length === 0 ? (
-          <p style={{ color: '#999', fontSize: '.85rem' }}>Aucun tutoriel lié à cette zone.</p>
+          <p style={{ color: '#999', fontSize: '.85rem' }}>
+            {locationKind === 'marker'
+              ? 'Aucun tutoriel lié à ce repère.'
+              : 'Aucun tutoriel lié à cette zone.'}
+          </p>
         ) : (
           <>
             {linkedTutorialsDirect.length === 0
@@ -71,7 +78,11 @@ export function ZoneTutorialsTeacherPanel({
         )}
       </div>
       <div className="field" style={{ marginTop: 14 }}>
-        <label>Lier un tutoriel à cette zone</label>
+        <label>
+          {locationKind === 'marker'
+            ? 'Lier un tutoriel à ce repère'
+            : 'Lier un tutoriel à cette zone'}
+        </label>
         <select value={linkTutorialId} onChange={(e) => onChangeLinkTutorialId(e.target.value)}>
           <option value="">— Choisir un tutoriel —</option>
           {assignableTutorials.map((tu) => (
