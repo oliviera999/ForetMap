@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ProfilesRoleList } from './ProfilesRoleList.jsx';
 import { ProfilesPermissionRows } from './ProfilesPermissionRows.jsx';
 import { ProfilesUserAssignmentList } from './ProfilesUserAssignmentList.jsx';
 import { ProfilesRoleQuickConfig } from './ProfilesRoleQuickConfig.jsx';
 import { ProfilesRoleProgressionConfig } from './ProfilesRoleProgressionConfig.jsx';
+import { useRoleEditFields } from './useRoleEditFields.js';
 
 const cardStyle = {
   background: 'white',
@@ -15,8 +16,12 @@ const cardStyle = {
 /**
  * Section RBAC de l'admin des profils — extraite de `ProfilesAdminView` (O6). Grille profils +
  * permissions (liste des profils, config rapide emoji/PIN, progression n3beur, lignes de
- * permissions) puis carte « Attribution des profils ». Présentation pure : la garde
- * `canManageProfiles` et tout l'état/les appels API restent au parent.
+ * permissions) puis carte « Attribution des profils ». La section possède les champs d'édition
+ * du profil sélectionné (`useRoleEditFields`) et le PIN saisi (§6.1) ; les enregistrements
+ * remontent au parent avec la valeur en argument : `onEditRoleDetails(role, fields)`,
+ * `onSaveEmoji(emoji)`, `onSavePin(pin)` (renvoie `true` si le PIN a été enregistré),
+ * `onSaveMinDoneThreshold(value)`, `onSaveMaxConcurrent(value)`. La garde `canManageProfiles`
+ * et les appels API restent au parent.
  */
 export function ProfilesRbacAdminSection({
   roles,
@@ -31,32 +36,40 @@ export function ProfilesRbacAdminSection({
   isN3beurTier,
   progressionByTasksEnabled,
   tasksProposeEntry,
-  roleEmoji,
-  pin,
-  roleMinDoneTasks,
-  roleMaxConcurrentTasks,
   editUserLoadState,
   onCreateRole,
   onSelectRole,
   onReorderRole,
   onEditRoleDetails,
   onDuplicateRole,
-  onRoleEmojiChange,
   onSaveEmoji,
-  onPinChange,
   onSavePin,
   onToggleProgression,
-  onMinDoneTasksChange,
   onSaveMinDoneThreshold,
   onTogglePermission,
   onTogglePermissionElevation,
   onSetForumParticipate,
   onSetContextCommentParticipate,
-  onMaxConcurrentChange,
   onSaveMaxConcurrent,
   onAssignRole,
   onOpenEditUser,
 }) {
+  const {
+    roleEmoji,
+    setRoleEmoji,
+    roleMinDoneTasks,
+    setRoleMinDoneTasks,
+    roleDisplayOrder,
+    roleMaxConcurrentTasks,
+    setRoleMaxConcurrentTasks,
+  } = useRoleEditFields(selectedRole);
+  const [pin, setPin] = useState('');
+
+  const savePin = async () => {
+    const ok = await onSavePin(pin);
+    if (ok) setPin('');
+  };
+
   return (
     <>
       <div className="profiles-admin-grid">
@@ -69,18 +82,20 @@ export function ProfilesRbacAdminSection({
             onCreate={onCreateRole}
             onSelect={onSelectRole}
             onReorder={onReorderRole}
-            onEditDetails={onEditRoleDetails}
+            onEditDetails={(role) =>
+              onEditRoleDetails(role, { roleEmoji, roleMinDoneTasks, roleDisplayOrder })
+            }
             onDuplicate={onDuplicateRole}
           />
           {selectedRole && (
             <ProfilesRoleQuickConfig
               role={selectedRole}
               roleEmoji={roleEmoji}
-              onRoleEmojiChange={onRoleEmojiChange}
-              onSaveEmoji={onSaveEmoji}
+              onRoleEmojiChange={setRoleEmoji}
+              onSaveEmoji={() => onSaveEmoji(roleEmoji)}
               pin={pin}
-              onPinChange={onPinChange}
-              onSavePin={onSavePin}
+              onPinChange={setPin}
+              onSavePin={savePin}
               loading={loading}
               roleTerms={roleTerms}
             />
@@ -101,16 +116,16 @@ export function ProfilesRbacAdminSection({
                 progressionEnabled={progressionByTasksEnabled}
                 onToggleProgression={onToggleProgression}
                 minDoneTasks={roleMinDoneTasks}
-                onMinDoneTasksChange={onMinDoneTasksChange}
-                onSaveMinDoneThreshold={onSaveMinDoneThreshold}
+                onMinDoneTasksChange={setRoleMinDoneTasks}
+                onSaveMinDoneThreshold={() => onSaveMinDoneThreshold(roleMinDoneTasks)}
                 proposeEntry={tasksProposeEntry}
                 onTogglePermission={onTogglePermission}
                 onTogglePermissionElevation={onTogglePermissionElevation}
                 onSetForumParticipate={onSetForumParticipate}
                 onSetContextCommentParticipate={onSetContextCommentParticipate}
                 maxConcurrentTasks={roleMaxConcurrentTasks}
-                onMaxConcurrentChange={onMaxConcurrentChange}
-                onSaveMaxConcurrent={onSaveMaxConcurrent}
+                onMaxConcurrentChange={setRoleMaxConcurrentTasks}
+                onSaveMaxConcurrent={() => onSaveMaxConcurrent(roleMaxConcurrentTasks)}
               />
               <ProfilesPermissionRows
                 catalog={catalog}

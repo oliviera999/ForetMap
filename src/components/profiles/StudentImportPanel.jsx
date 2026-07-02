@@ -1,23 +1,66 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { api } from '../../services/api';
+import { downloadApiFile } from '../../utils/downloadApiFile.js';
 
 /**
  * Panneau « Import {studentPlural} (CSV / XLSX) » (administration des profils).
- * Extrait de profiles-views.jsx (O6) — présentationnel pur : tout l’état et les
- * handlers sont fournis par ProfilesAdminView via les props. Comportement inchangé.
+ * Autonome (§6.1) : possède l'état d'import (fichier, simulation, rapport) et les
+ * appels API (modèles à télécharger, `POST /api/students/import`). Le parent ne
+ * fournit que le contexte (`roleTerms`, `canImport`) et les retours (`setErr`/`setMsg`
+ * vers les bandeaux, `onImported()` → rechargement). Comportement inchangé.
  */
-function StudentImportPanel({
-  roleTerms,
-  canImport,
-  importFile,
-  importLoading,
-  importReport,
-  dryRunImport,
-  setImportFile,
-  setImportReport,
-  setDryRunImport,
-  downloadStudentsTemplate,
-  importStudents,
-}) {
+function StudentImportPanel({ roleTerms, canImport, setErr, setMsg, onImported }) {
+  const [importFile, setImportFile] = useState(null);
+  const [importLoading, setImportLoading] = useState(false);
+  const [importReport, setImportReport] = useState(null);
+  const [dryRunImport, setDryRunImport] = useState(false);
+
+  const downloadStudentsTemplate = async (format) => {
+    try {
+      await downloadApiFile(
+        `/api/students/import/template?format=${encodeURIComponent(format)}`,
+        format === 'xlsx' ? 'foretmap-modele-n3beurs.xlsx' : 'foretmap-modele-n3beurs.csv',
+      );
+    } catch (e) {
+      setErr(e.message || 'Erreur lors du téléchargement du modèle');
+    }
+  };
+
+  const importStudents = async () => {
+    if (!importFile) {
+      setErr('Choisissez un fichier CSV ou XLSX');
+      return;
+    }
+    setImportLoading(true);
+    setImportReport(null);
+    setErr('');
+    try {
+      const base64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ''));
+        reader.onerror = () => reject(new Error('Lecture du fichier impossible'));
+        reader.readAsDataURL(importFile);
+      });
+      const result = await api('/api/students/import', 'POST', {
+        fileName: importFile.name,
+        fileDataBase64: base64,
+        dryRun: dryRunImport,
+      });
+      setImportReport(result.report || null);
+      if ((result.report?.totals?.created || 0) > 0) {
+        setMsg(`${result.report.totals.created} ${roleTerms.studentSingular}(s) créé(s)`);
+      } else if (dryRunImport) {
+        setMsg('Simulation terminée');
+      } else {
+        setMsg('Import terminé');
+      }
+      await onImported();
+    } catch (e) {
+      setErr('Erreur import: ' + (e.message || 'inconnue'));
+    }
+    setImportLoading(false);
+  };
+
   return (
     <div
       style={{

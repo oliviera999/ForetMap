@@ -12,7 +12,6 @@ import {
   pickUserField,
   mergeRbacUserRowsForEdit,
   isLikelyApiUserPayload,
-  buildUserEditInitialFields,
   validateUserIdentityFields,
   buildUserEditPatchPayload,
 } from '../utils/profilesUserFields.js';
@@ -29,7 +28,6 @@ import {
   isN3beurTierConfigurableProfile as isN3beurTierConfigurableRole,
   sortRolesForDisplay,
   deriveProfilesCapabilities,
-  normalizeRoleEditFields,
   buildRoleReorderPatches,
   parseMaxConcurrentTasksLimit,
   parseMinDoneTasksThreshold,
@@ -56,51 +54,21 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
   const [users, setUsers] = useState([]);
   const [students, setStudents] = useState([]);
   const [selectedRoleId, setSelectedRoleId] = useState(null);
-  const [pin, setPin] = useState('');
   const [msg, setMsg] = useState('');
   const [err, setErr] = useState('');
   const [loading, setLoading] = useState(false);
   const [searchStudent, setSearchStudent] = useState('');
   const [confirmStudent, setConfirmStudent] = useState(null);
-  const [importFile, setImportFile] = useState(null);
-  const [importLoading, setImportLoading] = useState(false);
-  const [importReport, setImportReport] = useState(null);
-  const [dryRunImport, setDryRunImport] = useState(false);
   const [authPerms, setAuthPerms] = useState([]);
   const [authElevated, setAuthElevated] = useState(false);
   const [authNativePrivileged, setAuthNativePrivileged] = useState(false);
   const [authRoleSlug, setAuthRoleSlug] = useState('');
-  const [createRole, setCreateRole] = useState('eleve_novice');
-  const [createFirstName, setCreateFirstName] = useState('');
-  const [createLastName, setCreateLastName] = useState('');
-  const [createPassword, setCreatePassword] = useState('');
-  const [createPseudo, setCreatePseudo] = useState('');
-  const [createEmail, setCreateEmail] = useState('');
-  const [createDescription, setCreateDescription] = useState('');
-  const [createAffiliation, setCreateAffiliation] = useState('both');
-  const [createLoading, setCreateLoading] = useState(false);
-  const [roleEmoji, setRoleEmoji] = useState('');
-  const [roleMinDoneTasks, setRoleMinDoneTasks] = useState('');
-  const [roleDisplayOrder, setRoleDisplayOrder] = useState('');
-  const [roleMaxConcurrentTasks, setRoleMaxConcurrentTasks] = useState('');
   const [progressionByTasksEnabled, setProgressionByTasksEnabled] = useState(true);
   const [editingUser, setEditingUser] = useState(null);
-  const [editFirstName, setEditFirstName] = useState('');
-  const [editLastName, setEditLastName] = useState('');
-  const [editPseudo, setEditPseudo] = useState('');
-  const [editEmail, setEditEmail] = useState('');
-  const [editDescription, setEditDescription] = useState('');
-  const [editAffiliation, setEditAffiliation] = useState('both');
-  const [editPassword, setEditPassword] = useState('');
   const [editLoading, setEditLoading] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editUserLoadState, setEditUserLoadState] = useState('idle');
   const [impersonateLoading, setImpersonateLoading] = useState(false);
-  const affiliationOptionsForEdit = useMemo(() => {
-    const base = affiliationOptions;
-    if (!editAffiliation || base.some((o) => o.value === editAffiliation)) return base;
-    return [...base, { value: editAffiliation, label: `${editAffiliation} (valeur en base)` }];
-  }, [affiliationOptions, editAffiliation]);
 
   const load = async () => {
     setErr('');
@@ -216,16 +184,9 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
     );
   }, [students, searchStudent]);
 
-  useEffect(() => {
-    const fields = normalizeRoleEditFields(selectedRole);
-    setRoleEmoji(fields.emoji);
-    setRoleMinDoneTasks(fields.minDoneTasks);
-    setRoleDisplayOrder(fields.displayOrder);
-    setRoleMaxConcurrentTasks(fields.maxConcurrentTasks);
-  }, [selectedRole]);
-
-  const saveRoleDetails = async (role) => {
-    const result = promptRoleDetailsPatch(role, { roleEmoji, roleMinDoneTasks, roleDisplayOrder });
+  /** `fields` : { roleEmoji, roleMinDoneTasks, roleDisplayOrder } saisis dans la section RBAC. */
+  const saveRoleDetails = async (role, fields) => {
+    const result = promptRoleDetailsPatch(role, fields);
     if (!result) return;
     if (result.error) {
       setErr(result.error);
@@ -260,7 +221,7 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
     setLoading(false);
   };
 
-  const saveMaxConcurrentTasks = async () => {
+  const saveMaxConcurrentTasks = async (roleMaxConcurrentTasks) => {
     if (!selectedRole) return;
     const parsed = parseMaxConcurrentTasksLimit(roleMaxConcurrentTasks);
     if (parsed.error) {
@@ -281,7 +242,7 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
     setLoading(false);
   };
 
-  const saveStudentMinDoneThreshold = async () => {
+  const saveStudentMinDoneThreshold = async (roleMinDoneTasks) => {
     /* Même règle que la garde historique admin/prof/visiteur + rang : seuls les paliers n3beur ont un seuil. */
     if (!selectedRole || !isN3beurTierConfigurableProfile) return;
     const parsed = parseMinDoneTasksThreshold(roleMinDoneTasks);
@@ -301,7 +262,7 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
     setLoading(false);
   };
 
-  const saveProfileEmoji = async () => {
+  const saveProfileEmoji = async (roleEmoji) => {
     if (!selectedRole) return;
     const trimmed = String(roleEmoji || '').trim();
     const slug = String(selectedRole.slug || '');
@@ -394,19 +355,25 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
     setLoading(false);
   };
 
-  const savePin = async () => {
-    if (!selectedRole) return;
-    if (!/^\d{4,12}$/.test(pin.trim())) return setErr('PIN invalide (4 à 12 chiffres)');
+  /** Renvoie `true` si le PIN a été enregistré (la section RBAC vide alors son champ). */
+  const savePin = async (pin) => {
+    if (!selectedRole) return false;
+    if (!/^\d{4,12}$/.test(pin.trim())) {
+      setErr('PIN invalide (4 à 12 chiffres)');
+      return false;
+    }
     setLoading(true);
     setErr('');
+    let saved = false;
     try {
       await api(`/api/rbac/profiles/${selectedRole.id}/pin`, 'PUT', { pin: pin.trim() });
-      setPin('');
+      saved = true;
       setMsg('PIN du profil mis à jour');
     } catch (e) {
       setErr(e.message || 'Erreur mise à jour PIN');
     }
     setLoading(false);
+    return saved;
   };
 
   const assignRole = async (userType, userId, roleId) => {
@@ -425,7 +392,6 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
   const openEditUser = async (u) => {
     setErr('');
     setEditingUser(null);
-    setEditPassword('');
     setEditModalOpen(true);
     setEditUserLoadState('loading');
     const ut = String(u.user_type ?? pickUserField(u, 'user_type', 'userType') ?? '').toLowerCase();
@@ -457,14 +423,8 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
         setErr('Type de compte inconnu — impossible d’ouvrir l’édition.');
         return;
       }
-      const s = buildUserEditInitialFields(merged);
+      /* Les champs du formulaire sont initialisés par la modale (montée avec `user`). */
       setEditingUser(merged);
-      setEditFirstName(s.firstName);
-      setEditLastName(s.lastName);
-      setEditPseudo(s.pseudo);
-      setEditEmail(s.email);
-      setEditDescription(s.description);
-      setEditAffiliation(s.affiliation);
       setEditUserLoadState('ready');
     } catch (e) {
       setEditModalOpen(false);
@@ -477,7 +437,6 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
     setEditModalOpen(false);
     setEditingUser(null);
     setEditUserLoadState('idle');
-    setEditPassword('');
     setEditLoading(false);
   };
 
@@ -509,14 +468,16 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
     }
   };
 
-  const saveEditUser = async () => {
+  /** `fields` : champs saisis dans la modale — { firstName, lastName, pseudo, email, description, affiliation, password }. */
+  const saveEditUser = async (fields) => {
     if (!editingUser) return;
+    const { firstName, lastName, pseudo, email, description, affiliation, password } = fields;
     const fieldError = validateUserIdentityFields({
-      firstName: editFirstName,
-      lastName: editLastName,
-      pseudo: editPseudo,
-      email: editEmail,
-      description: editDescription,
+      firstName,
+      lastName,
+      pseudo,
+      email,
+      description,
     });
     if (fieldError) {
       setErr(fieldError);
@@ -526,13 +487,13 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
     setErr('');
     try {
       const payload = buildUserEditPatchPayload({
-        firstName: editFirstName,
-        lastName: editLastName,
-        pseudo: editPseudo,
-        email: editEmail,
-        description: editDescription,
-        affiliation: editAffiliation,
-        password: editPassword,
+        firstName,
+        lastName,
+        pseudo,
+        email,
+        description,
+        affiliation,
+        password,
         isStudent: editingUser.user_type === 'student',
       });
       await api(
@@ -540,7 +501,7 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
         'PATCH',
         payload,
       );
-      setMsg(`Compte mis à jour : ${editFirstName.trim()} ${editLastName.trim()}`);
+      setMsg(`Compte mis à jour : ${firstName.trim()} ${lastName.trim()}`);
       closeEditUser();
       try {
         await load();
@@ -615,101 +576,6 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
     setLoading(false);
   };
 
-  const createUser = async () => {
-    const fieldError = validateUserIdentityFields({
-      firstName: createFirstName,
-      lastName: createLastName,
-      pseudo: createPseudo,
-      email: createEmail,
-      description: createDescription,
-      password: createPassword,
-      requirePassword: true,
-    });
-    if (fieldError) {
-      setErr(fieldError);
-      return;
-    }
-    if (createRole === 'admin' && !isAdmin) {
-      setErr('Seul un admin peut créer un admin');
-      return;
-    }
-    setCreateLoading(true);
-    setErr('');
-    try {
-      const result = await api('/api/rbac/users', 'POST', {
-        role_slug: createRole,
-        first_name: createFirstName.trim(),
-        last_name: createLastName.trim(),
-        password: createPassword,
-        pseudo: createPseudo.trim() || null,
-        email: createEmail.trim() || null,
-        description: createDescription.trim() || null,
-        affiliation: createAffiliation,
-      });
-      setMsg(
-        `Utilisateur créé : ${result.first_name} ${result.last_name} (${result.role_display_name || result.role_slug})`,
-      );
-      setCreateFirstName('');
-      setCreateLastName('');
-      setCreatePassword('');
-      setCreatePseudo('');
-      setCreateEmail('');
-      setCreateDescription('');
-      setCreateAffiliation('both');
-      if (!isAdmin && createRole === 'admin') setCreateRole('prof');
-      await load();
-    } catch (e) {
-      setErr(e.message || 'Erreur création utilisateur');
-    }
-    setCreateLoading(false);
-  };
-
-  const downloadStudentsTemplate = async (format) => {
-    try {
-      await downloadApiFile(
-        `/api/students/import/template?format=${encodeURIComponent(format)}`,
-        format === 'xlsx' ? 'foretmap-modele-n3beurs.xlsx' : 'foretmap-modele-n3beurs.csv',
-      );
-    } catch (e) {
-      setErr(e.message || 'Erreur lors du téléchargement du modèle');
-    }
-  };
-
-  const importStudents = async () => {
-    if (!importFile) {
-      setErr('Choisissez un fichier CSV ou XLSX');
-      return;
-    }
-    setImportLoading(true);
-    setImportReport(null);
-    setErr('');
-    try {
-      const base64 = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(String(reader.result || ''));
-        reader.onerror = () => reject(new Error('Lecture du fichier impossible'));
-        reader.readAsDataURL(importFile);
-      });
-      const result = await api('/api/students/import', 'POST', {
-        fileName: importFile.name,
-        fileDataBase64: base64,
-        dryRun: dryRunImport,
-      });
-      setImportReport(result.report || null);
-      if ((result.report?.totals?.created || 0) > 0) {
-        setMsg(`${result.report.totals.created} ${roleTerms.studentSingular}(s) créé(s)`);
-      } else if (dryRunImport) {
-        setMsg('Simulation terminée');
-      } else {
-        setMsg('Import terminé');
-      }
-      await load();
-    } catch (e) {
-      setErr('Erreur import: ' + (e.message || 'inconnue'));
-    }
-    setImportLoading(false);
-  };
-
   const exportStats = async () => {
     try {
       await downloadApiFile(
@@ -768,33 +634,23 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
         editUserLoadState={editUserLoadState}
       />
 
-      <UserEditModal
-        editModalOpen={editModalOpen}
-        editUserLoadState={editUserLoadState}
-        editingUser={editingUser}
-        err={err}
-        editFirstName={editFirstName}
-        editLastName={editLastName}
-        editPseudo={editPseudo}
-        editEmail={editEmail}
-        editDescription={editDescription}
-        editAffiliation={editAffiliation}
-        editPassword={editPassword}
-        editLoading={editLoading}
-        impersonateLoading={impersonateLoading}
-        affiliationOptionsForEdit={affiliationOptionsForEdit}
-        authPerms={authPerms}
-        setEditFirstName={setEditFirstName}
-        setEditLastName={setEditLastName}
-        setEditPseudo={setEditPseudo}
-        setEditEmail={setEditEmail}
-        setEditDescription={setEditDescription}
-        setEditAffiliation={setEditAffiliation}
-        setEditPassword={setEditPassword}
-        closeEditUser={closeEditUser}
-        saveEditUser={saveEditUser}
-        startImpersonation={startImpersonation}
-      />
+      {/* Montée/démontée à chaque ouverture (clé par utilisateur) : les champs de la modale
+          s'initialisent paresseusement depuis `user` au montage. */}
+      {editModalOpen && (
+        <UserEditModal
+          key={editingUser ? `${editingUser.user_type}:${editingUser.id}` : 'loading'}
+          user={editingUser}
+          loadState={editUserLoadState}
+          err={err}
+          affiliationOptions={affiliationOptions}
+          authPerms={authPerms}
+          saving={editLoading}
+          impersonateLoading={impersonateLoading}
+          onClose={closeEditUser}
+          onSave={saveEditUser}
+          onImpersonate={startImpersonation}
+        />
+      )}
 
       <DeleteUserConfirmModal
         confirmStudent={confirmStudent}
@@ -817,28 +673,20 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
           isN3beurTier={isN3beurTierConfigurableProfile}
           progressionByTasksEnabled={progressionByTasksEnabled}
           tasksProposeEntry={tasksProposeEntry}
-          roleEmoji={roleEmoji}
-          pin={pin}
-          roleMinDoneTasks={roleMinDoneTasks}
-          roleMaxConcurrentTasks={roleMaxConcurrentTasks}
           editUserLoadState={editUserLoadState}
           onCreateRole={createRoleProfile}
           onSelectRole={setSelectedRoleId}
           onReorderRole={reorderRole}
           onEditRoleDetails={saveRoleDetails}
           onDuplicateRole={duplicateRoleProfile}
-          onRoleEmojiChange={setRoleEmoji}
           onSaveEmoji={saveProfileEmoji}
-          onPinChange={setPin}
           onSavePin={savePin}
           onToggleProgression={toggleProgressionByValidatedTasks}
-          onMinDoneTasksChange={setRoleMinDoneTasks}
           onSaveMinDoneThreshold={saveStudentMinDoneThreshold}
           onTogglePermission={togglePermission}
           onTogglePermissionElevation={togglePermissionElevation}
           onSetForumParticipate={setRoleForumParticipate}
           onSetContextCommentParticipate={setRoleContextCommentParticipate}
-          onMaxConcurrentChange={setRoleMaxConcurrentTasks}
           onSaveMaxConcurrent={saveMaxConcurrentTasks}
           onAssignRole={assignRole}
           onOpenEditUser={openEditUser}
@@ -856,38 +704,17 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
             affiliationOptions={affiliationOptions}
             isAdmin={isAdmin}
             canCreateUsers={canCreateUsers}
-            createRole={createRole}
-            createFirstName={createFirstName}
-            createLastName={createLastName}
-            createPassword={createPassword}
-            createPseudo={createPseudo}
-            createEmail={createEmail}
-            createDescription={createDescription}
-            createAffiliation={createAffiliation}
-            createLoading={createLoading}
-            setCreateRole={setCreateRole}
-            setCreateFirstName={setCreateFirstName}
-            setCreateLastName={setCreateLastName}
-            setCreatePassword={setCreatePassword}
-            setCreatePseudo={setCreatePseudo}
-            setCreateEmail={setCreateEmail}
-            setCreateDescription={setCreateDescription}
-            setCreateAffiliation={setCreateAffiliation}
-            createUser={createUser}
+            setErr={setErr}
+            setMsg={setMsg}
+            onCreated={load}
           />
 
           <StudentImportPanel
             roleTerms={roleTerms}
             canImport={canImport}
-            importFile={importFile}
-            importLoading={importLoading}
-            importReport={importReport}
-            dryRunImport={dryRunImport}
-            setImportFile={setImportFile}
-            setImportReport={setImportReport}
-            setDryRunImport={setDryRunImport}
-            downloadStudentsTemplate={downloadStudentsTemplate}
-            importStudents={importStudents}
+            setErr={setErr}
+            setMsg={setMsg}
+            onImported={load}
           />
 
           {canReadAllStats && (
