@@ -113,7 +113,6 @@ function ZoneInfoModal({
     zone.living_beings_list || zone.living_beings,
     zone.current_plant,
   );
-  const plantObj = plants.find((p) => p.name === zoneLivingNames[0]);
   const zoneTitleDisplay = zone.special
     ? zone.name || ''
     : stripLeadingMarkerEmoji(zone.name || '', emojiParsingList) || zone.name || '';

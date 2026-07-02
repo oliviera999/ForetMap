@@ -80,25 +80,53 @@ async function validateDefaultRoleId(roleId) {
   return row ? normalized : false;
 }
 
+/**
+ * Enrichit un lot de groupes en 2 requêtes batch (rôle par défaut, classe GL) —
+ * remplace le « 2 queryOne par groupe » de la liste (N+1).
+ */
+async function enrichGroupRows(rows) {
+  const list = (rows || []).filter(Boolean);
+  if (!list.length) return [];
+  const roleIds = [...new Set(list.map((r) => r.default_role_id).filter(Boolean))];
+  const groupIds = list.map((r) => r.id);
+  const [roleRows, glClassRows] = await Promise.all([
+    roleIds.length
+      ? queryAll(
+          `SELECT id, slug, display_name FROM roles WHERE id IN (${roleIds.map(() => '?').join(',')})`,
+          roleIds,
+        )
+      : [],
+    queryAll(
+      `SELECT id, name, foretmap_group_id FROM gl_classes
+        WHERE foretmap_group_id IN (${groupIds.map(() => '?').join(',')})`,
+      groupIds,
+    ),
+  ]);
+  const roleById = new Map(roleRows.map((r) => [String(r.id), r]));
+  // Reproduit le LIMIT 1 par groupe : première classe rencontrée pour un groupe.
+  const glClassByGroupId = new Map();
+  for (const c of glClassRows) {
+    const key = String(c.foretmap_group_id);
+    if (!glClassByGroupId.has(key)) glClassByGroupId.set(key, c);
+  }
+  return list.map((row) => {
+    const role = row.default_role_id ? roleById.get(String(row.default_role_id)) || null : null;
+    const glClass = glClassByGroupId.get(String(row.id)) || null;
+    return {
+      ...row,
+      default_role_slug: role?.slug ?? row.default_role_slug ?? null,
+      default_role_display_name: role?.display_name ?? row.default_role_display_name ?? null,
+      grants_n3beur_access: Number(row.grants_n3beur_access) !== 0,
+      gl_class_id: glClass?.id ?? row.gl_class_id ?? null,
+      gl_class_name: glClass?.name ?? null,
+    };
+  });
+}
+
 async function enrichGroupRow(row) {
   if (!row) return row;
-  const role = row.default_role_id
-    ? await queryOne('SELECT id, slug, display_name FROM roles WHERE id = ? LIMIT 1', [
-        row.default_role_id,
-      ])
-    : null;
-  const glClass = await queryOne(
-    'SELECT id, name FROM gl_classes WHERE foretmap_group_id = ? LIMIT 1',
-    [row.id],
-  );
-  return {
-    ...row,
-    default_role_slug: role?.slug ?? row.default_role_slug ?? null,
-    default_role_display_name: role?.display_name ?? row.default_role_display_name ?? null,
-    grants_n3beur_access: Number(row.grants_n3beur_access) !== 0,
-    gl_class_id: glClass?.id ?? row.gl_class_id ?? null,
-    gl_class_name: glClass?.name ?? null,
-  };
+  const [enriched] = await enrichGroupRows([row]);
+  return enriched;
 }
 
 // O7 — Schéma zod du corps de POST / (création de groupe). Reproduit exactement la validation
@@ -235,18 +263,14 @@ router.get(
       fetchGroupScopes(ids),
     ]);
 
-    const list = await Promise.all(
-      visibleRows.map(async (row) => {
-        const enriched = await enrichGroupRow(row);
-        return {
-          ...enriched,
-          parent_group_id: enriched.parent_group_id || null,
-          is_active: Number(enriched.is_active) !== 0,
-          members: membersByGroup.get(row.id) || [],
-          scopes: scopesByGroup.get(row.id) || [],
-        };
-      }),
-    );
+    const enrichedRows = await enrichGroupRows(visibleRows);
+    const list = enrichedRows.map((enriched, i) => ({
+      ...enriched,
+      parent_group_id: enriched.parent_group_id || null,
+      is_active: Number(enriched.is_active) !== 0,
+      members: membersByGroup.get(visibleRows[i].id) || [],
+      scopes: scopesByGroup.get(visibleRows[i].id) || [],
+    }));
     res.json({
       can_manage: canManage,
       groups: list,

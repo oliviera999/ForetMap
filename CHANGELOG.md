@@ -7,6 +7,40 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Audit — Lot 2 (partie 1) : hygiène et code mort
+
+- **Code mort supprimé** : `src/components/mascot/MascotAssetsLibraryPanel.jsx`
+  (264 L, remplacé par le panneau Images unifié, plus importé nulle part) + son
+  test ; shim `src/gl/utils/glQcmCatalogPanel.js` (ré-exports jamais consommés —
+  test retargeté sur `src/shared/qcm/qcmCatalogPanelQuery.js`) ; variable
+  `plantObj` inutilisée (`ZoneInfoModal`).
+- **Mutualisation front** : copies locales de `usePrefersReducedMotion`
+  remplacées par le hook partagé (`VisitMapMascotSpriteCut`,
+  `MascotPackRenderPreview`) ; les 3 téléchargements authentifiés « à la main »
+  (modèles d'import n3beurs/tâches, export stats) passent par
+  `downloadApiFile` (meilleurs messages d'erreur 401/403/404) ;
+  `canRename`/`canReplace` fusionnés (`MascotPackImagesPanel`).
+
+### Audit — Lot 3 (partie 1) : élimination des N+1 SQL
+
+- **Perf (stats prof)** : `GET /api/stats/all` et `/api/stats/export` n'exécutent
+  plus « un SELECT `task_assignments` par élève » : agrégation unique
+  `GROUP BY (élève, statut)` avec matching id OU (prénom, nom) conservé **en SQL**
+  (collation `_ci` du matching legacy préservée). La synchro de rôle garde ses
+  effets de bord (promotion) — pour ~200 élèves : ~400 requêtes → ~N lectures de
+  rôle indexées + 5 requêtes.
+- **Perf (groupes)** : `GET /api/groups` — enrichissement batch (`enrichGroupRows`,
+  2 requêtes `IN`) au lieu de 2 `queryOne` par groupe.
+- **Perf (zones)** : `GET /api/zones` ne charge plus toute la table `zone_history`
+  (SELECT `IN` sur les zones retournées + regroupement en `Map`, fini le filtre
+  JS en O(zones × historique)).
+- **Perf (visite)** : `PUT /api/visit/tutorials` — 1 SELECT `IN` + 1 INSERT
+  multi-valeurs au lieu d'un exists-check + INSERT par tutoriel (ordre et skip
+  silencieux préservés).
+- **Perf (projets)** : `setProjectZones/Markers/Tutorials` en DELETE + INSERT
+  multi-valeurs (au lieu d'un INSERT par ligne) ; `validateProjectLinksForMap`
+  en 2 requêtes `IN` (messages d'erreur et ordre de validation inchangés).
+
 ### Audit — Lots 0 & 1 : correctifs P0 et quick wins performance
 
 - **Fix (P0)** : boucle infinie de re-renders dans `MarkerModal`/`ZoneInfoModal`

@@ -119,12 +119,12 @@ export default function MascotPackImagesPanel({
   const targetLabel = getStateLabel(targetState, editorPack);
   const stateOptions = buildStateOptions(editorPack);
 
-  const canRename = selectedEntries.every(
+  // Renommage et remplacement partagent la même règle (assets du pack/carte).
+  const canEditSelectedEntries = selectedEntries.every(
     (e) => e.deleteScope === 'pack' || e.deleteScope === 'map',
   );
-  const canReplace = selectedEntries.every(
-    (e) => e.deleteScope === 'pack' || e.deleteScope === 'map',
-  );
+  const canRename = canEditSelectedEntries;
+  const canReplace = canEditSelectedEntries;
   const targetFilenames = useMemo(
     () => getFilenamesInPackState(editorPack, targetState),
     [editorPack, targetState],

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 
-import { api, API, getAuthToken } from '../../services/api';
+import { api } from '../../services/api';
+import { downloadApiFile } from '../../utils/downloadApiFile.js';
 import { fileToDataUrl } from '../../utils/fileToDataUrl.js';
 
 /**
@@ -18,24 +19,12 @@ export function TaskImportPanel({ setToast, onRefresh }) {
 
   const downloadImportTemplate = async (format) => {
     try {
-      const token = getAuthToken();
-      const headers = new Headers();
-      if (token) headers.set('Authorization', 'Bearer ' + token);
-      const res = await fetch(
-        `${API}/api/tasks/import/template?format=${encodeURIComponent(format)}`,
-        { headers },
-      );
-      if (!res.ok) throw new Error('Téléchargement impossible');
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download =
+      await downloadApiFile(
+        `/api/tasks/import/template?format=${encodeURIComponent(format)}`,
         format === 'xlsx'
           ? 'foretmap-modele-taches-projets.xlsx'
-          : 'foretmap-modele-taches-projets.csv';
-      link.click();
-      URL.revokeObjectURL(url);
+          : 'foretmap-modele-taches-projets.csv',
+      );
     } catch (e) {
       setToast('Zut, le modèle ne part pas : ' + (e.message || 'inconnue'));
     }

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { API, api, getAuthToken } from '../services/api';
+import { api } from '../services/api';
+import { downloadApiFile } from '../utils/downloadApiFile.js';
 import { getRoleTerms } from '../utils/n3-terminology';
 import { useHelp } from '../hooks/useHelp';
 import { resolveHelpPanelSection } from '../utils/helpResolve';
@@ -665,22 +666,10 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
 
   const downloadStudentsTemplate = async (format) => {
     try {
-      const token = getAuthToken();
-      const headers = new Headers();
-      if (token) headers.set('Authorization', 'Bearer ' + token);
-      const res = await fetch(
-        `${API}/api/students/import/template?format=${encodeURIComponent(format)}`,
-        { headers },
+      await downloadApiFile(
+        `/api/students/import/template?format=${encodeURIComponent(format)}`,
+        format === 'xlsx' ? 'foretmap-modele-n3beurs.xlsx' : 'foretmap-modele-n3beurs.csv',
       );
-      if (!res.ok) throw new Error('Téléchargement impossible');
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download =
-        format === 'xlsx' ? 'foretmap-modele-n3beurs.xlsx' : 'foretmap-modele-n3beurs.csv';
-      link.click();
-      URL.revokeObjectURL(url);
     } catch (e) {
       setErr(e.message || 'Erreur lors du téléchargement du modèle');
     }
@@ -723,17 +712,10 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
 
   const exportStats = async () => {
     try {
-      const token = getAuthToken();
-      const headers = new Headers();
-      if (token) headers.set('Authorization', 'Bearer ' + token);
-      const response = await fetch(`${API}/api/stats/export`, { headers });
-      if (!response.ok) throw new Error('Export impossible');
-      const blob = await response.blob();
-      const link = document.createElement('a');
-      link.href = URL.createObjectURL(blob);
-      link.download = `foretmap-stats-${new Date().toISOString().slice(0, 10)}.csv`;
-      link.click();
-      URL.revokeObjectURL(link.href);
+      await downloadApiFile(
+        '/api/stats/export',
+        `foretmap-stats-${new Date().toISOString().slice(0, 10)}.csv`,
+      );
     } catch (e) {
       setErr(e.message || 'Erreur lors de l’export');
     }
