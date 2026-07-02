@@ -1,5 +1,5 @@
 const express = require('express');
-const { v4: uuidv4 } = require('uuid');
+const crypto = require('node:crypto');
 const { queryAll, queryOne, execute, withTransaction } = require('../database');
 const { requireAuth, requirePermission } = require('../middleware/requireTeacher');
 const asyncHandler = require('../lib/asyncHandler');
@@ -348,7 +348,7 @@ router.post(
     if (!label?.trim()) return res.status(400).json({ error: 'Label requis' });
     const nextLiving = normalizeLivingBeings(living_beings, plant_name);
     const nextPlantName = nextLiving.length > 0 ? '' : String(plant_name || '').trim();
-    const id = uuidv4();
+    const id = crypto.randomUUID();
     await execute(
       'INSERT INTO map_markers (id, map_id, x_pct, y_pct, label, plant_name, note, emoji, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
       [

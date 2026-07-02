@@ -4,7 +4,7 @@
 // Monté sans préfixe via router.use(...) côté visit.js : chemins inchangés.
 // N'importe AUCUN symbole de visit.js (zéro import circulaire) — uniquement lib/, database, middleware.
 const express = require('express');
-const { v4: uuidv4 } = require('uuid');
+const crypto = require('node:crypto');
 const { queryOne, execute } = require('../../database');
 const { requirePermission } = require('../../middleware/requireTeacher');
 const asyncHandler = require('../../lib/asyncHandler');
@@ -32,7 +32,7 @@ router.post(
       return res.status(400).json({ error: 'Carte introuvable' });
     if (!label) return res.status(400).json({ error: 'Nom du repère requis' });
     if (x == null || y == null) return res.status(400).json({ error: 'Position repère invalide' });
-    const id = uuidv4();
+    const id = crypto.randomUUID();
     await execute(
       `INSERT INTO visit_markers
       (id, map_id, x_pct, y_pct, label, emoji, subtitle, short_description, details_title, details_text, body_json, sort_order, is_active, created_at, updated_at)

@@ -3,7 +3,6 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const { OAuth2Client } = require('google-auth-library');
-const { v4: uuidv4 } = require('uuid');
 const { queryOne, execute } = require('../database');
 const {
   JWT_SECRET,
@@ -159,7 +158,7 @@ async function ensureTeacherSeedFromEnv() {
   const hash = await bcrypt.hash(password, 10);
   const now = new Date().toISOString();
   try {
-    const teacherId = uuidv4();
+    const teacherId = crypto.randomUUID();
     await execute(
       `INSERT INTO users
         (id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name, description, avatar_path, affiliation, password_hash, auth_provider, is_active, last_seen, created_at, updated_at)
@@ -475,7 +474,7 @@ router.post('/register', async (req, res) => {
     }
 
     const hash = await bcrypt.hash(password, 10);
-    const id = uuidv4();
+    const id = crypto.randomUUID();
     const now = new Date().toISOString();
     try {
       await execute(
@@ -843,7 +842,7 @@ router.get('/google/callback', async (req, res) => {
       [email],
     );
     if (!student) {
-      const id = uuidv4();
+      const id = crypto.randomUUID();
       const now = new Date().toISOString();
       const splitName = splitDisplayName(payload.name);
       const firstName = normalizeOptionalString(payload.given_name) || splitName.firstName;

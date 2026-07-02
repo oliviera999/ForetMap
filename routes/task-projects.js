@@ -1,5 +1,5 @@
 const express = require('express');
-const { v4: uuidv4 } = require('uuid');
+const crypto = require('node:crypto');
 const { queryAll, queryOne, execute, withTransaction } = require('../database');
 const { requirePermission } = require('../middleware/requireTeacher');
 const asyncHandler = require('../lib/asyncHandler');
@@ -318,7 +318,7 @@ router.post(
     const tuto = await validateTutorialIds(tutorialIds);
     if (tuto.error) return res.status(400).json({ error: tuto.error });
 
-    const id = uuidv4();
+    const id = crypto.randomUUID();
     const createdAt = new Date().toISOString();
     await execute(
       'INSERT INTO task_projects (id, map_id, title, description, status, created_at) VALUES (?, ?, ?, ?, ?, ?)',
@@ -512,7 +512,7 @@ async function copyProjectTasksTx(tx, sourceProjectId, targetProjectId, mapId) {
   const createdTaskIds = [];
   const duplicatedStartDate = currentLocalDateOnly();
   for (const task of sourceTasks) {
-    const newTaskId = uuidv4();
+    const newTaskId = crypto.randomUUID();
     const createdAt = new Date().toISOString();
     await tx.execute(
       `INSERT INTO tasks (
@@ -620,7 +620,7 @@ router.post(
     if (!(await ensureMapExists(nextMapId)))
       return res.status(400).json({ error: 'Carte introuvable' });
 
-    const newProjectId = uuidv4();
+    const newProjectId = crypto.randomUUID();
     const createdAt = new Date().toISOString();
 
     const createdTaskIds = await withTransaction(async (tx) => {

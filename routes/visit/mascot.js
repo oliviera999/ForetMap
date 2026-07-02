@@ -7,7 +7,7 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const { pathToFileURL } = require('url');
-const { v4: uuidv4 } = require('uuid');
+const crypto = require('node:crypto');
 const { queryAll, queryOne, execute } = require('../../database');
 const {
   requirePermission,
@@ -351,7 +351,7 @@ router.post(
       if (!(await mapExists(mapId))) return res.status(400).json({ error: 'Carte introuvable' });
       const cloneFromPackId = String(req.body.clone_from_pack_id || '').trim();
       const cloneFromCatalogId = String(req.body.clone_from_catalog_id || '').trim();
-      const packUuid = uuidv4();
+      const packUuid = crypto.randomUUID();
       const catalogId = `srv-${packUuid}`;
       const prefixesForNew = mascotPackAllowedFramesPrefixesForMap(mapId, packUuid);
       let packObj = req.body.pack;
@@ -671,7 +671,7 @@ router.post(
         packUuid = targetPackId;
         catalogId = existingRow.catalog_id;
       } else {
-        packUuid = uuidv4();
+        packUuid = crypto.randomUUID();
         catalogId = `srv-${packUuid}`;
       }
 
@@ -1123,7 +1123,7 @@ router.post(
           [now, createdBy, existing.id],
         );
       } else {
-        const rowId = uuidv4();
+        const rowId = crypto.randomUUID();
         await execute(
           `INSERT INTO visit_mascot_sprite_library (id, map_id, filename, created_at, created_by)
            VALUES (?, ?, ?, ?, ?)`,

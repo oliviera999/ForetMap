@@ -1,4 +1,7 @@
 #!/usr/bin/env node
+// Login admin canonique : variable d'env ADMIN_CANONICAL_LOGIN (défaut : 'oliviera9'),
+// surchargée par --login <valeur> / --login=<valeur> (audit §7.9 — plus de login en dur
+// dans les scripts npm db:admin:audit*).
 require('dotenv').config();
 
 const { queryAll, queryOne, execute, ping, pool } = require('../database');

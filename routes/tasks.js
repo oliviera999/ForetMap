@@ -1,5 +1,5 @@
 const express = require('express');
-const { v4: uuidv4 } = require('uuid');
+const crypto = require('node:crypto');
 const { queryAll, queryOne, execute, withTransaction } = require('../database');
 const { requirePermission } = require('../middleware/requireTeacher');
 const { deleteFile, writeBufferToDisk } = require('../lib/uploads');
@@ -646,7 +646,7 @@ router.post(
     const parsedImportance = parseTaskImportanceLevelFromClient(importance_level);
     if (parsedImportance.error) return res.status(400).json({ error: parsedImportance.error });
     const normalizedGroupId = normalizeOptionalId(group_id);
-    const id = uuidv4();
+    const id = crypto.randomUUID();
     // Écritures atomiques (audit §2.5) : INSERT tasks + jointures + colonnes legacy + espèces
     // + image dans UNE transaction — en cas d'échec (image comprise), tout est annulé
     // et le fichier image éventuellement écrit est supprimé.

@@ -1,5 +1,5 @@
 const express = require('express');
-const { v4: uuidv4 } = require('uuid');
+const crypto = require('node:crypto');
 const { queryOne, withTransaction } = require('../../database');
 const { deleteFile, writeBufferToDisk } = require('../../lib/uploads');
 const asyncHandler = require('../../lib/asyncHandler');
@@ -135,7 +135,7 @@ router.post(
         return res.status(400).json({ error: proposalDecodedImage.error });
     }
 
-    const id = uuidv4();
+    const id = crypto.randomUUID();
     const proposer = `${String(firstName).trim()} ${String(lastName).trim()}`.trim();
     const baseDescription = description ? String(description).trim() : '';
     const finalDescription = [baseDescription, proposer ? `Proposition n3beur: ${proposer}` : '']

@@ -1,6 +1,6 @@
 require('dotenv').config({ quiet: true });
 const mysql = require('mysql2/promise');
-const { v4: uuidv4 } = require('uuid');
+const crypto = require('node:crypto');
 const path = require('path');
 const fs = require('fs');
 const logger = require('./lib/logger');
@@ -614,7 +614,7 @@ async function seedData() {
   const now = new Date().toISOString();
   const tasks = [
     [
-      uuidv4(),
+      crypto.randomUUID(),
       'Arroser les tomates',
       'Arrosoir rouge, 2L par plant',
       'foret',
@@ -625,7 +625,7 @@ async function seedData() {
       now,
     ],
     [
-      uuidv4(),
+      crypto.randomUUID(),
       'Récolter les laitues',
       'Couper à la base avec les ciseaux verts',
       'foret',
@@ -636,7 +636,7 @@ async function seedData() {
       now,
     ],
     [
-      uuidv4(),
+      crypto.randomUUID(),
       'Désherber Potager Sud-Est',
       'Retirer les mauvaises herbes autour du basilic',
       'foret',
