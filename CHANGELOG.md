@@ -7,6 +7,28 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Audit — Vague 4 : chantiers structurants
+
+- **Modales carte mutualisées** : panneaux tâches/tutoriels paramétrés par
+  `locationKind` et réutilisés par `MarkerModal` (fin des versions inline),
+  `LocationModalTabBar` unique, aside visite commun, dérivations partagées
+  (`useLocationModalData`, mémoïsation P0 anti-boucle préservée), médias visite
+  (`useVisitMediaBlocks`) — ~400 lignes dupliquées éliminées.
+- **Hooks « arrival » GL (chore(gl))** : 33 tests de caractérisation écrits
+  AVANT refactor, puis noyau `useGLZonePresence` (dédup, suivi de position,
+  timers) — 4 hooks migrés en stratégies minces, `useGLMarkerArrival` laissé
+  volontairement (divergence documentée). La mécanique temps réel n'existe
+  plus qu'en un exemplaire testé.
+- **Socle QCM backend (chore(gl))** : `lib/shared/questionCrudCore.js` +
+  `xlsxImportCore.js` — les 6 fichiers gl/fm Qcm{Crud,Import} deviennent des
+  adaptateurs (3 176 → 2 649 lignes), schémas de colonnes et messages français
+  exacts préservés par produit.
+- **ProfilesAdminView** : panneaux autonomes (CreateUserPanel,
+  StudentImportPanel, UserEditModal possèdent leur état ; `useRoleEditFields`)
+  — fin du prop drilling à 21-35 props, ~920 → 751 lignes.
+- **App.jsx** : extraction d'`AppHeader` (2 270 → 2 127 lignes, étape 1 du
+  découpage ; suite prévue : `useAuthSession`, dédup des arbres prof/élève).
+
 ### Audit — Vague 3 : extraction server.js, perf visite, infra
 
 - **server.js 950 → 619 lignes** (déplacement pur) : `routes/admin-ops.js`
