@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { findZoneTriggeredOnMoveGeneric } from '../../utils/glMapZoneDetect.js';
+import { findZoneTriggeredOnMoveGeneric } from '../utils/glMapZoneDetect.js';
 import { MAP_VIEW_MASCOT_MOVE_MS } from '../../utils/mapViewMascotMotion.js';
 
 const PRESENT_DEDUPE_MS = 3000;

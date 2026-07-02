@@ -18,7 +18,7 @@ import {
   appearanceDefaultsForEventType,
 } from './GLMarkerAppearanceEditor.jsx';
 import { glImageFrameToStyle, normalizeGlImageFrame } from '../../utils/glImageFrame.js';
-import { defaultEventConfigForQuestion } from '../../utils/glMarkerEventConfig.js';
+import { defaultEventConfigForQuestion } from '../utils/glMarkerEventConfig.js';
 import { GLButton } from './ui/GLButton.jsx';
 import { GLChapterMarkerListVisual } from './GLChapterMarkerListVisual.jsx';
 import {

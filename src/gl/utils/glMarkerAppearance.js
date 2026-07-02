@@ -11,4 +11,4 @@ export {
   resolveMarkerAppearance,
   validateMarkerAppearance,
   parseAppearanceInput,
-} from '../shared/glMarkerAppearanceCore.js';
+} from '../../shared/glMarkerAppearanceCore.js';

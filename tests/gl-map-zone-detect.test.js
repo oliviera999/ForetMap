@@ -4,7 +4,7 @@ const { test } = require('node:test');
 const assert = require('node:assert');
 
 test('glMapZoneDetect: traversée détectée', async () => {
-  const { findZoneTriggeredOnMoveGeneric } = await import('../src/utils/glMapZoneDetect.js');
+  const { findZoneTriggeredOnMoveGeneric } = await import('../src/gl/utils/glMapZoneDetect.js');
   const zone = {
     zoneId: 'z1',
     points: [
@@ -21,7 +21,7 @@ test('glMapZoneDetect: traversée détectée', async () => {
 });
 
 test('glMapZoneDetect: zone déjà lue ignorée', async () => {
-  const { findZoneTriggeredOnMoveGeneric } = await import('../src/utils/glMapZoneDetect.js');
+  const { findZoneTriggeredOnMoveGeneric } = await import('../src/gl/utils/glMapZoneDetect.js');
   const zone = {
     zoneId: 'z-read',
     points: [
@@ -39,7 +39,7 @@ test('glMapZoneDetect: zone déjà lue ignorée', async () => {
 });
 
 test('glMapZoneDetect: plus petite zone en chevauchement', async () => {
-  const { findZoneTriggeredOnMoveGeneric } = await import('../src/utils/glMapZoneDetect.js');
+  const { findZoneTriggeredOnMoveGeneric } = await import('../src/gl/utils/glMapZoneDetect.js');
   const big = {
     zoneId: 'big',
     points: [

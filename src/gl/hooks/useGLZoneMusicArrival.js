@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { detectZoneMusicOnTeamMove } from '../../utils/glZoneAtPct.js';
+import { detectZoneMusicOnTeamMove } from '../utils/glZoneAtPct.js';
 
 function teamPositionPct(team) {
   return {

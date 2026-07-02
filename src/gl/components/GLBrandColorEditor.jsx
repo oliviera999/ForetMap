@@ -3,7 +3,7 @@ import {
   DEFAULT_GL_BRAND_COLORS,
   GL_BRAND_COLOR_KEYS,
   GL_BRAND_COLOR_LABELS,
-} from '../../utils/glBrandTheme.js';
+} from '../utils/glBrandTheme.js';
 import { GLButton } from './ui/GLButton.jsx';
 
 function isValidHexColor(value) {

@@ -1,5 +1,5 @@
-import { isQuestionMarker } from '../../utils/glMarkerEventConfig.js';
-import { shouldPresentMarkerOnArrival } from '../../utils/glMarkerEffects.js';
+import { isQuestionMarker } from './glMarkerEventConfig.js';
+import { shouldPresentMarkerOnArrival } from './glMarkerEffects.js';
 import { markersAlongDicePath, sortMarkersByPath, targetMarkerAfterDice } from './glBoardPath.js';
 
 /**

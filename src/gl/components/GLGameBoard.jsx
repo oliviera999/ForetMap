@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { clampMapMascotPctForViewport } from '../../utils/mapViewMascotMotion.js';
-import { isQuestionMarker } from '../../utils/glMarkerEventConfig.js';
-import { shouldPresentMarkerOnArrival } from '../../utils/glMarkerEffects.js';
+import { isQuestionMarker } from '../utils/glMarkerEventConfig.js';
+import { shouldPresentMarkerOnArrival } from '../utils/glMarkerEffects.js';
 import { GLBoardMarkers } from './GLBoardMarkers.jsx';
 import { GLBoardMascot } from './GLBoardMascot.jsx';
 import { GLQcmPopover } from './GLQcmPopover.jsx';

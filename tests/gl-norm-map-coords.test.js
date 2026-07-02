@@ -11,7 +11,7 @@ test('glNormMapCoords: conversion 0-1 vers 0-100', async () => {
     normPolygonToPctPoints,
     pctPointToNorm,
     pctPointsToNormPolygon,
-  } = await import('../src/utils/glNormMapCoords.js');
+  } = await import('../src/gl/utils/glNormMapCoords.js');
 
   assert.strictEqual(normToPct(0.5), 50);
   assert.strictEqual(pctToNorm(50), 0.5);

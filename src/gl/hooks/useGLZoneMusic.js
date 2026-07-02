@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react';
-import { zoneMusicUrls, zoneMusicVolume } from '../../utils/glZoneAtPct.js';
+import { zoneMusicUrls, zoneMusicVolume } from '../utils/glZoneAtPct.js';
 import { clampAudioVolume } from '../utils/clampAudioVolume.js';
 
 export const GL_ZONE_MUSIC_FADE_MS = 1200;

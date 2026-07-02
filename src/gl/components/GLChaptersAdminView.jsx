@@ -15,7 +15,7 @@ import { glImageFrameToStyle, normalizeGlImageFrame } from '../../utils/glImageF
 import { GLRichTextEditor } from './ui/GLRichTextEditor.jsx';
 import { GLBrandColorEditor } from './GLBrandColorEditor.jsx';
 import { normalizeBrand } from '../hooks/useGLBrandTheme.js';
-import { brandToCssVars, mergeBrandWithChapterTheme } from '../../utils/glBrandTheme.js';
+import { brandToCssVars, mergeBrandWithChapterTheme } from '../utils/glBrandTheme.js';
 import { GLButton } from './ui/GLButton.jsx';
 import { GLChaptersImportExportPanel } from './admin/GLChaptersImportExportPanel.jsx';
 import { GLChapterScenesAdminPanel } from './admin/GLChapterScenesAdminPanel.jsx';

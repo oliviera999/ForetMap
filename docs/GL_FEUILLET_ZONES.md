@@ -11,7 +11,7 @@ Calque de petits polygones sur la carte de jeu : à la **première traversée** 
 
 - **Source :** [`src/gl/data/zones_feuillets.json`](../src/gl/data/zones_feuillets.json)
 - **Coords :** normalisées **0–1**, origine haut-gauche (non modifiées à l’import).
-- **Runtime :** conversion vers le référentiel GL **0–100 %** via [`src/utils/glNormMapCoords.js`](../src/utils/glNormMapCoords.js).
+- **Runtime :** conversion vers le référentiel GL **0–100 %** via [`src/gl/utils/glNormMapCoords.js`](../src/gl/utils/glNormMapCoords.js).
 
 ## Associer un chapitre à un plateau
 

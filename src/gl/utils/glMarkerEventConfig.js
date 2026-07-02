@@ -36,4 +36,4 @@ export {
   normalizeMarkerQuestionRetrigger,
   resolveBiomeSlugsForPool,
   resolveChapitreSlugsForPool,
-} from '../shared/glMarkerEventConfigCore.js';
+} from '../../shared/glMarkerEventConfigCore.js';
