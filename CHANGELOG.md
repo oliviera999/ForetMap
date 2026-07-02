@@ -7,6 +7,36 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Audit — Vague 2 : mutualisations structurelles (lots 4-5 partiels)
+
+- **Cluster tasks** : 18 fonctions recopiées 2-3× entre `routes/tasks.js`,
+  `tasks/proposals.js` et `tasks/assignments.js` regroupées dans
+  `lib/tasks/taskQueries.js` (≈ −360 lignes) ; les réponses proposals/assign
+  exposent désormais les mêmes champs espèces que `GET /api/tasks/:id`.
+  **Transactions** : `POST /api/tasks` et `POST /proposals` atomiques
+  (rollback remplaçant le nettoyage manuel qui laissait des jointures
+  orphelines) ; `replaceTaskJoinRows`/`setTask*` acceptent un exécuteur (db/tx).
+- **Cluster visit** : `nowIso`/`resolveVisitMapId`/`mapExists` (6 copies
+  identiques) regroupés dans `lib/visitRouteShared.js` (≈ −72 lignes) ;
+  rebuild-from-map de `visit/sync.js` en 1 SELECT `IN` par type de cible.
+- **GL (chore(gl))** : paires Lore/non-Lore mutualisées —
+  `lib/shared/questionQueryFactory.js`, `questionPoolFiltering.js`,
+  `glossaryNormalization.js` ; les 6 fichiers `gl*` deviennent des adaptateurs
+  minces, exports et messages inchangés à l'octet près (≈ −180 lignes).
+- **Frontend** : boucle fetch/retry commune extraite dans
+  `src/shared/fetchJsonWithRetry.js` (composée avec `apiTransport`, getters de
+  jeton et gestion 401 injectés — stores de session ForetMap/GL inchangés) ;
+  `api()`/`apiGL()` adaptateurs ; `src/shared/downloadAuthedFile.js` pour
+  `downloadApiFile`/`downloadGlFile` (≈ −150 lignes dupliquées, dérive
+  historique `jwt_expired` préservée et documentée).
+- **Helpers backend** : `lib/helpers.js` supprimé (mort) ;
+  `getPasswordMinLength`, `rethrowSlugConflict`, `normalizeOptionalString`
+  (×10), `normalizeImportHeader` (×6), `parseId` (×9) unifiés vers leurs
+  canoniques ; `routes/learning-links.js` (FM et GL) migrés vers
+  `asyncHandler` (fin du reliquat O8 sur ces fichiers, ≈ −185 lignes).
+- **Tests** : nouveaux tests unitaires purs (`gl-qcm-shared-helpers`,
+  `tasks-queries-atomic`, `fetchJsonWithRetry`, `downloadAuthedFile`).
+
 ### Audit — Lot 2 (partie 1) : hygiène et code mort
 
 - **Code mort supprimé** : `src/components/mascot/MascotAssetsLibraryPanel.jsx`
