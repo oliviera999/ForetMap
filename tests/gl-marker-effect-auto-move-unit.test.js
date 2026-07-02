@@ -52,6 +52,10 @@ test('applyMarkerEffectAutoMoveTx ne rejoue pas le même repère d’origine', a
       if (sql.includes('FROM gl_chapter_markers')) {
         return chapterMarkers.find((marker) => Number(marker.id) === Number(params[0]));
       }
+      if (sql.includes('FROM gl_game_events') && sql.includes('WHERE id = ?')) {
+        // insertGameEvent relit l'événement par insertId après l'INSERT.
+        return moveEvents.find((evt) => Number(evt.id) === Number(params[0])) || null;
+      }
       return null;
     },
     queryAll: async (sql) => {
@@ -61,7 +65,19 @@ test('applyMarkerEffectAutoMoveTx ne rejoue pas le même repère d’origine', a
     execute: async (sql, params) => {
       if (sql.includes('UPDATE gl_teams')) updates.push(params);
       if (sql.includes('INSERT INTO gl_game_events')) {
-        moveEvents.push({ payload_json: params[4] });
+        // Colonnes de insertGameEvent : game_id, team_id, actor_type, actor_id,
+        // event_type, payload_json.
+        moveEvents.push({
+          id: moveEvents.length + 1,
+          game_id: params[0],
+          team_id: params[1],
+          actor_type: params[2],
+          actor_id: params[3],
+          event_type: params[4],
+          payload_json: params[5],
+          created_at: '2026-01-01T00:00:00.000Z',
+        });
+        return { affectedRows: 1, insertId: moveEvents.length };
       }
       return { affectedRows: 1, insertId: 1 };
     },

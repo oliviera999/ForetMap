@@ -143,12 +143,9 @@ router.post(
       return res.status(result.error.status).json({ error: result.error.message });
     }
 
-    const evt = await queryOne(
-      `SELECT id, game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at
-       FROM gl_game_events WHERE game_id = ? ORDER BY id DESC LIMIT 1`,
-      [gameId],
-    );
-    if (evt) emitGlGameEvent(gameId, normalizeEventRow(evt));
+    // Événement inséré par presentFeuilletZone : émis par insertId (plus de
+    // re-SELECT « dernier de la partie », sensible à la concurrence).
+    if (result.presentEvent) emitGlGameEvent(gameId, result.presentEvent);
 
     return res.json({
       zone: {
