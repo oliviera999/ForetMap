@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   MARKER_EMOJIS,
   ZONE_NAME_PREFIX_EMOJI_MAX_CHARS,
@@ -8,44 +8,27 @@ import {
 import { ZONE_COLORS } from '../../constants/garden';
 import { useDialogA11y } from '../../hooks/useDialogA11y';
 import { useOverlayHistoryBack } from '../../hooks/useOverlayHistoryBack';
-import { api } from '../../services/api';
 import { TimedToast } from '../../shared/components/TimedToast.jsx';
 import {
   nextLivingBeingsFromMultiSelect,
   orderedLivingBeingsForForm,
 } from '../../utils/livingBeings';
-import {
-  dedupeTutorialsById,
-  isTaskDetachedFromLocation,
-  livingBeingNamesFromTasksAtLocation,
-  taskLocationIds,
-  tutorialLocationIds,
-  tutorialsFromTasksAtLocation,
-} from '../../utils/mapLocationContext';
-import { canStudentAssignTask } from '../../utils/taskEnrollment.js';
-import { parseVisitEditorialBlocksFromJson } from '../../utils/visitEditorialBlocks.js';
-import {
-  buildZoneName,
-  buildZonePayload,
-  computeZoneVisitImageBlocks,
-  zoneTaskMapId,
-} from '../../utils/zoneModalForm.js';
+import { buildZoneName, buildZonePayload } from '../../utils/zoneModalForm.js';
 import { DialogShell } from '../DialogShell';
 import { MarkdownContent } from '../MarkdownContent.jsx';
 import { MarkdownTextarea } from '../MarkdownTextarea.jsx';
 import { ContextComments } from '../context-comments';
-import {
-  BiodiversitySpeciesOpenLinks,
-  LivingBeingsCatalogPanel,
-} from './LivingBeingsCatalogPanel.jsx';
+import { LivingBeingsCatalogPanel } from './LivingBeingsCatalogPanel.jsx';
 import { MarkerVisitImageBuilder } from './MarkerFormSections.jsx';
 import { PhotoGallery } from './PhotoGallery.jsx';
 import { ZoneInfoModalHeader } from './ZoneInfoModalHeader.jsx';
-import { ZoneInfoModalTabBar } from './ZoneInfoModalTabBar.jsx';
+import { LocationModalTabBar } from './LocationModalTabBar.jsx';
 import { ZoneOrMarkerEmojiField } from './ZoneOrMarkerEmojiField.jsx';
 import { ZoneTasksStudentPanel, ZoneTasksTeacherPanel } from './ZoneTasksPanel.jsx';
 import { ZoneTutorialsStudentPanel, ZoneTutorialsTeacherPanel } from './ZoneTutorialsPanel.jsx';
-import { LocationTutorialPreviewList, tutorialLinkedToSameMap } from './mapModalShared.jsx';
+import { LocationVisitAside } from './mapModalShared.jsx';
+import { useLocationModalData } from './useLocationModalData.js';
+import { useVisitMediaBlocks } from './useVisitMediaBlocks.js';
 
 function ZoneInfoModal({
   zone,
@@ -102,11 +85,22 @@ function ZoneInfoModal({
   const [saving, setSaving] = useState(false);
   const [duplicating, setDuplicating] = useState(false);
   const [toast, setToast] = useState(null);
-  const [visitEditorialBlocks, setVisitEditorialBlocks] = useState(() =>
-    parseVisitEditorialBlocksFromJson(zone.visit_body_json),
-  );
-  const [visitMediaOptions, setVisitMediaOptions] = useState([]);
-  const [zonePhotoOptions, setZonePhotoOptions] = useState([]);
+  const {
+    visitEditorialBlocks,
+    visitMediaOptions,
+    photoOptions: zonePhotoOptions,
+    imageBlocks,
+    addImageBlock,
+    updateImageBlock,
+    removeImageBlock,
+    attachPhotoToVisit: attachZonePhotoToVisit,
+  } = useVisitMediaBlocks({
+    targetType: 'zone',
+    targetId: zone.id,
+    mapId: zone.map_id,
+    visitBodyJson: zone.visit_body_json,
+    onToast: setToast,
+  });
 
   const displayStage = zone.special ? 'special' : zone.stage;
   const zoneLivingNames = orderedLivingBeingsForForm(
@@ -116,63 +110,25 @@ function ZoneInfoModal({
   const zoneTitleDisplay = zone.special
     ? zone.name || ''
     : stripLeadingMarkerEmoji(zone.name || '', emojiParsingList) || zone.name || '';
-  // Mémoïsés : l'effet de nettoyage de la sélection dépend de studentAssignableTasks —
-  // une nouvelle identité à chaque rendu provoquerait une boucle rendu/effet.
-  const linkedTasks = useMemo(
-    () =>
-      (tasks || []).filter(
-        (t) =>
-          taskLocationIds(t).zoneIds.some((id) => String(id) === String(zone.id)) &&
-          !isTaskDetachedFromLocation(t),
-      ),
-    [tasks, zone.id],
-  );
-  const studentAssignableTasks = useMemo(
-    () => linkedTasks.filter((t) => canStudentAssignTask(t, student)),
-    [linkedTasks, student],
-  );
-  const assignableTasks = (tasks || []).filter((t) => {
-    if (linkedTasks.some((lt) => lt.id === t.id)) return false;
-    if (isTaskDetachedFromLocation(t)) return false;
-    const mapId = zoneTaskMapId(t);
-    return mapId === zone.map_id || mapId == null;
-  });
-  const showTasksTab = isTeacher || (!!student && linkedTasks.length > 0);
-  const linkedTutorialsDirect = (tutorials || []).filter((tu) =>
-    tutorialLocationIds(tu).zoneIds.some((id) => String(id) === String(zone.id)),
-  );
-  const tutorialsFromTasksHere = tutorialsFromTasksAtLocation('zone', zone.id, tasks, tutorials);
-  const linkedTutorialsAll = dedupeTutorialsById([
-    ...linkedTutorialsDirect,
-    ...tutorialsFromTasksHere,
-  ]);
-  const tutorialsOnlyViaTasks = tutorialsFromTasksHere.filter(
-    (tu) => !linkedTutorialsDirect.some((d) => String(d.id) === String(tu.id)),
-  );
-  const linkedTutorialsVisible = isTeacher
-    ? linkedTutorialsAll
-    : linkedTutorialsAll.filter((tu) => tu.is_active !== false);
-  const showTutorialsTab = isTeacher || linkedTutorialsVisible.length > 0;
-  const livingBeingsFromTasksHere = livingBeingNamesFromTasksAtLocation('zone', zone.id, tasks);
-  const livingBeingsOnlyOnTasks = livingBeingsFromTasksHere.filter(
-    (n) => !zoneLivingNames.includes(n),
-  );
-  const visitAsideTutorials = (isTeacher ? linkedTutorialsAll : linkedTutorialsVisible).length > 0;
-  const visitAsideSpecies =
-    !zone.special && (zoneLivingNames.length > 0 || livingBeingsOnlyOnTasks.length > 0);
-  const showVisitAsideBlock = !!(
-    zone.visit_subtitle ||
-    zone.visit_short_description ||
-    zone.visit_details_text ||
-    visitAsideSpecies ||
-    visitAsideTutorials
-  );
-  const assignableTutorials = (tutorials || []).filter(
-    (tu) =>
-      tu.is_active !== false &&
-      !tutorialLocationIds(tu).zoneIds.some((id) => String(id) === String(zone.id)) &&
-      tutorialLinkedToSameMap(tu, zone.map_id),
-  );
+  // Dérivations tâches / tutoriels / biodiversité / bloc visite mutualisées avec
+  // MarkerModal — `linkedTasks` / `studentAssignableTasks` y restent mémoïsés
+  // (l'effet de nettoyage de la sélection en dépend, fix P0 anti-boucle).
+  const {
+    linkedTasks,
+    studentAssignableTasks,
+    assignableTasks,
+    linkedTutorialsDirect,
+    linkedTutorialsAll,
+    tutorialsOnlyViaTasks,
+    linkedTutorialsVisible,
+    assignableTutorials,
+    livingBeingsOnlyOnTasks,
+    visitAsideTutorials,
+    visitAsideSpecies,
+    showVisitAsideBlock,
+    showTasksTab,
+    showTutorialsTab,
+  } = useLocationModalData('zone', zone, { tasks, tutorials, student, isTeacher });
 
   useEffect(() => {
     if (!showTasksTab && tab === 'tasks') {
@@ -222,39 +178,6 @@ function ZoneInfoModal({
   ]);
 
   useEffect(() => {
-    let cancel = false;
-    (async () => {
-      try {
-        const [photos, content] = await Promise.all([
-          api(`/api/zones/${zone.id}/photos`),
-          api(`/api/visit/content?map_id=${encodeURIComponent(zone.map_id || '')}`),
-        ]);
-        if (cancel) return;
-        const zoneVisit = (content?.zones || []).find((z) => String(z.id) === String(zone.id));
-        const vm = [...(zoneVisit?.visit_media || [])].sort(
-          (a, b) =>
-            (Number(a.sort_order) || 0) - (Number(b.sort_order) || 0) ||
-            Number(a.id) - Number(b.id),
-        );
-        setVisitMediaOptions(vm);
-        setZonePhotoOptions(Array.isArray(photos) ? photos : []);
-      } catch (_) {
-        if (!cancel) {
-          setVisitMediaOptions([]);
-          setZonePhotoOptions([]);
-        }
-      }
-    })();
-    return () => {
-      cancel = true;
-    };
-  }, [zone.id, zone.map_id]);
-
-  useEffect(() => {
-    setVisitEditorialBlocks(computeZoneVisitImageBlocks(zone.visit_body_json, visitMediaOptions));
-  }, [zone.visit_body_json, zone.id, visitMediaOptions]);
-
-  useEffect(() => {
     // Garde la référence quand rien ne change : un nouveau tableau systématique
     // relancerait un rendu à chaque passage (boucle « Maximum update depth exceeded »).
     setSelectedTaskIds((prev) => {
@@ -295,55 +218,6 @@ function ZoneInfoModal({
       setToast('Erreur');
     }
     setSaving(false);
-  };
-
-  const imageBlocks = useMemo(
-    () => visitEditorialBlocks.filter((b) => b.type === 'image'),
-    [visitEditorialBlocks],
-  );
-  const addImageBlock = () => {
-    const id = `img-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-    setVisitEditorialBlocks((prev) => [
-      ...prev,
-      {
-        id,
-        type: 'image',
-        media_ids: [],
-        layout: 'single',
-        size: 'md',
-        align: 'center',
-        caption: '',
-      },
-    ]);
-  };
-  const updateImageBlock = (id, patch) => {
-    setVisitEditorialBlocks((prev) => prev.map((b) => (b.id === id ? { ...b, ...patch } : b)));
-  };
-  const removeImageBlock = (id) => {
-    setVisitEditorialBlocks((prev) => prev.filter((b) => b.id !== id));
-  };
-  const attachZonePhotoToVisit = async (photo) => {
-    if (!photo?.image_url) return;
-    try {
-      await api('/api/visit/media', 'POST', {
-        target_type: 'zone',
-        target_id: zone.id,
-        image_url: String(photo.image_url || '').trim(),
-        caption: String(photo.caption || '').trim(),
-      });
-      const content = await api(
-        `/api/visit/content?map_id=${encodeURIComponent(zone.map_id || '')}`,
-      );
-      const zoneVisit = (content?.zones || []).find((z) => String(z.id) === String(zone.id));
-      const vm = [...(zoneVisit?.visit_media || [])].sort(
-        (a, b) =>
-          (Number(a.sort_order) || 0) - (Number(b.sort_order) || 0) || Number(a.id) - Number(b.id),
-      );
-      setVisitMediaOptions(vm);
-      setToast('Photo associée à la visite ✓');
-    } catch (e) {
-      setToast(e?.message || 'Erreur association photo');
-    }
   };
 
   const TABS = [
@@ -392,7 +266,7 @@ function ZoneInfoModal({
         onClose={onClose}
       />
 
-      <ZoneInfoModalTabBar tabs={TABS} activeTab={tab} onSelect={setTab} />
+      <LocationModalTabBar tabs={TABS} activeTab={tab} onSelect={setTab} />
 
       {onNavigateToTasksForLocation && (
         <div style={{ marginBottom: 12 }}>
@@ -431,99 +305,18 @@ function ZoneInfoModal({
             </div>
           )}
           {showVisitAsideBlock && (
-            <div style={{ marginBottom: 12 }}>
-              {zone.visit_subtitle && (
-                <p className="visit-subtitle" style={{ margin: '0 0 8px' }}>
-                  {zone.visit_subtitle}
-                </p>
-              )}
-              {zone.visit_short_description && (
-                <MarkdownContent style={{ margin: '0 0 8px', fontSize: '.88rem', color: '#333' }}>
-                  {zone.visit_short_description}
-                </MarkdownContent>
-              )}
-              {zone.visit_details_text && (
-                <details className="visit-details" style={{ marginTop: 8 }}>
-                  <summary>{zone.visit_details_title || 'Détails'}</summary>
-                  <MarkdownContent style={{ margin: '8px 0 0', fontSize: '.86rem' }}>
-                    {zone.visit_details_text}
-                  </MarkdownContent>
-                </details>
-              )}
-              {visitAsideSpecies && (
-                <details className="visit-details" style={{ marginTop: 8 }}>
-                  <summary>Biodiversité</summary>
-                  <div style={{ marginTop: 8 }}>
-                    {zoneLivingNames.length > 0 && (
-                      <div style={{ marginBottom: livingBeingsOnlyOnTasks.length ? 14 : 0 }}>
-                        {zoneLivingNames.length > 1 || livingBeingsOnlyOnTasks.length > 0 ? (
-                          <h4
-                            style={{
-                              margin: '0 0 8px',
-                              fontSize: '.82rem',
-                              color: 'var(--forest)',
-                            }}
-                          >
-                            Sur cette zone
-                          </h4>
-                        ) : null}
-                        {onOpenPlantCatalogPreview ? (
-                          <BiodiversitySpeciesOpenLinks
-                            plants={plants}
-                            names={zoneLivingNames}
-                            showHeading={false}
-                            onOpenPlant={onOpenPlantCatalogPreview}
-                          />
-                        ) : (
-                          <LivingBeingsCatalogPanel
-                            plants={plants}
-                            names={zoneLivingNames}
-                            showHeading={false}
-                          />
-                        )}
-                      </div>
-                    )}
-                    {livingBeingsOnlyOnTasks.length > 0 && (
-                      <div>
-                        <h4
-                          style={{ margin: '0 0 8px', fontSize: '.82rem', color: 'var(--forest)' }}
-                        >
-                          Également dans les missions
-                        </h4>
-                        {onOpenPlantCatalogPreview ? (
-                          <BiodiversitySpeciesOpenLinks
-                            plants={plants}
-                            names={livingBeingsOnlyOnTasks}
-                            showHeading={false}
-                            sectionTitle="Également dans les missions"
-                            onOpenPlant={onOpenPlantCatalogPreview}
-                          />
-                        ) : (
-                          <LivingBeingsCatalogPanel
-                            plants={plants}
-                            names={livingBeingsOnlyOnTasks}
-                            showHeading={false}
-                          />
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </details>
-              )}
-              {visitAsideTutorials && (
-                <details className="visit-details" style={{ marginTop: 8 }}>
-                  <summary>Tuto</summary>
-                  <div style={{ marginTop: 8 }}>
-                    <LocationTutorialPreviewList
-                      tutorials={isTeacher ? linkedTutorialsAll : linkedTutorialsVisible}
-                      locationKind="zone"
-                      locationId={zone.id}
-                      onOpenTutorialPreview={onOpenTutorialPreview}
-                    />
-                  </div>
-                </details>
-              )}
-            </div>
+            <LocationVisitAside
+              entity={zone}
+              locationKind="zone"
+              plants={plants}
+              livingNames={zoneLivingNames}
+              livingBeingsOnlyOnTasks={livingBeingsOnlyOnTasks}
+              visitAsideSpecies={visitAsideSpecies}
+              visitAsideTutorials={visitAsideTutorials}
+              tutorials={isTeacher ? linkedTutorialsAll : linkedTutorialsVisible}
+              onOpenTutorialPreview={onOpenTutorialPreview}
+              onOpenPlantCatalogPreview={onOpenPlantCatalogPreview}
+            />
           )}
           {zone.history?.length > 0 && (
             <div className="history-list">
