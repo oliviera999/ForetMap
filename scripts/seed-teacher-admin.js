@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 require('dotenv').config();
 const bcrypt = require('bcryptjs');
-const { v4: uuidv4 } = require('uuid');
+const crypto = require('node:crypto');
 const { queryOne, execute } = require('../database');
 
 function normalizeEmail(value) {
@@ -44,7 +44,7 @@ async function main() {
     `INSERT INTO users
       (id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name, description, avatar_path, affiliation, password_hash, auth_provider, is_active, last_seen, created_at, updated_at)
      VALUES (?, 'teacher', NULL, ?, ?, NULL, NULL, ?, NULL, NULL, 'both', ?, 'local', 1, ?, NOW(), NOW())`,
-    [uuidv4(), email, email.split('@')[0] || null, displayName, hash, now],
+    [crypto.randomUUID(), email, email.split('@')[0] || null, displayName, hash, now],
   );
   console.log(`Compte prof créé: ${email}`);
 }

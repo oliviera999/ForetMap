@@ -1,5 +1,5 @@
 const express = require('express');
-const { v4: uuidv4 } = require('uuid');
+const crypto = require('node:crypto');
 const { queryAll, queryOne, execute, withTransaction } = require('../database');
 const { requireAuth } = require('../middleware/requireTeacher');
 const asyncHandler = require('../lib/asyncHandler');
@@ -287,7 +287,7 @@ router.post(
       ]);
       if (!parent) return res.status(400).json({ error: 'parent_group_id introuvable' });
     }
-    const id = uuidv4();
+    const id = crypto.randomUUID();
     try {
       await execute(
         `INSERT INTO \`groups\` (id, slug, name, description, kind, parent_group_id, default_role_id, grants_n3beur_access, is_active, created_by)

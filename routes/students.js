@@ -2,7 +2,7 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const bcrypt = require('bcryptjs');
-const { v4: uuidv4 } = require('uuid');
+const crypto = require('node:crypto');
 const { buildWorkbookBuffer, jsonRowsToAoa } = require('../lib/spreadsheet');
 const { queryAll, queryOne, execute } = require('../database');
 const { requireAuth, requirePermission } = require('../middleware/requireTeacher');
@@ -238,7 +238,7 @@ router.post(
       for (const rowItem of affiliationResolvedRows) {
         const { payload, rowNumber } = rowItem;
         const hash = await bcrypt.hash(payload.password, 10);
-        const id = uuidv4();
+        const id = crypto.randomUUID();
         const now = new Date().toISOString();
         const roleSlug = payload.userType === 'teacher' ? 'prof' : 'eleve_novice';
         try {
@@ -409,7 +409,7 @@ router.post(
       const affiliation = source.affiliation || 'both';
       const description = normalizeOptionalString(source.description);
 
-      const newId = uuidv4();
+      const newId = crypto.randomUUID();
       const hash = await bcrypt.hash(password, 10);
       const now = new Date().toISOString();
       let avatarPath = null;

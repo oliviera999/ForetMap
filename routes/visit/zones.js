@@ -4,7 +4,7 @@
 // Monté sans préfixe via router.use(...) côté visit.js : chemins inchangés.
 // N'importe AUCUN symbole de visit.js (zéro import circulaire) — uniquement lib/, database, middleware.
 const express = require('express');
-const { v4: uuidv4 } = require('uuid');
+const crypto = require('node:crypto');
 const { queryOne, execute } = require('../../database');
 const { requirePermission } = require('../../middleware/requireTeacher');
 const asyncHandler = require('../../lib/asyncHandler');
@@ -30,7 +30,7 @@ router.post(
       return res.status(400).json({ error: 'Carte introuvable' });
     if (!name) return res.status(400).json({ error: 'Nom de zone requis' });
     if (!points) return res.status(400).json({ error: 'Polygone invalide (min 3 points)' });
-    const id = uuidv4();
+    const id = crypto.randomUUID();
     await execute(
       `INSERT INTO visit_zones
         (id, map_id, name, points, subtitle, short_description, details_title, details_text, body_json, sort_order, is_active, created_at, updated_at)

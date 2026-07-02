@@ -1,7 +1,7 @@
 'use strict';
 
 const express = require('express');
-const { v4: uuidv4 } = require('uuid');
+const crypto = require('node:crypto');
 const { queryOne, execute } = require('../../database');
 const { requireGlAuth } = require('../../middleware/requireGlAuth');
 const { emitContextCommentsChanged } = require('../../lib/realtime');
@@ -154,7 +154,7 @@ router.post(
     if (!(await contextExists(contextType, contextId))) {
       return res.status(404).json({ error: 'Contexte introuvable' });
     }
-    const id = uuidv4();
+    const id = crypto.randomUUID();
     const actor = getActor(req.glAuth);
     if (!actor) return res.status(401).json({ error: 'Session invalide' });
     let pathsJson = null;

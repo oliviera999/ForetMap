@@ -35,7 +35,19 @@ function main() {
   }
   fs.mkdirSync(outDir, { recursive: true });
   const text = fs.readFileSync(from, 'utf8');
-  fs.writeFileSync(to, esmGlMascotPackToCjs(text), 'utf8');
+  const transformed = esmGlMascotPackToCjs(text);
+  // Garde-fou (audit §7.5) : la transformation ESM→CJS repose sur des regex ciblées ;
+  // tout `import`/`export` résiduel signifierait un miroir CJS silencieusement incomplet.
+  const residual = transformed.match(/^(import |export )/m);
+  if (residual) {
+    console.error(
+      `[sync-gl-pack-server-lib] ÉCHEC : syntaxe ESM résiduelle ("${residual[1].trim()}") après ` +
+        `transformation de ${relSrc}. Adapter esmGlMascotPackToCjs() (nouvel import/export non couvert ` +
+        'par les regex) avant de régénérer lib/gl-pack/mascotPack.js.',
+    );
+    process.exit(1);
+  }
+  fs.writeFileSync(to, transformed, 'utf8');
   console.log('[sync-gl-pack-server-lib] OK → lib/gl-pack/mascotPack.js');
 }
 

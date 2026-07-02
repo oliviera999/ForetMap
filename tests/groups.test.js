@@ -2,7 +2,7 @@ require('./helpers/setup');
 const test = require('node:test');
 const assert = require('node:assert');
 const request = require('supertest');
-const { v4: uuidv4 } = require('uuid');
+const crypto = require('node:crypto');
 const { app } = require('../server');
 const { initSchema, queryOne, queryAll, execute } = require('../database');
 const { signAuthToken } = require('../middleware/requireTeacher');
@@ -17,7 +17,7 @@ async function getAdminToken() {
 }
 
 async function createStudentForGroups(label) {
-  const id = uuidv4();
+  const id = crypto.randomUUID();
   const firstName = `Grp${label}`;
   const lastName = `Eleve${Date.now()}`;
   await execute(
@@ -192,7 +192,7 @@ test('Stats: prof avec stats.read.all et membre d’un groupe voit tous les n3be
 
   const studentInGroup = await createStudentForGroups('ProfIn');
   const studentOutGroup = await createStudentForGroups('ProfOut');
-  const groupId = uuidv4();
+  const groupId = crypto.randomUUID();
   await execute(
     `INSERT INTO \`groups\` (id, slug, name, kind, is_active, created_at, updated_at)
      VALUES (?, ?, ?, 'class', 1, NOW(), NOW())`,
@@ -225,7 +225,7 @@ test('Stats: filtre group_id limite la liste des n3beurs', async () => {
   const token = await getAdminToken();
   const studentInGroup = await createStudentForGroups('In');
   const studentOutGroup = await createStudentForGroups('Out');
-  const groupId = uuidv4();
+  const groupId = crypto.randomUUID();
   await execute(
     `INSERT INTO \`groups\` (id, slug, name, kind, is_active, created_at, updated_at)
      VALUES (?, ?, ?, 'class', 1, NOW(), NOW())`,
@@ -262,7 +262,7 @@ test('Stats: filtre group_id limite la liste des n3beurs', async () => {
 test('Forum: création de sujet dans un groupe et filtrage /threads', async () => {
   const token = await getAdminToken();
   const teacherId = await getAdminTeacherUserId();
-  const groupId = uuidv4();
+  const groupId = crypto.randomUUID();
   await execute(
     `INSERT INTO \`groups\` (id, slug, name, kind, is_active, created_at, updated_at)
      VALUES (?, ?, ?, 'class', 1, NOW(), NOW())`,
@@ -302,8 +302,8 @@ test('Tasks: affectation rapide par groupe', async () => {
   const token = await getAdminToken();
   const teacherId = await getAdminTeacherUserId();
   const student = await createStudentForGroups('Task');
-  const groupId = uuidv4();
-  const taskId = uuidv4();
+  const groupId = crypto.randomUUID();
+  const taskId = crypto.randomUUID();
   await execute(
     `INSERT INTO \`groups\` (id, slug, name, kind, is_active, created_at, updated_at)
      VALUES (?, ?, ?, 'class', 1, NOW(), NOW())`,

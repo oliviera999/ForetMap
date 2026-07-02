@@ -1,6 +1,6 @@
 const express = require('express');
 const path = require('path');
-const { v4: uuidv4 } = require('uuid');
+const crypto = require('node:crypto');
 const { queryAll, queryOne, execute, withTransaction } = require('../database');
 const { requireAuth, requirePermission } = require('../middleware/requireTeacher');
 const { saveBase64ToDisk, getAbsolutePath } = require('../lib/uploads');
@@ -524,7 +524,7 @@ router.post(
     const nextLiving = normalizeLivingBeings(living_beings, current_plant);
     const nextCurrentPlant = nextLiving.length > 0 ? '' : String(current_plant || '').trim();
     const desc = description !== undefined && description !== null ? String(description) : '';
-    const id = 'zone-' + uuidv4().slice(0, 8);
+    const id = 'zone-' + crypto.randomUUID().slice(0, 8);
     const specialFlag = normalizeSpecialFlag(special, 0);
     await execute(
       'INSERT INTO zones (id, map_id, name, x, y, width, height, current_plant, stage, special, points, color, description) VALUES (?, ?, ?, 0, 0, 0, 0, ?, ?, ?, ?, ?, ?)',

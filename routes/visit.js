@@ -1,6 +1,5 @@
 const express = require('express');
 const crypto = require('crypto');
-const { v4: uuidv4 } = require('uuid');
 const { queryAll, queryOne, execute } = require('../database');
 const { requirePermission, JWT_SECRET, authenticate } = require('../middleware/requireTeacher');
 const { logRouteError } = require('../lib/routeLog');
@@ -83,7 +82,7 @@ function readOrCreateAnonToken(req, res) {
   const cookies = parseCookies(req);
   const existing = verifyAnonCookie(cookies[ANON_COOKIE_NAME]);
   if (existing) return existing;
-  const created = uuidv4();
+  const created = crypto.randomUUID();
   setAnonCookie(res, created);
   return created;
 }

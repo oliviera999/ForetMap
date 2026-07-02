@@ -1,6 +1,6 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
-const { v4: uuidv4 } = require('uuid');
+const crypto = require('node:crypto');
 const { queryAll, queryOne, execute, withTransaction } = require('../database');
 const { requirePermission } = require('../middleware/requireTeacher');
 const { setPrimaryRole, getPrimaryRoleForUser } = require('../lib/rbac');
@@ -172,7 +172,7 @@ router.post(
       if (!role) return res.status(404).json({ error: 'Profil introuvable' });
 
       const hash = await bcrypt.hash(password, 10);
-      const id = uuidv4();
+      const id = crypto.randomUUID();
       const now = new Date().toISOString();
       try {
         await execute(
