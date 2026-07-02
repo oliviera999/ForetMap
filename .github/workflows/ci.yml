@@ -7,8 +7,43 @@ on:
     branches: [main, master]
 
 jobs:
+  # Lint / format / tests UI : aucun besoin de MySQL → job parallèle sans service,
+  # qui ne paie ni le health-check MariaDB (~40 s) ni db:init.
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run lint
+        run: npm run lint
+
+      - name: Run format check
+        run: npm run format:check
+
+      - name: Run UI tests (Vitest)
+        run: npm run test:ui
+
+  # Conserve le nom `test` : c'est le check requis côté protections de branche.
   test:
     runs-on: ubuntu-latest
+    env:
+      NODE_ENV: test
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_NAME: foretmap_test
+      DB_USER: root
+      DB_PASS: ''
+      TEACHER_PIN: '1234'
+      JWT_SECRET: 'ci-test-secret-not-for-production'
     services:
       mysql:
         image: mariadb:11.4.10
@@ -37,48 +72,12 @@ jobs:
 
       - name: Initialize test database
         run: npm run db:init
-        env:
-          NODE_ENV: test
-          DB_HOST: 127.0.0.1
-          DB_PORT: 3306
-          DB_NAME: foretmap_test
-          DB_USER: root
-          DB_PASS: ''
-          TEACHER_PIN: '1234'
-          JWT_SECRET: 'ci-test-secret-not-for-production'
 
-      - name: Run lint
-        run: npm run lint
-
-      - name: Run format check
-        run: npm run format:check
-
-      - name: Run tests
-        run: npm run test
-        env:
-          NODE_ENV: test
-          DB_HOST: 127.0.0.1
-          DB_PORT: 3306
-          DB_NAME: foretmap_test
-          DB_USER: root
-          DB_PASS: ''
-          TEACHER_PIN: '1234'
-          JWT_SECRET: 'ci-test-secret-not-for-production'
-
-      - name: Run UI tests (Vitest)
-        run: npm run test:ui
-
-      - name: Run backend coverage
+      # Une seule passe de la suite backend : `test:coverage` exécute exactement
+      # la même commande que `npm run test` + la couverture (le double run
+      # doublait la durée du job).
+      - name: Run backend tests (with coverage)
         run: npm run test:coverage
-        env:
-          NODE_ENV: test
-          DB_HOST: 127.0.0.1
-          DB_PORT: 3306
-          DB_NAME: foretmap_test
-          DB_USER: root
-          DB_PASS: ''
-          TEACHER_PIN: '1234'
-          JWT_SECRET: 'ci-test-secret-not-for-production'
 
       - name: Build frontend (Vite)
         run: npm run build
@@ -102,13 +101,6 @@ jobs:
           # `start:e2e` pose déjà ce bypass via --foretmap-e2e-no-rate-limit ;
           # explicite ici pour mirror exact du webServer local.
           E2E_DISABLE_RATE_LIMIT: '1'
-          DB_HOST: 127.0.0.1
-          DB_PORT: 3306
-          DB_NAME: foretmap_test
-          DB_USER: root
-          DB_PASS: ''
-          TEACHER_PIN: '1234'
-          JWT_SECRET: 'ci-test-secret-not-for-production'
 
       - name: Wait for app health
         run: |
@@ -128,14 +120,6 @@ jobs:
         run: npm run test:e2e
         env:
           E2E_BASE_URL: http://127.0.0.1:3000
-          NODE_ENV: test
-          DB_HOST: 127.0.0.1
-          DB_PORT: 3306
-          DB_NAME: foretmap_test
-          DB_USER: root
-          DB_PASS: ''
-          TEACHER_PIN: '1234'
-          JWT_SECRET: 'ci-test-secret-not-for-production'
 
       - name: Dump server log on failure
         if: ${{ steps.e2e.outcome == 'failure' }}

@@ -7,6 +7,47 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Audit — Lots 0 & 1 : correctifs P0 et quick wins performance
+
+- **Fix (P0)** : boucle infinie de re-renders dans `MarkerModal`/`ZoneInfoModal`
+  (« Maximum update depth exceeded », CPU saturé modale ouverte) — chaîne
+  `linkedTasks` → `studentAssignableTasks` mémoïsée + setState qui garde la
+  référence quand la sélection ne change pas.
+- **Fix (GL, concurrence)** : les 14 sites « INSERT événement → re-SELECT
+  `ORDER BY id DESC LIMIT 1` » passent par un helper `insertGameEvent()`
+  (`lib/glGameEvents.js`) basé sur `insertId` — sous charge, une requête ne peut
+  plus émettre l'événement d'une autre. Corrige aussi la ré-émission d'un vieil
+  événement par le `LIMIT 2` de la résolution d'action.
+- **Fix (migrations)** : garde-fou au démarrage contre les numéros de migration
+  dupliqués (doublons historiques 021/037 tolérés et désormais réellement
+  appliqués lors d'une migration fraîche ; tout nouveau doublon fait échouer le boot).
+- **Perf (BDD)** : migration `161_perf_indexes_audit.sql` — index
+  `task_assignments`/`task_logs` (prénom+nom), `zone_history (zone_id, harvested_at)`,
+  `observation_logs (created_at)` (snapshot mis à jour) ; suppression des
+  `LOWER(col)=LOWER(?)` non sargables sur `users` (17 requêtes login/inscription/reset,
+  collation `_ci` : sémantique inchangée, les index uniques redeviennent utilisables).
+- **Perf (HTTP)** : `dist/assets/*` (noms hashés Rollup) servis en
+  `Cache-Control: public, max-age=31536000, immutable` (`lib/staticCacheHeaders.js`) —
+  fin des revalidations à chaque visite (dont ~2×1,9 Mo de wasm Rive) ; HTML toujours `no-store`.
+- **Perf (front)** : chaîne de filtrage de `TasksView` entièrement mémoïsée
+  (`visibleProjects`, `allFiltered`, partition par statut, `collectUsedLocationIds`) —
+  les `useMemo` en aval ne sont plus invalidés à chaque frappe/toast.
+- **Perf (front, polling)** : `fetchAll` (App.jsx) conserve la référence des tableaux
+  quand le contenu re-téléchargé est identique (`src/utils/stableCollection.js`,
+  égalité profonde) — plus de re-render global du DataContext à chaque poll sans
+  changement ; handlers de la visite publique invitée stabilisés en `useCallback`
+  (`React.memo(VisitView)` redevient effectif en mode invité).
+- **Bundle** : le chunk visite n'importe plus via le barrel `map-views`
+  (`ImageLightbox` et panneaux biodiversité importés directement) ; ré-exports
+  morts de `foretmap-views.jsx` supprimés (ils tiraient `tasks-views` +
+  `map-views` dans le chunk lazy biodiversité).
+- **CI** : suite backend exécutée une seule fois (coverage) au lieu de deux ;
+  job `quality` parallèle (lint + format + Vitest, sans MariaDB ni db:init) ;
+  bloc `env` BDD hissé au niveau du job. Chunk `react-vendor` borné par regex
+  (`react|react-dom|scheduler`).
+- **Tests** : `tests/static-cache-headers.test.js`, `tests/migrations-guard.test.js`
+  (garde-fou + présence des index), fake tx du test auto-move aligné sur `insertGameEvent`.
+
 ### Audit de code — simplification, mutualisation, performance
 
 - **Documentation** : nouvel audit expert consolidé `docs/AUDIT_CODE_2026-07.md` (analyse en

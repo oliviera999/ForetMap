@@ -632,23 +632,45 @@ function TasksViewImpl({
     });
   };
 
-  const visibleProjects = sortedVisibleProjects(taskProjects, filterMap, activeMapId);
-  const activeProjects = visibleProjects.filter(
-    (p) => normalizeProjectUiStatus(p.status) !== 'validated',
+  // Chaîne mémoïsée : allFiltered/visibleProjects recalculés à chaque rendu
+  // invalidaient tous les useMemo en aval (chaque frappe de filtre, chaque toast
+  // re-filtrait 8 fois la liste complète avec parsing de dates).
+  const visibleProjects = useMemo(
+    () => sortedVisibleProjects(taskProjects, filterMap, activeMapId),
+    [taskProjects, filterMap, activeMapId],
   );
-  const validatedProjects = visibleProjects.filter(
-    (p) => normalizeProjectUiStatus(p.status) === 'validated',
+  const activeProjects = useMemo(
+    () => visibleProjects.filter((p) => normalizeProjectUiStatus(p.status) !== 'validated'),
+    [visibleProjects],
   );
-  const allFiltered = applyTaskFilters(tasks, {
-    filterMap,
-    activeMapId,
-    filterText,
-    filterZone,
-    filterStatus,
-    filterProject,
-    filterGroupId,
-    filterUrgentCategory,
-  });
+  const validatedProjects = useMemo(
+    () => visibleProjects.filter((p) => normalizeProjectUiStatus(p.status) === 'validated'),
+    [visibleProjects],
+  );
+  const allFiltered = useMemo(
+    () =>
+      applyTaskFilters(tasks, {
+        filterMap,
+        activeMapId,
+        filterText,
+        filterZone,
+        filterStatus,
+        filterProject,
+        filterGroupId,
+        filterUrgentCategory,
+      }),
+    [
+      tasks,
+      filterMap,
+      activeMapId,
+      filterText,
+      filterZone,
+      filterStatus,
+      filterProject,
+      filterGroupId,
+      filterUrgentCategory,
+    ],
+  );
   const urgentCategoryTasks = useMemo(
     () => allFiltered.filter(isTaskUrgentCategory).sort(compareTasksByImportanceThenDueDate),
     [allFiltered],
@@ -661,21 +683,26 @@ function TasksViewImpl({
     () => new Set(visibleProjects.map((p) => String(p.id || ''))),
     [visibleProjects],
   );
-  const isTaskInVisibleProject = (task) => {
-    const projectId = String(task?.project_id || '');
-    return !!projectId && visibleProjectIds.has(projectId);
-  };
   const regularFiltered = useMemo(
-    () => allFilteredWithoutUrgent.filter((t) => !isTaskInVisibleProject(t)),
+    () =>
+      allFilteredWithoutUrgent.filter((t) => {
+        const projectId = String(t?.project_id || '');
+        return !projectId || !visibleProjectIds.has(projectId);
+      }),
     [allFilteredWithoutUrgent, visibleProjectIds],
   );
-  const myProposals = isTeacher ? [] : studentOwnProposals(allFiltered, student);
+  const myProposals = useMemo(
+    () => (isTeacher ? [] : studentOwnProposals(allFiltered, student)),
+    [isTeacher, allFiltered, student],
+  );
   const myTasks = useMemo(
     () => studentActiveAssignedTasks(regularFiltered, student),
     [regularFiltered, student],
   );
-  const { available, inProgress, done, validated, proposed, onHold } =
-    partitionTasksByEffectiveStatus(regularFiltered);
+  const { available, inProgress, done, validated, proposed, onHold } = useMemo(
+    () => partitionTasksByEffectiveStatus(regularFiltered),
+    [regularFiltered],
+  );
   const showStudentFilteredResults =
     !isTeacher &&
     hasActiveStudentFilters({
@@ -702,16 +729,29 @@ function TasksViewImpl({
     [regularFiltered, student],
   );
 
-  const { usedZones, usedMarkers } = collectUsedLocationIds({
-    tasksForLocationPicker,
-    tutorials,
-    zones,
-    markers,
-    filterMap,
-    activeMapId,
-    tutorialsModuleEnabled,
-    isTeacher,
-  });
+  const { usedZones, usedMarkers } = useMemo(
+    () =>
+      collectUsedLocationIds({
+        tasksForLocationPicker,
+        tutorials,
+        zones,
+        markers,
+        filterMap,
+        activeMapId,
+        tutorialsModuleEnabled,
+        isTeacher,
+      }),
+    [
+      tasksForLocationPicker,
+      tutorials,
+      zones,
+      markers,
+      filterMap,
+      activeMapId,
+      tutorialsModuleEnabled,
+      isTeacher,
+    ],
+  );
 
   const sectionListClass =
     viewMode === 'tiles'

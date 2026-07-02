@@ -7,11 +7,13 @@ import {
   visitMediaGalleryThumbDisplaySrc,
   visitMediaGalleryLightboxSrc,
 } from '../../utils/visitMediaGallery.js';
+// Imports directs (mêmes symboles que les ré-exports du barrel map-views) :
+// évite de tirer MarkerModal/ZoneDrawModal/useMapGestures dans le chunk visite.
 import {
   BiodiversitySpeciesOpenLinks,
-  LocationTutorialPreviewList,
   LivingBeingsCatalogPanel,
-} from '../map-views';
+} from '../map/LivingBeingsCatalogPanel.jsx';
+import { LocationTutorialPreviewList } from '../map/mapModalShared.jsx';
 import { VisitEditorPanel } from './VisitEditorPanel.jsx';
 
 /** Vignette cliquable : aperçu sans rognage (CSS `object-fit: contain`) + lightbox plein écran. */

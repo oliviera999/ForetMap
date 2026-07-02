@@ -3,16 +3,7 @@ import { api, AccountDeletedError } from '../services/api';
 import { SPECIAL_EMOJI, SPECIAL_DESC, TREE_LEGEND, TREE_DOTS } from '../constants/garden';
 import { compressImage } from '../utils/image';
 import { useHelp } from '../hooks/useHelp';
-import { TaskFormModal, TasksView, LogModal, TaskLogsViewer } from './tasks-views';
-import {
-  Lightbox,
-  PhotoGallery,
-  ZoneInfoModal,
-  ZoneDrawModal,
-  MarkerModal,
-  MapView,
-  CatalogRemarksSection,
-} from './map-views';
+import { CatalogRemarksSection } from './map-views';
 import { Tooltip } from './Tooltip';
 import { HelpPanel } from './HelpPanel';
 import { ContextComments } from './context-comments';
@@ -840,21 +831,6 @@ function PlantViewer({
   );
 }
 
-export {
-  TimedToast as Toast,
-  Lightbox,
-  PhotoGallery,
-  ZoneInfoModal,
-  ZoneDrawModal,
-  MarkerModal,
-  MapView,
-  TaskFormModal,
-  TasksView,
-  LogModal,
-  TaskLogsViewer,
-  PlantEditForm,
-  PlantManager,
-  ObservationNotebook,
-  PlantViewer,
-  PlantCatalogPreviewModal,
-};
+// Ré-exports morts supprimés (Lightbox, MapView, TasksView… n'étaient importés
+// par personne et tiraient tasks-views + map-views dans ce chunk lazy).
+export { PlantEditForm, PlantManager, ObservationNotebook, PlantViewer, PlantCatalogPreviewModal };

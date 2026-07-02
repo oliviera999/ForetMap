@@ -383,23 +383,21 @@ router.post(
       }
 
       const existingByName = await queryOne(
-        "SELECT id FROM users WHERE user_type = 'student' AND LOWER(first_name)=LOWER(?) AND LOWER(last_name)=LOWER(?) LIMIT 1",
+        "SELECT id FROM users WHERE user_type = 'student' AND first_name = ? AND last_name = ? LIMIT 1",
         [firstName, lastName],
       );
       if (existingByName)
         return res.status(409).json({ error: 'Un n3beur avec ce nom existe déjà' });
       if (pseudo) {
-        const existingPseudo = await queryOne(
-          'SELECT id FROM users WHERE LOWER(pseudo)=LOWER(?) LIMIT 1',
-          [pseudo],
-        );
+        const existingPseudo = await queryOne('SELECT id FROM users WHERE pseudo = ? LIMIT 1', [
+          pseudo,
+        ]);
         if (existingPseudo) return res.status(409).json({ error: 'Ce pseudo est déjà utilisé' });
       }
       if (email) {
-        const existingEmail = await queryOne(
-          'SELECT id FROM users WHERE LOWER(email)=LOWER(?) LIMIT 1',
-          [email],
-        );
+        const existingEmail = await queryOne('SELECT id FROM users WHERE email = ? LIMIT 1', [
+          email,
+        ]);
         if (existingEmail) return res.status(409).json({ error: 'Cet email est déjà utilisé' });
       }
 
@@ -594,14 +592,14 @@ router.patch('/:id/profile', requireAuth, async (req, res) => {
 
     if (pseudo) {
       const existingPseudo = await queryOne(
-        "SELECT id FROM users WHERE user_type = 'student' AND LOWER(pseudo)=LOWER(?) AND id <> ?",
+        "SELECT id FROM users WHERE user_type = 'student' AND pseudo = ? AND id <> ?",
         [pseudo, student.id],
       );
       if (existingPseudo) return res.status(409).json({ error: 'Ce pseudo est déjà utilisé' });
     }
     if (email) {
       const existingEmail = await queryOne(
-        "SELECT id FROM users WHERE user_type = 'student' AND LOWER(email)=LOWER(?) AND id <> ?",
+        "SELECT id FROM users WHERE user_type = 'student' AND email = ? AND id <> ?",
         [email, student.id],
       );
       if (existingEmail) return res.status(409).json({ error: 'Cet email est déjà utilisé' });

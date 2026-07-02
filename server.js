@@ -353,19 +353,8 @@ if (fs.existsSync(serviceWorkerPath)) {
     res.sendFile(serviceWorkerPath);
   });
 }
-const staticServeOptions = serveDist
-  ? {
-      index: false,
-      setHeaders(res, filePath) {
-        const base = path.basename(filePath);
-        if (base === 'index.vite.html' || base === 'index.html' || base === 'deploy-help.html') {
-          res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-          res.setHeader('Pragma', 'no-cache');
-          res.setHeader('Expires', '0');
-        }
-      },
-    }
-  : undefined;
+const { createDistStaticServeOptions } = require('./lib/staticCacheHeaders');
+const staticServeOptions = serveDist ? createDistStaticServeOptions(distDir) : undefined;
 // Sur gl.*, index.vite.html est l'entrée ForetMap : ne pas la servir telle quelle.
 app.use((req, res, next) => {
   if (req.method !== 'GET' && req.method !== 'HEAD') return next();

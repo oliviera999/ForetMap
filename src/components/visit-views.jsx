@@ -87,7 +87,9 @@ import {
   clampVisitMascotPctForViewport,
 } from '../utils/visitMascotGeometry.js';
 import useVisitMascotStateMachine from '../hooks/useVisitMascotStateMachine.js';
-import { Lightbox } from './map-views';
+// Import direct (même défaut useOverlayHistory=false que l'ancien wrapper Lightbox
+// de map-views) : évite de tirer tout le graphe carte dans le chunk visite.
+import { ImageLightbox } from '../shared/components/ImageLightbox.jsx';
 import { safeLocalStorageGetItem, safeLocalStorageSetItem } from '../utils/browserStorage.js';
 
 const VISIT_MAP_MASCOT_MOVE_MS = 560;
@@ -1357,7 +1359,7 @@ function VisitViewImpl({
           />
         )}
         {visitMediaLightbox && (
-          <Lightbox
+          <ImageLightbox
             src={visitMediaLightbox.src}
             caption={visitMediaLightbox.caption}
             onClose={() => setVisitMediaLightbox(null)}

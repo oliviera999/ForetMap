@@ -57,7 +57,10 @@ export default defineConfig({
       },
       output: {
         manualChunks(id) {
-          if (id.includes('node_modules/react') || id.includes('node_modules/react-dom')) {
+          // Regex bornée : `includes('node_modules/react')` capturait tout paquet
+          // react* (react-is…) et laissait `scheduler` (dépendance de react-dom)
+          // hors du chunk react-vendor.
+          if (/node_modules\/(react|react-dom|scheduler)\//.test(id)) {
             return 'react-vendor';
           }
           if (id.includes('node_modules/socket.io-client')) return 'socket-io';

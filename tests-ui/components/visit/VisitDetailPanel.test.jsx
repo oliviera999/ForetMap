@@ -8,13 +8,18 @@ vi.mock('../../../src/components/MarkdownContent.jsx', () => ({
 }));
 
 // map-views est un méga-module (carte complète) : on stub les trois panneaux utilisés.
-vi.mock('../../../src/components/map-views', () => ({
+// VisitDetailPanel importe désormais ces composants directement (plus via le
+// barrel map-views) : les mocks ciblent les modules réels.
+vi.mock('../../../src/components/map/LivingBeingsCatalogPanel.jsx', () => ({
   BiodiversitySpeciesOpenLinks: ({ names }) => (
     <div data-testid="biodiv-open-links">{(names || []).join(', ')}</div>
   ),
   LivingBeingsCatalogPanel: ({ names }) => (
     <div data-testid="biodiv-catalog-panel">{(names || []).join(', ')}</div>
   ),
+}));
+vi.mock('../../../src/components/map/mapModalShared.jsx', async (importOriginal) => ({
+  ...(await importOriginal()),
   LocationTutorialPreviewList: ({ tutorials, onOpenTutorialPreview }) => (
     <ul data-testid="location-tutos">
       {(tutorials || []).map((t) => (

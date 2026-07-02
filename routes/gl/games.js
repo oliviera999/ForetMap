@@ -1,7 +1,8 @@
 const express = require('express');
-const { queryAll, queryOne, execute, withTransaction } = require('../../database');
+const dbModule = require('../../database');
+const { queryAll, queryOne, execute, withTransaction } = dbModule;
 const { requireGlAuth, requireGlPermission } = require('../../middleware/requireGlAuth');
-const { normalizeEventRow } = require('../../lib/glGameEvents');
+const { normalizeEventRow, insertGameEvent } = require('../../lib/glGameEvents');
 const { emitGlGameEvent } = require('../../lib/realtime');
 const { getSpellCastConfig } = require('../../lib/glSpellCast');
 const { getGameplaySettings } = require('../../lib/glSettings');
@@ -529,12 +530,16 @@ router.post(
       );
       moveRoundNumber = roundRow ? Number(roundRow.current_round_number) || 0 : 0;
     }
+    let createdEvent = null;
     await withTransaction(async (tx) => {
-      await tx.execute(
-        `INSERT INTO gl_game_events (game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, NOW())`,
-        [gameId, teamId, actorType, actorId, eventType, JSON.stringify(payloadToStore)],
-      );
+      createdEvent = await insertGameEvent(tx, {
+        gameId,
+        teamId,
+        actorType,
+        actorId,
+        eventType,
+        payload: payloadToStore,
+      });
       if (eventType === 'move' && teamId != null) {
         await applyTeamMoveTx(tx, {
           gameId,
@@ -568,17 +573,8 @@ router.post(
       throw err;
     });
     if (res.headersSent) return;
-    const evt = await queryOne(
-      `SELECT id, game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at
-       FROM gl_game_events
-      WHERE game_id = ?
-      ORDER BY id DESC
-      LIMIT 1`,
-      [gameId],
-    );
-    const normalized = normalizeEventRow(evt);
-    emitGlGameEvent(gameId, normalized);
-    return res.status(201).json(normalized);
+    emitGlGameEvent(gameId, createdEvent);
+    return res.status(201).json(createdEvent);
   }),
 );
 
@@ -607,6 +603,7 @@ async function startNextRound(req, res) {
   }
   const previousRound = Number(game.current_round_number) || 0;
   const nextRound = previousRound + 1;
+  let roundEvent = null;
   await withTransaction(async (tx) => {
     if (previousRound > 0) {
       await tx.execute(
@@ -624,22 +621,16 @@ async function startNextRound(req, res) {
        ON DUPLICATE KEY UPDATE started_by = VALUES(started_by), started_at = NOW(), ended_at = NULL`,
       [gameId, nextRound, String(req.glAuth.userId)],
     );
-    await tx.execute(
-      `INSERT INTO gl_game_events (game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at)
-       VALUES (?, NULL, 'mj', ?, 'round_start', ?, NOW())`,
-      [gameId, String(req.glAuth.userId), JSON.stringify({ roundNumber: nextRound })],
-    );
+    roundEvent = await insertGameEvent(tx, {
+      gameId,
+      actorType: 'mj',
+      actorId: String(req.glAuth.userId),
+      eventType: 'round_start',
+      payload: { roundNumber: nextRound },
+    });
   });
-  const evt = await queryOne(
-    `SELECT id, game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at
-       FROM gl_game_events
-      WHERE game_id = ?
-      ORDER BY id DESC LIMIT 1`,
-    [gameId],
-  );
-  const normalized = normalizeEventRow(evt);
-  emitGlGameEvent(gameId, normalized);
-  return res.json({ ok: true, roundNumber: nextRound, event: normalized });
+  emitGlGameEvent(gameId, roundEvent);
+  return res.json({ ok: true, roundNumber: nextRound, event: roundEvent });
 }
 
 router.post(
@@ -756,12 +747,16 @@ router.post(
     const actorId = String(req.glAuth.userId);
     const payload = { values: roll.values, total: roll.total, roundNumber };
 
+    let diceEvent = null;
     await withTransaction(async (tx) => {
-      await tx.execute(
-        `INSERT INTO gl_game_events (game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at)
-         VALUES (?, ?, ?, ?, 'dice_roll', ?, NOW())`,
-        [gameId, teamId, actorType, actorId, JSON.stringify(payload)],
-      );
+      diceEvent = await insertGameEvent(tx, {
+        gameId,
+        teamId,
+        actorType,
+        actorId,
+        eventType: 'dice_roll',
+        payload,
+      });
       if (settings.turnsEnabled && roundNumber > 0) {
         await tx.execute(
           'UPDATE gl_teams SET last_dice_round_number = ?, updated_at = NOW() WHERE id = ? AND game_id = ?',
@@ -770,14 +765,8 @@ router.post(
       }
     });
 
-    const evt = await queryOne(
-      `SELECT id, game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at
-         FROM gl_game_events WHERE game_id = ? ORDER BY id DESC LIMIT 1`,
-      [gameId],
-    );
-    const normalized = normalizeEventRow(evt);
-    emitGlGameEvent(gameId, normalized);
-    return res.status(201).json(normalized);
+    emitGlGameEvent(gameId, diceEvent);
+    return res.status(201).json(diceEvent);
   }),
 );
 
@@ -855,20 +844,17 @@ router.post(
       });
     }
 
+    let moveEvent = null;
     try {
       await withTransaction(async (tx) => {
-        await tx.execute(
-          `INSERT INTO gl_game_events (game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at)
-           VALUES (?, ?, 'team', ?, 'move', ?, NOW())`,
-          [
-            gameId,
-            teamId,
-            String(req.glAuth.userId),
-            JSON.stringify(
-              moveMarkerId != null ? { markerId: moveMarkerId } : { xp: moveXp, yp: moveYp },
-            ),
-          ],
-        );
+        moveEvent = await insertGameEvent(tx, {
+          gameId,
+          teamId,
+          actorType: 'team',
+          actorId: String(req.glAuth.userId),
+          eventType: 'move',
+          payload: moveMarkerId != null ? { markerId: moveMarkerId } : { xp: moveXp, yp: moveYp },
+        });
         await applyTeamMoveTx(tx, {
           gameId,
           teamId,
@@ -885,14 +871,8 @@ router.post(
       throw err;
     }
 
-    const evt = await queryOne(
-      `SELECT id, game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at
-         FROM gl_game_events WHERE game_id = ? ORDER BY id DESC LIMIT 1`,
-      [gameId],
-    );
-    const normalized = normalizeEventRow(evt);
-    emitGlGameEvent(gameId, normalized);
-    return res.status(201).json(normalized);
+    emitGlGameEvent(gameId, moveEvent);
+    return res.status(201).json(moveEvent);
   }),
 );
 
@@ -982,24 +962,15 @@ router.post(
 
     const popover = serializeZonePopoverRow(zoneRow);
     const actorType = req.glAuth.userType === 'gl_admin' ? 'mj' : 'team';
-    await execute(
-      `INSERT INTO gl_game_events (game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, NOW())`,
-      [
-        gameId,
-        teamId,
-        actorType,
-        String(req.glAuth.userId),
-        ZONE_CONTENT_PRESENT_EVENT,
-        JSON.stringify({ zoneId, zoneLabel: zoneRow.label }),
-      ],
-    );
-    const evt = await queryOne(
-      `SELECT id, game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at
-       FROM gl_game_events WHERE game_id = ? ORDER BY id DESC LIMIT 1`,
-      [gameId],
-    );
-    if (evt) emitGlGameEvent(gameId, normalizeEventRow(evt));
+    const contentEvent = await insertGameEvent(dbModule, {
+      gameId,
+      teamId,
+      actorType,
+      actorId: String(req.glAuth.userId),
+      eventType: ZONE_CONTENT_PRESENT_EVENT,
+      payload: { zoneId, zoneLabel: zoneRow.label },
+    });
+    emitGlGameEvent(gameId, contentEvent);
 
     return res.json({
       zone: {

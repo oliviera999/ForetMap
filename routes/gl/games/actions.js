@@ -1,7 +1,7 @@
 const express = require('express');
 const { queryAll, queryOne, withTransaction } = require('../../../database');
 const { requireGlPermission } = require('../../../middleware/requireGlAuth');
-const { normalizeEventRow } = require('../../../lib/glGameEvents');
+const { insertGameEvent } = require('../../../lib/glGameEvents');
 const { emitGlGameEvent } = require('../../../lib/realtime');
 const { getGameplaySettings } = require('../../../lib/glSettings');
 const { normalizeOptionalString } = require('../../../lib/shared/httpHelpers');
@@ -50,38 +50,25 @@ router.post(
     // Mode classique : toutes les équipes jouent simultanément, plus de blocage « pas votre tour ».
 
     let actionRequestId = null;
+    let requestEvent = null;
     await withTransaction(async (tx) => {
-      await tx.execute(
+      const requestInsert = await tx.execute(
         `INSERT INTO gl_action_requests (game_id, team_id, player_id, action_type, payload_json, status, created_at)
        VALUES (?, ?, ?, ?, ?, 'pending', NOW())`,
         [gameId, teamIdForGame, player.id, actionType, JSON.stringify(payload)],
       );
-      const created = await tx.queryOne(
-        'SELECT id FROM gl_action_requests WHERE game_id = ? AND player_id = ? ORDER BY id DESC LIMIT 1',
-        [gameId, player.id],
-      );
-      actionRequestId = created?.id ? Number(created.id) : null;
-      await tx.execute(
-        `INSERT INTO gl_game_events (game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at)
-       VALUES (?, ?, 'team', ?, 'action_request', ?, NOW())`,
-        [
-          gameId,
-          teamIdForGame,
-          String(player.id),
-          JSON.stringify({ actionRequestId, actionType, playerId: player.id, payload }),
-        ],
-      );
+      actionRequestId = requestInsert.insertId ? Number(requestInsert.insertId) : null;
+      requestEvent = await insertGameEvent(tx, {
+        gameId,
+        teamId: teamIdForGame,
+        actorType: 'team',
+        actorId: String(player.id),
+        eventType: 'action_request',
+        payload: { actionRequestId, actionType, playerId: player.id, payload },
+      });
     });
-    const evt = await queryOne(
-      `SELECT id, game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at
-       FROM gl_game_events
-      WHERE game_id = ?
-      ORDER BY id DESC LIMIT 1`,
-      [gameId],
-    );
-    const normalized = normalizeEventRow(evt);
-    emitGlGameEvent(gameId, normalized);
-    return res.status(201).json({ actionRequestId, event: normalized });
+    emitGlGameEvent(gameId, requestEvent);
+    return res.status(201).json({ actionRequestId, event: requestEvent });
   }),
 );
 
@@ -111,6 +98,7 @@ router.post(
 
     const settings = await getGameplaySettings();
     let appliedDelta = 0;
+    const resolvedEvents = [];
 
     await withTransaction(async (tx) => {
       await tx.execute(
@@ -119,15 +107,15 @@ router.post(
         WHERE id = ?`,
         [decision, String(req.glAuth.userId), actionId],
       );
-      await tx.execute(
-        `INSERT INTO gl_game_events (game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at)
-       VALUES (?, ?, 'mj', ?, 'action_resolved', ?, NOW())`,
-        [
+      resolvedEvents.push(
+        await insertGameEvent(tx, {
           gameId,
-          action.team_id,
-          String(req.glAuth.userId),
-          JSON.stringify({ actionRequestId: actionId, decision, scoreDelta: 0, reason }),
-        ],
+          teamId: action.team_id,
+          actorType: 'mj',
+          actorId: String(req.glAuth.userId),
+          eventType: 'action_resolved',
+          payload: { actionRequestId: actionId, decision, scoreDelta: 0, reason },
+        }),
       );
       if (
         decision === 'accepted' &&
@@ -146,28 +134,24 @@ router.post(
            updated_at = NOW()`,
           [gameId, action.team_id, scoreDelta, reason],
         );
-        await tx.execute(
-          `INSERT INTO gl_game_events (game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at)
-         VALUES (?, ?, 'mj', ?, 'score', ?, NOW())`,
-          [
+        resolvedEvents.push(
+          await insertGameEvent(tx, {
             gameId,
-            action.team_id,
-            String(req.glAuth.userId),
-            JSON.stringify({ delta: scoreDelta, reason: reason || 'Action validée' }),
-          ],
+            teamId: action.team_id,
+            actorType: 'mj',
+            actorId: String(req.glAuth.userId),
+            eventType: 'score',
+            payload: { delta: scoreDelta, reason: reason || 'Action validée' },
+          }),
         );
       }
     });
 
-    const evtRows = await queryAll(
-      `SELECT id, game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at
-       FROM gl_game_events
-      WHERE game_id = ?
-      ORDER BY id DESC LIMIT 2`,
-      [gameId],
-    );
-    for (const row of evtRows.reverse()) {
-      emitGlGameEvent(gameId, normalizeEventRow(row));
+    // Événements de CETTE requête, dans l'ordre d'insertion. Corrige aussi la
+    // ré-émission d'un vieil événement quand un seul venait d'être inséré
+    // (l'ancien re-SELECT LIMIT 2 en reprenait toujours deux).
+    for (const evt of resolvedEvents) {
+      emitGlGameEvent(gameId, evt);
     }
     return res.json({ ok: true, decision, scoreDelta: appliedDelta });
   }),

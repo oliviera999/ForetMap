@@ -106,6 +106,7 @@ import {
 } from './utils/browserStorage.js';
 import { useOverlayHistoryBack } from './hooks/useOverlayHistoryBack';
 import { abandonAllOverlays, pushOverlayClose } from './utils/overlayHistory';
+import { keepPrevIfEqual } from './utils/stableCollection';
 import { AutoProfilePromotionModal } from './components/AutoProfilePromotionModal.jsx';
 import { TeacherTopTabs } from './components/app/TeacherTopTabs.jsx';
 import { StudentBottomNav } from './components/app/StudentBottomNav.jsx';
@@ -268,6 +269,18 @@ function App() {
   });
 
   // Called from anywhere when a 401-deleted is detected
+  // Handlers stables de la visite publique invitée : des arrows inline cassaient
+  // React.memo(VisitView) à chaque re-render d'App (mode le plus sensible, mobile).
+  const onGuestBackToAuth = useCallback(() => {
+    abandonAllOverlays();
+    setGuestVisitNeedsMascotChoice(false);
+    setShowPublicVisit(false);
+  }, []);
+  const onGuestMascotChoiceDone = useCallback(() => {
+    safeLocalStorageSetItem(GUEST_VISIT_MASCOT_CONFIRMED_KEY, '1');
+    setGuestVisitNeedsMascotChoice(false);
+  }, []);
+
   const forceLogout = useCallback(() => {
     clearStoredSession();
     setStudent(null);
@@ -631,14 +644,18 @@ function App() {
             if (resolvedMapId !== mapIdState) {
               setActiveMapId(resolvedMapId);
             }
-            setZones(z);
-            if (Array.isArray(t)) setTasks(t);
+            // keepPrevIfEqual : conserve la référence quand le contenu n'a pas
+            // changé → pas de re-render global du DataContext à chaque poll.
+            setZones((prev) => keepPrevIfEqual(prev, z));
+            if (Array.isArray(t)) setTasks((prev) => keepPrevIfEqual(prev, t));
             else
               console.warn('[ForetMap] GET /api/tasks : réponse non tableau, état tâches inchangé');
-            setTaskProjects(Array.isArray(taskProjectsRes) ? taskProjectsRes : []);
-            setPlants(p);
-            setMarkers(m);
-            setTutorials(tu);
+            setTaskProjects((prev) =>
+              keepPrevIfEqual(prev, Array.isArray(taskProjectsRes) ? taskProjectsRes : []),
+            );
+            setPlants((prev) => keepPrevIfEqual(prev, p));
+            setMarkers((prev) => keepPrevIfEqual(prev, m));
+            setTutorials((prev) => keepPrevIfEqual(prev, tu));
             if (!isTeacherSnap) {
               const sess = studentRef.current;
               if (sess?.id && !sess.preview_mode) {
@@ -1214,17 +1231,10 @@ function App() {
                     student={null}
                     isTeacher={false}
                     initialMapId={publicSettings?.map?.default_map_visit || activeMapId}
-                    onBackToAuth={() => {
-                      abandonAllOverlays();
-                      setGuestVisitNeedsMascotChoice(false);
-                      setShowPublicVisit(false);
-                    }}
+                    onBackToAuth={onGuestBackToAuth}
                     availableTutorials={[]}
                     requireGuestMascotChoice={guestVisitNeedsMascotChoice}
-                    onGuestMascotChoiceDone={() => {
-                      safeLocalStorageSetItem(GUEST_VISIT_MASCOT_CONFIRMED_KEY, '1');
-                      setGuestVisitNeedsMascotChoice(false);
-                    }}
+                    onGuestMascotChoiceDone={onGuestMascotChoiceDone}
                   />
                 </TabSuspense>
               </div>

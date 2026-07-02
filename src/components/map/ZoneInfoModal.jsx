@@ -117,12 +117,21 @@ function ZoneInfoModal({
   const zoneTitleDisplay = zone.special
     ? zone.name || ''
     : stripLeadingMarkerEmoji(zone.name || '', emojiParsingList) || zone.name || '';
-  const linkedTasks = (tasks || []).filter(
-    (t) =>
-      taskLocationIds(t).zoneIds.some((id) => String(id) === String(zone.id)) &&
-      !isTaskDetachedFromLocation(t),
+  // Mémoïsés : l'effet de nettoyage de la sélection dépend de studentAssignableTasks —
+  // une nouvelle identité à chaque rendu provoquerait une boucle rendu/effet.
+  const linkedTasks = useMemo(
+    () =>
+      (tasks || []).filter(
+        (t) =>
+          taskLocationIds(t).zoneIds.some((id) => String(id) === String(zone.id)) &&
+          !isTaskDetachedFromLocation(t),
+      ),
+    [tasks, zone.id],
   );
-  const studentAssignableTasks = linkedTasks.filter((t) => canStudentAssignTask(t, student));
+  const studentAssignableTasks = useMemo(
+    () => linkedTasks.filter((t) => canStudentAssignTask(t, student)),
+    [linkedTasks, student],
+  );
   const assignableTasks = (tasks || []).filter((t) => {
     if (linkedTasks.some((lt) => lt.id === t.id)) return false;
     if (isTaskDetachedFromLocation(t)) return false;
@@ -247,9 +256,12 @@ function ZoneInfoModal({
   }, [zone.visit_body_json, zone.id, visitMediaOptions]);
 
   useEffect(() => {
-    setSelectedTaskIds((prev) =>
-      prev.filter((id) => studentAssignableTasks.some((t) => t.id === id)),
-    );
+    // Garde la référence quand rien ne change : un nouveau tableau systématique
+    // relancerait un rendu à chaque passage (boucle « Maximum update depth exceeded »).
+    setSelectedTaskIds((prev) => {
+      const next = prev.filter((id) => studentAssignableTasks.some((t) => t.id === id));
+      return next.length === prev.length ? prev : next;
+    });
   }, [studentAssignableTasks]);
 
   const save = async () => {
