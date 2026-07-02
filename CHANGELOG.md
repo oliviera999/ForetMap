@@ -7,6 +7,30 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Audit — Vague 3 : extraction server.js, perf visite, infra
+
+- **server.js 950 → 619 lignes** (déplacement pur) : `routes/admin-ops.js`
+  (4 endpoints DEPLOY_SECRET + middleware `requireDeploySecret` factorisant la
+  garde répétée 4×), `routes/health.js`, `lib/rateLimit.js` (propriétés
+  `message` mortes supprimées). `middleware/requireTeacher.js` : bloc
+  verify+hydrate unique (`resolveAuthOrRespond`) pour les 3 middlewares —
+  statuts, messages et ordre inchangés, tests auth passés sans modification.
+- **Perf (visite mobile)** : pan/zoom sans re-render par frame — nouveau hook
+  `useVisitMapTransform` (transform en ref + style impératif sous rAF, commit
+  en fin de geste, pattern `useMapGestures`) ; fin du setState par pointermove
+  qui re-rendait ~1 600 lignes par frame.
+- **Infra** : `uuid` → `crypto.randomUUID()` natif (dépendance retirée) ;
+  `marked`/`isomorphic-dompurify`/`@rive-app/react-canvas`/`turndown` en
+  devDependencies (runtime prod allégé) ; globals ESLint via le paquet
+  `globals` (~120 lignes de listes manuelles en moins) ; `initSchema` mémoïsé
+  entre fichiers d'un même run de tests (sentinelle vérifiée par empreinte
+  schéma+migrations et version BDD) ; scripts npm morts supprimés
+  (`test:load:normal`, `release:*`), login en dur retiré de `db:admin:audit*` ;
+  garde-fou anti-miroir-CJS-incomplet dans `sync-gl-pack-server-lib`.
+- **Reporté** (agents interrompus par la limite de session, à reprendre) :
+  éditeur QCM générique partagé (3 clones à ~68 %), déménagement des utils GL
+  de `src/utils/` vers `src/gl/utils/`.
+
 ### Audit — Vague 2 : mutualisations structurelles (lots 4-5 partiels)
 
 - **Cluster tasks** : 18 fonctions recopiées 2-3× entre `routes/tasks.js`,
