@@ -3,6 +3,7 @@ const { v4: uuidv4 } = require('uuid');
 const { queryAll, queryOne, execute, withTransaction } = require('../database');
 const { requireAuth } = require('../middleware/requireTeacher');
 const asyncHandler = require('../lib/asyncHandler');
+const { rethrowSlugConflict } = require('../lib/slugConflict');
 const {
   normalizeId,
   canReadGroups,
@@ -28,16 +29,6 @@ function requireGroupManagement(req, res, next) {
     return res.status(403).json({ error: 'Permission insuffisante' });
   }
   return next();
-}
-
-/** Traduit un conflit d'unicité MySQL (slug déjà pris) en erreur HTTP 409 portée par `.status`. */
-function rethrowSlugConflict(err) {
-  if (err && (err.errno === 1062 || err.code === 'ER_DUP_ENTRY')) {
-    const conflict = new Error('Slug déjà utilisé');
-    conflict.status = 409;
-    throw conflict;
-  }
-  throw err;
 }
 
 function normalizeSlug(value) {

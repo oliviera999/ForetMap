@@ -12,13 +12,9 @@ const { getFeuilletZoneById } = require('../../../lib/glFeuilletZonesCatalog');
 const asyncHandler = require('../../../lib/asyncHandler');
 const { z, validate } = require('../../../lib/validate');
 const { getPlayerGameMembership } = require('../../../lib/gl/gamesRuntime');
+const { parseId } = require('../../../lib/shared/httpHelpers');
 
 const router = express.Router();
-
-function parseId(value) {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : null;
-}
 
 // O7 — query friction-free (coercition permissive, jamais de 400 issu du schéma) :
 // `teamId` (GET /games/:id/feuillet-zones/presented) reproduit l'ancien `parseId`

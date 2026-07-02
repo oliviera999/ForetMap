@@ -11,13 +11,9 @@ const {
   resolveBoardPathStartIndex,
   startMarker,
 } = require('../../../lib/glBoardPath');
+const { parseId } = require('../../../lib/shared/httpHelpers');
 
 const router = express.Router();
-
-function parseId(value) {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : null;
-}
 
 async function placeTeamsOnPathStart(gameId, gameRow) {
   if (!gameRow?.chapter_id) return;

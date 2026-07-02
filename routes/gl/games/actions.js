@@ -4,16 +4,11 @@ const { requireGlPermission } = require('../../../middleware/requireGlAuth');
 const { insertGameEvent } = require('../../../lib/glGameEvents');
 const { emitGlGameEvent } = require('../../../lib/realtime');
 const { getGameplaySettings } = require('../../../lib/glSettings');
-const { normalizeOptionalString } = require('../../../lib/shared/httpHelpers');
+const { normalizeOptionalString, parseId } = require('../../../lib/shared/httpHelpers');
 const asyncHandler = require('../../../lib/asyncHandler');
 const { getPlayerGameMembership } = require('../../../lib/gl/gamesRuntime');
 
 const router = express.Router();
-
-function parseId(value) {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : null;
-}
 
 /**
  * Demande d'action emise par un joueur. Le MJ resout via /actions/:actionId/resolve.

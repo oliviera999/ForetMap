@@ -105,11 +105,7 @@ function configureTrustProxy() {
 }
 configureTrustProxy();
 
-function normalizeOptionalString(value) {
-  if (value == null) return null;
-  const s = String(value).trim();
-  return s.length > 0 ? s : null;
-}
+const { normalizeOptionalString } = require('./lib/shared/httpHelpers');
 
 function parseCorsOriginsFromEnv() {
   const raw = String(process.env.FRONTEND_ORIGINS || '').trim();

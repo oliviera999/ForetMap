@@ -13,7 +13,8 @@ const { emitStudentsChanged, emitTasksChanged } = require('../lib/realtime');
 const { saveBase64ToDisk, deleteFile, getAbsolutePath, ensureDir } = require('../lib/uploads');
 const { getPrimaryRoleForUser, setPrimaryRole } = require('../lib/rbac');
 const { deleteStudentById } = require('../lib/studentDeletion');
-const { getSettingValue, getVisitMascotSettings } = require('../lib/settings');
+const { getVisitMascotSettings } = require('../lib/settings');
+const { getPasswordMinLength } = require('../lib/passwordReset');
 const logger = require('../lib/logger');
 const { resolveStudentAffiliationForPersist } = require('../lib/studentAffiliation');
 const {
@@ -334,13 +335,6 @@ router.post(
     res.json({ ...s, password_hash: undefined });
   }),
 );
-
-async function getPasswordMinLength() {
-  const n = await getSettingValue('security.password_min_length', 4);
-  const parsed = parseInt(n, 10);
-  if (!Number.isFinite(parsed)) return 4;
-  return Math.min(Math.max(parsed, 4), 32);
-}
 
 router.post(
   '/:id/duplicate',
