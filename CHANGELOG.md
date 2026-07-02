@@ -27,9 +27,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   schéma+migrations et version BDD) ; scripts npm morts supprimés
   (`test:load:normal`, `release:*`), login en dur retiré de `db:admin:audit*` ;
   garde-fou anti-miroir-CJS-incomplet dans `sync-gl-pack-server-lib`.
-- **Reporté** (agents interrompus par la limite de session, à reprendre) :
-  éditeur QCM générique partagé (3 clones à ~68 %), déménagement des utils GL
-  de `src/utils/` vers `src/gl/utils/`.
+- **Éditeur QCM générique** : `src/shared/qcm/QuestionEditorPanel.jsx`
+  (descripteur : endpoints, formulaire, filtres/tris, autosave GL vs soumission
+  manuelle FM, client HTTP et composants UI injectés) + `questionEditorFormCore` —
+  les 3 panneaux clones (~68 %) deviennent des adaptateurs minces, exports des
+  modules de formulaire inchangés (diff +490/−1185 sur l'existant).
+- **Frontière GL** : 10 utilitaires GL-only déménagés de `src/utils/` vers
+  `src/gl/utils/` (git mv purs, 42 fichiers d'imports) ; `glMascotCatalog` et
+  `glMascotPackToVisit` restent (lus dynamiquement par le backend).
 
 ### Audit — Vague 2 : mutualisations structurelles (lots 4-5 partiels)
 
