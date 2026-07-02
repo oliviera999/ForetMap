@@ -7,7 +7,7 @@ import {
   isQuestionEventType,
   normalizeDisplayMode,
   normalizeMarkerEmoji,
-} from '../../utils/glMarkerAppearance.js';
+} from '../utils/glMarkerAppearance.js';
 import { useResolveGlMarkerIconDisplayUrl } from '../hooks/useResolveGlMarkerIconDisplayUrl.js';
 
 const DISPLAY_MODE_OPTIONS = [

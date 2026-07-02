@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { apiGL } from '../services/apiGL.js';
-import { isQuestionMarker } from '../../utils/glMarkerEventConfig.js';
-import { shouldPresentMarkerOnArrival } from '../../utils/glMarkerEffects.js';
+import { isQuestionMarker } from '../utils/glMarkerEventConfig.js';
+import { shouldPresentMarkerOnArrival } from '../utils/glMarkerEffects.js';
 import { MAP_VIEW_MASCOT_MOVE_MS } from '../../utils/mapViewMascotMotion.js';
 import {
   consumeSkipMarkerArrival,

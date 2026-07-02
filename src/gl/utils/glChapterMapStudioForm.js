@@ -5,7 +5,7 @@
  * Couvert par `tests-ui/gl/glChapterMapStudioForm.test.js`.
  */
 
-import { defaultEventConfigForQuestion } from '../../utils/glMarkerEventConfig.js';
+import { defaultEventConfigForQuestion } from './glMarkerEventConfig.js';
 import {
   appearanceFormFromMarker,
   appearanceToPayload,

@@ -92,7 +92,7 @@ import { MusicPlayer } from './components/MusicPlayer.jsx';
 import { GLZoneMusicMuteButton } from './components/GLZoneMusicMuteButton.jsx';
 import { loadGlAssetRuntime } from './assets/index.js';
 import { getRuntimeFeuilletZonesForPlateau } from './data/glFeuilletZonesBundle.js';
-import { pickZoneAtPct } from '../utils/glZoneAtPct.js';
+import { pickZoneAtPct } from './utils/glZoneAtPct.js';
 import { isFeuilletZoneEditMode } from './utils/glFeuilletZoneEditMode.js';
 import { useGLZoneMusic, readStoredMuted, writeStoredMuted } from './hooks/useGLZoneMusic.js';
 import { useGLZoneMusicArrival } from './hooks/useGLZoneMusicArrival.js';

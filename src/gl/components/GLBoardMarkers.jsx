@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { resolveMarkerAppearance } from '../../utils/glMarkerAppearance.js';
+import { resolveMarkerAppearance } from '../utils/glMarkerAppearance.js';
 import { useResolveGlMarkerIconDisplayUrl } from '../hooks/useResolveGlMarkerIconDisplayUrl.js';
 
 function markerValue(marker, key) {

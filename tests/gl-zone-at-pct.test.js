@@ -4,7 +4,7 @@ const { test } = require('node:test');
 const assert = require('node:assert');
 
 test('glZoneAtPct: chevauchement — plus petite zone avec musique', async () => {
-  const { pickZoneAtPct } = await import('../src/utils/glZoneAtPct.js');
+  const { pickZoneAtPct } = await import('../src/gl/utils/glZoneAtPct.js');
   const zones = [
     {
       id: 1,
@@ -47,7 +47,7 @@ test('glZoneAtPct: chevauchement — plus petite zone avec musique', async () =>
 });
 
 test('glZoneAtPct: zone sans musique ignorée hors chevauchement musical', async () => {
-  const { pickZoneAtPct } = await import('../src/utils/glZoneAtPct.js');
+  const { pickZoneAtPct } = await import('../src/gl/utils/glZoneAtPct.js');
   const zones = [
     {
       id: 10,
@@ -63,7 +63,7 @@ test('glZoneAtPct: zone sans musique ignorée hors chevauchement musical', async
 });
 
 test('glZoneAtPct: playlist musicUrls sur zone active', async () => {
-  const { pickZoneAtPct, zoneMusicUrls } = await import('../src/utils/glZoneAtPct.js');
+  const { pickZoneAtPct, zoneMusicUrls } = await import('../src/gl/utils/glZoneAtPct.js');
   const urls = [
     '/uploads/media-library/audio/2026/05/a.mp3',
     '/uploads/media-library/audio/2026/05/b.mp3',
@@ -88,7 +88,7 @@ test('glZoneAtPct: playlist musicUrls sur zone active', async () => {
 });
 
 test('glZoneAtPct: detectZoneMusicOnTeamMove ignore déplacement intra-zone et changement équipe observée', async () => {
-  const { detectZoneMusicOnTeamMove } = await import('../src/utils/glZoneAtPct.js');
+  const { detectZoneMusicOnTeamMove } = await import('../src/gl/utils/glZoneAtPct.js');
   const zones = [
     {
       id: 1,

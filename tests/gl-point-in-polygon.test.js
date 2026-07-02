@@ -4,7 +4,7 @@ const { test } = require('node:test');
 const assert = require('node:assert');
 
 test('glPointInPolygon: point à l intérieur', async () => {
-  const { isPointInPolygon, polygonArea } = await import('../src/utils/glPointInPolygon.js');
+  const { isPointInPolygon, polygonArea } = await import('../src/gl/utils/glPointInPolygon.js');
   const triangle = [
     { x: 0, y: 0 },
     { x: 100, y: 0 },
@@ -18,7 +18,7 @@ test('glPointInPolygon: point à l intérieur', async () => {
 });
 
 test('glPointInPolygon: polygone invalide', async () => {
-  const { isPointInPolygon, polygonArea } = await import('../src/utils/glPointInPolygon.js');
+  const { isPointInPolygon, polygonArea } = await import('../src/gl/utils/glPointInPolygon.js');
   assert.strictEqual(isPointInPolygon(50, 50, []), false);
   assert.strictEqual(
     isPointInPolygon(50, 50, [

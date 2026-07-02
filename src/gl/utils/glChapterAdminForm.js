@@ -1,5 +1,5 @@
 import { normalizeGlImageFrame } from '../../utils/glImageFrame.js';
-import { normalizeChapterTheme } from '../../utils/glBrandTheme.js';
+import { normalizeChapterTheme } from './glBrandTheme.js';
 import { GL_SPELL_CATEGORY_LABELS } from './glSpellFieldLabels.js';
 
 export const EMPTY_CHAPTER_THEME = { colors: {} };
