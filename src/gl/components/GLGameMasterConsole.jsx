@@ -33,6 +33,15 @@ const DEFAULT_TEAM_FORM = {
   color: '#65a30d',
 };
 
+/**
+ * Console MJ : orchestration des parties, équipes et jeu en direct. Le rendu
+ * des sections est délégué aux sous-composants lazy `mj/GLGameMasterConsole*` ;
+ * ce composant conserve l'état partagé et les actions API.
+ *
+ * NB audit front §3.2 : les props `onGameStateChange` et `onReloadGame` sont
+ * fournies inline par AppGL.jsx (recréées à chaque rendu). Leur mémoïsation
+ * (useCallback) relève d'AppGL.jsx et n'est pas traitée ici.
+ */
 export function GLGameMasterConsole({
   chapters,
   classes = [],
@@ -164,6 +173,39 @@ export function GLGameMasterConsole({
     game?.lore_heart_rewards_enabled,
   ]);
 
+  const showSuccess = useCallback((message) => {
+    setFeedback({ type: 'success', message });
+    setActionError('');
+  }, []);
+
+  const showFailure = useCallback((message) => {
+    setActionError(message);
+    setFeedback(null);
+  }, []);
+
+  const loadGames = useCallback(async () => {
+    try {
+      const params = new URLSearchParams();
+      if (gamesClassFilter) params.set('classId', gamesClassFilter);
+      if (gamesStatusFilter) params.set('status', gamesStatusFilter);
+      const query = params.toString();
+      const rows = await apiGL(`/api/gl/games${query ? `?${query}` : ''}`);
+      setGames(Array.isArray(rows) ? rows : []);
+    } catch (err) {
+      showFailure(err.message || 'Chargement des parties impossible');
+    }
+  }, [gamesClassFilter, gamesStatusFilter, showFailure]);
+
+  const resetTeamEditing = useCallback(() => {
+    setEditingTeamId(null);
+    setTeamForm({
+      ...DEFAULT_TEAM_FORM,
+      mascotId: defaultMascotByType('gnome'),
+    });
+  }, [defaultMascotByType]);
+
+  const goToParties = useCallback(() => setMjSection('parties'), []);
+
   const persistGameEdits = useCallback(async () => {
     if (!game?.id) return editGameForm;
     try {
@@ -179,7 +221,7 @@ export function GLGameMasterConsole({
       showFailure(err.message || 'Mise à jour de partie impossible');
       throw err;
     }
-  }, [game?.id, editGameForm, gameStatus, onGameStateChange]);
+  }, [game?.id, editGameForm, gameStatus, onGameStateChange, showSuccess, showFailure, loadGames]);
 
   const { status: gameSaveStatus, error: gameSaveError } = useDebouncedAutoSave({
     value: editGameForm,
@@ -218,7 +260,17 @@ export function GLGameMasterConsole({
       showFailure(err.message || 'Sauvegarde équipe impossible');
       throw err;
     }
-  }, [game?.id, editingTeamId, teamForm, onReloadGame, defaultMascotByType]);
+  }, [
+    game?.id,
+    editingTeamId,
+    teamForm,
+    onReloadGame,
+    defaultMascotByType,
+    resetTeamEditing,
+    showSuccess,
+    showFailure,
+    loadGames,
+  ]);
 
   const { status: teamSaveStatus, error: teamSaveError } = useDebouncedAutoSave({
     value: teamForm,
@@ -252,45 +304,14 @@ export function GLGameMasterConsole({
     return match?.name || '—';
   }, [game, activeClasses]);
 
-  function showSuccess(message) {
-    setFeedback({ type: 'success', message });
-    setActionError('');
-  }
-
-  function showFailure(message) {
-    setActionError(message);
-    setFeedback(null);
-  }
-
-  function resetTeamEditing() {
-    setEditingTeamId(null);
-    setTeamForm({
-      ...DEFAULT_TEAM_FORM,
-      mascotId: defaultMascotByType('gnome'),
-    });
-  }
-
   function resetForGameSwitch() {
     resetTeamEditing();
     onSelectTeam?.(null);
   }
 
-  async function loadGames() {
-    try {
-      const params = new URLSearchParams();
-      if (gamesClassFilter) params.set('classId', gamesClassFilter);
-      if (gamesStatusFilter) params.set('status', gamesStatusFilter);
-      const query = params.toString();
-      const rows = await apiGL(`/api/gl/games${query ? `?${query}` : ''}`);
-      setGames(Array.isArray(rows) ? rows : []);
-    } catch (err) {
-      showFailure(err.message || 'Chargement des parties impossible');
-    }
-  }
-
   useEffect(() => {
     loadGames();
-  }, [gamesClassFilter, gamesStatusFilter]);
+  }, [loadGames]);
 
   async function createGame(event) {
     event.preventDefault();
@@ -812,7 +833,7 @@ export function GLGameMasterConsole({
             onImpersonationApplied={onImpersonationApplied}
             onReloadGame={onReloadGame}
             setRosterRefreshKey={setRosterRefreshKey}
-            onGoToParties={() => setMjSection('parties')}
+            onGoToParties={goToParties}
             busy={busy}
             teamSaveStatus={teamSaveStatus}
             teamSaveError={teamSaveError}
@@ -858,7 +879,7 @@ export function GLGameMasterConsole({
             applyTeamVitality={applyTeamVitality}
             resolveAction={resolveAction}
             showFailure={showFailure}
-            onGoToParties={() => setMjSection('parties')}
+            onGoToParties={goToParties}
             busy={busy}
             formatTimestamp={formatGameTimestamp}
           />
