@@ -3,13 +3,12 @@ import {
   api,
   AccountDeletedError,
   getAuthClaims,
-  getAuthToken,
   getStoredSession,
   saveLegacyStudentSnapshot,
   saveStoredSession,
   clearStoredSession,
-  isElevatedJwt,
 } from './services/api';
+import { useAuthSession } from './hooks/useAuthSession';
 import { useForetmapRealtime } from './hooks/useForetmapRealtime';
 import { useOauthRedirectSession } from './hooks/useOauthRedirectSession';
 import { useNotificationCenter } from './hooks/useNotificationCenter';
@@ -28,8 +27,6 @@ import {
 import { MASCOT_PACK_UNSAVED_LEAVE_MSG } from './constants/mascotPackEditor.js';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { TimedToast as Toast } from './shared/components/TimedToast.jsx';
-import { TasksView } from './components/tasks-views';
-import { MapView } from './components/map-views';
 import { AuthScreen, PinModal } from './components/auth-views';
 const StudentStatsLazy = lazy(() =>
   import('./components/stats-views').then((m) => ({ default: m.StudentStats })),
@@ -76,21 +73,6 @@ const MediaLibraryViewLazy = lazy(() =>
 const ForumViewLazy = lazy(() =>
   import('./components/forum-views').then((m) => ({ default: m.ForumView })),
 );
-const AboutViewLazy = lazy(() =>
-  import('./components/about-views').then((m) => ({ default: m.AboutView })),
-);
-const GlossaryViewLazy = lazy(() =>
-  import('./components/pedago-views').then((m) => ({ default: m.GlossaryView })),
-);
-const QuizViewLazy = lazy(() =>
-  import('./components/pedago-views').then((m) => ({ default: m.QuizView })),
-);
-const QuizAdminViewLazy = lazy(() =>
-  import('./components/pedago-views').then((m) => ({ default: m.QuizAdminView })),
-);
-const FoodWebViewLazy = lazy(() =>
-  import('./components/pedago-views').then((m) => ({ default: m.FoodWebView })),
-);
 const VisitMascotPackManagerLazy = lazy(() => import('./components/VisitMascotPackManager.jsx'));
 import { getRoleTerms, isN3OnlyAffiliation } from './utils/n3-terminology';
 import { allowedMapIdsFromAffiliation, mapsForAffiliationScope } from './utils/mapAffiliation';
@@ -105,6 +87,9 @@ import { abandonAllOverlays, pushOverlayClose } from './utils/overlayHistory';
 import { keepPrevIfEqual } from './utils/stableCollection';
 import { AutoProfilePromotionModal } from './components/AutoProfilePromotionModal.jsx';
 import { AppHeader } from './components/app/AppHeader.jsx';
+import { MapTasksArea } from './components/app/MapTasksArea.jsx';
+import { NoticeBanner } from './components/app/NoticeBanner.jsx';
+import { PedagoTabs } from './components/app/PedagoTabs.jsx';
 import { TeacherTopTabs } from './components/app/TeacherTopTabs.jsx';
 import { StudentBottomNav } from './components/app/StudentBottomNav.jsx';
 import { RolePreviewBanners } from './components/app/RolePreviewBanners.jsx';
@@ -137,10 +122,6 @@ function App() {
   /** Instantané des paramètres lus par fetchAll (évite de recréer fetchAll à chaque rendu). */
   const fetchAllContextRef = useRef({});
   const [sessionUser, setSessionUser] = useState(() => initialSession?.user || null);
-  const [isTeacher, setIsTeacher] = useState(() => {
-    const claims = getAuthClaims();
-    return Array.isArray(claims?.permissions) && claims.permissions.includes('teacher.access');
-  });
   const [showPin, setShowPin] = useState(false);
   const [showPublicVisit, setShowPublicVisit] = useState(false);
   const [guestVisitNeedsMascotChoice, setGuestVisitNeedsMascotChoice] = useState(false);
@@ -166,6 +147,12 @@ function App() {
   const [refreshMs, setRefreshMs] = useState(DATA_REFRESH_INTERVAL_MS);
   const [serverDown, setServerDown] = useState(false);
   const [authClaims, setAuthClaims] = useState(() => getAuthClaims());
+  /** Dérivé d'authClaims (remplace l'ancien état jumeau et ses ~9 setIsTeacher). */
+  const isTeacher = useMemo(
+    () =>
+      Array.isArray(authClaims?.permissions) && authClaims.permissions.includes('teacher.access'),
+    [authClaims],
+  );
   const [roleViewMode, setRoleViewMode] = useState('native'); // native | student | teacher
   const { appVersion, publicSettings, publicSettingsReady } = useAppBootstrap();
   const { isTabVisible, shouldUseDesktopSplit } = useViewportLayout();
@@ -247,11 +234,17 @@ function App() {
     return allowedRole && hasPermissionInRole('tutorials.manage');
   }, [effectiveRoleContext.roleSlug, hasPermissionInRole, authClaims?.nativePrivileged]);
 
+  /* isTeacher est désormais dérivé d'authClaims : le `setIsTeacher` attendu par le hook OAuth
+     réaligne authClaims sur le jeton fraîchement stocké. Indispensable pour la branche élève,
+     qui appelait `setIsTeacher(false)` sans poser authClaims (jeton élève déjà en storage). */
+  const syncAuthClaimsFromStoredToken = useCallback(() => {
+    setAuthClaims(getAuthClaims());
+  }, []);
   useOauthRedirectSession({
     onToast: setToast,
     setSessionUser,
     setAuthClaims,
-    setIsTeacher,
+    setIsTeacher: syncAuthClaimsFromStoredToken,
     setStudent,
   });
 
@@ -278,248 +271,35 @@ function App() {
     setGuestVisitNeedsMascotChoice(false);
   }, []);
 
-  const forceLogout = useCallback(() => {
-    clearStoredSession();
-    setStudent(null);
-    setSessionUser(null);
-    setIsTeacher(false);
-    setAuthClaims(null);
-    setSessionValidationError(false);
-    setProfilePromotion(null);
-    setToast('Votre compte a été supprimé par un responsable.');
-  }, []);
+  // D3 — cycle de vie session (restauration, /api/auth/me, impersonation admin, logout forcé).
+  const {
+    forceLogout,
+    updateStudentSession,
+    handleAdminImpersonationApplied,
+    stopAdminImpersonation,
+    mergeAuthMeResponse,
+    validateStudentSession,
+  } = useAuthSession({
+    studentRef,
+    setStudent,
+    setSessionUser,
+    setAuthClaims,
+    setSessionValidationError,
+    setProfilePromotion,
+    setToast,
+    setRoleViewMode,
+    setTab,
+    setShowStats,
+    setShowProfile,
+  });
 
-  const updateStudentSession = useCallback(
-    (nextStudent) => {
-      setSessionValidationError(false);
-      if (!nextStudent || typeof nextStudent !== 'object') {
-        studentRef.current = nextStudent;
-        setStudent(nextStudent);
-        return;
-      }
-      const prev = studentRef.current;
-      const base = prev && typeof prev === 'object' ? prev : {};
-      const avatarPath =
-        nextStudent.avatar_path ?? nextStudent.avatarPath ?? base.avatar_path ?? null;
-      const merged = {
-        ...base,
-        ...nextStudent,
-        avatar_path: avatarPath,
-        auth: nextStudent.auth ?? base.auth,
-      };
-      studentRef.current = merged;
-      setStudent(merged);
-      saveLegacyStudentSnapshot(merged);
-      const sessionToken = getStoredSession()?.token || null;
-      const prevAuthToken = getAuthToken();
-      let nextToken =
-        typeof merged.authToken === 'string' && merged.authToken.trim() !== ''
-          ? merged.authToken.trim()
-          : sessionToken;
-      /* `merged.authToken` reste souvent le JWT élève d’origine : une fin tardive de
-       `validateStudentSession` ne doit pas écraser une session déjà élevée (PIN). */
-      if (prevAuthToken && isElevatedJwt(prevAuthToken) && !isElevatedJwt(nextToken)) {
-        nextToken = prevAuthToken;
-      }
-      saveStoredSession({
-        token: nextToken,
-        user: {
-          id: merged.auth?.canonicalUserId || merged.id || null,
-          userType: 'student',
-          displayName:
-            merged.pseudo ||
-            `${merged.first_name || ''} ${merged.last_name || ''}`.trim() ||
-            'Utilisateur',
-          email: merged.email || null,
-          avatar_path: avatarPath,
-        },
-        student: merged,
-      });
-      setSessionUser(getStoredSession()?.user || null);
-    },
-    [studentRef],
-  );
-
-  const handleAdminImpersonationApplied = useCallback(
-    (data) => {
-      if (!data?.authToken) return;
-      const token = String(data.authToken).trim();
-      safeLocalStorageSetItem('foretmap_auth_token', token);
-      safeLocalStorageSetItem('foretmap_teacher_token', token);
-      const auth = data.auth;
-      if (auth?.userType === 'student' && data.profile) {
-        updateStudentSession({
-          ...data.profile,
-          authToken: token,
-          auth,
-        });
-      } else {
-        safeLocalStorageRemoveItem('foretmap_student');
-        const p = data.profile || {};
-        const displayName =
-          [p.first_name, p.last_name].filter(Boolean).join(' ').trim() ||
-          p.display_name ||
-          p.email ||
-          auth?.roleDisplayName ||
-          'Utilisateur';
-        saveStoredSession({
-          token,
-          user: {
-            id: auth?.canonicalUserId || auth?.userId,
-            userType: 'teacher',
-            displayName,
-            email: p.email || null,
-            avatar_path: p.avatar_path || null,
-          },
-          student: null,
-        });
-        setStudent(null);
-        studentRef.current = null;
-      }
-      const nextClaims = getAuthClaims();
-      setAuthClaims(nextClaims);
-      setIsTeacher(
-        Array.isArray(nextClaims?.permissions) && nextClaims.permissions.includes('teacher.access'),
-      );
-      setSessionUser(getStoredSession()?.user || null);
-      setRoleViewMode('native');
-      setTab('map');
-      setShowStats(false);
-      setShowProfile(false);
-      setToast('Prise de contrôle : vous voyez l’application comme l’utilisateur sélectionné.');
-    },
-    [updateStudentSession, studentRef],
-  );
-
-  const stopAdminImpersonation = useCallback(async () => {
-    try {
-      const data = await api('/api/auth/admin/impersonate/stop', 'POST');
-      if (!data?.authToken) {
-        setToast('Réponse serveur invalide');
-        return;
-      }
-      const token = String(data.authToken).trim();
-      safeLocalStorageSetItem('foretmap_auth_token', token);
-      safeLocalStorageSetItem('foretmap_teacher_token', token);
-      safeLocalStorageRemoveItem('foretmap_student');
-      saveStoredSession({
-        token,
-        user: {
-          id: data.auth?.canonicalUserId || data.auth?.userId,
-          userType: 'teacher',
-          displayName: data.auth?.roleDisplayName || 'Utilisateur',
-          email: null,
-          avatar_path: null,
-        },
-        student: null,
-      });
-      setStudent(null);
-      studentRef.current = null;
-      setAuthClaims(getAuthClaims());
-      setIsTeacher(true);
-      setSessionUser(getStoredSession()?.user || null);
-      setRoleViewMode('native');
-      setTab('map');
-      setToast('Vous êtes reconnecté avec votre compte administrateur.');
-    } catch (e) {
-      setToast(e.message || 'Impossible de quitter la prise de contrôle');
-    }
-  }, [studentRef]);
-
-  const mergeAuthMeResponse = useCallback((d, opts = {}) => {
-    const { studentIdForMatch } = opts;
-    if (!d || typeof d !== 'object' || !d.auth) return;
-    const { auth } = d;
-    if (typeof d.refreshedToken === 'string' && d.refreshedToken.trim() !== '') {
-      const trimmed = d.refreshedToken.trim();
-      const cur = getAuthToken();
-      if (!(cur && isElevatedJwt(cur) && !isElevatedJwt(trimmed))) {
-        safeLocalStorageSetItem('foretmap_auth_token', trimmed);
-        const sess = getStoredSession() || {};
-        saveStoredSession({ ...sess, token: trimmed });
-      }
-    }
-    const claims = getAuthClaims();
-    setAuthClaims(claims);
-    setIsTeacher(
-      Array.isArray(claims?.permissions) && claims.permissions.includes('teacher.access'),
-    );
-    if (auth.userType === 'teacher') {
-      setSessionUser((prev) => ({
-        id: auth.canonicalUserId || prev?.id || null,
-        userType: 'teacher',
-        displayName: auth.roleDisplayName || prev?.displayName || 'Utilisateur',
-        email: prev?.email || null,
-        avatar_path: prev?.avatar_path || null,
-      }));
-    }
-    if (d.autoProfilePromotion && auth.userType === 'student') {
-      if (!studentIdForMatch || String(auth.userId) === String(studentIdForMatch)) {
-        setProfilePromotion(d.autoProfilePromotion);
-      }
-    }
-    if (
-      auth.userType === 'student' &&
-      (d.taskEnrollment != null ||
-        typeof d.forumParticipate === 'boolean' ||
-        typeof d.contextCommentParticipate === 'boolean')
-    ) {
-      setStudent((prev) => {
-        if (!prev || String(prev.id) !== String(auth.userId)) return prev;
-        return {
-          ...prev,
-          ...(d.taskEnrollment != null ? { taskEnrollment: d.taskEnrollment } : {}),
-          ...(typeof d.forumParticipate === 'boolean'
-            ? { forumParticipate: d.forumParticipate }
-            : {}),
-          ...(typeof d.contextCommentParticipate === 'boolean'
-            ? { contextCommentParticipate: d.contextCommentParticipate }
-            : {}),
-        };
-      });
-    }
-  }, []);
-
-  const validateStudentSession = useCallback(
-    async (savedStudent) => {
-      if (!savedStudent?.id) return;
-      try {
-        const fresh = await api('/api/students/register', 'POST', { studentId: savedStudent.id });
-        updateStudentSession(fresh);
-      } catch (err) {
-        if (err instanceof AccountDeletedError || err.deleted) {
-          forceLogout();
-          return;
-        }
-        console.error('[ForetMap] validation session n3beur', err);
-        setSessionValidationError(true);
-        setToast('Connexion instable: session n3beur non vérifiée.');
-      }
-    },
-    [forceLogout, updateStudentSession],
-  );
-
-  // Restore session — validates against server on load
-  useEffect(() => {
-    const saved = safeLocalStorageGetItem('foretmap_student', null);
-    if (saved) {
-      try {
-        const s = JSON.parse(saved);
-        setStudent(s); // show app immediately with cached data
-        validateStudentSession(s);
-      } catch (e) {
-        console.error('[ForetMap] lecture session locale', e);
-      }
-    }
-    const session = getStoredSession();
-    if (session?.user && !session?.student) {
-      setSessionUser(session.user);
-    }
-  }, [validateStudentSession]);
-
+  /* Les deux écouteurs de useSessionWindowSync posent déjà authClaims de façon cohérente
+     (null à l'expiration, claims relus au changement de session) : le setIsTeacher legacy
+     devient un no-op, isTeacher étant dérivé d'authClaims. */
+  const setIsTeacherNoop = useCallback(() => {}, []);
   useSessionWindowSync({
     setAuthClaims,
-    setIsTeacher,
+    setIsTeacher: setIsTeacherNoop,
     setSessionUser,
     setToast,
   });
@@ -979,11 +759,7 @@ function App() {
       const authToken = safeLocalStorageGetItem('foretmap_auth_token', null);
       if (authToken) saveStoredSession({ token: authToken });
     }
-    const claims = getAuthClaims();
-    setAuthClaims(claims);
-    setIsTeacher(
-      Array.isArray(claims?.permissions) && claims.permissions.includes('teacher.access'),
-    );
+    setAuthClaims(getAuthClaims());
     setToast('Droits étendus coupés — mode léger');
   }, [updateStudentSession]);
 
@@ -993,7 +769,6 @@ function App() {
     studentRef.current = null;
     setStudent(null);
     setSessionUser(null);
-    setIsTeacher(false);
     setAuthClaims(null);
   }, [studentRef]);
 
@@ -1338,10 +1113,6 @@ function App() {
                 }
                 const claims = getAuthClaims();
                 setAuthClaims(claims);
-                setIsTeacher(
-                  Array.isArray(claims?.permissions) &&
-                    claims.permissions.includes('teacher.access'),
-                );
                 const roleSlug = String(claims?.roleSlug || '').toLowerCase();
                 if (userType !== 'teacher' && roleSlug === 'visiteur') {
                   const visitOk = publicSettings?.modules?.visit_enabled !== false;
@@ -1415,34 +1186,20 @@ function App() {
                 </div>
               )}
               {serverDown && (
-                <div
-                  className="fade-in"
-                  role="alert"
-                  style={{
-                    margin: '8px 12px 0',
-                    padding: '10px 14px',
-                    borderRadius: 12,
-                    background: '#fef3c7',
-                    border: '1px solid #f59e0b',
-                    color: '#78350f',
-                    fontSize: '.9rem',
-                  }}
-                >
-                  {appServerDownNotice}
-                  <button
-                    type="button"
-                    className="btn btn-sm"
-                    style={{ marginLeft: 10, verticalAlign: 'middle' }}
-                    onClick={() => {
+                <NoticeBanner
+                  tone="warning"
+                  action={{
+                    label: appRetryNow,
+                    onClick: () => {
                       failCountRef.current = 0;
                       setRefreshMs(DATA_REFRESH_INTERVAL_MS);
                       setServerDown(false);
                       fetchAll();
-                    }}
-                  >
-                    {appRetryNow}
-                  </button>
-                </div>
+                    },
+                  }}
+                >
+                  {appServerDownNotice}
+                </NoticeBanner>
               )}
               {!serverDown && latestCriticalNotification && (
                 <div className="fade-in notif-critical-banner" role="alert">
@@ -1451,33 +1208,19 @@ function App() {
                 </div>
               )}
               {sessionValidationError && studentForUi && !effectiveIsTeacher && (
-                <div
-                  className="fade-in"
-                  role="alert"
-                  style={{
-                    margin: '8px 12px 0',
-                    padding: '10px 14px',
-                    borderRadius: 12,
-                    background: '#eff6ff',
-                    border: '1px solid #93c5fd',
-                    color: '#1e3a8a',
-                    fontSize: '.9rem',
+                <NoticeBanner
+                  tone="info"
+                  action={{
+                    label: 'Réessayer',
+                    onClick: () => {
+                      setSessionValidationError(false);
+                      validateStudentSession(studentForUi);
+                    },
                   }}
                 >
                   <strong>Session pas encore recollée au serveur.</strong> Les infos peuvent être un
                   peu vieilles — un clic pour rafraîchir.
-                  <button
-                    type="button"
-                    className="btn btn-sm"
-                    style={{ marginLeft: 10, verticalAlign: 'middle' }}
-                    onClick={() => {
-                      setSessionValidationError(false);
-                      validateStudentSession(studentForUi);
-                    }}
-                  >
-                    Réessayer
-                  </button>
-                </div>
+                </NoticeBanner>
               )}
               {toast && <Toast msg={toast} onDone={() => setToast(null)} />}
               {profilePromotion &&
@@ -1496,10 +1239,6 @@ function App() {
                     const claims = getAuthClaims();
                     setPinSuccessFetchAllTick((n) => n + 1);
                     setAuthClaims(claims);
-                    setIsTeacher(
-                      Array.isArray(claims?.permissions) &&
-                        claims.permissions.includes('teacher.access'),
-                    );
                     setShowPin(false);
                     setToast(
                       claims?.elevated
@@ -1654,87 +1393,33 @@ function App() {
                     </div>
                   ) : (
                     <>
-                      {useSplitMapTasks && (
-                        <div
-                          className="desktop-split-view"
-                          role="region"
-                          aria-label={
-                            tutorialsModuleEnabled
-                              ? 'Vue carte, tâches et tutoriels'
-                              : 'Vue carte et tâches'
-                          }
-                        >
-                          <section className="desktop-split-pane desktop-split-pane--map">
-                            <MapView
-                              maps={visibleMaps}
-                              onMapChange={setActiveMapId}
-                              isTeacher
-                              student={currentUser}
-                              onZoneUpdate={updateZone}
-                              onRefresh={fetchAll}
-                              embedded
-                              onLocationTasksFocus={handleMapLocationTasksFocus}
-                              onOpenPlantCatalogPreview={openPlantCatalogPreviewById}
-                              onForceLogout={forceLogout}
-                            />
-                          </section>
-                          <section className="desktop-split-pane desktop-split-pane--tasks">
-                            <div className="desktop-split-scroll">
-                              <TasksView
-                                maps={visibleMaps}
-                                isTeacher
-                                student={currentUser}
-                                canSelfAssignTasks
-                                canViewOtherUsersIdentity
-                                hasPermission={hasPermission}
-                                hasPermissionInRole={hasPermissionInRole}
-                                onRefresh={fetchAll}
-                                onForceLogout={forceLogout}
-                                onTaskFormOverlayOpenChange={onTaskFormOverlayOpenChange}
-                                mapLocationFocus={tasksLocationFocus}
-                                onMapLocationFocusChange={setTasksLocationFocus}
-                                onOpenPlantCatalogPreview={openPlantCatalogPreviewById}
-                              />
-                            </div>
-                          </section>
-                        </div>
-                      )}
-                      {!useSplitMapTasks && tab === 'map' && (
-                        <MapView
-                          maps={visibleMaps}
-                          onMapChange={setActiveMapId}
-                          isTeacher
-                          student={currentUser}
-                          canSelfAssignTasks
-                          onZoneUpdate={updateZone}
-                          onRefresh={fetchAll}
-                          onLocationTasksFocus={handleMapLocationTasksFocus}
-                          onNavigateToTasksForLocation={
-                            effectiveIsTeacher || canAccessStudentMapTasks
-                              ? navigateToTasksForLocation
-                              : undefined
-                          }
-                          onOpenPlantCatalogPreview={openPlantCatalogPreviewById}
-                          onForceLogout={forceLogout}
-                        />
-                      )}
-                      {!useSplitMapTasks && tab === 'tasks' && (
-                        <TasksView
-                          maps={visibleMaps}
-                          isTeacher
-                          student={currentUser}
-                          canSelfAssignTasks
-                          canViewOtherUsersIdentity
-                          hasPermission={hasPermission}
-                          hasPermissionInRole={hasPermissionInRole}
-                          onRefresh={fetchAll}
-                          onForceLogout={forceLogout}
-                          onTaskFormOverlayOpenChange={onTaskFormOverlayOpenChange}
-                          mapLocationFocus={tasksLocationFocus}
-                          onMapLocationFocusChange={setTasksLocationFocus}
-                          onOpenPlantCatalogPreview={openPlantCatalogPreviewById}
-                        />
-                      )}
+                      <MapTasksArea
+                        isTeacher
+                        student={currentUser}
+                        maps={visibleMaps}
+                        onMapChange={setActiveMapId}
+                        useSplitMapTasks={useSplitMapTasks}
+                        tab={tab}
+                        tutorialsModuleEnabled={tutorialsModuleEnabled}
+                        canAccessSoloMapTasks
+                        canSelfAssignTasks
+                        canViewOtherUsersIdentity
+                        hasPermission={hasPermission}
+                        hasPermissionInRole={hasPermissionInRole}
+                        onZoneUpdate={updateZone}
+                        onRefresh={fetchAll}
+                        onForceLogout={forceLogout}
+                        onLocationTasksFocus={handleMapLocationTasksFocus}
+                        onNavigateToTasksForLocation={
+                          effectiveIsTeacher || canAccessStudentMapTasks
+                            ? navigateToTasksForLocation
+                            : undefined
+                        }
+                        onTaskFormOverlayOpenChange={onTaskFormOverlayOpenChange}
+                        mapLocationFocus={tasksLocationFocus}
+                        onMapLocationFocusChange={setTasksLocationFocus}
+                        onOpenPlantCatalogPreview={openPlantCatalogPreviewById}
+                      />
                       {tab === 'plants' && (
                         <TabSuspense>
                           <PlantManagerLazy
@@ -1785,23 +1470,6 @@ function App() {
                             <p>Journal d’audit réservé — il te manque un droit pour l’ouvrir.</p>
                           </div>
                         ))}
-                      {publicSettings?.modules?.visit_enabled !== false && tab === 'visit' && (
-                        <TabSuspense>
-                          <VisitViewLazy
-                            student={currentUser}
-                            isTeacher
-                            availableTutorials={tutorials}
-                            initialMapId={activeMapId}
-                            onForceLogout={forceLogout}
-                            onOpenMascotPackStudioTab={openMascotPackStudioTab}
-                            profileVisitMascotId={currentUser?.visit_mascot_catalog_id || null}
-                            mapZones={zones}
-                            mapMarkers={markers}
-                            catalogTutorials={tutorials}
-                            onOpenPlantCatalogPreview={openPlantCatalogPreviewById}
-                          />
-                        </TabSuspense>
-                      )}
                       {publicSettings?.modules?.visit_enabled !== false &&
                         tab === 'mascot_packs' && (
                           <div
@@ -1871,42 +1539,29 @@ function App() {
                           <ForumViewLazy authClaims={authClaims} canParticipateForum />
                         </TabSuspense>
                       )}
-                      {tab === 'glossary' && (
-                        <TabSuspense>
-                          <GlossaryViewLazy
-                            onOpenPlant={openPlantCatalogPreviewById}
-                            onOpenQuizQuestion={openPedagoQuizQuestion}
-                            selectedCode={pedagoGlossaryCode}
-                            onSelectedCodeChange={setPedagoGlossaryCode}
-                          />
-                        </TabSuspense>
-                      )}
-                      {tab === 'quiz' && (
-                        <TabSuspense>
-                          <QuizAdminViewLazy
-                            canManageQuiz={canManageQuiz}
-                            onOpenPlant={openPlantCatalogPreviewById}
-                            onOpenGlossaryTerm={openPedagoGlossaryTerm}
-                            initialQuestionCode={pedagoQuizQuestionCode}
-                          />
-                        </TabSuspense>
-                      )}
-                      {tab === 'foodweb' && (
-                        <TabSuspense>
-                          <FoodWebViewLazy
-                            maps={visibleMaps}
-                            onOpenPlant={openPlantCatalogPreviewById}
-                            onOpenGlossaryTerm={openPedagoGlossaryTerm}
-                            highlightPlantId={foodWebHighlightPlantId}
-                            canManage={canManageFoodWeb}
-                          />
-                        </TabSuspense>
-                      )}
-                      {tab === 'about' && (
-                        <TabSuspense>
-                          <AboutViewLazy appVersion={appVersion} isTeacher={effectiveIsTeacher} />
-                        </TabSuspense>
-                      )}
+                      <PedagoTabs
+                        isTeacher
+                        tab={tab}
+                        visitEnabled={publicSettings?.modules?.visit_enabled !== false}
+                        student={currentUser}
+                        tutorials={tutorials}
+                        activeMapId={activeMapId}
+                        zones={zones}
+                        markers={markers}
+                        onForceLogout={forceLogout}
+                        onOpenMascotPackStudioTab={openMascotPackStudioTab}
+                        onOpenPlantCatalogPreview={openPlantCatalogPreviewById}
+                        onOpenGlossaryTerm={openPedagoGlossaryTerm}
+                        onOpenQuizQuestion={openPedagoQuizQuestion}
+                        glossarySelectedCode={pedagoGlossaryCode}
+                        onGlossarySelectedCodeChange={setPedagoGlossaryCode}
+                        canManageQuiz={canManageQuiz}
+                        quizInitialQuestionCode={pedagoQuizQuestionCode}
+                        maps={visibleMaps}
+                        foodWebHighlightPlantId={foodWebHighlightPlantId}
+                        canManageFoodWeb={canManageFoodWeb}
+                        appVersion={appVersion}
+                      />
                     </>
                   )}
                 </div>
@@ -1922,84 +1577,29 @@ function App() {
                       </div>
                     ) : (
                       <>
-                        {useSplitMapTasks && (
-                          <div
-                            className="desktop-split-view"
-                            role="region"
-                            aria-label={
-                              tutorialsModuleEnabled
-                                ? 'Vue carte, tâches et tutoriels'
-                                : 'Vue carte et tâches'
-                            }
-                          >
-                            <section className="desktop-split-pane desktop-split-pane--map">
-                              <MapView
-                                maps={visibleMaps}
-                                onMapChange={setActiveMapId}
-                                isTeacher={false}
-                                student={studentForUi}
-                                canSelfAssignTasks={canSelfAssignTasks}
-                                canEnrollOnTasks={canSelfAssignMoreTasks}
-                                onZoneUpdate={updateZone}
-                                onRefresh={fetchAll}
-                                embedded
-                                onLocationTasksFocus={handleMapLocationTasksFocus}
-                                onOpenPlantCatalogPreview={openPlantCatalogPreviewById}
-                                onForceLogout={forceLogout}
-                              />
-                            </section>
-                            <section className="desktop-split-pane desktop-split-pane--tasks">
-                              <div className="desktop-split-scroll">
-                                <TasksView
-                                  maps={visibleMaps}
-                                  isTeacher={false}
-                                  student={studentForUi}
-                                  canSelfAssignTasks={canSelfAssignTasks}
-                                  canEnrollOnTasks={canSelfAssignMoreTasks}
-                                  canViewOtherUsersIdentity={canViewOtherUsersIdentity}
-                                  onRefresh={fetchAll}
-                                  onForceLogout={forceLogout}
-                                  onTaskFormOverlayOpenChange={onTaskFormOverlayOpenChange}
-                                  mapLocationFocus={tasksLocationFocus}
-                                  onMapLocationFocusChange={setTasksLocationFocus}
-                                  onOpenPlantCatalogPreview={openPlantCatalogPreviewById}
-                                />
-                              </div>
-                            </section>
-                          </div>
-                        )}
-                        {!useSplitMapTasks && tab === 'map' && canAccessStudentMapTasks && (
-                          <MapView
-                            maps={visibleMaps}
-                            onMapChange={setActiveMapId}
-                            isTeacher={false}
-                            student={studentForUi}
-                            canSelfAssignTasks={canSelfAssignTasks}
-                            canEnrollOnTasks={canSelfAssignMoreTasks}
-                            onZoneUpdate={updateZone}
-                            onRefresh={fetchAll}
-                            onLocationTasksFocus={handleMapLocationTasksFocus}
-                            onNavigateToTasksForLocation={navigateToTasksForLocation}
-                            onOpenPlantCatalogPreview={openPlantCatalogPreviewById}
-                            onForceLogout={forceLogout}
-                          />
-                        )}
-                        {!useSplitMapTasks && tab === 'tasks' && canAccessStudentMapTasks && (
-                          <TasksView
-                            maps={visibleMaps}
-                            isTeacher={false}
-                            student={studentForUi}
-                            canSelfAssignTasks={canSelfAssignTasks}
-                            canEnrollOnTasks={canSelfAssignMoreTasks}
-                            canViewOtherUsersIdentity={canViewOtherUsersIdentity}
-                            onRefresh={fetchAll}
-                            onForceLogout={forceLogout}
-                            onTaskFormOverlayOpenChange={onTaskFormOverlayOpenChange}
-                            mapLocationFocus={tasksLocationFocus}
-                            onMapLocationFocusChange={setTasksLocationFocus}
-                            onOpenPlantCatalogPreview={openPlantCatalogPreviewById}
-                          />
-                        )}
+                        <MapTasksArea
+                          isTeacher={false}
+                          student={studentForUi}
+                          maps={visibleMaps}
+                          onMapChange={setActiveMapId}
+                          useSplitMapTasks={useSplitMapTasks}
+                          tab={tab}
+                          tutorialsModuleEnabled={tutorialsModuleEnabled}
+                          canAccessSoloMapTasks={canAccessStudentMapTasks}
+                          splitMapCanSelfAssignTasks={canSelfAssignTasks}
+                          canSelfAssignTasks={canSelfAssignTasks}
+                          canEnrollOnTasks={canSelfAssignMoreTasks}
+                          canViewOtherUsersIdentity={canViewOtherUsersIdentity}
+                          onZoneUpdate={updateZone}
+                          onRefresh={fetchAll}
+                          onForceLogout={forceLogout}
+                          onLocationTasksFocus={handleMapLocationTasksFocus}
+                          onNavigateToTasksForLocation={navigateToTasksForLocation}
+                          onTaskFormOverlayOpenChange={onTaskFormOverlayOpenChange}
+                          mapLocationFocus={tasksLocationFocus}
+                          onMapLocationFocusChange={setTasksLocationFocus}
+                          onOpenPlantCatalogPreview={openPlantCatalogPreviewById}
+                        />
                         {tab === 'plants' && (
                           <TabSuspense>
                             <PlantViewerLazy
@@ -2035,22 +1635,6 @@ function App() {
                               />
                             </TabSuspense>
                           )}
-                        {publicSettings?.modules?.visit_enabled !== false && tab === 'visit' && (
-                          <TabSuspense>
-                            <VisitViewLazy
-                              student={studentForUi}
-                              isTeacher={false}
-                              availableTutorials={tutorials}
-                              initialMapId={activeMapId}
-                              onForceLogout={forceLogout}
-                              profileVisitMascotId={studentForUi?.visit_mascot_catalog_id || null}
-                              mapZones={zones}
-                              mapMarkers={markers}
-                              catalogTutorials={tutorials}
-                              onOpenPlantCatalogPreview={openPlantCatalogPreviewById}
-                            />
-                          </TabSuspense>
-                        )}
                         {tab === 'forum' && canAccessForum && (
                           <TabSuspense>
                             <ForumViewLazy
@@ -2059,41 +1643,27 @@ function App() {
                             />
                           </TabSuspense>
                         )}
-                        {tab === 'glossary' && (
-                          <TabSuspense>
-                            <GlossaryViewLazy
-                              onOpenPlant={openPlantCatalogPreviewById}
-                              onOpenQuizQuestion={openPedagoQuizQuestion}
-                              selectedCode={pedagoGlossaryCode}
-                              onSelectedCodeChange={setPedagoGlossaryCode}
-                            />
-                          </TabSuspense>
-                        )}
-                        {tab === 'quiz' && (
-                          <TabSuspense>
-                            <QuizViewLazy
-                              onOpenPlant={openPlantCatalogPreviewById}
-                              onOpenGlossaryTerm={openPedagoGlossaryTerm}
-                              initialQuestionCode={pedagoQuizQuestionCode}
-                            />
-                          </TabSuspense>
-                        )}
-                        {tab === 'foodweb' && (
-                          <TabSuspense>
-                            <FoodWebViewLazy
-                              maps={visibleMaps}
-                              onOpenPlant={openPlantCatalogPreviewById}
-                              onOpenGlossaryTerm={openPedagoGlossaryTerm}
-                              highlightPlantId={foodWebHighlightPlantId}
-                              canManage={canManageFoodWeb}
-                            />
-                          </TabSuspense>
-                        )}
-                        {tab === 'about' && (
-                          <TabSuspense>
-                            <AboutViewLazy appVersion={appVersion} isTeacher={false} />
-                          </TabSuspense>
-                        )}
+                        <PedagoTabs
+                          isTeacher={false}
+                          tab={tab}
+                          visitEnabled={publicSettings?.modules?.visit_enabled !== false}
+                          student={studentForUi}
+                          tutorials={tutorials}
+                          activeMapId={activeMapId}
+                          zones={zones}
+                          markers={markers}
+                          onForceLogout={forceLogout}
+                          onOpenPlantCatalogPreview={openPlantCatalogPreviewById}
+                          onOpenGlossaryTerm={openPedagoGlossaryTerm}
+                          onOpenQuizQuestion={openPedagoQuizQuestion}
+                          glossarySelectedCode={pedagoGlossaryCode}
+                          onGlossarySelectedCodeChange={setPedagoGlossaryCode}
+                          quizInitialQuestionCode={pedagoQuizQuestionCode}
+                          maps={visibleMaps}
+                          foodWebHighlightPlantId={foodWebHighlightPlantId}
+                          canManageFoodWeb={canManageFoodWeb}
+                          appVersion={appVersion}
+                        />
                       </>
                     )}
                   </div>
