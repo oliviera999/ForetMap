@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react';
+// Styles admin/MJ : extraits de gl-theme.css, livrés avec le chunk lazy de cette vue.
+import '../styles/gl-admin.css';
 import { apiGL } from '../services/apiGL.js';
 import { GLClassesPanel } from './admin/GLClassesPanel.jsx';
 import { GLPlayersPanel } from './admin/GLPlayersPanel.jsx';
