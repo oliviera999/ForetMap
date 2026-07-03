@@ -14,7 +14,6 @@ test('parcours élève : quiz visible et tirage', async ({ page }) => {
   const choice = page.locator('.pedago-quiz__choice input[type="radio"]').first();
   await choice.check();
   await page.getByRole('button', { name: /Valider ma réponse/i }).click();
-  await expect(page.locator('.pedago-quiz__card')).toContainText(/bonne|incorrect|Bravo|Dommage/i, {
-    timeout: 15_000,
-  });
+  await expect(page.locator('.pedago-qcm-feedback')).toBeVisible({ timeout: 15_000 });
+  await expect(page.locator('.pedago-qcm-feedback__text')).not.toBeEmpty();
 });

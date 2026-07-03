@@ -7,6 +7,16 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Correctif
+
+- **BDD** : migration `162_repair_task_zones_markers_fk` — réparation idempotente des FK `task_zones` / `task_markers` (drift local sans contraintes).
+- **e2e** : quiz pédagogique — attente du bloc `.pedago-qcm-feedback` (feedbacks personnalisés type « Exact ! »).
+
+### Technique
+
+- **Format** : normalisation Prettier LF (cohérence CI / Windows).
+- **Build** : régénération `dist/` après build local.
+
 ### Audit — Vague 7 (clôture) : derniers reliquats
 
 - **GL `admin.js` 1355 → 1217 L** : reset-password/pin unifiés, `PUT
