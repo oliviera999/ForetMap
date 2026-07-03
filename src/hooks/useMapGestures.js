@@ -95,52 +95,58 @@ function useMapGestures({
   // Sert à dimensionner les étiquettes par rapport à la taille au repos (cf. mapOverlayTypography).
   const [fitScale, setFitScale] = useState(1);
 
-  const applyTransform = () => {
+  // Fonctions mémoïsées (useCallback, deps stables) : elles ne lisent que des refs, donc
+  // l'identité reste constante → les effets/écouteurs qui en dépendent ne se remontent pas
+  // à chaque rendu et l'API retournée par le hook est stable pour React.memo en aval.
+  const applyTransform = useCallback(() => {
     if (!worldRef.current) return;
     const { x, y, s } = tx.current;
     worldRef.current.style.transform = `translate(${x}px,${y}px) scale(${s})`;
-  };
+  }, []);
 
   /**
    * Active `will-change: transform` pendant les gestes (fluidité GPU) et le retire au repos.
    * Au repos, le calque n'est plus mis en cache à 1× : le navigateur re-pixellise son contenu
    * (texte SVG + repères + emojis) à l'échelle affichée → étiquettes nettes même à fort zoom.
    */
-  const setWorldWillChange = (on) => {
+  const setWorldWillChange = useCallback((on) => {
     const el = worldRef.current;
     if (el) el.style.willChange = on ? 'transform' : 'auto';
-  };
+  }, []);
 
-  const commit = () => {
+  const commit = useCallback(() => {
     const snap = { ...tx.current };
     setCommitted(snap);
     setWorldWillChange(false);
     cancelAnimationFrame(commitRef.current);
     commitRef.current = requestAnimationFrame(applyTransform);
-  };
+  }, [applyTransform, setWorldWillChange]);
 
-  const scheduleApply = () => {
+  const scheduleApply = useCallback(() => {
     if (rafId.current) return;
     rafId.current = requestAnimationFrame(() => {
       applyTransform();
       rafId.current = null;
     });
-  };
+  }, [applyTransform]);
 
   /** Ajuste la carte au conteneur sans forcer un re-render si rien n’a changé (évite le gel mobile quand la barre d’adresse redimensionne la vue en boucle). */
-  const commitFitLayout = (x, y, s) => {
-    tx.current = { x, y, s };
-    applyTransform();
-    setWorldWillChange(false);
-    // `commitFitLayout` n’est appelé que pour un ajustement (fit/remesure), jamais au zoom :
-    // `s` est donc toujours l’échelle au repos.
-    setFitScale((prev) => (Math.abs(prev - s) < 1e-4 ? prev : s));
-    setCommitted((prev) => {
-      if (Math.abs(prev.x - x) < 0.5 && Math.abs(prev.y - y) < 0.5 && Math.abs(prev.s - s) < 1e-4)
-        return prev;
-      return { x, y, s };
-    });
-  };
+  const commitFitLayout = useCallback(
+    (x, y, s) => {
+      tx.current = { x, y, s };
+      applyTransform();
+      setWorldWillChange(false);
+      // `commitFitLayout` n’est appelé que pour un ajustement (fit/remesure), jamais au zoom :
+      // `s` est donc toujours l’échelle au repos.
+      setFitScale((prev) => (Math.abs(prev - s) < 1e-4 ? prev : s));
+      setCommitted((prev) => {
+        if (Math.abs(prev.x - x) < 0.5 && Math.abs(prev.y - y) < 0.5 && Math.abs(prev.s - s) < 1e-4)
+          return prev;
+        return { x, y, s };
+      });
+    },
+    [applyTransform, setWorldWillChange],
+  );
 
   useEffect(() => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined;
@@ -153,60 +159,68 @@ function useMapGestures({
     return () => mq.removeEventListener('change', apply);
   }, []);
 
-  const cancelToolbarZoomAnim = () => {
+  const cancelToolbarZoomAnim = useCallback(() => {
     if (zoomAnimRafRef.current != null) {
       cancelAnimationFrame(zoomAnimRafRef.current);
       zoomAnimRafRef.current = null;
     }
-  };
+  }, []);
+
+  // Annulation de l'animation de zoom UNIQUEMENT au démontage du hook : auparavant elle vivait
+  // dans le cleanup de l'effet des écouteurs, qui se démontait/remontait à chaque rendu
+  // (enableMapInteraction non mémoïsé) et pouvait donc interrompre une animation en cours.
+  useEffect(() => () => cancelToolbarZoomAnim(), [cancelToolbarZoomAnim]);
 
   /** Zoom boutons +/− : interpolation courte : même cible que l’ancien saut, sans effet « par paliers ». */
-  const animateZoomTowardScale = (targetS, pivotLocalX, pivotLocalY) => {
-    cancelToolbarZoomAnim();
-    const start = { ...tx.current };
-    const clampedTarget = Math.min(Math.max(targetS, MAP_VIEW_SCALE_MIN), MAP_VIEW_SCALE_MAX);
-    if (!Number.isFinite(clampedTarget) || Math.abs(clampedTarget - start.s) < 1e-6) return;
-    setWorldWillChange(true);
-    const duration = reducedMotionRef.current ? 0 : 200;
-    const easeOutCubic = (u) => 1 - (1 - u) ** 3;
-    if (duration <= 0) {
-      const ns = clampedTarget;
-      tx.current.x = pivotLocalX - (pivotLocalX - start.x) * (ns / start.s);
-      tx.current.y = pivotLocalY - (pivotLocalY - start.y) * (ns / start.s);
-      tx.current.s = ns;
-      applyTransform();
-      commit();
-      return;
-    }
-    const t0 = performance.now();
-    const step = (now) => {
-      const t = Math.min(1, (now - t0) / duration);
-      const u = easeOutCubic(t);
-      const curS = start.s + (clampedTarget - start.s) * u;
-      tx.current.x = pivotLocalX - (pivotLocalX - start.x) * (curS / start.s);
-      tx.current.y = pivotLocalY - (pivotLocalY - start.y) * (curS / start.s);
-      tx.current.s = curS;
-      applyTransform();
-      if (t < 1) {
-        zoomAnimRafRef.current = requestAnimationFrame(step);
-      } else {
-        zoomAnimRafRef.current = null;
+  const animateZoomTowardScale = useCallback(
+    (targetS, pivotLocalX, pivotLocalY) => {
+      cancelToolbarZoomAnim();
+      const start = { ...tx.current };
+      const clampedTarget = Math.min(Math.max(targetS, MAP_VIEW_SCALE_MIN), MAP_VIEW_SCALE_MAX);
+      if (!Number.isFinite(clampedTarget) || Math.abs(clampedTarget - start.s) < 1e-6) return;
+      setWorldWillChange(true);
+      const duration = reducedMotionRef.current ? 0 : 200;
+      const easeOutCubic = (u) => 1 - (1 - u) ** 3;
+      if (duration <= 0) {
+        const ns = clampedTarget;
+        tx.current.x = pivotLocalX - (pivotLocalX - start.x) * (ns / start.s);
+        tx.current.y = pivotLocalY - (pivotLocalY - start.y) * (ns / start.s);
+        tx.current.s = ns;
+        applyTransform();
         commit();
+        return;
       }
-    };
-    zoomAnimRafRef.current = requestAnimationFrame(step);
-  };
+      const t0 = performance.now();
+      const step = (now) => {
+        const t = Math.min(1, (now - t0) / duration);
+        const u = easeOutCubic(t);
+        const curS = start.s + (clampedTarget - start.s) * u;
+        tx.current.x = pivotLocalX - (pivotLocalX - start.x) * (curS / start.s);
+        tx.current.y = pivotLocalY - (pivotLocalY - start.y) * (curS / start.s);
+        tx.current.s = curS;
+        applyTransform();
+        if (t < 1) {
+          zoomAnimRafRef.current = requestAnimationFrame(step);
+        } else {
+          zoomAnimRafRef.current = null;
+          commit();
+        }
+      };
+      zoomAnimRafRef.current = requestAnimationFrame(step);
+    },
+    [applyTransform, cancelToolbarZoomAnim, commit, setWorldWillChange],
+  );
 
-  const enableMapInteraction = () => {
+  const enableMapInteraction = useCallback(() => {
     setMapInteractionEnabled(true);
-  };
+  }, []);
 
-  const toggleMapInteraction = () => {
+  const toggleMapInteraction = useCallback(() => {
     setMapInteractionEnabled((prev) => {
       const next = !prev;
       return next;
     });
-  };
+  }, []);
 
   useEffect(() => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
@@ -229,8 +243,12 @@ function useMapGestures({
     const img = imgRef.current;
     if (!img) return;
     const onLoad = () => {
-      imgSizeRef.current = { w: img.naturalWidth, h: img.naturalHeight };
-      setImgSize({ w: img.naturalWidth, h: img.naturalHeight });
+      const w = img.naturalWidth;
+      const h = img.naturalHeight;
+      imgSizeRef.current = { w, h };
+      // Ne crée pas un nouvel objet à dimensions égales : évite un re-render (et le
+      // remontage de l'effet de mesure keyé sur `imgSize`) quand l'image est identique.
+      setImgSize((prev) => (prev.w === w && prev.h === h ? prev : { w, h }));
     };
     if (img.complete) onLoad();
     else img.addEventListener('load', onLoad);
@@ -330,7 +348,7 @@ function useMapGestures({
       const root = c.closest('.map-view-root');
       if (root) root.style.removeProperty('--fm-map-canvas-w');
     };
-  }, [imgSize, embedded, mapLayoutOuterRef, mapFullscreen]);
+  }, [imgSize, embedded, mapLayoutOuterRef, mapFullscreen, commitFitLayout]);
 
   const remeasureMap = useCallback(() => {
     const c = containerRef.current;
@@ -368,9 +386,9 @@ function useMapGestures({
     const x = (availW - iw * s) / 2;
     const y = (availH - ih * s) / 2;
     commitFitLayout(x, y, s);
-  }, [embedded, mapLayoutOuterRef, mapFullscreen]);
+  }, [embedded, mapLayoutOuterRef, mapFullscreen, commitFitLayout]);
 
-  const toImagePct = (clientX, clientY) => {
+  const toImagePct = useCallback((clientX, clientY) => {
     const c = containerRef.current;
     if (!c) return null;
     const { x, y, s } = tx.current;
@@ -382,7 +400,7 @@ function useMapGestures({
       { offsetX: 0, offsetY: 0, width: w, height: h },
       { clamp: false },
     );
-  };
+  }, []);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -491,7 +509,12 @@ function useMapGestures({
       const t0 = e.touches[0];
       const t1 = e.touches[1];
       const dist = Math.hypot(t0.clientX - t1.clientX, t0.clientY - t1.clientY);
-      const ns = Math.min(Math.max(touchRef2.s * (dist / touchRef2.dist), 0.15), 6);
+      // Bornes alignées sur la molette et les boutons +/− (MAP_VIEW_SCALE_MIN/MAX) :
+      // le pinch clampait en dur (0.15, 6) → le plafond du pinch passe de 6 à 8.
+      const ns = Math.min(
+        Math.max(touchRef2.s * (dist / touchRef2.dist), MAP_VIEW_SCALE_MIN),
+        MAP_VIEW_SCALE_MAX,
+      );
       tx.current.x = touchRef2.mx - (touchRef2.mx - touchRef2.ox) * (ns / touchRef2.s);
       tx.current.y = touchRef2.my - (touchRef2.my - touchRef2.oy) * (ns / touchRef2.s);
       tx.current.s = ns;
@@ -516,7 +539,9 @@ function useMapGestures({
     el.addEventListener('touchend', onTE, { passive: true });
 
     return () => {
-      cancelToolbarZoomAnim();
+      // Pas de cancelToolbarZoomAnim() ici : ce cleanup s'exécute à chaque changement de deps
+      // (ex. mapInteractionEnabled pendant un pinch) et couperait une animation de zoom en cours.
+      // L'annulation au démontage est portée par l'effet dédié plus haut.
       el.removeEventListener('pointerdown', onPD);
       el.removeEventListener('pointermove', onPM);
       el.removeEventListener('pointerup', onPU);
@@ -526,19 +551,33 @@ function useMapGestures({
       el.removeEventListener('touchmove', onTM);
       el.removeEventListener('touchend', onTE);
     };
-  }, [enableMapInteraction, isCoarsePointer, mapInteractionEnabled, mode, onRefresh]);
+  }, [
+    cancelToolbarZoomAnim,
+    commit,
+    enableMapInteraction,
+    isCoarsePointer,
+    mapInteractionEnabled,
+    mode,
+    onRefresh,
+    scheduleApply,
+    setWorldWillChange,
+    toImagePct,
+  ]);
 
-  const fitMap = () => {
+  const fitMap = useCallback(() => {
     cancelToolbarZoomAnim();
     remeasureMap();
-  };
+  }, [cancelToolbarZoomAnim, remeasureMap]);
 
-  const beginMarkerDrag = (id, target, pointerId) => {
-    draggingMarkerRef.current = id;
-    draggingMarkerEl.current = target;
-    target.setPointerCapture(pointerId);
-    enableMapInteraction();
-  };
+  const beginMarkerDrag = useCallback(
+    (id, target, pointerId) => {
+      draggingMarkerRef.current = id;
+      draggingMarkerEl.current = target;
+      target.setPointerCapture(pointerId);
+      enableMapInteraction();
+    },
+    [enableMapInteraction],
+  );
 
   const prefersPageScroll =
     isCoarsePointer && mode === 'view' && committed.s <= 1.05 && !mapInteractionEnabled;
