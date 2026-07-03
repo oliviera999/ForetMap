@@ -1,10 +1,11 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
-const { v4: uuidv4 } = require('uuid');
+const crypto = require('node:crypto');
 const { queryAll, queryOne, execute, withTransaction } = require('../database');
 const { requirePermission } = require('../middleware/requireTeacher');
 const { setPrimaryRole, getPrimaryRoleForUser } = require('../lib/rbac');
 const { getSettingValue, setSetting } = require('../lib/settings');
+const { getPasswordMinLength } = require('../lib/passwordReset');
 const { emitStudentsChanged } = require('../lib/realtime');
 const { resolveStudentAffiliationForPersist } = require('../lib/studentAffiliation');
 
@@ -80,13 +81,6 @@ async function resolveRbacSubjectForMutation(userTypeParam, userIdParam) {
   ]);
   if (!user) return { ok: false, status: 404, error: 'Utilisateur introuvable' };
   return { ok: true, user, resolvedUserType, resolvedUserId };
-}
-
-async function getPasswordMinLength() {
-  const n = await getSettingValue('security.password_min_length', 4);
-  const parsed = parseInt(n, 10);
-  if (!Number.isFinite(parsed)) return 4;
-  return Math.min(Math.max(parsed, 4), 32);
 }
 
 router.post(
@@ -178,7 +172,7 @@ router.post(
       if (!role) return res.status(404).json({ error: 'Profil introuvable' });
 
       const hash = await bcrypt.hash(password, 10);
-      const id = uuidv4();
+      const id = crypto.randomUUID();
       const now = new Date().toISOString();
       try {
         await execute(

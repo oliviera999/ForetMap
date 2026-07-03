@@ -69,7 +69,6 @@ function VisitMapMascotSpritesheet({
             '--visit-sprite-frame-width': `${sheet.frameWidth}px`,
             '--visit-sprite-start-x': `${-spriteStartCol * sheet.frameWidth}px`,
           }}
-          onError={() => setImgError(true)}
           role="presentation"
           aria-hidden="true"
         />

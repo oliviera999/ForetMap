@@ -1,6 +1,6 @@
 const express = require('express');
 const { queryAll, queryOne, withTransaction } = require('../../../database');
-const { requireGlAuth } = require('../../../middleware/requireGlAuth');
+const { requireGlAuth, actorTypeOf } = require('../../../middleware/requireGlAuth');
 const { normalizeEventRow } = require('../../../lib/glGameEvents');
 const { emitGlGameEvent } = require('../../../lib/realtime');
 const { canAccessGlGame } = require('../../../lib/glGameAccess');
@@ -12,13 +12,9 @@ const { getFeuilletZoneById } = require('../../../lib/glFeuilletZonesCatalog');
 const asyncHandler = require('../../../lib/asyncHandler');
 const { z, validate } = require('../../../lib/validate');
 const { getPlayerGameMembership } = require('../../../lib/gl/gamesRuntime');
+const { parseId } = require('../../../lib/shared/httpHelpers');
 
 const router = express.Router();
-
-function parseId(value) {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : null;
-}
 
 // O7 — query friction-free (coercition permissive, jamais de 400 issu du schéma) :
 // `teamId` (GET /games/:id/feuillet-zones/presented) reproduit l'ancien `parseId`
@@ -121,7 +117,7 @@ router.post(
     ]);
     if (!team) return res.status(404).json({ error: 'Équipe introuvable dans cette partie' });
 
-    const actorType = req.glAuth.userType === 'gl_admin' ? 'mj' : 'team';
+    const actorType = actorTypeOf(req);
     const result = await presentFeuilletZone(
       { queryAll, withTransaction },
       {
@@ -143,12 +139,9 @@ router.post(
       return res.status(result.error.status).json({ error: result.error.message });
     }
 
-    const evt = await queryOne(
-      `SELECT id, game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at
-       FROM gl_game_events WHERE game_id = ? ORDER BY id DESC LIMIT 1`,
-      [gameId],
-    );
-    if (evt) emitGlGameEvent(gameId, normalizeEventRow(evt));
+    // Événement inséré par presentFeuilletZone : émis par insertId (plus de
+    // re-SELECT « dernier de la partie », sensible à la concurrence).
+    if (result.presentEvent) emitGlGameEvent(gameId, result.presentEvent);
 
     return res.json({
       zone: {

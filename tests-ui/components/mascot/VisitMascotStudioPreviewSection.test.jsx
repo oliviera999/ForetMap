@@ -13,9 +13,7 @@ vi.mock('../../../src/components/VisitMapMascotRenderer.jsx', () => ({
 import VisitMascotStudioPreviewSection from '../../../src/components/mascot/VisitMascotStudioPreviewSection.jsx';
 
 function setup(extra = {}) {
-  render(
-    <VisitMascotStudioPreviewSection packs={[]} mapId="foret" onForceLogout={vi.fn()} {...extra} />,
-  );
+  render(<VisitMascotStudioPreviewSection packs={[]} mapId="foret" {...extra} />);
 }
 
 describe('VisitMascotStudioPreviewSection', () => {

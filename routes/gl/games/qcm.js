@@ -1,7 +1,7 @@
 const express = require('express');
 const { queryAll, queryOne, execute, withTransaction } = require('../../../database');
 const { requireGlAuth, hasGlPermission } = require('../../../middleware/requireGlAuth');
-const { normalizeEventRow } = require('../../../lib/glGameEvents');
+const { insertGameEvent } = require('../../../lib/glGameEvents');
 const { emitGlGameEvent } = require('../../../lib/realtime');
 const { getGameplaySettings } = require('../../../lib/glSettings');
 const { verifyPresentationAnswer, resolveQcmAnswerFeedback } = require('../../../lib/glQcmChoices');
@@ -18,13 +18,9 @@ const {
 const { loadAnyActiveQuestion, isLoreQuestionCode } = require('../../../lib/glQcmResolve');
 const { canAccessGlGame } = require('../../../lib/glGameAccess');
 const { recordGlQcmAttemptIfGatingEnabled } = require('../../../lib/learningGatingRuntime');
+const { parseId } = require('../../../lib/shared/httpHelpers');
 
 const router = express.Router();
-
-function parseId(value) {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : null;
-}
 
 async function getPlayerGameMembership(gameId, playerId) {
   return queryOne(
@@ -152,23 +148,21 @@ router.post('/games/:id/qcm/answer', requireGlAuth, async (req, res) => {
   const markerIdRaw = req.body?.markerId;
   const markerId = markerIdRaw == null ? null : Number(markerIdRaw);
 
+  let lastEvent = null;
   await withTransaction(async (tx) => {
-    await tx.execute(
-      `INSERT INTO gl_game_events (game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at)
-       VALUES (?, ?, ?, ?, 'qcm_answer', ?, NOW())`,
-      [
-        gameId,
-        teamIdForGame,
-        answerCtx.actorType,
-        answerCtx.actorId,
-        JSON.stringify({
-          questionCode,
-          correct: verification.correct,
-          choiceId: verification.selectedChoiceId,
-          markerId: Number.isFinite(markerId) ? markerId : null,
-        }),
-      ],
-    );
+    lastEvent = await insertGameEvent(tx, {
+      gameId,
+      teamId: teamIdForGame,
+      actorType: answerCtx.actorType,
+      actorId: answerCtx.actorId,
+      eventType: 'qcm_answer',
+      payload: {
+        questionCode,
+        correct: verification.correct,
+        choiceId: verification.selectedChoiceId,
+        markerId: Number.isFinite(markerId) ? markerId : null,
+      },
+    });
     if (verification.correct && settings.scoringEnabled) {
       scoreDelta = 1;
       await tx.execute(
@@ -180,17 +174,14 @@ router.post('/games/:id/qcm/answer', requireGlAuth, async (req, res) => {
            updated_at = NOW()`,
         [gameId, teamIdForGame, scoreDelta, 'Bonne réponse QCM'],
       );
-      await tx.execute(
-        `INSERT INTO gl_game_events (game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at)
-         VALUES (?, ?, ?, ?, 'score', ?, NOW())`,
-        [
-          gameId,
-          teamIdForGame,
-          answerCtx.actorType,
-          answerCtx.actorId,
-          JSON.stringify({ delta: scoreDelta, reason: 'Bonne réponse QCM', questionCode }),
-        ],
-      );
+      lastEvent = await insertGameEvent(tx, {
+        gameId,
+        teamId: teamIdForGame,
+        actorType: answerCtx.actorType,
+        actorId: answerCtx.actorId,
+        eventType: 'score',
+        payload: { delta: scoreDelta, reason: 'Bonne réponse QCM', questionCode },
+      });
     }
   });
 
@@ -213,12 +204,7 @@ router.post('/games/:id/qcm/answer', requireGlAuth, async (req, res) => {
         )
     : [];
 
-  const evt = await queryOne(
-    `SELECT id, game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at
-       FROM gl_game_events WHERE game_id = ? ORDER BY id DESC LIMIT 1`,
-    [gameId],
-  );
-  if (evt) emitGlGameEvent(gameId, normalizeEventRow(evt));
+  if (lastEvent) emitGlGameEvent(gameId, lastEvent);
 
   return res.json({
     correct: verification.correct,

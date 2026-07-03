@@ -1,12 +1,11 @@
 const express = require('express');
 const crypto = require('crypto');
-const { v4: uuidv4 } = require('uuid');
 const { queryAll, queryOne, execute } = require('../database');
 const { requirePermission, JWT_SECRET, authenticate } = require('../middleware/requireTeacher');
 const { logRouteError } = require('../lib/routeLog');
 const asyncHandler = require('../lib/asyncHandler');
 const { visitContentRowIsPublicActive } = require('../lib/visitContentPublicActive');
-const { resolveDefaultMapId } = require('../lib/settings');
+const { nowIso, resolveVisitMapId, mapExists } = require('../lib/visitRouteShared');
 const {
   sanitizeTargetType,
   sanitizeTargetId,
@@ -22,16 +21,6 @@ const router = express.Router();
 
 const ANON_COOKIE_NAME = 'anon_visit_token';
 const ANON_TTL_SECONDS = 24 * 60 * 60;
-
-function nowIso() {
-  return new Date().toISOString();
-}
-
-async function resolveVisitMapId(rawMapId) {
-  const requested = String(rawMapId || '').trim();
-  if (requested) return requested;
-  return resolveDefaultMapId('visit');
-}
 
 function visitCookieSecret() {
   const fromEnv = String(process.env.VISIT_COOKIE_SECRET || '').trim();
@@ -93,14 +82,9 @@ function readOrCreateAnonToken(req, res) {
   const cookies = parseCookies(req);
   const existing = verifyAnonCookie(cookies[ANON_COOKIE_NAME]);
   if (existing) return existing;
-  const created = uuidv4();
+  const created = crypto.randomUUID();
   setAnonCookie(res, created);
   return created;
-}
-
-async function mapExists(mapId) {
-  const row = await queryOne('SELECT id FROM maps WHERE id = ? LIMIT 1', [mapId]);
-  return !!row;
 }
 
 async function cleanupAnonymousSeen() {
@@ -519,17 +503,26 @@ router.put(
       ...new Set(ids.map((v) => Number(v)).filter((n) => Number.isFinite(n) && n > 0)),
     ];
     await execute('DELETE FROM visit_tutorials WHERE map_id = ?', [mapId]);
-    let order = 0;
-    for (const id of uniqueIds) {
-      const exists = await queryOne('SELECT id FROM tutorials WHERE id = ? LIMIT 1', [id]);
-      if (!exists) continue;
-      await execute(
-        `INSERT INTO visit_tutorials (map_id, tutorial_id, is_active, sort_order, updated_at)
-       VALUES (?, ?, 1, ?, ?)
-       ON DUPLICATE KEY UPDATE is_active = 1, sort_order = VALUES(sort_order), updated_at = VALUES(updated_at)`,
-        [mapId, id, order, nowIso()],
+    // 1 SELECT IN + 1 INSERT multi-valeurs (au lieu d'un exists-check + INSERT par
+    // tutoriel) ; conserve l'ordre demandé et le skip silencieux des ids inconnus.
+    if (uniqueIds.length) {
+      const existingRows = await queryAll(
+        `SELECT id FROM tutorials WHERE id IN (${uniqueIds.map(() => '?').join(',')})`,
+        uniqueIds,
       );
-      order += 1;
+      const existingIds = new Set(existingRows.map((r) => Number(r.id)));
+      const orderedIds = uniqueIds.filter((id) => existingIds.has(id));
+      if (orderedIds.length) {
+        const now = nowIso();
+        const placeholders = orderedIds.map(() => '(?, ?, 1, ?, ?)').join(', ');
+        const params = orderedIds.flatMap((id, order) => [mapId, id, order, now]);
+        await execute(
+          `INSERT INTO visit_tutorials (map_id, tutorial_id, is_active, sort_order, updated_at)
+         VALUES ${placeholders}
+         ON DUPLICATE KEY UPDATE is_active = 1, sort_order = VALUES(sort_order), updated_at = VALUES(updated_at)`,
+          params,
+        );
+      }
     }
     const rows = await queryAll(
       'SELECT * FROM visit_tutorials WHERE map_id = ? ORDER BY sort_order ASC, tutorial_id ASC',

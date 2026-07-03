@@ -4,11 +4,14 @@
 // et reglages de gating (site + surcharges chapitre/scope lore). Miroir isole du backbone
 // ForetMap. Inerte tant que gl_settings 'gating.enabled' = false (pas de branchement runtime).
 // Permissions : gl.content.manage (liens/politique), gl.settings.manage (reglages site/granularite).
+// O8 — erreurs : tous les try/catch etaient generiques (logRouteError + respondInternalError,
+// soit 500 { error: 'Erreur serveur' }) ; ils sont remplaces par asyncHandler -> gestionnaire
+// central de server.js, qui produit exactement la meme reponse.
 
 const express = require('express');
 const { queryAll, queryOne, execute } = require('../../database');
 const { requireGlAuth, requireGlPermission } = require('../../middleware/requireGlAuth');
-const { logRouteError, respondInternalError } = require('../../lib/routeLog');
+const asyncHandler = require('../../lib/asyncHandler');
 const { getGlGatingSettings, setGlGatingSetting, GATING_KEYS } = require('../../lib/glSettings');
 const core = require('../../lib/shared/resourceQuestionGatingCore');
 
@@ -29,8 +32,11 @@ async function glQuestionExists(dataset, code) {
 }
 
 /** GET /api/gl/learning-links — liste filtree (questionDataset, resourceType, resourceRef, questionCode, status). */
-router.get('/', requireGlAuth, requireGlPermission('gl.content.manage'), async (req, res) => {
-  try {
+router.get(
+  '/',
+  requireGlAuth,
+  requireGlPermission('gl.content.manage'),
+  asyncHandler(async (req, res) => {
     const where = [];
     const params = [];
     const ds = req.query.questionDataset
@@ -74,15 +80,15 @@ router.get('/', requireGlAuth, requireGlPermission('gl.content.manage'), async (
       params,
     );
     return res.json({ links: rows });
-  } catch (err) {
-    logRouteError(err, req, 'gl-learning-links:list');
-    return respondInternalError(res, req, err);
-  }
-});
+  }),
+);
 
 /** POST /api/gl/learning-links — creer/mettre a jour un lien (idempotent). */
-router.post('/', requireGlAuth, requireGlPermission('gl.content.manage'), async (req, res) => {
-  try {
+router.post(
+  '/',
+  requireGlAuth,
+  requireGlPermission('gl.content.manage'),
+  asyncHandler(async (req, res) => {
     const parsed = core.sanitizeLinkInput(req.body || {}, {
       allowedResourceTypes: ALLOWED,
       requireDataset: true,
@@ -123,15 +129,15 @@ router.post('/', requireGlAuth, requireGlPermission('gl.content.manage'), async 
       [v.question_dataset, v.resource_type, v.resource_ref, v.question_code],
     );
     return res.status(201).json({ link: row });
-  } catch (err) {
-    logRouteError(err, req, 'gl-learning-links:create');
-    return respondInternalError(res, req, err);
-  }
-});
+  }),
+);
 
 /** PATCH /api/gl/learning-links/:id */
-router.patch('/:id', requireGlAuth, requireGlPermission('gl.content.manage'), async (req, res) => {
-  try {
+router.patch(
+  '/:id',
+  requireGlAuth,
+  requireGlPermission('gl.content.manage'),
+  asyncHandler(async (req, res) => {
     const id = Number(req.params.id);
     if (!Number.isFinite(id) || id <= 0)
       return res.status(400).json({ error: 'Identifiant invalide' });
@@ -169,30 +175,30 @@ router.patch('/:id', requireGlAuth, requireGlPermission('gl.content.manage'), as
       id,
     ]);
     return res.json({ link: row });
-  } catch (err) {
-    logRouteError(err, req, 'gl-learning-links:update');
-    return respondInternalError(res, req, err);
-  }
-});
+  }),
+);
 
 /** DELETE /api/gl/learning-links/:id */
-router.delete('/:id', requireGlAuth, requireGlPermission('gl.content.manage'), async (req, res) => {
-  try {
+router.delete(
+  '/:id',
+  requireGlAuth,
+  requireGlPermission('gl.content.manage'),
+  asyncHandler(async (req, res) => {
     const id = Number(req.params.id);
     if (!Number.isFinite(id) || id <= 0)
       return res.status(400).json({ error: 'Identifiant invalide' });
     const result = await execute('DELETE FROM gl_resource_question_links WHERE id = ?', [id]);
     if (!result.affectedRows) return res.status(404).json({ error: 'Lien introuvable' });
     return res.json({ success: true });
-  } catch (err) {
-    logRouteError(err, req, 'gl-learning-links:delete');
-    return respondInternalError(res, req, err);
-  }
-});
+  }),
+);
 
 /** GET /api/gl/learning-links/policy?resourceType=&resourceRef=&chapterGranularity= */
-router.get('/policy', requireGlAuth, requireGlPermission('gl.content.manage'), async (req, res) => {
-  try {
+router.get(
+  '/policy',
+  requireGlAuth,
+  requireGlPermission('gl.content.manage'),
+  asyncHandler(async (req, res) => {
     const rt = core.normalizeResourceType(req.query.resourceType, ALLOWED);
     const ref = core.normalizeResourceRef(req.query.resourceRef);
     if (!rt || !ref) return res.status(400).json({ error: 'Ressource invalide' });
@@ -210,15 +216,15 @@ router.get('/policy', requireGlAuth, requireGlPermission('gl.content.manage'), a
     const chapterGranularity = core.normalizeGranularity(req.query.chapterGranularity);
     const effective = core.resolveEffectivePolicy({ perResource, chapterGranularity, site });
     return res.json({ policy: perResource || null, effective, site });
-  } catch (err) {
-    logRouteError(err, req, 'gl-learning-links:policy:get');
-    return respondInternalError(res, req, err);
-  }
-});
+  }),
+);
 
 /** PUT /api/gl/learning-links/policy */
-router.put('/policy', requireGlAuth, requireGlPermission('gl.content.manage'), async (req, res) => {
-  try {
+router.put(
+  '/policy',
+  requireGlAuth,
+  requireGlPermission('gl.content.manage'),
+  asyncHandler(async (req, res) => {
     const body = req.body || {};
     const rt = core.normalizeResourceType(body.resource_type ?? body.resourceType, ALLOWED);
     const ref = core.normalizeResourceRef(body.resource_ref ?? body.resourceRef);
@@ -245,29 +251,21 @@ router.put('/policy', requireGlAuth, requireGlPermission('gl.content.manage'), a
       [rt, ref],
     );
     return res.json({ policy: perResource });
-  } catch (err) {
-    logRouteError(err, req, 'gl-learning-links:policy:put');
-    return respondInternalError(res, req, err);
-  }
-});
+  }),
+);
 
 /** GET /api/gl/learning-links/settings — reglages de gating GL effectifs. */
 router.get(
   '/settings',
   requireGlAuth,
   requireGlPermission('gl.content.manage'),
-  async (req, res) => {
-    try {
-      return res.json({
-        gating: await getGlGatingSettings(),
-        resource_types: ALLOWED,
-        keys: GATING_KEYS,
-      });
-    } catch (err) {
-      logRouteError(err, req, 'gl-learning-links:settings:get');
-      return respondInternalError(res, req, err);
-    }
-  },
+  asyncHandler(async (req, res) => {
+    return res.json({
+      gating: await getGlGatingSettings(),
+      resource_types: ALLOWED,
+      keys: GATING_KEYS,
+    });
+  }),
 );
 
 /** PUT /api/gl/learning-links/settings — modifier un reglage de gating (gl.settings.manage). */
@@ -275,23 +273,18 @@ router.put(
   '/settings',
   requireGlAuth,
   requireGlPermission('gl.settings.manage'),
-  async (req, res) => {
-    try {
-      const body = req.body || {};
-      const key = String(body.key || '').trim();
-      const result = await setGlGatingSetting(key, body.value, actor(req).userId);
-      if (!result.ok) return res.status(400).json({ error: result.error });
-      return res.json({
-        success: true,
-        key: result.key,
-        value: result.value,
-        gating: await getGlGatingSettings(),
-      });
-    } catch (err) {
-      logRouteError(err, req, 'gl-learning-links:settings:put');
-      return respondInternalError(res, req, err);
-    }
-  },
+  asyncHandler(async (req, res) => {
+    const body = req.body || {};
+    const key = String(body.key || '').trim();
+    const result = await setGlGatingSetting(key, body.value, actor(req).userId);
+    if (!result.ok) return res.status(400).json({ error: result.error });
+    return res.json({
+      success: true,
+      key: result.key,
+      value: result.value,
+      gating: await getGlGatingSettings(),
+    });
+  }),
 );
 
 /** PUT /api/gl/learning-links/chapter-granularity — surcharge par chapitre de jeu (gl.settings.manage). */
@@ -299,27 +292,22 @@ router.put(
   '/chapter-granularity',
   requireGlAuth,
   requireGlPermission('gl.settings.manage'),
-  async (req, res) => {
-    try {
-      const id = Number((req.body || {}).chapterId);
-      if (!Number.isFinite(id) || id <= 0)
-        return res.status(400).json({ error: 'Chapitre invalide' });
-      const raw = (req.body || {}).granularity;
-      const granularity = raw == null || raw === '' ? null : core.normalizeGranularity(raw);
-      if (raw != null && raw !== '' && !granularity) {
-        return res.status(400).json({ error: 'Granularite invalide' });
-      }
-      const result = await execute('UPDATE gl_chapters SET gating_granularity = ? WHERE id = ?', [
-        granularity,
-        id,
-      ]);
-      if (!result.affectedRows) return res.status(404).json({ error: 'Chapitre introuvable' });
-      return res.json({ success: true, chapterId: id, granularity });
-    } catch (err) {
-      logRouteError(err, req, 'gl-learning-links:chapter-granularity');
-      return respondInternalError(res, req, err);
+  asyncHandler(async (req, res) => {
+    const id = Number((req.body || {}).chapterId);
+    if (!Number.isFinite(id) || id <= 0)
+      return res.status(400).json({ error: 'Chapitre invalide' });
+    const raw = (req.body || {}).granularity;
+    const granularity = raw == null || raw === '' ? null : core.normalizeGranularity(raw);
+    if (raw != null && raw !== '' && !granularity) {
+      return res.status(400).json({ error: 'Granularite invalide' });
     }
-  },
+    const result = await execute('UPDATE gl_chapters SET gating_granularity = ? WHERE id = ?', [
+      granularity,
+      id,
+    ]);
+    if (!result.affectedRows) return res.status(404).json({ error: 'Chapitre introuvable' });
+    return res.json({ success: true, chapterId: id, granularity });
+  }),
 );
 
 /** PUT /api/gl/learning-links/scope-granularity — surcharge par scope lore (gl.settings.manage). */
@@ -327,26 +315,21 @@ router.put(
   '/scope-granularity',
   requireGlAuth,
   requireGlPermission('gl.settings.manage'),
-  async (req, res) => {
-    try {
-      const slug = String((req.body || {}).scopeSlug || '').trim();
-      if (!slug) return res.status(400).json({ error: 'Scope invalide' });
-      const raw = (req.body || {}).granularity;
-      const granularity = raw == null || raw === '' ? null : core.normalizeGranularity(raw);
-      if (raw != null && raw !== '' && !granularity) {
-        return res.status(400).json({ error: 'Granularite invalide' });
-      }
-      const result = await execute(
-        'UPDATE gl_qcm_lore_scopes SET gating_granularity = ? WHERE slug = ?',
-        [granularity, slug],
-      );
-      if (!result.affectedRows) return res.status(404).json({ error: 'Scope introuvable' });
-      return res.json({ success: true, scopeSlug: slug, granularity });
-    } catch (err) {
-      logRouteError(err, req, 'gl-learning-links:scope-granularity');
-      return respondInternalError(res, req, err);
+  asyncHandler(async (req, res) => {
+    const slug = String((req.body || {}).scopeSlug || '').trim();
+    if (!slug) return res.status(400).json({ error: 'Scope invalide' });
+    const raw = (req.body || {}).granularity;
+    const granularity = raw == null || raw === '' ? null : core.normalizeGranularity(raw);
+    if (raw != null && raw !== '' && !granularity) {
+      return res.status(400).json({ error: 'Granularite invalide' });
     }
-  },
+    const result = await execute(
+      'UPDATE gl_qcm_lore_scopes SET gating_granularity = ? WHERE slug = ?',
+      [granularity, slug],
+    );
+    if (!result.affectedRows) return res.status(404).json({ error: 'Scope introuvable' });
+    return res.json({ success: true, scopeSlug: slug, granularity });
+  }),
 );
 
 /** POST /api/gl/learning-links/review — valider/rejeter en masse (phase 2 : liens auto-suggeres). */
@@ -354,29 +337,24 @@ router.post(
   '/review',
   requireGlAuth,
   requireGlPermission('gl.content.manage'),
-  async (req, res) => {
-    try {
-      const body = req.body || {};
-      const action = String(body.action || '').trim();
-      if (!['approve', 'reject'].includes(action)) {
-        return res.status(400).json({ error: "Action attendue: 'approve' ou 'reject'" });
-      }
-      const ids = (Array.isArray(body.ids) ? body.ids : [])
-        .map((n) => Number(n))
-        .filter((n) => Number.isFinite(n) && n > 0);
-      if (!ids.length) return res.status(400).json({ error: 'Aucun identifiant fourni' });
-      const status = action === 'approve' ? 'approved' : 'rejected';
-      const placeholders = ids.map(() => '?').join(', ');
-      const result = await execute(
-        `UPDATE gl_resource_question_links SET status = ?, updated_at = NOW() WHERE id IN (${placeholders})`,
-        [status, ...ids],
-      );
-      return res.json({ success: true, status, updated: result.affectedRows });
-    } catch (err) {
-      logRouteError(err, req, 'gl-learning-links:review');
-      return respondInternalError(res, req, err);
+  asyncHandler(async (req, res) => {
+    const body = req.body || {};
+    const action = String(body.action || '').trim();
+    if (!['approve', 'reject'].includes(action)) {
+      return res.status(400).json({ error: "Action attendue: 'approve' ou 'reject'" });
     }
-  },
+    const ids = (Array.isArray(body.ids) ? body.ids : [])
+      .map((n) => Number(n))
+      .filter((n) => Number.isFinite(n) && n > 0);
+    if (!ids.length) return res.status(400).json({ error: 'Aucun identifiant fourni' });
+    const status = action === 'approve' ? 'approved' : 'rejected';
+    const placeholders = ids.map(() => '?').join(', ');
+    const result = await execute(
+      `UPDATE gl_resource_question_links SET status = ?, updated_at = NOW() WHERE id IN (${placeholders})`,
+      [status, ...ids],
+    );
+    return res.json({ success: true, status, updated: result.affectedRows });
+  }),
 );
 
 module.exports = router;

@@ -3,7 +3,6 @@
 require('./helpers/setup');
 require('dotenv').config();
 const crypto = require('crypto');
-const { v4: uuidv4 } = require('uuid');
 const { describe, it, before } = require('node:test');
 const assert = require('node:assert');
 const request = require('supertest');
@@ -215,7 +214,7 @@ describe('Auth', () => {
     assert.ok(student?.id);
     const resetToken = `student-reset-${Date.now()}`;
     const tokenHash = crypto.createHash('sha256').update(resetToken).digest('hex');
-    const tokenId = uuidv4();
+    const tokenId = crypto.randomUUID();
 
     await execute(
       'INSERT INTO password_reset_tokens (id, user_type, user_id, token_hash, expires_at, used_at) VALUES (?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL 1 HOUR), NULL)',
@@ -248,7 +247,7 @@ describe('Auth', () => {
       `INSERT INTO users
         (id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name, description, avatar_path, affiliation, password_hash, auth_provider, is_active, last_seen, created_at, updated_at)
        VALUES (?, 'teacher', NULL, ?, ?, NULL, NULL, ?, NULL, NULL, 'both', ?, 'local', 1, ?, NOW(), NOW())`,
-      [uuidv4(), teacherEmail, teacherEmail.split('@')[0], 'Prof Test', hash, now],
+      [crypto.randomUUID(), teacherEmail, teacherEmail.split('@')[0], 'Prof Test', hash, now],
     );
 
     const res = await request(app)
@@ -276,7 +275,7 @@ describe('Auth', () => {
 
     const hash = await bcrypt.hash(teacherPassword, 10);
     const now = new Date().toISOString();
-    const teacherId = uuidv4();
+    const teacherId = crypto.randomUUID();
     await execute(
       `INSERT INTO users
         (id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name, description, avatar_path, affiliation, password_hash, auth_provider, is_active, last_seen, created_at, updated_at)
@@ -309,7 +308,7 @@ describe('Auth', () => {
     const stamp = Date.now();
     const teacherEmail = `admin-elev-${stamp}@example.com`;
     const teacherPassword = 'AdminElevPwd!1';
-    const teacherId = uuidv4();
+    const teacherId = crypto.randomUUID();
     const hash = await bcrypt.hash(teacherPassword, 10);
     const now = new Date().toISOString();
     await execute(
@@ -368,7 +367,7 @@ describe('Auth', () => {
         (id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name, description, avatar_path, affiliation, password_hash, auth_provider, is_active, last_seen, created_at, updated_at)
        VALUES (?, 'teacher', NULL, ?, ?, NULL, NULL, ?, NULL, NULL, 'both', ?, 'local', 1, ?, NOW(), NOW())`,
       [
-        uuidv4(),
+        crypto.randomUUID(),
         teacherEmail,
         teacherEmail.split('@')[0],
         'Prof OAuth',
@@ -458,7 +457,7 @@ describe('Auth', () => {
     const newPassword = 'newPass2';
     const hash = await bcrypt.hash(oldPassword, 10);
     const now = new Date().toISOString();
-    const teacherId = uuidv4();
+    const teacherId = crypto.randomUUID();
     await execute(
       `INSERT INTO users
         (id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name, description, avatar_path, affiliation, password_hash, auth_provider, is_active, last_seen, created_at, updated_at)
@@ -470,7 +469,7 @@ describe('Auth', () => {
     const tokenHash = crypto.createHash('sha256').update(resetToken).digest('hex');
     await execute(
       'INSERT INTO password_reset_tokens (id, user_type, user_id, token_hash, expires_at, used_at) VALUES (?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL 1 HOUR), NULL)',
-      [uuidv4(), 'teacher', teacherId, tokenHash],
+      [crypto.randomUUID(), 'teacher', teacherId, tokenHash],
     );
 
     await request(app)

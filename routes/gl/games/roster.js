@@ -10,13 +10,9 @@ const {
 const asyncHandler = require('../../../lib/asyncHandler');
 // O10 — resolveRosterError partagé via lib/gl/gamesRuntime.js (aussi utilisé par join-team dans gl/games.js).
 const { resolveRosterError } = require('../../../lib/gl/gamesRuntime');
+const { parseId } = require('../../../lib/shared/httpHelpers');
 
 const router = express.Router();
-
-function parseId(value) {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : null;
-}
 
 router.get(
   '/games/:id/roster',

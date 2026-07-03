@@ -11,14 +11,14 @@ function loadZonesJson() {
 }
 
 test('glFeuilletZones: charge 24 zones valides', async () => {
-  const { loadAndValidateFeuilletZones } = await import('../src/utils/glFeuilletZones.js');
+  const { loadAndValidateFeuilletZones } = await import('../src/gl/utils/glFeuilletZones.js');
   const { zones, errors } = loadAndValidateFeuilletZones(loadZonesJson());
   assert.strictEqual(errors.length, 0);
   assert.strictEqual(zones.length, 24);
 });
 
 test('glFeuilletZones: fail-soft zone invalide', async () => {
-  const { loadAndValidateFeuilletZones } = await import('../src/utils/glFeuilletZones.js');
+  const { loadAndValidateFeuilletZones } = await import('../src/gl/utils/glFeuilletZones.js');
   const { zones, errors } = loadAndValidateFeuilletZones({
     zones: [
       {
@@ -61,7 +61,7 @@ test('glFeuilletZones: fail-soft zone invalide', async () => {
 });
 
 test('glFeuilletZones: toRuntimeZone en coords pct', async () => {
-  const { toRuntimeFeuilletZone } = await import('../src/utils/glFeuilletZones.js');
+  const { toRuntimeFeuilletZone } = await import('../src/gl/utils/glFeuilletZones.js');
   const runtime = toRuntimeFeuilletZone({
     zone_id: 'zf-p1-01',
     plateau: 1,

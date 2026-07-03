@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { io } from 'socket.io-client';
 import { apiGL } from '../services/apiGL.js';
 import { withAppBase } from '../../services/api.js';
 
@@ -101,23 +100,32 @@ export function useGLSpellCast({ token, gameId, enabled, onCastComplete }) {
 
   useEffect(() => {
     if (!token || !gameId || !enabled) return undefined;
-    const socket = io(withAppBase(''), {
-      path: '/socket.io',
-      transports: ['polling', 'websocket'],
-      auth: { token },
-    });
-    socket.on('connect', () => {
-      socket.emit('subscribe:gl-game', { gameId });
-    });
-    socket.on('gl:spell_cast:draft', (evt) => {
-      if (Number(evt?.gameId) !== Number(gameId)) return;
-      if (evt?.draft) setDraft(evt.draft);
-      else if (evt?.draftId && draft?.id === evt.draftId) {
-        refreshDraft(evt.draftId);
-      }
-    });
+    let cancelled = false;
+    let socket = null;
+    // Import dynamique : socket.io-client (chunk `socket-io`) n'est chargé que lorsque
+    // l'assistant de sort est actif — il reste hors du chargement initial de la page GL.
+    (async () => {
+      const { io } = await import('socket.io-client');
+      if (cancelled) return;
+      socket = io(withAppBase(''), {
+        path: '/socket.io',
+        transports: ['polling', 'websocket'],
+        auth: { token },
+      });
+      socket.on('connect', () => {
+        socket.emit('subscribe:gl-game', { gameId });
+      });
+      socket.on('gl:spell_cast:draft', (evt) => {
+        if (Number(evt?.gameId) !== Number(gameId)) return;
+        if (evt?.draft) setDraft(evt.draft);
+        else if (evt?.draftId && draft?.id === evt.draftId) {
+          refreshDraft(evt.draftId);
+        }
+      });
+    })();
     return () => {
-      socket.close();
+      cancelled = true;
+      if (socket) socket.close();
     };
   }, [token, gameId, enabled, draft?.id, refreshDraft]);
 

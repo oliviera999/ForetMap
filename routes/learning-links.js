@@ -4,11 +4,14 @@
 // conditionnement du marquage (ForetMap). Backbone structurel : ces reglages sont
 // inertes tant que learning.gating.enabled = false (aucun branchement runtime ici).
 // Permission : plants.manage (gestion de contenu pedagogique, comme le quiz).
+// O8 — erreurs : tous les try/catch etaient generiques (logRouteError + respondInternalError,
+// soit 500 { error: 'Erreur serveur' }) ; ils sont remplaces par asyncHandler -> gestionnaire
+// central de server.js, qui produit exactement la meme reponse.
 
 const express = require('express');
 const { queryAll, queryOne, execute } = require('../database');
 const { requirePermission } = require('../middleware/requireTeacher');
-const { logRouteError, respondInternalError } = require('../lib/routeLog');
+const asyncHandler = require('../lib/asyncHandler');
 const { getSettingValue } = require('../lib/settings');
 const core = require('../lib/shared/resourceQuestionGatingCore');
 
@@ -40,8 +43,10 @@ async function questionExists(code) {
 }
 
 /** GET /api/learning-links — liste filtree (resourceType, resourceRef, questionCode, status). */
-router.get('/', managePermission, async (req, res) => {
-  try {
+router.get(
+  '/',
+  managePermission,
+  asyncHandler(async (req, res) => {
     const where = [];
     const params = [];
     const rt = core.normalizeResourceType(req.query.resourceType, ALLOWED);
@@ -72,15 +77,14 @@ router.get('/', managePermission, async (req, res) => {
                  LIMIT 1000`;
     const rows = await queryAll(sql, params);
     return res.json({ links: rows });
-  } catch (err) {
-    logRouteError(err, req, 'learning-links:list');
-    return respondInternalError(res, req, err);
-  }
-});
+  }),
+);
 
 /** POST /api/learning-links — creer/mettre a jour un lien (idempotent sur la cle unique). */
-router.post('/', managePermission, async (req, res) => {
-  try {
+router.post(
+  '/',
+  managePermission,
+  asyncHandler(async (req, res) => {
     const parsed = core.sanitizeLinkInput(req.body || {}, { allowedResourceTypes: ALLOWED });
     if (!parsed.ok) return res.status(400).json({ error: parsed.error });
     const v = parsed.value;
@@ -117,15 +121,14 @@ router.post('/', managePermission, async (req, res) => {
       [v.resource_type, v.resource_ref, v.question_code],
     );
     return res.status(201).json({ link: row });
-  } catch (err) {
-    logRouteError(err, req, 'learning-links:create');
-    return respondInternalError(res, req, err);
-  }
-});
+  }),
+);
 
 /** PATCH /api/learning-links/:id — modifier is_gating / weight / status / note. */
-router.patch('/:id', managePermission, async (req, res) => {
-  try {
+router.patch(
+  '/:id',
+  managePermission,
+  asyncHandler(async (req, res) => {
     const id = Number(req.params.id);
     if (!Number.isFinite(id) || id <= 0)
       return res.status(400).json({ error: 'Identifiant invalide' });
@@ -161,30 +164,28 @@ router.patch('/:id', managePermission, async (req, res) => {
     if (!result.affectedRows) return res.status(404).json({ error: 'Lien introuvable' });
     const row = await queryOne('SELECT * FROM resource_question_links WHERE id = ? LIMIT 1', [id]);
     return res.json({ link: row });
-  } catch (err) {
-    logRouteError(err, req, 'learning-links:update');
-    return respondInternalError(res, req, err);
-  }
-});
+  }),
+);
 
 /** DELETE /api/learning-links/:id */
-router.delete('/:id', managePermission, async (req, res) => {
-  try {
+router.delete(
+  '/:id',
+  managePermission,
+  asyncHandler(async (req, res) => {
     const id = Number(req.params.id);
     if (!Number.isFinite(id) || id <= 0)
       return res.status(400).json({ error: 'Identifiant invalide' });
     const result = await execute('DELETE FROM resource_question_links WHERE id = ?', [id]);
     if (!result.affectedRows) return res.status(404).json({ error: 'Lien introuvable' });
     return res.json({ success: true });
-  } catch (err) {
-    logRouteError(err, req, 'learning-links:delete');
-    return respondInternalError(res, req, err);
-  }
-});
+  }),
+);
 
 /** GET /api/learning-links/policy?resourceType=&resourceRef= — politique brute + effective. */
-router.get('/policy', managePermission, async (req, res) => {
-  try {
+router.get(
+  '/policy',
+  managePermission,
+  asyncHandler(async (req, res) => {
     const rt = core.normalizeResourceType(req.query.resourceType, ALLOWED);
     const ref = core.normalizeResourceRef(req.query.resourceRef);
     if (!rt || !ref) return res.status(400).json({ error: 'Ressource invalide' });
@@ -195,15 +196,14 @@ router.get('/policy', managePermission, async (req, res) => {
     const site = await getSiteGating();
     const effective = core.resolveEffectivePolicy({ perResource, site });
     return res.json({ policy: perResource || null, effective, site });
-  } catch (err) {
-    logRouteError(err, req, 'learning-links:policy:get');
-    return respondInternalError(res, req, err);
-  }
-});
+  }),
+);
 
 /** PUT /api/learning-links/policy — definir la politique d'une ressource. */
-router.put('/policy', managePermission, async (req, res) => {
-  try {
+router.put(
+  '/policy',
+  managePermission,
+  asyncHandler(async (req, res) => {
     const body = req.body || {};
     const rt = core.normalizeResourceType(body.resource_type ?? body.resourceType, ALLOWED);
     const ref = core.normalizeResourceRef(body.resource_ref ?? body.resourceRef);
@@ -234,25 +234,23 @@ router.put('/policy', managePermission, async (req, res) => {
       policy: perResource,
       effective: core.resolveEffectivePolicy({ perResource, site }),
     });
-  } catch (err) {
-    logRouteError(err, req, 'learning-links:policy:put');
-    return respondInternalError(res, req, err);
-  }
-});
+  }),
+);
 
 /** GET /api/learning-links/config — reglages site effectifs (lecture seule ; ecriture via /api/settings). */
-router.get('/config', managePermission, async (req, res) => {
-  try {
+router.get(
+  '/config',
+  managePermission,
+  asyncHandler(async (req, res) => {
     return res.json({ gating: await getSiteGating(), resource_types: ALLOWED });
-  } catch (err) {
-    logRouteError(err, req, 'learning-links:config');
-    return respondInternalError(res, req, err);
-  }
-});
+  }),
+);
 
 /** POST /api/learning-links/review — valider/rejeter en masse (phase 2 : liens auto-suggeres). */
-router.post('/review', managePermission, async (req, res) => {
-  try {
+router.post(
+  '/review',
+  managePermission,
+  asyncHandler(async (req, res) => {
     const body = req.body || {};
     const action = String(body.action || '').trim();
     if (!['approve', 'reject'].includes(action)) {
@@ -269,10 +267,7 @@ router.post('/review', managePermission, async (req, res) => {
       [status, ...ids],
     );
     return res.json({ success: true, status, updated: result.affectedRows });
-  } catch (err) {
-    logRouteError(err, req, 'learning-links:review');
-    return respondInternalError(res, req, err);
-  }
-});
+  }),
+);
 
 module.exports = router;

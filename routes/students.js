@@ -2,7 +2,7 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const bcrypt = require('bcryptjs');
-const { v4: uuidv4 } = require('uuid');
+const crypto = require('node:crypto');
 const { buildWorkbookBuffer, jsonRowsToAoa } = require('../lib/spreadsheet');
 const { queryAll, queryOne, execute } = require('../database');
 const { requireAuth, requirePermission } = require('../middleware/requireTeacher');
@@ -13,7 +13,8 @@ const { emitStudentsChanged, emitTasksChanged } = require('../lib/realtime');
 const { saveBase64ToDisk, deleteFile, getAbsolutePath, ensureDir } = require('../lib/uploads');
 const { getPrimaryRoleForUser, setPrimaryRole } = require('../lib/rbac');
 const { deleteStudentById } = require('../lib/studentDeletion');
-const { getSettingValue, getVisitMascotSettings } = require('../lib/settings');
+const { getVisitMascotSettings } = require('../lib/settings');
+const { getPasswordMinLength } = require('../lib/passwordReset');
 const logger = require('../lib/logger');
 const { resolveStudentAffiliationForPersist } = require('../lib/studentAffiliation');
 const {
@@ -237,7 +238,7 @@ router.post(
       for (const rowItem of affiliationResolvedRows) {
         const { payload, rowNumber } = rowItem;
         const hash = await bcrypt.hash(payload.password, 10);
-        const id = uuidv4();
+        const id = crypto.randomUUID();
         const now = new Date().toISOString();
         const roleSlug = payload.userType === 'teacher' ? 'prof' : 'eleve_novice';
         try {
@@ -335,13 +336,6 @@ router.post(
   }),
 );
 
-async function getPasswordMinLength() {
-  const n = await getSettingValue('security.password_min_length', 4);
-  const parsed = parseInt(n, 10);
-  if (!Number.isFinite(parsed)) return 4;
-  return Math.min(Math.max(parsed, 4), 32);
-}
-
 router.post(
   '/:id/duplicate',
   requirePermission('users.create', { needsElevation: true }),
@@ -383,23 +377,21 @@ router.post(
       }
 
       const existingByName = await queryOne(
-        "SELECT id FROM users WHERE user_type = 'student' AND LOWER(first_name)=LOWER(?) AND LOWER(last_name)=LOWER(?) LIMIT 1",
+        "SELECT id FROM users WHERE user_type = 'student' AND first_name = ? AND last_name = ? LIMIT 1",
         [firstName, lastName],
       );
       if (existingByName)
         return res.status(409).json({ error: 'Un n3beur avec ce nom existe déjà' });
       if (pseudo) {
-        const existingPseudo = await queryOne(
-          'SELECT id FROM users WHERE LOWER(pseudo)=LOWER(?) LIMIT 1',
-          [pseudo],
-        );
+        const existingPseudo = await queryOne('SELECT id FROM users WHERE pseudo = ? LIMIT 1', [
+          pseudo,
+        ]);
         if (existingPseudo) return res.status(409).json({ error: 'Ce pseudo est déjà utilisé' });
       }
       if (email) {
-        const existingEmail = await queryOne(
-          'SELECT id FROM users WHERE LOWER(email)=LOWER(?) LIMIT 1',
-          [email],
-        );
+        const existingEmail = await queryOne('SELECT id FROM users WHERE email = ? LIMIT 1', [
+          email,
+        ]);
         if (existingEmail) return res.status(409).json({ error: 'Cet email est déjà utilisé' });
       }
 
@@ -417,7 +409,7 @@ router.post(
       const affiliation = source.affiliation || 'both';
       const description = normalizeOptionalString(source.description);
 
-      const newId = uuidv4();
+      const newId = crypto.randomUUID();
       const hash = await bcrypt.hash(password, 10);
       const now = new Date().toISOString();
       let avatarPath = null;
@@ -594,14 +586,14 @@ router.patch('/:id/profile', requireAuth, async (req, res) => {
 
     if (pseudo) {
       const existingPseudo = await queryOne(
-        "SELECT id FROM users WHERE user_type = 'student' AND LOWER(pseudo)=LOWER(?) AND id <> ?",
+        "SELECT id FROM users WHERE user_type = 'student' AND pseudo = ? AND id <> ?",
         [pseudo, student.id],
       );
       if (existingPseudo) return res.status(409).json({ error: 'Ce pseudo est déjà utilisé' });
     }
     if (email) {
       const existingEmail = await queryOne(
-        "SELECT id FROM users WHERE user_type = 'student' AND LOWER(email)=LOWER(?) AND id <> ?",
+        "SELECT id FROM users WHERE user_type = 'student' AND email = ? AND id <> ?",
         [email, student.id],
       );
       if (existingEmail) return res.status(409).json({ error: 'Cet email est déjà utilisé' });

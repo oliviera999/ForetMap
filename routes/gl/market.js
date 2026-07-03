@@ -55,9 +55,7 @@ router.get(
       const items = await listClassmates(playerIdFromReq(req));
       return res.json({ items });
     } catch (err) {
-      const mapped = resolveMarketError(err);
-      if (mapped) return res.status(mapped.status).json({ error: mapped.error });
-      throw err;
+      return handleMarketError(err, res);
     }
   }),
 );
@@ -102,9 +100,7 @@ router.get(
       if (!trade) return res.status(404).json({ error: 'Échange introuvable' });
       return res.json(trade);
     } catch (err) {
-      const mapped = resolveMarketError(err);
-      if (mapped) return res.status(mapped.status).json({ error: mapped.error });
-      throw err;
+      return handleMarketError(err, res);
     }
   }),
 );
@@ -124,9 +120,7 @@ router.patch(
       emitGlMarketTradeChanged(trade.classId, { tradeId: trade.id, action: 'offer_updated' });
       return res.json(trade);
     } catch (err) {
-      const mapped = resolveMarketError(err);
-      if (mapped) return res.status(mapped.status).json({ error: mapped.error });
-      throw err;
+      return handleMarketError(err, res);
     }
   }),
 );
@@ -147,9 +141,7 @@ router.patch(
       });
       return res.json(trade);
     } catch (err) {
-      const mapped = resolveMarketError(err);
-      if (mapped) return res.status(mapped.status).json({ error: mapped.error });
-      throw err;
+      return handleMarketError(err, res);
     }
   }),
 );
@@ -167,9 +159,7 @@ router.post(
       const trade = await buildTradePayload(tradeId);
       return res.status(201).json({ message: result.message, trade });
     } catch (err) {
-      const mapped = resolveMarketError(err);
-      if (mapped) return res.status(mapped.status).json({ error: mapped.error });
-      throw err;
+      return handleMarketError(err, res);
     }
   }),
 );
@@ -186,9 +176,7 @@ router.post(
       emitGlMarketTradeChanged(classId, { tradeId: trade.id, action: 'cancelled' });
       return res.json(trade);
     } catch (err) {
-      const mapped = resolveMarketError(err);
-      if (mapped) return res.status(mapped.status).json({ error: mapped.error });
-      throw err;
+      return handleMarketError(err, res);
     }
   }),
 );

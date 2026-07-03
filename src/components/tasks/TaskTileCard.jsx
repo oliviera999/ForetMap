@@ -19,7 +19,7 @@ import {
 import { teacherStatusActionDisabled } from '../../utils/taskActionErrors.js';
 import { TEACHER_STATUS_ACTIONS } from './taskViewHelpers.js';
 import { TaskTileMeta } from './TaskTileMeta.jsx';
-import { isStudentAssignedToTask } from '../../utils/task-assignments';
+import { assignmentMatchesStudent, isStudentAssignedToTask } from '../../utils/task-assignments';
 import { ContextComments } from '../context-comments';
 import { MarkdownContent } from '../MarkdownContent.jsx';
 import { Tooltip } from '../Tooltip';
@@ -74,7 +74,6 @@ function TaskTileCardImpl({
   teacherTaskPerms = null,
   tooltipText,
   openTasksTutorialPreview,
-  onForceLogout,
   onOpenBiodiversityFromTaskName,
   enableTaskDrag = false,
   onTaskDragStart = null,
@@ -106,24 +105,7 @@ function TaskTileCardImpl({
   const isCollectiveCompletion = completionMode === 'all_assignees_done';
   const doneCount = getAssigneesDoneCount(t);
   const totalCount = getAssignedCount(t);
-  const mineAssignment =
-    assignees.find(
-      (a) =>
-        student &&
-        (String(a.student_id || '') === String(student.id || '') ||
-          (String(a.student_first_name || '')
-            .trim()
-            .toLowerCase() ===
-            String(student.first_name || '')
-              .trim()
-              .toLowerCase() &&
-            String(a.student_last_name || '')
-              .trim()
-              .toLowerCase() ===
-              String(student.last_name || '')
-                .trim()
-                .toLowerCase())),
-    ) || null;
+  const mineAssignment = assignees.find((a) => assignmentMatchesStudent(a, student)) || null;
   const hasCompletedOwnAssignment = !!(isCollectiveCompletion && mineAssignment?.done_at);
   const isQuickAssignOpen = quickAssignTaskId === t.id;
   const quickAssignDelta = isQuickAssignOpen

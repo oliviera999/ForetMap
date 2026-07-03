@@ -212,7 +212,9 @@ router.get(
 
     const biomePlaceholders = biomeSlugs.map(() => '?').join(', ');
     const params = [...biomeSlugs];
-    let sql = `${QUESTION_SELECT} WHERE statut = 'actif' AND biome_slug IN (${biomePlaceholders})`;
+    // Tirage : seuls les codes sont chargés (la route ne renvoie que question_code).
+    let sql = `SELECT question_code FROM gl_qcm_questions
+      WHERE statut = 'actif' AND biome_slug IN (${biomePlaceholders})`;
     if (categorieSlug) {
       sql += ' AND categorie_slug = ?';
       params.push(categorieSlug);

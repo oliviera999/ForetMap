@@ -7,7 +7,7 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const { pathToFileURL } = require('url');
-const { v4: uuidv4 } = require('uuid');
+const crypto = require('node:crypto');
 const { queryAll, queryOne, execute } = require('../../database');
 const {
   requirePermission,
@@ -20,7 +20,7 @@ const {
   getMascotPackValidatorCandidates,
   getMascotPackLibProbe,
 } = require('../../lib/mascotPackValidatorResolve');
-const { resolveDefaultMapId } = require('../../lib/settings');
+const { nowIso, resolveVisitMapId, mapExists } = require('../../lib/visitRouteShared');
 const {
   verifyVisitMascotPackAssetPreview,
   appendPreviewTokenToAssetUrl,
@@ -53,23 +53,6 @@ const {
 } = require('../../lib/contentLibraryUpload');
 
 const router = express.Router();
-
-// Helpers partagés courts recopiés depuis visit.js (purs ou I/O triviale mono-requête) —
-// laissés AUSSI dans visit.js car ses routes hors-mascotte les utilisent encore.
-function nowIso() {
-  return new Date().toISOString();
-}
-
-async function resolveVisitMapId(rawMapId) {
-  const requested = String(rawMapId || '').trim();
-  if (requested) return requested;
-  return resolveDefaultMapId('visit');
-}
-
-async function mapExists(mapId) {
-  const row = await queryOne('SELECT id FROM maps WHERE id = ? LIMIT 1', [mapId]);
-  return !!row;
-}
 
 /** Fichiers PNG listables pour un pack (tri alpha), sans exposer de chemins absolus. */
 function listVisitMascotPackAssetFilenames(packId) {
@@ -368,7 +351,7 @@ router.post(
       if (!(await mapExists(mapId))) return res.status(400).json({ error: 'Carte introuvable' });
       const cloneFromPackId = String(req.body.clone_from_pack_id || '').trim();
       const cloneFromCatalogId = String(req.body.clone_from_catalog_id || '').trim();
-      const packUuid = uuidv4();
+      const packUuid = crypto.randomUUID();
       const catalogId = `srv-${packUuid}`;
       const prefixesForNew = mascotPackAllowedFramesPrefixesForMap(mapId, packUuid);
       let packObj = req.body.pack;
@@ -688,7 +671,7 @@ router.post(
         packUuid = targetPackId;
         catalogId = existingRow.catalog_id;
       } else {
-        packUuid = uuidv4();
+        packUuid = crypto.randomUUID();
         catalogId = `srv-${packUuid}`;
       }
 
@@ -1140,7 +1123,7 @@ router.post(
           [now, createdBy, existing.id],
         );
       } else {
-        const rowId = uuidv4();
+        const rowId = crypto.randomUUID();
         await execute(
           `INSERT INTO visit_mascot_sprite_library (id, map_id, filename, created_at, created_by)
            VALUES (?, ?, ?, ?, ?)`,

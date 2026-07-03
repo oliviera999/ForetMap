@@ -174,15 +174,43 @@ function SettingsAdminView() {
     load();
   }, []);
 
+  /**
+   * Remplace une carte dans l'état local avec la version renvoyée par le serveur,
+   * en conservant l'ordre serveur (`listMaps` : sort_order ASC, label ASC).
+   */
+  const upsertMapLocally = (updated) => {
+    setMaps((prev) =>
+      prev
+        .map((m) => (m.id === updated.id ? updated : m))
+        .sort(
+          (a, b) =>
+            (Number(a.sort_order) || 0) - (Number(b.sort_order) || 0) ||
+            String(a.label || '').localeCompare(String(b.label || ''), 'fr'),
+        ),
+    );
+  };
+
   const saveSetting = async (key, value, okMsg = 'Paramètre enregistré') => {
     setErr('');
     setMsg('');
     setSavingKey(key);
     try {
-      await api(`/api/settings/admin/${encodeURIComponent(key)}`, 'PUT', { value });
-      await load();
+      // PUT /api/settings/admin/:key renvoie { ok, key, value } avec la valeur
+      // normalisée côté serveur : on met à jour la ligne localement plutôt que de
+      // recharger tous les paramètres (et repasser par l'écran de chargement).
+      const data = await api(`/api/settings/admin/${encodeURIComponent(key)}`, 'PUT', { value });
+      if (data && Object.prototype.hasOwnProperty.call(data, 'value')) {
+        setSettings((prev) =>
+          prev.map((row) => (row.key === key ? { ...row, value: data.value } : row)),
+        );
+      } else {
+        await load();
+      }
       setMsg(okMsg);
     } catch (e) {
+      // La validation croisée peut échouer après persistance : on resynchronise
+      // l'état complet depuis le serveur avant d'afficher l'erreur.
+      await load();
       setErr(e.message || 'Échec enregistrement');
     } finally {
       setSavingKey('');
@@ -194,10 +222,17 @@ function SettingsAdminView() {
     setMsg('');
     setSavingKey(`map:${mapId}`);
     try {
-      await api(`/api/settings/admin/maps/${encodeURIComponent(mapId)}`, 'PUT', patch);
-      await load();
+      // PUT /api/settings/admin/maps/:id renvoie la carte normalisée complète.
+      const updated = await api(
+        `/api/settings/admin/maps/${encodeURIComponent(mapId)}`,
+        'PUT',
+        patch,
+      );
+      if (updated?.id) upsertMapLocally(updated);
+      else await load();
       setMsg(okMsg);
     } catch (e) {
+      await load();
       setErr(e.message || 'Échec mise à jour carte');
     }
     setSavingKey('');
@@ -210,12 +245,19 @@ function SettingsAdminView() {
     setSavingKey(`map-image:${mapId}`);
     try {
       const dataUrl = await compressImageWithPreset(file, 'adminProfile');
-      await api(`/api/settings/admin/maps/${encodeURIComponent(mapId)}/image`, 'POST', {
-        image_data: dataUrl,
-      });
-      await load();
+      // POST .../image renvoie aussi la carte normalisée complète.
+      const updated = await api(
+        `/api/settings/admin/maps/${encodeURIComponent(mapId)}/image`,
+        'POST',
+        {
+          image_data: dataUrl,
+        },
+      );
+      if (updated?.id) upsertMapLocally(updated);
+      else await load();
       setMsg('Image de plan mise à jour');
     } catch (e) {
+      await load();
       setErr(e.message || 'Échec upload image');
     }
     setSavingKey('');
@@ -506,20 +548,26 @@ function SettingsAdminView() {
                       <div style={{ fontWeight: 700 }}>{m.label}</div>
                       <div style={{ fontSize: '.75rem', color: '#6b7280' }}>{m.id}</div>
                     </div>
-                    <input
-                      defaultValue={m.label}
-                      placeholder="Libellé"
-                      onBlur={(e) =>
-                        e.target.value.trim() && saveMap(m.id, { label: e.target.value.trim() })
-                      }
+                    {/* Champs pilotés (resynchronisés si le serveur normalise la valeur). */}
+                    <AdminTextSettingField
+                      rowKey={`map:${m.id}:label`}
+                      label="Libellé"
+                      row={{ type: 'string', scope: 'admin' }}
+                      serverValue={m.label || ''}
+                      disabled={savingKey === `map:${m.id}`}
+                      onSave={(_key, next) => {
+                        const label = String(next || '').trim();
+                        if (label) saveMap(m.id, { label });
+                      }}
                     />
-                    <input
-                      type="number"
-                      defaultValue={m.sort_order ?? 0}
-                      placeholder="Ordre"
-                      onBlur={(e) =>
-                        saveMap(m.id, { sort_order: parseInt(e.target.value || '0', 10) || 0 })
-                      }
+                    <AdminNumberSettingField
+                      rowKey={`map:${m.id}:sort_order`}
+                      label="Ordre"
+                      row={{ type: 'number', scope: 'admin' }}
+                      serverValue={m.sort_order ?? 0}
+                      disabled={savingKey === `map:${m.id}`}
+                      fallback={0}
+                      onSave={(_key, next) => saveMap(m.id, { sort_order: next })}
                     />
                     <label>
                       <input
@@ -530,11 +578,14 @@ function SettingsAdminView() {
                       Active
                     </label>
                   </div>
-                  <div className="field" style={{ marginTop: 8 }}>
-                    <label>URL image du plan</label>
-                    <input
-                      defaultValue={m.map_image_url || ''}
-                      onBlur={(e) => saveMap(m.id, { map_image_url: e.target.value || '' })}
+                  <div style={{ marginTop: 8 }}>
+                    <AdminTextSettingField
+                      rowKey={`map:${m.id}:map_image_url`}
+                      label="URL image du plan"
+                      row={{ type: 'string', scope: 'admin' }}
+                      serverValue={m.map_image_url || ''}
+                      disabled={savingKey === `map:${m.id}`}
+                      onSave={(_key, next) => saveMap(m.id, { map_image_url: next || '' })}
                     />
                   </div>
                   <MediaLibraryMenu
@@ -553,7 +604,11 @@ function SettingsAdminView() {
                   <div className="settings-admin-map-tools">
                     <div className="field">
                       <label>Padding cadre (0-32 px)</label>
+                      {/* Champ non piloté (vide = null « hérite ») : la clé force le remontage
+                          quand le serveur renvoie une valeur normalisée, comme le faisait
+                          l'ancien rechargement complet. */}
                       <input
+                        key={`frame-padding-${m.id}-${m.frame_padding_px ?? ''}`}
                         type="number"
                         min={0}
                         max={32}

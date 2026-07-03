@@ -3,7 +3,7 @@ const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const { queryOne, execute } = require('../../database');
 const { signAuthToken } = require('../../middleware/requireTeacher');
-const { requireGlAuth } = require('../../middleware/requireGlAuth');
+const { requireGlAuth, isMj } = require('../../middleware/requireGlAuth');
 const { logAudit, logSecurityEvent } = require('../audit');
 const { resolveGlStaffLogin, buildGlAdminClaims } = require('../../lib/glStaffAuth');
 const { resolveGlPlayerLogin } = require('../../lib/glPlayerAuth');
@@ -1104,7 +1104,7 @@ router.patch(
       });
     }
 
-    if (req.glAuth.userType !== 'gl_admin') {
+    if (!isMj(req)) {
       return res.status(403).json({ error: 'Type de session GL non supporté' });
     }
 
@@ -1203,7 +1203,7 @@ router.post(
   '/staff/change-password',
   requireGlAuth,
   asyncHandler(async (req, res) => {
-    if (req.glAuth.userType !== 'gl_admin') {
+    if (!isMj(req)) {
       return res.status(403).json({ error: 'Action réservée aux MJ/Admin GL' });
     }
     const currentPassword = normalizeOptionalString(req.body?.currentPassword);

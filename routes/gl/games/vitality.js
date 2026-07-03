@@ -11,19 +11,14 @@ const {
   resolveVitalityError,
 } = require('../../../lib/glVitality');
 const asyncHandler = require('../../../lib/asyncHandler');
-// O10 — helpers runtime à I/O (DB) partagés via lib/gl/gamesRuntime.js (déplacement pur),
-// recopie locale de parseId pour éviter tout import circulaire vers gl/games.js.
+// O10 — helpers runtime à I/O (DB) partagés via lib/gl/gamesRuntime.js (déplacement pur).
 const {
   ensurePlayerInGameClass,
   recordVitalityChangeEvent,
 } = require('../../../lib/gl/gamesRuntime');
+const { parseId } = require('../../../lib/shared/httpHelpers');
 
 const router = express.Router();
-
-function parseId(value) {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : null;
-}
 
 router.post(
   '/games/:id/vitality/player',

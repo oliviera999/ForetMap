@@ -1,4 +1,4 @@
-import { pctPointToNorm, pctPointsToNormPolygon } from '../../utils/glNormMapCoords.js';
+import { pctPointToNorm, pctPointsToNormPolygon } from './glNormMapCoords.js';
 
 export function buildFeuilletZonesExportJson(zones) {
   return {

@@ -1,6 +1,6 @@
 'use strict';
 
-const { v4: uuidv4 } = require('uuid');
+const crypto = require('node:crypto');
 const { queryOne, execute } = require('../../database');
 
 /**
@@ -24,7 +24,7 @@ async function ensureN3beurTestGroup(roleSlug = 'eleve_novice') {
   const slug = `test-n3beur-${roleSlug}`;
   let group = await queryOne('SELECT id FROM `groups` WHERE slug = ? LIMIT 1', [slug]);
   if (!group?.id) {
-    const groupId = uuidv4();
+    const groupId = crypto.randomUUID();
     await execute(
       "INSERT INTO `groups` (id, slug, name, kind, default_role_id, grants_n3beur_access, is_active) VALUES (?, ?, ?, 'class', ?, 1, 1)",
       [groupId, slug, `Groupe test n3beur ${roleSlug}`, role?.id ?? null],

@@ -3,7 +3,12 @@
 const express = require('express');
 const { queryAll, queryOne, execute, withTransaction } = require('../../database');
 const { recordGlQcmAttemptIfGatingEnabled } = require('../../lib/learningGatingRuntime');
-const { requireGlAuth, requireGlPermission } = require('../../middleware/requireGlAuth');
+const {
+  requireGlAuth,
+  requireGlPermission,
+  isMj,
+  actorTypeOf,
+} = require('../../middleware/requireGlAuth');
 const { canAccessGlGame } = require('../../lib/glGameAccess');
 const {
   getGameplaySettings,
@@ -155,10 +160,10 @@ router.get(
     const gameId = req.validatedQuery?.gameId;
     const teamId = req.validatedQuery?.teamId;
     const liasse = String(req.query?.liasse || '').trim();
-    const isMj = req.glAuth.userType === 'gl_admin';
+    const mj = isMj(req);
 
     // --- MJ / Admin : accès intégral, filtres libres (comportement historique). ---
-    if (isMj) {
+    if (mj) {
       const biomeSlugs = parseBiomeSlugsFromQuery(req.query?.biomeSlugs);
       let progressMap = new Map();
       if (gameId && teamId) {
@@ -252,7 +257,7 @@ router.get(
     const code = String(req.params.code || '').trim();
     const gameId = req.validatedQuery?.gameId;
     const teamId = req.validatedQuery?.teamId;
-    const isMj = req.glAuth.userType === 'gl_admin';
+    const mj = isMj(req);
     const row = await queryOne(
       `SELECT ${FEUILLET_SELECT} FROM gl_lore_feuillets f WHERE f.feuillet_code = ? LIMIT 1`,
       [code],
@@ -261,7 +266,7 @@ router.get(
       return res.status(404).json({ error: 'Feuillet introuvable' });
 
     // --- MJ / Admin : accès intégral (comportement historique). ---
-    if (isMj) {
+    if (mj) {
       let progress = null;
       if (gameId && teamId) {
         progress = await queryOne(
@@ -409,7 +414,7 @@ router.post(
       throw err;
     }
 
-    const actorType = req.glAuth.userType === 'gl_admin' ? 'mj' : 'team';
+    const actorType = actorTypeOf(req);
     await recordFeuilletEvent(
       gameId,
       teamId,
@@ -425,9 +430,12 @@ router.post(
       },
     );
 
-    const isMj = req.glAuth.userType === 'gl_admin';
     return res.json({
-      feuillet: formatFeuilletRow(feuillet, { isMj, progressStatus: 'discovered', effacementPct }),
+      feuillet: formatFeuilletRow(feuillet, {
+        isMj: isMj(req),
+        progressStatus: 'discovered',
+        effacementPct,
+      }),
       vitality: vitalityPayload,
     });
   }),
@@ -455,7 +463,7 @@ router.post(
       status: 'read',
     });
 
-    const actorType = req.glAuth.userType === 'gl_admin' ? 'mj' : 'team';
+    const actorType = actorTypeOf(req);
     await recordFeuilletEvent(
       gameId,
       teamCtx.teamId,
@@ -500,7 +508,7 @@ router.post(
       status: 'held',
     });
 
-    const actorType = req.glAuth.userType === 'gl_admin' ? 'mj' : 'team';
+    const actorType = actorTypeOf(req);
     await recordFeuilletEvent(
       gameId,
       teamCtx.teamId,
@@ -561,9 +569,7 @@ router.get(
         });
 
     return res.json({
-      items: candidates.map((row) =>
-        formatFeuilletRow(row, { isMj: req.glAuth.userType === 'gl_admin' }),
-      ),
+      items: candidates.map((row) => formatFeuilletRow(row, { isMj: isMj(req) })),
     });
   }),
 );
@@ -578,7 +584,6 @@ router.get(
       return res.status(404).json({ error: 'Module glossaire lore désactivé' });
 
     const gameplay = await getGameplaySettings();
-    const isMj = req.glAuth.userType === 'gl_admin';
     const rows = await queryAll(
       `SELECT lore_code, terme, variantes, categorie, niveau, definition_courte, chapitre_scope, statut
        FROM gl_lore_glossary_terms
@@ -591,7 +596,7 @@ router.get(
       q: String(req.query?.q || '').trim(),
       chapitreScope: String(req.query?.chapitreScope || '').trim() || null,
       maxSpoilerLevel: gameplay.loreSpoilerMaxLevel,
-      isMj,
+      isMj: isMj(req),
     }).map((row) => ({
       lore_code: row.lore_code,
       terme: row.terme,
@@ -636,7 +641,7 @@ router.get(
 
     const code = String(req.params.code || '').trim();
     const gameplay = await getGameplaySettings();
-    const isMj = req.glAuth.userType === 'gl_admin';
+    const mj = isMj(req);
     const term = await queryOne(
       `SELECT lore_code, terme, variantes, categorie, niveau, definition_courte, definition_complete,
             role_recit, correspondance_reelle, chapitre_scope, source, statut
@@ -645,7 +650,7 @@ router.get(
     );
     if (!term || term.statut !== 'actif')
       return res.status(404).json({ error: 'Terme introuvable' });
-    if (!isMj && term.niveau === 'secret')
+    if (!mj && term.niveau === 'secret')
       return res.status(403).json({ error: 'Terme secret — accès MJ' });
 
     const related = await queryAll(
@@ -1209,7 +1214,9 @@ router.get(
 
     const placeholders = chapitreSlugs.map(() => '?').join(', ');
     const params = [...chapitreSlugs];
-    let sql = `${LORE_QUESTION_SELECT} WHERE statut = 'actif' AND chapitre_slug IN (${placeholders})`;
+    // Tirage : seuls les codes sont chargés (la route ne renvoie que question_code).
+    let sql = `SELECT question_code FROM gl_qcm_lore_questions
+      WHERE statut = 'actif' AND chapitre_slug IN (${placeholders})`;
     if (categorieSlug) {
       sql += ' AND categorie_slug = ?';
       params.push(categorieSlug);

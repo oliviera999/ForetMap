@@ -1,7 +1,8 @@
 const express = require('express');
-const { queryOne, queryAll, execute, withTransaction } = require('../../../database');
+const db = require('../../../database');
+const { queryOne, queryAll, execute } = db;
 const { requireGlPermission } = require('../../../middleware/requireGlAuth');
-const { normalizeEventRow } = require('../../../lib/glGameEvents');
+const { normalizeEventRow, insertGameEvent } = require('../../../lib/glGameEvents');
 const { emitGlGameEvent } = require('../../../lib/realtime');
 const asyncHandler = require('../../../lib/asyncHandler');
 const {
@@ -10,13 +11,9 @@ const {
   resolveBoardPathStartIndex,
   startMarker,
 } = require('../../../lib/glBoardPath');
+const { parseId } = require('../../../lib/shared/httpHelpers');
 
 const router = express.Router();
-
-function parseId(value) {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : null;
-}
 
 async function placeTeamsOnPathStart(gameId, gameRow) {
   if (!gameRow?.chapter_id) return;
@@ -31,21 +28,16 @@ async function placeTeamsOnPathStart(gameId, gameRow) {
   const sorted = sortMarkersByPath(markerRows);
   const start = startMarker(sorted, resolveBoardPathStartIndex(gameRow));
   if (!start?.marker) return;
-  const teams = await queryAll('SELECT id FROM gl_teams WHERE game_id = ?', [gameId]);
-  if (!teams.length) return;
-  await withTransaction(async (tx) => {
-    for (const team of teams) {
-      await tx.execute(
-        `UPDATE gl_teams
-            SET position_marker_id = ?,
-                position_x_pct = ?,
-                position_y_pct = ?,
-                updated_at = NOW()
-          WHERE id = ? AND game_id = ?`,
-        [start.marker.id, Number(start.marker.x_pct), Number(start.marker.y_pct), team.id, gameId],
-      );
-    }
-  });
+  // Mêmes valeurs pour toutes les équipes : un seul UPDATE sur la partie.
+  await execute(
+    `UPDATE gl_teams
+        SET position_marker_id = ?,
+            position_x_pct = ?,
+            position_y_pct = ?,
+            updated_at = NOW()
+      WHERE game_id = ?`,
+    [start.marker.id, Number(start.marker.x_pct), Number(start.marker.y_pct), gameId],
+  );
 }
 
 async function updateGameStatus(req, res, nextStatus) {
@@ -64,16 +56,13 @@ async function updateGameStatus(req, res, nextStatus) {
   if (nextStatus === 'live') {
     await placeTeamsOnPathStart(gameId, gameRow);
   }
-  await execute(
-    `INSERT INTO gl_game_events (game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at)
-     VALUES (?, NULL, 'mj', ?, 'game_status', ?, NOW())`,
-    [gameId, req.glAuth.userId, JSON.stringify({ status: nextStatus })],
-  );
-  const evt = await queryOne(
-    'SELECT id, game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at FROM gl_game_events WHERE game_id = ? ORDER BY id DESC LIMIT 1',
-    [gameId],
-  );
-  const normalized = normalizeEventRow(evt);
+  const normalized = await insertGameEvent(db, {
+    gameId,
+    actorType: 'mj',
+    actorId: req.glAuth.userId,
+    eventType: 'game_status',
+    payload: { status: nextStatus },
+  });
   emitGlGameEvent(gameId, normalized);
   return res.json({ ok: true, status: nextStatus });
 }

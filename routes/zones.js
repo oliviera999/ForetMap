@@ -1,6 +1,6 @@
 const express = require('express');
 const path = require('path');
-const { v4: uuidv4 } = require('uuid');
+const crypto = require('node:crypto');
 const { queryAll, queryOne, execute, withTransaction } = require('../database');
 const { requireAuth, requirePermission } = require('../middleware/requireTeacher');
 const { saveBase64ToDisk, getAbsolutePath } = require('../lib/uploads');
@@ -199,17 +199,30 @@ router.get(
     const zones = mapId
       ? await queryAll(`${ZONES_LIST_SQL} WHERE z.map_id = ?`, [mapId])
       : await queryAll(ZONES_LIST_SQL);
-    const history = await queryAll('SELECT * FROM zone_history ORDER BY harvested_at DESC');
-    const speciesMap = await loadZoneSpeciesMap(
-      db,
-      zones.map((z) => z.id),
-    );
+    // Historique restreint aux zones retournées + regroupement en Map :
+    // l'ancien SELECT chargeait toute la table puis filtrait en O(zones × historique).
+    const zoneIds = zones.map((z) => z.id);
+    const history = zoneIds.length
+      ? await queryAll(
+          `SELECT * FROM zone_history
+            WHERE zone_id IN (${zoneIds.map(() => '?').join(',')})
+            ORDER BY harvested_at DESC`,
+          zoneIds,
+        )
+      : [];
+    const historyByZoneId = new Map();
+    for (const h of history) {
+      const key = String(h.zone_id);
+      if (!historyByZoneId.has(key)) historyByZoneId.set(key, []);
+      historyByZoneId.get(key).push(h);
+    }
+    const speciesMap = await loadZoneSpeciesMap(db, zoneIds);
     const result = zones.map((z) =>
       attachSpeciesToEntity(
         {
           ...z,
           special: !!z.special,
-          history: history.filter((h) => h.zone_id === z.id),
+          history: historyByZoneId.get(String(z.id)) || [],
         },
         speciesMap.get(String(z.id)) || [],
         { legacySingleName: z.current_plant },
@@ -511,7 +524,7 @@ router.post(
     const nextLiving = normalizeLivingBeings(living_beings, current_plant);
     const nextCurrentPlant = nextLiving.length > 0 ? '' : String(current_plant || '').trim();
     const desc = description !== undefined && description !== null ? String(description) : '';
-    const id = 'zone-' + uuidv4().slice(0, 8);
+    const id = 'zone-' + crypto.randomUUID().slice(0, 8);
     const specialFlag = normalizeSpecialFlag(special, 0);
     await execute(
       'INSERT INTO zones (id, map_id, name, x, y, width, height, current_plant, stage, special, points, color, description) VALUES (?, ?, ?, 0, 0, 0, 0, ?, ?, ?, ?, ?, ?)',

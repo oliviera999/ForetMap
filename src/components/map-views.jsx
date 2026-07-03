@@ -2,12 +2,7 @@ import React, { useState, useEffect, useLayoutEffect, useRef, useMemo, useCallba
 
 import { api } from '../services/api';
 
-import {
-  MARKER_EMOJIS,
-  parseEmojiListSetting,
-  detectLeadingMarkerEmoji,
-  stripLeadingMarkerEmoji,
-} from '../constants/emojis';
+import { MARKER_EMOJIS, parseEmojiListSetting } from '../constants/emojis';
 
 import { resolveMapOverlayTypography } from '../utils/mapOverlayTypography';
 
@@ -16,17 +11,8 @@ import {
   computeTaskVisualByLocation,
   computeTutorialCountByLocation,
 } from '../utils/mapLocationBadges.js';
-import {
-  clampEditZonePct,
-  clampEditPts,
-  cloneEditPts,
-  editPtsSnapshotEqual,
-  offsetDuplicateZonePoints,
-} from '../utils/zoneEditGeometry.js';
-import { orderedLivingBeingsForForm } from '../utils/livingBeings';
 import { buildMapImageCandidates } from '../utils/mapImageCandidates';
 
-import { taskLocationIds, tutorialLocationIds } from '../utils/mapLocationContext';
 import { TutorialPreviewModal } from './TutorialPreviewModal';
 import { fetchTutorialReadIds } from './TutorialReadAcknowledge';
 
@@ -35,6 +21,9 @@ import { MapViewMarkerBubble } from './MapViewMarkerBubble.jsx';
 import { MapViewBackgroundImage } from './MapViewBackgroundImage.jsx';
 import { MapViewWorldLayer } from './MapViewWorldLayer.jsx';
 import useMapViewMascot from '../hooks/useMapViewMascot.js';
+import useZoneDrawing from '../hooks/useZoneDrawing.js';
+import useZoneEditPoints from '../hooks/useZoneEditPoints.js';
+import useMapCrudActions from '../hooks/useMapCrudActions.js';
 import useMascotGpsFollow from '../hooks/useMascotGpsFollow.js';
 import { MascotGpsStatusBanner } from './MascotGpsStatusBanner.jsx';
 import useVisitMascotCatalogExtras from '../hooks/useVisitMascotCatalogExtras.js';
@@ -48,6 +37,9 @@ import {
   BiodiversitySpeciesOpenLinks,
 } from './map/LivingBeingsCatalogPanel.jsx';
 
+import { ZonePolygonsLayer, parseZonesForLayer } from './map/ZonePolygonsLayer.jsx';
+import { DrawingLayer } from './map/DrawingLayer.jsx';
+import { EditPointsLayer } from './map/EditPointsLayer.jsx';
 import { ZoneDrawModal } from './map/ZoneDrawModal.jsx';
 import { PhotoGallery } from './map/PhotoGallery.jsx';
 import { LocationTutorialPreviewList } from './map/mapModalShared.jsx';
@@ -61,6 +53,40 @@ import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
 import { resolveMapCanvasHint } from '../utils/helpResolve.js';
 import { useSession } from '../contexts/SessionContext.jsx';
 import { useData } from '../contexts/DataContext.jsx';
+
+/**
+ * Bulle repère mémoïsée : évite le re-render de chaque bulle à chaque rendu de la carte.
+ * Le repère est passé par la bulle aux handlers (`onOpenMarker(marker, e)`,
+ * `onBeginMarkerDrag(marker.id, …)`) pour que le parent fournisse des fonctions stables.
+ */
+const MapViewMarkerBubbleMemo = React.memo(function MapViewMarkerBubbleMemo({
+  marker,
+  draggable,
+  onOpenMarker,
+  onBeginMarkerDrag,
+  ...bubbleProps
+}) {
+  const onOpen = useCallback((e) => onOpenMarker(marker, e), [marker, onOpenMarker]);
+  const onPointerDown = useMemo(
+    () =>
+      draggable
+        ? (e) => {
+            e.stopPropagation();
+            onBeginMarkerDrag(marker.id, e.currentTarget, e.pointerId);
+          }
+        : undefined,
+    [draggable, marker.id, onBeginMarkerDrag],
+  );
+  return (
+    <MapViewMarkerBubble
+      marker={marker}
+      draggable={draggable}
+      onOpen={onOpen}
+      onPointerDown={onPointerDown}
+      {...bubbleProps}
+    />
+  );
+});
 
 function Lightbox({ src, caption, onClose, useOverlayHistory = false }) {
   return (
@@ -101,18 +127,13 @@ function MapViewImpl({
   const canEnrollNewTasks = canEnrollOnTasks !== undefined ? canEnrollOnTasks : canSelfAssignTasks;
   const [mode, setMode] = useState('view');
   const [showLabels, setShowLabels] = useState(true);
-  const [drawPoints, setDrawPoints] = useState([]);
-  const [editZone, setEditZone] = useState(null);
-  const [editPoints, setEditPoints] = useState([]);
-  const [draggingPtIdx, setDraggingPtIdx] = useState(-1);
-  const [editCanUndo, setEditCanUndo] = useState(false);
-  const editZoneTranslateLastRef = useRef(null);
-  const editPointsHistoryRef = useRef([]);
-  const editPointsRef = useRef([]);
   const [selectedZone, setSelectedZone] = useState(null);
   const [selectedMarker, setSelectedMarker] = useState(null);
   const [pendingZone, setPendingZone] = useState(null);
   const [pendingMarker, setPendingMarker] = useState(null);
+  // Tracé de zone (mode draw-zone) : points cliqués + actions barre d'outils.
+  const { drawPoints, addDrawPoint, resetDrawPoints, finishZone, undoPoint, cancelDraw } =
+    useZoneDrawing({ setMode, setPendingZone });
   const [toast, setToast] = useState(null);
   const [mapTutorialPreview, setMapTutorialPreview] = useState(null);
   const [tutorialReadIds, setTutorialReadIds] = useState(() => new Set());
@@ -198,6 +219,24 @@ function MapViewImpl({
     mapLayoutOuterRef,
     mapFullscreen,
   });
+  // Édition du contour d'une zone (mode edit-points) : session, historique Ctrl+Z, translation.
+  const {
+    editZone,
+    editPoints,
+    draggingPtIdx,
+    editCanUndo,
+    undoEditPoints,
+    startEditPoints,
+    saveEditPoints,
+    discardEditPointsSession,
+    onTranslatePointerDown,
+    onTranslatePointerMove,
+    endEditZoneTranslate,
+    onTranslateLostPointerCapture,
+    onEditPointPointerDown,
+    onEditPointPointerMove,
+    onEditPointPointerUp,
+  } = useZoneEditPoints({ mode, setMode, toImagePct, onRefresh, setToast });
   const {
     mascotId: mapMascotId,
     showMascot: showMapMascot,
@@ -290,27 +329,15 @@ function MapViewImpl({
 
   useEffect(() => {
     setMode('view');
-    setDrawPoints([]);
-    setEditZone(null);
-    setEditPoints([]);
+    resetDrawPoints();
     setSelectedZone(null);
     setSelectedMarker(null);
     setPendingZone(null);
     setPendingMarker(null);
     setMarkerPositionUnlocked(false);
-    editZoneTranslateLastRef.current = null;
-    editPointsHistoryRef.current = [];
-    setEditCanUndo(false);
+    discardEditPointsSession();
     resetMapMascotMotion?.();
-  }, [activeMapId, resetMapMascotMotion]);
-
-  useEffect(() => {
-    if (mode !== 'edit-points') editZoneTranslateLastRef.current = null;
-  }, [mode]);
-
-  useEffect(() => {
-    editPointsRef.current = editPoints;
-  }, [editPoints]);
+  }, [activeMapId, resetMapMascotMotion, resetDrawPoints, discardEditPointsSession]);
 
   const onMapClick = (e) => {
     if (moved.current) return;
@@ -321,260 +348,46 @@ function MapViewImpl({
       moveMapMascotTo(p.xp, p.yp);
       return;
     }
-    if (mode === 'draw-zone') setDrawPoints((pts) => [...pts, p]);
+    if (mode === 'draw-zone') addDrawPoint(p);
     else if (mode === 'add-marker') {
       setPendingMarker(p);
       setMode('view');
     }
   };
 
-  const finishZone = () => {
-    if (drawPoints.length >= 3) {
-      setPendingZone(drawPoints);
-      setDrawPoints([]);
-      setMode('view');
-    }
-  };
-  const undoPoint = () => setDrawPoints((pts) => pts.slice(0, -1));
-  const cancelDraw = () => {
-    setDrawPoints([]);
-    setMode('view');
-  };
+  // Actions CRUD carte (API + refresh) ; les effets d'UI (fermeture/sélection/toast)
+  // restent portés par les wrappers ci-dessous et les call sites des modales.
+  const {
+    saveMarker,
+    updateMarker,
+    linkTaskToLocation,
+    unlinkTaskFromLocation,
+    linkTutorialToLocation,
+    unlinkTutorialFromLocation,
+    deleteMarker,
+    deleteZone,
+    duplicateZone,
+    duplicateMarker,
+    assignTasksToStudent,
+  } = useMapCrudActions({ activeMapId, tasks, tutorials, onRefresh, student, canEnrollNewTasks });
 
-  const recordEditHistoryAfterGesture = useCallback(() => {
-    if (mode !== 'edit-points') return;
-    const cur = clampEditPts(cloneEditPts(editPointsRef.current));
-    const h = editPointsHistoryRef.current;
-    const last = h[h.length - 1];
-    if (last && editPtsSnapshotEqual(last, cur)) return;
-    h.push(cur);
-    while (h.length > 30) h.shift();
-    setEditCanUndo(h.length > 1);
-  }, [mode]);
-
-  const scheduleRecordEditHistory = useCallback(() => {
-    window.setTimeout(() => {
-      recordEditHistoryAfterGesture();
-    }, 0);
-  }, [recordEditHistoryAfterGesture]);
-
-  const undoEditPoints = useCallback(() => {
-    const h = editPointsHistoryRef.current;
-    if (h.length <= 1) return;
-    h.pop();
-    const prev = h[h.length - 1];
-    setEditPoints(cloneEditPts(prev));
-    setEditCanUndo(h.length > 1);
-  }, []);
-
-  useEffect(() => {
-    if (mode !== 'edit-points') return undefined;
-    const onKey = (e) => {
-      if (!(e.ctrlKey || e.metaKey) || e.key.toLowerCase() !== 'z' || e.shiftKey) return;
-      const t = e.target;
-      if (t.closest && t.closest('input, textarea, select, [contenteditable="true"]')) return;
-      e.preventDefault();
-      undoEditPoints();
-    };
-    window.addEventListener('keydown', onKey, true);
-    return () => window.removeEventListener('keydown', onKey, true);
-  }, [mode, undoEditPoints]);
-
-  const discardEditPointsSession = useCallback(() => {
-    setEditZone(null);
-    setEditPoints([]);
-    editPointsHistoryRef.current = [];
-    setEditCanUndo(false);
-    editZoneTranslateLastRef.current = null;
-  }, []);
-
-  const startEditPoints = (z) => {
-    let pts;
-    try {
-      pts = z.points ? JSON.parse(z.points) : [];
-    } catch (e) {
-      pts = [];
-    }
-    const clamped = clampEditPts(pts);
-    editPointsHistoryRef.current = [cloneEditPts(clamped)];
-    setEditCanUndo(false);
-    setEditZone(z);
-    setEditPoints(clamped);
-    setMode('edit-points');
-    setSelectedZone(null);
-  };
-  const saveEditPoints = async () => {
-    if (!editZone) return;
-    await api(`/api/zones/${editZone.id}`, 'PUT', { points: editPoints });
-    await onRefresh();
-    discardEditPointsSession();
-    setMode('view');
-    setToast('Contour sauvegardé ✓');
-  };
-
-  const saveMarker = async (d) => {
-    const payload = { ...d, map_id: d.map_id || activeMapId };
-    await api('/api/map/markers', 'POST', payload);
-    await onRefresh();
-  };
-
-  const updateMarker = async (id, data) => {
-    const payload = { ...data, map_id: data.map_id || activeMapId };
-    await api(`/api/map/markers/${id}`, 'PUT', payload);
-    await onRefresh();
+  const updateMarkerAndClose = async (id, data) => {
+    await updateMarker(id, data);
     setSelectedMarker(null);
   };
-  const linkTaskToZone = async (taskId, zoneId) => {
-    const t = (tasks || []).find((x) => x.id === taskId);
-    const { zoneIds: zi, markerIds: mi } = taskLocationIds(t);
-    const zoneIds = [...new Set([...zi, zoneId])];
-    await api(`/api/tasks/${taskId}`, 'PUT', { zone_ids: zoneIds, marker_ids: mi });
-    await onRefresh();
-  };
-  const linkTaskToMarker = async (taskId, markerId) => {
-    const t = (tasks || []).find((x) => x.id === taskId);
-    const { zoneIds: zi, markerIds: mi } = taskLocationIds(t);
-    const markerIds = [...new Set([...mi, markerId])];
-    await api(`/api/tasks/${taskId}`, 'PUT', { zone_ids: zi, marker_ids: markerIds });
-    await onRefresh();
-  };
-  const unlinkTaskFromZone = async (task, zoneId) => {
-    const { zoneIds: zi, markerIds: mi } = taskLocationIds(task);
-    const zoneIds = zi.filter((id) => id !== zoneId);
-    const payload = { zone_ids: zoneIds, marker_ids: mi };
-    if (zoneIds.length === 0 && mi.length === 0) payload.map_id = activeMapId;
-    await api(`/api/tasks/${task.id}`, 'PUT', payload);
-    await onRefresh();
-  };
-  const unlinkTaskFromMarker = async (task, markerId) => {
-    const { zoneIds: zi, markerIds: mi } = taskLocationIds(task);
-    const markerIds = mi.filter((id) => id !== markerId);
-    const payload = { zone_ids: zi, marker_ids: markerIds };
-    if (zi.length === 0 && markerIds.length === 0) payload.map_id = activeMapId;
-    await api(`/api/tasks/${task.id}`, 'PUT', payload);
-    await onRefresh();
-  };
-  const linkTutorialToZone = async (tutorialId, zoneId) => {
-    const tu = (tutorials || []).find((x) => Number(x.id) === Number(tutorialId));
-    if (!tu) return;
-    const { zoneIds: zi, markerIds: mi } = tutorialLocationIds(tu);
-    const zoneIds = [...new Set([...(zi || []), zoneId])];
-    await api(`/api/tutorials/${tutorialId}`, 'PUT', { zone_ids: zoneIds, marker_ids: mi });
-    await onRefresh();
-  };
-  const unlinkTutorialFromZone = async (tutorial, zoneId) => {
-    const { zoneIds: zi, markerIds: mi } = tutorialLocationIds(tutorial);
-    const zoneIds = zi.filter((id) => String(id) !== String(zoneId));
-    await api(`/api/tutorials/${tutorial.id}`, 'PUT', { zone_ids: zoneIds, marker_ids: mi });
-    await onRefresh();
-  };
-  const linkTutorialToMarker = async (tutorialId, markerId) => {
-    const tu = (tutorials || []).find((x) => Number(x.id) === Number(tutorialId));
-    if (!tu) return;
-    const { zoneIds: zi, markerIds: mi } = tutorialLocationIds(tu);
-    const markerIds = [...new Set([...(mi || []), markerId])];
-    await api(`/api/tutorials/${tutorialId}`, 'PUT', { zone_ids: zi, marker_ids: markerIds });
-    await onRefresh();
-  };
-  const unlinkTutorialFromMarker = async (tutorial, markerId) => {
-    const { zoneIds: zi, markerIds: mi } = tutorialLocationIds(tutorial);
-    const markerIds = mi.filter((id) => String(id) !== String(markerId));
-    await api(`/api/tutorials/${tutorial.id}`, 'PUT', { zone_ids: zi, marker_ids: markerIds });
-    await onRefresh();
-  };
-  const deleteMarker = async (id) => {
-    await api(`/api/map/markers/${id}`, 'DELETE');
-    await onRefresh();
-  };
-  const deleteZone = async (id) => {
-    await api(`/api/zones/${id}`, 'DELETE');
-    await onRefresh();
-  };
-  const duplicateZone = async (z) => {
-    let pts;
-    try {
-      pts = z.points ? JSON.parse(z.points) : [];
-    } catch (e) {
-      pts = [];
-    }
-    if (!pts || pts.length < 3) throw new Error('Contour invalide');
-    const shifted = offsetDuplicateZonePoints(pts);
-    if (!shifted) throw new Error('Contour invalide');
-    const living = orderedLivingBeingsForForm(
-      z.living_beings_list || z.living_beings,
-      z.current_plant,
-    );
-    const created = await api('/api/zones', 'POST', {
-      name: `${z.name || 'Zone'} (copie)`,
-      points: shifted,
-      color: z.color || '#86efac80',
-      current_plant: '',
-      living_beings: living,
-      stage: z.stage || 'empty',
-      special: z.special ? 1 : 0,
-      map_id: z.map_id || activeMapId,
-      description: z.description || '',
-    });
-    await onRefresh();
+
+  const duplicateZoneAndSelect = async (z) => {
+    const created = await duplicateZone(z);
     setSelectedZone(created);
     setToast('Zone dupliquée ✓');
   };
 
-  const duplicateMarker = async (m) => {
-    const dx = 1.5;
-    const dy = 1.5;
-    const nx = Math.min(100, Math.max(0, Number(m.x_pct) + dx));
-    const ny = Math.min(100, Math.max(0, Number(m.y_pct) + dy));
-    const living = orderedLivingBeingsForForm(
-      m.living_beings_list || m.living_beings,
-      m.plant_name,
-    );
-    const baseLabel = String(m.label || 'Repère')
-      .replace(/\s*\(copie\)\s*$/i, '')
-      .trim();
-    const created = await api('/api/map/markers', 'POST', {
-      map_id: m.map_id || activeMapId,
-      x_pct: nx,
-      y_pct: ny,
-      label: `${baseLabel} (copie)`,
-      plant_name: '',
-      living_beings: living,
-      note: m.note || '',
-      emoji: String(m.emoji ?? '').trim(),
-      visit_subtitle: m.visit_subtitle,
-      visit_short_description: m.visit_short_description,
-      visit_details_title: m.visit_details_title,
-      visit_details_text: m.visit_details_text,
-    });
-    await onRefresh();
+  const duplicateMarkerAndSelect = async (m) => {
+    const created = await duplicateMarker(m);
     setSelectedMarker(created);
     setToast('Repère dupliqué ✓');
   };
 
-  const assignTasksToStudent = async (taskIds) => {
-    const ids = [...new Set((taskIds || []).filter(Boolean))];
-    if (!canEnrollNewTasks || !ids.length || !student) {
-      return { assignedCount: 0, failedCount: 0, firstError: null };
-    }
-    let assignedCount = 0;
-    let failedCount = 0;
-    let firstError = null;
-    for (const taskId of ids) {
-      try {
-        await api(`/api/tasks/${taskId}/assign`, 'POST', {
-          firstName: student.first_name,
-          lastName: student.last_name,
-          studentId: student.id,
-        });
-        assignedCount += 1;
-      } catch (err) {
-        failedCount += 1;
-        if (!firstError) firstError = err?.message || 'Erreur serveur';
-      }
-    }
-    await onRefresh();
-    return { assignedCount, failedCount, firstError };
-  };
   const toggleMarkerPositionLock = () => {
     setMarkerPositionUnlocked((prev) => {
       const next = !prev;
@@ -613,292 +426,34 @@ function MapViewImpl({
       zoomRatio: mapZoomRatio,
     });
 
-  const toWorld = (p) => ({ cx: (p.xp / 100) * iw, cy: (p.yp / 100) * ih });
+  // Zones pré-parsées (JSON.parse des points + emoji/nom d'étiquette) : recalculées uniquement
+  // quand les données changent, plus à chaque rendu de la carte (zoom, pan, mascotte…).
+  const parsedZones = useMemo(
+    () => parseZonesForLayer(zones, emojiParsingList),
+    [zones, emojiParsingList],
+  );
 
-  const renderZonePoly = (z) => {
-    let pts;
-    try {
-      pts = z.points ? JSON.parse(z.points) : null;
-    } catch (e) {
-      pts = null;
-    }
-    if (!pts || pts.length < 3) return null;
-    const wp = pts.map(toWorld);
-    const str = wp.map((p) => `${p.cx},${p.cy}`).join(' ');
-    const mx = wp.reduce((s, p) => s + p.cx, 0) / wp.length;
-    const my = wp.reduce((s, p) => s + p.cy, 0) / wp.length;
-    const zoneEmoji = detectLeadingMarkerEmoji(z.name || '', emojiParsingList);
-    const zoneName = stripLeadingMarkerEmoji(z.name || '', emojiParsingList);
-    const isEd = mode === 'edit-points' && editZone?.id === z.id;
-    const zoneTaskVisual = zoneTaskVisualById.get(z.id);
-    const zoneTutorialCount = zoneTutorialCountById.get(z.id) || 0;
-    return (
-      <g
-        key={z.id}
-        className={mode === 'view' ? 'map-zone-hit' : ''}
-        style={{ cursor: mode === 'view' ? 'pointer' : 'default' }}
-        onClick={(e) => {
-          if (mode === 'view' && !moved.current) {
-            e.stopPropagation();
-            if (showMapMascot) onMapMascotZoneClick(z, setSelectedZone);
-            else setSelectedZone(z);
-          }
-        }}
-      >
-        <polygon
-          points={str}
-          fill={isEd ? 'rgba(82,183,136,0.35)' : z.color || '#86efac90'}
-          stroke={isEd ? '#52b788' : 'rgba(26,71,49,0.5)'}
-          strokeWidth={(isEd ? 2.5 : 1.5) * inv}
-          strokeDasharray={z.special ? `${5 * inv},${3 * inv}` : 'none'}
-        />
-        {showLabels && (
-          <text
-            x={mx}
-            y={my}
-            textAnchor="middle"
-            dominantBaseline="middle"
-            fontSize={mapEmojiFontPx}
-            fontFamily="ForetMapColorEmoji, Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif"
-            style={{ pointerEvents: 'none', userSelect: 'none' }}
-          >
-            {zoneEmoji || ''}
-          </text>
-        )}
-        {showLabels && (
-          <text
-            x={mx}
-            y={my + (zoneEmoji ? mapEmojiLabelCenterGap : 0)}
-            textAnchor="middle"
-            dominantBaseline="middle"
-            fontSize={mapLabelFontPx}
-            fontWeight="700"
-            fontFamily="DM Sans,sans-serif"
-            fill="#1a4731"
-            stroke="rgba(255,255,255,0.8)"
-            strokeWidth={3 * inv}
-            paintOrder="stroke"
-            style={{ pointerEvents: 'none', userSelect: 'none' }}
-          >
-            {zoneName || z.name}
-          </text>
-        )}
-        {zoneTaskVisual && (
-          <circle
-            className={`map-task-status map-task-status--${zoneTaskVisual}`}
-            cx={mx + 16 * inv}
-            cy={my - 12 * inv}
-            r={Math.max(5, 7 * inv)}
-            style={{ pointerEvents: 'none' }}
-          >
-            <title>{TASK_VISUAL_LABEL[zoneTaskVisual]}</title>
-          </circle>
-        )}
-        {zoneTutorialCount > 0 && (
-          <circle
-            className="map-tutorial-zone-dot"
-            cx={mx - 16 * inv}
-            cy={my - 12 * inv}
-            r={Math.max(4, 6 * inv)}
-            style={{ pointerEvents: 'none' }}
-          >
-            <title>
-              {zoneTutorialCount === 1 ? '1 tutoriel lié' : `${zoneTutorialCount} tutoriels liés`}
-            </title>
-          </circle>
-        )}
-      </g>
-    );
-  };
+  const openZoneFromMap = useCallback(
+    (z, e) => {
+      if (mode === 'view' && !moved.current) {
+        e.stopPropagation();
+        if (showMapMascot) onMapMascotZoneClick(z, setSelectedZone);
+        else setSelectedZone(z);
+      }
+    },
+    [mode, moved, showMapMascot, onMapMascotZoneClick],
+  );
 
-  const endEditZoneTranslate = (e) => {
-    scheduleRecordEditHistory();
-    editZoneTranslateLastRef.current = null;
-    if (e?.currentTarget?.hasPointerCapture?.(e.pointerId)) {
-      try {
-        e.currentTarget.releasePointerCapture(e.pointerId);
-      } catch (_) {}
-    }
-  };
-
-  const renderEditPts = () => {
-    if (mode !== 'edit-points' || !editPoints.length) return null;
-    const wp = editPoints.map(toWorld);
-    const str = wp.map((p) => `${p.cx},${p.cy}`).join(' ');
-    /** Anneau léger + croix : voir le sol sous le sommet ; disque invisible pour le doigt. */
-    const rHit = Math.max(22, 14 * inv);
-    const rVis = Math.max(4, 5.5 * inv);
-    const crossHalf = Math.max(9, 11 * inv);
-    const crossStroke = Math.max(1, 1.2 * inv);
-    const centerR = Math.max(1.4, 1.7 * inv);
-    return (
-      <g>
-        <polygon
-          className="edit-zone-translate"
-          points={str}
-          fill="rgba(82,183,136,0.2)"
-          stroke="#52b788"
-          strokeWidth={2 * inv}
-          style={{ cursor: 'move', touchAction: 'none' }}
-          onPointerDown={(e) => {
-            e.stopPropagation();
-            const p0 = toImagePct(e.clientX, e.clientY);
-            if (!p0) return;
-            editZoneTranslateLastRef.current = p0;
-            try {
-              e.currentTarget.setPointerCapture(e.pointerId);
-            } catch (_) {}
-          }}
-          onPointerMove={(e) => {
-            const last = editZoneTranslateLastRef.current;
-            if (!last) return;
-            const p2 = toImagePct(e.clientX, e.clientY);
-            if (!p2) return;
-            const dx = p2.xp - last.xp;
-            const dy = p2.yp - last.yp;
-            editZoneTranslateLastRef.current = p2;
-            setEditPoints((pts) =>
-              clampEditPts(pts.map((pt) => ({ xp: pt.xp + dx, yp: pt.yp + dy }))),
-            );
-            e.preventDefault();
-          }}
-          onPointerUp={endEditZoneTranslate}
-          onPointerCancel={endEditZoneTranslate}
-          onLostPointerCapture={() => {
-            editZoneTranslateLastRef.current = null;
-          }}
-        />
-        {wp.map((p, i) => {
-          const dragging = draggingPtIdx === i;
-          return (
-            <g
-              key={i}
-              className={`edit-pt${dragging ? ' edit-pt--dragging' : ''}`}
-              style={{ cursor: 'grab', touchAction: 'none' }}
-              onPointerDown={(e) => {
-                e.stopPropagation();
-                setDraggingPtIdx(i);
-                try {
-                  e.currentTarget.setPointerCapture(e.pointerId);
-                } catch (_) {}
-              }}
-              onPointerMove={(e) => {
-                if (draggingPtIdx === i) {
-                  const p2 = toImagePct(e.clientX, e.clientY);
-                  if (p2)
-                    setEditPoints((pts) =>
-                      pts.map((pt, j) => (j === i ? clampEditZonePct(p2) : pt)),
-                    );
-                }
-              }}
-              onPointerUp={(e) => {
-                e.stopPropagation();
-                scheduleRecordEditHistory();
-                setDraggingPtIdx(-1);
-                if (e.currentTarget.hasPointerCapture?.(e.pointerId)) {
-                  try {
-                    e.currentTarget.releasePointerCapture(e.pointerId);
-                  } catch (_) {}
-                }
-              }}
-            >
-              <circle cx={p.cx} cy={p.cy} r={rHit} fill="transparent" />
-              <circle
-                cx={p.cx}
-                cy={p.cy}
-                r={rVis}
-                fill={dragging ? 'rgba(26,71,49,0.38)' : 'rgba(255,255,255,0.18)'}
-                stroke="#1a4731"
-                strokeWidth={dragging ? 2.4 * inv : 1.6 * inv}
-                style={{ pointerEvents: 'none' }}
-              />
-              <g className="edit-pt-cross" style={{ pointerEvents: 'none' }}>
-                <line
-                  x1={p.cx - crossHalf}
-                  y1={p.cy}
-                  x2={p.cx + crossHalf}
-                  y2={p.cy}
-                  stroke="rgba(26,71,49,0.88)"
-                  strokeWidth={crossStroke}
-                  strokeLinecap="round"
-                />
-                <line
-                  x1={p.cx}
-                  y1={p.cy - crossHalf}
-                  x2={p.cx}
-                  y2={p.cy + crossHalf}
-                  stroke="rgba(26,71,49,0.88)"
-                  strokeWidth={crossStroke}
-                  strokeLinecap="round"
-                />
-              </g>
-              <circle
-                cx={p.cx}
-                cy={p.cy}
-                r={centerR}
-                fill={dragging ? '#1a4731' : 'rgba(26,71,49,0.82)'}
-                style={{ pointerEvents: 'none' }}
-              />
-            </g>
-          );
-        })}
-      </g>
-    );
-  };
-
-  const renderDrawing = () => {
-    if (!drawPoints.length) return null;
-    const wp = drawPoints.map(toWorld);
-    const str = wp.map((p) => `${p.cx},${p.cy}`).join(' ');
-    const rVis = Math.max(3.5, 5 * inv);
-    const crossHalf = Math.max(7, 9 * inv);
-    const crossStroke = Math.max(1, 1.1 * inv);
-    const centerR = Math.max(1.2, 1.5 * inv);
-    return (
-      <g>
-        {drawPoints.length > 1 && (
-          <polyline
-            points={str}
-            fill="none"
-            stroke="#52b788"
-            strokeWidth={2 * inv}
-            strokeDasharray={`${6 * inv},${3 * inv}`}
-          />
-        )}
-        {wp.map((p, i) => (
-          <g key={i} style={{ pointerEvents: 'none' }}>
-            <circle
-              cx={p.cx}
-              cy={p.cy}
-              r={rVis}
-              fill="rgba(26,71,49,0.2)"
-              stroke="rgba(26,71,49,0.9)"
-              strokeWidth={1.5 * inv}
-            />
-            <line
-              x1={p.cx - crossHalf}
-              y1={p.cy}
-              x2={p.cx + crossHalf}
-              y2={p.cy}
-              stroke="rgba(26,71,49,0.85)"
-              strokeWidth={crossStroke}
-              strokeLinecap="round"
-            />
-            <line
-              x1={p.cx}
-              y1={p.cy - crossHalf}
-              x2={p.cx}
-              y2={p.cy + crossHalf}
-              stroke="rgba(26,71,49,0.85)"
-              strokeWidth={crossStroke}
-              strokeLinecap="round"
-            />
-            <circle cx={p.cx} cy={p.cy} r={centerR} fill="rgba(26,71,49,0.88)" />
-          </g>
-        ))}
-      </g>
-    );
-  };
+  const openMarkerFromMap = useCallback(
+    (m, e) => {
+      e.stopPropagation();
+      if (!moved.current) {
+        if (mode === 'view' && showMapMascot) onMapMascotMarkerClick(m, setSelectedMarker);
+        else setSelectedMarker(m);
+      }
+    },
+    [mode, moved, showMapMascot, onMapMascotMarkerClick],
+  );
 
   const cursor =
     mode === 'view'
@@ -955,13 +510,22 @@ function MapViewImpl({
             await deleteZone(id);
             setSelectedZone(null);
           }}
-          onDuplicate={isTeacher ? duplicateZone : undefined}
-          onLinkTask={async (taskId) => linkTaskToZone(taskId, selectedZone.id)}
-          onUnlinkTask={(t) => unlinkTaskFromZone(t, selectedZone.id)}
+          onDuplicate={isTeacher ? duplicateZoneAndSelect : undefined}
+          onLinkTask={async (taskId) => linkTaskToLocation(taskId, 'zone', selectedZone.id)}
+          onUnlinkTask={(t) => unlinkTaskFromLocation(t, 'zone', selectedZone.id)}
           onAssignTasks={assignTasksToStudent}
-          onLinkTutorial={async (tutorialId) => linkTutorialToZone(tutorialId, selectedZone.id)}
-          onUnlinkTutorial={(tu) => unlinkTutorialFromZone(tu, selectedZone.id)}
-          onEditPoints={isTeacher ? (z) => startEditPoints(z) : null}
+          onLinkTutorial={async (tutorialId) =>
+            linkTutorialToLocation(tutorialId, 'zone', selectedZone.id)
+          }
+          onUnlinkTutorial={(tu) => unlinkTutorialFromLocation(tu, 'zone', selectedZone.id)}
+          onEditPoints={
+            isTeacher
+              ? (z) => {
+                  startEditPoints(z);
+                  setSelectedZone(null);
+                }
+              : null
+          }
           onNavigateToTasksForLocation={onNavigateToTasksForLocation}
           onOpenTutorialPreview={setMapTutorialPreview}
           onOpenPlantCatalogPreview={
@@ -991,14 +555,15 @@ function MapViewImpl({
             clearMapMascotDetailAfterMove();
             setSelectedMarker(null);
           }}
-          onSave={saveMarker}
-          onUpdate={updateMarker}
+          onUpdate={updateMarkerAndClose}
           onDelete={deleteMarker}
-          onDuplicate={isTeacher ? duplicateMarker : undefined}
-          onLinkTask={async (taskId) => linkTaskToMarker(taskId, selectedMarker.id)}
-          onUnlinkTask={(t) => unlinkTaskFromMarker(t, selectedMarker.id)}
-          onLinkTutorial={async (tutorialId) => linkTutorialToMarker(tutorialId, selectedMarker.id)}
-          onUnlinkTutorial={(tu) => unlinkTutorialFromMarker(tu, selectedMarker.id)}
+          onDuplicate={isTeacher ? duplicateMarkerAndSelect : undefined}
+          onLinkTask={async (taskId) => linkTaskToLocation(taskId, 'marker', selectedMarker.id)}
+          onUnlinkTask={(t) => unlinkTaskFromLocation(t, 'marker', selectedMarker.id)}
+          onLinkTutorial={async (tutorialId) =>
+            linkTutorialToLocation(tutorialId, 'marker', selectedMarker.id)
+          }
+          onUnlinkTutorial={(tu) => unlinkTutorialFromLocation(tu, 'marker', selectedMarker.id)}
           onAssignTasks={assignTasksToStudent}
           onNavigateToTasksForLocation={onNavigateToTasksForLocation}
           onOpenTutorialPreview={setMapTutorialPreview}
@@ -1051,11 +616,7 @@ function MapViewImpl({
           isTeacher={isTeacher}
           markerEmojis={markerEmojis}
           onClose={() => setPendingMarker(null)}
-          onSave={async (data) => {
-            await api('/api/map/markers', 'POST', { ...data, map_id: activeMapId });
-            setPendingMarker(null);
-            await onRefresh();
-          }}
+          onSave={saveMarker}
           onDelete={() => setPendingMarker(null)}
         />
       )}
@@ -1071,7 +632,7 @@ function MapViewImpl({
           onModeButtonClick={(m) => {
             setMode((p) => (p === m && m !== 'view' ? 'view' : m));
             if (m === 'view') {
-              setDrawPoints([]);
+              resetDrawPoints();
               discardEditPointsSession();
             }
           }}
@@ -1165,9 +726,37 @@ function MapViewImpl({
                   }}
                 >
                   <g style={{ pointerEvents: 'all' }}>
-                    {zones.map((z) => renderZonePoly(z))}
-                    {renderDrawing()}
-                    {renderEditPts()}
+                    <ZonePolygonsLayer
+                      parsedZones={parsedZones}
+                      iw={iw}
+                      ih={ih}
+                      inv={inv}
+                      mode={mode}
+                      showLabels={showLabels}
+                      editZoneId={editZone?.id ?? null}
+                      zoneTaskVisualById={zoneTaskVisualById}
+                      zoneTutorialCountById={zoneTutorialCountById}
+                      emojiFontPx={mapEmojiFontPx}
+                      labelFontPx={mapLabelFontPx}
+                      emojiLabelCenterGap={mapEmojiLabelCenterGap}
+                      onZoneOpen={openZoneFromMap}
+                    />
+                    <DrawingLayer drawPoints={drawPoints} iw={iw} ih={ih} inv={inv} />
+                    <EditPointsLayer
+                      mode={mode}
+                      editPoints={editPoints}
+                      draggingPtIdx={draggingPtIdx}
+                      iw={iw}
+                      ih={ih}
+                      inv={inv}
+                      onTranslatePointerDown={onTranslatePointerDown}
+                      onTranslatePointerMove={onTranslatePointerMove}
+                      endEditZoneTranslate={endEditZoneTranslate}
+                      onTranslateLostPointerCapture={onTranslateLostPointerCapture}
+                      onEditPointPointerDown={onEditPointPointerDown}
+                      onEditPointPointerMove={onEditPointPointerMove}
+                      onEditPointPointerUp={onEditPointPointerUp}
+                    />
                   </g>
                 </svg>
 
@@ -1205,16 +794,8 @@ function MapViewImpl({
                     .filter(Boolean)
                     .join(' — ');
                   const markerDraggable = isTeacher && markerPositionUnlocked;
-                  const openMarker = (e) => {
-                    e.stopPropagation();
-                    if (!moved.current) {
-                      if (mode === 'view' && showMapMascot)
-                        onMapMascotMarkerClick(m, setSelectedMarker);
-                      else setSelectedMarker(m);
-                    }
-                  };
                   return (
-                    <MapViewMarkerBubble
+                    <MapViewMarkerBubbleMemo
                       key={m.id}
                       marker={m}
                       ariaLabel={markerAriaLabel}
@@ -1228,15 +809,8 @@ function MapViewImpl({
                       taskLabel={markerTaskLabel}
                       tutorialCount={markerTutorialCount}
                       tutorialLabel={markerTutorialLabel}
-                      onOpen={openMarker}
-                      onPointerDown={
-                        markerDraggable
-                          ? (e) => {
-                              e.stopPropagation();
-                              beginMarkerDrag(m.id, e.currentTarget, e.pointerId);
-                            }
-                          : undefined
-                      }
+                      onOpenMarker={openMarkerFromMap}
+                      onBeginMarkerDrag={beginMarkerDrag}
                     />
                   );
                 })}

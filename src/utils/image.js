@@ -32,6 +32,53 @@ export function compressImageWithPreset(file, presetKey = 'default') {
   return compressImage(file, preset.maxPx, preset.quality);
 }
 
+/**
+ * Lit un fichier image et le convertit en data URL **PNG** (transparence conservée),
+ * en réduisant si besoin le plus grand côté à `maxPx` (ratio conservé).
+ * Extrait de `VisitMascotPackManager` (audit §6.1) : fonction pure DOM (FileReader + canvas),
+ * utilisée pour les sprites mascotte (bibliothèque carte, médiathèque pack, remplacement en lot).
+ * @param {File|Blob} file
+ * @param {number} maxPx plafond du plus grand côté (défaut 2048)
+ * @returns {Promise<string>} data URL `image/png`
+ */
+export function fileToPngDataUrl(file, maxPx = 2048) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Lecture fichier impossible'));
+    reader.onload = () => {
+      const dataUrl = reader.result;
+      const img = new Image();
+      img.onerror = () => reject(new Error('Image invalide'));
+      img.onload = () => {
+        let w = img.naturalWidth;
+        let h = img.naturalHeight;
+        const max = maxPx;
+        if (w > max || h > max) {
+          if (w >= h) {
+            h = Math.round((h * max) / w);
+            w = max;
+          } else {
+            w = Math.round((w * max) / h);
+            h = max;
+          }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('Canvas indisponible'));
+          return;
+        }
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/png'));
+      };
+      img.src = dataUrl;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 export function compressImage(file, maxPx = 1200, quality = 0.75) {
   return new Promise((res, rej) => {
     if (file.size > 15 * 1024 * 1024) return rej(new Error('Image trop lourde (max 15MB)'));

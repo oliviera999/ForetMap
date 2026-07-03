@@ -21,13 +21,9 @@ const {
 const { normalizeSpellCode } = require('../../../lib/glChapterSpells');
 const { logRouteError } = require('../../../lib/routeLog');
 const { canAccessGlGame } = require('../../../lib/glGameAccess');
+const { parseId } = require('../../../lib/shared/httpHelpers');
 
 const router = express.Router();
-
-function parseId(value) {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : null;
-}
 
 function requireSpellCastPermission(req, res, next) {
   requireGlAuth(req, res, () => {

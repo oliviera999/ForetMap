@@ -1,10 +1,6 @@
 const express = require('express');
 const { queryAll, queryOne, execute } = require('../../database');
-const {
-  requirePermission,
-  JWT_SECRET,
-  hydrateAuthFromTokenClaims,
-} = require('../../middleware/requireTeacher');
+const { requirePermission } = require('../../middleware/requireTeacher');
 const { saveBase64ToDisk } = require('../../lib/uploads');
 const asyncHandler = require('../../lib/asyncHandler');
 const { logAudit } = require('../audit');
@@ -24,194 +20,23 @@ const {
 const {
   normalizeTaskStatusForRead,
   normalizeTaskCompletionMode,
-  recalculateTaskStatusWithConn,
 } = require('../../lib/taskStatusRecalc');
 const { getScopedStudentIds, canAccessStudentId } = require('../../lib/groupScope');
-const { parseOptionalForetAuth } = require('../../lib/auth/jwtPipeline');
+// Helpers du cluster « tasks » mutualisés dans lib/tasks/taskQueries.js (aucun import circulaire).
+const {
+  parseOptionalAuth,
+  recalculateTaskStatus,
+  getTaskWithAssignments,
+} = require('../../lib/tasks/taskQueries');
 const {
   resolveTaskMapId,
-  taskDangerLevelForResponse,
-  taskDifficultyLevelForResponse,
-  taskImportanceLevelForResponse,
-  attachTaskLivingBeingsApiFields,
-  attachTaskImagePublicFields,
-  countDoneAssignments,
   isTaskBeforeStartDate,
   normalizeOptionalId,
-  enrichTaskRow,
   trimName,
 } = require('../../lib/taskRouteHelpers');
 const { canRunTeacherStyleTaskStudentAction } = require('../../lib/taskAuthzHelpers');
 
 const router = express.Router();
-
-// Helpers recopiés depuis routes/tasks.js pour rester autonome et éviter
-// tout import circulaire (même convention que routes/tasks/logs.js).
-async function recalculateTaskStatus(taskLike) {
-  return recalculateTaskStatusWithConn({ queryOne, execute }, taskLike);
-}
-
-async function parseOptionalAuth(req) {
-  return parseOptionalForetAuth(req, { jwtSecret: JWT_SECRET, hydrateAuthFromTokenClaims });
-}
-
-async function getTaskProposerStudentId(taskId) {
-  if (!taskId) return null;
-  try {
-    const row = await queryOne(
-      `SELECT actor_user_id AS student_id
-         FROM audit_log
-        WHERE action = 'propose_task'
-          AND target_type = 'task'
-          AND target_id = ?
-          AND actor_user_type = 'student'
-          AND actor_user_id IS NOT NULL
-        ORDER BY id DESC
-        LIMIT 1`,
-      [taskId],
-    );
-    return row?.student_id ? String(row.student_id) : null;
-  } catch (err) {
-    void err;
-    return null;
-  }
-}
-
-async function fetchZonesForTasks(taskIds) {
-  if (!taskIds.length) return new Map();
-  const ph = taskIds.map(() => '?').join(',');
-  const rows = await queryAll(
-    `SELECT tz.task_id, z.id AS zone_id, z.name AS zone_name, z.map_id
-       FROM task_zones tz
-       INNER JOIN zones z ON z.id = tz.zone_id
-      WHERE tz.task_id IN (${ph})
-      ORDER BY z.name`,
-    taskIds,
-  );
-  const m = new Map();
-  for (const r of rows) {
-    if (!m.has(r.task_id)) m.set(r.task_id, []);
-    m.get(r.task_id).push({ id: r.zone_id, name: r.zone_name, map_id: r.map_id });
-  }
-  return m;
-}
-
-async function fetchMarkersForTasks(taskIds) {
-  if (!taskIds.length) return new Map();
-  const ph = taskIds.map(() => '?').join(',');
-  const rows = await queryAll(
-    `SELECT tm.task_id, m.id AS marker_id, m.label AS marker_label, m.map_id
-       FROM task_markers tm
-       INNER JOIN map_markers m ON m.id = tm.marker_id
-      WHERE tm.task_id IN (${ph})
-      ORDER BY m.label`,
-    taskIds,
-  );
-  const m = new Map();
-  for (const r of rows) {
-    if (!m.has(r.task_id)) m.set(r.task_id, []);
-    m.get(r.task_id).push({ id: r.marker_id, label: r.marker_label, map_id: r.map_id });
-  }
-  return m;
-}
-
-async function fetchTutorialsForTasks(taskIds) {
-  if (!taskIds.length) return new Map();
-  const ph = taskIds.map(() => '?').join(',');
-  const rows = await queryAll(
-    `SELECT tt.task_id, tu.id AS tutorial_id, tu.title, tu.slug, tu.type, tu.source_url, tu.source_file_path
-       FROM task_tutorials tt
-       INNER JOIN tutorials tu ON tu.id = tt.tutorial_id
-      WHERE tt.task_id IN (${ph}) AND tu.is_active = 1
-      ORDER BY tu.sort_order ASC, tu.title ASC`,
-    taskIds,
-  );
-  const m = new Map();
-  for (const r of rows) {
-    if (!m.has(r.task_id)) m.set(r.task_id, []);
-    m.get(r.task_id).push({
-      id: Number(r.tutorial_id),
-      title: r.title,
-      slug: r.slug,
-      type: r.type,
-      source_url: r.source_url,
-      source_file_path: r.source_file_path,
-    });
-  }
-  return m;
-}
-
-async function fetchReferentsForTasks(taskIds) {
-  if (!taskIds.length) return new Map();
-  const ph = taskIds.map(() => '?').join(',');
-  const rows = await queryAll(
-    `SELECT tr.task_id, u.id AS uid, u.user_type, u.first_name, u.last_name, u.display_name, r.slug AS role_slug
-       FROM task_referents tr
-       INNER JOIN users u ON u.id = tr.user_id AND u.is_active = 1
-       LEFT JOIN user_roles ur ON ur.user_id = u.id AND ur.user_type = u.user_type AND ur.is_primary = 1
-       LEFT JOIN roles r ON r.id = ur.role_id
-      WHERE tr.task_id IN (${ph})
-      ORDER BY tr.task_id,
-               COALESCE(NULLIF(TRIM(u.display_name), ''), CONCAT(COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, '')))`,
-    taskIds,
-  );
-  const m = new Map();
-  for (const r of rows) {
-    if (!m.has(r.task_id)) m.set(r.task_id, []);
-    m.get(r.task_id).push({
-      id: String(r.uid),
-      user_type: r.user_type,
-      first_name: r.first_name,
-      last_name: r.last_name,
-      display_name: r.display_name,
-      role_slug: r.role_slug || null,
-    });
-  }
-  return m;
-}
-
-async function getTaskWithAssignments(taskId) {
-  const task = await queryOne(
-    `SELECT t.*, z.name AS zone_name_legacy, mkr.label AS marker_label_legacy,
-            tp.map_id AS project_map_id, tp.title AS project_title, tp.status AS project_status,
-            t.image_path AS task_cover_image_path
-       FROM tasks t
-       LEFT JOIN zones z ON t.zone_id = z.id
-       LEFT JOIN map_markers mkr ON t.marker_id = mkr.id
-       LEFT JOIN task_projects tp ON tp.id = t.project_id
-      WHERE t.id = ?`,
-    [taskId],
-  );
-  if (!task) return null;
-  const zm = await fetchZonesForTasks([taskId]);
-  const mm = await fetchMarkersForTasks([taskId]);
-  const tm = await fetchTutorialsForTasks([taskId]);
-  const rm = await fetchReferentsForTasks([taskId]);
-  enrichTaskRow(task, zm.get(taskId), mm.get(taskId), tm.get(taskId), rm.get(taskId));
-  task.status = normalizeTaskStatusForRead(task.status);
-  task.completion_mode = normalizeTaskCompletionMode(task.completion_mode) || 'single_done';
-  task.danger_level = taskDangerLevelForResponse(task.danger_level);
-  task.difficulty_level = taskDifficultyLevelForResponse(task.difficulty_level);
-  task.importance_level = taskImportanceLevelForResponse(task.importance_level);
-  task.is_before_start_date = isTaskBeforeStartDate(task);
-  if (!task.zone_name && task.zone_name_legacy) task.zone_name = task.zone_name_legacy;
-  if (!task.marker_label && task.marker_label_legacy) task.marker_label = task.marker_label_legacy;
-  delete task.zone_name_legacy;
-  delete task.marker_label_legacy;
-  const m = await queryOne('SELECT id, label FROM maps WHERE id = ?', [task.map_id_resolved]);
-  task.map_label = m ? m.label : null;
-  task.assignments = await queryAll(
-    'SELECT * FROM task_assignments WHERE task_id = ? ORDER BY assigned_at',
-    [taskId],
-  );
-  task.assigned_count = Array.isArray(task.assignments) ? task.assignments.length : 0;
-  task.assignees_total_count = task.assigned_count;
-  task.assignees_done_count = countDoneAssignments(task.assignments);
-  task.proposed_by_student_id = await getTaskProposerStudentId(taskId);
-  attachTaskLivingBeingsApiFields(task);
-  attachTaskImagePublicFields(task);
-  return task;
-}
 
 async function ensureStudentPermission({ studentId, permissionKey, profilePin }) {
   await syncStudentRoleFromGroups(studentId);

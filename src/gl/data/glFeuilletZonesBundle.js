@@ -2,7 +2,7 @@ import zonesFeuilletsRaw from './zones_feuillets.json';
 import {
   getRuntimeFeuilletZonesForPlateauFromRaw,
   loadAndValidateFeuilletZones,
-} from '../../utils/glFeuilletZones.js';
+} from '../utils/glFeuilletZones.js';
 
 const validated = loadAndValidateFeuilletZones(zonesFeuilletsRaw);
 

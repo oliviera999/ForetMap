@@ -5,13 +5,23 @@ import { canStudentAssignTask, taskEnrollmentMeta } from '../../utils/taskEnroll
 import { TaskEnrollmentLegend } from './mapModalShared.jsx';
 
 /**
- * Onglet « Tâches » de ZoneInfoModal — variantes enseignant / élève.
- * Feuilles pilotées par props ; état (`linkTaskId`, `selectedTaskIds`, `assigning`)
- * et callbacks détenus par le modal parent. Extrait de `ZoneInfoModal.jsx` (O6, 2e niveau).
+ * Onglet « Tâches » des modales de lieu (ZoneInfoModal / MarkerModal) — variantes
+ * enseignant / élève. Feuilles pilotées par props ; état (`linkTaskId`,
+ * `selectedTaskIds`, `assigning`) et callbacks détenus par le modal parent.
+ * Extrait de `ZoneInfoModal.jsx` (O6, 2e niveau), paramétré par `locationKind`
+ * (libellés zone / repère) pour résorber les copies inline de MarkerModal (audit §5.3).
  */
+
+/** Message d'état vide selon le type de lieu (zone / repère). */
+function emptyLinkedTasksMessage(locationKind) {
+  return locationKind === 'marker'
+    ? 'Aucune tâche liée à ce repère.'
+    : 'Aucune tâche liée à cette zone.';
+}
 
 /** Vue enseignant : tâches liées (avec « Délier ») + liaison d'une tâche existante. */
 export function ZoneTasksTeacherPanel({
+  locationKind = 'zone',
   linkedTasks,
   assignableTasks,
   linkTaskId,
@@ -23,7 +33,9 @@ export function ZoneTasksTeacherPanel({
     <div className="fade-in">
       <div style={{ marginTop: 12 }}>
         {linkedTasks.length === 0 ? (
-          <p style={{ color: '#999', fontSize: '.85rem' }}>Aucune tâche liée à cette zone.</p>
+          <p style={{ color: '#999', fontSize: '.85rem' }}>
+            {emptyLinkedTasksMessage(locationKind)}
+          </p>
         ) : (
           linkedTasks.map((t) => (
             <div key={t.id} className="history-item" style={{ alignItems: 'center' }}>
@@ -59,6 +71,7 @@ export function ZoneTasksTeacherPanel({
 
 /** Vue élève / visiteur : sélection multiple des tâches liées et inscription groupée. */
 export function ZoneTasksStudentPanel({
+  locationKind = 'zone',
   linkedTasks,
   student,
   canSelfAssignTasks,
@@ -71,7 +84,7 @@ export function ZoneTasksStudentPanel({
   if (linkedTasks.length === 0) {
     return (
       <div className="fade-in">
-        <p style={{ color: '#999', fontSize: '.85rem' }}>Aucune tâche liée à cette zone.</p>
+        <p style={{ color: '#999', fontSize: '.85rem' }}>{emptyLinkedTasksMessage(locationKind)}</p>
       </div>
     );
   }

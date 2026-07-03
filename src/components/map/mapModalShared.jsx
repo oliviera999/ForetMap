@@ -1,5 +1,10 @@
 import React from 'react';
+import { MarkdownContent } from '../MarkdownContent.jsx';
 import { tutorialPreviewPayload, tutorialPreviewCanEmbed } from '../TutorialPreviewModal';
+import {
+  BiodiversitySpeciesOpenLinks,
+  LivingBeingsCatalogPanel,
+} from './LivingBeingsCatalogPanel.jsx';
 
 /** Liste cartes tutoriel (aperçu), alignée sur l’onglet « Tutoriels » des modales zone/repère. */
 export function LocationTutorialPreviewList({
@@ -77,6 +82,121 @@ export function LocationTutorialPreviewList({
           </div>
         );
       })}
+    </div>
+  );
+}
+
+/**
+ * Bloc « visite » de l'onglet Info des modales de lieu (zone / repère) :
+ * sous-titre, accroche, détails dépliables, biodiversité et tutoriels.
+ * Dupliqué à l'identique dans ZoneInfoModal et MarkerModal avant mutualisation
+ * (audit §5.3) — seuls le titre de section (« Sur cette zone » / « Sur ce repère »)
+ * et les champs de l'entité varient. Le parent garde la condition d'affichage
+ * (`showVisitAsideBlock`) et fournit les listes déjà dérivées.
+ */
+export function LocationVisitAside({
+  entity,
+  locationKind,
+  plants,
+  livingNames,
+  livingBeingsOnlyOnTasks,
+  visitAsideSpecies,
+  visitAsideTutorials,
+  tutorials,
+  onOpenTutorialPreview = null,
+  onOpenPlantCatalogPreview = null,
+}) {
+  return (
+    <div style={{ marginBottom: 12 }}>
+      {entity.visit_subtitle && (
+        <p className="visit-subtitle" style={{ margin: '0 0 8px' }}>
+          {entity.visit_subtitle}
+        </p>
+      )}
+      {entity.visit_short_description && (
+        <MarkdownContent style={{ margin: '0 0 8px', fontSize: '.88rem', color: '#333' }}>
+          {entity.visit_short_description}
+        </MarkdownContent>
+      )}
+      {entity.visit_details_text && (
+        <details className="visit-details" style={{ marginTop: 8 }}>
+          <summary>{entity.visit_details_title || 'Détails'}</summary>
+          <MarkdownContent style={{ margin: '8px 0 0', fontSize: '.86rem' }}>
+            {entity.visit_details_text}
+          </MarkdownContent>
+        </details>
+      )}
+      {visitAsideSpecies && (
+        <details className="visit-details" style={{ marginTop: 8 }}>
+          <summary>Biodiversité</summary>
+          <div style={{ marginTop: 8 }}>
+            {livingNames.length > 0 && (
+              <div style={{ marginBottom: livingBeingsOnlyOnTasks.length ? 14 : 0 }}>
+                {livingNames.length > 1 || livingBeingsOnlyOnTasks.length > 0 ? (
+                  <h4
+                    style={{
+                      margin: '0 0 8px',
+                      fontSize: '.82rem',
+                      color: 'var(--forest)',
+                    }}
+                  >
+                    {locationKind === 'marker' ? 'Sur ce repère' : 'Sur cette zone'}
+                  </h4>
+                ) : null}
+                {onOpenPlantCatalogPreview ? (
+                  <BiodiversitySpeciesOpenLinks
+                    plants={plants}
+                    names={livingNames}
+                    showHeading={false}
+                    onOpenPlant={onOpenPlantCatalogPreview}
+                  />
+                ) : (
+                  <LivingBeingsCatalogPanel
+                    plants={plants}
+                    names={livingNames}
+                    showHeading={false}
+                  />
+                )}
+              </div>
+            )}
+            {livingBeingsOnlyOnTasks.length > 0 && (
+              <div>
+                <h4 style={{ margin: '0 0 8px', fontSize: '.82rem', color: 'var(--forest)' }}>
+                  Également dans les missions
+                </h4>
+                {onOpenPlantCatalogPreview ? (
+                  <BiodiversitySpeciesOpenLinks
+                    plants={plants}
+                    names={livingBeingsOnlyOnTasks}
+                    showHeading={false}
+                    sectionTitle="Également dans les missions"
+                    onOpenPlant={onOpenPlantCatalogPreview}
+                  />
+                ) : (
+                  <LivingBeingsCatalogPanel
+                    plants={plants}
+                    names={livingBeingsOnlyOnTasks}
+                    showHeading={false}
+                  />
+                )}
+              </div>
+            )}
+          </div>
+        </details>
+      )}
+      {visitAsideTutorials && (
+        <details className="visit-details" style={{ marginTop: 8 }}>
+          <summary>Tuto</summary>
+          <div style={{ marginTop: 8 }}>
+            <LocationTutorialPreviewList
+              tutorials={tutorials}
+              locationKind={locationKind}
+              locationId={entity.id}
+              onOpenTutorialPreview={onOpenTutorialPreview}
+            />
+          </div>
+        </details>
+      )}
     </div>
   );
 }

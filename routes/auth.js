@@ -3,7 +3,6 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const { OAuth2Client } = require('google-auth-library');
-const { v4: uuidv4 } = require('uuid');
 const { queryOne, execute } = require('../database');
 const {
   JWT_SECRET,
@@ -151,7 +150,7 @@ async function ensureTeacherSeedFromEnv() {
   if (!email || !password || password.length < PASSWORD_RESET_MIN_LEN) return;
 
   const existing = await queryOne(
-    "SELECT id FROM users WHERE user_type = 'teacher' AND LOWER(email) = LOWER(?) LIMIT 1",
+    "SELECT id FROM users WHERE user_type = 'teacher' AND email = ? LIMIT 1",
     [email],
   );
   if (existing) return;
@@ -159,7 +158,7 @@ async function ensureTeacherSeedFromEnv() {
   const hash = await bcrypt.hash(password, 10);
   const now = new Date().toISOString();
   try {
-    const teacherId = uuidv4();
+    const teacherId = crypto.randomUUID();
     await execute(
       `INSERT INTO users
         (id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name, description, avatar_path, affiliation, password_hash, auth_provider, is_active, last_seen, created_at, updated_at)
@@ -381,14 +380,14 @@ router.patch('/me/profile', requireAuth, async (req, res) => {
 
     if (pseudo) {
       const existingPseudo = await queryOne(
-        'SELECT id FROM users WHERE LOWER(pseudo)=LOWER(?) AND id <> ? LIMIT 1',
+        'SELECT id FROM users WHERE pseudo = ? AND id <> ? LIMIT 1',
         [pseudo, account.id],
       );
       if (existingPseudo) return res.status(409).json({ error: 'Ce pseudo est déjà utilisé' });
     }
     if (email) {
       const existingEmail = await queryOne(
-        'SELECT id FROM users WHERE LOWER(email)=LOWER(?) AND id <> ? LIMIT 1',
+        'SELECT id FROM users WHERE email = ? AND id <> ? LIMIT 1',
         [email, account.id],
       );
       if (existingEmail) return res.status(409).json({ error: 'Cet email est déjà utilisé' });
@@ -461,25 +460,21 @@ router.post('/register', async (req, res) => {
     if (profileError) return res.status(400).json({ error: profileError });
 
     const existing = await queryOne(
-      "SELECT * FROM users WHERE user_type = 'student' AND LOWER(first_name)=LOWER(?) AND LOWER(last_name)=LOWER(?)",
+      "SELECT * FROM users WHERE user_type = 'student' AND first_name = ? AND last_name = ?",
       [firstName.trim(), lastName.trim()],
     );
     if (existing) return res.status(409).json({ error: 'Un compte avec ce nom existe déjà' });
     if (pseudo) {
-      const existingPseudo = await queryOne('SELECT id FROM users WHERE LOWER(pseudo)=LOWER(?)', [
-        pseudo,
-      ]);
+      const existingPseudo = await queryOne('SELECT id FROM users WHERE pseudo = ?', [pseudo]);
       if (existingPseudo) return res.status(409).json({ error: 'Ce pseudo est déjà utilisé' });
     }
     if (email) {
-      const existingEmail = await queryOne('SELECT id FROM users WHERE LOWER(email)=LOWER(?)', [
-        email,
-      ]);
+      const existingEmail = await queryOne('SELECT id FROM users WHERE email = ?', [email]);
       if (existingEmail) return res.status(409).json({ error: 'Cet email est déjà utilisé' });
     }
 
     const hash = await bcrypt.hash(password, 10);
-    const id = uuidv4();
+    const id = crypto.randomUUID();
     const now = new Date().toISOString();
     try {
       await execute(
@@ -804,7 +799,7 @@ router.get('/google/callback', async (req, res) => {
     }
 
     const teacher = await queryOne(
-      "SELECT id, email, is_active FROM users WHERE user_type = 'teacher' AND LOWER(email)=LOWER(?) LIMIT 1",
+      "SELECT id, email, is_active FROM users WHERE user_type = 'teacher' AND email = ? LIMIT 1",
       [email],
     );
     if (teacher) {
@@ -843,11 +838,11 @@ router.get('/google/callback', async (req, res) => {
     }
 
     let student = await queryOne(
-      "SELECT * FROM users WHERE user_type = 'student' AND LOWER(email)=LOWER(?) LIMIT 1",
+      "SELECT * FROM users WHERE user_type = 'student' AND email = ? LIMIT 1",
       [email],
     );
     if (!student) {
-      const id = uuidv4();
+      const id = crypto.randomUUID();
       const now = new Date().toISOString();
       const splitName = splitDisplayName(payload.name);
       const firstName = normalizeOptionalString(payload.given_name) || splitName.firstName;
@@ -912,7 +907,7 @@ router.post(
       });
     }
     const student = await queryOne(
-      "SELECT id, first_name, last_name, email, password_hash FROM users WHERE user_type = 'student' AND LOWER(email)=LOWER(?) LIMIT 1",
+      "SELECT id, first_name, last_name, email, password_hash FROM users WHERE user_type = 'student' AND email = ? LIMIT 1",
       [email],
     );
     if (student && student.password_hash) {
@@ -984,7 +979,7 @@ router.post(
       });
     }
     const teacher = await queryOne(
-      "SELECT id, email, is_active FROM users WHERE user_type = 'teacher' AND LOWER(email)=LOWER(?) LIMIT 1",
+      "SELECT id, email, is_active FROM users WHERE user_type = 'teacher' AND email = ? LIMIT 1",
       [email],
     );
     if (teacher && teacher.is_active) {

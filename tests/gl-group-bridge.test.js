@@ -2,7 +2,7 @@ require('./helpers/setup');
 const test = require('node:test');
 const assert = require('node:assert');
 const bcrypt = require('bcryptjs');
-const { v4: uuidv4 } = require('uuid');
+const crypto = require('node:crypto');
 const { initSchema, queryOne, execute } = require('../database');
 const { createGlAdmin, createGlClass, createGlPlayer } = require('./helpers/glFixtures');
 const {
@@ -16,7 +16,7 @@ test.before(async () => {
 });
 
 async function createForetmapStudent({ pseudo, email, password }) {
-  const id = uuidv4();
+  const id = crypto.randomUUID();
   const hash = await bcrypt.hash(password, 10);
   await execute(
     `INSERT INTO users

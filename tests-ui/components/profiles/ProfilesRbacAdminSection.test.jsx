@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, test, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { ProfilesRbacAdminSection } from '../../../src/components/profiles/ProfilesRbacAdminSection.jsx';
 
 const ROLES = [
@@ -37,28 +37,20 @@ function setup(overrides = {}) {
     isN3beurTier: true,
     progressionByTasksEnabled: true,
     tasksProposeEntry: ROLES[1].permissions[0],
-    roleEmoji: '🪨',
-    pin: '',
-    roleMinDoneTasks: '0',
-    roleMaxConcurrentTasks: '',
     editUserLoadState: 'idle',
     onCreateRole: vi.fn(),
     onSelectRole: vi.fn(),
     onReorderRole: vi.fn(),
     onEditRoleDetails: vi.fn(),
     onDuplicateRole: vi.fn(),
-    onRoleEmojiChange: vi.fn(),
     onSaveEmoji: vi.fn(),
-    onPinChange: vi.fn(),
-    onSavePin: vi.fn(),
+    onSavePin: vi.fn(async () => true),
     onToggleProgression: vi.fn(),
-    onMinDoneTasksChange: vi.fn(),
     onSaveMinDoneThreshold: vi.fn(),
     onTogglePermission: vi.fn(),
     onTogglePermissionElevation: vi.fn(),
     onSetForumParticipate: vi.fn(),
     onSetContextCommentParticipate: vi.fn(),
-    onMaxConcurrentChange: vi.fn(),
     onSaveMaxConcurrent: vi.fn(),
     onAssignRole: vi.fn(),
     onOpenEditUser: vi.fn(),
@@ -78,6 +70,11 @@ describe('ProfilesRbacAdminSection', () => {
     expect(screen.getByText('Léa Martin')).toBeInTheDocument();
   });
 
+  test('les champs d’édition sont initialisés depuis le profil sélectionné (useRoleEditFields)', () => {
+    setup();
+    expect(screen.getByLabelText('Emoji pour le profil Novice').value).toBe('🪨');
+  });
+
   test('sans profil sélectionné : invite à choisir, pas de config rapide ni de lignes de permissions', () => {
     setup({ selectedRole: null, selectedRoleId: null, tasksProposeEntry: null });
     expect(screen.getByText('Choisis un profil dans la liste.')).toBeInTheDocument();
@@ -95,14 +92,31 @@ describe('ProfilesRbacAdminSection', () => {
     expect(onCreateRole).toHaveBeenCalledTimes(1);
   });
 
-  test('saisie d’emoji et enregistrement du PIN remontent au parent', () => {
-    const { onRoleEmojiChange, onSavePin } = setup();
-    fireEvent.change(screen.getByLabelText('Emoji pour le profil Novice'), {
-      target: { value: '🌿' },
-    });
-    expect(onRoleEmojiChange).toHaveBeenCalledWith('🌿');
+  test('saisie d’emoji (état interne) puis enregistrement : onSaveEmoji reçoit la valeur saisie', () => {
+    const { onSaveEmoji } = setup();
+    const input = screen.getByLabelText('Emoji pour le profil Novice');
+    fireEvent.change(input, { target: { value: '🌿' } });
+    expect(input.value).toBe('🌿');
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer l’emoji' }));
+    expect(onSaveEmoji).toHaveBeenCalledWith('🌿');
+  });
+
+  test('enregistrement du PIN : onSavePin reçoit la valeur puis le champ est vidé en cas de succès', async () => {
+    const { onSavePin } = setup({ onSavePin: vi.fn(async () => true) });
+    const pinInput = screen.getByPlaceholderText('Nouveau PIN');
+    fireEvent.change(pinInput, { target: { value: '1234' } });
     fireEvent.click(screen.getByRole('button', { name: 'Enregistrer PIN' }));
-    expect(onSavePin).toHaveBeenCalledTimes(1);
+    expect(onSavePin).toHaveBeenCalledWith('1234');
+    await waitFor(() => expect(pinInput.value).toBe(''));
+  });
+
+  test('PIN refusé (onSavePin → false) : le champ garde sa valeur', async () => {
+    const { onSavePin } = setup({ onSavePin: vi.fn(async () => false) });
+    const pinInput = screen.getByPlaceholderText('Nouveau PIN');
+    fireEvent.change(pinInput, { target: { value: '12' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer PIN' }));
+    await waitFor(() => expect(onSavePin).toHaveBeenCalledWith('12'));
+    expect(pinInput.value).toBe('12');
   });
 
   test('isN3beurTier masque tasks.propose dans les lignes de permissions (géré côté progression)', () => {
