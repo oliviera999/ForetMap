@@ -59,7 +59,6 @@ function makeProps(overrides = {}) {
     teacherMarkCollectiveAssignmentDone: vi.fn(),
     tooltipText: () => '',
     openTasksTutorialPreview: vi.fn(),
-    onForceLogout: vi.fn(),
     onOpenBiodiversityFromTaskName: vi.fn(),
   };
   return { ...base, ...overrides };

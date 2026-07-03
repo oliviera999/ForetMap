@@ -1,7 +1,8 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api, AccountDeletedError } from '../services/api';
 import { useOverlayHistoryBack } from '../hooks/useOverlayHistoryBack';
-import { TutorialReadAcknowledgeButton, fetchTutorialReadIds } from './TutorialReadAcknowledge';
+import { useTutorialReadIds } from '../hooks/useTutorialReadIds';
+import { TutorialReadAcknowledgeButton } from './TutorialReadAcknowledge';
 import { TutorialPreviewModal, tutorialPreviewPayload } from './TutorialPreviewModal';
 import { ContextComments } from './context-comments';
 import { DialogShell } from './DialogShell';
@@ -99,7 +100,9 @@ function TutorialsView({ isTeacher, onRefresh, onForceLogout, maps = [] }) {
   const [importScan, setImportScan] = useState(null);
   const [importLoading, setImportLoading] = useState(false);
   const [importDryRun, setImportDryRun] = useState(false);
-  const [tutorialReadIds, setTutorialReadIds] = useState(() => new Set());
+  // Fetch + abonnement `foretmap_session_changed` mutualisés ; clé stable (ids joints)
+  // au lieu de la référence `tutorials`, qui refetchait à chaque poll global.
+  const { readIds: tutorialReadIds, markRead: markTutorialRead } = useTutorialReadIds(tutorials);
   const [linkedTasksModal, setLinkedTasksModal] = useState(null);
 
   const closeLinkedTasks = useCallback(() => setLinkedTasksModal(null), []);
@@ -134,29 +137,22 @@ function TutorialsView({ isTeacher, onRefresh, onForceLogout, maps = [] }) {
     [isTeacher, onForceLogout],
   );
 
-  useEffect(() => {
-    let cancelled = false;
-    const load = async () => {
-      const ids = await fetchTutorialReadIds();
-      if (!cancelled) setTutorialReadIds(new Set(ids));
-    };
-    load();
-    if (typeof window !== 'undefined') {
-      window.addEventListener('foretmap_session_changed', load);
-      return () => {
-        cancelled = true;
-        window.removeEventListener('foretmap_session_changed', load);
-      };
-    }
-    return () => {
-      cancelled = true;
-    };
-  }, [tutorials]);
-
-  const showToast = (message, ms = 2500) => {
+  /** Timer du toast courant : nettoyé au démontage et à chaque re-déclenchement. */
+  const toastTimerRef = useRef(null);
+  const showToast = useCallback((message, ms = 2500) => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     setToast(message);
-    setTimeout(() => setToast(''), ms);
-  };
+    toastTimerRef.current = setTimeout(() => {
+      toastTimerRef.current = null;
+      setToast('');
+    }, ms);
+  }, []);
+  useEffect(
+    () => () => {
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    },
+    [],
+  );
 
   const filtered = useMemo(
     () => filterAndSortTutorials(tutorials, { search, typeFilter, statusFilter }),
@@ -197,7 +193,7 @@ function TutorialsView({ isTeacher, onRefresh, onForceLogout, maps = [] }) {
     } finally {
       setImportLoading(false);
     }
-  }, [onForceLogout]);
+  }, [onForceLogout, showToast]);
 
   const runTutosImport = async () => {
     setImportLoading(true);
@@ -256,13 +252,11 @@ function TutorialsView({ isTeacher, onRefresh, onForceLogout, maps = [] }) {
         tutorial_ids: reorderDraft.map((t) => t.id),
       });
       await onRefresh?.();
-      setToast('Ordre des tutoriels enregistré ✓');
-      setTimeout(() => setToast(''), 2500);
+      showToast('Ordre des tutoriels enregistré ✓');
       closeReorder();
     } catch (e) {
       if (e instanceof AccountDeletedError) onForceLogout?.();
-      setToast('Erreur : ' + e.message);
-      setTimeout(() => setToast(''), 3500);
+      showToast('Erreur : ' + e.message, 3500);
     } finally {
       setReorderSaving(false);
     }
@@ -285,15 +279,13 @@ function TutorialsView({ isTeacher, onRefresh, onForceLogout, maps = [] }) {
       setShowEditor(true);
     } catch (e) {
       if (e instanceof AccountDeletedError) onForceLogout?.();
-      setToast('Erreur ouverture éditeur : ' + e.message);
-      setTimeout(() => setToast(''), 2500);
+      showToast('Erreur ouverture éditeur : ' + e.message);
     }
   };
 
   const save = async () => {
     if (!form.title.trim()) {
-      setToast('Le titre est requis');
-      setTimeout(() => setToast(''), 2500);
+      showToast('Le titre est requis');
       return;
     }
     setSaving(true);
@@ -304,12 +296,10 @@ function TutorialsView({ isTeacher, onRefresh, onForceLogout, maps = [] }) {
       await onRefresh?.();
       setShowEditor(false);
       setForm(createInitialTutorialForm());
-      setToast(form.id ? 'Tutoriel mis à jour ✓' : 'Tutoriel ajouté ✓');
-      setTimeout(() => setToast(''), 2500);
+      showToast(form.id ? 'Tutoriel mis à jour ✓' : 'Tutoriel ajouté ✓');
     } catch (e) {
       if (e instanceof AccountDeletedError) onForceLogout?.();
-      setToast('Erreur : ' + e.message);
-      setTimeout(() => setToast(''), 2500);
+      showToast('Erreur : ' + e.message);
     } finally {
       setSaving(false);
     }
@@ -320,12 +310,10 @@ function TutorialsView({ isTeacher, onRefresh, onForceLogout, maps = [] }) {
     try {
       await api(`/api/tutorials/${row.id}`, 'DELETE');
       await onRefresh?.();
-      setToast('Tutoriel archivé');
-      setTimeout(() => setToast(''), 2500);
+      showToast('Tutoriel archivé');
     } catch (e) {
       if (e instanceof AccountDeletedError) onForceLogout?.();
-      setToast('Erreur : ' + e.message);
-      setTimeout(() => setToast(''), 2500);
+      showToast('Erreur : ' + e.message);
     }
   };
 
@@ -333,12 +321,10 @@ function TutorialsView({ isTeacher, onRefresh, onForceLogout, maps = [] }) {
     try {
       await api(`/api/tutorials/${row.id}`, 'PUT', { is_active: true });
       await onRefresh?.();
-      setToast('Tutoriel restauré ✓');
-      setTimeout(() => setToast(''), 2500);
+      showToast('Tutoriel restauré ✓');
     } catch (e) {
       if (e instanceof AccountDeletedError) onForceLogout?.();
-      setToast('Erreur : ' + e.message);
-      setTimeout(() => setToast(''), 2500);
+      showToast('Erreur : ' + e.message);
     }
   };
 
@@ -353,12 +339,10 @@ function TutorialsView({ isTeacher, onRefresh, onForceLogout, maps = [] }) {
         const imageData = await fileToDataUrl(file);
         await api(`/api/tutorials/${row.id}/cover-photo-upload`, 'POST', { imageData });
         await onRefresh?.();
-        setToast('Couverture mise à jour ✓');
-        setTimeout(() => setToast(''), 2500);
+        showToast('Couverture mise à jour ✓');
       } catch (e) {
         if (e instanceof AccountDeletedError) onForceLogout?.();
-        setToast('Erreur couverture : ' + e.message);
-        setTimeout(() => setToast(''), 3000);
+        showToast('Erreur couverture : ' + e.message, 3000);
       }
     };
     input.click();
@@ -372,7 +356,7 @@ function TutorialsView({ isTeacher, onRefresh, onForceLogout, maps = [] }) {
           onClose={() => setPreview(null)}
           readAcknowledge={{
             isRead: tutorialReadIds.has(Number(preview.id)),
-            onAcknowledged: (id) => setTutorialReadIds((prev) => new Set([...prev, id])),
+            onAcknowledged: markTutorialRead,
             onForceLogout,
           }}
         />
@@ -673,9 +657,7 @@ function TutorialsView({ isTeacher, onRefresh, onForceLogout, maps = [] }) {
                         tutorialId={t.id}
                         tutorialTitle={t.title}
                         isRead={tutorialReadIds.has(Number(t.id))}
-                        onAcknowledged={(id) =>
-                          setTutorialReadIds((prev) => new Set([...prev, id]))
-                        }
+                        onAcknowledged={markTutorialRead}
                         onForceLogout={onForceLogout}
                       />
                     </>

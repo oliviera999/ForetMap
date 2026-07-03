@@ -1,7 +1,11 @@
 const express = require('express');
 const db = require('../../../database');
 const { queryAll, queryOne, execute, withTransaction } = db;
-const { requireGlAuth, requireGlPermission } = require('../../../middleware/requireGlAuth');
+const {
+  requireGlAuth,
+  requireGlPermission,
+  actorTypeOf,
+} = require('../../../middleware/requireGlAuth');
 const { insertGameEvent } = require('../../../lib/glGameEvents');
 const { emitGlGameEvent } = require('../../../lib/realtime');
 const { getGameplaySettings } = require('../../../lib/glSettings');
@@ -245,7 +249,7 @@ router.post('/games/:id/markers/:markerId/present-question', requireGlAuth, asyn
     return res.status(400).json({ error: err.message || 'Présentation impossible' });
   }
 
-  const actorType = req.glAuth.userType === 'gl_admin' ? 'mj' : 'team';
+  const actorType = actorTypeOf(req);
   const presentedEvent = await insertGameEvent(db, {
     gameId,
     teamId,
@@ -324,7 +328,7 @@ router.post('/games/:id/markers/:markerId/present-arrival', requireGlAuth, async
   if (!team) return res.status(404).json({ error: 'Équipe introuvable dans cette partie' });
 
   const arrival = buildMarkerArrivalPayload(marker, team);
-  const actorType = req.glAuth.userType === 'gl_admin' ? 'mj' : 'team';
+  const actorType = actorTypeOf(req);
   const actorId = String(req.glAuth.userId);
   const reason = String(marker.label || 'Repère').trim();
 

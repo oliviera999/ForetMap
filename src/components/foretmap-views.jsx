@@ -7,23 +7,15 @@ import { CatalogRemarksSection } from './map-views';
 import { Tooltip } from './Tooltip';
 import { HelpPanel } from './HelpPanel';
 import { ContextComments } from './context-comments';
-import {
-  PlantSpeciesDiscoveryAcknowledgeButton,
-  fetchPlantObservationCounts,
-} from './PlantSpeciesDiscoveryAcknowledge';
+import { PlantSpeciesDiscoveryAcknowledgeButton } from './PlantSpeciesDiscoveryAcknowledge';
+import { usePlantObservationCounts } from '../hooks/usePlantObservationCounts';
 import {
   resolveHelpPanelSection,
   resolveHelpChrome,
   resolveTooltipKey,
 } from '../utils/helpResolve';
-import {
-  ZONE_PRESENCE_FILTER,
-  distinctPlantFieldValues,
-  filterPlantsByTaxonomy,
-  plantMatchesAllFilters,
-  plantLinkedToMapMarker,
-  plantLinkedToMapZone,
-} from '../utils/plantFilters';
+import { plantLinkedToMapMarker, plantLinkedToMapZone } from '../utils/plantFilters';
+import { usePlantCatalogFilters } from '../hooks/usePlantCatalogFilters';
 import { MarkdownContent } from './MarkdownContent.jsx';
 import { MarkdownTextarea } from './MarkdownTextarea.jsx';
 import { ObservationCard } from './ObservationCard.jsx';
@@ -64,78 +56,35 @@ function PlantManager({ onRefresh, maps = [], onForceLogout = null }) {
   const [showAdd, setShowAdd] = useState(false);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState(null);
-  const [search, setSearch] = useState('');
-  const [group1, setGroup1] = useState('');
-  const [group2, setGroup2] = useState('');
-  const [group3, setGroup3] = useState('');
-  const [habitatFilter, setHabitatFilter] = useState('');
-  const [trophicRoleFilter, setTrophicRoleFilter] = useState('');
-  const [habitatTypeFilter, setHabitatTypeFilter] = useState('');
-  const [plantObservationCounts, setPlantObservationCounts] = useState(() => ({}));
   const { isHelpEnabled, hasSeenSection, markSectionSeen, trackPanelOpen, trackPanelDismiss } =
     useHelp({ publicSettings, isTeacher: true });
   const tooltipText = (path) => resolveTooltipKey(path, publicSettings, true);
   const helpPlants = resolveHelpPanelSection('plants', publicSettings);
 
-  const structured = useMemo(
-    () => ({
-      group1,
-      group2,
-      group3,
-      habitat: habitatFilter,
-      trophicRole: trophicRoleFilter,
-      habitatType: habitatTypeFilter,
-    }),
-    [group1, group2, group3, habitatFilter, trophicRoleFilter, habitatTypeFilter],
-  );
-
-  const queryTrimmedLower = search.trim().toLowerCase();
-
-  const filteredPlants = useMemo(
-    () =>
-      plants.filter((p) =>
-        plantMatchesAllFilters(
-          p,
-          { structured, queryTrimmedLower, zonePresence: ZONE_PRESENCE_FILTER.ALL },
-          zones,
-          markers,
-        ),
-      ),
-    [plants, structured, queryTrimmedLower, zones, markers],
-  );
+  const { filteredPlants, filterPanelProps } = usePlantCatalogFilters(plants, zones, markers);
 
   const biodivObservationPlantIds = useMemo(() => {
     const ids = filteredPlants.map((p) => Number(p.id)).filter((n) => Number.isFinite(n) && n > 0);
     ids.sort((a, b) => a - b);
     return ids;
   }, [filteredPlants]);
-  const biodivObservationIdsKey = biodivObservationPlantIds.join(',');
+  // Fetch + abonnement `foretmap_session_changed` mutualisés (motif copié entre
+  // PlantManager et PlantViewer) ; clé stable = ids joints + plants.length (historique).
+  const { counts: plantObservationCounts, applyAcknowledged: applyObservationAcknowledged } =
+    usePlantObservationCounts(biodivObservationPlantIds, plants.length);
 
-  useEffect(() => {
-    let cancelled = false;
-    const load = async () => {
-      if (biodivObservationPlantIds.length === 0) {
-        if (!cancelled) setPlantObservationCounts({});
-        return;
-      }
-      const counts = await fetchPlantObservationCounts(biodivObservationPlantIds);
-      if (!cancelled) setPlantObservationCounts(counts);
-    };
-    load();
-    if (typeof window !== 'undefined') {
-      window.addEventListener('foretmap_session_changed', load);
-      return () => {
-        cancelled = true;
-        window.removeEventListener('foretmap_session_changed', load);
-      };
+  // Liens carte pré-calculés une fois par changement de données (au lieu d'un
+  // balayage O(zones + repères) par carte à chaque rendu).
+  const plantMapLinks = useMemo(() => {
+    const links = new Map();
+    for (const p of filteredPlants) {
+      links.set(p.id, {
+        zones: zones.filter((z) => plantLinkedToMapZone(p, z)),
+        markers: markers.filter((m) => plantLinkedToMapMarker(p, m)),
+      });
     }
-    return () => {
-      cancelled = true;
-    };
-  }, [biodivObservationIdsKey, plants.length]);
-
-  const zonesForPlant = (p) => zones.filter((z) => plantLinkedToMapZone(p, z));
-  const markersForPlant = (p) => markers.filter((m) => plantLinkedToMapMarker(p, m));
+    return links;
+  }, [filteredPlants, zones, markers]);
 
   const startEdit = (p) => {
     setEditId(p.id);
@@ -219,23 +168,7 @@ function PlantManager({ onRefresh, maps = [], onForceLogout = null }) {
         !
       </p>
 
-      <PlantCatalogFilterPanel
-        plants={plants}
-        search={search}
-        setSearch={setSearch}
-        group1={group1}
-        setGroup1={setGroup1}
-        group2={group2}
-        setGroup2={setGroup2}
-        group3={group3}
-        setGroup3={setGroup3}
-        habitat={habitatFilter}
-        setHabitat={setHabitatFilter}
-        trophicRole={trophicRoleFilter}
-        setTrophicRole={setTrophicRoleFilter}
-        habitatType={habitatTypeFilter}
-        setHabitatType={setHabitatTypeFilter}
-      />
+      <PlantCatalogFilterPanel plants={plants} {...filterPanelProps} />
 
       <PlantImportPanel setToast={setToast} onRefresh={onRefresh} />
 
@@ -274,8 +207,7 @@ function PlantManager({ onRefresh, maps = [], onForceLogout = null }) {
 
       <div className="biodiv-grid">
         {filteredPlants.map((p) => {
-          const pZones = zonesForPlant(p);
-          const pMarkers = markersForPlant(p);
+          const { zones: pZones = [], markers: pMarkers = [] } = plantMapLinks.get(p.id) || {};
           const hasMapLink = pZones.length > 0 || pMarkers.length > 0;
           return (
             <div key={p.id} data-biodiv-plant-id={p.id}>
@@ -402,15 +334,7 @@ function PlantManager({ onRefresh, maps = [], onForceLogout = null }) {
                         offerPlantCommentAfterObservation={
                           contextCommentsEnabled && canParticipateContextComments
                         }
-                        onAcknowledged={(id, next) => {
-                          setPlantObservationCounts((prev) => ({
-                            ...prev,
-                            [String(id)]: {
-                              my_observation_count: next.my_observation_count,
-                              site_observation_count: next.site_observation_count,
-                            },
-                          }));
-                        }}
+                        onAcknowledged={applyObservationAcknowledged}
                         onForceLogout={onForceLogout}
                       />
                     </div>
@@ -471,38 +395,23 @@ function ObservationNotebook({ student, onForceLogout = null }) {
   const [toast, setToast] = useState(null);
   const galleryFileRef = useRef(null);
   const cameraFileRef = useRef(null);
+  // Numéro de requête courant : invalide les setState d'un chargement obsolète
+  // (démontage ou changement d'élève), comme le flag `cancelled` de l'ancien effet.
+  const loadSeqRef = useRef(0);
 
-  const load = useCallback(async () => {
-    setLoadError('');
-    try {
-      const data = await api(
-        `/api/observations/student/${student.id}?studentId=${encodeURIComponent(student.id)}`,
-      );
-      setEntries(data);
-    } catch (e) {
-      if (e instanceof AccountDeletedError) {
-        onForceLogout?.();
-        return;
-      }
-      console.error('[ForetMap] observations', e);
-      setEntries([]);
-      setLoadError(e?.message || 'Impossible de charger ton carnet.');
-    }
-  }, [student.id, onForceLogout]);
-
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    setLoadError('');
-    (async () => {
+  const load = useCallback(
+    async ({ withLoading = false } = {}) => {
+      const seq = ++loadSeqRef.current;
+      if (withLoading) setLoading(true);
+      setLoadError('');
       try {
         const data = await api(
           `/api/observations/student/${student.id}?studentId=${encodeURIComponent(student.id)}`,
         );
-        if (cancelled) return;
+        if (seq !== loadSeqRef.current) return;
         setEntries(data);
       } catch (e) {
-        if (cancelled) return;
+        if (seq !== loadSeqRef.current) return;
         if (e instanceof AccountDeletedError) {
           onForceLogout?.();
           return;
@@ -511,13 +420,18 @@ function ObservationNotebook({ student, onForceLogout = null }) {
         setEntries([]);
         setLoadError(e?.message || 'Impossible de charger ton carnet.');
       } finally {
-        if (!cancelled) setLoading(false);
+        if (withLoading && seq === loadSeqRef.current) setLoading(false);
       }
-    })();
+    },
+    [student.id, onForceLogout],
+  );
+
+  useEffect(() => {
+    load({ withLoading: true });
     return () => {
-      cancelled = true;
+      loadSeqRef.current += 1;
     };
-  }, [student.id, onForceLogout]);
+  }, [load]);
 
   const handleFile = (e) => {
     const file = e.target.files[0];
@@ -678,39 +592,14 @@ function PlantViewer({
   const { canParticipateContextComments = true } = useSession();
   const { plants = [], zones = [], markers = [] } = useData();
   const contextCommentsEnabled = publicSettings?.modules?.context_comments_enabled !== false;
-  const [search, setSearch] = useState('');
-  const [group1, setGroup1] = useState('');
-  const [group2, setGroup2] = useState('');
-  const [group3, setGroup3] = useState('');
-  const [habitatFilter, setHabitatFilter] = useState('');
-  const [trophicRoleFilter, setTrophicRoleFilter] = useState('');
-  const [habitatTypeFilter, setHabitatTypeFilter] = useState('');
-  const [zonePresence, setZonePresence] = useState(ZONE_PRESENCE_FILTER.ALL);
-  const [plantObservationCounts, setPlantObservationCounts] = useState(() => ({}));
   const { isHelpEnabled, hasSeenSection, markSectionSeen, trackPanelOpen, trackPanelDismiss } =
     useHelp({ publicSettings, isTeacher: false });
   const helpPlants = resolveHelpPanelSection('plants', publicSettings);
 
-  const structured = useMemo(
-    () => ({
-      group1,
-      group2,
-      group3,
-      habitat: habitatFilter,
-      trophicRole: trophicRoleFilter,
-      habitatType: habitatTypeFilter,
-    }),
-    [group1, group2, group3, habitatFilter, trophicRoleFilter, habitatTypeFilter],
-  );
-
-  const queryTrimmedLower = search.trim().toLowerCase();
-
-  const filtered = useMemo(
-    () =>
-      plants.filter((p) =>
-        plantMatchesAllFilters(p, { structured, queryTrimmedLower, zonePresence }, zones, markers),
-      ),
-    [plants, structured, queryTrimmedLower, zonePresence, zones, markers],
+  const { filteredPlants: filtered, filterPanelProps } = usePlantCatalogFilters(
+    plants,
+    zones,
+    markers,
   );
 
   const biodivObservationPlantIdsStudent = useMemo(() => {
@@ -718,30 +607,9 @@ function PlantViewer({
     ids.sort((a, b) => a - b);
     return ids;
   }, [filtered]);
-  const biodivObservationIdsKeyStudent = biodivObservationPlantIdsStudent.join(',');
-
-  useEffect(() => {
-    let cancelled = false;
-    const load = async () => {
-      if (biodivObservationPlantIdsStudent.length === 0) {
-        if (!cancelled) setPlantObservationCounts({});
-        return;
-      }
-      const counts = await fetchPlantObservationCounts(biodivObservationPlantIdsStudent);
-      if (!cancelled) setPlantObservationCounts(counts);
-    };
-    load();
-    if (typeof window !== 'undefined') {
-      window.addEventListener('foretmap_session_changed', load);
-      return () => {
-        cancelled = true;
-        window.removeEventListener('foretmap_session_changed', load);
-      };
-    }
-    return () => {
-      cancelled = true;
-    };
-  }, [biodivObservationIdsKeyStudent, plants.length]);
+  // Même hook mutualisé que côté PlantManager (fetch + abonnement + cleanup).
+  const { counts: plantObservationCounts, applyAcknowledged: applyObservationAcknowledged } =
+    usePlantObservationCounts(biodivObservationPlantIdsStudent, plants.length);
 
   return (
     <div className="fade-in">
@@ -770,22 +638,7 @@ function PlantViewer({
         plants={plants}
         showZonePresence
         searchPlaceholder="🔍 Chercher un être vivant..."
-        search={search}
-        setSearch={setSearch}
-        group1={group1}
-        setGroup1={setGroup1}
-        group2={group2}
-        setGroup2={setGroup2}
-        group3={group3}
-        setGroup3={setGroup3}
-        habitat={habitatFilter}
-        setHabitat={setHabitatFilter}
-        trophicRole={trophicRoleFilter}
-        setTrophicRole={setTrophicRoleFilter}
-        habitatType={habitatTypeFilter}
-        setHabitatType={setHabitatTypeFilter}
-        zonePresence={zonePresence}
-        setZonePresence={setZonePresence}
+        {...filterPanelProps}
       />
 
       {filtered.length === 0 ? (
@@ -806,15 +659,7 @@ function PlantViewer({
               siteObservationCount={
                 plantObservationCounts[String(p.id)]?.site_observation_count ?? 0
               }
-              onObservationAcknowledged={(id, next) => {
-                setPlantObservationCounts((prev) => ({
-                  ...prev,
-                  [String(id)]: {
-                    my_observation_count: next.my_observation_count,
-                    site_observation_count: next.site_observation_count,
-                  },
-                }));
-              }}
+              onObservationAcknowledged={applyObservationAcknowledged}
               contextCommentsEnabled={contextCommentsEnabled}
               canParticipateContextComments={canParticipateContextComments}
               onForceLogout={onForceLogout}

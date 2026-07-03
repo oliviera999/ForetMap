@@ -1,6 +1,6 @@
 const express = require('express');
 const { queryAll, queryOne, withTransaction } = require('../../../database');
-const { requireGlAuth } = require('../../../middleware/requireGlAuth');
+const { requireGlAuth, actorTypeOf } = require('../../../middleware/requireGlAuth');
 const { normalizeEventRow } = require('../../../lib/glGameEvents');
 const { emitGlGameEvent } = require('../../../lib/realtime');
 const { canAccessGlGame } = require('../../../lib/glGameAccess');
@@ -117,7 +117,7 @@ router.post(
     ]);
     if (!team) return res.status(404).json({ error: 'Équipe introuvable dans cette partie' });
 
-    const actorType = req.glAuth.userType === 'gl_admin' ? 'mj' : 'team';
+    const actorType = actorTypeOf(req);
     const result = await presentFeuilletZone(
       { queryAll, withTransaction },
       {

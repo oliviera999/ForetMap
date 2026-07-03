@@ -1162,7 +1162,6 @@ export default function VisitMascotPackManager({
                     <VisitMascotStudioPreviewSection
                       packs={packs}
                       mapId={String(mapId || '')}
-                      onForceLogout={onForceLogout}
                       selectedPackId={selectedId}
                       selectedPackCatalogId={selectedRow?.catalog_id || ''}
                       selectedPackLabel={labelDraft || selectedRow?.label || ''}

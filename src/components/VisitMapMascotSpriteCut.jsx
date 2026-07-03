@@ -14,6 +14,9 @@ function resolveSpriteCutStateSpec(spriteCutConfig = null, mascotState = VISIT_M
   return { srcs: [], fps: 1 };
 }
 
+/** URLs déjà préchargées (module) : évite de re-télécharger les frames à chaque changement d'état. */
+const preloadedSpriteCutUrls = new Set();
+
 /** Durée par frame (ms) : `frameDwellMs` si aligné sur `srcs`, sinon uniforme depuis `fps`. */
 function computeDwellMsForSrcs(stateSpec, srcsLength) {
   if (srcsLength <= 0) return [];
@@ -76,6 +79,8 @@ function VisitMapMascotSpriteCut({
   useEffect(() => {
     if (srcs.length === 0) return undefined;
     srcs.forEach((url) => {
+      if (preloadedSpriteCutUrls.has(url)) return;
+      preloadedSpriteCutUrls.add(url);
       const img = new Image();
       img.src = url;
     });

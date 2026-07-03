@@ -13,6 +13,16 @@ function isGlGuest(auth) {
   return auth?.userType === GL_GUEST_USER_TYPE;
 }
 
+/** Vrai si la requête est authentifiée comme MJ/Admin GL (userType gl_admin). */
+function isMj(req) {
+  return req?.glAuth?.userType === 'gl_admin';
+}
+
+/** Type d'acteur pour l'audit des actions de partie : 'mj' ou 'team'. */
+function actorTypeOf(req) {
+  return isMj(req) ? 'mj' : 'team';
+}
+
 function allowsPasswordResetRoute(req) {
   const method = String(req.method || '').toUpperCase();
   const path = String(req.originalUrl || req.url || '').split('?')[0];
@@ -121,5 +131,7 @@ module.exports = {
   hasGlPermission,
   authenticateGl,
   isGlGuest,
+  isMj,
+  actorTypeOf,
   GL_GUEST_USER_TYPE,
 };

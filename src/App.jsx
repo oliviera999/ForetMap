@@ -581,6 +581,9 @@ function App() {
     sessionUser?.displayName,
   ]);
   const studentForUi = student || previewStudent;
+  // NB : comparaison stricte (===, sensible casse/espaces, sans match par student_id) —
+  // volontairement NON alignée sur `assignmentMatchesStudent` (task-assignments), dont la
+  // normalisation (trim + minuscules + id) changerait le comptage ; conservée iso-comportement.
   const studentActiveAssignedTasksCount = useMemo(() => {
     if (!studentForUi) return 0;
     return tasksForActiveMap.filter(
