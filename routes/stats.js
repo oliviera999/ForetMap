@@ -168,7 +168,13 @@ async function fetchUserEngagementStats(userId) {
 }
 
 async function userStats(userId, options = {}) {
-  const s = await queryOne('SELECT * FROM users WHERE id = ? LIMIT 1', [userId]);
+  // Projection explicite (audit §2.4/§3.7) : champs consommés par la réponse et la requête assignments — jamais password_hash.
+  const s = await queryOne(
+    `SELECT id, user_type, first_name, last_name, display_name, email, affiliation,
+            pseudo, description, avatar_path, last_seen
+       FROM users WHERE id = ? LIMIT 1`,
+    [userId],
+  );
   if (!s) return null;
   const isStudent = String(s.user_type || '').toLowerCase() === 'student';
   const progressionConfig = isStudent ? await getStudentProgressionConfig() : null;
@@ -288,10 +294,14 @@ router.get(
     const [students, progressionConfig, { plantMap, tutMap }, site, assignmentCounts] =
       await Promise.all([
         scope.all
-          ? queryAll("SELECT * FROM users WHERE user_type = 'student'")
+          ? queryAll(
+              `SELECT id, first_name, last_name, pseudo, description, avatar_path, last_seen
+                 FROM users WHERE user_type = 'student'`,
+            )
           : scope.studentIds.length > 0
             ? queryAll(
-                `SELECT * FROM users
+                `SELECT id, first_name, last_name, pseudo, description, avatar_path, last_seen
+                   FROM users
             WHERE user_type = 'student'
               AND id IN (${scope.studentIds.map(() => '?').join(',')})`,
                 scope.studentIds,
@@ -366,10 +376,14 @@ router.get(
     }
     const [students, { plantMap, tutMap }, assignmentCounts] = await Promise.all([
       scope.all
-        ? queryAll("SELECT * FROM users WHERE user_type = 'student'")
+        ? queryAll(
+            `SELECT id, first_name, last_name, last_seen
+               FROM users WHERE user_type = 'student'`,
+          )
         : scope.studentIds.length > 0
           ? queryAll(
-              `SELECT * FROM users
+              `SELECT id, first_name, last_name, last_seen
+                 FROM users
             WHERE user_type = 'student'
               AND id IN (${scope.studentIds.map(() => '?').join(',')})`,
               scope.studentIds,
