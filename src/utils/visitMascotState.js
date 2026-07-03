@@ -77,4 +77,30 @@ function resolveVisitMascotState({
   return VISIT_MASCOT_STATE.IDLE;
 }
 
-export { VISIT_MASCOT_STATE, VISIT_MASCOT_DIALOG, pickMascotDialog, resolveVisitMascotState };
+/**
+ * Classe CSS de mouvement du corps d'aperçu mascotte (studio / rendu final) selon l'état affiché.
+ * @param {string} state état visite (cf. `VISIT_MASCOT_STATE`)
+ * @returns {'visit-mascot-preview-body--motion-walk'|'visit-mascot-preview-body--motion-happy'|'visit-mascot-preview-body--motion-idle'}
+ */
+function previewMotionClass(state) {
+  if (state === VISIT_MASCOT_STATE.WALKING || state === VISIT_MASCOT_STATE.RUNNING) {
+    return 'visit-mascot-preview-body--motion-walk';
+  }
+  if (
+    state === VISIT_MASCOT_STATE.HAPPY ||
+    state === VISIT_MASCOT_STATE.CELEBRATE ||
+    state === VISIT_MASCOT_STATE.HAPPY_JUMP ||
+    state === VISIT_MASCOT_STATE.SPIN
+  ) {
+    return 'visit-mascot-preview-body--motion-happy';
+  }
+  return 'visit-mascot-preview-body--motion-idle';
+}
+
+export {
+  VISIT_MASCOT_STATE,
+  VISIT_MASCOT_DIALOG,
+  pickMascotDialog,
+  previewMotionClass,
+  resolveVisitMascotState,
+};

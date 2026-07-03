@@ -1,8 +1,11 @@
 import React, { useMemo } from 'react';
 import VisitMapMascotRenderer from '../VisitMapMascotRenderer.jsx';
-import { buildVisitMascotCatalogExtrasFromContent } from '../../utils/visitMascotPackExtras.js';
+import {
+  buildVisitMascotCatalogExtraFromValidated,
+  buildVisitMascotCatalogExtrasFromContent,
+} from '../../utils/visitMascotPackExtras.js';
 import { buildVisitMascotSelectionOptions } from '../../utils/visitMascotCatalog.js';
-import { VISIT_MASCOT_STATE } from '../../utils/visitMascotState.js';
+import { VISIT_MASCOT_STATE, previewMotionClass } from '../../utils/visitMascotState.js';
 import { STATE_LABELS } from '../../constants/mascotStateLabels.js';
 import useVisitMascotStateMachine from '../../hooks/useVisitMascotStateMachine.js';
 import { validateMascotPackV1 } from '../../utils/mascotPack.js';
@@ -16,7 +19,6 @@ import { applyPackAssetPreviewUrlsToSpriteCut } from '../../utils/visitMascotPac
  * @param {{
  *   packs: Array<{ id?: string, catalog_id: string, label: string, pack: object }>,
  *   mapId: string,
- *   onForceLogout?: () => void,
  *   selectedPackId?: string | null,
  *   selectedPackCatalogId?: string,
  *   selectedPackLabel?: string,
@@ -44,30 +46,19 @@ export default function VisitMascotStudioPreviewSection({
     const relaxed = validateMascotPackV1(draft, { relaxAssetPrefix: true });
     if (!relaxed.ok) return base;
 
-    const label = String(selectedPackLabel || relaxed.pack.label || catalogId).trim();
-    const ver = Number(relaxed.pack.mascotPackVersion) === 2 ? 2 : 1;
+    // Entrée catalogue construite par le helper commun (mêmes champs que le rendu final,
+    // y compris `customStates`/`customTriggers` désormais présents pour le brouillon).
+    const entry = buildVisitMascotCatalogExtraFromValidated(relaxed, catalogId, selectedPackLabel);
+    if (!entry) return base;
     // Pack en cours d'édition : tokenise les srcs (preview_url signées) pour qu'un **brouillon**
     // s'affiche dans l'aperçu (les <img> ne portent pas le JWT → 403 sur assets non publiés).
     const previewSpriteCut = applyPackAssetPreviewUrlsToSpriteCut(
-      relaxed.spriteCut,
+      entry.spriteCut,
       assetPreviewByFilename,
       relaxed.pack.framesBase,
     );
-    const draftEntry = {
-      id: catalogId,
-      label: label || catalogId,
-      renderer: 'sprite_cut',
-      fallbackSilhouette: relaxed.pack.fallbackSilhouette || 'gnome',
-      spriteCut: previewSpriteCut,
-      ...(ver === 2 && relaxed.pack.interactionProfile
-        ? { interactionProfile: relaxed.pack.interactionProfile }
-        : {}),
-      ...(ver === 2 && relaxed.pack.dialogProfile
-        ? { dialogProfile: relaxed.pack.dialogProfile }
-        : {}),
-      mascotPackVersion: ver,
-    };
-    const withoutCurrent = base.filter((entry) => entry.id !== catalogId);
+    const draftEntry = { ...entry, spriteCut: previewSpriteCut };
+    const withoutCurrent = base.filter((e) => e.id !== catalogId);
     return [...withoutCurrent, draftEntry];
   }, [
     packs,
@@ -90,21 +81,7 @@ export default function VisitMascotStudioPreviewSection({
     happy: false,
     extraCatalogEntries: extras,
   });
-  const visitMascotPreviewBodyMotionClass = useMemo(() => {
-    const s = visitMascotPreviewState;
-    if (s === VISIT_MASCOT_STATE.WALKING || s === VISIT_MASCOT_STATE.RUNNING) {
-      return 'visit-mascot-preview-body--motion-walk';
-    }
-    if (
-      s === VISIT_MASCOT_STATE.HAPPY ||
-      s === VISIT_MASCOT_STATE.CELEBRATE ||
-      s === VISIT_MASCOT_STATE.HAPPY_JUMP ||
-      s === VISIT_MASCOT_STATE.SPIN
-    ) {
-      return 'visit-mascot-preview-body--motion-happy';
-    }
-    return 'visit-mascot-preview-body--motion-idle';
-  }, [visitMascotPreviewState]);
+  const visitMascotPreviewBodyMotionClass = previewMotionClass(visitMascotPreviewState);
 
   return (
     <section className="visit-mascot-preview-card" aria-label="Aperçu de la mascotte">

@@ -3,11 +3,12 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { api, AccountDeletedError } from '../services/api';
 import { getRoleTerms } from '../utils/n3-terminology';
 import { useHelp } from '../hooks/useHelp';
+import { useTaskTileVolatileProps } from '../hooks/useTaskTileVolatileProps';
+import { useTutorialReadIds } from '../hooks/useTutorialReadIds';
 
 import { resolveHelpChrome, resolveHelpQuickTip, resolveTooltipKey } from '../utils/helpResolve';
 import { getContentText } from '../utils/content';
 import { TutorialPreviewModal, tutorialPreviewPayload } from './TutorialPreviewModal';
-import { fetchTutorialReadIds } from './TutorialReadAcknowledge';
 import { TasksEmptyState } from './TasksEmptyState.jsx';
 import { TasksTeacherSections } from './TasksTeacherSections.jsx';
 import { TasksStudentSections } from './TasksStudentSections.jsx';
@@ -35,7 +36,7 @@ import { TaskTileCard } from './tasks/TaskTileCard.jsx';
 import { TaskTileSection } from './tasks/TaskTileSection.jsx';
 import { TaskUrgencyBanner } from './tasks/TaskUrgencyBanner.jsx';
 import { TaskConfirmDialog } from './tasks/TaskConfirmDialog.jsx';
-import { TaskProjectsBlock } from './tasks/TaskProjectsBlock.jsx';
+import { TaskProjectsBlock, compareProjectsForDisplay } from './tasks/TaskProjectsBlock.jsx';
 import { TaskImportPanel } from './tasks/TaskImportPanel.jsx';
 import { TaskTutorialsAtFocusBlock } from './tasks/TaskTutorialsAtFocusBlock.jsx';
 import { TaskFiltersBar } from './tasks/TaskFiltersBar.jsx';
@@ -177,29 +178,13 @@ function TasksViewImpl({
     [isTeacher, publicSettings],
   );
   const [tasksTutorialPreview, setTasksTutorialPreview] = useState(null);
-  const [tasksTutorialReadIds, setTasksTutorialReadIds] = useState(() => new Set());
+  // Fetch + abonnement `foretmap_session_changed` mutualisés ; clé stable (ids joints)
+  // au lieu de la référence `tutorials`, qui refetchait à chaque poll global.
+  const { readIds: tasksTutorialReadIds, markRead: markTasksTutorialRead } =
+    useTutorialReadIds(tutorials);
   const openTasksTutorialPreview = useCallback((tu) => {
     setTasksTutorialPreview(tutorialPreviewPayload(tu));
   }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-    const load = async () => {
-      const ids = await fetchTutorialReadIds();
-      if (!cancelled) setTasksTutorialReadIds(new Set(ids));
-    };
-    load();
-    if (typeof window !== 'undefined') {
-      window.addEventListener('foretmap_session_changed', load);
-      return () => {
-        cancelled = true;
-        window.removeEventListener('foretmap_session_changed', load);
-      };
-    }
-    return () => {
-      cancelled = true;
-    };
-  }, [tutorials]);
 
   const mapLocationFocusKey = mapLocationFocus
     ? `${mapLocationFocus.kind}:${mapLocationFocus.id}`
@@ -639,12 +624,20 @@ function TasksViewImpl({
     () => sortedVisibleProjects(taskProjects, filterMap, activeMapId),
     [taskProjects, filterMap, activeMapId],
   );
+  // Tri d'affichage des projets calculé une seule fois ici (P2) : TaskProjectsBlock
+  // (rendu jusqu'à 3×) re-triait sa liste à chaque rendu.
   const activeProjects = useMemo(
-    () => visibleProjects.filter((p) => normalizeProjectUiStatus(p.status) !== 'validated'),
+    () =>
+      visibleProjects
+        .filter((p) => normalizeProjectUiStatus(p.status) !== 'validated')
+        .sort(compareProjectsForDisplay),
     [visibleProjects],
   );
   const validatedProjects = useMemo(
-    () => visibleProjects.filter((p) => normalizeProjectUiStatus(p.status) === 'validated'),
+    () =>
+      visibleProjects
+        .filter((p) => normalizeProjectUiStatus(p.status) === 'validated')
+        .sort(compareProjectsForDisplay),
     [visibleProjects],
   );
   const allFiltered = useMemo(
@@ -679,6 +672,19 @@ function TasksViewImpl({
     () => allFiltered.filter((t) => !isTaskUrgentCategory(t)),
     [allFiltered],
   );
+  // Groupement projet → tâches calculé une seule fois ici (P2) : TaskProjectsBlock
+  // refaisait un `filter` de la liste complète pour chaque projet à chaque rendu.
+  const projectTasksById = useMemo(() => {
+    const byProject = new Map();
+    for (const t of allFilteredWithoutUrgent) {
+      const projectId = String(t?.project_id || '');
+      if (!projectId) continue;
+      const bucket = byProject.get(projectId);
+      if (bucket) bucket.push(t);
+      else byProject.set(projectId, [t]);
+    }
+    return byProject;
+  }, [allFilteredWithoutUrgent]);
   const visibleProjectIds = useMemo(
     () => new Set(visibleProjects.map((p) => String(p.id || ''))),
     [visibleProjects],
@@ -801,7 +807,12 @@ function TasksViewImpl({
     [onOpenPlantCatalogPreview, plants, setToast],
   );
 
-  const taskTileProps = useMemo(
+  /**
+   * Props stables des tuiles (P1) : tout sauf le volatile (`loading`, sélection
+   * d'affectation rapide, drag en cours). Ce useMemo n'est donc plus invalidé par
+   * `setLoading` à chaque action : un clic sur la tuile 42 ne le recalcule pas.
+   */
+  const taskTilePropsStable = useMemo(
     () => ({
       viewMode,
       isN3Affiliated,
@@ -814,9 +825,6 @@ function TasksViewImpl({
       canParticipateContextComments,
       contextCommentsEnabled,
       roleTerms,
-      loading,
-      quickAssignTaskId,
-      quickAssignStudentIds,
       teacherStudents,
       loadingTeacherStudents,
       quickAssignUserEditedRef,
@@ -844,11 +852,9 @@ function TasksViewImpl({
       teacherTaskPerms,
       tooltipText,
       openTasksTutorialPreview,
-      onForceLogout,
       enableTaskDrag: isTeacher,
       onTaskDragStart: startTaskDrag,
       onTaskDragEnd: clearTaskDragState,
-      draggingTaskId: taskDragPayload?.taskId ?? null,
       onOpenBiodiversityFromTaskName,
     }),
     [
@@ -863,9 +869,6 @@ function TasksViewImpl({
       canParticipateContextComments,
       contextCommentsEnabled,
       roleTerms,
-      loading,
-      quickAssignTaskId,
-      quickAssignStudentIds,
       teacherStudents,
       loadingTeacherStudents,
       teacherQuickAssignDelta,
@@ -883,17 +886,33 @@ function TasksViewImpl({
       teacherTaskPerms,
       tooltipText,
       openTasksTutorialPreview,
-      onForceLogout,
       startTaskDrag,
       clearTaskDragState,
-      taskDragPayload,
       onOpenBiodiversityFromTaskName,
     ],
   );
 
+  /**
+   * Getter par tuile des props volatiles : `TaskTileSection` / `TaskProjectsBlock`
+   * l'appellent pour chaque tuile ; seule la tuile dont la tranche `loading[…]`,
+   * la sélection d'affectation rapide ou le drag change reçoit de nouvelles
+   * références → un changement de `loading[42…]` ne re-réconcilie que la tuile 42.
+   */
+  const getTaskTileVolatileProps = useTaskTileVolatileProps({
+    loading,
+    quickAssignTaskId,
+    quickAssignStudentIds,
+    draggingTaskId: taskDragPayload?.taskId ?? null,
+  });
+
+  const taskTileProps = useMemo(
+    () => ({ ...taskTilePropsStable, getTaskTileVolatileProps }),
+    [taskTilePropsStable, getTaskTileVolatileProps],
+  );
+
   /** Props communes aux quatre rendus de TaskProjectsBlock (projets actifs ×3 + projets validés). */
   const taskProjectsBlockProps = {
-    allFiltered: allFilteredWithoutUrgent,
+    projectTasksById,
     sectionListClass,
     isTeacher,
     maps,
@@ -928,7 +947,7 @@ function TasksViewImpl({
           onClose={() => setTasksTutorialPreview(null)}
           readAcknowledge={{
             isRead: tasksTutorialReadIds.has(Number(tasksTutorialPreview.id)),
-            onAcknowledged: (id) => setTasksTutorialReadIds((prev) => new Set([...prev, id])),
+            onAcknowledged: markTasksTutorialRead,
             onForceLogout,
           }}
         />

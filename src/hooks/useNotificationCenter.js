@@ -5,6 +5,7 @@ import {
   NOTIFICATION_PREFS_DEFAULTS,
 } from '../constants/notifications';
 import { readJsonStorage, writeJsonStorage } from '../shared/notifications/storage.js';
+import { assignmentMatchesStudent } from '../utils/task-assignments.js';
 
 const MAX_ITEMS = 80;
 const KEEP_MS = 7 * 24 * 60 * 60 * 1000;
@@ -28,14 +29,6 @@ function stableProposedTaskKey(task) {
 
 function nowIso() {
   return new Date().toISOString();
-}
-
-function safeJsonRead(key, fallback) {
-  return readJsonStorage(key, fallback);
-}
-
-function safeJsonWrite(key, value) {
-  writeJsonStorage(key, value);
 }
 
 function roleForStorage({ isAdmin, isTeacher }) {
@@ -81,10 +74,10 @@ export function useNotificationCenter({
   const [items, setItems] = useState([]);
   const [prefs, setPrefs] = useState(() => ({
     ...(NOTIFICATION_PREFS_DEFAULTS[roleKey] || {}),
-    ...safeJsonRead(prefsStorageKey, {}),
+    ...readJsonStorage(prefsStorageKey, {}),
   }));
   const [metrics, setMetrics] = useState(() =>
-    safeJsonRead(metricsStorageKey, {
+    readJsonStorage(metricsStorageKey, {
       created: 0,
       opened: 0,
       actions: 0,
@@ -92,7 +85,9 @@ export function useNotificationCenter({
   );
   const lastSeenKeysRef = useRef({});
   const lastTeacherProposedKeysRef = useRef(new Set());
-  const firstMountRef = useRef(true);
+  // Vrai tant que `items` reflète encore l'état d'avant chargement (montage ou changement de clé) :
+  // l'effet de persistance saute ce tour pour ne pas écraser le storage avec l'état pré-hydratation.
+  const skipNextPersistRef = useRef(true);
 
   const bumpMetric = useCallback((field) => {
     setMetrics((prev) => ({
@@ -101,22 +96,15 @@ export function useNotificationCenter({
     }));
   }, []);
 
-  const persistItems = useCallback(
-    (nextItems) => {
-      safeJsonWrite(notificationsStorageKey, nextItems);
-    },
-    [notificationsStorageKey],
-  );
-
   const persistPrefs = useCallback(
     (nextPrefs) => {
-      safeJsonWrite(prefsStorageKey, nextPrefs);
+      writeJsonStorage(prefsStorageKey, nextPrefs);
     },
     [prefsStorageKey],
   );
 
   useEffect(() => {
-    const loaded = safeJsonRead(notificationsStorageKey, []);
+    const loaded = readJsonStorage(notificationsStorageKey, []);
     const cutoff = Date.now() - KEEP_MS;
     const sanitized = (Array.isArray(loaded) ? loaded : [])
       .filter((item) => {
@@ -125,6 +113,7 @@ export function useNotificationCenter({
       })
       .slice(0, MAX_ITEMS);
     const restoredProposedKeys = new Set();
+    skipNextPersistRef.current = true;
     setItems(sanitized);
     for (const item of sanitized) {
       if (!item?.key) continue;
@@ -136,8 +125,18 @@ export function useNotificationCenter({
     lastTeacherProposedKeysRef.current = restoredProposedKeys;
   }, [notificationsStorageKey]);
 
+  // Persistance des notifications déplacée hors des updaters `setItems` (pas d'effet de bord
+  // dans un updater — sûr en StrictMode) : toute mutation de `items` est écrite ici.
   useEffect(() => {
-    safeJsonWrite(metricsStorageKey, metrics);
+    if (skipNextPersistRef.current) {
+      skipNextPersistRef.current = false;
+      return;
+    }
+    writeJsonStorage(notificationsStorageKey, items);
+  }, [items, notificationsStorageKey]);
+
+  useEffect(() => {
+    writeJsonStorage(metricsStorageKey, metrics);
   }, [metrics, metricsStorageKey]);
 
   const isCategoryEnabled = useCallback(
@@ -179,60 +178,36 @@ export function useNotificationCenter({
         read: false,
         createdAt: nowIso(),
       };
-      setItems((prev) => {
-        const next = [item, ...prev].slice(0, MAX_ITEMS);
-        persistItems(next);
-        return next;
-      });
+      setItems((prev) => [item, ...prev].slice(0, MAX_ITEMS));
       bumpMetric('created');
       return true;
     },
-    [bumpMetric, isCategoryEnabled, persistItems],
+    [bumpMetric, isCategoryEnabled],
   );
 
   const markAllRead = useCallback(() => {
+    setItems((prev) => prev.map((item) => ({ ...item, read: true })));
+  }, []);
+
+  const markAsRead = useCallback((id) => {
+    setItems((prev) => prev.map((item) => (item.id === id ? { ...item, read: true } : item)));
+  }, []);
+
+  const removeNotification = useCallback((id) => {
     setItems((prev) => {
-      const next = prev.map((item) => ({ ...item, read: true }));
-      persistItems(next);
-      return next;
+      const victim = prev.find((item) => item.id === id);
+      if (victim?.key) {
+        const suffix = proposalSuffixFromTeacherNotifKey(victim.key);
+        if (suffix) lastTeacherProposedKeysRef.current.delete(suffix);
+        delete lastSeenKeysRef.current[victim.key];
+      }
+      return prev.filter((item) => item.id !== id);
     });
-  }, [persistItems]);
-
-  const markAsRead = useCallback(
-    (id) => {
-      setItems((prev) => {
-        const next = prev.map((item) => (item.id === id ? { ...item, read: true } : item));
-        persistItems(next);
-        return next;
-      });
-    },
-    [persistItems],
-  );
-
-  const removeNotification = useCallback(
-    (id) => {
-      setItems((prev) => {
-        const victim = prev.find((item) => item.id === id);
-        if (victim?.key) {
-          const suffix = proposalSuffixFromTeacherNotifKey(victim.key);
-          if (suffix) lastTeacherProposedKeysRef.current.delete(suffix);
-          delete lastSeenKeysRef.current[victim.key];
-        }
-        const next = prev.filter((item) => item.id !== id);
-        persistItems(next);
-        return next;
-      });
-    },
-    [persistItems],
-  );
+  }, []);
 
   const clearRead = useCallback(() => {
-    setItems((prev) => {
-      const next = prev.filter((item) => !item.read);
-      persistItems(next);
-      return next;
-    });
-  }, [persistItems]);
+    setItems((prev) => prev.filter((item) => !item.read));
+  }, []);
 
   const updatePreference = useCallback(
     (category, enabled) => {
@@ -301,25 +276,13 @@ export function useNotificationCenter({
   // Règles de génération: n3beur
   useEffect(() => {
     if (isTeacher || !student) return;
-    const first = String(student.first_name || '')
-      .trim()
-      .toLowerCase();
-    const last = String(student.last_name || '')
-      .trim()
-      .toLowerCase();
+    // Matcher partagé (task-assignments) : même normalisation prénom+nom (trim + minuscules)
+    // qu'avant, avec en plus le match par `student_id` — aligné sur isStudentAssignedToTask.
     const mine = tasksForActiveMap.filter(
       (task) =>
         (task.status === 'available' || task.status === 'in_progress') &&
         Array.isArray(task.assignments) &&
-        task.assignments.some(
-          (a) =>
-            String(a.student_first_name || '')
-              .trim()
-              .toLowerCase() === first &&
-            String(a.student_last_name || '')
-              .trim()
-              .toLowerCase() === last,
-        ),
+        task.assignments.some((a) => assignmentMatchesStudent(a, student)),
     );
     let soonCount = 0;
     let overdueCount = 0;
@@ -450,27 +413,14 @@ export function useNotificationCenter({
           const ts = Date.parse(item.createdAt || '');
           return Number.isFinite(ts) && ts >= cutoff;
         });
-        if (next.length !== prev.length) persistItems(next);
-        return next;
+        // Rien d'expiré → renvoie `prev` pour ne pas re-rendre ni re-persister inutilement.
+        return next.length !== prev.length ? next : prev;
       });
     }, 60 * 1000);
     return () => clearInterval(id);
-  }, [persistItems]);
-
-  // Évite de générer du bruit immédiatement au premier rendu
-  useEffect(() => {
-    if (firstMountRef.current) {
-      firstMountRef.current = false;
-      return;
-    }
-    // no-op, garde l'intention explicite
-  }, [items.length]);
+  }, []);
 
   const unreadCount = useMemo(() => items.filter((item) => !item.read).length, [items]);
-  const criticalCount = useMemo(
-    () => items.filter((item) => !item.read && item.level === NOTIFICATION_LEVEL.CRITICAL).length,
-    [items],
-  );
   const latestCritical = useMemo(
     () => items.find((item) => !item.read && item.level === NOTIFICATION_LEVEL.CRITICAL) || null,
     [items],
@@ -480,7 +430,6 @@ export function useNotificationCenter({
     roleKey,
     items,
     unreadCount,
-    criticalCount,
     latestCritical,
     prefs,
     metrics,

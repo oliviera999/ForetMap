@@ -1,6 +1,6 @@
 const express = require('express');
 const db = require('../../../database');
-const { queryOne, queryAll, execute, withTransaction } = db;
+const { queryOne, queryAll, execute } = db;
 const { requireGlPermission } = require('../../../middleware/requireGlAuth');
 const { normalizeEventRow, insertGameEvent } = require('../../../lib/glGameEvents');
 const { emitGlGameEvent } = require('../../../lib/realtime');
@@ -28,21 +28,16 @@ async function placeTeamsOnPathStart(gameId, gameRow) {
   const sorted = sortMarkersByPath(markerRows);
   const start = startMarker(sorted, resolveBoardPathStartIndex(gameRow));
   if (!start?.marker) return;
-  const teams = await queryAll('SELECT id FROM gl_teams WHERE game_id = ?', [gameId]);
-  if (!teams.length) return;
-  await withTransaction(async (tx) => {
-    for (const team of teams) {
-      await tx.execute(
-        `UPDATE gl_teams
-            SET position_marker_id = ?,
-                position_x_pct = ?,
-                position_y_pct = ?,
-                updated_at = NOW()
-          WHERE id = ? AND game_id = ?`,
-        [start.marker.id, Number(start.marker.x_pct), Number(start.marker.y_pct), team.id, gameId],
-      );
-    }
-  });
+  // Mêmes valeurs pour toutes les équipes : un seul UPDATE sur la partie.
+  await execute(
+    `UPDATE gl_teams
+        SET position_marker_id = ?,
+            position_x_pct = ?,
+            position_y_pct = ?,
+            updated_at = NOW()
+      WHERE game_id = ?`,
+    [start.marker.id, Number(start.marker.x_pct), Number(start.marker.y_pct), gameId],
+  );
 }
 
 async function updateGameStatus(req, res, nextStatus) {

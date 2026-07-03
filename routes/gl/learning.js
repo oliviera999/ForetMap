@@ -2,7 +2,7 @@
 
 const express = require('express');
 const { queryOne, queryAll, execute } = require('../../database');
-const { requireGlAuth } = require('../../middleware/requireGlAuth');
+const { requireGlAuth, isMj, actorTypeOf } = require('../../middleware/requireGlAuth');
 const { canAccessGlGame } = require('../../lib/glGameAccess');
 const { getGlModulesSettings, getGameplaySettings } = require('../../lib/glSettings');
 const { parseGlId, resolveTeamContext } = require('../../lib/glTeamContext');
@@ -142,7 +142,7 @@ async function maybeAwardFeuilletFromConsultation(req, { source, sourceRef }) {
       playerName: req.glAuth.displayName,
       source,
       sourceRef,
-      isMj: req.glAuth.userType === 'gl_admin',
+      isMj: isMj(req),
     });
   } catch (_) {
     return null; // acquisition best-effort : ne bloque jamais l'acquittement
@@ -247,17 +247,15 @@ router.post(
         if (modules.loreCarnetEnabled && (await canAccessGlGame(req.glAuth, gameId))) {
           const teamCtx = await resolveTeamContext(req, gameId, req.body?.teamId);
           if (!teamCtx.error) {
-            const isMj = req.glAuth.userType === 'gl_admin';
-            const actorType = isMj ? 'mj' : 'team';
             const feuilletRevealed = await revealFeuilletForSpeciesStudy(db, {
               gameId,
               teamId: teamCtx.teamId,
               speciesCode: code,
               biomeSlug: species.biome_slug,
-              actorType,
+              actorType: actorTypeOf(req),
               actorId: String(req.glAuth.userId),
               actorName: req.glAuth.displayName,
-              isMj,
+              isMj: isMj(req),
             });
             if (feuilletRevealed) {
               response.feuilletRevealed = feuilletRevealed;

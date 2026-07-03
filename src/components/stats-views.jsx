@@ -41,20 +41,19 @@ function StudentStats({ student }) {
       });
   }, [student.id]);
 
-  if (!data && !error)
-    return (
+  if (!data) {
+    return error ? (
+      <div className="empty" style={{ minHeight: '40vh' }}>
+        <div className="empty-icon">⚠️</div>
+        <p>{error}</p>
+      </div>
+    ) : (
       <div className="loader" style={{ height: '60vh' }}>
         <div className="loader-leaf">🌿</div>
         <p>Chargement...</p>
       </div>
     );
-  if (!data && error)
-    return (
-      <div className="empty" style={{ minHeight: '40vh' }}>
-        <div className="empty-icon">⚠️</div>
-        <p>{error}</p>
-      </div>
-    );
+  }
 
   const { stats, assignments } = data;
   const {

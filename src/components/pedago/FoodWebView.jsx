@@ -168,12 +168,6 @@ export function FoodWebView({
     return [...set].sort((a, b) => a.localeCompare(b, 'fr'));
   }, [items]);
 
-  const nodeIds = useMemo(() => {
-    const ids = new Set();
-    if (highlightPlantId != null) ids.add(Number(highlightPlantId));
-    return ids;
-  }, [highlightPlantId]);
-
   async function selectEdge(interactionId) {
     if (selectedEdgeId === interactionId) {
       setSelectedEdgeId(null);
@@ -201,7 +195,7 @@ export function FoodWebView({
         </span>
       );
     }
-    const highlighted = nodeIds.has(Number(id));
+    const highlighted = highlightPlantId != null && Number(id) === Number(highlightPlantId);
     return (
       <button
         type="button"

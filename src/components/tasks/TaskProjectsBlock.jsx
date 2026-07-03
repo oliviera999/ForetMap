@@ -5,9 +5,29 @@ import { MarkdownContent } from '../MarkdownContent.jsx';
 import { tutorialPreviewCanEmbed } from '../TutorialPreviewModal';
 import { TaskTileCard } from './TaskTileCard.jsx';
 
+/**
+ * Ordre d'affichage des projets dans le bloc : actif < en attente < terminé < validé,
+ * puis titre (fr). Exporté pour que `TasksView` trie une seule fois en amont (le tri
+ * était refait ici à chaque rendu, et le bloc est rendu jusqu'à 3 fois).
+ */
+export function compareProjectsForDisplay(a, b) {
+  const rank = (status) => {
+    if (status === 'active') return 0;
+    if (status === 'on_hold') return 1;
+    if (status === 'completed') return 2;
+    if (status === 'validated') return 3;
+    return 4;
+  };
+  const diff = rank(a.status) - rank(b.status);
+  if (diff !== 0) return diff;
+  return String(a.title || '').localeCompare(String(b.title || ''), 'fr');
+}
+
+const EMPTY_PROJECT_TASKS = Object.freeze([]);
+
 function TaskProjectsBlock({
   visibleProjects,
-  allFiltered,
+  projectTasksById,
   sectionTitle = null,
   sectionListClass,
   isTeacher,
@@ -33,6 +53,8 @@ function TaskProjectsBlock({
   onProjectTaskDragOver,
   onDropTaskToProject,
 }) {
+  // Props volatiles dérivées par tuile (P1) : ne pas les étaler sur toutes les cartes.
+  const { getTaskTileVolatileProps, ...tileCardProps } = taskTileProps || {};
   if (visibleProjects.length <= 0) return null;
   return (
     <div className="tasks-section">
@@ -40,23 +62,11 @@ function TaskProjectsBlock({
         {sectionTitle || `📁 Projets (${visibleProjects.length})`}
       </div>
       <div style={{ display: 'grid', gap: 8 }}>
-        {[...visibleProjects]
-          .sort((a, b) => {
-            const rank = (status) => {
-              if (status === 'active') return 0;
-              if (status === 'on_hold') return 1;
-              if (status === 'completed') return 2;
-              if (status === 'validated') return 3;
-              return 4;
-            };
-            const diff = rank(a.status) - rank(b.status);
-            if (diff !== 0) return diff;
-            return String(a.title || '').localeCompare(String(b.title || ''), 'fr');
-          })
-          .map((p) => {
-            const projectTasks = allFiltered.filter(
-              (t) => String(t.project_id || '') === String(p.id || ''),
-            );
+        {
+          /* `visibleProjects` arrive pré-trié (compareProjectsForDisplay) et
+             `projectTasksById` pré-groupé — mémoïsés une fois dans TasksView. */
+          visibleProjects.map((p) => {
+            const projectTasks = projectTasksById?.get(String(p.id || '')) ?? EMPTY_PROJECT_TASKS;
             const projectTasksCount = projectTasks.length;
             const projectStatus = normalizeProjectUiStatus(p.status);
             const loadingActive = !!loading[`${p.id}projectactive`];
@@ -321,7 +331,12 @@ function TaskProjectsBlock({
                             onDropTaskToProject?.(projectDropId, String(t.id));
                           }}
                         >
-                          <TaskTileCard {...taskTileProps} t={t} index={idx} />
+                          <TaskTileCard
+                            {...tileCardProps}
+                            {...(getTaskTileVolatileProps ? getTaskTileVolatileProps(t) : null)}
+                            t={t}
+                            index={idx}
+                          />
                         </div>
                       ))}
                     </div>
@@ -329,7 +344,8 @@ function TaskProjectsBlock({
                 </div>
               </div>
             );
-          })}
+          })
+        }
       </div>
     </div>
   );

@@ -48,27 +48,8 @@ export function buildVisitMascotCatalogExtrasFromContent(mascotPacks) {
     if (!catalogId || !pack || typeof pack !== 'object') continue;
     const relaxed = validateMascotPackV1(pack, { relaxAssetPrefix: true });
     if (!relaxed.ok) continue;
-    const ver = Number(relaxed.pack.mascotPackVersion) === 2 ? 2 : 1;
-    out.push({
-      id: catalogId,
-      label: label || relaxed.pack.label,
-      renderer: 'sprite_cut',
-      fallbackSilhouette: relaxed.pack.fallbackSilhouette || 'gnome',
-      spriteCut: relaxed.spriteCut,
-      ...(ver === 2 && relaxed.pack.interactionProfile
-        ? { interactionProfile: relaxed.pack.interactionProfile }
-        : {}),
-      ...(ver === 2 && relaxed.pack.dialogProfile
-        ? { dialogProfile: relaxed.pack.dialogProfile }
-        : {}),
-      ...(Array.isArray(relaxed.pack.customStates) && relaxed.pack.customStates.length
-        ? { customStates: relaxed.pack.customStates }
-        : {}),
-      ...(Array.isArray(relaxed.pack.customTriggers) && relaxed.pack.customTriggers.length
-        ? { customTriggers: relaxed.pack.customTriggers }
-        : {}),
-      mascotPackVersion: ver,
-    });
+    const entry = buildVisitMascotCatalogExtraFromValidated(relaxed, catalogId, label);
+    if (entry) out.push(entry);
   }
   return out;
 }

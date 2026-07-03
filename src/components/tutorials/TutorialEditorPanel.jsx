@@ -1,10 +1,23 @@
-import React from 'react';
 import { MarkdownTextarea } from '../MarkdownTextarea.jsx';
 import { tutorialZonePickLabel } from '../../utils/tutorialListHelpers.js';
 import {
   toggleTutorialFormLocation,
   applyTutorialFormMapChange,
 } from '../../utils/tutorialFormHelpers.js';
+import {
+  LocationPickList,
+  filterSelectableZones,
+  filterSelectableMarkers,
+} from '../tasks/LocationPickList.jsx';
+
+/** Libellé repère du tutoriel (comportement historique : pas de repli 📍). */
+function tutorialMarkerPickLabel(m) {
+  return (
+    <>
+      {m.emoji} {m.label}
+    </>
+  );
+}
 
 /**
  * Éditeur de tutoriel (création / modification) — extrait de `tutorials-views.jsx` (O6).
@@ -48,10 +61,8 @@ export function TutorialEditorPanel({
     }
   };
 
-  const selectableZones = zones.filter(
-    (z) => !z.special && (!form.map_id || z.map_id === form.map_id),
-  );
-  const selectableMarkers = markers.filter((m) => !form.map_id || m.map_id === form.map_id);
+  const selectableZones = filterSelectableZones(zones, form.map_id);
+  const selectableMarkers = filterSelectableMarkers(markers, form.map_id);
 
   return (
     <div className="plant-edit-form fade-in tuto-editor">
@@ -99,56 +110,17 @@ export function TutorialEditorPanel({
       </div>
       <div className="field">
         <label>Zones et repères sur la carte (optionnel)</label>
-        <div className="task-form-pick-list">
-          {selectableZones.length === 0 && selectableMarkers.length === 0 ? (
-            <p className="task-form-pick-empty">Aucune zone ni repère pour ce filtre.</p>
-          ) : (
-            <>
-              {selectableZones.length > 0 && (
-                <>
-                  {selectableMarkers.length > 0 && (
-                    <div className="task-form-pick-subheading" aria-hidden="true">
-                      Zones
-                    </div>
-                  )}
-                  {selectableZones.map((z) => (
-                    <label key={z.id} className="task-form-pick-item">
-                      <input
-                        type="checkbox"
-                        className="task-form-pick-checkbox"
-                        checked={(form.zone_ids || []).map(String).includes(String(z.id))}
-                        onChange={() => toggleZoneId(z.id)}
-                      />
-                      <span className="task-form-pick-text">{tutorialZonePickLabel(z)}</span>
-                    </label>
-                  ))}
-                </>
-              )}
-              {selectableMarkers.length > 0 && (
-                <>
-                  {selectableZones.length > 0 && (
-                    <div className="task-form-pick-subheading" aria-hidden="true">
-                      Repères
-                    </div>
-                  )}
-                  {selectableMarkers.map((m) => (
-                    <label key={m.id} className="task-form-pick-item">
-                      <input
-                        type="checkbox"
-                        className="task-form-pick-checkbox"
-                        checked={(form.marker_ids || []).map(String).includes(String(m.id))}
-                        onChange={() => toggleMarkerId(m.id)}
-                      />
-                      <span className="task-form-pick-text">
-                        {m.emoji} {m.label}
-                      </span>
-                    </label>
-                  ))}
-                </>
-              )}
-            </>
-          )}
-        </div>
+        <LocationPickList
+          zones={selectableZones}
+          markers={selectableMarkers}
+          selectedZoneIds={form.zone_ids}
+          selectedMarkerIds={form.marker_ids}
+          onToggleZone={toggleZoneId}
+          onToggleMarker={toggleMarkerId}
+          zoneLabel={tutorialZonePickLabel}
+          markerLabel={tutorialMarkerPickLabel}
+          emptyText="Aucune zone ni repère pour ce filtre."
+        />
       </div>
       {form.id && (
         <div className="field">

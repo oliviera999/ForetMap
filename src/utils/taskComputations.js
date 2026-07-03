@@ -6,6 +6,8 @@
  * Aligné sur le contrat API (`assigned_count`, `assignments[]`, `completion_mode`, etc.).
  */
 
+import { assignmentMatchesStudent } from './task-assignments.js';
+
 /** Nombre d'inscrits sur une tâche (priorité au compteur API, repli sur la liste). */
 export function getAssignedCount(task) {
   const fromApi = Number(task?.assigned_count);
@@ -43,25 +45,11 @@ export function completionModeLabel(mode) {
 /**
  * Indique si un élève est déjà inscrit sur la tâche.
  * Aligné sur l'API : match par `student_id` OU par (prénom, nom) insensible à la casse.
+ * Délègue au matcher unique `assignmentMatchesStudent` (export conservé).
  */
 export function isStudentAlreadyAssignedToTask(task, targetStudent = null) {
   if (!task || !targetStudent) return false;
-  return (task.assignments || []).some(
-    (a) =>
-      String(a.student_id || '') === String(targetStudent.id || '') ||
-      (String(a.student_first_name || '')
-        .trim()
-        .toLowerCase() ===
-        String(targetStudent.first_name || '')
-          .trim()
-          .toLowerCase() &&
-        String(a.student_last_name || '')
-          .trim()
-          .toLowerCase() ===
-          String(targetStudent.last_name || '')
-            .trim()
-            .toLowerCase()),
-  );
+  return (task.assignments || []).some((a) => assignmentMatchesStudent(a, targetStudent));
 }
 
 /**
