@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { apiGL } from '../../services/apiGL.js';
 import { AutoSaveStatus } from '../../../shared/components/AutoSaveStatus.jsx';
-import { useDebouncedAutoSave } from '../../../shared/hooks/useDebouncedAutoSave.js';
+import { useGlAdminCrud } from '../../hooks/useGlAdminCrud.js';
 import { GLGlossaryTermList } from './GLGlossaryTermList.jsx';
 import { GLGlossaryTermForm } from './GLGlossaryTermForm.jsx';
 import {
@@ -14,14 +14,53 @@ import {
 
 export function GLGlossaryEditorPanel() {
   const [meta, setMeta] = useState({ categories: [], niveaux: [], biomes: [] });
-  const [items, setItems] = useState([]);
-  const [selectedCode, setSelectedCode] = useState(null);
-  const [form, setForm] = useState(EMPTY_FORM);
   const [filterQ, setFilterQ] = useState('');
   const [filterCategorie, setFilterCategorie] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [info, setInfo] = useState('');
+
+  const listPath = useMemo(() => {
+    const params = new URLSearchParams({ statut: 'all' });
+    if (filterCategorie) params.set('categorie', filterCategorie);
+    if (filterQ.trim()) params.set('q', filterQ.trim());
+    return `/api/gl/admin/glossary/terms?${params.toString()}`;
+  }, [filterCategorie, filterQ]);
+
+  const {
+    items,
+    selectedCode,
+    form,
+    setForm,
+    setField,
+    loading,
+    error,
+    info,
+    setInfo,
+    saveStatus,
+    saveError,
+    itemPath,
+    loadList,
+    loadItem,
+    startNew,
+    runAction,
+  } = useGlAdminCrud({
+    listPath,
+    basePath: '/api/gl/admin/glossary/terms',
+    codeField: 'glossary_code',
+    entityKey: 'term',
+    emptyForm: EMPTY_FORM,
+    toForm: termToForm,
+    toPayload: formToPayload,
+    isAutoSaveReady: (f) => String(f.terme || '').trim().length > 0,
+    canSave: (f) => {
+      if (!String(f.terme || '').trim()) return false;
+      if (!f.categorie || !f.niveau) return 'Catégorie et niveau requis';
+      return true;
+    },
+    messages: {
+      updated: 'Terme mis à jour.',
+      created: 'Terme créé.',
+      startNewError: 'Impossible de préparer un nouveau terme',
+    },
+  });
 
   const biomeOptions = useMemo(() => buildBiomeOptions(meta.biomes), [meta.biomes]);
 
@@ -39,107 +78,19 @@ export function GLGlossaryEditorPanel() {
     });
   }, []);
 
-  const loadList = useCallback(async () => {
-    const params = new URLSearchParams({ statut: 'all' });
-    if (filterCategorie) params.set('categorie', filterCategorie);
-    if (filterQ.trim()) params.set('q', filterQ.trim());
-    const data = await apiGL(`/api/gl/admin/glossary/terms?${params.toString()}`);
-    setItems(Array.isArray(data?.items) ? data.items : []);
-  }, [filterCategorie, filterQ]);
-
   useEffect(() => {
     loadMeta().catch(() => setMeta({ categories: [], niveaux: [], biomes: [] }));
   }, [loadMeta]);
 
-  useEffect(() => {
-    loadList().catch((err) => setError(err.message || 'Chargement impossible'));
-  }, [loadList]);
-
-  async function loadTerm(code) {
-    if (!code) return;
-    setLoading(true);
-    setError('');
-    try {
-      const data = await apiGL(`/api/gl/admin/glossary/terms/${encodeURIComponent(code)}`);
-      setForm(termToForm(data?.term));
-      setSelectedCode(code);
-    } catch (err) {
-      setError(err.message || 'Fiche introuvable');
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function startNewTerm() {
-    setLoading(true);
-    setError('');
-    setInfo('');
-    try {
-      const data = await apiGL('/api/gl/admin/glossary/terms/next-code');
-      setSelectedCode(null);
-      setForm({
-        ...EMPTY_FORM,
-        glossary_code: data?.glossary_code || '',
-      });
-    } catch (err) {
-      setError(err.message || 'Impossible de préparer un nouveau terme');
-      setSelectedCode(null);
-      setForm({ ...EMPTY_FORM });
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  const persistTerm = useCallback(async () => {
-    const payload = formToPayload(form);
-    const isEdit = Boolean(selectedCode);
-    const path = isEdit
-      ? `/api/gl/admin/glossary/terms/${encodeURIComponent(selectedCode)}`
-      : '/api/gl/admin/glossary/terms';
-    const method = isEdit ? 'PUT' : 'POST';
-    const data = await apiGL(path, method, payload);
-    const code = data?.term?.glossary_code || form.glossary_code;
-    setSelectedCode(code);
-    const nextForm = termToForm(data?.term);
-    setForm(nextForm);
-    setInfo(isEdit ? 'Terme mis à jour.' : 'Terme créé.');
-    await loadList();
-    return nextForm;
-  }, [form, selectedCode, loadList]);
-
-  const { status: saveStatus, error: saveError } = useDebouncedAutoSave({
-    value: form,
-    resetKey: selectedCode ?? `new:${form.glossary_code}`,
-    enabled: String(form.terme || '').trim().length > 0,
-    canSave: () => {
-      if (!String(form.terme || '').trim()) return false;
-      if (!form.categorie || !form.niveau) return 'Catégorie et niveau requis';
-      return true;
-    },
-    onSave: persistTerm,
-  });
-
   async function archiveTerm() {
     if (!selectedCode) return;
     if (!window.confirm('Archiver ce terme (statut inactif) ?')) return;
-    setLoading(true);
-    setError('');
-    try {
-      await apiGL(`/api/gl/admin/glossary/terms/${encodeURIComponent(selectedCode)}`, 'PATCH', {
-        statut: 'inactif',
-      });
+    await runAction(async () => {
+      await apiGL(itemPath(selectedCode), 'PATCH', { statut: 'inactif' });
       setInfo('Terme archivé.');
       await loadList();
       setForm((prev) => ({ ...prev, statut: 'inactif' }));
-    } catch (err) {
-      setError(err.message || 'Archivage impossible');
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  function setField(key, value) {
-    setForm((prev) => ({ ...prev, [key]: value }));
+    }, 'Archivage impossible');
   }
 
   return (
@@ -163,8 +114,8 @@ export function GLGlossaryEditorPanel() {
           categories={meta.categories}
           items={filteredItems}
           selectedCode={selectedCode}
-          onSelect={loadTerm}
-          onNew={startNewTerm}
+          onSelect={loadItem}
+          onNew={startNew}
           loading={loading}
         />
 
