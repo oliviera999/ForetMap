@@ -1,7 +1,12 @@
 const express = require('express');
-const { queryAll, queryOne, execute, withTransaction } = require('../../../database');
-const { requireGlAuth, requireGlPermission } = require('../../../middleware/requireGlAuth');
-const { normalizeEventRow } = require('../../../lib/glGameEvents');
+const db = require('../../../database');
+const { queryAll, queryOne, execute, withTransaction } = db;
+const {
+  requireGlAuth,
+  requireGlPermission,
+  actorTypeOf,
+} = require('../../../middleware/requireGlAuth');
+const { insertGameEvent } = require('../../../lib/glGameEvents');
 const { emitGlGameEvent } = require('../../../lib/realtime');
 const { getGameplaySettings } = require('../../../lib/glSettings');
 const { resolveVitalityError } = require('../../../lib/glVitality');
@@ -36,19 +41,14 @@ const {
   buildAnyPresentation,
   isLoreQuestionCode,
 } = require('../../../lib/glQcmResolve');
-// O10 — helpers runtime à I/O (DB) partagés via lib/gl/gamesRuntime.js (déplacement pur),
-// recopie locale de parseId pour éviter tout import circulaire vers gl/games.js.
+// O10 — helpers runtime à I/O (DB) partagés via lib/gl/gamesRuntime.js (déplacement pur).
 const {
   getPlayerGameMembership,
   recordVitalityChangeEvent,
 } = require('../../../lib/gl/gamesRuntime');
+const { parseId } = require('../../../lib/shared/httpHelpers');
 
 const router = express.Router();
-
-function parseId(value) {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : null;
-}
 
 async function loadChapterPathMarkers(tx, chapterId) {
   return tx.queryAll(
@@ -249,29 +249,21 @@ router.post('/games/:id/markers/:markerId/present-question', requireGlAuth, asyn
     return res.status(400).json({ error: err.message || 'Présentation impossible' });
   }
 
-  const actorType = req.glAuth.userType === 'gl_admin' ? 'mj' : 'team';
-  await execute(
-    `INSERT INTO gl_game_events (game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at)
-     VALUES (?, ?, ?, ?, 'marker_question_presented', ?, NOW())`,
-    [
-      gameId,
-      teamId,
-      actorType,
-      String(req.glAuth.userId),
-      JSON.stringify({
-        markerId,
-        questionCode: draw.questionCode,
-        qcmSet: draw.qcmSet || (isLore ? 'lore' : 'biome'),
-        markerLabel: marker.label,
-      }),
-    ],
-  );
-  const evt = await queryOne(
-    `SELECT id, game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at
-       FROM gl_game_events WHERE game_id = ? ORDER BY id DESC LIMIT 1`,
-    [gameId],
-  );
-  if (evt) emitGlGameEvent(gameId, normalizeEventRow(evt));
+  const actorType = actorTypeOf(req);
+  const presentedEvent = await insertGameEvent(db, {
+    gameId,
+    teamId,
+    actorType,
+    actorId: String(req.glAuth.userId),
+    eventType: 'marker_question_presented',
+    payload: {
+      markerId,
+      questionCode: draw.questionCode,
+      qcmSet: draw.qcmSet || (isLore ? 'lore' : 'biome'),
+      markerLabel: marker.label,
+    },
+  });
+  emitGlGameEvent(gameId, presentedEvent);
 
   return res.json({
     questionCode: draw.questionCode,
@@ -336,7 +328,7 @@ router.post('/games/:id/markers/:markerId/present-arrival', requireGlAuth, async
   if (!team) return res.status(404).json({ error: 'Équipe introuvable dans cette partie' });
 
   const arrival = buildMarkerArrivalPayload(marker, team);
-  const actorType = req.glAuth.userType === 'gl_admin' ? 'mj' : 'team';
+  const actorType = actorTypeOf(req);
   const actorId = String(req.glAuth.userId);
   const reason = String(marker.label || 'Repère').trim();
 
@@ -349,6 +341,7 @@ router.post('/games/:id/markers/:markerId/present-arrival', requireGlAuth, async
 
   let vitalityPayload = null;
   let autoMove = null;
+  let lastEvent = null;
   try {
     await withTransaction(async (tx) => {
       vitalityPayload = await applyMarkerVitalityEffects(tx, {
@@ -371,52 +364,40 @@ router.post('/games/:id/markers/:markerId/present-arrival', requireGlAuth, async
           reason,
           results: vitalityPayload.vitalityResults,
         });
-        await tx.execute(
-          `INSERT INTO gl_game_events (game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at)
-           VALUES (?, ?, ?, ?, 'marker_effect', ?, NOW())`,
-          [
-            gameId,
-            teamId,
-            actorType,
-            actorId,
-            JSON.stringify(
-              buildMarkerEffectEventPayload({
-                marker,
-                resolved: vitalityPayload.resolvedEffect,
-                healthDelta: vitalityPayload.healthDelta,
-                powerDelta: vitalityPayload.powerDelta,
-                moveDelta: vitalityPayload.moveDelta,
-                passTurn: vitalityPayload.passTurn,
-                reason,
-                vitalityTarget: vitalityPayload.vitalityTarget,
-                vitalityPlayerIds: vitalityPayload.vitalityPlayerIds,
-                autoMoveApplied: willAutoMoveMarkerEffect(
-                  game,
-                  settings,
-                  vitalityPayload.moveDelta,
-                ),
-              }),
-            ),
-          ],
-        );
-      }
-
-      await tx.execute(
-        `INSERT INTO gl_game_events (game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at)
-         VALUES (?, ?, ?, ?, 'marker_arrival', ?, NOW())`,
-        [
+        lastEvent = await insertGameEvent(tx, {
           gameId,
           teamId,
           actorType,
           actorId,
-          JSON.stringify({
-            markerId,
-            markerLabel: marker.label,
-            eventType: marker.event_type,
-            effectSummary: arrival.effectSummary,
+          eventType: 'marker_effect',
+          payload: buildMarkerEffectEventPayload({
+            marker,
+            resolved: vitalityPayload.resolvedEffect,
+            healthDelta: vitalityPayload.healthDelta,
+            powerDelta: vitalityPayload.powerDelta,
+            moveDelta: vitalityPayload.moveDelta,
+            passTurn: vitalityPayload.passTurn,
+            reason,
+            vitalityTarget: vitalityPayload.vitalityTarget,
+            vitalityPlayerIds: vitalityPayload.vitalityPlayerIds,
+            autoMoveApplied: willAutoMoveMarkerEffect(game, settings, vitalityPayload.moveDelta),
           }),
-        ],
-      );
+        });
+      }
+
+      lastEvent = await insertGameEvent(tx, {
+        gameId,
+        teamId,
+        actorType,
+        actorId,
+        eventType: 'marker_arrival',
+        payload: {
+          markerId,
+          markerLabel: marker.label,
+          eventType: marker.event_type,
+          effectSummary: arrival.effectSummary,
+        },
+      });
 
       autoMove = await maybeApplyMarkerEffectAutoMove(tx, {
         gameId,
@@ -430,6 +411,7 @@ router.post('/games/:id/markers/:markerId/present-arrival', requireGlAuth, async
         actorId,
         originMarkerId: markerId,
       });
+      if (autoMove?.moveEvent) lastEvent = autoMove.moveEvent;
     });
   } catch (err) {
     const mapped = resolveVitalityError(err);
@@ -437,12 +419,9 @@ router.post('/games/:id/markers/:markerId/present-arrival', requireGlAuth, async
     throw err;
   }
 
-  const evt = await queryOne(
-    `SELECT id, game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at
-       FROM gl_game_events WHERE game_id = ? ORDER BY id DESC LIMIT 1`,
-    [gameId],
-  );
-  if (evt) emitGlGameEvent(gameId, normalizeEventRow(evt));
+  // Dernier événement inséré par CETTE requête (insertId), plus de re-SELECT
+  // « dernier de la partie », sensible à la concurrence.
+  if (lastEvent) emitGlGameEvent(gameId, lastEvent);
 
   return res.json({
     ...arrival,
@@ -517,6 +496,7 @@ router.post(
     }
 
     let vitalityPayload = null;
+    let lastEvent = null;
     let autoMove = null;
     try {
       await withTransaction(async (tx) => {
@@ -559,33 +539,25 @@ router.post(
           });
         }
 
-        await tx.execute(
-          `INSERT INTO gl_game_events (game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at)
-           VALUES (?, ?, 'mj', ?, 'marker_effect', ?, NOW())`,
-          [
-            gameId,
-            teamId,
-            actorId,
-            JSON.stringify(
-              buildMarkerEffectEventPayload({
-                marker,
-                resolved: vitalityPayload.resolvedEffect,
-                healthDelta: vitalityPayload.healthDelta,
-                powerDelta: vitalityPayload.powerDelta,
-                moveDelta: vitalityPayload.moveDelta,
-                passTurn: vitalityPayload.passTurn,
-                reason,
-                vitalityTarget: vitalityPayload.vitalityTarget,
-                vitalityPlayerIds: vitalityPayload.vitalityPlayerIds,
-                autoMoveApplied: willAutoMoveMarkerEffect(
-                  game,
-                  settings,
-                  vitalityPayload.moveDelta,
-                ),
-              }),
-            ),
-          ],
-        );
+        lastEvent = await insertGameEvent(tx, {
+          gameId,
+          teamId,
+          actorType: 'mj',
+          actorId,
+          eventType: 'marker_effect',
+          payload: buildMarkerEffectEventPayload({
+            marker,
+            resolved: vitalityPayload.resolvedEffect,
+            healthDelta: vitalityPayload.healthDelta,
+            powerDelta: vitalityPayload.powerDelta,
+            moveDelta: vitalityPayload.moveDelta,
+            passTurn: vitalityPayload.passTurn,
+            reason,
+            vitalityTarget: vitalityPayload.vitalityTarget,
+            vitalityPlayerIds: vitalityPayload.vitalityPlayerIds,
+            autoMoveApplied: willAutoMoveMarkerEffect(game, settings, vitalityPayload.moveDelta),
+          }),
+        });
 
         autoMove = await maybeApplyMarkerEffectAutoMove(tx, {
           gameId,
@@ -599,6 +571,7 @@ router.post(
           actorId,
           originMarkerId: markerId,
         });
+        if (autoMove?.moveEvent) lastEvent = autoMove.moveEvent;
       });
     } catch (err) {
       if (err?.message === 'NO_MARKER_EFFECT') {
@@ -614,12 +587,7 @@ router.post(
       throw err;
     }
 
-    const evt = await queryOne(
-      `SELECT id, game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at
-       FROM gl_game_events WHERE game_id = ? ORDER BY id DESC LIMIT 1`,
-      [gameId],
-    );
-    if (evt) emitGlGameEvent(gameId, normalizeEventRow(evt));
+    if (lastEvent) emitGlGameEvent(gameId, lastEvent);
 
     return res.json({
       ok: true,

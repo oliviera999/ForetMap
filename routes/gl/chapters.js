@@ -55,10 +55,188 @@ const {
   attachChapterBiomes,
   attachChapterSpells,
 } = require('../../lib/gl/chaptersRouteHelpers');
+const { buildDynamicUpdate } = require('../../lib/gl/buildDynamicUpdate');
 const { z, validate } = require('../../lib/validate');
 const asyncHandler = require('../../lib/asyncHandler');
 
 const router = express.Router();
+
+// O-audit §4 — PUT /admin/:id : champs éditables déclaratifs (buildDynamicUpdate).
+// Sémantique « présent mais null » préservée champ par champ (mêmes messages, même ordre) :
+// - title : null/'' → 400 « Titre requis » ;
+// - biome / mapImageUrl / souffleFace : null → NULL en base ;
+// - *Markdown : null → '' (String(raw || '')) ;
+// - orderIndex : null → 0 (toPositiveInt) ;
+// - mapImageFrame : null → 400 « mapImageFrame invalide » ;
+// - theme : null → theme_json NULL (validateChapterThemeInput accepte null) ;
+// - plateauNumber : null/'' → NULL, hors [1..5] → 400 ;
+// - mapMarkersVisible / mapZonesVisible : booléen ou null, sinon 400.
+const CHAPTER_UPDATE_FIELDS = [
+  {
+    key: 'title',
+    column: 'title',
+    parse: (raw) => {
+      const title = normalizeOptionalString(raw);
+      return title ? { value: title } : { error: 'Titre requis' };
+    },
+  },
+  { key: 'biome', column: 'biome', parse: (raw) => ({ value: normalizeOptionalString(raw) }) },
+  {
+    key: 'mapImageUrl',
+    column: 'map_image_url',
+    parse: (raw) => ({ value: normalizeOptionalString(raw) }),
+  },
+  {
+    key: 'storyMarkdown',
+    column: 'story_markdown',
+    parse: (raw) => ({ value: String(raw || '') }),
+  },
+  {
+    key: 'biotopeMarkdown',
+    column: 'biotope_markdown',
+    parse: (raw) => ({ value: String(raw || '') }),
+  },
+  {
+    key: 'biocenoseMarkdown',
+    column: 'biocenose_markdown',
+    parse: (raw) => ({ value: String(raw || '') }),
+  },
+  {
+    key: 'sortilegesMarkdown',
+    column: 'sortileges_markdown',
+    parse: (raw) => ({ value: String(raw || '') }),
+  },
+  {
+    key: 'orderIndex',
+    column: 'order_index',
+    parse: (raw) => ({ value: toPositiveInt(raw, 0) }),
+  },
+  {
+    key: 'mapImageFrame',
+    column: 'map_image_frame_json',
+    parse: (raw) => {
+      const mapImageFrame = normalizeMapImageFrame(raw);
+      if (!mapImageFrame) return { error: 'mapImageFrame invalide' };
+      return { value: JSON.stringify(mapImageFrame) };
+    },
+  },
+  {
+    key: 'theme',
+    column: 'theme_json',
+    parse: (raw) => {
+      const { theme, error: themeError } = validateChapterThemeInput(raw);
+      if (themeError) return { error: themeError };
+      return { value: serializeChapterTheme(theme) };
+    },
+  },
+  {
+    key: 'souffleFace',
+    column: 'souffle_face',
+    parse: (raw) => ({ value: normalizeOptionalString(raw) }),
+  },
+  {
+    key: 'plateauNumber',
+    column: 'plateau_number',
+    parse: (raw) => {
+      const plateauNumber = parsePlateauNumber(raw);
+      if (raw != null && raw !== '' && plateauNumber == null) {
+        return { error: 'plateauNumber doit être entre 1 et 5' };
+      }
+      return { value: plateauNumber };
+    },
+  },
+  {
+    key: 'mapMarkersVisible',
+    column: 'map_markers_visible',
+    parse: (raw) => {
+      const mapMarkersVisible = parseChapterMapVisibilityField(raw);
+      if (mapMarkersVisible === undefined) {
+        return { error: 'mapMarkersVisible doit être booléen ou null' };
+      }
+      return { value: mapMarkersVisible };
+    },
+  },
+  {
+    key: 'mapZonesVisible',
+    column: 'map_zones_visible',
+    parse: (raw) => {
+      const mapZonesVisible = parseChapterMapVisibilityField(raw);
+      if (mapZonesVisible === undefined) {
+        return { error: 'mapZonesVisible doit être booléen ou null' };
+      }
+      return { value: mapZonesVisible };
+    },
+  },
+];
+
+// O-audit §4 — PUT /admin/markers/:markerId : champs simples déclaratifs. Sémantique
+// préservée : label/xPct/yPct invalides → 400 ; description/effetMecanique « présent mais
+// null » → NULL ; sousBiomeSlug non vide validé contre le référentiel biomes (async).
+// Les blocs groupés (appearance, event_config + legacy QCM) restent dans la route.
+const MARKER_UPDATE_FIELDS = [
+  {
+    key: 'label',
+    column: 'label',
+    parse: (raw) => {
+      const label = normalizeOptionalString(raw);
+      return label ? { value: label } : { error: 'Label requis' };
+    },
+  },
+  {
+    key: 'xPct',
+    column: 'x_pct',
+    parse: (raw) => {
+      const v = clampPercent(raw);
+      return v == null ? { error: 'xPct invalide' } : { value: v };
+    },
+  },
+  {
+    key: 'yPct',
+    column: 'y_pct',
+    parse: (raw) => {
+      const v = clampPercent(raw);
+      return v == null ? { error: 'yPct invalide' } : { value: v };
+    },
+  },
+  {
+    key: 'eventType',
+    column: 'event_type',
+    parse: (raw) => {
+      const nextType = normalizeEventTypeAlias(raw) || normalizeOptionalString(raw);
+      if (nextType && !MARKER_EVENT_TYPES.has(nextType)) {
+        return { error: `eventType invalide : ${nextType}` };
+      }
+      return { value: nextType };
+    },
+  },
+  {
+    key: 'description',
+    column: 'description',
+    parse: (raw) => ({ value: raw == null ? null : String(raw) }),
+  },
+  {
+    key: 'sousBiomeSlug',
+    column: 'sous_biome_slug',
+    parse: async (raw) => {
+      const sousBiomeSlug = normalizeOptionalString(raw);
+      if (sousBiomeSlug) {
+        const biomeError = await validateBiomeSlugsExist({ queryAll }, [sousBiomeSlug]);
+        if (biomeError) return { error: biomeError };
+      }
+      return { value: sousBiomeSlug };
+    },
+  },
+  {
+    key: 'effetMecanique',
+    column: 'effet_mecanique',
+    parse: (raw) => ({ value: raw == null ? null : String(raw) }),
+  },
+  {
+    key: 'orderIndex',
+    column: 'order_index',
+    parse: (raw) => ({ value: toPositiveInt(raw, 0) }),
+  },
+];
 
 // O7 — validation déclarative des entrées (zod via lib/validate). Les schémas restent aussi
 // permissifs que la validation manuelle qu'ils précèdent : les handlers conservent leur propre
@@ -279,86 +457,8 @@ router.put(
       const spellError = await validateSpellCodesExist({ queryAll }, spellCodes);
       if (spellError) return res.status(400).json({ error: spellError });
     }
-    const updates = [];
-    const params = [];
-    if (req.body && Object.prototype.hasOwnProperty.call(req.body, 'title')) {
-      const title = normalizeOptionalString(req.body.title);
-      if (!title) return res.status(400).json({ error: 'Titre requis' });
-      updates.push('title = ?');
-      params.push(title);
-    }
-    if (req.body && Object.prototype.hasOwnProperty.call(req.body, 'biome')) {
-      updates.push('biome = ?');
-      params.push(normalizeOptionalString(req.body.biome));
-    }
-    if (req.body && Object.prototype.hasOwnProperty.call(req.body, 'mapImageUrl')) {
-      updates.push('map_image_url = ?');
-      params.push(normalizeOptionalString(req.body.mapImageUrl));
-    }
-    if (req.body && Object.prototype.hasOwnProperty.call(req.body, 'storyMarkdown')) {
-      updates.push('story_markdown = ?');
-      params.push(String(req.body.storyMarkdown || ''));
-    }
-    if (req.body && Object.prototype.hasOwnProperty.call(req.body, 'biotopeMarkdown')) {
-      updates.push('biotope_markdown = ?');
-      params.push(String(req.body.biotopeMarkdown || ''));
-    }
-    if (req.body && Object.prototype.hasOwnProperty.call(req.body, 'biocenoseMarkdown')) {
-      updates.push('biocenose_markdown = ?');
-      params.push(String(req.body.biocenoseMarkdown || ''));
-    }
-    if (req.body && Object.prototype.hasOwnProperty.call(req.body, 'sortilegesMarkdown')) {
-      updates.push('sortileges_markdown = ?');
-      params.push(String(req.body.sortilegesMarkdown || ''));
-    }
-    if (req.body && Object.prototype.hasOwnProperty.call(req.body, 'orderIndex')) {
-      updates.push('order_index = ?');
-      params.push(toPositiveInt(req.body.orderIndex, 0));
-    }
-    if (req.body && Object.prototype.hasOwnProperty.call(req.body, 'mapImageFrame')) {
-      const mapImageFrame = normalizeMapImageFrame(req.body.mapImageFrame);
-      if (!mapImageFrame) return res.status(400).json({ error: 'mapImageFrame invalide' });
-      updates.push('map_image_frame_json = ?');
-      params.push(JSON.stringify(mapImageFrame));
-    }
-    if (req.body && Object.prototype.hasOwnProperty.call(req.body, 'theme')) {
-      const { theme, error: themeError } = validateChapterThemeInput(req.body.theme);
-      if (themeError) return res.status(400).json({ error: themeError });
-      updates.push('theme_json = ?');
-      params.push(serializeChapterTheme(theme));
-    }
-    if (req.body && Object.prototype.hasOwnProperty.call(req.body, 'souffleFace')) {
-      updates.push('souffle_face = ?');
-      params.push(normalizeOptionalString(req.body.souffleFace));
-    }
-    if (req.body && Object.prototype.hasOwnProperty.call(req.body, 'plateauNumber')) {
-      const plateauNumber = parsePlateauNumber(req.body.plateauNumber);
-      if (
-        req.body.plateauNumber != null &&
-        req.body.plateauNumber !== '' &&
-        plateauNumber == null
-      ) {
-        return res.status(400).json({ error: 'plateauNumber doit être entre 1 et 5' });
-      }
-      updates.push('plateau_number = ?');
-      params.push(plateauNumber);
-    }
-    if (req.body && Object.prototype.hasOwnProperty.call(req.body, 'mapMarkersVisible')) {
-      const mapMarkersVisible = parseChapterMapVisibilityField(req.body.mapMarkersVisible);
-      if (mapMarkersVisible === undefined) {
-        return res.status(400).json({ error: 'mapMarkersVisible doit être booléen ou null' });
-      }
-      updates.push('map_markers_visible = ?');
-      params.push(mapMarkersVisible);
-    }
-    if (req.body && Object.prototype.hasOwnProperty.call(req.body, 'mapZonesVisible')) {
-      const mapZonesVisible = parseChapterMapVisibilityField(req.body.mapZonesVisible);
-      if (mapZonesVisible === undefined) {
-        return res.status(400).json({ error: 'mapZonesVisible doit être booléen ou null' });
-      }
-      updates.push('map_zones_visible = ?');
-      params.push(mapZonesVisible);
-    }
+    const { updates, params, error } = await buildDynamicUpdate(req.body, CHAPTER_UPDATE_FIELDS);
+    if (error) return res.status(400).json({ error });
     if (updates.length === 0 && biomeSlugs == null && spellCodes == null) {
       return res.status(400).json({ error: 'Aucun champ à mettre à jour' });
     }
@@ -562,56 +662,8 @@ router.put(
     );
     if (!existing) return res.status(404).json({ error: 'Marker introuvable' });
 
-    const updates = [];
-    const params = [];
-    if (Object.prototype.hasOwnProperty.call(req.body || {}, 'label')) {
-      const label = normalizeOptionalString(req.body.label);
-      if (!label) return res.status(400).json({ error: 'Label requis' });
-      updates.push('label = ?');
-      params.push(label);
-    }
-    if (Object.prototype.hasOwnProperty.call(req.body || {}, 'xPct')) {
-      const v = clampPercent(req.body.xPct);
-      if (v == null) return res.status(400).json({ error: 'xPct invalide' });
-      updates.push('x_pct = ?');
-      params.push(v);
-    }
-    if (Object.prototype.hasOwnProperty.call(req.body || {}, 'yPct')) {
-      const v = clampPercent(req.body.yPct);
-      if (v == null) return res.status(400).json({ error: 'yPct invalide' });
-      updates.push('y_pct = ?');
-      params.push(v);
-    }
-    if (Object.prototype.hasOwnProperty.call(req.body || {}, 'eventType')) {
-      const nextType =
-        normalizeEventTypeAlias(req.body.eventType) || normalizeOptionalString(req.body.eventType);
-      if (nextType && !MARKER_EVENT_TYPES.has(nextType)) {
-        return res.status(400).json({ error: `eventType invalide : ${nextType}` });
-      }
-      updates.push('event_type = ?');
-      params.push(nextType);
-    }
-    if (Object.prototype.hasOwnProperty.call(req.body || {}, 'description')) {
-      updates.push('description = ?');
-      params.push(req.body.description == null ? null : String(req.body.description));
-    }
-    if (Object.prototype.hasOwnProperty.call(req.body || {}, 'sousBiomeSlug')) {
-      const sousBiomeSlug = normalizeOptionalString(req.body.sousBiomeSlug);
-      if (sousBiomeSlug) {
-        const biomeError = await validateBiomeSlugsExist({ queryAll }, [sousBiomeSlug]);
-        if (biomeError) return res.status(400).json({ error: biomeError });
-      }
-      updates.push('sous_biome_slug = ?');
-      params.push(sousBiomeSlug);
-    }
-    if (Object.prototype.hasOwnProperty.call(req.body || {}, 'effetMecanique')) {
-      updates.push('effet_mecanique = ?');
-      params.push(req.body.effetMecanique == null ? null : String(req.body.effetMecanique));
-    }
-    if (Object.prototype.hasOwnProperty.call(req.body || {}, 'orderIndex')) {
-      updates.push('order_index = ?');
-      params.push(toPositiveInt(req.body.orderIndex, 0));
-    }
+    const { updates, params, error } = await buildDynamicUpdate(req.body, MARKER_UPDATE_FIELDS);
+    if (error) return res.status(400).json({ error });
 
     const appearanceKeys = ['displayMode', 'display_mode', 'emoji', 'iconUrl', 'icon_url'];
     const hasAppearanceInput = appearanceKeys.some((key) =>
@@ -841,3 +893,6 @@ module.exports = router;
 // Exportés pour test no-DB du contrat O7 (équivalence avec le gate Number()/Number.isFinite).
 module.exports.idParamSchema = idParamSchema;
 module.exports.markerIdParamSchema = markerIdParamSchema;
+// Exportées pour tests de contrat §4 (sémantique champ par champ des PUT).
+module.exports.CHAPTER_UPDATE_FIELDS = CHAPTER_UPDATE_FIELDS;
+module.exports.MARKER_UPDATE_FIELDS = MARKER_UPDATE_FIELDS;

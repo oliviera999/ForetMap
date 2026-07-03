@@ -20,6 +20,13 @@ describe('ZoneTutorialsTeacherPanel', () => {
   test('état vide → message « Aucun tutoriel lié »', () => {
     render(<ZoneTutorialsTeacherPanel {...baseProps} />);
     expect(screen.getByText('Aucun tutoriel lié à cette zone.')).toBeTruthy();
+    expect(screen.getByText('Lier un tutoriel à cette zone')).toBeTruthy();
+  });
+
+  test('locationKind="marker" → libellés repère (état vide + label de liaison)', () => {
+    render(<ZoneTutorialsTeacherPanel {...baseProps} locationKind="marker" />);
+    expect(screen.getByText('Aucun tutoriel lié à ce repère.')).toBeTruthy();
+    expect(screen.getByText('Lier un tutoriel à ce repère')).toBeTruthy();
   });
 
   test('liste les tutoriels directs et « Délier » appelle onUnlinkTutorial', () => {

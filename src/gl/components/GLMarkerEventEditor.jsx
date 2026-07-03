@@ -1,9 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { apiGL } from '../services/apiGL.js';
-import {
-  normalizeQuestionPool,
-  normalizeLoreQuestionPool,
-} from '../../utils/glMarkerEventConfig.js';
+import { normalizeQuestionPool, normalizeLoreQuestionPool } from '../utils/glMarkerEventConfig.js';
 import {
   EVENT_TYPE_OPTIONS,
   TIER_LORE_OPTIONS,

@@ -1,16 +1,6 @@
 import { safeLocalStorageGetItem, safeLocalStorageRemoveItem } from '../utils/browserStorage.js';
-import {
-  API_FETCH_TIMEOUT_MS,
-  assertJsonApiBody,
-  buildApiHttpErrorMessage,
-  isGatewayStyleResponse,
-  parseApiBody,
-  resolveMaxAttempts,
-  shouldRetryAfterHttpError,
-  shouldRetryAfterNetworkError,
-  sleepMs,
-  transientRetryDelayMs,
-} from './apiTransport.js';
+import { buildApiHttpErrorMessage } from './apiTransport.js';
+import { fetchJsonWithRetry } from '../shared/fetchJsonWithRetry.js';
 
 /**
  * Préfixe de base de l'app (Vite `base`) sans slash final.
@@ -291,93 +281,54 @@ function networkFailureUserMessage() {
   );
 }
 
+/**
+ * Adaptateur ForetMap au-dessus de la boucle partagée `fetchJsonWithRetry`
+ * (`src/shared/fetchJsonWithRetry.js`) : injecte le jeton ForetMap, la
+ * déconnexion locale + l'événement `foretmap_teacher_expired` sur session
+ * expirée, et le format d'erreur ForetMap (requestId, rateLimited).
+ */
 export async function api(path, method = 'GET', body) {
-  const headers = {
-    'Content-Type': 'application/json',
-    Accept: 'application/json',
-  };
-  const authToken = getAuthToken();
-  if (authToken) headers.Authorization = 'Bearer ' + authToken;
-  const maxAttempts = resolveMaxAttempts(method, body);
-
-  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), API_FETCH_TIMEOUT_MS);
-    let res;
-    let sawGatewayResponse = false;
-    try {
-      res = await fetch(withAppBase(path), {
-        method,
-        headers,
-        // Ne pas utiliser `body ? …` : `0` ou `false` seraient omis à tort ; `{}` reste un corps JSON valide.
-        body: body !== undefined && body !== null ? JSON.stringify(body) : undefined,
-        signal: controller.signal,
-      });
-    } catch (err) {
-      clearTimeout(timeoutId);
-      const isAbort = err && err.name === 'AbortError';
-      if (isAbort) {
-        throw new Error('Délai d’attente dépassé pour la requête réseau.');
-      }
-      if (
-        shouldRetryAfterNetworkError(method, body, attempt, maxAttempts) &&
-        err instanceof TypeError
-      ) {
-        await sleepMs(transientRetryDelayMs(attempt));
-        continue;
-      }
-      if (isLikelyNetworkTransportFailure(err)) {
-        throw new Error(networkFailureUserMessage());
-      }
-      throw err;
-    } finally {
-      clearTimeout(timeoutId);
-    }
-
-    if (res.ok) {
-      const okBody = await parseApiBody(res);
-      assertJsonApiBody(okBody, { ok: true });
-      return okBody;
-    }
-
-    const errBody = (await parseApiBody(res)) || {};
-    if (isGatewayStyleResponse(res, errBody)) {
-      sawGatewayResponse = true;
-    }
-
-    if (shouldRetryAfterHttpError(method, body, res, errBody, attempt, maxAttempts)) {
-      await sleepMs(transientRetryDelayMs(attempt));
-      continue;
-    }
-
-    if (res.status === 401 && errBody.deleted) throw new AccountDeletedError();
-    if (res.status === 401 && authToken) {
-      const errText = String(errBody.error || '').toLowerCase();
-      const sessionExpired =
-        errText.includes('token invalide') ||
-        errText.includes('expiré') ||
-        errText.includes('expired') ||
-        errBody.code === 'jwt_expired';
-      if (sessionExpired) {
-        clearStoredSession();
-        window.dispatchEvent(new CustomEvent('foretmap_teacher_expired'));
-      }
-    }
-    const { errMsg, reqId } = buildApiHttpErrorMessage({
-      res,
-      errBody,
-      authToken,
-      sawGatewayResponse,
-    });
-    const ex = new Error(errMsg);
-    ex.status = res.status;
-    ex.body = errBody;
-    if (reqId) ex.requestId = reqId;
-    if (res.status === 429) ex.rateLimited = true;
-    throw ex;
-  }
-
-  throw new Error('Erreur serveur');
+  return fetchJsonWithRetry(
+    path,
+    { method, body },
+    {
+      resolveUrl: withAppBase,
+      getToken: getAuthToken,
+      onNetworkError: (err) =>
+        isLikelyNetworkTransportFailure(err) ? new Error(networkFailureUserMessage()) : null,
+      onUnauthorized: ({ errBody, token }) => {
+        if (errBody.deleted) throw new AccountDeletedError();
+        if (!token) return;
+        const errText = String(errBody.error || '').toLowerCase();
+        const sessionExpired =
+          errText.includes('token invalide') ||
+          errText.includes('expiré') ||
+          errText.includes('expired') ||
+          // DÉRIVE historique (préservée) : ForetMap reconnaît aussi le code
+          // structuré `jwt_expired`, contrairement à apiGL() qui ne se fie
+          // qu'au texte du message. Ne pas aligner sans lot dédié.
+          errBody.code === 'jwt_expired';
+        if (sessionExpired) {
+          clearStoredSession();
+          window.dispatchEvent(new CustomEvent('foretmap_teacher_expired'));
+        }
+      },
+      buildHttpError: ({ res, errBody, token, sawGatewayResponse }) => {
+        const { errMsg, reqId } = buildApiHttpErrorMessage({
+          res,
+          errBody,
+          authToken: token,
+          sawGatewayResponse,
+        });
+        const ex = new Error(errMsg);
+        ex.status = res.status;
+        ex.body = errBody;
+        if (reqId) ex.requestId = reqId;
+        if (res.status === 429) ex.rateLimited = true;
+        return ex;
+      },
+    },
+  );
 }
 
 export async function listContextComments({ contextType, contextId, page = 1, pageSize = 10 }) {

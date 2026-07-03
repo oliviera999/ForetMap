@@ -4,62 +4,45 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { UserEditModal } from '../../../src/components/profiles/UserEditModal.jsx';
 
 function renderModal(overrides = {}) {
-  const setters = {
-    setEditFirstName: vi.fn(),
-    setEditLastName: vi.fn(),
-    setEditPseudo: vi.fn(),
-    setEditEmail: vi.fn(),
-    setEditDescription: vi.fn(),
-    setEditAffiliation: vi.fn(),
-    setEditPassword: vi.fn(),
-  };
   const handlers = {
-    closeEditUser: vi.fn(),
-    saveEditUser: vi.fn(),
-    startImpersonation: vi.fn(),
+    onClose: vi.fn(),
+    onSave: vi.fn(),
+    onImpersonate: vi.fn(),
   };
   const props = {
-    editModalOpen: true,
-    editUserLoadState: 'ready',
-    editingUser: { id: '7', user_type: 'student', display_name: 'Léa Martin' },
+    user: {
+      id: '7',
+      user_type: 'student',
+      display_name: 'Léa Martin',
+      first_name: 'Léa',
+      last_name: 'Martin',
+    },
+    loadState: 'ready',
     err: '',
-    editFirstName: 'Léa',
-    editLastName: 'Martin',
-    editPseudo: '',
-    editEmail: '',
-    editDescription: '',
-    editAffiliation: 'both',
-    editPassword: '',
-    editLoading: false,
-    impersonateLoading: false,
-    affiliationOptionsForEdit: [
+    affiliationOptions: [
       { value: 'both', label: 'Tous les espaces' },
       { value: 'n3', label: 'N3 uniquement' },
     ],
     authPerms: [],
-    ...setters,
+    saving: false,
+    impersonateLoading: false,
     ...handlers,
     ...overrides,
   };
   render(<UserEditModal {...props} />);
-  return { ...setters, ...handlers };
+  return { ...handlers, ...props };
 }
 
 describe('UserEditModal', () => {
-  test('ne rend rien quand editModalOpen est faux', () => {
-    renderModal({ editModalOpen: false });
-    expect(screen.queryByText('Modifier le compte')).toBeNull();
-  });
-
   test('état loading : message de chargement + bouton Annuler, pas de formulaire', () => {
-    renderModal({ editUserLoadState: 'loading', editingUser: null });
+    renderModal({ loadState: 'loading', user: null });
     expect(screen.getByText('Modifier le compte')).toBeTruthy();
     expect(screen.getByText('Chargement des données du compte…')).toBeTruthy();
     expect(screen.queryByLabelText('Prénom (obligatoire)')).toBeNull();
     expect(screen.getByRole('button', { name: 'Annuler' })).toBeTruthy();
   });
 
-  test('état ready : champs préremplis (prénom/nom) et bouton Enregistrer', () => {
+  test('état ready : champs préremplis depuis `user` (prénom/nom) et bouton Enregistrer', () => {
     renderModal();
     expect(screen.getByText('Léa Martin')).toBeTruthy();
     expect(screen.getByLabelText('Prénom (obligatoire)').value).toBe('Léa');
@@ -73,34 +56,62 @@ describe('UserEditModal', () => {
   });
 
   test('affiliation masquée pour un compte teacher', () => {
-    renderModal({ editingUser: { id: '9', user_type: 'teacher', display_name: 'Sam Prof' } });
+    renderModal({ user: { id: '9', user_type: 'teacher', display_name: 'Sam Prof' } });
     expect(screen.queryByLabelText('Affiliation')).toBeNull();
   });
 
-  test('soumettre le formulaire appelle saveEditUser', () => {
-    const { saveEditUser } = renderModal();
+  test('affiliation inconnue en base : option « (valeur en base) » ajoutée', () => {
+    renderModal({
+      user: {
+        id: '7',
+        user_type: 'student',
+        display_name: 'Léa Martin',
+        first_name: 'Léa',
+        last_name: 'Martin',
+        affiliation: 'ancienne',
+      },
+    });
+    expect(screen.getByRole('option', { name: 'ancienne (valeur en base)' })).toBeTruthy();
+  });
+
+  test('soumettre le formulaire appelle onSave avec les champs saisis (mot de passe compris)', () => {
+    const { onSave } = renderModal();
+    fireEvent.change(screen.getByLabelText('Pseudo'), { target: { value: 'lea.m' } });
+    fireEvent.change(
+      screen.getByLabelText('Nouveau mot de passe (laisser vide pour ne pas changer)'),
+      { target: { value: 'nouveau-pass' } },
+    );
     fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
-    expect(saveEditUser).toHaveBeenCalledTimes(1);
+    expect(onSave).toHaveBeenCalledTimes(1);
+    expect(onSave).toHaveBeenCalledWith({
+      firstName: 'Léa',
+      lastName: 'Martin',
+      pseudo: 'lea.m',
+      email: '',
+      description: '',
+      affiliation: 'both',
+      password: 'nouveau-pass',
+    });
   });
 
-  test('le bouton Annuler appelle closeEditUser', () => {
-    const { closeEditUser } = renderModal();
+  test('le bouton Annuler appelle onClose', () => {
+    const { onClose } = renderModal();
     fireEvent.click(screen.getByRole('button', { name: 'Annuler' }));
-    expect(closeEditUser).toHaveBeenCalledTimes(1);
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  test('saisir le prénom appelle setEditFirstName', () => {
-    const { setEditFirstName } = renderModal();
+  test('la saisie du prénom met à jour le champ (état interne)', () => {
+    renderModal();
     fireEvent.change(screen.getByLabelText('Prénom (obligatoire)'), { target: { value: 'Léo' } });
-    expect(setEditFirstName).toHaveBeenCalledWith('Léo');
+    expect(screen.getByLabelText('Prénom (obligatoire)').value).toBe('Léo');
   });
 
   test('bouton impersonation visible si la permission admin.impersonate est présente', () => {
-    const { startImpersonation } = renderModal({ authPerms: ['admin.impersonate'] });
+    const { onImpersonate } = renderModal({ authPerms: ['admin.impersonate'] });
     const btn = screen.getByRole('button', { name: 'Voir comme cet utilisateur' });
     expect(btn).toBeTruthy();
     fireEvent.click(btn);
-    expect(startImpersonation).toHaveBeenCalledTimes(1);
+    expect(onImpersonate).toHaveBeenCalledTimes(1);
   });
 
   test('bouton impersonation absent sans la permission', () => {
@@ -109,7 +120,7 @@ describe('UserEditModal', () => {
   });
 
   test('en cours d’enregistrement : boutons désactivés et libellé adapté', () => {
-    renderModal({ editLoading: true });
+    renderModal({ saving: true });
     expect(screen.getByRole('button', { name: 'Enregistrement…' }).disabled).toBe(true);
     expect(screen.getByRole('button', { name: 'Annuler' }).disabled).toBe(true);
   });

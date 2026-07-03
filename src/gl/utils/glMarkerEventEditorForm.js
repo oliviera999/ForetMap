@@ -12,7 +12,7 @@ import {
   normalizeEventConfig,
   normalizeQuestionPool,
   normalizeLoreQuestionPool,
-} from '../../utils/glMarkerEventConfig.js';
+} from './glMarkerEventConfig.js';
 
 /** Types d'événement proposés dans le sélecteur. */
 export const EVENT_TYPE_OPTIONS = [

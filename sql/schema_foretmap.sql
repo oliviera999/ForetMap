@@ -57,6 +57,7 @@ CREATE TABLE IF NOT EXISTS zone_history (
   plant VARCHAR(255) NOT NULL,
   harvested_at VARCHAR(32) NOT NULL,
   INDEX idx_zone_history_zone_id (zone_id),
+  INDEX idx_zone_history_zone_harvested (zone_id, harvested_at),
   CONSTRAINT fk_zone_history_zone FOREIGN KEY (zone_id) REFERENCES zones(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -334,6 +335,7 @@ CREATE TABLE IF NOT EXISTS task_assignments (
   assigned_at VARCHAR(32) DEFAULT NULL,
   INDEX idx_task_assignments_task_id (task_id),
   INDEX idx_task_assignments_student_id (student_id),
+  INDEX idx_task_assignments_student_name (student_first_name, student_last_name),
   CONSTRAINT fk_task_assignments_task FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -592,6 +594,7 @@ CREATE TABLE IF NOT EXISTS observation_logs (
   image_path VARCHAR(512) DEFAULT NULL,
   created_at VARCHAR(32) DEFAULT NULL,
   INDEX idx_observation_logs_student (student_id),
+  INDEX idx_observation_logs_created (created_at),
   INDEX idx_observation_logs_group (group_id),
   CONSTRAINT fk_observation_logs_student FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE,
   CONSTRAINT fk_observation_logs_zone FOREIGN KEY (zone_id) REFERENCES zones(id) ON DELETE SET NULL
@@ -663,6 +666,7 @@ CREATE TABLE IF NOT EXISTS task_logs (
   created_at VARCHAR(32) DEFAULT NULL,
   INDEX idx_task_logs_task_id (task_id),
   INDEX idx_task_logs_student_id (student_id),
+  INDEX idx_task_logs_student_name (student_first_name, student_last_name),
   CONSTRAINT fk_task_logs_student FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE SET NULL,
   CONSTRAINT fk_task_logs_task FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { normalizeMarkerEffects } from '../../utils/glMarkerEventConfig.js';
+import { normalizeMarkerEffects } from '../utils/glMarkerEventConfig.js';
 
 const EMPTY_BRANCH = {
   label: '',

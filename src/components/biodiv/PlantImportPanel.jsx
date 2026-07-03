@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { api } from '../../services/api';
 import { fileToDataUrl } from '../../utils/fileToDataUrl.js';
+import { ImportPanel } from '../../shared/components/ImportPanel.jsx';
 
 const PLANTS_IMPORT_TEMPLATE_HEADERS = [
   'name',
@@ -61,11 +62,13 @@ function downloadCsvTemplate(headers, filename) {
 }
 
 /**
- * Panneau repliable « Import biodiversité (CSV, Excel, Google Sheet) » de `PlantManager` —
- * extrait de `foretmap-views.jsx` (O6). État (source, stratégie, fichier/URL, confirmation
- * de remplacement, rapport) et handlers (templates à télécharger, analyse/import via
- * `POST /api/plants/import`) entièrement autonomes — seuls `setToast` et `onRefresh`
- * viennent du parent.
+ * Panneau repliable « Import biodiversité (CSV, Excel, Google Sheet) » de `PlantManager`.
+ *
+ * Adaptateur du composant générique `ImportPanel` (audit 2026-07, P1), via son slot
+ * `body` : le flux biodiversité est atypique (source fichier ou Google Sheet, stratégie,
+ * confirmation de remplacement, analyse/prévisualisation au lieu de la case simulation,
+ * rapport dédié) ; seuls le conteneur repliable et l'état commun (`file`, `importing`,
+ * `report`) viennent du générique. Seuls `setToast` et `onRefresh` viennent du parent.
  *
  * @param {object} props
  * @param {(msg: string) => void} props.setToast notification utilisateur
@@ -74,56 +77,52 @@ function downloadCsvTemplate(headers, filename) {
 export function PlantImportPanel({ setToast, onRefresh }) {
   const [importSource, setImportSource] = useState('file');
   const [importStrategy, setImportStrategy] = useState('upsert_name');
-  const [importFile, setImportFile] = useState(null);
   const [gsheetUrl, setGsheetUrl] = useState('');
-  const [importing, setImporting] = useState(false);
   const [confirmReplaceAll, setConfirmReplaceAll] = useState(false);
-  const [importReport, setImportReport] = useState(null);
 
-  const runImport = async ({ dryRun }) => {
-    if (importSource === 'file' && !importFile) {
-      setToast('Choisis un fichier CSV/XLSX.');
-      return;
-    }
-    if (importSource === 'gsheet' && !gsheetUrl.trim()) {
-      setToast('Saisis une URL Google Sheet.');
-      return;
-    }
-    if (!dryRun && importStrategy === 'replace_all' && !confirmReplaceAll) {
-      setToast('Confirme le remplacement complet avant import.');
-      return;
-    }
-
-    setImporting(true);
-    try {
-      const payload = {
-        sourceType: importSource,
-        strategy: importStrategy,
-        dryRun,
-      };
-      if (importSource === 'file') {
-        payload.fileName = importFile.name;
-        payload.fileDataBase64 = await fileToDataUrl(importFile);
-      } else {
-        payload.gsheetUrl = gsheetUrl.trim();
+  const renderBody = ({ file, setFile, importing, setImporting, report, setReport }) => {
+    const runImport = async ({ dryRun }) => {
+      if (importSource === 'file' && !file) {
+        setToast('Choisis un fichier CSV/XLSX.');
+        return;
       }
-      const data = await api('/api/plants/import', 'POST', payload);
-      setImportReport(data?.report || null);
-      if (!dryRun) {
-        await onRefresh();
-        setToast('Import biodiversité terminé ✓');
+      if (importSource === 'gsheet' && !gsheetUrl.trim()) {
+        setToast('Saisis une URL Google Sheet.');
+        return;
       }
-    } catch (e) {
-      setToast('Erreur import : ' + e.message);
-    } finally {
-      setImporting(false);
-    }
-  };
+      if (!dryRun && importStrategy === 'replace_all' && !confirmReplaceAll) {
+        setToast('Confirme le remplacement complet avant import.');
+        return;
+      }
 
-  return (
-    <details className="plant-more" style={{ marginBottom: 10 }}>
-      <summary>Import biodiversité (CSV, Excel, Google Sheet)</summary>
-      <div style={{ display: 'grid', gap: 8, marginTop: 10 }}>
+      setImporting(true);
+      try {
+        const payload = {
+          sourceType: importSource,
+          strategy: importStrategy,
+          dryRun,
+        };
+        if (importSource === 'file') {
+          payload.fileName = file.name;
+          payload.fileDataBase64 = await fileToDataUrl(file);
+        } else {
+          payload.gsheetUrl = gsheetUrl.trim();
+        }
+        const data = await api('/api/plants/import', 'POST', payload);
+        setReport(data?.report || null);
+        if (!dryRun) {
+          await onRefresh();
+          setToast('Import biodiversité terminé ✓');
+        }
+      } catch (e) {
+        setToast('Erreur import : ' + e.message);
+      } finally {
+        setImporting(false);
+      }
+    };
+
+    return (
+      <>
         <div className="plant-form-grid">
           <div className="field">
             <label>Source</label>
@@ -156,9 +155,9 @@ export function PlantImportPanel({ setToast, onRefresh }) {
             <input
               type="file"
               accept=".csv,.xlsx,.xls"
-              onChange={(e) => setImportFile(e.target.files?.[0] || null)}
+              onChange={(e) => setFile(e.target.files?.[0] || null)}
             />
-            {importFile && <small style={{ color: '#666' }}>{importFile.name}</small>}
+            {file && <small style={{ color: '#666' }}>{file.name}</small>}
           </div>
         ) : (
           <div className="field">
@@ -231,7 +230,7 @@ export function PlantImportPanel({ setToast, onRefresh }) {
           </button>
         </div>
 
-        {importReport && (
+        {report && (
           <div
             style={{
               background: '#f8fafc',
@@ -244,19 +243,18 @@ export function PlantImportPanel({ setToast, onRefresh }) {
               Rapport d'import
             </div>
             <div style={{ fontSize: '.85rem', color: '#444', lineHeight: 1.6 }}>
-              Reçues: {importReport?.totals?.received ?? 0} · Valides:{' '}
-              {importReport?.totals?.valid ?? 0} · Créées: {importReport?.totals?.created ?? 0} ·
-              Mises à jour: {importReport?.totals?.updated ?? 0} · Ignorées (doublon):{' '}
-              {importReport?.totals?.skipped_existing ?? 0} · Ignorées (invalides):{' '}
-              {importReport?.totals?.skipped_invalid ?? 0}
+              Reçues: {report?.totals?.received ?? 0} · Valides: {report?.totals?.valid ?? 0} ·
+              Créées: {report?.totals?.created ?? 0} · Mises à jour: {report?.totals?.updated ?? 0}{' '}
+              · Ignorées (doublon): {report?.totals?.skipped_existing ?? 0} · Ignorées (invalides):{' '}
+              {report?.totals?.skipped_invalid ?? 0}
             </div>
-            {Array.isArray(importReport?.errors) && importReport.errors.length > 0 && (
+            {Array.isArray(report?.errors) && report.errors.length > 0 && (
               <div style={{ marginTop: 8 }}>
                 <div style={{ fontSize: '.8rem', fontWeight: 700, color: '#a94442' }}>
                   Erreurs (max 10 affichées)
                 </div>
                 <ul style={{ margin: '4px 0 0 16px', padding: 0 }}>
-                  {importReport.errors.slice(0, 10).map((err, idx) => (
+                  {report.errors.slice(0, 10).map((err, idx) => (
                     <li key={`import-err-${idx}`} style={{ fontSize: '.8rem', color: '#a94442' }}>
                       Ligne {err.row} · {err.field}: {err.error}
                     </li>
@@ -266,7 +264,15 @@ export function PlantImportPanel({ setToast, onRefresh }) {
             )}
           </div>
         )}
-      </div>
-    </details>
+      </>
+    );
+  };
+
+  return (
+    <ImportPanel
+      variant="details"
+      title="Import biodiversité (CSV, Excel, Google Sheet)"
+      body={renderBody}
+    />
   );
 }

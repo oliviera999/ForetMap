@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
-import { detectZoneMusicOnTeamMove } from '../../utils/glZoneAtPct.js';
+import { detectZoneMusicOnTeamMove } from '../utils/glZoneAtPct.js';
+import { useGLTeamPositionTracker } from './useGLZonePresence.js';
 
 function teamPositionPct(team) {
   return {
@@ -17,7 +18,7 @@ export function useGLZoneMusicArrival({
   enabled = false,
   onZoneMusicEnter,
 }) {
-  const prevPctByTeamRef = useRef(new Map());
+  const { trackTeamPosition, resetTracking } = useGLTeamPositionTracker();
   const onZoneMusicEnterRef = useRef(onZoneMusicEnter);
 
   useEffect(() => {
@@ -26,7 +27,7 @@ export function useGLZoneMusicArrival({
 
   useEffect(() => {
     if (!enabled) {
-      prevPctByTeamRef.current.clear();
+      resetTracking();
       return undefined;
     }
 
@@ -36,21 +37,15 @@ export function useGLZoneMusicArrival({
       if (!Number.isFinite(teamId)) continue;
 
       const nextPct = teamPositionPct(team);
-      const prevPct = prevPctByTeamRef.current.get(teamId);
-
-      if (!prevPctByTeamRef.current.has(teamId)) {
-        prevPctByTeamRef.current.set(teamId, nextPct);
-        continue;
-      }
+      const prevPct = trackTeamPosition(teamId, nextPct);
+      if (!prevPct) continue;
 
       const zone = detectZoneMusicOnTeamMove(prevPct, nextPct, kingdomZones);
-      prevPctByTeamRef.current.set(teamId, nextPct);
-
       if (zone) {
         onZoneMusicEnterRef.current?.(zone);
       }
     }
 
     return undefined;
-  }, [teams, kingdomZones, enabled]);
+  }, [teams, kingdomZones, enabled, trackTeamPosition, resetTracking]);
 }

@@ -4,7 +4,7 @@ const { test } = require('node:test');
 const assert = require('node:assert');
 
 test('findZoneTriggeredOnMove: entrée dans une zone', async () => {
-  const { findZoneTriggeredOnMove } = await import('../src/utils/glZoneContentDetect.js');
+  const { findZoneTriggeredOnMove } = await import('../src/gl/utils/glZoneContentDetect.js');
   const zones = [
     {
       id: 1,
@@ -23,7 +23,7 @@ test('findZoneTriggeredOnMove: entrée dans une zone', async () => {
 });
 
 test("findZoneTriggeredOnMove: traversée sans s'arrêter", async () => {
-  const { findZoneTriggeredOnMove } = await import('../src/utils/glZoneContentDetect.js');
+  const { findZoneTriggeredOnMove } = await import('../src/gl/utils/glZoneContentDetect.js');
   const zones = [
     {
       id: 2,
@@ -41,7 +41,7 @@ test("findZoneTriggeredOnMove: traversée sans s'arrêter", async () => {
 });
 
 test("findZoneTriggeredOnMove: pas de re-déclenchement à l'intérieur", async () => {
-  const { findZoneTriggeredOnMove } = await import('../src/utils/glZoneContentDetect.js');
+  const { findZoneTriggeredOnMove } = await import('../src/gl/utils/glZoneContentDetect.js');
   const zones = [
     {
       id: 3,

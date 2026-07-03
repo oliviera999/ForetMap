@@ -1,5 +1,5 @@
 const express = require('express');
-const { v4: uuidv4 } = require('uuid');
+const crypto = require('node:crypto');
 const { queryAll, queryOne, execute } = require('../database');
 const { requireAuth, requirePermission } = require('../middleware/requireTeacher');
 const { logRouteError } = require('../lib/routeLog');
@@ -289,8 +289,8 @@ router.post(
       return res.status(429).json({ error: 'Action trop rapide, réessaie dans quelques secondes' });
     }
 
-    const threadId = uuidv4();
-    const postId = uuidv4();
+    const threadId = crypto.randomUUID();
+    const postId = crypto.randomUUID();
     let pathsJson = null;
     if (imageList.length > 0) {
       const persisted = persistUserContentImages('forum-posts', postId, imageList);
@@ -491,7 +491,7 @@ router.post(
     if (!thread) return res.status(404).json({ error: 'Sujet introuvable' });
     if (Number(thread.is_locked)) return res.status(409).json({ error: 'Sujet verrouillé' });
 
-    const postId = uuidv4();
+    const postId = crypto.randomUUID();
     let pathsJson = null;
     if (imageList.length > 0) {
       const persisted = persistUserContentImages('forum-posts', postId, imageList);

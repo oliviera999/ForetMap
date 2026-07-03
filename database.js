@@ -1,6 +1,6 @@
 require('dotenv').config({ quiet: true });
 const mysql = require('mysql2/promise');
-const { v4: uuidv4 } = require('uuid');
+const crypto = require('node:crypto');
 const path = require('path');
 const fs = require('fs');
 const logger = require('./lib/logger');
@@ -392,6 +392,33 @@ async function initSchema() {
   }
 }
 
+// Doublons de numéros HISTORIQUES (021_add_new_tutorials_seed / 021_visit_public_flow,
+// 037_message_reactions / 037_visitor_role_default) : tolérés, mais tout NOUVEAU doublon
+// fait échouer le démarrage — le runner saute silencieusement le second fichier d'un
+// doublon sur une base migrée sans snapshot (schema_version déjà posé au même numéro).
+const LEGACY_DUPLICATE_MIGRATION_NUMBERS = new Set([21, 37]);
+
+/**
+ * Détecte les numéros de migration partagés par plusieurs fichiers.
+ * Lève si un doublon n'est pas dans la liste legacy tolérée.
+ */
+function assertNoNewDuplicateMigrationNumbers(files) {
+  const byNum = new Map();
+  for (const file of files) {
+    const num = parseInt(file.slice(0, 3), 10);
+    if (!byNum.has(num)) byNum.set(num, []);
+    byNum.get(num).push(file);
+  }
+  for (const [num, group] of byNum) {
+    if (group.length > 1 && !LEGACY_DUPLICATE_MIGRATION_NUMBERS.has(num)) {
+      throw new Error(
+        `Numéro de migration dupliqué (${String(num).padStart(3, '0')}) : ${group.join(', ')} — ` +
+          'renuméroter le nouveau fichier (le runner sauterait silencieusement le second).',
+      );
+    }
+  }
+}
+
 /**
  * Exécute les migrations du dossier migrations/ (fichiers 001_xxx.sql, 002_xxx.sql, ...).
  * Utilise la table schema_version pour ne ré-exécuter que les migrations manquantes.
@@ -403,6 +430,7 @@ async function runMigrations(conn) {
     .readdirSync(migrationsDir)
     .filter((f) => /^\d{3}_.*\.sql$/.test(f))
     .sort();
+  assertNoNewDuplicateMigrationNumbers(files);
   let current = -1;
   try {
     const [rows] = await conn.query('SELECT version FROM schema_version LIMIT 1');
@@ -431,7 +459,14 @@ async function runMigrations(conn) {
   }
   for (const file of files) {
     const num = parseInt(file.slice(0, 3), 10);
-    if (num <= current) continue;
+    // Saut des migrations déjà passées. Cas limite : à numéro ÉGAL à la version
+    // courante, les deux fichiers d'un doublon legacy sont (ré)appliqués — les
+    // migrations sont idempotentes, et c'est ce qui garantit qu'une migration
+    // fraîche (sans snapshot) n'oublie pas le second fichier de 021/037.
+    // Limite documentée : une base historique restée exactement à la version 21
+    // ou 37 rejouera ces fichiers une fois au prochain démarrage (sans effet).
+    if (num < current) continue;
+    if (num === current && !LEGACY_DUPLICATE_MIGRATION_NUMBERS.has(num)) continue;
     const sql = fs.readFileSync(path.join(migrationsDir, file), 'utf8');
     const statements = splitSqlStatements(sql);
     for (const stmt of statements) {
@@ -579,7 +614,7 @@ async function seedData() {
   const now = new Date().toISOString();
   const tasks = [
     [
-      uuidv4(),
+      crypto.randomUUID(),
       'Arroser les tomates',
       'Arrosoir rouge, 2L par plant',
       'foret',
@@ -590,7 +625,7 @@ async function seedData() {
       now,
     ],
     [
-      uuidv4(),
+      crypto.randomUUID(),
       'Récolter les laitues',
       'Couper à la base avec les ciseaux verts',
       'foret',
@@ -601,7 +636,7 @@ async function seedData() {
       now,
     ],
     [
-      uuidv4(),
+      crypto.randomUUID(),
       'Désherber Potager Sud-Est',
       'Retirer les mauvaises herbes autour du basilic',
       'foret',
@@ -657,4 +692,5 @@ module.exports = {
   initDatabase,
   isApplicationDatabaseReady,
   endPool,
+  assertNoNewDuplicateMigrationNumbers,
 };

@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { INTERACTION_TYPES, interactionTypeLabel } from '../../shared/foodWebTypes.js';
 import {
   buildEdgeExportCss,
@@ -244,6 +244,44 @@ export function FoodWebGraph({
     [view],
   );
 
+  // Commit du drag throttlé à un setState par frame (requestAnimationFrame) :
+  // le pointermove ne fait plus qu'un calcul léger et synchrone (seuils inchangés),
+  // la position en attente est stockée dans dragRef et appliquée au prochain frame.
+  const dragRafRef = useRef(0);
+
+  const commitPendingDrag = useCallback(() => {
+    dragRafRef.current = 0;
+    const drag = dragRef.current;
+    if (!drag || !drag.pending) return;
+    const pending = drag.pending;
+    drag.pending = null;
+    if (drag.kind === 'node') {
+      setOverrides((prev) => {
+        const next = new Map(prev);
+        next.set(drag.id, pending);
+        return next;
+      });
+    } else if (drag.kind === 'pan') {
+      setView(pending);
+    }
+  }, []);
+
+  /** Applique immédiatement le déplacement en attente (fin de drag) pour ne pas perdre le dernier move. */
+  const flushPendingDrag = useCallback(() => {
+    if (dragRafRef.current) {
+      cancelAnimationFrame(dragRafRef.current);
+      dragRafRef.current = 0;
+    }
+    commitPendingDrag();
+  }, [commitPendingDrag]);
+
+  useEffect(
+    () => () => {
+      if (dragRafRef.current) cancelAnimationFrame(dragRafRef.current);
+    },
+    [],
+  );
+
   const onPointerMove = useCallback(
     (evt) => {
       const drag = dragRef.current;
@@ -252,11 +290,7 @@ export function FoodWebGraph({
         const p = clientToBase(evt);
         if (!p || !drag.last) return;
         if (Math.abs(p.x - drag.last.x) > CLICK_MOVE_THRESHOLD || drag.moved) drag.moved = true;
-        setOverrides((prev) => {
-          const next = new Map(prev);
-          next.set(drag.id, { x: p.x, y: p.y });
-          return next;
-        });
+        drag.pending = { x: p.x, y: p.y };
       } else if (drag.kind === 'pan') {
         const svg = svgRef.current;
         const rect = svg?.getBoundingClientRect?.();
@@ -264,19 +298,23 @@ export function FoodWebGraph({
         const dx = ((evt.clientX - drag.startClient.x) / rect.width) * BASE_W;
         const dy = ((evt.clientY - drag.startClient.y) / rect.height) * BASE_H;
         if (Math.abs(dx) > 2 || Math.abs(dy) > 2) drag.moved = true;
-        setView({
+        drag.pending = {
           scale: drag.startView.scale,
           tx: drag.startView.tx + dx,
           ty: drag.startView.ty + dy,
-        });
+        };
+      } else {
+        return;
       }
+      if (!dragRafRef.current) dragRafRef.current = requestAnimationFrame(commitPendingDrag);
     },
-    [clientToBase],
+    [clientToBase, commitPendingDrag],
   );
 
   const onPointerUp = useCallback(() => {
+    flushPendingDrag();
     dragRef.current = null;
-  }, []);
+  }, [flushPendingDrag]);
 
   const toggleFocus = useCallback((id) => {
     setFocusId((cur) => (cur === id ? null : id));
@@ -284,12 +322,13 @@ export function FoodWebGraph({
 
   const onNodePointerUp = useCallback(
     (evt, id) => {
+      flushPendingDrag();
       const drag = dragRef.current;
       const moved = drag?.kind === 'node' && drag.moved;
       dragRef.current = null;
       if (!moved) toggleFocus(id);
     },
-    [toggleFocus],
+    [flushPendingDrag, toggleFocus],
   );
 
   // --- Export ---
@@ -563,7 +602,6 @@ export function FoodWebGraph({
                 className="pedago-foodweb-graph__node-group"
                 onPointerDown={(e) => onNodePointerDown(e, node.id)}
                 onPointerUp={(e) => onNodePointerUp(e, node.id)}
-                onPointerMove={onPointerMove}
                 onMouseEnter={() => setHoverNode(node.id)}
                 onMouseLeave={() => setHoverNode(null)}
                 onDoubleClick={() => onOpenPlant?.(node.id)}

@@ -1,35 +1,83 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { api } from '../../services/api';
+import { validateUserIdentityFields } from '../../utils/profilesUserFields.js';
 import { MarkdownTextarea } from '../MarkdownTextarea.jsx';
 
 /**
  * Panneau « Création unitaire d'utilisateur » (administration des profils).
- * Extrait de profiles-views.jsx (O6) — présentationnel pur : tout l’état et les
- * handlers sont fournis par ProfilesAdminView via les props. Comportement inchangé.
+ * Autonome (§6.1) : possède l'état du formulaire et l'appel `POST /api/rbac/users`.
+ * Le parent ne fournit que le contexte (`roleTerms`, `affiliationOptions`, droits)
+ * et les retours (`setErr`/`setMsg` vers les bandeaux, `onCreated()` → rechargement).
+ * Comportement inchangé (mêmes validations, messages et réinitialisations).
  */
 function CreateUserPanel({
   roleTerms,
   affiliationOptions,
   isAdmin,
   canCreateUsers,
-  createRole,
-  createFirstName,
-  createLastName,
-  createPassword,
-  createPseudo,
-  createEmail,
-  createDescription,
-  createAffiliation,
-  createLoading,
-  setCreateRole,
-  setCreateFirstName,
-  setCreateLastName,
-  setCreatePassword,
-  setCreatePseudo,
-  setCreateEmail,
-  setCreateDescription,
-  setCreateAffiliation,
-  createUser,
+  setErr,
+  setMsg,
+  onCreated,
 }) {
+  const [createRole, setCreateRole] = useState('eleve_novice');
+  const [createFirstName, setCreateFirstName] = useState('');
+  const [createLastName, setCreateLastName] = useState('');
+  const [createPassword, setCreatePassword] = useState('');
+  const [createPseudo, setCreatePseudo] = useState('');
+  const [createEmail, setCreateEmail] = useState('');
+  const [createDescription, setCreateDescription] = useState('');
+  const [createAffiliation, setCreateAffiliation] = useState('both');
+  const [createLoading, setCreateLoading] = useState(false);
+
+  const createUser = async () => {
+    const fieldError = validateUserIdentityFields({
+      firstName: createFirstName,
+      lastName: createLastName,
+      pseudo: createPseudo,
+      email: createEmail,
+      description: createDescription,
+      password: createPassword,
+      requirePassword: true,
+    });
+    if (fieldError) {
+      setErr(fieldError);
+      return;
+    }
+    if (createRole === 'admin' && !isAdmin) {
+      setErr('Seul un admin peut créer un admin');
+      return;
+    }
+    setCreateLoading(true);
+    setErr('');
+    try {
+      const result = await api('/api/rbac/users', 'POST', {
+        role_slug: createRole,
+        first_name: createFirstName.trim(),
+        last_name: createLastName.trim(),
+        password: createPassword,
+        pseudo: createPseudo.trim() || null,
+        email: createEmail.trim() || null,
+        description: createDescription.trim() || null,
+        affiliation: createAffiliation,
+      });
+      setMsg(
+        `Utilisateur créé : ${result.first_name} ${result.last_name} (${result.role_display_name || result.role_slug})`,
+      );
+      setCreateFirstName('');
+      setCreateLastName('');
+      setCreatePassword('');
+      setCreatePseudo('');
+      setCreateEmail('');
+      setCreateDescription('');
+      setCreateAffiliation('both');
+      if (!isAdmin && createRole === 'admin') setCreateRole('prof');
+      await onCreated();
+    } catch (e) {
+      setErr(e.message || 'Erreur création utilisateur');
+    }
+    setCreateLoading(false);
+  };
+
   return (
     <div
       style={{

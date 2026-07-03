@@ -11,7 +11,6 @@ import {
   clampMapMascotPctForViewport,
   MAP_VIEW_MASCOT_DIALOG_MOVE_COOLDOWN_MS,
   MAP_VIEW_MASCOT_DIALOG_MS,
-  MAP_VIEW_MASCOT_HAPPY_MS,
   MAP_VIEW_MASCOT_INSPECT_TRANSIENT_MS,
   MAP_VIEW_MASCOT_MOVE_MS,
   pickMapMascotMoveTransient,
@@ -35,14 +34,12 @@ function useMapViewMascot({
   const [mascotPct, setMascotPct] = useState({ xp: 50, yp: 50 });
   const [faceRight, setFaceRight] = useState(true);
   const [walking, setWalking] = useState(false);
-  const [happy, setHappy] = useState(false);
   const [dialog, setDialog] = useState('');
   const [dialogVisible, setDialogVisible] = useState(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
 
   const mascotPctRef = useRef({ xp: 50, yp: 50 });
   const moveTimeoutRef = useRef(null);
-  const happyTimeoutRef = useRef(null);
   const dialogTimeoutRef = useRef(null);
   const moveDialogCooldownUntilRef = useRef(0);
   const startPlacedForMapRef = useRef(null);
@@ -55,7 +52,6 @@ function useMapViewMascot({
     resetMascotTransientState,
   } = useVisitMascotStateMachine({
     walking,
-    happy,
     extraCatalogEntries,
     preferredMascotId,
     allowedMascotIds,
@@ -89,14 +85,16 @@ function useMapViewMascot({
       moveTimeoutRef.current = null;
     }
     setWalking(false);
-    setHappy(false);
     const stored = loadVisitMascotPositionPct(mapId);
     const fallback = computeVisitMascotStartPct(mapId, markers);
     const start = stored ?? fallback;
     mascotPctRef.current = start;
     setMascotPct(start);
     saveVisitMascotPositionPct(mapId, start);
-  }, [mapId, markers, showMascot, mascotMarkerPlacementKey]);
+    // `markers` volontairement absent des deps : `mascotMarkerPlacementKey` (id/x/y/label)
+    // couvre déjà tout changement pertinent — l'identité du tableau change à chaque polling.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mapId, showMascot, mascotMarkerPlacementKey]);
 
   useEffect(() => {
     mascotPctRef.current = mascotPct;
@@ -114,7 +112,6 @@ function useMapViewMascot({
   useEffect(
     () => () => {
       if (moveTimeoutRef.current) clearTimeout(moveTimeoutRef.current);
-      if (happyTimeoutRef.current) clearTimeout(happyTimeoutRef.current);
       if (dialogTimeoutRef.current) clearTimeout(dialogTimeoutRef.current);
       if (detailAfterMoveTimeoutRef.current) clearTimeout(detailAfterMoveTimeoutRef.current);
     },
@@ -152,18 +149,6 @@ function useMapViewMascot({
     },
     [extraCatalogEntries, mascotDialogSettings, mascotId],
   );
-
-  const triggerHappy = useCallback(() => {
-    if (happyTimeoutRef.current) {
-      clearTimeout(happyTimeoutRef.current);
-      happyTimeoutRef.current = null;
-    }
-    setHappy(true);
-    happyTimeoutRef.current = window.setTimeout(() => {
-      setHappy(false);
-      happyTimeoutRef.current = null;
-    }, MAP_VIEW_MASCOT_HAPPY_MS);
-  }, []);
 
   const moveTo = useCallback(
     (xp, yp) => {
@@ -267,16 +252,11 @@ function useMapViewMascot({
       clearTimeout(moveTimeoutRef.current);
       moveTimeoutRef.current = null;
     }
-    if (happyTimeoutRef.current) {
-      clearTimeout(happyTimeoutRef.current);
-      happyTimeoutRef.current = null;
-    }
     if (dialogTimeoutRef.current) {
       clearTimeout(dialogTimeoutRef.current);
       dialogTimeoutRef.current = null;
     }
     setWalking(false);
-    setHappy(false);
     setDialogVisible(false);
     resetMascotTransientState();
   }, [clearDetailAfterMove, resetMascotTransientState]);
@@ -289,11 +269,10 @@ function useMapViewMascot({
   const mascotClassName = useMemo(() => {
     const parts = ['visit-map-mascot'];
     if (walking) parts.push('visit-map-mascot--walking');
-    if (happy) parts.push('visit-map-mascot--happy');
     if (prefersReducedMotion) parts.push('visit-map-mascot--reduced-motion');
     parts.push('map-view-forest-mascot');
     return parts.join(' ');
-  }, [walking, happy, prefersReducedMotion]);
+  }, [walking, prefersReducedMotion]);
 
   return {
     mascotId,
@@ -307,7 +286,6 @@ function useMapViewMascot({
     moveTo,
     onZoneViewClick,
     onMarkerViewClick,
-    triggerHappy,
     resetMotion,
     clearDetailAfterMove,
   };

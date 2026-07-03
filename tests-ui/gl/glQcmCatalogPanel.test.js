@@ -1,5 +1,8 @@
 import { describe, test, expect } from 'vitest';
-import { buildExportQuery, buildQuestionsListQuery } from '../../src/gl/utils/glQcmCatalogPanel.js';
+import {
+  buildExportQuery,
+  buildQuestionsListQuery,
+} from '../../src/shared/qcm/qcmCatalogPanelQuery.js';
 
 describe('glQcmCatalogPanel - buildExportQuery', () => {
   test('ajoute statut=all uniquement pour l’export complet', () => {

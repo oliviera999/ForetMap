@@ -1,5 +1,5 @@
 const express = require('express');
-const { v4: uuidv4 } = require('uuid');
+const crypto = require('node:crypto');
 const { queryAll, queryOne, execute } = require('../database');
 const { requireAuth } = require('../middleware/requireTeacher');
 const asyncHandler = require('../lib/asyncHandler');
@@ -299,7 +299,7 @@ router.post(
     if (!checkCooldown(actor, 'context_comment', COMMENT_COOLDOWN_MS)) {
       return res.status(429).json({ error: 'Action trop rapide, réessaie dans quelques secondes' });
     }
-    const commentId = uuidv4();
+    const commentId = crypto.randomUUID();
     let pathsJson = null;
     if (imageList.length > 0) {
       const persisted = persistUserContentImages('context-comments', commentId, imageList);

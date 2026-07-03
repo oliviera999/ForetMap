@@ -432,13 +432,8 @@ export function buildUnifiedMascotImageEntries(opts = {}) {
     });
   }
 
-  const searchQuery = String(opts.search || '').trim();
-  const globalAssetsForEntries = searchQuery
-    ? filterGlobalAssets(globalAssets, searchQuery)
-    : globalAssets;
-
   const seenUrls = new Set(entries.map((e) => e.url).filter(Boolean));
-  for (const a of globalAssetsForEntries) {
+  for (const a of globalAssets) {
     const url = String(a?.url || '').trim();
     if (!url || seenUrls.has(url)) continue;
     seenUrls.add(url);

@@ -5,13 +5,26 @@
  * Présentation pure : `students` est le classement complet déjà trié
  * côté serveur, le filtre de recherche est appliqué ici.
  */
+import { useMemo } from 'react';
 import { StudentAvatar } from '../student-avatar';
 
 export function TeacherLeaderboard({ students = [], search = '', roleTerms }) {
-  const filtered = students.filter((s) =>
-    `${s.first_name} ${s.last_name}`.toLowerCase().includes(search.toLowerCase()),
+  const filtered = useMemo(
+    () =>
+      students.filter((s) =>
+        `${s.first_name} ${s.last_name}`.toLowerCase().includes(search.toLowerCase()),
+      ),
+    [students, search],
   );
-  const maxDone = Math.max(...students.map((s) => s.stats.done), 1);
+  const maxDone = useMemo(() => Math.max(...students.map((s) => s.stats.done), 1), [students]);
+  // Rang réel dans le classement complet : Map id → index (remplace un findIndex par ligne, O(n²)).
+  const rankById = useMemo(() => {
+    const ranks = new Map();
+    students.forEach((s, i) => {
+      if (!ranks.has(s.id)) ranks.set(s.id, i);
+    });
+    return ranks;
+  }, [students]);
   const rankIcon = (i) => (i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}.`);
   const rankClass = (i) => (i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '');
 
@@ -28,7 +41,7 @@ export function TeacherLeaderboard({ students = [], search = '', roleTerms }) {
         </div>
       ) : (
         filtered.map((s) => {
-          const realRank = students.findIndex((d) => d.id === s.id);
+          const realRank = rankById.get(s.id) ?? -1;
           const completionRate =
             s.stats.total > 0 ? Math.round((s.stats.done / s.stats.total) * 100) : 0;
           return (

@@ -1,7 +1,7 @@
 require('./helpers/setup');
 const test = require('node:test');
 const assert = require('node:assert');
-const { v4: uuidv4 } = require('uuid');
+const crypto = require('node:crypto');
 const { initSchema, queryOne, execute } = require('../database');
 const {
   isN3beurGroup,
@@ -15,7 +15,7 @@ test.before(async () => {
 });
 
 async function createStudent(label) {
-  const id = uuidv4();
+  const id = crypto.randomUUID();
   const unique = `${label}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
   await execute(
     `INSERT INTO users
@@ -32,7 +32,7 @@ async function createStudent(label) {
 }
 
 async function createGroup({ slug, grantsN3beur = false, defaultRoleSlug = null }) {
-  const id = uuidv4();
+  const id = crypto.randomUUID();
   let defaultRoleId = null;
   if (defaultRoleSlug) {
     const role = await queryOne('SELECT id FROM roles WHERE slug = ? LIMIT 1', [defaultRoleSlug]);

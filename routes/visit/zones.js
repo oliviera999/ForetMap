@@ -4,12 +4,12 @@
 // Monté sans préfixe via router.use(...) côté visit.js : chemins inchangés.
 // N'importe AUCUN symbole de visit.js (zéro import circulaire) — uniquement lib/, database, middleware.
 const express = require('express');
-const { v4: uuidv4 } = require('uuid');
+const crypto = require('node:crypto');
 const { queryOne, execute } = require('../../database');
 const { requirePermission } = require('../../middleware/requireTeacher');
 const asyncHandler = require('../../lib/asyncHandler');
 const { deleteVisitTargetCascade } = require('../../lib/visitTargetCleanup');
-const { resolveDefaultMapId } = require('../../lib/settings');
+const { nowIso, resolveVisitMapId, mapExists } = require('../../lib/visitRouteShared');
 const {
   parseVisitEditorialBlocksInput,
   parseVisitEditorialBlocksStored,
@@ -18,23 +18,6 @@ const {
 const { normalizePoints } = require('../../lib/visitContentHelpers');
 
 const router = express.Router();
-
-// Helpers partagés courts recopiés depuis visit.js (purs ou I/O triviale mono-requête) —
-// laissés AUSSI dans visit.js car ses routes hors-zones les utilisent encore.
-function nowIso() {
-  return new Date().toISOString();
-}
-
-async function resolveVisitMapId(rawMapId) {
-  const requested = String(rawMapId || '').trim();
-  if (requested) return requested;
-  return resolveDefaultMapId('visit');
-}
-
-async function mapExists(mapId) {
-  const row = await queryOne('SELECT id FROM maps WHERE id = ? LIMIT 1', [mapId]);
-  return !!row;
-}
 
 router.post(
   '/zones',
@@ -47,7 +30,7 @@ router.post(
       return res.status(400).json({ error: 'Carte introuvable' });
     if (!name) return res.status(400).json({ error: 'Nom de zone requis' });
     if (!points) return res.status(400).json({ error: 'Polygone invalide (min 3 points)' });
-    const id = uuidv4();
+    const id = crypto.randomUUID();
     await execute(
       `INSERT INTO visit_zones
         (id, map_id, name, points, subtitle, short_description, details_title, details_text, body_json, sort_order, is_active, created_at, updated_at)

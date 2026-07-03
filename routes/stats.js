@@ -25,6 +25,48 @@ const statsScopeQuerySchema = z
     projectId: q.project_id || null,
   }));
 
+/**
+ * Agrège en UNE requête les compteurs d'assignments par élève et par statut
+ * (remplace le « un SELECT task_assignments par élève » du tableau de bord prof).
+ * Le matching id OU (prénom, nom) reste fait en SQL pour conserver la collation
+ * _ci (casse/accents) du matching legacy par nom.
+ * @returns {Promise<Map<string, { total:number, done:number, pending:number, submitted:number }>>}
+ */
+async function fetchAssignmentStatusCountsByStudent(scope) {
+  const where = ["u.user_type = 'student'"];
+  const params = [];
+  if (!scope.all) {
+    if (!scope.studentIds.length) return new Map();
+    where.push(`u.id IN (${scope.studentIds.map(() => '?').join(',')})`);
+    params.push(...scope.studentIds);
+  }
+  const rows = await queryAll(
+    `SELECT u.id AS student_id, t.status, COUNT(*) AS n
+       FROM users u
+       JOIN task_assignments ta
+         ON ta.student_id = u.id
+         OR (ta.student_first_name = u.first_name AND ta.student_last_name = u.last_name)
+       JOIN tasks t ON t.id = ta.task_id
+      WHERE ${where.join(' AND ')}
+      GROUP BY u.id, t.status`,
+    params,
+  );
+  const byStudent = new Map();
+  for (const row of rows) {
+    const key = String(row.student_id);
+    if (!byStudent.has(key)) {
+      byStudent.set(key, { total: 0, done: 0, pending: 0, submitted: 0 });
+    }
+    const agg = byStudent.get(key);
+    const n = Number(row.n) || 0;
+    agg.total += n;
+    if (row.status === 'validated') agg.done += n;
+    else if (row.status === 'available' || row.status === 'in_progress') agg.pending += n;
+    else if (row.status === 'done') agg.submitted += n;
+  }
+  return byStudent;
+}
+
 /** Concurrence max pour agrégations « un SELECT par élève » (évite ER_CON_COUNT_ERROR ; > séquentiel pour l’UI prof). */
 const STATS_STUDENT_AGG_CONCURRENCY = (() => {
   const raw = String(process.env.FORETMAP_STATS_STUDENT_AGG_CONCURRENCY || '').trim();
@@ -243,29 +285,27 @@ router.get(
     if (scope.unauthorizedGroup) {
       return res.status(403).json({ error: 'Groupe hors périmètre' });
     }
-    const [students, progressionConfig, { plantMap, tutMap }, site] = await Promise.all([
-      scope.all
-        ? queryAll("SELECT * FROM users WHERE user_type = 'student'")
-        : scope.studentIds.length > 0
-          ? queryAll(
-              `SELECT * FROM users
+    const [students, progressionConfig, { plantMap, tutMap }, site, assignmentCounts] =
+      await Promise.all([
+        scope.all
+          ? queryAll("SELECT * FROM users WHERE user_type = 'student'")
+          : scope.studentIds.length > 0
+            ? queryAll(
+                `SELECT * FROM users
             WHERE user_type = 'student'
               AND id IN (${scope.studentIds.map(() => '?').join(',')})`,
-              scope.studentIds,
-            )
-          : Promise.resolve([]),
-      getStudentProgressionConfig(),
-      fetchEngagementByUserId(),
-      fetchSiteEngagementTotals(),
-    ]);
+                scope.studentIds,
+              )
+            : Promise.resolve([]),
+        getStudentProgressionConfig(),
+        fetchEngagementByUserId(),
+        fetchSiteEngagementTotals(),
+        fetchAssignmentStatusCountsByStudent(scope),
+      ]);
+    const EMPTY_AGG = { total: 0, done: 0, pending: 0, submitted: 0 };
     const result = await mapWithConcurrency(students, STATS_STUDENT_AGG_CONCURRENCY, async (s) => {
-      const assignments = await queryAll(
-        `SELECT ta.*, t.status FROM task_assignments ta
-       JOIN tasks t ON ta.task_id = t.id
-       WHERE ta.student_id = ? OR (ta.student_first_name = ? AND ta.student_last_name = ?)`,
-        [s.id, s.first_name, s.last_name],
-      );
-      const done = assignments.filter((a) => a.status === 'validated').length;
+      const agg = assignmentCounts.get(String(s.id)) || EMPTY_AGG;
+      const done = agg.done;
       const sync = await syncStudentPrimaryRoleFromProgress(s.id, done, progressionConfig);
       const currentStep = (sync.steps || []).find(
         (step) => String(step.roleSlug) === String(sync.currentRoleSlug),
@@ -280,11 +320,10 @@ router.get(
         avatar_path: s.avatar_path,
         last_seen: s.last_seen,
         stats: {
-          total: assignments.length,
+          total: agg.total,
           done,
-          pending: assignments.filter((a) => a.status === 'available' || a.status === 'in_progress')
-            .length,
-          submitted: assignments.filter((a) => a.status === 'done').length,
+          pending: agg.pending,
+          submitted: agg.submitted,
           plant_species_observed: extra.plant_species_observed,
           plant_observation_events: extra.plant_observation_events,
           tutorials_read: extra.tutorials_read,
@@ -325,7 +364,7 @@ router.get(
     if (scope.unauthorizedGroup) {
       return res.status(403).json({ error: 'Groupe hors périmètre' });
     }
-    const [students, { plantMap, tutMap }] = await Promise.all([
+    const [students, { plantMap, tutMap }, assignmentCounts] = await Promise.all([
       scope.all
         ? queryAll("SELECT * FROM users WHERE user_type = 'student'")
         : scope.studentIds.length > 0
@@ -337,24 +376,20 @@ router.get(
             )
           : Promise.resolve([]),
       fetchEngagementByUserId(),
+      fetchAssignmentStatusCountsByStudent(scope),
     ]);
-    const result = await mapWithConcurrency(students, STATS_STUDENT_AGG_CONCURRENCY, async (s) => {
-      const assignments = await queryAll(
-        `SELECT ta.*, t.status FROM task_assignments ta
-       JOIN tasks t ON ta.task_id = t.id
-       WHERE ta.student_id = ? OR (ta.student_first_name = ? AND ta.student_last_name = ?)`,
-        [s.id, s.first_name, s.last_name],
-      );
+    const EMPTY_AGG = { total: 0, done: 0, pending: 0, submitted: 0 };
+    const result = students.map((s) => {
+      const agg = assignmentCounts.get(String(s.id)) || EMPTY_AGG;
       const extra = engagementStatsForUser(s.id, plantMap, tutMap);
       return {
         first_name: s.first_name,
         last_name: s.last_name,
         last_seen: s.last_seen,
-        validated: assignments.filter((a) => a.status === 'validated').length,
-        pending: assignments.filter((a) => a.status === 'available' || a.status === 'in_progress')
-          .length,
-        submitted: assignments.filter((a) => a.status === 'done').length,
-        total: assignments.length,
+        validated: agg.done,
+        pending: agg.pending,
+        submitted: agg.submitted,
+        total: agg.total,
         plant_species_observed: extra.plant_species_observed,
         plant_observation_events: extra.plant_observation_events,
         tutorials_read: extra.tutorials_read,

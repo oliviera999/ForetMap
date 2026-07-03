@@ -14,7 +14,7 @@ import {
   appearanceToPayload,
 } from './GLMarkerAppearanceEditor.jsx';
 import { glImageFrameToStyle, normalizeGlImageFrame } from '../../utils/glImageFrame.js';
-import { defaultEventConfigForQuestion } from '../../utils/glMarkerEventConfig.js';
+import { defaultEventConfigForQuestion } from '../utils/glMarkerEventConfig.js';
 import { eventDraftFromMarker } from '../utils/glChapterMapStudioForm.js';
 import { GLButton } from './ui/GLButton.jsx';
 import { GLChapterMarkerListVisual } from './GLChapterMarkerListVisual.jsx';

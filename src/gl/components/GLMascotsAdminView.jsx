@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
+// Styles admin/MJ : extraits de gl-theme.css, livrés avec le chunk lazy de cette vue.
+import '../styles/gl-admin.css';
 import { apiGL } from '../services/apiGL.js';
 import { GLMascotRenderer } from './GLMascotRenderer.jsx';
 import { GL_MASCOT_STATE } from '../hooks/useGLMascotStateMachine.js';

@@ -1,5 +1,5 @@
 const express = require('express');
-const { v4: uuidv4 } = require('uuid');
+const crypto = require('node:crypto');
 const { queryAll, execute } = require('../../database');
 const { requirePermission } = require('../../middleware/requireTeacher');
 const asyncHandler = require('../../lib/asyncHandler');
@@ -55,7 +55,7 @@ router.post(
       dryRun,
       queryAll,
       execute,
-      uuidv4,
+      uuidv4: () => crypto.randomUUID(),
       onAudit: (totals) => {
         logAudit(
           'tasks_projects_import',

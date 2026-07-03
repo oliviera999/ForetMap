@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { withAppBase } from '../../services/api';
 import { compressImageWithPreset, isLikelyImageFile } from '../../utils/image';
 import { getRoleTerms } from '../../utils/n3-terminology';
@@ -11,6 +11,13 @@ import { TaskFormImageField } from './TaskFormImageField.jsx';
 import { TaskFormReferentsField } from './TaskFormReferentsField.jsx';
 import { TaskFormTutorialsField } from './TaskFormTutorialsField.jsx';
 import { TaskFormLevelsField } from './TaskFormLevelsField.jsx';
+import {
+  LocationPickList,
+  filterSelectableZones,
+  filterSelectableMarkers,
+  toggledLocationIds,
+} from './LocationPickList.jsx';
+import { useTutorialSearch } from './useTutorialSearch.js';
 import {
   zonePickDisplayName,
   initialLocationIds,
@@ -84,7 +91,11 @@ function TaskFormModal({
   const taskImageCameraInputRef = useRef(null);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState('');
-  const [tutorialSearch, setTutorialSearch] = useState('');
+  const {
+    search: tutorialSearch,
+    setSearch: setTutorialSearch,
+    filteredTutorials,
+  } = useTutorialSearch(tutorials);
   const [referentSearch, setReferentSearch] = useState('');
   const [assignInitialSearch, setAssignInitialSearch] = useState('');
 
@@ -138,12 +149,9 @@ function TaskFormModal({
 
   const toggleZoneId = (zoneId) => {
     const normalizedZoneId = String(zoneId || '').trim();
-    if (!normalizedZoneId) return;
     setForm((f) => {
-      const has = f.zone_ids.includes(normalizedZoneId);
-      const zoneIds = has
-        ? f.zone_ids.filter((id) => id !== normalizedZoneId)
-        : [...f.zone_ids, normalizedZoneId];
+      const zoneIds = toggledLocationIds(f.zone_ids, normalizedZoneId);
+      if (!zoneIds) return f;
       const z = zones.find((zz) => String(zz.id || '').trim() === normalizedZoneId);
       return { ...f, zone_ids: zoneIds, map_id: z?.map_id && !f.map_id ? z.map_id : f.map_id };
     });
@@ -151,12 +159,9 @@ function TaskFormModal({
 
   const toggleMarkerId = (markerId) => {
     const normalizedMarkerId = String(markerId || '').trim();
-    if (!normalizedMarkerId) return;
     setForm((f) => {
-      const has = f.marker_ids.includes(normalizedMarkerId);
-      const marker_ids = has
-        ? f.marker_ids.filter((id) => id !== normalizedMarkerId)
-        : [...f.marker_ids, normalizedMarkerId];
+      const marker_ids = toggledLocationIds(f.marker_ids, normalizedMarkerId);
+      if (!marker_ids) return f;
       const mk = markers.find((m) => String(m.id || '').trim() === normalizedMarkerId);
       return { ...f, marker_ids, map_id: mk?.map_id && !f.map_id ? mk.map_id : f.map_id };
     });
@@ -265,10 +270,8 @@ function TaskFormModal({
     }
   };
 
-  const selectableZones = zones.filter(
-    (z) => !z.special && (!form.map_id || z.map_id === form.map_id),
-  );
-  const selectableMarkers = markers.filter((m) => !form.map_id || m.map_id === form.map_id);
+  const selectableZones = filterSelectableZones(zones, form.map_id);
+  const selectableMarkers = filterSelectableMarkers(markers, form.map_id);
   /** Inclut le projet déjà lié même s’il est hors filtre carte / absent de la liste chargée (évite d’envoyer project_id null par erreur). */
   const selectableProjects = useMemo(() => {
     const byMap = taskProjects.filter((p) => !form.map_id || p.map_id === form.map_id);
@@ -298,23 +301,6 @@ function TaskFormModal({
     () => normalizeTutorialIds(form.tutorial_ids),
     [form.tutorial_ids],
   );
-  const searchableTutorials = useMemo(
-    () =>
-      [...tutorials].sort((a, b) =>
-        String(a.title || '').localeCompare(String(b.title || ''), 'fr'),
-      ),
-    [tutorials],
-  );
-  const filteredTutorials = useMemo(() => {
-    const q = tutorialSearch.trim().toLowerCase();
-    if (!q) return searchableTutorials;
-    return searchableTutorials.filter((t) =>
-      String(t.title || '')
-        .toLowerCase()
-        .includes(q),
-    );
-  }, [searchableTutorials, tutorialSearch]);
-
   const teacherReferentCandidates = useMemo(
     () => referentCandidates.filter((c) => c.user_type === 'teacher'),
     [referentCandidates],
@@ -460,57 +446,15 @@ function TaskFormModal({
       )}
       <div className="field">
         <label>Zones et repères (plusieurs possibles)</label>
-        <div className="task-form-pick-list">
-          {selectableZones.length === 0 && selectableMarkers.length === 0 ? (
-            <p className="task-form-pick-empty">Aucune zone ni repère pour cette carte.</p>
-          ) : (
-            <>
-              {selectableZones.length > 0 && (
-                <>
-                  {selectableMarkers.length > 0 && (
-                    <div className="task-form-pick-subheading" aria-hidden="true">
-                      Zones
-                    </div>
-                  )}
-                  {selectableZones.map((z) => (
-                    <label key={z.id} className="task-form-pick-item">
-                      <input
-                        type="checkbox"
-                        className="task-form-pick-checkbox"
-                        checked={form.zone_ids.includes(String(z.id || '').trim())}
-                        onChange={() => toggleZoneId(z.id)}
-                      />
-                      <span className="task-form-pick-text">{zonePickDisplayName(z)}</span>
-                    </label>
-                  ))}
-                </>
-              )}
-              {selectableMarkers.length > 0 && (
-                <>
-                  {selectableZones.length > 0 && (
-                    <div className="task-form-pick-subheading" aria-hidden="true">
-                      Repères
-                    </div>
-                  )}
-                  {selectableMarkers.map((m) => (
-                    <label key={m.id} className="task-form-pick-item">
-                      <input
-                        type="checkbox"
-                        className="task-form-pick-checkbox"
-                        checked={form.marker_ids.includes(String(m.id || '').trim())}
-                        onChange={() => toggleMarkerId(m.id)}
-                      />
-                      <span className="task-form-pick-text">
-                        {m.emoji ? `${m.emoji} ` : '📍 '}
-                        {m.label}
-                      </span>
-                    </label>
-                  ))}
-                </>
-              )}
-            </>
-          )}
-        </div>
+        <LocationPickList
+          zones={selectableZones}
+          markers={selectableMarkers}
+          selectedZoneIds={form.zone_ids}
+          selectedMarkerIds={form.marker_ids}
+          onToggleZone={toggleZoneId}
+          onToggleMarker={toggleMarkerId}
+          zoneLabel={zonePickDisplayName}
+        />
       </div>
       <div className="field">
         <label>Êtres vivants (biodiversité)</label>

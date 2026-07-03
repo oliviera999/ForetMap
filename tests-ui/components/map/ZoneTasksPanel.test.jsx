@@ -21,6 +21,11 @@ describe('ZoneTasksTeacherPanel', () => {
     expect(screen.getByText('Aucune tâche liée à cette zone.')).toBeTruthy();
   });
 
+  test('locationKind="marker" → libellé repère', () => {
+    render(<ZoneTasksTeacherPanel {...baseProps} locationKind="marker" />);
+    expect(screen.getByText('Aucune tâche liée à ce repère.')).toBeTruthy();
+  });
+
   test('liste les tâches liées et « Délier » appelle onUnlinkTask', () => {
     const onUnlink = vi.fn();
     render(
@@ -61,6 +66,11 @@ describe('ZoneTasksStudentPanel', () => {
   test('aucune tâche liée → message', () => {
     render(<ZoneTasksStudentPanel {...baseProps} linkedTasks={[]} />);
     expect(screen.getByText('Aucune tâche liée à cette zone.')).toBeTruthy();
+  });
+
+  test('aucune tâche liée + locationKind="marker" → libellé repère', () => {
+    render(<ZoneTasksStudentPanel {...baseProps} linkedTasks={[]} locationKind="marker" />);
+    expect(screen.getByText('Aucune tâche liée à ce repère.')).toBeTruthy();
   });
 
   test('consigne de sélection en self-assign, lecture seule pour visiteur', () => {

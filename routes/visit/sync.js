@@ -5,13 +5,13 @@
 // Monté sans préfixe via router.use(...) côté visit.js : chemins inchangés.
 // N'importe AUCUN symbole de visit.js (zéro import circulaire) — uniquement lib/, database, middleware.
 const express = require('express');
-const { queryAll, queryOne, execute, withTransaction } = require('../../database');
+const { queryAll, execute, withTransaction } = require('../../database');
 const { requirePermission } = require('../../middleware/requireTeacher');
 const asyncHandler = require('../../lib/asyncHandler');
 const { emitGardenChanged } = require('../../lib/realtime');
 const { deleteFile } = require('../../lib/uploads');
 const { visitContentRowIsPublicActive } = require('../../lib/visitContentPublicActive');
-const { resolveDefaultMapId } = require('../../lib/settings');
+const { nowIso, resolveVisitMapId, mapExists } = require('../../lib/visitRouteShared');
 const {
   parseVisitEditorialBlocksStored,
   serializeVisitEditorialBlocks,
@@ -20,23 +20,6 @@ const { normalizeMarkerEmoji } = require('../../lib/markerEmoji');
 const { normalizeIdList } = require('../../lib/visitContentHelpers');
 
 const router = express.Router();
-
-// Helpers partagés courts recopiés depuis visit.js (purs ou I/O triviale mono-requête) —
-// laissés AUSSI dans visit.js car ses routes hors-sync les utilisent encore.
-function nowIso() {
-  return new Date().toISOString();
-}
-
-async function resolveVisitMapId(rawMapId) {
-  const requested = String(rawMapId || '').trim();
-  if (requested) return requested;
-  return resolveDefaultMapId('visit');
-}
-
-async function mapExists(mapId) {
-  const row = await queryOne('SELECT id FROM maps WHERE id = ? LIMIT 1', [mapId]);
-  return !!row;
-}
 
 router.get(
   '/sync/options',
@@ -279,20 +262,18 @@ router.post(
       .map((m) => String(m.id))
       .filter((id) => !newMarkerIds.has(id));
 
+    // 1 SELECT IN par type de cible (au lieu d'une requête visit_media par id supprimé).
     const filesToDelete = [];
-    for (const id of removedZoneIds) {
+    for (const [targetType, removedIds] of [
+      ['zone', removedZoneIds],
+      ['marker', removedMarkerIds],
+    ]) {
+      if (!removedIds.length) continue;
       const rows = await queryAll(
-        'SELECT image_path FROM visit_media WHERE target_type = ? AND target_id = ?',
-        ['zone', id],
-      );
-      for (const r of rows) {
-        if (r.image_path) filesToDelete.push(r.image_path);
-      }
-    }
-    for (const id of removedMarkerIds) {
-      const rows = await queryAll(
-        'SELECT image_path FROM visit_media WHERE target_type = ? AND target_id = ?',
-        ['marker', id],
+        `SELECT image_path FROM visit_media WHERE target_type = ? AND target_id IN (${removedIds
+          .map(() => '?')
+          .join(',')})`,
+        [targetType, ...removedIds],
       );
       for (const r of rows) {
         if (r.image_path) filesToDelete.push(r.image_path);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useDialogA11y } from '../../hooks/useDialogA11y';
 import { useOverlayHistoryBack } from '../../hooks/useOverlayHistoryBack';
 import { DialogShell } from '../DialogShell';
@@ -8,8 +8,51 @@ import {
   normalizeTutorialIds,
   zonePickDisplayName,
 } from '../../utils/taskFormHelpers.js';
+import { TaskFormTutorialsField } from './TaskFormTutorialsField.jsx';
+import {
+  LocationPickList,
+  filterSelectableZones,
+  filterSelectableMarkers,
+  toggledLocationIds,
+} from './LocationPickList.jsx';
+import { useTutorialSearch } from './useTutorialSearch.js';
 
 const var_alert = 'var(--alert)';
+
+/**
+ * Formulaire initial du projet. La modale étant montée/démontée à chaque
+ * ouverture (rendu conditionnel `showProjectForm` dans `tasks-views.jsx`),
+ * l'initialisation est paresseuse (pas de useEffect de resynchronisation).
+ */
+function buildInitialProjectForm(editProject, defaultMapId) {
+  if (!editProject) {
+    return {
+      title: '',
+      description: '',
+      map_id: defaultMapId,
+      zone_ids: [],
+      marker_ids: [],
+      tutorial_ids: [],
+      status: 'active',
+    };
+  }
+  return {
+    title: String(editProject.title || ''),
+    description: String(editProject.description || ''),
+    map_id: editProject.map_id || defaultMapId,
+    zone_ids: initialLocationIds(editProject, 'zone_ids', 'zone_id'),
+    marker_ids: initialLocationIds(editProject, 'marker_ids', 'marker_id'),
+    tutorial_ids: normalizeTutorialIds(editProject.tutorial_ids || []),
+    status:
+      editProject.status === 'on_hold'
+        ? 'on_hold'
+        : editProject.status === 'completed'
+          ? 'completed'
+          : editProject.status === 'validated'
+            ? 'validated'
+            : 'active',
+  };
+}
 
 function TaskProjectFormModal({
   maps = [],
@@ -24,76 +67,26 @@ function TaskProjectFormModal({
   const dialogRef = useDialogA11y(onClose);
   useOverlayHistoryBack(true, onClose);
   const defaultMapId = activeMapId || maps[0]?.id || '';
-  const [tutorialSearch, setTutorialSearch] = useState('');
-  const [form, setForm] = useState({
-    title: '',
-    description: '',
-    map_id: defaultMapId,
-    zone_ids: [],
-    marker_ids: [],
-    tutorial_ids: [],
-    status: 'active',
-  });
+  const {
+    search: tutorialSearch,
+    setSearch: setTutorialSearch,
+    filteredTutorials,
+  } = useTutorialSearch(tutorials);
+  const [form, setForm] = useState(() => buildInitialProjectForm(editProject, defaultMapId));
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState('');
 
-  useEffect(() => {
-    setTutorialSearch('');
-    if (!editProject) {
-      setForm({
-        title: '',
-        description: '',
-        map_id: defaultMapId,
-        zone_ids: [],
-        marker_ids: [],
-        tutorial_ids: [],
-        status: 'active',
-      });
-      return;
-    }
-    setForm({
-      title: String(editProject.title || ''),
-      description: String(editProject.description || ''),
-      map_id: editProject.map_id || defaultMapId,
-      zone_ids: initialLocationIds(editProject, 'zone_ids', 'zone_id'),
-      marker_ids: initialLocationIds(editProject, 'marker_ids', 'marker_id'),
-      tutorial_ids: normalizeTutorialIds(editProject.tutorial_ids || []),
-      status:
-        editProject.status === 'on_hold'
-          ? 'on_hold'
-          : editProject.status === 'completed'
-            ? 'completed'
-            : editProject.status === 'validated'
-              ? 'validated'
-              : 'active',
-    });
-  }, [editProject, defaultMapId]);
-
   const toggleZoneId = (zoneId) => {
-    const normalizedZoneId = String(zoneId || '').trim();
-    if (!normalizedZoneId) return;
     setForm((f) => {
-      const has = f.zone_ids.includes(normalizedZoneId);
-      return {
-        ...f,
-        zone_ids: has
-          ? f.zone_ids.filter((id) => id !== normalizedZoneId)
-          : [...f.zone_ids, normalizedZoneId],
-      };
+      const zone_ids = toggledLocationIds(f.zone_ids, zoneId);
+      return zone_ids ? { ...f, zone_ids } : f;
     });
   };
 
   const toggleMarkerId = (markerId) => {
-    const normalizedMarkerId = String(markerId || '').trim();
-    if (!normalizedMarkerId) return;
     setForm((f) => {
-      const has = f.marker_ids.includes(normalizedMarkerId);
-      return {
-        ...f,
-        marker_ids: has
-          ? f.marker_ids.filter((id) => id !== normalizedMarkerId)
-          : [...f.marker_ids, normalizedMarkerId],
-      };
+      const marker_ids = toggledLocationIds(f.marker_ids, markerId);
+      return marker_ids ? { ...f, marker_ids } : f;
     });
   };
 
@@ -110,30 +103,12 @@ function TaskProjectFormModal({
     });
   };
 
-  const selectableZones = zones.filter(
-    (z) => !z.special && (!form.map_id || z.map_id === form.map_id),
-  );
-  const selectableMarkers = markers.filter((m) => !form.map_id || m.map_id === form.map_id);
+  const selectableZones = filterSelectableZones(zones, form.map_id);
+  const selectableMarkers = filterSelectableMarkers(markers, form.map_id);
   const normalizedTutorialIds = useMemo(
     () => normalizeTutorialIds(form.tutorial_ids),
     [form.tutorial_ids],
   );
-  const searchableTutorials = useMemo(
-    () =>
-      [...tutorials].sort((a, b) =>
-        String(a.title || '').localeCompare(String(b.title || ''), 'fr'),
-      ),
-    [tutorials],
-  );
-  const filteredTutorials = useMemo(() => {
-    const q = tutorialSearch.trim().toLowerCase();
-    if (!q) return searchableTutorials;
-    return searchableTutorials.filter((t) =>
-      String(t.title || '')
-        .toLowerCase()
-        .includes(q),
-    );
-  }, [searchableTutorials, tutorialSearch]);
 
   const submit = async () => {
     if (!form.title.trim()) return setErr('Le titre est requis');
@@ -256,124 +231,31 @@ function TaskProjectFormModal({
       )}
       <div className="field">
         <label>Zones et repères (optionnel)</label>
-        <div className="task-form-pick-list">
-          {selectableZones.length === 0 && selectableMarkers.length === 0 ? (
-            <p className="task-form-pick-empty">Aucune zone ni repère pour cette carte.</p>
-          ) : (
-            <>
-              {selectableZones.length > 0 && (
-                <>
-                  {selectableMarkers.length > 0 && (
-                    <div className="task-form-pick-subheading" aria-hidden="true">
-                      Zones
-                    </div>
-                  )}
-                  {selectableZones.map((z) => (
-                    <label key={z.id} className="task-form-pick-item">
-                      <input
-                        type="checkbox"
-                        className="task-form-pick-checkbox"
-                        checked={form.zone_ids.includes(String(z.id || '').trim())}
-                        onChange={() => toggleZoneId(z.id)}
-                      />
-                      <span className="task-form-pick-text">{zonePickDisplayName(z)}</span>
-                    </label>
-                  ))}
-                </>
-              )}
-              {selectableMarkers.length > 0 && (
-                <>
-                  {selectableZones.length > 0 && (
-                    <div className="task-form-pick-subheading" aria-hidden="true">
-                      Repères
-                    </div>
-                  )}
-                  {selectableMarkers.map((m) => (
-                    <label key={m.id} className="task-form-pick-item">
-                      <input
-                        type="checkbox"
-                        className="task-form-pick-checkbox"
-                        checked={form.marker_ids.includes(String(m.id || '').trim())}
-                        onChange={() => toggleMarkerId(m.id)}
-                      />
-                      <span className="task-form-pick-text">
-                        {m.emoji ? `${m.emoji} ` : '📍 '}
-                        {m.label}
-                      </span>
-                    </label>
-                  ))}
-                </>
-              )}
-            </>
-          )}
-        </div>
+        <LocationPickList
+          zones={selectableZones}
+          markers={selectableMarkers}
+          selectedZoneIds={form.zone_ids}
+          selectedMarkerIds={form.marker_ids}
+          onToggleZone={toggleZoneId}
+          onToggleMarker={toggleMarkerId}
+          zoneLabel={zonePickDisplayName}
+        />
       </div>
-      <div className="field">
-        <label>Tutoriels associés (optionnel)</label>
-        {tutorials.length > 0 && (
-          <div style={{ display: 'grid', gap: 8, marginBottom: 8 }}>
-            <input
-              value={tutorialSearch}
-              onChange={(e) => setTutorialSearch(e.target.value)}
-              placeholder="🔍 Rechercher un tutoriel..."
-            />
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: 8,
-                flexWrap: 'wrap',
-              }}
-            >
-              <span style={{ fontSize: '.8rem', color: '#666' }}>
-                {normalizedTutorialIds.length} sélectionné
-                {normalizedTutorialIds.length > 1 ? 's' : ''}
-              </span>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-sm"
-                  onClick={() =>
-                    setForm((f) => ({
-                      ...f,
-                      tutorial_ids: normalizeTutorialIds(tutorials.map((t) => t.id)),
-                    }))
-                  }
-                >
-                  Tout sélectionner
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-sm"
-                  onClick={() => setForm((f) => ({ ...f, tutorial_ids: [] }))}
-                >
-                  Effacer
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-        <div className="task-form-pick-list">
-          {tutorials.length === 0 ? (
-            <p className="task-form-pick-empty">Aucun tutoriel disponible.</p>
-          ) : filteredTutorials.length === 0 ? (
-            <p className="task-form-pick-empty">Aucun tutoriel trouvé.</p>
-          ) : (
-            filteredTutorials.map((t) => (
-              <label key={t.id} className="task-form-pick-item">
-                <input
-                  type="checkbox"
-                  className="task-form-pick-checkbox"
-                  checked={normalizedTutorialIds.includes(Number.parseInt(t.id, 10))}
-                  onChange={() => toggleTutorialId(t.id)}
-                />
-                <span className="task-form-pick-text">📘 {t.title}</span>
-              </label>
-            ))
-          )}
-        </div>
-      </div>
+      <TaskFormTutorialsField
+        tutorials={tutorials}
+        filteredTutorials={filteredTutorials}
+        search={tutorialSearch}
+        onSearchChange={setTutorialSearch}
+        selectedIds={form.tutorial_ids}
+        onToggle={toggleTutorialId}
+        onSelectAll={() =>
+          setForm((f) => ({
+            ...f,
+            tutorial_ids: normalizeTutorialIds(tutorials.map((t) => t.id)),
+          }))
+        }
+        onClear={() => setForm((f) => ({ ...f, tutorial_ids: [] }))}
+      />
       <button className="btn btn-primary btn-full" onClick={submit} disabled={saving}>
         {saving ? 'Sauvegarde...' : isEdit ? 'Enregistrer le projet' : 'Créer le projet'}
       </button>

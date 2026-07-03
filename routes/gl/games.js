@@ -1,14 +1,21 @@
 const express = require('express');
-const { queryAll, queryOne, execute, withTransaction } = require('../../database');
-const { requireGlAuth, requireGlPermission } = require('../../middleware/requireGlAuth');
-const { normalizeEventRow } = require('../../lib/glGameEvents');
+const dbModule = require('../../database');
+const { queryAll, queryOne, execute, withTransaction } = dbModule;
+const {
+  requireGlAuth,
+  requireGlPermission,
+  isMj,
+  actorTypeOf,
+} = require('../../middleware/requireGlAuth');
+const { normalizeEventRow, insertGameEvent } = require('../../lib/glGameEvents');
 const { emitGlGameEvent } = require('../../lib/realtime');
 const { getSpellCastConfig } = require('../../lib/glSpellCast');
 const { getGameplaySettings } = require('../../lib/glSettings');
 const { assignPlayerToTeamTx } = require('../../lib/glRoster');
 const { canAccessGlGame } = require('../../lib/glGameAccess');
 
-const { parseNarrationImageUrl } = require('../../lib/glJournalPresent');
+const { parsePct, validateEventPayload } = require('../../lib/gl/gameEventPayload');
+const { buildDynamicUpdate, hasAnyDynamicField } = require('../../lib/gl/buildDynamicUpdate');
 const {
   canPresentZoneContent,
   resolveZoneContentRetrigger,
@@ -32,13 +39,6 @@ const router = express.Router();
 function parseId(value) {
   const n = Number(value);
   return Number.isFinite(n) ? n : null;
-}
-
-function parsePct(value) {
-  const n = Number(value);
-  if (!Number.isFinite(n)) return null;
-  if (n < 0 || n > 100) return null;
-  return Number(n.toFixed(2));
 }
 
 const { normalizeOptionalString } = require('../../lib/shared/httpHelpers');
@@ -165,6 +165,8 @@ router.get(
     const state = await readGameState(gameId);
     if (!state) return res.status(404).json({ error: 'Partie introuvable' });
     if (!(await canAccessGlGame(req.glAuth, gameId))) {
+      // Message historique distinct des autres 403 « Accès partie refusé »
+      // (contrat figé par tests/gl-game-access.test.js) — ne pas unifier.
       return res.status(403).json({ error: 'Accès refusé à cette partie' });
     }
     return res.json(state);
@@ -212,6 +214,83 @@ router.post(
   }),
 );
 
+/** Booléen optionnel des toggles de partie : null (hérite), 1 ou 0. */
+function parseOptionalBool(raw) {
+  if (raw == null || raw === '') return null;
+  if (raw === true || raw === 1 || raw === '1' || raw === 'true') return 1;
+  if (raw === false || raw === 0 || raw === '0' || raw === 'false') return 0;
+  return null;
+}
+
+function makeGameRetriggerParse(label) {
+  return (raw) => {
+    if (raw == null || raw === '') return { value: null };
+    const mode = String(raw).trim();
+    if (!MARKER_QUESTION_RETRIGGER_VALUES.has(mode)) return { error: `${label} invalide` };
+    return { value: mode };
+  };
+}
+
+// O-audit §4 — PUT /games/:id : champs optionnels déclaratifs (buildDynamicUpdate).
+// Sémantique « présent mais null » préservée : null/'' → NULL en base (hérite du réglage
+// global) ; champ absent → colonne non touchée. Alias snake_case historiques conservés.
+const GAME_UPDATE_TOGGLE_FIELDS = [
+  {
+    key: 'zoneContentRetrigger',
+    aliases: ['zone_content_retrigger'],
+    column: 'zone_content_retrigger',
+    parse: makeGameRetriggerParse('zoneContentRetrigger'),
+  },
+  {
+    key: 'loreFeuilletRetrigger',
+    aliases: ['lore_feuillet_retrigger'],
+    column: 'lore_feuillet_retrigger',
+    parse: makeGameRetriggerParse('loreFeuilletRetrigger'),
+  },
+  {
+    key: 'loreEffacementEnabled',
+    aliases: ['lore_effacement_enabled'],
+    column: 'lore_effacement_enabled',
+    parse: (raw) => ({ value: parseOptionalBool(raw) }),
+  },
+  {
+    key: 'loreGemmeCostsEnabled',
+    aliases: ['lore_gemme_costs_enabled'],
+    column: 'lore_gemme_costs_enabled',
+    parse: (raw) => ({ value: parseOptionalBool(raw) }),
+  },
+  {
+    key: 'loreHeartRewardsEnabled',
+    aliases: ['lore_heart_rewards_enabled'],
+    column: 'lore_heart_rewards_enabled',
+    parse: (raw) => ({ value: parseOptionalBool(raw) }),
+  },
+  {
+    key: 'boardMovementMode',
+    aliases: ['board_movement_mode'],
+    column: 'board_movement_mode',
+    parse: (raw) => {
+      if (raw == null || raw === '') return { value: null };
+      const mode = String(raw).trim();
+      if (!['free', 'numbered_path'].includes(mode)) {
+        return { error: 'boardMovementMode invalide' };
+      }
+      return { value: mode === 'free' ? null : mode };
+    },
+  },
+  {
+    key: 'boardPathStartIndex',
+    aliases: ['board_path_start_index'],
+    column: 'board_path_start_index',
+    parse: (raw) => {
+      if (raw == null || raw === '') return { value: null };
+      const idx = Number(raw);
+      if (idx !== 0 && idx !== 1) return { error: 'boardPathStartIndex invalide (0 ou 1)' };
+      return { value: idx };
+    },
+  },
+];
+
 router.put(
   '/games/:id',
   requireGlPermission('gl.game.manage'),
@@ -229,38 +308,11 @@ router.put(
     const hasName = req.body?.name != null;
     const hasChapterId = req.body?.chapterId != null;
     const hasClassId = req.body?.classId != null;
-    const hasZoneContentRetrigger =
-      Object.prototype.hasOwnProperty.call(req.body || {}, 'zoneContentRetrigger') ||
-      Object.prototype.hasOwnProperty.call(req.body || {}, 'zone_content_retrigger');
-    const hasLoreFeuilletRetrigger =
-      Object.prototype.hasOwnProperty.call(req.body || {}, 'loreFeuilletRetrigger') ||
-      Object.prototype.hasOwnProperty.call(req.body || {}, 'lore_feuillet_retrigger');
-    const hasLoreEffacementEnabled =
-      Object.prototype.hasOwnProperty.call(req.body || {}, 'loreEffacementEnabled') ||
-      Object.prototype.hasOwnProperty.call(req.body || {}, 'lore_effacement_enabled');
-    const hasLoreGemmeCostsEnabled =
-      Object.prototype.hasOwnProperty.call(req.body || {}, 'loreGemmeCostsEnabled') ||
-      Object.prototype.hasOwnProperty.call(req.body || {}, 'lore_gemme_costs_enabled');
-    const hasLoreHeartRewardsEnabled =
-      Object.prototype.hasOwnProperty.call(req.body || {}, 'loreHeartRewardsEnabled') ||
-      Object.prototype.hasOwnProperty.call(req.body || {}, 'lore_heart_rewards_enabled');
-    const hasBoardMovementMode =
-      Object.prototype.hasOwnProperty.call(req.body || {}, 'boardMovementMode') ||
-      Object.prototype.hasOwnProperty.call(req.body || {}, 'board_movement_mode');
-    const hasBoardPathStartIndex =
-      Object.prototype.hasOwnProperty.call(req.body || {}, 'boardPathStartIndex') ||
-      Object.prototype.hasOwnProperty.call(req.body || {}, 'board_path_start_index');
     if (
       !hasName &&
       !hasChapterId &&
       !hasClassId &&
-      !hasZoneContentRetrigger &&
-      !hasLoreFeuilletRetrigger &&
-      !hasLoreEffacementEnabled &&
-      !hasLoreGemmeCostsEnabled &&
-      !hasLoreHeartRewardsEnabled &&
-      !hasBoardMovementMode &&
-      !hasBoardPathStartIndex
+      !hasAnyDynamicField(req.body, GAME_UPDATE_TOGGLE_FIELDS)
     ) {
       return res.status(400).json({ error: 'Aucune modification fournie' });
     }
@@ -308,107 +360,31 @@ router.put(
       if (!classRow) return res.status(404).json({ error: 'Classe introuvable' });
     }
 
-    let nextZoneContentRetrigger = undefined;
-    if (hasZoneContentRetrigger) {
-      const raw = req.body?.zoneContentRetrigger ?? req.body?.zone_content_retrigger;
-      if (raw == null || raw === '') {
-        nextZoneContentRetrigger = null;
-      } else {
-        const mode = String(raw).trim();
-        if (!MARKER_QUESTION_RETRIGGER_VALUES.has(mode)) {
-          return res.status(400).json({ error: 'zoneContentRetrigger invalide' });
-        }
-        nextZoneContentRetrigger = mode;
-      }
-    }
+    const { updates, params, error } = await buildDynamicUpdate(
+      req.body,
+      GAME_UPDATE_TOGGLE_FIELDS,
+    );
+    if (error) return res.status(400).json({ error });
 
-    function parseOptionalBool(raw) {
-      if (raw == null || raw === '') return null;
-      if (raw === true || raw === 1 || raw === '1' || raw === 'true') return 1;
-      if (raw === false || raw === 0 || raw === '0' || raw === 'false') return 0;
-      return null;
+    const sets = [];
+    const setParams = [];
+    if (hasName) {
+      sets.push('name = ?');
+      setParams.push(nextName);
     }
-
-    let nextLoreFeuilletRetrigger = undefined;
-    if (hasLoreFeuilletRetrigger) {
-      const raw = req.body?.loreFeuilletRetrigger ?? req.body?.lore_feuillet_retrigger;
-      if (raw == null || raw === '') {
-        nextLoreFeuilletRetrigger = null;
-      } else {
-        const mode = String(raw).trim();
-        if (!MARKER_QUESTION_RETRIGGER_VALUES.has(mode)) {
-          return res.status(400).json({ error: 'loreFeuilletRetrigger invalide' });
-        }
-        nextLoreFeuilletRetrigger = mode;
-      }
+    if (hasChapterId) {
+      sets.push('chapter_id = ?');
+      setParams.push(nextChapterId);
     }
-    const nextLoreEffacementEnabled = hasLoreEffacementEnabled
-      ? parseOptionalBool(req.body?.loreEffacementEnabled ?? req.body?.lore_effacement_enabled)
-      : undefined;
-    const nextLoreGemmeCostsEnabled = hasLoreGemmeCostsEnabled
-      ? parseOptionalBool(req.body?.loreGemmeCostsEnabled ?? req.body?.lore_gemme_costs_enabled)
-      : undefined;
-    const nextLoreHeartRewardsEnabled = hasLoreHeartRewardsEnabled
-      ? parseOptionalBool(req.body?.loreHeartRewardsEnabled ?? req.body?.lore_heart_rewards_enabled)
-      : undefined;
-
-    let nextBoardMovementMode = undefined;
-    if (hasBoardMovementMode) {
-      const raw = req.body?.boardMovementMode ?? req.body?.board_movement_mode;
-      if (raw == null || raw === '') {
-        nextBoardMovementMode = null;
-      } else {
-        const mode = String(raw).trim();
-        if (!['free', 'numbered_path'].includes(mode)) {
-          return res.status(400).json({ error: 'boardMovementMode invalide' });
-        }
-        nextBoardMovementMode = mode === 'free' ? null : mode;
-      }
+    if (hasClassId) {
+      sets.push('class_id = ?');
+      setParams.push(nextClassId);
     }
-
-    let nextBoardPathStartIndex = undefined;
-    if (hasBoardPathStartIndex) {
-      const raw = req.body?.boardPathStartIndex ?? req.body?.board_path_start_index;
-      if (raw == null || raw === '') {
-        nextBoardPathStartIndex = null;
-      } else {
-        const idx = Number(raw);
-        if (idx !== 0 && idx !== 1) {
-          return res.status(400).json({ error: 'boardPathStartIndex invalide (0 ou 1)' });
-        }
-        nextBoardPathStartIndex = idx;
-      }
-    }
+    sets.push(...updates, 'updated_at = NOW()');
+    setParams.push(...params);
 
     try {
-      await execute(
-        `UPDATE gl_games
-          SET name = COALESCE(?, name),
-              chapter_id = COALESCE(?, chapter_id),
-              class_id = COALESCE(?, class_id),
-              zone_content_retrigger = ${hasZoneContentRetrigger ? '?' : 'zone_content_retrigger'},
-              lore_feuillet_retrigger = ${hasLoreFeuilletRetrigger ? '?' : 'lore_feuillet_retrigger'},
-              lore_effacement_enabled = ${hasLoreEffacementEnabled ? '?' : 'lore_effacement_enabled'},
-              lore_gemme_costs_enabled = ${hasLoreGemmeCostsEnabled ? '?' : 'lore_gemme_costs_enabled'},
-              lore_heart_rewards_enabled = ${hasLoreHeartRewardsEnabled ? '?' : 'lore_heart_rewards_enabled'},
-              board_movement_mode = ${hasBoardMovementMode ? '?' : 'board_movement_mode'},
-              board_path_start_index = ${hasBoardPathStartIndex ? '?' : 'board_path_start_index'},
-              updated_at = NOW()
-        WHERE id = ?`,
-        [
-          nextName,
-          nextChapterId,
-          nextClassId,
-          ...(hasZoneContentRetrigger ? [nextZoneContentRetrigger] : []),
-          ...(hasLoreFeuilletRetrigger ? [nextLoreFeuilletRetrigger] : []),
-          ...(hasLoreEffacementEnabled ? [nextLoreEffacementEnabled] : []),
-          ...(hasLoreGemmeCostsEnabled ? [nextLoreGemmeCostsEnabled] : []),
-          ...(hasLoreHeartRewardsEnabled ? [nextLoreHeartRewardsEnabled] : []),
-          ...(hasBoardMovementMode ? [nextBoardMovementMode] : []),
-          ...(hasBoardPathStartIndex ? [nextBoardPathStartIndex] : []),
-          gameId,
-        ],
-      );
+      await execute(`UPDATE gl_games SET ${sets.join(', ')} WHERE id = ?`, [...setParams, gameId]);
     } catch (err) {
       if (err && err.code === 'ER_NO_REFERENCED_ROW_2') {
         return res.status(409).json({ error: 'Classe ou chapitre supprimé entre-temps' });
@@ -431,25 +407,22 @@ router.post(
     const gameId = parseId(req.params.id);
     const teamId = parseId(req.body?.teamId);
     if (!gameId || !teamId) return res.status(400).json({ error: 'gameId/teamId invalides' });
-    const teamExists = await queryOne(
-      'SELECT id FROM gl_teams WHERE id = ? AND game_id = ? LIMIT 1',
-      [teamId, gameId],
-    );
-    if (!teamExists) {
-      return res.status(404).json({ error: 'Équipe introuvable' });
-    }
+    // Une seule requête : l'existence de l'équipe décide du 404, l'appartenance de
+    // classe (comparaison SQL, NULL-safe comme l'ancien INNER JOIN) décide du 403.
     const team = await queryOne(
-      `SELECT t.id, t.game_id
+      `SELECT t.id, t.game_id, (p.class_id = g.class_id) AS class_match
        FROM gl_teams t
  INNER JOIN gl_games g ON g.id = t.game_id
- INNER JOIN gl_players p ON p.id = ?
+  LEFT JOIN gl_players p ON p.id = ?
       WHERE t.id = ?
         AND t.game_id = ?
-        AND p.class_id = g.class_id
       LIMIT 1`,
       [req.glAuth.userId, teamId, gameId],
     );
     if (!team) {
+      return res.status(404).json({ error: 'Équipe introuvable' });
+    }
+    if (!Number(team.class_match)) {
       return res.status(403).json({ error: 'Joueur non autorisé pour cette équipe' });
     }
     try {
@@ -473,21 +446,19 @@ router.post(
     const teamId = req.body?.teamId != null ? parseId(req.body.teamId) : null;
     const eventType = normalizeOptionalString(req.body?.eventType);
     const payload = req.body?.payload ?? {};
-    const moveXp = parsePct(payload?.xp);
-    const moveYp = parsePct(payload?.yp);
-    const moveMarkerId = payload?.markerId != null ? parseId(payload.markerId) : null;
-    const hasMovePctPayload = payload?.xp != null || payload?.yp != null;
     if (!gameId || !eventType) return res.status(400).json({ error: 'gameId et eventType requis' });
-    if (eventType === 'move' && teamId == null) {
-      return res.status(400).json({ error: 'teamId requis pour un déplacement' });
+
+    const settings = await getGameplaySettings();
+    const validated = validateEventPayload(eventType, payload, settings, { teamId });
+    if (validated.error) {
+      return res.status(validated.error.status).json({ error: validated.error.message });
     }
-    if (eventType === 'move' && hasMovePctPayload && (moveXp == null || moveYp == null)) {
-      return res.status(400).json({ error: 'xp/yp invalides (attendus entre 0 et 100)' });
-    }
-    if (eventType === 'move' && moveMarkerId == null && !hasMovePctPayload) {
-      return res.status(400).json({ error: 'payload move invalide (markerId ou xp/yp requis)' });
-    }
-    if (eventType === 'move' && teamId != null && moveMarkerId == null && hasMovePctPayload) {
+    const { payloadToStore } = validated;
+    const { markerId: moveMarkerId, xp: moveXp, yp: moveYp, hasPctPayload } = validated.move;
+
+    // Contrôle dépendant de la partie (lecture DB) : déplacement libre interdit en mode
+    // repères numérotés — resté hors de validateEventPayload (validation pure).
+    if (eventType === 'move' && teamId != null && moveMarkerId == null && hasPctPayload) {
       const gameRow = await queryOne(
         'SELECT board_movement_mode FROM gl_games WHERE id = ? LIMIT 1',
         [gameId],
@@ -498,27 +469,7 @@ router.post(
         });
       }
     }
-    const settings = await getGameplaySettings();
-    if (eventType === 'narration' && !settings.narrationEnabled) {
-      return res.status(409).json({ error: 'Narration desactivée dans les réglages' });
-    }
-    if (eventType === 'score' && !settings.scoringEnabled) {
-      return res.status(409).json({ error: 'Score desactivé dans les réglages' });
-    }
-    let payloadToStore = payload;
-    if (eventType === 'narration') {
-      const text = normalizeOptionalString(payload?.text);
-      if (!text) return res.status(400).json({ error: 'Texte de narration requis' });
-      try {
-        const imageUrl = parseNarrationImageUrl(payload?.imageUrl);
-        payloadToStore = imageUrl ? { text, imageUrl } : { text };
-      } catch (err) {
-        if (err?.status === 400)
-          return res.status(400).json({ error: err.message || 'URL image invalide' });
-        throw err;
-      }
-    }
-    const actorType = req.glAuth.userType === 'gl_admin' ? 'mj' : 'team';
+    const actorType = actorTypeOf(req);
     const actorId = String(req.glAuth.userId);
     // Mode classique : un déplacement MJ consomme aussi le tour de l'équipe (1 par tour).
     let moveRoundNumber = null;
@@ -529,12 +480,16 @@ router.post(
       );
       moveRoundNumber = roundRow ? Number(roundRow.current_round_number) || 0 : 0;
     }
+    let createdEvent = null;
     await withTransaction(async (tx) => {
-      await tx.execute(
-        `INSERT INTO gl_game_events (game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, NOW())`,
-        [gameId, teamId, actorType, actorId, eventType, JSON.stringify(payloadToStore)],
-      );
+      createdEvent = await insertGameEvent(tx, {
+        gameId,
+        teamId,
+        actorType,
+        actorId,
+        eventType,
+        payload: payloadToStore,
+      });
       if (eventType === 'move' && teamId != null) {
         await applyTeamMoveTx(tx, {
           gameId,
@@ -568,17 +523,8 @@ router.post(
       throw err;
     });
     if (res.headersSent) return;
-    const evt = await queryOne(
-      `SELECT id, game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at
-       FROM gl_game_events
-      WHERE game_id = ?
-      ORDER BY id DESC
-      LIMIT 1`,
-      [gameId],
-    );
-    const normalized = normalizeEventRow(evt);
-    emitGlGameEvent(gameId, normalized);
-    return res.status(201).json(normalized);
+    emitGlGameEvent(gameId, createdEvent);
+    return res.status(201).json(createdEvent);
   }),
 );
 
@@ -607,6 +553,7 @@ async function startNextRound(req, res) {
   }
   const previousRound = Number(game.current_round_number) || 0;
   const nextRound = previousRound + 1;
+  let roundEvent = null;
   await withTransaction(async (tx) => {
     if (previousRound > 0) {
       await tx.execute(
@@ -624,22 +571,16 @@ async function startNextRound(req, res) {
        ON DUPLICATE KEY UPDATE started_by = VALUES(started_by), started_at = NOW(), ended_at = NULL`,
       [gameId, nextRound, String(req.glAuth.userId)],
     );
-    await tx.execute(
-      `INSERT INTO gl_game_events (game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at)
-       VALUES (?, NULL, 'mj', ?, 'round_start', ?, NOW())`,
-      [gameId, String(req.glAuth.userId), JSON.stringify({ roundNumber: nextRound })],
-    );
+    roundEvent = await insertGameEvent(tx, {
+      gameId,
+      actorType: 'mj',
+      actorId: String(req.glAuth.userId),
+      eventType: 'round_start',
+      payload: { roundNumber: nextRound },
+    });
   });
-  const evt = await queryOne(
-    `SELECT id, game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at
-       FROM gl_game_events
-      WHERE game_id = ?
-      ORDER BY id DESC LIMIT 1`,
-    [gameId],
-  );
-  const normalized = normalizeEventRow(evt);
-  emitGlGameEvent(gameId, normalized);
-  return res.json({ ok: true, roundNumber: nextRound, event: normalized });
+  emitGlGameEvent(gameId, roundEvent);
+  return res.json({ ok: true, roundNumber: nextRound, event: roundEvent });
 }
 
 router.post(
@@ -724,7 +665,7 @@ router.post(
     if (!team) return res.status(404).json({ error: 'Équipe introuvable dans cette partie' });
 
     const isStaff =
-      req.glAuth.userType === 'gl_admin' &&
+      isMj(req) &&
       (req.glAuth.permissions || []).some((perm) =>
         ['gl.event.emit', 'gl.game.manage', 'gl.mascot.position'].includes(perm),
       );
@@ -756,12 +697,16 @@ router.post(
     const actorId = String(req.glAuth.userId);
     const payload = { values: roll.values, total: roll.total, roundNumber };
 
+    let diceEvent = null;
     await withTransaction(async (tx) => {
-      await tx.execute(
-        `INSERT INTO gl_game_events (game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at)
-         VALUES (?, ?, ?, ?, 'dice_roll', ?, NOW())`,
-        [gameId, teamId, actorType, actorId, JSON.stringify(payload)],
-      );
+      diceEvent = await insertGameEvent(tx, {
+        gameId,
+        teamId,
+        actorType,
+        actorId,
+        eventType: 'dice_roll',
+        payload,
+      });
       if (settings.turnsEnabled && roundNumber > 0) {
         await tx.execute(
           'UPDATE gl_teams SET last_dice_round_number = ?, updated_at = NOW() WHERE id = ? AND game_id = ?',
@@ -770,14 +715,8 @@ router.post(
       }
     });
 
-    const evt = await queryOne(
-      `SELECT id, game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at
-         FROM gl_game_events WHERE game_id = ? ORDER BY id DESC LIMIT 1`,
-      [gameId],
-    );
-    const normalized = normalizeEventRow(evt);
-    emitGlGameEvent(gameId, normalized);
-    return res.status(201).json(normalized);
+    emitGlGameEvent(gameId, diceEvent);
+    return res.status(201).json(diceEvent);
   }),
 );
 
@@ -855,20 +794,17 @@ router.post(
       });
     }
 
+    let moveEvent = null;
     try {
       await withTransaction(async (tx) => {
-        await tx.execute(
-          `INSERT INTO gl_game_events (game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at)
-           VALUES (?, ?, 'team', ?, 'move', ?, NOW())`,
-          [
-            gameId,
-            teamId,
-            String(req.glAuth.userId),
-            JSON.stringify(
-              moveMarkerId != null ? { markerId: moveMarkerId } : { xp: moveXp, yp: moveYp },
-            ),
-          ],
-        );
+        moveEvent = await insertGameEvent(tx, {
+          gameId,
+          teamId,
+          actorType: 'team',
+          actorId: String(req.glAuth.userId),
+          eventType: 'move',
+          payload: moveMarkerId != null ? { markerId: moveMarkerId } : { xp: moveXp, yp: moveYp },
+        });
         await applyTeamMoveTx(tx, {
           gameId,
           teamId,
@@ -885,14 +821,8 @@ router.post(
       throw err;
     }
 
-    const evt = await queryOne(
-      `SELECT id, game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at
-         FROM gl_game_events WHERE game_id = ? ORDER BY id DESC LIMIT 1`,
-      [gameId],
-    );
-    const normalized = normalizeEventRow(evt);
-    emitGlGameEvent(gameId, normalized);
-    return res.status(201).json(normalized);
+    emitGlGameEvent(gameId, moveEvent);
+    return res.status(201).json(moveEvent);
   }),
 );
 
@@ -981,25 +911,16 @@ router.post(
     }
 
     const popover = serializeZonePopoverRow(zoneRow);
-    const actorType = req.glAuth.userType === 'gl_admin' ? 'mj' : 'team';
-    await execute(
-      `INSERT INTO gl_game_events (game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, NOW())`,
-      [
-        gameId,
-        teamId,
-        actorType,
-        String(req.glAuth.userId),
-        ZONE_CONTENT_PRESENT_EVENT,
-        JSON.stringify({ zoneId, zoneLabel: zoneRow.label }),
-      ],
-    );
-    const evt = await queryOne(
-      `SELECT id, game_id, team_id, actor_type, actor_id, event_type, payload_json, created_at
-       FROM gl_game_events WHERE game_id = ? ORDER BY id DESC LIMIT 1`,
-      [gameId],
-    );
-    if (evt) emitGlGameEvent(gameId, normalizeEventRow(evt));
+    const actorType = actorTypeOf(req);
+    const contentEvent = await insertGameEvent(dbModule, {
+      gameId,
+      teamId,
+      actorType,
+      actorId: String(req.glAuth.userId),
+      eventType: ZONE_CONTENT_PRESENT_EVENT,
+      payload: { zoneId, zoneLabel: zoneRow.label },
+    });
+    emitGlGameEvent(gameId, contentEvent);
 
     return res.json({
       zone: {
@@ -1052,3 +973,5 @@ module.exports = router;
 // exportés pour test no-DB du contrat O7
 module.exports.glGamesListQuerySchema = glGamesListQuerySchema;
 module.exports.glGamesFeuilletPresentedQuerySchema = glGamesFeuilletPresentedQuerySchema;
+// exportée pour tests de contrat §4 (sémantique champ par champ du PUT /games/:id)
+module.exports.GAME_UPDATE_TOGGLE_FIELDS = GAME_UPDATE_TOGGLE_FIELDS;

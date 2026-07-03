@@ -7,6 +7,203 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Audit — Vague 6 (finale) : micro-items soldés
+
+- **Formulaires** : `LocationPickList` (3 clones de pick-list zones/repères),
+  `useTutorialSearch`, `TaskFormTutorialsField` réutilisé ; `ImportPanel`
+  générique partagé (imports tâches/n3beurs/plantes en adaptateurs).
+- **Tâches** : `assignmentMatchesStudent` unifie le matching (×4 copies +
+  variantes App/notifications) ; props volatiles des tuiles séparées —
+  `React.memo(TaskTileCard)` réellement effectif ; `TaskProjectsBlock`
+  mémoïsé ; toasts de tutorials-views via `showToast` (timers nettoyés).
+- **Hooks & perf** : `useTutorialReadIds`/`usePlantObservationCounts` (fin du
+  refetch par poll), `usePlantCatalogFilters`, Map plante→lieux,
+  `TeacherLeaderboard` mémoïsé, `FoodWebGraph` en rAF, resync des champs
+  cartes (AdminSettingFields), code mort `useNotificationCenter`, géométrie
+  dédupliquée, micro-items mascotte (double filtre, préchargement, props mortes).
+- **GL (chore(gl))** : `isMj()` (×17 tests inline), `buildDynamicUpdate`
+  déclaratif (PUT chapters/games, ×47 if-chains, « présent mais null »
+  préservé), `validateEventPayload`, `upsertGlSetting`, tirage QCM sur
+  `question_code` seul ; message « Accès refusé à cette partie » restauré
+  (contrat testé, unification erronée d'agent corrigée).
+
+### Audit — Vague 5 : god components découpés, chargement initial allégé
+
+- **App.jsx 2 270 → 1 697 lignes** : `AppHeader` (vague 4) + `NoticeBanner`,
+  `isTeacher` dérivé d'`authClaims`, hook `useAuthSession` (session,
+  impersonation, restauration — testé), dédup des arbres prof/élève
+  (`MapTasksArea`, `PedagoTabs`, différences de props cartographiées et
+  préservées).
+- **VisitViewImpl −438 lignes** : `useVisitContent`, `useVisitSeenSync`,
+  `useVisitMapMascotController`, couches `VisitZonesSvgLayer` (polygones
+  pré-parsés) / `VisitMarkersLayer` mémoïsées.
+- **MapViewImpl −430 lignes + correctifs P1 gestes** : listeners plus
+  ré-attachés à chaque rendu, API `useMapGestures` mémoïsée, borne pinch
+  alignée (6→8) ; `ZonePolygonsLayer`/`DrawingLayer`/`EditPointsLayer` +
+  `useZoneDrawing`/`useZoneEditPoints`/`useMapCrudActions`.
+- **VisitMascotPackManager −450 lignes** : `savePack` unifié, hooks
+  assets/bulk-actions testés, `fileToPngDataUrl` en util, timers de feedback
+  nettoyés (`useTransientMessage`).
+- **GL (chore(gl))** : `useGlToasts`, `socket.io-client` en import dynamique
+  (chunk hors chargement initial des deux fronts), `gl-admin.css` (1 704 L)
+  extrait de `gl-theme.css` et chargé par les vues lazy.
+
+### Audit — Vague 4 : chantiers structurants
+
+- **Modales carte mutualisées** : panneaux tâches/tutoriels paramétrés par
+  `locationKind` et réutilisés par `MarkerModal` (fin des versions inline),
+  `LocationModalTabBar` unique, aside visite commun, dérivations partagées
+  (`useLocationModalData`, mémoïsation P0 anti-boucle préservée), médias visite
+  (`useVisitMediaBlocks`) — ~400 lignes dupliquées éliminées.
+- **Hooks « arrival » GL (chore(gl))** : 33 tests de caractérisation écrits
+  AVANT refactor, puis noyau `useGLZonePresence` (dédup, suivi de position,
+  timers) — 4 hooks migrés en stratégies minces, `useGLMarkerArrival` laissé
+  volontairement (divergence documentée). La mécanique temps réel n'existe
+  plus qu'en un exemplaire testé.
+- **Socle QCM backend (chore(gl))** : `lib/shared/questionCrudCore.js` +
+  `xlsxImportCore.js` — les 6 fichiers gl/fm Qcm{Crud,Import} deviennent des
+  adaptateurs (3 176 → 2 649 lignes), schémas de colonnes et messages français
+  exacts préservés par produit.
+- **ProfilesAdminView** : panneaux autonomes (CreateUserPanel,
+  StudentImportPanel, UserEditModal possèdent leur état ; `useRoleEditFields`)
+  — fin du prop drilling à 21-35 props, ~920 → 751 lignes.
+- **App.jsx** : extraction d'`AppHeader` (2 270 → 2 127 lignes, étape 1 du
+  découpage ; suite prévue : `useAuthSession`, dédup des arbres prof/élève).
+
+### Audit — Vague 3 : extraction server.js, perf visite, infra
+
+- **server.js 950 → 619 lignes** (déplacement pur) : `routes/admin-ops.js`
+  (4 endpoints DEPLOY_SECRET + middleware `requireDeploySecret` factorisant la
+  garde répétée 4×), `routes/health.js`, `lib/rateLimit.js` (propriétés
+  `message` mortes supprimées). `middleware/requireTeacher.js` : bloc
+  verify+hydrate unique (`resolveAuthOrRespond`) pour les 3 middlewares —
+  statuts, messages et ordre inchangés, tests auth passés sans modification.
+- **Perf (visite mobile)** : pan/zoom sans re-render par frame — nouveau hook
+  `useVisitMapTransform` (transform en ref + style impératif sous rAF, commit
+  en fin de geste, pattern `useMapGestures`) ; fin du setState par pointermove
+  qui re-rendait ~1 600 lignes par frame.
+- **Infra** : `uuid` → `crypto.randomUUID()` natif (dépendance retirée) ;
+  `marked`/`isomorphic-dompurify`/`@rive-app/react-canvas`/`turndown` en
+  devDependencies (runtime prod allégé) ; globals ESLint via le paquet
+  `globals` (~120 lignes de listes manuelles en moins) ; `initSchema` mémoïsé
+  entre fichiers d'un même run de tests (sentinelle vérifiée par empreinte
+  schéma+migrations et version BDD) ; scripts npm morts supprimés
+  (`test:load:normal`, `release:*`), login en dur retiré de `db:admin:audit*` ;
+  garde-fou anti-miroir-CJS-incomplet dans `sync-gl-pack-server-lib`.
+- **Éditeur QCM générique** : `src/shared/qcm/QuestionEditorPanel.jsx`
+  (descripteur : endpoints, formulaire, filtres/tris, autosave GL vs soumission
+  manuelle FM, client HTTP et composants UI injectés) + `questionEditorFormCore` —
+  les 3 panneaux clones (~68 %) deviennent des adaptateurs minces, exports des
+  modules de formulaire inchangés (diff +490/−1185 sur l'existant).
+- **Frontière GL** : 10 utilitaires GL-only déménagés de `src/utils/` vers
+  `src/gl/utils/` (git mv purs, 42 fichiers d'imports) ; `glMascotCatalog` et
+  `glMascotPackToVisit` restent (lus dynamiquement par le backend).
+
+### Audit — Vague 2 : mutualisations structurelles (lots 4-5 partiels)
+
+- **Cluster tasks** : 18 fonctions recopiées 2-3× entre `routes/tasks.js`,
+  `tasks/proposals.js` et `tasks/assignments.js` regroupées dans
+  `lib/tasks/taskQueries.js` (≈ −360 lignes) ; les réponses proposals/assign
+  exposent désormais les mêmes champs espèces que `GET /api/tasks/:id`.
+  **Transactions** : `POST /api/tasks` et `POST /proposals` atomiques
+  (rollback remplaçant le nettoyage manuel qui laissait des jointures
+  orphelines) ; `replaceTaskJoinRows`/`setTask*` acceptent un exécuteur (db/tx).
+- **Cluster visit** : `nowIso`/`resolveVisitMapId`/`mapExists` (6 copies
+  identiques) regroupés dans `lib/visitRouteShared.js` (≈ −72 lignes) ;
+  rebuild-from-map de `visit/sync.js` en 1 SELECT `IN` par type de cible.
+- **GL (chore(gl))** : paires Lore/non-Lore mutualisées —
+  `lib/shared/questionQueryFactory.js`, `questionPoolFiltering.js`,
+  `glossaryNormalization.js` ; les 6 fichiers `gl*` deviennent des adaptateurs
+  minces, exports et messages inchangés à l'octet près (≈ −180 lignes).
+- **Frontend** : boucle fetch/retry commune extraite dans
+  `src/shared/fetchJsonWithRetry.js` (composée avec `apiTransport`, getters de
+  jeton et gestion 401 injectés — stores de session ForetMap/GL inchangés) ;
+  `api()`/`apiGL()` adaptateurs ; `src/shared/downloadAuthedFile.js` pour
+  `downloadApiFile`/`downloadGlFile` (≈ −150 lignes dupliquées, dérive
+  historique `jwt_expired` préservée et documentée).
+- **Helpers backend** : `lib/helpers.js` supprimé (mort) ;
+  `getPasswordMinLength`, `rethrowSlugConflict`, `normalizeOptionalString`
+  (×10), `normalizeImportHeader` (×6), `parseId` (×9) unifiés vers leurs
+  canoniques ; `routes/learning-links.js` (FM et GL) migrés vers
+  `asyncHandler` (fin du reliquat O8 sur ces fichiers, ≈ −185 lignes).
+- **Tests** : nouveaux tests unitaires purs (`gl-qcm-shared-helpers`,
+  `tasks-queries-atomic`, `fetchJsonWithRetry`, `downloadAuthedFile`).
+
+### Audit — Lot 2 (partie 1) : hygiène et code mort
+
+- **Code mort supprimé** : `src/components/mascot/MascotAssetsLibraryPanel.jsx`
+  (264 L, remplacé par le panneau Images unifié, plus importé nulle part) + son
+  test ; shim `src/gl/utils/glQcmCatalogPanel.js` (ré-exports jamais consommés —
+  test retargeté sur `src/shared/qcm/qcmCatalogPanelQuery.js`) ; variable
+  `plantObj` inutilisée (`ZoneInfoModal`).
+- **Mutualisation front** : copies locales de `usePrefersReducedMotion`
+  remplacées par le hook partagé (`VisitMapMascotSpriteCut`,
+  `MascotPackRenderPreview`) ; les 3 téléchargements authentifiés « à la main »
+  (modèles d'import n3beurs/tâches, export stats) passent par
+  `downloadApiFile` (meilleurs messages d'erreur 401/403/404) ;
+  `canRename`/`canReplace` fusionnés (`MascotPackImagesPanel`).
+
+### Audit — Lot 3 (partie 1) : élimination des N+1 SQL
+
+- **Perf (stats prof)** : `GET /api/stats/all` et `/api/stats/export` n'exécutent
+  plus « un SELECT `task_assignments` par élève » : agrégation unique
+  `GROUP BY (élève, statut)` avec matching id OU (prénom, nom) conservé **en SQL**
+  (collation `_ci` du matching legacy préservée). La synchro de rôle garde ses
+  effets de bord (promotion) — pour ~200 élèves : ~400 requêtes → ~N lectures de
+  rôle indexées + 5 requêtes.
+- **Perf (groupes)** : `GET /api/groups` — enrichissement batch (`enrichGroupRows`,
+  2 requêtes `IN`) au lieu de 2 `queryOne` par groupe.
+- **Perf (zones)** : `GET /api/zones` ne charge plus toute la table `zone_history`
+  (SELECT `IN` sur les zones retournées + regroupement en `Map`, fini le filtre
+  JS en O(zones × historique)).
+- **Perf (visite)** : `PUT /api/visit/tutorials` — 1 SELECT `IN` + 1 INSERT
+  multi-valeurs au lieu d'un exists-check + INSERT par tutoriel (ordre et skip
+  silencieux préservés).
+- **Perf (projets)** : `setProjectZones/Markers/Tutorials` en DELETE + INSERT
+  multi-valeurs (au lieu d'un INSERT par ligne) ; `validateProjectLinksForMap`
+  en 2 requêtes `IN` (messages d'erreur et ordre de validation inchangés).
+
+### Audit — Lots 0 & 1 : correctifs P0 et quick wins performance
+
+- **Fix (P0)** : boucle infinie de re-renders dans `MarkerModal`/`ZoneInfoModal`
+  (« Maximum update depth exceeded », CPU saturé modale ouverte) — chaîne
+  `linkedTasks` → `studentAssignableTasks` mémoïsée + setState qui garde la
+  référence quand la sélection ne change pas.
+- **Fix (GL, concurrence)** : les 14 sites « INSERT événement → re-SELECT
+  `ORDER BY id DESC LIMIT 1` » passent par un helper `insertGameEvent()`
+  (`lib/glGameEvents.js`) basé sur `insertId` — sous charge, une requête ne peut
+  plus émettre l'événement d'une autre. Corrige aussi la ré-émission d'un vieil
+  événement par le `LIMIT 2` de la résolution d'action.
+- **Fix (migrations)** : garde-fou au démarrage contre les numéros de migration
+  dupliqués (doublons historiques 021/037 tolérés et désormais réellement
+  appliqués lors d'une migration fraîche ; tout nouveau doublon fait échouer le boot).
+- **Perf (BDD)** : migration `161_perf_indexes_audit.sql` — index
+  `task_assignments`/`task_logs` (prénom+nom), `zone_history (zone_id, harvested_at)`,
+  `observation_logs (created_at)` (snapshot mis à jour) ; suppression des
+  `LOWER(col)=LOWER(?)` non sargables sur `users` (17 requêtes login/inscription/reset,
+  collation `_ci` : sémantique inchangée, les index uniques redeviennent utilisables).
+- **Perf (HTTP)** : `dist/assets/*` (noms hashés Rollup) servis en
+  `Cache-Control: public, max-age=31536000, immutable` (`lib/staticCacheHeaders.js`) —
+  fin des revalidations à chaque visite (dont ~2×1,9 Mo de wasm Rive) ; HTML toujours `no-store`.
+- **Perf (front)** : chaîne de filtrage de `TasksView` entièrement mémoïsée
+  (`visibleProjects`, `allFiltered`, partition par statut, `collectUsedLocationIds`) —
+  les `useMemo` en aval ne sont plus invalidés à chaque frappe/toast.
+- **Perf (front, polling)** : `fetchAll` (App.jsx) conserve la référence des tableaux
+  quand le contenu re-téléchargé est identique (`src/utils/stableCollection.js`,
+  égalité profonde) — plus de re-render global du DataContext à chaque poll sans
+  changement ; handlers de la visite publique invitée stabilisés en `useCallback`
+  (`React.memo(VisitView)` redevient effectif en mode invité).
+- **Bundle** : le chunk visite n'importe plus via le barrel `map-views`
+  (`ImageLightbox` et panneaux biodiversité importés directement) ; ré-exports
+  morts de `foretmap-views.jsx` supprimés (ils tiraient `tasks-views` +
+  `map-views` dans le chunk lazy biodiversité).
+- **CI** : suite backend exécutée une seule fois (coverage) au lieu de deux ;
+  job `quality` parallèle (lint + format + Vitest, sans MariaDB ni db:init) ;
+  bloc `env` BDD hissé au niveau du job. Chunk `react-vendor` borné par regex
+  (`react|react-dom|scheduler`).
+- **Tests** : `tests/static-cache-headers.test.js`, `tests/migrations-guard.test.js`
+  (garde-fou + présence des index), fake tx du test auto-move aligné sur `insertGameEvent`.
+
 ### Audit de code — simplification, mutualisation, performance
 
 - **Documentation** : nouvel audit expert consolidé `docs/AUDIT_CODE_2026-07.md` (analyse en
