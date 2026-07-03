@@ -7,6 +7,28 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Audit — Vague 7 (clôture) : derniers reliquats
+
+- **GL `admin.js` 1355 → 1217 L** : reset-password/pin unifiés, `PUT
+  /settings/:key` en table de validateurs (Map anti-`__proto__`) +
+  `upsertGlSetting`, import joueurs extrait (`lib/gl/importPlayers.js`) avec
+  fin du N+1 d'unicité (`IN (…)` borné au fichier au lieu de la table
+  entière) ; re-fetch après écriture réduits (mascots/context-comments
+  construits depuis `insertId`, conservations justifiées en commentaire).
+- **Projections `SELECT *`** : stats (3 sites, `password_hash` ne transite
+  plus), auth (PATCH profil, réponse, register) ; liste plantes volontairement
+  inchangée (36/37 colonnes réellement consommées par le front — documenté).
+- **AppGL 1574 → 1098 L** : `useGlGameRuntime` (gameplay + socket + dés,
+  609 L zéro JSX, 13 tests) et `useGlSessionState` ; callbacks console MJ
+  stabilisés. **Panneaux admin GL** : `useGlAdminCrud` adopté par
+  Species/Spells/Glossary (−145 L), feuillets 17 → 8 useState
+  (`useGlFeuilletBulkEdit`).
+- **TasksView 1174 → 990 L** : 5 hooks de domaine (modales, filtres, données
+  prof, affectation rapide, drag & drop), 40 nouveaux tests.
+- **App.jsx** : snapshot `fetchAll` posé en effet (sûr en rendu concurrent),
+  fallback `currentUser` mémoïsé.
+
+
 ### Audit — Vague 6 (finale) : micro-items soldés
 
 - **Formulaires** : `LocationPickList` (3 clones de pick-list zones/repères),
