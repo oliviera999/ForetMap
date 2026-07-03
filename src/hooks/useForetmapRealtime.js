@@ -1,4 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+// Import statique volontaire (contrairement au côté GL où socket.io-client est importé
+// dynamiquement) : ici la connexion temps réel est systématique dès le montage pour toute
+// session élève/prof (`enabled: !!(student || effectiveIsTeacher)` dans App.jsx, session
+// restaurée du localStorage au démarrage). Un import dynamique ne ferait que retarder la
+// connexion sans alléger réellement le chargement du cas d'usage principal (utilisateur
+// connecté). Le chunk `socket-io` (manualChunks Vite) reste de toute façon séparé.
 import { io } from 'socket.io-client';
 import { api, AccountDeletedError, API, withAppBase, getAuthToken } from '../services/api';
 
