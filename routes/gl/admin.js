@@ -6,6 +6,7 @@ const { logAudit } = require('../audit');
 const {
   invalidateGameplayCache,
   invalidateModulesCache,
+  upsertGlSetting,
   MARKER_QUESTION_RETRIGGER_VALUES,
   LORE_SPOILER_LEVELS,
   SPELL_CAST_CONTRIBUTION_MODES,
@@ -21,12 +22,11 @@ const {
   MAX_IMPORT_ROWS,
   PSEUDO_RE,
   normalizeOptionalString: normalizeImportOptionalString,
-  buildPlayerImportPayload,
-  validatePlayerImportPayload,
   resolveImportRows,
   buildCsvTemplate,
   buildXlsxTemplate,
 } = require('../../lib/glPlayersImport');
+const { importPlayersFromRows } = require('../../lib/gl/importPlayers');
 const {
   saveMediaFromDataUrl,
   listMediaLibraryItems,
@@ -505,15 +505,19 @@ router.delete(
   }),
 );
 
-router.post(
-  '/players/:id/reset-password',
-  requireGlPermission('gl.players.manage'),
-  asyncHandler(async (req, res) => {
+/**
+ * O-audit — reset-password / reset-pin : les deux handlers étaient identiques au champ
+ * du body et au message 400 près (même UPDATE de `password_hash`). Fabrique commune
+ * paramétrée par la lecture du secret et le message « requis » ; statuts, messages et
+ * réponse `{ ok: true }` inchangés.
+ */
+function buildPlayerCredentialResetHandler({ readSecret, missingMessage }) {
+  return asyncHandler(async (req, res) => {
     const id = Number(req.params.id);
-    const password = normalizePassword(req.body?.password);
+    const password = readSecret(req.body);
     if (!Number.isFinite(id)) return res.status(400).json({ error: 'Identifiant invalide' });
     if (!password || password.length < 4) {
-      return res.status(400).json({ error: 'Mot de passe requis (min 4 caractères)' });
+      return res.status(400).json({ error: missingMessage });
     }
     const existing = await queryOne('SELECT id FROM gl_players WHERE id = ? LIMIT 1', [id]);
     if (!existing) return res.status(404).json({ error: 'Joueur introuvable' });
@@ -523,27 +527,24 @@ router.post(
       [hash, id],
     );
     return res.json({ ok: true });
+  });
+}
+
+router.post(
+  '/players/:id/reset-password',
+  requireGlPermission('gl.players.manage'),
+  buildPlayerCredentialResetHandler({
+    readSecret: (body) => normalizePassword(body?.password),
+    missingMessage: 'Mot de passe requis (min 4 caractères)',
   }),
 );
 
 router.post(
   '/players/:id/reset-pin',
   requireGlPermission('gl.players.manage'),
-  asyncHandler(async (req, res) => {
-    const id = Number(req.params.id);
-    const password = normalizePassword(req.body?.pin) || normalizePassword(req.body?.password);
-    if (!Number.isFinite(id)) return res.status(400).json({ error: 'Identifiant invalide' });
-    if (!password || password.length < 4) {
-      return res.status(400).json({ error: 'PIN/mot de passe requis (min 4 caractères)' });
-    }
-    const existing = await queryOne('SELECT id FROM gl_players WHERE id = ? LIMIT 1', [id]);
-    if (!existing) return res.status(404).json({ error: 'Joueur introuvable' });
-    const hash = await bcrypt.hash(password, 10);
-    await execute(
-      'UPDATE gl_players SET password_hash = ?, password_must_reset = 0, updated_at = NOW() WHERE id = ?',
-      [hash, id],
-    );
-    return res.json({ ok: true });
+  buildPlayerCredentialResetHandler({
+    readSecret: (body) => normalizePassword(body?.pin) || normalizePassword(body?.password),
+    missingMessage: 'PIN/mot de passe requis (min 4 caractères)',
   }),
 );
 
@@ -643,6 +644,9 @@ router.get(
   }),
 );
 
+// O-audit — logique d'import extraite dans lib/gl/importPlayers.js (validation + création +
+// rapport identiques) ; la vérification d'unicité pseudo/email y est bornée aux valeurs du
+// fichier (`WHERE … IN (…)`) au lieu de charger toute la table gl_players.
 router.post(
   '/players/import',
   requireGlPermission('gl.players.manage'),
@@ -660,149 +664,8 @@ router.post(
     if (parsedRows.length > MAX_IMPORT_ROWS) {
       return res.status(400).json({ error: `Trop de lignes (max ${MAX_IMPORT_ROWS})` });
     }
-
-    const classRows = await queryAll('SELECT id, name FROM gl_classes');
-    const classIdByName = new Map(
-      classRows.map((row) => [
-        String(row.name || '')
-          .trim()
-          .toLowerCase(),
-        Number(row.id),
-      ]),
-    );
-    const existingPseudos = await queryAll('SELECT pseudo FROM gl_players');
-    const knownPseudos = new Set(
-      existingPseudos.map((row) =>
-        String(row.pseudo || '')
-          .trim()
-          .toLowerCase(),
-      ),
-    );
-    const existingEmails = await queryAll('SELECT email FROM gl_players WHERE email IS NOT NULL');
-    const knownEmails = new Set(
-      existingEmails.map((row) =>
-        String(row.email || '')
-          .trim()
-          .toLowerCase(),
-      ),
-    );
-
-    const errors = [];
-    const validRows = [];
-    for (let i = 0; i < parsedRows.length; i += 1) {
-      const rowNumber = i + 2;
-      const payload = buildPlayerImportPayload(parsedRows[i]);
-      const rowErrors = validatePlayerImportPayload(payload, rowNumber, { passwordMinLength: 4 });
-      const normalizedPseudo = payload.pseudo ? payload.pseudo.toLowerCase() : null;
-      const normalizedClass = payload.className ? payload.className.toLowerCase() : null;
-
-      if (normalizedPseudo && !PSEUDO_RE.test(normalizedPseudo)) {
-        rowErrors.push({
-          row: rowNumber,
-          field: 'pseudo',
-          error: 'Pseudo invalide (3-30 caractères, lettres/chiffres/._-)',
-        });
-      }
-      if (normalizedPseudo && knownPseudos.has(normalizedPseudo)) {
-        rowErrors.push({ row: rowNumber, field: 'pseudo', error: 'Pseudo déjà utilisé' });
-      }
-      const normalizedEmail = payload.email ? payload.email.toLowerCase() : null;
-      if (normalizedEmail && !PLAYER_EMAIL_RE.test(normalizedEmail)) {
-        rowErrors.push({ row: rowNumber, field: 'email', error: 'Email invalide' });
-      }
-      if (normalizedEmail && knownEmails.has(normalizedEmail)) {
-        rowErrors.push({ row: rowNumber, field: 'email', error: 'Email déjà utilisé' });
-      }
-      const classId = normalizedClass ? classIdByName.get(normalizedClass) : null;
-      if (!classId) {
-        rowErrors.push({ row: rowNumber, field: 'className', error: 'Classe introuvable' });
-      }
-      if (rowErrors.length) {
-        errors.push(...rowErrors);
-        continue;
-      }
-      knownPseudos.add(normalizedPseudo);
-      if (normalizedEmail) knownEmails.add(normalizedEmail);
-      validRows.push({
-        rowNumber,
-        firstName: payload.firstName,
-        lastName: payload.lastName,
-        pseudo: normalizedPseudo,
-        email: normalizedEmail,
-        classId,
-        password: payload.password || null,
-      });
-    }
-
-    let created = 0;
-    if (!dryRun) {
-      for (const row of validRows) {
-        const effectivePassword = row.password || buildGeneratedPassword();
-        const passwordHash = await bcrypt.hash(effectivePassword, 10);
-        const passwordMustReset = row.password ? 0 : 1;
-        try {
-          const gameplayDefaults = getDefaultVitalityFromSettings(await getGameplaySettings());
-          const foretmapLink = await upsertForetmapUserForGlPlayer({
-            classId: row.classId,
-            firstName: row.firstName,
-            lastName: row.lastName,
-            pseudo: row.pseudo,
-            email: row.email,
-            passwordHash,
-          });
-          if (!foretmapLink.ok) {
-            errors.push({
-              row: row.rowNumber,
-              field: 'pseudo',
-              error: foretmapLink.error || 'Liaison ForetMap impossible',
-            });
-            continue;
-          }
-          await execute(
-            `INSERT INTO gl_players
-            (class_id, team_id, first_name, last_name, email, pseudo, password_must_reset, password_hash,
-             linked_foretmap_user_id, is_active, health_points, power_points, created_at, updated_at)
-           VALUES (?, NULL, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, NOW(), NOW())`,
-            [
-              row.classId,
-              row.firstName,
-              row.lastName,
-              row.email,
-              row.pseudo,
-              passwordMustReset,
-              passwordHash,
-              foretmapLink.user.id,
-              gameplayDefaults.health,
-              gameplayDefaults.power,
-            ],
-          );
-          created += 1;
-        } catch (err) {
-          const code = String(err?.code || '');
-          if (code === 'ER_DUP_ENTRY') {
-            errors.push({
-              row: row.rowNumber,
-              field: 'pseudo',
-              error: 'Pseudo déjà utilisé',
-            });
-            continue;
-          }
-          throw err;
-        }
-      }
-    }
-
-    return res.json({
-      report: {
-        totals: {
-          received: parsedRows.length,
-          valid: validRows.length,
-          skipped_invalid: errors.length > 0 ? parsedRows.length - validRows.length : 0,
-          created,
-        },
-        errors,
-      },
-    });
+    const report = await importPlayersFromRows(parsedRows, { dryRun });
+    return res.json({ report });
   }),
 );
 
@@ -870,6 +733,172 @@ router.get(
   }),
 );
 
+/*
+ * O-audit — PUT /settings/:key : les 8 blocs identiques « trim + appartenance à un Set »
+ * et les gardes booléens/numériques sont regroupés en table clé → validateur.
+ * Chaque validateur renvoie `{ error }` (→ 400, message historique inchangé) ou
+ * `{ value }` (valeur normalisée à persister). Une clé sans validateur est persistée
+ * telle quelle, comme avant.
+ */
+const enumSettingValidator = (allowedValues, errorMessage) => (value) => {
+  const mode = typeof value === 'string' ? value.trim() : String(value || '').trim();
+  if (!allowedValues.has(mode)) return { error: errorMessage };
+  return { value: mode };
+};
+
+const booleanSettingValidator = (errorMessage) => (value) =>
+  typeof value === 'boolean' ? { value } : { error: errorMessage };
+
+const vitalityPointsSettingValidator = (value) => {
+  const n = Number(value);
+  if (!Number.isFinite(n) || !Number.isInteger(n) || n < 0 || n > 99) {
+    return { error: 'La valeur doit être un entier entre 0 et 99' };
+  }
+  return { value: clampVitality(n) };
+};
+
+// Map (et non objet littéral) pour éviter toute collision avec Object.prototype
+// (`:key` est contrôlé par le client : constructor, __proto__, …).
+const SETTINGS_VALUE_VALIDATORS = new Map([
+  [
+    'gameplay.marker_question_retrigger',
+    enumSettingValidator(
+      MARKER_QUESTION_RETRIGGER_VALUES,
+      'Valeur marker_question_retrigger invalide',
+    ),
+  ],
+  [
+    'gameplay.zone_content_retrigger',
+    enumSettingValidator(
+      MARKER_QUESTION_RETRIGGER_VALUES,
+      'Valeur zone_content_retrigger invalide',
+    ),
+  ],
+  [
+    'gameplay.spell_cast_contribution_mode',
+    enumSettingValidator(
+      SPELL_CAST_CONTRIBUTION_MODES,
+      'Mode de contribution invalide (coordinator, self_only, both)',
+    ),
+  ],
+  [
+    'gameplay.spell_cast_team_scope',
+    enumSettingValidator(
+      SPELL_CAST_TEAM_SCOPES,
+      'Périmètre équipe invalide (any_team, own_team, mj_any)',
+    ),
+  ],
+  [
+    'gameplay.spell_cast_mj_only',
+    booleanSettingValidator('La valeur de spell_cast_mj_only doit être booléenne'),
+  ],
+  [
+    'gameplay.spell_cast_approval_mode',
+    enumSettingValidator(
+      SPELL_CAST_APPROVAL_MODES,
+      'Mode d’approbation invalide (auto, mj_required, per_spell)',
+    ),
+  ],
+  [
+    'gameplay.mascot_move_actor',
+    enumSettingValidator(MASCOT_MOVE_ACTORS, 'Acteur de déplacement invalide (players, mj)'),
+  ],
+  ['gameplay.qcm_mj_only', booleanSettingValidator('La valeur de qcm_mj_only doit être booléenne')],
+  [
+    'gameplay.vitality_enabled',
+    booleanSettingValidator('La valeur de vitality_enabled doit être booléenne'),
+  ],
+  ['gameplay.default_health_points', vitalityPointsSettingValidator],
+  ['gameplay.default_power_points', vitalityPointsSettingValidator],
+  [
+    'gameplay.player_journal_max_chars',
+    (value) => {
+      const n = Number(value);
+      // 0 = illimité (pas de plafond) ; sinon entier entre 500 et 200000.
+      if (
+        !Number.isFinite(n) ||
+        !Number.isInteger(n) ||
+        n < 0 ||
+        n > 200000 ||
+        (n > 0 && n < 500)
+      ) {
+        return { error: 'La valeur doit être 0 (illimité) ou un entier entre 500 et 200000' };
+      }
+      return { value: n };
+    },
+  ],
+  [
+    'gameplay.player_journal_max_assets',
+    (value) => {
+      const n = Number(value);
+      // 0 = illimité (pas de plafond) ; sinon entier entre 1 et 200.
+      if (!Number.isFinite(n) || !Number.isInteger(n) || n < 0 || n > 200) {
+        return { error: 'La valeur doit être 0 (illimité) ou un entier entre 1 et 200' };
+      }
+      return { value: n };
+    },
+  ],
+  [
+    'gameplay.lore_feuillet_retrigger',
+    enumSettingValidator(
+      MARKER_QUESTION_RETRIGGER_VALUES,
+      'Valeur lore_feuillet_retrigger invalide',
+    ),
+  ],
+  [
+    'gameplay.lore_spoiler_max_level',
+    enumSettingValidator(LORE_SPOILER_LEVELS, 'Niveau spoiler lore invalide (cle, recit, secret)'),
+  ],
+  [
+    'gameplay.lore_feuillet_preview_fields',
+    (value) => {
+      if (!Array.isArray(value)) {
+        return { error: 'La valeur de lore_feuillet_preview_fields doit être une liste' };
+      }
+      return { value: normalizeFeuilletPreviewFields(value) };
+    },
+  ],
+  [
+    'gameplay.lore_feuillet_acquisition_enabled',
+    booleanSettingValidator('La valeur de lore_feuillet_acquisition_enabled doit être booléenne'),
+  ],
+  [
+    'gameplay.lore_feuillet_acquisition_channels',
+    (value) => {
+      if (!Array.isArray(value)) {
+        return { error: 'La valeur de lore_feuillet_acquisition_channels doit être une liste' };
+      }
+      return { value: normalizeAcquisitionChannels(value) };
+    },
+  ],
+  ['gameplay.lore_effacement_enabled', booleanSettingValidator('La valeur doit être booléenne')],
+  ['gameplay.lore_gemme_costs_enabled', booleanSettingValidator('La valeur doit être booléenne')],
+  ['gameplay.lore_heart_rewards_enabled', booleanSettingValidator('La valeur doit être booléenne')],
+  ['gameplay.plateau_markers_visible', booleanSettingValidator('La valeur doit être booléenne')],
+  ['gameplay.plateau_zones_visible', booleanSettingValidator('La valeur doit être booléenne')],
+  [
+    'gameplay.plateau_marker_numbers_visible',
+    booleanSettingValidator('La valeur doit être booléenne'),
+  ],
+  [
+    'gameplay.marker_backgrounds',
+    (value) => {
+      const validated = validateMarkerBackgrounds(value);
+      if (validated.error) return { error: validated.error };
+      return { value: validated.value };
+    },
+  ],
+  [
+    'platform.brand',
+    (value) => {
+      if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        return { error: 'La valeur de platform.brand doit etre un objet JSON' };
+      }
+      return { value: normalizeBrand(value) };
+    },
+  ],
+]);
+
 router.put(
   '/settings/:key',
   requireGlPermission('gl.settings.manage'),
@@ -888,167 +917,11 @@ router.put(
     if (key.startsWith('gameplay.') && !ALLOWED_GAMEPLAY_SETTINGS.has(key)) {
       return res.status(400).json({ error: 'Clé gameplay inconnue' });
     }
-    if (key === 'gameplay.marker_question_retrigger') {
-      const mode = typeof value === 'string' ? value.trim() : String(value || '').trim();
-      if (!MARKER_QUESTION_RETRIGGER_VALUES.has(mode)) {
-        return res.status(400).json({ error: 'Valeur marker_question_retrigger invalide' });
-      }
-      value = mode;
-    }
-    if (key === 'gameplay.zone_content_retrigger') {
-      const mode = typeof value === 'string' ? value.trim() : String(value || '').trim();
-      if (!MARKER_QUESTION_RETRIGGER_VALUES.has(mode)) {
-        return res.status(400).json({ error: 'Valeur zone_content_retrigger invalide' });
-      }
-      value = mode;
-    }
-    if (key === 'gameplay.spell_cast_contribution_mode') {
-      const mode = typeof value === 'string' ? value.trim() : String(value || '').trim();
-      if (!SPELL_CAST_CONTRIBUTION_MODES.has(mode)) {
-        return res
-          .status(400)
-          .json({ error: 'Mode de contribution invalide (coordinator, self_only, both)' });
-      }
-      value = mode;
-    }
-    if (key === 'gameplay.spell_cast_team_scope') {
-      const scope = typeof value === 'string' ? value.trim() : String(value || '').trim();
-      if (!SPELL_CAST_TEAM_SCOPES.has(scope)) {
-        return res
-          .status(400)
-          .json({ error: 'Périmètre équipe invalide (any_team, own_team, mj_any)' });
-      }
-      value = scope;
-    }
-    if (key === 'gameplay.spell_cast_mj_only') {
-      if (typeof value !== 'boolean') {
-        return res
-          .status(400)
-          .json({ error: 'La valeur de spell_cast_mj_only doit être booléenne' });
-      }
-    }
-    if (key === 'gameplay.spell_cast_approval_mode') {
-      const mode = typeof value === 'string' ? value.trim() : String(value || '').trim();
-      if (!SPELL_CAST_APPROVAL_MODES.has(mode)) {
-        return res
-          .status(400)
-          .json({ error: 'Mode d’approbation invalide (auto, mj_required, per_spell)' });
-      }
-      value = mode;
-    }
-    if (key === 'gameplay.mascot_move_actor') {
-      const actor = typeof value === 'string' ? value.trim() : String(value || '').trim();
-      if (!MASCOT_MOVE_ACTORS.has(actor)) {
-        return res.status(400).json({ error: 'Acteur de déplacement invalide (players, mj)' });
-      }
-      value = actor;
-    }
-    if (key === 'gameplay.qcm_mj_only') {
-      if (typeof value !== 'boolean') {
-        return res.status(400).json({ error: 'La valeur de qcm_mj_only doit être booléenne' });
-      }
-    }
-    if (key === 'gameplay.vitality_enabled') {
-      if (typeof value !== 'boolean') {
-        return res.status(400).json({ error: 'La valeur de vitality_enabled doit être booléenne' });
-      }
-    }
-    if (key === 'gameplay.default_health_points' || key === 'gameplay.default_power_points') {
-      const n = Number(value);
-      if (!Number.isFinite(n) || !Number.isInteger(n) || n < 0 || n > 99) {
-        return res.status(400).json({ error: 'La valeur doit être un entier entre 0 et 99' });
-      }
-      value = clampVitality(n);
-    }
-    if (key === 'gameplay.player_journal_max_chars') {
-      const n = Number(value);
-      // 0 = illimité (pas de plafond) ; sinon entier entre 500 et 200000.
-      if (
-        !Number.isFinite(n) ||
-        !Number.isInteger(n) ||
-        n < 0 ||
-        n > 200000 ||
-        (n > 0 && n < 500)
-      ) {
-        return res
-          .status(400)
-          .json({ error: 'La valeur doit être 0 (illimité) ou un entier entre 500 et 200000' });
-      }
-      value = n;
-    }
-    if (key === 'gameplay.player_journal_max_assets') {
-      const n = Number(value);
-      // 0 = illimité (pas de plafond) ; sinon entier entre 1 et 200.
-      if (!Number.isFinite(n) || !Number.isInteger(n) || n < 0 || n > 200) {
-        return res
-          .status(400)
-          .json({ error: 'La valeur doit être 0 (illimité) ou un entier entre 1 et 200' });
-      }
-      value = n;
-    }
-    if (key === 'gameplay.lore_feuillet_retrigger') {
-      const mode = typeof value === 'string' ? value.trim() : String(value || '').trim();
-      if (!MARKER_QUESTION_RETRIGGER_VALUES.has(mode)) {
-        return res.status(400).json({ error: 'Valeur lore_feuillet_retrigger invalide' });
-      }
-      value = mode;
-    }
-    if (key === 'gameplay.lore_spoiler_max_level') {
-      const level = typeof value === 'string' ? value.trim() : String(value || '').trim();
-      if (!LORE_SPOILER_LEVELS.has(level)) {
-        return res.status(400).json({ error: 'Niveau spoiler lore invalide (cle, recit, secret)' });
-      }
-      value = level;
-    }
-    if (key === 'gameplay.lore_feuillet_preview_fields') {
-      if (!Array.isArray(value)) {
-        return res
-          .status(400)
-          .json({ error: 'La valeur de lore_feuillet_preview_fields doit être une liste' });
-      }
-      value = normalizeFeuilletPreviewFields(value);
-    }
-    if (key === 'gameplay.lore_feuillet_acquisition_enabled') {
-      if (typeof value !== 'boolean') {
-        return res
-          .status(400)
-          .json({ error: 'La valeur de lore_feuillet_acquisition_enabled doit être booléenne' });
-      }
-    }
-    if (key === 'gameplay.lore_feuillet_acquisition_channels') {
-      if (!Array.isArray(value)) {
-        return res
-          .status(400)
-          .json({ error: 'La valeur de lore_feuillet_acquisition_channels doit être une liste' });
-      }
-      value = normalizeAcquisitionChannels(value);
-    }
-    if (
-      key === 'gameplay.lore_effacement_enabled' ||
-      key === 'gameplay.lore_gemme_costs_enabled' ||
-      key === 'gameplay.lore_heart_rewards_enabled' ||
-      key === 'gameplay.plateau_markers_visible' ||
-      key === 'gameplay.plateau_zones_visible' ||
-      key === 'gameplay.plateau_marker_numbers_visible'
-    ) {
-      if (typeof value !== 'boolean') {
-        return res.status(400).json({ error: 'La valeur doit être booléenne' });
-      }
-    }
-    if (key === 'gameplay.marker_backgrounds') {
-      const validated = validateMarkerBackgrounds(value);
-      if (validated.error) {
-        return res.status(400).json({ error: validated.error });
-      }
-      value = validated.value;
-    }
-    if (key === 'platform.brand') {
-      if (!value || typeof value !== 'object' || Array.isArray(value)) {
-        return res
-          .status(400)
-          .json({ error: 'La valeur de platform.brand doit etre un objet JSON' });
-      }
-      value = normalizeBrand(value);
+    const validateSettingValue = SETTINGS_VALUE_VALIDATORS.get(key);
+    if (validateSettingValue) {
+      const checked = validateSettingValue(value);
+      if (checked.error) return res.status(400).json({ error: checked.error });
+      value = checked.value;
     }
     if (key === 'ui.map.plateau_marker_size_percent') {
       const { setSetting } = require('../../lib/settings');
@@ -1062,12 +935,9 @@ router.put(
       });
       return res.json({ ok: true });
     }
-    await execute(
-      `INSERT INTO gl_settings (\`key\`, value_json, updated_by, updated_at)
-     VALUES (?, ?, ?, NOW())
-     ON DUPLICATE KEY UPDATE value_json = VALUES(value_json), updated_by = VALUES(updated_by), updated_at = NOW()`,
-      [key, JSON.stringify(value), req.glAuth.userId],
-    );
+    await upsertGlSetting(key, value, req.glAuth.userId);
+    // upsertGlSetting n'invalide aucun cache : on reproduit les invalidations que
+    // faisait l'ancien bloc inline selon le préfixe de la clé.
     if (key.startsWith('gameplay.')) {
       invalidateGameplayCache();
     }
@@ -1112,12 +982,8 @@ router.put(
   requireGlPermission('gl.content.manage'),
   asyncHandler(async (req, res) => {
     const normalized = normalizeIntroConfig(req.body);
-    await execute(
-      `INSERT INTO gl_settings (\`key\`, value_json, updated_by, updated_at)
-     VALUES (?, ?, ?, NOW())
-     ON DUPLICATE KEY UPDATE value_json = VALUES(value_json), updated_by = VALUES(updated_by), updated_at = NOW()`,
-      [INTRO_SETTINGS_KEY, JSON.stringify(normalized), req.glAuth.userId],
-    );
+    // Pas de cache à invalider : getIntroConfigFromDb relit gl_settings à chaque appel.
+    await upsertGlSetting(INTRO_SETTINGS_KEY, normalized, req.glAuth.userId);
     return res.json(normalized);
   }),
 );
@@ -1127,12 +993,8 @@ router.post(
   requireGlPermission('gl.content.manage'),
   asyncHandler(async (req, res) => {
     const normalized = normalizeIntroConfig(loadDefaultIntroConfig());
-    await execute(
-      `INSERT INTO gl_settings (\`key\`, value_json, updated_by, updated_at)
-     VALUES (?, ?, ?, NOW())
-     ON DUPLICATE KEY UPDATE value_json = VALUES(value_json), updated_by = VALUES(updated_by), updated_at = NOW()`,
-      [INTRO_SETTINGS_KEY, JSON.stringify(normalized), req.glAuth.userId],
-    );
+    // Pas de cache à invalider : getIntroConfigFromDb relit gl_settings à chaque appel.
+    await upsertGlSetting(INTRO_SETTINGS_KEY, normalized, req.glAuth.userId);
     return res.json(normalized);
   }),
 );

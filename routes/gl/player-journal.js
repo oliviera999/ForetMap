@@ -131,6 +131,9 @@ router.post(
        VALUES (?, ?, ?, NOW(), NOW())`,
       [playerId, title, validation.bodyMarkdown],
     );
+    // Audit GL §4.6 — le contrat renvoie createdAt/updatedAt générés en BDD :
+    // getArticleDto(insertId) est déjà le SELECT ciblé par id requis (la sérialisation
+    // centralisée dans lib/glPlayerJournal.js garantit un DTO identique à l'octet près).
     const article = await getArticleDto(result.insertId);
     return res.status(201).json({ article });
   }),
