@@ -265,18 +265,21 @@ router.post(
     if (!Number.isFinite(insertId) || insertId <= 0) {
       return res.status(500).json({ error: 'Création pack impossible' });
     }
-    const created = await queryOne(
-      'SELECT id, chapter_id, name, version, payload_json, updated_at FROM gl_mascot_packs WHERE id = ? LIMIT 1',
-      [insertId],
-    );
+    // Audit GL §4.6 — réponse construite depuis insertId + paramètres (plus de relecture du
+    // payload_json complet, potentiellement volumineux). Seul `updated_at`, généré en BDD,
+    // impose encore un SELECT ciblé par id. `payload` passe par le même aller-retour JSON
+    // que l'ancienne relecture pour rester identique à l'octet près.
+    const created = await queryOne('SELECT updated_at FROM gl_mascot_packs WHERE id = ? LIMIT 1', [
+      insertId,
+    ]);
     return res.status(201).json({
       pack: {
-        id: Number(created.id),
-        chapter_id: created.chapter_id == null ? null : Number(created.chapter_id),
-        name: created.name,
-        version: created.version,
-        payload: JSON.parse(created.payload_json),
-        updated_at: created.updated_at,
+        id: insertId,
+        chapter_id: chapterId == null ? null : Number(chapterId),
+        name,
+        version,
+        payload: JSON.parse(JSON.stringify(parsed.data)),
+        updated_at: created?.updated_at ?? null,
       },
     });
   }),
@@ -498,18 +501,27 @@ router.post(
       [chapterId, name, version, JSON.stringify(validated.data), packId],
     );
 
-    const updated = await queryOne(
-      'SELECT id, chapter_id, name, version, payload_json, updated_at FROM gl_mascot_packs WHERE id = ? LIMIT 1',
-      [packId],
-    );
+    // Audit GL §4.6 — réponse construite depuis packId + valeurs écrites (name/version/payload
+    // sont écrasés sans COALESCE par l'UPDATE ; chapter_id vaut COALESCE(chapterId, existant),
+    // reproduit ici : en mode create, l'INSERT a déjà posé chapterId). Seul `updated_at`,
+    // généré en BDD, impose encore un SELECT ciblé par id — on ne relit plus payload_json.
+    const finalChapterId =
+      chapterId != null
+        ? Number(chapterId)
+        : existing?.chapter_id == null
+          ? null
+          : Number(existing.chapter_id);
+    const updated = await queryOne('SELECT updated_at FROM gl_mascot_packs WHERE id = ? LIMIT 1', [
+      packId,
+    ]);
     return res.status(mode === 'replace' ? 200 : 201).json({
       pack: {
-        id: Number(updated.id),
-        chapter_id: updated.chapter_id == null ? null : Number(updated.chapter_id),
-        name: updated.name,
-        version: updated.version,
-        payload: JSON.parse(updated.payload_json),
-        updated_at: updated.updated_at,
+        id: Number(packId),
+        chapter_id: finalChapterId,
+        name,
+        version,
+        payload: JSON.parse(JSON.stringify(validated.data)),
+        updated_at: updated?.updated_at ?? null,
       },
       warnings: analyzeGlArchive(parsed).warnings,
     });
