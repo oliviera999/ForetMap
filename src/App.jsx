@@ -313,16 +313,33 @@ function App() {
 
   useAuthMeHydration({ mergeAuthMeResponse });
 
-  fetchAllContextRef.current = {
-    activeMapId,
-    effectiveIsTeacher,
-    showPublicVisit,
-    studentAffiliation: student?.affiliation,
-    canManageTutorials,
-    defaultMapStudent: publicSettings?.map?.default_map_student,
-    defaultMapTeacher: publicSettings?.map?.default_map_teacher,
-    defaultMapVisit: publicSettings?.map?.default_map_visit,
-  };
+  // Fallback mémoïsé : un littéral recréé à chaque rendu casserait les React.memo
+  // des vues qui reçoivent student={currentUser} (cas session incomplète).
+  const fallbackUser = useMemo(
+    () => ({
+      pseudo: null,
+      displayName: authClaims?.roleDisplayName || null,
+      first_name: authClaims?.roleDisplayName || 'Utilisateur',
+      last_name: '',
+    }),
+    [authClaims?.roleDisplayName],
+  );
+
+  // Snapshot lu par fetchAll : posé en effet (pas pendant le rendu — fragile en
+  // rendu concurrent, un rendu interrompu pourrait laisser un snapshot jamais
+  // commité). Le décalage d'un tick est absorbé par la boucle fetchAllPendingRef.
+  useEffect(() => {
+    fetchAllContextRef.current = {
+      activeMapId,
+      effectiveIsTeacher,
+      showPublicVisit,
+      studentAffiliation: student?.affiliation,
+      canManageTutorials,
+      defaultMapStudent: publicSettings?.map?.default_map_student,
+      defaultMapTeacher: publicSettings?.map?.default_map_teacher,
+      defaultMapVisit: publicSettings?.map?.default_map_visit,
+    };
+  });
 
   const fetchAll = useCallback(() => {
     if (fetchAllRunPromiseRef.current) {
@@ -1137,13 +1154,8 @@ function App() {
         </>
       </PublicSettingsProvider>
     );
-  const currentUser = (effectiveIsTeacher ? sessionUser : studentForUi) ||
-    sessionUser || {
-      pseudo: null,
-      displayName: authClaims?.roleDisplayName || null,
-      first_name: authClaims?.roleDisplayName || 'Utilisateur',
-      last_name: '',
-    };
+  const currentUser =
+    (effectiveIsTeacher ? sessionUser : studentForUi) || sessionUser || fallbackUser;
   const currentUserLabel =
     currentUser?.pseudo ||
     currentUser?.displayName ||
