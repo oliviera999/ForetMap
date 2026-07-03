@@ -7,6 +7,27 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Audit — Vague 5 : god components découpés, chargement initial allégé
+
+- **App.jsx 2 270 → 1 697 lignes** : `AppHeader` (vague 4) + `NoticeBanner`,
+  `isTeacher` dérivé d'`authClaims`, hook `useAuthSession` (session,
+  impersonation, restauration — testé), dédup des arbres prof/élève
+  (`MapTasksArea`, `PedagoTabs`, différences de props cartographiées et
+  préservées).
+- **VisitViewImpl −438 lignes** : `useVisitContent`, `useVisitSeenSync`,
+  `useVisitMapMascotController`, couches `VisitZonesSvgLayer` (polygones
+  pré-parsés) / `VisitMarkersLayer` mémoïsées.
+- **MapViewImpl −430 lignes + correctifs P1 gestes** : listeners plus
+  ré-attachés à chaque rendu, API `useMapGestures` mémoïsée, borne pinch
+  alignée (6→8) ; `ZonePolygonsLayer`/`DrawingLayer`/`EditPointsLayer` +
+  `useZoneDrawing`/`useZoneEditPoints`/`useMapCrudActions`.
+- **VisitMascotPackManager −450 lignes** : `savePack` unifié, hooks
+  assets/bulk-actions testés, `fileToPngDataUrl` en util, timers de feedback
+  nettoyés (`useTransientMessage`).
+- **GL (chore(gl))** : `useGlToasts`, `socket.io-client` en import dynamique
+  (chunk hors chargement initial des deux fronts), `gl-admin.css` (1 704 L)
+  extrait de `gl-theme.css` et chargé par les vues lazy.
+
 ### Audit — Vague 4 : chantiers structurants
 
 - **Modales carte mutualisées** : panneaux tâches/tutoriels paramétrés par
