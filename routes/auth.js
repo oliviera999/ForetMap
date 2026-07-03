@@ -296,7 +296,14 @@ router.patch('/me/profile', requireAuth, async (req, res) => {
     if (!body.currentPassword) return res.status(400).json({ error: 'Mot de passe actuel requis' });
 
     const auth = req.auth || {};
-    const account = await queryOne('SELECT * FROM users WHERE id = ? LIMIT 1', [auth.userId]);
+    // Projection explicite (audit §2.4/§3.7) : champs consommés par le handler ;
+    // password_hash requis ici pour vérifier le mot de passe actuel (bcrypt), jamais renvoyé au client.
+    const account = await queryOne(
+      `SELECT id, user_type, email, pseudo, description, affiliation,
+              visit_mascot_catalog_id, avatar_path, password_hash
+         FROM users WHERE id = ? LIMIT 1`,
+      [auth.userId],
+    );
     if (!account) return res.status(404).json({ error: 'Utilisateur introuvable' });
     if (!account.password_hash)
       return res
@@ -407,7 +414,14 @@ router.patch('/me/profile', requireAuth, async (req, res) => {
       throw err;
     }
 
-    const updated = await queryOne('SELECT * FROM users WHERE id = ? LIMIT 1', [account.id]);
+    // Toutes les colonnes SAUF password_hash : l'objet est renvoyé tel quel au front (profil complet).
+    const updated = await queryOne(
+      `SELECT id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name,
+              description, avatar_path, affiliation, visit_mascot_catalog_id, auth_provider,
+              is_active, last_seen, created_at, updated_at
+         FROM users WHERE id = ? LIMIT 1`,
+      [account.id],
+    );
     logAudit(
       'update_user_profile',
       'user',
@@ -460,7 +474,7 @@ router.post('/register', async (req, res) => {
     if (profileError) return res.status(400).json({ error: profileError });
 
     const existing = await queryOne(
-      "SELECT * FROM users WHERE user_type = 'student' AND first_name = ? AND last_name = ?",
+      "SELECT id FROM users WHERE user_type = 'student' AND first_name = ? AND last_name = ?",
       [firstName.trim(), lastName.trim()],
     );
     if (existing) return res.status(409).json({ error: 'Un compte avec ce nom existe déjà' });
