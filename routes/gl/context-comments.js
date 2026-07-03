@@ -168,11 +168,27 @@ router.post(
      VALUES (?, ?, ?, ?, ?, ?, ?, 0)`,
       [id, contextType, contextId, body, pathsJson, actor.userType, actor.userId],
     );
-    const created = await queryOne(
-      `SELECT id, context_type, context_id, body, image_paths_json, author_user_type, author_user_id, is_deleted, created_at, updated_at
-       FROM context_comments WHERE id = ? LIMIT 1`,
+    // Audit GL §4.6 — réponse construite depuis l'id (UUID généré ici) + paramètres insérés,
+    // au lieu de relire la ligne complète. Seuls created_at/updated_at, générés en BDD
+    // (DEFAULT CURRENT_TIMESTAMP), imposent encore un SELECT ciblé par id. Mêmes clés, même
+    // ordre que l'ancien SELECT * ; les colonnes étant des VARCHAR/TEXT, les valeurs insérées
+    // reviennent identiques.
+    const stamps = await queryOne(
+      'SELECT created_at, updated_at FROM context_comments WHERE id = ? LIMIT 1',
       [id],
     );
+    const created = {
+      id,
+      context_type: contextType,
+      context_id: contextId,
+      body,
+      image_paths_json: pathsJson,
+      author_user_type: actor.userType,
+      author_user_id: actor.userId,
+      is_deleted: 0,
+      created_at: stamps?.created_at ?? null,
+      updated_at: stamps?.updated_at ?? null,
+    };
     attachPublicImageUrls(created, 'context-comments');
     emitContextCommentsChanged({
       reason: 'comment_created',

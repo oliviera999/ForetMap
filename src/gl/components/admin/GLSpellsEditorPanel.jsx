@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { apiGL } from '../../services/apiGL.js';
 import { AutoSaveStatus } from '../../../shared/components/AutoSaveStatus.jsx';
-import { useDebouncedAutoSave } from '../../../shared/hooks/useDebouncedAutoSave.js';
+import { useGlAdminCrud } from '../../hooks/useGlAdminCrud.js';
 import {
   EMPTY_FORM,
   FORM_FIELDS,
@@ -18,13 +18,52 @@ import { GLSelect } from '../ui/GLSelect.jsx';
 export function GLSpellsEditorPanel() {
   const [categories, setCategories] = useState([]);
   const [categorySlug, setCategorySlug] = useState('');
-  const [items, setItems] = useState([]);
-  const [selectedCode, setSelectedCode] = useState(null);
-  const [form, setForm] = useState(EMPTY_FORM);
   const [filterQ, setFilterQ] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [info, setInfo] = useState('');
+
+  const listPath = useMemo(() => {
+    if (!categorySlug) return null;
+    const params = new URLSearchParams({ categorySlug, statutFilter: 'all' });
+    if (filterQ.trim()) params.set('q', filterQ.trim());
+    return `/api/gl/admin/spells?${params.toString()}`;
+  }, [categorySlug, filterQ]);
+
+  const {
+    items,
+    selectedCode,
+    setSelectedCode,
+    form,
+    setForm,
+    setField,
+    loading,
+    error,
+    info,
+    setInfo,
+    saveStatus,
+    saveError,
+    itemPath,
+    loadList,
+    loadItem,
+    startNew,
+    runAction,
+  } = useGlAdminCrud({
+    listPath,
+    basePath: '/api/gl/admin/spells',
+    codeField: 'spell_code',
+    entityKey: 'spell',
+    emptyForm: EMPTY_FORM,
+    toForm: spellToForm,
+    toPayload: (f) => formToPayload({ ...f, category_slug: categorySlug || f.category_slug }),
+    newFormExtra: { category_slug: categorySlug },
+    onItemLoaded: (spell) => {
+      if (spell?.category_slug) setCategorySlug(spell.category_slug);
+    },
+    isAutoSaveReady: (f) => Boolean(categorySlug) && String(f.nom || '').trim().length > 0,
+    messages: {
+      updated: 'Sort mis à jour.',
+      created: 'Sort créé.',
+      startNewError: 'Impossible de préparer un nouveau sort',
+    },
+  });
 
   const filteredItems = useMemo(() => filterSpells(items, filterQ), [items, filterQ]);
 
@@ -35,89 +74,13 @@ export function GLSpellsEditorPanel() {
     setCategorySlug((prev) => prev || rows[0]?.slug || '');
   }, []);
 
-  const loadList = useCallback(async () => {
-    if (!categorySlug) {
-      setItems([]);
-      return;
-    }
-    const params = new URLSearchParams({ categorySlug, statutFilter: 'all' });
-    if (filterQ.trim()) params.set('q', filterQ.trim());
-    const data = await apiGL(`/api/gl/admin/spells?${params.toString()}`);
-    setItems(Array.isArray(data?.items) ? data.items : []);
-  }, [categorySlug, filterQ]);
-
   useEffect(() => {
     loadCategories().catch(() => setCategories([]));
   }, [loadCategories]);
 
   useEffect(() => {
-    loadList().catch((err) => setError(err.message || 'Chargement impossible'));
-  }, [loadList]);
-
-  useEffect(() => {
     setForm((prev) => ({ ...prev, category_slug: categorySlug }));
-  }, [categorySlug]);
-
-  async function loadSpell(code) {
-    if (!code) return;
-    setLoading(true);
-    setError('');
-    try {
-      const data = await apiGL(`/api/gl/admin/spells/${encodeURIComponent(code)}`);
-      setForm(spellToForm(data?.spell));
-      setSelectedCode(code);
-      if (data?.spell?.category_slug) setCategorySlug(data.spell.category_slug);
-    } catch (err) {
-      setError(err.message || 'Fiche introuvable');
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function startNewSpell() {
-    setLoading(true);
-    setError('');
-    setInfo('');
-    try {
-      const data = await apiGL('/api/gl/admin/spells/next-code');
-      setSelectedCode(null);
-      setForm({
-        ...EMPTY_FORM,
-        spell_code: data?.spell_code || '',
-        category_slug: categorySlug,
-      });
-    } catch (err) {
-      setError(err.message || 'Impossible de préparer un nouveau sort');
-      setSelectedCode(null);
-      setForm({ ...EMPTY_FORM, category_slug: categorySlug });
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  const persistSpell = useCallback(async () => {
-    const payload = formToPayload({ ...form, category_slug: categorySlug || form.category_slug });
-    const isEdit = Boolean(selectedCode);
-    const path = isEdit
-      ? `/api/gl/admin/spells/${encodeURIComponent(selectedCode)}`
-      : '/api/gl/admin/spells';
-    const method = isEdit ? 'PUT' : 'POST';
-    const data = await apiGL(path, method, payload);
-    const code = data?.spell?.spell_code || form.spell_code;
-    setSelectedCode(code);
-    const nextForm = spellToForm(data?.spell);
-    setForm(nextForm);
-    setInfo(isEdit ? 'Sort mis à jour.' : 'Sort créé.');
-    await loadList();
-    return nextForm;
-  }, [form, selectedCode, categorySlug, loadList]);
-
-  const { status: saveStatus, error: saveError } = useDebouncedAutoSave({
-    value: form,
-    resetKey: selectedCode ?? `new:${form.spell_code}`,
-    enabled: Boolean(categorySlug) && String(form.nom || '').trim().length > 0,
-    onSave: persistSpell,
-  });
+  }, [categorySlug, setForm]);
 
   async function deleteSpell() {
     if (!selectedCode) return;
@@ -127,10 +90,8 @@ export function GLSpellsEditorPanel() {
       )
     )
       return;
-    setLoading(true);
-    setError('');
-    try {
-      const res = await apiGL(`/api/gl/admin/spells/${encodeURIComponent(selectedCode)}`, 'DELETE');
+    await runAction(async () => {
+      const res = await apiGL(itemPath(selectedCode), 'DELETE');
       const unlinked = Number(res?.unlinkedChapters || 0);
       setInfo(
         unlinked > 0
@@ -140,15 +101,7 @@ export function GLSpellsEditorPanel() {
       setSelectedCode(null);
       setForm({ ...EMPTY_FORM, category_slug: categorySlug });
       await loadList();
-    } catch (err) {
-      setError(err.message || 'Suppression impossible');
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  function setField(key, value) {
-    setForm((prev) => ({ ...prev, [key]: value }));
+    }, 'Suppression impossible');
   }
 
   return (
@@ -193,7 +146,7 @@ export function GLSpellsEditorPanel() {
                 <button
                   type="button"
                   className={selectedCode === row.spell_code ? 'is-active' : ''}
-                  onClick={() => loadSpell(row.spell_code)}
+                  onClick={() => loadItem(row.spell_code)}
                 >
                   <span aria-hidden="true">{row.emoji || '✨'}</span> <strong>{row.nom}</strong>
                   <span className="gl-hint">{row.spell_code}</span>
@@ -204,7 +157,7 @@ export function GLSpellsEditorPanel() {
           <GLButton
             type="button"
             variant="secondary"
-            onClick={startNewSpell}
+            onClick={startNew}
             disabled={loading || !categorySlug}
           >
             + Nouveau sort
