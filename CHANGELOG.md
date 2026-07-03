@@ -7,6 +7,26 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Audit — Vague 6 (finale) : micro-items soldés
+
+- **Formulaires** : `LocationPickList` (3 clones de pick-list zones/repères),
+  `useTutorialSearch`, `TaskFormTutorialsField` réutilisé ; `ImportPanel`
+  générique partagé (imports tâches/n3beurs/plantes en adaptateurs).
+- **Tâches** : `assignmentMatchesStudent` unifie le matching (×4 copies +
+  variantes App/notifications) ; props volatiles des tuiles séparées —
+  `React.memo(TaskTileCard)` réellement effectif ; `TaskProjectsBlock`
+  mémoïsé ; toasts de tutorials-views via `showToast` (timers nettoyés).
+- **Hooks & perf** : `useTutorialReadIds`/`usePlantObservationCounts` (fin du
+  refetch par poll), `usePlantCatalogFilters`, Map plante→lieux,
+  `TeacherLeaderboard` mémoïsé, `FoodWebGraph` en rAF, resync des champs
+  cartes (AdminSettingFields), code mort `useNotificationCenter`, géométrie
+  dédupliquée, micro-items mascotte (double filtre, préchargement, props mortes).
+- **GL (chore(gl))** : `isMj()` (×17 tests inline), `buildDynamicUpdate`
+  déclaratif (PUT chapters/games, ×47 if-chains, « présent mais null »
+  préservé), `validateEventPayload`, `upsertGlSetting`, tirage QCM sur
+  `question_code` seul ; message « Accès refusé à cette partie » restauré
+  (contrat testé, unification erronée d'agent corrigée).
+
 ### Audit — Vague 5 : god components découpés, chargement initial allégé
 
 - **App.jsx 2 270 → 1 697 lignes** : `AppHeader` (vague 4) + `NoticeBanner`,
