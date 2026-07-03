@@ -10,11 +10,8 @@ import {
 } from '../utils/mascotPackEditorModel.js';
 import { normalizeUnifiedStates } from '../utils/mascotPack.js';
 import {
-  sanitizeClientFilename,
-  renameFilenameInPackStateFrames,
   removeFilenamesFromStateFrames,
   moveFilenameBlockInStateFrames,
-  collectPackReferencedFrameFilenames,
 } from '../utils/mascotPackEditorFrames.js';
 import {
   getPackStrictValidation,
@@ -47,8 +44,12 @@ import MascotPackImagesPanel from './mascot/MascotPackImagesPanel.jsx';
 import MascotInteractionProfileEditor from './mascot/MascotInteractionProfileEditor.jsx';
 import MascotPackRenderPreview from './mascot/MascotPackRenderPreview.jsx';
 import MascotStudioModeTabs from './mascot/MascotStudioModeTabs.jsx';
+import { useTransientMessage } from './mascot/useTransientMessage.js';
+import { useMascotPackAssets } from './mascot/useMascotPackAssets.js';
+import { useMascotPackBulkImageActions } from './mascot/useMascotPackBulkImageActions.js';
 import MascotPackArchiveImportDialog from '../shared/mascot-pack/MascotPackArchiveImportDialog.jsx';
 import { downloadApiFile } from '../utils/downloadApiFile.js';
+import { fileToPngDataUrl } from '../utils/image.js';
 import { MASCOT_PACK_UNSAVED_LEAVE_MSG } from '../constants/mascotPackEditor.js';
 
 import { STATE_LABELS } from '../constants/mascotStateLabels.js';
@@ -94,26 +95,39 @@ export default function VisitMascotPackManager({
   const [studioMode, setStudioMode] = useState('packs');
   const [jsonDraft, setJsonDraft] = useState('{}');
   const [jsonError, setJsonError] = useState('');
-  const [jsonCopyFeedback, setJsonCopyFeedback] = useState('');
+  const [jsonCopyFeedback, showJsonCopyFeedback] = useTransientMessage(2500);
   const [labelDraft, setLabelDraft] = useState('');
-  const [libAssets, setLibAssets] = useState([]);
-  const [libLoading, setLibLoading] = useState(false);
-  const [libMessage, setLibMessage] = useState('');
-  const [globalAssets, setGlobalAssets] = useState([]);
-  const [globalAssetsLoading, setGlobalAssetsLoading] = useState(false);
-  const [globalAssetsMessage, setGlobalAssetsMessage] = useState('');
+  const packAssetsApi = useMascotPackAssets({ mapId, selectedId, onForceLogout });
+  const {
+    libAssets,
+    libLoading,
+    libMessage,
+    globalAssets,
+    globalAssetsLoading,
+    globalAssetsMessage,
+    packAssets,
+    packAssetsLoading,
+    packAssetsMessage,
+    setPackAssetsMessage,
+    setPackAssetsLoading,
+    loadLibrary,
+    loadGlobalAssets,
+    loadPackAssets,
+    reloadAllImages,
+    onLibUpload,
+    onLibDelete,
+    onDeletePublicAsset,
+    onPackUpload,
+    onPackDeleteAsset,
+  } = packAssetsApi;
   const [imageSourceFilter, setImageSourceFilter] = useState('all');
   const [imageSearch, setImageSearch] = useState('');
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [globalTargetState, setGlobalTargetState] = useState('idle');
-  const [packAssets, setPackAssets] = useState([]);
-  const [packAssetsLoading, setPackAssetsLoading] = useState(false);
   const packPreviewRef = useRef(
     /** @type {{ playInteraction?: (k: string) => void } | null} */ (null),
   );
-  const [packAssetsMessage, setPackAssetsMessage] = useState('');
-  const [insertFeedback, setInsertFeedback] = useState('');
-  const [imageBulkBusy, setImageBulkBusy] = useState(false);
+  const [insertFeedback, showInsertFeedback] = useTransientMessage(2800);
   const [savedSnapshot, setSavedSnapshot] = useState(null);
   const [catalogCopyHint, setCatalogCopyHint] = useState('');
   const [catalogModelIds, setCatalogModelIds] = useState(() =>
@@ -181,58 +195,6 @@ export default function VisitMascotPackManager({
     if (catalogModelOptions.some((opt) => opt.id === selectedCatalogModelId)) return;
     setSelectedCatalogModelId(catalogModelOptions[0].id);
   }, [catalogModelOptions, selectedCatalogModelId]);
-
-  const loadLibrary = useCallback(async () => {
-    const mid = String(mapId || '').trim();
-    if (!mid) return;
-    setLibLoading(true);
-    setLibMessage('');
-    try {
-      const res = await api(`/api/visit/mascot-sprite-library/${encodeURIComponent(mid)}/assets`);
-      setLibAssets(Array.isArray(res?.assets) ? res.assets : []);
-    } catch (e) {
-      if (e instanceof AccountDeletedError) onForceLogout?.();
-      else setLibMessage(e.message || 'Impossible de charger la bibliothèque');
-      setLibAssets([]);
-    } finally {
-      setLibLoading(false);
-    }
-  }, [mapId, onForceLogout]);
-
-  const loadGlobalAssets = useCallback(async () => {
-    setGlobalAssetsLoading(true);
-    setGlobalAssetsMessage('');
-    try {
-      const res = await api('/api/visit/mascot-assets');
-      setGlobalAssets(Array.isArray(res?.assets) ? res.assets : []);
-    } catch (e) {
-      if (e instanceof AccountDeletedError) onForceLogout?.();
-      else setGlobalAssetsMessage(e.message || 'Impossible de charger les assets globaux');
-      setGlobalAssets([]);
-    } finally {
-      setGlobalAssetsLoading(false);
-    }
-  }, [onForceLogout]);
-
-  const loadPackAssets = useCallback(async () => {
-    const id = String(selectedId || '').trim();
-    if (!/^[0-9a-f-]{36}$/i.test(id)) {
-      setPackAssets([]);
-      return;
-    }
-    setPackAssetsLoading(true);
-    setPackAssetsMessage('');
-    try {
-      const res = await api(`/api/visit/mascot-packs/${encodeURIComponent(id)}/assets`);
-      setPackAssets(Array.isArray(res?.assets) ? res.assets : []);
-    } catch (e) {
-      if (e instanceof AccountDeletedError) onForceLogout?.();
-      else setPackAssetsMessage(e.message || 'Impossible de charger la médiathèque du pack');
-      setPackAssets([]);
-    } finally {
-      setPackAssetsLoading(false);
-    }
-  }, [selectedId, onForceLogout]);
 
   useEffect(() => {
     void loadList();
@@ -391,8 +353,16 @@ export default function VisitMascotPackManager({
     setJsonError('');
   }, [jsonDraft, editorPack]);
 
+  /**
+   * Crée un pack (POST) puis sélectionne le nouvel id et resynchronise la liste.
+   * Factorise la création « brouillon / clone catalogue / duplication » et l'ouverture
+   * d'un modèle catalogue pour édition (audit §6.1), y compris la récupération de
+   * `e.allowed_catalog_ids` en erreur.
+   * @param {Record<string, unknown>} bodyExtra champs additionnels du POST
+   * @param {{ errorMessage?: string, onCreated?: (newId: string) => void }} options
+   */
   const postNewPack = useCallback(
-    async (bodyExtra = {}) => {
+    async (bodyExtra = {}, { errorMessage = 'Création impossible', onCreated } = {}) => {
       const mid = String(mapId || '').trim();
       if (!mid) return;
       setActionBusy(true);
@@ -405,7 +375,10 @@ export default function VisitMascotPackManager({
           ...bodyExtra,
         });
         const newId = created?.id ? String(created.id) : '';
-        if (newId) setSelectedId(newId);
+        if (newId) {
+          setSelectedId(newId);
+          onCreated?.(newId);
+        }
         await refreshFromServer();
       } catch (e) {
         if (e instanceof AccountDeletedError) onForceLogout?.();
@@ -414,7 +387,7 @@ export default function VisitMascotPackManager({
             const ids = e.allowed_catalog_ids.map((id) => String(id || '').trim()).filter(Boolean);
             if (ids.length > 0) setCatalogModelIds(ids);
           }
-          setActionError(e.message || 'Création impossible');
+          setActionError(e.message || errorMessage);
         }
       } finally {
         setActionBusy(false);
@@ -462,37 +435,16 @@ export default function VisitMascotPackManager({
         return;
       }
       if (!confirmLeaveIfDirty()) return;
-      setActionBusy(true);
-      setActionError('');
-      setActionIssues([]);
       setCatalogCopyHint('');
-      try {
-        const midMap = String(mapId || '').trim();
-        const created = await api('/api/visit/mascot-packs', 'POST', {
-          map_id: midMap,
-          is_published: 0,
-          clone_from_catalog_id: mid,
-        });
-        const newId = created?.id ? String(created.id) : '';
-        if (newId) {
-          setSelectedId(newId);
-          setEditorTab('workspace');
-        }
-        await refreshFromServer();
-      } catch (e) {
-        if (e instanceof AccountDeletedError) onForceLogout?.();
-        else {
-          if (Array.isArray(e?.allowed_catalog_ids)) {
-            const ids = e.allowed_catalog_ids.map((id) => String(id || '').trim()).filter(Boolean);
-            if (ids.length > 0) setCatalogModelIds(ids);
-          }
-          setActionError(e.message || 'Impossible d’ouvrir ce modèle pour édition');
-        }
-      } finally {
-        setActionBusy(false);
-      }
+      await postNewPack(
+        { clone_from_catalog_id: mid },
+        {
+          errorMessage: 'Impossible d’ouvrir ce modèle pour édition',
+          onCreated: () => setEditorTab('workspace'),
+        },
+      );
     },
-    [mapId, packs, refreshFromServer, onForceLogout, selectedId, confirmLeaveIfDirty],
+    [packs, postNewPack, selectedId, confirmLeaveIfDirty],
   );
 
   const onDuplicateSelected = useCallback(async () => {
@@ -545,97 +497,77 @@ export default function VisitMascotPackManager({
     [refreshFromServer],
   );
 
-  const onSave = useCallback(async () => {
-    if (!selectedId) {
-      setActionError('Sélectionnez un pack dans la liste ou créez un brouillon.');
-      return;
-    }
-    setActionBusy(true);
-    setActionError('');
-    setActionIssues([]);
-    try {
-      const cleanedPack = sanitizeMascotPackDraft(editorPack);
-      const precheck = getPackStrictValidation(cleanedPack, selectedId, String(mapId || '').trim());
-      if (!precheck.ok) {
-        setActionErrorWithDetails(
-          'Le pack est invalide. Corrigez les champs indiqués avant enregistrement.',
-          precheck.error?.format?.() || precheck.error,
-        );
+  /**
+   * Enregistre le pack sélectionné (PUT), avec bascule optionnelle de publication.
+   * Factorise `onSave` / `onTogglePublish` (audit §6.1) : seuls `is_published` et les
+   * messages d'erreur diffèrent entre les deux actions.
+   */
+  const savePack = useCallback(
+    async ({ togglePublish = false } = {}) => {
+      if (!selectedId) {
+        if (!togglePublish)
+          setActionError('Sélectionnez un pack dans la liste ou créez un brouillon.');
         return;
       }
       const row = packs.find((p) => p.id === selectedId);
-      const label =
-        String(labelDraft || '').trim() || String(editorPack.label || '').trim() || 'Pack mascotte';
-      await api(`/api/visit/mascot-packs/${encodeURIComponent(selectedId)}`, 'PUT', {
-        map_id: String(mapId || '').trim(),
-        label,
-        pack: cleanedPack,
-        is_published: row?.is_published ? 1 : 0,
-      });
-      setEditorPack(cleanedPack);
-      setSavedSnapshot(createMascotPackEditorSnapshot(cleanedPack, label));
-      await refreshFromServer();
-    } catch (e) {
-      if (e instanceof AccountDeletedError) onForceLogout?.();
-      else setActionErrorWithDetails(e.message || 'Enregistrement impossible', e?.body?.details);
-    } finally {
-      setActionBusy(false);
-    }
-  }, [
-    selectedId,
-    editorPack,
-    packs,
-    mapId,
-    refreshFromServer,
-    onForceLogout,
-    labelDraft,
-    setActionErrorWithDetails,
-  ]);
-
-  const onTogglePublish = useCallback(async () => {
-    if (!selectedId) return;
-    const row = packs.find((p) => p.id === selectedId);
-    if (!row) return;
-    setActionBusy(true);
-    setActionError('');
-    setActionIssues([]);
-    try {
-      const cleanedPack = sanitizeMascotPackDraft(editorPack);
-      const precheck = getPackStrictValidation(cleanedPack, selectedId, String(mapId || '').trim());
-      if (!precheck.ok) {
-        setActionErrorWithDetails(
-          'Publication impossible: pack invalide.',
-          precheck.error?.format?.() || precheck.error,
+      if (togglePublish && !row) return;
+      setActionBusy(true);
+      setActionError('');
+      setActionIssues([]);
+      try {
+        const cleanedPack = sanitizeMascotPackDraft(editorPack);
+        const precheck = getPackStrictValidation(
+          cleanedPack,
+          selectedId,
+          String(mapId || '').trim(),
         );
-        return;
+        if (!precheck.ok) {
+          setActionErrorWithDetails(
+            togglePublish
+              ? 'Publication impossible: pack invalide.'
+              : 'Le pack est invalide. Corrigez les champs indiqués avant enregistrement.',
+            precheck.error?.format?.() || precheck.error,
+          );
+          return;
+        }
+        const label =
+          String(labelDraft || '').trim() ||
+          String(editorPack.label || '').trim() ||
+          'Pack mascotte';
+        await api(`/api/visit/mascot-packs/${encodeURIComponent(selectedId)}`, 'PUT', {
+          map_id: String(mapId || '').trim(),
+          label,
+          pack: cleanedPack,
+          is_published: (togglePublish ? !row.is_published : row?.is_published) ? 1 : 0,
+        });
+        setEditorPack(cleanedPack);
+        setSavedSnapshot(createMascotPackEditorSnapshot(cleanedPack, label));
+        await refreshFromServer();
+      } catch (e) {
+        if (e instanceof AccountDeletedError) onForceLogout?.();
+        else
+          setActionErrorWithDetails(
+            e.message || (togglePublish ? 'Mise à jour impossible' : 'Enregistrement impossible'),
+            e?.body?.details,
+          );
+      } finally {
+        setActionBusy(false);
       }
-      const label =
-        String(labelDraft || '').trim() || String(editorPack.label || '').trim() || 'Pack mascotte';
-      await api(`/api/visit/mascot-packs/${encodeURIComponent(selectedId)}`, 'PUT', {
-        map_id: String(mapId || '').trim(),
-        label,
-        pack: cleanedPack,
-        is_published: row.is_published ? 0 : 1,
-      });
-      setEditorPack(cleanedPack);
-      setSavedSnapshot(createMascotPackEditorSnapshot(cleanedPack, label));
-      await refreshFromServer();
-    } catch (e) {
-      if (e instanceof AccountDeletedError) onForceLogout?.();
-      else setActionErrorWithDetails(e.message || 'Mise à jour impossible', e?.body?.details);
-    } finally {
-      setActionBusy(false);
-    }
-  }, [
-    selectedId,
-    editorPack,
-    packs,
-    mapId,
-    refreshFromServer,
-    onForceLogout,
-    labelDraft,
-    setActionErrorWithDetails,
-  ]);
+    },
+    [
+      selectedId,
+      editorPack,
+      packs,
+      mapId,
+      refreshFromServer,
+      onForceLogout,
+      labelDraft,
+      setActionErrorWithDetails,
+    ],
+  );
+
+  const onSave = useCallback(() => savePack(), [savePack]);
+  const onTogglePublish = useCallback(() => savePack({ togglePublish: true }), [savePack]);
 
   const onDelete = useCallback(async () => {
     if (!selectedId) return;
@@ -723,120 +655,6 @@ export default function VisitMascotPackManager({
     });
   }, []);
 
-  const fileToPngDataUrl = useCallback(
-    (file) =>
-      new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onerror = () => reject(new Error('Lecture fichier impossible'));
-        reader.onload = () => {
-          const dataUrl = reader.result;
-          const img = new Image();
-          img.onerror = () => reject(new Error('Image invalide'));
-          img.onload = () => {
-            let w = img.naturalWidth;
-            let h = img.naturalHeight;
-            const max = 2048;
-            if (w > max || h > max) {
-              if (w >= h) {
-                h = Math.round((h * max) / w);
-                w = max;
-              } else {
-                w = Math.round((w * max) / h);
-                h = max;
-              }
-            }
-            const canvas = document.createElement('canvas');
-            canvas.width = w;
-            canvas.height = h;
-            const ctx = canvas.getContext('2d');
-            if (!ctx) {
-              reject(new Error('Canvas indisponible'));
-              return;
-            }
-            ctx.drawImage(img, 0, 0, w, h);
-            resolve(canvas.toDataURL('image/png'));
-          };
-          img.src = dataUrl;
-        };
-        reader.readAsDataURL(file);
-      }),
-    [],
-  );
-
-  const onLibUpload = useCallback(
-    async (ev) => {
-      const file = ev.target?.files?.[0];
-      ev.target.value = '';
-      if (!file) return;
-      const mid = String(mapId || '').trim();
-      setLibLoading(true);
-      setLibMessage('Envoi en cours…');
-      try {
-        const dataUrl = await fileToPngDataUrl(file);
-        const safeName = file.name.replace(/[^a-zA-Z0-9._-]+/g, '-').toLowerCase() || 'import.png';
-        await api(`/api/visit/mascot-sprite-library/${encodeURIComponent(mid)}/assets`, 'POST', {
-          filename: safeName.endsWith('.png') ? safeName : `${safeName}.png`,
-          image_data: dataUrl,
-        });
-        setLibMessage('Image importée dans la bibliothèque.');
-        await loadLibrary();
-      } catch (e) {
-        if (e instanceof AccountDeletedError) onForceLogout?.();
-        else setLibMessage(e.message || 'Import impossible');
-      } finally {
-        setLibLoading(false);
-      }
-    },
-    [mapId, loadLibrary, onForceLogout, fileToPngDataUrl],
-  );
-
-  const onLibDelete = useCallback(
-    async (filename) => {
-      const mid = String(mapId || '').trim();
-      if (!window.confirm(`Supprimer « ${filename} » de la bibliothèque ?`)) return;
-      setLibLoading(true);
-      try {
-        await api(
-          `/api/visit/mascot-sprite-library/${encodeURIComponent(mid)}/assets/${encodeURIComponent(filename)}`,
-          'DELETE',
-        );
-        await loadLibrary();
-      } catch (e) {
-        if (e instanceof AccountDeletedError) onForceLogout?.();
-        else setLibMessage(e.message || 'Suppression impossible');
-      } finally {
-        setLibLoading(false);
-      }
-    },
-    [mapId, loadLibrary, onForceLogout],
-  );
-
-  const onDeletePublicAsset = useCallback(
-    async (url) => {
-      const assetUrl = String(url || '').trim();
-      if (!assetUrl) return;
-      if (
-        !window.confirm(
-          `Supprimer définitivement « ${assetUrl.split('/').pop() || assetUrl} » du catalogue site ?`,
-        )
-      )
-        return;
-      setGlobalAssetsLoading(true);
-      setGlobalAssetsMessage('');
-      try {
-        await api('/api/visit/mascot-assets/public', 'DELETE', { url: assetUrl });
-        setGlobalAssetsMessage('Sprite site supprimé.');
-        await loadGlobalAssets();
-      } catch (e) {
-        if (e instanceof AccountDeletedError) onForceLogout?.();
-        else setGlobalAssetsMessage(e.message || 'Suppression site impossible');
-      } finally {
-        setGlobalAssetsLoading(false);
-      }
-    },
-    [loadGlobalAssets, onForceLogout],
-  );
-
   const setFramesBaseToLibrary = useCallback(() => {
     const mid = String(mapId || '').trim();
     if (!mid) return;
@@ -902,55 +720,11 @@ export default function VisitMascotPackManager({
     catalogStaticFramesBase,
     missingPackFrames,
     catalogModelId,
-    fileToPngDataUrl,
     loadPackAssets,
     onForceLogout,
+    setPackAssetsLoading,
+    setPackAssetsMessage,
   ]);
-
-  const onPackUpload = useCallback(
-    async (ev) => {
-      const file = ev.target?.files?.[0];
-      ev.target.value = '';
-      if (!file || !selectedId) return;
-      const filename = sanitizeClientFilename(file.name);
-      setPackAssetsMessage('Envoi en cours…');
-      try {
-        const dataUrl = await fileToPngDataUrl(file);
-        await api(`/api/visit/mascot-packs/${encodeURIComponent(selectedId)}/assets`, 'POST', {
-          filename,
-          image_data: dataUrl,
-        });
-        setPackAssetsMessage(`Fichier « ${filename} » enregistré sur le pack.`);
-        await loadPackAssets();
-      } catch (e) {
-        if (e instanceof AccountDeletedError) onForceLogout?.();
-        else setPackAssetsMessage(e.message || 'Import pack impossible');
-      }
-    },
-    [selectedId, fileToPngDataUrl, loadPackAssets, onForceLogout],
-  );
-
-  const onPackDeleteAsset = useCallback(
-    async (filename) => {
-      if (!selectedId || !filename) return;
-      if (!window.confirm(`Supprimer « ${filename} » de la médiathèque du pack ?`)) return;
-      setPackAssetsLoading(true);
-      try {
-        await api(
-          `/api/visit/mascot-packs/${encodeURIComponent(selectedId)}/assets/${encodeURIComponent(filename)}`,
-          'DELETE',
-        );
-        setPackAssetsMessage(`« ${filename} » supprimé du pack.`);
-        await loadPackAssets();
-      } catch (e) {
-        if (e instanceof AccountDeletedError) onForceLogout?.();
-        else setPackAssetsMessage(e.message || 'Suppression pack impossible');
-      } finally {
-        setPackAssetsLoading(false);
-      }
-    },
-    [selectedId, loadPackAssets, onForceLogout],
-  );
 
   const insertImageIntoPack = useCallback(
     (entry) => {
@@ -964,10 +738,9 @@ export default function VisitMascotPackManager({
         }),
       );
       const stateLabel = STATE_LABELS[globalTargetState] || globalTargetState;
-      setInsertFeedback(`« ${entry.filename} » ajouté à l’état « ${stateLabel} ».`);
-      setTimeout(() => setInsertFeedback(''), 2800);
+      showInsertFeedback(`« ${entry.filename} » ajouté à l’état « ${stateLabel} ».`, 2800);
     },
-    [globalTargetState],
+    [globalTargetState, showInsertFeedback],
   );
 
   const bulkInsertImagesIntoPack = useCallback(
@@ -987,242 +760,28 @@ export default function VisitMascotPackManager({
           assets,
         );
         const stateLabel = STATE_LABELS[globalTargetState] || globalTargetState;
-        setInsertFeedback(
+        showInsertFeedback(
           addedCount > 0
             ? `${addedCount} image(s) ajoutée(s) à l’état « ${stateLabel} ».`
             : `Aucune nouvelle image (déjà présentes dans « ${stateLabel} »).`,
+          3200,
         );
-        setTimeout(() => setInsertFeedback(''), 3200);
         return pack;
       });
     },
-    [globalTargetState],
+    [globalTargetState, showInsertFeedback],
   );
 
-  const deletePackAssetSilent = useCallback(
-    async (filename) => {
-      if (!selectedId || !filename) return;
-      await api(
-        `/api/visit/mascot-packs/${encodeURIComponent(selectedId)}/assets/${encodeURIComponent(filename)}`,
-        'DELETE',
-      );
-    },
-    [selectedId],
-  );
-
-  const deleteMapAssetSilent = useCallback(
-    async (filename) => {
-      const mid = String(mapId || '').trim();
-      if (!mid || !filename) return;
-      await api(
-        `/api/visit/mascot-sprite-library/${encodeURIComponent(mid)}/assets/${encodeURIComponent(filename)}`,
-        'DELETE',
-      );
-    },
-    [mapId],
-  );
-
-  const deletePublicAssetSilent = useCallback(async (url) => {
-    const assetUrl = String(url || '').trim();
-    if (!assetUrl) return;
-    await api('/api/visit/mascot-assets/public', 'DELETE', { url: assetUrl });
-  }, []);
-
-  const bulkDeleteImages = useCallback(
-    async (entries) => {
-      const list = Array.isArray(entries) ? entries : [];
-      const deletable = list.filter((e) => e.canDelete);
-      if (deletable.length === 0) return;
-
-      const referenced = collectPackReferencedFrameFilenames(editorPack);
-      const referencedDeletes = deletable.filter((e) => {
-        const fn = String(e.filename || '').trim();
-        return fn && referenced.has(fn);
-      });
-      let confirmMsg = `Supprimer ${deletable.length} sprite(s) sélectionné(s) ?`;
-      if (referencedDeletes.length > 0) {
-        const names = referencedDeletes
-          .slice(0, 5)
-          .map((e) => e.filename)
-          .join(', ');
-        confirmMsg += `\n\nAttention : ${referencedDeletes.length} fichier(s) sont encore référencés dans le pack (${names}${referencedDeletes.length > 5 ? '…' : ''}).`;
-      }
-      if (!window.confirm(confirmMsg)) return;
-
-      setImageBulkBusy(true);
-      setPackAssetsMessage('');
-      setLibMessage('');
-      setGlobalAssetsMessage('');
-      let deleted = 0;
-      const failures = [];
-
-      for (const entry of deletable) {
-        try {
-          const scope = entry.deleteScope;
-          if (scope === 'pack') await deletePackAssetSilent(entry.filename);
-          else if (scope === 'map') await deleteMapAssetSilent(entry.filename);
-          else if (scope === 'public') await deletePublicAssetSilent(entry.deleteUrl || entry.url);
-          deleted += 1;
-        } catch (e) {
-          if (e instanceof AccountDeletedError) {
-            onForceLogout?.();
-            break;
-          }
-          failures.push(String(entry.filename || e.message || 'erreur'));
-        }
-      }
-
-      try {
-        await loadPackAssets();
-        await loadLibrary();
-        await loadGlobalAssets();
-      } catch (_) {
-        /* ignore reload errors */
-      }
-
-      const msg =
-        failures.length === 0
-          ? `${deleted} sprite(s) supprimé(s).`
-          : `${deleted} supprimé(s), ${failures.length} échec(s).`;
-      setInsertFeedback(msg);
-      setTimeout(() => setInsertFeedback(''), 4000);
-      if (failures.length) setPackAssetsMessage(failures.slice(0, 3).join(' · '));
-      setImageBulkBusy(false);
-    },
-    [
+  const { imageBulkBusy, bulkDeleteImages, bulkRenameImages, bulkReplaceImages } =
+    useMascotPackBulkImageActions({
+      selectedId,
+      mapId,
       editorPack,
-      deletePackAssetSilent,
-      deleteMapAssetSilent,
-      deletePublicAssetSilent,
-      loadPackAssets,
-      loadLibrary,
-      loadGlobalAssets,
+      setEditorPack,
       onForceLogout,
-    ],
-  );
-
-  const bulkRenameImages = useCallback(
-    async (pairs) => {
-      const list = Array.isArray(pairs) ? pairs : [];
-      if (list.length === 0) return;
-      setImageBulkBusy(true);
-      setInsertFeedback('');
-      let renamed = 0;
-      const failures = [];
-      let nextPack = editorPack;
-
-      for (const { entry, newFilename } of list) {
-        const oldName = String(entry?.filename || '').trim();
-        const newName = sanitizeClientFilename(newFilename);
-        if (!oldName || !newName || oldName === newName) continue;
-        try {
-          if (entry.deleteScope === 'pack' && selectedId) {
-            await api(
-              `/api/visit/mascot-packs/${encodeURIComponent(selectedId)}/assets/${encodeURIComponent(oldName)}`,
-              'PATCH',
-              { new_filename: newName },
-            );
-          } else if (entry.deleteScope === 'map') {
-            const mid = String(mapId || '').trim();
-            await api(
-              `/api/visit/mascot-sprite-library/${encodeURIComponent(mid)}/assets/${encodeURIComponent(oldName)}`,
-              'PATCH',
-              { new_filename: newName },
-            );
-          } else {
-            continue;
-          }
-          nextPack = renameFilenameInPackStateFrames(nextPack, oldName, newName);
-          renamed += 1;
-        } catch (e) {
-          if (e instanceof AccountDeletedError) {
-            onForceLogout?.();
-            break;
-          }
-          failures.push(`${oldName}: ${e.message || 'échec'}`);
-        }
-      }
-
-      setEditorPack(nextPack);
-      try {
-        await loadPackAssets();
-        await loadLibrary();
-      } catch (_) {
-        /* ignore */
-      }
-      setInsertFeedback(
-        failures.length
-          ? `${renamed} renommé(s), ${failures.length} échec(s).`
-          : `${renamed} fichier(s) renommé(s).`,
-      );
-      setTimeout(() => setInsertFeedback(''), 4000);
-      setImageBulkBusy(false);
-    },
-    [editorPack, selectedId, mapId, loadPackAssets, loadLibrary, onForceLogout],
-  );
-
-  const bulkReplaceImages = useCallback(
-    async (entries, fileList) => {
-      const list = Array.isArray(entries) ? entries : [];
-      const files = Array.from(fileList || []);
-      if (list.length === 0 || files.length === 0) return;
-      if (
-        !window.confirm(
-          `Remplacer ${Math.min(list.length, files.length)} sprite(s) par de nouvelles images ?`,
-        )
-      )
-        return;
-
-      setImageBulkBusy(true);
-      let replaced = 0;
-      const failures = [];
-
-      for (let i = 0; i < list.length; i += 1) {
-        const entry = list[i];
-        const file = files[Math.min(i, files.length - 1)];
-        const filename = String(entry?.filename || '').trim();
-        if (!filename || !file) continue;
-        if (entry.deleteScope !== 'pack' && entry.deleteScope !== 'map') continue;
-        try {
-          const dataUrl = await fileToPngDataUrl(file);
-          if (entry.deleteScope === 'pack' && selectedId) {
-            await api(`/api/visit/mascot-packs/${encodeURIComponent(selectedId)}/assets`, 'POST', {
-              filename,
-              image_data: dataUrl,
-            });
-          } else if (entry.deleteScope === 'map') {
-            const mid = String(mapId || '').trim();
-            await api(
-              `/api/visit/mascot-sprite-library/${encodeURIComponent(mid)}/assets`,
-              'POST',
-              {
-                filename,
-                image_data: dataUrl,
-              },
-            );
-          }
-          replaced += 1;
-        } catch (e) {
-          if (e instanceof AccountDeletedError) {
-            onForceLogout?.();
-            break;
-          }
-          failures.push(`${filename}: ${e.message || 'échec'}`);
-        }
-      }
-
-      await loadPackAssets();
-      await loadLibrary();
-      setInsertFeedback(
-        failures.length
-          ? `${replaced} remplacé(s), ${failures.length} échec(s).`
-          : `${replaced} sprite(s) remplacé(s).`,
-      );
-      setTimeout(() => setInsertFeedback(''), 4000);
-      setImageBulkBusy(false);
-    },
-    [selectedId, mapId, fileToPngDataUrl, loadPackAssets, loadLibrary, onForceLogout],
-  );
+      showInsertFeedback,
+      assets: packAssetsApi,
+    });
 
   const removeFilenamesFromTargetState = useCallback(
     (filenames) => {
@@ -1238,10 +797,9 @@ export default function VisitMascotPackManager({
         };
       });
       const stateLabel = STATE_LABELS[globalTargetState] || globalTargetState;
-      setInsertFeedback(`${list.length} frame(s) retirée(s) de « ${stateLabel} ».`);
-      setTimeout(() => setInsertFeedback(''), 2800);
+      showInsertFeedback(`${list.length} frame(s) retirée(s) de « ${stateLabel} ».`, 2800);
     },
-    [globalTargetState],
+    [globalTargetState, showInsertFeedback],
   );
 
   const moveFilenamesInTargetState = useCallback(
@@ -1280,17 +838,10 @@ export default function VisitMascotPackManager({
       for (const key of list) {
         patchInteractionRule(key, partial);
       }
-      setInsertFeedback(`Comportements mis à jour pour ${list.length} événement(s).`);
-      setTimeout(() => setInsertFeedback(''), 3200);
+      showInsertFeedback(`Comportements mis à jour pour ${list.length} événement(s).`, 3200);
     },
-    [patchInteractionRule],
+    [patchInteractionRule, showInsertFeedback],
   );
-
-  const reloadAllImages = useCallback(() => {
-    void loadPackAssets();
-    void loadLibrary();
-    void loadGlobalAssets();
-  }, [loadPackAssets, loadLibrary, loadGlobalAssets]);
 
   const packDialogInheritedContext = useMemo(() => {
     const catalogId = resolvePackDialogMascotId(editorPack, selectedRow);
@@ -1528,8 +1079,7 @@ export default function VisitMascotPackManager({
                         className="btn btn-ghost btn-sm"
                         onClick={() => {
                           void navigator.clipboard.writeText(jsonDraft);
-                          setJsonCopyFeedback('JSON copié dans le presse-papiers.');
-                          setTimeout(() => setJsonCopyFeedback(''), 2500);
+                          showJsonCopyFeedback('JSON copié dans le presse-papiers.');
                         }}
                       >
                         Copier
