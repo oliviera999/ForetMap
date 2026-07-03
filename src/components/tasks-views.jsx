@@ -1,9 +1,14 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 
 import { api, AccountDeletedError } from '../services/api';
 import { getRoleTerms } from '../utils/n3-terminology';
 import { useHelp } from '../hooks/useHelp';
+import { useQuickAssign } from '../hooks/useQuickAssign';
+import { useTaskDragReorder } from '../hooks/useTaskDragReorder';
+import { useTaskFilters } from '../hooks/useTaskFilters';
+import { useTaskModals } from '../hooks/useTaskModals';
 import { useTaskTileVolatileProps } from '../hooks/useTaskTileVolatileProps';
+import { useTeacherTaskData } from '../hooks/useTeacherTaskData';
 import { useTutorialReadIds } from '../hooks/useTutorialReadIds';
 
 import { resolveHelpChrome, resolveHelpQuickTip, resolveTooltipKey } from '../utils/helpResolve';
@@ -41,15 +46,6 @@ import { TaskImportPanel } from './tasks/TaskImportPanel.jsx';
 import { TaskTutorialsAtFocusBlock } from './tasks/TaskTutorialsAtFocusBlock.jsx';
 import { TaskFiltersBar } from './tasks/TaskFiltersBar.jsx';
 import { TasksViewHeader } from './tasks/TasksViewHeader.jsx';
-import { isStudentAlreadyAssignedToTask } from '../utils/taskComputations.js';
-import {
-  computeQuickAssignDelta,
-  canApplyQuickAssign,
-  quickAssignHintText,
-  executeQuickAssignPlan,
-  quickAssignOutcomeToast,
-} from '../utils/taskQuickAssign.js';
-import { computeReorderedProjectTaskIds } from '../utils/taskDragReorder.js';
 import {
   prepareTaskSavePayload,
   executeInitialAssignments,
@@ -70,10 +66,7 @@ import {
   taskEffectiveStatus,
   normalizeProjectUiStatus,
 } from '../utils/taskListHelpers.js';
-import {
-  teacherCollectiveAssigneeLoadKey,
-  toQuickAssignStudentId,
-} from '../utils/taskDisplayHelpers.js';
+import { teacherCollectiveAssigneeLoadKey } from '../utils/taskDisplayHelpers.js';
 
 function TasksViewImpl({
   maps = [],
@@ -117,45 +110,56 @@ function TasksViewImpl({
     () => filterTeacherStatusActions(TEACHER_STATUS_ACTIONS, teacherTaskPerms),
     [teacherTaskPerms],
   );
-  const [showForm, setShowForm] = useState(false);
-  const [showProjectForm, setShowProjectForm] = useState(false);
-  const [editProject, setEditProject] = useState(null);
-  const [showProposalForm, setShowProposalForm] = useState(false);
-  const [editTask, setEditTask] = useState(null);
-  const [duplicateTask, setDuplicateTask] = useState(null);
-  const [logTask, setLogTask] = useState(null);
-  const [logsTask, setLogsTask] = useState(null);
+  const {
+    showForm,
+    setShowForm,
+    showProjectForm,
+    setShowProjectForm,
+    editProject,
+    setEditProject,
+    showProposalForm,
+    setShowProposalForm,
+    editTask,
+    setEditTask,
+    duplicateTask,
+    setDuplicateTask,
+    logTask,
+    setLogTask,
+    logsTask,
+    setLogsTask,
+    confirmTask,
+    setConfirmTask,
+  } = useTaskModals(onTaskFormOverlayOpenChange);
   const [loading, setLoading] = useState({});
   const [toast, setToast] = useState(null);
-  const [confirmTask, setConfirmTask] = useState(null);
-  const [filterText, setFilterText] = useState('');
-  const [filterZone, setFilterZone] = useState('');
-  const [filterStatus, setFilterStatus] = useState('');
-  const [hasTouchedStatusFilter, setHasTouchedStatusFilter] = useState(false);
-  const [filterMap, setFilterMap] = useState('active');
-  const [filterProject, setFilterProject] = useState('');
-  const [filterGroupId, setFilterGroupId] = useState('');
-  /** '' = toutes, 'urgent' = importance absolute uniquement, 'non_urgent' = exclure les urgent */
-  const [filterUrgentCategory, setFilterUrgentCategory] = useState('');
+  const {
+    filterText,
+    setFilterText,
+    filterZone,
+    setFilterZone,
+    filterStatus,
+    setFilterStatus,
+    hasTouchedStatusFilter,
+    setHasTouchedStatusFilter,
+    filterMap,
+    setFilterMap,
+    filterProject,
+    setFilterProject,
+    filterGroupId,
+    setFilterGroupId,
+    filterUrgentCategory,
+    setFilterUrgentCategory,
+  } = useTaskFilters(activeMapId, mapLocationFocus);
   const [viewMode, setViewMode] = useState(() => {
     const saved = safeLocalStorageGetItem('foretmap:tasks:viewMode', 'tiles');
     if (saved === 'list') return 'list';
     if (saved === 'condensed') return 'condensed';
     return 'tiles';
   });
-  const [teacherStudents, setTeacherStudents] = useState([]);
-  const [groupOptions, setGroupOptions] = useState([]);
-  const [referentCandidates, setReferentCandidates] = useState([]);
-  const [quickAssignTaskId, setQuickAssignTaskId] = useState(null);
-  const [quickAssignStudentIds, setQuickAssignStudentIds] = useState([]);
-  const [loadingTeacherStudents, setLoadingTeacherStudents] = useState(false);
-  /** True dès que l’utilisateur modifie la sélection (évite d’écraser le préremplissage différé). */
-  const quickAssignUserEditedRef = useRef(false);
+  const { teacherStudents, groupOptions, referentCandidates, loadingTeacherStudents } =
+    useTeacherTaskData(isTeacher, filterGroupId, setToast);
   /** Préremplit le sélecteur « Projet » à l’ouverture de « Nouvelle tâche » (y compris projet en attente). */
   const [newTaskDefaultProjectId, setNewTaskDefaultProjectId] = useState(null);
-  /** Payload de drag & drop actif (prof/admin) pour déplacer / réordonner les tâches dans un projet. */
-  const [taskDragPayload, setTaskDragPayload] = useState(null);
-  const [taskDropHint, setTaskDropHint] = useState({ projectId: '', beforeTaskId: '' });
   const {
     isHelpEnabled,
     showContextHints,
@@ -186,127 +190,9 @@ function TasksViewImpl({
     setTasksTutorialPreview(tutorialPreviewPayload(tu));
   }, []);
 
-  const mapLocationFocusKey = mapLocationFocus
-    ? `${mapLocationFocus.kind}:${mapLocationFocus.id}`
-    : '';
-  useEffect(() => {
-    if (!mapLocationFocusKey) return;
-    setFilterZone(mapLocationFocusKey);
-  }, [mapLocationFocusKey]);
-
-  useEffect(() => {
-    setFilterMap('active');
-  }, [activeMapId]);
   useEffect(() => {
     safeLocalStorageSetItem('foretmap:tasks:viewMode', viewMode);
   }, [viewMode]);
-  useEffect(() => {
-    if (!isTeacher) return;
-    api('/api/groups/options')
-      .then((payload) => setGroupOptions(Array.isArray(payload?.groups) ? payload.groups : []))
-      .catch(() => setGroupOptions([]));
-  }, [isTeacher]);
-
-  useEffect(() => {
-    if (!isTeacher) return;
-    let cancelled = false;
-    const loadTeacherStudents = async () => {
-      setLoadingTeacherStudents(true);
-      try {
-        const payload = await api(
-          `/api/stats/all${filterGroupId ? `?group_id=${encodeURIComponent(filterGroupId)}` : ''}`,
-        );
-        if (cancelled) return;
-        const rows = Array.isArray(payload) ? payload : (payload?.students ?? []);
-        const list = Array.isArray(rows)
-          ? rows
-              .slice()
-              .sort((a, b) =>
-                `${a?.first_name || ''} ${a?.last_name || ''}`
-                  .trim()
-                  .localeCompare(`${b?.first_name || ''} ${b?.last_name || ''}`.trim(), 'fr'),
-              )
-          : [];
-        setTeacherStudents(list);
-      } catch (e) {
-        if (!cancelled)
-          setToast('Impossible de charger la liste des n3beurs pour l’instant : ' + e.message);
-      } finally {
-        if (!cancelled) setLoadingTeacherStudents(false);
-      }
-    };
-    loadTeacherStudents();
-    return () => {
-      cancelled = true;
-    };
-  }, [isTeacher, filterGroupId]);
-
-  useEffect(() => {
-    if (!isTeacher) return;
-    let cancelled = false;
-    const loadReferents = async () => {
-      try {
-        const rows = await api('/api/tasks/referent-candidates');
-        if (cancelled) return;
-        setReferentCandidates(Array.isArray(rows) ? rows : []);
-      } catch {
-        if (!cancelled) setReferentCandidates([]);
-      }
-    };
-    loadReferents();
-    return () => {
-      cancelled = true;
-    };
-  }, [isTeacher]);
-
-  useEffect(() => {
-    if (!isTeacher || !quickAssignTaskId || loadingTeacherStudents || teacherStudents.length === 0)
-      return;
-    if (quickAssignUserEditedRef.current) return;
-    const task = tasks.find((x) => String(x.id) === String(quickAssignTaskId));
-    if (!task) return;
-    const wantIds = teacherStudents
-      .filter((s) => isStudentAlreadyAssignedToTask(task, s))
-      .map((s) => toQuickAssignStudentId(s.id));
-    setQuickAssignStudentIds((prev) => {
-      const prevStr = prev.map(toQuickAssignStudentId);
-      if (prevStr.length === 0 && wantIds.length > 0) return wantIds;
-      return prev;
-    });
-  }, [isTeacher, quickAssignTaskId, loadingTeacherStudents, teacherStudents, tasks]);
-
-  useEffect(() => {
-    if (!onTaskFormOverlayOpenChange) return;
-    const open = !!(
-      showForm ||
-      editTask ||
-      duplicateTask ||
-      showProposalForm ||
-      showProjectForm ||
-      confirmTask ||
-      logTask ||
-      logsTask
-    );
-    onTaskFormOverlayOpenChange(open);
-  }, [
-    showForm,
-    editTask,
-    duplicateTask,
-    showProposalForm,
-    showProjectForm,
-    confirmTask,
-    logTask,
-    logsTask,
-    onTaskFormOverlayOpenChange,
-  ]);
-
-  useEffect(
-    () => () => {
-      onTaskFormOverlayOpenChange?.(false);
-    },
-    [onTaskFormOverlayOpenChange],
-  );
-
   const tasksForLocationPicker = useMemo(
     () =>
       tasks.filter((t) => taskMapIdMatchesFilter(taskEffectiveMapId(t), filterMap, activeMapId)),
@@ -328,83 +214,14 @@ function TasksViewImpl({
     [onRefresh, onForceLogout],
   );
 
-  const clearTaskDragState = useCallback(() => {
-    setTaskDragPayload(null);
-    setTaskDropHint({ projectId: '', beforeTaskId: '' });
-  }, []);
-
-  const startTaskDrag = useCallback(
-    (task) => {
-      if (!isTeacher || !task?.id) return;
-      setTaskDragPayload({
-        taskId: String(task.id),
-        sourceProjectId: String(task.project_id || '').trim(),
-      });
-      setTaskDropHint({ projectId: '', beforeTaskId: '' });
-    },
-    [isTeacher],
-  );
-
-  const registerProjectDropHint = useCallback(
-    (projectIdRaw, beforeTaskIdRaw = '') => {
-      if (!taskDragPayload?.taskId) return;
-      const projectId = String(projectIdRaw || '').trim();
-      if (!projectId) return;
-      setTaskDropHint({
-        projectId,
-        beforeTaskId: String(beforeTaskIdRaw || '').trim(),
-      });
-    },
-    [taskDragPayload?.taskId],
-  );
-
-  const dropTaskToProject = useCallback(
-    (targetProjectIdRaw, beforeTaskIdRaw = '') => {
-      const dragTaskId = String(taskDragPayload?.taskId || '').trim();
-      if (!isTeacher || !dragTaskId) return;
-      const targetProjectId = String(targetProjectIdRaw || '').trim();
-      if (!targetProjectId) {
-        clearTaskDragState();
-        return;
-      }
-      const draggedTask = tasks.find((task) => String(task.id) === dragTaskId);
-      if (!draggedTask) {
-        clearTaskDragState();
-        return;
-      }
-      const sourceProjectId = String(draggedTask.project_id || '').trim();
-      const beforeTaskId = String(beforeTaskIdRaw || '').trim();
-      const loadKey = `${dragTaskId}dnd:${targetProjectId}:${beforeTaskId || 'end'}`;
-      void withLoad(loadKey, async () => {
-        if (sourceProjectId !== targetProjectId) {
-          await api(`/api/tasks/${dragTaskId}`, 'PUT', { project_id: targetProjectId });
-        }
-        const orderedTaskIds = computeReorderedProjectTaskIds(
-          tasks,
-          dragTaskId,
-          targetProjectId,
-          beforeTaskId,
-        );
-        await api('/api/tasks/reorder-project', 'POST', {
-          project_id: targetProjectId,
-          task_ids: orderedTaskIds,
-        });
-        setToast(
-          sourceProjectId === targetProjectId
-            ? 'Ordre des tâches du projet mis à jour ✓'
-            : 'Tâche intégrée au projet et positionnée ✓',
-        );
-        clearTaskDragState();
-      });
-    },
-    [clearTaskDragState, isTeacher, taskDragPayload?.taskId, tasks, withLoad],
-  );
-
-  useEffect(() => {
-    if (!taskDragPayload?.taskId) return;
-    const stillExists = tasks.some((task) => String(task.id) === String(taskDragPayload.taskId));
-    if (!stillExists) clearTaskDragState();
-  }, [clearTaskDragState, taskDragPayload, tasks]);
+  const {
+    taskDragPayload,
+    taskDropHint,
+    clearTaskDragState,
+    startTaskDrag,
+    registerProjectDropHint,
+    dropTaskToProject,
+  } = useTaskDragReorder({ isTeacher, tasks, withLoad, setToast });
 
   /** Marque `done_at` pour un assigné (tâche en mode collectif) — `POST /api/tasks/:id/done` côté n3boss. */
   const teacherMarkCollectiveAssignmentDone = useCallback(
@@ -501,7 +318,7 @@ function TasksViewImpl({
         },
       });
     },
-    [withLoad, student],
+    [withLoad, student, setConfirmTask],
   );
 
   const setTaskStatus = useCallback(
@@ -532,7 +349,7 @@ function TasksViewImpl({
         },
       });
     },
-    [withLoad],
+    [withLoad, setConfirmTask],
   );
 
   const saveTask = async (form) => {
@@ -765,34 +582,24 @@ function TasksViewImpl({
       : viewMode === 'condensed'
         ? 'tasks-condensed'
         : 'tasks-list';
-  /** Inscriptions à ajouter / retirer (liste n3beurs chargée côté n3boss) pour l’affectation rapide. */
-  const teacherQuickAssignDelta = useCallback(
-    (task, selectedIds) => computeQuickAssignDelta(task, selectedIds, teacherStudents),
-    [teacherStudents],
-  );
-  const teacherQuickAssignCanApply = useCallback(
-    (task, selectedIds) => !!isTeacher && canApplyQuickAssign(task, selectedIds, teacherStudents),
-    [isTeacher, teacherStudents],
-  );
-  const quickAssignHint = useCallback(
-    (task, selectedIds) => quickAssignHintText(task, selectedIds, teacherStudents),
-    [teacherStudents],
-  );
-  const runTeacherQuickAssign = useCallback(
-    (task, selectedIds) =>
-      withLoad(`${task.id}assign_teacher_quick`, async () => {
-        const { toAdd, toRemove } = teacherQuickAssignDelta(task, selectedIds);
-        if (toAdd.length === 0 && toRemove.length === 0) {
-          setToast('Rien à faire : tout était déjà comme prévu.');
-          return;
-        }
-        const outcome = await executeQuickAssignPlan(api, task, { toAdd, toRemove });
-        setToast(quickAssignOutcomeToast(task, outcome));
-        setQuickAssignTaskId(null);
-        setQuickAssignStudentIds([]);
-      }),
-    [withLoad, teacherQuickAssignDelta],
-  );
+  const {
+    quickAssignTaskId,
+    setQuickAssignTaskId,
+    quickAssignStudentIds,
+    setQuickAssignStudentIds,
+    quickAssignUserEditedRef,
+    teacherQuickAssignDelta,
+    teacherQuickAssignCanApply,
+    quickAssignHint,
+    runTeacherQuickAssign,
+  } = useQuickAssign({
+    isTeacher,
+    tasks,
+    teacherStudents,
+    loadingTeacherStudents,
+    withLoad,
+    setToast,
+  });
 
   const onOpenBiodiversityFromTaskName = useCallback(
     (name) => {
@@ -871,6 +678,7 @@ function TasksViewImpl({
       roleTerms,
       teacherStudents,
       loadingTeacherStudents,
+      quickAssignUserEditedRef,
       teacherQuickAssignDelta,
       teacherQuickAssignCanApply,
       quickAssignHint,
@@ -878,8 +686,16 @@ function TasksViewImpl({
       assignGroupToTask,
       groupOptions,
       unassign,
+      setLogTask,
+      setLogsTask,
       setTaskStatus,
       deleteTask,
+      setEditTask,
+      setDuplicateTask,
+      setShowForm,
+      setShowProposalForm,
+      setQuickAssignTaskId,
+      setQuickAssignStudentIds,
       runTeacherQuickAssign,
       teacherMarkCollectiveAssignmentDone,
       teacherStatusActions,
