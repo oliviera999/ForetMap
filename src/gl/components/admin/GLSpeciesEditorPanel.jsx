@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { apiGL } from '../../services/apiGL.js';
 import { AutoSaveStatus } from '../../../shared/components/AutoSaveStatus.jsx';
-import { useDebouncedAutoSave } from '../../../shared/hooks/useDebouncedAutoSave.js';
+import { useGlAdminCrud } from '../../hooks/useGlAdminCrud.js';
 import { GL_SPECIES_DETAIL_SECTIONS } from '../../utils/glSpeciesFieldLabels.js';
 import {
   EMPTY_FORM,
@@ -18,14 +18,54 @@ import { GLSpeciesField } from './GLSpeciesField.jsx';
 export function GLSpeciesEditorPanel() {
   const [biomes, setBiomes] = useState([]);
   const [biomeSlug, setBiomeSlug] = useState('');
-  const [items, setItems] = useState([]);
-  const [selectedCode, setSelectedCode] = useState(null);
-  const [form, setForm] = useState(EMPTY_FORM);
   const [filterQ, setFilterQ] = useState('');
   const [filterType, setFilterType] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [info, setInfo] = useState('');
+
+  const listPath = useMemo(() => {
+    if (!biomeSlug) return null;
+    const params = new URLSearchParams({ biomeSlug, statut: 'all' });
+    if (filterType) params.set('type', filterType);
+    if (filterQ.trim()) params.set('q', filterQ.trim());
+    return `/api/gl/admin/species?${params.toString()}`;
+  }, [biomeSlug, filterType, filterQ]);
+
+  const {
+    items,
+    selectedCode,
+    setSelectedCode,
+    form,
+    setForm,
+    setField,
+    loading,
+    error,
+    info,
+    setInfo,
+    saveStatus,
+    saveError,
+    itemPath,
+    loadList,
+    loadItem,
+    startNew,
+    runAction,
+  } = useGlAdminCrud({
+    listPath,
+    basePath: '/api/gl/admin/species',
+    codeField: 'species_code',
+    entityKey: 'species',
+    emptyForm: EMPTY_FORM,
+    toForm: speciesToForm,
+    toPayload: (f) => formToPayload({ ...f, biome_slug: biomeSlug || f.biome_slug }),
+    newFormExtra: { biome_slug: biomeSlug },
+    onItemLoaded: (species) => {
+      if (species?.biome_slug) setBiomeSlug(species.biome_slug);
+    },
+    isAutoSaveReady: (f) => Boolean(biomeSlug) && String(f.nom_commun || '').trim().length > 0,
+    messages: {
+      updated: 'Espèce mise à jour.',
+      created: 'Espèce créée.',
+      startNewError: 'Impossible de préparer une nouvelle espèce',
+    },
+  });
 
   const filteredItems = useMemo(
     () => filterSpeciesItems(items, { type: filterType, q: filterQ }),
@@ -39,112 +79,23 @@ export function GLSpeciesEditorPanel() {
     setBiomeSlug((prev) => prev || rows[0]?.slug || '');
   }, []);
 
-  const loadList = useCallback(async () => {
-    if (!biomeSlug) {
-      setItems([]);
-      return;
-    }
-    const params = new URLSearchParams({ biomeSlug, statut: 'all' });
-    if (filterType) params.set('type', filterType);
-    if (filterQ.trim()) params.set('q', filterQ.trim());
-    const data = await apiGL(`/api/gl/admin/species?${params.toString()}`);
-    setItems(Array.isArray(data?.items) ? data.items : []);
-  }, [biomeSlug, filterType, filterQ]);
-
   useEffect(() => {
     loadBiomes().catch(() => setBiomes([]));
   }, [loadBiomes]);
 
   useEffect(() => {
-    loadList().catch((err) => setError(err.message || 'Chargement impossible'));
-  }, [loadList]);
-
-  useEffect(() => {
     setForm((prev) => ({ ...prev, biome_slug: biomeSlug }));
-  }, [biomeSlug]);
-
-  async function loadSpecies(code) {
-    if (!code) return;
-    setLoading(true);
-    setError('');
-    try {
-      const data = await apiGL(`/api/gl/admin/species/${encodeURIComponent(code)}`);
-      setForm(speciesToForm(data?.species));
-      setSelectedCode(code);
-      if (data?.species?.biome_slug) setBiomeSlug(data.species.biome_slug);
-    } catch (err) {
-      setError(err.message || 'Fiche introuvable');
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function startNewSpecies() {
-    setLoading(true);
-    setError('');
-    setInfo('');
-    try {
-      const data = await apiGL('/api/gl/admin/species/next-code');
-      setSelectedCode(null);
-      setForm({
-        ...EMPTY_FORM,
-        species_code: data?.species_code || '',
-        biome_slug: biomeSlug,
-      });
-    } catch (err) {
-      setError(err.message || 'Impossible de préparer une nouvelle espèce');
-      setSelectedCode(null);
-      setForm({ ...EMPTY_FORM, biome_slug: biomeSlug });
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  const persistSpecies = useCallback(async () => {
-    const payload = formToPayload({ ...form, biome_slug: biomeSlug || form.biome_slug });
-    const isEdit = Boolean(selectedCode);
-    const path = isEdit
-      ? `/api/gl/admin/species/${encodeURIComponent(selectedCode)}`
-      : '/api/gl/admin/species';
-    const method = isEdit ? 'PUT' : 'POST';
-    const data = await apiGL(path, method, payload);
-    const code = data?.species?.species_code || form.species_code;
-    setSelectedCode(code);
-    const nextForm = speciesToForm(data?.species);
-    setForm(nextForm);
-    setInfo(isEdit ? 'Espèce mise à jour.' : 'Espèce créée.');
-    await loadList();
-    return nextForm;
-  }, [form, selectedCode, biomeSlug, loadList]);
-
-  const { status: saveStatus, error: saveError } = useDebouncedAutoSave({
-    value: form,
-    resetKey: selectedCode ?? `new:${form.species_code}`,
-    enabled: Boolean(biomeSlug) && String(form.nom_commun || '').trim().length > 0,
-    onSave: persistSpecies,
-  });
+  }, [biomeSlug, setForm]);
 
   async function archiveSpecies() {
     if (!selectedCode) return;
     if (!window.confirm('Archiver cette espèce (statut inactif) ?')) return;
-    setLoading(true);
-    setError('');
-    try {
-      await apiGL(`/api/gl/admin/species/${encodeURIComponent(selectedCode)}`, 'PATCH', {
-        statut: 'inactif',
-      });
+    await runAction(async () => {
+      await apiGL(itemPath(selectedCode), 'PATCH', { statut: 'inactif' });
       setInfo('Espèce archivée.');
       await loadList();
       setForm((prev) => ({ ...prev, statut: 'inactif' }));
-    } catch (err) {
-      setError(err.message || 'Archivage impossible');
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  function setField(key, value) {
-    setForm((prev) => ({ ...prev, [key]: value }));
+    }, 'Archivage impossible');
   }
 
   const coreFields = [
@@ -210,7 +161,7 @@ export function GLSpeciesEditorPanel() {
                 <button
                   type="button"
                   className={selectedCode === row.species_code ? 'is-active' : ''}
-                  onClick={() => loadSpecies(row.species_code)}
+                  onClick={() => loadItem(row.species_code)}
                 >
                   <strong>{row.nom_commun}</strong>
                   <span className="gl-hint">{row.species_code}</span>
@@ -222,7 +173,7 @@ export function GLSpeciesEditorPanel() {
           <GLButton
             type="button"
             variant="secondary"
-            onClick={startNewSpecies}
+            onClick={startNew}
             disabled={loading || !biomeSlug}
           >
             + Nouvelle espèce

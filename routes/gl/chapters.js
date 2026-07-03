@@ -394,7 +394,8 @@ router.post(
 
     try {
       await withTransaction(async (tx) => {
-        await tx.execute(
+        // Audit GL §4.6 — l'id créé provient d'insertId (plus de re-SELECT par slug).
+        const insertResult = await tx.execute(
           `INSERT INTO gl_chapters (slug, title, biome, map_image_url, story_markdown,
                                    biotope_markdown, biocenose_markdown, sortileges_markdown,
                                    map_image_frame_json, theme_json, plateau_number,
@@ -417,10 +418,7 @@ router.post(
             orderIndex,
           ],
         );
-        const inserted = await tx.queryOne('SELECT id FROM gl_chapters WHERE slug = ? LIMIT 1', [
-          slug,
-        ]);
-        const chapterId = Number(inserted.id);
+        const chapterId = Number(insertResult.insertId);
         if (biomeSlugs != null) {
           await syncChapterBiomes(tx, chapterId, biomeSlugs);
         }
@@ -434,6 +432,8 @@ router.post(
       }
       throw err;
     }
+    // Audit GL §4.6 — le contrat 201 renvoie { chapter (avec created_at/updated_at BDD,
+    // biomes, sorts, thème), markers } : le re-fetch complet reste requis.
     const data = await readChapterFull(slug);
     return res.status(201).json(data);
   }),
@@ -511,6 +511,10 @@ router.post(
     if (oldUrl.startsWith('/uploads/gl_chapters_maps/')) {
       deleteFile(oldUrl.replace('/uploads/', ''));
     }
+    // Audit GL §4.6 — une seule colonne change (map_image_url) mais le contrat renvoie
+    // { chapter, markers } complet, avec `updated_at` généré en BDD : construire la réponse
+    // depuis les paramètres imposerait quand même biomes + sorts + markers + un SELECT
+    // updated_at, soit autant de requêtes. Le re-fetch ciblé par id est donc conservé.
     const data = await readChapterFull(id);
     if (!data) return res.status(404).json({ error: 'Chapitre introuvable' });
     return res.json(data);

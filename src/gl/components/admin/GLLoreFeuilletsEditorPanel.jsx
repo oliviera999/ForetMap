@@ -19,54 +19,45 @@ import {
   formToPayload,
   filterFeuilletItems,
 } from '../../utils/glFeuilletEditorForm.js';
+import {
+  FEUILLET_BULK_FIELD_OPTIONS,
+  useGlFeuilletBulkEdit,
+} from '../../hooks/useGlFeuilletBulkEdit.js';
 
-/** Champs modifiables en masse (alignés sur lib/glFeuilletBulkPatch.js). */
-const BULK_FIELD_OPTIONS = [
-  { key: 'lien_canal', label: 'Canal de lien', kind: 'text' },
-  { key: 'lien_ref', label: 'Référence de lien', kind: 'text' },
-  { key: 'lien_pays', label: 'Pays (1–5)', kind: 'number' },
-  { key: 'biome_slug', label: 'Biome', kind: 'biome' },
-  { key: 'plateau_number', label: 'Plateau (1–5)', kind: 'number' },
-  { key: 'statut', label: 'Statut', kind: 'statut' },
-  { key: 'cout_gemme', label: 'Coût gemme', kind: 'number' },
-  { key: 'gain_coeur', label: 'Gain cœur', kind: 'number' },
-];
+const EMPTY_FILTERS = { q: '', type: '', biome: '', statut: '' };
+const EMPTY_NOTICES = { error: '', info: '', warning: '' };
 
 /**
  * Éditeur du carnet de Sélène : tableau des feuillets (caractéristiques
  * principales) + formulaire d'édition unitaire de toutes les colonnes utiles +
- * édition en masse d'une sélection.
+ * édition en masse d'une sélection (via useGlFeuilletBulkEdit).
  */
 export function GLLoreFeuilletsEditorPanel() {
   const [items, setItems] = useState([]);
   const [biomes, setBiomes] = useState([]);
-  const [filterQ, setFilterQ] = useState('');
-  const [filterType, setFilterType] = useState('');
-  const [filterBiome, setFilterBiome] = useState('');
-  const [filterStatut, setFilterStatut] = useState('');
+  // Filtres de la liste, regroupés (recherche / type / biome / statut).
+  const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [selectedCode, setSelectedCode] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
-  const [info, setInfo] = useState('');
-  const [warning, setWarning] = useState('');
-  // Édition en masse : sélection + champ/valeur à appliquer.
-  const [checked, setChecked] = useState(() => new Set());
-  const [bulkField, setBulkField] = useState('');
-  const [bulkValue, setBulkValue] = useState('');
-  const [bulkBusy, setBulkBusy] = useState(false);
+  // Notifications regroupées (erreur / info / avertissement serveur).
+  const [notices, setNotices] = useState(EMPTY_NOTICES);
 
-  const filteredItems = useMemo(
-    () =>
-      filterFeuilletItems(items, {
-        q: filterQ,
-        type: filterType,
-        biome: filterBiome,
-        statut: filterStatut,
-      }),
-    [items, filterQ, filterType, filterBiome, filterStatut],
-  );
+  function setFilter(key, value) {
+    setFilters((prev) => ({ ...prev, [key]: value }));
+  }
+
+  /** Met à jour une partie des notifications sans toucher aux autres. */
+  function notify(patch) {
+    setNotices((prev) => ({ ...prev, ...patch }));
+  }
+
+  function clearNotices() {
+    setNotices(EMPTY_NOTICES);
+  }
+
+  const filteredItems = useMemo(() => filterFeuilletItems(items, filters), [items, filters]);
 
   const loadList = useCallback(async () => {
     const data = await apiGL('/api/gl/lore/admin/feuillets');
@@ -83,21 +74,37 @@ export function GLLoreFeuilletsEditorPanel() {
   }, [loadBiomes]);
 
   useEffect(() => {
-    loadList().catch((err) => setError(err.message || 'Chargement des feuillets impossible'));
+    loadList().catch((err) =>
+      setNotices((prev) => ({
+        ...prev,
+        error: err.message || 'Chargement des feuillets impossible',
+      })),
+    );
   }, [loadList]);
+
+  const visibleCodes = useMemo(
+    () => filteredItems.map((row) => row.feuillet_code),
+    [filteredItems],
+  );
+
+  const bulk = useGlFeuilletBulkEdit({
+    visibleCodes,
+    reloadList: loadList,
+    onApplyStart: () => notify({ error: '', info: '' }),
+    onApplySuccess: (message) => notify({ info: message }),
+    onApplyError: (message) => notify({ error: message }),
+  });
 
   async function selectFeuillet(code) {
     if (!code) return;
     setLoading(true);
-    setError('');
-    setInfo('');
-    setWarning('');
+    clearNotices();
     try {
       const data = await apiGL(`/api/gl/lore/admin/feuillets/${encodeURIComponent(code)}`);
       setForm(feuilletToForm(data?.feuillet));
       setSelectedCode(code);
     } catch (err) {
-      setError(err.message || 'Feuillet introuvable');
+      notify({ error: err.message || 'Feuillet introuvable' });
     } finally {
       setLoading(false);
     }
@@ -106,9 +113,7 @@ export function GLLoreFeuilletsEditorPanel() {
   function closeEditor() {
     setSelectedCode(null);
     setForm(EMPTY_FORM);
-    setInfo('');
-    setWarning('');
-    setError('');
+    clearNotices();
   }
 
   function setField(key, value) {
@@ -118,9 +123,7 @@ export function GLLoreFeuilletsEditorPanel() {
   async function save() {
     if (!selectedCode) return;
     setSaving(true);
-    setError('');
-    setInfo('');
-    setWarning('');
+    clearNotices();
     try {
       const data = await apiGL(
         `/api/gl/lore/admin/feuillets/${encodeURIComponent(selectedCode)}`,
@@ -128,11 +131,11 @@ export function GLLoreFeuilletsEditorPanel() {
         formToPayload(form),
       );
       if (data?.feuillet) setForm(feuilletToForm(data.feuillet));
-      if (data?.warning?.warning) setWarning(data.warning.warning);
-      setInfo('Feuillet enregistré.');
+      if (data?.warning?.warning) notify({ warning: data.warning.warning });
+      notify({ info: 'Feuillet enregistré.' });
       await loadList();
     } catch (err) {
-      setError(err.message || 'Enregistrement impossible');
+      notify({ error: err.message || 'Enregistrement impossible' });
     } finally {
       setSaving(false);
     }
@@ -148,7 +151,7 @@ export function GLLoreFeuilletsEditorPanel() {
       return;
     }
     setSaving(true);
-    setError('');
+    notify({ error: '' });
     try {
       const data = await apiGL(
         `/api/gl/lore/admin/feuillets/${encodeURIComponent(selectedCode)}`,
@@ -156,64 +159,19 @@ export function GLLoreFeuilletsEditorPanel() {
         { statut: nextStatut },
       );
       if (data?.feuillet) setForm(feuilletToForm(data.feuillet));
-      setInfo(nextStatut === 'actif' ? 'Feuillet réactivé.' : 'Feuillet archivé.');
+      notify({ info: nextStatut === 'actif' ? 'Feuillet réactivé.' : 'Feuillet archivé.' });
       await loadList();
     } catch (err) {
-      setError(err.message || 'Changement de statut impossible');
+      notify({ error: err.message || 'Changement de statut impossible' });
     } finally {
       setSaving(false);
     }
   }
 
-  function toggleCheck(code) {
-    setChecked((prev) => {
-      const next = new Set(prev);
-      if (next.has(code)) next.delete(code);
-      else next.add(code);
-      return next;
-    });
-  }
-
-  const allVisibleChecked =
-    filteredItems.length > 0 && filteredItems.every((r) => checked.has(r.feuillet_code));
-
-  function toggleCheckAll() {
-    setChecked((prev) => {
-      const next = new Set(prev);
-      if (allVisibleChecked) filteredItems.forEach((r) => next.delete(r.feuillet_code));
-      else filteredItems.forEach((r) => next.add(r.feuillet_code));
-      return next;
-    });
-  }
-
-  const bulkKind = BULK_FIELD_OPTIONS.find((o) => o.key === bulkField)?.kind || null;
-
-  async function applyBulk() {
-    if (!bulkField || !checked.size) return;
-    setBulkBusy(true);
-    setError('');
-    setInfo('');
-    try {
-      const res = await apiGL('/api/gl/lore/admin/feuillets/bulk', 'POST', {
-        codes: [...checked],
-        patch: { [bulkField]: bulkValue },
-      });
-      setInfo(`Édition en masse : ${res?.updated ?? 0} feuillet(s) modifié(s).`);
-      setChecked(new Set());
-      setBulkField('');
-      setBulkValue('');
-      await loadList();
-    } catch (err) {
-      setError(err.message || 'Édition en masse impossible');
-    } finally {
-      setBulkBusy(false);
-    }
-  }
-
   function renderBulkValueInput() {
-    if (bulkKind === 'biome') {
+    if (bulk.bulkKind === 'biome') {
       return (
-        <GLSelect value={bulkValue} onChange={(e) => setBulkValue(e.target.value)}>
+        <GLSelect value={bulk.bulkValue} onChange={(e) => bulk.setBulkValue(e.target.value)}>
           <option value="">— Aucun —</option>
           {biomes.map((b) => (
             <option key={b.slug} value={b.slug}>
@@ -223,9 +181,9 @@ export function GLLoreFeuilletsEditorPanel() {
         </GLSelect>
       );
     }
-    if (bulkKind === 'statut') {
+    if (bulk.bulkKind === 'statut') {
       return (
-        <GLSelect value={bulkValue} onChange={(e) => setBulkValue(e.target.value)}>
+        <GLSelect value={bulk.bulkValue} onChange={(e) => bulk.setBulkValue(e.target.value)}>
           <option value="">— Choisir —</option>
           {FEUILLET_STATUT_OPTIONS.map((s) => (
             <option key={s} value={s}>
@@ -237,10 +195,10 @@ export function GLLoreFeuilletsEditorPanel() {
     }
     return (
       <GLInput
-        type={bulkKind === 'number' ? 'number' : 'text'}
-        value={bulkValue}
-        onChange={(e) => setBulkValue(e.target.value)}
-        placeholder={bulkKind === 'text' ? '(vide = effacer)' : ''}
+        type={bulk.bulkKind === 'number' ? 'number' : 'text'}
+        value={bulk.bulkValue}
+        onChange={(e) => bulk.setBulkValue(e.target.value)}
+        placeholder={bulk.bulkKind === 'text' ? '(vide = effacer)' : ''}
       />
     );
   }
@@ -296,8 +254,8 @@ export function GLLoreFeuilletsEditorPanel() {
       label: (
         <input
           type="checkbox"
-          checked={allVisibleChecked}
-          onChange={toggleCheckAll}
+          checked={bulk.allVisibleChecked}
+          onChange={bulk.toggleCheckAll}
           aria-label="Tout sélectionner"
         />
       ),
@@ -307,7 +265,7 @@ export function GLLoreFeuilletsEditorPanel() {
   ];
   const rows = filteredItems.map((row) => {
     const isActive = (row.statut || 'actif') === 'actif';
-    const isChecked = checked.has(row.feuillet_code);
+    const isChecked = bulk.checked.has(row.feuillet_code);
     const editBtn = (
       <GLButton type="button" variant="secondary" onClick={() => selectFeuillet(row.feuillet_code)}>
         Éditer
@@ -322,7 +280,7 @@ export function GLLoreFeuilletsEditorPanel() {
             <input
               type="checkbox"
               checked={isChecked}
-              onChange={() => toggleCheck(row.feuillet_code)}
+              onChange={() => bulk.toggleCheck(row.feuillet_code)}
               aria-label={`Sélectionner ${row.feuillet_code}`}
             />
           </td>
@@ -349,7 +307,7 @@ export function GLLoreFeuilletsEditorPanel() {
               <input
                 type="checkbox"
                 checked={isChecked}
-                onChange={() => toggleCheck(row.feuillet_code)}
+                onChange={() => bulk.toggleCheck(row.feuillet_code)}
                 aria-label={`Sélectionner ${row.feuillet_code}`}
               />{' '}
               Sélection
@@ -392,20 +350,20 @@ export function GLLoreFeuilletsEditorPanel() {
         Liste des feuillets ({filteredItems.length}/{items.length}) avec leurs caractéristiques.
         Cliquez « Éditer » pour modifier les champs.
       </p>
-      {error ? <p className="gl-error">{error}</p> : null}
-      {info ? <p className="gl-success">{info}</p> : null}
-      {warning ? <p className="gl-hint">⚠️ {warning}</p> : null}
+      {notices.error ? <p className="gl-error">{notices.error}</p> : null}
+      {notices.info ? <p className="gl-success">{notices.info}</p> : null}
+      {notices.warning ? <p className="gl-hint">⚠️ {notices.warning}</p> : null}
 
       <div className="gl-form gl-form--compact gl-feuillets-filters">
         <GLField label="Recherche">
           <GLInput
-            value={filterQ}
-            onChange={(e) => setFilterQ(e.target.value)}
+            value={filters.q}
+            onChange={(e) => setFilter('q', e.target.value)}
             placeholder="Code, titre ou liasse…"
           />
         </GLField>
         <GLField label="Type">
-          <GLSelect value={filterType} onChange={(e) => setFilterType(e.target.value)}>
+          <GLSelect value={filters.type} onChange={(e) => setFilter('type', e.target.value)}>
             <option value="">Tous</option>
             {FEUILLET_TYPE_OPTIONS.map((t) => (
               <option key={t} value={t}>
@@ -415,7 +373,7 @@ export function GLLoreFeuilletsEditorPanel() {
           </GLSelect>
         </GLField>
         <GLField label="Biome">
-          <GLSelect value={filterBiome} onChange={(e) => setFilterBiome(e.target.value)}>
+          <GLSelect value={filters.biome} onChange={(e) => setFilter('biome', e.target.value)}>
             <option value="">Tous</option>
             {biomes.map((b) => (
               <option key={b.slug} value={b.slug}>
@@ -425,7 +383,7 @@ export function GLLoreFeuilletsEditorPanel() {
           </GLSelect>
         </GLField>
         <GLField label="Statut">
-          <GLSelect value={filterStatut} onChange={(e) => setFilterStatut(e.target.value)}>
+          <GLSelect value={filters.statut} onChange={(e) => setFilter('statut', e.target.value)}>
             <option value="">Tous</option>
             {FEUILLET_STATUT_OPTIONS.map((s) => (
               <option key={s} value={s}>
@@ -436,37 +394,37 @@ export function GLLoreFeuilletsEditorPanel() {
         </GLField>
       </div>
 
-      {checked.size > 0 ? (
+      {bulk.checked.size > 0 ? (
         <div className="gl-form gl-form--compact gl-feuillets-bulk">
           <p className="gl-hint">
-            <strong>{checked.size}</strong> feuillet(s) sélectionné(s) — édition en masse :
+            <strong>{bulk.checked.size}</strong> feuillet(s) sélectionné(s) — édition en masse :
           </p>
           <GLField label="Champ">
-            <GLSelect
-              value={bulkField}
-              onChange={(e) => {
-                setBulkField(e.target.value);
-                setBulkValue('');
-              }}
-            >
+            <GLSelect value={bulk.bulkField} onChange={(e) => bulk.selectBulkField(e.target.value)}>
               <option value="">— Choisir —</option>
-              {BULK_FIELD_OPTIONS.map((o) => (
+              {FEUILLET_BULK_FIELD_OPTIONS.map((o) => (
                 <option key={o.key} value={o.key}>
                   {o.label}
                 </option>
               ))}
             </GLSelect>
           </GLField>
-          {bulkField ? <GLField label="Nouvelle valeur">{renderBulkValueInput()}</GLField> : null}
+          {bulk.bulkField ? (
+            <GLField label="Nouvelle valeur">{renderBulkValueInput()}</GLField>
+          ) : null}
           <div className="gl-inline-actions">
-            <GLButton type="button" onClick={applyBulk} disabled={!bulkField || bulkBusy}>
-              {bulkBusy ? 'Application…' : `Appliquer à ${checked.size}`}
+            <GLButton
+              type="button"
+              onClick={bulk.applyBulk}
+              disabled={!bulk.bulkField || bulk.bulkBusy}
+            >
+              {bulk.bulkBusy ? 'Application…' : `Appliquer à ${bulk.checked.size}`}
             </GLButton>
             <GLButton
               type="button"
               variant="ghost"
-              onClick={() => setChecked(new Set())}
-              disabled={bulkBusy}
+              onClick={bulk.clearChecked}
+              disabled={bulk.bulkBusy}
             >
               Tout désélectionner
             </GLButton>

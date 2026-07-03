@@ -427,6 +427,10 @@ router.get(
   asyncHandler(async (req, res) => {
     const cached = plantsListCache.get('all');
     if (cached) return res.json(cached.map(enrichPlantRow));
+    // Audit §2.4/§3.7 : SELECT * conservé volontairement. Le front ne refait PAS de GET /plants/:id
+    // pour la fiche : la fiche complète, le formulaire d'édition (PlantEditForm) et les vues biodiv
+    // (PlantMetaSections, FoodWebView…) sont rendus depuis les lignes de cette liste — toutes les
+    // colonnes du catalogue (photos, remarques, écologie…) sont donc consommées. Table sans donnée sensible.
     const rows = await queryAll('SELECT * FROM plants ORDER BY name');
     const enriched = rows.map(enrichPlantRow);
     plantsListCache.set('all', enriched);
