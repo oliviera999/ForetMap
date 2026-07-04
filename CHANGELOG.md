@@ -9,6 +9,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ### Correctif
 
+- **GL — boutons invisibles dans les popovers/modales** : les popovers GL (QCM,
+  « J'ai appris » / gating, feuillets…) sont rendus via `createPortal(document.body)`,
+  donc hors de `.gl-app`. Les variables de palette (`--gl-color-primary`, `--gl-border`,
+  `--gl-accent-danger`…) n'étaient déclarées que sur `.gl-app` : sans fallback,
+  `background: var(--gl-color-primary)` retombait sur `transparent` → boutons primaires
+  invisibles (texte blanc sur fond transparent). Variables désormais portées par
+  `body.gl-body` (ancêtre commun de `.gl-app` et des portails), le thème de marque
+  restant prioritaire inline sur `.gl-app` / via `themeStyle` sur les popovers.
 - **BDD** : migration `162_repair_task_zones_markers_fk` — réparation idempotente des FK `task_zones` / `task_markers` (drift local sans contraintes).
 - **e2e** : quiz pédagogique — attente du bloc `.pedago-qcm-feedback` (feedbacks personnalisés type « Exact ! »).
 
