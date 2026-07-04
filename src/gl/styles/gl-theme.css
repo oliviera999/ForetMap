@@ -1,8 +1,13 @@
+/*
+ * Variables de thème GL déclarées sur `body.gl-body` (et non sur `.gl-app`) :
+ * les popovers/modales GL sont rendues via createPortal(document.body), donc
+ * HORS de `.gl-app`. En les scopant sur le body (ancêtre commun du `.gl-app` et
+ * des portails), les boutons portalisés (QCM, « J'ai appris », feuillets…)
+ * héritent de la palette et restent visibles même hors `.gl-app`.
+ * Le thème de marque reste appliqué inline sur `.gl-app` (il prime pour le
+ * contenu in-app) et via `themeStyle` sur les popovers qui le transmettent.
+ */
 body.gl-body {
-  background: var(--gl-color-background, #f4fff5);
-}
-
-.gl-app {
   --gl-color-primary: #013a40;
   --gl-color-secondary: #f2e8d5;
   --gl-color-tertiary: #bdbfb4;
@@ -35,6 +40,10 @@ body.gl-body {
   --attention-pulse-color: rgba(37, 99, 235, 0.16);
   --attention-pulse-color-end: rgba(37, 99, 235, 0);
   --attention-pulse-spread: 8px;
+  background: var(--gl-color-background, #f4fff5);
+}
+
+.gl-app {
   min-height: 100vh;
   min-height: 100dvh;
   background: linear-gradient(
