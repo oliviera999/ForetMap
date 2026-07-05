@@ -51,6 +51,14 @@ export function useForetmapRealtime({
   pauseDataRefreshRef = null,
 }) {
   const [rtStatus, setRtStatus] = useState('off');
+  // Jeton réactif : après élévation PIN, refresh ou expiration, `foretmap_session_changed`
+  // met à jour le jeton et force une reconnexion du socket avec le bon niveau de droits.
+  const [authToken, setAuthToken] = useState(() => getAuthToken());
+  useEffect(() => {
+    const sync = () => setAuthToken(getAuthToken());
+    window.addEventListener('foretmap_session_changed', sync);
+    return () => window.removeEventListener('foretmap_session_changed', sync);
+  }, []);
   const tasksRtDebounceRef = useRef(null);
   const gardenRtDebounceRef = useRef(null);
   /** Pendant la fenêtre de debounce jardin : true si au moins un événement exige un refetch plantes. */
@@ -176,7 +184,6 @@ export function useForetmapRealtime({
       setRtStatus('off');
       return undefined;
     }
-    const authToken = getAuthToken();
     if (!authToken) {
       setRtStatus('off');
       return undefined;
@@ -305,6 +312,7 @@ export function useForetmapRealtime({
     };
   }, [
     enabled,
+    authToken,
     onContextCommentsRealtime,
     onForumRealtime,
     onStudentsRealtime,
