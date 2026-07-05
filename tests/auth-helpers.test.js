@@ -171,7 +171,6 @@ describe('authRouteHelpers (logique pure de routes/auth.js, sans DB)', () => {
       roleSlug: 'prof',
       roleDisplayName: 'Prof',
       permissions: ['a.b'],
-      elevated: 1,
       nativePrivileged: 0,
       password_hash: 'NE-DOIT-PAS-FUIR',
     });
@@ -183,7 +182,6 @@ describe('authRouteHelpers (logique pure de routes/auth.js, sans DB)', () => {
       roleSlug: 'prof',
       roleDisplayName: 'Prof',
       permissions: ['a.b'],
-      elevated: true,
       nativePrivileged: false,
     });
     assert.equal('password_hash' in base, false);

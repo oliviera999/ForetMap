@@ -1,11 +1,11 @@
 import React from 'react';
 
 /**
- * Lignes de permissions d'un profil (matrice Actif/PIN) — extraites de `ProfilesAdminView` (O5/O6).
+ * Lignes de permissions d'un profil — extraites de `ProfilesAdminView` (O5/O6).
  *
  * Rend le catalogue de permissions (hors `tasks.propose` masqué pour les paliers n3beur configurables,
- * réglé ailleurs), chaque ligne avec une case « Actif » (`onToggle(key, checked)`) et « PIN »
- * (`onToggleElevation(key, checked)`, désactivée si la permission n'est pas active). Présentation pure.
+ * réglé ailleurs), chaque ligne avec une case « Actif » (`onToggle(key, checked)`). Toute permission
+ * active est accordée directement au rôle (plus de dimension d'élévation/PIN). Présentation pure.
  */
 export function ProfilesPermissionRows({
   catalog = [],
@@ -13,7 +13,6 @@ export function ProfilesPermissionRows({
   loading = false,
   hideTasksPropose = false,
   onToggle,
-  onToggleElevation,
 }) {
   return catalog
     .filter((perm) => !(hideTasksPropose && perm.key === 'tasks.propose'))
@@ -33,15 +32,6 @@ export function ProfilesPermissionRows({
               disabled={loading}
             />{' '}
             Actif
-          </label>
-          <label style={{ fontSize: '.8rem' }}>
-            <input
-              type="checkbox"
-              checked={!!current?.requires_elevation}
-              onChange={(e) => onToggleElevation(perm.key, e.target.checked)}
-              disabled={!current || loading}
-            />{' '}
-            PIN
           </label>
         </div>
       );

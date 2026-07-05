@@ -6,12 +6,7 @@ const asyncHandler = require('../../lib/asyncHandler');
 const { logAudit } = require('../audit');
 const { emitTasksChanged } = require('../../lib/realtime');
 const { syncTaskProjectCompletionForProjects } = require('../../lib/syncTaskProjectCompletion');
-const {
-  ensurePrimaryRole,
-  buildAuthzPayload,
-  verifyRolePin,
-  setPrimaryRole,
-} = require('../../lib/rbac');
+const { ensurePrimaryRole, buildAuthzPayload, setPrimaryRole } = require('../../lib/rbac');
 const { syncStudentRoleFromGroups, resolveDefaultRoleForStudent } = require('../../lib/groupRole');
 const {
   countStudentActiveTaskAssignments,
@@ -38,33 +33,25 @@ const { canRunTeacherStyleTaskStudentAction } = require('../../lib/taskAuthzHelp
 
 const router = express.Router();
 
-async function ensureStudentPermission({ studentId, permissionKey, profilePin }) {
+async function ensureStudentPermission({ studentId, permissionKey }) {
   await syncStudentRoleFromGroups(studentId);
   await ensurePrimaryRole('student', studentId, 'eleve_novice');
-  let base = await buildAuthzPayload('student', studentId, false);
+  let base = await buildAuthzPayload('student', studentId);
   if (!base) return { ok: false, error: 'Profil introuvable' };
   if (!base.permissions.includes(permissionKey)) {
     const resolved = await resolveDefaultRoleForStudent(studentId);
     if (resolved?.roleId && resolved.source === 'group') {
       await setPrimaryRole('student', studentId, resolved.roleId);
-      base = await buildAuthzPayload('student', studentId, false);
+      base = await buildAuthzPayload('student', studentId);
       if (!base) return { ok: false, error: 'Profil introuvable' };
     }
   }
-  if (base.permissions.includes(permissionKey)) return { ok: true, elevated: false };
-  if (!profilePin) return { ok: false, error: 'Permission insuffisante' };
-  const pinOk = await verifyRolePin(base.roleId, profilePin);
-  if (!pinOk) return { ok: false, error: 'PIN profil incorrect' };
-  const elevated = await buildAuthzPayload('student', studentId, true);
-  if (!elevated || !elevated.permissions.includes(permissionKey)) {
-    return { ok: false, error: 'Permission insuffisante' };
-  }
-  return { ok: true, elevated: true };
+  if (base.permissions.includes(permissionKey)) return { ok: true };
+  return { ok: false, error: 'Permission insuffisante' };
 }
 
 async function resolveStudentActionContext(req, payload = {}, permissionKey) {
   const auth = await parseOptionalAuth(req);
-  const profilePin = payload?.profilePin;
   const providedStudentId = normalizeOptionalId(payload?.studentId);
   const providedFirstName = trimName(payload?.firstName);
   const providedLastName = trimName(payload?.lastName);
@@ -93,7 +80,6 @@ async function resolveStudentActionContext(req, payload = {}, permissionKey) {
       const permission = await ensureStudentPermission({
         studentId: providedStudentId,
         permissionKey,
-        profilePin,
       });
       if (!permission.ok) return { errorStatus: 403, error: permission.error };
     }
@@ -119,7 +105,6 @@ async function resolveStudentActionContext(req, payload = {}, permissionKey) {
     const permission = await ensureStudentPermission({
       studentId: auth.userId,
       permissionKey,
-      profilePin,
     });
     if (!permission.ok) return { errorStatus: 403, error: permission.error };
     const names = pickNames(student);
@@ -233,7 +218,7 @@ router.post(
 
 router.post(
   '/:id/assign-group',
-  requirePermission('tasks.assign.group', { needsElevation: true }),
+  requirePermission('tasks.assign.group'),
   asyncHandler(async (req, res) => {
     const task = await getTaskWithAssignments(req.params.id);
     if (!task) return res.status(404).json({ error: 'Tâche introuvable' });

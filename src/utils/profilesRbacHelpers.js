@@ -1,7 +1,7 @@
 /**
  * Helpers purs RBAC de l'admin des profils — extraits de `ProfilesAdminView` (`profiles-views.jsx`, O5/O6).
  *
- * Concentrent la logique délicate (gating de capacités selon permissions/élévation, tri d'affichage
+ * Concentrent la logique délicate (gating de capacités selon permissions, tri d'affichage
  * des profils aligné sur l'API, profil n3beur configurable, normalisation des champs d'édition de rôle)
  * hors du méga-composant, et la rendent testable. Toutes les fonctions sont pures.
  */
@@ -41,21 +41,20 @@ export function sortRolesForDisplay(roles) {
 
 /**
  * Dérive les capacités UI de l'admin des profils à partir de l'auth courante.
- * @param {{ authPerms?: string[], authElevated?: boolean, authNativePrivileged?: boolean, authRoleSlug?: string }} auth
+ * Toute permission attribuée au rôle est accordée directement (plus de dimension d'élévation/PIN).
+ * @param {{ authPerms?: string[], authRoleSlug?: string }} auth
  */
 export function deriveProfilesCapabilities(auth = {}) {
   const perms = Array.isArray(auth.authPerms) ? auth.authPerms : [];
   const has = (p) => perms.includes(p);
-  const effectiveElevated = !!auth.authElevated || !!auth.authNativePrivileged;
-  const canExport = has('stats.export') && effectiveElevated;
-  const canImport = has('students.import') && effectiveElevated;
-  const canDelete = has('students.delete') && effectiveElevated;
-  const canCreateUsers = has('users.create') && effectiveElevated;
+  const canExport = has('stats.export');
+  const canImport = has('students.import');
+  const canDelete = has('students.delete');
+  const canCreateUsers = has('users.create');
   const canReadAllStats = has('stats.read.all');
   return {
     canManageProfiles: has('admin.roles.manage') || has('admin.users.assign_roles'),
     canEditRoleDefinition: has('admin.roles.manage'),
-    effectiveElevated,
     canExport,
     canImport,
     canDelete,

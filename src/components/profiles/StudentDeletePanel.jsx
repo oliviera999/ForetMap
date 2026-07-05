@@ -62,7 +62,7 @@ function StudentDeletePanel({
                   title={
                     canDuplicateStudents
                       ? 'Dupliquer ce compte n3beur'
-                      : 'Permission users.create + élévation requises'
+                      : 'Permission users.create requise'
                   }
                 >
                   📄 Dupliquer

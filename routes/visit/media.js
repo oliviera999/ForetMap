@@ -21,7 +21,7 @@ const router = express.Router();
 
 router.put(
   '/media/reorder',
-  requirePermission('visit.manage', { needsElevation: true }),
+  requirePermission('visit.manage'),
   asyncHandler(async (req, res) => {
     const targetType = sanitizeTargetType(req.body?.target_type);
     const targetId = sanitizeTargetId(req.body?.target_id);
@@ -103,7 +103,7 @@ router.get(
 
 router.post(
   '/media',
-  requirePermission('visit.manage', { needsElevation: true }),
+  requirePermission('visit.manage'),
   asyncHandler(async (req, res) => {
     let insertedId = null;
     const targetType = sanitizeTargetType(req.body.target_type);
@@ -169,7 +169,7 @@ router.post(
 
 router.put(
   '/media/:id',
-  requirePermission('visit.manage', { needsElevation: true }),
+  requirePermission('visit.manage'),
   asyncHandler(async (req, res) => {
     const mediaId = Number(req.params.id);
     if (!Number.isFinite(mediaId) || mediaId <= 0)
@@ -228,7 +228,7 @@ router.put(
 
 router.delete(
   '/media/:id',
-  requirePermission('visit.manage', { needsElevation: true }),
+  requirePermission('visit.manage'),
   asyncHandler(async (req, res) => {
     const mediaId = Number(req.params.id);
     if (!Number.isFinite(mediaId) || mediaId <= 0)

@@ -285,16 +285,6 @@ export const KEY_META = {
     section: 'security',
     order: 20,
   },
-  'security.jwt_ttl_elevated_seconds': {
-    label: 'Durée session élevée (secondes)',
-    section: 'security',
-    order: 30,
-  },
-  'security.allow_pin_elevation': {
-    label: 'Autoriser l’élévation PIN',
-    section: 'security',
-    order: 40,
-  },
   'integration.google.enabled': {
     label: 'Autoriser OAuth Google côté serveur',
     section: 'security',

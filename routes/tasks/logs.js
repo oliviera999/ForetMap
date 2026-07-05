@@ -63,7 +63,7 @@ router.get(
 
 router.delete(
   '/:id/logs/:logId',
-  requirePermission('tasks.manage', { needsElevation: true }),
+  requirePermission('tasks.manage'),
   asyncHandler(async (req, res) => {
     const log = await queryOne('SELECT * FROM task_logs WHERE id = ? AND task_id = ?', [
       req.params.logId,
