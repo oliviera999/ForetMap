@@ -62,6 +62,21 @@ describe('useMapCrudActions', () => {
     });
   });
 
+  it('linkTaskToLocation accepte un id chaîne (valeur de <select>) sans écraser les lieux existants', async () => {
+    const { result } = setup();
+    // Régression : `e.target.value` d'un <select> est une chaîne ; l'ancien `x.id === taskId`
+    // strict échouait (5 === "5" -> false) et envoyait { zone_ids: [locationId] } seul.
+    await result.current.linkTaskToLocation('5', 'zone', 2);
+    expect(api).toHaveBeenCalledWith('/api/tasks/5', 'PUT', { zone_ids: [1, 2], marker_ids: [10] });
+  });
+
+  it('linkTaskToLocation ignore une tâche inconnue', async () => {
+    const { result, onRefresh } = setup();
+    await result.current.linkTaskToLocation(999, 'zone', 1);
+    expect(api).not.toHaveBeenCalled();
+    expect(onRefresh).not.toHaveBeenCalled();
+  });
+
   it('unlinkTaskFromLocation retire le lieu et rattache à la carte si plus aucun lieu', async () => {
     const { result } = setup();
     await result.current.unlinkTaskFromLocation(TASK, 'zone', 1);
