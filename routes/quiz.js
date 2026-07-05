@@ -346,7 +346,7 @@ router.get(
 /** GET /api/quiz/stats — agrégation prof (stats.read.all) */
 router.get(
   '/stats',
-  requirePermission('stats.read.all', { needsElevation: true }),
+  requirePermission('stats.read.all'),
   asyncHandler(async (_req, res) => {
     const byStudent = await queryAll(
       `SELECT u.id AS user_id, u.first_name, u.last_name, u.pseudo,

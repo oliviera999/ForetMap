@@ -254,7 +254,7 @@ router.get(
 
 router.put(
   '/:id',
-  requirePermission('zones.manage', { needsElevation: true }),
+  requirePermission('zones.manage'),
   asyncHandler(async (req, res) => {
     const zone = await queryOne('SELECT * FROM zones WHERE id = ?', [req.params.id]);
     if (!zone) return res.status(404).json({ error: 'Zone introuvable' });
@@ -374,7 +374,7 @@ router.get(
 
 router.put(
   '/:id/photos/reorder',
-  requirePermission('zones.manage', { needsElevation: true }),
+  requirePermission('zones.manage'),
   validate({ body: reorderZonePhotosBodySchema }),
   asyncHandler(async (req, res) => {
     const zoneId = String(req.params.id || '').trim();
@@ -440,7 +440,7 @@ router.get(
 
 router.post(
   '/:id/photos',
-  requirePermission('zones.manage', { needsElevation: true }),
+  requirePermission('zones.manage'),
   validate({ body: addZonePhotoBodySchema }),
   asyncHandler(async (req, res) => {
     let photoId = null;
@@ -478,7 +478,7 @@ router.post(
 
 router.delete(
   '/:id/photos/:pid',
-  requirePermission('zones.manage', { needsElevation: true }),
+  requirePermission('zones.manage'),
   asyncHandler(async (req, res) => {
     const zone = await queryOne('SELECT map_id FROM zones WHERE id = ?', [req.params.id]);
     const p = await queryOne('SELECT image_path FROM zone_photos WHERE id=? AND zone_id=?', [
@@ -501,7 +501,7 @@ router.delete(
 
 router.post(
   '/',
-  requirePermission('zones.manage', { needsElevation: true }),
+  requirePermission('zones.manage'),
   asyncHandler(async (req, res) => {
     const {
       name,
@@ -558,7 +558,7 @@ router.post(
 
 router.delete(
   '/:id',
-  requirePermission('zones.manage', { needsElevation: true }),
+  requirePermission('zones.manage'),
   asyncHandler(async (req, res) => {
     const zone = await queryOne('SELECT * FROM zones WHERE id = ?', [req.params.id]);
     if (!zone) return res.status(404).json({ error: 'Zone introuvable' });

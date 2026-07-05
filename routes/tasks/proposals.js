@@ -5,12 +5,7 @@ const { deleteFile, writeBufferToDisk } = require('../../lib/uploads');
 const asyncHandler = require('../../lib/asyncHandler');
 const { logAudit } = require('../audit');
 const { emitTasksChanged } = require('../../lib/realtime');
-const {
-  ensurePrimaryRole,
-  buildAuthzPayload,
-  verifyRolePin,
-  setPrimaryRole,
-} = require('../../lib/rbac');
+const { ensurePrimaryRole, buildAuthzPayload, setPrimaryRole } = require('../../lib/rbac');
 const { syncStudentRoleFromGroups, resolveDefaultRoleForStudent } = require('../../lib/groupRole');
 const { syncTaskSpecies } = require('../../lib/speciesJunction');
 // Helpers du cluster « tasks » mutualisés dans lib/tasks/taskQueries.js (aucun import circulaire).
@@ -37,28 +32,21 @@ const { isVisitorRole } = require('../../lib/taskAuthzHelpers');
 
 const router = express.Router();
 
-async function ensureStudentPermission({ studentId, permissionKey, profilePin }) {
+async function ensureStudentPermission({ studentId, permissionKey }) {
   await syncStudentRoleFromGroups(studentId);
   await ensurePrimaryRole('student', studentId, 'eleve_novice');
-  let base = await buildAuthzPayload('student', studentId, false);
+  let base = await buildAuthzPayload('student', studentId);
   if (!base) return { ok: false, error: 'Profil introuvable' };
   if (!base.permissions.includes(permissionKey)) {
     const resolved = await resolveDefaultRoleForStudent(studentId);
     if (resolved?.roleId && resolved.source === 'group') {
       await setPrimaryRole('student', studentId, resolved.roleId);
-      base = await buildAuthzPayload('student', studentId, false);
+      base = await buildAuthzPayload('student', studentId);
       if (!base) return { ok: false, error: 'Profil introuvable' };
     }
   }
-  if (base.permissions.includes(permissionKey)) return { ok: true, elevated: false };
-  if (!profilePin) return { ok: false, error: 'Permission insuffisante' };
-  const pinOk = await verifyRolePin(base.roleId, profilePin);
-  if (!pinOk) return { ok: false, error: 'PIN profil incorrect' };
-  const elevated = await buildAuthzPayload('student', studentId, true);
-  if (!elevated || !elevated.permissions.includes(permissionKey)) {
-    return { ok: false, error: 'Permission insuffisante' };
-  }
-  return { ok: true, elevated: true };
+  if (base.permissions.includes(permissionKey)) return { ok: true };
+  return { ok: false, error: 'Permission insuffisante' };
 }
 
 router.post(
@@ -78,7 +66,6 @@ router.post(
       firstName,
       lastName,
       studentId,
-      profilePin,
       danger_level,
       difficulty_level,
       importance_level,
@@ -100,7 +87,6 @@ router.post(
     const permission = await ensureStudentPermission({
       studentId,
       permissionKey: 'tasks.propose',
-      profilePin,
     });
     if (!permission.ok) return res.status(403).json({ error: permission.error });
 

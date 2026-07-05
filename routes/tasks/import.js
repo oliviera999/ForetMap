@@ -17,7 +17,7 @@ const router = express.Router();
 
 router.get(
   '/import/template',
-  requirePermission('tasks.manage', { needsElevation: true }),
+  requirePermission('tasks.manage'),
   asyncHandler(async (req, res) => {
     const format = asTrimmedString(req.query?.format || 'csv').toLowerCase();
     if (format === 'xlsx') {
@@ -47,7 +47,7 @@ router.get(
 
 router.post(
   '/import',
-  requirePermission('tasks.manage', { needsElevation: true }),
+  requirePermission('tasks.manage'),
   asyncHandler(async (req, res) => {
     const dryRun = !!req.body?.dryRun;
     const { report } = await executeTasksProjectsImport({

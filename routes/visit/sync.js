@@ -23,7 +23,7 @@ const router = express.Router();
 
 router.get(
   '/sync/options',
-  requirePermission('visit.manage', { needsElevation: true }),
+  requirePermission('visit.manage'),
   asyncHandler(async (req, res) => {
     const mapId = await resolveVisitMapId(req.query.map_id);
     if (!mapId) return res.status(400).json({ error: 'map_id requis' });
@@ -78,7 +78,7 @@ router.get(
 
 router.post(
   '/sync',
-  requirePermission('visit.manage', { needsElevation: true }),
+  requirePermission('visit.manage'),
   asyncHandler(async (req, res) => {
     const mapId = await resolveVisitMapId(req.body.map_id);
     const direction = String(req.body.direction || '').trim();
@@ -233,7 +233,7 @@ router.post(
  */
 router.post(
   '/rebuild-from-map',
-  requirePermission('visit.manage', { needsElevation: true }),
+  requirePermission('visit.manage'),
   asyncHandler(async (req, res) => {
     const mapId = await resolveVisitMapId(req.body.map_id);
     if (!mapId) return res.status(400).json({ error: 'map_id requis' });

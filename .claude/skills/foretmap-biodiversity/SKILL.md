@@ -16,7 +16,7 @@ description: Pré-saisie biodiversité ForetMap — autofill multi-sources (GET 
 
 ## Règles (garde-fous)
 
-- Route autofill **strictement en lecture** : aucune écriture BDD. Auth `plants.manage` + élévation.
+- Route autofill **strictement en lecture** : aucune écriture BDD. Auth `plants.manage`.
   Valider `q` (2..120 caractères, erreurs 400).
 - Résilience : timeouts externes bornés, fusion partielle, `warnings` non bloquants ; en cas
   d'échec d'agrégation → 502 explicite + `logRouteError`.

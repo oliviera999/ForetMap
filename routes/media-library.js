@@ -50,7 +50,7 @@ router.get(
 
 router.post(
   '/',
-  requirePermission('teacher.access', { needsElevation: true }),
+  requirePermission('teacher.access'),
   validate({ body: uploadBodySchema }),
   asyncHandler(async (req, res) => {
     const mediaData = req.body.media_data;
@@ -77,7 +77,7 @@ router.post(
 
 router.delete(
   '/',
-  requirePermission('teacher.access', { needsElevation: true }),
+  requirePermission('teacher.access'),
   asyncHandler(async (req, res) => {
     const payload = executeMediaLibraryDeleteRequest(req.body || {});
     const auditTarget = payload.results?.length === 1 ? payload.results[0].relativePath : 'bulk';

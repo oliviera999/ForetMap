@@ -10,8 +10,8 @@ import { resolveRealtimeTooltip } from '../../utils/helpResolve';
  *
  * Composant feuille purement piloté par props : logo, badge version,
  * pastille temps réel, centre de notifications, badge utilisateur,
- * boutons rôle / élévation / déconnexion. Aucun état déplacé — les
- * handlers (désélévation, changement de vue rôle, déconnexion…) restent
+ * boutons rôle / connexion prof / déconnexion. Aucun état déplacé — les
+ * handlers (changement de vue rôle, connexion prof, déconnexion…) restent
  * définis dans `App` et sont passés en callbacks.
  */
 export function AppHeader({
@@ -53,9 +53,7 @@ export function AppHeader({
   canSwitchToStudentView,
   canSwitchToTeacherView,
   onRoleViewModeSelect,
-  // Élévation (PIN) & déconnexion
-  elevated,
-  onDisableElevation,
+  // Connexion professeur & déconnexion
   onRequestPin,
   onLogout,
   // Aide contextuelle
@@ -198,25 +196,13 @@ export function AppHeader({
             )}
           </>
         )}
-        <Tooltip text={helpText('header.elevatedMode')}>
+        <Tooltip text={helpText('header.teacherLogin')}>
           <button
-            className={`lock-btn ${elevated ? 'active' : ''}`}
-            aria-label={elevated ? 'Désactiver les droits étendus' : 'Activer les droits étendus'}
-            onClick={() => {
-              if (elevated) {
-                onDisableElevation();
-              } else {
-                onRequestPin();
-              }
-            }}
+            className="lock-btn"
+            aria-label="Connexion professeur"
+            onClick={() => onRequestPin()}
           >
-            {elevated ? (
-              <>
-                🔓 <span className="lock-label">Élevé</span>
-              </>
-            ) : (
-              '🔒'
-            )}
+            🔑
           </button>
         </Tooltip>
         <Tooltip text={helpText('header.logout')}>

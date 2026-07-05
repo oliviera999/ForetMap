@@ -414,7 +414,7 @@ router.get(
 
 router.post(
   '/reorder-project',
-  requirePermission('tasks.manage', { needsElevation: true }),
+  requirePermission('tasks.manage'),
   asyncHandler(async (req, res) => {
     const projectId = normalizeOptionalId(req.body?.project_id);
     const orderedTaskIdsInput = normalizeIdArray(req.body?.task_ids);
@@ -513,7 +513,7 @@ async function getScopedTeacherIds(auth) {
 
 router.get(
   '/referent-candidates',
-  requirePermission('tasks.manage', { needsElevation: true }),
+  requirePermission('tasks.manage'),
   asyncHandler(async (req, res) => {
     const [scopedStudentIds, scopedTeacherIds] = await Promise.all([
       getScopedAssignableStudentIds(req.auth),
@@ -582,7 +582,7 @@ router.get(
 
 router.post(
   '/',
-  requirePermission('tasks.manage', { needsElevation: true }),
+  requirePermission('tasks.manage'),
   asyncHandler(async (req, res) => {
     const {
       title,
@@ -1056,7 +1056,7 @@ router.put('/:id', async (req, res) => {
 
 router.delete(
   '/:id',
-  requirePermission('tasks.manage', { needsElevation: true }),
+  requirePermission('tasks.manage'),
   asyncHandler(async (req, res) => {
     const task = await queryOne('SELECT * FROM tasks WHERE id = ?', [req.params.id]);
     if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
@@ -1081,7 +1081,7 @@ router.delete(
 
 router.post(
   '/:id/validate',
-  requirePermission('tasks.validate', { needsElevation: true }),
+  requirePermission('tasks.validate'),
   asyncHandler(async (req, res) => {
     const task = await queryOne('SELECT * FROM tasks WHERE id = ?', [req.params.id]);
     if (!task) return res.status(404).json({ error: 'Tâche introuvable' });

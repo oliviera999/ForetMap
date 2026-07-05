@@ -41,17 +41,9 @@ describe('sortRolesForDisplay', () => {
 });
 
 describe('deriveProfilesCapabilities', () => {
-  test('sans élévation : actions élevées refusées', () => {
+  test('sans la permission : action refusée ; read.all seul n’ouvre pas les actions', () => {
     const caps = deriveProfilesCapabilities({
-      authPerms: [
-        'stats.export',
-        'students.import',
-        'students.delete',
-        'users.create',
-        'stats.read.all',
-      ],
-      authElevated: false,
-      authNativePrivileged: false,
+      authPerms: ['stats.read.all'],
       authRoleSlug: 'prof',
     });
     expect(caps.canExport).toBe(false);
@@ -61,7 +53,7 @@ describe('deriveProfilesCapabilities', () => {
     expect(caps.canReadAllStats).toBe(true);
     expect(caps.isAdmin).toBe(false);
   });
-  test('avec élévation : actions ouvertes ; canDuplicate/canDeleteUi requièrent read.all', () => {
+  test('permission présente : action ouverte ; canDuplicate/canDeleteUi requièrent read.all', () => {
     const caps = deriveProfilesCapabilities({
       authPerms: [
         'stats.export',
@@ -71,7 +63,6 @@ describe('deriveProfilesCapabilities', () => {
         'stats.read.all',
         'admin.roles.manage',
       ],
-      authElevated: true,
       authRoleSlug: 'admin',
     });
     expect(caps.canExport).toBe(true);
@@ -82,14 +73,11 @@ describe('deriveProfilesCapabilities', () => {
     expect(caps.canEditRoleDefinition).toBe(true);
     expect(caps.canManageProfiles).toBe(true);
     expect(caps.isAdmin).toBe(true);
-    expect(caps.effectiveElevated).toBe(true);
   });
-  test('élévation native équivaut à élevé ; sans read.all, pas de duplicate/deleteUi', () => {
+  test('sans read.all, pas de duplicate/deleteUi', () => {
     const caps = deriveProfilesCapabilities({
       authPerms: ['students.delete', 'users.create'],
-      authNativePrivileged: true,
     });
-    expect(caps.effectiveElevated).toBe(true);
     expect(caps.canDelete).toBe(true);
     expect(caps.canDuplicateStudents).toBe(false);
     expect(caps.canDeleteUi).toBe(false);

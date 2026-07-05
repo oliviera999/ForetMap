@@ -18,7 +18,7 @@ node --test tests/<fichier>.test.js   # cibler un fichier
 ## Backend (`tests/*.test.js`)
 
 - Runner `node:test` + `supertest` + `node:assert/strict`.
-- En tête : `require('./helpers/setup')` (charge `.env`, `DB_NAME` de test, `TEACHER_PIN`).
+- En tête : `require('./helpers/setup')` (charge `.env`, `DB_NAME` de test).
   Appeler `initSchema()` dans `before()`. Tests **indépendants** (chacun crée ses données).
 - Utilitaires ESM de `src/utils/*` testés par **import dynamique** (`pathToFileURL` + `import()`),
   ex. `visit-map-geometry`, `visit-mascot-*`.

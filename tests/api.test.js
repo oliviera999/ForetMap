@@ -114,14 +114,8 @@ test('POST /api/auth/admin/impersonate puis stop restaure l’admin', async () =
   assert.strictEqual(!!meAdmin.body.auth.elevated, false);
 });
 
-test('Impersonation: une élévation admin ne se propage pas à la cible et revient après stop', async () => {
+test('Impersonation: la cible n’hérite pas des droits admin et l’admin les retrouve après stop', async () => {
   const adminToken = await getAdminAuthToken();
-  const elevated = await request(app)
-    .post('/api/auth/teacher')
-    .set('Authorization', `Bearer ${adminToken}`)
-    .send({ pin: process.env.TEACHER_PIN || '1234' })
-    .expect(200);
-  assert.ok(elevated.body?.token);
 
   const reg = await request(app)
     .post('/api/auth/register')
@@ -130,7 +124,7 @@ test('Impersonation: une élévation admin ne se propage pas à la cible et revi
 
   const imp = await request(app)
     .post('/api/auth/admin/impersonate')
-    .set('Authorization', `Bearer ${elevated.body.token}`)
+    .set('Authorization', `Bearer ${adminToken}`)
     .send({ userType: 'student', userId: reg.body.id })
     .expect(200);
 
@@ -140,7 +134,6 @@ test('Impersonation: une élévation admin ne se propage pas à la cible et revi
     .expect(200);
   assert.strictEqual(meAsStudent.body?.auth?.userType, 'student');
   assert.strictEqual(meAsStudent.body?.auth?.impersonating, true);
-  assert.strictEqual(!!meAsStudent.body?.auth?.elevated, false);
 
   await request(app)
     .get('/api/stats/all')
@@ -158,7 +151,6 @@ test('Impersonation: une élévation admin ne se propage pas à la cible et revi
     .set('Authorization', `Bearer ${stop.body.authToken}`)
     .expect(200);
   assert.strictEqual(meBackAsAdmin.body?.auth?.userType, 'teacher');
-  assert.strictEqual(!!meBackAsAdmin.body?.auth?.elevated, true);
 });
 
 test('GET /api/stats/me/:studentId autorise le propriétaire connecté', async () => {
@@ -412,19 +404,9 @@ test('GET /api/stats/me/:studentId ne promeut pas le profil si la progression au
   }
 });
 
-test('POST /api/auth/teacher avec mauvais PIN renvoie 401', async () => {
-  const res = await request(app).post('/api/auth/teacher').send({ pin: '0000' }).expect(401);
+test('POST /api/auth/teacher (élévation PIN supprimée) renvoie 410', async () => {
+  const res = await request(app).post('/api/auth/teacher').send({ pin: '0000' }).expect(410);
   assert.ok(res.body.error);
-});
-
-test('POST /api/auth/teacher avec bon PIN et token renvoie 200 et un token', async () => {
-  const baseToken = await getAdminAuthToken();
-  const res = await request(app)
-    .post('/api/auth/teacher')
-    .set('Authorization', `Bearer ${baseToken}`)
-    .send({ pin: process.env.TEACHER_PIN || '1234' })
-    .expect(200);
-  assert.ok(res.body.token);
 });
 
 test('Forum: le profil visiteur ne peut pas accéder aux sujets', async () => {
@@ -635,10 +617,10 @@ test('Unassign élève : pas de bascule progression custom sans unassign_self av
     const customRole = await queryOne('SELECT id FROM roles WHERE slug = ? LIMIT 1', [slug]);
     assert.ok(customRole?.id);
     customRoleId = customRole.id;
-    await execute(
-      'INSERT IGNORE INTO role_permissions (role_id, permission_key, requires_elevation) VALUES (?, ?, 0)',
-      [customRoleId, 'tasks.assign_self'],
-    );
+    await execute('INSERT IGNORE INTO role_permissions (role_id, permission_key) VALUES (?, ?)', [
+      customRoleId,
+      'tasks.assign_self',
+    ]);
 
     const studentRes = await request(app)
       .post('/api/auth/register')

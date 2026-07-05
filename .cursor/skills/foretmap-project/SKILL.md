@@ -21,11 +21,11 @@ description: Donne le contexte du projet ForetMap (forêt comestible, Lycée Lya
 ## Rôle de l'application
 
 - **Élèves :** Connexion/inscription (prénom, nom, mot de passe), consultation de la carte des zones, prise de tâches, marquer une tâche comme faite (commentaire/image), voir ses stats.
-- **Professeurs :** Accès via PIN (mode prof, auth JWT côté serveur) pour gérer zones, plantes, tâches, voir les stats de tous les élèves, valider les tâches faites, supprimer un élève (avec cascade sur assignments/logs et recalcul des statuts de tâches).
+- **Professeurs :** Connexion par compte e-mail/mot de passe (auth JWT côté serveur) pour gérer zones, plantes, tâches, voir les stats de tous les élèves, valider les tâches faites, supprimer un élève (avec cascade sur assignments/logs et recalcul des statuts de tâches).
 
 ## Stack
 
-- **Backend :** Node.js, Express, MySQL (mysql2, pool). Fichiers : `server.js` (montage des routeurs), `database.js` (pool, schéma, seed), `routes/` (dont `task-projects`, `tutorials`, `settings`, `rbac`, `forum`), `middleware/requireTeacher.js` (JWT). Auth élèves : bcrypt, session en localStorage. Auth prof : PIN vérifié côté serveur, JWT.
+- **Backend :** Node.js, Express, MySQL (mysql2, pool). Fichiers : `server.js` (montage des routeurs), `database.js` (pool, schéma, seed), `routes/` (dont `task-projects`, `tutorials`, `settings`, `rbac`, `forum`), `middleware/requireTeacher.js` (JWT). Auth élèves : bcrypt, session en localStorage. Auth prof : connexion e-mail/mot de passe côté serveur, JWT (droits du rôle directs, sans élévation).
 - **Biodiversité assistée :** endpoint `GET /api/plants/autofill` (sources externes Wikipedia/Wikidata/GBIF), agrégation dans `lib/speciesAutofill.js`, panneau de revue dans `PlantEditForm` (`src/components/foretmap-views.jsx`).
 - **Frontend :** React 19 + Vite. Entrée dans `index.vite.html`, bootstrap dans `src/main.jsx`, application modulaire dans `src/` (composants/hooks/services), build servi depuis `dist/` en production.
 - **Visite / mascotte :** moteur extensible multi-renderer (`rive` + `spritesheet`) via `src/utils/visitMascotCatalog.js`, `src/components/VisitMapMascotRenderer.jsx`, `src/components/VisitMapMascotRive.jsx`, `src/components/VisitMapMascotSpritesheet.jsx`, hook d’état `src/hooks/useVisitMascotStateMachine.js`, fallback SVG `src/components/VisitMascotFallbackSvg.jsx`.

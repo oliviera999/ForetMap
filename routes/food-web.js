@@ -152,7 +152,7 @@ router.get('/interaction-types', (req, res) => {
 /** POST /api/food-web/interactions — créer une interaction (admin biodiversité). */
 router.post(
   '/interactions',
-  requirePermission('plants.manage', { needsElevation: true }),
+  requirePermission('plants.manage'),
   asyncHandler(async (req, res) => {
     const result = await foodWebStore.create(req.body || {});
     return respondFromStoreResult(res, result, 201);
@@ -162,7 +162,7 @@ router.post(
 /** PUT /api/food-web/interactions/:id — modifier une interaction. */
 router.put(
   '/interactions/:id',
-  requirePermission('plants.manage', { needsElevation: true }),
+  requirePermission('plants.manage'),
   validate({ params: interactionIdParamsSchema }),
   asyncHandler(async (req, res) => {
     const result = await foodWebStore.update(Number(req.params.id), req.body || {});
@@ -173,7 +173,7 @@ router.put(
 /** DELETE /api/food-web/interactions/:id — supprimer une interaction. */
 router.delete(
   '/interactions/:id',
-  requirePermission('plants.manage', { needsElevation: true }),
+  requirePermission('plants.manage'),
   validate({ params: interactionIdParamsSchema }),
   asyncHandler(async (req, res) => {
     const result = await foodWebStore.remove(Number(req.params.id));

@@ -11,8 +11,6 @@ const { app } = require('../server');
 const authRouter = require('../routes/auth');
 const { initSchema, execute, queryOne } = require('../database');
 const { setSetting } = require('../lib/settings');
-const jwt = require('jsonwebtoken');
-const { JWT_SECRET } = require('../middleware/requireTeacher');
 
 before(async () => {
   process.env.SMTP_JSON_TRANSPORT = 'true';
@@ -484,118 +482,8 @@ describe('Auth', () => {
     assert.ok(login.body.authToken);
   });
 
-  it('POST /api/auth/elevate : JWT élève élevé contient teacher.access', async () => {
-    const u = `ElevJwt${Date.now()}`;
-    const reg = await request(app)
-      .post('/api/auth/register')
-      .send({
-        firstName: u,
-        lastName: 'Jwt',
-        password: '1234',
-        pseudo: `pjwt_${Date.now()}`,
-        email: `pjwt_${Date.now()}@example.com`,
-        description: 'test',
-        affiliation: 'both',
-      })
-      .expect(201);
-    const baseToken = reg.body.authToken;
-    assert.ok(baseToken);
-    const el = await request(app)
-      .post('/api/auth/elevate')
-      .set('Authorization', `Bearer ${baseToken}`)
-      .send({ pin: '1234' })
-      .expect(200);
-    assert.ok(el.body.token);
-    const claims = jwt.verify(el.body.token, JWT_SECRET);
-    assert.strictEqual(claims.elevated, true);
-    assert.ok(Array.isArray(claims.permissions));
-    assert.ok(claims.permissions.includes('teacher.access'));
-  });
-
-  it('POST /api/auth/teacher vérifie le PIN du rôle RBAC courant, pas celui du JWT obsolète', async () => {
-    const stamp = Date.now();
-    const password = 'legacyTeacherPin1';
-    const reg = await request(app)
-      .post('/api/auth/register')
-      .send({
-        firstName: `Legacy${stamp}`,
-        lastName: 'Pin',
-        password,
-        pseudo: `legacy_pin_${stamp}`,
-        email: `legacy_pin_${stamp}@example.com`,
-        description: 'test',
-        affiliation: 'both',
-      })
-      .expect(201);
-
-    const studentId = reg.body.id;
-    const oldRoleSlug = `old_pin_${stamp}`;
-    const currentRoleSlug = `cur_pin_${stamp}`;
-    let oldRoleId = null;
-    let currentRoleId = null;
-
-    try {
-      const oldRole = await execute(
-        'INSERT INTO roles (slug, display_name, `rank`, display_order, is_system) VALUES (?, ?, ?, ?, 0)',
-        [oldRoleSlug, 'Ancien rôle PIN', 410, 9900],
-      );
-      oldRoleId = oldRole.insertId;
-      const currentRole = await execute(
-        'INSERT INTO roles (slug, display_name, `rank`, display_order, is_system) VALUES (?, ?, ?, ?, 0)',
-        [currentRoleSlug, 'Rôle courant sans PIN', 80, 9901],
-      );
-      currentRoleId = currentRole.insertId;
-      await execute('INSERT INTO role_pin_secrets (role_id, pin_hash) VALUES (?, ?)', [
-        oldRoleId,
-        await bcrypt.hash('9876', 10),
-      ]);
-
-      await execute('DELETE FROM user_roles WHERE user_type = ? AND user_id = ?', [
-        'student',
-        studentId,
-      ]);
-      await execute(
-        'INSERT INTO user_roles (user_type, user_id, role_id, is_primary) VALUES (?, ?, ?, 1)',
-        ['student', studentId, oldRoleId],
-      );
-
-      const login = await request(app)
-        .post('/api/auth/login')
-        .send({ identifier: `legacy_pin_${stamp}@example.com`, password })
-        .expect(200);
-      const staleToken = login.body.authToken;
-      assert.ok(staleToken);
-
-      await execute('UPDATE user_roles SET is_primary = 0 WHERE user_type = ? AND user_id = ?', [
-        'student',
-        studentId,
-      ]);
-      await execute(
-        'INSERT INTO user_roles (user_type, user_id, role_id, is_primary) VALUES (?, ?, ?, 1)',
-        ['student', studentId, currentRoleId],
-      );
-
-      const res = await request(app)
-        .post('/api/auth/teacher')
-        .set('Authorization', `Bearer ${staleToken}`)
-        .send({ pin: '9876' })
-        .expect(401);
-      assert.match(String(res.body?.error || ''), /PIN incorrect|Token invalide|Aucun profil/);
-    } finally {
-      const novice = await queryOne("SELECT id FROM roles WHERE slug = 'eleve_novice' LIMIT 1");
-      await execute('DELETE FROM user_roles WHERE user_type = ? AND user_id = ?', [
-        'student',
-        studentId,
-      ]);
-      if (novice?.id) {
-        await execute(
-          'INSERT INTO user_roles (user_type, user_id, role_id, is_primary) VALUES (?, ?, ?, 1)',
-          ['student', studentId, novice.id],
-        );
-      }
-      if (oldRoleId || currentRoleId) {
-        await execute('DELETE FROM roles WHERE id IN (?, ?)', [oldRoleId || 0, currentRoleId || 0]);
-      }
-    }
+  it('POST /api/auth/elevate et /api/auth/teacher : endpoints supprimés (410)', async () => {
+    await request(app).post('/api/auth/elevate').send({ pin: '1234' }).expect(410);
+    await request(app).post('/api/auth/teacher').send({ pin: '1234' }).expect(410);
   });
 });

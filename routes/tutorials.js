@@ -326,7 +326,7 @@ router.get(
 /** Scan des fiches HTML du dossier `tutos/` : détecte celles absentes de la BDD. */
 router.get(
   '/import/scan',
-  requirePermission('tutorials.manage', { needsElevation: true }),
+  requirePermission('tutorials.manage'),
   asyncHandler(async (req, res) => {
     if (!canManageTutorials(req)) return res.status(403).json({ error: 'Permission insuffisante' });
     const report = await scanTutosForImport({ queryAll, queryOne, execute });
@@ -337,7 +337,7 @@ router.get(
 /** Importe en BDD les fiches `tutos/*.html` pas encore présentes (`dryRun` optionnel). */
 router.post(
   '/import/files',
-  requirePermission('tutorials.manage', { needsElevation: true }),
+  requirePermission('tutorials.manage'),
   asyncHandler(async (req, res) => {
     if (!canManageTutorials(req)) return res.status(403).json({ error: 'Permission insuffisante' });
     const dryRun = !!req.body?.dryRun;
@@ -508,7 +508,7 @@ router.get(
 
 router.post(
   '/',
-  requirePermission('tutorials.manage', { needsElevation: true }),
+  requirePermission('tutorials.manage'),
   asyncHandler(async (req, res) => {
     if (!canManageTutorials(req)) return res.status(403).json({ error: 'Permission insuffisante' });
     const title = normalizeString(req.body.title);
@@ -614,7 +614,7 @@ router.post(
 
 router.post(
   '/:id/cover-photo-upload',
-  requirePermission('tutorials.manage', { needsElevation: true }),
+  requirePermission('tutorials.manage'),
   asyncHandler(async (req, res) => {
     if (!canManageTutorials(req)) return res.status(403).json({ error: 'Permission insuffisante' });
     const tid = Number(req.params.id);
@@ -673,7 +673,7 @@ router.post(
 
 router.put(
   '/reorder',
-  requirePermission('tutorials.manage', { needsElevation: true }),
+  requirePermission('tutorials.manage'),
   asyncHandler(async (req, res) => {
     if (!canManageTutorials(req)) return res.status(403).json({ error: 'Permission insuffisante' });
     const rawIds = Array.isArray(req.body.tutorial_ids) ? req.body.tutorial_ids : [];
@@ -721,7 +721,7 @@ router.put(
 
 router.put(
   '/:id',
-  requirePermission('tutorials.manage', { needsElevation: true }),
+  requirePermission('tutorials.manage'),
   asyncHandler(async (req, res) => {
     if (!canManageTutorials(req)) return res.status(403).json({ error: 'Permission insuffisante' });
     const existing = await queryOne('SELECT * FROM tutorials WHERE id = ?', [req.params.id]);
@@ -861,7 +861,7 @@ router.put(
 
 router.delete(
   '/:id',
-  requirePermission('tutorials.manage', { needsElevation: true }),
+  requirePermission('tutorials.manage'),
   asyncHandler(async (req, res) => {
     if (!canManageTutorials(req)) return res.status(403).json({ error: 'Permission insuffisante' });
     const existing = await queryOne('SELECT id FROM tutorials WHERE id = ?', [req.params.id]);

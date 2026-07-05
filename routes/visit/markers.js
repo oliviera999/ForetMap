@@ -22,7 +22,7 @@ const router = express.Router();
 
 router.post(
   '/markers',
-  requirePermission('visit.manage', { needsElevation: true }),
+  requirePermission('visit.manage'),
   asyncHandler(async (req, res) => {
     const mapId = await resolveVisitMapId(req.body.map_id);
     const label = String(req.body.label || '').trim();
@@ -64,7 +64,7 @@ router.post(
 
 router.put(
   '/markers/:id',
-  requirePermission('visit.manage', { needsElevation: true }),
+  requirePermission('visit.manage'),
   asyncHandler(async (req, res) => {
     const markerId = String(req.params.id || '').trim();
     if (!markerId) return res.status(400).json({ error: 'Repère invalide' });
@@ -141,7 +141,7 @@ router.put(
 
 router.delete(
   '/markers/:id',
-  requirePermission('visit.manage', { needsElevation: true }),
+  requirePermission('visit.manage'),
   asyncHandler(async (req, res) => {
     const markerId = String(req.params.id || '').trim();
     if (!markerId) return res.status(400).json({ error: 'Repère invalide' });

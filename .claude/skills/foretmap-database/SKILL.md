@@ -29,8 +29,8 @@ description: Conventions base de données ForetMap (schéma MySQL, migrations id
 ## Import dump distant (PII)
 
 - `npm run db:import:dump -- --file "<dump.sql>"` (recrée la base puis importe), enchaîner
-  `npm run db:migrate`. **Ne jamais versionner un dump.** Après import, le PIN effectif est dans
-  `role_pin_secrets` (`npm run db:reset:role-pins:local` pour réaligner sur `.env`).
+  `npm run db:migrate`. **Ne jamais versionner un dump.** L’élévation par PIN a été supprimée : un
+  compte prof connecté a directement les droits de son rôle (`npm run db:seed:teacher` pour un compte local connu).
 
 ## Voir aussi
 

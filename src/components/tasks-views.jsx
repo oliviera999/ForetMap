@@ -81,7 +81,6 @@ function TasksViewImpl({
   mapLocationFocus = null,
   onMapLocationFocusChange = null,
   onOpenPlantCatalogPreview = null,
-  hasPermission = () => false,
   hasPermissionInRole = () => false,
 }) {
   const publicSettings = usePublicSettings();
@@ -101,10 +100,8 @@ function TasksViewImpl({
     () => ({
       canManageTasks: hasPermissionInRole('tasks.manage'),
       canValidateTasks: hasPermissionInRole('tasks.validate'),
-      hasActiveManage: hasPermission('tasks.manage'),
-      hasActiveValidate: hasPermission('tasks.validate'),
     }),
-    [hasPermission, hasPermissionInRole],
+    [hasPermissionInRole],
   );
   const teacherStatusActions = useMemo(
     () => filterTeacherStatusActions(TEACHER_STATUS_ACTIONS, teacherTaskPerms),

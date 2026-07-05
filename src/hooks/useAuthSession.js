@@ -4,12 +4,10 @@ import {
   api,
   AccountDeletedError,
   getAuthClaims,
-  getAuthToken,
   getStoredSession,
   saveLegacyStudentSnapshot,
   saveStoredSession,
   clearStoredSession,
-  isElevatedJwt,
 } from '../services/api';
 import {
   safeLocalStorageGetItem,
@@ -97,16 +95,10 @@ export function useAuthSession({
       setStudent(merged);
       saveLegacyStudentSnapshot(merged);
       const sessionToken = getStoredSession()?.token || null;
-      const prevAuthToken = getAuthToken();
-      let nextToken =
+      const nextToken =
         typeof merged.authToken === 'string' && merged.authToken.trim() !== ''
           ? merged.authToken.trim()
           : sessionToken;
-      /* `merged.authToken` reste souvent le JWT élève d’origine : une fin tardive de
-       `validateStudentSession` ne doit pas écraser une session déjà élevée (PIN). */
-      if (prevAuthToken && isElevatedJwt(prevAuthToken) && !isElevatedJwt(nextToken)) {
-        nextToken = prevAuthToken;
-      }
       saveStoredSession({
         token: nextToken,
         user: {
@@ -227,12 +219,9 @@ export function useAuthSession({
       const { auth } = d;
       if (typeof d.refreshedToken === 'string' && d.refreshedToken.trim() !== '') {
         const trimmed = d.refreshedToken.trim();
-        const cur = getAuthToken();
-        if (!(cur && isElevatedJwt(cur) && !isElevatedJwt(trimmed))) {
-          safeLocalStorageSetItem('foretmap_auth_token', trimmed);
-          const sess = getStoredSession() || {};
-          saveStoredSession({ ...sess, token: trimmed });
-        }
+        safeLocalStorageSetItem('foretmap_auth_token', trimmed);
+        const sess = getStoredSession() || {};
+        saveStoredSession({ ...sess, token: trimmed });
       }
       setAuthClaims(getAuthClaims());
       if (auth.userType === 'teacher') {
