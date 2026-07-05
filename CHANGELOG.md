@@ -32,6 +32,11 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   (503) désormais dissociées.
 - **Isolement `/api/gl`** : la garde produit sautait tout chemin commençant par `/gl`
   (dont `/api/glossary`). Frontière stricte `=== '/gl'` ou `/gl/`.
+- **Observations — séparation lecture/écriture** : la suppression d'un carnet était gardée
+  par une permission de *lecture* (`observations.read.*`). Nouvelles permissions
+  `observations.manage.all` / `observations.manage.group` (migration `163`, attribution
+  idempotente aux rôles ayant déjà la lecture) : un rôle en lecture seule ne peut plus
+  supprimer les carnets d'autrui.
 
 ### Correctif
 
@@ -60,6 +65,10 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   échouait ; passage à `Promise.allSettled`.
 - **Divers** : message d'avertissement CORS corrigé (`origin: false` = restrictif),
   ternaire mort dans la conversion de zones legacy simplifié.
+- **Front — gardes de course** : compteurs d'observations (`usePlantObservationCounts`) et
+  commentaires contextuels (`context-comments`) appliquent désormais un compteur de requête
+  (seule la réponse la plus récente est retenue) ; le debounce de `fetchAll` (`App.jsx`)
+  annule correctement le timer en attente (plus de double-fetch pendant les rafales au boot).
 
 - **GL — boutons invisibles dans les popovers/modales** : les popovers GL (QCM,
   « J'ai appris » / gating, feuillets…) sont rendus via `createPortal(document.body)`,

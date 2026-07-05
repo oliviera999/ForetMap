@@ -202,8 +202,14 @@ router.delete(
     } else {
       const auth = req.auth || null;
       const perms = Array.isArray(auth?.permissions) ? auth.permissions : [];
-      const canReadAll = perms.includes('observations.read.all');
-      if (!canReadAll) {
+      // Suppression = droit d'écriture dédié (séparation lecture/écriture) : un rôle en
+      // lecture seule (observations.read.*) ne doit pas pouvoir supprimer les carnets d'autrui.
+      const canManageAll = perms.includes('observations.manage.all');
+      const canManageGroup = perms.includes('observations.manage.group');
+      if (!canManageAll && !canManageGroup) {
+        return res.status(403).json({ error: 'Suppression non autorisée' });
+      }
+      if (!canManageAll) {
         const allowed = await canAccessStudentId(auth, obs.student_id);
         if (!allowed) return res.status(403).json({ error: 'Suppression non autorisée' });
       }
