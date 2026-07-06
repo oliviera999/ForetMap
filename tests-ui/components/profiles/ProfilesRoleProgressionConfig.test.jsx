@@ -15,9 +15,8 @@ function setup(overrides = {}) {
     minDoneTasks: '5',
     onMinDoneTasksChange: vi.fn(),
     onSaveMinDoneThreshold: vi.fn(),
-    proposeEntry: { key: 'tasks.propose', requires_elevation: false },
+    proposeEntry: { key: 'tasks.propose' },
     onTogglePermission: vi.fn(),
-    onTogglePermissionElevation: vi.fn(),
     onSetForumParticipate: vi.fn(),
     onSetContextCommentParticipate: vi.fn(),
     maxConcurrentTasks: '',
@@ -47,8 +46,8 @@ describe('ProfilesRoleProgressionConfig', () => {
     expect(onSaveMinDoneThreshold).toHaveBeenCalledTimes(1);
   });
 
-  test('proposition : toggle tasks.propose + élévation', () => {
-    const { onTogglePermission, onTogglePermissionElevation } = setup();
+  test('proposition : toggle tasks.propose (aucune case élévation/PIN)', () => {
+    const { onTogglePermission } = setup();
     const proposeCb = screen
       .getAllByRole('checkbox')
       .find((c) => c.closest('label')?.textContent?.includes('proposer de nouvelles tâches'));
@@ -57,8 +56,7 @@ describe('ProfilesRoleProgressionConfig', () => {
     const elevCb = screen
       .getAllByRole('checkbox')
       .find((c) => c.closest('label')?.textContent?.includes('Exiger le PIN'));
-    fireEvent.click(elevCb);
-    expect(onTogglePermissionElevation).toHaveBeenCalledWith('tasks.propose', true);
+    expect(elevCb).toBeUndefined();
   });
 
   test('forum / contexte : reflètent l’état du rôle et appellent les setters(id, checked)', () => {

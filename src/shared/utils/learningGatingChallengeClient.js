@@ -14,12 +14,22 @@ export function createFmGatingHandlers(api) {
     presentQuestion(code) {
       return api(`/api/quiz/questions/${encodeURIComponent(code)}/present`);
     },
-    answerQuestion(code, _dataset, presentationToken, choiceId) {
+    answerQuestion(code, _dataset, presentationToken, choiceId, resource = null) {
       return api(`/api/quiz/questions/${encodeURIComponent(code)}/answer`, 'POST', {
         presentationToken,
         choiceId,
+        ...resourceContextBody(resource),
       });
     },
+  };
+}
+
+/** Contexte ressource transmis avec la réponse pour activer le verrou de re-tentative (cooldown). */
+function resourceContextBody(resource) {
+  if (!resource || !resource.resourceType || resource.resourceRef == null) return {};
+  return {
+    resourceType: String(resource.resourceType),
+    resourceRef: String(resource.resourceRef),
   };
 }
 
@@ -38,13 +48,34 @@ export function createGlGatingHandlers(apiGL) {
     presentQuestion(code, dataset = 'qcm') {
       return apiGL(`${apiBase(dataset)}/questions/${encodeURIComponent(code)}/present`);
     },
-    answerQuestion(code, dataset = 'qcm', presentationToken, choiceId) {
+    answerQuestion(code, dataset = 'qcm', presentationToken, choiceId, resource = null) {
       return apiGL(`${apiBase(dataset)}/questions/${encodeURIComponent(code)}/answer`, 'POST', {
         presentationToken,
         choiceId,
+        ...resourceContextBody(resource),
       });
     },
   };
+}
+
+/** La ressource est-elle verrouillée (cooldown après erreur) ? */
+export function isCooldownLocked(cooldown) {
+  return !!(cooldown && cooldown.locked);
+}
+
+/**
+ * Message de verrou après une erreur au QCM de validation.
+ * @param {object} cooldown bloc { locked, remaining_days, ... }
+ * @param {string} [itemTitle]
+ */
+export function buildCooldownLockMessage(cooldown, itemTitle = '') {
+  const days = Math.max(1, Number(cooldown?.remaining_days) || 1);
+  const label = itemTitle ? `« ${itemTitle} »` : 'cette ressource';
+  const dayWord = days === 1 ? '1 jour' : `${days} jours`;
+  return (
+    `Une erreur a été commise sur le contrôle de compréhension. ` +
+    `Tu pourras réessayer de valider ${label} dans ${dayWord}.`
+  );
 }
 
 /** Questions encore à réussir pour le challenge. */

@@ -4,7 +4,6 @@ import {
   AccountDeletedError,
   getAuthClaims,
   getStoredSession,
-  saveLegacyStudentSnapshot,
   saveStoredSession,
   clearStoredSession,
 } from './services/api';
@@ -77,11 +76,7 @@ const VisitMascotPackManagerLazy = lazy(() => import('./components/VisitMascotPa
 import { getRoleTerms, isN3OnlyAffiliation } from './utils/n3-terminology';
 import { allowedMapIdsFromAffiliation, mapsForAffiliationScope } from './utils/mapAffiliation';
 import { getContentText } from './utils/content';
-import {
-  safeLocalStorageGetItem,
-  safeLocalStorageRemoveItem,
-  safeLocalStorageSetItem,
-} from './utils/browserStorage.js';
+import { safeLocalStorageGetItem, safeLocalStorageSetItem } from './utils/browserStorage.js';
 import { useOverlayHistoryBack } from './hooks/useOverlayHistoryBack';
 import { abandonAllOverlays, pushOverlayClose } from './utils/overlayHistory';
 import { keepPrevIfEqual } from './utils/stableCollection';
@@ -176,21 +171,15 @@ function App() {
   const effectiveRoleContext = useMemo(() => {
     const roleSlug = String(authClaims?.roleSlug || '').toLowerCase();
     const activePermsRaw = Array.isArray(authClaims?.permissions) ? authClaims.permissions : [];
-    const elevatablePermsRaw = Array.isArray(authClaims?.elevatedPermissions)
-      ? authClaims.elevatedPermissions
-      : [];
     let activePerms = activePermsRaw;
-    let elevatablePerms = elevatablePermsRaw;
     if (roleViewMode === 'teacher' && roleSlug === 'admin') {
       activePerms = activePermsRaw.filter((perm) => !String(perm).startsWith('admin.'));
-      elevatablePerms = elevatablePermsRaw.filter((perm) => !String(perm).startsWith('admin.'));
     }
     const canUseTeacherUi = activePerms.includes('teacher.access');
     const effectiveIsTeacher = canUseTeacherUi && roleViewMode !== 'student';
     return {
       roleSlug,
       activePerms,
-      elevatablePerms,
       effectiveIsTeacher,
     };
   }, [authClaims, roleViewMode]);
@@ -218,13 +207,11 @@ function App() {
     [effectiveRoleContext.activePerms],
   );
 
+  // Plus de dimension d'élévation : les permissions « en rôle » sont exactement les permissions
+  // actives. Conservé comme alias de `hasPermission` pour ne pas toucher ses nombreux appelants.
   const hasPermissionInRole = useCallback(
-    (perm) => {
-      const activePerms = effectiveRoleContext.activePerms;
-      const elevatablePerms = effectiveRoleContext.elevatablePerms;
-      return activePerms.includes(perm) || elevatablePerms.includes(perm);
-    },
-    [effectiveRoleContext.activePerms, effectiveRoleContext.elevatablePerms],
+    (perm) => effectiveRoleContext.activePerms.includes(perm),
+    [effectiveRoleContext.activePerms],
   );
 
   const canManageTutorials = useMemo(() => {
@@ -643,14 +630,14 @@ function App() {
     if (s.forum_participate != null) return Number(s.forum_participate) !== 0;
     return true;
   }, [effectiveIsTeacher, studentForUi]);
-  const canManageMediaLibrary = !!authClaims?.elevated || !!authClaims?.nativePrivileged;
+  const canManageMediaLibrary = hasPermissionInRole('teacher.access');
   const canManageQuiz = useMemo(() => {
     const roleSlug = effectiveRoleContext.roleSlug;
     const nativePrivileged = !!authClaims?.nativePrivileged;
     const allowedRole = roleSlug === 'prof' || roleSlug === 'admin' || nativePrivileged;
     return allowedRole && hasPermissionInRole('plants.manage');
   }, [effectiveRoleContext.roleSlug, hasPermissionInRole, authClaims?.nativePrivileged]);
-  const canManageFoodWeb = !!authClaims?.elevated && hasPermission('plants.manage');
+  const canManageFoodWeb = hasPermission('plants.manage');
 
   const canParticipateContextComments = useMemo(() => {
     if (effectiveIsTeacher) return true;
@@ -732,56 +719,6 @@ function App() {
     setShowStats(false);
     setShowProfile(false);
   }, []);
-
-  /** Désélévation (retour au jeton élève/prof de base après une session PIN élevée). */
-  const handleDisableElevation = useCallback(() => {
-    safeLocalStorageRemoveItem('foretmap_teacher_token');
-    let storedStudent = null;
-    try {
-      const raw = safeLocalStorageGetItem('foretmap_student', null);
-      if (raw) storedStudent = JSON.parse(raw);
-    } catch (_) {
-      storedStudent = null;
-    }
-    const fromElevation =
-      storedStudent && typeof storedStudent.elevationStudentToken === 'string'
-        ? storedStudent.elevationStudentToken.trim()
-        : '';
-    const fromAuth =
-      storedStudent && typeof storedStudent.authToken === 'string'
-        ? storedStudent.authToken.trim()
-        : '';
-    const baseStudentToken = fromElevation || fromAuth || null;
-    if (baseStudentToken) {
-      const cleanedStudent = {
-        ...storedStudent,
-        authToken: baseStudentToken,
-      };
-      delete cleanedStudent.elevationStudentToken;
-      safeLocalStorageSetItem('foretmap_auth_token', baseStudentToken);
-      saveStoredSession({
-        token: baseStudentToken,
-        user: {
-          id: cleanedStudent.auth?.canonicalUserId || cleanedStudent.id || null,
-          userType: 'student',
-          displayName:
-            cleanedStudent.pseudo ||
-            `${cleanedStudent.first_name || ''} ${cleanedStudent.last_name || ''}`.trim() ||
-            'Utilisateur',
-          email: cleanedStudent.email || null,
-          avatar_path: cleanedStudent.avatar_path ?? cleanedStudent.avatarPath ?? null,
-        },
-        student: cleanedStudent,
-      });
-      saveLegacyStudentSnapshot(cleanedStudent);
-      updateStudentSession(cleanedStudent);
-    } else {
-      const authToken = safeLocalStorageGetItem('foretmap_auth_token', null);
-      if (authToken) saveStoredSession({ token: authToken });
-    }
-    setAuthClaims(getAuthClaims());
-    setToast('Droits étendus coupés — mode léger');
-  }, [updateStudentSession]);
 
   /** Déconnexion complète (session locale + états React). */
   const handleLogout = useCallback(() => {
@@ -1254,15 +1191,10 @@ function App() {
               {showPin && (
                 <PinModal
                   onSuccess={() => {
-                    const claims = getAuthClaims();
                     setPinSuccessFetchAllTick((n) => n + 1);
-                    setAuthClaims(claims);
+                    setAuthClaims(getAuthClaims());
                     setShowPin(false);
-                    setToast(
-                      claims?.elevated
-                        ? 'Droits étendus activés — c’est bon 🔓'
-                        : 'Session mise à jour, tout roule',
-                    );
+                    setToast('Connexion professeur réussie, tout roule');
                   }}
                   onClose={() => setShowPin(false)}
                   uiSettings={publicSettings}
@@ -1369,8 +1301,6 @@ function App() {
                 canSwitchToStudentView={canSwitchToStudentView}
                 canSwitchToTeacherView={canSwitchToTeacherView}
                 onRoleViewModeSelect={handleRoleViewModeSelect}
-                elevated={!!authClaims?.elevated}
-                onDisableElevation={handleDisableElevation}
                 onRequestPin={handleRequestPin}
                 onLogout={handleLogout}
                 helpText={helpText}
