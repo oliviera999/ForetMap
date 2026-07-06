@@ -11,10 +11,10 @@ backbone commun de rattachement/gating.
 Tout le back GL choisit le dataset à partir du préfixe du `question_code`
 (`lib/glQcmResolve.js`) :
 
-| Motif du code           | Dataset     | Set (`qcmSet`) |
-| ----------------------- | ----------- | -------------- |
-| `/^LQCM\d+$/i`          | `qcm_lore`  | `lore`         |
-| sinon (`QF…`, etc.)     | `qcm`       | `biome`        |
+| Motif du code       | Dataset    | Set (`qcmSet`) |
+| ------------------- | ---------- | -------------- |
+| `/^LQCM\d+$/i`      | `qcm_lore` | `lore`         |
+| sinon (`QF…`, etc.) | `qcm`      | `biome`        |
 
 Ce test unique aiguille le chargement, la présentation, l'enregistrement des tentatives et le
 gating, partout.
@@ -23,22 +23,22 @@ gating, partout.
 
 Catalogue : **`gl_qcm_questions`** (`migrations/096_gl_qcm.sql`).
 
-| Colonne                          | Rôle                                                        |
-| -------------------------------- | ---------------------------------------------------------- |
-| `question_code` (PK, VARCHAR 16) | code stable (ex. `QF0123`)                                  |
-| `biome_slug` (FK `gl_biomes`)    | **ancrage principal : le biome**                           |
-| `categorie_slug` (FK `gl_qcm_categories`) | catégorie thématique                              |
-| `numero_dans_categorie`          | + contrainte unique `(biome, catégorie, numéro)`           |
-| `choix_a … choix_e`              | 5 choix                                                    |
-| `reponse_correcte`               | ENUM A–E                                                   |
-| `niveau`, `difficulte`, `difficulte_label` | filtres de pool                                  |
-| `feedback_*` (mig. 112), `photo_*`, `wikipedia_*` | feedback pédagogique / illustration       |
-| `statut`                         | seules les questions `actif` sont tirées                   |
+| Colonne                                           | Rôle                                             |
+| ------------------------------------------------- | ------------------------------------------------ |
+| `question_code` (PK, VARCHAR 16)                  | code stable (ex. `QF0123`)                       |
+| `biome_slug` (FK `gl_biomes`)                     | **ancrage principal : le biome**                 |
+| `categorie_slug` (FK `gl_qcm_categories`)         | catégorie thématique                             |
+| `numero_dans_categorie`                           | + contrainte unique `(biome, catégorie, numéro)` |
+| `choix_a … choix_e`                               | 5 choix                                          |
+| `reponse_correcte`                                | ENUM A–E                                         |
+| `niveau`, `difficulte`, `difficulte_label`        | filtres de pool                                  |
+| `feedback_*` (mig. 112), `photo_*`, `wikipedia_*` | feedback pédagogique / illustration              |
+| `statut`                                          | seules les questions `actif` sont tirées         |
 
 Rattachements :
 
 - **Biome** : direct, colonne `biome_slug`.
-- **Espèce** : *indirect* (pas de colonne) — via le `biome_slug` partagé (les `gl_species`
+- **Espèce** : _indirect_ (pas de colonne) — via le `biome_slug` partagé (les `gl_species`
   portent aussi un biome) et, pour le gating, via `gl_resource_question_links`
   (`resource_type='species'`).
 - **Glossaire écologie** : `gl_qcm_question_glossary (question_code, glossary_code)` →
@@ -48,16 +48,16 @@ Rattachements :
 
 Catalogue : **`gl_qcm_lore_questions`** (`migrations/138_gl_qcm_lore.sql`).
 
-| Colonne                                    | Rôle                                              |
-| ------------------------------------------ | ------------------------------------------------- |
-| `question_code` (PK)                       | code `LQCM…`                                      |
-| `chapitre_slug` (FK `gl_qcm_lore_scopes`)  | **ancrage principal : le scope de chapitre**      |
-| `categorie_slug` (FK `gl_qcm_lore_categories`) | catégorie lore                                |
-| `tier_lore`                                | ENUM `cle` \| `recit` (palier narratif)           |
-| `choix_a … choix_e`, `reponse_correcte`    | 5 choix + réponse A–E                             |
-| `niveau`, `difficulte`                     | filtres de pool                                   |
-| `feedback_correct`, `feedback_a…e`         | feedback par choix (natif ici)                    |
-| `source_lore`, `statut`                    | provenance / activation                           |
+| Colonne                                        | Rôle                                         |
+| ---------------------------------------------- | -------------------------------------------- |
+| `question_code` (PK)                           | code `LQCM…`                                 |
+| `chapitre_slug` (FK `gl_qcm_lore_scopes`)      | **ancrage principal : le scope de chapitre** |
+| `categorie_slug` (FK `gl_qcm_lore_categories`) | catégorie lore                               |
+| `tier_lore`                                    | ENUM `cle` \| `recit` (palier narratif)      |
+| `choix_a … choix_e`, `reponse_correcte`        | 5 choix + réponse A–E                        |
+| `niveau`, `difficulte`                         | filtres de pool                              |
+| `feedback_correct`, `feedback_a…e`             | feedback par choix (natif ici)               |
+| `source_lore`, `statut`                        | provenance / activation                      |
 
 Table de scope **`gl_qcm_lore_scopes`** : `slug`, `nom`, `plateau` (TINYINT). C'est le champ
 `plateau` qui relie un scope au **numéro de plateau** du chapitre en jeu.
