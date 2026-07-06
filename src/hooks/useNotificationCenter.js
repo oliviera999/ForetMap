@@ -135,7 +135,28 @@ export function useNotificationCenter({
     writeJsonStorage(notificationsStorageKey, items);
   }, [items, notificationsStorageKey]);
 
+  // Rechargement des préférences quand le rôle (donc la clé de stockage) change :
+  // sinon les préférences du rôle précédent restent affichées après un passage prof/admin.
   useEffect(() => {
+    setPrefs({
+      ...(NOTIFICATION_PREFS_DEFAULTS[roleKey] || {}),
+      ...readJsonStorage(prefsStorageKey, {}),
+    });
+  }, [prefsStorageKey, roleKey]);
+
+  // Idem métriques : recharger la valeur du rôle courant et sauter la persistance
+  // immédiate, sinon l'effet écrit les métriques de l'ancien rôle dans la clé du nouveau.
+  const skipNextMetricsPersistRef = useRef(true);
+  useEffect(() => {
+    skipNextMetricsPersistRef.current = true;
+    setMetrics(readJsonStorage(metricsStorageKey, { created: 0, opened: 0, actions: 0 }));
+  }, [metricsStorageKey]);
+
+  useEffect(() => {
+    if (skipNextMetricsPersistRef.current) {
+      skipNextMetricsPersistRef.current = false;
+      return;
+    }
     writeJsonStorage(metricsStorageKey, metrics);
   }, [metrics, metricsStorageKey]);
 

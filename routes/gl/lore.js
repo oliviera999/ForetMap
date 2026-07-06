@@ -6,6 +6,7 @@ const { recordGlQcmAttemptIfGatingEnabled } = require('../../lib/learningGatingR
 const {
   requireGlAuth,
   requireGlPermission,
+  hasGlPermission,
   isMj,
   actorTypeOf,
 } = require('../../middleware/requireGlAuth');
@@ -1137,21 +1138,27 @@ router.get(
     }
 
     const glossaryByKey = await loadLoreGlossaryLookupForQcm();
+    // La bonne réponse n'est exposée qu'au staff (gestion de contenu) : sinon un joueur
+    // (gl.read) récupère la solution de toutes les questions lore et triche.
+    const canSeeAnswers = hasGlPermission(req.glAuth, 'gl.content.manage');
     const items = await Promise.all(
-      rows.map(async (row) => ({
-        question_code: row.question_code,
-        chapitre_slug: row.chapitre_slug,
-        categorie_slug: row.categorie_slug,
-        numero_dans_categorie: row.numero_dans_categorie,
-        tier_lore: row.tier_lore,
-        question: row.question,
-        niveau: row.niveau,
-        difficulte: row.difficulte,
-        difficulte_label: row.difficulte_label,
-        reponse_correcte: row.reponse_correcte,
-        source_lore: row.source_lore,
-        loreGlossaryTerms: await enrichLoreQuestionWithGlossary(row, glossaryByKey),
-      })),
+      rows.map(async (row) => {
+        const item = {
+          question_code: row.question_code,
+          chapitre_slug: row.chapitre_slug,
+          categorie_slug: row.categorie_slug,
+          numero_dans_categorie: row.numero_dans_categorie,
+          tier_lore: row.tier_lore,
+          question: row.question,
+          niveau: row.niveau,
+          difficulte: row.difficulte,
+          difficulte_label: row.difficulte_label,
+          source_lore: row.source_lore,
+          loreGlossaryTerms: await enrichLoreQuestionWithGlossary(row, glossaryByKey),
+        };
+        if (canSeeAnswers) item.reponse_correcte = row.reponse_correcte;
+        return item;
+      }),
     );
 
     return res.json({ items });

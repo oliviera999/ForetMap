@@ -30,16 +30,32 @@ test('parseCsvLowercaseSet: valeur vide -> defaults normalisés', () => {
   assert.deepEqual([...parseCsvLowercaseSet(null, [])], []);
 });
 
-test('getGlRolePermissions: admin et mj -> permissions étendues', () => {
+test('getGlRolePermissions: admin -> permissions étendues avec gl.settings.manage', () => {
   const admin = getGlRolePermissions('admin');
   assert.ok(admin.includes('gl.settings.manage'));
   assert.ok(admin.includes('gl.read'));
-  assert.deepEqual(getGlRolePermissions('MJ'), admin);
 });
 
-test('getGlRolePermissions: autre rôle -> permissions joueur', () => {
-  assert.deepEqual(getGlRolePermissions('player'), ['gl.read', 'gl.action.request']);
-  assert.deepEqual(getGlRolePermissions(null), ['gl.read', 'gl.action.request']);
+test('getGlRolePermissions: mj -> permissions staff SANS gl.settings.manage (réservé admin)', () => {
+  const mj = getGlRolePermissions('MJ');
+  assert.ok(mj.includes('gl.read'));
+  assert.ok(mj.includes('gl.content.manage'));
+  assert.ok(mj.includes('gl.mascot.position'));
+  // Isolement admin/mj : le MJ ne doit pas pouvoir gérer les réglages globaux GL.
+  assert.equal(mj.includes('gl.settings.manage'), false);
+});
+
+test('getGlRolePermissions: autre rôle -> permissions joueur (avec gl.mascot.position)', () => {
+  assert.deepEqual(getGlRolePermissions('player'), [
+    'gl.read',
+    'gl.action.request',
+    'gl.mascot.position',
+  ]);
+  assert.deepEqual(getGlRolePermissions(null), [
+    'gl.read',
+    'gl.action.request',
+    'gl.mascot.position',
+  ]);
 });
 
 test('exposeGlAuth: payload public de base', () => {

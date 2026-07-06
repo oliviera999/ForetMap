@@ -7,6 +7,7 @@ const request = require('supertest');
 const { app } = require('../server');
 const { initSchema, execute } = require('../database');
 const { saveBase64ToDisk } = require('../lib/uploads');
+const { ensureAdminTeacherAuthToken } = require('./helpers/adminAuth');
 
 const SAMPLE_IMAGE_DATA =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO5qXg8AAAAASUVORK5CYII=';
@@ -79,6 +80,25 @@ test('DELETE /api/observations/:id refuse la suppression par un autre élève', 
     .delete(`/api/observations/${obs.body.id}`)
     .set('Authorization', `Bearer ${intruder.body.authToken}`)
     .expect(403);
+});
+
+test('DELETE /api/observations/:id : un admin peut supprimer le carnet d’un élève (permission manage)', async () => {
+  const owner = await request(app)
+    .post('/api/auth/register')
+    .send({ firstName: 'Manage', lastName: `Owner${Date.now()}`, password: 'pass1234' })
+    .expect(201);
+
+  const obs = await request(app)
+    .post('/api/observations')
+    .set('Authorization', `Bearer ${owner.body.authToken}`)
+    .send({ studentId: owner.body.id, content: 'Supprimable par le staff' })
+    .expect(201);
+
+  const adminToken = await ensureAdminTeacherAuthToken();
+  await request(app)
+    .delete(`/api/observations/${obs.body.id}`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .expect(200);
 });
 
 test('GET /api/observations/:id/image retourne 404 si fichier absent', async () => {

@@ -362,7 +362,8 @@ router.post(
         status: task.status,
         completion_mode: completionMode,
       });
-    } else {
+    } else if (task.status !== 'validated' && task.status !== 'on_hold') {
+      // Ne pas faire régresser une tâche validée ou en pause vers « done » (dévalidation).
       await execute("UPDATE tasks SET status = 'done' WHERE id = ?", [task.id]);
     }
     const updated = await getTaskWithAssignments(task.id);

@@ -852,8 +852,11 @@ function App() {
     const id = window.setTimeout(() => {
       if (!cancelled) void fetchAll();
     }, FETCH_ALL_AUTO_DEBOUNCE_MS);
+    // Debounce standard : sur changement de deps, on annule le fetch en attente et on
+    // reprogramme. Le fetch initial est déjà garanti par l'effet ci-dessus (fetchAll
+    // immédiat tant que initialFetchDoneRef est faux) ; ne pas annuler ici accumulait
+    // des timers et déclenchait plusieurs fetchAll pendant les rafales de deps au boot.
     return () => {
-      if (!initialFetchDoneRef.current) return;
       cancelled = true;
       window.clearTimeout(id);
     };
