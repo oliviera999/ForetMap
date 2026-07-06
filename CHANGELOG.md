@@ -7,6 +7,13 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Documentation
+
+- **GL — QCM** : nouvelle synthèse `docs/GL_QCM_SETS.md` (+ schéma visuel
+  `docs/GL_QCM_SETS.html`) décrivant les deux sets de QCM (`qcm` écologie/biome et `qcm_lore`
+  narratif), leur ancrage aux ressources, les trois voies d'accès élève (marqueur de carte,
+  dé/modale, hors partie) et le backbone commun de rattachement/gating.
+
 ### Sécurité — Audit de code (bugs, incohérences, logique)
 
 - **GL — élévation MJ → Admin** : `getGlRolePermissions('mj')` accordait les mêmes
