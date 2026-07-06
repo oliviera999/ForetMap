@@ -717,7 +717,8 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   campus : 12 zones nommées d'après le plan réel (Bâtiments G, D, S, M, I, L, K, H + Salle
   Delacroix, Infirmerie, CDI, Vie scolaire), polygones en quads suivant l'inclinaison du quartier
   (au lieu des rectangles génériques de la 1re passe). Ids parlants (`lyautey-bat-g`,
-  `lyautey-cdi`…) ; l'import supprime au passage les anciens `lyautey-bat-01..12`.
+  `lyautey-cdi`…) ; par sécurité, l'import ne remplace pas automatiquement les anciens
+  `lyautey-bat-01..12` s'ils existent déjà, car ils peuvent porter des liens métier.
 - ⚠ Les coordonnées (`{xp,yp}`, %) sont relatives au **cadrage de l'image OSM** : le fond de la
   carte `lyautey` doit être cette image pour que les zones s'alignent (sinon re-mapper).
 
@@ -744,6 +745,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   `visit_seen_anonymous`). Logique de nettoyage factorisée dans **`lib/visitTargetCleanup.js`**
   (`deleteVisitTargetCascade`), réutilisée par les suppressions côté visite (`routes/visit/zones.js`,
   `routes/visit/markers.js`) — source unique, plus de duplication.
+- **Robustesse** : les suppressions carte + couche visite sont exécutées dans une même transaction
+  SQL, afin d'éviter une zone/repère supprimé côté carte mais un nettoyage visite partiellement
+  appliqué en cas d'erreur BDD.
 - Pour réaligner d'un coup une visite déjà désynchronisée (renommages/déplacements antérieurs),
   l'outil prof **« Tout réaligner sur la carte »** (`POST /api/visit/rebuild-from-map`) reste la voie
   recommandée (textes/médias conservés par `id`).
