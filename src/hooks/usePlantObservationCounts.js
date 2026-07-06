@@ -24,13 +24,17 @@ export function usePlantObservationCounts(plantIds, refreshKey = 0) {
 
   useEffect(() => {
     let cancelled = false;
+    // Compteur de requête : plusieurs `foretmap_session_changed` rapprochés peuvent lancer
+    // des `load()` concurrents ; seul le plus récent applique son résultat (anti-résultat périmé).
+    let seq = 0;
     const load = async () => {
+      const mySeq = ++seq;
       if (!idsKey) {
-        if (!cancelled) setCounts({});
+        if (!cancelled && mySeq === seq) setCounts({});
         return;
       }
       const next = await fetchPlantObservationCounts(idsKey.split(',').map(Number));
-      if (!cancelled) setCounts(next);
+      if (!cancelled && mySeq === seq) setCounts(next);
     };
     load();
     if (typeof window !== 'undefined') {

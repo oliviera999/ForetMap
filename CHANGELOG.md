@@ -17,7 +17,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   `hashPin`, du seed PIN `1234`, de `requireTeacherElevated` et de l’option `{ needsElevation }`
   sur ~80 routes. Les endpoints **`POST /api/auth/elevate`** et **`POST /api/auth/teacher`**
   renvoient désormais **410 Gone**.
-- **Base de données** : migration `163_drop_pin_elevation_system` — suppression des tables
+- **Base de données** : migration `164_drop_pin_elevation_system` — suppression des tables
   `role_pin_secrets` et `elevation_audit` et de la colonne `role_permissions.requires_elevation`.
 - **Front** : la modale « Mode prof » devient une **connexion professeur** (e-mail/mot de passe,
   reset, Google) ; suppression du bouton cadenas d’élévation, de la colonne « PIN » de l’admin
@@ -29,8 +29,68 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 - **Effet métier** : le profil `eleve_chevronne` peut proposer des tâches (`tasks.propose`) sans
   PIN ; tout profil dynamique dont une permission était « à élévation » l’obtient directement.
   Le profil `prof` est inchangé en pratique (il était déjà `nativePrivileged`, donc sans PIN).
+### Sécurité — Audit de code (bugs, incohérences, logique)
+
+- **GL — élévation MJ → Admin** : `getGlRolePermissions('mj')` accordait les mêmes
+  permissions qu'`admin`, dont `gl.settings.manage`. Un MJ pouvait modifier les réglages
+  globaux GL (vitalité, scoring, gating). Permissions MJ désormais alignées sur le
+  catalogue RBAC (sans `gl.settings.manage`) ; le joueur récupère `gl.mascot.position`.
+- **RBAC — promotion vers `admin`** : `PUT /users/:type/:id/role` protégeait la
+  rétrogradation du dernier admin mais pas la promotion vers `admin`. Seul un acteur admin
+  peut désormais attribuer/retirer le rôle admin (symétrie avec `POST`/`PATCH /users`).
+- **Isolement produit temps réel** : l'auth Socket.IO ne vérifiait pas le claim `product`.
+  Un jeton GL rejoignait les rooms métier ForetMap (`tasks/students/garden/forum`). Les
+  rooms ForetMap sont désormais réservées aux jetons ForetMap ; les jetons GL restent
+  limités à `subscribe:gl-*`.
+- **GL — fuite des réponses QCM** : `GET /api/gl/qcm/questions` et `.../lore/qcm/questions`
+  exposaient `reponse_correcte` sous `gl.read` (joueurs/invités). La bonne réponse n'est
+  plus renvoyée qu'au staff (`gl.content.manage`).
+- **Réinitialisation de mot de passe GL — poisoning via en-tête Host** : le lien de reset
+  retombait sur `req.get('host')` non validé. Le Host n'est accepté que s'il correspond à
+  une origine configurée (sinon repli sur la base d'env) ; `resetUrl` est aussi échappé
+  dans le corps HTML de l'e-mail.
+- **Auth — panne BDD masquée en 401** : `resolveAuthOrRespond` renvoyait « token invalide »
+  (401) si l'hydratation RBAC échouait (panne BDD). Vérification JWT (401) et hydratation
+  (503) désormais dissociées.
+- **Isolement `/api/gl`** : la garde produit sautait tout chemin commençant par `/gl`
+  (dont `/api/glossary`). Frontière stricte `=== '/gl'` ou `/gl/`.
+- **Observations — séparation lecture/écriture** : la suppression d'un carnet était gardée
+  par une permission de *lecture* (`observations.read.*`). Nouvelles permissions
+  `observations.manage.all` / `observations.manage.group` (migration `163`, attribution
+  idempotente aux rôles ayant déjà la lecture) : un rôle en lecture seule ne peut plus
+  supprimer les carnets d'autrui.
 
 ### Correctif
+
+- **Forum — périmètre de groupe en écriture** : `POST` message, réaction et signalement ne
+  vérifiaient le périmètre visible qu'en lecture. Contrôle désormais appliqué aux écritures.
+- **Tâches — dévalidation en mode `single_done`** : `POST /:id/done` forçait `status='done'`
+  sans garde, permettant à un élève de faire régresser une tâche `validated`/`on_hold`.
+- **GL sorts — double-dépense de vitalité** : `finalizeCastTx` relisait le solde sans
+  `FOR UPDATE`. Verrou pessimiste ajouté (comme le marché) pour sérialiser les lancements
+  concurrents d'un même contributeur.
+- **Carte — liaison de tâche effacée** : `linkTaskToLocation` comparait un id numérique à
+  la chaîne d'un `<select>` (`5 === "5"` faux), écrasant les autres lieux liés. Coercition
+  `Number()` + garde sur tâche inconnue.
+- **Médiathèque — détection MP4** : la signature `ftyp` était testée à l'offset 0 au lieu de
+  4-7 ; les vidéos MP4 sans indice MIME étaient rejetées.
+- **Notifications — préférences/métriques par rôle** : non rechargées au changement de rôle
+  et métriques écrasées sur la mauvaise clé de stockage.
+- **Temps réel — jeton figé** : le socket ne se reconnectait pas après élévation PIN /
+  refresh / expiration ; le jeton est désormais réactif (`foretmap_session_changed`).
+- **Duplication de projet** : la copie vers une autre carte conservait des liens
+  zones/repères d'une carte étrangère. Ces liens ne sont copiés que si la carte cible est
+  identique à la source.
+- **Journaux de tâche** : `GET /:id/logs` (prénoms/noms, commentaires) était lisible sans
+  authentification. Réservé désormais à un compte connecté non visiteur.
+- **Autofill espèces** : `Promise.all` iNaturalist rejetait tout le lot si une requête
+  échouait ; passage à `Promise.allSettled`.
+- **Divers** : message d'avertissement CORS corrigé (`origin: false` = restrictif),
+  ternaire mort dans la conversion de zones legacy simplifié.
+- **Front — gardes de course** : compteurs d'observations (`usePlantObservationCounts`) et
+  commentaires contextuels (`context-comments`) appliquent désormais un compteur de requête
+  (seule la réponse la plus récente est retenue) ; le debounce de `fetchAll` (`App.jsx`)
+  annule correctement le timer en attente (plus de double-fetch pendant les rafales au boot).
 
 - **GL — boutons invisibles dans les popovers/modales** : les popovers GL (QCM,
   « J'ai appris » / gating, feuillets…) sont rendus via `createPortal(document.body)`,

@@ -140,6 +140,17 @@ async function resolveForumVisibleGroupIds(auth) {
   return getUserAccessibleGroupIds(auth, { includeDescendants: true });
 }
 
+/**
+ * Vrai si le groupe d'un sujet est dans le périmètre visible de l'acteur.
+ * `null` (bypass admin / non scoped) => toujours autorisé. Applique le contrôle de
+ * périmètre aux écritures (post, réaction, signalement), pas seulement aux lectures.
+ */
+async function isForumGroupInScope(auth, groupId) {
+  const visibleGroupIds = await resolveForumVisibleGroupIds(auth);
+  if (!Array.isArray(visibleGroupIds)) return true;
+  return visibleGroupIds.includes(String(groupId || ''));
+}
+
 async function loadForumPostReactions(postIds = [], actor = null) {
   if (!Array.isArray(postIds) || postIds.length === 0) return new Map();
   const inClause = buildInClauseParams(postIds);
@@ -400,10 +411,16 @@ router.post(
     if (!emoji) return res.status(400).json({ error: 'Emoji non supporté' });
 
     const post = await queryOne(
-      'SELECT id, thread_id, is_deleted FROM forum_posts WHERE id = ? LIMIT 1',
+      `SELECT p.id, p.thread_id, p.is_deleted, t.group_id
+         FROM forum_posts p
+         JOIN forum_threads t ON t.id = p.thread_id
+        WHERE p.id = ? LIMIT 1`,
       [req.params.id],
     );
     if (!post) return res.status(404).json({ error: 'Message introuvable' });
+    if (!(await isForumGroupInScope(req.auth, post.group_id))) {
+      return res.status(403).json({ error: 'Groupe hors périmètre' });
+    }
     if (Number(post.is_deleted)) return res.status(409).json({ error: 'Message supprimé' });
 
     const existing = await queryOne(
@@ -485,10 +502,13 @@ router.post(
     }
 
     const thread = await queryOne(
-      'SELECT id, title, is_locked FROM forum_threads WHERE id = ? LIMIT 1',
+      'SELECT id, title, is_locked, group_id FROM forum_threads WHERE id = ? LIMIT 1',
       [req.params.id],
     );
     if (!thread) return res.status(404).json({ error: 'Sujet introuvable' });
+    if (!(await isForumGroupInScope(req.auth, thread.group_id))) {
+      return res.status(403).json({ error: 'Groupe hors périmètre' });
+    }
     if (Number(thread.is_locked)) return res.status(409).json({ error: 'Sujet verrouillé' });
 
     const postId = crypto.randomUUID();
@@ -556,10 +576,16 @@ router.post(
       });
     }
     const post = await queryOne(
-      'SELECT id, thread_id, author_user_type, author_user_id FROM forum_posts WHERE id = ? LIMIT 1',
+      `SELECT p.id, p.thread_id, p.author_user_type, p.author_user_id, t.group_id
+         FROM forum_posts p
+         JOIN forum_threads t ON t.id = p.thread_id
+        WHERE p.id = ? LIMIT 1`,
       [req.params.id],
     );
     if (!post) return res.status(404).json({ error: 'Message introuvable' });
+    if (!(await isForumGroupInScope(req.auth, post.group_id))) {
+      return res.status(403).json({ error: 'Groupe hors périmètre' });
+    }
 
     const duplicate = await queryOne(
       `SELECT id

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   api,
   createContextComment,
@@ -75,10 +75,14 @@ function ContextComments({
     [contextId, contextType, currentUserId, currentUserType],
   );
 
+  // Compteur de requête : pagination + événement temps réel peuvent lancer des `load()`
+  // concurrents ; seule la réponse de la requête la plus récente est appliquée.
+  const loadSeqRef = useRef(0);
   const load = useCallback(
     async (nextPage = 1, { mode = 'preview' } = {}) => {
       if (!contextType || !contextId) return;
       const pageSize = mode === 'full' ? PAGE_SIZE : PREVIEW_SIZE;
+      const mySeq = ++loadSeqRef.current;
       setLoading(true);
       try {
         const data = await listContextComments({
@@ -87,15 +91,17 @@ function ContextComments({
           page: nextPage,
           pageSize,
         });
+        if (mySeq !== loadSeqRef.current) return;
         const list = Array.isArray(data?.items) ? data.items : [];
         setItems(list);
         setTotal(Number(data?.total || 0));
         setPage(Number(data?.page || nextPage));
         if (nextPage === 1 && mode === 'full') markCommentsRead(list);
       } catch (err) {
+        if (mySeq !== loadSeqRef.current) return;
         setToast(`Chargement impossible : ${err.message}`);
       } finally {
-        setLoading(false);
+        if (mySeq === loadSeqRef.current) setLoading(false);
       }
     },
     [contextId, contextType, markCommentsRead],

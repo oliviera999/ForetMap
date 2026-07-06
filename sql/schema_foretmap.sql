@@ -511,7 +511,7 @@ CREATE TABLE IF NOT EXISTS role_permissions (
   permission_key VARCHAR(120) NOT NULL,
   -- Colonne héritée du système d'élévation par PIN (supprimé) : conservée ici pour que les
   -- migrations historiques 034/139 s'appliquent sur une base neuve, puis supprimée par la
-  -- migration 163_drop_pin_elevation_system.sql. Ne plus lire/écrire cette colonne.
+  -- migration 164_drop_pin_elevation_system.sql. Ne plus lire/écrire cette colonne.
   requires_elevation TINYINT(1) NOT NULL DEFAULT 0,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (role_id, permission_key),
@@ -520,7 +520,7 @@ CREATE TABLE IF NOT EXISTS role_permissions (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Table héritée du système d'élévation par PIN (supprimé). Supprimée par la migration
--- 163_drop_pin_elevation_system.sql ; conservée ici uniquement pour la compatibilité des
+-- 164_drop_pin_elevation_system.sql ; conservée ici uniquement pour la compatibilité des
 -- migrations historiques sur une base neuve.
 CREATE TABLE IF NOT EXISTS role_pin_secrets (
   role_id INT UNSIGNED NOT NULL PRIMARY KEY,
@@ -541,7 +541,7 @@ CREATE TABLE IF NOT EXISTS user_roles (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Table héritée du système d'élévation par PIN (supprimé). Supprimée par la migration
--- 163_drop_pin_elevation_system.sql ; conservée ici uniquement pour la compatibilité des
+-- 164_drop_pin_elevation_system.sql ; conservée ici uniquement pour la compatibilité des
 -- migrations historiques sur une base neuve.
 CREATE TABLE IF NOT EXISTS elevation_audit (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
