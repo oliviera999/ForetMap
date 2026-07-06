@@ -463,27 +463,31 @@ function currentLocalDateOnly() {
   return `${y}-${m}-${d}`;
 }
 
-async function copyProjectLinksTx(tx, sourceProjectId, targetProjectId) {
-  const zoneRows = await tx.queryAll(
-    'SELECT zone_id FROM project_zones WHERE project_id = ? ORDER BY zone_id',
-    [sourceProjectId],
-  );
-  for (const row of zoneRows) {
-    await tx.execute('INSERT INTO project_zones (project_id, zone_id) VALUES (?, ?)', [
-      targetProjectId,
-      row.zone_id,
-    ]);
-  }
+// `copyLocationLinks` : ne recopier zones/repères que si la carte cible est identique à
+// la source. Vers une autre carte, ces liens pointeraient sur des lieux d'une carte étrangère.
+async function copyProjectLinksTx(tx, sourceProjectId, targetProjectId, copyLocationLinks = true) {
+  if (copyLocationLinks) {
+    const zoneRows = await tx.queryAll(
+      'SELECT zone_id FROM project_zones WHERE project_id = ? ORDER BY zone_id',
+      [sourceProjectId],
+    );
+    for (const row of zoneRows) {
+      await tx.execute('INSERT INTO project_zones (project_id, zone_id) VALUES (?, ?)', [
+        targetProjectId,
+        row.zone_id,
+      ]);
+    }
 
-  const markerRows = await tx.queryAll(
-    'SELECT marker_id FROM project_markers WHERE project_id = ? ORDER BY marker_id',
-    [sourceProjectId],
-  );
-  for (const row of markerRows) {
-    await tx.execute('INSERT INTO project_markers (project_id, marker_id) VALUES (?, ?)', [
-      targetProjectId,
-      row.marker_id,
-    ]);
+    const markerRows = await tx.queryAll(
+      'SELECT marker_id FROM project_markers WHERE project_id = ? ORDER BY marker_id',
+      [sourceProjectId],
+    );
+    for (const row of markerRows) {
+      await tx.execute('INSERT INTO project_markers (project_id, marker_id) VALUES (?, ?)', [
+        targetProjectId,
+        row.marker_id,
+      ]);
+    }
   }
 
   const tutorialRows = await tx.queryAll(
@@ -498,7 +502,13 @@ async function copyProjectLinksTx(tx, sourceProjectId, targetProjectId) {
   }
 }
 
-async function copyProjectTasksTx(tx, sourceProjectId, targetProjectId, mapId) {
+async function copyProjectTasksTx(
+  tx,
+  sourceProjectId,
+  targetProjectId,
+  mapId,
+  copyLocationLinks = true,
+) {
   const sourceTasks = await tx.queryAll(
     `SELECT id, title, description, zone_id, marker_id, start_date, due_date, required_students,
             completion_mode, danger_level, difficulty_level, importance_level,
@@ -526,8 +536,8 @@ async function copyProjectTasksTx(tx, sourceProjectId, targetProjectId, mapId) {
         task.description || '',
         mapId,
         targetProjectId,
-        task.zone_id || null,
-        task.marker_id || null,
+        copyLocationLinks ? task.zone_id || null : null,
+        copyLocationLinks ? task.marker_id || null : null,
         duplicatedStartDate,
         task.due_date || null,
         task.required_students != null ? Number(task.required_students) : 1,
@@ -542,39 +552,41 @@ async function copyProjectTasksTx(tx, sourceProjectId, targetProjectId, mapId) {
       ],
     );
 
-    const zoneRows = await tx.queryAll('SELECT zone_id FROM task_zones WHERE task_id = ?', [
-      task.id,
-    ]);
-    const zoneIds = [
-      ...new Set(
-        [
-          ...zoneRows.map((row) => String(row.zone_id || '').trim()).filter(Boolean),
-          task.zone_id != null ? String(task.zone_id).trim() : '',
-        ].filter(Boolean),
-      ),
-    ];
-    for (const zoneId of zoneIds) {
-      await tx.execute('INSERT INTO task_zones (task_id, zone_id) VALUES (?, ?)', [
-        newTaskId,
-        zoneId,
+    if (copyLocationLinks) {
+      const zoneRows = await tx.queryAll('SELECT zone_id FROM task_zones WHERE task_id = ?', [
+        task.id,
       ]);
-    }
-    const markerRows = await tx.queryAll('SELECT marker_id FROM task_markers WHERE task_id = ?', [
-      task.id,
-    ]);
-    const markerIds = [
-      ...new Set(
-        [
-          ...markerRows.map((row) => String(row.marker_id || '').trim()).filter(Boolean),
-          task.marker_id != null ? String(task.marker_id).trim() : '',
-        ].filter(Boolean),
-      ),
-    ];
-    for (const markerId of markerIds) {
-      await tx.execute('INSERT INTO task_markers (task_id, marker_id) VALUES (?, ?)', [
-        newTaskId,
-        markerId,
+      const zoneIds = [
+        ...new Set(
+          [
+            ...zoneRows.map((row) => String(row.zone_id || '').trim()).filter(Boolean),
+            task.zone_id != null ? String(task.zone_id).trim() : '',
+          ].filter(Boolean),
+        ),
+      ];
+      for (const zoneId of zoneIds) {
+        await tx.execute('INSERT INTO task_zones (task_id, zone_id) VALUES (?, ?)', [
+          newTaskId,
+          zoneId,
+        ]);
+      }
+      const markerRows = await tx.queryAll('SELECT marker_id FROM task_markers WHERE task_id = ?', [
+        task.id,
       ]);
+      const markerIds = [
+        ...new Set(
+          [
+            ...markerRows.map((row) => String(row.marker_id || '').trim()).filter(Boolean),
+            task.marker_id != null ? String(task.marker_id).trim() : '',
+          ].filter(Boolean),
+        ),
+      ];
+      for (const markerId of markerIds) {
+        await tx.execute('INSERT INTO task_markers (task_id, marker_id) VALUES (?, ?)', [
+          newTaskId,
+          markerId,
+        ]);
+      }
     }
     const tutorialRows = await tx.queryAll(
       'SELECT tutorial_id FROM task_tutorials WHERE task_id = ?',
@@ -628,8 +640,10 @@ router.post(
         'INSERT INTO task_projects (id, map_id, title, description, status, created_at) VALUES (?, ?, ?, ?, ?, ?)',
         [newProjectId, nextMapId, nextTitle, source.description || null, 'active', createdAt],
       );
-      await copyProjectLinksTx(tx, source.id, newProjectId);
-      return copyProjectTasksTx(tx, source.id, newProjectId, nextMapId);
+      // Ne conserver les liens zones/repères que si la duplication reste sur la même carte.
+      const sameMap = String(nextMapId) === String(source.map_id || '');
+      await copyProjectLinksTx(tx, source.id, newProjectId, sameMap);
+      return copyProjectTasksTx(tx, source.id, newProjectId, nextMapId, sameMap);
     });
 
     const created = await loadProjectRow(newProjectId);

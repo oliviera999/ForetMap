@@ -971,6 +971,19 @@ router.put(
 
     const currentRole = await getPrimaryRoleForUser(resolvedUserType, resolvedLegacyUserId);
     const nextRole = await queryOne('SELECT slug FROM roles WHERE id = ? LIMIT 1', [roleId]);
+    // Seul un admin peut attribuer le rôle admin ou modifier le rôle d'un admin existant
+    // (symétrie avec POST/PATCH /users qui interdisent déjà à un prof de toucher un admin).
+    const actorRoleSlug = String(req.auth?.roleSlug || '')
+      .trim()
+      .toLowerCase();
+    if (
+      actorRoleSlug !== 'admin' &&
+      (nextRole?.slug === 'admin' || currentRole?.slug === 'admin')
+    ) {
+      return res
+        .status(403)
+        .json({ error: 'Seul un admin peut attribuer ou retirer le rôle admin' });
+    }
     const leavingAdmin = currentRole?.slug === 'admin' && nextRole?.slug !== 'admin';
     if (leavingAdmin) {
       const adminCountRow = await queryOne(

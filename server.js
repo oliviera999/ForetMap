@@ -306,7 +306,10 @@ app.use('/api/gl/kingdom-map', glKingdomMapRouter);
 app.use('/api/gl/lore', glLoreRouter);
 
 app.use('/api', (req, res, next) => {
-  if (String(req.path || '').startsWith('/gl')) return next();
+  // Frontière stricte : ne sauter la garde que pour /api/gl et /api/gl/*, pas pour
+  // /api/glossary (qui commence aussi par « /gl ») ni une future route /api/gl*.
+  const path = String(req.path || '');
+  if (path === '/gl' || path.startsWith('/gl/')) return next();
   const token = parseBearerToken(req);
   if (!token || !JWT_SECRET) return next();
   try {
