@@ -7,6 +7,27 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ajout — verrou de re-tentative (cooldown) sur la validation par QCM
+
+- **Comportement.** Après une **mauvaise réponse** à une question bloquante **pendant le flux
+  « Marquer comme acquis/lu/appris »**, la **ressource entière** est **verrouillée pendant N jours**
+  (réglage, défaut **3**) : toute nouvelle tentative de validation est refusée (**403**) tant que le
+  verrou court, même si toutes les questions sont ensuite réussies. Le quiz libre et le jeu GL ne
+  déclenchent jamais le verrou (le déclenchement dépend d'un contexte ressource transmis avec la
+  réponse, propre au flux de validation). Applicable **ForetMap + GL**.
+- **Base de données** : migration `165_learning_gating_cooldown` — tables miroirs
+  `resource_gating_cooldowns` (FM, clé `user_id`) et `gl_resource_gating_cooldowns` (GL, clé lecteur),
+  colonne `locked_until`.
+- **Réglages** : `learning.gating.retry_cooldown_days` (FM, `app_settings`, scope prof, 0–365, def. 3)
+  et `gating.retry_cooldown_days` (GL, `gl_settings`) — `0` = verrou désactivé.
+- **Backend** : `lib/learningGatingCooldown.js` (helpers) ; le challenge et les réponses d'accusé
+  exposent un bloc `cooldown: { locked, locked_until, retry_days, remaining_days }` ; les routes de
+  réponse QCM (`/api/quiz/.../answer`, `/api/gl/qcm/.../answer`, `/api/gl/lore/qcm/.../answer`)
+  acceptent un contexte ressource optionnel et posent le verrou sur erreur.
+- **Front** : le panneau de quiz gating affiche « réessaie dans N jours » au lieu de « Réessayer » en
+  cas d'erreur verrouillante, et le bouton d'accusé montre un écran de verrou si la ressource est déjà
+  verrouillée à l'ouverture.
+
 ### Changement majeur — suppression de l’élévation par PIN
 
 - **Fin du « mode sudo » par PIN.** Un utilisateur connecté possède désormais **directement**

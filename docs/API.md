@@ -1371,6 +1371,16 @@ aux **questions** dont la réponse s'y trouve (relation N-N), puis de **conditio
 : aucun quiz à l'accusé tant que le flag de gating est à `false` ; sans lien gating, le flux reste une
 simple confirmation (case à cocher).
 
+**Verrou de re-tentative (cooldown).** Après une **mauvaise réponse** à une question bloquante
+**pendant le flux de validation** (« Marquer comme… »), la ressource entière est **verrouillée**
+pendant `retry_cooldown_days` jours (réglage, def. `3` ; `0` = désactivé) : toute nouvelle validation
+est refusée (**403**) tant que le verrou court, **même si toutes les questions sont ensuite réussies
+ailleurs**. Le déclenchement dépend d'un **contexte ressource** (`resourceType`/`resourceRef`) transmis
+avec la réponse : seules les réponses envoyées depuis le flux de validation posent le verrou (le quiz
+libre / le jeu ne l'activent jamais). Tables miroirs : `resource_gating_cooldowns` (FM, clé `user_id`)
+et `gl_resource_gating_cooldowns` (GL, clé lecteur). L'état est exposé dans le challenge et les réponses
+d'accusé via un bloc `cooldown: { locked, locked_until, retry_days, remaining_days }`.
+
 Modèle polymorphe : `resource_type` (liste ouverte) + `resource_ref` (id ou code) ↔ `question_code`.
 Politique par ressource : `mode` ∈ `inherit|off|any|all|threshold`, `required_correct`, `enabled`
 (résolue avec les défauts du site).
@@ -1390,15 +1400,20 @@ Politique par ressource : `mode` ∈ `inherit|off|any|all|threshold`, `required_
 Réglages site (table `app_settings`, scope `teacher`, modifiables via `/api/settings`) :
 `learning.gating.enabled` (def. `false`), `learning.gating.auto_mark_on_correct` (**déprécié**, ignoré),
 `learning.gating.default_mode` (`off|any|all|threshold`, def. `any` — non utilisé pour l'accusé, toujours **all**),
-`learning.gating.default_required_correct` (1–50, def. `1`).
+`learning.gating.default_required_correct` (1–50, def. `1`),
+`learning.gating.retry_cooldown_days` (0–365, def. `3` ; `0` = pas de verrou après erreur).
 
 ### Challenge & accusé (phase 3 — runtime pull)
 
-| Méthode | Route                                                       | Auth                       | Description                                                                                                                       |
-| ------- | ----------------------------------------------------------- | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| GET     | `/api/learning/gating/challenge?resourceType=&resourceRef=` | élève/prof (`requireAuth`) | État du quiz requis avant accusé (`required`, `mode: 'all'`, `questions[]`, `pending_count`). Types : `tutorial`, `plant`.        |
-| POST    | `/api/tutorials/:id/acknowledge-read`                       | `requireAuth`              | Marque le tutoriel lu. **403** `{ error, missing_question_codes }` si gating ON et questions non réussies (`user_quiz_attempts`). |
-| POST    | `/api/plants/:id/acknowledge-discovery`                     | `requireAuth`              | Première observation : même garde gating ; ré-observations ultérieures : confirmation seule.                                      |
+| Méthode | Route                                                       | Auth                       | Description                                                                                                                                                                                          |
+| ------- | ----------------------------------------------------------- | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET     | `/api/learning/gating/challenge?resourceType=&resourceRef=` | élève/prof (`requireAuth`) | État du quiz requis avant accusé (`required`, `mode: 'all'`, `questions[]`, `pending_count`, `cooldown`). Types : `tutorial`, `plant`.                                                               |
+| POST    | `/api/tutorials/:id/acknowledge-read`                       | `requireAuth`              | Marque le tutoriel lu. **403** `{ error, missing_question_codes, cooldown }` si gating ON et questions non réussies (`user_quiz_attempts`), ou si la ressource est **verrouillée** après une erreur. |
+| POST    | `/api/plants/:id/acknowledge-discovery`                     | `requireAuth`              | Première observation : même garde gating ; ré-observations ultérieures : confirmation seule.                                                                                                         |
+
+Le verrou est posé par `POST /api/quiz/questions/:code/answer` lorsque la réponse est **fausse** et que
+le corps inclut le contexte ressource `{ resourceType, resourceRef }` (envoyé uniquement par le flux de
+validation). La réponse renvoie alors `cooldown: { locked, locked_until, retry_days, remaining_days }`.
 
 ### GL — `/api/gl/learning-links` (MJ/admin, JWT `product:'gl'`)
 
@@ -1418,16 +1433,19 @@ Types de ressources : `species|glossary|lore_glossary|tutorial|feuillet`. `quest
 
 Réglages site GL (table `gl_settings`) : `gating.enabled` (def. `false`),
 `gating.granularity` (`player|team|per_resource`, def. `player`), `gating.auto_mark_on_correct` (**déprécié**, ignoré),
-`gating.default_mode`, `gating.default_required_correct`. Persistance des tentatives QCM par lecteur :
-table `gl_qcm_attempts` (alimente la vérification à l'accusé et les réponses plateau/catalogue).
+`gating.default_mode`, `gating.default_required_correct`,
+`gating.retry_cooldown_days` (0–365, def. `3` ; `0` = pas de verrou après erreur). Persistance des tentatives QCM par lecteur :
+table `gl_qcm_attempts` (alimente la vérification à l'accusé et les réponses plateau/catalogue). Le verrou
+de re-tentative est posé par `POST /api/gl/qcm/questions/:code/answer` et `POST /api/gl/lore/qcm/questions/:code/answer`
+lorsque la réponse est fausse et que le corps inclut `{ resourceType, resourceRef }`.
 
-| Méthode | Route                                                          | Auth   | Description                                                                                                                                                       |
-| ------- | -------------------------------------------------------------- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| GET     | `/api/gl/learning/gating/challenge?resourceType=&resourceRef=` | JWT GL | État du quiz requis avant accusé. Types marquables (`GL_MARKABLE`) : `species`, `glossary`, `tutorial`, `lore_glossary`, `feuillet`, `content_page`, `ecosystem`. |
-| POST    | `/api/gl/learning/species/:code`                               | JWT GL | Marque l'espèce étudiée. **403** si quiz incomplet. Pas de re-quiz si déjà accusée.                                                                               |
-| POST    | `/api/gl/learning/glossary/:code`                              | JWT GL | Marque le terme appris (même garde).                                                                                                                              |
-| POST    | `/api/gl/learning/tutorials/:id`                               | JWT GL | Marque le tutoriel GL lu (même garde).                                                                                                                            |
-| POST    | `/api/gl/learning/mark/:resourceType/:ref`                     | JWT GL | Accusé **générique** (`lore_glossary`, `feuillet`, `content_page`, `ecosystem`). Même garde de quiz-gating.                                                       |
+| Méthode | Route                                                          | Auth   | Description                                                                                                                                                                                                    |
+| ------- | -------------------------------------------------------------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET     | `/api/gl/learning/gating/challenge?resourceType=&resourceRef=` | JWT GL | État du quiz requis avant accusé (`questions[]`, `pending_count`, `cooldown`). Types marquables (`GL_MARKABLE`) : `species`, `glossary`, `tutorial`, `lore_glossary`, `feuillet`, `content_page`, `ecosystem`. |
+| POST    | `/api/gl/learning/species/:code`                               | JWT GL | Marque l'espèce étudiée. **403** `{ …, cooldown }` si quiz incomplet **ou** ressource verrouillée après erreur. Pas de re-quiz si déjà accusée.                                                                |
+| POST    | `/api/gl/learning/glossary/:code`                              | JWT GL | Marque le terme appris (même garde).                                                                                                                                                                           |
+| POST    | `/api/gl/learning/tutorials/:id`                               | JWT GL | Marque le tutoriel GL lu (même garde).                                                                                                                                                                         |
+| POST    | `/api/gl/learning/mark/:resourceType/:ref`                     | JWT GL | Accusé **générique** (`lore_glossary`, `feuillet`, `content_page`, `ecosystem`). Même garde de quiz-gating.                                                                                                    |
 
 > **Isolement** : un JWT `product:'gl'` est rejeté sur `/api/learning-links` et inversement (couvert par tests).
 
