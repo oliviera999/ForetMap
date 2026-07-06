@@ -4,7 +4,7 @@ const assert = require('node:assert');
 const { queryOne, execute } = require('../../database');
 const { signAuthToken } = require('../../middleware/requireTeacher');
 
-/** Permissions fréquemment requises par les tests API (requires_elevation = 0 en test). */
+/** Permissions fréquemment requises par les tests API. */
 const DEFAULT_TEST_ADMIN_PERMISSIONS = [
   'stats.read.all',
   'stats.export',
@@ -27,11 +27,11 @@ const DEFAULT_TEST_ADMIN_PERMISSIONS = [
 ];
 
 /**
- * Réaligne le compte enseignant admin de test et retourne un JWT admin fiable (sans flux PIN).
- * @param {{ elevated?: boolean, extraPermissions?: string[] }} [options]
+ * Réaligne le compte enseignant admin de test et retourne un JWT admin fiable.
+ * @param {{ elevated?: boolean, extraPermissions?: string[] }} [options] `elevated` est accepté pour
+ *   compatibilité d'appel mais ignoré : l'élévation par PIN a été supprimée (droits du rôle directs).
  */
 async function ensureAdminTeacherAuthToken(options = {}) {
-  const elevated = options.elevated !== false;
   const loginEmail = String(process.env.TEACHER_ADMIN_EMAIL || 'admin.test@foretmap.local').trim();
   const teacher = await queryOne(
     "SELECT id FROM users WHERE user_type = 'teacher' AND LOWER(email) = LOWER(?) LIMIT 1",
@@ -51,10 +51,10 @@ async function ensureAdminTeacherAuthToken(options = {}) {
       key,
       'Permission auto-seed tests',
     ]);
-    await execute(
-      'INSERT IGNORE INTO role_permissions (role_id, permission_key, requires_elevation) VALUES (?, ?, 0)',
-      [adminRole.id, key],
-    );
+    await execute('INSERT IGNORE INTO role_permissions (role_id, permission_key) VALUES (?, ?)', [
+      adminRole.id,
+      key,
+    ]);
   }
 
   await execute('UPDATE user_roles SET is_primary = 0 WHERE user_type = ? AND user_id = ?', [
@@ -66,18 +66,14 @@ async function ensureAdminTeacherAuthToken(options = {}) {
     ['teacher', teacher.id, adminRole.id],
   );
 
-  return signAuthToken(
-    {
-      userType: 'teacher',
-      userId: teacher.id,
-      canonicalUserId: teacher.id,
-      roleId: adminRole.id,
-      roleSlug: 'admin',
-      roleDisplayName: 'Administrateur',
-      elevated,
-    },
-    elevated,
-  );
+  return signAuthToken({
+    userType: 'teacher',
+    userId: teacher.id,
+    canonicalUserId: teacher.id,
+    roleId: adminRole.id,
+    roleSlug: 'admin',
+    roleDisplayName: 'Administrateur',
+  });
 }
 
 async function getAdminTeacherUserId() {

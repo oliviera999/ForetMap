@@ -62,12 +62,8 @@ async function teacherToken() {
       password: process.env.TEACHER_ADMIN_PASSWORD,
     })
     .expect(200);
-  const auth = await request(app)
-    .post('/api/auth/teacher')
-    .set({ Authorization: `Bearer ${login.body.authToken}` })
-    .send({ pin: process.env.TEACHER_PIN || '1234' })
-    .expect(200);
-  return auth.body.token;
+  // Un compte connecté possède directement les droits de son rôle (plus d'élévation par PIN).
+  return login.body.authToken;
 }
 
 function auth(token) {

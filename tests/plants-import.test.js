@@ -23,10 +23,10 @@ async function refreshAdminTeacherToken() {
       key,
       'Permission auto-seed tests',
     ]);
-    await execute(
-      'INSERT IGNORE INTO role_permissions (role_id, permission_key, requires_elevation) VALUES (?, ?, 1)',
-      [adminRole.id, key],
-    );
+    await execute('INSERT IGNORE INTO role_permissions (role_id, permission_key) VALUES (?, ?)', [
+      adminRole.id,
+      key,
+    ]);
   }
   if (teacher?.id && adminRole?.id) {
     await execute('UPDATE user_roles SET is_primary = 0 WHERE user_type = ? AND user_id = ?', [
@@ -45,12 +45,8 @@ async function refreshAdminTeacherToken() {
       password: process.env.TEACHER_ADMIN_PASSWORD,
     })
     .expect(200);
-  const auth = await request(app)
-    .post('/api/auth/teacher')
-    .set({ Authorization: `Bearer ${login.body.authToken}` })
-    .send({ pin: process.env.TEACHER_PIN || '1234' })
-    .expect(200);
-  return auth.body.token;
+  // Un compte connecté possède directement les droits de son rôle (plus d'élévation par PIN).
+  return login.body.authToken;
 }
 
 test.before(async () => {

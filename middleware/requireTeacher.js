@@ -21,10 +21,11 @@ function requireJwtConfigured(res) {
   return true;
 }
 
-async function signAuthToken(payload, elevated = false) {
+// Le 2ᵉ paramètre (jadis `elevated`) est conservé pour compatibilité d'appel mais ignoré :
+// il n'existe plus de session « élevée », toutes les sessions utilisent la même durée de base.
+async function signAuthToken(payload, _legacyElevated = false) {
   const ttls = await getAuthJwtTtls();
-  const ttl = elevated ? ttls.elevatedSeconds : ttls.baseSeconds;
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: ttl });
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: ttls.baseSeconds });
 }
 
 function parseBearerToken(req) {
@@ -33,19 +34,18 @@ function parseBearerToken(req) {
 
 async function hydrateAuthFromTokenClaims(claims) {
   if (!claims || !claims.userType || claims.userId == null) return null;
-  const elevated = !!claims.elevated;
   const impersonating = !!(
     claims.impersonating &&
     claims.actorUserType &&
     claims.actorUserId != null
   );
   if (impersonating) {
-    // L'acteur (compte réel) doit détenir admin.impersonate ; ses permissions non élevées font foi.
-    const actorAuthz = await buildAuthzPayload(claims.actorUserType, claims.actorUserId, false);
+    // L'acteur (compte réel) doit détenir admin.impersonate.
+    const actorAuthz = await buildAuthzPayload(claims.actorUserType, claims.actorUserId);
     const actorPerms = Array.isArray(actorAuthz?.permissions) ? actorAuthz.permissions : [];
     if (!actorAuthz || !actorPerms.includes('admin.impersonate')) return null;
   }
-  const authz = await buildAuthzPayload(claims.userType, claims.userId, elevated);
+  const authz = await buildAuthzPayload(claims.userType, claims.userId);
   if (!authz) return null;
   const groupIds = await getUserAccessibleGroupIds({
     userId: claims.userId,
@@ -62,7 +62,6 @@ async function hydrateAuthFromTokenClaims(claims) {
     roleDisplayName: authz.roleDisplayName,
     permissions: authz.permissions,
     elevatedPermissions: authz.elevatedPermissions,
-    elevated,
     nativePrivileged: !!authz.nativePrivileged,
     groupIds,
     ...(impersonating
@@ -148,25 +147,20 @@ async function requireAuth(req, res, next) {
   next();
 }
 
-function hasPermission(auth, permissionKey, needsElevation) {
+function hasPermission(auth, permissionKey) {
   if (!auth) return false;
-  const roleSlug = String(auth.roleSlug || '').toLowerCase();
-  const adminNative = !!auth.nativePrivileged || roleSlug === 'admin';
   const perms = Array.isArray(auth.permissions) ? auth.permissions : [];
-  if (!perms.includes(permissionKey)) return false;
-  if (needsElevation && !auth.elevated && !adminNative) return false;
-  return true;
+  return perms.includes(permissionKey);
 }
 
-function requirePermission(permissionKey, options = {}) {
-  const needsElevation = !!options.needsElevation;
+// `options` est conservé pour compatibilité d'appel (jadis `{ needsElevation }`) mais n'a plus
+// d'effet : une permission attribuée au rôle est accordée directement.
+function requirePermission(permissionKey, _options = {}) {
   return async (req, res, next) => {
     const auth = await resolveAuthOrRespond(req, res);
     if (!auth) return;
-    if (!hasPermission(auth, permissionKey, needsElevation)) {
-      return res
-        .status(403)
-        .json({ error: needsElevation ? 'Élévation PIN requise' : 'Permission insuffisante' });
+    if (!hasPermission(auth, permissionKey)) {
+      return res.status(403).json({ error: 'Permission insuffisante' });
     }
     return next();
   };
@@ -184,7 +178,6 @@ function requireProduct(expectedProduct) {
 }
 
 const requireTeacher = requirePermission('teacher.access');
-const requireTeacherElevated = requirePermission('teacher.access', { needsElevation: true });
 
 module.exports = {
   JWT_SECRET,
@@ -196,6 +189,5 @@ module.exports = {
   hasPermission,
   requireProduct,
   requireTeacher,
-  requireTeacherElevated,
   signAuthToken,
 };

@@ -14,9 +14,9 @@ const HELP_TOOLTIPS = {
     roleReset: { textTeacher: 'Revenir à ton affichage habituel.' },
     roleStudent: { textTeacher: 'Voir l’app comme un n3beur (aperçu).' },
     roleTeacher: { textTeacher: 'Voir l’app comme un n3boss (aperçu).' },
-    elevatedMode: {
-      text: 'Mode n3boss : plus de boutons utiles pour la coordination.',
-      textTeacher: 'Activer ou couper les droits étendus (PIN).',
+    teacherLogin: {
+      text: 'Se connecter avec un compte n3boss (professeur).',
+      textTeacher: 'Se connecter avec un compte n3boss (professeur).',
     },
     logout: { text: 'Quitter ForetMap proprement.' },
     notifications: { text: 'Nouvelles infos, rappels et petites alertes utiles.' },

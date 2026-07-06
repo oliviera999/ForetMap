@@ -102,7 +102,7 @@ router.get(
 
 router.get(
   '/admin',
-  requirePermission('admin.settings.read', { needsElevation: true }),
+  requirePermission('admin.settings.read'),
   asyncHandler(async (req, res) => {
     const [settingsRows, maps] = await Promise.all([listAdminSettings(), listMaps()]);
     res.json({
@@ -114,7 +114,7 @@ router.get(
 
 router.get(
   '/admin/help-content',
-  requirePermission('admin.settings.read', { needsElevation: true }),
+  requirePermission('admin.settings.read'),
   asyncHandler(async (_req, res) => {
     const config = await getHelpConfigFromDb();
     res.json(config);
@@ -123,7 +123,7 @@ router.get(
 
 router.put(
   '/admin/help-content',
-  requirePermission('admin.settings.write', { needsElevation: true }),
+  requirePermission('admin.settings.write'),
   asyncHandler(async (req, res) => {
     const normalized = await saveHelpConfigToDb(req.body, {
       userType: req.auth?.userType,
@@ -145,7 +145,7 @@ router.put(
 
 router.post(
   '/admin/help-content/reset',
-  requirePermission('admin.settings.write', { needsElevation: true }),
+  requirePermission('admin.settings.write'),
   asyncHandler(async (req, res) => {
     const normalized = await saveHelpConfigToDb(loadDefaultHelpConfig(), {
       userType: req.auth?.userType,
@@ -165,47 +165,43 @@ router.post(
   }),
 );
 
-router.put(
-  '/admin/:key',
-  requirePermission('admin.settings.write', { needsElevation: true }),
-  async (req, res) => {
-    try {
-      const key = String(req.params.key || '').trim();
-      if (!key) return res.status(400).json({ error: 'Clé de réglage requise' });
-      const value = req.body?.value;
-      if (
-        [
-          'ui.map.default_map_student',
-          'ui.map.default_map_teacher',
-          'ui.map.default_map_visit',
-        ].includes(key)
-      ) {
-        const exists = await queryOne('SELECT id FROM maps WHERE id = ? LIMIT 1', [
-          String(value || '').trim(),
-        ]);
-        if (!exists) return res.status(400).json({ error: 'Carte par défaut introuvable' });
-      }
-      const updated = await setSetting(key, value, {
-        userType: req.auth?.userType,
-        userId: req.auth?.userId,
-      });
-      const all = await getSettings('admin');
-      await validateCrossSettings(all.flat);
-      await logAudit('settings_update', 'setting', key, 'Réglage mis à jour', {
-        req,
-        payload: { key, value: updated },
-      });
-      res.json({ ok: true, key, value: updated });
-    } catch (e) {
-      logRouteError(e, req);
-      res.status(400).json({ error: e.message });
+router.put('/admin/:key', requirePermission('admin.settings.write'), async (req, res) => {
+  try {
+    const key = String(req.params.key || '').trim();
+    if (!key) return res.status(400).json({ error: 'Clé de réglage requise' });
+    const value = req.body?.value;
+    if (
+      [
+        'ui.map.default_map_student',
+        'ui.map.default_map_teacher',
+        'ui.map.default_map_visit',
+      ].includes(key)
+    ) {
+      const exists = await queryOne('SELECT id FROM maps WHERE id = ? LIMIT 1', [
+        String(value || '').trim(),
+      ]);
+      if (!exists) return res.status(400).json({ error: 'Carte par défaut introuvable' });
     }
-  },
-);
+    const updated = await setSetting(key, value, {
+      userType: req.auth?.userType,
+      userId: req.auth?.userId,
+    });
+    const all = await getSettings('admin');
+    await validateCrossSettings(all.flat);
+    await logAudit('settings_update', 'setting', key, 'Réglage mis à jour', {
+      req,
+      payload: { key, value: updated },
+    });
+    res.json({ ok: true, key, value: updated });
+  } catch (e) {
+    logRouteError(e, req);
+    res.status(400).json({ error: e.message });
+  }
+});
 
 router.post(
   '/admin/maps',
-  requirePermission('admin.settings.write', { needsElevation: true }),
+  requirePermission('admin.settings.write'),
   asyncHandler(async (req, res) => {
     const id = String(req.body?.id || '')
       .trim()
@@ -253,7 +249,7 @@ router.post(
 
 router.put(
   '/admin/maps/:id',
-  requirePermission('admin.settings.write', { needsElevation: true }),
+  requirePermission('admin.settings.write'),
   asyncHandler(async (req, res) => {
     const map = await getMapById(req.params.id);
     if (!map) return res.status(404).json({ error: 'Carte introuvable' });
@@ -309,7 +305,7 @@ router.put(
 
 router.post(
   '/admin/maps/:id/image',
-  requirePermission('admin.settings.write', { needsElevation: true }),
+  requirePermission('admin.settings.write'),
   asyncHandler(async (req, res) => {
     const map = await getMapById(req.params.id);
     if (!map) return res.status(404).json({ error: 'Carte introuvable' });
@@ -336,7 +332,7 @@ router.post(
 
 router.put(
   '/admin/maps/:id/georef',
-  requirePermission('admin.settings.write', { needsElevation: true }),
+  requirePermission('admin.settings.write'),
   asyncHandler(async (req, res) => {
     const map = await getMapById(req.params.id);
     if (!map) return res.status(404).json({ error: 'Carte introuvable' });
@@ -381,7 +377,7 @@ router.put(
 
 router.get(
   '/admin/media-library',
-  requirePermission('admin.settings.read', { needsElevation: true }),
+  requirePermission('admin.settings.read'),
   validate({ query: settingsMediaQuerySchema }),
   asyncHandler(async (req, res) => {
     const limit = req.validatedQuery?.limit;
@@ -392,7 +388,7 @@ router.get(
 
 router.post(
   '/admin/media-library',
-  requirePermission('admin.settings.write', { needsElevation: true }),
+  requirePermission('admin.settings.write'),
   asyncHandler(async (req, res) => {
     const mediaData = String(req.body?.media_data || '').trim();
     if (!mediaData) return res.status(400).json({ error: 'media_data requis' });
@@ -414,7 +410,7 @@ router.post(
 
 router.delete(
   '/admin/media-library',
-  requirePermission('admin.settings.write', { needsElevation: true }),
+  requirePermission('admin.settings.write'),
   asyncHandler(async (req, res) => {
     const payload = executeMediaLibraryDeleteRequest(req.body || {});
     await logAudit('settings_media_delete', 'media', 'bulk', 'Média(s) supprimé(s)', {
@@ -431,7 +427,7 @@ router.delete(
 
 router.get(
   '/admin/system/diagnostics',
-  requirePermission('admin.settings.read', { needsElevation: true }),
+  requirePermission('admin.settings.read'),
   asyncHandler(async (req, res) => {
     const settings = await getSettings('admin');
     if (!settings.flat['ops.allow_remote_logs']) {
@@ -471,7 +467,7 @@ router.get(
 
 router.get(
   '/admin/system/logs',
-  requirePermission('admin.settings.read', { needsElevation: true }),
+  requirePermission('admin.settings.read'),
   validate({ query: settingsLogsQuerySchema }),
   asyncHandler(async (req, res) => {
     const settings = await getSettings('admin');
@@ -492,7 +488,7 @@ router.get(
 
 router.get(
   '/admin/system/species-autofill-providers-test',
-  requirePermission('admin.settings.read', { needsElevation: true }),
+  requirePermission('admin.settings.read'),
   async (req, res) => {
     try {
       const payload = await runSpeciesAutofillProviderSelfTest();
@@ -505,7 +501,7 @@ router.get(
 
 router.get(
   '/admin/system/oauth-debug',
-  requirePermission('admin.settings.read', { needsElevation: true }),
+  requirePermission('admin.settings.read'),
   asyncHandler(async (req, res) => {
     const frontendOrigin = String(
       process.env.FRONTEND_ORIGIN ||
@@ -537,7 +533,7 @@ router.get(
 
 router.post(
   '/admin/system/restart',
-  requirePermission('admin.settings.secrets.write', { needsElevation: true }),
+  requirePermission('admin.settings.secrets.write'),
   asyncHandler(async (req, res) => {
     const settings = await getSettings('admin');
     if (!settings.flat['ops.allow_remote_restart']) {

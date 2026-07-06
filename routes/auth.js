@@ -32,7 +32,6 @@ const {
   ensurePrimaryRole,
   getPrimaryRoleForUser,
   setPrimaryRole,
-  verifyRolePin,
 } = require('../lib/rbac');
 const { getSettingValue, getVisitMascotSettings } = require('../lib/settings');
 const {
@@ -173,9 +172,9 @@ async function ensureTeacherSeedFromEnv() {
   }
 }
 
-async function buildSessionPayload(userType, userId, elevated = false) {
+async function buildSessionPayload(userType, userId) {
   const canonicalUserId = await ensureCanonicalUserByAuth({ userType, userId });
-  const authz = await buildAuthzPayload(userType, userId, elevated);
+  const authz = await buildAuthzPayload(userType, userId);
   if (!authz) return null;
   return {
     tokenPayload: {
@@ -186,7 +185,6 @@ async function buildSessionPayload(userType, userId, elevated = false) {
       roleSlug: authz.roleSlug,
       roleDisplayName: authz.roleDisplayName,
       permissions: authz.permissions,
-      elevated,
       nativePrivileged: !!authz.nativePrivileged,
     },
     authz,
@@ -220,11 +218,7 @@ router.get('/me', requireAuth, async (req, res) => {
         String(claims.roleSlug || '').toLowerCase() !==
           String(req.auth.roleSlug || '').toLowerCase()
       ) {
-        const session = await buildSessionPayload(
-          req.auth.userType,
-          req.auth.userId,
-          !!claims.elevated,
-        );
+        const session = await buildSessionPayload(req.auth.userType, req.auth.userId);
         if (session) {
           const tp = { ...session.tokenPayload };
           if (claims.impersonating && claims.actorUserType && claims.actorUserId != null) {
@@ -232,9 +226,8 @@ router.get('/me', requireAuth, async (req, res) => {
             tp.actorUserType = claims.actorUserType;
             tp.actorUserId = claims.actorUserId;
             tp.actorCanonicalUserId = claims.actorCanonicalUserId || null;
-            tp.actorElevated = !!claims.actorElevated;
           }
-          body.refreshedToken = await signAuthToken(tp, !!claims.elevated);
+          body.refreshedToken = await signAuthToken(tp);
           body.auth = exposeAuth({
             ...tp,
             impersonating: req.auth.impersonating,
@@ -249,13 +242,9 @@ router.get('/me', requireAuth, async (req, res) => {
   if (req.auth?.userType === 'student' && req.auth?.userId) {
     const groupSync = await syncStudentRoleFromGroups(req.auth.userId);
     if (groupSync.changed) {
-      const session = await buildSessionPayload(
-        req.auth.userType,
-        req.auth.userId,
-        !!req.auth.elevated,
-      );
+      const session = await buildSessionPayload(req.auth.userType, req.auth.userId);
       if (session) {
-        body.refreshedToken = await signAuthToken(session.tokenPayload, !!req.auth.elevated);
+        body.refreshedToken = await signAuthToken(session.tokenPayload);
         body.auth = exposeAuth(session.tokenPayload);
       }
     }
@@ -519,8 +508,8 @@ router.post('/register', async (req, res) => {
     const student = await queryOne("SELECT * FROM users WHERE id = ? AND user_type = 'student'", [
       id,
     ]);
-    const session = await buildSessionPayload('student', id, false);
-    const token = session ? await signAuthToken(session.tokenPayload, false) : null;
+    const session = await buildSessionPayload('student', id);
+    const token = session ? await signAuthToken(session.tokenPayload) : null;
     await logSecurityEvent('auth.register.student', {
       req,
       actorUserType: 'student',
@@ -661,17 +650,17 @@ router.post(
       new Date().toISOString(),
       account.id,
     ]);
-    let session = await buildSessionPayload(userType, account.id, false);
+    let session = await buildSessionPayload(userType, account.id);
     if (!session && userType !== 'teacher') {
-      session = await buildSessionPayload('teacher', account.id, false);
+      session = await buildSessionPayload('teacher', account.id);
     }
     if (!session && userType !== 'student') {
-      session = await buildSessionPayload('student', account.id, false);
+      session = await buildSessionPayload('student', account.id);
     }
     if (!session) {
       return res.status(403).json({ error: 'Aucun profil attribué' });
     }
-    const token = session ? await signAuthToken(session.tokenPayload, false) : null;
+    const token = session ? await signAuthToken(session.tokenPayload) : null;
     await logSecurityEvent('auth.login', {
       req,
       actorUserType: session.tokenPayload.userType,
@@ -828,13 +817,13 @@ router.get('/google/callback', async (req, res) => {
         "UPDATE users SET last_seen = ?, updated_at = NOW() WHERE id = ? AND user_type = 'teacher'",
         [now, teacher.id],
       );
-      const session = await buildSessionPayload('teacher', teacher.id, false);
+      const session = await buildSessionPayload('teacher', teacher.id);
       if (!session) {
         return res.redirect(
           buildOAuthFrontendErrorRedirect(cfg.frontendOrigin, 'oauth_teacher_no_role', mode),
         );
       }
-      const token = await signAuthToken(session.tokenPayload, false);
+      const token = await signAuthToken(session.tokenPayload);
       await logSecurityEvent('auth.login.teacher.oauth_google', {
         req,
         actorUserType: 'teacher',
@@ -882,8 +871,8 @@ router.get('/google/callback', async (req, res) => {
       await syncStudentRoleFromGroups(student.id);
     }
 
-    const session = await buildSessionPayload('student', student.id, false);
-    const token = session ? await signAuthToken(session.tokenPayload, false) : null;
+    const session = await buildSessionPayload('student', student.id);
+    const token = session ? await signAuthToken(session.tokenPayload) : null;
     await logSecurityEvent('auth.login.student.oauth_google', {
       req,
       actorUserType: 'student',
@@ -1050,92 +1039,20 @@ router.post(
   }),
 );
 
-router.post(
-  '/elevate',
-  requireAuth,
-  asyncHandler(async (req, res) => {
-    const allowPinElevation = await getSettingValue('security.allow_pin_elevation', true);
-    if (!allowPinElevation) return res.status(403).json({ error: 'Élévation PIN désactivée' });
-    const pin = normalizeOptionalString(req.body?.pin);
-    if (!pin) return res.status(400).json({ error: 'PIN requis' });
-    if (!req.auth?.roleId) return res.status(401).json({ error: 'Session invalide' });
+// L'élévation par PIN a été supprimée : un utilisateur connecté possède directement toutes les
+// permissions de son rôle. Ces endpoints sont conservés en 410 Gone pour signaler explicitement
+// leur disparition aux clients/JWT obsolètes (cf. /teacher/login).
+router.post('/elevate', (req, res) => {
+  return res
+    .status(410)
+    .json({ error: 'Élévation PIN supprimée. Les droits du rôle sont accordés à la connexion.' });
+});
 
-    const ok = await verifyRolePin(req.auth.roleId, pin);
-    await execute(
-      'INSERT INTO elevation_audit (user_type, user_id, role_id, success, reason) VALUES (?, ?, ?, ?, ?)',
-      [req.auth.userType, req.auth.userId, req.auth.roleId, ok ? 1 : 0, ok ? 'ok' : 'pin_invalid'],
-    );
-    if (!ok) {
-      logger.warn(
-        {
-          requestId: req.requestId,
-          event: 'auth_elevate_failure',
-          reason: 'pin_invalid',
-          userType: req.auth.userType,
-        },
-        'Élévation PIN refusée',
-      );
-      return res.status(401).json({ error: 'PIN incorrect' });
-    }
-
-    const session = await buildSessionPayload(req.auth.userType, req.auth.userId, true);
-    if (!session) return res.status(403).json({ error: 'Aucun profil attribué' });
-    const token = await signAuthToken(session.tokenPayload, true);
-    await logAudit('auth_elevate', 'auth', req.auth.userId, `Élévation ${req.auth.userType}`, {
-      req,
-      actorUserType: req.auth.userType,
-      actorUserId: req.auth.userId,
-      payload: { role_id: req.auth.roleId, elevated: true },
-    });
-    res.json({ token, auth: exposeAuth(session.tokenPayload) });
-  }),
-);
-
-// Compatibilité historique: "mode prof via PIN".
-// Désormais, ce endpoint exige d'être déjà connecté puis élève la session.
-router.post(
-  '/teacher',
-  requireAuth,
-  asyncHandler(async (req, res) => {
-    const allowPinElevation = await getSettingValue('security.allow_pin_elevation', true);
-    if (!allowPinElevation) return res.status(403).json({ error: 'Élévation PIN désactivée' });
-    const pin = normalizeOptionalString(req.body?.pin);
-    if (!pin) return res.status(400).json({ error: 'PIN requis' });
-    if (!req.auth?.roleId) return res.status(401).json({ error: 'Session invalide' });
-
-    // Sécurité : le PIN est vérifié sur le rôle RBAC *courant* réhydraté depuis la base
-    // (via requireAuth/req.auth), pas sur le roleId potentiellement obsolète d'un JWT encore
-    // valide — un token émis avant un changement/révocation de rôle ne peut plus élever.
-    const ok = await verifyRolePin(req.auth.roleId, pin);
-    if (!ok) {
-      logger.warn(
-        {
-          requestId: req.requestId,
-          event: 'auth_teacher_legacy_pin_invalid',
-          userType: req.auth.userType,
-        },
-        'PIN incorrect (endpoint teacher legacy)',
-      );
-      return res.status(401).json({ error: 'PIN incorrect' });
-    }
-    const session = await buildSessionPayload(req.auth.userType, req.auth.userId, true);
-    if (!session) return res.status(403).json({ error: 'Aucun profil attribué' });
-    const token = await signAuthToken(session.tokenPayload, true);
-    await logAudit(
-      'auth_teacher_legacy_elevate',
-      'auth',
-      req.auth.userId,
-      `Élévation via endpoint legacy (${req.auth.userType})`,
-      {
-        req,
-        actorUserType: req.auth.userType,
-        actorUserId: req.auth.userId,
-        payload: { role_id: req.auth.roleId, elevated: true },
-      },
-    );
-    return res.json({ token, auth: exposeAuth(session.tokenPayload) });
-  }),
-);
+router.post('/teacher', (req, res) => {
+  return res
+    .status(410)
+    .json({ error: 'Élévation PIN supprimée. Les droits du rôle sont accordés à la connexion.' });
+});
 
 router.post('/admin/impersonate', requirePermission('admin.impersonate'), async (req, res) => {
   try {
@@ -1173,9 +1090,7 @@ router.post('/admin/impersonate', requirePermission('admin.impersonate'), async 
     if (claims.impersonating) {
       return res.status(400).json({ error: 'Quittez d’abord la prise de contrôle en cours' });
     }
-    const actorElevated = !!claims.elevated;
-    // La cible doit rester dans son niveau natif (pas d'élévation héritée de l'admin).
-    const session = await buildSessionPayload(targetUserType, targetUserId, false);
+    const session = await buildSessionPayload(targetUserType, targetUserId);
     if (!session) return res.status(403).json({ error: 'Aucun profil attribué pour ce compte' });
 
     const actorCanonical = await ensureCanonicalUserByAuth({
@@ -1188,9 +1103,8 @@ router.post('/admin/impersonate', requirePermission('admin.impersonate'), async 
       actorUserType: req.auth.userType,
       actorUserId: req.auth.userId,
       actorCanonicalUserId: actorCanonical || null,
-      actorElevated,
     };
-    const token = await signAuthToken(tokenPayload, false);
+    const token = await signAuthToken(tokenPayload);
     let hydrated;
     try {
       hydrated = await hydrateAuthFromTokenClaims(jwt.verify(token, JWT_SECRET));
@@ -1231,21 +1145,19 @@ router.post('/admin/impersonate/stop', requireAuth, async (req, res) => {
     }
     const tokenIn = parseBearerToken(req);
     if (!tokenIn) return res.status(401).json({ error: 'Token requis' });
-    let claims;
     try {
-      claims = jwt.verify(tokenIn, JWT_SECRET);
+      jwt.verify(tokenIn, JWT_SECRET);
     } catch (_) {
       return res.status(401).json({ error: 'Token invalide ou expiré' });
     }
     const actor = req.auth.impersonatedBy;
-    const actorAuthz = await buildAuthzPayload(actor.userType, actor.userId, false);
+    const actorAuthz = await buildAuthzPayload(actor.userType, actor.userId);
     if (!actorAuthz || !actorAuthz.permissions?.includes('admin.impersonate')) {
       return res.status(403).json({ error: 'Permission de reprise refusée' });
     }
-    const actorElevated = claims.actorElevated == null ? !!claims.elevated : !!claims.actorElevated;
-    const session = await buildSessionPayload(actor.userType, actor.userId, actorElevated);
+    const session = await buildSessionPayload(actor.userType, actor.userId);
     if (!session) return res.status(403).json({ error: 'Session administrateur introuvable' });
-    const token = await signAuthToken(session.tokenPayload, actorElevated);
+    const token = await signAuthToken(session.tokenPayload);
     let hydrated;
     try {
       hydrated = await hydrateAuthFromTokenClaims(jwt.verify(token, JWT_SECRET));

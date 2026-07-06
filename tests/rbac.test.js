@@ -33,10 +33,10 @@ async function getAdminToken() {
       key,
       'Permission auto-seed tests',
     ]);
-    await execute(
-      'INSERT IGNORE INTO role_permissions (role_id, permission_key, requires_elevation) VALUES (?, ?, 1)',
-      [adminRole.id, key],
-    );
+    await execute('INSERT IGNORE INTO role_permissions (role_id, permission_key) VALUES (?, ?)', [
+      adminRole.id,
+      key,
+    ]);
   }
   if (teacher?.id && adminRole?.id) {
     await execute('UPDATE user_roles SET is_primary = 0 WHERE user_type = ? AND user_id = ?', [
@@ -55,12 +55,8 @@ async function getAdminToken() {
       password: process.env.TEACHER_ADMIN_PASSWORD,
     })
     .expect(200);
-  const auth = await request(app)
-    .post('/api/auth/teacher')
-    .set({ Authorization: `Bearer ${login.body.authToken}` })
-    .send({ pin: process.env.TEACHER_PIN || '1234' })
-    .expect(200);
-  return auth.body.token;
+  // Un compte connecté possède directement les droits de son rôle (plus d'élévation par PIN).
+  return login.body.authToken;
 }
 
 test('RBAC admin: lecture profils et utilisateurs', async () => {
@@ -141,27 +137,6 @@ test('RBAC admin: GET un utilisateur pour édition', async () => {
   assert.ok(Object.prototype.hasOwnProperty.call(res.body, 'pseudo'));
 });
 
-test('RBAC admin: mise à jour PIN profil', async () => {
-  const token = await getAdminToken();
-  const defaultPin = process.env.TEACHER_PIN || '1234';
-
-  const profRole = await queryOne('SELECT id FROM roles WHERE slug = ? LIMIT 1', ['prof']);
-  assert.ok(profRole?.id);
-
-  const res = await request(app)
-    .put(`/api/rbac/profiles/${profRole.id}/pin`)
-    .set('Authorization', `Bearer ${token}`)
-    .send({ pin: '5678' })
-    .expect(200);
-  assert.strictEqual(res.body.ok, true);
-
-  await request(app)
-    .put(`/api/rbac/profiles/${profRole.id}/pin`)
-    .set('Authorization', `Bearer ${token}`)
-    .send({ pin: defaultPin })
-    .expect(200);
-});
-
 test('RBAC admin: attribution de rôle via identifiant canonique user', async () => {
   const token = await getAdminToken();
   const role = await queryOne('SELECT id FROM roles WHERE slug = ? LIMIT 1', ['eleve_avance']);
@@ -225,12 +200,12 @@ test('RBAC: PATCH forum/commentaires pour palier perso. (rank < 400) ; refus sur
   await execute('DELETE FROM roles WHERE id = ?', [created.body.id]);
 });
 
-test('RBAC admin: duplication de profil (permissions copiées, PIN non copié)', async () => {
+test('RBAC admin: duplication de profil (permissions copiées)', async () => {
   const token = await getAdminToken();
   const profRole = await queryOne('SELECT id FROM roles WHERE slug = ? LIMIT 1', ['prof']);
   assert.ok(profRole?.id);
   const beforePerms = await queryAll(
-    'SELECT permission_key, requires_elevation FROM role_permissions WHERE role_id = ?',
+    'SELECT permission_key FROM role_permissions WHERE role_id = ?',
     [profRole.id],
   );
   const dupSlug = `rbac_dup_test_${Date.now()}`;
@@ -242,14 +217,10 @@ test('RBAC admin: duplication de profil (permissions copiées, PIN non copié)',
   assert.strictEqual(res.body.slug, dupSlug);
   assert.strictEqual(res.body.display_name, 'Prof copie test');
   const afterPerms = await queryAll(
-    'SELECT permission_key, requires_elevation FROM role_permissions WHERE role_id = ?',
+    'SELECT permission_key FROM role_permissions WHERE role_id = ?',
     [res.body.id],
   );
   assert.strictEqual(afterPerms.length, beforePerms.length);
-  const pinRow = await queryOne('SELECT role_id FROM role_pin_secrets WHERE role_id = ? LIMIT 1', [
-    res.body.id,
-  ]);
-  assert.ok(!pinRow, 'le PIN du profil source ne doit pas être copié');
   await execute('DELETE FROM roles WHERE id = ?', [res.body.id]);
 });
 
@@ -265,7 +236,7 @@ test('RBAC: duplication refuse un slug réservé (ex. admin)', async () => {
   assert.ok(String(res.body?.error || '').includes('réservé'), res.body?.error);
 });
 
-test('RBAC: profil n3boss dupliqué — enseignant traité comme palier staff (permissions sans élévation)', async () => {
+test('RBAC: profil n3boss dupliqué — enseignant traité comme palier staff (native privileged)', async () => {
   const { buildAuthzPayload } = require('../lib/rbac');
   const token = await getAdminToken();
   const profRole = await queryOne('SELECT id FROM roles WHERE slug = ? LIMIT 1', ['prof']);
@@ -290,12 +261,12 @@ test('RBAC: profil n3boss dupliqué — enseignant traité comme palier staff (p
     ['teacher', teacher.id, dup.body.id],
   );
   try {
-    const payload = await buildAuthzPayload('teacher', teacher.id, false);
+    const payload = await buildAuthzPayload('teacher', teacher.id);
     assert.strictEqual(String(payload.roleSlug), dupSlug);
     assert.strictEqual(payload.nativePrivileged, true);
     assert.ok(
       payload.permissions.includes('students.import'),
-      'import élèves exige élévation sur prof sans bypass staff',
+      'les droits du rôle sont accordés directement (plus d’élévation)',
     );
   } finally {
     await execute('UPDATE user_roles SET is_primary = 0 WHERE user_type = ? AND user_id = ?', [

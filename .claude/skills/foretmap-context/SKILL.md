@@ -9,7 +9,7 @@ description: Contexte et architecture du projet ForetMap (forêt comestible, Lyc
 
 - **Élèves** : inscription/connexion (bcrypt, session localStorage), carte des zones, prise de
   tâches, marquer une tâche faite (commentaire/image), stats.
-- **Professeurs** : mode prof via PIN → JWT côté serveur ; gèrent zones, plantes, tâches, élèves
+- **Professeurs** : connexion prof (e-mail/mot de passe) → JWT côté serveur ; gèrent zones, plantes, tâches, élèves
   (suppression avec cascade assignments/logs + recalcul des statuts), valident les tâches.
 
 ## Stack & architecture

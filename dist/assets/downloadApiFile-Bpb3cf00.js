@@ -1,1 +1,0 @@
-import{V as e,j as t}from"./preload-helper-c3CkQRMr.js";import{t as n}from"./downloadAuthedFile-BZKqH4M-.js";async function r(r,i){return n(r,i,{resolveUrl:e,getToken:t,messages:{unauthorized:`Session expirée — reconnectez-vous.`,forbidden:`Permission insuffisante (élévation PIN requise).`,notFound:`Route introuvable — déployez la dernière version du serveur.`}})}export{r as t};

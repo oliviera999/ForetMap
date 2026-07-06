@@ -12,11 +12,10 @@ const CATALOG = [
 function setup(overrides = {}) {
   const props = {
     catalog: CATALOG,
-    rolePermissions: [{ key: 'tasks.manage', requires_elevation: true }],
+    rolePermissions: [{ key: 'tasks.manage' }],
     loading: false,
     hideTasksPropose: false,
     onToggle: vi.fn(),
-    onToggleElevation: vi.fn(),
     ...overrides,
   };
   render(
@@ -32,28 +31,23 @@ describe('ProfilesPermissionRows', () => {
     setup();
     expect(screen.getByText('Gestion tâches')).toBeInTheDocument();
     expect(screen.getByText('plants.manage')).toBeInTheDocument();
-    // chaque ligne : 2 cases (Actif + PIN) → 3 perms × 2 = 6
-    expect(screen.getAllByRole('checkbox')).toHaveLength(6);
+    // chaque ligne : 1 case (Actif) → 3 perms × 1 = 3 (plus de case PIN/élévation)
+    expect(screen.getAllByRole('checkbox')).toHaveLength(3);
   });
 
-  test('Actif coché selon rolePermissions ; PIN reflète requires_elevation', () => {
+  test('Actif coché selon rolePermissions ; aucune case PIN', () => {
     setup();
     const actifs = screen.getAllByLabelText('Actif');
     // tasks.manage actif, les autres non
     expect(actifs[0]).toBeChecked();
     expect(actifs[1]).not.toBeChecked();
-    const pins = screen.getAllByLabelText('PIN');
-    expect(pins[0]).toBeChecked(); // requires_elevation: true
-    // PIN désactivé quand la permission n'est pas active
-    expect(pins[1]).toBeDisabled();
+    expect(screen.queryByLabelText('PIN')).toBeNull();
   });
 
-  test('toggle Actif / PIN appellent les handlers avec la clé', () => {
-    const { onToggle, onToggleElevation } = setup();
+  test('toggle Actif appelle le handler avec la clé', () => {
+    const { onToggle } = setup();
     fireEvent.click(screen.getAllByLabelText('Actif')[2]); // plants.manage
     expect(onToggle).toHaveBeenCalledWith('plants.manage', true);
-    fireEvent.click(screen.getAllByLabelText('PIN')[0]); // tasks.manage (actif → PIN cliquable)
-    expect(onToggleElevation).toHaveBeenCalledWith('tasks.manage', false);
   });
 
   test('hideTasksPropose masque la ligne tasks.propose', () => {

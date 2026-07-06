@@ -10,7 +10,6 @@ progressive vers un modèle utilisateur unifié.
 | Auth élève | Login identifiant + mot de passe | JWT valide, session locale mise à jour                     |
 | Auth prof  | Login email + mot de passe       | JWT valide, permissions prof présentes                     |
 | OAuth      | Connexion Google élève/prof      | Redirection frontend avec payload exploitable              |
-| Élévation  | `POST /api/auth/elevate`         | Token élevé + trace `elevation_audit` + `security_events`  |
 | RBAC       | Attribution profil utilisateur   | Rôle principal mis à jour, action auditée                  |
 | Tâches     | Assign/unassign/done             | `student_id` renseigné quand fourni, statuts cohérents     |
 | Stats      | Lecture stats élève/prof         | Données cohérentes via `student_id` ou fallback nom/prénom |

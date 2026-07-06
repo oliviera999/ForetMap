@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { ProfilesRoleList } from './ProfilesRoleList.jsx';
 import { ProfilesPermissionRows } from './ProfilesPermissionRows.jsx';
 import { ProfilesUserAssignmentList } from './ProfilesUserAssignmentList.jsx';
@@ -15,11 +15,10 @@ const cardStyle = {
 
 /**
  * Section RBAC de l'admin des profils — extraite de `ProfilesAdminView` (O6). Grille profils +
- * permissions (liste des profils, config rapide emoji/PIN, progression n3beur, lignes de
+ * permissions (liste des profils, config rapide emoji, progression n3beur, lignes de
  * permissions) puis carte « Attribution des profils ». La section possède les champs d'édition
- * du profil sélectionné (`useRoleEditFields`) et le PIN saisi (§6.1) ; les enregistrements
- * remontent au parent avec la valeur en argument : `onEditRoleDetails(role, fields)`,
- * `onSaveEmoji(emoji)`, `onSavePin(pin)` (renvoie `true` si le PIN a été enregistré),
+ * du profil sélectionné (`useRoleEditFields`) ; les enregistrements remontent au parent avec la
+ * valeur en argument : `onEditRoleDetails(role, fields)`, `onSaveEmoji(emoji)`,
  * `onSaveMinDoneThreshold(value)`, `onSaveMaxConcurrent(value)`. La garde `canManageProfiles`
  * et les appels API restent au parent.
  */
@@ -43,11 +42,9 @@ export function ProfilesRbacAdminSection({
   onEditRoleDetails,
   onDuplicateRole,
   onSaveEmoji,
-  onSavePin,
   onToggleProgression,
   onSaveMinDoneThreshold,
   onTogglePermission,
-  onTogglePermissionElevation,
   onSetForumParticipate,
   onSetContextCommentParticipate,
   onSaveMaxConcurrent,
@@ -63,12 +60,6 @@ export function ProfilesRbacAdminSection({
     roleMaxConcurrentTasks,
     setRoleMaxConcurrentTasks,
   } = useRoleEditFields(selectedRole);
-  const [pin, setPin] = useState('');
-
-  const savePin = async () => {
-    const ok = await onSavePin(pin);
-    if (ok) setPin('');
-  };
 
   return (
     <>
@@ -93,9 +84,6 @@ export function ProfilesRbacAdminSection({
               roleEmoji={roleEmoji}
               onRoleEmojiChange={setRoleEmoji}
               onSaveEmoji={() => onSaveEmoji(roleEmoji)}
-              pin={pin}
-              onPinChange={setPin}
-              onSavePin={savePin}
               loading={loading}
               roleTerms={roleTerms}
             />
@@ -120,7 +108,6 @@ export function ProfilesRbacAdminSection({
                 onSaveMinDoneThreshold={() => onSaveMinDoneThreshold(roleMinDoneTasks)}
                 proposeEntry={tasksProposeEntry}
                 onTogglePermission={onTogglePermission}
-                onTogglePermissionElevation={onTogglePermissionElevation}
                 onSetForumParticipate={onSetForumParticipate}
                 onSetContextCommentParticipate={onSetContextCommentParticipate}
                 maxConcurrentTasks={roleMaxConcurrentTasks}
@@ -133,7 +120,6 @@ export function ProfilesRbacAdminSection({
                 loading={loading}
                 hideTasksPropose={isN3beurTier}
                 onToggle={onTogglePermission}
-                onToggleElevation={onTogglePermissionElevation}
               />
             </>
           )}
@@ -144,8 +130,7 @@ export function ProfilesRbacAdminSection({
         <h3 style={{ marginTop: 0 }}>Attribution des profils</h3>
         <p style={{ margin: '0 0 10px', fontSize: '.78rem', color: '#64748b', lineHeight: 1.45 }}>
           Choisir le profil principal définit notamment forum et commentaires contextuels (réglés
-          par profil dans la colonne de gauche, section Permissions). L’attribution peut exiger une
-          session élevée (PIN) selon les droits du compte administrateur. Utilisez « Modifier » pour
+          par profil dans la colonne de gauche, section Permissions). Utilisez « Modifier » pour
           changer prénom, nom, pseudo, email, description, affiliation ou mot de passe.
         </p>
         <ProfilesUserAssignmentList

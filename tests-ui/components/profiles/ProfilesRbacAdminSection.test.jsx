@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, test, expect, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { ProfilesRbacAdminSection } from '../../../src/components/profiles/ProfilesRbacAdminSection.jsx';
 
 const ROLES = [
@@ -12,7 +12,7 @@ const ROLES = [
     emoji: '🪨',
     display_order: 1,
     min_done_tasks: 0,
-    permissions: [{ key: 'tasks.propose', requires_elevation: false }],
+    permissions: [{ key: 'tasks.propose' }],
   },
 ];
 
@@ -44,11 +44,9 @@ function setup(overrides = {}) {
     onEditRoleDetails: vi.fn(),
     onDuplicateRole: vi.fn(),
     onSaveEmoji: vi.fn(),
-    onSavePin: vi.fn(async () => true),
     onToggleProgression: vi.fn(),
     onSaveMinDoneThreshold: vi.fn(),
     onTogglePermission: vi.fn(),
-    onTogglePermissionElevation: vi.fn(),
     onSetForumParticipate: vi.fn(),
     onSetContextCommentParticipate: vi.fn(),
     onSaveMaxConcurrent: vi.fn(),
@@ -101,22 +99,10 @@ describe('ProfilesRbacAdminSection', () => {
     expect(onSaveEmoji).toHaveBeenCalledWith('🌿');
   });
 
-  test('enregistrement du PIN : onSavePin reçoit la valeur puis le champ est vidé en cas de succès', async () => {
-    const { onSavePin } = setup({ onSavePin: vi.fn(async () => true) });
-    const pinInput = screen.getByPlaceholderText('Nouveau PIN');
-    fireEvent.change(pinInput, { target: { value: '1234' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer PIN' }));
-    expect(onSavePin).toHaveBeenCalledWith('1234');
-    await waitFor(() => expect(pinInput.value).toBe(''));
-  });
-
-  test('PIN refusé (onSavePin → false) : le champ garde sa valeur', async () => {
-    const { onSavePin } = setup({ onSavePin: vi.fn(async () => false) });
-    const pinInput = screen.getByPlaceholderText('Nouveau PIN');
-    fireEvent.change(pinInput, { target: { value: '12' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer PIN' }));
-    await waitFor(() => expect(onSavePin).toHaveBeenCalledWith('12'));
-    expect(pinInput.value).toBe('12');
+  test('aucun champ PIN de profil (élévation supprimée)', () => {
+    setup();
+    expect(screen.queryByPlaceholderText('Nouveau PIN')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Enregistrer PIN' })).toBeNull();
   });
 
   test('isN3beurTier masque tasks.propose dans les lignes de permissions (géré côté progression)', () => {
