@@ -2,7 +2,10 @@
 
 const express = require('express');
 const { queryAll, queryOne, execute, withTransaction } = require('../../database');
-const { recordGlQcmAttemptIfGatingEnabled } = require('../../lib/learningGatingRuntime');
+const {
+  recordGlQcmAttemptIfGatingEnabled,
+  registerGlCooldownOnWrongIfGating,
+} = require('../../lib/learningGatingRuntime');
 const {
   requireGlAuth,
   requireGlPermission,
@@ -1282,16 +1285,28 @@ router.post(
       );
       const glossaryByKey = await loadLoreGlossaryLookupForQcm();
       const loreGlossaryTerms = await enrichLoreQuestionWithGlossary(row, glossaryByKey);
-      await recordGlQcmAttemptIfGatingEnabled(
-        { queryAll, queryOne, execute },
-        { glAuth: req.glAuth, dataset: 'qcm_lore', questionCode: code, isCorrect: result.correct },
-      );
+      const dbHandle = { queryAll, queryOne, execute };
+      await recordGlQcmAttemptIfGatingEnabled(dbHandle, {
+        glAuth: req.glAuth,
+        dataset: 'qcm_lore',
+        questionCode: code,
+        isCorrect: result.correct,
+      });
+      // Contexte ressource present uniquement depuis le flux « Marquer comme acquis » : verrou sur erreur.
+      const cooldown = await registerGlCooldownOnWrongIfGating(dbHandle, {
+        glAuth: req.glAuth,
+        resourceType: req.body?.resourceType,
+        resourceRef: req.body?.resourceRef,
+        questionCode: code,
+        isCorrect: result.correct,
+      });
       return res.json({
         correct: result.correct,
         feedback: resolveQcmAnswerFeedback(row, result),
         correctChoiceId: result.correct ? result.correctChoiceId : undefined,
         qcmSet: 'lore',
         loreGlossaryTerms: result.correct ? loreGlossaryTerms : undefined,
+        cooldown: cooldown || undefined,
       });
     } catch (err) {
       return res.status(400).json({ error: err.message || 'Réponse invalide' });

@@ -43,6 +43,7 @@ router.get(
       mode: state.mode,
       questions: state.questions,
       pending_count: state.pending_count,
+      cooldown: state.cooldown,
     });
   }),
 );

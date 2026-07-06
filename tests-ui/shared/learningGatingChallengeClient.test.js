@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   pendingChallengeQuestions,
   buildGatingQuizIntroMessage,
+  isCooldownLocked,
+  buildCooldownLockMessage,
 } from '../../src/shared/utils/learningGatingChallengeClient.js';
 
 describe('pendingChallengeQuestions', () => {
@@ -40,5 +42,28 @@ describe('buildGatingQuizIntroMessage', () => {
 
   it('retourne vide si aucune question', () => {
     expect(buildGatingQuizIntroMessage(0)).toBe('');
+  });
+});
+
+describe('isCooldownLocked', () => {
+  it('vrai seulement si locked', () => {
+    expect(isCooldownLocked({ locked: true, remaining_days: 3 })).toBe(true);
+    expect(isCooldownLocked({ locked: false })).toBe(false);
+    expect(isCooldownLocked(null)).toBe(false);
+    expect(isCooldownLocked(undefined)).toBe(false);
+  });
+});
+
+describe('buildCooldownLockMessage', () => {
+  it('formule au pluriel avec le titre', () => {
+    const msg = buildCooldownLockMessage({ locked: true, remaining_days: 3 }, 'Gnou bleu');
+    expect(msg).toContain('3 jours');
+    expect(msg).toContain('Gnou bleu');
+    expect(msg.toLowerCase()).toContain('erreur');
+  });
+
+  it('formule au singulier et borne à 1 jour minimum', () => {
+    expect(buildCooldownLockMessage({ locked: true, remaining_days: 1 })).toContain('1 jour');
+    expect(buildCooldownLockMessage({ locked: true, remaining_days: 0 })).toContain('1 jour');
   });
 });
