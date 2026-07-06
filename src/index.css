@@ -3117,6 +3117,15 @@
       background:rgba(239,68,68,.1);
       color:#b91c1c;
     }
+    .learning-gating-quiz__cooldown {
+      margin:0 0 12px;
+      padding:10px 12px;
+      border-radius:8px;
+      font-size:0.95rem;
+      background:rgba(245,158,11,.12);
+      color:#92400e;
+      border:1px solid rgba(245,158,11,.3);
+    }
     .learning-gating-quiz-intro__hint {
       font-size:0.9rem;
       color:var(--muted, #64748b);

@@ -5,6 +5,8 @@ import { LearningGatingQuestionPanel } from './LearningGatingQuestionPanel.jsx';
 import {
   pendingChallengeQuestions,
   buildGatingQuizIntroMessage,
+  isCooldownLocked,
+  buildCooldownLockMessage,
 } from '../utils/learningGatingChallengeClient.js';
 
 /**
@@ -39,6 +41,7 @@ export function LearningAcknowledgeButton({
   const [flowPhase, setFlowPhase] = useState('loading');
   const [pendingQuestions, setPendingQuestions] = useState([]);
   const [questionIndex, setQuestionIndex] = useState(0);
+  const [cooldown, setCooldown] = useState(null);
   const [checked, setChecked] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -54,6 +57,7 @@ export function LearningAcknowledgeButton({
     setError('');
     setPendingQuestions([]);
     setQuestionIndex(0);
+    setCooldown(null);
     setFlowPhase('loading');
   }, []);
 
@@ -83,6 +87,11 @@ export function LearningAcknowledgeButton({
         gatingResource.resourceType,
         gatingResource.resourceRef,
       );
+      if (challenge?.required && isCooldownLocked(challenge.cooldown)) {
+        setCooldown(challenge.cooldown);
+        setFlowPhase('locked');
+        return;
+      }
       const pending = pendingChallengeQuestions(challenge);
       if (pending.length > 0) {
         setPendingQuestions(pending);
@@ -168,6 +177,24 @@ export function LearningAcknowledgeButton({
             </>
           ) : null}
 
+          {flowPhase === 'locked' ? (
+            <>
+              <h3 id="learning-ack-title">Réessaie plus tard</h3>
+              <p className="tuto-read-ack-intro learning-gating-quiz__cooldown" role="alert">
+                {buildCooldownLockMessage(cooldown, itemTitle)}
+              </p>
+              <div className="tuto-read-ack-actions">
+                <button
+                  type="button"
+                  className={primaryBtnClassName || 'btn btn-primary btn-sm'}
+                  onClick={closeModal}
+                >
+                  Fermer
+                </button>
+              </div>
+            </>
+          ) : null}
+
           {flowPhase === 'quizIntro' ? (
             <>
               <h3 id="learning-ack-title">Contrôle de compréhension</h3>
@@ -205,6 +232,9 @@ export function LearningAcknowledgeButton({
                 questionDataset={currentQuestion.question_dataset || null}
                 questionIndex={questionIndex}
                 questionTotal={pendingQuestions.length}
+                resourceType={gatingResource?.resourceType || null}
+                resourceRef={gatingResource?.resourceRef ?? null}
+                itemTitle={itemTitle}
                 presentQuestion={gatingHandlers.presentQuestion}
                 answerQuestion={gatingHandlers.answerQuestion}
                 onPassed={handleQuestionPassed}

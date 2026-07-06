@@ -31,6 +31,13 @@ const {
   combineKeywords,
 } = require('../lib/fmQuizImport');
 const { buildGlossaryLookupMap, matchGlossaryTermsForSpecies } = require('../lib/glGlossaryMatch');
+const { getFmGatingSite, FM_MARKABLE } = require('../lib/learningGatingRuntime');
+const { maybeRegisterCooldownOnWrong } = require('../lib/learningGatingCooldown');
+const {
+  normalizeResourceType,
+  normalizeResourceRef,
+  FORETMAP_RESOURCE_TYPES,
+} = require('../lib/shared/resourceQuestionGatingCore');
 const asyncHandler = require('../lib/asyncHandler');
 const { z, validate } = require('../lib/validate');
 
@@ -96,6 +103,32 @@ async function tryHydrateAuth(req) {
   } catch (_) {
     return null;
   }
+}
+
+/**
+ * Verrou de re-tentative ForetMap : ne s'active que si la reponse est envoyee avec un contexte
+ * ressource (resourceType/resourceRef) — c.-a-d. depuis le flux de validation « Marquer comme
+ * acquis ». Le quiz libre n'envoie pas ce contexte : aucun verrou n'est jamais pose.
+ */
+async function maybeRegisterCooldownForFmAnswer(req, { userId, questionCode, isCorrect }) {
+  if (isCorrect) return null;
+  const resourceType = normalizeResourceType(req.body?.resourceType, FORETMAP_RESOURCE_TYPES);
+  const resourceRef = normalizeResourceRef(req.body?.resourceRef);
+  if (!resourceType || !resourceRef || !FM_MARKABLE.has(resourceType)) return null;
+  const site = await getFmGatingSite();
+  if (!site.enabled) return null;
+  return maybeRegisterCooldownOnWrong(
+    { queryAll, queryOne, execute },
+    {
+      product: 'fm',
+      userId,
+      resourceType,
+      resourceRef,
+      questionCode,
+      isCorrect,
+      retryDays: site.retryCooldownDays,
+    },
+  );
 }
 
 /** GET /api/quiz/categories?theme=&niveau= */
@@ -286,11 +319,22 @@ router.post(
         );
       }
 
+      // Contexte ressource (present uniquement depuis le flux « Marquer comme acquis ») : sur une
+      // mauvaise reponse a une question bloquante, pose le verrou de re-tentative (cf. cooldown).
+      const cooldown = auth?.userId
+        ? await maybeRegisterCooldownForFmAnswer(req, {
+            userId: auth.userId,
+            questionCode: code,
+            isCorrect: result.correct,
+          })
+        : null;
+
       return res.json({
         correct: result.correct,
         feedback: resolveQcmAnswerFeedback(row, result),
         correctChoiceId: result.correct ? result.correctChoiceId : undefined,
         glossaryTerms: result.correct ? glossaryTerms : undefined,
+        cooldown: cooldown || undefined,
       });
     } catch (err) {
       return res.status(400).json({ error: err.message || 'Réponse invalide' });
