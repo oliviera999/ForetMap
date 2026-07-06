@@ -297,7 +297,7 @@ router.get(
 
 router.post(
   '/',
-  requirePermission('tasks.manage', { needsElevation: true }),
+  requirePermission('tasks.manage'),
   validate({ body: createProjectBodySchema }),
   asyncHandler(async (req, res) => {
     const {
@@ -336,7 +336,7 @@ router.post(
 
 router.put(
   '/:id',
-  requirePermission('tasks.manage', { needsElevation: true }),
+  requirePermission('tasks.manage'),
   asyncHandler(async (req, res) => {
     const existing = await queryOne('SELECT * FROM task_projects WHERE id = ?', [req.params.id]);
     if (!existing) return res.status(404).json({ error: 'Projet introuvable' });
@@ -401,7 +401,7 @@ router.put(
 
 router.delete(
   '/:id',
-  requirePermission('tasks.manage', { needsElevation: true }),
+  requirePermission('tasks.manage'),
   asyncHandler(async (req, res) => {
     const existing = await queryOne('SELECT id, map_id FROM task_projects WHERE id = ?', [
       req.params.id,
@@ -419,7 +419,7 @@ router.delete(
 
 router.post(
   '/:id/validate',
-  requirePermission('tasks.validate', { needsElevation: true }),
+  requirePermission('tasks.validate'),
   asyncHandler(async (req, res) => {
     const existing = await queryOne(
       'SELECT id, map_id, title, status FROM task_projects WHERE id = ?',
@@ -617,7 +617,7 @@ async function copyProjectTasksTx(
 
 router.post(
   '/:id/duplicate',
-  requirePermission('tasks.manage', { needsElevation: true }),
+  requirePermission('tasks.manage'),
   asyncHandler(async (req, res) => {
     const source = await queryOne('SELECT * FROM task_projects WHERE id = ?', [req.params.id]);
     if (!source) return res.status(404).json({ error: 'Projet introuvable' });

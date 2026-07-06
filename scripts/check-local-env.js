@@ -32,7 +32,6 @@ if (fs.existsSync(path.join(root, '.env'))) {
   check('DB_NAME', process.env.DB_NAME, 'définir DB_NAME');
   check('DB_USER', process.env.DB_USER, 'définir DB_USER');
   check('DB_PASS', process.env.DB_PASS !== undefined, 'définir DB_PASS');
-  check('TEACHER_PIN', process.env.TEACHER_PIN, 'définir TEACHER_PIN (optionnel en dev)');
 }
 
 console.log('\n3. Connexion MySQL (optionnel)');

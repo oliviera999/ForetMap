@@ -19,7 +19,7 @@ const auditQuerySchema = z.object({
 // Consulter l'historique (prof uniquement)
 router.get(
   '/',
-  requirePermission('audit.read', { needsElevation: true }),
+  requirePermission('audit.read'),
   validate({ query: auditQuerySchema }),
   asyncHandler(async (req, res) => {
     const { limit } = req.validatedQuery;

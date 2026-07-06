@@ -119,15 +119,6 @@ describe('useAuthSession', () => {
     expect(params.setSessionValidationError).toHaveBeenCalledWith(false);
   });
 
-  it('updateStudentSession : un jeton élevé (PIN) n’est pas écrasé par le JWT élève tardif', () => {
-    const { result } = renderAuthSession();
-    apiMocks.getAuthToken.mockReturnValue('jwt-eleve-eleve');
-    apiMocks.isElevatedJwt.mockImplementation((t) => t === 'jwt-eleve-eleve');
-    act(() => result.current.updateStudentSession({ id: 'S1', authToken: 'jwt-basique' }));
-    const saved = apiMocks.saveStoredSession.mock.calls.at(-1)[0];
-    expect(saved.token).toBe('jwt-eleve-eleve');
-  });
-
   it('validateStudentSession : erreur réseau → drapeau session non vérifiée + toast', async () => {
     const { params, result } = renderAuthSession();
     const err = new Error('boom');
@@ -150,7 +141,7 @@ describe('useAuthSession', () => {
     expect(params.setSessionValidationError).not.toHaveBeenCalledWith(true);
   });
 
-  it('mergeAuthMeResponse : refreshedToken persisté et claims relus (sauf régression d’élévation)', () => {
+  it('mergeAuthMeResponse : refreshedToken persisté et claims relus', () => {
     const { params, result } = renderAuthSession();
     apiMocks.getAuthClaims.mockReturnValue({ permissions: ['teacher.access'] });
     apiMocks.getStoredSession.mockReturnValue({ token: 'old' });

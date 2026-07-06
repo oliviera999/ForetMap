@@ -1,5 +1,9 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { getQcmFeedbackText, shouldShowQcmAnswerPhase } from '../qcm/qcmFeedback.js';
+import {
+  isCooldownLocked,
+  buildCooldownLockMessage,
+} from '../utils/learningGatingChallengeClient.js';
 
 /**
  * Panneau d'une question QCM dans le flux gating (présentation + réponse + feedback).
@@ -9,6 +13,9 @@ export function LearningGatingQuestionPanel({
   questionDataset = null,
   questionIndex = 0,
   questionTotal = 1,
+  resourceType = null,
+  resourceRef = null,
+  itemTitle = '',
   presentQuestion,
   answerQuestion,
   onPassed,
@@ -49,11 +56,16 @@ export function LearningGatingQuestionPanel({
     setSubmitting(true);
     setError('');
     try {
+      const resource =
+        resourceType && resourceRef != null && resourceRef !== ''
+          ? { resourceType, resourceRef }
+          : null;
       const data = await answerQuestion(
         questionCode,
         questionDataset,
         presentation.presentationToken,
         selectedChoiceId,
+        resource,
       );
       setResult(data);
     } catch (err) {
@@ -61,10 +73,19 @@ export function LearningGatingQuestionPanel({
     } finally {
       setSubmitting(false);
     }
-  }, [answerQuestion, presentation, questionCode, questionDataset, selectedChoiceId]);
+  }, [
+    answerQuestion,
+    presentation,
+    questionCode,
+    questionDataset,
+    resourceType,
+    resourceRef,
+    selectedChoiceId,
+  ]);
 
   const showAnswer = shouldShowQcmAnswerPhase(result);
   const feedbackText = getQcmFeedbackText(result);
+  const cooldownLocked = !result?.correct && isCooldownLocked(result?.cooldown);
 
   return (
     <div className="learning-gating-quiz">
@@ -129,10 +150,19 @@ export function LearningGatingQuestionPanel({
           >
             {feedbackText}
           </p>
+          {cooldownLocked ? (
+            <p className="learning-gating-quiz__cooldown" role="alert">
+              {buildCooldownLockMessage(result.cooldown, itemTitle)}
+            </p>
+          ) : null}
           <div className="tuto-read-ack-actions">
             {result?.correct ? (
               <button type="button" className={primaryBtnClassName} onClick={onPassed}>
                 Continuer
+              </button>
+            ) : cooldownLocked ? (
+              <button type="button" className={primaryBtnClassName} onClick={onAbandon}>
+                Fermer
               </button>
             ) : (
               <>

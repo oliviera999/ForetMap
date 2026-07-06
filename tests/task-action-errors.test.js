@@ -4,9 +4,9 @@ const { describe, it } = require('node:test');
 const assert = require('node:assert');
 
 describe('taskActionErrors (client)', () => {
-  it('formatTaskActionError — élévation PIN', async () => {
+  it('formatTaskActionError — permission insuffisante', async () => {
     const { formatTaskActionError } = await import('../src/utils/taskActionErrors.js');
-    assert.match(formatTaskActionError('Élévation PIN requise'), /cadenas/i);
+    assert.match(formatTaskActionError('Permission insuffisante'), /droit demandé/i);
   });
 
   it('formatTaskActionError — indisponibilité passerelle', async () => {
@@ -33,15 +33,18 @@ describe('taskActionErrors (client)', () => {
     assert.strictEqual(onlyValidate[0].value, 'validated');
   });
 
-  it('teacherStatusActionDisabled — élévation requise pour validée', async () => {
+  it('teacherStatusActionDisabled — validation refusée sans la permission', async () => {
     const { teacherStatusActionDisabled } = await import('../src/utils/taskActionErrors.js');
     const gate = teacherStatusActionDisabled('validated', {
       canManageTasks: true,
-      canValidateTasks: true,
-      hasActiveManage: true,
-      hasActiveValidate: false,
+      canValidateTasks: false,
     });
     assert.strictEqual(gate.disabled, true);
-    assert.match(gate.title, /cadenas/i);
+    assert.match(gate.title, /non autorisée/i);
+    const ok = teacherStatusActionDisabled('validated', {
+      canManageTasks: true,
+      canValidateTasks: true,
+    });
+    assert.strictEqual(ok.disabled, false);
   });
 });

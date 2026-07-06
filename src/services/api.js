@@ -33,7 +33,6 @@ const STUDENT_SESSION_FIELDS = [
   'avatar_path',
   'avatarPath',
   'authToken',
-  'elevationStudentToken',
   'affiliation',
   'taskEnrollment',
   'forumParticipate',
@@ -52,8 +51,6 @@ const STUDENT_AUTH_FIELDS = [
   'roleDisplayName',
   'roleSlug',
   'permissions',
-  'elevatedPermissions',
-  'elevated',
   'nativePrivileged',
   'impersonating',
 ];
@@ -156,7 +153,7 @@ function pickStoredToken(value) {
 
 function getLegacyStudentToken(student = readLegacyStudentSnapshot()) {
   if (!student || typeof student !== 'object') return null;
-  return pickStoredToken(student.authToken) || pickStoredToken(student.elevationStudentToken);
+  return pickStoredToken(student.authToken);
 }
 
 export function getAuthToken() {
@@ -236,11 +233,6 @@ export function clearStoredSession() {
 export function getAuthClaims() {
   const token = getAuthToken();
   return token ? decodeJwtPayload(token) : null;
-}
-
-/** Indique si le JWT ForetMap porte le flag `elevated` (droits étendus après PIN). */
-export function isElevatedJwt(token) {
-  return !!decodeJwtPayload(token)?.elevated;
 }
 
 /** Message navigateur (Chrome « Failed to fetch », Firefox « NetworkError… », etc.) */

@@ -12,7 +12,7 @@ export async function downloadApiFile(path, filename) {
     getToken: getAuthToken,
     messages: {
       unauthorized: 'Session expirée — reconnectez-vous.',
-      forbidden: 'Permission insuffisante (élévation PIN requise).',
+      forbidden: 'Permission insuffisante pour cette action.',
       notFound: 'Route introuvable — déployez la dernière version du serveur.',
     },
   });

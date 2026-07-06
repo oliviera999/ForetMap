@@ -83,147 +83,142 @@ async function resolveRbacSubjectForMutation(userTypeParam, userIdParam) {
   return { ok: true, user, resolvedUserType, resolvedUserId };
 }
 
-router.post(
-  '/users',
-  requirePermission('users.create', { needsElevation: true }),
-  async (req, res) => {
-    try {
-      const actorRoleSlug = String(req.auth?.roleSlug || '')
-        .trim()
-        .toLowerCase();
-      if (!['prof', 'admin'].includes(actorRoleSlug)) {
-        return res
-          .status(403)
-          .json({ error: 'Seuls les profils prof/admin peuvent créer des utilisateurs' });
-      }
+router.post('/users', requirePermission('users.create'), async (req, res) => {
+  try {
+    const actorRoleSlug = String(req.auth?.roleSlug || '')
+      .trim()
+      .toLowerCase();
+    if (!['prof', 'admin'].includes(actorRoleSlug)) {
+      return res
+        .status(403)
+        .json({ error: 'Seuls les profils prof/admin peuvent créer des utilisateurs' });
+    }
 
-      const roleSlug = String(req.body?.role_slug || '')
-        .trim()
-        .toLowerCase();
-      if (!['eleve_novice', 'prof', 'admin'].includes(roleSlug)) {
-        return res.status(400).json({ error: 'role_slug invalide (eleve_novice, prof, admin)' });
-      }
-      if (actorRoleSlug === 'prof' && roleSlug === 'admin') {
-        return res.status(403).json({ error: 'Un profil prof ne peut pas créer un admin' });
-      }
+    const roleSlug = String(req.body?.role_slug || '')
+      .trim()
+      .toLowerCase();
+    if (!['eleve_novice', 'prof', 'admin'].includes(roleSlug)) {
+      return res.status(400).json({ error: 'role_slug invalide (eleve_novice, prof, admin)' });
+    }
+    if (actorRoleSlug === 'prof' && roleSlug === 'admin') {
+      return res.status(403).json({ error: 'Un profil prof ne peut pas créer un admin' });
+    }
 
-      const firstName = normalizeOptionalString(req.body?.first_name);
-      const lastName = normalizeOptionalString(req.body?.last_name);
-      const password = String(req.body?.password || '');
-      const pseudo = normalizeOptionalString(req.body?.pseudo);
-      const email = normalizeEmail(req.body?.email);
-      const description = normalizeOptionalString(req.body?.description);
-      const minPasswordLen = await getPasswordMinLength();
-      if (!firstName || !lastName) return res.status(400).json({ error: 'Prénom et nom requis' });
-      if (!password || password.length < minPasswordLen) {
-        return res
-          .status(400)
-          .json({ error: `Mot de passe trop court (min ${minPasswordLen} caractères)` });
-      }
-      if (pseudo != null && !PSEUDO_RE.test(pseudo)) {
-        return res
-          .status(400)
-          .json({ error: 'Pseudo invalide (3-30 caractères, lettres/chiffres/._-)' });
-      }
-      if (email != null && !EMAIL_RE.test(email)) {
-        return res.status(400).json({ error: 'Email invalide' });
-      }
-      if (description != null && description.length > MAX_DESCRIPTION_LEN) {
-        return res
-          .status(400)
-          .json({ error: `Description trop longue (max ${MAX_DESCRIPTION_LEN} caractères)` });
-      }
+    const firstName = normalizeOptionalString(req.body?.first_name);
+    const lastName = normalizeOptionalString(req.body?.last_name);
+    const password = String(req.body?.password || '');
+    const pseudo = normalizeOptionalString(req.body?.pseudo);
+    const email = normalizeEmail(req.body?.email);
+    const description = normalizeOptionalString(req.body?.description);
+    const minPasswordLen = await getPasswordMinLength();
+    if (!firstName || !lastName) return res.status(400).json({ error: 'Prénom et nom requis' });
+    if (!password || password.length < minPasswordLen) {
+      return res
+        .status(400)
+        .json({ error: `Mot de passe trop court (min ${minPasswordLen} caractères)` });
+    }
+    if (pseudo != null && !PSEUDO_RE.test(pseudo)) {
+      return res
+        .status(400)
+        .json({ error: 'Pseudo invalide (3-30 caractères, lettres/chiffres/._-)' });
+    }
+    if (email != null && !EMAIL_RE.test(email)) {
+      return res.status(400).json({ error: 'Email invalide' });
+    }
+    if (description != null && description.length > MAX_DESCRIPTION_LEN) {
+      return res
+        .status(400)
+        .json({ error: `Description trop longue (max ${MAX_DESCRIPTION_LEN} caractères)` });
+    }
 
-      const userType = roleSlug === 'eleve_novice' ? 'student' : 'teacher';
-      let affiliation = 'both';
-      if (userType === 'student') {
-        const affRes = await resolveStudentAffiliationForPersist(req.body?.affiliation, queryOne);
-        if (!affRes.ok) return res.status(400).json({ error: affRes.error });
-        affiliation = affRes.affiliation;
-      }
+    const userType = roleSlug === 'eleve_novice' ? 'student' : 'teacher';
+    let affiliation = 'both';
+    if (userType === 'student') {
+      const affRes = await resolveStudentAffiliationForPersist(req.body?.affiliation, queryOne);
+      if (!affRes.ok) return res.status(400).json({ error: affRes.error });
+      affiliation = affRes.affiliation;
+    }
 
-      if (userType === 'student') {
-        const existingByName = await queryOne(
-          "SELECT id FROM users WHERE user_type = 'student' AND LOWER(first_name)=LOWER(?) AND LOWER(last_name)=LOWER(?) LIMIT 1",
-          [firstName, lastName],
-        );
-        if (existingByName)
-          return res.status(409).json({ error: 'Un n3beur avec ce nom existe déjà' });
-      }
-      if (pseudo) {
-        const existingPseudo = await queryOne(
-          'SELECT id FROM users WHERE LOWER(pseudo)=LOWER(?) LIMIT 1',
-          [pseudo],
-        );
-        if (existingPseudo) return res.status(409).json({ error: 'Ce pseudo est déjà utilisé' });
-      }
-      if (email) {
-        const existingEmail = await queryOne(
-          'SELECT id FROM users WHERE LOWER(email)=LOWER(?) LIMIT 1',
-          [email],
-        );
-        if (existingEmail) return res.status(409).json({ error: 'Cet email est déjà utilisé' });
-      }
-
-      const role = await queryOne(
-        'SELECT id, slug, display_name FROM roles WHERE slug = ? LIMIT 1',
-        [roleSlug],
+    if (userType === 'student') {
+      const existingByName = await queryOne(
+        "SELECT id FROM users WHERE user_type = 'student' AND LOWER(first_name)=LOWER(?) AND LOWER(last_name)=LOWER(?) LIMIT 1",
+        [firstName, lastName],
       );
-      if (!role) return res.status(404).json({ error: 'Profil introuvable' });
+      if (existingByName)
+        return res.status(409).json({ error: 'Un n3beur avec ce nom existe déjà' });
+    }
+    if (pseudo) {
+      const existingPseudo = await queryOne(
+        'SELECT id FROM users WHERE LOWER(pseudo)=LOWER(?) LIMIT 1',
+        [pseudo],
+      );
+      if (existingPseudo) return res.status(409).json({ error: 'Ce pseudo est déjà utilisé' });
+    }
+    if (email) {
+      const existingEmail = await queryOne(
+        'SELECT id FROM users WHERE LOWER(email)=LOWER(?) LIMIT 1',
+        [email],
+      );
+      if (existingEmail) return res.status(409).json({ error: 'Cet email est déjà utilisé' });
+    }
 
-      const hash = await bcrypt.hash(password, 10);
-      const id = crypto.randomUUID();
-      const now = new Date().toISOString();
-      try {
-        await execute(
-          `INSERT INTO users
+    const role = await queryOne('SELECT id, slug, display_name FROM roles WHERE slug = ? LIMIT 1', [
+      roleSlug,
+    ]);
+    if (!role) return res.status(404).json({ error: 'Profil introuvable' });
+
+    const hash = await bcrypt.hash(password, 10);
+    const id = crypto.randomUUID();
+    const now = new Date().toISOString();
+    try {
+      await execute(
+        `INSERT INTO users
             (id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name, description, avatar_path, affiliation, password_hash, auth_provider, is_active, last_seen, created_at, updated_at)
            VALUES (?, ?, NULL, ?, ?, ?, ?, ?, ?, NULL, ?, ?, 'local', 1, ?, NOW(), NOW())`,
-          [
-            id,
-            userType,
-            email,
-            pseudo,
-            firstName,
-            lastName,
-            `${firstName} ${lastName}`.trim(),
-            description,
-            affiliation,
-            hash,
-            now,
-          ],
-        );
-      } catch (err) {
-        if (err && (err.errno === 1062 || err.code === 'ER_DUP_ENTRY')) {
-          return res.status(409).json({ error: 'Pseudo, email ou identité déjà utilisé(e)' });
-        }
-        throw err;
+        [
+          id,
+          userType,
+          email,
+          pseudo,
+          firstName,
+          lastName,
+          `${firstName} ${lastName}`.trim(),
+          description,
+          affiliation,
+          hash,
+          now,
+        ],
+      );
+    } catch (err) {
+      if (err && (err.errno === 1062 || err.code === 'ER_DUP_ENTRY')) {
+        return res.status(409).json({ error: 'Pseudo, email ou identité déjà utilisé(e)' });
       }
-      await setPrimaryRole(userType, id, role.id);
-
-      const created = await queryOne('SELECT * FROM users WHERE id = ? LIMIT 1', [id]);
-      logAudit('create_user_manual', 'user', id, `${firstName} ${lastName}`, {
-        req,
-        payload: { user_type: userType, role_slug: role.slug },
-      });
-      if (userType === 'student') {
-        emitStudentsChanged({ reason: 'create_student_manual', studentId: id });
-      }
-      res.status(201).json({
-        ...created,
-        password_hash: undefined,
-        role_slug: role.slug,
-        role_display_name: role.display_name,
-      });
-    } catch (e) {
-      respondInternalError(res, req, e);
+      throw err;
     }
-  },
-);
+    await setPrimaryRole(userType, id, role.id);
+
+    const created = await queryOne('SELECT * FROM users WHERE id = ? LIMIT 1', [id]);
+    logAudit('create_user_manual', 'user', id, `${firstName} ${lastName}`, {
+      req,
+      payload: { user_type: userType, role_slug: role.slug },
+    });
+    if (userType === 'student') {
+      emitStudentsChanged({ reason: 'create_student_manual', studentId: id });
+    }
+    res.status(201).json({
+      ...created,
+      password_hash: undefined,
+      role_slug: role.slug,
+      role_display_name: role.display_name,
+    });
+  } catch (e) {
+    respondInternalError(res, req, e);
+  }
+});
 
 router.get(
   '/profiles',
-  requirePermission('admin.roles.manage', { needsElevation: true }),
+  requirePermission('admin.roles.manage'),
   asyncHandler(async (req, res) => {
     const rolesWithProgression = await queryAll(
       'SELECT id, slug, display_name, emoji, min_done_tasks, display_order, `rank` AS `rank`, is_system, forum_participate, context_comment_participate, max_concurrent_tasks FROM roles ORDER BY display_order ASC, `rank` DESC, id ASC',
@@ -232,14 +227,13 @@ router.get(
       'SELECT `key`, label, description FROM permissions ORDER BY `key` ASC',
     );
     const rolePerms = await queryAll(
-      'SELECT role_id, permission_key, requires_elevation FROM role_permissions ORDER BY role_id ASC, permission_key ASC',
+      'SELECT role_id, permission_key FROM role_permissions ORDER BY role_id ASC, permission_key ASC',
     );
     const map = new Map();
     for (const row of rolePerms) {
       if (!map.has(row.role_id)) map.set(row.role_id, []);
       map.get(row.role_id).push({
         key: row.permission_key,
-        requires_elevation: !!row.requires_elevation,
       });
     }
     const rolesPayload = rolesWithProgression
@@ -258,7 +252,7 @@ router.get(
 
 router.patch(
   '/progression-by-validated-tasks',
-  requirePermission('admin.roles.manage', { needsElevation: true }),
+  requirePermission('admin.roles.manage'),
   async (req, res) => {
     try {
       const raw = req.body?.enabled;
@@ -289,7 +283,7 @@ router.patch(
 
 router.post(
   '/profiles',
-  requirePermission('admin.roles.manage', { needsElevation: true }),
+  requirePermission('admin.roles.manage'),
   asyncHandler(async (req, res) => {
     const slug = String(req.body?.slug || '')
       .trim()
@@ -356,7 +350,7 @@ router.post(
 
 router.post(
   '/profiles/:id/duplicate',
-  requirePermission('admin.roles.manage', { needsElevation: true }),
+  requirePermission('admin.roles.manage'),
   asyncHandler(async (req, res) => {
     const sourceId = parseInt(req.params.id, 10);
     if (!Number.isFinite(sourceId) || sourceId <= 0) {
@@ -439,7 +433,7 @@ router.post(
     }
 
     const sourcePerms = await queryAll(
-      'SELECT permission_key, requires_elevation FROM role_permissions WHERE role_id = ? ORDER BY permission_key ASC',
+      'SELECT permission_key FROM role_permissions WHERE role_id = ? ORDER BY permission_key ASC',
       [sourceId],
     );
     // Ne conserve que les permissions encore presentes au catalogue (resolues en UNE requete au
@@ -457,12 +451,11 @@ router.post(
     }
     const permsToCopy = sourcePerms.filter((row) => validKeys.has(row.permission_key));
     if (permsToCopy.length > 0) {
-      const placeholders = permsToCopy.map(() => '(?, ?, ?)').join(', ');
+      const placeholders = permsToCopy.map(() => '(?, ?)').join(', ');
       const params = [];
-      for (const row of permsToCopy)
-        params.push(newRole.id, row.permission_key, row.requires_elevation ? 1 : 0);
+      for (const row of permsToCopy) params.push(newRole.id, row.permission_key);
       await execute(
-        `INSERT INTO role_permissions (role_id, permission_key, requires_elevation) VALUES ${placeholders}`,
+        `INSERT INTO role_permissions (role_id, permission_key) VALUES ${placeholders}`,
         params,
       );
     }
@@ -475,7 +468,7 @@ router.post(
 
 router.patch(
   '/profiles/:id',
-  requirePermission('admin.roles.manage', { needsElevation: true }),
+  requirePermission('admin.roles.manage'),
   asyncHandler(async (req, res) => {
     const role = await queryOne('SELECT id FROM roles WHERE id = ?', [req.params.id]);
     if (!role) return res.status(404).json({ error: 'Profil introuvable' });
@@ -593,7 +586,7 @@ router.patch(
 
 router.put(
   '/profiles/:id/permissions',
-  requirePermission('admin.roles.manage', { needsElevation: true }),
+  requirePermission('admin.roles.manage'),
   asyncHandler(async (req, res) => {
     const role = await queryOne('SELECT id FROM roles WHERE id = ?', [req.params.id]);
     if (!role) return res.status(404).json({ error: 'Profil introuvable' });
@@ -605,10 +598,10 @@ router.put(
         if (!key) continue;
         const p = await tx.queryOne('SELECT `key` FROM permissions WHERE `key` = ? LIMIT 1', [key]);
         if (!p) continue;
-        await tx.execute(
-          'INSERT INTO role_permissions (role_id, permission_key, requires_elevation) VALUES (?, ?, ?)',
-          [role.id, key, item?.requires_elevation ? 1 : 0],
-        );
+        await tx.execute('INSERT INTO role_permissions (role_id, permission_key) VALUES (?, ?)', [
+          role.id,
+          key,
+        ]);
       }
     });
     logAudit('rbac_update_profile_permissions', 'role', role.id, `permissions=${entries.length}`, {
@@ -618,28 +611,9 @@ router.put(
   }),
 );
 
-router.put(
-  '/profiles/:id/pin',
-  requirePermission('admin.roles.manage', { needsElevation: true }),
-  asyncHandler(async (req, res) => {
-    const role = await queryOne('SELECT id FROM roles WHERE id = ?', [req.params.id]);
-    if (!role) return res.status(404).json({ error: 'Profil introuvable' });
-    const pin = String(req.body?.pin || '').trim();
-    if (!/^\d{4,12}$/.test(pin))
-      return res.status(400).json({ error: 'PIN invalide (4 à 12 chiffres)' });
-    const pinHash = await bcrypt.hash(pin, 10);
-    await execute(
-      'INSERT INTO role_pin_secrets (role_id, pin_hash) VALUES (?, ?) ON DUPLICATE KEY UPDATE pin_hash = VALUES(pin_hash), updated_at = NOW()',
-      [role.id, pinHash],
-    );
-    logAudit('rbac_update_profile_pin', 'role', role.id, 'PIN mis à jour', { req });
-    res.json({ ok: true });
-  }),
-);
-
 router.get(
   '/users',
-  requirePermission('admin.users.assign_roles', { needsElevation: true }),
+  requirePermission('admin.users.assign_roles'),
   asyncHandler(async (req, res) => {
     const users = await queryAll(
       `SELECT u.id, u.user_type,
@@ -677,7 +651,7 @@ router.get(
 
 router.get(
   '/users/:userType/:userId',
-  requirePermission('admin.users.assign_roles', { needsElevation: true }),
+  requirePermission('admin.users.assign_roles'),
   asyncHandler(async (req, res) => {
     const resolved = await resolveRbacSubjectForMutation(req.params.userType, req.params.userId);
     if (!resolved.ok) return res.status(resolved.status).json({ error: resolved.error });
@@ -720,7 +694,7 @@ router.get(
 
 router.patch(
   '/users/:userType/:userId',
-  requirePermission('admin.users.assign_roles', { needsElevation: true }),
+  requirePermission('admin.users.assign_roles'),
   async (req, res) => {
     try {
       const resolved = await resolveRbacSubjectForMutation(req.params.userType, req.params.userId);
@@ -959,7 +933,7 @@ router.patch(
 
 router.put(
   '/users/:userType/:userId/role',
-  requirePermission('admin.users.assign_roles', { needsElevation: true }),
+  requirePermission('admin.users.assign_roles'),
   validate({ body: assignRoleBodySchema }),
   asyncHandler(async (req, res) => {
     const roleId = parseInt(req.body?.role_id, 10);

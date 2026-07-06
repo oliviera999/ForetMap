@@ -212,7 +212,7 @@ router.get(
 
 router.put(
   '/markers/:id/photos/reorder',
-  requirePermission('map.manage_markers', { needsElevation: true }),
+  requirePermission('map.manage_markers'),
   validate({ body: reorderMarkerPhotosBodySchema }),
   asyncHandler(async (req, res) => {
     const markerId = String(req.params.id || '').trim();
@@ -253,7 +253,7 @@ router.put(
 
 router.post(
   '/markers/:id/photos',
-  requirePermission('map.manage_markers', { needsElevation: true }),
+  requirePermission('map.manage_markers'),
   validate({ body: addMarkerPhotoBodySchema }),
   asyncHandler(async (req, res) => {
     let photoId = null;
@@ -291,7 +291,7 @@ router.post(
 
 router.delete(
   '/markers/:id/photos/:pid',
-  requirePermission('map.manage_markers', { needsElevation: true }),
+  requirePermission('map.manage_markers'),
   asyncHandler(async (req, res) => {
     const m = await queryOne('SELECT map_id FROM map_markers WHERE id = ?', [req.params.id]);
     const p = await queryOne('SELECT image_path FROM marker_photos WHERE id=? AND marker_id=?', [
@@ -338,7 +338,7 @@ router.get(
 
 router.post(
   '/markers',
-  requirePermission('map.manage_markers', { needsElevation: true }),
+  requirePermission('map.manage_markers'),
   asyncHandler(async (req, res) => {
     const { x_pct, y_pct, label, plant_name, living_beings, note, emoji, map_id, species_ids } =
       req.body;
@@ -381,7 +381,7 @@ router.post(
 
 router.put(
   '/markers/:id',
-  requirePermission('map.manage_markers', { needsElevation: true }),
+  requirePermission('map.manage_markers'),
   asyncHandler(async (req, res) => {
     const m = await queryOne('SELECT * FROM map_markers WHERE id = ?', [req.params.id]);
     if (!m) return res.status(404).json({ error: 'Repère introuvable' });
@@ -448,21 +448,23 @@ router.put(
 
 router.delete(
   '/markers/:id',
-  requirePermission('map.manage_markers', { needsElevation: true }),
+  requirePermission('map.manage_markers'),
   asyncHandler(async (req, res) => {
     const m = await queryOne('SELECT * FROM map_markers WHERE id = ?', [req.params.id]);
     if (!m) return res.status(404).json({ error: 'Repère introuvable' });
     const photos = await queryAll('SELECT image_path FROM marker_photos WHERE marker_id = ?', [
       req.params.id,
     ]);
+    await withTransaction(async (tx) => {
+      await tx.execute('DELETE FROM marker_photos WHERE marker_id = ?', [req.params.id]);
+      await tx.execute('DELETE FROM map_markers WHERE id = ?', [req.params.id]);
+      // La couche visite partage le même id : on retire la cible visite « fantôme »
+      // (ligne, médias, progression) dans la même transaction que la suppression carte.
+      await deleteVisitTargetCascade('marker', req.params.id, tx);
+    });
     for (const p of photos) {
       if (p && p.image_path) deleteMapPhotoMainAndThumb(p.image_path);
     }
-    await execute('DELETE FROM marker_photos WHERE marker_id = ?', [req.params.id]);
-    await execute('DELETE FROM map_markers WHERE id = ?', [req.params.id]);
-    // La couche visite partage le même id : on retire la cible visite « fantôme »
-    // (ligne, médias, progression) pour qu'elle ne survive pas à la suppression carte.
-    await deleteVisitTargetCascade('marker', req.params.id);
     emitGardenChanged({ reason: 'delete_marker', markerId: req.params.id, mapId: m.map_id });
     res.json({ success: true });
   }),

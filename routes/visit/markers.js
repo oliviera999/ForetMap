@@ -5,7 +5,7 @@
 // N'importe AUCUN symbole de visit.js (zéro import circulaire) — uniquement lib/, database, middleware.
 const express = require('express');
 const crypto = require('node:crypto');
-const { queryOne, execute } = require('../../database');
+const { queryOne, execute, withTransaction } = require('../../database');
 const { requirePermission } = require('../../middleware/requireTeacher');
 const asyncHandler = require('../../lib/asyncHandler');
 const { deleteVisitTargetCascade } = require('../../lib/visitTargetCleanup');
@@ -22,7 +22,7 @@ const router = express.Router();
 
 router.post(
   '/markers',
-  requirePermission('visit.manage', { needsElevation: true }),
+  requirePermission('visit.manage'),
   asyncHandler(async (req, res) => {
     const mapId = await resolveVisitMapId(req.body.map_id);
     const label = String(req.body.label || '').trim();
@@ -64,7 +64,7 @@ router.post(
 
 router.put(
   '/markers/:id',
-  requirePermission('visit.manage', { needsElevation: true }),
+  requirePermission('visit.manage'),
   asyncHandler(async (req, res) => {
     const markerId = String(req.params.id || '').trim();
     if (!markerId) return res.status(400).json({ error: 'Repère invalide' });
@@ -141,11 +141,11 @@ router.put(
 
 router.delete(
   '/markers/:id',
-  requirePermission('visit.manage', { needsElevation: true }),
+  requirePermission('visit.manage'),
   asyncHandler(async (req, res) => {
     const markerId = String(req.params.id || '').trim();
     if (!markerId) return res.status(400).json({ error: 'Repère invalide' });
-    await deleteVisitTargetCascade('marker', markerId);
+    await withTransaction((tx) => deleteVisitTargetCascade('marker', markerId, tx));
     res.json({ ok: true });
   }),
 );

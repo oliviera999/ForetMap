@@ -493,7 +493,7 @@ router.post(
 
 router.put(
   '/tutorials',
-  requirePermission('visit.manage', { needsElevation: true }),
+  requirePermission('visit.manage'),
   asyncHandler(async (req, res) => {
     const mapId = await resolveVisitMapId(req.body.map_id);
     if (!mapId) return res.status(400).json({ error: 'map_id requis' });

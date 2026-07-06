@@ -334,53 +334,35 @@ describe('taskAuthzHelpers — contrôles d’accès purs', () => {
     assert.equal(canReadAllAssignments(null), false);
   });
 
-  it('canManageTasks / canValidateTasks : élévation requise sauf admin natif', () => {
-    assert.equal(canManageTasks({ permissions: ['tasks.manage'], elevated: true }), true);
-    assert.equal(
-      canManageTasks({ permissions: ['tasks.manage'], elevated: false, roleSlug: 'prof' }),
-      false,
-    );
+  it('canManageTasks / canValidateTasks : selon la présence de la permission', () => {
+    assert.equal(canManageTasks({ permissions: ['tasks.manage'] }), true);
+    assert.equal(canManageTasks({ permissions: [] }), false);
     assert.equal(canManageTasks({ permissions: ['tasks.manage'], roleSlug: 'admin' }), true);
-    assert.equal(canValidateTasks({ permissions: ['tasks.validate'], elevated: true }), true);
-    assert.equal(canValidateTasks({ permissions: [], elevated: true }), false);
+    assert.equal(canValidateTasks({ permissions: ['tasks.validate'] }), true);
+    assert.equal(canValidateTasks({ permissions: [] }), false);
   });
 
   it('assertCanTeacherSetTaskStatus : validated exige tasks.validate', () => {
     assert.deepEqual(
-      assertCanTeacherSetTaskStatus(
-        { permissions: ['tasks.validate'], elevated: true },
-        'validated',
-      ),
+      assertCanTeacherSetTaskStatus({ permissions: ['tasks.validate'] }, 'validated'),
       { ok: true },
     );
-    const elevNeeded = assertCanTeacherSetTaskStatus(
-      { permissions: [], elevatedPermissions: ['tasks.validate'] },
-      'validated',
-    );
-    assert.deepEqual(elevNeeded, { ok: false, status: 403, error: 'Élévation PIN requise' });
     const refused = assertCanTeacherSetTaskStatus({ permissions: [] }, 'validated');
     assert.deepEqual(refused, { ok: false, status: 403, error: 'Permission insuffisante' });
   });
 
   it('assertCanTeacherSetTaskStatus : autres statuts exigent tasks.manage', () => {
-    assert.deepEqual(
-      assertCanTeacherSetTaskStatus({ permissions: ['tasks.manage'], elevated: true }, 'done'),
-      { ok: true },
-    );
-    const elevNeeded = assertCanTeacherSetTaskStatus(
-      { permissions: [], elevatedPermissions: ['tasks.manage'] },
-      'in_progress',
-    );
-    assert.deepEqual(elevNeeded, { ok: false, status: 403, error: 'Élévation PIN requise' });
+    assert.deepEqual(assertCanTeacherSetTaskStatus({ permissions: ['tasks.manage'] }, 'done'), {
+      ok: true,
+    });
+    const refused = assertCanTeacherSetTaskStatus({ permissions: [] }, 'in_progress');
+    assert.deepEqual(refused, { ok: false, status: 403, error: 'Permission insuffisante' });
     assert.equal(assertCanTeacherSetTaskStatus({ permissions: [] }, 'done').ok, false);
   });
 
-  it('canRunTeacherStyleTaskStudentAction : manage élevé ou tasks.validate brut', () => {
+  it('canRunTeacherStyleTaskStudentAction : tasks.manage ou tasks.validate', () => {
     assert.equal(canRunTeacherStyleTaskStudentAction(null), false);
-    assert.equal(
-      canRunTeacherStyleTaskStudentAction({ permissions: ['tasks.manage'], elevated: true }),
-      true,
-    );
+    assert.equal(canRunTeacherStyleTaskStudentAction({ permissions: ['tasks.manage'] }), true);
     assert.equal(canRunTeacherStyleTaskStudentAction({ permissions: ['tasks.validate'] }), true);
     assert.equal(
       canRunTeacherStyleTaskStudentAction({ permissions: ['tasks.assign_self'] }),

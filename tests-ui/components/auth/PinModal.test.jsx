@@ -9,39 +9,18 @@ describe('PinModal', () => {
     window.localStorage.clear();
   });
 
-  test('affiche la modale n3boss avec les onglets PIN et Email', () => {
+  test('affiche la modale de connexion n3boss (login e-mail direct, plus d’onglet PIN)', () => {
     render(<PinModal onSuccess={vi.fn()} onClose={vi.fn()} />);
-    expect(screen.getByRole('dialog', { name: 'Mode n3boss' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'PIN' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Email' })).toBeInTheDocument();
-    expect(screen.getByLabelText('Code PIN')).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Connexion n3boss' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'PIN' })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Code PIN')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Email n3boss')).toBeInTheDocument();
+    expect(screen.getByLabelText('Mot de passe')).toBeInTheDocument();
   });
 
-  test('PIN vide : message « Code requis » sans appel réseau', async () => {
-    const fetchSpy = vi.fn();
-    vi.stubGlobal('fetch', fetchSpy);
+  test('login : champs identifiants + réinitialisation, email vide → « Email et mot de passe requis »', async () => {
     const user = userEvent.setup();
     render(<PinModal onSuccess={vi.fn()} onClose={vi.fn()} />);
-    await user.click(screen.getByRole('button', { name: 'Entrer' }));
-    expect(screen.getByText('Code requis')).toBeInTheDocument();
-    expect(fetchSpy).not.toHaveBeenCalled();
-  });
-
-  test('PIN saisi sans session : demande de se connecter d’abord', async () => {
-    const fetchSpy = vi.fn();
-    vi.stubGlobal('fetch', fetchSpy);
-    const user = userEvent.setup();
-    render(<PinModal onSuccess={vi.fn()} onClose={vi.fn()} />);
-    await user.type(screen.getByLabelText('Code PIN'), '1234');
-    await user.click(screen.getByRole('button', { name: 'Entrer' }));
-    expect(screen.getByText('Connecte-toi d’abord avant d’entrer ton code')).toBeInTheDocument();
-    expect(fetchSpy).not.toHaveBeenCalled();
-  });
-
-  test('onglet Email : champs identifiants + réinitialisation, email vide → « Email et mot de passe requis »', async () => {
-    const user = userEvent.setup();
-    render(<PinModal onSuccess={vi.fn()} onClose={vi.fn()} />);
-    await user.click(screen.getByRole('button', { name: 'Email' }));
     expect(screen.getByLabelText('Email n3boss')).toBeInTheDocument();
     expect(screen.getByLabelText('Mot de passe')).toBeInTheDocument();
     expect(

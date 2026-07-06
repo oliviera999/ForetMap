@@ -16,9 +16,6 @@ function setup(overrides = {}) {
     roleEmoji: '🌿',
     onRoleEmojiChange: vi.fn(),
     onSaveEmoji: vi.fn(),
-    pin: '',
-    onPinChange: vi.fn(),
-    onSavePin: vi.fn(),
     loading: false,
     roleTerms: { studentSingular: 'n3beur' },
     ...overrides,
@@ -53,12 +50,10 @@ describe('ProfilesRoleQuickConfig', () => {
     expect(screen.getByText(/Optionnel pour les autres profils/)).toBeInTheDocument();
   });
 
-  test('PIN : saisie et enregistrement câblés', () => {
-    const { onPinChange, onSavePin } = setup();
-    fireEvent.change(screen.getByPlaceholderText('Nouveau PIN'), { target: { value: '1234' } });
-    expect(onPinChange).toHaveBeenCalledWith('1234');
-    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer PIN' }));
-    expect(onSavePin).toHaveBeenCalledTimes(1);
+  test('aucun champ PIN (élévation supprimée)', () => {
+    setup();
+    expect(screen.queryByPlaceholderText('Nouveau PIN')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Enregistrer PIN' })).toBeNull();
   });
 
   test('loading désactive les enregistrements emoji', () => {

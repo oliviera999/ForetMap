@@ -14,6 +14,49 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   narratif), leur ancrage aux ressources, les trois voies d'accès élève (marqueur de carte,
   dé/modale, hors partie) et le backbone commun de rattachement/gating.
 
+### Ajout — verrou de re-tentative (cooldown) sur la validation par QCM
+
+- **Comportement.** Après une **mauvaise réponse** à une question bloquante **pendant le flux
+  « Marquer comme acquis/lu/appris »**, la **ressource entière** est **verrouillée pendant N jours**
+  (réglage, défaut **3**) : toute nouvelle tentative de validation est refusée (**403**) tant que le
+  verrou court, même si toutes les questions sont ensuite réussies. Le quiz libre et le jeu GL ne
+  déclenchent jamais le verrou (le déclenchement dépend d'un contexte ressource transmis avec la
+  réponse, propre au flux de validation). Applicable **ForetMap + GL**.
+- **Base de données** : migration `165_learning_gating_cooldown` — tables miroirs
+  `resource_gating_cooldowns` (FM, clé `user_id`) et `gl_resource_gating_cooldowns` (GL, clé lecteur),
+  colonne `locked_until`.
+- **Réglages** : `learning.gating.retry_cooldown_days` (FM, `app_settings`, scope prof, 0–365, def. 3)
+  et `gating.retry_cooldown_days` (GL, `gl_settings`) — `0` = verrou désactivé.
+- **Backend** : `lib/learningGatingCooldown.js` (helpers) ; le challenge et les réponses d'accusé
+  exposent un bloc `cooldown: { locked, locked_until, retry_days, remaining_days }` ; les routes de
+  réponse QCM (`/api/quiz/.../answer`, `/api/gl/qcm/.../answer`, `/api/gl/lore/qcm/.../answer`)
+  acceptent un contexte ressource optionnel et posent le verrou sur erreur.
+- **Front** : le panneau de quiz gating affiche « réessaie dans N jours » au lieu de « Réessayer » en
+  cas d'erreur verrouillante, et le bouton d'accusé montre un écran de verrou si la ressource est déjà
+  verrouillée à l'ouverture.
+
+### Changement majeur — suppression de l’élévation par PIN
+
+- **Fin du « mode sudo » par PIN.** Un utilisateur connecté possède désormais **directement**
+  toutes les permissions de son rôle : la dimension d’élévation (PIN de profil, session « élevée »)
+  est entièrement retirée. Le RBAC (rôles + permissions + création dynamique de profils) est conservé.
+- **Backend** : `hasPermission`/`requirePermission` n’ont plus de notion d’élévation ;
+  `buildAuthzPayload` accorde toutes les permissions du rôle ; suppression de `verifyRolePin`,
+  `hashPin`, du seed PIN `1234`, de `requireTeacherElevated` et de l’option `{ needsElevation }`
+  sur ~80 routes. Les endpoints **`POST /api/auth/elevate`** et **`POST /api/auth/teacher`**
+  renvoient désormais **410 Gone**.
+- **Base de données** : migration `164_drop_pin_elevation_system` — suppression des tables
+  `role_pin_secrets` et `elevation_audit` et de la colonne `role_permissions.requires_elevation`.
+- **Front** : la modale « Mode prof » devient une **connexion professeur** (e-mail/mot de passe,
+  reset, Google) ; suppression du bouton cadenas d’élévation, de la colonne « PIN » de l’admin
+  des profils et du champ PIN de profil. Le bouton d’en-tête ouvre la connexion prof (🔑).
+- **Réglages/env** : suppression des réglages `security.allow_pin_elevation` et
+  `security.jwt_ttl_elevated_seconds`, de la variable `TEACHER_PIN` et du script
+  `db:reset:role-pins:local`. La sécurité « appareil partagé » repose désormais sur la durée de
+  session standard (`security.jwt_ttl_base_seconds`).
+- **Effet métier** : le profil `eleve_chevronne` peut proposer des tâches (`tasks.propose`) sans
+  PIN ; tout profil dynamique dont une permission était « à élévation » l’obtient directement.
+  Le profil `prof` est inchangé en pratique (il était déjà `nativePrivileged`, donc sans PIN).
 ### Sécurité — Audit de code (bugs, incohérences, logique)
 
 - **GL — élévation MJ → Admin** : `getGlRolePermissions('mj')` accordait les mêmes
@@ -681,7 +724,8 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   campus : 12 zones nommées d'après le plan réel (Bâtiments G, D, S, M, I, L, K, H + Salle
   Delacroix, Infirmerie, CDI, Vie scolaire), polygones en quads suivant l'inclinaison du quartier
   (au lieu des rectangles génériques de la 1re passe). Ids parlants (`lyautey-bat-g`,
-  `lyautey-cdi`…) ; l'import supprime au passage les anciens `lyautey-bat-01..12`.
+  `lyautey-cdi`…) ; par sécurité, l'import ne remplace pas automatiquement les anciens
+  `lyautey-bat-01..12` s'ils existent déjà, car ils peuvent porter des liens métier.
 - ⚠ Les coordonnées (`{xp,yp}`, %) sont relatives au **cadrage de l'image OSM** : le fond de la
   carte `lyautey` doit être cette image pour que les zones s'alignent (sinon re-mapper).
 
@@ -708,6 +752,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
   `visit_seen_anonymous`). Logique de nettoyage factorisée dans **`lib/visitTargetCleanup.js`**
   (`deleteVisitTargetCascade`), réutilisée par les suppressions côté visite (`routes/visit/zones.js`,
   `routes/visit/markers.js`) — source unique, plus de duplication.
+- **Robustesse** : les suppressions carte + couche visite sont exécutées dans une même transaction
+  SQL, afin d'éviter une zone/repère supprimé côté carte mais un nettoyage visite partiellement
+  appliqué en cas d'erreur BDD.
 - Pour réaligner d'un coup une visite déjà désynchronisée (renommages/déplacements antérieurs),
   l'outil prof **« Tout réaligner sur la carte »** (`POST /api/visit/rebuild-from-map`) reste la voie
   recommandée (textes/médias conservés par `id`).

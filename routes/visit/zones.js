@@ -5,7 +5,7 @@
 // N'importe AUCUN symbole de visit.js (zéro import circulaire) — uniquement lib/, database, middleware.
 const express = require('express');
 const crypto = require('node:crypto');
-const { queryOne, execute } = require('../../database');
+const { queryOne, execute, withTransaction } = require('../../database');
 const { requirePermission } = require('../../middleware/requireTeacher');
 const asyncHandler = require('../../lib/asyncHandler');
 const { deleteVisitTargetCascade } = require('../../lib/visitTargetCleanup');
@@ -21,7 +21,7 @@ const router = express.Router();
 
 router.post(
   '/zones',
-  requirePermission('visit.manage', { needsElevation: true }),
+  requirePermission('visit.manage'),
   asyncHandler(async (req, res) => {
     const mapId = await resolveVisitMapId(req.body.map_id);
     const name = String(req.body.name || '').trim();
@@ -60,7 +60,7 @@ router.post(
 
 router.put(
   '/zones/:id',
-  requirePermission('visit.manage', { needsElevation: true }),
+  requirePermission('visit.manage'),
   asyncHandler(async (req, res) => {
     const zoneId = String(req.params.id || '').trim();
     if (!zoneId) return res.status(400).json({ error: 'Zone invalide' });
@@ -132,11 +132,11 @@ router.put(
 
 router.delete(
   '/zones/:id',
-  requirePermission('visit.manage', { needsElevation: true }),
+  requirePermission('visit.manage'),
   asyncHandler(async (req, res) => {
     const zoneId = String(req.params.id || '').trim();
     if (!zoneId) return res.status(400).json({ error: 'Zone invalide' });
-    await deleteVisitTargetCascade('zone', zoneId);
+    await withTransaction((tx) => deleteVisitTargetCascade('zone', zoneId, tx));
     res.json({ ok: true });
   }),
 );

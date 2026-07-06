@@ -266,117 +266,83 @@ async function loginByIdentifier(page, identifier, password) {
   await dismissDiscoveryTourIfPresent(page);
 }
 
-async function enableTeacherMode(
-  page,
-  pin = process.env.E2E_ELEVATION_PIN || process.env.TEACHER_PIN || '1234',
-  options = {},
-) {
-  const { pinCardAlreadyOpen = false } = options;
-  /* La promo « nouveau palier » recouvre l'en-tête ; la désactiver avant le cadenas évite des PIN bloqués ou une 2e élévation lente. */
+/**
+ * Passe l'application en « mode professeur ». L'élévation par PIN a été supprimée : on se connecte
+ * désormais avec un vrai compte professeur (admin de test) via la modale « Connexion professeur »
+ * ouverte par le bouton 🔑 de l'en-tête. La signature reste stable (2ᵉ/3ᵉ arguments ignorés) pour
+ * ne pas toucher les nombreux specs appelants.
+ */
+async function enableTeacherMode(page, _legacyPin, _legacyOptions = {}) {
+  const teacherEmail = process.env.TEACHER_ADMIN_EMAIL || 'admin.test@foretmap.local';
+  const teacherPassword = process.env.TEACHER_ADMIN_PASSWORD || 'admin1234';
   await dismissProfilePromotionModalIfPresent(page);
   await dismissDiscoveryTourIfPresent(page);
   await page.locator('header').waitFor({ state: 'visible', timeout: 25_000 });
-  const lockBtn = page.locator('header button.lock-btn[aria-label*="droits étendus"]').first();
-  await lockBtn.waitFor({ state: 'attached', timeout: 25_000 });
-  const lockLabel = await lockBtn.getAttribute('aria-label');
-  if (String(lockLabel || '').includes('Désactiver')) {
-    await page.locator('.teacher-main .top-tabs').waitFor({ state: 'attached', timeout: 45_000 });
+
+  // Déjà en session professeur (JWT teacher.access) : rien à faire.
+  const alreadyTeacher = await page.evaluate(() => {
+    try {
+      const raw = localStorage.getItem('foretmap_session') || '';
+      const token = raw ? JSON.parse(raw)?.token : null;
+      if (!token || String(token).split('.').length < 2) return false;
+      const b64 = String(token).split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+      const pad = '='.repeat((4 - (b64.length % 4)) % 4);
+      const json = JSON.parse(atob(b64 + pad));
+      return Array.isArray(json.permissions) && json.permissions.includes('teacher.access');
+    } catch (_) {
+      return false;
+    }
+  });
+  if (!alreadyTeacher) {
+    const loginBtn = page
+      .locator('header button.lock-btn[aria-label="Connexion professeur"]')
+      .first();
+    await loginBtn.waitFor({ state: 'attached', timeout: 25_000 });
+    await loginBtn.scrollIntoViewIfNeeded().catch(() => {});
+    await loginBtn.evaluate((el) => el.click());
+    await page.locator('.pin-card').waitFor({ state: 'visible', timeout: 25_000 });
+    await page.getByLabel('Email n3boss').fill(teacherEmail);
+    await page.getByLabel('Mot de passe').fill(teacherPassword);
+    const [loginResp] = await Promise.all([
+      page.waitForResponse(
+        (r) => r.url().includes('/api/auth/login') && r.request().method() === 'POST',
+        { timeout: 90_000 },
+      ),
+      page
+        .locator('.pin-card')
+        .getByRole('button', { name: 'Se connecter' })
+        .click({ force: true }),
+    ]);
+    if (!loginResp.ok()) {
+      const snippet = await loginResp.text().catch(() => '');
+      throw new Error(
+        `Connexion professeur e2e refusée (HTTP ${loginResp.status()}). Vérifier TEACHER_ADMIN_EMAIL / TEACHER_ADMIN_PASSWORD. ${snippet.slice(0, 240)}`,
+      );
+    }
     await page
-      .locator('.teacher-main .loader')
-      .waitFor({ state: 'hidden', timeout: 90_000 })
-      .catch(() => {});
-    return;
-  }
-  if (!pinCardAlreadyOpen) {
-    await lockBtn.scrollIntoViewIfNeeded().catch(() => {});
-    await lockBtn.evaluate((el) => {
-      el.click();
-    });
-    await page.locator('.pin-card .pin-input').waitFor({ state: 'visible', timeout: 25_000 });
-  }
-  await page.locator('.pin-card .pin-input').fill(pin);
-  await dismissProfilePromotionModalIfPresent(page);
-  const [elevateResp] = await Promise.all([
-    page.waitForResponse(
-      (r) => r.url().includes('/api/auth/elevate') && r.request().method() === 'POST',
-      { timeout: 90_000 },
-    ),
-    page
       .locator('.pin-card')
-      .getByRole('button', { name: 'Entrer', exact: true })
-      .click({ force: true }),
-  ]);
-  if (!elevateResp.ok()) {
-    const snippet = await elevateResp.text().catch(() => '');
-    throw new Error(
-      `Élévation PIN refusée (HTTP ${elevateResp.status()}). Vérifier E2E_ELEVATION_PIN / TEACHER_PIN et le PIN du rôle en BDD. ${snippet.slice(0, 240)}`,
-    );
+      .waitFor({ state: 'detached', timeout: 30_000 })
+      .catch(() => {});
   }
-  /* La modale PIN se ferme dans le même tick que `setAuthClaims` : attendre le retrait du DOM évite une course avec le bouton « Désactiver ». */
-  await page
-    .locator('.pin-card')
-    .waitFor({ state: 'detached', timeout: 30_000 })
-    .catch(() => {});
+
   await dismissProfilePromotionModalIfPresent(page);
-  /* Attendre le JWT élevé dans le stockage (race validateStudentSession / merge auth). */
+  // Attendre un JWT professeur en stockage (teacher.access).
   await page.waitForFunction(
     () => {
       try {
-        const pick = () => {
-          try {
-            const raw = localStorage.getItem('foretmap_session');
-            if (raw) {
-              const p = JSON.parse(raw);
-              if (typeof p?.token === 'string' && p.token.split('.').length >= 2) return p.token;
-            }
-          } catch (_) {
-            /* ignore */
-          }
-          try {
-            const sr = localStorage.getItem('foretmap_student');
-            if (sr) {
-              const s = JSON.parse(sr);
-              if (typeof s?.authToken === 'string' && s.authToken.split('.').length >= 2)
-                return s.authToken;
-            }
-          } catch (_) {
-            /* ignore */
-          }
-          return (
-            localStorage.getItem('foretmap_auth_token') ||
-            localStorage.getItem('foretmap_teacher_token')
-          );
-        };
-        const t = pick();
-        if (!t || String(t).split('.').length < 2) return false;
-        const b64 = String(t).split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+        const raw = localStorage.getItem('foretmap_session') || '';
+        const token = raw ? JSON.parse(raw)?.token : null;
+        if (!token || String(token).split('.').length < 2) return false;
+        const b64 = String(token).split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
         const pad = '='.repeat((4 - (b64.length % 4)) % 4);
         const json = JSON.parse(atob(b64 + pad));
-        return (
-          json.elevated === true &&
-          Array.isArray(json.permissions) &&
-          json.permissions.includes('teacher.access')
-        );
+        return Array.isArray(json.permissions) && json.permissions.includes('teacher.access');
       } catch (_) {
         return false;
       }
     },
     null,
     { timeout: 90_000 },
-  );
-  /* Le JWT est en LS avant la réconciliation React du cadenas : attendre le DOM, sans Promise.race
-     (le premier waitFor en échec faisait échouer toute la course). */
-  await page.waitForFunction(
-    () => {
-      /* Plusieurs `lock-btn` dans l’en-tête (profil, vues rôle, déconnexion) : cibler uniquement l’élévation. */
-      const btn = document.querySelector('header button.lock-btn[aria-label*="droits étendus"]');
-      if (!btn) return false;
-      if (btn.classList.contains('active')) return true;
-      const aria = String(btn.getAttribute('aria-label') || '');
-      return aria.includes('Désactiver');
-    },
-    null,
-    { timeout: 45_000 },
   );
   await dismissProfilePromotionModalIfPresent(page);
   await page.locator('.teacher-main .top-tabs').waitFor({ state: 'attached', timeout: 45_000 });
@@ -386,46 +352,15 @@ async function enableTeacherMode(
     .catch(() => {});
 }
 
+/**
+ * Quitte le « mode professeur ». Il n'y a plus de désélévation (session unique) : on se déconnecte
+ * pour revenir à l'écran d'authentification. La signature reste stable pour les specs appelants.
+ */
 async function disableTeacherMode(page) {
   if (page.isClosed()) {
     throw new Error('Page fermée avant disableTeacherMode');
   }
-  const lockBtn = page.locator('header button.lock-btn[aria-label*="droits étendus"]').first();
-  const lockLabel = String((await lockBtn.getAttribute('aria-label').catch(() => '')) || '');
-  if (lockLabel.includes('Désactiver')) {
-    await dismissProfilePromotionModalIfPresent(page);
-    await lockBtn.click({ force: true, timeout: 15_000 }).catch(() => {
-      return lockBtn.evaluate((el) => {
-        el.click();
-      });
-    });
-    await page
-      .waitForFunction(
-        () => {
-          const btn = document.querySelector(
-            'header button.lock-btn[aria-label*="droits étendus"]',
-          );
-          if (!btn) return false;
-          const aria = String(btn.getAttribute('aria-label') || '');
-          return aria.includes('Activer');
-        },
-        null,
-        { timeout: 25_000 },
-      )
-      .catch(() => {});
-  }
-  /* Après élévation, TasksView prof peut laisser `student` incohérent : recharger réaligne la session élève. */
-  const meWait = page.waitForResponse(
-    (r) => r.url().includes('/api/auth/me') && r.request().method() === 'GET' && r.ok(),
-    { timeout: 60_000 },
-  );
-  await page.reload({ waitUntil: 'domcontentloaded' });
-  await page
-    .getByRole('button', { name: /Déconnexion/ })
-    .waitFor({ state: 'visible', timeout: 60_000 });
-  await meWait.catch(() => {});
-  await syncStudentSessionToken(page);
-  await dismissProfilePromotionModalIfPresent(page);
+  await logoutToAuth(page).catch(() => {});
 }
 
 /** Réaligne token + profil élève après désélévation (JWT / localStorage / droits tâches). */
@@ -1214,18 +1149,8 @@ async function createTeacherTask(page, taskTitle, options = {}) {
 async function clickTeacherNewTask(page) {
   await dismissProfilePromotionModalIfPresent(page);
   await dismissDiscoveryTourIfPresent(page);
-  const elevated =
-    (await page
-      .locator('header button.lock-btn.active')
-      .isVisible()
-      .catch(() => false)) ||
-    (await page
-      .getByRole('button', { name: 'Désactiver les droits étendus' })
-      .isVisible()
-      .catch(() => false));
-  if (!elevated) {
-    await enableTeacherMode(page);
-  }
+  // `enableTeacherMode` est idempotent : no-op si déjà en session professeur.
+  await enableTeacherMode(page);
   await openTeacherTasksTab(page);
   const dlg = page
     .locator(

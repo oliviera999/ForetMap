@@ -71,8 +71,7 @@ description: Centralise les conventions BDD ForetMap (schéma MySQL, migrations,
 - Le script reconstruit d'abord `DB_NAME` (`DROP DATABASE` + `CREATE DATABASE`) puis importe le SQL en multi-statements.
 - Enchaîner avec `npm run db:migrate` pour rattraper les migrations éventuelles absentes du dump.
 - **Ne jamais versionner** le dump (données réelles / PII).
-- Après import, le PIN effectif est stocké dans `role_pin_secrets` : `TEACHER_PIN` seul ne suffit pas.
-- Pour réaligner le local sur `.env`, utiliser `npm run db:reset:role-pins:local` (puis `npm run db:seed:teacher` si besoin d'un compte prof connu).
+- L’élévation par PIN a été supprimée (plus de table `role_pin_secrets`) : un compte prof connecté a directement les droits de son rôle. Pour un compte prof local connu, utiliser `npm run db:seed:teacher`.
 
 ## Voir aussi
 

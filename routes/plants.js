@@ -228,6 +228,7 @@ router.post(
         return res.status(gating.status || 403).json({
           error: gating.error,
           missing_question_codes: gating.missing_question_codes || [],
+          cooldown: gating.cooldown,
         });
       }
 
@@ -266,7 +267,7 @@ router.post(
 
 router.post(
   '/:id/photo-upload',
-  requirePermission('plants.manage', { needsElevation: true }),
+  requirePermission('plants.manage'),
   asyncHandler(async (req, res) => {
     const plant = await queryOne('SELECT * FROM plants WHERE id = ?', [req.params.id]);
     if (!plant) return res.status(404).json({ error: 'Plante introuvable' });
@@ -306,7 +307,7 @@ router.post(
 
 router.post(
   '/import',
-  requirePermission('plants.manage', { needsElevation: true }),
+  requirePermission('plants.manage'),
   asyncHandler(async (req, res) => {
     const strategy = asTrimmedString(req.body?.strategy) || 'upsert_name';
     const dryRun = !!req.body?.dryRun;
@@ -516,121 +517,113 @@ router.get(
   }),
 );
 
-router.get(
-  '/autofill',
-  requirePermission('plants.manage', { needsElevation: true }),
-  async (req, res) => {
-    try {
-      const query = asTrimmedString(req.query?.q);
-      if (!query || query.length < 2) {
-        return res.status(400).json({ error: 'Paramètre q requis (min 2 caractères)' });
-      }
-      if (query.length > 120) {
-        return res.status(400).json({ error: 'Paramètre q trop long (max 120 caractères)' });
-      }
-
-      const hintScientific = asTrimmedString(req.query?.hint_scientific).slice(0, 120);
-      const hintName = asTrimmedString(req.query?.hint_name).slice(0, 120);
-      const sourcesAllowed = parseAutofillSourcesQueryParam(req.query?.sources);
-      const sourcesFp = sourcesAllowedCacheFingerprint(sourcesAllowed);
-      const openAiOnlyRequest = !!(
-        sourcesAllowed instanceof Set &&
-        sourcesAllowed.size === 1 &&
-        sourcesAllowed.has('openai')
-      );
-      const hasAutofillFields = (payload) =>
-        Object.keys(payload?.fields || {}).some(
-          (key) => asTrimmedString(payload?.fields?.[key]).length > 0,
-        );
-
-      const hintsPart = `${hintScientific.toLowerCase()}\x1e${hintName.toLowerCase()}`;
-      const cacheKey = crypto
-        .createHash('sha256')
-        .update(`${query.toLowerCase()}\x1e${hintsPart}\x1e${sourcesFp}`)
-        .digest('hex')
-        .slice(0, 48);
-      const cached = plantsAutofillCache.get(cacheKey);
-      if (cached && !(openAiOnlyRequest && !hasAutofillFields(cached))) return res.json(cached);
-
-      /** Budget global wall-clock (évite 503 HTML des proxies si Wikidata + sources s’enchaînent trop longtemps). */
-      const hints = {};
-      if (hintScientific) hints.scientific_name = hintScientific;
-      if (hintName) hints.name = hintName;
-      const payload = await buildSpeciesAutofill(query, { budgetMs: 12000, hints, sourcesAllowed });
-      const photoValidationPayload = {};
-      for (const photo of payload?.photos || []) {
-        if (!PHOTO_FIELDS.includes(photo.field)) continue;
-        if (photoValidationPayload[photo.field]) {
-          photoValidationPayload[photo.field] += `\n${photo.url}`;
-        } else {
-          photoValidationPayload[photo.field] = photo.url;
-        }
-      }
-      const photoErr = validateHttpsPhotoLinks(photoValidationPayload);
-      if (photoErr) {
-        payload.warnings = Array.from(
-          new Set([...(payload.warnings || []), `Photos filtrées: ${photoErr}`]),
-        );
-        payload.photos = [];
-      }
-      // Évite de figer 10 min un « 0% » quand la requête est OpenAI-only et vide.
-      if (!(openAiOnlyRequest && !hasAutofillFields(payload))) {
-        plantsAutofillCache.set(cacheKey, payload);
-      }
-      res.json(payload);
-    } catch (e) {
-      logRouteError(e, req, 'Pré-saisie biodiversité externe en échec');
-      res.status(502).json({ error: 'Impossible de récupérer une pré-saisie pour le moment' });
+router.get('/autofill', requirePermission('plants.manage'), async (req, res) => {
+  try {
+    const query = asTrimmedString(req.query?.q);
+    if (!query || query.length < 2) {
+      return res.status(400).json({ error: 'Paramètre q requis (min 2 caractères)' });
     }
-  },
-);
+    if (query.length > 120) {
+      return res.status(400).json({ error: 'Paramètre q trop long (max 120 caractères)' });
+    }
+
+    const hintScientific = asTrimmedString(req.query?.hint_scientific).slice(0, 120);
+    const hintName = asTrimmedString(req.query?.hint_name).slice(0, 120);
+    const sourcesAllowed = parseAutofillSourcesQueryParam(req.query?.sources);
+    const sourcesFp = sourcesAllowedCacheFingerprint(sourcesAllowed);
+    const openAiOnlyRequest = !!(
+      sourcesAllowed instanceof Set &&
+      sourcesAllowed.size === 1 &&
+      sourcesAllowed.has('openai')
+    );
+    const hasAutofillFields = (payload) =>
+      Object.keys(payload?.fields || {}).some(
+        (key) => asTrimmedString(payload?.fields?.[key]).length > 0,
+      );
+
+    const hintsPart = `${hintScientific.toLowerCase()}\x1e${hintName.toLowerCase()}`;
+    const cacheKey = crypto
+      .createHash('sha256')
+      .update(`${query.toLowerCase()}\x1e${hintsPart}\x1e${sourcesFp}`)
+      .digest('hex')
+      .slice(0, 48);
+    const cached = plantsAutofillCache.get(cacheKey);
+    if (cached && !(openAiOnlyRequest && !hasAutofillFields(cached))) return res.json(cached);
+
+    /** Budget global wall-clock (évite 503 HTML des proxies si Wikidata + sources s’enchaînent trop longtemps). */
+    const hints = {};
+    if (hintScientific) hints.scientific_name = hintScientific;
+    if (hintName) hints.name = hintName;
+    const payload = await buildSpeciesAutofill(query, { budgetMs: 12000, hints, sourcesAllowed });
+    const photoValidationPayload = {};
+    for (const photo of payload?.photos || []) {
+      if (!PHOTO_FIELDS.includes(photo.field)) continue;
+      if (photoValidationPayload[photo.field]) {
+        photoValidationPayload[photo.field] += `\n${photo.url}`;
+      } else {
+        photoValidationPayload[photo.field] = photo.url;
+      }
+    }
+    const photoErr = validateHttpsPhotoLinks(photoValidationPayload);
+    if (photoErr) {
+      payload.warnings = Array.from(
+        new Set([...(payload.warnings || []), `Photos filtrées: ${photoErr}`]),
+      );
+      payload.photos = [];
+    }
+    // Évite de figer 10 min un « 0% » quand la requête est OpenAI-only et vide.
+    if (!(openAiOnlyRequest && !hasAutofillFields(payload))) {
+      plantsAutofillCache.set(cacheKey, payload);
+    }
+    res.json(payload);
+  } catch (e) {
+    logRouteError(e, req, 'Pré-saisie biodiversité externe en échec');
+    res.status(502).json({ error: 'Impossible de récupérer une pré-saisie pour le moment' });
+  }
+});
 
 /**
  * Identification d’espèce via Pl@ntNet (images) — proxy serveur, clé jamais exposée au client.
  * Corps JSON : { images: [{ organ, imageData }], project?, nbResults?, lang? }
  */
-router.post(
-  '/plantnet-identify',
-  requirePermission('plants.manage', { needsElevation: true }),
-  async (req, res) => {
-    try {
-      const body = req.body && typeof req.body === 'object' ? req.body : {};
-      const images = Array.isArray(body.images) ? body.images : [];
-      const project = asOptionalText(body.project);
-      const nbResults = body.nbResults != null ? Number(body.nbResults) : undefined;
-      const lang = asOptionalText(body.lang);
+router.post('/plantnet-identify', requirePermission('plants.manage'), async (req, res) => {
+  try {
+    const body = req.body && typeof req.body === 'object' ? req.body : {};
+    const images = Array.isArray(body.images) ? body.images : [];
+    const project = asOptionalText(body.project);
+    const nbResults = body.nbResults != null ? Number(body.nbResults) : undefined;
+    const lang = asOptionalText(body.lang);
 
-      const out = await plantnetIdentifyFromImages({
-        images,
-        project: project || undefined,
-        nbResults,
-        lang: lang || undefined,
-        timeoutMs: 16000,
+    const out = await plantnetIdentifyFromImages({
+      images,
+      project: project || undefined,
+      nbResults,
+      lang: lang || undefined,
+      timeoutMs: 16000,
+    });
+
+    if (!out.ok) {
+      const hs = Number(out.httpStatus);
+      const status = Number.isFinite(hs) && hs >= 400 && hs < 600 ? hs : 400;
+      return res.status(status).json({
+        error: out.error || 'Identification indisponible',
       });
-
-      if (!out.ok) {
-        const hs = Number(out.httpStatus);
-        const status = Number.isFinite(hs) && hs >= 400 && hs < 600 ? hs : 400;
-        return res.status(status).json({
-          error: out.error || 'Identification indisponible',
-        });
-      }
-
-      res.json({
-        ...out.data,
-        attribution:
-          'Résultats fournis par le service Pl@ntNet — respecter les conditions d’usage (my.plantnet.org).',
-      });
-    } catch (e) {
-      logRouteError(e, req, 'Identification Pl@ntNet en échec');
-      res.status(502).json({ error: 'Identification Pl@ntNet temporairement indisponible' });
     }
-  },
-);
+
+    res.json({
+      ...out.data,
+      attribution:
+        'Résultats fournis par le service Pl@ntNet — respecter les conditions d’usage (my.plantnet.org).',
+    });
+  } catch (e) {
+    logRouteError(e, req, 'Identification Pl@ntNet en échec');
+    res.status(502).json({ error: 'Identification Pl@ntNet temporairement indisponible' });
+  }
+});
 
 router.post(
   '/',
-  requirePermission('plants.manage', { needsElevation: true }),
+  requirePermission('plants.manage'),
   asyncHandler(async (req, res) => {
     const photoError = validateHttpsPhotoLinks(req.body);
     if (photoError) return res.status(400).json({ error: photoError });
@@ -651,7 +644,7 @@ router.post(
 
 router.put(
   '/:id',
-  requirePermission('plants.manage', { needsElevation: true }),
+  requirePermission('plants.manage'),
   asyncHandler(async (req, res) => {
     const plant = await queryOne('SELECT * FROM plants WHERE id = ?', [req.params.id]);
     if (!plant) return res.status(404).json({ error: 'Plante introuvable' });
@@ -671,7 +664,7 @@ router.put(
 
 router.delete(
   '/:id',
-  requirePermission('plants.manage', { needsElevation: true }),
+  requirePermission('plants.manage'),
   asyncHandler(async (req, res) => {
     const plant = await queryOne('SELECT * FROM plants WHERE id = ?', [req.params.id]);
     if (!plant) return res.status(404).json({ error: 'Plante introuvable' });
