@@ -1,0 +1,985 @@
+<title>QCM Gnomes & Licornes — sets & accès élève</title>
+<style>
+  :root {
+    --ground: #f4f6f1;
+    --panel: #ffffff;
+    --panel-2: #fbfcf9;
+    --ink: #1b241d;
+    --ink-soft: #47554b;
+    --ink-faint: #75847a;
+    --line: #dfe6dc;
+    --line-strong: #c6d1c2;
+
+    --eco: #2f7d4f;
+    --eco-bg: #eaf3ec;
+    --eco-line: #bcdcc6;
+
+    --lore: #6f57a6;
+    --lore-bg: #efeaf6;
+    --lore-line: #d3c7e6;
+
+    --gate: #b5811f;
+    --gate-bg: #f6eed9;
+    --gate-line: #e5d3a4;
+
+    --flow: #2a6d8c;
+    --flow-bg: #e6f0f4;
+    --flow-line: #b8d5e0;
+
+    --shadow: 0 1px 2px rgba(27, 36, 29, 0.05), 0 6px 20px rgba(27, 36, 29, 0.06);
+    --radius: 14px;
+    --mono: ui-monospace, 'SFMono-Regular', 'Menlo', 'Consolas', monospace;
+    --serif: 'Iowan Old Style', 'Palatino Linotype', 'Georgia', serif;
+    --sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ground: #12160f;
+      --panel: #1a1f18;
+      --panel-2: #161a13;
+      --ink: #eaf0e6;
+      --ink-soft: #b0bcae;
+      --ink-faint: #7f8d7f;
+      --line: #2b332a;
+      --line-strong: #3a453a;
+
+      --eco: #6fc38c;
+      --eco-bg: #16261c;
+      --eco-line: #2c4a37;
+
+      --lore: #b299e0;
+      --lore-bg: #221a33;
+      --lore-line: #453363;
+
+      --gate: #e0b662;
+      --gate-bg: #2a2413;
+      --gate-line: #4d4022;
+
+      --flow: #7fc0da;
+      --flow-bg: #14262e;
+      --flow-line: #26454f;
+
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 26px rgba(0, 0, 0, 0.35);
+    }
+  }
+  :root[data-theme='light'] {
+    --ground: #f4f6f1;
+    --panel: #ffffff;
+    --panel-2: #fbfcf9;
+    --ink: #1b241d;
+    --ink-soft: #47554b;
+    --ink-faint: #75847a;
+    --line: #dfe6dc;
+    --line-strong: #c6d1c2;
+    --eco: #2f7d4f;
+    --eco-bg: #eaf3ec;
+    --eco-line: #bcdcc6;
+    --lore: #6f57a6;
+    --lore-bg: #efeaf6;
+    --lore-line: #d3c7e6;
+    --gate: #b5811f;
+    --gate-bg: #f6eed9;
+    --gate-line: #e5d3a4;
+    --flow: #2a6d8c;
+    --flow-bg: #e6f0f4;
+    --flow-line: #b8d5e0;
+    --shadow: 0 1px 2px rgba(27, 36, 29, 0.05), 0 6px 20px rgba(27, 36, 29, 0.06);
+  }
+  :root[data-theme='dark'] {
+    --ground: #12160f;
+    --panel: #1a1f18;
+    --panel-2: #161a13;
+    --ink: #eaf0e6;
+    --ink-soft: #b0bcae;
+    --ink-faint: #7f8d7f;
+    --line: #2b332a;
+    --line-strong: #3a453a;
+    --eco: #6fc38c;
+    --eco-bg: #16261c;
+    --eco-line: #2c4a37;
+    --lore: #b299e0;
+    --lore-bg: #221a33;
+    --lore-line: #453363;
+    --gate: #e0b662;
+    --gate-bg: #2a2413;
+    --gate-line: #4d4022;
+    --flow: #7fc0da;
+    --flow-bg: #14262e;
+    --flow-line: #26454f;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 26px rgba(0, 0, 0, 0.35);
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--sans);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: clamp(24px, 4vw, 56px) clamp(16px, 3vw, 40px) 72px;
+  }
+
+  header.masthead {
+    margin-bottom: 40px;
+  }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 0 0 12px;
+  }
+  h1 {
+    font-family: var(--serif);
+    font-weight: 600;
+    font-size: clamp(28px, 5vw, 44px);
+    line-height: 1.08;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+    margin: 0 0 14px;
+  }
+  h1 .amp {
+    color: var(--eco);
+    font-style: italic;
+  }
+  .lede {
+    max-width: 62ch;
+    font-size: 17px;
+    color: var(--ink-soft);
+    margin: 0;
+  }
+
+  .band {
+    margin-top: 44px;
+  }
+  .band-head {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 6px;
+  }
+  .band-num {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--ink-faint);
+    font-variant-numeric: tabular-nums;
+  }
+  h2 {
+    font-family: var(--serif);
+    font-weight: 600;
+    font-size: clamp(19px, 2.6vw, 24px);
+    letter-spacing: -0.01em;
+    margin: 0;
+  }
+  .band-sub {
+    color: var(--ink-soft);
+    font-size: 15px;
+    margin: 4px 0 20px;
+    max-width: 68ch;
+  }
+
+  /* Router */
+  .router {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 18px 22px;
+    align-items: center;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 22px 24px;
+  }
+  .router .pill {
+    font-family: var(--mono);
+    font-size: 15px;
+    font-weight: 600;
+    background: var(--ground);
+    border: 1px solid var(--line-strong);
+    border-radius: 10px;
+    padding: 10px 16px;
+    white-space: nowrap;
+  }
+  .router .routes {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .route {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .route .arrow {
+    color: var(--ink-faint);
+    font-family: var(--mono);
+  }
+  .route .cond {
+    font-family: var(--mono);
+    font-size: 14px;
+    color: var(--ink-soft);
+  }
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 5px 12px;
+    border-radius: 999px;
+    border: 1px solid;
+  }
+  .tag.eco {
+    color: var(--eco);
+    background: var(--eco-bg);
+    border-color: var(--eco-line);
+  }
+  .tag.lore {
+    color: var(--lore);
+    background: var(--lore-bg);
+    border-color: var(--lore-line);
+  }
+  .tag .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
+  /* Two datasets */
+  .datasets {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 22px;
+  }
+  @media (max-width: 760px) {
+    .datasets {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .col-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .col-head .badge {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    padding: 4px 10px;
+    border-radius: 6px;
+  }
+  .col-head h3 {
+    font-family: var(--serif);
+    font-size: 19px;
+    font-weight: 600;
+    margin: 0;
+  }
+  .col-head .sub {
+    font-size: 13px;
+    color: var(--ink-faint);
+  }
+
+  .stack {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .entity {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+  }
+  .entity.accent-eco {
+    border-top: 3px solid var(--eco);
+  }
+  .entity.accent-lore {
+    border-top: 3px solid var(--lore);
+  }
+  .entity.accent-gate {
+    border-top: 3px solid var(--gate);
+  }
+  .entity.accent-flow {
+    border-top: 3px solid var(--flow);
+  }
+
+  .entity-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 12px 16px;
+    background: var(--panel-2);
+    border-bottom: 1px solid var(--line);
+  }
+  .entity-head .name {
+    font-family: var(--mono);
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .entity-head .role {
+    font-size: 12px;
+    color: var(--ink-faint);
+    text-align: right;
+  }
+  .cols {
+    display: flex;
+    flex-direction: column;
+  }
+  .field {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 10px;
+    align-items: baseline;
+    padding: 7px 16px;
+    font-size: 13.5px;
+    border-top: 1px solid var(--line);
+  }
+  .field:first-child {
+    border-top: none;
+  }
+  .field .fname {
+    font-family: var(--mono);
+  }
+  .field .fnote {
+    color: var(--ink-faint);
+    font-size: 12.5px;
+    text-align: right;
+  }
+  .field.pk .fname::before,
+  .field.fk .fname::before {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 4px;
+    margin-right: 8px;
+    vertical-align: middle;
+    letter-spacing: 0.03em;
+  }
+  .field.pk .fname::before {
+    content: 'PK';
+    background: var(--eco-bg);
+    color: var(--eco);
+  }
+  .field.fk .fname::before {
+    content: 'FK';
+    background: var(--flow-bg);
+    color: var(--flow);
+  }
+  .accent-lore .field.pk .fname::before {
+    background: var(--lore-bg);
+    color: var(--lore);
+  }
+  .accent-gate .field.pk .fname::before {
+    background: var(--gate-bg);
+    color: var(--gate);
+  }
+
+  .link-note {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    padding: 4px 2px 0;
+  }
+  .link-note .lbl {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-faint);
+  }
+
+  /* Access flow */
+  .flows {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
+  }
+  @media (max-width: 820px) {
+    .flows {
+      grid-template-columns: 1fr;
+    }
+  }
+  .flow-card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    padding: 18px 18px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .flow-card .k {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--flow);
+  }
+  .flow-card h4 {
+    font-size: 16px;
+    margin: 0;
+    font-weight: 650;
+  }
+  .steps {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+  .steps li {
+    position: relative;
+    padding: 8px 0 8px 26px;
+    font-size: 13.5px;
+    color: var(--ink-soft);
+    border-top: 1px dashed var(--line);
+  }
+  .steps li:first-child {
+    border-top: none;
+  }
+  .steps li::before {
+    content: attr(data-n);
+    position: absolute;
+    left: 0;
+    top: 8px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--flow-bg);
+    color: var(--flow);
+    border: 1px solid var(--flow-line);
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 700;
+    display: grid;
+    place-items: center;
+  }
+  .steps code,
+  .field code,
+  .inline code,
+  .lede code {
+    font-family: var(--mono);
+    font-size: 0.92em;
+  }
+  .steps .ep {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--ink);
+    background: var(--ground);
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    padding: 1px 5px;
+    display: inline-block;
+    margin-top: 2px;
+    word-break: break-all;
+  }
+
+  .lock {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    margin-top: 18px;
+    background: var(--gate-bg);
+    border: 1px solid var(--gate-line);
+    border-radius: 12px;
+    padding: 14px 16px;
+    font-size: 13.5px;
+    color: var(--ink-soft);
+  }
+  .lock .ic {
+    color: var(--gate);
+    font-size: 18px;
+    line-height: 1;
+    margin-top: 1px;
+  }
+  .lock b {
+    color: var(--ink);
+  }
+  .lock code {
+    font-family: var(--mono);
+    font-size: 12.5px;
+  }
+
+  /* Gating band */
+  .gating-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
+  }
+  @media (max-width: 820px) {
+    .gating-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .badge-off {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--gate);
+    background: var(--gate-bg);
+    border: 1px solid var(--gate-line);
+    border-radius: 999px;
+    padding: 5px 12px;
+  }
+  .badge-off .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--gate);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--gate) 22%, transparent);
+  }
+
+  footer.foot {
+    margin-top: 52px;
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+    font-size: 12.5px;
+    color: var(--ink-faint);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 20px;
+  }
+  footer.foot code {
+    font-family: var(--mono);
+  }
+
+  .fade {
+    opacity: 0;
+    transform: translateY(8px);
+    animation: rise 0.5s cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
+  }
+  .fade:nth-child(2) {
+    animation-delay: 0.05s;
+  }
+  .fade:nth-child(3) {
+    animation-delay: 0.1s;
+  }
+  @keyframes rise {
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .fade {
+      animation: none;
+      opacity: 1;
+      transform: none;
+    }
+  }
+</style>
+
+<div class="wrap">
+  <header class="masthead fade">
+    <p class="eyebrow">ForetMap · sous-produit G&amp;L · cartographie technique</p>
+    <h1>Deux sets de QCM, un même chemin vers l'élève <span class="amp">&amp;</span></h1>
+    <p class="lede">
+      Le produit <strong>Gnomes &amp; Licornes</strong> distingue partout deux jeux de questions.
+      L'aiguillage tient à un seul test&nbsp;: le préfixe du <code>question_code</code>. Voici les
+      tables de chaque set, le liant «&nbsp;marqueur de carte&nbsp;», les trois voies d'accès
+      joueur, et le backbone commun de rattachement/gating.
+    </p>
+  </header>
+
+  <!-- 0 · Router -->
+  <section class="band fade">
+    <div class="band-head">
+      <span class="band-num">00</span>
+      <h2>L'aiguillage</h2>
+    </div>
+    <p class="band-sub">
+      Tout le back GL choisit le dataset à partir du code de la question —
+      <code>lib/glQcmResolve.js</code>.
+    </p>
+    <div class="router">
+      <span class="pill">question_code</span>
+      <div class="routes">
+        <div class="route">
+          <span class="cond">/^LQCM\d+$/i</span>
+          <span class="arrow">──▶</span>
+          <span class="tag lore"
+            ><span class="dot"></span>set&nbsp;lore · <code>qcm_lore</code></span
+          >
+        </div>
+        <div class="route">
+          <span class="cond">sinon (QF…, etc.)</span>
+          <span class="arrow">──▶</span>
+          <span class="tag eco"><span class="dot"></span>set&nbsp;écologie · <code>qcm</code></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 1 · Datasets -->
+  <section class="band fade">
+    <div class="band-head">
+      <span class="band-num">01</span>
+      <h2>Les deux catalogues</h2>
+    </div>
+    <p class="band-sub">
+      Même forme de question (5 choix A–E, réponse, niveau, difficulté, feedback), mais deux
+      ancrages différents&nbsp;: le <strong>biome</strong> d'un côté, le
+      <strong>scope de chapitre / plateau</strong> de l'autre.
+    </p>
+
+    <div class="datasets">
+      <!-- ECO -->
+      <div>
+        <div class="col-head">
+          <span class="badge" style="background: var(--eco-bg); color: var(--eco)">qcm</span>
+          <h3>Écologie / biome</h3>
+          <span class="sub">codes QF…</span>
+        </div>
+        <div class="stack">
+          <div class="entity accent-eco">
+            <div class="entity-head">
+              <span class="name">gl_qcm_questions</span
+              ><span class="role">catalogue principal</span>
+            </div>
+            <div class="cols">
+              <div class="field pk">
+                <span class="fname">question_code</span><span class="fnote">VARCHAR(16)</span>
+              </div>
+              <div class="field fk">
+                <span class="fname">biome_slug</span
+                ><span class="fnote">→ gl_biomes · ancrage</span>
+              </div>
+              <div class="field fk">
+                <span class="fname">categorie_slug</span
+                ><span class="fnote">→ gl_qcm_categories</span>
+              </div>
+              <div class="field">
+                <span class="fname">choix_a … choix_e</span><span class="fnote">5 choix</span>
+              </div>
+              <div class="field">
+                <span class="fname">reponse_correcte</span><span class="fnote">ENUM A–E</span>
+              </div>
+              <div class="field">
+                <span class="fname">niveau · difficulte</span
+                ><span class="fnote">filtres de pool</span>
+              </div>
+              <div class="field">
+                <span class="fname">feedback_* · photo_*</span
+                ><span class="fnote">péda · illustration</span>
+              </div>
+            </div>
+          </div>
+          <div class="entity accent-eco">
+            <div class="entity-head">
+              <span class="name">gl_qcm_question_glossary</span
+              ><span class="role">liens glossaire</span>
+            </div>
+            <div class="cols">
+              <div class="field">
+                <span class="fname">question_code</span><span class="fnote"></span>
+              </div>
+              <div class="field fk">
+                <span class="fname">glossary_code</span
+                ><span class="fnote">→ gl_glossary_terms</span>
+              </div>
+            </div>
+          </div>
+          <div class="link-note">
+            <span class="lbl">espèce</span> rattachement indirect via
+            <code>biome_slug</code> partagé (gl_species) + gating
+          </div>
+        </div>
+      </div>
+
+      <!-- LORE -->
+      <div>
+        <div class="col-head">
+          <span class="badge" style="background: var(--lore-bg); color: var(--lore)">qcm_lore</span>
+          <h3>Lore / narratif</h3>
+          <span class="sub">codes LQCM…</span>
+        </div>
+        <div class="stack">
+          <div class="entity accent-lore">
+            <div class="entity-head">
+              <span class="name">gl_qcm_lore_questions</span
+              ><span class="role">catalogue principal</span>
+            </div>
+            <div class="cols">
+              <div class="field pk">
+                <span class="fname">question_code</span><span class="fnote">VARCHAR(16)</span>
+              </div>
+              <div class="field fk">
+                <span class="fname">chapitre_slug</span
+                ><span class="fnote">→ gl_qcm_lore_scopes · ancrage</span>
+              </div>
+              <div class="field fk">
+                <span class="fname">categorie_slug</span
+                ><span class="fnote">→ gl_qcm_lore_categories</span>
+              </div>
+              <div class="field">
+                <span class="fname">tier_lore</span><span class="fnote">ENUM cle · recit</span>
+              </div>
+              <div class="field">
+                <span class="fname">choix_a … choix_e</span><span class="fnote">5 choix</span>
+              </div>
+              <div class="field">
+                <span class="fname">reponse_correcte</span><span class="fnote">ENUM A–E</span>
+              </div>
+              <div class="field">
+                <span class="fname">feedback_correct · feedback_a…e</span
+                ><span class="fnote">péda</span>
+              </div>
+            </div>
+          </div>
+          <div class="entity accent-lore">
+            <div class="entity-head">
+              <span class="name">gl_qcm_lore_scopes</span><span class="role">scope → plateau</span>
+            </div>
+            <div class="cols">
+              <div class="field pk"><span class="fname">slug</span><span class="fnote"></span></div>
+              <div class="field">
+                <span class="fname">plateau</span
+                ><span class="fnote">TINYINT · relie au n° de plateau</span>
+              </div>
+              <div class="field">
+                <span class="fname">gating_granularity</span
+                ><span class="fnote">surcharge (mig. 145)</span>
+              </div>
+            </div>
+          </div>
+          <div class="entity accent-lore">
+            <div class="entity-head">
+              <span class="name">gl_qcm_lore_question_glossary</span
+              ><span class="role">liens glossaire lore</span>
+            </div>
+            <div class="cols">
+              <div class="field">
+                <span class="fname">question_code</span><span class="fnote"></span>
+              </div>
+              <div class="field fk">
+                <span class="fname">lore_code</span
+                ><span class="fnote">→ gl_lore_glossary_terms</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 · Marker + access -->
+  <section class="band fade">
+    <div class="band-head">
+      <span class="band-num">02</span>
+      <h2>Le liant : marqueur de carte</h2>
+    </div>
+    <p class="band-sub">
+      Un <code>gl_chapter_marker</code> peut porter une question de <em>l'un ou l'autre</em> set. Le
+      tirage (<code>drawQuestionFromMarker</code>) lit la config puis délègue au bon pool.
+    </p>
+
+    <div class="entity accent-flow" style="margin-bottom: 22px">
+      <div class="entity-head">
+        <span class="name">gl_chapter_markers</span><span class="role">porte-question</span>
+      </div>
+      <div class="cols">
+        <div class="field">
+          <span class="fname">qcm_categorie_slug · qcm_question_code</span
+          ><span class="fnote">legacy · mig. 097 (écologie)</span>
+        </div>
+        <div class="field">
+          <span class="fname">event_config_json.question</span
+          ><span class="fnote"
+            >{ set: biome|lore, mode: fixed|random, pool | fixedQuestionCode }</span
+          >
+        </div>
+      </div>
+    </div>
+
+    <div class="flows">
+      <div class="flow-card">
+        <span class="k">Voie A — en partie</span>
+        <h4>Marqueur sur la carte</h4>
+        <ul class="steps">
+          <li data-n="1">
+            L'équipe arrive sur un repère «&nbsp;question&nbsp;» (<code>isQuestionMarker()</code>)
+          </li>
+          <li data-n="2">
+            <code>useGLMarkerArrival</code> appelle
+            <span class="ep">POST /api/gl/games/:id/markers/:mid/present-question</span>
+          </li>
+          <li data-n="3">
+            Tirage + présentation (choix mélangés, <code>presentationToken</code> JWT), chips de
+            glossaire
+          </li>
+          <li data-n="4">Affichage dans <code>GLQcmPopover</code></li>
+          <li data-n="5">
+            Réponse <span class="ep">POST …/games/:id/qcm/answer</span> → score,
+            <code>gl_game_events</code>
+          </li>
+        </ul>
+      </div>
+      <div class="flow-card">
+        <span class="k">Voie B — dé / modale</span>
+        <h4>Tirage catalogue</h4>
+        <ul class="steps">
+          <li data-n="1"><code>GLQcmModal</code> ouvre un tirage libre</li>
+          <li data-n="2">
+            Écologie <span class="ep">GET /api/gl/qcm/draw</span> (biome + catégorie)
+          </li>
+          <li data-n="3">Lore <span class="ep">GET /api/gl/lore/qcm/draw?chapitreSlugs=…</span></li>
+          <li data-n="4">Puis <code>…/questions/:code/present</code></li>
+        </ul>
+      </div>
+      <div class="flow-card">
+        <span class="k">Voie C — hors partie</span>
+        <h4>Réponse directe</h4>
+        <ul class="steps">
+          <li data-n="1">Présentation via la même route <code>present</code></li>
+          <li data-n="2">
+            Réponse <span class="ep">POST /api/gl/qcm/questions/:code/answer</span>
+          </li>
+          <li data-n="3">Bascule auto vers le set lore selon le préfixe du code</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="lock">
+      <span class="ic">🔒</span>
+      <div>
+        <b>Verrou d'accès</b> — le réglage <code>gameplay.qcm_mj_only</code> (mig. 114)&nbsp;: si
+        activé, seuls MJ/staff présentent et valident les QCM ; les joueurs ne déclenchent plus le
+        popover.
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 · Gating -->
+  <section class="band fade">
+    <div class="band-head">
+      <span class="band-num">03</span>
+      <h2>Le backbone commun : rattachement &amp; gating</h2>
+    </div>
+    <p class="band-sub" style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap">
+      <span
+        >Modèle unifié qui relie n'importe quelle ressource aux questions des deux sets (mig.
+        145).</span
+      >
+      <span class="badge-off"
+        ><span class="dot"></span>désactivé par défaut · gl_settings gating.enabled = false</span
+      >
+    </p>
+
+    <div class="gating-grid">
+      <div class="entity accent-gate">
+        <div class="entity-head">
+          <span class="name">gl_resource_question_links</span
+          ><span class="role">ressource ↔ question</span>
+        </div>
+        <div class="cols">
+          <div class="field">
+            <span class="fname">question_dataset</span><span class="fnote">qcm · qcm_lore</span>
+          </div>
+          <div class="field">
+            <span class="fname">resource_type</span
+            ><span class="fnote">species · glossary · lore_glossary · feuillet · tutorial …</span>
+          </div>
+          <div class="field">
+            <span class="fname">resource_ref</span
+            ><span class="fnote">ref polymorphe (pas de FK)</span>
+          </div>
+          <div class="field">
+            <span class="fname">question_code</span><span class="fnote"></span>
+          </div>
+          <div class="field">
+            <span class="fname">is_gating · weight · status · origin</span
+            ><span class="fnote">manual · import · auto</span>
+          </div>
+        </div>
+      </div>
+      <div class="entity accent-gate">
+        <div class="entity-head">
+          <span class="name">gl_resource_gating_policy</span
+          ><span class="role">politique par ressource</span>
+        </div>
+        <div class="cols">
+          <div class="field pk">
+            <span class="fname">resource_type · resource_ref</span><span class="fnote"></span>
+          </div>
+          <div class="field">
+            <span class="fname">mode</span
+            ><span class="fnote">inherit · off · any · all · threshold</span>
+          </div>
+          <div class="field">
+            <span class="fname">required_correct · enabled</span
+            ><span class="fnote">résolue en cascade → chapitre → site</span>
+          </div>
+        </div>
+      </div>
+      <div class="entity accent-gate">
+        <div class="entity-head">
+          <span class="name">gl_qcm_attempts</span><span class="role">tentatives par lecteur</span>
+        </div>
+        <div class="cols">
+          <div class="field">
+            <span class="fname">reader_user_type · reader_user_id</span><span class="fnote"></span>
+          </div>
+          <div class="field">
+            <span class="fname">question_dataset · question_code</span><span class="fnote"></span>
+          </div>
+          <div class="field">
+            <span class="fname">is_correct</span><span class="fnote">granularité « player »</span>
+          </div>
+          <div class="field">
+            <span class="fname">game_id · team_id</span
+            ><span class="fnote">nullables (hors partie)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="lock" style="background: var(--eco-bg); border-color: var(--eco-line)">
+      <span class="ic" style="color: var(--eco)">✓</span>
+      <div>
+        Quand le gating est actif, l'élève ne peut «&nbsp;<b>Marquer comme appris</b>&nbsp;» une
+        ressource (espèce, feuillet, glossaire…) qu'après avoir réussi <b>toutes</b> les questions
+        <code>is_gating</code> approuvées qui y sont liées — <code>routes/gl/learning.js</code> →
+        <code>assertGatingSatisfiedForAcknowledge</code>.
+      </div>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <span
+      >migrations <code>096</code> · <code>097</code> · <code>112</code> · <code>114</code> ·
+      <code>138</code> · <code>145</code></span
+    >
+    <span
+      >libs <code>glQcmResolve.js</code> · <code>glMarkerQuestionPool.js</code> ·
+      <code>glMarkerLoreQuestionPool.js</code></span
+    >
+    <span
+      >front <code>GLQcmModal</code> · <code>GLQcmPopover</code> ·
+      <code>useGLMarkerArrival</code></span
+    >
+  </footer>
+</div>
