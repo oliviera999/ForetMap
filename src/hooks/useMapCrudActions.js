@@ -49,7 +49,8 @@ function useMapCrudActions({
   /** Lie une tâche à une zone (`kind: 'zone'`) ou à un repère (`kind: 'marker'`). */
   const linkTaskToLocation = useCallback(
     async (taskId, kind, locationId) => {
-      const t = (tasks || []).find((x) => x.id === taskId);
+      const t = (tasks || []).find((x) => Number(x.id) === Number(taskId));
+      if (!t) return;
       const { zoneIds: zi, markerIds: mi } = taskLocationIds(t);
       const zoneIds = kind === 'zone' ? [...new Set([...zi, locationId])] : zi;
       const markerIds = kind === 'marker' ? [...new Set([...mi, locationId])] : mi;

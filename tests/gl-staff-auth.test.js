@@ -131,6 +131,8 @@ test('POST /api/gl/auth/staff/login accepte un MJ GL dont gl_admins.email = iden
     .expect(200);
   assert.strictEqual(res.body?.auth?.userType, 'gl_admin');
   assert.ok(res.body?.auth?.permissions?.includes('gl.read'));
+  // Isolement MJ/Admin : un MJ ne doit pas obtenir la gestion des réglages globaux GL.
+  assert.ok(!res.body?.auth?.permissions?.includes('gl.settings.manage'));
 });
 
 test('POST /api/gl/auth/staff/login refuse un compte MJ GL sans admin ForetMap', async () => {

@@ -7,6 +7,7 @@ const {
 const { ensureRbacBootstrap, buildAuthzPayload } = require('../lib/rbac');
 const { getAuthJwtTtls } = require('../lib/settings');
 const { getUserAccessibleGroupIds } = require('../lib/groupScope');
+const logger = require('../lib/logger');
 
 const JWT_SECRET =
   process.env.JWT_SECRET ||
@@ -92,8 +93,8 @@ async function resolveAuthOrRespond(req, res, { product } = {}) {
     res.status(401).json({ error: 'Token requis' });
     return null;
   }
+  let claims;
   try {
-    let claims;
     if (product != null) {
       const verified = verifyJwtForProduct(token, JWT_SECRET, product);
       if (verified.error) {
@@ -104,9 +105,17 @@ async function resolveAuthOrRespond(req, res, { product } = {}) {
     } else {
       claims = verifyJwtToken(token, JWT_SECRET);
     }
-    req.auth = await hydrateAuthFromTokenClaims(claims);
   } catch (_) {
     res.status(401).json({ error: 'Token invalide ou expiré' });
+    return null;
+  }
+  // L'hydratation fait des requêtes SQL : une panne BDD ne doit PAS être renvoyée
+  // comme « token invalide » (401 trompeur + reconnexions en boucle) mais comme 503.
+  try {
+    req.auth = await hydrateAuthFromTokenClaims(claims);
+  } catch (err) {
+    logger.error({ err, msg: 'auth_hydration_failed' }, 'Échec hydratation auth (infra)');
+    res.status(503).json({ error: 'Service momentanément indisponible' });
     return null;
   }
   if (!req.auth) {
