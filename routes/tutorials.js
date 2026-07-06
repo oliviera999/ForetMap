@@ -398,6 +398,7 @@ router.post(
       return res.status(gating.status || 403).json({
         error: gating.error,
         missing_question_codes: gating.missing_question_codes || [],
+        cooldown: gating.cooldown,
       });
     }
 
