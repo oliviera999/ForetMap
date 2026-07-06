@@ -212,7 +212,7 @@ router.get(
 
 router.put(
   '/markers/:id/photos/reorder',
-  requirePermission('map.manage_markers', { needsElevation: true }),
+  requirePermission('map.manage_markers'),
   validate({ body: reorderMarkerPhotosBodySchema }),
   asyncHandler(async (req, res) => {
     const markerId = String(req.params.id || '').trim();
@@ -253,7 +253,7 @@ router.put(
 
 router.post(
   '/markers/:id/photos',
-  requirePermission('map.manage_markers', { needsElevation: true }),
+  requirePermission('map.manage_markers'),
   validate({ body: addMarkerPhotoBodySchema }),
   asyncHandler(async (req, res) => {
     let photoId = null;
@@ -291,7 +291,7 @@ router.post(
 
 router.delete(
   '/markers/:id/photos/:pid',
-  requirePermission('map.manage_markers', { needsElevation: true }),
+  requirePermission('map.manage_markers'),
   asyncHandler(async (req, res) => {
     const m = await queryOne('SELECT map_id FROM map_markers WHERE id = ?', [req.params.id]);
     const p = await queryOne('SELECT image_path FROM marker_photos WHERE id=? AND marker_id=?', [
@@ -338,7 +338,7 @@ router.get(
 
 router.post(
   '/markers',
-  requirePermission('map.manage_markers', { needsElevation: true }),
+  requirePermission('map.manage_markers'),
   asyncHandler(async (req, res) => {
     const { x_pct, y_pct, label, plant_name, living_beings, note, emoji, map_id, species_ids } =
       req.body;
@@ -381,7 +381,7 @@ router.post(
 
 router.put(
   '/markers/:id',
-  requirePermission('map.manage_markers', { needsElevation: true }),
+  requirePermission('map.manage_markers'),
   asyncHandler(async (req, res) => {
     const m = await queryOne('SELECT * FROM map_markers WHERE id = ?', [req.params.id]);
     if (!m) return res.status(404).json({ error: 'Repère introuvable' });
@@ -448,7 +448,7 @@ router.put(
 
 router.delete(
   '/markers/:id',
-  requirePermission('map.manage_markers', { needsElevation: true }),
+  requirePermission('map.manage_markers'),
   asyncHandler(async (req, res) => {
     const m = await queryOne('SELECT * FROM map_markers WHERE id = ?', [req.params.id]);
     if (!m) return res.status(404).json({ error: 'Repère introuvable' });

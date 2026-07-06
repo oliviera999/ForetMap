@@ -60,8 +60,6 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
   const [searchStudent, setSearchStudent] = useState('');
   const [confirmStudent, setConfirmStudent] = useState(null);
   const [authPerms, setAuthPerms] = useState([]);
-  const [authElevated, setAuthElevated] = useState(false);
-  const [authNativePrivileged, setAuthNativePrivileged] = useState(false);
   const [authRoleSlug, setAuthRoleSlug] = useState('');
   const [progressionByTasksEnabled, setProgressionByTasksEnabled] = useState(true);
   const [editingUser, setEditingUser] = useState(null);
@@ -74,12 +72,8 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
     setErr('');
     const auth = await api('/api/auth/me').catch(() => null);
     const perms = Array.isArray(auth?.auth?.permissions) ? auth.auth.permissions : [];
-    const elevated = !!auth?.auth?.elevated;
-    const nativePrivileged = !!auth?.auth?.nativePrivileged;
     const roleSlug = String(auth?.auth?.roleSlug || '').toLowerCase();
     setAuthPerms(perms);
-    setAuthElevated(elevated);
-    setAuthNativePrivileged(nativePrivileged);
     setAuthRoleSlug(roleSlug);
 
     const canManageProfiles =
@@ -154,7 +148,7 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
     isAdmin,
     canManageStudents,
     canDeleteUi,
-  } = deriveProfilesCapabilities({ authPerms, authElevated, authNativePrivileged, authRoleSlug });
+  } = deriveProfilesCapabilities({ authPerms, authRoleSlug });
 
   /** Même tri que GET /api/rbac/profiles (affichage cohérent avec la progression n3beur côté serveur). */
   const sortedRoles = useMemo(() => sortRolesForDisplay(roles), [roles]);
@@ -328,7 +322,7 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
     try {
       const current = selectedRole.permissions || [];
       const next = checked
-        ? [...current, { key: permissionKey, requires_elevation: false }]
+        ? [...current, { key: permissionKey }]
         : current.filter((p) => p.key !== permissionKey);
       await api(`/api/rbac/profiles/${selectedRole.id}/permissions`, 'PUT', { permissions: next });
       await load();
@@ -336,44 +330,6 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
       setErr(e.message || 'Erreur permissions');
     }
     setLoading(false);
-  };
-
-  const togglePermissionElevation = async (permissionKey, checked) => {
-    if (!selectedRole) return;
-    setLoading(true);
-    setErr('');
-    try {
-      const current = selectedRole.permissions || [];
-      const next = current.map((p) =>
-        p.key === permissionKey ? { ...p, requires_elevation: checked } : p,
-      );
-      await api(`/api/rbac/profiles/${selectedRole.id}/permissions`, 'PUT', { permissions: next });
-      await load();
-    } catch (e) {
-      setErr(e.message || 'Erreur permissions');
-    }
-    setLoading(false);
-  };
-
-  /** Renvoie `true` si le PIN a été enregistré (la section RBAC vide alors son champ). */
-  const savePin = async (pin) => {
-    if (!selectedRole) return false;
-    if (!/^\d{4,12}$/.test(pin.trim())) {
-      setErr('PIN invalide (4 à 12 chiffres)');
-      return false;
-    }
-    setLoading(true);
-    setErr('');
-    let saved = false;
-    try {
-      await api(`/api/rbac/profiles/${selectedRole.id}/pin`, 'PUT', { pin: pin.trim() });
-      saved = true;
-      setMsg('PIN du profil mis à jour');
-    } catch (e) {
-      setErr(e.message || 'Erreur mise à jour PIN');
-    }
-    setLoading(false);
-    return saved;
   };
 
   const assignRole = async (userType, userId, roleId) => {
@@ -680,11 +636,9 @@ function ProfilesAdminViewImpl({ onImpersonationApplied, maps = [] }) {
           onEditRoleDetails={saveRoleDetails}
           onDuplicateRole={duplicateRoleProfile}
           onSaveEmoji={saveProfileEmoji}
-          onSavePin={savePin}
           onToggleProgression={toggleProgressionByValidatedTasks}
           onSaveMinDoneThreshold={saveStudentMinDoneThreshold}
           onTogglePermission={togglePermission}
-          onTogglePermissionElevation={togglePermissionElevation}
           onSetForumParticipate={setRoleForumParticipate}
           onSetContextCommentParticipate={setRoleContextCommentParticipate}
           onSaveMaxConcurrent={saveMaxConcurrentTasks}

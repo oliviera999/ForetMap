@@ -25,10 +25,10 @@ test.before(async () => {
       key,
       'Permission auto-seed tests',
     ]);
-    await execute(
-      'INSERT IGNORE INTO role_permissions (role_id, permission_key, requires_elevation) VALUES (?, ?, 1)',
-      [adminRole.id, key],
-    );
+    await execute('INSERT IGNORE INTO role_permissions (role_id, permission_key) VALUES (?, ?)', [
+      adminRole.id,
+      key,
+    ]);
   }
   if (teacher?.id && adminRole?.id) {
     await execute('UPDATE user_roles SET is_primary = 0 WHERE user_type = ? AND user_id = ?', [

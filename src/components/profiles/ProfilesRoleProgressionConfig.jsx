@@ -3,7 +3,7 @@ import React from 'react';
 /**
  * Configuration de progression/participation d'un profil « palier n3beur » — extraite de
  * `ProfilesAdminView` (O5/O6). Regroupe : montée de niveau automatique + seuil de tâches validées,
- * proposition de tâches (`tasks.propose` + élévation), participation forum/commentaires de contexte,
+ * proposition de tâches (`tasks.propose`), participation forum/commentaires de contexte,
  * et plafond d'inscriptions simultanées. Présentation pure : l'état et les effets restent au parent.
  */
 export function ProfilesRoleProgressionConfig({
@@ -19,7 +19,6 @@ export function ProfilesRoleProgressionConfig({
   onSaveMinDoneThreshold,
   proposeEntry = null,
   onTogglePermission,
-  onTogglePermissionElevation,
   onSetForumParticipate,
   onSetContextCommentParticipate,
   maxConcurrentTasks = '',
@@ -142,25 +141,6 @@ export function ProfilesRoleProgressionConfig({
               Autoriser les {roleTerms.studentPlural} de ce profil à proposer de nouvelles tâches
               (statut « proposée », validation par un {roleTerms.teacherShort}).
             </span>
-          </label>
-          <label
-            style={{
-              display: 'flex',
-              alignItems: 'flex-start',
-              gap: 10,
-              fontSize: '.8rem',
-              color: '#374151',
-              cursor: loading || !proposeEntry ? 'default' : 'pointer',
-            }}
-          >
-            <input
-              type="checkbox"
-              checked={!!proposeEntry?.requires_elevation}
-              onChange={(e) => onTogglePermissionElevation('tasks.propose', e.target.checked)}
-              disabled={!proposeEntry || loading}
-              style={{ marginTop: 2 }}
-            />
-            <span>Exiger le PIN du profil pour accéder à la proposition (élévation).</span>
           </label>
           <p style={{ fontSize: '.72rem', color: '#64748b', margin: '10px 0 0', lineHeight: 1.45 }}>
             Correspond à la permission <code style={{ fontSize: '.7rem' }}>tasks.propose</code>{' '}

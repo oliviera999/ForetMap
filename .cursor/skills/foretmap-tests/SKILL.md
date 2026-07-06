@@ -18,13 +18,13 @@ description: Guide l'écriture et l'exécution des tests ForetMap (backend API, 
 
 ## Stack de tests
 
-| Outil                    | Rôle                                                                              |
-| ------------------------ | --------------------------------------------------------------------------------- |
-| `node --test` (built-in) | Runner de tests                                                                   |
-| `supertest`              | Requêtes HTTP sur l'app Express                                                   |
-| `node:assert`            | Assertions (strict)                                                               |
-| `tests/helpers/setup.js` | Chargement `.env`, surcharge `DB_NAME` pour BDD de test, `TEACHER_PIN` par défaut |
-| `vitest` + RTL           | Tests UI React (`tests-ui/**`) en environnement `jsdom`                           |
+| Outil                    | Rôle                                                    |
+| ------------------------ | ------------------------------------------------------- |
+| `node --test` (built-in) | Runner de tests                                         |
+| `supertest`              | Requêtes HTTP sur l'app Express                         |
+| `node:assert`            | Assertions (strict)                                     |
+| `tests/helpers/setup.js` | Chargement `.env`, surcharge `DB_NAME` pour BDD de test |
+| `vitest` + RTL           | Tests UI React (`tests-ui/**`) en environnement `jsdom` |
 
 ## Commandes
 
@@ -83,7 +83,7 @@ Tous les fichiers `tests/*.test.js` sont exécutés par **`npm test`**. Extraits
 | **UI partagée**                        | `emoji-font-coverage.test.js`                                                                                                                                                                                                                                                                                                                                                                                  |
 | **Snapshot BDD**                       | `snapshot-db.test.js` (sans `initSchema` dans le test)                                                                                                                                                                                                                                                                                                                                                         |
 
-**Helpers** : `tests/helpers/setup.js` (env, `DB_NAME` test, `TEACHER_PIN`) et `tests/helpers/glFixtures.js` (seed GL mutualisé : admin, classe, joueur, partie, tokens).
+**Helpers** : `tests/helpers/setup.js` (env, `DB_NAME` test) et `tests/helpers/glFixtures.js` (seed GL mutualisé : admin, classe, joueur, partie, tokens).
 
 ## Conventions
 

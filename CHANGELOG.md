@@ -7,6 +7,28 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Changement majeur — suppression de l’élévation par PIN
+
+- **Fin du « mode sudo » par PIN.** Un utilisateur connecté possède désormais **directement**
+  toutes les permissions de son rôle : la dimension d’élévation (PIN de profil, session « élevée »)
+  est entièrement retirée. Le RBAC (rôles + permissions + création dynamique de profils) est conservé.
+- **Backend** : `hasPermission`/`requirePermission` n’ont plus de notion d’élévation ;
+  `buildAuthzPayload` accorde toutes les permissions du rôle ; suppression de `verifyRolePin`,
+  `hashPin`, du seed PIN `1234`, de `requireTeacherElevated` et de l’option `{ needsElevation }`
+  sur ~80 routes. Les endpoints **`POST /api/auth/elevate`** et **`POST /api/auth/teacher`**
+  renvoient désormais **410 Gone**.
+- **Base de données** : migration `164_drop_pin_elevation_system` — suppression des tables
+  `role_pin_secrets` et `elevation_audit` et de la colonne `role_permissions.requires_elevation`.
+- **Front** : la modale « Mode prof » devient une **connexion professeur** (e-mail/mot de passe,
+  reset, Google) ; suppression du bouton cadenas d’élévation, de la colonne « PIN » de l’admin
+  des profils et du champ PIN de profil. Le bouton d’en-tête ouvre la connexion prof (🔑).
+- **Réglages/env** : suppression des réglages `security.allow_pin_elevation` et
+  `security.jwt_ttl_elevated_seconds`, de la variable `TEACHER_PIN` et du script
+  `db:reset:role-pins:local`. La sécurité « appareil partagé » repose désormais sur la durée de
+  session standard (`security.jwt_ttl_base_seconds`).
+- **Effet métier** : le profil `eleve_chevronne` peut proposer des tâches (`tasks.propose`) sans
+  PIN ; tout profil dynamique dont une permission était « à élévation » l’obtient directement.
+  Le profil `prof` est inchangé en pratique (il était déjà `nativePrivileged`, donc sans PIN).
 ### Sécurité — Audit de code (bugs, incohérences, logique)
 
 - **GL — élévation MJ → Admin** : `getGlRolePermissions('mj')` accordait les mêmes

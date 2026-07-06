@@ -8,9 +8,9 @@
     "header.roleReset": { "textTeacher": "Revenir à ton affichage habituel." },
     "header.roleStudent": { "textTeacher": "Voir l'app comme un n3beur (aperçu)." },
     "header.roleTeacher": { "textTeacher": "Voir l'app comme un n3boss (aperçu)." },
-    "header.elevatedMode": {
-      "text": "Mode n3boss : plus de boutons utiles pour la coordination.",
-      "textTeacher": "Activer ou couper les droits étendus (PIN)."
+    "header.teacherLogin": {
+      "text": "Se connecter avec un compte n3boss (professeur).",
+      "textTeacher": "Se connecter avec un compte n3boss (professeur)."
     },
     "header.logout": { "text": "Quitter ForetMap proprement." },
     "header.notifications": { "text": "Nouvelles infos, rappels et petites alertes utiles." },
@@ -74,7 +74,7 @@
     "profiles": {
       "title": "Aide profils et comptes",
       "items": [
-        { "textTeacher": "Gère les profils RBAC (permissions, PIN, forum, commentaires contextuels) et rattache un profil principal à chaque compte." },
+        { "textTeacher": "Gère les profils RBAC (permissions, forum, commentaires contextuels) et rattache un profil principal à chaque compte." },
         { "textTeacher": "Prise de contrôle : depuis « Modifier » un compte, « Voir comme cet utilisateur » reproduit l'expérience réelle de ce n3beur ou n3boss ; le bandeau te ramène à ton compte admin." }
       ]
     },

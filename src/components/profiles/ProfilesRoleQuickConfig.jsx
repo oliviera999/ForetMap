@@ -2,17 +2,14 @@ import React from 'react';
 
 /**
  * Config rapide du profil sélectionné (colonne gauche de l'admin des profils) — extraite de
- * `ProfilesAdminView` (O5/O6). Résumé de progression + champ emoji (aperçu + enregistrement) et
- * champ PIN. Présentation pure : `role` est le profil sélectionné, l'état/les effets restent au parent.
+ * `ProfilesAdminView` (O5/O6). Résumé de progression + champ emoji (aperçu + enregistrement).
+ * Présentation pure : `role` est le profil sélectionné, l'état/les effets restent au parent.
  */
 export function ProfilesRoleQuickConfig({
   role,
   roleEmoji = '',
   onRoleEmojiChange,
   onSaveEmoji,
-  pin = '',
-  onPinChange,
-  onSavePin,
   loading = false,
   roleTerms = {},
 }) {
@@ -64,18 +61,6 @@ export function ProfilesRoleQuickConfig({
             : 'Optionnel pour les autres profils (max. 16 caractères).'}
         </p>
       </div>
-      <div className="field">
-        <label>PIN du profil {role.display_name}</label>
-        <input
-          type="password"
-          value={pin}
-          onChange={(e) => onPinChange(e.target.value)}
-          placeholder="Nouveau PIN"
-        />
-      </div>
-      <button className="btn btn-secondary btn-sm" onClick={onSavePin} disabled={loading}>
-        Enregistrer PIN
-      </button>
     </div>
   );
 }

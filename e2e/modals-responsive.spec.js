@@ -86,14 +86,12 @@ for (const vp of VIEWPORTS) {
       await loginAsNewStudent(page);
 
       await dismissDiscoveryTourIfPresent(page);
-      await page
-        .getByRole('button', { name: 'Activer les droits étendus' })
-        .click({ timeout: 25_000 });
+      await page.getByRole('button', { name: 'Connexion professeur' }).click({ timeout: 25_000 });
       const pinCard = page.locator('.pin-card');
       await expect(pinCard).toBeVisible({ timeout: 25_000 });
       await expectDialogStableAndFitting(pinCard, vp.height, { pinCard: true });
-      const pin = process.env.E2E_ELEVATION_PIN || process.env.TEACHER_PIN || '1234';
-      await enableTeacherMode(page, pin, { pinCardAlreadyOpen: true });
+      await pinCard.getByRole('button', { name: 'Annuler' }).click();
+      await enableTeacherMode(page);
 
       await openTeacherTasksTab(page);
       await clickTeacherNewTask(page);
