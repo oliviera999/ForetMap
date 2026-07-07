@@ -7,6 +7,11 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Consolidation Git
+
+- Fusion des commits uniques encore absents de `main` (tests médiathèque, `workflow_dispatch` CI) et correctif PWA `manifest.json` (`Content-Type: application/manifest+json`).
+- Suppression de toutes les branches locales et distantes sauf `main` (contenu déjà intégré via PR ou obsolète sur l’historique actuel).
+
 ### Documentation
 
 - **GL — QCM** : nouvelle synthèse `docs/GL_QCM_SETS.md` (+ schéma visuel
