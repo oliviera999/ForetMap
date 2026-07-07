@@ -217,6 +217,15 @@ if (fs.existsSync(serviceWorkerPath)) {
     res.sendFile(serviceWorkerPath);
   });
 }
+
+const manifestPath = path.join(staticRoot, 'manifest.json');
+if (fs.existsSync(manifestPath)) {
+  app.get('/manifest.json', (req, res) => {
+    res.setHeader('Content-Type', 'application/manifest+json');
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    res.sendFile(manifestPath);
+  });
+}
 const { createDistStaticServeOptions } = require('./lib/staticCacheHeaders');
 const staticServeOptions = serveDist ? createDistStaticServeOptions(distDir) : undefined;
 // Sur gl.*, index.vite.html est l'entrée ForetMap : ne pas la servir telle quelle.
