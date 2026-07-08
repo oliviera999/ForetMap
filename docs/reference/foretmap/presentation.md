@@ -156,22 +156,20 @@ actions sensibles.
 
 1. **Le parcours du nouvel inscrit est confus** (voir plus haut) : un compte créé en
    autonomie reste « visiteur », sans accès aux tâches ni explication à l'écran.
-2. **La documentation interne du projet était en retard sur le code** : elle décrivait
-   encore une bascule « mode prof par code PIN », supprimée depuis (les droits viennent
-   désormais du rôle attribué à la connexion). Corrigé dans ce lot ; d'autres traces de
-   l'ancien système subsistent dans les coulisses et mériteraient un nettoyage.
-3. **Des faiblesses de sécurité connues sur les actions élèves** : certaines actions
-   (prendre/rendre une tâche, gérer son carnet d'observation) font confiance à
-   l'identité que le navigateur déclare, sans vérification stricte côté serveur. Un
-   élève malicieux pourrait agir au nom d'un autre ou supprimer des observations qui ne
-   sont pas les siennes. Un audit interne l'a déjà consigné ; c'est un chantier
-   prioritaire.
-4. **Navigation à géométrie variable** (voir plus haut) : la fusion/séparation des
+   _Point F2 du [registre](../INCOHERENCES.md), en attente d'arbitrage._
+2. **Navigation à géométrie variable** (voir plus haut) : la fusion/séparation des
    onglets selon l'écran et les réglages complique l'accompagnement des utilisateurs.
-5. **Doublons internes hérités de l'histoire du projet** : le mode Visite conserve deux
-   générations de contenus en parallèle, et les liens entre tâches et zones existent
-   sous deux formes. Sans effet visible aujourd'hui, mais source d'ambiguïté sur « où
-   est la vérité » — à assainir à l'occasion.
+   _Point F3 du [registre](../INCOHERENCES.md), en attente d'arbitrage._
+
+Points résolus le 2026-07-08 (détail dans le [registre](../INCOHERENCES.md)) :
+
+- ✅ **Sécurité des actions élèves** : toutes les actions (tâches, propositions, carnet
+  d'observation) vérifient désormais l'identité côté serveur — agir au nom d'un autre
+  élève est refusé. Des points voisins sur les images restent suivis dans l'audit
+  technique interne.
+- ✅ **Vestiges de l'ancien « mode prof par PIN »** purgés (écrans et documents).
+- ✅ **Doublons internes** assainis : le mode Visite n'a plus qu'une génération de
+  contenus, et le lien tâche ↔ zones/repères n'a plus qu'une seule source de vérité.
 
 ## Pour aller plus loin
 

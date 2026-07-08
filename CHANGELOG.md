@@ -7,6 +7,29 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Assainissement — registre d'incohérences (lots F1/F4-F7, G3-G7/G10)
+
+- **Sécurité (F1)** : `POST /api/tasks/proposals` dérive désormais l'identité élève du
+  JWT (403 sans jeton ou si `studentId` diverge) ; contexte d'action élève mutualisé
+  dans `lib/tasks/studentActionContext.js`. **(G7)** mots de passe staff GL : 8
+  caractères minimum (changement + réinitialisation par token enseignant).
+- **Nouveau (G3)** : écrans d'administration du conditionnement par QCM — « Contenus →
+  Conditionnement QCM » (liens ressource ↔ question) et « Réglages plateforme →
+  Conditionnement par QCM » (`gating.*` via `PUT /api/gl/learning-links/settings`).
+- **Nommage (G4/G6)** : « Glossaire scientifique » vs « Lexique lore », « QCM biomes »
+  vs « QCM lore » partout ; libellés Biodiversité/Écosystèmes harmonisés (biotope/
+  biocénose réservés aux contenus pédagogiques).
+- **Nettoyages (F6/F7/G5/G10)** : vestiges PIN purgés (UI profils, docs, CI) ;
+  endpoint doublon `POST /api/gl/admin/players/:id/reset-pin` supprimé (alias body
+  `pin` conservé en compat) ; règle de numérotation des migrations documentée ;
+  scories `lib/glSettings.js` supprimées (`settingKeyForCamel` dérivé automatiquement).
+- **Dette (F4/F5)** : migration destructive `166_drop_visit_v1_content.sql` (tables
+  visite V1 supprimées après copie filet) ; `task_zones`/`task_markers` unique source
+  de vérité (colonnes directes = copie auto write-only, replis en lecture retirés).
+- **Docs de référence** : registre `docs/reference/INCOHERENCES.md` (11 points ✅
+  livrés, 6 reportés), présentations ForetMap/GL mises à jour, `docs/API.md`,
+  `docs/EVOLUTION.md`, `docs/GL_CARNET_JOUEUR.md`.
+
 ### Documentation — registre d'arbitrage des incohérences
 
 - Nouveau `docs/reference/INCOHERENCES.md` : 17 points relevés (7 ForetMap, 10 GL)

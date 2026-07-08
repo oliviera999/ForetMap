@@ -38,7 +38,7 @@ d'autres points voisins sur les images (suppression, accès).
   documenter noir sur blanc. Aucun effort, mais le risque demeure et grandit avec
   l'ouverture de l'application (visite publique, inscription libre).
 
-**Décision :** ✅ **Option A actée** (2026-07-08) — correctif en cours dans ce lot.
+**Décision :** ✅ **Livré** (2026-07-08, option A) — vérification faite : la quasi-totalité des actions élèves étaient déjà corrigées depuis l'audit ; la dernière route ouverte (proposition de tâche) exige désormais le jeton de session, rejette toute identité divergente et journalise l'acteur réel. Les points images (R1-R3 de l'audit technique) restent ouverts, à traiter séparément.
 
 ### F2 — 🔴 Parcours du nouvel inscrit : un compte auto-créé reste « visiteur » sans explication
 
@@ -93,7 +93,7 @@ sur « où est la vérité » complique chaque évolution de la Visite.
   visible.
 - **B** — Statu quo documenté (« le nouveau format fait foi, l'ancien est gelé »).
 
-**Décision :** ✅ **Option A actée** (2026-07-08) — correctif en cours dans ce lot.
+**Décision :** ✅ **Livré** (2026-07-08, option A) — l'ancien format a été copié une dernière fois par filet de sécurité puis supprimé (migration destructive documentée) ; le nouveau format est l'unique source, une garde automatique l'atteste.
 
 ### F5 — 🟡 Tâches : double lien interne vers zones et repères
 
@@ -107,7 +107,7 @@ désaccord silencieux entre les deux.
   lien historique devient une simple copie automatique (ou disparaît à terme).
 - **B** — Statu quo documenté.
 
-**Décision :** ✅ **Option A actée** (2026-07-08) — correctif en cours dans ce lot.
+**Décision :** ✅ **Livré** (2026-07-08, option A) — le lien multiple fait foi partout ; le lien historique n'est plus qu'une copie automatique (un seul point d'écriture, plus aucun repli en lecture), conservée pour la compatibilité des exports.
 
 ### F6 — 🟡 Vestiges de l'ancien « mode prof par PIN »
 
@@ -120,7 +120,7 @@ déjà été corrigée dans le lot précédent.
 dans les documents internes et planifier la suppression des structures obsolètes.
 Aucun impact utilisateur.
 
-**Décision :** ✅ **Feu vert** (2026-07-08) — correctif en cours dans ce lot.
+**Décision :** ✅ **Livré** (2026-07-08) — plus aucune mention du PIN comme mécanisme actuel (libellés d'écran, aide, docs internes, variable morte de la chaîne d'intégration). Les structures historiques du schéma restent volontairement (nécessaires aux migrations anciennes).
 
 ### F7 — 🟡 Scories structurelles internes
 
@@ -130,7 +130,7 @@ explicitement), quelques documents internes (skills/règles) en retard sur le co
 **Option unique (recommandée).** Lot de nettoyage documentaire interne ; ne pas
 renuméroter les migrations (risqué pour rien), juste documenter la tolérance.
 
-**Décision :** ✅ **Feu vert** (2026-07-08) — correctif en cours dans ce lot.
+**Décision :** ✅ **Livré** (2026-07-08) — règle de numérotation des migrations documentée là où on la cherche ; documents internes contradictoires corrigés.
 
 ---
 
@@ -187,7 +187,7 @@ configurer : manipulation technique obligatoire. Fonction inachevée côté admi
   écran admin plus tard.
 - **C** — Retirer la mécanique. Déconseillé : elle est saine et déjà testée.
 
-**Décision :** ✅ **Option A actée** (2026-07-08) — correctif en cours dans ce lot.
+**Décision :** ✅ **Livré** (2026-07-08, option A) — deux écrans : « Contenus → Conditionnement QCM » (liens ressource ↔ question : liste filtrable, ajout, bascule bloquant, statut, suppression) et « Réglages plateforme → Conditionnement par QCM » (interrupteur global, mode, granularité, seuil, délai de nouvelle tentative).
 
 ### G4 — 🟠 Deux glossaires et deux jeux de questions : vocabulaire à clarifier partout
 
@@ -200,7 +200,7 @@ les écrans d'édition : toujours « Glossaire scientifique » / « Lexique du l
 « QCM écologie » / « QCM histoire », y compris dans les imports/exports. Puis
 documentation claire de la distinction. Effort faible.
 
-**Décision :** ✅ **Feu vert** (2026-07-08) — correctif en cours dans ce lot.
+**Décision :** ✅ **Livré** (2026-07-08) — nommage désambiguïsé partout : « Glossaire scientifique » vs « Lexique lore », « QCM biomes » vs « QCM lore », y compris écrans d'édition, imports/exports, statistiques et aide.
 
 ### G5 — 🟡 Vestiges « PIN » côté GL
 
@@ -212,7 +212,7 @@ redondantes pour les joueurs (l'une « mot de passe », l'autre « PIN », ident
 appellation quelque temps en compatibilité silencieuse, la retirer ensuite ; supprimer
 la commande en double. Aucun impact utilisateur visible.
 
-**Décision :** ✅ **Feu vert** (2026-07-08) — correctif en cours dans ce lot.
+**Décision :** ✅ **Livré** (2026-07-08) — la commande en double a été supprimée, l'écran de gestion des joueurs utilise la commande « mot de passe » ; l'ancienne appellation reste acceptée en coulisses quelque temps (compatibilité silencieuse), à retirer à terme.
 
 ### G6 — 🟡 Vocabulaire « biotope / biocénose » vs « écosystèmes / biodiversité »
 
@@ -230,7 +230,7 @@ termes ne sont pas synonymes scientifiquement.
 - **B** — Tout uniformiser sur un seul couple de termes. Plus simple, mais on perd la
   nuance pédagogique.
 
-**Décision :** ✅ **Option A actée** (2026-07-08) — correctif en cours dans ce lot.
+**Décision :** ✅ **Livré** (2026-07-08, option A) — libellés d'interface harmonisés (Biodiversité/Écosystèmes) ; les termes scientifiques biotope/biocénose restent dans les contenus pédagogiques où ils sont définis ; règle éditoriale actée.
 
 ### G7 — 🟠 Mots de passe : 4 caractères minimum, y compris pour MJ et admins
 
@@ -245,7 +245,7 @@ peuvent tout administrer.
 - **B** — 8+ pour tout le monde. Plus sûr mais pénible pour les plus jeunes.
 - **C** — Statu quo documenté.
 
-**Décision :** ✅ **Option A actée** (2026-07-08) — correctif en cours dans ce lot.
+**Décision :** ✅ **Livré** (2026-07-08, option A) — 8 caractères minimum pour les comptes MJ/Admin (changement et réinitialisation), les joueurs restent à 4.
 
 ### G8 — 🟡 Sorts : qui lance, en temps normal ?
 
@@ -288,13 +288,13 @@ désynchronisée dans un document interne.
 **Option unique (recommandée).** Lot de nettoyage technique groupé, sans changement
 de comportement, couvert par les tests existants.
 
-**Décision :** ✅ **Feu vert** (2026-07-08) — correctif en cours dans ce lot.
+**Décision :** ✅ **Livré** (2026-07-08) — réglage en double supprimé, table de correspondance désormais dérivée automatiquement (plus de liste manuelle), liste des modules resynchronisée.
 
 ---
 
 ## Arbitrage du 2026-07-08
 
-- **Actés (en cours de traitement)** : F1, F4, F5, F6, F7 · G3, G4, G5, G6, G7, G10.
+- **✅ Livrés (2026-07-08)** : F1, F4, F5, F6, F7 · G3, G4, G5, G6, G7, G10.
 - **Reportés (options à détailler au prochain arbitrage)** : F2, F3 · G1, G2, G8, G9.
 
 Ordre de traitement des points actés :
