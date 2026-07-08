@@ -81,9 +81,10 @@ placer les repères et y associer textes, images et questions.
 - **Biodiversité** : les fiches espèces à découvrir et à apprendre.
 - **Glossaire** : le vocabulaire scientifique.
 
-Les élèves peuvent marquer un contenu comme « appris » (et cet apprentissage peut être
-conditionné à la réussite d'un QCM — voir points d'attention), puis importer leurs
-découvertes dans leur carnet personnel.
+Les élèves peuvent marquer un contenu comme « appris » — et l'admin peut exiger la
+réussite d'un QCM avant ce marquage (« conditionnement par QCM », configurable dans
+les écrans d'administration) — puis importer leurs découvertes dans leur carnet
+personnel.
 
 ### L'aventure (le fil narratif)
 
@@ -153,8 +154,9 @@ L'admin dispose d'un écran de réglages complet :
   intro, aide, tutoriels, musique de zone, dé virtuel, notifications…).
 - **Gameplay** : tours de jeu, narration, actions des joueurs, score, vitalité (et
   valeurs de départ des cœurs/gemmes), qui peut déplacer les mascottes, qui peut lancer
-  les QCM, comportement des feuillets de Sélène (coûts, récompenses, aperçus)… Des
-  **profils de séance prêts à l'emploi** permettent d'appliquer une configuration
+  les QCM, comportement des feuillets de Sélène (coûts, récompenses, aperçus),
+  **conditionnement par QCM** (exiger une bonne réponse avant de marquer « appris »)…
+  Des **profils de séance prêts à l'emploi** permettent d'appliquer une configuration
   cohérente en un clic.
 - **Contenus** : chapitres, cartes, zones, repères, espèces, glossaires, QCM,
   feuillets, pages « monde » et « règles », intro animée, aide — avec import/export
@@ -173,32 +175,31 @@ actuel :
 
 1. **Le nom du jeu et son contenu divergent** (voir plus haut) : pas de véritable récit
    « gnomes et licornes » dans les données actuelles.
+   _Point G1 du [registre](../INCOHERENCES.md), en attente d'arbitrage._
 2. **Le marché est un piège de configuration** : il ne s'affiche que si le module
    Marché **et** la vitalité sont activés tous les deux. Un admin qui n'active que le
    Marché ne verra rien apparaître, sans message d'explication.
-3. **Le conditionnement « appris seulement après un QCM réussi » n'a pas d'écran
-   d'administration** : la mécanique existe et fonctionne, mais un professeur ne peut
-   pas la configurer sans manipulation technique. Fonctionnalité inachevée côté admin.
-4. **Deux glossaires et deux jeux de questions coexistent** : le glossaire scientifique
-   et le lexique du lore d'une part, les QCM « biome » et les QCM « lore » d'autre
-   part. C'est voulu, mais source de confusion pour un MJ non averti — la documentation
-   devra toujours préciser duquel on parle.
-5. **Vestiges d'une ancienne connexion par code PIN** : le système accepte encore
-   d'anciens vocabulaires (« PIN » au lieu de « mot de passe ») et il existe deux
-   commandes de réinitialisation quasi identiques. Un nettoyage clarifierait les choses.
-6. **Vocabulaire des onglets ayant changé** : « biotope » et « biocénose » ont été
-   renommés « écosystèmes » et « biodiversité » dans la navigation, mais les anciens
-   termes peuvent subsister ailleurs — risque d'incohérence de vocabulaire pour les
-   élèves.
-7. **Mots de passe peu exigeants** : 4 caractères minimum suffisent, y compris pour les
-   comptes du personnel. Acceptable pour des élèves de cycle 3, discutable pour les
-   comptes MJ/admin.
-8. **Comportement par défaut des sorts ambigu** : par défaut, les joueurs peuvent
+   _Point G2 du [registre](../INCOHERENCES.md), en attente d'arbitrage._
+3. **Comportement par défaut des sorts ambigu** : par défaut, les joueurs peuvent
    lancer des sorts, alors que la documentation interne décrivait le lancement par le
    MJ comme le flux principal. À trancher : quel est le mode « normal » ?
-9. **Petites scories internes** sans effet visible mais à nettoyer : un réglage de
-   gameplay défini en double, une liste de modules désynchronisée dans la documentation
-   interne, une table de correspondance de réglages incomplète.
+   _Point G8 du [registre](../INCOHERENCES.md), en attente d'arbitrage._
+
+Points résolus le 2026-07-08 (détail dans le [registre](../INCOHERENCES.md)) :
+
+- ✅ **Le conditionnement par QCM a désormais ses écrans d'administration** : les liens
+  ressource ↔ question se gèrent dans « Contenus → Conditionnement QCM », les réglages
+  globaux dans « Réglages plateforme → Conditionnement par QCM » (admin).
+- ✅ **Nommage clarifié** : « Glossaire scientifique » vs « Lexique lore », « QCM
+  biomes » vs « QCM lore », partout dans l'interface et les écrans d'édition.
+- ✅ **Vestiges « PIN » nettoyés** : une seule commande de réinitialisation, tout parle
+  de « mot de passe ».
+- ✅ **Vocabulaire harmonisé** : l'interface dit Écosystèmes/Biodiversité ; les termes
+  scientifiques biotope/biocénose restent dans les contenus pédagogiques, définis au
+  glossaire scientifique.
+- ✅ **Mots de passe du personnel renforcés** : 8 caractères minimum pour les comptes
+  MJ/Admin (les joueurs restent à 4).
+- ✅ **Scories internes nettoyées** (réglage en double, listes désynchronisées).
 
 ## Pour aller plus loin
 
