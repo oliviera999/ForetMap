@@ -38,7 +38,7 @@ d'autres points voisins sur les images (suppression, accès).
   documenter noir sur blanc. Aucun effort, mais le risque demeure et grandit avec
   l'ouverture de l'application (visite publique, inscription libre).
 
-**Décision :** _à trancher_
+**Décision :** ✅ **Option A actée** (2026-07-08) — correctif en cours dans ce lot.
 
 ### F2 — 🔴 Parcours du nouvel inscrit : un compte auto-créé reste « visiteur » sans explication
 
@@ -61,7 +61,7 @@ rentrée.
   n'importe qui peut alors s'inscrire et interagir avec les tâches : déconseillé tant
   que F1 n'est pas réglé.
 
-**Décision :** _à trancher_
+**Décision :** ⏸️ **Reportée** (2026-07-08) — options à détailler lors du prochain arbitrage.
 
 ### F3 — 🟠 Navigation à géométrie variable (Tâches/Tuto/Carte)
 
@@ -78,7 +78,7 @@ marche pas pour tout le monde) et difficile à documenter.
 - **B** — Statu quo, mais la documentation de référence décrit chaque variante.
   Aucun effort de code, complexité documentaire durable.
 
-**Décision :** _à trancher_
+**Décision :** ⏸️ **Reportée** (2026-07-08) — options à détailler lors du prochain arbitrage.
 
 ### F4 — 🟡 Visite : deux générations de contenus coexistent en interne
 
@@ -93,7 +93,7 @@ sur « où est la vérité » complique chaque évolution de la Visite.
   visible.
 - **B** — Statu quo documenté (« le nouveau format fait foi, l'ancien est gelé »).
 
-**Décision :** _à trancher_
+**Décision :** ✅ **Option A actée** (2026-07-08) — correctif en cours dans ce lot.
 
 ### F5 — 🟡 Tâches : double lien interne vers zones et repères
 
@@ -107,7 +107,7 @@ désaccord silencieux entre les deux.
   lien historique devient une simple copie automatique (ou disparaît à terme).
 - **B** — Statu quo documenté.
 
-**Décision :** _à trancher_
+**Décision :** ✅ **Option A actée** (2026-07-08) — correctif en cours dans ce lot.
 
 ### F6 — 🟡 Vestiges de l'ancien « mode prof par PIN »
 
@@ -120,7 +120,7 @@ déjà été corrigée dans le lot précédent.
 dans les documents internes et planifier la suppression des structures obsolètes.
 Aucun impact utilisateur.
 
-**Décision :** _à trancher_ (feu vert simple)
+**Décision :** ✅ **Feu vert** (2026-07-08) — correctif en cours dans ce lot.
 
 ### F7 — 🟡 Scories structurelles internes
 
@@ -130,7 +130,7 @@ explicitement), quelques documents internes (skills/règles) en retard sur le co
 **Option unique (recommandée).** Lot de nettoyage documentaire interne ; ne pas
 renuméroter les migrations (risqué pour rien), juste documenter la tolérance.
 
-**Décision :** _à trancher_ (feu vert simple)
+**Décision :** ✅ **Feu vert** (2026-07-08) — correctif en cours dans ce lot.
 
 ---
 
@@ -153,7 +153,7 @@ Les mascottes « gnomes/licornes » sont le seul ancrage du titre.
 - **C** — Renommer le jeu pour coller au contenu. Impact fort (habitudes, adresse,
   supports imprimés) : déconseillé.
 
-**Décision :** _à trancher_
+**Décision :** ⏸️ **Reportée** (2026-07-08) — options à détailler lors du prochain arbitrage.
 
 ### G2 — 🟠 Le Marché n'apparaît que si deux réglages distincts sont actifs
 
@@ -170,7 +170,7 @@ apparaître, sans aucun message.
   magique : l'admin ne comprend pas pourquoi la vitalité s'est allumée.
 - **C** — Statu quo + documentation seule.
 
-**Décision :** _à trancher_
+**Décision :** ⏸️ **Reportée** (2026-07-08) — options à détailler lors du prochain arbitrage.
 
 ### G3 — 🟠 Le conditionnement « appris seulement après QCM réussi » n'a pas d'écran d'administration
 
@@ -187,7 +187,7 @@ configurer : manipulation technique obligatoire. Fonction inachevée côté admi
   écran admin plus tard.
 - **C** — Retirer la mécanique. Déconseillé : elle est saine et déjà testée.
 
-**Décision :** _à trancher_
+**Décision :** ✅ **Option A actée** (2026-07-08) — correctif en cours dans ce lot.
 
 ### G4 — 🟠 Deux glossaires et deux jeux de questions : vocabulaire à clarifier partout
 
@@ -200,7 +200,7 @@ les écrans d'édition : toujours « Glossaire scientifique » / « Lexique du l
 « QCM écologie » / « QCM histoire », y compris dans les imports/exports. Puis
 documentation claire de la distinction. Effort faible.
 
-**Décision :** _à trancher_ (feu vert simple)
+**Décision :** ✅ **Feu vert** (2026-07-08) — correctif en cours dans ce lot.
 
 ### G5 — 🟡 Vestiges « PIN » côté GL
 
@@ -212,7 +212,7 @@ redondantes pour les joueurs (l'une « mot de passe », l'autre « PIN », ident
 appellation quelque temps en compatibilité silencieuse, la retirer ensuite ; supprimer
 la commande en double. Aucun impact utilisateur visible.
 
-**Décision :** _à trancher_ (feu vert simple)
+**Décision :** ✅ **Feu vert** (2026-07-08) — correctif en cours dans ce lot.
 
 ### G6 — 🟡 Vocabulaire « biotope / biocénose » vs « écosystèmes / biodiversité »
 
@@ -230,7 +230,7 @@ termes ne sont pas synonymes scientifiquement.
 - **B** — Tout uniformiser sur un seul couple de termes. Plus simple, mais on perd la
   nuance pédagogique.
 
-**Décision :** _à trancher_
+**Décision :** ✅ **Option A actée** (2026-07-08) — correctif en cours dans ce lot.
 
 ### G7 — 🟠 Mots de passe : 4 caractères minimum, y compris pour MJ et admins
 
@@ -245,7 +245,7 @@ peuvent tout administrer.
 - **B** — 8+ pour tout le monde. Plus sûr mais pénible pour les plus jeunes.
 - **C** — Statu quo documenté.
 
-**Décision :** _à trancher_
+**Décision :** ✅ **Option A actée** (2026-07-08) — correctif en cours dans ce lot.
 
 ### G8 — 🟡 Sorts : qui lance, en temps normal ?
 
@@ -260,7 +260,7 @@ deux modes existent (réglage), mais le « mode normal » n'est pas tranché.
 - **B** — Défaut = MJ seul ; les profils de séance ouvrent le lancement aux joueurs
   quand on le souhaite. Changement de défaut, plus prudent en classe.
 
-**Décision :** _à trancher_
+**Décision :** ⏸️ **Reportée** (2026-07-08) — options à détailler lors du prochain arbitrage.
 
 ### G9 — 🟡 Cœurs et gemmes jouent trois rôles à la fois
 
@@ -277,7 +277,7 @@ expliquer — ce n'est pas un bug, c'est un choix de conception à assumer et vu
   chantier de gameplay : à n'envisager que si l'expérience en classe montre une vraie
   confusion.
 
-**Décision :** _à trancher_
+**Décision :** ⏸️ **Reportée** (2026-07-08) — options à détailler lors du prochain arbitrage.
 
 ### G10 — 🟡 Scories internes GL
 
@@ -288,16 +288,20 @@ désynchronisée dans un document interne.
 **Option unique (recommandée).** Lot de nettoyage technique groupé, sans changement
 de comportement, couvert par les tests existants.
 
-**Décision :** _à trancher_ (feu vert simple)
+**Décision :** ✅ **Feu vert** (2026-07-08) — correctif en cours dans ce lot.
 
 ---
 
-## Proposition de découpage en lots
+## Arbitrage du 2026-07-08
 
-| Lot                                | Contenu                                                                                                                                    | Décision nécessaire ?           |
-| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------- |
-| **Lot 1 — Sécurité**               | F1 (identité vérifiée côté serveur) + G7 (mots de passe staff)                                                                             | Faible (option A des deux)      |
-| **Lot 2 — Nettoyages sans risque** | F6, F7, G5, G10 (vestiges PIN, scories, docs internes)                                                                                     | Feu vert simple                 |
-| **Lot 3 — Clarté admin/MJ**        | G2 (avertissement Marché), G4 (nommage glossaires/QCM)                                                                                     | Faible                          |
-| **Lot 4 — Décisions produit**      | F2 (parcours inscription), F3 (navigation), G1 (nom du jeu), G3 (écran gating), G6 (vocabulaire), G8 (défaut des sorts), G9 (doc économie) | **Oui — arbitrage utilisateur** |
-| **Lot 5 — Dette interne**          | F4 (visite V1/V2), F5 (double lien tâches)                                                                                                 | Feu vert simple, à planifier    |
+- **Actés (en cours de traitement)** : F1, F4, F5, F6, F7 · G3, G4, G5, G6, G7, G10.
+- **Reportés (options à détailler au prochain arbitrage)** : F2, F3 · G1, G2, G8, G9.
+
+Ordre de traitement des points actés :
+
+| Lot                            | Contenu                                                                      |
+| ------------------------------ | ---------------------------------------------------------------------------- |
+| **1 — Nettoyages sans risque** | F6, F7, G5, G10 (vestiges PIN, scories, docs internes) + G4/G6 (vocabulaire) |
+| **2 — Sécurité**               | F1 (identité vérifiée côté serveur) + G7 (mots de passe staff 8+)            |
+| **3 — Dette interne**          | F4 (visite V1/V2), F5 (double lien tâches)                                   |
+| **4 — Fonction inachevée**     | G3 (écran admin du conditionnement par QCM)                                  |
