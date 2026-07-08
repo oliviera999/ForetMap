@@ -73,7 +73,7 @@ petit lot sans rien changer au modèle de sécurité. A est la vraie bonne répo
 rentrée (l'élève devient autonome, le prof ne fait que distribuer un code) et rend B
 encore utile pour les retardataires sans code. C est déconseillé, D trop rigide.
 
-**Décision :** ⏸️ **Reportée** (2026-07-08) — options à détailler lors du prochain arbitrage.
+**Décision :** ✅ **Options A + B actées** (2026-07-08) — correctif en cours : écran d'attente + liste « comptes en attente » (B) et code de classe à l'inscription (A).
 
 ### F3 — 🟠 Navigation à géométrie variable (Tâches/Tuto/Carte)
 
@@ -218,7 +218,7 @@ apparaître, sans aucun message.
 C'est la correction proportionnée : le problème est un défaut d'information au moment
 de la configuration, pas un défaut de conception.
 
-**Décision :** ⏸️ **Reportée** (2026-07-08) — options à détailler lors du prochain arbitrage.
+**Décision :** ✅ **Option A actée** (2026-07-08) — correctif en cours : avertissement sur l'interrupteur du Marché + activation des deux réglages en un clic.
 
 ### G3 — 🟠 Le conditionnement « appris seulement après QCM réussi » n'a pas d'écran d'administration
 
@@ -322,7 +322,7 @@ profils de séance par-dessus) ; changer un comportement en production pour alig
 phrase de doc serait la mauvaise direction. Corriger la doc interne, et considérer que
 le « mode normal » d'une séance est celui du profil choisi.
 
-**Décision :** ⏸️ **Reportée** (2026-07-08) — options à détailler lors du prochain arbitrage.
+**Décision :** ✅ **Option A actée** (2026-07-08) — défaut « joueurs » conservé, documentation interne corrigée (livré dans ce lot).
 
 ### G9 — 🟡 Cœurs et gemmes jouent trois rôles à la fois
 
@@ -351,7 +351,7 @@ d'abord un problème d'explication : le doc économie est de toute façon prévu
 plancher de C est une jolie protection pour le cycle 3 — à trancher après une ou deux
 séances d'observation. B seulement si la confusion résiste à A + C.
 
-**Décision :** ⏸️ **Reportée** (2026-07-08) — options à détailler lors du prochain arbitrage.
+**Décision :** ✅ **Option C actée** (2026-07-08) — correctif en cours : libellés explicites de dépense (« il te restera N ») au marché et dans l'assistant de sorts ; le plancher configurable sera proposé dans un second temps. Le doc « économie du jeu » (option A) reste prévu au sommaire.
 
 ### G10 — 🟡 Scories internes GL
 
@@ -370,6 +370,13 @@ de comportement, couvert par les tests existants.
 
 - **✅ Livrés (2026-07-08)** : F1, F4, F5, F6, F7 · G3, G4, G5, G6, G7, G10.
 - **Reportés (options à détailler au prochain arbitrage)** : F2, F3 · G1, G2, G8, G9.
+
+## Arbitrage du 2026-07-08 (second tour)
+
+- **Actés** : F2 (A+B), G2 (A), G8 (A), G9 (C).
+- **En discussion** : F3 (questions posées : rôle du module tutoriels, devenir du
+  vis-à-vis carte/tâches grand écran) et G1 (option B retenue dans son principe —
+  propositions narratives soumises, solution à choisir).
 
 Ordre de traitement des points actés :
 
