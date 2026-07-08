@@ -14,11 +14,13 @@ test('deleteMediaLibraryItem refuse les traversées hors de uploads/media-librar
   try {
     assert.throws(
       () => deleteMediaLibraryItem(`media-library/../${victimRelativePath}`),
-      (err) => err?.status === 400 && /Chemin média invalide/.test(String(err.message || ''))
+      (err) => err?.status === 400 && /Chemin média invalide/.test(String(err.message || '')),
     );
-    assert.ok(fs.existsSync(victimAbsolutePath), 'Le fichier hors médiathèque ne doit pas être supprimé');
+    assert.ok(
+      fs.existsSync(victimAbsolutePath),
+      'Le fichier hors médiathèque ne doit pas être supprimé',
+    );
   } finally {
     if (fs.existsSync(victimAbsolutePath)) fs.unlinkSync(victimAbsolutePath);
   }
 });
-

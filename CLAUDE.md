@@ -8,8 +8,9 @@ sous **`.claude/skills/`**.
 ## Vue d'ensemble
 
 - **ForetMap** : application de gestion d'une forêt comestible (Lycée Lyautey). Élèves
-  (carte des zones, tâches, stats) et professeurs (mode prof via PIN → JWT : gestion zones /
-  plantes / tâches / élèves, validation).
+  (carte des zones, tâches, stats) et professeurs (rôles RBAC attribués à la connexion — l'ancien
+  « mode prof via PIN » est supprimé, routes 410 Gone : gestion zones / plantes / tâches / élèves,
+  validation).
 - **GL (Gnomes & Licornes)** : sous-produit du même monorepo, **isolé**, servi par host
   (`gl.*`), API sous `/api/gl/*` (jeu pédagogique : chapitres, carte du royaume, lore, marché,
   sorts, QCM, journal). Voir skill `foretmap-gl`.
