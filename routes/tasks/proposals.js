@@ -1,16 +1,13 @@
 const express = require('express');
 const crypto = require('node:crypto');
-const { queryOne, withTransaction } = require('../../database');
+const { withTransaction } = require('../../database');
 const { deleteFile, writeBufferToDisk } = require('../../lib/uploads');
 const asyncHandler = require('../../lib/asyncHandler');
 const { logAudit } = require('../audit');
 const { emitTasksChanged } = require('../../lib/realtime');
-const { ensurePrimaryRole, buildAuthzPayload, setPrimaryRole } = require('../../lib/rbac');
-const { syncStudentRoleFromGroups, resolveDefaultRoleForStudent } = require('../../lib/groupRole');
 const { syncTaskSpecies } = require('../../lib/speciesJunction');
 // Helpers du cluster « tasks » mutualisés dans lib/tasks/taskQueries.js (aucun import circulaire).
 const {
-  parseOptionalAuth,
   validateTaskLocations,
   setTaskZones,
   setTaskMarkers,
@@ -29,25 +26,9 @@ const {
   normalizeIdArray,
 } = require('../../lib/taskRouteHelpers');
 const { isVisitorRole } = require('../../lib/taskAuthzHelpers');
+const { resolveStudentActionContext } = require('../../lib/tasks/studentActionContext');
 
 const router = express.Router();
-
-async function ensureStudentPermission({ studentId, permissionKey }) {
-  await syncStudentRoleFromGroups(studentId);
-  await ensurePrimaryRole('student', studentId, 'eleve_novice');
-  let base = await buildAuthzPayload('student', studentId);
-  if (!base) return { ok: false, error: 'Profil introuvable' };
-  if (!base.permissions.includes(permissionKey)) {
-    const resolved = await resolveDefaultRoleForStudent(studentId);
-    if (resolved?.roleId && resolved.source === 'group') {
-      await setPrimaryRole('student', studentId, resolved.roleId);
-      base = await buildAuthzPayload('student', studentId);
-      if (!base) return { ok: false, error: 'Profil introuvable' };
-    }
-  }
-  if (base.permissions.includes(permissionKey)) return { ok: true };
-  return { ok: false, error: 'Permission insuffisante' };
-}
 
 router.post(
   '/proposals',
@@ -72,23 +53,23 @@ router.post(
       living_beings,
     } = req.body || {};
     if (!title || !String(title).trim()) return res.status(400).json({ error: 'Titre requis' });
-    if (!firstName || !lastName) return res.status(400).json({ error: 'Nom requis' });
-    if (!studentId) return res.status(400).json({ error: 'Identifiant n3beur requis' });
 
-    const authProposal = await parseOptionalAuth(req);
-    if (authProposal?.userType === 'student' && isVisitorRole(authProposal)) {
+    // Sécurité F1 : identité dérivée du JWT (jamais du body seul). Un studentId client
+    // qui ne correspond pas au token est rejeté ; un prof habilité peut proposer au nom
+    // d'un n3beur de son périmètre de groupe.
+    const action = await resolveStudentActionContext(
+      req,
+      { studentId, firstName, lastName },
+      'tasks.propose',
+    );
+    if (action.errorStatus) {
+      const body = { error: action.error };
+      if (action.deleted) body.deleted = true;
+      return res.status(action.errorStatus).json(body);
+    }
+    if (action.auth?.userType === 'student' && isVisitorRole(action.auth)) {
       return res.status(403).json({ error: 'Le profil visiteur ne permet pas cette action.' });
     }
-
-    const student = await queryOne("SELECT id FROM users WHERE user_type = 'student' AND id = ?", [
-      studentId,
-    ]);
-    if (!student) return res.status(401).json({ error: 'Compte supprimé', deleted: true });
-    const permission = await ensureStudentPermission({
-      studentId,
-      permissionKey: 'tasks.propose',
-    });
-    if (!permission.ok) return res.status(403).json({ error: permission.error });
 
     let zIds = normalizeIdArray(zone_ids);
     let mIds = normalizeIdArray(marker_ids);
@@ -122,7 +103,7 @@ router.post(
     }
 
     const id = crypto.randomUUID();
-    const proposer = `${String(firstName).trim()} ${String(lastName).trim()}`.trim();
+    const proposer = `${action.firstName} ${action.lastName}`.trim();
     const baseDescription = description ? String(description).trim() : '';
     const finalDescription = [baseDescription, proposer ? `Proposition n3beur: ${proposer}` : '']
       .filter(Boolean)
@@ -190,9 +171,9 @@ router.post(
     const task = await getTaskWithAssignments(id);
     logAudit('propose_task', 'task', id, `${String(title).trim()} (${proposer})`, {
       req,
-      actorUserType: 'student',
-      actorUserId: studentId,
-      payload: { proposer, student_id: studentId, required_students: reqStudents },
+      actorUserType: action.actorUserType,
+      actorUserId: action.actorUserId,
+      payload: { proposer, student_id: action.studentId, required_students: reqStudents },
     });
     emitTasksChanged({ reason: 'propose_task', taskId: id, mapId: resolveTaskMapId(task) });
     res.status(201).json(task);
