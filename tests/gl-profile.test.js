@@ -144,6 +144,15 @@ test('PATCH /api/gl/auth/me/profile met a jour le profil staff', async () => {
   staffToken = res.body.authToken;
 });
 
+test('POST /api/gl/auth/staff/change-password refuse un mot de passe staff < 8 caracteres (G7)', async () => {
+  const res = await request(app)
+    .post('/api/gl/auth/staff/change-password')
+    .set('Authorization', `Bearer ${staffToken}`)
+    .send({ currentPassword: staffPassword, newPassword: 'court77' })
+    .expect(400);
+  assert.match(String(res.body?.error || ''), /min 8/);
+});
+
 test('POST /api/gl/auth/staff/change-password met a jour le mot de passe staff', async () => {
   await request(app)
     .post('/api/gl/auth/staff/change-password')

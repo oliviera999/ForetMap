@@ -10,7 +10,6 @@ const baseProps = {
   mapTasksSplitLabel: '🗺️ Cartes & tâches',
   tasksTabLabel: '✅ Tâches',
   teacherPendingValidationCount: 0,
-  mergeTasksTutoNav: false,
   tutorialsModuleEnabled: true,
   statsEnabled: true,
   visitEnabled: true,
@@ -77,11 +76,9 @@ describe('TeacherTopTabs', () => {
     expect(screen.queryByText('💬 Forum')).toBeNull();
   });
 
-  test('fusion tâches&tuto : Tuto masqué et Tâches actif aussi depuis l’onglet tuto', () => {
-    render(
-      <TeacherTopTabs {...baseProps} tab="tuto" mergeTasksTutoNav tasksTabLabel="✅ Tâches&tuto" />,
-    );
-    expect(screen.queryByText('📘 Tuto')).toBeNull();
-    expect(screen.getByText('✅ Tâches&tuto')).toHaveClass('active');
+  test('F3 : Tâches et Tuto restent des onglets séparés (plus de fusion contextuelle)', () => {
+    render(<TeacherTopTabs {...baseProps} tab="tuto" />);
+    expect(screen.getByText('📘 Tuto')).toBeInTheDocument();
+    expect(screen.getByText('📘 Tuto')).toHaveClass('active');
   });
 });

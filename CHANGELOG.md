@@ -7,6 +7,92 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Troisième tour d'arbitrage — F3 et G1 livrés
+
+- **F3 (A) — navigation stabilisée** : la fusion contextuelle Tâches/Tuto (déclenchée
+  par un « lieu en focus ») est supprimée — Tâches et Tuto sont des onglets séparés en
+  toutes circonstances, côté élève comme côté prof. La vue grand écran
+  « Cartes & tâches » (carte + tâches côte à côte) et le masquage par module sont
+  conservés. Garde de navigation `tuto→tasks` retirée ; tests UI adaptés.
+- **G1 (B) — socle narratif « Les deux peuples du seuil »** :
+  `docs/reference/gl/lore-deux-peuples.md` — gnomes (peuple du proche/observation) et
+  licornes (peuple du loin/récit), pacte du seuil, **transformation entre chaque
+  chapitre** (le seuil donne la forme dont le prochain biome a besoin — les équipes
+  changent de compagnon en chemin) et **Sélène qui a incarné les deux formes**.
+  Textes prêts à coller : page « Pourquoi Gnomes & Licornes ? », 4 feuillets, pistes
+  QCM lore, mode d'emploi d'intégration MJ/admin. Donne un sens narratif aux effets
+  de repères différenciés gnome/licorne déjà mécanisés.
+- Registre `docs/reference/INCOHERENCES.md` : les 17 points de l'état des lieux sont
+  désormais tous ✅ traités (hors suites notées : plancher vitalité, points images
+  R1-R3 de l'audit, intégration du corpus dans les contenus du jeu).
+
+### Second tour d'arbitrage — F2, G2, G8, G9 livrés
+
+- **F2 (A+B) — parcours du nouvel inscrit** : bandeau d'explication pour les comptes
+  « visiteur » non rattachés ; liste « comptes en attente de rattachement » côté prof
+  (`GET /api/groups/pending-visitors`) avec rattachement en un clic
+  (`POST /api/groups/:id/members/:userId`, helper partagé `lib/groupMembers.js`) ;
+  **code de classe** par groupe (migration `167_groups_class_code.sql`,
+  `POST /api/groups/:id/class-code` generate/clear, panneau prof) et champ optionnel
+  `classCode` à l'inscription — code invalide → 400 sans création de compte (tracé
+  `security_events`), code valide → rattachement + promotion n3beur automatique.
+- **G2 (A)** : Réglages GL — avertissement quand le Marché est activé sans la vitalité
+  + bouton « Activer la vitalité ».
+- **G8 (A)** : doc interne alignée (défaut sorts = joueurs ; profils de séance pour le
+  mode MJ seul).
+- **G9 (C — libellés)** : « tu dépenses tes cœurs/gemmes — il te restera N » au Marché
+  et dans l'assistant de sorts.
+- Stabilisation d'un test UI flaky en CI (`useVisitSeenSync`, timeout waitFor élargi).
+- Registre `docs/reference/INCOHERENCES.md` : options détaillées + avis pour F2, F3,
+  G1, G2, G8, G9 ; statuts ✅ mis à jour ; présentations ForetMap/GL et `docs/API.md`
+  synchronisées.
+
+### Assainissement — registre d'incohérences (lots F1/F4-F7, G3-G7/G10)
+
+- **Sécurité (F1)** : `POST /api/tasks/proposals` dérive désormais l'identité élève du
+  JWT (403 sans jeton ou si `studentId` diverge) ; contexte d'action élève mutualisé
+  dans `lib/tasks/studentActionContext.js`. **(G7)** mots de passe staff GL : 8
+  caractères minimum (changement + réinitialisation par token enseignant).
+- **Nouveau (G3)** : écrans d'administration du conditionnement par QCM — « Contenus →
+  Conditionnement QCM » (liens ressource ↔ question) et « Réglages plateforme →
+  Conditionnement par QCM » (`gating.*` via `PUT /api/gl/learning-links/settings`).
+- **Nommage (G4/G6)** : « Glossaire scientifique » vs « Lexique lore », « QCM biomes »
+  vs « QCM lore » partout ; libellés Biodiversité/Écosystèmes harmonisés (biotope/
+  biocénose réservés aux contenus pédagogiques).
+- **Nettoyages (F6/F7/G5/G10)** : vestiges PIN purgés (UI profils, docs, CI) ;
+  endpoint doublon `POST /api/gl/admin/players/:id/reset-pin` supprimé (alias body
+  `pin` conservé en compat) ; règle de numérotation des migrations documentée ;
+  scories `lib/glSettings.js` supprimées (`settingKeyForCamel` dérivé automatiquement).
+- **Dette (F4/F5)** : migration destructive `166_drop_visit_v1_content.sql` (tables
+  visite V1 supprimées après copie filet) ; `task_zones`/`task_markers` unique source
+  de vérité (colonnes directes = copie auto write-only, replis en lecture retirés).
+- **Docs de référence** : registre `docs/reference/INCOHERENCES.md` (11 points ✅
+  livrés, 6 reportés), présentations ForetMap/GL mises à jour, `docs/API.md`,
+  `docs/EVOLUTION.md`, `docs/GL_CARNET_JOUEUR.md`.
+
+### Documentation — registre d'arbitrage des incohérences
+
+- Nouveau `docs/reference/INCOHERENCES.md` : 17 points relevés (7 ForetMap, 10 GL)
+  avec gravité, options de correction et recommandations, découpage en 5 lots ;
+  lignes « Décision : » éditables par l'utilisateur pour arbitrer.
+
+### Documentation — base de référence fonctionnelle (`docs/reference/`)
+
+- **Nouveau dossier `docs/reference/`** : documentation fonctionnelle non technique
+  (français simple, sans jargon) destinée aux admins, profs et MJ. Triple objectif :
+  état de l'existant (encadrés « ⚠️ Points d'attention »), base d'évolution (les
+  éditions utilisateur marquées `🔧 À implémenter` valent demandes de changement pour
+  le code), documentation finale pour non-codeurs.
+- Premiers documents : `docs/reference/README.md` (index + règles de maintien),
+  `docs/reference/foretmap/presentation.md` et `docs/reference/gl/presentation.md`
+  (présentations générales, avec points d'attention honnêtes sur l'existant).
+- **Convention de maintien perpétuel** inscrite dans `CLAUDE.md`, nouvelle règle
+  `.cursor/rules/foretmap-docs-reference.mdc` (alwaysApply) et skill
+  `foretmap-docs-reference` (`.claude/skills/` + `.cursor/skills/`).
+- `CLAUDE.md` : correction de la description obsolète « mode prof via PIN » (remplacée
+  par les rôles RBAC attribués à la connexion ; anciennes routes en 410 Gone).
+- Correctif CI : formatage Prettier de `tests/media-library-path.test.js`.
+
 ### Consolidation Git
 
 - Fusion des commits uniques encore absents de `main` (tests médiathèque, `workflow_dispatch` CI) et correctif PWA `manifest.json` (`Content-Type: application/manifest+json`).

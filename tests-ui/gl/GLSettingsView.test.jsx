@@ -88,4 +88,54 @@ describe('GLSettingsView', () => {
     expect(screen.getByText('Emoji')).toBeTruthy();
     expect(screen.getByText('Icône')).toBeTruthy();
   });
+
+  test('G2 : avertit si le Marché est activé sans la vitalité, et permet de l’activer', async () => {
+    apiGlMock.mockImplementation((path) => {
+      if (path === '/api/gl/admin/settings') {
+        return Promise.resolve({
+          settings: {
+            ...baseSettings,
+            'modules.market_enabled': true,
+            'gameplay.vitality_enabled': false,
+          },
+        });
+      }
+      if (String(path).startsWith('/api/gl/admin/settings/')) {
+        return Promise.resolve({ ok: true });
+      }
+      return Promise.resolve(null);
+    });
+    render(<GLSettingsView />);
+    await waitFor(() => {
+      expect(screen.getByTestId('gl-market-vitality-warning')).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Activer la vitalité' }));
+    await waitFor(() => {
+      expect(
+        apiGlMock.mock.calls.some(
+          ([path, method]) =>
+            path === '/api/gl/admin/settings/gameplay.vitality_enabled' && method === 'PUT',
+        ),
+      ).toBe(true);
+    });
+  });
+
+  test('G2 : pas d’avertissement quand Marché et vitalité sont actifs ensemble', async () => {
+    apiGlMock.mockImplementation((path) => {
+      if (path === '/api/gl/admin/settings') {
+        return Promise.resolve({
+          settings: {
+            ...baseSettings,
+            'modules.market_enabled': true,
+            'gameplay.vitality_enabled': true,
+          },
+        });
+      }
+      return Promise.resolve(null);
+    });
+    render(<GLSettingsView />);
+    await waitFor(() => {
+      expect(screen.queryByTestId('gl-market-vitality-warning')).not.toBeInTheDocument();
+    });
+  });
 });

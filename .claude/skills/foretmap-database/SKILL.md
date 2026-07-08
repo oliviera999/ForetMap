@@ -16,6 +16,10 @@ description: Conventions base de données ForetMap (schéma MySQL, migrations id
 
 - Schéma appliqué au démarrage via `initDatabase()` ; DDL dans `sql/schema_foretmap.sql` et
   fichiers `migrations/NNN_description.sql` (numérotation continue).
+- **Numéros uniques obligatoires** : `database.js` (`assertNoNewDuplicateMigrationNumbers`)
+  fait échouer le démarrage si un numéro apparaît deux fois. Seuls **021** et **037** sont
+  tolérés (doublons historiques, `LEGACY_DUPLICATE_MIGRATION_NUMBERS`) — ne jamais en créer
+  de nouveaux, ne pas renuméroter les anciens. Garde couverte par `tests/migrations-guard.test.js`.
 - **Idempotence obligatoire** : `CREATE TABLE IF NOT EXISTS`, `ADD COLUMN IF NOT EXISTS`, ou catch
   des errnos attendus (1050 table, 1060 colonne, 1061 index).
 - **Pas de migration destructive** (DROP) sans avertissement explicite + note `docs/EVOLUTION.md`.

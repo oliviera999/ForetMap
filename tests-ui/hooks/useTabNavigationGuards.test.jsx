@@ -11,7 +11,6 @@ const baseProps = {
   shouldUseDesktopSplit: true,
   canAccessForum: true,
   canViewGeneralStats: true,
-  mergeTasksTutoNav: false,
   modules: {},
 };
 
@@ -62,9 +61,9 @@ describe('useTabNavigationGuards', () => {
     expect(setTab).toHaveBeenCalledWith('map');
   });
 
-  it('bascule tuto vers tasks quand la fusion Tâches&tuto est active', () => {
-    const setTab = run({ tab: 'tuto', mergeTasksTutoNav: true });
-    expect(setTab).toHaveBeenCalledWith('tasks');
+  it('F3 : rester sur tuto ne déclenche plus aucune bascule (fusion supprimée)', () => {
+    const setTab = run({ tab: 'tuto' });
+    expect(setTab).not.toHaveBeenCalled();
   });
 
   it('replie media_library vers about pour un non-prof', () => {

@@ -17,7 +17,8 @@ export function GLChapterBiomesFieldset({ biomes, selectedSlugs, onChange }) {
     <fieldset className="gl-chapter-biomes-fieldset">
       <legend>Biomes (catalogue espèces)</legend>
       <p className="gl-hint">
-        Sélection multiple : alimente la biocénose, le glossaire et les tirages QCM du chapitre.
+        Sélection multiple : alimente la Biodiversité, le glossaire scientifique et les tirages QCM
+        du chapitre.
       </p>
       {selectedSlugs.length > 0 ? (
         <ol className="gl-chapter-biomes-selected">

@@ -22,6 +22,7 @@ import { GLLoreGlossaryImportPanel } from './admin/GLLoreGlossaryImportPanel.jsx
 import { GLContentLibraryView } from './admin/GLContentLibraryView.jsx';
 import { GLIntroAdminPanel } from './admin/GLIntroAdminPanel.jsx';
 import { GLHelpContentAdminPanel } from './admin/GLHelpContentAdminPanel.jsx';
+import { GLLearningLinksPanel } from './admin/GLLearningLinksPanel.jsx';
 
 export function GLContentsAdminView({
   auth,
@@ -88,7 +89,7 @@ export function GLContentsAdminView({
           onClick={() => setSection('glossary')}
           data-subtab="glossary"
         >
-          Glossaire
+          Glossaire scientifique
         </button>
         <button
           type="button"
@@ -124,11 +125,19 @@ export function GLContentsAdminView({
         </button>
         <button
           type="button"
+          className={section === 'gating' ? 'is-active' : ''}
+          onClick={() => setSection('gating')}
+          data-subtab="gating"
+        >
+          Conditionnement QCM
+        </button>
+        <button
+          type="button"
           className={section === 'lore-glossary' ? 'is-active' : ''}
           onClick={() => setSection('lore-glossary')}
           data-subtab="lore-glossary"
         >
-          Glossaire lore
+          Lexique lore
         </button>
         <button
           type="button"
@@ -215,6 +224,8 @@ export function GLContentsAdminView({
           ManualPanel={GLLoreFeuilletsEditorPanel}
           ImportPanel={GLLoreFeuilletsImportPanel}
         />
+      ) : section === 'gating' ? (
+        <GLLearningLinksPanel />
       ) : section === 'lore-glossary' ? (
         <GLLoreGlossaryImportPanel />
       ) : section === 'intro' ? (

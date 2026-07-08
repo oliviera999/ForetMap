@@ -107,6 +107,16 @@ Il reflète l’état réel du dépôt (avril 2026) et priorise la suite en comm
   alimentait l'ex-vue `v_gl_food_web`, n'est plus exploitée une fois la vue
   supprimée. Décision (conservation comme amorce de contenu GL vs suppression) à
   trancher indépendamment du présent lot.
+- **Visite V1 supprimée (migration `166_drop_visit_v1_content.sql`, destructive —
+  F4 du registre `docs/reference/INCOHERENCES.md`)** : `visit_zone_content` et
+  `visit_marker_content`, gelées depuis la migration `022` (copie douce vers
+  `visit_zones`/`visit_markers`), sans plus aucun lecteur/écrivain applicatif.
+  La migration rejoue la copie douce en filet de sécurité avant le `DROP`.
+  Garde de non-régression : `tests/migrations-guard.test.js`.
+- **Liens tâches ↔ zones/repères (F5)** : `task_zones`/`task_markers` sont l'unique
+  source de vérité ; `tasks.zone_id`/`tasks.marker_id` ne sont plus qu'une copie du
+  premier lien (`syncLegacyLocationColumns`, seul écrivain) conservée pour la compat
+  des exports et données historiques. Les replis en lecture ont été retirés.
 
 ---
 

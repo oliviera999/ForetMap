@@ -97,7 +97,7 @@ export function GLGlossaryView({
 
   return (
     <article className="gl-panel gl-glossary fade-in">
-      <h2>Glossaire</h2>
+      <h2>Glossaire scientifique</h2>
       {biomeLabel ? (
         <p className="gl-glossary__intro">
           Biomes du chapitre : <strong>{biomeLabel}</strong> — cliquez sur un terme pour ouvrir sa

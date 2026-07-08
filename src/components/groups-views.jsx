@@ -15,11 +15,30 @@ function GroupSettingsPanel({ group, roles, onClose, onSaved }) {
   const [applying, setApplying] = useState(false);
   const [err, setErr] = useState('');
   const [msg, setMsg] = useState('');
+  const [classCode, setClassCode] = useState(group?.class_code || null);
 
   useEffect(() => {
     setDefaultRoleId(group?.default_role_id != null ? String(group.default_role_id) : '');
     setGrantsN3beur(!!group?.grants_n3beur_access);
+    setClassCode(group?.class_code || null);
   }, [group]);
+
+  const updateClassCode = async (action) => {
+    setSaving(true);
+    setErr('');
+    setMsg('');
+    try {
+      const result = await api(`/api/groups/${encodeURIComponent(group.id)}/class-code`, 'POST', {
+        action,
+      });
+      setClassCode(result?.class_code || null);
+      setMsg(action === 'clear' ? 'Code de classe supprimé' : 'Nouveau code de classe généré');
+      await onSaved();
+    } catch (e) {
+      setErr(e.message || 'Erreur code de classe');
+    }
+    setSaving(false);
+  };
 
   const studentRoles = useMemo(
     () =>
@@ -107,6 +126,38 @@ function GroupSettingsPanel({ group, roles, onClose, onSaved }) {
         />
         Accorde le statut n3beur (accès carte/tâches ForetMap)
       </label>
+      <div style={{ marginTop: 12, fontSize: '.86rem' }} data-testid="group-class-code">
+        <strong>Code de classe (inscription autonome)</strong>
+        <p style={{ margin: '4px 0 6px', fontSize: '.8rem', color: '#64748b' }}>
+          Un élève qui saisit ce code à l'inscription rejoint directement ce groupe (et devient
+          n3beur si le groupe le confère). Régénérer le code invalide l'ancien.
+        </p>
+        {classCode ? (
+          <p style={{ margin: '0 0 6px' }}>
+            Code actuel : <code style={{ fontSize: '1rem' }}>{classCode}</code>
+          </p>
+        ) : (
+          <p style={{ margin: '0 0 6px', color: '#64748b' }}>Aucun code actif.</p>
+        )}
+        <span style={{ display: 'inline-flex', gap: 8 }}>
+          <button
+            className="btn btn-secondary btn-sm"
+            disabled={saving}
+            onClick={() => updateClassCode('generate')}
+          >
+            {classCode ? 'Régénérer le code' : 'Générer un code'}
+          </button>
+          {classCode && (
+            <button
+              className="btn btn-ghost btn-sm"
+              disabled={saving}
+              onClick={() => updateClassCode('clear')}
+            >
+              Supprimer le code
+            </button>
+          )}
+        </span>
+      </div>
       <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
         <button className="btn btn-primary btn-sm" disabled={saving} onClick={saveSettings}>
           {saving ? 'Enregistrement…' : 'Enregistrer'}
@@ -293,22 +344,47 @@ export function GroupsAdminView() {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState('');
   const [msg, setMsg] = useState('');
+  const [pendingVisitors, setPendingVisitors] = useState([]);
+  const [pendingTargetGroup, setPendingTargetGroup] = useState('');
   const helpGroups = resolveHelpPanelSection('groups', publicSettings);
 
   const load = async () => {
     setErr('');
-    const [groupPayload, userRows, mapsRows, projectRows, roleRows] = await Promise.all([
-      api('/api/groups'),
-      api('/api/rbac/users'),
-      api('/api/maps'),
-      api('/api/task-projects'),
-      api('/api/rbac/profiles').catch(() => []),
-    ]);
+    const [groupPayload, userRows, mapsRows, projectRows, roleRows, pendingRows] =
+      await Promise.all([
+        api('/api/groups'),
+        api('/api/rbac/users'),
+        api('/api/maps'),
+        api('/api/task-projects'),
+        api('/api/rbac/profiles').catch(() => []),
+        api('/api/groups/pending-visitors').catch(() => []),
+      ]);
     setGroups(Array.isArray(groupPayload?.groups) ? groupPayload.groups : []);
     setUsers(Array.isArray(userRows) ? userRows : []);
     setMaps(Array.isArray(mapsRows) ? mapsRows : []);
     setProjects(Array.isArray(projectRows) ? projectRows : []);
     setRoles(Array.isArray(roleRows) ? roleRows : []);
+    setPendingVisitors(Array.isArray(pendingRows) ? pendingRows : []);
+  };
+
+  const attachPendingVisitor = async (student) => {
+    if (!pendingTargetGroup) {
+      setErr('Choisis d’abord le groupe de rattachement.');
+      return;
+    }
+    setLoading(true);
+    setErr('');
+    try {
+      await api(
+        `/api/groups/${encodeURIComponent(pendingTargetGroup)}/members/${encodeURIComponent(student.id)}`,
+        'POST',
+      );
+      setMsg(`${student.first_name} ${student.last_name} rattaché(e) au groupe.`);
+      await load();
+    } catch (e) {
+      setErr(e.message || 'Erreur de rattachement');
+    }
+    setLoading(false);
   };
 
   useEffect(() => {
@@ -399,6 +475,60 @@ export function GroupsAdminView() {
       <p style={{ marginTop: 0, fontSize: '.84rem', color: '#64748b' }}>
         Module dédié: structure pédagogique, membres, responsables et périmètre carte/projet.
       </p>
+
+      {pendingVisitors.length > 0 && (
+        <div
+          data-testid="pending-visitors"
+          style={{
+            background: '#eff6ff',
+            border: '1px solid #93c5fd',
+            borderRadius: 10,
+            padding: 10,
+            marginBottom: 12,
+          }}
+        >
+          <strong>
+            🕓 {pendingVisitors.length} compte{pendingVisitors.length > 1 ? 's' : ''} en attente de
+            rattachement
+          </strong>
+          <p style={{ margin: '4px 0 8px', fontSize: '.82rem', color: '#1e3a8a' }}>
+            Ces élèves se sont inscrits seuls et n'ont encore accès qu'à la Visite. Choisis un
+            groupe puis rattache-les en un clic (le rôle n3beur est attribué automatiquement si le
+            groupe le confère).
+          </p>
+          <label style={{ fontSize: '.84rem', display: 'block', marginBottom: 8 }}>
+            Groupe de rattachement{' '}
+            <select
+              value={pendingTargetGroup}
+              onChange={(e) => setPendingTargetGroup(e.target.value)}
+            >
+              <option value="">— choisir —</option>
+              {groups
+                .filter((g) => g.is_active)
+                .map((g) => (
+                  <option key={g.id} value={g.id}>
+                    {g.name}
+                  </option>
+                ))}
+            </select>
+          </label>
+          <ul style={{ margin: 0, paddingLeft: 18 }}>
+            {pendingVisitors.map((v) => (
+              <li key={v.id} style={{ marginBottom: 4 }}>
+                {v.first_name} {v.last_name}
+                {v.pseudo ? ` (${v.pseudo})` : ''}{' '}
+                <button
+                  className="btn btn-secondary btn-sm"
+                  disabled={loading || !pendingTargetGroup}
+                  onClick={() => attachPendingVisitor(v)}
+                >
+                  Rattacher
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       {err && <div className="auth-error">⚠️ {err}</div>}
       {msg && <div className="auth-success">{msg}</div>}
       <button className="btn btn-secondary btn-sm" onClick={createGroup} disabled={loading}>

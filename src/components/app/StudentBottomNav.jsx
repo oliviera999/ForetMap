@@ -14,7 +14,6 @@ export function StudentBottomNav({
   isVisitor = false,
   shouldUseDesktopSplit,
   tutorialsModuleEnabled,
-  mergeTasksTutoNav,
   studentActiveAssignedTasksCount,
   canViewGeneralStats,
   observationsEnabled,
@@ -51,28 +50,17 @@ export function StudentBottomNav({
           <span className="nav-icon">🗺️</span> Carte
         </button>
       )}
-      {canAccessStudentMapTasks &&
-        (mergeTasksTutoNav ? (
-          <button
-            className={`nav-btn ${tab === 'tasks' || tab === 'tuto' ? 'active' : ''}`}
-            type="button"
-            onClick={() => onTabChange('tasks')}
-          >
-            <span className="nav-icon">✅</span>
-            Tâches&tuto
-            {studentActiveAssignedTasksCount > 0 && ` (${studentActiveAssignedTasksCount})`}
-          </button>
-        ) : (
-          <button
-            className={`nav-btn ${tab === 'tasks' ? 'active' : ''}`}
-            type="button"
-            onClick={() => onTabChange('tasks')}
-          >
-            <span className="nav-icon">✅</span>
-            {tutorialsModuleEnabled ? 'Tâches · tuto' : 'Tâches'}
-            {studentActiveAssignedTasksCount > 0 && ` (${studentActiveAssignedTasksCount})`}
-          </button>
-        ))}
+      {canAccessStudentMapTasks && (
+        <button
+          className={`nav-btn ${tab === 'tasks' ? 'active' : ''}`}
+          type="button"
+          onClick={() => onTabChange('tasks')}
+        >
+          <span className="nav-icon">✅</span>
+          {tutorialsModuleEnabled ? 'Tâches · tuto' : 'Tâches'}
+          {studentActiveAssignedTasksCount > 0 && ` (${studentActiveAssignedTasksCount})`}
+        </button>
+      )}
       <button
         className={`nav-btn ${tab === 'plants' ? 'active' : ''}`}
         onClick={() => onTabChange('plants')}
@@ -100,7 +88,7 @@ export function StudentBottomNav({
       >
         <span className="nav-icon">🕸️</span> Réseau
       </button>
-      {tutorialsModuleEnabled && !mergeTasksTutoNav && canAccessStudentMapTasks && (
+      {tutorialsModuleEnabled && canAccessStudentMapTasks && (
         <button
           className={`nav-btn ${tab === 'tuto' ? 'active' : ''}`}
           type="button"

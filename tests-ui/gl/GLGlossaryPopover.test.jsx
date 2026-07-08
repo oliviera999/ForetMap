@@ -140,7 +140,9 @@ describe('GLGlossaryPopover', () => {
       expect(screen.getByRole('dialog', { name: /Biome/i })).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByRole('button', { name: /Voir le glossaire complet/i }));
+    fireEvent.click(
+      screen.getByRole('button', { name: /Voir le glossaire scientifique complet/i }),
+    );
     expect(onClose).toHaveBeenCalledTimes(1);
     expect(onOpenFullGlossary).toHaveBeenCalledWith('GL0001');
   });
@@ -162,7 +164,7 @@ describe('GLGlossaryPopover', () => {
       expect(screen.getByRole('dialog', { name: /Biome/i })).toBeInTheDocument();
     });
     expect(
-      screen.queryByRole('button', { name: /Voir le glossaire complet/i }),
+      screen.queryByRole('button', { name: /Voir le glossaire scientifique complet/i }),
     ).not.toBeInTheDocument();
   });
 

@@ -619,6 +619,8 @@ CREATE TABLE IF NOT EXISTS `groups` (
   parent_group_id VARCHAR(64) DEFAULT NULL,
   default_role_id INT UNSIGNED DEFAULT NULL,
   grants_n3beur_access TINYINT(1) NOT NULL DEFAULT 0,
+  class_code VARCHAR(16) DEFAULT NULL,
+  UNIQUE KEY uq_groups_class_code (class_code),
   is_active TINYINT(1) NOT NULL DEFAULT 1,
   created_by VARCHAR(64) DEFAULT NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -771,33 +773,7 @@ CREATE TABLE IF NOT EXISTS visit_markers (
   CONSTRAINT fk_visit_markers_map FOREIGN KEY (map_id) REFERENCES maps(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Legacy V1 (visit_zone_content / visit_marker_content) conservées pour rétrocompatibilité.
-CREATE TABLE IF NOT EXISTS visit_zone_content (
-  zone_id VARCHAR(64) NOT NULL PRIMARY KEY,
-  subtitle VARCHAR(255) DEFAULT '',
-  short_description TEXT DEFAULT NULL,
-  details_title VARCHAR(255) DEFAULT 'Détails',
-  details_text TEXT DEFAULT NULL,
-  is_active TINYINT(1) NOT NULL DEFAULT 1,
-  sort_order INT UNSIGNED DEFAULT 0,
-  updated_at VARCHAR(32) DEFAULT NULL,
-  INDEX idx_visit_zone_content_active_sort (is_active, sort_order),
-  CONSTRAINT fk_visit_zone_content_zone FOREIGN KEY (zone_id) REFERENCES zones(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- visite : contenus éditoriaux par repère (publics)
-CREATE TABLE IF NOT EXISTS visit_marker_content (
-  marker_id VARCHAR(64) NOT NULL PRIMARY KEY,
-  subtitle VARCHAR(255) DEFAULT '',
-  short_description TEXT DEFAULT NULL,
-  details_title VARCHAR(255) DEFAULT 'Détails',
-  details_text TEXT DEFAULT NULL,
-  is_active TINYINT(1) NOT NULL DEFAULT 1,
-  sort_order INT UNSIGNED DEFAULT 0,
-  updated_at VARCHAR(32) DEFAULT NULL,
-  INDEX idx_visit_marker_content_active_sort (is_active, sort_order),
-  CONSTRAINT fk_visit_marker_content_marker FOREIGN KEY (marker_id) REFERENCES map_markers(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+-- Legacy V1 (visit_zone_content / visit_marker_content) : supprimées par la migration 166.
 
 -- visite : photos (zone ou repère)
 CREATE TABLE IF NOT EXISTS visit_media (

@@ -37,11 +37,11 @@ describe('GLSpeciesEditorPanel', () => {
     });
   });
 
-  test('affiche le formulaire biocénose et enregistre une espèce automatiquement', async () => {
+  test('affiche le formulaire biodiversité et enregistre une espèce automatiquement', async () => {
     render(<GLSpeciesEditorPanel />);
 
     await waitFor(() => {
-      expect(screen.getByText('Saisie manuelle — biocénose (espèces)')).toBeInTheDocument();
+      expect(screen.getByText('Saisie manuelle — biodiversité (espèces)')).toBeInTheDocument();
     });
 
     fireEvent.click(screen.getByRole('button', { name: '+ Nouvelle espèce' }));

@@ -54,7 +54,7 @@ test('POST /api/gl/admin/classes crée une seconde classe supprimable', async ()
   assert.ok(secondClassId > 0);
 });
 
-test('POST /api/gl/admin/players crée un joueur puis reset-pin', async () => {
+test('POST /api/gl/admin/players crée un joueur puis reset-password', async () => {
   const created = await request(app)
     .post('/api/gl/admin/players')
     .set('Authorization', `Bearer ${adminToken}`)
@@ -70,9 +70,9 @@ test('POST /api/gl/admin/players crée un joueur puis reset-pin', async () => {
   assert.ok(createdPlayerId > 0);
 
   await request(app)
-    .post(`/api/gl/admin/players/${createdPlayerId}/reset-pin`)
+    .post(`/api/gl/admin/players/${createdPlayerId}/reset-password`)
     .set('Authorization', `Bearer ${adminToken}`)
-    .send({ pin: '5555' })
+    .send({ password: '5555' })
     .expect(200);
 });
 

@@ -131,7 +131,7 @@ const HELP_PANELS = {
     items: [
       {
         textTeacher:
-          'Gère les profils RBAC (permissions, PIN, forum, commentaires contextuels) et rattache un profil principal à chaque compte.',
+          'Gère les profils RBAC (permissions, forum, commentaires contextuels) et rattache un profil principal à chaque compte.',
       },
       {
         textTeacher:

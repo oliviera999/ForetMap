@@ -916,6 +916,8 @@ export function AppGL() {
                     token={token}
                     classId={auth?.classId ?? glProfile?.class_id}
                     playerId={auth?.userId}
+                    selfHealthPoints={glProfile?.health_points}
+                    selfPowerPoints={glProfile?.power_points}
                     onTradeCompleted={reloadProfile}
                   />
                 ) : null}

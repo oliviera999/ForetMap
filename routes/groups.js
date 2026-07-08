@@ -17,6 +17,7 @@ const {
   syncStudentRoleFromGroups,
   syncStudentRolesForGroupMembers,
 } = require('../lib/groupRole');
+const { addStudentToGroup } = require('../lib/groupMembers');
 
 const router = express.Router();
 
@@ -231,6 +232,27 @@ router.get(
         grants_n3beur_access: Number(g.grants_n3beur_access) !== 0,
       })),
     });
+  }),
+);
+
+/**
+ * F2-B — comptes « en attente de rattachement » : élèves actifs dont le rôle primaire
+ * est encore `visiteur` (inscription en autonomie non rattachée à une classe).
+ */
+router.get(
+  '/pending-visitors',
+  requireGroupManagement,
+  asyncHandler(async (req, res) => {
+    const rows = await queryAll(
+      `SELECT u.id, u.first_name, u.last_name, u.pseudo, u.email, u.created_at
+         FROM users u
+         JOIN user_roles ur ON ur.user_type = 'student' AND ur.user_id = u.id AND ur.is_primary = 1
+         JOIN roles r ON r.id = ur.role_id AND r.slug = 'visiteur'
+        WHERE u.user_type = 'student' AND u.is_active = 1
+        ORDER BY u.created_at DESC
+        LIMIT 500`,
+    );
+    res.json(rows);
   }),
 );
 
@@ -565,6 +587,58 @@ router.put(
       members: membersByGroup.get(groupId) || [],
       scopes: scopesByGroup.get(groupId) || [],
     });
+  }),
+);
+
+/**
+ * F2-A — code de classe : génération (rotation) ou suppression du code d'inscription
+ * d'un groupe. Codes lisibles sans ambiguïté (pas de 0/O/1/I), unicité garantie en base.
+ */
+router.post(
+  '/:id/class-code',
+  requireGroupManagement,
+  asyncHandler(async (req, res) => {
+    const id = normalizeId(req.params.id);
+    const group = await queryOne('SELECT id FROM `groups` WHERE id = ? LIMIT 1', [id]);
+    if (!group) return res.status(404).json({ error: 'Groupe introuvable' });
+    const action = String(req.body?.action || 'generate');
+    if (action === 'clear') {
+      await execute('UPDATE `groups` SET class_code = NULL, updated_at = NOW() WHERE id = ?', [id]);
+      return res.json({ ok: true, class_code: null });
+    }
+    if (action !== 'generate') {
+      return res.status(400).json({ error: "Action attendue: 'generate' ou 'clear'" });
+    }
+    const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      const code = Array.from(crypto.randomBytes(8))
+        .map((b) => alphabet[b % alphabet.length])
+        .join('');
+      try {
+        await execute('UPDATE `groups` SET class_code = ?, updated_at = NOW() WHERE id = ?', [
+          code,
+          id,
+        ]);
+        return res.json({ ok: true, class_code: code });
+      } catch (err) {
+        if (err?.code !== 'ER_DUP_ENTRY') throw err; // collision improbable : on retire
+      }
+    }
+    return res.status(500).json({ error: 'Génération du code impossible, réessayer' });
+  }),
+);
+
+/** F2-B — rattachement unitaire d'un élève à un groupe (un clic côté prof). */
+router.post(
+  '/:id/members/:userId',
+  requireGroupManagement,
+  asyncHandler(async (req, res) => {
+    const groupId = normalizeId(req.params.id);
+    const userId = normalizeId(req.params.userId);
+    if (!groupId || !userId) return res.status(400).json({ error: 'Identifiants requis' });
+    const result = await addStudentToGroup(userId, groupId);
+    if (!result.ok) return res.status(result.status).json({ error: result.error });
+    res.status(201).json({ ok: true, group_id: groupId, user_id: userId });
   }),
 );
 

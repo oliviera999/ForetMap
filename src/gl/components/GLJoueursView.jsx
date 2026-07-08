@@ -25,6 +25,8 @@ export function GLJoueursView({
   token,
   classId,
   playerId,
+  selfHealthPoints,
+  selfPowerPoints,
   onTradeCompleted,
 }) {
   const visibleSubTabs = filterGlJoueursSubTabs(modules, { vitalityEnabled });
@@ -67,6 +69,8 @@ export function GLJoueursView({
               token={token}
               classId={classId}
               playerId={playerId}
+              selfHealthPoints={selfHealthPoints}
+              selfPowerPoints={selfPowerPoints}
               onTradeCompleted={onTradeCompleted}
             />
           </Suspense>

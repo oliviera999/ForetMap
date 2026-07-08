@@ -18,7 +18,7 @@ const TAB_LABELS = {
   'tab:joueurs': 'Les joueurs',
   'tab:ecosystemes': 'Écosystèmes',
   'tab:biodiversite': 'Biodiversité',
-  'tab:glossary': 'Glossaire',
+  'tab:glossary': 'Glossaire scientifique',
   'tab:lore-glossary': 'Lexique lore',
   'tab:selene-carnet': 'Carnet Sélène',
   'tab:history': 'Histoire',

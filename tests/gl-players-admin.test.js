@@ -124,7 +124,7 @@ test('POST /api/gl/admin/players/:id/reset-password met must_reset=0', async () 
     .expect(200);
 });
 
-test('POST /api/gl/admin/players/:id/reset-pin reste accepté (alias compat)', async () => {
+test('G5 : reset-pin supprimé (404), alias body `pin` encore accepté sur reset-password', async () => {
   const pseudo = `pa_alias_${stamp}`;
   await request(app)
     .post('/api/gl/admin/players')
@@ -134,6 +134,11 @@ test('POST /api/gl/admin/players/:id/reset-pin reste accepté (alias compat)', a
   const row = await queryOne('SELECT id FROM gl_players WHERE pseudo = ? LIMIT 1', [pseudo]);
   await request(app)
     .post(`/api/gl/admin/players/${row.id}/reset-pin`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ pin: 'compat1234' })
+    .expect(404);
+  await request(app)
+    .post(`/api/gl/admin/players/${row.id}/reset-password`)
     .set('Authorization', `Bearer ${adminToken}`)
     .send({ pin: 'compat1234' })
     .expect(200);

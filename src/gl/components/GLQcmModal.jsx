@@ -218,7 +218,7 @@ export function GLQcmModal({
               {Array.isArray(presentation.glossaryTerms) &&
               presentation.glossaryTerms.length > 0 ? (
                 <div className="gl-qcm-modal__glossary">
-                  <strong>Glossaire :</strong>
+                  <strong>Glossaire scientifique :</strong>
                   <div className="gl-glossary-chips">
                     {presentation.glossaryTerms.map((term) => (
                       <button

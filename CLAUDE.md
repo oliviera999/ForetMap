@@ -8,8 +8,9 @@ sous **`.claude/skills/`**.
 ## Vue d'ensemble
 
 - **ForetMap** : application de gestion d'une forêt comestible (Lycée Lyautey). Élèves
-  (carte des zones, tâches, stats) et professeurs (mode prof via PIN → JWT : gestion zones /
-  plantes / tâches / élèves, validation).
+  (carte des zones, tâches, stats) et professeurs (rôles RBAC attribués à la connexion — l'ancien
+  « mode prof via PIN » est supprimé, routes 410 Gone : gestion zones / plantes / tâches / élèves,
+  validation).
 - **GL (Gnomes & Licornes)** : sous-produit du même monorepo, **isolé**, servi par host
   (`gl.*`), API sous `/api/gl/*` (jeu pédagogique : chapitres, carte du royaume, lore, marché,
   sorts, QCM, journal). Voir skill `foretmap-gl`.
@@ -60,6 +61,11 @@ npm run bump:patch|minor|major  # incrémente package.json (sans tag)
 - **Tests dans le même lot que le code** : toute nouvelle route/règle/utilitaire → `tests/*.test.js` ;
   flux UI critique → scénario `e2e/`. Lancer au minimum `npm test` avant commit.
 - **Doc API** : toute route publique nouvelle/modifiée → `docs/API.md` dans le même lot.
+- **Doc de référence fonctionnelle** (`docs/reference/`, non technique, pour admins/profs/MJ) :
+  tout changement de comportement **visible utilisateur** → mise à jour du doc concerné dans le
+  même lot. Les éditions faites par l'utilisateur dans ces docs (marqueur `🔧 À implémenter`)
+  valent **demandes de changement** pour le code — les vérifier en début de tâche. Détail :
+  skill `foretmap-docs-reference` et règle `.cursor/rules/foretmap-docs-reference.mdc`.
 - **Ne pas modifier le comportement métier** sans demande explicite (cf. `docs/EVOLUTION.md`).
 - **Sécurité données** : ne jamais versionner de dump SQL (PII), secrets dans `.env` (non versionné).
 
@@ -88,5 +94,6 @@ npm run bump:patch|minor|major  # incrémente package.json (sans tag)
 `foretmap-context` (architecture & fichiers clés) · `foretmap-database` (schéma/migrations/SQL) ·
 `foretmap-testing` (backend/UI/e2e) · `foretmap-gl` (sous-produit GL) ·
 `foretmap-biodiversity` (pré-saisie espèces / Pl@ntNet) · `foretmap-observability` (logs/diagnostics) ·
-`foretmap-release` (versionnage/commit/push).
+`foretmap-release` (versionnage/commit/push) · `foretmap-docs-reference` (doc fonctionnelle
+non technique `docs/reference/`).
 Pour le détail métier au-delà : `.cursor/skills/**` et `.cursor/rules/**`.

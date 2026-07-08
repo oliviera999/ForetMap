@@ -595,7 +595,7 @@ export function GLChaptersAdminView() {
               </span>
             </label>
             <label>
-              Biotope (markdown)
+              Biotope (markdown — section de l’onglet Écosystèmes)
               <GLRichTextEditor
                 value={chapterForm.biotopeMarkdown}
                 onChange={(event) =>
@@ -606,7 +606,7 @@ export function GLChaptersAdminView() {
               />
             </label>
             <label>
-              Biocénose (markdown)
+              Biocénose (markdown — section de l’onglet Écosystèmes)
               <GLRichTextEditor
                 value={chapterForm.biocenoseMarkdown}
                 onChange={(event) =>

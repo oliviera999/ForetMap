@@ -59,6 +59,16 @@ describe('GLSpellCastRosterSection', () => {
     expect(screen.getByText(/Aucun joueur assigné/)).toBeInTheDocument();
   });
 
+  test('G9 : affiche le reste après contribution (« il te restera N »)', () => {
+    renderSection();
+    // Alice contribue 2 gemmes sur 9 → il lui en restera 7 ; 0 cœur sur 5 → 5.
+    expect(screen.getByText(/il te restera 7 💎/)).toBeInTheDocument();
+    expect(screen.getByText(/il te restera 5 ❤️/)).toBeInTheDocument();
+    // Bob n'a rien engagé : 4 💎 et 3 ❤️ restants.
+    expect(screen.getByText(/il te restera 4 💎/)).toBeInTheDocument();
+    expect(screen.getByText(/il te restera 3 ❤️/)).toBeInTheDocument();
+  });
+
   test('remonte onUpdateContrib(playerId, field, value) au changement', () => {
     const onUpdateContrib = vi.fn();
     renderSection({ onUpdateContrib });

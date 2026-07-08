@@ -209,7 +209,7 @@ export function GLGlossaryPopover({
           {loading && !term ? (
             <div className="gl-glossary-popover__skeleton gl-glossary-popover__skeleton-title" />
           ) : (
-            <h3 id={titleId}>{term?.terme || 'Glossaire'}</h3>
+            <h3 id={titleId}>{term?.terme || 'Glossaire scientifique'}</h3>
           )}
           <button
             type="button"
@@ -338,7 +338,7 @@ export function GLGlossaryPopover({
           ) : null}
           {showFullGlossaryLink ? (
             <GLButton type="button" variant="ghost" onClick={openFullGlossary}>
-              Voir le glossaire complet
+              Voir le glossaire scientifique complet
             </GLButton>
           ) : null}
         </footer>

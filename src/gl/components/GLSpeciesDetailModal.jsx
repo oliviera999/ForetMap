@@ -110,7 +110,7 @@ function SpeciesGlossarySection({ species, glossaryTerms, onOpenGlossaryTerm, gl
   if (glossaryTerms.length === 0 && !hasMotsCles) return null;
   return (
     <section className="gl-species-detail-modal__section">
-      <h3>Glossaire</h3>
+      <h3>Glossaire scientifique</h3>
       {glossaryTerms.length > 0 ? (
         <div className="gl-species-detail-modal__glossary">
           <p className="gl-species-detail-modal__glossary-label">Termes liés</p>

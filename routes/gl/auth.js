@@ -557,6 +557,13 @@ router.post(
 
     const teacherId = await consumePasswordResetToken('teacher', token);
     if (teacherId) {
+      // G7 : le token appartient à un enseignant → minimum staff renforcé.
+      const staffMinLen = Math.max(8, minPasswordLen);
+      if (String(password).length < staffMinLen) {
+        return res
+          .status(400)
+          .json({ error: `Mot de passe trop court (min ${staffMinLen} caractères)` });
+      }
       const passwordHash = await bcrypt.hash(password, 10);
       await execute(
         "UPDATE users SET password_hash = ?, updated_at = NOW() WHERE id = ? AND user_type = 'teacher'",
@@ -1211,8 +1218,12 @@ router.post(
     if (!currentPassword || !nextPassword) {
       return res.status(400).json({ error: 'Mot de passe actuel et nouveau requis' });
     }
-    if (nextPassword.length < 4) {
-      return res.status(400).json({ error: 'Mot de passe trop court (min 4 caractères)' });
+    // G7 : comptes staff (MJ/Admin) — minimum renforcé (8, ou le réglage global s'il est plus strict).
+    const staffMinLen = Math.max(8, await getPasswordMinLength());
+    if (nextPassword.length < staffMinLen) {
+      return res
+        .status(400)
+        .json({ error: `Mot de passe trop court (min ${staffMinLen} caractères)` });
     }
     const admin = await queryOne(
       'SELECT id, email, foretmap_user_id FROM gl_admins WHERE id = ? LIMIT 1',

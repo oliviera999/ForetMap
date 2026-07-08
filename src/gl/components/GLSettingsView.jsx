@@ -9,6 +9,7 @@ import { GLBrandEditor } from './GLBrandEditor.jsx';
 import { GLGameplayTogglesList } from './settings/GLGameplayTogglesList.jsx';
 import { GLGameplayPresetsPanel } from './settings/GLGameplayPresetsPanel.jsx';
 import { GLSpellCastSettings } from './settings/GLSpellCastSettings.jsx';
+import { GLGatingSettings } from './settings/GLGatingSettings.jsx';
 import { GLMarkerBackgroundSettings } from './settings/GLMarkerBackgroundSettings.jsx';
 import { GLButton } from './ui/GLButton.jsx';
 import { GLField } from './ui/GLField.jsx';
@@ -383,7 +384,7 @@ export function GLSettingsView() {
               await toggleGameplayFlag('gameplay.qcm_mj_only', event.target.checked);
             }}
           />
-          <span>QCM réservé au MJ</span>
+          <span>QCM (biomes et lore) réservés au MJ</span>
         </label>
         <p className="gl-hint">
           Si activé, les joueurs ne voient plus le popover question à l&apos;arrivée sur un repère ;
@@ -626,6 +627,8 @@ export function GLSettingsView() {
 
       <GLSpellCastSettings settings={settings} savingKey={savingKey} onSaveSetting={saveSetting} />
 
+      <GLGatingSettings />
+
       <h3>Modules GL</h3>
       <p className="gl-hint">Ces drapeaux activent/désactivent les modules GL côté interface.</p>
       <GLGameplayTogglesList
@@ -635,6 +638,21 @@ export function GLSettingsView() {
         savingKey={savingKey}
         onToggle={toggleGameplayFlag}
       />
+      {readGameplayFlag(settings, 'modules.market_enabled') &&
+      !readGameplayFlag(settings, 'gameplay.vitality_enabled') ? (
+        <p className="gl-error" data-testid="gl-market-vitality-warning">
+          ⚠️ Le Marché est activé mais la <strong>vitalité</strong> (cœurs/gemmes) ne l'est pas :
+          l'onglet Marché n'apparaîtra pas chez les joueurs.{' '}
+          <button
+            type="button"
+            className="gl-btn"
+            disabled={savingKey === 'gameplay.vitality_enabled'}
+            onClick={() => toggleGameplayFlag('gameplay.vitality_enabled', true)}
+          >
+            Activer la vitalité
+          </button>
+        </p>
+      ) : null}
 
       <details>
         <summary>État brut des réglages</summary>

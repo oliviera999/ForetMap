@@ -159,7 +159,7 @@ Tables GL préfixées `gl_` :
   - Après déploiement d’un lot touchant les sortilèges : vérifier `schema_version >= 113` et la colonne `gl_spell_cast_drafts.roster_scope` (redémarrage Node pour appliquer les migrations au boot).
   - `gl_spell_cast_drafts` / `gl_spell_cast_contributions` — pool collaboratif ; `roster_scope` : `team` (joueur, une équipe) ou `game` (staff MJ, toutes équipes via `gl_team_members`)
   - Coût : `cout_gemmes` → PP (💎), `cout_coeurs` → PV (❤️) sur `gl_players` ; débit au `launch`, stats via événement `spell_cast`
-  - Réglages : `gameplay.spell_cast_contribution_mode`, `gameplay.spell_cast_team_scope`, `gameplay.spell_cast_mj_only` (lancement réservé au MJ — flux principal)
+  - Réglages : `gameplay.spell_cast_contribution_mode`, `gameplay.spell_cast_team_scope`, `gameplay.spell_cast_mj_only` (G8 — défaut `false` : les joueurs lancent ; le profil de séance « MJ + tours » le passe à `true` pour un lancement réservé au MJ, cf. `docs/GL_GAMEPLAY_PRESETS.md`)
   - Routes `/api/gl/games/:id/spell-casts/*`, logique `lib/glSpellCast.js`, UI `GLSpellCastWizard` (Sortilèges, carte, popover, **console MJ → Sortilèges**)
   - Événement `spell_cast` (+ `teamId` par contribution) + Socket.IO `gl:spell_cast:draft`
 
@@ -178,7 +178,7 @@ Tables GL préfixées `gl_` :
 
 - Shell : `src/gl/AppGL.jsx`
 - Auth commune (identifiant + mot de passe) et OAuth Google (mode auto)
-- Onglets joueur : Cartes, Biotope, Biocenose, Histoire, Monde, Sortileges, Regles
+- Onglets joueur : Cartes, La nature (Écosystèmes / Biodiversité / Glossaire scientifique), L’aventure (Histoire / Carnet Sélène / Sortilèges), Le monde G&L, Les joueurs, Journaux
 - Onglets admin : utilisateurs, reglages, mascottes, console MJ
 - Réutilisation renderer mascotte via `VisitMapMascotRenderer`
 - Onglet admin `Contenus` pour piloter les pages éditoriales.
