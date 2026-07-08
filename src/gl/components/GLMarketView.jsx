@@ -15,7 +15,22 @@ function findPeerSide(trade, playerId) {
   return trade.sides.find((side) => Number(side.playerId) !== Number(playerId)) || null;
 }
 
-export function GLMarketView({ token, classId, playerId, onTradeCompleted }) {
+// G9 — reste après dépense, borné à 0 (le serveur refuse un solde négatif à la finalisation).
+function remainingAfter(balance, spent) {
+  const b = Number(balance);
+  const sp = Number(spent);
+  if (!Number.isFinite(b)) return null;
+  return Math.max(0, b - (Number.isFinite(sp) ? sp : 0));
+}
+
+export function GLMarketView({
+  token,
+  classId,
+  playerId,
+  selfHealthPoints,
+  selfPowerPoints,
+  onTradeCompleted,
+}) {
   const market = useGLMarketTrade({
     token,
     classId,
@@ -170,6 +185,12 @@ export function GLMarketView({ token, classId, playerId, onTradeCompleted }) {
                         if (canEditOffer) market.updateOffer(offerHealth, offerPower);
                       }}
                     />
+                    {remainingAfter(selfHealthPoints, offerHealth) != null ? (
+                      <span className="gl-market-remaining gl-hint">
+                        tu dépenses tes cœurs — il te restera{' '}
+                        {remainingAfter(selfHealthPoints, offerHealth)} ❤️
+                      </span>
+                    ) : null}
                   </GLField>
                   <GLField label="Gemmes 💎">
                     <GLInput
@@ -183,6 +204,12 @@ export function GLMarketView({ token, classId, playerId, onTradeCompleted }) {
                         if (canEditOffer) market.updateOffer(offerHealth, offerPower);
                       }}
                     />
+                    {remainingAfter(selfPowerPoints, offerPower) != null ? (
+                      <span className="gl-market-remaining gl-hint">
+                        tu dépenses tes gemmes — il te restera{' '}
+                        {remainingAfter(selfPowerPoints, offerPower)} 💎
+                      </span>
+                    ) : null}
                   </GLField>
                   {isNegotiating ? (
                     <label className="gl-market-accept">

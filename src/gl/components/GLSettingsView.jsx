@@ -638,6 +638,21 @@ export function GLSettingsView() {
         savingKey={savingKey}
         onToggle={toggleGameplayFlag}
       />
+      {readGameplayFlag(settings, 'modules.market_enabled') &&
+      !readGameplayFlag(settings, 'gameplay.vitality_enabled') ? (
+        <p className="gl-error" data-testid="gl-market-vitality-warning">
+          ⚠️ Le Marché est activé mais la <strong>vitalité</strong> (cœurs/gemmes) ne l'est pas :
+          l'onglet Marché n'apparaîtra pas chez les joueurs.{' '}
+          <button
+            type="button"
+            className="gl-btn"
+            disabled={savingKey === 'gameplay.vitality_enabled'}
+            onClick={() => toggleGameplayFlag('gameplay.vitality_enabled', true)}
+          >
+            Activer la vitalité
+          </button>
+        </p>
+      ) : null}
 
       <details>
         <summary>État brut des réglages</summary>
