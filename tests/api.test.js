@@ -1149,6 +1149,7 @@ test('Un élève peut proposer une tâche en statut proposed', async () => {
 
   const res = await request(app)
     .post('/api/tasks/proposals')
+    .set('Authorization', 'Bearer ' + studentRes.body.authToken)
     .send({
       title: `Proposition ${Date.now()}`,
       description: 'On pourrait ajouter cette tâche.',
@@ -1166,6 +1167,51 @@ test('Un élève peut proposer une tâche en statut proposed', async () => {
   assert.strictEqual(Number(res.body.required_students), 3);
 });
 
+test('Sécurité proposals : refus sans jeton (403)', async () => {
+  const studentRes = await request(app)
+    .post('/api/auth/register')
+    .send({ firstName: 'NoTok', lastName: 'Prop' + Date.now(), password: 'pwd1' })
+    .expect(201);
+  await allowStudentProposalsAtZeroDone();
+  await setStudentPrimaryRole(studentRes.body.id, 'eleve_avance');
+
+  const res = await request(app)
+    .post('/api/tasks/proposals')
+    .send({
+      title: `Proposition anonyme ${Date.now()}`,
+      firstName: studentRes.body.first_name,
+      lastName: studentRes.body.last_name,
+      studentId: studentRes.body.id,
+    })
+    .expect(403);
+  assert.match(String(res.body.error || ''), /n3beur/i);
+});
+
+test("Sécurité proposals : refus d'un studentId usurpé (403)", async () => {
+  const victimRes = await request(app)
+    .post('/api/auth/register')
+    .send({ firstName: 'Victime', lastName: 'Prop' + Date.now(), password: 'pwd1' })
+    .expect(201);
+  const attackerRes = await request(app)
+    .post('/api/auth/register')
+    .send({ firstName: 'Usurpateur', lastName: 'Prop' + Date.now(), password: 'pwd1' })
+    .expect(201);
+  await allowStudentProposalsAtZeroDone();
+  await setStudentPrimaryRole(victimRes.body.id, 'eleve_avance');
+  await setStudentPrimaryRole(attackerRes.body.id, 'eleve_avance');
+
+  await request(app)
+    .post('/api/tasks/proposals')
+    .set('Authorization', 'Bearer ' + attackerRes.body.authToken)
+    .send({
+      title: `Proposition usurpée ${Date.now()}`,
+      firstName: victimRes.body.first_name,
+      lastName: victimRes.body.last_name,
+      studentId: victimRes.body.id,
+    })
+    .expect(403);
+});
+
 test('Un enseignant peut modifier une proposition élève', async () => {
   const studentRes = await request(app)
     .post('/api/auth/register')
@@ -1180,6 +1226,7 @@ test('Un enseignant peut modifier une proposition élève', async () => {
 
   const created = await request(app)
     .post('/api/tasks/proposals')
+    .set('Authorization', 'Bearer ' + studentRes.body.authToken)
     .send({
       title: `Proposition edit ${Date.now()}`,
       description: 'Version initiale',
@@ -1228,6 +1275,7 @@ test("Un élève ne peut pas modifier la proposition d'un autre élève", async 
 
   const created = await request(app)
     .post('/api/tasks/proposals')
+    .set('Authorization', 'Bearer ' + proposerRes.body.authToken)
     .send({
       title: `Proposition owner ${Date.now()}`,
       description: 'Ne doit pas être modifiée par un autre.',
@@ -1258,6 +1306,7 @@ test("Le proposeur ne peut pas changer le statut d'une proposition", async () =>
   const zoneId = zones.body[0]?.id || 'pg';
   const created = await request(app)
     .post('/api/tasks/proposals')
+    .set('Authorization', 'Bearer ' + studentRes.body.authToken)
     .send({
       title: `Proposition statut ${Date.now()}`,
       description: 'Test blocage statut',
@@ -1288,6 +1337,7 @@ test("Le proposeur ne peut pas changer le mode de validation d'une proposition",
   const zoneId = zones.body[0]?.id || 'pg';
   const created = await request(app)
     .post('/api/tasks/proposals')
+    .set('Authorization', 'Bearer ' + studentRes.body.authToken)
     .send({
       title: `Proposition mode ${Date.now()}`,
       description: 'Test blocage completion_mode',
