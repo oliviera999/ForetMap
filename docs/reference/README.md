@@ -44,32 +44,33 @@ Il poursuit trois objectifs, dans l'ordre :
 
 ### ForetMap
 
-| Document                                             | Contenu                                                               | Statut       |
-| ---------------------------------------------------- | --------------------------------------------------------------------- | ------------ |
-| [foretmap/presentation.md](foretmap/presentation.md) | Vue d'ensemble : but, publics, tour des fonctionnalités, rôles        | ✅ Rédigé    |
-| foretmap/carte-et-zones.md                           | Les plans, les zones, les repères, leur cycle de vie                  | 🔜 À rédiger |
-| foretmap/plantes-et-biodiversite.md                  | Fiches plantes, pré-remplissage des espèces, identification par photo | 🔜 À rédiger |
-| foretmap/taches-tutoriels-et-validation.md           | Tâches, tutoriels, prise en charge par les élèves, validation profs   | 🔜 À rédiger |
-| foretmap/comptes-roles-et-groupes.md                 | Inscription, rôles et paliers, groupes, gestion par les profs         | 🔜 À rédiger |
-| foretmap/visite-et-mascottes.md                      | Parcours de visite grand public, mascottes                            | 🔜 À rédiger |
-| foretmap/pedagogie-quiz-glossaire-reseau.md          | Quiz, glossaire, réseau trophique, carnet d'observation               | 🔜 À rédiger |
-| foretmap/stats-forum-et-suivi.md                     | Statistiques, classement, forum, notifications                        | 🔜 À rédiger |
+| Document                                                                                   | Contenu                                                                | Statut    |
+| ------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------- | --------- |
+| [foretmap/presentation.md](foretmap/presentation.md)                                       | Vue d'ensemble : but, publics, tour des fonctionnalités, rôles         | ✅ Rédigé |
+| [foretmap/carte-et-zones.md](foretmap/carte-et-zones.md)                                   | Les plans, les zones, les repères, leur cycle de vie                   | ✅ Rédigé |
+| [foretmap/plantes-et-biodiversite.md](foretmap/plantes-et-biodiversite.md)                 | Fiches plantes, pré-remplissage des espèces, identification par photo  | ✅ Rédigé |
+| [foretmap/taches-tutoriels-et-validation.md](foretmap/taches-tutoriels-et-validation.md)   | Tâches, tutoriels, prise en charge par les élèves, validation profs    | ✅ Rédigé |
+| [foretmap/comptes-roles-et-groupes.md](foretmap/comptes-roles-et-groupes.md)               | Inscription (code de classe), rôles et paliers, groupes, gestion profs | ✅ Rédigé |
+| [foretmap/visite-et-mascottes.md](foretmap/visite-et-mascottes.md)                         | Parcours de visite grand public, mascottes                             | ✅ Rédigé |
+| [foretmap/pedagogie-quiz-glossaire-reseau.md](foretmap/pedagogie-quiz-glossaire-reseau.md) | Quiz, glossaire, réseau trophique, carnet d'observation                | ✅ Rédigé |
+| [foretmap/stats-forum-et-suivi.md](foretmap/stats-forum-et-suivi.md)                       | Statistiques, classement, forum, notifications, audit                  | ✅ Rédigé |
 
 ### Gnomes & Licornes (GL)
 
-| Document                                           | Contenu                                                                                                | Statut       |
-| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------ | ------------ |
-| [gl/presentation.md](gl/presentation.md)           | Vue d'ensemble : concept du jeu, rôles, tour des modules                                               | ✅ Rédigé    |
-| [gl/lore-deux-peuples.md](gl/lore-deux-peuples.md) | Socle narratif « Les deux peuples du seuil » : textes prêts à coller (page monde, feuillets, QCM lore) | ✅ Rédigé    |
-| gl/roles-et-connexion.md                           | Joueur, invité, MJ, admin : qui peut faire quoi                                                        | 🔜 À rédiger |
-| gl/chapitres-et-progression.md                     | Chapitres, déroulement d'une partie, progression                                                       | 🔜 À rédiger |
-| gl/carte-du-royaume.md                             | La carte du royaume et ses zones                                                                       | 🔜 À rédiger |
-| gl/economie-marche-sorts.md                        | Monnaie, marché, sorts, récompenses                                                                    | 🔜 À rédiger |
-| gl/qcm-et-pedagogie.md                             | Les QCM, le lien avec le programme scolaire                                                            | 🔜 À rédiger |
-| gl/guide-du-mj.md                                  | Guide pratique du maître du jeu (animation d'une séance)                                               | 🔜 À rédiger |
+| Document                                                         | Contenu                                                                                                | Statut    |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ | --------- |
+| [gl/presentation.md](gl/presentation.md)                         | Vue d'ensemble : concept du jeu, rôles, tour des modules                                               | ✅ Rédigé |
+| [gl/lore-deux-peuples.md](gl/lore-deux-peuples.md)               | Socle narratif « Les deux peuples du seuil » : textes prêts à coller (page monde, feuillets, QCM lore) | ✅ Rédigé |
+| [gl/roles-et-connexion.md](gl/roles-et-connexion.md)             | Joueur, invité, MJ, admin : qui peut faire quoi                                                        | ✅ Rédigé |
+| [gl/chapitres-et-progression.md](gl/chapitres-et-progression.md) | Chapitres, déroulement d'une partie, progression                                                       | ✅ Rédigé |
+| [gl/carte-du-royaume.md](gl/carte-du-royaume.md)                 | La carte du royaume, zones, repères et effets gnome/licorne                                            | ✅ Rédigé |
+| [gl/economie-marche-sorts.md](gl/economie-marche-sorts.md)       | Cœurs et gemmes, schéma des flux, marché, sortilèges                                                   | ✅ Rédigé |
+| [gl/qcm-et-pedagogie.md](gl/qcm-et-pedagogie.md)                 | QCM biomes et lore, conditionnement du « marquer appris »                                              | ✅ Rédigé |
+| [gl/guide-du-mj.md](gl/guide-du-mj.md)                           | Guide pratique du MJ : avant/pendant/après + incidents courants                                        | ✅ Rédigé |
 
-_Les documents « à rédiger » sont produits au fur et à mesure ; le sommaire ci-dessus
-peut évoluer (fusion, découpage, ajout) selon les besoins._
+_Le sommaire est complet ; il peut évoluer (fusion, découpage, ajout) selon les
+besoins. Vos éditions directes dans ces documents (marqueur `🔧 À implémenter`)
+valent demandes de changement._
 
 ## Comment lire ces documents
 
