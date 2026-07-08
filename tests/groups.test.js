@@ -336,3 +336,181 @@ test('Tasks: affectation rapide par groupe', async () => {
   ]);
   assert.ok(assignments.some((a) => String(a.student_id) === student.id));
 });
+
+// ---------------------------------------------------------------------------
+// F2-B — comptes en attente de rattachement + rattachement unitaire
+// ---------------------------------------------------------------------------
+
+async function createVisitorStudent(label) {
+  const id = crypto.randomUUID();
+  const firstName = `Visit${label}`;
+  const lastName = `Attente${Date.now()}`;
+  await execute(
+    `INSERT INTO users
+      (id, user_type, legacy_user_id, email, pseudo, first_name, last_name, display_name, affiliation, password_hash, auth_provider, is_active, created_at, updated_at)
+     VALUES (?, 'student', NULL, NULL, NULL, ?, ?, ?, 'both', NULL, 'local', 1, NOW(), NOW())`,
+    [id, firstName, lastName, `${firstName} ${lastName}`],
+  );
+  const visitorRole = await queryOne("SELECT id FROM roles WHERE slug = 'visiteur' LIMIT 1");
+  assert.ok(visitorRole?.id);
+  await execute(
+    `INSERT INTO user_roles (user_type, user_id, role_id, is_primary)
+     VALUES ('student', ?, ?, 1)
+     ON DUPLICATE KEY UPDATE role_id = VALUES(role_id), is_primary = 1`,
+    [id, visitorRole.id],
+  );
+  return { id, firstName, lastName };
+}
+
+test('F2-B : GET /api/groups/pending-visitors liste les comptes visiteurs', async () => {
+  const token = await getAdminToken();
+  const visitor = await createVisitorStudent('List');
+
+  const res = await request(app)
+    .get('/api/groups/pending-visitors')
+    .set('Authorization', `Bearer ${token}`)
+    .expect(200);
+  assert.ok(Array.isArray(res.body));
+  assert.ok(
+    res.body.some((row) => String(row.id) === String(visitor.id)),
+    'le visiteur créé doit apparaître dans la liste',
+  );
+});
+
+test('F2-B : POST /api/groups/:id/members/:userId rattache et promeut le visiteur', async () => {
+  const token = await getAdminToken();
+  const visitor = await createVisitorStudent('Attach');
+
+  const groupRes = await request(app)
+    .post('/api/groups')
+    .set('Authorization', `Bearer ${token}`)
+    .send({ name: `Classe F2B ${Date.now()}`, kind: 'class', grants_n3beur_access: true })
+    .expect(201);
+  const groupId = groupRes.body?.id || groupRes.body?.group?.id;
+  assert.ok(groupId);
+
+  await request(app)
+    .post(`/api/groups/${encodeURIComponent(groupId)}/members/${encodeURIComponent(visitor.id)}`)
+    .set('Authorization', `Bearer ${token}`)
+    .expect(201);
+
+  const member = await queryOne(
+    'SELECT user_id FROM group_members WHERE group_id = ? AND user_id = ? LIMIT 1',
+    [groupId, visitor.id],
+  );
+  assert.ok(member, 'membre inséré');
+
+  const role = await queryOne(
+    `SELECT r.slug FROM user_roles ur JOIN roles r ON r.id = ur.role_id
+      WHERE ur.user_type = 'student' AND ur.user_id = ? AND ur.is_primary = 1 LIMIT 1`,
+    [visitor.id],
+  );
+  assert.strictEqual(role?.slug, 'eleve_novice', 'promotion visiteur → n3beur novice');
+
+  // Le compte rattaché disparaît de la liste d'attente.
+  const pending = await request(app)
+    .get('/api/groups/pending-visitors')
+    .set('Authorization', `Bearer ${token}`)
+    .expect(200);
+  assert.ok(!pending.body.some((row) => String(row.id) === String(visitor.id)));
+});
+
+test('F2-B : rattachement unitaire refusé sans permission groups.manage', async () => {
+  const visitor = await createVisitorStudent('Deny');
+  const other = await createVisitorStudent('DenyGrp');
+  const studentToken = signAuthToken({
+    userType: 'student',
+    userId: other.id,
+    canonicalUserId: other.id,
+    roleSlug: 'visiteur',
+    permissions: [],
+  });
+  const res = await request(app)
+    .post(`/api/groups/whatever/members/${encodeURIComponent(visitor.id)}`)
+    .set('Authorization', `Bearer ${studentToken}`);
+  assert.ok([401, 403].includes(res.status), `refus attendu, reçu ${res.status}`);
+});
+
+// ---------------------------------------------------------------------------
+// F2-A — code de classe à l'inscription
+// ---------------------------------------------------------------------------
+
+test('F2-A : génération/suppression du code de classe et inscription avec code', async () => {
+  const token = await getAdminToken();
+  const groupRes = await request(app)
+    .post('/api/groups')
+    .set('Authorization', `Bearer ${token}`)
+    .send({ name: `Classe Code ${Date.now()}`, kind: 'class', grants_n3beur_access: true })
+    .expect(201);
+  const groupId = groupRes.body?.id || groupRes.body?.group?.id;
+  assert.ok(groupId);
+
+  // Génération du code
+  const gen = await request(app)
+    .post(`/api/groups/${encodeURIComponent(groupId)}/class-code`)
+    .set('Authorization', `Bearer ${token}`)
+    .send({ action: 'generate' })
+    .expect(200);
+  const code = gen.body?.class_code;
+  assert.ok(code && code.length >= 6, 'code généré');
+
+  // Inscription avec le bon code → membre du groupe + promu n3beur
+  const reg = await request(app)
+    .post('/api/auth/register')
+    .send({
+      firstName: 'Code',
+      lastName: `Classe${Date.now()}`,
+      password: 'pwd1',
+      classCode: code.toLowerCase(), // insensible à la casse
+    })
+    .expect(201);
+  const studentId = reg.body?.id;
+  assert.ok(studentId);
+
+  const member = await queryOne(
+    'SELECT user_id FROM group_members WHERE group_id = ? AND user_id = ? LIMIT 1',
+    [groupId, studentId],
+  );
+  assert.ok(member, 'inscrit rattaché au groupe du code');
+
+  const role = await queryOne(
+    `SELECT r.slug FROM user_roles ur JOIN roles r ON r.id = ur.role_id
+      WHERE ur.user_type = 'student' AND ur.user_id = ? AND ur.is_primary = 1 LIMIT 1`,
+    [studentId],
+  );
+  assert.strictEqual(role?.slug, 'eleve_novice', 'promotion directe via le code');
+
+  // Suppression du code : l'inscription avec l'ancien code échoue proprement
+  await request(app)
+    .post(`/api/groups/${encodeURIComponent(groupId)}/class-code`)
+    .set('Authorization', `Bearer ${token}`)
+    .send({ action: 'clear' })
+    .expect(200);
+
+  const lastName = `Refus${Date.now()}`;
+  const bad = await request(app)
+    .post('/api/auth/register')
+    .send({ firstName: 'Code', lastName, password: 'pwd1', classCode: code })
+    .expect(400);
+  assert.match(String(bad.body?.error || ''), /Code de classe invalide/);
+
+  // Aucun compte créé sur code invalide (correction possible sans compte orphelin)
+  const orphan = await queryOne(
+    "SELECT id FROM users WHERE user_type = 'student' AND last_name = ? LIMIT 1",
+    [lastName],
+  );
+  assert.ok(orphan == null, 'pas de compte orphelin sur code invalide');
+});
+
+test("F2-A : l'inscription sans code reste possible (compte visiteur)", async () => {
+  const reg = await request(app)
+    .post('/api/auth/register')
+    .send({ firstName: 'Sans', lastName: `Code${Date.now()}`, password: 'pwd1' })
+    .expect(201);
+  const role = await queryOne(
+    `SELECT r.slug FROM user_roles ur JOIN roles r ON r.id = ur.role_id
+      WHERE ur.user_type = 'student' AND ur.user_id = ? AND ur.is_primary = 1 LIMIT 1`,
+    [reg.body?.id],
+  );
+  assert.strictEqual(role?.slug, 'visiteur');
+});

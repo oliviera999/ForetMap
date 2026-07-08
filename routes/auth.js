@@ -41,6 +41,7 @@ const {
 const { logAudit, logSecurityEvent } = require('./audit');
 const { ensureCanonicalUserByAuth, resolveLoginAccountByIdentifier } = require('../lib/identity');
 const { syncStudentRoleFromGroups } = require('../lib/groupRole');
+const { addStudentToGroup } = require('../lib/groupMembers');
 const { saveBase64ToDisk, deleteFile } = require('../lib/uploads');
 const { resolveStudentAffiliationForPersist } = require('../lib/studentAffiliation');
 const { resolveOAuthPublicOrigin, resolveOAuthRedirectUri } = require('../lib/oauthPublicUrl');
@@ -454,6 +455,23 @@ router.post('/register', async (req, res) => {
     const affiliation = affRes.affiliation;
     if (!firstName?.trim() || !lastName?.trim())
       return res.status(400).json({ error: 'Prénom et nom requis' });
+    // F2-A — code de classe optionnel : validé AVANT la création du compte pour
+    // qu'une faute de frappe soit corrigeable (pas de compte visiteur orphelin).
+    const classCode = normalizeOptionalString(req.body?.classCode);
+    let classCodeGroup = null;
+    if (classCode) {
+      classCodeGroup = await queryOne(
+        'SELECT id, name FROM `groups` WHERE class_code = ? AND is_active = 1 LIMIT 1',
+        [classCode.toUpperCase()],
+      );
+      if (!classCodeGroup) {
+        await logSecurityEvent('auth.register.class_code_invalid', {
+          req,
+          payload: { code_length: classCode.length },
+        });
+        return res.status(400).json({ error: 'Code de classe invalide' });
+      }
+    }
     const minPasswordLen = await getPasswordMinLength();
     if (!password || password.length < minPasswordLen)
       return res
@@ -504,6 +522,10 @@ router.post('/register', async (req, res) => {
       throw err;
     }
     await ensurePrimaryRole('student', id, 'visiteur');
+    if (classCodeGroup) {
+      // Rejoint le groupe du code : promotion visiteur → n3beur si le groupe la confère.
+      await addStudentToGroup(id, classCodeGroup.id);
+    }
     await syncStudentRoleFromGroups(id);
     const student = await queryOne("SELECT * FROM users WHERE id = ? AND user_type = 'student'", [
       id,

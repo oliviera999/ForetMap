@@ -7,7 +7,7 @@ export const GL_MOBILE_PRIMARY_TAB_IDS = ['maps', 'nature', 'monde-gl'];
 export const GL_NATURE_SUB_TABS = [
   { id: 'ecosystemes', label: 'Écosystèmes', icon: '🌿' },
   { id: 'biodiversite', label: 'Biodiversité', icon: '🦋' },
-  { id: 'glossary', label: 'Glossaire', icon: '📚' },
+  { id: 'glossary', label: 'Glossaire scientifique', icon: '📚' },
 ];
 
 export const GL_NATURE_SUB_TAB_IDS = GL_NATURE_SUB_TABS.map((tab) => tab.id);

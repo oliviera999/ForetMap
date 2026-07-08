@@ -505,19 +505,17 @@ router.delete(
   }),
 );
 
-/**
- * O-audit — reset-password / reset-pin : les deux handlers étaient identiques au champ
- * du body et au message 400 près (même UPDATE de `password_hash`). Fabrique commune
- * paramétrée par la lecture du secret et le message « requis » ; statuts, messages et
- * réponse `{ ok: true }` inchangés.
- */
-function buildPlayerCredentialResetHandler({ readSecret, missingMessage }) {
-  return asyncHandler(async (req, res) => {
+// G5 — l'ancien doublon POST /players/:id/reset-pin (héritage PIN) est supprimé ;
+// `password` accepte encore l'alias `pin` en compatibilité silencieuse, à retirer à terme.
+router.post(
+  '/players/:id/reset-password',
+  requireGlPermission('gl.players.manage'),
+  asyncHandler(async (req, res) => {
     const id = Number(req.params.id);
-    const password = readSecret(req.body);
+    const password = normalizePassword(req.body?.password) || normalizePassword(req.body?.pin);
     if (!Number.isFinite(id)) return res.status(400).json({ error: 'Identifiant invalide' });
     if (!password || password.length < 4) {
-      return res.status(400).json({ error: missingMessage });
+      return res.status(400).json({ error: 'Mot de passe requis (min 4 caractères)' });
     }
     const existing = await queryOne('SELECT id FROM gl_players WHERE id = ? LIMIT 1', [id]);
     if (!existing) return res.status(404).json({ error: 'Joueur introuvable' });
@@ -527,24 +525,6 @@ function buildPlayerCredentialResetHandler({ readSecret, missingMessage }) {
       [hash, id],
     );
     return res.json({ ok: true });
-  });
-}
-
-router.post(
-  '/players/:id/reset-password',
-  requireGlPermission('gl.players.manage'),
-  buildPlayerCredentialResetHandler({
-    readSecret: (body) => normalizePassword(body?.password),
-    missingMessage: 'Mot de passe requis (min 4 caractères)',
-  }),
-);
-
-router.post(
-  '/players/:id/reset-pin',
-  requireGlPermission('gl.players.manage'),
-  buildPlayerCredentialResetHandler({
-    readSecret: (body) => normalizePassword(body?.pin) || normalizePassword(body?.password),
-    missingMessage: 'PIN/mot de passe requis (min 4 caractères)',
   }),
 );
 

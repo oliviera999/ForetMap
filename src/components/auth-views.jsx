@@ -18,6 +18,7 @@ function AuthScreen({ onLogin, appVersion, onVisitGuest, uiSettings, isN3Affilia
     last: `${fieldIdPrefix}-last`,
     pass: `${fieldIdPrefix}-pass`,
     pseudo: `${fieldIdPrefix}-pseudo`,
+    classCode: `${fieldIdPrefix}-class-code`,
     email: `${fieldIdPrefix}-email`,
     description: `${fieldIdPrefix}-description`,
     affiliation: `${fieldIdPrefix}-affiliation`,
@@ -31,6 +32,7 @@ function AuthScreen({ onLogin, appVersion, onVisitGuest, uiSettings, isN3Affilia
   const [first, setFirst] = useState('');
   const [last, setLast] = useState('');
   const [pseudo, setPseudo] = useState('');
+  const [classCode, setClassCode] = useState('');
   const [email, setEmail] = useState('');
   const [description, setDescription] = useState('');
   const [affiliation, setAffiliation] = useState('');
@@ -135,6 +137,7 @@ function AuthScreen({ onLogin, appVersion, onVisitGuest, uiSettings, isN3Affilia
         payload.email = email.trim() || null;
         payload.description = description.trim() || null;
         payload.affiliation = affiliation;
+        payload.classCode = classCode.trim().toUpperCase() || null;
       }
       const student = await api(endpoint, 'POST', payload);
       if (student?.authToken) {
@@ -311,6 +314,26 @@ function AuthScreen({ onLogin, appVersion, onVisitGuest, uiSettings, isN3Affilia
         </div>
         {mode === 'register' && allowRegister && (
           <>
+            <div className="field">
+              <label htmlFor={fieldIds.classCode}>
+                Code de classe (si ton prof t'en a donné un)
+              </label>
+              <input
+                id={fieldIds.classCode}
+                value={classCode}
+                onChange={(e) => setClassCode(e.target.value.toUpperCase())}
+                placeholder="ex. K7RM2XQ4"
+                autoCapitalize="characters"
+                autoCorrect="off"
+                spellCheck={false}
+                maxLength={16}
+                onKeyDown={onKey}
+              />
+              <p style={{ margin: '4px 0 0', fontSize: '.8rem', color: '#64748b' }}>
+                Avec un bon code, ton compte rejoint directement ta classe. Sans code, un professeur
+                devra te rattacher à la main.
+              </p>
+            </div>
             <div className="field">
               <label htmlFor={fieldIds.pseudo}>Pseudo (optionnel)</label>
               <input

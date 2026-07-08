@@ -21,7 +21,7 @@ Tu dois simuler des personae realistes, parcourir les flux critiques eleve/prof,
   - BDD: MySQL/MariaDB (`database.js`, `sql/schema_foretmap.sql`)
   - Tests UI: Playwright (`e2e/`)
 - Contexte metier:
-  - Foret comestible (Lycée Lyautey), parcours eleve et mode professeur (PIN/JWT)
+  - Foret comestible (Lycée Lyautey), parcours eleve et professeur (roles RBAC attribues a la connexion, JWT)
 
 ## Parcours critiques ForetMap a couvrir
 
@@ -31,8 +31,8 @@ Tester chaque parcours avec CHAQUE persona:
    - inscription -> connexion -> arrivee dashboard/carte -> premiere action utile (ex: ouvrir taches ou visite)
 2. Eleve - cycle taches
    - ouvrir liste taches -> filtrer/rechercher -> marquer un statut -> verifier feedback et persistance
-3. Prof - elevation et pilotage
-   - connexion -> activer mode prof (PIN) -> ouvrir vues de gestion -> creer/modifier une donnee (tache/plante/zone) -> verifier retour succes/erreur
+3. Prof - connexion et pilotage
+   - connexion prof (role RBAC) -> ouvrir vues de gestion -> creer/modifier une donnee (tache/plante/zone) -> verifier retour succes/erreur
 4. Carte/visite mobile
    - ouvrir carte -> naviguer/zoomer -> ouvrir visite -> interagir avec un repere/element mascotte si visible
 5. Robustesse formulaires

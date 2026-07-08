@@ -749,7 +749,7 @@ export function GLGameBoard({
           <select value={actionType} onChange={(event) => setActionType(event.target.value)}>
             <option value="explore">Explorer</option>
             <option value="quiz">Répondre à un quiz</option>
-            <option value="observe">Observer la biocénose</option>
+            <option value="observe">Observer la biodiversité</option>
             <option value="story">Avancer dans l’histoire</option>
           </select>
         </label>

@@ -95,7 +95,7 @@ export function GLGlossaryEditorPanel() {
 
   return (
     <section className="gl-admin-section fade-in">
-      <h3>Saisie manuelle — glossaire</h3>
+      <h3>Saisie manuelle — glossaire scientifique</h3>
       <p className="gl-hint">
         Créez ou modifiez un terme pédagogique. Les termes liés se saisissent en codes ou libellés
         séparés par des virgules.

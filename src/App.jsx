@@ -802,18 +802,9 @@ function App() {
   const mapChromeCompactVisible =
     !loading && (useSplitMapTasks || (!useSplitMapTasks && tab === 'map'));
   const tutorialsModuleEnabled = publicSettings?.modules?.tutorials_enabled !== false;
-  const mergeTasksTutoNav =
-    tutorialsModuleEnabled &&
-    !!(
-      tasksLocationFocus?.kind &&
-      tasksLocationFocus?.id != null &&
-      String(tasksLocationFocus.id).trim() !== ''
-    );
-  const tasksTabLabel = mergeTasksTutoNav
-    ? '✅ Tâches&tuto'
-    : tutorialsModuleEnabled
-      ? '✅ Tâches et tuto'
-      : '✅ Tâches';
+  // F3 (option A) : la fusion contextuelle Tâches/Tuto est supprimée — les onglets
+  // restent stables ; seule l'adaptation grand écran (vue « Cartes & tâches ») subsiste.
+  const tasksTabLabel = tutorialsModuleEnabled ? '✅ Tâches et tuto' : '✅ Tâches';
   const mapTasksSplitLabel = tutorialsModuleEnabled
     ? '🗺️ Cartes, tâches et tuto'
     : '🗺️ Cartes & tâches';
@@ -883,7 +874,6 @@ function App() {
     shouldUseDesktopSplit,
     canAccessForum,
     canViewGeneralStats,
-    mergeTasksTutoNav,
     modules: publicSettings?.modules,
   });
 
@@ -1177,6 +1167,14 @@ function App() {
                   peu vieilles — un clic pour rafraîchir.
                 </NoticeBanner>
               )}
+              {isVisitor && !effectiveIsTeacher && studentForUi && (
+                <NoticeBanner tone="info">
+                  <strong>Ton compte n'est pas encore rattaché à une classe.</strong> Un professeur
+                  doit t'ajouter à ton groupe pour débloquer la carte et les tâches — signale-le-lui
+                  (ou utilise le code de classe s'il t'en a donné un à l'inscription). En attendant,
+                  tu peux explorer la Visite et la Biodiversité.
+                </NoticeBanner>
+              )}
               {toast && <Toast msg={toast} onDone={() => setToast(null)} />}
               {profilePromotion &&
                 !effectiveIsTeacher &&
@@ -1325,7 +1323,6 @@ function App() {
                     mapTasksSplitLabel={mapTasksSplitLabel}
                     tasksTabLabel={tasksTabLabel}
                     teacherPendingValidationCount={teacherPendingValidationCount}
-                    mergeTasksTutoNav={mergeTasksTutoNav}
                     tutorialsModuleEnabled={tutorialsModuleEnabled}
                     statsEnabled={publicSettings?.modules?.stats_enabled !== false}
                     visitEnabled={publicSettings?.modules?.visit_enabled !== false}
@@ -1622,7 +1619,6 @@ function App() {
                     isVisitor={isVisitor}
                     shouldUseDesktopSplit={shouldUseDesktopSplit}
                     tutorialsModuleEnabled={tutorialsModuleEnabled}
-                    mergeTasksTutoNav={mergeTasksTutoNav}
                     studentActiveAssignedTasksCount={studentActiveAssignedTasksCount}
                     canViewGeneralStats={canViewGeneralStats}
                     observationsEnabled={publicSettings?.modules?.observations_enabled !== false}

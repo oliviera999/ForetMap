@@ -27,7 +27,6 @@ import { useEffect } from 'react';
  * @param {boolean} params.shouldUseDesktopSplit
  * @param {boolean} params.canAccessForum
  * @param {boolean} params.canViewGeneralStats
- * @param {boolean} params.mergeTasksTutoNav
  * @param {object} [params.modules] - Drapeaux `publicSettings.modules`.
  */
 export function useTabNavigationGuards({
@@ -39,7 +38,6 @@ export function useTabNavigationGuards({
   shouldUseDesktopSplit,
   canAccessForum,
   canViewGeneralStats,
-  mergeTasksTutoNav,
   modules,
 }) {
   const tutorialsEnabled = modules?.tutorials_enabled;
@@ -92,10 +90,4 @@ export function useTabNavigationGuards({
     isVisitor,
     setTab,
   ]);
-
-  /** Avec une zone/repère au focus, l'onglet Tuto est fusionné avec Tâches (navigation vers la vue Tâches). */
-  useEffect(() => {
-    if (!mergeTasksTutoNav || tab !== 'tuto') return;
-    setTab('tasks');
-  }, [mergeTasksTutoNav, tab, setTab]);
 }

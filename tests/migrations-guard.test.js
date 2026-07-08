@@ -24,6 +24,21 @@ test('lève sur tout nouveau doublon de numéro de migration', () => {
   );
 });
 
+test('F4 : les tables visite V1 sont supprimées après initSchema (migration 166)', async () => {
+  await initSchema();
+  const tableExists = async (name) =>
+    queryAll(
+      'SELECT table_name FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = ?',
+      [name],
+    );
+  for (const table of ['visit_zone_content', 'visit_marker_content']) {
+    const rows = await tableExists(table);
+    assert.strictEqual(rows.length, 0, `table V1 ${table} encore présente`);
+  }
+  const v2 = await tableExists('visit_zones');
+  assert.strictEqual(v2.length, 1, 'table V2 visit_zones absente');
+});
+
 test('les index de performance (audit §2.1) existent après initSchema', async () => {
   await initSchema();
   const expected = [

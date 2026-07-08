@@ -26,6 +26,14 @@ function ProgressBar({ label, current, required, emoji }) {
 }
 
 /** Ligne joueur : identité + champs de contribution gemmes/cœurs. */
+// G9 — reste après dépense, borné à 0 (l'API refuse de toute façon un solde négatif).
+export function remainingAfter(balance, spent) {
+  const b = Number(balance);
+  const sp = Number(spent);
+  const rest = (Number.isFinite(b) ? b : 0) - (Number.isFinite(sp) ? sp : 0);
+  return Math.max(0, rest);
+}
+
 function RosterPlayerRow({
   player,
   row,
@@ -59,6 +67,9 @@ function RosterPlayerRow({
               onChange={(e) => onUpdateContrib(player.playerId, 'gems', e.target.value)}
               onBlur={(e) => onContribBlur(player.playerId, 'gems', e.target.value)}
             />
+            <span className="gl-spell-cast-roster__remaining gl-hint">
+              il te restera {remainingAfter(player.powerPoints, row.gems)} 💎
+            </span>
           </label>
         ) : null}
         {required.hearts > 0 ? (
@@ -74,6 +85,9 @@ function RosterPlayerRow({
               onChange={(e) => onUpdateContrib(player.playerId, 'hearts', e.target.value)}
               onBlur={(e) => onContribBlur(player.playerId, 'hearts', e.target.value)}
             />
+            <span className="gl-spell-cast-roster__remaining gl-hint">
+              il te restera {remainingAfter(player.healthPoints, row.hearts)} ❤️
+            </span>
           </label>
         ) : null}
       </div>

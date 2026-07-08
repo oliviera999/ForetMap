@@ -15,7 +15,6 @@ export function TeacherTopTabs({
   mapTasksSplitLabel,
   tasksTabLabel,
   teacherPendingValidationCount,
-  mergeTasksTutoNav,
   tutorialsModuleEnabled,
   statsEnabled,
   visitEnabled,
@@ -44,7 +43,7 @@ export function TeacherTopTabs({
         🗺️ Carte & Zones
       </button>
       <button
-        className={`top-tab ${tab === 'tasks' || (mergeTasksTutoNav && tab === 'tuto') ? 'active' : ''}`}
+        className={`top-tab ${tab === 'tasks' ? 'active' : ''}`}
         onClick={() => onTabChange('tasks')}
       >
         {tasksTabLabel}
@@ -68,7 +67,7 @@ export function TeacherTopTabs({
       >
         🕸️ Réseau trophique
       </button>
-      {tutorialsModuleEnabled && !mergeTasksTutoNav && (
+      {tutorialsModuleEnabled && (
         <button
           className={`top-tab ${tab === 'tuto' ? 'active' : ''}`}
           onClick={() => onTabChange('tuto')}

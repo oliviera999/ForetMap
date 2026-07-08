@@ -316,12 +316,13 @@ describe('taskRouteHelpers — sérialisation tâche', () => {
     assert.equal(task.marker_label, 'Repère');
   });
 
-  it('enrichTaskRow : sans lien, map_id de la tâche et legacy conservés', () => {
+  it('enrichTaskRow : sans lien, map_id de la tâche conservé et champs zone/repère remis à null (F5)', () => {
     const task = { map_id: 'm9', zone_name: 'Ancienne', marker_label: 'Vieux' };
     enrichTaskRow(task, [], [], [], []);
     assert.equal(task.map_id_resolved, 'm9');
-    assert.equal(task.zone_name, 'Ancienne');
-    assert.equal(task.marker_label, 'Vieux');
+    // F5 : les liens N-N font foi — plus de repli sur les colonnes legacy.
+    assert.equal(task.zone_name, null);
+    assert.equal(task.marker_label, null);
     assert.deepEqual(task.zones_linked, []);
   });
 });

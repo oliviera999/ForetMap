@@ -100,7 +100,7 @@ export function GLGlossaryImportPanel() {
 
   return (
     <section className="gl-admin-section fade-in">
-      <h3>Import glossaire (XLSX)</h3>
+      <h3>Import glossaire scientifique (XLSX)</h3>
       <p className="gl-hint">
         Fichier attendu : feuille <code>glossaire</code> (voir <code>data/gl/README.md</code>).
       </p>
