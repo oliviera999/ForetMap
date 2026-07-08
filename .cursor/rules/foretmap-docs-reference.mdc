@@ -1,0 +1,34 @@
+---
+description: Documentation de référence fonctionnelle (docs/reference/) — maintien perpétuel et traitement des modifications utilisateur comme demandes de changement
+alwaysApply: true
+---
+
+# Documentation de référence fonctionnelle (`docs/reference/`)
+
+`docs/reference/` est la **référence fonctionnelle non technique** des deux applications
+(ForetMap et GL), rédigée en français simple pour admins, profs et MJ. Elle fait autorité
+sur le *fonctionnel attendu* ; le code doit la refléter et réciproquement.
+
+## Règles impératives
+
+1. **Mise à jour dans le même lot** : toute modification du code qui change le
+   comportement visible d'un utilisateur (élève, prof, joueur, invité, MJ, admin) doit
+   mettre à jour le(s) document(s) concerné(s) de `docs/reference/` dans le même lot de
+   travail (comme `docs/API.md` pour les routes). Vérifier aussi le sommaire de
+   `docs/reference/README.md` (statuts ✅ / 🔜).
+2. **Modifications utilisateur = demandes de changement** : l'utilisateur peut éditer
+   directement ces documents pour décrire le fonctionnement *souhaité*. Avant toute tâche,
+   vérifier les écarts entre `docs/reference/` et le code (en particulier les marqueurs
+   **`🔧 À implémenter :`**) ; un écart détecté est soit un bug à corriger, soit une
+   évolution à implémenter — jamais à ignorer, ni à « corriger » en réécrivant le document
+   pour l'aligner sur le code sans accord de l'utilisateur. Une fois l'évolution livrée,
+   retirer le marqueur `🔧` et décrire le comportement au présent.
+3. **Style** : français, aucune ligne de code, pas de jargon technique (pas de noms de
+   fichiers, routes, tables — sauf encadrés « Pour les curieux » explicitement optionnels).
+   Vocabulaire des utilisateurs : zones, plantes, tâches, chapitres, marché, sorts…
+4. **Honnêteté sur l'existant** : les incohérences, zones confuses ou fonctions inachevées
+   sont documentées dans des encadrés **⚠️ Points d'attention**, jamais passées sous silence.
+5. **Séparation des produits** : `docs/reference/foretmap/` ne parle que de ForetMap,
+   `docs/reference/gl/` que de GL (isolement identique au code).
+
+Skill dédiée : `foretmap-docs-reference` (`.cursor/skills/` et `.claude/skills/`).
