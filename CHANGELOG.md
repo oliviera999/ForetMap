@@ -7,6 +7,23 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Documentation — base de référence fonctionnelle (`docs/reference/`)
+
+- **Nouveau dossier `docs/reference/`** : documentation fonctionnelle non technique
+  (français simple, sans jargon) destinée aux admins, profs et MJ. Triple objectif :
+  état de l'existant (encadrés « ⚠️ Points d'attention »), base d'évolution (les
+  éditions utilisateur marquées `🔧 À implémenter` valent demandes de changement pour
+  le code), documentation finale pour non-codeurs.
+- Premiers documents : `docs/reference/README.md` (index + règles de maintien),
+  `docs/reference/foretmap/presentation.md` et `docs/reference/gl/presentation.md`
+  (présentations générales, avec points d'attention honnêtes sur l'existant).
+- **Convention de maintien perpétuel** inscrite dans `CLAUDE.md`, nouvelle règle
+  `.cursor/rules/foretmap-docs-reference.mdc` (alwaysApply) et skill
+  `foretmap-docs-reference` (`.claude/skills/` + `.cursor/skills/`).
+- `CLAUDE.md` : correction de la description obsolète « mode prof via PIN » (remplacée
+  par les rôles RBAC attribués à la connexion ; anciennes routes en 410 Gone).
+- Correctif CI : formatage Prettier de `tests/media-library-path.test.js`.
+
 ### Consolidation Git
 
 - Fusion des commits uniques encore absents de `main` (tests médiathèque, `workflow_dispatch` CI) et correctif PWA `manifest.json` (`Content-Type: application/manifest+json`).

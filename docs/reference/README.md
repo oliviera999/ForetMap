@@ -41,12 +41,13 @@ Il poursuit trois objectifs, dans l'ordre :
 | Document                                             | Contenu                                                               | Statut       |
 | ---------------------------------------------------- | --------------------------------------------------------------------- | ------------ |
 | [foretmap/presentation.md](foretmap/presentation.md) | Vue d'ensemble : but, publics, tour des fonctionnalités, rôles        | ✅ Rédigé    |
-| foretmap/carte-et-zones.md                           | La carte, les zones, leur cycle de vie                                | 🔜 À rédiger |
+| foretmap/carte-et-zones.md                           | Les plans, les zones, les repères, leur cycle de vie                  | 🔜 À rédiger |
 | foretmap/plantes-et-biodiversite.md                  | Fiches plantes, pré-remplissage des espèces, identification par photo | 🔜 À rédiger |
-| foretmap/taches-et-validation.md                     | Tâches, prise en charge par les élèves, validation par les profs      | 🔜 À rédiger |
-| foretmap/eleves-et-comptes.md                        | Inscription, comptes élèves, gestion par les profs                    | 🔜 À rédiger |
-| foretmap/visites-et-mascottes.md                     | Parcours de visite, mascottes                                         | 🔜 À rédiger |
-| foretmap/stats-et-suivi.md                           | Statistiques, tableaux de bord, forum                                 | 🔜 À rédiger |
+| foretmap/taches-tutoriels-et-validation.md           | Tâches, tutoriels, prise en charge par les élèves, validation profs   | 🔜 À rédiger |
+| foretmap/comptes-roles-et-groupes.md                 | Inscription, rôles et paliers, groupes, gestion par les profs         | 🔜 À rédiger |
+| foretmap/visite-et-mascottes.md                      | Parcours de visite grand public, mascottes                            | 🔜 À rédiger |
+| foretmap/pedagogie-quiz-glossaire-reseau.md          | Quiz, glossaire, réseau trophique, carnet d'observation               | 🔜 À rédiger |
+| foretmap/stats-forum-et-suivi.md                     | Statistiques, classement, forum, notifications                        | 🔜 À rédiger |
 
 ### Gnomes & Licornes (GL)
 
