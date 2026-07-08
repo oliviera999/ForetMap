@@ -290,12 +290,13 @@ router.get(
       return res.status(400).json({ error: 'Projet introuvable' });
     }
     const sqlBase = `
-    SELECT t.*, z.name AS zone_name, z.map_id AS zone_map_id,
-           mkr.label AS marker_label, mkr.map_id AS marker_map_id,
+    SELECT t.*,
            tp.map_id AS project_map_id, tp.title AS project_title, tp.status AS project_status,
            m.id AS map_id_resolved_join, m.label AS map_label,
            t.image_path AS task_cover_image_path
       FROM tasks t
+      -- F5 : task_zones/task_markers font foi (enrichTaskRow) ; les joins z/mkr ne
+      -- subsistent que pour résoudre la carte des lignes historiques sans map_id.
       LEFT JOIN zones z ON t.zone_id = z.id
       LEFT JOIN map_markers mkr ON t.marker_id = mkr.id
       LEFT JOIN task_projects tp ON tp.id = t.project_id
