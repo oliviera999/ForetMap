@@ -113,8 +113,9 @@ masse, et programmer des **tâches récurrentes** (générées automatiquement c
 Un parcours de découverte du jardin, distinct de la carte de travail : zones et repères
 de visite avec textes soignés, médias et tutoriels associés. L'application retient ce
 que chaque visiteur a déjà vu. Des **mascottes animées** accompagnent la visite
-(personnages qui se déplacent sur la carte, dialoguent, suivent la position GPS) ; les
-professeurs les créent dans un studio dédié (« packs mascotte »).
+(personnages qui se déplacent au clic sur la carte et dialoguent) ; les professeurs
+les créent dans un studio dédié (« packs mascotte »). Le suivi de la position GPS
+existe, lui, sur la carte de travail des élèves.
 
 ### La vie sociale et le suivi
 
