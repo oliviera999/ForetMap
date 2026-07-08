@@ -7,6 +7,27 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Second tour d'arbitrage — F2, G2, G8, G9 livrés
+
+- **F2 (A+B) — parcours du nouvel inscrit** : bandeau d'explication pour les comptes
+  « visiteur » non rattachés ; liste « comptes en attente de rattachement » côté prof
+  (`GET /api/groups/pending-visitors`) avec rattachement en un clic
+  (`POST /api/groups/:id/members/:userId`, helper partagé `lib/groupMembers.js`) ;
+  **code de classe** par groupe (migration `167_groups_class_code.sql`,
+  `POST /api/groups/:id/class-code` generate/clear, panneau prof) et champ optionnel
+  `classCode` à l'inscription — code invalide → 400 sans création de compte (tracé
+  `security_events`), code valide → rattachement + promotion n3beur automatique.
+- **G2 (A)** : Réglages GL — avertissement quand le Marché est activé sans la vitalité
+  + bouton « Activer la vitalité ».
+- **G8 (A)** : doc interne alignée (défaut sorts = joueurs ; profils de séance pour le
+  mode MJ seul).
+- **G9 (C — libellés)** : « tu dépenses tes cœurs/gemmes — il te restera N » au Marché
+  et dans l'assistant de sorts.
+- Stabilisation d'un test UI flaky en CI (`useVisitSeenSync`, timeout waitFor élargi).
+- Registre `docs/reference/INCOHERENCES.md` : options détaillées + avis pour F2, F3,
+  G1, G2, G8, G9 ; statuts ✅ mis à jour ; présentations ForetMap/GL et `docs/API.md`
+  synchronisées.
+
 ### Assainissement — registre d'incohérences (lots F1/F4-F7, G3-G7/G10)
 
 - **Sécurité (F1)** : `POST /api/tasks/proposals` dérive désormais l'identité élève du

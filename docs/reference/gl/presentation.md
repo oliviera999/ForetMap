@@ -176,16 +176,15 @@ actuel :
 1. **Le nom du jeu et son contenu divergent** (voir plus haut) : pas de véritable récit
    « gnomes et licornes » dans les données actuelles.
    _Point G1 du [registre](../INCOHERENCES.md), en attente d'arbitrage._
-2. **Le marché est un piège de configuration** : il ne s'affiche que si le module
-   Marché **et** la vitalité sont activés tous les deux. Un admin qui n'active que le
-   Marché ne verra rien apparaître, sans message d'explication.
-   _Point G2 du [registre](../INCOHERENCES.md), en attente d'arbitrage._
-3. **Comportement par défaut des sorts ambigu** : par défaut, les joueurs peuvent
-   lancer des sorts, alors que la documentation interne décrivait le lancement par le
-   MJ comme le flux principal. À trancher : quel est le mode « normal » ?
-   _Point G8 du [registre](../INCOHERENCES.md), en attente d'arbitrage._
 
 Points résolus le 2026-07-08 (détail dans le [registre](../INCOHERENCES.md)) :
+
+- ✅ **Marché sans vitalité** : les réglages avertissent désormais quand le Marché est
+  activé sans la vitalité, avec un bouton pour activer les deux d'un coup.
+- ✅ **Sorts — mode normal tranché** : par défaut les joueurs lancent les sorts ; les
+  profils de séance (« MJ + tours ») réservent le lancement au MJ quand on le veut.
+- ✅ **Dépenses explicites** : au Marché et dans l'assistant de sorts, chaque champ
+  affiche « tu dépenses tes cœurs/gemmes — il te restera N ».
 
 - ✅ **Le conditionnement par QCM a désormais ses écrans d'administration** : les liens
   ressource ↔ question se gèrent dans « Contenus → Conditionnement QCM », les réglages

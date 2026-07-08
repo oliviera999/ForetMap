@@ -147,6 +147,8 @@ describe('useVisitSeenSync', () => {
         seen: true,
       }),
     );
-    await waitFor(() => expect(apiRef.current.pendingSyncCount).toBe(0));
+    // CI : la purge de la file passe par plusieurs micro/macro-tâches — délai élargi
+    // pour éliminer un flake observé sur runner lent (waitFor par défaut = 1 s).
+    await waitFor(() => expect(apiRef.current.pendingSyncCount).toBe(0), { timeout: 5000 });
   });
 });

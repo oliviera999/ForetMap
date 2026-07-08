@@ -43,11 +43,13 @@ mot de passe, ou compte Google). L'inscription des élèves se fait en autonomie
 procédure « mot de passe oublié » par e-mail existe, et un administrateur peut
 temporairement prendre la main sur un compte pour aider son propriétaire.
 
-> ⚠️ **Point d'attention** — Un élève qui crée son compte tout seul devient…
-> **visiteur** : il ne voit ni la carte ni les tâches tant qu'un professeur ne l'a pas
-> rattaché à un groupe ou promu. Ce parcours « nouvel élève → premier accès aux
-> tâches » n'est ni évident ni expliqué à l'écran ; c'est une source de confusion
-> probable à la rentrée.
+**Rejoindre sa classe** : à l'inscription, l'élève peut saisir le **code de classe**
+fourni par son professeur — son compte rejoint alors directement le groupe et reçoit
+le rôle d'élève (un code erroné est refusé, pour corriger la faute de frappe). Sans
+code, le compte reste « visiteur » : un bandeau lui explique qu'un professeur doit le
+rattacher, et le professeur voit la liste des **comptes en attente** dans la gestion
+des groupes, avec un rattachement en un clic. Chaque groupe génère son code dans son
+panneau de réglages (régénérable à tout moment, l'ancien code devenant invalide).
 
 ## Le tour des fonctionnalités
 
@@ -154,14 +156,17 @@ actions sensibles.
 
 État des lieux honnête, relevé en examinant le fonctionnement actuel :
 
-1. **Le parcours du nouvel inscrit est confus** (voir plus haut) : un compte créé en
-   autonomie reste « visiteur », sans accès aux tâches ni explication à l'écran.
-   _Point F2 du [registre](../INCOHERENCES.md), en attente d'arbitrage._
-2. **Navigation à géométrie variable** (voir plus haut) : la fusion/séparation des
+1. **Navigation à géométrie variable** (voir plus haut) : la fusion/séparation des
    onglets selon l'écran et les réglages complique l'accompagnement des utilisateurs.
    _Point F3 du [registre](../INCOHERENCES.md), en attente d'arbitrage._
 
 Points résolus le 2026-07-08 (détail dans le [registre](../INCOHERENCES.md)) :
+
+- ✅ **Parcours du nouvel inscrit clarifié** : un compte non rattaché voit maintenant un
+  bandeau d'explication ; le professeur dispose d'une liste « comptes en attente » avec
+  rattachement en un clic ; et chaque groupe peut porter un **code de classe** que
+  l'élève saisit à l'inscription pour rejoindre directement sa classe (un code erroné
+  est refusé clairement, sans créer de compte).
 
 - ✅ **Sécurité des actions élèves** : toutes les actions (tâches, propositions, carnet
   d'observation) vérifient désormais l'identité côté serveur — agir au nom d'un autre

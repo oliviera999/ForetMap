@@ -619,6 +619,8 @@ CREATE TABLE IF NOT EXISTS `groups` (
   parent_group_id VARCHAR(64) DEFAULT NULL,
   default_role_id INT UNSIGNED DEFAULT NULL,
   grants_n3beur_access TINYINT(1) NOT NULL DEFAULT 0,
+  class_code VARCHAR(16) DEFAULT NULL,
+  UNIQUE KEY uq_groups_class_code (class_code),
   is_active TINYINT(1) NOT NULL DEFAULT 1,
   created_by VARCHAR(64) DEFAULT NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
