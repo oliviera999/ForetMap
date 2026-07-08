@@ -57,15 +57,16 @@ Il poursuit trois objectifs, dans l'ordre :
 
 ### Gnomes & Licornes (GL)
 
-| Document                                 | Contenu                                                  | Statut       |
-| ---------------------------------------- | -------------------------------------------------------- | ------------ |
-| [gl/presentation.md](gl/presentation.md) | Vue d'ensemble : concept du jeu, rôles, tour des modules | ✅ Rédigé    |
-| gl/roles-et-connexion.md                 | Joueur, invité, MJ, admin : qui peut faire quoi          | 🔜 À rédiger |
-| gl/chapitres-et-progression.md           | Chapitres, déroulement d'une partie, progression         | 🔜 À rédiger |
-| gl/carte-du-royaume.md                   | La carte du royaume et ses zones                         | 🔜 À rédiger |
-| gl/economie-marche-sorts.md              | Monnaie, marché, sorts, récompenses                      | 🔜 À rédiger |
-| gl/qcm-et-pedagogie.md                   | Les QCM, le lien avec le programme scolaire              | 🔜 À rédiger |
-| gl/guide-du-mj.md                        | Guide pratique du maître du jeu (animation d'une séance) | 🔜 À rédiger |
+| Document                                           | Contenu                                                                                                | Statut       |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------ | ------------ |
+| [gl/presentation.md](gl/presentation.md)           | Vue d'ensemble : concept du jeu, rôles, tour des modules                                               | ✅ Rédigé    |
+| [gl/lore-deux-peuples.md](gl/lore-deux-peuples.md) | Socle narratif « Les deux peuples du seuil » : textes prêts à coller (page monde, feuillets, QCM lore) | ✅ Rédigé    |
+| gl/roles-et-connexion.md                           | Joueur, invité, MJ, admin : qui peut faire quoi                                                        | 🔜 À rédiger |
+| gl/chapitres-et-progression.md                     | Chapitres, déroulement d'une partie, progression                                                       | 🔜 À rédiger |
+| gl/carte-du-royaume.md                             | La carte du royaume et ses zones                                                                       | 🔜 À rédiger |
+| gl/economie-marche-sorts.md                        | Monnaie, marché, sorts, récompenses                                                                    | 🔜 À rédiger |
+| gl/qcm-et-pedagogie.md                             | Les QCM, le lien avec le programme scolaire                                                            | 🔜 À rédiger |
+| gl/guide-du-mj.md                                  | Guide pratique du maître du jeu (animation d'une séance)                                               | 🔜 À rédiger |
 
 _Les documents « à rédiger » sont produits au fur et à mesure ; le sommaire ci-dessus
 peut évoluer (fusion, découpage, ajout) selon les besoins._

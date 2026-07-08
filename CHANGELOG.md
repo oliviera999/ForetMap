@@ -7,6 +7,25 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Troisième tour d'arbitrage — F3 et G1 livrés
+
+- **F3 (A) — navigation stabilisée** : la fusion contextuelle Tâches/Tuto (déclenchée
+  par un « lieu en focus ») est supprimée — Tâches et Tuto sont des onglets séparés en
+  toutes circonstances, côté élève comme côté prof. La vue grand écran
+  « Cartes & tâches » (carte + tâches côte à côte) et le masquage par module sont
+  conservés. Garde de navigation `tuto→tasks` retirée ; tests UI adaptés.
+- **G1 (B) — socle narratif « Les deux peuples du seuil »** :
+  `docs/reference/gl/lore-deux-peuples.md` — gnomes (peuple du proche/observation) et
+  licornes (peuple du loin/récit), pacte du seuil, **transformation entre chaque
+  chapitre** (le seuil donne la forme dont le prochain biome a besoin — les équipes
+  changent de compagnon en chemin) et **Sélène qui a incarné les deux formes**.
+  Textes prêts à coller : page « Pourquoi Gnomes & Licornes ? », 4 feuillets, pistes
+  QCM lore, mode d'emploi d'intégration MJ/admin. Donne un sens narratif aux effets
+  de repères différenciés gnome/licorne déjà mécanisés.
+- Registre `docs/reference/INCOHERENCES.md` : les 17 points de l'état des lieux sont
+  désormais tous ✅ traités (hors suites notées : plancher vitalité, points images
+  R1-R3 de l'audit, intégration du corpus dans les contenus du jeu).
+
 ### Second tour d'arbitrage — F2, G2, G8, G9 livrés
 
 - **F2 (A+B) — parcours du nouvel inscrit** : bandeau d'explication pour les comptes

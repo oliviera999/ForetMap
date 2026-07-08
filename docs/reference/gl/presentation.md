@@ -173,9 +173,11 @@ plateforme**.
 État des lieux honnête — ces points ont été relevés en examinant le fonctionnement
 actuel :
 
-1. **Le nom du jeu et son contenu divergent** (voir plus haut) : pas de véritable récit
-   « gnomes et licornes » dans les données actuelles.
-   _Point G1 du [registre](../INCOHERENCES.md), en attente d'arbitrage._
+1. **Le nom du jeu a désormais son récit — reste à l'intégrer aux contenus** : le socle
+   « [Les deux peuples du seuil](lore-deux-peuples.md) » (gnomes = observation,
+   licornes = récit, transformation à chaque seuil de biome, Sélène qui a porté les
+   deux formes) est rédigé et prêt à coller ; le MJ/admin doit encore le mettre dans
+   les pages du monde, les feuillets et le QCM lore.
 
 Points résolus le 2026-07-08 (détail dans le [registre](../INCOHERENCES.md)) :
 

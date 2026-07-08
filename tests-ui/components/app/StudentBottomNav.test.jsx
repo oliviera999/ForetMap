@@ -9,7 +9,6 @@ const baseProps = {
   canAccessStudentMapTasks: true,
   shouldUseDesktopSplit: false,
   tutorialsModuleEnabled: true,
-  mergeTasksTutoNav: false,
   studentActiveAssignedTasksCount: 0,
   canViewGeneralStats: false,
   observationsEnabled: true,
@@ -61,10 +60,11 @@ describe('StudentBottomNav', () => {
     expect(screen.getByText('Biodiversité')).toBeInTheDocument();
   });
 
-  test('fusion tâches&tuto : bouton unique, actif aussi sur l’onglet tuto', () => {
-    render(<StudentBottomNav {...baseProps} tab="tuto" mergeTasksTutoNav />);
-    expect(screen.queryByText('Tuto')).toBeNull();
-    expect(screen.getByText('Tâches&tuto')).toHaveClass('active');
+  test('F3 : Tâches et Tuto restent des onglets séparés (plus de fusion contextuelle)', () => {
+    render(<StudentBottomNav {...baseProps} tab="tuto" />);
+    expect(screen.getByText('Tuto')).toBeInTheDocument();
+    expect(screen.getByText('Tuto')).toHaveClass('active');
+    expect(screen.queryByText('Tâches&tuto')).toBeNull();
   });
 
   test('modules coupés → Carnet/Visite/Forum/Tuto masqués, Stats visible avec le droit', () => {
