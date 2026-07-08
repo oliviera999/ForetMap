@@ -7,6 +7,12 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Documentation — registre d'arbitrage des incohérences
+
+- Nouveau `docs/reference/INCOHERENCES.md` : 17 points relevés (7 ForetMap, 10 GL)
+  avec gravité, options de correction et recommandations, découpage en 5 lots ;
+  lignes « Décision : » éditables par l'utilisateur pour arbitrer.
+
 ### Documentation — base de référence fonctionnelle (`docs/reference/`)
 
 - **Nouveau dossier `docs/reference/`** : documentation fonctionnelle non technique

@@ -36,6 +36,12 @@ Il poursuit trois objectifs, dans l'ordre :
 
 ## Sommaire
 
+### Transverse
+
+| Document                           | Contenu                                                             | Statut    |
+| ---------------------------------- | ------------------------------------------------------------------- | --------- |
+| [INCOHERENCES.md](INCOHERENCES.md) | Registre d'arbitrage : incohérences relevées, options de correction | ✅ Rédigé |
+
 ### ForetMap
 
 | Document                                             | Contenu                                                               | Statut       |
