@@ -7,6 +7,18 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Documentation de référence — sommaire complet (13 nouveaux documents)
+
+- `docs/reference/` est désormais **complet** : 7 documents ForetMap (carte et zones,
+  plantes et biodiversité, tâches/tutoriels/validation, comptes/rôles/groupes, visite
+  et mascottes, pédagogie, stats/forum/suivi) et 6 documents GL (rôles et connexion,
+  chapitres et progression, carte du royaume, économie, QCM et pédagogie, guide du
+  MJ), tous en français non technique pour admins/profs/MJ, avec encadrés
+  « ⚠️ Points d'attention » honnêtes.
+- Sommaire `docs/reference/README.md` : 17/17 ✅.
+- Précision corrigée dans la présentation ForetMap : le suivi GPS de la mascotte
+  existe sur la carte de travail, pas dans le mode Visite (déplacement au clic).
+
 ### Troisième tour d'arbitrage — F3 et G1 livrés
 
 - **F3 (A) — navigation stabilisée** : la fusion contextuelle Tâches/Tuto (déclenchée
