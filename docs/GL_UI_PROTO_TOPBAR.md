@@ -1,5 +1,9 @@
 # GL — Brief prototype navigation mobile (Claude Design)
 
+> ⚠️ **Document historique (proto)** : les identifiants/libellés d'onglets cités ici
+> (`biotope`, `biocenose`…) datent d'avant le renommage « Écosystèmes / Biodiversité ».
+> La source de vérité actuelle est `src/gl/constants/app-runtime.js`.
+
 Document d’entrée pour une session [Claude Design](https://claude.ai/design) : explorer 3–4 variantes de navigation mobile pour Gnomes & Licornes.
 
 ## Contexte produit

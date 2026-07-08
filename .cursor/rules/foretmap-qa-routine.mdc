@@ -11,7 +11,7 @@ alwaysApply: false
 - Couvrir au minimum:
   - eleve: entree dans l'app + action utile
   - eleve: cycle taches (lecture/modification statut)
-  - prof: elevation PIN + action de gestion
+  - prof: connexion (role RBAC) + action de gestion
   - mobile et navigation clavier
 - Inclure les cas limites: champs invalides, erreurs API, timeout, doubles soumissions.
 - Le rapport doit contenir severite, categorie, impact persona, et suggestion corrective testable.

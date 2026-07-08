@@ -85,7 +85,7 @@ export function GLChapterScenesAdminPanel({ plateauNumber, onInfo, onError }) {
         </code>{' '}
         (plateau {chapterNumber || 'prologue'}). Elles s’affichent dans l’Histoire dans l’ordre
         ci-dessous (champ « Ordre », sinon ordre alphabétique des clés). La scène « couverture »
-        illustre la Biocénose et sert de repli au fond de plateau. Dans le texte de l’Histoire,{' '}
+        illustre la Biodiversité et sert de repli au fond de plateau. Dans le texte de l’Histoire,{' '}
         <code>![légende](scene:N)</code> intercale la N-ième scène à cet endroit.
       </p>
       {loading ? <p className="gl-hint">Chargement…</p> : null}

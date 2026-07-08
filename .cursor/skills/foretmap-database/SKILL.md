@@ -48,6 +48,7 @@ description: Centralise les conventions BDD ForetMap (schéma MySQL, migrations,
 2. Rendre chaque instruction idempotente (`IF NOT EXISTS`, `ADD COLUMN IF NOT EXISTS` ou catch errno 1060).
 3. **Pas de migration destructive** (DROP TABLE/COLUMN) sans avertissement explicite et documentation dans `docs/EVOLUTION.md`.
 4. Documenter la migration dans `CHANGELOG.md` (section `[Non publié]`).
+5. **Numéros uniques obligatoires** : `database.js` (`assertNoNewDuplicateMigrationNumbers`) fait échouer le démarrage si un numéro apparaît deux fois. Seuls **021** et **037** sont tolérés (doublons historiques, `LEGACY_DUPLICATE_MIGRATION_NUMBERS`) — ne jamais en créer de nouveaux, ne pas renuméroter les anciens. Garde couverte par `tests/migrations-guard.test.js`.
 
 ### Évolution à terme (voir docs/EVOLUTION.md § 3.2)
 

@@ -43,7 +43,6 @@ jobs:
       DB_NAME: foretmap_test
       DB_USER: root
       DB_PASS: ''
-      TEACHER_PIN: '1234'
       JWT_SECRET: 'ci-test-secret-not-for-production'
     services:
       mysql:

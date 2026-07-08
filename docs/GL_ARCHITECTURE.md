@@ -178,7 +178,7 @@ Tables GL préfixées `gl_` :
 
 - Shell : `src/gl/AppGL.jsx`
 - Auth commune (identifiant + mot de passe) et OAuth Google (mode auto)
-- Onglets joueur : Cartes, Biotope, Biocenose, Histoire, Monde, Sortileges, Regles
+- Onglets joueur : Cartes, La nature (Écosystèmes / Biodiversité / Glossaire scientifique), L’aventure (Histoire / Carnet Sélène / Sortilèges), Le monde G&L, Les joueurs, Journaux
 - Onglets admin : utilisateurs, reglages, mascottes, console MJ
 - Réutilisation renderer mascotte via `VisitMapMascotRenderer`
 - Onglet admin `Contenus` pour piloter les pages éditoriales.

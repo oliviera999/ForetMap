@@ -146,7 +146,7 @@ export function GLPlayersPanel({
     setError('');
     setInfo('');
     try {
-      await apiGL(`/api/gl/admin/players/${player.id}/reset-pin`, 'POST', { pin: next });
+      await apiGL(`/api/gl/admin/players/${player.id}/reset-password`, 'POST', { password: next });
       setInfo('Mot de passe réinitialisé.');
       setResetPlayer(null);
       setResetPasswordValue('');

@@ -57,7 +57,7 @@ Au début d'une tâche (surtout si elle touche le fonctionnel) :
 ## Style
 
 - Français, phrases complètes, ton d'un guide utilisateur.
-- Vocabulaire des utilisateurs (zones, plantes, tâches, chapitres, marché, sorts, PIN…).
+- Vocabulaire des utilisateurs (zones, plantes, tâches, chapitres, marché, sorts…).
 - Encadrés : `> ⚠️ **Point d'attention** — …` et `🔧 À implémenter : …`.
 - Public : admins / profs / MJ ; jamais supposer de connaissance en programmation.
 

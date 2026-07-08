@@ -103,17 +103,17 @@ Important :
 
 - Le dump contient des donnees reelles (PII : noms, emails, historique). Ne pas le versionner dans Git.
 - Le script cible `DB_NAME` courant (par defaut `foretmap_local`) et execute un `DROP DATABASE` + `CREATE DATABASE`.
-- Le dump peut ecraser les secrets de PIN en base (`role_pin_secrets`). Le `TEACHER_PIN` de `.env` peut alors ne plus correspondre.
-
-Apres import, deux options :
-
-- Option A : utiliser les credentials/PIN reels deja presents dans le dump (sans les copier dans le depot).
-- Option B : realigner le local sur `.env` pour les tests/dev avec :
+- Le dump ecrase les comptes locaux (dont le compte prof de dev). Apres import, deux options :
+  utiliser les credentials reels presents dans le dump (sans les copier dans le depot), ou
+  recreer le compte prof local avec :
 
 ```bash
-npm run db:reset:role-pins:local
 npm run db:seed:teacher
 ```
+
+> Note historique : l'ancien systeme d'elevation par PIN (`role_pin_secrets`,
+> `TEACHER_PIN`, `npm run db:reset:role-pins:local`) a ete supprime — les droits
+> viennent des roles RBAC attribues a la connexion.
 
 ## 4. Lancer l’application
 
@@ -133,7 +133,7 @@ npm run dev:client
 
 Ouvrir l’URL affichée par Vite (souvent **http://localhost:5173**). Les requêtes `/api/*` et `/socket.io` sont proxifiées vers **localhost:3000**.
 
-Connexion prof : PIN défini dans `.env` (`TEACHER_PIN`, ex. `1234`).
+Connexion prof : identifiant (e-mail ou pseudo) + mot de passe d’un compte enseignant (créé via `npm run db:seed:teacher` en local).
 
 ### Option B — Comme en production (un seul port)
 
@@ -253,9 +253,9 @@ La commande **`npm run test:e2e`** enchaîne :
 1. **`scripts/e2e-kill-listen-port.js`** (hors CI) : libère le port **3000** (ou `PORT` / `E2E_KILL_PORT`) pour éviter un vieux Node qui écoute encore sans le mode e2e.
 2. **Playwright** : hors CI, **`webServer`** exécute **`npm run db:init`** puis **`node --max-old-space-size=<Mo> server.js --foretmap-e2e-no-rate-limit`** (défaut heap **12288** Mo via **`E2E_NODE_MAX_OLD_SPACE_SIZE`** dans **`playwright.config.js`**) — équivalent fonctionnel à **`npm run start:e2e`** avec heap explicite pour limiter les OOM.
    - Le flag **`--foretmap-e2e-no-rate-limit`** désactive le **rate limiting** (sinon inscription / formulaires peuvent renvoyer **« Trop de requêtes »**). Sur Windows, ce **flag CLI** est plus fiable que la seule variable **`E2E_DISABLE_RATE_LIMIT`**.
-3. Le fichier **`playwright.config.js`** charge **`.env`** : le PIN prof des tests suit **`TEACHER_PIN`** (surcharge possible avec **`E2E_ELEVATION_PIN`**).
+3. Le fichier **`playwright.config.js`** charge **`.env`** (base de test, secrets JWT).
 
-Si **`NODE_ENV=production`** dans l’environnement du serveur (souvent via **`.env`**), Express sert le bundle **`dist/`** : après une modification du frontend, exécuter **`npm run build`** avant **`npm run test:e2e`**, sinon les tests peuvent tourner sur un **JavaScript périmé** (ex. élévation PIN / temps réel).
+Si **`NODE_ENV=production`** dans l’environnement du serveur (souvent via **`.env`**), Express sert le bundle **`dist/`** : après une modification du frontend, exécuter **`npm run build`** avant **`npm run test:e2e`**, sinon les tests peuvent tourner sur un **JavaScript périmé** (ex. permissions / temps réel).
 
 **Réutiliser un serveur déjà démarré** : définir **`E2E_REUSE_SERVER=1`**. Le process sur le port doit alors être lancé avec **`npm run start:e2e`** (ou équivalent avec **`--foretmap-e2e-no-rate-limit`**) et, si vous servez le build prod, un **`dist/`** à jour.
 
@@ -267,7 +267,7 @@ Vous pouvez cibler une autre URL avec **`E2E_BASE_URL`**.
 
 **Visite / mascotte** : scénario dédié **`e2e/visit-mascot.spec.js`** (seed API prof sur la carte **n3** via **`e2e/fixtures/visit-api.fixture.js`**, clics en % sur **`.visit-map-fit-layer`**, `prefers-reduced-motion`, sélection mascotte OLU spritesheet et contrôle des comportements en preview prof/admin). Voir aussi skills **foretmap-e2e**, **foretmap-mascot-catalog** et **`docs/VISIT_MAP_GEOMETRY.md`**.
 
-**Pack mascotte `sprite_cut`** : format **`docs/MASCOT_PACK.md`** ; validation **`npm run mascot:pack:validate -- docs/mascot-pack.example.json`** ; page autonome **`/mascot-pack-tool.html`** (WYSIWYG + JSON). **Onglet prof « Packs mascotte »** ou **Visite (prof, PIN)** : modale **`VisitMascotPackManager`** + **`MascotPackWysiwygEditor`**. Le build produit **`dist/mascot-pack-tool.html`**.
+**Pack mascotte `sprite_cut`** : format **`docs/MASCOT_PACK.md`** ; validation **`npm run mascot:pack:validate -- docs/mascot-pack.example.json`** ; page autonome **`/mascot-pack-tool.html`** (WYSIWYG + JSON). **Onglet prof « Packs mascotte »** ou **Visite (connexion prof)** : modale **`VisitMascotPackManager`** + **`MascotPackWysiwygEditor`**. Le build produit **`dist/mascot-pack-tool.html`**.
 
 ### Nettoyage local des artefacts de tests
 

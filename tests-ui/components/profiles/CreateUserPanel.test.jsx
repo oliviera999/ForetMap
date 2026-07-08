@@ -136,9 +136,9 @@ describe('CreateUserPanel', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: 'Créer' })).toBeTruthy());
   });
 
-  test('sans permission : libellé « (PIN requis) » et bouton désactivé', () => {
+  test('sans permission : libellé « (permission requise) » et bouton désactivé', () => {
     renderPanel({ canCreateUsers: false });
-    const btn = screen.getByRole('button', { name: 'Créer (PIN requis)' });
+    const btn = screen.getByRole('button', { name: 'Créer (permission requise)' });
     expect(btn.disabled).toBe(true);
   });
 
