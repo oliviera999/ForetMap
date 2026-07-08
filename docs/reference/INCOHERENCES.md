@@ -47,19 +47,31 @@ ni carte, ni tâches, et aucun message ne lui explique pourquoi ni quoi faire. I
 qu'un professeur le rattache à un groupe ou le promeuve. Confusion garantie à la
 rentrée.
 
-**Options.**
+**Options détaillées.**
 
-- **A** — À l'inscription, l'élève saisit un **code de classe** (fourni par le prof) :
-  il rejoint directement son groupe et reçoit le rôle d'élève. Le compte sans code
-  reste visiteur. Le plus sûr et le plus clair, effort modéré.
-- **B (recommandée en complément de A, ou seule à court terme)** — Garder le
-  fonctionnement actuel mais **l'expliquer à l'écran** : après inscription, un message
-  d'accueil indique « votre compte doit être rattaché à une classe par un professeur »
-  et le professeur voit une liste « comptes en attente de rattachement ». Effort
-  faible.
-- **C** — Donner d'office le rôle d'élève débutant à toute inscription. Simple, mais
-  n'importe qui peut alors s'inscrire et interagir avec les tâches : déconseillé tant
-  que F1 n'est pas réglé.
+- **A — Code de classe à l'inscription.** Le professeur génère (et affiche/imprime) un
+  code par groupe ; l'élève le saisit dans un champ optionnel du formulaire
+  d'inscription. Bon code → rattachement immédiat au groupe et rôle d'élève ; pas de
+  code → compte visiteur avec message d'explication. À prévoir : génération/rotation du
+  code côté prof, limitation des essais (anti-devinette). _Vérifié : aucun mécanisme de
+  code n'existe aujourd'hui — c'est une vraie nouveauté._ Effort moyen ; c'est le
+  standard des outils de classe.
+- **B — Expliquer l'attente + rattachement en un clic.** Le fonctionnement ne change
+  pas, mais : après inscription, un écran d'accueil dit clairement « votre compte doit
+  être rattaché à une classe par un professeur » ; côté prof, une liste « comptes en
+  attente de rattachement » permet d'affecter en un clic au bon groupe. Effort faible,
+  livrable rapidement.
+- **C — Rôle d'élève d'office à l'inscription.** Un compte auto-créé devient
+  directement « n3beur novice ». Effort minime, mais n'importe quel visiteur du site
+  peut alors prendre des tâches : à éviter tant que l'inscription est publique.
+- **D — Fermer l'inscription libre.** Seuls les comptes créés/importés par un prof
+  existent (le réglage de désactivation existe déjà). Simple et sûr, mais toute la
+  charge de la rentrée retombe sur les professeurs.
+
+**Avis de l'agent.** **B tout de suite, A comme cible.** B supprime la confusion en un
+petit lot sans rien changer au modèle de sécurité. A est la vraie bonne réponse à la
+rentrée (l'élève devient autonome, le prof ne fait que distribuer un code) et rend B
+encore utile pour les retardataires sans code. C est déconseillé, D trop rigide.
 
 **Décision :** ⏸️ **Reportée** (2026-07-08) — options à détailler lors du prochain arbitrage.
 
@@ -70,13 +82,29 @@ tantôt fusionnés, tantôt séparés, et un onglet combiné « Cartes & tâches
 sur grand écran. Difficile d'assister un utilisateur (« clique sur l'onglet X » ne
 marche pas pour tout le monde) et difficile à documenter.
 
-**Options.**
+**Précision (vérifiée dans le code).** Il ne s'agit pas d'un réglage admin : la fusion
+Tâches/Tuto est **automatique et contextuelle** (elle se déclenche quand l'élève a un
+« lieu en focus » depuis la carte), l'onglet combiné « Cartes & tâches » est une
+adaptation **grand écran**, et l'onglet Tuto disparaît si le module tutoriels est
+désactivé. Trois causes de variation indépendantes, dont une invisible.
 
-- **A (recommandée)** — Choisir UNE organisation de référence (à arbitrer : fusion ou
-  séparation) et supprimer le réglage correspondant ; ne garder que l'adaptation
-  automatique grand écran / téléphone, documentée.
-- **B** — Statu quo, mais la documentation de référence décrit chaque variante.
-  Aucun effort de code, complexité documentaire durable.
+**Options détaillées.**
+
+- **A — Figer : Tâches et Tuto toujours séparés.** Supprimer la fusion contextuelle ;
+  conserver uniquement l'adaptation grand écran (compréhensible et documentable) et le
+  masquage par module. La navigation devient prévisible : « clique sur l'onglet X »
+  vaut pour tout le monde. Perte : un petit raffinement contextuel.
+- **B — Statu quo documenté.** Aucune modification ; la documentation de référence
+  décrit les trois variantes. Coût de support durable (c'est la variante contextuelle
+  qui déroute).
+- **C — En faire un vrai réglage admin.** Un interrupteur « fusionner Tâches et
+  Tuto » dans les Paramètres remplace la logique cachée. Prévisible et flexible, mais
+  un réglage de plus à comprendre… et deux configurations à documenter quand même.
+
+**Avis de l'agent.** **A.** La fusion contextuelle est le genre de finesse qui coûte
+plus en accompagnement qu'elle ne rapporte en confort — surtout avec un public élève.
+Garder l'adaptation grand écran (naturelle), figer le reste. C n'est justifié que si
+la fusion a de vrais adeptes en classe.
 
 **Décision :** ⏸️ **Reportée** (2026-07-08) — options à détailler lors du prochain arbitrage.
 
@@ -142,16 +170,26 @@ renuméroter les migrations (risqué pour rien), juste documenter la tolérance.
 l'univers réel est celui de Sélène, des biomes et de l'effacement des noms du vivant.
 Les mascottes « gnomes/licornes » sont le seul ancrage du titre.
 
-**Options.**
+**Options détaillées.**
 
-- **A (recommandée)** — **Assumer l'habillage** : une page « pourquoi ce nom ? » dans
-  le monde G&L (les gnomes et licornes sont les compagnons/mascottes des équipes qui
-  aident Sélène), quelques feuillets de lore qui les mettent en scène. Effort
-  éditorial, pas de code.
-- **B** — Enrichir réellement le lore (chapitres, feuillets, intro) pour donner un
-  rôle narratif aux gnomes et licornes. Beau projet pédagogique, effort important.
-- **C** — Renommer le jeu pour coller au contenu. Impact fort (habitudes, adresse,
-  supports imprimés) : déconseillé.
+- **A — Assumer l'habillage (éditorial léger).** Une page « Pourquoi Gnomes &
+  Licornes ? » dans Le monde G&L : les gnomes et les licornes sont les
+  compagnons-mascottes des équipes, envoyés pour aider Sélène à restaurer le carnet.
+  Deux ou trois feuillets de lore les mettent en scène (leur arrivée, leur rôle).
+  Zéro code — uniquement de l'écriture dans les écrans d'édition existants. Atout :
+  les mascottes gnomes/licornes existent déjà, l'histoire n'a qu'à les « adopter ».
+- **B — Enrichir réellement le lore (chantier éditorial).** Donner un vrai rôle
+  narratif aux deux peuples (par exemple : les gnomes gardiens des savoirs concrets,
+  les licornes de l'imaginaire, réunis par la quête de Sélène), décliné dans l'intro,
+  les chapitres et les feuillets. Beau projet pédagogique (écriture possible AVEC les
+  élèves), mais effort important et validation d'un fil narratif complet.
+- **C — Renommer le jeu** (ex. « Le Carnet de Sélène »). Cohérence maximale, coût
+  maximal : habitudes des élèves, adresse du site, supports imprimés, docs.
+
+**Avis de l'agent.** **A maintenant, B en horizon.** A se fait en une séance d'écriture
+et supprime le malaise « le titre ne correspond à rien ». B est la belle version — et
+se prête à un projet d'écriture avec les classes — mais ne doit pas bloquer A.
+C est à réserver à une éventuelle refonte globale.
 
 **Décision :** ⏸️ **Reportée** (2026-07-08) — options à détailler lors du prochain arbitrage.
 
@@ -161,14 +199,24 @@ Les mascottes « gnomes/licornes » sont le seul ancrage du titre.
 « vitalité » (cœurs/gemmes). Un admin qui n'active que le Marché ne voit rien
 apparaître, sans aucun message.
 
-**Options.**
+**Options détaillées.**
 
-- **A (recommandée)** — Dans l'écran de réglages, afficher l'avertissement « Le Marché
-  nécessite la vitalité » directement sur l'interrupteur du Marché (et proposer
-  d'activer les deux d'un clic). Effort faible.
-- **B** — Activer automatiquement la vitalité quand on active le Marché. Simple mais
-  magique : l'admin ne comprend pas pourquoi la vitalité s'est allumée.
-- **C** — Statu quo + documentation seule.
+- **A — Avertir au bon endroit (Réglages).** Sur l'interrupteur du module Marché, un
+  message permanent « Le Marché nécessite la vitalité (cœurs/gemmes) » ; si on
+  l'active alors que la vitalité est inactive, proposer « Activer les deux » en un
+  clic. L'admin comprend la dépendance au moment exact où il configure. Effort faible.
+- **B — Activation automatique en cascade.** Activer le Marché active la vitalité
+  (avec une notification). Moins de clics, mais un réglage qui en change un autre
+  « dans le dos » est le genre de magie qui désoriente — surtout que la vitalité a
+  d'autres effets (sorts, feuillets).
+- **C — Griser l'onglet côté joueur** avec un message « vitalité désactivée ».
+  Déconseillé : c'est de la configuration admin exposée aux élèves.
+- **D — Statu quo documenté** dans le futur doc « économie du jeu ». Gratuit mais le
+  piège reste entier.
+
+**Avis de l'agent.** **A**, complétée par une phrase dans le futur doc économie (G9).
+C'est la correction proportionnée : le problème est un défaut d'information au moment
+de la configuration, pas un défaut de conception.
 
 **Décision :** ⏸️ **Reportée** (2026-07-08) — options à détailler lors du prochain arbitrage.
 
@@ -253,12 +301,26 @@ peuvent tout administrer.
 documentation interne décrivait le lancement par le MJ comme le flux principal. Les
 deux modes existent (réglage), mais le « mode normal » n'est pas tranché.
 
-**Options.**
+**Précisions (vérifiées dans le code).** Le module Sortilèges est **désactivé par
+défaut** : le réglage « qui lance » ne s'exprime que si un admin a déjà activé les
+sorts consciemment. Et les **profils de séance** pilotent déjà ce réglage : le profil
+« MJ + tours » passe les sorts en « MJ seul », les profils interactifs les ouvrent aux
+joueurs. Le défaut brut compte donc peu en pratique ; c'est la doc interne qui était
+en décalage.
 
-- **A** — Défaut = joueurs lancent (avec approbation MJ activable) ; corriger la
-  documentation interne. Aucun changement de comportement.
-- **B** — Défaut = MJ seul ; les profils de séance ouvrent le lancement aux joueurs
-  quand on le souhaite. Changement de défaut, plus prudent en classe.
+**Options détaillées.**
+
+- **A — Garder « joueurs par défaut » et corriger la doc interne.** Aucun changement
+  de comportement ; cohérent avec le défaut du QCM (également ouvert aux joueurs) et
+  avec les profils de séance qui font le vrai travail.
+- **B — Passer à « MJ seul par défaut ».** Plus prudent dans l'absolu, mais change le
+  comportement des installations existantes qui n'ont pas touché ce réglage, et crée
+  une incohérence avec le QCM (ouvert par défaut).
+
+**Avis de l'agent.** **A.** Le défaut n'est presque jamais vu (module off par défaut,
+profils de séance par-dessus) ; changer un comportement en production pour aligner une
+phrase de doc serait la mauvaise direction. Corriger la doc interne, et considérer que
+le « mode normal » d'une séance est celui du profil choisi.
 
 **Décision :** ⏸️ **Reportée** (2026-07-08) — options à détailler lors du prochain arbitrage.
 
@@ -268,14 +330,26 @@ deux modes existent (réglage), mais le « mode normal » n'est pas tranché.
 marché et de coût/récompense des contenus. Cohérent techniquement, mais dense à
 expliquer — ce n'est pas un bug, c'est un choix de conception à assumer et vulgariser.
 
-**Options.**
+**Options détaillées.**
 
-- **A (recommandée)** — Assumer et **documenter** : un futur document « économie du
-  jeu » avec schéma simple (d'où viennent les points, où ils vont), plus un encart
-  dans les règles du jeu côté élèves. Pas de code.
-- **B** — Séparer les usages (une monnaie d'échange distincte des jauges). Gros
-  chantier de gameplay : à n'envisager que si l'expérience en classe montre une vraie
-  confusion.
+- **A — Assumer et documenter.** Rédiger le doc de référence « économie du jeu »
+  (prévu au sommaire : `gl/economie-marche-sorts.md`) avec un schéma simple des flux —
+  d'où viennent les cœurs/gemmes (MJ, récompenses de feuillets), où ils partent
+  (sorts, coûts de feuillets, échanges au marché) — plus un encart dans les Règles du
+  jeu côté élèves. Aucun code.
+- **B — Séparer les usages.** Créer une monnaie d'échange distincte des jauges de
+  vie/pouvoir. Conceptuellement plus propre, mais gros chantier (base, écrans, marché,
+  sorts, équilibrage) pour un problème non encore observé en classe.
+- **C — Clarifier dans le jeu + garde-fou (intermédiaire).** Garder le système, mais :
+  libellés explicites au marché et dans l'assistant de sorts (« tu dépenses tes
+  cœurs ❤️ — il t'en restera N »), et éventuellement un **plancher** configurable
+  (interdire de descendre sous X cœurs via le marché ou un sort) pour éviter qu'un
+  élève se « ruine ». Effort modéré, très pédagogique.
+
+**Avis de l'agent.** **A tout de suite, C en deuxième pas.** La densité du système est
+d'abord un problème d'explication : le doc économie est de toute façon prévu. Le
+plancher de C est une jolie protection pour le cycle 3 — à trancher après une ou deux
+séances d'observation. B seulement si la confusion résiste à A + C.
 
 **Décision :** ⏸️ **Reportée** (2026-07-08) — options à détailler lors du prochain arbitrage.
 
