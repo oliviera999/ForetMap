@@ -146,21 +146,21 @@ actions sensibles.
   Audit.
 - **Le visiteur** voit une version réduite, centrée sur la Visite et la Biodiversité.
 
-> ⚠️ **Point d'attention** — Ce que voit un élève dépend beaucoup des réglages
-> (modules activés ou non) et du contexte (sur grand écran, Carte et Tâches
-> fusionnent ; Tâches et Tuto sont tantôt réunis, tantôt séparés). La navigation n'est
-> donc pas identique d'une configuration à l'autre — à garder en tête quand on
-> documente ou qu'on assiste un utilisateur.
+> ℹ️ **Navigation** — Les onglets sont stables : Tâches et Tuto sont toujours séparés.
+> Deux variations légitimes subsistent : sur grand écran, une vue « Cartes & tâches »
+> affiche la carte et les tâches côte à côte ; et un onglet disparaît si son module
+> est désactivé dans les réglages.
 
 ## ⚠️ Points d'attention sur l'existant
 
 État des lieux honnête, relevé en examinant le fonctionnement actuel :
 
-1. **Navigation à géométrie variable** (voir plus haut) : la fusion/séparation des
-   onglets selon l'écran et les réglages complique l'accompagnement des utilisateurs.
-   _Point F3 du [registre](../INCOHERENCES.md), en attente d'arbitrage._
-
 Points résolus le 2026-07-08 (détail dans le [registre](../INCOHERENCES.md)) :
+
+- ✅ **Navigation stabilisée** : Tâches et Tuto sont désormais des onglets séparés en
+  toutes circonstances (la fusion contextuelle est supprimée). Restent seulement
+  l'adaptation grand écran — la vue « Cartes & tâches » qui affiche la carte et les
+  tâches côte à côte — et le masquage d'un onglet quand son module est désactivé.
 
 - ✅ **Parcours du nouvel inscrit clarifié** : un compte non rattaché voit maintenant un
   bandeau d'explication ; le professeur dispose d'une liste « comptes en attente » avec

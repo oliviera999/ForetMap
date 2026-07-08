@@ -106,7 +106,7 @@ plus en accompagnement qu'elle ne rapporte en confort — surtout avec un public
 Garder l'adaptation grand écran (naturelle), figer le reste. C n'est justifié que si
 la fusion a de vrais adeptes en classe.
 
-**Décision :** ⏸️ **Reportée** (2026-07-08) — options à détailler lors du prochain arbitrage.
+**Décision :** ✅ **Livré** (2026-07-08, option A) — la fusion contextuelle Tâches/Tuto est supprimée : les onglets restent stables partout. L'adaptation grand écran (vue « Cartes & tâches » avec la carte et les tâches côte à côte) et le masquage par module sont conservés tels quels.
 
 ### F4 — 🟡 Visite : deux générations de contenus coexistent en interne
 
@@ -191,7 +191,7 @@ et supprime le malaise « le titre ne correspond à rien ». B est la belle vers
 se prête à un projet d'écriture avec les classes — mais ne doit pas bloquer A.
 C est à réserver à une éventuelle refonte globale.
 
-**Décision :** ⏸️ **Reportée** (2026-07-08) — options à détailler lors du prochain arbitrage.
+**Décision :** ✅ **Livré (corpus)** (2026-07-08, option B — « Les deux peuples du seuil ») — socle narratif rédigé dans `docs/reference/gl/lore-deux-peuples.md` : gnomes = peuple du proche/observation, licornes = peuple du loin/récit, pacte du seuil (les deux regards réécrivent le carnet), **transformation à chaque seuil de biome** (les équipes changent de forme entre les chapitres — la traversée l'exige) et **Sélène qui a incarné les deux formes** au fil de sa traversée. Textes prêts à coller (page monde, 4 feuillets, pistes QCM lore) ; l'intégration dans les contenus du jeu se fait via Contenus (action MJ/admin).
 
 ### G2 — 🟠 Le Marché n'apparaît que si deux réglages distincts sont actifs
 
@@ -374,9 +374,7 @@ de comportement, couvert par les tests existants.
 ## Arbitrage du 2026-07-08 (second tour)
 
 - **✅ Livrés** : F2 (A+B), G2 (A), G8 (A), G9 (C — volet libellés).
-- **En discussion** : F3 (questions posées : rôle du module tutoriels, devenir du
-  vis-à-vis carte/tâches grand écran) et G1 (option B retenue dans son principe —
-  propositions narratives soumises, solution à choisir).
+- **✅ Livrés (3e tour)** : F3 (A — onglets figés) et G1 (B — proposition « Les deux peuples du seuil », corpus rédigé).
 
 Ordre de traitement des points actés :
 
