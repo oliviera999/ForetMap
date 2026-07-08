@@ -9,6 +9,7 @@ import { GLBrandEditor } from './GLBrandEditor.jsx';
 import { GLGameplayTogglesList } from './settings/GLGameplayTogglesList.jsx';
 import { GLGameplayPresetsPanel } from './settings/GLGameplayPresetsPanel.jsx';
 import { GLSpellCastSettings } from './settings/GLSpellCastSettings.jsx';
+import { GLGatingSettings } from './settings/GLGatingSettings.jsx';
 import { GLMarkerBackgroundSettings } from './settings/GLMarkerBackgroundSettings.jsx';
 import { GLButton } from './ui/GLButton.jsx';
 import { GLField } from './ui/GLField.jsx';
@@ -625,6 +626,8 @@ export function GLSettingsView() {
       </div>
 
       <GLSpellCastSettings settings={settings} savingKey={savingKey} onSaveSetting={saveSetting} />
+
+      <GLGatingSettings />
 
       <h3>Modules GL</h3>
       <p className="gl-hint">Ces drapeaux activent/désactivent les modules GL côté interface.</p>

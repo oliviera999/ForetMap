@@ -123,9 +123,11 @@ Le conditionnement par quiz est **indépendant du carnet** : il vaut pour **tous
 marquables (les 7 de `GL_MARKABLE`), y compris `ecosystem`, `feuillet`, `content_page` et
 `lore_glossary`. Aucune restriction ne lie un type de ressource à un jeu de questions précis :
 on peut conditionner n'importe quelle ressource par n'importe quelle question `qcm` (écologie) ou
-`qcm_lore` (narratif). **Pas d'UI dédiée pour l'instant** : la configuration passe par l'API GL
-`/api/gl/learning-links` (permission `gl.content.manage` pour les liens, `gl.settings.manage` pour
-les réglages). Marche à suivre :
+`qcm_lore` (narratif). **UI dédiée (G3)** : les liens ressource ↔ question se gèrent dans
+**Contenus → Conditionnement QCM** (`GLLearningLinksPanel`, permission `gl.content.manage`) et les
+réglages globaux `gating.*` dans **Réglages plateforme → Conditionnement par QCM**
+(`GLGatingSettings`, permission `gl.settings.manage`, écrit via `PUT /api/gl/learning-links/settings`).
+L'API GL `/api/gl/learning-links` reste utilisable directement ; marche à suivre :
 
 1. **Activer le gating** (réglage site, une fois) :
    `PUT /api/gl/learning-links/settings` avec `{ "key": "gating.enabled", "value": true }`.
