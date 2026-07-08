@@ -73,7 +73,7 @@ petit lot sans rien changer au modèle de sécurité. A est la vraie bonne répo
 rentrée (l'élève devient autonome, le prof ne fait que distribuer un code) et rend B
 encore utile pour les retardataires sans code. C est déconseillé, D trop rigide.
 
-**Décision :** ✅ **Options A + B actées** (2026-07-08) — correctif en cours : écran d'attente + liste « comptes en attente » (B) et code de classe à l'inscription (A).
+**Décision :** ✅ **Livré** (2026-07-08, options A + B) — B : bandeau d'explication pour le compte en attente + liste « comptes en attente de rattachement » côté prof avec rattachement en un clic (promotion automatique). A : code de classe par groupe (génération/rotation/suppression côté prof), champ optionnel à l'inscription — bon code = rattachement immédiat, code invalide = refus clair sans création de compte (tracé en sécurité).
 
 ### F3 — 🟠 Navigation à géométrie variable (Tâches/Tuto/Carte)
 
@@ -218,7 +218,7 @@ apparaître, sans aucun message.
 C'est la correction proportionnée : le problème est un défaut d'information au moment
 de la configuration, pas un défaut de conception.
 
-**Décision :** ✅ **Option A actée** (2026-07-08) — correctif en cours : avertissement sur l'interrupteur du Marché + activation des deux réglages en un clic.
+**Décision :** ✅ **Livré** (2026-07-08, option A) — dans Réglages plateforme, un avertissement s'affiche dès que le Marché est activé sans la vitalité, avec un bouton « Activer la vitalité » en un clic.
 
 ### G3 — 🟠 Le conditionnement « appris seulement après QCM réussi » n'a pas d'écran d'administration
 
@@ -351,7 +351,7 @@ d'abord un problème d'explication : le doc économie est de toute façon prévu
 plancher de C est une jolie protection pour le cycle 3 — à trancher après une ou deux
 séances d'observation. B seulement si la confusion résiste à A + C.
 
-**Décision :** ✅ **Option C actée** (2026-07-08) — correctif en cours : libellés explicites de dépense (« il te restera N ») au marché et dans l'assistant de sorts ; le plancher configurable sera proposé dans un second temps. Le doc « économie du jeu » (option A) reste prévu au sommaire.
+**Décision :** ✅ **Livré (volet libellés)** (2026-07-08, option C) — au Marché et dans l'assistant de sorts, chaque champ de dépense affiche « tu dépenses tes cœurs/gemmes — il te restera N ». Le plancher configurable reste à trancher après observation en classe ; le doc « économie du jeu » (option A) reste prévu au sommaire.
 
 ### G10 — 🟡 Scories internes GL
 
@@ -373,7 +373,7 @@ de comportement, couvert par les tests existants.
 
 ## Arbitrage du 2026-07-08 (second tour)
 
-- **Actés** : F2 (A+B), G2 (A), G8 (A), G9 (C).
+- **✅ Livrés** : F2 (A+B), G2 (A), G8 (A), G9 (C — volet libellés).
 - **En discussion** : F3 (questions posées : rôle du module tutoriels, devenir du
   vis-à-vis carte/tâches grand écran) et G1 (option B retenue dans son principe —
   propositions narratives soumises, solution à choisir).
