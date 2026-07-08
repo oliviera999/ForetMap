@@ -116,9 +116,15 @@ peuple »_.
 
 ## 5. Intégration dans le jeu (mode d'emploi MJ/admin)
 
-1. **Page du monde** : coller le §2 dans « Le monde G&L » (Contenus → Pages), en
-   page dédiée ou en tête des Règles du jeu.
-2. **Feuillets** : créer les 4 feuillets du §3 dans Contenus → Carnet Sélène
+> ✅ **Pré-intégré** : la page « Pourquoi Gnomes & Licornes ? » (Contenus → Pages,
+> page `deux-peuples`) et les 4 feuillets (codes `GL2P-01` à `GL2P-04`, statut actif)
+> sont désormais créés automatiquement à l'installation — sans jamais écraser un
+> contenu existant. Il reste au MJ à les mettre en scène (épingler la page, répartir
+> les feuillets sur les chapitres, créer les questions du §4).
+
+1. **Page du monde** : la page `deux-peuples` existe dans Contenus → Pages — la
+   relire, l'épingler ou en copier le contenu en tête des Règles du jeu.
+2. **Feuillets** : les 4 feuillets du §3 existent dans Contenus → Carnet Sélène
    (suggestion : « Le pacte du seuil » découvrable dès le prologue, les trois autres
    répartis sur les premiers chapitres).
 3. **QCM lore** : décliner le §4 en questions dans Contenus → QCM lore (elles peuvent
