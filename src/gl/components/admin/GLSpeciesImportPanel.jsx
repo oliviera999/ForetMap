@@ -104,10 +104,11 @@ export function GLSpeciesImportPanel() {
 
   return (
     <section className="gl-admin-section fade-in">
-      <h3>Import biocénose — espèces / biomes (XLSX)</h3>
+      <h3>Import biodiversité — espèces / biomes (XLSX)</h3>
       <p className="gl-hint">
-        Catalogue espèces par biome (affiché dans la biocénose joueur). Fichier attendu : feuilles{' '}
-        <code>especes</code> et <code>biomes_stats</code> (voir <code>data/gl/README.md</code>).
+        Catalogue espèces par biome (affiché dans l’onglet Biodiversité joueur). Fichier attendu :
+        feuilles <code>especes</code> et <code>biomes_stats</code> (voir{' '}
+        <code>data/gl/README.md</code>).
       </p>
       {error ? <p className="gl-error">{error}</p> : null}
       {info ? <p className="gl-hint">{info}</p> : null}

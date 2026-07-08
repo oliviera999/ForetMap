@@ -383,7 +383,7 @@ export function GLSettingsView() {
               await toggleGameplayFlag('gameplay.qcm_mj_only', event.target.checked);
             }}
           />
-          <span>QCM réservé au MJ</span>
+          <span>QCM (biomes et lore) réservés au MJ</span>
         </label>
         <p className="gl-hint">
           Si activé, les joueurs ne voient plus le popover question à l&apos;arrivée sur un repère ;

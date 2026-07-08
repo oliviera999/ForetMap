@@ -88,7 +88,7 @@ export function GLContentsAdminView({
           onClick={() => setSection('glossary')}
           data-subtab="glossary"
         >
-          Glossaire
+          Glossaire scientifique
         </button>
         <button
           type="button"
@@ -128,7 +128,7 @@ export function GLContentsAdminView({
           onClick={() => setSection('lore-glossary')}
           data-subtab="lore-glossary"
         >
-          Glossaire lore
+          Lexique lore
         </button>
         <button
           type="button"

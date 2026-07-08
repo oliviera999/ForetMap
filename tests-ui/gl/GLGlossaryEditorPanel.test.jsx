@@ -46,7 +46,7 @@ describe('GLGlossaryEditorPanel', () => {
     render(<GLGlossaryEditorPanel />);
 
     await waitFor(() => {
-      expect(screen.getByText('Saisie manuelle — glossaire')).toBeInTheDocument();
+      expect(screen.getByText('Saisie manuelle — glossaire scientifique')).toBeInTheDocument();
     });
 
     fireEvent.click(screen.getByRole('button', { name: '+ Nouveau terme' }));

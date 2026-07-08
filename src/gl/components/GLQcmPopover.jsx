@@ -186,7 +186,7 @@ export function GLQcmPopover({
                 {(isLore ? presentation.loreGlossaryTerms : presentation.glossaryTerms)?.length >
                 0 ? (
                   <div className="gl-qcm-modal__glossary">
-                    <strong>{isLore ? 'Lexique lore :' : 'Glossaire :'}</strong>
+                    <strong>{isLore ? 'Lexique lore :' : 'Glossaire scientifique :'}</strong>
                     <div className="gl-glossary-chips">
                       {(isLore ? presentation.loreGlossaryTerms : presentation.glossaryTerms).map(
                         (term) => (

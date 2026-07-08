@@ -279,8 +279,7 @@ Note UX admin GL : l’édition des chapitres (repères + zones polygonales sur 
 | POST | `/api/gl/admin/players` | `{ classId, firstName, lastName, pseudo, password?, passwordMustReset? }` | `gl.players.manage` |
 | PUT | `/api/gl/admin/players/:id` | `{ firstName?, lastName?, pseudo?, classId?, isActive? }` | `gl.players.manage` |
 | DELETE | `/api/gl/admin/players/:id` | — | `gl.players.manage` (refus `409` si partie active liée) |
-| POST | `/api/gl/admin/players/:id/reset-password` | `{ password }` | `gl.players.manage` |
-| POST | `/api/gl/admin/players/:id/reset-pin` | `{ pin }` (alias compat) | `gl.players.manage` |
+| POST | `/api/gl/admin/players/:id/reset-password` | `{ password }` (alias body `pin` accepté en compat) | `gl.players.manage` |
 | GET | `/api/gl/admin/players/import/template` | `?format=csv                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | xlsx` | `gl.players.manage` |
 | POST | `/api/gl/admin/players/import` | `{ fileName, fileDataBase64, dryRun }` | `gl.players.manage` |
 | GET | `/api/gl/admin/players/export` | `?classId=` optionnel | `gl.players.manage` |

@@ -32,7 +32,10 @@ description: Donne le contexte du sous-module Gnomes & Licornes (GL) dans le mon
 `modules.journal_enabled`, `modules.player_journal_enabled`,
 `modules.zone_music_enabled`,
 `modules.market_enabled`, `modules.spell_cast_enabled`,
-`modules.virtual_dice_enabled`.
+`modules.virtual_dice_enabled`, `modules.lore_carnet_enabled`,
+`modules.lore_glossary_enabled`, `modules.intro_enabled`.
+La liste de référence est `MODULE_KEYS` dans `lib/glSettings.js` — resynchroniser
+cette section à chaque ajout de module.
 
 Toggle via `PUT /api/gl/admin/settings/modules.*` (validation booléenne stricte).
 Lu par le front au login via `GET /api/gl/auth/config`.

@@ -93,7 +93,8 @@ function CreateUserPanel({
         Création unitaire d&apos;utilisateur
       </h3>
       <p style={{ margin: '0 0 10px', fontSize: '.85rem', color: '#6b7280' }}>
-        Créez un compte sans import. Action réservée aux sessions élevées (PIN).
+        Créez un compte sans import. Action réservée aux profils disposant de la permission de
+        gestion des utilisateurs.
       </p>
       <div className="profiles-admin-create-grid">
         <div className="field" style={{ margin: 0 }}>
@@ -181,7 +182,7 @@ function CreateUserPanel({
           onClick={createUser}
           disabled={!canCreateUsers || createLoading}
         >
-          {createLoading ? 'Création…' : `Créer ${canCreateUsers ? '' : '(PIN requis)'}`}
+          {createLoading ? 'Création…' : `Créer ${canCreateUsers ? '' : '(permission requise)'}`}
         </button>
       </div>
     </div>

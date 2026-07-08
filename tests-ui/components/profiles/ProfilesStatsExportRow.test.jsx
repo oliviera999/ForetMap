@@ -24,14 +24,14 @@ describe('ProfilesStatsExportRow', () => {
     const button = container.querySelector('button');
     expect(button).not.toBeDisabled();
     expect(button).toHaveTextContent('📥 Exporter CSV');
-    expect(button).not.toHaveTextContent('(PIN requis)');
+    expect(button).not.toHaveTextContent('(permission requise)');
   });
 
-  test('canExport faux → bouton désactivé, libellé « (PIN requis) »', () => {
+  test('canExport faux → bouton désactivé, libellé « (permission requise) »', () => {
     const { container } = renderRow({ canExport: false });
     const button = container.querySelector('button');
     expect(button).toBeDisabled();
-    expect(button).toHaveTextContent('📥 Exporter CSV (PIN requis)');
+    expect(button).toHaveTextContent('📥 Exporter CSV (permission requise)');
   });
 
   test('clic → déclenche onExport', () => {

@@ -223,7 +223,7 @@ export function toggleFeuilletPreviewField(current, field, checked) {
 /** Canaux d'acquisition ③ : élément consultable dont la consultation gatée peut donner un feuillet. */
 export const FEUILLET_ACQUISITION_CHANNEL_OPTIONS = Object.freeze([
   { value: 'species', label: 'Fiches espèces' },
-  { value: 'glossary', label: 'Glossaire SVT' },
+  { value: 'glossary', label: 'Glossaire scientifique' },
   { value: 'lore_glossary', label: 'Lexique du lore' },
   { value: 'tutorial', label: 'Tutoriels' },
   { value: 'content_page', label: 'Pages de contenu' },

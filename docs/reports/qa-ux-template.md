@@ -12,7 +12,7 @@
 | ------------------------------------------- | ----------- | ----------- | ----------- | ----------- |
 | Eleve - inscription/connexion/premier usage | Completion: | Completion: | Completion: | Completion: |
 | Eleve - cycle taches                        | Completion: | Completion: | Completion: | Completion: |
-| Prof - elevation + gestion                  | Completion: | Completion: | Completion: | Completion: |
+| Prof - connexion + gestion                  | Completion: | Completion: | Completion: | Completion: |
 | Carte/visite mobile                         | Completion: | Completion: | Completion: | Completion: |
 | Robustesse formulaires                      | Completion: | Completion: | Completion: | Completion: |
 

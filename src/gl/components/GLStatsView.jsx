@@ -116,7 +116,7 @@ function LearningStatsGrid({ stats, catalogTotals }) {
         <GlStatCard
           icon="📚"
           value={formatRatio(stats?.glossary_learned, catalog.glossary_total)}
-          label="Termes glossaire appris"
+          label="Termes du glossaire scientifique appris"
         />
         <GlStatCard
           icon="🎓"
@@ -155,7 +155,7 @@ function ClassLeaderboardRow({ row, vitalityEnabled, rank, onViewJournal, showJo
           </>
         ) : null}
         <span title="Espèces étudiées">🦋 {formatCount(s.species_learned)}</span>
-        <span title="Termes glossaire">📚 {formatCount(s.glossary_learned)}</span>
+        <span title="Termes du glossaire scientifique">📚 {formatCount(s.glossary_learned)}</span>
         <span title="Tutoriels lus">🎓 {formatCount(s.tutorials_read)}</span>
       </div>
       {showJournalButton ? (
@@ -343,7 +343,7 @@ export function GLStatsView({
         <GlStatCard
           icon="📚"
           value={formatRatio(totals.glossary_learned, catalog.glossary_total)}
-          label="Termes glossaire (classe)"
+          label="Termes du glossaire scientifique (classe)"
         />
         <GlStatCard
           icon="🎓"
