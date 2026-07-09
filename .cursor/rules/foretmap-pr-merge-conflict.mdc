@@ -1,0 +1,40 @@
+---
+description: Cohérence inter-PR ForetMap — vérifier les autres PR ouvertes à chaque publication/mise à jour pour éviter les conflits de merge de versionnage
+alwaysApply: true
+---
+
+# ForetMap — Cohérence inter-PR (anti-conflit de merge)
+
+> Le bump de version touche **toujours les mêmes lignes** (`version` de `package.json`, tête de
+> `CHANGELOG.md`, numéros de migration). Deux PR ouvertes en parallèle qui bumpent chacune
+> produisent un **conflit de merge quasi garanti**. Cette règle l'évite par une vérification
+> croisée systématique.
+
+## Déclencheur
+
+À **chaque publication d'une nouvelle PR** et à **chaque mise à jour (push) d'une PR existante**
+sur ce dépôt.
+
+## Procédure obligatoire
+
+1. **Lister les autres PR ouvertes** du dépôt (état `open`) et repérer celles qui touchent les
+   fichiers de versionnage sensibles :
+   - `package.json` (champ `version`, modifié par `npm run bump:*`) et `package-lock.json`
+   - `CHANGELOG.md` — surtout l'entrée en tête / la section `[Non publié]`
+   - toute migration `migrations/NNN_*.sql` (collision de **numéro** `NNN`)
+2. **Détecter les collisions** : même numéro de version cible, même ligne de `CHANGELOG.md`
+   modifiée, ou même numéro de migration `NNN` qu'une autre PR ouverte.
+3. **Résoudre AVANT de (re)pousser** :
+   - Rebaser la branche sur le dernier `main` (`git fetch origin main && git rebase origin/main`).
+   - Prendre le **prochain numéro de version encore libre** (pas celui déjà réservé par une autre
+     PR) et re-bumper via `npm run bump:patch|minor|major` (cf. skill `foretmap-release`).
+   - Ajouter l'entrée `CHANGELOG.md` en **nouvelle ligne** sous `[Non publié]` — ne pas écraser
+     l'entrée d'une autre PR ; renuméroter une migration si `NNN` est déjà pris ailleurs.
+4. **Ne fusionner qu'une PR versionnante à la fois** ; après un merge, rebaser puis re-bumper les
+   autres PR ouvertes plutôt que de les fusionner à l'aveugle.
+
+## Astuce
+
+Garder le bump de version **le plus tard possible** dans la vie d'une PR (juste avant merge) pour
+minimiser la fenêtre de conflit. Deux PR qui ne touchent pas aux fichiers de versionnage ne sont
+pas concernées.
