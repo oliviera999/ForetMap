@@ -68,6 +68,9 @@ npm run bump:patch|minor|major  # incrémente package.json (sans tag)
   skill `foretmap-docs-reference` et règle `.cursor/rules/foretmap-docs-reference.mdc`.
 - **Ne pas modifier le comportement métier** sans demande explicite (cf. `docs/EVOLUTION.md`).
 - **Sécurité données** : ne jamais versionner de dump SQL (PII), secrets dans `.env` (non versionné).
+- **Inspiration externe encouragée, avec citation** : libre de s'inspirer de dépôts GitHub connus /
+  bibliothèques éprouvées, à condition de **citer la source** (nom + lien) et de respecter les
+  licences. Règle détaillée : `.cursor/rules/foretmap-external-inspiration.mdc`.
 
 ## Pièges critiques
 
