@@ -1,0 +1,27 @@
+---
+description: ForetMap — inspiration encouragée de dépôts GitHub connus / bibliothèques éprouvées, à condition de citer la source et respecter les licences
+alwaysApply: true
+---
+
+# ForetMap — Inspiration de bonnes pratiques externes (encouragé, avec citation)
+
+Tu es **libre de t'inspirer d'excellentes pratiques** décrites dans des dépôts GitHub connus et
+accessibles ou des bibliothèques éprouvées (patterns Express/React reconnus, projets de référence
+sur l'auth JWT/RBAC, la sécurité, l'accessibilité, la dataviz, les migrations SQL…). C'est une
+source d'inspiration précieuse pour la qualité, la robustesse et l'ergonomie.
+
+**Conditions obligatoires :**
+
+1. **Citer la source** dès que tu t'inspires d'un projet ou reprends une approche/du code : nom du
+   projet ou de la bibliothèque **+ lien** (et version/commit si pertinent). La citation va dans le
+   **message de commit / la description de PR** (et l'entrée `CHANGELOG.md` si c'est structurant), et
+   — si l'emprunt est localisé — en **commentaire** juste au-dessus du passage concerné.
+2. **Respecter les licences** : ne pas copier-coller du code sous licence incompatible ; adapter/
+   réécrire et mentionner licence + origine. En cas de doute sur la compatibilité, demander avant
+   d'intégrer. Préférer une **dépendance npm** propre (ajoutée au `package.json`) à un copier-coller
+   quand la bibliothèque existe et est maintenue.
+3. **Adapter, ne pas plaquer** : rester cohérent avec les conventions du projet (SQL paramétré via
+   `database.js`, logger Pino, réponses JSON, thème forêt, cibles tactiles ≥ 44px, isolement GL)
+   plutôt que dupliquer un pattern externe tel quel.
+4. **Ne pas dégrader la sécurité/les données** : une pratique externe ne dispense jamais des règles
+   du projet (bcrypt, requêtes préparées, pas de PII versionnée, pas de secret en dur).
