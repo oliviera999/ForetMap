@@ -102,5 +102,6 @@ npm run bump:patch|minor|major  # incrémente package.json (sans tag)
 `foretmap-testing` (backend/UI/e2e) · `foretmap-gl` (sous-produit GL) ·
 `foretmap-biodiversity` (pré-saisie espèces / Pl@ntNet) · `foretmap-observability` (logs/diagnostics) ·
 `foretmap-release` (versionnage/commit/push) · `foretmap-docs-reference` (doc fonctionnelle
-non technique `docs/reference/`).
+non technique `docs/reference/`) · `foretmap-external-inspiration` (s'inspirer de dépôts/libs
+connus, avec citation).
 Pour le détail métier au-delà : `.cursor/skills/**` et `.cursor/rules/**`.
