@@ -88,6 +88,10 @@ npm run bump:patch|minor|major  # incrémente package.json (sans tag)
 - Commits GL exclusifs : préfixe `feat(gl)` / `fix(gl)` / `chore(gl)`.
 - CI (`.github/workflows/ci.yml`) : `lint` → `format:check` → `test` → `test:ui` → `test:coverage`.
   Faire passer `npm run lint` et `npm run format:check` avant de pousser.
+- **Cohérence inter-PR (anti-conflit de merge)** : à **chaque publication ou mise à jour d'une PR**,
+  vérifier les autres PR ouvertes qui bumpent aussi (`package.json` `version`, tête de `CHANGELOG.md`,
+  migrations `migrations/NNN_*.sql`) et rebaser/renuméroter pour éviter les conflits. Règle détaillée :
+  `.cursor/rules/foretmap-pr-merge-conflict.mdc`.
 
 ## Skills Claude Code (`.claude/skills/`)
 
