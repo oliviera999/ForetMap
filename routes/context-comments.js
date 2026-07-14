@@ -1,6 +1,6 @@
 const express = require('express');
 const crypto = require('node:crypto');
-const { queryAll, queryOne, execute } = require('../database');
+const { queryOne, execute } = require('../database');
 const { requireAuth } = require('../middleware/requireTeacher');
 const asyncHandler = require('../lib/asyncHandler');
 const { z, validate } = require('../lib/validate');
@@ -8,6 +8,13 @@ const { logRouteError } = require('../lib/routeLog');
 const { logAudit } = require('./audit');
 const { emitContextCommentsChanged } = require('../lib/realtime');
 const { getSettingValue, isReportsEnabled } = require('../lib/settings');
+const {
+  getActor,
+  canModerateWithTeacherAccess,
+  isVisitorRole,
+  createCooldownChecker,
+  studentParticipationAllowed,
+} = require('../lib/shared/participationGuards');
 const {
   persistUserContentImages,
   attachPublicImageUrls,
@@ -36,7 +43,6 @@ const MAX_COMMENT_LEN = 4000;
 const MIN_REPORT_REASON_LEN = 3;
 const MAX_REPORT_REASON_LEN = 500;
 const COMMENT_COOLDOWN_MS = 3_000;
-const cooldownState = new Map();
 
 function normalizeContextType(value) {
   const type = String(value || '')
@@ -67,46 +73,14 @@ const contextCommentsListQuerySchema = z
     }),
   }));
 
-function getActor(auth) {
-  const userType = String(auth?.userType || '')
-    .trim()
-    .toLowerCase();
-  const userId = String(auth?.canonicalUserId || auth?.userId || '').trim();
-  if (!userType || !userId) return null;
-  return { userType, userId };
-}
-
-function canModerateComments(auth) {
-  const roleSlug = String(auth?.roleSlug || '')
-    .trim()
-    .toLowerCase();
-  if (roleSlug === 'admin' || roleSlug === 'prof') return true;
-  const perms = Array.isArray(auth?.permissions) ? auth.permissions : [];
-  return perms.includes('teacher.access');
-}
-
-function isVisitorRole(auth) {
-  return (
-    String(auth?.roleSlug || '')
-      .trim()
-      .toLowerCase() === 'visiteur'
-  );
-}
+// Noyau commun avec routes/forum.js (lib/shared/participationGuards) —
+// mêmes comportements ; seuls le message 403, le code et la colonne de rôle sont locaux.
+const canModerateComments = canModerateWithTeacherAccess;
+const checkCooldown = createCooldownChecker();
 
 /** n3boss : toujours ; n3beur : selon le profil principal (roles.context_comment_participate) */
 async function userContextCommentParticipationAllowed(auth) {
-  if (!auth) return false;
-  if (String(auth.userType || '').toLowerCase() !== 'student') return true;
-  const row = await queryOne(
-    `SELECT COALESCE(r.context_comment_participate, 1) AS context_comment_participate
-       FROM users u
-  LEFT JOIN user_roles ur ON ur.user_id = u.id AND ur.user_type = 'student' AND ur.is_primary = 1
-  LEFT JOIN roles r ON r.id = ur.role_id
-      WHERE u.id = ? AND u.user_type = 'student' LIMIT 1`,
-    [auth.userId],
-  );
-  if (!row) return true;
-  return Number(row.context_comment_participate) !== 0;
+  return studentParticipationAllowed(auth, 'context_comment_participate');
 }
 
 async function requireContextCommentParticipation(req, res) {
@@ -117,23 +91,6 @@ async function requireContextCommentParticipation(req, res) {
     code: 'CONTEXT_COMMENT_READ_ONLY',
   });
   return false;
-}
-
-function checkCooldown(actor, action, cooldownMs) {
-  if (process.env.NODE_ENV === 'test') return true;
-  const key = `${action}:${actor.userType}:${actor.userId}`;
-  const now = Date.now();
-  const last = cooldownState.get(key) || 0;
-  if (now - last < cooldownMs) return false;
-  // Purge des entrées expirées quand la Map grossit — sinon croissance sans borne
-  // (une entrée par acteur, jamais supprimée) sur un process longue durée.
-  if (cooldownState.size > 1000) {
-    for (const [k, ts] of cooldownState) {
-      if (now - ts >= cooldownMs) cooldownState.delete(k);
-    }
-  }
-  cooldownState.set(key, now);
-  return true;
 }
 
 async function contextExists(contextType, contextId) {

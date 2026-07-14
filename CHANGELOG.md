@@ -7,6 +7,28 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Audit général du code — lot 2 : factorisation des duplications (sans changement de comportement)
+
+Déduplication des trois blocs identifiés par l'audit, à comportement strictement
+identique (mêmes chemins, gardes, messages, codes HTTP, événements) :
+
+- **`lib/entityPhotoRoutes.js`** : les 5 routes « galerie photos » (liste, réordonner,
+  data, ajout, suppression), auparavant dupliquées entre `routes/zones.js` et
+  `routes/map.js` (~250 lignes), sont générées par une fabrique paramétrée (table,
+  colonne FK, permission, messages, dossier uploads, événements). Les schémas de
+  validation O7 restent exportés sous leurs anciens noms pour les tests de contrat.
+- **`lib/profileUpdate.js`** : blocs communs des deux PATCH profil
+  (`/api/auth/me/profile` et `/api/students/:id/profile`) — drapeaux de champs,
+  validation mascotte visite, traitement avatar (upload/suppression), contrôle
+  d'unicité pseudo/email, détection de doublon SQL. Les différences voulues entre
+  les deux routes (messages, normalisation email, validation des champs, dossier
+  avatar, `display_name`, événement d'audit) restent locales.
+- **`lib/shared/participationGuards.js`** : noyau commun forum / commentaires
+  contextuels — `getActor`, modération (`admin`/`prof`/`teacher.access`), rôle
+  visiteur, fabrique de cooldown anti-spam (état privé par module, purge), et
+  participation n3beur par colonne de rôle (liste blanche `forum_participate` /
+  `context_comment_participate`).
+
 ### Audit général du code — correctifs de cohérence et de robustesse (sans changement fonctionnel)
 
 Correctifs issus d'un audit complet des routes backend (bugs confirmés par lecture du code,

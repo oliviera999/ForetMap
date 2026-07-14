@@ -33,7 +33,7 @@ const {
   getPrimaryRoleForUser,
   setPrimaryRole,
 } = require('../lib/rbac');
-const { getSettingValue, getVisitMascotSettings } = require('../lib/settings');
+const { getSettingValue } = require('../lib/settings');
 const {
   countStudentActiveTaskAssignments,
   getEffectiveMaxActiveTaskAssignments,
@@ -42,12 +42,17 @@ const { logAudit, logSecurityEvent } = require('./audit');
 const { ensureCanonicalUserByAuth, resolveLoginAccountByIdentifier } = require('../lib/identity');
 const { syncStudentRoleFromGroups } = require('../lib/groupRole');
 const { addStudentToGroup } = require('../lib/groupMembers');
-const { saveBase64ToDisk, deleteFile } = require('../lib/uploads');
 const { resolveStudentAffiliationForPersist } = require('../lib/studentAffiliation');
 const { resolveOAuthPublicOrigin, resolveOAuthRedirectUri } = require('../lib/oauthPublicUrl');
+const {
+  readProfileFieldFlags,
+  resolveVisitMascotUpdate,
+  applyAvatarUpdate,
+  findProfileUniquenessConflict,
+  isDuplicateEntryError,
+} = require('../lib/profileUpdate');
 
 const router = express.Router();
-const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
 const PASSWORD_RESET_TTL_MINUTES = 60;
 const OAUTH_STATE_COOKIE = 'foretmap_oauth_state';
 const OAUTH_MODE_COOKIE = 'foretmap_oauth_mode';
@@ -63,7 +68,6 @@ const {
   GOOGLE_ALLOWED_DOMAINS_DEFAULT,
   GOOGLE_ALLOWED_EMAILS_DEFAULT,
   normalizeEmail,
-  detectAvatarExtension,
   parseCsvLowercaseSet,
   normalizeOAuthMode,
   googleOauthConfigured,
@@ -72,7 +76,6 @@ const {
   buildOAuthFrontendRedirect,
   buildOAuthFrontendErrorRedirect,
   validateProfileInput,
-  normalizeVisitMascotPreference,
   exposeAuth,
 } = require('../lib/authRouteHelpers');
 
@@ -303,27 +306,19 @@ router.patch('/me/profile', requireAuth, async (req, res) => {
     const passwordOk = await bcrypt.compare(String(body.currentPassword), account.password_hash);
     if (!passwordOk) return res.status(401).json({ error: 'Mot de passe actuel incorrect' });
 
-    const hasPseudo = Object.prototype.hasOwnProperty.call(body, 'pseudo');
-    const hasEmail =
-      Object.prototype.hasOwnProperty.call(body, 'email') ||
-      Object.prototype.hasOwnProperty.call(body, 'mail');
-    const hasDescription = Object.prototype.hasOwnProperty.call(body, 'description');
-    const hasAffiliation = Object.prototype.hasOwnProperty.call(body, 'affiliation');
-    const hasVisitMascotCatalogId = Object.prototype.hasOwnProperty.call(
-      body,
-      'visit_mascot_catalog_id',
-    );
-    const hasAvatarData = Object.prototype.hasOwnProperty.call(body, 'avatarData');
-    const removeAvatar = !!body.removeAvatar;
-    if (
-      !hasPseudo &&
-      !hasEmail &&
-      !hasDescription &&
-      !hasAffiliation &&
-      !hasVisitMascotCatalogId &&
-      !hasAvatarData &&
-      !removeAvatar
-    ) {
+    // Blocs communs avec PATCH /api/students/:id/profile extraits dans lib/profileUpdate.js
+    // (drapeaux, mascotte visite, avatar, unicité) — mêmes gardes et messages.
+    const flags = readProfileFieldFlags(body);
+    const {
+      hasPseudo,
+      hasEmail,
+      hasDescription,
+      hasAffiliation,
+      hasVisitMascotCatalogId,
+      hasAvatarData,
+      removeAvatar,
+    } = flags;
+    if (!flags.hasAny) {
       return res.status(400).json({ error: 'Aucun champ de profil à mettre à jour' });
     }
 
@@ -340,55 +335,29 @@ router.patch('/me/profile', requireAuth, async (req, res) => {
     } else {
       affiliation = account.affiliation || 'both';
     }
-    let visitMascotCatalogId = hasVisitMascotCatalogId
-      ? normalizeVisitMascotPreference(body.visit_mascot_catalog_id)
-      : normalizeVisitMascotPreference(account.visit_mascot_catalog_id);
-    if (hasVisitMascotCatalogId && visitMascotCatalogId) {
-      const { allowedIds } = await getVisitMascotSettings();
-      if (!allowedIds.includes(visitMascotCatalogId)) {
-        return res.status(400).json({ error: 'Mascotte indisponible pour la visite' });
-      }
-    }
-    let avatarPath = account.avatar_path || null;
+    const mascotRes = await resolveVisitMascotUpdate(
+      hasVisitMascotCatalogId,
+      body.visit_mascot_catalog_id,
+      account.visit_mascot_catalog_id,
+    );
+    if (!mascotRes.ok) return res.status(400).json({ error: mascotRes.error });
+    const visitMascotCatalogId = mascotRes.value;
 
     const profileError = validateProfileInput({ pseudo, email, description });
     if (profileError) return res.status(400).json({ error: profileError });
-    if (hasAvatarData) {
-      const avatarData = normalizeOptionalString(body.avatarData);
-      if (!avatarData) return res.status(400).json({ error: 'Image de profil invalide' });
-      const ext = detectAvatarExtension(avatarData);
-      if (!ext) return res.status(400).json({ error: 'Format image invalide (png/jpg/webp)' });
-      const base64Payload = avatarData.includes(',') ? avatarData.split(',')[1] : avatarData;
-      const bytes = Buffer.byteLength(base64Payload, 'base64');
-      if (bytes > MAX_AVATAR_BYTES) {
-        return res.status(400).json({ error: 'Image trop lourde (max 2 Mo)' });
-      }
-      const userFolder = String(account.user_type || 'users').toLowerCase();
-      const relativePath = `${userFolder}/${account.id}/avatar-${Date.now()}.${ext}`;
-      saveBase64ToDisk(relativePath, avatarData);
-      if (account.avatar_path && account.avatar_path !== relativePath) {
-        deleteFile(account.avatar_path);
-      }
-      avatarPath = relativePath;
-    } else if (removeAvatar) {
-      if (account.avatar_path) deleteFile(account.avatar_path);
-      avatarPath = null;
-    }
+    const avatarRes = applyAvatarUpdate({
+      hasAvatarData,
+      avatarDataRaw: body.avatarData,
+      removeAvatar,
+      currentPath: account.avatar_path,
+      folder: String(account.user_type || 'users').toLowerCase(),
+      userId: account.id,
+    });
+    if (!avatarRes.ok) return res.status(400).json({ error: avatarRes.error });
+    const avatarPath = avatarRes.avatarPath;
 
-    if (pseudo) {
-      const existingPseudo = await queryOne(
-        'SELECT id FROM users WHERE pseudo = ? AND id <> ? LIMIT 1',
-        [pseudo, account.id],
-      );
-      if (existingPseudo) return res.status(409).json({ error: 'Ce pseudo est déjà utilisé' });
-    }
-    if (email) {
-      const existingEmail = await queryOne(
-        'SELECT id FROM users WHERE email = ? AND id <> ? LIMIT 1',
-        [email, account.id],
-      );
-      if (existingEmail) return res.status(409).json({ error: 'Cet email est déjà utilisé' });
-    }
+    const conflict = await findProfileUniquenessConflict(pseudo, email, account.id);
+    if (conflict) return res.status(409).json({ error: conflict });
 
     try {
       await execute(
@@ -398,7 +367,7 @@ router.patch('/me/profile', requireAuth, async (req, res) => {
         [pseudo, email, description, affiliation, visitMascotCatalogId, avatarPath, account.id],
       );
     } catch (err) {
-      if (err && (err.errno === 1062 || err.code === 'ER_DUP_ENTRY')) {
+      if (isDuplicateEntryError(err)) {
         return res.status(409).json({ error: 'Pseudo ou email déjà utilisé' });
       }
       throw err;

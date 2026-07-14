@@ -1,17 +1,12 @@
 const express = require('express');
 const crypto = require('node:crypto');
 const { queryAll, queryOne, execute, withTransaction } = require('../database');
-const { requireAuth, requirePermission } = require('../middleware/requireTeacher');
-const { saveBase64ToDisk, getAbsolutePath } = require('../lib/uploads');
+const { requirePermission } = require('../middleware/requireTeacher');
 const {
   serializeZonePhotoListRow,
   redirectIfPublicZonePhotoDataUrl,
 } = require('../lib/uploadsPublicUrls');
-const {
-  generateMapPhotoThumbFromMainRelativePath,
-  deleteMapPhotoMainAndThumb,
-} = require('../lib/imageThumb');
-const { sendFilePublicImageOptions } = require('../lib/httpImageCache');
+const { deleteMapPhotoMainAndThumb } = require('../lib/imageThumb');
 const asyncHandler = require('../lib/asyncHandler');
 const { emitGardenChanged } = require('../lib/realtime');
 const {
@@ -25,35 +20,15 @@ const {
   syncZoneSpecies,
   attachSpeciesToEntity,
 } = require('../lib/speciesJunction');
-const { z, validate } = require('../lib/validate');
+const {
+  registerEntityPhotoRoutes,
+  reorderPhotosBodySchema,
+  addPhotoBodySchema,
+} = require('../lib/entityPhotoRoutes');
 
 const db = { queryAll, queryOne, execute, withTransaction };
 
 const router = express.Router();
-
-// O7 — `PUT /:id/photos/reorder` : remplace la garde manuelle
-// `const raw = req.body?.photo_ids ?? req.body?.ordered_ids; if (!Array.isArray(raw)) -> 400`.
-// Le refine est au niveau racine (path vide) pour que `formatZodError` renvoie exactement le
-// message d'origine (sans préfixe de chemin) et tolère un corps null/undefined comme l'opérateur
-// `?.` d'origine. Le corps n'est PAS transformé : le handler continue de lire/coercer lui-même
-// `req.body?.photo_ids ?? req.body?.ordered_ids` (coercition permissive des éléments inchangée),
-// puis applique les vérifications métier restantes (longueur, appartenance, doublons).
-const reorderZonePhotosBodySchema = z
-  .object({ photo_ids: z.unknown().optional(), ordered_ids: z.unknown().optional() })
-  .passthrough()
-  .refine((body) => Array.isArray(body && (body.photo_ids ?? body.ordered_ids)), {
-    message: 'Liste photo_ids (ou ordered_ids) requise',
-  });
-
-// O7 — `POST /:id/photos` : remplace la garde manuelle `if (!image_data) -> 400 'Image requise'`.
-// Le refine est au niveau racine pour que `formatZodError` renvoie 'Image requise' tel quel et
-// tolère un corps null/undefined (déstructuration `const { image_data } = req.body` exigeait déjà
-// un corps objet). Le corps n'est PAS transformé : le handler continue de lire `req.body`
-// (image_data + caption) sans changement.
-const addZonePhotoBodySchema = z
-  .object({ image_data: z.unknown().optional() })
-  .passthrough()
-  .refine((body) => !!(body && body.image_data), { message: 'Image requise' });
 
 async function mapExists(mapId) {
   if (!mapId) return false;
@@ -357,144 +332,26 @@ router.put(
   }),
 );
 
-router.get(
-  '/:id/photos',
-  asyncHandler(async (req, res) => {
-    const zoneId = req.params.id;
-    const photos = await queryAll(
-      'SELECT id, zone_id, caption, sort_order, uploaded_at, image_path FROM zone_photos WHERE zone_id=? ORDER BY sort_order ASC, id ASC',
-      [zoneId],
-    );
-    res.json(photos.map((p) => serializeZonePhotoListRow(p, zoneId)));
-  }),
-);
-
-router.put(
-  '/:id/photos/reorder',
-  requirePermission('zones.manage'),
-  validate({ body: reorderZonePhotosBodySchema }),
-  asyncHandler(async (req, res) => {
-    const zoneId = String(req.params.id || '').trim();
-    const zone = await queryOne('SELECT id, map_id FROM zones WHERE id = ?', [zoneId]);
-    if (!zone) return res.status(404).json({ error: 'Zone introuvable' });
-    const raw = req.body?.photo_ids ?? req.body?.ordered_ids;
-    if (!Array.isArray(raw)) {
-      return res.status(400).json({ error: 'Liste photo_ids (ou ordered_ids) requise' });
-    }
-    const photoIds = raw.map((x) => Number(x)).filter((n) => Number.isFinite(n) && n > 0);
-    const rows = await queryAll('SELECT id FROM zone_photos WHERE zone_id = ?', [zoneId]);
-    const existing = rows.map((r) => r.id);
-    if (photoIds.length !== existing.length || existing.length === 0) {
-      return res
-        .status(400)
-        .json({ error: 'La liste doit contenir exactement toutes les photos de la zone' });
-    }
-    const set = new Set(existing);
-    for (const id of photoIds) {
-      if (!set.has(id)) return res.status(400).json({ error: 'Identifiant de photo invalide' });
-    }
-    if (new Set(photoIds).size !== photoIds.length) {
-      return res.status(400).json({ error: 'photo_ids en double' });
-    }
-    await withTransaction(async (tx) => {
-      for (let i = 0; i < photoIds.length; i += 1) {
-        await tx.execute('UPDATE zone_photos SET sort_order = ? WHERE id = ? AND zone_id = ?', [
-          i,
-          photoIds[i],
-          zoneId,
-        ]);
-      }
-    });
-    emitGardenChanged({ reason: 'reorder_zone_photos', zoneId, mapId: zone.map_id });
-    res.json({ ok: true });
-  }),
-);
-
-router.get(
-  '/:id/photos/:pid/data',
-  requireAuth,
-  asyncHandler(async (req, res) => {
-    const p = await queryOne('SELECT image_path FROM zone_photos WHERE id=? AND zone_id=?', [
-      req.params.pid,
-      req.params.id,
-    ]);
-    if (!p) return res.status(404).json({ error: 'Photo introuvable' });
-    if (p.image_path) {
-      const redirectTo = redirectIfPublicZonePhotoDataUrl(
-        p.image_path,
-        req.params.id,
-        req.params.pid,
-      );
-      if (redirectTo) return res.redirect(302, redirectTo);
-      const absolutePath = getAbsolutePath(p.image_path);
-      return res.sendFile(absolutePath, sendFilePublicImageOptions(), (err) => {
-        if (err && !res.headersSent) res.status(404).json({ error: 'Fichier introuvable' });
-      });
-    }
-    return res.status(404).json({ error: 'Aucune image' });
-  }),
-);
-
-router.post(
-  '/:id/photos',
-  requirePermission('zones.manage'),
-  validate({ body: addZonePhotoBodySchema }),
-  asyncHandler(async (req, res) => {
-    let photoId = null;
-    const zone = await queryOne('SELECT * FROM zones WHERE id=?', [req.params.id]);
-    if (!zone) return res.status(404).json({ error: 'Zone introuvable' });
-    const { image_data, caption } = req.body;
-    if (!image_data) return res.status(400).json({ error: 'Image requise' });
-    const nextSortRow = await queryOne(
-      'SELECT COALESCE(MAX(sort_order), -1) + 1 AS n FROM zone_photos WHERE zone_id = ?',
-      [req.params.id],
-    );
-    const sortOrder = Number(nextSortRow?.n) >= 0 ? Number(nextSortRow.n) : 0;
-    const result = await execute(
-      'INSERT INTO zone_photos (zone_id, image_path, caption, sort_order, uploaded_at) VALUES (?, ?, ?, ?, ?)',
-      [req.params.id, null, caption || '', sortOrder, new Date().toISOString()],
-    );
-    photoId = result.insertId;
-    const relativePath = `zones/${req.params.id}/${photoId}.jpg`;
-    try {
-      saveBase64ToDisk(relativePath, image_data);
-    } catch (fileErr) {
-      await execute('DELETE FROM zone_photos WHERE id = ?', [photoId]);
-      throw fileErr;
-    }
-    await execute('UPDATE zone_photos SET image_path = ? WHERE id = ?', [relativePath, photoId]);
-    await generateMapPhotoThumbFromMainRelativePath(relativePath);
-    const photo = await queryOne(
-      'SELECT id, zone_id, caption, sort_order, uploaded_at, image_path FROM zone_photos WHERE id=?',
-      [photoId],
-    );
-    emitGardenChanged({ reason: 'add_zone_photo', zoneId: req.params.id, mapId: zone.map_id });
-    res.status(201).json(serializeZonePhotoListRow(photo, req.params.id));
-  }),
-);
-
-router.delete(
-  '/:id/photos/:pid',
-  requirePermission('zones.manage'),
-  asyncHandler(async (req, res) => {
-    const zone = await queryOne('SELECT map_id FROM zones WHERE id = ?', [req.params.id]);
-    const p = await queryOne('SELECT image_path FROM zone_photos WHERE id=? AND zone_id=?', [
-      req.params.pid,
-      req.params.id,
-    ]);
-    if (p && p.image_path) deleteMapPhotoMainAndThumb(p.image_path);
-    await execute('DELETE FROM zone_photos WHERE id=? AND zone_id=?', [
-      req.params.pid,
-      req.params.id,
-    ]);
-    emitGardenChanged({
-      reason: 'delete_zone_photo',
-      zoneId: req.params.id,
-      mapId: zone?.map_id || null,
-    });
-    res.json({ success: true });
-  }),
-);
+// Routes photos (liste / reorder / data / ajout / suppression) : fabrique partagée
+// avec routes/map.js — comportement et contrats inchangés (audit : déduplication ~250 lignes).
+registerEntityPhotoRoutes(router, {
+  basePath: '',
+  permission: 'zones.manage',
+  entityTable: 'zones',
+  entityNotFound: 'Zone introuvable',
+  photoTable: 'zone_photos',
+  fkColumn: 'zone_id',
+  reorderAllMessage: 'La liste doit contenir exactement toutes les photos de la zone',
+  uploadDirPrefix: 'zones',
+  serializeRow: serializeZonePhotoListRow,
+  redirectPublicDataUrl: redirectIfPublicZonePhotoDataUrl,
+  emitKey: 'zoneId',
+  emitReasons: {
+    reorder: 'reorder_zone_photos',
+    add: 'add_zone_photo',
+    delete: 'delete_zone_photo',
+  },
+});
 
 router.post(
   '/',
@@ -585,6 +442,7 @@ router.delete(
 );
 
 module.exports = router;
-// Exportés pour le test no-DB du contrat de validation O7.
-module.exports.reorderZonePhotosBodySchema = reorderZonePhotosBodySchema;
-module.exports.addZonePhotoBodySchema = addZonePhotoBodySchema;
+// Exportés pour le test no-DB du contrat de validation O7 (schémas partagés
+// zones/repères — voir lib/entityPhotoRoutes.js).
+module.exports.reorderZonePhotosBodySchema = reorderPhotosBodySchema;
+module.exports.addZonePhotoBodySchema = addPhotoBodySchema;
