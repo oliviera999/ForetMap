@@ -10,24 +10,20 @@ const { logRouteError, respondInternalError } = require('../lib/routeLog');
 const asyncHandler = require('../lib/asyncHandler');
 const { logAudit } = require('./audit');
 const { emitStudentsChanged, emitTasksChanged } = require('../lib/realtime');
-const { saveBase64ToDisk, deleteFile, getAbsolutePath, ensureDir } = require('../lib/uploads');
+const { getAbsolutePath, ensureDir } = require('../lib/uploads');
 const { getPrimaryRoleForUser, setPrimaryRole } = require('../lib/rbac');
 const { deleteStudentById } = require('../lib/studentDeletion');
-const { getVisitMascotSettings } = require('../lib/settings');
 const { getPasswordMinLength } = require('../lib/passwordReset');
 const logger = require('../lib/logger');
 const { resolveStudentAffiliationForPersist } = require('../lib/studentAffiliation');
 const {
   MAX_DESCRIPTION_LEN,
-  MAX_AVATAR_BYTES,
   MAX_IMPORT_ROWS,
   PSEUDO_RE,
   EMAIL_RE,
   TEMPLATE_COLUMNS,
-  normalizeVisitMascotPreference,
   asTrimmedString,
   hasOwn,
-  detectAvatarExtension,
   buildImportStudentPayload,
   validateImportStudentPayload,
   resolveImportRows,
@@ -36,6 +32,13 @@ const {
 } = require('../lib/studentRouteHelpers');
 
 const { z, validate } = require('../lib/validate');
+const {
+  readProfileFieldFlags,
+  resolveVisitMascotUpdate,
+  applyAvatarUpdate,
+  findProfileUniquenessConflict,
+  isDuplicateEntryError,
+} = require('../lib/profileUpdate');
 
 const router = express.Router();
 
@@ -488,22 +491,19 @@ router.patch('/:id/profile', requireAuth, async (req, res) => {
     const passwordOk = await bcrypt.compare(String(body.currentPassword), student.password_hash);
     if (!passwordOk) return res.status(401).json({ error: 'Mot de passe actuel incorrect' });
 
-    const hasPseudo = hasOwn(body, 'pseudo');
-    const hasEmail = hasOwn(body, 'email') || hasOwn(body, 'mail');
-    const hasDescription = hasOwn(body, 'description');
-    const hasAffiliation = hasOwn(body, 'affiliation');
-    const hasVisitMascotCatalogId = hasOwn(body, 'visit_mascot_catalog_id');
-    const hasAvatarData = hasOwn(body, 'avatarData');
-    const removeAvatar = !!body.removeAvatar;
-    if (
-      !hasPseudo &&
-      !hasEmail &&
-      !hasDescription &&
-      !hasAffiliation &&
-      !hasVisitMascotCatalogId &&
-      !hasAvatarData &&
-      !removeAvatar
-    ) {
+    // Blocs communs avec PATCH /api/auth/me/profile extraits dans lib/profileUpdate.js
+    // (drapeaux, mascotte visite, avatar, unicité) — mêmes gardes et messages.
+    const flags = readProfileFieldFlags(body);
+    const {
+      hasPseudo,
+      hasEmail,
+      hasDescription,
+      hasAffiliation,
+      hasVisitMascotCatalogId,
+      hasAvatarData,
+      removeAvatar,
+    } = flags;
+    if (!flags.hasAny) {
       return res.status(400).json({ error: 'Aucun champ de profil à mettre à jour' });
     }
 
@@ -520,16 +520,13 @@ router.patch('/:id/profile', requireAuth, async (req, res) => {
     } else {
       affiliation = student.affiliation || 'both';
     }
-    let visitMascotCatalogId = hasVisitMascotCatalogId
-      ? normalizeVisitMascotPreference(body.visit_mascot_catalog_id)
-      : normalizeVisitMascotPreference(student.visit_mascot_catalog_id);
-    if (hasVisitMascotCatalogId && visitMascotCatalogId) {
-      const { allowedIds } = await getVisitMascotSettings();
-      if (!allowedIds.includes(visitMascotCatalogId)) {
-        return res.status(400).json({ error: 'Mascotte indisponible pour la visite' });
-      }
-    }
-    let avatarPath = student.avatar_path || null;
+    const mascotRes = await resolveVisitMascotUpdate(
+      hasVisitMascotCatalogId,
+      body.visit_mascot_catalog_id,
+      student.visit_mascot_catalog_id,
+    );
+    if (!mascotRes.ok) return res.status(400).json({ error: mascotRes.error });
+    const visitMascotCatalogId = mascotRes.value;
 
     if (pseudo != null && !PSEUDO_RE.test(pseudo)) {
       return res
@@ -544,46 +541,19 @@ router.patch('/:id/profile', requireAuth, async (req, res) => {
         .status(400)
         .json({ error: `Description trop longue (max ${MAX_DESCRIPTION_LEN} caractères)` });
     }
-    if (hasAvatarData) {
-      const avatarData = normalizeOptionalString(body.avatarData);
-      if (!avatarData) {
-        return res.status(400).json({ error: 'Image de profil invalide' });
-      }
-      const ext = detectAvatarExtension(avatarData);
-      if (!ext) return res.status(400).json({ error: 'Format image invalide (png/jpg/webp)' });
-      const base64Payload = avatarData.includes(',') ? avatarData.split(',')[1] : avatarData;
-      const bytes = Buffer.byteLength(base64Payload, 'base64');
-      if (bytes > MAX_AVATAR_BYTES) {
-        return res.status(400).json({ error: 'Image trop lourde (max 2 Mo)' });
-      }
-      const relativePath = `students/${student.id}/avatar-${Date.now()}.${ext}`;
-      saveBase64ToDisk(relativePath, avatarData);
-      if (student.avatar_path && student.avatar_path !== relativePath) {
-        deleteFile(student.avatar_path);
-      }
-      avatarPath = relativePath;
-    } else if (removeAvatar) {
-      if (student.avatar_path) deleteFile(student.avatar_path);
-      avatarPath = null;
-    }
+    const avatarRes = applyAvatarUpdate({
+      hasAvatarData,
+      avatarDataRaw: body.avatarData,
+      removeAvatar,
+      currentPath: student.avatar_path,
+      folder: 'students',
+      userId: student.id,
+    });
+    if (!avatarRes.ok) return res.status(400).json({ error: avatarRes.error });
+    const avatarPath = avatarRes.avatarPath;
 
-    // Unicité GLOBALE (tous les comptes, pas seulement les élèves) : les index
-    // uq_users_pseudo / uq_users_email couvrent toute la table — même périmètre
-    // que PATCH /api/auth/me/profile, pour un 409 précis plutôt que le catch générique.
-    if (pseudo) {
-      const existingPseudo = await queryOne('SELECT id FROM users WHERE pseudo = ? AND id <> ?', [
-        pseudo,
-        student.id,
-      ]);
-      if (existingPseudo) return res.status(409).json({ error: 'Ce pseudo est déjà utilisé' });
-    }
-    if (email) {
-      const existingEmail = await queryOne('SELECT id FROM users WHERE email = ? AND id <> ?', [
-        email,
-        student.id,
-      ]);
-      if (existingEmail) return res.status(409).json({ error: 'Cet email est déjà utilisé' });
-    }
+    const conflict = await findProfileUniquenessConflict(pseudo, email, student.id);
+    if (conflict) return res.status(409).json({ error: conflict });
 
     try {
       await execute(
@@ -591,7 +561,7 @@ router.patch('/:id/profile', requireAuth, async (req, res) => {
         [pseudo, email, description, avatarPath, affiliation, visitMascotCatalogId, student.id],
       );
     } catch (err) {
-      if (err && (err.errno === 1062 || err.code === 'ER_DUP_ENTRY')) {
+      if (isDuplicateEntryError(err)) {
         return res.status(409).json({ error: 'Pseudo ou email déjà utilisé' });
       }
       throw err;

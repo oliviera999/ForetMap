@@ -1,19 +1,14 @@
 const express = require('express');
 const crypto = require('node:crypto');
 const { queryAll, queryOne, execute, withTransaction } = require('../database');
-const { requireAuth, requirePermission } = require('../middleware/requireTeacher');
+const { requirePermission } = require('../middleware/requireTeacher');
 const asyncHandler = require('../lib/asyncHandler');
 const { emitGardenChanged } = require('../lib/realtime');
-const { saveBase64ToDisk, getAbsolutePath } = require('../lib/uploads');
 const {
   serializeMarkerPhotoListRow,
   redirectIfPublicMarkerPhotoDataUrl,
 } = require('../lib/uploadsPublicUrls');
-const {
-  generateMapPhotoThumbFromMainRelativePath,
-  deleteMapPhotoMainAndThumb,
-} = require('../lib/imageThumb');
-const { sendFilePublicImageOptions } = require('../lib/httpImageCache');
+const { deleteMapPhotoMainAndThumb } = require('../lib/imageThumb');
 const {
   parseVisitEditorialBlocksInput,
   serializeVisitEditorialBlocks,
@@ -26,35 +21,15 @@ const {
   attachSpeciesToEntity,
 } = require('../lib/speciesJunction');
 const { normalizeMarkerEmoji } = require('../lib/markerEmoji');
-const { z, validate } = require('../lib/validate');
+const {
+  registerEntityPhotoRoutes,
+  reorderPhotosBodySchema,
+  addPhotoBodySchema,
+} = require('../lib/entityPhotoRoutes');
 
 const db = { queryAll, queryOne, execute, withTransaction };
 
 const router = express.Router();
-
-// O7 — `PUT /markers/:id/photos/reorder` : remplace la garde manuelle
-// `const raw = req.body?.photo_ids ?? req.body?.ordered_ids; if (!Array.isArray(raw)) -> 400`.
-// Le refine est au niveau racine (path vide) pour que `formatZodError` renvoie exactement le
-// message d'origine (sans préfixe de chemin) et tolère un corps null/undefined comme l'opérateur
-// `?.` d'origine. Le corps n'est PAS transformé : le handler continue de lire/coercer lui-même
-// `req.body?.photo_ids ?? req.body?.ordered_ids` (coercition permissive des éléments inchangée),
-// puis applique les vérifications métier restantes (longueur, appartenance, doublons).
-const reorderMarkerPhotosBodySchema = z
-  .object({ photo_ids: z.unknown().optional(), ordered_ids: z.unknown().optional() })
-  .passthrough()
-  .refine((body) => Array.isArray(body && (body.photo_ids ?? body.ordered_ids)), {
-    message: 'Liste photo_ids (ou ordered_ids) requise',
-  });
-
-// O7 — `POST /markers/:id/photos` : remplace la garde manuelle `if (!image_data) -> 400 'Image requise'`.
-// Le refine est au niveau racine pour que `formatZodError` renvoie 'Image requise' tel quel et
-// tolère un corps null/undefined (déstructuration `const { image_data } = req.body` exigeait déjà
-// un corps objet). Le corps n'est PAS transformé : le handler continue de lire `req.body`
-// (image_data + caption) sans changement.
-const addMarkerPhotoBodySchema = z
-  .object({ image_data: z.unknown().optional() })
-  .passthrough()
-  .refine((body) => !!(body && body.image_data), { message: 'Image requise' });
 
 async function mapExists(mapId) {
   if (!mapId) return false;
@@ -165,141 +140,26 @@ const MARKERS_LIST_SQL = `SELECT m.*,
 FROM map_markers m
 LEFT JOIN visit_markers vm ON vm.id = m.id`;
 
-router.get(
-  '/markers/:id/photos/:pid/data',
-  requireAuth,
-  asyncHandler(async (req, res) => {
-    const markerId = String(req.params.id || '').trim();
-    const p = await queryOne(
-      'SELECT mp.image_path FROM marker_photos mp WHERE mp.id=? AND mp.marker_id=?',
-      [req.params.pid, markerId],
-    );
-    if (!p) return res.status(404).json({ error: 'Photo introuvable' });
-    if (p.image_path) {
-      const redirectTo = redirectIfPublicMarkerPhotoDataUrl(p.image_path, markerId, req.params.pid);
-      if (redirectTo) return res.redirect(302, redirectTo);
-      const absolutePath = getAbsolutePath(p.image_path);
-      return res.sendFile(absolutePath, sendFilePublicImageOptions(), (err) => {
-        if (err && !res.headersSent) res.status(404).json({ error: 'Fichier introuvable' });
-      });
-    }
-    return res.status(404).json({ error: 'Aucune image' });
-  }),
-);
-
-router.get(
-  '/markers/:id/photos',
-  asyncHandler(async (req, res) => {
-    const markerId = String(req.params.id || '').trim();
-    const photos = await queryAll(
-      'SELECT id, marker_id, caption, sort_order, uploaded_at, image_path FROM marker_photos WHERE marker_id=? ORDER BY sort_order ASC, id ASC',
-      [markerId],
-    );
-    res.json(photos.map((p) => serializeMarkerPhotoListRow(p, markerId)));
-  }),
-);
-
-router.put(
-  '/markers/:id/photos/reorder',
-  requirePermission('map.manage_markers'),
-  validate({ body: reorderMarkerPhotosBodySchema }),
-  asyncHandler(async (req, res) => {
-    const markerId = String(req.params.id || '').trim();
-    const m = await queryOne('SELECT id, map_id FROM map_markers WHERE id=?', [markerId]);
-    if (!m) return res.status(404).json({ error: 'Repère introuvable' });
-    const raw = req.body?.photo_ids ?? req.body?.ordered_ids;
-    if (!Array.isArray(raw)) {
-      return res.status(400).json({ error: 'Liste photo_ids (ou ordered_ids) requise' });
-    }
-    const photoIds = raw.map((x) => Number(x)).filter((n) => Number.isFinite(n) && n > 0);
-    const rows = await queryAll('SELECT id FROM marker_photos WHERE marker_id = ?', [markerId]);
-    const existing = rows.map((r) => r.id);
-    if (photoIds.length !== existing.length || existing.length === 0) {
-      return res
-        .status(400)
-        .json({ error: 'La liste doit contenir exactement toutes les photos du repère' });
-    }
-    const set = new Set(existing);
-    for (const id of photoIds) {
-      if (!set.has(id)) return res.status(400).json({ error: 'Identifiant de photo invalide' });
-    }
-    if (new Set(photoIds).size !== photoIds.length) {
-      return res.status(400).json({ error: 'photo_ids en double' });
-    }
-    await withTransaction(async (tx) => {
-      for (let i = 0; i < photoIds.length; i += 1) {
-        await tx.execute('UPDATE marker_photos SET sort_order = ? WHERE id = ? AND marker_id = ?', [
-          i,
-          photoIds[i],
-          markerId,
-        ]);
-      }
-    });
-    emitGardenChanged({ reason: 'reorder_marker_photos', markerId, mapId: m.map_id });
-    res.json({ ok: true });
-  }),
-);
-
-router.post(
-  '/markers/:id/photos',
-  requirePermission('map.manage_markers'),
-  validate({ body: addMarkerPhotoBodySchema }),
-  asyncHandler(async (req, res) => {
-    let photoId = null;
-    const m = await queryOne('SELECT * FROM map_markers WHERE id=?', [req.params.id]);
-    if (!m) return res.status(404).json({ error: 'Repère introuvable' });
-    const { image_data, caption } = req.body;
-    if (!image_data) return res.status(400).json({ error: 'Image requise' });
-    const nextSortRow = await queryOne(
-      'SELECT COALESCE(MAX(sort_order), -1) + 1 AS n FROM marker_photos WHERE marker_id = ?',
-      [req.params.id],
-    );
-    const sortOrder = Number(nextSortRow?.n) >= 0 ? Number(nextSortRow.n) : 0;
-    const result = await execute(
-      'INSERT INTO marker_photos (marker_id, image_path, caption, sort_order, uploaded_at) VALUES (?, ?, ?, ?, ?)',
-      [req.params.id, null, caption || '', sortOrder, new Date().toISOString()],
-    );
-    photoId = result.insertId;
-    const relativePath = `markers/${req.params.id}/${photoId}.jpg`;
-    try {
-      saveBase64ToDisk(relativePath, image_data);
-    } catch (fileErr) {
-      await execute('DELETE FROM marker_photos WHERE id = ?', [photoId]);
-      throw fileErr;
-    }
-    await execute('UPDATE marker_photos SET image_path = ? WHERE id = ?', [relativePath, photoId]);
-    await generateMapPhotoThumbFromMainRelativePath(relativePath);
-    const photo = await queryOne(
-      'SELECT id, marker_id, caption, sort_order, uploaded_at, image_path FROM marker_photos WHERE id=?',
-      [photoId],
-    );
-    emitGardenChanged({ reason: 'add_marker_photo', markerId: req.params.id, mapId: m.map_id });
-    res.status(201).json(serializeMarkerPhotoListRow(photo, req.params.id));
-  }),
-);
-
-router.delete(
-  '/markers/:id/photos/:pid',
-  requirePermission('map.manage_markers'),
-  asyncHandler(async (req, res) => {
-    const m = await queryOne('SELECT map_id FROM map_markers WHERE id = ?', [req.params.id]);
-    const p = await queryOne('SELECT image_path FROM marker_photos WHERE id=? AND marker_id=?', [
-      req.params.pid,
-      req.params.id,
-    ]);
-    if (p && p.image_path) deleteMapPhotoMainAndThumb(p.image_path);
-    await execute('DELETE FROM marker_photos WHERE id=? AND marker_id=?', [
-      req.params.pid,
-      req.params.id,
-    ]);
-    emitGardenChanged({
-      reason: 'delete_marker_photo',
-      markerId: req.params.id,
-      mapId: m?.map_id || null,
-    });
-    res.json({ success: true });
-  }),
-);
+// Routes photos (data / liste / reorder / ajout / suppression) : fabrique partagée
+// avec routes/zones.js — comportement et contrats inchangés (audit : déduplication ~250 lignes).
+registerEntityPhotoRoutes(router, {
+  basePath: '/markers',
+  permission: 'map.manage_markers',
+  entityTable: 'map_markers',
+  entityNotFound: 'Repère introuvable',
+  photoTable: 'marker_photos',
+  fkColumn: 'marker_id',
+  reorderAllMessage: 'La liste doit contenir exactement toutes les photos du repère',
+  uploadDirPrefix: 'markers',
+  serializeRow: serializeMarkerPhotoListRow,
+  redirectPublicDataUrl: redirectIfPublicMarkerPhotoDataUrl,
+  emitKey: 'markerId',
+  emitReasons: {
+    reorder: 'reorder_marker_photos',
+    add: 'add_marker_photo',
+    delete: 'delete_marker_photo',
+  },
+});
 
 router.get(
   '/markers',
@@ -460,6 +320,7 @@ router.delete(
 );
 
 module.exports = router;
-// Exportés pour le test no-DB du contrat de validation O7.
-module.exports.reorderMarkerPhotosBodySchema = reorderMarkerPhotosBodySchema;
-module.exports.addMarkerPhotoBodySchema = addMarkerPhotoBodySchema;
+// Exportés pour le test no-DB du contrat de validation O7 (schémas partagés
+// zones/repères — voir lib/entityPhotoRoutes.js).
+module.exports.reorderMarkerPhotosBodySchema = reorderPhotosBodySchema;
+module.exports.addMarkerPhotoBodySchema = addPhotoBodySchema;
