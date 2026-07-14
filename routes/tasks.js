@@ -119,7 +119,7 @@ async function hasRecurrenceTemplateColumns() {
   return recurrenceTemplateColumnsReady;
 }
 
-async function persistRecurringTemplateLocations(taskId, recurrenceRaw, zoneIds, markerIds) {
+async function persistRecurringTemplateLocations(taskId, recurrenceRaw, zoneIds, markerIds, dbx) {
   const r = String(recurrenceRaw || '')
     .trim()
     .toLowerCase();
@@ -134,7 +134,7 @@ async function persistRecurringTemplateLocations(taskId, recurrenceRaw, zoneIds,
   const z = Array.isArray(zoneIds) ? zoneIds : [];
   const m = Array.isArray(markerIds) ? markerIds : [];
   try {
-    await execute(
+    await (dbx || { execute }).execute(
       'UPDATE tasks SET recurrence_template_zone_ids = ?, recurrence_template_marker_ids = ? WHERE id = ?',
       [JSON.stringify(z), JSON.stringify(m), taskId],
     );
@@ -797,6 +797,11 @@ router.put('/:id', async (req, res) => {
       living_beings,
     } = req.body;
 
+    // Aligné sur le POST (« Titre requis ») : un PUT ne doit pas pouvoir vider le titre.
+    if (title !== undefined && !String(title ?? '').trim()) {
+      return res.status(400).json({ error: 'Titre requis' });
+    }
+
     let nextZoneIds;
     if (Object.prototype.hasOwnProperty.call(req.body, 'zone_ids')) {
       nextZoneIds = normalizeIdArray(zone_ids);
@@ -935,85 +940,109 @@ router.put('/:id', async (req, res) => {
         .json({ error: 'Impossible de lier une tâche validée à des zones ou repères' });
     }
 
-    await execute(
-      'UPDATE tasks SET title=?, description=?, map_id=?, project_id=?, group_id=?, zone_id=?, marker_id=?, start_date=?, due_date=?, required_students=?, status=?, completion_mode=?, danger_level=?, difficulty_level=?, importance_level=?, recurrence=? WHERE id=?',
-      [
-        title ?? task.title,
-        description ?? task.description,
-        projectValidation.mapId,
-        projectValidation.projectId,
-        nextGroupId,
-        nextZoneIds[0] || null,
-        nextMarkerIds[0] || null,
-        start_date ?? task.start_date,
-        due_date ?? task.due_date,
-        reqStudents,
-        nextStatus,
-        nextCompletionMode,
-        nextDangerLevel,
-        nextDifficultyLevel,
-        nextImportanceLevel,
-        isTeacherManageAction
-          ? recurrence !== undefined
-            ? recurrence || null
-            : task.recurrence || null
-          : task.recurrence || null,
-        task.id,
-      ],
-    );
-    if (
-      isTeacherManageAction &&
-      Object.prototype.hasOwnProperty.call(req.body, 'completion_mode') &&
-      !Object.prototype.hasOwnProperty.call(req.body, 'status')
-    ) {
-      const recalculated = await recalculateTaskStatus({
-        id: task.id,
-        status: nextStatus,
-        completion_mode: nextCompletionMode,
-      });
-      nextStatus = recalculated?.status || nextStatus;
-    }
-    await setTaskZones(task.id, nextZoneIds);
-    await setTaskMarkers(task.id, nextMarkerIds);
-    await setTaskTutorials(task.id, nextTutorialIds);
-    await setTaskReferents(task.id, referentValidation.userIds);
-    if (
-      Object.prototype.hasOwnProperty.call(req.body, 'living_beings') ||
-      Object.prototype.hasOwnProperty.call(req.body, 'species_ids')
-    ) {
-      await syncTaskSpecies(dbSpecies, task.id, req.body.species_ids, living_beings);
-    }
-    await syncLegacyLocationColumns(task.id, nextZoneIds, nextMarkerIds);
-
+    // Décodage de l'image AVANT toute écriture : un payload invalide doit répondre 400
+    // sans avoir modifié la tâche.
     const bodyPut = req.body || {};
-    if (
+    const hasNewImage =
       Object.prototype.hasOwnProperty.call(bodyPut, 'imageData') &&
       bodyPut.imageData != null &&
-      String(bodyPut.imageData).trim()
-    ) {
+      String(bodyPut.imageData).trim();
+    let decodedImage = null;
+    if (hasNewImage) {
       const dec = decodeTaskImageBuffer(bodyPut.imageData);
       if (dec.error) return res.status(400).json({ error: dec.error });
-      const oldPath = task.image_path || null;
-      const rel = `tasks/${task.id}.${dec.ext}`;
-      try {
-        writeBufferToDisk(rel, dec.buffer);
-        await execute('UPDATE tasks SET image_path = ? WHERE id = ?', [rel, task.id]);
-        if (oldPath && oldPath !== rel) deleteFile(oldPath);
-      } catch (imgErr) {
-        try {
-          deleteFile(rel);
-        } catch (_) {
-          /* ignore */
-        }
-        return respondInternalError(res, req, imgErr);
-      }
-    } else if (
+      decodedImage = dec;
+    }
+    const removeImage =
+      !hasNewImage &&
       Object.prototype.hasOwnProperty.call(bodyPut, 'remove_task_image') &&
-      bodyPut.remove_task_image === true
-    ) {
-      if (task.image_path) {
-        deleteFile(task.image_path);
-        await execute('UPDATE tasks SET image_path = NULL WHERE id = ?', [task.id]);
+      bodyPut.remove_task_image === true;
+
+    // Écritures atomiques (même garantie que le POST, audit §2.5) : UPDATE tasks + jointures
+    // + colonnes legacy + espèces + image dans UNE transaction — un échec au milieu ne doit
+    // pas laisser statut/map_id désynchronisés des jonctions.
+    let obsoleteImagePath = null;
+    await withTransaction(async (tx) => {
+      await tx.execute(
+        'UPDATE tasks SET title=?, description=?, map_id=?, project_id=?, group_id=?, zone_id=?, marker_id=?, start_date=?, due_date=?, required_students=?, status=?, completion_mode=?, danger_level=?, difficulty_level=?, importance_level=?, recurrence=? WHERE id=?',
+        [
+          title ?? task.title,
+          description ?? task.description,
+          projectValidation.mapId,
+          projectValidation.projectId,
+          nextGroupId,
+          nextZoneIds[0] || null,
+          nextMarkerIds[0] || null,
+          start_date ?? task.start_date,
+          due_date ?? task.due_date,
+          reqStudents,
+          nextStatus,
+          nextCompletionMode,
+          nextDangerLevel,
+          nextDifficultyLevel,
+          nextImportanceLevel,
+          isTeacherManageAction
+            ? recurrence !== undefined
+              ? recurrence || null
+              : task.recurrence || null
+            : task.recurrence || null,
+          task.id,
+        ],
+      );
+      if (
+        isTeacherManageAction &&
+        Object.prototype.hasOwnProperty.call(req.body, 'completion_mode') &&
+        !Object.prototype.hasOwnProperty.call(req.body, 'status')
+      ) {
+        const recalculated = await recalculateTaskStatus(
+          {
+            id: task.id,
+            status: nextStatus,
+            completion_mode: nextCompletionMode,
+          },
+          tx,
+        );
+        nextStatus = recalculated?.status || nextStatus;
+      }
+      await setTaskZones(task.id, nextZoneIds, tx);
+      await setTaskMarkers(task.id, nextMarkerIds, tx);
+      await setTaskTutorials(task.id, nextTutorialIds, tx);
+      await setTaskReferents(task.id, referentValidation.userIds, tx);
+      if (
+        Object.prototype.hasOwnProperty.call(req.body, 'living_beings') ||
+        Object.prototype.hasOwnProperty.call(req.body, 'species_ids')
+      ) {
+        await syncTaskSpecies(tx, task.id, req.body.species_ids, living_beings);
+      }
+      await syncLegacyLocationColumns(task.id, nextZoneIds, nextMarkerIds, tx);
+
+      if (decodedImage) {
+        const oldPath = task.image_path || null;
+        const rel = `tasks/${task.id}.${decodedImage.ext}`;
+        try {
+          writeBufferToDisk(rel, decodedImage.buffer);
+          await tx.execute('UPDATE tasks SET image_path = ? WHERE id = ?', [rel, task.id]);
+          if (oldPath && oldPath !== rel) obsoleteImagePath = oldPath;
+        } catch (imgErr) {
+          try {
+            deleteFile(rel);
+          } catch (_) {
+            /* ignore */
+          }
+          // Le rollback de la transaction annule l'UPDATE et les jointures.
+          throw imgErr;
+        }
+      } else if (removeImage && task.image_path) {
+        await tx.execute('UPDATE tasks SET image_path = NULL WHERE id = ?', [task.id]);
+        obsoleteImagePath = task.image_path;
+      }
+    });
+    // Suppression du fichier obsolète APRÈS commit : un rollback ne doit pas perdre l'image.
+    if (obsoleteImagePath) {
+      try {
+        deleteFile(obsoleteImagePath);
+      } catch (_) {
+        /* ignore */
       }
     }
 
@@ -1092,17 +1121,23 @@ router.post(
     }
     const zonesBeforeValidate = await getTaskZoneIds(task.id);
     const markersBeforeValidate = await getTaskMarkerIds(task.id);
-    await persistRecurringTemplateLocations(
-      task.id,
-      task.recurrence,
-      zonesBeforeValidate,
-      markersBeforeValidate,
-    );
-    // Comme PUT avec statut validated : une tâche validée ne reste pas liée à des zones/repères.
-    await setTaskZones(task.id, []);
-    await setTaskMarkers(task.id, []);
-    await syncLegacyLocationColumns(task.id, [], []);
-    await execute("UPDATE tasks SET status = 'validated' WHERE id = ?", [req.params.id]);
+    // Écritures atomiques : snapshot récurrence + détachement zones/repères + statut
+    // dans UNE transaction — un échec au milieu ne doit pas laisser une tâche
+    // « validée » encore liée, ni détachée sans être validée.
+    await withTransaction(async (tx) => {
+      await persistRecurringTemplateLocations(
+        task.id,
+        task.recurrence,
+        zonesBeforeValidate,
+        markersBeforeValidate,
+        tx,
+      );
+      // Comme PUT avec statut validated : une tâche validée ne reste pas liée à des zones/repères.
+      await setTaskZones(task.id, [], tx);
+      await setTaskMarkers(task.id, [], tx);
+      await syncLegacyLocationColumns(task.id, [], [], tx);
+      await tx.execute("UPDATE tasks SET status = 'validated' WHERE id = ?", [req.params.id]);
+    });
     logAudit('validate_task', 'task', req.params.id, task.title, { req });
     await syncProgressionForValidatedTask(task.id);
     const updated = await getTaskWithAssignments(task.id);

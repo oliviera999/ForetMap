@@ -121,6 +121,13 @@ router.post(
       }
     }
 
+    // Vérifier la zone AVANT l'INSERT : un zone_id inconnu violerait la FK → 500
+    // au lieu d'un 400 explicite.
+    if (zone_id) {
+      const zone = await queryOne('SELECT id FROM zones WHERE id = ?', [String(zone_id)]);
+      if (!zone) return res.status(400).json({ error: 'Zone introuvable' });
+    }
+
     const result = await execute(
       'INSERT INTO observation_logs (student_id, zone_id, content, image_path, created_at) VALUES (?, ?, ?, ?, ?)',
       [resolvedStudentId, zone_id || null, content.trim(), null, new Date().toISOString()],

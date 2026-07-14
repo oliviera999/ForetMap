@@ -385,6 +385,22 @@ router.put(
     const tuto = await validateTutorialIds(nextTutorialIds);
     if (tuto.error) return res.status(400).json({ error: tuto.error });
 
+    // Invariant tâches↔projet (cf. validateTaskProject) : une tâche doit être sur la même
+    // carte que son projet. Refuser le changement de carte tant que des tâches y sont liées,
+    // sinon elles resteraient sur l'ancienne carte avec des zones incohérentes.
+    if (String(nextMapId) !== String(existing.map_id)) {
+      const linked = await queryOne(
+        'SELECT COUNT(*) AS c FROM tasks WHERE project_id = ? AND map_id <> ?',
+        [req.params.id, nextMapId],
+      );
+      if (Number(linked?.c) > 0) {
+        return res.status(400).json({
+          error:
+            'Impossible de changer la carte : des tâches de ce projet sont sur l’ancienne carte (déplacez-les ou détachez-les d’abord)',
+        });
+      }
+    }
+
     await execute(
       'UPDATE task_projects SET map_id = ?, title = ?, description = ?, status = ? WHERE id = ?',
       [nextMapId, nextTitle, nextDescription, nextStatus, req.params.id],
