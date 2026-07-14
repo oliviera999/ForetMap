@@ -559,6 +559,23 @@ router.post(
       return res.status(400).json({ error: 'Chemin de fichier source non autorisé' });
     }
 
+    // Valider les lieux AVANT l'INSERT : sinon une validation en échec répond 400
+    // en laissant un tutoriel orphelin actif en base (cf. PUT /:id qui valide avant).
+    const hasLocations =
+      Object.prototype.hasOwnProperty.call(req.body, 'zone_ids') ||
+      Object.prototype.hasOwnProperty.call(req.body, 'marker_ids');
+    let loc = null;
+    if (hasLocations) {
+      const zIds = Object.prototype.hasOwnProperty.call(req.body, 'zone_ids')
+        ? normalizeIdArray(req.body.zone_ids)
+        : [];
+      const mIds = Object.prototype.hasOwnProperty.call(req.body, 'marker_ids')
+        ? normalizeIdArray(req.body.marker_ids)
+        : [];
+      loc = await validateTutorialLocations(zIds, mIds);
+      if (loc.error) return res.status(400).json({ error: loc.error });
+    }
+
     const baseSlug = slugify(req.body.slug || title);
     const slug = await uniqueSlug(baseSlug);
     const now = new Date().toISOString();
@@ -581,20 +598,7 @@ router.post(
       ],
     );
     const createdId = result.insertId;
-    let zIds = [];
-    let mIds = [];
-    if (Object.prototype.hasOwnProperty.call(req.body, 'zone_ids')) {
-      zIds = normalizeIdArray(req.body.zone_ids);
-    }
-    if (Object.prototype.hasOwnProperty.call(req.body, 'marker_ids')) {
-      mIds = normalizeIdArray(req.body.marker_ids);
-    }
-    if (
-      Object.prototype.hasOwnProperty.call(req.body, 'zone_ids') ||
-      Object.prototype.hasOwnProperty.call(req.body, 'marker_ids')
-    ) {
-      const loc = await validateTutorialLocations(zIds, mIds);
-      if (loc.error) return res.status(400).json({ error: loc.error });
+    if (loc) {
       await replaceTutorialZonesMarkers(createdId, loc.zoneIds, loc.markerIds);
     }
     const created = await queryOne('SELECT * FROM tutorials WHERE id = ?', [createdId]);

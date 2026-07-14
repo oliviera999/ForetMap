@@ -79,17 +79,6 @@ function normalizeLivingBeings(input, fallback = '') {
   return cleaned;
 }
 
-function serializeLivingBeings(input, fallback = '') {
-  return JSON.stringify(normalizeLivingBeings(input, fallback));
-}
-
-function withLivingBeings(marker) {
-  return {
-    ...marker,
-    living_beings_list: normalizeLivingBeings(marker.living_beings, marker.plant_name),
-  };
-}
-
 function hasVisitMarkerContentPatch(body) {
   if (!body || typeof body !== 'object') return false;
   return [

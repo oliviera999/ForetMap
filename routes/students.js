@@ -567,18 +567,21 @@ router.patch('/:id/profile', requireAuth, async (req, res) => {
       avatarPath = null;
     }
 
+    // Unicité GLOBALE (tous les comptes, pas seulement les élèves) : les index
+    // uq_users_pseudo / uq_users_email couvrent toute la table — même périmètre
+    // que PATCH /api/auth/me/profile, pour un 409 précis plutôt que le catch générique.
     if (pseudo) {
-      const existingPseudo = await queryOne(
-        "SELECT id FROM users WHERE user_type = 'student' AND pseudo = ? AND id <> ?",
-        [pseudo, student.id],
-      );
+      const existingPseudo = await queryOne('SELECT id FROM users WHERE pseudo = ? AND id <> ?', [
+        pseudo,
+        student.id,
+      ]);
       if (existingPseudo) return res.status(409).json({ error: 'Ce pseudo est déjà utilisé' });
     }
     if (email) {
-      const existingEmail = await queryOne(
-        "SELECT id FROM users WHERE user_type = 'student' AND email = ? AND id <> ?",
-        [email, student.id],
-      );
+      const existingEmail = await queryOne('SELECT id FROM users WHERE email = ? AND id <> ?', [
+        email,
+        student.id,
+      ]);
       if (existingEmail) return res.status(409).json({ error: 'Cet email est déjà utilisé' });
     }
 

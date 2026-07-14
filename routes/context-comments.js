@@ -125,6 +125,13 @@ function checkCooldown(actor, action, cooldownMs) {
   const now = Date.now();
   const last = cooldownState.get(key) || 0;
   if (now - last < cooldownMs) return false;
+  // Purge des entrées expirées quand la Map grossit — sinon croissance sans borne
+  // (une entrée par acteur, jamais supprimée) sur un process longue durée.
+  if (cooldownState.size > 1000) {
+    for (const [k, ts] of cooldownState) {
+      if (now - ts >= cooldownMs) cooldownState.delete(k);
+    }
+  }
   cooldownState.set(key, now);
   return true;
 }

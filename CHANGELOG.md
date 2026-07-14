@@ -7,6 +7,57 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Audit général du code — correctifs de cohérence et de robustesse (sans changement fonctionnel)
+
+Correctifs issus d'un audit complet des routes backend (bugs confirmés par lecture du code,
+aucune modification du comportement métier attendu) :
+
+- **Tutoriels — POST `/api/tutorials`** : la validation des zones/repères liés se fait
+  désormais **avant** l'INSERT (comme dans le PUT). Auparavant, une sélection invalide
+  répondait 400 mais laissait un tutoriel orphelin actif en base (doublons en cas de
+  nouvelle tentative).
+- **Réglages — PUT `/api/settings/admin/:key`** : validation complète (normalisation +
+  cohérence croisée, nouveau helper `validateSettingCandidate` dans `lib/settings.js`)
+  **avant** persistance — un 400 ne peut plus être renvoyé alors que la valeur était déjà
+  enregistrée. Les pannes internes répondent désormais 500 (gestionnaire central) au lieu
+  d'un 400 avec message brut. Même correction sur
+  `PATCH /api/rbac/progression-by-validated-tasks`.
+- **Tâches — PUT `/api/tasks/:id` et POST `/api/tasks/:id/validate`** : toutes les
+  écritures (UPDATE + jonctions zones/repères/tutoriels/référents + espèces + colonnes
+  legacy + image) sont regroupées dans **une transaction**, comme le POST — un échec au
+  milieu ne laisse plus la tâche désynchronisée de ses jonctions. L'image invalide est
+  refusée (400) avant toute écriture ; l'ancienne image n'est supprimée qu'après commit.
+- **Tâches — PUT `/api/tasks/:id`** : un titre vide explicite est refusé (400 « Titre
+  requis », aligné sur le POST).
+- **Projets — PUT `/api/task-projects/:id`** : le changement de carte est refusé (400)
+  tant que des tâches du projet restent liées à l'ancienne carte (préserve l'invariant
+  tâche↔projet sur la même carte).
+- **Groupes — PATCH `/api/groups/:id`** : les parentés circulaires sont refusées (400) —
+  auparavant deux PATCH croisés créaient un cycle qui faisait disparaître les groupes de
+  l'arborescence et élargissait leur périmètre mutuel. **DELETE `/api/groups/:id`** :
+  les rôles des élèves ex-membres sont resynchronisés immédiatement (comme après une mise
+  à jour de membres).
+- **Zones — POST/PUT** : `points` doit être un vrai tableau de sommets `{xp, yp}` numériques
+  (une chaîne passait la garde `length ≥ 3` et corrompait la géométrie).
+- **Observations — POST** : `zone_id` inconnu répond 400 « Zone introuvable » au lieu
+  d'un 500 (violation de clé étrangère).
+- **Forum — POST réponse** : le cooldown anti-spam n'est plus consommé quand la requête
+  est refusée (sujet introuvable/hors périmètre/verrouillé) ; purge périodique de l'état
+  de cooldown en mémoire (forum + commentaires contextuels).
+- **Élèves — PATCH `/api/students/:id/profile`** : contrôle d'unicité pseudo/email élargi
+  à **tous** les comptes (même périmètre que `PATCH /api/auth/me/profile` et que les index
+  uniques), pour un 409 précis au lieu du repli générique.
+- **Redémarrage GUI — POST `/api/settings/admin/system/restart`** : utilise le même arrêt
+  gracieux que `/api/admin/restart` (drain HTTP, Socket.IO, pool MySQL) au lieu d'un
+  `process.exit` brutal.
+- Nettoyage : suppression de `serializeLivingBeings`/`withLivingBeings` (code mort) dans
+  `routes/zones.js` et `routes/map.js`.
+
+Points relevés mais **non modifiés** (décision métier à trancher) : filtre de rôle
+`TUTORIAL_MANAGER_ROLES` sur `tutorials.manage` (incohérent avec le modèle RBAC des autres
+permissions) ; possibilité pour un détenteur de `admin.users.assign_roles` non admin de
+changer le mot de passe d'un autre prof.
+
 ### Documentation de référence — sommaire complet (13 nouveaux documents)
 
 - `docs/reference/` est désormais **complet** : 7 documents ForetMap (carte et zones,

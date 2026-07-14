@@ -113,6 +113,13 @@ function checkCooldown(actor, action, cooldownMs) {
   const now = Date.now();
   const last = cooldownState.get(key) || 0;
   if (now - last < cooldownMs) return false;
+  // Purge des entrées expirées quand la Map grossit — sinon croissance sans borne
+  // (une entrée par acteur, jamais supprimée) sur un process longue durée.
+  if (cooldownState.size > 1000) {
+    for (const [k, ts] of cooldownState) {
+      if (now - ts >= cooldownMs) cooldownState.delete(k);
+    }
+  }
   cooldownState.set(key, now);
   return true;
 }
@@ -497,10 +504,6 @@ router.post(
         .status(400)
         .json({ error: `Message invalide (${MIN_POST_BODY_LEN}-${MAX_POST_BODY_LEN} caractères)` });
     }
-    if (!checkCooldown(actor, 'post', POST_COOLDOWN_MS)) {
-      return res.status(429).json({ error: 'Action trop rapide, réessaie dans quelques secondes' });
-    }
-
     const thread = await queryOne(
       'SELECT id, title, is_locked, group_id FROM forum_threads WHERE id = ? LIMIT 1',
       [req.params.id],
@@ -510,6 +513,10 @@ router.post(
       return res.status(403).json({ error: 'Groupe hors périmètre' });
     }
     if (Number(thread.is_locked)) return res.status(409).json({ error: 'Sujet verrouillé' });
+    // Cooldown consommé APRÈS les refus 404/403/409 : un POST rejeté ne doit pas imposer l'attente.
+    if (!checkCooldown(actor, 'post', POST_COOLDOWN_MS)) {
+      return res.status(429).json({ error: 'Action trop rapide, réessaie dans quelques secondes' });
+    }
 
     const postId = crypto.randomUUID();
     let pathsJson = null;

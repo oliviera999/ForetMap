@@ -383,6 +383,24 @@ router.patch(
         parentGroupId,
       ]);
       if (!parent) return res.status(400).json({ error: 'parent_group_id introuvable' });
+      // Refuser les cycles : si `id` figure dans la chaîne d'ancêtres du nouveau parent,
+      // le groupe deviendrait son propre ancêtre (les deux sortiraient de l'arbre
+      // et chacun élargirait le périmètre de l'autre).
+      const visited = new Set();
+      let cursor = parentGroupId;
+      while (cursor) {
+        if (cursor === id) {
+          return res
+            .status(400)
+            .json({ error: 'Parenté circulaire interdite (le groupe serait son propre ancêtre)' });
+        }
+        if (visited.has(cursor)) break;
+        visited.add(cursor);
+        const row = await queryOne('SELECT parent_group_id FROM `groups` WHERE id = ? LIMIT 1', [
+          cursor,
+        ]);
+        cursor = row?.parent_group_id ? normalizeId(row.parent_group_id) : null;
+      }
     }
 
     try {
@@ -422,8 +440,21 @@ router.delete(
     const id = normalizeId(req.params.id);
     const group = await queryOne('SELECT id FROM `groups` WHERE id = ? LIMIT 1', [id]);
     if (!group) return res.status(404).json({ error: 'Groupe introuvable' });
+    // Membres élèves relevés AVANT la suppression (cascade group_members) pour resynchroniser
+    // leurs rôles ensuite — comme PUT /:id/members ; sinon un élève garde un rôle issu du
+    // groupe supprimé jusqu'à sa prochaine requête /api/auth/me.
+    const studentMembers = await queryAll(
+      `SELECT DISTINCT gm.user_id
+         FROM group_members gm
+        INNER JOIN users u ON u.id = gm.user_id
+        WHERE gm.group_id = ? AND u.user_type = 'student' AND u.is_active = 1`,
+      [id],
+    );
     await execute('UPDATE `groups` SET parent_group_id = NULL WHERE parent_group_id = ?', [id]);
     await execute('DELETE FROM `groups` WHERE id = ?', [id]);
+    for (const row of studentMembers) {
+      await syncStudentRoleFromGroups(row.user_id);
+    }
     res.json({ ok: true });
   }),
 );

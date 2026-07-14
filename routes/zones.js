@@ -1,5 +1,4 @@
 const express = require('express');
-const path = require('path');
 const crypto = require('node:crypto');
 const { queryAll, queryOne, execute, withTransaction } = require('../database');
 const { requireAuth, requirePermission } = require('../middleware/requireTeacher');
@@ -79,10 +78,6 @@ function normalizeLivingBeings(input, fallback = '') {
   return cleaned;
 }
 
-function serializeLivingBeings(input, fallback = '') {
-  return JSON.stringify(normalizeLivingBeings(input, fallback));
-}
-
 /**
  * Normalise le drapeau `special` d'une zone en bit MySQL (0/1).
  * Tolère booléen, nombre et chaîne ('0'/'false'/'' → 0, tout le reste → 1).
@@ -97,13 +92,6 @@ function normalizeSpecialFlag(value, fallback = 0) {
     return v === '' || v === '0' || v === 'false' ? 0 : 1;
   }
   return value ? 1 : 0;
-}
-
-function withLivingBeings(zone) {
-  return {
-    ...zone,
-    living_beings_list: normalizeLivingBeings(zone.living_beings, zone.current_plant),
-  };
 }
 
 /** Champs éditoriaux visite (tables `visit_zones`, même `id` que `zones` après sync carte → visite). */
@@ -272,6 +260,15 @@ router.put(
     } = req.body;
     if (name !== undefined && !String(name).trim()) {
       return res.status(400).json({ error: 'Nom requis' });
+    }
+    // Même garde que le POST : `points` fourni doit être un polygone valide.
+    if (
+      points !== undefined &&
+      (!Array.isArray(points) ||
+        points.length < 3 ||
+        points.some((p) => !p || !Number.isFinite(Number(p.xp)) || !Number.isFinite(Number(p.yp))))
+    ) {
+      return res.status(400).json({ error: 'Au moins 3 sommets {xp, yp} numériques requis' });
     }
     if (map_id != null) {
       const nextMapId = String(map_id).trim();
@@ -516,8 +513,14 @@ router.post(
       special,
     } = req.body;
     if (!name?.trim()) return res.status(400).json({ error: 'Nom requis' });
-    if (!points || points.length < 3)
-      return res.status(400).json({ error: 'Au moins 3 points requis' });
+    // `points` doit être un vrai polygone : tableau de sommets {xp, yp} numériques (en %)
+    // (une chaîne a aussi une `length` et passerait, stockant une géométrie corrompue).
+    if (
+      !Array.isArray(points) ||
+      points.length < 3 ||
+      points.some((p) => !p || !Number.isFinite(Number(p.xp)) || !Number.isFinite(Number(p.yp)))
+    )
+      return res.status(400).json({ error: 'Au moins 3 sommets {xp, yp} numériques requis' });
     const mapId = String(map_id || '').trim() || (await resolveDefaultMapId('teacher'));
     if (!mapId) return res.status(400).json({ error: 'map_id requis' });
     if (!(await mapExists(mapId))) return res.status(400).json({ error: 'Carte introuvable' });
