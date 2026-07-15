@@ -7,6 +7,26 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Audit `AUDIT_CODE_2026-07` — lot 3c : reliquats asyncHandler (O8, sans changement de comportement)
+
+Poursuite de la migration O8 : remplacement des `try/catch` **génériques** (log + 500 générique
+via `respondInternalError`) par l'enveloppe `asyncHandler`, qui route les exceptions vers le
+gestionnaire d'erreurs central de `server.js` (même corps `{ error: 'Erreur serveur' }`, même
+masquage 5xx). Contrat d'erreur public strictement inchangé.
+
+- **`routes/students.js`** : `POST /import`, `POST /:id/duplicate`, `PATCH /:id/profile`.
+- **`routes/rbac.js`** : `POST /users`, `PATCH /users/:userType/:userId`.
+- **`routes/auth.js`** : `PATCH /me/profile`, `POST /register`, `POST /admin/impersonate`,
+  `POST /admin/impersonate/stop`.
+- **`routes/gl/games/markers.js`** : `present-question`, `present-arrival`, `apply-effects`.
+- **`routes/plants.js`** : suppression d'un import `respondInternalError` déjà mort.
+
+Les `catch` **spéciaux** sont intégralement conservés (statuts/messages précis : conflits
+`1062`/`ER_DUP_ENTRY` → 409, `rethrowSlugConflict`, `resolveVitalityError`, contrat 404-vs-403 de
+`games.js` join-team, `respondInternalError` avec `exposeDetail` de `tasks.js`, 502 `plants` de
+`/autofill`/`plantnet`, callback OAuth Google). `logRouteError` reste importé là où un 500
+diagnostic spécifique subsiste. Aucun message, statut ni corps de réponse modifié.
+
 ### Audit `AUDIT_CODE_2026-07` — lot mutualisation frontend 4 (sans changement de comportement)
 
 Mutualisations frontend §5, à comportement observable strictement inchangé (surface d'API
