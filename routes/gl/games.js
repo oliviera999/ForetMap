@@ -36,12 +36,9 @@ const {
 
 const router = express.Router();
 
-function parseId(value) {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : null;
-}
-
-const { normalizeOptionalString } = require('../../lib/shared/httpHelpers');
+// `parseId` : coercition permissive d'identifiant (Number fini → n, sinon null), source unique
+// partagée dans `lib/shared/httpHelpers` (déjà utilisée par les 9 sous-routeurs `games/*.js`).
+const { normalizeOptionalString, parseId } = require('../../lib/shared/httpHelpers');
 const asyncHandler = require('../../lib/asyncHandler');
 const { z, validate } = require('../../lib/validate');
 
