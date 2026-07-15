@@ -47,6 +47,7 @@ const {
   recordVitalityChangeEvent,
 } = require('../../../lib/gl/gamesRuntime');
 const { parseId } = require('../../../lib/shared/httpHelpers');
+const asyncHandler = require('../../../lib/asyncHandler');
 
 const router = express.Router();
 
@@ -142,310 +143,319 @@ async function enrichQuestionWithGlossary(questionRow, glossaryByKey) {
 }
 
 /** POST /api/gl/games/:id/markers/:markerId/present-question — tirage + présentation QCM depuis un repère. */
-router.post('/games/:id/markers/:markerId/present-question', requireGlAuth, async (req, res) => {
-  const gameId = parseId(req.params.id);
-  const markerId = parseId(req.params.markerId);
-  if (!gameId || !markerId) {
-    return res.status(400).json({ error: 'Identifiants invalides' });
-  }
+router.post(
+  '/games/:id/markers/:markerId/present-question',
+  requireGlAuth,
+  asyncHandler(async (req, res) => {
+    const gameId = parseId(req.params.id);
+    const markerId = parseId(req.params.markerId);
+    if (!gameId || !markerId) {
+      return res.status(400).json({ error: 'Identifiants invalides' });
+    }
 
-  const allowed = await canAccessGlGame(req.glAuth, gameId);
-  if (!allowed) return res.status(403).json({ error: 'Accès partie refusé' });
+    const allowed = await canAccessGlGame(req.glAuth, gameId);
+    if (!allowed) return res.status(403).json({ error: 'Accès partie refusé' });
 
-  const game = await queryOne('SELECT id, chapter_id, status FROM gl_games WHERE id = ? LIMIT 1', [
-    gameId,
-  ]);
-  if (!game) return res.status(404).json({ error: 'Partie introuvable' });
+    const game = await queryOne(
+      'SELECT id, chapter_id, status FROM gl_games WHERE id = ? LIMIT 1',
+      [gameId],
+    );
+    if (!game) return res.status(404).json({ error: 'Partie introuvable' });
 
-  const chapterRow = await queryOne(
-    'SELECT id, plateau_number FROM gl_chapters WHERE id = ? LIMIT 1',
-    [game.chapter_id],
-  );
-  const chapterPlateauNumber = chapterRow?.plateau_number ?? null;
+    const chapterRow = await queryOne(
+      'SELECT id, plateau_number FROM gl_chapters WHERE id = ? LIMIT 1',
+      [game.chapter_id],
+    );
+    const chapterPlateauNumber = chapterRow?.plateau_number ?? null;
 
-  const markerRow = await queryOne(
-    `SELECT ${MARKER_SELECT} FROM gl_chapter_markers WHERE id = ? LIMIT 1`,
-    [markerId],
-  );
-  const marker = formatMarkerRow(markerRow);
-  if (!marker || !isQuestionMarker(marker)) {
-    return res.status(404).json({ error: 'Repère question introuvable' });
-  }
-  if (Number(marker.chapter_id) !== Number(game.chapter_id)) {
-    return res.status(409).json({ error: 'Repère hors chapitre de la partie' });
-  }
+    const markerRow = await queryOne(
+      `SELECT ${MARKER_SELECT} FROM gl_chapter_markers WHERE id = ? LIMIT 1`,
+      [markerId],
+    );
+    const marker = formatMarkerRow(markerRow);
+    if (!marker || !isQuestionMarker(marker)) {
+      return res.status(404).json({ error: 'Repère question introuvable' });
+    }
+    if (Number(marker.chapter_id) !== Number(game.chapter_id)) {
+      return res.status(409).json({ error: 'Repère hors chapitre de la partie' });
+    }
 
-  const settings = await getGameplaySettings();
-  if (settings.qcmMjOnly && req.glAuth.userType === 'gl_player') {
-    return res.status(403).json({ error: 'QCM réservé au maître du jeu' });
-  }
+    const settings = await getGameplaySettings();
+    if (settings.qcmMjOnly && req.glAuth.userType === 'gl_player') {
+      return res.status(403).json({ error: 'QCM réservé au maître du jeu' });
+    }
 
-  let teamId = req.body?.teamId != null ? parseId(req.body.teamId) : null;
-  if (req.glAuth.userType === 'gl_player') {
-    const membership = await getPlayerGameMembership(gameId, req.glAuth.userId);
-    if (!membership?.team_id)
-      return res.status(403).json({ error: 'Joueur non rattaché à une équipe' });
-    teamId = Number(membership.team_id);
-  } else if (teamId == null) {
-    return res.status(400).json({ error: 'teamId requis pour le MJ' });
-  }
+    let teamId = req.body?.teamId != null ? parseId(req.body.teamId) : null;
+    if (req.glAuth.userType === 'gl_player') {
+      const membership = await getPlayerGameMembership(gameId, req.glAuth.userId);
+      if (!membership?.team_id)
+        return res.status(403).json({ error: 'Joueur non rattaché à une équipe' });
+      teamId = Number(membership.team_id);
+    } else if (teamId == null) {
+      return res.status(400).json({ error: 'teamId requis pour le MJ' });
+    }
 
-  const team = await queryOne('SELECT id FROM gl_teams WHERE id = ? AND game_id = ? LIMIT 1', [
-    teamId,
-    gameId,
-  ]);
-  if (!team) return res.status(404).json({ error: 'Équipe introuvable dans cette partie' });
-  const canPresent = await canPresentMarkerQuestion(
-    { queryAll },
-    {
-      gameId,
+    const team = await queryOne('SELECT id FROM gl_teams WHERE id = ? AND game_id = ? LIMIT 1', [
       teamId,
-      markerId,
-      retriggerMode: settings.markerQuestionRetrigger,
-    },
-  );
-  if (!canPresent) {
-    return res
-      .status(409)
-      .json({ error: 'Question déjà présentée pour ce repère selon les réglages' });
-  }
-
-  const biomesMap = await loadBiomesForChapterIds({ queryAll }, [game.chapter_id]);
-  const chapterBiomes = biomesMap.get(Number(game.chapter_id)) || [];
-  const chapterBiomeSlugs = chapterBiomes.map((b) => b.slug);
-
-  const excludeRaw = req.body?.excludeCodes;
-  const excludeCodes = Array.isArray(excludeRaw)
-    ? excludeRaw
-    : typeof excludeRaw === 'string'
-      ? excludeRaw.split(',')
-      : [];
-
-  const draw = await drawQuestionFromMarker(
-    { queryAll, queryOne },
-    markerRow,
-    chapterBiomeSlugs,
-    excludeCodes,
-    chapterPlateauNumber,
-  );
-  if (draw.error || !draw.questionCode) {
-    return res.status(404).json({ error: draw.error || 'Aucune question disponible' });
-  }
-
-  const questionRow = await loadAnyPresentableQuestion({ queryOne }, draw.questionCode);
-  if (!questionRow) {
-    return res
-      .status(404)
-      .json({ error: draw.error || `Question ${draw.questionCode} non présentable` });
-  }
-
-  const isLore = isLoreQuestionCode(draw.questionCode);
-  const glossaryByKey = isLore ? await loadLoreGlossaryLookup() : await loadGlossaryLookup();
-  const glossaryTerms = await enrichQuestionWithGlossary(questionRow, glossaryByKey);
-  let presentation;
-  try {
-    presentation = buildAnyPresentation(questionRow, glossaryTerms);
-  } catch (err) {
-    return res.status(400).json({ error: err.message || 'Présentation impossible' });
-  }
-
-  const actorType = actorTypeOf(req);
-  const presentedEvent = await insertGameEvent(db, {
-    gameId,
-    teamId,
-    actorType,
-    actorId: String(req.glAuth.userId),
-    eventType: 'marker_question_presented',
-    payload: {
-      markerId,
-      questionCode: draw.questionCode,
-      qcmSet: draw.qcmSet || (isLore ? 'lore' : 'biome'),
-      markerLabel: marker.label,
-    },
-  });
-  emitGlGameEvent(gameId, presentedEvent);
-
-  return res.json({
-    questionCode: draw.questionCode,
-    qcmSet: draw.qcmSet || (isLore ? 'lore' : 'biome'),
-    presentation,
-    markerId,
-    teamId,
-  });
-});
-
-/** POST /api/gl/games/:id/markers/:markerId/present-arrival — résumé d'arrivée sur repère (effets plateau). */
-router.post('/games/:id/markers/:markerId/present-arrival', requireGlAuth, async (req, res) => {
-  const gameId = parseId(req.params.id);
-  const markerId = parseId(req.params.markerId);
-  if (!gameId || !markerId) {
-    return res.status(400).json({ error: 'Identifiants invalides' });
-  }
-
-  const allowed = await canAccessGlGame(req.glAuth, gameId);
-  if (!allowed) return res.status(403).json({ error: 'Accès partie refusé' });
-
-  const game = await queryOne(
-    'SELECT id, chapter_id, status, board_movement_mode, board_path_start_index FROM gl_games WHERE id = ? LIMIT 1',
-    [gameId],
-  );
-  if (!game) return res.status(404).json({ error: 'Partie introuvable' });
-
-  const markerRow = await queryOne(
-    `SELECT ${MARKER_SELECT} FROM gl_chapter_markers WHERE id = ? LIMIT 1`,
-    [markerId],
-  );
-  const marker = formatMarkerRow(markerRow);
-  if (!marker || Number(marker.chapter_id) !== Number(game.chapter_id)) {
-    return res.status(404).json({ error: 'Repère introuvable' });
-  }
-  if (isQuestionMarker(marker)) {
-    return res.status(409).json({ error: 'Repère question : utiliser present-question' });
-  }
-  if (!hasApplicableMarkerEffects(marker)) {
-    return res.status(404).json({ error: 'Repère sans effet à présenter' });
-  }
-
-  const settings = await getGameplaySettings();
-  if (settings.qcmMjOnly && req.glAuth.userType === 'gl_player') {
-    return res.status(403).json({ error: 'Présentation réservée au maître du jeu' });
-  }
-
-  let teamId = req.body?.teamId != null ? parseId(req.body.teamId) : null;
-  if (req.glAuth.userType === 'gl_player') {
-    const membership = await getPlayerGameMembership(gameId, req.glAuth.userId);
-    if (!membership?.team_id)
-      return res.status(403).json({ error: 'Joueur non rattaché à une équipe' });
-    teamId = Number(membership.team_id);
-  } else if (teamId == null) {
-    return res.status(400).json({ error: 'teamId requis pour le MJ' });
-  }
-
-  const team = await queryOne(
-    'SELECT id, type, name FROM gl_teams WHERE id = ? AND game_id = ? LIMIT 1',
-    [teamId, gameId],
-  );
-  if (!team) return res.status(404).json({ error: 'Équipe introuvable dans cette partie' });
-
-  const arrival = buildMarkerArrivalPayload(marker, team);
-  const actorType = actorTypeOf(req);
-  const actorId = String(req.glAuth.userId);
-  const reason = String(marker.label || 'Repère').trim();
-
-  const playerIdsRaw = req.body?.playerIds;
-  const playerIds = Array.isArray(playerIdsRaw)
-    ? playerIdsRaw
-    : playerIdsRaw != null
-      ? [playerIdsRaw]
-      : null;
-
-  let vitalityPayload = null;
-  let autoMove = null;
-  let lastEvent = null;
-  try {
-    await withTransaction(async (tx) => {
-      vitalityPayload = await applyMarkerVitalityEffects(tx, {
+      gameId,
+    ]);
+    if (!team) return res.status(404).json({ error: 'Équipe introuvable dans cette partie' });
+    const canPresent = await canPresentMarkerQuestion(
+      { queryAll },
+      {
         gameId,
         teamId,
-        marker,
-        teamType: team.type,
-        settings,
-        playerIds,
-        skipIfAlreadyApplied: true,
-      });
+        markerId,
+        retriggerMode: settings.markerQuestionRetrigger,
+      },
+    );
+    if (!canPresent) {
+      return res
+        .status(409)
+        .json({ error: 'Question déjà présentée pour ce repère selon les réglages' });
+    }
 
-      if (vitalityPayload?.applied) {
-        await recordVitalityChangeEvent(tx, {
+    const biomesMap = await loadBiomesForChapterIds({ queryAll }, [game.chapter_id]);
+    const chapterBiomes = biomesMap.get(Number(game.chapter_id)) || [];
+    const chapterBiomeSlugs = chapterBiomes.map((b) => b.slug);
+
+    const excludeRaw = req.body?.excludeCodes;
+    const excludeCodes = Array.isArray(excludeRaw)
+      ? excludeRaw
+      : typeof excludeRaw === 'string'
+        ? excludeRaw.split(',')
+        : [];
+
+    const draw = await drawQuestionFromMarker(
+      { queryAll, queryOne },
+      markerRow,
+      chapterBiomeSlugs,
+      excludeCodes,
+      chapterPlateauNumber,
+    );
+    if (draw.error || !draw.questionCode) {
+      return res.status(404).json({ error: draw.error || 'Aucune question disponible' });
+    }
+
+    const questionRow = await loadAnyPresentableQuestion({ queryOne }, draw.questionCode);
+    if (!questionRow) {
+      return res
+        .status(404)
+        .json({ error: draw.error || `Question ${draw.questionCode} non présentable` });
+    }
+
+    const isLore = isLoreQuestionCode(draw.questionCode);
+    const glossaryByKey = isLore ? await loadLoreGlossaryLookup() : await loadGlossaryLookup();
+    const glossaryTerms = await enrichQuestionWithGlossary(questionRow, glossaryByKey);
+    let presentation;
+    try {
+      presentation = buildAnyPresentation(questionRow, glossaryTerms);
+    } catch (err) {
+      return res.status(400).json({ error: err.message || 'Présentation impossible' });
+    }
+
+    const actorType = actorTypeOf(req);
+    const presentedEvent = await insertGameEvent(db, {
+      gameId,
+      teamId,
+      actorType,
+      actorId: String(req.glAuth.userId),
+      eventType: 'marker_question_presented',
+      payload: {
+        markerId,
+        questionCode: draw.questionCode,
+        qcmSet: draw.qcmSet || (isLore ? 'lore' : 'biome'),
+        markerLabel: marker.label,
+      },
+    });
+    emitGlGameEvent(gameId, presentedEvent);
+
+    return res.json({
+      questionCode: draw.questionCode,
+      qcmSet: draw.qcmSet || (isLore ? 'lore' : 'biome'),
+      presentation,
+      markerId,
+      teamId,
+    });
+  }),
+);
+
+/** POST /api/gl/games/:id/markers/:markerId/present-arrival — résumé d'arrivée sur repère (effets plateau). */
+router.post(
+  '/games/:id/markers/:markerId/present-arrival',
+  requireGlAuth,
+  asyncHandler(async (req, res) => {
+    const gameId = parseId(req.params.id);
+    const markerId = parseId(req.params.markerId);
+    if (!gameId || !markerId) {
+      return res.status(400).json({ error: 'Identifiants invalides' });
+    }
+
+    const allowed = await canAccessGlGame(req.glAuth, gameId);
+    if (!allowed) return res.status(403).json({ error: 'Accès partie refusé' });
+
+    const game = await queryOne(
+      'SELECT id, chapter_id, status, board_movement_mode, board_path_start_index FROM gl_games WHERE id = ? LIMIT 1',
+      [gameId],
+    );
+    if (!game) return res.status(404).json({ error: 'Partie introuvable' });
+
+    const markerRow = await queryOne(
+      `SELECT ${MARKER_SELECT} FROM gl_chapter_markers WHERE id = ? LIMIT 1`,
+      [markerId],
+    );
+    const marker = formatMarkerRow(markerRow);
+    if (!marker || Number(marker.chapter_id) !== Number(game.chapter_id)) {
+      return res.status(404).json({ error: 'Repère introuvable' });
+    }
+    if (isQuestionMarker(marker)) {
+      return res.status(409).json({ error: 'Repère question : utiliser present-question' });
+    }
+    if (!hasApplicableMarkerEffects(marker)) {
+      return res.status(404).json({ error: 'Repère sans effet à présenter' });
+    }
+
+    const settings = await getGameplaySettings();
+    if (settings.qcmMjOnly && req.glAuth.userType === 'gl_player') {
+      return res.status(403).json({ error: 'Présentation réservée au maître du jeu' });
+    }
+
+    let teamId = req.body?.teamId != null ? parseId(req.body.teamId) : null;
+    if (req.glAuth.userType === 'gl_player') {
+      const membership = await getPlayerGameMembership(gameId, req.glAuth.userId);
+      if (!membership?.team_id)
+        return res.status(403).json({ error: 'Joueur non rattaché à une équipe' });
+      teamId = Number(membership.team_id);
+    } else if (teamId == null) {
+      return res.status(400).json({ error: 'teamId requis pour le MJ' });
+    }
+
+    const team = await queryOne(
+      'SELECT id, type, name FROM gl_teams WHERE id = ? AND game_id = ? LIMIT 1',
+      [teamId, gameId],
+    );
+    if (!team) return res.status(404).json({ error: 'Équipe introuvable dans cette partie' });
+
+    const arrival = buildMarkerArrivalPayload(marker, team);
+    const actorType = actorTypeOf(req);
+    const actorId = String(req.glAuth.userId);
+    const reason = String(marker.label || 'Repère').trim();
+
+    const playerIdsRaw = req.body?.playerIds;
+    const playerIds = Array.isArray(playerIdsRaw)
+      ? playerIdsRaw
+      : playerIdsRaw != null
+        ? [playerIdsRaw]
+        : null;
+
+    let vitalityPayload = null;
+    let autoMove = null;
+    let lastEvent = null;
+    try {
+      await withTransaction(async (tx) => {
+        vitalityPayload = await applyMarkerVitalityEffects(tx, {
           gameId,
           teamId,
-          actorId,
-          healthDelta: vitalityPayload.healthDelta,
-          powerDelta: vitalityPayload.powerDelta,
-          reason,
-          results: vitalityPayload.vitalityResults,
+          marker,
+          teamType: team.type,
+          settings,
+          playerIds,
+          skipIfAlreadyApplied: true,
         });
+
+        if (vitalityPayload?.applied) {
+          await recordVitalityChangeEvent(tx, {
+            gameId,
+            teamId,
+            actorId,
+            healthDelta: vitalityPayload.healthDelta,
+            powerDelta: vitalityPayload.powerDelta,
+            reason,
+            results: vitalityPayload.vitalityResults,
+          });
+          lastEvent = await insertGameEvent(tx, {
+            gameId,
+            teamId,
+            actorType,
+            actorId,
+            eventType: 'marker_effect',
+            payload: buildMarkerEffectEventPayload({
+              marker,
+              resolved: vitalityPayload.resolvedEffect,
+              healthDelta: vitalityPayload.healthDelta,
+              powerDelta: vitalityPayload.powerDelta,
+              moveDelta: vitalityPayload.moveDelta,
+              passTurn: vitalityPayload.passTurn,
+              reason,
+              vitalityTarget: vitalityPayload.vitalityTarget,
+              vitalityPlayerIds: vitalityPayload.vitalityPlayerIds,
+              autoMoveApplied: willAutoMoveMarkerEffect(game, settings, vitalityPayload.moveDelta),
+            }),
+          });
+        }
+
         lastEvent = await insertGameEvent(tx, {
           gameId,
           teamId,
           actorType,
           actorId,
-          eventType: 'marker_effect',
-          payload: buildMarkerEffectEventPayload({
-            marker,
-            resolved: vitalityPayload.resolvedEffect,
+          eventType: 'marker_arrival',
+          payload: {
+            markerId,
+            markerLabel: marker.label,
+            eventType: marker.event_type,
+            effectSummary: arrival.effectSummary,
+          },
+        });
+
+        autoMove = await maybeApplyMarkerEffectAutoMove(tx, {
+          gameId,
+          teamId,
+          team,
+          game,
+          chapterId: game.chapter_id,
+          moveDelta: vitalityPayload?.moveDelta,
+          settings,
+          actorType,
+          actorId,
+          originMarkerId: markerId,
+        });
+        if (autoMove?.moveEvent) lastEvent = autoMove.moveEvent;
+      });
+    } catch (err) {
+      const mapped = resolveVitalityError(err);
+      if (mapped) return res.status(mapped.status).json({ error: mapped.error });
+      throw err;
+    }
+
+    // Dernier événement inséré par CETTE requête (insertId), plus de re-SELECT
+    // « dernier de la partie », sensible à la concurrence.
+    if (lastEvent) emitGlGameEvent(gameId, lastEvent);
+
+    return res.json({
+      ...arrival,
+      teamId: Number(teamId),
+      teamType: team.type,
+      vitality: vitalityPayload
+        ? {
+            applied: vitalityPayload.applied === true,
+            alreadyApplied: vitalityPayload.alreadyApplied === true,
             healthDelta: vitalityPayload.healthDelta,
             powerDelta: vitalityPayload.powerDelta,
-            moveDelta: vitalityPayload.moveDelta,
-            passTurn: vitalityPayload.passTurn,
-            reason,
-            vitalityTarget: vitalityPayload.vitalityTarget,
-            vitalityPlayerIds: vitalityPayload.vitalityPlayerIds,
-            autoMoveApplied: willAutoMoveMarkerEffect(game, settings, vitalityPayload.moveDelta),
-          }),
-        });
-      }
-
-      lastEvent = await insertGameEvent(tx, {
-        gameId,
-        teamId,
-        actorType,
-        actorId,
-        eventType: 'marker_arrival',
-        payload: {
-          markerId,
-          markerLabel: marker.label,
-          eventType: marker.event_type,
-          effectSummary: arrival.effectSummary,
-        },
-      });
-
-      autoMove = await maybeApplyMarkerEffectAutoMove(tx, {
-        gameId,
-        teamId,
-        team,
-        game,
-        chapterId: game.chapter_id,
-        moveDelta: vitalityPayload?.moveDelta,
-        settings,
-        actorType,
-        actorId,
-        originMarkerId: markerId,
-      });
-      if (autoMove?.moveEvent) lastEvent = autoMove.moveEvent;
+            results: vitalityPayload.vitalityResults,
+            target: vitalityPayload.vitalityTarget || 'team',
+          }
+        : null,
+      autoMove: autoMove?.applied ? autoMove : null,
     });
-  } catch (err) {
-    const mapped = resolveVitalityError(err);
-    if (mapped) return res.status(mapped.status).json({ error: mapped.error });
-    throw err;
-  }
-
-  // Dernier événement inséré par CETTE requête (insertId), plus de re-SELECT
-  // « dernier de la partie », sensible à la concurrence.
-  if (lastEvent) emitGlGameEvent(gameId, lastEvent);
-
-  return res.json({
-    ...arrival,
-    teamId: Number(teamId),
-    teamType: team.type,
-    vitality: vitalityPayload
-      ? {
-          applied: vitalityPayload.applied === true,
-          alreadyApplied: vitalityPayload.alreadyApplied === true,
-          healthDelta: vitalityPayload.healthDelta,
-          powerDelta: vitalityPayload.powerDelta,
-          results: vitalityPayload.vitalityResults,
-          target: vitalityPayload.vitalityTarget || 'team',
-        }
-      : null,
-    autoMove: autoMove?.applied ? autoMove : null,
-  });
-});
+  }),
+);
 
 /** POST /api/gl/games/:id/markers/:markerId/apply-effects — applique les effets vitalité du repère (MJ). */
 router.post(
   '/games/:id/markers/:markerId/apply-effects',
   requireGlPermission('gl.event.emit'),
-  async (req, res) => {
+  asyncHandler(async (req, res) => {
     const gameId = parseId(req.params.id);
     const markerId = parseId(req.params.markerId);
     const teamId = parseId(req.body?.teamId);
@@ -601,7 +611,7 @@ router.post(
       vitalityTarget: vitalityPayload.vitalityTarget,
       autoMove: autoMove?.applied ? autoMove : null,
     });
-  },
+  }),
 );
 
 module.exports = router;
