@@ -131,6 +131,9 @@ describe('useVisitSeenSync', () => {
   });
 
   it('fin de chargement en ligne avec file non vide : flush automatique', async () => {
+    // Budget du test (3e arg) porté à 15 s : la purge enchaîne deux `waitFor`
+    // (dont un à `timeout: 5000` l.153) — avec le défaut de 5 s, le test expirait
+    // avant que le second `waitFor` n'aboutisse sur runner CI lent (flake observé).
     window.localStorage.setItem(
       VISIT_SEEN_QUEUE_STORAGE_KEY,
       JSON.stringify([{ target_type: 'zone', target_id: 3, seen: true }]),
@@ -150,5 +153,5 @@ describe('useVisitSeenSync', () => {
     // CI : la purge de la file passe par plusieurs micro/macro-tâches — délai élargi
     // pour éliminer un flake observé sur runner lent (waitFor par défaut = 1 s).
     await waitFor(() => expect(apiRef.current.pendingSyncCount).toBe(0), { timeout: 5000 });
-  });
+  }, 15000);
 });
