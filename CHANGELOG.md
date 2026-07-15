@@ -7,6 +7,31 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Audit `AUDIT_CODE_2026-07` — lot mutualisation backend 3b : dédup helpers purs (sans changement de comportement)
+
+Suppression de définitions locales **prouvées byte-identiques** à leur canonique (comparaison
+`diff` corps à corps), remplacées par un import ; comportement inchangé, exports préservés là où
+d'autres modules importent le nom. Les variantes ne serait-ce que d'un caractère ont été **laissées
+en l'état** (signalées ci-dessous) pour ne prendre aucun risque de régression.
+
+- **`normalizeImportHeader`** (canonique `lib/shared/stringHelpers.js`) : dédupliqué dans
+  `lib/glSpeciesImport.js`, `lib/glPlayersImport.js`, `lib/glChaptersImport.js`,
+  `lib/glLoreFeuilletsImport.js`, `lib/tasks/taskImport.js`, `lib/studentRouteHelpers.js` (export
+  ré-exporté conservé).
+- **`normalizeOptionalString`** (canonique `lib/shared/httpHelpers.js`) : dédupliqué dans
+  `lib/glJournalPresent.js`, `lib/glZoneContent.js`, `lib/glProfile.js` (ré-exports conservés :
+  `routes/gl/auth.js` importe depuis `glProfile`).
+- **`normalizeIdArray`** (canonique `lib/taskRouteHelpers.js`) : dédupliqué dans
+  `lib/tutorialRouteHelpers.js` (ré-export conservé) et `routes/task-projects.js`.
+- **`parseId`** (canonique `lib/shared/httpHelpers.js`, déjà partagé) : définition locale
+  identique retirée de `routes/gl/games.js` au profit de l'import existant.
+
+Variantes **volontairement non fusionnées** (sémantique ou texte différents) : `parseId` de
+`lib/gl/loreRouteHelpers.js` (troncature + rejet des ≤ 0, distinct de `httpHelpers`) ;
+`normalizeOptionalString` de `taskImport`, `glSpeciesImport`, `glPlayersImport` (variante
+`asTrimmedString`), `glLoreFeuilletsImport` (gère `—`/`-` → null), `glHelp`/`glIntro` (retour `''`
+au lieu de `null`).
+
 ### Audit `AUDIT_CODE_2026-07` — lot mutualisation backend 3a (sans changement de comportement)
 
 Factorisation de duplications backend prouvées identiques, à comportement observable

@@ -6,6 +6,7 @@ const asyncHandler = require('../lib/asyncHandler');
 const { z, validate } = require('../lib/validate');
 const { emitTasksChanged } = require('../lib/realtime');
 const { logAudit } = require('./audit');
+const { normalizeIdArray } = require('../lib/taskRouteHelpers');
 
 const router = express.Router();
 /** Statuts acceptés sur POST/PUT corps JSON (pas `completed` : réservé à la synchro tâches). */
@@ -20,11 +21,6 @@ function normalizeProjectStatusForApi(value, fallback = 'active') {
   if (!raw) return fallback;
   if (raw === 'en_attente' || raw === 'en attente' || raw === 'attente') return 'on_hold';
   return PROJECT_STATUSES_API_WRITE.has(raw) ? raw : '';
-}
-
-function normalizeIdArray(value) {
-  if (!Array.isArray(value)) return [];
-  return [...new Set(value.map((x) => (x != null ? String(x).trim() : '')).filter(Boolean))];
 }
 
 function normalizeTutorialIdArray(value) {
