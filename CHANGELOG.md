@@ -7,6 +7,31 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Audit `AUDIT_CODE_2026-07` — lot N+1 & transactions backend (sans changement de comportement)
+
+Correctifs de performance et de cohérence, à comportement observable strictement identique
+(mêmes codes HTTP, messages français exacts, ordre des gardes, événements et corps de réponse) :
+
+- **`lib/tasks/taskQueries.js` — `validateTaskLocations` (§2.3)** : élimination d'un N+1.
+  Les zones et repères liés à une tâche étaient validés **un par un** (`getZone`/`getMarker`
+  par id). Ils sont désormais chargés en **deux requêtes groupées**
+  (`SELECT id, map_id FROM zones WHERE id IN (…)` et idem `map_markers`), la validation se
+  faisant ensuite en mémoire — priorité zones-avant-repères, messages d'erreur et map_id
+  agrégés inchangés. Helpers `getZone`/`getMarker` devenus inutilisés : supprimés.
+- **`routes/task-projects.js` — POST/PUT (§2.5)** : la création et la mise à jour d'un projet
+  (INSERT/UPDATE + liens zones/repères/tutoriels) sont regroupées dans **une transaction**.
+  Un échec au milieu ne laisse plus le projet désynchronisé de ses liens. Les helpers
+  `setProject*` / `replaceProjectJunctionRows` acceptent désormais un exécuteur (`tx`), sur le
+  modèle de `lib/speciesJunction.js`. Validations 400/403/404 inchangées, avant la transaction.
+- **`routes/tutorials.js` — POST création (§2.5)** : l'INSERT du tutoriel et ses liens
+  zones/repères sont regroupés dans **une transaction** ; `replaceTutorialZonesMarkers` accepte
+  un exécuteur optionnel rétrocompatible (`conn = pool` par défaut, le PUT reste inchangé).
+
+Relevés mais **différés** vers un lot dédié avec tests (comportement sensible) : synchronisation
+de rôle par élève dans `GET /api/stats/all` (effets de promotion), double `jwt.verify` par
+requête (garde d'isolement produit + middleware de route), projections `SELECT *`
+(`routes/auth.js`, liste `plants`).
+
 ### Audit `AUDIT_CODE_2026-07` — lot quick-wins (perf & simplification, sans changement de comportement)
 
 Suite de l'audit de code : correctifs à comportement strictement identique.

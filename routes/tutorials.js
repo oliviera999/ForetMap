@@ -105,18 +105,23 @@ async function getTutorialMarkerIds(tutorialId) {
   return rows.map((r) => String(r.marker_id).trim()).filter(Boolean);
 }
 
-async function replaceTutorialZonesMarkers(tutorialId, zoneIds, markerIds) {
+// `conn` = exécuteur SQL (par défaut le pool via `execute`) : passer `tx` pour rester dans une
+// transaction (cf. `lib/speciesJunction.js`). Rétrocompatible : appelé sans `conn`, il utilise le pool.
+async function replaceTutorialZonesMarkers(tutorialId, zoneIds, markerIds, conn = { execute }) {
   const tid = Number(tutorialId);
   if (!Number.isFinite(tid) || tid <= 0) return;
   const z = normalizeIdArray(zoneIds);
   const m = normalizeIdArray(markerIds);
-  await execute('DELETE FROM tutorial_zones WHERE tutorial_id = ?', [tid]);
-  await execute('DELETE FROM tutorial_markers WHERE tutorial_id = ?', [tid]);
+  await conn.execute('DELETE FROM tutorial_zones WHERE tutorial_id = ?', [tid]);
+  await conn.execute('DELETE FROM tutorial_markers WHERE tutorial_id = ?', [tid]);
   for (const zid of z) {
-    await execute('INSERT INTO tutorial_zones (tutorial_id, zone_id) VALUES (?, ?)', [tid, zid]);
+    await conn.execute('INSERT INTO tutorial_zones (tutorial_id, zone_id) VALUES (?, ?)', [
+      tid,
+      zid,
+    ]);
   }
   for (const mid of m) {
-    await execute('INSERT INTO tutorial_markers (tutorial_id, marker_id) VALUES (?, ?)', [
+    await conn.execute('INSERT INTO tutorial_markers (tutorial_id, marker_id) VALUES (?, ?)', [
       tid,
       mid,
     ]);
@@ -579,28 +584,33 @@ router.post(
     const baseSlug = slugify(req.body.slug || title);
     const slug = await uniqueSlug(baseSlug);
     const now = new Date().toISOString();
-    const result = await execute(
-      `INSERT INTO tutorials
+    // Atomicité : INSERT tutoriel + liens zones/repères dans une seule transaction (§2.5 audit).
+    // Les validations 400/403/404 ci-dessus restent hors transaction, à l'identique.
+    const createdId = await withTransaction(async (tx) => {
+      const result = await tx.execute(
+        `INSERT INTO tutorials
       (title, slug, type, summary, cover_image_url, html_content, source_url, source_file_path, is_active, sort_order, created_at, updated_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)`,
-      [
-        title,
-        slug,
-        type,
-        summary || null,
-        coverImageUrl,
-        htmlContent,
-        sourceUrl,
-        sourceFilePath,
-        sortOrder,
-        now,
-        now,
-      ],
-    );
-    const createdId = result.insertId;
-    if (loc) {
-      await replaceTutorialZonesMarkers(createdId, loc.zoneIds, loc.markerIds);
-    }
+        [
+          title,
+          slug,
+          type,
+          summary || null,
+          coverImageUrl,
+          htmlContent,
+          sourceUrl,
+          sourceFilePath,
+          sortOrder,
+          now,
+          now,
+        ],
+      );
+      const newId = result.insertId;
+      if (loc) {
+        await replaceTutorialZonesMarkers(newId, loc.zoneIds, loc.markerIds, tx);
+      }
+      return newId;
+    });
     const created = await queryOne('SELECT * FROM tutorials WHERE id = ?', [createdId]);
     const zMap = await fetchZonesForTutorials([createdId]);
     const mMap = await fetchMarkersForTutorials([createdId]);
