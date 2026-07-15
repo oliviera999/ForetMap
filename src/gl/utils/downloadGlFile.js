@@ -1,4 +1,4 @@
-import { withAppBase } from '../../services/api.js';
+import { withAppBase } from '../../shared/appBase.js';
 import { getGlToken } from '../services/apiGL.js';
 import { downloadAuthedFile } from '../../shared/downloadAuthedFile.js';
 

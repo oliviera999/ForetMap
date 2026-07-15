@@ -7,6 +7,34 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Audit `AUDIT_CODE_2026-07` — lot mutualisation frontend 4 (sans changement de comportement)
+
+Mutualisations frontend §5, à comportement observable strictement inchangé (surface d'API
+publique et noms exportés préservés). Validé par la suite Vitest complète (378 fichiers, 2499
+tests verts).
+
+- **`src/shared/appBase.js` (§5.1)** : `API` + `withAppBase` (primitives pures d'URL, sans
+  session/claim) extraites de `src/services/api.js`, qui les **ré-exporte** (compat : ~85
+  importateurs ForetMap intacts). Les **14 modules GL** qui n'avaient besoin que de `withAppBase`
+  importent désormais `src/shared/appBase.js` au lieu de tirer tout `api.js` (session ForetMap,
+  `AccountDeletedError`, événements prof). **Isolement produit préservé** : `appBase.js` ne contient
+  aucun store de session ni logique 401.
+- **`src/utils/glTermAutolink.js` (§5.3)** : fabrique `createTermAutolink({ codeField, cssClass,
+  dataAttr })` mutualisant le tronc commun byte-identique des autolinks de glossaire ;
+  `glGlossaryAutolink.js` (SVT) et `glLoreGlossaryAutolink.js` (Lore) l'invoquent avec leur config
+  et gardent leur stratégie de rendu propre (tokenisation regex vs parcours DOM) et **tous leurs
+  noms exportés**. HTML généré identique.
+- **`src/utils/zoneGeometry.js` (§5.3)** : module fédérateur des utilitaires canoniques
+  `parseZonePoints` (parsing des sommets `{xp,yp}`) et `computeMapImageContainRect` (rect de fit
+  `contain`) ; `visitMapGeometry.js` / `mapImageFit.js` / `biodivMapGeometry.js` les ré-exportent
+  sous leurs alias existants (`parseVisitZonePoints`, `parseZonePointsJson`,
+  `computeBiodivMapFitRect`). Les parses inline non équivalents (points bruts non normalisés) sont
+  laissés distincts.
+- **`src/hooks/useApiResource.js` (§5.4)** : nouveau hook `useApiResource(fetcher, deps, {
+  onForceLogout })` → `{ data, loading, error, reload }` (fetch au montage/deps, garde anti-course,
+  gestion `AccountDeletedError`), généralisant le pattern `safeApi`. **Additif** : aucune vue migrée
+  pour l'instant (migration progressive ultérieure), couvert par 7 tests Vitest.
+
 ### Audit `AUDIT_CODE_2026-07` — lot mutualisation backend 3b : dédup helpers purs (sans changement de comportement)
 
 Suppression de définitions locales **prouvées byte-identiques** à leur canonique (comparaison
