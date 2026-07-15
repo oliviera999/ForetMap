@@ -43,6 +43,7 @@ const {
   taskDangerLevelForResponse,
   taskDifficultyLevelForResponse,
   taskImportanceLevelForResponse,
+  taskImportanceOrderBySql,
   attachTaskLivingBeingsApiFields,
   decodeTaskImageBuffer,
   attachTaskImagePublicFields,
@@ -325,19 +326,7 @@ router.get(
       params.push(groupId);
     }
     const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
-    const orderSql = `ORDER BY
-    CASE WHEN COALESCE(t.sort_order, 0) > 0 THEN 0 ELSE 1 END ASC,
-    CASE WHEN COALESCE(t.sort_order, 0) > 0 THEN t.sort_order ELSE NULL END ASC,
-    CASE WHEN COALESCE(NULLIF(TRIM(t.importance_level), ''), '') = '' THEN 1 ELSE 0 END ASC,
-    CASE LOWER(TRIM(t.importance_level))
-      WHEN 'absolute' THEN 5
-      WHEN 'high' THEN 4
-      WHEN 'medium' THEN 3
-      WHEN 'low' THEN 2
-      WHEN 'not_important' THEN 1
-      ELSE 0
-    END DESC,
-    t.due_date ASC`;
+    const orderSql = `ORDER BY ${taskImportanceOrderBySql('t.')}`;
     const tasks = await queryAll(`${sqlBase} ${whereSql} ${orderSql}`, params);
     const taskIds = tasks.map((t) => t.id);
     const proposedTaskIds = tasks
@@ -430,19 +419,7 @@ router.post(
       `SELECT id, sort_order, importance_level, due_date
        FROM tasks
       WHERE project_id = ?
-      ORDER BY
-        CASE WHEN COALESCE(sort_order, 0) > 0 THEN 0 ELSE 1 END ASC,
-        CASE WHEN COALESCE(sort_order, 0) > 0 THEN sort_order ELSE NULL END ASC,
-        CASE WHEN COALESCE(NULLIF(TRIM(importance_level), ''), '') = '' THEN 1 ELSE 0 END ASC,
-        CASE LOWER(TRIM(importance_level))
-          WHEN 'absolute' THEN 5
-          WHEN 'high' THEN 4
-          WHEN 'medium' THEN 3
-          WHEN 'low' THEN 2
-          WHEN 'not_important' THEN 1
-          ELSE 0
-        END DESC,
-        due_date ASC,
+      ORDER BY ${taskImportanceOrderBySql()},
         id ASC`,
       [projectId],
     );
