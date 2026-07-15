@@ -253,32 +253,23 @@ router.get(
 router.patch(
   '/progression-by-validated-tasks',
   requirePermission('admin.roles.manage'),
-  async (req, res) => {
-    try {
-      const raw = req.body?.enabled;
-      if (typeof raw !== 'boolean') {
-        return res.status(400).json({ error: 'Champ « enabled » booléen requis' });
-      }
-      const updated = await setSetting('rbac.progression_by_validated_tasks', raw, {
-        userType: req.auth?.userType,
-        userId: req.auth?.userId,
-      });
-      logAudit(
-        'rbac_progression_by_tasks',
-        'setting',
-        null,
-        'rbac.progression_by_validated_tasks',
-        {
-          req,
-          payload: { enabled: updated },
-        },
-      );
-      res.json({ ok: true, progressionByValidatedTasksEnabled: updated });
-    } catch (e) {
-      logRouteError(e, req);
-      res.status(400).json({ error: e.message });
+  asyncHandler(async (req, res) => {
+    const raw = req.body?.enabled;
+    if (typeof raw !== 'boolean') {
+      return res.status(400).json({ error: 'Champ « enabled » booléen requis' });
     }
-  },
+    // La valeur est un booléen déjà validé : une erreur ici est une panne interne (500),
+    // pas une erreur de saisie — ne pas la renvoyer en 400 avec le message brut.
+    const updated = await setSetting('rbac.progression_by_validated_tasks', raw, {
+      userType: req.auth?.userType,
+      userId: req.auth?.userId,
+    });
+    logAudit('rbac_progression_by_tasks', 'setting', null, 'rbac.progression_by_validated_tasks', {
+      req,
+      payload: { enabled: updated },
+    });
+    res.json({ ok: true, progressionByValidatedTasksEnabled: updated });
+  }),
 );
 
 router.post(

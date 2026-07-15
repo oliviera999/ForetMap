@@ -24,8 +24,8 @@ const {
 const {
   getSettings,
   setSetting,
+  validateSettingCandidate,
   listAdminSettings,
-  validateCrossSettings,
   invalidateSettingsCache,
 } = require('../lib/settings');
 const {
@@ -165,8 +165,10 @@ router.post(
   }),
 );
 
-router.put('/admin/:key', requirePermission('admin.settings.write'), async (req, res) => {
-  try {
+router.put(
+  '/admin/:key',
+  requirePermission('admin.settings.write'),
+  asyncHandler(async (req, res) => {
     const key = String(req.params.key || '').trim();
     if (!key) return res.status(400).json({ error: 'Clé de réglage requise' });
     const value = req.body?.value;
@@ -182,22 +184,26 @@ router.put('/admin/:key', requirePermission('admin.settings.write'), async (req,
       ]);
       if (!exists) return res.status(400).json({ error: 'Carte par défaut introuvable' });
     }
-    const updated = await setSetting(key, value, {
+    // Validation complète (normalisation + cohérence croisée) AVANT persistance :
+    // un 400 ne doit jamais être renvoyé après que la valeur a été enregistrée.
+    let normalized;
+    try {
+      normalized = await validateSettingCandidate(key, value);
+    } catch (e) {
+      logRouteError(e, req);
+      return res.status(400).json({ error: e.message });
+    }
+    const updated = await setSetting(key, normalized, {
       userType: req.auth?.userType,
       userId: req.auth?.userId,
     });
-    const all = await getSettings('admin');
-    await validateCrossSettings(all.flat);
     await logAudit('settings_update', 'setting', key, 'Réglage mis à jour', {
       req,
       payload: { key, value: updated },
     });
     res.json({ ok: true, key, value: updated });
-  } catch (e) {
-    logRouteError(e, req);
-    res.status(400).json({ error: e.message });
-  }
-});
+  }),
+);
 
 router.post(
   '/admin/maps',
@@ -547,9 +553,21 @@ router.post(
       { req },
     );
     res.json({ ok: true, message: 'Redémarrage dans 1s' });
-    setTimeout(() => process.exit(0), 1000);
+    // Même sémantique d'arrêt que /api/admin/restart : drain HTTP + Socket.IO + pool MySQL
+    // via gracefulShutdown (injecté par server.js) — process.exit brut en dernier recours.
+    setTimeout(() => {
+      if (restartShutdownHandler) restartShutdownHandler('restart-gui');
+      else process.exit(0);
+    }, 1000);
   }),
 );
+
+// Injection par server.js (le cycle de vie du serveur HTTP reste sa responsabilité,
+// comme pour createAdminOpsRouter).
+let restartShutdownHandler = null;
+router.setRestartShutdownHandler = (fn) => {
+  restartShutdownHandler = typeof fn === 'function' ? fn : null;
+};
 
 module.exports = router;
 // Exportés pour les tests no-DB du contrat de validation O7.
