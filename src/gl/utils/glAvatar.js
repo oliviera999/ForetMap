@@ -1,5 +1,5 @@
 import { buildDicebearAvatarUrl, buildUploadedAvatarUrl } from '../../shared/profile/avatarUrl.js';
-import { withAppBase } from '../../services/api.js';
+import { withAppBase } from '../../shared/appBase.js';
 
 export function getGlAvatarUrl(profile, auth = null) {
   const uploadedRel = buildUploadedAvatarUrl(profile?.avatar_path);
