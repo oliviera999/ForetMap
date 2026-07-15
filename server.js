@@ -355,6 +355,9 @@ app.use('/api/observations', observationsRouter);
 app.use('/api/audit', auditRouter);
 app.use('/api/rbac', rbacRouter);
 app.use('/api/settings', settingsRouter);
+// Le restart GUI (/api/settings/admin/system/restart) partage l'arrêt gracieux
+// de /api/admin/restart (drain HTTP, Socket.IO, pool MySQL).
+settingsRouter.setRestartShutdownHandler(gracefulShutdown);
 app.use('/api/media-library', mediaLibraryRouter);
 app.use('/api/forum', forumRouter);
 app.use('/api/context-comments', contextCommentsRouter);
