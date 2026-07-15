@@ -56,6 +56,32 @@ marked.setOptions({
   gfm: true,
 });
 
+/**
+ * Cache LRU du rendu `marked.parse()` : les longues listes (glossaire, lore,
+ * carnet) re-parsent en boucle les mêmes textes à chaque rendu. Le parse est
+ * déterministe à partir du texte brut → mémoïsation par clé, éviction FIFO.
+ */
+const MARKED_CACHE_MAX = 300;
+const markedParseCache = new Map();
+
+function parseMarkdownCached(raw) {
+  const cached = markedParseCache.get(raw);
+  if (cached !== undefined) {
+    // Rafraîchit l'ancienneté (LRU) : re-insertion en fin d'ordre.
+    markedParseCache.delete(raw);
+    markedParseCache.set(raw, cached);
+    return cached;
+  }
+  const parsed = marked.parse(raw, { async: false });
+  const html = typeof parsed === 'string' ? parsed : '';
+  markedParseCache.set(raw, html);
+  if (markedParseCache.size > MARKED_CACHE_MAX) {
+    // Évince l'entrée la plus ancienne (première clé insérée).
+    markedParseCache.delete(markedParseCache.keys().next().value);
+  }
+  return html;
+}
+
 function styleObjectToString(style) {
   return Object.entries(style || {})
     .map(
@@ -196,8 +222,7 @@ DOMPurify.addHook('afterSanitizeAttributes', (node) => {
 export function renderMarkdownToSafeHtml(markdown, options = {}) {
   const raw = repairSupplementaryPlaneEmojiMojibake(String(markdown ?? '').trim());
   if (!raw) return '';
-  const parsed = marked.parse(raw, { async: false });
-  const html = typeof parsed === 'string' ? parsed : '';
+  const html = parseMarkdownCached(raw);
   return sanitizeRichHtml(html, {
     allowImages: options?.allowImages,
     allowJournalEmbeds: options?.allowJournalEmbeds,

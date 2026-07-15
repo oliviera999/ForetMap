@@ -7,6 +7,23 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Audit `AUDIT_CODE_2026-07` — lot quick-wins (perf & simplification, sans changement de comportement)
+
+Suite de l'audit de code : correctifs à comportement strictement identique.
+
+- **`lib/httpRequestLog.js` (§2.6)** : `parseHttpLogMode()` / `parseSlowMs()` sont désormais
+  résolus **une seule fois** à la création du middleware (au démarrage) au lieu d'être
+  recalculés à chaque requête HTTP. Les variables `FORETMAP_HTTP_LOG` / `FORETMAP_HTTP_SLOW_MS`
+  ne changent pas en cours d'exécution — sortie du chemin chaud par requête.
+- **`src/utils/markdown.js` (§3.5)** : cache LRU (300 entrées, éviction FIFO) sur
+  `marked.parse()`. Les longues listes (glossaire, lore, carnet) re-parsaient en boucle les
+  mêmes textes à chaque rendu ; le parse étant déterministe à partir du texte brut, il est
+  désormais mémoïsé. Rendu HTML final inchangé.
+- **`routes/tasks.js` + `lib/taskRouteHelpers.js` (§6.2)** : la clause `ORDER BY` de tri des
+  tâches (épinglage `sort_order`, barème d'importance, échéance), auparavant dupliquée à
+  l'identique entre la liste et la réordonnance de projet, est factorisée dans
+  `taskImportanceOrderBySql(prefix)`. SQL généré sémantiquement identique.
+
 ### Audit général du code — lot 2 : factorisation des duplications (sans changement de comportement)
 
 Déduplication des trois blocs identifiés par l'audit, à comportement strictement
