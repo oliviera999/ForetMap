@@ -7,6 +7,29 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Audit `AUDIT_CODE_2026-07` — lot mutualisation backend 3a (sans changement de comportement)
+
+Factorisation de duplications backend prouvées identiques, à comportement observable
+strictement inchangé, plus un correctif de robustesse de test :
+
+- **`lib/shared/oauthCommon.js` (§4.3)** : trois fonctions OAuth **pures** (`parseCsvLowercaseSet`,
+  `googleOauthConfigured`, `isGoogleEmailAllowed`), auparavant dupliquées **byte-à-byte** entre
+  `lib/authRouteHelpers.js` (ForetMap) et `lib/gl/authRouteHelpers.js` (GL), sont mutualisées dans
+  un module partagé. Les deux fichiers d'origine ré-exportent ces noms → aucun importateur modifié.
+  **Isolement produit préservé** : aucune fusion de store de session, de claims ou de redirection
+  OAuth — seules des fonctions pures sont partagées (les `normalize*OAuthMode` /
+  `build*OAuthFrontendErrorRedirect` divergents restent locaux).
+- **`lib/gl/questionDrawShared.js` (§4.2)** : le handler de tirage aléatoire de question, quasi
+  identique entre `GET /api/gl/qcm/draw` (`gl_qcm_questions` / `biome_slug`) et
+  `GET /api/gl/lore/qcm/draw` (`gl_qcm_lore_questions` / `chapitre_slug`), est mutualisé dans un
+  helper paramétré par table et colonne de scope (constantes contrôlées, jamais d'entrée
+  utilisateur interpolée — toutes les valeurs HTTP restent `?`). Requête, filtres, codes,
+  messages et tirage `Math.random` inchangés ; chaque route garde sa résolution de scope propre.
+- **`tests-ui/hooks/useVisitSeenSync.test.jsx` (§7.3)** : budget du test « flush automatique »
+  porté à 15 s (3ᵉ argument de `it`). Le test enchaînait deux `waitFor` dont un à `timeout: 5000`,
+  supérieur au budget par défaut de 5 s du test lui-même → expiration prématurée sur runner CI
+  lent (flake). Aucune logique de test modifiée.
+
 ### Audit `AUDIT_CODE_2026-07` — lot N+1 & transactions backend (sans changement de comportement)
 
 Correctifs de performance et de cohérence, à comportement observable strictement identique

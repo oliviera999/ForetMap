@@ -36,6 +36,7 @@ const { glQcmPoolPreviewQuerySchema } = require('../../lib/glQuerySchemas');
 const { parseBiomeSlugsFromQuery, loadBiomesForChapterIds } = require('../../lib/glChapterBiomes');
 const { previewQuestionPool } = require('../../lib/glMarkerQuestionPool');
 const { normalizeQuestionPool } = require('../../lib/glMarkerEventConfig');
+const { handleQuestionDraw } = require('../../lib/gl/questionDrawShared');
 const asyncHandler = require('../../lib/asyncHandler');
 
 const router = express.Router();
@@ -207,36 +208,12 @@ router.get(
   requireGlPermission('gl.read'),
   asyncHandler(async (req, res) => {
     const biomeSlugs = parseBiomeSlugsFromQuery(req.query);
-    if (biomeSlugs.length === 0) {
-      return res.status(400).json({ error: 'biomeSlug ou biomeSlugs requis' });
-    }
-    const categorieSlug = normalizeOptionalString(req.query?.categorieSlug);
-    const excludeRaw = normalizeOptionalString(req.query?.exclude);
-    const exclude = excludeRaw
-      ? excludeRaw
-          .split(',')
-          .map((s) => s.trim())
-          .filter(Boolean)
-      : [];
-
-    const biomePlaceholders = biomeSlugs.map(() => '?').join(', ');
-    const params = [...biomeSlugs];
-    // Tirage : seuls les codes sont chargés (la route ne renvoie que question_code).
-    let sql = `SELECT question_code FROM gl_qcm_questions
-      WHERE statut = 'actif' AND biome_slug IN (${biomePlaceholders})`;
-    if (categorieSlug) {
-      sql += ' AND categorie_slug = ?';
-      params.push(categorieSlug);
-    }
-    if (exclude.length > 0) {
-      sql += ` AND question_code NOT IN (${exclude.map(() => '?').join(', ')})`;
-      params.push(...exclude);
-    }
-
-    const pool = await queryAll(sql, params);
-    if (pool.length === 0) return res.status(404).json({ error: 'Aucune question disponible' });
-    const picked = pool[Math.floor(Math.random() * pool.length)];
-    return res.json({ question_code: picked.question_code });
+    return handleQuestionDraw({ queryAll }, req, res, {
+      table: 'gl_qcm_questions',
+      scopeColumn: 'biome_slug',
+      scopeSlugs: biomeSlugs,
+      emptyScopeError: 'biomeSlug ou biomeSlugs requis',
+    });
   }),
 );
 
