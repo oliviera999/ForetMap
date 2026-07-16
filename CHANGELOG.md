@@ -7,6 +7,28 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Audit `AUDIT_CODE_2026-07` — lot 5 : découpage god components (partiel, sans changement de comportement)
+
+Découpage de composants volumineux (§6.1) à iso-comportement (DOM, textes, endpoints, toasts
+inchangés), validé par la suite Vitest complète (380 fichiers, 2508 tests verts).
+
+- **`src/gl/components/GLSettingsView.jsx` : 663 → 352 lignes (−47 %)**. Quatre sections de
+  réglages extraites en sous-composants prop-driven sous `src/gl/components/settings/`
+  (`GLMascotMoveSettings`, `GLPlateauMarkerScaleSettings`, `GLVitalityDefaultsSettings`,
+  `GLLoreRetriggerSettings`), sur le modèle des sections déjà externalisées. JSX déplacé verbatim,
+  handlers pointant vers les mêmes fonctions du parent (`onSaveSetting`/`onToggle`) ; les hooks
+  d'auto-save restent dans le parent. Nouveau test de rendu `GLLoreRetriggerSettings`.
+- **`src/hooks/useMascotPackEditorState.js`** : extraction du cluster « état d'édition + logique
+  dirty + resynchronisation » de `VisitMascotPackManager.jsx` dans un hook dédié, unitairement testé
+  (6 cas). Comportement inchangé (mêmes états, effets et mémos, setters stables).
+- **`tests-ui/hooks/useVisitSeenSync.test.jsx`** : timeouts du test « flush automatique » élargis
+  (10 s / budget 25 s) pour absorber la contention CPU de la suite complète.
+
+**Différé** : l'extraction `useAppData` de `src/App.jsx` (logique data/polling/temps réel) est
+reportée — ce composant central a une couverture de tests trop faible pour un refactor de cette
+ampleur ; conformément au garde-fou §9 de l'audit, elle nécessite d'abord des tests de
+caractérisation dédiés.
+
 ### Audit `AUDIT_CODE_2026-07` — lot 3c : reliquats asyncHandler (O8, sans changement de comportement)
 
 Poursuite de la migration O8 : remplacement des `try/catch` **génériques** (log + 500 générique

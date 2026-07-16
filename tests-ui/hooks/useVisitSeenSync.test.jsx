@@ -131,9 +131,11 @@ describe('useVisitSeenSync', () => {
   });
 
   it('fin de chargement en ligne avec file non vide : flush automatique', async () => {
-    // Budget du test (3e arg) porté à 15 s : la purge enchaîne deux `waitFor`
-    // (dont un à `timeout: 5000` l.153) — avec le défaut de 5 s, le test expirait
-    // avant que le second `waitFor` n'aboutisse sur runner CI lent (flake observé).
+    // La purge de la file enchaîne plusieurs micro/macro-tâches (POST + setState).
+    // Sous la suite Vitest complète (30+ fichiers en parallèle), la contention CPU
+    // starve la boucle d'événements et le flush dépasse parfois les timeouts par
+    // défaut de `waitFor` → flake observé (le test passe en <2 s en isolation).
+    // Les deux `waitFor` reçoivent donc un timeout généreux, dans le budget du test.
     window.localStorage.setItem(
       VISIT_SEEN_QUEUE_STORAGE_KEY,
       JSON.stringify([{ target_type: 'zone', target_id: 3, seen: true }]),
@@ -143,15 +145,15 @@ describe('useVisitSeenSync', () => {
 
     await act(async () => rerenderWith({ loading: false }));
 
-    await waitFor(() =>
-      expect(api).toHaveBeenCalledWith('/api/visit/seen', 'POST', {
-        target_type: 'zone',
-        target_id: '3',
-        seen: true,
-      }),
+    await waitFor(
+      () =>
+        expect(api).toHaveBeenCalledWith('/api/visit/seen', 'POST', {
+          target_type: 'zone',
+          target_id: '3',
+          seen: true,
+        }),
+      { timeout: 10000 },
     );
-    // CI : la purge de la file passe par plusieurs micro/macro-tâches — délai élargi
-    // pour éliminer un flake observé sur runner lent (waitFor par défaut = 1 s).
-    await waitFor(() => expect(apiRef.current.pendingSyncCount).toBe(0), { timeout: 5000 });
-  }, 15000);
+    await waitFor(() => expect(apiRef.current.pendingSyncCount).toBe(0), { timeout: 10000 });
+  }, 25000);
 });
