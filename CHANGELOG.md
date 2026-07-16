@@ -7,6 +7,24 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Audit `AUDIT_CODE_2026-07` — lot 2b : double `jwt.verify` par requête (§2.6, sans changement de comportement)
+
+- **`server.js` + `middleware/requireTeacher.js` + `lib/auth/jwtPipeline.js`** : chaque requête
+  authentifiée sur l'API ForetMap vérifiait le JWT **deux fois** (garde d'isolement produit de
+  `server.js`, puis middleware de route). La garde mémorise désormais les claims vérifiés sur
+  `req.verifiedForetJwt` (liés au token exact) ; `requireTeacher` les réutilise au lieu de
+  re-vérifier, tout en **réappliquant le contrôle de produit** via le nouveau helper pur
+  `checkClaimsProduct`. Sémantique inchangée : token invalide jamais mis en cache (la garde
+  échoue silencieusement → vérification complète + 401 par la route) ; token GL rejeté 403 par
+  la garde avant d'atteindre la route ; fallback vérification complète si la garde n'a pas tourné
+  (montage direct du middleware en test). Test pur `checkClaimsProduct` ajouté ; l'intégration est
+  couverte par les suites `auth`/`rbac`.
+
+Point §2 **différé** (non livré) : `stats /all` — restreindre `syncStudentPrimaryRoleFromProgress`
+au seul cas où l'avancement change modifierait **quand** les promotions de rôle surviennent (effet
+de bord métier sur un GET). Non optimisable sans changement de comportement observable ; à traiter
+séparément avec des tests de caractérisation dédiés et validation base.
+
 ### Audit `AUDIT_CODE_2026-07` — lot 5 : découpage god components (partiel, sans changement de comportement)
 
 Découpage de composants volumineux (§6.1) à iso-comportement (DOM, textes, endpoints, toasts

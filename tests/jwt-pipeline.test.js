@@ -5,6 +5,7 @@ const {
   parseBearerToken,
   verifyJwtForProduct,
   parseOptionalForetAuth,
+  checkClaimsProduct,
 } = require('../lib/auth/jwtPipeline');
 const {
   hydrateAuthFromTokenClaims,
@@ -17,6 +18,20 @@ test('parseBearerToken extrait le token Bearer', () => {
   const req = { headers: { authorization: 'Bearer abc.def.ghi' } };
   assert.strictEqual(parseBearerToken(req), 'abc.def.ghi');
   assert.strictEqual(parseBearerToken({ headers: {} }), null);
+});
+
+test('checkClaimsProduct : contrôle produit pur (réutilisation des claims vérifiés)', () => {
+  // Foret attendu (défaut) : claims foret ou sans produit → ok.
+  assert.deepStrictEqual(checkClaimsProduct({ product: 'foret', userId: 1 }, 'foret'), {
+    claims: { product: 'foret', userId: 1 },
+  });
+  assert.deepStrictEqual(checkClaimsProduct({ userId: 1 }, 'foret'), { claims: { userId: 1 } });
+  assert.strictEqual(checkClaimsProduct({ product: 'GL' }, 'foret').status, 403);
+  // GL attendu : seul un token gl passe.
+  assert.ok(checkClaimsProduct({ product: 'gl' }, 'gl').claims);
+  const rejForet = checkClaimsProduct({ product: 'foret' }, 'gl');
+  assert.strictEqual(rejForet.status, 403);
+  assert.match(rejForet.error, /Gnomes & Licornes/);
 });
 
 test('verifyJwtForProduct rejette un token Foret sur produit gl', async () => {
