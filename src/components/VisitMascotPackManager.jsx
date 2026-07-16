@@ -19,7 +19,6 @@ import {
   insertMascotImageIntoPackState,
   insertMascotImagesIntoPackState,
   createMascotPackEditorSnapshot,
-  isMascotPackEditorDirty,
   isJsonDraftDirty,
   resolvePackDialogMascotId,
   findPacksForCatalogModel,
@@ -51,6 +50,7 @@ import MascotPackArchiveImportDialog from '../shared/mascot-pack/MascotPackArchi
 import { downloadApiFile } from '../utils/downloadApiFile.js';
 import { fileToPngDataUrl } from '../utils/image.js';
 import { MASCOT_PACK_UNSAVED_LEAVE_MSG } from '../constants/mascotPackEditor.js';
+import { useMascotPackEditorState } from '../hooks/useMascotPackEditorState.js';
 
 import { STATE_LABELS } from '../constants/mascotStateLabels.js';
 
@@ -89,14 +89,22 @@ export default function VisitMascotPackManager({
   const [actionIssues, setActionIssues] = useState([]);
   const [actionBusy, setActionBusy] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
-  /** @type {[Record<string, unknown>, React.Dispatch<React.SetStateAction<Record<string, unknown>>>]} */
-  const [editorPack, setEditorPack] = useState({});
-  const [editorTab, setEditorTab] = useState('workspace');
   const [studioMode, setStudioMode] = useState('packs');
-  const [jsonDraft, setJsonDraft] = useState('{}');
-  const [jsonError, setJsonError] = useState('');
   const [jsonCopyFeedback, showJsonCopyFeedback] = useTransientMessage(2500);
-  const [labelDraft, setLabelDraft] = useState('');
+  const {
+    editorPack,
+    setEditorPack,
+    editorTab,
+    setEditorTab,
+    jsonDraft,
+    setJsonDraft,
+    jsonError,
+    setJsonError,
+    labelDraft,
+    setLabelDraft,
+    setSavedSnapshot,
+    isDirty,
+  } = useMascotPackEditorState({ selectedId, packs });
   const packAssetsApi = useMascotPackAssets({ mapId, selectedId, onForceLogout });
   const {
     libAssets,
@@ -128,7 +136,6 @@ export default function VisitMascotPackManager({
     /** @type {{ playInteraction?: (k: string) => void } | null} */ (null),
   );
   const [insertFeedback, showInsertFeedback] = useTransientMessage(2800);
-  const [savedSnapshot, setSavedSnapshot] = useState(null);
   const [catalogCopyHint, setCatalogCopyHint] = useState('');
   const [catalogModelIds, setCatalogModelIds] = useState(() =>
     getVisitMascotCatalog()
@@ -208,16 +215,6 @@ export default function VisitMascotPackManager({
     }
   }, [editorTab, selectedId, loadPackAssets, loadLibrary, loadGlobalAssets]);
 
-  const editorDirty = useMemo(
-    () => isMascotPackEditorDirty(savedSnapshot, editorPack, labelDraft),
-    [savedSnapshot, editorPack, labelDraft],
-  );
-  const jsonDirty = useMemo(
-    () => editorTab === 'json' && isJsonDraftDirty(jsonDraft, editorPack),
-    [editorTab, jsonDraft, editorPack],
-  );
-  const isDirty = editorDirty || jsonDirty;
-
   useEffect(() => {
     onDirtyChange?.(isDirty);
   }, [isDirty, onDirtyChange]);
@@ -260,29 +257,11 @@ export default function VisitMascotPackManager({
     setActionIssues(issues);
   }, []);
 
+  // La resynchronisation de l'état d'édition (pack, libellé, JSON, instantané) sur
+  // changement de sélection/liste est gérée par `useMascotPackEditorState`. Ici on
+  // ne remet à zéro que les problèmes de validation d'action (état hors éditeur).
   useEffect(() => {
-    const row = packs.find((p) => p.id === selectedId);
-    if (!row) {
-      setEditorPack({});
-      setLabelDraft('');
-      setJsonDraft('{}');
-      setJsonError('');
-      setActionIssues([]);
-      setSavedSnapshot(null);
-      return;
-    }
-    const label = String(row.label || '').trim();
-    setLabelDraft(label);
-    const raw = row.pack && typeof row.pack === 'object' ? row.pack : {};
-    const packClone = clonePackDeep(raw);
-    setEditorPack(sanitizeMascotPackDraft(packClone));
-    setSavedSnapshot(createMascotPackEditorSnapshot(packClone, label));
-    setJsonError('');
     setActionIssues([]);
-    setJsonDraft((prev) => {
-      if (isJsonDraftDirty(prev, packClone)) return prev;
-      return stringifyPack(packClone, 2);
-    });
   }, [selectedId, packs]);
 
   const confirmLeaveIfDirty = useCallback(() => {
@@ -312,7 +291,15 @@ export default function VisitMascotPackManager({
       if (nextTab === 'json') setJsonDraft(stringifyPack(editorPack, 2));
       setJsonError('');
     },
-    [editorTab, jsonDraft, editorPack, confirmLeaveIfDirty],
+    [
+      editorTab,
+      jsonDraft,
+      editorPack,
+      confirmLeaveIfDirty,
+      setEditorTab,
+      setJsonDraft,
+      setJsonError,
+    ],
   );
 
   const requestSelectPack = useCallback(
@@ -343,7 +330,7 @@ export default function VisitMascotPackManager({
     // Accepte la forme unifiée `states[]` : désucrée vers le modèle interne (stateFrames).
     setEditorPack(clonePackDeep(normalizeUnifiedStates(parsed.pack)));
     setEditorTab('workspace');
-  }, [jsonDraft]);
+  }, [jsonDraft, setEditorPack, setEditorTab, setJsonError]);
 
   /** Réécrit le brouillon JSON dans la forme unifiée `states[]` (aligné GL). */
   const convertJsonToUnified = useCallback(() => {
@@ -351,7 +338,7 @@ export default function VisitMascotPackManager({
     const base = parsed.ok ? normalizeUnifiedStates(parsed.pack) : editorPack;
     setJsonDraft(stringifyPack(packToUnifiedForm(base), 2));
     setJsonError('');
-  }, [jsonDraft, editorPack]);
+  }, [jsonDraft, editorPack, setJsonDraft, setJsonError]);
 
   /**
    * Crée un pack (POST) puis sélectionne le nouvel id et resynchronise la liste.
@@ -444,7 +431,7 @@ export default function VisitMascotPackManager({
         },
       );
     },
-    [packs, postNewPack, selectedId, confirmLeaveIfDirty],
+    [packs, postNewPack, selectedId, confirmLeaveIfDirty, setEditorTab],
   );
 
   const onDuplicateSelected = useCallback(async () => {
@@ -563,6 +550,8 @@ export default function VisitMascotPackManager({
       onForceLogout,
       labelDraft,
       setActionErrorWithDetails,
+      setEditorPack,
+      setSavedSnapshot,
     ],
   );
 
@@ -592,82 +581,91 @@ export default function VisitMascotPackManager({
     }
   }, [selectedId, refreshFromServer, onForceLogout, isDirty]);
 
-  const upgradePackToV2 = useCallback((nextTab = 'interaction') => {
-    setEditorPack((prev) => ({
-      ...prev,
-      mascotPackVersion: 2,
-      interactionProfile:
-        typeof prev.interactionProfile === 'object' && prev.interactionProfile
-          ? prev.interactionProfile
-          : {},
-      dialogProfile:
-        typeof prev.dialogProfile === 'object' && prev.dialogProfile ? prev.dialogProfile : {},
-    }));
-    setEditorTab(nextTab);
-  }, []);
-
-  const patchDialogProfile = useCallback((nextProfile) => {
-    setEditorPack((prev) => ({
-      ...prev,
-      mascotPackVersion: 2,
-      dialogProfile: nextProfile && typeof nextProfile === 'object' ? nextProfile : {},
-    }));
-  }, []);
-
-  const patchInteractionRule = useCallback((key, partial) => {
-    setEditorPack((prev) => {
-      const base =
-        Number(prev.mascotPackVersion) === 2 &&
-        prev.interactionProfile &&
-        typeof prev.interactionProfile === 'object'
-          ? { ...prev.interactionProfile }
-          : {};
-      const def = DEFAULT_VISIT_MASCOT_INTERACTION_PROFILE[key] || { mode: 'none' };
-      const cur = { ...def, ...(base[key] || {}) };
-      const nextRule = { ...cur, ...partial };
-      let rule;
-      if (nextRule.mode === 'none') {
-        rule = { mode: 'none' };
-      } else if (nextRule.mode === 'happy') {
-        rule = { mode: 'happy' };
-      } else {
-        const st = String(
-          nextRule.state || (def.mode === 'transient' ? def.state : 'idle') || 'idle',
-        );
-        const dm =
-          nextRule.durationMs != null
-            ? Number(nextRule.durationMs)
-            : def.mode === 'transient' && def.durationMs != null
-              ? Number(def.durationMs)
-              : 1500;
-        rule = {
-          mode: 'transient',
-          state: st,
-          durationMs: Math.min(60_000, Math.max(300, dm)),
-        };
-      }
-      base[key] = rule;
-      return {
+  const upgradePackToV2 = useCallback(
+    (nextTab = 'interaction') => {
+      setEditorPack((prev) => ({
         ...prev,
         mascotPackVersion: 2,
-        interactionProfile: base,
-      };
-    });
-  }, []);
+        interactionProfile:
+          typeof prev.interactionProfile === 'object' && prev.interactionProfile
+            ? prev.interactionProfile
+            : {},
+        dialogProfile:
+          typeof prev.dialogProfile === 'object' && prev.dialogProfile ? prev.dialogProfile : {},
+      }));
+      setEditorTab(nextTab);
+    },
+    [setEditorPack, setEditorTab],
+  );
+
+  const patchDialogProfile = useCallback(
+    (nextProfile) => {
+      setEditorPack((prev) => ({
+        ...prev,
+        mascotPackVersion: 2,
+        dialogProfile: nextProfile && typeof nextProfile === 'object' ? nextProfile : {},
+      }));
+    },
+    [setEditorPack],
+  );
+
+  const patchInteractionRule = useCallback(
+    (key, partial) => {
+      setEditorPack((prev) => {
+        const base =
+          Number(prev.mascotPackVersion) === 2 &&
+          prev.interactionProfile &&
+          typeof prev.interactionProfile === 'object'
+            ? { ...prev.interactionProfile }
+            : {};
+        const def = DEFAULT_VISIT_MASCOT_INTERACTION_PROFILE[key] || { mode: 'none' };
+        const cur = { ...def, ...(base[key] || {}) };
+        const nextRule = { ...cur, ...partial };
+        let rule;
+        if (nextRule.mode === 'none') {
+          rule = { mode: 'none' };
+        } else if (nextRule.mode === 'happy') {
+          rule = { mode: 'happy' };
+        } else {
+          const st = String(
+            nextRule.state || (def.mode === 'transient' ? def.state : 'idle') || 'idle',
+          );
+          const dm =
+            nextRule.durationMs != null
+              ? Number(nextRule.durationMs)
+              : def.mode === 'transient' && def.durationMs != null
+                ? Number(def.durationMs)
+                : 1500;
+          rule = {
+            mode: 'transient',
+            state: st,
+            durationMs: Math.min(60_000, Math.max(300, dm)),
+          };
+        }
+        base[key] = rule;
+        return {
+          ...prev,
+          mascotPackVersion: 2,
+          interactionProfile: base,
+        };
+      });
+    },
+    [setEditorPack],
+  );
 
   const setFramesBaseToLibrary = useCallback(() => {
     const mid = String(mapId || '').trim();
     if (!mid) return;
     const prefix = `/api/visit/mascot-sprite-library/${mid}/assets/`;
     setEditorPack((p) => ({ ...p, framesBase: prefix.endsWith('/') ? prefix : `${prefix}/` }));
-  }, [mapId]);
+  }, [mapId, setEditorPack]);
 
   const setFramesBaseToPack = useCallback(() => {
     if (!selectedId) return;
     setEditorPack((p) =>
       normalizePackStateFramesForFramesBase(ensureServerFramesBase(p, selectedId)),
     );
-  }, [selectedId]);
+  }, [selectedId, setEditorPack]);
 
   const catalogModelId = useMemo(
     () => resolvePackDialogMascotId(editorPack, selectedRow),
@@ -740,7 +738,7 @@ export default function VisitMascotPackManager({
       const stateLabel = STATE_LABELS[globalTargetState] || globalTargetState;
       showInsertFeedback(`« ${entry.filename} » ajouté à l’état « ${stateLabel} ».`, 2800);
     },
-    [globalTargetState, showInsertFeedback],
+    [globalTargetState, showInsertFeedback, setEditorPack],
   );
 
   const bulkInsertImagesIntoPack = useCallback(
@@ -769,7 +767,7 @@ export default function VisitMascotPackManager({
         return pack;
       });
     },
-    [globalTargetState, showInsertFeedback],
+    [globalTargetState, showInsertFeedback, setEditorPack],
   );
 
   const { imageBulkBusy, bulkDeleteImages, bulkRenameImages, bulkReplaceImages } =
@@ -799,7 +797,7 @@ export default function VisitMascotPackManager({
       const stateLabel = STATE_LABELS[globalTargetState] || globalTargetState;
       showInsertFeedback(`${list.length} frame(s) retirée(s) de « ${stateLabel} ».`, 2800);
     },
-    [globalTargetState, showInsertFeedback],
+    [globalTargetState, showInsertFeedback, setEditorPack],
   );
 
   const moveFilenamesInTargetState = useCallback(
@@ -828,7 +826,7 @@ export default function VisitMascotPackManager({
         return { ...prev, stateFrames: { ...sf, [globalTargetState]: nextSpec } };
       });
     },
-    [globalTargetState],
+    [globalTargetState, setEditorPack],
   );
 
   const bulkApplyInteractionRules = useCallback(
