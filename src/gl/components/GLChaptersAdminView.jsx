@@ -5,15 +5,12 @@ import { useDebouncedAutoSave } from '../../shared/hooks/useDebouncedAutoSave.js
 import { compressImageWithPreset, isLikelyImageFile } from '../../utils/image.js';
 import { GLChapterMapStudio } from './GLChapterMapStudio.jsx';
 import { isModuleEnabled } from '../constants/modules.js';
-import { GLPctMapCanvas } from './GLPctMapCanvas.jsx';
 import { useGlPctMapGestures } from '../hooks/useGlPctMapGestures.js';
-import { GLBoardMarkers } from './GLBoardMarkers.jsx';
 import { MediaLibraryMenu } from '../../components/MediaLibraryMenu.jsx';
 import { GLImageSourceField } from './GLImageSourceField.jsx';
 import { GLImageFrameEditor } from './GLImageFrameEditor.jsx';
 import { glImageFrameToStyle, normalizeGlImageFrame } from '../../utils/glImageFrame.js';
 import { GLRichTextEditor } from './ui/GLRichTextEditor.jsx';
-import { GLBrandColorEditor } from './GLBrandColorEditor.jsx';
 import { normalizeBrand } from '../hooks/useGLBrandTheme.js';
 import { brandToCssVars, mergeBrandWithChapterTheme } from '../utils/glBrandTheme.js';
 import { GLButton } from './ui/GLButton.jsx';
@@ -22,6 +19,10 @@ import { GLChapterScenesAdminPanel } from './admin/GLChapterScenesAdminPanel.jsx
 import { GLFeuilletZonePlateauPanel } from './GLFeuilletZonePlateauPanel.jsx';
 import { GLChapterSpellsFieldset } from './admin/GLChapterSpellsFieldset.jsx';
 import { GLChapterBiomesFieldset } from './admin/GLChapterBiomesFieldset.jsx';
+import { GLChaptersSidebar } from './admin/chapters/GLChaptersSidebar.jsx';
+import { GLChapterMapDisplayFieldset } from './admin/chapters/GLChapterMapDisplayFieldset.jsx';
+import { GLChapterThemePanel } from './admin/chapters/GLChapterThemePanel.jsx';
+import { GLChapterMapPreview } from './admin/chapters/GLChapterMapPreview.jsx';
 import {
   EMPTY_CHAPTER_FORM,
   allSpellCodesFrom,
@@ -352,6 +353,17 @@ export function GLChaptersAdminView() {
     return brandToCssVars(merged);
   }, [platformBrand, chapterForm.theme]);
 
+  function handleThemeColorsChange(updater) {
+    setChapterForm((prev) => {
+      const prevColors = prev.theme?.colors || {};
+      const nextColors = typeof updater === 'function' ? updater(prevColors) : updater;
+      return {
+        ...prev,
+        theme: { colors: nextColors },
+      };
+    });
+  }
+
   async function handleCharteImportApplied() {
     const slugToReload =
       chapterForm.slug || chapters.find((c) => Number(c.id) === Number(selectedId))?.slug;
@@ -377,30 +389,12 @@ export function GLChaptersAdminView() {
       </details>
 
       <div className="gl-chapters-admin-grid">
-        <aside>
-          <ul className="gl-chapters-admin-list">
-            {chapters.map((chapter) => (
-              <li key={chapter.id}>
-                <button
-                  type="button"
-                  className={Number(selectedId) === Number(chapter.id) ? 'is-active' : ''}
-                  onClick={() => loadDetail(chapter.slug)}
-                  data-chapter-id={chapter.id}
-                  data-chapter-slug={chapter.slug}
-                >
-                  <strong>{chapter.title || chapter.slug}</strong>
-                  <span className="gl-hint">{chapter.slug}</span>
-                  {Array.isArray(chapter.biomes) && chapter.biomes.length > 0 ? (
-                    <span className="gl-hint">{chapter.biomes.length} biome(s)</span>
-                  ) : null}
-                </button>
-              </li>
-            ))}
-          </ul>
-          <GLButton type="button" variant="secondary" onClick={resetChapterForm}>
-            + Nouveau chapitre
-          </GLButton>
-        </aside>
+        <GLChaptersSidebar
+          chapters={chapters}
+          selectedId={selectedId}
+          onSelect={loadDetail}
+          onNew={resetChapterForm}
+        />
 
         <div>
           <form className="gl-form" onSubmit={submitChapter}>
@@ -466,23 +460,14 @@ export function GLChaptersAdminView() {
               onPickUrl={(url) => setChapterForm((prev) => ({ ...prev, mapImageUrl: url }))}
             />
             {showMapPreview && resolvedMapImageUrl ? (
-              <div className="gl-map-url-preview">
-                <p className="gl-hint">
-                  Aperçu de la carte
-                  {pendingMapPreviewUrl && !chapterForm.mapImageUrl
-                    ? ' (fichier local, en attente d’envoi)'
-                    : ''}
-                </p>
-                <GLPctMapCanvas
-                  imageUrl={resolvedMapImageUrl}
-                  imageAlt="Aperçu carte chapitre"
-                  mapGestures={previewMapGestures}
-                  className="gl-board gl-board--mini"
-                  imageStyle={mapPreviewStyle}
-                >
-                  <GLBoardMarkers markers={markers} />
-                </GLPctMapCanvas>
-              </div>
+              <GLChapterMapPreview
+                pendingMapPreviewUrl={pendingMapPreviewUrl}
+                mapImageUrl={chapterForm.mapImageUrl}
+                resolvedMapImageUrl={resolvedMapImageUrl}
+                previewMapGestures={previewMapGestures}
+                mapPreviewStyle={mapPreviewStyle}
+                markers={markers}
+              />
             ) : null}
             <label>
               Ordre
@@ -511,72 +496,23 @@ export function GLChaptersAdminView() {
               </select>
             </label>
 
-            <fieldset className="gl-fieldset">
-              <legend>Affichage carte en partie</legend>
-              <p className="gl-hint">
-                Surcharge optionnelle des défauts plateforme (Réglages → Affichage carte plateau).
-                Laissez « Hériter » pour appliquer le défaut global.
-              </p>
-              <label>
-                Repères sur la carte
-                <select
-                  value={chapterForm.mapMarkersVisible}
-                  onChange={(event) =>
-                    setChapterForm({ ...chapterForm, mapMarkersVisible: event.target.value })
-                  }
-                >
-                  <option value="">Hériter du défaut plateforme</option>
-                  <option value="true">Visibles</option>
-                  <option value="false">Masqués</option>
-                </select>
-              </label>
-              <label>
-                Zones feuillets sur la carte
-                <select
-                  value={chapterForm.mapZonesVisible}
-                  onChange={(event) =>
-                    setChapterForm({ ...chapterForm, mapZonesVisible: event.target.value })
-                  }
-                >
-                  <option value="">Hériter du défaut plateforme</option>
-                  <option value="true">Visibles</option>
-                  <option value="false">Masquées</option>
-                </select>
-              </label>
-            </fieldset>
-
-            <h3>Thème du chapitre</h3>
-            <p className="gl-hint">
-              Laissez une couleur vide pour hériter de la charte plateforme. Seules les couleurs
-              renseignées remplacent la charte par défaut pendant une partie.
-            </p>
-            <GLBrandColorEditor
-              sparse
-              value={chapterForm.theme?.colors || {}}
-              inheritedColors={platformBrand?.colors}
-              onChange={(updater) => {
-                setChapterForm((prev) => {
-                  const prevColors = prev.theme?.colors || {};
-                  const nextColors = typeof updater === 'function' ? updater(prevColors) : updater;
-                  return {
-                    ...prev,
-                    theme: { colors: nextColors },
-                  };
-                });
-              }}
+            <GLChapterMapDisplayFieldset
+              mapMarkersVisible={chapterForm.mapMarkersVisible}
+              mapZonesVisible={chapterForm.mapZonesVisible}
+              onMapMarkersVisibleChange={(event) =>
+                setChapterForm({ ...chapterForm, mapMarkersVisible: event.target.value })
+              }
+              onMapZonesVisibleChange={(event) =>
+                setChapterForm({ ...chapterForm, mapZonesVisible: event.target.value })
+              }
             />
-            <div className="gl-theme-preview gl-app" style={themePreviewStyle} aria-hidden>
-              <div className="gl-theme-preview-topbar">Barre haute</div>
-              <div className="gl-theme-preview-body">
-                <span className="gl-theme-preview-chip gl-theme-preview-chip--primary">
-                  Primaire
-                </span>
-                <span className="gl-theme-preview-chip gl-theme-preview-chip--secondary">
-                  Secondaire
-                </span>
-                <span className="gl-theme-preview-text">Texte et liens du chapitre</span>
-              </div>
-            </div>
+
+            <GLChapterThemePanel
+              colors={chapterForm.theme?.colors || {}}
+              inheritedColors={platformBrand?.colors}
+              onColorsChange={handleThemeColorsChange}
+              themePreviewStyle={themePreviewStyle}
+            />
 
             <label>
               Histoire (markdown)
