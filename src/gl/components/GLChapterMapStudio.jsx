@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { apiGL } from '../services/apiGL.js';
-import { AutoSaveStatus } from '../../shared/components/AutoSaveStatus.jsx';
 import { useDebouncedAutoSave } from '../../shared/hooks/useDebouncedAutoSave.js';
 import { useGlPctMapGestures } from '../hooks/useGlPctMapGestures.js';
 import { useGLKingdomZones } from '../hooks/useGLKingdomZones.js';
@@ -10,17 +9,15 @@ import { GLPctMapCanvas } from './GLPctMapCanvas.jsx';
 import { GLBoardMarkers } from './GLBoardMarkers.jsx';
 import { GLKingdomZoneMapOverlay } from './GLKingdomZoneMapOverlay.jsx';
 import { GLKingdomZoneSidePanels } from './GLKingdomZoneSidePanels.jsx';
-import { GLMarkerEventEditor } from './GLMarkerEventEditor.jsx';
 import {
-  GLMarkerAppearanceEditor,
   EMPTY_APPEARANCE_FORM,
   appearanceFormFromMarker,
   appearanceDefaultsForEventType,
 } from './GLMarkerAppearanceEditor.jsx';
 import { glImageFrameToStyle, normalizeGlImageFrame } from '../../utils/glImageFrame.js';
 import { defaultEventConfigForQuestion } from '../utils/glMarkerEventConfig.js';
-import { GLButton } from './ui/GLButton.jsx';
-import { GLChapterMarkerListVisual } from './GLChapterMarkerListVisual.jsx';
+import { GLChapterMarkerList } from './GLChapterMarkerList.jsx';
+import { GLChapterMarkerForm } from './GLChapterMarkerForm.jsx';
 import {
   EMPTY_MARKER_FORM,
   markerDuplicatePayloadFromMarker,
@@ -514,171 +511,40 @@ export function GLChapterMapStudio({
           : ''}
       </p>
 
-      <h4 className="gl-chapter-map-studio__subtitle">Repères</h4>
-      <ul className="gl-markers-list">
-        {markersInPathOrder.map((marker) => {
-          const pathNumber = markerPathNumbers.get(Number(marker.id));
-          return (
-            <li
-              key={marker.id}
-              data-marker-id={marker.id}
-              className={Number(marker.id) === Number(selectedMarkerId) ? 'is-selected' : ''}
-            >
-              <button
-                type="button"
-                className="gl-marker-row-btn"
-                disabled={zoneEditActive}
-                onClick={() => selectMarker(marker)}
-              >
-                {pathNumber != null ? (
-                  <span className="gl-markers-list__path-number" aria-hidden>
-                    {pathNumber}
-                  </span>
-                ) : null}
-                <GLChapterMarkerListVisual marker={marker} />
-                <strong>{marker.label}</strong> — x:
-                {Number(marker.x_pct).toFixed(1)}
-                %, y:
-                {Number(marker.y_pct).toFixed(1)}%
-              </button>
-              {!zoneEditActive ? (
-                <GLButton
-                  type="button"
-                  size="sm"
-                  variant="secondary"
-                  disabled={saving}
-                  onClick={() => duplicateMarker(marker)}
-                  title="Dupliquer ce repère"
-                >
-                  Dupliquer
-                </GLButton>
-              ) : null}
-            </li>
-          );
-        })}
-        {editableMarkers.length === 0 ? (
-          <li className="gl-empty gl-hint">
-            Aucun repère. Activez « Ajouter un repère » puis cliquez sur la carte.
-          </li>
-        ) : null}
-      </ul>
+      <GLChapterMarkerList
+        markersInPathOrder={markersInPathOrder}
+        markerPathNumbers={markerPathNumbers}
+        selectedMarkerId={selectedMarkerId}
+        zoneEditActive={zoneEditActive}
+        saving={saving}
+        isEmpty={editableMarkers.length === 0}
+        onSelectMarker={selectMarker}
+        onDuplicateMarker={duplicateMarker}
+      />
 
-      <form className="gl-form" onSubmit={submitMarker}>
-        <label>
-          Label
-          <input
-            value={markerForm.label}
-            onChange={(event) => setField('label', event.target.value)}
-            required
-          />
-        </label>
-        <label>
-          x (%)
-          <input
-            type="number"
-            min="0"
-            max="100"
-            step="0.1"
-            value={markerForm.xPct}
-            onChange={(event) => setField('xPct', event.target.value)}
-            readOnly={isAddMode}
-          />
-        </label>
-        <label>
-          y (%)
-          <input
-            type="number"
-            min="0"
-            max="100"
-            step="0.1"
-            value={markerForm.yPct}
-            onChange={(event) => setField('yPct', event.target.value)}
-            readOnly={isAddMode}
-          />
-        </label>
-        <label>
-          Description
-          <input
-            value={markerForm.description}
-            onChange={(event) => setField('description', event.target.value)}
-          />
-        </label>
-        <label>
-          Sous-biome (slug catalogue)
-          <input
-            list="gl-chapter-biome-slugs"
-            value={markerForm.sousBiomeSlug}
-            onChange={(event) => setField('sousBiomeSlug', event.target.value)}
-            placeholder="jungle_afc, savane…"
-          />
-          <datalist id="gl-chapter-biome-slugs">
-            {(chapterBiomes || []).map((b) => (
-              <option key={b.slug} value={b.slug}>
-                {b.nom || b.slug}
-              </option>
-            ))}
-          </datalist>
-        </label>
-        <label>
-          Effet mécanique (résumé)
-          <input
-            value={markerForm.effetMecanique}
-            onChange={(event) => setField('effetMecanique', event.target.value)}
-            placeholder="Avance de 2 cases, +1 gemme…"
-          />
-        </label>
-
-        <GLMarkerEventEditor
-          marker={selectedMarker}
-          chapterBiomes={chapterBiomes}
-          onChange={handleEventDraftChange}
-          effectsDraft={effectsDraft}
-          onEffectsDraftChange={setEffectsDraft}
-        />
-
-        <GLMarkerAppearanceEditor
-          value={appearanceForm}
-          onChange={setAppearanceForm}
-          eventType={eventDraft?.eventType}
-          fetchMediaLibrary={fetchMediaLibraryWithInfo}
-          uploadMediaLibrary={uploadMediaLibraryWithInfo}
-          removeMediaLibrary={removeMediaLibraryWithInfo}
-        />
-
-        <label>
-          Ordre
-          <input
-            type="number"
-            value={markerForm.orderIndex}
-            onChange={(event) => setField('orderIndex', event.target.value)}
-          />
-        </label>
-        <div className="gl-inline-actions">
-          {markerSaveError ? <p className="gl-error">{markerSaveError}</p> : null}
-          <AutoSaveStatus status={markerSaveStatus} className="gl-hint" />
-          {selectedMarker ? (
-            <>
-              <GLButton
-                type="button"
-                variant="secondary"
-                onClick={() => duplicateMarker(selectedMarker)}
-                disabled={zoneEditActive || saving}
-                loading={saving}
-              >
-                Dupliquer
-              </GLButton>
-              <GLButton
-                type="button"
-                variant="danger"
-                onClick={deleteMarker}
-                disabled={zoneEditActive}
-              >
-                Supprimer
-              </GLButton>
-            </>
-          ) : null}
-        </div>
-      </form>
+      <GLChapterMarkerForm
+        markerForm={markerForm}
+        onFieldChange={setField}
+        isAddMode={isAddMode}
+        chapterBiomes={chapterBiomes}
+        selectedMarker={selectedMarker}
+        onSubmit={submitMarker}
+        onEventDraftChange={handleEventDraftChange}
+        effectsDraft={effectsDraft}
+        onEffectsDraftChange={setEffectsDraft}
+        appearanceForm={appearanceForm}
+        onAppearanceFormChange={setAppearanceForm}
+        eventDraft={eventDraft}
+        fetchMediaLibrary={fetchMediaLibraryWithInfo}
+        uploadMediaLibrary={uploadMediaLibraryWithInfo}
+        removeMediaLibrary={removeMediaLibraryWithInfo}
+        markerSaveError={markerSaveError}
+        markerSaveStatus={markerSaveStatus}
+        onDuplicateMarker={duplicateMarker}
+        onDeleteMarker={deleteMarker}
+        zoneEditActive={zoneEditActive}
+        saving={saving}
+      />
 
       <GLKingdomZoneSidePanels
         zoneEditor={zoneEditor}

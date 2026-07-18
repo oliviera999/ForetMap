@@ -10,16 +10,12 @@ import {
   runPool,
   validateContentLibrarySelection,
 } from '../../utils/contentLibraryClient.js';
-import { MediaLibraryMenu } from '../../../components/MediaLibraryMenu.jsx';
-import { GLButton } from '../ui/GLButton.jsx';
 import { GLContentLibraryAuditPanel } from './GLContentLibraryAuditPanel.jsx';
 import { GLContentLibraryAnalysisTable } from './GLContentLibraryAnalysisTable.jsx';
-import {
-  FILE_STATUS_LABEL,
-  canUseClipboard,
-  createFileRow,
-  entryKey,
-} from '../../utils/glContentLibraryDisplay.js';
+import { GLContentLibraryConsultSection } from './content-library/GLContentLibraryConsultSection.jsx';
+import { GLContentLibraryFileList } from './content-library/GLContentLibraryFileList.jsx';
+import { GLContentLibraryImportActions } from './content-library/GLContentLibraryImportActions.jsx';
+import { canUseClipboard, createFileRow, entryKey } from '../../utils/glContentLibraryDisplay.js';
 
 const TINY_PNG_DATA_URL =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO6pJkQAAAAASUVORK5CYII=';
@@ -149,6 +145,25 @@ export function GLContentLibraryView({ onOpenSubTab }) {
     setFileRows((prev) =>
       prev.map((row) => (row.file.name === fileName ? { ...row, ...patch } : row)),
     );
+  }
+
+  function handleFileChange(event) {
+    const next = Array.from(event.target.files || []);
+    const resolved = resolveSelectionMode(next);
+    setFileRows(resolved.files.map(createFileRow));
+    setArchiveFile(resolved.zipFile);
+    setSelectionWarnings(
+      resolved.ignoredCount > 0
+        ? [
+            `Archive ZIP détectée : les ${resolved.ignoredCount} autre(s) fichier(s) seront ignorés.`,
+          ]
+        : [],
+    );
+    setAnalysisEntries([]);
+    setSelectedKeys(new Set());
+    setErr('');
+    setMsg('');
+    event.target.value = '';
   }
 
   async function analyzeArchive(zipFile) {
@@ -334,25 +349,14 @@ export function GLContentLibraryView({ onOpenSubTab }) {
       {msg ? <p className="gl-success">{msg}</p> : null}
       {busy && busyLabel ? <p className="gl-hint">{busyLabel}</p> : null}
 
-      <section className="gl-content-library__section">
-        <h3>Consulter</h3>
-        <MediaLibraryMenu
-          key={mediaReloadKey}
-          title="Médiathèque Gnomes & Licornes (images, audio, vidéo)"
-          fetchItems={fetchMediaLibrary}
-          fetchUsage={fetchMediaUsage}
-          uploadDataUrl={uploadMediaLibrary}
-          removeItem={deleteMediaLibrary}
-          onPickUrl={copyUrl}
-          canUpload
-          canRemove
-          defaultOpen
-          showToggle={false}
-          layout="gallery"
-          enableGalleryBulkActions
-          manageHint="Clique sur une miniature pour copier l’URL. Chaque média indique s’il est utilisé et où. Cochez plusieurs médias pour les supprimer en lot, ou videz la bibliothèque si besoin."
-        />
-      </section>
+      <GLContentLibraryConsultSection
+        reloadKey={mediaReloadKey}
+        fetchItems={fetchMediaLibrary}
+        fetchUsage={fetchMediaUsage}
+        uploadDataUrl={uploadMediaLibrary}
+        removeItem={deleteMediaLibrary}
+        onPickUrl={copyUrl}
+      />
 
       <GLContentLibraryAuditPanel
         report={auditReport}
@@ -367,55 +371,17 @@ export function GLContentLibraryView({ onOpenSubTab }) {
             Déposez plusieurs fichiers ou une archive ZIP. Les médias iront dans la médiathèque ;
             les XLSX seront reconnus (espèces, glossaire, QCM, chapitres, carnet Sélène…).
           </p>
-          <div className="gl-content-library__actions">
-            <label className="btn btn-secondary btn-sm">
-              Choisir fichiers ou ZIP
-              <input
-                ref={fileInputRef}
-                type="file"
-                multiple
-                accept="image/*,audio/*,video/*,.zip,.xlsx,.xls,.csv"
-                style={{ display: 'none' }}
-                disabled={busy}
-                onChange={(event) => {
-                  const next = Array.from(event.target.files || []);
-                  const resolved = resolveSelectionMode(next);
-                  setFileRows(resolved.files.map(createFileRow));
-                  setArchiveFile(resolved.zipFile);
-                  setSelectionWarnings(
-                    resolved.ignoredCount > 0
-                      ? [
-                          `Archive ZIP détectée : les ${resolved.ignoredCount} autre(s) fichier(s) seront ignorés.`,
-                        ]
-                      : [],
-                  );
-                  setAnalysisEntries([]);
-                  setSelectedKeys(new Set());
-                  setErr('');
-                  setMsg('');
-                  event.target.value = '';
-                }}
-              />
-            </label>
-            <GLButton type="button" disabled={busy || fileRows.length === 0} onClick={runAnalyze}>
-              Analyser
-            </GLButton>
-            <GLButton
-              type="button"
-              variant="primary"
-              disabled={busy || selectedKeys.size === 0}
-              onClick={runApply}
-            >
-              Appliquer la sélection
-            </GLButton>
-            <GLButton
-              type="button"
-              disabled={busy || applyableEntries.length === 0}
-              onClick={selectAllApplyable}
-            >
-              Tout sélectionner (applicables)
-            </GLButton>
-          </div>
+          <GLContentLibraryImportActions
+            fileInputRef={fileInputRef}
+            busy={busy}
+            fileCount={fileRows.length}
+            selectedCount={selectedKeys.size}
+            applyableCount={applyableEntries.length}
+            onFileChange={handleFileChange}
+            onAnalyze={runAnalyze}
+            onApply={runApply}
+            onSelectAll={selectAllApplyable}
+          />
           {selectionWarnings.length > 0 ? (
             <ul className="gl-content-library__warnings">
               {selectionWarnings.map((warning) => (
@@ -423,41 +389,7 @@ export function GLContentLibraryView({ onOpenSubTab }) {
               ))}
             </ul>
           ) : null}
-          {fileRows.length > 0 ? (
-            <ul className="gl-content-library__file-list">
-              {fileRows.map((row) => (
-                <li
-                  key={`${row.file.name}-${row.file.size}`}
-                  className="gl-content-library__file-item"
-                >
-                  <div className="gl-content-library__file-head">
-                    <span>{row.file.name}</span>
-                    <span className="gl-hint">
-                      {formatBytesLabel(row.file.size)} ·{' '}
-                      {FILE_STATUS_LABEL[row.status] || row.status}
-                    </span>
-                  </div>
-                  {row.status === 'uploading' || row.status === 'analyzing' ? (
-                    <div
-                      className="gl-content-library__progress"
-                      role="progressbar"
-                      aria-valuemin={0}
-                      aria-valuemax={100}
-                      aria-valuenow={row.progress}
-                    >
-                      <div
-                        className="gl-content-library__progress-bar"
-                        style={{ width: `${row.progress}%` }}
-                      />
-                    </div>
-                  ) : null}
-                  {row.error ? <div className="gl-error">{row.error}</div> : null}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="gl-hint">Aucun fichier sélectionné.</p>
-          )}
+          <GLContentLibraryFileList rows={fileRows} />
         </div>
 
         <GLContentLibraryAnalysisTable

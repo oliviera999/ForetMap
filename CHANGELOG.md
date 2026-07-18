@@ -7,6 +7,24 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Audit `AUDIT_CODE_2026-07` — lot 5b : découpage des monolithes admin GL (sans changement de comportement)
+
+Suite du découpage §6.1 sur les vues admin GL lazy (faible blast radius), à iso-comportement
+(DOM/textes/endpoints inchangés, JSX déplacé verbatim, handlers restés dans le parent). Validé par
+la suite Vitest complète (382 fichiers, 2517 tests verts).
+
+- **`GLChaptersAdminView.jsx` : 723 → 659 lignes**. Quatre feuilles extraites sous
+  `src/gl/components/admin/chapters/` (`GLChaptersSidebar`, `GLChapterMapDisplayFieldset`,
+  `GLChapterThemePanel`, `GLChapterMapPreview`). Nouveau test `GLChaptersSidebar`.
+- **`GLChapterMapStudio.jsx` : 695 → 561 lignes**. Deux sections périphériques extraites
+  (`GLChapterMarkerList`, `GLChapterMarkerForm`) ; **le cœur d'interaction carte** (gestes,
+  pan/zoom, calculs de coordonnées, glisser-déposer) reste intégralement dans le parent, par
+  prudence.
+- **`GLContentLibraryView.jsx` : 475 → 407 lignes**. Trois feuilles extraites sous
+  `src/gl/components/admin/content-library/` (`GLContentLibraryConsultSection`,
+  `GLContentLibraryFileList`, `GLContentLibraryImportActions`) ; `GLContentLibraryAuditPanel` et
+  `GLContentLibraryAnalysisTable` réutilisés tels quels. Nouveau test `GLContentLibraryFileList`.
+
 ### Audit `AUDIT_CODE_2026-07` — lot 2b : double `jwt.verify` par requête (§2.6, sans changement de comportement)
 
 - **`server.js` + `middleware/requireTeacher.js` + `lib/auth/jwtPipeline.js`** : chaque requête
