@@ -6,7 +6,7 @@ const crypto = require('node:crypto');
 const { buildWorkbookBuffer, jsonRowsToAoa } = require('../lib/spreadsheet');
 const { queryAll, queryOne, execute } = require('../database');
 const { requireAuth, requirePermission } = require('../middleware/requireTeacher');
-const { logRouteError, respondInternalError } = require('../lib/routeLog');
+const { logRouteError } = require('../lib/routeLog');
 const asyncHandler = require('../lib/asyncHandler');
 const { logAudit } = require('./audit');
 const { emitStudentsChanged, emitTasksChanged } = require('../lib/realtime');
@@ -104,8 +104,10 @@ router.get(
   }),
 );
 
-router.post('/import', requirePermission('students.import'), async (req, res) => {
-  try {
+router.post(
+  '/import',
+  requirePermission('students.import'),
+  asyncHandler(async (req, res) => {
     const dryRun = !!req.body?.dryRun;
     const rawRows = await resolveImportRows(req.body || {});
     if (!Array.isArray(rawRows) || rawRows.length === 0) {
@@ -301,10 +303,8 @@ router.post('/import', requirePermission('students.import'), async (req, res) =>
       emitStudentsChanged({ reason: 'students_import', created: report.totals.created });
     }
     res.json({ report });
-  } catch (e) {
-    respondInternalError(res, req, e);
-  }
-});
+  }),
+);
 
 router.post(
   '/register',
@@ -329,8 +329,10 @@ router.post(
   }),
 );
 
-router.post('/:id/duplicate', requirePermission('users.create'), async (req, res) => {
-  try {
+router.post(
+  '/:id/duplicate',
+  requirePermission('users.create'),
+  asyncHandler(async (req, res) => {
     const sourceId = req.params.id;
     const source = await queryOne("SELECT * FROM users WHERE id = ? AND user_type = 'student'", [
       sourceId,
@@ -463,13 +465,13 @@ router.post('/:id/duplicate', requirePermission('users.create'), async (req, res
       role_display_name: roleRow?.display_name,
       source_student_id: sourceId,
     });
-  } catch (e) {
-    respondInternalError(res, req, e);
-  }
-});
+  }),
+);
 
-router.patch('/:id/profile', requireAuth, async (req, res) => {
-  try {
+router.patch(
+  '/:id/profile',
+  requireAuth,
+  asyncHandler(async (req, res) => {
     const askedStudentId = String(req.params.id || '').trim();
     const auth = req.auth || null;
     const isOwner = auth?.userType === 'student' && String(auth?.userId || '') === askedStudentId;
@@ -590,10 +592,8 @@ router.patch('/:id/profile', requireAuth, async (req, res) => {
     );
     emitStudentsChanged({ reason: 'student_profile_update', studentId: student.id });
     res.json({ ...updated, password_hash: undefined });
-  } catch (e) {
-    respondInternalError(res, req, e);
-  }
-});
+  }),
+);
 
 router.delete(
   '/:id',

@@ -7,6 +7,202 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Audit `AUDIT_CODE_2026-07` — lot 5b : découpage des monolithes admin GL (sans changement de comportement)
+
+Suite du découpage §6.1 sur les vues admin GL lazy (faible blast radius), à iso-comportement
+(DOM/textes/endpoints inchangés, JSX déplacé verbatim, handlers restés dans le parent). Validé par
+la suite Vitest complète (382 fichiers, 2517 tests verts).
+
+- **`GLChaptersAdminView.jsx` : 723 → 659 lignes**. Quatre feuilles extraites sous
+  `src/gl/components/admin/chapters/` (`GLChaptersSidebar`, `GLChapterMapDisplayFieldset`,
+  `GLChapterThemePanel`, `GLChapterMapPreview`). Nouveau test `GLChaptersSidebar`.
+- **`GLChapterMapStudio.jsx` : 695 → 561 lignes**. Deux sections périphériques extraites
+  (`GLChapterMarkerList`, `GLChapterMarkerForm`) ; **le cœur d'interaction carte** (gestes,
+  pan/zoom, calculs de coordonnées, glisser-déposer) reste intégralement dans le parent, par
+  prudence.
+- **`GLContentLibraryView.jsx` : 475 → 407 lignes**. Trois feuilles extraites sous
+  `src/gl/components/admin/content-library/` (`GLContentLibraryConsultSection`,
+  `GLContentLibraryFileList`, `GLContentLibraryImportActions`) ; `GLContentLibraryAuditPanel` et
+  `GLContentLibraryAnalysisTable` réutilisés tels quels. Nouveau test `GLContentLibraryFileList`.
+
+### Audit `AUDIT_CODE_2026-07` — lot 2b : double `jwt.verify` par requête (§2.6, sans changement de comportement)
+
+- **`server.js` + `middleware/requireTeacher.js` + `lib/auth/jwtPipeline.js`** : chaque requête
+  authentifiée sur l'API ForetMap vérifiait le JWT **deux fois** (garde d'isolement produit de
+  `server.js`, puis middleware de route). La garde mémorise désormais les claims vérifiés sur
+  `req.verifiedForetJwt` (liés au token exact) ; `requireTeacher` les réutilise au lieu de
+  re-vérifier, tout en **réappliquant le contrôle de produit** via le nouveau helper pur
+  `checkClaimsProduct`. Sémantique inchangée : token invalide jamais mis en cache (la garde
+  échoue silencieusement → vérification complète + 401 par la route) ; token GL rejeté 403 par
+  la garde avant d'atteindre la route ; fallback vérification complète si la garde n'a pas tourné
+  (montage direct du middleware en test). Test pur `checkClaimsProduct` ajouté ; l'intégration est
+  couverte par les suites `auth`/`rbac`.
+
+Point §2 **différé** (non livré) : `stats /all` — restreindre `syncStudentPrimaryRoleFromProgress`
+au seul cas où l'avancement change modifierait **quand** les promotions de rôle surviennent (effet
+de bord métier sur un GET). Non optimisable sans changement de comportement observable ; à traiter
+séparément avec des tests de caractérisation dédiés et validation base.
+
+### Audit `AUDIT_CODE_2026-07` — lot 5 : découpage god components (partiel, sans changement de comportement)
+
+Découpage de composants volumineux (§6.1) à iso-comportement (DOM, textes, endpoints, toasts
+inchangés), validé par la suite Vitest complète (380 fichiers, 2508 tests verts).
+
+- **`src/gl/components/GLSettingsView.jsx` : 663 → 352 lignes (−47 %)**. Quatre sections de
+  réglages extraites en sous-composants prop-driven sous `src/gl/components/settings/`
+  (`GLMascotMoveSettings`, `GLPlateauMarkerScaleSettings`, `GLVitalityDefaultsSettings`,
+  `GLLoreRetriggerSettings`), sur le modèle des sections déjà externalisées. JSX déplacé verbatim,
+  handlers pointant vers les mêmes fonctions du parent (`onSaveSetting`/`onToggle`) ; les hooks
+  d'auto-save restent dans le parent. Nouveau test de rendu `GLLoreRetriggerSettings`.
+- **`src/hooks/useMascotPackEditorState.js`** : extraction du cluster « état d'édition + logique
+  dirty + resynchronisation » de `VisitMascotPackManager.jsx` dans un hook dédié, unitairement testé
+  (6 cas). Comportement inchangé (mêmes états, effets et mémos, setters stables).
+- **`tests-ui/hooks/useVisitSeenSync.test.jsx`** : timeouts du test « flush automatique » élargis
+  (10 s / budget 25 s) pour absorber la contention CPU de la suite complète.
+
+**Différé** : l'extraction `useAppData` de `src/App.jsx` (logique data/polling/temps réel) est
+reportée — ce composant central a une couverture de tests trop faible pour un refactor de cette
+ampleur ; conformément au garde-fou §9 de l'audit, elle nécessite d'abord des tests de
+caractérisation dédiés.
+
+### Audit `AUDIT_CODE_2026-07` — lot 3c : reliquats asyncHandler (O8, sans changement de comportement)
+
+Poursuite de la migration O8 : remplacement des `try/catch` **génériques** (log + 500 générique
+via `respondInternalError`) par l'enveloppe `asyncHandler`, qui route les exceptions vers le
+gestionnaire d'erreurs central de `server.js` (même corps `{ error: 'Erreur serveur' }`, même
+masquage 5xx). Contrat d'erreur public strictement inchangé.
+
+- **`routes/students.js`** : `POST /import`, `POST /:id/duplicate`, `PATCH /:id/profile`.
+- **`routes/rbac.js`** : `POST /users`, `PATCH /users/:userType/:userId`.
+- **`routes/auth.js`** : `PATCH /me/profile`, `POST /register`, `POST /admin/impersonate`,
+  `POST /admin/impersonate/stop`.
+- **`routes/gl/games/markers.js`** : `present-question`, `present-arrival`, `apply-effects`.
+- **`routes/plants.js`** : suppression d'un import `respondInternalError` déjà mort.
+
+Les `catch` **spéciaux** sont intégralement conservés (statuts/messages précis : conflits
+`1062`/`ER_DUP_ENTRY` → 409, `rethrowSlugConflict`, `resolveVitalityError`, contrat 404-vs-403 de
+`games.js` join-team, `respondInternalError` avec `exposeDetail` de `tasks.js`, 502 `plants` de
+`/autofill`/`plantnet`, callback OAuth Google). `logRouteError` reste importé là où un 500
+diagnostic spécifique subsiste. Aucun message, statut ni corps de réponse modifié.
+
+### Audit `AUDIT_CODE_2026-07` — lot mutualisation frontend 4 (sans changement de comportement)
+
+Mutualisations frontend §5, à comportement observable strictement inchangé (surface d'API
+publique et noms exportés préservés). Validé par la suite Vitest complète (378 fichiers, 2499
+tests verts).
+
+- **`src/shared/appBase.js` (§5.1)** : `API` + `withAppBase` (primitives pures d'URL, sans
+  session/claim) extraites de `src/services/api.js`, qui les **ré-exporte** (compat : ~85
+  importateurs ForetMap intacts). Les **14 modules GL** qui n'avaient besoin que de `withAppBase`
+  importent désormais `src/shared/appBase.js` au lieu de tirer tout `api.js` (session ForetMap,
+  `AccountDeletedError`, événements prof). **Isolement produit préservé** : `appBase.js` ne contient
+  aucun store de session ni logique 401.
+- **`src/utils/glTermAutolink.js` (§5.3)** : fabrique `createTermAutolink({ codeField, cssClass,
+  dataAttr })` mutualisant le tronc commun byte-identique des autolinks de glossaire ;
+  `glGlossaryAutolink.js` (SVT) et `glLoreGlossaryAutolink.js` (Lore) l'invoquent avec leur config
+  et gardent leur stratégie de rendu propre (tokenisation regex vs parcours DOM) et **tous leurs
+  noms exportés**. HTML généré identique.
+- **`src/utils/zoneGeometry.js` (§5.3)** : module fédérateur des utilitaires canoniques
+  `parseZonePoints` (parsing des sommets `{xp,yp}`) et `computeMapImageContainRect` (rect de fit
+  `contain`) ; `visitMapGeometry.js` / `mapImageFit.js` / `biodivMapGeometry.js` les ré-exportent
+  sous leurs alias existants (`parseVisitZonePoints`, `parseZonePointsJson`,
+  `computeBiodivMapFitRect`). Les parses inline non équivalents (points bruts non normalisés) sont
+  laissés distincts.
+- **`src/hooks/useApiResource.js` (§5.4)** : nouveau hook `useApiResource(fetcher, deps, {
+  onForceLogout })` → `{ data, loading, error, reload }` (fetch au montage/deps, garde anti-course,
+  gestion `AccountDeletedError`), généralisant le pattern `safeApi`. **Additif** : aucune vue migrée
+  pour l'instant (migration progressive ultérieure), couvert par 7 tests Vitest.
+
+### Audit `AUDIT_CODE_2026-07` — lot mutualisation backend 3b : dédup helpers purs (sans changement de comportement)
+
+Suppression de définitions locales **prouvées byte-identiques** à leur canonique (comparaison
+`diff` corps à corps), remplacées par un import ; comportement inchangé, exports préservés là où
+d'autres modules importent le nom. Les variantes ne serait-ce que d'un caractère ont été **laissées
+en l'état** (signalées ci-dessous) pour ne prendre aucun risque de régression.
+
+- **`normalizeImportHeader`** (canonique `lib/shared/stringHelpers.js`) : dédupliqué dans
+  `lib/glSpeciesImport.js`, `lib/glPlayersImport.js`, `lib/glChaptersImport.js`,
+  `lib/glLoreFeuilletsImport.js`, `lib/tasks/taskImport.js`, `lib/studentRouteHelpers.js` (export
+  ré-exporté conservé).
+- **`normalizeOptionalString`** (canonique `lib/shared/httpHelpers.js`) : dédupliqué dans
+  `lib/glJournalPresent.js`, `lib/glZoneContent.js`, `lib/glProfile.js` (ré-exports conservés :
+  `routes/gl/auth.js` importe depuis `glProfile`).
+- **`normalizeIdArray`** (canonique `lib/taskRouteHelpers.js`) : dédupliqué dans
+  `lib/tutorialRouteHelpers.js` (ré-export conservé) et `routes/task-projects.js`.
+- **`parseId`** (canonique `lib/shared/httpHelpers.js`, déjà partagé) : définition locale
+  identique retirée de `routes/gl/games.js` au profit de l'import existant.
+
+Variantes **volontairement non fusionnées** (sémantique ou texte différents) : `parseId` de
+`lib/gl/loreRouteHelpers.js` (troncature + rejet des ≤ 0, distinct de `httpHelpers`) ;
+`normalizeOptionalString` de `taskImport`, `glSpeciesImport`, `glPlayersImport` (variante
+`asTrimmedString`), `glLoreFeuilletsImport` (gère `—`/`-` → null), `glHelp`/`glIntro` (retour `''`
+au lieu de `null`).
+
+### Audit `AUDIT_CODE_2026-07` — lot mutualisation backend 3a (sans changement de comportement)
+
+Factorisation de duplications backend prouvées identiques, à comportement observable
+strictement inchangé, plus un correctif de robustesse de test :
+
+- **`lib/shared/oauthCommon.js` (§4.3)** : trois fonctions OAuth **pures** (`parseCsvLowercaseSet`,
+  `googleOauthConfigured`, `isGoogleEmailAllowed`), auparavant dupliquées **byte-à-byte** entre
+  `lib/authRouteHelpers.js` (ForetMap) et `lib/gl/authRouteHelpers.js` (GL), sont mutualisées dans
+  un module partagé. Les deux fichiers d'origine ré-exportent ces noms → aucun importateur modifié.
+  **Isolement produit préservé** : aucune fusion de store de session, de claims ou de redirection
+  OAuth — seules des fonctions pures sont partagées (les `normalize*OAuthMode` /
+  `build*OAuthFrontendErrorRedirect` divergents restent locaux).
+- **`lib/gl/questionDrawShared.js` (§4.2)** : le handler de tirage aléatoire de question, quasi
+  identique entre `GET /api/gl/qcm/draw` (`gl_qcm_questions` / `biome_slug`) et
+  `GET /api/gl/lore/qcm/draw` (`gl_qcm_lore_questions` / `chapitre_slug`), est mutualisé dans un
+  helper paramétré par table et colonne de scope (constantes contrôlées, jamais d'entrée
+  utilisateur interpolée — toutes les valeurs HTTP restent `?`). Requête, filtres, codes,
+  messages et tirage `Math.random` inchangés ; chaque route garde sa résolution de scope propre.
+- **`tests-ui/hooks/useVisitSeenSync.test.jsx` (§7.3)** : budget du test « flush automatique »
+  porté à 15 s (3ᵉ argument de `it`). Le test enchaînait deux `waitFor` dont un à `timeout: 5000`,
+  supérieur au budget par défaut de 5 s du test lui-même → expiration prématurée sur runner CI
+  lent (flake). Aucune logique de test modifiée.
+
+### Audit `AUDIT_CODE_2026-07` — lot N+1 & transactions backend (sans changement de comportement)
+
+Correctifs de performance et de cohérence, à comportement observable strictement identique
+(mêmes codes HTTP, messages français exacts, ordre des gardes, événements et corps de réponse) :
+
+- **`lib/tasks/taskQueries.js` — `validateTaskLocations` (§2.3)** : élimination d'un N+1.
+  Les zones et repères liés à une tâche étaient validés **un par un** (`getZone`/`getMarker`
+  par id). Ils sont désormais chargés en **deux requêtes groupées**
+  (`SELECT id, map_id FROM zones WHERE id IN (…)` et idem `map_markers`), la validation se
+  faisant ensuite en mémoire — priorité zones-avant-repères, messages d'erreur et map_id
+  agrégés inchangés. Helpers `getZone`/`getMarker` devenus inutilisés : supprimés.
+- **`routes/task-projects.js` — POST/PUT (§2.5)** : la création et la mise à jour d'un projet
+  (INSERT/UPDATE + liens zones/repères/tutoriels) sont regroupées dans **une transaction**.
+  Un échec au milieu ne laisse plus le projet désynchronisé de ses liens. Les helpers
+  `setProject*` / `replaceProjectJunctionRows` acceptent désormais un exécuteur (`tx`), sur le
+  modèle de `lib/speciesJunction.js`. Validations 400/403/404 inchangées, avant la transaction.
+- **`routes/tutorials.js` — POST création (§2.5)** : l'INSERT du tutoriel et ses liens
+  zones/repères sont regroupés dans **une transaction** ; `replaceTutorialZonesMarkers` accepte
+  un exécuteur optionnel rétrocompatible (`conn = pool` par défaut, le PUT reste inchangé).
+
+Relevés mais **différés** vers un lot dédié avec tests (comportement sensible) : synchronisation
+de rôle par élève dans `GET /api/stats/all` (effets de promotion), double `jwt.verify` par
+requête (garde d'isolement produit + middleware de route), projections `SELECT *`
+(`routes/auth.js`, liste `plants`).
+
+### Audit `AUDIT_CODE_2026-07` — lot quick-wins (perf & simplification, sans changement de comportement)
+
+Suite de l'audit de code : correctifs à comportement strictement identique.
+
+- **`lib/httpRequestLog.js` (§2.6)** : `parseHttpLogMode()` / `parseSlowMs()` sont désormais
+  résolus **une seule fois** à la création du middleware (au démarrage) au lieu d'être
+  recalculés à chaque requête HTTP. Les variables `FORETMAP_HTTP_LOG` / `FORETMAP_HTTP_SLOW_MS`
+  ne changent pas en cours d'exécution — sortie du chemin chaud par requête.
+- **`src/utils/markdown.js` (§3.5)** : cache LRU (300 entrées, éviction FIFO) sur
+  `marked.parse()`. Les longues listes (glossaire, lore, carnet) re-parsaient en boucle les
+  mêmes textes à chaque rendu ; le parse étant déterministe à partir du texte brut, il est
+  désormais mémoïsé. Rendu HTML final inchangé.
+- **`routes/tasks.js` + `lib/taskRouteHelpers.js` (§6.2)** : la clause `ORDER BY` de tri des
+  tâches (épinglage `sort_order`, barème d'importance, échéance), auparavant dupliquée à
+  l'identique entre la liste et la réordonnance de projet, est factorisée dans
+  `taskImportanceOrderBySql(prefix)`. SQL généré sémantiquement identique.
+
 ### Audit général du code — lot 2 : factorisation des duplications (sans changement de comportement)
 
 Déduplication des trois blocs identifiés par l'audit, à comportement strictement

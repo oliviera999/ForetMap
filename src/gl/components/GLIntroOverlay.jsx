@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect } from 'react';
 
-import { withAppBase } from '../../services/api.js';
+import { withAppBase } from '../../shared/appBase.js';
 
 export const GL_INTRO_SEEN_KEY = 'gl_intro_seen';
 export const GL_INTRO_DONE_MESSAGE = 'gl-intro-done';

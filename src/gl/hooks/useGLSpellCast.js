@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { apiGL } from '../services/apiGL.js';
-import { withAppBase } from '../../services/api.js';
+import { withAppBase } from '../../shared/appBase.js';
 
 export function useGLSpellCast({ token, gameId, enabled, onCastComplete }) {
   const [draft, setDraft] = useState(null);

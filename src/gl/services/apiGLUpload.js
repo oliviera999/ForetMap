@@ -1,4 +1,4 @@
-import { withAppBase } from '../../services/api.js';
+import { withAppBase } from '../../shared/appBase.js';
 import { assertJsonApiBody, parseApiBody } from '../../services/apiTransport.js';
 import { getGlToken } from './apiGL.js';
 

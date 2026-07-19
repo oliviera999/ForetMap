@@ -1,6 +1,6 @@
 import React, { useEffect, useId, useState } from 'react';
 
-import { withAppBase } from '../../services/api.js';
+import { withAppBase } from '../../shared/appBase.js';
 import { apiGL } from '../services/apiGL.js';
 import { GLBrandHub } from './GLBrandHub.jsx';
 import { GLIntroOverlay, hasSeenGlIntro } from './GLIntroOverlay.jsx';
