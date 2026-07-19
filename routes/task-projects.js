@@ -6,6 +6,7 @@ const asyncHandler = require('../lib/asyncHandler');
 const { z, validate } = require('../lib/validate');
 const { emitTasksChanged } = require('../lib/realtime');
 const { logAudit } = require('./audit');
+const { normalizeIdArray } = require('../lib/taskRouteHelpers');
 
 const router = express.Router();
 /** Statuts acceptés sur POST/PUT corps JSON (pas `completed` : réservé à la synchro tâches). */
@@ -20,11 +21,6 @@ function normalizeProjectStatusForApi(value, fallback = 'active') {
   if (!raw) return fallback;
   if (raw === 'en_attente' || raw === 'en attente' || raw === 'attente') return 'on_hold';
   return PROJECT_STATUSES_API_WRITE.has(raw) ? raw : '';
-}
-
-function normalizeIdArray(value) {
-  if (!Array.isArray(value)) return [];
-  return [...new Set(value.map((x) => (x != null ? String(x).trim() : '')).filter(Boolean))];
 }
 
 function normalizeTutorialIdArray(value) {
@@ -93,24 +89,26 @@ async function getProjectTutorialIds(projectId) {
 }
 
 // DELETE + INSERT multi-valeurs (au lieu d'un INSERT par ligne — N+1).
-async function replaceProjectJunctionRows(table, childCol, projectId, ids) {
-  await execute(`DELETE FROM ${table} WHERE project_id = ?`, [projectId]);
+// `db` : exécuteur SQL (pool global ou transaction `tx`), même contrat `.execute` — permet
+// d'écrire projet + liens de façon atomique dans un `withTransaction` (cf. lib/speciesJunction.js).
+async function replaceProjectJunctionRows(db, table, childCol, projectId, ids) {
+  await db.execute(`DELETE FROM ${table} WHERE project_id = ?`, [projectId]);
   if (!ids.length) return;
   const placeholders = ids.map(() => '(?, ?)').join(', ');
   const params = ids.flatMap((id) => [projectId, id]);
-  await execute(`INSERT INTO ${table} (project_id, ${childCol}) VALUES ${placeholders}`, params);
+  await db.execute(`INSERT INTO ${table} (project_id, ${childCol}) VALUES ${placeholders}`, params);
 }
 
-async function setProjectZones(projectId, zoneIds) {
-  await replaceProjectJunctionRows('project_zones', 'zone_id', projectId, zoneIds);
+async function setProjectZones(db, projectId, zoneIds) {
+  await replaceProjectJunctionRows(db, 'project_zones', 'zone_id', projectId, zoneIds);
 }
 
-async function setProjectMarkers(projectId, markerIds) {
-  await replaceProjectJunctionRows('project_markers', 'marker_id', projectId, markerIds);
+async function setProjectMarkers(db, projectId, markerIds) {
+  await replaceProjectJunctionRows(db, 'project_markers', 'marker_id', projectId, markerIds);
 }
 
-async function setProjectTutorials(projectId, tutorialIds) {
-  await replaceProjectJunctionRows('project_tutorials', 'tutorial_id', projectId, tutorialIds);
+async function setProjectTutorials(db, projectId, tutorialIds) {
+  await replaceProjectJunctionRows(db, 'project_tutorials', 'tutorial_id', projectId, tutorialIds);
 }
 
 async function validateProjectLinksForMap(mapId, zoneIds, markerIds) {
@@ -320,13 +318,17 @@ router.post(
 
     const id = crypto.randomUUID();
     const createdAt = new Date().toISOString();
-    await execute(
-      'INSERT INTO task_projects (id, map_id, title, description, status, created_at) VALUES (?, ?, ?, ?, ?, ?)',
-      [id, mapId, title, description, status, createdAt],
-    );
-    await setProjectZones(id, zoneIds);
-    await setProjectMarkers(id, markerIds);
-    await setProjectTutorials(id, tutorialIds);
+    // Atomicité (audit §2.5) : projet + liens dans une seule transaction — un crash au milieu
+    // ne laisse plus de liens orphelins. Validations 400/403/404 déjà faites ci-dessus.
+    await withTransaction(async (tx) => {
+      await tx.execute(
+        'INSERT INTO task_projects (id, map_id, title, description, status, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+        [id, mapId, title, description, status, createdAt],
+      );
+      await setProjectZones(tx, id, zoneIds);
+      await setProjectMarkers(tx, id, markerIds);
+      await setProjectTutorials(tx, id, tutorialIds);
+    });
 
     const created = await loadProjectRow(id);
     emitTasksChanged({ reason: 'project_create', projectId: id, mapId });
@@ -401,13 +403,17 @@ router.put(
       }
     }
 
-    await execute(
-      'UPDATE task_projects SET map_id = ?, title = ?, description = ?, status = ? WHERE id = ?',
-      [nextMapId, nextTitle, nextDescription, nextStatus, req.params.id],
-    );
-    await setProjectZones(req.params.id, nextZoneIds);
-    await setProjectMarkers(req.params.id, nextMarkerIds);
-    await setProjectTutorials(req.params.id, nextTutorialIds);
+    // Atomicité (audit §2.5) : mise à jour projet + liens dans une seule transaction — un crash
+    // au milieu ne laisse plus de liens orphelins. Validations 400/403/404 déjà faites ci-dessus.
+    await withTransaction(async (tx) => {
+      await tx.execute(
+        'UPDATE task_projects SET map_id = ?, title = ?, description = ?, status = ? WHERE id = ?',
+        [nextMapId, nextTitle, nextDescription, nextStatus, req.params.id],
+      );
+      await setProjectZones(tx, req.params.id, nextZoneIds);
+      await setProjectMarkers(tx, req.params.id, nextMarkerIds);
+      await setProjectTutorials(tx, req.params.id, nextTutorialIds);
+    });
 
     const updated = await loadProjectRow(req.params.id);
     emitTasksChanged({ reason: 'project_update', projectId: req.params.id, mapId: nextMapId });

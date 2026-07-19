@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { withAppBase } from '../../services/api.js';
+import { withAppBase } from '../../shared/appBase.js';
 import { apiGL } from '../services/apiGL.js';
 import { getRuntimeFeuilletZonesForPlateau } from '../data/glFeuilletZonesBundle.js';
 import { useGlPctMapGestures } from '../hooks/useGlPctMapGestures.js';

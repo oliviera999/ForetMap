@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { io } from 'socket.io-client';
 import { apiGL } from '../services/apiGL.js';
-import { withAppBase } from '../../services/api.js';
+import { withAppBase } from '../../shared/appBase.js';
 
 export function useGLMarketTrade({ token, classId, enabled, onTradeCompleted }) {
   const [classmates, setClassmates] = useState([]);

@@ -104,6 +104,7 @@ const {
   LORE_QUESTION_SELECT,
   enrichLoreQuestionWithGlossary,
 } = require('../../lib/gl/loreRouteHelpers');
+const { handleQuestionDraw } = require('../../lib/gl/questionDrawShared');
 
 const router = express.Router();
 const db = { queryAll, queryOne, execute };
@@ -1210,36 +1211,12 @@ router.get(
   requireGlPermission('gl.read'),
   asyncHandler(async (req, res) => {
     const chapitreSlugs = parseCsvQuery(req.query?.chapitreSlug || req.query?.chapitreSlugs);
-    if (chapitreSlugs.length === 0) {
-      return res.status(400).json({ error: 'chapitreSlug ou chapitreSlugs requis' });
-    }
-    const categorieSlug = normalizeOptionalString(req.query?.categorieSlug);
-    const excludeRaw = normalizeOptionalString(req.query?.exclude);
-    const exclude = excludeRaw
-      ? excludeRaw
-          .split(',')
-          .map((s) => s.trim())
-          .filter(Boolean)
-      : [];
-
-    const placeholders = chapitreSlugs.map(() => '?').join(', ');
-    const params = [...chapitreSlugs];
-    // Tirage : seuls les codes sont chargés (la route ne renvoie que question_code).
-    let sql = `SELECT question_code FROM gl_qcm_lore_questions
-      WHERE statut = 'actif' AND chapitre_slug IN (${placeholders})`;
-    if (categorieSlug) {
-      sql += ' AND categorie_slug = ?';
-      params.push(categorieSlug);
-    }
-    if (exclude.length > 0) {
-      sql += ` AND question_code NOT IN (${exclude.map(() => '?').join(', ')})`;
-      params.push(...exclude);
-    }
-
-    const pool = await queryAll(sql, params);
-    if (pool.length === 0) return res.status(404).json({ error: 'Aucune question disponible' });
-    const picked = pool[Math.floor(Math.random() * pool.length)];
-    return res.json({ question_code: picked.question_code });
+    return handleQuestionDraw({ queryAll }, req, res, {
+      table: 'gl_qcm_lore_questions',
+      scopeColumn: 'chapitre_slug',
+      scopeSlugs: chapitreSlugs,
+      emptyScopeError: 'chapitreSlug ou chapitreSlugs requis',
+    });
   }),
 );
 

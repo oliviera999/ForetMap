@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { withAppBase } from '../../services/api.js';
+import { withAppBase } from '../../shared/appBase.js';
 import { apiGL } from '../services/apiGL.js';
 import { registerSkipMarkerArrival } from '../utils/glMarkerArrivalSkip.js';
 import { GL_MODULE_DEFAULTS, normalizeGlModules, isModuleEnabled } from '../constants/modules.js';

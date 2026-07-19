@@ -16,6 +16,7 @@ const {
   taskDangerLevelForResponse,
   taskDifficultyLevelForResponse,
   taskImportanceLevelForResponse,
+  taskImportanceOrderBySql,
   normalizeTaskLivingBeingsInput,
   serializeTaskLivingBeingsForDb,
   attachTaskLivingBeingsApiFields,
@@ -144,6 +145,31 @@ describe('taskRouteHelpers — niveaux (danger / difficulté / importance)', () 
       'proposed',
       'validated',
     ]);
+  });
+
+  it('taskImportanceOrderBySql : préfixe appliqué et ordre métier préservé', () => {
+    const noPrefix = taskImportanceOrderBySql();
+    const withPrefix = taskImportanceOrderBySql('t.');
+    // Le préfixe est appliqué à chaque colonne.
+    assert.ok(withPrefix.includes('t.sort_order'));
+    assert.ok(withPrefix.includes('t.importance_level'));
+    assert.ok(withPrefix.includes('t.due_date ASC'));
+    assert.ok(!noPrefix.includes('t.'));
+    assert.ok(noPrefix.includes('sort_order'));
+    assert.ok(noPrefix.includes('due_date ASC'));
+    // Barème d'importance (absolute > … > not_important) inchangé.
+    for (const scored of [
+      "WHEN 'absolute' THEN 5",
+      "WHEN 'high' THEN 4",
+      "WHEN 'medium' THEN 3",
+      "WHEN 'low' THEN 2",
+      "WHEN 'not_important' THEN 1",
+    ]) {
+      assert.ok(noPrefix.includes(scored), scored);
+      assert.ok(withPrefix.includes(scored), scored);
+    }
+    // La clause ne contient pas le mot-clé ORDER BY (ajouté par l'appelant).
+    assert.ok(!/ORDER BY/i.test(noPrefix));
   });
 });
 

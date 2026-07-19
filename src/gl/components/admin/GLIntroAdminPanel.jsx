@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 
 import { MediaLibraryMenu } from '../../../components/MediaLibraryMenu.jsx';
-import { withAppBase } from '../../../services/api.js';
+import { withAppBase } from '../../../shared/appBase.js';
 import { apiGL } from '../../services/apiGL.js';
 import { AutoSaveStatus } from '../../../shared/components/AutoSaveStatus.jsx';
 import { useDebouncedAutoSave } from '../../../shared/hooks/useDebouncedAutoSave.js';

@@ -12,7 +12,7 @@ const {
   requirePermission,
   hydrateAuthFromTokenClaims,
 } = require('../middleware/requireTeacher');
-const { logRouteError, respondInternalError } = require('../lib/routeLog');
+const { logRouteError } = require('../lib/routeLog');
 const asyncHandler = require('../lib/asyncHandler');
 const logger = require('../lib/logger');
 const { emitStudentsChanged } = require('../lib/realtime');
@@ -283,8 +283,10 @@ router.get('/me', requireAuth, async (req, res) => {
   res.json(body);
 });
 
-router.patch('/me/profile', requireAuth, async (req, res) => {
-  try {
+router.patch(
+  '/me/profile',
+  requireAuth,
+  asyncHandler(async (req, res) => {
     const body = req.body || {};
     if (!body.currentPassword) return res.status(400).json({ error: 'Mot de passe actuel requis' });
 
@@ -406,13 +408,12 @@ router.patch('/me/profile', requireAuth, async (req, res) => {
       emitStudentsChanged({ reason: 'student_profile_update', studentId: account.id });
     }
     res.json({ ...updated, password_hash: undefined });
-  } catch (e) {
-    respondInternalError(res, req, e);
-  }
-});
+  }),
+);
 
-router.post('/register', async (req, res) => {
-  try {
+router.post(
+  '/register',
+  asyncHandler(async (req, res) => {
     const allowReg = await getSettingValue('ui.auth.allow_register', true);
     if (!allowReg) return res.status(403).json({ error: 'La création de compte est désactivée.' });
     const { firstName, lastName, password } = req.body;
@@ -516,10 +517,8 @@ router.post('/register', async (req, res) => {
       authToken: token,
       auth: session ? exposeAuth(session.tokenPayload) : null,
     });
-  } catch (e) {
-    respondInternalError(res, req, e);
-  }
-});
+  }),
+);
 
 router.post(
   '/login',
@@ -1045,8 +1044,10 @@ router.post('/teacher', (req, res) => {
     .json({ error: 'Élévation PIN supprimée. Les droits du rôle sont accordés à la connexion.' });
 });
 
-router.post('/admin/impersonate', requirePermission('admin.impersonate'), async (req, res) => {
-  try {
+router.post(
+  '/admin/impersonate',
+  requirePermission('admin.impersonate'),
+  asyncHandler(async (req, res) => {
     const targetUserType = normalizeOptionalString(req.body?.userType)?.toLowerCase();
     const rawId = req.body?.userId;
     const targetUserId = rawId == null ? '' : String(rawId).trim();
@@ -1124,13 +1125,13 @@ router.post('/admin/impersonate', requirePermission('admin.impersonate'), async 
       auth: exposeAuth(hydrated),
       profile,
     });
-  } catch (e) {
-    respondInternalError(res, req, e);
-  }
-});
+  }),
+);
 
-router.post('/admin/impersonate/stop', requireAuth, async (req, res) => {
-  try {
+router.post(
+  '/admin/impersonate/stop',
+  requireAuth,
+  asyncHandler(async (req, res) => {
     if (!req.auth?.impersonating || !req.auth?.impersonatedBy) {
       return res.status(400).json({ error: 'Aucune prise de contrôle en cours' });
     }
@@ -1165,10 +1166,8 @@ router.post('/admin/impersonate/stop', requireAuth, async (req, res) => {
     });
 
     res.json({ authToken: token, auth: exposeAuth(hydrated) });
-  } catch (e) {
-    respondInternalError(res, req, e);
-  }
-});
+  }),
+);
 
 router.__setGoogleOAuthHooks = function setGoogleOAuthHooks({ exchangeCode, verifyIdToken } = {}) {
   googleOAuthHooks.exchangeCode = typeof exchangeCode === 'function' ? exchangeCode : null;

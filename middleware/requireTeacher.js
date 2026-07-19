@@ -3,6 +3,7 @@ const {
   parseBearerToken: parseBearerTokenFromPipeline,
   verifyJwtToken,
   verifyJwtForProduct,
+  checkClaimsProduct,
 } = require('../lib/auth/jwtPipeline');
 const { ensureRbacBootstrap, buildAuthzPayload } = require('../lib/rbac');
 const { getAuthJwtTtls } = require('../lib/settings');
@@ -92,17 +93,27 @@ async function resolveAuthOrRespond(req, res, { product } = {}) {
     res.status(401).json({ error: 'Token requis' });
     return null;
   }
+  // Réutilise les claims déjà vérifiés par la garde produit de `server.js` (même
+  // token, même secret) pour éviter un second `jwt.verify` par requête. Le contrôle
+  // de produit reste appliqué sur ces claims. Fallback = vérification complète (cas
+  // où la garde n'a pas tourné, ex. montage direct du middleware en test).
+  const cachedClaims =
+    req.verifiedForetJwt && req.verifiedForetJwt.token === token
+      ? req.verifiedForetJwt.claims
+      : null;
   let claims;
   try {
     if (product != null) {
-      const verified = verifyJwtForProduct(token, JWT_SECRET, product);
+      const verified = cachedClaims
+        ? checkClaimsProduct(cachedClaims, product)
+        : verifyJwtForProduct(token, JWT_SECRET, product);
       if (verified.error) {
         res.status(verified.status).json({ error: verified.error });
         return null;
       }
       claims = verified.claims;
     } else {
-      claims = verifyJwtToken(token, JWT_SECRET);
+      claims = cachedClaims || verifyJwtToken(token, JWT_SECRET);
     }
   } catch (_) {
     res.status(401).json({ error: 'Token invalide ou expiré' });

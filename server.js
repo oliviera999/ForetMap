@@ -329,6 +329,10 @@ app.use('/api', (req, res, next) => {
         .status(403)
         .json({ error: 'Session Gnomes & Licornes non autorisée sur cette API' });
     }
+    // Ce token « foret » vient d'être vérifié avec le même secret que le middleware
+    // de route : on mémorise les claims (liés au token exact) pour que
+    // `requireTeacher` évite un second `jwt.verify` par requête authentifiée.
+    req.verifiedForetJwt = { token, claims };
   } catch (_) {
     // Les routes protégées gèrent ensuite le cas token invalide.
   }

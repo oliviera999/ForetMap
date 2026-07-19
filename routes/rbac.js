@@ -18,7 +18,7 @@ async function emitStudentsWithPrimaryRole(roleId) {
     emitStudentsChanged({ reason: 'role_forum_context_participation', studentId: row.user_id });
   }
 }
-const { logRouteError, respondInternalError } = require('../lib/routeLog');
+const { logRouteError } = require('../lib/routeLog');
 const asyncHandler = require('../lib/asyncHandler');
 const { rethrowSlugConflict } = require('../lib/slugConflict');
 const { logAudit } = require('./audit');
@@ -83,8 +83,10 @@ async function resolveRbacSubjectForMutation(userTypeParam, userIdParam) {
   return { ok: true, user, resolvedUserType, resolvedUserId };
 }
 
-router.post('/users', requirePermission('users.create'), async (req, res) => {
-  try {
+router.post(
+  '/users',
+  requirePermission('users.create'),
+  asyncHandler(async (req, res) => {
     const actorRoleSlug = String(req.auth?.roleSlug || '')
       .trim()
       .toLowerCase();
@@ -211,10 +213,8 @@ router.post('/users', requirePermission('users.create'), async (req, res) => {
       role_slug: role.slug,
       role_display_name: role.display_name,
     });
-  } catch (e) {
-    respondInternalError(res, req, e);
-  }
-});
+  }),
+);
 
 router.get(
   '/profiles',
@@ -686,240 +686,231 @@ router.get(
 router.patch(
   '/users/:userType/:userId',
   requirePermission('admin.users.assign_roles'),
-  async (req, res) => {
-    try {
-      const resolved = await resolveRbacSubjectForMutation(req.params.userType, req.params.userId);
-      if (!resolved.ok) return res.status(resolved.status).json({ error: resolved.error });
-      const { user, resolvedUserType, resolvedUserId } = resolved;
+  asyncHandler(async (req, res) => {
+    const resolved = await resolveRbacSubjectForMutation(req.params.userType, req.params.userId);
+    if (!resolved.ok) return res.status(resolved.status).json({ error: resolved.error });
+    const { user, resolvedUserType, resolvedUserId } = resolved;
 
-      const actorRoleSlug = String(req.auth?.roleSlug || '')
-        .trim()
-        .toLowerCase();
-      const targetPrimary = await getPrimaryRoleForUser(resolvedUserType, resolvedUserId);
-      if (targetPrimary?.slug === 'admin' && actorRoleSlug !== 'admin') {
+    const actorRoleSlug = String(req.auth?.roleSlug || '')
+      .trim()
+      .toLowerCase();
+    const targetPrimary = await getPrimaryRoleForUser(resolvedUserType, resolvedUserId);
+    if (targetPrimary?.slug === 'admin' && actorRoleSlug !== 'admin') {
+      return res
+        .status(403)
+        .json({ error: 'Seul un administrateur peut modifier un autre administrateur' });
+    }
+
+    const body = req.body || {};
+    const hasFirst = Object.prototype.hasOwnProperty.call(body, 'first_name');
+    const hasLast = Object.prototype.hasOwnProperty.call(body, 'last_name');
+    const hasPseudo = Object.prototype.hasOwnProperty.call(body, 'pseudo');
+    const hasEmail = Object.prototype.hasOwnProperty.call(body, 'email');
+    const hasDescription = Object.prototype.hasOwnProperty.call(body, 'description');
+    const hasAffiliation = Object.prototype.hasOwnProperty.call(body, 'affiliation');
+    const hasPassword = Object.prototype.hasOwnProperty.call(body, 'password');
+    const passwordRaw = hasPassword ? String(body.password ?? '') : '';
+
+    const passwordWillChange = hasPassword && passwordRaw.trim() !== '';
+    if (
+      !hasFirst &&
+      !hasLast &&
+      !hasPseudo &&
+      !hasEmail &&
+      !hasDescription &&
+      !(hasAffiliation && resolvedUserType === 'student') &&
+      !passwordWillChange
+    ) {
+      return res.status(400).json({ error: 'Aucun champ à mettre à jour' });
+    }
+
+    let firstName = user.first_name;
+    let lastName = user.last_name;
+    if (hasFirst) {
+      firstName = normalizeOptionalString(body.first_name);
+      if (!firstName) return res.status(400).json({ error: 'Prénom invalide' });
+    }
+    if (hasLast) {
+      lastName = normalizeOptionalString(body.last_name);
+      if (!lastName) return res.status(400).json({ error: 'Nom invalide' });
+    }
+
+    let pseudo = user.pseudo;
+    if (hasPseudo) {
+      pseudo = normalizeOptionalString(body.pseudo);
+      if (pseudo != null && !PSEUDO_RE.test(pseudo)) {
         return res
-          .status(403)
-          .json({ error: 'Seul un administrateur peut modifier un autre administrateur' });
+          .status(400)
+          .json({ error: 'Pseudo invalide (3-30 caractères, lettres/chiffres/._-)' });
       }
+    }
 
-      const body = req.body || {};
-      const hasFirst = Object.prototype.hasOwnProperty.call(body, 'first_name');
-      const hasLast = Object.prototype.hasOwnProperty.call(body, 'last_name');
-      const hasPseudo = Object.prototype.hasOwnProperty.call(body, 'pseudo');
-      const hasEmail = Object.prototype.hasOwnProperty.call(body, 'email');
-      const hasDescription = Object.prototype.hasOwnProperty.call(body, 'description');
-      const hasAffiliation = Object.prototype.hasOwnProperty.call(body, 'affiliation');
-      const hasPassword = Object.prototype.hasOwnProperty.call(body, 'password');
-      const passwordRaw = hasPassword ? String(body.password ?? '') : '';
-
-      const passwordWillChange = hasPassword && passwordRaw.trim() !== '';
-      if (
-        !hasFirst &&
-        !hasLast &&
-        !hasPseudo &&
-        !hasEmail &&
-        !hasDescription &&
-        !(hasAffiliation && resolvedUserType === 'student') &&
-        !passwordWillChange
-      ) {
-        return res.status(400).json({ error: 'Aucun champ à mettre à jour' });
+    let email = user.email;
+    if (hasEmail) {
+      email = normalizeEmail(body.email);
+      if (email != null && !EMAIL_RE.test(email)) {
+        return res.status(400).json({ error: 'Email invalide' });
       }
+    }
 
-      let firstName = user.first_name;
-      let lastName = user.last_name;
-      if (hasFirst) {
-        firstName = normalizeOptionalString(body.first_name);
-        if (!firstName) return res.status(400).json({ error: 'Prénom invalide' });
+    let description = user.description;
+    if (hasDescription) {
+      description = normalizeOptionalString(body.description);
+      if (description != null && description.length > MAX_DESCRIPTION_LEN) {
+        return res
+          .status(400)
+          .json({ error: `Description trop longue (max ${MAX_DESCRIPTION_LEN} caractères)` });
       }
-      if (hasLast) {
-        lastName = normalizeOptionalString(body.last_name);
-        if (!lastName) return res.status(400).json({ error: 'Nom invalide' });
-      }
+    }
 
-      let pseudo = user.pseudo;
-      if (hasPseudo) {
-        pseudo = normalizeOptionalString(body.pseudo);
-        if (pseudo != null && !PSEUDO_RE.test(pseudo)) {
-          return res
-            .status(400)
-            .json({ error: 'Pseudo invalide (3-30 caractères, lettres/chiffres/._-)' });
-        }
+    let affiliation = user.affiliation;
+    if (hasAffiliation) {
+      if (resolvedUserType !== 'student') {
+        return res.status(400).json({ error: 'L’affiliation ne s’applique qu’aux comptes n3beur' });
       }
+      const affRes = await resolveStudentAffiliationForPersist(body.affiliation, queryOne);
+      if (!affRes.ok) return res.status(400).json({ error: affRes.error });
+      affiliation = affRes.affiliation;
+    }
 
-      let email = user.email;
-      if (hasEmail) {
-        email = normalizeEmail(body.email);
-        if (email != null && !EMAIL_RE.test(email)) {
-          return res.status(400).json({ error: 'Email invalide' });
-        }
+    if (resolvedUserType === 'student' && (hasFirst || hasLast)) {
+      const dup = await queryOne(
+        `SELECT id FROM users WHERE user_type = 'student' AND LOWER(first_name)=LOWER(?) AND LOWER(last_name)=LOWER(?) AND id <> ? LIMIT 1`,
+        [firstName, lastName, resolvedUserId],
+      );
+      if (dup) return res.status(409).json({ error: 'Un n3beur avec ce nom existe déjà' });
+    }
+
+    if (pseudo) {
+      const existingPseudo = await queryOne(
+        'SELECT id FROM users WHERE LOWER(pseudo)=LOWER(?) AND id <> ? LIMIT 1',
+        [pseudo, resolvedUserId],
+      );
+      if (existingPseudo) return res.status(409).json({ error: 'Ce pseudo est déjà utilisé' });
+    }
+    if (email) {
+      const existingEmail = await queryOne(
+        'SELECT id FROM users WHERE LOWER(email)=LOWER(?) AND id <> ? LIMIT 1',
+        [email, resolvedUserId],
+      );
+      if (existingEmail) return res.status(409).json({ error: 'Cet email est déjà utilisé' });
+    }
+
+    let passwordHash = user.password_hash;
+    if (passwordWillChange) {
+      const minPasswordLen = await getPasswordMinLength();
+      if (passwordRaw.length < minPasswordLen) {
+        return res
+          .status(400)
+          .json({ error: `Mot de passe trop court (min ${minPasswordLen} caractères)` });
       }
+      passwordHash = await bcrypt.hash(passwordRaw, 10);
+    }
 
-      let description = user.description;
-      if (hasDescription) {
-        description = normalizeOptionalString(body.description);
-        if (description != null && description.length > MAX_DESCRIPTION_LEN) {
-          return res
-            .status(400)
-            .json({ error: `Description trop longue (max ${MAX_DESCRIPTION_LEN} caractères)` });
-        }
-      }
+    const displayName = `${firstName || ''} ${lastName || ''}`.trim() || user.display_name || null;
 
-      let affiliation = user.affiliation;
-      if (hasAffiliation) {
-        if (resolvedUserType !== 'student') {
-          return res
-            .status(400)
-            .json({ error: 'L’affiliation ne s’applique qu’aux comptes n3beur' });
-        }
-        const affRes = await resolveStudentAffiliationForPersist(body.affiliation, queryOne);
-        if (!affRes.ok) return res.status(400).json({ error: affRes.error });
-        affiliation = affRes.affiliation;
-      }
-
-      if (resolvedUserType === 'student' && (hasFirst || hasLast)) {
-        const dup = await queryOne(
-          `SELECT id FROM users WHERE user_type = 'student' AND LOWER(first_name)=LOWER(?) AND LOWER(last_name)=LOWER(?) AND id <> ? LIMIT 1`,
-          [firstName, lastName, resolvedUserId],
-        );
-        if (dup) return res.status(409).json({ error: 'Un n3beur avec ce nom existe déjà' });
-      }
-
-      if (pseudo) {
-        const existingPseudo = await queryOne(
-          'SELECT id FROM users WHERE LOWER(pseudo)=LOWER(?) AND id <> ? LIMIT 1',
-          [pseudo, resolvedUserId],
-        );
-        if (existingPseudo) return res.status(409).json({ error: 'Ce pseudo est déjà utilisé' });
-      }
-      if (email) {
-        const existingEmail = await queryOne(
-          'SELECT id FROM users WHERE LOWER(email)=LOWER(?) AND id <> ? LIMIT 1',
-          [email, resolvedUserId],
-        );
-        if (existingEmail) return res.status(409).json({ error: 'Cet email est déjà utilisé' });
-      }
-
-      let passwordHash = user.password_hash;
-      if (passwordWillChange) {
-        const minPasswordLen = await getPasswordMinLength();
-        if (passwordRaw.length < minPasswordLen) {
-          return res
-            .status(400)
-            .json({ error: `Mot de passe trop court (min ${minPasswordLen} caractères)` });
-        }
-        passwordHash = await bcrypt.hash(passwordRaw, 10);
-      }
-
-      const displayName =
-        `${firstName || ''} ${lastName || ''}`.trim() || user.display_name || null;
-
-      try {
-        await execute(
-          `UPDATE users
+    try {
+      await execute(
+        `UPDATE users
              SET first_name = ?, last_name = ?, display_name = ?, pseudo = ?, email = ?, description = ?,
                  affiliation = ?, password_hash = ?, updated_at = NOW()
            WHERE id = ? AND user_type = ?`,
-          [
-            firstName,
-            lastName,
-            displayName,
-            pseudo,
-            email,
-            description,
-            affiliation,
-            passwordHash,
-            resolvedUserId,
-            resolvedUserType,
-          ],
-        );
-      } catch (err) {
-        if (err && (err.errno === 1062 || err.code === 'ER_DUP_ENTRY')) {
-          return res.status(409).json({ error: 'Pseudo ou email déjà utilisé' });
-        }
-        throw err;
+        [
+          firstName,
+          lastName,
+          displayName,
+          pseudo,
+          email,
+          description,
+          affiliation,
+          passwordHash,
+          resolvedUserId,
+          resolvedUserType,
+        ],
+      );
+    } catch (err) {
+      if (err && (err.errno === 1062 || err.code === 'ER_DUP_ENTRY')) {
+        return res.status(409).json({ error: 'Pseudo ou email déjà utilisé' });
       }
+      throw err;
+    }
 
-      if (resolvedUserType === 'student' && (hasFirst || hasLast)) {
-        await execute(
-          'UPDATE task_assignments SET student_first_name = ?, student_last_name = ? WHERE student_id = ?',
-          [firstName, lastName, resolvedUserId],
-        );
-        await execute(
-          'UPDATE task_logs SET student_first_name = ?, student_last_name = ? WHERE student_id = ?',
-          [firstName, lastName, resolvedUserId],
-        );
-      }
+    if (resolvedUserType === 'student' && (hasFirst || hasLast)) {
+      await execute(
+        'UPDATE task_assignments SET student_first_name = ?, student_last_name = ? WHERE student_id = ?',
+        [firstName, lastName, resolvedUserId],
+      );
+      await execute(
+        'UPDATE task_logs SET student_first_name = ?, student_last_name = ? WHERE student_id = ?',
+        [firstName, lastName, resolvedUserId],
+      );
+    }
 
-      logAudit(
-        'rbac_update_user',
-        'user',
-        resolvedUserId,
-        `${firstName || ''} ${lastName || ''}`.trim() || displayName || resolvedUserId,
-        {
-          req,
-          payload: {
-            user_type: resolvedUserType,
-            fields: {
-              first_name: hasFirst,
-              last_name: hasLast,
-              pseudo: hasPseudo,
-              email: hasEmail,
-              description: hasDescription,
-              affiliation: hasAffiliation && resolvedUserType === 'student',
-              password: passwordWillChange,
-            },
+    logAudit(
+      'rbac_update_user',
+      'user',
+      resolvedUserId,
+      `${firstName || ''} ${lastName || ''}`.trim() || displayName || resolvedUserId,
+      {
+        req,
+        payload: {
+          user_type: resolvedUserType,
+          fields: {
+            first_name: hasFirst,
+            last_name: hasLast,
+            pseudo: hasPseudo,
+            email: hasEmail,
+            description: hasDescription,
+            affiliation: hasAffiliation && resolvedUserType === 'student',
+            password: passwordWillChange,
           },
         },
-      );
+      },
+    );
 
-      if (resolvedUserType === 'student') {
-        emitStudentsChanged({ reason: 'admin_user_profile_update', studentId: resolvedUserId });
-      }
+    if (resolvedUserType === 'student') {
+      emitStudentsChanged({ reason: 'admin_user_profile_update', studentId: resolvedUserId });
+    }
 
-      const roleJoin = await queryOne(
-        `SELECT ur.role_id, r.slug AS role_slug, r.display_name AS role_display_name,
+    const roleJoin = await queryOne(
+      `SELECT ur.role_id, r.slug AS role_slug, r.display_name AS role_display_name,
                 COALESCE(r.forum_participate, 1) AS forum_participate,
                 COALESCE(r.context_comment_participate, 1) AS context_comment_participate
            FROM user_roles ur
            LEFT JOIN roles r ON r.id = ur.role_id
           WHERE ur.user_type = ? AND ur.user_id = ? AND ur.is_primary = 1 LIMIT 1`,
-        [resolvedUserType, resolvedUserId],
-      );
-      const updated = await queryOne('SELECT * FROM users WHERE id = ? AND user_type = ? LIMIT 1', [
-        resolvedUserId,
-        resolvedUserType,
-      ]);
-      const disp =
-        updated.display_name ||
-        `${updated.first_name || ''} ${updated.last_name || ''}`.trim() ||
-        updated.email ||
-        updated.pseudo ||
-        updated.id;
+      [resolvedUserType, resolvedUserId],
+    );
+    const updated = await queryOne('SELECT * FROM users WHERE id = ? AND user_type = ? LIMIT 1', [
+      resolvedUserId,
+      resolvedUserType,
+    ]);
+    const disp =
+      updated.display_name ||
+      `${updated.first_name || ''} ${updated.last_name || ''}`.trim() ||
+      updated.email ||
+      updated.pseudo ||
+      updated.id;
 
-      res.json({
-        id: updated.id,
-        user_type: updated.user_type,
-        display_name: disp,
-        first_name: updated.first_name ?? null,
-        last_name: updated.last_name ?? null,
-        pseudo: updated.pseudo ?? null,
-        email: updated.email,
-        description: updated.description ?? null,
-        affiliation: resolvedUserType === 'student' ? (updated.affiliation ?? 'both') : null,
-        role_id: roleJoin?.role_id ?? null,
-        role_slug: roleJoin?.role_slug ?? null,
-        role_display_name: roleJoin?.role_display_name ?? null,
-        forum_participate:
-          resolvedUserType === 'student' ? Number(roleJoin?.forum_participate) !== 0 : true,
-        context_comment_participate:
-          resolvedUserType === 'student'
-            ? Number(roleJoin?.context_comment_participate) !== 0
-            : true,
-      });
-    } catch (e) {
-      respondInternalError(res, req, e);
-    }
-  },
+    res.json({
+      id: updated.id,
+      user_type: updated.user_type,
+      display_name: disp,
+      first_name: updated.first_name ?? null,
+      last_name: updated.last_name ?? null,
+      pseudo: updated.pseudo ?? null,
+      email: updated.email,
+      description: updated.description ?? null,
+      affiliation: resolvedUserType === 'student' ? (updated.affiliation ?? 'both') : null,
+      role_id: roleJoin?.role_id ?? null,
+      role_slug: roleJoin?.role_slug ?? null,
+      role_display_name: roleJoin?.role_display_name ?? null,
+      forum_participate:
+        resolvedUserType === 'student' ? Number(roleJoin?.forum_participate) !== 0 : true,
+      context_comment_participate:
+        resolvedUserType === 'student' ? Number(roleJoin?.context_comment_participate) !== 0 : true,
+    });
+  }),
 );
 
 router.put(
