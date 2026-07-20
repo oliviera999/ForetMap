@@ -6,6 +6,12 @@
 ALTER TABLE tasks
   ADD COLUMN archived_at DATETIME NULL DEFAULT NULL AFTER status;
 
+-- Marqueur : 1 si la tâche a été archivée PAR l'archivage de son projet (cascade).
+-- Sert au désarchivage du projet à ne restaurer que ces tâches-là, sans dépendre d'un
+-- matching par horodatage (fragile : deux archivages dans la même seconde entreraient en collision).
+ALTER TABLE tasks
+  ADD COLUMN archived_via_project TINYINT(1) NOT NULL DEFAULT 0 AFTER archived_at;
+
 ALTER TABLE task_projects
   ADD COLUMN archived_at DATETIME NULL DEFAULT NULL AFTER status;
 

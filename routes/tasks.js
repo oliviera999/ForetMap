@@ -1108,9 +1108,15 @@ async function setTaskArchivedState(req, res, { archive }) {
     return res.json(await getTaskWithAssignments(task.id));
   }
   if (archive) {
-    await execute('UPDATE tasks SET archived_at = NOW() WHERE id = ?', [req.params.id]);
+    // Archivage manuel : marqueur cascade à 0 (ne sera pas restauré par le désarchivage
+    // d'un projet — seul un désarchivage individuel le rétablit).
+    await execute('UPDATE tasks SET archived_at = NOW(), archived_via_project = 0 WHERE id = ?', [
+      req.params.id,
+    ]);
   } else {
-    await execute('UPDATE tasks SET archived_at = NULL WHERE id = ?', [req.params.id]);
+    await execute('UPDATE tasks SET archived_at = NULL, archived_via_project = 0 WHERE id = ?', [
+      req.params.id,
+    ]);
   }
   const projectId =
     task.project_id != null && String(task.project_id).trim()
