@@ -27,6 +27,7 @@ function errorRes(status, { contentType = 'application/json', body = {} } = {}) 
 
 describe('downloadAuthedFile (cœur partagé)', () => {
   test('envoie le jeton injecté et déclenche le téléchargement du blob', async () => {
+    vi.useFakeTimers();
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
       ok: true,
       status: 200,
@@ -37,16 +38,27 @@ describe('downloadAuthedFile (cœur partagé)', () => {
     const revokeObjectURL = vi.fn();
     vi.stubGlobal('URL', { ...URL, createObjectURL, revokeObjectURL });
     const click = vi.fn();
-    vi.spyOn(document, 'createElement').mockReturnValue({ click });
+    const remove = vi.fn();
+    const link = { click, remove, style: {} };
+    vi.spyOn(document, 'createElement').mockReturnValue(link);
+    const appendChild = vi.spyOn(document.body, 'appendChild').mockImplementation(() => link);
 
     await downloadAuthedFile('/api/export.xlsx', 'export.xlsx', baseOptions());
 
     const [url, options] = fetchMock.mock.calls[0];
     expect(url).toBe('/base/api/export.xlsx');
     expect(options.headers.get('Authorization')).toBe('Bearer jeton-dl');
+    expect(appendChild).toHaveBeenCalledWith(link);
+    expect(link.download).toBe('export.xlsx');
     expect(click).toHaveBeenCalledTimes(1);
+    // Le nettoyage (révocation + retrait) est différé : indispensable sur mobile.
+    expect(revokeObjectURL).not.toHaveBeenCalled();
+    expect(remove).not.toHaveBeenCalled();
+    vi.runAllTimers();
     expect(revokeObjectURL).toHaveBeenCalledWith('blob:xlsx');
+    expect(remove).toHaveBeenCalledTimes(1);
     vi.unstubAllGlobals();
+    vi.useRealTimers();
   });
 
   test('utilise les messages produit injectés pour 401 / 403 / 404', async () => {
