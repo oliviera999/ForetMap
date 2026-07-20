@@ -34,6 +34,22 @@ sans le supprimer (réversible), plutôt que de le supprimer définitivement.
 - **Docs** : `docs/API.md`, `docs/reference/foretmap/taches-tutoriels-et-validation.md`,
   `docs/EVOLUTION.md`.
 
+#### Archivage automatique paramétrable
+
+- **Job quotidien** `lib/autoArchive.js` (branché dans `server.js` à côté du job de tâches
+  récurrentes) : archive automatiquement les **tâches validées** et **projets validés** dont la
+  validation dépasse un délai. Portée limitée aux éléments **terminés** (jamais les tâches
+  actives). Réversible.
+- **Réglages** (portée prof) : `tasks.auto_archive_enabled` (défaut `true`) et
+  `tasks.auto_archive_after_days` (défaut **120** ≈ 4 mois ; bornes 7–3650).
+- **Migration 169** étendue : colonnes `tasks.validated_at` et `task_projects.finished_at`
+  (référence du délai, posées à la validation), `tasks.archived_via_project` (marqueur de cascade
+  fiable). Backfill des éléments déjà validés à la date de migration (pas d'archivage rétroactif
+  massif). Horodatage de validation posé dans `POST /api/tasks/:id/validate`, `PUT /api/tasks/:id`
+  (transition → `validated`) et `POST /api/task-projects/:id/validate`.
+- **Tests** : cas d'archivage auto (tâche/projet ancien vs récent, non-validé épargné, bornage du
+  délai) ajoutés à `tests/tasks-archive.test.js`.
+
 ### Audit `AUDIT_CODE_2026-07` — lot 5b : découpage des monolithes admin GL (sans changement de comportement)
 
 Suite du découpage §6.1 sur les vues admin GL lazy (faible blast radius), à iso-comportement
