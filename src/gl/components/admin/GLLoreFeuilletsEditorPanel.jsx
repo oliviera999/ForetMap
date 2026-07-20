@@ -5,8 +5,11 @@ import { GLField } from '../ui/GLField.jsx';
 import { GLInput } from '../ui/GLInput.jsx';
 import { GLSelect } from '../ui/GLSelect.jsx';
 import { GLTextarea } from '../ui/GLTextarea.jsx';
+import { GLMarkdownEditor } from '../ui/GLMarkdownEditor.jsx';
 import { GLBadge } from '../ui/GLBadge.jsx';
 import { GLDataList } from '../ui/GLDataList.jsx';
+import { DialogShell } from '../../../components/DialogShell.jsx';
+import { GLFeuilletSpeciesPicker } from './GLFeuilletSpeciesPicker.jsx';
 import {
   FEUILLET_SECTIONS,
   FEUILLET_TYPE_OPTIONS,
@@ -228,6 +231,30 @@ export function GLLoreFeuilletsEditorPanel() {
         </GLSelect>
       );
     }
+    if (field.kind === 'species-picker') {
+      return (
+        <GLFeuilletSpeciesPicker
+          biomeSlug={form.biome_slug}
+          canal={form.lien_canal}
+          reference={form.lien_ref}
+          onChange={({ canal, ref }) =>
+            setForm((prev) => ({ ...prev, lien_canal: canal, lien_ref: ref }))
+          }
+        />
+      );
+    }
+    if (field.kind === 'markdown') {
+      return (
+        <GLMarkdownEditor
+          value={value}
+          rows={field.rows || 4}
+          onChange={(next) =>
+            // GLMarkdownEditor renvoie soit une chaîne, soit un event selon le mode.
+            setField(field.key, typeof next === 'string' ? next : next?.target?.value || '')
+          }
+        />
+      );
+    }
     if (field.kind === 'textarea') {
       return (
         <GLTextarea
@@ -435,36 +462,59 @@ export function GLLoreFeuilletsEditorPanel() {
       <GLDataList columns={columns} rows={rows} emptyLabel="Aucun feuillet." />
 
       {selectedCode ? (
-        <div className="gl-form gl-feuillet-editor-form">
-          <div className="gl-inline-actions">
+        <DialogShell
+          open
+          onClose={closeEditor}
+          dialogClassName="gl-feuillet-editor-modal fade-in"
+          ariaLabel={`Édition du feuillet ${selectedCode}`}
+          closeOnOverlay={false}
+        >
+          <header className="gl-feuillet-editor-modal__head">
             <h4>
               Édition — <code>{selectedCode}</code>
+              {form.titre ? (
+                <span className="gl-feuillet-editor-modal__titre">{form.titre}</span>
+              ) : null}
             </h4>
-            <GLButton type="button" variant="ghost" onClick={closeEditor} disabled={saving}>
-              Fermer
-            </GLButton>
-          </div>
+            <div className="gl-inline-actions">
+              <GLButton type="button" onClick={save} disabled={saving || loading}>
+                {saving ? 'Enregistrement…' : 'Enregistrer'}
+              </GLButton>
+              <GLButton type="button" variant="secondary" onClick={toggleStatut} disabled={saving}>
+                {form.statut === 'actif' ? 'Archiver' : 'Réactiver'}
+              </GLButton>
+              <GLButton type="button" variant="ghost" onClick={closeEditor} disabled={saving}>
+                Fermer
+              </GLButton>
+            </div>
+          </header>
 
-          {FEUILLET_SECTIONS.map((section) => (
-            <details key={section.id} open={section.open || false}>
-              <summary>{section.title}</summary>
-              {section.fields.map((field) => (
-                <GLField key={field.key} label={field.label}>
-                  {renderField(field)}
-                </GLField>
-              ))}
-            </details>
-          ))}
+          {notices.error ? <p className="gl-error">{notices.error}</p> : null}
+          {notices.warning ? <p className="gl-hint">⚠️ {notices.warning}</p> : null}
 
-          <div className="gl-inline-actions">
-            <GLButton type="button" onClick={save} disabled={saving || loading}>
-              {saving ? 'Enregistrement…' : 'Enregistrer'}
-            </GLButton>
-            <GLButton type="button" variant="secondary" onClick={toggleStatut} disabled={saving}>
-              {form.statut === 'actif' ? 'Archiver' : 'Réactiver'}
-            </GLButton>
+          <div className="gl-feuillet-editor-modal__body">
+            {FEUILLET_SECTIONS.map((section) => (
+              <details key={section.id} open={section.open || false}>
+                <summary>{section.title}</summary>
+                <div className="gl-feuillet-editor-modal__grid">
+                  {section.fields.map((field) => (
+                    <GLField
+                      key={field.key}
+                      label={field.label}
+                      className={
+                        field.kind === 'markdown' || field.kind === 'species-picker'
+                          ? 'gl-field--wide'
+                          : undefined
+                      }
+                    >
+                      {renderField(field)}
+                    </GLField>
+                  ))}
+                </div>
+              </details>
+            ))}
           </div>
-        </div>
+        </DialogShell>
       ) : null}
     </section>
   );

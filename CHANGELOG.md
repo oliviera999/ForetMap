@@ -7,6 +7,22 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Édition des feuillets Sélène : modale plein écran + associations facilitées
+
+- **Édition plein écran (`GLLoreFeuilletsEditorPanel` + `DialogShell`)** : l'édition d'un feuillet
+  s'ouvre désormais dans une **modale plein écran** (échap + piège de focus), avec en-tête collant
+  (Enregistrer / Archiver / Fermer). Champs en grille 2 colonnes (1 colonne sur mobile).
+- **Contenu d'abord** (`glFeuilletFieldLabels.js`) : sections réordonnées — **Contenu** et
+  **Associations** ouvertes en haut, réglages techniques repliés ensuite. Les champs **Texte** et
+  **Texte accessible** utilisent l'**éditeur markdown enrichi** (`GLMarkdownEditor`) au lieu de
+  petites zones de texte, pour lire/écrire plus confortablement.
+- **Association d'espèce simplifiée** (`GLFeuilletSpeciesPicker`, nouveau) : au lieu de taper à la
+  main `lien_canal='espece'` + `lien_ref='SP0001'`, un **sélecteur d'espèce** (liste scopée au biome
+  du feuillet) renseigne les deux champs d'un coup ; repli « référence manuelle » pour les autres
+  canaux ou l'absence de biome. Le biome est libellé « Biome (→ chapitres) » pour clarifier le
+  rattachement chapitre, et zone / plateau / liasse / ordres sont regroupés dans « Associations ».
+- Tests : `GLFeuilletSpeciesPicker` (repli manuel, liste, effacement) + non-régression éditeur.
+
 ### Correctif : export / modèle XLSX des feuillets du carnet de Sélène sur smartphone
 
 - **`src/shared/downloadAuthedFile.js`** : téléchargement des fichiers binaires (XLSX/CSV) rendu
