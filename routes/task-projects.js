@@ -471,8 +471,9 @@ function readCascadeFlag(body) {
 
 // Archivage (soft-delete) d'un projet. Masque le projet des listes actives sans le
 // supprimer, réversible via /:id/unarchive. Par défaut (cascade), archive aussi les
-// tâches du projet en les horodatant avec la MÊME valeur que le projet, ce qui permet
-// au désarchivage de ne restaurer QUE les tâches propagées par cette opération.
+// tâches actives du projet en posant le marqueur `archived_via_project = 1`, ce qui
+// permet au désarchivage de ne restaurer QUE ces tâches (sans dépendre d'un matching
+// par horodatage, fragile en cas d'archivages dans la même seconde).
 async function setProjectArchivedState(req, res, { archive }) {
   const existing = await queryOne(
     'SELECT id, map_id, title, archived_at FROM task_projects WHERE id = ?',
@@ -486,29 +487,27 @@ async function setProjectArchivedState(req, res, { archive }) {
   }
 
   const cascade = readCascadeFlag(req.body);
-  const previousArchivedAt = existing.archived_at;
 
   await withTransaction(async (tx) => {
     if (archive) {
-      const archivedAt = new Date();
-      await tx.execute('UPDATE task_projects SET archived_at = ? WHERE id = ?', [
-        archivedAt,
+      await tx.execute('UPDATE task_projects SET archived_at = NOW() WHERE id = ?', [
         req.params.id,
       ]);
       if (cascade) {
+        // Seules les tâches actuellement actives sont propagées (marquées cascade).
         await tx.execute(
-          'UPDATE tasks SET archived_at = ? WHERE project_id = ? AND archived_at IS NULL',
-          [archivedAt, req.params.id],
+          'UPDATE tasks SET archived_at = NOW(), archived_via_project = 1 WHERE project_id = ? AND archived_at IS NULL',
+          [req.params.id],
         );
       }
     } else {
       await tx.execute('UPDATE task_projects SET archived_at = NULL WHERE id = ?', [req.params.id]);
-      if (cascade && previousArchivedAt != null) {
-        // Ne restaurer que les tâches archivées PAR le même archivage du projet
-        // (horodatage identique) : celles archivées individuellement restent archivées.
+      if (cascade) {
+        // Ne restaurer que les tâches archivées PAR ce projet (marqueur) : celles
+        // archivées individuellement (marqueur 0) restent archivées.
         await tx.execute(
-          'UPDATE tasks SET archived_at = NULL WHERE project_id = ? AND archived_at = ?',
-          [req.params.id, previousArchivedAt],
+          'UPDATE tasks SET archived_at = NULL, archived_via_project = 0 WHERE project_id = ? AND archived_via_project = 1',
+          [req.params.id],
         );
       }
     }

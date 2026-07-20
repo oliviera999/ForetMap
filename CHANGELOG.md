@@ -22,7 +22,8 @@ sans le supprimer (réversible), plutôt que de le supprimer définitivement.
   - `POST /api/tasks/:id/archive` · `/unarchive` (permission `tasks.manage`, idempotents).
   - `POST /api/task-projects/:id/archive` · `/unarchive` (permission `tasks.manage`) avec
     cascade par défaut vers les tâches du projet ; le désarchivage ne restaure que les tâches
-    archivées par la même opération (horodatage identique). Corps optionnel `{ cascade }`.
+    archivées par ce projet (marqueur `archived_via_project`) — celles archivées
+    individuellement restent archivées. Corps optionnel `{ cascade }`.
   - Le calcul automatique de complétion d'un projet **exclut** désormais les tâches archivées.
 - **Front-end** : les listes partagées restent actives uniquement (carte/modales non impactées) ;
   les archives (prof) sont isolées dans un état dédié et consultables via le filtre de statut

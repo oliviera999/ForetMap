@@ -160,6 +160,7 @@ CREATE TABLE IF NOT EXISTS tasks (
   sort_order INT UNSIGNED NOT NULL DEFAULT 0,
   status VARCHAR(32) DEFAULT 'available',
   archived_at DATETIME NULL DEFAULT NULL,
+  archived_via_project TINYINT(1) NOT NULL DEFAULT 0,
   created_at VARCHAR(32) DEFAULT NULL,
   INDEX idx_tasks_map_id (map_id),
   INDEX idx_tasks_project_id (project_id),
