@@ -17,8 +17,15 @@ Couches **autorisées** (sans fusionner auth, thème `gl-theme` ni catalogues m�
 | Couche                | Emplacement                                                                                                        | Usage                                                                                                                                                |
 | --------------------- | ------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Infra                 | `server.js`, `database.js`, `lib/productResolver.js`                                                               | Un serveur, isolation JWT `product`                                                                                                                  |
+| Base d'URL front      | `src/shared/appBase.js` (`API`, `withAppBase`)                                                                     | Résolution neutre du `base` Vite ; importable par ForetMap et GL sans tirer une session ni une logique 401 produit                                   |
+| Chargement ressource  | `src/hooks/useApiResource.js`                                                                                      | Hook générique `data/loading/error/reload` avec garde anti-course ; le `fetcher` reste local au produit (`api` ou `apiGL`)                           |
 | Utilitaires           | `src/utils/image.js` (`IMAGE_COMPRESSION_PRESETS`), `markdown.js`, `visitMascotState.js`, `mapViewMascotMotion.js` | ForetMap + imports depuis `src/gl/`                                                                                                                  |
+| Géométrie carte       | `src/utils/zoneGeometry.js` + réexports `visitMapGeometry.js`, `mapImageFit.js`                                    | Parsing des polygones en % et rectangle `object-fit: contain` partagés visite/biodiversité, avec alias historiques conservés                         |
+| Auto-liens GL         | `src/utils/glTermAutolink.js`                                                                                      | Fabrique commune glossaire SVT / glossaire lore ; rendu markdown, sanitisation et classes CSS restent dans chaque module appelant                    |
 | Noyaux                | `src/shared/*`, `lib/shared/*Core.js`                                                                              | Parité front/back (cadres image, repères, etc.)                                                                                                      |
+| OAuth pur             | `lib/shared/oauthCommon.js`                                                                                        | Fonctions Google OAuth strictement pures (CSV domaines/e-mails, configuration, autorisation d'e-mail) ; pas de session, cookie, redirect ni claim    |
+| Helpers tâches        | `lib/tasks/taskQueries.js`                                                                                         | Cluster ForetMap partagé entre routes tâches/propositions/assignations ; helpers d'écriture acceptant `dbx`/`tx` pour transactions                   |
+| Tirage QCM / lore     | `lib/gl/questionDrawShared.js`                                                                                     | Sélection commune des questions GL biome/lore sans dupliquer la logique de pool                                                                      |
 | Packs mascotte        | `src/shared/mascot-pack/` (validation UI, preview sprite_cut), `src/utils/glMascotPackToVisit.js`                  | Studio GL + mapper `sprite_cut` → format visite                                                                                                      |
 | Miroir serveur GL     | `lib/gl-pack/mascotPack.js` via **`npm run sync:gl-pack-lib`** (enchaîné par **`npm run build`**)                  | Validation Zod `/api/gl/mascots/packs*` sans `src/`                                                                                                  |
 | Miroir serveur visite | `lib/visit-pack/` via **`npm run sync:visit-pack-lib`**                                                            | Validation packs visite                                                                                                                              |
@@ -28,7 +35,8 @@ Couches **autorisées** (sans fusionner auth, thème `gl-theme` ni catalogues m�
 | Statistiques joueurs  | `lib/glPlayerStats.js`, `routes/gl/stats.js`, `src/gl/components/GLStatsView.jsx`                                  | Stats perso (`GET /api/gl/stats/me`) et collectives classe (`GET /api/gl/stats/class`, permission `gl.players.manage`) — vitalité + apprentissages   |
 | Identité / groupes    | `lib/glGroupBridge.js`, `groups` + `group_members`, `gl_classes.foretmap_group_id`                                 | Chaque classe GL a un groupe ForetMap miroir ; les nouveaux joueurs GL sont liés à `users` et membres du groupe                                      |
 
-**À ne pas mutualiser** : tables gameplay `gl_*` (hors lien groupe), RBAC JWT GL, catalogue `glMascotCatalog.js` (ids `gl-*`), styles couleur GL.
+**À ne pas mutualiser** : tables gameplay `gl_*` (hors lien groupe), RBAC JWT GL, sessions,
+cookies, redirects OAuth, claims, catalogue `glMascotCatalog.js` (ids `gl-*`), styles couleur GL.
 
 **Commentaires contextuels** : types `gl_*` uniquement sur **`/api/gl/context-comments`** (retirés de l’API ForetMap standard pour éviter deux chemins JWT).
 
@@ -41,6 +49,18 @@ Couches **autorisées** (sans fusionner auth, thème `gl-theme` ni catalogues m�
 - Fallback SPA :
   - ForetMap => `dist/index.vite.html`
   - GL => `dist/gl.html`
+
+### Pipeline JWT et frontière produit
+
+- Les routeurs `/api/gl/*` sont montés avant la garde ForetMap. Toute route GL doit rester sous
+  ce préfixe et utiliser l'auth GL dédiée (`middleware/requireGlAuth.js`).
+- La garde `/api` ForetMap vérifie le Bearer token quand il existe : un JWT `product:"gl"` reçoit
+  un `403`, tandis qu'un JWT ForetMap vérifié est mémorisé sur `req.verifiedForetJwt`.
+- Les middlewares ForetMap (`requireAuth`, `requirePermission`, `requireTeacher`,
+  `requireProduct`) réutilisent ces claims si le token est identique, puis réappliquent la
+  contrainte produit avec `checkClaimsProduct`. S'ils sont montés directement en test ou hors
+  garde globale, ils retombent sur une vérification JWT complète.
+- Garde de régression : `tests/jwt-pipeline.test.js` couvre le cache de claims et l'isolement GL.
 
 ## Build frontend
 

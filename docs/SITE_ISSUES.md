@@ -1,6 +1,6 @@
 # Problemes potentiels du site ForetMap
 
-Date de reference: 2026-04-12
+Date de reference: 2026-07-20
 
 Ce document liste les principaux problemes potentiels identifies a ce jour.
 Il consolide les constats des audits internes, notamment:
@@ -21,7 +21,7 @@ Il consolide les constats des audits internes, notamment:
 
 - `G8` - Mot de passe minimum par defaut = 4 (`lib/settings.js:96`), comptes staff/MJ inclus ; porter le defaut a 8-10. Voir `docs/AUDIT_GENERAL_2026-06.md`.
 - `G9` - JWT stocke en `localStorage` + CSP `script-src` absente (helmet `contentSecurityPolicy:false`) : defense en profondeur XSS a renforcer (cookie httpOnly + CSP stricte SPA).
-- `G6` - N+1 d'ecriture hors transaction sur tables de liaison (`task-projects.js:85`, `tutorials.js:77`, `visit/sync.js:131`) ; batcher en INSERT multi-valeurs + `withTransaction` (cf. O10).
+- `G6` - N+1 d'ecriture hors transaction sur tables de liaison : `task-projects.js` et la creation tutoriel sont traites ; reste notamment `visit/sync.js:131` et les batchs residuels a convertir en INSERT multi-valeurs + `withTransaction` (cf. O10).
 - `G7` - Migrations sans lock ni transaction par fichier (`database.js:368`) : risque en deploiement concurrent / echec partiel.
 - `B5` - Temps reel incomplet sur les observations (creation/suppression non diffusees).
 - `R4` - Pipeline base64 JSON couteux en CPU/memoire pour les uploads.
@@ -60,7 +60,7 @@ Source et tracker detaille: `docs/AUDIT_OPTIMISATION.md`. Statuts: todo / wip / 
 - `O5` - [wip] `App.jsx` God component + prop-drilling x4 ; Contexts par domaine.
 - `O6` - [wip] Composants monolithiques + 0 test UI (~21k LOC) ; extraire logique pure + tests, puis decouper.
 - `O7` - [wip] `zod` installe mais jamais utilise ; middleware `validate(schema)` par endpoint.
-- `O8` - [todo] try/catch disperses + `respondInternalError` redefini ; wrapper `asyncHandler`.
+- `O8` - [wip] try/catch disperses + `respondInternalError` redefini ; `asyncHandler` deja deploye sur de nombreux routeurs, rollout residuel a finir.
 - `O9` - [done] Helpers dupliques (`normalizeOptionalString` x25, pagination, `Lightbox` x2, compression image) ; mutualisation.
 - `O10` - [wip] Routes obeses (2000+ l.) + N+1 d'ecriture (boucles INSERT) ; services par domaine + INSERT multi-valeurs.
 - `O11` - [done] Lazy ineffectif + markdown/GL eager + sourcemap prod ; corrections bundle.
