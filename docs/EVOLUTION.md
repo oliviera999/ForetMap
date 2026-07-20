@@ -1,7 +1,8 @@
 # Évolution du code ForetMap — État réel et suite
 
 Ce document sert de feuille de route d’évolution **sans changement métier non souhaité**.
-Il reflète l’état réel du dépôt (avril 2026) et priorise la suite en commençant par des quick wins.
+Il reflète l’état réel du dépôt (mis à jour en juillet 2026) et priorise la suite en commençant
+par des quick wins.
 
 ---
 
@@ -54,6 +55,12 @@ Il reflète l’état réel du dépôt (avril 2026) et priorise la suite en comm
 - **Mai 2026 — GL Lot 2B : contenus & chapitres** : nouveau routeur `routes/gl/chapters.js` (`GET /api/gl/chapters/:slug` public + CRUD admin protégé par `gl.content.manage`) pour gérer chapitres et repères depuis l'interface MJ. Sous-onglets `Pages` / `Chapitres` dans `GLContentsAdminView` et nouveau composant `GLChaptersAdminView` (édition markdown histoire/biotope/biocénose, gestion des markers). Suppression d'un chapitre refusée (`409`) s'il est lié à une partie en cours. Importeur WordPress étendu (`--target=chapters` + `chapterMap` dans `scripts/gl-import-wp.config.json`) pour pré-remplir `gl_chapters.story_markdown` depuis le HTML WP. Tests `tests/gl-chapter-detail.test.js`, `tests/gl-chapters-admin.test.js`, e2e `e2e/gl-content.spec.js`.
 - **Mai 2026 — GL Lot 2C : mascottes & équipes** : catalogue G&L dédié (`src/utils/glMascotCatalog.js`, ≥ 6 gnomes + ≥ 6 licornes, ids `gl-*`) avec rendu fallback SVG (`GLMascotFallbackSvg`) et composant réutilisable `GLMascotAvatar`. Nouveau routeur `routes/gl/mascots.js` (`GET /api/gl/mascots[?gameId]`, `POST /api/gl/mascots/assign`) avec assignation transactionnelle, refus collision intra-partie (`409`), refus mascotte inconnue (`404`). UI : `GLMascotsAdminView` refondue (grille + filtres + état assigné), affichage mascotte dans `GLGameBoard` / `GLTopBar` (préfixe `gl-` détecté pour basculer du `VisitMapMascotRenderer` vers `GLMascotAvatar`). Pont CJS→ESM `lib/glMascotCatalog.js` (cache). Tests `tests/gl-mascot-catalog.test.js`, `tests/gl-mascots.test.js`, e2e `e2e/gl-mascots.spec.js`.
 - **Mai 2026 — GL exécution transposition (lots initiaux)** : alignement migration `083_gl_players_password.sql` côté routes (`/api/gl/auth/login` pseudo+password avec compat `pin`, `/api/gl/auth/change-password`, `/api/gl/admin/players` enrichi, `PUT /api/gl/admin/players/:id`, `POST /reset-password`, alias `reset-pin`, import joueurs CSV/XLSX), ajout des drapeaux modules `modules.*` (backend `lib/glSettings.js` + exposition `/api/gl/auth/config` + validation admin settings), et première brique packs mascotte GL (migration `084_gl_mascot_packs.sql`, validation Zod `lib/gl-pack/mascotPack.js`, endpoints `/api/gl/mascots/packs*` et `/api/gl/mascots/sprite-library*`, studio front initial `GLMascotPackManager`).
+- **Juillet 2026 — lots audit code v1.83.4 à v1.83.12** : optimisation `httpRequestLog`, cache
+  intra-requête des claims JWT ForetMap après garde produit (`req.verifiedForetJwt`), transactions
+  partielles `task-projects`/`tutorials`, cluster `lib/tasks/taskQueries.js`, helpers purs
+  `lib/shared/oauthCommon.js`, tirage GL `lib/gl/questionDrawShared.js`, primitives frontend
+  `src/shared/appBase.js`, `src/utils/zoneGeometry.js`, `src/utils/glTermAutolink.js`,
+  `src/hooks/useApiResource.js`, et découpage progressif des vues admin GL.
 
 ## 1.2 Partiellement réalisé / restant
 
@@ -78,9 +85,9 @@ Il reflète l’état réel du dépôt (avril 2026) et priorise la suite en comm
 - **Frontend — optimisation bundle (partiellement réalisé, juin 2026)** :
   - lazy-load des onglets rares dans `App.jsx`, `manualChunks` Vite, composant toast partagé `TimedToast`, extraction `LivingBeingsCatalogPanel` et `lib/tasks/taskImport.js`, pipeline JWT `lib/auth/jwtPipeline.js`.
   - **Reste à faire** : scinder `plants-views.jsx` hors de `foretmap-views.jsx` (supprimer l’avertissement Vite sur import dynamique), poursuivre le découpage `map-views` / `tasks-views`.
-- **Audit d'optimisation (juin 2026, tracker `docs/AUDIT_OPTIMISATION.md` items O1-O14)** :
-  - **Livré** : lazy renderers mascotte + `sourcemap:false` prod (O1/O11) ; cache TTL RBAC (O3) ; INSERT multi-valeurs jointures tâches (O10) ; `helmet` + `timingSafeEqual` + `startupVersion` (O13/O14) ; outillage react-hooks/Prettier + correctif hooks conditionnels (O12) ; nettoyage fichiers morts (O14). Couche helpers partagés (O9, en cours).
-  - **Reste à faire (structurel, multi-lots)** : Contexts par domaine pour casser le prop-drilling d'`App.jsx` (O5) ; découpage des méga-composants avec tests UI préalables (O6) ; adoption `zod` par middleware `validate(schema)` sur les 39 routeurs (O7) ; wrapper `asyncHandler` (O8) ; couche service par domaine (O10) ; lazy-loading des vues GL ; CSS-modules progressifs.
+- **Audit d'optimisation (juin/juillet 2026, tracker `docs/AUDIT_OPTIMISATION.md` items O1-O14)** :
+  - **Livré ou bien avancé** : lazy renderers mascotte + `sourcemap:false` prod (O1/O11) ; INSERT multi-valeurs jointures tâches (O10 partiel) ; `helmet` + `timingSafeEqual` + `startupVersion` (O13/O14) ; outillage react-hooks/Prettier + correctif hooks conditionnels (O12) ; nettoyage fichiers morts (O14) ; helpers partagés (O9) ; `asyncHandler` déployé sur de nombreux routeurs (O8 wip) ; premières mutualisations backend/frontend de `docs/AUDIT_CODE_2026-07.md`.
+  - **Reste à faire (structurel, multi-lots)** : finaliser les Contexts par domaine et découpages JSX (O5/O6) ; poursuivre l'adoption `zod` par middleware `validate(schema)` sur les routeurs restants (O7) ; terminer le rollout `asyncHandler` sur les handlers résiduels (O8) ; couche service par domaine et batchs restants (O10) ; CSS-modules progressifs.
   - **Décision produit en attente** : migration `xlsx@0.18.5` (CVE) — `exceljs` (npm) vs SheetJS CDN (O4).
 
 ## 1.2bis Dette / nettoyage différé — vues et tables mortes (juin 2026)

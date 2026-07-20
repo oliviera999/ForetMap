@@ -7,6 +7,15 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Documentation technique — synchronisation post-audit code
+
+- Mise à jour de `docs/GL_ARCHITECTURE.md` sur les frontières de mutualisation ForetMap/GL :
+  pipeline JWT produit, `src/shared/appBase.js`, `useApiResource`, géométrie carte, auto-liens GL,
+  helpers OAuth purs et helpers backend récents.
+- Mise à jour des trackers techniques (`docs/AUDIT_CODE_2026-07.md`, `docs/EVOLUTION.md`,
+  `docs/SITE_ISSUES.md`, `docs/SITE_ISSUES.json`) pour distinguer les constats initiaux des lots
+  v1.83.4 à v1.83.12 déjà livrés.
+
 ### Audit `AUDIT_CODE_2026-07` — lot 5b : découpage des monolithes admin GL (sans changement de comportement)
 
 Suite du découpage §6.1 sur les vues admin GL lazy (faible blast radius), à iso-comportement

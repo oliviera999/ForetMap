@@ -167,13 +167,20 @@ le bon helper `replaceTaskJoinRows` existe déjà dans `tasks.js:296-304`), `tut
 Correctif : `withTransaction` (déjà utilisé ~60 fois ailleurs) avec helpers acceptant un exécuteur
 (`db` ou `tx`) comme le fait déjà `lib/speciesJunction.js:258-262`.
 
+**Statut juillet 2026** : partiellement livré. `routes/task-projects.js` crée, met à jour et
+duplique désormais un projet dans `withTransaction`, avec helpers de jointure acceptant un exécuteur
+transactionnel. `routes/tutorials.js` crée les tutoriels et leurs liens zones/repères dans une
+transaction. `routes/tasks.js` reste le principal site à traiter pour le POST tâche complet.
+
 ### 2.6 Divers backend
 
-- `server.js:653-669` + `middleware/requireTeacher.js` : **double `jwt.verify`** par requête
-  authentifiée (garde d'isolement produit puis middleware de route) → stocker les claims vérifiés
-  sur `req` et les réutiliser. Impact CPU par requête ; à couvrir par test.
-- `lib/httpRequestLog.js:63-64` : `parseHttpLogMode()`/`parseSlowMs()` recalculés à chaque requête →
-  calculer à la création du middleware (vérifier les tests qui mutent `FORETMAP_HTTP_LOG` à chaud).
+- `server.js:317-340` + `middleware/requireTeacher.js` : **livré v1.83.11**. La garde `/api`
+  rejette les tokens GL hors `/api/gl/*`, mémorise les claims ForetMap vérifiés sur
+  `req.verifiedForetJwt`, puis `resolveAuthOrRespond` les réutilise si le token est identique et
+  réapplique `checkClaimsProduct`. Couvert par `tests/jwt-pipeline.test.js`.
+- `lib/httpRequestLog.js:59-64` : **livré v1.83.4**. `parseHttpLogMode()` et `parseSlowMs()` sont
+  résolus une seule fois à la création du middleware ; les variables `FORETMAP_HTTP_LOG` /
+  `FORETMAP_HTTP_SLOW_MS` restent des réglages de démarrage.
 - `routes/gl/games.js:434-450` : deux `queryOne` successifs sur `gl_teams` → 1 requête (préserver le
   contrat 404 vs 403, testé).
 - Re-fetch complet après écriture (GL) : `chapters.js:407-416` (4 requêtes après UPDATE d'une
@@ -290,6 +297,12 @@ Correctif : `withTransaction` (déjà utilisé ~60 fois ailleurs) avec helpers a
 - **Risque** : moyen — bonne couverture `tests/tasks*.test.js` ; comparer les corps au diff près
   avant fusion (petites divergences possibles).
 
+**Statut juillet 2026** : partiellement livré dans `lib/tasks/taskQueries.js`. Le module contient
+le parsing auth optionnel, la validation groupée zones/repères (`validateTaskLocations` sans N+1),
+les remplacements multi-valeurs des jointures, la synchronisation des colonnes legacy et les loaders
+batchés tâches → zones/repères/tutoriels/référents. Les helpers d'écriture acceptent `dbx`/`tx` pour
+être utilisés dans une transaction englobante.
+
 ### 4.2 Paires « Lore vs non-Lore » GL (~600-800 lignes)
 
 Similarités mesurées par diff réel (token `Lore` neutralisé) :
@@ -304,6 +317,10 @@ Similarités mesurées par diff réel (token `Lore` neutralisé) :
 | `routes/gl/lore.js:1195-1226` ↔ `qcm.js:200-230`                                                 | handler tirage quasi identique                                                  | helper paramétré par colonne de scope                              |
 
 Ordre conseillé : petits modules purs d'abord (Query → Pool → Match → Crud → Import).
+
+**Statut juillet 2026** : un premier noyau de tirage a été mutualisé dans
+`lib/gl/questionDrawShared.js` pour les chemins QCM/lore. Les imports, CRUD et pools complets
+restent à traiter par paires avec tests dédiés.
 
 ### 4.3 Helpers dupliqués (mutualisation triviale, risque faible)
 
@@ -329,12 +346,21 @@ dans 5 sous-fichiers de `routes/visit/`) ; slug unique par `while(true)` dupliqu
 (`reset-password`/`reset-pin` identiques au champ près) ; `upsertGlSetting` + table de validateurs
 pour `admin.js:873-1079` (207 L) ; `isMj(req)` (×17 tests inline `userType === 'gl_admin'`).
 
+**Statut juillet 2026** : les helpers OAuth strictement purs sont extraits dans
+`lib/shared/oauthCommon.js`. Garder locales les sessions, redirects, claims et variantes produit :
+ce module ne doit contenir aucune I/O, aucun accès `req/res`, DB ou `process.env` runtime.
+
 ### 4.4 Reliquats de migration O8 (asyncHandler)
 
 27 `respondInternalError` résiduels côté ForetMap (dont `routes/learning-links.js` entièrement non
 migré — 9 occurrences), 76 `catch (err)` manuels côté GL (`forum.js`, `journal.js`,
 `learning-links.js`, `games/markers.js`, `games/qcm.js`, `games/spell-casts.js`). Terminer route par
 route en conservant les catch « spéciaux » (conflits de slug, nettoyage d'images).
+
+**Statut juillet 2026** : rollout avancé depuis le constat initial. `routes/auth.js`,
+`routes/students.js`, `routes/rbac.js`, `routes/plants.js` et `routes/gl/games/markers.js` utilisent
+désormais `lib/asyncHandler` sur les handlers génériques récemment migrés, tout en conservant les
+blocs spécifiques nécessaires (transactions, conflits, rollback, statuts métier).
 
 ---
 
@@ -379,6 +405,11 @@ route en conservant les catch « spéciaux » (conflits de slug, nettoyage d'ima
 | Géométrie                   | `parseZonePointsJson` ≡ `parseVisitZonePoints` (identiques ligne à ligne) + 3 parses inline dans `map-views.jsx` ; `computeBiodivMapFitRect` ≡ `computeMapImageContainRect` ; formule de zoom pivot ×4 dans `useMapGestures` alors que `zoomVisitTransformToScale` existe | —                                                         | `utils/zoneGeometry.js` unique + ré-exports d'alias                                                                                                                       |
 | Hooks divers                | `usePrefersReducedMotion` réimplémenté ×4 alors que `src/shared/hooks/` l'a ; 3 wrappers `Lightbox` ; fetch+listener `foretmap_session_changed` ×4 ; `downloadApiFile` réimplémenté à la main ×3 (`profiles-views.jsx:666-687, 724-740`, `TaskImportPanel.jsx:19-42`)     | —                                                         | imports partagés, hooks `useTutorialReadIds` / `usePlantObservationCounts`                                                                                                |
 
+**Statut juillet 2026** : `src/utils/zoneGeometry.js` est le module fédérateur pour le parsing des
+polygones et le rectangle `object-fit: contain`; les anciens modules réexportent les alias publics.
+`src/utils/glTermAutolink.js` mutualise les primitives glossaire SVT/lore, en laissant le rendu et la
+sanitisation aux modules appelants.
+
 ### 5.4 Hook manquant : `useApiResource`
 
 ~30 réimplémentations du trio `data/loading/error` + fetch + garde anti-course (grep confirmé :
@@ -388,6 +419,10 @@ route en conservant les catch « spéciaux » (conflits de slug, nettoyage d'ima
 avec annulation et gestion `AccountDeletedError` (le helper `safeApi` d'`App.jsx:574-582` est le
 pattern à généraliser). Migration progressive, vue par vue. Complément : couche
 `services/resources/*.js` par domaine (108 appels `api('/api/…')` éparpillés dans 38 fichiers).
+
+**Statut juillet 2026** : le hook existe dans `src/hooks/useApiResource.js` et est couvert par
+`tests-ui/hooks/useApiResource.test.jsx`. Il fournit la garde anti-course et `reload`; la migration
+des vues reste volontairement progressive et doit injecter un `fetcher` produit-local.
 
 ---
 

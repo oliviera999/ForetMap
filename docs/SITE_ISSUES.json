@@ -1,6 +1,6 @@
 {
   "title": "Problemes potentiels du site ForetMap",
-  "reference_date": "2026-04-12",
+  "reference_date": "2026-07-20",
   "sources": [
     "docs/AUDIT_BUGS_INCOHERENCES.md",
     "docs/AUDIT_PHOTOS_BIODIVERSITE.md",
@@ -42,8 +42,8 @@
       },
       {
         "id": "G6",
-        "summary": "N+1 d'ecriture hors transaction sur tables de liaison",
-        "details": "task-projects.js:85, tutorials.js:77, visit/sync.js:131 ; INSERT multi-valeurs + withTransaction (cf. O10)"
+        "summary": "N+1 d'ecriture hors transaction sur tables de liaison residuelles",
+        "details": "task-projects.js et creation tutoriel traites ; reste notamment visit/sync.js:131 et les batchs residuels a convertir en INSERT multi-valeurs + withTransaction (cf. O10)"
       },
       {
         "id": "G7",
@@ -129,7 +129,11 @@
         "status": "wip",
         "summary": "zod jamais utilise ; middleware validate(schema)"
       },
-      { "id": "O8", "status": "todo", "summary": "try/catch disperses ; wrapper asyncHandler" },
+      {
+        "id": "O8",
+        "status": "wip",
+        "summary": "try/catch disperses ; asyncHandler deja deploye sur de nombreux routeurs"
+      },
       {
         "id": "O9",
         "status": "done",
