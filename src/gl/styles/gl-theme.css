@@ -2094,6 +2094,89 @@ body.gl-map-fullscreen-active .gl-qcm-popover-overlay {
   transform: translateY(-1px);
 }
 
+/* Onglets défilables horizontalement sur petit écran (feuillets, catalogues) :
+   évite l'empilement vertical et garde des cibles tactiles ≥ 44px. */
+.gl-subtabs--scroll {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x proximity;
+  padding-bottom: 4px;
+}
+
+.gl-subtabs--scroll button {
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+}
+
+@media (max-width: 640px) {
+  .gl-subtabs--scroll button {
+    min-height: 44px;
+  }
+}
+
+/* Panneau import / export XLSX (feuillets Sélène, catalogues GL). */
+.gl-admin-import-panel {
+  display: grid;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--gl-border);
+  border-radius: var(--gl-radius-sm);
+  background: #fff;
+}
+
+.gl-admin-import-panel h3 {
+  margin: 0;
+}
+
+.gl-admin-import-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.gl-admin-import-panel form {
+  display: grid;
+  gap: 10px;
+}
+
+.gl-admin-import-panel input[type='file'] {
+  width: 100%;
+  max-width: 100%;
+  padding: 8px;
+  border: 1px dashed var(--gl-border);
+  border-radius: 8px;
+  background: color-mix(in srgb, #fff 92%, var(--gl-color-secondary) 8%);
+}
+
+.gl-admin-import-panel label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+}
+
+.gl-admin-report {
+  margin: 0;
+  max-height: 340px;
+  overflow: auto;
+  padding: 10px;
+  border: 1px dashed var(--gl-border);
+  border-radius: 8px;
+  background: color-mix(in srgb, #fff 94%, var(--gl-color-secondary) 6%);
+  font-size: 0.8rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+@media (max-width: 640px) {
+  .gl-admin-import-actions .gl-btn,
+  .gl-admin-import-actions button {
+    flex: 1 1 100%;
+  }
+}
+
 .gl-markers-list {
   list-style: none;
   padding: 0;

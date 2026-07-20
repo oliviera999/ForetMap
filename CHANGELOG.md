@@ -7,6 +7,24 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Correctif : export / modèle XLSX des feuillets du carnet de Sélène sur smartphone
+
+- **`src/shared/downloadAuthedFile.js`** : téléchargement des fichiers binaires (XLSX/CSV) rendu
+  compatible mobile. Le lien `<a>` est désormais attaché au document avant `click()` et le
+  nettoyage (`URL.revokeObjectURL` + retrait du lien) est **différé**. Sur iOS Safari / Chrome
+  Android, la révocation synchrone de l'URL blob annulait l'écriture asynchrone du fichier →
+  fichier vide/absent (« l'export ne s'exporte pas dans le contenu »). Nouvelle fonction exportée
+  `triggerBlobDownload`. Corrige aussi bien l'**export du catalogue** que le **modèle XLSX** des
+  feuillets Sélène, et par ricochet tous les téléchargements ForetMap/GL.
+- **`GLLoreFeuilletsImportPanel.jsx`** : les boutons « Modèle XLSX » / « Exporter le catalogue »
+  attendent désormais le téléchargement, affichent un état de chargement et **remontent les
+  erreurs** (échec auparavant silencieux sur mobile). Import du hook `useEffect` inutilisé retiré.
+- **UI onglets de gestion des feuillets** (`GLContentCatalogPanel.jsx` + `gl-theme.css`) :
+  sous-onglets défilables horizontalement sur petit écran (`gl-subtabs--scroll`, plus d'empilement
+  vertical), sémantique `role="tablist"/"tab"` + `aria-selected`, cibles tactiles ≥ 44px, et
+  panneau import/export stylé (carte, zone de dépôt, rapport JSON défilable, boutons pleine largeur
+  sur mobile).
+
 ### Audit `AUDIT_CODE_2026-07` — lot 5b : découpage des monolithes admin GL (sans changement de comportement)
 
 Suite du découpage §6.1 sur les vues admin GL lazy (faible blast radius), à iso-comportement
