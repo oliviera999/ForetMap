@@ -6,7 +6,14 @@ const asyncHandler = require('../lib/asyncHandler');
 const { z, validate } = require('../lib/validate');
 const { emitTasksChanged } = require('../lib/realtime');
 const { logAudit } = require('./audit');
-const { normalizeIdArray } = require('../lib/taskRouteHelpers');
+const {
+  normalizeIdArray,
+  normalizeArchivedFilter,
+  archivedFilterSql,
+} = require('../lib/taskRouteHelpers');
+const { parseOptionalAuth } = require('../lib/tasks/taskQueries');
+const { canManageTasks } = require('../lib/taskAuthzHelpers');
+const { syncTaskProjectCompletionForProjects } = require('../lib/syncTaskProjectCompletion');
 
 const router = express.Router();
 /** Statuts acceptés sur POST/PUT corps JSON (pas `completed` : réservé à la synchro tâches). */
@@ -281,14 +288,29 @@ router.get(
       return res.status(400).json({ error: 'Carte introuvable' });
     }
 
+    // Portée d'archivage réservée à la gestion : un non-prof ne voit jamais d'archive.
+    const auth = await parseOptionalAuth(req);
+    const archivedScope = canManageTasks(auth)
+      ? normalizeArchivedFilter(req.query.archived)
+      : 'active';
+    const where = [];
+    const params = [];
+    if (mapId) {
+      where.push('p.map_id = ?');
+      params.push(mapId);
+    }
+    const archivedSql = archivedFilterSql(archivedScope, 'p.archived_at');
+    if (archivedSql) where.push(archivedSql);
+    const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
+
     const sql = `
     SELECT p.*, m.label AS map_label
     FROM task_projects p
     INNER JOIN maps m ON m.id = p.map_id
-    ${mapId ? 'WHERE p.map_id = ?' : ''}
+    ${whereSql}
     ORDER BY p.created_at DESC, p.title ASC
   `;
-    const rows = mapId ? await queryAll(sql, [mapId]) : await queryAll(sql);
+    const rows = await queryAll(sql, params);
     res.json(await enrichProjects(rows));
   }),
 );
@@ -437,6 +459,87 @@ router.delete(
     });
     res.json({ success: true });
   }),
+);
+
+/** Corps `{ cascade }` : par défaut l'archivage/désarchivage se propage aux tâches du projet. */
+function readCascadeFlag(body) {
+  const raw = body?.cascade;
+  if (raw === false) return false;
+  if (String(raw ?? '').toLowerCase() === 'false') return false;
+  return true;
+}
+
+// Archivage (soft-delete) d'un projet. Masque le projet des listes actives sans le
+// supprimer, réversible via /:id/unarchive. Par défaut (cascade), archive aussi les
+// tâches du projet en les horodatant avec la MÊME valeur que le projet, ce qui permet
+// au désarchivage de ne restaurer QUE les tâches propagées par cette opération.
+async function setProjectArchivedState(req, res, { archive }) {
+  const existing = await queryOne(
+    'SELECT id, map_id, title, archived_at FROM task_projects WHERE id = ?',
+    [req.params.id],
+  );
+  if (!existing) return res.status(404).json({ error: 'Projet introuvable' });
+
+  const alreadyArchived = existing.archived_at != null;
+  if (archive === alreadyArchived) {
+    return res.json(await loadProjectRow(req.params.id)); // idempotent
+  }
+
+  const cascade = readCascadeFlag(req.body);
+  const previousArchivedAt = existing.archived_at;
+
+  await withTransaction(async (tx) => {
+    if (archive) {
+      const archivedAt = new Date();
+      await tx.execute('UPDATE task_projects SET archived_at = ? WHERE id = ?', [
+        archivedAt,
+        req.params.id,
+      ]);
+      if (cascade) {
+        await tx.execute(
+          'UPDATE tasks SET archived_at = ? WHERE project_id = ? AND archived_at IS NULL',
+          [archivedAt, req.params.id],
+        );
+      }
+    } else {
+      await tx.execute('UPDATE task_projects SET archived_at = NULL WHERE id = ?', [req.params.id]);
+      if (cascade && previousArchivedAt != null) {
+        // Ne restaurer que les tâches archivées PAR le même archivage du projet
+        // (horodatage identique) : celles archivées individuellement restent archivées.
+        await tx.execute(
+          'UPDATE tasks SET archived_at = NULL WHERE project_id = ? AND archived_at = ?',
+          [req.params.id, previousArchivedAt],
+        );
+      }
+    }
+  });
+
+  logAudit(
+    archive ? 'archive_task_project' : 'unarchive_task_project',
+    'task_project',
+    req.params.id,
+    existing.title || 'Projet',
+    { req, payload: { map_id: existing.map_id, cascade } },
+  );
+  await syncTaskProjectCompletionForProjects([req.params.id]);
+  emitTasksChanged({
+    reason: archive ? 'project_archive' : 'project_unarchive',
+    projectId: req.params.id,
+    mapId: existing.map_id,
+  });
+  res.json(await loadProjectRow(req.params.id));
+}
+
+router.post(
+  '/:id/archive',
+  requirePermission('tasks.manage'),
+  asyncHandler(async (req, res) => setProjectArchivedState(req, res, { archive: true })),
+);
+
+router.post(
+  '/:id/unarchive',
+  requirePermission('tasks.manage'),
+  asyncHandler(async (req, res) => setProjectArchivedState(req, res, { archive: false })),
 );
 
 router.post(

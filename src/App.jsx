@@ -80,6 +80,7 @@ import { safeLocalStorageGetItem, safeLocalStorageSetItem } from './utils/browse
 import { useOverlayHistoryBack } from './hooks/useOverlayHistoryBack';
 import { abandonAllOverlays, pushOverlayClose } from './utils/overlayHistory';
 import { keepPrevIfEqual } from './utils/stableCollection';
+import { partitionByArchived } from './utils/taskArchive';
 import { AutoProfilePromotionModal } from './components/AutoProfilePromotionModal.jsx';
 import { AppHeader } from './components/app/AppHeader.jsx';
 import { MapTasksArea } from './components/app/MapTasksArea.jsx';
@@ -132,6 +133,9 @@ function App() {
   const [zones, setZones] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [taskProjects, setTaskProjects] = useState([]);
+  // Archives isolées (prof) : hors listes actives partagées pour ne pas polluer carte/modales.
+  const [archivedTasks, setArchivedTasks] = useState([]);
+  const [archivedTaskProjects, setArchivedTaskProjects] = useState([]);
   const [plants, setPlants] = useState([]);
   const [tutorials, setTutorials] = useState([]);
   const [markers, setMarkers] = useState([]);
@@ -407,11 +411,21 @@ function App() {
             const tutorialsEndpoint = canTutorialsSnap
               ? '/api/tutorials?include_inactive=1'
               : '/api/tutorials';
+            // Les profs récupèrent aussi les tâches/projets archivés (portée `all`) pour la
+            // vue « Archivés » ; côté élève/visiteur le backend force la portée active.
+            const archivedQuery = isTeacherSnap ? '&archived=all' : '';
             const [z, t, taskProjectsRes, p, m, tu] = await Promise.all([
               safeApi(() => (mapQuery ? api(`/api/zones?${mapQuery}`) : Promise.resolve([])), []),
-              safeApi(() => (mapQuery ? api(`/api/tasks?${mapQuery}`) : Promise.resolve([])), []),
               safeApi(
-                () => (mapQuery ? api(`/api/task-projects?${mapQuery}`) : Promise.resolve([])),
+                () =>
+                  mapQuery ? api(`/api/tasks?${mapQuery}${archivedQuery}`) : Promise.resolve([]),
+                [],
+              ),
+              safeApi(
+                () =>
+                  mapQuery
+                    ? api(`/api/task-projects?${mapQuery}${archivedQuery}`)
+                    : Promise.resolve([]),
                 [],
               ),
               safeApi(() => api('/api/plants'), []),
@@ -428,12 +442,18 @@ function App() {
             // keepPrevIfEqual : conserve la référence quand le contenu n'a pas
             // changé → pas de re-render global du DataContext à chaque poll.
             setZones((prev) => keepPrevIfEqual(prev, z));
-            if (Array.isArray(t)) setTasks((prev) => keepPrevIfEqual(prev, t));
-            else
+            if (Array.isArray(t)) {
+              // Séparer actives / archivées : seules les actives alimentent l'état partagé.
+              const { active: activeTasks, archived: archTasks } = partitionByArchived(t);
+              setTasks((prev) => keepPrevIfEqual(prev, activeTasks));
+              setArchivedTasks((prev) => keepPrevIfEqual(prev, archTasks));
+            } else
               console.warn('[ForetMap] GET /api/tasks : réponse non tableau, état tâches inchangé');
-            setTaskProjects((prev) =>
-              keepPrevIfEqual(prev, Array.isArray(taskProjectsRes) ? taskProjectsRes : []),
+            const { active: activeProjects, archived: archProjects } = partitionByArchived(
+              Array.isArray(taskProjectsRes) ? taskProjectsRes : [],
             );
+            setTaskProjects((prev) => keepPrevIfEqual(prev, activeProjects));
+            setArchivedTaskProjects((prev) => keepPrevIfEqual(prev, archProjects));
             setPlants((prev) => keepPrevIfEqual(prev, p));
             setMarkers((prev) => keepPrevIfEqual(prev, m));
             setTutorials((prev) => keepPrevIfEqual(prev, tu));
@@ -820,6 +840,9 @@ function App() {
     setPlants,
     setMarkers,
     pauseDataRefreshRef: pauseDataRefreshForTaskOverlaysRef,
+    includeArchivedTasks: effectiveIsTeacher,
+    setArchivedTasks,
+    setArchivedTaskProjects,
   });
   const teacherSyncStatus = effectiveIsTeacher
     ? rtStatus === 'off'
@@ -1013,9 +1036,21 @@ function App() {
       tasks,
       tutorials,
       taskProjects,
+      archivedTasks,
+      archivedTaskProjects,
       activeMapId,
     }),
-    [zones, markers, plants, tasks, tutorials, taskProjects, activeMapId],
+    [
+      zones,
+      markers,
+      plants,
+      tasks,
+      tutorials,
+      taskProjects,
+      archivedTasks,
+      archivedTaskProjects,
+      activeMapId,
+    ],
   );
 
   if (!student && !isTeacher)

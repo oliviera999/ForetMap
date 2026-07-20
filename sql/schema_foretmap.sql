@@ -131,9 +131,11 @@ CREATE TABLE IF NOT EXISTS task_projects (
   title VARCHAR(255) NOT NULL,
   description TEXT DEFAULT NULL,
   status VARCHAR(32) NOT NULL DEFAULT 'active',
+  archived_at DATETIME NULL DEFAULT NULL,
   created_at VARCHAR(32) DEFAULT NULL,
   INDEX idx_task_projects_map_id (map_id),
   INDEX idx_task_projects_title (title),
+  INDEX idx_task_projects_archived_at (archived_at),
   CONSTRAINT fk_task_projects_map FOREIGN KEY (map_id) REFERENCES maps(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -157,6 +159,7 @@ CREATE TABLE IF NOT EXISTS tasks (
   importance_level VARCHAR(32) DEFAULT NULL,
   sort_order INT UNSIGNED NOT NULL DEFAULT 0,
   status VARCHAR(32) DEFAULT 'available',
+  archived_at DATETIME NULL DEFAULT NULL,
   created_at VARCHAR(32) DEFAULT NULL,
   INDEX idx_tasks_map_id (map_id),
   INDEX idx_tasks_project_id (project_id),
@@ -165,6 +168,7 @@ CREATE TABLE IF NOT EXISTS tasks (
   INDEX idx_tasks_marker_id (marker_id),
   INDEX idx_tasks_start_date (start_date),
   INDEX idx_tasks_due_date (due_date),
+  INDEX idx_tasks_archived_at (archived_at),
   CONSTRAINT fk_tasks_map FOREIGN KEY (map_id) REFERENCES maps(id) ON DELETE SET NULL,
   CONSTRAINT fk_tasks_project FOREIGN KEY (project_id) REFERENCES task_projects(id) ON DELETE SET NULL,
   CONSTRAINT fk_tasks_zone FOREIGN KEY (zone_id) REFERENCES zones(id) ON DELETE SET NULL,

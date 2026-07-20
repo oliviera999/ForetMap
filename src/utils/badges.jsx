@@ -57,6 +57,21 @@ export function statusBadge(status) {
   return <span className={`status-badge status-${status}`}>{labels[status] || status}</span>;
 }
 
+/** Une tâche/un projet est-il archivé ? (soft-delete via `archived_at`). */
+export function isEntityArchived(entity) {
+  const v = entity?.archived_at;
+  return v != null && v !== '';
+}
+
+/** Chip « archivé » affiché sur les tuiles/blocs archivés (prof). */
+export function archivedChip() {
+  return (
+    <span className="task-chip" title="Tâche archivée (masquée des vues actives)">
+      📦 Archivé
+    </span>
+  );
+}
+
 export function daysUntil(date) {
   if (!date) return null;
   const diff = Math.ceil((new Date(date) - new Date()) / 86400000);

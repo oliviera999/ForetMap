@@ -90,6 +90,22 @@ Une tâche passe par des états visibles de tous : **Disponible** → **En cours
   simplement la tâche « À faire » ou « En cours ». Les comptes rendus (commentaires,
   photos) restent consultables dans le journal de la tâche.
 - **Mettre en attente** : une tâche « En attente » gèle les inscriptions sans la supprimer.
+- **Archiver** : le bouton 📦 range une tâche « de côté ». Elle disparaît des listes
+  actives (côté élève comme professeur) sans être supprimée : son statut, ses comptes
+  rendus et ses liaisons sont conservés, et une tâche archivée ne compte plus dans
+  l'avancement automatique de son projet. C'est le geste à privilégier plutôt que la
+  suppression 🗑️ pour un travail terminé qu'on veut garder en mémoire sans encombrer
+  l'écran. On retrouve les archives via le filtre de statut « 📦 Archivés » (réservé aux
+  professeurs), d'où l'on peut **désarchiver** (♻️) pour les remettre en circulation.
+
+## Archiver un projet
+
+Comme les tâches, un **projet** peut être **archivé** (📦) : il quitte la liste des projets
+actifs et, par défaut, ses tâches sont archivées **avec lui**. Le **désarchivage** (♻️)
+restaure le projet et **seulement** les tâches qui avaient été archivées par ce même geste
+(une tâche archivée à la main auparavant reste archivée). Les projets archivés se
+consultent, eux aussi, via le filtre « 📦 Archivés ». Rien n'est perdu : l'archivage est
+toujours réversible, à la différence de la suppression.
 
 ### La progression des paliers
 

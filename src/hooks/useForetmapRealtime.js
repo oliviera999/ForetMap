@@ -7,6 +7,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 // connecté). Le chunk `socket-io` (manualChunks Vite) reste de toute façon séparé.
 import { io } from 'socket.io-client';
 import { api, AccountDeletedError, API, withAppBase, getAuthToken } from '../services/api';
+import { partitionByArchived } from '../utils/taskArchive';
 
 /** Après notification Socket.IO : tâches = refetch léger côté API (priorité fraîcheur). */
 const TASKS_RT_DEBOUNCE_MS = 220;
@@ -49,6 +50,10 @@ export function useForetmapRealtime({
   setMarkers,
   /** Quand vrai : pas de `setTasks` / jardin via temps réel (modale formulaire ouverte — clavier mobile). */
   pauseDataRefreshRef = null,
+  /** Quand vrai (prof) : inclure les tâches/projets archivés (portée `all`) au rafraîchissement. */
+  includeArchivedTasks = false,
+  setArchivedTasks = null,
+  setArchivedTaskProjects = null,
 }) {
   const [rtStatus, setRtStatus] = useState('off');
   // Jeton réactif : après élévation PIN, refresh ou expiration, `foretmap_session_changed`
@@ -88,9 +93,10 @@ export function useForetmapRealtime({
       const mapId = String(activeMapIdRef.current || '').trim();
       if (!mapId) return;
       const mapQuery = `map_id=${encodeURIComponent(mapId)}`;
+      const archivedQuery = includeArchivedTasks ? '&archived=all' : '';
       const [t, projects] = await Promise.all([
-        api(`/api/tasks?${mapQuery}`),
-        api(`/api/task-projects?${mapQuery}`).catch(() => []),
+        api(`/api/tasks?${mapQuery}${archivedQuery}`),
+        api(`/api/task-projects?${mapQuery}${archivedQuery}`).catch(() => []),
       ]);
       if (!Array.isArray(t)) {
         console.warn(
@@ -99,14 +105,27 @@ export function useForetmapRealtime({
         );
         return;
       }
-      setTasks(t);
-      setTaskProjects(Array.isArray(projects) ? projects : []);
+      const { active: activeTasks, archived: archTasks } = partitionByArchived(t);
+      const { active: activeProjects, archived: archProjects } = partitionByArchived(
+        Array.isArray(projects) ? projects : [],
+      );
+      setTasks(activeTasks);
+      setTaskProjects(activeProjects);
+      if (setArchivedTasks) setArchivedTasks(archTasks);
+      if (setArchivedTaskProjects) setArchivedTaskProjects(archProjects);
       window.dispatchEvent(new CustomEvent('foretmap_realtime', { detail: { domain: 'tasks' } }));
     } catch (e) {
       if (e instanceof AccountDeletedError) forceLogoutRef.current();
       else console.error('[ForetMap] rafraîchissement tâches (temps réel)', e);
     }
-  }, [pauseDataRefreshRef, setTaskProjects, setTasks]);
+  }, [
+    pauseDataRefreshRef,
+    setTaskProjects,
+    setTasks,
+    includeArchivedTasks,
+    setArchivedTasks,
+    setArchivedTaskProjects,
+  ]);
 
   const refreshGardenFromServer = useCallback(
     async (options = {}) => {
