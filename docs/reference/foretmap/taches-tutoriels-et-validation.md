@@ -107,6 +107,23 @@ restaure le projet et **seulement** les tâches qui avaient été archivées par
 consultent, eux aussi, via le filtre « 📦 Archivés ». Rien n'est perdu : l'archivage est
 toujours réversible, à la différence de la suppression.
 
+## Archivage automatique
+
+Pour éviter que les listes ne s'encombrent avec le temps, les éléments **terminés** sont
+**archivés automatiquement** au bout d'un certain délai : les **tâches validées** et les
+**projets validés** dont la validation remonte à plus de **4 mois** (par défaut) sont rangés
+dans les archives lors du passage quotidien. Seuls les éléments **validés** sont concernés —
+une tâche à faire, en cours ou en attente n'est **jamais** archivée automatiquement, même
+ancienne. Comme tout archivage, c'est réversible (désarchivage manuel).
+
+Deux réglages (côté administration, portée professeur) pilotent ce comportement :
+
+- **activation** de l'archivage automatique (activé par défaut) ;
+- **délai** avant archivage, en jours (**120** par défaut, soit environ 4 mois ; bornes 7 à 3650).
+
+Au moment de la mise en place, les éléments déjà validés ne sont pas archivés d'un coup : le
+délai repart de cette date, pour éviter un archivage massif rétroactif.
+
 ### La progression des paliers
 
 Chaque validation compte pour **tous les élèves inscrits** sur la tâche. Les seuils par

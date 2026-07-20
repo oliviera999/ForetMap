@@ -559,7 +559,11 @@ router.post(
       return res.json(unchanged);
     }
 
-    await execute('UPDATE task_projects SET status = ? WHERE id = ?', ['validated', req.params.id]);
+    // finished_at = référence de délai pour l'archivage automatique des projets validés.
+    await execute('UPDATE task_projects SET status = ?, finished_at = NOW() WHERE id = ?', [
+      'validated',
+      req.params.id,
+    ]);
     const updated = await loadProjectRow(req.params.id);
     logAudit('validate_task_project', 'task_project', req.params.id, existing.title || 'Projet', {
       req,

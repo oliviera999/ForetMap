@@ -14,6 +14,14 @@ const { app } = require('../server');
 const { initSchema, queryOne, execute } = require('../database');
 const { signAuthToken } = require('../middleware/requireTeacher');
 const { ensureRbacBootstrap } = require('../lib/rbac');
+const { runAutoArchiveJob, normalizeAfterDays } = require('../lib/autoArchive');
+
+async function validateTask(taskId) {
+  await request(app)
+    .post(`/api/tasks/${taskId}/validate`)
+    .set('Authorization', `Bearer ${teacherToken}`)
+    .expect(200);
+}
 
 let teacherToken;
 let studentToken;
@@ -273,5 +281,72 @@ describe('Archivage des projets de tâches', () => {
     const manualRow = await queryOne('SELECT archived_at FROM tasks WHERE id = ?', [taskManual.id]);
     assert.strictEqual(cascadedRow.archived_at ?? null, null, 'tâche cascadée restaurée');
     assert.ok(manualRow.archived_at, 'tâche archivée manuellement reste archivée');
+  });
+});
+
+describe('Archivage automatique (job quotidien)', () => {
+  it('normalizeAfterDays borne le délai (min 7, max 3650, défaut 120)', () => {
+    assert.strictEqual(normalizeAfterDays(200), 200);
+    assert.strictEqual(normalizeAfterDays(1), 7);
+    assert.strictEqual(normalizeAfterDays(99999), 3650);
+    assert.strictEqual(normalizeAfterDays('abc'), 120);
+  });
+
+  it('archive une tâche validée trop ancienne, épargne une tâche validée récente', async () => {
+    const oldTask = await createTask({ title: `Auto vieille ${Date.now()}`, required_students: 1 });
+    await validateTask(oldTask.id);
+    // Recule la date de validation au-delà du délai par défaut (120 j).
+    await execute(
+      'UPDATE tasks SET validated_at = DATE_SUB(NOW(), INTERVAL 200 DAY) WHERE id = ?',
+      [oldTask.id],
+    );
+
+    const recentTask = await createTask({
+      title: `Auto récente ${Date.now()}`,
+      required_students: 1,
+    });
+    await validateTask(recentTask.id);
+
+    const res = await runAutoArchiveJob();
+    assert.strictEqual(res.enabled, true);
+    assert.ok(res.tasksArchived >= 1, 'au moins la vieille tâche archivée');
+
+    const oldRow = await queryOne('SELECT archived_at FROM tasks WHERE id = ?', [oldTask.id]);
+    const recentRow = await queryOne('SELECT archived_at FROM tasks WHERE id = ?', [recentTask.id]);
+    assert.ok(oldRow.archived_at, 'tâche validée ancienne archivée automatiquement');
+    assert.strictEqual(recentRow.archived_at ?? null, null, 'tâche validée récente épargnée');
+  });
+
+  it("n'archive pas une tâche non validée, même ancienne", async () => {
+    const task = await createTask({
+      title: `Auto non validée ${Date.now()}`,
+      required_students: 1,
+    });
+    // Ancienne "date de validation" mais statut non validé → hors périmètre.
+    await execute(
+      "UPDATE tasks SET validated_at = DATE_SUB(NOW(), INTERVAL 400 DAY) WHERE id = ? AND status <> 'validated'",
+      [task.id],
+    );
+    await runAutoArchiveJob();
+    const row = await queryOne('SELECT archived_at, status FROM tasks WHERE id = ?', [task.id]);
+    assert.notStrictEqual(row.status, 'validated');
+    assert.strictEqual(row.archived_at ?? null, null, 'tâche non validée non archivée');
+  });
+
+  it('archive un projet validé trop ancien', async () => {
+    const project = await createProject({ map_id: 'foret', title: `Auto projet ${Date.now()}` });
+    await request(app)
+      .post(`/api/task-projects/${project.id}/validate`)
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .expect(200);
+    await execute(
+      'UPDATE task_projects SET finished_at = DATE_SUB(NOW(), INTERVAL 200 DAY) WHERE id = ?',
+      [project.id],
+    );
+
+    const res = await runAutoArchiveJob();
+    assert.ok(res.projectsArchived >= 1, 'au moins un projet archivé');
+    const row = await queryOne('SELECT archived_at FROM task_projects WHERE id = ?', [project.id]);
+    assert.ok(row.archived_at, 'projet validé ancien archivé automatiquement');
   });
 });

@@ -270,6 +270,18 @@ export const KEY_META = {
     section: 'tasks',
     order: 20,
   },
+  'tasks.auto_archive_enabled': {
+    label:
+      'Archivage automatique des tâches validées et projets validés anciens (job quotidien). Les éléments en cours ou à faire ne sont jamais concernés ; l’archivage reste réversible.',
+    section: 'tasks',
+    order: 30,
+  },
+  'tasks.auto_archive_after_days': {
+    label:
+      'Délai avant archivage automatique (jours écoulés depuis la validation). Défaut 120 (≈ 4 mois) ; min 7, max 3650.',
+    section: 'tasks',
+    order: 40,
+  },
   'rbac.progression_by_validated_tasks': {
     label: 'Montée de niveau auto. selon les tâches validées',
     section: 'progression',
