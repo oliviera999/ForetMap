@@ -61,6 +61,15 @@ lorsqu'un effet de repère l'exige.
 > ce n'est pas une panne — l'équipe l'a déjà vu. Le réglage se change globalement, et
 > peut être surchargé partie par partie depuis la console MJ.
 
+> ⚠️ **Point d'attention** — **Supprimer un chapitre efface aussi ses zones du royaume.**
+> Les feuillets qui étaient ancrés à ces zones ne sont **pas** supprimés, mais ils perdent
+> leur ancrage carte (le lien direct feuillet ↔ zone repasse à « non ancré »). La suppression
+> reste par ailleurs refusée tant qu'une partie s'appuie sur le chapitre. Pour repérer et
+> réparer ces feuillets après coup : **Contenus → Carnet de Sélène → Vue d'ensemble** affiche
+> un compteur **« ancrage carte perdu »** et un filtre dédié ; le rattachement se rétablit soit
+> depuis l'éditeur d'une zone (« Associer » / « Détacher » un feuillet), soit depuis l'éditeur
+> de feuillet (champ **Ancrage carte**), y compris **en masse** sur une sélection.
+
 ## Pour aller plus loin
 
 [Présentation générale](presentation.md) · [Chapitres et progression](chapitres-et-progression.md) · [Les deux peuples du seuil](lore-deux-peuples.md) · [Sommaire](../README.md)

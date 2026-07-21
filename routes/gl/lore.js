@@ -862,6 +862,48 @@ router.put(
   }),
 );
 
+// PUT /admin/feuillets/kingdom-zone/bulk — (dé)ancrage carte en masse d'une sélection.
+// Body : { codes: string[], kingdomZoneId: number|null } (null => détache tous les feuillets).
+// NB : déclarée AVANT `/admin/feuillets/:code` pour ne pas être capturée par le param.
+router.put(
+  '/admin/feuillets/kingdom-zone/bulk',
+  requireGlPermission('gl.content.manage'),
+  asyncHandler(async (req, res) => {
+    const codes = [
+      ...new Set(
+        (Array.isArray(req.body?.codes) ? req.body.codes : [])
+          .map((c) => String(c || '').trim())
+          .filter(Boolean),
+      ),
+    ];
+    if (!codes.length) return res.status(400).json({ error: 'Aucun feuillet sélectionné' });
+
+    const kingdomZoneId = req.body?.kingdomZoneId == null ? null : parseId(req.body.kingdomZoneId);
+    if (req.body?.kingdomZoneId != null && !kingdomZoneId) {
+      return res.status(400).json({ error: 'Zone royaume invalide' });
+    }
+    if (kingdomZoneId) {
+      const zone = await queryOne('SELECT id FROM gl_kingdom_zones WHERE id = ? LIMIT 1', [
+        kingdomZoneId,
+      ]);
+      if (!zone) return res.status(404).json({ error: 'Zone royaume introuvable' });
+    }
+
+    const placeholders = codes.map(() => '?').join(', ');
+    const result = await execute(
+      `UPDATE gl_lore_feuillets SET kingdom_zone_id = ?, updated_at = NOW()
+        WHERE feuillet_code IN (${placeholders})`,
+      [kingdomZoneId, ...codes],
+    );
+    return res.json({
+      ok: true,
+      requested: codes.length,
+      updated: result?.affectedRows ?? 0,
+      kingdomZoneId,
+    });
+  }),
+);
+
 router.get(
   '/admin/feuillets/:code',
   requireGlPermission('gl.content.manage'),
