@@ -43,6 +43,20 @@ export function GLKingdomZoneFeuilletLinker({ zoneId, canManage = false }) {
     }
   }
 
+  async function unlinkFeuillet(code) {
+    if (!code) return;
+    setFeedback('');
+    try {
+      await apiGL(`/api/gl/lore/admin/feuillets/${encodeURIComponent(code)}/kingdom-zone`, 'PUT', {
+        kingdomZoneId: null,
+      });
+      setFeedback('Feuillet détaché de la zone.');
+      await load();
+    } catch (err) {
+      setFeedback(err.message || 'Détachement impossible');
+    }
+  }
+
   if (!canManage || !zoneId) return null;
 
   return (
@@ -52,7 +66,17 @@ export function GLKingdomZoneFeuilletLinker({ zoneId, canManage = false }) {
       {linked.length ? (
         <ul className="gl-zone-feui-linked">
           {linked.map((row) => (
-            <li key={row.feuillet_code}>{row.titre || row.feuillet_code}</li>
+            <li key={row.feuillet_code}>
+              <span>{row.titre || row.feuillet_code}</span>
+              <GLButton
+                type="button"
+                size="sm"
+                variant="ghost"
+                onClick={() => unlinkFeuillet(row.feuillet_code)}
+              >
+                Détacher
+              </GLButton>
+            </li>
           ))}
         </ul>
       ) : (

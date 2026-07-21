@@ -39,6 +39,9 @@ export function GLLoreFeuilletsEditorPanel() {
   const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [selectedCode, setSelectedCode] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
+  // Ancrage carte (kingdom_zone_id) : hors formToPayload, persisté via la route dédiée.
+  const [anchorZoneId, setAnchorZoneId] = useState('');
+  const [anchorBusy, setAnchorBusy] = useState(false);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   // Notifications regroupées (erreur / info / avertissement serveur).
@@ -102,6 +105,9 @@ export function GLLoreFeuilletsEditorPanel() {
     try {
       const data = await apiGL(`/api/gl/lore/admin/feuillets/${encodeURIComponent(code)}`);
       setForm(feuilletToForm(data?.feuillet));
+      setAnchorZoneId(
+        data?.feuillet?.kingdomZoneId != null ? String(data.feuillet.kingdomZoneId) : '',
+      );
       setSelectedCode(code);
     } catch (err) {
       notify({ error: err.message || 'Feuillet introuvable' });
@@ -113,7 +119,31 @@ export function GLLoreFeuilletsEditorPanel() {
   function closeEditor() {
     setSelectedCode(null);
     setForm(EMPTY_FORM);
+    setAnchorZoneId('');
     clearNotices();
+  }
+
+  async function saveAnchor(rawValue = anchorZoneId) {
+    if (!selectedCode) return;
+    setAnchorBusy(true);
+    clearNotices();
+    try {
+      const trimmed = String(rawValue ?? '').trim();
+      const data = await apiGL(
+        `/api/gl/lore/admin/feuillets/${encodeURIComponent(selectedCode)}/kingdom-zone`,
+        'PUT',
+        { kingdomZoneId: trimmed === '' ? null : trimmed },
+      );
+      setAnchorZoneId(data?.kingdomZoneId != null ? String(data.kingdomZoneId) : '');
+      notify({
+        info: trimmed === '' ? 'Feuillet détaché de la zone.' : 'Ancrage carte enregistré.',
+      });
+      await loadList();
+    } catch (err) {
+      notify({ error: err.message || 'Ancrage carte impossible' });
+    } finally {
+      setAnchorBusy(false);
+    }
   }
 
   function setField(key, value) {
@@ -443,6 +473,43 @@ export function GLLoreFeuilletsEditorPanel() {
             <GLButton type="button" variant="ghost" onClick={closeEditor} disabled={saving}>
               Fermer
             </GLButton>
+          </div>
+
+          <div className="gl-form gl-form--compact gl-feuillet-anchor">
+            <GLField label="Ancrage carte (zone n°)">
+              <GLInput
+                type="number"
+                value={anchorZoneId}
+                onChange={(e) => setAnchorZoneId(e.target.value)}
+                placeholder="(vide = non ancré)"
+              />
+            </GLField>
+            <div className="gl-inline-actions">
+              <GLButton
+                type="button"
+                size="sm"
+                onClick={saveAnchor}
+                disabled={anchorBusy || saving}
+              >
+                {anchorBusy ? 'Enregistrement…' : 'Enregistrer l’ancrage'}
+              </GLButton>
+              <GLButton
+                type="button"
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  setAnchorZoneId('');
+                  saveAnchor('');
+                }}
+                disabled={anchorBusy || saving || !anchorZoneId}
+              >
+                Détacher
+              </GLButton>
+            </div>
+            <p className="gl-hint">
+              Lien direct vers une zone de la carte du royaume (indépendant du rattachement chapitre
+              déduit ci-dessus). Validé côté serveur ; « Détacher » remet à NULL.
+            </p>
           </div>
 
           {FEUILLET_SECTIONS.map((section) => (
