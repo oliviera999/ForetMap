@@ -5,7 +5,9 @@ import React, { createContext, useContext } from 'react';
  * dérivés de l'état d'`App.jsx` et passés à l'identique (même variable) dans tous les chemins.
  *
  * Porte uniquement les valeurs à RHS unique vérifié : `zones`, `markers`, `plants`, `tasks`,
- * `tutorials`, `taskProjects`, `activeMapId`. **Exclus volontairement** :
+ * `tutorials`, `taskProjects`, `archivedTasks`, `archivedTaskProjects`, `activeMapId`.
+ * (`archivedTasks`/`archivedTaskProjects` : archives isolées, alimentées côté prof uniquement,
+ * consommées par le seul écran Tâches — jamais par la carte/les modales.) **Exclus volontairement** :
  *  - `maps` — deux variantes selon le consommateur (`visibleMaps` filtré par affiliation vs `maps`
  *    complet pour les éditeurs de profil) → reste en props ;
  *  - `VisitView` — relie ces valeurs à d'autres noms de props (`mapZones`/`catalogTutorials`…) et
@@ -25,7 +27,7 @@ export function DataProvider({ value, children }) {
 /**
  * Lit les données partagées. Hors `Provider`, renvoie `{}` (gelé) afin que
  * `const { zones = [] } = useData()` retombe sur les défauts attendus.
- * @returns {{zones?: Array, markers?: Array, plants?: Array, tasks?: Array, tutorials?: Array, taskProjects?: Array, activeMapId?: string}}
+ * @returns {{zones?: Array, markers?: Array, plants?: Array, tasks?: Array, tutorials?: Array, taskProjects?: Array, archivedTasks?: Array, archivedTaskProjects?: Array, activeMapId?: string}}
  */
 export function useData() {
   return useContext(DataContext) ?? EMPTY_DATA;
