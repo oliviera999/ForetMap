@@ -7,6 +7,24 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Feuillets Sélène : associations complètes (zone, chapitre, liasse) + aperçu joueur
+
+Réalise les pistes UI restantes de l'éditeur de feuillets.
+
+- **Zone du royaume depuis l'éditeur** (`GLFeuilletKingdomZonePicker`, nouveau) : chapitre → zone
+  polygonale, association via `PUT …/feuillets/:code/kingdom-zone` (détachement possible). Plus
+  besoin de passer par la carte.
+- **Chapitres rattachés lisibles** (`GLFeuilletChapterMemberships`, nouveau) : affiche les chapitres
+  déduits (via `overview`) + rappelle que le rattachement dépend du biome / plateau / pays. Lecture
+  seule — aucun changement du modèle métier (le rattachement reste déduit, pas de table de lien).
+- **Réordonnancement d'une liasse** (`GLFeuilletLiasseReorder`, nouveau + endpoint
+  `PUT /api/gl/lore/admin/feuillets/reorder`) : monter/descendre ou glisser-déposer les feuillets
+  d'une liasse ; mise à jour groupée de `ordre_liasse` (champ déjà éditable, sans impact jeu).
+- **Aperçu « comme le joueur le verra »** (`GLFeuilletReaderPreview`, nouveau) : bouton dans
+  l'en-tête de la modale ; rendu miroir du carnet joueur (illustration, markdown lore, ancrage
+  scientifique) à côté du formulaire (empilé sur mobile).
+- Tests : 4 nouveaux composants (Vitest) + endpoint `reorder` (backend) + non-régression éditeur.
+
 ### Édition des feuillets Sélène : modale plein écran + associations facilitées
 
 - **Édition plein écran (`GLLoreFeuilletsEditorPanel` + `DialogShell`)** : l'édition d'un feuillet

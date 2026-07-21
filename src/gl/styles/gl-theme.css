@@ -2143,6 +2143,41 @@ body.gl-map-fullscreen-active .gl-qcm-popover-overlay {
   padding-right: 4px;
 }
 
+/* Mode aperçu : formulaire à gauche, rendu joueur à droite (empilés sur mobile). */
+.gl-feuillet-editor-modal__body--split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.gl-feuillet-editor-modal__preview {
+  position: sticky;
+  top: 0;
+  border-left: 1px solid var(--gl-border);
+  padding-left: 14px;
+}
+
+.gl-feuillet-associations-extra {
+  display: grid;
+  gap: 12px;
+  padding: 8px 0 4px;
+}
+
+@media (max-width: 720px) {
+  .gl-feuillet-editor-modal__body--split {
+    grid-template-columns: 1fr;
+  }
+
+  .gl-feuillet-editor-modal__preview {
+    position: static;
+    border-left: none;
+    border-top: 1px solid var(--gl-border);
+    padding-left: 0;
+    padding-top: 12px;
+  }
+}
+
 .gl-feuillet-editor-modal__body > details {
   margin-bottom: 10px;
 }

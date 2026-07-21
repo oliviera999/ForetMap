@@ -10,6 +10,10 @@ import { GLBadge } from '../ui/GLBadge.jsx';
 import { GLDataList } from '../ui/GLDataList.jsx';
 import { DialogShell } from '../../../components/DialogShell.jsx';
 import { GLFeuilletSpeciesPicker } from './GLFeuilletSpeciesPicker.jsx';
+import { GLFeuilletKingdomZonePicker } from './GLFeuilletKingdomZonePicker.jsx';
+import { GLFeuilletChapterMemberships } from './GLFeuilletChapterMemberships.jsx';
+import { GLFeuilletLiasseReorder } from './GLFeuilletLiasseReorder.jsx';
+import { GLFeuilletReaderPreview } from './GLFeuilletReaderPreview.jsx';
 import {
   FEUILLET_SECTIONS,
   FEUILLET_TYPE_OPTIONS,
@@ -44,6 +48,10 @@ export function GLLoreFeuilletsEditorPanel() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  // Aperçu « comme le joueur le verra » à côté du formulaire.
+  const [showPreview, setShowPreview] = useState(false);
+  // Zone royaume liée au feuillet en cours (gérée via son endpoint dédié, hors PUT principal).
+  const [currentZoneId, setCurrentZoneId] = useState(null);
   // Notifications regroupées (erreur / info / avertissement serveur).
   const [notices, setNotices] = useState(EMPTY_NOTICES);
 
@@ -61,6 +69,13 @@ export function GLLoreFeuilletsEditorPanel() {
   }
 
   const filteredItems = useMemo(() => filterFeuilletItems(items, filters), [items, filters]);
+
+  // Feuillets de la même liasse que le feuillet en cours d'édition (réordonnancement).
+  const liasseItems = useMemo(() => {
+    const liasse = String(form.liasse || '').trim();
+    if (!liasse) return [];
+    return items.filter((row) => String(row.liasse || '').trim() === liasse);
+  }, [items, form.liasse]);
 
   const loadList = useCallback(async () => {
     const data = await apiGL('/api/gl/lore/admin/feuillets');
@@ -105,6 +120,10 @@ export function GLLoreFeuilletsEditorPanel() {
     try {
       const data = await apiGL(`/api/gl/lore/admin/feuillets/${encodeURIComponent(code)}`);
       setForm(feuilletToForm(data?.feuillet));
+      const zoneRaw =
+        data?.feuillet?.kingdomZoneId ??
+        items.find((r) => r.feuillet_code === code)?.kingdom_zone_id;
+      setCurrentZoneId(zoneRaw != null && zoneRaw !== '' ? Number(zoneRaw) : null);
       setSelectedCode(code);
     } catch (err) {
       notify({ error: err.message || 'Feuillet introuvable' });
@@ -116,7 +135,17 @@ export function GLLoreFeuilletsEditorPanel() {
   function closeEditor() {
     setSelectedCode(null);
     setForm(EMPTY_FORM);
+    setCurrentZoneId(null);
+    setShowPreview(false);
     clearNotices();
+  }
+
+  /** Persiste le nouvel ordre d'une liasse (endpoint groupé) puis recharge la liste. */
+  async function persistLiasseOrder(orderedCodes) {
+    const updates = orderedCodes.map((code, index) => ({ code, ordreLiasse: index + 1 }));
+    await apiGL('/api/gl/lore/admin/feuillets/reorder', 'PUT', { updates });
+    notify({ info: 'Ordre de la liasse enregistré.' });
+    await loadList();
   }
 
   function setField(key, value) {
@@ -477,6 +506,14 @@ export function GLLoreFeuilletsEditorPanel() {
               ) : null}
             </h4>
             <div className="gl-inline-actions">
+              <GLButton
+                type="button"
+                variant={showPreview ? 'primary' : 'ghost'}
+                onClick={() => setShowPreview((v) => !v)}
+                aria-pressed={showPreview}
+              >
+                {showPreview ? 'Masquer l’aperçu' : 'Aperçu joueur'}
+              </GLButton>
               <GLButton type="button" onClick={save} disabled={saving || loading}>
                 {saving ? 'Enregistrement…' : 'Enregistrer'}
               </GLButton>
@@ -492,27 +529,65 @@ export function GLLoreFeuilletsEditorPanel() {
           {notices.error ? <p className="gl-error">{notices.error}</p> : null}
           {notices.warning ? <p className="gl-hint">⚠️ {notices.warning}</p> : null}
 
-          <div className="gl-feuillet-editor-modal__body">
-            {FEUILLET_SECTIONS.map((section) => (
-              <details key={section.id} open={section.open || false}>
-                <summary>{section.title}</summary>
-                <div className="gl-feuillet-editor-modal__grid">
-                  {section.fields.map((field) => (
-                    <GLField
-                      key={field.key}
-                      label={field.label}
-                      className={
-                        field.kind === 'markdown' || field.kind === 'species-picker'
-                          ? 'gl-field--wide'
-                          : undefined
-                      }
-                    >
-                      {renderField(field)}
-                    </GLField>
-                  ))}
-                </div>
-              </details>
-            ))}
+          <div
+            className={`gl-feuillet-editor-modal__body${
+              showPreview ? ' gl-feuillet-editor-modal__body--split' : ''
+            }`}
+          >
+            <div className="gl-feuillet-editor-modal__form">
+              {FEUILLET_SECTIONS.map((section) => (
+                <details key={section.id} open={section.open || false}>
+                  <summary>{section.title}</summary>
+                  <div className="gl-feuillet-editor-modal__grid">
+                    {section.fields.map((field) => (
+                      <GLField
+                        key={field.key}
+                        label={field.label}
+                        className={
+                          field.kind === 'markdown' || field.kind === 'species-picker'
+                            ? 'gl-field--wide'
+                            : undefined
+                        }
+                      >
+                        {renderField(field)}
+                      </GLField>
+                    ))}
+                  </div>
+                  {section.id === 'associations' ? (
+                    <div className="gl-feuillet-associations-extra">
+                      <div className="gl-field gl-field--wide">
+                        <span className="gl-field__label">Chapitres rattachés</span>
+                        <GLFeuilletChapterMemberships feuilletCode={selectedCode} />
+                      </div>
+                      <div className="gl-field gl-field--wide">
+                        <span className="gl-field__label">Zone du royaume</span>
+                        <GLFeuilletKingdomZonePicker
+                          feuilletCode={selectedCode}
+                          kingdomZoneId={currentZoneId}
+                          onLinked={(zoneId) => setCurrentZoneId(zoneId)}
+                        />
+                      </div>
+                      {form.liasse && liasseItems.length > 1 ? (
+                        <div className="gl-field gl-field--wide">
+                          <span className="gl-field__label">
+                            Ordre de la liasse « {form.liasse} »
+                          </span>
+                          <GLFeuilletLiasseReorder
+                            items={liasseItems}
+                            onPersist={persistLiasseOrder}
+                          />
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </details>
+              ))}
+            </div>
+            {showPreview ? (
+              <aside className="gl-feuillet-editor-modal__preview">
+                <GLFeuilletReaderPreview form={form} />
+              </aside>
+            ) : null}
           </div>
         </DialogShell>
       ) : null}
