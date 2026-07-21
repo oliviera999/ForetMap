@@ -2094,6 +2094,228 @@ body.gl-map-fullscreen-active .gl-qcm-popover-overlay {
   transform: translateY(-1px);
 }
 
+/* Modale d'édition d'un feuillet (carnet de Sélène) : plein écran confortable,
+   contenu et associations d'abord, en-tête/pied d'actions collants. */
+.gl-feuillet-editor-modal {
+  width: min(1040px, 96vw);
+  max-width: 96vw;
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 18px;
+  background: #fff;
+  border-radius: var(--gl-radius, 12px);
+  box-shadow: var(--gl-shadow-lg, 0 20px 50px rgba(0, 0, 0, 0.25));
+}
+
+.gl-feuillet-editor-modal__head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #fff;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--gl-border);
+}
+
+.gl-feuillet-editor-modal__head h4 {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.gl-feuillet-editor-modal__titre {
+  font-weight: 600;
+  color: var(--gl-color-primary);
+}
+
+.gl-feuillet-editor-modal__body {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-right: 4px;
+}
+
+/* Mode aperçu : formulaire à gauche, rendu joueur à droite (empilés sur mobile). */
+.gl-feuillet-editor-modal__body--split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.gl-feuillet-editor-modal__preview {
+  position: sticky;
+  top: 0;
+  border-left: 1px solid var(--gl-border);
+  padding-left: 14px;
+}
+
+.gl-feuillet-associations-extra {
+  display: grid;
+  gap: 12px;
+  padding: 8px 0 4px;
+}
+
+@media (max-width: 720px) {
+  .gl-feuillet-editor-modal__body--split {
+    grid-template-columns: 1fr;
+  }
+
+  .gl-feuillet-editor-modal__preview {
+    position: static;
+    border-left: none;
+    border-top: 1px solid var(--gl-border);
+    padding-left: 0;
+    padding-top: 12px;
+  }
+}
+
+.gl-feuillet-editor-modal__body > details {
+  margin-bottom: 10px;
+}
+
+.gl-feuillet-editor-modal__body > details > summary {
+  cursor: pointer;
+  font-weight: 600;
+  padding: 6px 0;
+}
+
+/* Champs en grille : 2 colonnes sur large écran, pleine largeur pour markdown/picker. */
+.gl-feuillet-editor-modal__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 14px;
+  padding: 6px 0 4px;
+}
+
+.gl-feuillet-editor-modal__grid .gl-field--wide {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 720px) {
+  .gl-feuillet-editor-modal {
+    width: 100vw;
+    max-width: 100vw;
+    height: 100vh;
+    max-height: 100vh;
+    border-radius: 0;
+  }
+
+  .gl-feuillet-editor-modal__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.gl-feuillet-species-picker__meta,
+.gl-feuillet-species-picker__manual {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.gl-linklike {
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--gl-color-primary);
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+/* Onglets défilables horizontalement sur petit écran (feuillets, catalogues) :
+   évite l'empilement vertical et garde des cibles tactiles ≥ 44px. */
+.gl-subtabs--scroll {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x proximity;
+  padding-bottom: 4px;
+}
+
+.gl-subtabs--scroll button {
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+}
+
+@media (max-width: 640px) {
+  .gl-subtabs--scroll button {
+    min-height: 44px;
+  }
+}
+
+/* Panneau import / export XLSX (feuillets Sélène, catalogues GL). */
+.gl-admin-import-panel {
+  display: grid;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--gl-border);
+  border-radius: var(--gl-radius-sm);
+  background: #fff;
+}
+
+.gl-admin-import-panel h3 {
+  margin: 0;
+}
+
+.gl-admin-import-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.gl-admin-import-panel form {
+  display: grid;
+  gap: 10px;
+}
+
+.gl-admin-import-panel input[type='file'] {
+  width: 100%;
+  max-width: 100%;
+  padding: 8px;
+  border: 1px dashed var(--gl-border);
+  border-radius: 8px;
+  background: color-mix(in srgb, #fff 92%, var(--gl-color-secondary) 8%);
+}
+
+.gl-admin-import-panel label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+}
+
+.gl-admin-report {
+  margin: 0;
+  max-height: 340px;
+  overflow: auto;
+  padding: 10px;
+  border: 1px dashed var(--gl-border);
+  border-radius: 8px;
+  background: color-mix(in srgb, #fff 94%, var(--gl-color-secondary) 6%);
+  font-size: 0.8rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+@media (max-width: 640px) {
+  .gl-admin-import-actions .gl-btn,
+  .gl-admin-import-actions button {
+    flex: 1 1 100%;
+  }
+}
+
 .gl-markers-list {
   list-style: none;
   padding: 0;

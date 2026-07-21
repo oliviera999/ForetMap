@@ -7,6 +7,57 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Feuillets Sélène : associations complètes (zone, chapitre, liasse) + aperçu joueur
+
+Réalise les pistes UI restantes de l'éditeur de feuillets.
+
+- **Zone du royaume depuis l'éditeur** (`GLFeuilletKingdomZonePicker`, nouveau) : chapitre → zone
+  polygonale, association via `PUT …/feuillets/:code/kingdom-zone` (détachement possible). Plus
+  besoin de passer par la carte.
+- **Chapitres rattachés lisibles** (`GLFeuilletChapterMemberships`, nouveau) : affiche les chapitres
+  déduits (via `overview`) + rappelle que le rattachement dépend du biome / plateau / pays. Lecture
+  seule — aucun changement du modèle métier (le rattachement reste déduit, pas de table de lien).
+- **Réordonnancement d'une liasse** (`GLFeuilletLiasseReorder`, nouveau + endpoint
+  `PUT /api/gl/lore/admin/feuillets/reorder`) : monter/descendre ou glisser-déposer les feuillets
+  d'une liasse ; mise à jour groupée de `ordre_liasse` (champ déjà éditable, sans impact jeu).
+- **Aperçu « comme le joueur le verra »** (`GLFeuilletReaderPreview`, nouveau) : bouton dans
+  l'en-tête de la modale ; rendu miroir du carnet joueur (illustration, markdown lore, ancrage
+  scientifique) à côté du formulaire (empilé sur mobile).
+- Tests : 4 nouveaux composants (Vitest) + endpoint `reorder` (backend) + non-régression éditeur.
+
+### Édition des feuillets Sélène : modale plein écran + associations facilitées
+
+- **Édition plein écran (`GLLoreFeuilletsEditorPanel` + `DialogShell`)** : l'édition d'un feuillet
+  s'ouvre désormais dans une **modale plein écran** (échap + piège de focus), avec en-tête collant
+  (Enregistrer / Archiver / Fermer). Champs en grille 2 colonnes (1 colonne sur mobile).
+- **Contenu d'abord** (`glFeuilletFieldLabels.js`) : sections réordonnées — **Contenu** et
+  **Associations** ouvertes en haut, réglages techniques repliés ensuite. Les champs **Texte** et
+  **Texte accessible** utilisent l'**éditeur markdown enrichi** (`GLMarkdownEditor`) au lieu de
+  petites zones de texte, pour lire/écrire plus confortablement.
+- **Association d'espèce simplifiée** (`GLFeuilletSpeciesPicker`, nouveau) : au lieu de taper à la
+  main `lien_canal='espece'` + `lien_ref='SP0001'`, un **sélecteur d'espèce** (liste scopée au biome
+  du feuillet) renseigne les deux champs d'un coup ; repli « référence manuelle » pour les autres
+  canaux ou l'absence de biome. Le biome est libellé « Biome (→ chapitres) » pour clarifier le
+  rattachement chapitre, et zone / plateau / liasse / ordres sont regroupés dans « Associations ».
+- Tests : `GLFeuilletSpeciesPicker` (repli manuel, liste, effacement) + non-régression éditeur.
+
+### Correctif : export / modèle XLSX des feuillets du carnet de Sélène sur smartphone
+
+- **`src/shared/downloadAuthedFile.js`** : téléchargement des fichiers binaires (XLSX/CSV) rendu
+  compatible mobile. Le lien `<a>` est désormais attaché au document avant `click()` et le
+  nettoyage (`URL.revokeObjectURL` + retrait du lien) est **différé**. Sur iOS Safari / Chrome
+  Android, la révocation synchrone de l'URL blob annulait l'écriture asynchrone du fichier →
+  fichier vide/absent (« l'export ne s'exporte pas dans le contenu »). Nouvelle fonction exportée
+  `triggerBlobDownload`. Corrige aussi bien l'**export du catalogue** que le **modèle XLSX** des
+  feuillets Sélène, et par ricochet tous les téléchargements ForetMap/GL.
+- **`GLLoreFeuilletsImportPanel.jsx`** : les boutons « Modèle XLSX » / « Exporter le catalogue »
+  attendent désormais le téléchargement, affichent un état de chargement et **remontent les
+  erreurs** (échec auparavant silencieux sur mobile). Import du hook `useEffect` inutilisé retiré.
+- **UI onglets de gestion des feuillets** (`GLContentCatalogPanel.jsx` + `gl-theme.css`) :
+  sous-onglets défilables horizontalement sur petit écran (`gl-subtabs--scroll`, plus d'empilement
+  vertical), sémantique `role="tablist"/"tab"` + `aria-selected`, cibles tactiles ≥ 44px, et
+  panneau import/export stylé (carte, zone de dépôt, rapport JSON défilable, boutons pleine largeur
+  sur mobile).
 ### GL — récupération des ancrages carte des feuillets après suppression d'un chapitre
 
 Supprimer un chapitre efface ses zones du royaume en cascade, ce qui détache (met à `NULL`) le

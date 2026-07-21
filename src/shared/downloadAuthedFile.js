@@ -1,4 +1,34 @@
 /**
+ * Déclenche le téléchargement d'un blob côté navigateur, de façon compatible mobile.
+ *
+ * Pièges corrigés (iOS Safari / Chrome Android) :
+ *  - le lien `<a>` DOIT être attaché au document, sinon `click()` est ignoré ;
+ *  - `URL.revokeObjectURL()` (et le retrait du lien) DOIVENT être différés :
+ *    sur mobile le téléchargement démarre de façon asynchrone et révoquer l'URL
+ *    blob immédiatement annule l'écriture → fichier vide/absent (symptôme
+ *    « l'export ne s'exporte pas dans le contenu »).
+ *
+ * @param {Blob} blob contenu binaire à télécharger
+ * @param {string} filename nom de fichier proposé au navigateur
+ */
+export function triggerBlobDownload(blob, filename) {
+  const objectUrl = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = objectUrl;
+  link.download = filename;
+  link.rel = 'noopener';
+  link.style.display = 'none';
+  const host = document.body || document.documentElement;
+  host.appendChild(link);
+  link.click();
+  // Nettoyage différé : laisse au navigateur mobile le temps de lire le blob.
+  setTimeout(() => {
+    URL.revokeObjectURL(objectUrl);
+    link.remove();
+  }, 15000);
+}
+
+/**
  * Téléchargement authentifié d'un fichier binaire (XLSX/CSV) — cœur partagé
  * entre `downloadApiFile` (ForetMap) et `downloadGlFile` (GL).
  *
@@ -49,10 +79,5 @@ export async function downloadAuthedFile(path, filename, { resolveUrl, getToken,
   if (!blob || blob.size < 4) {
     throw new Error('Fichier reçu vide.');
   }
-  const objectUrl = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = objectUrl;
-  link.download = filename;
-  link.click();
-  URL.revokeObjectURL(objectUrl);
+  triggerBlobDownload(blob, filename);
 }
