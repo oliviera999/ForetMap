@@ -203,6 +203,7 @@ export function TaskFiltersBar({
             {opt.label}
           </option>
         ))}
+        {isTeacher && <option value="archived">📦 Archivés</option>}
       </select>
     </div>
   );

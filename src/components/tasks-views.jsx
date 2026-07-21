@@ -88,6 +88,8 @@ function TasksViewImpl({
   const {
     tasks = [],
     taskProjects = [],
+    archivedTasks = [],
+    archivedTaskProjects = [],
     zones = [],
     markers = [],
     tutorials = [],
@@ -349,6 +351,15 @@ function TasksViewImpl({
     [withLoad, setConfirmTask],
   );
 
+  const archiveTask = useCallback(
+    (t, archive = true) =>
+      withLoad(t.id + 'archive', async () => {
+        await api(`/api/tasks/${t.id}/${archive ? 'archive' : 'unarchive'}`, 'POST');
+        setToast(archive ? 'Tâche archivée — rangée de côté ✓' : 'Tâche désarchivée — de retour ✓');
+      }),
+    [withLoad, setToast],
+  );
+
   const saveTask = async (form) => {
     const { taskPayload, assignStudentIds } = prepareTaskSavePayload(form);
     if (editTask && !duplicateTask) {
@@ -431,48 +442,70 @@ function TasksViewImpl({
     });
   };
 
+  const archiveProject = (project, archive = true) =>
+    withLoad(`${project.id}projectarchive`, async () => {
+      await api(`/api/task-projects/${project.id}/${archive ? 'archive' : 'unarchive'}`, 'POST');
+      setToast(
+        archive
+          ? `Projet « ${project.title} » archivé (tâches incluses) ✓`
+          : `Projet « ${project.title} » désarchivé ✓`,
+      );
+    });
+
+  // Vue « Archivés » (prof) : bascule la source vers les listes archivées isolées.
+  // Le filtre statut « archived » ne correspond à aucun statut effectif de tâche : on ne
+  // le transmet donc pas à applyTaskFilters (les autres filtres restent actifs).
+  const isArchivedView = isTeacher && filterStatus === 'archived';
+  const sourceTasks = isArchivedView ? archivedTasks : tasks;
+  const sourceProjects = isArchivedView ? archivedTaskProjects : taskProjects;
+  const effectiveFilterStatus = isArchivedView ? '' : filterStatus;
+
   // Chaîne mémoïsée : allFiltered/visibleProjects recalculés à chaque rendu
   // invalidaient tous les useMemo en aval (chaque frappe de filtre, chaque toast
   // re-filtrait 8 fois la liste complète avec parsing de dates).
   const visibleProjects = useMemo(
-    () => sortedVisibleProjects(taskProjects, filterMap, activeMapId),
-    [taskProjects, filterMap, activeMapId],
+    () => sortedVisibleProjects(sourceProjects, filterMap, activeMapId),
+    [sourceProjects, filterMap, activeMapId],
   );
   // Tri d'affichage des projets calculé une seule fois ici (P2) : TaskProjectsBlock
-  // (rendu jusqu'à 3×) re-triait sa liste à chaque rendu.
+  // (rendu jusqu'à 3×) re-triait sa liste à chaque rendu. En vue archivée, tous les
+  // projets archivés sont regroupés dans le bloc principal (pas de scission validés).
   const activeProjects = useMemo(
     () =>
-      visibleProjects
-        .filter((p) => normalizeProjectUiStatus(p.status) !== 'validated')
-        .sort(compareProjectsForDisplay),
-    [visibleProjects],
+      (isArchivedView
+        ? visibleProjects.slice()
+        : visibleProjects.filter((p) => normalizeProjectUiStatus(p.status) !== 'validated')
+      ).sort(compareProjectsForDisplay),
+    [visibleProjects, isArchivedView],
   );
   const validatedProjects = useMemo(
     () =>
-      visibleProjects
-        .filter((p) => normalizeProjectUiStatus(p.status) === 'validated')
-        .sort(compareProjectsForDisplay),
-    [visibleProjects],
+      isArchivedView
+        ? []
+        : visibleProjects
+            .filter((p) => normalizeProjectUiStatus(p.status) === 'validated')
+            .sort(compareProjectsForDisplay),
+    [visibleProjects, isArchivedView],
   );
   const allFiltered = useMemo(
     () =>
-      applyTaskFilters(tasks, {
+      applyTaskFilters(sourceTasks, {
         filterMap,
         activeMapId,
         filterText,
         filterZone,
-        filterStatus,
+        filterStatus: effectiveFilterStatus,
         filterProject,
         filterGroupId,
         filterUrgentCategory,
       }),
     [
-      tasks,
+      sourceTasks,
       filterMap,
       activeMapId,
       filterText,
       filterZone,
-      filterStatus,
+      effectiveFilterStatus,
       filterProject,
       filterGroupId,
       filterUrgentCategory,
@@ -643,6 +676,7 @@ function TasksViewImpl({
       setLogsTask,
       setTaskStatus,
       deleteTask,
+      archiveTask,
       setEditTask,
       setDuplicateTask,
       setShowForm,
@@ -687,6 +721,7 @@ function TasksViewImpl({
       setLogsTask,
       setTaskStatus,
       deleteTask,
+      archiveTask,
       setEditTask,
       setDuplicateTask,
       setShowForm,
@@ -742,6 +777,8 @@ function TasksViewImpl({
     validateProject,
     duplicateProject,
     deleteProject,
+    archiveProject,
+    isArchivedView,
     loading,
     taskTileProps,
     openTasksTutorialPreview,

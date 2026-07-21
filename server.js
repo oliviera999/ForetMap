@@ -15,6 +15,7 @@ const { initDatabase, isApplicationDatabaseReady, endPool } = require('./databas
 const { validateEnv } = require('./lib/env');
 const logger = require('./lib/logger');
 const { runRecurringTaskSpawnJob } = require('./lib/recurringTasks');
+const { runAutoArchiveJob } = require('./lib/autoArchive');
 const { initRealtime, shutdownRealtime } = require('./lib/realtime');
 const { checkCriticalAdminAccount } = require('./lib/rbac');
 const { assignRequestId } = require('./lib/requestId');
@@ -551,14 +552,20 @@ function scheduleRecurringTaskSpawn() {
     return;
   }
   const jitter = 45000 + Math.floor(Math.random() * 120000);
+  const runDailyJobs = () => {
+    runRecurringTaskSpawnJob().catch((err) => logger.warn({ err }, 'Job tâches récurrentes'));
+    // Archivage automatique des tâches/projets validés anciens (réglable, cf. lib/autoArchive).
+    runAutoArchiveJob().catch((err) => logger.warn({ err }, 'Job archivage automatique'));
+  };
   recurringJobFirstTimeoutId = setTimeout(() => {
     recurringJobFirstTimeoutId = null;
-    runRecurringTaskSpawnJob().catch((err) => logger.warn({ err }, 'Job tâches récurrentes'));
+    runDailyJobs();
   }, jitter);
-  recurringJobIntervalId = setInterval(() => {
-    runRecurringTaskSpawnJob().catch((err) => logger.warn({ err }, 'Job tâches récurrentes'));
-  }, RECURRING_TASK_JOB_MS);
-  logger.info({ jitterMs: jitter }, 'Planification job tâches récurrentes (quotidien)');
+  recurringJobIntervalId = setInterval(runDailyJobs, RECURRING_TASK_JOB_MS);
+  logger.info(
+    { jitterMs: jitter },
+    'Planification jobs quotidiens (tâches récurrentes + archivage auto)',
+  );
 }
 
 function boot() {
