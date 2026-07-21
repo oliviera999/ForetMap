@@ -134,7 +134,11 @@ Il reflète l’état réel du dépôt (avril 2026) et priorise la suite en comm
 
 ### Évolutions possibles (jalons)
 
-1. Vue dédiée de gestion de projets (liste détaillée, édition en masse, archivage).
+1. Vue dédiée de gestion de projets (liste détaillée, édition en masse). L'**archivage**
+   (soft-delete réversible) des tâches **et** des projets est **livré** : colonne `archived_at`
+   (migration 169), routes `POST /api/tasks|task-projects/:id/archive|unarchive` (permission
+   `tasks.manage`, cascade projet→tâches), filtre client « 📦 Archivés ». Une tâche archivée est
+   exclue du calcul de complétion du projet. Détail : `docs/API.md`.
 2. Indicateurs de progression de projet (% tâches terminées/validées, restant à faire).
 3. Permissions RBAC fines par projet (création, édition, validation, visibilité).
 4. Filtres/stats avancés par projet (prof et élève, export ciblé).

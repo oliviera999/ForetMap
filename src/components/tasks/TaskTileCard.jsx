@@ -1,6 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { withAppBase } from '../../services/api';
-import { taskStatusIndicator, taskRequiresReferentBriefingBeforeStart } from '../../utils/badges';
+import {
+  taskStatusIndicator,
+  taskRequiresReferentBriefingBeforeStart,
+  isEntityArchived,
+  archivedChip,
+} from '../../utils/badges';
 import { taskEffectiveStatus } from '../../utils/taskListHelpers.js';
 import {
   getAssignedCount,
@@ -61,6 +66,7 @@ function TaskTileCardImpl({
   setLogsTask,
   setTaskStatus,
   deleteTask,
+  archiveTask,
   setEditTask,
   setDuplicateTask,
   setShowForm,
@@ -170,6 +176,7 @@ function TaskTileCardImpl({
         <div className="task-title-row">
           {taskStatusIndicator(effectiveStatus, isN3Affiliated)}
           <div className="task-title">{t.title}</div>
+          {isEntityArchived(t) && archivedChip()}
           {isCondensed && (
             <span className="task-condensed-chevron" aria-hidden>
               {condensedExpanded ? '▼' : '▶'}
@@ -641,6 +648,28 @@ function TaskTileCardImpl({
                     📄
                   </button>
                 </Tooltip>
+                {archiveTask &&
+                  (isEntityArchived(t) ? (
+                    <button
+                      className="btn btn-ghost btn-sm"
+                      aria-label="Désarchiver la tâche"
+                      title="Désarchiver la tâche"
+                      disabled={loading[t.id + 'archive']}
+                      onClick={() => archiveTask(t, false)}
+                    >
+                      ♻️
+                    </button>
+                  ) : (
+                    <button
+                      className="btn btn-ghost btn-sm"
+                      aria-label="Archiver la tâche"
+                      title="Archiver la tâche (la masque des vues actives)"
+                      disabled={loading[t.id + 'archive']}
+                      onClick={() => archiveTask(t, true)}
+                    >
+                      📦
+                    </button>
+                  ))}
                 <Tooltip text={tooltipText('tasks.delete')}>
                   <button
                     className="btn btn-danger btn-sm"

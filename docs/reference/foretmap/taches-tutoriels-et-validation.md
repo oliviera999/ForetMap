@@ -90,6 +90,39 @@ Une tâche passe par des états visibles de tous : **Disponible** → **En cours
   simplement la tâche « À faire » ou « En cours ». Les comptes rendus (commentaires,
   photos) restent consultables dans le journal de la tâche.
 - **Mettre en attente** : une tâche « En attente » gèle les inscriptions sans la supprimer.
+- **Archiver** : le bouton 📦 range une tâche « de côté ». Elle disparaît des listes
+  actives (côté élève comme professeur) sans être supprimée : son statut, ses comptes
+  rendus et ses liaisons sont conservés, et une tâche archivée ne compte plus dans
+  l'avancement automatique de son projet. C'est le geste à privilégier plutôt que la
+  suppression 🗑️ pour un travail terminé qu'on veut garder en mémoire sans encombrer
+  l'écran. On retrouve les archives via le filtre de statut « 📦 Archivés » (réservé aux
+  professeurs), d'où l'on peut **désarchiver** (♻️) pour les remettre en circulation.
+
+## Archiver un projet
+
+Comme les tâches, un **projet** peut être **archivé** (📦) : il quitte la liste des projets
+actifs et, par défaut, ses tâches sont archivées **avec lui**. Le **désarchivage** (♻️)
+restaure le projet et **seulement** les tâches qui avaient été archivées par ce même geste
+(une tâche archivée à la main auparavant reste archivée). Les projets archivés se
+consultent, eux aussi, via le filtre « 📦 Archivés ». Rien n'est perdu : l'archivage est
+toujours réversible, à la différence de la suppression.
+
+## Archivage automatique
+
+Pour éviter que les listes ne s'encombrent avec le temps, les éléments **terminés** sont
+**archivés automatiquement** au bout d'un certain délai : les **tâches validées** et les
+**projets validés** dont la validation remonte à plus de **4 mois** (par défaut) sont rangés
+dans les archives lors du passage quotidien. Seuls les éléments **validés** sont concernés —
+une tâche à faire, en cours ou en attente n'est **jamais** archivée automatiquement, même
+ancienne. Comme tout archivage, c'est réversible (désarchivage manuel).
+
+Deux réglages (côté administration, portée professeur) pilotent ce comportement :
+
+- **activation** de l'archivage automatique (activé par défaut) ;
+- **délai** avant archivage, en jours (**120** par défaut, soit environ 4 mois ; bornes 7 à 3650).
+
+Au moment de la mise en place, les éléments déjà validés ne sont pas archivés d'un coup : le
+délai repart de cette date, pour éviter un archivage massif rétroactif.
 
 ### La progression des paliers
 
