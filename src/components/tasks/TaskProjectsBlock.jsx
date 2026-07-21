@@ -45,6 +45,8 @@ function TaskProjectsBlock({
   validateProject,
   duplicateProject,
   deleteProject,
+  archiveProject,
+  isArchivedView = false,
   loading,
   taskTileProps,
   openTasksTutorialPreview,
@@ -74,6 +76,7 @@ function TaskProjectsBlock({
             const loadingValidate = !!loading[`${p.id}projectvalidate`];
             const loadingDuplicate = !!loading[`${p.id}projectduplicate`];
             const loadingDelete = !!loading[`${p.id}projectdelete`];
+            const loadingArchive = !!loading[`${p.id}projectarchive`];
             const canReceiveTaskDrop = !!(isTeacher && taskDragPayload?.taskId);
             const projectDropId = String(p.id || '');
             const projectCardDropActive =
@@ -199,6 +202,28 @@ function TaskProjectsBlock({
                       >
                         {loadingDuplicate ? '...' : '📄 Dupliquer'}
                       </button>
+                      {archiveProject &&
+                        (isArchivedView ? (
+                          <button
+                            type="button"
+                            className="btn btn-ghost btn-sm"
+                            disabled={loadingArchive}
+                            onClick={() => archiveProject(p, false)}
+                            title="Désarchiver le projet et ses tâches archivées avec lui"
+                          >
+                            {loadingArchive ? '...' : '♻️ Désarchiver'}
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className="btn btn-ghost btn-sm"
+                            disabled={loadingArchive}
+                            onClick={() => archiveProject(p, true)}
+                            title="Archiver le projet et ses tâches (masqués des vues actives)"
+                          >
+                            {loadingArchive ? '...' : '📦 Archiver'}
+                          </button>
+                        ))}
                       <button
                         type="button"
                         className="btn btn-danger btn-sm"

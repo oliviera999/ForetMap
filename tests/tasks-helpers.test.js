@@ -35,6 +35,8 @@ const {
   referentPublicLabel,
   enrichTaskRow,
   trimName,
+  normalizeArchivedFilter,
+  archivedFilterSql,
 } = require('../lib/taskRouteHelpers');
 
 const {
@@ -401,5 +403,35 @@ describe('taskAuthzHelpers — contrôles d’accès purs', () => {
     assert.equal(isVisitorRole({ roleSlug: 'Visiteur' }), true);
     assert.equal(isVisitorRole({ roleSlug: 'prof' }), false);
     assert.equal(isVisitorRole(null), false);
+  });
+});
+
+describe('taskRouteHelpers — filtre d’archivage', () => {
+  it("normalizeArchivedFilter : défaut 'active' pour vide/inconnu", () => {
+    assert.equal(normalizeArchivedFilter(undefined), 'active');
+    assert.equal(normalizeArchivedFilter(''), 'active');
+    assert.equal(normalizeArchivedFilter('0'), 'active');
+    assert.equal(normalizeArchivedFilter('false'), 'active');
+    assert.equal(normalizeArchivedFilter('nimporte'), 'active');
+    assert.equal(normalizeArchivedFilter('active'), 'active');
+  });
+
+  it("normalizeArchivedFilter : alias 'archived'", () => {
+    for (const v of ['1', 'true', 'oui', 'only', 'archived', 'archive', 'archivees']) {
+      assert.equal(normalizeArchivedFilter(v), 'archived', `alias: ${v}`);
+    }
+  });
+
+  it("normalizeArchivedFilter : alias 'all'", () => {
+    for (const v of ['all', 'tous', 'toutes', 'include', 'include_archived', 'with_archived']) {
+      assert.equal(normalizeArchivedFilter(v), 'all', `alias: ${v}`);
+    }
+  });
+
+  it('archivedFilterSql : fragment WHERE par portée', () => {
+    assert.equal(archivedFilterSql('active', 't.archived_at'), 't.archived_at IS NULL');
+    assert.equal(archivedFilterSql('archived', 't.archived_at'), 't.archived_at IS NOT NULL');
+    assert.equal(archivedFilterSql('all', 't.archived_at'), '');
+    assert.equal(archivedFilterSql('active'), 'archived_at IS NULL');
   });
 });

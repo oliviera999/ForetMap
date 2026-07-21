@@ -28,6 +28,48 @@ lot comble le maillon faible.
   bulk (ancrage, détachement, `404` zone inconnue, `400` sélection vide).
 - **Docs** : `docs/API.md` (routes overview + bulk kingdom-zone) et
   `docs/reference/gl/carte-du-royaume.md` (point d'attention suppression de chapitre).
+### Archivage (soft-delete) des tâches et des projets de tâches
+
+Nouvelle fonctionnalité : archiver une tâche ou un projet pour le masquer des vues actives
+sans le supprimer (réversible), plutôt que de le supprimer définitivement.
+
+- **Base de données** : migration `169_tasks_and_projects_archived_at.sql` — colonne
+  `archived_at DATETIME NULL` (+ index) sur `tasks` et `task_projects` (`null` = actif). Schéma
+  canonique `sql/schema_foretmap.sql` aligné.
+- **API** :
+  - `GET /api/tasks` et `GET /api/task-projects` acceptent `?archived=active|archived|all`
+    (défaut `active` ; portées `archived`/`all` réservées à `tasks.manage`, forcé à `active`
+    sinon — les archives ne sont jamais exposées aux n3beurs).
+  - `POST /api/tasks/:id/archive` · `/unarchive` (permission `tasks.manage`, idempotents).
+  - `POST /api/task-projects/:id/archive` · `/unarchive` (permission `tasks.manage`) avec
+    cascade par défaut vers les tâches du projet ; le désarchivage ne restaure que les tâches
+    archivées par ce projet (marqueur `archived_via_project`) — celles archivées
+    individuellement restent archivées. Corps optionnel `{ cascade }`.
+  - Le calcul automatique de complétion d'un projet **exclut** désormais les tâches archivées.
+- **Front-end** : les listes partagées restent actives uniquement (carte/modales non impactées) ;
+  les archives (prof) sont isolées dans un état dédié et consultables via le filtre de statut
+  « 📦 Archivés ». Boutons Archiver/Désarchiver (📦/♻️) sur les tuiles de tâche et les blocs
+  projet, badge « 📦 Archivé ».
+- **Tests** : `tests/tasks-archive.test.js` (intégration), `tests/tasks-helpers.test.js`
+  (filtre `normalizeArchivedFilter`/`archivedFilterSql`), `tests-ui/utils/taskArchive.test.js`.
+- **Docs** : `docs/API.md`, `docs/reference/foretmap/taches-tutoriels-et-validation.md`,
+  `docs/EVOLUTION.md`.
+
+#### Archivage automatique paramétrable
+
+- **Job quotidien** `lib/autoArchive.js` (branché dans `server.js` à côté du job de tâches
+  récurrentes) : archive automatiquement les **tâches validées** et **projets validés** dont la
+  validation dépasse un délai. Portée limitée aux éléments **terminés** (jamais les tâches
+  actives). Réversible.
+- **Réglages** (portée prof) : `tasks.auto_archive_enabled` (défaut `true`) et
+  `tasks.auto_archive_after_days` (défaut **120** ≈ 4 mois ; bornes 7–3650).
+- **Migration 169** étendue : colonnes `tasks.validated_at` et `task_projects.finished_at`
+  (référence du délai, posées à la validation), `tasks.archived_via_project` (marqueur de cascade
+  fiable). Backfill des éléments déjà validés à la date de migration (pas d'archivage rétroactif
+  massif). Horodatage de validation posé dans `POST /api/tasks/:id/validate`, `PUT /api/tasks/:id`
+  (transition → `validated`) et `POST /api/task-projects/:id/validate`.
+- **Tests** : cas d'archivage auto (tâche/projet ancien vs récent, non-validé épargné, bornage du
+  délai) ajoutés à `tests/tasks-archive.test.js`.
 
 ### Audit `AUDIT_CODE_2026-07` — lot 5b : découpage des monolithes admin GL (sans changement de comportement)
 
