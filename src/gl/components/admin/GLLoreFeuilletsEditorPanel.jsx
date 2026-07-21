@@ -5,8 +5,15 @@ import { GLField } from '../ui/GLField.jsx';
 import { GLInput } from '../ui/GLInput.jsx';
 import { GLSelect } from '../ui/GLSelect.jsx';
 import { GLTextarea } from '../ui/GLTextarea.jsx';
+import { GLMarkdownEditor } from '../ui/GLMarkdownEditor.jsx';
 import { GLBadge } from '../ui/GLBadge.jsx';
 import { GLDataList } from '../ui/GLDataList.jsx';
+import { DialogShell } from '../../../components/DialogShell.jsx';
+import { GLFeuilletSpeciesPicker } from './GLFeuilletSpeciesPicker.jsx';
+import { GLFeuilletKingdomZonePicker } from './GLFeuilletKingdomZonePicker.jsx';
+import { GLFeuilletChapterMemberships } from './GLFeuilletChapterMemberships.jsx';
+import { GLFeuilletLiasseReorder } from './GLFeuilletLiasseReorder.jsx';
+import { GLFeuilletReaderPreview } from './GLFeuilletReaderPreview.jsx';
 import {
   FEUILLET_SECTIONS,
   FEUILLET_TYPE_OPTIONS,
@@ -39,11 +46,12 @@ export function GLLoreFeuilletsEditorPanel() {
   const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [selectedCode, setSelectedCode] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
-  // Ancrage carte (kingdom_zone_id) : hors formToPayload, persisté via la route dédiée.
-  const [anchorZoneId, setAnchorZoneId] = useState('');
-  const [anchorBusy, setAnchorBusy] = useState(false);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  // Aperçu « comme le joueur le verra » à côté du formulaire.
+  const [showPreview, setShowPreview] = useState(false);
+  // Zone royaume liée au feuillet en cours (gérée via son endpoint dédié, hors PUT principal).
+  const [currentZoneId, setCurrentZoneId] = useState(null);
   // Notifications regroupées (erreur / info / avertissement serveur).
   const [notices, setNotices] = useState(EMPTY_NOTICES);
 
@@ -61,6 +69,13 @@ export function GLLoreFeuilletsEditorPanel() {
   }
 
   const filteredItems = useMemo(() => filterFeuilletItems(items, filters), [items, filters]);
+
+  // Feuillets de la même liasse que le feuillet en cours d'édition (réordonnancement).
+  const liasseItems = useMemo(() => {
+    const liasse = String(form.liasse || '').trim();
+    if (!liasse) return [];
+    return items.filter((row) => String(row.liasse || '').trim() === liasse);
+  }, [items, form.liasse]);
 
   const loadList = useCallback(async () => {
     const data = await apiGL('/api/gl/lore/admin/feuillets');
@@ -105,9 +120,10 @@ export function GLLoreFeuilletsEditorPanel() {
     try {
       const data = await apiGL(`/api/gl/lore/admin/feuillets/${encodeURIComponent(code)}`);
       setForm(feuilletToForm(data?.feuillet));
-      setAnchorZoneId(
-        data?.feuillet?.kingdomZoneId != null ? String(data.feuillet.kingdomZoneId) : '',
-      );
+      const zoneRaw =
+        data?.feuillet?.kingdomZoneId ??
+        items.find((r) => r.feuillet_code === code)?.kingdom_zone_id;
+      setCurrentZoneId(zoneRaw != null && zoneRaw !== '' ? Number(zoneRaw) : null);
       setSelectedCode(code);
     } catch (err) {
       notify({ error: err.message || 'Feuillet introuvable' });
@@ -119,31 +135,17 @@ export function GLLoreFeuilletsEditorPanel() {
   function closeEditor() {
     setSelectedCode(null);
     setForm(EMPTY_FORM);
-    setAnchorZoneId('');
+    setCurrentZoneId(null);
+    setShowPreview(false);
     clearNotices();
   }
 
-  async function saveAnchor(rawValue = anchorZoneId) {
-    if (!selectedCode) return;
-    setAnchorBusy(true);
-    clearNotices();
-    try {
-      const trimmed = String(rawValue ?? '').trim();
-      const data = await apiGL(
-        `/api/gl/lore/admin/feuillets/${encodeURIComponent(selectedCode)}/kingdom-zone`,
-        'PUT',
-        { kingdomZoneId: trimmed === '' ? null : trimmed },
-      );
-      setAnchorZoneId(data?.kingdomZoneId != null ? String(data.kingdomZoneId) : '');
-      notify({
-        info: trimmed === '' ? 'Feuillet détaché de la zone.' : 'Ancrage carte enregistré.',
-      });
-      await loadList();
-    } catch (err) {
-      notify({ error: err.message || 'Ancrage carte impossible' });
-    } finally {
-      setAnchorBusy(false);
-    }
+  /** Persiste le nouvel ordre d'une liasse (endpoint groupé) puis recharge la liste. */
+  async function persistLiasseOrder(orderedCodes) {
+    const updates = orderedCodes.map((code, index) => ({ code, ordreLiasse: index + 1 }));
+    await apiGL('/api/gl/lore/admin/feuillets/reorder', 'PUT', { updates });
+    notify({ info: 'Ordre de la liasse enregistré.' });
+    await loadList();
   }
 
   function setField(key, value) {
@@ -256,6 +258,30 @@ export function GLLoreFeuilletsEditorPanel() {
             </option>
           ))}
         </GLSelect>
+      );
+    }
+    if (field.kind === 'species-picker') {
+      return (
+        <GLFeuilletSpeciesPicker
+          biomeSlug={form.biome_slug}
+          canal={form.lien_canal}
+          reference={form.lien_ref}
+          onChange={({ canal, ref }) =>
+            setForm((prev) => ({ ...prev, lien_canal: canal, lien_ref: ref }))
+          }
+        />
+      );
+    }
+    if (field.kind === 'markdown') {
+      return (
+        <GLMarkdownEditor
+          value={value}
+          rows={field.rows || 4}
+          onChange={(next) =>
+            // GLMarkdownEditor renvoie soit une chaîne, soit un event selon le mode.
+            setField(field.key, typeof next === 'string' ? next : next?.target?.value || '')
+          }
+        />
       );
     }
     if (field.kind === 'textarea') {
@@ -465,73 +491,105 @@ export function GLLoreFeuilletsEditorPanel() {
       <GLDataList columns={columns} rows={rows} emptyLabel="Aucun feuillet." />
 
       {selectedCode ? (
-        <div className="gl-form gl-feuillet-editor-form">
-          <div className="gl-inline-actions">
+        <DialogShell
+          open
+          onClose={closeEditor}
+          dialogClassName="gl-feuillet-editor-modal fade-in"
+          ariaLabel={`Édition du feuillet ${selectedCode}`}
+          closeOnOverlay={false}
+        >
+          <header className="gl-feuillet-editor-modal__head">
             <h4>
               Édition — <code>{selectedCode}</code>
+              {form.titre ? (
+                <span className="gl-feuillet-editor-modal__titre">{form.titre}</span>
+              ) : null}
             </h4>
-            <GLButton type="button" variant="ghost" onClick={closeEditor} disabled={saving}>
-              Fermer
-            </GLButton>
-          </div>
-
-          <div className="gl-form gl-form--compact gl-feuillet-anchor">
-            <GLField label="Ancrage carte (zone n°)">
-              <GLInput
-                type="number"
-                value={anchorZoneId}
-                onChange={(e) => setAnchorZoneId(e.target.value)}
-                placeholder="(vide = non ancré)"
-              />
-            </GLField>
             <div className="gl-inline-actions">
               <GLButton
                 type="button"
-                size="sm"
-                onClick={saveAnchor}
-                disabled={anchorBusy || saving}
+                variant={showPreview ? 'primary' : 'ghost'}
+                onClick={() => setShowPreview((v) => !v)}
+                aria-pressed={showPreview}
               >
-                {anchorBusy ? 'Enregistrement…' : 'Enregistrer l’ancrage'}
+                {showPreview ? 'Masquer l’aperçu' : 'Aperçu joueur'}
               </GLButton>
-              <GLButton
-                type="button"
-                size="sm"
-                variant="ghost"
-                onClick={() => {
-                  setAnchorZoneId('');
-                  saveAnchor('');
-                }}
-                disabled={anchorBusy || saving || !anchorZoneId}
-              >
-                Détacher
+              <GLButton type="button" onClick={save} disabled={saving || loading}>
+                {saving ? 'Enregistrement…' : 'Enregistrer'}
+              </GLButton>
+              <GLButton type="button" variant="secondary" onClick={toggleStatut} disabled={saving}>
+                {form.statut === 'actif' ? 'Archiver' : 'Réactiver'}
+              </GLButton>
+              <GLButton type="button" variant="ghost" onClick={closeEditor} disabled={saving}>
+                Fermer
               </GLButton>
             </div>
-            <p className="gl-hint">
-              Lien direct vers une zone de la carte du royaume (indépendant du rattachement chapitre
-              déduit ci-dessus). Validé côté serveur ; « Détacher » remet à NULL.
-            </p>
-          </div>
+          </header>
 
-          {FEUILLET_SECTIONS.map((section) => (
-            <details key={section.id} open={section.open || false}>
-              <summary>{section.title}</summary>
-              {section.fields.map((field) => (
-                <GLField key={field.key} label={field.label}>
-                  {renderField(field)}
-                </GLField>
+          {notices.error ? <p className="gl-error">{notices.error}</p> : null}
+          {notices.warning ? <p className="gl-hint">⚠️ {notices.warning}</p> : null}
+
+          <div
+            className={`gl-feuillet-editor-modal__body${
+              showPreview ? ' gl-feuillet-editor-modal__body--split' : ''
+            }`}
+          >
+            <div className="gl-feuillet-editor-modal__form">
+              {FEUILLET_SECTIONS.map((section) => (
+                <details key={section.id} open={section.open || false}>
+                  <summary>{section.title}</summary>
+                  <div className="gl-feuillet-editor-modal__grid">
+                    {section.fields.map((field) => (
+                      <GLField
+                        key={field.key}
+                        label={field.label}
+                        className={
+                          field.kind === 'markdown' || field.kind === 'species-picker'
+                            ? 'gl-field--wide'
+                            : undefined
+                        }
+                      >
+                        {renderField(field)}
+                      </GLField>
+                    ))}
+                  </div>
+                  {section.id === 'associations' ? (
+                    <div className="gl-feuillet-associations-extra">
+                      <div className="gl-field gl-field--wide">
+                        <span className="gl-field__label">Chapitres rattachés</span>
+                        <GLFeuilletChapterMemberships feuilletCode={selectedCode} />
+                      </div>
+                      <div className="gl-field gl-field--wide">
+                        <span className="gl-field__label">Zone du royaume</span>
+                        <GLFeuilletKingdomZonePicker
+                          feuilletCode={selectedCode}
+                          kingdomZoneId={currentZoneId}
+                          onLinked={(zoneId) => setCurrentZoneId(zoneId)}
+                        />
+                      </div>
+                      {form.liasse && liasseItems.length > 1 ? (
+                        <div className="gl-field gl-field--wide">
+                          <span className="gl-field__label">
+                            Ordre de la liasse « {form.liasse} »
+                          </span>
+                          <GLFeuilletLiasseReorder
+                            items={liasseItems}
+                            onPersist={persistLiasseOrder}
+                          />
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </details>
               ))}
-            </details>
-          ))}
-
-          <div className="gl-inline-actions">
-            <GLButton type="button" onClick={save} disabled={saving || loading}>
-              {saving ? 'Enregistrement…' : 'Enregistrer'}
-            </GLButton>
-            <GLButton type="button" variant="secondary" onClick={toggleStatut} disabled={saving}>
-              {form.statut === 'actif' ? 'Archiver' : 'Réactiver'}
-            </GLButton>
+            </div>
+            {showPreview ? (
+              <aside className="gl-feuillet-editor-modal__preview">
+                <GLFeuilletReaderPreview form={form} />
+              </aside>
+            ) : null}
           </div>
-        </div>
+        </DialogShell>
       ) : null}
     </section>
   );

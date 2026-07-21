@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { apiGL } from '../../services/apiGL.js';
 import { downloadGlFile } from '../../utils/downloadGlFile.js';
 import { GLButton } from '../ui/GLButton.jsx';
@@ -19,6 +19,24 @@ export function GLLoreFeuilletsImportPanel() {
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
   const [report, setReport] = useState(null);
+  // Suivi du téléchargement en cours ('template' | 'export' | null) pour l'état
+  // des boutons et l'affichage des erreurs — indispensable sur mobile où un
+  // échec silencieux donnait l'impression d'un « export vide ».
+  const [downloading, setDownloading] = useState(null);
+
+  async function downloadFile(kind, path, filename) {
+    setError('');
+    setInfo('');
+    setDownloading(kind);
+    try {
+      await downloadGlFile(path, filename);
+      setInfo('Téléchargement lancé — vérifiez vos fichiers reçus.');
+    } catch (err) {
+      setError(err.message || 'Téléchargement impossible');
+    } finally {
+      setDownloading(null);
+    }
+  }
 
   async function runImport(event) {
     event.preventDefault();
@@ -53,24 +71,29 @@ export function GLLoreFeuilletsImportPanel() {
       <div className="gl-admin-import-actions">
         <GLButton
           type="button"
-          disabled={loading}
+          disabled={loading || !!downloading}
           onClick={() =>
-            downloadGlFile(
+            downloadFile(
+              'template',
               '/api/gl/lore/admin/feuillets/import/template',
               'modele-feuillets-selene.xlsx',
             )
           }
         >
-          Modèle XLSX
+          {downloading === 'template' ? 'Préparation…' : 'Modèle XLSX'}
         </GLButton>
         <GLButton
           type="button"
-          disabled={loading}
+          disabled={loading || !!downloading}
           onClick={() =>
-            downloadGlFile('/api/gl/lore/admin/feuillets/export', 'export-feuillets-selene.xlsx')
+            downloadFile(
+              'export',
+              '/api/gl/lore/admin/feuillets/export',
+              'export-feuillets-selene.xlsx',
+            )
           }
         >
-          Exporter le catalogue
+          {downloading === 'export' ? 'Export en cours…' : 'Exporter le catalogue'}
         </GLButton>
       </div>
       <form onSubmit={runImport}>

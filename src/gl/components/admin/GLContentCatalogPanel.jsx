@@ -18,10 +18,12 @@ export function GLContentCatalogPanel({
 
   return (
     <div className="gl-content-catalog-panel">
-      <nav className="gl-subtabs gl-subtabs--nested">
+      <div className="gl-subtabs gl-subtabs--nested gl-subtabs--scroll" role="tablist">
         {hasOverview ? (
           <button
             type="button"
+            role="tab"
+            aria-selected={mode === 'overview'}
             className={mode === 'overview' ? 'is-active' : ''}
             onClick={() => setMode('overview')}
           >
@@ -30,6 +32,8 @@ export function GLContentCatalogPanel({
         ) : null}
         <button
           type="button"
+          role="tab"
+          aria-selected={mode === 'manual'}
           className={mode === 'manual' ? 'is-active' : ''}
           onClick={() => setMode('manual')}
         >
@@ -37,12 +41,14 @@ export function GLContentCatalogPanel({
         </button>
         <button
           type="button"
+          role="tab"
+          aria-selected={mode === 'import'}
           className={mode === 'import' ? 'is-active' : ''}
           onClick={() => setMode('import')}
         >
           {importLabel}
         </button>
-      </nav>
+      </div>
       {mode === 'overview' && hasOverview ? (
         <OverviewPanel />
       ) : mode === 'manual' ? (

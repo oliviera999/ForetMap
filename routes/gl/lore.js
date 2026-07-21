@@ -829,6 +829,39 @@ router.post(
   }),
 );
 
+// PUT /admin/feuillets/reorder — réordonne une liasse (mise à jour groupée de
+// `ordre_liasse`, champ déjà éditable unitairement). N'altère que l'ordre
+// d'affichage, pas le comportement de jeu. Déclarée AVANT `/admin/feuillets/:code`
+// pour ne pas être capturée par le paramètre.
+router.put(
+  '/admin/feuillets/reorder',
+  requireGlPermission('gl.content.manage'),
+  asyncHandler(async (req, res) => {
+    const updates = Array.isArray(req.body?.updates) ? req.body.updates : null;
+    if (!updates || !updates.length) {
+      return res.status(400).json({ error: 'updates requis (liste non vide)' });
+    }
+    const clean = [];
+    for (const u of updates) {
+      const code = String(u?.code || '').trim();
+      const ordre = Number(u?.ordreLiasse);
+      if (!code || !Number.isFinite(ordre)) {
+        return res.status(400).json({ error: 'Chaque entrée exige { code, ordreLiasse } valides' });
+      }
+      clean.push({ code, ordre });
+    }
+    let updated = 0;
+    for (const { code, ordre } of clean) {
+      const result = await execute(
+        'UPDATE gl_lore_feuillets SET ordre_liasse = ?, updated_at = NOW() WHERE feuillet_code = ?',
+        [ordre, code],
+      );
+      updated += result?.affectedRows ?? 0;
+    }
+    return res.json({ ok: true, requested: clean.length, updated });
+  }),
+);
+
 // PUT /admin/feuillets/kingdom-zone/bulk — (dé)ancrage carte en masse d'une sélection.
 // Body : { codes: string[], kingdomZoneId: number|null } (null => détache tous les feuillets).
 // NB : déclarée AVANT `/admin/feuillets/:code` pour ne pas être capturée par le param.

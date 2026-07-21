@@ -86,6 +86,40 @@ test('PATCH /admin/feuillets/:code archive puis réactive', async () => {
   assert.strictEqual(react.body.feuillet.statut, 'actif');
 });
 
+test('PUT /admin/feuillets/reorder met à jour ordre_liasse par lot', async () => {
+  const res = await request(app)
+    .put('/api/gl/lore/admin/feuillets/reorder')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({
+      updates: [
+        { code, ordreLiasse: 42 },
+        { code, ordreLiasse: 43 },
+      ],
+    })
+    .expect(200);
+  assert.strictEqual(res.body.ok, true);
+  assert.strictEqual(res.body.requested, 2);
+
+  const detail = await request(app)
+    .get(`/api/gl/lore/admin/feuillets/${code}`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .expect(200);
+  assert.strictEqual(detail.body.feuillet.ordreLiasse, 43);
+});
+
+test('PUT /admin/feuillets/reorder 400 sur entrée invalide', async () => {
+  await request(app)
+    .put('/api/gl/lore/admin/feuillets/reorder')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ updates: [{ code: '', ordreLiasse: 'abc' }] })
+    .expect(400);
+  await request(app)
+    .put('/api/gl/lore/admin/feuillets/reorder')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ updates: [] })
+    .expect(400);
+});
+
 test('PUT refuse sans permission gl.content.manage', async () => {
   const readOnly = await signTokens({
     adminId: 'gl-admin-readonly',
