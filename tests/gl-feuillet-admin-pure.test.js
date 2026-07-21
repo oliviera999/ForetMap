@@ -215,3 +215,22 @@ test('assembleFeuilletOverview : agrège canaux, chapitres, stats et liens réso
   const speciesItem = res.items.find((i) => i.feuilletCode === 'a');
   assert.strictEqual(speciesItem.linkLabel, 'espece · Fennec (SP0001)');
 });
+
+test('assembleFeuilletOverview : expose l’ancrage carte (kingdom_zone_id) et les compteurs', () => {
+  const feuillets = [
+    // Canal zone + ancré => compte comme ancré, pas perdu.
+    { feuillet_code: 'z-anc', statut: 'actif', kingdom_zone_id: 7 },
+    // Canal zone SANS ancrage => ancrage perdu (ex. zone effacée avec un chapitre supprimé).
+    { feuillet_code: 'z-lost', statut: 'actif' },
+    // Hors canal zone, non ancré => ni ancré ni perdu (NULL souvent volontaire).
+    { feuillet_code: 'plain', statut: 'actif', biome_slug: 'savane' },
+  ];
+  const zoneCodes = new Set(['z-anc', 'z-lost']);
+
+  const res = assembleFeuilletOverview({ feuillets, chapters: [], zoneCodes });
+
+  assert.strictEqual(res.mapAnchoredCount, 1);
+  assert.strictEqual(res.mapAnchorLostCount, 1);
+  assert.strictEqual(res.items.find((i) => i.feuilletCode === 'z-anc').kingdomZoneId, 7);
+  assert.strictEqual(res.items.find((i) => i.feuilletCode === 'z-lost').kingdomZoneId, null);
+});

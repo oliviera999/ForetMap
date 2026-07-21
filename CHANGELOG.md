@@ -7,6 +7,28 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### GL — récupération des ancrages carte des feuillets après suppression d'un chapitre
+
+Supprimer un chapitre efface ses zones du royaume en cascade, ce qui détache (met à `NULL`) le
+`kingdom_zone_id` des feuillets qui y pointaient — sans les supprimer. L'outillage admin ne
+permettait de re-lier ces feuillets que zone par zone, en ajout seulement, sans signalement. Ce
+lot comble le maillon faible.
+
+- **Vue d'ensemble du carnet (`GET /api/gl/lore/admin/feuillets/overview`)** : expose désormais
+  `kingdomZoneId` par feuillet et deux compteurs `mapAnchoredCount` / `mapAnchorLostCount`
+  (feuillets de canal `zone` sans ancrage carte). Le panneau admin ajoute un KPI **« ancrage carte
+  perdu »** (cliquable), une colonne **Ancrage carte** et un filtre dédié (lié / non lié / perdu).
+- **Détachement** : le linker de zone (`GLKingdomZoneFeuilletLinker`) gagne un bouton **« Détacher »**
+  par feuillet lié (`PUT …/:code/kingdom-zone` avec `kingdomZoneId:null`).
+- **Éditeur de feuillet** : nouveau champ **Ancrage carte** (persisté via la route dédiée, hors
+  payload générique) avec boutons Enregistrer / Détacher.
+- **(Dé)ancrage en masse** : nouvelle route `PUT /api/gl/lore/admin/feuillets/kingdom-zone/bulk`
+  (zone validée, `null` = détacher) + option d'édition en masse **« Ancrage carte »** dans l'éditeur.
+- **Tests** : cas purs `assembleFeuilletOverview` (ancrage + compteurs) et intégration de la route
+  bulk (ancrage, détachement, `404` zone inconnue, `400` sélection vide).
+- **Docs** : `docs/API.md` (routes overview + bulk kingdom-zone) et
+  `docs/reference/gl/carte-du-royaume.md` (point d'attention suppression de chapitre).
+
 ### Audit `AUDIT_CODE_2026-07` — lot 5b : découpage des monolithes admin GL (sans changement de comportement)
 
 Suite du découpage §6.1 sur les vues admin GL lazy (faible blast radius), à iso-comportement
