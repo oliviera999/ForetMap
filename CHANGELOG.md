@@ -58,6 +58,27 @@ Réalise les pistes UI restantes de l'éditeur de feuillets.
   vertical), sémantique `role="tablist"/"tab"` + `aria-selected`, cibles tactiles ≥ 44px, et
   panneau import/export stylé (carte, zone de dépôt, rapport JSON défilable, boutons pleine largeur
   sur mobile).
+### GL — récupération des ancrages carte des feuillets après suppression d'un chapitre
+
+Supprimer un chapitre efface ses zones du royaume en cascade, ce qui détache (met à `NULL`) le
+`kingdom_zone_id` des feuillets qui y pointaient — sans les supprimer. L'outillage admin ne
+permettait de re-lier ces feuillets que zone par zone, en ajout seulement, sans signalement. Ce
+lot comble le maillon faible.
+
+- **Vue d'ensemble du carnet (`GET /api/gl/lore/admin/feuillets/overview`)** : expose désormais
+  `kingdomZoneId` par feuillet et deux compteurs `mapAnchoredCount` / `mapAnchorLostCount`
+  (feuillets de canal `zone` sans ancrage carte). Le panneau admin ajoute un KPI **« ancrage carte
+  perdu »** (cliquable), une colonne **Ancrage carte** et un filtre dédié (lié / non lié / perdu).
+- **Détachement** : le linker de zone (`GLKingdomZoneFeuilletLinker`) gagne un bouton **« Détacher »**
+  par feuillet lié (`PUT …/:code/kingdom-zone` avec `kingdomZoneId:null`).
+- **Éditeur de feuillet** : nouveau champ **Ancrage carte** (persisté via la route dédiée, hors
+  payload générique) avec boutons Enregistrer / Détacher.
+- **(Dé)ancrage en masse** : nouvelle route `PUT /api/gl/lore/admin/feuillets/kingdom-zone/bulk`
+  (zone validée, `null` = détacher) + option d'édition en masse **« Ancrage carte »** dans l'éditeur.
+- **Tests** : cas purs `assembleFeuilletOverview` (ancrage + compteurs) et intégration de la route
+  bulk (ancrage, détachement, `404` zone inconnue, `400` sélection vide).
+- **Docs** : `docs/API.md` (routes overview + bulk kingdom-zone) et
+  `docs/reference/gl/carte-du-royaume.md` (point d'attention suppression de chapitre).
 ### Archivage (soft-delete) des tâches et des projets de tâches
 
 Nouvelle fonctionnalité : archiver une tâche ou un projet pour le masquer des vues actives

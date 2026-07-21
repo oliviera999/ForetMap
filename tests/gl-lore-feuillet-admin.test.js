@@ -7,7 +7,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const request = require('supertest');
 const { app } = require('../server');
-const { initSchema, queryAll, execute } = require('../database');
+const { initSchema, queryAll, queryOne, execute } = require('../database');
 const { createGlAdmin, signTokens } = require('./helpers/glFixtures');
 const { applyFeuilletsImport, parseFeuilletsWorkbook } = require('../lib/glLoreFeuilletsImport');
 
@@ -130,4 +130,66 @@ test('PUT refuse sans permission gl.content.manage', async () => {
     .set('Authorization', `Bearer ${readOnly.adminToken}`)
     .send({ titre: 'X' })
     .expect(403);
+});
+
+test('PUT /admin/feuillets/kingdom-zone/bulk (dé)ancre en masse et valide la zone', async () => {
+  // Zone de test rattachée à un chapitre existant (seed 081) ou créé au besoin.
+  let chapter = await queryOne('SELECT id FROM gl_chapters LIMIT 1');
+  if (!chapter) {
+    const ins = await execute(
+      "INSERT INTO gl_chapters (slug, title, order_index) VALUES ('chap-anchor-test', 'Chap ancrage', 0)",
+    );
+    chapter = { id: ins.insertId };
+  }
+  const zoneIns = await execute(
+    "INSERT INTO gl_kingdom_zones (chapter_id, label, points_json, color) VALUES (?, 'Zone ancrage test', '[]', '#22c55e')",
+    [chapter.id],
+  );
+  const zoneId = zoneIns.insertId;
+
+  // Zone inexistante => 404, aucun feuillet touché.
+  await request(app)
+    .put('/api/gl/lore/admin/feuillets/kingdom-zone/bulk')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ codes: [code], kingdomZoneId: 99999999 })
+    .expect(404);
+
+  // Ancrage en masse.
+  const anchored = await request(app)
+    .put('/api/gl/lore/admin/feuillets/kingdom-zone/bulk')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ codes: [code], kingdomZoneId: zoneId })
+    .expect(200);
+  assert.strictEqual(anchored.body.updated, 1);
+  assert.strictEqual(anchored.body.kingdomZoneId, zoneId);
+
+  const afterAnchor = await request(app)
+    .get(`/api/gl/lore/admin/feuillets/${code}`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .expect(200);
+  assert.strictEqual(afterAnchor.body.feuillet.kingdomZoneId, zoneId);
+
+  // Détachement en masse (kingdomZoneId null).
+  const detached = await request(app)
+    .put('/api/gl/lore/admin/feuillets/kingdom-zone/bulk')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ codes: [code], kingdomZoneId: null })
+    .expect(200);
+  assert.strictEqual(detached.body.kingdomZoneId, null);
+
+  const afterDetach = await request(app)
+    .get(`/api/gl/lore/admin/feuillets/${code}`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .expect(200);
+  assert.strictEqual(afterDetach.body.feuillet.kingdomZoneId, null);
+
+  await execute('DELETE FROM gl_kingdom_zones WHERE id = ?', [zoneId]);
+});
+
+test('PUT /admin/feuillets/kingdom-zone/bulk refuse sans sélection', async () => {
+  await request(app)
+    .put('/api/gl/lore/admin/feuillets/kingdom-zone/bulk')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({ codes: [], kingdomZoneId: null })
+    .expect(400);
 });

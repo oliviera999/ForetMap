@@ -19,6 +19,7 @@ export function GLLoreFeuilletsOverviewPanel() {
   const [filterQ, setFilterQ] = useState('');
   const [filterChannel, setFilterChannel] = useState('');
   const [filterChapter, setFilterChapter] = useState('');
+  const [filterAnchor, setFilterAnchor] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -52,6 +53,10 @@ export function GLLoreFeuilletsOverviewPanel() {
     const q = filterQ.trim().toLowerCase();
     return items.filter((it) => {
       if (filterChannel && it.channel !== filterChannel) return false;
+      if (filterAnchor === 'linked' && it.kingdomZoneId == null) return false;
+      if (filterAnchor === 'unlinked' && it.kingdomZoneId != null) return false;
+      if (filterAnchor === 'lost' && !(it.channel === 'zone' && it.kingdomZoneId == null))
+        return false;
       if (filterChapter) {
         if (filterChapter === '__none__') {
           if (it.chapters?.length) return false;
@@ -65,7 +70,7 @@ export function GLLoreFeuilletsOverviewPanel() {
       }
       return true;
     });
-  }, [items, filterQ, filterChannel, filterChapter]);
+  }, [items, filterQ, filterChannel, filterChapter, filterAnchor]);
 
   const columns = [
     { key: 'code', label: 'Code' },
@@ -73,6 +78,7 @@ export function GLLoreFeuilletsOverviewPanel() {
     { key: 'channel', label: 'Canal' },
     { key: 'link', label: 'Lien' },
     { key: 'chapters', label: 'Chapitre(s)' },
+    { key: 'anchor', label: 'Ancrage carte' },
     { key: 'discovery', label: 'Découverte' },
     { key: 'statut', label: 'Statut' },
   ];
@@ -90,6 +96,15 @@ export function GLLoreFeuilletsOverviewPanel() {
         {it.statut}
       </GLBadge>
     );
+    const anchorLost = it.channel === 'zone' && it.kingdomZoneId == null;
+    const anchorBadge =
+      it.kingdomZoneId != null ? (
+        <GLBadge tone="success">zone #{it.kingdomZoneId}</GLBadge>
+      ) : anchorLost ? (
+        <GLBadge tone="danger">perdu</GLBadge>
+      ) : (
+        <span>—</span>
+      );
     return {
       key: it.feuilletCode,
       desktopCells: (
@@ -101,6 +116,7 @@ export function GLLoreFeuilletsOverviewPanel() {
           <td>{channelBadge}</td>
           <td>{it.linkLabel || '—'}</td>
           <td>{chapterText}</td>
+          <td>{anchorBadge}</td>
           <td>{discoveryText}</td>
           <td>{statutBadge}</td>
         </>
@@ -126,6 +142,10 @@ export function GLLoreFeuilletsOverviewPanel() {
           <div className="gl-data-card-row">
             <span className="gl-data-card-label">Chapitre(s)</span>
             <span>{chapterText}</span>
+          </div>
+          <div className="gl-data-card-row">
+            <span className="gl-data-card-label">Ancrage carte</span>
+            {anchorBadge}
           </div>
           <div className="gl-data-card-row">
             <span className="gl-data-card-label">Découverte</span>
@@ -160,6 +180,22 @@ export function GLLoreFeuilletsOverviewPanel() {
             <div className="gl-kpi-card">
               <span className="gl-kpi-card__value">{data.unassignedChapterCount || 0}</span>
               <span className="gl-kpi-card__label">hors chapitre</span>
+            </div>
+            <div
+              className={`gl-kpi-card${data.mapAnchorLostCount ? ' gl-kpi-card--warn' : ''}`}
+              role="button"
+              tabIndex={0}
+              onClick={() => setFilterAnchor(filterAnchor === 'lost' ? '' : 'lost')}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setFilterAnchor(filterAnchor === 'lost' ? '' : 'lost');
+                }
+              }}
+              title="Feuillets attendus sur une zone mais sans ancrage carte (ex. zone effacée avec un chapitre supprimé)"
+            >
+              <span className="gl-kpi-card__value">{data.mapAnchorLostCount || 0}</span>
+              <span className="gl-kpi-card__label">ancrage carte perdu</span>
             </div>
           </div>
 
@@ -229,6 +265,14 @@ export function GLLoreFeuilletsOverviewPanel() {
                   </option>
                 ))}
                 <option value="__none__">Hors chapitre</option>
+              </GLSelect>
+            </GLField>
+            <GLField label="Ancrage carte">
+              <GLSelect value={filterAnchor} onChange={(e) => setFilterAnchor(e.target.value)}>
+                <option value="">Tous</option>
+                <option value="linked">Lié à une zone</option>
+                <option value="unlinked">Non lié</option>
+                <option value="lost">Ancrage perdu</option>
               </GLSelect>
             </GLField>
           </div>

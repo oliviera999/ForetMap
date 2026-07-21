@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { apiGL } from '../services/apiGL.js';
 
+/** Clé spéciale : (dé)ancrage carte via la route dédiée (pas le patch générique). */
+export const BULK_KINGDOM_ZONE_FIELD = '__kingdom_zone__';
+
 /** Champs modifiables en masse (alignés sur lib/glFeuilletBulkPatch.js). */
 export const FEUILLET_BULK_FIELD_OPTIONS = [
   { key: 'lien_canal', label: 'Canal de lien', kind: 'text' },
@@ -11,6 +14,11 @@ export const FEUILLET_BULK_FIELD_OPTIONS = [
   { key: 'statut', label: 'Statut', kind: 'statut' },
   { key: 'cout_gemme', label: 'Coût gemme', kind: 'number' },
   { key: 'gain_coeur', label: 'Gain cœur', kind: 'number' },
+  {
+    key: BULK_KINGDOM_ZONE_FIELD,
+    label: 'Ancrage carte (zone n° · vide = détacher)',
+    kind: 'number',
+  },
 ];
 
 /**
@@ -76,11 +84,23 @@ export function useGlFeuilletBulkEdit({
     setBulkBusy(true);
     onApplyStart();
     try {
-      const res = await apiGL('/api/gl/lore/admin/feuillets/bulk', 'POST', {
-        codes: [...checked],
-        patch: { [bulkField]: bulkValue },
-      });
-      onApplySuccess(`Édition en masse : ${res?.updated ?? 0} feuillet(s) modifié(s).`);
+      let updated = 0;
+      if (bulkField === BULK_KINGDOM_ZONE_FIELD) {
+        // Route dédiée : validation d'existence de la zone côté serveur. Vide => détache.
+        const trimmed = String(bulkValue ?? '').trim();
+        const res = await apiGL('/api/gl/lore/admin/feuillets/kingdom-zone/bulk', 'PUT', {
+          codes: [...checked],
+          kingdomZoneId: trimmed === '' ? null : trimmed,
+        });
+        updated = res?.updated ?? 0;
+      } else {
+        const res = await apiGL('/api/gl/lore/admin/feuillets/bulk', 'POST', {
+          codes: [...checked],
+          patch: { [bulkField]: bulkValue },
+        });
+        updated = res?.updated ?? 0;
+      }
+      onApplySuccess(`Édition en masse : ${updated} feuillet(s) modifié(s).`);
       setChecked(new Set());
       setBulkField('');
       setBulkValue('');
