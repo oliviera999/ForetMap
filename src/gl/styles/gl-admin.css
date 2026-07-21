@@ -1532,7 +1532,24 @@
 }
 .gl-zone-feui-linked {
   margin: 0.5rem 0 0.75rem;
-  padding-left: 1.1rem;
+  padding-left: 0;
+  list-style: none;
+}
+
+.gl-zone-feui-linked li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.2rem 0;
+}
+
+/* Bloc d'ancrage carte (kingdom_zone_id) dans l'éditeur de feuillet. */
+.gl-feuillet-anchor {
+  margin: 0.75rem 0;
+  padding: 0.75rem;
+  border: 1px dashed color-mix(in srgb, var(--gl-primary, #047c8c) 30%, #cbd5e1);
+  border-radius: 10px;
 }
 
 /* --- Bibliothèque contenu (admin) --- */
