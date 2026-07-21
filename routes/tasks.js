@@ -55,6 +55,8 @@ const {
   sameIdSet,
   enrichTaskRow,
   referentPublicLabel,
+  normalizeArchivedFilter,
+  archivedFilterSql,
 } = require('../lib/taskRouteHelpers');
 const {
   canReadAllAssignments,
@@ -284,6 +286,12 @@ router.get(
     const mapId = req.query.map_id ? String(req.query.map_id).trim() : '';
     const projectId = req.query.project_id ? String(req.query.project_id).trim() : '';
     const groupId = req.query.group_id ? String(req.query.group_id).trim() : '';
+    // Portée d'archivage : 'active' (défaut) masque les tâches archivées. Les portées
+    // 'archived'/'all' sont réservées à la gestion (prof) — un élève ne voit jamais
+    // d'archive : on force 'active' hors permission tasks.manage.
+    const archivedScope = canManageTasks(auth)
+      ? normalizeArchivedFilter(req.query.archived)
+      : 'active';
     if (mapId && !(await mapExists(mapId))) {
       return res.status(400).json({ error: 'Carte introuvable' });
     }
@@ -325,6 +333,8 @@ router.get(
       where.push('t.group_id = ?');
       params.push(groupId);
     }
+    const archivedSql = archivedFilterSql(archivedScope, 't.archived_at');
+    if (archivedSql) where.push(archivedSql);
     const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
     const orderSql = `ORDER BY ${taskImportanceOrderBySql('t.')}`;
     const tasks = await queryAll(`${sqlBase} ${whereSql} ${orderSql}`, params);
@@ -966,6 +976,11 @@ router.put('/:id', async (req, res) => {
           task.id,
         ],
       );
+      // Horodatage de validation (référence pour l'archivage automatique). Posé à chaque
+      // entrée dans le statut `validated` (une revalidation rafraîchit la date).
+      if (becameValidated) {
+        await tx.execute('UPDATE tasks SET validated_at = NOW() WHERE id = ?', [task.id]);
+      }
       if (
         isTeacherManageAction &&
         Object.prototype.hasOwnProperty.call(req.body, 'completion_mode') &&
@@ -1086,6 +1101,56 @@ router.delete(
   }),
 );
 
+// Archivage (soft-delete) : masque la tâche des listes actives sans la supprimer.
+// L'archivage est réversible (POST /:id/unarchive) et n'altère ni le statut ni les
+// données liées (assignations, logs, zones). Réservé à la gestion (tasks.manage).
+async function setTaskArchivedState(req, res, { archive }) {
+  const task = await queryOne('SELECT * FROM tasks WHERE id = ?', [req.params.id]);
+  if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
+  const alreadyArchived = task.archived_at != null;
+  if (archive === alreadyArchived) {
+    // Idempotent : renvoyer l'état courant sans réécrire ni ré-émettre.
+    return res.json(await getTaskWithAssignments(task.id));
+  }
+  if (archive) {
+    // Archivage manuel : marqueur cascade à 0 (ne sera pas restauré par le désarchivage
+    // d'un projet — seul un désarchivage individuel le rétablit).
+    await execute('UPDATE tasks SET archived_at = NOW(), archived_via_project = 0 WHERE id = ?', [
+      req.params.id,
+    ]);
+  } else {
+    await execute('UPDATE tasks SET archived_at = NULL, archived_via_project = 0 WHERE id = ?', [
+      req.params.id,
+    ]);
+  }
+  const projectId =
+    task.project_id != null && String(task.project_id).trim()
+      ? String(task.project_id).trim()
+      : null;
+  logAudit(archive ? 'archive_task' : 'unarchive_task', 'task', req.params.id, task.title, { req });
+  emitTasksChanged({
+    reason: archive ? 'archive_task' : 'unarchive_task',
+    taskId: req.params.id,
+    projectId,
+    mapId: resolveTaskMapId(task),
+  });
+  // Une tâche archivée ne compte plus dans la complétion du projet (et inversement).
+  await syncTaskProjectCompletionForProjects([projectId]);
+  res.json(await getTaskWithAssignments(task.id));
+}
+
+router.post(
+  '/:id/archive',
+  requirePermission('tasks.manage'),
+  asyncHandler(async (req, res) => setTaskArchivedState(req, res, { archive: true })),
+);
+
+router.post(
+  '/:id/unarchive',
+  requirePermission('tasks.manage'),
+  asyncHandler(async (req, res) => setTaskArchivedState(req, res, { archive: false })),
+);
+
 router.post(
   '/:id/validate',
   requirePermission('tasks.validate'),
@@ -1113,7 +1178,9 @@ router.post(
       await setTaskZones(task.id, [], tx);
       await setTaskMarkers(task.id, [], tx);
       await syncLegacyLocationColumns(task.id, [], [], tx);
-      await tx.execute("UPDATE tasks SET status = 'validated' WHERE id = ?", [req.params.id]);
+      await tx.execute("UPDATE tasks SET status = 'validated', validated_at = NOW() WHERE id = ?", [
+        req.params.id,
+      ]);
     });
     logAudit('validate_task', 'task', req.params.id, task.title, { req });
     await syncProgressionForValidatedTask(task.id);
