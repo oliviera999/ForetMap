@@ -38,6 +38,7 @@ const {
   MARKERS_SHEET,
   ZONES_SHEET,
 } = require('../lib/glChaptersImport');
+const { parseFeuilletsWorkbook } = require('../lib/glLoreFeuilletsImport');
 
 let adminToken = '';
 let playerToken = '';
@@ -124,6 +125,22 @@ test('GET /api/gl/admin/qcm/import/template retourne un modèle XLSX (2 feuilles
   assert.ok(categoryRows.length >= 1);
   assert.ok(questionRows.length >= 1);
   assert.strictEqual(validateCategoryPayload(buildCategoryPayload(categoryRows[0]), 2).length, 0);
+});
+
+test('GET /api/gl/lore/admin/feuillets/import/template retourne un modèle XLSX', async () => {
+  const buf = await getXlsxBuffer(
+    request(app),
+    '/api/gl/lore/admin/feuillets/import/template',
+    adminToken,
+  );
+  const { feuilletRows } = await parseFeuilletsWorkbook(buf);
+  assert.ok(feuilletRows.length >= 1);
+});
+
+test('GET /api/gl/lore/admin/feuillets/export retourne un catalogue XLSX', async () => {
+  const buf = await getXlsxBuffer(request(app), '/api/gl/lore/admin/feuillets/export', adminToken);
+  const { feuilletRows } = await parseFeuilletsWorkbook(buf);
+  assert.ok(Array.isArray(feuilletRows));
 });
 
 test('GET /api/gl/admin/glossary/export round-trip ré-importable', async () => {

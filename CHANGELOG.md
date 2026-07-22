@@ -7,6 +7,15 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Correctif : téléchargements XLSX du carnet de Sélène
+
+- Les boutons « Modèle XLSX » et « Exporter le catalogue » reçoivent désormais réellement le
+  fichier généré. Les gestionnaires construisaient le classeur sans l'envoyer dans la réponse
+  HTTP ; de plus, la route d'export était confondue avec un code de feuillet. Ces deux défauts
+  laissaient les téléchargements bloqués ou en erreur.
+- Ajout de tests HTTP vérifiant le type de contenu, la signature XLSX et la relecture des deux
+  classeurs.
+
 ### Feuillets Sélène : associations complètes (zone, chapitre, liasse) + aperçu joueur
 
 Réalise les pistes UI restantes de l'éditeur de feuillets.
