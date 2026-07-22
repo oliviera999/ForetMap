@@ -1015,19 +1015,21 @@ router.patch(
 router.get(
   '/admin/feuillets/import/template',
   requireGlPermission('gl.content.manage'),
-  wrapXlsxRoute(async () => ({
-    buffer: await buildFeuilletsTemplateWorkbook(),
-    filename: 'modele-feuillets-selene.xlsx',
-  })),
+  wrapXlsxRoute(async (_req, res) =>
+    sendXlsxAttachment(res, await buildFeuilletsTemplateWorkbook(), 'modele-feuillets-selene.xlsx'),
+  ),
 );
 
 router.get(
   '/admin/feuillets/export',
   requireGlPermission('gl.content.manage'),
-  wrapXlsxRoute(async () => ({
-    buffer: await buildFeuilletsExportWorkbook(await loadFeuilletsExportRows(db)),
-    filename: 'export-feuillets-selene.xlsx',
-  })),
+  wrapXlsxRoute(async (_req, res) =>
+    sendXlsxAttachment(
+      res,
+      await buildFeuilletsExportWorkbook(await loadFeuilletsExportRows(db)),
+      'export-feuillets-selene.xlsx',
+    ),
+  ),
 );
 
 router.post(
