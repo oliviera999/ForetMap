@@ -904,6 +904,20 @@ router.put(
   }),
 );
 
+// Déclarée avant `/admin/feuillets/:code` afin que « export » ne soit pas
+// interprété comme le code d'un feuillet.
+router.get(
+  '/admin/feuillets/export',
+  requireGlPermission('gl.content.manage'),
+  wrapXlsxRoute(async (_req, res) =>
+    sendXlsxAttachment(
+      res,
+      await buildFeuilletsExportWorkbook(await loadFeuilletsExportRows(db)),
+      'export-feuillets-selene.xlsx',
+    ),
+  ),
+);
+
 router.get(
   '/admin/feuillets/:code',
   requireGlPermission('gl.content.manage'),
@@ -1017,18 +1031,6 @@ router.get(
   requireGlPermission('gl.content.manage'),
   wrapXlsxRoute(async (_req, res) =>
     sendXlsxAttachment(res, await buildFeuilletsTemplateWorkbook(), 'modele-feuillets-selene.xlsx'),
-  ),
-);
-
-router.get(
-  '/admin/feuillets/export',
-  requireGlPermission('gl.content.manage'),
-  wrapXlsxRoute(async (_req, res) =>
-    sendXlsxAttachment(
-      res,
-      await buildFeuilletsExportWorkbook(await loadFeuilletsExportRows(db)),
-      'export-feuillets-selene.xlsx',
-    ),
   ),
 );
 
