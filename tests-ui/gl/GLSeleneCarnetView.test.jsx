@@ -60,6 +60,25 @@ describe('GLSeleneCarnetView', () => {
     expect(screen.getByText('Bloqué B')).toBeInTheDocument();
   });
 
+  test('affiche l’état de jeu en français lisible (Trouvé), pas la valeur brute', async () => {
+    render(<GLSeleneCarnetView gameState={{ game: { id: 1 }, teams: [{ id: 2 }] }} />);
+    expect(await screen.findByText('Feuillet test')).toBeTruthy();
+    expect(screen.getByTitle('État de jeu : Trouvé')).toBeInTheDocument();
+    expect(screen.queryByText('discovered')).not.toBeInTheDocument();
+  });
+
+  test('un feuillet verrouillé ne propose pas le marquage « étudié »', async () => {
+    vi.mocked(apiGL).mockResolvedValue({
+      items: [
+        { feuilletCode: 'lock', titre: 'Verrouillé', progressStatus: 'locked', ordreVoyage: 1 },
+      ],
+    });
+    render(<GLSeleneCarnetView gameState={{ game: { id: 1 }, teams: [{ id: 2 }] }} />);
+    await userEvent.click(await screen.findByText('Verrouillé'));
+    expect(screen.queryByRole('button', { name: /Marquer comme étudié/ })).not.toBeInTheDocument();
+    expect(screen.getByText(/Feuillet non découvert/)).toBeInTheDocument();
+  });
+
   test('le compteur et les filtres sont masqués pour le MJ', async () => {
     render(<GLSeleneCarnetView gameState={{ game: { id: 1 }, teams: [{ id: 2 }] }} isMj />);
     await screen.findByRole('heading', { name: 'Carnet de Sélène' });

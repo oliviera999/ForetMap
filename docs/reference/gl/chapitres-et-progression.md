@@ -90,15 +90,21 @@ réinitialiser (voir [presentation.md](presentation.md)).
   (effacement progressif, réglable). L'équipe passe ensuite du feuillet « découvert »
   à « lu », voire « tenu ». Le MJ, lui, voit tous les feuillets en texte intégral.
 
-> ⚠️ **Point d'attention** — Deux notions de « feuillet acquis » coexistent dans le
-> carnet : l'**état de jeu de l'équipe** (découvert / lu / tenu, gagné en jouant) et
-> le **marquage pédagogique personnel** (« Marquer comme découvert »). Les libellés
-> sont proches et un élève peut marquer « découvert » un feuillet encore verrouillé
-> en partie. À clarifier à terme, et à expliquer aux élèves en attendant.
->
+Deux notions de « feuillet acquis » coexistent dans le carnet, désormais **distinguées
+visuellement** :
+
+- l'**état de jeu de l'équipe**, gagné en jouant, s'affiche sous forme de pastille
+  lisible : 🔒 Non trouvé · 🗺️ Trouvé · 📖 Lu · ✋ Tenu · 🌫️ Effacé (les anciens libellés
+  techniques en anglais ne sont plus montrés) ;
+- le **marquage pédagogique personnel** s'appelle maintenant « **Marquer comme étudié** »
+  (« ✓ Étudié »), et n'est **proposé que sur un feuillet effectivement accessible** :
+  tant qu'un feuillet est verrouillé en partie, on ne peut pas le marquer étudié (on ne
+  peut pas étudier ce qu'on ne peut pas lire).
+
 > ⚠️ **Point d'attention** — La découverte par zone-feuillet exige que le chapitre
 > soit **rattaché à un plateau (1 à 5)** compatible. Un chapitre sans plateau rend
-> ses feuillets de carte inatteignables, sans message clair côté carte.
+> ses feuillets de carte inatteignables — l'éditeur de chapitre affiche désormais un
+> **avertissement** dans ce cas.
 
 ### Passer d'un chapitre à l'autre : le seuil
 

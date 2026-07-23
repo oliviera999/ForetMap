@@ -495,6 +495,12 @@ export function GLChaptersAdminView() {
                 <option value="5">P5 — Toundra arctique</option>
               </select>
             </label>
+            {selectedId && !hasPlateau ? (
+              <p className="gl-error" data-testid="gl-chapter-plateau-warning">
+                ⚠️ Ce chapitre n'a pas de plateau (1–5) : ses feuillets de carte seront
+                inatteignables sur la carte du royaume.
+              </p>
+            ) : null}
 
             <GLChapterMapDisplayFieldset
               mapMarkersVisible={chapterForm.mapMarkersVisible}
