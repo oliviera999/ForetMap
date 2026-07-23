@@ -7,6 +7,28 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### UX élève / MJ : garde-fous, lexique vitalité et fiabilisation du feedback
+
+Lot d'améliorations UX ciblées (issu de l'analyse UX élève), purement additif, sans
+changement de comportement métier. Plusieurs pistes de l'audit étaient déjà corrigées
+depuis : on verrouille l'acquis par des tests et on ajoute les manques réels.
+
+- **Garde-fou « chapitre sans plateau »** (`GLChaptersAdminView`) : avertissement dans
+  l'éditeur de chapitre quand aucun plateau (1–5) n'est assigné — ses feuillets de carte
+  seraient sinon inatteignables sur la carte du royaume, sans message (piège de config
+  signalé dans la doc de référence).
+- **Lexique cœurs/gemmes** (`GLVitalityDisplay`) : `aria-label`/`title` explicites sur
+  chaque jauge (« Cœurs : tes points de vie » / « Gemmes : tes points de pouvoir ») et
+  légende visible optionnelle (`showHint`) — pour les élèves de cycle 3. Rétro-compatible.
+- **Bandeau « Serveur indisponible »** (`App.jsx`) : le bouton « Réessayer maintenant »
+  se désactive pendant la tentative (anti double-clic) et garantit une cible tactile
+  ≥ 44px ; le rafraîchissement automatique reste inchangé.
+- **Carnet d'observations** (`ObservationNotebook`) : la relance après échec affiche le
+  loader pendant la nouvelle tentative (au lieu du placeholder « carnet vide »).
+- **Tests de non-régression** : accessibilité des toasts (`TimedToast` : `role="status"`
+  + `aria-live` déjà en place, désormais couverts), erreur+retry du carnet, garde-fou
+  plateau, libellés de vitalité.
+
 ### Feuillets Sélène : associations complètes (zone, chapitre, liasse) + aperçu joueur
 
 Réalise les pistes UI restantes de l'éditeur de feuillets.
