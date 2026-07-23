@@ -31,6 +31,8 @@ router.post(
   asyncHandler(async (req, res) => {
     const task = await getTaskWithAssignments(req.params.id);
     if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
+    if (task.archived_at)
+      return res.status(409).json({ error: 'Tâche archivée : action indisponible' });
     if (task.status === 'validated') return res.status(400).json({ error: 'Tâche déjà validée' });
     if (task.status === 'on_hold')
       return res.status(400).json({ error: 'Tâche en attente : inscription indisponible' });
@@ -119,6 +121,8 @@ router.post(
   asyncHandler(async (req, res) => {
     const task = await getTaskWithAssignments(req.params.id);
     if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
+    if (task.archived_at)
+      return res.status(409).json({ error: 'Tâche archivée : action indisponible' });
     if (task.status === 'validated') return res.status(400).json({ error: 'Tâche déjà validée' });
     const groupId = normalizeOptionalId(req.body?.group_id);
     if (!groupId) return res.status(400).json({ error: 'group_id requis' });
@@ -185,6 +189,8 @@ router.post(
   asyncHandler(async (req, res) => {
     const task = await queryOne('SELECT * FROM tasks WHERE id = ?', [req.params.id]);
     if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
+    if (task.archived_at)
+      return res.status(409).json({ error: 'Tâche archivée : action indisponible' });
     const completionMode = normalizeTaskCompletionMode(task.completion_mode) || 'single_done';
 
     const { comment, imageData } = req.body || {};
@@ -287,6 +293,8 @@ router.post(
   asyncHandler(async (req, res) => {
     const task = await getTaskWithAssignments(req.params.id);
     if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
+    if (task.archived_at)
+      return res.status(409).json({ error: 'Tâche archivée : action indisponible' });
     if (task.status === 'done' || task.status === 'validated') {
       return res.status(400).json({ error: 'Impossible de quitter une tâche déjà terminée' });
     }

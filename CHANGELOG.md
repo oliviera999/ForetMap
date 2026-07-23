@@ -7,6 +7,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Correctif : archivage des tâches et plafond d'inscription élève
+
+- Une tâche archivée et donc invisible ne compte plus dans le plafond de tâches actives de ses
+  élèves : l'archivage par un professeur ne peut plus bloquer leurs inscriptions suivantes.
+- Les actions d'inscription, de retrait et de compte rendu refusent désormais une tâche archivée,
+  afin qu'un écran élève resté ouvert ne modifie pas une archive en arrière-plan.
+- Test de non-régression du parcours inscription → archivage → nouveau créneau disponible.
+
 ### Feuillets Sélène : associations complètes (zone, chapitre, liasse) + aperçu joueur
 
 Réalise les pistes UI restantes de l'éditeur de feuillets.
