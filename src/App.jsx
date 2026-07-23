@@ -145,6 +145,10 @@ function App() {
   const [sessionValidationError, setSessionValidationError] = useState(false);
   const [refreshMs, setRefreshMs] = useState(DATA_REFRESH_INTERVAL_MS);
   const [serverDown, setServerDown] = useState(false);
+  // Vrai pendant une relance manuelle déclenchée par « Réessayer maintenant » :
+  // désactive brièvement le bouton pour éviter les doubles clics (le rafraîchissement
+  // automatique toutes les 2 min n'est pas affecté).
+  const [retryingServer, setRetryingServer] = useState(false);
   const [authClaims, setAuthClaims] = useState(() => getAuthClaims());
   /** Dérivé d'authClaims (remplace l'ancien état jumeau et ses ~9 setIsTeacher). */
   const isTeacher = useMemo(
@@ -509,6 +513,24 @@ function App() {
     if (pinSuccessFetchAllTick === 0) return;
     void fetchAll();
   }, [pinSuccessFetchAllTick, fetchAll]);
+
+  /**
+   * Relance immédiate des données depuis le bandeau « Serveur indisponible » : réarme
+   * le compteur d'échecs et l'intervalle nominal, puis attend `fetchAll`. Le bandeau
+   * reste visible et le bouton désactivé le temps de la tentative ; `fetchAll` pilote
+   * lui-même la sortie de l'état `serverDown` (succès → masqué, échec → toujours affiché).
+   */
+  const handleRetryServerNow = useCallback(async () => {
+    if (retryingServer) return;
+    setRetryingServer(true);
+    failCountRef.current = 0;
+    setRefreshMs(DATA_REFRESH_INTERVAL_MS);
+    try {
+      await fetchAll();
+    } finally {
+      setRetryingServer(false);
+    }
+  }, [retryingServer, fetchAll]);
 
   const tasksForActiveMap = useMemo(
     () =>
@@ -1166,19 +1188,19 @@ function App() {
                 </div>
               )}
               {serverDown && (
-                <NoticeBanner
-                  tone="warning"
-                  action={{
-                    label: appRetryNow,
-                    onClick: () => {
-                      failCountRef.current = 0;
-                      setRefreshMs(DATA_REFRESH_INTERVAL_MS);
-                      setServerDown(false);
-                      fetchAll();
-                    },
-                  }}
-                >
+                <NoticeBanner tone="warning">
                   {appServerDownNotice}
+                  {/* Bouton rendu ici (plutôt que via `action`) pour pouvoir le désactiver
+                      pendant la tentative et garantir une cible tactile ≥ 44px. */}
+                  <button
+                    type="button"
+                    className="btn btn-sm"
+                    style={{ marginLeft: 10, verticalAlign: 'middle', minHeight: 44 }}
+                    onClick={handleRetryServerNow}
+                    disabled={retryingServer}
+                  >
+                    {appRetryNow}
+                  </button>
                 </NoticeBanner>
               )}
               {!serverDown && latestCriticalNotification && (

@@ -1,20 +1,38 @@
 import React from 'react';
 
-export function GLVitalityCounts({ health = 0, power = 0, className = '' }) {
+// Libellés d'aide adaptés aux enfants (9–12 ans) : expliquent « ce que c'est »
+// derrière les cœurs et les gemmes, réutilisés en title + aria-label.
+const HEALTH_HELP = 'Cœurs : tes points de vie';
+const POWER_HELP = 'Gemmes : tes points de pouvoir';
+
+export function GLVitalityCounts({ health = 0, power = 0, className = '', showHint = false }) {
   return (
     <span className={`gl-vitality-counts ${className}`.trim()}>
-      <span className="gl-vitality-count gl-vitality-count--health" title="Points de vie">
+      <span
+        className="gl-vitality-count gl-vitality-count--health"
+        title={HEALTH_HELP}
+        aria-label={HEALTH_HELP}
+      >
         <span className="foretmap-emoji-text-mixed" aria-hidden>
           ❤️
         </span>{' '}
         <span className="gl-vitality-count-value">{Number(health) || 0}</span>
       </span>
-      <span className="gl-vitality-count gl-vitality-count--power" title="Points de pouvoir">
+      <span
+        className="gl-vitality-count gl-vitality-count--power"
+        title={POWER_HELP}
+        aria-label={POWER_HELP}
+      >
         <span className="foretmap-emoji-text-mixed" aria-hidden>
           💎
         </span>{' '}
         <span className="gl-vitality-count-value">{Number(power) || 0}</span>
       </span>
+      {showHint ? (
+        <small className="gl-hint gl-vitality-hint">
+          Cœurs = tes points de vie · Gemmes = tes points de pouvoir
+        </small>
+      ) : null}
     </span>
   );
 }
