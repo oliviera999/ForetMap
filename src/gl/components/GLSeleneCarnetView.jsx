@@ -5,6 +5,7 @@ import { GLGlossaryMarkdown } from './GLGlossaryMarkdown.jsx';
 import { GLFeuilletIllustration, GLFeuilletCoupeIllustration } from './GLFeuilletIllustration.jsx';
 import { GLButton } from './ui/GLButton.jsx';
 import { GLLearnAndImport } from './GLLearnAndImport.jsx';
+import { feuilletProgressLabel } from '../utils/glFeuilletProgressLabels.js';
 
 function groupByLiasse(items) {
   const groups = {};
@@ -214,16 +215,22 @@ export function GLSeleneCarnetView({
                           onClick={() => setActiveCode(item.feuilletCode)}
                         >
                           <span>{item.titre || item.feuilletCode}</span>
-                          {!isMj && item.progressStatus === 'locked' ? (
-                            <span
-                              className="gl-selene-carnet__badge gl-selene-carnet__badge--locked"
-                              title="Feuillet non découvert"
-                            >
-                              🔒
-                            </span>
-                          ) : item.progressStatus && item.progressStatus !== 'locked' ? (
-                            <span className="gl-selene-carnet__badge">{item.progressStatus}</span>
-                          ) : null}
+                          {(() => {
+                            if (isMj) return null;
+                            const st = feuilletProgressLabel(item.progressStatus);
+                            if (!st) return null;
+                            const locked = item.progressStatus === 'locked';
+                            return (
+                              <span
+                                className={`gl-selene-carnet__badge${
+                                  locked ? ' gl-selene-carnet__badge--locked' : ''
+                                }`}
+                                title={`État de jeu : ${st.label}`}
+                              >
+                                {st.icon} {st.label}
+                              </span>
+                            );
+                          })()}
                         </button>
                       </li>
                     ))}
@@ -241,14 +248,22 @@ export function GLSeleneCarnetView({
                   >
                     <span className="gl-selene-carnet__ordre">{item.ordreVoyage || '·'}</span>
                     <span>{item.titre || item.feuilletCode}</span>
-                    {!isMj && item.progressStatus === 'locked' ? (
-                      <span
-                        className="gl-selene-carnet__badge gl-selene-carnet__badge--locked"
-                        title="Feuillet non découvert"
-                      >
-                        🔒
-                      </span>
-                    ) : null}
+                    {(() => {
+                      if (isMj) return null;
+                      const st = feuilletProgressLabel(item.progressStatus);
+                      if (!st) return null;
+                      const locked = item.progressStatus === 'locked';
+                      return (
+                        <span
+                          className={`gl-selene-carnet__badge${
+                            locked ? ' gl-selene-carnet__badge--locked' : ''
+                          }`}
+                          title={`État de jeu : ${st.label}`}
+                        >
+                          {st.icon} {st.label}
+                        </span>
+                      );
+                    })()}
                   </button>
                 </li>
               ))}
@@ -321,13 +336,13 @@ export function GLSeleneCarnetView({
                     Marquer comme lu
                   </GLButton>
                 ) : null}
-                {active.feuilletCode ? (
+                {active.feuilletCode && !activeLocked ? (
                   <GLLearnAndImport
                     resourceType="feuillet"
                     resourceRef={active.feuilletCode}
                     title={active.titre || active.feuilletCode}
-                    acknowledgeLabel="Marquer comme découvert"
-                    learnedLabel="✓ Découvert"
+                    acknowledgeLabel="Marquer comme étudié"
+                    learnedLabel="✓ Étudié"
                     gameId={gameId}
                     teamId={teamId}
                     glossaryLinkItems={glossaryLinkItems}

@@ -7,6 +7,21 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Carnet de Sélène : « trouvé en jouant » vs « étudié » enfin distincts (UX)
+
+Lève l'ambiguïté des deux notions de « feuillet acquis » (point d'attention de
+`docs/reference/gl/chapitres-et-progression.md`), sans changer le modèle de données.
+
+- **État de jeu de l'équipe** (`GLSeleneCarnetView` + `glFeuilletProgressLabels`, nouveau) :
+  les pastilles affichent désormais des libellés **français lisibles avec picto**
+  (🔒 Non trouvé · 🗺️ Trouvé · 📖 Lu · ✋ Tenu · 🌫️ Effacé) au lieu des valeurs techniques
+  brutes en anglais (`discovered`, `read`…).
+- **Marquage pédagogique personnel** renommé **« Marquer comme étudié »** / « ✓ Étudié »
+  (au lieu de « découvert », qui entrait en collision avec l'état de jeu).
+- **Règle** : le marquage « étudié » n'est plus proposé sur un feuillet **verrouillé** en
+  partie (on ne peut pas étudier ce qu'on ne peut pas lire).
+- Doc de référence mise à jour ; tests du helper de libellés + du carnet.
+
 ### UX élève / MJ : garde-fous, lexique vitalité et fiabilisation du feedback
 
 Lot d'améliorations UX ciblées (issu de l'analyse UX élève), purement additif, sans
