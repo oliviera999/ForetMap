@@ -571,7 +571,7 @@ function ObservationNotebook({ student, onForceLogout = null }) {
           loading={loading}
           loadError={loadError}
           entryCount={entries.length}
-          onRetry={load}
+          onRetry={() => load({ withLoading: true })}
         />
       ) : (
         entries.map((e) => <ObservationCard key={e.id} entry={e} onDelete={deleteObs} />)

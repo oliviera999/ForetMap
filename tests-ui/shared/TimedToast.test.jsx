@@ -18,4 +18,13 @@ describe('TimedToast', () => {
     });
     expect(onDone).toHaveBeenCalledTimes(1);
   });
+
+  test('expose le message aux lecteurs d’écran (role=status, aria-live=polite)', () => {
+    vi.useFakeTimers();
+    render(<TimedToast msg="Bonjour" onDone={() => {}} />);
+    const statusEl = screen.getByRole('status');
+    expect(statusEl).toHaveTextContent('Bonjour');
+    expect(statusEl).toHaveAttribute('aria-live', 'polite');
+    expect(statusEl).toHaveAttribute('aria-atomic', 'true');
+  });
 });
