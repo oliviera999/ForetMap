@@ -15,6 +15,7 @@ const { initSchema, queryOne, execute } = require('../database');
 const { signAuthToken } = require('../middleware/requireTeacher');
 const { ensureRbacBootstrap } = require('../lib/rbac');
 const { runAutoArchiveJob, normalizeAfterDays } = require('../lib/autoArchive');
+const { countStudentActiveTaskAssignments } = require('../lib/studentTaskEnrollment');
 
 async function validateTask(taskId) {
   await request(app)
@@ -155,6 +156,42 @@ describe('Archivage des tâches', () => {
       !taskIdsOf(asStudent).includes(task.id),
       'un élève ne doit pas voir de tâche archivée même avec ?archived=all',
     );
+  });
+
+  it("libère le plafond d'inscription et refuse les actions sur une tâche archivée", async () => {
+    const task = await createTask({
+      title: `Tâche inscription archivée ${Date.now()}`,
+      required_students: 2,
+    });
+
+    await request(app)
+      .post(`/api/tasks/${task.id}/assign`)
+      .set('Authorization', `Bearer ${studentToken}`)
+      .send({})
+      .expect(200);
+    assert.strictEqual(
+      await countStudentActiveTaskAssignments(null, firstName, lastName),
+      1,
+      "la tâche active doit occuper un créneau d'inscription",
+    );
+
+    await request(app)
+      .post(`/api/tasks/${task.id}/archive`)
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .expect(200);
+
+    assert.strictEqual(
+      await countStudentActiveTaskAssignments(null, firstName, lastName),
+      0,
+      "une tâche invisible car archivée ne doit plus bloquer l'inscription",
+    );
+    for (const action of ['assign', 'done', 'unassign']) {
+      await request(app)
+        .post(`/api/tasks/${task.id}/${action}`)
+        .set('Authorization', `Bearer ${studentToken}`)
+        .send({})
+        .expect(409);
+    }
   });
 
   it('archive/unarchive exige la permission tasks.manage', async () => {
