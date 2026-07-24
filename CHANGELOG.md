@@ -7,6 +7,20 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Correctif : téléchargements XLSX lore (feuillets, glossaire, QCM)
+
+Les boutons « Modèle XLSX » / « Exporter » du panneau contenus lore (carnet de Sélène,
+glossaire lore, QCM lore) ne livraient aucun fichier : les handlers retournaient
+`{ buffer, filename }` et `wrapXlsxRoute` n’appelait jamais `sendXlsxAttachment`,
+laissant Express ignorer la valeur de retour (requête pendante ou corps vide).
+En plus, `GET …/feuillets/export` était déclaré après `…/feuillets/:code`, donc
+capturé comme code `export` (404).
+
+- `wrapXlsxRoute` envoie désormais automatiquement un retour `{ buffer, filename }`
+  (sans double envoi si le handler a déjà répondu).
+- Route d’export feuillets remontée avant la route paramétrée.
+- Tests purs du helper + tests HTTP des six endpoints lore concernés.
+
 ### Carnet de Sélène : « trouvé en jouant » vs « étudié » enfin distincts (UX)
 
 Lève l'ambiguïté des deux notions de « feuillet acquis » (point d'attention de
