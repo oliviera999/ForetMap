@@ -20,7 +20,7 @@ const {
   LORE_SPOILER_LEVELS,
 } = require('../../lib/glSettings');
 const { parseBiomeSlugsFromQuery, normalizeBiomeSlugList } = require('../../lib/glChapterBiomes');
-const { sendXlsxAttachment, wrapXlsxRoute } = require('../../lib/glXlsxAttachment');
+const { wrapXlsxRoute } = require('../../lib/glXlsxAttachment');
 const { resolveTeamContext } = require('../../lib/glTeamContext');
 const { recordFeuilletEvent } = require('../../lib/glLoreFeuilletEvents');
 const {
