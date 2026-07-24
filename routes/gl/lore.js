@@ -20,7 +20,7 @@ const {
   LORE_SPOILER_LEVELS,
 } = require('../../lib/glSettings');
 const { parseBiomeSlugsFromQuery, normalizeBiomeSlugList } = require('../../lib/glChapterBiomes');
-const { sendXlsxAttachment, wrapXlsxRoute } = require('../../lib/glXlsxAttachment');
+const { wrapXlsxRoute } = require('../../lib/glXlsxAttachment');
 const { resolveTeamContext } = require('../../lib/glTeamContext');
 const { recordFeuilletEvent } = require('../../lib/glLoreFeuilletEvents');
 const {
@@ -904,6 +904,17 @@ router.put(
   }),
 );
 
+// Déclarée avant `/admin/feuillets/:code` afin que « export » ne soit pas
+// interprété comme le code d'un feuillet (404 « Feuillet introuvable »).
+router.get(
+  '/admin/feuillets/export',
+  requireGlPermission('gl.content.manage'),
+  wrapXlsxRoute(async () => ({
+    buffer: await buildFeuilletsExportWorkbook(await loadFeuilletsExportRows(db)),
+    filename: 'export-feuillets-selene.xlsx',
+  })),
+);
+
 router.get(
   '/admin/feuillets/:code',
   requireGlPermission('gl.content.manage'),
@@ -1018,15 +1029,6 @@ router.get(
   wrapXlsxRoute(async () => ({
     buffer: await buildFeuilletsTemplateWorkbook(),
     filename: 'modele-feuillets-selene.xlsx',
-  })),
-);
-
-router.get(
-  '/admin/feuillets/export',
-  requireGlPermission('gl.content.manage'),
-  wrapXlsxRoute(async () => ({
-    buffer: await buildFeuilletsExportWorkbook(await loadFeuilletsExportRows(db)),
-    filename: 'export-feuillets-selene.xlsx',
   })),
 );
 
