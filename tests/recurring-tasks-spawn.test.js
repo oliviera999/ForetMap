@@ -172,6 +172,50 @@ test('Utilitaires dates : +1 mois fin de mois', async () => {
   assert.strictEqual(addMonthsToDateString('2026-01-31', 1), '2026-02-28');
 });
 
+test('Job récurrence : tâche validée archivée ne produit plus de clone', async () => {
+  const teacherToken = await getAdminAuthToken();
+  const zones = await request(app).get('/api/zones').expect(200);
+  const zoneId = zones.body[0]?.id || 'pg';
+  const title = `RecArchived ${Date.now()}`;
+
+  const taskRes = await request(app)
+    .post('/api/tasks')
+    .set('Authorization', `Bearer ${teacherToken}`)
+    .send({
+      title,
+      zone_id: zoneId,
+      required_students: 1,
+      recurrence: 'weekly',
+      start_date: '2020-01-01',
+      due_date: '2020-01-08',
+    })
+    .expect(201);
+  const taskId = taskRes.body.id;
+
+  await request(app)
+    .post(`/api/tasks/${taskId}/validate`)
+    .set('Authorization', `Bearer ${teacherToken}`)
+    .expect(200);
+
+  await request(app)
+    .post(`/api/tasks/${taskId}/archive`)
+    .set('Authorization', `Bearer ${teacherToken}`)
+    .expect(200);
+
+  const archived = await queryOne('SELECT status, archived_at FROM tasks WHERE id = ?', [taskId]);
+  assert.strictEqual(archived.status, 'validated');
+  assert.ok(archived.archived_at, 'archived_at attendu après archivage');
+
+  const run = await runRecurringTaskSpawnJob({ force: true });
+  assert.strictEqual(run.skipped, false);
+  const children = await queryAll('SELECT id FROM tasks WHERE parent_task_id = ?', [taskId]);
+  assert.strictEqual(
+    children.length,
+    0,
+    `une archive ne doit pas engendrer de clone (créés au total: ${run.created.length})`,
+  );
+});
+
 test('Réglage global récurrence : désactive auto, force conserve le rattrapage manuel', async () => {
   const teacherToken = await getAdminAuthToken();
   const zones = await request(app).get('/api/zones').expect(200);
