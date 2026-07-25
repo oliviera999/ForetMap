@@ -7,6 +7,19 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Correctif : archivage d'une tâche récurrente arrête la série
+
+Après l'introduction de l'archivage (soft-delete), le job quotidien de récurrence
+continuait à sélectionner les tâches `validated` **archivées** (`archived_at` non filtré).
+Scénario : validation d'une tâche hebdomadaire, archivage (manuel ou auto) avant le
+passage du job — ou réactivation de l'automatisation après une période d'arrêt — et une
+nouvelle occurrence « Disponible » réapparaissait malgré l'archive.
+
+- `lib/recurringTasks.js` : filtre `archived_at IS NULL` sur la sélection des candidats et
+  le verrou `FOR UPDATE`, plus garde anticipée sur la ligne source.
+- Test de non-régression ; doc de référence (archivage = hors circulation, y compris
+  récurrence).
+
 ### Carnet de Sélène : « trouvé en jouant » vs « étudié » enfin distincts (UX)
 
 Lève l'ambiguïté des deux notions de « feuillet acquis » (point d'attention de
