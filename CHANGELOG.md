@@ -7,6 +7,16 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Correctifs critiques : bypass découverte feuillets GL + duplication d’archives
+
+- **GL / carnet Sélène** : un joueur pouvait débloquer n’importe quel feuillet actif via
+  `POST …/feuillets/:code/present` (puis `read`/`hold`) sans traverser la zone — les codes
+  restent visibles dans l’aperçu verrouillé. Garde-fou serveur
+  (`lib/glFeuilletDiscoveryAuth.js`) : preuve de canal légitime pour `present`, état déjà
+  « trouvé » pour `read`/`hold` ; MJ inchangé.
+- **ForetMap / projets** : la duplication d’un projet copiait aussi les tâches archivées en
+  les recréant actives (`available`). Le SELECT source exclut désormais `archived_at IS NULL`.
+
 ### Carnet de Sélène : « trouvé en jouant » vs « étudié » enfin distincts (UX)
 
 Lève l'ambiguïté des deux notions de « feuillet acquis » (point d'attention de

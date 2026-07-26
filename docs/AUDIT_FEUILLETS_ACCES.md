@@ -204,6 +204,14 @@ console (`docs/GL_FEUILLET_ZONES.md`).
    migration `158_gl_lore_feuillet_preview_fields.sql`, tests `gl-lore-feuillet-access` /
    `gl-lore-feuillet-preview`.
 
+1bis. **[RÉSOLU] Bypass mutation : `POST …/present|read|hold` débloquait un feuillet verrouillé.**
+Les codes restent visibles dans l'aperçu ; un joueur pouvait appeler directement
+`POST /api/gl/lore/games/:id/feuillets/:code/present` (sans traversée de zone) puis lire le
+contenu. → **Corrigé** : `lib/glFeuilletDiscoveryAuth.js` exige, pour un joueur, une preuve de
+canal légitime (`feuillet_zone_presented` ou `kingdomZoneId` candidat) avant `present`, et un
+état déjà « trouvé » avant `read`/`hold`. MJ inchangé. Tests purs
+`gl-feuillet-discovery-auth` + régression `gl-lore-feuillet-access`.
+
 2. **[Mineur — granularité rôle] MJ et Admin sont indistinguables pour les feuillets.**
    Les sessions staff GL (MJ **et** admin) portent toutes `userType: 'gl_admin'` ; seul le
    `roleSlug` (`gl_mj` / `gl_admin`) les sépare (`lib/gl/authRouteHelpers.js:105-114`). Or le

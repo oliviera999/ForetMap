@@ -42,6 +42,10 @@ const { buildBulkPatch, buildBulkUpdateSql } = require('../../lib/glFeuilletBulk
 const { GL_DEMO_FEUILLET_CODES } = require('../../lib/gl/demoFeuillets');
 const { canPresentFeuillet } = require('../../lib/glLoreFeuilletRetrigger');
 const {
+  authorizePlayerFeuilletDiscovery,
+  authorizePlayerFeuilletProgress,
+} = require('../../lib/glFeuilletDiscoveryAuth');
+const {
   applyFeuilletVitalityEffects,
   computeEffacementPct,
   canHoldFeuillet,
@@ -370,6 +374,17 @@ router.post(
     const loreSettings = resolveLoreSettings(game, gameplaySettings);
 
     const kingdomZoneId = parseId(req.body?.kingdomZoneId ?? req.body?.zoneId);
+    const discoveryAuth = await authorizePlayerFeuilletDiscovery(db, {
+      isMj: isMj(req),
+      gameId,
+      teamId,
+      feuilletCode: code,
+      kingdomZoneId,
+    });
+    if (!discoveryAuth.ok) {
+      return res.status(discoveryAuth.status).json({ error: discoveryAuth.error });
+    }
+
     const canPresent = await canPresentFeuillet(db, {
       gameId,
       teamId,
@@ -461,6 +476,16 @@ router.post(
     if (teamCtx.error)
       return res.status(teamCtx.error.status).json({ error: teamCtx.error.message });
 
+    const progressAuth = await authorizePlayerFeuilletProgress(db, {
+      isMj: isMj(req),
+      gameId,
+      teamId: teamCtx.teamId,
+      feuilletCode: code,
+    });
+    if (!progressAuth.ok) {
+      return res.status(progressAuth.status).json({ error: progressAuth.error });
+    }
+
     await upsertFeuilletState(db, {
       gameId,
       teamId: teamCtx.teamId,
@@ -505,6 +530,16 @@ router.post(
     const teamCtx = await resolveTeamContext(req, gameId, req.body?.teamId);
     if (teamCtx.error)
       return res.status(teamCtx.error.status).json({ error: teamCtx.error.message });
+
+    const progressAuth = await authorizePlayerFeuilletProgress(db, {
+      isMj: isMj(req),
+      gameId,
+      teamId: teamCtx.teamId,
+      feuilletCode: code,
+    });
+    if (!progressAuth.ok) {
+      return res.status(progressAuth.status).json({ error: progressAuth.error });
+    }
 
     await upsertFeuilletState(db, {
       gameId,
