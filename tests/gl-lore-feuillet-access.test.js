@@ -161,6 +161,43 @@ test('MJ : accès intégral, pas de scoping biome ni masquage', async () => {
   assert.strictEqual(item.texte, 'TEXTE MJ Feuillet dans le biome');
 });
 
+test('Joueur : POST present/read sans preuve de découverte → 403 (anti bypass carnet)', async () => {
+  await request(app)
+    .post(`/api/gl/lore/games/${gameId}/feuillets/${codeInBiome}/present`)
+    .set('Authorization', `Bearer ${playerToken}`)
+    .send({ teamId })
+    .expect(403);
+
+  await request(app)
+    .post(`/api/gl/lore/games/${gameId}/feuillets/${codeInBiome}/read`)
+    .set('Authorization', `Bearer ${playerToken}`)
+    .send({ teamId })
+    .expect(403);
+
+  // Toujours verrouillé après la tentative.
+  const preview = await request(app)
+    .get(`/api/gl/lore/feuillets/${codeInBiome}`)
+    .set('Authorization', `Bearer ${playerToken}`)
+    .expect(200);
+  assert.strictEqual(preview.body.feuillet.displayText, null);
+  assert.strictEqual(preview.body.feuillet.progressStatus, 'locked');
+});
+
+test('Joueur : read autorisé uniquement après découverte légitime', async () => {
+  await request(app)
+    .post(`/api/gl/lore/games/${gameId}/feuillets/${codeFound}/read`)
+    .set('Authorization', `Bearer ${playerToken}`)
+    .send({ teamId })
+    .expect(200);
+
+  const state = await queryOne(
+    `SELECT status FROM gl_game_feuillet_states
+      WHERE game_id = ? AND team_id = ? AND feuillet_code = ? LIMIT 1`,
+    [gameId, teamId, codeFound],
+  );
+  assert.strictEqual(state.status, 'read');
+});
+
 test('Réglage plateforme : ajouter idee_cle à l’aperçu le révèle sur les feuillets verrouillés', async () => {
   await request(app)
     .put('/api/gl/admin/settings/gameplay.lore_feuillet_preview_fields')

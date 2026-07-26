@@ -637,12 +637,15 @@ async function copyProjectTasksTx(
   mapId,
   copyLocationLinks = true,
 ) {
+  // Exclure les tâches archivées : sinon la duplication les « ressuscite »
+  // en clones actifs (status available, archived_at NULL).
   const sourceTasks = await tx.queryAll(
     `SELECT id, title, description, zone_id, marker_id, start_date, due_date, required_students,
             completion_mode, danger_level, difficulty_level, importance_level,
             recurrence, sort_order
        FROM tasks
       WHERE project_id = ?
+        AND archived_at IS NULL
       ORDER BY sort_order ASC, created_at ASC, title ASC`,
     [sourceProjectId],
   );

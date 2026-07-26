@@ -11,7 +11,7 @@ const { describe, it, before } = require('node:test');
 const assert = require('node:assert');
 const request = require('supertest');
 const { app } = require('../server');
-const { initSchema, queryOne, execute } = require('../database');
+const { initSchema, queryOne, queryAll, execute } = require('../database');
 const { signAuthToken } = require('../middleware/requireTeacher');
 const { ensureRbacBootstrap } = require('../lib/rbac');
 const { runAutoArchiveJob, normalizeAfterDays } = require('../lib/autoArchive');
@@ -348,5 +348,42 @@ describe('Archivage automatique (job quotidien)', () => {
     assert.ok(res.projectsArchived >= 1, 'au moins un projet archivé');
     const row = await queryOne('SELECT archived_at FROM task_projects WHERE id = ?', [project.id]);
     assert.ok(row.archived_at, 'projet validé ancien archivé automatiquement');
+  });
+
+  it('duplication de projet : n’inclut pas les tâches archivées (pas de résurrection)', async () => {
+    const project = await createProject({
+      title: `Projet dup archive ${Date.now()}`,
+      map_id: 'foret',
+    });
+    const active = await createTask({
+      title: `Active ${Date.now()}`,
+      map_id: 'foret',
+      project_id: project.id,
+    });
+    const archived = await createTask({
+      title: `Archivée ${Date.now()}`,
+      map_id: 'foret',
+      project_id: project.id,
+    });
+    await request(app)
+      .post(`/api/tasks/${archived.id}/archive`)
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .expect(200);
+
+    const dupRes = await request(app)
+      .post(`/api/task-projects/${project.id}/duplicate`)
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .send({})
+      .expect(201);
+
+    assert.strictEqual(Number(dupRes.body.tasks_copied), 1);
+    const clones = await queryAll(
+      'SELECT title, archived_at FROM tasks WHERE project_id = ? ORDER BY title ASC',
+      [dupRes.body.project.id],
+    );
+    assert.strictEqual(clones.length, 1, 'un seul clone (tâche active)');
+    assert.strictEqual(clones[0].title, active.title);
+    assert.strictEqual(clones[0].archived_at ?? null, null);
+    assert.ok(!clones.some((t) => t.title === archived.title), 'tâche archivée absente du clone');
   });
 });
