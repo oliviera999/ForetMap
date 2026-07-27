@@ -23,9 +23,23 @@ const bob = { firstName: `Bob${stamp}`, lastName: 'Ident' };
 
 let teacherToken;
 let aliceId;
-let aliceToken;
 let bobId;
-let bobToken;
+
+/**
+ * Inscrit un n3beur via le jeton n3boss (`tasks.manage`).
+ *
+ * Pourquoi pas le jeton du n3beur lui-même : `ensureStudentPermission` resynchronise le rôle
+ * depuis les groupes à chaque action, et un compte fraîchement inscrit sans groupe n3beur est
+ * ramené au rôle `visiteur` (aucune permission) — l'auto-inscription renverrait 403. Le chemin
+ * n3boss traverse exactement le même code d'inscription (contrôle de capacité, index unique),
+ * qui est ce que B4 corrige.
+ */
+function assignAsTeacher(taskId, studentId) {
+  return request(app)
+    .post(`/api/tasks/${taskId}/assign`)
+    .set('Authorization', `Bearer ${teacherToken}`)
+    .send({ studentId });
+}
 
 async function setStudentPrimaryRole(userId, roleSlug) {
   const role = await queryOne('SELECT id FROM roles WHERE slug = ? LIMIT 1', [roleSlug]);
@@ -89,7 +103,6 @@ before(async () => {
     .send({ ...alice, password: 'pass123' });
   assert.strictEqual(regA.status, 201, `inscription Alice: ${JSON.stringify(regA.body)}`);
   aliceId = regA.body.id;
-  aliceToken = regA.body.authToken;
   await setStudentPrimaryRole(aliceId, 'eleve_novice');
 
   const regB = await request(app)
@@ -97,39 +110,40 @@ before(async () => {
     .send({ ...bob, password: 'pass123' });
   assert.strictEqual(regB.status, 201, `inscription Bob: ${JSON.stringify(regB.body)}`);
   bobId = regB.body.id;
-  bobToken = regB.body.authToken;
   await setStudentPrimaryRole(bobId, 'eleve_novice');
 });
 
 describe('B4 — inscription : pas de doublon ni de dépassement de capacité', () => {
-  it('refuse une seconde inscription du même n3beur', async () => {
+  it('refuse un doublon, y compris sur deux inscriptions concurrentes', async () => {
     const taskId = await createTask('B4 doublon');
-    await request(app)
-      .post(`/api/tasks/${taskId}/assign`)
-      .set('Authorization', `Bearer ${aliceToken}`)
-      .send({ studentId: aliceId })
-      .expect(200);
-    const second = await request(app)
-      .post(`/api/tasks/${taskId}/assign`)
-      .set('Authorization', `Bearer ${aliceToken}`)
-      .send({ studentId: aliceId });
-    assert.strictEqual(second.status, 400);
 
-    const rows = await assignmentsOf(taskId);
-    assert.strictEqual(rows.length, 1, 'une seule ligne d’inscription');
+    // Séquentiel : le contrôle applicatif « déjà assigné » suffit.
+    await assignAsTeacher(taskId, aliceId).expect(200);
+    const second = await assignAsTeacher(taskId, aliceId);
+    assert.strictEqual(second.status, 400, `2e inscription: ${JSON.stringify(second.body)}`);
+
+    // Concurrent : le contrôle applicatif peut être franchi deux fois (lecture faite avant
+    // l'insertion) — c'est l'index unique (migration 170) qui doit trancher, sans erreur 500.
+    const taskConcurrent = await createTask('B4 doublon concurrent');
+    const results = await Promise.all([
+      assignAsTeacher(taskConcurrent, aliceId),
+      assignAsTeacher(taskConcurrent, aliceId),
+    ]);
+    for (const res of results) {
+      assert.ok(
+        res.status === 200 || res.status === 400,
+        `statut inattendu ${res.status}: ${JSON.stringify(res.body)}`,
+      );
+    }
+    const rows = await assignmentsOf(taskConcurrent);
+    assert.strictEqual(rows.length, 1, `une seule ligne: ${JSON.stringify(rows)}`);
   });
 
   it('ne dépasse pas `required_students` même en requêtes concurrentes', async () => {
     const taskId = await createTask('B4 capacite concurrente', { required_students: 1 });
     const [a, b] = await Promise.all([
-      request(app)
-        .post(`/api/tasks/${taskId}/assign`)
-        .set('Authorization', `Bearer ${aliceToken}`)
-        .send({ studentId: aliceId }),
-      request(app)
-        .post(`/api/tasks/${taskId}/assign`)
-        .set('Authorization', `Bearer ${bobToken}`)
-        .send({ studentId: bobId }),
+      assignAsTeacher(taskId, aliceId),
+      assignAsTeacher(taskId, bobId),
     ]);
 
     const rows = await assignmentsOf(taskId);
