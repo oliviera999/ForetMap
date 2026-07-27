@@ -7,16 +7,28 @@ const request = require('supertest');
 const { app } = require('../server');
 const { initSchema } = require('../database');
 const { signAuthToken } = require('../middleware/requireTeacher');
+const { createGlAdmin, createGlClass, createGlPlayer } = require('./helpers/glFixtures');
 
 let playerToken = '';
 let adminToken = '';
 
+const stamp = Date.now();
+
+// Les droits GL sont relus en base à chaque requête (audit B6) : les identités doivent
+// exister réellement, un identifiant synthétique donnerait 401.
 before(async () => {
   await initSchema();
+  const admin = await createGlAdmin({
+    email: `content.mj.${stamp}@ecole.local`,
+    displayName: 'MJ',
+  });
+  const cls = await createGlClass({ name: `Classe Content ${stamp}`, adminId: admin.id });
+  const player = await createGlPlayer({ classId: cls.id, pseudo: `content-player-${stamp}` });
+
   playerToken = await signAuthToken({
     product: 'gl',
     userType: 'gl_player',
-    userId: '101',
+    userId: String(player.id),
     roleSlug: 'gl_player',
     permissions: ['gl.read'],
     displayName: 'Equipe test',
@@ -24,7 +36,7 @@ before(async () => {
   adminToken = await signAuthToken({
     product: 'gl',
     userType: 'gl_admin',
-    userId: '201',
+    userId: String(admin.id),
     roleSlug: 'gl_admin',
     permissions: ['gl.read', 'gl.content.manage'],
     displayName: 'MJ',

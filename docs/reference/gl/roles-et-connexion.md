@@ -33,6 +33,13 @@ Comment on obtient le rôle MJ ou Admin :
 > MJ que si son compte a été préparé en dehors des écrans du jeu. Le circuit
 > « comment nommer un nouveau MJ » mérite d'être outillé ou documenté.
 
+**Retirer un rôle ou désactiver un compte prend effet tout de suite.** Rétrograder un
+Admin en MJ, désactiver un joueur ou supprimer son compte s'applique **dès l'action
+suivante** de la personne concernée — même si elle est déjà connectée : elle perd
+aussitôt les droits retirés, ou se retrouve déconnectée si son compte n'est plus actif.
+Il n'y a donc rien à attendre, et aucune manipulation supplémentaire à faire pour
+« forcer » la déconnexion.
+
 ## Comment ça se passe
 
 ### Se connecter : un seul écran pour tout le monde

@@ -7,16 +7,22 @@ const request = require('supertest');
 const { app } = require('../server');
 const { initSchema, execute } = require('../database');
 const { signAuthToken } = require('../middleware/requireTeacher');
+const { createGlAdmin } = require('./helpers/glFixtures');
 
 describe('GL help content API', () => {
   let adminToken;
 
+  // Identité GL relue en base à chaque requête (audit B6) : il faut une vraie ligne.
   before(async () => {
     await initSchema();
+    const admin = await createGlAdmin({
+      email: `help.mj.${Date.now()}@ecole.local`,
+      displayName: 'MJ Help',
+    });
     adminToken = await signAuthToken({
       product: 'gl',
       userType: 'gl_admin',
-      userId: '301',
+      userId: String(admin.id),
       roleSlug: 'gl_admin',
       permissions: ['gl.read', 'gl.content.manage', 'gl.settings.manage'],
       displayName: 'MJ Help',

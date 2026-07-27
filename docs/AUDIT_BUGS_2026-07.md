@@ -11,14 +11,14 @@ Pour chaque bug, plusieurs **types de correctif** sont proposés avec une recomm
 
 > ## État d'avancement
 >
-> | ID  | Statut                        | Correctif retenu                                                                    |
-> | --- | ----------------------------- | ----------------------------------------------------------------------------------- |
-> | B1  | ✅ **Corrigé — PR #270**      | Fix A + Fix B, traités dans une PR dédiée (voir note ci-dessous)                    |
-> | B2  | ✅ **Corrigé**                | Fix A (garde de préfixe `lib/uploadsPrivatePaths.js` devant le statique `/uploads`) |
-> | B3  | ✅ **Corrigé**                | Fix A (alignement sur la route liste voisine — voir la note ci-dessous)             |
-> | B4  | ✅ **Corrigé**                | Fix A + Fix B (index unique migration 170 + contrôle de capacité sérialisé)         |
-> | B5  | ✅ **Corrigé**                | Fix B (bouton non proposé pour une inscription héritée)                             |
-> | B6  | ⏳ **En attente d'arbitrage** | Choix produit à trancher (cf. §2, B6)                                               |
+> | ID  | Statut                   | Correctif retenu                                                                    |
+> | --- | ------------------------ | ----------------------------------------------------------------------------------- |
+> | B1  | ✅ **Corrigé — PR #270** | Fix A + Fix B, traités dans une PR dédiée (voir note ci-dessous)                    |
+> | B2  | ✅ **Corrigé**           | Fix A (garde de préfixe `lib/uploadsPrivatePaths.js` devant le statique `/uploads`) |
+> | B3  | ✅ **Corrigé**           | Fix A (alignement sur la route liste voisine — voir la note ci-dessous)             |
+> | B4  | ✅ **Corrigé**           | Fix A + Fix B (index unique migration 170 + contrôle de capacité sérialisé)         |
+> | B5  | ✅ **Corrigé**           | Fix B (bouton non proposé pour une inscription héritée)                             |
+> | B6  | ✅ **Corrigé**           | Fix A (droits GL relus en base à chaque requête, via le catalogue RBAC partagé)     |
 >
 > **B1 est traité par la PR #270**, ouverte en parallèle et qui applique exactement les Fix A
 > et Fix B décrits ci-dessous (noms d'action lus en base, appariement nominal restreint aux
@@ -526,7 +526,7 @@ et exposer un bouton MJ « forcer la reconnexion ».
 
 ## 3. Correctifs appliqués
 
-B2 à B5 sont corrigés dans le même lot que cet audit (B1 est traité par la PR #270).
+B2 à B6 sont corrigés dans le même lot que cet audit (B1 est traité par la PR #270).
 
 | ID  | Fichiers                                                                                                                 | Tests de non-régression                                                                     |
 | --- | ------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------- |
@@ -535,6 +535,7 @@ B2 à B5 sont corrigés dans le même lot que cet audit (B1 est traité par la P
 | B3  | `routes/tasks/logs.js`                                                                                                   | `tests/security-admin-images.test.js` (anonyme → 403)                                       |
 | B4  | `migrations/170_task_assignments_unique_student.sql` (nouveau), `sql/schema_foretmap.sql`, `routes/tasks/assignments.js` | `tests/tasks-assignment-concurrency.test.js` (doublon + capacité en concurrence)            |
 | B5  | `src/components/tasks/TaskTileCard.jsx`, `src/components/tasks-views.jsx`                                                | `tests-ui/components/TaskTileCard.test.jsx` (bouton présent / absent)                       |
+| B6  | `lib/auth/glHydration.js` (nouveau), `middleware/requireGlAuth.js`, `lib/rbac.js`, `lib/gl/authRouteHelpers.js`          | `tests/gl-auth-revocation.test.js`, `tests/gl-permissions-catalog-alignment.test.js`        |
 
 Documentation mise à jour dans le même lot : `docs/API.md` (politique `/uploads` publiques vs
 privées, auth des routes journaux, unicité/capacité de l'inscription) et
@@ -550,7 +551,13 @@ GROUP BY 1,2 HAVING COUNT(*) > 1;`
 - **Inscriptions héritées** : `SELECT COUNT(*) FROM task_assignments WHERE student_id IS NULL;`
   — si le résultat est 0, le chemin « par nom » peut être supprimé purement et simplement
   (dette B1 Fix D / B5 Fix C), ce qui simplifierait durablement ce cluster.
-- **B6 reste ouvert** : voir §2, un choix produit est nécessaire avant d'écrire du code.
+- **B6 — coût par requête** : l'authentification GL fait désormais une lecture indexée
+  supplémentaire (`gl_players` / `gl_admins` par clé primaire). Les permissions, elles, passent
+  par le cache RBAC déjà versionné (`lib/rbac.js`), donc sans requête additionnelle. C'est le
+  prix de la révocation immédiate — le même que paie déjà ForetMap.
+- **B6 — identités de test** : les jetons GL forgés avec un identifiant synthétique ne sont plus
+  acceptés (401). Les fixtures partagées `tests/helpers/glFixtures.js` créent de vraies lignes ;
+  quatre fichiers de tests ont été migrés en conséquence.
 - **B1 arrive par la PR #270** : tant qu'elle n'est pas fusionnée, la faille critique reste
   ouverte en production. C'est elle qu'il faut fusionner en priorité, avant ce lot.
 
