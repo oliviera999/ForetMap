@@ -22,7 +22,11 @@ const {
   isTaskBeforeStartDate,
   normalizeOptionalId,
 } = require('../../lib/taskRouteHelpers');
-const { resolveStudentActionContext } = require('../../lib/tasks/studentActionContext');
+const {
+  resolveStudentActionContext,
+  assignmentMatchesActor,
+  ASSIGNMENT_MATCHES_STUDENT_SQL,
+} = require('../../lib/tasks/studentActionContext');
 
 const router = express.Router();
 
@@ -55,11 +59,12 @@ router.post(
         .json({ error: action.error, ...(action.deleted ? { deleted: true } : {}) });
     }
 
-    const already = task.assignments.find(
-      (a) =>
-        (action.studentId && a.student_id && String(a.student_id) === String(action.studentId)) ||
-        (String(a.student_first_name || '').toLowerCase() === action.firstName.toLowerCase() &&
-          String(a.student_last_name || '').toLowerCase() === action.lastName.toLowerCase()),
+    const already = task.assignments.find((a) =>
+      assignmentMatchesActor(a, {
+        studentId: action.studentId,
+        firstName: action.firstName,
+        lastName: action.lastName,
+      }),
     );
     if (already) return res.status(400).json({ error: 'Déjà assigné à cette tâche' });
 
@@ -200,7 +205,7 @@ router.post(
           `SELECT id, done_at
          FROM task_assignments
         WHERE task_id = ?
-          AND (student_id = ? OR (student_first_name = ? AND student_last_name = ?))
+          AND ${ASSIGNMENT_MATCHES_STUDENT_SQL}
         ORDER BY assigned_at DESC
         LIMIT 1`,
           [task.id, action.studentId, action.firstName, action.lastName],
@@ -209,6 +214,7 @@ router.post(
           `SELECT id, done_at
          FROM task_assignments
         WHERE task_id = ?
+          AND student_id IS NULL
           AND student_first_name = ?
           AND student_last_name = ?
         ORDER BY assigned_at DESC
@@ -300,12 +306,12 @@ router.post(
 
     if (action.studentId) {
       await execute(
-        'DELETE FROM task_assignments WHERE task_id = ? AND (student_id = ? OR (student_first_name = ? AND student_last_name = ?))',
+        `DELETE FROM task_assignments WHERE task_id = ? AND ${ASSIGNMENT_MATCHES_STUDENT_SQL}`,
         [task.id, action.studentId, action.firstName, action.lastName],
       );
     } else {
       await execute(
-        'DELETE FROM task_assignments WHERE task_id = ? AND student_first_name = ? AND student_last_name = ?',
+        'DELETE FROM task_assignments WHERE task_id = ? AND student_id IS NULL AND student_first_name = ? AND student_last_name = ?',
         [task.id, action.firstName, action.lastName],
       );
     }
