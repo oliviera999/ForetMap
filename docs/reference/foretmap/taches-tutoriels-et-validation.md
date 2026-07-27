@@ -208,7 +208,10 @@ ou PDF).
 
 > ⚠️ **Point d'attention** — La progression des paliers reconnaît aussi les élèves par
 > **prénom + nom** (héritage des anciennes inscriptions sans compte) : deux homonymes
-> parfaits pourraient voir leurs validations confondues.
+> parfaits pourraient voir leurs validations confondues. En revanche, pour
+> s'inscrire / se retirer / marquer fait sur une tâche, l'identité de l'élève connecté
+> vient toujours de son compte : envoyer le nom d'un autre élève dans la requête ne
+> permet plus d'agir à sa place.
 
 ## Pour aller plus loin
 

@@ -7,6 +7,18 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Sécurité tâches : fermer l’usurpation d’identité n3beur (B1)
+
+Un élève connecté pouvait désinscrire ou « terminer » **n’importe quel autre élève**
+en envoyant son prénom+nom dans `POST /api/tasks/:id/unassign` / `done` / `assign` :
+`resolveStudentActionContext` laissait le corps client écraser les noms lus en base, et
+les requêtes appariaient sur `student_id OR nom` sans restreindre la branche nom aux
+lignes héritées (`student_id IS NULL`).
+
+- Noms d’action : la fiche `users` fait foi (corps client = repli uniquement).
+- Appariement SQL / JS par nom limité aux inscriptions héritées.
+- Tests unitaires + régression HTTP ; doc API + référence tâches.
+
 ### Carnet de Sélène : « trouvé en jouant » vs « étudié » enfin distincts (UX)
 
 Lève l'ambiguïté des deux notions de « feuillet acquis » (point d'attention de
