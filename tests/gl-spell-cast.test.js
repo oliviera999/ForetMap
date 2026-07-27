@@ -26,6 +26,7 @@ let playerAId = null;
 let playerBId = null;
 let tokenA = '';
 let tokenB = '';
+let adminId = null;
 
 async function enableSpellCast(extra = {}) {
   await execute(
@@ -54,6 +55,7 @@ before(async () => {
     email: `spellcast.mj.${stamp}@ecole.local`,
     displayName: 'MJ SpellCast',
   });
+  adminId = admin.id;
   const cls = await createGlClass({
     name: `Classe SpellCast ${stamp}`,
     school: 'Ecole Test',
@@ -264,7 +266,7 @@ test('mj_only : joueur refusé, staff autorisé', async () => {
   const mjToken = await signAuthToken({
     product: 'gl',
     userType: 'gl_admin',
-    userId: '1',
+    userId: String(adminId),
     roleSlug: 'gl_admin',
     permissions: ['gl.read', 'gl.game.manage', 'gl.event.emit'],
     displayName: 'MJ test',
@@ -297,7 +299,7 @@ test('MJ : brouillon multi-équipes sans teamId, contributions cross-team', asyn
   const mjToken = await signAuthToken({
     product: 'gl',
     userType: 'gl_admin',
-    userId: '1',
+    userId: String(adminId),
     roleSlug: 'gl_admin',
     permissions: ['gl.read', 'gl.game.manage', 'gl.event.emit'],
     displayName: 'MJ cross-team',
@@ -381,7 +383,7 @@ test('mj_only : staff peut créer brouillon sans teamId', async () => {
   const mjToken = await signAuthToken({
     product: 'gl',
     userType: 'gl_admin',
-    userId: '2',
+    userId: String(adminId),
     roleSlug: 'gl_admin',
     permissions: ['gl.read', 'gl.game.manage', 'gl.event.emit'],
     displayName: 'MJ only draft',

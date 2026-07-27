@@ -98,6 +98,29 @@ Catalogue de mascottes : source de vérité unique `src/utils/glMascotCatalog.js
 
 Les endpoints GL exigent un JWT avec claim `product = "gl"`.
 
+#### Droits relus à chaque requête (pas de permissions figées dans le jeton)
+
+Le JWT GL ne porte que l'**identité** (`userType` + `userId`) et le contexte de partie. Les
+**droits effectifs sont recalculés à chaque requête** par `middleware/requireGlAuth.js`
+(via `lib/auth/glHydration.js`), exactement comme `hydrateAuthFromTokenClaims` côté ForetMap :
+
+1. l'identité est relue dans `gl_players` / `gl_admins` — compte **supprimé ou désactivé** →
+   `401` immédiat ; le rôle staff (`gl_admins.role`) fait foi, pas le `roleSlug` du jeton ;
+2. les permissions viennent du **catalogue RBAC partagé** (`lib/rbac.js` →
+   `buildAuthzPayloadForRoleSlug`), et non plus d'une liste codée en dur côté GL.
+
+Conséquence : retirer un rôle, rétrograder un admin en MJ ou désactiver un joueur prend effet
+**à la requête suivante**, sans attendre l'expiration du jeton. Le tableau `permissions` inscrit
+dans le JWT à l'émission (`getGlRolePermissions`) n'est plus qu'un affichage pour le client ;
+son alignement avec le catalogue est verrouillé par
+`tests/gl-permissions-catalog-alignment.test.js`.
+
+Une panne BDD pendant l'hydratation renvoie **`503`** (jamais `401`), pour ne pas provoquer de
+boucle de reconnexion côté client. L'invité (`gl_guest`) n'a pas de ligne en base : son identité
+reste portée par le jeton, mais ses permissions sont celles du rôle `gl_observateur`.
+
+Historique : cf. `docs/AUDIT_BUGS_2026-07.md` (constat B6).
+
 ### Gameplay paramétrable (toggles `gl_settings`)
 
 Chaque toggle est une clé dans `gl_settings` (modifiable via `PUT /api/gl/admin/settings/:key`, permission `gl.settings.manage`). Tous **désactivés par défaut** → comportement minimal (déplacement de mascotte uniquement, comme avant Lot 2A).

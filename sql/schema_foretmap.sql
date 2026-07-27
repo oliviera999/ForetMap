@@ -343,6 +343,9 @@ CREATE TABLE IF NOT EXISTS task_assignments (
   INDEX idx_task_assignments_task_id (task_id),
   INDEX idx_task_assignments_student_id (student_id),
   INDEX idx_task_assignments_student_name (student_first_name, student_last_name),
+  -- Une seule inscription par n3beur et par tâche. Les lignes héritées (student_id NULL)
+  -- ne sont pas contraintes : MySQL autorise plusieurs NULL dans un index UNIQUE.
+  UNIQUE KEY uq_task_assignments_task_student (task_id, student_id),
   CONSTRAINT fk_task_assignments_task FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
