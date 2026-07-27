@@ -7,6 +7,24 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Audit bugs juillet 2026 (documentation seule)
+
+Nouveau document [docs/AUDIT_BUGS_2026-07.md](docs/AUDIT_BUGS_2026-07.md) : audit
+transversal « bugs de tous types » (sécurité, contrôle d'accès, concurrence, logique
+métier, cohérence front/back) sur `main` @ v1.84.4.
+
+- **6 constats vérifiés** dans le code (chemin complet lu, ou reproduit quand possible) :
+  usurpation d'identité n3beur sur `assign`/`done`/`unassign` (critique), photos privées
+  servies en clair par `/uploads` (élevée), image de journal de tâche sans authentification
+  (élevée), course sur l'inscription à une tâche, action prof impossible sur une inscription
+  héritée, permissions GL figées dans le JWT.
+- Chaque constat propose **plusieurs types de correctif** avec recommandation ; l'arbitrage
+  reste ouvert.
+- **13 pistes vérifiées puis écartées** sont listées (injection SQL, traversée de chemin,
+  isolement produit GL, `await` manquants…) pour éviter qu'un prochain audit ne les
+  re-signale.
+- **Aucun comportement applicatif modifié** par ce lot (documentation uniquement).
+
 ### Carnet de Sélène : « trouvé en jouant » vs « étudié » enfin distincts (UX)
 
 Lève l'ambiguïté des deux notions de « feuillet acquis » (point d'attention de
