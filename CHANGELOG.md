@@ -7,6 +7,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Documentation exploitation : jobs quotidiens serveur
+
+- Ajout d'un runbook sur la planification quotidienne commune aux tâches récurrentes et à
+  l'archivage automatique : cadence, réglages admin, variable de coupure, logs Pino et rattrapage
+  manuel disponible.
+- Clarification du guide local et du README : `FORETMAP_DISABLE_RECURRING_TASK_JOB=1` coupe bien
+  les deux traitements planifiés, pas seulement la duplication des tâches récurrentes.
+
 ### Carnet de Sélène : « trouvé en jouant » vs « étudié » enfin distincts (UX)
 
 Lève l'ambiguïté des deux notions de « feuillet acquis » (point d'attention de
