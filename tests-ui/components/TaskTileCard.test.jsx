@@ -240,4 +240,72 @@ describe('TaskTileCard — React.memo (pas de re-rendu quand l’état parent no
     // …mais la tuile mémoïsée n’a PAS été re-rendue (sonde inchangée).
     expect(renderProbe.mock.calls.length).toBe(initialRenders);
   });
+
+  test('mode collectif : bouton « marquer la part » proposé pour une inscription rattachée', () => {
+    const teacherMarkCollectiveAssignmentDone = vi.fn();
+    render(
+      <TaskTileCard
+        {...makeProps({
+          isTeacher: true,
+          teacherMarkCollectiveAssignmentDone,
+          t: {
+            id: 'task-collectif',
+            title: 'Désherbage collectif',
+            description: '',
+            status: 'in_progress',
+            required_students: 2,
+            completion_mode: 'all_assignees_done',
+            assignments: [
+              {
+                id: 1,
+                student_id: 'stu-1',
+                student_first_name: 'Ada',
+                student_last_name: 'Lovelace',
+                done_at: null,
+              },
+            ],
+          },
+        })}
+      />,
+    );
+    const btn = screen.getByRole('button', { name: /Ada Lovelace/ });
+    fireEvent.click(btn);
+    expect(teacherMarkCollectiveAssignmentDone).toHaveBeenCalledTimes(1);
+  });
+
+  // Audit B5 : sans `student_id`, l'API rejette l'action n3boss en 400 — on n'affiche donc
+  // pas un bouton qui ne peut qu'échouer.
+  test('mode collectif : pas de bouton pour une inscription héritée sans student_id', () => {
+    const teacherMarkCollectiveAssignmentDone = vi.fn();
+    render(
+      <TaskTileCard
+        {...makeProps({
+          isTeacher: true,
+          teacherMarkCollectiveAssignmentDone,
+          t: {
+            id: 'task-collectif-legacy',
+            title: 'Désherbage collectif hérité',
+            description: '',
+            status: 'in_progress',
+            required_students: 2,
+            completion_mode: 'all_assignees_done',
+            assignments: [
+              {
+                id: 2,
+                student_id: null,
+                student_first_name: 'Grace',
+                student_last_name: 'Hopper',
+                done_at: null,
+              },
+            ],
+          },
+        })}
+      />,
+    );
+    // Le nom reste affiché…
+    expect(screen.getByText(/Grace Hopper/)).toBeInTheDocument();
+    // …mais pas sous forme de bouton cliquable.
+    expect(screen.queryByRole('button', { name: /Grace Hopper/ })).toBeNull();
+    expect(teacherMarkCollectiveAssignmentDone).not.toHaveBeenCalled();
+  });
 });

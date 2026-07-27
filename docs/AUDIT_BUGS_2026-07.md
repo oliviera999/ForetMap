@@ -7,9 +7,33 @@ logique métier, cohérence front/back). **Chaque constat listé ci-dessous a é
 dans le code** (lecture du chemin complet, ou reproduction exécutable quand c'était
 possible) ; les pistes non confirmées sont écartées et listées en §4.
 
-Ce document **ne modifie aucun comportement** : il propose, pour chaque bug, **plusieurs
-types de correctif** avec une recommandation. L'arbitrage reste à l'équipe (cf.
-`docs/EVOLUTION.md` — ne pas changer le métier sans demande explicite).
+Pour chaque bug, plusieurs **types de correctif** sont proposés avec une recommandation.
+
+> ## État d'avancement
+>
+> | ID  | Statut                        | Correctif retenu                                                                    |
+> | --- | ----------------------------- | ----------------------------------------------------------------------------------- |
+> | B1  | ✅ **Corrigé — PR #270**      | Fix A + Fix B, traités dans une PR dédiée (voir note ci-dessous)                    |
+> | B2  | ✅ **Corrigé**                | Fix A (garde de préfixe `lib/uploadsPrivatePaths.js` devant le statique `/uploads`) |
+> | B3  | ✅ **Corrigé**                | Fix A (alignement sur la route liste voisine — voir la note ci-dessous)             |
+> | B4  | ✅ **Corrigé**                | Fix A + Fix B (index unique migration 170 + contrôle de capacité sérialisé)         |
+> | B5  | ✅ **Corrigé**                | Fix B (bouton non proposé pour une inscription héritée)                             |
+> | B6  | ⏳ **En attente d'arbitrage** | Choix produit à trancher (cf. §2, B6)                                               |
+>
+> **B1 est traité par la PR #270**, ouverte en parallèle et qui applique exactement les Fix A
+> et Fix B décrits ci-dessous (noms d'action lus en base, appariement nominal restreint aux
+> lignes `student_id IS NULL`), avec une factorisation supplémentaire
+> (`resolveActionNames`, `assignmentMatchesActor`, `ASSIGNMENT_MATCHES_STUDENT_SQL`) et ses
+> propres tests. Le présent lot n'y touche donc pas, pour éviter un conflit de merge sur les
+> mêmes lignes (règle `.cursor/rules/foretmap-pr-merge-conflict.mdc`).
+>
+> **Écart assumé sur B3** : le correctif appliqué est le **Fix A** (compte connecté, profil
+> non visiteur) et non le Fix B initialement recommandé (propriétaire / n3boss). Raison :
+> la route **liste** voisine expose déjà noms et commentaires du journal à tout compte
+> connecté ; durcir l'image seule aurait cassé son affichage pour les autres inscrits de la
+> tâche — un changement de comportement métier qui dépasse la correction de la faille. Le
+> journal de tâche est un compte rendu **collaboratif**, contrairement au carnet
+> d'observations qui reste, lui, en politique stricte.
 
 ## 1. Méthode et couverture
 
@@ -22,9 +46,12 @@ types de correctif** avec une recommandation. L'arbitrage reste à l'équipe (cf
 | Scan automatisé SQL interpolé (`LIMIT`, `WHERE`)     | **aucune injection** : toutes les interpolations sont des entiers bornés |
 | Scan `await` manquant / `Promise.all` en transaction | **aucun vrai positif**                                                   |
 
-> ⚠️ Les tests backend n'ayant pas pu tourner, les constats **B1**, **B4** et **B5**
-> reposent sur la lecture du chemin de code complet (appelant → helper → SQL), pas sur une
-> exécution. Le constat **B2** a en revanche été **reproduit** (§2.2).
+> ⚠️ **Limite de l'environnement d'audit** : `npm test` (backend) exige MySQL, indisponible
+> ici. Les constats **B1**, **B4** et **B5** ont donc été établis par lecture du chemin de
+> code complet (appelant → helper → SQL), pas par exécution ; **B2** a été reproduit par un
+> serveur reproduisant le montage statique de `server.js`. Les tests de non-régression
+> écrits pour ces constats (§3) sont exécutés **par la CI**, qui dispose de MySQL — c'est
+> elle qui apporte la preuve d'exécution manquante ici.
 
 ## 2. Constats
 
@@ -497,19 +524,37 @@ et exposer un bouton MJ « forcer la reconnexion ».
 > **Recommandation : B**, ou **D** si l'arbitrage est assumé — mais pas le statu quo
 > silencieux.
 
-## 3. Ordre de traitement suggéré
+## 3. Correctifs appliqués
 
-| Lot | Contenu                         | Justification                                                          |
-| --- | ------------------------------- | ---------------------------------------------------------------------- |
-| 1   | **B2 (Fix A)** + **B3 (Fix B)** | Confidentialité de photos d'élèves ; correctifs courts, sans migration |
-| 2   | **B1 (Fix A + B)**              | Usurpation entre élèves ; nécessite des tests de non-régression dédiés |
-| 3   | **B5 (Fix B)**                  | Supprime une erreur subie par les profs ; front seul, risque quasi nul |
-| 4   | **B4 (Fix A + B)**              | Intégrité ; implique une migration (dédoublonnage préalable)           |
-| 5   | **B6 (Fix B ou D)**             | Arbitrage produit à trancher avant d'écrire du code                    |
+B2 à B5 sont corrigés dans le même lot que cet audit (B1 est traité par la PR #270).
 
-Rappels de convention pour ces lots (cf. `CLAUDE.md`) : tests dans le même lot que le code
-(`tests/*.test.js`), `docs/API.md` si un contrat de route change, `docs/reference/` si le
-comportement visible utilisateur change, et vérification anti-conflit des PR ouvertes qui
+| ID  | Fichiers                                                                                                                 | Tests de non-régression                                                                     |
+| --- | ------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------- |
+| B1  | _(PR #270 — hors de ce lot)_                                                                                             | _(PR #270)_                                                                                 |
+| B2  | `lib/uploadsPrivatePaths.js` (nouveau), `server.js`                                                                      | `tests/uploads-private-paths.test.js` (9 cas, sans BDD) + assertions dans les tests d'image |
+| B3  | `routes/tasks/logs.js`                                                                                                   | `tests/security-admin-images.test.js` (anonyme → 403)                                       |
+| B4  | `migrations/170_task_assignments_unique_student.sql` (nouveau), `sql/schema_foretmap.sql`, `routes/tasks/assignments.js` | `tests/tasks-assignment-concurrency.test.js` (doublon + capacité en concurrence)            |
+| B5  | `src/components/tasks/TaskTileCard.jsx`, `src/components/tasks-views.jsx`                                                | `tests-ui/components/TaskTileCard.test.jsx` (bouton présent / absent)                       |
+
+Documentation mise à jour dans le même lot : `docs/API.md` (politique `/uploads` publiques vs
+privées, auth des routes journaux, unicité/capacité de l'inscription) et
+`docs/reference/foretmap/taches-tutoriels-et-validation.md` (marquage de la part d'un élève).
+
+### Points de vigilance au déploiement
+
+- **Migration 170** : elle **dédoublonne** `task_assignments` avant de poser l'index unique
+  (conservation de la ligne la plus ancienne, report d'un éventuel `done_at`). À passer en
+  revue sur une copie de la base de production avant application si des doublons existent —
+  `SELECT task_id, student_id, COUNT(*) FROM task_assignments WHERE student_id IS NOT NULL
+GROUP BY 1,2 HAVING COUNT(*) > 1;`
+- **Inscriptions héritées** : `SELECT COUNT(*) FROM task_assignments WHERE student_id IS NULL;`
+  — si le résultat est 0, le chemin « par nom » peut être supprimé purement et simplement
+  (dette B1 Fix D / B5 Fix C), ce qui simplifierait durablement ce cluster.
+- **B6 reste ouvert** : voir §2, un choix produit est nécessaire avant d'écrire du code.
+- **B1 arrive par la PR #270** : tant qu'elle n'est pas fusionnée, la faille critique reste
+  ouverte en production. C'est elle qu'il faut fusionner en priorité, avant ce lot.
+
+Rappels de convention (cf. `CLAUDE.md`) : vérification anti-conflit des PR ouvertes qui
 bumpent `package.json` / `CHANGELOG.md` / `migrations/NNN_*.sql`.
 
 ## 4. Pistes vérifiées et écartées

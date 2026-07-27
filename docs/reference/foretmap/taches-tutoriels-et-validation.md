@@ -152,6 +152,11 @@ description, lieux, dates, niveaux, places, image. Sa proposition apparaît avec
   groupe, dans la limite des places restantes de la tâche. Une **affectation rapide**
   par cases à cocher et une **attribution dès la création** existent aussi (celle-ci
   relève automatiquement le nombre de places si la sélection dépasse).
+- **Marquer la part d'un élève** (mode collectif) : en cliquant sur le nom d'un inscrit,
+  le professeur marque sa part terminée à sa place. Ce raccourci n'est proposé que pour
+  les inscriptions **rattachées à un compte élève** ; une inscription ancienne, saisie
+  avant la généralisation des comptes et donc sans compte associé, affiche seulement le
+  nom (il faut d'abord rattacher l'élève).
 - **Importer en masse** : un fichier tableur (modèle téléchargeable) crée projets et
   tâches en série — avec prévisualisation et rapport d'erreurs avant l'écriture réelle,
   et sans jamais créer de doublon (les lignes déjà connues sont ignorées).

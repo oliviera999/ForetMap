@@ -36,6 +36,11 @@ test('GET /api/observations/:id/image retourne le fichier image', async () => {
     .set('Authorization', `Bearer ${reg.body.authToken}`)
     .expect(200);
   assert.ok((res.headers['content-type'] || '').toLowerCase().includes('image'));
+
+  // Audit B2 : le montage statique /uploads ne doit PAS court-circuiter l'autorisation
+  // ci-dessus (le nom de fichier `<studentId>_<obsId>.jpg` est prédictible).
+  const direct = await request(app).get(`/uploads/${relativePath}`).expect(403);
+  assert.strictEqual(direct.body.code, 'PRIVATE_UPLOAD');
 });
 
 test('GET /api/observations/student/:id refuse un autre élève (IDOR)', async () => {

@@ -113,6 +113,7 @@ test('Route image task log renvoie 404 si image_path pointe vers un fichier abse
 
   const res = await request(app)
     .get(`/api/tasks/${taskId}/logs/${result.insertId}/image`)
+    .set('Authorization', `Bearer ${studentToken}`)
     .expect(404);
   assert.ok((res.body.error || '').toLowerCase().includes('fichier'));
 });
@@ -132,6 +133,18 @@ test('Route image task log lit bien depuis disque (mode disk-only)', async () =>
   saveBase64ToDisk(relativePath, SAMPLE_IMAGE_DATA);
   await execute('UPDATE task_logs SET image_path = ? WHERE id = ?', [relativePath, logId]);
 
-  const res = await request(app).get(`/api/tasks/${taskId}/logs/${logId}/image`).expect(200);
+  const res = await request(app)
+    .get(`/api/tasks/${taskId}/logs/${logId}/image`)
+    .set('Authorization', `Bearer ${studentToken}`)
+    .expect(200);
   assert.ok((res.headers['content-type'] || '').toLowerCase().includes('image'));
+
+  // Audit B3 : la même image sans jeton doit être refusée (les identifiants sont
+  // séquentiels, ces photos étaient énumérables par un anonyme).
+  const anon = await request(app).get(`/api/tasks/${taskId}/logs/${logId}/image`).expect(403);
+  assert.ok((anon.body.error || '').toLowerCase().includes('accès refusé'));
+
+  // Audit B2 : le fichier ne doit pas non plus être servi en direct par /uploads.
+  const direct = await request(app).get(`/uploads/${relativePath}`).expect(403);
+  assert.strictEqual(direct.body.code, 'PRIVATE_UPLOAD');
 });
