@@ -315,9 +315,16 @@ function TaskTileCardImpl({
                     : item.fullName;
                 const suffix = isCollectiveCompletion ? (a.done_at ? ' ✓' : ' • en cours') : '';
                 const collectiveBusy = !!loading[teacherCollectiveAssigneeLoadKey(t.id, a)];
+                // Inscription héritée (sans `student_id`) : l'API exige un identifiant n3beur
+                // pour une action n3boss et rejetterait l'appel « par nom » en 400. On n'offre
+                // donc pas le bouton plutôt que de laisser l'utilisateur buter dessus.
+                // Cf. audit B5, docs/AUDIT_BUGS_2026-07.md.
+                const hasLinkedStudentId =
+                  a.student_id != null && String(a.student_id).trim() !== '';
                 const canTeacherMarkThisPart =
                   isTeacher &&
                   isCollectiveCompletion &&
+                  hasLinkedStudentId &&
                   !a.done_at &&
                   effectiveStatus !== 'validated';
                 if (

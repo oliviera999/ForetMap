@@ -7,23 +7,44 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
-### Audit bugs juillet 2026 (documentation seule)
+### Audit bugs juillet 2026 : confidentialité des photos d'élèves et intégrité des inscriptions
 
-Nouveau document [docs/AUDIT_BUGS_2026-07.md](docs/AUDIT_BUGS_2026-07.md) : audit
-transversal « bugs de tous types » (sécurité, contrôle d'accès, concurrence, logique
-métier, cohérence front/back) sur `main` @ v1.84.4.
+Nouveau document [docs/AUDIT_BUGS_2026-07.md](docs/AUDIT_BUGS_2026-07.md) (audit transversal
+« bugs de tous types » : sécurité, contrôle d'accès, concurrence, logique métier, cohérence
+front/back) **et correction de 4 des 6 constats** dans le même lot.
 
-- **6 constats vérifiés** dans le code (chemin complet lu, ou reproduit quand possible) :
-  usurpation d'identité n3beur sur `assign`/`done`/`unassign` (critique), photos privées
-  servies en clair par `/uploads` (élevée), image de journal de tâche sans authentification
-  (élevée), course sur l'inscription à une tâche, action prof impossible sur une inscription
-  héritée, permissions GL figées dans le JWT.
-- Chaque constat propose **plusieurs types de correctif** avec recommandation ; l'arbitrage
-  reste ouvert.
-- **13 pistes vérifiées puis écartées** sont listées (injection SQL, traversée de chemin,
-  isolement produit GL, `await` manquants…) pour éviter qu'un prochain audit ne les
-  re-signale.
-- **Aucun comportement applicatif modifié** par ce lot (documentation uniquement).
+**Sécurité — photos d'élèves (B2, B3)**
+
+- Les photos de **carnet d'observation** (`uploads/observations/`) et de **journal de tâche**
+  (`uploads/task-logs/`) étaient servies **en clair** par le montage statique `/uploads`, ce
+  qui contournait entièrement l'autorisation de `GET /api/observations/:id/image`. Les noms de
+  fichiers étant prédictibles (`<studentId>_<logId>.jpg`), ces photos étaient énumérables sans
+  aucun jeton. Ces deux familles sont désormais refusées en **403** par `/uploads`
+  (`lib/uploadsPrivatePaths.js`) ; leur lecture passe obligatoirement par la route API, qui
+  contrôle les droits. Les familles publiques (`zones/`, `markers/`, `tasks/`, `forum-posts/`,
+  `context-comments/`, `students/`, `media-library/`…) sont inchangées.
+- `GET /api/tasks/:id/logs/:logId/image` n'avait **aucun contrôle d'accès**, alors que la route
+  liste voisine était gardée au motif « journaux = PII ». Elle exige désormais la même chose
+  qu'elle : compte connecté, profil non visiteur.
+
+**Intégrité — inscription aux tâches (B4)**
+
+- Une même tâche pouvait enregistrer **deux inscriptions du même élève** (double-clic, lot) ou
+  **dépasser `required_students`** : le contrôle était fait avant l'insertion, sans transaction
+  ni contrainte. Ajout d'un index unique `(task_id, student_id)`
+  (migration `170`, avec dédoublonnage préalable) et sérialisation du contrôle de capacité.
+  Les inscriptions héritées (`student_id` absent) ne sont pas contraintes.
+
+**Ergonomie (B5)**
+
+- En mode collectif, le raccourci n3boss « marquer la part d'un élève » était proposé pour les
+  inscriptions **héritées sans compte rattaché**, alors que l'API rejette systématiquement ce
+  cas en 400. Le bouton n'est plus affiché pour ces inscriptions (le nom reste visible).
+
+**Reste à traiter** : B1 (usurpation d'identité n3beur) est traité par une PR dédiée ; B6
+(permissions GL figées dans le JWT jusqu'à expiration) attend un arbitrage produit. Le document
+liste aussi **13 pistes vérifiées puis écartées** (injection SQL, traversée de chemin, isolement
+produit GL, `await` manquants…) pour éviter qu'un prochain audit ne les re-signale.
 
 ### Carnet de Sélène : « trouvé en jouant » vs « étudié » enfin distincts (UX)
 

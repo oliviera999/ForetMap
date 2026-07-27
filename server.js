@@ -253,6 +253,10 @@ app.get('/favicon.ico', (req, res) => {
 app.use(express.static(staticRoot, staticServeOptions));
 const { PUBLIC_IMAGE_CACHE_CONTROL } = require('./lib/httpImageCache');
 const uploadsStaticRoot = path.join(__dirname, 'uploads');
+// Familles privées (`observations/`, `task-logs/`) : refusées en accès direct pour que
+// l'autorisation portée par les routes API ne soit pas contournable (cf. lib/uploadsPrivatePaths.js).
+const { createPrivateUploadsGuard } = require('./lib/uploadsPrivatePaths');
+app.use('/uploads', createPrivateUploadsGuard());
 app.use(
   '/uploads',
   express.static(uploadsStaticRoot, {
