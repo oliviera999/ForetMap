@@ -43,9 +43,21 @@ router.get(
   }),
 );
 
+// Photo d'un journal de tâche : MÊME politique que la route liste ci-dessus (compte connecté,
+// profil non visiteur). L'image était servie sans aucun contrôle alors que la liste qui la
+// référence est gardée — et les identifiants étant séquentiels, les photos de n3beurs étaient
+// énumérables sans jeton (cf. audit B3, docs/AUDIT_BUGS_2026-07.md).
+//
+// Volontairement aligné sur la liste, et non sur la politique plus stricte des observations
+// (propriétaire / n3boss) : le journal de tâche est un compte rendu collaboratif, déjà lisible
+// par tous les inscrits de la tâche. Durcir l'image seule casserait leur affichage.
 router.get(
   '/:id/logs/:logId/image',
   asyncHandler(async (req, res) => {
+    const auth = await parseOptionalAuth(req);
+    if (!auth || isVisitorRole(auth)) {
+      return res.status(403).json({ error: 'Accès refusé à cette image' });
+    }
     const log = await queryOne('SELECT image_path FROM task_logs WHERE id = ? AND task_id = ?', [
       req.params.logId,
       req.params.id,

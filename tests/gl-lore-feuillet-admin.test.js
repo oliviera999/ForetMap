@@ -8,10 +8,16 @@ const path = require('node:path');
 const request = require('supertest');
 const { app } = require('../server');
 const { initSchema, queryAll, queryOne, execute } = require('../database');
-const { createGlAdmin, signTokens } = require('./helpers/glFixtures');
+const {
+  createGlAdmin,
+  createGlClass,
+  createGlPlayer,
+  signTokens,
+} = require('./helpers/glFixtures');
 const { applyFeuilletsImport, parseFeuilletsWorkbook } = require('../lib/glLoreFeuilletsImport');
 
 let adminToken = '';
+let readOnlyPlayerId = null;
 const code = 'cop-cover';
 
 before(async () => {
@@ -22,6 +28,14 @@ before(async () => {
     adminPermissions: ['gl.read', 'gl.content.manage'],
   });
   adminToken = tokens.adminToken;
+
+  // Acteur « sans droit d'édition » pour le test de refus (403) : un joueur réel.
+  const cls = await createGlClass({ name: `Classe Feuillets ${Date.now()}`, adminId: admin.id });
+  const player = await createGlPlayer({
+    classId: cls.id,
+    pseudo: `feuillets-readonly-${Date.now()}`,
+  });
+  readOnlyPlayerId = player.id;
 
   const file = path.join(process.cwd(), 'data', 'gl', 'corpus-feuillets-selene.xlsx');
   const parsed = await parseFeuilletsWorkbook(fs.readFileSync(file));
@@ -121,13 +135,16 @@ test('PUT /admin/feuillets/reorder 400 sur entrée invalide', async () => {
 });
 
 test('PUT refuse sans permission gl.content.manage', async () => {
+  // Les droits GL sont relus en base à chaque requête (audit B6) : l'acteur doit exister
+  // réellement, et son rôle doit être un rôle qui n'a PAS `gl.content.manage`. Aucun rôle
+  // staff n'est dans ce cas (gl_admin comme gl_mj l'ont) — c'est donc un joueur.
   const readOnly = await signTokens({
-    adminId: 'gl-admin-readonly',
-    adminPermissions: ['gl.read'],
+    playerId: readOnlyPlayerId,
+    playerPermissions: ['gl.read'],
   });
   await request(app)
     .put(`/api/gl/lore/admin/feuillets/${code}`)
-    .set('Authorization', `Bearer ${readOnly.adminToken}`)
+    .set('Authorization', `Bearer ${readOnly.playerToken}`)
     .send({ titre: 'X' })
     .expect(403);
 });

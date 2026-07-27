@@ -7,6 +7,60 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Audit bugs juillet 2026 : confidentialité des photos d'élèves et intégrité des inscriptions
+
+Nouveau document [docs/AUDIT_BUGS_2026-07.md](docs/AUDIT_BUGS_2026-07.md) (audit transversal
+« bugs de tous types » : sécurité, contrôle d'accès, concurrence, logique métier, cohérence
+front/back) **et correction de 4 des 6 constats** dans le même lot.
+
+**Sécurité — photos d'élèves (B2, B3)**
+
+- Les photos de **carnet d'observation** (`uploads/observations/`) et de **journal de tâche**
+  (`uploads/task-logs/`) étaient servies **en clair** par le montage statique `/uploads`, ce
+  qui contournait entièrement l'autorisation de `GET /api/observations/:id/image`. Les noms de
+  fichiers étant prédictibles (`<studentId>_<logId>.jpg`), ces photos étaient énumérables sans
+  aucun jeton. Ces deux familles sont désormais refusées en **403** par `/uploads`
+  (`lib/uploadsPrivatePaths.js`) ; leur lecture passe obligatoirement par la route API, qui
+  contrôle les droits. Les familles publiques (`zones/`, `markers/`, `tasks/`, `forum-posts/`,
+  `context-comments/`, `students/`, `media-library/`…) sont inchangées.
+- `GET /api/tasks/:id/logs/:logId/image` n'avait **aucun contrôle d'accès**, alors que la route
+  liste voisine était gardée au motif « journaux = PII ». Elle exige désormais la même chose
+  qu'elle : compte connecté, profil non visiteur.
+
+**Intégrité — inscription aux tâches (B4)**
+
+- Une même tâche pouvait enregistrer **deux inscriptions du même élève** (double-clic, lot) ou
+  **dépasser `required_students`** : le contrôle était fait avant l'insertion, sans transaction
+  ni contrainte. Ajout d'un index unique `(task_id, student_id)`
+  (migration `170`, avec dédoublonnage préalable) et sérialisation du contrôle de capacité.
+  Les inscriptions héritées (`student_id` absent) ne sont pas contraintes.
+
+**Ergonomie (B5)**
+
+- En mode collectif, le raccourci n3boss « marquer la part d'un élève » était proposé pour les
+  inscriptions **héritées sans compte rattaché**, alors que l'API rejette systématiquement ce
+  cas en 400. Le bouton n'est plus affiché pour ces inscriptions (le nom reste visible).
+
+**Sécurité — révocation des droits Gnomes & Licornes (B6)**
+
+- Les permissions GL étaient lues **telles quelles dans le JWT** : retirer son rôle à un MJ,
+  rétrograder un Admin ou désactiver un joueur restait sans effet **jusqu'à l'expiration du
+  jeton** (90 min par défaut, jusqu'à 7 jours), là où ForetMap révoque immédiatement.
+- GL relit désormais ses droits **à chaque requête**, comme ForetMap : l'identité est vérifiée
+  dans `gl_players` / `gl_admins` (compte supprimé ou désactivé → `401`) et les permissions
+  viennent du **catalogue RBAC partagé** (`lib/rbac.js`), au lieu d'une liste codée en dur
+  côté GL qu'il fallait tenir alignée à la main. Une panne BDD renvoie `503`, jamais `401`.
+- Composants mutualisés : `buildAuthzPayloadFromRole` / `buildAuthzPayloadForRoleSlug`
+  (`lib/rbac.js`, source unique des permissions pour les deux produits) et
+  `lib/auth/glHydration.js`, pendant GL de `hydrateAuthFromTokenClaims`. Le pipeline JWT
+  (`lib/auth/jwtPipeline.js`) était déjà partagé.
+- Le tableau `permissions` du jeton devient purement informatif ; un test verrouille son
+  alignement avec le catalogue.
+
+**Reste à traiter** : B1 (usurpation d'identité n3beur) est traité par une PR dédiée. Le document
+liste aussi **13 pistes vérifiées puis écartées** (injection SQL, traversée de chemin, isolement
+produit GL, `await` manquants…) pour éviter qu'un prochain audit ne les re-signale.
+
 ### Carnet de Sélène : « trouvé en jouant » vs « étudié » enfin distincts (UX)
 
 Lève l'ambiguïté des deux notions de « feuillet acquis » (point d'attention de

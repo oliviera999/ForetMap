@@ -230,19 +230,20 @@ function TasksViewImpl({
         'cet élève';
       const loadKey = teacherCollectiveAssigneeLoadKey(task.id, assignment);
       void withLoad(loadKey, async () => {
+        // L'API n'accepte une action n3boss « pour le compte d'un n3beur » que sur un
+        // `studentId` (identité vérifiable dans le périmètre de groupe) : un appel « par nom »
+        // est rejeté en 400. Les inscriptions héritées sans `student_id` ne sont donc pas
+        // marquables ici — le bouton n'est plus proposé (TaskTileCard), ce test reste un
+        // garde-fou. Cf. audit B5, docs/AUDIT_BUGS_2026-07.md.
         const sidRaw = assignment?.student_id ?? assignment?.studentId;
-        const body =
-          sidRaw != null && String(sidRaw).trim() !== ''
-            ? { studentId: String(sidRaw).trim() }
-            : {
-                firstName: String(assignment.student_first_name || '').trim(),
-                lastName: String(assignment.student_last_name || '').trim(),
-              };
-        if (!body.studentId && (!body.firstName || !body.lastName)) {
-          setToast('Impossible de marquer cette inscription : identité incomplète.');
+        const studentId = sidRaw != null ? String(sidRaw).trim() : '';
+        if (!studentId) {
+          setToast(
+            'Inscription héritée (aucun compte n3beur rattaché) : rattache le compte avant de marquer sa part.',
+          );
           return;
         }
-        await api(`/api/tasks/${task.id}/done`, 'POST', body);
+        await api(`/api/tasks/${task.id}/done`, 'POST', { studentId });
         setToast(
           who !== 'cet élève' ? `Part de ${who} marquée terminée ✓` : 'Part marquée terminée ✓',
         );

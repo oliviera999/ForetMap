@@ -23,6 +23,15 @@ Réponses JSON. En cas d’erreur : `{ "error": "message" }` avec statut HTTP ad
 Le mode GL est isolé par JWT avec claim `product: "gl"` et routes dédiées.
 La matrice de couverture des tests GL est documentée dans `docs/GL_TESTS.md`.
 
+> **Droits GL relus à chaque requête.** Le JWT GL ne porte que l'identité ; les permissions
+> effectives sont recalculées côté serveur depuis l'état courant de `gl_players` / `gl_admins`
+> et du catalogue RBAC partagé. Conséquences observables :
+>
+> - compte **désactivé ou supprimé** → **`401`** sur toute route GL, sans attendre l'expiration ;
+> - **rétrogradation** admin → MJ : `gl.settings.manage` est refusé (`403`) dès la requête suivante ;
+> - le tableau `permissions` renvoyé par les routes d'auth reflète toujours les droits réels ;
+> - indisponibilité BDD pendant l'authentification → **`503`** (et non `401`).
+
 ### Auth GL
 
 | Méthode | URL | Body | Description |
@@ -1069,10 +1078,17 @@ Contrat principal :
 | POST    | `/api/tasks/:id/assign-group`      | oui (`tasks.assign.group`)                                     | Affecter en masse les n3beurs d’un groupe à une tâche                                                                                                                                                                                                                                                                                                                |
 | POST    | `/api/tasks/:id/unassign`          | non                                                            | Se désassigner                                                                                                                                                                                                                                                                                                                                                       |
 | POST    | `/api/tasks/:id/done`              | non                                                            | Marquer comme fait (commentaire/image)                                                                                                                                                                                                                                                                                                                               |
-| GET     | `/api/tasks/:id/logs`              | non                                                            | Logs de la tâche                                                                                                                                                                                                                                                                                                                                                     |
-| GET     | `/api/tasks/:id/logs/:logId/image` | non                                                            | Image d’un log (fichier disque)                                                                                                                                                                                                                                                                                                                                      |
+| GET     | `/api/tasks/:id/logs`              | non (compte connecté **requis**, profil non visiteur)          | Logs de la tâche (PII : prénoms/noms, commentaires) — anonyme ou visiteur → **403**                                                                                                                                                                                                                                                                                  |
+| GET     | `/api/tasks/:id/logs/:logId/image` | non (compte connecté **requis**, profil non visiteur)          | Image d’un log (fichier disque) — **même politique que la liste ci-dessus** ; anonyme ou visiteur → **403**                                                                                                                                                                                                                                                          |
 | POST    | `/api/tasks/:id/validate`          | oui (`tasks.validate`)                                         | Valider la tâche (depuis n’importe quel statut sauf `validated`)                                                                                                                                                                                                                                                                                                     |
 | POST    | `/api/tasks/proposals`             | non (JWT n3beur **requis**)                                    | Proposer une tâche (statut `proposed`). Identité dérivée du JWT : sans jeton → **403** ; `studentId` divergent du jeton → **403** ; un prof (`tasks.manage`/périmètre groupe) peut proposer au nom d'un n3beur de son périmètre                                                                                                                                      |
+
+**Inscription à une tâche (`POST /api/tasks/:id/assign`)** — unicité et capacité :
+
+- **Une seule inscription par (tâche, n3beur)** : contrainte d’unicité en base (`uq_task_assignments_task_student`). Une seconde inscription renvoie **400** (`Déjà assigné à cette tâche`), y compris sur deux requêtes concurrentes (double-clic).
+- Le contrôle de `required_students` est **sérialisé** (verrou sur la ligne `tasks`) : le dépassement renvoie **400** (`Plus de place disponible sur cette tâche`) même en concurrence.
+- Les inscriptions **héritées** (`task_assignments.student_id IS NULL`, saisies avant la généralisation des comptes) ne sont pas concernées par la contrainte d’unicité.
+- Une action n3boss « pour le compte d’un n3beur » exige un `studentId` : un corps `{ firstName, lastName }` seul renvoie **400**. Les inscriptions héritées ne sont donc pas marquables ainsi (l’UI ne propose plus le bouton).
 
 \* Un n3beur peut aussi modifier **sa propre proposition** (statut `proposed`, préfixe de description `Proposition n3beur:`) ; les champs sensibles (`status`, `project_id`, `tutorial_ids`, `referent_user_ids`, `recurrence`, `completion_mode`) restent réservés aux profils avec `tasks.manage`. Un profil n’ayant que `tasks.validate` (sans `tasks.manage`) peut uniquement passer une tâche en `validated` via `POST /validate` ou `PUT` avec `{ "status": "validated" }` (pas les autres champs ni statuts).
 
@@ -1265,6 +1281,29 @@ Règles d’accès:
 - **n3beur** : accès strict à ses propres observations (lecture / image / suppression).
 - **n3boss** avec `observations.read.all` : accès global.
 - **n3boss** avec `observations.read.group` : accès limité au périmètre groupe.
+
+---
+
+## Médias sous `/uploads` : familles publiques et privées
+
+Les fichiers envoyés sont stockés sous `uploads/`. Le montage statique **`/uploads`** sert
+directement les familles **publiques** (chargement navigateur sans passer par `/api`) :
+
+`zones/` · `markers/` · `tasks/` · `forum-posts/` · `context-comments/` · `students/` ·
+`media-library/` · `visit_media/` · `gl_*` · `gl-player-journal/`
+
+Deux familles sont **privées** : elles restent stockées au même endroit mais `/uploads` les
+refuse en **403** (`{"code": "PRIVATE_UPLOAD"}`), car leur lecture est soumise à autorisation
+applicative et les noms de fichiers sont prédictibles :
+
+| Famille         | Contenu                   | Route de lecture autorisée             |
+| --------------- | ------------------------- | -------------------------------------- |
+| `observations/` | Photos du carnet n3beur   | `GET /api/observations/:id/image`      |
+| `task-logs/`    | Photos des journaux tâche | `GET /api/tasks/:id/logs/:logId/image` |
+
+> Toute nouvelle famille de médias soumise à autorisation doit être ajoutée à
+> `PRIVATE_UPLOAD_PREFIXES` (`lib/uploadsPrivatePaths.js`), sans quoi elle serait servie en
+> clair par `/uploads`.
 
 ---
 

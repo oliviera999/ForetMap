@@ -1,5 +1,5 @@
 const express = require('express');
-const { queryAll, queryOne, execute } = require('../../database');
+const { queryAll, queryOne, execute, withTransaction } = require('../../database');
 const { requirePermission } = require('../../middleware/requireTeacher');
 const { saveBase64ToDisk } = require('../../lib/uploads');
 const asyncHandler = require('../../lib/asyncHandler');
@@ -86,16 +86,41 @@ router.post(
       return res.status(400).json({ error: 'Plus de place disponible sur cette tâche' });
     }
 
-    await execute(
-      'INSERT INTO task_assignments (task_id, student_id, student_first_name, student_last_name, assigned_at) VALUES (?, ?, ?, ?, ?)',
-      [
-        task.id,
-        action.studentId || null,
-        action.firstName,
-        action.lastName,
-        new Date().toISOString(),
-      ],
-    );
+    // Contrôle de capacité + insertion sérialisés : les vérifications ci-dessus reposent sur
+    // une lecture faite AVANT (`getTaskWithAssignments`), donc deux requêtes concurrentes
+    // (double-clic, inscription en lot) pouvaient toutes deux les franchir et dépasser
+    // `required_students`. Le verrou sur la ligne `tasks` sérialise les inscriptions de la
+    // même tâche ; l'index unique (migration 170) reste le filet contre les doublons.
+    // Cf. audit B4, docs/AUDIT_BUGS_2026-07.md.
+    try {
+      const seatTaken = await withTransaction(async (tx) => {
+        await tx.queryOne('SELECT id FROM tasks WHERE id = ? FOR UPDATE', [task.id]);
+        const countRow = await tx.queryOne(
+          'SELECT COUNT(*) AS c FROM task_assignments WHERE task_id = ?',
+          [task.id],
+        );
+        if ((Number(countRow?.c) || 0) >= Number(task.required_students)) return false;
+        await tx.execute(
+          'INSERT INTO task_assignments (task_id, student_id, student_first_name, student_last_name, assigned_at) VALUES (?, ?, ?, ?, ?)',
+          [
+            task.id,
+            action.studentId || null,
+            action.firstName,
+            action.lastName,
+            new Date().toISOString(),
+          ],
+        );
+        return true;
+      });
+      if (!seatTaken) {
+        return res.status(400).json({ error: 'Plus de place disponible sur cette tâche' });
+      }
+    } catch (err) {
+      if (err?.code === 'ER_DUP_ENTRY' || err?.errno === 1062) {
+        return res.status(400).json({ error: 'Déjà assigné à cette tâche' });
+      }
+      throw err;
+    }
 
     const recalculated = await recalculateTaskStatus(task);
     const newStatus = recalculated?.status || normalizeTaskStatusForRead(task.status);
@@ -166,9 +191,14 @@ router.post(
           assignedAt,
         );
       }
+      // `ON DUPLICATE KEY UPDATE` neutre : depuis l'index unique (migration 170), une
+      // inscription concurrente sur le même couple (tâche, n3beur) ferait échouer TOUT le lot.
+      // On retombe alors sur une mise à jour sans effet plutôt que sur une erreur 500.
       await execute(
         `INSERT INTO task_assignments (task_id, student_id, student_first_name, student_last_name, assigned_at)
-       VALUES ${placeholders}`,
+       VALUES ${placeholders}
+       ON DUPLICATE KEY UPDATE student_first_name = VALUES(student_first_name),
+                               student_last_name = VALUES(student_last_name)`,
         params,
       );
     }
