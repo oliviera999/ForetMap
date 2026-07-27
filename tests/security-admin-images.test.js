@@ -5,7 +5,7 @@ const test = require('node:test');
 const assert = require('node:assert');
 const request = require('supertest');
 const { app } = require('../server');
-const { initSchema, execute } = require('../database');
+const { initSchema, execute, queryOne } = require('../database');
 const { saveBase64ToDisk } = require('../lib/uploads');
 
 const SAMPLE_IMAGE_DATA =
@@ -18,6 +18,19 @@ test.before(async () => {
     .post('/api/auth/register')
     .send({ firstName: 'Sec', lastName: `Img${Date.now()}`, password: 'pass1234' })
     .expect(201);
+  // Une inscription sans groupe n3beur retombe sur le rôle `visiteur`, que les routes
+  // « journaux de tâche » refusent (PII). On promeut donc le compte en n3beur novice pour
+  // représenter un utilisateur autorisé.
+  const role = await queryOne("SELECT id FROM roles WHERE slug = 'eleve_novice' LIMIT 1");
+  assert.ok(role?.id, 'Rôle eleve_novice introuvable');
+  await execute('UPDATE user_roles SET is_primary = 0 WHERE user_type = ? AND user_id = ?', [
+    'student',
+    reg.body.id,
+  ]);
+  await execute(
+    'INSERT INTO user_roles (user_type, user_id, role_id, is_primary) VALUES (?, ?, ?, 1) ON DUPLICATE KEY UPDATE is_primary = 1',
+    ['student', reg.body.id, role.id],
+  );
   studentToken = reg.body.authToken;
 });
 

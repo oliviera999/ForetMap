@@ -1,7 +1,12 @@
+const { queryOne } = require('../database');
 const { JWT_SECRET, parseBearerToken } = require('./requireTeacher');
 const { verifyJwtForProduct } = require('../lib/auth/jwtPipeline');
-
-const GL_GUEST_USER_TYPE = 'gl_guest';
+const {
+  GL_GUEST_USER_TYPE,
+  GlAuthInfraError,
+  hydrateGlAuthFromClaims,
+} = require('../lib/auth/glHydration');
+const logger = require('../lib/logger');
 
 function hasGlPermission(auth, permission) {
   if (!auth) return false;
@@ -31,30 +36,6 @@ function allowsPasswordResetRoute(req) {
   return false;
 }
 
-function buildGlAuthFromClaims(claims) {
-  const glAuth = {
-    product: 'gl',
-    userType: String(claims.userType || 'gl_player'),
-    userId: String(claims.userId || ''),
-    roleSlug: String(claims.roleSlug || ''),
-    permissions: Array.isArray(claims.permissions) ? claims.permissions : [],
-    displayName: String(claims.displayName || ''),
-    classId: claims.classId || null,
-    teamId: claims.teamId || null,
-    gameId: claims.gameId || null,
-    passwordMustReset: !!claims.passwordMustReset,
-  };
-  if (claims.impersonating && claims.actorUserType && claims.actorUserId != null) {
-    glAuth.impersonating = true;
-    glAuth.impersonatedBy = {
-      userType: String(claims.actorUserType),
-      userId: String(claims.actorUserId),
-      roleSlug: String(claims.actorRoleSlug || ''),
-    };
-  }
-  return glAuth;
-}
-
 function passwordResetBlocked(glAuth, req) {
   return (
     glAuth.userType === 'gl_player' && glAuth.passwordMustReset && !allowsPasswordResetRoute(req)
@@ -62,30 +43,51 @@ function passwordResetBlocked(glAuth, req) {
 }
 
 /**
- * Vérifie le JWT GL et construit req.glAuth sans politique d'accès invité / reset MDP.
- * @returns {{ ok: true, glAuth }} | {{ ok: false, status: number, error: string }}
+ * Vérifie le JWT GL puis **ré-hydrate les droits depuis la base** (audit B6) : le jeton ne
+ * porte plus que l'identité, jamais les permissions effectives. Une révocation de rôle, une
+ * désactivation ou une suppression de compte prend donc effet à la requête suivante — même
+ * contrat que `resolveAuthOrRespond` côté ForetMap.
+ *
+ * Ne pose aucune politique d'accès invité / reset MDP (cf. `requireGlAuth`).
+ * @returns {Promise<{ ok: true, glAuth: object } | { ok: false, status: number, error: string }>}
  */
-function authenticateGl(req) {
+async function authenticateGl(req) {
   if (!JWT_SECRET) {
     return { ok: false, status: 503, error: 'Authentification GL non configurée' };
   }
   const token = parseBearerToken(req);
   if (!token) return { ok: false, status: 401, error: 'Token requis' };
-  try {
-    const verified = verifyJwtForProduct(token, JWT_SECRET, 'gl');
-    if (verified.error) {
-      return { ok: false, status: verified.status, error: verified.error };
-    }
-    const glAuth = buildGlAuthFromClaims(verified.claims);
-    if (!glAuth.userId) return { ok: false, status: 401, error: 'Token invalide' };
-    return { ok: true, glAuth };
-  } catch (_) {
-    return { ok: false, status: 401, error: 'Token invalide ou expiré' };
+
+  const verified = verifyJwtForProduct(token, JWT_SECRET, 'gl');
+  if (verified.error) {
+    return { ok: false, status: verified.status, error: verified.error };
   }
+
+  let glAuth;
+  try {
+    glAuth = await hydrateGlAuthFromClaims(verified.claims, { queryOne });
+  } catch (err) {
+    // Panne d'infrastructure : surtout pas un 401, qui ferait boucler les reconnexions.
+    if (err instanceof GlAuthInfraError) {
+      logger.error({ err: err.cause, msg: 'gl_auth_hydration_failed' }, 'Échec hydratation GL');
+      return { ok: false, status: 503, error: 'Service momentanément indisponible' };
+    }
+    throw err;
+  }
+  // Compte supprimé, désactivé, ou rôle absent du catalogue : la session ne vaut plus rien.
+  if (!glAuth) {
+    return { ok: false, status: 401, error: 'Session expirée ou compte désactivé' };
+  }
+  return { ok: true, glAuth };
 }
 
-function requireGlAuth(req, res, next) {
-  const result = authenticateGl(req);
+async function requireGlAuth(req, res, next) {
+  let result;
+  try {
+    result = await authenticateGl(req);
+  } catch (err) {
+    return next(err);
+  }
   if (!result.ok) {
     return res.status(result.status).json({ error: result.error });
   }
@@ -106,8 +108,13 @@ function requireGlAuth(req, res, next) {
 }
 
 function requireGlPermission(permission) {
-  return (req, res, next) => {
-    const result = authenticateGl(req);
+  return async (req, res, next) => {
+    let result;
+    try {
+      result = await authenticateGl(req);
+    } catch (err) {
+      return next(err);
+    }
     if (!result.ok) {
       return res.status(result.status).json({ error: result.error });
     }
