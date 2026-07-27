@@ -144,6 +144,38 @@ npm run dev
 
 Ouvrir **http://localhost:3000** : Express sert le contenu de **`dist/`** (SPA compilée).
 
+### Jobs quotidiens en local
+
+`npm run dev` démarre le même serveur Node qu'en production : sauf `NODE_ENV=test`, il planifie
+aussi les jobs quotidiens (premier passage après 45–165 s, puis toutes les 24 h) :
+
+- duplication des tâches récurrentes validées arrivées à échéance ;
+- archivage automatique des tâches/projets validés anciens.
+
+Pour éviter toute écriture automatique pendant une démo, un import de dump ou une session de debug,
+coupez la planification complète :
+
+```bash
+FORETMAP_DISABLE_RECURRING_TASK_JOB=1 npm run dev
+```
+
+Sous PowerShell :
+
+```powershell
+$env:FORETMAP_DISABLE_RECURRING_TASK_JOB = '1'; npm run dev
+```
+
+Cette variable coupe **les deux** traitements. Pour tester seulement la duplication des tâches
+récurrentes, utilisez le rattrapage manuel (forcé, JSON sur stdout) :
+
+```bash
+npm run tasks:spawn-recurring
+```
+
+Le script manuel ne lance pas l'archivage automatique. Pour l'archivage, ajustez plutôt les réglages
+admin `tasks.auto_archive_enabled` et `tasks.auto_archive_after_days`, puis laissez tourner le
+serveur de dev jusqu'au prochain passage du timer ou couvrez le cas par un test ciblé.
+
 ## 5. Tests d’intégration (base séparée)
 
 Les tests utilisent **`foretmap_test`** pour ne pas toucher à votre base de dev :
