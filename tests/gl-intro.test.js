@@ -7,6 +7,7 @@ const request = require('supertest');
 const { app } = require('../server');
 const { initSchema, execute } = require('../database');
 const { signAuthToken } = require('../middleware/requireTeacher');
+const { createGlAdmin, createGlClass, createGlPlayer } = require('./helpers/glFixtures');
 const {
   normalizeIntroConfig,
   buildPublicIntroPayload,
@@ -16,12 +17,22 @@ const { setModulesCacheForTests } = require('../lib/glSettings');
 
 let adminToken = '';
 
+const introStamp = Date.now();
+let introClassId = null;
+
+// Identités GL relues en base à chaque requête (audit B6) : il faut de vraies lignes.
 before(async () => {
   await initSchema();
+  const admin = await createGlAdmin({
+    email: `intro.mj.${introStamp}@ecole.local`,
+    displayName: 'MJ Intro',
+  });
+  const cls = await createGlClass({ name: `Classe Intro ${introStamp}`, adminId: admin.id });
+  introClassId = cls.id;
   adminToken = await signAuthToken({
     product: 'gl',
     userType: 'gl_admin',
-    userId: '301',
+    userId: String(admin.id),
     roleSlug: 'gl_admin',
     permissions: ['gl.read', 'gl.content.manage', 'gl.settings.manage'],
     displayName: 'MJ Intro',
@@ -59,10 +70,14 @@ test('GET /api/gl/content/intro est public et respecte le module', async () => {
 });
 
 test('GET /api/gl/admin/content/intro exige gl.content.manage', async () => {
+  const player = await createGlPlayer({
+    classId: introClassId,
+    pseudo: `intro-player-${introStamp}`,
+  });
   const playerToken = await signAuthToken({
     product: 'gl',
     userType: 'gl_player',
-    userId: '302',
+    userId: String(player.id),
     roleSlug: 'gl_player',
     permissions: ['gl.read'],
     displayName: 'Joueur',

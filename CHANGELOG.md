@@ -41,8 +41,23 @@ front/back) **et correction de 4 des 6 constats** dans le même lot.
   inscriptions **héritées sans compte rattaché**, alors que l'API rejette systématiquement ce
   cas en 400. Le bouton n'est plus affiché pour ces inscriptions (le nom reste visible).
 
-**Reste à traiter** : B1 (usurpation d'identité n3beur) est traité par une PR dédiée ; B6
-(permissions GL figées dans le JWT jusqu'à expiration) attend un arbitrage produit. Le document
+**Sécurité — révocation des droits Gnomes & Licornes (B6)**
+
+- Les permissions GL étaient lues **telles quelles dans le JWT** : retirer son rôle à un MJ,
+  rétrograder un Admin ou désactiver un joueur restait sans effet **jusqu'à l'expiration du
+  jeton** (90 min par défaut, jusqu'à 7 jours), là où ForetMap révoque immédiatement.
+- GL relit désormais ses droits **à chaque requête**, comme ForetMap : l'identité est vérifiée
+  dans `gl_players` / `gl_admins` (compte supprimé ou désactivé → `401`) et les permissions
+  viennent du **catalogue RBAC partagé** (`lib/rbac.js`), au lieu d'une liste codée en dur
+  côté GL qu'il fallait tenir alignée à la main. Une panne BDD renvoie `503`, jamais `401`.
+- Composants mutualisés : `buildAuthzPayloadFromRole` / `buildAuthzPayloadForRoleSlug`
+  (`lib/rbac.js`, source unique des permissions pour les deux produits) et
+  `lib/auth/glHydration.js`, pendant GL de `hydrateAuthFromTokenClaims`. Le pipeline JWT
+  (`lib/auth/jwtPipeline.js`) était déjà partagé.
+- Le tableau `permissions` du jeton devient purement informatif ; un test verrouille son
+  alignement avec le catalogue.
+
+**Reste à traiter** : B1 (usurpation d'identité n3beur) est traité par une PR dédiée. Le document
 liste aussi **13 pistes vérifiées puis écartées** (injection SQL, traversée de chemin, isolement
 produit GL, `await` manquants…) pour éviter qu'un prochain audit ne les re-signale.
 

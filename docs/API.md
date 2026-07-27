@@ -23,6 +23,15 @@ Réponses JSON. En cas d’erreur : `{ "error": "message" }` avec statut HTTP ad
 Le mode GL est isolé par JWT avec claim `product: "gl"` et routes dédiées.
 La matrice de couverture des tests GL est documentée dans `docs/GL_TESTS.md`.
 
+> **Droits GL relus à chaque requête.** Le JWT GL ne porte que l'identité ; les permissions
+> effectives sont recalculées côté serveur depuis l'état courant de `gl_players` / `gl_admins`
+> et du catalogue RBAC partagé. Conséquences observables :
+>
+> - compte **désactivé ou supprimé** → **`401`** sur toute route GL, sans attendre l'expiration ;
+> - **rétrogradation** admin → MJ : `gl.settings.manage` est refusé (`403`) dès la requête suivante ;
+> - le tableau `permissions` renvoyé par les routes d'auth reflète toujours les droits réels ;
+> - indisponibilité BDD pendant l'authentification → **`503`** (et non `401`).
+
 ### Auth GL
 
 | Méthode | URL | Body | Description |
