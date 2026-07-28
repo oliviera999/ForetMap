@@ -140,4 +140,28 @@ describe('B6 — les droits GL sont relus en base à chaque requête', () => {
     const res = await probeGlSettingsPermission(forged);
     assert.equal(res.status, 403, `réponse inattendue: ${JSON.stringify(res.body)}`);
   });
+
+  it('désactiver l’acteur invalide un jeton d’impersonation déjà émis', async () => {
+    await execute("UPDATE gl_admins SET role = 'admin', is_active = 1 WHERE id = ?", [admin.id]);
+    const cls = await createGlClass({ name: `Classe Impersonation ${stamp}`, adminId: admin.id });
+    const target = await createGlPlayer({ classId: cls.id, pseudo: `impersonated-${stamp}` });
+    const impersonationToken = await signAuthToken({
+      product: 'gl',
+      userType: 'gl_player',
+      userId: String(target.id),
+      roleSlug: 'gl_player',
+      permissions: ['gl.read'],
+      displayName: target.pseudo || 'Joueur',
+      impersonating: true,
+      actorUserType: 'gl_admin',
+      actorUserId: String(admin.id),
+      actorRoleSlug: 'gl_admin',
+    });
+
+    assert.equal((await getGlWorld(impersonationToken)).status, 200);
+
+    await execute('UPDATE gl_admins SET is_active = 0 WHERE id = ?', [admin.id]);
+    const after = await getGlWorld(impersonationToken);
+    assert.equal(after.status, 401, `réponse inattendue: ${JSON.stringify(after.body)}`);
+  });
 });

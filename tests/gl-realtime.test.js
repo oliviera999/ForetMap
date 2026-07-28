@@ -19,6 +19,12 @@ const {
 } = require('./helpers/glFixtures');
 
 test('Socket.IO GL : réception gl:game:event', async () => {
+  await initSchema();
+  const stamp = Date.now();
+  const admin = await createGlAdmin({
+    email: `gl.socket.event.${stamp}@ecole.local`,
+    displayName: 'MJ Socket Event',
+  });
   const app = express();
   const server = http.createServer(app);
   initRealtime(server);
@@ -30,7 +36,7 @@ test('Socket.IO GL : réception gl:game:event', async () => {
   const token = await signAuthToken({
     product: 'gl',
     userType: 'gl_admin',
-    userId: '500',
+    userId: String(admin.id),
     roleSlug: 'gl_admin',
     permissions: ['gl.read', 'gl.event.emit'],
   });
@@ -72,6 +78,58 @@ test('Socket.IO GL : réception gl:game:event', async () => {
   await new Promise((resolve, reject) => {
     server.close((err) => (err ? reject(err) : resolve()));
   });
+});
+
+test('Socket.IO GL : refuse la connexion si le staff est désactivé (B6 live)', async () => {
+  await initSchema();
+  const stamp = Date.now();
+  const admin = await createGlAdmin({
+    email: `gl.socket.revoked.${stamp}@ecole.local`,
+    displayName: 'MJ Socket Révoqué',
+  });
+  const token = await signAuthToken({
+    product: 'gl',
+    userType: 'gl_admin',
+    userId: String(admin.id),
+    roleSlug: 'gl_admin',
+    permissions: ['gl.read', 'gl.event.emit'],
+  });
+  await execute('UPDATE gl_admins SET is_active = 0 WHERE id = ?', [admin.id]);
+
+  const app = express();
+  const server = http.createServer(app);
+  initRealtime(server);
+  await new Promise((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(0, '127.0.0.1', resolve);
+  });
+  const { port } = server.address();
+  const socket = clientIo(`http://127.0.0.1:${port}`, {
+    path: '/socket.io',
+    transports: ['websocket'],
+    timeout: 8000,
+    auth: { token },
+  });
+
+  try {
+    const err = await new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => reject(new Error('attendu connect_error')), 8000);
+      socket.once('connect', () => {
+        clearTimeout(timeout);
+        reject(new Error('connexion acceptée malgré révocation'));
+      });
+      socket.once('connect_error', (e) => {
+        clearTimeout(timeout);
+        resolve(e);
+      });
+    });
+    assert.match(String(err?.message || err), /unauthorized/i);
+  } finally {
+    socket.close();
+    await new Promise((resolve, reject) => {
+      server.close((err) => (err ? reject(err) : resolve()));
+    });
+  }
 });
 
 test('Socket.IO GL : refuse la souscription joueur à une partie étrangère', async () => {

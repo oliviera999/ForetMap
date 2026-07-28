@@ -76,7 +76,9 @@ Une tâche passe par des états visibles de tous : **Disponible** → **En cours
 3. **Marquer faite** : « ✅ Marquer terminée », avec un **commentaire et/ou une photo**
    en guise de preuve (les deux sont facultatifs, mais recommandés). En mode collectif,
    chaque inscrit marque **sa** part ; la tâche n'est « Terminée » que quand tout le
-   monde a fini.
+   monde a fini. Les photos du journal restent visibles pour les comptes connectés
+   (élèves inscrits et professeurs) ; un visiteur ou une personne non connectée ne
+   peut pas les ouvrir.
 4. **Attendre la validation** : la tâche apparaît chez le professeur dans « En attente
    de validation ».
 

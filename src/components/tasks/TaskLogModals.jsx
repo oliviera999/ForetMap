@@ -11,6 +11,7 @@ import { MarkdownTextarea } from '../MarkdownTextarea.jsx';
 import { MarkdownContent } from '../MarkdownContent.jsx';
 import { TimedToast } from '../../shared/components/TimedToast.jsx';
 import { ImageLightbox } from '../../shared/components/ImageLightbox.jsx';
+import { AuthedImage } from '../AuthedImage.jsx';
 
 function Lightbox({ src, caption, onClose }) {
   return <ImageLightbox src={src} caption={caption} onClose={onClose} useOverlayHistory />;
@@ -274,13 +275,11 @@ function TaskLogsViewer({ task, onClose }) {
             </div>
             {l.comment && <MarkdownContent className="log-comment">{l.comment}</MarkdownContent>}
             {l.image_url && (
-              <img
-                src={l.image_url}
+              <AuthedImage
+                path={l.image_url}
                 className="log-image"
                 alt="rapport"
-                loading="lazy"
-                decoding="async"
-                onClick={() => setBig(l.image_url)}
+                onClick={(_event, resolvedSrc) => setBig(resolvedSrc)}
               />
             )}
           </div>
