@@ -1,11 +1,15 @@
 import React from 'react';
 import { MarkdownContent } from './MarkdownContent.jsx';
+import { AuthedImage } from './AuthedImage.jsx';
 
 /**
  * Carte (présentation) d'une observation du carnet élève — extraite de
  * `ObservationNotebook` (O6). Affiche la date, le contenu Markdown, la zone
  * associée et la photo éventuelle, plus un bouton de suppression (avec
- * confirmation) qui remonte l'id au parent. DOM/classes/textes inchangés.
+ * confirmation) qui remonte l'id au parent.
+ *
+ * La photo passe par `AuthedImage` : `GET /api/observations/:id/image` exige un
+ * Bearer que `<img src>` n'envoie pas.
  *
  * @param {object} props
  * @param {{ id: number|string, created_at: string, content: string, zone_name?: string, image_url?: string }} props.entry observation à afficher
@@ -37,8 +41,8 @@ export function ObservationCard({ entry, onDelete }) {
       <MarkdownContent className="obs-content">{entry.content}</MarkdownContent>
       {entry.zone_name && <div className="obs-zone">📍 {entry.zone_name}</div>}
       {entry.image_url && (
-        <img
-          src={entry.image_url}
+        <AuthedImage
+          path={entry.image_url}
           alt="observation"
           style={{
             width: '100%',

@@ -34,6 +34,11 @@ Pour chaque bug, plusieurs **types de correctif** sont proposés avec une recomm
 > tâche — un changement de comportement métier qui dépasse la correction de la faille. Le
 > journal de tâche est un compte rendu **collaboratif**, contrairement au carnet
 > d'observations qui reste, lui, en politique stricte.
+>
+> **Collatéral B3 (corrigé ensuite)** : l'UI chargeait les photos via `<img src>` sans
+> Bearer. Dès que la route exige un compte, les vignettes devenaient 403 pour tout le monde.
+> Correctif client : fetch authentifié → blob (`AuthedImage`). Même transport appliqué au
+> carnet d'observations.
 
 ## 1. Méthode et couverture
 

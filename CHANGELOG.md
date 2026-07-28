@@ -7,6 +7,19 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Correctifs post-audit #269 : photos journaux + révocation GL live/impersonation
+
+- **Photos des journaux de tâche (et carnet d'observations)** : après B3, les routes image
+  exigent un JWT, mais l'UI chargeait encore via `<img src="/api/…">` sans en-tête
+  `Authorization` → photos invisibles pour tous les comptes connectés. Nouveau chargement
+  authentifié (`useAuthedImageSrc` / `AuthedImage` → fetch Bearer + blob).
+- **B6 incomplet — impersonation GL** : un jeton de prise de contrôle survivait à la
+  désactivation de l'acteur MJ/Admin. L'acteur est désormais relu en base à chaque
+  hydratation (même contrat que ForetMap).
+- **B6 incomplet — Socket.IO** : le canal live authentifiait le JWT brut sans hydratation ;
+  un staff désactivé restait abonné aux rooms de partie/classe. Hydratation à la connexion
+  et à chaque `subscribe:gl-*`, plus filtre `is_active` sur l'appartenance joueur à une partie.
+
 ### Audit bugs juillet 2026 : confidentialité des photos d'élèves et intégrité des inscriptions
 
 Nouveau document [docs/AUDIT_BUGS_2026-07.md](docs/AUDIT_BUGS_2026-07.md) (audit transversal

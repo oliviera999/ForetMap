@@ -37,6 +37,10 @@ Comment on obtient le rôle MJ ou Admin :
 Admin en MJ, désactiver un joueur ou supprimer son compte s'applique **dès l'action
 suivante** de la personne concernée — même si elle est déjà connectée : elle perd
 aussitôt les droits retirés, ou se retrouve déconnectée si son compte n'est plus actif.
+Cela vaut aussi pour une **prise de contrôle** d'un compte élève : si le MJ ou l'Admin
+qui a pris la main est ensuite désactivé, la prise de contrôle s'arrête immédiatement.
+Le flux en direct (partie / classe) suit la même règle : un compte désactivé ne peut
+plus rejoindre ni rester abonné aux mises à jour live.
 Il n'y a donc rien à attendre, et aucune manipulation supplémentaire à faire pour
 « forcer » la déconnexion.
 
