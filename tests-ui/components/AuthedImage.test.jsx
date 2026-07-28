@@ -67,9 +67,7 @@ describe('AuthedImage', () => {
       })),
     );
 
-    const { container } = render(
-      <AuthedImage path="/api/tasks/7/logs/99/image" alt="rapport" />,
-    );
+    const { container } = render(<AuthedImage path="/api/tasks/7/logs/99/image" alt="rapport" />);
     await waitFor(() => {
       expect(container.querySelector('img')).toBeNull();
     });
