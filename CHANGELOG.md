@@ -7,6 +7,21 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Correctifs critiques — reset MDP GL + course inscription/validation
+
+- **GL — changement de mot de passe forcé** : après un `POST /api/gl/auth/change-password`
+  réussi, le drapeau `password_must_reset` était remis à 0 en base mais l'hydratation B6
+  relisait encore `passwordMustReset` **depuis le JWT**. Le middleware bloquait alors
+  toute autre route (`mustResetPassword`) jusqu'à une reconnexion manuelle — le joueur
+  croyait pouvoir jouer alors que l'API restait en 403. `passwordMustReset` des joueurs
+  est désormais relu en base à chaque requête (`lib/auth/glHydration.js`), comme les
+  permissions. Tests : `tests/gl-hydration-password-reset.test.js`.
+- **Tâches — course assign / validate** : une inscription concurrente pouvait recalculer
+  le statut hors transaction avec l'objet `task` périmé et **réécrire `in_progress` par-
+  dessus `validated`** (validation prof perdue, zones déjà détachées). L'insertion et le
+  recalcul se font maintenant sous `SELECT … FOR UPDATE`, avec refus si la tâche est
+  déjà validée/en attente. Tests : `tests/task-assign-status-lock.test.js`.
+
 ### Audit bugs juillet 2026 : confidentialité des photos d'élèves et intégrité des inscriptions
 
 Nouveau document [docs/AUDIT_BUGS_2026-07.md](docs/AUDIT_BUGS_2026-07.md) (audit transversal

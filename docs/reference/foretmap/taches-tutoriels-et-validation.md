@@ -83,7 +83,9 @@ Une tâche passe par des états visibles de tous : **Disponible** → **En cours
 ### Du point de vue du professeur
 
 - **Valider** : la validation est définitive et déclenche la progression des élèves
-  inscrits. Détail à connaître : une tâche validée est **détachée de ses zones et
+  inscrits. Une inscription élève qui arrive **en même temps** qu'une validation ne
+  peut pas « défaire » cette validation : le statut validé est conservé. Détail à
+  connaître : une tâche validée est **détachée de ses zones et
   repères** (elle n'encombre plus la carte) ; pour les tâches récurrentes, les lieux
   sont mémorisés afin que la prochaine occurrence les retrouve.
 - **Remettre au travail** : il n'y a pas de bouton « refuser » — le professeur repasse
