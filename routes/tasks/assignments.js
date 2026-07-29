@@ -86,20 +86,32 @@ router.post(
       return res.status(400).json({ error: 'Plus de place disponible sur cette tâche' });
     }
 
-    // Contrôle de capacité + insertion sérialisés : les vérifications ci-dessus reposent sur
-    // une lecture faite AVANT (`getTaskWithAssignments`), donc deux requêtes concurrentes
-    // (double-clic, inscription en lot) pouvaient toutes deux les franchir et dépasser
-    // `required_students`. Le verrou sur la ligne `tasks` sérialise les inscriptions de la
-    // même tâche ; l'index unique (migration 170) reste le filet contre les doublons.
-    // Cf. audit B4, docs/AUDIT_BUGS_2026-07.md.
+    // Contrôle de capacité + insertion + recalcul de statut sérialisés sous FOR UPDATE :
+    // (1) B4 — deux inscriptions concurrentes ne doivent pas dépasser `required_students`
+    //     (index unique migration 170 = filet anti-doublon).
+    // (2) Une validation prof qui se termine juste après notre lecture initiale ne doit
+    //     pas être écrasée : avant le correctif, le recalcul hors transaction réutilisait
+    //     l'objet `task` périmé (souvent `available`/`in_progress`) et récrivait le statut
+    //     par-dessus `validated`. On verrouille la ligne, on refuse si déjà validée /
+    //     gelée, et on recalcule avec le statut LU sous verrou.
+    let newStatus = normalizeTaskStatusForRead(task.status);
     try {
-      const seatTaken = await withTransaction(async (tx) => {
-        await tx.queryOne('SELECT id FROM tasks WHERE id = ? FOR UPDATE', [task.id]);
+      const outcome = await withTransaction(async (tx) => {
+        const locked = await tx.queryOne(
+          'SELECT id, status, completion_mode, required_students FROM tasks WHERE id = ? FOR UPDATE',
+          [task.id],
+        );
+        if (!locked) return { ok: false, reason: 'missing' };
+        const lockedStatus = normalizeTaskStatusForRead(locked.status);
+        if (lockedStatus === 'validated') return { ok: false, reason: 'validated' };
+        if (lockedStatus === 'on_hold') return { ok: false, reason: 'on_hold' };
         const countRow = await tx.queryOne(
           'SELECT COUNT(*) AS c FROM task_assignments WHERE task_id = ?',
           [task.id],
         );
-        if ((Number(countRow?.c) || 0) >= Number(task.required_students)) return false;
+        if ((Number(countRow?.c) || 0) >= Number(locked.required_students)) {
+          return { ok: false, reason: 'full' };
+        }
         await tx.execute(
           'INSERT INTO task_assignments (task_id, student_id, student_first_name, student_last_name, assigned_at) VALUES (?, ?, ?, ?, ?)',
           [
@@ -110,20 +122,31 @@ router.post(
             new Date().toISOString(),
           ],
         );
-        return true;
+        const recalculated = await recalculateTaskStatus(locked, tx);
+        return {
+          ok: true,
+          status: recalculated?.status || lockedStatus,
+        };
       });
-      if (!seatTaken) {
+      if (!outcome.ok) {
+        if (outcome.reason === 'validated') {
+          return res.status(400).json({ error: 'Tâche déjà validée' });
+        }
+        if (outcome.reason === 'on_hold') {
+          return res.status(400).json({ error: 'Tâche en attente : inscription indisponible' });
+        }
+        if (outcome.reason === 'missing') {
+          return res.status(404).json({ error: 'Tâche introuvable' });
+        }
         return res.status(400).json({ error: 'Plus de place disponible sur cette tâche' });
       }
+      newStatus = outcome.status;
     } catch (err) {
       if (err?.code === 'ER_DUP_ENTRY' || err?.errno === 1062) {
         return res.status(400).json({ error: 'Déjà assigné à cette tâche' });
       }
       throw err;
     }
-
-    const recalculated = await recalculateTaskStatus(task);
-    const newStatus = recalculated?.status || normalizeTaskStatusForRead(task.status);
 
     const updated = await getTaskWithAssignments(task.id);
     logAudit('assign_task', 'task', task.id, `${action.firstName} ${action.lastName}`, {
