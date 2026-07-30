@@ -7,6 +7,22 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Correctif : validation professeur non écrasée par « marquer terminée » / recalcul
+
+Une course entre `POST /api/tasks/:id/done` (ou un recalcul d'inscription/retrait) et
+`POST /api/tasks/:id/validate` pouvait **réécrire `done` / `in_progress` par-dessus
+`validated`** : le statut était lu en mémoire puis mis à jour sans relecture, alors que
+la validation avait déjà détaché zones/repères. Impact : tâche validée qui réapparaît
+comme à revalider, progression incohérente.
+
+- `POST …/done` (mode simple) : `UPDATE … SET status = 'done'` seulement si le statut en
+  base n'est ni `validated` ni `on_hold`.
+- `recalculateTaskStatusWithConn` : **relit toujours** `status` / `completion_mode` en
+  base (plus de confiance dans un snapshot périmé) — protège aussi assign-group /
+  unassign / mode collectif.
+- `POST …/unassign` : relecture du statut avant suppression d'inscription.
+- Tests purs : `tests/task-status-recalc-stale.test.js`.
+
 ### Audit bugs juillet 2026 : confidentialité des photos d'élèves et intégrité des inscriptions
 
 Nouveau document [docs/AUDIT_BUGS_2026-07.md](docs/AUDIT_BUGS_2026-07.md) (audit transversal
