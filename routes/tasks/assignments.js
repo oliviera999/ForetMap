@@ -284,14 +284,21 @@ router.post(
           assignment.id,
         ]);
       }
+      // Le statut est relu en base dans recalculateTaskStatus : un snapshot `task.status`
+      // périmé ne doit pas écraser une validation concurrente.
       await recalculateTaskStatus({
         id: task.id,
         status: task.status,
         completion_mode: completionMode,
       });
-    } else if (task.status !== 'validated' && task.status !== 'on_hold') {
+    } else {
       // Ne pas faire régresser une tâche validée ou en pause vers « done » (dévalidation).
-      await execute("UPDATE tasks SET status = 'done' WHERE id = ?", [task.id]);
+      // Garde SQL : le statut lu plus haut peut être périmé si un n3boss valide entre-temps
+      // (même classe de course que l'inscription vs POST /validate).
+      await execute(
+        "UPDATE tasks SET status = 'done' WHERE id = ? AND status NOT IN ('validated', 'on_hold')",
+        [task.id],
+      );
     }
     const updated = await getTaskWithAssignments(task.id);
     logAudit('done_task', 'task', task.id, `${action.firstName} ${action.lastName}`.trim(), {
@@ -328,6 +335,15 @@ router.post(
         .json({ error: action.error, ...(action.deleted ? { deleted: true } : {}) });
     }
 
+    // Relecture du statut avant DELETE : une validation concurrente ne doit pas laisser
+    // retirer une inscription d'une tâche déjà terminée / validée.
+    const fresh = await queryOne('SELECT id, status FROM tasks WHERE id = ?', [task.id]);
+    if (!fresh) return res.status(404).json({ error: 'Tâche introuvable' });
+    const freshStatus = normalizeTaskStatusForRead(fresh.status);
+    if (freshStatus === 'done' || freshStatus === 'validated') {
+      return res.status(400).json({ error: 'Impossible de quitter une tâche déjà terminée' });
+    }
+
     if (action.studentId) {
       await execute(
         'DELETE FROM task_assignments WHERE task_id = ? AND (student_id = ? OR (student_first_name = ? AND student_last_name = ?))',
@@ -339,7 +355,7 @@ router.post(
         [task.id, action.firstName, action.lastName],
       );
     }
-    const recalculated = await recalculateTaskStatus(task);
+    const recalculated = await recalculateTaskStatus(task.id);
     const newStatus = recalculated?.status || normalizeTaskStatusForRead(task.status);
 
     const updated = await getTaskWithAssignments(task.id);
