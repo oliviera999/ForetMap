@@ -7,6 +7,17 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### fix(gl): QCM en partie — presentationToken one-shot (anti score infini)
+
+- `POST /api/gl/games/:id/qcm/answer` consommait le jeton de présentation sans le
+  marquer comme utilisé : un joueur pouvait renvoyer le même `presentationToken` + bonne
+  réponse pendant toute la durée de validité (15 min) et **incrémenter `gl_team_scores`
+  à chaque appel**.
+- Chaque présentation embarque désormais un `jti` ; la première réponse en partie
+  l’enregistre (`gl_qcm_presentation_uses`, migration `171`) ; les suivants répondent
+  `409` « Présentation déjà utilisée ».
+- Tests : `tests/gl-qcm-presentation-reuse.test.js`, `tests/gl-qcm-choices.test.js`.
+
 ### Audit bugs juillet 2026 : confidentialité des photos d'élèves et intégrité des inscriptions
 
 Nouveau document [docs/AUDIT_BUGS_2026-07.md](docs/AUDIT_BUGS_2026-07.md) (audit transversal

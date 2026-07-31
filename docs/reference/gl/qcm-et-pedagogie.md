@@ -34,6 +34,10 @@ pédagogiques** (un commentaire par réponse, qui explique pourquoi c'est juste 
   (mode animation).
 - La répétition d'une question sur un repère déjà visité dépend d'un réglage (à chaque
   passage, une fois par équipe, une fois par partie).
+- **Une présentation = une réponse comptée** : dès qu'une équipe a répondu à la question
+  qui vient de s'afficher (bonne ou mauvaise), cette présentation est close. Relancer la
+  même réponse ne rapporte pas de points supplémentaires ; il faut une nouvelle
+  présentation (nouveau passage ou nouveau tirage) pour rejouer.
 
 ## Le conditionnement par QCM (« marquer appris »)
 
@@ -66,6 +70,10 @@ statistiques (progression individuelle et de classe).
 > ⚠️ **Point d'attention** — Le conditionnement est **inerte tant que l'interrupteur
 > global est éteint**, même si des liens existent : l'écran des liens le rappelle en
 > bandeau. C'est le premier réflexe si « le blocage ne marche pas ».
+
+> ⚠️ **Point d'attention** — Si le score d'équipe est activé, chaque bonne réponse en
+> partie ne compte **qu'une fois par présentation**. Un élève qui renvoie plusieurs fois
+> la même réponse après coup ne fait plus monter le score (comportement voulu).
 
 > ⚠️ **Point d'attention** — Le délai de nouvelle tentative s'applique à **toute la
 > ressource** après une erreur : un élève verrouillé n'est pas un bug. Le délai se

@@ -38,10 +38,23 @@ test('verifyPresentationAnswer valide la bonne réponse', () => {
   const correctId = presentation.choices.findIndex((c) => c.text === 'Alpha');
   const ok = verifyPresentationAnswer(presentation.presentationToken, 'QCM0001', correctId);
   assert.strictEqual(ok.correct, true);
+  assert.ok(ok.jti, 'jti one-shot exposé pour consommation en partie');
 
   const wrongId = presentation.choices.findIndex((c) => c.text !== 'Alpha');
   const ko = verifyPresentationAnswer(presentation.presentationToken, 'QCM0001', wrongId);
   assert.strictEqual(ko.correct, false);
+  assert.strictEqual(ko.jti, ok.jti);
+});
+
+test('presentQuestion embarque un jti unique par présentation', () => {
+  const a = presentQuestion(SAMPLE_QUESTION);
+  const b = presentQuestion(SAMPLE_QUESTION);
+  const jwt = require('jsonwebtoken');
+  const claimsA = jwt.decode(a.presentationToken);
+  const claimsB = jwt.decode(b.presentationToken);
+  assert.ok(claimsA.jti);
+  assert.ok(claimsB.jti);
+  assert.notStrictEqual(claimsA.jti, claimsB.jti);
 });
 
 test('resolveQcmAnswerFeedback utilise le feedback du choix sélectionné', () => {
