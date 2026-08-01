@@ -64,7 +64,8 @@ notamment par la résolution d'actions — il ne se confond pas avec la vitalit�
 - Le lancement passe par un **assistant** : les joueurs de l'équipe (ou de toutes les
   équipes, selon le réglage) **contribuent** au pot commun du sort, chacun voyant son
   solde et ce qu'il lui restera. Quand le coût est réuni, le sort se lance — avec
-  **l'approbation du MJ** si le réglage l'exige.
+  **l'approbation du MJ** si le réglage l'exige. Un même sort n'est débité **qu'une
+  fois**, même si plusieurs personnes cliquent « lancer » en même temps.
 - Par défaut, les joueurs peuvent lancer les sorts ; le profil de séance « MJ +
   tours » réserve le lancement au MJ.
 - Le module Sortilèges est désactivé par défaut : c'est un choix d'activation

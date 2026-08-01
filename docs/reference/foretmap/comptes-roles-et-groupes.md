@@ -72,8 +72,9 @@ Les groupes structurent la vie pédagogique :
 
 - **Créer / importer** : le professeur peut créer des comptes un par un ou importer une
   liste (rentrée de classe).
-- **Supprimer** : la suppression d'un élève retire aussi ses affectations et son
-  historique de tâches, et recalcule les statuts des tâches concernées.
+- **Supprimer** : la suppression d'un élève retire aussi **ses** affectations et
+  **son** historique de tâches (pas ceux d'un autre élève portant le même
+  prénom et nom), et recalcule les statuts des tâches concernées.
 - **Prendre la main** : un administrateur peut temporairement se connecter « en tant
   que » un utilisateur pour l'aider — l'action est tracée dans le journal d'audit.
 - **Compte supprimé** : si un compte est supprimé pendant qu'il est connecté,

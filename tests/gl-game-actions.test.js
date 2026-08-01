@@ -139,3 +139,52 @@ test('Flux complet : joueur soumet → MJ accepte avec score → score appliqué
   );
   invalidateGameplayCache();
 });
+
+test('deux résolutions MJ concurrentes n’appliquent le score qu’une fois', async () => {
+  await execute(
+    `INSERT INTO gl_settings (\`key\`, value_json, updated_at)
+     VALUES ('gameplay.player_actions_enabled', 'true', NOW())
+     ON DUPLICATE KEY UPDATE value_json = 'true', updated_at = NOW()`,
+  );
+  await execute(
+    `INSERT INTO gl_settings (\`key\`, value_json, updated_at)
+     VALUES ('gameplay.scoring_enabled', 'true', NOW())
+     ON DUPLICATE KEY UPDATE value_json = 'true', updated_at = NOW()`,
+  );
+  invalidateGameplayCache();
+
+  await execute('DELETE FROM gl_team_scores WHERE game_id = ? AND team_id = ?', [gameId, teamId]);
+
+  const submission = await request(app)
+    .post(`/api/gl/games/${gameId}/actions`)
+    .set('Authorization', `Bearer ${playerToken}`)
+    .send({ actionType: 'explore', payload: { markerId: 2 } })
+    .expect(201);
+  const actionId = Number(submission.body.actionRequestId);
+
+  const [r1, r2] = await Promise.all([
+    request(app)
+      .post(`/api/gl/games/${gameId}/actions/${actionId}/resolve`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ decision: 'accepted', scoreDelta: 10, reason: 'Concurrent A' }),
+    request(app)
+      .post(`/api/gl/games/${gameId}/actions/${actionId}/resolve`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ decision: 'accepted', scoreDelta: 10, reason: 'Concurrent B' }),
+  ]);
+
+  const statuses = [r1.status, r2.status].sort();
+  assert.deepStrictEqual(statuses, [200, 409]);
+
+  const scoreRow = await queryOne(
+    'SELECT score FROM gl_team_scores WHERE game_id = ? AND team_id = ?',
+    [gameId, teamId],
+  );
+  assert.strictEqual(Number(scoreRow?.score || 0), 10, 'score appliqué une seule fois');
+
+  await execute(
+    `UPDATE gl_settings SET value_json = 'false', updated_at = NOW()
+      WHERE \`key\` IN ('gameplay.player_actions_enabled', 'gameplay.scoring_enabled')`,
+  );
+  invalidateGameplayCache();
+});

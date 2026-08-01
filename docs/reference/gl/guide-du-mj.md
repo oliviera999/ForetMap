@@ -34,8 +34,9 @@
   question à la classe et validez la réponse depuis la console ; sinon, le popover
   s'ouvre chez l'équipe.
 - **Les actions des joueurs** : les propositions arrivent dans votre file — valider,
-  refuser, raconter. La **narration** s'écrit au journal de partie, que les joueurs
-  lisent en direct.
+  refuser, raconter. Chaque proposition n'est tranchée **qu'une fois** (le score
+  d'équipe n'est pas ajouté deux fois si deux MJ cliquent ensemble). La **narration**
+  s'écrit au journal de partie, que les joueurs lisent en direct.
 - **La vitalité** : ajuster cœurs et gemmes par joueur ou par équipe (récompense,
   péripétie, correction).
 - **Les sorts** : suivre le pot commun des contributions, approuver le lancement si

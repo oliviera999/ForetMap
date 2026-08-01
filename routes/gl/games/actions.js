@@ -1,5 +1,5 @@
 const express = require('express');
-const { queryAll, queryOne, withTransaction } = require('../../../database');
+const { queryOne, withTransaction } = require('../../../database');
 const { requireGlPermission } = require('../../../middleware/requireGlAuth');
 const { insertGameEvent } = require('../../../lib/glGameEvents');
 const { emitGlGameEvent } = require('../../../lib/realtime');
@@ -82,65 +82,90 @@ router.post(
     const scoreDelta = scoreDeltaRaw == null ? 0 : Number(scoreDeltaRaw);
     const reason = normalizeOptionalString(req.body?.reason);
 
-    const action = await queryOne(
-      'SELECT id, team_id, status FROM gl_action_requests WHERE id = ? AND game_id = ? LIMIT 1',
-      [actionId, gameId],
-    );
-    if (!action) return res.status(404).json({ error: 'Demande introuvable' });
-    if (action.status !== 'pending') {
-      return res.status(409).json({ error: 'Demande déjà résolue' });
-    }
-
     const settings = await getGameplaySettings();
     let appliedDelta = 0;
     const resolvedEvents = [];
 
-    await withTransaction(async (tx) => {
-      await tx.execute(
-        `UPDATE gl_action_requests
-          SET status = ?, resolved_by = ?, resolved_at = NOW()
-        WHERE id = ?`,
-        [decision, String(req.glAuth.userId), actionId],
-      );
-      resolvedEvents.push(
-        await insertGameEvent(tx, {
-          gameId,
-          teamId: action.team_id,
-          actorType: 'mj',
-          actorId: String(req.glAuth.userId),
-          eventType: 'action_resolved',
-          payload: { actionRequestId: actionId, decision, scoreDelta: 0, reason },
-        }),
-      );
-      if (
-        decision === 'accepted' &&
-        settings.scoringEnabled &&
-        Number.isFinite(scoreDelta) &&
-        scoreDelta !== 0 &&
-        action.team_id != null
-      ) {
-        appliedDelta = scoreDelta;
-        await tx.execute(
-          `INSERT INTO gl_team_scores (game_id, team_id, score, last_reason, updated_at)
-         VALUES (?, ?, ?, ?, NOW())
-         ON DUPLICATE KEY UPDATE
-           score = score + VALUES(score),
-           last_reason = VALUES(last_reason),
-           updated_at = NOW()`,
-          [gameId, action.team_id, scoreDelta, reason],
+    try {
+      await withTransaction(async (tx) => {
+        // Verrou + UPDATE conditionnel : deux MJ concurrents ne doivent pas
+        // appliquer deux fois le scoreDelta sur la même demande.
+        const action = await tx.queryOne(
+          `SELECT id, team_id, status
+             FROM gl_action_requests
+            WHERE id = ? AND game_id = ?
+            LIMIT 1
+            FOR UPDATE`,
+          [actionId, gameId],
         );
+        if (!action) {
+          const err = new Error('Demande introuvable');
+          err.status = 404;
+          throw err;
+        }
+        if (action.status !== 'pending') {
+          const err = new Error('Demande déjà résolue');
+          err.status = 409;
+          throw err;
+        }
+
+        const updated = await tx.execute(
+          `UPDATE gl_action_requests
+              SET status = ?, resolved_by = ?, resolved_at = NOW()
+            WHERE id = ? AND status = 'pending'`,
+          [decision, String(req.glAuth.userId), actionId],
+        );
+        if (!updated.affectedRows) {
+          const err = new Error('Demande déjà résolue');
+          err.status = 409;
+          throw err;
+        }
+
         resolvedEvents.push(
           await insertGameEvent(tx, {
             gameId,
             teamId: action.team_id,
             actorType: 'mj',
             actorId: String(req.glAuth.userId),
-            eventType: 'score',
-            payload: { delta: scoreDelta, reason: reason || 'Action validée' },
+            eventType: 'action_resolved',
+            payload: { actionRequestId: actionId, decision, scoreDelta: 0, reason },
           }),
         );
+        if (
+          decision === 'accepted' &&
+          settings.scoringEnabled &&
+          Number.isFinite(scoreDelta) &&
+          scoreDelta !== 0 &&
+          action.team_id != null
+        ) {
+          appliedDelta = scoreDelta;
+          await tx.execute(
+            `INSERT INTO gl_team_scores (game_id, team_id, score, last_reason, updated_at)
+           VALUES (?, ?, ?, ?, NOW())
+           ON DUPLICATE KEY UPDATE
+             score = score + VALUES(score),
+             last_reason = VALUES(last_reason),
+             updated_at = NOW()`,
+            [gameId, action.team_id, scoreDelta, reason],
+          );
+          resolvedEvents.push(
+            await insertGameEvent(tx, {
+              gameId,
+              teamId: action.team_id,
+              actorType: 'mj',
+              actorId: String(req.glAuth.userId),
+              eventType: 'score',
+              payload: { delta: scoreDelta, reason: reason || 'Action validée' },
+            }),
+          );
+        }
+      });
+    } catch (err) {
+      if (err && (err.status === 404 || err.status === 409)) {
+        return res.status(err.status).json({ error: err.message });
       }
-    });
+      throw err;
+    }
 
     // Événements de CETTE requête, dans l'ordre d'insertion. Corrige aussi la
     // ré-émission d'un vieil événement quand un seul venait d'être inséré

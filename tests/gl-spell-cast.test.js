@@ -378,6 +378,53 @@ test('contribution > solde → 409 CONTRIBUTION_EXCEEDS_BALANCE', async () => {
     .expect(200);
 });
 
+test('deux lancements concurrents ne débitent qu’une fois', async () => {
+  await execute(
+    'DELETE FROM gl_spell_cast_contributions WHERE draft_id IN (SELECT id FROM gl_spell_cast_drafts WHERE game_id = ?)',
+    [gameId],
+  );
+  await execute('DELETE FROM gl_spell_cast_drafts WHERE game_id = ?', [gameId]);
+  await execute('UPDATE gl_players SET health_points = 10, power_points = 10 WHERE id = ?', [
+    playerAId,
+  ]);
+
+  const draftRes = await request(app)
+    .post(`/api/gl/games/${gameId}/spell-casts/drafts`)
+    .set('Authorization', `Bearer ${tokenA}`)
+    .send({ spellCode: 'SCT01', teamId: teamAId })
+    .expect(201);
+  const draftId = draftRes.body.draft.id;
+
+  await request(app)
+    .put(`/api/gl/games/${gameId}/spell-casts/drafts/${draftId}/contributions`)
+    .set('Authorization', `Bearer ${tokenA}`)
+    .send({ contributions: [{ playerId: playerAId, gems: 2, hearts: 0 }] })
+    .expect(200);
+
+  const [r1, r2] = await Promise.all([
+    request(app)
+      .post(`/api/gl/games/${gameId}/spell-casts/drafts/${draftId}/launch`)
+      .set('Authorization', `Bearer ${tokenA}`),
+    request(app)
+      .post(`/api/gl/games/${gameId}/spell-casts/drafts/${draftId}/launch`)
+      .set('Authorization', `Bearer ${tokenA}`),
+  ]);
+
+  const statuses = [r1.status, r2.status].sort();
+  assert.deepStrictEqual(statuses, [200, 409]);
+
+  const row = await queryOne('SELECT power_points FROM gl_players WHERE id = ?', [playerAId]);
+  assert.strictEqual(Number(row.power_points), 8, 'débit unique (10 - 2)');
+
+  const countRow = await queryOne(
+    `SELECT COUNT(*) AS c FROM gl_game_events
+      WHERE game_id = ? AND event_type = 'spell_cast'
+        AND CAST(JSON_UNQUOTE(JSON_EXTRACT(payload_json, '$.draftId')) AS UNSIGNED) = ?`,
+    [gameId, draftId],
+  );
+  assert.strictEqual(Number(countRow.c), 1, 'un seul événement spell_cast');
+});
+
 test('mj_only : staff peut créer brouillon sans teamId', async () => {
   await enableSpellCast({ mjOnly: true });
   const mjToken = await signAuthToken({

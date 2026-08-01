@@ -7,6 +7,20 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Correctifs critiques — homonymes, score d’action GL, double cast
+
+- **Suppression élève** : l’appariement par prénom+nom ne touche plus que les
+  inscriptions/journaux **hérités** (`student_id IS NULL`). Supprimer un compte
+  n’efface plus les données d’un homonyme encore présent
+  (`lib/studentDeletion.js`, test `tests/students-delete-homonym.test.js`).
+- **Actions joueur GL** : résolution MJ concurrente — verrou `FOR UPDATE` +
+  `UPDATE … WHERE status='pending'` pour n’appliquer le `scoreDelta` qu’une fois
+  (`routes/gl/games/actions.js`, test dans `tests/gl-game-actions.test.js`).
+- **Sortilèges GL** : verrou du brouillon + `UPDATE` conditionnel dans
+  `finalizeCastTx` / soumission / rejet — pas de double débit ni de double
+  événement `spell_cast` sous double-clic (`lib/glSpellCast.js`, test dans
+  `tests/gl-spell-cast.test.js`).
+
 ### Audit bugs juillet 2026 : confidentialité des photos d'élèves et intégrité des inscriptions
 
 Nouveau document [docs/AUDIT_BUGS_2026-07.md](docs/AUDIT_BUGS_2026-07.md) (audit transversal
