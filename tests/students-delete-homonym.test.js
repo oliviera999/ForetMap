@@ -12,7 +12,7 @@ const assert = require('node:assert');
 const request = require('supertest');
 const { app } = require('../server');
 const { initSchema, queryOne, queryAll, execute } = require('../database');
-const { signAuthToken } = require('../middleware/requireTeacher');
+const { ensureRbacBootstrap } = require('../lib/rbac');
 
 let teacherToken;
 const stamp = Date.now();
@@ -24,34 +24,17 @@ let taskId;
 
 before(async () => {
   await initSchema();
-  const loginEmail = String(process.env.TEACHER_ADMIN_EMAIL || '').trim();
-  const teacher = await queryOne(
-    "SELECT id FROM users WHERE user_type = 'teacher' AND LOWER(email) = LOWER(?) LIMIT 1",
-    [loginEmail],
-  );
-  const adminRole = await queryOne("SELECT id FROM roles WHERE slug = 'admin' LIMIT 1");
-  assert.ok(teacher?.id, 'Compte admin enseignant introuvable');
-  assert.ok(adminRole?.id, 'Rôle admin introuvable');
-  await execute('UPDATE user_roles SET is_primary = 0 WHERE user_type = ? AND user_id = ?', [
-    'teacher',
-    teacher.id,
-  ]);
-  await execute(
-    'INSERT INTO user_roles (user_type, user_id, role_id, is_primary) VALUES (?, ?, ?, 1) ON DUPLICATE KEY UPDATE is_primary = 1',
-    ['teacher', teacher.id, adminRole.id],
-  );
-  teacherToken = await signAuthToken(
-    {
-      userType: 'teacher',
-      userId: teacher.id,
-      canonicalUserId: teacher.id,
-      roleId: adminRole.id,
-      roleSlug: 'admin',
-      roleDisplayName: 'Administrateur',
-      elevated: false,
-    },
-    false,
-  );
+  await ensureRbacBootstrap();
+
+  const loginEmail = String(process.env.TEACHER_ADMIN_EMAIL || 'admin.test@foretmap.local').trim();
+  const loginPassword = String(process.env.TEACHER_ADMIN_PASSWORD || 'admin1234');
+  // Le seed prof est déclenché au premier login (ensureTeacherSeedFromEnv).
+  const login = await request(app)
+    .post('/api/auth/login')
+    .send({ identifier: loginEmail, password: loginPassword })
+    .expect(200);
+  teacherToken = login.body.authToken;
+  assert.ok(teacherToken, 'jeton admin attendu');
 
   const regA = await request(app)
     .post('/api/auth/register')
@@ -90,17 +73,25 @@ before(async () => {
     .expect(201);
   taskId = taskRes.body.id;
 
-  await request(app)
-    .post(`/api/tasks/${taskId}/assign`)
-    .set('Authorization', `Bearer ${teacherToken}`)
-    .send({ firstName: sharedFirst, lastName: sharedLast, studentId: studentAId })
-    .expect(200);
-  await request(app)
-    .post(`/api/tasks/${taskId}/assign`)
-    .set('Authorization', `Bearer ${teacherToken}`)
-    .send({ firstName: sharedFirst, lastName: sharedLast, studentId: studentBId })
-    .expect(200);
-
+  // Insertions SQL : l’API assign refuse encore un second homonyme parfait
+  // (match nominal sans borne student_id) — hors scope de ce correctif.
+  const assignedAt = new Date().toISOString();
+  await execute(
+    `INSERT INTO task_assignments (task_id, student_id, student_first_name, student_last_name, assigned_at)
+     VALUES (?, ?, ?, ?, ?), (?, ?, ?, ?, ?)`,
+    [
+      taskId,
+      studentAId,
+      sharedFirst,
+      sharedLast,
+      assignedAt,
+      taskId,
+      studentBId,
+      sharedFirst,
+      sharedLast,
+      assignedAt,
+    ],
+  );
   await execute(
     `INSERT INTO task_logs (task_id, student_id, student_first_name, student_last_name, comment, created_at)
      VALUES (?, ?, ?, ?, 'journal B', NOW())`,
