@@ -7,6 +7,18 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Correctifs critiques — QCM (anti-triche) et archivage des tâches
+
+- **QCM / quiz** : le `presentationToken` JWT ne contient plus `correctChoiceId` (payload
+  lisible en base64 côté client). La bonne réponse est recalculée serveur à partir de
+  `reponse_correcte` + `choiceLetters` ; les jetons legacy qui exposaient encore l’index
+  correct ne sont plus crus. Couvre catalogue GL, lore, QCM de partie et quiz ForetMap.
+- **Tâches archivées** : `POST /validate` et tout `PUT` changeant le statut sont refusés
+  (**409**) tant que la tâche est archivée — évite le détachement irréversible des zones/
+  repères depuis la vue Archives. Changer le projet d’une tâche archivée par cascade
+  efface `archived_via_project` pour empêcher une résurrection croisée au désarchivage
+  du nouveau projet.
+
 ### Audit bugs juillet 2026 : confidentialité des photos d'élèves et intégrité des inscriptions
 
 Nouveau document [docs/AUDIT_BUGS_2026-07.md](docs/AUDIT_BUGS_2026-07.md) (audit transversal

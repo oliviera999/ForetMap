@@ -868,6 +868,13 @@ router.put('/:id', async (req, res) => {
       if (!statusAuth.ok) {
         return res.status(statusAuth.status).json({ error: statusAuth.error });
       }
+      // Archive = inertie : un changement de statut (dont « Validée ») détacherait
+      // définitivement zones/repères. Exiger un désarchivage préalable.
+      if (task.archived_at != null) {
+        return res.status(409).json({
+          error: 'Tâche archivée : désarchivez-la avant de changer son statut',
+        });
+      }
     }
     const nextCompletionMode =
       isTeacherManageAction && Object.prototype.hasOwnProperty.call(req.body, 'completion_mode')
@@ -949,6 +956,12 @@ router.put('/:id', async (req, res) => {
     // + colonnes legacy + espèces + image dans UNE transaction — un échec au milieu ne doit
     // pas laisser statut/map_id désynchronisés des jonctions.
     let obsoleteImagePath = null;
+    const projectIdChanged =
+      String(previousProjectId || '') !== String(projectValidation.projectId || '');
+    // Si une tâche archivée via cascade change de projet, le booléen archived_via_project
+    // ne doit plus la rattacher à l'ancien projet (sinon le désarchivage du nouveau projet
+    // la « ressusciterait » à tort).
+    const clearArchivedViaProject = task.archived_at != null && projectIdChanged;
     await withTransaction(async (tx) => {
       await tx.execute(
         'UPDATE tasks SET title=?, description=?, map_id=?, project_id=?, group_id=?, zone_id=?, marker_id=?, start_date=?, due_date=?, required_students=?, status=?, completion_mode=?, danger_level=?, difficulty_level=?, importance_level=?, recurrence=? WHERE id=?',
@@ -976,6 +989,9 @@ router.put('/:id', async (req, res) => {
           task.id,
         ],
       );
+      if (clearArchivedViaProject) {
+        await tx.execute('UPDATE tasks SET archived_via_project = 0 WHERE id = ?', [task.id]);
+      }
       // Horodatage de validation (référence pour l'archivage automatique). Posé à chaque
       // entrée dans le statut `validated` (une revalidation rafraîchit la date).
       if (becameValidated) {
@@ -1157,6 +1173,11 @@ router.post(
   asyncHandler(async (req, res) => {
     const task = await queryOne('SELECT * FROM tasks WHERE id = ?', [req.params.id]);
     if (!task) return res.status(404).json({ error: 'Tâche introuvable' });
+    if (task.archived_at != null) {
+      return res.status(409).json({
+        error: 'Tâche archivée : désarchivez-la avant de la valider',
+      });
+    }
     const currentStatus = normalizeTaskStatusForRead(task.status);
     if (currentStatus === 'validated') {
       return res.status(400).json({ error: 'Tâche déjà validée' });

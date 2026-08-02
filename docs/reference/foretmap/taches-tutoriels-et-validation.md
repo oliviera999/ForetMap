@@ -93,10 +93,14 @@ Une tâche passe par des états visibles de tous : **Disponible** → **En cours
 - **Archiver** : le bouton 📦 range une tâche « de côté ». Elle disparaît des listes
   actives (côté élève comme professeur) sans être supprimée : son statut, ses comptes
   rendus et ses liaisons sont conservés, et une tâche archivée ne compte plus dans
-  l'avancement automatique de son projet. C'est le geste à privilégier plutôt que la
-  suppression 🗑️ pour un travail terminé qu'on veut garder en mémoire sans encombrer
-  l'écran. On retrouve les archives via le filtre de statut « 📦 Archivés » (réservé aux
-  professeurs), d'où l'on peut **désarchiver** (♻️) pour les remettre en circulation.
+  l'avancement automatique de son projet. Tant qu'elle est archivée, on ne peut ni la
+  **valider** ni changer son statut (il faut d'abord la désarchiver) — cela évite de
+  détacher par inadvertance ses zones et repères. C'est le geste à privilégier plutôt
+  que la suppression 🗑️ pour un travail terminé qu'on veut garder en mémoire sans
+  encombrer l'écran. On retrouve les archives via le filtre de statut « 📦 Archivés »
+  (réservé aux professeurs), d'où l'on peut **désarchiver** (♻️) pour les remettre en
+  circulation. Si l'on change le projet d'une tâche déjà archivée avec un projet, elle
+  ne sera pas automatiquement restaurée lors du désarchivage de son nouveau projet.
 
 ## Archiver un projet
 
