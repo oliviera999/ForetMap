@@ -172,6 +172,124 @@ describe('Archivage des tâches', () => {
       .set('Authorization', `Bearer ${teacherToken}`)
       .expect(404);
   });
+
+  it('refuse validate / changement de statut sur une tâche archivée (lieux conservés)', async () => {
+    const zone = await request(app)
+      .post('/api/zones')
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .send({
+        name: `Zone archive validate ${Date.now()}`,
+        map_id: 'foret',
+        points: [
+          { xp: 10, yp: 10 },
+          { xp: 20, yp: 10 },
+          { xp: 20, yp: 20 },
+        ],
+      })
+      .expect(201);
+
+    const task = await createTask({
+      title: `Tâche archive validate ${Date.now()}`,
+      required_students: 1,
+      map_id: 'foret',
+      zone_ids: [zone.body.id],
+    });
+    const zonesBefore = await queryOne('SELECT COUNT(*) AS n FROM task_zones WHERE task_id = ?', [
+      task.id,
+    ]);
+    assert.ok(Number(zonesBefore.n) >= 1, 'tâche liée à une zone avant archivage');
+
+    await request(app)
+      .post(`/api/tasks/${task.id}/archive`)
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .expect(200);
+
+    await request(app)
+      .post(`/api/tasks/${task.id}/validate`)
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .expect(409);
+
+    await request(app)
+      .put(`/api/tasks/${task.id}`)
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .send({ status: 'validated' })
+      .expect(409);
+
+    const zonesAfter = await queryOne('SELECT COUNT(*) AS n FROM task_zones WHERE task_id = ?', [
+      task.id,
+    ]);
+    assert.strictEqual(
+      Number(zonesAfter.n),
+      Number(zonesBefore.n),
+      'les liaisons zone doivent rester intactes après refus',
+    );
+    const row = await queryOne('SELECT status, archived_at FROM tasks WHERE id = ?', [task.id]);
+    assert.ok(row.archived_at, 'reste archivée');
+    assert.notStrictEqual(row.status, 'validated');
+  });
+
+  it('changer le projet d’une tâche archivée cascadée évite la résurrection croisée', async () => {
+    const projectA = await createProject({
+      map_id: 'foret',
+      title: `Projet A croisé ${Date.now()}`,
+    });
+    const projectB = await createProject({
+      map_id: 'foret',
+      title: `Projet B croisé ${Date.now()}`,
+    });
+    const task = await createTask({
+      title: `Tâche croisée ${Date.now()}`,
+      required_students: 1,
+      map_id: 'foret',
+      project_id: projectA.id,
+    });
+
+    await request(app)
+      .post(`/api/task-projects/${projectA.id}/archive`)
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .expect(200);
+
+    const cascaded = await queryOne(
+      'SELECT archived_at, archived_via_project, project_id FROM tasks WHERE id = ?',
+      [task.id],
+    );
+    assert.ok(cascaded.archived_at);
+    assert.ok(Number(cascaded.archived_via_project) === 1);
+
+    // Édition en vue archives : rattachement au projet B actif.
+    await request(app)
+      .put(`/api/tasks/${task.id}`)
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .send({ project_id: projectB.id, map_id: 'foret', title: task.title })
+      .expect(200);
+
+    const moved = await queryOne(
+      'SELECT archived_at, archived_via_project, project_id FROM tasks WHERE id = ?',
+      [task.id],
+    );
+    assert.ok(moved.archived_at, 'reste archivée');
+    assert.strictEqual(String(moved.project_id), String(projectB.id));
+    assert.strictEqual(
+      Number(moved.archived_via_project),
+      0,
+      'marqueur cascade effacé après changement de projet',
+    );
+
+    await request(app)
+      .post(`/api/task-projects/${projectB.id}/archive`)
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .expect(200);
+    await request(app)
+      .post(`/api/task-projects/${projectB.id}/unarchive`)
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .expect(200);
+
+    const after = await queryOne('SELECT archived_at FROM tasks WHERE id = ?', [task.id]);
+    assert.ok(
+      after.archived_at,
+      'ne doit pas être ressuscitée par le désarchivage du nouveau projet',
+    );
+  });
 });
 
 describe('Archivage des projets de tâches', () => {

@@ -126,6 +126,7 @@ router.post('/games/:id/qcm/answer', requireGlAuth, async (req, res) => {
       req.body?.presentationToken,
       questionCode,
       req.body?.choiceId,
+      { correctLetter: questionRow.reponse_correcte },
     );
   } catch (err) {
     return res.status(400).json({ error: err.message || 'Réponse invalide' });

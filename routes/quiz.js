@@ -305,7 +305,7 @@ router.post(
         req.body?.presentationToken,
         code,
         req.body?.choiceId,
-        QCM_OPTIONS,
+        { ...QCM_OPTIONS, correctLetter: row.reponse_correcte },
       );
       const glossaryByKey = await loadGlossaryLookup();
       const glossaryTerms = enrichQuestionWithGlossary(row, glossaryByKey);

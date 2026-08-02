@@ -1334,6 +1334,7 @@ router.post(
         req.body?.presentationToken,
         code,
         req.body?.choiceId,
+        { correctLetter: row.reponse_correcte },
       );
       const glossaryByKey = await loadLoreGlossaryLookupForQcm();
       const loreGlossaryTerms = await enrichLoreQuestionWithGlossary(row, glossaryByKey);
