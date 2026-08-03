@@ -176,12 +176,12 @@ Référence de couverture GL: `docs/GL_TESTS.md`.
 
 Pour vérifier rapidement les garde-fous introduits après l'audit bugs de juillet 2026 :
 
-| Commande | Couvre |
-| -------- | ------ |
-| `node --test tests/uploads-private-paths.test.js` | Normalisation et refus **403** des familles privées `/uploads/observations` et `/uploads/task-logs` (sans BDD) |
-| `node --test tests/tasks-assignment-concurrency.test.js` | Unicité `(tâche, n3beur)` et capacité sérialisée sur `POST /api/tasks/:id/assign` |
-| `node --test tests/tasks-archive.test.js` | Archivage automatique des tâches/projets validés anciens |
-| `node --test --test-concurrency=1 --test-force-exit tests/gl-auth-revocation.test.js tests/gl-permissions-catalog-alignment.test.js` | Révocation immédiate des droits GL et alignement du catalogue RBAC |
+| Commande                                                                                                                             | Couvre                                                                                                         |
+| ------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------- |
+| `node --test tests/uploads-private-paths.test.js`                                                                                    | Normalisation et refus **403** des familles privées `/uploads/observations` et `/uploads/task-logs` (sans BDD) |
+| `node --test tests/tasks-assignment-concurrency.test.js`                                                                             | Unicité `(tâche, n3beur)` et capacité sérialisée sur `POST /api/tasks/:id/assign`                              |
+| `node --test tests/tasks-archive.test.js`                                                                                            | Archivage automatique des tâches/projets validés anciens                                                       |
+| `node --test --test-concurrency=1 --test-force-exit tests/gl-auth-revocation.test.js tests/gl-permissions-catalog-alignment.test.js` | Révocation immédiate des droits GL et alignement du catalogue RBAC                                             |
 
 Les tests GL qui touchent la base restent séquentiels (`--test-concurrency=1 --test-force-exit`).
 Pour les scénarios tâches créant un élève par API, rattacher/promouvoir le compte avant d'appeler
