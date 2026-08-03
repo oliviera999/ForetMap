@@ -135,7 +135,9 @@ les parties), plafonnées à 99 :
 
 Ces points circulent de plusieurs manières : le MJ peut les ajuster (par joueur ou par
 équipe), les sorts en coûtent, le marché permet de s'en échanger, et les feuillets de
-Sélène peuvent en coûter (gemmes) ou en rapporter (cœurs).
+Sélène peuvent en coûter (gemmes) ou en rapporter (cœurs). Un même effet de case
+(repère ou zone feuillet) ne s'applique **qu'une fois** par équipe, même si deux
+appareils le déclenchent en même temps.
 
 À côté de cette « vitalité » individuelle existe un **score d'équipe**, cumulé par
 partie, alimenté notamment par la résolution d'actions — c'est un compteur distinct,

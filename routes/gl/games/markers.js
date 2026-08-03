@@ -510,6 +510,9 @@ router.post(
     let autoMove = null;
     try {
       await withTransaction(async (tx) => {
+        // skipIfAlreadyApplied:true + verrou équipe (dans applyMarkerVitalityEffects) :
+        // le contrôle hors TX ci-dessus n'est qu'un fast-path ; la concurrence est
+        // tranchée ici pour éviter un double débit cœurs/gemmes.
         vitalityPayload = await applyMarkerVitalityEffects(tx, {
           gameId,
           teamId,
@@ -517,11 +520,17 @@ router.post(
           teamType: team.type,
           settings,
           playerIds,
-          skipIfAlreadyApplied: false,
+          skipIfAlreadyApplied: true,
         });
 
         if (!vitalityPayload?.resolvedEffect) {
           const err = new Error('NO_MARKER_EFFECT');
+          err.status = 409;
+          throw err;
+        }
+
+        if (vitalityPayload.alreadyApplied) {
+          const err = new Error('ALREADY_APPLIED');
           err.status = 409;
           throw err;
         }
@@ -586,6 +595,11 @@ router.post(
     } catch (err) {
       if (err?.message === 'NO_MARKER_EFFECT') {
         return res.status(409).json({ error: 'Aucun effet applicable sur ce repère' });
+      }
+      if (err?.message === 'ALREADY_APPLIED') {
+        return res
+          .status(409)
+          .json({ error: 'Effets vitalité déjà appliqués pour ce repère et cette équipe' });
       }
       if (err?.message === 'NO_VITALITY_TO_APPLY') {
         return res
