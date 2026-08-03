@@ -7,6 +7,16 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Documentation technique post-audit : uploads, tâches, GL et exploitation
+
+- Clarifie le contrat API des affectations de groupe, des familles privées sous `/uploads` et des
+  avatars publics (`students/`, limite 2 Mo, validation actuelle).
+- Met à jour le runbook exploitation pour le garde `/uploads` et les jobs quotidiens
+  (récurrence + archivage automatique), avec logs et tests ciblés.
+- Actualise la matrice de tests GL (inventaire août 2026, révocation/RBAC) et les commandes
+  locales post-audit ; ajoute des bandeaux sur les audits historiques devenus partiellement
+  obsolètes.
+
 ### Audit bugs juillet 2026 : confidentialité des photos d'élèves et intégrité des inscriptions
 
 Nouveau document [docs/AUDIT_BUGS_2026-07.md](docs/AUDIT_BUGS_2026-07.md) (audit transversal

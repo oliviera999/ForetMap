@@ -2,11 +2,12 @@
 
 Ce document centralise les commandes et la matrice de couverture pour Gnomes & Licornes.
 
-**Inventaire (juin 2026)** : **118** fichiers `tests/gl-*.test.js`, **87** fichiers `tests-ui/gl/**`, **21** scénarios `e2e/gl-*.spec.js`.
+**Inventaire (août 2026)** : **152** fichiers `tests/gl-*.test.js`, **149** fichiers `tests-ui/gl/**`, **21** scénarios `e2e/gl-*.spec.js`.
 
 ## Commandes
 
 - Backend GL ciblé : `node --test --test-concurrency=1 --test-force-exit tests/gl-*.test.js`
+- Révocation/RBAC GL ciblé : `node --test --test-concurrency=1 --test-force-exit tests/gl-auth-revocation.test.js tests/gl-permissions-catalog-alignment.test.js`
 - Suite backend globale : `npm test`
 - UI (Vitest, ForetMap + GL) : `npm run test:ui` — **exécuté en CI** après la suite backend
 - E2E GL : `npx playwright test e2e/gl-*.spec.js`
@@ -21,6 +22,8 @@ Ce document centralise les commandes et la matrice de couverture pour Gnomes & L
 - `gl-staff-login.test.js`, `gl-staff-auth.test.js`, `gl-staff-auth-unit.test.js`
 - `gl-guest-mode.test.js` — Mode Découverte invité (`POST /api/gl/auth/guest`, demo-feuillets)
 - `gl-player-google-auth.test.js`, `gl-profile.test.js`, `gl-intro.test.js`, `gl-intro-lib.test.js`
+- `gl-auth-revocation.test.js` — droits effectifs relus en base à chaque requête : rétrogradation
+  admin/MJ, désactivation ou suppression d'un compte invalidées sans attendre l'expiration du JWT.
 
 ### Gameplay et parties
 
@@ -60,7 +63,7 @@ Ce document centralise les commandes et la matrice de couverture pour Gnomes & L
 
 - `gl-admin-classes-players.test.js`, `gl-admin-helpers.test.js`, `gl-admin-query-validation.test.js`
 - `gl-players-admin.test.js`, `gl-players-import.test.js`, `gl-player-journal.test.js`, `gl-player-journal-lib.test.js`, `gl-player-stats.test.js`
-- `gl-settings.test.js`, `gl-settings-cache.test.js`, `gl-rbac.test.js`, `gl-brand.test.js`
+- `gl-settings.test.js`, `gl-settings-cache.test.js`, `gl-rbac.test.js`, `gl-permissions-catalog-alignment.test.js`, `gl-brand.test.js`
 - `gl-diagnostics.test.js`, `gl-realtime.test.js`, `gl-product-routing.test.js`
 
 ### Validation Zod (O7) et utilitaires
@@ -70,7 +73,7 @@ Ce document centralise les commandes et la matrice de couverture pour Gnomes & L
 - `gl-marker-appearance.test.js`, `gl-marker-effects.test.js`, `gl-marker-lore-question-pool.test.js`, `gl-marker-present-question.test.js`, `gl-marker-question-pool.test.js`
 - `gl-norm-map-coords.test.js`, `gl-point-in-polygon.test.js`, `gl-pack-lib-mirror.test.js`, `gl-collab-extensions.test.js`
 
-## UI Vitest (`tests-ui/gl/` — 87 fichiers)
+## UI Vitest (`tests-ui/gl/` — 149 fichiers)
 
 Principales zones :
 
