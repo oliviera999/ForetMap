@@ -81,9 +81,10 @@ before(async () => {
   );
   markerId = Number(
     (
-      await queryOne('SELECT id FROM gl_chapter_markers WHERE chapter_id = ? ORDER BY id DESC LIMIT 1', [
-        chapter.id,
-      ])
+      await queryOne(
+        'SELECT id FROM gl_chapter_markers WHERE chapter_id = ? ORDER BY id DESC LIMIT 1',
+        [chapter.id],
+      )
     ).id,
   );
 
@@ -274,10 +275,10 @@ test('feuillet-zones present concurrent : une seule présentation + un seul déb
 });
 
 test('dice-roll concurrent : un seul jet accepté pour le tour', async () => {
-  await execute(
-    'UPDATE gl_teams SET last_dice_round_number = 0 WHERE id = ? AND game_id = ?',
-    [teamId, gameId],
-  );
+  await execute('UPDATE gl_teams SET last_dice_round_number = 0 WHERE id = ? AND game_id = ?', [
+    teamId,
+    gameId,
+  ]);
   await execute(
     `DELETE FROM gl_game_events WHERE game_id = ? AND team_id = ? AND event_type = 'dice_roll'`,
     [gameId, teamId],
