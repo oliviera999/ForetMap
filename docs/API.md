@@ -1090,6 +1090,16 @@ Contrat principal :
 - Les inscriptions **héritées** (`task_assignments.student_id IS NULL`, saisies avant la généralisation des comptes) ne sont pas concernées par la contrainte d’unicité.
 - Une action n3boss « pour le compte d’un n3beur » exige un `studentId` : un corps `{ firstName, lastName }` seul renvoie **400**. Les inscriptions héritées ne sont donc pas marquables ainsi (l’UI ne propose plus le bouton).
 
+**Affectation de groupe (`POST /api/tasks/:id/assign-group`)** — contrat de lot :
+
+- Corps JSON : `{ "group_id": "<uuid>" }` obligatoire. Le groupe doit appartenir au périmètre du n3boss ; sinon **403** (`Groupe hors périmètre`).
+- Réponse : `{ task, assigned, skipped, considered }` :
+  - `considered` = n3beurs actifs du groupe évalués par le serveur ;
+  - `assigned` = nouvelles inscriptions créées dans ce lot ;
+  - `skipped` = n3beurs déjà inscrits rencontrés avant saturation des places.
+- La capacité respecte `required_students` à partir de la lecture initiale de la tâche. Contrairement à l’auto-inscription `assign`, cette route ne verrouille pas la ligne `tasks` avec `FOR UPDATE` ; l’index unique `(task_id, student_id)` empêche les doublons par n3beur et le `ON DUPLICATE KEY UPDATE` rend le lot idempotent en cas de course sur un même élève.
+- Le plafond d’auto-inscriptions n3beur (`tasks.student_max_active_assignments` / `roles.max_concurrent_tasks`) ne s’applique pas : il s’agit d’une action n3boss.
+
 \* Un n3beur peut aussi modifier **sa propre proposition** (statut `proposed`, préfixe de description `Proposition n3beur:`) ; les champs sensibles (`status`, `project_id`, `tutorial_ids`, `referent_user_ids`, `recurrence`, `completion_mode`) restent réservés aux profils avec `tasks.manage`. Un profil n’ayant que `tasks.validate` (sans `tasks.manage`) peut uniquement passer une tâche en `validated` via `POST /validate` ou `PUT` avec `{ "status": "validated" }` (pas les autres champs ni statuts).
 
 **Photo illustrative (fiche tâche)** — `POST /api/tasks`, `POST /api/tasks/proposals`, `PUT /api/tasks/:id` :
@@ -1305,6 +1315,16 @@ applicative et les noms de fichiers sont prédictibles :
 > `PRIVATE_UPLOAD_PREFIXES` (`lib/uploadsPrivatePaths.js`), sans quoi elle serait servie en
 > clair par `/uploads`.
 
+Notes d’exploitation :
+
+- Le garde `/uploads` est monté **avant** `express.static` : un accès direct à
+  `/uploads/observations/...` ou `/uploads/task-logs/...` doit répondre **403** sans tenter de
+  lire le fichier disque.
+- La normalisation refuse par défaut les chemins suspects (`..`, séparateurs Windows, encodage
+  pourcent invalide) pour éviter qu’un chemin privé soit servi par contournement.
+- Les familles publiques restent servies statiquement. En particulier, les avatars
+  `students/...` sont publics par URL ; ne pas y stocker de média nécessitant une autorisation.
+
 ---
 
 ## Audit
@@ -1354,7 +1374,13 @@ Objet **`site`** (réponse `GET /api/stats/all` uniquement) :
 | PATCH   | `/api/students/:id/profile`     | non (token élève propriétaire requis) | Mettre à jour son profil (`{ pseudo?, email?, description?, avatarData?, removeAvatar?, currentPassword }`) |
 | DELETE  | `/api/students/:id`             | oui (`students.delete`)               | Supprimer un n3beur (cascade)                                                                               |
 
-`avatarData` doit être une data URL image (`png`, `jpg/jpeg`, `webp`). Les fichiers sont stockés sous `uploads/students/...` et exposés via `/uploads/...`.
+`avatarData` doit être une data URL image (`png`, `jpg/jpeg`, `webp`).
+
+- Taille décodée maximale : **2 Mo**.
+- Validation actuelle : préfixe data URL `image/(png|jpeg|jpg|webp)` et taille décodée ; pas de
+  contrôle de signature binaire (« magic bytes ») côté avatar.
+- Exposition : fichiers stockés sous `uploads/students/...` et exposés via `/uploads/...` (famille
+  publique ; toute personne connaissant l’URL peut charger l’image).
 
 ---
 

@@ -2,6 +2,13 @@
 
 Date: 2026-03-23
 
+> **Statut août 2026** — Ce document reste un audit historique. Les constats d'accès ouvert aux
+> photos d'observations et journaux de tâche (sections 2.4, 2.5, risques R3/R8) ont été corrigés
+> par le lot [AUDIT_BUGS_2026-07.md](AUDIT_BUGS_2026-07.md) : `/uploads/observations/` et
+> `/uploads/task-logs/` répondent désormais **403** en accès direct, et la lecture passe par les
+> routes API autorisées. Pour le contrat courant, voir [API.md](API.md), section « Médias sous
+> `/uploads` ».
+
 ## 1) Contexte et périmètre
 
 Cet audit couvre les flux photos utilisés autour de la biodiversité ForetMap:
