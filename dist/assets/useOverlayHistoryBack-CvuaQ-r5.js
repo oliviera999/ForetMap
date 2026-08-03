@@ -1,0 +1,1 @@
+import{r as e}from"./rolldown-runtime-hePW80VL.js";import{i as t}from"./react-vendor-d2MtpFVx.js";import{a as n,i as r}from"./overlayHistory-ubGRvRJu.js";var i=e(t());function a(e,t){let a=(0,i.useRef)(t);a.current=t,(0,i.useEffect)(()=>{if(!e)return;let t=()=>{a.current?.()};return r(t),()=>{n(t)}},[e])}export{a as t};
