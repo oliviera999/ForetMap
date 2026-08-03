@@ -681,13 +681,16 @@ router.post(
 
     const settings = await getGameplaySettings();
     const roundNumber = Number(game.current_round_number) || 0;
-    if (settings.turnsEnabled) {
-      if (roundNumber === 0) {
-        return res.status(409).json({ error: 'Aucun tour en cours : attendez le lancement du MJ' });
-      }
-      if (Number(team.last_dice_round_number || 0) >= roundNumber) {
-        return res.status(409).json({ error: 'Dés déjà lancés pour ce tour' });
-      }
+    if (settings.turnsEnabled && roundNumber === 0) {
+      return res.status(409).json({ error: 'Aucun tour en cours : attendez le lancement du MJ' });
+    }
+    // Fast-path hors TX ; le contrôle concurrent est refait sous FOR UPDATE.
+    if (
+      settings.turnsEnabled &&
+      roundNumber > 0 &&
+      Number(team.last_dice_round_number || 0) >= roundNumber
+    ) {
+      return res.status(409).json({ error: 'Dés déjà lancés pour ce tour' });
     }
 
     const actorType = isStaff ? 'mj' : 'team';
@@ -695,22 +698,50 @@ router.post(
     const payload = { values: roll.values, total: roll.total, roundNumber };
 
     let diceEvent = null;
-    await withTransaction(async (tx) => {
-      diceEvent = await insertGameEvent(tx, {
-        gameId,
-        teamId,
-        actorType,
-        actorId,
-        eventType: 'dice_roll',
-        payload,
-      });
-      if (settings.turnsEnabled && roundNumber > 0) {
-        await tx.execute(
-          'UPDATE gl_teams SET last_dice_round_number = ?, updated_at = NOW() WHERE id = ? AND game_id = ?',
-          [roundNumber, teamId, gameId],
+    try {
+      await withTransaction(async (tx) => {
+        const teamLocked = await tx.queryOne(
+          'SELECT id, last_dice_round_number FROM gl_teams WHERE id = ? AND game_id = ? LIMIT 1 FOR UPDATE',
+          [teamId, gameId],
         );
+        if (!teamLocked) {
+          const err = new Error('TEAM_NOT_FOUND');
+          err.status = 404;
+          throw err;
+        }
+        if (
+          settings.turnsEnabled &&
+          roundNumber > 0 &&
+          Number(teamLocked.last_dice_round_number || 0) >= roundNumber
+        ) {
+          const err = new Error('DICE_ALREADY_ROLLED');
+          err.status = 409;
+          throw err;
+        }
+        diceEvent = await insertGameEvent(tx, {
+          gameId,
+          teamId,
+          actorType,
+          actorId,
+          eventType: 'dice_roll',
+          payload,
+        });
+        if (settings.turnsEnabled && roundNumber > 0) {
+          await tx.execute(
+            'UPDATE gl_teams SET last_dice_round_number = ?, updated_at = NOW() WHERE id = ? AND game_id = ?',
+            [roundNumber, teamId, gameId],
+          );
+        }
+      });
+    } catch (err) {
+      if (err?.message === 'DICE_ALREADY_ROLLED') {
+        return res.status(409).json({ error: 'Dés déjà lancés pour ce tour' });
       }
-    });
+      if (err?.message === 'TEAM_NOT_FOUND') {
+        return res.status(404).json({ error: 'Équipe introuvable dans cette partie' });
+      }
+      throw err;
+    }
 
     emitGlGameEvent(gameId, diceEvent);
     return res.status(201).json(diceEvent);
@@ -761,13 +792,15 @@ router.post(
     if (!team) return res.status(404).json({ error: 'Équipe introuvable dans cette partie' });
 
     const roundNumber = Number(game.current_round_number) || 0;
-    if (settings.turnsEnabled) {
-      if (roundNumber === 0) {
-        return res.status(409).json({ error: 'Aucun tour en cours : attendez le lancement du MJ' });
-      }
-      if (Number(team.last_move_round_number || 0) >= roundNumber) {
-        return res.status(409).json({ error: 'Mascotte déjà déplacée pour ce tour' });
-      }
+    if (settings.turnsEnabled && roundNumber === 0) {
+      return res.status(409).json({ error: 'Aucun tour en cours : attendez le lancement du MJ' });
+    }
+    if (
+      settings.turnsEnabled &&
+      roundNumber > 0 &&
+      Number(team.last_move_round_number || 0) >= roundNumber
+    ) {
+      return res.status(409).json({ error: 'Mascotte déjà déplacée pour ce tour' });
     }
 
     const payload = req.body?.payload ?? req.body ?? {};
@@ -794,6 +827,24 @@ router.post(
     let moveEvent = null;
     try {
       await withTransaction(async (tx) => {
+        const teamLocked = await tx.queryOne(
+          'SELECT id, last_move_round_number FROM gl_teams WHERE id = ? AND game_id = ? LIMIT 1 FOR UPDATE',
+          [teamId, gameId],
+        );
+        if (!teamLocked) {
+          const err = new Error('TEAM_NOT_FOUND');
+          err.status = 404;
+          throw err;
+        }
+        if (
+          settings.turnsEnabled &&
+          roundNumber > 0 &&
+          Number(teamLocked.last_move_round_number || 0) >= roundNumber
+        ) {
+          const err = new Error('MOVE_ALREADY_DONE');
+          err.status = 409;
+          throw err;
+        }
         moveEvent = await insertGameEvent(tx, {
           gameId,
           teamId,
@@ -814,6 +865,12 @@ router.post(
     } catch (err) {
       if (err?.status === 404 && err?.message === 'MARKER_NOT_FOUND') {
         return res.status(404).json({ error: 'Repère introuvable' });
+      }
+      if (err?.message === 'MOVE_ALREADY_DONE') {
+        return res.status(409).json({ error: 'Mascotte déjà déplacée pour ce tour' });
+      }
+      if (err?.message === 'TEAM_NOT_FOUND') {
+        return res.status(404).json({ error: 'Équipe introuvable dans cette partie' });
       }
       throw err;
     }

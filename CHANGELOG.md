@@ -7,6 +7,19 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Correctif — double vitalité / double jet de dés (courses concurrentes)
+
+- **Repères et zones feuillets** : deux présentations simultanées du même effet
+  pouvaient toutes les deux passer le contrôle « déjà appliqué » (lecture hors
+  verrou) et débiter/créditer cœurs et gemmes deux fois. Les chemins
+  `present-arrival`, `apply-effects`, présentation de zone feuillet et découverte
+  de feuillet verrouillent désormais l’équipe (`SELECT … FOR UPDATE`) avant le
+  test d’idempotence ; les deltas joueur sont aussi appliqués sous verrou.
+- **Dés / déplacement joueur** : le contrôle « déjà joué ce tour » est refait sous
+  verrou dans la transaction — un double-clic ou deux clients ne produisent plus
+  qu’un seul `dice_roll` / déplacement pour le tour.
+- Tests : `tests/gl-vitality-concurrency.test.js`.
+
 ### Audit bugs juillet 2026 : confidentialité des photos d'élèves et intégrité des inscriptions
 
 Nouveau document [docs/AUDIT_BUGS_2026-07.md](docs/AUDIT_BUGS_2026-07.md) (audit transversal
