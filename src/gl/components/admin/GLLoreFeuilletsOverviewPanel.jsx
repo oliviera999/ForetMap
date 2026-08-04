@@ -4,13 +4,16 @@ import { GLField } from '../ui/GLField.jsx';
 import { GLInput } from '../ui/GLInput.jsx';
 import { GLSelect } from '../ui/GLSelect.jsx';
 import { GLBadge } from '../ui/GLBadge.jsx';
+import { GLButton } from '../ui/GLButton.jsx';
 import { GLDataList } from '../ui/GLDataList.jsx';
+import { GLFeuilletEditorDialog } from './GLFeuilletEditorDialog.jsx';
 import { channelLabel, isOrphanChannel } from '../../utils/glFeuilletChannelLabels.js';
 
 /**
  * Vue d'ensemble admin des feuillets : couverture par canal d'acquisition, orphelins,
  * répartition par chapitre, liens résolus en noms d'éléments et stats de découverte.
- * Lecture seule (l'édition unitaire/masse se fait dans l'onglet « Feuillets »).
+ * Chaque ligne ouvre le popover partagé (GLFeuilletEditorDialog) : aperçu du contenu
+ * tel que le joueur le verra, puis édition du feuillet sans changer d'onglet.
  */
 export function GLLoreFeuilletsOverviewPanel() {
   const [data, setData] = useState(null);
@@ -20,6 +23,8 @@ export function GLLoreFeuilletsOverviewPanel() {
   const [filterChannel, setFilterChannel] = useState('');
   const [filterChapter, setFilterChapter] = useState('');
   const [filterAnchor, setFilterAnchor] = useState('');
+  // Feuillet ouvert dans le popover (aperçu + édition).
+  const [openedCode, setOpenedCode] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -81,6 +86,7 @@ export function GLLoreFeuilletsOverviewPanel() {
     { key: 'anchor', label: 'Ancrage carte' },
     { key: 'discovery', label: 'Découverte' },
     { key: 'statut', label: 'Statut' },
+    { key: 'actions', label: '' },
   ];
 
   const rows = filteredItems.map((it) => {
@@ -105,8 +111,19 @@ export function GLLoreFeuilletsOverviewPanel() {
       ) : (
         <span>—</span>
       );
+    const openBtn = (
+      <GLButton
+        type="button"
+        variant="secondary"
+        onClick={() => setOpenedCode(it.feuilletCode)}
+        aria-label={`Aperçu du feuillet ${it.feuilletCode}`}
+      >
+        Aperçu
+      </GLButton>
+    );
     return {
       key: it.feuilletCode,
+      rowClassName: openedCode === it.feuilletCode ? 'is-active' : '',
       desktopCells: (
         <>
           <td>
@@ -119,6 +136,7 @@ export function GLLoreFeuilletsOverviewPanel() {
           <td>{anchorBadge}</td>
           <td>{discoveryText}</td>
           <td>{statutBadge}</td>
+          <td>{openBtn}</td>
         </>
       ),
       mobileCells: (
@@ -151,6 +169,7 @@ export function GLLoreFeuilletsOverviewPanel() {
             <span className="gl-data-card-label">Découverte</span>
             <span>{discoveryText}</span>
           </div>
+          <div className="gl-data-card-actions">{openBtn}</div>
         </>
       ),
     };
@@ -278,10 +297,20 @@ export function GLLoreFeuilletsOverviewPanel() {
           </div>
 
           <p className="gl-hint">
-            {filteredItems.length}/{items.length} feuillets affichés.
+            {filteredItems.length}/{items.length} feuillets affichés — « Aperçu » ouvre le contenu
+            du feuillet, avec son onglet « Édition ».
           </p>
           <GLDataList columns={columns} rows={rows} emptyLabel="Aucun feuillet." />
         </>
+      ) : null}
+
+      {openedCode ? (
+        <GLFeuilletEditorDialog
+          code={openedCode}
+          initialMode="preview"
+          onClose={() => setOpenedCode(null)}
+          onSaved={load}
+        />
       ) : null}
     </section>
   );

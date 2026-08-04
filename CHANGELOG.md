@@ -28,6 +28,22 @@ demande d'évolution (repère `🔧 À implémenter :`).
 - API : `GET/PUT /api/gl/admin/reference-docs[/:slug]` et `POST …/:slug/reset`. Le `slug` est
   restreint à `^[a-z0-9]+(-[a-z0-9]+)*$` — aucune traversée de chemin possible ; la création de
   document par l'API est refusée (404 hors des documents existants). Voir `docs/API.md`.
+### GL — popover d'aperçu et d'édition des feuillets depuis la vue d'ensemble
+
+- **Contenus → Carnet de Sélène → Vue d'ensemble** : chaque ligne dispose désormais d'un bouton
+  **« Aperçu »** qui ouvre un popover montrant le **contenu du feuillet tel que le joueur le
+  verra** (illustration, titre, incipit, corps, ancrage scientifique) accompagné de ses
+  caractéristiques résumées et de ses chapitres rattachés. Un onglet **« Édition »** donne accès
+  au formulaire complet (tous les champs, associations, zone du royaume, ordre de liasse) :
+  enregistrement, archivage/réactivation et rechargement de la vue se font sans changer d'onglet.
+  La vue d'ensemble n'est donc plus en lecture seule.
+- **Mutualisation** : le popover est le composant partagé `GLFeuilletEditorDialog`, également
+  utilisé par l'onglet « Feuillets » (qui l'ouvre directement en mode édition) ; le rendu des
+  champs est extrait dans `GLFeuilletFormFields`. Aucun changement d'API : les endpoints
+  `GET/PUT/PATCH /api/gl/lore/admin/feuillets/:code` sont inchangés.
+- Tests : `tests-ui/gl/GLFeuilletEditorDialog.test.jsx` (aperçu, bascule vers l'édition, PUT,
+  feuillet introuvable) et un scénario d'ouverture du popover dans
+  `tests-ui/gl/GLLoreFeuilletsOverviewPanel.test.jsx`.
 
 ### Audit bugs juillet 2026 : confidentialité des photos d'élèves et intégrité des inscriptions
 
