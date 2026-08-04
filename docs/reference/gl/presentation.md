@@ -91,7 +91,10 @@ personnel.
 - **Histoire** : le journal de la partie (les événements racontés au fil du jeu).
 - **Carnet de Sélène** : les feuillets narratifs, **verrouillés par défaut** ; ils se
   découvrent en jouant (arrivée sur une zone, réussite d'un QCM). Leur consultation
-  peut coûter des gemmes ou rapporter des cœurs selon les réglages.
+  peut coûter des gemmes ou rapporter des cœurs selon les réglages. Côté staff,
+  **Contenus → Carnet de Sélène → Vue d'ensemble** propose un bouton **« Aperçu »**
+  sur chaque ligne : il ouvre une fenêtre montrant le feuillet **tel que le joueur le
+  verra**, avec un onglet **« Édition »** pour le corriger sans quitter la vue.
 - **Sortilèges** : un catalogue de sorts propres à chaque chapitre, que les joueurs
   lancent via un assistant ; un sort coûte des cœurs et/ou des gemmes, peut être
   alimenté collectivement, et peut nécessiter l'approbation du MJ.
