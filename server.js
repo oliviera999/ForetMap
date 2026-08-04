@@ -51,6 +51,7 @@ const glGamesRouter = require('./routes/gl/games');
 const glChaptersRouter = require('./routes/gl/chapters');
 const glMascotsRouter = require('./routes/gl/mascots');
 const glAdminRouter = require('./routes/gl/admin');
+const glReferenceDocsRouter = require('./routes/gl/reference-docs');
 const glContextCommentsRouter = require('./routes/gl/context-comments');
 const glForumRouter = require('./routes/gl/forum');
 const glMarketRouter = require('./routes/gl/market');
@@ -298,6 +299,8 @@ app.get('/api/version', (req, res) => {
 app.use(createAdminOpsRouter({ gracefulShutdown }));
 
 app.use('/api/gl/auth', glAuthRouter);
+// Avant glAdminRouter : préfixe plus spécifique, monté à part pour ne pas alourdir routes/gl/admin.js.
+app.use('/api/gl/admin/reference-docs', glReferenceDocsRouter);
 app.use('/api/gl/admin', glAdminRouter);
 app.use('/api/gl/content', glContentRouter);
 app.use('/api/gl/chapters', glChaptersRouter);

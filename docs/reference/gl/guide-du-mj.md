@@ -63,6 +63,27 @@
 | Vérifier ce que voit un élève           | —                                                                                                            | Prendre la main sur son compte (bandeau affiché, action tracée) ou basculer en « vue joueur »          |
 | Les sorts ne se lancent pas             | Module Sortilèges désactivé, ou lancement réservé au MJ par le profil de séance                              | Réglages → modules / gameplay                                                                          |
 
+## Lire et amender cette documentation depuis le jeu
+
+Les documents de référence de Gnomes & Licornes — celui-ci compris — sont consultables
+**directement dans l'application** : onglet **Contenus → Doc de référence**. La liste
+reprend l'ordre de lecture du sommaire ; le document choisi s'affiche mis en forme.
+
+Un MJ ou un administrateur peut aussi les **modifier** sur place (« Modifier le
+document ») : le texte est enregistré au fil de la frappe et remplace, pour tout le
+monde, la version livrée avec l'application. C'est le moyen le plus direct de demander
+une évolution — écrivez le comportement **souhaité**, précédé du repère
+`🔧 À implémenter :`, et la demande est prise en compte au développement suivant.
+
+Trois repères utiles :
+
+- La liste marque d'un point (**•**) les documents modifiés depuis l'application ; les
+  autres affichent le texte d'origine.
+- **Réinitialiser depuis le dépôt** annule toutes les modifications d'un document et
+  rétablit le texte livré avec l'application.
+- **Télécharger le .md** enregistre le document tel qu'il est affiché, pour l'archiver
+  ou le transmettre.
+
 ## ⚠️ Point d'attention
 
 > ⚠️ **Point d'attention** — Les profils de séance ne touchent **pas** aux modules :

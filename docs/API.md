@@ -70,6 +70,24 @@ La matrice de couverture des tests GL est documentée dans `docs/GL_TESTS.md`.
 
 Slugs livrés en seed : `world`, `rules`, `spells`.
 
+### Documentation de référence fonctionnelle GL
+
+`docs/reference/gl/*.md` — documentation non technique (professeurs, MJ, admins), consultable et
+éditable depuis **Contenus → Doc de référence**. Le **fichier versionné dans Git** est la base ;
+une modification faite dans l'application est stockée en **surcouche** (`gl_reference_docs`) et
+survit donc aux déploiements. `slug` = nom de fichier sans `.md` (`^[a-z0-9]+(-[a-z0-9]+)*$`,
+tout autre motif → **400**, pas de traversée de chemin possible).
+
+| Méthode | Route                                      | Corps                     | Droits                                                                                                                                                                                                |
+| ------- | ------------------------------------------ | ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET     | `/api/gl/admin/reference-docs`             | —                         | `gl.content.manage` — liste sans `bodyMarkdown` (`slug`, `title`, `summary`, `charCount`, `edited`, `source`, `fileAvailable`, `updatedAt`, `updatedBy`), triée selon l'ordre de lecture du sommaire. |
+| GET     | `/api/gl/admin/reference-docs/:slug`       | —                         | `gl.content.manage` — fiche complète avec `bodyMarkdown`. **404** si le document n'existe ni sur disque ni en surcouche.                                                                              |
+| PUT     | `/api/gl/admin/reference-docs/:slug`       | `{ title, bodyMarkdown }` | `gl.content.manage` — enregistre la surcouche. **404** si le document n'existe pas (aucune création). Titre requis (**400** si vide ou > 180 car.), corps ≤ 400 000 car.                              |
+| POST    | `/api/gl/admin/reference-docs/:slug/reset` | —                         | `gl.content.manage` — supprime la surcouche : le document revient au fichier du dépôt.                                                                                                                |
+
+Le fichier Markdown n'est **jamais réécrit** par le serveur : pour reverser une modification dans
+Git, l'onglet propose de télécharger le `.md` et de le commiter.
+
 Import éditorial WordPress (source recommandée `https://yo.olution.info`) : `npm run gl:import:wp` (`--dry-run` par défaut, `--apply` pour UPSERT BDD).
 
 Le script accepte aussi :
