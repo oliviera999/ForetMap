@@ -7,6 +7,28 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### GL — Contenus → Doc de référence : lire et amender la doc fonctionnelle depuis le jeu
+
+Les documents de référence non techniques de Gnomes & Licornes (`docs/reference/gl/*.md` :
+présentation, lore, rôles, chapitres, carte du royaume, économie, QCM, guide du MJ) sont
+désormais **consultables et modifiables** depuis l'onglet **Contenus** (nouveau sous-onglet
+**Doc de référence**, droit `gl.content.manage`). Ils décrivent les composantes du jeu en
+français simple pour les professeurs, MJ et administrateurs — et ce qui y est écrit vaut
+demande d'évolution (repère `🔧 À implémenter :`).
+
+- **Stockage à deux étages, non destructif** : le fichier Markdown versionné dans Git reste la
+  base ; une modification faite dans l'application est stockée en surcouche (nouvelle table
+  `gl_reference_docs`, migration `172`) et survit donc aux déploiements, qui réécrivent les
+  fichiers du dépôt. Le serveur ne réécrit jamais les fichiers.
+- **Réversible et exportable** : « Réinitialiser depuis le dépôt » supprime la surcouche ;
+  « Télécharger le .md » permet de reverser une modification dans Git. La liste signale d'un
+  point les documents modifiés depuis l'application.
+- **Édition en Markdown brut** (pas l'éditeur visuel) : ces textes partent dans Git, tableaux,
+  ancres et repères `🔧 À implémenter :` doivent être préservés à l'identique.
+- API : `GET/PUT /api/gl/admin/reference-docs[/:slug]` et `POST …/:slug/reset`. Le `slug` est
+  restreint à `^[a-z0-9]+(-[a-z0-9]+)*$` — aucune traversée de chemin possible ; la création de
+  document par l'API est refusée (404 hors des documents existants). Voir `docs/API.md`.
+
 ### Audit bugs juillet 2026 : confidentialité des photos d'élèves et intégrité des inscriptions
 
 Nouveau document [docs/AUDIT_BUGS_2026-07.md](docs/AUDIT_BUGS_2026-07.md) (audit transversal
