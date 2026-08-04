@@ -72,6 +72,12 @@ _Le sommaire est complet ; il peut évoluer (fusion, découpage, ajout) selon le
 besoins. Vos éditions directes dans ces documents (marqueur `🔧 À implémenter`)
 valent demandes de changement._
 
+> **Les documents GL se lisent et se modifient aussi depuis le jeu**, sans passer par les
+> fichiers : onglet **Contenus → Doc de référence** (MJ et administrateurs). Le texte livré
+> avec l'application sert de base ; une modification faite là s'applique pour tout le monde
+> et peut être annulée (« Réinitialiser depuis le dépôt ») ou téléchargée en `.md`. Détail :
+> [gl/guide-du-mj.md](gl/guide-du-mj.md).
+
 ## Comment lire ces documents
 
 - Chaque application a un **document de présentation générale** qui donne la vue
