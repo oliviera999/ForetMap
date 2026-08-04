@@ -1,6 +1,12 @@
 import React from 'react';
 import { describe, test, expect, vi, beforeEach } from 'vitest';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+
+// L'illustration (rendue par le popover d'aperçu) charge un runtime d'assets GL.
+vi.mock('../../src/gl/components/GLFeuilletIllustration.jsx', () => ({
+  GLFeuilletIllustration: () => null,
+}));
+
 import { GLLoreFeuilletsOverviewPanel } from '../../src/gl/components/admin/GLLoreFeuilletsOverviewPanel.jsx';
 
 const apiGlMock = vi.fn();
@@ -78,5 +84,40 @@ describe('GLLoreFeuilletsOverviewPanel', () => {
       expect(screen.queryAllByText('Zone A')).toHaveLength(0);
       expect(screen.getAllByText('Orphelin').length).toBeGreaterThan(0);
     });
+  });
+
+  test('« Aperçu » ouvre le popover du feuillet, avec bascule vers l’édition', async () => {
+    apiGlMock.mockImplementation(async (path, method) => {
+      if (path === '/api/gl/lore/admin/feuillets/overview') return OVERVIEW;
+      if (path === '/api/gl/biomes') return [];
+      if (path === '/api/gl/chapters') return [];
+      if (path === '/api/gl/lore/admin/feuillets/ep-I-01') {
+        if (method === 'PUT') return { ok: true, feuillet: { feuilletCode: 'ep-I-01' } };
+        return {
+          feuillet: {
+            feuilletCode: 'ep-I-01',
+            titre: 'Zone A',
+            texte: 'Le récit de la zone A.',
+            statut: 'actif',
+          },
+        };
+      }
+      return {};
+    });
+
+    render(<GLLoreFeuilletsOverviewPanel />);
+    await waitFor(() => expect(screen.getAllByText('Zone A').length).toBeGreaterThan(0));
+
+    fireEvent.click(screen.getAllByLabelText('Aperçu du feuillet ep-I-01')[0]);
+
+    // Le popover charge le détail et affiche le contenu tel que le joueur le verra.
+    await waitFor(() => {
+      expect(apiGlMock).toHaveBeenCalledWith('/api/gl/lore/admin/feuillets/ep-I-01');
+    });
+    expect(await screen.findByText('Le récit de la zone A.')).toBeInTheDocument();
+
+    // L'édition du feuillet reste accessible depuis ce même popover.
+    fireEvent.click(screen.getByRole('tab', { name: 'Édition' }));
+    expect(await screen.findByRole('textbox', { name: 'Titre' })).toHaveValue('Zone A');
   });
 });

@@ -68,7 +68,9 @@ lorsqu'un effet de repère l'exige.
 > réparer ces feuillets après coup : **Contenus → Carnet de Sélène → Vue d'ensemble** affiche
 > un compteur **« ancrage carte perdu »** et un filtre dédié ; le rattachement se rétablit soit
 > depuis l'éditeur d'une zone (« Associer » / « Détacher » un feuillet), soit depuis l'éditeur
-> de feuillet (champ **Ancrage carte**), y compris **en masse** sur une sélection.
+> de feuillet (champ **Ancrage carte**), y compris **en masse** sur une sélection. Le bouton
+> **« Aperçu »** de la vue d'ensemble ouvre directement le feuillet concerné (contenu joueur,
+> puis onglet **« Édition »**) : on répare sans changer d'onglet.
 
 ## Pour aller plus loin
 
