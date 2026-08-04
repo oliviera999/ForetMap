@@ -23,6 +23,7 @@ import { GLContentLibraryView } from './admin/GLContentLibraryView.jsx';
 import { GLIntroAdminPanel } from './admin/GLIntroAdminPanel.jsx';
 import { GLHelpContentAdminPanel } from './admin/GLHelpContentAdminPanel.jsx';
 import { GLLearningLinksPanel } from './admin/GLLearningLinksPanel.jsx';
+import { GLReferenceDocsPanel } from './admin/GLReferenceDocsPanel.jsx';
 
 export function GLContentsAdminView({
   auth,
@@ -163,6 +164,14 @@ export function GLContentsAdminView({
         >
           Bibliothèque
         </button>
+        <button
+          type="button"
+          className={section === 'reference' ? 'is-active' : ''}
+          onClick={() => setSection('reference')}
+          data-subtab="reference"
+        >
+          Doc de référence
+        </button>
       </nav>
 
       {section === 'pages' ? (
@@ -234,6 +243,11 @@ export function GLContentsAdminView({
         <GLHelpContentAdminPanel />
       ) : section === 'library' ? (
         <GLContentLibraryView onOpenSubTab={setSection} />
+      ) : section === 'reference' ? (
+        <GLReferenceDocsPanel
+          glossaryLinkItems={glossaryLinkItems}
+          onOpenGlossaryTerm={onOpenGlossaryTerm}
+        />
       ) : section === 'qcm-lore' ? (
         <GLContentCatalogPanel
           manualLabel="Édition des questions"

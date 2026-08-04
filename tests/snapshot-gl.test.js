@@ -26,6 +26,7 @@ if (String(process.env.FORETMAP_SNAPSHOT_GL || '').trim() !== '1') {
       'gl_mascot_assignments',
       'gl_settings',
       'gl_content_pages',
+      'gl_reference_docs',
     ];
     for (const table of expectedTables) {
       const row = await queryOne(
