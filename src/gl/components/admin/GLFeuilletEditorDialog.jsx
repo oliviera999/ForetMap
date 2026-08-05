@@ -52,6 +52,9 @@ export function GLFeuilletEditorDialog({
   // Zone royaume liée au feuillet (gérée via son endpoint dédié, hors PUT principal).
   const [currentZoneId, setCurrentZoneId] = useState(null);
   const [loading, setLoading] = useState(false);
+  // `true` seulement après un GET réussi pour le `code` courant — empêche un PUT
+  // avec EMPTY_FORM (wipe total des colonnes) si le chargement a échoué.
+  const [loadReady, setLoadReady] = useState(false);
   const [saving, setSaving] = useState(false);
   // Aperçu « comme le joueur le verra » à côté du formulaire, en mode édition.
   const [showPreview, setShowPreview] = useState(false);
@@ -72,19 +75,33 @@ export function GLFeuilletEditorDialog({
     let cancelled = false;
     if (!code) return undefined;
     setLoading(true);
+    setLoadReady(false);
     setNotices(EMPTY_NOTICES);
     apiGL(`/api/gl/lore/admin/feuillets/${encodeURIComponent(code)}`)
       .then((data) => {
         if (cancelled) return;
-        setForm(feuilletToForm(data?.feuillet));
+        // Sans fiche, on refuse l'édition : le PUT admin écrase toutes les colonnes
+        // (y compris avec des chaînes vides), ce qui viderait le feuillet en base.
+        if (!data?.feuillet) {
+          setForm(EMPTY_FORM);
+          setLoadReady(false);
+          setNotices({
+            ...EMPTY_NOTICES,
+            error: 'Feuillet introuvable',
+          });
+          return;
+        }
+        setForm(feuilletToForm(data.feuillet));
         const zoneRaw =
-          data?.feuillet?.kingdomZoneId ??
+          data.feuillet.kingdomZoneId ??
           allItemsRef.current.find((r) => r.feuillet_code === code)?.kingdom_zone_id;
         setCurrentZoneId(zoneRaw != null && zoneRaw !== '' ? Number(zoneRaw) : null);
+        setLoadReady(true);
       })
       .catch((err) => {
         if (cancelled) return;
         setForm(EMPTY_FORM);
+        setLoadReady(false);
         setNotices({ ...EMPTY_NOTICES, error: err.message || 'Feuillet introuvable' });
       })
       .finally(() => {
@@ -117,7 +134,7 @@ export function GLFeuilletEditorDialog({
   }, [allItems, form.liasse]);
 
   async function save() {
-    if (!code) return;
+    if (!code || !loadReady) return;
     setSaving(true);
     setNotices(EMPTY_NOTICES);
     try {
@@ -140,7 +157,7 @@ export function GLFeuilletEditorDialog({
   }
 
   async function toggleStatut() {
-    if (!code) return;
+    if (!code || !loadReady) return;
     const nextStatut = form.statut === 'actif' ? 'inactif' : 'actif';
     if (
       nextStatut === 'inactif' &&
@@ -203,6 +220,7 @@ export function GLFeuilletEditorDialog({
   }
 
   const isPreview = mode === 'preview';
+  const mutationsDisabled = saving || loading || !loadReady;
 
   return (
     <DialogShell
@@ -230,6 +248,7 @@ export function GLFeuilletEditorDialog({
               aria-selected={isPreview}
               className={isPreview ? 'is-active' : ''}
               onClick={() => setMode('preview')}
+              disabled={!loadReady && !loading}
             >
               Aperçu
             </button>
@@ -239,12 +258,13 @@ export function GLFeuilletEditorDialog({
               aria-selected={!isPreview}
               className={!isPreview ? 'is-active' : ''}
               onClick={() => setMode('edit')}
+              disabled={!loadReady && !loading}
             >
               Édition
             </button>
           </div>
           <div className="gl-inline-actions">
-            {isPreview ? null : (
+            {isPreview || !loadReady ? null : (
               <GLButton
                 type="button"
                 variant={showPreview ? 'primary' : 'ghost'}
@@ -254,14 +274,21 @@ export function GLFeuilletEditorDialog({
                 {showPreview ? 'Masquer l’aperçu' : 'Aperçu joueur'}
               </GLButton>
             )}
-            {isPreview ? null : (
-              <GLButton type="button" onClick={save} disabled={saving || loading}>
+            {isPreview || !loadReady ? null : (
+              <GLButton type="button" onClick={save} disabled={mutationsDisabled}>
                 {saving ? 'Enregistrement…' : 'Enregistrer'}
               </GLButton>
             )}
-            <GLButton type="button" variant="secondary" onClick={toggleStatut} disabled={saving}>
-              {form.statut === 'actif' ? 'Archiver' : 'Réactiver'}
-            </GLButton>
+            {loadReady ? (
+              <GLButton
+                type="button"
+                variant="secondary"
+                onClick={toggleStatut}
+                disabled={mutationsDisabled}
+              >
+                {form.statut === 'actif' ? 'Archiver' : 'Réactiver'}
+              </GLButton>
+            ) : null}
             <GLButton type="button" variant="ghost" onClick={onClose} disabled={saving}>
               Fermer
             </GLButton>
@@ -274,7 +301,7 @@ export function GLFeuilletEditorDialog({
       {notices.warning ? <p className="gl-hint">⚠️ {notices.warning}</p> : null}
       {loading ? <p className="gl-hint">Chargement du feuillet…</p> : null}
 
-      {isPreview ? (
+      {!loadReady && !loading ? null : isPreview ? (
         <div className="gl-feuillet-editor-modal__body">
           <div className="gl-feuillet-quickview">
             <dl className="gl-feuillet-quickview__meta">
