@@ -7,6 +7,16 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Corrigé
+
+- **GL — feuillets Sélène : anti-wipe après échec de chargement** : le popover d'édition
+  (`GLFeuilletEditorDialog`, PR #281) ouvrait immédiatement la modale puis chargeait le
+  détail en asynchrone. Si le `GET` échouait (réseau, 500) ou renvoyait une fiche vide, le
+  formulaire restait sur `EMPTY_FORM` avec **Enregistrer** actif ; un `PUT` écrasait alors
+  toutes les colonnes éditables en base (titre, textes, images…). Correctif : mutations
+  (enregistrer / archiver) et formulaire bloqués tant que le détail n'est pas chargé avec
+  succès. Tests UI `tests-ui/gl/GLFeuilletEditorDialog.test.jsx`.
+
 ### GL — Contenus → Doc de référence : lire et amender la doc fonctionnelle depuis le jeu
 
 Les documents de référence non techniques de Gnomes & Licornes (`docs/reference/gl/*.md` :
