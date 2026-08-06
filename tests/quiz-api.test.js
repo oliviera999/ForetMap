@@ -99,7 +99,7 @@ test('GET /api/quiz/stats — auth prof requise', async () => {
   await request(app).get('/api/quiz/stats').expect(401);
 });
 
-test('GET /api/quiz/questions — liste publique filtrée', async () => {
+test('GET /api/quiz/questions — liste publique filtrée sans reponse_correcte', async () => {
   const res = await request(app)
     .get('/api/quiz/questions?theme=sciences&categorieSlug=vivant_classification')
     .expect(200);
@@ -107,6 +107,31 @@ test('GET /api/quiz/questions — liste publique filtrée', async () => {
   assert.ok(res.body.items.length > 0);
   assert.strictEqual(res.body.items[0].categorie_slug, 'vivant_classification');
   assert.strictEqual(res.body.items[0].theme, 'sciences');
+  // Anti-triche / anti-bypass gating : la lettre ne doit jamais fuiter en anonyme
+  // (ni avec un JWT élève). Seul plants.manage la voit (test suivant).
+  for (const item of res.body.items) {
+    assert.strictEqual(
+      Object.prototype.hasOwnProperty.call(item, 'reponse_correcte'),
+      false,
+      `fuite reponse_correcte sur ${item.question_code}`,
+    );
+  }
+});
+
+test('GET /api/quiz/questions — reponse_correcte réservée à plants.manage', async () => {
+  const token = await ensureAdminTeacherAuthToken();
+  const res = await request(app)
+    .get('/api/quiz/questions?theme=sciences&categorieSlug=vivant_classification')
+    .set('Authorization', `Bearer ${token}`)
+    .expect(200);
+  assert.ok(Array.isArray(res.body.items));
+  assert.ok(res.body.items.length > 0);
+  assert.ok(
+    res.body.items.every(
+      (item) => typeof item.reponse_correcte === 'string' && item.reponse_correcte.length === 1,
+    ),
+    'le staff plants.manage doit recevoir la lettre de bonne réponse',
+  );
 });
 
 test('GET /api/quiz/admin/stats — auth requise', async () => {

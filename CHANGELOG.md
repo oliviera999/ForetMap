@@ -7,6 +7,16 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Sécurité — QCM ForetMap : ne plus exposer la bonne réponse sur la liste publique
+
+- **Bug** : `GET /api/quiz/questions` (aucune auth) renvoyait `reponse_correcte` (lettre A–E)
+  pour toutes les questions actives. Combiné au JWT de présentation (`choiceLetters`, et sur
+  `main` encore `correctChoiceId` tant que #277 n'est pas mergée), un anonyme ou un élève
+  pouvait répondre juste à coup sûr et contourner le gating « Marquer comme acquis ».
+- **Correctif** : la lettre n'est incluse que si le JWT porte `plants.manage` (miroir GL
+  `canSeeAnswers` / `gl.content.manage`). Le catalogue admin (`/api/quiz/admin/questions`)
+  reste inchangé. Tests dans `tests/quiz-api.test.js`.
+
 ### GL — Contenus → Doc de référence : lire et amender la doc fonctionnelle depuis le jeu
 
 Les documents de référence non techniques de Gnomes & Licornes (`docs/reference/gl/*.md` :
