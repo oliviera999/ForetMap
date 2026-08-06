@@ -7,6 +7,7 @@ const {
   requirePermission,
   parseBearerToken,
   hydrateAuthFromTokenClaims,
+  hasPermission,
   JWT_SECRET,
 } = require('../middleware/requireTeacher');
 const { verifyJwtToken } = require('../lib/auth/jwtPipeline');
@@ -211,7 +212,11 @@ router.get(
   }),
 );
 
-/** GET /api/quiz/questions — liste filtrée (catalogue admin / aperçu). */
+/** GET /api/quiz/questions — liste filtrée (catalogue / aperçu).
+ *  La lettre de bonne réponse n'est exposée qu'au staff `plants.manage`
+ *  (miroir GL `canSeeAnswers` / `gl.content.manage`) : sinon un anonyme ou un
+ *  élève récupère toutes les solutions et contourne le gating « Marquer comme
+ *  acquis » (lettre + `choiceLetters` du JWT de présentation). */
 router.get(
   '/questions',
   asyncHandler(async (req, res) => {
@@ -251,17 +256,23 @@ router.get(
       });
     }
 
-    const items = rows.map((row) => ({
-      question_code: row.question_code,
-      theme: row.theme,
-      categorie_slug: row.categorie_slug,
-      numero_dans_categorie: row.numero_dans_categorie,
-      question: row.question,
-      niveau: row.niveau,
-      difficulte: row.difficulte,
-      difficulte_label: row.difficulte_label,
-      reponse_correcte: row.reponse_correcte,
-    }));
+    const auth = await tryHydrateAuth(req);
+    const canSeeAnswers = hasPermission(auth, 'plants.manage');
+
+    const items = rows.map((row) => {
+      const item = {
+        question_code: row.question_code,
+        theme: row.theme,
+        categorie_slug: row.categorie_slug,
+        numero_dans_categorie: row.numero_dans_categorie,
+        question: row.question,
+        niveau: row.niveau,
+        difficulte: row.difficulte,
+        difficulte_label: row.difficulte_label,
+      };
+      if (canSeeAnswers) item.reponse_correcte = row.reponse_correcte;
+      return item;
+    });
 
     return res.json({ items });
   }),

@@ -1385,7 +1385,7 @@ Routes publiques (lecture) sauf progression quiz. Voir aussi les routes GL `/api
 | GET | `/api/glossary/terms` | non | Liste/recherche |
 | GET | `/api/glossary/terms/:code` | non | Fiche terme |
 | GET | `/api/quiz/categories` | non | Catégories QCM |
-| GET | `/api/quiz/questions` | non | Liste questions (`theme`, `categorieSlug`, `niveau`, `q`) |
+| GET | `/api/quiz/questions` | non (lettre `reponse_correcte` seulement si JWT `plants.manage`) | Liste questions (`theme`, `categorieSlug`, `niveau`, `q`) — sans bonne réponse pour anonyme/élève |
 | GET | `/api/quiz/draw` | non | Tirage QCM (`?illustrated=1` : questions avec photo) |
 | GET | `/api/quiz/questions/:code/present` | non | Question présentée |
 | POST | `/api/quiz/questions/:code/answer` | non | Validation réponse |
