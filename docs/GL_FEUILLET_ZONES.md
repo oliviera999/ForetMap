@@ -45,12 +45,14 @@ Les repères se déplacent au clic dans le studio carte (sélectionner un repèr
 
 - `GET /api/gl/games/:id/feuillet-zones/presented?teamId=` — zones déjà lues.
 - `POST /api/gl/games/:id/feuillet-zones/:zoneId/present` — première traversée (409 si déjà lu).
+  **Joueur** : l’équipe doit être dans le polygone (sinon `409` — anti-farm). **MJ** :
+  présentation à distance autorisée.
 
 Voir [API.md](API.md).
 
 ## Tests
 
 ```bash
-npm test -- tests/gl-norm-map-coords.test.js tests/gl-feuillet-zones-loader.test.js tests/gl-map-zone-detect.test.js tests/gl-feuillet-zone-present.test.js tests/pct-polygon.test.js
+npm test -- tests/gl-norm-map-coords.test.js tests/gl-feuillet-zones-loader.test.js tests/gl-map-zone-detect.test.js tests/gl-feuillet-zone-present.test.js tests/gl-feuillet-zone-presence.test.js tests/gl-feuillet-zone-present-authz.test.js tests/pct-polygon.test.js
 npm run test:ui -- tests-ui/gl/GLPlateauMapEditor.test.jsx tests-ui/gl/GLChapterMapStudio.test.jsx
 ```

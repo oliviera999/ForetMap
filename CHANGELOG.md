@@ -7,6 +7,15 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Sécurité GL — anti farm zones feuillets (`feuillet-zones/…/present`)
+
+- **Joueur** : `POST …/feuillet-zones/:zoneId/present` refuse (`409`) si la mascotte n'est
+  pas dans le polygone de la zone (position libre ou héritée du repère) — empêche de
+  récolter cœurs/gemmes (et de forger l'événement `feuillet_zone_presented`) pour toutes
+  les zones du plateau sans se déplacer. Le MJ peut toujours présenter à distance.
+- Tests : `tests/gl-feuillet-zone-presence.test.js`, `tests/gl-feuillet-zone-present-authz.test.js` ;
+  doc API + référence carte + audit feuillets.
+
 ### Sécurité GL — anti farm / ciblage arbitraire des effets de repères (`present-arrival`)
 
 - **Joueur** : `POST …/markers/:markerId/present-arrival` refuse (`409`) si l'équipe n'est

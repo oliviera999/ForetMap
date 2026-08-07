@@ -18,6 +18,12 @@ avance. Chaque chapitre (chaque biome) a sa propre carte.
   par partie, une fois par équipe ou à chaque passage, selon le réglage) et une
   **musique d'ambiance** (module activable, avec fondu au passage d'une zone à
   l'autre).
+- **Les zones-feuillets** (calque narratif du carnet de Sélène) : de petits polygones
+  sur le plateau. À la première traversée, un texte s'ouvre et les effets cœurs/gemmes
+  peuvent s'appliquer. Pour les joueurs, cela ne compte que si la mascotte est
+  **réellement dans la zone** (on ne peut pas « récolter » toutes les zones à distance) ;
+  le MJ peut encore présenter une zone à distance pour une démonstration ou un
+  rattrapage.
 - **Les repères** : des points d'intérêt numérotés. Un repère a un type (départ,
   question, événement, souffle, arrivée…) et des **effets** quand une équipe s'y pose :
   gagner ou perdre des cœurs, des gemmes, du mouvement — et surtout, ces effets peuvent

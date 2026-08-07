@@ -77,6 +77,9 @@ Rôles et permissions feuillets (`lib/rbac.js:30-250`) :
    - zone présente dans le **catalogue statique** (`getFeuilletZoneById`),
    - **cohérence plateau** : `zone.plateau === chapitre.plateau_number` (1–5), sinon 404,
    - rattachement d'équipe : un `gl_player` est forcé sur **son** équipe ; un MJ doit passer `teamId`,
+   - **présence spatiale (joueur)** : la mascotte doit être dans le polygone de la zone
+     (`position_x/y_pct` ou position du repère) — sinon 409 « Équipe hors de cette zone
+     feuillet » (anti-farm) ; le MJ peut présenter à distance,
    - **unicité** : 409 « Zone feuillet déjà présentée » si un event existe déjà pour l'équipe
      (`presentFeuilletZone` → `canPresentFeuilletZone`).
 3. Effets appliqués en transaction (`applyFeuilletVitalityEffects`) : **−`cout_gemme`** (puissance)
