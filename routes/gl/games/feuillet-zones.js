@@ -9,6 +9,7 @@ const {
   presentFeuilletZone,
 } = require('../../../lib/glFeuilletZonePresent');
 const { getFeuilletZoneById } = require('../../../lib/glFeuilletZonesCatalog');
+const { isTeamInsideFeuilletZone } = require('../../../lib/glFeuilletZonePresence');
 const asyncHandler = require('../../../lib/asyncHandler');
 const { z, validate } = require('../../../lib/validate');
 const { getPlayerGameMembership } = require('../../../lib/gl/gamesRuntime');
@@ -111,11 +112,23 @@ router.post(
       return res.status(400).json({ error: 'teamId requis pour le MJ' });
     }
 
-    const team = await queryOne('SELECT id FROM gl_teams WHERE id = ? AND game_id = ? LIMIT 1', [
-      teamId,
-      gameId,
-    ]);
+    const team = await queryOne(
+      `SELECT t.id, t.position_x_pct, t.position_y_pct,
+              m.x_pct AS marker_x_pct, m.y_pct AS marker_y_pct
+         FROM gl_teams t
+    LEFT JOIN gl_chapter_markers m ON m.id = t.position_marker_id
+        WHERE t.id = ? AND t.game_id = ?
+        LIMIT 1`,
+      [teamId, gameId],
+    );
     if (!team) return res.status(404).json({ error: 'Équipe introuvable dans cette partie' });
+
+    // Joueur : les effets (cœurs/gemmes) et l'événement de traversée ne s'appliquent
+    // que si la mascotte est réellement dans le polygone — sinon farm de toutes les
+    // zones du plateau sans se déplacer. Le MJ peut présenter à distance.
+    if (req.glAuth.userType === 'gl_player' && !isTeamInsideFeuilletZone(team, catalogZone)) {
+      return res.status(409).json({ error: 'Équipe hors de cette zone feuillet' });
+    }
 
     const actorType = actorTypeOf(req);
     const result = await presentFeuilletZone(

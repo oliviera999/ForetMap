@@ -331,22 +331,37 @@ router.post(
     }
 
     const team = await queryOne(
-      'SELECT id, type, name FROM gl_teams WHERE id = ? AND game_id = ? LIMIT 1',
+      'SELECT id, type, name, position_marker_id FROM gl_teams WHERE id = ? AND game_id = ? LIMIT 1',
       [teamId, gameId],
     );
     if (!team) return res.status(404).json({ error: 'Équipe introuvable dans cette partie' });
+
+    // Joueur : les effets d'arrivée ne s'appliquent que si l'équipe est réellement
+    // sur ce repère (sinon farm de tous les bonus / auto-move sans jouer).
+    // Le MJ peut toujours présenter à distance (démo / rattrapage).
+    if (
+      req.glAuth.userType === 'gl_player' &&
+      Number(team.position_marker_id) !== Number(markerId)
+    ) {
+      return res.status(409).json({ error: 'L’équipe n’est pas sur ce repère' });
+    }
 
     const arrival = buildMarkerArrivalPayload(marker, team);
     const actorType = actorTypeOf(req);
     const actorId = String(req.glAuth.userId);
     const reason = String(marker.label || 'Repère').trim();
 
-    const playerIdsRaw = req.body?.playerIds;
-    const playerIds = Array.isArray(playerIdsRaw)
-      ? playerIdsRaw
-      : playerIdsRaw != null
-        ? [playerIdsRaw]
-        : null;
+    // Joueur : toujours l'équipe entière — `playerIds` est réservé au MJ
+    // (apply-effects / présentation staff) et validé comme membres du roster.
+    let playerIds = null;
+    if (req.glAuth.userType !== 'gl_player') {
+      const playerIdsRaw = req.body?.playerIds;
+      playerIds = Array.isArray(playerIdsRaw)
+        ? playerIdsRaw
+        : playerIdsRaw != null
+          ? [playerIdsRaw]
+          : null;
+    }
 
     let vitalityPayload = null;
     let autoMove = null;

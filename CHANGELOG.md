@@ -7,6 +7,26 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Sécurité GL — anti farm zones feuillets (`feuillet-zones/…/present`)
+
+- **Joueur** : `POST …/feuillet-zones/:zoneId/present` refuse (`409`) si la mascotte n'est
+  pas dans le polygone de la zone (position libre ou héritée du repère) — empêche de
+  récolter cœurs/gemmes (et de forger l'événement `feuillet_zone_presented`) pour toutes
+  les zones du plateau sans se déplacer. Le MJ peut toujours présenter à distance.
+- Tests : `tests/gl-feuillet-zone-presence.test.js`, `tests/gl-feuillet-zone-present-authz.test.js` ;
+  doc API + référence carte + audit feuillets.
+
+### Sécurité GL — anti farm / ciblage arbitraire des effets de repères (`present-arrival`)
+
+- **Joueur** : `POST …/markers/:markerId/present-arrival` refuse (`409`) si l'équipe n'est
+  pas sur le repère (`position_marker_id`) — empêche de déclencher tous les bonus
+  cœurs/gemmes (et l'auto-move) sans y arriver. Le corps `playerIds` est **ignoré** côté
+  joueur (toujours l'équipe entière).
+- **Ciblage** : `applyMarkerVitalityEffects` vérifie que chaque `playerId` appartient au
+  roster de l'équipe (`400` sinon) — plus de débit/crédit croisé hors partie via
+  `present-arrival` / `apply-effects`.
+- Tests : `tests/gl-marker-present-arrival-authz.test.js` ; doc API + référence carte.
+
 ### GL — Contenus → Doc de référence : lire et amender la doc fonctionnelle depuis le jeu
 
 Les documents de référence non techniques de Gnomes & Licornes (`docs/reference/gl/*.md` :

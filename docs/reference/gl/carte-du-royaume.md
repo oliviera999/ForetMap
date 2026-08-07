@@ -18,12 +18,21 @@ avance. Chaque chapitre (chaque biome) a sa propre carte.
   par partie, une fois par équipe ou à chaque passage, selon le réglage) et une
   **musique d'ambiance** (module activable, avec fondu au passage d'une zone à
   l'autre).
+- **Les zones-feuillets** (calque narratif du carnet de Sélène) : de petits polygones
+  sur le plateau. À la première traversée, un texte s'ouvre et les effets cœurs/gemmes
+  peuvent s'appliquer. Pour les joueurs, cela ne compte que si la mascotte est
+  **réellement dans la zone** (on ne peut pas « récolter » toutes les zones à distance) ;
+  le MJ peut encore présenter une zone à distance pour une démonstration ou un
+  rattrapage.
 - **Les repères** : des points d'intérêt numérotés. Un repère a un type (départ,
   question, événement, souffle, arrivée…) et des **effets** quand une équipe s'y pose :
   gagner ou perdre des cœurs, des gemmes, du mouvement — et surtout, ces effets peuvent
   être **différents pour une équipe gnome et une équipe licorne** (c'est la mécanique
   que le récit « [Les deux peuples du seuil](lore-deux-peuples.md) » met en histoire :
-  « ce lieu est écrit pour l'autre peuple »).
+  « ce lieu est écrit pour l'autre peuple »). Pour les joueurs, ces effets ne
+  s'appliquent que si l'équipe est **réellement positionnée** sur le repère (on ne peut
+  pas « récolter » à distance les bonus d'autres cases) ; le MJ peut encore présenter un
+  effet à distance pour une démonstration ou un rattrapage.
 - **Les repères « question »** déclenchent un QCM : une question fixe choisie par le
   MJ, ou un tirage dans le catalogue (QCM biomes ou QCM lore) — voir
   [QCM et pédagogie](qcm-et-pedagogie.md).
