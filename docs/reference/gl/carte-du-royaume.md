@@ -23,7 +23,10 @@ avance. Chaque chapitre (chaque biome) a sa propre carte.
   gagner ou perdre des cœurs, des gemmes, du mouvement — et surtout, ces effets peuvent
   être **différents pour une équipe gnome et une équipe licorne** (c'est la mécanique
   que le récit « [Les deux peuples du seuil](lore-deux-peuples.md) » met en histoire :
-  « ce lieu est écrit pour l'autre peuple »).
+  « ce lieu est écrit pour l'autre peuple »). Pour les joueurs, ces effets ne
+  s'appliquent que si l'équipe est **réellement positionnée** sur le repère (on ne peut
+  pas « récolter » à distance les bonus d'autres cases) ; le MJ peut encore présenter un
+  effet à distance pour une démonstration ou un rattrapage.
 - **Les repères « question »** déclenchent un QCM : une question fixe choisie par le
   MJ, ou un tirage dans le catalogue (QCM biomes ou QCM lore) — voir
   [QCM et pédagogie](qcm-et-pedagogie.md).
