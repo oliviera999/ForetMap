@@ -7,6 +7,17 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Sécurité — médiathèque : `clear_all` / suppressions cloisonnées ForetMap ↔ G&L
+
+- **Bug** : `DELETE` médiathèque avec `{ clear_all: true }` (et les suppressions par chemin)
+  n’appliquait pas le filtre `app` pourtant utilisé pour les listes/uploads. Un prof ForetMap
+  pouvait donc effacer jusqu’à 800 médias G&L (et réciproquement un admin GL les médias
+  ForetMap), y compris sans connaître les chemins.
+- **Correctif** : `executeMediaLibraryDeleteRequest` / `clearMediaLibraryItems` exigent
+  désormais `{ app: 'foretmap' | 'gl' }` ; les routes passent l’app de leur produit ; un
+  chemin hors périmètre → **403** avant toute suppression.
+- Tests : `tests/media-library-scope.test.js` (helpers + HTTP). Doc : `docs/API.md`.
+
 ### GL — Contenus → Doc de référence : lire et amender la doc fonctionnelle depuis le jeu
 
 Les documents de référence non techniques de Gnomes & Licornes (`docs/reference/gl/*.md` :

@@ -7,13 +7,22 @@ const request = require('supertest');
 const { app } = require('../server');
 const { initSchema, execute, queryOne } = require('../database');
 const { signAuthToken } = require('../middleware/requireTeacher');
+const fs = require('fs');
+const path = require('path');
 const {
   saveMediaFromBuffer,
   listMediaLibraryItems,
   deleteMediaLibraryItem,
+  clearMediaLibraryItems,
+  executeMediaLibraryDeleteRequest,
   resolveMediaItemApp,
   mediaItemMatchesApp,
 } = require('../lib/mediaLibrary');
+const { UPLOADS_DIR } = require('../lib/uploads');
+
+function mediaAbs(relativePath) {
+  return path.resolve(UPLOADS_DIR, relativePath);
+}
 
 const TINY_PNG = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO6pJkQAAAAASUVORK5CYII=',
@@ -127,6 +136,114 @@ test('listMediaLibraryItems cloisonne les deux médiathèques (legacy → G&L)',
     deleteMediaLibraryItem(fm.relativePath, { skipManifestSync: true });
     deleteMediaLibraryItem(gl.relativePath, { skipManifestSync: true });
     deleteMediaLibraryItem(legacy.relativePath, { skipManifestSync: true });
+  }
+});
+
+test('clear_all / suppressions — cloisonnement strict ForetMap vs G&L', () => {
+  const stamp = `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
+  const fm = saveMediaFromBuffer(TINY_PNG, 'image/png', `clear-fm-${stamp}.png`, {
+    skipManifestSync: true,
+    app: 'foretmap',
+  });
+  const gl = saveMediaFromBuffer(TINY_PNG, 'image/png', `clear-gl-${stamp}.png`, {
+    skipManifestSync: true,
+    app: 'gl',
+  });
+  const legacy = saveMediaFromBuffer(TINY_PNG, 'image/png', `clear-legacy-${stamp}.png`, {
+    skipManifestSync: true,
+  });
+
+  try {
+    assert.throws(
+      () => clearMediaLibraryItems(),
+      (err) => err && err.status === 400 && /app/i.test(err.message),
+      'clear_all sans app doit être refusé',
+    );
+    assert.throws(
+      () => executeMediaLibraryDeleteRequest({ clear_all: true }),
+      (err) => err && err.status === 400 && /app/i.test(err.message),
+      'executeMediaLibraryDeleteRequest sans app doit être refusé',
+    );
+
+    const clearedFm = executeMediaLibraryDeleteRequest({ clear_all: true }, { app: 'foretmap' });
+    assert.ok(clearedFm.deleted >= 1, 'au moins le média ForetMap est ciblé');
+    assert.ok(!fs.existsSync(mediaAbs(fm.relativePath)));
+    assert.ok(
+      fs.existsSync(mediaAbs(gl.relativePath)),
+      'clear_all ForetMap ne doit pas supprimer un média G&L',
+    );
+    assert.ok(
+      fs.existsSync(mediaAbs(legacy.relativePath)),
+      'clear_all ForetMap ne doit pas supprimer un média hérité (G&L)',
+    );
+
+    assert.throws(
+      () =>
+        executeMediaLibraryDeleteRequest({ relative_path: gl.relativePath }, { app: 'foretmap' }),
+      (err) => err && err.status === 403,
+      'suppression unitaire hors périmètre refusée',
+    );
+    assert.ok(fs.existsSync(mediaAbs(gl.relativePath)));
+
+    // Suppression unitaire G&L OK ; le clear_all G&L n'est pas rejoué ici pour éviter
+    // d'effacer toute la médiathèque partagée des autres tests du process.
+    const deletedGl = executeMediaLibraryDeleteRequest(
+      { relative_path: gl.relativePath },
+      { app: 'gl' },
+    );
+    assert.strictEqual(deletedGl.deleted, 1);
+    assert.ok(!fs.existsSync(mediaAbs(gl.relativePath)));
+    assert.ok(fs.existsSync(mediaAbs(legacy.relativePath)), 'legacy encore présent');
+  } finally {
+    for (const relativePath of [fm.relativePath, gl.relativePath, legacy.relativePath]) {
+      try {
+        deleteMediaLibraryItem(relativePath, { skipManifestSync: true });
+      } catch {
+        /* déjà supprimé */
+      }
+    }
+  }
+});
+
+test('DELETE HTTP clear_all ForetMap n’efface pas la médiathèque G&L', async () => {
+  const stamp = `${routeStamp}-${Math.random().toString(16).slice(2, 8)}`;
+  const fm = saveMediaFromBuffer(TINY_PNG, 'image/png', `http-clear-fm-${stamp}.png`, {
+    skipManifestSync: true,
+    app: 'foretmap',
+  });
+  const gl = saveMediaFromBuffer(TINY_PNG, 'image/png', `http-clear-gl-${stamp}.png`, {
+    skipManifestSync: true,
+    app: 'gl',
+  });
+
+  try {
+    const res = await request(app)
+      .delete('/api/media-library')
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .send({ clear_all: true })
+      .expect(200);
+    assert.ok((res.body?.deleted || 0) >= 1);
+    assert.ok(!fs.existsSync(mediaAbs(fm.relativePath)));
+    assert.ok(
+      fs.existsSync(mediaAbs(gl.relativePath)),
+      'DELETE clear_all ForetMap ne doit pas toucher G&L',
+    );
+
+    const forbidden = await request(app)
+      .delete('/api/media-library')
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .send({ relative_path: gl.relativePath })
+      .expect(403);
+    assert.match(String(forbidden.body?.error || ''), /périmètre/i);
+    assert.ok(fs.existsSync(mediaAbs(gl.relativePath)));
+  } finally {
+    for (const relativePath of [fm.relativePath, gl.relativePath]) {
+      try {
+        deleteMediaLibraryItem(relativePath, { skipManifestSync: true });
+      } catch {
+        /* déjà supprimé */
+      }
+    }
   }
 });
 

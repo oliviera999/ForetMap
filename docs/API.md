@@ -317,7 +317,7 @@ Note UX admin GL : l’édition des chapitres (repères + zones polygonales sur 
 | GET | `/api/gl/admin/media-library` | `?limit=` optionnel (défaut 300, max 800) — liste **G&L** (médias `app: 'gl'` + hérités sans étiquette) | `gl.content.manage` |
 | GET | `/api/gl/admin/media-library/usage` | Usage des médias **G&L** (même format `{ usage }` que ForetMap ; voir section **Médiathèque ForetMap**) | `gl.content.manage` |
 | POST | `/api/gl/admin/media-library` | `{ media_data }` (data URL base64 image/audio/vidéo) — enregistre `app: 'gl'` | `gl.content.manage` |
-| DELETE | `/api/gl/admin/media-library` | `{ relative_path }` (`media-library/...`) | `gl.content.manage` |
+| DELETE | `/api/gl/admin/media-library` | Suppression média **G&L** uniquement : `{ relative_path }`, `{ relative_paths: [] }` ou `{ clear_all: true }` (`media-library/...` ; un chemin ForetMap → **403**) | `gl.content.manage` |
 | GET | `/api/gl/admin/content-library/limits` | — ; `{ maxArchiveBytes, maxFileBytes, maxDecompressedBytes, maxFileCount }` | `gl.content.manage` |
 | POST | `/api/gl/admin/content-library/analyze` | **Recommandé** : `multipart/form-data` — champ `archive` (ZIP, max **50 Mo** par défaut) **ou** `files[]` (max **32 Mo** / fichier, **200** fichiers). **Legacy JSON** (petits fichiers / tests) : `{ files: [{ fileName, fileDataBase64 }] }` ou `{ archive: { fileName, fileDataBase64 } }` — soumis à `FORETMAP_JSON_BODY_LIMIT` (défaut 25 Mo). Classification + dry-run sans écriture BDD. Erreur **413** : `{ code: 'PAYLOAD_TOO_LARGE', error, hint? }` | `gl.content.manage` |
 | POST | `/api/gl/admin/content-library/apply` | **Recommandé** : `multipart/form-data` — champ texte `entries` (JSON `[{ fileName, kind, mimeType?, options? }]`) + `archive` (ZIP) **ou** `files[]` (binaires). **Legacy JSON** : `{ entries, archive?, fileDataBase64? }` par entrée. | `gl.content.manage` |
@@ -692,16 +692,18 @@ Stockage physique unique sur disque (`uploads/media-library/`), avec **deux méd
 
 L’étiquette d’origine est portée par `_keys.json` (champ `app` sur chaque entrée de clé stable, **sans déplacer** les fichiers). Les médias **hérités** (sans `app`) restent rattachés à **G&L** : visibles dans la médiathèque GL, masqués côté ForetMap (le jeu GL résout les assets par clés stables).
 
+Les suppressions (`relative_path`, `relative_paths`, `clear_all`) sont **strictement bornées** à la médiathèque de la route appelante : un `clear_all` ForetMap ne touche jamais les médias `app: 'gl'` (ni les hérités), et réciproquement ; un chemin hors périmètre est refusé en **403**.
+
 Chaque item listé expose notamment : `relativePath`, `url`, `filename`, `mediaType`, `stableKey` (slug / clé stable), `app` (médiathèque d’affichage : `foretmap` ou `gl`), `label`.
 
 Les routes ForetMap ci-dessous refusent les tokens produit GL sur l’API ForetMap standard.
 
-| Méthode | URL                        | Description                                                                          | Accès                             |
-| ------- | -------------------------- | ------------------------------------------------------------------------------------ | --------------------------------- |
-| GET     | `/api/media-library`       | Liste les médias **ForetMap** uniquement (`?limit=` optionnel ; défaut 300, max 800) | `teacher.access`                  |
-| GET     | `/api/media-library/usage` | Usage des médias **ForetMap** (voir ci-dessous)                                      | `teacher.access`                  |
-| POST    | `/api/media-library`       | Upload média ForetMap (`{ media_data }` data URL base64 image/audio/vidéo)           | `teacher.access` + droits étendus |
-| DELETE  | `/api/media-library`       | Suppression média (`{ relative_path }`, préfixe `media-library/`)                    | `teacher.access` + droits étendus |
+| Méthode | URL                        | Description                                                                                                                                                         | Accès                             |
+| ------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- |
+| GET     | `/api/media-library`       | Liste les médias **ForetMap** uniquement (`?limit=` optionnel ; défaut 300, max 800)                                                                                | `teacher.access`                  |
+| GET     | `/api/media-library/usage` | Usage des médias **ForetMap** (voir ci-dessous)                                                                                                                     | `teacher.access`                  |
+| POST    | `/api/media-library`       | Upload média ForetMap (`{ media_data }` data URL base64 image/audio/vidéo)                                                                                          | `teacher.access` + droits étendus |
+| DELETE  | `/api/media-library`       | Suppression média ForetMap uniquement : `{ relative_path }`, `{ relative_paths: [] }` ou `{ clear_all: true }` (préfixe `media-library/` ; un chemin G&L → **403**) | `teacher.access` + droits étendus |
 
 **Usage des ressources** (`GET /api/media-library/usage` et `GET /api/gl/admin/media-library/usage`) — scanner `lib/mediaLibraryUsage.js` : pour chaque média de la médiathèque filtrée (`app: 'foretmap'` ou `app: 'gl'`), indique s'il est référencé en base et où. Réponse JSON :
 

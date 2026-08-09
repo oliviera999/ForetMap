@@ -1106,7 +1106,7 @@ router.delete(
   requireGlPermission('gl.content.manage'),
   asyncHandler(async (req, res) => {
     try {
-      const payload = executeMediaLibraryDeleteRequest(req.body || {});
+      const payload = executeMediaLibraryDeleteRequest(req.body || {}, { app: 'gl' });
       return res.json(payload);
     } catch (err) {
       if (Number.isFinite(err?.status)) {
