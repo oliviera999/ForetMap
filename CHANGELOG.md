@@ -7,6 +7,15 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Correctif — Doc de référence GL : plus d’écrasement croisé après échec de chargement
+
+- **Bug :** dans l’onglet Contenus → Doc de référence, un échec du GET détail après
+  changement de document laissait l’ancienne fiche affichée sous le nouveau slug ; « Modifier »
+  + autosave pouvait alors **écraser** le document ciblé avec le contenu du précédent.
+- **Correctif :** la fiche et les brouillons sont vidés dès le changement de slug ; édition et
+  autosave n’entrent en jeu qu’après un GET réussi pour le slug courant (`loadReady`).
+- Tests UI de non-régression dans `tests-ui/gl/GLReferenceDocsPanel.test.jsx`.
+
 ### GL — Contenus → Doc de référence : lire et amender la doc fonctionnelle depuis le jeu
 
 Les documents de référence non techniques de Gnomes & Licornes (`docs/reference/gl/*.md` :
