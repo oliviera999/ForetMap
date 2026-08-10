@@ -89,6 +89,80 @@ Ajouts Lot 2D (édition visuelle carte) :
 - `GLKingdomZoneEditor` : variante autonome (carte + panneaux) ; l’édition courante passe par le studio chapitre.
 - Socle frontend partagé : `useGlPctMapGestures`, `GLPctMapCanvas`, `GLBoardMarkers` pour homogénéiser les interactions carte GL.
 
+### Onglet Contenus : médiathèque, imports et documentation de référence
+
+L'onglet admin **Contenus** (`GLContentsAdminView`) agrège les pages éditoriales, chapitres,
+catalogues XLSX, médiathèque et documentation de référence. Il est réservé à
+`gl.content.manage` ; les joueurs ne voient que les contenus publiés par les routes de lecture GL.
+
+#### Bibliothèque de contenus (import en masse)
+
+Flux vérifié côté code :
+
+1. `GET /api/gl/admin/content-library/limits` expose les plafonds effectifs.
+2. `POST /api/gl/admin/content-library/analyze` classe les fichiers et exécute les imports en
+   **dry-run** sans écriture BDD.
+3. L'UI coche seulement les entrées `canApply` sans erreur.
+4. `POST /api/gl/admin/content-library/apply` réenvoie les fichiers sélectionnés et applique les
+   médias/imports demandés.
+
+Contraintes importantes :
+
+- Transport recommandé : `multipart/form-data`. Le JSON legacy reste réservé aux petits tests et
+  subit `FORETMAP_JSON_BODY_LIMIT`.
+- Plafonds par défaut : ZIP **50 Mo**, fichier **32 Mo**, décompressé **100 Mo**, **200 fichiers** ;
+  variables `FORETMAP_CONTENT_LIBRARY_MAX_*` dans `.env.example`.
+- Côté UI, une sélection contenant un ZIP passe en mode **archive** : le premier ZIP est envoyé, les
+  autres fichiers sélectionnés sont ignorés avec avertissement. Les fichiers hors archive sont
+  analysés en pool de 3 uploads.
+- Une archive est refusée si deux entrées ont le même nom de fichier final (`basename`) : l'apply
+  référence les fichiers par nom, donc une collision serait ambiguë.
+- Types `kind` applicables : `media`, `species`, `glossary`, `lore_glossary`, `spells`, `qcm`,
+  `qcm_lore`, `chapters`, `chapter_charte`, `lore_feuillets`. La classification XLSX repose sur
+  les noms de feuilles et quelques en-têtes discriminants (ex. QCM lore vs QCM biomes, glossaire
+  lore vs glossaire scientifique).
+- Les médias appliqués sont écrits dans `uploads/media-library/`, étiquetés `app: 'gl'` dans
+  `_keys.json`, puis les manifestes d'assets sont resynchronisés.
+
+Tests de garde : `tests/content-library-*.test.js` (classification, bulk, ZIP) et
+`tests-ui/gl/GLContentLibrary*.test.jsx`.
+
+#### Médiathèque GL et conventions de fichiers
+
+La médiathèque physique est partagée (`uploads/media-library/`), mais l'API la filtre en deux
+médiathèques logiques. Les routes GL (`/api/gl/admin/media-library*`) listent les médias
+`app: 'gl'` et les assets hérités sans étiquette ; les routes ForetMap standard masquent ces
+hérités pour éviter de mélanger les bibliothèques.
+
+Routes structurantes :
+
+- `GET /api/gl/admin/media-library/usage` scanne les références en base (chapitres, zones,
+  espèces, QCM, pages, journaux, intro) et alimente les badges « Utilisée / Inutilisée ».
+- `GET /api/gl/admin/media-library/audit` vérifie les conventions attendues : plateaux, biomes,
+  feuillets, images d'intro, audio de plateaux, scènes de récit et clés `recit_*` suspectes.
+- `GET /api/gl/admin/media-library/chapter-scenes?chapter=0..5` liste les scènes de récit d'un
+  chapitre selon les clés stables `recit_...`.
+- `PATCH /api/gl/admin/media-library/scene-meta` modifie légende, ordre et drapeau couverture dans
+  `_keys.json`. Si `cover: true`, les autres couvertures du même chapitre sont retirées.
+
+Le script CLI équivalent pour l'audit est `scripts/audit-gl-media-keys.mjs`.
+
+#### Documentation de référence éditable
+
+`routes/gl/reference-docs.js` expose `docs/reference/gl/*.md` dans **Contenus → Doc de référence** :
+
+- le fichier Markdown versionné dans Git reste la base ;
+- une édition faite dans l'application est une surcouche en table `gl_reference_docs` ;
+- le serveur ne réécrit jamais les fichiers du dépôt ;
+- `reset` supprime la surcouche et revient au fichier Git ; si le déploiement runtime ne contient
+  pas `docs/reference/gl`, une surcouche reste lisible, mais un reset sans fichier rend le document
+  introuvable (`404`) ;
+- les slugs sont limités au nom de fichier Markdown (`^[a-z0-9]+(-[a-z0-9]+)*$`), sans création ni
+  traversée de chemin.
+
+Tests de garde : `tests/gl-reference-docs.test.js` et
+`tests-ui/gl/GLReferenceDocsPanel.test.jsx`.
+
 Ajouts Lot 2C (mascottes & équipes) :
 
 - `GET /api/gl/mascots[?gameId=]` : retourne le catalogue (`mascots`) + les `assignments` actuels pour la partie demandée.

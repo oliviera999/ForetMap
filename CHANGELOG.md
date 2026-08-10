@@ -7,6 +7,18 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Documentation technique GL — onglet Contenus et médiathèque
+
+- `docs/GL_ARCHITECTURE.md` décrit désormais le flux **Contenus → Bibliothèque** :
+  analyse dry-run, application explicite, limites multipart, mode ZIP, collision de noms,
+  types d'import reconnus et tests de garde.
+- La médiathèque GL est documentée avec ses conventions de fichiers : audit des clés,
+  scènes de récit, métadonnées de couverture/légende/ordre et cloisonnement logique
+  ForetMap ↔ G&L.
+- `docs/API.md` complète les routes admin GL manquantes :
+  `media-library/audit`, `media-library/chapter-scenes` et `media-library/scene-meta`,
+  et aligne la liste des `kind` importables sur `qcm_lore`.
+
 ### GL — Contenus → Doc de référence : lire et amender la doc fonctionnelle depuis le jeu
 
 Les documents de référence non techniques de Gnomes & Licornes (`docs/reference/gl/*.md` :
