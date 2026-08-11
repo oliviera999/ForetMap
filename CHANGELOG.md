@@ -7,6 +7,26 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Doc — Plan d'implantation « OLU narrateur » (avatar des bulles d'aide et du récit)
+
+Nouveau document [`docs/MASCOT_NARRATEUR_OLU.md`](docs/MASCOT_NARRATEUR_OLU.md) : plan
+d'implantation d'un avatar narrateur, **OLU**, portant à la première personne l'aide
+contextuelle et les passages narratifs de ForetMap et de Gnomes & Licornes. **Document de
+conception uniquement — aucun comportement modifié.**
+
+- **Charte rédactionnelle** : personnalité « copiste cool » (bienveillante, lucide, sage,
+  humoristique), règle des trois temps pour porter les messages lourds de sens, exemples de
+  conversion tirés du corpus réel, liste de ce qu'OLU ne dit jamais.
+- **Architecture en trois niveaux de rendu** (mascotte animée / portrait / fallback SVG) pour
+  éviter de charger les renderers lourds de la carte dans une bulle d'aide ; composant
+  `MascotSpeaker` partagé ForetMap/GL, expressions mappées sur les états canoniques existants.
+- **Arbitrage d'architecture signalé** : `visit_mascot_packs` est par carte et ne convient pas
+  à un narrateur global — un réglage `content.help.narrator` est recommandé à la place.
+- **Constat** : l'entrée catalogue `olu-spritesheet` existe depuis longtemps mais son asset
+  n'a jamais été versionné ; OLU retombe donc systématiquement sur le fallback SVG.
+- Découpage en 7 lots (les 4 premiers livrables sans aucun sprite), arbitrages restants,
+  anti-patterns, obligations d'accessibilité et de tests.
+
 ### GL — Contenus → Doc de référence : lire et amender la doc fonctionnelle depuis le jeu
 
 Les documents de référence non techniques de Gnomes & Licornes (`docs/reference/gl/*.md` :
