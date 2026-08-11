@@ -111,12 +111,91 @@ outil disponible, on ne refond rien.
 | Lot    | Contenu                                                                                                   | Effort | Risque      | État         |
 | ------ | --------------------------------------------------------------------------------------------------------- | ------ | ----------- | ------------ |
 | **A1** | `useAdminCrud` promu dans `src/shared/hooks/`, transport injecté ; `useGlAdminCrud` devient un adaptateur | S      | Très faible | ✅ **livré** |
-| **A2** | Adopter `useAdminCrud` sur un panneau admin ForetMap (pilote — ex. biodiversité)                          | S      | Faible      | à faire      |
+| **A2** | `QuestionEditorPanel` (partagé) consomme `useAdminCrud` au lieu de réécrire le CRUD                       | M      | Moyen       | à faire      |
 | **A3** | Généraliser l'autosave débouncé aux panneaux prof ForetMap qui le méritent                                | M      | Faible      | à faire      |
 | **A4** | Doc de référence `docs/reference/foretmap/` éditable depuis l'app (miroir de `GLReferenceDocsPanel`)      | M      | Moyen       | à arbitrer   |
 
-> **A2 avant A3.** Un pilote unique valide l'ergonomie du hook côté ForetMap avant toute
-> généralisation. Si le pilote frotte, on corrige le hook, pas dix panneaux.
+#### A1 — `useAdminCrud` partagé ✅ livré
+
+**Objectif.** Rendre disponible à ForetMap le squelette CRUD des panneaux admin, jusque-là
+réservé à GL.
+
+**Ce qui a été fait.** `src/gl/hooks/useGlAdminCrud.js` ne portait qu'**une** spécificité produit :
+l'appel direct à `apiGL`. Le hook est déplacé dans `src/shared/hooks/useAdminCrud.js` avec un
+paramètre `request` injecté ; `useGlAdminCrud` se réduit à un adaptateur de 4 lignes qui lie
+`apiGL`. Aucun autre changement — les trois panneaux GL consommateurs (`GLSpeciesEditorPanel`,
+`GLGlossaryEditorPanel`, `GLSpellsEditorPanel`) sont inchangés.
+
+**Acceptation.** `tests-ui/shared/useAdminCrud.test.jsx` (8 cas) ; les 3 tests de panneaux GL
+au vert ; suite UI complète au vert.
+
+#### A2 — `QuestionEditorPanel` consomme `useAdminCrud`
+
+**Objectif.** Supprimer la réécriture manuelle du CRUD dans un composant **déjà partagé**, donc
+gagner sur les deux produits d'un coup.
+
+**Constat.** [`src/shared/qcm/QuestionEditorPanel.jsx`](../src/shared/qcm/QuestionEditorPanel.jsx)
+(363 l.) réimplémente exactement ce que fournit désormais `useAdminCrud` : `items`,
+`selectedCode`, `form`, `loading`, `error`, `info`, `loadList`, `startNewQuestion` (avec
+`${questionsBase}/next-code`), `persistQuestion`, et `useDebouncedAutoSave`. Il reçoit déjà `api`
+en **prop** — il était donc arrivé indépendamment au même motif de transport injecté que A1, ce
+qui valide la conception du hook.
+
+C'est aussi le **troisième appelant** (après les 3 panneaux GL et l'usage ForetMap), donc la
+règle de trois du §8 est largement satisfaite.
+
+**Périmètre.** Un seul fichier modifié : `src/shared/qcm/QuestionEditorPanel.jsx`. Les appelants
+(`FMQuizQuestionEditorPanel`, `GLQcmQuestionEditorPanel`, `GLQcmLoreQuestionEditorPanel`) ne
+changent pas.
+
+**Démarche.**
+
+1. Vérifier d'abord que les tests couvrent le comportement : `GLQcmQuestionEditorPanel.autosave.test.jsx`,
+   `glQcmCatalogPanel.test.js`, et les tests des panneaux appelants.
+2. Remplacer l'état CRUD par `useAdminCrud({ request: api, … })`.
+3. **Conserver hors du hook** ce qui lui est étranger : `refs`, `filters`, `filterQ`, `sortBy` et
+   la logique d'`autoSaveResetKey` propre au panneau. Le hook gère le cycle de vie d'une fiche,
+   pas le filtrage ni le tri d'un catalogue.
+4. Vérifier que `saveStatus` / `saveError` alimentent toujours `AutoSaveStatus` à l'identique.
+
+**Acceptation.** Aucune modification de DOM ni de libellé ; tests existants au vert sans
+réécriture ; le fichier perd ~60 lignes.
+
+⚠️ **Piège.** `QuestionEditorPanel` gère un `autoSaveResetKey` **dédié** (`'empty'` par défaut) là
+où `useAdminCrud` dérive la sienne de `selectedCode ?? \`new:${form[codeField]}\``. Si la sémantique
+diffère, l'autosave peut se déclencher au mauvais moment (perte de brouillon ou écriture
+intempestive). **Comparer les deux clés avant de basculer** ; si elles divergent réellement,
+exposer un `resetKey` optionnel dans le hook plutôt que de forcer l'alignement.
+
+#### A3 — Généraliser l'autosave côté ForetMap
+
+**Objectif.** Corriger l'asymétrie la plus visible : `useDebouncedAutoSave` est utilisé par
+17 fichiers GL et **1 seul** côté ForetMap.
+
+**Démarche.** Recenser les panneaux prof ForetMap à formulaire long (biodiversité, tâches,
+tutoriels, réglages) et n'équiper que ceux où la perte de saisie est un risque réel. **Ce n'est
+pas une conversion mécanique** : un autosave sur un formulaire à effet de bord (publication,
+notification) est nuisible.
+
+**Acceptation.** Chaque panneau converti affiche un `AutoSaveStatus` et conserve un chemin
+d'enregistrement explicite. Un test par panneau converti.
+
+⚠️ **Piège.** A3 **après** A2. Le pilote A2 valide l'ergonomie du hook sur un cas réel ; s'il
+frotte, on corrige le hook une fois, pas dix panneaux.
+
+#### A4 — Doc de référence ForetMap éditable dans l'app
+
+**Objectif.** GL permet aux MJ de lire et amender `docs/reference/gl/*.md` depuis l'onglet
+Contenus (`GLReferenceDocsPanel`, stockage à deux étages non destructif : fichier versionné +
+surcouche en base). ForetMap n'a pas d'équivalent alors que `docs/reference/foretmap/` existe et
+suit la même convention — y compris le marqueur `🔧 À implémenter` valant demande d'évolution.
+
+**Démarche.** Réutiliser le modèle GL (table de surcouche, route de lecture/écriture, panneau)
+en l'adaptant aux permissions ForetMap. Le noyau `lib/glReferenceDocs.js` est le point de départ
+naturel d'un `lib/shared/referenceDocsCore.js`.
+
+⚠️ **À arbitrer.** C'est le seul lot de l'axe A qui crée une **fonctionnalité**, pas seulement un
+outil. Il mérite sa propre décision produit : les profs ForetMap en ont-ils l'usage ?
 
 ### Axe B — Extraire les noyaux restants
 
@@ -127,10 +206,79 @@ outil disponible, on ne refond rien.
 | **B2** | `quiz.js` ↔ `gl/qcm.js` : étendre l'usage de `questionCrudCore` / `questionQueryFactory` déjà présents               | ~109        | M      | Moyen  | à faire      |
 | **B3** | Libellés d'erreur d'authentification partagés (`auth.js` ↔ `gl/auth.js`)                                             | ~20         | S      | Faible | opportuniste |
 
-> **B1 est le plus délicat.** Les éditeurs WYSIWYG sont sensibles au détail (position du curseur,
-> collage, sélection). Extraire **la logique de conversion**, jamais le composant : GL a en plus
-> l'insertion d'images inline et un état propre. Couvrir par les tests existants
-> (`GLRichTextEditor.test.jsx`) **avant** de toucher quoi que ce soit.
+#### B0 — `jsonDefaultsStore` ✅ livré
+
+**Objectif.** Le mécanisme « défauts JSON versionnés + surcharge en base » était écrit deux fois.
+
+**Ce qui a été fait.** Extraction de `createDefaultsLoader` (lecture de fichier cachée + clone
+défensif) et `resolveStoredConfig` (repli sur les défauts si la valeur stockée est absente ou
+illisible), consommés par `lib/helpContent.js` et `lib/glHelp.js`.
+
+**Ce qui n'a délibérément _pas_ été extrait.** L'**écriture** (upsert) : les tables (`app_settings`
+vs `gl_settings`) et les colonnes d'audit diffèrent. Et la **normalisation**, propre au modèle de
+contenu de chaque produit. On factorise le noyau, pas la plomberie.
+
+**Acceptation.** `tests/json-defaults-store.test.js` (9 cas) ; `help-content.test.js` et
+`gl-help.test.js` inchangés et au vert.
+
+#### B1 — Noyau d'édition riche
+
+**Objectif.** [`RichTextEditor.jsx`](../src/components/RichTextEditor.jsx) (124 l. substantielles)
+et [`GLRichTextEditor.jsx`](../src/gl/components/ui/GLRichTextEditor.jsx) (167 l.) partagent
+53 lignes : même import de `turndown`, même `renderMarkdownToSafeHtml` / `sanitizeRichHtml`, même
+aller-retour Markdown ↔ HTML.
+
+**Périmètre.** Créer `src/shared/richtext/` avec la **logique de conversion seule** : instance
+Turndown configurée, sérialisation HTML → Markdown, désérialisation Markdown → HTML assaini.
+
+**Démarche.**
+
+1. Écrire d'abord des tests de **conversion** sur les cas réels du corpus (listes, liens, gras,
+   images, HTML collé depuis un traitement de texte) — sur les deux éditeurs, avant tout
+   déplacement de code.
+2. Extraire la conversion. Les deux composants restent distincts.
+3. Vérifier `GLRichTextEditor.test.jsx` et `MarkdownTextarea.test.jsx` sans les réécrire.
+
+⚠️ **Piège — le plus délicat de l'axe B.** Ne **jamais** extraire le composant. Les éditeurs
+WYSIWYG sont sensibles au détail (position du curseur, collage, sélection, `contenteditable`), et
+GL porte en plus l'insertion d'images inline (`GLImageInlineInsertControls`), un état propre et
+`annotateEditorHtmlWithOriginalSrc`. Un composant unifié à drapeaux serait exactement le piège
+du §7.1 transposé au frontend.
+
+#### B2 — `quiz.js` ↔ `gl/qcm.js`
+
+**Objectif.** C'est le plus gros recouvrement mesuré du dépôt (**109 lignes**), et le seul dont
+le noyau n'est que partiellement partagé.
+
+**Constat.** `lib/shared/questionCrudCore.js`, `questionQueryFactory.js` et
+`questionPoolFiltering.js` **existent déjà** ; `routes/gl/qcm.js` n'importe pourtant de
+`lib/shared/` que `httpHelpers`. Le travail est donc d'**étendre l'usage de noyaux existants**,
+pas d'en créer un.
+
+**Démarche.**
+
+1. Cartographier les 109 lignes communes : lesquelles sont couvertes par un noyau existant mais
+   non utilisées, lesquelles relèvent de la plomberie (auth, permissions, audit) — **ces
+   dernières restent dupliquées, c'est légitime**.
+2. Basculer `routes/gl/qcm.js` sur les noyaux déjà présents, un par un.
+3. Aligner ensuite `routes/quiz.js` si des écarts apparaissent.
+
+⚠️ **Piège.** Les permissions diffèrent (`plants.manage` côté ForetMap, `gl.content.manage` côté
+GL) et les événements d'audit aussi. Ne pas chercher à les unifier : c'est de la plomberie, et
+la tentation d'un `makeCrudRouter` reviendra ici en premier (§7.1).
+
+#### B3 — Libellés d'erreur d'authentification
+
+**Objectif.** Petit lot opportuniste. `routes/auth.js` et `routes/gl/auth.js` partagent 97 lignes,
+dont le flux OAuth **déjà** factorisé dans `lib/shared/oauthCommon.js`. Ce qui reste est de la
+plomberie **plus** une vingtaine de chaînes d'erreur identiques (« Identifiant ou mot de passe
+incorrect », « Ce pseudo est déjà utilisé », « Identifiant utilisateur requis »…).
+
+**Démarche.** Regrouper ces chaînes dans un module partagé. Gain modeste en lignes, réel en
+cohérence : aujourd'hui une correction de formulation ne s'applique qu'à un produit.
+
+⚠️ **Piège.** S'arrêter aux **libellés**. Les statuts HTTP, les permissions et les conditions
+d'émission restent chez chaque produit.
 
 ### Axe C — Ce qu'on ne partage pas (décidé, à ne pas rouvrir)
 
@@ -206,15 +354,46 @@ c'est le signal que les deux cas ne sont pas le même problème.
 
 ## 9. Livré à ce jour
 
-| Lot | Livrable                                                                                 | Tests                                           |
-| --- | ---------------------------------------------------------------------------------------- | ----------------------------------------------- |
-| A1  | `src/shared/hooks/useAdminCrud.js` + `useGlAdminCrud` réduit à un adaptateur de 4 lignes | `tests-ui/shared/useAdminCrud.test.jsx` (8 cas) |
-| B0  | `lib/shared/jsonDefaultsStore.js` consommé par `helpContent.js` et `glHelp.js`           | `tests/json-defaults-store.test.js` (9 cas)     |
-| —   | `scripts/audit-duplication-fm-gl.mjs` — audit reproductible                              | —                                               |
+| Lot | Livrable                                                                                 | Tests                                                    |
+| --- | ---------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| A1  | `src/shared/hooks/useAdminCrud.js` + `useGlAdminCrud` réduit à un adaptateur de 4 lignes | `tests-ui/shared/useAdminCrud.test.jsx` (8 cas)          |
+| B0  | `lib/shared/jsonDefaultsStore.js` consommé par `helpContent.js` et `glHelp.js`           | `tests/json-defaults-store.test.js` (9 cas)              |
+| —   | `scripts/audit-duplication-fm-gl.mjs` — audit reproductible                              | —                                                        |
+| —   | **Correctif** `compactVisitSeenQueue` — repli d'horodatage stable (§9.1)                 | `tests-ui/utils/visitSeenQueueStability.test.js` (9 cas) |
 
-Non-régression vérifiée : suite UI complète (396 fichiers, 2571 tests) au vert ; tests backend
+Non-régression vérifiée : suite UI complète (397 fichiers, 2580 tests) au vert ; tests backend
 sans base de données au vert ; panneaux GL consommateurs (`GLSpeciesEditorPanel`,
 `GLGlossaryEditorPanel`, `GLSpellsEditorPanel`) au vert ; ESLint sans erreur ; Prettier conforme.
+
+### 9.1 Un bug de production démasqué par la stabilisation d'un test
+
+Le job CI `quality` échouait sur `tests-ui/hooks/useVisitSeenSync.test.jsx` — **échec préexistant
+sur `main`**, documenté dans le test lui-même comme un flake dû à la contention CPU, et « traité »
+par des timeouts portés à 10 s. Le diagnostic était faux, et le correctif masquait un vrai défaut.
+
+**Ce qui se passait réellement.** Le flush de la file « vu » est une chaîne de **pures
+micro-tâches** (aucun timer dans `flushVisitSeenQueue`). Attendre dessus avec `waitFor`
+(scrutation sur l'horloge) était donc inadapté. En remplaçant cette attente par un **drainage de
+micro-tâches** borné en tours de boucle d'événements, l'échec est devenu reproductible **en
+isolation, une fois sur cinq** — révélant une course qui n'avait rien à voir avec le CPU :
+
+`compactVisitSeenQueue` attribuait `updated_at = Date.now()` aux entrées sans horodatage valide.
+Or `loadVisitSeenQueue()` normalise à chaque lecture et `flushVisitSeenQueue()` lit la file
+**deux fois** (avant les POST, puis après, pour détecter une modification concurrente). Une entrée
+non horodatée recevait donc deux valeurs différentes dès que le flush franchissait une
+milliseconde, était jugée « modifiée pendant le flush », et **remise en file indéfiniment** —
+re-POSTée à chaque flush, avec `pendingSyncCount` bloqué à une valeur non nulle.
+
+**Portée réelle.** Toute entrée persistée sans `updated_at` (stockage hérité d'une version
+antérieure, données corrompues) ne se vidait jamais côté client. Le repli est désormais la
+valeur stable `0`, qui trie ces entrées en tête et se persiste à l'identique. Les entrées créées
+par `enqueueVisitSeenAction` / `replaceQueuedVisitSeenAction` portent toujours leur propre
+horodatage : elles ne sont pas concernées.
+
+**Leçon de méthode.** Un test intermittent « à cause de la CI » mérite d'être rendu déterministe
+**avant** d'être considéré comme un flake d'environnement. Ici, allonger les timeouts avait
+transformé un bug reproductible en nuisance aléatoire. La garde métier (« une entrée re-modifiée
+pendant le flush reste en file ») est préservée et désormais couverte par un test dédié.
 
 ---
 
