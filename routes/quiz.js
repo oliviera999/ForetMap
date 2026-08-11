@@ -31,6 +31,7 @@ const {
   combineKeywords,
 } = require('../lib/fmQuizImport');
 const { buildGlossaryLookupMap, matchGlossaryTermsForSpecies } = require('../lib/glGlossaryMatch');
+const { normalizeQuestionCode } = require('../lib/shared/questionRouteHelpers');
 const { getFmGatingSite, FM_MARKABLE } = require('../lib/learningGatingRuntime');
 const { maybeRegisterCooldownOnWrong } = require('../lib/learningGatingCooldown');
 const {
@@ -48,13 +49,6 @@ const QCM_OPTIONS = { jwtKind: FM_QCM_JWT_KIND };
 function normalizeOptionalFilter(value) {
   if (value == null) return null;
   const s = String(value).trim();
-  return s.length > 0 ? s : null;
-}
-
-function normalizeQuestionCode(value) {
-  const s = String(value || '')
-    .trim()
-    .toUpperCase();
   return s.length > 0 ? s : null;
 }
 

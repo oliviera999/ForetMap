@@ -55,8 +55,8 @@ panneaux GL ; `resourceQuestionGatingCore` sert les deux routes `learning-links`
 | ------------------------ | --------- | ------- | ------------------------------- | --------------------------------------------------- |
 | `learning-links.js`      | 130 / 163 | **89**  | ✅ `resourceQuestionGatingCore` | Reste : **plomberie de route**                      |
 | `context-comments.js`    | 229 / 165 | **102** | ✅ `contextCommentsCore`        | Reste : **plomberie de route**                      |
-| `quiz.js` ↔ `gl/qcm.js`  | 283 / 239 | **109** | ⚠️ partiel                      | **Candidat réel** (§6, lot B2)                      |
-| `auth.js` ↔ `gl/auth.js` | 721 / 841 | **97**  | ✅ `oauthCommon`                | Reste : plomberie + libellés d'erreur               |
+| `quiz.js` ↔ `gl/qcm.js`  | 283 / 239 | **109** | ✅ largement partagé            | ❌ **Faux positif à l’analyse** (§6, lot B2)        |
+| `auth.js` ↔ `gl/auth.js` | 721 / 841 | **97**  | ✅ `oauthCommon`                | ❌ 8 libellés seulement — **écarté** (§6, lot B3)   |
 | `glossary.js`            | 83 / 225  | 28      | ✅ `glossaryNormalization`      | **Faux jumeaux** — modèle GL bien plus riche (lore) |
 | `forum.js`               | 312 / 165 | 20      | —                               | **Faux jumeaux** — le forum GL est un pont          |
 
@@ -240,12 +240,12 @@ lecture, et un test dédié vérifie que `../secret` et `a/b` ne lisent rien.
 
 ### Axe B — Extraire les noyaux restants
 
-| Lot    | Contenu                                                                                                              | `comm` visé | Effort | Risque | État         |
-| ------ | -------------------------------------------------------------------------------------------------------------------- | ----------- | ------ | ------ | ------------ |
-| **B0** | `jsonDefaultsStore` — mécanisme « défauts JSON + surcharge en base » (`helpContent` / `glHelp`)                      | ~35         | S      | Faible | ✅ **livré** |
-| **B1** | Noyau d'édition riche : configuration Turndown + aller-retour Markdown ↔ HTML assaini, partagé par les deux éditeurs | ~53         | M      | Moyen  | à faire      |
-| **B2** | `quiz.js` ↔ `gl/qcm.js` : étendre l'usage de `questionCrudCore` / `questionQueryFactory` déjà présents               | ~109        | M      | Moyen  | à faire      |
-| **B3** | Libellés d'erreur d'authentification partagés (`auth.js` ↔ `gl/auth.js`)                                             | ~20         | S      | Faible | opportuniste |
+| Lot    | Contenu                                                                                                              | `comm` visé | Effort | Risque | État          |
+| ------ | -------------------------------------------------------------------------------------------------------------------- | ----------- | ------ | ------ | ------------- |
+| **B0** | `jsonDefaultsStore` — mécanisme « défauts JSON + surcharge en base » (`helpContent` / `glHelp`)                      | ~35         | S      | Faible | ✅ **livré**  |
+| **B1** | Noyau d'édition riche : configuration Turndown + aller-retour Markdown ↔ HTML assaini, partagé par les deux éditeurs | ~53         | M      | Moyen  | à faire       |
+| **B2** | `quiz.js` ↔ `gl/qcm.js` : analyse ligne à ligne — occasion réelle ~6 lignes, pas 109                                 | ~6          | S      | Faible | ✅ **livré**  |
+| **B3** | Libellés d'erreur d'authentification — analyse : 8 chaînes seulement sur 97 lignes communes                          | ~8          | S      | —      | ❌ **écarté** |
 
 #### B0 — `jsonDefaultsStore` ✅ livré
 
@@ -262,64 +262,102 @@ contenu de chaque produit. On factorise le noyau, pas la plomberie.
 **Acceptation.** `tests/json-defaults-store.test.js` (9 cas) ; `help-content.test.js` et
 `gl-help.test.js` inchangés et au vert.
 
-#### B1 — Noyau d'édition riche
+#### B1 — Noyau d'édition riche ✅ livré
 
-**Objectif.** [`RichTextEditor.jsx`](../src/components/RichTextEditor.jsx) (124 l. substantielles)
-et [`GLRichTextEditor.jsx`](../src/gl/components/ui/GLRichTextEditor.jsx) (167 l.) partagent
-53 lignes : même import de `turndown`, même `renderMarkdownToSafeHtml` / `sanitizeRichHtml`, même
-aller-retour Markdown ↔ HTML.
+**Le seul vrai positif de l'axe B.** Contrairement à B2 et B3, l'examen ligne à ligne confirme
+ici de la **logique** : sur les 53 lignes communes entre
+[`RichTextEditor.jsx`](../src/components/RichTextEditor.jsx) et
+[`GLRichTextEditor.jsx`](../src/gl/components/ui/GLRichTextEditor.jsx), une quarantaine sont du
+code exécutable — configuration Turndown, garde-fou d'aller-retour, exécution de commande — et
+non des imports ou des noms de champs.
 
-**Périmètre.** Créer `src/shared/richtext/` avec la **logique de conversion seule** : instance
-Turndown configurée, sérialisation HTML → Markdown, désérialisation Markdown → HTML assaini.
+**Extrait** dans `src/shared/richtext/richTextCore.js`, strictement ce qui était **identique à
+l'octet près** :
 
-**Démarche.**
+| Primitive                         | Rôle                                                             |
+| --------------------------------- | ---------------------------------------------------------------- |
+| `createRichTextTurndownService()` | Instance Turndown configurée (`atx`, `-`, `*`, `remove`, `keep`) |
+| `htmlToMarkdownWith()`            | Assainissement → conversion → rognage                            |
+| `normalizeHtmlForCompare()`       | Comparaison de HTML insensible aux espaces                       |
+| `runExecCommand()`                | Commande d'édition, sans échec hors navigateur                   |
 
-1. Écrire d'abord des tests de **conversion** sur les cas réels du corpus (listes, liens, gras,
-   images, HTML collé depuis un traitement de texte) — sur les deux éditeurs, avant tout
-   déplacement de code.
-2. Extraire la conversion. Les deux composants restent distincts.
-3. Vérifier `GLRichTextEditor.test.jsx` et `MarkdownTextarea.test.jsx` sans les réécrire.
+**La garantie centrale : une instance neuve par appel.** GL ajoute ses règles d'images
+(`glImageFigure`, `glImage`) à **son** instance ; ForetMap ne doit jamais les voir. Un test dédié
+vérifie cette isolation — c'est la condition qui rend la mutualisation sûre.
 
-⚠️ **Piège — le plus délicat de l'axe B.** Ne **jamais** extraire le composant. Les éditeurs
-WYSIWYG sont sensibles au détail (position du curseur, collage, sélection, `contenteditable`), et
-GL porte en plus l'insertion d'images inline (`GLImageInlineInsertControls`), un état propre et
-`annotateEditorHtmlWithOriginalSrc`. Un composant unifié à drapeaux serait exactement le piège
-du §7.1 transposé au frontend.
+**Ce qui reste délibérément dans chaque composant**, conformément à l'avertissement du plan
+(« extraire la logique de conversion, jamais le composant ») :
 
-#### B2 — `quiz.js` ↔ `gl/qcm.js`
+- `markdownToEditableHtml` — signatures et comportements différents : GL résout les sources
+  d'affichage et annote le HTML.
+- `syncFromDom` — ForetMap tronque sur `maxLength` et propage `name` ; GL non.
+- L'effet de synchronisation `value` → DOM — **structurellement identique**, mais son seul appel
+  variable est `markdownToEditableHtml`. Le factoriser supposerait d'injecter cette fonction pour
+  **deux** appelants : de la machinerie, pas une abstraction (§8).
 
-**Objectif.** C'est le plus gros recouvrement mesuré du dépôt (**109 lignes**), et le seul dont
-le noyau n'est que partiellement partagé.
+⚠️ **Deux comportements découverts en écrivant les tests**, et documentés plutôt que corrigés
+(aucun n'est un défaut, mais tous deux surprennent) :
 
-**Constat.** `lib/shared/questionCrudCore.js`, `questionQueryFactory.js` et
-`questionPoolFiltering.js` **existent déjà** ; `routes/gl/qcm.js` n'importe pourtant de
-`lib/shared/` que `httpHelpers`. Le travail est donc d'**étendre l'usage de noyaux existants**,
-pas d'en créer un.
+1. `turndownService.keep(['hr'])` **ne conserve pas** la balise : `<hr />` devient la rupture
+   thématique Markdown `* * *`.
+2. `sanitizeRichHtml(html, { allowImages: true })` **retire le `src`** d'une image à URL relative ;
+   seules les URL absolues sont conservées, et elles sont alors encadrées dans une
+   `<figure class="gl-content-image-wrap">`.
 
-**Démarche.**
+#### B2 — `quiz.js` ↔ `gl/qcm.js` ✅ analysé, réduit à sa juste mesure
 
-1. Cartographier les 109 lignes communes : lesquelles sont couvertes par un noyau existant mais
-   non utilisées, lesquelles relèvent de la plomberie (auth, permissions, audit) — **ces
-   dernières restent dupliquées, c'est légitime**.
-2. Basculer `routes/gl/qcm.js` sur les noyaux déjà présents, un par un.
-3. Aligner ensuite `routes/quiz.js` si des écarts apparaissent.
+**Ce que promettait le chiffre.** 109 lignes communes : le plus gros recouvrement mesuré du
+dépôt, et le seul dont le noyau semblait n'être que partiellement partagé.
 
-⚠️ **Piège.** Les permissions diffèrent (`plants.manage` côté ForetMap, `gl.content.manage` côté
-GL) et les événements d'audit aussi. Ne pas chercher à les unifier : c'est de la plomberie, et
-la tentation d'un `makeCrudRouter` reviendra ici en premier (§7.1).
+**Ce que l'analyse ligne à ligne a montré.** Le chiffre surestime l'occasion d'environ **six
+fois** :
 
-#### B3 — Libellés d'erreur d'authentification
+| Nature des lignes communes                                                                          | ~Lignes | Factorisable ?                                |
+| --------------------------------------------------------------------------------------------------- | ------- | --------------------------------------------- |
+| Plomberie Express : `express.Router()`, `asyncHandler`, réponses `res.status(4xx).json`             | ~30     | ❌ légitime                                   |
+| **Imports de noyaux déjà partagés** (`questionCrudCore`, `questionQueryFactory`, `glGlossaryMatch`) | ~12     | ❌ preuve que la mutualisation a déjà eu lieu |
+| Listes de noms de champs (`question_code:`, `difficulte:`, `choix_a, choix_b…`)                     | ~10     | ❌ donnée, pas logique (même cas qu'au §5)    |
+| Requêtes d'agrégats admin                                                                           | ~15     | ❌ tables **et** colonnes différentes         |
+| Enrobage glossaire (`loadGlossaryLookup`, `enrichQuestionWithGlossary`)                             | ~13     | ⚠️ voir ci-dessous                            |
+| **`normalizeQuestionCode`** — duplicata **exact**                                                   | **~6**  | ✅ **extrait**                                |
 
-**Objectif.** Petit lot opportuniste. `routes/auth.js` et `routes/gl/auth.js` partagent 97 lignes,
-dont le flux OAuth **déjà** factorisé dans `lib/shared/oauthCommon.js`. Ce qui reste est de la
-plomberie **plus** une vingtaine de chaînes d'erreur identiques (« Identifiant ou mot de passe
-incorrect », « Ce pseudo est déjà utilisé », « Identifiant utilisateur requis »…).
+`questionCrudCore` est déjà consommé par `lib/fmQuizCrud.js`, `lib/glQcmCrud.js` et
+`lib/glQcmLoreCrud.js` ; `routes/quiz.js` importe déjà `lib/glGlossaryMatch`. Le travail
+imaginé — « étendre l'usage de noyaux existants » — était **déjà fait**.
 
-**Démarche.** Regrouper ces chaînes dans un module partagé. Gain modeste en lignes, réel en
-cohérence : aujourd'hui une correction de formulation ne s'applique qu'à un produit.
+**Pourquoi l'enrobage glossaire n'a pas été extrait.** Les deux implémentations sont identiques
+au nom de table près, ce qui rendait l'extraction tentante. Trois signaux l'ont écartée :
 
-⚠️ **Piège.** S'arrêter aux **libellés**. Les statuts HTTP, les permissions et les conditions
-d'émission restent chez chaque produit.
+1. **Deux appelants seulement**, là où la grille du §8 demande trois (ou deux et un troisième certain).
+2. Un **troisième variant existe** — `routes/gl/games/markers.js` — mais il **branche** sur les
+   questions lore avec un autre index de glossaire. L'y faire entrer supposerait un drapeau par
+   produit : le signal, précisément, que les cas ne sont pas le même problème.
+3. L'extraction demandait une fabrique avec injection de `queryAll`, de `combineKeywords` (dont
+   l'implémentation diffère par produit) et une liste blanche de tables — soit de la **machinerie
+   pour deux appelants**. C'est la définition de l'abstraction prématurée.
+
+**Livré.** `lib/shared/questionRouteHelpers.js` : `normalizeQuestionCode` seul, duplicata exact et
+sans machinerie, consommé par les deux routes. Couvert par `tests/question-route-helpers.test.js`.
+
+**Leçon.** Le plus gros recouvrement du dépôt était, comme le plus fort ratio (§5), largement un
+faux positif. Deux fois sur deux, l'indicateur a désigné une piste que l'examen a refermée — ce
+qui est le rôle d'un indicateur, à condition de ne jamais s'arrêter à lui.
+
+#### B3 — Libellés d'erreur d'authentification ❌ écarté à l'analyse
+
+**Ce que promettait le chiffre.** 97 lignes communes entre `routes/auth.js` et
+`routes/gl/auth.js`, dont une vingtaine estimée de chaînes d'erreur identiques.
+
+**Ce que l'analyse a montré.** Sur les 97 lignes, **8 seulement** sont des libellés d'erreur
+(« Identifiant ou mot de passe incorrect », « Ce pseudo est déjà utilisé », « Aucun champ de
+profil à mettre à jour »…). Le reste se répartit en ~28 lignes d'imports — dont ceux
+d'`oauthCommon`, déjà partagé —, ~6 de plomberie de réponse, ~4 de SQL et une cinquantaine de
+configuration OAuth et de noms de champs.
+
+**Décision : ne pas faire.** Huit chaînes ne justifient pas une indirection supplémentaire, encore
+moins dans la zone la plus sensible du projet. Le bénéfice invoqué — « une correction de
+formulation ne s'applique aujourd'hui qu'à un produit » — reste vrai, mais se traite mieux par une
+relecture ponctuelle que par un module partagé qui n'aurait que ce contenu.
 
 ### Axe C — Ce qu'on ne partage pas (décidé, à ne pas rouvrir)
 
