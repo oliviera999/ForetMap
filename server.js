@@ -41,6 +41,7 @@ const observationsRouter = require('./routes/observations');
 const auditRouter = require('./routes/audit');
 const rbacRouter = require('./routes/rbac');
 const settingsRouter = require('./routes/settings');
+const referenceDocsRouter = require('./routes/reference-docs');
 const mediaLibraryRouter = require('./routes/media-library');
 const forumRouter = require('./routes/forum');
 const contextCommentsRouter = require('./routes/context-comments');
@@ -366,6 +367,7 @@ app.use('/api/students', studentsRouter);
 app.use('/api/observations', observationsRouter);
 app.use('/api/audit', auditRouter);
 app.use('/api/rbac', rbacRouter);
+app.use('/api/admin/reference-docs', referenceDocsRouter);
 app.use('/api/settings', settingsRouter);
 // Le restart GUI (/api/settings/admin/system/restart) partage l'arrêt gracieux
 // de /api/admin/restart (drain HTTP, Socket.IO, pool MySQL).

@@ -22,7 +22,6 @@ import { ObservationCard } from './ObservationCard.jsx';
 import { ObservationNotebookStatus } from './ObservationNotebookStatus.jsx';
 import { ObservationPhotoField } from './ObservationPhotoField.jsx';
 import { TimedToast } from '../shared/components/TimedToast.jsx';
-import { AutoSaveStatus } from '../shared/components/AutoSaveStatus.jsx';
 import { useDebouncedAutoSave } from '../shared/hooks/useDebouncedAutoSave.js';
 import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
 import { useSession } from '../contexts/SessionContext.jsx';

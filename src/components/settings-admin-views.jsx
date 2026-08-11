@@ -13,6 +13,7 @@ import { MediaLibraryMenu } from './MediaLibraryMenu.jsx';
 import { AdminTextSettingField, AdminNumberSettingField } from './settings/AdminSettingFields.jsx';
 import { MapGeorefPanel } from './settings/MapGeorefPanel.jsx';
 import { ForetMapHelpContentAdminPanel } from './help/ForetMapHelpContentAdminPanel.jsx';
+import { ForetMapReferenceDocsPanel } from './help/ForetMapReferenceDocsPanel.jsx';
 import { useSession } from '../contexts/SessionContext.jsx';
 
 function SettingsAdminView() {
@@ -408,8 +409,17 @@ function SettingsAdminView() {
         >
           Bulles d'aide
         </button>
+        <button
+          type="button"
+          className={adminSection === 'reference' ? 'is-active' : ''}
+          onClick={() => setAdminSection('reference')}
+        >
+          Doc de référence
+        </button>
       </nav>
-      {adminSection === 'help' ? (
+      {adminSection === 'reference' ? (
+        <ForetMapReferenceDocsPanel />
+      ) : adminSection === 'help' ? (
         <ForetMapHelpContentAdminPanel />
       ) : (
         <>
