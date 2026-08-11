@@ -1,3 +1,4 @@
+import { AutoSaveStatus } from '../../shared/components/AutoSaveStatus.jsx';
 import { MarkdownTextarea } from '../MarkdownTextarea.jsx';
 import { tutorialZonePickLabel } from '../../utils/tutorialListHelpers.js';
 import {
@@ -37,6 +38,8 @@ export function TutorialEditorPanel({
   onSave,
   onCancel,
   onToast,
+  autoSaveStatus = '',
+  autoSaveError = '',
 }) {
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
@@ -173,13 +176,16 @@ export function TutorialEditorPanel({
           <input value={form.source_url} onChange={set('source_url')} placeholder="https://..." />
         </div>
       )}
-      <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+      {autoSaveError ? <p className="form-error">{autoSaveError}</p> : null}
+      <div style={{ display: 'flex', gap: 8, marginTop: 10, alignItems: 'center' }}>
         <button className="btn btn-primary btn-sm" disabled={saving} onClick={onSave}>
           {saving ? 'Sauvegarde...' : '💾 Enregistrer'}
         </button>
         <button className="btn btn-ghost btn-sm" onClick={onCancel}>
           Annuler
         </button>
+        {/* Édition seule : le parent ne transmet aucun statut en création. */}
+        {autoSaveStatus ? <AutoSaveStatus status={autoSaveStatus} /> : null}
       </div>
     </div>
   );

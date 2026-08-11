@@ -22,6 +22,8 @@ import { ObservationCard } from './ObservationCard.jsx';
 import { ObservationNotebookStatus } from './ObservationNotebookStatus.jsx';
 import { ObservationPhotoField } from './ObservationPhotoField.jsx';
 import { TimedToast } from '../shared/components/TimedToast.jsx';
+import { AutoSaveStatus } from '../shared/components/AutoSaveStatus.jsx';
+import { useDebouncedAutoSave } from '../shared/hooks/useDebouncedAutoSave.js';
 import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
 import { useSession } from '../contexts/SessionContext.jsx';
 import { useData } from '../contexts/DataContext.jsx';
@@ -113,6 +115,29 @@ function PlantManager({ onRefresh, maps = [], onForceLogout = null }) {
     }
     setSaving(false);
   };
+
+  // Enregistrement automatique — **édition seule**.
+  //
+  // En création (`showAdd`, `editId === null`) l'autosave reste inactif : une fiche
+  // n'est créée que par une action explicite. En édition, la fiche existe déjà et
+  // l'enregistrement ne fait que la mettre à jour — on ne publie donc rien de neuf.
+  // Contrairement à `save()`, cette persistance **ne referme pas** l'éditeur.
+  //
+  // La baseline retournée est le formulaire *envoyé* : une frappe saisie pendant la
+  // requête en vol reste ainsi détectée comme non enregistrée et repart au tour suivant.
+  const autoSavePersist = useCallback(async () => {
+    const sent = form;
+    await api(`/api/plants/${editId}`, 'PUT', sent);
+    await onRefresh();
+    return sent;
+  }, [editId, form, onRefresh]);
+
+  const { status: autoSaveStatus, error: autoSaveError } = useDebouncedAutoSave({
+    value: form,
+    resetKey: editId ? `plant:${editId}` : 'none',
+    enabled: Boolean(editId) && form.name.trim().length > 0,
+    onSave: autoSavePersist,
+  });
 
   const del = async (p) => {
     if (!confirm(`Supprimer "${p.name}" ?`)) return;
@@ -222,6 +247,8 @@ function PlantManager({ onRefresh, maps = [], onForceLogout = null }) {
                     saving={saving}
                     plantId={p.id}
                     onToast={setToast}
+                    autoSaveStatus={autoSaveStatus}
+                    autoSaveError={autoSaveError}
                   />
                 </div>
               ) : (
