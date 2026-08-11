@@ -31,6 +31,7 @@ const {
   matchGlossaryTermsForSpecies,
 } = require('../../lib/glGlossaryMatch');
 const { normalizeOptionalString } = require('../../lib/shared/httpHelpers');
+const { normalizeQuestionCode } = require('../../lib/shared/questionRouteHelpers');
 const { validate } = require('../../lib/validate');
 const { glQcmPoolPreviewQuerySchema } = require('../../lib/glQuerySchemas');
 const { parseBiomeSlugsFromQuery, loadBiomesForChapterIds } = require('../../lib/glChapterBiomes');
@@ -44,13 +45,6 @@ const router = express.Router();
 function normalizeBiomeSlug(value) {
   if (value == null) return null;
   const s = String(value).trim();
-  return s.length > 0 ? s : null;
-}
-
-function normalizeQuestionCode(value) {
-  const s = String(value || '')
-    .trim()
-    .toUpperCase();
   return s.length > 0 ? s : null;
 }
 
