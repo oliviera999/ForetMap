@@ -56,7 +56,7 @@ panneaux GL ; `resourceQuestionGatingCore` sert les deux routes `learning-links`
 | `learning-links.js`      | 130 / 163 | **89**  | ✅ `resourceQuestionGatingCore` | Reste : **plomberie de route**                      |
 | `context-comments.js`    | 229 / 165 | **102** | ✅ `contextCommentsCore`        | Reste : **plomberie de route**                      |
 | `quiz.js` ↔ `gl/qcm.js`  | 283 / 239 | **109** | ✅ largement partagé            | ❌ **Faux positif à l’analyse** (§6, lot B2)        |
-| `auth.js` ↔ `gl/auth.js` | 721 / 841 | **97**  | ✅ `oauthCommon`                | Reste : plomberie + libellés d'erreur               |
+| `auth.js` ↔ `gl/auth.js` | 721 / 841 | **97**  | ✅ `oauthCommon`                | ❌ 8 libellés seulement — **écarté** (§6, lot B3)   |
 | `glossary.js`            | 83 / 225  | 28      | ✅ `glossaryNormalization`      | **Faux jumeaux** — modèle GL bien plus riche (lore) |
 | `forum.js`               | 312 / 165 | 20      | —                               | **Faux jumeaux** — le forum GL est un pont          |
 
@@ -240,12 +240,12 @@ lecture, et un test dédié vérifie que `../secret` et `a/b` ne lisent rien.
 
 ### Axe B — Extraire les noyaux restants
 
-| Lot    | Contenu                                                                                                              | `comm` visé | Effort | Risque | État         |
-| ------ | -------------------------------------------------------------------------------------------------------------------- | ----------- | ------ | ------ | ------------ |
-| **B0** | `jsonDefaultsStore` — mécanisme « défauts JSON + surcharge en base » (`helpContent` / `glHelp`)                      | ~35         | S      | Faible | ✅ **livré** |
-| **B1** | Noyau d'édition riche : configuration Turndown + aller-retour Markdown ↔ HTML assaini, partagé par les deux éditeurs | ~53         | M      | Moyen  | à faire      |
-| **B2** | `quiz.js` ↔ `gl/qcm.js` : analyse ligne à ligne — occasion réelle ~6 lignes, pas 109                                 | ~6          | S      | Faible | ✅ **livré** |
-| **B3** | Libellés d'erreur d'authentification partagés (`auth.js` ↔ `gl/auth.js`)                                             | ~20         | S      | Faible | opportuniste |
+| Lot    | Contenu                                                                                                              | `comm` visé | Effort | Risque | État          |
+| ------ | -------------------------------------------------------------------------------------------------------------------- | ----------- | ------ | ------ | ------------- |
+| **B0** | `jsonDefaultsStore` — mécanisme « défauts JSON + surcharge en base » (`helpContent` / `glHelp`)                      | ~35         | S      | Faible | ✅ **livré**  |
+| **B1** | Noyau d'édition riche : configuration Turndown + aller-retour Markdown ↔ HTML assaini, partagé par les deux éditeurs | ~53         | M      | Moyen  | à faire       |
+| **B2** | `quiz.js` ↔ `gl/qcm.js` : analyse ligne à ligne — occasion réelle ~6 lignes, pas 109                                 | ~6          | S      | Faible | ✅ **livré**  |
+| **B3** | Libellés d'erreur d'authentification — analyse : 8 chaînes seulement sur 97 lignes communes                          | ~8          | S      | —      | ❌ **écarté** |
 
 #### B0 — `jsonDefaultsStore` ✅ livré
 
@@ -325,18 +325,21 @@ sans machinerie, consommé par les deux routes. Couvert par `tests/question-rout
 faux positif. Deux fois sur deux, l'indicateur a désigné une piste que l'examen a refermée — ce
 qui est le rôle d'un indicateur, à condition de ne jamais s'arrêter à lui.
 
-#### B3 — Libellés d'erreur d'authentification
+#### B3 — Libellés d'erreur d'authentification ❌ écarté à l'analyse
 
-**Objectif.** Petit lot opportuniste. `routes/auth.js` et `routes/gl/auth.js` partagent 97 lignes,
-dont le flux OAuth **déjà** factorisé dans `lib/shared/oauthCommon.js`. Ce qui reste est de la
-plomberie **plus** une vingtaine de chaînes d'erreur identiques (« Identifiant ou mot de passe
-incorrect », « Ce pseudo est déjà utilisé », « Identifiant utilisateur requis »…).
+**Ce que promettait le chiffre.** 97 lignes communes entre `routes/auth.js` et
+`routes/gl/auth.js`, dont une vingtaine estimée de chaînes d'erreur identiques.
 
-**Démarche.** Regrouper ces chaînes dans un module partagé. Gain modeste en lignes, réel en
-cohérence : aujourd'hui une correction de formulation ne s'applique qu'à un produit.
+**Ce que l'analyse a montré.** Sur les 97 lignes, **8 seulement** sont des libellés d'erreur
+(« Identifiant ou mot de passe incorrect », « Ce pseudo est déjà utilisé », « Aucun champ de
+profil à mettre à jour »…). Le reste se répartit en ~28 lignes d'imports — dont ceux
+d'`oauthCommon`, déjà partagé —, ~6 de plomberie de réponse, ~4 de SQL et une cinquantaine de
+configuration OAuth et de noms de champs.
 
-⚠️ **Piège.** S'arrêter aux **libellés**. Les statuts HTTP, les permissions et les conditions
-d'émission restent chez chaque produit.
+**Décision : ne pas faire.** Huit chaînes ne justifient pas une indirection supplémentaire, encore
+moins dans la zone la plus sensible du projet. Le bénéfice invoqué — « une correction de
+formulation ne s'applique aujourd'hui qu'à un produit » — reste vrai, mais se traite mieux par une
+relecture ponctuelle que par un module partagé qui n'aurait que ce contenu.
 
 ### Axe C — Ce qu'on ne partage pas (décidé, à ne pas rouvrir)
 
