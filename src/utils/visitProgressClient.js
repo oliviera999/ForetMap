@@ -51,9 +51,23 @@ export function compactVisitSeenQueue(queue) {
     if (!target_type || !target_id) continue;
     const key = visitSeenQueueItemKey(target_type, target_id);
     const seen = raw.seen !== false;
-    const updated_at = Number.isFinite(Number(raw.updated_at))
-      ? Number(raw.updated_at)
-      : Date.now();
+    // Repli **stable** (et non `Date.now()`) pour une entrée sans horodatage valide.
+    //
+    // `loadVisitSeenQueue()` normalise à chaque lecture, et `flushVisitSeenQueue()`
+    // lit la file **deux fois** (avant les POST, puis après, pour détecter une
+    // modification concurrente). Avec un repli sur l'horloge, une entrée non
+    // horodatée recevait deux valeurs différentes dès que le flush franchissait
+    // une milliseconde : elle était alors jugée « modifiée pendant le flush » et
+    // **remise en file indéfiniment** — action re-POSTée à chaque flush et
+    // `pendingSyncCount` bloqué à une valeur non nulle.
+    //
+    // `0` trie ces entrées en tête (une entrée sans horodatage est d'origine
+    // inconnue, donc traitée comme la plus ancienne) et se persiste tel quel,
+    // les lectures suivantes étant dès lors identiques. Les entrées produites par
+    // `enqueueVisitSeenAction` / `replaceQueuedVisitSeenAction` portent toujours
+    // leur propre `updated_at` : ce repli ne concerne que les données héritées
+    // ou corrompues.
+    const updated_at = Number.isFinite(Number(raw.updated_at)) ? Number(raw.updated_at) : 0;
     byKey.set(key, { target_type, target_id, seen, updated_at });
   }
   return [...byKey.values()].sort((a, b) => a.updated_at - b.updated_at);

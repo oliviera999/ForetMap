@@ -7,6 +7,82 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Partage ForetMap/GL — audit outillé, plan en trois axes et deux noyaux mutualisés
+
+Nouveau document [`docs/PARTAGE_FM_GL.md`](docs/PARTAGE_FM_GL.md) : audit **mesuré** de la
+duplication entre les deux produits du monorepo et plan d'enrichissement mutuel. Constat
+central : la logique métier est déjà largement factorisée (23 noyaux `lib/shared/`, 61 fichiers
+`src/shared/`, convergence mascotte achevée) ; ce qui se répète est la **plomberie**, et le vrai
+gisement est l'**asymétrie** — GL disposait d'outils d'administration absents de ForetMap.
+
+- **Audit reproductible** : nouveau script `scripts/audit-duplication-fm-gl.mjs` (comparaison des
+  lignes substantielles, front et back). Documente aussi un **faux positif instructif** : la paire
+  la plus similaire de tout le dépôt (0,87) ne recouvre aucune dette — ce sont des listes de
+  champs, et les deux fichiers sont déjà des adaptateurs d'un noyau partagé.
+- **`src/shared/hooks/useAdminCrud.js`** — le squelette CRUD des panneaux admin (liste, fiche,
+  « next-code », autosave débouncé, états loading/error/info), jusqu'ici réservé à GL, est promu
+  en hook partagé avec **transport HTTP injecté**. `useGlAdminCrud` devient un adaptateur mince
+  liant `apiGL` ; ForetMap peut désormais consommer le même hook avec `api`. Aucun changement de
+  comportement pour les panneaux GL existants (espèces, sorts, glossaire).
+- **`lib/shared/jsonDefaultsStore.js`** — le mécanisme « défauts JSON versionnés + surcharge en
+  base » était écrit deux fois (`lib/helpContent.js`, `lib/glHelp.js`). Extraction de
+  `createDefaultsLoader` (lecture cachée + clone défensif) et `resolveStoredConfig` (repli sur les
+  défauts si la valeur stockée est absente ou illisible). L'écriture (upsert) reste par produit :
+  les tables et colonnes d'audit diffèrent.
+- Tests ajoutés : `tests-ui/shared/useAdminCrud.test.jsx` (8 cas) et
+  `tests/json-defaults-store.test.js` (9 cas).
+- Le plan détaille désormais chaque lot des axes A et B (objectif, périmètre, démarche,
+  critères d'acceptation, piège spécifique).
+
+### Corrigé — File de progression « vu » : une entrée sans horodatage ne se vidait jamais
+
+`compactVisitSeenQueue` attribuait `updated_at = Date.now()` aux entrées de la file locale
+dépourvues d'horodatage valide. Comme `loadVisitSeenQueue()` normalise à chaque lecture et que
+`flushVisitSeenQueue()` lit la file **deux fois** (avant les POST, puis après, pour détecter une
+modification concurrente), une telle entrée recevait deux horodatages différents dès que le flush
+franchissait une milliseconde. Elle était alors jugée « modifiée pendant le flush » et **remise en
+file indéfiniment** : action re-POSTée à chaque synchronisation et compteur « en attente » bloqué
+à une valeur non nulle.
+
+- **Correctif** : repli sur la valeur **stable** `0` au lieu de l'heure courante. Ces entrées
+  trient en tête (origine inconnue = traitées comme les plus anciennes) et se persistent à
+  l'identique, rendant les lectures successives idempotentes. Les entrées créées par
+  `enqueueVisitSeenAction` / `replaceQueuedVisitSeenAction` portent toujours leur propre
+  horodatage : elles ne sont pas concernées. La garde « une entrée re-modifiée pendant le flush
+  reste en file » est préservée.
+- **Origine** : ce défaut se manifestait comme un test intermittent (`useVisitSeenSync`), échec
+  récurrent de la CI **sur `main`** et jusque-là attribué à la contention CPU des runners.
+  Remplacer l'attente sur l'horloge (`waitFor`) par un drainage de micro-tâches — le flush ne
+  comporte aucun timer — a rendu l'échec reproductible en isolation et révélé la vraie cause.
+- Tests : `tests-ui/utils/visitSeenQueueStability.test.js` (9 cas, dont la reproduction explicite
+  du franchissement de milliseconde).
+
+### Doc — Plan d'implantation « OLU narrateur » (avatar des bulles d'aide et du récit)
+
+Nouveau document [`docs/MASCOT_NARRATEUR_OLU.md`](docs/MASCOT_NARRATEUR_OLU.md) : plan
+d'implantation d'un avatar narrateur, **OLU**, portant à la première personne l'aide
+contextuelle et les passages narratifs de ForetMap et de Gnomes & Licornes. **Document de
+conception uniquement — aucun comportement modifié.**
+
+- **Charte rédactionnelle** : personnalité « copiste cool » (bienveillante, lucide, sage,
+  humoristique), règle des trois temps pour porter les messages lourds de sens, exemples de
+  conversion tirés du corpus réel, liste de ce qu'OLU ne dit jamais.
+- **Architecture en trois niveaux de rendu** (mascotte animée / portrait / fallback SVG) pour
+  éviter de charger les renderers lourds de la carte dans une bulle d'aide ; composant
+  `MascotSpeaker` partagé ForetMap/GL, expressions mappées sur les états canoniques existants.
+- **Arbitrage d'architecture signalé** : `visit_mascot_packs` est par carte et ne convient pas
+  à un narrateur global — un réglage `content.help.narrator` est recommandé à la place.
+- **Constat** : l'entrée catalogue `olu-spritesheet` existe depuis longtemps mais son asset
+  n'a jamais été versionné ; OLU retombe donc systématiquement sur le fallback SVG.
+- Découpage en 7 lots (les 4 premiers livrables sans aucun sprite), arbitrages restants,
+  anti-patterns, obligations d'accessibilité et de tests.
+- **Faut-il refactoriser avant ? (§15)** — audit mesuré du partage ForetMap/GL : inventaire de
+  `lib/shared/` (22 noyaux) et `src/shared/` (59 fichiers), lignes substantielles communes entre
+  routes homonymes, distinction entre vrais doublons et faux jumeaux (forum, glossaire).
+  Conclusion : la logique métier est déjà factorisée, seule la plomberie se répète ; le vrai
+  gisement est l'**asymétrie** (GL dispose d'outils que ForetMap n'a pas) plutôt que la
+  duplication. Aucun lot de refactor préalable recommandé.
+
 ### GL — Contenus → Doc de référence : lire et amender la doc fonctionnelle depuis le jeu
 
 Les documents de référence non techniques de Gnomes & Licornes (`docs/reference/gl/*.md` :
