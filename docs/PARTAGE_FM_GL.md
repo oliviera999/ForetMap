@@ -112,8 +112,8 @@ outil disponible, on ne refond rien.
 | ------ | --------------------------------------------------------------------------------------------------------- | ------ | ----------- | ------------ |
 | **A1** | `useAdminCrud` promu dans `src/shared/hooks/`, transport injecté ; `useGlAdminCrud` devient un adaptateur | S      | Très faible | ✅ **livré** |
 | **A2** | `QuestionEditorPanel` (partagé) consomme `useAdminCrud` au lieu de réécrire le CRUD                       | M      | Moyen       | à faire      |
-| **A3** | Généraliser l'autosave débouncé aux panneaux prof ForetMap qui le méritent                                | M      | Faible      | à faire      |
-| **A4** | Doc de référence `docs/reference/foretmap/` éditable depuis l'app (miroir de `GLReferenceDocsPanel`)      | M      | Moyen       | à arbitrer   |
+| **A3** | Autosave débouncé sur trois panneaux prof ForetMap, **en édition seule**                                  | M      | Faible      | ✅ **livré** |
+| **A4** | Doc de référence `docs/reference/foretmap/` **consultable** depuis l'app (lecture seule)                  | M      | Faible      | ✅ **livré** |
 
 #### A1 — `useAdminCrud` partagé ✅ livré
 
@@ -167,35 +167,76 @@ diffère, l'autosave peut se déclencher au mauvais moment (perte de brouillon o
 intempestive). **Comparer les deux clés avant de basculer** ; si elles divergent réellement,
 exposer un `resetKey` optionnel dans le hook plutôt que de forcer l'alignement.
 
-#### A3 — Généraliser l'autosave côté ForetMap
+#### A3 — Autosave côté ForetMap ✅ livré
 
-**Objectif.** Corriger l'asymétrie la plus visible : `useDebouncedAutoSave` est utilisé par
+**Objectif.** Corriger l'asymétrie la plus visible : `useDebouncedAutoSave` était utilisé par
 17 fichiers GL et **1 seul** côté ForetMap.
 
-**Démarche.** Recenser les panneaux prof ForetMap à formulaire long (biodiversité, tâches,
-tutoriels, réglages) et n'équiper que ceux où la perte de saisie est un risque réel. **Ce n'est
-pas une conversion mécanique** : un autosave sur un formulaire à effet de bord (publication,
-notification) est nuisible.
+**Le piège, mesuré.** L'avertissement « un autosave sur un formulaire à effet de bord est
+nuisible » n'était pas théorique. Sur les trois panneaux retenus, **deux publient immédiatement
+vers les élèves** :
 
-**Acceptation.** Chaque panneau converti affiche un `AutoSaveStatus` et conserve un chemin
-d'enregistrement explicite. Un test par panneau converti.
+| Panneau             | Sémantique de publication                                                  | Conséquence        |
+| ------------------- | -------------------------------------------------------------------------- | ------------------ |
+| Fiche biodiversité  | Aucune colonne de visibilité — donnée de référence                         | Sûr                |
+| Édition de tâche    | Visible des élèves dès l'enregistrement ; `assign_student_ids` **assigne** | Effet de bord réel |
+| Éditeur de tutoriel | `is_active TINYINT(1) DEFAULT 1` — **aucun état brouillon**                | Effet de bord réel |
 
-⚠️ **Piège.** A3 **après** A2. Le pilote A2 valide l'ergonomie du hook sur un cas réel ; s'il
-frotte, on corrige le hook une fois, pas dix panneaux.
+Point rassurant vérifié au passage : **aucune notification** n'est émise à l'enregistrement d'une
+tâche (`routes/tasks.js` n'en déclenche aucune).
 
-#### A4 — Doc de référence ForetMap éditable dans l'app
+**Mitigation retenue : autosave en édition seule.** L'enregistrement automatique n'est actif que
+sur un enregistrement **déjà créé**. Une tâche, un tutoriel ou une fiche neuve n'est créé que par
+une action explicite — jamais publié à moitié construit. Conséquence directe côté tâches : les
+**assignations initiales**, qui n'ont lieu qu'à la création, ne peuvent pas être déclenchées par
+l'autosave.
+
+Cas particulier des tâches : l'**image** reste hors du circuit d'autosave (`taskImageData` n'est
+ni surveillé ni transmis), pour ne pas réémettre le même envoi à chaque frappe. Elle est
+enregistrée par le bouton explicite, comme avant.
+
+**Baseline sur le formulaire envoyé.** Les trois persistances renvoient le formulaire _transmis_,
+et non une version serveur : une frappe saisie pendant la requête en vol reste donc détectée comme
+non enregistrée et repart au tour suivant.
+
+**Risque résiduel assumé.** Un élève peut voir un titre en cours de frappe pendant quelques
+secondes s'il consulte une tâche ou un tutoriel pendant que le professeur le modifie.
+
+**Acceptation.** Chaque panneau affiche un `AutoSaveStatus` (jamais en création) et conserve son
+bouton d'enregistrement explicite. Couvert par `tests-ui/components/PlantEditFormAutoSave.test.jsx`,
+dont le cas central vérifie qu'**aucune requête** ne part en création.
+
+#### A4 — Doc de référence ForetMap consultable dans l'app ✅ livré
 
 **Objectif.** GL permet aux MJ de lire et amender `docs/reference/gl/*.md` depuis l'onglet
-Contenus (`GLReferenceDocsPanel`, stockage à deux étages non destructif : fichier versionné +
-surcouche en base). ForetMap n'a pas d'équivalent alors que `docs/reference/foretmap/` existe et
-suit la même convention — y compris le marqueur `🔧 À implémenter` valant demande d'évolution.
+Contenus. ForetMap disposait de `docs/reference/foretmap/` (8 documents) sans aucun accès depuis
+l'application.
 
-**Démarche.** Réutiliser le modèle GL (table de surcouche, route de lecture/écriture, panneau)
-en l'adaptant aux permissions ForetMap. Le noyau `lib/glReferenceDocs.js` est le point de départ
-naturel d'un `lib/shared/referenceDocsCore.js`.
+**Décision : lecture seule.** L'étage d'édition de GL (surcouche en base, non destructive) n'est
+pas repris. Côté ForetMap, les fichiers versionnés dans Git font foi et amender un document reste
+un acte de développement. Cela supprime la migration, la table de surcouche et les routes
+d'écriture — l'essentiel du bénéfice (rendre la documentation accessible aux professeurs sans
+passer par le dépôt) est obtenu sans cette complexité.
 
-⚠️ **À arbitrer.** C'est le seul lot de l'axe A qui crée une **fonctionnalité**, pas seulement un
-outil. Il mérite sa propre décision produit : les profs ForetMap en ont-ils l'usage ?
+**Extraction associée.** La couche **fichiers** de `lib/glReferenceDocs.js` était entièrement
+générique : validation de slug, extraction du titre et du résumé Markdown, listage et tri selon un
+sommaire de lecture. Elle est désormais dans `lib/shared/referenceDocsFiles.js`, consommée par les
+deux produits — seuls le répertoire et l'ordre de lecture sont injectés. La couche de **surcouche
+en base** reste chez GL : on factorise le noyau, pas la plomberie.
+
+**Livrables.**
+
+| Fichier                                              | Rôle                                                           |
+| ---------------------------------------------------- | -------------------------------------------------------------- |
+| `lib/shared/referenceDocsFiles.js`                   | Noyau fichiers partagé (nouveau)                               |
+| `lib/foretmapReferenceDocs.js`                       | Lecteur ForetMap, lecture seule (nouveau)                      |
+| `routes/reference-docs.js`                           | `GET /api/admin/reference-docs[/:slug]`, `admin.settings.read` |
+| `src/components/help/ForetMapReferenceDocsPanel.jsx` | Sommaire + lecture, onglet « Doc de référence »                |
+| `lib/glReferenceDocs.js`                             | Délègue désormais sa couche fichiers au noyau partagé          |
+
+⚠️ **Traversée de chemin.** Les slugs proviennent de l'URL et servent à composer un chemin de
+fichier. `isValidReferenceSlug` (kebab-case borné, sans séparateur) est appliqué **avant** toute
+lecture, et un test dédié vérifie que `../secret` et `a/b` ne lisent rien.
 
 ### Axe B — Extraire les noyaux restants
 
