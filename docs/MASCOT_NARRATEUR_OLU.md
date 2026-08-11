@@ -603,6 +603,13 @@ d'abord mutualiser davantage de code entre ForetMap et Gnomes & Licornes ?
 **Verdict : non pour OLU, et plus généralement « moins qu'on ne le croit ».** Le dépôt est déjà
 très avancé sur le partage. Ce qui suit est mesuré, pas estimé.
 
+> **Mise à jour.** L'audit a depuis été approfondi, outillé et étendu au-delà du périmètre OLU :
+> voir **[`PARTAGE_FM_GL.md`](./PARTAGE_FM_GL.md)** (méthode reproductible via
+> `scripts/audit-duplication-fm-gl.mjs`, résultats front + back, plan en trois axes, écueils).
+> Deux quick wins en sont issus et sont **livrés** : le noyau `lib/shared/jsonDefaultsStore.js`
+> (candidat A du §15.5 ci-dessous, avancé avant le lot 2 — voir §15.6) et le hook partagé
+> `src/shared/hooks/useAdminCrud.js` (candidat B).
+
 ### 15.1 Le principe
 
 > Un pré-refactor se justifie quand le travail à venir **créerait** de la duplication.
@@ -653,15 +660,15 @@ en bénéficie. C'est du gain sans réécriture, donc sans risque de régression
 
 ### 15.5 Candidats, classés
 
-| #   | Candidat                                                                    | Gain                             | Risque | Verdict                                     |
-| --- | --------------------------------------------------------------------------- | -------------------------------- | ------ | ------------------------------------------- |
-| A   | **Mécanisme « défauts JSON + surcharge BDD »** (`helpContent` / `glHelp`)   | ~60 l. × 2, sert directement OLU | Faible | ✅ **Dans le lot 2**, pas avant (cf. §15.6) |
-| B   | **`useAdminCrud` promu en `src/shared/hooks/`**                             | ForetMap gagne un outil éprouvé  | Faible | ✅ Opportuniste, hors chantier OLU          |
-| C   | **Fabrique de routes CRUD** (`makeCrudRouter`)                              | ~100 l. par paire de routes      | Moyen  | ⚠️ Voir l'avertissement ci-dessous          |
-| D   | **Unifier forum / glossaire / tutoriels / stats**                           | —                                | Élevé  | ❌ Faux jumeaux (§15.3)                     |
-| E   | **Unifier les composants d'aide** (`HelpPanel` ↔ `GLHelpPanel`)             | —                                | Élevé  | ❌ Modèles d'interaction différents         |
-| F   | **Unifier les modèles de contenu d'aide** (sections/rôles ↔ onglets à plat) | —                                | Élevé  | ❌ Migration de réglages en production      |
-| G   | **Système de parcours découverte pour GL**                                  | —                                | Élevé  | ❌ **Fonctionnalité**, pas refactor (§15.7) |
+| #   | Candidat                                                                    | Gain                             | Risque | Verdict                                                      |
+| --- | --------------------------------------------------------------------------- | -------------------------------- | ------ | ------------------------------------------------------------ |
+| A   | **Mécanisme « défauts JSON + surcharge BDD »** (`helpContent` / `glHelp`)   | ~35 l. × 2, sert directement OLU | Faible | ✅ **Livré** — `lib/shared/jsonDefaultsStore.js` (cf. §15.6) |
+| B   | **`useAdminCrud` promu en `src/shared/hooks/`**                             | ForetMap gagne un outil éprouvé  | Faible | ✅ **Livré** — `src/shared/hooks/useAdminCrud.js`            |
+| C   | **Fabrique de routes CRUD** (`makeCrudRouter`)                              | ~100 l. par paire de routes      | Moyen  | ⚠️ Voir l'avertissement ci-dessous                           |
+| D   | **Unifier forum / glossaire / tutoriels / stats**                           | —                                | Élevé  | ❌ Faux jumeaux (§15.3)                                      |
+| E   | **Unifier les composants d'aide** (`HelpPanel` ↔ `GLHelpPanel`)             | —                                | Élevé  | ❌ Modèles d'interaction différents                          |
+| F   | **Unifier les modèles de contenu d'aide** (sections/rôles ↔ onglets à plat) | —                                | Élevé  | ❌ Migration de réglages en production                       |
+| G   | **Système de parcours découverte pour GL**                                  | —                                | Élevé  | ❌ **Fonctionnalité**, pas refactor (§15.7)                  |
 
 ⚠️ **Avertissement sur (C).** Une fabrique de routes Express est un piège d'abstraction classique.
 Middleware d'auth, noms de permissions, événements d'audit et sémantique d'erreur diffèrent par
@@ -670,14 +677,21 @@ la complexité au lieu de la supprimer, et rend chaque évolution ultérieure pl
 N'y aller que si un troisième appelant apparaît (règle de trois), et en factorisant **le noyau, pas
 la plomberie** — exactement ce que le projet fait déjà.
 
-### 15.6 Pourquoi (A) va dans le lot 2 et non avant
+### 15.6 (A) finalement livré avant le lot 2 — pourquoi ce revirement
 
-On ne connaît la bonne forme d'un helper qu'après avoir écrit le cas d'usage **une fois**.
-Factoriser en amont revient à deviner l'abstraction. Écrire la configuration narrateur côté
-ForetMap, puis extraire au moment de la faire côté GL, produit un helper plus juste et plus court.
+La position initiale était « attendre le lot 2 », au motif qu'on ne connaît la bonne forme d'un
+helper qu'après avoir écrit le cas d'usage une fois. **L'examen des deux implémentations
+existantes a invalidé ce raisonnement** : `lib/helpContent.js` et `lib/glHelp.js` écrivaient déjà
+le même mécanisme, à l'identique. La forme était donc **observée, pas devinée** — la prudence ne
+s'appliquait plus.
 
-Et on factorise **le mécanisme, pas le modèle** : les modèles de contenu diffèrent réellement
-(ForetMap sectionné et sensible au rôle `text`/`textTeacher` ; GL à plat par onglet `title`/`body`).
+Extrait : `createDefaultsLoader` (lecture JSON cachée + clone défensif) et `resolveStoredConfig`
+(surcharge base → normalisation → repli sur les défauts). ~35 lignes de duplication réelle
+supprimées, et la configuration narrateur d'OLU dispose d'une base prête des deux côtés.
+
+On a factorisé **le mécanisme, pas le modèle** : les modèles de contenu diffèrent réellement
+(ForetMap sectionné et sensible au rôle `text`/`textTeacher` ; GL à plat par onglet `title`/`body`),
+et l'**écriture** (upsert) reste chez chaque produit — les tables et colonnes d'audit divergent.
 
 ### 15.7 Ce dont OLU a réellement besoin : du code neuf, bien rangé
 

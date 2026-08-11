@@ -7,6 +7,31 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Partage ForetMap/GL — audit outillé, plan en trois axes et deux noyaux mutualisés
+
+Nouveau document [`docs/PARTAGE_FM_GL.md`](docs/PARTAGE_FM_GL.md) : audit **mesuré** de la
+duplication entre les deux produits du monorepo et plan d'enrichissement mutuel. Constat
+central : la logique métier est déjà largement factorisée (23 noyaux `lib/shared/`, 61 fichiers
+`src/shared/`, convergence mascotte achevée) ; ce qui se répète est la **plomberie**, et le vrai
+gisement est l'**asymétrie** — GL disposait d'outils d'administration absents de ForetMap.
+
+- **Audit reproductible** : nouveau script `scripts/audit-duplication-fm-gl.mjs` (comparaison des
+  lignes substantielles, front et back). Documente aussi un **faux positif instructif** : la paire
+  la plus similaire de tout le dépôt (0,87) ne recouvre aucune dette — ce sont des listes de
+  champs, et les deux fichiers sont déjà des adaptateurs d'un noyau partagé.
+- **`src/shared/hooks/useAdminCrud.js`** — le squelette CRUD des panneaux admin (liste, fiche,
+  « next-code », autosave débouncé, états loading/error/info), jusqu'ici réservé à GL, est promu
+  en hook partagé avec **transport HTTP injecté**. `useGlAdminCrud` devient un adaptateur mince
+  liant `apiGL` ; ForetMap peut désormais consommer le même hook avec `api`. Aucun changement de
+  comportement pour les panneaux GL existants (espèces, sorts, glossaire).
+- **`lib/shared/jsonDefaultsStore.js`** — le mécanisme « défauts JSON versionnés + surcharge en
+  base » était écrit deux fois (`lib/helpContent.js`, `lib/glHelp.js`). Extraction de
+  `createDefaultsLoader` (lecture cachée + clone défensif) et `resolveStoredConfig` (repli sur les
+  défauts si la valeur stockée est absente ou illisible). L'écriture (upsert) reste par produit :
+  les tables et colonnes d'audit diffèrent.
+- Tests ajoutés : `tests-ui/shared/useAdminCrud.test.jsx` (8 cas) et
+  `tests/json-defaults-store.test.js` (9 cas).
+
 ### Doc — Plan d'implantation « OLU narrateur » (avatar des bulles d'aide et du récit)
 
 Nouveau document [`docs/MASCOT_NARRATEUR_OLU.md`](docs/MASCOT_NARRATEUR_OLU.md) : plan
