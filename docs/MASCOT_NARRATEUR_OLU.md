@@ -595,7 +595,122 @@ bloquer ni le développement ni l'écriture.
 
 ---
 
-## 15. Pour aller plus loin
+## 15. Faut-il refactoriser avant ? (partage FM/GL)
+
+Question posée en amont du chantier : puisque OLU touche les deux produits, ne faudrait-il pas
+d'abord mutualiser davantage de code entre ForetMap et Gnomes & Licornes ?
+
+**Verdict : non pour OLU, et plus généralement « moins qu'on ne le croit ».** Le dépôt est déjà
+très avancé sur le partage. Ce qui suit est mesuré, pas estimé.
+
+### 15.1 Le principe
+
+> Un pré-refactor se justifie quand le travail à venir **créerait** de la duplication.
+> Pas quand il range de la duplication existante que ce travail ne touche pas.
+
+### 15.2 État réel du partage — inventaire
+
+| Emplacement                           | Contenu                                                                                                                                                                                                                                                                        |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `lib/shared/` (22 modules, ~3 100 l.) | Noyaux **métier** : `contextCommentsCore`, `resourceQuestionGatingCore`, `questionCrudCore`, `questionQueryFactory`, `questionPoolFiltering`, `xlsxImportCore`, `glossaryNormalization`, `learningAckCore`, `foodWebCore`, `httpHelpers`…                                      |
+| `src/shared/` (59 fichiers)           | Composants (`DialogShell`, `ImportPanel`, `MediaLibraryMenu`, `ImageLightbox`), hooks (`useDebouncedAutoSave`, `usePrefersReducedMotion`, `useMapFullscreen`), styles (`motion.css`, `visit-map-mascot.css`), sous-dossiers `qcm/`, `mascot-pack/`, `pct-map/`, `image-frame/` |
+| Mascotte                              | **Convergence terminée** — étapes 0 à 7 de [`MASCOT_ARCHITECTURE_CONVERGENCE.md`](./MASCOT_ARCHITECTURE_CONVERGENCE.md) toutes marquées réalisées                                                                                                                              |
+
+Le motif établi du projet est **« noyau métier partagé (`*Core.js`) + adaptateur par produit »**.
+Il fonctionne, il est respecté, et `ImportPanel` en est l'illustration : consommé par 3 panneaux
+ForetMap **et une dizaine de panneaux GL**.
+
+### 15.3 Ce qui reste dupliqué — mesuré
+
+Lignes substantielles communes (hors accolades, blancs et lignes < 14 caractères) entre routes
+homonymes :
+
+| Paire                                          | Volumes         | Communes | Lecture                                                                                                     |
+| ---------------------------------------------- | --------------- | -------- | ----------------------------------------------------------------------------------------------------------- |
+| `routes/learning-links.js` ↔ `routes/gl/…`     | 273 l. / 360 l. | **114**  | Noyau **déjà partagé** (`resourceQuestionGatingCore`) — ce qui reste est la **plomberie**                   |
+| `routes/context-comments.js` ↔ `routes/gl/…`   | 439 l. / 300 l. | **105**  | Idem (`contextCommentsCore`)                                                                                |
+| `routes/glossary.js` ↔ `routes/gl/glossary.js` | 149 l. / 525 l. | 21       | **Faux jumeaux** — GL porte un modèle bien plus riche (lore)                                                |
+| `routes/forum.js` ↔ `routes/gl/forum.js`       | 662 l. / 161 l. | 20       | **Faux jumeaux** — le forum GL est un pont, pas un clone                                                    |
+| `lib/helpContent.js` ↔ `lib/glHelp.js`         | 204 l. / 133 l. | ~60–70   | Même **mécanisme** (défauts JSON → Zod → surcharge BDD → payload public), **modèles de contenu différents** |
+
+**Conclusion de la mesure : la logique métier est déjà factorisée. Ce qui se répète encore, c'est
+la plomberie** — middleware d'auth (`requirePermission` vs `requireGlPermission`), source de
+réglages (`getSettingValue` vs `getGlGatingSettings`), préfixes de chemins, échafaudage CRUD.
+
+### 15.4 Le vrai gisement n'est pas la duplication, c'est l'asymétrie
+
+Constat plus utile que le précédent : **GL dispose d'outils que ForetMap n'a pas.**
+
+| Outil                                   | GL                           | ForetMap             |
+| --------------------------------------- | ---------------------------- | -------------------- |
+| `useDebouncedAutoSave`                  | 17 fichiers                  | **1 fichier**        |
+| `useGlAdminCrud` (squelette CRUD admin) | oui (174 l.)                 | **aucun équivalent** |
+| Doc de référence éditable depuis l'app  | oui (`GLReferenceDocsPanel`) | non                  |
+
+Le meilleur gain de maintenabilité n'est donc pas « partager davantage » mais **réduire
+l'asymétrie** : promouvoir dans `src/shared/hooks/` ce que GL a déjà éprouvé, pour que ForetMap
+en bénéficie. C'est du gain sans réécriture, donc sans risque de régression.
+
+### 15.5 Candidats, classés
+
+| #   | Candidat                                                                    | Gain                             | Risque | Verdict                                     |
+| --- | --------------------------------------------------------------------------- | -------------------------------- | ------ | ------------------------------------------- |
+| A   | **Mécanisme « défauts JSON + surcharge BDD »** (`helpContent` / `glHelp`)   | ~60 l. × 2, sert directement OLU | Faible | ✅ **Dans le lot 2**, pas avant (cf. §15.6) |
+| B   | **`useAdminCrud` promu en `src/shared/hooks/`**                             | ForetMap gagne un outil éprouvé  | Faible | ✅ Opportuniste, hors chantier OLU          |
+| C   | **Fabrique de routes CRUD** (`makeCrudRouter`)                              | ~100 l. par paire de routes      | Moyen  | ⚠️ Voir l'avertissement ci-dessous          |
+| D   | **Unifier forum / glossaire / tutoriels / stats**                           | —                                | Élevé  | ❌ Faux jumeaux (§15.3)                     |
+| E   | **Unifier les composants d'aide** (`HelpPanel` ↔ `GLHelpPanel`)             | —                                | Élevé  | ❌ Modèles d'interaction différents         |
+| F   | **Unifier les modèles de contenu d'aide** (sections/rôles ↔ onglets à plat) | —                                | Élevé  | ❌ Migration de réglages en production      |
+| G   | **Système de parcours découverte pour GL**                                  | —                                | Élevé  | ❌ **Fonctionnalité**, pas refactor (§15.7) |
+
+⚠️ **Avertissement sur (C).** Une fabrique de routes Express est un piège d'abstraction classique.
+Middleware d'auth, noms de permissions, événements d'audit et sémantique d'erreur diffèrent par
+produit. Un `makeCrudRouter` à quinze options est **pire** que cent lignes dupliquées : il déplace
+la complexité au lieu de la supprimer, et rend chaque évolution ultérieure plus coûteuse.
+N'y aller que si un troisième appelant apparaît (règle de trois), et en factorisant **le noyau, pas
+la plomberie** — exactement ce que le projet fait déjà.
+
+### 15.6 Pourquoi (A) va dans le lot 2 et non avant
+
+On ne connaît la bonne forme d'un helper qu'après avoir écrit le cas d'usage **une fois**.
+Factoriser en amont revient à deviner l'abstraction. Écrire la configuration narrateur côté
+ForetMap, puis extraire au moment de la faire côté GL, produit un helper plus juste et plus court.
+
+Et on factorise **le mécanisme, pas le modèle** : les modèles de contenu diffèrent réellement
+(ForetMap sectionné et sensible au rôle `text`/`textTeacher` ; GL à plat par onglet `title`/`body`).
+
+### 15.7 Ce dont OLU a réellement besoin : du code neuf, bien rangé
+
+`MascotSpeaker`, `SpeechBubble` et `mascotExpressions.js` **n'existent pas encore**. Les écrire
+dans `src/shared/` dès la première ligne ne coûte rien de plus que les écrire ailleurs.
+
+**Un partage obtenu gratuitement en écrivant du code neuf au bon endroit n'est pas un refactor.**
+Il n'y a donc rien à faire « au préalable » — seulement à ne pas se tromper de dossier.
+
+Corollaire sur (G) : GL n'a **aucun** système de parcours aujourd'hui (uniquement une iframe
+statique d'intro, cf. §8.3). Lui en construire un ne mutualiserait rien : ce serait une
+fonctionnalité neuve, et une explosion de périmètre.
+
+### 15.8 Deux garde-fous à la place d'un lot de refactor
+
+1. **Test d'architecture** (lot 2) : assertion Vitest vérifiant que `MascotSpeaker` n'importe aucun
+   renderer lourd. Verrouille durablement la règle de performance du §4.1 — mieux qu'un commentaire.
+2. **Emplacement imposé** : `src/shared/` pour tout ce que les deux produits consomment, dès la
+   première ligne. Coût nul, et cela évite précisément la dette que la convergence mascotte a mis
+   sept étapes à résorber.
+
+### 15.9 Deux arguments de calendrier
+
+- **Retour d'usage.** Les lots 1 à 4 ne demandent ni sprite ni refactor : ils mettent OLU à l'écran
+  vite. Or le risque n°1 de ce chantier est **le ton**, pas la technique. Une classe qui lit trois
+  bulles apprendra plus qu'un mois de refactor. Un lot de refactor en préalable repousse ce retour.
+- **Conflits de merge.** La règle de cohérence inter-PR du projet existe pour une raison : une
+  grosse PR de refactor touchant des fichiers partagés entrerait en conflit avec tout ce qui est
+  en vol.
+
+---
+
+## 16. Pour aller plus loin
 
 - [`MASCOT_ARCHITECTURE_CONVERGENCE.md`](./MASCOT_ARCHITECTURE_CONVERGENCE.md) — état du système mascotte, dette et plan de convergence
 - [`MASCOT_PACK.md`](./MASCOT_PACK.md) — format des packs v1/v2
