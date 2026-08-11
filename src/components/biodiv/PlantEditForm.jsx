@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { AutoSaveStatus } from '../../shared/components/AutoSaveStatus.jsx';
 import { api } from '../../services/api';
 import { PLANT_EMOJIS } from '../../constants/emojis';
 import { compressImageWithPreset } from '../../utils/image';
@@ -29,6 +30,8 @@ import { PlantPrefillPanel } from './PlantPrefillPanel.jsx';
  * @param {string|number|null} props.plantId id de la fiche (null en création)
  * @param {(msg: string) => void} [props.onToast] notification utilisateur
  * @param {() => Promise<string|number|null>} [props.onEnsurePlantId] crée la fiche si besoin, renvoie son id
+ * @param {string} [props.autoSaveStatus] état de l'enregistrement automatique (édition seule)
+ * @param {string} [props.autoSaveError] message d'erreur de l'enregistrement automatique
  */
 function PlantEditForm({
   title,
@@ -40,6 +43,8 @@ function PlantEditForm({
   plantId,
   onToast,
   onEnsurePlantId = null,
+  autoSaveStatus = '',
+  autoSaveError = '',
 }) {
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
   const [uploadingField, setUploadingField] = useState('');
@@ -437,13 +442,16 @@ function PlantEditForm({
           <input value={form.remark_3} onChange={set('remark_3')} placeholder="Optionnel" />
         </div>
       </div>
-      <div style={{ display: 'flex', gap: 8 }}>
+      {autoSaveError ? <p className="form-error">{autoSaveError}</p> : null}
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
         <button className="btn btn-primary btn-sm" onClick={onSave} disabled={saving}>
           {saving ? '...' : '💾 Sauvegarder'}
         </button>
         <button className="btn btn-ghost btn-sm" onClick={onCancel}>
           Annuler
         </button>
+        {/* Édition seule : en création, le parent ne transmet aucun statut. */}
+        {autoSaveStatus ? <AutoSaveStatus status={autoSaveStatus} /> : null}
       </div>
     </div>
   );

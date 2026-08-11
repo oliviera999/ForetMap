@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api, AccountDeletedError } from '../services/api';
+import { useDebouncedAutoSave } from '../shared/hooks/useDebouncedAutoSave.js';
 import { useOverlayHistoryBack } from '../hooks/useOverlayHistoryBack';
 import { useTutorialReadIds } from '../hooks/useTutorialReadIds';
 import { TutorialReadAcknowledgeButton } from './TutorialReadAcknowledge';
@@ -305,6 +306,27 @@ function TutorialsView({ isTeacher, onRefresh, onForceLogout, maps = [] }) {
     }
   };
 
+  // Enregistrement automatique — **édition seule** (A3).
+  //
+  // Un tutoriel est visible des élèves dès sa création (`is_active` vaut 1 par
+  // défaut, il n'existe pas d'état brouillon) : l'autosave reste donc inactif
+  // tant que la fiche n'a pas été créée explicitement. En édition, le tutoriel
+  // est déjà publié et l'enregistrement ne fait que le mettre à jour.
+  // Contrairement à `save()`, cette persistance ne referme pas l'éditeur.
+  const autoSavePersist = useCallback(async () => {
+    const sent = form;
+    await api(`/api/tutorials/${sent.id}`, 'PUT', buildTutorialSavePayload(sent));
+    await onRefresh?.();
+    return sent;
+  }, [form, onRefresh]);
+
+  const { status: autoSaveStatus, error: autoSaveError } = useDebouncedAutoSave({
+    value: form,
+    resetKey: form.id ? `tutorial:${form.id}` : 'none',
+    enabled: Boolean(form.id) && String(form.title || '').trim().length > 0,
+    onSave: autoSavePersist,
+  });
+
   const archiveTutorial = async (row) => {
     if (!confirm(`Archiver "${row.title}" ?`)) return;
     try {
@@ -585,6 +607,8 @@ function TutorialsView({ isTeacher, onRefresh, onForceLogout, maps = [] }) {
             onSave={save}
             onCancel={() => setShowEditor(false)}
             onToast={showToast}
+            autoSaveStatus={form.id ? autoSaveStatus : ''}
+            autoSaveError={form.id ? autoSaveError : ''}
           />
         )}
 
