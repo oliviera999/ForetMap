@@ -7,6 +7,32 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### OLU narrateur — lot 1 : la bulle de dialogue
+
+Premier lot du plan [`docs/MASCOT_NARRATEUR_OLU.md`](docs/MASCOT_NARRATEUR_OLU.md) : la **mise en
+scène du texte**, qui porte l'essentiel de l'effet ludique et ne demande aucun visuel.
+
+- **Nouveau composant partagé `SpeechBubble`** (`src/shared/components/SpeechBubble.jsx`, styles
+  `src/shared/styles/speech-bubble.css`) : cadre, étiquette de locuteur optionnelle et effet
+  machine à écrire. Écrit d'emblée dans `src/shared/` pour que GL le consomme au lot 6 sans
+  dédoublement. Les couleurs passent par des variables `--fm-bubble-*` surchargeables par produit.
+- **Visite guidée** : le texte de chaque étape s'écrit progressivement. Un clic sur la bulle — ou
+  une première pression sur `Entrée` / `→` — l'affiche intégralement ; la pression suivante passe
+  à l'étape. Les boutons et `Échap` restent inconditionnels, on ne peut jamais se retrouver
+  bloqué à attendre la fin d'un texte.
+- **Accessibilité** : sous `prefers-reduced-motion: reduce`, l'affichage est immédiat. Le texte
+  **complet** est dans le DOM dès le premier rendu — la portion non encore écrite est masquée par
+  `opacity: 0` et reste donc dans l'arbre d'accessibilité. La bulle n'est délibérément pas une
+  région `aria-live` : un lecteur d'écran la relirait à chaque caractère. Corollaire utile, la
+  hauteur de la carte ne bouge pas pendant la frappe.
+- **Le nom du locuteur n'est pas encore affiché** dans la visite guidée : le composant sait le
+  rendre, mais coiffer d'un « OLU » un corpus encore rédigé à la troisième personne lui
+  attribuerait une voix qui n'est pas la sienne. Le câblage vient au lot 2, depuis le réglage
+  `content.help.narrator`.
+- **Brief de production graphique** : [`docs/MASCOT_OLU_BRIEF_VISUEL.md`](docs/MASCOT_OLU_BRIEF_VISUEL.md)
+  — spécifications des portraits, prompts de génération à partir de la planche d'expressions,
+  post-traitement et recette.
+
 ### Axe A — l'outillage d'administration de GL arrive dans ForetMap
 
 Mise en œuvre de l'axe A du plan [`docs/PARTAGE_FM_GL.md`](docs/PARTAGE_FM_GL.md) : combler
