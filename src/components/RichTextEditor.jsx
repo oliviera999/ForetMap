@@ -1,12 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useRef } from 'react';
-import TurndownService from 'turndown';
 import { renderMarkdownToSafeHtml, sanitizeRichHtml } from '../utils/markdown.js';
-
-function normalizeHtmlForCompare(html) {
-  return String(html || '')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
+import {
+  createRichTextTurndownService,
+  htmlToMarkdownWith,
+  normalizeHtmlForCompare,
+  runExecCommand,
+} from '../shared/richtext/richTextCore.js';
 
 function markdownToEditableHtml(markdown, { allowImages = false } = {}) {
   const html = renderMarkdownToSafeHtml(markdown, { allowImages });
@@ -14,24 +13,11 @@ function markdownToEditableHtml(markdown, { allowImages = false } = {}) {
   return sanitizeRichHtml(html, { allowImages });
 }
 
-const turndownService = new TurndownService({
-  headingStyle: 'atx',
-  bulletListMarker: '-',
-  emDelimiter: '*',
-});
-
-turndownService.remove(['script', 'style']);
-turndownService.keep(['hr']);
+// Instance propre à ForetMap : pas de règle supplémentaire (GL y ajoute les siennes).
+const turndownService = createRichTextTurndownService();
 
 function htmlToMarkdown(html, { allowImages = false } = {}) {
-  const sanitized = sanitizeRichHtml(html, { allowImages });
-  const markdown = turndownService.turndown(sanitized);
-  return String(markdown || '').trim();
-}
-
-function runExecCommand(command, commandValue = null) {
-  if (typeof document === 'undefined' || typeof document.execCommand !== 'function') return false;
-  return document.execCommand(command, false, commandValue);
+  return htmlToMarkdownWith(turndownService, html, { allowImages });
 }
 
 const DEFAULT_ACTIONS = [

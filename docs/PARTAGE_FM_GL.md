@@ -262,29 +262,47 @@ contenu de chaque produit. On factorise le noyau, pas la plomberie.
 **Acceptation.** `tests/json-defaults-store.test.js` (9 cas) ; `help-content.test.js` et
 `gl-help.test.js` inchangés et au vert.
 
-#### B1 — Noyau d'édition riche
+#### B1 — Noyau d'édition riche ✅ livré
 
-**Objectif.** [`RichTextEditor.jsx`](../src/components/RichTextEditor.jsx) (124 l. substantielles)
-et [`GLRichTextEditor.jsx`](../src/gl/components/ui/GLRichTextEditor.jsx) (167 l.) partagent
-53 lignes : même import de `turndown`, même `renderMarkdownToSafeHtml` / `sanitizeRichHtml`, même
-aller-retour Markdown ↔ HTML.
+**Le seul vrai positif de l'axe B.** Contrairement à B2 et B3, l'examen ligne à ligne confirme
+ici de la **logique** : sur les 53 lignes communes entre
+[`RichTextEditor.jsx`](../src/components/RichTextEditor.jsx) et
+[`GLRichTextEditor.jsx`](../src/gl/components/ui/GLRichTextEditor.jsx), une quarantaine sont du
+code exécutable — configuration Turndown, garde-fou d'aller-retour, exécution de commande — et
+non des imports ou des noms de champs.
 
-**Périmètre.** Créer `src/shared/richtext/` avec la **logique de conversion seule** : instance
-Turndown configurée, sérialisation HTML → Markdown, désérialisation Markdown → HTML assaini.
+**Extrait** dans `src/shared/richtext/richTextCore.js`, strictement ce qui était **identique à
+l'octet près** :
 
-**Démarche.**
+| Primitive                         | Rôle                                                             |
+| --------------------------------- | ---------------------------------------------------------------- |
+| `createRichTextTurndownService()` | Instance Turndown configurée (`atx`, `-`, `*`, `remove`, `keep`) |
+| `htmlToMarkdownWith()`            | Assainissement → conversion → rognage                            |
+| `normalizeHtmlForCompare()`       | Comparaison de HTML insensible aux espaces                       |
+| `runExecCommand()`                | Commande d'édition, sans échec hors navigateur                   |
 
-1. Écrire d'abord des tests de **conversion** sur les cas réels du corpus (listes, liens, gras,
-   images, HTML collé depuis un traitement de texte) — sur les deux éditeurs, avant tout
-   déplacement de code.
-2. Extraire la conversion. Les deux composants restent distincts.
-3. Vérifier `GLRichTextEditor.test.jsx` et `MarkdownTextarea.test.jsx` sans les réécrire.
+**La garantie centrale : une instance neuve par appel.** GL ajoute ses règles d'images
+(`glImageFigure`, `glImage`) à **son** instance ; ForetMap ne doit jamais les voir. Un test dédié
+vérifie cette isolation — c'est la condition qui rend la mutualisation sûre.
 
-⚠️ **Piège — le plus délicat de l'axe B.** Ne **jamais** extraire le composant. Les éditeurs
-WYSIWYG sont sensibles au détail (position du curseur, collage, sélection, `contenteditable`), et
-GL porte en plus l'insertion d'images inline (`GLImageInlineInsertControls`), un état propre et
-`annotateEditorHtmlWithOriginalSrc`. Un composant unifié à drapeaux serait exactement le piège
-du §7.1 transposé au frontend.
+**Ce qui reste délibérément dans chaque composant**, conformément à l'avertissement du plan
+(« extraire la logique de conversion, jamais le composant ») :
+
+- `markdownToEditableHtml` — signatures et comportements différents : GL résout les sources
+  d'affichage et annote le HTML.
+- `syncFromDom` — ForetMap tronque sur `maxLength` et propage `name` ; GL non.
+- L'effet de synchronisation `value` → DOM — **structurellement identique**, mais son seul appel
+  variable est `markdownToEditableHtml`. Le factoriser supposerait d'injecter cette fonction pour
+  **deux** appelants : de la machinerie, pas une abstraction (§8).
+
+⚠️ **Deux comportements découverts en écrivant les tests**, et documentés plutôt que corrigés
+(aucun n'est un défaut, mais tous deux surprennent) :
+
+1. `turndownService.keep(['hr'])` **ne conserve pas** la balise : `<hr />` devient la rupture
+   thématique Markdown `* * *`.
+2. `sanitizeRichHtml(html, { allowImages: true })` **retire le `src`** d'une image à URL relative ;
+   seules les URL absolues sont conservées, et elles sont alors encadrées dans une
+   `<figure class="gl-content-image-wrap">`.
 
 #### B2 — `quiz.js` ↔ `gl/qcm.js` ✅ analysé, réduit à sa juste mesure
 

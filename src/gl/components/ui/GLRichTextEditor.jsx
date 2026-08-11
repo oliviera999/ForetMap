@@ -1,6 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import TurndownService from 'turndown';
 import { renderMarkdownToSafeHtml, sanitizeRichHtml } from '../../../utils/markdown.js';
+import {
+  createRichTextTurndownService,
+  htmlToMarkdownWith,
+  normalizeHtmlForCompare,
+  runExecCommand,
+} from '../../../shared/richtext/richTextCore.js';
 import {
   glImageFrameToImgFillStyle,
   glImageFrameToWrapStyle,
@@ -52,20 +57,8 @@ function escapeHtmlAttr(value) {
     .replace(/>/g, '&gt;');
 }
 
-function normalizeHtmlForCompare(html) {
-  return String(html || '')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-const turndownService = new TurndownService({
-  headingStyle: 'atx',
-  bulletListMarker: '-',
-  emDelimiter: '*',
-});
-
-turndownService.remove(['script', 'style']);
-turndownService.keep(['hr']);
+// Instance GL : base commune, enrichie ci-dessous des règles d'images propres au produit.
+const turndownService = createRichTextTurndownService();
 
 function turndownGlImageMarkup(node) {
   const src = String(node.getAttribute('data-gl-md-src') || node.getAttribute('src') || '').trim();
@@ -106,14 +99,7 @@ turndownService.addRule('glImage', {
 });
 
 function htmlToMarkdown(html) {
-  const sanitized = sanitizeRichHtml(html, { allowImages: true });
-  const markdown = turndownService.turndown(sanitized);
-  return String(markdown || '').trim();
-}
-
-function runExecCommand(command, commandValue = null) {
-  if (typeof document === 'undefined' || typeof document.execCommand !== 'function') return false;
-  return document.execCommand(command, false, commandValue);
+  return htmlToMarkdownWith(turndownService, html, { allowImages: true });
 }
 
 export const GLRichTextEditor = React.forwardRef(function GLRichTextEditor(
