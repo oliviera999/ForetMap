@@ -31,6 +31,31 @@ gisement est l'**asymétrie** — GL disposait d'outils d'administration absents
   les tables et colonnes d'audit diffèrent.
 - Tests ajoutés : `tests-ui/shared/useAdminCrud.test.jsx` (8 cas) et
   `tests/json-defaults-store.test.js` (9 cas).
+- Le plan détaille désormais chaque lot des axes A et B (objectif, périmètre, démarche,
+  critères d'acceptation, piège spécifique).
+
+### Corrigé — File de progression « vu » : une entrée sans horodatage ne se vidait jamais
+
+`compactVisitSeenQueue` attribuait `updated_at = Date.now()` aux entrées de la file locale
+dépourvues d'horodatage valide. Comme `loadVisitSeenQueue()` normalise à chaque lecture et que
+`flushVisitSeenQueue()` lit la file **deux fois** (avant les POST, puis après, pour détecter une
+modification concurrente), une telle entrée recevait deux horodatages différents dès que le flush
+franchissait une milliseconde. Elle était alors jugée « modifiée pendant le flush » et **remise en
+file indéfiniment** : action re-POSTée à chaque synchronisation et compteur « en attente » bloqué
+à une valeur non nulle.
+
+- **Correctif** : repli sur la valeur **stable** `0` au lieu de l'heure courante. Ces entrées
+  trient en tête (origine inconnue = traitées comme les plus anciennes) et se persistent à
+  l'identique, rendant les lectures successives idempotentes. Les entrées créées par
+  `enqueueVisitSeenAction` / `replaceQueuedVisitSeenAction` portent toujours leur propre
+  horodatage : elles ne sont pas concernées. La garde « une entrée re-modifiée pendant le flush
+  reste en file » est préservée.
+- **Origine** : ce défaut se manifestait comme un test intermittent (`useVisitSeenSync`), échec
+  récurrent de la CI **sur `main`** et jusque-là attribué à la contention CPU des runners.
+  Remplacer l'attente sur l'horloge (`waitFor`) par un drainage de micro-tâches — le flush ne
+  comporte aucun timer — a rendu l'échec reproductible en isolation et révélé la vraie cause.
+- Tests : `tests-ui/utils/visitSeenQueueStability.test.js` (9 cas, dont la reproduction explicite
+  du franchissement de milliseconde).
 
 ### Doc — Plan d'implantation « OLU narrateur » (avatar des bulles d'aide et du récit)
 
