@@ -55,7 +55,7 @@ panneaux GL ; `resourceQuestionGatingCore` sert les deux routes `learning-links`
 | ------------------------ | --------- | ------- | ------------------------------- | --------------------------------------------------- |
 | `learning-links.js`      | 130 / 163 | **89**  | ✅ `resourceQuestionGatingCore` | Reste : **plomberie de route**                      |
 | `context-comments.js`    | 229 / 165 | **102** | ✅ `contextCommentsCore`        | Reste : **plomberie de route**                      |
-| `quiz.js` ↔ `gl/qcm.js`  | 283 / 239 | **109** | ⚠️ partiel                      | **Candidat réel** (§6, lot B2)                      |
+| `quiz.js` ↔ `gl/qcm.js`  | 283 / 239 | **109** | ✅ largement partagé            | ❌ **Faux positif à l’analyse** (§6, lot B2)        |
 | `auth.js` ↔ `gl/auth.js` | 721 / 841 | **97**  | ✅ `oauthCommon`                | Reste : plomberie + libellés d'erreur               |
 | `glossary.js`            | 83 / 225  | 28      | ✅ `glossaryNormalization`      | **Faux jumeaux** — modèle GL bien plus riche (lore) |
 | `forum.js`               | 312 / 165 | 20      | —                               | **Faux jumeaux** — le forum GL est un pont          |
@@ -244,7 +244,7 @@ lecture, et un test dédié vérifie que `../secret` et `a/b` ne lisent rien.
 | ------ | -------------------------------------------------------------------------------------------------------------------- | ----------- | ------ | ------ | ------------ |
 | **B0** | `jsonDefaultsStore` — mécanisme « défauts JSON + surcharge en base » (`helpContent` / `glHelp`)                      | ~35         | S      | Faible | ✅ **livré** |
 | **B1** | Noyau d'édition riche : configuration Turndown + aller-retour Markdown ↔ HTML assaini, partagé par les deux éditeurs | ~53         | M      | Moyen  | à faire      |
-| **B2** | `quiz.js` ↔ `gl/qcm.js` : étendre l'usage de `questionCrudCore` / `questionQueryFactory` déjà présents               | ~109        | M      | Moyen  | à faire      |
+| **B2** | `quiz.js` ↔ `gl/qcm.js` : analyse ligne à ligne — occasion réelle ~6 lignes, pas 109                                 | ~6          | S      | Faible | ✅ **livré** |
 | **B3** | Libellés d'erreur d'authentification partagés (`auth.js` ↔ `gl/auth.js`)                                             | ~20         | S      | Faible | opportuniste |
 
 #### B0 — `jsonDefaultsStore` ✅ livré
@@ -286,27 +286,44 @@ GL porte en plus l'insertion d'images inline (`GLImageInlineInsertControls`), un
 `annotateEditorHtmlWithOriginalSrc`. Un composant unifié à drapeaux serait exactement le piège
 du §7.1 transposé au frontend.
 
-#### B2 — `quiz.js` ↔ `gl/qcm.js`
+#### B2 — `quiz.js` ↔ `gl/qcm.js` ✅ analysé, réduit à sa juste mesure
 
-**Objectif.** C'est le plus gros recouvrement mesuré du dépôt (**109 lignes**), et le seul dont
-le noyau n'est que partiellement partagé.
+**Ce que promettait le chiffre.** 109 lignes communes : le plus gros recouvrement mesuré du
+dépôt, et le seul dont le noyau semblait n'être que partiellement partagé.
 
-**Constat.** `lib/shared/questionCrudCore.js`, `questionQueryFactory.js` et
-`questionPoolFiltering.js` **existent déjà** ; `routes/gl/qcm.js` n'importe pourtant de
-`lib/shared/` que `httpHelpers`. Le travail est donc d'**étendre l'usage de noyaux existants**,
-pas d'en créer un.
+**Ce que l'analyse ligne à ligne a montré.** Le chiffre surestime l'occasion d'environ **six
+fois** :
 
-**Démarche.**
+| Nature des lignes communes                                                                          | ~Lignes | Factorisable ?                                |
+| --------------------------------------------------------------------------------------------------- | ------- | --------------------------------------------- |
+| Plomberie Express : `express.Router()`, `asyncHandler`, réponses `res.status(4xx).json`             | ~30     | ❌ légitime                                   |
+| **Imports de noyaux déjà partagés** (`questionCrudCore`, `questionQueryFactory`, `glGlossaryMatch`) | ~12     | ❌ preuve que la mutualisation a déjà eu lieu |
+| Listes de noms de champs (`question_code:`, `difficulte:`, `choix_a, choix_b…`)                     | ~10     | ❌ donnée, pas logique (même cas qu'au §5)    |
+| Requêtes d'agrégats admin                                                                           | ~15     | ❌ tables **et** colonnes différentes         |
+| Enrobage glossaire (`loadGlossaryLookup`, `enrichQuestionWithGlossary`)                             | ~13     | ⚠️ voir ci-dessous                            |
+| **`normalizeQuestionCode`** — duplicata **exact**                                                   | **~6**  | ✅ **extrait**                                |
 
-1. Cartographier les 109 lignes communes : lesquelles sont couvertes par un noyau existant mais
-   non utilisées, lesquelles relèvent de la plomberie (auth, permissions, audit) — **ces
-   dernières restent dupliquées, c'est légitime**.
-2. Basculer `routes/gl/qcm.js` sur les noyaux déjà présents, un par un.
-3. Aligner ensuite `routes/quiz.js` si des écarts apparaissent.
+`questionCrudCore` est déjà consommé par `lib/fmQuizCrud.js`, `lib/glQcmCrud.js` et
+`lib/glQcmLoreCrud.js` ; `routes/quiz.js` importe déjà `lib/glGlossaryMatch`. Le travail
+imaginé — « étendre l'usage de noyaux existants » — était **déjà fait**.
 
-⚠️ **Piège.** Les permissions diffèrent (`plants.manage` côté ForetMap, `gl.content.manage` côté
-GL) et les événements d'audit aussi. Ne pas chercher à les unifier : c'est de la plomberie, et
-la tentation d'un `makeCrudRouter` reviendra ici en premier (§7.1).
+**Pourquoi l'enrobage glossaire n'a pas été extrait.** Les deux implémentations sont identiques
+au nom de table près, ce qui rendait l'extraction tentante. Trois signaux l'ont écartée :
+
+1. **Deux appelants seulement**, là où la grille du §8 demande trois (ou deux et un troisième certain).
+2. Un **troisième variant existe** — `routes/gl/games/markers.js` — mais il **branche** sur les
+   questions lore avec un autre index de glossaire. L'y faire entrer supposerait un drapeau par
+   produit : le signal, précisément, que les cas ne sont pas le même problème.
+3. L'extraction demandait une fabrique avec injection de `queryAll`, de `combineKeywords` (dont
+   l'implémentation diffère par produit) et une liste blanche de tables — soit de la **machinerie
+   pour deux appelants**. C'est la définition de l'abstraction prématurée.
+
+**Livré.** `lib/shared/questionRouteHelpers.js` : `normalizeQuestionCode` seul, duplicata exact et
+sans machinerie, consommé par les deux routes. Couvert par `tests/question-route-helpers.test.js`.
+
+**Leçon.** Le plus gros recouvrement du dépôt était, comme le plus fort ratio (§5), largement un
+faux positif. Deux fois sur deux, l'indicateur a désigné une piste que l'examen a refermée — ce
+qui est le rôle d'un indicateur, à condition de ne jamais s'arrêter à lui.
 
 #### B3 — Libellés d'erreur d'authentification
 
