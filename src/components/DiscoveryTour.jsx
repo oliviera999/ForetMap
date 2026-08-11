@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
 import { resolveDiscoveryBody } from '../constants/discoveryTour.js';
+import { SpeechBubble } from '../shared/components/SpeechBubble.jsx';
 
 const SPOTLIGHT_PADDING = 8;
 const CARD_MARGIN = 14;
@@ -75,6 +76,7 @@ function computeCardPosition(rect, placement) {
 export function DiscoveryTour({ active, isTeacher = false, onNext, onPrev, onStop }) {
   const [rect, setRect] = useState(null);
   const rafRef = useRef(0);
+  const bubbleRef = useRef(null);
 
   const step = active?.steps?.[active.index] || null;
   const target = step?.target || null;
@@ -151,6 +153,11 @@ export function DiscoveryTour({ active, isTeacher = false, onNext, onPrev, onSto
         onStop?.();
       } else if (event.key === 'ArrowRight' || event.key === 'Enter') {
         event.preventDefault();
+        // Première validation : on termine le texte en cours de frappe. Seconde : on avance.
+        if (bubbleRef.current?.isTyping()) {
+          bubbleRef.current.revealAll();
+          return;
+        }
         onNext?.();
       } else if (event.key === 'ArrowLeft') {
         event.preventDefault();
@@ -199,7 +206,12 @@ export function DiscoveryTour({ active, isTeacher = false, onNext, onPrev, onSto
           Étape {stepIndex + 1} / {stepCount}
         </div>
         <h3 className="discovery-tour__title">{step.title}</h3>
-        <p className="discovery-tour__body">{body}</p>
+        <SpeechBubble
+          key={stepIndex}
+          ref={bubbleRef}
+          className="discovery-tour__bubble"
+          text={body}
+        />
         <div className="discovery-tour__dots" aria-hidden="true">
           {active.steps.map((s, i) => (
             <span
