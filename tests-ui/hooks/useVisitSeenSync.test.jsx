@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, act, waitFor } from '@testing-library/react';
+import { render, act } from '@testing-library/react';
 import React from 'react';
 import { api } from '../../src/services/api';
 import { useVisitSeenSync } from '../../src/hooks/useVisitSeenSync.js';
@@ -32,6 +32,44 @@ function renderHarness(overrides = {}) {
   const view = render(<Harness {...props} />);
   const rerenderWith = (next = {}) => view.rerender(<Harness {...props} {...next} />);
   return { apiRef, props, rerenderWith, ...view };
+}
+
+/**
+ * Attend qu'une assertion passe en **vidant la file de micro-tâches** à chaque
+ * itération, au lieu de scruter sur l'horloge comme `waitFor`.
+ *
+ * Le flush de la file « vu » est une chaîne de **pures micro-tâches** :
+ * `flushVisitSeenQueue` → `api` (mocké, résolu immédiatement) → `setState`.
+ * Aucun timer n'y intervient (vérifiable dans `src/utils/visitProgressClient.js`).
+ * Une attente sur timers réels y était donc doublement inadaptée : inutile en
+ * temps normal, et surtout **expirable** quand la suite Vitest complète (396
+ * fichiers en parallèle) prive le worker de CPU — d'où le flake historique de ce
+ * fichier, qui échouait en CI malgré des timeouts portés à 10 s.
+ *
+ * Ici la progression est bornée en **tours de boucle d'événements**, pas en
+ * millisecondes : la contention CPU ne peut plus provoquer d'expiration. La
+ * dernière erreur d'assertion est relancée telle quelle pour garder un message
+ * de diagnostic exploitable.
+ *
+ * @param {() => void} assertion assertion qui jette tant que la condition est fausse
+ * @param {{ maxTicks?: number }} [options] nombre maximum de tours (défaut : 50)
+ */
+async function settle(assertion, { maxTicks = 50 } = {}) {
+  let lastError;
+  for (let tick = 0; tick <= maxTicks; tick += 1) {
+    try {
+      assertion();
+      return;
+    } catch (err) {
+      lastError = err;
+    }
+    if (tick === maxTicks) break;
+    // eslint-disable-next-line no-await-in-loop
+    await act(async () => {
+      await Promise.resolve();
+    });
+  }
+  throw lastError;
 }
 
 let onLineSpy;
@@ -120,7 +158,7 @@ describe('useVisitSeenSync', () => {
       window.dispatchEvent(new Event('online'));
     });
 
-    await waitFor(() => expect(apiRef.current.syncStatus).toBe('synced'));
+    await settle(() => expect(apiRef.current.syncStatus).toBe('synced'));
     expect(apiRef.current.isOnline).toBe(true);
     expect(apiRef.current.pendingSyncCount).toBe(0);
     expect(api).toHaveBeenCalledWith('/api/visit/seen', 'POST', {
@@ -131,11 +169,10 @@ describe('useVisitSeenSync', () => {
   });
 
   it('fin de chargement en ligne avec file non vide : flush automatique', async () => {
-    // La purge de la file enchaîne plusieurs micro/macro-tâches (POST + setState).
-    // Sous la suite Vitest complète (30+ fichiers en parallèle), la contention CPU
-    // starve la boucle d'événements et le flush dépasse parfois les timeouts par
-    // défaut de `waitFor` → flake observé (le test passe en <2 s en isolation).
-    // Les deux `waitFor` reçoivent donc un timeout généreux, dans le budget du test.
+    // L'effet de fin de chargement lance le flush en « fire and forget » : le test
+    // n'a pas de prise sur sa promesse. On attend donc via `settle` (drainage de
+    // micro-tâches) et non `waitFor` (scrutation sur l'horloge) — cf. le commentaire
+    // de `settle` en tête de fichier.
     window.localStorage.setItem(
       VISIT_SEEN_QUEUE_STORAGE_KEY,
       JSON.stringify([{ target_type: 'zone', target_id: 3, seen: true }]),
@@ -145,15 +182,13 @@ describe('useVisitSeenSync', () => {
 
     await act(async () => rerenderWith({ loading: false }));
 
-    await waitFor(
-      () =>
-        expect(api).toHaveBeenCalledWith('/api/visit/seen', 'POST', {
-          target_type: 'zone',
-          target_id: '3',
-          seen: true,
-        }),
-      { timeout: 10000 },
+    await settle(() =>
+      expect(api).toHaveBeenCalledWith('/api/visit/seen', 'POST', {
+        target_type: 'zone',
+        target_id: '3',
+        seen: true,
+      }),
     );
-    await waitFor(() => expect(apiRef.current.pendingSyncCount).toBe(0), { timeout: 10000 });
-  }, 25000);
+    await settle(() => expect(apiRef.current.pendingSyncCount).toBe(0));
+  });
 });
