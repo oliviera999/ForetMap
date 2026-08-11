@@ -7,6 +7,15 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Correctifs
+
+- **GL — anti-wipe autosave Help / Intro / Réglages** : après un échec de chargement
+  (`GET` aide, intro ou settings), les panneaux admin n’exposent plus un brouillon vide
+  avec autosave actif. Sans ce garde-fou, une simple frappe pouvait `PUT` une config creuse
+  et écraser les personnalisations (bulles d’aide, textes/clés audio d’intro, charte
+  `platform.brand` / identité). Même pattern que l’aide ForetMap : brouillon `null` /
+  `settingsReady` jusqu’au GET réussi ; édition et autosave bloqués sinon.
+
 ### GL — Contenus → Doc de référence : lire et amender la doc fonctionnelle depuis le jeu
 
 Les documents de référence non techniques de Gnomes & Licornes (`docs/reference/gl/*.md` :

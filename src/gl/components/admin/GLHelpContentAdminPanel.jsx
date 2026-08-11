@@ -39,7 +39,9 @@ const TAB_LABELS = {
 };
 
 export function GLHelpContentAdminPanel() {
-  const [draft, setDraft] = useState({ entries: {} });
+  // `null` tant que le GET n'a pas réussi : évite l'autosave d'un brouillon vide
+  // qui réécrirait toute la config d'aide avec les défauts (clés absentes).
+  const [draft, setDraft] = useState(null);
   const [activeKey, setActiveKey] = useState('tab:maps');
   const [loadRevision, setLoadRevision] = useState(0);
   const [busy, setBusy] = useState(false);
@@ -62,16 +64,20 @@ export function GLHelpContentAdminPanel() {
   }, []);
 
   function updateEntry(key, patch) {
-    setDraft((prev) => ({
-      ...prev,
-      entries: {
-        ...prev.entries,
-        [key]: { ...prev.entries[key], ...patch },
-      },
-    }));
+    setDraft((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        entries: {
+          ...prev.entries,
+          [key]: { ...prev.entries[key], ...patch },
+        },
+      };
+    });
   }
 
   const persistHelp = useCallback(async () => {
+    if (!draft) return draft;
     await apiGL('/api/gl/admin/content/help', 'PUT', draft);
     invalidateGlHelpConfigCache();
     setInfo('Bulles d’aide GL enregistrées.');
@@ -81,6 +87,7 @@ export function GLHelpContentAdminPanel() {
   const { status: saveStatus, error: saveError } = useDebouncedAutoSave({
     value: draft,
     resetKey: loadRevision,
+    enabled: draft != null,
     onSave: persistHelp,
   });
 
@@ -100,10 +107,11 @@ export function GLHelpContentAdminPanel() {
     }
   }
 
-  const entryKeys = Object.keys(draft.entries || {}).sort((a, b) =>
+  const entryKeys = Object.keys(draft?.entries || {}).sort((a, b) =>
     (TAB_LABELS[a] || a).localeCompare(TAB_LABELS[b] || b, 'fr'),
   );
-  const entry = draft.entries?.[activeKey] || { title: '', body: '' };
+  const entry = draft?.entries?.[activeKey] || { title: '', body: '' };
+  const loadReady = draft != null;
 
   return (
     <div className="gl-panel">
@@ -113,49 +121,60 @@ export function GLHelpContentAdminPanel() {
       </p>
       {error && <div className="auth-error">⚠️ {error}</div>}
       {saveError ? <div className="auth-error">⚠️ {saveError}</div> : null}
-      <AutoSaveStatus status={saveStatus} className="gl-hint" />
+      {loadReady ? <AutoSaveStatus status={saveStatus} className="gl-hint" /> : null}
       {info && <div className="auth-success">{info}</div>}
 
-      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-start' }}>
-        <nav
-          className="gl-subtabs"
-          style={{ flexDirection: 'column', alignItems: 'stretch', minWidth: 200 }}
-        >
-          {entryKeys.map((key) => (
-            <button
-              key={key}
-              type="button"
-              className={activeKey === key ? 'is-active' : ''}
-              onClick={() => setActiveKey(key)}
-              style={{ textAlign: 'left' }}
-            >
-              {TAB_LABELS[key] || key}
-            </button>
-          ))}
-        </nav>
-
-        <div style={{ flex: '1 1 320px', minWidth: 0 }}>
-          <GLField label="Titre">
-            <GLInput
-              value={entry.title || ''}
-              onChange={(e) => updateEntry(activeKey, { title: e.target.value })}
-            />
-          </GLField>
-          <GLField label="Contenu" hint="Texte ou liste (une ligne par puce).">
-            <GLTextarea
-              rows={8}
-              value={entry.body || ''}
-              onChange={(e) => updateEntry(activeKey, { body: e.target.value })}
-            />
-          </GLField>
-        </div>
-      </div>
-
-      <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
-        <GLButton variant="secondary" disabled={busy} onClick={resetDefaults}>
-          Réinitialiser aux défauts
+      {!loadReady && !error ? <p className="gl-hint">Chargement des bulles d’aide…</p> : null}
+      {!loadReady && error ? (
+        <GLButton type="button" variant="secondary" onClick={() => load().catch(() => {})}>
+          Réessayer
         </GLButton>
-      </div>
+      ) : null}
+
+      {loadReady ? (
+        <>
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+            <nav
+              className="gl-subtabs"
+              style={{ flexDirection: 'column', alignItems: 'stretch', minWidth: 200 }}
+            >
+              {entryKeys.map((key) => (
+                <button
+                  key={key}
+                  type="button"
+                  className={activeKey === key ? 'is-active' : ''}
+                  onClick={() => setActiveKey(key)}
+                  style={{ textAlign: 'left' }}
+                >
+                  {TAB_LABELS[key] || key}
+                </button>
+              ))}
+            </nav>
+
+            <div style={{ flex: '1 1 320px', minWidth: 0 }}>
+              <GLField label="Titre">
+                <GLInput
+                  value={entry.title || ''}
+                  onChange={(e) => updateEntry(activeKey, { title: e.target.value })}
+                />
+              </GLField>
+              <GLField label="Contenu" hint="Texte ou liste (une ligne par puce).">
+                <GLTextarea
+                  rows={8}
+                  value={entry.body || ''}
+                  onChange={(e) => updateEntry(activeKey, { body: e.target.value })}
+                />
+              </GLField>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+            <GLButton variant="secondary" disabled={busy} onClick={resetDefaults}>
+              Réinitialiser aux défauts
+            </GLButton>
+          </div>
+        </>
+      ) : null}
     </div>
   );
 }

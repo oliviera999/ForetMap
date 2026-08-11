@@ -43,6 +43,9 @@ export function GLSettingsView() {
   const [savingKey, setSavingKey] = useState('');
   const [applyingPresetId, setApplyingPresetId] = useState('');
   const [settingsLoadRevision, setSettingsLoadRevision] = useState(0);
+  // Bloque autosave / édition tant que le GET settings n'a pas réussi : sinon un
+  // brandDraft = normalizeBrand({}) (défauts) peut écraser la charte personnalisée.
+  const [settingsReady, setSettingsReady] = useState(false);
   const [defaultHealthPoints, setDefaultHealthPoints] = useState('3');
   const [defaultPowerPoints, setDefaultPowerPoints] = useState('3');
   const { mapSettings, reload: reloadMapOverlaySettings } = useGlMapOverlaySettings();
@@ -61,8 +64,10 @@ export function GLSettingsView() {
       setDefaultHealthPoints(identity.defaultHealthPoints);
       setDefaultPowerPoints(identity.defaultPowerPoints);
       setSettingsLoadRevision((value) => value + 1);
+      setSettingsReady(true);
       setError('');
     } catch (err) {
+      setSettingsReady(false);
       setError(err.message || 'Chargement impossible');
     }
   }
@@ -125,6 +130,7 @@ export function GLSettingsView() {
   const identitySave = useDebouncedAutoSave({
     value: platformIdentity,
     resetKey: settingsLoadRevision,
+    enabled: settingsReady,
     canSave: () => String(title || '').trim().length > 0,
     onSave: persistPlatformIdentity,
   });
@@ -132,18 +138,21 @@ export function GLSettingsView() {
   const brandSave = useDebouncedAutoSave({
     value: brandDraft,
     resetKey: settingsLoadRevision,
+    enabled: settingsReady,
     onSave: persistBrand,
   });
 
   const markerSizeSave = useDebouncedAutoSave({
     value: plateauMarkerSizePercent,
     resetKey: `${settingsLoadRevision}:${readPlateauMarkerSizePercent(mapSettings)}`,
+    enabled: settingsReady,
     onSave: persistMarkerSize,
   });
 
   const vitalitySave = useDebouncedAutoSave({
     value: vitalityDefaults,
     resetKey: settingsLoadRevision,
+    enabled: settingsReady,
     onSave: persistVitalityDefaults,
   });
 
@@ -213,140 +222,171 @@ export function GLSettingsView() {
         </div>
       ) : null}
 
-      <form className="gl-form" onSubmit={(event) => event.preventDefault()}>
-        <GLField label="Titre plateforme">
-          <GLInput value={title} onChange={(event) => setTitle(event.target.value)} />
-        </GLField>
-        <GLField label="Sous-titre plateforme">
-          <GLInput value={subtitle} onChange={(event) => setSubtitle(event.target.value)} />
-        </GLField>
-        <AutoSaveStatus
-          status={identitySave.status}
-          error={identitySave.error}
-          className="gl-hint"
-        />
-      </form>
-
-      <GLSurface style={{ marginTop: 12 }} variant="inset">
-        <h3>Aperçu charte importée</h3>
-        <p className="gl-hint">
-          Couleurs, images hero/cartes et cadres de la charte plateforme (`platform.brand`).
-        </p>
-        <div className="gl-form">
-          <GLBrandEditor
-            value={brandDraft}
-            onChange={(updater) => {
-              setBrandDraft((prev) =>
-                normalizeBrand(typeof updater === 'function' ? updater(prev) : updater),
-              );
-            }}
-            onStatus={(message, isError) => {
-              if (isError) setError(message);
-              else setSuccessMessage(message);
-            }}
-            disabled={brandSave.status === 'saving'}
-          />
-          <AutoSaveStatus status={brandSave.status} error={brandSave.error} className="gl-hint" />
-        </div>
-        <GLBrandHub slots={brandDraft?.slots} compact />
-      </GLSurface>
-
-      <h3>Gameplay</h3>
-      <p className="gl-hint">
-        Tous les toggles sont désactivés par défaut. Le MJ active progressivement les modes standard
-        puis complet selon la séance.
-      </p>
-
-      <GLGameplayPresetsPanel
-        presets={GAMEPLAY_PRESETS}
-        applyingPresetId={applyingPresetId}
-        onApply={applyGameplayPreset}
-      />
-
-      <GLGameplayTogglesList
-        toggles={GAMEPLAY_TOGGLES}
-        isChecked={readGameplayFlag}
-        settings={settings}
-        savingKey={savingKey}
-        onToggle={toggleGameplayFlag}
-      />
-
-      <GLMascotMoveSettings settings={settings} savingKey={savingKey} onSaveSetting={saveSetting} />
-
-      <h4>Affichage carte plateau</h4>
-      <p className="gl-hint">
-        Contrôle la visibilité des repères et des zones feuillets sur la carte en partie. Chaque
-        chapitre peut surcharger ces défauts.
-      </p>
-      <GLGameplayTogglesList
-        toggles={MAP_DISPLAY_TOGGLES}
-        isChecked={(currentSettings, key) => {
-          const toggle = MAP_DISPLAY_TOGGLES.find((item) => item.key === key);
-          return toggle?.readChecked?.(currentSettings) ?? readGameplayFlag(currentSettings, key);
-        }}
-        settings={settings}
-        savingKey={savingKey}
-        onToggle={toggleGameplayFlag}
-      />
-
-      <GLPlateauMarkerScaleSettings
-        value={plateauMarkerSizePercent}
-        onChange={setPlateauMarkerSizePercent}
-        saveStatus={markerSizeSave.status}
-        saveError={markerSizeSave.error}
-      />
-
-      <GLMarkerBackgroundSettings settings={settings} savingKey={savingKey} onSave={saveSetting} />
-
-      <GLVitalityDefaultsSettings
-        healthValue={defaultHealthPoints}
-        powerValue={defaultPowerPoints}
-        onHealthChange={setDefaultHealthPoints}
-        onPowerChange={setDefaultPowerPoints}
-        saveStatus={vitalitySave.status}
-        saveError={vitalitySave.error}
-      />
-
-      <GLLoreRetriggerSettings
-        settings={settings}
-        savingKey={savingKey}
-        onSaveSetting={saveSetting}
-        onToggle={toggleGameplayFlag}
-      />
-
-      <GLSpellCastSettings settings={settings} savingKey={savingKey} onSaveSetting={saveSetting} />
-
-      <GLGatingSettings />
-
-      <h3>Modules GL</h3>
-      <p className="gl-hint">Ces drapeaux activent/désactivent les modules GL côté interface.</p>
-      <GLGameplayTogglesList
-        toggles={MODULE_TOGGLES}
-        isChecked={readGameplayFlag}
-        settings={settings}
-        savingKey={savingKey}
-        onToggle={toggleGameplayFlag}
-      />
-      {readGameplayFlag(settings, 'modules.market_enabled') &&
-      !readGameplayFlag(settings, 'gameplay.vitality_enabled') ? (
-        <p className="gl-error" data-testid="gl-market-vitality-warning">
-          ⚠️ Le Marché est activé mais la <strong>vitalité</strong> (cœurs/gemmes) ne l'est pas :
-          l'onglet Marché n'apparaîtra pas chez les joueurs.{' '}
-          <button
-            type="button"
-            className="gl-btn"
-            disabled={savingKey === 'gameplay.vitality_enabled'}
-            onClick={() => toggleGameplayFlag('gameplay.vitality_enabled', true)}
-          >
-            Activer la vitalité
-          </button>
-        </p>
+      {!settingsReady && !error ? <p className="gl-hint">Chargement des réglages…</p> : null}
+      {!settingsReady && error ? (
+        <GLButton type="button" variant="secondary" onClick={() => load()}>
+          Réessayer
+        </GLButton>
       ) : null}
 
-      <details>
-        <summary>État brut des réglages</summary>
-        <pre>{JSON.stringify(settings, null, 2)}</pre>
-      </details>
+      {settingsReady ? (
+        <>
+          <form className="gl-form" onSubmit={(event) => event.preventDefault()}>
+            <GLField label="Titre plateforme">
+              <GLInput value={title} onChange={(event) => setTitle(event.target.value)} />
+            </GLField>
+            <GLField label="Sous-titre plateforme">
+              <GLInput value={subtitle} onChange={(event) => setSubtitle(event.target.value)} />
+            </GLField>
+            <AutoSaveStatus
+              status={identitySave.status}
+              error={identitySave.error}
+              className="gl-hint"
+            />
+          </form>
+
+          <GLSurface style={{ marginTop: 12 }} variant="inset">
+            <h3>Aperçu charte importée</h3>
+            <p className="gl-hint">
+              Couleurs, images hero/cartes et cadres de la charte plateforme (`platform.brand`).
+            </p>
+            <div className="gl-form">
+              <GLBrandEditor
+                value={brandDraft}
+                onChange={(updater) => {
+                  setBrandDraft((prev) =>
+                    normalizeBrand(typeof updater === 'function' ? updater(prev) : updater),
+                  );
+                }}
+                onStatus={(message, isError) => {
+                  if (isError) setError(message);
+                  else setSuccessMessage(message);
+                }}
+                disabled={brandSave.status === 'saving'}
+              />
+              <AutoSaveStatus
+                status={brandSave.status}
+                error={brandSave.error}
+                className="gl-hint"
+              />
+            </div>
+            <GLBrandHub slots={brandDraft?.slots} compact />
+          </GLSurface>
+
+          <h3>Gameplay</h3>
+          <p className="gl-hint">
+            Tous les toggles sont désactivés par défaut. Le MJ active progressivement les modes
+            standard puis complet selon la séance.
+          </p>
+
+          <GLGameplayPresetsPanel
+            presets={GAMEPLAY_PRESETS}
+            applyingPresetId={applyingPresetId}
+            onApply={applyGameplayPreset}
+          />
+
+          <GLGameplayTogglesList
+            toggles={GAMEPLAY_TOGGLES}
+            isChecked={readGameplayFlag}
+            settings={settings}
+            savingKey={savingKey}
+            onToggle={toggleGameplayFlag}
+          />
+
+          <GLMascotMoveSettings
+            settings={settings}
+            savingKey={savingKey}
+            onSaveSetting={saveSetting}
+          />
+
+          <h4>Affichage carte plateau</h4>
+          <p className="gl-hint">
+            Contrôle la visibilité des repères et des zones feuillets sur la carte en partie. Chaque
+            chapitre peut surcharger ces défauts.
+          </p>
+          <GLGameplayTogglesList
+            toggles={MAP_DISPLAY_TOGGLES}
+            isChecked={(currentSettings, key) => {
+              const toggle = MAP_DISPLAY_TOGGLES.find((item) => item.key === key);
+              return (
+                toggle?.readChecked?.(currentSettings) ?? readGameplayFlag(currentSettings, key)
+              );
+            }}
+            settings={settings}
+            savingKey={savingKey}
+            onToggle={toggleGameplayFlag}
+          />
+
+          <GLPlateauMarkerScaleSettings
+            value={plateauMarkerSizePercent}
+            onChange={setPlateauMarkerSizePercent}
+            saveStatus={markerSizeSave.status}
+            saveError={markerSizeSave.error}
+          />
+
+          <GLMarkerBackgroundSettings
+            settings={settings}
+            savingKey={savingKey}
+            onSave={saveSetting}
+          />
+
+          <GLVitalityDefaultsSettings
+            healthValue={defaultHealthPoints}
+            powerValue={defaultPowerPoints}
+            onHealthChange={setDefaultHealthPoints}
+            onPowerChange={setDefaultPowerPoints}
+            saveStatus={vitalitySave.status}
+            saveError={vitalitySave.error}
+          />
+
+          <GLLoreRetriggerSettings
+            settings={settings}
+            savingKey={savingKey}
+            onSaveSetting={saveSetting}
+            onToggle={toggleGameplayFlag}
+          />
+
+          <GLSpellCastSettings
+            settings={settings}
+            savingKey={savingKey}
+            onSaveSetting={saveSetting}
+          />
+
+          <GLGatingSettings />
+
+          <h3>Modules GL</h3>
+          <p className="gl-hint">
+            Ces drapeaux activent/désactivent les modules GL côté interface.
+          </p>
+          <GLGameplayTogglesList
+            toggles={MODULE_TOGGLES}
+            isChecked={readGameplayFlag}
+            settings={settings}
+            savingKey={savingKey}
+            onToggle={toggleGameplayFlag}
+          />
+          {readGameplayFlag(settings, 'modules.market_enabled') &&
+          !readGameplayFlag(settings, 'gameplay.vitality_enabled') ? (
+            <p className="gl-error" data-testid="gl-market-vitality-warning">
+              ⚠️ Le Marché est activé mais la <strong>vitalité</strong> (cœurs/gemmes) ne l'est pas
+              : l'onglet Marché n'apparaîtra pas chez les joueurs.{' '}
+              <button
+                type="button"
+                className="gl-btn"
+                disabled={savingKey === 'gameplay.vitality_enabled'}
+                onClick={() => toggleGameplayFlag('gameplay.vitality_enabled', true)}
+              >
+                Activer la vitalité
+              </button>
+            </p>
+          ) : null}
+
+          <details>
+            <summary>État brut des réglages</summary>
+            <pre>{JSON.stringify(settings, null, 2)}</pre>
+          </details>
+        </>
+      ) : null}
     </GLSurface>
   );
 }

@@ -27,7 +27,9 @@ function emptyDraft() {
 }
 
 export function GLIntroAdminPanel() {
-  const [draft, setDraft] = useState(emptyDraft);
+  // `null` tant que le GET n'a pas réussi : un emptyDraft() + autosave écraserait
+  // opening/audio (chaînes vides présentes → pas de fallback vers les défauts).
+  const [draft, setDraft] = useState(null);
   const [loadRevision, setLoadRevision] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -45,13 +47,17 @@ export function GLIntroAdminPanel() {
   }, []);
 
   function updateScene(sceneId, patch) {
-    setDraft((prev) => ({
-      ...prev,
-      scenes: prev.scenes.map((scene) => (scene.id === sceneId ? { ...scene, ...patch } : scene)),
-    }));
+    setDraft((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        scenes: prev.scenes.map((scene) => (scene.id === sceneId ? { ...scene, ...patch } : scene)),
+      };
+    });
   }
 
   const persistIntro = useCallback(async () => {
+    if (!draft) return draft;
     await apiGL('/api/gl/admin/content/intro', 'PUT', draft);
     setInfo('Intro enregistrée.');
     return draft;
@@ -60,6 +66,7 @@ export function GLIntroAdminPanel() {
   const { status: saveStatus, error: saveError } = useDebouncedAutoSave({
     value: draft,
     resetKey: loadRevision,
+    enabled: draft != null,
     onSave: persistIntro,
   });
 
@@ -92,6 +99,8 @@ export function GLIntroAdminPanel() {
     removeItem: (relativePath) => apiGL('/api/gl/admin/media-library', 'DELETE', { relativePath }),
   };
 
+  const loadReady = draft != null;
+
   return (
     <div className="gl-intro-admin">
       <p className="gl-hint">
@@ -104,166 +113,179 @@ export function GLIntroAdminPanel() {
       {saveError ? <p className="gl-error">{saveError}</p> : null}
       {info ? <div className="gl-success-banner">{info}</div> : null}
 
-      <div className="gl-intro-admin__toolbar">
-        <AutoSaveStatus status={saveStatus} className="gl-hint" />
-        <GLButton type="button" variant="ghost" onClick={openPreview} disabled={busy}>
-          Aperçu
+      {!loadReady && !error ? <p className="gl-hint">Chargement de l’intro…</p> : null}
+      {!loadReady && error ? (
+        <GLButton type="button" variant="secondary" onClick={() => load().catch(() => {})}>
+          Réessayer
         </GLButton>
-        <GLButton type="button" variant="ghost" onClick={resetDefaults} disabled={busy}>
-          Réinitialiser
-        </GLButton>
-      </div>
+      ) : null}
 
-      <GLField label="Intro active (contenu)">
-        <label className="gl-checkbox-row">
-          <input
-            type="checkbox"
-            checked={draft.enabled !== false}
-            onChange={(event) => setDraft((prev) => ({ ...prev, enabled: event.target.checked }))}
-          />
-          <span>
-            Contenu intro publié (désactiver masque l&apos;intro même si le module est actif)
-          </span>
-        </label>
-      </GLField>
+      {loadReady ? (
+        <>
+          <div className="gl-intro-admin__toolbar">
+            <AutoSaveStatus status={saveStatus} className="gl-hint" />
+            <GLButton type="button" variant="ghost" onClick={openPreview} disabled={busy}>
+              Aperçu
+            </GLButton>
+            <GLButton type="button" variant="ghost" onClick={resetDefaults} disabled={busy}>
+              Réinitialiser
+            </GLButton>
+          </div>
 
-      <section className="gl-intro-admin__section">
-        <h3>Écran d&apos;ouverture</h3>
-        <GLField label="Surtitre">
-          <GLInput
-            value={draft.opening?.kicker || ''}
-            onChange={(event) =>
-              setDraft((prev) => ({
-                ...prev,
-                opening: { ...prev.opening, kicker: event.target.value },
-              }))
-            }
-          />
-        </GLField>
-        <GLField label="Titre (HTML autorisé)">
-          <GLInput
-            value={draft.opening?.titleHtml || ''}
-            onChange={(event) =>
-              setDraft((prev) => ({
-                ...prev,
-                opening: { ...prev.opening, titleHtml: event.target.value },
-              }))
-            }
-          />
-        </GLField>
-        <GLField label="Crédit">
-          <GLInput
-            value={draft.opening?.credit || ''}
-            onChange={(event) =>
-              setDraft((prev) => ({
-                ...prev,
-                opening: { ...prev.opening, credit: event.target.value },
-              }))
-            }
-          />
-        </GLField>
-        <GLField label="Bouton">
-          <GLInput
-            value={draft.opening?.button || ''}
-            onChange={(event) =>
-              setDraft((prev) => ({
-                ...prev,
-                opening: { ...prev.opening, button: event.target.value },
-              }))
-            }
-          />
-        </GLField>
-      </section>
+          <GLField label="Intro active (contenu)">
+            <label className="gl-checkbox-row">
+              <input
+                type="checkbox"
+                checked={draft.enabled !== false}
+                onChange={(event) =>
+                  setDraft((prev) => ({ ...prev, enabled: event.target.checked }))
+                }
+              />
+              <span>
+                Contenu intro publié (désactiver masque l&apos;intro même si le module est actif)
+              </span>
+            </label>
+          </GLField>
 
-      <section className="gl-intro-admin__section">
-        <h3>Audio</h3>
-        <GLField label="Clé média — boucle (scènes 1 à 8)">
-          <GLInput
-            value={draft.audio?.loopKey || ''}
-            onChange={(event) =>
-              setDraft((prev) => ({
-                ...prev,
-                audio: { ...prev.audio, loopKey: event.target.value },
-              }))
-            }
-          />
-        </GLField>
-        <GLField label="Clé média — cue final (scène 9)">
-          <GLInput
-            value={draft.audio?.finalKey || ''}
-            onChange={(event) =>
-              setDraft((prev) => ({
-                ...prev,
-                audio: { ...prev.audio, finalKey: event.target.value },
-              }))
-            }
-          />
-        </GLField>
-        <MediaLibraryMenu
-          title="Bibliothèque — audio intro"
-          layout="gallery"
-          fetchItems={mediaApi.fetchItems}
-          uploadDataUrl={mediaApi.uploadDataUrl}
-          removeItem={mediaApi.removeItem}
-          onPickUrl={() => {}}
-          manageHint="Copiez la clé stable affichée dans la galerie après import."
-        />
-      </section>
-
-      <section className="gl-intro-admin__section">
-        <h3>Scènes</h3>
-        {(draft.scenes || []).map((scene, index) => (
-          <details key={scene.id} className="gl-intro-admin__scene" open={index === 0}>
-            <summary>
-              {index + 1}. {scene.id}{' '}
-              <span className="gl-hint">({VOICE_LABELS[scene.voice] || scene.voice})</span>
-            </summary>
-            <GLField label="Kicker">
+          <section className="gl-intro-admin__section">
+            <h3>Écran d&apos;ouverture</h3>
+            <GLField label="Surtitre">
               <GLInput
-                value={scene.kicker || ''}
-                onChange={(event) => updateScene(scene.id, { kicker: event.target.value })}
+                value={draft.opening?.kicker || ''}
+                onChange={(event) =>
+                  setDraft((prev) => ({
+                    ...prev,
+                    opening: { ...prev.opening, kicker: event.target.value },
+                  }))
+                }
               />
             </GLField>
-            <GLField label="Texte">
-              <GLTextarea
-                rows={3}
-                value={scene.text || ''}
-                onChange={(event) => updateScene(scene.id, { text: event.target.value })}
-              />
-            </GLField>
-            <GLField label="Clé image (bibliothèque)">
+            <GLField label="Titre (HTML autorisé)">
               <GLInput
-                value={scene.imageKey || ''}
-                onChange={(event) => updateScene(scene.id, { imageKey: event.target.value })}
+                value={draft.opening?.titleHtml || ''}
+                onChange={(event) =>
+                  setDraft((prev) => ({
+                    ...prev,
+                    opening: { ...prev.opening, titleHtml: event.target.value },
+                  }))
+                }
               />
             </GLField>
-          </details>
-        ))}
-        <MediaLibraryMenu
-          title="Bibliothèque — images intro"
-          layout="gallery"
-          fetchItems={mediaApi.fetchItems}
-          uploadDataUrl={mediaApi.uploadDataUrl}
-          removeItem={mediaApi.removeItem}
-          onPickUrl={() => {}}
-          manageHint="Importez GL_intro_*.png puis recopiez la clé stable dans la scène."
-        />
-      </section>
+            <GLField label="Crédit">
+              <GLInput
+                value={draft.opening?.credit || ''}
+                onChange={(event) =>
+                  setDraft((prev) => ({
+                    ...prev,
+                    opening: { ...prev.opening, credit: event.target.value },
+                  }))
+                }
+              />
+            </GLField>
+            <GLField label="Bouton">
+              <GLInput
+                value={draft.opening?.button || ''}
+                onChange={(event) =>
+                  setDraft((prev) => ({
+                    ...prev,
+                    opening: { ...prev.opening, button: event.target.value },
+                  }))
+                }
+              />
+            </GLField>
+          </section>
 
-      <section className="gl-intro-admin__section">
-        <h3>Finale</h3>
-        <GLField label="Bouton CTA">
-          <GLInput
-            value={draft.finale?.button || ''}
-            onChange={(event) =>
-              setDraft((prev) => ({
-                ...prev,
-                finale: { ...prev.finale, button: event.target.value },
-              }))
-            }
-          />
-        </GLField>
-      </section>
+          <section className="gl-intro-admin__section">
+            <h3>Audio</h3>
+            <GLField label="Clé média — boucle (scènes 1 à 8)">
+              <GLInput
+                value={draft.audio?.loopKey || ''}
+                onChange={(event) =>
+                  setDraft((prev) => ({
+                    ...prev,
+                    audio: { ...prev.audio, loopKey: event.target.value },
+                  }))
+                }
+              />
+            </GLField>
+            <GLField label="Clé média — cue final (scène 9)">
+              <GLInput
+                value={draft.audio?.finalKey || ''}
+                onChange={(event) =>
+                  setDraft((prev) => ({
+                    ...prev,
+                    audio: { ...prev.audio, finalKey: event.target.value },
+                  }))
+                }
+              />
+            </GLField>
+            <MediaLibraryMenu
+              title="Bibliothèque — audio intro"
+              layout="gallery"
+              fetchItems={mediaApi.fetchItems}
+              uploadDataUrl={mediaApi.uploadDataUrl}
+              removeItem={mediaApi.removeItem}
+              onPickUrl={() => {}}
+              manageHint="Copiez la clé stable affichée dans la galerie après import."
+            />
+          </section>
+
+          <section className="gl-intro-admin__section">
+            <h3>Scènes</h3>
+            {(draft.scenes || []).map((scene, index) => (
+              <details key={scene.id} className="gl-intro-admin__scene" open={index === 0}>
+                <summary>
+                  {index + 1}. {scene.id}{' '}
+                  <span className="gl-hint">({VOICE_LABELS[scene.voice] || scene.voice})</span>
+                </summary>
+                <GLField label="Kicker">
+                  <GLInput
+                    value={scene.kicker || ''}
+                    onChange={(event) => updateScene(scene.id, { kicker: event.target.value })}
+                  />
+                </GLField>
+                <GLField label="Texte">
+                  <GLTextarea
+                    rows={3}
+                    value={scene.text || ''}
+                    onChange={(event) => updateScene(scene.id, { text: event.target.value })}
+                  />
+                </GLField>
+                <GLField label="Clé image (bibliothèque)">
+                  <GLInput
+                    value={scene.imageKey || ''}
+                    onChange={(event) => updateScene(scene.id, { imageKey: event.target.value })}
+                  />
+                </GLField>
+              </details>
+            ))}
+            <MediaLibraryMenu
+              title="Bibliothèque — images intro"
+              layout="gallery"
+              fetchItems={mediaApi.fetchItems}
+              uploadDataUrl={mediaApi.uploadDataUrl}
+              removeItem={mediaApi.removeItem}
+              onPickUrl={() => {}}
+              manageHint="Importez GL_intro_*.png puis recopiez la clé stable dans la scène."
+            />
+          </section>
+
+          <section className="gl-intro-admin__section">
+            <h3>Finale</h3>
+            <GLField label="Bouton CTA">
+              <GLInput
+                value={draft.finale?.button || ''}
+                onChange={(event) =>
+                  setDraft((prev) => ({
+                    ...prev,
+                    finale: { ...prev.finale, button: event.target.value },
+                  }))
+                }
+              />
+            </GLField>
+          </section>
+        </>
+      ) : null}
     </div>
   );
 }

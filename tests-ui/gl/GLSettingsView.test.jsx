@@ -138,4 +138,25 @@ describe('GLSettingsView', () => {
       expect(screen.queryByTestId('gl-market-vitality-warning')).not.toBeInTheDocument();
     });
   });
+
+  test('échec GET : pas de formulaire identité/charte ni de PUT autosave (anti-wipe)', async () => {
+    apiGlMock.mockImplementation((path) => {
+      if (path === '/api/gl/admin/settings') {
+        return Promise.reject(new Error('timeout settings'));
+      }
+      return Promise.resolve(null);
+    });
+
+    render(<GLSettingsView />);
+
+    expect(await screen.findByText(/timeout settings/)).toBeInTheDocument();
+    expect(screen.queryByLabelText('Titre plateforme')).toBeNull();
+    expect(screen.queryByText('Aperçu charte importée')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Réessayer' })).toBeInTheDocument();
+
+    await waitFor(() => {
+      const puts = apiGlMock.mock.calls.filter(([, method]) => method === 'PUT');
+      expect(puts).toHaveLength(0);
+    });
+  });
 });
