@@ -1,6 +1,6 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { AutoSaveStatus } from '../components/AutoSaveStatus.jsx';
-import { useDebouncedAutoSave } from '../hooks/useDebouncedAutoSave.js';
+import { useAdminCrud } from '../hooks/useAdminCrud.js';
 
 // Panneau générique d'édition de questions QCM/Quiz (liste filtrable + fiche).
 // Les trois éditeurs (QCM biomes GL, QCM lore GL, Quiz ForetMap) sont des adaptateurs
@@ -42,9 +42,6 @@ export function QuestionEditorPanel({ config, initialQuestionCode = null, onQues
     for (const def of config.references) initial[def.key] = [];
     return initial;
   });
-  const [items, setItems] = useState([]);
-  const [selectedCode, setSelectedCode] = useState(null);
-  const [form, setForm] = useState(EMPTY_FORM);
   const [filters, setFilters] = useState(() => {
     const initial = {};
     for (const def of config.filters) initial[def.key] = def.initial ?? '';
@@ -52,11 +49,6 @@ export function QuestionEditorPanel({ config, initialQuestionCode = null, onQues
   });
   const [filterQ, setFilterQ] = useState('');
   const [sortBy, setSortBy] = useState(config.sort.initial);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [info, setInfo] = useState('');
-  const draftResetSeqRef = useRef(0);
-  const [autoSaveResetKey, setAutoSaveResetKey] = useState('empty');
 
   function setFilterValue(key, value) {
     // Conserve l'identité de l'objet quand la valeur ne change pas (évite un rechargement
@@ -64,20 +56,65 @@ export function QuestionEditorPanel({ config, initialQuestionCode = null, onQues
     setFilters((prev) => (prev[key] === value ? prev : { ...prev, [key]: value }));
   }
 
-  const filteredItems = useMemo(() => {
-    const filtered = config.clientFilter(items, { ...filters, filterQ });
-    return config.clientSort(filtered, sortBy);
-  }, [config, items, filters, filterQ, sortBy]);
-
-  const loadList = useCallback(async () => {
+  // Le filtrage/tri serveur passe par l'URL de liste : `useAdminCrud` recharge dès
+  // qu'elle change. Mémoïsée pour ne pas déclencher un rechargement à chaque rendu.
+  const listPath = useMemo(() => {
     const params = new URLSearchParams({ statut: filters.statut, sort: sortBy });
     for (const def of config.filters) {
       if (def.param && filters[def.key]) params.set(def.param, filters[def.key]);
     }
     if (filterQ.trim()) params.set('q', filterQ.trim());
-    const data = await api(`${questionsBase}?${params.toString()}`);
-    setItems(Array.isArray(data?.items) ? data.items : []);
-  }, [api, config, questionsBase, filters, filterQ, sortBy]);
+    return `${questionsBase}?${params.toString()}`;
+  }, [config, questionsBase, filters, filterQ, sortBy]);
+
+  const crud = useAdminCrud({
+    request: api,
+    listPath,
+    basePath: questionsBase,
+    codeField: 'question_code',
+    entityKey: 'question',
+    emptyForm: EMPTY_FORM,
+    toForm: questionToForm,
+    toPayload: formToPayload,
+    newFormExtra: config.newQuestionDefaults({ filters, refs }),
+    onItemLoaded: (question) => {
+      if (!config.scopeFilter) return;
+      const scopeValue = question?.[config.scopeFilter.questionField];
+      if (scopeValue) setFilterValue(config.scopeFilter.filterKey, scopeValue);
+    },
+    isAutoSaveReady: (current) => isAutoSave && String(current.question || '').trim().length > 0,
+    // En mode autosauvegarde, la réponse serveur ne doit pas écraser les frappes
+    // saisies pendant la requête en vol (elles seraient rebaselinées comme
+    // « enregistrées », donc perdues silencieusement).
+    mergeServerForm: config.autoSave ? config.autoSave.merge : undefined,
+    messages: {
+      updated: 'Question mise à jour.',
+      created: 'Question créée.',
+      startNewError: 'Impossible de préparer une nouvelle question',
+    },
+  });
+
+  const {
+    items,
+    selectedCode,
+    form,
+    setField,
+    loading,
+    error,
+    info,
+    setInfo,
+    saveStatus,
+    saveError,
+    loadItem: loadQuestion,
+    startNew: startNewQuestion,
+    persist,
+    runAction,
+  } = crud;
+
+  const filteredItems = useMemo(() => {
+    const filtered = config.clientFilter(items, { ...filters, filterQ });
+    return config.clientSort(filtered, sortBy);
+  }, [config, items, filters, filterQ, sortBy]);
 
   useEffect(() => {
     for (const def of config.references) {
@@ -93,110 +130,18 @@ export function QuestionEditorPanel({ config, initialQuestionCode = null, onQues
   }, [api, config]);
 
   useEffect(() => {
-    loadList().catch((err) => setError(err.message || 'Chargement impossible'));
-  }, [loadList]);
-
-  useEffect(() => {
     if (!initialQuestionCode) return;
     loadQuestion(initialQuestionCode).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialQuestionCode]);
 
-  async function loadQuestion(code) {
-    if (!code) return;
-    setLoading(true);
-    setError('');
-    try {
-      const data = await api(`${questionsBase}/${encodeURIComponent(code)}`);
-      setForm(questionToForm(data?.question));
-      setSelectedCode(code);
-      setAutoSaveResetKey(`question:${code}`);
-      if (config.scopeFilter) {
-        const scopeValue = data?.question?.[config.scopeFilter.questionField];
-        if (scopeValue) setFilterValue(config.scopeFilter.filterKey, scopeValue);
-      }
-    } catch (err) {
-      setError(err.message || 'Fiche introuvable');
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function startNewQuestion() {
-    setLoading(true);
-    setError('');
-    setInfo('');
-    try {
-      const data = await api(`${questionsBase}/next-code`);
-      const questionCode = data?.question_code || '';
-      draftResetSeqRef.current += 1;
-      setSelectedCode(null);
-      setForm({
-        ...EMPTY_FORM,
-        question_code: questionCode,
-        ...config.newQuestionDefaults({ filters, refs }),
-      });
-      setAutoSaveResetKey(`new:${questionCode}:${draftResetSeqRef.current}`);
-    } catch (err) {
-      setError(err.message || 'Impossible de préparer une nouvelle question');
-      setSelectedCode(null);
-      setForm({ ...EMPTY_FORM });
-      setAutoSaveResetKey('empty');
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  const persistQuestion = useCallback(async () => {
-    const payload = formToPayload(form);
-    const isEdit = Boolean(selectedCode);
-    const path = isEdit ? `${questionsBase}/${encodeURIComponent(selectedCode)}` : questionsBase;
-    const method = isEdit ? 'PUT' : 'POST';
-    const data = await api(path, method, payload);
-    const code = data?.question?.question_code || form.question_code;
-    setSelectedCode(code);
-    const nextForm = questionToForm(data?.question);
-    if (config.autoSave) {
-      // Préserve les frappes saisies pendant la requête en vol (sinon elles seraient écrasées
-      // par la version serveur et rebaselinées comme « enregistrées »).
-      setForm((current) => config.autoSave.merge(current, form, nextForm));
-    } else {
-      setForm(nextForm);
-    }
-    setInfo(isEdit ? 'Question mise à jour.' : 'Question créée.');
-    await loadList();
-    return { code, nextForm };
-  }, [api, config, questionsBase, formToPayload, questionToForm, form, selectedCode, loadList]);
-
-  const autoSavePersist = useCallback(async () => {
-    const { nextForm } = await persistQuestion();
-    return nextForm;
-  }, [persistQuestion]);
-
-  const { status: saveStatus, error: saveError } = useDebouncedAutoSave({
-    value: form,
-    resetKey: autoSaveResetKey,
-    enabled: isAutoSave && String(form.question || '').trim().length > 0,
-    onSave: autoSavePersist,
-  });
-
   async function saveQuestion(event) {
     event.preventDefault();
-    setLoading(true);
-    setError('');
     setInfo('');
-    try {
-      const { code } = await persistQuestion();
+    await runAction(async () => {
+      const { code } = await persist();
       onQuestionSaved?.(code);
-    } catch (err) {
-      setError(err.message || 'Enregistrement impossible');
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  function setField(key, value) {
-    setForm((prev) => ({ ...prev, [key]: value }));
+    }, 'Enregistrement impossible');
   }
 
   const fieldCtx = { form, setField, refs, filters, selectedCode };
