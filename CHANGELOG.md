@@ -26,6 +26,12 @@ conception uniquement — aucun comportement modifié.**
   n'a jamais été versionné ; OLU retombe donc systématiquement sur le fallback SVG.
 - Découpage en 7 lots (les 4 premiers livrables sans aucun sprite), arbitrages restants,
   anti-patterns, obligations d'accessibilité et de tests.
+- **Faut-il refactoriser avant ? (§15)** — audit mesuré du partage ForetMap/GL : inventaire de
+  `lib/shared/` (22 noyaux) et `src/shared/` (59 fichiers), lignes substantielles communes entre
+  routes homonymes, distinction entre vrais doublons et faux jumeaux (forum, glossaire).
+  Conclusion : la logique métier est déjà factorisée, seule la plomberie se répète ; le vrai
+  gisement est l'**asymétrie** (GL dispose d'outils que ForetMap n'a pas) plutôt que la
+  duplication. Aucun lot de refactor préalable recommandé.
 
 ### GL — Contenus → Doc de référence : lire et amender la doc fonctionnelle depuis le jeu
 
