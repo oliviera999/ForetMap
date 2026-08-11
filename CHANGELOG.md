@@ -7,6 +7,33 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Axe A — l'outillage d'administration de GL arrive dans ForetMap
+
+Mise en œuvre de l'axe A du plan [`docs/PARTAGE_FM_GL.md`](docs/PARTAGE_FM_GL.md) : combler
+l'asymétrie d'outillage entre les deux produits, plutôt que de chasser la duplication.
+
+- **Panneau d'édition de questions** (QCM biomes GL, QCM lore GL, Quiz ForetMap) : le CRUD
+  réécrit à la main cède la place au hook partagé `useAdminCrud` (~70 lignes en moins). Le hook
+  gagne trois capacités générales — réconciliation `mergeServerForm` (préserve les frappes
+  saisies pendant une requête en vol), `persist()` exposé pour les soumissions manuelles, et une
+  clé de réinitialisation d'autosave découplée de l'identifiant. Ce dernier point corrige un
+  défaut réel : dériver la clé de l'identifiant la faisait muter à la création, ce qui supprimait
+  l'enregistrement de suivi et perdait silencieusement une frappe en vol.
+- **Enregistrement automatique** sur la fiche biodiversité, l'édition de tâche et l'éditeur de
+  tutoriel — **en édition seule**. Deux de ces panneaux publient immédiatement vers les élèves
+  (une tâche est visible et assignée dès l'enregistrement ; un tutoriel a `is_active` à 1 sans
+  état brouillon) : l'autosave n'agit donc que sur un enregistrement déjà créé. Rien n'est plus
+  publié à moitié construit, et les assignations initiales — propres à la création — ne peuvent
+  pas être déclenchées automatiquement. Le bouton d'enregistrement explicite subsiste partout.
+- **Doc de référence consultable dans l'application** (onglet Paramètres administrateur → « Doc
+  de référence ») : les 8 documents fonctionnels de `docs/reference/foretmap/` sont lisibles sans
+  passer par le dépôt. **Lecture seule** — contrairement à GL, les fichiers versionnés font foi.
+  Nouvelles routes `GET /api/admin/reference-docs[/:slug]` (`admin.settings.read`).
+- **Noyau partagé `lib/shared/referenceDocsFiles.js`** : la couche fichiers de la doc de
+  référence (validation de slug, extraction titre/résumé, listage trié) était générique — elle est
+  désormais commune aux deux produits, `lib/glReferenceDocs.js` la consommant à son tour. La
+  surcouche d'édition en base reste propre à GL.
+
 ### Partage ForetMap/GL — audit outillé, plan en trois axes et deux noyaux mutualisés
 
 Nouveau document [`docs/PARTAGE_FM_GL.md`](docs/PARTAGE_FM_GL.md) : audit **mesuré** de la

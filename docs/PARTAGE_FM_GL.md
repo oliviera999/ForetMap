@@ -113,7 +113,7 @@ outil disponible, on ne refond rien.
 | **A1** | `useAdminCrud` promu dans `src/shared/hooks/`, transport injecté ; `useGlAdminCrud` devient un adaptateur | S      | Très faible | ✅ **livré** |
 | **A2** | `QuestionEditorPanel` (partagé) consomme `useAdminCrud` au lieu de réécrire le CRUD                       | M      | Moyen       | à faire      |
 | **A3** | Autosave débouncé sur trois panneaux prof ForetMap, **en édition seule**                                  | M      | Faible      | ✅ **livré** |
-| **A4** | Doc de référence `docs/reference/foretmap/` éditable depuis l'app (miroir de `GLReferenceDocsPanel`)      | M      | Moyen       | à arbitrer   |
+| **A4** | Doc de référence `docs/reference/foretmap/` **consultable** depuis l'app (lecture seule)                  | M      | Faible      | ✅ **livré** |
 
 #### A1 — `useAdminCrud` partagé ✅ livré
 
@@ -206,19 +206,37 @@ secondes s'il consulte une tâche ou un tutoriel pendant que le professeur le mo
 bouton d'enregistrement explicite. Couvert par `tests-ui/components/PlantEditFormAutoSave.test.jsx`,
 dont le cas central vérifie qu'**aucune requête** ne part en création.
 
-#### A4 — Doc de référence ForetMap éditable dans l'app
+#### A4 — Doc de référence ForetMap consultable dans l'app ✅ livré
 
 **Objectif.** GL permet aux MJ de lire et amender `docs/reference/gl/*.md` depuis l'onglet
-Contenus (`GLReferenceDocsPanel`, stockage à deux étages non destructif : fichier versionné +
-surcouche en base). ForetMap n'a pas d'équivalent alors que `docs/reference/foretmap/` existe et
-suit la même convention — y compris le marqueur `🔧 À implémenter` valant demande d'évolution.
+Contenus. ForetMap disposait de `docs/reference/foretmap/` (8 documents) sans aucun accès depuis
+l'application.
 
-**Démarche.** Réutiliser le modèle GL (table de surcouche, route de lecture/écriture, panneau)
-en l'adaptant aux permissions ForetMap. Le noyau `lib/glReferenceDocs.js` est le point de départ
-naturel d'un `lib/shared/referenceDocsCore.js`.
+**Décision : lecture seule.** L'étage d'édition de GL (surcouche en base, non destructive) n'est
+pas repris. Côté ForetMap, les fichiers versionnés dans Git font foi et amender un document reste
+un acte de développement. Cela supprime la migration, la table de surcouche et les routes
+d'écriture — l'essentiel du bénéfice (rendre la documentation accessible aux professeurs sans
+passer par le dépôt) est obtenu sans cette complexité.
 
-⚠️ **À arbitrer.** C'est le seul lot de l'axe A qui crée une **fonctionnalité**, pas seulement un
-outil. Il mérite sa propre décision produit : les profs ForetMap en ont-ils l'usage ?
+**Extraction associée.** La couche **fichiers** de `lib/glReferenceDocs.js` était entièrement
+générique : validation de slug, extraction du titre et du résumé Markdown, listage et tri selon un
+sommaire de lecture. Elle est désormais dans `lib/shared/referenceDocsFiles.js`, consommée par les
+deux produits — seuls le répertoire et l'ordre de lecture sont injectés. La couche de **surcouche
+en base** reste chez GL : on factorise le noyau, pas la plomberie.
+
+**Livrables.**
+
+| Fichier                                              | Rôle                                                           |
+| ---------------------------------------------------- | -------------------------------------------------------------- |
+| `lib/shared/referenceDocsFiles.js`                   | Noyau fichiers partagé (nouveau)                               |
+| `lib/foretmapReferenceDocs.js`                       | Lecteur ForetMap, lecture seule (nouveau)                      |
+| `routes/reference-docs.js`                           | `GET /api/admin/reference-docs[/:slug]`, `admin.settings.read` |
+| `src/components/help/ForetMapReferenceDocsPanel.jsx` | Sommaire + lecture, onglet « Doc de référence »                |
+| `lib/glReferenceDocs.js`                             | Délègue désormais sa couche fichiers au noyau partagé          |
+
+⚠️ **Traversée de chemin.** Les slugs proviennent de l'URL et servent à composer un chemin de
+fichier. `isValidReferenceSlug` (kebab-case borné, sans séparateur) est appliqué **avant** toute
+lecture, et un test dédié vérifie que `../secret` et `a/b` ne lisent rien.
 
 ### Axe B — Extraire les noyaux restants
 
