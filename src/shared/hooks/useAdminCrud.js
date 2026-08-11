@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useDebouncedAutoSave } from './useDebouncedAutoSave.js';
 
 /**
@@ -31,6 +31,11 @@ import { useDebouncedAutoSave } from './useDebouncedAutoSave.js';
  * @param {(entity: object|undefined) => void} [options.onItemLoaded] — synchronisation après chargement d'une fiche
  * @param {(form: object) => boolean} [options.isAutoSaveReady] — condition d'activation de l'autosave (défaut : activé)
  * @param {(form: object) => boolean|string} [options.canSave] — validation bloquante (`false` ou message d'erreur)
+ * @param {(current: object, sent: object, serverForm: object) => object} [options.mergeServerForm] —
+ *   réconciliation après enregistrement. Par défaut, la version serveur remplace le formulaire ;
+ *   fournir cette fonction pour **préserver les frappes saisies pendant la requête en vol**
+ *   (sinon elles sont écrasées par la réponse serveur, puis rebaselinées comme « enregistrées »
+ *   — la saisie est perdue sans que l'utilisateur en soit averti).
  * @param {{ updated: string, created: string, startNewError: string }} options.messages — libellés d'info/erreur
  */
 export function useAdminCrud({
@@ -46,6 +51,7 @@ export function useAdminCrud({
   onItemLoaded,
   isAutoSaveReady,
   canSave,
+  mergeServerForm,
   messages,
 }) {
   const [items, setItems] = useState([]);
@@ -54,6 +60,24 @@ export function useAdminCrud({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
+  /**
+   * Clé de réinitialisation de l'autosave — état **explicite**, délibérément
+   * découplé de `selectedCode`.
+   *
+   * Elle ne change qu'aux deux moments où l'utilisateur change de fiche :
+   * ouverture (`loadItem`) et nouveau brouillon (`startNew`). Surtout, elle **ne
+   * change pas** quand `persist()` crée l'enregistrement : sinon la création
+   * ferait muter la clé, `useDebouncedAutoSave` rebaselinerait sur la valeur
+   * courante, et une frappe saisie pendant le POST en vol ne serait jamais
+   * réenregistrée — elle serait silencieusement perdue. Après un enregistrement,
+   * c'est `markSaved(valeur retournée)` qui fait autorité sur la baseline.
+   *
+   * Le numéro de brouillon évite un second écueil : deux « nouvelles fiches »
+   * consécutives renvoyant le **même** code par `next-code` produiraient une clé
+   * identique, donc pas de réarmement pour le second brouillon.
+   */
+  const draftSeqRef = useRef(0);
+  const [autoSaveResetKey, setAutoSaveResetKey] = useState('empty');
 
   const { updated: updatedMessage, created: createdMessage } = messages;
 
@@ -81,6 +105,7 @@ export function useAdminCrud({
       const entity = data?.[entityKey];
       setForm(toForm(entity));
       setSelectedCode(code);
+      setAutoSaveResetKey(`item:${code}`);
       onItemLoaded?.(entity);
     } catch (err) {
       setError(err.message || 'Fiche introuvable');
@@ -93,14 +118,18 @@ export function useAdminCrud({
     setLoading(true);
     setError('');
     setInfo('');
+    draftSeqRef.current += 1;
     try {
       const data = await request(`${basePath}/next-code`);
+      const code = data?.[codeField] || '';
       setSelectedCode(null);
-      setForm({ ...emptyForm, [codeField]: data?.[codeField] || '', ...(newFormExtra || {}) });
+      setForm({ ...emptyForm, [codeField]: code, ...(newFormExtra || {}) });
+      setAutoSaveResetKey(`new:${code}:${draftSeqRef.current}`);
     } catch (err) {
       setError(err.message || messages.startNewError);
       setSelectedCode(null);
       setForm({ ...emptyForm, ...(newFormExtra || {}) });
+      setAutoSaveResetKey(`new::${draftSeqRef.current}`);
     } finally {
       setLoading(false);
     }
@@ -116,10 +145,14 @@ export function useAdminCrud({
     const code = entity?.[codeField] || form[codeField];
     setSelectedCode(code);
     const nextForm = toForm(entity);
-    setForm(nextForm);
+    if (mergeServerForm) {
+      setForm((current) => mergeServerForm(current, form, nextForm));
+    } else {
+      setForm(nextForm);
+    }
     setInfo(isEdit ? updatedMessage : createdMessage);
     await loadList();
-    return nextForm;
+    return { code, form: nextForm };
   }, [
     request,
     form,
@@ -130,6 +163,7 @@ export function useAdminCrud({
     codeField,
     toForm,
     toPayload,
+    mergeServerForm,
     updatedMessage,
     createdMessage,
     loadList,
@@ -137,10 +171,12 @@ export function useAdminCrud({
 
   const { status: saveStatus, error: saveError } = useDebouncedAutoSave({
     value: form,
-    resetKey: selectedCode ?? `new:${form[codeField]}`,
+    resetKey: autoSaveResetKey,
     enabled: isAutoSaveReady ? isAutoSaveReady(form) : true,
     canSave: canSave ? () => canSave(form) : undefined,
-    onSave: persist,
+    // `useDebouncedAutoSave` rebaseline sur la valeur retournée : on lui rend le
+    // formulaire seul, `persist` exposant en plus le code pour les appelants.
+    onSave: useCallback(async () => (await persist()).form, [persist]),
   });
 
   /** Enveloppe une action (archivage, suppression…) avec loading + gestion d'erreur. */
@@ -178,5 +214,7 @@ export function useAdminCrud({
     loadItem,
     startNew,
     runAction,
+    /** Enregistre le formulaire courant (POST/PUT) → `{ code, form }`. Pour une soumission manuelle. */
+    persist,
   };
 }

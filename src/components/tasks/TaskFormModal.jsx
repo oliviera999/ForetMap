@@ -1,4 +1,6 @@
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useCallback } from 'react';
+import { AutoSaveStatus } from '../../shared/components/AutoSaveStatus.jsx';
+import { useDebouncedAutoSave } from '../../shared/hooks/useDebouncedAutoSave.js';
 import { withAppBase } from '../../services/api';
 import { compressImageWithPreset, isLikelyImageFile } from '../../utils/image';
 import { getRoleTerms } from '../../utils/n3-terminology';
@@ -247,6 +249,42 @@ function TaskFormModal({
       setTaskImageBusy(false);
     }
   };
+
+  // Enregistrement automatique — **édition seule** (A3).
+  //
+  // Actif uniquement sur une tâche **existante** : ni en création, ni en
+  // duplication, ni pour une proposition d'élève. Une tâche neuve n'est donc
+  // jamais publiée à moitié construite, et les assignations initiales — qui
+  // n'ont lieu qu'à la création — ne peuvent pas être déclenchées par l'autosave.
+  //
+  // L'image reste hors de ce circuit : `taskImageData` n'est pas surveillé et
+  // n'est pas transmis, pour ne pas réémettre le même envoi à chaque frappe.
+  // Elle est enregistrée par le bouton explicite, comme avant.
+  const canAutoSave = Boolean(editTask) && !isDuplicate && !isProposal;
+
+  const autoSavePersist = useCallback(async () => {
+    const sent = form;
+    await onSave(
+      buildTaskSavePayload({
+        form: sent,
+        zones,
+        markers,
+        normalizedTutorialIds,
+        taskImageData: null,
+        editTask,
+        isDuplicate,
+        taskImageRemoved: false,
+      }),
+    );
+    return sent;
+  }, [form, zones, markers, normalizedTutorialIds, editTask, isDuplicate, onSave]);
+
+  const { status: autoSaveStatus, error: autoSaveError } = useDebouncedAutoSave({
+    value: form,
+    resetKey: canAutoSave ? `task:${editTask.id}` : 'none',
+    enabled: canAutoSave && String(form.title || '').trim().length > 0,
+    onSave: autoSavePersist,
+  });
 
   const submit = async () => {
     if (!form.title.trim()) return setErr('Le titre est requis');
@@ -637,6 +675,15 @@ function TaskFormModal({
           </div>
         </div>
       )}
+      {canAutoSave && autoSaveError ? (
+        <p style={{ color: var_alert, marginBottom: 8, fontSize: '.85rem' }}>{autoSaveError}</p>
+      ) : null}
+      {/* Édition seule : rien n'est affiché en création ni en duplication. */}
+      {canAutoSave ? (
+        <div style={{ marginBottom: 8 }}>
+          <AutoSaveStatus status={autoSaveStatus} />
+        </div>
+      ) : null}
       <button className="btn btn-primary btn-full" onClick={submit} disabled={saving}>
         {saving
           ? 'Sauvegarde...'

@@ -153,6 +153,90 @@ describe('useAdminCrud (hook partagé ForetMap/GL)', () => {
     expect(calls.some((c) => c.method === 'PUT' && c.path === '/api/things/T7')).toBe(true);
   });
 
+  it('`persist` expose le code enregistré pour une soumission manuelle', async () => {
+    const { request } = makeRequest({
+      'GET /api/things': { items: [] },
+      'POST /api/things': { thing: { thing_code: 'T9', label: 'Manuel' } },
+    });
+    const { result } = renderHook(() => useAdminCrud(baseOptions(request)));
+    await waitFor(() => expect(result.current.items).toEqual([]));
+
+    let outcome;
+    await act(async () => {
+      outcome = await result.current.persist();
+    });
+
+    expect(outcome).toEqual({ code: 'T9', form: { thing_code: 'T9', label: 'Manuel' } });
+  });
+
+  it('`mergeServerForm` préserve les frappes saisies pendant la requête en vol', async () => {
+    const { request } = makeRequest({
+      'GET /api/things': { items: [] },
+      'POST /api/things': { thing: { thing_code: 'T3', label: 'version serveur' } },
+    });
+    // Réconciliation : on garde la saisie locale et n'accepte du serveur que le code.
+    const mergeServerForm = (current, _sent, serverForm) => ({
+      ...current,
+      thing_code: serverForm.thing_code,
+    });
+    const { result } = renderHook(() => useAdminCrud(baseOptions(request, { mergeServerForm })));
+    await waitFor(() => expect(result.current.items).toEqual([]));
+
+    await act(async () => {
+      result.current.setField('label', 'frappe en vol');
+    });
+    await act(async () => {
+      await result.current.persist();
+    });
+
+    expect(result.current.form).toEqual({ thing_code: 'T3', label: 'frappe en vol' });
+  });
+
+  it('sans `mergeServerForm`, la version serveur remplace le formulaire (défaut inchangé)', async () => {
+    const { request } = makeRequest({
+      'GET /api/things': { items: [] },
+      'POST /api/things': { thing: { thing_code: 'T3', label: 'version serveur' } },
+    });
+    const { result } = renderHook(() => useAdminCrud(baseOptions(request)));
+    await waitFor(() => expect(result.current.items).toEqual([]));
+
+    await act(async () => {
+      result.current.setField('label', 'frappe en vol');
+    });
+    await act(async () => {
+      await result.current.persist();
+    });
+
+    expect(result.current.form).toEqual({ thing_code: 'T3', label: 'version serveur' });
+  });
+
+  it('deux brouillons consécutifs au même code réarment l’autosave', async () => {
+    // `next-code` renvoie deux fois le même code : sans numéro de brouillon dans la
+    // clé de réinitialisation, la baseline ne serait pas réarmée et la seconde
+    // fiche passerait pour déjà enregistrée.
+    const { request } = makeRequest({
+      'GET /api/things': { items: [] },
+      'GET /api/things/next-code': { thing_code: 'T5' },
+      'POST /api/things': { thing: { thing_code: 'T5', label: 'second brouillon' } },
+    });
+    const { result } = renderHook(() =>
+      useAdminCrud(baseOptions(request, { isAutoSaveReady: (form) => Boolean(form.label) })),
+    );
+    await waitFor(() => expect(result.current.items).toEqual([]));
+
+    await act(async () => {
+      await result.current.startNew();
+    });
+    await act(async () => {
+      await result.current.startNew();
+    });
+
+    await act(async () => {
+      result.current.setField('label', 'second brouillon');
+    });
+    await waitFor(() => expect(result.current.info).toBe('Fiche créée'), { timeout: 3000 });
+  });
+
   it('`runAction` enveloppe une action et capture son erreur', async () => {
     const { request } = makeRequest({ 'GET /api/things': { items: [] } });
     const { result } = renderHook(() => useAdminCrud(baseOptions(request)));
