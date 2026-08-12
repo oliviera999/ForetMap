@@ -250,6 +250,13 @@ function TaskFormModal({
     }
   };
 
+  // Déclaré avant l'autosave : le callback et ses deps y font référence
+  // (évite ReferenceError TDZ — régression A3 à l'ouverture de la modale).
+  const normalizedTutorialIds = useMemo(
+    () => normalizeTutorialIds(form.tutorial_ids),
+    [form.tutorial_ids],
+  );
+
   // Enregistrement automatique — **édition seule** (A3).
   //
   // Actif uniquement sur une tâche **existante** : ni en création, ni en
@@ -335,10 +342,6 @@ function TaskFormModal({
     editTask?.project_status,
     isProposal,
   ]);
-  const normalizedTutorialIds = useMemo(
-    () => normalizeTutorialIds(form.tutorial_ids),
-    [form.tutorial_ids],
-  );
   const teacherReferentCandidates = useMemo(
     () => referentCandidates.filter((c) => c.user_type === 'teacher'),
     [referentCandidates],

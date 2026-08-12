@@ -7,6 +7,14 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Correctifs
+
+- **Modale d'édition de tâche** : après l'ajout de l'enregistrement automatique (A3), ouvrir
+  « Nouvelle tâche » / « Modifier la tâche » provoquait un crash immédiat
+  (`ReferenceError` — `normalizedTutorialIds` lu dans les dépendances du callback d'autosave
+  avant sa déclaration). La création et l'édition de tâches étaient inutilisables. L'ordre des
+  hooks est corrigé ; un test UI monte la modale en création et en édition.
+
 ### Axe A — l'outillage d'administration de GL arrive dans ForetMap
 
 Mise en œuvre de l'axe A du plan [`docs/PARTAGE_FM_GL.md`](docs/PARTAGE_FM_GL.md) : combler
