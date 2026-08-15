@@ -6,7 +6,7 @@ alwaysApply: false
 
 # Backend ForetMap (Express + MySQL)
 
-- **Base de données :** MySQL via `mysql2` (pool), fichier `database.js`. Utiliser `queryAll(sql, params)`, `queryOne(sql, params)` et `execute(sql, params)` avec des paramètres `?` uniquement (jamais d'interpolation de chaînes). Après `execute`, utiliser `result.insertId` pour l'ID généré. Helpers métier dans `lib/helpers.js` (`getTaskWithAssignments`, `studentStats`).
+- **Base de données :** MySQL via `mysql2` (pool), fichier `database.js`. Utiliser `queryAll(sql, params)`, `queryOne(sql, params)` et `execute(sql, params)` avec des paramètres `?` uniquement (jamais d'interpolation de chaînes). Après `execute`, utiliser `result.insertId` pour l'ID généré. Helpers métier par domaine : `lib/tasks/taskQueries.js` (`getTaskWithAssignments`), `lib/*RouteHelpers.js`.
 - **Réponses API :** JSON avec `res.json(...)`. Erreurs : `res.status(4xx|5xx).json({ error: '...' })`. Pour 404 ressource introuvable : `res.status(404).json({ error: '... introuvable' })`. Toutes les routes qui accèdent à la BDD sont **async**.
 - **Structure :** L'API est organisée en routeurs dans `routes/` et montés depuis `server.js` : `auth`, `zones`, `maps`, `map`, `plants`, `tasks`, `task-projects`, `tutorials`, `visit`, `stats`, `students`, `observations`, `audit`, `rbac`, `settings`, `forum`, `context-comments`. Garder cette liste alignée avec `server.js` en cas d'ajout d'un nouveau routeur.
 - **Endpoints de diagnostic/documentation :** Pour les endpoints non-métier exposés depuis `server.js` (health, health/db, ready, version, docs, site-issues), conserver une réponse explicite (`res.type(...)`) et un contrat stable. Toute création/modification de ces endpoints doit être répercutée dans `docs/API.md`.

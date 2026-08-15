@@ -287,9 +287,4 @@ export function hasDiscoveryTour(tabKey, isTeacher = false) {
   return getDiscoverySteps(tabKey, isTeacher).length > 0;
 }
 
-/** Titre lisible du parcours d'un onglet. */
-export function getDiscoveryTourTitle(tabKey) {
-  return DISCOVERY_TOURS[tabKey]?.title || 'Visite guidée';
-}
-
 export { DISCOVERY_TOURS };

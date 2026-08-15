@@ -47,6 +47,7 @@ Ce document centralise les commandes et la matrice de couverture pour Gnomes & L
 - `gl-qcm-lore-catalog.test.js`, `gl-qcm-lore-import.test.js`
 - `gl-species-catalog.test.js`, `gl-species-admin-crud.test.js`, `gl-species-import-lib.test.js`, `gl-species-validation.test.js`
 - `gl-spells-catalog.test.js`, `gl-spells-admin-crud.test.js`, `gl-spells-import-lib.test.js`, `gl-spells-validation.test.js`
+- `gl-spell-options-lib.test.js` (normalisation ENUM + patch de lot, sans DB), `gl-spell-caster-kind.test.js` (restriction de peuple : admin, lot, lancement)
 
 ### Mascottes, médias, carte
 

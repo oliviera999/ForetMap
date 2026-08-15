@@ -332,18 +332,6 @@ export function PlantSpeciesDiscoveryAcknowledgeButton({
   );
 }
 
-/** @deprecated Utiliser fetchPlantObservationCounts ; conservé pour compat éventuelle. */
-export async function fetchPlantDiscoveredIds() {
-  if (!getAuthToken()) return [];
-  try {
-    const res = await api('/api/plants/me/discovered-ids');
-    const ids = Array.isArray(res?.plant_ids) ? res.plant_ids : [];
-    return ids.map((n) => Number(n)).filter((n) => Number.isFinite(n));
-  } catch {
-    return [];
-  }
-}
-
 /**
  * Compteurs d’observations par fiche pour l’utilisateur connecté et tout le site.
  * @param {number[]} plantIds

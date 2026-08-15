@@ -13,11 +13,6 @@ import { duplicateMapLabel, offsetPctPoints } from '../utils/glMapDuplicate.js';
 export const GL_KINGDOM_ZONE_DEFAULT_COLOR = '#22c55e';
 const DEFAULT_MUSIC_VOLUME = 0.7;
 
-export function readZoneMusicUrl(zone) {
-  const urls = readZoneMusicUrls(zone);
-  return urls[0] || '';
-}
-
 export function readZoneMusicUrls(zone) {
   const urls = zone?.musicUrls ?? zone?.music_urls;
   if (Array.isArray(urls)) {

@@ -34,7 +34,3 @@ export function useGlLoreGlossaryLinkIndex(authToken) {
 
   return items;
 }
-
-export function clearGlLoreGlossaryLinkIndexCache() {
-  listCache = null;
-}

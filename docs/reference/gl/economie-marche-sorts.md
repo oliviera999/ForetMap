@@ -70,6 +70,53 @@ notamment par la résolution d'actions — il ne se confond pas avec la vitalit�
 - Le module Sortilèges est désactivé par défaut : c'est un choix d'activation
   conscient de l'admin.
 
+### Réserver un sortilège à un peuple
+
+Chaque sortilège porte un réglage **« Lanceurs autorisés »** à trois valeurs :
+
+| Réglage                 | Qui peut lancer le sort                        |
+| ----------------------- | ---------------------------------------------- |
+| **Gnomes et licornes**  | tout le monde (valeur par défaut, comme avant) |
+| **Gnomes uniquement**   | seules les équipes gnomes                      |
+| **Licornes uniquement** | seules les équipes licornes                    |
+
+Le peuple d'un joueur est celui de **son équipe** — un élève change donc de peuple
+s'il change d'équipe, exactement comme le lore le raconte au passage des seuils.
+
+Concrètement, quand un sort est réservé :
+
+- il porte une **pastille** (« 🧙 Gnomes uniquement ») dans le catalogue de sorts et
+  sur sa fiche, avant même qu'on essaie de le lancer ;
+- l'assistant de lancement ne propose **que les équipes du bon peuple** ;
+- dans la liste des contributeurs, les joueurs de l'autre peuple apparaissent mais
+  avec la mention « Ne peut pas contribuer à ce sortilège », champs verrouillés ;
+- le serveur refuse le lancement même si quelqu'un contourne l'écran — et il
+  revérifie **juste avant de débiter** les cœurs et les gemmes. Un sort restreint
+  après coup, alors que le pot était déjà réuni, ne part pas et ne coûte rien.
+
+### Régler plusieurs sortilèges d'un coup
+
+Dans **Contenus → Sortilèges**, chaque sort de la liste porte une case à cocher, avec
+un « Tout sélectionner » au-dessus. Dès qu'au moins un sort est coché, un bandeau
+d'**édition en masse** apparaît : on y choisit le réglage à appliquer, sa nouvelle
+valeur, et on valide.
+
+Les réglages modifiables en masse sont ceux à valeurs fixes :
+
+- **Lanceurs autorisés** (le peuple, ci-dessus) ;
+- **Validation du MJ** (lancement immédiat ou soumis à approbation) ;
+- **Portée du lancement** (solo, collectif, ou libre) ;
+- **Statut** (officiel ou proposé).
+
+Le message de retour indique combien de sorts ont réellement changé : si certains
+avaient déjà la valeur demandée, ils sont comptés à part — ce n'est pas une erreur.
+
+> Le tableur d'import/export des sortilèges porte aussi ces trois réglages, en
+> colonnes `lanceurs`, `validation_mj` et `portee_lancement` — pratique pour préparer
+> tout un catalogue hors ligne. Une colonne **absente** du fichier laisse le réglage
+> tel qu'il est en base : ré-importer un ancien fichier ne lève donc pas les
+> restrictions déjà posées.
+
 ## Les feuillets de Sélène
 
 Selon les réglages, la consultation ou l'« effacement » d'un feuillet peut **coûter des
@@ -87,6 +134,12 @@ circuit de l'économie, qui relie la lecture du lore à la vitalité.
 > ⚠️ **Point d'attention** — Le Marché n'apparaît chez les joueurs que si module Marché
 > **et** vitalité sont actifs tous les deux ; les réglages avertissent, mais c'est le
 > premier réflexe de vérification si « le Marché a disparu ».
+
+> ⚠️ **Point d'attention** — Un sortilège réservé à un peuple devient injouable pour une
+> partie où **toutes les équipes sont du même autre peuple**. Rien ne casse (le sort est
+> simplement refusé, avec un message clair), mais si un chapitre est bâti autour de sorts
+> gnomes, prévoyez au moins une équipe gnome — ou laissez ces sorts sur « Gnomes et
+> licornes ».
 
 ## Pour aller plus loin
 

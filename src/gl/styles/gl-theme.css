@@ -2831,6 +2831,13 @@ body.gl-map-fullscreen-active .gl-qcm-popover-overlay {
   background: var(--gl-accent-info);
 }
 
+/* Contrainte à respecter (ex. sortilège réservé à un peuple) : plus saillant qu'une
+   information neutre, sans l'alarme du rouge — le sort reste lançable, par d'autres. */
+.gl-badge--warn {
+  background: var(--gl-accent-warning);
+  color: #854d0e;
+}
+
 .gl-empty {
   text-align: center;
   padding: 14px 10px;
@@ -2978,7 +2985,6 @@ body.gl-map-fullscreen-active .gl-qcm-popover-overlay {
 .gl-forum-threads,
 .gl-forum-posts,
 .gl-journal-events,
-.gl-context-comments,
 .gl-kingdom-map-zones,
 .gl-tutorials-list {
   list-style: none;
@@ -3039,7 +3045,6 @@ body.gl-map-fullscreen-active .gl-qcm-popover-overlay {
 }
 
 .gl-forum-posts li,
-.gl-context-comments li,
 .gl-journal-event {
   border: 1px solid #dbeafe;
   border-radius: 10px;
@@ -3047,8 +3052,7 @@ body.gl-map-fullscreen-active .gl-qcm-popover-overlay {
   padding: 10px;
 }
 
-.gl-forum-posts li.is-deleted,
-.gl-context-comments li.is-deleted {
+.gl-forum-posts li.is-deleted {
   opacity: 0.65;
 }
 

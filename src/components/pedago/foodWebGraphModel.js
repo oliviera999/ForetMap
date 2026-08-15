@@ -49,11 +49,6 @@ export function buildGraphModel(items) {
   return { nodes: [...nodeMap.values()], edges };
 }
 
-/** Indique si une arête est connectée au nœud donné. */
-export function edgeTouches(edge, nodeId) {
-  return edge.tailId === nodeId || edge.headId === nodeId;
-}
-
 /** Identifiants des voisins directs d'un nœud (via les arêtes). */
 export function neighborIds(edges, nodeId) {
   const set = new Set();
