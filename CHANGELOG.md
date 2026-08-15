@@ -7,6 +7,46 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Doc — Audit général de l'application et du jeu (août 2026)
+
+Nouveau document [`docs/AUDIT_APP_ET_JEU_2026-08.md`](docs/AUDIT_APP_ET_JEU_2026-08.md) :
+audit transversal ForetMap + Gnomes & Licornes, centré sur **ce que le joueur perçoit**.
+**Document d'audit uniquement — aucun comportement modifié.**
+
+- **Le constat qui domine tous les autres est un constat de process** : **26 PR ouvertes**,
+  à raison d'environ **une par jour depuis le 20 juillet**, presque toutes des `fix(...)`
+  (dont ~8 de sécurité / anti-triche), **toutes en brouillon et jamais fusionnées** — alors
+  que la file « fonctionnalités » (OLU, partage FM/GL) est fusionnée normalement. Les deux
+  défauts QCM les plus sérieux relevés par cet audit sont **présents sur `main`** et
+  **déjà corrigés**, avec tests et documentation, dans les PR **#277** et **#275** (diffs
+  relus ligne à ligne). Le goulot n'est pas le diagnostic, c'est la fusion — et l'attente
+  aggrave mécaniquement les conflits (chaque PR bumpe `package.json` et la tête du
+  `CHANGELOG`, depuis des bases v1.85–1.87 alors que `main` est à 1.88).
+- **Charge — le principal constat technique restant** (aucune PR ouverte ne le traite) :
+  chaque `gl:game:event` déclenche un
+  `GET /api/gl/games/:id` complet **chez tous les clients** ; cette réponse relit et renvoie
+  **l'intégralité** de `gl_game_events` (sans `LIMIT`) **deux fois** — `events` et
+  `replay.timeline`. Or `replay` n'a **aucun consommateur** dans `src/` (seuls deux tests le
+  référencent) et `events` n'est lu que pour son **dernier élément**, lequel vient d'arriver
+  par le socket. Le coût d'une séance croît donc quadratiquement avec sa durée, sous un
+  plafond de 1200 req/min partagé par toute l'IP de l'établissement. Le scénario de charge
+  GL n'appelle jamais cet endpoint.
+- **QCM** : le jeton de présentation embarque `correctChoiceId` dans sa charge utile JWT
+  (base64, lisible côté navigateur) et n'est pas à usage unique — la bonne réponse est
+  lisible avant de répondre, et le score d'équipe est rejouable pendant 15 minutes. Point
+  **non couvert** par les PR en attente : une équipe de 5 marque +5 sur la même question,
+  chaque joueur obtenant sa propre présentation.
+- **Premier écran d'un nouveau joueur** : sans équipe attribuée — l'état de départ normal —
+  l'onglet Cartes affiche `/maps/map-foret.svg`, la carte de **ForetMap**, sans mascotte,
+  sans repère et sans message. Les fallbacks `Suspense` (`gl-tab-loading`) n'ont par ailleurs
+  **aucun style** : les chargements d'onglet sont des pages blanches.
+- **Points robustes confirmés** : ré-hydratation des droits en base à chaque requête,
+  isolement produit appliqué jusqu'au socket, assainissement Markdown par liste blanche,
+  règlement d'échange du Marché transactionnel et verrouillé, migrations idempotentes,
+  documentation de référence honnête, accessibilité de la navigation.
+- **Plan d'action en 6 lots**, classés par rendement, avec la liste explicite de ce que
+  l'audit **n'a pas** couvert (aucune exécution : ni base, ni dépendances installées).
+
 ### OLU narrateur — lot 1 : la bulle de dialogue
 
 Premier lot du plan [`docs/MASCOT_NARRATEUR_OLU.md`](docs/MASCOT_NARRATEUR_OLU.md) : la **mise en
