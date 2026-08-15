@@ -1,4 +1,5 @@
     @import './shared/styles/motion.css';
+    @import './shared/styles/speech-bubble.css';
     @import './shared/styles/modal-shell.css';
     @import './shared/styles/toast-shell.css';
     @import './shared/styles/map-fullscreen.css';
@@ -5475,11 +5476,9 @@
   font-size: 1.05rem;
   color: var(--forest, #14361f);
 }
-.discovery-tour__body {
-  margin: 0;
-  font-size: 0.92rem;
-  line-height: 1.45;
-  color: #1e2b24;
+.discovery-tour__bubble {
+  margin-top: 6px;
+  --fm-bubble-bg: rgba(255, 255, 255, 0.5);
 }
 .discovery-tour__dots {
   display: flex;
