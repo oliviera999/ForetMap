@@ -63,6 +63,12 @@ export function GLSpellCastWizard({
     return formatSpellCost(activeSpell);
   }, [spellCast?.draft?.required, activeSpell]);
 
+  // Restriction de peuple du sort : le brouillon fait foi une fois ouvert, sinon on
+  // se rabat sur la fiche connue (aperçu ou catalogue du chapitre) pour filtrer les
+  // équipes dès l'étape de choix, avant tout appel serveur.
+  const casterKind =
+    spellCast?.draft?.casterKind || activeSpell?.caster_kind || activeSpell?.casterKind || 'any';
+
   const selectableTeams = useMemo(
     () =>
       filterSelectableTeams({
@@ -72,8 +78,9 @@ export function GLSpellCastWizard({
         currentTeamId,
         turnsEnabled,
         isStaff,
+        casterKind,
       }),
-    [teams, teamScope, playerTeamId, currentTeamId, turnsEnabled, isStaff],
+    [teams, teamScope, playerTeamId, currentTeamId, turnsEnabled, isStaff, casterKind],
   );
 
   const beginFundDraft = useCallback(
@@ -335,6 +342,7 @@ export function GLSpellCastWizard({
             teams={selectableTeams}
             selectedTeamId={selectedTeamId}
             busy={spellCast?.busy || fundLoading}
+            casterKind={casterKind}
             onSelectTeam={handleSelectTeam}
           />
         ) : null}
