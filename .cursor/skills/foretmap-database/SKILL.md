@@ -71,7 +71,10 @@ description: Centralise les conventions BDD ForetMap (schéma MySQL, migrations,
 - Utiliser `npm run db:import:dump -- --file "<chemin dump.sql>"`.
 - Le script reconstruit d'abord `DB_NAME` (`DROP DATABASE` + `CREATE DATABASE`) puis importe le SQL en multi-statements.
 - Enchaîner avec `npm run db:migrate` pour rattraper les migrations éventuelles absentes du dump.
-- **Ne jamais versionner** le dump (données réelles / PII).
+- **Ne jamais versionner** le dump (données réelles / PII) : `.gitignore` bloque `*_bdd_complete.sql`,
+  `*_dump.sql`, `*-dump.sql`, `sql/dumps/`. Pour alimenter `npm run db:import:biodiv`, extraire les seules
+  tables de contenu via `node scripts/extract-biodiv-pedago-seed.js <dump.sql>` → `sql/biodiv_pedago_seed.sql`
+  (garde-fou : refus d'écriture si un email ou un hachage bcrypt apparaît dans la sortie).
 - L’élévation par PIN a été supprimée (plus de table `role_pin_secrets`) : un compte prof connecté a directement les droits de son rôle. Pour un compte prof local connu, utiliser `npm run db:seed:teacher`.
 
 ## Voir aussi

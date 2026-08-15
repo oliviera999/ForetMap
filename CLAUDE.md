@@ -67,7 +67,11 @@ npm run bump:patch|minor|major  # incrémente package.json (sans tag)
   valent **demandes de changement** pour le code — les vérifier en début de tâche. Détail :
   skill `foretmap-docs-reference` et règle `.cursor/rules/foretmap-docs-reference.mdc`.
 - **Ne pas modifier le comportement métier** sans demande explicite (cf. `docs/EVOLUTION.md`).
-- **Sécurité données** : ne jamais versionner de dump SQL (PII), secrets dans `.env` (non versionné).
+- **Sécurité données** : ne jamais versionner de dump SQL (PII) — `.gitignore` bloque
+  `*_bdd_complete.sql`, `*_dump.sql`, `*-dump.sql`, `sql/dumps/`. Le seul jeu SQL versionné est
+  `sql/biodiv_pedago_seed.sql` (contenu biodiversité/glossaire uniquement, régénéré par
+  `node scripts/extract-biodiv-pedago-seed.js <dump.sql>`, qui refuse d'écrire s'il détecte un
+  email ou un hachage bcrypt). Secrets dans `.env` (non versionné).
 - **Inspiration externe encouragée, avec citation** : libre de s'inspirer de dépôts GitHub connus /
   bibliothèques éprouvées, à condition de **citer la source** (nom + lien) et de respecter les
   licences. Règle détaillée : `.cursor/rules/foretmap-external-inspiration.mdc`.

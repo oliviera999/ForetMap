@@ -4,7 +4,9 @@ const fs = require('fs');
 const path = require('path');
 const { initDatabase, pool } = require('../database');
 
-const DUMP = path.join(__dirname, '..', 'sql', 'foretmap_bdd_complete.sql');
+// Jeu de données de contenu, sans données personnelles (voir
+// scripts/extract-biodiv-pedago-seed.js pour le régénérer depuis un export local).
+const DUMP = path.join(__dirname, '..', 'sql', 'biodiv_pedago_seed.sql');
 
 function extractInsert(sql, table) {
   const marker = 'INSERT INTO `' + table + '` VALUES';

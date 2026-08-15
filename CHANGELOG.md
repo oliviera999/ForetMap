@@ -7,6 +7,48 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Sécurité — retrait du dump de production versionné (données personnelles)
+
+`sql/foretmap_bdd_complete.sql` (4,3 Mo) portait des **données personnelles réelles** : noms
+d'élèves et de professeurs, une adresse `@lyceelyautey.org`, des hachages bcrypt de mots de passe
+et la table `password_reset_tokens`. Le dépôt enfreignait donc sa propre règle (`CLAUDE.md` :
+« ne jamais versionner de dump SQL (PII) »).
+
+- **Retiré du dépôt**, et `.gitignore` bloque désormais le motif : `*_bdd_complete.sql`,
+  `*_dump.sql`, `*-dump.sql`, `sql/dumps/`.
+- **`npm run db:import:biodiv` continue de fonctionner** : les deux scripts consommateurs ne
+  lisaient que 11 tables de **contenu** (`plants`, `plant_name_aliases`, `zone_species`,
+  `marker_species`, `task_species`, `species_interactions`, `glossary_terms`,
+  `glossary_term_*`), dont aucune ne comporte de colonne nominative. Elles sont extraites dans
+  **`sql/biodiv_pedago_seed.sql`** (176 Ko au lieu de 4,3 Mo) — comptages de lignes vérifiés
+  identiques au dump d'origine pour les 11 tables, zéro perte de contenu.
+- **Extraction reproductible** : `npm run db:seed:biodiv:extract -- <dump.sql>`
+  (`scripts/extract-biodiv-pedago-seed.js`). Le script **refuse d'écrire** s'il détecte une
+  adresse email ou un hachage bcrypt dans sa sortie — un échec bruyant plutôt qu'une fuite
+  silencieuse. Garde-fou testé.
+- **Runbook de purge d'historique** ajouté (`docs/EXPLOITATION.md` § 10) : mesure de portée,
+  `git filter-repo` sur clone miroir, et les suites obligatoires trop souvent oubliées (ticket
+  support GitHub pour les objets encore joignables par SHA, rotation des secrets exposés, rebase
+  des branches ouvertes, re-clonage). Retirer le fichier du dernier commit ne suffit pas : la
+  réécriture d'historique est décrite là et reste à exécuter.
+- Règle durcie et pointeur vers le seed dans `CLAUDE.md`, `.cursor/rules/foretmap-conventions.mdc`
+  et les deux skills `foretmap-database`, pour que le cas ne se represente pas.
+
+### G&L — `/api/gl/context-comments` : API sans interface, documentée comme telle
+
+La route est montée et testée mais **aucune UI G&L ne l'appelle** ; le composant
+`GLContextComments`, écrit en juillet 2026, n'a jamais été monté. Choix retenu : **garder la
+route**, corriger la documentation. C'est le chemin canonique décidé en architecture (les types
+`gl_*` ont été retirés de l'API ForetMap pour éviter deux chemins JWT), il est testé et partage
+`contextCommentsCore` avec le côté ForetMap bien vivant ; démonter une API montée serait un
+changement de comportement, et il faudrait la réécrire le jour où l'écran arrive.
+
+- `docs/GL_ARCHITECTURE.md` et `docs/PARTAGE_FM_GL.md` disent maintenant explicitement que le
+  backend est prêt mais sans consommateur, et où retrouver le composant dans l'historique.
+- Correction d'une affirmation fausse : `gl-theme.css` était présenté comme portant des styles de
+  commentaires contextuels « pour rester homogène avec le shell GL ». Les sélecteurs
+  `.gl-context-comments` n'étaient rendus que par le composant jamais monté : ils sont retirés.
+
 ### Ménage — code mort et documentation obsolète
 
 Audit de code sans changement de comportement : tout ce qui est retiré a été vérifié par
