@@ -49,6 +49,89 @@ et toute portée solo/collective.
   valeur *présente mais illisible* est signalée ligne par ligne.
 - `spellToForm` retombe sur les valeurs du formulaire vierge plutôt que sur la chaîne
   vide : une liste déroulante ne se retrouve plus sur une option inexistante.
+### Doc — Audit général de l'application et du jeu (août 2026)
+
+Nouveau document [`docs/AUDIT_APP_ET_JEU_2026-08.md`](docs/AUDIT_APP_ET_JEU_2026-08.md) :
+audit transversal ForetMap + Gnomes & Licornes, centré sur **ce que le joueur perçoit**.
+**Document d'audit uniquement — aucun comportement modifié.**
+
+- **Le constat qui domine tous les autres est un constat de process** : **26 PR ouvertes**,
+  à raison d'environ **une par jour depuis le 20 juillet**, presque toutes des `fix(...)`
+  (dont ~8 de sécurité / anti-triche), **toutes en brouillon et jamais fusionnées** — alors
+  que la file « fonctionnalités » (OLU, partage FM/GL) est fusionnée normalement. Les deux
+  défauts QCM les plus sérieux relevés par cet audit sont **présents sur `main`** et
+  **déjà corrigés**, avec tests et documentation, dans les PR **#277** et **#275** (diffs
+  relus ligne à ligne). Le goulot n'est pas le diagnostic, c'est la fusion — et l'attente
+  aggrave mécaniquement les conflits (chaque PR bumpe `package.json` et la tête du
+  `CHANGELOG`, depuis des bases v1.85–1.87 alors que `main` est à 1.88).
+- **Charge — le principal constat technique restant** (aucune PR ouverte ne le traite) :
+  chaque `gl:game:event` déclenche un
+  `GET /api/gl/games/:id` complet **chez tous les clients** ; cette réponse relit et renvoie
+  **l'intégralité** de `gl_game_events` (sans `LIMIT`) **deux fois** — `events` et
+  `replay.timeline`. Or `replay` n'a **aucun consommateur** dans `src/` (seuls deux tests le
+  référencent) et `events` n'est lu que pour son **dernier élément**, lequel vient d'arriver
+  par le socket. Le coût d'une séance croît donc quadratiquement avec sa durée, sous un
+  plafond de 1200 req/min partagé par toute l'IP de l'établissement. Le scénario de charge
+  GL n'appelle jamais cet endpoint.
+- **QCM** : le jeton de présentation embarque `correctChoiceId` dans sa charge utile JWT
+  (base64, lisible côté navigateur) et n'est pas à usage unique — la bonne réponse est
+  lisible avant de répondre, et le score d'équipe est rejouable pendant 15 minutes. Point
+  **non couvert** par les PR en attente : une équipe de 5 marque +5 sur la même question,
+  chaque joueur obtenant sa propre présentation.
+- **Les deux régimes de jeu ne sont visibles que pour un seul** : GL se joue en séance
+  (plateau animé par le MJ) **et hors séance** (feuillets, marquage « appris », carnet,
+  entraînement). Recherche exhaustive sur `src/`, `lib/`, `data/` et `docs/reference/` :
+  **zéro occurrence** de « hors séance » ou équivalent. L'onglet d'arrivée est toujours
+  Cartes ; le statut de la partie (`draft`/`live`/`paused`/`ended`) n'est lu côté front que
+  par la console MJ ; hors séance, les clics du joueur sur le plateau n'ont aucun effet et
+  aucun message ne l'explique. L'aide contextuelle (26 entrées) se termine partout par une
+  consigne d'administration affichée à l'élève. Techniquement le hors séance fonctionne,
+  mais l'acquisition de feuillets est dure-gatée sur `gameId` avec un `return null`
+  silencieux (`routes/gl/learning.js:132-133`) : un élève jamais affecté à une équipe peut
+  marquer « appris » sans jamais gagner un feuillet, sans le savoir.
+- **Premier écran d'un nouveau joueur** : sans équipe attribuée — l'état de départ normal —
+  l'onglet Cartes affiche `/maps/map-foret.svg`, la carte de **ForetMap**, sans mascotte,
+  sans repère et sans message. Les fallbacks `Suspense` (`gl-tab-loading`) n'ont par ailleurs
+  **aucun style** : les chargements d'onglet sont des pages blanches.
+- **Pourquoi ces deux points n'ont jamais été attrapés** : la fixture e2e code en dur
+  `status = 'live'` et affecte aussitôt le joueur à une équipe
+  (`e2e/fixtures/gl.fixture.js:22-23`). Les 41 scénarios jouent donc tous en séance, dans
+  une partie active, avec une équipe — le trou de couverture épouse le trou de conception.
+- **Points robustes confirmés** : ré-hydratation des droits en base à chaque requête,
+  isolement produit appliqué jusqu'au socket, assainissement Markdown par liste blanche,
+  règlement d'échange du Marché transactionnel et verrouillé, migrations idempotentes,
+  documentation de référence honnête, accessibilité de la navigation.
+- **Plan d'action en 6 lots**, classés par rendement, avec la liste explicite de ce que
+  l'audit **n'a pas** couvert (aucune exécution : ni base, ni dépendances installées).
+### OLU narrateur — lot 2 : le portrait et son réglage
+
+Deuxième lot du plan [`docs/MASCOT_NARRATEUR_OLU.md`](docs/MASCOT_NARRATEUR_OLU.md). Comme le
+lot 1, il ne demande **aucun visuel** : il pose le réceptacle et la cascade d'affichage, de sorte
+que les portraits n'aient plus qu'à être déposés quand ils existeront.
+
+- **Réglage `content.help.narrator`** (`lib/helpNarrator.js`) : interrupteur global, nom du
+  locuteur, silhouette de repli et portraits par expression. Trois routes d'administration
+  (`GET`/`PUT /api/settings/admin/help-narrator`, `POST …/reset`) avec audit dédié, et exposition
+  dans `GET /api/settings/public`.
+- **Réglage distinct du corpus d'aide**, et non une extension de `/admin/help-content` comme le
+  prévoyait le plan. La raison est concrète : réinitialiser le corpus — une opération que le plan
+  envisage sérieusement en production — ne doit pas emporter les portraits au passage. Un test
+  vérifie précisément cette indépendance.
+- **URL de portrait restreintes** aux chemins absolus du site et aux URL `http(s)`. `data:`,
+  `javascript:`, protocole-relatif et chemin relatif sont écartés à l'enregistrement plutôt que
+  corrigés silencieusement — ces valeurs finissent dans un `src` d'image.
+- **`MascotSpeaker`** (`src/shared/components/`) : rend le portrait, et rien d'autre. Cascade
+  cadrage demandé → `bust` de la même expression (recadrage CSS) → `neutre` → SVG de repli : il
+  n'existe aucun état où l'emplacement reste vide, et un déploiement sans le moindre portrait est
+  un fonctionnement normal, pas une panne. `aria-hidden` systématique — le portrait ne porte
+  jamais d'information.
+- **Garde-fou d'architecture** : un test casse si `MascotSpeaker` en vient à importer un renderer
+  de mascotte animée (100–170 Ko en chunks lazy). C'est la règle de performance du plan, écrite
+  en test plutôt qu'en commentaire.
+- **`mascotExpressions.js`** : les 8 expressions et leur projection sur les états canoniques
+  existants de `VISIT_MASCOT_STATE` — aucun énuméré concurrent n'est introduit.
+- **Visite guidée** : le nom du locuteur s'affiche désormais au-dessus des bulles, alimenté par
+  le réglage. Il reste vide si le narrateur est éteint ou sans nom.
 
 ### OLU narrateur — lot 1 : la bulle de dialogue
 

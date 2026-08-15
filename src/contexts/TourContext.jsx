@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useRef } from 'react';
 import { useDiscoveryTour } from '../hooks/useDiscoveryTour.js';
 import { DiscoveryTour } from '../components/DiscoveryTour.jsx';
+import { usePublicSettings } from './PublicSettingsContext.jsx';
 
 /**
  * Contexte du mode visite/découverte.
@@ -26,6 +27,12 @@ export function TourProvider({ tab, isTeacher = false, enabled = false, children
   const tour = useDiscoveryTour({ isTeacher });
   const { startTour, hasSeenTour, isActive } = tour;
   const timerRef = useRef(0);
+  const publicSettings = usePublicSettings();
+
+  // Narrateur (OLU) : le nom de locuteur ne s'affiche que si l'interrupteur global
+  // est actif et qu'un nom est renseigné (`content.help.narrator`, cf. §9.4).
+  const narrator = publicSettings?.content?.help?.narrator || null;
+  const speakerName = narrator && narrator.enabled !== false ? narrator.speakerName || '' : '';
 
   // Auto-démarrage à la première découverte d'un onglet.
   useEffect(() => {
@@ -56,6 +63,7 @@ export function TourProvider({ tab, isTeacher = false, enabled = false, children
       <DiscoveryTour
         active={tour.active}
         isTeacher={isTeacher}
+        speakerName={speakerName}
         onNext={tour.nextStep}
         onPrev={tour.prevStep}
         onStop={tour.stopTour}
