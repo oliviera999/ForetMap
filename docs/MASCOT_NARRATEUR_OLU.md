@@ -1,8 +1,14 @@
 # OLU narrateur — plan d'implantation
 
-> **Avancement.** **Lot 1 livré** — `src/shared/components/SpeechBubble.jsx`,
-> `src/shared/styles/speech-bubble.css`, branchés sur `DiscoveryTour`. Lots 2 à 7 : à faire.
-> Le brief de production graphique des portraits est dans
+> **Avancement.** **Lots 1 et 2 livrés.**
+>
+> - **Lot 1** — `src/shared/components/SpeechBubble.jsx` + `src/shared/styles/speech-bubble.css`,
+>   branchés sur `DiscoveryTour`.
+> - **Lot 2** — `src/shared/components/MascotSpeaker.jsx`, `src/utils/mascotExpressions.js`,
+>   réglage `content.help.narrator` (`lib/helpNarrator.js`, routes `/admin/help-narrator`,
+>   exposition publique). Le nom du locuteur s'affiche désormais dans la visite guidée.
+>
+> Lots 3 à 7 : à faire. Le brief de production graphique des portraits est dans
 > [`MASCOT_OLU_BRIEF_VISUEL.md`](./MASCOT_OLU_BRIEF_VISUEL.md).
 
 > **Statut : plan d'implantation, mise en œuvre en cours.** Décrit la mise en place d'un avatar
@@ -304,7 +310,27 @@ redéploiement) tout en évitant le chantier le plus lourd et le plus risqué. L
 dans le schéma de pack (option C) reste souhaitable **plus tard**, pour que chaque mascotte de
 carte puisse fournir son propre portrait — mais ce n'est pas ce que demande OLU narrateur unique.
 
-### 5.2 Forme du réglage (option A)
+### 5.2 Forme du réglage (option A) ✅ _livré (lot 2)_
+
+> **Ce qui a été livré.** [`lib/helpNarrator.js`](../lib/helpNarrator.js) — clé
+> `content.help.narrator`, défauts, normalisation, schéma Zod, lecture/écriture. Exposé
+> publiquement par `enrichHelpNarratorPublic` (`lib/settings.js`) et repris côté front par
+> `mergePublicSettings`. Quatre points d'implémentation à connaître :
+>
+> - **Routes dédiées `/admin/help-narrator` (GET/PUT + `/reset`)**, et non l'extension de
+>   `/admin/help-content` prévue au §6. Raison : les deux réglages ont des cycles de vie
+>   distincts, et surtout `POST /admin/help-content/reset` — que le §11.2 envisage sérieusement
+>   en production — ne doit pas emporter les portraits avec le corpus. Schémas, audits et
+>   réinitialisations restent donc séparés. Couvert par un test explicite.
+> - **Défauts déclarés en code**, pas dans un `data/*.json` : quatre clés sans contenu
+>   éditorial ne justifient pas un fichier de surcharge.
+> - **URL de portrait restreintes** au chemin absolu du site (`/uploads/…`) ou à `http(s)`.
+>   `data:`, `javascript:`, protocole-relatif et chemin relatif sont **écartés** à
+>   l'enregistrement plutôt que corrigés.
+> - **Zod 4** : `z.record(z.enum(…), …)` exige _toutes_ les clés de l'énumération. Les portraits
+>   utilisent donc `z.object({…}).partial()`, seule forme qui autorise l'absence d'une expression.
+
+### 5.2bis Le modèle
 
 Clé de réglage `content.help.narrator`, à valider par Zod dans [`lib/helpContent.js`](../lib/helpContent.js)
 sur le modèle de `helpConfigSchema` :
@@ -529,11 +555,11 @@ avant les e2e si `dist/` est absent ou obsolète ; tests GL en séquentiel.
 
 À trancher, dans l'ordre. Les trois premiers conditionnent le démarrage.
 
-### 11.1 🔴 Réceptacle des visuels — §5.1
+### 11.1 ✅ Réceptacle des visuels — §5.1 — _tranché (lot 2)_
 
-`visit_mascot_packs` est **par carte** et ne convient pas à un narrateur global.
-**Recommandation : réglage `content.help.narrator` + médiathèque (option A).** À confirmer avant
-le lot 2, car cela détermine le travail backend.
+`visit_mascot_packs` est **par carte** et ne convient pas à un narrateur global. **Option A
+retenue et livrée** : réglage `content.help.narrator` + médiathèque, sans migration ni schéma de
+pack touché. Détail d'implémentation en §5.2.
 
 ### 11.2 🔴 Surcharges d'aide en production — §7.1
 
@@ -545,6 +571,11 @@ défauts n'aura **aucun effet visible**. Décider : réinitialisation, report ma
 
 4 (`neutre`, `parle`, `montre`, `content`) ou 8 ? Recommandation : **4**, les autres retombant sur
 `neutre`. Détermine le volume de production graphique.
+
+> **Sans effet sur le code depuis le lot 2.** Les 8 expressions sont acceptées par le réglage et
+> par `MascotSpeaker`, toutes facultatives : n'en fournir que 4 est un choix de production, pas
+> une contrainte technique. L'arbitrage ne porte donc plus que sur le brief graphique
+> ([`MASCOT_OLU_BRIEF_VISUEL.md`](./MASCOT_OLU_BRIEF_VISUEL.md) §2.1).
 
 ### 11.4 🟠 Parcours éditables par les profs — §7.1
 
@@ -577,15 +608,15 @@ d'écriture, pas de technique — mais elle change le corpus GL.
 
 ## 12. Découpage en lots
 
-| Lot   | Contenu                                                                                                                                   | Assets requis  | Effort | Risque            |
-| ----- | ----------------------------------------------------------------------------------------------------------------------------------------- | -------------- | ------ | ----------------- |
-| **1** | ✅ **Livré** — `SpeechBubble` : cadre, étiquette locuteur, machine à écrire + `reduced-motion`. Branché sur `DiscoveryTour` seul. Styles. | ❌ aucun       | Faible | Très faible       |
-| **2** | `MascotSpeaker` (rendu SVG niveau 3) + `mascotExpressions.js` + réglage `content.help.narrator` (schéma, route, payload public).          | ❌ aucun       | Moyen  | Faible            |
-| **3** | Champ `expression` optionnel dans `DISCOVERY_TOURS` + câblage.                                                                            | ❌ aucun       | Faible | Faible            |
-| **4** | **Réécriture du corpus** : parcours pilote `map`, puis les autres, puis les 7 panneaux (défauts + miroir client).                         | ❌ aucun       | Moyen  | Moyen — §11.2     |
-| **5** | Studio prof : section « Narrateur » dans `ForetMapHelpContentAdminPanel`. Portrait `face` dans `HelpPanel`.                               | ✅ portraits   | Moyen  | Faible            |
-| **6** | GL : `GLFeuilletPopover` + `GLTabHelpPanel`, réglage GL dédié, corpus GL. **Commits `feat(gl)` séparés.**                                 | ✅ portraits   | Moyen  | Moyen — isolement |
-| **7** | _(optionnel)_ Cadrage `body`, spritesheet OLU, correction du mapping d'états §3.1a.                                                       | ✅ spritesheet | Moyen  | Faible            |
+| Lot   | Contenu                                                                                                                                          | Assets requis  | Effort | Risque            |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------ | -------------- | ------ | ----------------- |
+| **1** | ✅ **Livré** — `SpeechBubble` : cadre, étiquette locuteur, machine à écrire + `reduced-motion`. Branché sur `DiscoveryTour` seul. Styles.        | ❌ aucun       | Faible | Très faible       |
+| **2** | ✅ **Livré** — `MascotSpeaker` (rendu SVG niveau 3) + `mascotExpressions.js` + réglage `content.help.narrator` (schéma, routes, payload public). | ❌ aucun       | Moyen  | Faible            |
+| **3** | Champ `expression` optionnel dans `DISCOVERY_TOURS` + câblage.                                                                                   | ❌ aucun       | Faible | Faible            |
+| **4** | **Réécriture du corpus** : parcours pilote `map`, puis les autres, puis les 7 panneaux (défauts + miroir client).                                | ❌ aucun       | Moyen  | Moyen — §11.2     |
+| **5** | Studio prof : section « Narrateur » dans `ForetMapHelpContentAdminPanel`. Portrait `face` dans `HelpPanel`.                                      | ✅ portraits   | Moyen  | Faible            |
+| **6** | GL : `GLFeuilletPopover` + `GLTabHelpPanel`, réglage GL dédié, corpus GL. **Commits `feat(gl)` séparés.**                                        | ✅ portraits   | Moyen  | Moyen — isolement |
+| **7** | _(optionnel)_ Cadrage `body`, spritesheet OLU, correction du mapping d'états §3.1a.                                                              | ✅ spritesheet | Moyen  | Faible            |
 
 **Les lots 1 à 4 sont livrables sans aucun sprite** et apportent déjà l'essentiel de l'effet
 ludique — le cadre, le rythme et la voix. C'est délibéré : la production graphique ne doit

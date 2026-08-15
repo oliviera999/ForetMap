@@ -34,6 +34,11 @@ const {
   loadDefaultHelpConfig,
   normalizeHelpConfig,
 } = require('../lib/helpContent');
+const {
+  getHelpNarratorFromDb,
+  saveHelpNarratorToDb,
+  loadDefaultNarratorConfig,
+} = require('../lib/helpNarrator');
 const { runSpeciesAutofillProviderSelfTest } = require('../lib/speciesAutofillProviderSelfTest');
 const { normalizeMapImageUrl } = require('../lib/mapImageUrl');
 const {
@@ -157,6 +162,61 @@ router.post(
       'setting',
       'content.help.registry',
       'Registre aide réinitialisé',
+      {
+        req,
+      },
+    );
+    res.json(normalized);
+  }),
+);
+
+// Narrateur de l'aide (OLU) — réglage `content.help.narrator`, distinct du corpus
+// `content.help.registry` : réinitialiser l'un ne doit pas effacer l'autre (§11.2).
+router.get(
+  '/admin/help-narrator',
+  requirePermission('admin.settings.read'),
+  asyncHandler(async (_req, res) => {
+    const config = await getHelpNarratorFromDb();
+    res.json(config);
+  }),
+);
+
+router.put(
+  '/admin/help-narrator',
+  requirePermission('admin.settings.write'),
+  asyncHandler(async (req, res) => {
+    const normalized = await saveHelpNarratorToDb(req.body, {
+      userType: req.auth?.userType,
+      userId: req.auth?.userId,
+    });
+    invalidateSettingsCache();
+    await logAudit(
+      'settings_help_narrator_update',
+      'setting',
+      'content.help.narrator',
+      'Narrateur aide mis à jour',
+      {
+        req,
+      },
+    );
+    res.json(normalized);
+  }),
+);
+
+router.post(
+  '/admin/help-narrator/reset',
+  requirePermission('admin.settings.write'),
+  asyncHandler(async (req, res) => {
+    const normalized = await saveHelpNarratorToDb(loadDefaultNarratorConfig(), {
+      userType: req.auth?.userType,
+      userId: req.auth?.userId,
+    });
+    invalidateSettingsCache();
+    await logAudit(
+      'settings_help_narrator_reset',
+      'setting',
+      'content.help.narrator',
+      'Narrateur aide réinitialisé',
       {
         req,
       },
