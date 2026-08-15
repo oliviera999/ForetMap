@@ -7,6 +7,48 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### G&L — sortilèges réservés à un peuple (gnomes / licornes)
+
+Nouveau réglage **par sortilège** et **modifiable par lot** : qui a le droit de lancer ce
+sort. Le peuple d'un lanceur est celui de **son équipe** (`gl_teams.type`), on réutilise
+donc son vocabulaire plutôt que d'en inventer un parallèle.
+
+- **Migration `173`** : colonne `gl_spells.caster_kind` (`any` \| `gnome` \| `unicorn`,
+  défaut `any` — le comportement historique est strictement conservé sur l'existant).
+- **Règle appliquée en trois points** (`lib/glSpellCast.js`), pas seulement à l'ouverture :
+  refus **403** à la création du brouillon pour une équipe du mauvais peuple, au moment
+  d'enregistrer une contribution **non nulle**, puis **de nouveau juste avant le débit**
+  (au lancement comme à l'acceptation MJ d'un sort en attente). Un sort restreint après
+  coup, sur un pot déjà réuni, ne part donc pas et ne coûte rien. Une contribution à zéro
+  reste un no-op légitime : le front envoie une ligne par joueur du roster.
+- **Peuple indéterminé refusé** : faute de pouvoir vérifier, on bloque plutôt que de
+  laisser passer. Le roster expose désormais `teamType` (`lib/glRoster.js`).
+- **Édition en masse** : `POST /api/gl/admin/spells/bulk` (`{ codes | categorySlug, patch }`,
+  liste blanche `lib/glSpellBulkPatch.js`, max 500 sorts), et dans l'éditeur de sorts une
+  case à cocher par ligne + « Tout sélectionner » + bandeau d'application — même contrat
+  et même ergonomie que l'édition en masse des feuillets. Une valeur inconnue est une
+  **erreur** et non un retour au défaut : un lot touche trop de fiches pour se permettre
+  un silence.
+- **UI joueur** : pastille « 🧙 Gnomes uniquement » / « 🦄 Licornes uniquement » sur la
+  fiche et les tuiles du catalogue, équipes du mauvais peuple retirées du sélecteur de
+  l'assistant, contributeurs non éligibles affichés mais verrouillés avec la raison.
+
+### G&L — `approval_mode` et `cast_scope` enfin administrables
+
+Correctif d'un manque relevé à l'audit : la migration `139` avait ajouté ces deux colonnes
+et le moteur de lancement les lisait, mais **aucun chemin d'écriture ne les exposait** —
+ni la fiche admin, ni le CRUD, ni l'import/export. Elles n'étaient réglables qu'en SQL
+direct, ce qui rendait inopérants le mode d'approbation `per_spell` (pourtant le défaut)
+et toute portée solo/collective.
+
+- Les deux colonnes rejoignent `SPELL_LIST_COLUMNS`, le CRUD admin, le formulaire de
+  fiche (listes déroulantes) et le tableur (colonnes `validation_mj`, `portee_lancement`).
+- **Import non destructif pour les trois options** : une colonne **absente** de la feuille
+  laisse la valeur en base inchangée (`COALESCE` à l'upsert) au lieu de la remettre au
+  défaut. Ré-importer un ancien fichier ne lève plus silencieusement une restriction. Une
+  valeur *présente mais illisible* est signalée ligne par ligne.
+- `spellToForm` retombe sur les valeurs du formulaire vierge plutôt que sur la chaîne
+  vide : une liste déroulante ne se retrouve plus sur une option inexistante.
 ### Doc — Audit général de l'application et du jeu (août 2026)
 
 Nouveau document [`docs/AUDIT_APP_ET_JEU_2026-08.md`](docs/AUDIT_APP_ET_JEU_2026-08.md) :
