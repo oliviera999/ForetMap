@@ -12,6 +12,7 @@ const {
   loadSpellsExportRows,
 } = require('../../lib/glSpellsImport');
 const { normalizeSpellCodeList, parseSpellCodesFromQuery } = require('../../lib/glChapterSpells');
+const { buildSpellBulkPatch, buildSpellBulkUpdateSql } = require('../../lib/glSpellBulkPatch');
 const { z, validate } = require('../../lib/validate');
 const asyncHandler = require('../../lib/asyncHandler');
 
@@ -77,7 +78,8 @@ function handleSpellCrudError(res, err) {
 const SPELL_LIST_COLUMNS = `
   spell_code, category_slug, nom, emoji, cout_gemmes, cout_coeurs, cout_total_eq,
   portee, cible, timing, effet_court, effet_detaille, limite_usage, cumul,
-  statut, source, notes_pedagogiques, cree_le
+  statut, source, notes_pedagogiques, cree_le,
+  caster_kind, approval_mode, cast_scope
 `;
 
 async function loadAdminSpellDetail(code) {
@@ -200,7 +202,8 @@ router.get(
     const statutClause = statutRaw === 'all' ? '' : " AND statut = 'officiel' ";
 
     const rows = await queryAll(
-      `SELECT spell_code, category_slug, nom, emoji, cout_gemmes, cout_coeurs, cout_total_eq, statut
+      `SELECT spell_code, category_slug, nom, emoji, cout_gemmes, cout_coeurs, cout_total_eq,
+              statut, caster_kind, approval_mode, cast_scope
        FROM gl_spells
       WHERE category_slug = ?${statutClause}
       ORDER BY nom ASC
@@ -243,6 +246,54 @@ router.post(
     } catch (err) {
       return handleSpellCrudError(res, err);
     }
+  }),
+);
+
+/**
+ * POST /api/gl/admin/spells/bulk — édition en masse des options d'une sélection de sorts.
+ * Body : `{ codes?: string[], categorySlug?: string, patch: { caster_kind?, approval_mode?,
+ * cast_scope?, statut? } }`. `codes` prime ; à défaut `categorySlug` cible toute la
+ * catégorie (les codes sont alors résolus côté serveur pour être retournés à l'appelant).
+ */
+router.post(
+  '/admin/spells/bulk',
+  requireGlPermission('gl.content.manage'),
+  asyncHandler(async (req, res) => {
+    const { patch, errors } = buildSpellBulkPatch(req.body?.patch || {});
+    if (errors.length) return res.status(400).json({ error: errors[0].error, errors });
+    if (!Object.keys(patch).length) {
+      return res.status(400).json({ error: 'Aucun champ à modifier' });
+    }
+
+    let codes = normalizeSpellCodeList(req.body?.codes ?? req.body?.spellCodes);
+    const categorySlug = normalizeCategorySlug(req.body?.categorySlug);
+    if (codes.length === 0 && categorySlug) {
+      const rows = await queryAll('SELECT spell_code FROM gl_spells WHERE category_slug = ?', [
+        categorySlug,
+      ]);
+      codes = normalizeSpellCodeList(rows.map((row) => row.spell_code));
+    }
+    if (codes.length === 0) {
+      return res.status(400).json({ error: 'Aucun sortilège sélectionné' });
+    }
+    if (codes.length > MAX_IMPORT_ROWS) {
+      return res.status(400).json({ error: `Trop de sortilèges (max ${MAX_IMPORT_ROWS})` });
+    }
+
+    const { setSql, params } = buildSpellBulkUpdateSql(patch);
+    const placeholders = codes.map(() => '?').join(', ');
+    const result = await execute(
+      `UPDATE gl_spells SET ${setSql}, updated_at = NOW()
+        WHERE spell_code IN (${placeholders})`,
+      [...params, ...codes],
+    );
+    return res.json({
+      ok: true,
+      requested: codes.length,
+      updated: result?.affectedRows ?? 0,
+      codes,
+      patch,
+    });
   }),
 );
 

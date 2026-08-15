@@ -21,12 +21,28 @@ export function isSpellCastReady(totals, required) {
   return true;
 }
 
+/**
+ * Le peuple `teamType` ('gnome' | 'unicorn') peut-il lancer un sort restreint à
+ * `casterKind` ? Miroir front de `isCasterKindAllowed` (`lib/glSpellOptions.js`) :
+ * l'UI évite de proposer un choix que le serveur refusera, elle ne décide de rien.
+ */
+export function isCasterKindAllowed(casterKind, teamType) {
+  const kind = String(casterKind || 'any').toLowerCase();
+  if (kind !== 'gnome' && kind !== 'unicorn') return true;
+  return String(teamType || '').toLowerCase() === kind;
+}
+
 export function canEditContributionRow({
   contributionMode,
   actorPlayerId,
   targetPlayerId,
   isStaff = false,
+  casterKind = 'any',
+  teamType = null,
 }) {
+  // La restriction de peuple prime sur le mode de contribution — MJ compris : le
+  // serveur refuse de débiter un contributeur du mauvais peuple, quel que soit l'acteur.
+  if (!isCasterKindAllowed(casterKind, teamType)) return false;
   if (isStaff) return true;
   const actor = Number(actorPlayerId);
   const target = Number(targetPlayerId);
@@ -48,6 +64,7 @@ export function filterSelectableTeams({
   currentTeamId,
   turnsEnabled,
   isStaff,
+  casterKind = 'any',
 }) {
   const list = Array.isArray(teams) ? teams : [];
   let filtered = list;
@@ -58,7 +75,9 @@ export function filterSelectableTeams({
   if (turnsEnabled && currentTeamId != null) {
     filtered = filtered.filter((t) => Number(t.id) === Number(currentTeamId));
   }
-  return filtered;
+  // Sort réservé à un peuple : les équipes de l'autre peuple ne sont pas proposées,
+  // y compris au MJ — c'est le peuple de l'équipe qui lance qui est contraint.
+  return filtered.filter((t) => isCasterKindAllowed(casterKind, t.type));
 }
 
 export function formatPlayerLabel(player) {

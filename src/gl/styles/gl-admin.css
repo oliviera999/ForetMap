@@ -601,6 +601,51 @@
   padding-top: 12px;
 }
 
+/* Édition en masse — sortilèges : même bandeau que les feuillets, plus les cases
+   à cocher intégrées à la liste latérale de l'éditeur de sorts. */
+.gl-spells-bulk {
+  margin: 12px 0;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--gl-primary, #047c8c) 30%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--gl-primary, #047c8c) 6%, white);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
+}
+.gl-spells-bulk > p {
+  flex-basis: 100%;
+  margin: 0;
+}
+
+.gl-spells-bulk__all {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  /* Cible tactile : 44px de haut minimum comme les autres contrôles GL. */
+  min-height: 44px;
+  font-size: 0.85rem;
+  color: #475569;
+}
+
+.gl-spells-bulk__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.gl-spells-bulk__row > input[type='checkbox'] {
+  flex: none;
+  width: 20px;
+  height: 20px;
+}
+
+.gl-spells-bulk__row .gl-badge {
+  justify-self: start;
+  font-size: 0.72rem;
+}
+
 /* Édition en masse */
 .gl-feuillets-bulk {
   margin: 12px 0;
