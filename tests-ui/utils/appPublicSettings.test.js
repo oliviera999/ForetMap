@@ -62,6 +62,38 @@ describe('mergePublicSettings', () => {
     expect(next.visit.mascot.default_id).toBe('sprout-rive');
   });
 
+  test('le registre d’aide et le narrateur passent chacun de leur côté', () => {
+    const registry = { panels: {}, tooltips: {} };
+    const narrator = { enabled: true, speakerName: 'OLU', portraits: {} };
+
+    const both = mergePublicSettings(DEFAULT_PUBLIC_SETTINGS, {
+      content: { help: { registry, narrator } },
+    });
+    expect(both.content.help.registry).toBe(registry);
+    expect(both.content.help.narrator).toBe(narrator);
+
+    // Chacun doit survivre à l'absence de l'autre : ce sont deux réglages distincts.
+    const narratorOnly = mergePublicSettings(DEFAULT_PUBLIC_SETTINGS, {
+      content: { help: { narrator } },
+    });
+    expect(narratorOnly.content.help.narrator).toBe(narrator);
+
+    const registryOnly = mergePublicSettings(DEFAULT_PUBLIC_SETTINGS, {
+      content: { help: { registry } },
+    });
+    expect(registryOnly.content.help.registry).toBe(registry);
+    expect(registryOnly.content.help.narrator).toBeUndefined();
+  });
+
+  test('un narrateur nul n’écrase pas un registre déjà servi', () => {
+    const registry = { panels: {}, tooltips: {} };
+    const next = mergePublicSettings(DEFAULT_PUBLIC_SETTINGS, {
+      content: { help: { registry, narrator: null } },
+    });
+    expect(next.content.help.registry).toBe(registry);
+    expect(next.content.help.narrator).toBeNull();
+  });
+
   test('ne mute pas l’objet prev', () => {
     const prev = JSON.parse(JSON.stringify(DEFAULT_PUBLIC_SETTINGS));
     const snapshot = JSON.parse(JSON.stringify(prev));
