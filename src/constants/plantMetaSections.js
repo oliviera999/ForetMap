@@ -51,33 +51,6 @@ export const PLANT_META_SECTIONS = [
   },
 ];
 
-export const PLANT_SELECT_OPTIONS = {
-  habitat_type: [
-    { value: '', label: '—' },
-    { value: 'terrestre', label: 'Terrestre' },
-    { value: 'aquatique', label: 'Aquatique' },
-    { value: 'les_deux', label: 'Terrestre & aquatique' },
-  ],
-  trophic_role: [
-    { value: '', label: '—' },
-    { value: 'producteur', label: 'Producteur' },
-    { value: 'consommateur', label: 'Consommateur' },
-    { value: 'decomposeur', label: 'Décomposeur' },
-  ],
-  is_edible: [
-    { value: '', label: '—' },
-    { value: '1', label: 'Oui' },
-    { value: '0', label: 'Non' },
-  ],
-  life_cycle: [
-    { value: '', label: '—' },
-    { value: 'annuelle', label: 'Annuelle' },
-    { value: 'bisannuelle', label: 'Bisannuelle' },
-    { value: 'vivace', label: 'Vivace' },
-    { value: 'variable', label: 'Variable' },
-  ],
-};
-
 export const PHOTO_FIELD_KEYS = new Set([
   'photo',
   'photo_species',

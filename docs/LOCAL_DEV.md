@@ -326,7 +326,7 @@ Profils disponibles :
 
 ```bash
 npm run test:load:light
-npm run test:load:normal
+npm run test:load        # profil « normal »
 npm run test:load:stress
 ```
 

@@ -29,7 +29,7 @@ description: Donne le contexte du projet ForetMap (forêt comestible, Lycée Lya
 - **Biodiversité assistée :** endpoint `GET /api/plants/autofill` (sources externes Wikipedia/Wikidata/GBIF), agrégation dans `lib/speciesAutofill.js`, panneau de revue dans `PlantEditForm` (`src/components/foretmap-views.jsx`).
 - **Frontend :** React 19 + Vite. Entrée dans `index.vite.html`, bootstrap dans `src/main.jsx`, application modulaire dans `src/` (composants/hooks/services), build servi depuis `dist/` en production.
 - **Visite / mascotte :** moteur extensible multi-renderer (`rive` + `spritesheet`) via `src/utils/visitMascotCatalog.js`, `src/components/VisitMapMascotRenderer.jsx`, `src/components/VisitMapMascotRive.jsx`, `src/components/VisitMapMascotSpritesheet.jsx`, hook d’état `src/hooks/useVisitMascotStateMachine.js`, fallback SVG `src/components/VisitMascotFallbackSvg.jsx`.
-- **Utilitaires :** `lib/logger.js` (Pino, `redact`), `lib/env.js`, `lib/uploads.js`, `lib/routeLog.js` (`logRouteError`, `requestId`), `lib/requestId.js`, `lib/httpRequestLog.js` (`FORETMAP_HTTP_LOG`), `lib/logMetrics.js` (métriques diagnostics), `lib/helpers.js`.
+- **Utilitaires :** `lib/logger.js` (Pino, `redact`), `lib/env.js`, `lib/uploads.js`, `lib/routeLog.js` (`logRouteError`, `requestId`), `lib/requestId.js`, `lib/httpRequestLog.js` (`FORETMAP_HTTP_LOG`), `lib/logMetrics.js` (métriques diagnostics).
 - **Tests :** `npm test` sur **`tests/*.test.js`** (API supertest + utilitaires **`src/utils`** en ESM, ex. visite / mascotte) ; e2e Playwright dans **`e2e/`** via **`npm run test:e2e`** (serveur **`npm run start:e2e`**, bypass rate limit). Skills **foretmap-tests**, **foretmap-e2e** ; récap **`docs/LOCAL_DEV.md`** (§ 5).
 
 ## Points d'attention
@@ -48,7 +48,7 @@ description: Donne le contexte du projet ForetMap (forêt comestible, Lycée Lya
 | `routes/*.js`                                    | Routeurs (zones, plants, tasks, auth, stats, students, map, observations, audit)     |
 | `middleware/requireTeacher.js`                   | Middleware JWT pour les routes professeur                                            |
 | `lib/logger.js`                                  | Logger Pino (`redact` sensibles)                                                     |
-| `lib/helpers.js`                                 | Fonctions métier partagées (`getTaskWithAssignments`, `studentStats`)                |
+| `lib/tasks/taskQueries.js`                       | Requêtes tâches partagées (`getTaskWithAssignments`)                                 |
 | `lib/routeLog.js`                                | `logRouteError` (erreurs 500 + `requestId`)                                          |
 | `lib/requestId.js`                               | En-tête `X-Request-Id`                                                               |
 | `lib/httpRequestLog.js`                          | Logs fin de requête HTTP (`FORETMAP_HTTP_LOG`)                                       |

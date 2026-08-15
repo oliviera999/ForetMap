@@ -718,6 +718,4 @@ export {
   TanBirdVisitMascotSvg,
   BackpackFoxVisitMascotSvg,
   BackpackFox2VisitMascotSvg,
-  VisitMascotSproutSvg as SproutVisitMascotSvg,
-  VisitMascotScrapSvg as ScrapVisitMascotSvg,
 };

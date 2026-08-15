@@ -2985,7 +2985,6 @@ body.gl-map-fullscreen-active .gl-qcm-popover-overlay {
 .gl-forum-threads,
 .gl-forum-posts,
 .gl-journal-events,
-.gl-context-comments,
 .gl-kingdom-map-zones,
 .gl-tutorials-list {
   list-style: none;
@@ -3046,7 +3045,6 @@ body.gl-map-fullscreen-active .gl-qcm-popover-overlay {
 }
 
 .gl-forum-posts li,
-.gl-context-comments li,
 .gl-journal-event {
   border: 1px solid #dbeafe;
   border-radius: 10px;
@@ -3054,8 +3052,7 @@ body.gl-map-fullscreen-active .gl-qcm-popover-overlay {
   padding: 10px;
 }
 
-.gl-forum-posts li.is-deleted,
-.gl-context-comments li.is-deleted {
+.gl-forum-posts li.is-deleted {
   opacity: 0.65;
 }
 

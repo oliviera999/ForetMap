@@ -51,14 +51,14 @@ panneaux GL ; `resourceQuestionGatingCore` sert les deux routes `learning-links`
 
 ### 4.1 Backend (`routes/`)
 
-| Paire                    | FM ↔ GL   | `comm`  | Noyau partagé existant ?        | Lecture                                             |
-| ------------------------ | --------- | ------- | ------------------------------- | --------------------------------------------------- |
-| `learning-links.js`      | 130 / 163 | **89**  | ✅ `resourceQuestionGatingCore` | Reste : **plomberie de route**                      |
-| `context-comments.js`    | 229 / 165 | **102** | ✅ `contextCommentsCore`        | Reste : **plomberie de route**                      |
-| `quiz.js` ↔ `gl/qcm.js`  | 283 / 239 | **109** | ✅ largement partagé            | ❌ **Faux positif à l’analyse** (§6, lot B2)        |
-| `auth.js` ↔ `gl/auth.js` | 721 / 841 | **97**  | ✅ `oauthCommon`                | ❌ 8 libellés seulement — **écarté** (§6, lot B3)   |
-| `glossary.js`            | 83 / 225  | 28      | ✅ `glossaryNormalization`      | **Faux jumeaux** — modèle GL bien plus riche (lore) |
-| `forum.js`               | 312 / 165 | 20      | —                               | **Faux jumeaux** — le forum GL est un pont          |
+| Paire                    | FM ↔ GL   | `comm`  | Noyau partagé existant ?        | Lecture                                                                              |
+| ------------------------ | --------- | ------- | ------------------------------- | ------------------------------------------------------------------------------------ |
+| `learning-links.js`      | 130 / 163 | **89**  | ✅ `resourceQuestionGatingCore` | Reste : **plomberie de route**                                                       |
+| `context-comments.js`    | 229 / 165 | **102** | ✅ `contextCommentsCore`        | Reste : **plomberie de route** — côté GL, **API sans UI** (cf. `GL_ARCHITECTURE.md`) |
+| `quiz.js` ↔ `gl/qcm.js`  | 283 / 239 | **109** | ✅ largement partagé            | ❌ **Faux positif à l’analyse** (§6, lot B2)                                         |
+| `auth.js` ↔ `gl/auth.js` | 721 / 841 | **97**  | ✅ `oauthCommon`                | ❌ 8 libellés seulement — **écarté** (§6, lot B3)                                    |
+| `glossary.js`            | 83 / 225  | 28      | ✅ `glossaryNormalization`      | **Faux jumeaux** — modèle GL bien plus riche (lore)                                  |
+| `forum.js`               | 312 / 165 | 20      | —                               | **Faux jumeaux** — le forum GL est un pont                                           |
 
 ### 4.2 Frontend (`src/`)
 

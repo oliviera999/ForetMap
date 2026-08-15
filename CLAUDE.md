@@ -19,19 +19,19 @@ sous **`.claude/skills/`**.
 
 ## Architecture
 
-| Élément                                            | Emplacement                                                                                                                       |
-| -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| Serveur / montage routeurs / static / SPA fallback | `server.js`                                                                                                                       |
-| Pool MySQL, `initDatabase()`, schéma, seed         | `database.js`                                                                                                                     |
-| API ForetMap                                       | `routes/*.js` (auth, zones, maps, plants, tasks, stats, students, visit, forum…)                                                  |
-| API GL                                             | `routes/gl/*.js`                                                                                                                  |
-| Auth prof / GL                                     | `middleware/requireTeacher.js`, `middleware/requireGlAuth.js`                                                                     |
-| Utilitaires backend                                | `lib/` (`logger.js`, `helpers.js`, `routeLog.js`, `requestId.js`, `env.js`, `uploads.js`, `speciesAutofill*.js`, `glSettings.js`) |
-| Front ForetMap                                     | `index.vite.html` → `src/main.jsx` ; `src/components/`, `src/hooks/`, `src/services/`                                             |
-| Front GL                                           | `gl.html` → `src/gl/main.jsx` → `src/gl/AppGL.jsx`                                                                                |
-| Migrations                                         | `migrations/NNN_*.sql` (idempotentes) + `sql/schema_foretmap.sql`                                                                 |
-| Tests                                              | `tests/*.test.js` (node:test), `tests-ui/**` (vitest), `e2e/*.spec.js` (Playwright)                                               |
-| Documentation                                      | `docs/` — `API.md`, `EVOLUTION.md`, `LOCAL_DEV.md`, `EXPLOITATION.md`, `VERSIONING.md`, `GL_*.md`                                 |
+| Élément                                            | Emplacement                                                                                                                                                                             |
+| -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Serveur / montage routeurs / static / SPA fallback | `server.js`                                                                                                                                                                             |
+| Pool MySQL, `initDatabase()`, schéma, seed         | `database.js`                                                                                                                                                                           |
+| API ForetMap                                       | `routes/*.js` (auth, zones, maps, plants, tasks, stats, students, visit, forum…)                                                                                                        |
+| API GL                                             | `routes/gl/*.js`                                                                                                                                                                        |
+| Auth prof / GL                                     | `middleware/requireTeacher.js`, `middleware/requireGlAuth.js`                                                                                                                           |
+| Utilitaires backend                                | `lib/` (`logger.js`, `routeLog.js`, `requestId.js`, `env.js`, `uploads.js`, `speciesAutofill*.js`, `glSettings.js`) ; helpers métier par domaine (`lib/tasks/`, `lib/*RouteHelpers.js`) |
+| Front ForetMap                                     | `index.vite.html` → `src/main.jsx` ; `src/components/`, `src/hooks/`, `src/services/`                                                                                                   |
+| Front GL                                           | `gl.html` → `src/gl/main.jsx` → `src/gl/AppGL.jsx`                                                                                                                                      |
+| Migrations                                         | `migrations/NNN_*.sql` (idempotentes) + `sql/schema_foretmap.sql`                                                                                                                       |
+| Tests                                              | `tests/*.test.js` (node:test), `tests-ui/**` (vitest), `e2e/*.spec.js` (Playwright)                                                                                                     |
+| Documentation                                      | `docs/` — `API.md`, `EVOLUTION.md`, `LOCAL_DEV.md`, `EXPLOITATION.md`, `VERSIONING.md`, `GL_*.md`                                                                                       |
 
 ## Commandes essentielles
 
@@ -67,7 +67,11 @@ npm run bump:patch|minor|major  # incrémente package.json (sans tag)
   valent **demandes de changement** pour le code — les vérifier en début de tâche. Détail :
   skill `foretmap-docs-reference` et règle `.cursor/rules/foretmap-docs-reference.mdc`.
 - **Ne pas modifier le comportement métier** sans demande explicite (cf. `docs/EVOLUTION.md`).
-- **Sécurité données** : ne jamais versionner de dump SQL (PII), secrets dans `.env` (non versionné).
+- **Sécurité données** : ne jamais versionner de dump SQL (PII) — `.gitignore` bloque
+  `*_bdd_complete.sql`, `*_dump.sql`, `*-dump.sql`, `sql/dumps/`. Le seul jeu SQL versionné est
+  `sql/biodiv_pedago_seed.sql` (contenu biodiversité/glossaire uniquement, régénéré par
+  `node scripts/extract-biodiv-pedago-seed.js <dump.sql>`, qui refuse d'écrire s'il détecte un
+  email ou un hachage bcrypt). Secrets dans `.env` (non versionné).
 - **Inspiration externe encouragée, avec citation** : libre de s'inspirer de dépôts GitHub connus /
   bibliothèques éprouvées, à condition de **citer la source** (nom + lien) et de respecter les
   licences. Règle détaillée : `.cursor/rules/foretmap-external-inspiration.mdc`.
