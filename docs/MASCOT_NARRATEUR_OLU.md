@@ -1,12 +1,17 @@
 # OLU narrateur — plan d'implantation
 
-> **Statut : plan d'implantation (non implémenté).** Décrit la mise en place d'un avatar
+> **Avancement.** **Lot 1 livré** — `src/shared/components/SpeechBubble.jsx`,
+> `src/shared/styles/speech-bubble.css`, branchés sur `DiscoveryTour`. Lots 2 à 7 : à faire.
+> Le brief de production graphique des portraits est dans
+> [`MASCOT_OLU_BRIEF_VISUEL.md`](./MASCOT_OLU_BRIEF_VISUEL.md).
+
+> **Statut : plan d'implantation, mise en œuvre en cours.** Décrit la mise en place d'un avatar
 > narrateur, **OLU**, portant à la première personne l'aide contextuelle et les passages
 > narratifs de ForetMap et de Gnomes & Licornes. À lire avec
 > [`MASCOT_ARCHITECTURE_CONVERGENCE.md`](./MASCOT_ARCHITECTURE_CONVERGENCE.md) (état du
 > système mascotte et dette structurelle) et [`MASCOT_PACK.md`](./MASCOT_PACK.md) (format des
-> packs). Ce document **ne modifie aucun comportement** tant que les lots décrits ne sont pas
-> livrés.
+> packs). Seuls les lots marqués **livrés** au §12 modifient le comportement de l'application ;
+> le reste du document reste prescriptif.
 
 ---
 
@@ -224,7 +229,29 @@ Ce qui détermine le cadrage, c'est **la surface**, pas l'esthétique :
 non sollicité, produit l'effet Clippy en quelques jours. OLU apparaît quand l'utilisateur a
 demandé de l'aide, ou quand il y a du récit. Jamais en interruption.
 
-### 4.6 Le cadre et le rythme — le vrai levier ludique
+### 4.6 Le cadre et le rythme — le vrai levier ludique ✅ _livré (lot 1)_
+
+> **Ce qui a été livré.** `SpeechBubble` (`src/shared/components/SpeechBubble.jsx`) rend le
+> cadre, l'étiquette de locuteur optionnelle et l'effet machine à écrire ; styles partagés dans
+> `src/shared/styles/speech-bubble.css` (variables `--fm-bubble-*` surchargeables par GL, dont
+> l'import viendra au lot 6). `DiscoveryTour` le consomme à la place de `.discovery-tour__body`.
+> Deux points d'implémentation à connaître :
+>
+> - **Texte complet dès le premier rendu.** La portion non encore « tapée » reste dans le flux
+>   avec `opacity: 0` — jamais `display:none` ni `visibility:hidden` — donc toujours présente
+>   dans l'arbre d'accessibilité, et la hauteur de la carte ne bouge pas pendant la frappe.
+> - **La réf expose `{ revealAll(), isTyping() }`.** C'est ce qui permet à l'hôte de câbler
+>   « première validation = terminer le texte, seconde = avancer » sans dupliquer l'état de
+>   frappe. `Échap` et les boutons restent inconditionnels.
+>
+> Le nom de locuteur est **volontairement non transmis** par `DiscoveryTour` pour l'instant :
+> afficher « OLU » au-dessus d'un corpus encore rédigé à la troisième personne lui attribuerait
+> une voix qui n'est pas la sienne. Le câblage se fait au lot 2, depuis
+> `content.help.narrator.speakerName`.
+>
+> Le système de cadres [`GL_IMAGE_FRAMES.md`](./GL_IMAGE_FRAMES.md) a bien été examiné comme
+> demandé ci-dessous : il traite du **recadrage d'images** (`aspectRatio`, `objectFit`, focale),
+> pas d'un cadre de bulle. Il n'y avait donc rien à y réutiliser.
 
 Une large part de l'effet « jeu vidéo » ne vient pas du portrait mais de la **mise en scène du
 texte**. Ces éléments coûtent presque rien et sont livrables **avant** tout asset :
@@ -301,6 +328,9 @@ Toutes les URLs sont **optionnelles** : une expression sans portrait retombe sur
 `neutre` sans portrait retombe sur le fallback SVG. Aucun état ne produit d'écran vide.
 
 ### 5.3 Spécifications pour les sprites
+
+Brief de production prêt à l'emploi (analyse de la planche d'expressions fournie, prompts de
+génération, critères de recette) : **[`MASCOT_OLU_BRIEF_VISUEL.md`](./MASCOT_OLU_BRIEF_VISUEL.md)**.
 
 À transmettre au moment de la production graphique :
 
@@ -547,15 +577,15 @@ d'écriture, pas de technique — mais elle change le corpus GL.
 
 ## 12. Découpage en lots
 
-| Lot   | Contenu                                                                                                                          | Assets requis  | Effort | Risque            |
-| ----- | -------------------------------------------------------------------------------------------------------------------------------- | -------------- | ------ | ----------------- |
-| **1** | `SpeechBubble` : cadre, étiquette locuteur, machine à écrire + `reduced-motion`. Branché sur `DiscoveryTour` seul. Styles.       | ❌ aucun       | Faible | Très faible       |
-| **2** | `MascotSpeaker` (rendu SVG niveau 3) + `mascotExpressions.js` + réglage `content.help.narrator` (schéma, route, payload public). | ❌ aucun       | Moyen  | Faible            |
-| **3** | Champ `expression` optionnel dans `DISCOVERY_TOURS` + câblage.                                                                   | ❌ aucun       | Faible | Faible            |
-| **4** | **Réécriture du corpus** : parcours pilote `map`, puis les autres, puis les 7 panneaux (défauts + miroir client).                | ❌ aucun       | Moyen  | Moyen — §11.2     |
-| **5** | Studio prof : section « Narrateur » dans `ForetMapHelpContentAdminPanel`. Portrait `face` dans `HelpPanel`.                      | ✅ portraits   | Moyen  | Faible            |
-| **6** | GL : `GLFeuilletPopover` + `GLTabHelpPanel`, réglage GL dédié, corpus GL. **Commits `feat(gl)` séparés.**                        | ✅ portraits   | Moyen  | Moyen — isolement |
-| **7** | _(optionnel)_ Cadrage `body`, spritesheet OLU, correction du mapping d'états §3.1a.                                              | ✅ spritesheet | Moyen  | Faible            |
+| Lot   | Contenu                                                                                                                                   | Assets requis  | Effort | Risque            |
+| ----- | ----------------------------------------------------------------------------------------------------------------------------------------- | -------------- | ------ | ----------------- |
+| **1** | ✅ **Livré** — `SpeechBubble` : cadre, étiquette locuteur, machine à écrire + `reduced-motion`. Branché sur `DiscoveryTour` seul. Styles. | ❌ aucun       | Faible | Très faible       |
+| **2** | `MascotSpeaker` (rendu SVG niveau 3) + `mascotExpressions.js` + réglage `content.help.narrator` (schéma, route, payload public).          | ❌ aucun       | Moyen  | Faible            |
+| **3** | Champ `expression` optionnel dans `DISCOVERY_TOURS` + câblage.                                                                            | ❌ aucun       | Faible | Faible            |
+| **4** | **Réécriture du corpus** : parcours pilote `map`, puis les autres, puis les 7 panneaux (défauts + miroir client).                         | ❌ aucun       | Moyen  | Moyen — §11.2     |
+| **5** | Studio prof : section « Narrateur » dans `ForetMapHelpContentAdminPanel`. Portrait `face` dans `HelpPanel`.                               | ✅ portraits   | Moyen  | Faible            |
+| **6** | GL : `GLFeuilletPopover` + `GLTabHelpPanel`, réglage GL dédié, corpus GL. **Commits `feat(gl)` séparés.**                                 | ✅ portraits   | Moyen  | Moyen — isolement |
+| **7** | _(optionnel)_ Cadrage `body`, spritesheet OLU, correction du mapping d'états §3.1a.                                                       | ✅ spritesheet | Moyen  | Faible            |
 
 **Les lots 1 à 4 sont livrables sans aucun sprite** et apportent déjà l'essentiel de l'effet
 ludique — le cadre, le rythme et la voix. C'est délibéré : la production graphique ne doit

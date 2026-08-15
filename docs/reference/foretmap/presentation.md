@@ -127,6 +127,13 @@ existe, lui, sur la carte de travail des élèves.
   générales est réglable.
 - **Notifications**, **visite guidée** de prise en main et **panneau d'aide** : l'écran
   se met à jour en temps réel (une validation apparaît chez l'élève sans recharger).
+- Dans la **visite guidée**, le texte de chaque étape s'affiche **progressivement**, à la
+  manière d'un dialogue de jeu, dans une bulle encadrée. Un **clic sur la bulle** — ou une
+  première pression sur `Entrée` / `→` — affiche tout le texte immédiatement ; la pression
+  suivante passe à l'étape suivante. Les boutons « Suivant », « Précédent » et « Passer »,
+  ainsi que la touche `Échap`, restent utilisables à tout moment sans attendre la fin du
+  texte. Pour les personnes ayant activé la **réduction des animations** dans leur système,
+  le texte s'affiche d'emblée en entier.
 
 ### L'administration
 

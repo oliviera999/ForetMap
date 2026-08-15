@@ -1,0 +1,80 @@
+/*
+ * Bulle de dialogue partagée ForetMap + GL (`SpeechBubble`).
+ * Voir docs/MASCOT_NARRATEUR_OLU.md §4.6.
+ *
+ * Les couleurs passent par des variables `--fm-bubble-*` avec repli sur le thème
+ * forêt : GL pourra les redéfinir dans gl-theme.css sans dupliquer ces règles.
+ */
+
+.fm-speech-bubble {
+  position: relative;
+  min-height: 44px; /* cible tactile : la bulle entière termine le texte au clic */
+  padding: 10px 12px 10px 14px;
+  border: 1.5px solid var(--fm-bubble-border, var(--mint, #7dd3a8));
+  border-left-width: 4px;
+  border-radius: 12px;
+  background: var(--fm-bubble-bg, rgba(255, 255, 255, 0.66));
+  color: var(--fm-bubble-text, #1e2b24);
+}
+
+.fm-speech-bubble.is-typing {
+  cursor: pointer;
+}
+
+.fm-speech-bubble__speaker {
+  display: inline-block;
+  margin-bottom: 4px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fm-bubble-speaker, var(--leaf, #2d6a4f));
+}
+
+.fm-speech-bubble__text {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  /* Le texte non encore révélé reste dans le flux : aucun décalage de mise en page. */
+  overflow-wrap: anywhere;
+}
+
+/*
+ * Portion pas encore « tapée ». `opacity: 0` — et non `visibility`/`display` —
+ * pour rester dans l'arbre d'accessibilité : les lecteurs d'écran doivent
+ * disposer du texte complet dès le premier rendu (§9.1).
+ */
+.fm-speech-bubble__pending {
+  opacity: 0;
+}
+
+.fm-speech-bubble__caret {
+  display: inline-block;
+  width: 0.45em;
+  height: 1em;
+  margin-left: 1px;
+  vertical-align: -0.14em;
+  border-radius: 1px;
+  background: currentColor;
+  opacity: 0.5;
+  animation: fmSpeechCaretBlink 0.9s steps(1, end) infinite;
+}
+
+@keyframes fmSpeechCaretBlink {
+  0%,
+  55% {
+    opacity: 0.5;
+  }
+  56%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Filet de sécurité : en mode « reduce » le texte est déjà complet, donc sans curseur. */
+  .fm-speech-bubble__caret {
+    animation: none !important;
+    opacity: 0 !important;
+  }
+}
