@@ -10,13 +10,6 @@ export const STAGE_CLASS = {
   empty: 'stage-empty',
   special: 'stage-special',
 };
-export const ZONE_FILL = {
-  growing: '#86efac',
-  ready: '#fde047',
-  empty: '#e5e7eb',
-  special: '#bfdbfe',
-};
-
 export const SPECIAL_EMOJI = {
   ruches: '🐝',
   'mare-g': '💧',

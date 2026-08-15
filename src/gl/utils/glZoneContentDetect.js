@@ -1,4 +1,4 @@
-import { findZoneTriggeredOnMoveGeneric, pickZoneAtPctGeneric } from './glMapZoneDetect.js';
+import { findZoneTriggeredOnMoveGeneric } from './glMapZoneDetect.js';
 
 function zonePoints(zone) {
   return Array.isArray(zone?.points) ? zone.points : [];
@@ -15,10 +15,6 @@ const kingdomZoneOptions = {
   getZonePoints: zonePoints,
   isZoneEligible: zoneHasPopoverContent,
 };
-
-export function pickContentZoneAtPct(zones, xPct, yPct) {
-  return pickZoneAtPctGeneric(zones, xPct, yPct, kingdomZoneOptions);
-}
 
 export function findZoneTriggeredOnMove(prev, next, zones) {
   return findZoneTriggeredOnMoveGeneric(prev, next, zones, kingdomZoneOptions);

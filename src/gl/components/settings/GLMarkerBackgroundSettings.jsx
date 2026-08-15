@@ -149,5 +149,3 @@ export function GLMarkerBackgroundSettings({ settings, savingKey, onSave, disabl
     </div>
   );
 }
-
-export { SETTINGS_KEY as GL_MARKER_BACKGROUNDS_SETTINGS_KEY };

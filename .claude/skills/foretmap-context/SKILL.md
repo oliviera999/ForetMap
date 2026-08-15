@@ -20,9 +20,10 @@ description: Contexte et architecture du projet ForetMap (forêt comestible, Lyc
 - **Frontend** : React 19 + Vite. `index.vite.html` → `src/main.jsx` ; modules dans
   `src/components/`, `src/hooks/`, `src/services/`. Build servi depuis `dist/` en prod.
 - **GL** : sous-produit isolé (host `gl.*`, API `/api/gl/*`) → skill `foretmap-gl`.
-- **Utilitaires** `lib/` : `logger.js` (Pino + redact), `helpers.js`
-  (`getTaskWithAssignments`, `studentStats`), `routeLog.js` (`logRouteError`), `requestId.js`,
-  `httpRequestLog.js`, `logMetrics.js`, `env.js`, `uploads.js`, `speciesAutofill*.js`.
+- **Utilitaires** `lib/` : `logger.js` (Pino + redact), `routeLog.js` (`logRouteError`),
+  `requestId.js`, `httpRequestLog.js`, `logMetrics.js`, `env.js`, `uploads.js`,
+  `speciesAutofill*.js`. Helpers métier par domaine : `lib/tasks/taskQueries.js`
+  (`getTaskWithAssignments`), `lib/*RouteHelpers.js`.
 
 ## Points d'attention
 

@@ -10,7 +10,7 @@ description: Conventions base de données ForetMap (schéma MySQL, migrations id
 - Pool `mysql2/promise` dans `database.js` (compatible MariaDB). Fonctions :
   `queryAll(sql, params)`, `queryOne(sql, params)`, `execute(sql, params)` — **toujours `await`**.
 - **Paramètres `?` uniquement** (jamais d'interpolation de chaînes). `result.insertId` après INSERT.
-- UUIDs métier via `uuid.v4()`. Helpers métier dans `lib/helpers.js`.
+- UUIDs métier via `uuid.v4()`. Helpers métier par domaine (`lib/tasks/taskQueries.js`, `lib/*RouteHelpers.js`).
 
 ## Migrations
 

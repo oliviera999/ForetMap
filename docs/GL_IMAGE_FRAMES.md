@@ -43,7 +43,8 @@ Contexte par défaut :
 
 ## Images markdown
 
-- Insertion : `GLMarkdownImageInsert` ouvre `GLImageFrameEditor`, puis injecte (stockage) :
+- Insertion : `GLImageInlineInsertControls` (utilisé par `GLRichTextEditor`, `GLJournalView`,
+  `GLGameMasterConsoleLive`) ouvre `GLImageFrameEditor`, puis injecte (stockage) :
 
 ```html
 <img
@@ -63,7 +64,7 @@ Contexte par défaut :
 
 - Migration : `migrations/091_gl_chapters_map_image_frame.sql` (`gl_chapters.map_image_frame_json`).
 - API chapitres : lecture/écriture de `mapImageFrame` via `routes/gl/chapters.js`.
-- UI : `GLChaptersAdminView` + `GLChapterMapEditor` appliquent le style d'image via `GLPctMapCanvas`.
+- UI : `GLChaptersAdminView` + `GLChapterMapStudio` appliquent le style d'image via `GLPctMapCanvas`.
 
 ## Avatar profil
 
