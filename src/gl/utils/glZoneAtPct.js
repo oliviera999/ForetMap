@@ -1,10 +1,5 @@
 import { isPointInPolygon, polygonArea } from './glPointInPolygon.js';
 
-function zoneMusicUrl(zone) {
-  const urls = zoneMusicUrls(zone);
-  return urls.length > 0 ? urls[0] : null;
-}
-
 function zoneMusicUrls(zone) {
   const urls = zone?.musicUrls ?? zone?.music_urls;
   if (Array.isArray(urls)) {
@@ -71,4 +66,4 @@ export function detectZoneMusicOnTeamMove(prevPct, nextPct, zones) {
   return nextZone;
 }
 
-export { zoneMusicUrl, zoneMusicUrls, zoneMusicVolume };
+export { zoneMusicUrls, zoneMusicVolume };

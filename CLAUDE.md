@@ -19,19 +19,19 @@ sous **`.claude/skills/`**.
 
 ## Architecture
 
-| Élément                                            | Emplacement                                                                                                                       |
-| -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| Serveur / montage routeurs / static / SPA fallback | `server.js`                                                                                                                       |
-| Pool MySQL, `initDatabase()`, schéma, seed         | `database.js`                                                                                                                     |
-| API ForetMap                                       | `routes/*.js` (auth, zones, maps, plants, tasks, stats, students, visit, forum…)                                                  |
-| API GL                                             | `routes/gl/*.js`                                                                                                                  |
-| Auth prof / GL                                     | `middleware/requireTeacher.js`, `middleware/requireGlAuth.js`                                                                     |
-| Utilitaires backend                                | `lib/` (`logger.js`, `helpers.js`, `routeLog.js`, `requestId.js`, `env.js`, `uploads.js`, `speciesAutofill*.js`, `glSettings.js`) |
-| Front ForetMap                                     | `index.vite.html` → `src/main.jsx` ; `src/components/`, `src/hooks/`, `src/services/`                                             |
-| Front GL                                           | `gl.html` → `src/gl/main.jsx` → `src/gl/AppGL.jsx`                                                                                |
-| Migrations                                         | `migrations/NNN_*.sql` (idempotentes) + `sql/schema_foretmap.sql`                                                                 |
-| Tests                                              | `tests/*.test.js` (node:test), `tests-ui/**` (vitest), `e2e/*.spec.js` (Playwright)                                               |
-| Documentation                                      | `docs/` — `API.md`, `EVOLUTION.md`, `LOCAL_DEV.md`, `EXPLOITATION.md`, `VERSIONING.md`, `GL_*.md`                                 |
+| Élément                                            | Emplacement                                                                                                                                                                             |
+| -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Serveur / montage routeurs / static / SPA fallback | `server.js`                                                                                                                                                                             |
+| Pool MySQL, `initDatabase()`, schéma, seed         | `database.js`                                                                                                                                                                           |
+| API ForetMap                                       | `routes/*.js` (auth, zones, maps, plants, tasks, stats, students, visit, forum…)                                                                                                        |
+| API GL                                             | `routes/gl/*.js`                                                                                                                                                                        |
+| Auth prof / GL                                     | `middleware/requireTeacher.js`, `middleware/requireGlAuth.js`                                                                                                                           |
+| Utilitaires backend                                | `lib/` (`logger.js`, `routeLog.js`, `requestId.js`, `env.js`, `uploads.js`, `speciesAutofill*.js`, `glSettings.js`) ; helpers métier par domaine (`lib/tasks/`, `lib/*RouteHelpers.js`) |
+| Front ForetMap                                     | `index.vite.html` → `src/main.jsx` ; `src/components/`, `src/hooks/`, `src/services/`                                                                                                   |
+| Front GL                                           | `gl.html` → `src/gl/main.jsx` → `src/gl/AppGL.jsx`                                                                                                                                      |
+| Migrations                                         | `migrations/NNN_*.sql` (idempotentes) + `sql/schema_foretmap.sql`                                                                                                                       |
+| Tests                                              | `tests/*.test.js` (node:test), `tests-ui/**` (vitest), `e2e/*.spec.js` (Playwright)                                                                                                     |
+| Documentation                                      | `docs/` — `API.md`, `EVOLUTION.md`, `LOCAL_DEV.md`, `EXPLOITATION.md`, `VERSIONING.md`, `GL_*.md`                                                                                       |
 
 ## Commandes essentielles
 

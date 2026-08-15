@@ -7,6 +7,47 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Ménage — code mort et documentation obsolète
+
+Audit de code sans changement de comportement : tout ce qui est retiré a été vérifié par
+deux méthodes indépendantes (analyse du graphe de références + `git grep -w` sur l'arbre
+complet hors `dist/`), puis re-scanné après suppression pour attraper les cascades.
+
+- **7 composants/utilitaires GL orphelins supprimés** — aucun import nulle part, créés
+  fin juin/début juillet et jamais recâblés depuis : `GLChapterMapEditor` et
+  `GLKingdomZoneEditor` (remplacés par `GLChapterMapStudio`, qui consomme directement
+  `useGLKingdomZoneEditor`), `GLFeuilletZoneEditor` (déjà marqué `@deprecated` au profit
+  de `GLPlateauMapEditor`), `GLMarkdownImageInsert` (l'insertion passe par
+  `GLImageInlineInsertControls`), `GLContextComments`, `GLChapterCharteImportPanel`,
+  `glBoardPointToPct`. En cascade : `src/shared/markdown/insertImage.js` (plus aucun
+  appelant) et `pickZoneAtPctGeneric`.
+- **22 symboles exportés morts retirés** (déclarés, exportés, jamais appelés — ni en
+  interne ni ailleurs) dans `lib/` et `src/` : `ensureCanonicalUserFromStudent`/
+  `…FromTeacher` et leur chaîne privée `upsertCanonicalUser`/`buildDisplayName`,
+  `loadZoneSpeciesList`/`loadMarkerSpeciesList`/`loadTaskSpeciesList`,
+  `getPlayerVitalitySnapshot`, `listCorrectQcmCodesForTeam`, `resolveQcmSetFromCode`,
+  `buildJournalEmbedHtml`, `setPublicImageCacheHeaders`, `fetchPlantDiscoveredIds`
+  (déjà `@deprecated`), `ZONE_FILL`, `PLANT_SELECT_OPTIONS`, etc. Les symboles seulement
+  **sur-exportés** (utilisés en interne dans leur propre module) ont été laissés en place :
+  ce n'est pas du code mort.
+- **`scripts/verify-gating-snapshot-import.js` supprimé** : script de vérification ponctuel
+  d'un import de snapshot, référencé nulle part (ni `package.json`, ni doc). Les autres
+  scripts hors `package.json` sont documentés dans `docs/EXPLOITATION.md` et sont conservés.
+- **8,8 Mo d'assets d'intro G&L en double supprimés** : les fichiers UUID bruts laissés par
+  `gl-intro-debundle.js` (`2d653905….mp3`, `bde208ef….mp3`, `a10b070c….bin`) — les deux mp3
+  sont octet pour octet identiques à `assets/audio/final.mp3` et `assets/audio/loop.mp3`, qui
+  sont les seuls référencés par `public/gl/intro/index.html`.
+- **Documentation obsolète corrigée** : `lib/helpers.js` (supprimé depuis l'audit de juillet)
+  était encore cité comme fichier courant dans `CLAUDE.md`, deux skills Claude, deux skills
+  Cursor et une règle Cursor — les helpers concernés vivent dans `lib/tasks/taskQueries.js` ;
+  `README.md` décrivait encore le mode prof « protégé par PIN » et documentait `TEACHER_PIN`,
+  lu nulle part ; `public/index.html` (inexistant) au lieu de `public/deploy-help.html` ;
+  `sql/migrations/…` au lieu de `migrations/…` ; `npm run test:load:normal` (inexistant).
+- **Variables d'environnement fantômes retirées** de `.env.example`/`README.md` :
+  `RBAC_DEFAULT_STUDENT_ROLE` et `GL_VISIT_COOKIE_SECRET` n'étaient lues par aucun code —
+  les documenter laissait croire qu'on pouvait les régler. `DOTENV_CONFIG_QUIET` est
+  conservée : elle est consommée par dotenv lui-même.
+
 ### G&L — sortilèges réservés à un peuple (gnomes / licornes)
 
 Nouveau réglage **par sortilège** et **modifiable par lot** : qui a le droit de lancer ce

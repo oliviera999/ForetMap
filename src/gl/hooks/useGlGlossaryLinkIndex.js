@@ -55,8 +55,3 @@ export function useGlGlossaryLinkIndex(authToken, biomeSlugs = []) {
 
   return items;
 }
-
-/** Vide le cache (tests). */
-export function clearGlGlossaryLinkIndexCache() {
-  listCache.clear();
-}
