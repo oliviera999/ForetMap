@@ -25,6 +25,30 @@ modifié — le document analyse et propose.
   Marché, et un cœur perdu peut y être racheté à un camarade.
 - **Ordre des opérations révisé** isolant ce qui ne dépend d'aucune décision d'architecture, et
   réponses proposées aux 13 questions ouvertes du rapport.
+### Doc — Audit : le remède aux conflits de PR existe déjà, mais ignore les brouillons
+
+Complément au §2.3/§2.4 de [`docs/AUDIT_APP_ET_JEU_2026-08.md`](docs/AUDIT_APP_ET_JEU_2026-08.md),
+qui sous-estimait l'outillage existant. **Document d'audit uniquement — aucun comportement
+modifié.**
+
+- Le dépôt dispose de `auto-resolve-conflicts.yml` (+ `scripts/auto-resolve-conflicts.js`) :
+  à chaque push sur `main` et **toutes les heures**, il réintègre `main` dans les PR
+  ouvertes et résout sans risque les conflits récurrents (`CHANGELOG.md` par union, bumps
+  `package.json` / `package-lock.json`). Il fonctionne — vérifié en conditions réelles sur
+  la PR de l'audit elle-même, dès son passage en « prêt à relire ».
+- **Mais il ignore les brouillons** : `AUTO_RESOLVE_INCLUDE_DRAFTS` ne vaut `'1'` que sur
+  `workflow_dispatch` manuel ; les exécutions horaires et sur push passent `'0'`, et le
+  script coupe court (`scripts/auto-resolve-conflicts.js:370`). Or **les 26 PR de la file
+  sont toutes en brouillon** : l'automatisation ne s'exécute donc sur aucune d'elles.
+- **Second effet, découvert sur la même PR** : quand le workflow agit, il pousse sa
+  résolution avec le `GITHUB_TOKEN` par défaut, **qui ne re-déclenche aucun workflow** (le
+  fichier le documente ; `AUTO_MERGE_PAT` n'est pas configuré). Le head résolu se retrouve
+  donc avec **zéro check** et un `mergeable_state` bloqué à `unstable`, sans reprise
+  spontanée — il a fallu un commit vide pour relancer la CI.
+- Conséquence pratique : le correctif reste un simple réglage de workflow, mais il en faut
+  **deux, indissociables** — `include_drafts` sur la planification horaire **et** le secret
+  `AUTO_MERGE_PAT`. Le premier sans le second donnerait 26 PR résolues mais non vérifiées,
+  état plus trompeur que le conflit. C'est le premier geste du lot 0.
 
 ### Données — le jeu SQL versionné se limite au contenu pédagogique
 
