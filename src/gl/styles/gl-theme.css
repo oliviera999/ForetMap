@@ -2831,6 +2831,13 @@ body.gl-map-fullscreen-active .gl-qcm-popover-overlay {
   background: var(--gl-accent-info);
 }
 
+/* Contrainte à respecter (ex. sortilège réservé à un peuple) : plus saillant qu'une
+   information neutre, sans l'alarme du rouge — le sort reste lançable, par d'autres. */
+.gl-badge--warn {
+  background: var(--gl-accent-warning);
+  color: #854d0e;
+}
+
 .gl-empty {
   text-align: center;
   padding: 14px 10px;
