@@ -4,7 +4,9 @@ import {
   canEditContributionRow,
   formatPlayerLabel,
   groupRosterByTeam,
+  isCasterKindAllowed,
 } from '../../utils/glSpellCastRules.js';
+import { glSpellCasterKindBadge, GL_TEAM_TYPE_LABELS } from '../../utils/glSpellFieldLabels.js';
 
 /** Barre de progression d'une ressource (gemmes / cœurs). */
 function ProgressBar({ label, current, required, emoji }) {
@@ -40,6 +42,7 @@ function RosterPlayerRow({
   required,
   editable,
   busy,
+  blockedByCasterKind = false,
   onUpdateContrib,
   onContribBlur,
 }) {
@@ -52,6 +55,11 @@ function RosterPlayerRow({
           {player.healthPoints} · 💎
           {player.powerPoints}
         </span>
+        {blockedByCasterKind ? (
+          <span className="gl-hint gl-spell-cast-roster__blocked">
+            Ne peut pas contribuer à ce sortilège
+          </span>
+        ) : null}
       </div>
       <div className="gl-spell-cast-roster__inputs">
         {required.gems > 0 ? (
@@ -126,9 +134,17 @@ export function GLSpellCastRosterSection({
   const roster = draft?.roster || [];
   const rosterEmpty = draft && roster.length === 0;
   const rosterGroups = groupRosterByTeam(roster);
+  const casterKind = draft?.casterKind || 'any';
+  const casterKindBadge = glSpellCasterKindBadge(casterKind);
 
   return (
     <>
+      {casterKindBadge ? (
+        <p className="gl-hint gl-spell-cast-panel__caster-kind">
+          <span className="gl-badge">{casterKindBadge}</span> Seuls ces joueurs peuvent alimenter le
+          sortilège.
+        </p>
+      ) : null}
       <ProgressBar label="Gemmes" current={totals.gems} required={required.gems} emoji="💎" />
       <ProgressBar label="Cœurs" current={totals.hearts} required={required.hearts} emoji="❤️" />
       {rosterEmpty ? (
@@ -137,36 +153,47 @@ export function GLSpellCastRosterSection({
           MJ (onglet Équipes / roster).
         </p>
       ) : (
-        rosterGroups.map((group) => (
-          <section key={group.teamId} className="gl-spell-cast-roster-group">
-            <h3 className="gl-spell-cast-roster-group__title">{group.teamName}</h3>
-            <ul className="gl-spell-cast-roster">
-              {group.players.map((player) => {
-                const row = localContribs.find(
-                  (r) => Number(r.playerId) === Number(player.playerId),
-                ) || { gems: 0, hearts: 0 };
-                const editable = canEditContributionRow({
-                  contributionMode,
-                  actorPlayerId: playerId,
-                  targetPlayerId: player.playerId,
-                  isStaff,
-                });
-                return (
-                  <RosterPlayerRow
-                    key={player.playerId}
-                    player={player}
-                    row={row}
-                    required={required}
-                    editable={editable}
-                    busy={busy}
-                    onUpdateContrib={onUpdateContrib}
-                    onContribBlur={onContribBlur}
-                  />
-                );
-              })}
-            </ul>
-          </section>
-        ))
+        rosterGroups.map((group) => {
+          const teamType = group.players[0]?.teamType || null;
+          const teamTypeLabel = GL_TEAM_TYPE_LABELS[String(teamType || '')] || null;
+          return (
+            <section key={group.teamId} className="gl-spell-cast-roster-group">
+              <h3 className="gl-spell-cast-roster-group__title">
+                {group.teamName}
+                {teamTypeLabel ? <span className="gl-hint"> · {teamTypeLabel}</span> : null}
+              </h3>
+              <ul className="gl-spell-cast-roster">
+                {group.players.map((player) => {
+                  const row = localContribs.find(
+                    (r) => Number(r.playerId) === Number(player.playerId),
+                  ) || { gems: 0, hearts: 0 };
+                  const allowedKind = isCasterKindAllowed(casterKind, player.teamType);
+                  const editable = canEditContributionRow({
+                    contributionMode,
+                    actorPlayerId: playerId,
+                    targetPlayerId: player.playerId,
+                    isStaff,
+                    casterKind,
+                    teamType: player.teamType,
+                  });
+                  return (
+                    <RosterPlayerRow
+                      key={player.playerId}
+                      player={player}
+                      row={row}
+                      required={required}
+                      editable={editable}
+                      blockedByCasterKind={!allowedKind}
+                      busy={busy}
+                      onUpdateContrib={onUpdateContrib}
+                      onContribBlur={onContribBlur}
+                    />
+                  );
+                })}
+              </ul>
+            </section>
+          );
+        })
       )}
     </>
   );

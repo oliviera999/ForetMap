@@ -14,11 +14,14 @@ import { GLButton } from '../ui/GLButton.jsx';
 import { GLField } from '../ui/GLField.jsx';
 import { GLInput } from '../ui/GLInput.jsx';
 import { GLSelect } from '../ui/GLSelect.jsx';
+import { SPELL_BULK_FIELD_OPTIONS, useGlSpellsBulkEdit } from '../../hooks/useGlSpellsBulkEdit.js';
+import { glSpellCasterKindBadge } from '../../utils/glSpellFieldLabels.js';
 
 export function GLSpellsEditorPanel() {
   const [categories, setCategories] = useState([]);
   const [categorySlug, setCategorySlug] = useState('');
   const [filterQ, setFilterQ] = useState('');
+  const [bulkError, setBulkError] = useState('');
 
   const listPath = useMemo(() => {
     if (!categorySlug) return null;
@@ -66,6 +69,15 @@ export function GLSpellsEditorPanel() {
   });
 
   const filteredItems = useMemo(() => filterSpells(items, filterQ), [items, filterQ]);
+  const visibleCodes = useMemo(() => filteredItems.map((row) => row.spell_code), [filteredItems]);
+
+  const bulk = useGlSpellsBulkEdit({
+    visibleCodes,
+    reloadList: loadList,
+    onApplyStart: () => setInfo(''),
+    onApplySuccess: (message) => setInfo(message),
+    onApplyError: (message) => setBulkError(message),
+  });
 
   const loadCategories = useCallback(async () => {
     const list = await apiGL('/api/gl/spell-categories');
@@ -112,6 +124,7 @@ export function GLSpellsEditorPanel() {
       </p>
       {error ? <p className="gl-error">{error}</p> : null}
       {saveError ? <p className="gl-error">{saveError}</p> : null}
+      {bulkError ? <p className="gl-error">{bulkError}</p> : null}
       <AutoSaveStatus status={saveStatus} className="gl-hint" />
       {info ? <p className="gl-hint">{info}</p> : null}
 
@@ -121,6 +134,9 @@ export function GLSpellsEditorPanel() {
           onChange={(e) => {
             setCategorySlug(e.target.value);
             setSelectedCode(null);
+            // La sélection de lot porte sur des codes de la catégorie quittée :
+            // la conserver appliquerait le réglage à des sorts hors écran.
+            bulk.clearChecked();
           }}
         >
           {categories.map((c) => (
@@ -131,6 +147,52 @@ export function GLSpellsEditorPanel() {
         </GLSelect>
       </GLField>
 
+      {bulk.checked.size > 0 ? (
+        <div className="gl-form gl-form--compact gl-spells-bulk">
+          <p className="gl-hint">
+            <strong>{bulk.checked.size}</strong> sortilège(s) sélectionné(s) — édition en masse :
+          </p>
+          <GLField label="Réglage">
+            <GLSelect value={bulk.bulkField} onChange={(e) => bulk.selectBulkField(e.target.value)}>
+              <option value="">— Choisir —</option>
+              {SPELL_BULK_FIELD_OPTIONS.map((o) => (
+                <option key={o.key} value={o.key}>
+                  {o.label}
+                </option>
+              ))}
+            </GLSelect>
+          </GLField>
+          {bulk.bulkOptions ? (
+            <GLField label="Nouvelle valeur">
+              <GLSelect value={bulk.bulkValue} onChange={(e) => bulk.setBulkValue(e.target.value)}>
+                {Object.entries(bulk.bulkOptions).map(([val, lab]) => (
+                  <option key={val} value={val}>
+                    {lab}
+                  </option>
+                ))}
+              </GLSelect>
+            </GLField>
+          ) : null}
+          <div className="gl-inline-actions">
+            <GLButton
+              type="button"
+              onClick={bulk.applyBulk}
+              disabled={!bulk.bulkField || bulk.bulkBusy}
+            >
+              {bulk.bulkBusy ? 'Application…' : `Appliquer à ${bulk.checked.size}`}
+            </GLButton>
+            <GLButton
+              type="button"
+              variant="ghost"
+              onClick={bulk.clearChecked}
+              disabled={bulk.bulkBusy}
+            >
+              Tout désélectionner
+            </GLButton>
+          </div>
+        </div>
+      ) : null}
+
       <div className="gl-chapters-admin-grid">
         <aside>
           <GLField label="Recherche">
@@ -140,19 +202,39 @@ export function GLSpellsEditorPanel() {
               placeholder="Nom ou code…"
             />
           </GLField>
+          {filteredItems.length > 0 ? (
+            <label className="gl-spells-bulk__all">
+              <input
+                type="checkbox"
+                checked={bulk.allVisibleChecked}
+                onChange={bulk.toggleCheckAll}
+              />
+              Tout sélectionner ({filteredItems.length})
+            </label>
+          ) : null}
           <ul className="gl-chapters-admin-list">
-            {filteredItems.map((row) => (
-              <li key={row.spell_code}>
-                <button
-                  type="button"
-                  className={selectedCode === row.spell_code ? 'is-active' : ''}
-                  onClick={() => loadItem(row.spell_code)}
-                >
-                  <span aria-hidden="true">{row.emoji || '✨'}</span> <strong>{row.nom}</strong>
-                  <span className="gl-hint">{row.spell_code}</span>
-                </button>
-              </li>
-            ))}
+            {filteredItems.map((row) => {
+              const casterBadge = glSpellCasterKindBadge(row.caster_kind);
+              return (
+                <li key={row.spell_code} className="gl-spells-bulk__row">
+                  <input
+                    type="checkbox"
+                    checked={bulk.checked.has(row.spell_code)}
+                    onChange={() => bulk.toggleCheck(row.spell_code)}
+                    aria-label={`Sélectionner ${row.nom || row.spell_code}`}
+                  />
+                  <button
+                    type="button"
+                    className={selectedCode === row.spell_code ? 'is-active' : ''}
+                    onClick={() => loadItem(row.spell_code)}
+                  >
+                    <span aria-hidden="true">{row.emoji || '✨'}</span> <strong>{row.nom}</strong>
+                    <span className="gl-hint">{row.spell_code}</span>
+                    {casterBadge ? <span className="gl-badge">{casterBadge}</span> : null}
+                  </button>
+                </li>
+              );
+            })}
           </ul>
           <GLButton
             type="button"

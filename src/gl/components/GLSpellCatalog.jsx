@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { apiGL } from '../services/apiGL.js';
-import { GL_SPELL_CATEGORY_LABELS } from '../utils/glSpellFieldLabels.js';
+import { glSpellCasterKindBadge, GL_SPELL_CATEGORY_LABELS } from '../utils/glSpellFieldLabels.js';
 
 function GLSpellTile({ spell, onSelect }) {
   const nom = String(spell.nom || '').trim() || 'Sort';
+  const casterBadge = glSpellCasterKindBadge(spell.caster_kind);
   const cost =
     String(spell.cout_total_eq || '').trim() ||
     [
@@ -29,6 +30,7 @@ function GLSpellTile({ spell, onSelect }) {
         {spell.effet_court ? (
           <span className="gl-spell-tile__effect">{spell.effet_court}</span>
         ) : null}
+        {casterBadge ? <span className="gl-badge gl-badge--warn">{casterBadge}</span> : null}
       </span>
     </button>
   );

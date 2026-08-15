@@ -2,9 +2,6 @@ import { useEffect, useMemo } from 'react';
 import { normalizeGlImageFrame } from '../../utils/glImageFrame.js';
 import { mergeBrandWithChapterTheme } from '../utils/glBrandTheme.js';
 
-/** Favicon statique GL (public/gl/) — défaut avant chargement React. */
-export const GL_DEFAULT_FAVICON_HREF = '/gl/favicon.svg';
-
 export const GL_CONTENT_PAGE_SLOT_BY_SLUG = {
   world: 'card_world',
   rules: 'card_rules',

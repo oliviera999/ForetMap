@@ -1,14 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { normalizeMarkerEffects } from '../utils/glMarkerEventConfig.js';
 
-const EMPTY_BRANCH = {
-  label: '',
-  deltaPv: 0,
-  deltaGems: 0,
-  deltaMove: 0,
-  passTurn: false,
-};
-
 function branchFromConfig(effects, key) {
   const src = effects?.[key] || {};
   return {
@@ -172,4 +164,4 @@ export function GLMarkerEffectsEditor({ eventConfig, onChange }) {
   );
 }
 
-export { EMPTY_BRANCH, formFromEventConfig, buildEffectsFromForm };
+export { formFromEventConfig, buildEffectsFromForm };

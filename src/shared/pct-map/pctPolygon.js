@@ -52,11 +52,6 @@ export function translatePctPoints(points, dx, dy, decimals = 2) {
   );
 }
 
-export function offsetDuplicatePctPoints(points, dx = 2.5, dy = 2.5, decimals = 2) {
-  if (!Array.isArray(points) || points.length < 3) return null;
-  return translatePctPoints(points, dx, dy, decimals);
-}
-
 /**
  * Déplace une zone feuillet (polygone + centre) pour aligner le centre sur targetPct.
  * @param {{ centreXp: number, centreYp: number, points: Array<{ x: number, y: number }> }} zone

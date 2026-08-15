@@ -5,6 +5,7 @@ import { usePrefersReducedMotion } from '../../shared/hooks/usePrefersReducedMot
 import { fetchSpellDetail } from '../utils/glSpellDetailCache.js';
 import { GLButton } from './ui/GLButton.jsx';
 import {
+  glSpellCasterKindBadge,
   GL_SPELL_CATEGORY_LABELS,
   GL_SPELL_FIELD_LABELS,
   GL_SPELL_STATUT_LABELS,
@@ -212,6 +213,11 @@ export function GLSpellPopover({
               ) : null}
               {costParts.length > 0 ? (
                 <span className="gl-badge">{costParts.join(' · ')}</span>
+              ) : null}
+              {glSpellCasterKindBadge(spell.caster_kind) ? (
+                <span className="gl-badge gl-badge--warn">
+                  {glSpellCasterKindBadge(spell.caster_kind)}
+                </span>
               ) : null}
             </div>
 

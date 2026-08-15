@@ -26,6 +26,125 @@ modifié.**
   ligne** (activer `include_drafts` sur la planification horaire), et il devient le premier
   geste du lot 0.
 
+### Données — le jeu SQL versionné se limite au contenu pédagogique
+
+Le dépôt ne versionne plus d'export SQL complet : seules les tables de **contenu** biodiversité et
+glossaire le sont désormais, conformément à la règle du projet (`CLAUDE.md`).
+
+- **`sql/biodiv_pedago_seed.sql`** (176 Ko) remplace l'ancien export : 11 tables de contenu
+  (`plants`, `plant_name_aliases`, `zone_species`, `marker_species`, `task_species`,
+  `species_interactions`, `glossary_terms`, `glossary_term_*`), aucune colonne nominative.
+  **`npm run db:import:biodiv` fonctionne sans changement de contrat** — comptages de lignes
+  vérifiés identiques pour les 11 tables, zéro perte de contenu.
+- **Extraction reproductible** : `npm run db:seed:biodiv:extract -- <export.sql>`
+  (`scripts/extract-biodiv-pedago-seed.js`), depuis un export local non versionné. Le script
+  **refuse d'écrire** si sa sortie contient une adresse email ou un hachage bcrypt — un échec
+  bruyant plutôt qu'une fuite silencieuse. Garde-fou testé.
+- **`.gitignore`** bloque désormais `*_bdd_complete.sql`, `*_dump.sql`, `*-dump.sql`,
+  `sql/dumps/`, et la règle est rappelée avec un pointeur vers le seed dans `CLAUDE.md`,
+  `.cursor/rules/foretmap-conventions.mdc` et les deux skills `foretmap-database`.
+- **Runbook d'exploitation** ajouté (`docs/EXPLOITATION.md` § 10) pour la marche à suivre lorsqu'un
+  fichier sensible a été versionné : mesure de portée, réécriture d'historique sur clone miroir, et
+  les suites obligatoires (support GitHub, rotation des secrets, rebase des branches, re-clonage).
+
+### G&L — `/api/gl/context-comments` : API sans interface, documentée comme telle
+
+La route est montée et testée mais **aucune UI G&L ne l'appelle** ; le composant
+`GLContextComments`, écrit en juillet 2026, n'a jamais été monté. Choix retenu : **garder la
+route**, corriger la documentation. C'est le chemin canonique décidé en architecture (les types
+`gl_*` ont été retirés de l'API ForetMap pour éviter deux chemins JWT), il est testé et partage
+`contextCommentsCore` avec le côté ForetMap bien vivant ; démonter une API montée serait un
+changement de comportement, et il faudrait la réécrire le jour où l'écran arrive.
+
+- `docs/GL_ARCHITECTURE.md` et `docs/PARTAGE_FM_GL.md` disent maintenant explicitement que le
+  backend est prêt mais sans consommateur, et où retrouver le composant dans l'historique.
+- Correction d'une affirmation fausse : `gl-theme.css` était présenté comme portant des styles de
+  commentaires contextuels « pour rester homogène avec le shell GL ». Les sélecteurs
+  `.gl-context-comments` n'étaient rendus que par le composant jamais monté : ils sont retirés.
+
+### Ménage — code mort et documentation obsolète
+
+Audit de code sans changement de comportement : tout ce qui est retiré a été vérifié par
+deux méthodes indépendantes (analyse du graphe de références + `git grep -w` sur l'arbre
+complet hors `dist/`), puis re-scanné après suppression pour attraper les cascades.
+
+- **7 composants/utilitaires GL orphelins supprimés** — aucun import nulle part, créés
+  fin juin/début juillet et jamais recâblés depuis : `GLChapterMapEditor` et
+  `GLKingdomZoneEditor` (remplacés par `GLChapterMapStudio`, qui consomme directement
+  `useGLKingdomZoneEditor`), `GLFeuilletZoneEditor` (déjà marqué `@deprecated` au profit
+  de `GLPlateauMapEditor`), `GLMarkdownImageInsert` (l'insertion passe par
+  `GLImageInlineInsertControls`), `GLContextComments`, `GLChapterCharteImportPanel`,
+  `glBoardPointToPct`. En cascade : `src/shared/markdown/insertImage.js` (plus aucun
+  appelant) et `pickZoneAtPctGeneric`.
+- **22 symboles exportés morts retirés** (déclarés, exportés, jamais appelés — ni en
+  interne ni ailleurs) dans `lib/` et `src/` : `ensureCanonicalUserFromStudent`/
+  `…FromTeacher` et leur chaîne privée `upsertCanonicalUser`/`buildDisplayName`,
+  `loadZoneSpeciesList`/`loadMarkerSpeciesList`/`loadTaskSpeciesList`,
+  `getPlayerVitalitySnapshot`, `listCorrectQcmCodesForTeam`, `resolveQcmSetFromCode`,
+  `buildJournalEmbedHtml`, `setPublicImageCacheHeaders`, `fetchPlantDiscoveredIds`
+  (déjà `@deprecated`), `ZONE_FILL`, `PLANT_SELECT_OPTIONS`, etc. Les symboles seulement
+  **sur-exportés** (utilisés en interne dans leur propre module) ont été laissés en place :
+  ce n'est pas du code mort.
+- **`scripts/verify-gating-snapshot-import.js` supprimé** : script de vérification ponctuel
+  d'un import de snapshot, référencé nulle part (ni `package.json`, ni doc). Les autres
+  scripts hors `package.json` sont documentés dans `docs/EXPLOITATION.md` et sont conservés.
+- **8,8 Mo d'assets d'intro G&L en double supprimés** : les fichiers UUID bruts laissés par
+  `gl-intro-debundle.js` (`2d653905….mp3`, `bde208ef….mp3`, `a10b070c….bin`) — les deux mp3
+  sont octet pour octet identiques à `assets/audio/final.mp3` et `assets/audio/loop.mp3`, qui
+  sont les seuls référencés par `public/gl/intro/index.html`.
+- **Documentation obsolète corrigée** : `lib/helpers.js` (supprimé depuis l'audit de juillet)
+  était encore cité comme fichier courant dans `CLAUDE.md`, deux skills Claude, deux skills
+  Cursor et une règle Cursor — les helpers concernés vivent dans `lib/tasks/taskQueries.js` ;
+  `README.md` décrivait encore le mode prof « protégé par PIN » et documentait `TEACHER_PIN`,
+  lu nulle part ; `public/index.html` (inexistant) au lieu de `public/deploy-help.html` ;
+  `sql/migrations/…` au lieu de `migrations/…` ; `npm run test:load:normal` (inexistant).
+- **Variables d'environnement fantômes retirées** de `.env.example`/`README.md` :
+  `RBAC_DEFAULT_STUDENT_ROLE` et `GL_VISIT_COOKIE_SECRET` n'étaient lues par aucun code —
+  les documenter laissait croire qu'on pouvait les régler. `DOTENV_CONFIG_QUIET` est
+  conservée : elle est consommée par dotenv lui-même.
+
+### G&L — sortilèges réservés à un peuple (gnomes / licornes)
+
+Nouveau réglage **par sortilège** et **modifiable par lot** : qui a le droit de lancer ce
+sort. Le peuple d'un lanceur est celui de **son équipe** (`gl_teams.type`), on réutilise
+donc son vocabulaire plutôt que d'en inventer un parallèle.
+
+- **Migration `173`** : colonne `gl_spells.caster_kind` (`any` \| `gnome` \| `unicorn`,
+  défaut `any` — le comportement historique est strictement conservé sur l'existant).
+- **Règle appliquée en trois points** (`lib/glSpellCast.js`), pas seulement à l'ouverture :
+  refus **403** à la création du brouillon pour une équipe du mauvais peuple, au moment
+  d'enregistrer une contribution **non nulle**, puis **de nouveau juste avant le débit**
+  (au lancement comme à l'acceptation MJ d'un sort en attente). Un sort restreint après
+  coup, sur un pot déjà réuni, ne part donc pas et ne coûte rien. Une contribution à zéro
+  reste un no-op légitime : le front envoie une ligne par joueur du roster.
+- **Peuple indéterminé refusé** : faute de pouvoir vérifier, on bloque plutôt que de
+  laisser passer. Le roster expose désormais `teamType` (`lib/glRoster.js`).
+- **Édition en masse** : `POST /api/gl/admin/spells/bulk` (`{ codes | categorySlug, patch }`,
+  liste blanche `lib/glSpellBulkPatch.js`, max 500 sorts), et dans l'éditeur de sorts une
+  case à cocher par ligne + « Tout sélectionner » + bandeau d'application — même contrat
+  et même ergonomie que l'édition en masse des feuillets. Une valeur inconnue est une
+  **erreur** et non un retour au défaut : un lot touche trop de fiches pour se permettre
+  un silence.
+- **UI joueur** : pastille « 🧙 Gnomes uniquement » / « 🦄 Licornes uniquement » sur la
+  fiche et les tuiles du catalogue, équipes du mauvais peuple retirées du sélecteur de
+  l'assistant, contributeurs non éligibles affichés mais verrouillés avec la raison.
+
+### G&L — `approval_mode` et `cast_scope` enfin administrables
+
+Correctif d'un manque relevé à l'audit : la migration `139` avait ajouté ces deux colonnes
+et le moteur de lancement les lisait, mais **aucun chemin d'écriture ne les exposait** —
+ni la fiche admin, ni le CRUD, ni l'import/export. Elles n'étaient réglables qu'en SQL
+direct, ce qui rendait inopérants le mode d'approbation `per_spell` (pourtant le défaut)
+et toute portée solo/collective.
+
+- Les deux colonnes rejoignent `SPELL_LIST_COLUMNS`, le CRUD admin, le formulaire de
+  fiche (listes déroulantes) et le tableur (colonnes `validation_mj`, `portee_lancement`).
+- **Import non destructif pour les trois options** : une colonne **absente** de la feuille
+  laisse la valeur en base inchangée (`COALESCE` à l'upsert) au lieu de la remettre au
+  défaut. Ré-importer un ancien fichier ne lève plus silencieusement une restriction. Une
+  valeur *présente mais illisible* est signalée ligne par ligne.
+- `spellToForm` retombe sur les valeurs du formulaire vierge plutôt que sur la chaîne
+  vide : une liste déroulante ne se retrouve plus sur une option inexistante.
 ### Doc — Audit général de l'application et du jeu (août 2026)
 
 Nouveau document [`docs/AUDIT_APP_ET_JEU_2026-08.md`](docs/AUDIT_APP_ET_JEU_2026-08.md) :

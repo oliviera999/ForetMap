@@ -10,7 +10,7 @@ description: Centralise les conventions BDD ForetMap (schéma MySQL, migrations,
 - Modification du schéma MySQL (ajout de table, colonne, index).
 - Ajout ou correction d'une migration.
 - Travail sur `database.js` ou `sql/schema_foretmap.sql`.
-- Écriture de requêtes SQL complexes ou de helpers dans `lib/helpers.js`.
+- Écriture de requêtes SQL complexes ou de helpers métier dans `lib/` (ex. `lib/tasks/taskQueries.js`).
 
 ## Quand ne pas l'utiliser
 
@@ -23,7 +23,7 @@ description: Centralise les conventions BDD ForetMap (schéma MySQL, migrations,
 | ----------------- | -------------------------------- | ------------------------------------------------------------------------ |
 | Pool SQL          | `database.js`                    | `mysql2/promise` (protocole MySQL, compatible MariaDB), pool via `.env`  |
 | Fonctions d'accès | `database.js`                    | `queryAll(sql, params)`, `queryOne(sql, params)`, `execute(sql, params)` |
-| Helpers métier    | `lib/helpers.js`                 | `getTaskWithAssignments(taskId)`, `studentStats(studentId)`              |
+| Helpers métier    | `lib/tasks/taskQueries.js`       | `getTaskWithAssignments(taskId)` et requêtes tâches associées            |
 | Schéma DDL        | `sql/schema_foretmap.sql`        | Tables, index, contraintes                                               |
 | Init              | `database.js` → `initDatabase()` | Applique le schéma + seed si tables vides                                |
 
@@ -44,7 +44,7 @@ description: Centralise les conventions BDD ForetMap (schéma MySQL, migrations,
 
 ### Règles pour les nouvelles migrations
 
-1. Ajouter les nouveaux `ALTER TABLE` / `CREATE TABLE` dans `sql/schema_foretmap.sql` ou dans un fichier dédié `sql/migrations/NNN_description.sql`.
+1. Ajouter les nouveaux `ALTER TABLE` / `CREATE TABLE` dans `sql/schema_foretmap.sql` ou dans un fichier dédié `migrations/NNN_description.sql`.
 2. Rendre chaque instruction idempotente (`IF NOT EXISTS`, `ADD COLUMN IF NOT EXISTS` ou catch errno 1060).
 3. **Pas de migration destructive** (DROP TABLE/COLUMN) sans avertissement explicite et documentation dans `docs/EVOLUTION.md`.
 4. Documenter la migration dans `CHANGELOG.md` (section `[Non publié]`).
@@ -53,7 +53,7 @@ description: Centralise les conventions BDD ForetMap (schéma MySQL, migrations,
 ### Évolution à terme (voir docs/EVOLUTION.md § 3.2)
 
 - Table `schema_version` pour tracer les migrations appliquées.
-- Scripts de migration versionnés (`sql/migrations/001_xxx.sql`, `002_yyy.sql`).
+- Scripts de migration versionnés (`migrations/001_xxx.sql`, `002_yyy.sql`).
 
 ## Variables d'environnement BDD
 
@@ -71,7 +71,10 @@ description: Centralise les conventions BDD ForetMap (schéma MySQL, migrations,
 - Utiliser `npm run db:import:dump -- --file "<chemin dump.sql>"`.
 - Le script reconstruit d'abord `DB_NAME` (`DROP DATABASE` + `CREATE DATABASE`) puis importe le SQL en multi-statements.
 - Enchaîner avec `npm run db:migrate` pour rattraper les migrations éventuelles absentes du dump.
-- **Ne jamais versionner** le dump (données réelles / PII).
+- **Ne jamais versionner** le dump (données réelles / PII) : `.gitignore` bloque `*_bdd_complete.sql`,
+  `*_dump.sql`, `*-dump.sql`, `sql/dumps/`. Pour alimenter `npm run db:import:biodiv`, extraire les seules
+  tables de contenu via `node scripts/extract-biodiv-pedago-seed.js <dump.sql>` → `sql/biodiv_pedago_seed.sql`
+  (garde-fou : refus d'écriture si un email ou un hachage bcrypt apparaît dans la sortie).
 - L’élévation par PIN a été supprimée (plus de table `role_pin_secrets`) : un compte prof connecté a directement les droits de son rôle. Pour un compte prof local connu, utiliser `npm run db:seed:teacher`.
 
 ## Voir aussi
