@@ -7,6 +7,36 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### OLU narrateur — lot 2 : le portrait et son réglage
+
+Deuxième lot du plan [`docs/MASCOT_NARRATEUR_OLU.md`](docs/MASCOT_NARRATEUR_OLU.md). Comme le
+lot 1, il ne demande **aucun visuel** : il pose le réceptacle et la cascade d'affichage, de sorte
+que les portraits n'aient plus qu'à être déposés quand ils existeront.
+
+- **Réglage `content.help.narrator`** (`lib/helpNarrator.js`) : interrupteur global, nom du
+  locuteur, silhouette de repli et portraits par expression. Trois routes d'administration
+  (`GET`/`PUT /api/settings/admin/help-narrator`, `POST …/reset`) avec audit dédié, et exposition
+  dans `GET /api/settings/public`.
+- **Réglage distinct du corpus d'aide**, et non une extension de `/admin/help-content` comme le
+  prévoyait le plan. La raison est concrète : réinitialiser le corpus — une opération que le plan
+  envisage sérieusement en production — ne doit pas emporter les portraits au passage. Un test
+  vérifie précisément cette indépendance.
+- **URL de portrait restreintes** aux chemins absolus du site et aux URL `http(s)`. `data:`,
+  `javascript:`, protocole-relatif et chemin relatif sont écartés à l'enregistrement plutôt que
+  corrigés silencieusement — ces valeurs finissent dans un `src` d'image.
+- **`MascotSpeaker`** (`src/shared/components/`) : rend le portrait, et rien d'autre. Cascade
+  cadrage demandé → `bust` de la même expression (recadrage CSS) → `neutre` → SVG de repli : il
+  n'existe aucun état où l'emplacement reste vide, et un déploiement sans le moindre portrait est
+  un fonctionnement normal, pas une panne. `aria-hidden` systématique — le portrait ne porte
+  jamais d'information.
+- **Garde-fou d'architecture** : un test casse si `MascotSpeaker` en vient à importer un renderer
+  de mascotte animée (100–170 Ko en chunks lazy). C'est la règle de performance du plan, écrite
+  en test plutôt qu'en commentaire.
+- **`mascotExpressions.js`** : les 8 expressions et leur projection sur les états canoniques
+  existants de `VISIT_MASCOT_STATE` — aucun énuméré concurrent n'est introduit.
+- **Visite guidée** : le nom du locuteur s'affiche désormais au-dessus des bulles, alimenté par
+  le réglage. Il reste vide si le narrateur est éteint ou sans nom.
+
 ### OLU narrateur — lot 1 : la bulle de dialogue
 
 Premier lot du plan [`docs/MASCOT_NARRATEUR_OLU.md`](docs/MASCOT_NARRATEUR_OLU.md) : la **mise en
