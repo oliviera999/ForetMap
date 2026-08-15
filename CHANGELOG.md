@@ -7,6 +7,25 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Doc — Audit : le remède aux conflits de PR existe déjà, mais ignore les brouillons
+
+Complément au §2.3/§2.4 de [`docs/AUDIT_APP_ET_JEU_2026-08.md`](docs/AUDIT_APP_ET_JEU_2026-08.md),
+qui sous-estimait l'outillage existant. **Document d'audit uniquement — aucun comportement
+modifié.**
+
+- Le dépôt dispose de `auto-resolve-conflicts.yml` (+ `scripts/auto-resolve-conflicts.js`) :
+  à chaque push sur `main` et **toutes les heures**, il réintègre `main` dans les PR
+  ouvertes et résout sans risque les conflits récurrents (`CHANGELOG.md` par union, bumps
+  `package.json` / `package-lock.json`). Il fonctionne — vérifié en conditions réelles sur
+  la PR de l'audit elle-même, dès son passage en « prêt à relire ».
+- **Mais il ignore les brouillons** : `AUTO_RESOLVE_INCLUDE_DRAFTS` ne vaut `'1'` que sur
+  `workflow_dispatch` manuel ; les exécutions horaires et sur push passent `'0'`, et le
+  script coupe court (`scripts/auto-resolve-conflicts.js:370`). Or **les 26 PR de la file
+  sont toutes en brouillon** : l'automatisation ne s'exécute donc sur aucune d'elles.
+- Conséquence pratique : c'est le seul constat de l'audit dont le correctif tient en **une
+  ligne** (activer `include_drafts` sur la planification horaire), et il devient le premier
+  geste du lot 0.
+
 ### Doc — Audit général de l'application et du jeu (août 2026)
 
 Nouveau document [`docs/AUDIT_APP_ET_JEU_2026-08.md`](docs/AUDIT_APP_ET_JEU_2026-08.md) :
