@@ -84,15 +84,19 @@ export function mergePublicSettings(prev, settings) {
       },
     };
   }
-  if (settings.content?.help?.registry) {
+  // Le registre (corpus d'aide) et le narrateur (OLU) sont deux réglages distincts :
+  // l'un peut être servi sans l'autre, on fusionne dès que l'un des deux est présent.
+  if (settings.content?.help?.registry || settings.content?.help?.narrator) {
+    const help = {
+      ...(prev.content?.help || {}),
+      ...(settings.content?.help || {}),
+    };
+    if (settings.content.help.registry) help.registry = settings.content.help.registry;
+    if (settings.content.help.narrator) help.narrator = settings.content.help.narrator;
     next.content = {
       ...(prev.content || {}),
       ...(settings.content || {}),
-      help: {
-        ...(prev.content?.help || {}),
-        ...(settings.content?.help || {}),
-        registry: settings.content.help.registry,
-      },
+      help,
     };
   }
   return next;

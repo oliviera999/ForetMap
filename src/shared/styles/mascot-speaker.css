@@ -1,0 +1,44 @@
+/*
+ * Portrait du narrateur partagé ForetMap + GL (`MascotSpeaker`).
+ * Voir docs/MASCOT_NARRATEUR_OLU.md §4.2 et §4.4.
+ *
+ * La taille de la boîte est posée en style en ligne par le composant (attributs
+ * `width`/`height` explicites côté image) : aucune règle ici ne doit la contredire,
+ * sous peine de rendre le décalage de mise en page (CLS) de nouveau possible.
+ */
+
+.fm-mascot-speaker {
+  display: inline-block;
+  flex: none;
+  overflow: hidden;
+  line-height: 0;
+  user-select: none;
+}
+
+.fm-mascot-speaker__img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* Le SVG de repli remplit la boîte comme le ferait une image. */
+.fm-mascot-speaker svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/*
+ * Cadrage `face` servi depuis un asset `bust` : on recadre sur la tête plutôt que
+ * de déformer. C'est ce qui permet de démarrer avec un seul asset par expression
+ * (§4.4) — le jour où un `face` dédié existe, cette règle ne s'applique plus.
+ */
+.fm-mascot-speaker--face .fm-mascot-speaker__img[data-derived='bust'] {
+  object-fit: cover;
+  object-position: 50% 12%;
+}
+
+.fm-mascot-speaker--face {
+  border-radius: 999px;
+}
