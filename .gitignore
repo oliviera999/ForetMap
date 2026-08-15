@@ -28,6 +28,15 @@ medias/
 backups/
 *.sql.gz
 
+# Exports SQL complets — ne jamais versionner : ils portent des données personnelles
+# (users, gl_players, password_reset_tokens, audit_log, forum_*). Pour alimenter
+# `npm run db:import:biodiv`, extraire les seules tables de contenu via
+# `node scripts/extract-biodiv-pedago-seed.js <dump.sql>` → sql/biodiv_pedago_seed.sql.
+*_bdd_complete.sql
+*_dump.sql
+*-dump.sql
+sql/dumps/
+
 # Logs
 logs/
 *.log

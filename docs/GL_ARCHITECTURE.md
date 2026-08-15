@@ -30,7 +30,12 @@ Couches **autorisées** (sans fusionner auth, thème `gl-theme` ni catalogues m�
 
 **À ne pas mutualiser** : tables gameplay `gl_*` (hors lien groupe), RBAC JWT GL, catalogue `glMascotCatalog.js` (ids `gl-*`), styles couleur GL.
 
-**Commentaires contextuels** : types `gl_*` uniquement sur **`/api/gl/context-comments`** (retirés de l’API ForetMap standard pour éviter deux chemins JWT).
+**Commentaires contextuels** : types `gl_*` uniquement sur **`/api/gl/context-comments`** (retirés de
+l’API ForetMap standard pour éviter deux chemins JWT). ⚠️ **Backend seul à ce jour** : la route est
+montée, testée et branchée sur `contextCommentsCore`, mais **aucune UI G&L ne la consomme** — le
+composant `GLContextComments` écrit en juillet 2026 n’a jamais été monté et a été retiré au ménage
+de la v1.90.1 (récupérable dans l’historique Git). Câbler l’UI reste à faire ; côté ForetMap,
+`src/components/context-comments.jsx` est en service et sert de modèle.
 
 ## Routage produit
 
@@ -84,9 +89,7 @@ Ajouts Lot 2B (contenus & chapitres) :
 
 Ajouts Lot 2D (édition visuelle carte) :
 
-- `GLChapterMapEditor` : édition visuelle des repères de chapitre (composant de base ; utilisé seul si besoin).
 - `GLChapterMapStudio` : studio admin **Contenus → Chapitres** — carte unique avec repères (`GLBoardMarkers`) et zones polygonales (`GLKingdomZoneMapOverlay` + `useGLKingdomZones` / `useGLKingdomZoneEditor`) ; musique de zone si `modules.zone_music_enabled` ; **popover texte/images** par zone (`popoverMarkdown`, `popoverImages`) affiché en partie via `POST /api/gl/games/:id/zones/:zoneId/present-content` et `GLZoneContentPopover` (re-déclenchement `gameplay.zone_content_retrigger` / `gl_games.zone_content_retrigger`).
-- `GLKingdomZoneEditor` : variante autonome (carte + panneaux) ; l’édition courante passe par le studio chapitre.
 - Socle frontend partagé : `useGlPctMapGestures`, `GLPctMapCanvas`, `GLBoardMarkers` pour homogénéiser les interactions carte GL.
 
 Ajouts Lot 2C (mascottes & équipes) :
@@ -231,7 +234,7 @@ Tables GL préfixées `gl_` :
 
 - Hook partagé : [`src/shared/hooks/usePrefersReducedMotion.js`](../src/shared/hooks/usePrefersReducedMotion.js) (popovers, plateau, etc.).
 - Variables modale/toast thématisées sous `.gl-app` : `--fm-modal-*`, `--fm-toast-*`.
-- Les modules GL (forum, tutoriels, journal de partie, **carnet personnel** `my-journal`, musique de zones, notifications, commentaires contextuels, aide) ont des styles dédiés dans `gl-theme.css` pour rester homogènes avec le shell GL.
+- Les modules GL (forum, tutoriels, journal de partie, **carnet personnel** `my-journal`, musique de zones, notifications, aide) ont des styles dédiés dans `gl-theme.css` pour rester homogènes avec le shell GL. (Les styles `.gl-context-comments` ont été retirés en v1.90.1 avec le composant jamais monté ; à réécrire le jour où l’UI sera câblée.)
 
 ### Carnet personnel joueur
 

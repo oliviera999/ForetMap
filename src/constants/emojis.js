@@ -103,8 +103,6 @@ export function parseEmojiListSetting(rawValue, fallback = MARKER_EMOJIS) {
   return [...new Set([...fallback, ...tokens])];
 }
 
-export const MARKER_EMOJIS_DEFAULT_SETTING = MARKER_EMOJIS.join(' ');
-
 /** Aligné sur `map_markers.emoji` (VARCHAR 16). */
 export const MAP_MARKER_EMOJI_MAX_CHARS = 16;
 

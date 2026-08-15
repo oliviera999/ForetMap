@@ -49,23 +49,6 @@ function segmentTraversesZone(prev, next, zone, getZonePoints) {
 }
 
 /**
- * @param {object[]} zones
- * @param {number} xPct
- * @param {number} yPct
- * @param {{ getZonePoints?: Function, isZoneEligible?: Function }} [options]
- */
-export function pickZoneAtPctGeneric(zones, xPct, yPct, options = {}) {
-  const getZonePoints = options.getZonePoints || defaultGetZonePoints;
-  const isZoneEligible = options.isZoneEligible || (() => true);
-  if (!Array.isArray(zones) || zones.length === 0) return null;
-  const hits = zones.filter((zone) => {
-    if (!isZoneEligible(zone)) return false;
-    return isPointInPolygon(xPct, yPct, getZonePoints(zone));
-  });
-  return pickSmallestZone(hits, getZonePoints);
-}
-
-/**
  * @param {{ xp: number, yp: number }} prev
  * @param {{ xp: number, yp: number }} next
  * @param {object[]} zones

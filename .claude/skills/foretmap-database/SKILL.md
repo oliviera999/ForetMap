@@ -10,7 +10,7 @@ description: Conventions base de données ForetMap (schéma MySQL, migrations id
 - Pool `mysql2/promise` dans `database.js` (compatible MariaDB). Fonctions :
   `queryAll(sql, params)`, `queryOne(sql, params)`, `execute(sql, params)` — **toujours `await`**.
 - **Paramètres `?` uniquement** (jamais d'interpolation de chaînes). `result.insertId` après INSERT.
-- UUIDs métier via `uuid.v4()`. Helpers métier dans `lib/helpers.js`.
+- UUIDs métier via `uuid.v4()`. Helpers métier par domaine (`lib/tasks/taskQueries.js`, `lib/*RouteHelpers.js`).
 
 ## Migrations
 
@@ -33,7 +33,9 @@ description: Conventions base de données ForetMap (schéma MySQL, migrations id
 ## Import dump distant (PII)
 
 - `npm run db:import:dump -- --file "<dump.sql>"` (recrée la base puis importe), enchaîner
-  `npm run db:migrate`. **Ne jamais versionner un dump.** L’élévation par PIN a été supprimée : un
+  `npm run db:migrate`. **Ne jamais versionner un dump** (`.gitignore` bloque `*_bdd_complete.sql`,
+  `*_dump.sql`, `*-dump.sql`, `sql/dumps/`). Seul jeu SQL de contenu versionné :
+  `sql/biodiv_pedago_seed.sql`, régénéré par `node scripts/extract-biodiv-pedago-seed.js <dump.sql>`. L’élévation par PIN a été supprimée : un
   compte prof connecté a directement les droits de son rôle (`npm run db:seed:teacher` pour un compte local connu).
 
 ## Voir aussi

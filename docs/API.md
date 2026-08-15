@@ -1446,7 +1446,9 @@ Routes publiques (lecture) sauf progression quiz. Voir aussi les routes GL `/api
 | GET | `/api/tutorials/:id/glossary-terms` | non | Termes glossaire liés au tutoriel |
 | GET | `/api/tutorials/:id/quiz-questions` | non | Questions QCM liées au tutoriel |
 
-Import local : `npm run db:import:biodiv` (après `npm run db:migrate`).
+Import local : `npm run db:import:biodiv` (après `npm run db:migrate`) — alimenté par
+`sql/biodiv_pedago_seed.sql`, extrait de contenu **sans données personnelles**
+(régénération : `node scripts/extract-biodiv-pedago-seed.js <dump.sql>`).
 
 ## Codes d’erreur
 
