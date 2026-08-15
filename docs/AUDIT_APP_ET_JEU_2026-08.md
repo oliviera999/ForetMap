@@ -35,8 +35,13 @@ temps, seule la file « fonctionnalités » (OLU) est fusionnée.
 
 **Le diagnostic tient donc en une phrase : ce projet trouve ses bugs remarquablement bien,
 et ne les corrige pas — parce que les correctifs ne sont pas fusionnés.** Chaque jour
-d'attente supplémentaire les éloigne de `main` (ils ciblent v1.85–1.87, `main` est à 1.88)
-et les met en conflit les uns avec les autres.
+d'attente supplémentaire les éloigne de `main` (ils ciblent v1.85–1.87) et les met en
+conflit les uns avec les autres.
+
+Le plus frappant : **l'outil qui règlerait cela existe déjà dans le dépôt et ne s'exécute
+sur aucune de ces PR**, parce qu'il ignore les brouillons — et qu'elles sont toutes en
+brouillon (§2.3). Le premier geste utile de tout ce document est un réglage de workflow,
+pas une refonte.
 
 Le reste de cet audit apporte ce que la file de PR ne couvre pas :
 
@@ -104,11 +109,48 @@ dorment depuis deux à trois semaines.
 ### 2.3 Pourquoi cela empire tout seul
 
 - **Dérive de version.** Chaque PR a bumpé `package.json` depuis sa base : #275 → 1.85.4,
-  #277 → 1.85.6, #284 → 1.87.2, #291 → 1.87.7, #295 → 1.87.9. `main` est à **1.88.0**.
-  **Toutes** entrent donc en conflit sur `package.json`, `package-lock.json` et la tête du
-  `CHANGELOG.md` — et **entre elles**. Le dépôt a une règle explicite pour cela
-  (`.cursor/rules/foretmap-pr-merge-conflict.mdc`) : elle constate le problème sans
-  l'endiguer, parce qu'elle suppose une fusion rapide.
+  #277 → 1.85.6, #284 → 1.87.2, #291 → 1.87.7, #295 → 1.87.9. `main` était à **1.88.0** au
+  moment de l'audit. **Toutes** entrent donc en conflit sur `package.json`,
+  `package-lock.json` et la tête du `CHANGELOG.md` — et **entre elles**.
+- **🔴 Le remède existe déjà… et il est désactivé exactement là où il faudrait.** Le dépôt
+  dispose d'un workflow `auto-resolve-conflicts.yml` (+ `scripts/auto-resolve-conflicts.js`)
+  qui fait précisément ce qu'il faut : à chaque push sur `main` et **toutes les heures**, il
+  réintègre `main` dans les PR ouvertes et résout sans risque les conflits récurrents —
+  `CHANGELOG.md` par union, bumps `package.json` / `package-lock.json`. Excellente idée,
+  correctement implémentée.
+
+  **Mais il ignore les brouillons.** `AUTO_RESOLVE_INCLUDE_DRAFTS` ne vaut `'1'` que sur un
+  déclenchement **manuel** (`workflow_dispatch`) ; les exécutions horaires et sur push
+  passent `'0'`, et le script coupe court :
+  `if (pr.isDraft && !includeDrafts) { … ignorée }` (`scripts/auto-resolve-conflicts.js:370`).
+
+  Or **les 26 PR de la file sont toutes en brouillon**. L'automatisation qui maintiendrait
+  le backlog fusionnable ne s'exécute donc sur **aucune** de ses PR. C'est le seul constat
+  de ce document dont le correctif tient en **une ligne** : passer `include_drafts` à `1`
+  pour la planification horaire (ou sortir les PR de l'état brouillon).
+
+  _Vérifié en conditions réelles : ce workflow s'est déclenché sur la PR de cet audit à la
+  seconde où elle est passée « prête à relire », et a résolu les conflits
+  `package.json` / `package-lock.json` tout seul. Il marche — il ne voit simplement pas la
+  file._
+
+- **🔴 Et quand il agit, il laisse la PR sans CI.** Second effet, découvert en observant la
+  même PR : le workflow pousse sa résolution avec le `GITHUB_TOKEN` par défaut, **qui ne
+  re-déclenche aucun workflow**. Le fichier le documente lui-même (« _un PAT permet de
+  RE-DÉCLENCHER la CI sur la branche de PR après push ; à défaut, la résolution est poussée
+  sans relancer la CI_ ») et `AUTO_MERGE_PAT` n'est manifestement pas configuré : après
+  résolution, le nouveau head s'est retrouvé avec **zéro check** et un `mergeable_state`
+  bloqué à `unstable`, sans reprise spontanée. Il a fallu un commit vide pour relancer la
+  CI.
+
+  **Conséquence sur la recommandation** : activer `include_drafts` ne suffit pas. Sans
+  `AUTO_MERGE_PAT`, on remplacerait 26 PR en conflit par 26 PR résolues **mais non
+  vérifiées** — un état plus trompeur que le précédent, parce qu'il a l'air sain. Les deux
+  réglages vont ensemble.
+
+- **Une règle documentaire, mais pas de garde-fou.** `.cursor/rules/foretmap-pr-merge-conflict.mdc`
+  demande de vérifier les autres PR qui bumpent à chaque publication : elle constate le
+  problème sans l'endiguer, parce qu'elle suppose une fusion rapide.
 - **Chevauchement de code.** #275 et #277 modifient toutes deux `lib/glQcmChoices.js` dans
   la **même fonction** (`presentQuestion` / `verifyPresentationAnswer`). Fusionner l'une
   rendra l'autre conflictuelle. Plus on attend, plus la résolution demande de
@@ -121,9 +163,16 @@ dorment depuis deux à trois semaines.
 
 ### 2.4 Recommandation — c'est le lot 0, avant tout le reste
 
+0. **Rendre l'auto-résolution opérante sur la file, en deux réglages indissociables** :
+   activer `include_drafts` sur la planification horaire d'`auto-resolve-conflicts.yml`
+   **et** configurer le secret `AUTO_MERGE_PAT`. Le premier sans le second produirait 26 PR
+   résolues mais sans CI — un état plus trompeur que le conflit, parce qu'il a l'air sain.
+   Avec les deux, la file redevient mécaniquement fusionnable **et vérifiée**, sans qu'on
+   ait rien décidé d'autre. _(§2.3)_
 1. **Décider explicitement du sort de cette file.** Soit ces PR sont des propositions
    valides et il faut les fusionner ; soit elles ne le sont pas et il faut les fermer. Le
-   statu quo — les laisser ouvertes — est la seule option qui coûte sans rien rapporter.
+   statu quo — les laisser ouvertes **et en brouillon** — est la seule option qui coûte sans
+   rien rapporter.
 2. **Fusionner par lots thématiques, du plus ancien au plus récent**, en commençant par la
    sécurité : #277 + #275 (QCM) puis #284, #285, #286, #276, #272, #267. Résoudre les
    conflits de version en faveur de `main` (garder la version de `main`, réappliquer un
@@ -131,7 +180,8 @@ dorment depuis deux à trois semaines.
 3. **Changer la règle de bump.** Faire porter le `bump` de `package.json` **à la fusion**
    (au moment du merge, ou par un job dédié) et non dans chaque branche. La cause première
    des conflits est que chaque PR touche la même ligne du même fichier — c'est évitable par
-   construction, pas par vigilance.
+   construction, pas par vigilance. Cela reste vrai même avec l'auto-résolution active :
+   mieux vaut supprimer le conflit que le réparer soixante fois.
 4. **Plafonner la file.** Si le pipeline d'investigation produit une PR par jour, il faut un
    rythme de fusion d'au moins une par jour, sinon une pause du pipeline. Une file qui ne
    se vide pas n'est pas un backlog, c'est un dépotoir — et les correctifs de sécurité y
@@ -767,9 +817,12 @@ Classé par **rendement**, pas par difficulté.
 
 ### Lot 0 — Vider la file de correctifs (préalable à tout le reste)
 
-0. Décider du sort des 26 PR ouvertes ; fusionner par lots thématiques en commençant par la
-   sécurité (#277, #275, puis #284, #285, #286, #276, #272, #267) ; déplacer le bump de
-   version hors des branches pour supprimer la cause première des conflits. _(§2.4)_
+0. **Activer `include_drafts` sur la planification horaire d'`auto-resolve-conflicts.yml`
+   **et** configurer `AUTO_MERGE_PAT`** — les deux ensemble, sinon la file devient résolue
+   mais non vérifiée. Puis décider du sort des 26 PR ouvertes ; fusionner par lots
+   thématiques en commençant par la sécurité (#277, #275, puis #284, #285, #286, #276, #272,
+   #267) ; déplacer le bump de version hors des branches pour supprimer la cause première des
+   conflits. _(§2.3, §2.4)_
 
 ### Lot 1 — Rendre les deux régimes visibles (le lot le plus structurant côté joueur)
 
