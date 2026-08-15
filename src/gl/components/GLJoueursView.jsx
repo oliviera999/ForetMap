@@ -17,6 +17,7 @@ export function GLJoueursView({
   onSubTabChange,
   modules,
   vitalityEnabled,
+  heartsTradable = false,
   includeMarket,
   showStaffAdminUi,
   canModerateForum,
@@ -69,6 +70,7 @@ export function GLJoueursView({
               token={token}
               classId={classId}
               playerId={playerId}
+              heartsTradable={heartsTradable}
               selfHealthPoints={selfHealthPoints}
               selfPowerPoints={selfPowerPoints}
               onTradeCompleted={onTradeCompleted}

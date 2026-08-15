@@ -18,6 +18,8 @@ export const GL_DEFAULT_GAMEPLAY = {
   spellCastTeamScope: 'any_team',
   spellCastMjOnly: false,
   qcmMjOnly: false,
+  // Marché : cœurs non échangeables par défaut (seules les gemmes circulent).
+  marketHeartsEnabled: false,
 };
 
 /**
