@@ -7,6 +7,24 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Documentation — analyse du rapport de refonte de l'équilibrage G&L
+
+Nouveau document d'analyse `docs/GL_EQUILIBRAGE_ANALYSE_RAPPORT.md` : relecture critique du
+« Rapport de passation : refonte de l'équilibrage » de Gnomes & Licornes, **recertifiée sur le
+code** plutôt que sur le dump SQL daté qui servait de base au rapport. Aucun comportement métier
+modifié — le document analyse et propose.
+
+- **Recertification** des 12 constats techniques du rapport (câblage réel, `fichier:ligne`).
+  Constat principal : **aucun crédit de gemme n'est câblé sur le chemin QCM** — le robinet
+  effectif de l'économie est le geste du MJ, ce qui déplace le diagnostic d'équilibrage.
+- **Trois briques jugées « à construire » existent déjà** : états de chasse aux feuillets
+  (`gl_game_feuillet_states`), pot commun de sortilèges (support de la Consécration), application
+  d'un delta à toute une équipe (support du pont « Team Spirit → gemmes »).
+- **Cinq points d'attention non couverts par le rapport**, dont deux bloquants avant de faire
+  porter la conduite aux cœurs : les soldes de tous les joueurs sont visibles de la classe via le
+  Marché, et un cœur perdu peut y être racheté à un camarade.
+- **Ordre des opérations révisé** isolant ce qui ne dépend d'aucune décision d'architecture, et
+  réponses proposées aux 13 questions ouvertes du rapport.
 ### Doc — Audit : le remède aux conflits de PR existe déjà, mais ignore les brouillons
 
 Complément au §2.3/§2.4 de [`docs/AUDIT_APP_ET_JEU_2026-08.md`](docs/AUDIT_APP_ET_JEU_2026-08.md),
