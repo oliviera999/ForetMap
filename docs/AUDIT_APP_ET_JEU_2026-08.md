@@ -40,7 +40,8 @@ conflit les uns avec les autres.
 
 Le plus frappant : **l'outil qui règlerait cela existe déjà dans le dépôt et ne s'exécute
 sur aucune de ces PR**, parce qu'il ignore les brouillons — et qu'elles sont toutes en
-brouillon (§2.3). Le premier geste utile de tout ce document tient en une ligne de YAML.
+brouillon (§2.3). Le premier geste utile de tout ce document est un réglage de workflow,
+pas une refonte.
 
 Le reste de cet audit apporte ce que la file de PR ne couvre pas :
 
@@ -133,6 +134,20 @@ dorment depuis deux à trois semaines.
   `package.json` / `package-lock.json` tout seul. Il marche — il ne voit simplement pas la
   file._
 
+- **🔴 Et quand il agit, il laisse la PR sans CI.** Second effet, découvert en observant la
+  même PR : le workflow pousse sa résolution avec le `GITHUB_TOKEN` par défaut, **qui ne
+  re-déclenche aucun workflow**. Le fichier le documente lui-même (« _un PAT permet de
+  RE-DÉCLENCHER la CI sur la branche de PR après push ; à défaut, la résolution est poussée
+  sans relancer la CI_ ») et `AUTO_MERGE_PAT` n'est manifestement pas configuré : après
+  résolution, le nouveau head s'est retrouvé avec **zéro check** et un `mergeable_state`
+  bloqué à `unstable`, sans reprise spontanée. Il a fallu un commit vide pour relancer la
+  CI.
+
+  **Conséquence sur la recommandation** : activer `include_drafts` ne suffit pas. Sans
+  `AUTO_MERGE_PAT`, on remplacerait 26 PR en conflit par 26 PR résolues **mais non
+  vérifiées** — un état plus trompeur que le précédent, parce qu'il a l'air sain. Les deux
+  réglages vont ensemble.
+
 - **Une règle documentaire, mais pas de garde-fou.** `.cursor/rules/foretmap-pr-merge-conflict.mdc`
   demande de vérifier les autres PR qui bumpent à chaque publication : elle constate le
   problème sans l'endiguer, parce qu'elle suppose une fusion rapide.
@@ -148,10 +163,12 @@ dorment depuis deux à trois semaines.
 
 ### 2.4 Recommandation — c'est le lot 0, avant tout le reste
 
-0. **Le geste à une ligne, à faire en premier** : activer `include_drafts` sur la
-   planification horaire d'`auto-resolve-conflicts.yml`. La file redevient mécaniquement
-   fusionnable sans qu'on ait rien décidé d'autre, et le coût de la décision suivante baisse
-   d'un cran. _(§2.3)_
+0. **Rendre l'auto-résolution opérante sur la file, en deux réglages indissociables** :
+   activer `include_drafts` sur la planification horaire d'`auto-resolve-conflicts.yml`
+   **et** configurer le secret `AUTO_MERGE_PAT`. Le premier sans le second produirait 26 PR
+   résolues mais sans CI — un état plus trompeur que le conflit, parce qu'il a l'air sain.
+   Avec les deux, la file redevient mécaniquement fusionnable **et vérifiée**, sans qu'on
+   ait rien décidé d'autre. _(§2.3)_
 1. **Décider explicitement du sort de cette file.** Soit ces PR sont des propositions
    valides et il faut les fusionner ; soit elles ne le sont pas et il faut les fermer. Le
    statu quo — les laisser ouvertes **et en brouillon** — est la seule option qui coûte sans
@@ -800,11 +817,12 @@ Classé par **rendement**, pas par difficulté.
 
 ### Lot 0 — Vider la file de correctifs (préalable à tout le reste)
 
-0. **Activer `include_drafts` sur la planification horaire d'`auto-resolve-conflicts.yml`**
-   — une ligne, et la file redevient fusionnable toute seule. Puis décider du sort des 26 PR
-   ouvertes ; fusionner par lots thématiques en commençant par la sécurité (#277, #275, puis
-   #284, #285, #286, #276, #272, #267) ; déplacer le bump de version hors des branches pour
-   supprimer la cause première des conflits. _(§2.3, §2.4)_
+0. **Activer `include_drafts` sur la planification horaire d'`auto-resolve-conflicts.yml`
+   **et** configurer `AUTO_MERGE_PAT`** — les deux ensemble, sinon la file devient résolue
+   mais non vérifiée. Puis décider du sort des 26 PR ouvertes ; fusionner par lots
+   thématiques en commençant par la sécurité (#277, #275, puis #284, #285, #286, #276, #272,
+   #267) ; déplacer le bump de version hors des branches pour supprimer la cause première des
+   conflits. _(§2.3, §2.4)_
 
 ### Lot 1 — Rendre les deux régimes visibles (le lot le plus structurant côté joueur)
 
