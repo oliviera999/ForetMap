@@ -121,6 +121,15 @@ describe('DiscoveryTour', () => {
     expect(onNext).toHaveBeenCalledTimes(1);
   });
 
+  it('affiche l’étiquette de locuteur seulement si un nom est fourni', () => {
+    const { unmount } = render(<DiscoveryTour active={makeActive(0)} />);
+    expect(document.querySelector('[data-speech-bubble-speaker]')).toBeNull();
+    unmount();
+
+    render(<DiscoveryTour active={makeActive(0)} speakerName="OLU" />);
+    expect(document.querySelector('[data-speech-bubble-speaker]')).toHaveTextContent('OLU');
+  });
+
   it('Échap arrête le parcours même pendant la frappe', () => {
     const onStop = vi.fn();
     render(<DiscoveryTour active={makeActive(0)} onStop={onStop} />);
