@@ -36,10 +36,25 @@ audit transversal ForetMap + Gnomes & Licornes, centré sur **ce que le joueur p
   lisible avant de répondre, et le score d'équipe est rejouable pendant 15 minutes. Point
   **non couvert** par les PR en attente : une équipe de 5 marque +5 sur la même question,
   chaque joueur obtenant sa propre présentation.
+- **Les deux régimes de jeu ne sont visibles que pour un seul** : GL se joue en séance
+  (plateau animé par le MJ) **et hors séance** (feuillets, marquage « appris », carnet,
+  entraînement). Recherche exhaustive sur `src/`, `lib/`, `data/` et `docs/reference/` :
+  **zéro occurrence** de « hors séance » ou équivalent. L'onglet d'arrivée est toujours
+  Cartes ; le statut de la partie (`draft`/`live`/`paused`/`ended`) n'est lu côté front que
+  par la console MJ ; hors séance, les clics du joueur sur le plateau n'ont aucun effet et
+  aucun message ne l'explique. L'aide contextuelle (26 entrées) se termine partout par une
+  consigne d'administration affichée à l'élève. Techniquement le hors séance fonctionne,
+  mais l'acquisition de feuillets est dure-gatée sur `gameId` avec un `return null`
+  silencieux (`routes/gl/learning.js:132-133`) : un élève jamais affecté à une équipe peut
+  marquer « appris » sans jamais gagner un feuillet, sans le savoir.
 - **Premier écran d'un nouveau joueur** : sans équipe attribuée — l'état de départ normal —
   l'onglet Cartes affiche `/maps/map-foret.svg`, la carte de **ForetMap**, sans mascotte,
   sans repère et sans message. Les fallbacks `Suspense` (`gl-tab-loading`) n'ont par ailleurs
   **aucun style** : les chargements d'onglet sont des pages blanches.
+- **Pourquoi ces deux points n'ont jamais été attrapés** : la fixture e2e code en dur
+  `status = 'live'` et affecte aussitôt le joueur à une équipe
+  (`e2e/fixtures/gl.fixture.js:22-23`). Les 41 scénarios jouent donc tous en séance, dans
+  une partie active, avec une équipe — le trou de couverture épouse le trou de conception.
 - **Points robustes confirmés** : ré-hydratation des droits en base à chaque requête,
   isolement produit appliqué jusqu'au socket, assainissement Markdown par liste blanche,
   règlement d'échange du Marché transactionnel et verrouillé, migrations idempotentes,
