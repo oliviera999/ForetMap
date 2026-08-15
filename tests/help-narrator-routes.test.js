@@ -133,13 +133,14 @@ test('le narrateur est exposé dans GET /api/settings/public', async () => {
     .send({ speakerName: 'OLU', portraits: { neutre: { bust: '/uploads/olu-neutre.webp' } } })
     .expect(200);
 
+  // La route enveloppe la configuration : `{ settings: <nested> }`.
   const res = await request(app).get('/api/settings/public').expect(200);
-  const narrator = res.body?.content?.help?.narrator;
-  assert.ok(narrator, 'content.help.narrator absent du payload public');
-  assert.strictEqual(narrator.speakerName, 'OLU');
-  assert.deepStrictEqual(narrator.portraits.neutre, { bust: '/uploads/olu-neutre.webp' });
+  const help = res.body?.settings?.content?.help;
+  assert.ok(help?.narrator, 'content.help.narrator absent du payload public');
+  assert.strictEqual(help.narrator.speakerName, 'OLU');
+  assert.deepStrictEqual(help.narrator.portraits.neutre, { bust: '/uploads/olu-neutre.webp' });
   // Le corpus reste servi à côté : les deux réglages coexistent.
-  assert.ok(res.body?.content?.help?.registry, 'content.help.registry absent du payload public');
+  assert.ok(help?.registry, 'content.help.registry absent du payload public');
 });
 
 test('réinitialiser le corpus d’aide ne touche pas au narrateur', async () => {
