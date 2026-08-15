@@ -868,6 +868,7 @@ const SETTINGS_VALUE_VALIDATORS = new Map([
       return { value: validated.value };
     },
   ],
+  ['gameplay.market_hearts_enabled', booleanSettingValidator('La valeur doit être booléenne')],
   [
     'platform.brand',
     (value) => {

@@ -137,8 +137,9 @@ les parties), plafonnées à 99 :
 - **Gemmes 💎** : les points de pouvoir.
 
 Ces points circulent de plusieurs manières : le MJ peut les ajuster (par joueur ou par
-équipe), les sorts en coûtent, le marché permet de s'en échanger, et les feuillets de
-Sélène peuvent en coûter (gemmes) ou en rapporter (cœurs).
+équipe), les sorts en coûtent, le marché permet d'échanger des **gemmes** entre camarades
+(les **cœurs**, eux, ne s'échangent pas par défaut), et les feuillets de Sélène peuvent en
+coûter (gemmes) ou en rapporter (cœurs).
 
 À côté de cette « vitalité » individuelle existe un **score d'équipe**, cumulé par
 partie, alimenté notamment par la résolution d'actions — c'est un compteur distinct,

@@ -249,9 +249,13 @@ automatique, permanent et sans intention. → **Prérequis absolu à la décisio
 cœurs des tiers (n'exposer que les gemmes dans le Marché, ou n'exposer aucun solde et laisser la
 négociation le révéler).
 
-### 4.2 🔴 Le Marché annule la sanction
+### 4.2 ✅ Le Marché annule la sanction — _corrigé_
 
-`gl_market_trades` permet à deux joueurs de la même classe de s'échanger **cœurs et gemmes**
+> **Traité depuis.** Le réglage `gameplay.market_hearts_enabled` (défaut **`false`**,
+> migration `174`) restreint le Marché aux gemmes. Le constat ci-dessous décrit l'état
+> antérieur, conservé pour la traçabilité de la décision.
+
+`gl_market_trades` permettait à deux joueurs de la même classe de s'échanger **cœurs et gemmes**
 (`lib/glMarket.js:206-222`). Un élève qui perd un cœur pour un écart de conduite peut donc en
 **racheter un** à un camarade, contre des gemmes, en trois clics.
 
@@ -303,17 +307,17 @@ quoi on calibrera à l'aveugle et on ne saura pas mesurer l'effet des changement
 L'ordre du §9 est bon sur le fond ; je propose de le réordonner autour d'un principe : **ce qui
 ne dépend pas de la fourche pivot ne doit pas l'attendre.**
 
-| Lot   | Contenu                                                                                                                                                         | Dépend de la fourche ? | Coût   |
-| ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------- | ------ |
-| **0** | **Sécurisation** — `mj_required` sur les 5 sorts à impact réel ; masquer les soldes des tiers ; Marché limité aux gemmes ; corriger `nb_cases_plateau` côté QCM | **Non**                | Faible |
-| **1** | **Mesure** — tableau de bord d'économie sur `gl_game_events`, ligne de base                                                                                     | Non                    | Faible |
-| **2** | **Cœurs** — plafond de jeu distinct du plafond technique + remise à plein par chapitre                                                                          | Non                    | Moyen  |
-| **3** | **Savoir → progression** — bonne réponse ⇒ avancée, via l'auto-move existant                                                                                    | Non                    | Moyen  |
-| **4** | **Team Spirit → gemmes** — écran « bilan d'activité », sans nouvelle table                                                                                      | **Oui**                | Moyen  |
-| **5** | **Feuillets** — import des 190 avec `indice`, `cout_gemme = 0`, écran de chasse, bonus classe                                                                   | Non                    | Moyen  |
-| **6** | **Sorts** — élagage, consolidation « Répit », quotas par trimestre (vrai code)                                                                                  | Partiellement          | Moyen  |
-| **7** | **Journal** — collection auto + écriture libre à effet narratif                                                                                                 | Non                    | Moyen  |
-| **8** | **Re-simulation** sur données réelles, comparées à la ligne de base du lot 1                                                                                    | Oui                    | Faible |
+| Lot   | Contenu                                                                                                                                                                          | Dépend de la fourche ? | Coût   |
+| ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------- | ------ |
+| **0** | **Sécurisation** — `mj_required` sur les 5 sorts à impact réel ; masquer les soldes des tiers ; ~~Marché limité aux gemmes~~ (fait, §4.2) ; corriger `nb_cases_plateau` côté QCM | **Non**                | Faible |
+| **1** | **Mesure** — tableau de bord d'économie sur `gl_game_events`, ligne de base                                                                                                      | Non                    | Faible |
+| **2** | **Cœurs** — plafond de jeu distinct du plafond technique + remise à plein par chapitre                                                                                           | Non                    | Moyen  |
+| **3** | **Savoir → progression** — bonne réponse ⇒ avancée, via l'auto-move existant                                                                                                     | Non                    | Moyen  |
+| **4** | **Team Spirit → gemmes** — écran « bilan d'activité », sans nouvelle table                                                                                                       | **Oui**                | Moyen  |
+| **5** | **Feuillets** — import des 190 avec `indice`, `cout_gemme = 0`, écran de chasse, bonus classe                                                                                    | Non                    | Moyen  |
+| **6** | **Sorts** — élagage, consolidation « Répit », quotas par trimestre (vrai code)                                                                                                   | Partiellement          | Moyen  |
+| **7** | **Journal** — collection auto + écriture libre à effet narratif                                                                                                                  | Non                    | Moyen  |
+| **8** | **Re-simulation** sur données réelles, comparées à la ligne de base du lot 1                                                                                                     | Oui                    | Faible |
 
 Le lot 0 traite le risque n°1 du rapport et les deux 🔴 du §4 ci-dessus. Aucun de ses quatre
 points n'attend une décision d'architecture ; tous se défont facilement si l'architecture change.
@@ -402,9 +406,10 @@ sans toucher au catalogue.
 2. **Trois briques jugées « à construire » existent déjà** : les états de chasse aux feuillets, le
    pot commun de sortilèges (= Consécration), l'application d'un delta à toute une équipe
    (= Team Spirit → gemmes). La refonte est moins chère que le rapport ne le pense.
-3. **Deux points rouges sont à traiter avant la décision « cœurs = conduite »** : les soldes de
-   tous les élèves sont publics, et le Marché permet de racheter un cœur perdu. Sans ça,
-   la mécanique de conduite se retourne contre les élèves qu'elle cherche à ménager.
+3. **Deux points rouges étaient à traiter avant la décision « cœurs = conduite »** : les soldes de
+   tous les élèves sont publics, et le Marché permettait de racheter un cœur perdu — **ce second
+   point est corrigé** (§4.2). Sans cela, la mécanique de conduite se retourne contre les élèves
+   qu'elle cherche à ménager.
 
 ---
 
