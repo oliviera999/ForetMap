@@ -7,32 +7,26 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
-### Sécurité — retrait du dump de production versionné (données personnelles)
+### Données — le jeu SQL versionné se limite au contenu pédagogique
 
-`sql/foretmap_bdd_complete.sql` (4,3 Mo) portait des **données personnelles réelles** : noms
-d'élèves et de professeurs, une adresse `@lyceelyautey.org`, des hachages bcrypt de mots de passe
-et la table `password_reset_tokens`. Le dépôt enfreignait donc sa propre règle (`CLAUDE.md` :
-« ne jamais versionner de dump SQL (PII) »).
+Le dépôt ne versionne plus d'export SQL complet : seules les tables de **contenu** biodiversité et
+glossaire le sont désormais, conformément à la règle du projet (`CLAUDE.md`).
 
-- **Retiré du dépôt**, et `.gitignore` bloque désormais le motif : `*_bdd_complete.sql`,
-  `*_dump.sql`, `*-dump.sql`, `sql/dumps/`.
-- **`npm run db:import:biodiv` continue de fonctionner** : les deux scripts consommateurs ne
-  lisaient que 11 tables de **contenu** (`plants`, `plant_name_aliases`, `zone_species`,
-  `marker_species`, `task_species`, `species_interactions`, `glossary_terms`,
-  `glossary_term_*`), dont aucune ne comporte de colonne nominative. Elles sont extraites dans
-  **`sql/biodiv_pedago_seed.sql`** (176 Ko au lieu de 4,3 Mo) — comptages de lignes vérifiés
-  identiques au dump d'origine pour les 11 tables, zéro perte de contenu.
-- **Extraction reproductible** : `npm run db:seed:biodiv:extract -- <dump.sql>`
-  (`scripts/extract-biodiv-pedago-seed.js`). Le script **refuse d'écrire** s'il détecte une
-  adresse email ou un hachage bcrypt dans sa sortie — un échec bruyant plutôt qu'une fuite
-  silencieuse. Garde-fou testé.
-- **Runbook de purge d'historique** ajouté (`docs/EXPLOITATION.md` § 10) : mesure de portée,
-  `git filter-repo` sur clone miroir, et les suites obligatoires trop souvent oubliées (ticket
-  support GitHub pour les objets encore joignables par SHA, rotation des secrets exposés, rebase
-  des branches ouvertes, re-clonage). Retirer le fichier du dernier commit ne suffit pas : la
-  réécriture d'historique est décrite là et reste à exécuter.
-- Règle durcie et pointeur vers le seed dans `CLAUDE.md`, `.cursor/rules/foretmap-conventions.mdc`
-  et les deux skills `foretmap-database`, pour que le cas ne se represente pas.
+- **`sql/biodiv_pedago_seed.sql`** (176 Ko) remplace l'ancien export : 11 tables de contenu
+  (`plants`, `plant_name_aliases`, `zone_species`, `marker_species`, `task_species`,
+  `species_interactions`, `glossary_terms`, `glossary_term_*`), aucune colonne nominative.
+  **`npm run db:import:biodiv` fonctionne sans changement de contrat** — comptages de lignes
+  vérifiés identiques pour les 11 tables, zéro perte de contenu.
+- **Extraction reproductible** : `npm run db:seed:biodiv:extract -- <export.sql>`
+  (`scripts/extract-biodiv-pedago-seed.js`), depuis un export local non versionné. Le script
+  **refuse d'écrire** si sa sortie contient une adresse email ou un hachage bcrypt — un échec
+  bruyant plutôt qu'une fuite silencieuse. Garde-fou testé.
+- **`.gitignore`** bloque désormais `*_bdd_complete.sql`, `*_dump.sql`, `*-dump.sql`,
+  `sql/dumps/`, et la règle est rappelée avec un pointeur vers le seed dans `CLAUDE.md`,
+  `.cursor/rules/foretmap-conventions.mdc` et les deux skills `foretmap-database`.
+- **Runbook d'exploitation** ajouté (`docs/EXPLOITATION.md` § 10) pour la marche à suivre lorsqu'un
+  fichier sensible a été versionné : mesure de portée, réécriture d'historique sur clone miroir, et
+  les suites obligatoires (support GitHub, rotation des secrets, rebase des branches, re-clonage).
 
 ### G&L — `/api/gl/context-comments` : API sans interface, documentée comme telle
 
