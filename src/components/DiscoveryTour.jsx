@@ -73,7 +73,14 @@ function computeCardPosition(rect, placement) {
  * ciblé par l'étape courante et affiche une carte explicative avec la navigation
  * (Précédent / Suivant / Passer). Rendu via un portail sur `document.body`.
  */
-export function DiscoveryTour({ active, isTeacher = false, onNext, onPrev, onStop }) {
+export function DiscoveryTour({
+  active,
+  isTeacher = false,
+  speakerName = '',
+  onNext,
+  onPrev,
+  onStop,
+}) {
   const [rect, setRect] = useState(null);
   const rafRef = useRef(0);
   const bubbleRef = useRef(null);
@@ -210,6 +217,7 @@ export function DiscoveryTour({ active, isTeacher = false, onNext, onPrev, onSto
           key={stepIndex}
           ref={bubbleRef}
           className="discovery-tour__bubble"
+          speakerName={speakerName}
           text={body}
         />
         <div className="discovery-tour__dots" aria-hidden="true">

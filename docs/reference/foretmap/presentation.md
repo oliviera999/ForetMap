@@ -134,6 +134,11 @@ existe, lui, sur la carte de travail des élèves.
   ainsi que la touche `Échap`, restent utilisables à tout moment sans attendre la fin du
   texte. Pour les personnes ayant activé la **réduction des animations** dans leur système,
   le texte s'affiche d'emblée en entier.
+- Ces bulles peuvent porter le **nom d'un narrateur** (par défaut « OLU »), affiché au-dessus du
+  texte. Un réglage d'administration permet de changer ce nom, de le retirer, ou d'**éteindre
+  complètement le narrateur** sans intervention technique. Ce même réglage accueillera les
+  portraits du personnage lorsqu'ils seront produits ; tant qu'aucun n'est fourni, l'application
+  se rabat sur une silhouette dessinée — il n'y a jamais d'emplacement vide.
 
 ### L'administration
 
