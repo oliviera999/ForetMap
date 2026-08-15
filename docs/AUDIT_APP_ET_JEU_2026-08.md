@@ -40,13 +40,20 @@ et les met en conflit les uns avec les autres.
 
 Le reste de cet audit apporte ce que la file de PR ne couvre pas :
 
-1. **Le passage à l'échelle « une classe »** (§6.1) — un défaut d'architecture temps réel
+1. **Le jeu a deux régimes et l'application n'en montre qu'un** (§5.0) — GL se joue en
+   séance (plateau animé par le MJ) **et hors séance** (feuillets, marquage « appris »,
+   carnet, entraînement). Recherche exhaustive sur `src/`, `lib/`, `data/` et
+   `docs/reference/` : **zéro occurrence** de « hors séance » ou équivalent. L'élève arrive
+   toujours sur l'onglet Cartes, ne voit jamais le statut de la partie, et hors séance ses
+   clics sur le plateau n'ont aucun effet — sans un mot. C'est un défaut de **conception de
+   l'expérience**, pas de code, et il conditionne tout le reste de la perception du jeu.
+2. **Le passage à l'échelle « une classe »** (§6.1) — un défaut d'architecture temps réel
    qui multiplie la charge par le nombre d'élèves **et** par la durée de la séance. **Aucune
-   PR ouverte ne le traite.** C'est le risque n°1 restant.
-2. **Les ruptures d'expérience côté joueur** (§5.2) — le premier écran d'un nouveau joueur
+   PR ouverte ne le traite.** C'est le risque technique n°1 restant.
+3. **Les ruptures d'expérience côté joueur** (§5.2) — le premier écran d'un nouveau joueur
    est vide et non expliqué, les chargements d'onglet sont des pages blanches. Correctifs
    courts, rendement perçu maximal. **Aucune PR ouverte ne les traite.**
-3. **Réseau et conformité** (§6.5, §6.6) — polices Google en CDN pour une application
+4. **Réseau et conformité** (§6.5, §6.6) — polices Google en CDN pour une application
    scolaire destinée à des mineurs, CSP quasi absente, GL sans PWA.
 
 ---
@@ -209,6 +216,95 @@ hooks **et** côté CSS.
 
 On suit un élève de 10 ans, de sa première connexion à sa première réponse juste.
 
+### 5.0 🔴 Le jeu a deux régimes, et l'application n'en montre qu'un
+
+**L'intention produit** (confirmée par le porteur du projet) : GL se joue **en séance**,
+animé par le MJ — le plateau, les tours, le dé, les QCM d'arrivée sur repère — **et hors
+séance**, seul : consulter les contenus, **marquer « appris »**, **trouver des feuillets**,
+tenir son carnet, s'entraîner aux QCM, échanger au marché, écrire au forum. Ce sont deux
+régimes complémentaires, pas un jeu et son accessoire.
+
+**Ce que l'application en dit : rien.** Recherche exhaustive sur `src/`, `lib/`, `data/` et
+`docs/reference/` — **zéro occurrence** de « hors séance », « hors partie », « entre deux
+séances », « à la maison ». Ni l'interface, ni l'aide contextuelle, ni la documentation de
+référence ne mentionnent l'existence du second régime. Un élève ne peut pas deviner qu'il a
+le droit de jouer quand la classe est finie ; un professeur ne peut pas le lui dire en
+s'appuyant sur l'outil.
+
+Quatre mécanismes concrets renforcent cette invisibilité :
+
+**(a) L'onglet d'arrivée est toujours la surface de séance.**
+`defaultTabForGlAuth` renvoie `maps` pour tout joueur, en toute circonstance
+(`src/gl/utils/glAppShellHelpers.js:205-208`). Hors séance, l'élève atterrit donc
+précisément sur **la seule chose qu'il ne peut pas faire**, au lieu d'être conduit vers La
+nature, L'aventure ou Mon journal — c'est-à-dire vers le jeu qui lui est ouvert.
+
+**(b) Le statut de la partie n'est jamais montré au joueur.** `draft`, `live`, `paused`,
+`ended` : la seule lecture de `game.status` côté front est dans la console MJ
+(`GLGameMasterConsole.jsx:104`). Or `canPlayerMoveMascot` exige `status === 'live'`
+(`useGlGameRuntime.js:515`). Conséquence directe : **hors séance, l'élève clique sur la
+carte et il ne se passe rien — sans le moindre message.** Le jeu ne lui dit pas « la séance
+est terminée, mais tu peux continuer par ici » ; il ne lui dit rien du tout, ce qui se lit
+comme une panne.
+
+**(c) L'aide contextuelle est écrite pour l'administrateur, pas pour le joueur.** Les 26
+entrées de `data/gl/help.default.json` se terminent **toutes** par la même phrase :
+« _Les modules visibles dépendent des réglages MJ. Désactive un module dans Réglages
+plateforme pour épurer la navigation joueur._ » — une consigne d'administration affichée
+**à l'élève**, qui n'a ni les droits ni l'usage. Aucune entrée n'explique quoi faire, ni en
+séance ni hors séance. Le panneau d'aide, qui serait le véhicule naturel de la distinction
+entre les deux régimes, est aujourd'hui du remplissage.
+
+**(d) Techniquement, le hors séance fonctionne — mais à une condition non dite.** Deux
+comportements différents :
+
+- **Marquer « appris » est totalement indépendant de la partie** : l'acquittement est
+  indexé sur le lecteur (`buildReaderKey`), pas sur un jeu (`routes/gl/learning.js`,
+  `GET /api/gl/learning/me`). ✅ Fonctionne hors séance, toujours.
+- **L'acquisition de feuillets est dure-gatée sur une partie** :
+  `const gameId = parseGlId(req.body?.gameId ?? req.glAuth.gameId); if (!gameId) return null;`
+  (`routes/gl/learning.js:132-133`, et le même verrou pour la révélation par étude d'espèce
+  aux lignes 247-248). L'attribution est « best-effort » : en l'absence de partie, elle
+  renvoie `null` **en silence**, sans erreur ni message.
+
+  La bonne nouvelle : `resolveGlPlayerActiveMembership` (`routes/gl/auth.js:198-231`)
+  retourne aussi les parties `paused` et `ended` — elle ne fait que **classer** les `live`
+  en premier. Un élève déjà affecté à une équipe conserve donc son `gameId` entre les
+  séances, et l'acquisition de feuillets continue de marcher chez lui. **Mais un élève
+  jamais affecté à une équipe peut marquer « appris » indéfiniment sans jamais gagner un
+  seul feuillet**, sans qu'aucun écran ne le lui signale.
+
+**C'est le même défaut que le §5.2.1, vu par l'autre bout** : l'affectation à une équipe est
+la clé silencieuse de la moitié du jeu, et rien ne le dit.
+
+**(e) Pourquoi cela n'a jamais été attrapé.** La fixture e2e crée systématiquement la partie
+avec `status = 'live'` **en dur** (`e2e/fixtures/gl.fixture.js:22-23`) et affecte
+immédiatement le joueur à une équipe. **Les 41 scénarios jouent donc tous en séance, dans
+une partie active, avec une équipe attribuée.** Le régime hors séance et l'état « joueur
+sans équipe » — c'est-à-dire la moitié du produit et l'écran d'accueil de tout nouvel élève —
+ne sont couverts par **aucun** test de bout en bout. Le trou de couverture épouse exactement
+le trou de conception.
+
+**Recommandations** (par ordre de rendement) :
+
+1. **Router l'arrivée selon le régime.** Si aucune partie n'est `live`, l'onglet d'arrivée
+   devient La nature (ou le dernier onglet consulté), pas Cartes.
+2. **Afficher l'état du jeu au joueur**, en une ligne de chrome : « Séance en cours » /
+   « Hors séance — tu peux continuer à explorer, apprendre et retrouver des feuillets ».
+   C'est la phrase qui manque, et elle porte à elle seule la compréhension des deux régimes.
+3. **Expliquer sur la carte, hors séance**, plutôt que de laisser les clics sans effet :
+   remplacer le silence par « Le plateau s'anime pendant les séances. En attendant… » avec
+   deux ou trois liens vers ce qui est jouable maintenant.
+4. **Réécrire l'aide contextuelle pour le joueur** — c'est un chantier de contenu, pas de
+   code, et il croise directement le chantier OLU (§3), dont c'est précisément le rôle de
+   porter cette voix. Retirer d'abord la consigne d'administration des 26 entrées.
+5. **Décider du cas « appris sans équipe »** : soit l'acquisition de feuillets devient
+   possible hors partie (rattachée au joueur plutôt qu'à l'équipe), soit l'interface le dit
+   franchement (« tu pourras récupérer des feuillets dès que ton professeur t'aura mis dans
+   une équipe »). Le silence actuel est la seule option à exclure.
+6. **Documenter les deux régimes** dans `docs/reference/gl/presentation.md` et
+   `chapitres-et-progression.md` : aujourd'hui, la doc de référence décrit un jeu de séance.
+
 ### 5.1 Ce qui est réussi et qu'il faut protéger
 
 - **Le mode découverte est un vrai produit d'appel.** `GLGuestDemoBoard.jsx` n'est pas une
@@ -257,11 +353,13 @@ car il est conditionné à `gameState?.game` (`AppGL.jsx:872`).
 
 **Correctif** : un état vide explicite dans `GLGameBoard` (ou en amont dans `GLMapView`)
 quand `chapter` est absent — « Ta partie n'a pas encore commencé. Ton professeur va
-t'attribuer une équipe. » avec, si le module le permet, un renvoi vers Le monde G&L pour
-patienter utilement. Et **supprimer le repli `/maps/map-foret.svg`** d'un composant GL : un
-produit ne doit jamais afficher l'illustration de l'autre.
+t'attribuer une équipe. » **et surtout un renvoi vers ce qui est jouable dès maintenant**
+(La nature, Le monde G&L, Mon journal), conformément au §5.0 : cet écran est le meilleur
+endroit pour apprendre au joueur que le jeu ne se limite pas au plateau. Et **supprimer le
+repli `/maps/map-foret.svg`** d'un composant GL : un produit ne doit jamais afficher
+l'illustration de l'autre.
 
-#### 5.2.2 🟠 Le joueur est spectateur dans le mode de jeu principal
+#### 5.2.2 🟠 Sur le plateau, le joueur est spectateur — ce qui n'est un problème que parce que le §5.0 n'est pas dit
 
 Le déplacement autonome du joueur exige **toutes** ces conditions
 (`useGlGameRuntime.js:510-517`) : réglage `mascotMoveActor === 'players'`, équipe attribuée,
@@ -272,16 +370,23 @@ classique, celui qui donne son sens au dé — **le joueur ne peut jamais dépla
 mascotte**. Seul le MJ le peut, et lui seul peut faire avancer du résultat du dé
 (`canDiceAdvancePath` exige `isMjMapControls`, lignes 69-73).
 
-Ce n'est pas un bug : c'est cohérent avec l'animation en classe au vidéoprojecteur. Mais il
-faut le nommer, car il détermine l'expérience : **dans le mode le plus « jeu de plateau »,
-l'élève regarde ; dans le mode libre, il joue.** Deux produits différents derrière un même
-réglage.
+Ce n'est pas un bug : c'est cohérent avec l'animation en classe au vidéoprojecteur, où le
+plateau est l'écran **du groupe** et non celui de l'élève. **Lu à travers le §5.0, ce choix
+devient même le bon** : le plateau est la surface de la séance ; l'agentivité de l'élève
+vit ailleurs — contenus, feuillets, marquage « appris », carnet — et elle est disponible en
+permanence.
 
-**Recommandation** : l'assumer dans les profils de séance (« séance projetée » vs « séance
-sur tablettes ») et le documenter dans `docs/reference/gl/carte-du-royaume.md`, plutôt que
-de laisser le MJ le découvrir en cours de séance. Alternative technique si l'on veut rendre
-la main à l'élève : autoriser le jet de dé joueur à avancer **sa propre** équipe sur le
-chemin numéroté, garde de tour comprise (`last_dice_round_number` existe déjà).
+**Le défaut n'est donc pas la passivité sur le plateau : c'est que rien ne l'explique.** Un
+élève qui ne connaît que l'onglet Cartes — celui sur lequel l'application le dépose par
+défaut — conclut légitimement que le jeu consiste à regarder, et qu'il ne marche pas quand
+la séance est finie.
+
+**Recommandation** : traiter ce point avec le §5.0 plutôt que séparément. Nommer les deux
+surfaces dans les profils de séance (« séance projetée » vs « séance sur tablettes ») et
+dans `docs/reference/gl/carte-du-royaume.md`. Alternative technique si l'on veut aussi de
+l'agentivité **sur le plateau** : autoriser le jet de dé joueur à avancer **sa propre**
+équipe sur le chemin numéroté, garde de tour comprise (`last_dice_round_number` existe
+déjà).
 
 #### 5.2.3 🟠 Les écrans de chargement sont littéralement invisibles
 
@@ -585,7 +690,19 @@ scénarios choisis pour leur stabilité — qui **bloque** la CI ; le reste en
 `continue-on-error`, exécuté la nuit (`schedule`). Mieux vaut 6 scénarios qui font foi que
 41 qui ne font autorité sur rien.
 
-### 7.3 Ce que la CI garde correctement
+### 7.3 🟠 Le hors séance n'est couvert par aucun scénario
+
+Angle mort plus grave encore que le précédent, parce qu'il n'est pas un choix : la fixture
+GL crée toujours la partie avec `status = 'live'` en dur
+(`e2e/fixtures/gl.fixture.js:22-23`) et affecte immédiatement le joueur à une équipe.
+
+**Les 41 scénarios décrivent donc un seul régime de jeu sur les deux** (§5.0), et ne
+rencontrent jamais l'écran d'accueil d'un élève sans équipe (§5.2.1). Ajouter deux
+scénarios — « joueur sans équipe » et « joueur hors séance (partie `ended`) » — vaut
+probablement plus que dix scénarios supplémentaires en séance, et ils appartiennent au
+sous-ensemble bloquant recommandé ci-dessus.
+
+### 7.4 Ce que la CI garde correctement
 
 `lint` → `format:check` → `test:ui` en job parallèle sans MySQL, puis backend + couverture +
 build en job avec MariaDB : le découpage est intelligent (le job `quality` ne paie pas les
@@ -654,48 +771,67 @@ Classé par **rendement**, pas par difficulté.
    sécurité (#277, #275, puis #284, #285, #286, #276, #272, #267) ; déplacer le bump de
    version hors des branches pour supprimer la cause première des conflits. _(§2.4)_
 
-### Lot 1 — Les premières secondes du joueur (petit, très rentable)
+### Lot 1 — Rendre les deux régimes visibles (le lot le plus structurant côté joueur)
 
-1. État vide explicite du plateau quand il n'y a pas de partie ; suppression du repli
-   `/maps/map-foret.svg` côté GL. _(§5.2.1)_
-2. Styles réels pour `gl-tab-loading` + `role="status"`. _(§5.2.3)_
-3. `role="alert"` et bouton de fermeture sur la bannière d'erreur. _(§5.2.4)_
-4. Écoute de `gl:game:subscription-refused` (ou suppression de l'émission). _(§5.2.5)_
+1. **Routage d'arrivée selon le régime** : sans partie `live`, l'onglet d'arrivée n'est plus
+   Cartes. _(§5.0-1)_
+2. **Indicateur d'état permanent** dans le chrome joueur : « Séance en cours » / « Hors
+   séance — tu peux continuer à explorer, apprendre et retrouver des feuillets ». _(§5.0-2)_
+3. **Plateau hors séance : expliquer au lieu de ne rien faire** — message + liens vers ce
+   qui est jouable maintenant. _(§5.0-3)_
+4. **Trancher le cas « appris sans équipe »** : acquisition de feuillets possible hors
+   partie, ou message explicite. Aujourd'hui l'échec est silencieux
+   (`routes/gl/learning.js:132-133`). _(§5.0-5)_
+5. **Aide contextuelle** : retirer la consigne d'administration des 26 entrées de
+   `data/gl/help.default.json`, puis les réécrire pour le joueur — à croiser avec le
+   chantier OLU. _(§5.0-4)_
+6. **Documenter les deux régimes** dans `docs/reference/gl/`. _(§5.0-6)_
 
-### Lot 2 — Charge : le trio à coût quasi nul
+### Lot 2 — Les premières secondes du joueur (petit, très rentable)
 
-5. Retrait de `replay` de la réponse `GET /api/gl/games/:id`. _(§6.1)_
-6. `events` borné ou supprimé ; `useGLMascotStateMachine` alimenté par l'événement socket.
-   _(§6.1)_
-7. Requête de glossaire déplacée dans la branche « bonne réponse ». _(§6.3)_
-8. `GET /api/gl/games/:id` ajouté au scénario Artillery GL, avec journal pré-rempli. _(§6.1)_
+7. État vide explicite du plateau quand il n'y a pas de partie, **avec renvoi vers le hors
+   séance** ; suppression du repli `/maps/map-foret.svg` côté GL. _(§5.2.1)_
+8. Styles réels pour `gl-tab-loading` + `role="status"`. _(§5.2.3)_
+9. `role="alert"` et bouton de fermeture sur la bannière d'erreur. _(§5.2.4)_
+10. Écoute de `gl:game:subscription-refused` (ou suppression de l'émission). _(§5.2.5)_
 
-### Lot 3 — Intégrité du jeu (au-delà du lot 0)
+### Lot 3 — Charge : le trio à coût quasi nul
 
-9. Règle « une question du plateau rapporte des points **par équipe** » appliquée côté
-   serveur. _(§6.2)_
-10. Dépassement du plafond 99 refusé ou affiché dans l'échange. _(§6.4)_
+11. Retrait de `replay` de la réponse `GET /api/gl/games/:id`. _(§6.1)_
+12. `events` borné ou supprimé ; `useGLMascotStateMachine` alimenté par l'événement socket.
+    _(§6.1)_
+13. Requête de glossaire déplacée dans la branche « bonne réponse ». _(§6.3)_
+14. `GET /api/gl/games/:id` ajouté au scénario Artillery GL, avec journal pré-rempli. _(§6.1)_
 
-### Lot 4 — Réseau et conformité
+### Lot 4 — Intégrité du jeu (au-delà du lot 0)
 
-11. Auto-hébergement des polices (même recette que la police emoji). _(§6.6)_
-12. CSP progressive : `frame-ancestors`/`object-src`/`base-uri`/`form-action`, puis
+15. Règle « une question du plateau rapporte des points **par équipe** » appliquée côté
+    serveur. _(§6.2)_
+16. Dépassement du plafond 99 refusé ou affiché dans l'échange. _(§6.4)_
+
+### Lot 5 — Réseau et conformité
+
+17. Auto-hébergement des polices (même recette que la police emoji). _(§6.6)_
+18. CSP progressive : `frame-ancestors`/`object-src`/`base-uri`/`form-action`, puis
     `default-src` en Report-Only. _(§6.5)_
-13. Manifeste + service worker pour GL, alignés sur ForetMap. _(§6.7)_
+19. Manifeste + service worker pour GL, alignés sur ForetMap. _(§6.7)_ — d'autant plus
+    justifié que le hors séance implique un usage **hors du réseau de l'établissement**.
 
-### Lot 5 — Arbitrages produit (décision avant code)
+### Lot 6 — Arbitrages produit (décision avant code)
 
-14. Défaut du verrou de re-tentative : 3 jours → 0 (ou minutes). _(§5.3.2)_
-15. Mode « repères numérotés » : assumer le joueur spectateur et le documenter, **ou** rendre
-    le jet de dé joueur agissant. _(§5.2.2)_
-16. Intégrer le corpus « Les deux peuples du seuil » dans les contenus du jeu. _(§5.3.1)_
+20. Défaut du verrou de re-tentative : 3 jours → 0 (ou minutes) — d'autant plus critique
+    hors séance, où personne n'est là pour débloquer l'élève. _(§5.3.2)_
+21. Mode « repères numérotés » : assumer le plateau comme surface de séance et le
+    documenter, **ou** rendre le jet de dé joueur agissant. _(§5.2.2)_
+22. Intégrer le corpus « Les deux peuples du seuil » dans les contenus du jeu. _(§5.3.1)_
 
-### Lot 6 — Dette structurelle (avant le prochain gros lot de gameplay)
+### Lot 7 — Dette structurelle (avant le prochain gros lot de gameplay)
 
-17. `GLGameplayContext` pour supprimer le passe-plat `AppGL` → `GLMapView` → `GLGameBoard`.
+23. `GLGameplayContext` pour supprimer le passe-plat `AppGL` → `GLMapView` → `GLGameBoard`.
     _(§8.1)_
-18. Sous-ensemble e2e « parcours critiques » **bloquant** en CI, reste en nocturne. _(§7.2)_
-19. Release formelle + archivage du `CHANGELOG`. _(§8.3)_
+24. Sous-ensemble e2e « parcours critiques » **bloquant** en CI, reste en nocturne — dont
+    **un parcours hors séance**, aujourd'hui couvert par aucun scénario. _(§7.2)_
+25. Release formelle + archivage du `CHANGELOG`. _(§8.3)_
 
 ---
 
