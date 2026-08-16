@@ -141,6 +141,11 @@ Ces points circulent de plusieurs manières : le MJ peut les ajuster (par joueur
 (les **cœurs**, eux, ne s'échangent pas par défaut), et les feuillets de Sélène peuvent en
 coûter (gemmes) ou en rapporter (cœurs).
 
+Les **feuillets** se troquent aussi au marché : un feuillet donné est recopié (le donneur
+garde le sien) et devient lisible par toute l'équipe du receveur. Le carnet d'un joueur lui
+appartient durablement : il le suit d'une partie à l'autre et ne dépend plus de l'équipe où
+il se trouve.
+
 À côté de cette « vitalité » individuelle existe un **score d'équipe**, cumulé par
 partie, alimenté notamment par la résolution d'actions — c'est un compteur distinct,
 qui ne se confond pas avec les cœurs et les gemmes.

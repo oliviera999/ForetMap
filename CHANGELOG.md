@@ -7,6 +7,39 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### G&L — le carnet de feuillets devient durable, et les feuillets s'échangent
+
+**Le carnet ne dépend plus de l'équipe.** La possession d'un feuillet n'était pas stockée : elle
+était *recalculée* comme l'union des états des équipes auxquelles un joueur appartenait. Elle était
+donc révocable — sortir un élève d'une partie, le changer d'équipe ou supprimer la partie lui
+retirait **rétroactivement** des feuillets qu'il avait lui-même découverts. Invisible jusqu'ici ;
+inacceptable dès lors qu'un feuillet peut être acheté.
+
+- Nouvelle table `gl_player_feuillet_states` (migration `175_gl_feuillet_possession_and_trade.sql`),
+  écrite à chaque acquisition pour **chaque membre présent de l'équipe**. La migration reprend
+  l'existant : aucun carnet ne rétrécit au déploiement. La règle de partage est inchangée — une
+  découverte profite toujours à toute l'équipe.
+- Le carnet est désormais l'union « ce que mes équipes ont trouvé » + « ce que je possède en
+  propre ».
+
+**Échange de feuillets au Marché** (`gameplay.market_feuillets_enabled`, défaut `true`, exige le
+module Carnet de Sélène) :
+
+- **Copie, pas transfert** : le donneur garde son feuillet. Thématiquement le copiste recopie ;
+  mécaniquement, personne n'est puni d'avoir partagé.
+- **Le don puise dans un carnet personnel, la réception écrit dans une équipe** : on peut donner ce
+  qu'on a trouvé au chapitre précédent, et ce qu'on donne profite à toute l'équipe du receveur.
+  La cible est sa partie `live`/`paused` la plus récente ; sans partie en cours, l'échange est
+  refusé avec un message explicite plutôt que de créer un état orphelin.
+- **Un feuillet reçu n'est pas un feuillet trouvé** : `unlocked_via = 'echange'` et
+  `acquired_via = 'echange'` les distinguent, pour qu'un futur bonus de complétion de chapitre
+  récompense l'exploration et non le troc.
+- **L'attribution d'origine voyage avec la copie** : le feuillet reçu crédite toujours celui qui l'a
+  trouvé, jamais celui qui l'a donné.
+- Offre plafonnée à 10 feuillets ; un feuillet absent du carnet est refusé en `409`.
+- Front : sélecteur de feuillets dans l'offre, rappel de la règle de la copie, liste des feuillets
+  reçus côté camarade. Nouvelle route `GET /api/gl/market/feuillets`.
+
 ### G&L — les cœurs ne s'échangent plus sur le Marché (réglable)
 
 Les cœurs et les gemmes partageaient le même Marché. Dès lors qu'un cœur peut être retiré pour un
