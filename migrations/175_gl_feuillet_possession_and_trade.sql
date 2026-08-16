@@ -114,8 +114,12 @@ CREATE TABLE IF NOT EXISTS gl_market_trade_side_feuillets (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- [3] Nouveau canal de déblocage : réception par échange.
+-- La liste reprend l'ENUM courant (117 + 'espece' ajouté par la migration 119) et
+-- n'ajoute 'echange' QU'À LA FIN : MySQL stocke un ENUM par son index, donc retirer
+-- ou réordonner une valeur remapperait — ou tronquerait — les lignes existantes.
 ALTER TABLE gl_game_feuillet_states
-  MODIFY COLUMN unlocked_via ENUM('zone', 'manual', 'story', 'gemme', 'echange') DEFAULT NULL;
+  MODIFY COLUMN unlocked_via
+    ENUM('zone', 'manual', 'story', 'gemme', 'espece', 'echange') DEFAULT NULL;
 
 -- [4] Réglage d'activation de l'échange de feuillets (actif par défaut).
 INSERT INTO gl_settings (`key`, value_json, updated_by, updated_at)
