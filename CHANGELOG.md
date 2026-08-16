@@ -7,6 +7,27 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### G&L — les cœurs ne s'échangent plus sur le Marché (réglable)
+
+Les cœurs et les gemmes partageaient le même Marché. Dès lors qu'un cœur peut être retiré pour un
+écart de conduite, le laisser s'échanger permet de **racheter — ou de se faire offrir — la
+sanction** : un échange peut même être unilatéral (don pur). Une monnaie s'échange, une sanction
+non.
+
+- **Nouveau réglage `gameplay.market_hearts_enabled`, défaut `false`** (migration
+  `174_gl_market_hearts_setting.sql`) : seules les **gemmes 💎** circulent sur le Marché. Le
+  comportement historique reste accessible d'un clic — Réglages GL → Gameplay → **« Cœurs
+  échangeables sur le Marché »**.
+- **Double verrou serveur** : une offre en cœurs est refusée en `409` au dépôt **et** à la
+  finalisation. Une offre déposée avant une bascule du réglage ne se finalise pas — l'échange est
+  refusé, jamais amputé en silence.
+- **Front** : le champ « Cœurs ❤️ » disparaît du formulaire d'offre, l'offre du camarade n'affiche
+  plus que les gemmes, et le mode d'emploi affiché aux élèves explique que les cœurs
+  n'appartiennent qu'à eux. Aucun montant en cœurs n'est envoyé au serveur, même si un ancien
+  brouillon d'offre en contenait.
+- Documentation à jour : `docs/API.md`, `docs/reference/gl/economie-marche-sorts.md`,
+  `docs/reference/gl/presentation.md` (le schéma des flux disait « les points circulent »).
+
 ### Documentation — analyse du rapport de refonte de l'équilibrage G&L
 
 Nouveau document d'analyse `docs/GL_EQUILIBRAGE_ANALYSE_RAPPORT.md` : relecture critique du

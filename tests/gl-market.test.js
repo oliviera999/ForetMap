@@ -32,9 +32,23 @@ async function setVitalityAndMarket(enabled) {
   invalidateModulesCache();
 }
 
+/** `gameplay.market_hearts_enabled` : cœurs échangeables ou non (défaut produit : non). */
+async function setMarketHearts(enabled) {
+  await execute(
+    `INSERT INTO gl_settings (\`key\`, value_json, updated_at)
+     VALUES ('gameplay.market_hearts_enabled', ?, NOW())
+     ON DUPLICATE KEY UPDATE value_json = VALUES(value_json), updated_at = NOW()`,
+    [JSON.stringify(!!enabled)],
+  );
+  invalidateGameplayCache();
+}
+
 before(async () => {
   await initSchema();
   await setVitalityAndMarket(true);
+  // Les scénarios historiques couvrent le cas « cœurs autorisés » ; le cas par
+  // défaut (cœurs non échangeables) est testé en fin de fichier.
+  await setMarketHearts(true);
 
   const admin = await createGlAdmin({
     email: `market.mj.${stamp}@ecole.local`,
@@ -244,6 +258,13 @@ test('solde insuffisant bloque la finalisation', async () => {
   await execute('UPDATE gl_players SET health_points = 5, power_points = 4 WHERE id = ?', [
     playerAId,
   ]);
+
+  // L'échange reste « negotiating » après l'échec : le refermer, sinon toute création
+  // suivante entre les deux mêmes joueurs part en 409 ACTIVE_TRADE_EXISTS.
+  await request(app)
+    .post(`/api/gl/market/trades/${tradeId}/cancel`)
+    .set('Authorization', `Bearer ${tokenA}`)
+    .expect(200);
 });
 
 test('module désactivé renvoie 503', async () => {
@@ -253,4 +274,77 @@ test('module désactivé renvoie 503', async () => {
     .set('Authorization', `Bearer ${tokenA}`);
   assert.strictEqual(res.status, 503);
   await setVitalityAndMarket(true);
+});
+
+test('cœurs non échangeables : une offre en cœurs est refusée (409)', async () => {
+  await setMarketHearts(false);
+  try {
+    const createRes = await request(app)
+      .post('/api/gl/market/trades')
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({ peerPlayerId: playerBId });
+    assert.strictEqual(createRes.status, 201);
+    const tradeId = createRes.body.id;
+
+    const heartOffer = await request(app)
+      .patch(`/api/gl/market/trades/${tradeId}/offer`)
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({ offerHealth: 1, offerPower: 0 });
+    assert.strictEqual(heartOffer.status, 409);
+
+    // Les gemmes, elles, circulent toujours.
+    const gemOffer = await request(app)
+      .patch(`/api/gl/market/trades/${tradeId}/offer`)
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({ offerHealth: 0, offerPower: 1 });
+    assert.strictEqual(gemOffer.status, 200);
+
+    await request(app)
+      .post(`/api/gl/market/trades/${tradeId}/cancel`)
+      .set('Authorization', `Bearer ${tokenA}`)
+      .expect(200);
+  } finally {
+    await setMarketHearts(true);
+  }
+});
+
+test('cœurs non échangeables : une offre posée avant la bascule ne se finalise pas', async () => {
+  const createRes = await request(app)
+    .post('/api/gl/market/trades')
+    .set('Authorization', `Bearer ${tokenA}`)
+    .send({ peerPlayerId: playerBId });
+  assert.strictEqual(createRes.status, 201);
+  const tradeId = createRes.body.id;
+
+  // Offre en cœurs déposée alors que le réglage l'autorise encore.
+  const heartOffer = await request(app)
+    .patch(`/api/gl/market/trades/${tradeId}/offer`)
+    .set('Authorization', `Bearer ${tokenA}`)
+    .send({ offerHealth: 1, offerPower: 0 });
+  assert.strictEqual(heartOffer.status, 200);
+
+  const before = await queryOne('SELECT health_points FROM gl_players WHERE id = ?', [playerAId]);
+
+  await setMarketHearts(false);
+  try {
+    await request(app)
+      .patch(`/api/gl/market/trades/${tradeId}/accept`)
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({ accepted: true });
+
+    const failRes = await request(app)
+      .patch(`/api/gl/market/trades/${tradeId}/accept`)
+      .set('Authorization', `Bearer ${tokenB}`)
+      .send({ accepted: true });
+    assert.strictEqual(failRes.status, 409);
+
+    // Aucun cœur n'a bougé : la finalisation est refusée, pas amputée en silence.
+    const after = await queryOne('SELECT health_points FROM gl_players WHERE id = ?', [playerAId]);
+    assert.strictEqual(Number(after.health_points), Number(before.health_points));
+  } finally {
+    await setMarketHearts(true);
+    await request(app)
+      .post(`/api/gl/market/trades/${tradeId}/cancel`)
+      .set('Authorization', `Bearer ${tokenA}`);
+  }
 });

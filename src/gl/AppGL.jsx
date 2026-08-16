@@ -908,6 +908,7 @@ export function AppGL() {
                     onSubTabChange={setTab}
                     modules={modules}
                     vitalityEnabled={!!gameplaySettings.vitalityEnabled}
+                    heartsTradable={!!gameplaySettings.marketHeartsEnabled}
                     includeMarket={showsPlayerChrome}
                     showStaffAdminUi={showStaffAdminUi}
                     canModerateForum={showStaffAdminUi}

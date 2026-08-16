@@ -37,9 +37,10 @@ trois compteurs — et c'est pourquoi le jeu affiche désormais, partout où l'o
   feuillets (cœurs)  ──►   │    ◄──   Consultation/effacement de
                            │           feuillets (coûts en gemmes)
                            ▼
-                    Marché : les points circulent
+                    Marché : les gemmes circulent
                     entre camarades (rien ne se crée,
-                    rien ne se perd — ça s'échange)
+                    rien ne se perd — ça s'échange).
+                    Les cœurs, eux, ne circulent pas.
 ```
 
 À côté existe le **score d'équipe** : un compteur par équipe et par partie, alimenté
@@ -48,8 +49,15 @@ notamment par la résolution d'actions — il ne se confond pas avec la vitalit�
 
 ## Le Marché
 
+- **Les cœurs ne s'échangent pas** (réglage par défaut) : seules les **gemmes 💎** circulent
+  entre joueurs. La raison est simple — si un cœur peut être retiré à un élève pour un écart
+  de conduite, le laisser s'échanger permettrait de le racheter à un camarade, ou de se le
+  faire offrir : la mesure n'aurait plus aucune portée. Une monnaie s'échange, une sanction non.
+  Le réglage **« Cœurs échangeables sur le Marché »** (Réglages GL → Gameplay) permet de revenir
+  au comportement historique si votre usage des cœurs ne porte aucune signification de conduite.
 - Un échange se fait **entre deux joueurs de la même classe** : chacun propose ce
-  qu'il donne (cœurs et/ou gemmes), un fil de discussion accompagne la négociation,
+  qu'il donne (des gemmes — et des cœurs si le réglage ci-dessus est activé), un fil de
+  discussion accompagne la négociation,
   et l'échange n'aboutit que lorsque **les deux ont coché « J'accepte »**.
 - Sous chaque champ, le joueur voit ce qu'il lui restera après l'échange ; à la
   finalisation, le serveur vérifie les soldes (un échange impossible est refusé avec
