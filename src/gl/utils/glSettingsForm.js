@@ -120,6 +120,12 @@ export const GAMEPLAY_TOGGLES = [
     label: 'Points de vie et de pouvoir',
     hint: 'PV (❤️) et points de pouvoir (💎) persistants par joueur, gérés par le MJ.',
   },
+  {
+    key: 'gameplay.market_hearts_enabled',
+    camel: 'marketHeartsEnabled',
+    label: 'Cœurs échangeables sur le Marché',
+    hint: 'Désactivé par défaut : seules les gemmes (💎) circulent. À laisser désactivé si un cœur peut être retiré pour un écart de conduite — sinon la sanction se rachète ou se fait offrir.',
+  },
 ];
 
 /** Drapeaux d'activation des modules GL côté interface. */
@@ -165,7 +171,7 @@ export const MODULE_TOGGLES = [
   {
     key: 'modules.market_enabled',
     label: 'Marché',
-    hint: 'Échanges de cœurs et gemmes entre joueurs de la classe (nécessite la vitalité).',
+    hint: 'Échanges de gemmes entre joueurs de la classe (nécessite la vitalité). Les cœurs ne circulent que si « Cœurs échangeables sur le Marché » est activé.',
   },
   {
     key: 'modules.spell_cast_enabled',

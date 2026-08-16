@@ -27,6 +27,7 @@ export function GLMarketView({
   token,
   classId,
   playerId,
+  heartsTradable = false,
   selfHealthPoints,
   selfPowerPoints,
   onTradeCompleted,
@@ -49,6 +50,9 @@ export function GLMarketView({
   const isNegotiating = activeTrade?.status === 'negotiating';
   const isFrozen = !!activeTrade?.frozen;
   const canEditOffer = isNegotiating && !isFrozen;
+  // Cœurs non échangeables : on n'envoie jamais de montant en cœurs au serveur,
+  // même si un ancien brouillon d'offre en contenait encore.
+  const sentOfferHealth = heartsTradable ? offerHealth : 0;
 
   useEffect(() => {
     if (!mySide) return;
@@ -67,11 +71,20 @@ export function GLMarketView({
             Les <strong>cœurs</strong> (❤️) et <strong>gemmes</strong> (💎) sont tes points de vie
             et de pouvoir : ils restent sur ton compte même d’une partie à l’autre.
           </li>
-          <li>
-            Tu peux <strong>échanger</strong> avec un camarade de ta classe ou lui faire un{' '}
-            <strong>don</strong>
-            (tu proposes des cœurs et/ou des gemmes, l’autre peut proposer zéro).
-          </li>
+          {heartsTradable ? (
+            <li>
+              Tu peux <strong>échanger</strong> avec un camarade de ta classe ou lui faire un{' '}
+              <strong>don</strong> (tu proposes des cœurs et/ou des gemmes, l’autre peut proposer
+              zéro).
+            </li>
+          ) : (
+            <li>
+              Seules les <strong>gemmes</strong> (💎) s’échangent : tes <strong>cœurs</strong> (❤️)
+              n’appartiennent qu’à toi et ne se donnent pas. Tu peux échanger des gemmes avec un
+              camarade de ta classe ou lui en faire <strong>don</strong> (l’autre peut proposer
+              zéro).
+            </li>
+          )}
           <li>
             Discute dans le fil de l’échange, ajuste ton offre, puis coche{' '}
             <strong>J’accepte</strong> quand tu es prêt.
@@ -173,25 +186,27 @@ export function GLMarketView({
               <div className="gl-market-offers">
                 <div className="gl-market-offer-card">
                   <h4>Ton offre (ce que tu donnes)</h4>
-                  <GLField label="Cœurs ❤️">
-                    <GLInput
-                      type="number"
-                      min={0}
-                      max={99}
-                      value={offerHealth}
-                      disabled={!canEditOffer || market.busy}
-                      onChange={(e) => setOfferHealth(Number(e.target.value) || 0)}
-                      onBlur={() => {
-                        if (canEditOffer) market.updateOffer(offerHealth, offerPower);
-                      }}
-                    />
-                    {remainingAfter(selfHealthPoints, offerHealth) != null ? (
-                      <span className="gl-market-remaining gl-hint">
-                        tu dépenses tes cœurs — il te restera{' '}
-                        {remainingAfter(selfHealthPoints, offerHealth)} ❤️
-                      </span>
-                    ) : null}
-                  </GLField>
+                  {heartsTradable ? (
+                    <GLField label="Cœurs ❤️">
+                      <GLInput
+                        type="number"
+                        min={0}
+                        max={99}
+                        value={offerHealth}
+                        disabled={!canEditOffer || market.busy}
+                        onChange={(e) => setOfferHealth(Number(e.target.value) || 0)}
+                        onBlur={() => {
+                          if (canEditOffer) market.updateOffer(offerHealth, offerPower);
+                        }}
+                      />
+                      {remainingAfter(selfHealthPoints, offerHealth) != null ? (
+                        <span className="gl-market-remaining gl-hint">
+                          tu dépenses tes cœurs — il te restera{' '}
+                          {remainingAfter(selfHealthPoints, offerHealth)} ❤️
+                        </span>
+                      ) : null}
+                    </GLField>
+                  ) : null}
                   <GLField label="Gemmes 💎">
                     <GLInput
                       type="number"
@@ -201,7 +216,7 @@ export function GLMarketView({
                       disabled={!canEditOffer || market.busy}
                       onChange={(e) => setOfferPower(Number(e.target.value) || 0)}
                       onBlur={() => {
-                        if (canEditOffer) market.updateOffer(offerHealth, offerPower);
+                        if (canEditOffer) market.updateOffer(sentOfferHealth, offerPower);
                       }}
                     />
                     {remainingAfter(selfPowerPoints, offerPower) != null ? (
@@ -227,7 +242,8 @@ export function GLMarketView({
                 <div className="gl-market-offer-card is-peer">
                   <h4>Offre de {peerSide?.pseudo || '…'} (ce que tu reçois)</h4>
                   <p className="gl-market-peer-offer">
-                    ❤️ {Number(peerSide?.offerHealth) || 0} · 💎 {Number(peerSide?.offerPower) || 0}
+                    {heartsTradable ? `❤️ ${Number(peerSide?.offerHealth) || 0} · ` : ''}💎{' '}
+                    {Number(peerSide?.offerPower) || 0}
                   </p>
                   {peerSide?.accepted ? (
                     <p className="gl-market-peer-accepted" role="status">
