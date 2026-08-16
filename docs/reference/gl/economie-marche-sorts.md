@@ -55,9 +55,20 @@ notamment par la résolution d'actions — il ne se confond pas avec la vitalit�
   faire offrir : la mesure n'aurait plus aucune portée. Une monnaie s'échange, une sanction non.
   Le réglage **« Cœurs échangeables sur le Marché »** (Réglages GL → Gameplay) permet de revenir
   au comportement historique si votre usage des cœurs ne porte aucune signification de conduite.
+- **Les feuillets, eux, s'échangent** : un joueur peut proposer un feuillet de son carnet
+  (jusqu'à 10 par offre). C'est une **copie** — il garde le sien, et le feuillet devient
+  lisible par **toute l'équipe** du camarade qui le reçoit, comme n'importe quelle
+  découverte. Le nom de celui qui l'a trouvé le premier reste attaché au feuillet : on
+  n'offre pas la paternité d'une découverte, on offre une lecture.
+  - Un élève ne peut proposer que ce qu'il a déjà — y compris ce qu'il a trouvé lors d'un
+    chapitre précédent, puisque son carnet le suit d'une partie à l'autre.
+  - Le receveur doit **participer à une partie en cours** : sans équipe active, l'échange
+    est refusé avec un message explicite (le feuillet n'aurait nulle part où atterrir).
+  - Réglage **« Feuillets échangeables sur le Marché »** (actif par défaut, nécessite le
+    module Carnet de Sélène).
 - Un échange se fait **entre deux joueurs de la même classe** : chacun propose ce
-  qu'il donne (des gemmes — et des cœurs si le réglage ci-dessus est activé), un fil de
-  discussion accompagne la négociation,
+  qu'il donne (des gemmes, un ou plusieurs feuillets — et des cœurs si le réglage ci-dessus
+  est activé), un fil de discussion accompagne la négociation,
   et l'échange n'aboutit que lorsque **les deux ont coché « J'accepte »**.
 - Sous chaque champ, le joueur voit ce qu'il lui restera après l'échange ; à la
   finalisation, le serveur vérifie les soldes (un échange impossible est refusé avec
