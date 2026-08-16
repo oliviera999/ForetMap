@@ -41,6 +41,7 @@ export function GLMarketView({
 
   const [offerHealth, setOfferHealth] = useState(0);
   const [offerPower, setOfferPower] = useState(0);
+  const [offerFeuillets, setOfferFeuillets] = useState([]);
   const [messageBody, setMessageBody] = useState('');
 
   const activeTrade = market.activeTrade;
@@ -58,7 +59,17 @@ export function GLMarketView({
     if (!mySide) return;
     setOfferHealth(Number(mySide.offerHealth) || 0);
     setOfferPower(Number(mySide.offerPower) || 0);
-  }, [mySide?.offerHealth, mySide?.offerPower, activeTrade?.id]);
+    setOfferFeuillets((mySide.offerFeuillets || []).map((f) => f.feuilletCode));
+  }, [mySide?.offerHealth, mySide?.offerPower, mySide?.offerFeuillets, activeTrade?.id]);
+
+  function toggleFeuillet(code) {
+    if (!canEditOffer) return;
+    const next = offerFeuillets.includes(code)
+      ? offerFeuillets.filter((c) => c !== code)
+      : [...offerFeuillets, code];
+    setOfferFeuillets(next);
+    market.updateOffer(sentOfferHealth, offerPower, next);
+  }
 
   const negotiatingTrades = market.trades.filter((t) => t.status === 'negotiating');
 
@@ -196,7 +207,8 @@ export function GLMarketView({
                         disabled={!canEditOffer || market.busy}
                         onChange={(e) => setOfferHealth(Number(e.target.value) || 0)}
                         onBlur={() => {
-                          if (canEditOffer) market.updateOffer(offerHealth, offerPower);
+                          if (canEditOffer)
+                            market.updateOffer(offerHealth, offerPower, offerFeuillets);
                         }}
                       />
                       {remainingAfter(selfHealthPoints, offerHealth) != null ? (
@@ -216,7 +228,8 @@ export function GLMarketView({
                       disabled={!canEditOffer || market.busy}
                       onChange={(e) => setOfferPower(Number(e.target.value) || 0)}
                       onBlur={() => {
-                        if (canEditOffer) market.updateOffer(sentOfferHealth, offerPower);
+                        if (canEditOffer)
+                          market.updateOffer(sentOfferHealth, offerPower, offerFeuillets);
                       }}
                     />
                     {remainingAfter(selfPowerPoints, offerPower) != null ? (
@@ -226,6 +239,29 @@ export function GLMarketView({
                       </span>
                     ) : null}
                   </GLField>
+                  {market.ownFeuillets.length > 0 ? (
+                    <GLField label="Feuillets 📜">
+                      <p className="gl-hint">
+                        Un feuillet donné est <strong>recopié</strong> : tu gardes le tien, et toute
+                        l’équipe de {peerSide?.pseudo || 'ton camarade'} pourra le lire.
+                      </p>
+                      <ul className="gl-market-feuillet-picker">
+                        {market.ownFeuillets.map((feuillet) => (
+                          <li key={feuillet.feuilletCode}>
+                            <label>
+                              <input
+                                type="checkbox"
+                                checked={offerFeuillets.includes(feuillet.feuilletCode)}
+                                disabled={!canEditOffer || market.busy}
+                                onChange={() => toggleFeuillet(feuillet.feuilletCode)}
+                              />
+                              <span>{feuillet.titre || feuillet.feuilletCode}</span>
+                            </label>
+                          </li>
+                        ))}
+                      </ul>
+                    </GLField>
+                  ) : null}
                   {isNegotiating ? (
                     <label className="gl-market-accept">
                       <input
@@ -245,6 +281,15 @@ export function GLMarketView({
                     {heartsTradable ? `❤️ ${Number(peerSide?.offerHealth) || 0} · ` : ''}💎{' '}
                     {Number(peerSide?.offerPower) || 0}
                   </p>
+                  {peerSide?.offerFeuillets?.length ? (
+                    <ul className="gl-market-peer-feuillets">
+                      {peerSide.offerFeuillets.map((feuillet) => (
+                        <li key={feuillet.feuilletCode}>
+                          📜 {feuillet.titre || feuillet.feuilletCode}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
                   {peerSide?.accepted ? (
                     <p className="gl-market-peer-accepted" role="status">
                       L’autre joueur a accepté.

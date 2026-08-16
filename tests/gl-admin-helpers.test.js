@@ -126,9 +126,10 @@ describe('ALLOWED_GAMEPLAY_SETTINGS', () => {
     assert.ok(ALLOWED_GAMEPLAY_SETTINGS.has('gameplay.marker_backgrounds'));
     assert.ok(ALLOWED_GAMEPLAY_SETTINGS.has('gameplay.plateau_marker_numbers_visible'));
     assert.ok(ALLOWED_GAMEPLAY_SETTINGS.has('gameplay.market_hearts_enabled'));
+    assert.ok(ALLOWED_GAMEPLAY_SETTINGS.has('gameplay.market_feuillets_enabled'));
     assert.equal(ALLOWED_GAMEPLAY_SETTINGS.has('gameplay.inexistant'), false);
   });
-  it('compte 31 clés gameplay', () => {
-    assert.equal(ALLOWED_GAMEPLAY_SETTINGS.size, 31);
+  it('compte 32 clés gameplay', () => {
+    assert.equal(ALLOWED_GAMEPLAY_SETTINGS.size, 32);
   });
 });

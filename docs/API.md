@@ -373,27 +373,28 @@ sur la carte du royaume). Couleur invalide → `400`.
 
 ### Modules collaboration / pédagogie GL
 
-| Méthode | URL                                                                 | Body                                         | Permission                                                                                                                        |
-| ------- | ------------------------------------------------------------------- | -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| GET     | `/api/gl/context-comments?contextType=&contextId=&page=&page_size=` | —                                            | Auth GL                                                                                                                           |
-| POST    | `/api/gl/context-comments`                                          | `{ contextType, contextId, body?, images? }` | Auth GL                                                                                                                           |
-| POST    | `/api/gl/context-comments/:id/reactions`                            | `{ emoji }`                                  | Auth GL                                                                                                                           |
-| DELETE  | `/api/gl/context-comments/:id`                                      | —                                            | Auteur ou `gl_admin`                                                                                                              |
-| POST    | `/api/gl/context-comments/:id/report`                               | `{ reason }`                                 | Auth GL                                                                                                                           |
-| GET     | `/api/gl/forum/threads`                                             | —                                            | Auth GL                                                                                                                           |
-| POST    | `/api/gl/forum/threads`                                             | `{ title, body }`                            | Auth GL                                                                                                                           |
-| GET     | `/api/gl/forum/threads/:id`                                         | —                                            | Auth GL                                                                                                                           |
-| POST    | `/api/gl/forum/threads/:id/posts`                                   | `{ body }`                                   | Auth GL (refus 409 si verrouillé sauf `gl_admin`)                                                                                 |
-| PATCH   | `/api/gl/forum/threads/:id/lock`                                    | `{ locked }`                                 | `gl_admin`                                                                                                                        |
-| DELETE  | `/api/gl/forum/posts/:id`                                           | —                                            | Auteur ou `gl_admin`                                                                                                              |
-| GET     | `/api/gl/market/classmates`                                         | —                                            | Joueur GL (`gl_player`) ; refus `503` si `modules.market_enabled=false` ou `gameplay.vitality_enabled=false`                      |
-| GET     | `/api/gl/market/trades`                                             | `?page=&page_size=`                          | Joueur GL (négociations en cours + historique récent `completed`)                                                                 |
-| POST    | `/api/gl/market/trades`                                             | `{ peerPlayerId }`                           | Joueur GL (même classe) ; `409` si échange `negotiating` déjà ouvert (corps `{ error, trade? }`)                                  |
-| GET     | `/api/gl/market/trades/:id`                                         | —                                            | Participant à l’échange                                                                                                           |
-| PATCH   | `/api/gl/market/trades/:id/offer`                                   | `{ offerHealth, offerPower }`                | Participant ; refus `409` si offres figées (`frozen_at`) ou si `offerHealth > 0` alors que `gameplay.market_hearts_enabled=false` |
-| PATCH   | `/api/gl/market/trades/:id/accept`                                  | `{ accepted: boolean }`                      | Participant ; fige au premier `accepted: true` ; exécute l’échange si les deux acceptent (transaction atomique sur `gl_players`)  |
-| POST    | `/api/gl/market/trades/:id/messages`                                | `{ body }` (2–2000 car.)                     | Participant (échange `negotiating` uniquement)                                                                                    |
-| POST    | `/api/gl/market/trades/:id/cancel`                                  | —                                            | Participant (annule l’échange `negotiating`)                                                                                      |
+| Méthode | URL                                                                 | Body                                          | Permission                                                                                                                                                                                    |
+| ------- | ------------------------------------------------------------------- | --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET     | `/api/gl/context-comments?contextType=&contextId=&page=&page_size=` | —                                             | Auth GL                                                                                                                                                                                       |
+| POST    | `/api/gl/context-comments`                                          | `{ contextType, contextId, body?, images? }`  | Auth GL                                                                                                                                                                                       |
+| POST    | `/api/gl/context-comments/:id/reactions`                            | `{ emoji }`                                   | Auth GL                                                                                                                                                                                       |
+| DELETE  | `/api/gl/context-comments/:id`                                      | —                                             | Auteur ou `gl_admin`                                                                                                                                                                          |
+| POST    | `/api/gl/context-comments/:id/report`                               | `{ reason }`                                  | Auth GL                                                                                                                                                                                       |
+| GET     | `/api/gl/forum/threads`                                             | —                                             | Auth GL                                                                                                                                                                                       |
+| POST    | `/api/gl/forum/threads`                                             | `{ title, body }`                             | Auth GL                                                                                                                                                                                       |
+| GET     | `/api/gl/forum/threads/:id`                                         | —                                             | Auth GL                                                                                                                                                                                       |
+| POST    | `/api/gl/forum/threads/:id/posts`                                   | `{ body }`                                    | Auth GL (refus 409 si verrouillé sauf `gl_admin`)                                                                                                                                             |
+| PATCH   | `/api/gl/forum/threads/:id/lock`                                    | `{ locked }`                                  | `gl_admin`                                                                                                                                                                                    |
+| DELETE  | `/api/gl/forum/posts/:id`                                           | —                                             | Auteur ou `gl_admin`                                                                                                                                                                          |
+| GET     | `/api/gl/market/classmates`                                         | —                                             | Joueur GL (`gl_player`) ; refus `503` si `modules.market_enabled=false` ou `gameplay.vitality_enabled=false`                                                                                  |
+| GET     | `/api/gl/market/feuillets`                                          | —                                             | Joueur GL ; son carnet personnel (ce qu’il peut proposer à l’échange)                                                                                                                         |
+| GET     | `/api/gl/market/trades`                                             | `?page=&page_size=`                           | Joueur GL (négociations en cours + historique récent `completed`)                                                                                                                             |
+| POST    | `/api/gl/market/trades`                                             | `{ peerPlayerId }`                            | Joueur GL (même classe) ; `409` si échange `negotiating` déjà ouvert (corps `{ error, trade? }`)                                                                                              |
+| GET     | `/api/gl/market/trades/:id`                                         | —                                             | Participant à l’échange                                                                                                                                                                       |
+| PATCH   | `/api/gl/market/trades/:id/offer`                                   | `{ offerHealth, offerPower, offerFeuillets }` | Participant ; refus `409` si offres figées (`frozen_at`), si `offerHealth > 0` alors que `gameplay.market_hearts_enabled=false`, ou si un feuillet proposé n’est pas dans le carnet du joueur |
+| PATCH   | `/api/gl/market/trades/:id/accept`                                  | `{ accepted: boolean }`                       | Participant ; fige au premier `accepted: true` ; exécute l’échange si les deux acceptent (transaction atomique sur `gl_players`)                                                              |
+| POST    | `/api/gl/market/trades/:id/messages`                                | `{ body }` (2–2000 car.)                      | Participant (échange `negotiating` uniquement)                                                                                                                                                |
+| POST    | `/api/gl/market/trades/:id/cancel`                                  | —                                             | Participant (annule l’échange `negotiating`)                                                                                                                                                  |
 
 **Marché GL** : tables `gl_market_trades`, `gl_market_trade_sides`, `gl_market_trade_messages` (migration `106_gl_market.sql`). Chaque joueur propose ce qu’il **donne** (`offerHealth` / `offerPower`, 0–99). Dons autorisés (une offre nulle). Temps réel : room Socket.IO `gl:class:{classId}`, événement `gl:market:trade-changed` (abonnement `subscribe:gl-class`).
 
@@ -404,6 +405,29 @@ Marché`), au dépôt de l’offre **et** à la finalisation (une offre déposé
 réglage ne se finalise pas : l’échange est refusé, jamais amputé en silence). Motif : dès lors
 qu’un cœur peut être retiré pour un écart de conduite, le laisser s’échanger permettrait de
 racheter — ou de se faire offrir — la sanction.
+
+**Échange de feuillets** (`gameplay.market_feuillets_enabled`, défaut `true` ; exige aussi
+`modules.lore_carnet_enabled`) — migration `175_gl_feuillet_possession_and_trade.sql` :
+
+- `offerFeuillets` est un tableau de `feuillet_code` (10 max par offre) qui **remplace** l’ensemble
+  proposé par le joueur ; il doit être inclus à chaque `PATCH .../offer`, sinon la sélection est
+  vidée.
+- Un joueur ne peut proposer qu’un feuillet de **son carnet personnel** (union « états des équipes
+  auxquelles il appartient » + `gl_player_feuillet_states`), ce qui inclut ses trouvailles des
+  chapitres précédents.
+- L’échange est une **copie** : le donneur garde le sien. À la finalisation, le feuillet est écrit
+  dans l’état de l’**équipe courante du receveur** — celle de sa partie `live`/`paused` la plus
+  récente. Sans partie en cours, la finalisation est refusée en `409` plutôt que de créer un état
+  orphelin.
+- Le feuillet reçu porte `unlocked_via = 'echange'` et `acquired_via = 'echange'` : un feuillet
+  reçu n’est pas un feuillet trouvé, distinction nécessaire à un futur bonus de complétion de
+  chapitre. L’attribution d’origine (« Découvert par … ») voyage avec la copie.
+
+**Possession durable des feuillets** — `gl_player_feuillet_states (player_id, feuillet_code)` est
+écrite à chaque acquisition, pour chaque membre présent de l’équipe. Auparavant la possession était
+seulement _dérivée_ de l’appartenance à une équipe : retirer un joueur d’une partie, le changer
+d’équipe ou supprimer la partie lui retirait rétroactivement des feuillets qu’il avait découverts.
+La règle de partage est inchangée (une découverte profite à toute l’équipe).
 
 | GET | `/api/gl/tutorials` | `?chapterId=` optionnel | Auth GL |
 | GET | `/api/gl/tutorials/me/read-ids` | — | Auth GL (IDs lus — source `gl_learning_acknowledgements`, aligné sur `GET /api/gl/learning/me`) |

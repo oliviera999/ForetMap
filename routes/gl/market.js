@@ -16,6 +16,7 @@ const {
   appendMessage,
   cancelTrade,
 } = require('../../lib/glMarket');
+const { listTradableFeuilletsForPlayer } = require('../../lib/glMarketFeuillets');
 const { parsePageQuery } = require('../../lib/shared/httpHelpers');
 const { z, validate } = require('../../lib/validate');
 const asyncHandler = require('../../lib/asyncHandler');
@@ -53,6 +54,19 @@ router.get(
   asyncHandler(async (req, res) => {
     try {
       const items = await listClassmates(playerIdFromReq(req));
+      return res.json({ items });
+    } catch (err) {
+      return handleMarketError(err, res);
+    }
+  }),
+);
+
+/** Feuillets que le joueur peut proposer (son carnet personnel). */
+router.get(
+  '/feuillets',
+  asyncHandler(async (req, res) => {
+    try {
+      const items = await listTradableFeuilletsForPlayer(playerIdFromReq(req));
       return res.json({ items });
     } catch (err) {
       return handleMarketError(err, res);
@@ -116,6 +130,7 @@ router.patch(
       const trade = await updateOffer(tradeId, playerIdFromReq(req), {
         offerHealth: req.body?.offerHealth,
         offerPower: req.body?.offerPower,
+        offerFeuillets: req.body?.offerFeuillets,
       });
       emitGlMarketTradeChanged(trade.classId, { tradeId: trade.id, action: 'offer_updated' });
       return res.json(trade);
