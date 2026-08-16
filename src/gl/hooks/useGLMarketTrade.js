@@ -10,6 +10,8 @@ export function useGLMarketTrade({ token, classId, enabled, onTradeCompleted }) 
   const [activeTrade, setActiveTrade] = useState(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  // Carnet personnel du joueur : ce qu'il peut proposer à l'échange.
+  const [ownFeuillets, setOwnFeuillets] = useState([]);
   const onTradeCompletedRef = useRef(onTradeCompleted);
 
   useEffect(() => {
@@ -24,6 +26,17 @@ export function useGLMarketTrade({ token, classId, enabled, onTradeCompleted }) 
   const loadTrades = useCallback(async () => {
     const data = await apiGL('/api/gl/market/trades');
     setTrades(Array.isArray(data?.items) ? data.items : []);
+  }, []);
+
+  // L'échange de feuillets est optionnel (module Carnet + réglage) : un échec de
+  // chargement laisse simplement la liste vide, sans casser le Marché.
+  const loadOwnFeuillets = useCallback(async () => {
+    try {
+      const data = await apiGL('/api/gl/market/feuillets');
+      setOwnFeuillets(Array.isArray(data?.items) ? data.items : []);
+    } catch (_) {
+      setOwnFeuillets([]);
+    }
   }, []);
 
   const loadTrade = useCallback(async (tradeId) => {
@@ -41,7 +54,7 @@ export function useGLMarketTrade({ token, classId, enabled, onTradeCompleted }) 
   const refreshAll = useCallback(async () => {
     if (!enabled) return;
     try {
-      await Promise.all([loadClassmates(), loadTrades()]);
+      await Promise.all([loadClassmates(), loadTrades(), loadOwnFeuillets()]);
       if (activeTradeId != null) {
         await loadTrade(activeTradeId);
       }
@@ -49,7 +62,7 @@ export function useGLMarketTrade({ token, classId, enabled, onTradeCompleted }) 
     } catch (err) {
       setError(err.message || 'Chargement marché impossible');
     }
-  }, [enabled, loadClassmates, loadTrades, loadTrade, activeTradeId]);
+  }, [enabled, loadClassmates, loadTrades, loadOwnFeuillets, loadTrade, activeTradeId]);
 
   useEffect(() => {
     if (!enabled) return undefined;
@@ -111,12 +124,13 @@ export function useGLMarketTrade({ token, classId, enabled, onTradeCompleted }) 
   );
 
   const updateOffer = useCallback(
-    async (offerHealth, offerPower) => {
+    async (offerHealth, offerPower, offerFeuillets = []) => {
       if (activeTradeId == null) return;
       await runAction(async () => {
         const trade = await apiGL(`/api/gl/market/trades/${activeTradeId}/offer`, 'PATCH', {
           offerHealth,
           offerPower,
+          offerFeuillets,
         });
         setActiveTrade(trade);
         await loadTrades();
@@ -174,6 +188,7 @@ export function useGLMarketTrade({ token, classId, enabled, onTradeCompleted }) 
 
   return {
     classmates,
+    ownFeuillets,
     trades,
     activeTradeId,
     activeTrade,

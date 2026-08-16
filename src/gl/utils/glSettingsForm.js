@@ -126,6 +126,12 @@ export const GAMEPLAY_TOGGLES = [
     label: 'Cœurs échangeables sur le Marché',
     hint: 'Désactivé par défaut : seules les gemmes (💎) circulent. À laisser désactivé si un cœur peut être retiré pour un écart de conduite — sinon la sanction se rachète ou se fait offrir.',
   },
+  {
+    key: 'gameplay.market_feuillets_enabled',
+    camel: 'marketFeuilletsEnabled',
+    label: 'Feuillets échangeables sur le Marché',
+    hint: 'Activé par défaut : un feuillet donné est recopié (le donneur garde le sien) et devient lisible par toute l’équipe du receveur. Nécessite le module Carnet de Sélène.',
+  },
 ];
 
 /** Drapeaux d'activation des modules GL côté interface. */

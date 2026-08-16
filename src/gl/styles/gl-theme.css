@@ -5300,6 +5300,34 @@ body.gl-glossary-popover-open {
   margin: 0.5rem 0 0;
 }
 
+/* Feuillets proposés : liste de cases à cocher (mon offre) et rappel (offre reçue). */
+.gl-market-feuillet-picker {
+  list-style: none;
+  margin: 0.35rem 0 0;
+  padding: 0;
+  max-height: 11rem;
+  overflow-y: auto;
+}
+
+.gl-market-feuillet-picker li label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  /* Cible tactile confortable (≥ 44px) pour des élèves sur tablette. */
+  min-height: 44px;
+  cursor: pointer;
+}
+
+.gl-market-peer-feuillets {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+}
+
+.gl-market-peer-feuillets li {
+  padding: 0.15rem 0;
+}
+
 .gl-market-peer-pending {
   opacity: 0.8;
   margin: 0.5rem 0 0;

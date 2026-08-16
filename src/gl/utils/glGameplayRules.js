@@ -20,6 +20,7 @@ export const GL_DEFAULT_GAMEPLAY = {
   qcmMjOnly: false,
   // Marché : cœurs non échangeables par défaut (seules les gemmes circulent).
   marketHeartsEnabled: false,
+  marketFeuilletsEnabled: true,
 };
 
 /**
