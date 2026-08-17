@@ -620,11 +620,31 @@ avant les e2e si `dist/` est absent ou obsolète ; tests GL en séquentiel.
 retenue et livrée** : réglage `content.help.narrator` + médiathèque, sans migration ni schéma de
 pack touché. Détail d'implémentation en §5.2.
 
-### 11.2 🔴 Surcharges d'aide en production — §7.1
+### 11.2 ✅ Surcharges d'aide en production — §7.1 — _tranché et corrigé_
 
-Si `content.help.registry` contient déjà des textes personnalisés en production, la réécriture des
-défauts n'aura **aucun effet visible**. Décider : réinitialisation, report manuel, ou fusion.
-À vérifier avant le lot 4.
+Le risque était réel : le registre était persisté **en objet dense** (toutes les clés, y compris
+celles que personne n'avait touchées), donc la première sauvegarde d'un prof gelait le corpus et
+annulait toute réécriture ultérieure des défauts.
+
+Deux constats ont clos l'arbitrage :
+
+1. **Mesure de la production** (`GET /api/settings/public` comparé à `data/help.default.json`) :
+   **zéro écart** sur les 21 infobulles, 7 panneaux, astuces, libellés, bandeaux carte et
+   indicateurs temps réel. Personne n'a personnalisé de texte — il n'y a donc rien à reporter, et
+   un `POST /admin/help-content/reset` après déploiement ne détruirait rien.
+2. **Dégel du mécanisme** : `saveHelpConfigToDb` ne persiste plus que la **surcharge**
+   (`buildStoredOverride`, noyau partagé `lib/shared/jsonDefaultsStore.js`). La lecture n'a pas
+   changé — elle retombait déjà sur les défauts pour toute valeur absente. Conséquence : une
+   amélioration des défauts versionnés reste visible partout où un prof n'a rien réécrit, ce qui
+   est exactement ce dont le lot 4 a besoin.
+
+Une instance déjà en service conserve sa ligne dense tant que personne n'enregistre :
+`node scripts/compact-help-registry.js --apply` la réécrit en surcharge, à rendu identique
+(le script refuse d'écrire si le contenu affiché changerait).
+
+> ⚠️ **Dette symétrique non traitée** : `lib/glHelp.js` (aide GL par onglet) persiste toujours
+> l'objet dense et présente donc le même gel. Le correctif y est mécaniquement identique, mais
+> relève d'un commit `feat(gl)` séparé (règle projet).
 
 ### 11.3 🟠 Nombre d'expressions au démarrage — §4.3
 

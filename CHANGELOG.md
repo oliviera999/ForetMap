@@ -7,6 +7,37 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### ForetMap — dégel du registre d'aide : la base ne stocke plus que ce qui a été modifié
+
+**Le bug latent.** Enregistrer les bulles d'aide écrivait en base l'**objet complet** : les 21
+infobulles, les 7 panneaux, les astuces, les libellés. À partir de la première sauvegarde, la
+ligne gagnait pour *toutes* les clés — y compris celles que personne n'avait touchées. Conséquence
+invisible mais lourde : améliorer un texte dans `data/help.default.json` n'atteignait plus jamais
+l'écran de cette instance. Le corpus était gelé au jour du premier clic.
+
+- `saveHelpConfigToDb()` ne persiste plus que la **surcharge** — ce qui diffère réellement des
+  défauts versionnés. La lecture est inchangée : les normalisations retombaient déjà sur les
+  défauts pour toute valeur absente, un objet creux se fusionne donc exactement comme un dense.
+- Règle de réduction dans le noyau partagé (`lib/shared/jsonDefaultsStore.js`,
+  `diffAgainstDefaults` / `buildStoredOverride`), donc réutilisable pour l'aide GL, qui présente la
+  même dette (correctif à venir en commit `feat(gl)` séparé).
+- **Vider un texte reste une décision** : une chaîne vide face à un défaut non vide est conservée.
+  Les `items` d'un panneau se diffent **position par position**, les positions inchangées devenant
+  des trous — c'est la forme qu'attend la fusion positionnelle existante.
+- La référence de comparaison est le corpus **normalisé**, pas le fichier brut : la normalisation
+  rogne les espaces et matérialise des champs, un fichier brut aurait produit des « écarts »
+  fantômes à chaque enregistrement.
+- `POST /admin/help-content/reset` stocke désormais une surcharge vide : le corpus suit à nouveau
+  intégralement le dépôt.
+- **Instance déjà en service** : `node scripts/compact-help-registry.js --apply` réécrit la ligne
+  dense en surcharge, à rendu identique (il refuse d'écrire si l'affichage changerait). Dry-run par
+  défaut. Documenté dans `docs/EXPLOITATION.md` §9.
+- Contrôle de la production avant livraison : registre **identique aux défauts**, aucune
+  personnalisation existante — le compactage n'y retire donc rien d'éditorial.
+
+13 tests purs, dont celui qui porte tout le lot : « un défaut amélioré reste visible partout où
+rien n'a été réécrit », et son pendant qui documente l'ancien comportement.
+
 ### ForetMap — OLU entre en scène : portrait dans les parcours, studio prof pour ses images
 
 Le narrateur de l'aide existait en base et en composants depuis le lot 2, mais rien ne l'affichait
