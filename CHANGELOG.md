@@ -7,6 +7,74 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### ForetMap — dégel du registre d'aide : la base ne stocke plus que ce qui a été modifié
+
+**Le bug latent.** Enregistrer les bulles d'aide écrivait en base l'**objet complet** : les 21
+infobulles, les 7 panneaux, les astuces, les libellés. À partir de la première sauvegarde, la
+ligne gagnait pour *toutes* les clés — y compris celles que personne n'avait touchées. Conséquence
+invisible mais lourde : améliorer un texte dans `data/help.default.json` n'atteignait plus jamais
+l'écran de cette instance. Le corpus était gelé au jour du premier clic.
+
+- `saveHelpConfigToDb()` ne persiste plus que la **surcharge** — ce qui diffère réellement des
+  défauts versionnés. La lecture est inchangée : les normalisations retombaient déjà sur les
+  défauts pour toute valeur absente, un objet creux se fusionne donc exactement comme un dense.
+- Règle de réduction dans le noyau partagé (`lib/shared/jsonDefaultsStore.js`,
+  `diffAgainstDefaults` / `buildStoredOverride`), donc réutilisable pour l'aide GL, qui présente la
+  même dette (correctif à venir en commit `feat(gl)` séparé).
+- **Vider un texte reste une décision** : une chaîne vide face à un défaut non vide est conservée.
+  Les `items` d'un panneau se diffent **position par position**, les positions inchangées devenant
+  des trous — c'est la forme qu'attend la fusion positionnelle existante.
+- La référence de comparaison est le corpus **normalisé**, pas le fichier brut : la normalisation
+  rogne les espaces et matérialise des champs, un fichier brut aurait produit des « écarts »
+  fantômes à chaque enregistrement.
+- `POST /admin/help-content/reset` stocke désormais une surcharge vide : le corpus suit à nouveau
+  intégralement le dépôt.
+- **Instance déjà en service** : `node scripts/compact-help-registry.js --apply` réécrit la ligne
+  dense en surcharge, à rendu identique (il refuse d'écrire si l'affichage changerait). Dry-run par
+  défaut. Documenté dans `docs/EXPLOITATION.md` §9.
+- Contrôle de la production avant livraison : registre **identique aux défauts**, aucune
+  personnalisation existante — le compactage n'y retire donc rien d'éditorial.
+
+13 tests purs, dont celui qui porte tout le lot : « un défaut amélioré reste visible partout où
+rien n'a été réécrit », et son pendant qui documente l'ancien comportement.
+
+### ForetMap — OLU entre en scène : portrait dans les parcours, studio prof pour ses images
+
+Le narrateur de l'aide existait en base et en composants depuis le lot 2, mais rien ne l'affichait
+et rien ne permettait de lui donner un visage sans passer par un appel d'API à la main. Les deux
+bouts manquants sont livrés.
+
+**Lot 3 — le portrait suit l'étape.**
+
+- Chaque étape de visite guidée porte désormais une **expression** (`parle`, `montre`, `cherche`,
+  `vigilant`, `complice`…). Une étape sans expression, ou avec une valeur inconnue, retombe sur
+  `neutre` : le portrait n'est jamais une dépendance du parcours.
+- `DiscoveryTour` rend le portrait à gauche de la bulle. La carte s'élargit de 320 à 384 px quand
+  un portrait est affiché — sinon le texte tombait à ~210 px de large — et **sous 480 px le
+  portrait devient un médaillon de 44 px**, texte pleine largeur.
+- Aucune ancre CSS de parcours n'a bougé : les étapes existantes ciblent les mêmes sélecteurs.
+
+**Lot 5 — un studio pour les images (Paramètres → Narrateur OLU).**
+
+- Écran dédié, **distinct de « Bulles d'aide »** : les deux réglages ont des réinitialisations
+  séparées côté serveur, les mélanger aurait rendu le bouton « Réinitialiser » ambigu.
+- **La cascade est montrée, pas expliquée** : chaque expression affiche le rendu effectif — image
+  dédiée, reprise de « Neutre », ou silhouette de repli — avec un badge de provenance. Illustrer
+  la seule expression « Neutre » suffit ; les sept autres s'appuient dessus.
+- **Un seul geste pour illustrer** : « Importer » téléverse dans la médiathèque *et* affecte
+  l'emplacement ; « Choisir… » ouvre la médiathèque en galerie pour l'emplacement visé.
+- **Aperçu en situation** dans les deux surfaces réelles (visite guidée, panneau d'aide), avec
+  sélecteur d'expression et rendu de l'état éteint.
+- Cadrage `bust` au premier plan, `face` et `body` repliés — le visage est recadré automatiquement
+  depuis le buste tant qu'aucune image dédiée n'est fournie. Avertissement (non bloquant) au-delà
+  du budget conseillé de 30 Ko par portrait.
+- Enregistrement automatique, réinitialisation du seul narrateur, et **portrait `face` dans
+  l'en-tête des panneaux d'aide**. Le nom accessible des dialogues est inchangé : le portrait est
+  décoratif (`aria-hidden`), le texte reste le contenu.
+
+**À savoir** : OLU est visible, mais le corpus n'est pas encore réécrit à sa voix (lot 4). Sans
+aucune image fournie, tout fonctionne — c'est la silhouette SVG qui tient la place, à coût réseau
+nul.
 ### Mascottes — le choix suit la personne, la carte de travail obéit aux packs
 
 Suite directe du lot précédent, sur ses trois angles morts.

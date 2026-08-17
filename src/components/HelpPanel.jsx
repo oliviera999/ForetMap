@@ -3,6 +3,8 @@ import { useOverlayHistoryBack } from '../hooks/useOverlayHistoryBack';
 import { resolveRoleText } from '../constants/help';
 import { hasDiscoveryTour } from '../constants/discoveryTour';
 import { useTour } from '../contexts/TourContext.jsx';
+import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
+import { MascotSpeaker } from '../shared/components/MascotSpeaker.jsx';
 import { DialogShell } from './DialogShell';
 
 function HelpPanel({
@@ -21,6 +23,9 @@ function HelpPanel({
   const [open, setOpen] = useState(false);
   useOverlayHistoryBack(open, () => setOpen(false));
   const tour = useTour();
+  // Portrait d'en-tête du narrateur (§4.5) : décoratif, jamais dans le nom accessible
+  // du dialogue — `ariaLabel={title}` reste inchangé.
+  const narrator = usePublicSettings()?.content?.help?.narrator || null;
 
   const visibleEntries = useMemo(() => {
     return (entries || [])
@@ -64,8 +69,16 @@ function HelpPanel({
           closeButtonLabel={closeButtonText}
         >
           <h3 className="fm-help-panel__title">
-            {panelTitlePrefix ? `${panelTitlePrefix} ` : ''}
-            {title}
+            <MascotSpeaker
+              className="fm-help-panel__portrait"
+              narrator={narrator}
+              expression="neutre"
+              size="face"
+            />
+            <span className="fm-help-panel__title-text">
+              {panelTitlePrefix ? `${panelTitlePrefix} ` : ''}
+              {title}
+            </span>
           </h3>
           <ul className="fm-help-panel__list">
             {visibleEntries.map((item) => (
