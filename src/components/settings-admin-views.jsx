@@ -14,6 +14,7 @@ import { AdminTextSettingField, AdminNumberSettingField } from './settings/Admin
 import { MapGeorefPanel } from './settings/MapGeorefPanel.jsx';
 import { VisitMascotSettingsPanel } from './settings/VisitMascotSettingsPanel.jsx';
 import { ForetMapHelpContentAdminPanel } from './help/ForetMapHelpContentAdminPanel.jsx';
+import { HelpNarratorAdminPanel } from './help/HelpNarratorAdminPanel.jsx';
 import { ForetMapReferenceDocsPanel } from './help/ForetMapReferenceDocsPanel.jsx';
 import { useSession } from '../contexts/SessionContext.jsx';
 
@@ -412,6 +413,13 @@ function SettingsAdminView() {
         </button>
         <button
           type="button"
+          className={adminSection === 'narrator' ? 'is-active' : ''}
+          onClick={() => setAdminSection('narrator')}
+        >
+          Narrateur OLU
+        </button>
+        <button
+          type="button"
           className={adminSection === 'reference' ? 'is-active' : ''}
           onClick={() => setAdminSection('reference')}
         >
@@ -420,6 +428,8 @@ function SettingsAdminView() {
       </nav>
       {adminSection === 'reference' ? (
         <ForetMapReferenceDocsPanel />
+      ) : adminSection === 'narrator' ? (
+        <HelpNarratorAdminPanel />
       ) : adminSection === 'help' ? (
         <ForetMapHelpContentAdminPanel />
       ) : (

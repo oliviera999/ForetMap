@@ -64,6 +64,7 @@ export function TourProvider({ tab, isTeacher = false, enabled = false, children
         active={tour.active}
         isTeacher={isTeacher}
         speakerName={speakerName}
+        narrator={narrator}
         onNext={tour.nextStep}
         onPrev={tour.prevStep}
         onStop={tour.stopTour}

@@ -1,14 +1,20 @@
 # OLU narrateur — plan d'implantation
 
-> **Avancement.** **Lots 1 et 2 livrés.**
+> **Avancement.** **Lots 1, 2, 3 et 5 livrés.**
 >
 > - **Lot 1** — `src/shared/components/SpeechBubble.jsx` + `src/shared/styles/speech-bubble.css`,
 >   branchés sur `DiscoveryTour`.
 > - **Lot 2** — `src/shared/components/MascotSpeaker.jsx`, `src/utils/mascotExpressions.js`,
 >   réglage `content.help.narrator` (`lib/helpNarrator.js`, routes `/admin/help-narrator`,
 >   exposition publique). Le nom du locuteur s'affiche désormais dans la visite guidée.
+> - **Lot 3** — champ `expression` par étape dans `DISCOVERY_TOURS` et portrait affiché dans
+>   `DiscoveryTour` (médaillon sous 480 px). Voir §12.
+> - **Lot 5** — studio prof `HelpNarratorAdminPanel` (onglet **Paramètres → Narrateur OLU**) et
+>   portrait `face` dans l'en-tête de `HelpPanel`. Voir §12 et §6bis.
 >
-> Lots 3 à 7 : à faire. Le brief de production graphique des portraits est dans
+> **Reste à faire : lot 4 (réécriture du corpus), lot 6 (GL), lot 7 (optionnel).** OLU est donc à
+> l'écran, mais il parle encore à la troisième personne : c'est l'objet du lot 4. Le brief de
+> production graphique des portraits est dans
 > [`MASCOT_OLU_BRIEF_VISUEL.md`](./MASCOT_OLU_BRIEF_VISUEL.md).
 
 > **Statut : plan d'implantation, mise en œuvre en cours.** Décrit la mise en place d'un avatar
@@ -401,6 +407,59 @@ génération, critères de recette) : **[`MASCOT_OLU_BRIEF_VISUEL.md`](./MASCOT_
 
 ---
 
+## 6bis. Ce qui a été livré aux lots 3 et 5
+
+### 6bis.1 Lot 3 — l'expression suit l'étape
+
+- `DISCOVERY_TOURS` accepte un champ **`expression`** par étape ; toutes les étapes existantes en
+  portent un (`parle` pour une présentation, `montre` pour un coach mark qui désigne, `cherche`
+  pour une étape d'exploration, `vigilant` pour les paramètres, `complice` pour la relance).
+  `resolveDiscoveryExpression()` neutralise l'absence et l'inconnu — un parcours reste valide sans
+  aucune expression déclarée.
+- `DiscoveryTour` rend le portrait **à gauche de la bulle**, dans une scène en deux colonnes. Deux
+  points d'implémentation :
+  - **`CARD_WIDTH` n'est plus une constante unique.** La carte passe de 320 à 384 px quand un
+    portrait est affiché sur grand écran, et `computeCardPosition()` reçoit désormais la largeur en
+    paramètre — sinon le texte se serait retrouvé comprimé à ~210 px (§9.3). La largeur est aussi
+    bornée à la fenêtre, ce qui n'était pas le cas avant.
+  - **Sous 480 px, le portrait devient un médaillon `face` de 44 px** et la carte reste à 320 px.
+    Le seuil est lu par `useMediaQuery` (`src/shared/hooks/useMediaQuery.js`, nouveau, partagé) et
+    non par un `resize` maison.
+- Aucune ancre CSS de parcours n'a été renommée ni déplacée (§9.4) : les étapes existantes ciblent
+  exactement les mêmes sélecteurs.
+
+### 6bis.2 Lot 5 — le studio, et l'écart assumé avec le §6
+
+Le §6 prévoyait une **section « Narrateur » dans `ForetMapHelpContentAdminPanel`**. Le lot livre à
+la place un **écran dédié** (`src/components/help/HelpNarratorAdminPanel.jsx`), en troisième
+sous-onglet de « Paramètres administrateur ». Raison : le lot 2 a délibérément séparé les deux
+réglages côté serveur — routes distinctes, réinitialisations distinctes, pour que
+`POST /admin/help-content/reset` n'emporte pas les portraits (§5.2). Les fondre dans un seul écran
+aurait remis en cause cette séparation là où elle est la plus visible, le bouton
+« Réinitialiser » : l'utilisateur en aurait vu deux dans la même page, sans moyen de savoir lequel
+emporte quoi. Deux réglages, deux cycles de vie, deux écrans.
+
+Trois partis pris d'interface, tous vérifiés par les tests :
+
+| Parti pris                        | Ce que ça donne                                                                                                                                                                                                                                                                                                                                             |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Montrer la cascade**            | Chaque expression affiche **le rendu effectif** — image propre, à défaut celle de « Neutre », à défaut la silhouette SVG — avec un badge de provenance (« Image dédiée » / « reprend Neutre » / « silhouette de repli »). Une case vide n'est donc pas lue comme une erreur, ce qui est exactement le sens de la règle « le niveau 3 doit suffire » (§4.1). |
+| **Aperçu dans les deux surfaces** | Un commutateur Visite guidée / Panneau d'aide, avec sélecteur d'expression, rend le portrait et la bulle réels. Le réglage se juge en situation, pas sur une vignette isolée.                                                                                                                                                                               |
+| **Un seul geste pour illustrer**  | « Importer » téléverse dans la médiathèque **et** affecte l'emplacement ; « Choisir… » ouvre la médiathèque en galerie, filtrée par le seul emplacement visé. Enregistrement automatique (`useDebouncedAutoSave`), comme les autres studios prof.                                                                                                           |
+
+Autres points :
+
+- **Le cadrage `bust` est au premier plan**, `face` et `body` sont repliés dans « Cadrages
+  complémentaires » avec la mention explicite que le visage est recadré automatiquement depuis le
+  buste (§4.4). L'écran n'invite donc pas à produire trois images là où une suffit.
+- **Le budget de 30 Ko (§9.2) est rappelé après un import trop lourd**, en avertissement — jamais
+  en blocage : c'est un conseil de réseau, pas une règle métier.
+- **`src/utils/helpNarratorDraft.js`** (nouveau) rejoue côté client la règle d'URL du serveur : une
+  saisie que `lib/helpNarrator.js` écarterait est effacée immédiatement plutôt qu'affichée puis
+  perdue au premier enregistrement.
+- **Portrait `face` dans `HelpPanel`**, à côté du `💡`. `ariaLabel={title}` du `DialogShell` est
+  inchangé et le portrait reste `aria-hidden` : le nom accessible du dialogue n'a pas bougé (§9.1).
+
 ## 7. Le corpus — stratégie de réécriture
 
 ### 7.1 Trois gisements, trois régimes
@@ -561,11 +620,31 @@ avant les e2e si `dist/` est absent ou obsolète ; tests GL en séquentiel.
 retenue et livrée** : réglage `content.help.narrator` + médiathèque, sans migration ni schéma de
 pack touché. Détail d'implémentation en §5.2.
 
-### 11.2 🔴 Surcharges d'aide en production — §7.1
+### 11.2 ✅ Surcharges d'aide en production — §7.1 — _tranché et corrigé_
 
-Si `content.help.registry` contient déjà des textes personnalisés en production, la réécriture des
-défauts n'aura **aucun effet visible**. Décider : réinitialisation, report manuel, ou fusion.
-À vérifier avant le lot 4.
+Le risque était réel : le registre était persisté **en objet dense** (toutes les clés, y compris
+celles que personne n'avait touchées), donc la première sauvegarde d'un prof gelait le corpus et
+annulait toute réécriture ultérieure des défauts.
+
+Deux constats ont clos l'arbitrage :
+
+1. **Mesure de la production** (`GET /api/settings/public` comparé à `data/help.default.json`) :
+   **zéro écart** sur les 21 infobulles, 7 panneaux, astuces, libellés, bandeaux carte et
+   indicateurs temps réel. Personne n'a personnalisé de texte — il n'y a donc rien à reporter, et
+   un `POST /admin/help-content/reset` après déploiement ne détruirait rien.
+2. **Dégel du mécanisme** : `saveHelpConfigToDb` ne persiste plus que la **surcharge**
+   (`buildStoredOverride`, noyau partagé `lib/shared/jsonDefaultsStore.js`). La lecture n'a pas
+   changé — elle retombait déjà sur les défauts pour toute valeur absente. Conséquence : une
+   amélioration des défauts versionnés reste visible partout où un prof n'a rien réécrit, ce qui
+   est exactement ce dont le lot 4 a besoin.
+
+Une instance déjà en service conserve sa ligne dense tant que personne n'enregistre :
+`node scripts/compact-help-registry.js --apply` la réécrit en surcharge, à rendu identique
+(le script refuse d'écrire si le contenu affiché changerait).
+
+> ⚠️ **Dette symétrique non traitée** : `lib/glHelp.js` (aide GL par onglet) persiste toujours
+> l'objet dense et présente donc le même gel. Le correctif y est mécaniquement identique, mais
+> relève d'un commit `feat(gl)` séparé (règle projet).
 
 ### 11.3 🟠 Nombre d'expressions au démarrage — §4.3
 
@@ -587,6 +666,10 @@ la doc de référence ?
 
 2-3 frames apportent de la vie mais ajoutent du poids et une boucle à gérer sous
 `reduced-motion`. Recommandation : **statique d'abord**, animation évaluée après retour d'usage.
+
+> **Tranché de fait par le lot 5** : le studio n'accepte qu'une image fixe par cadrage. Passer à
+> l'animé demanderait un nouveau champ dans le réglage, pas seulement de nouveaux assets — donc un
+> arbitrage à reprendre s'il devient souhaitable, avec le retour d'usage en main.
 
 ### 11.6 🟡 Mémoire d'OLU
 
@@ -612,15 +695,20 @@ d'écriture, pas de technique — mais elle change le corpus GL.
 | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------ | -------------- | ------ | ----------------- |
 | **1** | ✅ **Livré** — `SpeechBubble` : cadre, étiquette locuteur, machine à écrire + `reduced-motion`. Branché sur `DiscoveryTour` seul. Styles.        | ❌ aucun       | Faible | Très faible       |
 | **2** | ✅ **Livré** — `MascotSpeaker` (rendu SVG niveau 3) + `mascotExpressions.js` + réglage `content.help.narrator` (schéma, routes, payload public). | ❌ aucun       | Moyen  | Faible            |
-| **3** | Champ `expression` optionnel dans `DISCOVERY_TOURS` + câblage.                                                                                   | ❌ aucun       | Faible | Faible            |
+| **3** | ✅ **Livré** — champ `expression` dans `DISCOVERY_TOURS`, portrait dans `DiscoveryTour`, médaillon sous 480 px (§6bis.1).                        | ❌ aucun       | Faible | Faible            |
 | **4** | **Réécriture du corpus** : parcours pilote `map`, puis les autres, puis les 7 panneaux (défauts + miroir client).                                | ❌ aucun       | Moyen  | Moyen — §11.2     |
-| **5** | Studio prof : section « Narrateur » dans `ForetMapHelpContentAdminPanel`. Portrait `face` dans `HelpPanel`.                                      | ✅ portraits   | Moyen  | Faible            |
+| **5** | ✅ **Livré** — studio prof `HelpNarratorAdminPanel` (onglet dédié, cf. §6bis.2) + portrait `face` dans `HelpPanel`.                              | ❌ aucun\*     | Moyen  | Faible            |
 | **6** | GL : `GLFeuilletPopover` + `GLTabHelpPanel`, réglage GL dédié, corpus GL. **Commits `feat(gl)` séparés.**                                        | ✅ portraits   | Moyen  | Moyen — isolement |
 | **7** | _(optionnel)_ Cadrage `body`, spritesheet OLU, correction du mapping d'états §3.1a.                                                              | ✅ spritesheet | Moyen  | Faible            |
 
 **Les lots 1 à 4 sont livrables sans aucun sprite** et apportent déjà l'essentiel de l'effet
 ludique — le cadre, le rythme et la voix. C'est délibéré : la production graphique ne doit
 bloquer ni le développement ni l'écriture.
+
+\* Le lot 5 a finalement été livré **sans aucun asset** : le studio se charge d'accueillir les
+portraits, et tant qu'il n'y en a pas, l'aide et les parcours affichent la silhouette SVG. Les
+portraits restent évidemment le but — mais leur absence ne bloque plus rien, et le jour où ils
+arrivent, il n'y a plus une ligne de code à écrire pour les mettre en service.
 
 ---
 

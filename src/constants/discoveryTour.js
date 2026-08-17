@@ -16,10 +16,14 @@
  *   - `bodyTeacher` (optionnel) : texte alternatif pour le mode prof (n3boss).
  *   - `placement` (optionnel) : 'top' | 'bottom' | 'left' | 'right' | 'center' | 'auto'.
  *   - `role`     (optionnel) : 'teacher' | 'student' pour limiter l'étape à un rôle.
+ *   - `expression` (optionnel) : expression du narrateur (`src/utils/mascotExpressions.js`,
+ *     cf. `docs/MASCOT_NARRATEUR_OLU.md` §4.3). Absente ou inconnue => `neutre`.
  *
  * Une étape dont la cible est absente du DOM au démarrage est ignorée : le parcours
  * ne montre que ce qui figure réellement à l'écran.
  */
+
+import { resolveMascotExpression } from '../utils/mascotExpressions.js';
 
 // Sélecteurs génériques stables, présents quel que soit l'onglet.
 const ACTIVE_NAV = '.nav-btn.active, .top-tab.active';
@@ -33,6 +37,7 @@ const RELAUNCH_STEP = {
   bodyTeacher:
     'Ce bouton « ? » rouvre l’aide de la page et permet de relancer cette visite guidée à tout moment.',
   placement: 'auto',
+  expression: 'complice',
 };
 
 const DISCOVERY_TOURS = {
@@ -46,12 +51,14 @@ const DISCOVERY_TOURS = {
         bodyTeacher:
           'Voici la carte. Tu y crées et organises les zones et repères que les n3beurs vont explorer.',
         placement: 'auto',
+        expression: 'parle',
       },
       {
         target: '.map-switch-inline, .map-switch-select',
         title: 'Changer de carte',
         body: 'Plusieurs cartes existent : utilise ce sélecteur pour passer de l’une à l’autre.',
         placement: 'auto',
+        expression: 'montre',
       },
       {
         target: '.map-view-toolbar',
@@ -60,12 +67,14 @@ const DISCOVERY_TOURS = {
         bodyTeacher:
           'Barre d’outils : modes Zone et Repère pour construire le terrain, zoom, étiquettes et verrou des repères.',
         placement: 'bottom',
+        expression: 'montre',
       },
       {
         target: null,
         title: 'Ouvre une fiche',
         body: 'Clique une zone ou un repère sur la carte : sa fiche t’explique quoi observer et quoi y faire.',
         placement: 'center',
+        expression: 'cherche',
       },
       RELAUNCH_STEP,
     ],
@@ -79,6 +88,7 @@ const DISCOVERY_TOURS = {
         body: 'Cet onglet liste les missions à réaliser sur le terrain.',
         bodyTeacher: 'Cet onglet centralise les missions : création, suivi et validation.',
         placement: 'auto',
+        expression: 'parle',
       },
       {
         target: '.section-title',
@@ -87,6 +97,7 @@ const DISCOVERY_TOURS = {
         bodyTeacher:
           'Filtre par carte, groupe ou statut pour traiter en priorité les retours en attente de validation.',
         placement: 'bottom',
+        expression: 'montre',
       },
       {
         target: null,
@@ -95,6 +106,7 @@ const DISCOVERY_TOURS = {
         bodyTeacher:
           'Côté n3boss : duplique les missions répétitives et valide les retours dès qu’ils arrivent.',
         placement: 'center',
+        expression: 'cherche',
       },
       RELAUNCH_STEP,
     ],
@@ -109,6 +121,7 @@ const DISCOVERY_TOURS = {
         bodyTeacher:
           'Base biodiversité : c’est ici que tu enrichis et tiens à jour les fiches espèces.',
         placement: 'auto',
+        expression: 'parle',
       },
       {
         target: '.section-title',
@@ -117,6 +130,7 @@ const DISCOVERY_TOURS = {
         bodyTeacher:
           'Recherche par nom ou groupe. La pré-saisie et Pl@ntNet aident à compléter une nouvelle fiche.',
         placement: 'bottom',
+        expression: 'cherche',
       },
       RELAUNCH_STEP,
     ],
@@ -131,6 +145,7 @@ const DISCOVERY_TOURS = {
         bodyTeacher:
           'Le mode visite propose un parcours guidé. Sélectionne les tutoriels et repères utiles à la sortie.',
         placement: 'auto',
+        expression: 'parle',
       },
       {
         target: null,
@@ -139,6 +154,7 @@ const DISCOVERY_TOURS = {
         bodyTeacher:
           'Utilise « Aperçu comme élève » pour vérifier exactement ce que les n3beurs verront sur le terrain.',
         placement: 'center',
+        expression: 'cherche',
       },
       RELAUNCH_STEP,
     ],
@@ -153,6 +169,7 @@ const DISCOVERY_TOURS = {
         bodyTeacher:
           'Tableau de bord collectif : suis l’avancement des n3beurs et compare les groupes.',
         placement: 'auto',
+        expression: 'content',
       },
       RELAUNCH_STEP,
     ],
@@ -166,6 +183,7 @@ const DISCOVERY_TOURS = {
         body: 'Teste tes connaissances sur la forêt comestible avec des questions ludiques.',
         bodyTeacher: 'Les quiz permettent de réviser. Tu peux suivre les réponses des n3beurs.',
         placement: 'auto',
+        expression: 'parle',
       },
       RELAUNCH_STEP,
     ],
@@ -178,6 +196,7 @@ const DISCOVERY_TOURS = {
         title: 'Le glossaire',
         body: 'Tous les mots clés de la permaculture et de l’écologie, expliqués simplement.',
         placement: 'auto',
+        expression: 'parle',
       },
       RELAUNCH_STEP,
     ],
@@ -190,6 +209,7 @@ const DISCOVERY_TOURS = {
         title: 'Le réseau trophique',
         body: 'Visualise qui mange qui : les liens entre les espèces du site forment une grande toile.',
         placement: 'auto',
+        expression: 'cherche',
       },
       RELAUNCH_STEP,
     ],
@@ -202,6 +222,7 @@ const DISCOVERY_TOURS = {
         title: 'Ton carnet d’observations',
         body: 'Note et photographie ce que tu observes sur le terrain : ton carnet garde une trace de tes découvertes.',
         placement: 'auto',
+        expression: 'parle',
       },
       RELAUNCH_STEP,
     ],
@@ -214,6 +235,7 @@ const DISCOVERY_TOURS = {
         title: 'Le forum',
         body: 'Échange avec les autres : questions, idées et entraide autour du projet.',
         placement: 'auto',
+        expression: 'parle',
       },
       RELAUNCH_STEP,
     ],
@@ -228,6 +250,7 @@ const DISCOVERY_TOURS = {
         bodyTeacher:
           'Crée, importe et range les tutoriels, puis associe-les aux tâches et aux repères.',
         placement: 'auto',
+        expression: 'parle',
       },
       RELAUNCH_STEP,
     ],
@@ -243,6 +266,7 @@ const DISCOVERY_TOURS = {
           'Gère les comptes, rôles et permissions, et rattache un profil à chaque utilisateur.',
         placement: 'auto',
         role: 'teacher',
+        expression: 'montre',
       },
       RELAUNCH_STEP,
     ],
@@ -256,6 +280,7 @@ const DISCOVERY_TOURS = {
         body: 'Active ou désactive les modules et personnalise le comportement de l’application.',
         placement: 'auto',
         role: 'teacher',
+        expression: 'vigilant',
       },
       RELAUNCH_STEP,
     ],
@@ -267,6 +292,16 @@ export function resolveDiscoveryBody(step, isTeacher) {
   if (!step) return '';
   if (isTeacher && step.bodyTeacher) return step.bodyTeacher;
   return step.body || '';
+}
+
+/**
+ * Expression du narrateur pour une étape. Une étape sans `expression` — ou portant
+ * une valeur inconnue — retombe sur `neutre` : le portrait n'est jamais une
+ * dépendance du parcours.
+ * @returns {string} expression canonique
+ */
+export function resolveDiscoveryExpression(step) {
+  return resolveMascotExpression(step?.expression);
 }
 
 /**
