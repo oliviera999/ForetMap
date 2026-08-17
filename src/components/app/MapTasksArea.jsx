@@ -46,6 +46,7 @@ export function MapTasksArea({
   mapLocationFocus,
   onMapLocationFocusChange,
   onOpenPlantCatalogPreview,
+  onPersistVisitMascotId = null,
 }) {
   return (
     <>
@@ -70,6 +71,7 @@ export function MapTasksArea({
               embedded
               onLocationTasksFocus={onLocationTasksFocus}
               onOpenPlantCatalogPreview={onOpenPlantCatalogPreview}
+              onPersistVisitMascotId={onPersistVisitMascotId}
               onForceLogout={onForceLogout}
             />
           </section>
@@ -108,6 +110,7 @@ export function MapTasksArea({
           onLocationTasksFocus={onLocationTasksFocus}
           onNavigateToTasksForLocation={onNavigateToTasksForLocation}
           onOpenPlantCatalogPreview={onOpenPlantCatalogPreview}
+          onPersistVisitMascotId={onPersistVisitMascotId}
           onForceLogout={onForceLogout}
         />
       )}

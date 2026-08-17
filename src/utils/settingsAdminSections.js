@@ -6,7 +6,7 @@
  * recherche texte (libellé/clé/portée/aide) et comptage. Logique pure, testable.
  */
 
-import { SECTION_DEFS, KEY_META } from '../constants/settingsAdminMeta.js';
+import { SECTION_DEFS, KEY_META, KEYS_HANDLED_BY_PANEL } from '../constants/settingsAdminMeta.js';
 import {
   humanizeKey,
   inferSectionFromKey,
@@ -35,21 +35,25 @@ export function resolveSettingLabel(key, roleTerms) {
  * Regroupe les réglages en sections triées (ordre de section puis titre) ; dans chaque section,
  * lignes triées par ordre de champ puis clé. Chaque ligne est enrichie de `_sectionId`,
  * `_sectionTitle`, `_sectionOrder`, `_fieldOrder` et `_multiline` (consommé par le champ texte).
+ *
+ * Les clés éditées par un panneau dédié (`KEYS_HANDLED_BY_PANEL`) sont exclues de la grille.
  */
 export function buildSettingSections(settings) {
-  const rows = (settings || []).map((row) => {
-    const meta = KEY_META[row.key] || {};
-    const sectionId = meta.section || inferSectionFromKey(row.key);
-    const sectionDef = SECTION_DEFS[sectionId] || SECTION_DEFS.other;
-    return {
-      ...row,
-      _sectionId: sectionId,
-      _sectionTitle: sectionDef.title,
-      _sectionOrder: sectionDef.order,
-      _fieldOrder: meta.order ?? 999,
-      _multiline: !!meta.multiline,
-    };
-  });
+  const rows = (settings || [])
+    .filter((row) => !KEYS_HANDLED_BY_PANEL.has(String(row?.key || '')))
+    .map((row) => {
+      const meta = KEY_META[row.key] || {};
+      const sectionId = meta.section || inferSectionFromKey(row.key);
+      const sectionDef = SECTION_DEFS[sectionId] || SECTION_DEFS.other;
+      return {
+        ...row,
+        _sectionId: sectionId,
+        _sectionTitle: sectionDef.title,
+        _sectionOrder: sectionDef.order,
+        _fieldOrder: meta.order ?? 999,
+        _multiline: !!meta.multiline,
+      };
+    });
   const grouped = new Map();
   for (const row of rows) {
     if (!grouped.has(row._sectionId)) {

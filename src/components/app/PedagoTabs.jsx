@@ -33,6 +33,7 @@ export function PedagoTabs({
   tab,
   visitEnabled,
   student,
+  onPersistVisitMascotId = null,
   tutorials,
   activeMapId,
   zones,
@@ -63,6 +64,7 @@ export function PedagoTabs({
             onForceLogout={onForceLogout}
             onOpenMascotPackStudioTab={onOpenMascotPackStudioTab}
             profileVisitMascotId={student?.visit_mascot_catalog_id || null}
+            onPersistVisitMascotId={onPersistVisitMascotId}
             mapZones={zones}
             mapMarkers={markers}
             catalogTutorials={tutorials}

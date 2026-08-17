@@ -15,6 +15,7 @@ import {
   validateProfileEditorFields,
 } from '../utils/studentProfileFields.js';
 import { useHelp } from '../hooks/useHelp';
+import useVisitMascotCatalogExtras from '../hooks/useVisitMascotCatalogExtras.js';
 import { HelpPanel } from './HelpPanel';
 import { resolveHelpPanelSection } from '../utils/helpResolve';
 import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
@@ -277,9 +278,12 @@ function StudentProfileEditor({ student, onUpdated, onClose, maps = [] }) {
     () => buildProfileAffiliationOptions(maps, affiliation, student?.affiliation),
     [maps, affiliation, student?.affiliation],
   );
+  // Packs publiés inclus : le profil propose exactement les mêmes mascottes que le plan.
+  const visitMascotPackExtras = useVisitMascotCatalogExtras();
   const visitMascotOptions = useMemo(
-    () => buildVisitMascotOptions(publicSettings?.visit?.mascot?.allowed_ids),
-    [publicSettings?.visit?.mascot?.allowed_ids],
+    () =>
+      buildVisitMascotOptions(publicSettings?.visit?.mascot?.allowed_ids, visitMascotPackExtras),
+    [publicSettings?.visit?.mascot?.allowed_ids, visitMascotPackExtras],
   );
   const [avatarPreview, setAvatarPreview] = useState(getStudentAvatarUrl(student));
   const [avatarData, setAvatarData] = useState(null);

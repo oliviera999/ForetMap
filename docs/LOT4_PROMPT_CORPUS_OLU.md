@@ -1,7 +1,7 @@
 # Lot 4 — réécriture du corpus à la voix d'OLU : brief de session
 
 > **Ce document est un prompt de démarrage**, à donner tel quel à une session ultérieure. Il fige
-> l'état constaté au moment de sa rédaction (v1.94.1, PR #305) pour que la session suivante ne
+> l'état constaté au moment de sa rédaction (v1.95.1, PR #305) pour que la session suivante ne
 > refasse ni l'enquête ni les arbitrages déjà tranchés.
 
 ---
@@ -70,7 +70,7 @@ CONTRAINTES TECHNIQUES — les ignorer casse silencieusement :
     groups 5, groupFilters 3). Ajouter un item est possible, mais alors dans les DEUX.
 
 CE QUI N'EST PLUS UN PROBLÈME (ne pas le réinstruire) :
-  - Le gel des défauts par la BDD est corrigé (v1.94.1) : seule la surcharge est persistée,
+  - Le gel des défauts par la BDD est corrigé (v1.95.1) : seule la surcharge est persistée,
     donc réécrire les défauts sera visible partout où un prof n'a rien réécrit.
   - La production ne contient AUCUNE personnalisation de texte (vérifié : registre identique
     aux défauts). Rien à reporter, rien à fusionner.
@@ -91,7 +91,7 @@ LIVRABLES ATTENDUS, dans le même lot :
     éviter les conflits de merge (règle projet).
 
 APRÈS DÉPLOIEMENT, à rappeler à l'exploitant : si une instance a déjà enregistré des bulles
-d'aide avant la v1.94.1, sa ligne en base est encore dense et masque la réécriture. La
+d'aide avant la v1.95.1, sa ligne en base est encore dense et masque la réécriture. La
 commande `node scripts/compact-help-registry.js --apply` la compacte à rendu identique.
 
 DEUX QUESTIONS À ME POSER, pas à trancher seul :
@@ -103,7 +103,7 @@ DEUX QUESTIONS À ME POSER, pas à trancher seul :
 
 ---
 
-## État constaté au moment de la rédaction (v1.94.1)
+## État constaté au moment de la rédaction (v1.95.1)
 
 | Fait                                   | Valeur                                                       |
 | -------------------------------------- | ------------------------------------------------------------ |
@@ -119,7 +119,7 @@ DEUX QUESTIONS À ME POSER, pas à trancher seul :
 - **Lots 1, 2, 3, 5 livrés** : bulle + machine à écrire, `MascotSpeaker` + réglage
   `content.help.narrator`, expression par étape + portrait dans les parcours, studio prof
   (Paramètres → Narrateur OLU) + portrait dans l'en-tête d'aide.
-- **Dégel du registre** (v1.94.1) : la base ne stocke que la surcharge — c'est ce qui rend le
+- **Dégel du registre** (v1.95.1) : la base ne stocke que la surcharge — c'est ce qui rend le
   lot 4 utile au lieu d'être annulé au premier enregistrement d'un prof.
 - **Écarté** : mettre les parcours en base pour ce lot. Analyse dans l'historique — la structure
   (`target`, `placement`, `role`) n'est pas de l'éditorial, et le corpus perdrait Git (revue,

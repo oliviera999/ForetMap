@@ -27,6 +27,7 @@ import useMapCrudActions from '../hooks/useMapCrudActions.js';
 import useMascotGpsFollow from '../hooks/useMascotGpsFollow.js';
 import { MascotGpsStatusBanner } from './MascotGpsStatusBanner.jsx';
 import useVisitMascotCatalogExtras from '../hooks/useVisitMascotCatalogExtras.js';
+import { parseVisitMascotAllowedIds } from '../utils/visitViewStatus.js';
 import { useMapGestures } from '../hooks/useMapGestures.js';
 
 import { TimedToast } from '../shared/components/TimedToast.jsx';
@@ -112,6 +113,7 @@ function MapViewImpl({
   onLocationTasksFocus = null,
   onNavigateToTasksForLocation = null,
   onOpenPlantCatalogPreview = null,
+  onPersistVisitMascotId = null,
   onForceLogout,
 }) {
   const publicSettings = usePublicSettings();
@@ -151,25 +153,14 @@ function MapViewImpl({
     () => parseEmojiListSetting(configuredLocationEmojis, MARKER_EMOJIS),
     [configuredLocationEmojis],
   );
-  const visitMascotAllowedIds = useMemo(() => {
-    const raw = publicSettings?.visit?.mascot?.allowed_ids;
-    if (Array.isArray(raw)) {
-      return raw.map((id) => String(id || '').trim()).filter(Boolean);
-    }
-    if (typeof raw === 'string') {
-      return raw
-        .split(/[,\n;]+/g)
-        .map((id) => String(id || '').trim())
-        .filter(Boolean);
-    }
-    return [];
-  }, [publicSettings?.visit?.mascot?.allowed_ids]);
+  const visitMascotAllowedIds = useMemo(
+    () => parseVisitMascotAllowedIds(publicSettings?.visit?.mascot?.allowed_ids),
+    [publicSettings?.visit?.mascot?.allowed_ids],
+  );
   const visitMascotDefaultId = String(publicSettings?.visit?.mascot?.default_id || '').trim();
-  // Packs mascotte serveur publiés de la carte → la mascotte peut être un pack importé (srv-…).
-  const visitMascotCatalogExtras = useVisitMascotCatalogExtras({
-    mapId: activeMapId,
-    enabled: mode === 'view',
-  });
+  // Registre global des packs publiés → la mascotte peut être un pack importé (srv-…),
+  // et le choix du visiteur vaut sur toutes les cartes.
+  const visitMascotCatalogExtras = useVisitMascotCatalogExtras({ enabled: mode === 'view' });
   const mapMarkersOnActiveMap = useMemo(
     () => (markers || []).filter((m) => m.map_id === activeMapId),
     [markers, activeMapId],
@@ -260,6 +251,7 @@ function MapViewImpl({
     preferredMascotId: student?.visit_mascot_catalog_id,
     allowedMascotIds: visitMascotAllowedIds,
     defaultMascotId: visitMascotDefaultId,
+    onPersistPreferredMascotId: onPersistVisitMascotId,
     mascotDialogSettings: publicSettings?.visit?.mascot?.dialog,
   });
   const mascotGps = useMascotGpsFollow({

@@ -12,6 +12,7 @@ import { getRoleTerms } from '../utils/n3-terminology';
 import { MediaLibraryMenu } from './MediaLibraryMenu.jsx';
 import { AdminTextSettingField, AdminNumberSettingField } from './settings/AdminSettingFields.jsx';
 import { MapGeorefPanel } from './settings/MapGeorefPanel.jsx';
+import { VisitMascotSettingsPanel } from './settings/VisitMascotSettingsPanel.jsx';
 import { ForetMapHelpContentAdminPanel } from './help/ForetMapHelpContentAdminPanel.jsx';
 import { HelpNarratorAdminPanel } from './help/HelpNarratorAdminPanel.jsx';
 import { ForetMapReferenceDocsPanel } from './help/ForetMapReferenceDocsPanel.jsx';
@@ -493,6 +494,14 @@ function SettingsAdminView() {
               <p>Aucun paramètre ne correspond au filtre saisi.</p>
             </div>
           )}
+
+          {/* Réglages mascottes : panneau dédié (vignettes + cases) — les deux clés
+              correspondantes sont retirées de la grille texte libre ci-dessus. */}
+          <VisitMascotSettingsPanel
+            allowedValue={get('ui.visit.mascot.allowed_ids', '')}
+            defaultValue={get('ui.visit.mascot.default_id', '')}
+            onSave={(key, value) => saveSetting(key, value, 'Réglages mascottes enregistrés')}
+          />
 
           <div
             style={{
