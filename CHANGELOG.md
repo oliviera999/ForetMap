@@ -7,6 +7,44 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### ForetMap — OLU entre en scène : portrait dans les parcours, studio prof pour ses images
+
+Le narrateur de l'aide existait en base et en composants depuis le lot 2, mais rien ne l'affichait
+et rien ne permettait de lui donner un visage sans passer par un appel d'API à la main. Les deux
+bouts manquants sont livrés.
+
+**Lot 3 — le portrait suit l'étape.**
+
+- Chaque étape de visite guidée porte désormais une **expression** (`parle`, `montre`, `cherche`,
+  `vigilant`, `complice`…). Une étape sans expression, ou avec une valeur inconnue, retombe sur
+  `neutre` : le portrait n'est jamais une dépendance du parcours.
+- `DiscoveryTour` rend le portrait à gauche de la bulle. La carte s'élargit de 320 à 384 px quand
+  un portrait est affiché — sinon le texte tombait à ~210 px de large — et **sous 480 px le
+  portrait devient un médaillon de 44 px**, texte pleine largeur.
+- Aucune ancre CSS de parcours n'a bougé : les étapes existantes ciblent les mêmes sélecteurs.
+
+**Lot 5 — un studio pour les images (Paramètres → Narrateur OLU).**
+
+- Écran dédié, **distinct de « Bulles d'aide »** : les deux réglages ont des réinitialisations
+  séparées côté serveur, les mélanger aurait rendu le bouton « Réinitialiser » ambigu.
+- **La cascade est montrée, pas expliquée** : chaque expression affiche le rendu effectif — image
+  dédiée, reprise de « Neutre », ou silhouette de repli — avec un badge de provenance. Illustrer
+  la seule expression « Neutre » suffit ; les sept autres s'appuient dessus.
+- **Un seul geste pour illustrer** : « Importer » téléverse dans la médiathèque *et* affecte
+  l'emplacement ; « Choisir… » ouvre la médiathèque en galerie pour l'emplacement visé.
+- **Aperçu en situation** dans les deux surfaces réelles (visite guidée, panneau d'aide), avec
+  sélecteur d'expression et rendu de l'état éteint.
+- Cadrage `bust` au premier plan, `face` et `body` repliés — le visage est recadré automatiquement
+  depuis le buste tant qu'aucune image dédiée n'est fournie. Avertissement (non bloquant) au-delà
+  du budget conseillé de 30 Ko par portrait.
+- Enregistrement automatique, réinitialisation du seul narrateur, et **portrait `face` dans
+  l'en-tête des panneaux d'aide**. Le nom accessible des dialogues est inchangé : le portrait est
+  décoratif (`aria-hidden`), le texte reste le contenu.
+
+**À savoir** : OLU est visible, mais le corpus n'est pas encore réécrit à sa voix (lot 4). Sans
+aucune image fournie, tout fonctionne — c'est la silhouette SVG qui tient la place, à coût réseau
+nul.
+
 ### G&L — le carnet de feuillets devient durable, et les feuillets s'échangent
 
 **Le carnet ne dépend plus de l'équipe.** La possession d'un feuillet n'était pas stockée : elle

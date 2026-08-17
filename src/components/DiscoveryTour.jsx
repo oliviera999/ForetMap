@@ -1,21 +1,29 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
-import { resolveDiscoveryBody } from '../constants/discoveryTour.js';
+import { resolveDiscoveryBody, resolveDiscoveryExpression } from '../constants/discoveryTour.js';
 import { SpeechBubble } from '../shared/components/SpeechBubble.jsx';
+import { MascotSpeaker } from '../shared/components/MascotSpeaker.jsx';
+import { useMediaQuery } from '../shared/hooks/useMediaQuery.js';
 
 const SPOTLIGHT_PADDING = 8;
 const CARD_MARGIN = 14;
 const CARD_WIDTH = 320;
+/** Le portrait latéral consomme de la largeur : la carte s'élargit pour ne pas comprimer le texte. */
+const CARD_WIDTH_WITH_PORTRAIT = 384;
+/** Sous ce seuil, le portrait devient un médaillon d'angle et la carte reste étroite (§9.3). */
+const COMPACT_QUERY = '(max-width: 480px)';
 
 /** Calcule la position de la carte d'info autour de la cible mise en lumière. */
-function computeCardPosition(rect, placement) {
+function computeCardPosition(rect, placement, cardWidth = CARD_WIDTH) {
   const vw = window.innerWidth;
   const vh = window.innerHeight;
+  const width = Math.min(cardWidth, Math.max(240, vw - 24));
   if (!rect) {
     return {
-      left: Math.max(12, (vw - CARD_WIDTH) / 2),
+      left: Math.max(12, (vw - width) / 2),
       top: Math.max(12, vh / 2 - 90),
       centered: true,
+      width,
     };
   }
 
@@ -41,11 +49,11 @@ function computeCardPosition(rect, placement) {
   let top;
   switch (place) {
     case 'top':
-      left = rect.left + rect.width / 2 - CARD_WIDTH / 2;
+      left = rect.left + rect.width / 2 - width / 2;
       top = rect.top - CARD_MARGIN;
       break;
     case 'left':
-      left = rect.left - CARD_WIDTH - CARD_MARGIN;
+      left = rect.left - width - CARD_MARGIN;
       top = rect.top;
       break;
     case 'right':
@@ -53,19 +61,19 @@ function computeCardPosition(rect, placement) {
       top = rect.top;
       break;
     case 'center':
-      return { left: (vw - CARD_WIDTH) / 2, top: vh / 2 - 90, centered: true };
+      return { left: (vw - width) / 2, top: vh / 2 - 90, centered: true, width };
     case 'bottom':
     default:
-      left = rect.left + rect.width / 2 - CARD_WIDTH / 2;
+      left = rect.left + rect.width / 2 - width / 2;
       top = rect.bottom + CARD_MARGIN;
       break;
   }
 
   // On garde la carte dans l'écran.
-  left = Math.max(12, Math.min(left, vw - CARD_WIDTH - 12));
+  left = Math.max(12, Math.min(left, vw - width - 12));
   top = Math.max(12, Math.min(top, vh - 12));
   const translateY = place === 'top' ? '-100%' : '0';
-  return { left, top, translateY, centered: false };
+  return { left, top, translateY, centered: false, width };
 }
 
 /**
@@ -77,6 +85,7 @@ export function DiscoveryTour({
   active,
   isTeacher = false,
   speakerName = '',
+  narrator = null,
   onNext,
   onPrev,
   onStop,
@@ -84,6 +93,7 @@ export function DiscoveryTour({
   const [rect, setRect] = useState(null);
   const rafRef = useRef(0);
   const bubbleRef = useRef(null);
+  const compact = useMediaQuery(COMPACT_QUERY);
 
   const step = active?.steps?.[active.index] || null;
   const target = step?.target || null;
@@ -178,7 +188,14 @@ export function DiscoveryTour({
   if (!active || !step || typeof document === 'undefined') return null;
 
   const body = resolveDiscoveryBody(step, isTeacher);
-  const card = computeCardPosition(rect, step.placement);
+  // Le narrateur est un enrichissement : seul un `enabled: false` explicite l'éteint.
+  // Sans réglage chargé, le portrait reste rendu — c'est le repli SVG, gratuit (§4.1).
+  const showPortrait = !narrator || narrator.enabled !== false;
+  const card = computeCardPosition(
+    rect,
+    step.placement,
+    showPortrait && !compact ? CARD_WIDTH_WITH_PORTRAIT : CARD_WIDTH,
+  );
   const isLast = stepIndex >= stepCount - 1;
 
   const spotlightStyle = rect
@@ -205,7 +222,7 @@ export function DiscoveryTour({
           position: 'fixed',
           left: card.left,
           top: card.top,
-          width: CARD_WIDTH,
+          width: card.width,
           transform: card.translateY ? `translateY(${card.translateY})` : undefined,
         }}
       >
@@ -213,13 +230,23 @@ export function DiscoveryTour({
           Étape {stepIndex + 1} / {stepCount}
         </div>
         <h3 className="discovery-tour__title">{step.title}</h3>
-        <SpeechBubble
-          key={stepIndex}
-          ref={bubbleRef}
-          className="discovery-tour__bubble"
-          speakerName={speakerName}
-          text={body}
-        />
+        <div className={`discovery-tour__scene ${compact ? 'is-compact' : ''}`}>
+          {showPortrait ? (
+            <MascotSpeaker
+              className="discovery-tour__portrait"
+              narrator={narrator}
+              expression={resolveDiscoveryExpression(step)}
+              size={compact ? 'face' : 'bust'}
+            />
+          ) : null}
+          <SpeechBubble
+            key={stepIndex}
+            ref={bubbleRef}
+            className="discovery-tour__bubble"
+            speakerName={speakerName}
+            text={body}
+          />
+        </div>
         <div className="discovery-tour__dots" aria-hidden="true">
           {active.steps.map((s, i) => (
             <span
