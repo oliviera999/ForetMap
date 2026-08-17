@@ -6,6 +6,7 @@ import { VISIT_MASCOT_INTERACTION_EVENT } from '../utils/visitMascotInteractionE
 import { resolveVisitMascotInteraction } from '../utils/visitMascotInteractionApply.js';
 import { getTapActions, runBehaviorAction } from '../utils/mascotBehaviorEngine.js';
 import useAmbientMascotBehavior from './useAmbientMascotBehavior.js';
+import useVisitMascotCatalogExtras from './useVisitMascotCatalogExtras.js';
 import useVisitMascotStateMachine from './useVisitMascotStateMachine.js';
 import {
   loadVisitMascotPositionPct,
@@ -36,6 +37,8 @@ export const VISIT_MASCOT_DIALOG_MOVE_COOLDOWN_MS = 4200;
  * @param {{ map_id?: string, markers?: Array, mascot_packs?: Array }} params.content contenu visite.
  * @param {boolean} params.prefersReducedMotion préférence utilisateur (mouvement réduit).
  * @param {string|null} params.profileVisitMascotId mascotte du profil (prioritaire).
+ * @param {((mascotId: string) => void)|null} [params.onPersistVisitMascotId] persistance du choix
+ *   dans le compte connecté (absent pour un visiteur non connecté → stockage local).
  * @param {{ current: { height?: number }|null }} params.visitMapFitRef rect « contain » courant (lecture impérative).
  * @param {number} params.viewportFitHeight hauteur du rect « contain » (état — pilote le clamp du rendu).
  * @param {(item: object|null) => void} params.setSelected sélection du panneau détail.
@@ -47,6 +50,7 @@ export function useVisitMapMascotController({
   content,
   prefersReducedMotion,
   profileVisitMascotId,
+  onPersistVisitMascotId = null,
   visitMapFitRef,
   viewportFitHeight,
   setSelected,
@@ -57,8 +61,8 @@ export function useVisitMapMascotController({
     () => parseVisitMascotAllowedIds(publicSettings?.visit?.mascot?.allowed_ids),
     [publicSettings?.visit?.mascot?.allowed_ids],
   );
-  const visitMascotDefaultId =
-    String(publicSettings?.visit?.mascot?.default_id || '').trim() || 'renard2-cut-spritesheet';
+  // Vide = mascotte par défaut livrée : `normalizeVisitMascotId` s'en charge (pas d'id en dur ici).
+  const visitMascotDefaultId = String(publicSettings?.visit?.mascot?.default_id || '').trim();
 
   const [visitMapMascotPct, setVisitMapMascotPct] = useState({ xp: 50, yp: 50 });
   const [visitMapMascotFaceRight, setVisitMapMascotFaceRight] = useState(true);
@@ -75,10 +79,21 @@ export function useVisitMapMascotController({
   const visitMascotMoveDialogCooldownUntilRef = useRef(0);
   const visitMascotStartPlacedForMapRef = useRef(null);
 
-  const visitMascotCatalogExtras = useMemo(
-    () => buildVisitMascotCatalogExtrasFromContent(content.mascot_packs),
-    [content.mascot_packs],
-  );
+  // Packs de la carte courante (servis avec le contenu) ⊕ registre global des packs publiés :
+  // la mascotte choisie reste disponible quelle que soit la carte visitée.
+  const visitMascotRegistryExtras = useVisitMascotCatalogExtras();
+  const visitMascotCatalogExtras = useMemo(() => {
+    const fromContent = buildVisitMascotCatalogExtrasFromContent(content.mascot_packs);
+    const seen = new Set(fromContent.map((entry) => String(entry?.id || '').trim()));
+    const merged = [...fromContent];
+    for (const entry of visitMascotRegistryExtras) {
+      const id = String(entry?.id || '').trim();
+      if (!id || seen.has(id)) continue;
+      seen.add(id);
+      merged.push(entry);
+    }
+    return merged;
+  }, [content.mascot_packs, visitMascotRegistryExtras]);
 
   const {
     visitMascotId,
@@ -93,6 +108,7 @@ export function useVisitMapMascotController({
     happy: visitMapMascotHappy,
     extraCatalogEntries: visitMascotCatalogExtras,
     preferredMascotId: profileVisitMascotId,
+    onPersistPreferredMascotId: onPersistVisitMascotId,
     allowedMascotIds: visitMascotAllowedIds,
     defaultMascotId: visitMascotDefaultId,
   });

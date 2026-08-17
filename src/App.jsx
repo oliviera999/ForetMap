@@ -77,6 +77,7 @@ import { getRoleTerms, isN3OnlyAffiliation } from './utils/n3-terminology';
 import { allowedMapIdsFromAffiliation, mapsForAffiliationScope } from './utils/mapAffiliation';
 import { getContentText } from './utils/content';
 import { safeLocalStorageGetItem, safeLocalStorageSetItem } from './utils/browserStorage.js';
+import { saveVisitMascotPreference } from './services/visitMascotPreference.js';
 import { useOverlayHistoryBack } from './hooks/useOverlayHistoryBack';
 import { abandonAllOverlays, pushOverlayClose } from './utils/overlayHistory';
 import { keepPrevIfEqual } from './utils/stableCollection';
@@ -265,6 +266,28 @@ function App() {
     safeLocalStorageSetItem(GUEST_VISIT_MASCOT_CONFIRMED_KEY, '1');
     setGuestVisitNeedsMascotChoice(false);
   }, []);
+
+  /**
+   * Choix de mascotte d'un **compte connecté** : enregistré dans le compte (donc portable
+   * d'un appareil à l'autre), et non plus dans le stockage local du navigateur. La session
+   * en mémoire est mise à jour dans la foulée pour que « Mon profil » reste cohérent.
+   * L'affichage est déjà optimiste côté hook : un échec réseau ne bloque pas la visite.
+   */
+  const persistVisitMascotPreference = useCallback(async (mascotId) => {
+    const value = String(mascotId || '').trim();
+    const next = value || null;
+    setStudent((prev) => (prev ? { ...prev, visit_mascot_catalog_id: next } : prev));
+    setSessionUser((prev) => (prev ? { ...prev, visit_mascot_catalog_id: next } : prev));
+    try {
+      await saveVisitMascotPreference(value);
+    } catch (_) {
+      /* silencieux : la valeur serveur reprend la main au prochain chargement de session */
+    }
+  }, []);
+  const onPersistVisitMascotId = useMemo(
+    () => (sessionUser || student ? persistVisitMascotPreference : null),
+    [sessionUser, student, persistVisitMascotPreference],
+  );
 
   // D3 — cycle de vie session (restauration, /api/auth/me, impersonation admin, logout forcé).
   const {

@@ -7,8 +7,10 @@ describe('DEFAULT_PUBLIC_SETTINGS', () => {
     expect(DEFAULT_PUBLIC_SETTINGS.map.default_map_student).toBe('foret');
     expect(DEFAULT_PUBLIC_SETTINGS.modules.tutorials_enabled).toBe(true);
     expect(DEFAULT_PUBLIC_SETTINGS.help.show_context_hints).toBe(true);
-    expect(DEFAULT_PUBLIC_SETTINGS.visit.mascot.default_id).toBe('renard2-cut-spritesheet');
-    expect(Array.isArray(DEFAULT_PUBLIC_SETTINGS.visit.mascot.allowed_ids)).toBe(true);
+    // Aucun id de mascotte en dur ici : vide = « défaut livré » / « aucune restriction »,
+    // la résolution appartient au catalogue (src/utils/visitMascotCatalog.js).
+    expect(DEFAULT_PUBLIC_SETTINGS.visit.mascot.default_id).toBe('');
+    expect(DEFAULT_PUBLIC_SETTINGS.visit.mascot.allowed_ids).toEqual([]);
   });
 });
 
