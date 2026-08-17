@@ -62,6 +62,47 @@ familles.
 - **Suivre la fréquentation** : un tableau de bord donne sessions, lieux vus et taux de
   parcours complets, en séparant élèves connectés et visiteurs anonymes.
 
+## OLU, le narrateur de l'aide
+
+À ne pas confondre avec les mascottes de la Visite : **OLU** est le personnage qui accompagne
+l'**aide** de l'application (les panneaux « ? ») et les **visites guidées** des onglets — ces
+petites séquences d'étapes qui présentent un écran à la première ouverture. Il n'apparaît jamais
+de lui-même : uniquement quand on ouvre l'aide, ou qu'on lance une visite guidée.
+
+### Ce que voit l'utilisateur
+
+- Dans une **visite guidée** : un portrait à gauche de la bulle de texte, son nom au-dessus de la
+  bulle, et une expression qui change selon l'étape (il présente, il désigne un élément, il
+  invite à explorer…). Sur petit écran, le portrait devient un médaillon pour ne pas manger la
+  largeur du texte.
+- Dans un **panneau d'aide** : un petit visage dans l'en-tête, discret et sans animation.
+- **Le portrait ne porte jamais d'information** : tout ce qui compte est écrit dans le texte. Les
+  lecteurs d'écran l'ignorent, et l'aide fonctionne à l'identique s'il n'y a aucune image.
+
+### Ce que règle l'administrateur
+
+Onglet **Paramètres → Narrateur OLU** :
+
+- **L'interrupteur** : éteindre OLU retire portrait et nom partout, sans toucher aux textes. Les
+  images affectées sont conservées — on peut le rallumer à tout moment.
+- **Le nom affiché** au-dessus des bulles, et la **silhouette de repli** : un dessin utilisé quand
+  aucune image n'est disponible. Il ne coûte rien à charger et garantit qu'aucun écran ne reste
+  vide.
+- **Les portraits, par expression** (huit : Neutre, Parle, Montre, Content, Vigilant, Cherche,
+  Grave, Complice). Chaque expression indique ce qu'elle affichera réellement : sa propre image,
+  à défaut celle de « Neutre », à défaut la silhouette. **Fournir la seule expression « Neutre »
+  suffit donc pour commencer** — les autres s'appuient dessus.
+- **Deux façons d'illustrer** : « Importer » envoie un fichier depuis l'ordinateur (il rejoint la
+  médiathèque ForetMap et s'affecte dans la foulée), « Choisir… » reprend une image déjà présente
+  dans la médiathèque.
+- **Un aperçu en situation** montre le rendu dans les deux surfaces (visite guidée et panneau
+  d'aide) avant que quiconque ne le voie.
+- L'enregistrement est **automatique**. Un bouton « Réinitialiser le narrateur » revient aux
+  valeurs d'origine (les images restent dans la médiathèque).
+
+Format conseillé pour un portrait : **WebP à fond transparent, 256 × 320 px, moins de 30 Ko**.
+Au-delà, l'application le signale : sur le réseau d'un lycée, le poids se paie à chaque ouverture.
+
 ## ⚠️ Points d'attention
 
 > ⚠️ **Point d'attention** — **Pas de guidage GPS dans la Visite** : la mascotte s'y
@@ -73,6 +114,12 @@ familles.
 > ⚠️ **Point d'attention** — Les contenus de visite n'acceptent que des **images**
 > (pas d'audio ni de vidéo), et la progression d'un invité anonyme est **éphémère**
 > (~24 h) : elle n'est pas transférée s'il crée ensuite un compte.
+
+> ⚠️ **Point d'attention** — **OLU est en place, mais les textes ne sont pas encore
+> écrits à sa voix.** L'aide et les visites guidées parlent aujourd'hui à la troisième
+> personne (« Bienvenue sur la carte ! ») : le portrait est là, la voix suivra dans un
+> lot dédié. Les textes des panneaux d'aide restent modifiables dès maintenant dans
+> **Paramètres → Bulles d'aide** ; ceux des visites guidées, non — ils sont dans le code.
 
 > ⚠️ **Point d'attention** — La synchronisation carte ↔ visite étant une copie
 > ponctuelle, une zone renommée ou déplacée sur la carte de travail ne se met pas à
