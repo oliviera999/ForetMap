@@ -17,6 +17,16 @@ export const SECTION_DEFS = {
   other: { title: 'Autres paramètres', order: 90 },
 };
 
+/**
+ * Clés retirées de la grille générique parce qu'un panneau dédié les édite mieux
+ * (aperçu, cases à cocher, validation) — cf. `VisitMascotSettingsPanel`. Les laisser
+ * en double exposerait deux éditeurs contradictoires pour le même réglage.
+ */
+export const KEYS_HANDLED_BY_PANEL = new Set([
+  'ui.visit.mascot.allowed_ids',
+  'ui.visit.mascot.default_id',
+]);
+
 export const KEY_META = {
   'ui.auth.allow_register': { label: 'Afficher "Créer un compte"', section: 'auth', order: 10 },
   'ui.auth.allow_google_student': { section: 'auth', order: 20, dynamicLabel: 'googleStudent' },

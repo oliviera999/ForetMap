@@ -30,6 +30,7 @@ import {
 import { normalizePackStateFramesForFramesBase } from '../utils/mascotPackEditorFrames.js';
 import PackBehaviorDetailTable from './mascot/PackBehaviorDetailTable.jsx';
 import { getVisitMascotCatalog } from '../utils/visitMascotCatalog.js';
+import { invalidateVisitMascotCatalogExtras } from '../hooks/useVisitMascotCatalogExtras.js';
 import {
   extractMascotPackValidationIssues,
   sanitizeMascotPackDraft,
@@ -529,6 +530,9 @@ export default function VisitMascotPackManager({
         });
         setEditorPack(cleanedPack);
         setSavedSnapshot(createMascotPackEditorSnapshot(cleanedPack, label));
+        // Le registre public (`GET /api/visit/mascots`) est mis en cache côté client :
+        // publier/dépublier ou renommer un pack doit s'y refléter sans rechargement.
+        invalidateVisitMascotCatalogExtras();
         await refreshFromServer();
       } catch (e) {
         if (e instanceof AccountDeletedError) onForceLogout?.();

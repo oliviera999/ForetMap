@@ -3,6 +3,7 @@
  */
 
 import { VISIT_MASCOT_STATE } from './visitMascotState.js';
+import { VISIT_MASCOT_INTERACTION_EVENT } from './visitMascotInteractionEvents.js';
 
 export const MAP_VIEW_MASCOT_MOVE_MS = 560;
 export const MAP_VIEW_MASCOT_HAPPY_MS = 1800;
@@ -20,6 +21,11 @@ export const MAP_VIEW_MASCOT_INSPECT_TRANSIENT_MS = 1200;
 
 /**
  * État transitoire mascotte selon la distance parcourue (course / surprise).
+ *
+ * Conservé pour le **plateau GL** (`useGLBoardMascotMotion`), qui n'a pas de profil
+ * d'interaction par pack. Côté ForetMap, le plan carte passe désormais par
+ * `pickMapMascotMoveInteraction` → profil d'interaction du pack (émetteurs déclaratifs).
+ *
  * @param {number} distPct distance euclidienne en % du plan
  * @returns {{ state: string, durationMs: number } | null}
  */
@@ -30,6 +36,26 @@ export function pickMapMascotMoveTransient(distPct) {
     return { state: VISIT_MASCOT_STATE.RUNNING, durationMs: MAP_VIEW_MASCOT_RUN_TRANSIENT_MS };
   }
   return { state: VISIT_MASCOT_STATE.SURPRISE, durationMs: MAP_VIEW_MASCOT_SURPRISE_TRANSIENT_MS };
+}
+
+/**
+ * Palier de déplacement → **événement d'interaction** (et bulle associée), au lieu d'un état
+ * câblé en dur : c'est le profil du pack (`interactionProfile`) qui décide de l'animation.
+ * Mêmes seuils que le plan de visite (`useVisitMapMascotController`), donc même ressenti.
+ *
+ * @param {number} distPct distance euclidienne en % du plan
+ * @returns {{ event: string, dialog: string } | null}
+ */
+export function pickMapMascotMoveInteraction(distPct) {
+  const dist = Number(distPct);
+  if (!Number.isFinite(dist)) return null;
+  if (dist > MAP_VIEW_MASCOT_RUN_DIST_PCT) {
+    return { event: VISIT_MASCOT_INTERACTION_EVENT.MASCOT_DRAG_VERY_LARGE, dialog: 'running' };
+  }
+  if (dist > MAP_VIEW_MASCOT_SURPRISE_DIST_PCT) {
+    return { event: VISIT_MASCOT_INTERACTION_EVENT.MASCOT_DRAG_LARGE, dialog: 'surprise' };
+  }
+  return null;
 }
 
 /**

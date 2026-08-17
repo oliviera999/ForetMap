@@ -7,13 +7,15 @@ import {
 } from '../utils/visitMascotPositionPersistence.js';
 import { resolveMascotDialogLine } from '../utils/visitMascotDialogApply.js';
 import { VISIT_MASCOT_STATE } from '../utils/visitMascotState.js';
+import { VISIT_MASCOT_INTERACTION_EVENT } from '../utils/visitMascotInteractionEvents.js';
+import { resolveVisitMascotInteraction } from '../utils/visitMascotInteractionApply.js';
 import {
   clampMapMascotPctForViewport,
   MAP_VIEW_MASCOT_DIALOG_MOVE_COOLDOWN_MS,
   MAP_VIEW_MASCOT_DIALOG_MS,
-  MAP_VIEW_MASCOT_INSPECT_TRANSIENT_MS,
+  MAP_VIEW_MASCOT_HAPPY_MS,
   MAP_VIEW_MASCOT_MOVE_MS,
-  pickMapMascotMoveTransient,
+  pickMapMascotMoveInteraction,
 } from '../utils/mapViewMascotMotion.js';
 import useVisitMascotStateMachine from './useVisitMascotStateMachine.js';
 
@@ -29,6 +31,7 @@ function useMapViewMascot({
   preferredMascotId = null,
   allowedMascotIds = [],
   defaultMascotId = '',
+  onPersistPreferredMascotId = null,
   mascotDialogSettings = null,
 } = {}) {
   const [mascotPct, setMascotPct] = useState({ xp: 50, yp: 50 });
@@ -56,6 +59,7 @@ function useMapViewMascot({
     preferredMascotId,
     allowedMascotIds,
     defaultMascotId,
+    onPersistPreferredMascotId,
   });
 
   const showMascot = enabled && !!mascotId;
@@ -150,6 +154,30 @@ function useMapViewMascot({
     [extraCatalogEntries, mascotDialogSettings, mascotId],
   );
 
+  /**
+   * Émetteur déclaratif (même contrat que le plan de visite, étape 4 de la convergence) :
+   * un événement nommé est résolu via le profil d'interaction du pack actif, défaut =
+   * comportement historique. **Effet : le profil d'un pack agit enfin sur la carte de
+   * travail**, plus seulement sur le plan de visite et l'aperçu studio.
+   *
+   * Le plan carte n'a pas d'état « joie » persistant : le mode `happy` d'une règle est
+   * joué comme état transitoire.
+   */
+  const emitMascotEvent = useCallback(
+    (eventKey) => {
+      const resolved = resolveVisitMascotInteraction(eventKey, {
+        mascotId,
+        extraCatalogEntries,
+      });
+      if (resolved?.kind === 'happy') {
+        triggerMascotTransientState(VISIT_MASCOT_STATE.HAPPY, MAP_VIEW_MASCOT_HAPPY_MS);
+      } else if (resolved?.kind === 'transient' && resolved.state) {
+        triggerMascotTransientState(resolved.state, resolved.durationMs);
+      }
+    },
+    [mascotId, extraCatalogEntries, triggerMascotTransientState],
+  );
+
   const moveTo = useCallback(
     (xp, yp) => {
       if (!Number.isFinite(xp) || !Number.isFinite(yp)) return;
@@ -172,11 +200,10 @@ function useMapViewMascot({
         setWalking(false);
       } else {
         setWalking(true);
-        const moveTransient = pickMapMascotMoveTransient(dist);
-        if (moveTransient) {
-          triggerMascotTransientState(moveTransient.state, moveTransient.durationMs);
-          if (moveTransient.state === VISIT_MASCOT_STATE.RUNNING) showDialog('running');
-          else if (moveTransient.state === VISIT_MASCOT_STATE.SURPRISE) showDialog('surprise');
+        const moveInteraction = pickMapMascotMoveInteraction(dist);
+        if (moveInteraction) {
+          emitMascotEvent(moveInteraction.event);
+          showDialog(moveInteraction.dialog);
         }
         if (dist > 4) showDialog('move');
         moveTimeoutRef.current = window.setTimeout(() => {
@@ -189,7 +216,7 @@ function useMapViewMascot({
       setMascotPct({ xp: nx, yp: ny });
       saveVisitMascotPositionPct(mapId, { xp: nx, yp: ny });
     },
-    [mapId, fitHeightPx, prefersReducedMotion, showDialog, triggerMascotTransientState],
+    [mapId, fitHeightPx, prefersReducedMotion, showDialog, emitMascotEvent],
   );
 
   /**
@@ -225,12 +252,12 @@ function useMapViewMascot({
       const fromPct = { ...mascotPctRef.current };
       const c = visitZoneCentroidPct(zone);
       if (c) moveTo(c.xp, c.yp);
-      triggerMascotTransientState(VISIT_MASCOT_STATE.MAP_READ, 1200);
+      emitMascotEvent(VISIT_MASCOT_INTERACTION_EVENT.MAP_READ_OPEN);
       showDialog('map_read');
       if (c) scheduleAfterMove(() => openZone(zone), c, fromPct);
       else openZone(zone);
     },
-    [moveTo, scheduleAfterMove, showDialog, triggerMascotTransientState],
+    [moveTo, scheduleAfterMove, showDialog, emitMascotEvent],
   );
 
   const onMarkerViewClick = useCallback(
@@ -239,11 +266,11 @@ function useMapViewMascot({
       const xp = Number(marker.x_pct);
       const yp = Number(marker.y_pct);
       moveTo(xp, yp);
-      triggerMascotTransientState(VISIT_MASCOT_STATE.INSPECT, MAP_VIEW_MASCOT_INSPECT_TRANSIENT_MS);
+      emitMascotEvent(VISIT_MASCOT_INTERACTION_EVENT.MARKER_INSPECT_OPEN);
       showDialog('inspect');
       scheduleAfterMove(() => openMarker(marker), { xp, yp }, fromPct);
     },
-    [moveTo, scheduleAfterMove, showDialog, triggerMascotTransientState],
+    [moveTo, scheduleAfterMove, showDialog, emitMascotEvent],
   );
 
   const resetMotion = useCallback(() => {
