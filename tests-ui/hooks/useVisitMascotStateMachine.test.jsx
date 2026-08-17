@@ -67,6 +67,38 @@ describe('useVisitMascotStateMachine — choix de la mascotte', () => {
     expect(result.current.visitMascotId).toBe('olu-spritesheet');
   });
 
+  test('compte connecté : le choix va dans le compte, pas dans le stockage de l’appareil', () => {
+    localStorage.setItem(VISIT_MASCOT_STORAGE_KEY, 'olu-spritesheet');
+    const persisted = [];
+    const { result } = renderHook(() =>
+      useVisitMascotStateMachine({
+        preferredMascotId: 'sprout-rive',
+        onPersistPreferredMascotId: (id) => persisted.push(id),
+      }),
+    );
+    expect(result.current.visitMascotId).toBe('sprout-rive');
+
+    act(() => result.current.onChangeVisitMascotId('gnome1'));
+    expect(result.current.visitMascotId).toBe('gnome1');
+    expect(persisted).toEqual(['gnome1']);
+    // Tablette partagée : rien n'est écrit localement, l'utilisateur suivant n'hérite pas du choix.
+    expect(localStorage.getItem(VISIT_MASCOT_STORAGE_KEY)).toBe('olu-spritesheet');
+  });
+
+  test('compte connecté sans préférence : la mascotte par défaut, pas celle de l’appareil', () => {
+    localStorage.setItem(VISIT_MASCOT_STORAGE_KEY, 'olu-spritesheet');
+    const { result } = renderHook(() =>
+      useVisitMascotStateMachine({ onPersistPreferredMascotId: () => {} }),
+    );
+    expect(result.current.visitMascotId).toBe('renard2-cut-spritesheet');
+  });
+
+  test('visiteur non connecté : le choix reste sur l’appareil', () => {
+    const { result } = renderHook(() => useVisitMascotStateMachine({}));
+    act(() => result.current.onChangeVisitMascotId('gnome1'));
+    expect(localStorage.getItem(VISIT_MASCOT_STORAGE_KEY)).toBe('gnome1');
+  });
+
   test('un choix devenu interdit retombe sur le défaut', () => {
     const { result, rerender } = renderHook((props) => useVisitMascotStateMachine(props), {
       initialProps: { allowedMascotIds: [], defaultMascotId: 'sprout-rive' },

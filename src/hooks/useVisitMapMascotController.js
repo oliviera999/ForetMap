@@ -37,6 +37,8 @@ export const VISIT_MASCOT_DIALOG_MOVE_COOLDOWN_MS = 4200;
  * @param {{ map_id?: string, markers?: Array, mascot_packs?: Array }} params.content contenu visite.
  * @param {boolean} params.prefersReducedMotion préférence utilisateur (mouvement réduit).
  * @param {string|null} params.profileVisitMascotId mascotte du profil (prioritaire).
+ * @param {((mascotId: string) => void)|null} [params.onPersistVisitMascotId] persistance du choix
+ *   dans le compte connecté (absent pour un visiteur non connecté → stockage local).
  * @param {{ current: { height?: number }|null }} params.visitMapFitRef rect « contain » courant (lecture impérative).
  * @param {number} params.viewportFitHeight hauteur du rect « contain » (état — pilote le clamp du rendu).
  * @param {(item: object|null) => void} params.setSelected sélection du panneau détail.
@@ -48,6 +50,7 @@ export function useVisitMapMascotController({
   content,
   prefersReducedMotion,
   profileVisitMascotId,
+  onPersistVisitMascotId = null,
   visitMapFitRef,
   viewportFitHeight,
   setSelected,
@@ -105,6 +108,7 @@ export function useVisitMapMascotController({
     happy: visitMapMascotHappy,
     extraCatalogEntries: visitMascotCatalogExtras,
     preferredMascotId: profileVisitMascotId,
+    onPersistPreferredMascotId: onPersistVisitMascotId,
     allowedMascotIds: visitMascotAllowedIds,
     defaultMascotId: visitMascotDefaultId,
   });

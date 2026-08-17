@@ -52,6 +52,7 @@ const {
   readAnalyzeUploadPayload,
 } = require('../../lib/contentLibraryUpload');
 const { listVisitMascotRegistry } = require('../../lib/visitMascotRegistry');
+const { getVisitMascotSettings, isValidVisitMascotId } = require('../../lib/settings');
 
 const router = express.Router();
 
@@ -330,6 +331,45 @@ router.get('/mascots', async (req, res) => {
         catalog_id: entry.id,
       })),
     });
+  } catch (err) {
+    logRouteError(err, req);
+    res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });
+  }
+});
+
+/**
+ * Préférence mascotte de l'utilisateur connecté — route **étroite** : elle n'écrit que
+ * `users.visit_mascot_catalog_id`, sans mot de passe actuel (contrairement à
+ * `PATCH …/profile`, qui reste le chemin d'édition complet du profil).
+ *
+ * Elle rend le choix **portable d'un appareil à l'autre** : un compte connecté n'utilise
+ * plus le stockage local du navigateur (partagé sur une tablette de classe), sa mascotte
+ * vit dans son compte. Corps `{ visit_mascot_catalog_id }` ; vide ou `null` efface la
+ * préférence (retour à la mascotte par défaut de l'application).
+ */
+router.put('/mascot-preference', authenticate, async (req, res) => {
+  try {
+    const auth = req.auth;
+    if (!auth || !auth.userId) {
+      return res.status(401).json({ error: 'Authentification requise' });
+    }
+    const raw = req.body?.visit_mascot_catalog_id;
+    const value = raw == null ? '' : String(raw).trim();
+    if (value) {
+      if (!isValidVisitMascotId(value)) {
+        return res.status(400).json({ error: 'Mascotte indisponible pour la visite' });
+      }
+      const { allowedIds } = await getVisitMascotSettings();
+      if (allowedIds.length > 0 && !allowedIds.includes(value)) {
+        return res.status(400).json({ error: 'Mascotte indisponible pour la visite' });
+      }
+    }
+    const stored = value || null;
+    await execute('UPDATE users SET visit_mascot_catalog_id = ? WHERE id = ?', [
+      stored,
+      String(auth.userId),
+    ]);
+    res.json({ ok: true, visit_mascot_catalog_id: stored });
   } catch (err) {
     logRouteError(err, req);
     res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });

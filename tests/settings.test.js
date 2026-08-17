@@ -250,6 +250,73 @@ test('réglages mascotte visite : liste autorisée + défaut global normalisés'
   assert.strictEqual(reset.body?.settings?.ui?.visit?.mascot?.default_id, '');
 });
 
+test('PUT /api/visit/mascot-preference : choix mascotte enregistré dans le compte', async () => {
+  const token = await getAdminToken();
+  const email = process.env.TEACHER_ADMIN_EMAIL || 'admin.test@foretmap.local';
+  const readPreference = async () => {
+    const row = await queryOne(
+      "SELECT visit_mascot_catalog_id FROM users WHERE user_type = 'teacher' AND LOWER(email) = LOWER(?) LIMIT 1",
+      [email],
+    );
+    return row?.visit_mascot_catalog_id ?? null;
+  };
+
+  // Sans jeton : la route n'écrit rien.
+  await request(app)
+    .put('/api/visit/mascot-preference')
+    .send({ visit_mascot_catalog_id: 'gnome1' })
+    .expect(401);
+
+  const saved = await request(app)
+    .put('/api/visit/mascot-preference')
+    .set('Authorization', `Bearer ${token}`)
+    .send({ visit_mascot_catalog_id: 'gnome1' })
+    .expect(200);
+  assert.strictEqual(saved.body?.visit_mascot_catalog_id, 'gnome1');
+  assert.strictEqual(await readPreference(), 'gnome1');
+
+  // Un pack publié est une mascotte comme une autre (aucune liste blanche serveur).
+  await request(app)
+    .put('/api/visit/mascot-preference')
+    .set('Authorization', `Bearer ${token}`)
+    .send({ visit_mascot_catalog_id: 'srv-pack-demo' })
+    .expect(200);
+  assert.strictEqual(await readPreference(), 'srv-pack-demo');
+
+  // Forme invalide refusée.
+  await request(app)
+    .put('/api/visit/mascot-preference')
+    .set('Authorization', `Bearer ${token}`)
+    .send({ visit_mascot_catalog_id: 'id invalide' })
+    .expect(400);
+
+  // Hors liste autorisée non vide : refus.
+  await request(app)
+    .put('/api/settings/admin/ui.visit.mascot.allowed_ids')
+    .set('Authorization', `Bearer ${token}`)
+    .send({ value: 'gnome1' })
+    .expect(200);
+  await request(app)
+    .put('/api/visit/mascot-preference')
+    .set('Authorization', `Bearer ${token}`)
+    .send({ visit_mascot_catalog_id: 'sprout-rive' })
+    .expect(400);
+  await request(app)
+    .put('/api/settings/admin/ui.visit.mascot.allowed_ids')
+    .set('Authorization', `Bearer ${token}`)
+    .send({ value: '' })
+    .expect(200);
+
+  // Valeur vide : la préférence est effacée (retour au défaut de l'application).
+  const cleared = await request(app)
+    .put('/api/visit/mascot-preference')
+    .set('Authorization', `Bearer ${token}`)
+    .send({ visit_mascot_catalog_id: '' })
+    .expect(200);
+  assert.strictEqual(cleared.body?.visit_mascot_catalog_id, null);
+  assert.strictEqual(await readPreference(), null);
+});
+
 test('GET /api/visit/mascots : registre public catalogue + packs publiés', async () => {
   const res = await request(app).get('/api/visit/mascots').expect(200);
   const mascots = res.body?.mascots;

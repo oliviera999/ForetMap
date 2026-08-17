@@ -48,17 +48,27 @@ function useVisitMascotStateMachine({
   preferredMascotId = null,
   allowedMascotIds = [],
   defaultMascotId = '',
+  onPersistPreferredMascotId = null,
 } = {}) {
   const mascotSelectionOptions = useMemo(
     () => ({ allowedMascotIds, defaultMascotId }),
     [allowedMascotIds, defaultMascotId],
   );
+  /**
+   * **Une seule source par contexte.** Compte connecté (`onPersistPreferredMascotId` fourni) :
+   * la mascotte vit dans le compte — le stockage local n'est ni lu ni écrit, si bien qu'une
+   * tablette partagée ne transmet plus le choix d'un élève au suivant, et que le choix suit
+   * l'élève d'un appareil à l'autre. Visiteur non connecté : stockage local de l'appareil.
+   */
+  const usesProfileStorage = typeof onPersistPreferredMascotId === 'function';
   const [visitMascotId, setVisitMascotId] = useState(() => {
     const preferred = String(preferredMascotId || '').trim();
     if (preferred) {
       return normalizeVisitMascotId(preferred, extraCatalogEntries, mascotSelectionOptions);
     }
-    const stored = loadVisitMascotId(extraCatalogEntries, mascotSelectionOptions);
+    const stored = usesProfileStorage
+      ? ''
+      : loadVisitMascotId(extraCatalogEntries, mascotSelectionOptions);
     return normalizeVisitMascotId(stored, extraCatalogEntries, mascotSelectionOptions);
   });
   const [visitMascotPreviewState, setVisitMascotPreviewState] = useState(VISIT_MASCOT_STATE.IDLE);
@@ -81,37 +91,43 @@ function useVisitMascotStateMachine({
   );
 
   /**
-   * Dernière préférence de profil appliquée : **le dernier choix gagne**. La préférence du
-   * profil s'impose quand elle change (l'utilisateur vient de l'éditer, ou une autre session
-   * s'ouvre), jamais en boucle — sinon elle écrasait le choix fait pendant la visite dès qu'une
-   * dépendance bougeait (arrivée des packs, rafraîchissement des réglages).
+   * Dernière valeur **observée** de la préférence de profil : **le dernier choix gagne**.
+   * La préférence s'impose quand elle *change* (l'utilisateur vient de l'éditer, ou une autre
+   * session s'ouvre), jamais en boucle — sinon elle écrasait le choix fait pendant la visite
+   * dès qu'une dépendance bougeait (arrivée des packs, rafraîchissement des réglages).
+   * `undefined` = jamais observée : la première exécution applique donc bien la préférence.
    */
-  const lastAppliedPreferredRef = useRef('');
+  const lastSeenPreferredRef = useRef(undefined);
 
   useEffect(() => {
     const preferred = String(preferredMascotId || '').trim();
-    if (preferred && preferred !== lastAppliedPreferredRef.current) {
-      lastAppliedPreferredRef.current = preferred;
+    const preferredChanged = lastSeenPreferredRef.current !== preferred;
+    lastSeenPreferredRef.current = preferred;
+    if (preferred && preferredChanged) {
       const normalizedPreferred = normalizeVisitMascotId(
         preferred,
         extraCatalogEntries,
         mascotSelectionOptions,
       );
-      saveVisitMascotId(normalizedPreferred, extraCatalogEntries, mascotSelectionOptions);
+      if (!usesProfileStorage) {
+        saveVisitMascotId(normalizedPreferred, extraCatalogEntries, mascotSelectionOptions);
+      }
       setVisitMascotId((prev) => (prev === normalizedPreferred ? prev : normalizedPreferred));
       return;
     }
-    if (!preferred) lastAppliedPreferredRef.current = '';
     // Renormalise le choix courant : les packs et la liste autorisée arrivent après le montage.
     setVisitMascotId((prev) => {
+      const fallback = usesProfileStorage
+        ? ''
+        : loadVisitMascotId(extraCatalogEntries, mascotSelectionOptions);
       const normalized = normalizeVisitMascotId(
-        prev || loadVisitMascotId(extraCatalogEntries, mascotSelectionOptions),
+        prev || fallback,
         extraCatalogEntries,
         mascotSelectionOptions,
       );
       return prev === normalized ? prev : normalized;
     });
-  }, [extraCatalogEntries, preferredMascotId, mascotSelectionOptions]);
+  }, [extraCatalogEntries, preferredMascotId, mascotSelectionOptions, usesProfileStorage]);
 
   const visitMascotPreviewStateOptions = useMemo(() => {
     const knownOrder = [
@@ -207,10 +223,20 @@ function useVisitMascotStateMachine({
 
   const onChangeVisitMascotId = useCallback(
     (nextId) => {
-      const normalized = saveVisitMascotId(nextId, extraCatalogEntries, mascotSelectionOptions);
+      const normalized = normalizeVisitMascotId(
+        nextId,
+        extraCatalogEntries,
+        mascotSelectionOptions,
+      );
       setVisitMascotId(normalized);
+      if (usesProfileStorage) {
+        // Optimiste : l'affichage suit immédiatement, la persistance rattrape.
+        onPersistPreferredMascotId(normalized);
+      } else {
+        saveVisitMascotId(normalized, extraCatalogEntries, mascotSelectionOptions);
+      }
     },
-    [extraCatalogEntries, mascotSelectionOptions],
+    [extraCatalogEntries, mascotSelectionOptions, usesProfileStorage, onPersistPreferredMascotId],
   );
 
   return {
