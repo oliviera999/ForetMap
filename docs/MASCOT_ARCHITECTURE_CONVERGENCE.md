@@ -72,7 +72,7 @@ Le « partage » réel se limite à : le **format pivot `sprite_cut`**, le **ren
    (`markerMarkedSeen`, `mapReadOpen`, mouvement…) est codée dans les vues
    (`visit-views.jsx`, `useMapViewMascot.js`, board GL). Ajouter un déclencheur « réel »
    suppose toujours d'éditer le runtime, jamais seulement la donnée. _Levé pour `visit-views`
-   (étape 4 : `emitMascotEvent`) ; `useMapViewMascot` reste à aligner._
+   (étape 4 : `emitMascotEvent`) et pour `useMapViewMascot` (étape 9) ; reste le plateau GL._
 
 ## 4. Architecture cible
 
@@ -147,7 +147,7 @@ l'action. Les appels en dur `triggerMascotTransientState(STATE, ms)` des sites d
 notable : le profil d'interaction (`interactionProfile`) d'un pack agit désormais sur le plan de
 visite _live_ — il n'avait jusque-là d'effet qu'en aperçu studio.** Contrat des défauts verrouillé
 par `tests/visit-mascot-interaction.test.js`. Reste : `useMapViewMascot` (carte des tâches forêt)
-suit le même schéma câblé — à aligner si des packs serveur y sont exposés.
+suit le même schéma câblé — **aligné à l'étape 9**.
 
 ### Étape 5 — Schéma de pack unifié (L, risque élevé) ✅ lecture réalisée
 
@@ -238,17 +238,47 @@ publiés` ; `GET /api/visit/mascots` le sert au panneau admin, au sélecteur de 
 - **Un éditeur, pas deux.** Panneau admin dédié (vignettes animées, cases, radio) ; les deux clés
   sont retirées de la grille de réglages en texte libre (`KEYS_HANDLED_BY_PANEL`).
 
-Reste ouvert (candidats au prochain lot) :
+### Étape 9 — Portabilité du choix, émetteurs carte, fusion partagée (S/M) ✅ réalisée
 
-1. **Persistance du choix dans le compte.** `PATCH …/profile` exige le mot de passe actuel : le
-   choix fait en visite reste local à l'appareil. Une route étroite (`PUT /api/visit/mascot-preference`)
-   le rendrait portable d'un appareil à l'autre, et supprimerait le partage de choix sur tablette.
-2. **`useMapViewMascot`** (carte de travail) : émetteurs encore câblés en dur (reliquat étape 4).
-3. **Convergence GL de la sélection.** `glMascotCatalog` / `GLMascotsAdminView` gardent leur propre
-   assignation (par équipe) : le registre `source: 'gl' | 'foretmap'` de `GET /api/gl/mascots` est
-   l'analogue GL de `GET /api/visit/mascots` — les deux pourraient partager un même helper de
-   fusion et un même panneau de sélection.
-4. **Narrateur d'aide (OLU)** : troisième système de mascotte (`lib/helpNarrator.js`, portraits par
+Les trois suites directes de l'étape 8, livrées dans le même mouvement.
+
+**Le choix suit la personne, pas l'appareil.** Route étroite `PUT /api/visit/mascot-preference`
+(auth requise, **sans mot de passe actuel** — contrairement à `PATCH …/profile`, qui reste le
+chemin d'édition complète). Le hook `useVisitMascotStateMachine` en tire une règle simple :
+**une seule source par contexte** — compte connecté → le compte (stockage local ni lu ni écrit),
+visiteur anonyme → le stockage local. Effets : le choix est portable d'un appareil à l'autre, et
+une tablette de classe ne transmet plus le choix d'un élève au suivant. La sémantique « dernier
+choix gagne » repose désormais sur la _variation observée_ de la préférence
+(`lastSeenPreferredRef`) et non sur une comparaison avec l'id choisi — sinon le choix manuel
+était re-écrasé au premier rendu suivant.
+
+**Émetteurs déclaratifs sur la carte de travail** (reliquat de l'étape 4). `useMapViewMascot`
+passe par `emitMascotEvent(eventKey)` → `resolveVisitMascotInteraction` au lieu d'états câblés
+(`MAP_READ`, `INSPECT`, course/surprise). Nouveau `pickMapMascotMoveInteraction` : le palier de
+distance choisit un **événement**, plus un état. **Conséquence : le profil d'interaction d'un
+pack agit enfin sur la carte de travail**, comme il le faisait déjà en visite et en aperçu
+studio. Défauts identiques → ressenti inchangé pour un pack sans profil.
+`pickMapMascotMoveTransient` reste pour le plateau GL, qui n'a pas de profil par pack.
+
+**Fusion de registre partagée FM/GL.** `lib/mascotRegistryMerge.js` : un helper unique
+« groupes ordonnés → liste dédoublonnée par id, premier gagnant, `source` par groupe », consommé
+par `visitMascotRegistry` et `glUnifiedMascotCatalog`. Dans la foulée, deux duplications
+disparaissent : `visitMascotPackCatalog` réutilise `listPublishedVisitMascotPacks()` (SQL,
+parsing, dédoublonnage par `catalog_id`) au lieu de refaire sa propre requête, et
+`glUnifiedMascotCatalog` lit le catalogue livré via `listStaticVisitMascotEntries()`.
+**Correctif au passage** : ce dernier importait `src/utils/visitMascotCatalog.js` en dur, chemin
+absent d'un déploiement « runtime » — `GET /api/gl/mascots` y échouait au lieu de servir le
+catalogue ; le registre lit le miroir `lib/visit-pack/` d'abord. Côté front, la forme d'entrée
+`sprite_cut` est construite par un helper partagé (`src/shared/mascot-pack/spriteCutCatalogEntry.js`)
+au lieu d'être recopiée champ à champ des deux côtés.
+
+Reste ouvert :
+
+1. **Panneau de sélection commun FM/GL.** Le _registre_ est désormais fusionné de la même façon
+   des deux côtés, mais les écrans divergent toujours : ForetMap choisit **une** mascotte
+   (globale), GL en **assigne une par équipe** (`GLMascotsAdminView`). Un composant de liste
+   partagé (vignette + libellé + provenance) est réaliste ; la sémantique de sélection, non.
+2. **Narrateur d'aide (OLU)** : troisième système de mascotte (`lib/helpNarrator.js`, portraits par
    expression) qui ne partage que la liste de silhouettes de repli. À rapprocher du registre si
    l'on veut « choisir OLU parmi les mascottes » plutôt que le configurer à part.
 

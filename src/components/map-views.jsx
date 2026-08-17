@@ -113,6 +113,7 @@ function MapViewImpl({
   onLocationTasksFocus = null,
   onNavigateToTasksForLocation = null,
   onOpenPlantCatalogPreview = null,
+  onPersistVisitMascotId = null,
   onForceLogout,
 }) {
   const publicSettings = usePublicSettings();
@@ -250,6 +251,7 @@ function MapViewImpl({
     preferredMascotId: student?.visit_mascot_catalog_id,
     allowedMascotIds: visitMascotAllowedIds,
     defaultMascotId: visitMascotDefaultId,
+    onPersistPreferredMascotId: onPersistVisitMascotId,
     mascotDialogSettings: publicSettings?.visit?.mascot?.dialog,
   });
   const mascotGps = useMascotGpsFollow({

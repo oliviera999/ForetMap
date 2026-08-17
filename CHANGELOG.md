@@ -7,6 +7,36 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Mascottes — le choix suit la personne, la carte de travail obéit aux packs
+
+Suite directe du lot précédent, sur ses trois angles morts.
+
+**La mascotte suit la personne, plus l'appareil.** Nouvelle route étroite
+**`PUT /api/visit/mascot-preference`** : elle n'écrit que la préférence mascotte, **sans exiger le
+mot de passe actuel** (contrairement à l'édition complète du profil, qui reste inchangée). Le
+runtime en tire une règle simple — **une seule source par contexte** : compte connecté → le
+compte ; visiteur anonyme → l'appareil. Un élève retrouve donc sa mascotte sur un autre poste, et
+une tablette de classe ne transmet plus son choix à l'élève suivant.
+
+**Le profil d'interaction d'un pack agit enfin sur la carte de travail.** `useMapViewMascot`
+passe par les émetteurs déclaratifs déjà en place côté visite (`emitMascotEvent`) au lieu d'états
+d'animation câblés en dur : les paliers de déplacement, l'ouverture d'une zone et celle d'un
+repère résolvent l'animation via le pack. Défauts identiques → aucun changement visible pour un
+pack sans profil.
+
+**Fusion de registre partagée ForetMap / G&L.** Nouveau `lib/mascotRegistryMerge.js` (groupes
+ordonnés → liste dédoublonnée, premier gagnant), consommé par les deux produits. Dans la foulée,
+`visitMascotPackCatalog` cesse de refaire sa propre requête sur les packs publiés et
+`glUnifiedMascotCatalog` lit le catalogue livré via le registre de visite — **ce qui corrige un
+échec en production** : il importait `src/utils/visitMascotCatalog.js` en dur, chemin absent d'un
+déploiement « runtime », et `GET /api/gl/mascots` échouait au lieu de servir le catalogue. Côté
+front, la forme d'entrée `sprite_cut` vient d'un helper partagé au lieu d'être recopiée des deux
+côtés.
+
+Doc : `docs/API.md`, `docs/reference/foretmap/visite-et-mascottes.md` et
+`docs/MASCOT_ARCHITECTURE_CONVERGENCE.md` (**étape 9**, avec ce qui reste : panneau de sélection
+commun FM/GL, narrateur OLU).
+
 ### Mascottes de visite — une seule liste, un seul défaut, un panneau de réglages
 
 Le système de mascottes tenait sa liste d'identifiants en **quatre exemplaires**, qui avaient
