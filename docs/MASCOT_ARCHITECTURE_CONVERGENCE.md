@@ -207,6 +207,51 @@ dupliquée (refs de timeout, garde, clamp) disparaît des deux runtimes. Couvert
 `tests-ui/hooks/useMascotTransientState.test.js` + les suites existantes (mono/GL/ambiant) restées
 vertes.
 
+### Étape 8 — Registre unifié de **sélection** (S/M) ✅ réalisée
+
+Les étapes 1 à 7 unifiaient le **format** et le **moteur**. Restait un troisième axe, jamais
+inventorié : **« quelle mascotte, pour qui, où »** — la couche sélection/réglages, qui portait
+l'essentiel de la confusion côté exploitation.
+
+Constat avant ce lot : la liste des mascottes existait en **quatre exemplaires** (catalogue
+`src/utils/visitMascotCatalog.js`, son miroir `lib/visit-pack/`, `KNOWN_VISIT_MASCOT_IDS` dans
+`lib/settings.js`, `DEFAULT_VISIT_MASCOT_ALLOWED_IDS` dans `src/constants/app-runtime.js`), et
+elles avaient **divergé** (`gnome1` présent au catalogue, absent des listes → mascotte
+inatteignable par l'UI). Les packs publiés vivaient à côté du système : jamais filtrés par la
+liste autorisée, jamais éligibles au rôle de mascotte par défaut, et chargés **par carte**.
+
+Principes retenus :
+
+- **Un registre, deux sources.** `lib/visitMascotRegistry.js` expose `catalogue livré ∪ packs
+publiés` ; `GET /api/visit/mascots` le sert au panneau admin, au sélecteur de profil et au plan.
+  Un pack (`srv-…`) est une mascotte de plein droit : autorisable, désignable par défaut.
+- **Pas de liste blanche serveur.** `lib/settings.js` ne valide plus que la **forme** de l'id.
+  La seule liste de mascottes qui subsiste est le catalogue front (+ son miroir de build) : plus
+  aucune copie à synchroniser, donc plus de divergence possible.
+- **Vide = tout.** `ui.visit.mascot.allowed_ids` vide signifie « aucune restriction » et
+  `ui.visit.mascot.default_id` vide « mascotte livrée par défaut ». Une mascotte ajoutée plus tard
+  est proposée sans intervention.
+- **Registre global, pas par carte.** Les packs publiés sont dédoublonnés par `catalog_id` toutes
+  cartes confondues : le choix du visiteur — et la mascotte par défaut — valent partout.
+- **Le dernier choix gagne.** La préférence de profil ne s'applique plus qu'à son **changement**
+  (`lastAppliedPreferredRef`), au lieu d'écraser en boucle le choix fait pendant la visite.
+- **Un éditeur, pas deux.** Panneau admin dédié (vignettes animées, cases, radio) ; les deux clés
+  sont retirées de la grille de réglages en texte libre (`KEYS_HANDLED_BY_PANEL`).
+
+Reste ouvert (candidats au prochain lot) :
+
+1. **Persistance du choix dans le compte.** `PATCH …/profile` exige le mot de passe actuel : le
+   choix fait en visite reste local à l'appareil. Une route étroite (`PUT /api/visit/mascot-preference`)
+   le rendrait portable d'un appareil à l'autre, et supprimerait le partage de choix sur tablette.
+2. **`useMapViewMascot`** (carte de travail) : émetteurs encore câblés en dur (reliquat étape 4).
+3. **Convergence GL de la sélection.** `glMascotCatalog` / `GLMascotsAdminView` gardent leur propre
+   assignation (par équipe) : le registre `source: 'gl' | 'foretmap'` de `GET /api/gl/mascots` est
+   l'analogue GL de `GET /api/visit/mascots` — les deux pourraient partager un même helper de
+   fusion et un même panneau de sélection.
+4. **Narrateur d'aide (OLU)** : troisième système de mascotte (`lib/helpNarrator.js`, portraits par
+   expression) qui ne partage que la liste de silhouettes de repli. À rapprocher du registre si
+   l'on veut « choisir OLU parmi les mascottes » plutôt que le configurer à part.
+
 ## 6. Garde-fous
 
 - **Compatibilité packs** : tout changement de schéma lit l'ancien format ; les `pack_json`

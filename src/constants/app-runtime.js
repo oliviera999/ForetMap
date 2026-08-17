@@ -34,23 +34,12 @@ export const POLLING_COARSE_TABS = new Set([
 ]);
 export const IOS_INSTALL_HINT_DISMISSED_KEY = 'foretmap_ios_install_hint_dismissed';
 export const GUEST_VISIT_MASCOT_CONFIRMED_KEY = 'foretmap_visit_guest_mascot_confirmed_v1';
-export const DEFAULT_VISIT_MASCOT_ALLOWED_IDS = [
-  'sprout-rive',
-  'scrap-rive',
-  'gnome-foret-rive',
-  'gnome-ambre-rive',
-  'gnome-punk-rive',
-  'spore-rive',
-  'vine-rive',
-  'moss-rive',
-  'seed-rive',
-  'swarm-rive',
-  'sprite-template',
-  'olu-spritesheet',
-  'tan-bird-spritesheet',
-  'fox-backpack-spritesheet',
-  'renard2-cut-spritesheet',
-];
+/**
+ * Liste d'ids autorisés par défaut : **vide = aucune restriction** (toutes les mascottes
+ * du registre — catalogue livré et packs publiés — sont proposées). Il n'existe donc plus
+ * de copie de la liste des mascottes hors de `src/utils/visitMascotCatalog.js`.
+ */
+export const DEFAULT_VISIT_MASCOT_ALLOWED_IDS = [];
 export const KNOWN_TAB_VALUES = new Set([
   'map',
   'maptasks',

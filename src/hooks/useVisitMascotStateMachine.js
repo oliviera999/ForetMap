@@ -1,10 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { VISIT_MASCOT_STATE, resolveVisitMascotState } from '../utils/visitMascotState.js';
 import { getEntryCustomStateKeys } from '../utils/visitMascotCustomBehaviors.js';
 import { useMascotTransientState } from './useMascotTransientState.js';
 import {
   buildVisitMascotSelectionOptions,
-  getDefaultVisitMascotId,
   resolveVisitMascotEntry,
   getVisitMascotSupportedStates,
   normalizeVisitMascotId,
@@ -81,9 +80,18 @@ function useVisitMascotStateMachine({
     [activeMascotEntry],
   );
 
+  /**
+   * Dernière préférence de profil appliquée : **le dernier choix gagne**. La préférence du
+   * profil s'impose quand elle change (l'utilisateur vient de l'éditer, ou une autre session
+   * s'ouvre), jamais en boucle — sinon elle écrasait le choix fait pendant la visite dès qu'une
+   * dépendance bougeait (arrivée des packs, rafraîchissement des réglages).
+   */
+  const lastAppliedPreferredRef = useRef('');
+
   useEffect(() => {
     const preferred = String(preferredMascotId || '').trim();
-    if (preferred) {
+    if (preferred && preferred !== lastAppliedPreferredRef.current) {
+      lastAppliedPreferredRef.current = preferred;
       const normalizedPreferred = normalizeVisitMascotId(
         preferred,
         extraCatalogEntries,
@@ -93,12 +101,16 @@ function useVisitMascotStateMachine({
       setVisitMascotId((prev) => (prev === normalizedPreferred ? prev : normalizedPreferred));
       return;
     }
-    const normalized = normalizeVisitMascotId(
-      loadVisitMascotId(extraCatalogEntries, mascotSelectionOptions),
-      extraCatalogEntries,
-      mascotSelectionOptions,
-    );
-    setVisitMascotId((prev) => (prev === normalized ? prev : normalized));
+    if (!preferred) lastAppliedPreferredRef.current = '';
+    // Renormalise le choix courant : les packs et la liste autorisée arrivent après le montage.
+    setVisitMascotId((prev) => {
+      const normalized = normalizeVisitMascotId(
+        prev || loadVisitMascotId(extraCatalogEntries, mascotSelectionOptions),
+        extraCatalogEntries,
+        mascotSelectionOptions,
+      );
+      return prev === normalized ? prev : normalized;
+    });
   }, [extraCatalogEntries, preferredMascotId, mascotSelectionOptions]);
 
   const visitMascotPreviewStateOptions = useMemo(() => {
