@@ -95,6 +95,58 @@ de lui-même : uniquement quand on ouvre l'aide, ou qu'on lance une visite guid�
 - **Le portrait ne porte jamais d'information** : tout ce qui compte est écrit dans le texte. Les
   lecteurs d'écran l'ignorent, et l'aide fonctionne à l'identique s'il n'y a aucune image.
 
+### Comment OLU parle
+
+Les textes de l'aide et des visites guidées sont écrits **à sa voix**, à la première personne.
+Concrètement, ce que lisent élèves et professeurs :
+
+- **Il dit « je », il tutoie.** OLU se présente comme un **copiste** : il n'a pas fait la forêt,
+  il la recopie et la transmet. « Voilà la carte. J'ai recopié tout ce que j'ai pu du
+  verger-forêt — à toi d'aller vérifier si je n'ai rien oublié. »
+- **Court** : une à trois phrases par bulle, jamais plus. Aucun emoji dans ses textes : ce qu'il
+  ressent passe par le portrait, pas par des symboles.
+- **Bienveillant et lucide, avec de l'humour sec.** Il ne félicite pas pour rien, ne dramatise
+  pas, et ne commente pas ses propres traits d'esprit.
+- **Au plus un passage grave par visite guidée** — sur ce que le jardin engage dans la durée, par
+  exemple. C'est volontairement rare : répété, le procédé deviendrait moralisateur.
+- **Côté professeur, il change de sujet, pas de ton.** Là où l'élève lit « quoi observer », le
+  n3boss lit « quoi organiser » — même voix, propos différent.
+- **Les infobulles restent neutres.** Les petits textes au survol d'un bouton (« Zoomer pour voir
+  le détail. ») décrivent une fonction : on les lit la main déjà sur le bouton, il n'y a pas de
+  place pour une voix. Même chose pour les messages de tracé sur la carte et les indicateurs de
+  connexion.
+
+### Modifier ce que dit OLU
+
+Deux endroits, deux droits :
+
+- **Paramètres → Bulles d'aide** : les panneaux « ? » et les infobulles. Demande la permission
+  « Lecture / Édition paramètres admin ».
+- **Paramètres → Visites guidées** : les textes des visites guidées, étape par étape. Demande la
+  permission **« Édition visites guidées »**, accordée d'office à l'administrateur et
+  **attribuable à un profil professeur** depuis « Profils & utilisateurs → Profils RBAC ». Un
+  professeur qui ne reçoit que ce droit voit l'onglet Paramètres, mais **uniquement** cette
+  section.
+
+Dans l'écran des visites guidées :
+
+- Chaque visite est un onglet ; ses étapes s'y présentent l'une sous l'autre, avec le titre, le
+  texte élève et, quand elle en prévoit un, le texte professeur.
+- **Un champ laissé vide affiche le texte livré avec l'application**, montré en filigrane.
+  Effacer un champ est donc le geste pour revenir au texte d'origine — il n'y a rien d'autre à
+  faire, et rien n'est conservé en base.
+- La première section, **« Étape commune »**, est la dernière étape de _toutes_ les visites (celle
+  qui rappelle le bouton « ? »). Réécrite là, elle change partout : c'est voulu, elle n'existe
+  qu'en un seul exemplaire.
+- L'enregistrement est **automatique**. « Tout réinitialiser » efface les réécritures et rend les
+  textes livrés.
+- **Seuls les textes sont modifiables.** L'élément d'écran que l'étape désigne, la position de la
+  bulle et l'expression du portrait restent définis dans l'application : une erreur de saisie ne
+  peut donc pas faire disparaître une étape.
+
+> Améliorer un texte livré reste visible partout où personne ne l'a réécrit : seules les
+> réécritures effectives sont conservées, champ par champ.
+
 ### Ce que règle l'administrateur
 
 Onglet **Paramètres → Narrateur OLU** :
@@ -131,11 +183,10 @@ Au-delà, l'application le signale : sur le réseau d'un lycée, le poids se pai
 > (pas d'audio ni de vidéo), et la progression d'un invité anonyme est **éphémère**
 > (~24 h) : elle n'est pas transférée s'il crée ensuite un compte.
 
-> ⚠️ **Point d'attention** — **OLU est en place, mais les textes ne sont pas encore
-> écrits à sa voix.** L'aide et les visites guidées parlent aujourd'hui à la troisième
-> personne (« Bienvenue sur la carte ! ») : le portrait est là, la voix suivra dans un
-> lot dédié. Les textes des panneaux d'aide restent modifiables dès maintenant dans
-> **Paramètres → Bulles d'aide** ; ceux des visites guidées, non — ils sont dans le code.
+> ⚠️ **Point d'attention** — **OLU n'a pas de mémoire.** Il redit le même texte à chaque
+> ouverture, qu'on ait déjà lu la bulle dix fois ou jamais. C'est assumé : faire varier ses
+> textes selon ce qui a déjà été consulté doublerait le corpus à écrire et à relire. Si le
+> besoin se confirme à l'usage, c'est une évolution à demander.
 
 > ⚠️ **Point d'attention** — La synchronisation carte ↔ visite étant une copie
 > ponctuelle, une zone renommée ou déplacée sur la carte de travail ne se met pas à

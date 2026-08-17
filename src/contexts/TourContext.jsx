@@ -24,10 +24,13 @@ const TourContext = createContext({
 const AUTO_START_DELAY_MS = 650;
 
 export function TourProvider({ tab, isTeacher = false, enabled = false, children }) {
-  const tour = useDiscoveryTour({ isTeacher });
+  const publicSettings = usePublicSettings();
+  // Surcharges éditoriales des parcours (`content.tour.registry`). Le corpus par
+  // défaut reste dans le bundle : un registre absent ou illisible ne dégrade rien.
+  const tourOverrides = publicSettings?.content?.tour?.registry || null;
+  const tour = useDiscoveryTour({ isTeacher, tourOverrides });
   const { startTour, hasSeenTour, isActive } = tour;
   const timerRef = useRef(0);
-  const publicSettings = usePublicSettings();
 
   // Narrateur (OLU) : le nom de locuteur ne s'affiche que si l'interrupteur global
   // est actif et qu'un nom est renseigné (`content.help.narrator`, cf. §9.4).

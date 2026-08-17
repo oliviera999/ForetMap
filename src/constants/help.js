@@ -55,22 +55,28 @@ const HELP_TOOLTIPS = {
   },
 };
 
+/**
+ * Défauts client des panneaux d'aide — **miroir strict de `data/help.default.json`**
+ * (bloc `panels`). Un test de non-régression compare les deux au caractère près :
+ * toute retouche ici doit être reportée à l'identique dans le JSON, et inversement.
+ * Voir `tests/help-corpus-olu.test.js`.
+ */
 const HELP_PANELS = {
   map: {
     title: 'Aide carte',
     items: [
       {
-        text: 'Commence par cliquer une zone ou un repère : la fiche te montre quoi observer et quoi faire.',
+        text: 'Commence par cliquer une zone ou un repère : la fiche te dit quoi observer et quoi y faire. C’est là que j’ai rangé l’essentiel.',
       },
       {
-        text: 'Si tu es perdu, fais + ou − pour zoomer puis ⊡ pour revenir à la vue complète.',
+        text: 'Perdu ? + et − pour zoomer, ⊡ pour revenir à la vue complète. Tout le monde s’égare la première fois, moi le premier.',
       },
       {
-        text: 'Sur mobile, verrouille les gestes avec 🔒 pour éviter les déplacements involontaires.',
+        text: 'Sur mobile, le cadenas 🔒 fige les gestes. Utile quand la carte part en promenade dès qu’on la touche.',
       },
       {
         textTeacher:
-          'En mode n3boss, passe en mode Zone ou Repère pour créer le terrain, puis reviens en mode Nav.',
+          'Mode Zone ou Repère pour construire le terrain, puis retour en mode Nav. Rester en mode Repère pendant qu’on navigue est la meilleure façon de semer des points partout sans le vouloir.',
       },
     ],
   },
@@ -78,18 +84,18 @@ const HELP_PANELS = {
     title: 'Aide tâches',
     items: [
       {
-        text: 'Lis d abord la consigne et la carte liée, puis inscris-toi seulement quand tu peux vraiment la prendre.',
+        text: 'Lis la consigne et regarde la carte liée avant de t’inscrire. Une tâche prise est une tâche que les autres ne prendront pas.',
       },
       {
-        text: 'Quand c est fait, envoie un retour clair (texte + photo si possible) pour faciliter la validation.',
-      },
-      {
-        textTeacher:
-          'Côté n3boss : traite d abord les tâches en attente de validation, puis ajuste les statuts.',
+        text: 'Une fois le travail terminé, envoie un retour : deux phrases et une photo suffisent. Sans retour, ce que tu as fait n’existe que pour toi.',
       },
       {
         textTeacher:
-          'Tu peux aussi dupliquer une tâche pour gagner du temps sur les missions répétitives.',
+          'Traite d’abord les tâches en attente de validation : quelqu’un attend de l’autre côté. Les statuts s’ajustent ensuite, à tête reposée.',
+      },
+      {
+        textTeacher:
+          'Duplique les missions répétitives plutôt que de les retaper. Recopier est mon métier, pas le tien.',
       },
     ],
   },
@@ -97,13 +103,14 @@ const HELP_PANELS = {
     title: 'Aide biodiversité',
     items: [
       {
-        text: 'Cherche un être vivant par nom ou par groupe.',
+        text: 'Cherche un être vivant par son nom ou par son groupe — les deux mènent au même endroit.',
       },
       {
-        text: 'Ouvre une fiche pour les infos utiles sur le terrain.',
+        text: 'Ouvre une fiche avant de partir : elle dit ce qu’il faut regarder, pas ce qu’il faut réciter.',
       },
       {
-        textTeacher: 'En mode n3boss, tu enrichis et mets à jour les fiches.',
+        textTeacher:
+          'C’est toi qui enrichis et corriges les fiches. Je les range et je les ressors ; le contenu vient de toi.',
       },
     ],
   },
@@ -111,18 +118,18 @@ const HELP_PANELS = {
     title: 'Aide visite',
     items: [
       {
-        text: 'Explore la carte en cliquant les zones et repères pour ouvrir leurs fiches.',
+        text: 'Clique les zones et les repères pour ouvrir leurs fiches : la visite se parcourt dans l’ordre que tu veux.',
       },
       {
-        text: 'Marque ce que tu as déjà vu : la progression se met à jour automatiquement.',
-      },
-      {
-        textTeacher:
-          'En mode n3boss, utilise "Aperçu comme élève" pour vérifier ce que les élèves verront vraiment.',
+        text: 'Marque ce que tu as vu au fur et à mesure. Je tiens le compte pendant que tu marches.',
       },
       {
         textTeacher:
-          'Pense à sélectionner les tutoriels utiles à la visite pour guider le parcours sur le terrain.',
+          '« Aperçu comme élève » montre le rendu réel côté n3beur. À regarder avant la sortie : sur le terrain, il est trop tard pour corriger un texte.',
+      },
+      {
+        textTeacher:
+          'Sélectionne les tutoriels utiles à la visite. Trois bien choisis valent mieux que douze qu’on survole.',
       },
     ],
   },
@@ -131,11 +138,11 @@ const HELP_PANELS = {
     items: [
       {
         textTeacher:
-          'Gère les profils RBAC (permissions, forum, commentaires contextuels) et rattache un profil principal à chaque compte.',
+          'Les profils RBAC règlent les permissions, le forum et les commentaires contextuels ; chaque compte porte un profil principal. C’est la page qui décide qui peut quoi — relis avant d’enregistrer.',
       },
       {
         textTeacher:
-          'Prise de contrôle : depuis « Modifier » un compte, « Voir comme cet utilisateur » reproduit l’expérience réelle de ce n3beur ou n3boss ; le bandeau te ramène à ton compte admin.',
+          '« Voir comme cet utilisateur », depuis « Modifier » un compte, ouvre l’application avec ses droits réels — pas une imitation. Le bandeau orange est ta porte de sortie ; tant qu’il est là, tu n’es pas chez toi.',
       },
     ],
   },
@@ -144,23 +151,23 @@ const HELP_PANELS = {
     items: [
       {
         textTeacher:
-          'Un groupe représente une classe, équipe ou unité pédagogique. Un sous-groupe est simplement un groupe avec un parent.',
+          'Un groupe, c’est une classe, une équipe ou une unité pédagogique. Un sous-groupe n’a rien de spécial : c’est un groupe à qui on a donné un parent.',
       },
       {
         textTeacher:
-          'Le bouton « Membres » permet de choisir qui appartient au groupe, et qui est responsable (manager).',
+          '« Membres » désigne qui appartient au groupe, et qui en est responsable. Un groupe sans responsable fonctionne, mais personne n’y répond.',
       },
       {
         textTeacher:
-          'Le périmètre cartes/projets définit la portée par défaut du groupe. Sans scope, le groupe reste utilisable globalement.',
+          'Le périmètre cartes et projets fixe la portée par défaut du groupe. Sans périmètre, il reste utilisable partout — ce n’est pas un oubli, c’est un choix.',
       },
       {
         textTeacher:
-          'Les filtres groupe sont repris dans Tâches, Stats et Forum pour cibler rapidement les actions et les lectures.',
+          'Ce découpage se retrouve dans Tâches, Stats et Forum : un groupe bien nommé se retrouve partout, un groupe mal nommé aussi.',
       },
       {
         textTeacher:
-          'Quand un groupe est désactivé, il n’est plus proposé dans les sélecteurs, mais l’historique reste conservé.',
+          'Désactiver un groupe le retire des sélecteurs sans effacer son histoire. Je garde ce qui a été fait, même quand le groupe n’existe plus.',
       },
     ],
   },
@@ -169,15 +176,15 @@ const HELP_PANELS = {
     items: [
       {
         textTeacher:
-          'Utilise ce filtre pour limiter la vue au groupe choisi (et ses sous-groupes selon le contexte).',
+          'Ce filtre limite la vue au groupe choisi, et selon le contexte à ses sous-groupes. Rien n’est supprimé, seulement mis de côté.',
       },
       {
         textTeacher:
-          'Dans les Tâches, une nouvelle mission reprend automatiquement le groupe filtré si aucun groupe n’est précisé.',
+          'Dans les Tâches, une mission créée sans groupe reprend celui du filtre. Pratique — à condition de savoir quel filtre est actif.',
       },
       {
         textTeacher:
-          'Dans les Stats, ce filtre cible le suivi des n3beurs du groupe pour comparer plus facilement les progressions.',
+          'Dans les Stats, il cible les n3beurs du groupe. Comparer deux groupes est utile ; en conclure quelque chose sur les personnes, beaucoup moins.',
       },
     ],
   },
