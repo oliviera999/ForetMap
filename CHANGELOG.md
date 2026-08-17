@@ -7,6 +7,48 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Mascottes de visite — une seule liste, un seul défaut, un panneau de réglages
+
+Le système de mascottes tenait sa liste d'identifiants en **quatre exemplaires**, qui avaient
+divergé : `gnome1` figurait au catalogue mais dans aucune liste blanche, ce qui la rendait
+**inatteignable** par l'interface. Les packs publiés au studio, eux, vivaient à côté du système :
+jamais soumis à la liste autorisée, jamais éligibles au rôle de mascotte par défaut, et chargés
+carte par carte. Et l'admin réglait tout cela en saisissant des identifiants à la main dans deux
+champs texte rangés sous « Autres paramètres ».
+
+**Une mascotte est une mascotte, quelle que soit son origine.**
+
+- Nouveau registre serveur `lib/visitMascotRegistry.js` et route publique **`GET /api/visit/mascots`** :
+  mascottes livrées avec l'application (`source: "catalog"`) **et** packs publiés
+  (`source: "pack"`), dans une seule liste.
+- La liste autorisée s'applique désormais **aux deux** : un pack peut être proposé, restreint, ou
+  devenir la **mascotte par défaut** — ce qui était jusqu'ici impossible.
+- Le serveur ne tient plus aucune liste blanche d'ids : seule la **forme** de l'identifiant est
+  validée. `gnome1` redevient sélectionnable ; plus aucune copie de liste à synchroniser.
+- Les réglages `ui.visit.mascot.allowed_ids` / `default_id` ont pour défaut la **valeur vide** :
+  « aucune restriction » et « mascotte livrée par défaut ». Une mascotte ajoutée plus tard est
+  proposée sans intervention. Invariant conservé : la mascotte par défaut est toujours proposée.
+
+**Un défaut global, un choix utilisateur qui tient.**
+
+- Les packs publiés sont servis **toutes cartes confondues** (dédoublonnés par `catalog_id`) : la
+  mascotte par défaut et le choix du visiteur valent sur **toutes** les cartes.
+- **Le dernier choix gagne** : la préférence de profil ne s'applique plus qu'à son changement.
+  Auparavant elle réécrasait le choix fait pendant la visite dès qu'une dépendance bougeait
+  (arrivée des packs, rafraîchissement des réglages) — le sélecteur du bandeau semblait marcher
+  puis revenait en arrière.
+- Le sélecteur « Mascotte préférée » du profil propose enfin les packs publiés, comme le plan.
+
+**Un éditeur, pas deux.** Nouveau panneau **Paramètres → Mascottes de visite** : vignette animée
+par mascotte, case « proposée aux visiteurs », bouton « par défaut », signalement des identifiants
+orphelins (pack dépublié). Les deux clés correspondantes sont retirées de la grille de réglages en
+texte libre.
+
+Doc : `docs/API.md`, `docs/reference/foretmap/visite-et-mascottes.md`, et
+`docs/MASCOT_ARCHITECTURE_CONVERGENCE.md` (nouvelle **étape 8 — registre unifié de sélection**,
+avec ce qui reste ouvert : persistance du choix dans le compte, `useMapViewMascot`, convergence GL,
+narrateur OLU).
+
 ### G&L — le carnet de feuillets devient durable, et les feuillets s'échangent
 
 **Le carnet ne dépend plus de l'équipe.** La possession d'un feuillet n'était pas stockée : elle

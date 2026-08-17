@@ -91,11 +91,26 @@ describe('buildProfileAffiliationOptions', () => {
 });
 
 describe('buildVisitMascotOptions', () => {
+  const PACK_EXTRA = {
+    id: 'srv-abeille',
+    label: 'Abeille du verger',
+    renderer: 'sprite_cut',
+    fallbackSilhouette: 'gnome',
+    spriteCut: { frameWidth: 32, frameHeight: 32, stateFrames: { idle: { srcs: ['/a.png'] } } },
+  };
+
   test('catalogue complet si la liste autorisée est vide ou absente', () => {
     const full = getVisitMascotCatalog();
     expect(buildVisitMascotOptions(undefined)).toEqual(full);
     expect(buildVisitMascotOptions([])).toEqual(full);
-    expect(buildVisitMascotOptions('pas-un-tableau')).toEqual(full);
+    expect(buildVisitMascotOptions('')).toEqual(full);
+  });
+
+  test('la liste autorisée est acceptée en tableau comme en texte séparé par virgules', () => {
+    expect(buildVisitMascotOptions('gnome1, sprout-rive').map((m) => m.id)).toEqual([
+      'sprout-rive',
+      'gnome1',
+    ]);
   });
 
   test('filtre par ids autorisés (espaces tolérés, ids inconnus ignorés)', () => {
@@ -103,6 +118,16 @@ describe('buildVisitMascotOptions', () => {
     const firstId = full[0].id;
     const result = buildVisitMascotOptions([` ${firstId} `, 'id-inexistant']);
     expect(result.map((m) => m.id)).toEqual([firstId]);
+  });
+
+  test('les packs publiés sont proposés dans le profil, comme sur le plan', () => {
+    const withPack = buildVisitMascotOptions([], [PACK_EXTRA]);
+    expect(withPack.map((m) => m.id)).toContain('srv-abeille');
+    // Et ils obéissent à la même liste autorisée que les mascottes livrées.
+    expect(buildVisitMascotOptions(['gnome1'], [PACK_EXTRA]).map((m) => m.id)).toEqual(['gnome1']);
+    expect(buildVisitMascotOptions(['srv-abeille'], [PACK_EXTRA]).map((m) => m.id)).toEqual([
+      'srv-abeille',
+    ]);
   });
 });
 

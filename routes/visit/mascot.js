@@ -51,6 +51,7 @@ const {
   contentLibraryUploadMiddleware,
   readAnalyzeUploadPayload,
 } = require('../../lib/contentLibraryUpload');
+const { listVisitMascotRegistry } = require('../../lib/visitMascotRegistry');
 
 const router = express.Router();
 
@@ -309,6 +310,29 @@ router.get('/mascot-packs/:packId/assets/:filename', authenticate, async (req, r
     const mapped = mapVisitMascotPackSqlError(err);
     if (mapped) return jsonVisitMascotPackError(res, req, mapped.status, mapped.body);
     return res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });
+  }
+});
+
+/**
+ * Registre public des mascottes de visite : catalogue livré + packs publiés
+ * (toutes cartes confondues). Sert le panneau de réglages admin, le sélecteur de
+ * profil et le catalogue du plan — une seule liste, deux origines traitées à égalité.
+ * Public (aucun jeton) : les assets des packs publiés le sont déjà.
+ */
+router.get('/mascots', async (req, res) => {
+  try {
+    const mascots = await listVisitMascotRegistry();
+    res.json({
+      mascots: mascots.map((entry) => ({
+        ...entry,
+        // Alias de compatibilité : le front construit ses entrées catalogue depuis
+        // `catalog_id`/`label`/`pack` (même forme que `mascot_packs` de /api/visit/content).
+        catalog_id: entry.id,
+      })),
+    });
+  } catch (err) {
+    logRouteError(err, req);
+    res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });
   }
 });
 

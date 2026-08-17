@@ -203,45 +203,68 @@ test('réglages mascotte visite : liste autorisée + défaut global normalisés'
   ]);
   assert.strictEqual(pub.body?.settings?.ui?.visit?.mascot?.default_id, 'sprout-rive');
 
-  await request(app)
-    .put('/api/settings/admin/ui.visit.mascot.default_id')
-    .set('Authorization', `Bearer ${token}`)
-    .send({ value: 'inconnue' })
-    .expect(200);
-  const normalized = await request(app).get('/api/settings/public').expect(200);
-  assert.strictEqual(
-    normalized.body?.settings?.ui?.visit?.mascot?.default_id,
-    'renard2-cut-spritesheet',
-  );
-
+  // Un pack publié (id `srv-…`) est une mascotte comme une autre : autorisable et
+  // désignable comme défaut, sans liste blanche codée en dur côté serveur.
   await request(app)
     .put('/api/settings/admin/ui.visit.mascot.allowed_ids')
     .set('Authorization', `Bearer ${token}`)
-    .send({
-      value: [
-        'sprout-rive',
-        'scrap-rive',
-        'gnome-foret-rive',
-        'gnome-ambre-rive',
-        'gnome-punk-rive',
-        'spore-rive',
-        'vine-rive',
-        'moss-rive',
-        'seed-rive',
-        'swarm-rive',
-        'sprite-template',
-        'olu-spritesheet',
-        'tan-bird-spritesheet',
-        'fox-backpack-spritesheet',
-        'renard2-cut-spritesheet',
-      ].join(','),
-    })
+    .send({ value: 'gnome1,srv-pack-demo' })
     .expect(200);
   await request(app)
     .put('/api/settings/admin/ui.visit.mascot.default_id')
     .set('Authorization', `Bearer ${token}`)
-    .send({ value: 'renard2-cut-spritesheet' })
+    .send({ value: 'srv-pack-demo' })
     .expect(200);
+  const withPack = await request(app).get('/api/settings/public').expect(200);
+  assert.deepStrictEqual(withPack.body?.settings?.ui?.visit?.mascot?.allowed_ids, [
+    'gnome1',
+    'srv-pack-demo',
+  ]);
+  assert.strictEqual(withPack.body?.settings?.ui?.visit?.mascot?.default_id, 'srv-pack-demo');
+
+  // Invariant : la mascotte par défaut est toujours proposée (ajoutée à la liste au besoin).
+  await request(app)
+    .put('/api/settings/admin/ui.visit.mascot.allowed_ids')
+    .set('Authorization', `Bearer ${token}`)
+    .send({ value: 'gnome1' })
+    .expect(200);
+  const invariant = await request(app).get('/api/settings/public').expect(200);
+  assert.deepStrictEqual(invariant.body?.settings?.ui?.visit?.mascot?.allowed_ids, [
+    'gnome1',
+    'srv-pack-demo',
+  ]);
+
+  // Retour aux valeurs livrées : listes vides = aucune restriction, défaut du catalogue.
+  await request(app)
+    .put('/api/settings/admin/ui.visit.mascot.default_id')
+    .set('Authorization', `Bearer ${token}`)
+    .send({ value: '' })
+    .expect(200);
+  await request(app)
+    .put('/api/settings/admin/ui.visit.mascot.allowed_ids')
+    .set('Authorization', `Bearer ${token}`)
+    .send({ value: '' })
+    .expect(200);
+  const reset = await request(app).get('/api/settings/public').expect(200);
+  assert.deepStrictEqual(reset.body?.settings?.ui?.visit?.mascot?.allowed_ids, []);
+  assert.strictEqual(reset.body?.settings?.ui?.visit?.mascot?.default_id, '');
+});
+
+test('GET /api/visit/mascots : registre public catalogue + packs publiés', async () => {
+  const res = await request(app).get('/api/visit/mascots').expect(200);
+  const mascots = res.body?.mascots;
+  assert.ok(Array.isArray(mascots));
+  assert.ok(mascots.length > 0);
+  const ids = mascots.map((entry) => entry.id);
+  assert.ok(ids.includes('renard2-cut-spritesheet'));
+  assert.ok(ids.includes('gnome1'));
+  for (const entry of mascots) {
+    assert.ok(entry.id);
+    assert.ok(entry.label);
+    assert.ok(entry.source === 'catalog' || entry.source === 'pack');
+    // Alias de compatibilité consommé par le front (même forme que `mascot_packs`).
+    assert.strictEqual(entry.catalog_id, entry.id);
+  }
 });
 
 test('réglages dialogues mascotte : defaults et surcharges catalogue', async () => {

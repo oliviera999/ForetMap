@@ -830,6 +830,15 @@ Contenus éditables du site (micro-CMS texte brut) :
 - **`content.visit.mascot_dialog.defaults`** : JSON string — profil global `{ "move": ["…"], "markerMarkedSeen": ["…"], … }` (clés stables, voir `visitMascotDialogEvents.js`). Exposé côté public sous **`settings.visit.mascot.dialog.defaults`** (objet parsé).
 - **`content.visit.mascot_dialog.catalog_overrides`** : JSON string — `{ "gnome-foret-rive": { "move": ["…"] }, … }`. Exposé sous **`settings.visit.mascot.dialog.catalogOverrides`**.
 
+Mascottes de visite (public) :
+
+- **`ui.visit.mascot.allowed_ids`** (chaîne CSV, défaut **vide**) : mascottes proposées aux visiteurs. **Vide = aucune restriction** — toutes les mascottes du registre (**`GET /api/visit/mascots`**), livrées comme packs publiés, sont proposées, y compris celles ajoutées ensuite. Exposé sous **`settings.ui.visit.mascot.allowed_ids`** (tableau parsé).
+- **`ui.visit.mascot.default_id`** (chaîne, défaut **vide**) : mascotte par défaut, **globale à toutes les cartes**. Vide = mascotte livrée par défaut, résolue par le catalogue front (`src/utils/visitMascotCatalog.js`).
+- **Aucune liste blanche d’identifiants côté serveur** : seule la **forme** de l’id est validée (`^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$`), si bien qu’un pack publié (`srv-…`) est autorisable et peut devenir la mascotte par défaut, exactement comme une mascotte livrée. Un id devenu obsolète n’est jamais réécrit en base : le front retombe sur la mascotte par défaut au rendu.
+- **Invariant** : la mascotte par défaut est toujours proposée — si elle manque à une liste restreinte, elle y est ajoutée à l’enregistrement.
+- Édition : panneau **« Mascottes de visite »** des réglages admin (vignettes animées, cases « proposée », choix du défaut). Ces deux clés sont retirées de la grille de réglages en texte libre.
+- **`PATCH /api/students/:id/profile`** et **`PATCH /api/auth/me/profile`** acceptent `visit_mascot_catalog_id` : refus **400** si la forme est invalide ou si une liste autorisée non vide ne contient pas l’id.
+
 Aides contextuelles (public) :
 
 - `ui.help.show_context_hints` (booléen, défaut `true`) : affiche/masque les mini-astuces sur Carte, Tâches et Visite.
@@ -912,6 +921,7 @@ protocole-relatif, chemin relatif) est écartée à l’enregistrement.
 | Méthode | URL | n3boss | Description |
 | ------- | ---------------------------------------------------------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
 | GET | `/api/visit/content?map_id=foret` | non | Contenus publics de visite (zones, repères, médias du plan, tutoriels actifs **pour ce plan**) ; inclut **`mascot_packs`** : packs `sprite_cut` **publiés** pour cette carte (`{ catalog_id, label, pack }` chacun — voir **`docs/MASCOT_PACK.md`**) |
+| GET | `/api/visit/mascots` | non | **Registre unifié des mascottes de visite** : mascottes livrées avec l’application (`source: "catalog"`, `pack: null`) **et** packs publiés toutes cartes confondues (`source: "pack"`, `pack` complet, dédoublonnés par `catalog_id`, le plus récemment mis à jour gagne). Chaque entrée : `{ id, catalog_id, label, source, map_id, pack }` (`catalog_id` = alias de `id`). Sert le panneau de réglages admin, le sélecteur de profil et le catalogue du plan. |
 | GET | `/api/visit/mascot-packs?map_id=foret` | oui | Liste tous les packs mascotte (brouillons + publiés) pour la carte + `allowed_catalog_ids` (modèles de base autorisés côté serveur) — **`visit.manage`** |
 | POST | `/api/visit/mascot-packs` | oui | Créer un pack : `{ map_id, pack?, label?, is_published?, clone_from_pack_id?, clone_from_catalog_id? }` — sans `pack` ni clone : brouillon **v2** complet (Renard 2 sous `/assets/mascots/renard2-cut/frames/`). **`clone_from_pack_id`** (UUID, même `map_id`) : copie JSON + fichiers uploadés vers un nouveau pack. **`clone_from_catalog_id`** : accepte toutes les mascottes catalogue connues du serveur ; en cas d’ID invalide, **400** avec `allowed_catalog_ids`. |
 | GET | `/api/visit/mascot-sprite-library/:mapId/assets` | oui | Liste PNG partagés par carte — **`visit.manage`** |

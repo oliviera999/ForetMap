@@ -36,9 +36,22 @@ familles.
   d'une zone ou d'un repère, le marquage « vu »… La toucher la fait réagir.
 - Elle se déplace **au clic** sur le plan et retient sa position d'une visite à
   l'autre.
-- Un utilisateur connecté peut choisir **sa** mascotte préférée dans son profil ;
-  l'administrateur définit la mascotte par défaut et peut restreindre la liste
-  proposée.
+- **Une seule liste de mascottes.** Les mascottes livrées avec l'application et celles
+  créées au studio « Packs mascotte » (une fois publiées) figurent dans la même liste et
+  se règlent de la même façon : les unes comme les autres peuvent être proposées aux
+  visiteurs et devenir la mascotte par défaut.
+- **Une mascotte par défaut pour toute l'application**, quelle que soit la carte
+  affichée. Chaque visiteur reste libre d'en changer — depuis la fenêtre d'accueil de la
+  visite, le sélecteur du bandeau de plan, ou son profil s'il a un compte — et ce choix
+  vaut alors sur **toutes** les cartes.
+- **C'est le dernier choix qui compte** : changer de mascotte pendant la visite n'est plus
+  écrasé par la préférence enregistrée dans le profil ; à l'inverse, modifier la
+  préférence dans le profil s'applique immédiatement. Un choix fait sans compte est
+  mémorisé sur l'appareil (il est donc partagé si l'appareil l'est).
+- L'administrateur règle tout cela dans **Paramètres → Mascottes de visite** : chaque
+  mascotte s'y présente avec sa vignette animée, une case « proposée aux visiteurs » et un
+  bouton « par défaut ». Par défaut aucune restriction n'est posée : toute mascotte
+  ajoutée ensuite (y compris un nouveau pack publié) est automatiquement proposée.
 
 ## Ce que gère le professeur
 
@@ -73,6 +86,12 @@ familles.
 > ⚠️ **Point d'attention** — Les contenus de visite n'acceptent que des **images**
 > (pas d'audio ni de vidéo), et la progression d'un invité anonyme est **éphémère**
 > (~24 h) : elle n'est pas transférée s'il crée ensuite un compte.
+
+> ⚠️ **Point d'attention** — Le choix de mascotte fait **sans compte** (ou depuis le
+> bandeau du plan) est retenu **sur l'appareil**, pas dans le compte : sur une tablette
+> partagée, il suit l'utilisateur suivant tant que celui-ci n'a pas de mascotte préférée
+> dans son profil. Pour qu'un choix suive un élève d'un appareil à l'autre, il doit
+> l'enregistrer dans **son profil**.
 
 > ⚠️ **Point d'attention** — La synchronisation carte ↔ visite étant une copie
 > ponctuelle, une zone renommée ou déplacée sur la carte de travail ne se met pas à

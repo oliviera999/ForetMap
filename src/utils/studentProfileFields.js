@@ -5,7 +5,7 @@
  * estimation du poids d'un data URL d'avatar.
  */
 import { buildAffiliationSelectOptions } from './affiliationSelectOptions';
-import { getVisitMascotCatalog } from './visitMascotCatalog.js';
+import { buildVisitMascotSelectionOptions } from './visitMascotCatalog.js';
 
 /** Poids approximatif (octets) du contenu d'un data URL base64. */
 export function estimateDataUrlBytes(dataUrl) {
@@ -58,16 +58,12 @@ export function buildProfileAffiliationOptions(maps, affiliation, studentAffilia
 }
 
 /**
- * Catalogue des mascottes proposables : filtré par la liste d'ids autorisés
- * du réglage public (catalogue complet si la liste est vide/absente).
+ * Mascottes proposables dans « Mon profil » : **même liste que sur le plan** —
+ * mascottes livrées et packs publiés (`extraEntries`), filtrées par la liste d'ids
+ * autorisés du réglage public (liste vide = aucune restriction).
  */
-export function buildVisitMascotOptions(allowedRaw) {
-  const allowedIds = Array.isArray(allowedRaw)
-    ? allowedRaw.map((id) => String(id || '').trim()).filter(Boolean)
-    : [];
-  const base = getVisitMascotCatalog();
-  if (!allowedIds.length) return base;
-  return base.filter((m) => allowedIds.includes(String(m?.id || '').trim()));
+export function buildVisitMascotOptions(allowedRaw, extraEntries = []) {
+  return buildVisitMascotSelectionOptions(extraEntries, allowedRaw);
 }
 
 /**
