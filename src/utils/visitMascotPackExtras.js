@@ -1,4 +1,5 @@
 import { validateMascotPackV1 } from './mascotPack.js';
+import { buildSpriteCutCatalogEntry } from '../shared/mascot-pack/spriteCutCatalogEntry.js';
 
 /**
  * Une entrée catalogue visite à partir d’un pack déjà validé (studio / aperçu live).
@@ -11,26 +12,18 @@ export function buildVisitMascotCatalogExtraFromValidated(validated, catalogId, 
   const id = String(catalogId || validated.pack.id || '').trim();
   if (!id) return null;
   const ver = Number(validated.pack.mascotPackVersion) === 2 ? 2 : 1;
-  return {
+  // Profils d'interaction/dialogue : réservés aux packs v2 (un pack v1 n'en porte pas).
+  return buildSpriteCutCatalogEntry({
     id,
-    label: String(label || validated.pack.label || id).trim() || id,
-    renderer: 'sprite_cut',
-    fallbackSilhouette: validated.pack.fallbackSilhouette || 'gnome',
+    label: label || validated.pack.label || id,
+    fallbackSilhouette: validated.pack.fallbackSilhouette,
     spriteCut: validated.spriteCut,
-    ...(ver === 2 && validated.pack.interactionProfile
-      ? { interactionProfile: validated.pack.interactionProfile }
-      : {}),
-    ...(ver === 2 && validated.pack.dialogProfile
-      ? { dialogProfile: validated.pack.dialogProfile }
-      : {}),
-    ...(Array.isArray(validated.pack.customStates) && validated.pack.customStates.length
-      ? { customStates: validated.pack.customStates }
-      : {}),
-    ...(Array.isArray(validated.pack.customTriggers) && validated.pack.customTriggers.length
-      ? { customTriggers: validated.pack.customTriggers }
-      : {}),
+    interactionProfile: ver === 2 ? validated.pack.interactionProfile : null,
+    dialogProfile: ver === 2 ? validated.pack.dialogProfile : null,
+    customStates: validated.pack.customStates,
+    customTriggers: validated.pack.customTriggers,
     mascotPackVersion: ver,
-  };
+  });
 }
 
 /**

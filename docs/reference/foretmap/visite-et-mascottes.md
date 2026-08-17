@@ -36,9 +36,25 @@ familles.
   d'une zone ou d'un repère, le marquage « vu »… La toucher la fait réagir.
 - Elle se déplace **au clic** sur le plan et retient sa position d'une visite à
   l'autre.
-- Un utilisateur connecté peut choisir **sa** mascotte préférée dans son profil ;
-  l'administrateur définit la mascotte par défaut et peut restreindre la liste
-  proposée.
+- **Une seule liste de mascottes.** Les mascottes livrées avec l'application et celles
+  créées au studio « Packs mascotte » (une fois publiées) figurent dans la même liste et
+  se règlent de la même façon : les unes comme les autres peuvent être proposées aux
+  visiteurs et devenir la mascotte par défaut.
+- **Une mascotte par défaut pour toute l'application**, quelle que soit la carte
+  affichée. Chaque visiteur reste libre d'en changer — depuis la fenêtre d'accueil de la
+  visite, le sélecteur du bandeau de plan, ou son profil s'il a un compte — et ce choix
+  vaut alors sur **toutes** les cartes.
+- **C'est le dernier choix qui compte** : changer de mascotte pendant la visite n'est plus
+  écrasé par la préférence enregistrée dans le profil ; à l'inverse, modifier la
+  préférence dans le profil s'applique immédiatement.
+- **Avec un compte, la mascotte suit la personne, pas l'appareil** : le choix fait pendant
+  la visite est enregistré dans le compte, donc retrouvé sur un autre poste ou téléphone —
+  et une tablette partagée ne transmet plus le choix d'un élève au suivant. Sans compte,
+  le choix est simplement mémorisé sur l'appareil.
+- L'administrateur règle tout cela dans **Paramètres → Mascottes de visite** : chaque
+  mascotte s'y présente avec sa vignette animée, une case « proposée aux visiteurs » et un
+  bouton « par défaut ». Par défaut aucune restriction n'est posée : toute mascotte
+  ajoutée ensuite (y compris un nouveau pack publié) est automatiquement proposée.
 
 ## Ce que gère le professeur
 

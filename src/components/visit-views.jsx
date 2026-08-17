@@ -82,6 +82,7 @@ function VisitViewImpl({
   catalogTutorials = [],
   onOpenPlantCatalogPreview = null,
   profileVisitMascotId = null,
+  onPersistVisitMascotId = null,
   requireGuestMascotChoice = false,
   onGuestMascotChoiceDone = null,
 }) {
@@ -313,6 +314,7 @@ function VisitViewImpl({
     content,
     prefersReducedMotion,
     profileVisitMascotId,
+    onPersistVisitMascotId,
     visitMapFitRef,
     viewportFitHeight: visitMapFit.height,
     setSelected,

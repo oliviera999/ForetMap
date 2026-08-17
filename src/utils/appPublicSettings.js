@@ -41,8 +41,10 @@ export const DEFAULT_PUBLIC_SETTINGS = {
   },
   visit: {
     mascot: {
+      // Vides = « pas de restriction » / « mascotte par défaut livrée » : la résolution
+      // appartient au catalogue (`src/utils/visitMascotCatalog.js`), seule source de vérité.
       allowed_ids: DEFAULT_VISIT_MASCOT_ALLOWED_IDS,
-      default_id: 'renard2-cut-spritesheet',
+      default_id: '',
     },
   },
 };

@@ -5904,6 +5904,60 @@
   gap: 12px;
   grid-template-columns: 1fr 1fr;
 }
+/* Panneau « Mascottes de visite » : une carte par mascotte (livrée ou pack publié). */
+.visit-mascot-admin-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 10px;
+}
+.visit-mascot-admin-card {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 8px;
+  min-width: 0;
+  background: #fff;
+}
+.visit-mascot-admin-card.is-default {
+  border-color: var(--leaf, #52b788);
+  box-shadow: 0 0 0 2px rgba(82, 183, 136, 0.25);
+}
+.visit-mascot-admin-card__preview {
+  width: 64px;
+  height: 64px;
+  flex: 0 0 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.visit-mascot-admin-card__preview > * {
+  max-width: 100%;
+  max-height: 100%;
+}
+.visit-mascot-admin-card__body {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+.visit-mascot-admin-card__label {
+  font-size: 0.86rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.visit-mascot-admin-card__source {
+  font-size: 0.74rem;
+  color: #6b7280;
+}
+.visit-mascot-admin-card__check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  min-height: 28px;
+}
 .settings-admin-maps-list {
   display: grid;
   gap: 10px;

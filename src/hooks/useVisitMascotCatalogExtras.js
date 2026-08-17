@@ -3,41 +3,67 @@ import { api } from '../services/api';
 import { buildVisitMascotCatalogExtrasFromContent } from '../utils/visitMascotPackExtras.js';
 
 /**
- * Récupère les packs mascotte **serveur publiés** d'une carte (via `GET /api/visit/content`)
- * et construit les entrées catalogue (`extras`) attendues par le renderer / la résolution de
- * mascotte. Permet à la carte d'afficher une mascotte issue d'un pack **importé** (catalog_id
- * `srv-…`), au lieu de retomber sur le catalogue statique.
+ * Packs mascotte **publiés**, toutes cartes confondues (`GET /api/visit/mascots`), convertis
+ * en entrées catalogue (`extras`) attendues par le renderer et la résolution de mascotte.
  *
- * Même source que la visite publique (`/api/visit/content` → `mascot_packs`, `is_published = 1`)
- * : aucun token requis (assets publics). Renvoie `[]` tant que désactivé / en erreur.
- *
- * @param {{ mapId?: string, enabled?: boolean }} [params]
+ * Le registre est **global** : une mascotte choisie (pack compris) suit le visiteur d'une
+ * carte à l'autre, et peut être la mascotte par défaut de l'application. Aucun jeton requis
+ * (les assets des packs publiés sont publics). Renvoie `[]` tant que désactivé / en erreur.
+ */
+
+/** Cache module (une requête par session) : le registre change rarement et sert 4 écrans. */
+let cachedEntries = null;
+let inFlight = null;
+
+async function fetchVisitMascotCatalogExtras() {
+  const res = await api('/api/visit/mascots');
+  const rows = Array.isArray(res?.mascots) ? res.mascots : [];
+  return buildVisitMascotCatalogExtrasFromContent(rows);
+}
+
+/** Charge (ou relit depuis le cache) les entrées catalogue des packs publiés. */
+export async function loadVisitMascotCatalogExtras() {
+  if (cachedEntries) return cachedEntries;
+  if (!inFlight) {
+    inFlight = fetchVisitMascotCatalogExtras()
+      .then((entries) => {
+        cachedEntries = entries;
+        return entries;
+      })
+      .finally(() => {
+        inFlight = null;
+      });
+  }
+  return inFlight;
+}
+
+/** Vide le cache — à appeler après publication / dépublication d'un pack au studio. */
+export function invalidateVisitMascotCatalogExtras() {
+  cachedEntries = null;
+  inFlight = null;
+}
+
+/**
+ * @param {{ enabled?: boolean }} [params]
  * @returns {Array<object>} entrées catalogue `sprite_cut`
  */
-export default function useVisitMascotCatalogExtras({ mapId, enabled = true } = {}) {
-  const [extras, setExtras] = useState([]);
+export default function useVisitMascotCatalogExtras({ enabled = true } = {}) {
+  const [extras, setExtras] = useState(() => cachedEntries || []);
 
   useEffect(() => {
-    const mid = String(mapId || '').trim();
-    if (!enabled || !mid) {
-      setExtras([]);
-      return undefined;
-    }
+    if (!enabled) return undefined;
     let cancelled = false;
-    (async () => {
-      try {
-        const res = await api(`/api/visit/content?map_id=${encodeURIComponent(mid)}`);
-        const packs = Array.isArray(res?.mascot_packs) ? res.mascot_packs : [];
-        const next = buildVisitMascotCatalogExtrasFromContent(packs);
+    loadVisitMascotCatalogExtras()
+      .then((next) => {
         if (!cancelled) setExtras(next);
-      } catch (_) {
+      })
+      .catch(() => {
         if (!cancelled) setExtras([]);
-      }
-    })();
+      });
     return () => {
       cancelled = true;
     };
-  }, [mapId, enabled]);
+  }, [enabled]);
 
   return extras;
 }

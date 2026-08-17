@@ -41,27 +41,55 @@ test('normalizeVisitMascotId respecte la liste autorisée et le défaut configur
   );
 });
 
-test('buildVisitMascotSelectionOptions inclut toujours les packs serveur publiés', async () => {
-  const { buildVisitMascotSelectionOptions, normalizeVisitMascotId } = await loadModule();
-  const extras = [
-    {
-      id: 'srv-pack-test',
-      label: 'Pack test',
-      renderer: 'sprite_cut',
-      fallbackSilhouette: 'gnome',
-      spriteCut: {
-        frameWidth: 32,
-        frameHeight: 32,
-        stateFrames: { idle: { srcs: ['/x.png'], fps: 8 } },
-      },
+const SRV_PACK_EXTRAS = [
+  {
+    id: 'srv-pack-test',
+    label: 'Pack test',
+    renderer: 'sprite_cut',
+    fallbackSilhouette: 'gnome',
+    spriteCut: {
+      frameWidth: 32,
+      frameHeight: 32,
+      stateFrames: { idle: { srcs: ['/x.png'], fps: 8 } },
     },
-  ];
-  const allowed = ['renard2-cut-spritesheet'];
-  const options = buildVisitMascotSelectionOptions(extras, allowed);
-  assert.ok(options.some((entry) => entry.id === 'renard2-cut-spritesheet'));
-  assert.ok(options.some((entry) => entry.id === 'srv-pack-test'));
+  },
+];
+
+test('buildVisitMascotSelectionOptions : packs et catalogue livré traités à égalité', async () => {
+  const { buildVisitMascotSelectionOptions, normalizeVisitMascotId } = await loadModule();
+
+  // Liste vide = aucune restriction : tout est proposé, packs compris.
+  const all = buildVisitMascotSelectionOptions(SRV_PACK_EXTRAS, []);
+  assert.ok(all.some((entry) => entry.id === 'renard2-cut-spritesheet'));
+  assert.ok(all.some((entry) => entry.id === 'srv-pack-test'));
+  assert.ok(all.some((entry) => entry.id === 'gnome1'));
+
+  // Liste restreinte : elle s'applique aux packs comme aux mascottes livrées.
+  const restricted = buildVisitMascotSelectionOptions(SRV_PACK_EXTRAS, ['renard2-cut-spritesheet']);
+  assert.deepEqual(
+    restricted.map((entry) => entry.id),
+    ['renard2-cut-spritesheet'],
+  );
   assert.equal(
-    normalizeVisitMascotId('srv-pack-test', extras, { allowedMascotIds: allowed }),
+    normalizeVisitMascotId('srv-pack-test', SRV_PACK_EXTRAS, {
+      allowedMascotIds: ['renard2-cut-spritesheet'],
+    }),
+    'renard2-cut-spritesheet',
+  );
+});
+
+test('un pack peut être autorisé et devenir la mascotte par défaut', async () => {
+  const { buildVisitMascotSelectionOptions, normalizeVisitMascotId, getDefaultVisitMascotId } =
+    await loadModule();
+  const allowed = ['srv-pack-test', 'sprout-rive'];
+  const options = buildVisitMascotSelectionOptions(SRV_PACK_EXTRAS, allowed);
+  assert.deepEqual(options.map((entry) => entry.id).sort(), ['sprout-rive', 'srv-pack-test']);
+  assert.equal(getDefaultVisitMascotId(allowed, SRV_PACK_EXTRAS, 'srv-pack-test'), 'srv-pack-test');
+  assert.equal(
+    normalizeVisitMascotId('inconnue', SRV_PACK_EXTRAS, {
+      allowedMascotIds: allowed,
+      defaultMascotId: 'srv-pack-test',
+    }),
     'srv-pack-test',
   );
 });
