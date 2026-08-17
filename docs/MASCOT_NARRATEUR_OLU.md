@@ -1,6 +1,6 @@
 # OLU narrateur — plan d'implantation
 
-> **Avancement.** **Lots 1, 2, 3 et 5 livrés.**
+> **Avancement.** **Lots 1, 2, 3, 4 et 5 livrés.**
 >
 > - **Lot 1** — `src/shared/components/SpeechBubble.jsx` + `src/shared/styles/speech-bubble.css`,
 >   branchés sur `DiscoveryTour`.
@@ -9,12 +9,15 @@
 >   exposition publique). Le nom du locuteur s'affiche désormais dans la visite guidée.
 > - **Lot 3** — champ `expression` par étape dans `DISCOVERY_TOURS` et portrait affiché dans
 >   `DiscoveryTour` (médaillon sous 480 px). Voir §12.
+> - **Lot 4** — **réécriture du corpus à la voix d'OLU** : 21 étapes de parcours, 7 panneaux
+>   d'aide (défauts + miroir client), 3 `quickTips`. Et, en réponse à l'arbitrage §11.4 tranché
+>   en cours de lot, **édition des parcours depuis l'application** sous permission dédiée
+>   `tours.manage`. Voir §6ter.
 > - **Lot 5** — studio prof `HelpNarratorAdminPanel` (onglet **Paramètres → Narrateur OLU**) et
 >   portrait `face` dans l'en-tête de `HelpPanel`. Voir §12 et §6bis.
 >
-> **Reste à faire : lot 4 (réécriture du corpus), lot 6 (GL), lot 7 (optionnel).** OLU est donc à
-> l'écran, mais il parle encore à la troisième personne : c'est l'objet du lot 4. Le brief de
-> production graphique des portraits est dans
+> **Reste à faire : lot 6 (GL), lot 7 (optionnel).** OLU est à l'écran **et** il parle à la
+> première personne. Le brief de production graphique des portraits est dans
 > [`MASCOT_OLU_BRIEF_VISUEL.md`](./MASCOT_OLU_BRIEF_VISUEL.md).
 
 > **Statut : plan d'implantation, mise en œuvre en cours.** Décrit la mise en place d'un avatar
@@ -460,6 +463,73 @@ Autres points :
 - **Portrait `face` dans `HelpPanel`**, à côté du `💡`. `ariaLabel={title}` du `DialogShell` est
   inchangé et le portrait reste `aria-hidden` : le nom accessible du dialogue n'a pas bougé (§9.1).
 
+## 6ter. Ce qui a été livré au lot 4
+
+### 6ter.1 Le corpus
+
+Réécrits à la première personne : les **21 étapes** de `DISCOVERY_TOURS` (`title`, `body`,
+`bodyTeacher`), les **7 panneaux** de `data/help.default.json` et leur miroir `src/constants/help.js`,
+et les **3 `quickTips`**. Inchangés, conformément au §7.3 : les 21 infobulles, les `mapCanvasHints`,
+les `realtime`, et les 4 libellés de `chrome` — un bouton « Fermer » ne parle pas.
+
+Trois points d'écriture qui ont demandé un arbitrage :
+
+- **Le miroir est désormais identique au caractère près.** `help.default.json` et `HELP_PANELS`
+  divergeaient sur les apostrophes (et portaient des `d abord` / `c est` sans apostrophe du tout).
+  Les deux fichiers sont maintenant strictement égaux, et un test le vérifie — l'utilisateur voyait
+  sinon un texte avant la réponse serveur, un autre après.
+- **`RELAUNCH_STEP` n'a pas été dupliqué.** Son texte (« Si tu m'oublies, ce « ? » me rappelle. »)
+  est écrit pour fonctionner dans les 13 parcours ; un test vérifie qu'il reste un objet unique
+  partagé par référence.
+- **Cinq passages « lourds » sur treize parcours**, portant l'expression `grave` : carte (ce qu'on
+  lègue), tâches (une tâche prise et jamais faite), biodiversité (le noyer et ses quarante ans),
+  réseau trophique (retirer un fil de la toile), carnet (le banal d'aujourd'hui). Les huit autres
+  parcours restent au registre courant : la règle du §2.3 est un plafond, pas un quota.
+
+### 6ter.2 L'édition des parcours — §11.4 tranché dans l'autre sens
+
+Le brief du lot prévoyait d'**assumer et documenter** l'écart entre l'aide (éditable) et les
+parcours (en code). L'arbitrage a été rendu à l'inverse : **les parcours deviennent éditables**,
+par l'administrateur, **avec délégation possible à un profil professeur**. La forme retenue est
+celle que le §11.4 désignait déjà comme la bonne — une surcharge **par clé**, pas un snapshot :
+
+| Point                | Choix                                                                                                                                                                        |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Réglage              | `content.tour.registry` — clés plates `<parcours>.<étape>.<champ>` ([`lib/tourContent.js`](../lib/tourContent.js))                                                           |
+| Ce qui est éditable  | `title`, `body`, `bodyTeacher`. **Rien d'autre.**                                                                                                                            |
+| Ce qui reste en code | `target`, `placement`, `role`, `expression` — et le corpus par défaut lui-même                                                                                               |
+| Permission           | **`tours.manage`**, nouvelle, distincte de `admin.settings.write`. Accordée à `admin` par la matrice, absente de `prof` : c'est un choix d'établissement, pas un défaut.     |
+| Routes               | `/api/settings/admin/tour-content` (GET/PUT + `/reset`), audit `settings_tour_content_update` / `_reset`                                                                     |
+| Écran                | `DiscoveryTourAdminPanel` — 3ᵉ sous-onglet **Paramètres → Visites guidées**, autosave                                                                                        |
+| Champ vide           | = **retour au défaut**. Contrairement au registre d'aide, où vider une ligne est une décision qu'on conserve : une bulle de parcours sans texte n'a pas de rendu acceptable. |
+
+Quatre décisions d'implémentation méritent d'être connues :
+
+- **La structure n'est pas exposée, et c'est ce qui rend la délégation acceptable.** Une étape dont
+  la cible est absente du DOM est ignorée **silencieusement** (§9.4) : offrir un champ « sélecteur
+  CSS » à un prof, c'est offrir un moyen de faire disparaître une étape sans message d'erreur.
+  `applyTourOverrides()` ne recopie que les trois champs de texte, et un test vérifie qu'une
+  surcharge portant `target` ou `placement` reste sans effet.
+- **Le serveur ne connaît pas le corpus par défaut.** Il ne stocke que la surcharge ; le client
+  l'applique sur les textes du bundle. La propriété obtenue au v1.95.1 pour l'aide — améliorer un
+  défaut versionné reste visible partout où personne n'a réécrit — est ici acquise **par
+  construction**, sans mécanisme de diff.
+- **L'étape de relance s'édite une seule fois**, sous un parcours réservé `commun`. La montrer
+  treize fois laisserait croire qu'on peut l'adapter à un onglet, alors que l'objet est partagé.
+- **`bodyTeacher` ne se crée pas.** Surcharger ce champ sur une étape qui n'en déclare pas est
+  ignoré : le rendu prof divergerait sinon sans que personne l'ait décidé.
+
+Un prof qui ne détient que `tours.manage` voit l'onglet **Paramètres** et **uniquement** la section
+« Visites guidées » — le chargement de `/api/settings/admin` n'est même pas tenté, puisqu'il
+répondrait 403.
+
+### 6ter.3 Ce qui n'a pas été fait
+
+- **Pas de mémoire d'OLU** (§11.6) — la position reste « non », et c'est désormais écrit dans la
+  doc de référence comme un point d'attention plutôt que passé sous silence.
+- **Pas de GL** : le corpus GL est le lot 6, en commits `feat(gl)` séparés.
+- **`chrome` non converti** (§11.8) : les quatre libellés restent fonctionnels.
+
 ## 7. Le corpus — stratégie de réécriture
 
 ### 7.1 Trois gisements, trois régimes
@@ -656,11 +726,13 @@ Une instance déjà en service conserve sa ligne dense tant que personne n'enreg
 > une contrainte technique. L'arbitrage ne porte donc plus que sur le brief graphique
 > ([`MASCOT_OLU_BRIEF_VISUEL.md`](./MASCOT_OLU_BRIEF_VISUEL.md) §2.1).
 
-### 11.4 🟠 Parcours éditables par les profs — §7.1
+### 11.4 ✅ Parcours éditables par les profs — §7.1 — _tranché et livré (lot 4)_
 
-`DISCOVERY_TOURS` est en code seul. Après passage à la première personne, l'écart avec l'aide
-(éditable) sera plus visible. Chantier à part entière : le faire, ou l'assumer explicitement dans
-la doc de référence ?
+**Fait**, et pas seulement assumé. L'écart avec l'aide éditable a été comblé au moment même où la
+réécriture le rendait visible : réglage `content.tour.registry`, surcharge **par clé**, permission
+dédiée **`tours.manage`** détenue par l'admin et **délégable à un profil prof**. Seuls les trois
+champs de texte sont exposés — la structure reste en code, ce qui est la condition pour que la
+délégation ne puisse pas casser un parcours. Détail en §6ter.2.
 
 ### 11.5 🟠 Portrait animé ou statique — §4.1
 
@@ -683,9 +755,12 @@ OLU est-il un personnage **du** monde de Gnomes & Licornes (avec une place dans 
 relation au carnet de Sélène), ou un narrateur **extérieur** aux deux produits ? Question
 d'écriture, pas de technique — mais elle change le corpus GL.
 
-### 11.8 🟡 `quickTips` et `chrome` — §7.3
+### 11.8 ✅ `quickTips` et `chrome` — §7.3 — _tranché (lot 4)_
 
-7 entrées à examiner au cas par cas : portent-elles la voix, ou restent-elles fonctionnelles ?
+**`quickTips` (3) à la voix d'OLU, `chrome` (4) inchangé.** Une astuce se lit au calme sous un
+panneau : la voix y tient. « Astuce : », « Fermer », « Ne plus afficher » et le préfixe `💡` sont
+de la chrome d'interface — un bouton ne parle pas, et le préfixe est de toute façon plafonné à
+8 caractères par le schéma.
 
 ---
 
@@ -696,12 +771,12 @@ d'écriture, pas de technique — mais elle change le corpus GL.
 | **1** | ✅ **Livré** — `SpeechBubble` : cadre, étiquette locuteur, machine à écrire + `reduced-motion`. Branché sur `DiscoveryTour` seul. Styles.        | ❌ aucun       | Faible | Très faible       |
 | **2** | ✅ **Livré** — `MascotSpeaker` (rendu SVG niveau 3) + `mascotExpressions.js` + réglage `content.help.narrator` (schéma, routes, payload public). | ❌ aucun       | Moyen  | Faible            |
 | **3** | ✅ **Livré** — champ `expression` dans `DISCOVERY_TOURS`, portrait dans `DiscoveryTour`, médaillon sous 480 px (§6bis.1).                        | ❌ aucun       | Faible | Faible            |
-| **4** | **Réécriture du corpus** : parcours pilote `map`, puis les autres, puis les 7 panneaux (défauts + miroir client).                                | ❌ aucun       | Moyen  | Moyen — §11.2     |
+| **4** | ✅ **Livré** — corpus à la voix d'OLU (21 étapes, 7 panneaux + miroir, 3 `quickTips`) **et** édition des parcours sous `tours.manage` (§6ter).   | ❌ aucun       | Moyen  | Moyen — §11.2     |
 | **5** | ✅ **Livré** — studio prof `HelpNarratorAdminPanel` (onglet dédié, cf. §6bis.2) + portrait `face` dans `HelpPanel`.                              | ❌ aucun\*     | Moyen  | Faible            |
 | **6** | GL : `GLFeuilletPopover` + `GLTabHelpPanel`, réglage GL dédié, corpus GL. **Commits `feat(gl)` séparés.**                                        | ✅ portraits   | Moyen  | Moyen — isolement |
 | **7** | _(optionnel)_ Cadrage `body`, spritesheet OLU, correction du mapping d'états §3.1a.                                                              | ✅ spritesheet | Moyen  | Faible            |
 
-**Les lots 1 à 4 sont livrables sans aucun sprite** et apportent déjà l'essentiel de l'effet
+**Les lots 1 à 4 ont été livrés sans aucun sprite** et apportent déjà l'essentiel de l'effet
 ludique — le cadre, le rythme et la voix. C'est délibéré : la production graphique ne doit
 bloquer ni le développement ni l'écriture.
 

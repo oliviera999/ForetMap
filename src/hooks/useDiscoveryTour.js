@@ -31,7 +31,7 @@ function persistSeen(next) {
   }
 }
 
-export function useDiscoveryTour({ isTeacher = false } = {}) {
+export function useDiscoveryTour({ isTeacher = false, tourOverrides = null } = {}) {
   const [seen, setSeen] = useState(() => readSeen());
   // active = null | { tab, steps, index }
   const [active, setActive] = useState(null);
@@ -70,7 +70,7 @@ export function useDiscoveryTour({ isTeacher = false } = {}) {
       if (!force && seen?.[tabKey]) return false;
       // Marque immédiatement l'onglet comme vu (écriture localStorage hors updater).
       markTourSeen(tabKey);
-      const allSteps = getDiscoverySteps(tabKey, isTeacher);
+      const allSteps = getDiscoverySteps(tabKey, isTeacher, tourOverrides);
       const usable = allSteps.filter((step) => {
         if (!step.target) return true;
         try {
@@ -83,7 +83,7 @@ export function useDiscoveryTour({ isTeacher = false } = {}) {
       setActive({ tab: tabKey, steps: usable, index: 0 });
       return true;
     },
-    [seen, isTeacher, markTourSeen],
+    [seen, isTeacher, tourOverrides, markTourSeen],
   );
 
   // L'onglet est déjà marqué vu au démarrage : arrêter/terminer ne fait que fermer.

@@ -7,6 +7,56 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### ForetMap — OLU parle enfin à la première personne (lot 4), et ses visites guidées deviennent éditables
+
+**Le corpus.** Les 21 étapes des 13 visites guidées, les 7 panneaux d'aide et les 3 astuces sont
+réécrits à la voix d'OLU : un copiste qui dit « je », tutoie, tient en une à trois phrases et
+n'emploie aucun emoji — l'expression passe par le portrait posé au lot 3. Les infobulles, les
+bandeaux de tracé et les indicateurs temps réel restent au registre fonctionnel : on les lit la
+main déjà sur le bouton, il n'y a pas de place pour une voix.
+
+- **Le miroir `src/constants/help.js` ↔ `data/help.default.json` est désormais identique au
+  caractère près**, et un test le vérifie. Les deux divergeaient sur les apostrophes, et le JSON
+  portait des `d abord` / `c est` sans apostrophe du tout : l'utilisateur voyait un texte avant la
+  réponse serveur, un autre après.
+- **`RELAUNCH_STEP` n'a pas été dupliqué.** Son texte est écrit pour fonctionner dans les treize
+  parcours ; un test vérifie qu'il reste un objet unique partagé par référence.
+- **Cinq passages « lourds » sur treize parcours**, portant l'expression `grave`. La règle d'un
+  passage grave par parcours est un plafond, pas un quota : les huit autres restent au registre
+  courant, faute de quoi le ton devient moralisateur.
+- Nouveau test de non-régression du corpus (`tests/help-corpus-olu.test.js`) : aucun emoji dans les
+  textes de parcours, au plus un point d'exclamation par parcours, une à trois phrases par bulle,
+  structure des étapes intacte, défauts d'aide valides au regard du schéma Zod.
+
+**L'édition des parcours.** Jusqu'ici les visites guidées étaient en code seul, alors que l'aide
+était éditable — un écart que le passage à la première personne rendait visible. Elles s'éditent
+maintenant depuis **Paramètres → Visites guidées**.
+
+- **Permission dédiée `tours.manage`**, distincte de `admin.settings.write` : réécrire une bulle
+  est un geste éditorial, il n'a pas à ouvrir toute la console de réglages. Accordée à l'admin par
+  la matrice de rôles, **absente de `prof`** — l'attribuer est un choix d'établissement, fait
+  depuis « Profils RBAC ». Un prof qui ne détient que ce droit voit l'onglet Paramètres et
+  uniquement cette section ; l'appel à `/api/settings/admin` n'est même pas tenté.
+- **Seuls trois champs sont exposés** (`title`, `body`, `bodyTeacher`). `target`, `placement`,
+  `role` et `expression` restent en code, et c'est ce qui rend la délégation acceptable : une
+  étape dont la cible est absente du DOM est ignorée **silencieusement**, un champ « sélecteur
+  CSS » offert à un prof serait un moyen de faire disparaître une étape sans message d'erreur.
+- **Le serveur ne connaît pas le corpus par défaut** : il ne stocke que la surcharge
+  (`content.tour.registry`, clés plates `<parcours>.<étape>.<champ>`), le client l'applique sur les
+  textes du bundle. Améliorer un texte versionné reste donc visible partout où personne n'a
+  réécrit ce champ — la propriété obtenue en v1.95.1 pour l'aide, acquise ici par construction.
+- **Un champ vide vaut retour au défaut**, contrairement au registre d'aide où vider une ligne est
+  une décision qu'on conserve : une bulle de parcours sans texte n'a pas de rendu acceptable.
+- **L'étape de relance s'édite une seule fois**, sous une section « Étape commune ». La montrer
+  treize fois laisserait croire qu'on peut l'adapter à un onglet, alors que l'objet est partagé.
+- Routes `/api/settings/admin/tour-content` (GET/PUT + `/reset`), audits
+  `settings_tour_content_update` / `_reset`, exposition publique `content.tour.registry`.
+
+**Doc de référence** : `docs/reference/foretmap/visite-et-mascottes.md` décrit comment OLU parle et
+comment modifier ses textes ; le point d'attention « les textes ne sont pas encore à sa voix »
+tombe, remplacé par celui qui compte désormais — OLU n'a pas de mémoire et redit le même texte à
+chaque ouverture.
+
 ### ForetMap — dégel du registre d'aide : la base ne stocke plus que ce qui a été modifié
 
 **Le bug latent.** Enregistrer les bulles d'aide écrivait en base l'**objet complet** : les 21
