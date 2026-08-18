@@ -32,6 +32,7 @@ aucun glossaire et un pool de QCM vide), tandis que le chapitre de démonstratio
   porter aucun biome du voyage).
 - **Technique** — `splitSqlStatements` est exporté par `database.js` pour que les tests de
   migration rejouent un fichier SQL avec le découpage exact du runner.
+
 ### ForetMap — calage GPS : saisie des coordonnées tolérante
 
 Les champs latitude/longitude du calage GPS d'un plan étaient des champs `number` : selon la
