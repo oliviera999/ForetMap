@@ -321,8 +321,11 @@ function SettingsAdminView({ canReadSettings = true, canManageTours = false }) {
     return Array.isArray(data?.items) ? data.items : [];
   };
 
-  const uploadMediaLibrary = async (mediaData) => {
-    await api('/api/settings/admin/media-library', 'POST', { media_data: mediaData });
+  const uploadMediaLibrary = async (mediaData, options = {}) => {
+    await api('/api/settings/admin/media-library', 'POST', {
+      media_data: mediaData,
+      original_name: options.originalName || null,
+    });
     setMsg('Média ajouté à la bibliothèque');
   };
 
