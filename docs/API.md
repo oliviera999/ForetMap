@@ -730,12 +730,14 @@ Chaque item listé expose notamment : `relativePath`, `url`, `filename`, `mediaT
 
 Les routes ForetMap ci-dessous refusent les tokens produit GL sur l’API ForetMap standard.
 
-| Méthode | URL                        | Description                                                                          | Accès                             |
-| ------- | -------------------------- | ------------------------------------------------------------------------------------ | --------------------------------- |
-| GET     | `/api/media-library`       | Liste les médias **ForetMap** uniquement (`?limit=` optionnel ; défaut 300, max 800) | `teacher.access`                  |
-| GET     | `/api/media-library/usage` | Usage des médias **ForetMap** (voir ci-dessous)                                      | `teacher.access`                  |
-| POST    | `/api/media-library`       | Upload média ForetMap (`{ media_data }` data URL base64 image/audio/vidéo)           | `teacher.access` + droits étendus |
-| DELETE  | `/api/media-library`       | Suppression média (`{ relative_path }`, préfixe `media-library/`)                    | `teacher.access` + droits étendus |
+**Type MIME d’un upload** (`POST /api/media-library`, `POST /api/settings/admin/media-library`, `POST /api/gl/admin/media-library`) — le type déclaré par la data URL fait foi tant qu’il est exploitable ; les alias courants sont normalisés (`image/jpg` → `image/jpeg`, `audio/mp3` → `audio/mpeg`…). Quand la data URL annonce un type **générique** (`application/octet-stream`, `binary/octet-stream`, type vide) — cas fréquent des sélecteurs de fichiers **Android**, qui ne renseignent pas `File.type` — le serveur retombe sur la **signature binaire** puis sur l’**extension** de `original_name`. Un contenu non identifiable reste refusé en **400** (`Type MIME non autorisé`).
+
+| Méthode | URL                        | Description                                                                                           | Accès                             |
+| ------- | -------------------------- | ----------------------------------------------------------------------------------------------------- | --------------------------------- |
+| GET     | `/api/media-library`       | Liste les médias **ForetMap** uniquement (`?limit=` optionnel ; défaut 300, max 800)                  | `teacher.access`                  |
+| GET     | `/api/media-library/usage` | Usage des médias **ForetMap** (voir ci-dessous)                                                       | `teacher.access`                  |
+| POST    | `/api/media-library`       | Upload média ForetMap (`{ media_data }` data URL base64 image/audio/vidéo, `original_name` optionnel) | `teacher.access` + droits étendus |
+| DELETE  | `/api/media-library`       | Suppression média (`{ relative_path }`, préfixe `media-library/`)                                     | `teacher.access` + droits étendus |
 
 **Usage des ressources** (`GET /api/media-library/usage` et `GET /api/gl/admin/media-library/usage`) — scanner `lib/mediaLibraryUsage.js` : pour chaque média de la médiathèque filtrée (`app: 'foretmap'` ou `app: 'gl'`), indique s'il est référencé en base et où. Réponse JSON :
 

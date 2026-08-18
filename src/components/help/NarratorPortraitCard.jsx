@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useRef } from 'react';
 
 import VisitMascotFallbackSvg from '../VisitMascotFallbackSvg.jsx';
+import { armNativeFilePickerGuard, disarmNativeFilePickerGuard } from '../../utils/overlayHistory';
 import {
   describeNarratorPreviewOrigin,
   NARRATOR_FRAMING_HINTS,
@@ -23,6 +24,9 @@ function fileNameFromUrl(url) {
 
 function FramingRow({ framing, url, busy, onPick, onUpload, onClear, expressionLabel }) {
   const label = NARRATOR_FRAMING_LABELS[framing] || framing;
+  // Clic programmatique + garde `popstate` : sur Android, un `<label>` englobant un input
+  // masqué n'ouvre pas toujours le sélecteur, et le retour du sélecteur ferme la surcouche.
+  const uploadInputRef = useRef(null);
   return (
     <div className="fm-narrator-framing">
       <div className="fm-narrator-framing__head">
@@ -45,20 +49,31 @@ function FramingRow({ framing, url, busy, onPick, onUpload, onClear, expressionL
         >
           Choisir…
         </button>
-        <label className={`btn btn-secondary btn-sm ${busy ? 'is-disabled' : ''}`}>
+        <button
+          type="button"
+          className="btn btn-secondary btn-sm"
+          disabled={busy}
+          onClick={() => {
+            if (busy || !uploadInputRef.current) return;
+            uploadInputRef.current.value = '';
+            armNativeFilePickerGuard();
+            uploadInputRef.current.click();
+          }}
+        >
           Importer
-          <input
-            type="file"
-            accept="image/*"
-            style={{ display: 'none' }}
-            disabled={busy}
-            onChange={(event) => {
-              const file = event.target.files?.[0];
-              event.target.value = '';
-              if (file) onUpload(framing, file);
-            }}
-          />
-        </label>
+        </button>
+        <input
+          ref={uploadInputRef}
+          type="file"
+          accept="image/*"
+          style={{ display: 'none' }}
+          onChange={(event) => {
+            disarmNativeFilePickerGuard();
+            const file = event.target.files?.[0] || null;
+            event.target.value = '';
+            if (file) onUpload(framing, file);
+          }}
+        />
         {url ? (
           <button
             type="button"

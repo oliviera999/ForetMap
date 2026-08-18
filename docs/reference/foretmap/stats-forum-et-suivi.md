@@ -46,10 +46,21 @@ commentaires) et rester informé (notifications, temps réel).
   prises de main sur un compte, tentatives de connexion douteuses…) sont consignées
   avec leur auteur et leur date. Sa lecture est réservée aux profils disposant de la
   permission dédiée.
-- **Médiathèque** : une bibliothèque d'images réutilisables pour illustrer les
-  contenus, gérée par les professeurs.
+- **Médiathèque** : une bibliothèque d'images (et de pistes audio ou vidéo)
+  réutilisables pour illustrer les contenus, gérée par les professeurs.
+- **Importer depuis un téléphone** : deux boutons, « 📁 Importer » (galerie ou
+  gestionnaire de fichiers) et « 📸 Prendre une photo ». Les photos volumineuses sont
+  automatiquement allégées avant l'envoi ; un fichier refusé est signalé **par son nom**
+  et n'interrompt pas l'import des autres.
+- **Formats acceptés** : images JPEG, PNG, WebP, GIF, SVG ; audio MP3, WAV, OGG, M4A ;
+  vidéo MP4, WebM, MOV. Taille maximale : 15 Mo par média.
 
 ## ⚠️ Points d'attention
+
+> ⚠️ **Point d'attention** — Les photos **HEIC / HEIF** (réglage « haute efficacité » de
+> certains appareils Android et iPhone) ne sont pas lisibles par les navigateurs :
+> l'import les refuse en expliquant le réglage à changer (Appareil photo → Format des
+> photos → **JPEG** ou « Compatibilité maximale »).
 
 > ⚠️ **Point d'attention** — Le classement est calculé sur les tâches **validées** :
 > un professeur qui tarde à valider fausse involontairement le palmarès (et retarde
