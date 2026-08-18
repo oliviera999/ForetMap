@@ -167,7 +167,11 @@
     }
 
     /* ── HEADER ── */
-    header {
+    /* Sélecteur volontairement limité à `.app-header` (barre verte de l'app).
+       Un sélecteur d'élément `header` s'appliquait aussi aux `<header>` sémantiques
+       de cartes et de sections (studio narrateur OLU, vues pédago) : elles héritaient
+       du bandeau vert collant, et leurs titres — en vert forêt — devenaient illisibles. */
+    header.app-header {
       flex-shrink:0;
       background:linear-gradient(160deg, rgba(26,71,49,.96), rgba(18,52,36,.93));
       color:white;
