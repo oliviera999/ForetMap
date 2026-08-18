@@ -1551,7 +1551,10 @@ function App() {
                         )}
                       {tab === 'settings' && (
                         <TabSuspense>
-                          <SettingsAdminViewLazy />
+                          <SettingsAdminViewLazy
+                            canReadSettings={hasPermissionInRole('admin.settings.read')}
+                            canManageTours={hasPermissionInRole('tours.manage')}
+                          />
                         </TabSuspense>
                       )}
                       {tab === 'media_library' && (

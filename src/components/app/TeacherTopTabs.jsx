@@ -126,7 +126,9 @@ export function TeacherTopTabs({
           🛡️ {isN3Affiliated ? 'n3boss & utilisateurs' : 'Profils & utilisateurs'}
         </button>
       )}
-      {hasPermissionInRole('admin.settings.read') && (
+      {/* `tours.manage` ouvre l'onglet sans `admin.settings.read` : un prof à qui l'on
+          délègue la réécriture des visites guidées n'y voit que ce sous-onglet. */}
+      {(hasPermissionInRole('admin.settings.read') || hasPermissionInRole('tours.manage')) && (
         <button
           className={`top-tab ${tab === 'settings' ? 'active' : ''}`}
           onClick={() => onTabChange('settings')}

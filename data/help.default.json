@@ -39,68 +39,68 @@
     "map": {
       "title": "Aide carte",
       "items": [
-        { "text": "Commence par cliquer une zone ou un repère : la fiche te montre quoi observer et quoi faire." },
-        { "text": "Si tu es perdu, fais + ou − pour zoomer puis ⊡ pour revenir à la vue complète." },
-        { "text": "Sur mobile, verrouille les gestes avec 🔒 pour éviter les déplacements involontaires." },
-        { "textTeacher": "En mode n3boss, passe en mode Zone ou Repère pour créer le terrain, puis reviens en mode Nav." }
+        { "text": "Commence par cliquer une zone ou un repère : la fiche te dit quoi observer et quoi y faire. Tout part de là." },
+        { "text": "Perdu ? + et − pour zoomer, ⊡ pour revenir à la vue complète. Ce dernier bouton rattrape à peu près toutes les situations." },
+        { "text": "Sur mobile, le cadenas 🔒 fige les gestes. Pratique quand la carte part en vadrouille dès qu’on la frôle." },
+        { "textTeacher": "Mode Zone ou Repère pour construire le terrain, puis retour en mode Nav. Rester en mode Repère pendant qu’on navigue est le meilleur moyen de semer des points partout — j’ai déjà vu une carte finir en ciel étoilé." }
       ]
     },
     "tasks": {
       "title": "Aide tâches",
       "items": [
-        { "text": "Lis d abord la consigne et la carte liée, puis inscris-toi seulement quand tu peux vraiment la prendre." },
-        { "text": "Quand c est fait, envoie un retour clair (texte + photo si possible) pour faciliter la validation." },
-        { "textTeacher": "Côté n3boss : traite d abord les tâches en attente de validation, puis ajuste les statuts." },
-        { "textTeacher": "Tu peux aussi dupliquer une tâche pour gagner du temps sur les missions répétitives." }
+        { "text": "Lis la consigne et regarde la carte liée avant de t’inscrire. Une tâche prise est une tâche que les autres ne prendront pas." },
+        { "text": "Une fois le travail terminé, envoie un retour : deux phrases et une photo suffisent. Sans retour, ce que tu as fait n’existe que pour toi et pour les vers de terre." },
+        { "textTeacher": "Traite d’abord les tâches en attente de validation : quelqu’un attend de l’autre côté. Les statuts s’ajustent ensuite, à tête reposée." },
+        { "textTeacher": "Duplique les missions répétitives plutôt que de les retaper. Garde ton énergie pour le terrain, il en réclame déjà pas mal." }
       ]
     },
     "plants": {
       "title": "Aide biodiversité",
       "items": [
-        { "text": "Cherche un être vivant par nom ou par groupe." },
-        { "text": "Ouvre une fiche pour les infos utiles sur le terrain." },
-        { "textTeacher": "En mode n3boss, tu enrichis et mets à jour les fiches." }
+        { "text": "Cherche un être vivant par son nom ou par son groupe — les deux mènent au même endroit." },
+        { "text": "Ouvre une fiche avant de partir : elle dit ce qu’il faut regarder une fois sur place, pas ce qu’il faut réciter." },
+        { "textTeacher": "C’est toi qui enrichis et corriges les fiches. Moi je m’en sers dehors, et je repère vite celles qui manquent." }
       ]
     },
     "visit": {
       "title": "Aide visite",
       "items": [
-        { "text": "Explore la carte en cliquant les zones et repères pour ouvrir leurs fiches." },
-        { "text": "Marque ce que tu as déjà vu : la progression se met à jour automatiquement." },
-        { "textTeacher": "En mode n3boss, utilise \"Aperçu comme élève\" pour vérifier ce que les élèves verront vraiment." },
-        { "textTeacher": "Pense à sélectionner les tutoriels utiles à la visite pour guider le parcours sur le terrain." }
+        { "text": "Clique les zones et les repères pour ouvrir leurs fiches : la visite se parcourt dans l’ordre que tu veux." },
+        { "text": "Marque ce que tu as vu au fur et à mesure. Je tiens le compte pendant que tu marches — c’est ma contribution à l’effort." },
+        { "textTeacher": "« Aperçu comme élève » montre le rendu réel côté n3beur. À regarder avant la sortie : sur le terrain, il est trop tard pour corriger un texte." },
+        { "textTeacher": "Sélectionne les tutoriels utiles à la visite. Trois bien choisis valent mieux que douze qu’on survole." }
       ]
     },
     "profiles": {
       "title": "Aide profils et comptes",
       "items": [
-        { "textTeacher": "Gère les profils RBAC (permissions, forum, commentaires contextuels) et rattache un profil principal à chaque compte." },
-        { "textTeacher": "Prise de contrôle : depuis « Modifier » un compte, « Voir comme cet utilisateur » reproduit l'expérience réelle de ce n3beur ou n3boss ; le bandeau te ramène à ton compte admin." }
+        { "textTeacher": "Les profils RBAC règlent les permissions, le forum et les commentaires contextuels ; chaque compte porte un profil principal. C’est la page qui décide qui peut quoi — relis avant d’enregistrer." },
+        { "textTeacher": "« Voir comme cet utilisateur », depuis « Modifier » un compte, ouvre l’application avec ses droits réels — pas une imitation. Le bandeau orange est ta porte de sortie ; tant qu’il est là, tu n’es pas chez toi." }
       ]
     },
     "groups": {
       "title": "Aide groupes et sous-groupes",
       "items": [
-        { "textTeacher": "Un groupe représente une classe, équipe ou unité pédagogique. Un sous-groupe est simplement un groupe avec un parent." },
-        { "textTeacher": "Le bouton « Membres » permet de choisir qui appartient au groupe, et qui est responsable (manager)." },
-        { "textTeacher": "Le périmètre cartes/projets définit la portée par défaut du groupe. Sans scope, le groupe reste utilisable globalement." },
-        { "textTeacher": "Les filtres groupe sont repris dans Tâches, Stats et Forum pour cibler rapidement les actions et les lectures." },
-        { "textTeacher": "Quand un groupe est désactivé, il n'est plus proposé dans les sélecteurs, mais l'historique reste conservé." }
+        { "textTeacher": "Un groupe, c’est une classe, une équipe ou une unité pédagogique. Un sous-groupe n’a rien de spécial : c’est un groupe à qui on a donné un parent." },
+        { "textTeacher": "« Membres » désigne qui appartient au groupe, et qui en est responsable. Un groupe sans responsable fonctionne très bien, jusqu’au jour où il faut quelqu’un." },
+        { "textTeacher": "Le périmètre cartes et projets fixe la portée par défaut du groupe. Sans périmètre, il reste utilisable partout — ce n’est pas un oubli, c’est un choix." },
+        { "textTeacher": "Ce découpage se retrouve dans Tâches, Stats et Forum : un groupe bien nommé se retrouve partout, un groupe mal nommé aussi." },
+        { "textTeacher": "Désactiver un groupe le retire des sélecteurs sans effacer son histoire. Tout ce qui a été fait reste, même quand le groupe n’existe plus." }
       ]
     },
     "groupFilters": {
       "title": "Aide filtre groupe",
       "items": [
-        { "textTeacher": "Utilise ce filtre pour limiter la vue au groupe choisi (et ses sous-groupes selon le contexte)." },
-        { "textTeacher": "Dans les Tâches, une nouvelle mission reprend automatiquement le groupe filtré si aucun groupe n'est précisé." },
-        { "textTeacher": "Dans les Stats, ce filtre cible le suivi des n3beurs du groupe pour comparer plus facilement les progressions." }
+        { "textTeacher": "Ce filtre limite la vue au groupe choisi, et selon le contexte à ses sous-groupes. Rien n’est supprimé, seulement mis de côté." },
+        { "textTeacher": "Dans les Tâches, une mission créée sans groupe reprend celui du filtre. Pratique — à condition de se rappeler quel filtre est actif." },
+        { "textTeacher": "Dans les Stats, il cible les n3beurs du groupe. Comparer deux groupes est utile ; en conclure quelque chose sur les personnes, beaucoup moins." }
       ]
     }
   },
   "quickTips": {
-    "map": "Clique une zone ou un repère puis ouvre ? pour les actions guidées.",
-    "tasks": "Filtre d abord par carte ou groupe, puis traite les retours en attente.",
-    "visit": "Coche ce que tu vois déjà pour suivre ta progression sur la carte."
+    "map": "Clique une zone ou un repère, puis ouvre « ? » si tu veux que je vienne avec toi.",
+    "tasks": "Filtre par carte ou par groupe, puis traite les retours en attente : il y a quelqu’un derrière.",
+    "visit": "Coche les lieux au fur et à mesure — je tiens le compte pendant que tu marches."
   },
   "chrome": {
     "hintPrefix": "Astuce : ",

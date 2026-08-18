@@ -39,6 +39,11 @@ const {
   saveHelpNarratorToDb,
   loadDefaultNarratorConfig,
 } = require('../lib/helpNarrator');
+const {
+  getTourRegistryFromDb,
+  saveTourRegistryToDb,
+  tourRegistrySchema,
+} = require('../lib/tourContent');
 const { runSpeciesAutofillProviderSelfTest } = require('../lib/speciesAutofillProviderSelfTest');
 const { normalizeMapImageUrl } = require('../lib/mapImageUrl');
 const {
@@ -167,6 +172,65 @@ router.post(
       },
     );
     res.json(normalized);
+  }),
+);
+
+// Visites guidées — surcharges de texte `content.tour.registry`.
+//
+// Sous `tours.manage` et non `admin.settings.write` : réécrire une bulle de parcours
+// est un geste éditorial, il n'a pas à ouvrir toute la console de réglages. L'admin
+// la détient d'office et peut l'attribuer à un profil prof depuis « Profils RBAC ».
+router.get(
+  '/admin/tour-content',
+  requirePermission('tours.manage'),
+  asyncHandler(async (_req, res) => {
+    const registry = await getTourRegistryFromDb();
+    res.json({ registry });
+  }),
+);
+
+router.put(
+  '/admin/tour-content',
+  requirePermission('tours.manage'),
+  asyncHandler(async (req, res) => {
+    const parsed = tourRegistrySchema.safeParse(req.body?.registry ?? {});
+    if (!parsed.success) {
+      return res.status(400).json({ error: 'Registre de visites guidées invalide' });
+    }
+    const registry = await saveTourRegistryToDb(parsed.data, {
+      userType: req.auth?.userType,
+      userId: req.auth?.userId,
+    });
+    invalidateSettingsCache();
+    await logAudit(
+      'settings_tour_content_update',
+      'setting',
+      'content.tour.registry',
+      'Textes des visites guidées mis à jour',
+      { req },
+    );
+    res.json({ registry });
+  }),
+);
+
+router.post(
+  '/admin/tour-content/reset',
+  requirePermission('tours.manage'),
+  asyncHandler(async (req, res) => {
+    // Le corpus par défaut vit en code : réinitialiser, c'est effacer la surcharge.
+    const registry = await saveTourRegistryToDb(
+      {},
+      { userType: req.auth?.userType, userId: req.auth?.userId },
+    );
+    invalidateSettingsCache();
+    await logAudit(
+      'settings_tour_content_reset',
+      'setting',
+      'content.tour.registry',
+      'Textes des visites guidées réinitialisés',
+      { req },
+    );
+    res.json({ registry });
   }),
 );
 
