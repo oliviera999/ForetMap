@@ -38,6 +38,15 @@ main déjà sur le bouton, il n'y a pas de place pour une voix.
   avertissements, passages graves. Le plafond d'un point d'exclamation par parcours est
   **conservé** : deux suffisent sur tout le corpus, l'humour venant du décalage et du placement
   de la chute, pas de la ponctuation.
+- **Le registre comique a été rééquilibré après relecture d'ensemble.** Une première version
+  comptait **neuf autodérisions sur vingt et une bulles** : chacune respectait la règle « une
+  pointe par bulle », mais c'était neuf fois le même procédé, et enchaîner trois parcours donnait
+  trois fois « OLU est nul en quelque chose ». Ramené à **trois**, avec rotation des registres
+  (complicité, litote, détail de terrain, anti-climax, fausse évidence). Deux corrections au
+  passage : l'étape de relance — la seule lue treize fois — quitte l'autodérision pour la
+  complicité, et « tu vas voir des trucs que tu as piétinés toute l'année » disparaît, parce
+  qu'elle visait le lecteur en contradiction directe avec la règle d'or qu'on venait d'écrire.
+  Le §2.2bis retient la leçon : **compter les formes, pas seulement les blagues.**
 - Nouveau test de non-régression du corpus (`tests/help-corpus-olu.test.js`) : aucun emoji dans les
   textes de parcours, au plus un point d'exclamation par parcours, une à trois phrases par bulle,
   structure des étapes intacte, défauts d'aide valides au regard du schéma Zod.
