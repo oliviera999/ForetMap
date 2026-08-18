@@ -42,6 +42,26 @@ Dans les réglages, un administrateur peut :
   position réelle de l'utilisateur sur le plan (avec des messages clairs si la
   localisation est refusée, si le signal est faible ou si l'on est hors du plan).
 
+### Comment saisir les coordonnées du calage
+
+Les trois points sont posés **en cliquant sur le plan**, puis leurs coordonnées réelles
+sont saisies (ou capturées sur le terrain avec « Ma position »). La saisie est tolérante :
+
+- **séparateur décimal au choix** : `48.8534` comme `48,8534` — inutile de corriger la
+  virgule que le clavier ou le téléphone insère ;
+- **hémisphère en lettre** accepté : `48.8534 N`, `7.5898 O` (Ouest), `W 7.5898` ;
+- **degrés-minutes-secondes** acceptés : `48°51'12"N`, `2°17'40"E` ;
+- **paire collée** : coller `48.8534, 2.3488` — ou un lien Google Maps / OpenStreetMap —
+  dans l'un des deux champs remplit **latitude et longitude** d'un coup.
+
+À la sortie du champ, la valeur est réaffichée sous sa forme normalisée (degrés décimaux
+avec un point). Une coordonnée illisible ou hors bornes (latitude au-delà de ±90,
+longitude au-delà de ±180) est signalée en rouge sous la ligne, et la saisie est
+conservée telle quelle pour être corrigée.
+
+> Les trois points ne doivent pas être **alignés** : il faut un vrai triangle sur le plan,
+> sinon le calage est refusé.
+
 > ⚠️ **Point d'attention** — Il n'existe pas de bouton pour **supprimer** un plan :
 > on peut seulement le désactiver. C'est prudent (les zones existantes ne sont pas
 > perdues), mais un plan créé par erreur reste visible dans la liste des réglages.
