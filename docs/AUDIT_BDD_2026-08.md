@@ -1,10 +1,14 @@
 # Audit de la base de données (août 2026)
 
 > **Statut : document d'audit. Aucun comportement modifié, aucune donnée touchée.**
-> Périmètre : la base de production **`oliviera_foretmap5`**, confrontée au code
-> applicatif (`sql/schema_foretmap.sql`, 171 migrations, `routes/`, `lib/`, `src/`).
-> Source auditée : export phpMyAdmin 5.2.3 du **18 août 2026 à 17:10**, MariaDB 11.4.12
-> — 5,8 Mo, 24 726 lignes SQL. Tête de dépôt : `d8c1047` (merge PR #309), `package.json` **1.97.0**.
+> Périmètre : la base de production **`oliviera_foretmap`** (cf. `.env.example:7`,
+> `README.md:172`), auditée à travers une **copie** exportée le 18 août 2026 à 17:10 sous
+> le nom `oliviera_foretmap5` — export phpMyAdmin 5.2.3, MariaDB 11.4.12, 5,8 Mo,
+> 24 726 lignes SQL. La copie est **fraîche** : sa dernière écriture datée
+> (`audit_log`, `2026-08-18T14:56:14Z`) précède l'export de quatorze minutes, donc les
+> constats sur les données valent pour la production.
+> Confrontation au dépôt : `sql/schema_foretmap.sql`, 171 migrations, `routes/`, `lib/`,
+> `src/`. Tête de dépôt : `d8c1047` (merge PR #309), `package.json` **1.97.0**.
 >
 > Chaque constat est **vérifiable** : requête SQL de contrôle fournie, référence
 > `fichier:ligne` pour le code. Les constats mesurés sur les données sont chiffrés.
@@ -20,30 +24,28 @@ ressource↔question, mots de passe en bcrypt coût 10 partout, dérive schéma/
 nulle. Le mécanisme de migration versionné fonctionne. C'est au-dessus de la moyenne des
 projets de cette taille.
 
-**Trois défauts sérieux existent malgré tout, et deux sont invisibles depuis le code.**
+**Trois défauts sérieux existent malgré tout.**
 
-1. **Les deux vues SQL vivantes lisent une _autre base de données_.** `v_food_web` et
-   `v_zone_inventory` sont figées sur `oliviera_foretmap`, pas `oliviera_foretmap5`.
-   L'API `/api/food-web` **écrit** dans la base courante et **relit** dans l'ancienne :
-   une interaction créée par un prof n'est jamais retrouvée. Aucun test ne peut le voir,
-   car le nom de base est injecté à la création de la vue, pas dans le code. **§3.1**
+1. **Le calage GPS de la carte « forêt comestible » est géométriquement impossible** :
+   deux ancres distantes de 85 % du plan sont à 3,7 m l'une de l'autre, contre 55,2 m pour
+   deux ancres distantes de 48 %. Facteur 26 entre les échelles implicites — la
+   fonctionnalité « Suivre ma position » ne peut pas fonctionner sur cette carte. **§3.1**
 
-2. **Deux tables supprimées ressuscitent à chaque démarrage.** La migration 164 supprime
+2. **Deux colonnes de date mélangent deux formats incompatibles**, et le tri en est faux
+   à l'écran : **15 paires de marqueurs et 30 paires de tutoriels** sont affichées dans le
+   désordre. Symptôme d'un fond plus large — 29 colonnes temporelles typées
+   `VARCHAR(32)`. **§3.2**
+
+3. **Deux tables supprimées ressuscitent à chaque démarrage.** La migration 164 supprime
    `role_pin_secrets` et `elevation_audit` ; `initSchema()` les recrée juste avant, à
-   chaque boot, parce que `sql/schema_foretmap.sql` les déclare encore. Elles sont dans
-   le dump. Le symptôme observé (tables présentes, colonne `requires_elevation` absente)
-   ne s'explique que par ce cycle. **§3.2**
+   chaque boot, parce que `sql/schema_foretmap.sql` les déclare encore. **§3.3**
 
-3. **Le calage GPS de la carte « forêt comestible » est géométriquement impossible**, et
-   la longitude des deux cartes est probablement de **signe inversé** (Casablanca est à
-   −7,63°, la base stocke +7,63°). Le suivi GPS ne peut pas fonctionner. **§3.3**
+S'y ajoute un piège qui n'affecte pas la production mais **compromet toute copie** de la
+base : les deux vues SQL portent le nom de la base en dur dans leur définition. C'est
+visible dans la copie auditée, dont les vues lisent la production. **§4.1**
 
-Le fil rouge du reste de l'audit : **29 colonnes de date sont stockées en `VARCHAR(32)`**,
-héritage du portage SQLite→MySQL. Deux d'entre elles mélangent aujourd'hui deux formats
-incompatibles, ce qui **casse le tri** de 15 paires de marqueurs et de 30 paires de
-tutoriels — un bug visible par l'utilisateur, démontré ligne à ligne en **§4.1**.
-
-**Priorité absolue : §3.1** (une requête à passer, effet immédiat), puis §3.2 et §3.3.
+**Priorité : §3.1 et §3.2** (visibles par l'utilisateur), puis §3.3 et §4.1 (structurels,
+peu coûteux à corriger).
 
 ---
 
@@ -53,17 +55,17 @@ L'export a été analysé hors ligne (aucun serveur MySQL disponible ici) : le D
 contraintes, les index et les **19 460 lignes de données** ont été reparsés, puis
 confrontés au dépôt — schéma initial, 171 migrations, requêtes SQL du code applicatif.
 
-| Mesure                        | Valeur                                                                                |
-| ----------------------------- | ------------------------------------------------------------------------------------- |
-| Tables                        | **135** + 2 vues                                                                      |
-| — dont ForetMap / GL / Visite | 64 / 62 / 8                                                                           |
-| Colonnes                      | 1 157                                                                                 |
-| Lignes de données             | **19 460** (ForetMap 6 996 · GL 12 290 · Visite 108)                                  |
-| Clés étrangères               | 176                                                                                   |
-| Index déclarés                | 418                                                                                   |
-| Tables vides                  | 29                                                                                    |
-| Moteur / jeu de caractères    | InnoDB · `utf8mb4` (133 tables `unicode_ci`, 2 `general_ci`)                          |
-| `schema_version`              | **175** (le dépôt est à 176 — écart normal, la migration 176 est postérieure au dump) |
+| Mesure                        | Valeur                                                                                   |
+| ----------------------------- | ---------------------------------------------------------------------------------------- |
+| Tables                        | **135** + 2 vues                                                                         |
+| — dont ForetMap / GL / Visite | 64 / 62 / 8                                                                              |
+| Colonnes                      | 1 157                                                                                    |
+| Lignes de données             | **19 460** (ForetMap 6 996 · GL 12 290 · Visite 108)                                     |
+| Clés étrangères               | 176                                                                                      |
+| Index déclarés                | 418                                                                                      |
+| Tables vides                  | 29                                                                                       |
+| Moteur / jeu de caractères    | InnoDB · `utf8mb4` (133 tables `unicode_ci`, 2 `general_ci`)                             |
+| `schema_version`              | **175** (le dépôt est à 176 — écart normal, la migration 176 est postérieure à l'export) |
 
 Les cinq plus grosses tables : `gl_resource_question_links` (4 449),
 `gl_qcm_question_glossary` (2 776), `security_events` (1 909),
@@ -73,129 +75,9 @@ Les cinq plus grosses tables : `gl_resource_question_links` (4 449),
 
 ## 3. Constats critiques
 
-### 3.1 — Les deux vues vivantes pointent sur une autre base de données
+### 3.1 — Le géoréférencement GPS est inexploitable
 
-**Gravité : critique. Impact utilisateur immédiat, silencieux.**
-
-Le dump contient (lignes 24042 et 24051) :
-
-```sql
-CREATE ... VIEW `v_food_web` AS SELECT ...
-  FROM ((`oliviera_foretmap`.`species_interactions` `si`
-    join `oliviera_foretmap`.`plants` `pf` ...
-CREATE ... VIEW `v_zone_inventory` AS SELECT ...
-  FROM ((`oliviera_foretmap`.`zone_species` `zs`
-    join `oliviera_foretmap`.`zones` `z` ...
-```
-
-La base auditée s'appelle **`oliviera_foretmap5`**. Les vues lisent **`oliviera_foretmap`**,
-c'est-à-dire une base différente — vraisemblablement la précédente, conservée à côté.
-
-**Mécanisme.** Les migrations 124 et 143 écrivent bien des noms non qualifiés
-(`migrations/143_food_web_trophic_roles.sql:12` → `FROM species_interactions si`).
-MariaDB **résout et fige** ces noms avec la base active au moment du `CREATE VIEW`. Les
-vues ont donc été créées alors que la base courante était `oliviera_foretmap`, puis le
-schéma a été copié/renommé en `oliviera_foretmap5` : la qualification obsolète a suivi.
-Comme `schema_version` vaut déjà 175 > 143, **la migration 143 ne sera jamais rejouée** et
-ne corrigera rien d'elle-même.
-
-**Conséquence concrète — lecture/écriture divergentes.** `routes/food-web.js` écrit dans
-`species_interactions` (non qualifié → base courante, `oliviera_foretmap5`) via
-`makeFoodWebStore` (`routes/food-web.js:13-21`), puis **relit immédiatement la ligne créée
-par la vue** (`routes/food-web.js:26-28`) :
-
-```js
-async function loadEnrichedInteraction(id) {
-  return queryOne(`SELECT ... FROM v_food_web WHERE id = ? LIMIT 1`, [id]);
-}
-```
-
-L'écriture atterrit dans une base, la relecture interroge l'autre. Selon l'état de
-`oliviera_foretmap`, l'API renvoie une ligne **fantôme** (données de l'ancienne base) ou
-rien du tout ; si l'ancienne base a été supprimée ou si les droits ont changé, les routes
-`/api/food-web` et le comparateur de zones **tombent en erreur 500**.
-
-Aucun test ne peut détecter cela : `tests/gl-dead-views-dropped.test.js` vérifie seulement
-que les vues **existent**, jamais ce qu'elles lisent.
-
-**Vérification sur le serveur**
-
-```sql
-SELECT TABLE_NAME, VIEW_DEFINITION
-  FROM information_schema.VIEWS
- WHERE TABLE_SCHEMA = DATABASE();
--- Attendu : aucune occurrence de `oliviera_foretmap`.`...`
-
-SELECT (SELECT COUNT(*) FROM species_interactions) AS table_reelle,
-       (SELECT COUNT(*) FROM v_food_web)           AS vue;
--- Le dump donne 69 lignes dans la table ; tout écart révèle la divergence.
-```
-
-**Correction.** Une migration `177_*` qui rejoue les deux `CREATE VIEW` (le SQL des
-migrations 124 et 143 est correct tel quel) suffit : exécutée par le runner **dans la base
-courante**, elle refixe la qualification. Ajouter au passage un test qui assert que
-`VIEW_DEFINITION` ne contient aucun nom de base autre que `DATABASE()` — c'est le seul
-garde-fou contre la réapparition du problème à la prochaine copie de base.
-
----
-
-### 3.2 — Deux tables supprimées sont recréées à chaque démarrage
-
-**Gravité : élevée. Pas d'impact fonctionnel aujourd'hui, mais le mécanisme est général.**
-
-`migrations/164_drop_pin_elevation_system.sql` fait trois choses :
-
-```sql
-DROP TABLE IF EXISTS role_pin_secrets;
-DROP TABLE IF EXISTS elevation_audit;
-ALTER TABLE role_permissions DROP COLUMN requires_elevation;
-```
-
-État réel de la base (`schema_version` = 175, la 164 est donc passée) :
-
-| Objet                                 | Attendu après 164 | Constaté dans le dump  |
-| ------------------------------------- | ----------------- | ---------------------- |
-| `role_pin_secrets`                    | supprimée         | **présente** (0 ligne) |
-| `elevation_audit`                     | supprimée         | **présente** (0 ligne) |
-| `role_permissions.requires_elevation` | supprimée         | absente ✔              |
-
-Cette combinaison exacte n'a qu'une explication. Dans `database.js:353-368`, `initSchema()`
-exécute **`sql/schema_foretmap.sql` avant `runMigrations()`, à chaque démarrage**. Or ce
-fichier déclare toujours les deux tables :
-
-- `sql/schema_foretmap.sql:535` → `CREATE TABLE IF NOT EXISTS role_pin_secrets (...)`
-- `sql/schema_foretmap.sql:556` → `CREATE TABLE IF NOT EXISTS elevation_audit (...)`
-- `sql/schema_foretmap.sql:525` → `requires_elevation TINYINT(1) NOT NULL DEFAULT 0`
-
-Au boot suivant la migration 164, les deux `CREATE TABLE IF NOT EXISTS` **recréent** les
-tables (elles n'existent plus) ; en revanche `requires_elevation` vit à l'intérieur d'un
-`CREATE TABLE IF NOT EXISTS role_permissions` qui, lui, ne fait rien puisque la table
-existe — d'où la colonne durablement absente. Les faits collent exactement.
-
-La migration 164 est donc, en pratique, **un no-op permanent** sur les deux tables.
-
-Les deux tables sont par ailleurs **totalement mortes** : aucune occurrence dans
-`routes/`, `lib/`, `middleware/`, `src/`, `scripts/`. Elles ne coûtent rien en données,
-mais elles rendent le schéma menteur.
-
-**Portée du mécanisme.** Croisement de tous les `DROP TABLE` des migrations avec
-`sql/schema_foretmap.sql` : seules ces deux tables sont concernées (les 8 autres tables
-supprimées — `students`, `teachers`, `gl_player_journals`, `visit_marker_content`… — ne
-sont plus déclarées, elles restent bien supprimées). Le risque est donc **circonscrit
-aujourd'hui**, mais il se reproduira au prochain `DROP TABLE` si le fichier de schéma
-n'est pas nettoyé dans le même lot.
-
-**Correction.** Retirer les trois déclarations de `sql/schema_foretmap.sql`, puis une
-migration `177_*` qui rejoue les deux `DROP TABLE IF EXISTS`. Ajouter à la CI un contrôle
-liant les deux fichiers : _aucun objet supprimé par une migration ne doit rester déclaré
-dans le schéma initial_ — c'est un test de cohérence de 20 lignes, et il ferme la classe
-entière de bugs.
-
----
-
-### 3.3 — Le géoréférencement GPS est inexploitable
-
-**Gravité : élevée. Fonctionnalité « Suivre ma position » inopérante.**
+**Gravité : élevée. La fonctionnalité « Suivre ma position » ne peut pas fonctionner.**
 
 `maps.geo_anchors_json` stocke 3 points de calage (`migrations/148_map_georef.sql`), d'où
 `src/utils/mapGeoTransform.js` dérive une transformation affine.
@@ -233,7 +115,11 @@ manuelle (`MapGeorefPanel.jsx:241`, `Number(e.target.value)`) accepte en revanch
 n'importe quoi, et `lib/mapGeoref.js:37` ne valide que l'intervalle `[-180, 180]`. Une
 saisie au clavier sans le signe « − » explique tout.
 
-**La PR #310, ouverte le jour même de cet export, confirme le diagnostic sans le résoudre.**
+Si le signe est bien inversé, le navigateur remonte −7,63 tandis que la transformation
+attend +7,63 : **la position calculée sort du plan sur les deux cartes**, y compris
+`lyautey` pourtant bien calée par ailleurs.
+
+**La PR #310, ouverte le jour même de l'export, confirme le diagnostic sans le résoudre.**
 Elle corrige précisément la _saisie_ des coordonnées — champs `type="number"` remplacés par
 du texte tolérant, prise en charge du moins typographique `−`, des lettres d'hémisphère
 (`7.5898 O`, `W 7.5898`) et des liens Google Maps. C'est le bon correctif pour empêcher que
@@ -242,13 +128,9 @@ nécessaires ici** : elle ne corrige pas les ancres **déjà stockées**, et ell
 aucun contrôle de **plausibilité d'échelle** (a). Les deux constats de cette section
 restent donc entiers après fusion de #310.
 
-Si le signe est bien inversé, le navigateur remonte −7,63 tandis que la transformation
-attend +7,63 : **la position calculée sort du plan sur les deux cartes**, y compris
-`lyautey` pourtant bien calée par ailleurs.
-
-> ⚠️ **À confirmer par vous** : c'est le seul constat de cet audit qui repose sur une
-> connaissance extérieure (la localisation réelle de l'établissement) et non sur le code
-> ou les données seules.
+> ⚠️ **À confirmer par vous** : le point (b) est le seul constat de cet audit qui repose
+> sur une connaissance extérieure (la localisation réelle de l'établissement) et non sur le
+> code ou les données seules.
 
 **Vérification**
 
@@ -265,9 +147,9 @@ plausibilité, pas un contrôle de type — le second existe déjà, le premier 
 
 ---
 
-## 4. Constats majeurs
+### 3.2 — 29 dates en `VARCHAR(32)`, deux formats mélangés, tri cassé
 
-### 4.1 — 29 dates en `VARCHAR(32)`, deux formats mélangés, tri cassé
+**Gravité : élevée. Bug visible par l'utilisateur, démontré ligne à ligne.**
 
 Vingt-neuf colonnes temporelles des tables historiques ForetMap sont typées
 `VARCHAR(32)` — héritage du portage SQLite→MySQL. Les tables GL, plus récentes, utilisent
@@ -276,7 +158,8 @@ correctement `DATETIME`. Extrait :
 `audit_log.created_at` · `tasks.due_date` · `tasks.created_at` · `tasks.start_date` ·
 `task_assignments.assigned_at` · `task_assignments.done_at` · `map_markers.created_at` ·
 `tutorials.created_at` · `zone_history.harvested_at` · `zone_photos.uploaded_at` ·
-`user_tutorial_reads.acknowledged_at` · `visit_*.created_at`… (liste complète en annexe A).
+`user_tutorial_reads.acknowledged_at` · `users.last_seen` · `visit_*.created_at`…
+(liste complète en annexe A).
 
 En soi, c'est un défaut de forme supportable **tant que le format reste unique**. Il ne
 l'est plus :
@@ -332,6 +215,123 @@ SELECT id, label, created_at FROM map_markers
 2. _De fond_ : convertir les 29 colonnes en `DATETIME` par migration. Le chantier est
    mécanique mais large (il touche les `INSERT`/`SELECT` de plusieurs dizaines de
    fichiers) — à traiter comme un lot dédié, pas en marge d'autre chose.
+
+---
+
+### 3.3 — Deux tables supprimées sont recréées à chaque démarrage
+
+**Gravité : élevée. Pas d'impact fonctionnel aujourd'hui, mais le mécanisme est général.**
+
+`migrations/164_drop_pin_elevation_system.sql` fait trois choses :
+
+```sql
+DROP TABLE IF EXISTS role_pin_secrets;
+DROP TABLE IF EXISTS elevation_audit;
+ALTER TABLE role_permissions DROP COLUMN requires_elevation;
+```
+
+État réel de la base (`schema_version` = 175, la 164 est donc passée) :
+
+| Objet                                 | Attendu après 164 | Constaté               |
+| ------------------------------------- | ----------------- | ---------------------- |
+| `role_pin_secrets`                    | supprimée         | **présente** (0 ligne) |
+| `elevation_audit`                     | supprimée         | **présente** (0 ligne) |
+| `role_permissions.requires_elevation` | supprimée         | absente ✔              |
+
+Cette combinaison exacte n'a qu'une explication. Dans `database.js:353-368`, `initSchema()`
+exécute **`sql/schema_foretmap.sql` avant `runMigrations()`, à chaque démarrage**. Or ce
+fichier déclare toujours les deux tables :
+
+- `sql/schema_foretmap.sql:535` → `CREATE TABLE IF NOT EXISTS role_pin_secrets (...)`
+- `sql/schema_foretmap.sql:556` → `CREATE TABLE IF NOT EXISTS elevation_audit (...)`
+- `sql/schema_foretmap.sql:525` → `requires_elevation TINYINT(1) NOT NULL DEFAULT 0`
+
+Au boot suivant la migration 164, les deux `CREATE TABLE IF NOT EXISTS` **recréent** les
+tables (elles n'existent plus) ; en revanche `requires_elevation` vit à l'intérieur d'un
+`CREATE TABLE IF NOT EXISTS role_permissions` qui, lui, ne fait rien puisque la table
+existe — d'où la colonne durablement absente. Les faits collent exactement.
+
+La migration 164 est donc, en pratique, **un no-op permanent** sur les deux tables.
+
+Les deux tables sont par ailleurs **totalement mortes** : aucune occurrence dans
+`routes/`, `lib/`, `middleware/`, `src/`, `scripts/`. Elles ne coûtent rien en données,
+mais elles rendent le schéma menteur.
+
+**Portée du mécanisme.** Croisement de tous les `DROP TABLE` des migrations avec
+`sql/schema_foretmap.sql` : seules ces deux tables sont concernées (les 8 autres tables
+supprimées — `students`, `teachers`, `gl_player_journals`, `visit_marker_content`… — ne
+sont plus déclarées, elles restent bien supprimées). Le risque est donc **circonscrit
+aujourd'hui**, mais il se reproduira au prochain `DROP TABLE` si le fichier de schéma
+n'est pas nettoyé dans le même lot.
+
+**Correction.** Retirer les trois déclarations de `sql/schema_foretmap.sql`, puis une
+migration `177_*` qui rejoue les deux `DROP TABLE IF EXISTS`. Ajouter à la CI un contrôle
+liant les deux fichiers : _aucun objet supprimé par une migration ne doit rester déclaré
+dans le schéma initial_ — c'est un test de cohérence de 20 lignes, et il ferme la classe
+entière de bugs.
+
+---
+
+## 4. Constats majeurs
+
+### 4.1 — Les vues portent le nom de la base en dur : toute copie lit la production
+
+**Gravité : moyenne en l'état — élevée dès qu'une copie de la base est exploitée.**
+**La production `oliviera_foretmap` n'est pas affectée.**
+
+La copie auditée contient (lignes 24042 et 24051 de l'export) :
+
+```sql
+CREATE ... VIEW `v_food_web` AS SELECT ...
+  FROM ((`oliviera_foretmap`.`species_interactions` `si`
+    join `oliviera_foretmap`.`plants` `pf` ...
+CREATE ... VIEW `v_zone_inventory` AS SELECT ...
+  FROM ((`oliviera_foretmap`.`zone_species` `zs`
+    join `oliviera_foretmap`.`zones` `z` ...
+```
+
+Les migrations 124 et 143 écrivent pourtant des noms **non qualifiés**
+(`migrations/143_food_web_trophic_roles.sql:12` → `FROM species_interactions si`).
+MariaDB **résout et fige** ces noms avec la base active au moment du `CREATE VIEW`. Dans
+`oliviera_foretmap`, les vues se référencent donc elles-mêmes : **tout va bien en
+production**. Mais le nom voyage avec le schéma, et **toute copie hérite d'une vue qui
+pointe vers la production**.
+
+C'est exactement ce qu'on observe dans `oliviera_foretmap5`. Deux scénarios concrets :
+
+- **Copie restaurée sur le serveur** (préproduction, base de secours, essai de bascule) :
+  `routes/food-web.js` **écrit** dans `species_interactions` — nom non qualifié, donc la
+  base de la copie — puis **relit immédiatement par la vue**
+  (`routes/food-web.js:26-28`), c'est-à-dire dans la **production**. L'interaction créée
+  n'est jamais retrouvée, et l'écran affiche des données de production dans un
+  environnement censé en être isolé.
+- **Copie restaurée en local** via le flux documenté
+  (`docs/LOCAL_DEV.md:90`, `npm run db:import:dump`) : le script rejoue le dump tel quel
+  dans `foretmap_local` (`scripts/import-foretmap-dump.js:120`, un seul
+  `targetConn.query(dumpSql)`). Comme `oliviera_foretmap` n'existe pas sur la machine du
+  développeur, MariaDB refuse le `CREATE VIEW` (table référencée introuvable) et, faute de
+  découpage des instructions, **l'import s'arrête là**.
+
+Aucun test ne peut détecter cela : `tests/gl-dead-views-dropped.test.js` vérifie seulement
+que les vues **existent**, jamais ce qu'elles lisent.
+
+**Vérification (à passer sur la production `oliviera_foretmap`)**
+
+```sql
+SELECT TABLE_NAME, VIEW_DEFINITION
+  FROM information_schema.VIEWS
+ WHERE TABLE_SCHEMA = DATABASE();
+-- Attendu en production : les tables citées portent le nom de la base courante.
+-- Toute autre valeur signalerait que la production elle-même est issue d'une copie.
+```
+
+**Correction.** Une migration `177_*` qui rejoue les deux `CREATE VIEW` (le SQL des
+migrations 124 et 143 est correct tel quel) : exécutée par le runner **dans la base
+courante**, elle recalcule la qualification, quelle que soit la base. Ajouter un test qui
+assert que `VIEW_DEFINITION` ne cite aucun schéma autre que `DATABASE()` — c'est le seul
+garde-fou contre la réapparition du problème à la prochaine copie. Accessoirement,
+`import-foretmap-dump.js` gagnerait à découper le dump en instructions pour ne pas perdre
+tout l'import sur une seule erreur.
 
 ### 4.2 — `user_roles` et `password_reset_tokens` sans clé étrangère : orphelins constatés
 
@@ -427,7 +427,7 @@ en plus les événements d'authentification (556 `auth.login`, 111 OAuth enseign
 OAuth élève) que `audit_log` ignore.
 
 Les deux tables ont par ailleurs des schémas divergents : `audit_log.created_at` est un
-`VARCHAR` ISO doublé d'un `occurred_at DATETIME` (cf. §4.1), là où `security_events` n'a
+`VARCHAR` ISO doublé d'un `occurred_at DATETIME` (cf. §3.2), là où `security_events` n'a
 qu'un `occurred_at DATETIME` propre, plus `ip_address`, `user_agent` et un
 `payload_json` sous contrainte `CHECK (json_valid(...))`.
 
@@ -475,16 +475,18 @@ SELECT COUNT(*) FROM quiz_question_glossary q
 
 `CLAUDE.md` interdit de versionner un dump (PII). `.gitignore:35-38` bloque
 `*_bdd_complete.sql`, `*_dump.sql`, `*-dump.sql`, `sql/dumps/`. Or phpMyAdmin nomme son
-export **d'après la base** — c'est exactement le fichier de cet audit :
+export **d'après la base** — et c'est aussi le nom que la documentation d'installation
+locale donne au fichier téléchargé (`docs/LOCAL_DEV.md:90` →
+`oliviera_foretmap.sql`) :
 
 ```
-$ git check-ignore -v oliviera_foretmap5.sql
-  → NON IGNORÉ
+$ git check-ignore -v oliviera_foretmap.sql    → NON IGNORÉ
+$ git check-ignore -v oliviera_foretmap5.sql   → NON IGNORÉ
 ```
 
-Le dump analysé ici contient 63 comptes réels (dont des mineurs), 63 noms+prénoms,
+L'export analysé ici contient 63 comptes réels (dont des mineurs), 63 noms+prénoms,
 30 adresses e-mail, 61 hachages bcrypt, 48 adresses IP et 1 904 user-agents. Déposé à la
-racine du dépôt, il **serait committé**.
+racine du dépôt sous le nom que la doc recommande, il **serait committé**.
 
 **Correction (une ligne)** : ajouter `oliviera_*.sql` et, plus robuste, `*.sql` avec des
 exceptions explicites `!sql/schema_foretmap.sql`, `!sql/biodiv_pedago_seed.sql`,
@@ -585,7 +587,7 @@ Liste complète en annexe B. Aucun n'est urgent ; leur suppression est un gain n
 - **Aucun garde-fou base de test/production** : `tests/helpers/setup.js:3` utilise
   `DB_NAME` du `.env` dès que `TEST_DB_NAME` est absent, et chaque fichier de test appelle
   `initSchema()`. Un `npm test` lancé avec un `.env` pointant la production écrirait
-  dedans. **Aucune trace d'un tel incident dans le dump** (aucun compte
+  dedans. **Aucune trace d'un tel incident dans l'export** (aucun compte
   `admin.test@foretmap.local`, aucun artefact e2e) — c'est un risque, pas un accident.
   Trois lignes suffisent : refuser de démarrer si `DB_NAME` ne correspond pas à un motif
   de base de test.
@@ -599,7 +601,7 @@ Ces points sont vérifiés, pas supposés — ils méritent d'être préservés 
 - **Intégrité référentielle polymorphe parfaite.** Les 5 212 liens de
   `resource_question_links` et `gl_resource_question_links` pointent vers des ressources
   et des questions **toutes existantes**, alors même que le modèle polymorphe **ne peut
-  pas** être protégé par une FK côté ressource. Zéro orpheline sur quatre types
+  pas** être protégé par une FK côté ressource. Zéro orpheline sur six types
   (`plant`, `tutorial`, `glossary`, `species`, `lore_glossary`, `feuillet`). Le nettoyage
   applicatif annoncé par la migration 144 tient réellement ses promesses.
 - **Encodage impeccable.** Zéro occurrence de mojibake (`Ã©`, `â€™`, `ðŸ`…), zéro
@@ -616,7 +618,7 @@ Ces points sont vérifiés, pas supposés — ils méritent d'être préservés 
   migration 146. Les 62 tables GL sont sinon hermétiques.
 - **Dérive schéma/migrations quasi nulle.** La reconstruction statique du schéma attendu
   (schéma initial + 171 migrations) et la base réelle ne divergent que sur les deux tables
-  ressuscitées du §3.2 et sur la migration 176, postérieure au dump. Le runner versionné
+  ressuscitées du §3.3 et sur la migration 176, postérieure à l'export. Le runner versionné
   de `database.js` fonctionne.
 - **Couverture d'index correcte** sur les tables volumineuses ; aucune requête
   applicative ne fait de balayage sur une grosse table (les deux recherches `LIKE '%…%'`
@@ -630,24 +632,24 @@ Ces points sont vérifiés, pas supposés — ils méritent d'être préservés 
 Par rapport bénéfice/risque décroissant. Aucun de ces gestes n'a été appliqué : ce
 document est un audit.
 
-| #   | Action                                                                                                                                                             | Gravité        | Effort        | Réf.     |
-| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------- | ------------- | -------- |
-| 1   | Migration `177_*` : recréer `v_food_web` et `v_zone_inventory` dans la base courante + test anti-régression sur `VIEW_DEFINITION`                                  | **Critique**   | 1 h           | §3.1     |
-| 2   | Retirer `role_pin_secrets`, `elevation_audit`, `requires_elevation` de `sql/schema_foretmap.sql` + migration de `DROP` + test de cohérence schéma↔migrations en CI | **Élevée**     | 2 h           | §3.2     |
-| 3   | Recaler les ancres GPS `foret`, vérifier le signe des longitudes, ajouter un contrôle de plausibilité d'échelle                                                    | **Élevée**     | 2 h + terrain | §3.3     |
-| 4   | Normaliser l'écriture des dates (une seule fonction) + `UPDATE` de normalisation de `map_markers` et `tutorials`                                                   | **Élevée**     | 3 h           | §4.1     |
-| 5   | Purger les 2 orphelins puis poser les FK `user_roles → users` et `password_reset_tokens → users`                                                                   | Majeure        | 1 h           | §4.2     |
-| 6   | Nettoyer les attributions de rôles résiduelles (élève↔prof)                                                                                                        | Majeure        | 30 min        | §4.3     |
-| 7   | Élargir `.gitignore` aux dumps nommés d'après la base                                                                                                              | Majeure        | 5 min         | §5.1     |
-| 8   | Supprimer les 3 tables de liaison héritées (3 230 lignes), reprise déjà prouvée                                                                                    | Moyenne        | 1 h           | §4.5     |
-| 9   | Trancher entre `audit_log` et `security_events`                                                                                                                    | Moyenne        | ½ j           | §4.4     |
-| 10  | Script de purge des journaux (rétention 6–12 mois)                                                                                                                 | Moyenne        | 2 h           | §5.2     |
-| 11  | Garde-fou base de test dans `tests/helpers/setup.js`                                                                                                               | Moyenne        | 15 min        | §5.7     |
-| 12  | Supprimer les 15 index redondants ; aligner les collations ; corriger les slugs de rôles ; dédoublonner tutoriels/zones/questions                                  | Faible         | 2 h           | §5.4–5.7 |
-| 13  | Chantier de fond : les 29 colonnes de date en `DATETIME`                                                                                                           | Faible (dette) | 1 lot dédié   | §4.1     |
+| #   | Action                                                                                                                                                             | Gravité        | Effort        | Réf.       |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------- | ------------- | ---------- |
+| 1   | Recaler les ancres GPS `foret`, vérifier le signe des longitudes, ajouter un contrôle de plausibilité d'échelle                                                    | **Élevée**     | 2 h + terrain | §3.1       |
+| 2   | Normaliser l'écriture des dates (une seule fonction) + `UPDATE` de normalisation de `map_markers` et `tutorials`                                                   | **Élevée**     | 3 h           | §3.2       |
+| 3   | Retirer `role_pin_secrets`, `elevation_audit`, `requires_elevation` de `sql/schema_foretmap.sql` + migration de `DROP` + test de cohérence schéma↔migrations en CI | **Élevée**     | 2 h           | §3.3       |
+| 4   | Migration `177_*` recréant les deux vues + test interdisant tout schéma qualifié dans `VIEW_DEFINITION`                                                            | Majeure        | 1 h           | §4.1       |
+| 5   | Purger les 2 orphelins puis poser les FK `user_roles → users` et `password_reset_tokens → users`                                                                   | Majeure        | 1 h           | §4.2       |
+| 6   | Nettoyer les attributions de rôles résiduelles (élève↔prof)                                                                                                        | Majeure        | 30 min        | §4.3       |
+| 7   | Élargir `.gitignore` aux dumps nommés d'après la base                                                                                                              | Majeure        | 5 min         | §5.1       |
+| 8   | Supprimer les 3 tables de liaison héritées (3 230 lignes), reprise déjà prouvée                                                                                    | Moyenne        | 1 h           | §4.5       |
+| 9   | Trancher entre `audit_log` et `security_events`                                                                                                                    | Moyenne        | ½ j           | §4.4       |
+| 10  | Script de purge des journaux (rétention 6–12 mois)                                                                                                                 | Moyenne        | 2 h           | §5.2       |
+| 11  | Garde-fou base de test dans `tests/helpers/setup.js` ; découpage des instructions dans `import-foretmap-dump.js`                                                   | Moyenne        | 30 min        | §5.7, §4.1 |
+| 12  | Supprimer les 15 index redondants ; aligner les collations ; corriger les slugs de rôles ; dédoublonner tutoriels/zones/questions                                  | Faible         | 2 h           | §5.4–5.7   |
+| 13  | Chantier de fond : les 29 colonnes de date en `DATETIME`                                                                                                           | Faible (dette) | 1 lot dédié   | §3.2       |
 
-Les points 1, 2 et 7 sont réalisables en un seul lot d'une demi-journée et éliminent le
-plus gros du risque.
+Les points 3, 4 et 7 sont réalisables en un seul lot d'une demi-journée et referment
+durablement trois classes de problème.
 
 ---
 
@@ -702,5 +704,5 @@ même information dans deux types différents.
 `resource_gating_policy` · `role_pin_secrets`¹ · `task_markers` ·
 `visit_mascot_sprite_library` · `visit_media`
 
-¹ à supprimer (§3.2). Les autres sont des fonctionnalités provisionnées mais pas encore
+¹ à supprimer (§3.3). Les autres sont des fonctionnalités provisionnées mais pas encore
 utilisées (marché GL, carnet du joueur, conditionnement pédagogique) — normal, pas un défaut.
