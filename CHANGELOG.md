@@ -7,6 +7,32 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### GL — les ressources rattachées au mauvais chapitre
+
+Dans GL, une ressource (espèce, terme de glossaire, question de QCM, feuillet) n'est
+pas rangée « dans » un chapitre : son rattachement est **déduit des biomes** du
+chapitre. Quelques liens biome erronés suffisaient donc à faire remonter des centaines
+de ressources sous un chapitre de test ou de démonstration, et à les compter deux fois
+dans la vue d'ensemble admin des feuillets. En base, deux dérives cumulées : le
+chapitre de plateau « Toundra arctique » n'avait **aucun** biome (donc aucune espèce,
+aucun glossaire et un pool de QCM vide), tandis que le chapitre de démonstration
+`foret-magique` et un chapitre bac à sable portaient les biomes des vrais chapitres.
+
+- **Base de données** — migration **`177_gl_chapter_biomes_repair.sql`**, idempotente et
+  pilotée par la donnée (aucun identifiant en dur) : un chapitre de plateau **sans aucun**
+  biome reçoit ceux de son plateau (`gl_lore_plateaux`), et un chapitre **hors plateau**
+  perd les biomes déjà portés par un chapitre de plateau. Les paramétrages existants ne
+  sont jamais réécrits, et un chapitre hors plateau garde ses biomes qui lui sont propres.
+- **Aucun contenu n'est supprimé ni déplacé** : la migration ne touche que la table de
+  liaison `gl_chapter_biomes`. La suppression des chapitres fautifs a été écartée — les
+  clés étrangères vers `gl_chapters` sont en `ON DELETE CASCADE`, supprimer un chapitre
+  détruirait ses repères, ses zones et ses sortilèges au lieu de les rendre orphelins.
+- **Documentation** — `docs/reference/gl/chapitres-et-progression.md` explique désormais
+  que les biomes d'un chapitre décident de son contenu (et qu'un chapitre de test ne doit
+  porter aucun biome du voyage).
+- **Technique** — `splitSqlStatements` est exporté par `database.js` pour que les tests de
+  migration rejouent un fichier SQL avec le découpage exact du runner.
+
 ### ForetMap — les mascottes ne sont plus rattachées à une carte
 
 Le studio « Packs mascotte » affichait une liste **différente selon la carte affichée** :
