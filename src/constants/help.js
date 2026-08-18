@@ -69,7 +69,7 @@ const HELP_PANELS = {
         text: 'Commence par cliquer une zone ou un repère : la fiche te dit quoi observer et quoi y faire. Tout part de là.',
       },
       {
-        text: 'Perdu ? + et − pour zoomer, ⊡ pour revenir à la vue complète. Tout le monde s’égare la première fois — moi c’est plutôt toutes les fois.',
+        text: 'Perdu ? + et − pour zoomer, ⊡ pour revenir à la vue complète. Ce dernier bouton rattrape à peu près toutes les situations.',
       },
       {
         text: 'Sur mobile, le cadenas 🔒 fige les gestes. Pratique quand la carte part en vadrouille dès qu’on la frôle.',

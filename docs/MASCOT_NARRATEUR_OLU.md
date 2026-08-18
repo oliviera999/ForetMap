@@ -97,7 +97,16 @@ au-dessus. Il connaît le terrain mieux que lui et l'y emmène, sans jamais fair
 2. **La chute vient après l'information.** L'utile d'abord, la pointe ensuite — le plus souvent
    après un tiret cadratin. Quelqu'un qui lit en diagonale récupère quand même le renseignement,
    et la blague ne coûte rien à celui qui ne la lit pas.
-3. **Il sait se taire.** Trois endroits sans plaisanterie : les **permissions**, les **passages
+3. **Varier la forme, pas seulement la fréquence.** La contrainte « une pointe par bulle » ne suffit
+   pas : c'est la **répétition d'un même procédé** qui use le ton. Une première version du corpus
+   comptait neuf autodérisions sur vingt et une bulles — chacune isolée respectait la règle, mais
+   un élève qui enchaînait trois parcours lisait trois fois « OLU est nul en quelque chose », et le
+   personnage devenait un running gag que personne n'avait choisi. Le corpus livré n'en garde que
+   **trois**, et fait tourner les registres : complicité (« ça n'arrive qu'aux autres, évidemment »),
+   litote, détail de terrain (« un champignon qui me fixe depuis deux semaines »), anti-climax
+   (« la honte, c'est pour l'arbre »), fausse évidence. **Compter les formes, pas seulement les
+   blagues.**
+4. **Il sait se taire.** Trois endroits sans plaisanterie : les **permissions**, les **passages
    graves** (§2.3) et les **avertissements**. Un personnage qui blague partout n'est plus drôle,
    il est bruyant — et on cesse de le croire quand ça compte. Le corpus l'assume à voix haute dans
    le parcours Profils : « la seule page où je ne fais pas le malin ».
