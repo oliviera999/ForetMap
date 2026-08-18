@@ -2,6 +2,7 @@ import React from 'react';
 import { describe, test, expect, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { MediaLibraryMenu } from '../../src/components/MediaLibraryMenu.jsx';
+import { pushOverlayClose } from '../../src/utils/overlayHistory.js';
 
 vi.mock('../../src/services/api.js', () => ({
   withAppBase: (path) => path,
@@ -277,5 +278,85 @@ describe('MediaLibraryMenu layout gallery', () => {
     expect(window.confirm).toHaveBeenCalled();
     await screen.findByText('2 médias supprimés.');
     expect(removeItem).toHaveBeenCalledTimes(2);
+  });
+});
+
+/**
+ * Import depuis un smartphone Android : sélecteur ouvert par clic programmatique,
+ * garde `popstate` armée, type MIME manquant rattrapé, échecs restitués nommément.
+ */
+describe('MediaLibraryMenu import mobile', () => {
+  const JPEG_BYTES = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46]);
+
+  function renderMenu(props = {}) {
+    const uploadDataUrl = props.uploadDataUrl || vi.fn().mockResolvedValue({ ok: true });
+    render(
+      <MediaLibraryMenu
+        defaultOpen
+        showToggle={false}
+        fetchItems={async () => []}
+        uploadDataUrl={uploadDataUrl}
+        removeItem={vi.fn()}
+        canUpload
+        canRemove={false}
+        {...props}
+      />,
+    );
+    return { uploadDataUrl };
+  }
+
+  test('le bouton Importer déclenche le sélectionneur natif et arme la garde retour', async () => {
+    renderMenu();
+    await screen.findByRole('button', { name: '📁 Importer' });
+
+    const input = document.querySelector('input[type="file"]:not([capture])');
+    const clickSpy = vi.spyOn(input, 'click').mockImplementation(() => {});
+
+    // Surcouche ouverte : sans garde, le `popstate` du retour sélecteur la fermerait.
+    const closeOverlay = vi.fn();
+    pushOverlayClose(closeOverlay);
+
+    fireEvent.click(screen.getByRole('button', { name: '📁 Importer' }));
+    expect(clickSpy).toHaveBeenCalled();
+
+    window.dispatchEvent(new Event('popstate'));
+    expect(closeOverlay).not.toHaveBeenCalled();
+  });
+
+  test('propose aussi la prise de photo (input capture) sur mobile', async () => {
+    renderMenu();
+    expect(await screen.findByRole('button', { name: '📸 Prendre une photo' })).toBeInTheDocument();
+    expect(document.querySelector('input[type="file"][capture="environment"]')).toBeTruthy();
+  });
+
+  test('photo Android sans type MIME : envoyée en image/jpeg avec son nom d’origine', async () => {
+    const { uploadDataUrl } = renderMenu();
+    await screen.findByRole('button', { name: '📁 Importer' });
+    const input = document.querySelector('input[type="file"]:not([capture])');
+    const file = new File([JPEG_BYTES], 'IMG_20260818_101500.jpg', { type: '' });
+
+    fireEvent.change(input, { target: { files: [file] } });
+
+    await screen.findByText('1 média importé.');
+    expect(uploadDataUrl).toHaveBeenCalledTimes(1);
+    const [dataUrl, options] = uploadDataUrl.mock.calls[0];
+    expect(dataUrl.startsWith('data:image/jpeg;base64,')).toBe(true);
+    expect(options).toEqual({ originalName: 'IMG_20260818_101500.jpg' });
+  });
+
+  test('un fichier refusé n’interrompt pas le lot et est nommé dans l’erreur', async () => {
+    const { uploadDataUrl } = renderMenu({ allowMultiple: true });
+    await screen.findByRole('button', { name: '📁 Importer' });
+    const input = document.querySelector('input[type="file"]:not([capture])');
+
+    const ok = new File([JPEG_BYTES], 'photo.jpg', { type: 'image/jpeg' });
+    const trop = new File([JPEG_BYTES], 'video-vacances.mp4', { type: 'video/mp4' });
+    Object.defineProperty(trop, 'size', { value: 40 * 1024 * 1024 });
+
+    fireEvent.change(input, { target: { files: [ok, trop] } });
+
+    await screen.findByText(/video-vacances\.mp4/);
+    expect(await screen.findByText('1 média importé.')).toBeInTheDocument();
+    expect(uploadDataUrl).toHaveBeenCalledTimes(1);
   });
 });

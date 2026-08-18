@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { MediaUsageInfo } from '../../components/media/MediaUsageInfo.jsx';
 import { MediaLibraryGalleryTile } from '../../components/media/MediaLibraryGalleryTile.jsx';
 import { MediaLibraryBulkActions } from '../../components/media/MediaLibraryBulkActions.jsx';
@@ -10,15 +10,11 @@ import {
   pruneMediaLibrarySelection,
   resolveMediaLibraryLayout,
 } from '../../utils/mediaLibraryView.js';
-
-function readFileAsDataUrl(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = () => reject(new Error('Lecture du fichier impossible'));
-    reader.onload = () => resolve(String(reader.result || ''));
-    reader.readAsDataURL(file);
-  });
-}
+import { prepareMediaImport } from '../../utils/mediaImport.js';
+import {
+  armNativeFilePickerGuard,
+  disarmNativeFilePickerGuard,
+} from '../../utils/overlayHistory.js';
 
 function mediaEmoji(type) {
   if (type === 'audio') return '🎧';
@@ -55,6 +51,8 @@ export function MediaLibraryMenu({
   const [notice, setNotice] = useState('');
   const [usageByPath, setUsageByPath] = useState({});
   const [usageReady, setUsageReady] = useState(false);
+  const fileInputRef = useRef(null);
+  const cameraInputRef = useRef(null);
 
   const showUsage = typeof fetchUsage === 'function';
 
@@ -116,28 +114,66 @@ export function MediaLibraryMenu({
       .finally(() => setBusy(false));
   }, [defaultOpen]);
 
-  async function onUploadFile(file) {
-    if (!file) return;
-    setBusy(true);
-    setError('');
-    setNotice('');
-    try {
-      const dataUrl = await readFileAsDataUrl(file);
-      await uploadDataUrl(dataUrl);
-      await reload();
-    } catch (err) {
-      setError(err.message || 'Upload impossible');
-    } finally {
-      setBusy(false);
-    }
-  }
-
+  /**
+   * Envoie un lot de fichiers : préparation (type MIME normalisé, allègement des photos
+   * lourdes) puis upload, fichier par fichier. Les échecs n'interrompent pas le lot et
+   * sont restitués nommément — sur mobile, une seule photo du lot est souvent en cause.
+   */
   async function onUploadFiles(fileList) {
     const files = Array.from(fileList || []).filter(Boolean);
     if (files.length === 0) return;
+
+    setBusy(true);
+    setError('');
+    setNotice('');
+    let uploaded = 0;
+    const failures = [];
+
     for (const file of files) {
-      await onUploadFile(file);
+      try {
+        const prepared = await prepareMediaImport(file);
+        await uploadDataUrl(prepared.dataUrl, { originalName: prepared.originalName });
+        uploaded += 1;
+      } catch (err) {
+        failures.push(err?.message || `« ${file.name || 'fichier'} » : import impossible`);
+      }
     }
+
+    try {
+      if (uploaded > 0) await reload();
+    } catch (err) {
+      failures.push(err?.message || 'Rechargement impossible');
+    } finally {
+      setBusy(false);
+    }
+
+    if (failures.length > 0) setError(failures.join(' · '));
+    if (uploaded > 0) {
+      setNotice(`${uploaded} média${uploaded > 1 ? 's' : ''} importé${uploaded > 1 ? 's' : ''}.`);
+    }
+  }
+
+  /**
+   * Ouverture du sélecteur natif. Le clic programmatique sur un `input` masqué
+   * (plutôt qu'un `<label>` englobant) est le seul geste fiable sur les WebView
+   * Android, et la garde `popstate` empêche la modale hôte de se fermer au retour
+   * du sélecteur — avant l'événement `change`, l'import était alors perdu.
+   */
+  function openPicker(ref) {
+    if (busy || !ref.current) return;
+    ref.current.value = '';
+    armNativeFilePickerGuard();
+    ref.current.click();
+  }
+
+  function onPickerChange(event) {
+    disarmNativeFilePickerGuard();
+    const input = event.target;
+    // La liste doit être copiée AVANT la remise à zéro de l'input (qui vide `files`).
+    const selected = Array.from(input.files || []);
+    input.value = '';
+    if (selected.length === 0) return;
+    onUploadFiles(allowMultiple ? selected : selected.slice(0, 1));
   }
 
   async function onDelete(item) {
@@ -291,25 +327,40 @@ export function MediaLibraryMenu({
             </div>
             <div className="media-library-menu__actions">
               {canUpload ? (
-                <label className="btn btn-secondary btn-sm">
-                  📁 Importer
+                <>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    disabled={busy}
+                    onClick={() => openPicker(fileInputRef)}
+                  >
+                    📁 Importer
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    disabled={busy}
+                    onClick={() => openPicker(cameraInputRef)}
+                  >
+                    📸 Prendre une photo
+                  </button>
                   <input
+                    ref={fileInputRef}
                     type="file"
                     accept="image/*,audio/*,video/*"
                     multiple={allowMultiple}
                     style={{ display: 'none' }}
-                    disabled={busy}
-                    onChange={(event) => {
-                      const selected = event.target.files;
-                      event.target.value = '';
-                      if (allowMultiple) {
-                        onUploadFiles(selected);
-                        return;
-                      }
-                      onUploadFile(selected?.[0]);
-                    }}
+                    onChange={onPickerChange}
                   />
-                </label>
+                  <input
+                    ref={cameraInputRef}
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    style={{ display: 'none' }}
+                    onChange={onPickerChange}
+                  />
+                </>
               ) : (
                 <button type="button" className="btn btn-secondary btn-sm" disabled>
                   📁 Importer

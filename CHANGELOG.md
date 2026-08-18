@@ -7,6 +7,51 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### ForetMap — la médiathèque accepte enfin les photos d'un téléphone Android
+
+Le bouton **Importer** de la médiathèque ne fonctionnait pas depuis un smartphone Android.
+Trois causes indépendantes se cumulaient, toutes propres au mobile ; elles sont traitées
+ensemble, et le reste des imports d'images de l'application en profite.
+
+- **Type MIME manquant.** Les sélecteurs Android (Google Photos, Fichiers, Drive, galeries
+  tierces) renvoient très souvent un fichier dont le `type` est vide ou
+  `application/octet-stream`. `FileReader` recopiait ce type dans la data URL, et le serveur
+  refusait la photo avec « Type MIME non autorisé » alors qu'il s'agissait d'un JPEG.
+  Le nouveau module **`src/utils/mediaImport.js`** normalise le type (alias, extension du nom,
+  **signature binaire** du fichier) avant l'envoi, et **`lib/mediaLibrary.js`** applique le même
+  repli côté serveur — les autres clients (dont G&L) en bénéficient sans changement.
+- **Photos trop lourdes.** Un capteur récent produit des fichiers que l'encodage base64
+  gonfle de 33 % : au-delà de la limite de corps HTTP, l'envoi partait en **413**. Les images
+  de plus de 4 Mo sont désormais **allégées avant l'envoi** (2400 px de côté maximum), en
+  **PNG** si la source est un PNG ou un WebP — la transparence survit — et en JPEG sinon.
+  GIF (animation) et SVG (vectoriel) ne passent jamais par le canvas. Plafond explicite à
+  15 Mo par média, refusé **avant** l'envoi avec le poids du fichier dans le message.
+- **Sélecteur qui refermait la fenêtre.** Le bouton était un `<label>` englobant un `input`
+  masqué : les WebView Android n'ouvrent pas toujours le sélecteur ainsi, et le `popstate`
+  émis au retour fermait la modale hôte (studio narrateur, éditeurs G&L) **avant**
+  l'événement `change` — l'import était perdu sans message. On passe au clic programmatique
+  sur une `ref` avec la garde **`armNativeFilePickerGuard`** déjà utilisée par les autres
+  champs photo de l'application. Même correction sur la carte **portrait du narrateur**.
+
+- **Effet de bord assumé côté G&L.** La médiathèque transmet désormais le **nom d'origine**
+  du fichier (`original_name`) : les médias importés depuis **Contenus → Bibliothèque**
+  reçoivent enfin la **clé stable** que le panneau annonçait déjà (« Copiez la clé stable
+  affichée dans la galerie après import »).
+
+- **Ce que l'utilisateur voit** : un bouton **📸 Prendre une photo** à côté d'**📁 Importer** ;
+  le nom d'origine du fichier conservé (et donc sa clé stable) ; en cas d'import multiple,
+  un fichier refusé **n'interrompt plus le lot** et est nommé dans le message d'erreur ;
+  les photos **HEIC/HEIF** — que nul navigateur ne sait décoder — sont refusées avec le
+  réglage Android à changer, au lieu d'un « Type MIME non autorisé » opaque.
+
+Tests : `tests-ui/utils/mediaImport.test.js` (20 cas — normalisation, planification, signature
+binaire, ré-encodage), `tests-ui/components/MediaLibraryMenu.test.jsx` (ouverture du sélecteur,
+garde `popstate`, photo sans type, lot partiellement refusé),
+`tests/media-library-generic-mime.test.js` (repli serveur). Documentation : `docs/API.md`
+(résolution du type MIME à l'upload) et `docs/reference/foretmap/stats-forum-et-suivi.md`
+(formats, taille maximale, avertissement HEIC).
+
+
 ### ForetMap — OLU parle enfin à la première personne (lot 4), et ses visites guidées deviennent éditables
 
 **Le corpus.** Les 21 étapes des 13 visites guidées, les 7 panneaux d'aide et les 3 astuces sont
