@@ -11,7 +11,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 **Le corpus.** Les 21 étapes des 13 visites guidées, les 7 panneaux d'aide et les 3 astuces sont
 réécrits à la voix d'OLU : le **jeune renard explorateur** du brief graphique — curieux, motivé,
-plein d'entrain sans être niais. Il dit « je », tutoie, tient en une à trois phrases et n'emploie
+espiègle et blagueur, sans être niais. Il dit « je », tutoie, tient en une à trois phrases et n'emploie
 aucun emoji — l'expression passe par le portrait posé au lot 3. Les infobulles, les
 bandeaux de tracé et les indicateurs temps réel restent au registre fonctionnel : on les lit la
 main déjà sur le bouton, il n'y a pas de place pour une voix.
@@ -31,6 +31,13 @@ main déjà sur le bouton, il n'y a pas de place pour une voix.
   l'inquiétude ». Le corpus écrit sur la première hypothèse sonnait faux à côté du portrait ; il a
   été entièrement repris, et toutes les tournures scribales (« j'ai recopié », « mon herbier »,
   « mes vieux yeux ») retirées. `docs/MASCOT_NARRATEUR_OLU.md` §2 et la doc de référence suivent.
+- **Une règle d'or encadre l'humour** (§2.2bis, nouvelle) : la cible d'une plaisanterie est
+  toujours OLU lui-même — jamais l'utilisateur, et surtout pas une erreur qu'il vient de faire ;
+  la chute arrive **après** l'information, de sorte qu'une lecture en diagonale récupère quand
+  même le renseignement ; et trois endroits restent sans plaisanterie — permissions,
+  avertissements, passages graves. Le plafond d'un point d'exclamation par parcours est
+  **conservé** : deux suffisent sur tout le corpus, l'humour venant du décalage et du placement
+  de la chute, pas de la ponctuation.
 - Nouveau test de non-régression du corpus (`tests/help-corpus-olu.test.js`) : aucun emoji dans les
   textes de parcours, au plus un point d'exclamation par parcours, une à trois phrases par bulle,
   structure des étapes intacte, défauts d'aide valides au regard du schéma Zod.

@@ -69,14 +69,14 @@ const HELP_PANELS = {
         text: 'Commence par cliquer une zone ou un repère : la fiche te dit quoi observer et quoi y faire. Tout part de là.',
       },
       {
-        text: 'Perdu ? + et − pour zoomer, ⊡ pour revenir à la vue complète. Tout le monde s’égare la première fois, moi le premier.',
+        text: 'Perdu ? + et − pour zoomer, ⊡ pour revenir à la vue complète. Tout le monde s’égare la première fois — moi c’est plutôt toutes les fois.',
       },
       {
-        text: 'Sur mobile, le cadenas 🔒 fige les gestes. Utile quand la carte part en promenade dès qu’on la touche.',
+        text: 'Sur mobile, le cadenas 🔒 fige les gestes. Pratique quand la carte part en vadrouille dès qu’on la frôle.',
       },
       {
         textTeacher:
-          'Mode Zone ou Repère pour construire le terrain, puis retour en mode Nav. Rester en mode Repère pendant qu’on navigue est la meilleure façon de semer des points partout sans le vouloir.',
+          'Mode Zone ou Repère pour construire le terrain, puis retour en mode Nav. Rester en mode Repère pendant qu’on navigue est le meilleur moyen de semer des points partout — j’ai déjà vu une carte finir en ciel étoilé.',
       },
     ],
   },
@@ -87,7 +87,7 @@ const HELP_PANELS = {
         text: 'Lis la consigne et regarde la carte liée avant de t’inscrire. Une tâche prise est une tâche que les autres ne prendront pas.',
       },
       {
-        text: 'Une fois le travail terminé, envoie un retour : deux phrases et une photo suffisent. Sans retour, ce que tu as fait n’existe que pour toi.',
+        text: 'Une fois le travail terminé, envoie un retour : deux phrases et une photo suffisent. Sans retour, ce que tu as fait n’existe que pour toi et pour les vers de terre.',
       },
       {
         textTeacher:
@@ -95,7 +95,7 @@ const HELP_PANELS = {
       },
       {
         textTeacher:
-          'Duplique les missions répétitives plutôt que de les retaper. Autant garder ton temps pour le terrain.',
+          'Duplique les missions répétitives plutôt que de les retaper. Garde ton énergie pour le terrain, il en réclame déjà pas mal.',
       },
     ],
   },
@@ -121,7 +121,7 @@ const HELP_PANELS = {
         text: 'Clique les zones et les repères pour ouvrir leurs fiches : la visite se parcourt dans l’ordre que tu veux.',
       },
       {
-        text: 'Marque ce que tu as vu au fur et à mesure. Je tiens le compte pendant que tu marches.',
+        text: 'Marque ce que tu as vu au fur et à mesure. Je tiens le compte pendant que tu marches — c’est ma contribution à l’effort.',
       },
       {
         textTeacher:
@@ -155,7 +155,7 @@ const HELP_PANELS = {
       },
       {
         textTeacher:
-          '« Membres » désigne qui appartient au groupe, et qui en est responsable. Un groupe sans responsable fonctionne, mais personne n’y répond.',
+          '« Membres » désigne qui appartient au groupe, et qui en est responsable. Un groupe sans responsable fonctionne très bien, jusqu’au jour où il faut quelqu’un.',
       },
       {
         textTeacher:
@@ -180,7 +180,7 @@ const HELP_PANELS = {
       },
       {
         textTeacher:
-          'Dans les Tâches, une mission créée sans groupe reprend celui du filtre. Pratique — à condition de savoir quel filtre est actif.',
+          'Dans les Tâches, une mission créée sans groupe reprend celui du filtre. Pratique — à condition de se rappeler quel filtre est actif.',
       },
       {
         textTeacher:

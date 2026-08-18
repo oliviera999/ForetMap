@@ -40,18 +40,18 @@
       "title": "Aide carte",
       "items": [
         { "text": "Commence par cliquer une zone ou un repère : la fiche te dit quoi observer et quoi y faire. Tout part de là." },
-        { "text": "Perdu ? + et − pour zoomer, ⊡ pour revenir à la vue complète. Tout le monde s’égare la première fois, moi le premier." },
-        { "text": "Sur mobile, le cadenas 🔒 fige les gestes. Utile quand la carte part en promenade dès qu’on la touche." },
-        { "textTeacher": "Mode Zone ou Repère pour construire le terrain, puis retour en mode Nav. Rester en mode Repère pendant qu’on navigue est la meilleure façon de semer des points partout sans le vouloir." }
+        { "text": "Perdu ? + et − pour zoomer, ⊡ pour revenir à la vue complète. Tout le monde s’égare la première fois — moi c’est plutôt toutes les fois." },
+        { "text": "Sur mobile, le cadenas 🔒 fige les gestes. Pratique quand la carte part en vadrouille dès qu’on la frôle." },
+        { "textTeacher": "Mode Zone ou Repère pour construire le terrain, puis retour en mode Nav. Rester en mode Repère pendant qu’on navigue est le meilleur moyen de semer des points partout — j’ai déjà vu une carte finir en ciel étoilé." }
       ]
     },
     "tasks": {
       "title": "Aide tâches",
       "items": [
         { "text": "Lis la consigne et regarde la carte liée avant de t’inscrire. Une tâche prise est une tâche que les autres ne prendront pas." },
-        { "text": "Une fois le travail terminé, envoie un retour : deux phrases et une photo suffisent. Sans retour, ce que tu as fait n’existe que pour toi." },
+        { "text": "Une fois le travail terminé, envoie un retour : deux phrases et une photo suffisent. Sans retour, ce que tu as fait n’existe que pour toi et pour les vers de terre." },
         { "textTeacher": "Traite d’abord les tâches en attente de validation : quelqu’un attend de l’autre côté. Les statuts s’ajustent ensuite, à tête reposée." },
-        { "textTeacher": "Duplique les missions répétitives plutôt que de les retaper. Autant garder ton temps pour le terrain." }
+        { "textTeacher": "Duplique les missions répétitives plutôt que de les retaper. Garde ton énergie pour le terrain, il en réclame déjà pas mal." }
       ]
     },
     "plants": {
@@ -66,7 +66,7 @@
       "title": "Aide visite",
       "items": [
         { "text": "Clique les zones et les repères pour ouvrir leurs fiches : la visite se parcourt dans l’ordre que tu veux." },
-        { "text": "Marque ce que tu as vu au fur et à mesure. Je tiens le compte pendant que tu marches." },
+        { "text": "Marque ce que tu as vu au fur et à mesure. Je tiens le compte pendant que tu marches — c’est ma contribution à l’effort." },
         { "textTeacher": "« Aperçu comme élève » montre le rendu réel côté n3beur. À regarder avant la sortie : sur le terrain, il est trop tard pour corriger un texte." },
         { "textTeacher": "Sélectionne les tutoriels utiles à la visite. Trois bien choisis valent mieux que douze qu’on survole." }
       ]
@@ -82,7 +82,7 @@
       "title": "Aide groupes et sous-groupes",
       "items": [
         { "textTeacher": "Un groupe, c’est une classe, une équipe ou une unité pédagogique. Un sous-groupe n’a rien de spécial : c’est un groupe à qui on a donné un parent." },
-        { "textTeacher": "« Membres » désigne qui appartient au groupe, et qui en est responsable. Un groupe sans responsable fonctionne, mais personne n’y répond." },
+        { "textTeacher": "« Membres » désigne qui appartient au groupe, et qui en est responsable. Un groupe sans responsable fonctionne très bien, jusqu’au jour où il faut quelqu’un." },
         { "textTeacher": "Le périmètre cartes et projets fixe la portée par défaut du groupe. Sans périmètre, il reste utilisable partout — ce n’est pas un oubli, c’est un choix." },
         { "textTeacher": "Ce découpage se retrouve dans Tâches, Stats et Forum : un groupe bien nommé se retrouve partout, un groupe mal nommé aussi." },
         { "textTeacher": "Désactiver un groupe le retire des sélecteurs sans effacer son histoire. Tout ce qui a été fait reste, même quand le groupe n’existe plus." }
@@ -92,14 +92,14 @@
       "title": "Aide filtre groupe",
       "items": [
         { "textTeacher": "Ce filtre limite la vue au groupe choisi, et selon le contexte à ses sous-groupes. Rien n’est supprimé, seulement mis de côté." },
-        { "textTeacher": "Dans les Tâches, une mission créée sans groupe reprend celui du filtre. Pratique — à condition de savoir quel filtre est actif." },
+        { "textTeacher": "Dans les Tâches, une mission créée sans groupe reprend celui du filtre. Pratique — à condition de se rappeler quel filtre est actif." },
         { "textTeacher": "Dans les Stats, il cible les n3beurs du groupe. Comparer deux groupes est utile ; en conclure quelque chose sur les personnes, beaucoup moins." }
       ]
     }
   },
   "quickTips": {
     "map": "Clique une zone ou un repère, puis ouvre « ? » si tu veux que je vienne avec toi.",
-    "tasks": "Filtre par carte ou par groupe, puis traite les retours en attente : quelqu’un attend de l’autre côté.",
+    "tasks": "Filtre par carte ou par groupe, puis traite les retours en attente : il y a quelqu’un derrière.",
     "visit": "Coche les lieux au fur et à mesure — je tiens le compte pendant que tu marches."
   },
   "chrome": {
