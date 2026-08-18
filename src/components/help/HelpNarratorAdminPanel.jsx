@@ -22,6 +22,7 @@ import {
   normalizeNarratorDraft,
   setNarratorPortrait,
 } from '../../utils/helpNarratorDraft.js';
+import { prepareMediaImport } from '../../utils/mediaImport.js';
 import { NarratorPortraitCard } from './NarratorPortraitCard.jsx';
 import { NarratorMediaPickerDialog } from './NarratorMediaPickerDialog.jsx';
 
@@ -31,15 +32,6 @@ const MEDIA_ENDPOINT = '/api/settings/admin/media-library';
 /** Texte d'aperçu — écrit dans la voix d'OLU, sans emprunter au corpus réel. */
 const PREVIEW_TEXT =
   'Voilà ce que j’ai recopié. Si j’ai oublié quelque chose, c’est à toi de le retrouver — je ne prétends pas être exhaustif.';
-
-function readFileAsDataUrl(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = () => reject(new Error('Lecture du fichier impossible'));
-    reader.onload = () => resolve(String(reader.result || ''));
-    reader.readAsDataURL(file);
-  });
-}
 
 function formatKilobytes(size) {
   return `${Math.round(Number(size || 0) / 102.4) / 10} Ko`;
@@ -104,8 +96,11 @@ export function HelpNarratorAdminPanel() {
     return Array.isArray(data?.items) ? data.items : [];
   }, []);
 
-  const uploadMedia = useCallback(async (dataUrl) => {
-    await api(MEDIA_ENDPOINT, 'POST', { media_data: dataUrl });
+  const uploadMedia = useCallback(async (dataUrl, options = {}) => {
+    await api(MEDIA_ENDPOINT, 'POST', {
+      media_data: dataUrl,
+      original_name: options.originalName || null,
+    });
   }, []);
 
   async function uploadAndAssign(expression, framing, file) {
@@ -113,10 +108,10 @@ export function HelpNarratorAdminPanel() {
     setError('');
     setInfo('');
     try {
-      const dataUrl = await readFileAsDataUrl(file);
+      const prepared = await prepareMediaImport(file);
       const saved = await api(MEDIA_ENDPOINT, 'POST', {
-        media_data: dataUrl,
-        original_name: file.name || null,
+        media_data: prepared.dataUrl,
+        original_name: prepared.originalName,
       });
       const url = String(saved?.url || '');
       if (!url) throw new Error('Le serveur n’a pas renvoyé d’URL pour ce média');
