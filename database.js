@@ -693,4 +693,7 @@ module.exports = {
   isApplicationDatabaseReady,
   endPool,
   assertNoNewDuplicateMigrationNumbers,
+  // Exporté pour les tests de migration : rejouer un fichier SQL avec le MÊME découpage
+  // que le runner (les ';' des chaînes et des commentaires ne coupent pas un statement).
+  splitSqlStatements,
 };
