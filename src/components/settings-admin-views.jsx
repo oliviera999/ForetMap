@@ -16,9 +16,18 @@ import { VisitMascotSettingsPanel } from './settings/VisitMascotSettingsPanel.js
 import { ForetMapHelpContentAdminPanel } from './help/ForetMapHelpContentAdminPanel.jsx';
 import { HelpNarratorAdminPanel } from './help/HelpNarratorAdminPanel.jsx';
 import { ForetMapReferenceDocsPanel } from './help/ForetMapReferenceDocsPanel.jsx';
+import { DiscoveryTourAdminPanel } from './help/DiscoveryTourAdminPanel.jsx';
 import { useSession } from '../contexts/SessionContext.jsx';
 
-function SettingsAdminView() {
+/**
+ * Console de réglages administrateur.
+ *
+ * Deux droits distincts y donnent accès : `admin.settings.read` ouvre la console
+ * entière ; `tours.manage`, délégable à un profil prof, n'ouvre que le sous-onglet
+ * « Visites guidées ». Les droits arrivent en props — `SessionContext` les exclut
+ * volontairement pour ne pas réafficher des contrôles prof en vue élève.
+ */
+function SettingsAdminView({ canReadSettings = true, canManageTours = false }) {
   const { isN3Affiliated = false } = useSession();
   const roleTerms = getRoleTerms(isN3Affiliated);
   const [loading, setLoading] = useState(true);
@@ -32,7 +41,7 @@ function SettingsAdminView() {
   const [msg, setMsg] = useState('');
   const [err, setErr] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [adminSection, setAdminSection] = useState('general');
+  const [adminSection, setAdminSection] = useState(canReadSettings ? 'general' : 'tours');
   const mapGalleryFileRefs = useRef({});
   const mapCameraFileRefs = useRef({});
   const [newMapId, setNewMapId] = useState('');
@@ -163,6 +172,14 @@ function SettingsAdminView() {
   const load = async () => {
     setErr('');
     setLoading(true);
+    // Sans `admin.settings.read`, cet appel répondrait 403 : on ne le tente pas, et
+    // l'écran se limite au(x) sous-onglet(s) que le droit délégué autorise.
+    if (!canReadSettings) {
+      setSettings([]);
+      setMaps([]);
+      setLoading(false);
+      return;
+    }
     try {
       const data = await api('/api/settings/admin');
       setSettings(Array.isArray(data?.settings) ? data.settings : []);
@@ -175,7 +192,8 @@ function SettingsAdminView() {
 
   useEffect(() => {
     load();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canReadSettings]);
 
   /**
    * Remplace une carte dans l'état local avec la version renvoyée par le serveur,
@@ -396,37 +414,64 @@ function SettingsAdminView() {
       </p>
       {err && <div className="auth-error">⚠️ {err}</div>}
       {msg && <div className="auth-success">{msg}</div>}
-      <nav className="gl-subtabs" style={{ marginBottom: 12 }}>
-        <button
-          type="button"
-          className={adminSection === 'general' ? 'is-active' : ''}
-          onClick={() => setAdminSection('general')}
-        >
-          Paramètres généraux
-        </button>
-        <button
-          type="button"
-          className={adminSection === 'help' ? 'is-active' : ''}
-          onClick={() => setAdminSection('help')}
-        >
-          Bulles d'aide
-        </button>
-        <button
-          type="button"
-          className={adminSection === 'narrator' ? 'is-active' : ''}
-          onClick={() => setAdminSection('narrator')}
-        >
-          Narrateur OLU
-        </button>
-        <button
-          type="button"
-          className={adminSection === 'reference' ? 'is-active' : ''}
-          onClick={() => setAdminSection('reference')}
-        >
-          Doc de référence
-        </button>
+      <nav className="gl-subtabs" style={{ marginBottom: 12, flexWrap: 'wrap' }}>
+        {canReadSettings && (
+          <>
+            <button
+              type="button"
+              className={adminSection === 'general' ? 'is-active' : ''}
+              onClick={() => setAdminSection('general')}
+            >
+              Paramètres généraux
+            </button>
+            <button
+              type="button"
+              className={adminSection === 'help' ? 'is-active' : ''}
+              onClick={() => setAdminSection('help')}
+            >
+              Bulles d'aide
+            </button>
+            <button
+              type="button"
+              className={adminSection === 'narrator' ? 'is-active' : ''}
+              onClick={() => setAdminSection('narrator')}
+            >
+              Narrateur OLU
+            </button>
+          </>
+        )}
+        {canManageTours && (
+          <button
+            type="button"
+            className={adminSection === 'tours' ? 'is-active' : ''}
+            onClick={() => setAdminSection('tours')}
+          >
+            Visites guidées
+          </button>
+        )}
+        {canReadSettings && (
+          <button
+            type="button"
+            className={adminSection === 'reference' ? 'is-active' : ''}
+            onClick={() => setAdminSection('reference')}
+          >
+            Doc de référence
+          </button>
+        )}
       </nav>
-      {adminSection === 'reference' ? (
+      {adminSection === 'tours' ? (
+        canManageTours ? (
+          <DiscoveryTourAdminPanel />
+        ) : (
+          <div className="empty">
+            <p>Cette section demande la permission « Édition visites guidées ».</p>
+          </div>
+        )
+      ) : !canReadSettings ? (
+        <div className="empty">
+          <p>Cette section demande la permission « Lecture paramètres admin ».</p>
+        </div>
+      ) : adminSection === 'reference' ? (
         <ForetMapReferenceDocsPanel />
       ) : adminSection === 'narrator' ? (
         <HelpNarratorAdminPanel />

@@ -7,6 +7,79 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### ForetMap — OLU parle enfin à la première personne (lot 4), et ses visites guidées deviennent éditables
+
+**Le corpus.** Les 21 étapes des 13 visites guidées, les 7 panneaux d'aide et les 3 astuces sont
+réécrits à la voix d'OLU : le **jeune renard explorateur** du brief graphique — curieux, motivé,
+espiègle et blagueur, sans être niais. Il dit « je », tutoie, tient en une à trois phrases et n'emploie
+aucun emoji — l'expression passe par le portrait posé au lot 3. Les infobulles, les
+bandeaux de tracé et les indicateurs temps réel restent au registre fonctionnel : on les lit la
+main déjà sur le bouton, il n'y a pas de place pour une voix.
+
+- **Le miroir `src/constants/help.js` ↔ `data/help.default.json` est désormais identique au
+  caractère près**, et un test le vérifie. Les deux divergeaient sur les apostrophes, et le JSON
+  portait des `d abord` / `c est` sans apostrophe du tout : l'utilisateur voyait un texte avant la
+  réponse serveur, un autre après.
+- **`RELAUNCH_STEP` n'a pas été dupliqué.** Son texte est écrit pour fonctionner dans les treize
+  parcours ; un test vérifie qu'il reste un objet unique partagé par référence.
+- **Cinq passages « lourds » sur treize parcours**, portant l'expression `grave`. La règle d'un
+  passage grave par parcours est un plafond, pas un quota : les huit autres restent au registre
+  courant, faute de quoi le ton devient moralisateur.
+- **Le personnage a été révisé en fin de lot.** La charte du lot 0 décrivait un « copiste cool » —
+  un observateur âgé qui recopie et transmet. Le brief graphique montre tout autre chose : un jeune
+  renard explorateur, sac à dos, boussole, « sourcils froncés par la curiosité et non par
+  l'inquiétude ». Le corpus écrit sur la première hypothèse sonnait faux à côté du portrait ; il a
+  été entièrement repris, et toutes les tournures scribales (« j'ai recopié », « mon herbier »,
+  « mes vieux yeux ») retirées. `docs/MASCOT_NARRATEUR_OLU.md` §2 et la doc de référence suivent.
+- **Une règle d'or encadre l'humour** (§2.2bis, nouvelle) : la cible d'une plaisanterie est
+  toujours OLU lui-même — jamais l'utilisateur, et surtout pas une erreur qu'il vient de faire ;
+  la chute arrive **après** l'information, de sorte qu'une lecture en diagonale récupère quand
+  même le renseignement ; et trois endroits restent sans plaisanterie — permissions,
+  avertissements, passages graves. Le plafond d'un point d'exclamation par parcours est
+  **conservé** : deux suffisent sur tout le corpus, l'humour venant du décalage et du placement
+  de la chute, pas de la ponctuation.
+- **Le registre comique a été rééquilibré après relecture d'ensemble.** Une première version
+  comptait **neuf autodérisions sur vingt et une bulles** : chacune respectait la règle « une
+  pointe par bulle », mais c'était neuf fois le même procédé, et enchaîner trois parcours donnait
+  trois fois « OLU est nul en quelque chose ». Ramené à **trois**, avec rotation des registres
+  (complicité, litote, détail de terrain, anti-climax, fausse évidence). Deux corrections au
+  passage : l'étape de relance — la seule lue treize fois — quitte l'autodérision pour la
+  complicité, et « tu vas voir des trucs que tu as piétinés toute l'année » disparaît, parce
+  qu'elle visait le lecteur en contradiction directe avec la règle d'or qu'on venait d'écrire.
+  Le §2.2bis retient la leçon : **compter les formes, pas seulement les blagues.**
+- Nouveau test de non-régression du corpus (`tests/help-corpus-olu.test.js`) : aucun emoji dans les
+  textes de parcours, au plus un point d'exclamation par parcours, une à trois phrases par bulle,
+  structure des étapes intacte, défauts d'aide valides au regard du schéma Zod.
+
+**L'édition des parcours.** Jusqu'ici les visites guidées étaient en code seul, alors que l'aide
+était éditable — un écart que le passage à la première personne rendait visible. Elles s'éditent
+maintenant depuis **Paramètres → Visites guidées**.
+
+- **Permission dédiée `tours.manage`**, distincte de `admin.settings.write` : réécrire une bulle
+  est un geste éditorial, il n'a pas à ouvrir toute la console de réglages. Accordée à l'admin par
+  la matrice de rôles, **absente de `prof`** — l'attribuer est un choix d'établissement, fait
+  depuis « Profils RBAC ». Un prof qui ne détient que ce droit voit l'onglet Paramètres et
+  uniquement cette section ; l'appel à `/api/settings/admin` n'est même pas tenté.
+- **Seuls trois champs sont exposés** (`title`, `body`, `bodyTeacher`). `target`, `placement`,
+  `role` et `expression` restent en code, et c'est ce qui rend la délégation acceptable : une
+  étape dont la cible est absente du DOM est ignorée **silencieusement**, un champ « sélecteur
+  CSS » offert à un prof serait un moyen de faire disparaître une étape sans message d'erreur.
+- **Le serveur ne connaît pas le corpus par défaut** : il ne stocke que la surcharge
+  (`content.tour.registry`, clés plates `<parcours>.<étape>.<champ>`), le client l'applique sur les
+  textes du bundle. Améliorer un texte versionné reste donc visible partout où personne n'a
+  réécrit ce champ — la propriété obtenue en v1.95.1 pour l'aide, acquise ici par construction.
+- **Un champ vide vaut retour au défaut**, contrairement au registre d'aide où vider une ligne est
+  une décision qu'on conserve : une bulle de parcours sans texte n'a pas de rendu acceptable.
+- **L'étape de relance s'édite une seule fois**, sous une section « Étape commune ». La montrer
+  treize fois laisserait croire qu'on peut l'adapter à un onglet, alors que l'objet est partagé.
+- Routes `/api/settings/admin/tour-content` (GET/PUT + `/reset`), audits
+  `settings_tour_content_update` / `_reset`, exposition publique `content.tour.registry`.
+
+**Doc de référence** : `docs/reference/foretmap/visite-et-mascottes.md` décrit comment OLU parle et
+comment modifier ses textes ; le point d'attention « les textes ne sont pas encore à sa voix »
+tombe, remplacé par celui qui compte désormais — OLU n'a pas de mémoire et redit le même texte à
+chaque ouverture.
+
 ### ForetMap — dégel du registre d'aide : la base ne stocke plus que ce qui a été modifié
 
 **Le bug latent.** Enregistrer les bulles d'aide écrivait en base l'**objet complet** : les 21
