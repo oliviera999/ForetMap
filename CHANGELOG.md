@@ -43,6 +43,23 @@ visite, et le studio n'a plus qu'**une seule liste**.
   **`tests/visit-mascot-sprite-library-files.test.js`**, `tests/visit-helpers.test.js`,
   `tests-ui/**`). Documentation : `docs/API.md`, `docs/MASCOT_PACK.md` et
   `docs/reference/foretmap/visite-et-mascottes.md`.
+### ForetMap — les titres du studio narrateur OLU redeviennent lisibles
+
+Dans **Paramètres → Narrateur OLU**, les noms des comportements d'OLU (« Neutre », « Parle »,
+« Montre »…) s'affichaient en vert foncé sur un bandeau vert foncé : illisibles, surtout sur
+téléphone en mode portrait.
+
+- **Cause.** La barre verte de l'application était stylée par un sélecteur d'élément nu
+  (`header { … }`) dans `src/index.css`. Toute balise `<header>` de l'app héritait donc du
+  bandeau vert collant : l'en-tête de chaque carte d'expression du studio narrateur, dont le
+  titre reste en vert forêt — vert sur vert.
+- **Correctif.** Le bandeau est désormais réservé à `header.app-header`. Les en-têtes
+  sémantiques redeviennent de simples titres de section, sur fond clair.
+- **Effet de bord réparé au passage.** Les en-têtes des vues pédagogiques (Quiz, Glossaire,
+  Réseau alimentaire) subissaient le même héritage : titre et sous-titre étaient posés sur le
+  bandeau vert et tronqués par sa hauteur fixe. Ils s'affichent de nouveau normalement.
+- Un test de garde (`tests-ui/utils/appHeaderCssScope.test.js`) empêche le retour d'un
+  sélecteur `header` nu dans la feuille de styles.
 
 ### ForetMap — la médiathèque accepte enfin les photos d'un téléphone Android
 
