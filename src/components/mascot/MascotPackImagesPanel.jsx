@@ -17,17 +17,16 @@ import MascotPackInteractionBulkDialog from './MascotPackInteractionBulkDialog.j
 const SOURCE_FILTERS = [
   { id: 'all', label: 'Toutes' },
   { id: 'pack', label: 'Ce pack' },
-  { id: 'map', label: 'Carte' },
+  { id: 'library', label: 'Bibliothèque' },
   { id: 'site', label: 'Site' },
 ];
 
 /**
- * Panneau Images unifié : médiathèque du pack, bibliothèque carte et assets globaux
- * avec sélection multiple et actions groupées.
+ * Panneau Images unifié : médiathèque du pack, bibliothèque de sprites partagée et
+ * assets globaux, avec sélection multiple et actions groupées.
  */
 export default function MascotPackImagesPanel({
   packUuid,
-  mapId,
   packAssets,
   packAssetsLoading,
   packAssetsMessage,
@@ -47,13 +46,13 @@ export default function MascotPackImagesPanel({
   onSearchChange,
   onReloadAll,
   onPackUpload,
-  onMapUpload,
+  onLibraryUpload,
   onSetFramesBasePack,
-  onSetFramesBaseMap,
+  onSetFramesBaseLibrary,
   onInsertImage,
   onBulkInsert,
   onDeletePackAsset,
-  onDeleteMapAsset,
+  onDeleteLibraryAsset,
   onDeletePublicAsset,
   onBulkDelete,
   onBulkRename,
@@ -83,11 +82,10 @@ export default function MascotPackImagesPanel({
         libAssets,
         globalAssets,
         packUuid,
-        mapId,
         sourceFilter,
         search,
       }),
-    [packAssets, libAssets, globalAssets, packUuid, mapId, sourceFilter, search],
+    [packAssets, libAssets, globalAssets, packUuid, sourceFilter, search],
   );
 
   useEffect(() => {
@@ -119,9 +117,9 @@ export default function MascotPackImagesPanel({
   const targetLabel = getStateLabel(targetState, editorPack);
   const stateOptions = buildStateOptions(editorPack);
 
-  // Renommage et remplacement partagent la même règle (assets du pack/carte).
+  // Renommage et remplacement partagent la même règle (assets du pack ou de la bibliothèque).
   const canEditSelectedEntries = selectedEntries.every(
-    (e) => e.deleteScope === 'pack' || e.deleteScope === 'map',
+    (e) => e.deleteScope === 'pack' || e.deleteScope === 'library',
   );
   const canRename = canEditSelectedEntries;
   const canReplace = canEditSelectedEntries;
@@ -210,10 +208,10 @@ export default function MascotPackImagesPanel({
     (entry) => {
       const scope = entry?.deleteScope;
       if (scope === 'pack') onDeletePackAsset(entry.filename);
-      else if (scope === 'map') onDeleteMapAsset(entry.filename);
+      else if (scope === 'library') onDeleteLibraryAsset(entry.filename);
       else if (scope === 'public') onDeletePublicAsset(entry.deleteUrl || entry.url);
     },
-    [onDeletePackAsset, onDeleteMapAsset, onDeletePublicAsset],
+    [onDeletePackAsset, onDeleteLibraryAsset, onDeletePublicAsset],
   );
 
   const handleBulkInsert = useCallback(() => {
@@ -247,7 +245,7 @@ export default function MascotPackImagesPanel({
 
   const handleConfirmRename = useCallback(() => {
     const pairs = selectedEntries
-      .filter((e) => e.deleteScope === 'pack' || e.deleteScope === 'map')
+      .filter((e) => e.deleteScope === 'pack' || e.deleteScope === 'library')
       .map((e) => ({
         entry: e,
         newFilename: previewRename(e.filename),
@@ -283,7 +281,7 @@ export default function MascotPackImagesPanel({
     >
       <h3 className="mascot-pack-wysiwyg__h">Images</h3>
       <p className="section-sub" style={{ fontSize: '0.82rem', marginTop: 0 }}>
-        Médiathèque du pack, bibliothèque partagée de la carte et catalogue du site — cochez des
+        Médiathèque du pack, bibliothèque de sprites partagée et catalogue du site — cochez des
         sprites puis utilisez les actions groupées, ou ajoutez une image via « + État ».
       </p>
 
@@ -389,11 +387,16 @@ export default function MascotPackImagesPanel({
           </>
         ) : null}
         <label className="btn btn-ghost btn-sm" style={{ cursor: 'pointer' }}>
-          Importer sur la carte…
-          <input type="file" accept="image/*" style={{ display: 'none' }} onChange={onMapUpload} />
+          Envoyer à la bibliothèque…
+          <input
+            type="file"
+            accept="image/*"
+            style={{ display: 'none' }}
+            onChange={onLibraryUpload}
+          />
         </label>
-        <button type="button" className="btn btn-ghost btn-sm" onClick={onSetFramesBaseMap}>
-          framesBase → carte
+        <button type="button" className="btn btn-ghost btn-sm" onClick={onSetFramesBaseLibrary}>
+          framesBase → bibliothèque
         </button>
       </div>
 
@@ -519,8 +522,8 @@ export default function MascotPackImagesPanel({
               Renommer la sélection ({selectedEntries.length})
             </h3>
             <p className="section-sub" style={{ fontSize: '0.82rem' }}>
-              Pack ou bibliothèque carte uniquement. Les références dans le JSON du pack seront
-              mises à jour.
+              Pack ou bibliothèque uniquement. Les références dans le JSON du pack seront mises à
+              jour.
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 10 }}>
               <label>

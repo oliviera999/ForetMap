@@ -100,7 +100,7 @@ export function VisitProfToolsPanel({
               <button
                 type="button"
                 className="btn btn-secondary btn-sm"
-                onClick={() => onOpenMascotPackStudioTab?.(mapId)}
+                onClick={() => onOpenMascotPackStudioTab?.()}
               >
                 Ouvrir l’onglet Packs mascotte
               </button>

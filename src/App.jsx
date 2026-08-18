@@ -583,10 +583,6 @@ function App() {
     publicSettings,
     setActiveMapId,
   });
-  const mascotStudioMapLabel = useMemo(() => {
-    const m = visibleMaps.find((x) => x.id === activeMapId);
-    return String(m?.label || m?.id || activeMapId || '').trim() || activeMapId;
-  }, [visibleMaps, activeMapId]);
   const onMascotPackDirtyChange = useCallback((dirty) => {
     mascotPackDirtyRef.current = dirty;
   }, []);
@@ -601,34 +597,9 @@ function App() {
     [tab, setTab],
   );
 
-  const handleMascotStudioMapChange = useCallback(
-    (nextMapId) => {
-      const next = String(nextMapId || '').trim();
-      if (!next || next === activeMapId) return;
-      if (mascotPackDirtyRef.current && !window.confirm(MASCOT_PACK_UNSAVED_LEAVE_MSG)) return;
-      setActiveMapId(next);
-    },
-    [activeMapId, setActiveMapId],
-  );
-
-  const openMascotPackStudioTab = useCallback(
-    (mapIdForStudio) => {
-      const mid = String(mapIdForStudio || '').trim();
-      if (mid && visibleMaps.some((m) => m.id === mid)) {
-        if (
-          tab === 'mascot_packs' &&
-          mid !== activeMapId &&
-          mascotPackDirtyRef.current &&
-          !window.confirm(MASCOT_PACK_UNSAVED_LEAVE_MSG)
-        ) {
-          return;
-        }
-        setActiveMapId(mid);
-      }
-      setTab('mascot_packs');
-    },
-    [visibleMaps, activeMapId, tab, setActiveMapId, setTab],
-  );
+  const openMascotPackStudioTab = useCallback(() => {
+    setTab('mascot_packs');
+  }, [setTab]);
   const previewStudent = useMemo(() => {
     if (!isTeacher || roleViewMode !== 'student') return null;
     const fallbackName = String(
@@ -1505,24 +1476,8 @@ function App() {
                               Packs mascotte (visite)
                             </h2>
                             <p className="section-sub" style={{ marginBottom: 14 }}>
-                              Carte active :{' '}
-                              <select
-                                className="form-select"
-                                style={{
-                                  display: 'inline-block',
-                                  maxWidth: 280,
-                                  verticalAlign: 'middle',
-                                }}
-                                value={activeMapId}
-                                onChange={(e) => handleMascotStudioMapChange(e.target.value)}
-                                aria-label="Choisir la carte pour les packs mascotte"
-                              >
-                                {visibleMaps.map((m) => (
-                                  <option key={m.id} value={m.id}>
-                                    {m.label || m.id}
-                                  </option>
-                                ))}
-                              </select>
+                              Les packs publiés sont proposés aux visiteurs sur{' '}
+                              <strong>toutes les cartes</strong> de la visite.
                             </p>
                             <Suspense
                               fallback={
@@ -1539,8 +1494,6 @@ function App() {
                             >
                               <VisitMascotPackManagerLazy
                                 variant="page"
-                                mapId={activeMapId}
-                                mapLabel={mascotStudioMapLabel}
                                 onPacksChanged={fetchAll}
                                 onForceLogout={forceLogout}
                                 mascotDialogSettings={publicSettings?.visit?.mascot?.dialog}

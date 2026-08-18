@@ -198,12 +198,10 @@ test('mascotPackArchive : buildVisitExportArchive unified émet pack.json en sta
     packRow: {
       id: PACK_UUID,
       label: 'Pack test',
-      map_id: 'm1',
       catalog_id: 'srv-x',
       is_published: 1,
     },
     packJson: buildSampleVisitPack(),
-    mapId: 'm1',
     unified: true,
   });
   assert.strictEqual(built.manifest.variant, 'visit');
@@ -215,9 +213,8 @@ test('mascotPackArchive : buildVisitExportArchive unified émet pack.json en sta
 
 test('mascotPackArchive : buildVisitExportArchive (défaut) reste en stateFrames', () => {
   const built = buildVisitExportArchive({
-    packRow: { id: PACK_UUID, label: 'Pack test', map_id: 'm1' },
+    packRow: { id: PACK_UUID, label: 'Pack test' },
     packJson: buildSampleVisitPack(),
-    mapId: 'm1',
   });
   assert.strictEqual(built.manifest.statesForm, 'stateFrames');
   assert.ok(built.pack.stateFrames && typeof built.pack.stateFrames === 'object');

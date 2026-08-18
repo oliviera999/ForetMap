@@ -4,7 +4,7 @@ import {
   ensureServerFramesBase,
   packToUnifiedForm,
   serverMascotPackAssetsPrefix,
-  serverMascotSpriteLibraryAssetsPrefix,
+  MASCOT_SPRITE_LIBRARY_API_ROOT,
   stringifyPack,
 } from '../utils/mascotPackEditorModel.js';
 import { normalizePackStateFramesForFramesBase } from '../utils/mascotPackEditorFrames.js';
@@ -28,7 +28,6 @@ import { buildStateOptions } from '../utils/visitMascotBehaviorRegistry.js';
  *   onPackChange: (next: Record<string, unknown>) => void,
  *   packUuid?: string | null,
  *   catalogId?: string,
- *   visitMapId?: string,
  *   packAssets?: Array<Record<string, unknown>>,
  *   relaxAssetPrefix?: boolean,
  *   onForceLogout?: () => void,
@@ -43,7 +42,6 @@ export default function MascotPackWysiwygEditor({
   onPackChange,
   packUuid = null,
   catalogId = '',
-  visitMapId = '',
   packAssets = [],
   relaxAssetPrefix = false,
   hidePreview = false,
@@ -56,13 +54,12 @@ export default function MascotPackWysiwygEditor({
   const [srcPreviewStatus, setSrcPreviewStatus] = useState({});
 
   const validationOpts = useMemo(() => {
-    const allowed = ['/assets/mascots/'];
+    // Racine bibliothèque : couvre l'URL canonique et les URLs historiques par carte.
+    const allowed = ['/assets/mascots/', MASCOT_SPRITE_LIBRARY_API_ROOT];
     const p = serverMascotPackAssetsPrefix(packUuid);
     if (p) allowed.push(p);
-    const lib = serverMascotSpriteLibraryAssetsPrefix(visitMapId);
-    if (lib) allowed.push(lib);
     return { relaxAssetPrefix: Boolean(relaxAssetPrefix), allowedFramesBasePrefixes: allowed };
-  }, [packUuid, visitMapId, relaxAssetPrefix]);
+  }, [packUuid, relaxAssetPrefix]);
 
   const runValidate = useCallback(() => {
     const draft = sanitizeMascotPackDraft(pack);

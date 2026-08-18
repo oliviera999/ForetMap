@@ -19,7 +19,7 @@ const PACK_UUID = '123e4567-e89b-42d3-a456-426614174000';
 function buildAssetsMock() {
   return {
     deletePackAssetSilent: vi.fn().mockResolvedValue(undefined),
-    deleteMapAssetSilent: vi.fn().mockResolvedValue(undefined),
+    deleteLibraryAssetSilent: vi.fn().mockResolvedValue(undefined),
     deletePublicAssetSilent: vi.fn().mockResolvedValue(undefined),
     loadPackAssets: vi.fn().mockResolvedValue(undefined),
     loadLibrary: vi.fn().mockResolvedValue(undefined),
@@ -41,7 +41,6 @@ function setup(overrides = {}) {
   const hook = renderHook(() =>
     useMascotPackBulkImageActions({
       selectedId: PACK_UUID,
-      mapId: 'foret',
       editorPack,
       setEditorPack,
       onForceLogout,
@@ -67,13 +66,13 @@ describe('useMascotPackBulkImageActions', () => {
       await act(async () => {
         await hook.result.current.bulkDeleteImages([
           { canDelete: true, deleteScope: 'pack', filename: 'p.png' },
-          { canDelete: true, deleteScope: 'map', filename: 'm.png' },
+          { canDelete: true, deleteScope: 'library', filename: 'm.png' },
           { canDelete: true, deleteScope: 'public', filename: 'g.png', url: '/uploads/g.png' },
           { canDelete: false, deleteScope: 'pack', filename: 'ignore.png' },
         ]);
       });
       expect(assets.deletePackAssetSilent).toHaveBeenCalledWith('p.png');
-      expect(assets.deleteMapAssetSilent).toHaveBeenCalledWith('m.png');
+      expect(assets.deleteLibraryAssetSilent).toHaveBeenCalledWith('m.png');
       expect(assets.deletePublicAssetSilent).toHaveBeenCalledWith('/uploads/g.png');
       expect(assets.loadPackAssets).toHaveBeenCalledTimes(1);
       expect(assets.loadLibrary).toHaveBeenCalledTimes(1);
@@ -113,7 +112,7 @@ describe('useMascotPackBulkImageActions', () => {
       await act(async () => {
         await hook.result.current.bulkDeleteImages([
           { canDelete: true, deleteScope: 'pack', filename: 'ko.png' },
-          { canDelete: true, deleteScope: 'map', filename: 'ok.png' },
+          { canDelete: true, deleteScope: 'library', filename: 'ok.png' },
         ]);
       });
       expect(showInsertFeedback).toHaveBeenCalledWith('1 supprimé(s), 1 échec(s).', 4000);
@@ -127,11 +126,11 @@ describe('useMascotPackBulkImageActions', () => {
       await act(async () => {
         await hook.result.current.bulkDeleteImages([
           { canDelete: true, deleteScope: 'pack', filename: 'a.png' },
-          { canDelete: true, deleteScope: 'map', filename: 'b.png' },
+          { canDelete: true, deleteScope: 'library', filename: 'b.png' },
         ]);
       });
       expect(onForceLogout).toHaveBeenCalledTimes(1);
-      expect(assets.deleteMapAssetSilent).not.toHaveBeenCalled();
+      expect(assets.deleteLibraryAssetSilent).not.toHaveBeenCalled();
     });
   });
 
@@ -144,7 +143,7 @@ describe('useMascotPackBulkImageActions', () => {
       await act(async () => {
         await hook.result.current.bulkRenameImages([
           { entry: { deleteScope: 'pack', filename: 'a.png' }, newFilename: 'b.png' },
-          { entry: { deleteScope: 'map', filename: 'm.png' }, newFilename: 'n.png' },
+          { entry: { deleteScope: 'library', filename: 'm.png' }, newFilename: 'n.png' },
           { entry: { deleteScope: 'public', filename: 'g.png' }, newFilename: 'h.png' },
           { entry: { deleteScope: 'pack', filename: 'same.png' }, newFilename: 'same.png' },
         ]);
@@ -158,7 +157,7 @@ describe('useMascotPackBulkImageActions', () => {
       );
       expect(api).toHaveBeenNthCalledWith(
         2,
-        '/api/visit/mascot-sprite-library/foret/assets/m.png',
+        '/api/visit/mascot-sprite-library/assets/m.png',
         'PATCH',
         { new_filename: 'n.png' },
       );
@@ -195,7 +194,7 @@ describe('useMascotPackBulkImageActions', () => {
         await hook.result.current.bulkReplaceImages(
           [
             { deleteScope: 'pack', filename: 'p.png' },
-            { deleteScope: 'map', filename: 'm.png' },
+            { deleteScope: 'library', filename: 'm.png' },
             { deleteScope: 'public', filename: 'ignore.png' },
           ],
           [f1, f2],
@@ -211,12 +210,10 @@ describe('useMascotPackBulkImageActions', () => {
           image_data: 'data:image/png;base64,MOCK',
         },
       );
-      expect(api).toHaveBeenNthCalledWith(
-        2,
-        '/api/visit/mascot-sprite-library/foret/assets',
-        'POST',
-        { filename: 'm.png', image_data: 'data:image/png;base64,MOCK' },
-      );
+      expect(api).toHaveBeenNthCalledWith(2, '/api/visit/mascot-sprite-library/assets', 'POST', {
+        filename: 'm.png',
+        image_data: 'data:image/png;base64,MOCK',
+      });
       expect(assets.loadPackAssets).toHaveBeenCalled();
       expect(assets.loadLibrary).toHaveBeenCalled();
       expect(showInsertFeedback).toHaveBeenCalledWith('2 sprite(s) remplacé(s).', 4000);

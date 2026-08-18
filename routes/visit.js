@@ -294,12 +294,14 @@ router.get(
 
     let mascotPacks = [];
     try {
+      // Packs publiés : **tous**, sans filtre de carte — une mascotte n'appartient plus
+      // à une carte (migration `176_visit_mascot_packs_drop_map.sql`), et le registre
+      // public `GET /api/visit/mascots` les expose déjà ainsi.
       const packRows = await queryAll(
         `SELECT catalog_id, label, pack_json
        FROM visit_mascot_packs
-       WHERE map_id = ? AND is_published = 1
+       WHERE is_published = 1
        ORDER BY updated_at DESC, id ASC`,
-        [mapId],
       );
       mascotPacks = (packRows || [])
         .map((r) => {

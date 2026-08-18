@@ -16,13 +16,11 @@ afterEach(() => {
 });
 
 function setup(overrides = {}) {
-  return renderHook(() =>
-    useMascotPackAssets({ mapId: 'foret', selectedId: PACK_UUID, ...overrides }),
-  );
+  return renderHook(() => useMascotPackAssets({ selectedId: PACK_UUID, ...overrides }));
 }
 
 describe('useMascotPackAssets', () => {
-  it('charge les trois sources (bibliothèque carte, assets site, médiathèque pack)', async () => {
+  it('charge les trois sources (bibliothèque, assets site, médiathèque pack)', async () => {
     api.mockResolvedValueOnce({ assets: [{ filename: 'lib.png' }] });
     api.mockResolvedValueOnce({ assets: [{ url: '/global.png' }] });
     api.mockResolvedValueOnce({ assets: [{ filename: 'pack.png' }] });
@@ -34,7 +32,7 @@ describe('useMascotPackAssets', () => {
       await result.current.loadPackAssets();
     });
 
-    expect(api).toHaveBeenNthCalledWith(1, '/api/visit/mascot-sprite-library/foret/assets');
+    expect(api).toHaveBeenNthCalledWith(1, '/api/visit/mascot-sprite-library/assets');
     expect(api).toHaveBeenNthCalledWith(2, '/api/visit/mascot-assets');
     expect(api).toHaveBeenNthCalledWith(3, `/api/visit/mascot-packs/${PACK_UUID}/assets`);
     expect(result.current.libAssets).toEqual([{ filename: 'lib.png' }]);
@@ -85,14 +83,6 @@ describe('useMascotPackAssets', () => {
     expect(result.current.packAssets).toEqual([]);
   });
 
-  it('loadLibrary sans mapId → aucun appel réseau', async () => {
-    const { result } = setup({ mapId: '  ' });
-    await act(async () => {
-      await result.current.loadLibrary();
-    });
-    expect(api).not.toHaveBeenCalled();
-  });
-
   it('reloadAllImages recharge les trois sources', async () => {
     api.mockResolvedValue({ assets: [] });
     const { result } = setup();
@@ -104,7 +94,7 @@ describe('useMascotPackAssets', () => {
       [
         '/api/visit/mascot-assets',
         `/api/visit/mascot-packs/${PACK_UUID}/assets`,
-        '/api/visit/mascot-sprite-library/foret/assets',
+        '/api/visit/mascot-sprite-library/assets',
       ].sort(),
     );
   });
@@ -114,7 +104,7 @@ describe('useMascotPackAssets', () => {
     const { result } = setup();
     await act(async () => {
       await result.current.deletePackAssetSilent('a.png');
-      await result.current.deleteMapAssetSilent('b.png');
+      await result.current.deleteLibraryAssetSilent('b.png');
       await result.current.deletePublicAssetSilent('/uploads/c.png');
       await result.current.deletePublicAssetSilent('   ');
     });
@@ -126,7 +116,7 @@ describe('useMascotPackAssets', () => {
     );
     expect(api).toHaveBeenNthCalledWith(
       2,
-      '/api/visit/mascot-sprite-library/foret/assets/b.png',
+      '/api/visit/mascot-sprite-library/assets/b.png',
       'DELETE',
     );
     expect(api).toHaveBeenNthCalledWith(3, '/api/visit/mascot-assets/public', 'DELETE', {

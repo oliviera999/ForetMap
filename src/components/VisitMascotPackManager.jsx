@@ -7,6 +7,7 @@ import {
   stringifyPack,
   ensureServerFramesBase,
   packToUnifiedForm,
+  serverMascotSpriteLibraryAssetsPrefix,
 } from '../utils/mascotPackEditorModel.js';
 import { normalizeUnifiedStates } from '../utils/mascotPack.js';
 import {
@@ -71,12 +72,11 @@ const STUDIO_MODES = [
 ];
 
 /**
- * Gestionnaire GUI des packs mascotte serveur (prof élevé, par carte).
- * @param {{ mapId: string, mapLabel?: string, onPacksChanged?: () => void | Promise<void>, onForceLogout?: () => void, variant?: 'modal' | 'page', mascotDialogSettings?: { defaults?: Record<string, string[]>, catalogOverrides?: Record<string, Record<string, string[]>> } | null, onDirtyChange?: (dirty: boolean) => void }} props
+ * Gestionnaire GUI des packs mascotte serveur (prof élevé). Une seule liste, sans notion
+ * de carte : un pack publié est proposé sur toutes les cartes de la visite.
+ * @param {{ onPacksChanged?: () => void | Promise<void>, onForceLogout?: () => void, variant?: 'modal' | 'page', mascotDialogSettings?: { defaults?: Record<string, string[]>, catalogOverrides?: Record<string, Record<string, string[]>> } | null, onDirtyChange?: (dirty: boolean) => void }} props
  */
 export default function VisitMascotPackManager({
-  mapId,
-  mapLabel = '',
   onPacksChanged,
   onForceLogout,
   variant = 'modal',
@@ -106,7 +106,7 @@ export default function VisitMascotPackManager({
     setSavedSnapshot,
     isDirty,
   } = useMascotPackEditorState({ selectedId, packs });
-  const packAssetsApi = useMascotPackAssets({ mapId, selectedId, onForceLogout });
+  const packAssetsApi = useMascotPackAssets({ selectedId, onForceLogout });
   const {
     libAssets,
     libLoading,
@@ -162,18 +162,11 @@ export default function VisitMascotPackManager({
     () => getVisitMascotCatalog()[0]?.id || '',
   );
 
-  const mapTitle = useMemo(
-    () => String(mapLabel || mapId || '').trim() || mapId,
-    [mapLabel, mapId],
-  );
-
   const loadList = useCallback(async () => {
-    const mid = String(mapId || '').trim();
-    if (!mid) return;
     setLoading(true);
     setListError('');
     try {
-      const res = await api(`/api/visit/mascot-packs?map_id=${encodeURIComponent(mid)}`);
+      const res = await api('/api/visit/mascot-packs');
       const list = Array.isArray(res?.packs) ? res.packs : [];
       const allowedCatalogIds = Array.isArray(res?.allowed_catalog_ids)
         ? res.allowed_catalog_ids.map((id) => String(id || '').trim()).filter(Boolean)
@@ -193,7 +186,7 @@ export default function VisitMascotPackManager({
     } finally {
       setLoading(false);
     }
-  }, [mapId, onForceLogout]);
+  }, [onForceLogout]);
 
   useEffect(() => {
     if (!catalogModelOptions.length) {
@@ -240,12 +233,8 @@ export default function VisitMascotPackManager({
   const selectedRow = packs.find((p) => p.id === selectedId);
   const selectedValidation = useMemo(() => {
     if (!selectedId) return { ok: false, error: null };
-    return getPackStrictValidation(
-      sanitizeMascotPackDraft(editorPack),
-      selectedId,
-      String(mapId || '').trim(),
-    );
-  }, [editorPack, selectedId, mapId]);
+    return getPackStrictValidation(sanitizeMascotPackDraft(editorPack), selectedId);
+  }, [editorPack, selectedId]);
   const editorWarnings = useMemo(() => computeEditorWarnings(editorPack), [editorPack]);
   const assetPreviewByFilename = useMemo(
     () => buildPackAssetPreviewByFilename(packAssets),
@@ -351,14 +340,11 @@ export default function VisitMascotPackManager({
    */
   const postNewPack = useCallback(
     async (bodyExtra = {}, { errorMessage = 'Création impossible', onCreated } = {}) => {
-      const mid = String(mapId || '').trim();
-      if (!mid) return;
       setActionBusy(true);
       setActionError('');
       setActionIssues([]);
       try {
         const created = await api('/api/visit/mascot-packs', 'POST', {
-          map_id: mid,
           is_published: 0,
           ...bodyExtra,
         });
@@ -381,7 +367,7 @@ export default function VisitMascotPackManager({
         setActionBusy(false);
       }
     },
-    [mapId, refreshFromServer, onForceLogout],
+    [refreshFromServer, onForceLogout],
   );
 
   const onNewDraft = useCallback(async () => {
@@ -504,11 +490,7 @@ export default function VisitMascotPackManager({
       setActionIssues([]);
       try {
         const cleanedPack = sanitizeMascotPackDraft(editorPack);
-        const precheck = getPackStrictValidation(
-          cleanedPack,
-          selectedId,
-          String(mapId || '').trim(),
-        );
+        const precheck = getPackStrictValidation(cleanedPack, selectedId);
         if (!precheck.ok) {
           setActionErrorWithDetails(
             togglePublish
@@ -523,7 +505,6 @@ export default function VisitMascotPackManager({
           String(editorPack.label || '').trim() ||
           'Pack mascotte';
         await api(`/api/visit/mascot-packs/${encodeURIComponent(selectedId)}`, 'PUT', {
-          map_id: String(mapId || '').trim(),
           label,
           pack: cleanedPack,
           is_published: (togglePublish ? !row.is_published : row?.is_published) ? 1 : 0,
@@ -549,7 +530,6 @@ export default function VisitMascotPackManager({
       selectedId,
       editorPack,
       packs,
-      mapId,
       refreshFromServer,
       onForceLogout,
       labelDraft,
@@ -658,11 +638,9 @@ export default function VisitMascotPackManager({
   );
 
   const setFramesBaseToLibrary = useCallback(() => {
-    const mid = String(mapId || '').trim();
-    if (!mid) return;
-    const prefix = `/api/visit/mascot-sprite-library/${mid}/assets/`;
-    setEditorPack((p) => ({ ...p, framesBase: prefix.endsWith('/') ? prefix : `${prefix}/` }));
-  }, [mapId, setEditorPack]);
+    const prefix = serverMascotSpriteLibraryAssetsPrefix();
+    setEditorPack((p) => ({ ...p, framesBase: prefix }));
+  }, [setEditorPack]);
 
   const setFramesBaseToPack = useCallback(() => {
     if (!selectedId) return;
@@ -777,7 +755,6 @@ export default function VisitMascotPackManager({
   const { imageBulkBusy, bulkDeleteImages, bulkRenameImages, bulkReplaceImages } =
     useMascotPackBulkImageActions({
       selectedId,
-      mapId,
       editorPack,
       setEditorPack,
       onForceLogout,
@@ -880,7 +857,6 @@ export default function VisitMascotPackManager({
       ) : (
         <div className="visit-mascot-pack-manager__layout">
           <MascotPackListAside
-            mapTitle={mapTitle}
             actionBusy={actionBusy}
             catalogModelOptions={catalogModelOptions}
             selectedCatalogModelId={selectedCatalogModelId}
@@ -976,7 +952,6 @@ export default function VisitMascotPackManager({
                         onPackChange={setEditorPack}
                         packUuid={selectedId}
                         catalogId={selectedRow?.catalog_id || ''}
-                        visitMapId={String(mapId || '').trim()}
                         packAssets={packAssets}
                         onForceLogout={onForceLogout}
                         hidePreview
@@ -987,7 +962,6 @@ export default function VisitMascotPackManager({
                     </div>
                     <MascotPackImagesPanel
                       packUuid={selectedId}
-                      mapId={String(mapId || '').trim()}
                       packAssets={packAssets}
                       packAssetsLoading={packAssetsLoading}
                       packAssetsMessage={packAssetsMessage}
@@ -1007,13 +981,13 @@ export default function VisitMascotPackManager({
                       onSearchChange={setImageSearch}
                       onReloadAll={reloadAllImages}
                       onPackUpload={(e) => void onPackUpload(e)}
-                      onMapUpload={(e) => void onLibUpload(e)}
+                      onLibraryUpload={(e) => void onLibUpload(e)}
                       onSetFramesBasePack={setFramesBaseToPack}
-                      onSetFramesBaseMap={setFramesBaseToLibrary}
+                      onSetFramesBaseLibrary={setFramesBaseToLibrary}
                       onInsertImage={insertImageIntoPack}
                       onBulkInsert={bulkInsertImagesIntoPack}
                       onDeletePackAsset={(f) => void onPackDeleteAsset(f)}
-                      onDeleteMapAsset={(f) => void onLibDelete(f)}
+                      onDeleteLibraryAsset={(f) => void onLibDelete(f)}
                       onDeletePublicAsset={(u) => void onDeletePublicAsset(u)}
                       onBulkDelete={(entries) => void bulkDeleteImages(entries)}
                       onBulkRename={(pairs) => void bulkRenameImages(pairs)}
@@ -1163,7 +1137,6 @@ export default function VisitMascotPackManager({
                   >
                     <VisitMascotStudioPreviewSection
                       packs={packs}
-                      mapId={String(mapId || '')}
                       selectedPackId={selectedId}
                       selectedPackCatalogId={selectedRow?.catalog_id || ''}
                       selectedPackLabel={labelDraft || selectedRow?.label || ''}
@@ -1180,7 +1153,6 @@ export default function VisitMascotPackManager({
       <MascotPackArchiveImportDialog
         open={importDialogOpen}
         variant="visit"
-        mapId={String(mapId || '')}
         targetPackId={selectedId}
         targetPackLabel={String(selectedRow?.label || labelDraft || '')}
         onClose={() => setImportDialogOpen(false)}
