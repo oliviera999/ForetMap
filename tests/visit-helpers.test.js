@@ -30,7 +30,7 @@ const {
   mapVisitMascotPackSqlError,
   visitMascotSpriteLibraryRelativeDir,
   visitMascotSpriteLibraryAssetsApiPrefix,
-  mascotPackAllowedFramesPrefixesForMap,
+  mascotPackAllowedFramesPrefixes,
   mapVisitMascotSpriteLibSqlError,
   buildRenard2CatalogPackTemplate,
   buildVisitCatalogPackTemplate,
@@ -245,29 +245,24 @@ describe('visitMascotPackHelpers — chemins et noms de fichiers', () => {
     assert.equal(sanitizeMascotPackAssetFilename(`${'x'.repeat(129)}.png`), null);
   });
 
-  it('visitMascotSpriteLibraryRelativeDir valide le map_id (64 max, [a-zA-Z0-9_-])', () => {
-    assert.equal(visitMascotSpriteLibraryRelativeDir('foret'), 'visit_mascot_sprite_library/foret');
-    assert.equal(visitMascotSpriteLibraryRelativeDir('a/b'), null);
-    assert.equal(visitMascotSpriteLibraryRelativeDir('x'.repeat(65)), null);
-    assert.equal(visitMascotSpriteLibraryRelativeDir(''), null);
-  });
-
-  it('visitMascotSpriteLibraryAssetsApiPrefix suit la même validation', () => {
+  it('la bibliothèque de sprites est un dossier unique (aucune carte dans le chemin)', () => {
+    assert.equal(visitMascotSpriteLibraryRelativeDir(), 'visit_mascot_sprite_library');
     assert.equal(
-      visitMascotSpriteLibraryAssetsApiPrefix('foret'),
-      '/api/visit/mascot-sprite-library/foret/assets/',
+      visitMascotSpriteLibraryAssetsApiPrefix(),
+      '/api/visit/mascot-sprite-library/assets/',
     );
-    assert.equal(visitMascotSpriteLibraryAssetsApiPrefix('a/b'), null);
   });
 
-  it('mascotPackAllowedFramesPrefixesForMap inclut les préfixes valides uniquement', () => {
-    assert.deepEqual(mascotPackAllowedFramesPrefixesForMap('a/b', 'not-a-uuid'), [
+  it('mascotPackAllowedFramesPrefixes autorise le pack et la racine bibliothèque', () => {
+    // Racine (et non préfixe canonique) : couvre aussi les URLs historiques par carte.
+    assert.deepEqual(mascotPackAllowedFramesPrefixes('not-a-uuid'), [
       '/assets/mascots/',
+      '/api/visit/mascot-sprite-library/',
     ]);
-    assert.deepEqual(mascotPackAllowedFramesPrefixesForMap('foret', PACK_UUID), [
+    assert.deepEqual(mascotPackAllowedFramesPrefixes(PACK_UUID), [
       '/assets/mascots/',
       `/api/visit/mascot-packs/${PACK_UUID}/assets/`,
-      '/api/visit/mascot-sprite-library/foret/assets/',
+      '/api/visit/mascot-sprite-library/',
     ]);
   });
 });
@@ -313,7 +308,6 @@ describe('visitMascotPackHelpers — sérialisation et erreurs', () => {
     const row = {
       id: PACK_UUID,
       catalog_id: 'srv-x',
-      map_id: 'foret',
       label: 'L',
       pack_json: '{"id":"srv-x"}',
       is_published: '1',

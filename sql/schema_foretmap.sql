@@ -813,10 +813,9 @@ CREATE TABLE IF NOT EXISTS visit_tutorials (
   CONSTRAINT fk_visit_tutorials_map FOREIGN KEY (map_id) REFERENCES maps(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- visite : packs mascotte sprite_cut (JSON + publication par carte)
+-- visite : packs mascotte sprite_cut (JSON + publication) — globaux, sans lien carte
 CREATE TABLE IF NOT EXISTS visit_mascot_packs (
   id CHAR(36) NOT NULL PRIMARY KEY,
-  map_id VARCHAR(32) NOT NULL,
   catalog_id VARCHAR(80) NOT NULL,
   label VARCHAR(120) NOT NULL,
   pack_json LONGTEXT NOT NULL,
@@ -824,22 +823,18 @@ CREATE TABLE IF NOT EXISTS visit_mascot_packs (
   created_at VARCHAR(32) DEFAULT NULL,
   updated_at VARCHAR(32) DEFAULT NULL,
   created_by VARCHAR(64) DEFAULT NULL,
-  UNIQUE KEY uq_visit_mascot_packs_map_catalog (map_id, catalog_id),
-  INDEX idx_visit_mascot_packs_map_published (map_id, is_published),
-  CONSTRAINT fk_visit_mascot_packs_map FOREIGN KEY (map_id) REFERENCES maps(id) ON DELETE RESTRICT,
+  UNIQUE KEY uq_visit_mascot_packs_catalog (catalog_id),
+  INDEX idx_visit_mascot_packs_published (is_published),
   CONSTRAINT fk_visit_mascot_packs_user FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- visite : sprites partagés par carte (bibliothèque réutilisable entre packs)
+-- visite : sprites partagés (bibliothèque unique réutilisable entre packs)
 CREATE TABLE IF NOT EXISTS visit_mascot_sprite_library (
   id CHAR(36) NOT NULL PRIMARY KEY,
-  map_id VARCHAR(32) NOT NULL,
   filename VARCHAR(128) NOT NULL,
   created_at VARCHAR(32) DEFAULT NULL,
   created_by VARCHAR(64) DEFAULT NULL,
-  UNIQUE KEY uq_visit_mascot_sprite_lib_map_file (map_id, filename),
-  INDEX idx_visit_mascot_sprite_lib_map (map_id),
-  CONSTRAINT fk_visit_mascot_sprite_lib_map FOREIGN KEY (map_id) REFERENCES maps(id) ON DELETE RESTRICT,
+  UNIQUE KEY uq_visit_mascot_sprite_lib_file (filename),
   CONSTRAINT fk_visit_mascot_sprite_lib_user FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

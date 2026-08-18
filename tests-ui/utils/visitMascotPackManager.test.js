@@ -63,10 +63,9 @@ describe('filterGlobalAssets', () => {
       filename: 'spr0ut-idle.png',
       url: '/a/x.png',
       source: 'pack',
-      map_id: 'foret',
       pack_label: 'SPR0UT',
     },
-    { id: 2, filename: 'renard-walk.png', url: '/a/y.png', source: 'library', map_id: 'jardin' },
+    { id: 2, filename: 'renard-walk.png', url: '/a/y.png', source: 'library' },
     { id: 3, filename: 'autre.gif', url: 'https://cdn/z.gif', source: 'catalog' },
   ];
 
@@ -79,8 +78,8 @@ describe('filterGlobalAssets', () => {
     expect(filterGlobalAssets(assets, 'RENARD').map((a) => a.id)).toEqual([2]);
   });
 
-  test('filtre par map_id et par label de pack', () => {
-    expect(filterGlobalAssets(assets, 'foret').map((a) => a.id)).toEqual([1]);
+  test('filtre par source et par label de pack', () => {
+    expect(filterGlobalAssets(assets, 'library').map((a) => a.id)).toEqual([2]);
     expect(filterGlobalAssets(assets, 'spr0ut').map((a) => a.id)).toEqual([1]);
   });
 
@@ -185,7 +184,7 @@ describe('insertMascotImagesIntoPackState', () => {
 
 describe('pruneMascotImageSelection', () => {
   test('conserve uniquement les ids encore visibles', () => {
-    const entries = [{ id: 'pack:a.png' }, { id: 'map:b.png' }];
+    const entries = [{ id: 'pack:a.png' }, { id: 'library:b.png' }];
     const pruned = pruneMascotImageSelection(new Set(['pack:a.png', 'gone']), entries);
     expect([...pruned]).toEqual(['pack:a.png']);
   });
@@ -194,7 +193,7 @@ describe('pruneMascotImageSelection', () => {
 describe('filterMascotImageEntriesForSelectionCriterion', () => {
   const entries = [
     { id: 'pack:a', filename: 'a.png', canDelete: true, source: 'pack' },
-    { id: 'map:b', filename: 'b.png', canDelete: true, source: 'map' },
+    { id: 'library:b', filename: 'b.png', canDelete: true, source: 'library' },
     { id: 'site:c', filename: 'c.png', canDelete: false, source: 'site' },
   ];
 
@@ -243,7 +242,6 @@ describe('buildUnifiedMascotImageEntries', () => {
       libAssets: [{ filename: 'm.png', url: '/map/m.png' }],
       globalAssets: [],
       packUuid: '00000000-0000-4000-8000-000000000001',
-      mapId: 'foret',
       sourceFilter: 'pack',
     });
     expect(entries).toHaveLength(1);
@@ -267,12 +265,10 @@ describe('buildUnifiedMascotImageEntries', () => {
           id: '3',
           source: 'library',
           filename: 'c.png',
-          url: '/api/visit/mascot-sprite-library/foret/assets/c.png',
-          map_id: 'foret',
+          url: '/api/visit/mascot-sprite-library/assets/c.png',
         },
       ],
       packUuid: '00000000-0000-4000-8000-000000000001',
-      mapId: 'foret',
       sourceFilter: 'site',
     });
     expect(entries).toHaveLength(1);
@@ -281,7 +277,7 @@ describe('buildUnifiedMascotImageEntries', () => {
     expect(entries[0].deleteScope).toBe('public');
   });
 
-  test('suppression contextuelle pack et bibliothèque courante', () => {
+  test('suppression contextuelle : pack courant et bibliothèque partagée', () => {
     const packUuid = '00000000-0000-4000-8000-000000000001';
     const entries = buildUnifiedMascotImageEntries({
       packAssets: [],
@@ -293,7 +289,6 @@ describe('buildUnifiedMascotImageEntries', () => {
           filename: 'mine.png',
           url: `/api/visit/mascot-packs/${packUuid}/assets/mine.png`,
           pack_id: packUuid,
-          map_id: 'foret',
         },
         {
           id: 'p2',
@@ -301,19 +296,16 @@ describe('buildUnifiedMascotImageEntries', () => {
           filename: 'other.png',
           url: '/api/visit/mascot-packs/other/assets/other.png',
           pack_id: 'other',
-          map_id: 'foret',
           pack_label: 'Autre',
         },
         {
           id: 'l1',
           source: 'library',
           filename: 'lib.png',
-          url: '/api/visit/mascot-sprite-library/foret/assets/lib.png',
-          map_id: 'foret',
+          url: '/api/visit/mascot-sprite-library/assets/lib.png',
         },
       ],
       packUuid,
-      mapId: 'foret',
       sourceFilter: 'all',
     });
     const mine = entries.find((e) => e.filename === 'mine.png');
@@ -324,7 +316,7 @@ describe('buildUnifiedMascotImageEntries', () => {
     expect(other?.canDelete).toBe(false);
     expect(other?.meta).toContain('Autre');
     expect(lib?.canDelete).toBe(true);
-    expect(lib?.deleteScope).toBe('map');
+    expect(lib?.deleteScope).toBe('library');
   });
 });
 
@@ -394,9 +386,8 @@ describe('findPacksForCatalogModel / pickPreferredCatalogModelPack', () => {
 
 describe('getPackStrictValidation', () => {
   const packId = '00000000-0000-4000-8000-000000000001';
-  const mapId = 'foret';
 
-  test('accepte framesBase pack et bibliothèque carte', () => {
+  test('accepte framesBase pack et bibliothèque partagée', () => {
     const pack = {
       mascotPackVersion: 1,
       id: 'test-pack',
@@ -410,8 +401,21 @@ describe('getPackStrictValidation', () => {
         idle: { files: ['a.png'], fps: 8 },
       },
     };
-    const result = getPackStrictValidation(pack, packId, mapId);
-    expect(result.ok).toBe(true);
+    expect(getPackStrictValidation(pack, packId).ok).toBe(true);
+
+    // Bibliothèque : URL canonique **et** URL historique par carte (packs antérieurs).
+    expect(
+      getPackStrictValidation(
+        { ...pack, framesBase: '/api/visit/mascot-sprite-library/assets/' },
+        packId,
+      ).ok,
+    ).toBe(true);
+    expect(
+      getPackStrictValidation(
+        { ...pack, framesBase: '/api/visit/mascot-sprite-library/foret/assets/' },
+        packId,
+      ).ok,
+    ).toBe(true);
   });
 });
 
