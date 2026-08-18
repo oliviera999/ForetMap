@@ -2582,7 +2582,7 @@ test('visit mascot packs : CRUD prof + présence dans content si publié', async
   const created = await request(app)
     .post('/api/visit/mascot-packs')
     .set('Authorization', `Bearer ${token}`)
-    .send({ map_id: 'foret', is_published: 0 })
+    .send({ is_published: 0 })
     .expect(201);
   const packId = created.body.id;
   const catalogId = created.body.catalog_id;
@@ -2593,7 +2593,7 @@ test('visit mascot packs : CRUD prof + présence dans content si publié', async
   assert.ok(!beforePub.body.mascot_packs.some((p) => p.catalog_id === catalogId));
 
   const list = await request(app)
-    .get('/api/visit/mascot-packs?map_id=foret')
+    .get('/api/visit/mascot-packs')
     .set('Authorization', `Bearer ${token}`)
     .expect(200);
   assert.ok(Array.isArray(list.body.packs));
@@ -2611,7 +2611,6 @@ test('visit mascot packs : CRUD prof + présence dans content si publié', async
     .put(`/api/visit/mascot-packs/${packId}`)
     .set('Authorization', `Bearer ${token}`)
     .send({
-      map_id: 'foret',
       label: 'Pack e2e test',
       pack: packObj,
       is_published: 1,
@@ -2635,7 +2634,7 @@ test('visit mascot packs : PUT invalide renvoie details de validation exploitabl
   const created = await request(app)
     .post('/api/visit/mascot-packs')
     .set('Authorization', `Bearer ${token}`)
-    .send({ map_id: 'foret', is_published: 0 })
+    .send({ is_published: 0 })
     .expect(201);
   const packId = created.body.id;
   try {
@@ -2644,7 +2643,6 @@ test('visit mascot packs : PUT invalide renvoie details de validation exploitabl
       .put(`/api/visit/mascot-packs/${packId}`)
       .set('Authorization', `Bearer ${token}`)
       .send({
-        map_id: 'foret',
         label: 'Pack invalide',
         pack: invalidPack,
         is_published: 0,
@@ -2664,31 +2662,43 @@ test('visit mascot packs : PUT invalide renvoie details de validation exploitabl
   }
 });
 
-test('visit mascot packs : filtrage strict par map_id dans la liste studio', async () => {
+test('visit mascot packs : liste studio globale (aucun filtre carte)', async () => {
   const token = await getAdminAuthToken();
   const created = await request(app)
     .post('/api/visit/mascot-packs')
     .set('Authorization', `Bearer ${token}`)
-    .send({ map_id: 'n3', is_published: 0 })
+    .send({ is_published: 1, label: 'Pack global' })
     .expect(201);
-  const n3PackId = created.body.id;
+  const packId = created.body.id;
+  const catalogId = created.body.catalog_id;
   try {
-    const listN3 = await request(app)
+    assert.ok(!('map_id' in created.body), 'aucun map_id sérialisé');
+
+    // `?map_id=` legacy est ignoré : la liste est la même dans les deux cas.
+    const list = await request(app)
+      .get('/api/visit/mascot-packs')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+    assert.ok(list.body.packs.some((p) => p.id === packId));
+    const listLegacyQuery = await request(app)
       .get('/api/visit/mascot-packs?map_id=n3')
       .set('Authorization', `Bearer ${token}`)
       .expect(200);
-    assert.ok(Array.isArray(listN3.body.packs));
-    assert.ok(listN3.body.packs.some((p) => p.id === n3PackId));
+    assert.ok(listLegacyQuery.body.packs.some((p) => p.id === packId));
 
-    const listForet = await request(app)
-      .get('/api/visit/mascot-packs?map_id=foret')
-      .set('Authorization', `Bearer ${token}`)
-      .expect(200);
-    assert.ok(Array.isArray(listForet.body.packs));
-    assert.ok(!listForet.body.packs.some((p) => p.id === n3PackId));
+    // Publié : présent dans le contenu de **toutes** les cartes et dans le registre public.
+    for (const mapId of ['foret', 'n3']) {
+      const content = await request(app).get(`/api/visit/content?map_id=${mapId}`).expect(200);
+      assert.ok(
+        content.body.mascot_packs.some((p) => p.catalog_id === catalogId),
+        `pack publié attendu sur la carte ${mapId}`,
+      );
+    }
+    const registry = await request(app).get('/api/visit/mascots').expect(200);
+    assert.ok(registry.body.mascots.some((m) => m.catalog_id === catalogId));
   } finally {
     await request(app)
-      .delete(`/api/visit/mascot-packs/${n3PackId}`)
+      .delete(`/api/visit/mascot-packs/${packId}`)
       .set('Authorization', `Bearer ${token}`)
       .expect(200);
   }
@@ -2703,7 +2713,7 @@ test('visit mascot packs : assets brouillon — preview_token et publication', a
   const created = await request(app)
     .post('/api/visit/mascot-packs')
     .set('Authorization', `Bearer ${token}`)
-    .send({ map_id: 'foret', is_published: 0 })
+    .send({ is_published: 0 })
     .expect(201);
   const packId = created.body.id;
   try {
@@ -2765,18 +2775,24 @@ test('visit : bibliothèque sprites + clone catalogue + clone pack (assets)', as
   const token = await getAdminAuthToken();
   const libName = `lib-api-${Date.now()}.png`;
   await request(app)
-    .post('/api/visit/mascot-sprite-library/foret/assets')
+    .post('/api/visit/mascot-sprite-library/assets')
     .set('Authorization', `Bearer ${token}`)
     .send({ filename: libName, image_data: VISIT_LIB_TINY_PNG_B64 })
     .expect(201);
 
   const libList = await request(app)
-    .get('/api/visit/mascot-sprite-library/foret/assets')
+    .get('/api/visit/mascot-sprite-library/assets')
     .set('Authorization', `Bearer ${token}`)
     .expect(200);
   assert.ok(Array.isArray(libList.body.assets));
   assert.ok(libList.body.assets.some((a) => a.filename === libName));
 
+  await request(app)
+    .get(`/api/visit/mascot-sprite-library/assets/${encodeURIComponent(libName)}`)
+    .expect(200);
+
+  // Compatibilité : l'URL historique par carte reste servie (les packs publiés avant la
+  // migration `176_visit_mascot_packs_drop_map.sql` la référencent dans `framesBase`).
   await request(app)
     .get(`/api/visit/mascot-sprite-library/foret/assets/${encodeURIComponent(libName)}`)
     .expect(200);
@@ -2784,7 +2800,7 @@ test('visit : bibliothèque sprites + clone catalogue + clone pack (assets)', as
   const fromCat = await request(app)
     .post('/api/visit/mascot-packs')
     .set('Authorization', `Bearer ${token}`)
-    .send({ map_id: 'foret', is_published: 0, clone_from_catalog_id: 'renard2-cut-spritesheet' })
+    .send({ is_published: 0, clone_from_catalog_id: 'renard2-cut-spritesheet' })
     .expect(201);
   assert.strictEqual(Number(fromCat.body.pack.mascotPackVersion), 2);
   const catPackId = fromCat.body.id;
@@ -2804,13 +2820,13 @@ test('visit : bibliothèque sprites + clone catalogue + clone pack (assets)', as
   await request(app)
     .put(`/api/visit/mascot-packs/${catPackId}`)
     .set('Authorization', `Bearer ${token}`)
-    .send({ map_id: 'foret', label: 'clone source api', pack: slimPack, is_published: 0 })
+    .send({ label: 'clone source api', pack: slimPack, is_published: 0 })
     .expect(200);
 
   const cloned = await request(app)
     .post('/api/visit/mascot-packs')
     .set('Authorization', `Bearer ${token}`)
-    .send({ map_id: 'foret', is_published: 0, clone_from_pack_id: catPackId })
+    .send({ is_published: 0, clone_from_pack_id: catPackId })
     .expect(201);
   const cloneId = cloned.body.id;
   assert.notStrictEqual(cloneId, catPackId);
@@ -2829,17 +2845,17 @@ test('visit : bibliothèque sprites + clone catalogue + clone pack (assets)', as
     .set('Authorization', `Bearer ${token}`)
     .expect(200);
   await request(app)
-    .delete(`/api/visit/mascot-sprite-library/foret/assets/${encodeURIComponent(libName)}`)
+    .delete(`/api/visit/mascot-sprite-library/assets/${encodeURIComponent(libName)}`)
     .set('Authorization', `Bearer ${token}`)
     .expect(200);
 });
 
-test('visit mascot assets : PATCH rename pack et bibliothèque carte', async () => {
+test('visit mascot assets : PATCH rename pack et bibliothèque partagée', async () => {
   const token = await getAdminAuthToken();
   const packCreated = await request(app)
     .post('/api/visit/mascot-packs')
     .set('Authorization', `Bearer ${token}`)
-    .send({ map_id: 'foret', is_published: 0 })
+    .send({ is_published: 0 })
     .expect(201);
   const packId = packCreated.body.id;
   const packOrig = 'rename-pack-orig.png';
@@ -2876,26 +2892,26 @@ test('visit mascot assets : PATCH rename pack et bibliothèque carte', async () 
       .expect(400);
 
     await request(app)
-      .post('/api/visit/mascot-sprite-library/foret/assets')
+      .post('/api/visit/mascot-sprite-library/assets')
       .set('Authorization', `Bearer ${token}`)
       .send({ filename: libOrig, image_data: VISIT_LIB_TINY_PNG_B64 })
       .expect(201);
 
     const libRename = await request(app)
-      .patch(`/api/visit/mascot-sprite-library/foret/assets/${encodeURIComponent(libOrig)}`)
+      .patch(`/api/visit/mascot-sprite-library/assets/${encodeURIComponent(libOrig)}`)
       .set('Authorization', `Bearer ${token}`)
       .send({ new_filename: libRenamed })
       .expect(200);
     assert.strictEqual(libRename.body.filename, libRenamed);
 
     const libList = await request(app)
-      .get('/api/visit/mascot-sprite-library/foret/assets')
+      .get('/api/visit/mascot-sprite-library/assets')
       .set('Authorization', `Bearer ${token}`)
       .expect(200);
     assert.ok(libList.body.assets.some((a) => a.filename === libRenamed));
 
     await request(app)
-      .delete(`/api/visit/mascot-sprite-library/foret/assets/${encodeURIComponent(libRenamed)}`)
+      .delete(`/api/visit/mascot-sprite-library/assets/${encodeURIComponent(libRenamed)}`)
       .set('Authorization', `Bearer ${token}`)
       .expect(200);
   } finally {
@@ -2911,7 +2927,7 @@ test('visit mascot packs : clone_from_catalog_id accepte d’autres mascottes ca
   const fromCatalog = await request(app)
     .post('/api/visit/mascot-packs')
     .set('Authorization', `Bearer ${token}`)
-    .send({ map_id: 'foret', is_published: 0, clone_from_catalog_id: 'sprout-rive' })
+    .send({ is_published: 0, clone_from_catalog_id: 'sprout-rive' })
     .expect(201);
   const packId = fromCatalog.body.id;
   try {
@@ -2933,7 +2949,7 @@ test('visit mascot packs : clone_from_catalog_id invalide renvoie la liste autor
   const res = await request(app)
     .post('/api/visit/mascot-packs')
     .set('Authorization', `Bearer ${token}`)
-    .send({ map_id: 'foret', is_published: 0, clone_from_catalog_id: 'unknown-mascot' })
+    .send({ is_published: 0, clone_from_catalog_id: 'unknown-mascot' })
     .expect(400);
   assert.equal(String(res.body.error || ''), 'clone_from_catalog_id invalide');
   assert.ok(Array.isArray(res.body.allowed_catalog_ids));
@@ -2947,7 +2963,7 @@ test('visit mascot assets : inventaire global catalogue + packs + bibliothèque'
   const createdPack = await request(app)
     .post('/api/visit/mascot-packs')
     .set('Authorization', `Bearer ${token}`)
-    .send({ map_id: 'foret', is_published: 0 })
+    .send({ is_published: 0 })
     .expect(201);
   const packId = createdPack.body.id;
   try {
@@ -2957,7 +2973,7 @@ test('visit mascot assets : inventaire global catalogue + packs + bibliothèque'
       .send({ filename: 'global-pack.png', image_data: VISIT_LIB_TINY_PNG_B64 })
       .expect(201);
     await request(app)
-      .post('/api/visit/mascot-sprite-library/foret/assets')
+      .post('/api/visit/mascot-sprite-library/assets')
       .set('Authorization', `Bearer ${token}`)
       .send({ filename: libName, image_data: VISIT_LIB_TINY_PNG_B64 })
       .expect(201);
@@ -2979,7 +2995,10 @@ test('visit mascot assets : inventaire global catalogue + packs + bibliothèque'
     );
     assert.ok(
       assetsRes.body.assets.some(
-        (a) => a.source === 'library' && a.map_id === 'foret' && a.filename === libName,
+        (a) =>
+          a.source === 'library' &&
+          a.filename === libName &&
+          a.url === `/api/visit/mascot-sprite-library/assets/${encodeURIComponent(libName)}`,
       ),
     );
     assert.ok(Number(assetsRes.body.counts?.total) >= 3);
@@ -2989,7 +3008,7 @@ test('visit mascot assets : inventaire global catalogue + packs + bibliothèque'
       .set('Authorization', `Bearer ${token}`)
       .expect(200);
     await request(app)
-      .delete(`/api/visit/mascot-sprite-library/foret/assets/${encodeURIComponent(libName)}`)
+      .delete(`/api/visit/mascot-sprite-library/assets/${encodeURIComponent(libName)}`)
       .set('Authorization', `Bearer ${token}`)
       .expect(200);
   }

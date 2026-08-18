@@ -207,7 +207,7 @@ test('allowedFramesBasePrefixes autorise une base API pack', async () => {
 
 test('validateMascotPack v2 + interactionProfile + bibliothèque API', async () => {
   const { validateMascotPackV1, visitMascotSpriteLibraryAssetsPrefix } = await loadMascotPack();
-  const base = visitMascotSpriteLibraryAssetsPrefix('foret');
+  const base = visitMascotSpriteLibraryAssetsPrefix();
   const r = validateMascotPackV1(
     {
       mascotPackVersion: 2,

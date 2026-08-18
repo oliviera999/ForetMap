@@ -13,13 +13,12 @@ vi.mock('../../../src/components/VisitMapMascotRenderer.jsx', () => ({
 import VisitMascotStudioPreviewSection from '../../../src/components/mascot/VisitMascotStudioPreviewSection.jsx';
 
 function setup(extra = {}) {
-  render(<VisitMascotStudioPreviewSection packs={[]} mapId="foret" {...extra} />);
+  render(<VisitMascotStudioPreviewSection packs={[]} {...extra} />);
 }
 
 describe('VisitMascotStudioPreviewSection', () => {
-  test('affiche l’identifiant de carte et le renderer de mascotte', () => {
+  test('affiche le renderer de mascotte', () => {
     setup();
-    expect(screen.getByText('foret')).toBeTruthy();
     expect(screen.getByTestId('mascot-renderer')).toBeTruthy();
   });
 

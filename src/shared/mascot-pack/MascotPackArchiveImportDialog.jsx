@@ -8,7 +8,6 @@ import { apiGL } from '../../gl/services/apiGL.js';
  * @param {{
  *   open: boolean,
  *   variant: 'visit' | 'gl',
- *   mapId?: string,
  *   chapterId?: number | null,
  *   targetPackId?: string | number | null,
  *   targetPackLabel?: string,
@@ -19,7 +18,6 @@ import { apiGL } from '../../gl/services/apiGL.js';
 export default function MascotPackArchiveImportDialog({
   open,
   variant,
-  mapId = '',
   chapterId = null,
   targetPackId = null,
   targetPackLabel = '',
@@ -106,7 +104,6 @@ export default function MascotPackArchiveImportDialog({
         archive,
       };
       if (variant === 'visit') {
-        body.map_id = String(mapId || '').trim();
         if (mode === 'replace' && targetPackId) body.target_pack_id = String(targetPackId);
         // create : publié par défaut pour être visible en visite immédiatement (override possible).
         if (mode === 'create') body.is_published = publishOnImport ? 1 : 0;

@@ -34,14 +34,18 @@ export function serverMascotPackAssetsPrefix(packUuid) {
 }
 
 /**
- * Préfixe `framesBase` pour sprites partagés par carte (bibliothèque).
- * @param {string} mapId
- * @returns {string | null}
+ * Racine de l'API bibliothèque : couvre l'URL canonique **et** les URLs historiques par
+ * carte (`/api/visit/mascot-sprite-library/<map_id>/assets/`) encore référencées par des
+ * packs créés avant la migration `176_visit_mascot_packs_drop_map.sql`.
  */
-export function serverMascotSpriteLibraryAssetsPrefix(mapId) {
-  const mid = String(mapId || '').trim();
-  if (!mid || mid.length > 64 || !/^[a-zA-Z0-9_-]+$/.test(mid)) return null;
-  return `/api/visit/mascot-sprite-library/${mid}/assets/`;
+export const MASCOT_SPRITE_LIBRARY_API_ROOT = '/api/visit/mascot-sprite-library/';
+
+/**
+ * Préfixe `framesBase` de la bibliothèque de sprites partagée (une seule, sans carte).
+ * @returns {string}
+ */
+export function serverMascotSpriteLibraryAssetsPrefix() {
+  return `${MASCOT_SPRITE_LIBRARY_API_ROOT}assets/`;
 }
 
 /**

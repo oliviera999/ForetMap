@@ -8,7 +8,6 @@ import { toMascotPackIssueLines } from '../../utils/mascotPackValidationUi.js';
  * avertissements) et bloc d'erreur d'action. Présentation pure prop-driven :
  * tout l'état et les actions (api) restent dans le parent.
  * @param {{
- *   mapTitle: string,
  *   actionBusy: boolean,
  *   catalogModelOptions: Array<{ id: string, label: string }>,
  *   selectedCatalogModelId: string,
@@ -42,7 +41,6 @@ import { toMascotPackIssueLines } from '../../utils/mascotPackValidationUi.js';
  * }} props
  */
 export default function MascotPackListAside({
-  mapTitle,
   actionBusy,
   catalogModelOptions,
   selectedCatalogModelId,
@@ -86,13 +84,12 @@ export default function MascotPackListAside({
     >
       <h2 style={{ fontSize: '1.05rem', marginTop: 0 }}>Packs mascotte</h2>
       <p className="section-sub" style={{ fontSize: '0.82rem', marginBottom: 10 }}>
-        Carte : <strong>{mapTitle}</strong>
-        <br />
-        Les packs <strong>publiés</strong> apparaissent sur la visite (sélecteur mascotte).
+        Les packs <strong>publiés</strong> apparaissent sur la visite (sélecteur mascotte), sur
+        toutes les cartes.
         <br />
         Les <strong>modèles intégrés</strong> (SPR0UT, Renard 2, …) ne se modifient pas directement
-        : utilisez <strong>Éditer sur cette carte</strong> pour ouvrir une copie modifiable
-        (sprites, comportements).
+        : utilisez <strong>Éditer une copie</strong> pour ouvrir une copie modifiable (sprites,
+        comportements).
       </p>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
         <button
@@ -141,7 +138,7 @@ export default function MascotPackListAside({
                           fontWeight: 400,
                         }}
                       >
-                        Copie sur carte : {linkedPack?.label || linkedPack?.catalog_id}
+                        Copie existante : {linkedPack?.label || linkedPack?.catalog_id}
                       </span>
                     ) : linkedCopies.length > 1 ? (
                       <span
@@ -152,8 +149,8 @@ export default function MascotPackListAside({
                           fontWeight: 400,
                         }}
                       >
-                        {linkedCopies.length} copies sur carte — sélectionnez dans la liste ou «
-                        Éditer la copie »
+                        {linkedCopies.length} copies — sélectionnez dans la liste ou « Éditer la
+                        copie »
                       </span>
                     ) : null}
                   </button>
@@ -166,12 +163,12 @@ export default function MascotPackListAside({
                     title={
                       linkedCopies.length > 0
                         ? linkedCopies.length === 1
-                          ? 'Ouvrir la copie modifiable déjà créée pour cette carte'
+                          ? 'Ouvrir la copie modifiable déjà créée'
                           : 'Ouvrir la copie la plus récente (ou celle sélectionnée si elle correspond)'
                         : 'Créer puis ouvrir une copie modifiable de ce modèle'
                     }
                   >
-                    {linkedCopies.length > 0 ? 'Éditer la copie' : 'Éditer sur cette carte'}
+                    {linkedCopies.length > 0 ? 'Éditer la copie' : 'Éditer une copie'}
                   </button>
                 </li>
               );
@@ -264,8 +261,7 @@ export default function MascotPackListAside({
       {loading ? <p className="section-sub">Chargement…</p> : null}
       {!loading && packs.length === 0 ? (
         <p className="section-sub">
-          Aucun pack pour la carte <strong>{mapTitle}</strong> — créez un brouillon ou changez de
-          carte dans l’onglet studio.
+          Aucun pack pour l’instant — créez un brouillon ou partez d’un modèle intégré.
         </p>
       ) : null}
       <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
