@@ -32,14 +32,14 @@
 
 ## 1. Décisions arrêtées (lot 0)
 
-| Décision                 | Choix                                                                                                                                                                                                                                                                                       |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Voix**                 | **OLU narrateur unique.** L'aide et le récit ont une seule voix. Les autres mascottes restent compagnons de carte/visite.                                                                                                                                                                   |
-| **Personne**             | **Première personne** (« je »), tutoiement de l'interlocuteur (aligné sur le corpus actuel).                                                                                                                                                                                                |
-| **Personnalité**         | **Jeune explorateur** : curieux, motivé, plein d'entrain — et lucide. Capable de porter des messages lourds de sens sans les édulcorer ni s'y appesantir. _(Révisé en cours de lot 4 : la formule initiale « copiste cool » contredisait le visuel arrêté au brief graphique — voir §2.1.)_ |
-| **Corpus**               | **Réécriture intégrale** de l'aide et des parcours à la première personne, en lot séparé du lot technique. Les tooltips restent neutres (cf. §7.3).                                                                                                                                         |
-| **Périmètre**            | **ForetMap + GL**, même personnage.                                                                                                                                                                                                                                                         |
-| **Stockage des visuels** | **Studio prof / base de données** (pas d'assets versionnés en dur). Voir l'arbitrage majeur en §5.1.                                                                                                                                                                                        |
+| Décision                 | Choix                                                                                                                                                                                                                                                                                            |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Voix**                 | **OLU narrateur unique.** L'aide et le récit ont une seule voix. Les autres mascottes restent compagnons de carte/visite.                                                                                                                                                                        |
+| **Personne**             | **Première personne** (« je »), tutoiement de l'interlocuteur (aligné sur le corpus actuel).                                                                                                                                                                                                     |
+| **Personnalité**         | **Jeune explorateur** : curieux, motivé, espiègle et blagueur — et lucide. Capable de porter des messages lourds de sens sans les édulcorer ni s'y appesantir. _(Révisé en cours de lot 4 : la formule initiale « copiste cool » contredisait le visuel arrêté au brief graphique — voir §2.1.)_ |
+| **Corpus**               | **Réécriture intégrale** de l'aide et des parcours à la première personne, en lot séparé du lot technique. Les tooltips restent neutres (cf. §7.3).                                                                                                                                              |
+| **Périmètre**            | **ForetMap + GL**, même personnage.                                                                                                                                                                                                                                                              |
+| **Stockage des visuels** | **Studio prof / base de données** (pas d'assets versionnés en dur). Voir l'arbitrage majeur en §5.1.                                                                                                                                                                                             |
 
 ---
 
@@ -54,9 +54,18 @@ très expressifs — et, pour l'expression `cherche`, « sourcils froncés par l
 l'inquiétude ». C'est quelqu'un qui **arpente** le site, y retourne sans se lasser, remarque ce
 que les autres traversent sans voir, et a envie de le montrer.
 
-Il est **curieux, motivé, plein d'entrain**. Ce n'est pas pour autant un naïf : il observe
-finement, tire des conclusions justes et dit les choses telles qu'elles sont. Enthousiaste ne veut
-pas dire bête — c'est la ligne de crête de cette voix.
+Il est **curieux, motivé, espiègle et franchement drôle**. Ce n'est pas pour autant un naïf : il
+observe finement, tire des conclusions justes et dit les choses telles qu'elles sont. Enthousiaste
+ne veut pas dire bête — c'est la ligne de crête de cette voix.
+
+**Il s'ennuierait tout seul.** Il a déjà tout parcouru, il connaît les raccourcis ; ce qui
+l'intéresse désormais, c'est d'y retourner _avec quelqu'un_. Il adopte son interlocuteur comme
+complice dès la première bulle, pas comme élève.
+
+**Il a du matériel, donc des anecdotes.** Sac, tapis et boussole ne sont pas des accessoires de
+dessin : ce sont des occasions de gags de terrain — le carnet tombé dans la mare, deux branches
+taillées de trop, le champignon qui le fixe depuis deux semaines. C'est ce qui lui donne un passé
+sans lui donner de l'âge.
 
 Il n'est ni un assistant serviable ni un mentor solennel : il est **à côté** de l'utilisateur, pas
 au-dessus. Il connaît le terrain mieux que lui et l'y emmène, sans jamais faire la leçon.
@@ -76,7 +85,22 @@ au-dessus. Il connaît le terrain mieux que lui et l'y emmène, sans jamais fair
 | **Lucide**       | Nomme les choses telles qu'elles sont, y compris quand c'est inconfortable.                                      | Pas d'optimisme de façade, pas de « tout va bien » quand non.                 |
 | **Curieux**      | S'intéresse pour de bon ; remarque le détail et le partage. Il pose des questions au monde, pas à l'utilisateur. | Pas de curiosité feinte, pas de « tu ne devineras jamais ».                   |
 | **Enthousiaste** | De l'élan et de l'envie d'y aller. Il donne envie de sortir voir.                                                | Pas d'excitation permanente, pas de flot d'exclamations, pas de survente.     |
-| **Humoristique** | Ironie douce, autodérision, décalage. L'humour désamorce, il ne détourne pas.                                    | Pas de blague à chaque phrase, pas de private joke, pas de jeu de mots forcé. |
+| **Espiègle**     | Chambre gentiment, glisse une pointe en fin de bulle, joue la complicité.                                        | Jamais aux dépens de l'utilisateur (règle d'or, §2.2bis).                     |
+| **Drôle**        | Autodérision de terrain, anti-climax, chute placée après l'information.                                          | Pas de blague à chaque phrase, pas de private joke, pas de jeu de mots forcé. |
+
+### 2.2bis La règle d'or de l'humour — trois contraintes
+
+1. **La cible, c'est lui.** Il se moque de lui-même, des objets et des situations ; **jamais de la
+   personne en face**, et surtout jamais d'une erreur qu'elle vient de commettre. Un assistant qui
+   vanne son utilisateur devient insupportable en trois écrans. C'est cette règle qui garde le
+   personnage gentil malgré l'espièglerie.
+2. **La chute vient après l'information.** L'utile d'abord, la pointe ensuite — le plus souvent
+   après un tiret cadratin. Quelqu'un qui lit en diagonale récupère quand même le renseignement,
+   et la blague ne coûte rien à celui qui ne la lit pas.
+3. **Il sait se taire.** Trois endroits sans plaisanterie : les **permissions**, les **passages
+   graves** (§2.3) et les **avertissements**. Un personnage qui blague partout n'est plus drôle,
+   il est bruyant — et on cesse de le croire quand ça compte. Le corpus l'assume à voix haute dans
+   le parcours Profils : « la seule page où je ne fais pas le malin ».
 
 **L'enthousiasme ne dispense pas de la justesse.** Un personnage jeune et motivé qui dirait des
 approximations serait pire qu'un personnage neutre : il rendrait l'aide moins fiable tout en
@@ -106,10 +130,11 @@ devient moralisateur — exactement ce qu'on cherche à éviter.
 ### 2.4 Registre concret
 
 - **Longueur** : 1 à 3 phrases par bulle. Le texte du corpus actuel est déjà court, on ne l'allonge pas.
-- **Ponctuation** : point d'exclamation **rare** (≤ 1 par parcours, vérifié par test). L'entrain
-  passe par les verbes et le rythme, pas par la ponctuation — un corpus criblé d'exclamations lit
-  comme de la publicité, pas comme quelqu'un de motivé. Le tiret cadratin et la parenthèse portent
-  l'ironie mieux que l'exclamation.
+- **Ponctuation** : point d'exclamation **rare** (≤ 1 par parcours, vérifié par test). Le plafond
+  a été **maintenu** au passage au registre blagueur, et il n'a pas gêné : deux exclamations
+  suffisent sur l'ensemble du corpus. L'humour naît du décalage et du placement de la chute, pas
+  de la ponctuation — un corpus criblé d'exclamations lit comme de la publicité, pas comme
+  quelqu'un de drôle. Le tiret cadratin et la parenthèse portent l'ironie bien mieux.
 - **Emoji** : **aucun dans les textes d'OLU.** L'expression passe par le portrait (§4.3). Les
   emoji décoratifs de l'interface existante (`💡` en préfixe de panneau, `▶`) ne sont pas concernés.
 - **Terminologie** : respecter `getRoleTerms()` ([`src/utils/n3-terminology.js`](../src/utils/n3-terminology.js)) —
@@ -135,6 +160,8 @@ Tirés du corpus réel, pour caler le ton :
 - Il ne commente pas ses propres blagues.
 - Il ne parle pas de lui plus que du contenu.
 - Il ne dit jamais « n'hésite pas à… ».
+- **Il ne se moque jamais de l'utilisateur**, ni d'une erreur qu'il vient de commettre (§2.2bis).
+- **Il ne plaisante pas sur les permissions, les avertissements et les passages graves.**
 - **Il ne se présente jamais comme un copiste ou un scribe** : il n'a pas « recopié » la forêt, il
   l'a parcourue. Pas de « mon herbier », pas de « mes vieux yeux », pas de « je note, je ne devine
   pas » — ces tournures viennent d'une première version de la charte et contredisent son visuel.

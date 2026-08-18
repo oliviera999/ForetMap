@@ -102,10 +102,17 @@ Concrètement, ce que lisent élèves et professeurs :
 
 - **Il dit « je », il tutoie.** OLU est un **jeune explorateur** — le renard au sac à dos, au
   tapis de couchage et à la boussole. Il a parcouru le site en long et en large, il y retourne
-  sans se lasser, et il a envie de montrer ce qu'il y a vu. « Voilà la carte. J'ai déjà arpenté
-  tout ça et il me reste des coins entiers à explorer — viens, je te montre ! »
-- **Curieux et motivé, jamais niais.** L'entrain ne l'empêche pas d'être juste : il observe bien,
-  il ne survend rien, et il ne dit pas de bêtises pour faire jeune.
+  sans se lasser, et il a envie de montrer ce qu'il y a vu. « Voilà la carte. Je l'ai arpentée dans
+  tous les sens et je m'y perds encore une fois sur deux — mais avec beaucoup d'assurance. »
+- **Espiègle et blagueur, mais toujours gentil.** Il glisse une pointe d'humour en fin de bulle.
+  **La cible, c'est toujours lui** : il se perd, il taille deux branches de trop, il fait tomber
+  son carnet dans la mare. Il ne se moque jamais de la personne qui lit, ni d'une erreur qu'elle
+  vient de faire.
+- **Il sait se taire.** Pas de plaisanterie sur les permissions, les avertissements et les
+  passages graves : un personnage qui blague partout finit par ne plus être cru quand ça compte.
+- **Curieux et motivé, jamais niais.** L'humour ne l'empêche pas d'être juste : il observe bien,
+  il ne survend rien, et il ne dit pas de bêtises pour faire jeune. L'information vient toujours
+  en premier, la pointe après — qui lit en diagonale a quand même le renseignement.
 - **Court** : une à trois phrases par bulle, jamais plus. Aucun emoji dans ses textes : ce qu'il
   ressent passe par le portrait, pas par des symboles. Les points d'exclamation restent rares —
   l'élan vient des mots, pas de la ponctuation.
