@@ -1,6 +1,7 @@
 import {
   serverMascotPackAssetsPrefix,
   serverMascotSpriteLibraryAssetsPrefix,
+  MASCOT_SPRITE_LIBRARY_API_ROOT,
   MASCOT_PACK_FALLBACK_SILHOUETTES,
   parsePackJson,
   stringifyPack,
@@ -14,18 +15,16 @@ import {
 import { sanitizeMascotPackDraft } from './mascotPackValidationUi.js';
 
 /**
- * Validation stricte d'un pack pour sauvegarde/publication : autorise les
- * préfixes d'assets du catalogue, du pack lui-même et de la bibliothèque carte.
+ * Validation stricte d'un pack pour sauvegarde/publication : autorise les préfixes
+ * d'assets du catalogue, du pack lui-même et de la bibliothèque de sprites (URL
+ * canonique **et** URLs historiques par carte, couvertes par la racine de l'API).
  * @param {Record<string, unknown>} pack
  * @param {string} packId
- * @param {string} mapId
  */
-export function getPackStrictValidation(pack, packId, mapId) {
-  const allowedFramesBasePrefixes = ['/assets/mascots/'];
+export function getPackStrictValidation(pack, packId) {
+  const allowedFramesBasePrefixes = ['/assets/mascots/', MASCOT_SPRITE_LIBRARY_API_ROOT];
   const packPrefix = serverMascotPackAssetsPrefix(packId);
   if (packPrefix) allowedFramesBasePrefixes.push(packPrefix);
-  const libraryPrefix = serverMascotSpriteLibraryAssetsPrefix(mapId);
-  if (libraryPrefix) allowedFramesBasePrefixes.push(libraryPrefix);
   return validateMascotPackV1(pack, { allowedFramesBasePrefixes });
 }
 
@@ -64,7 +63,7 @@ export function filterGlobalAssets(globalAssets, search) {
     .toLowerCase();
   if (!q) return list;
   return list.filter((a) => {
-    const hay = [a?.filename, a?.url, a?.source, a?.map_id, a?.pack_catalog_id, a?.pack_label]
+    const hay = [a?.filename, a?.url, a?.source, a?.pack_catalog_id, a?.pack_label]
       .map((x) => String(x || '').toLowerCase())
       .join(' ');
     return hay.includes(q);
@@ -325,23 +324,20 @@ export function resolveSelectedMascotImageEntries(selectedIds, entries) {
 
 const SOURCE_LABELS = {
   pack: 'Ce pack',
-  map: 'Carte',
   site: 'Site',
   public: 'Site',
-  library: 'Carte',
+  library: 'Bibliothèque',
 };
 
 /**
  * @param {Record<string, unknown>} asset
  * @param {string} packUuid
- * @param {string} mapId
  */
-function resolveGlobalAssetDeleteMeta(asset, packUuid, mapId) {
+function resolveGlobalAssetDeleteMeta(asset, packUuid) {
   const apiSource = String(asset?.source || 'public').trim() || 'public';
   const url = String(asset?.url || '').trim();
   const filename = String(asset?.filename || '').trim();
   const assetPackId = String(asset?.pack_id || '').trim();
-  const assetMapId = String(asset?.map_id || '').trim();
 
   if (apiSource === 'public') {
     return {
@@ -353,15 +349,11 @@ function resolveGlobalAssetDeleteMeta(asset, packUuid, mapId) {
   if (apiSource === 'pack' && assetPackId && assetPackId === packUuid && filename) {
     return { canDelete: true, deleteScope: 'pack', deleteUrl: null };
   }
-  if (apiSource === 'library' && assetMapId && assetMapId === mapId && filename) {
-    return { canDelete: true, deleteScope: 'map', deleteUrl: null };
+  if (apiSource === 'library' && filename) {
+    return { canDelete: true, deleteScope: 'library', deleteUrl: null };
   }
   const foreignHint =
-    apiSource === 'pack'
-      ? `Pack « ${asset?.pack_label || assetPackId || '?'} » (${asset?.map_id || '?'})`
-      : apiSource === 'library'
-        ? `Bibliothèque carte « ${assetMapId || '?'} »`
-        : '';
+    apiSource === 'pack' ? `Pack « ${asset?.pack_label || assetPackId || '?'} »` : '';
   return {
     canDelete: false,
     deleteScope: null,
@@ -371,14 +363,13 @@ function resolveGlobalAssetDeleteMeta(asset, packUuid, mapId) {
 }
 
 /**
- * Fusionne pack, bibliothèque carte et assets globaux pour le panneau Images unifié.
+ * Fusionne pack, bibliothèque de sprites et assets globaux pour le panneau Images unifié.
  * @param {{
  *   packAssets?: Array<Record<string, unknown>>,
  *   libAssets?: Array<Record<string, unknown>>,
  *   globalAssets?: Array<Record<string, unknown>>,
  *   packUuid?: string | null,
- *   mapId?: string,
- *   sourceFilter?: 'all' | 'pack' | 'map' | 'site',
+ *   sourceFilter?: 'all' | 'pack' | 'library' | 'site',
  *   search?: string,
  * }} opts
  */
@@ -387,10 +378,9 @@ export function buildUnifiedMascotImageEntries(opts = {}) {
   const libAssets = Array.isArray(opts.libAssets) ? opts.libAssets : [];
   const globalAssets = Array.isArray(opts.globalAssets) ? opts.globalAssets : [];
   const packUuid = String(opts.packUuid || '').trim();
-  const mapId = String(opts.mapId || '').trim();
   const sourceFilter = opts.sourceFilter || 'all';
   const packPrefix = serverMascotPackAssetsPrefix(packUuid);
-  const mapPrefix = serverMascotSpriteLibraryAssetsPrefix(mapId);
+  const libraryPrefix = serverMascotSpriteLibraryAssetsPrefix();
 
   /** @type {Array<Record<string, unknown>>} */
   const entries = [];
@@ -418,16 +408,16 @@ export function buildUnifiedMascotImageEntries(opts = {}) {
     const filename = String(a?.filename || '').trim();
     if (!filename) continue;
     entries.push({
-      id: `map:${filename}`,
-      source: 'map',
+      id: `library:${filename}`,
+      source: 'library',
       apiSource: 'library',
-      sourceLabel: SOURCE_LABELS.map,
+      sourceLabel: SOURCE_LABELS.library,
       filename,
       url: String(a?.url || '').trim(),
-      kind: 'map-file',
-      framesBaseHint: mapPrefix,
+      kind: 'library-file',
+      framesBaseHint: libraryPrefix,
       canDelete: true,
-      deleteScope: 'map',
+      deleteScope: 'library',
       deleteUrl: null,
     });
   }
@@ -438,11 +428,11 @@ export function buildUnifiedMascotImageEntries(opts = {}) {
     if (!url || seenUrls.has(url)) continue;
     seenUrls.add(url);
     const apiSource = String(a?.source || 'public').trim() || 'public';
-    const deleteMeta = resolveGlobalAssetDeleteMeta(a, packUuid, mapId);
-    const metaParts = [a?.map_id, a?.pack_label, deleteMeta.metaExtra].filter(Boolean);
+    const deleteMeta = resolveGlobalAssetDeleteMeta(a, packUuid);
+    const metaParts = [a?.pack_label, deleteMeta.metaExtra].filter(Boolean);
     entries.push({
       id: `global:${a?.id ?? url}`,
-      source: apiSource === 'public' ? 'site' : apiSource === 'library' ? 'map' : 'pack',
+      source: apiSource === 'public' ? 'site' : apiSource === 'library' ? 'library' : 'pack',
       apiSource,
       sourceLabel: SOURCE_LABELS[apiSource] || apiSource,
       filename: String(a?.filename || '').trim() || '—',
@@ -453,7 +443,6 @@ export function buildUnifiedMascotImageEntries(opts = {}) {
       deleteScope: deleteMeta.deleteScope,
       deleteUrl: deleteMeta.deleteUrl,
       packId: String(a?.pack_id || '').trim() || null,
-      mapIdRef: String(a?.map_id || '').trim() || null,
       meta: metaParts.join(' · ') || '',
     });
   }

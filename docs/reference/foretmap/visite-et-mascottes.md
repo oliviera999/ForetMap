@@ -75,6 +75,10 @@ familles.
   d'images partagée. Un pack se travaille en **brouillon** puis se **publie** (seuls
   les packs publiés apparaissent en visite) ; il s'exporte et s'importe en archive pour
   circuler entre établissements.
+- **Le studio ne dépend pas de la carte affichée** : il n'y a qu'**une seule liste de
+  packs** et **une seule bibliothèque d'images**, communes à toutes les cartes. Une
+  mascotte créée ici est disponible partout dès sa publication — inutile de la
+  recréer, de la dupliquer ou de l'exporter/réimporter pour une autre carte.
 - **Suivre la fréquentation** : un tableau de bord donne sessions, lieux vus et taux de
   parcours complets, en séparant élèves connectés et visiteurs anonymes.
 

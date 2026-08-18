@@ -5,14 +5,14 @@ import { sanitizeClientFilename } from '../../utils/mascotPackEditorFrames.js';
 
 /**
  * Sources d'images du studio packs mascotte (audit §6.1), extraites de
- * `VisitMascotPackManager` : bibliothèque de la carte, catalogue site (assets globaux)
- * et médiathèque du pack sélectionné. Factorise le squelette de chargement
+ * `VisitMascotPackManager` : bibliothèque de sprites partagée, catalogue site (assets
+ * globaux) et médiathèque du pack sélectionné. Factorise le squelette de chargement
  * (`setLoading` / try / `AccountDeletedError` / finally, identique ×3) et regroupe
  * les uploads / suppressions correspondants.
  *
- * @param {{ mapId: string, selectedId: string | null, onForceLogout?: () => void }} params
+ * @param {{ selectedId: string | null, onForceLogout?: () => void }} params
  */
-export function useMascotPackAssets({ mapId, selectedId, onForceLogout }) {
+export function useMascotPackAssets({ selectedId, onForceLogout }) {
   const [libAssets, setLibAssets] = useState([]);
   const [libLoading, setLibLoading] = useState(false);
   const [libMessage, setLibMessage] = useState('');
@@ -43,16 +43,14 @@ export function useMascotPackAssets({ mapId, selectedId, onForceLogout }) {
   );
 
   const loadLibrary = useCallback(async () => {
-    const mid = String(mapId || '').trim();
-    if (!mid) return;
     await runAssetsLoad({
-      request: () => api(`/api/visit/mascot-sprite-library/${encodeURIComponent(mid)}/assets`),
+      request: () => api('/api/visit/mascot-sprite-library/assets'),
       setAssets: setLibAssets,
       setLoading: setLibLoading,
       setMessage: setLibMessage,
       errorMessage: 'Impossible de charger la bibliothèque',
     });
-  }, [mapId, runAssetsLoad]);
+  }, [runAssetsLoad]);
 
   const loadGlobalAssets = useCallback(async () => {
     await runAssetsLoad({
@@ -90,13 +88,12 @@ export function useMascotPackAssets({ mapId, selectedId, onForceLogout }) {
       const file = ev.target?.files?.[0];
       ev.target.value = '';
       if (!file) return;
-      const mid = String(mapId || '').trim();
       setLibLoading(true);
       setLibMessage('Envoi en cours…');
       try {
         const dataUrl = await fileToPngDataUrl(file);
         const safeName = file.name.replace(/[^a-zA-Z0-9._-]+/g, '-').toLowerCase() || 'import.png';
-        await api(`/api/visit/mascot-sprite-library/${encodeURIComponent(mid)}/assets`, 'POST', {
+        await api('/api/visit/mascot-sprite-library/assets', 'POST', {
           filename: safeName.endsWith('.png') ? safeName : `${safeName}.png`,
           image_data: dataUrl,
         });
@@ -109,17 +106,16 @@ export function useMascotPackAssets({ mapId, selectedId, onForceLogout }) {
         setLibLoading(false);
       }
     },
-    [mapId, loadLibrary, onForceLogout],
+    [loadLibrary, onForceLogout],
   );
 
   const onLibDelete = useCallback(
     async (filename) => {
-      const mid = String(mapId || '').trim();
       if (!window.confirm(`Supprimer « ${filename} » de la bibliothèque ?`)) return;
       setLibLoading(true);
       try {
         await api(
-          `/api/visit/mascot-sprite-library/${encodeURIComponent(mid)}/assets/${encodeURIComponent(filename)}`,
+          `/api/visit/mascot-sprite-library/assets/${encodeURIComponent(filename)}`,
           'DELETE',
         );
         await loadLibrary();
@@ -130,7 +126,7 @@ export function useMascotPackAssets({ mapId, selectedId, onForceLogout }) {
         setLibLoading(false);
       }
     },
-    [mapId, loadLibrary, onForceLogout],
+    [loadLibrary, onForceLogout],
   );
 
   const onDeletePublicAsset = useCallback(
@@ -216,17 +212,10 @@ export function useMascotPackAssets({ mapId, selectedId, onForceLogout }) {
     [selectedId],
   );
 
-  const deleteMapAssetSilent = useCallback(
-    async (filename) => {
-      const mid = String(mapId || '').trim();
-      if (!mid || !filename) return;
-      await api(
-        `/api/visit/mascot-sprite-library/${encodeURIComponent(mid)}/assets/${encodeURIComponent(filename)}`,
-        'DELETE',
-      );
-    },
-    [mapId],
-  );
+  const deleteLibraryAssetSilent = useCallback(async (filename) => {
+    if (!filename) return;
+    await api(`/api/visit/mascot-sprite-library/assets/${encodeURIComponent(filename)}`, 'DELETE');
+  }, []);
 
   const deletePublicAssetSilent = useCallback(async (url) => {
     const assetUrl = String(url || '').trim();
@@ -258,7 +247,7 @@ export function useMascotPackAssets({ mapId, selectedId, onForceLogout }) {
     onPackUpload,
     onPackDeleteAsset,
     deletePackAssetSilent,
-    deleteMapAssetSilent,
+    deleteLibraryAssetSilent,
     deletePublicAssetSilent,
   };
 }

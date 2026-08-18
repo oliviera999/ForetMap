@@ -16,14 +16,13 @@ import {
  *
  * @param {{
  *   selectedId: string | null,
- *   mapId: string,
  *   editorPack: Record<string, unknown>,
  *   setEditorPack: (updater: unknown) => void,
  *   onForceLogout?: () => void,
  *   showInsertFeedback: (message: string, ms?: number) => void,
  *   assets: {
  *     deletePackAssetSilent: (filename: string) => Promise<void>,
- *     deleteMapAssetSilent: (filename: string) => Promise<void>,
+ *     deleteLibraryAssetSilent: (filename: string) => Promise<void>,
  *     deletePublicAssetSilent: (url: string) => Promise<void>,
  *     loadPackAssets: () => Promise<void>,
  *     loadLibrary: () => Promise<void>,
@@ -42,7 +41,6 @@ import {
  */
 export function useMascotPackBulkImageActions({
   selectedId,
-  mapId,
   editorPack,
   setEditorPack,
   onForceLogout,
@@ -51,7 +49,7 @@ export function useMascotPackBulkImageActions({
 }) {
   const {
     deletePackAssetSilent,
-    deleteMapAssetSilent,
+    deleteLibraryAssetSilent,
     deletePublicAssetSilent,
     loadPackAssets,
     loadLibrary,
@@ -97,7 +95,7 @@ export function useMascotPackBulkImageActions({
         try {
           const scope = entry.deleteScope;
           if (scope === 'pack') await deletePackAssetSilent(entry.filename);
-          else if (scope === 'map') await deleteMapAssetSilent(entry.filename);
+          else if (scope === 'library') await deleteLibraryAssetSilent(entry.filename);
           else if (scope === 'public') await deletePublicAssetSilent(entry.deleteUrl || entry.url);
           deleted += 1;
         } catch (e) {
@@ -128,7 +126,7 @@ export function useMascotPackBulkImageActions({
     [
       editorPack,
       deletePackAssetSilent,
-      deleteMapAssetSilent,
+      deleteLibraryAssetSilent,
       deletePublicAssetSilent,
       loadPackAssets,
       loadLibrary,
@@ -162,10 +160,9 @@ export function useMascotPackBulkImageActions({
               'PATCH',
               { new_filename: newName },
             );
-          } else if (entry.deleteScope === 'map') {
-            const mid = String(mapId || '').trim();
+          } else if (entry.deleteScope === 'library') {
             await api(
-              `/api/visit/mascot-sprite-library/${encodeURIComponent(mid)}/assets/${encodeURIComponent(oldName)}`,
+              `/api/visit/mascot-sprite-library/assets/${encodeURIComponent(oldName)}`,
               'PATCH',
               { new_filename: newName },
             );
@@ -202,7 +199,6 @@ export function useMascotPackBulkImageActions({
       editorPack,
       setEditorPack,
       selectedId,
-      mapId,
       loadPackAssets,
       loadLibrary,
       onForceLogout,
@@ -231,7 +227,7 @@ export function useMascotPackBulkImageActions({
         const file = files[Math.min(i, files.length - 1)];
         const filename = String(entry?.filename || '').trim();
         if (!filename || !file) continue;
-        if (entry.deleteScope !== 'pack' && entry.deleteScope !== 'map') continue;
+        if (entry.deleteScope !== 'pack' && entry.deleteScope !== 'library') continue;
         try {
           const dataUrl = await fileToPngDataUrl(file);
           if (entry.deleteScope === 'pack' && selectedId) {
@@ -239,16 +235,11 @@ export function useMascotPackBulkImageActions({
               filename,
               image_data: dataUrl,
             });
-          } else if (entry.deleteScope === 'map') {
-            const mid = String(mapId || '').trim();
-            await api(
-              `/api/visit/mascot-sprite-library/${encodeURIComponent(mid)}/assets`,
-              'POST',
-              {
-                filename,
-                image_data: dataUrl,
-              },
-            );
+          } else if (entry.deleteScope === 'library') {
+            await api('/api/visit/mascot-sprite-library/assets', 'POST', {
+              filename,
+              image_data: dataUrl,
+            });
           }
           replaced += 1;
         } catch (e) {
@@ -270,7 +261,7 @@ export function useMascotPackBulkImageActions({
       );
       setImageBulkBusy(false);
     },
-    [selectedId, mapId, loadPackAssets, loadLibrary, onForceLogout, showInsertFeedback],
+    [selectedId, loadPackAssets, loadLibrary, onForceLogout, showInsertFeedback],
   );
 
   return { imageBulkBusy, bulkDeleteImages, bulkRenameImages, bulkReplaceImages };

@@ -7,6 +7,43 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### ForetMap — les mascottes ne sont plus rattachées à une carte
+
+Le studio « Packs mascotte » affichait une liste **différente selon la carte affichée** :
+les packs étaient stockés avec un `map_id`, alors que les visiteurs, eux, voyaient déjà
+toutes les mascottes publiées, quelle que soit la carte. Un pack créé sur une carte
+restait invisible dans le studio d'une autre, et ne pouvait y être déplacé qu'en passant
+par un export/import d'archive. Une mascotte est désormais un objet **global** de la
+visite, et le studio n'a plus qu'**une seule liste**.
+
+- **Base de données** — migration **`176_visit_mascot_packs_drop_map.sql`** : la colonne
+  `map_id` disparaît de `visit_mascot_packs` et de `visit_mascot_sprite_library`,
+  l'unicité passe de `(map_id, catalog_id)` à `catalog_id` et de `(map_id, filename)` à
+  `filename` (dédoublonnage préalable : pack le plus récemment mis à jour, sprite le plus
+  ancien). Migration idempotente, aucune donnée de pack perdue.
+- **API** — `GET /api/visit/mascot-packs` ne demande plus `map_id` (un `?map_id=` hérité
+  est ignoré) et renvoie tous les packs ; `POST`, `PUT` et l'import d'archive n'acceptent
+  plus `map_id` ; le clonage d'un pack n'est plus limité à « la même carte ». La
+  bibliothèque de sprites passe de `/api/visit/mascot-sprite-library/:mapId/assets…` à
+  **`/api/visit/mascot-sprite-library/assets…`**, et `GET /api/visit/content` renvoie
+  désormais **tous** les packs publiés (il filtrait par carte, contrairement au registre
+  `GET /api/visit/mascots`).
+- **Compatibilité des packs existants** — aucun fichier n'est déplacé sur le disque :
+  l'URL historique `/api/visit/mascot-sprite-library/<carte>/assets/<fichier>`, référencée
+  dans le `framesBase` de packs déjà publiés, reste **servie en lecture**, et les sprites
+  restés dans un sous-dossier de carte sont résolus automatiquement
+  (**`lib/visitMascotSpriteLibraryFiles.js`**).
+- **Studio simplifié** — le sélecteur « Carte active » de l'onglet Packs mascotte
+  disparaît, ainsi que les mentions de carte dans la liste des packs, le panneau Images et
+  l'aperçu. Le filtre d'images « Carte » devient **« Bibliothèque »**, et les boutons
+  « Importer sur la carte… » / « framesBase → carte » deviennent « Envoyer à la
+  bibliothèque… » / « framesBase → bibliothèque ».
+- **Tests** — la liste studio globale, la compatibilité de l'URL historique et la
+  résolution disque des sprites hérités sont couvertes (`tests/api.test.js`,
+  **`tests/visit-mascot-sprite-library-files.test.js`**, `tests/visit-helpers.test.js`,
+  `tests-ui/**`). Documentation : `docs/API.md`, `docs/MASCOT_PACK.md` et
+  `docs/reference/foretmap/visite-et-mascottes.md`.
+
 ### ForetMap — la médiathèque accepte enfin les photos d'un téléphone Android
 
 Le bouton **Importer** de la médiathèque ne fonctionnait pas depuis un smartphone Android.

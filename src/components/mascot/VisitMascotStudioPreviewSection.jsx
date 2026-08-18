@@ -18,7 +18,6 @@ import { applyPackAssetPreviewUrlsToSpriteCut } from '../../utils/visitMascotPac
  * rendu animé. Présentation pure prop-driven.
  * @param {{
  *   packs: Array<{ id?: string, catalog_id: string, label: string, pack: object }>,
- *   mapId: string,
  *   selectedPackId?: string | null,
  *   selectedPackCatalogId?: string,
  *   selectedPackLabel?: string,
@@ -27,7 +26,6 @@ import { applyPackAssetPreviewUrlsToSpriteCut } from '../../utils/visitMascotPac
  */
 export default function VisitMascotStudioPreviewSection({
   packs,
-  mapId,
   selectedPackId = null,
   selectedPackCatalogId = '',
   selectedPackLabel = '',
@@ -86,8 +84,7 @@ export default function VisitMascotStudioPreviewSection({
   return (
     <section className="visit-mascot-preview-card" aria-label="Aperçu de la mascotte">
       <p className="section-sub" style={{ fontSize: '0.82rem' }}>
-        Carte <strong>{mapId}</strong> — packs chargés (y compris brouillons) pour prévisualiser les
-        mascottes serveur.
+        Tous les packs chargés (brouillons compris) pour prévisualiser les mascottes serveur.
       </p>
       <div
         className="visit-mascot-preview-actions"

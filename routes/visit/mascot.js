@@ -20,7 +20,7 @@ const {
   getMascotPackValidatorCandidates,
   getMascotPackLibProbe,
 } = require('../../lib/mascotPackValidatorResolve');
-const { nowIso, resolveVisitMapId, mapExists } = require('../../lib/visitRouteShared');
+const { nowIso } = require('../../lib/visitRouteShared');
 const {
   verifyVisitMascotPackAssetPreview,
   appendPreviewTokenToAssetUrl,
@@ -35,7 +35,8 @@ const {
   classifyMascotPackModuleError,
   mapVisitMascotPackSqlError,
   visitMascotSpriteLibraryRelativeDir,
-  mascotPackAllowedFramesPrefixesForMap,
+  visitMascotSpriteLibraryAssetUrl,
+  mascotPackAllowedFramesPrefixes,
   mapVisitMascotSpriteLibSqlError,
   buildVisitCatalogPackTemplate,
 } = require('../../lib/visitMascotPackHelpers');
@@ -51,6 +52,9 @@ const {
   contentLibraryUploadMiddleware,
   readAnalyzeUploadPayload,
 } = require('../../lib/contentLibraryUpload');
+const {
+  resolveVisitMascotSpriteLibraryRelPath,
+} = require('../../lib/visitMascotSpriteLibraryFiles');
 const { listVisitMascotRegistry } = require('../../lib/visitMascotRegistry');
 const { getVisitMascotSettings, isValidVisitMascotId } = require('../../lib/settings');
 
@@ -153,26 +157,30 @@ async function removeVisitMascotPackUploadDir(packId) {
   }
 }
 
-function listVisitMascotSpriteLibraryFilenamesFromDisk(mapId) {
-  const relDir = visitMascotSpriteLibraryRelativeDir(mapId);
-  if (!relDir) return [];
-  const absDir = getAbsolutePath(relDir);
-  if (!fs.existsSync(absDir) || !fs.statSync(absDir).isDirectory()) return [];
-  const names = fs.readdirSync(absDir);
-  const out = [];
-  for (const raw of names) {
-    const safe = sanitizeMascotPackAssetFilename(raw);
-    if (!safe || safe !== raw) continue;
-    if (!/\.png$/i.test(safe)) continue;
-    const fp = path.join(absDir, safe);
-    try {
-      if (fs.statSync(fp).isFile()) out.push(safe);
-    } catch (_) {
-      /* ignore */
-    }
+/**
+ * Sert un PNG de la bibliothèque si une ligne existe pour ce nom de fichier.
+ * Partagé par l'URL canonique et par l'URL historique par carte.
+ */
+async function serveVisitMascotSpriteLibraryFile(req, res, rawFilename) {
+  try {
+    const filename = sanitizeMascotPackAssetFilename(rawFilename);
+    if (!filename) return res.status(400).json({ error: 'Paramètres invalides' });
+    const row = await queryOne(
+      'SELECT id FROM visit_mascot_sprite_library WHERE filename = ? LIMIT 1',
+      [filename],
+    );
+    if (!row) return res.status(404).json({ error: 'Fichier introuvable' });
+    const rel = resolveVisitMascotSpriteLibraryRelPath(filename);
+    if (!rel) return res.status(404).json({ error: 'Fichier introuvable' });
+    return res.type('image/png').sendFile(getAbsolutePath(rel), (err) => {
+      if (err && !res.headersSent) res.status(404).json({ error: 'Fichier introuvable' });
+    });
+  } catch (err) {
+    logRouteError(err, req);
+    const mapped = mapVisitMascotSpriteLibSqlError(err);
+    if (mapped) return jsonVisitMascotPackError(res, req, mapped.status, mapped.body);
+    return res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });
   }
-  out.sort((a, b) => a.localeCompare(b, 'en'));
-  return out;
 }
 
 function listPublicMascotStaticAssets() {
@@ -376,20 +384,19 @@ router.put('/mascot-preference', authenticate, async (req, res) => {
   }
 });
 
+/**
+ * Liste **complète** des packs mascotte (brouillons compris) — une seule liste, sans
+ * notion de carte : un pack est un objet global de la visite (cf. migration
+ * `176_visit_mascot_packs_drop_map.sql`). Un éventuel `?map_id=` est ignoré.
+ */
 router.get('/mascot-packs', requirePermission('visit.manage'), async (req, res) => {
   try {
-    const mapId = await resolveVisitMapId(req.query.map_id);
-    if (!mapId) return res.status(400).json({ error: 'map_id requis' });
-    if (!(await mapExists(mapId))) return res.status(400).json({ error: 'Carte introuvable' });
     const rows = await queryAll(
-      `SELECT id, map_id, catalog_id, label, pack_json, is_published, created_at, updated_at, created_by
+      `SELECT id, catalog_id, label, pack_json, is_published, created_at, updated_at, created_by
        FROM visit_mascot_packs
-       WHERE map_id = ?
        ORDER BY updated_at DESC, id ASC`,
-      [mapId],
     );
     res.json({
-      map_id: mapId,
       packs: rows.map(serializeVisitMascotPackRow),
       allowed_catalog_ids: listVisitMascotCatalogTemplateIds(),
     });
@@ -403,23 +410,20 @@ router.get('/mascot-packs', requirePermission('visit.manage'), async (req, res) 
 
 router.post('/mascot-packs', requirePermission('visit.manage'), async (req, res) => {
   try {
-    const mapId = String(req.body.map_id || '').trim();
-    if (!mapId) return res.status(400).json({ error: 'map_id requis' });
-    if (!(await mapExists(mapId))) return res.status(400).json({ error: 'Carte introuvable' });
     const cloneFromPackId = String(req.body.clone_from_pack_id || '').trim();
     const cloneFromCatalogId = String(req.body.clone_from_catalog_id || '').trim();
     const packUuid = crypto.randomUUID();
     const catalogId = `srv-${packUuid}`;
-    const prefixesForNew = mascotPackAllowedFramesPrefixesForMap(mapId, packUuid);
+    const prefixesForNew = mascotPackAllowedFramesPrefixes(packUuid);
     let packObj = req.body.pack;
     let sourcePackIdForCopy = null;
 
     if (cloneFromPackId && /^[0-9a-f-]{36}$/i.test(cloneFromPackId)) {
       const src = await queryOne(
-        'SELECT id, pack_json FROM visit_mascot_packs WHERE id = ? AND map_id = ? LIMIT 1',
-        [cloneFromPackId, mapId],
+        'SELECT id, pack_json FROM visit_mascot_packs WHERE id = ? LIMIT 1',
+        [cloneFromPackId],
       );
-      if (!src) return res.status(404).json({ error: 'Pack source introuvable sur cette carte' });
+      if (!src) return res.status(404).json({ error: 'Pack source introuvable' });
       let parsed = {};
       try {
         parsed = JSON.parse(src.pack_json);
@@ -477,11 +481,10 @@ router.post('/mascot-packs', requirePermission('visit.manage'), async (req, res)
     const now = nowIso();
     const createdBy = await resolveVisitMascotPackCreatedBy(req.auth);
     await execute(
-      `INSERT INTO visit_mascot_packs (id, map_id, catalog_id, label, pack_json, is_published, created_at, updated_at, created_by)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO visit_mascot_packs (id, catalog_id, label, pack_json, is_published, created_at, updated_at, created_by)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         packUuid,
-        mapId,
         catalogId,
         label,
         JSON.stringify(validated.pack),
@@ -512,11 +515,6 @@ router.put('/mascot-packs/:id', requirePermission('visit.manage'), async (req, r
       packId,
     ]);
     if (!exists) return res.status(404).json({ error: 'Pack introuvable' });
-    const mapId = String(req.body.map_id || exists.map_id).trim();
-    if (!(await mapExists(mapId))) return res.status(400).json({ error: 'Carte introuvable' });
-    if (mapId !== exists.map_id) {
-      return res.status(400).json({ error: 'Changer de carte non supporté pour ce pack' });
-    }
     const label =
       req.body.label !== undefined
         ? String(req.body.label || '')
@@ -533,7 +531,7 @@ router.put('/mascot-packs/:id', requirePermission('visit.manage'), async (req, r
     let packJson = exists.pack_json;
     if (req.body.pack !== undefined) {
       const validated = await validateMascotPackForDb(req.body.pack, {
-        allowedFramesBasePrefixes: mascotPackAllowedFramesPrefixesForMap(mapId, packId),
+        allowedFramesBasePrefixes: mascotPackAllowedFramesPrefixes(packId),
       });
       if (validated.moduleError) {
         logRouteError(validated.moduleError, req, 'visit_mascot_packs: chargement mascotPack.js');
@@ -588,7 +586,6 @@ router.get('/mascot-packs/:id/export.zip', requirePermission('visit.manage'), as
     const built = buildVisitExportArchive({
       packRow: row,
       packJson,
-      mapId: row.map_id,
       unified,
     });
     const zipBuffer = buildMascotPackZipBuffer({
@@ -680,11 +677,8 @@ router.post(
   contentLibraryUploadMiddleware,
   async (req, res) => {
     try {
-      const mapId = String(req.body?.map_id || '').trim();
       const mode = String(req.body?.mode || 'create').trim();
       const targetPackId = String(req.body?.target_pack_id || '').trim();
-      if (!mapId) return res.status(400).json({ error: 'map_id requis' });
-      if (!(await mapExists(mapId))) return res.status(400).json({ error: 'Carte introuvable' });
       if (mode !== 'create' && mode !== 'replace') {
         return res.status(400).json({ error: 'mode invalide (create ou replace)' });
       }
@@ -711,9 +705,6 @@ router.post(
           targetPackId,
         ]);
         if (!existingRow) return res.status(404).json({ error: 'Pack cible introuvable' });
-        if (String(existingRow.map_id) !== mapId) {
-          return res.status(400).json({ error: 'Le pack cible appartient à une autre carte' });
-        }
         packUuid = targetPackId;
         catalogId = existingRow.catalog_id;
       } else {
@@ -724,7 +715,7 @@ router.post(
       const serverPack = rewriteVisitPackForServerImport(parsed.pack, packUuid);
       serverPack.id = catalogId;
       const validated = await validateMascotPackForDb(serverPack, {
-        allowedFramesBasePrefixes: mascotPackAllowedFramesPrefixesForMap(mapId, packUuid),
+        allowedFramesBasePrefixes: mascotPackAllowedFramesPrefixes(packUuid),
         // Import souple : crée les comportements personnalisés implicites (états non déclarés).
         autoDeclareCustomStates: true,
       });
@@ -768,11 +759,10 @@ router.post(
         );
       } else {
         await execute(
-          `INSERT INTO visit_mascot_packs (id, map_id, catalog_id, label, pack_json, is_published, created_at, updated_at, created_by)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO visit_mascot_packs (id, catalog_id, label, pack_json, is_published, created_at, updated_at, created_by)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             packUuid,
-            mapId,
             catalogId,
             label,
             JSON.stringify(validated.pack),
@@ -975,9 +965,9 @@ router.get('/mascot-assets', requirePermission('visit.manage'), async (req, res)
     }));
 
     const packRows = await queryAll(
-      `SELECT id, map_id, catalog_id, label
+      `SELECT id, catalog_id, label
          FROM visit_mascot_packs
-         ORDER BY map_id ASC, updated_at DESC, id ASC`,
+         ORDER BY updated_at DESC, id ASC`,
     );
     const packAssets = [];
     for (const row of packRows) {
@@ -986,7 +976,6 @@ router.get('/mascot-assets', requirePermission('visit.manage'), async (req, res)
         packAssets.push({
           id: `pack:${row.id}:${filename}`,
           source: 'pack',
-          map_id: row.map_id,
           pack_id: row.id,
           pack_catalog_id: row.catalog_id,
           pack_label: row.label,
@@ -997,16 +986,15 @@ router.get('/mascot-assets', requirePermission('visit.manage'), async (req, res)
     }
 
     const libraryRows = await queryAll(
-      `SELECT map_id, filename
+      `SELECT filename
          FROM visit_mascot_sprite_library
-         ORDER BY map_id ASC, filename ASC`,
+         ORDER BY filename ASC`,
     );
     const libraryAssets = libraryRows.map((row) => ({
-      id: `library:${row.map_id}:${row.filename}`,
+      id: `library:${row.filename}`,
       source: 'library',
-      map_id: row.map_id,
       filename: row.filename,
-      url: `/api/visit/mascot-sprite-library/${row.map_id}/assets/${encodeURIComponent(row.filename)}`,
+      url: visitMascotSpriteLibraryAssetUrl(row.filename),
     }));
 
     const assets = [...publicAssets, ...packAssets, ...libraryAssets];
@@ -1046,76 +1034,52 @@ router.delete('/mascot-assets/public', requirePermission('visit.manage'), async 
   }
 });
 
-router.get('/mascot-sprite-library/:mapId/assets/:filename', async (req, res) => {
+/**
+ * PNG de la bibliothèque partagée — **public si la ligne existe** (les packs publiés
+ * référencent ces URLs). Aucun contrôle de rôle : seuls les profs peuvent créer une
+ * entrée, la protection tient à cela et à la discrétion des URLs.
+ */
+router.get('/mascot-sprite-library/assets/:filename', async (req, res) => {
+  return serveVisitMascotSpriteLibraryFile(req, res, req.params.filename);
+});
+
+/**
+ * Compatibilité : URL historique par carte
+ * (`/api/visit/mascot-sprite-library/<map_id>/assets/<fichier>`) référencée dans le
+ * `framesBase` des packs créés avant la migration `176_visit_mascot_packs_drop_map.sql`.
+ * Le segment carte est ignoré : seul le nom de fichier compte désormais.
+ */
+router.get('/mascot-sprite-library/:legacyMapId/assets/:filename', async (req, res) => {
+  return serveVisitMascotSpriteLibraryFile(req, res, req.params.filename);
+});
+
+router.get('/mascot-sprite-library/assets', requirePermission('visit.manage'), async (req, res) => {
   try {
-    const mapId = String(req.params.mapId || '').trim();
-    const filename = sanitizeMascotPackAssetFilename(req.params.filename);
-    if (!visitMascotSpriteLibraryRelativeDir(mapId) || !filename) {
-      return res.status(400).json({ error: 'Paramètres invalides' });
-    }
-    if (!(await mapExists(mapId))) return res.status(404).json({ error: 'Carte introuvable' });
-    const row = await queryOne(
-      'SELECT id FROM visit_mascot_sprite_library WHERE map_id = ? AND filename = ? LIMIT 1',
-      [mapId, filename],
+    const rows = await queryAll(
+      `SELECT id, filename, created_at
+         FROM visit_mascot_sprite_library
+         ORDER BY filename ASC`,
     );
-    if (!row) return res.status(404).json({ error: 'Fichier introuvable' });
-    const rel = `${visitMascotSpriteLibraryRelativeDir(mapId)}/${filename}`;
-    const abs = getAbsolutePath(rel);
-    if (!fs.existsSync(abs)) return res.status(404).json({ error: 'Fichier introuvable' });
-    return res.type('image/png').sendFile(abs, (err) => {
-      if (err && !res.headersSent) res.status(404).json({ error: 'Fichier introuvable' });
-    });
+    const assets = (rows || []).map((r) => ({
+      id: r.id,
+      filename: r.filename,
+      url: visitMascotSpriteLibraryAssetUrl(r.filename),
+      created_at: r.created_at,
+    }));
+    res.json({ assets });
   } catch (err) {
     logRouteError(err, req);
     const mapped = mapVisitMascotSpriteLibSqlError(err);
     if (mapped) return jsonVisitMascotPackError(res, req, mapped.status, mapped.body);
-    return res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });
+    res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });
   }
 });
 
-router.get(
-  '/mascot-sprite-library/:mapId/assets',
-  requirePermission('visit.manage'),
-  async (req, res) => {
-    try {
-      const mapId = String(req.params.mapId || '').trim();
-      if (!visitMascotSpriteLibraryRelativeDir(mapId)) {
-        return res.status(400).json({ error: 'map_id invalide' });
-      }
-      if (!(await mapExists(mapId))) return res.status(400).json({ error: 'Carte introuvable' });
-      const rows = await queryAll(
-        `SELECT id, filename, created_at
-         FROM visit_mascot_sprite_library
-         WHERE map_id = ?
-         ORDER BY filename ASC`,
-        [mapId],
-      );
-      const assets = (rows || []).map((r) => ({
-        id: r.id,
-        filename: r.filename,
-        url: `/api/visit/mascot-sprite-library/${mapId}/assets/${encodeURIComponent(r.filename)}`,
-        created_at: r.created_at,
-      }));
-      res.json({ map_id: mapId, assets });
-    } catch (err) {
-      logRouteError(err, req);
-      const mapped = mapVisitMascotSpriteLibSqlError(err);
-      if (mapped) return jsonVisitMascotPackError(res, req, mapped.status, mapped.body);
-      res.status(500).json({ error: 'Erreur serveur', requestId: req.requestId || null });
-    }
-  },
-);
-
 router.post(
-  '/mascot-sprite-library/:mapId/assets',
+  '/mascot-sprite-library/assets',
   requirePermission('visit.manage'),
   async (req, res) => {
     try {
-      const mapId = String(req.params.mapId || '').trim();
-      if (!visitMascotSpriteLibraryRelativeDir(mapId)) {
-        return res.status(400).json({ error: 'map_id invalide' });
-      }
-      if (!(await mapExists(mapId))) return res.status(400).json({ error: 'Carte introuvable' });
       const filename = sanitizeMascotPackAssetFilename(req.body.filename);
       const imageDataRaw = req.body.image_data;
       const imageData =
@@ -1123,8 +1087,11 @@ router.post(
       if (!filename || !imageData) {
         return res.status(400).json({ error: 'filename et image_data requis' });
       }
-      const relDir = visitMascotSpriteLibraryRelativeDir(mapId);
-      const rel = `${relDir}/${filename}`;
+      // Réécriture en place d'un fichier historique (sous-dossier carte) plutôt que
+      // création d'un doublon à plat : l'URL déjà référencée par les packs reste valide.
+      const rel =
+        resolveVisitMascotSpriteLibraryRelPath(filename) ||
+        `${visitMascotSpriteLibraryRelativeDir()}/${filename}`;
       try {
         saveBase64ToDisk(rel, imageData);
       } catch (fileErr) {
@@ -1134,8 +1101,8 @@ router.post(
       const now = nowIso();
       const createdBy = await resolveVisitMascotPackCreatedBy(req.auth);
       const existing = await queryOne(
-        'SELECT id FROM visit_mascot_sprite_library WHERE map_id = ? AND filename = ? LIMIT 1',
-        [mapId, filename],
+        'SELECT id FROM visit_mascot_sprite_library WHERE filename = ? LIMIT 1',
+        [filename],
       );
       if (existing) {
         await execute(
@@ -1145,13 +1112,12 @@ router.post(
       } else {
         const rowId = crypto.randomUUID();
         await execute(
-          `INSERT INTO visit_mascot_sprite_library (id, map_id, filename, created_at, created_by)
-           VALUES (?, ?, ?, ?, ?)`,
-          [rowId, mapId, filename, now, createdBy],
+          `INSERT INTO visit_mascot_sprite_library (id, filename, created_at, created_by)
+           VALUES (?, ?, ?, ?)`,
+          [rowId, filename, now, createdBy],
         );
       }
-      const publicUrl = `/api/visit/mascot-sprite-library/${mapId}/assets/${encodeURIComponent(filename)}`;
-      res.status(201).json({ ok: true, url: publicUrl, filename });
+      res.status(201).json({ ok: true, url: visitMascotSpriteLibraryAssetUrl(filename), filename });
     } catch (err) {
       logRouteError(err, req);
       const mapped = mapVisitMascotSpriteLibSqlError(err);
@@ -1162,22 +1128,19 @@ router.post(
 );
 
 router.delete(
-  '/mascot-sprite-library/:mapId/assets/:filename',
+  '/mascot-sprite-library/assets/:filename',
   requirePermission('visit.manage'),
   async (req, res) => {
     try {
-      const mapId = String(req.params.mapId || '').trim();
       const filename = sanitizeMascotPackAssetFilename(req.params.filename);
-      if (!visitMascotSpriteLibraryRelativeDir(mapId) || !filename) {
-        return res.status(400).json({ error: 'Paramètres invalides' });
-      }
+      if (!filename) return res.status(400).json({ error: 'Paramètres invalides' });
       const row = await queryOne(
-        'SELECT id FROM visit_mascot_sprite_library WHERE map_id = ? AND filename = ? LIMIT 1',
-        [mapId, filename],
+        'SELECT id FROM visit_mascot_sprite_library WHERE filename = ? LIMIT 1',
+        [filename],
       );
       if (!row) return res.status(404).json({ error: 'Entrée introuvable' });
-      const rel = `${visitMascotSpriteLibraryRelativeDir(mapId)}/${filename}`;
-      deleteFile(rel);
+      const rel = resolveVisitMascotSpriteLibraryRelPath(filename);
+      if (rel) deleteFile(rel);
       await execute('DELETE FROM visit_mascot_sprite_library WHERE id = ?', [row.id]);
       res.json({ ok: true });
     } catch (err) {
@@ -1190,40 +1153,36 @@ router.delete(
 );
 
 router.patch(
-  '/mascot-sprite-library/:mapId/assets/:filename',
+  '/mascot-sprite-library/assets/:filename',
   requirePermission('visit.manage'),
   async (req, res) => {
     try {
-      const mapId = String(req.params.mapId || '').trim();
       const filename = sanitizeMascotPackAssetFilename(req.params.filename);
       const newFilename = sanitizeMascotPackAssetFilename(req.body?.new_filename);
-      if (!visitMascotSpriteLibraryRelativeDir(mapId) || !filename || !newFilename) {
+      if (!filename || !newFilename) {
         return res.status(400).json({ error: 'Paramètres invalides' });
       }
       if (filename === newFilename) {
         return res.status(400).json({ error: 'Le nouveau nom est identique à l’actuel' });
       }
-      if (!(await mapExists(mapId))) return res.status(400).json({ error: 'Carte introuvable' });
       const row = await queryOne(
-        'SELECT id FROM visit_mascot_sprite_library WHERE map_id = ? AND filename = ? LIMIT 1',
-        [mapId, filename],
+        'SELECT id FROM visit_mascot_sprite_library WHERE filename = ? LIMIT 1',
+        [filename],
       );
       if (!row) return res.status(404).json({ error: 'Entrée introuvable' });
       const collision = await queryOne(
-        'SELECT id FROM visit_mascot_sprite_library WHERE map_id = ? AND filename = ? LIMIT 1',
-        [mapId, newFilename],
+        'SELECT id FROM visit_mascot_sprite_library WHERE filename = ? LIMIT 1',
+        [newFilename],
       );
       if (collision) {
         return res.status(409).json({ error: 'Un fichier porte déjà ce nom' });
       }
-      const relDir = visitMascotSpriteLibraryRelativeDir(mapId);
-      const relFrom = `${relDir}/${filename}`;
-      const relTo = `${relDir}/${newFilename}`;
+      const relFrom = resolveVisitMascotSpriteLibraryRelPath(filename);
+      if (!relFrom) return res.status(404).json({ error: 'Fichier introuvable' });
+      // Renommage **dans le dossier d'origine** (à plat, ou sous-dossier historique).
+      const relTo = `${relFrom.slice(0, relFrom.lastIndexOf('/'))}/${newFilename}`;
       const absFrom = getAbsolutePath(relFrom);
       const absTo = getAbsolutePath(relTo);
-      if (!fs.existsSync(absFrom)) {
-        return res.status(404).json({ error: 'Fichier introuvable' });
-      }
       if (fs.existsSync(absTo)) {
         return res.status(409).json({ error: 'Un fichier porte déjà ce nom' });
       }
@@ -1232,11 +1191,10 @@ router.patch(
         newFilename,
         row.id,
       ]);
-      const publicUrl = `/api/visit/mascot-sprite-library/${mapId}/assets/${encodeURIComponent(newFilename)}`;
       res.json({
         ok: true,
         filename: newFilename,
-        url: publicUrl,
+        url: visitMascotSpriteLibraryAssetUrl(newFilename),
         previous_filename: filename,
       });
     } catch (err) {

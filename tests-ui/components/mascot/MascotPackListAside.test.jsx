@@ -5,7 +5,6 @@ import MascotPackListAside from '../../../src/components/mascot/MascotPackListAs
 
 function setup(extra = {}) {
   const props = {
-    mapTitle: 'Forêt',
     actionBusy: false,
     catalogModelOptions: [{ id: 'sprout', label: 'SPR0UT' }],
     selectedCatalogModelId: 'sprout',
@@ -40,7 +39,7 @@ function setup(extra = {}) {
 describe('MascotPackListAside', () => {
   test('liste vide : message d’invitation et bouton de brouillon', () => {
     const props = setup();
-    expect(screen.getByText(/Aucun pack pour la carte/)).toBeTruthy();
+    expect(screen.getByText(/Aucun pack pour l’instant/)).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Nouveau brouillon' }));
     expect(props.onNewDraft).toHaveBeenCalledTimes(1);
   });
@@ -61,9 +60,9 @@ describe('MascotPackListAside', () => {
     expect(props.onSelectPack).toHaveBeenCalledWith('p1');
   });
 
-  test('« Éditer sur cette carte » ouvre le modèle catalogue', () => {
+  test('« Éditer une copie » ouvre le modèle catalogue', () => {
     const props = setup();
-    fireEvent.click(screen.getByRole('button', { name: 'Éditer sur cette carte' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Éditer une copie' }));
     expect(props.onOpenCatalogModelForEdit).toHaveBeenCalledWith('sprout');
   });
 
@@ -72,13 +71,13 @@ describe('MascotPackListAside', () => {
       findPacksForCatalogModel: vi.fn(() => [
         {
           id: 'p1',
-          label: 'SPR0UT carte',
+          label: 'SPR0UT copie',
           catalog_id: 'srv-1',
           pack: { clonedFromCatalogId: 'sprout' },
         },
       ]),
     });
-    expect(screen.getByText(/Copie sur carte : SPR0UT carte/)).toBeTruthy();
+    expect(screen.getByText(/Copie existante : SPR0UT copie/)).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Éditer la copie' })).toBeTruthy();
   });
 
@@ -89,7 +88,7 @@ describe('MascotPackListAside', () => {
         { id: 'p2', label: 'B', pack: { clonedFromCatalogId: 'sprout' } },
       ]),
     });
-    expect(screen.getByText(/2 copies sur carte/)).toBeTruthy();
+    expect(screen.getByText(/2 copies/)).toBeTruthy();
   });
 
   test('pack sélectionné invalide : enregistrer et publier désactivés', () => {
