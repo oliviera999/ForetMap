@@ -39,7 +39,7 @@
     "map": {
       "title": "Aide carte",
       "items": [
-        { "text": "Commence par cliquer une zone ou un repère : la fiche te dit quoi observer et quoi y faire. C’est là que j’ai rangé l’essentiel." },
+        { "text": "Commence par cliquer une zone ou un repère : la fiche te dit quoi observer et quoi y faire. Tout part de là." },
         { "text": "Perdu ? + et − pour zoomer, ⊡ pour revenir à la vue complète. Tout le monde s’égare la première fois, moi le premier." },
         { "text": "Sur mobile, le cadenas 🔒 fige les gestes. Utile quand la carte part en promenade dès qu’on la touche." },
         { "textTeacher": "Mode Zone ou Repère pour construire le terrain, puis retour en mode Nav. Rester en mode Repère pendant qu’on navigue est la meilleure façon de semer des points partout sans le vouloir." }
@@ -51,15 +51,15 @@
         { "text": "Lis la consigne et regarde la carte liée avant de t’inscrire. Une tâche prise est une tâche que les autres ne prendront pas." },
         { "text": "Une fois le travail terminé, envoie un retour : deux phrases et une photo suffisent. Sans retour, ce que tu as fait n’existe que pour toi." },
         { "textTeacher": "Traite d’abord les tâches en attente de validation : quelqu’un attend de l’autre côté. Les statuts s’ajustent ensuite, à tête reposée." },
-        { "textTeacher": "Duplique les missions répétitives plutôt que de les retaper. Recopier est mon métier, pas le tien." }
+        { "textTeacher": "Duplique les missions répétitives plutôt que de les retaper. Autant garder ton temps pour le terrain." }
       ]
     },
     "plants": {
       "title": "Aide biodiversité",
       "items": [
         { "text": "Cherche un être vivant par son nom ou par son groupe — les deux mènent au même endroit." },
-        { "text": "Ouvre une fiche avant de partir : elle dit ce qu’il faut regarder, pas ce qu’il faut réciter." },
-        { "textTeacher": "C’est toi qui enrichis et corriges les fiches. Je les range et je les ressors ; le contenu vient de toi." }
+        { "text": "Ouvre une fiche avant de partir : elle dit ce qu’il faut regarder une fois sur place, pas ce qu’il faut réciter." },
+        { "textTeacher": "C’est toi qui enrichis et corriges les fiches. Moi je m’en sers dehors, et je repère vite celles qui manquent." }
       ]
     },
     "visit": {
@@ -85,7 +85,7 @@
         { "textTeacher": "« Membres » désigne qui appartient au groupe, et qui en est responsable. Un groupe sans responsable fonctionne, mais personne n’y répond." },
         { "textTeacher": "Le périmètre cartes et projets fixe la portée par défaut du groupe. Sans périmètre, il reste utilisable partout — ce n’est pas un oubli, c’est un choix." },
         { "textTeacher": "Ce découpage se retrouve dans Tâches, Stats et Forum : un groupe bien nommé se retrouve partout, un groupe mal nommé aussi." },
-        { "textTeacher": "Désactiver un groupe le retire des sélecteurs sans effacer son histoire. Je garde ce qui a été fait, même quand le groupe n’existe plus." }
+        { "textTeacher": "Désactiver un groupe le retire des sélecteurs sans effacer son histoire. Tout ce qui a été fait reste, même quand le groupe n’existe plus." }
       ]
     },
     "groupFilters": {
@@ -98,7 +98,7 @@
     }
   },
   "quickTips": {
-    "map": "Clique une zone ou un repère, puis ouvre « ? » si tu veux que je t’accompagne.",
+    "map": "Clique une zone ou un repère, puis ouvre « ? » si tu veux que je vienne avec toi.",
     "tasks": "Filtre par carte ou par groupe, puis traite les retours en attente : quelqu’un attend de l’autre côté.",
     "visit": "Coche les lieux au fur et à mesure — je tiens le compte pendant que tu marches."
   },

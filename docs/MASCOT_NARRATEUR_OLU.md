@@ -32,14 +32,14 @@
 
 ## 1. Décisions arrêtées (lot 0)
 
-| Décision                 | Choix                                                                                                                                                        |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Voix**                 | **OLU narrateur unique.** L'aide et le récit ont une seule voix. Les autres mascottes restent compagnons de carte/visite.                                    |
-| **Personne**             | **Première personne** (« je »), tutoiement de l'interlocuteur (aligné sur le corpus actuel).                                                                 |
-| **Personnalité**         | Bienveillante mais lucide, sage, humoristique — **« un copiste cool »**. Capable de porter des messages lourds de sens sans les édulcorer ni s'y appesantir. |
-| **Corpus**               | **Réécriture intégrale** de l'aide et des parcours à la première personne, en lot séparé du lot technique. Les tooltips restent neutres (cf. §7.3).          |
-| **Périmètre**            | **ForetMap + GL**, même personnage.                                                                                                                          |
-| **Stockage des visuels** | **Studio prof / base de données** (pas d'assets versionnés en dur). Voir l'arbitrage majeur en §5.1.                                                         |
+| Décision                 | Choix                                                                                                                                                                                                                                                                                       |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Voix**                 | **OLU narrateur unique.** L'aide et le récit ont une seule voix. Les autres mascottes restent compagnons de carte/visite.                                                                                                                                                                   |
+| **Personne**             | **Première personne** (« je »), tutoiement de l'interlocuteur (aligné sur le corpus actuel).                                                                                                                                                                                                |
+| **Personnalité**         | **Jeune explorateur** : curieux, motivé, plein d'entrain — et lucide. Capable de porter des messages lourds de sens sans les édulcorer ni s'y appesantir. _(Révisé en cours de lot 4 : la formule initiale « copiste cool » contredisait le visuel arrêté au brief graphique — voir §2.1.)_ |
+| **Corpus**               | **Réécriture intégrale** de l'aide et des parcours à la première personne, en lot séparé du lot technique. Les tooltips restent neutres (cf. §7.3).                                                                                                                                         |
+| **Périmètre**            | **ForetMap + GL**, même personnage.                                                                                                                                                                                                                                                         |
+| **Stockage des visuels** | **Studio prof / base de données** (pas d'assets versionnés en dur). Voir l'arbitrage majeur en §5.1.                                                                                                                                                                                        |
 
 ---
 
@@ -47,22 +47,41 @@
 
 ### 2.1 Qui est OLU
 
-OLU est un **copiste**. Il n'a pas écrit la forêt, ni le royaume : il les **recopie, annote et
-transmet**. C'est un observateur de longue date qui a vu passer beaucoup de saisons, qui connaît
-la valeur des choses et n'a plus besoin d'impressionner personne. Il n'est ni un assistant
-serviable ni un mentor solennel : il est **à côté** de l'utilisateur, pas au-dessus.
+OLU est un **jeune renard explorateur**. Le brief graphique
+([`MASCOT_OLU_BRIEF_VISUEL.md`](./MASCOT_OLU_BRIEF_VISUEL.md) §1) le fixe sans ambiguïté : sac à
+dos de toile, tapis de couchage sanglé, boussole de laiton, grandes oreilles dressées, yeux ronds
+très expressifs — et, pour l'expression `cherche`, « sourcils froncés par la curiosité et non par
+l'inquiétude ». C'est quelqu'un qui **arpente** le site, y retourne sans se lasser, remarque ce
+que les autres traversent sans voir, et a envie de le montrer.
 
-Cette posture résout élégamment la contrainte du corpus : un copiste **présente** ce qu'il a noté.
-Il peut donc dire « je » sans jamais s'attribuer l'autorité du contenu.
+Il est **curieux, motivé, plein d'entrain**. Ce n'est pas pour autant un naïf : il observe
+finement, tire des conclusions justes et dit les choses telles qu'elles sont. Enthousiaste ne veut
+pas dire bête — c'est la ligne de crête de cette voix.
+
+Il n'est ni un assistant serviable ni un mentor solennel : il est **à côté** de l'utilisateur, pas
+au-dessus. Il connaît le terrain mieux que lui et l'y emmène, sans jamais faire la leçon.
+
+> ⚠️ **Révision en cours de lot 4.** Le lot 0 avait retenu la figure du **copiste** — un observateur
+> âgé qui recopie et transmet. Le visuel produit ensuite montre un jeune explorateur, et le corpus
+> écrit sur la première hypothèse sonnait faux dès qu'on le lisait à côté du portrait. La voix a
+> donc été refondue. Les tournures scribales (« j'ai recopié », « mon herbier », « mes vieux
+> yeux », « recopier est mon métier ») ont toutes été retirées du corpus : elles sont l'anti-patron
+> le plus visible de cette charte.
 
 ### 2.2 Les quatre traits, et ce qu'ils excluent
 
-| Trait            | Ce que ça donne                                                                     | Ce que ça exclut                                                              |
-| ---------------- | ----------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| **Bienveillant** | Ne juge jamais l'erreur ; propose toujours une porte de sortie.                     | Pas de flatterie (« Bravo ! Excellent ! »), pas d'infantilisation.            |
-| **Lucide**       | Nomme les choses telles qu'elles sont, y compris quand c'est inconfortable.         | Pas d'optimisme de façade, pas de « tout va bien » quand non.                 |
-| **Sage**         | Va à l'essentiel ; sait se taire. Une phrase juste plutôt que trois approximatives. | Pas de sentences, pas de proverbes, pas de ton oraculaire.                    |
-| **Humoristique** | Ironie douce, autodérision, décalage. L'humour désamorce, il ne détourne pas.       | Pas de blague à chaque phrase, pas de private joke, pas de jeu de mots forcé. |
+| Trait            | Ce que ça donne                                                                                                  | Ce que ça exclut                                                              |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| **Bienveillant** | Ne juge jamais l'erreur ; propose toujours une porte de sortie.                                                  | Pas de flatterie (« Bravo ! Excellent ! »), pas d'infantilisation.            |
+| **Lucide**       | Nomme les choses telles qu'elles sont, y compris quand c'est inconfortable.                                      | Pas d'optimisme de façade, pas de « tout va bien » quand non.                 |
+| **Curieux**      | S'intéresse pour de bon ; remarque le détail et le partage. Il pose des questions au monde, pas à l'utilisateur. | Pas de curiosité feinte, pas de « tu ne devineras jamais ».                   |
+| **Enthousiaste** | De l'élan et de l'envie d'y aller. Il donne envie de sortir voir.                                                | Pas d'excitation permanente, pas de flot d'exclamations, pas de survente.     |
+| **Humoristique** | Ironie douce, autodérision, décalage. L'humour désamorce, il ne détourne pas.                                    | Pas de blague à chaque phrase, pas de private joke, pas de jeu de mots forcé. |
+
+**L'enthousiasme ne dispense pas de la justesse.** Un personnage jeune et motivé qui dirait des
+approximations serait pire qu'un personnage neutre : il rendrait l'aide moins fiable tout en
+occupant plus de place. OLU va à l'essentiel — une phrase juste plutôt que trois approximatives —
+et c'est sa curiosité, pas son volume, qui porte l'élan.
 
 ### 2.3 Porter la pesanteur — la règle des trois temps
 
@@ -87,8 +106,10 @@ devient moralisateur — exactement ce qu'on cherche à éviter.
 ### 2.4 Registre concret
 
 - **Longueur** : 1 à 3 phrases par bulle. Le texte du corpus actuel est déjà court, on ne l'allonge pas.
-- **Ponctuation** : point d'exclamation **rare** (≤ 1 par parcours). Le tiret cadratin et la
-  parenthèse portent l'ironie mieux que l'exclamation.
+- **Ponctuation** : point d'exclamation **rare** (≤ 1 par parcours, vérifié par test). L'entrain
+  passe par les verbes et le rythme, pas par la ponctuation — un corpus criblé d'exclamations lit
+  comme de la publicité, pas comme quelqu'un de motivé. Le tiret cadratin et la parenthèse portent
+  l'ironie mieux que l'exclamation.
 - **Emoji** : **aucun dans les textes d'OLU.** L'expression passe par le portrait (§4.3). Les
   emoji décoratifs de l'interface existante (`💡` en préfixe de panneau, `▶`) ne sont pas concernés.
 - **Terminologie** : respecter `getRoleTerms()` ([`src/utils/n3-terminology.js`](../src/utils/n3-terminology.js)) —
@@ -100,12 +121,12 @@ devient moralisateur — exactement ce qu'on cherche à éviter.
 
 Tirés du corpus réel, pour caler le ton :
 
-| Source                                         | Actuel                                                                                                   | Voix OLU                                                                                                                                 |
-| ---------------------------------------------- | -------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `DISCOVERY_TOURS.map` étape 1                  | « Bienvenue sur la carte ! C'est ici que tu explores les zones et les repères du verger-forêt. »         | « Voilà la carte. J'ai recopié tout ce que j'ai pu du verger-forêt — à toi d'aller vérifier si je n'ai rien oublié. »                    |
-| `DISCOVERY_TOURS.map` étape « barre d'outils » | « Zoom, étiquettes et gestes tactiles se règlent ici pour adapter la carte à ton écran. »                | « Zoom, étiquettes, gestes : je règle ça ici quand mes vieux yeux fatiguent. Les tiens sont sans doute meilleurs, mais l'option reste. » |
-| `RELAUNCH_STEP`                                | « Besoin d'un rappel ? Ce bouton « ? » rouvre l'aide et permet de relancer cette visite quand tu veux. » | « Si tu m'oublies, ce « ? » me rappelle. Je ne me vexe pas — j'ai l'habitude qu'on relise deux fois. »                                   |
-| `HELP_TOOLTIPS.header.logout`                  | « Quitter ForetMap proprement. »                                                                         | _(inchangé — les tooltips restent neutres, cf. §7.3)_                                                                                    |
+| Source                                         | Actuel                                                                                                   | Voix OLU                                                                                                                                                    |
+| ---------------------------------------------- | -------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DISCOVERY_TOURS.map` étape 1                  | « Bienvenue sur la carte ! C'est ici que tu explores les zones et les repères du verger-forêt. »         | « Voilà la carte. J'ai déjà arpenté tout ça et il me reste des coins entiers à explorer — viens, je te montre ! »                                           |
+| `DISCOVERY_TOURS.map` étape « barre d'outils » | « Zoom, étiquettes et gestes tactiles se règlent ici pour adapter la carte à ton écran. »                | « Zoom, étiquettes, gestes : c'est ici que je règle ma vue avant de partir. Un coup de zoom et on repère des choses qu'on avait traversées sans les voir. » |
+| `RELAUNCH_STEP`                                | « Besoin d'un rappel ? Ce bouton « ? » rouvre l'aide et permet de relancer cette visite quand tu veux. » | « Si tu me perds en route, ce « ? » me rappelle. Je reviens toujours — c'est un peu ma spécialité. »                                                        |
+| `HELP_TOOLTIPS.header.logout`                  | « Quitter ForetMap proprement. »                                                                         | _(inchangé — les tooltips restent neutres, cf. §7.3)_                                                                                                       |
 
 ### 2.6 Ce qu'OLU ne dit jamais
 
@@ -114,6 +135,9 @@ Tirés du corpus réel, pour caler le ton :
 - Il ne commente pas ses propres blagues.
 - Il ne parle pas de lui plus que du contenu.
 - Il ne dit jamais « n'hésite pas à… ».
+- **Il ne se présente jamais comme un copiste ou un scribe** : il n'a pas « recopié » la forêt, il
+  l'a parcourue. Pas de « mon herbier », pas de « mes vieux yeux », pas de « je note, je ne devine
+  pas » — ces tournures viennent d'une première version de la charte et contredisent son visuel.
 
 ---
 
@@ -472,6 +496,11 @@ Réécrits à la première personne : les **21 étapes** de `DISCOVERY_TOURS` (`
 et les **3 `quickTips`**. Inchangés, conformément au §7.3 : les 21 infobulles, les `mapCanvasHints`,
 les `realtime`, et les 4 libellés de `chrome` — un bouton « Fermer » ne parle pas.
 
+> **Refonte du ton en fin de lot.** Le corpus a d'abord été écrit sur la figure du **copiste**
+> retenue au lot 0, puis **entièrement repris** à la voix du jeune explorateur du brief graphique
+> (§2.1). Ce sont les mêmes textes, mêmes longueurs et mêmes garde-fous ; seule la personnalité
+> qui les porte a changé.
+
 Trois points d'écriture qui ont demandé un arbitrage :
 
 - **Le miroir est désormais identique au caractère près.** `help.default.json` et `HELP_PANELS`
@@ -484,7 +513,9 @@ Trois points d'écriture qui ont demandé un arbitrage :
 - **Cinq passages « lourds » sur treize parcours**, portant l'expression `grave` : carte (ce qu'on
   lègue), tâches (une tâche prise et jamais faite), biodiversité (le noyer et ses quarante ans),
   réseau trophique (retirer un fil de la toile), carnet (le banal d'aujourd'hui). Les huit autres
-  parcours restent au registre courant : la règle du §2.3 est un plafond, pas un quota.
+  parcours restent au registre courant : la règle du §2.3 est un plafond, pas un quota. Chez un
+  personnage enthousiaste, ces passages se disent en **émerveillement** plutôt qu'en gravité de
+  vieux sage — « c'est ce qui me sidère le plus ici », « je suis resté planté devant ».
 
 ### 6ter.2 L'édition des parcours — §11.4 tranché dans l'autre sens
 
@@ -587,8 +618,13 @@ Même raisonnement pour `mapCanvasHints` (hints de tracé, contextuels et brefs)
 ### 8.1 Pourquoi OLU y a sa place
 
 « Copiste » n'est pas un habillage plaqué sur GL : c'est le métier même de l'univers. GL est
-construit autour de **feuillets**, de lore, de chapitres et d'un carnet — un copiste y est chez
-lui sans qu'on force quoi que ce soit. C'est le point fort de ce choix de personnalité.
+construit autour de **feuillets**, de lore, de chapitres et d'un carnet — un explorateur qui note
+ce qu'il découvre y est chez lui sans qu'on force quoi que ce soit. C'est le point fort de ce
+choix de personnalité.
+
+> Le §8.1 parlait initialement du **copiste** ; l'argument tient à l'identique pour l'explorateur,
+> puisqu'il repose sur le carnet et la découverte, pas sur l'âge du personnage. À ne pas confondre
+> avec le type de feuillet `copiste` du lore GL, qui reste ce qu'il est.
 
 ### 8.2 Isolement GL — ce qui est permis et ce qui ne l'est pas
 
@@ -610,7 +646,7 @@ composants, **deux configurations**. C'est le coût de l'isolement, et il est as
 
 | Fichier                                                               | Nature                                                                                                                                                                 |
 | --------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [`GLFeuilletPopover.jsx`](../src/gl/components/GLFeuilletPopover.jsx) | Cible **n°1** — c'est le feuillet, le terrain naturel du copiste                                                                                                       |
+| [`GLFeuilletPopover.jsx`](../src/gl/components/GLFeuilletPopover.jsx) | Cible **n°1** — c'est le feuillet, le terrain naturel du carnet d'exploration                                                                                          |
 | [`GLTabHelpPanel.jsx`](../src/gl/components/GLTabHelpPanel.jsx)       | Portrait `face` en en-tête                                                                                                                                             |
 | [`useGlHelpContent.js`](../src/gl/hooks/useGlHelpContent.js)          | Corpus d'aide GL par onglet (~19 onglets listés dans `GLHelpContentAdminPanel`)                                                                                        |
 | [`GLIntroOverlay.jsx`](../src/gl/components/GLIntroOverlay.jsx)       | ⚠️ **iframe statique** (`/gl/intro/index.html`) — hors React. Modifier l'intro suppose de toucher l'asset statique, pas le composant. **Sortir du périmètre initial.** |

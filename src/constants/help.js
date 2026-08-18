@@ -66,7 +66,7 @@ const HELP_PANELS = {
     title: 'Aide carte',
     items: [
       {
-        text: 'Commence par cliquer une zone ou un repère : la fiche te dit quoi observer et quoi y faire. C’est là que j’ai rangé l’essentiel.',
+        text: 'Commence par cliquer une zone ou un repère : la fiche te dit quoi observer et quoi y faire. Tout part de là.',
       },
       {
         text: 'Perdu ? + et − pour zoomer, ⊡ pour revenir à la vue complète. Tout le monde s’égare la première fois, moi le premier.',
@@ -95,7 +95,7 @@ const HELP_PANELS = {
       },
       {
         textTeacher:
-          'Duplique les missions répétitives plutôt que de les retaper. Recopier est mon métier, pas le tien.',
+          'Duplique les missions répétitives plutôt que de les retaper. Autant garder ton temps pour le terrain.',
       },
     ],
   },
@@ -106,11 +106,11 @@ const HELP_PANELS = {
         text: 'Cherche un être vivant par son nom ou par son groupe — les deux mènent au même endroit.',
       },
       {
-        text: 'Ouvre une fiche avant de partir : elle dit ce qu’il faut regarder, pas ce qu’il faut réciter.',
+        text: 'Ouvre une fiche avant de partir : elle dit ce qu’il faut regarder une fois sur place, pas ce qu’il faut réciter.',
       },
       {
         textTeacher:
-          'C’est toi qui enrichis et corriges les fiches. Je les range et je les ressors ; le contenu vient de toi.',
+          'C’est toi qui enrichis et corriges les fiches. Moi je m’en sers dehors, et je repère vite celles qui manquent.',
       },
     ],
   },
@@ -167,7 +167,7 @@ const HELP_PANELS = {
       },
       {
         textTeacher:
-          'Désactiver un groupe le retire des sélecteurs sans effacer son histoire. Je garde ce qui a été fait, même quand le groupe n’existe plus.',
+          'Désactiver un groupe le retire des sélecteurs sans effacer son histoire. Tout ce qui a été fait reste, même quand le groupe n’existe plus.',
       },
     ],
   },

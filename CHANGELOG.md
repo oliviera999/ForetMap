@@ -10,8 +10,9 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 ### ForetMap — OLU parle enfin à la première personne (lot 4), et ses visites guidées deviennent éditables
 
 **Le corpus.** Les 21 étapes des 13 visites guidées, les 7 panneaux d'aide et les 3 astuces sont
-réécrits à la voix d'OLU : un copiste qui dit « je », tutoie, tient en une à trois phrases et
-n'emploie aucun emoji — l'expression passe par le portrait posé au lot 3. Les infobulles, les
+réécrits à la voix d'OLU : le **jeune renard explorateur** du brief graphique — curieux, motivé,
+plein d'entrain sans être niais. Il dit « je », tutoie, tient en une à trois phrases et n'emploie
+aucun emoji — l'expression passe par le portrait posé au lot 3. Les infobulles, les
 bandeaux de tracé et les indicateurs temps réel restent au registre fonctionnel : on les lit la
 main déjà sur le bouton, il n'y a pas de place pour une voix.
 
@@ -24,6 +25,12 @@ main déjà sur le bouton, il n'y a pas de place pour une voix.
 - **Cinq passages « lourds » sur treize parcours**, portant l'expression `grave`. La règle d'un
   passage grave par parcours est un plafond, pas un quota : les huit autres restent au registre
   courant, faute de quoi le ton devient moralisateur.
+- **Le personnage a été révisé en fin de lot.** La charte du lot 0 décrivait un « copiste cool » —
+  un observateur âgé qui recopie et transmet. Le brief graphique montre tout autre chose : un jeune
+  renard explorateur, sac à dos, boussole, « sourcils froncés par la curiosité et non par
+  l'inquiétude ». Le corpus écrit sur la première hypothèse sonnait faux à côté du portrait ; il a
+  été entièrement repris, et toutes les tournures scribales (« j'ai recopié », « mon herbier »,
+  « mes vieux yeux ») retirées. `docs/MASCOT_NARRATEUR_OLU.md` §2 et la doc de référence suivent.
 - Nouveau test de non-régression du corpus (`tests/help-corpus-olu.test.js`) : aucun emoji dans les
   textes de parcours, au plus un point d'exclamation par parcours, une à trois phrases par bulle,
   structure des étapes intacte, défauts d'aide valides au regard du schéma Zod.
