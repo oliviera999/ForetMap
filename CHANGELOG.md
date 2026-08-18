@@ -7,6 +7,34 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Documentation — audit complet de la base de données (août 2026)
+
+Nouveau document [`docs/AUDIT_BDD_2026-08.md`](docs/AUDIT_BDD_2026-08.md) : audit de la
+base de production `oliviera_foretmap5` (135 tables, 19 460 lignes, 176 clés étrangères)
+confrontée au schéma, aux 171 migrations et au code applicatif. **Aucun comportement ni
+aucune donnée modifiés** — le document constate, chiffre et propose ; il ne corrige rien.
+
+Trois constats critiques, chacun avec sa requête de vérification :
+
+- **Les vues `v_food_web` et `v_zone_inventory` lisent une autre base de données**
+  (`oliviera_foretmap` au lieu de `oliviera_foretmap5`) : `/api/food-web` écrit d'un côté
+  et relit de l'autre. Séquelle d'une copie de base — MariaDB fige le nom de la base dans
+  la définition d'une vue, et la migration 143 ne sera plus rejouée.
+- **`role_pin_secrets` et `elevation_audit`, supprimées par la migration 164, sont
+  recréées à chaque démarrage** parce que `sql/schema_foretmap.sql` les déclare encore et
+  qu'`initSchema()` s'exécute avant les migrations.
+- **Le calage GPS de la carte « forêt comestible » est géométriquement impossible**
+  (échelles incohérentes d'un facteur 26 entre deux paires d'ancres) et la longitude des
+  deux cartes est probablement de signe inversé. La PR #310 corrige la *saisie* future,
+  pas les ancres déjà en base.
+
+Également documentés : 29 colonnes de date en `VARCHAR(32)` dont deux mélangent des
+formats incompatibles (15 paires de marqueurs et 30 paires de tutoriels triées à
+l'envers), deux orphelins RBAC sans clé étrangère, deux journaux d'audit qui divergent,
+3 230 lignes de tables de liaison remplacées mais jamais supprimées, et un `.gitignore`
+qui ne couvre pas le nom réel des dumps phpMyAdmin. Un plan d'action en 13 points, classé
+par rapport bénéfice/risque, clôt le document.
+
 ### ForetMap — les mascottes ne sont plus rattachées à une carte
 
 Le studio « Packs mascotte » affichait une liste **différente selon la carte affichée** :
