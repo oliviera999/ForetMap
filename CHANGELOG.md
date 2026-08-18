@@ -7,6 +7,32 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### ForetMap — calage GPS : saisie des coordonnées tolérante
+
+Les champs latitude/longitude du calage GPS d'un plan étaient des champs `number` : selon la
+locale du navigateur, le point décimal saisi était réaffiché en virgule (voire la valeur vidée),
+donnant l'impression que la correction n'était pas enregistrée. La saisie accepte désormais les
+formats usuels et n'est plus réécrite pendant la frappe.
+
+- **Nouvel utilitaire** — `src/utils/geoCoordParse.js` : lecture tolérante d'une coordonnée
+  (`parseGeoCoordinate`), d'une paire collée (`parseGeoPair`) et rendu canonique
+  (`formatGeoCoordinate`). Formats acceptés : séparateur décimal point **ou** virgule,
+  hémisphère en lettre (`48.8534 N`, `7.5898 O`, `W 7.5898`), degrés-minutes-secondes
+  (`48°51'12"N`) et degrés-minutes (`48° 51.2' N`), signes moins typographiques.
+  Les cas ambigus restent refusés : `48,85` est une coordonnée française, jamais une paire.
+- **Outil « Calage GPS » (prof)** — champs en `type="text"` + `inputMode="decimal"` : le texte
+  saisi est conservé tel quel pendant la frappe puis normalisé en degrés décimaux à la sortie du
+  champ. Coller une paire (`48.8534, 2.3488`) ou un lien Google Maps / OpenStreetMap dans l'un
+  des deux champs remplit latitude **et** longitude. Une valeur illisible ou hors bornes est
+  signalée sous la ligne (`aria-invalid`) sans effacer la saisie.
+- **API** — `PUT /api/settings/admin/maps/:id/georef` accepte une coordonnée envoyée en chaîne
+  (`"48,8534"`) et la normalise en nombre avant stockage, au lieu de répondre `400`.
+- **Tests** — `tests-ui/utils/geoCoordParse.test.js` (parsing), `tests/map-georef-anchors.test.js`
+  (validation/normalisation serveur, sans BDD), plus 3 scénarios ajoutés à
+  `tests-ui/components/MapGeorefPanel.test.jsx` et 1 à `tests/settings-maps-georef.test.js`.
+- **Documentation** — `docs/API.md` et `docs/reference/foretmap/carte-et-zones.md` (nouvelle
+  section « Comment saisir les coordonnées du calage »).
+
 ### ForetMap — les mascottes ne sont plus rattachées à une carte
 
 Le studio « Packs mascotte » affichait une liste **différente selon la carte affichée** :

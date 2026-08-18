@@ -2,25 +2,62 @@ import React, { useMemo, useRef, useState } from 'react';
 import { api } from '../../services/api';
 import { useGeolocation } from '../../hooks/useGeolocation.js';
 import { isValidAnchors, pctToGeo } from '../../utils/mapGeoTransform.js';
+import {
+  formatGeoCoordinate,
+  parseGeoCoordinate,
+  parseGeoPair,
+} from '../../utils/geoCoordParse.js';
 
-const EMPTY_POINT = { xp: null, yp: null, lat: null, lng: null };
+const EMPTY_POINT = { xp: null, yp: null, lat: '', lng: '' };
 const CALAGE_FIELDS = ['xp', 'yp', 'lat', 'lng'];
+
+/**
+ * État d'un point : `xp`/`yp` sont des nombres (posés au clic), `lat`/`lng` restent le
+ * **texte saisi** tant que l'utilisateur tape — il n'est réécrit qu'à la sortie du champ.
+ * Sans cela, une virgule décimale ou une saisie en cours seraient effacées à chaque frappe.
+ */
+function toPointState(anchor) {
+  return {
+    xp: Number.isFinite(anchor?.xp) ? anchor.xp : null,
+    yp: Number.isFinite(anchor?.yp) ? anchor.yp : null,
+    lat: formatGeoCoordinate(anchor?.lat),
+    lng: formatGeoCoordinate(anchor?.lng),
+  };
+}
 
 function toAnchorsArray(points) {
   return points.map((p) => ({
     xp: Number(p.xp),
     yp: Number(p.yp),
-    lat: Number(p.lat),
-    lng: Number(p.lng),
+    lat: parseGeoCoordinate(p.lat, 'lat'),
+    lng: parseGeoCoordinate(p.lng, 'lng'),
   }));
 }
 
 function isPointComplete(p) {
-  return [p.xp, p.yp, p.lat, p.lng].every((v) => v != null && Number.isFinite(Number(v)));
+  return (
+    Number.isFinite(Number(p.xp)) &&
+    p.xp != null &&
+    Number.isFinite(Number(p.yp)) &&
+    p.yp != null &&
+    parseGeoCoordinate(p.lat, 'lat') != null &&
+    parseGeoCoordinate(p.lng, 'lng') != null
+  );
 }
 
 function hasAnyCalibrationValue(points) {
-  return points.some((p) => CALAGE_FIELDS.some((field) => p[field] != null && p[field] !== ''));
+  return points.some((p) =>
+    CALAGE_FIELDS.some((field) => p[field] != null && String(p[field]).trim() !== ''),
+  );
+}
+
+/** Champ renseigné mais illisible (ou hors bornes) → message d'aide sous la ligne. */
+function coordFieldError(text, axis) {
+  if (text == null || String(text).trim() === '') return null;
+  if (parseGeoCoordinate(text, axis) != null) return null;
+  return axis === 'lat'
+    ? 'Latitude non reconnue (attendu : −90 à 90, ex. 48,8534 ou 48°51\'12"N)'
+    : 'Longitude non reconnue (attendu : −180 à 180, ex. 2,3488 ou 2°17\'40"E)';
 }
 
 /**
@@ -33,10 +70,9 @@ function hasAnyCalibrationValue(points) {
  */
 export function MapGeorefPanel({ map, imageUrl, busy = false, onSaved, onError }) {
   const initial = Array.isArray(map.georef) ? map.georef : [];
-  const [points, setPoints] = useState(() => {
-    const base = [0, 1, 2].map((i) => ({ ...EMPTY_POINT, ...(initial[i] || {}) }));
-    return base;
-  });
+  const [points, setPoints] = useState(() =>
+    [0, 1, 2].map((i) => (initial[i] ? toPointState(initial[i]) : { ...EMPTY_POINT })),
+  );
   const [gpsEnabled, setGpsEnabled] = useState(!!map.gps_enabled);
   const [activePoint, setActivePoint] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -75,6 +111,33 @@ export function MapGeorefPanel({ map, imageUrl, busy = false, onSaved, onError }
     setActivePoint(next >= 0 ? next : null);
   };
 
+  /**
+   * Saisie d'une coordonnée : le texte est conservé tel quel (virgule, DMS, saisie en
+   * cours). Si l'utilisateur colle une **paire** (« 48.8534, 2.3488 », un lien Google
+   * Maps…), les deux champs de la ligne sont renseignés d'un coup.
+   */
+  const handleCoordInput = (index, field, text) => {
+    const pair = parseGeoPair(text);
+    if (pair) {
+      updatePoint(index, {
+        lat: formatGeoCoordinate(pair.lat),
+        lng: formatGeoCoordinate(pair.lng),
+      });
+      return;
+    }
+    updatePoint(index, { [field]: text });
+  };
+
+  /** Sortie de champ : réaffichage canonique (degrés décimaux, point décimal). */
+  const handleCoordBlur = (index, field) => {
+    const raw = points[index]?.[field];
+    if (raw == null || String(raw).trim() === '') return;
+    const parsed = parseGeoCoordinate(raw, field);
+    if (parsed == null) return;
+    const normalized = formatGeoCoordinate(parsed);
+    if (normalized !== raw) updatePoint(index, { [field]: normalized });
+  };
+
   const applyMyPositionTo = (index) => {
     if (!geo.supported) {
       onError?.('Géolocalisation non disponible sur cet appareil.');
@@ -82,8 +145,8 @@ export function MapGeorefPanel({ map, imageUrl, busy = false, onSaved, onError }
     }
     if (geo.position) {
       updatePoint(index, {
-        lat: Number(geo.position.lat.toFixed(7)),
-        lng: Number(geo.position.lng.toFixed(7)),
+        lat: formatGeoCoordinate(geo.position.lat),
+        lng: formatGeoCoordinate(geo.position.lng),
       });
     } else {
       geo.start();
@@ -131,6 +194,13 @@ export function MapGeorefPanel({ map, imageUrl, busy = false, onSaved, onError }
         Cliquez directement sur le plan pour placer les 3 repères (point suivant auto-sélectionné),
         puis indiquez leurs coordonnées GPS. « Point N » re-cible un repère précis ; « Ma position »
         renseigne les coordonnées du terrain.
+      </p>
+      <p style={{ margin: '0 0 8px', fontSize: '.72rem', color: '#6b7280' }}>
+        Formats acceptés : point <em>ou</em> virgule décimale (<code>48.8534</code>,{' '}
+        <code>48,8534</code>), hémisphère (<code>48.8534 N</code>, <code>7.5898 O</code>) et
+        degrés-minutes-secondes (<code>48°51&apos;12&quot;N</code>). Vous pouvez aussi coller la
+        paire complète (<code>48.8534, 2.3488</code>) ou un lien Google Maps / OpenStreetMap dans
+        l&apos;un des deux champs : les deux se remplissent.
       </p>
 
       {imageUrl ? (
@@ -208,58 +278,77 @@ export function MapGeorefPanel({ map, imageUrl, busy = false, onSaved, onError }
       ) : null}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
-        {points.map((p, i) => (
-          <div key={i} style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-            <button
-              type="button"
-              className={`btn btn-sm ${armTarget === i ? 'btn-primary' : 'btn-secondary'}`}
-              onClick={() => setActivePoint(i)}
-              disabled={disabled}
-              style={{ minWidth: 76 }}
-              title={`Cibler le point ${i + 1} pour le (re)placer sur le plan`}
-            >
-              {armTarget === i ? `▶ Point ${i + 1}` : `Point ${i + 1}`}
-            </button>
-            <input
-              type="number"
-              step="any"
-              placeholder="latitude"
-              value={p.lat ?? ''}
-              onChange={(e) =>
-                updatePoint(i, { lat: e.target.value === '' ? null : Number(e.target.value) })
-              }
-              disabled={disabled}
-              style={{ width: 120 }}
-              aria-label={`Latitude point ${i + 1}`}
-            />
-            <input
-              type="number"
-              step="any"
-              placeholder="longitude"
-              value={p.lng ?? ''}
-              onChange={(e) =>
-                updatePoint(i, { lng: e.target.value === '' ? null : Number(e.target.value) })
-              }
-              disabled={disabled}
-              style={{ width: 120 }}
-              aria-label={`Longitude point ${i + 1}`}
-            />
-            {geo.supported ? (
-              <button
-                type="button"
-                className="btn btn-ghost btn-sm"
-                onClick={() => applyMyPositionTo(i)}
-                disabled={disabled}
-                title="Renseigner avec la position GPS actuelle"
-              >
-                📡 Ma position
-              </button>
-            ) : null}
-            <span style={{ fontSize: '.7rem', color: '#9ca3af' }}>
-              {p.xp != null ? `x${p.xp} y${p.yp}` : 'non placé'}
-            </span>
-          </div>
-        ))}
+        {points.map((p, i) => {
+          const latError = coordFieldError(p.lat, 'lat');
+          const lngError = coordFieldError(p.lng, 'lng');
+          return (
+            <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  className={`btn btn-sm ${armTarget === i ? 'btn-primary' : 'btn-secondary'}`}
+                  onClick={() => setActivePoint(i)}
+                  disabled={disabled}
+                  style={{ minWidth: 76 }}
+                  title={`Cibler le point ${i + 1} pour le (re)placer sur le plan`}
+                >
+                  {armTarget === i ? `▶ Point ${i + 1}` : `Point ${i + 1}`}
+                </button>
+                {/* `type="text"` volontaire : un champ `number` est reformaté par la locale du
+                    navigateur (le point saisi redevient une virgule) et vide sa valeur dès que
+                    la saisie ne colle pas au format attendu. */}
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  autoComplete="off"
+                  placeholder="latitude"
+                  value={p.lat ?? ''}
+                  onChange={(e) => handleCoordInput(i, 'lat', e.target.value)}
+                  onBlur={() => handleCoordBlur(i, 'lat')}
+                  disabled={disabled}
+                  style={{ width: 120, borderColor: latError ? '#dc2626' : undefined }}
+                  aria-label={`Latitude point ${i + 1}`}
+                  aria-invalid={latError ? 'true' : undefined}
+                />
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  autoComplete="off"
+                  placeholder="longitude"
+                  value={p.lng ?? ''}
+                  onChange={(e) => handleCoordInput(i, 'lng', e.target.value)}
+                  onBlur={() => handleCoordBlur(i, 'lng')}
+                  disabled={disabled}
+                  style={{ width: 120, borderColor: lngError ? '#dc2626' : undefined }}
+                  aria-label={`Longitude point ${i + 1}`}
+                  aria-invalid={lngError ? 'true' : undefined}
+                />
+                {geo.supported ? (
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => applyMyPositionTo(i)}
+                    disabled={disabled}
+                    title="Renseigner avec la position GPS actuelle"
+                  >
+                    📡 Ma position
+                  </button>
+                ) : null}
+                <span style={{ fontSize: '.7rem', color: '#9ca3af' }}>
+                  {p.xp != null ? `x${p.xp} y${p.yp}` : 'non placé'}
+                </span>
+              </div>
+              {latError || lngError ? (
+                <p
+                  role="alert"
+                  style={{ margin: '0 0 2px 82px', fontSize: '.7rem', color: '#dc2626' }}
+                >
+                  {latError || lngError}
+                </p>
+              ) : null}
+            </div>
+          );
+        })}
       </div>
 
       <label
