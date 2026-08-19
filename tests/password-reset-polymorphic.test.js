@@ -66,3 +66,22 @@ test('aucune clé étrangère ne contraint password_reset_tokens à `users`', as
     'la table est polymorphe : une FK y interdirait les jetons de joueurs GL',
   );
 });
+
+test("l'index qui ne portait que cette clé étrangère a disparu", async () => {
+  // `idx_password_reset_user (user_id)` n'existait que pour porter la FK de la 185.
+  // Une base fraîche ne l'a jamais eu (le schéma de référence ne le déclare plus) ; une
+  // base migrée le perd avec la 190. Sans quoi les deux schémas divergeraient.
+  const rows = await queryAll(
+    `SELECT DISTINCT INDEX_NAME AS name
+       FROM information_schema.STATISTICS
+      WHERE TABLE_SCHEMA = DATABASE()
+        AND TABLE_NAME = 'password_reset_tokens'
+        AND INDEX_NAME = 'idx_password_reset_user'`,
+  );
+  assert.deepStrictEqual(
+    rows.map((r) => String(r.name)),
+    [],
+    'index redondant avec idx_password_reset_lookup (user_type, user_id) — rejouer ' +
+      'migrations/190_password_reset_drop_redundant_user_index.sql',
+  );
+});

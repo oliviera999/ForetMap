@@ -1,0 +1,22 @@
+-- =====================================================================
+-- ForetMap — Retrait de l'index `idx_password_reset_user (user_id)`.
+--
+-- Cet index n'a jamais existé que pour porter `fk_password_reset_user`, la clé
+-- étrangère posée par la migration 185 et retirée par la 189 (`password_reset_tokens`
+-- est POLYMORPHE : `user_id` désigne `users.id` pour 'student' et 'teacher', mais
+-- `gl_players.id` pour 'gl_player' — cf. l'en-tête de la 189). La clé partie, l'index
+-- ne sert plus rien : aucune requête ne lit la table par `user_id` seul.
+--   * `lib/passwordReset.js`   -> lecture par `token_hash` (uq_password_reset_token_hash) ;
+--   * `lib/studentDeletion.js` -> purge par (user_type, user_id), couverte par
+--     `idx_password_reset_lookup (user_type, user_id)`.
+--
+-- Surtout, `sql/schema_foretmap.sql` ne le déclare plus depuis la 189 : sans ce DROP,
+-- une base migrée porte un index qu'une base fraîche n'a pas — exactement la dérive que
+-- le §3.3 de l'audit reproche par ailleurs.
+--
+-- Idempotent, et il le faut : selon la migration 189 appliquée (deux fichiers rivaux ont
+-- porté ce numéro le temps d'une journée), l'index peut déjà être tombé. Un DROP sur un
+-- index absent lève l'errno 1091, que le runner ignore.
+-- =====================================================================
+
+ALTER TABLE password_reset_tokens DROP INDEX idx_password_reset_user;
