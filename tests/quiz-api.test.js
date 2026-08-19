@@ -266,11 +266,17 @@ test('import écrit les liens glossaire dans RQL (origin=import) et pas dans qui
     'le lien glossaire doit exister dans resource_question_links avec origin=import',
   );
 
+  // L'ancienne table de jonction a été supprimée par la migration 186 (audit §4.5) :
+  // l'assertion « aucune écriture » devient « la table n'existe plus », plus forte.
   const legacy = await queryAll(
-    'SELECT 1 AS ok FROM quiz_question_glossary WHERE question_code = ?',
-    [GL_RQL_QUESTION_CODE],
+    `SELECT COUNT(*) AS n FROM information_schema.tables
+      WHERE table_schema = DATABASE() AND table_name = 'quiz_question_glossary'`,
   );
-  assert.strictEqual(legacy.length, 0, 'aucun lien ne doit être écrit dans quiz_question_glossary');
+  assert.strictEqual(
+    Number(legacy[0]?.n),
+    0,
+    'quiz_question_glossary doit avoir été supprimée (modèle unifié resource_question_links)',
+  );
 });
 
 test('non-régression : un lien glossaire origin=generated/approved survit à un ré-import', async () => {
