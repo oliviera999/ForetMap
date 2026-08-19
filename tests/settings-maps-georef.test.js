@@ -107,6 +107,30 @@ test('PUT /admin/maps/:id/georef conserve les ancres quand anchors est omis', as
   await execute('DELETE FROM maps WHERE id = ?', [id]);
 });
 
+test('PUT /admin/maps/:id/georef accepte des coordonnées envoyées en chaîne', async () => {
+  const token = await ensureAdminTeacherAuthToken();
+  const id = await createTempMap(token);
+  // Séparateur décimal virgule (saisie française) et nombres sous forme de chaîne.
+  const textual = [
+    { xp: '10', yp: '10', lat: '48,8534', lng: '2.3488' },
+    { xp: 90, yp: '12', lat: '48.8534', lng: '2,3588' },
+    { xp: '12', yp: 88, lat: '48,8434', lng: '2.3488' },
+  ];
+  const res = await request(app)
+    .put(`/api/settings/admin/maps/${id}/georef`)
+    .set('Authorization', `Bearer ${token}`)
+    .send({ anchors: textual, gps_enabled: true })
+    .expect(200);
+
+  assert.strictEqual(res.body.gps_enabled, true);
+  assert.strictEqual(res.body.georef.length, 3);
+  // Les ancres sont stockées en nombres, pas en chaînes.
+  assert.strictEqual(res.body.georef[0].lat, 48.8534);
+  assert.strictEqual(res.body.georef[1].lng, 2.3588);
+  assert.strictEqual(typeof res.body.georef[2].xp, 'number');
+  await execute('DELETE FROM maps WHERE id = ?', [id]);
+});
+
 test('PUT /admin/maps/:id/georef force gps_enabled=false sans ancres', async () => {
   const token = await ensureAdminTeacherAuthToken();
   const id = await createTempMap(token);

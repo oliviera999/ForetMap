@@ -266,7 +266,7 @@ test('import écrit les liens glossaire dans RQL (origin=import) et pas dans qui
     'le lien glossaire doit exister dans resource_question_links avec origin=import',
   );
 
-  // L'ancienne table de jonction a été supprimée par la migration 180 (audit §4.5) :
+  // L'ancienne table de jonction a été supprimée par la migration 186 (audit §4.5) :
   // l'assertion « aucune écriture » devient « la table n'existe plus », plus forte.
   const legacy = await queryAll(
     `SELECT COUNT(*) AS n FROM information_schema.tables

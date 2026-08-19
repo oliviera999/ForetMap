@@ -9,7 +9,7 @@
 // production, la production elle-même (audit docs/AUDIT_BDD_2026-08.md §4.1).
 //
 // Le test existant `gl-dead-views-dropped.test.js` vérifie que les vues EXISTENT ; celui-ci
-// vérifie CE QU'ELLES LISENT. La migration 177 est ce qui les remet d'aplomb.
+// vérifie CE QU'ELLES LISENT. La migration 183 est ce qui les remet d'aplomb.
 // Tests BDD partagée = exécution séquentielle.
 
 require('./helpers/setup');
@@ -45,7 +45,7 @@ test('aucune vue ne qualifie ses tables avec un nom de base', async () => {
   assert.deepStrictEqual(
     foreign,
     [],
-    `vue(s) lisant une autre base que ${currentDb} — rejouer migrations/177_views_recreate_in_current_schema.sql : ${foreign.join(', ')}`,
+    `vue(s) lisant une autre base que ${currentDb} — rejouer migrations/183_views_recreate_in_current_schema.sql : ${foreign.join(', ')}`,
   );
 });
 

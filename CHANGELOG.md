@@ -11,7 +11,7 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 Le plan d'action de [`docs/AUDIT_BDD_2026-08.md`](docs/AUDIT_BDD_2026-08.md) est appliqué,
 à l'exception du calage GPS (§3.1, relevé de terrain) et du passage des 29 colonnes de date
-en `DATETIME` (§3.2, lot dédié). Six migrations, 177 à 182, toutes idempotentes.
+en `DATETIME` (§3.2, lot dédié). Six migrations, 183 à 188, toutes idempotentes.
 
 **Ce qui ne peut plus se reproduire.** Trois classes de défauts sont fermées par un
 garde-fou, pas seulement réparées :
@@ -21,7 +21,7 @@ garde-fou, pas seulement réparées :
   historiques se rejouent sur une base neuve — c'est désormais `lib/legacySchemaCleanup.js`
   qui les retire, **après** les migrations, à chaque démarrage. Un test statique fait
   échouer la CI au prochain oubli du même genre.
-- Les vues SQL sont ramenées sur la base courante (migration 177), et un test interdit
+- Les vues SQL sont ramenées sur la base courante (migration 183), et un test interdit
   qu'une vue cite un autre schéma — c'est ce qui faisait qu'une copie de la base lisait la
   production.
 - Les tutoriels ne se dupliquent plus : le jeu de démarrage ne s'applique qu'à une base
@@ -84,6 +84,57 @@ qui divergent ; 3 230 lignes de tables de liaison remplacées mais jamais suppri
 (reprise vérifiée complète) ; un `.gitignore` qui ne couvre pas le nom de dump donné par
 `docs/LOCAL_DEV.md`. Un plan d'action en 13 points, classé par rapport bénéfice/risque,
 clôt le document.
+### GL — les ressources rattachées au mauvais chapitre
+
+Dans GL, une ressource (espèce, terme de glossaire, question de QCM, feuillet) n'est
+pas rangée « dans » un chapitre : son rattachement est **déduit des biomes** du
+chapitre. Quelques liens biome erronés suffisaient donc à faire remonter des centaines
+de ressources sous un chapitre de test ou de démonstration, et à les compter deux fois
+dans la vue d'ensemble admin des feuillets. En base, deux dérives cumulées : le
+chapitre de plateau « Toundra arctique » n'avait **aucun** biome (donc aucune espèce,
+aucun glossaire et un pool de QCM vide), tandis que le chapitre de démonstration
+`foret-magique` et un chapitre bac à sable portaient les biomes des vrais chapitres.
+
+- **Base de données** — migration **`177_gl_chapter_biomes_repair.sql`**, idempotente et
+  pilotée par la donnée (aucun identifiant en dur) : un chapitre de plateau **sans aucun**
+  biome reçoit ceux de son plateau (`gl_lore_plateaux`), et un chapitre **hors plateau**
+  perd les biomes déjà portés par un chapitre de plateau. Les paramétrages existants ne
+  sont jamais réécrits, et un chapitre hors plateau garde ses biomes qui lui sont propres.
+- **Aucun contenu n'est supprimé ni déplacé** : la migration ne touche que la table de
+  liaison `gl_chapter_biomes`. La suppression des chapitres fautifs a été écartée — les
+  clés étrangères vers `gl_chapters` sont en `ON DELETE CASCADE`, supprimer un chapitre
+  détruirait ses repères, ses zones et ses sortilèges au lieu de les rendre orphelins.
+- **Documentation** — `docs/reference/gl/chapitres-et-progression.md` explique désormais
+  que les biomes d'un chapitre décident de son contenu (et qu'un chapitre de test ne doit
+  porter aucun biome du voyage).
+- **Technique** — `splitSqlStatements` est exporté par `database.js` pour que les tests de
+  migration rejouent un fichier SQL avec le découpage exact du runner.
+
+### ForetMap — calage GPS : saisie des coordonnées tolérante
+
+Les champs latitude/longitude du calage GPS d'un plan étaient des champs `number` : selon la
+locale du navigateur, le point décimal saisi était réaffiché en virgule (voire la valeur vidée),
+donnant l'impression que la correction n'était pas enregistrée. La saisie accepte désormais les
+formats usuels et n'est plus réécrite pendant la frappe.
+
+- **Nouvel utilitaire** — `src/utils/geoCoordParse.js` : lecture tolérante d'une coordonnée
+  (`parseGeoCoordinate`), d'une paire collée (`parseGeoPair`) et rendu canonique
+  (`formatGeoCoordinate`). Formats acceptés : séparateur décimal point **ou** virgule,
+  hémisphère en lettre (`48.8534 N`, `7.5898 O`, `W 7.5898`), degrés-minutes-secondes
+  (`48°51'12"N`) et degrés-minutes (`48° 51.2' N`), signes moins typographiques.
+  Les cas ambigus restent refusés : `48,85` est une coordonnée française, jamais une paire.
+- **Outil « Calage GPS » (prof)** — champs en `type="text"` + `inputMode="decimal"` : le texte
+  saisi est conservé tel quel pendant la frappe puis normalisé en degrés décimaux à la sortie du
+  champ. Coller une paire (`48.8534, 2.3488`) ou un lien Google Maps / OpenStreetMap dans l'un
+  des deux champs remplit latitude **et** longitude. Une valeur illisible ou hors bornes est
+  signalée sous la ligne (`aria-invalid`) sans effacer la saisie.
+- **API** — `PUT /api/settings/admin/maps/:id/georef` accepte une coordonnée envoyée en chaîne
+  (`"48,8534"`) et la normalise en nombre avant stockage, au lieu de répondre `400`.
+- **Tests** — `tests-ui/utils/geoCoordParse.test.js` (parsing), `tests/map-georef-anchors.test.js`
+  (validation/normalisation serveur, sans BDD), plus 3 scénarios ajoutés à
+  `tests-ui/components/MapGeorefPanel.test.jsx` et 1 à `tests/settings-maps-georef.test.js`.
+- **Documentation** — `docs/API.md` et `docs/reference/foretmap/carte-et-zones.md` (nouvelle
+  section « Comment saisir les coordonnées du calage »).
 
 ### ForetMap — les mascottes ne sont plus rattachées à une carte
 

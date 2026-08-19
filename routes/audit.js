@@ -100,7 +100,7 @@ async function logAudit(action, targetType, targetId, details, options = {}) {
       // `occurred_at` en UTC_TIMESTAMP() et non NOW() : la colonne décrit le MÊME instant
       // que `created_at`, qui est de l'ISO-8601 UTC. Avec NOW() les deux divergeaient de
       // l'offset Europe/Paris (+1 h ou +2 h selon la saison) sur toutes les lignes.
-      // La migration 182 a recalé l'historique depuis `created_at`, qui fait foi.
+      // La migration 188 a recalé l'historique depuis `created_at`, qui fait foi.
       `INSERT INTO audit_log
         (action, target_type, target_id, details, actor_user_type, actor_user_id, result, created_at, occurred_at, payload_json)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, UTC_TIMESTAMP(), ?)`,

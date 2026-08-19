@@ -277,11 +277,17 @@ sont plus déclarées, elles restent bien supprimées). Le risque est donc **cir
 aujourd'hui**, mais il se reproduira au prochain `DROP TABLE` si le fichier de schéma
 n'est pas nettoyé dans le même lot.
 
-**Correction.** Retirer les trois déclarations de `sql/schema_foretmap.sql`, puis une
-migration `177_*` qui rejoue les deux `DROP TABLE IF EXISTS`. Ajouter à la CI un contrôle
+**Correction proposée.** Retirer les trois déclarations de `sql/schema_foretmap.sql`, puis
+une migration qui rejoue les deux `DROP TABLE IF EXISTS`. Ajouter à la CI un contrôle
 liant les deux fichiers : _aucun objet supprimé par une migration ne doit rester déclaré
 dans le schéma initial_ — c'est un test de cohérence de 20 lignes, et il ferme la classe
 entière de bugs.
+
+> **Ce n'est pas la correction retenue.** Retirer les déclarations s'est révélé impossible :
+> les migrations 025, 029, 034, 139 et 163 lisent ou écrivent ces objets et échoueraient sur
+> une base neuve. Voir **§8** pour la solution appliquée — `lib/legacySchemaCleanup.js`, qui
+> les supprime après les migrations à chaque démarrage. Le contrôle CI, lui, a bien été
+> ajouté (`tests/schema-legacy-scaffolding.test.js`).
 
 ---
 
@@ -338,7 +344,7 @@ SELECT TABLE_NAME, VIEW_DEFINITION
 -- Toute autre valeur signalerait que la production elle-même est issue d'une copie.
 ```
 
-**Correction.** Une migration `177_*` qui rejoue les deux `CREATE VIEW` (le SQL des
+**Correction.** Une migration `183_*` qui rejoue les deux `CREATE VIEW` (le SQL des
 migrations 124 et 143 est correct tel quel) : exécutée par le runner **dans la base
 courante**, elle recalcule la qualification, quelle que soit la base. Ajouter un test qui
 assert que `VIEW_DEFINITION` ne cite aucun schéma autre que `DATABASE()` — c'est le seul
@@ -453,7 +459,7 @@ Restent deux défauts réels, tous deux corrigés dans le lot d'exécution :
 - **`audit_log` portait deux horodatages contradictoires du même événement** :
   `created_at` en ISO-8601 UTC et `occurred_at` en heure locale — +2 h sur 921 lignes,
   +1 h sur 225, plus neuf lignes rétro-remplies dont l'`occurred_at` était franchement faux
-  (écarts de 5 h à 94 h). La migration 182 recale `occurred_at` depuis `created_at`, qui
+  (écarts de 5 h à 94 h). La migration 188 recale `occurred_at` depuis `created_at`, qui
   fait foi, et l'écriture passe à `UTC_TIMESTAMP()`. Aucun effet visible : `occurred_at`
   n'est lu par aucune fonctionnalité (l'écran d'audit affiche `created_at`).
 - **Le double écrit échouait en silence.** Les deux `catch` de `routes/audit.js`
@@ -671,7 +677,7 @@ l'état point par point et les écarts assumés.
 | 1   | Recaler les ancres GPS `foret`, vérifier le signe des longitudes, ajouter un contrôle de plausibilité d'échelle                                                    | **Élevée**     | 2 h + terrain | §3.1       |
 | 2   | Normaliser l'écriture des dates (une seule fonction) + `UPDATE` de normalisation de `map_markers` et `tutorials`                                                   | **Élevée**     | 3 h           | §3.2       |
 | 3   | Retirer `role_pin_secrets`, `elevation_audit`, `requires_elevation` de `sql/schema_foretmap.sql` + migration de `DROP` + test de cohérence schéma↔migrations en CI | **Élevée**     | 2 h           | §3.3       |
-| 4   | Migration `177_*` recréant les deux vues + test interdisant tout schéma qualifié dans `VIEW_DEFINITION`                                                            | Majeure        | 1 h           | §4.1       |
+| 4   | Migration `183_*` recréant les deux vues + test interdisant tout schéma qualifié dans `VIEW_DEFINITION`                                                            | Majeure        | 1 h           | §4.1       |
 | 5   | Purger les 2 orphelins puis poser les FK `user_roles → users` et `password_reset_tokens → users`                                                                   | Majeure        | 1 h           | §4.2       |
 | 6   | Nettoyer les attributions de rôles résiduelles (élève↔prof)                                                                                                        | Majeure        | 30 min        | §4.3       |
 | 7   | Élargir `.gitignore` aux dumps nommés d'après la base                                                                                                              | Majeure        | 5 min         | §5.1       |
@@ -695,15 +701,15 @@ comme annoncé dès le §3.2.
 | 1   | **réservé** | calage GPS — relevé de terrain, traité par le propriétaire du projet                  |
 | 2   | fait        | `lib/legacyTimestampNormalization.js`, `lib/shared/isoTimestamp.js`                   |
 | 3   | fait        | `lib/legacySchemaCleanup.js` + 2 tests (dont un statique qui ferme la classe entière) |
-| 4   | fait        | migration 177 + `tests/schema-views-current-db.test.js`                               |
-| 5   | fait        | migration 179 + clés étrangères dans `sql/schema_foretmap.sql`                        |
-| 6   | fait        | migration 179 (attributions non primaires croisant les populations)                   |
+| 4   | fait        | migration 183 + `tests/schema-views-current-db.test.js`                               |
+| 5   | fait        | migration 185 + clés étrangères dans `sql/schema_foretmap.sql`                        |
+| 6   | fait        | migration 185 (attributions non primaires croisant les populations)                   |
 | 7   | fait        | `.gitignore` en liste blanche                                                         |
-| 8   | fait        | migration 180 (reprise rejouée avant suppression)                                     |
-| 9   | fait        | migration 182 + `routes/audit.js` (constat révisé, cf. §4.4)                          |
+| 8   | fait        | migration 186 (reprise rejouée avant suppression)                                     |
+| 9   | fait        | migration 188 + `routes/audit.js` (constat révisé, cf. §4.4)                          |
 | 10  | fait        | `npm run logs:purge` + ligne de crontab documentée                                    |
 | 11  | fait        | garde-fou base de test + découpage des instructions à l'import de dump                |
-| 12  | fait\*      | migrations 178 et 181, `src/utils/slugify.js`, `npm run tutorials:dedup`              |
+| 12  | fait\*      | migrations 184 et 187, `src/utils/slugify.js`, `npm run tutorials:dedup`              |
 | 13  | à venir     | passage des 29 colonnes de date en `DATETIME` — lot dédié                             |
 
 ### Trois écarts assumés par rapport au plan initial
