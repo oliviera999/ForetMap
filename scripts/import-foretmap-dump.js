@@ -7,6 +7,8 @@ const fs = require('fs');
 const path = require('path');
 const mysql = require('mysql2/promise');
 
+const { splitSqlStatements } = require('../database');
+
 function safePort(raw, fallback) {
   const n = Number.parseInt(raw, 10);
   return Number.isFinite(n) && n >= 1 && n <= 65535 ? n : fallback;
@@ -119,15 +121,36 @@ async function main() {
       charset: 'utf8mb4',
     });
 
-    await targetConn.query(dumpSql);
-    console.log('[import-dump] Import SQL terminé.');
+    // Découpage en instructions plutôt qu'un unique `query(dumpSql)` (audit
+    // docs/AUDIT_BDD_2026-08.md §4.1) : sur un dump où une instruction échoue — le cas
+    // typique étant un `CREATE VIEW` qui cite une base absente de la machine — l'import
+    // en bloc s'arrête sans dire où, et laisse une base à moitié peuplée. Instruction par
+    // instruction, on sait quoi a échoué et sur quelle ligne du dump.
+    const statements = splitSqlStatements(dumpSql);
+    console.log(`[import-dump] ${statements.length} instruction(s) à rejouer.`);
+    let executed = 0;
+    for (const statement of statements) {
+      if (!statement) continue;
+      try {
+        await targetConn.query(statement);
+        executed += 1;
+      } catch (err) {
+        const snippet = statement.replace(/\s+/g, ' ').slice(0, 160);
+        throw new Error(
+          `instruction ${executed + 1}/${statements.length} en échec : ${err.message}\n  → ${snippet}…`,
+        );
+      }
+    }
+    console.log(`[import-dump] Import SQL terminé (${executed} instruction(s)).`);
   } finally {
     if (targetConn) await targetConn.end();
     if (adminConn) await adminConn.end();
   }
 }
 
-main().catch((err) => {
-  console.error(`[import-dump] Erreur: ${err.message || err}`);
-  process.exit(1);
-});
+main()
+  .then(() => process.exit(0))
+  .catch((err) => {
+    console.error(`[import-dump] Erreur: ${err.message || err}`);
+    process.exit(1);
+  });

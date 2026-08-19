@@ -21,6 +21,7 @@ const {
   attachSpeciesToEntity,
 } = require('../lib/speciesJunction');
 const { normalizeMarkerEmoji } = require('../lib/markerEmoji');
+const { nowIsoUtc } = require('../lib/shared/isoTimestamp');
 const {
   registerEntityPhotoRoutes,
   reorderPhotosBodySchema,
@@ -96,7 +97,7 @@ async function upsertVisitMarkerEditorial(reqBody, markerRow) {
       ? parseVisitEditorialBlocksInput(patchBlocksInput)
       : parseVisitEditorialBlocksInput(existing?.body_json);
   const bodyJson = serializeVisitEditorialBlocks(normalizedBlocks);
-  const now = new Date().toISOString();
+  const now = nowIsoUtc();
   await execute(
     `INSERT INTO visit_markers
       (id, map_id, x_pct, y_pct, label, emoji, subtitle, short_description, details_title, details_text, body_json, is_active, sort_order, created_at, updated_at)
@@ -209,7 +210,7 @@ router.post(
         nextPlantName,
         note || '',
         normalizeMarkerEmoji(emoji, { allowEmpty: true, fallback: '' }),
-        new Date().toISOString(),
+        nowIsoUtc(),
       ],
     );
     await syncMarkerSpecies(db, id, species_ids, nextLiving);
