@@ -1,6 +1,6 @@
-const jwt = require('jsonwebtoken');
 const {
   parseBearerToken: parseBearerTokenFromPipeline,
+  signJwtToken,
   verifyJwtToken,
   verifyJwtForProduct,
   checkClaimsProduct,
@@ -26,7 +26,7 @@ function requireJwtConfigured(res) {
 // il n'existe plus de session « élevée », toutes les sessions utilisent la même durée de base.
 async function signAuthToken(payload, _legacyElevated = false) {
   const ttls = await getAuthJwtTtls();
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: ttls.baseSeconds });
+  return signJwtToken(payload, JWT_SECRET, { expiresIn: ttls.baseSeconds });
 }
 
 function parseBearerToken(req) {

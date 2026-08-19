@@ -1,6 +1,7 @@
 const express = require('express');
 const crypto = require('node:crypto');
 const { queryAll, queryOne, execute, withTransaction } = require('../database');
+const { nowIsoUtc } = require('../lib/shared/isoTimestamp');
 const { requirePermission } = require('../middleware/requireTeacher');
 const asyncHandler = require('../lib/asyncHandler');
 const { z, validate } = require('../lib/validate');
@@ -339,7 +340,7 @@ router.post(
     if (tuto.error) return res.status(400).json({ error: tuto.error });
 
     const id = crypto.randomUUID();
-    const createdAt = new Date().toISOString();
+    const createdAt = nowIsoUtc();
     // Atomicité (audit §2.5) : projet + liens dans une seule transaction — un crash au milieu
     // ne laisse plus de liens orphelins. Validations 400/403/404 déjà faites ci-dessus.
     await withTransaction(async (tx) => {
@@ -651,7 +652,7 @@ async function copyProjectTasksTx(
   const duplicatedStartDate = currentLocalDateOnly();
   for (const task of sourceTasks) {
     const newTaskId = crypto.randomUUID();
-    const createdAt = new Date().toISOString();
+    const createdAt = nowIsoUtc();
     await tx.execute(
       `INSERT INTO tasks (
         id, title, description, map_id, project_id, zone_id, marker_id,
@@ -761,7 +762,7 @@ router.post(
       return res.status(400).json({ error: 'Carte introuvable' });
 
     const newProjectId = crypto.randomUUID();
-    const createdAt = new Date().toISOString();
+    const createdAt = nowIsoUtc();
 
     const createdTaskIds = await withTransaction(async (tx) => {
       await tx.execute(
