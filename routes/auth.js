@@ -64,6 +64,7 @@ const googleOAuthHooks = {
 };
 
 const { normalizeOptionalString } = require('../lib/shared/httpHelpers');
+const { nowIsoUtc } = require('../lib/shared/isoTimestamp');
 const {
   GOOGLE_ALLOWED_DOMAINS_DEFAULT,
   GOOGLE_ALLOWED_EMAILS_DEFAULT,
@@ -159,7 +160,7 @@ async function ensureTeacherSeedFromEnv() {
   if (existing) return;
 
   const hash = await bcrypt.hash(password, 10);
-  const now = new Date().toISOString();
+  const now = nowIsoUtc();
   try {
     const teacherId = crypto.randomUUID();
     await execute(
@@ -466,7 +467,7 @@ router.post(
 
     const hash = await bcrypt.hash(password, 10);
     const id = crypto.randomUUID();
-    const now = new Date().toISOString();
+    const now = nowIsoUtc();
     try {
       await execute(
         `INSERT INTO users
@@ -637,7 +638,7 @@ router.post(
       await syncStudentRoleFromGroups(account.id);
     }
     await execute('UPDATE users SET last_seen = ?, updated_at = NOW() WHERE id = ?', [
-      new Date().toISOString(),
+      nowIsoUtc(),
       account.id,
     ]);
     let session = await buildSessionPayload(userType, account.id);
@@ -802,7 +803,7 @@ router.get('/google/callback', async (req, res) => {
         );
       }
       await ensurePrimaryRole('teacher', teacher.id, 'prof');
-      const now = new Date().toISOString();
+      const now = nowIsoUtc();
       await execute(
         "UPDATE users SET last_seen = ?, updated_at = NOW() WHERE id = ? AND user_type = 'teacher'",
         [now, teacher.id],
@@ -836,7 +837,7 @@ router.get('/google/callback', async (req, res) => {
     );
     if (!student) {
       const id = crypto.randomUUID();
-      const now = new Date().toISOString();
+      const now = nowIsoUtc();
       const splitName = splitDisplayName(payload.name);
       const firstName = normalizeOptionalString(payload.given_name) || splitName.firstName;
       const lastName = normalizeOptionalString(payload.family_name) || splitName.lastName;
@@ -852,7 +853,7 @@ router.get('/google/callback', async (req, res) => {
       await syncStudentRoleFromGroups(id);
     } else {
       await execute("UPDATE users SET last_seen = ? WHERE id = ? AND user_type = 'student'", [
-        new Date().toISOString(),
+        nowIsoUtc(),
         student.id,
       ]);
       student = await queryOne("SELECT * FROM users WHERE id = ? AND user_type = 'student'", [
@@ -1013,7 +1014,7 @@ router.post(
     const teacherId = await consumePasswordResetToken('teacher', token);
     if (!teacherId) return res.status(400).json({ error: 'Token invalide ou expiré' });
     const hash = await bcrypt.hash(password, 10);
-    const now = new Date().toISOString();
+    const now = nowIsoUtc();
     await execute(
       "UPDATE users SET password_hash = ?, updated_at = NOW() WHERE id = ? AND user_type = 'teacher'",
       [hash, teacherId],

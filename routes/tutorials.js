@@ -6,6 +6,7 @@ const asyncHandler = require('../lib/asyncHandler');
 const { assertGatingSatisfiedForAcknowledge } = require('../lib/learningGatingAcknowledge');
 const { emitTasksChanged } = require('../lib/realtime');
 const { saveBase64ToDisk, deleteFile } = require('../lib/uploads');
+const { nowIsoUtc } = require('../lib/shared/isoTimestamp');
 const {
   resolveLocalTutorialFile,
   isAllowedSourceFilePath,
@@ -407,7 +408,7 @@ router.post(
       });
     }
 
-    const now = new Date().toISOString();
+    const now = nowIsoUtc();
     await execute(
       `INSERT INTO user_tutorial_reads (user_id, tutorial_id, acknowledged_at)
      VALUES (?, ?, ?)
@@ -583,7 +584,7 @@ router.post(
 
     const baseSlug = slugify(req.body.slug || title);
     const slug = await uniqueSlug(baseSlug);
-    const now = new Date().toISOString();
+    const now = nowIsoUtc();
     // Atomicité : INSERT tutoriel + liens zones/repères dans une seule transaction (§2.5 audit).
     // Les validations 400/403/404 ci-dessus restent hors transaction, à l'identique.
     const createdId = await withTransaction(async (tx) => {
@@ -661,7 +662,7 @@ router.post(
       deleteFile(previousRelativePath);
     }
 
-    const now = new Date().toISOString();
+    const now = nowIsoUtc();
     await execute('UPDATE tutorials SET cover_image_url = ?, updated_at = ? WHERE id = ?', [
       publicUrl,
       now,
@@ -719,7 +720,7 @@ router.put(
       }
     }
 
-    const now = new Date().toISOString();
+    const now = nowIsoUtc();
     await withTransaction(async (tx) => {
       for (let i = 0; i < normalized.length; i += 1) {
         await tx.execute('UPDATE tutorials SET sort_order = ?, updated_at = ? WHERE id = ?', [
@@ -834,7 +835,7 @@ router.put(
       if (rel) deleteFile(rel);
     }
 
-    const now = new Date().toISOString();
+    const now = nowIsoUtc();
     await execute(
       `UPDATE tutorials
         SET title = ?, slug = ?, type = ?, summary = ?, cover_image_url = ?, html_content = ?, source_url = ?, source_file_path = ?,
@@ -882,7 +883,7 @@ router.delete(
     const existing = await queryOne('SELECT id FROM tutorials WHERE id = ?', [req.params.id]);
     if (!existing) return res.status(404).json({ error: 'Tutoriel introuvable' });
     await execute('UPDATE tutorials SET is_active = 0, updated_at = ? WHERE id = ?', [
-      new Date().toISOString(),
+      nowIsoUtc(),
       req.params.id,
     ]);
     await emitTutorialTasksChanged('tutorial_delete', Number(req.params.id));

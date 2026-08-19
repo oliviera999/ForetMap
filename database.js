@@ -6,6 +6,7 @@ const fs = require('fs');
 const logger = require('./lib/logger');
 const { inlineLegacyTutorialHtmlToDb } = require('./lib/inlineLegacyTutorialHtml');
 const { dropLegacyScaffolding } = require('./lib/legacySchemaCleanup');
+const { normalizeLegacyTimestamps } = require('./lib/legacyTimestampNormalization');
 
 /** Errnos MySQL souvent attendus lors de migrations idempotentes (table/colonne/index déjà présents ou legacy absent). */
 const MYSQL_MIGRATION_EXPECTED_ERRNO = new Set([1050, 1060, 1061, 1091, 1146, 1826]);
@@ -394,6 +395,14 @@ async function initSchema() {
     await inlineLegacyTutorialHtmlToDb({ queryAll, execute });
   } catch (err) {
     logger.warn({ err }, 'Incorporation fichiers tutoriels HTML (après schéma) ignorée');
+  }
+  try {
+    // Horodatages hérités en heure locale dans des colonnes VARCHAR : convergence vers
+    // l'ISO-8601 UTC, sans quoi le tri lexicographique de MySQL entrelace les deux formats
+    // (voir lib/legacyTimestampNormalization.js). Ne touche que les lignes encore héritées.
+    await normalizeLegacyTimestamps({ execute });
+  } catch (err) {
+    logger.warn({ err }, 'Normalisation des horodatages hérités ignorée');
   }
 }
 
