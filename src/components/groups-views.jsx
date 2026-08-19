@@ -3,6 +3,7 @@ import { api } from '../services/api';
 import { HelpPanel } from './HelpPanel';
 import { resolveHelpPanelSection } from '../utils/helpResolve';
 import { usePublicSettings } from '../contexts/PublicSettingsContext.jsx';
+import { slugify } from '../utils/slugify';
 
 function normalizeIds(values = []) {
   return [...new Set(values.map((v) => String(v || '').trim()).filter(Boolean))];
@@ -394,13 +395,9 @@ export function GroupsAdminView() {
   const createGroup = async () => {
     const name = window.prompt('Nom du groupe (ex: 2nde A)');
     if (!name || !name.trim()) return;
-    const slug = window.prompt(
-      'Slug technique (optionnel)',
-      String(name)
-        .trim()
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-'),
-    );
+    // slugify() translittère les accents au lieu de les supprimer : « 2nde A — Éco » donne
+    // « 2nde-a-eco » et non « 2nde-a-co » (audit docs/AUDIT_BDD_2026-08.md §5.5).
+    const slug = window.prompt('Slug technique (optionnel)', slugify(name));
     const kind = window.prompt('Type (class|team|unit|club)', 'class');
     setLoading(true);
     setErr('');
