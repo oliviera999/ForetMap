@@ -12,6 +12,8 @@ const {
   startMarker,
 } = require('../../../lib/glBoardPath');
 const { parseId } = require('../../../lib/shared/httpHelpers');
+const { grantStartingFeuilletsForGame } = require('../../../lib/glFeuilletStarterGrant');
+const logger = require('../../../lib/logger');
 
 const router = express.Router();
 
@@ -55,6 +57,13 @@ async function updateGameStatus(req, res, nextStatus) {
   ]);
   if (nextStatus === 'live') {
     await placeTeamsOnPathStart(gameId, gameRow);
+    // Feuillets d'ouverture : chaque équipe démarre avec le cadre du récit en main.
+    // Best-effort — un corpus sans feuillet d'ouverture ne doit pas empêcher de jouer.
+    try {
+      await grantStartingFeuilletsForGame(db, { gameId, actorId: req.glAuth.userId });
+    } catch (err) {
+      logger.warn({ err, gameId }, 'Feuillets d’ouverture non attribués');
+    }
   }
   const normalized = await insertGameEvent(db, {
     gameId,
