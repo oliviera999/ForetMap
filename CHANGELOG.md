@@ -25,11 +25,11 @@ La liasse est donc remise **en bloc, à la fin du voyage**.
   (`ouverture` | `cloture`, permission `gl.game.manage`) : le filet pour une classe qui
   s'arrête avant le chapitre 5 ou pour une dernière séance dédiée. Idempotente — un feuillet
   déjà trouvé n'est jamais réattribué.
-- **Base de données** — migration **`190_gl_feuillets_liasse_cloture.sql`** : colonne
+- **Base de données** — migration **`191_gl_feuillets_liasse_cloture.sql`** : colonne
   `offert_cloture` (pendant de `offert_ouverture`), marquage piloté par la donnée (`liasse`,
   et non une liste de codes), provenance `cloture` ajoutée en fin d'ENUM. **Plus aucun
   feuillet du corpus n'est hors de portée.**
-- **Position des trois actes dans le récit** — migration **`191_gl_feuillets_ordre_recit_places.sql`** :
+- **Position des trois actes dans le récit** — migration **`192_gl_feuillets_ordre_recit_places.sql`** :
   les actes portaient 210, 693 et 2050, hors de l'échelle du récit (1→150), donc rejetés en
   fin de lecture. Leur texte dit où ils vont : « CHACUN POUR SA PEAU » s'adresse au joueur
   « à ta première case » (→ 14), « LE BÂTON » commente la scène de la tourbière où Sélène se
@@ -42,13 +42,6 @@ La liasse est donc remise **en bloc, à la fin du voyage**.
   d'origine, rechute après la page du désert froid).
 - **Technique** — `lib/glFeuilletStarterGrant.js` devient `lib/glFeuilletBundleGrant.js` :
   une seule mécanique de remise, paramétrée par liasse.
-- **Nettoyage** — retrait de `migrations/189_password_reset_tokens_polymorphic_fk.sql`,
-  en doublon de numéro avec la `189` livrée par le lot d'audit BDD (les deux corrigeaient la
-  même régression ; le runner n'exécute qu'un fichier par numéro et le garde-fou CI était
-  rouge). La migration conservée est la plus complète — elle retire aussi l'index devenu
-  inutile. Le test associé, redondant avec `tests/schema-password-reset-polymorphic.test.js`,
-  part avec.
-
 ### Correctif — réinitialisation de mot de passe rétablie côté Gnomes & Licornes
 
 La migration 185 du lot précédent posait une clé étrangère
@@ -64,19 +57,39 @@ et par l'expiration des jetons. `user_roles` conserve la sienne, sa population �
 entièrement dans `users`. `tests/schema-password-reset-polymorphic.test.js` vérifie les
 deux faces.
 ### ForetMap — « mot de passe oublié » réparé pour les joueurs GL
+### Correctif — « mot de passe oublié » réparé pour les joueurs GL
 
 La migration 185 posait une clé étrangère `password_reset_tokens.user_id → users.id`.
 L'intention était bonne (un jeton ne doit pas survivre au compte qui l'a demandé), mais la
 table est **polymorphe** : `user_id` désigne un compte de `users` (élève, enseignant) **ou**
 un joueur GL de `gl_players`. Depuis, la demande de réinitialisation d'un joueur GL échouait
-(`ER_NO_REFERENCED_ROW_2`), et `tests/gl-auth-forgot-password.test.js` était rouge.
+(`ER_NO_REFERENCED_ROW_2`), et `tests/gl-auth-forgot-password.test.js` était rouge. Les
+comptes élèves et enseignants n'étaient pas touchés.
 
 - **Base de données** — migration **`189_password_reset_tokens_polymorphic_fk.sql`** : la
   clé étrangère est retirée (une FK ne peut pas exprimer « existe dans `users` **ou** dans
-  `gl_players` »). L'index sur `user_id` est conservé, ainsi que la clé étrangère de
-  `user_roles`, dont la population est bien limitée à `users`.
-- **Test** — `tests/password-reset-polymorphic.test.js` : un joueur GL obtient son jeton, et
-  la table ne porte aucune contrainte référentielle.
+  `gl_players` »). La clé étrangère de `user_roles` est conservée, sa population étant bien
+  limitée à `users`.
+- **Base de données** — migration **`190_password_reset_drop_redundant_user_index.sql`** :
+  l'index `idx_password_reset_user (user_id)`, qui n'existait que pour porter la clé
+  supprimée, part à son tour. `sql/schema_foretmap.sql` ne le déclare plus : le garder en
+  base aurait fait diverger une installation migrée d'une installation fraîche. Aucune
+  requête ne lit la table par `user_id` seul — `idx_password_reset_lookup (user_type,
+  user_id)` couvre la purge de `lib/studentDeletion.js`, `uq_password_reset_token_hash` la
+  lecture du jeton.
+- **Schéma** — `sql/schema_foretmap.sql` cesse de déclarer cette clé : sinon le fichier de
+  schéma la poserait à la création de la table pour qu'une migration la retire aussitôt.
+- **Test** — `tests/password-reset-polymorphic.test.js` : un joueur GL obtient son jeton, la
+  table ne porte aucune contrainte référentielle, et l'index redondant a bien disparu.
+- **Audit** — `docs/AUDIT_BDD_2026-08.md` §4.2 et §8 : la recommandation d'origine était
+  juste pour `user_roles` et fausse pour `password_reset_tokens`. Le document le dit
+  désormais, et acte que le manque d'intégrité signalé n'est comblé qu'à moitié.
+
+Deux correctifs indépendants ont visé ce même défaut et ont été fusionnés le même jour, ce
+qui a laissé sur `main` **deux migrations numérotées 189** — de quoi bloquer le démarrage
+(`assertNoNewDuplicateMigrationNumbers`). Le doublon
+`189_password_reset_drop_users_fk.sql` et le test qui l'accompagnait sont supprimés ; la
+version conservée est celle ci-dessus.
 
 ### GL — feuillets : atteignables, mieux répartis, et un cadre offert à l'ouverture
 

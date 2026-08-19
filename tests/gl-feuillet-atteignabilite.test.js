@@ -31,10 +31,10 @@ const {
 } = require('./helpers/glFixtures');
 
 // Rejouées dans l'ordre du runner : la 178 redéfinit l'ENUM `unlocked_via` sans connaître
-// la valeur 'cloture' ajoutée par la 190 — les rejouer à l'envers la retirerait.
+// la valeur 'cloture' ajoutée par la 191 — les rejouer à l'envers la retirerait.
 const MIGRATION_FILES = [
   '178_gl_feuillets_atteignabilite.sql',
-  '190_gl_feuillets_liasse_cloture.sql',
+  '191_gl_feuillets_liasse_cloture.sql',
 ].map((name) => path.join(__dirname, '..', 'migrations', name));
 
 const db = { queryOne, queryAll, execute };
@@ -176,7 +176,7 @@ test('migration 178 : répare effacement « oui », ordres hors échelle et lien
   assert.strictEqual(Number(row.lien_pays), 4, 'lien_pays s’aligne sur le pays du biome (taïga)');
 });
 
-test('migrations 178 et 190 : rejouées, elles ne changent plus rien', async () => {
+test('migrations 178 et 191 : rejouées, elles ne changent plus rien', async () => {
   const avant = await queryOne(
     'SELECT effacement, ordre_voyage, ordre_recit, lien_pays FROM gl_lore_feuillets WHERE feuillet_code = ?',
     [CODE_REPARE],
