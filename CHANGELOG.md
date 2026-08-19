@@ -7,6 +7,37 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### GL — la liasse du copiste, remise en fin de voyage
+
+Sur les 40 feuillets de la liasse `copiste`, 14 étaient déjà distribués en jeu (un par
+milieu, un à l'entrée de chaque pays) : la voix du copiste ponctuait donc déjà le voyage.
+Les 26 autres — couverture, préface, origine, marginalia, inserts, les trois actes, la
+confession, la finale et la clôture — n'étaient rattachés à rien, donc inatteignables.
+Les éparpiller dans les pools aurait dilué les feuillets de terrain, ceux qui portent la
+biodiversité ; et deux de ces pages sont la **clé de lecture de la fin** (le carnet de
+Sélène s'arrête sur un mot suspendu, délibérément — le copiste est le seul à le dire).
+La liasse est donc remise **en bloc, à la fin du voyage**.
+
+- **Remise automatique** — quand une partie du **dernier plateau** passe en « terminée »,
+  chaque équipe reçoit la liasse entière : sans QCM, sans coût en gemmes, sans effacement.
+  Le déclenchement est réservé au plateau 5 : livrée plus tôt, la liasse dévoilerait la fin.
+- **Remise à la demande du MJ** — nouvelle route `POST /api/gl/lore/games/:id/liasses/:bundle`
+  (`ouverture` | `cloture`, permission `gl.game.manage`) : le filet pour une classe qui
+  s'arrête avant le chapitre 5 ou pour une dernière séance dédiée. Idempotente — un feuillet
+  déjà trouvé n'est jamais réattribué.
+- **Base de données** — migration **`190_gl_feuillets_liasse_cloture.sql`** : colonne
+  `offert_cloture` (pendant de `offert_ouverture`), marquage piloté par la donnée (`liasse`,
+  et non une liste de codes), provenance `cloture` ajoutée en fin d'ENUM. **Plus aucun
+  feuillet du corpus n'est hors de portée.**
+- **Technique** — `lib/glFeuilletStarterGrant.js` devient `lib/glFeuilletBundleGrant.js` :
+  une seule mécanique de remise, paramétrée par liasse.
+- **Nettoyage** — retrait de `migrations/189_password_reset_tokens_polymorphic_fk.sql`,
+  en doublon de numéro avec la `189` livrée par le lot d'audit BDD (les deux corrigeaient la
+  même régression ; le runner n'exécute qu'un fichier par numéro et le garde-fou CI était
+  rouge). La migration conservée est la plus complète — elle retire aussi l'index devenu
+  inutile. Le test associé, redondant avec `tests/schema-password-reset-polymorphic.test.js`,
+  part avec.
+
 ### Correctif — réinitialisation de mot de passe rétablie côté Gnomes & Licornes
 
 La migration 185 du lot précédent posait une clé étrangère

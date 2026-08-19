@@ -129,6 +129,22 @@ Le lot est **piloté par la donnée** : dans **Contenus → Carnet de Sélène**
 « offert à l'ouverture » d'un feuillet le fait entrer ou sortir du lot (modifiable aussi
 en masse sur une sélection). Aucun développement n'est nécessaire pour l'ajuster.
 
+### La liasse du copiste, en fin de voyage
+
+Le copiste ponctue déjà le voyage (un feuillet par milieu, un à l'entrée de chaque pays),
+mais sa **liasse personnelle** — sa préface, ses marginalia, ses trois actes, sa confession,
+et les deux pages qui expliquent que le carnet de Sélène s'arrête sur un mot suspendu — est
+d'un autre ordre : une réflexion _sur_ l'histoire, à lire quand elle a été vécue.
+
+Elle est donc **remise en bloc à la clôture** d'une partie du **dernier plateau** (chapitre
+adossé au plateau 5) : la partie passe en « terminée », chaque équipe reçoit la liasse
+entière, sans QCM et sans coût. Deux raisons à ce déclenchement tardif : livrée plus tôt,
+elle dévoilerait la fin ; jamais livrée, elle laisserait croire qu'il manque un feuillet.
+
+Pour une classe qui s'arrête avant le chapitre 5, ou pour une dernière séance dédiée, le MJ
+peut **remettre une liasse à la demande** (ouverture ou clôture) depuis la console : la
+remise est sans effet sur les feuillets déjà trouvés, elle ne fait que compléter.
+
 > ⚠️ **Point d'attention** — La découverte par zone-feuillet exige que le chapitre
 > soit **rattaché à un plateau (1 à 5)** compatible. Un chapitre sans plateau rend
 > ses feuillets de carte inatteignables — l'éditeur de chapitre affiche désormais un
