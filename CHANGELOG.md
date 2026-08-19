@@ -7,34 +7,32 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
-### Correctif — réinitialisation de mot de passe rétablie côté Gnomes & Licornes
-
-La migration 185 du lot précédent posait une clé étrangère
-`password_reset_tokens.user_id → users.id`. La table est en réalité **polymorphe** : les
-jetons `gl_player` désignent `gl_players`, pas `users`. Conséquence, aucun joueur GL ne
-pouvait plus demander de lien de réinitialisation — l'insertion du jeton échouait. Les
-comptes élèves et enseignants n'étaient pas touchés.
-
-La migration **189** retire cette clé et l'index qui ne servait qu'à la porter. Aucune
-contrainte SQL ne peut exprimer une référence qui change de table selon une colonne : pour
-cette table, la purge à la suppression d'un compte reste portée par `lib/studentDeletion.js`
-et par l'expiration des jetons. `user_roles` conserve la sienne, sa population étant
-entièrement dans `users`. `tests/schema-password-reset-polymorphic.test.js` vérifie les
-deux faces.
-### ForetMap — « mot de passe oublié » réparé pour les joueurs GL
+### Correctif — « mot de passe oublié » réparé pour les joueurs GL
 
 La migration 185 posait une clé étrangère `password_reset_tokens.user_id → users.id`.
 L'intention était bonne (un jeton ne doit pas survivre au compte qui l'a demandé), mais la
 table est **polymorphe** : `user_id` désigne un compte de `users` (élève, enseignant) **ou**
 un joueur GL de `gl_players`. Depuis, la demande de réinitialisation d'un joueur GL échouait
-(`ER_NO_REFERENCED_ROW_2`), et `tests/gl-auth-forgot-password.test.js` était rouge.
+(`ER_NO_REFERENCED_ROW_2`), et `tests/gl-auth-forgot-password.test.js` était rouge. Les
+comptes élèves et enseignants n'étaient pas touchés.
 
 - **Base de données** — migration **`189_password_reset_tokens_polymorphic_fk.sql`** : la
   clé étrangère est retirée (une FK ne peut pas exprimer « existe dans `users` **ou** dans
   `gl_players` »). L'index sur `user_id` est conservé, ainsi que la clé étrangère de
   `user_roles`, dont la population est bien limitée à `users`.
+- **Schéma** — `sql/schema_foretmap.sql` cesse de déclarer cette clé : sinon le fichier de
+  schéma la poserait à la création de la table pour qu'une migration la retire aussitôt.
 - **Test** — `tests/password-reset-polymorphic.test.js` : un joueur GL obtient son jeton, et
   la table ne porte aucune contrainte référentielle.
+- **Audit** — `docs/AUDIT_BDD_2026-08.md` §4.2 et §8 : la recommandation d'origine était
+  juste pour `user_roles` et fausse pour `password_reset_tokens`. Le document le dit
+  désormais, et acte que le manque d'intégrité signalé n'est comblé qu'à moitié.
+
+Deux correctifs indépendants ont visé ce même défaut et ont été fusionnés le même jour, ce
+qui a laissé sur `main` **deux migrations numérotées 189** — de quoi bloquer le démarrage
+(`assertNoNewDuplicateMigrationNumbers`). Le doublon
+`189_password_reset_drop_users_fk.sql` et le test qui l'accompagnait sont supprimés ; la
+version conservée est celle ci-dessus.
 
 ### GL — feuillets : atteignables, mieux répartis, et un cadre offert à l'ouverture
 
