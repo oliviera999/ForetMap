@@ -21,6 +21,7 @@ const {
 } = require('../../lib/glSettings');
 const { parseBiomeSlugsFromQuery, normalizeBiomeSlugList } = require('../../lib/glChapterBiomes');
 const { sendXlsxAttachment, wrapXlsxRoute } = require('../../lib/glXlsxAttachment');
+const { isFeuilletInChapterPool } = require('../../lib/glFeuilletChapterPool');
 const { resolveTeamContext } = require('../../lib/glTeamContext');
 const { recordFeuilletEvent } = require('../../lib/glLoreFeuilletEvents');
 const {
@@ -360,6 +361,20 @@ router.post(
     );
     if (!feuillet || feuillet.statut !== 'actif')
       return res.status(404).json({ error: 'Feuillet introuvable' });
+
+    // Garde de portée : hors MJ, on ne peut faire apparaître qu'un feuillet que le
+    // chapitre est censé proposer (pool biome / plateau / pays, ou lot d'ouverture).
+    // Sans elle, n'importe quel joueur de la partie pouvait débloquer n'importe quel
+    // code de feuillet actif — y compris ceux des autres chapitres.
+    if (!isMj(req)) {
+      const inScope = await isFeuilletInChapterPool(db, {
+        chapterId: game.chapter_id,
+        feuilletCode: code,
+      });
+      if (!inScope) {
+        return res.status(404).json({ error: 'Feuillet hors du chapitre de cette partie' });
+      }
+    }
 
     const teamCtx = await resolveTeamContext(req, gameId, req.body?.teamId);
     if (teamCtx.error)

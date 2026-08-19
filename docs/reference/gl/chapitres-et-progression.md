@@ -94,8 +94,13 @@ réinitialiser (voir [presentation.md](presentation.md)).
   l'admin disposent d'une vue collective par classe.
 - **Découverte des feuillets du Carnet de Sélène** : les feuillets, verrouillés par
   défaut, se découvrent en jouant — en **traversant une zone-feuillet** sur la carte
-  (le canal principal), par le **récit** (prologue), ou à l'occasion de l'**étude
-  d'une espèce**. Une découverte peut **coûter des gemmes** et **rapporter des
+  (le canal principal), par le **récit** (prologue), à l'occasion de l'**étude d'une
+  espèce**, ou en marquant appris **n'importe quel autre contenu conditionné** (terme
+  de glossaire, écosystème, tutoriel, page) : chaque première consultation réussie
+  ouvre un feuillet du chapitre, tant qu'il en reste. L'étude d'une espèce sert
+  d'abord le feuillet dédié à cette espèce, puis ceux de son pays, puis **bascule sur
+  le pool du chapitre** — étudier la biodiversité rapporte donc autant dans le premier
+  chapitre que dans le dernier. Une découverte peut **coûter des gemmes** et **rapporter des
   cœurs** (réglable), et le texte peut être partiellement « mangé par le Souffle »
   (effacement progressif, réglable). L'équipe passe ensuite du feuillet « découvert »
   à « lu », voire « tenu ». Le MJ, lui, voit tous les feuillets en texte intégral.
@@ -110,6 +115,19 @@ visuellement** :
   (« ✓ Étudié »), et n'est **proposé que sur un feuillet effectivement accessible** :
   tant qu'un feuillet est verrouillé en partie, on ne peut pas le marquer étudié (on ne
   peut pas étudier ce qu'on ne peut pas lire).
+
+### Les feuillets d'ouverture
+
+Quelques feuillets ne se méritent pas : ils **posent la situation** (la boîte confiée à
+la classe, le pacte du seuil, ce que voit un gnome, ce que garde une licorne, les formes
+de Sélène). Ils sont **donnés à chaque équipe au démarrage de la partie**, quel que soit
+le chapitre, sans QCM, sans coût en gemmes et sans effacement — une équipe créée après
+le démarrage reçoit le même lot. La classe commence donc avec le cadre du récit en main
+plutôt qu'avec un carnet vide.
+
+Le lot est **piloté par la donnée** : dans **Contenus → Carnet de Sélène**, le champ
+« offert à l'ouverture » d'un feuillet le fait entrer ou sortir du lot (modifiable aussi
+en masse sur une sélection). Aucun développement n'est nécessaire pour l'ajuster.
 
 > ⚠️ **Point d'attention** — La découverte par zone-feuillet exige que le chapitre
 > soit **rattaché à un plateau (1 à 5)** compatible. Un chapitre sans plateau rend

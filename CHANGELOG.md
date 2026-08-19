@@ -21,6 +21,58 @@ cette table, la purge à la suppression d'un compte reste portée par `lib/stude
 et par l'expiration des jetons. `user_roles` conserve la sienne, sa population étant
 entièrement dans `users`. `tests/schema-password-reset-polymorphic.test.js` vérifie les
 deux faces.
+### ForetMap — « mot de passe oublié » réparé pour les joueurs GL
+
+La migration 185 posait une clé étrangère `password_reset_tokens.user_id → users.id`.
+L'intention était bonne (un jeton ne doit pas survivre au compte qui l'a demandé), mais la
+table est **polymorphe** : `user_id` désigne un compte de `users` (élève, enseignant) **ou**
+un joueur GL de `gl_players`. Depuis, la demande de réinitialisation d'un joueur GL échouait
+(`ER_NO_REFERENCED_ROW_2`), et `tests/gl-auth-forgot-password.test.js` était rouge.
+
+- **Base de données** — migration **`189_password_reset_tokens_polymorphic_fk.sql`** : la
+  clé étrangère est retirée (une FK ne peut pas exprimer « existe dans `users` **ou** dans
+  `gl_players` »). L'index sur `user_id` est conservé, ainsi que la clé étrangère de
+  `user_roles`, dont la population est bien limitée à `users`.
+- **Test** — `tests/password-reset-polymorphic.test.js` : un joueur GL obtient son jeton, et
+  la table ne porte aucune contrainte référentielle.
+
+### GL — feuillets : atteignables, mieux répartis, et un cadre offert à l'ouverture
+
+Audit du corpus (205 feuillets actifs) : 18 % n'étaient atteignables par **aucun** canal
+d'acquisition, la répartition entre pays était très inégale (3 feuillets liés aux espèces
+pour le pays 1 contre 15 pour le pays 4, alors que chaque chapitre propose une cinquantaine
+d'espèces), la finale du voyage arrivait **entièrement effacée**, et n'importe quel joueur
+pouvait faire apparaître n'importe quel feuillet par l'API. Ce lot corrige tout cela.
+La trame du copiste (`cop-*`) reste volontairement de côté : son rattachement est un choix
+éditorial à part.
+
+- **Feuillets d'ouverture** — les feuillets qui posent la situation (la boîte confiée à la
+  classe, le pacte du seuil, ce que voit un gnome / garde une licorne, les formes de Sélène)
+  sont désormais **donnés à chaque équipe au démarrage de la partie**, sans QCM, sans coût en
+  gemmes et sans effacement ; une équipe créée après le démarrage reçoit le même lot. Le lot
+  est piloté par la donnée (`gl_lore_feuillets.offert_ouverture`, éditable en masse) : aucun
+  développement n'est nécessaire pour l'ajuster.
+- **Étude d'espèce** — après le feuillet dédié à l'espèce puis ceux de son pays, la
+  révélation **bascule sur le pool du chapitre**. Étudier la biodiversité rapporte autant au
+  premier chapitre qu'au dernier, et les biomes hors voyage (mangrove, prairie/steppe), qui
+  ne rapportaient rien, comptent enfin.
+- **Portée de la présentation directe** — `POST /api/gl/lore/games/:id/feuillets/:code/present`
+  n'accepte plus, hors MJ, qu'un feuillet du pool du chapitre (ou du lot d'ouverture) : 404
+  sinon. Un joueur ne peut plus débloquer un feuillet d'un autre chapitre en appelant l'API.
+- **Base de données** — migration **`178_gl_feuillets_atteignabilite.sql`**, idempotente :
+  `effacement = 'oui'` (traité comme un effacement total, texte vidé dès la découverte)
+  repasse sur `partiel` ; cinq feuillets dont l'`ordre_voyage`/`ordre_recit` était à 80 0xx
+  retrouvent l'échelle du corpus (ils étaient rejetés en fin de pool, donc quasi jamais
+  servis) ; quatre `lien_pays` contredisant leur biome sont réalignés (ils faisaient
+  apparaître le feuillet dans deux chapitres) ; les cinq « échos », rattachés à rien, sont
+  répartis un par plateau ; nouvelle colonne `offert_ouverture` et provenance `ouverture`.
+- **Lien direct** — le canal générique cherchait un feuillet dédié en comparant `lien_canal`
+  (français : `espece`, `glossaire`…) au type de ressource (anglais : `species`, `glossary`…) :
+  la correspondance était impossible et l'on retombait toujours sur le premier feuillet du
+  pool. Une table d'alias rend ce ciblage opérationnel pour le corpus à venir.
+- **Documentation** — `docs/reference/gl/chapitres-et-progression.md` (canaux d'obtention,
+  feuillets d'ouverture) et `docs/reference/gl/qcm-et-pedagogie.md` (posséder un feuillet
+  n'est pas l'avoir étudié : le QCM garde la porte du carnet personnel, pas celle du feuillet).
 
 ### Base de données — exécution du plan d'audit (points 2 à 12)
 

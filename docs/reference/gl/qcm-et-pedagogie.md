@@ -61,6 +61,23 @@ Indépendamment du conditionnement, l'élève peut marquer les contenus comme ap
 **importer ses acquis dans son carnet personnel** — le MJ suit tout cela dans les
 statistiques (progression individuelle et de classe).
 
+### Posséder un feuillet ≠ l'avoir étudié
+
+Deux choses différentes, souvent confondues :
+
+- **Posséder** un feuillet (le voir arriver dans le Carnet de Sélène) ne demande
+  **aucune question sur ce feuillet**. Il arrive parce que l'équipe a traversé une zone,
+  parce qu'un joueur a validé le QCM d'**une autre ressource** (une espèce, un terme de
+  glossaire…), parce qu'il a été **offert à l'ouverture** de la partie, ou parce qu'un
+  camarade l'a **échangé** au Marché.
+- **Le marquer étudié** (et donc pouvoir l'importer dans son carnet personnel) passe,
+  lui, par le conditionnement QCM du feuillet lui-même, comme n'importe quelle autre
+  ressource — et n'est proposé que sur un feuillet déjà accessible en partie.
+
+Autrement dit : le QCM ne garde pas la porte du feuillet, il garde la porte du
+**carnet personnel**. Un feuillet peut donc être lu par toute l'équipe sans qu'aucun
+élève n'ait répondu à une question à son sujet.
+
 ## ⚠️ Points d'attention
 
 > ⚠️ **Point d'attention** — Le conditionnement est **inerte tant que l'interrupteur
