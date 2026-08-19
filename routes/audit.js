@@ -4,6 +4,7 @@ const { requirePermission } = require('../middleware/requireTeacher');
 const asyncHandler = require('../lib/asyncHandler');
 const { z, validate } = require('../lib/validate');
 const { ensureCanonicalUserByAuth, resolveActorFromReq } = require('../lib/identity');
+const logger = require('../lib/logger');
 
 const router = express.Router();
 
@@ -57,6 +58,11 @@ async function logSecurityEvent(action, options = {}) {
       (await resolveCanonicalActorId(actorUserType, actorLegacyUserId));
     const payload = options.payload ? JSON.stringify(options.payload) : null;
     await execute(
+      // `occurred_at` est en heure LOCALE serveur depuis l'origine de la table, et rien ne
+      // permet de recaler l'historique a posteriori (pas de second horodatage de référence,
+      // contrairement à `audit_log.created_at`). On garde donc NOW() : une colonne
+      // homogène en local vaut mieux qu'une discontinuité de fuseau au milieu du journal.
+      // Voir docs/AUDIT_BDD_2026-08.md §4.4.
       `INSERT INTO security_events
         (occurred_at, actor_user_id, actor_user_type, action, target_type, target_id, result, reason, ip_address, user_agent, payload_json)
        VALUES (NOW(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -73,8 +79,10 @@ async function logSecurityEvent(action, options = {}) {
         payload,
       ],
     );
-  } catch (_) {
-    // Ne pas bloquer la route appelante.
+  } catch (err) {
+    // Ne pas bloquer la route appelante — mais ne pas se taire non plus : c'est par ce
+    // silence que les deux journaux pouvaient diverger sans que personne ne le sache.
+    logger.warn({ err, action }, 'Écriture security_events en échec');
   }
 }
 
@@ -89,9 +97,13 @@ async function logAudit(action, targetType, targetId, details, options = {}) {
       (await resolveCanonicalActorId(actorUserType, actorLegacyUserId));
     const payload = options.payload ? JSON.stringify(options.payload) : null;
     await execute(
+      // `occurred_at` en UTC_TIMESTAMP() et non NOW() : la colonne décrit le MÊME instant
+      // que `created_at`, qui est de l'ISO-8601 UTC. Avec NOW() les deux divergeaient de
+      // l'offset Europe/Paris (+1 h ou +2 h selon la saison) sur toutes les lignes.
+      // La migration 182 a recalé l'historique depuis `created_at`, qui fait foi.
       `INSERT INTO audit_log
         (action, target_type, target_id, details, actor_user_type, actor_user_id, result, created_at, occurred_at, payload_json)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, UTC_TIMESTAMP(), ?)`,
       [
         action,
         targetType,
@@ -114,8 +126,9 @@ async function logAudit(action, targetType, targetId, details, options = {}) {
       reason: options.reason || null,
       payload: options.payload || null,
     });
-  } catch (_) {
-    // Ne pas bloquer l'action principale si l'audit échoue
+  } catch (err) {
+    // Ne pas bloquer l'action principale si l'audit échoue — mais laisser une trace.
+    logger.warn({ err, action }, 'Écriture audit_log en échec');
   }
 }
 
