@@ -1,5 +1,6 @@
 const express = require('express');
 const { queryAll, queryOne, execute } = require('../database');
+const { nowIsoUtc } = require('../lib/shared/isoTimestamp');
 const { requirePermission } = require('../middleware/requireTeacher');
 const asyncHandler = require('../lib/asyncHandler');
 const { z, validate } = require('../lib/validate');
@@ -112,7 +113,7 @@ async function logAudit(action, targetType, targetId, details, options = {}) {
         actorUserType,
         actorUserId,
         options.result || 'success',
-        new Date().toISOString(),
+        nowIsoUtc(),
         payload,
       ],
     );

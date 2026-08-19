@@ -7,6 +7,78 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Intégrité du QCM : la bonne réponse ne quitte plus le serveur, et une question ne se joue qu'une fois
+
+Deux défauts identifiés par [docs/AUDIT_APP_ET_JEU_2026-08.md](docs/AUDIT_APP_ET_JEU_2026-08.md)
+§6.2, dont les correctifs dormaient en brouillon (PR #277 et #275) : ils sont repris ici sur
+la base actuelle. Le second était accompagné d'une migration `171` qui, sur une base déjà
+migrée au-delà, aurait été **sautée sans bruit** par le runner (`num < current`) — d'où sa
+renumérotation.
+
+- **La bonne réponse était lisible avant de répondre.** Le `presentationToken` est un JWT :
+  signé, donc infalsifiable, mais **pas chiffré** — sa charge utile est du base64. Il portait
+  `correctChoiceId` ; un élève ouvrant les outils de développement de son navigateur lisait
+  la solution avant de cocher. Le jeton ne porte désormais qu'un `nonce` et l'**empreinte
+  HMAC-SHA256** de la bonne réponse (clé : `JWT_SECRET`) : le serveur recalcule l'empreinte
+  pour le choix reçu et compare, à temps constant. Sans le secret, elle n'est ni lisible ni
+  reproductible, et deux présentations d'une même question ne donnent pas la même empreinte.
+  La bonne réponse n'est renvoyée qu'une fois trouvée. Les jetons de l'ancien format sont
+  **refusés** plutôt qu'acceptés par compatibilité : une question ouverte au moment du
+  déploiement doit être rechargée.
+- **Le même jeton pouvait rapporter des points indéfiniment.** `POST /api/gl/games/:id/qcm/answer`
+  ne marquait pas le jeton comme consommé : pendant ses 15 minutes de validité, renvoyer la
+  même requête — légitime, sans rien forger — recréditait l'équipe à chaque appel. Chaque
+  présentation porte maintenant un `jti` consommé par la première réponse (migration
+  **`193_gl_qcm_presentation_uses.sql`**, clé primaire = arbitre) ; un rejeu reçoit `409`
+  « Présentation déjà utilisée ». Consommation et attribution du score sont dans la même
+  transaction, et l'enregistrement de tentative pour le conditionnement pédagogique passe
+  **après** : un rejeu refusé ne pose plus de verrou de re-tentative.
+- **Tests** — `tests/gl-qcm-choices.test.js` décode réellement le jeton pour vérifier
+  l'absence de la réponse et l'unicité du `jti` ; `tests/gl-qcm-presentation-reuse.test.js`
+  rejoue la requête et vérifie que le score reste à 1.
+
+### GL — un échange de feuillet n'écrase plus une découverte déjà faite
+
+Sur le Marché, livrer une copie à une équipe qui **possédait déjà** le feuillet réécrivait son
+état : une découverte faite sur la carte était reclassée en échange, et un feuillet encore
+lisible pouvait devenir illisible (copie plus effacée que la sienne). L'équipe conserve
+désormais l'état qu'elle a ; la copie ne s'écrit que si le feuillet lui est nouveau, et le
+compteur `delivered` ne compte que ces feuillets-là. Correctif repris de la PR #314, restée en
+brouillon sur une base antérieure. Tests : `tests/gl-market-feuillets-deliver.test.js` (les
+quatre statuts de possession, sans base) et un scénario d'échange complet dans
+`tests/gl-market-feuillets.test.js`.
+
+### Cohérence — un seul point d'entrée pour les jetons, les horodatages et les images
+
+Trois conventions étaient énoncées quelque part et appliquées à moitié. Aucun changement de
+comportement, mais un seul endroit à lire — et à corriger — pour chacune.
+
+- **Jetons** — `jsonwebtoken` était appelé depuis neuf endroits (`server.js`, `routes/auth.js`,
+  `lib/realtime.js`, `lib/glQcmChoices.js`, `middleware/requireTeacher.js`). Tout passe
+  désormais par `lib/auth/jwtPipeline.js`, qui **épingle l'algorithme** (`HS256`) à la
+  signature comme à la vérification : un jeton présenté en `none` ou en RS256 est rejeté avant
+  lecture des claims, sans dépendre du défaut de la bibliothèque.
+- **Horodatages** — le lot précédent a introduit `nowIsoUtc()` (colonnes temporelles héritées
+  en `VARCHAR`, où deux formats concurrents cassent le tri) mais laissait une vingtaine
+  d'écritures en `new Date().toISOString()` littéral. Toutes les écritures en base passent
+  maintenant par le helper ; les usages qui ne sont pas des horodatages de colonne (nom de
+  fichier d'export, date seule, manifestes JSON) restent inchangés.
+- **Images** — le contrôle du type d'une data-URL existait en **cinq exemplaires**, avec deux
+  listes de formats à garder d'accord. Il vit dans `lib/shared/dataUrlImage.js`, chaque module
+  gardant son export d'origine. La liste reste fermée — un `image/svg+xml`, qui porte du
+  script, n'y figure toujours pas — et c'est désormais vérifié par un test.
+
+### Documentation
+
+- `CHANGELOG.md` : le correctif « mot de passe oublié GL » figurait **trois fois** sous
+  `[Non publié]` (deux rédactions du même lot et un titre orphelin), séquelle de fusions
+  croisées le même jour. Une seule version, la complète, est conservée.
+- `docs/API.md` : nouveau paragraphe sur le contrat du `presentationToken` (ce qu'il ne
+  contient pas, son usage unique, quand la bonne réponse est révélée) ; comportement de
+  l'échange de feuillet quand le receveur possède déjà la page.
+- Doc de référence : `qcm-et-pedagogie.md` (une question affichée = une réponse comptée) et
+  `economie-marche-sorts.md` (l'échange ne dégrade pas ce que l'équipe a déjà).
+
 ### GL — la liasse du copiste, remise en fin de voyage
 
 Sur les 40 feuillets de la liasse `copiste`, 14 étaient déjà distribués en jeu (un par
@@ -42,21 +114,7 @@ La liasse est donc remise **en bloc, à la fin du voyage**.
   d'origine, rechute après la page du désert froid).
 - **Technique** — `lib/glFeuilletStarterGrant.js` devient `lib/glFeuilletBundleGrant.js` :
   une seule mécanique de remise, paramétrée par liasse.
-### Correctif — réinitialisation de mot de passe rétablie côté Gnomes & Licornes
 
-La migration 185 du lot précédent posait une clé étrangère
-`password_reset_tokens.user_id → users.id`. La table est en réalité **polymorphe** : les
-jetons `gl_player` désignent `gl_players`, pas `users`. Conséquence, aucun joueur GL ne
-pouvait plus demander de lien de réinitialisation — l'insertion du jeton échouait. Les
-comptes élèves et enseignants n'étaient pas touchés.
-
-La migration **189** retire cette clé et l'index qui ne servait qu'à la porter. Aucune
-contrainte SQL ne peut exprimer une référence qui change de table selon une colonne : pour
-cette table, la purge à la suppression d'un compte reste portée par `lib/studentDeletion.js`
-et par l'expiration des jetons. `user_roles` conserve la sienne, sa population étant
-entièrement dans `users`. `tests/schema-password-reset-polymorphic.test.js` vérifie les
-deux faces.
-### ForetMap — « mot de passe oublié » réparé pour les joueurs GL
 ### Correctif — « mot de passe oublié » réparé pour les joueurs GL
 
 La migration 185 posait une clé étrangère `password_reset_tokens.user_id → users.id`.
