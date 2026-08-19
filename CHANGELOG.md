@@ -7,6 +7,56 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### GL — la liasse du copiste, remise en fin de voyage
+
+Sur les 40 feuillets de la liasse `copiste`, 14 étaient déjà distribués en jeu (un par
+milieu, un à l'entrée de chaque pays) : la voix du copiste ponctuait donc déjà le voyage.
+Les 26 autres — couverture, préface, origine, marginalia, inserts, les trois actes, la
+confession, la finale et la clôture — n'étaient rattachés à rien, donc inatteignables.
+Les éparpiller dans les pools aurait dilué les feuillets de terrain, ceux qui portent la
+biodiversité ; et deux de ces pages sont la **clé de lecture de la fin** (le carnet de
+Sélène s'arrête sur un mot suspendu, délibérément — le copiste est le seul à le dire).
+La liasse est donc remise **en bloc, à la fin du voyage**.
+
+- **Remise automatique** — quand une partie du **dernier plateau** passe en « terminée »,
+  chaque équipe reçoit la liasse entière : sans QCM, sans coût en gemmes, sans effacement.
+  Le déclenchement est réservé au plateau 5 : livrée plus tôt, la liasse dévoilerait la fin.
+- **Remise à la demande du MJ** — nouvelle route `POST /api/gl/lore/games/:id/liasses/:bundle`
+  (`ouverture` | `cloture`, permission `gl.game.manage`) : le filet pour une classe qui
+  s'arrête avant le chapitre 5 ou pour une dernière séance dédiée. Idempotente — un feuillet
+  déjà trouvé n'est jamais réattribué.
+- **Base de données** — migration **`191_gl_feuillets_liasse_cloture.sql`** : colonne
+  `offert_cloture` (pendant de `offert_ouverture`), marquage piloté par la donnée (`liasse`,
+  et non une liste de codes), provenance `cloture` ajoutée en fin d'ENUM. **Plus aucun
+  feuillet du corpus n'est hors de portée.**
+- **Position des trois actes dans le récit** — migration **`192_gl_feuillets_ordre_recit_places.sql`** :
+  les actes portaient 210, 693 et 2050, hors de l'échelle du récit (1→150), donc rejetés en
+  fin de lecture. Leur texte dit où ils vont : « CHACUN POUR SA PEAU » s'adresse au joueur
+  « à ta première case » (→ 14), « LE BÂTON » commente la scène de la tourbière où Sélène se
+  couche dans la boue (→ 76, juste après elle), « LA MÊME CORDE » tend le carnet au lecteur
+  et conclut « Tourne la page » (→ 150, le dernier mot, après les feuillets vierges).
+  La même migration replace **cinq scènes** que la migration 178 avait ramenées trop tôt : en
+  soustrayant 80 000 elle transformait un rang local au plateau en position globale, et deux
+  scènes des landes atterrissaient au milieu des tropiques. Elles rejoignent la portion de
+  récit de leur milieu (tourbière après la page des landes, ligne de feu auprès de sa version
+  d'origine, rechute après la page du désert froid).
+- **Technique** — `lib/glFeuilletStarterGrant.js` devient `lib/glFeuilletBundleGrant.js` :
+  une seule mécanique de remise, paramétrée par liasse.
+### Correctif — réinitialisation de mot de passe rétablie côté Gnomes & Licornes
+
+La migration 185 du lot précédent posait une clé étrangère
+`password_reset_tokens.user_id → users.id`. La table est en réalité **polymorphe** : les
+jetons `gl_player` désignent `gl_players`, pas `users`. Conséquence, aucun joueur GL ne
+pouvait plus demander de lien de réinitialisation — l'insertion du jeton échouait. Les
+comptes élèves et enseignants n'étaient pas touchés.
+
+La migration **189** retire cette clé et l'index qui ne servait qu'à la porter. Aucune
+contrainte SQL ne peut exprimer une référence qui change de table selon une colonne : pour
+cette table, la purge à la suppression d'un compte reste portée par `lib/studentDeletion.js`
+et par l'expiration des jetons. `user_roles` conserve la sienne, sa population étant
+entièrement dans `users`. `tests/schema-password-reset-polymorphic.test.js` vérifie les
+deux faces.
+### ForetMap — « mot de passe oublié » réparé pour les joueurs GL
 ### Correctif — « mot de passe oublié » réparé pour les joueurs GL
 
 La migration 185 posait une clé étrangère `password_reset_tokens.user_id → users.id`.

@@ -5,7 +5,7 @@ const { requireGlPermission } = require('../../../middleware/requireGlAuth');
 const { normalizeOptionalString, parseId } = require('../../../lib/shared/httpHelpers');
 const asyncHandler = require('../../../lib/asyncHandler');
 const logger = require('../../../lib/logger');
-const { grantStartingFeuilletsToTeam } = require('../../../lib/glFeuilletStarterGrant');
+const { grantStartingFeuilletsToTeam } = require('../../../lib/glFeuilletBundleGrant');
 
 const router = express.Router();
 
