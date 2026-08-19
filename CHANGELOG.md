@@ -7,6 +7,52 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### Base de données — exécution du plan d'audit (points 2 à 12)
+
+Le plan d'action de [`docs/AUDIT_BDD_2026-08.md`](docs/AUDIT_BDD_2026-08.md) est appliqué,
+à l'exception du calage GPS (§3.1, relevé de terrain) et du passage des 29 colonnes de date
+en `DATETIME` (§3.2, lot dédié). Six migrations, 177 à 182, toutes idempotentes.
+
+**Ce qui ne peut plus se reproduire.** Trois classes de défauts sont fermées par un
+garde-fou, pas seulement réparées :
+
+- Les objets supprimés par une migration ne ressuscitent plus au démarrage.
+  `sql/schema_foretmap.sql` doit continuer à les déclarer pour que les migrations
+  historiques se rejouent sur une base neuve — c'est désormais `lib/legacySchemaCleanup.js`
+  qui les retire, **après** les migrations, à chaque démarrage. Un test statique fait
+  échouer la CI au prochain oubli du même genre.
+- Les vues SQL sont ramenées sur la base courante (migration 177), et un test interdit
+  qu'une vue cite un autre schéma — c'est ce qui faisait qu'une copie de la base lisait la
+  production.
+- Les tutoriels ne se dupliquent plus : le jeu de démarrage ne s'applique qu'à une base
+  vide. Il était rejoué à chaque démarrage et créait une seconde copie de chaque fiche dès
+  que l'import depuis `tutos/*.html` l'avait déjà créée sous un autre slug — la production
+  comptait 24 tutoriels pour 14 contenus, la plupart affichés deux fois aux élèves.
+
+**Intégrité et hygiène.** Clés étrangères `user_roles → users` et
+`password_reset_tokens → users` après purge des orphelins ; attributions de rôles croisant
+les populations retirées ; trois tables de jonction héritées supprimées après rejeu de leur
+reprise ; 14 index redondants supprimés ; collations alignées ; slugs de rôle réparés et
+leur cause corrigée à la saisie (`src/utils/slugify.js`, accent-conscient).
+
+**Horodatages.** Trois colonnes `VARCHAR` mélangeaient l'ISO-8601 UTC et l'heure locale, ce
+qui inversait l'ordre d'affichage — MySQL compare `'T'` à `' '` au dixième caractère. Elles
+convergent vers l'ISO-8601 UTC, l'offset Europe/Paris étant retiré selon la saison de
+chaque ligne. `audit_log.occurred_at` est recalé sur `created_at`, qui fait foi.
+
+**Deux outils, à blanc par défaut.** `npm run tutorials:dedup` fusionne les tutoriels au
+contenu identique sans perdre un seul lien ; `npm run logs:purge` applique une durée de
+conservation aux journaux, qui gardaient sans limite adresses IP et user-agents. Ligne de
+crontab documentée dans [`docs/CRONTAB.md`](docs/CRONTAB.md).
+
+**Garde-fou.** La suite de tests refuse de démarrer sur une base dont le nom ne ressemble
+pas à une base de test : sans `TEST_DB_NAME`, elle reprenait le `DB_NAME` du `.env`.
+
+Le document d'audit est mis à jour : trois constats étaient sous-estimés (une troisième
+colonne de dates mixtes, l'ampleur réelle des doublons de tutoriels) et un quatrième était
+faux — les deux journaux d'audit ne divergent pas, l'écart s'explique entièrement par la
+date de création de `security_events`.
+
 ### Documentation — audit complet de la base de données (août 2026)
 
 Nouveau document [`docs/AUDIT_BDD_2026-08.md`](docs/AUDIT_BDD_2026-08.md) : audit de la

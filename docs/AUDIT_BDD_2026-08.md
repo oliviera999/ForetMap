@@ -1,6 +1,10 @@
 # Audit de la base de données (août 2026)
 
-> **Statut : document d'audit. Aucun comportement modifié, aucune donnée touchée.**
+> **Statut : audit, puis exécution.** Le relevé (§1 à §6) a été établi sans rien modifier ;
+> le plan d'action (§7) a ensuite été appliqué, points 2 à 12 — état détaillé et écarts
+> assumés en **§8**. Les constats révisés en cours d'exécution sont signalés comme tels au
+> fil du texte (§3.2, §4.4, §5.4) : l'audit initial sous-estimait trois d'entre eux et se
+> trompait sur un quatrième.
 > Périmètre : la base de production **`oliviera_foretmap`** (cf. `.env.example:7`,
 > `README.md:172`), auditée à travers une **copie** exportée le 18 août 2026 à 17:10 sous
 > le nom `oliviera_foretmap5` — export phpMyAdmin 5.2.3, MariaDB 11.4.12, 5,8 Mo,
@@ -168,6 +172,15 @@ l'est plus :
 | ------------------------ | ---------------------------- | ----------------- |
 | `map_markers.created_at` | 21 lignes                    | 42 lignes         |
 | `tutorials.created_at`   | 19 lignes                    | 5 lignes          |
+| `users.last_seen`        | 26 lignes                    | 37 lignes         |
+
+> **Correction apportée en cours d'exécution du plan.** Le relevé initial n'annonçait que
+> deux colonnes : son motif de détection ne retenait que les noms terminant par `_at`,
+> `date` ou `time`, et laissait donc passer `users.last_seen` — qui sert au tri « vu
+> récemment ». Le recensement exhaustif, colonne par colonne, en trouve **trois**. Les
+> quatre colonnes de DATE SEULE (`tasks.due_date`, `tasks.start_date`,
+> `tasks.recurrence_spawned_for_due_date`, `zone_history.harvested_at`) sont homogènes en
+> `YYYY-MM-DD` et hors sujet : ce sont des dates, pas des instants.
 
 Les deux familles proviennent de deux écritures différentes :
 `new Date().toISOString()` côté application (`routes/map.js:99`,
@@ -406,35 +419,51 @@ SELECT ur.user_type, u.pseudo, r.slug, ur.is_primary, ur.assigned_at
     OR (ur.user_type = 'teacher' AND r.slug LIKE 'eleve%');
 ```
 
-### 4.4 — Deux journaux d'audit concurrents, qui divergent
+### 4.4 — Deux journaux d'audit, dont un que personne ne lit
+
+> **Constat révisé après vérification.** La première rédaction concluait que « aucun des
+> deux journaux n'est complet, et rien ne dit lequel fait foi ». C'est faux : l'écart
+> s'explique **entièrement** par la date de naissance de `security_events`.
 
 `audit_log` (1 155 lignes) et `security_events` (1 909 lignes) enregistrent en grande
-partie **les mêmes événements métier** :
+partie les mêmes événements métier. Les comptages coïncident sur la plupart des actions
+(`assign_task` 169/169, `update_task` 159/159, `done_task` 82/82) mais pas sur toutes :
 
-| Action                | `audit_log` | `security_events` |
-| --------------------- | ----------- | ----------------- |
-| `assign_task`         | 169         | 169               |
-| `update_task`         | 159         | 159               |
-| `done_task`           | 82          | 82                |
-| `rbac_update_profile` | 89          | 89                |
-| **`validate_task`**   | **100**     | **95**            |
-| **`create_task`**     | **89**      | **86**            |
+| Action          | `audit_log` | `security_events` | Écart | Lignes antérieures au 2026-03-25 14:50 UTC |
+| --------------- | ----------- | ----------------- | ----- | ------------------------------------------ |
+| `validate_task` | 100         | 95                | 5     | **5**                                      |
+| `create_task`   | 89          | 86                | 3     | **3**                                      |
+| `propose_task`  | 10          | 9                 | 1     | **1**                                      |
 
-Les quatre premières lignes coïncident exactement ; les deux dernières **non**. Cinq
-validations et trois créations de tâche figurent dans un journal et pas dans l'autre :
-**aucun des deux n'est complet**, et rien ne dit lequel fait foi. `security_events` porte
-en plus les événements d'authentification (556 `auth.login`, 111 OAuth enseignant, 67
-OAuth élève) que `audit_log` ignore.
+`security_events` commence le **2026-03-25 à 14:50 UTC** ; `audit_log`, quatre jours plus
+tôt. Les neuf événements en surplus sont exactement les neuf antérieurs à cette date.
+Depuis, `logAudit()` écrit dans les deux tables à la suite (`routes/audit.js`) et **elles
+ne divergent plus d'une ligne**. `security_events` porte en outre les 763 événements
+d'authentification (556 `auth.login`, 111 OAuth enseignant, 67 OAuth élève…) que
+`logAudit` n'émet pas.
 
-Les deux tables ont par ailleurs des schémas divergents : `audit_log.created_at` est un
-`VARCHAR` ISO doublé d'un `occurred_at DATETIME` (cf. §3.2), là où `security_events` n'a
-qu'un `occurred_at DATETIME` propre, plus `ip_address`, `user_agent` et un
-`payload_json` sous contrainte `CHECK (json_valid(...))`.
+Le vrai constat est ailleurs : **`security_events` n'est lu par aucune ligne du code.**
+Aucune occurrence en lecture dans `routes/`, `lib/` ou `scripts/` — 1 909 lignes écrites et
+jamais consultées autrement qu'à la main. `audit_log`, lui, est vivant : écran d'audit
+(`routes/audit.js:26`) et résolution du proposeur d'une tâche
+(`lib/tasks/taskQueries.js:163`).
 
-**Correction.** Trancher : `security_events` est le meilleur des deux schémas. Soit
-`audit_log` devient une vue de compatibilité, soit les écritures convergent vers une seule
-table. En attendant, documenter laquelle fait foi — un journal d'audit dont on ignore s'il
-est complet ne remplit pas son office.
+Restent deux défauts réels, tous deux corrigés dans le lot d'exécution :
+
+- **`audit_log` portait deux horodatages contradictoires du même événement** :
+  `created_at` en ISO-8601 UTC et `occurred_at` en heure locale — +2 h sur 921 lignes,
+  +1 h sur 225, plus neuf lignes rétro-remplies dont l'`occurred_at` était franchement faux
+  (écarts de 5 h à 94 h). La migration 182 recale `occurred_at` depuis `created_at`, qui
+  fait foi, et l'écriture passe à `UTC_TIMESTAMP()`. Aucun effet visible : `occurred_at`
+  n'est lu par aucune fonctionnalité (l'écran d'audit affiche `created_at`).
+- **Le double écrit échouait en silence.** Les deux `catch` de `routes/audit.js`
+  n'enregistraient rien : c'est par ce silence que les deux journaux auraient pu diverger
+  sans que personne ne le sache. Ils journalisent maintenant en `warn`.
+
+`security_events.occurred_at` **reste en heure locale**, à dessein : rien ne permet de
+recaler son historique — contrairement à `audit_log`, elle n'a pas de second horodatage de
+référence — et une colonne homogène en local vaut mieux qu'une discontinuité de fuseau au
+milieu du journal. C'est documenté à l'endroit où on l'écrit.
 
 ### 4.5 — Trois tables de liaison remplacées mais jamais supprimées (3 230 lignes)
 
@@ -523,11 +552,16 @@ du chiffre est un **indicateur** du nombre de redémarrages — utile à croiser
 
 ### 5.4 — Doublons de contenu
 
-- **`tutorials`** : deux paires en double, issues de deux slugifieurs concurrents.
-  `Arrosage au potager` existe en `arrosage-au-potager` (id 1, importé du système de
-  fichiers) **et** `arrosage-potager` (id 538, seed de `sql/schema_foretmap.sql:322`).
-  Idem pour `L'eau au jardin` / `Eau au jardin`. La clé unique porte sur le `slug`, elle
-  ne peut donc rien voir.
+- **`tutorials` — bien plus grave que ce que le relevé initial annonçait.** Non pas « deux
+  titres en double » (le rapprochement se faisait sur des titres normalisés, qui ratent
+  « Le désherbage doux » contre « Désherbage doux »), mais **24 tutoriels pour 14 contenus
+  distincts** : neuf groupes de doublons, et dans **huit** d'entre eux les DEUX copies sont
+  actives — chaque fiche apparaissait donc deux fois aux élèves. Cause : le jeu de
+  démarrage de `sql/schema_foretmap.sql` était rejoué à chaque `initSchema()`, donc à
+  chaque démarrage, avec une clé unique sur `slug`. Quand l'import depuis `tutos/*.html`
+  avait déjà créé la fiche sous un autre slug (`le-desherbage-doux` dérivé du titre H1
+  contre `desherbage-doux`), l'`INSERT IGNORE` ne voyait aucun doublon et insérait une
+  seconde copie.
 - **`gl_qcm_questions`** : 4 énoncés dupliqués (2 à 3 exemplaires), dont
   « Quel est le nom scientifique du loup gris ? » ×3.
 - **`zones`** : 7 noms en double, tous des libellés de remplissage jamais renommés
@@ -629,8 +663,8 @@ Ces points sont vérifiés, pas supposés — ils méritent d'être préservés 
 
 ## 7. Plan d'action proposé
 
-Par rapport bénéfice/risque décroissant. Aucun de ces gestes n'a été appliqué : ce
-document est un audit.
+Par rapport bénéfice/risque décroissant. **Ce plan a depuis été exécuté** — voir §8 pour
+l'état point par point et les écarts assumés.
 
 | #   | Action                                                                                                                                                             | Gravité        | Effort        | Réf.       |
 | --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------- | ------------- | ---------- |
@@ -648,8 +682,57 @@ document est un audit.
 | 12  | Supprimer les 15 index redondants ; aligner les collations ; corriger les slugs de rôles ; dédoublonner tutoriels/zones/questions                                  | Faible         | 2 h           | §5.4–5.7   |
 | 13  | Chantier de fond : les 29 colonnes de date en `DATETIME`                                                                                                           | Faible (dette) | 1 lot dédié   | §3.2       |
 
-Les points 3, 4 et 7 sont réalisables en un seul lot d'une demi-journée et referment
-durablement trois classes de problème.
+---
+
+## 8. Ce qui a été exécuté
+
+Points 2 à 12 appliqués. Le point 1 (calage GPS) est explicitement réservé par le
+propriétaire du projet : il demande un relevé de terrain. Le point 13 reste un lot dédié,
+comme annoncé dès le §3.2.
+
+| #   | État        | Livré                                                                                 |
+| --- | ----------- | ------------------------------------------------------------------------------------- |
+| 1   | **réservé** | calage GPS — relevé de terrain, traité par le propriétaire du projet                  |
+| 2   | fait        | `lib/legacyTimestampNormalization.js`, `lib/shared/isoTimestamp.js`                   |
+| 3   | fait        | `lib/legacySchemaCleanup.js` + 2 tests (dont un statique qui ferme la classe entière) |
+| 4   | fait        | migration 177 + `tests/schema-views-current-db.test.js`                               |
+| 5   | fait        | migration 179 + clés étrangères dans `sql/schema_foretmap.sql`                        |
+| 6   | fait        | migration 179 (attributions non primaires croisant les populations)                   |
+| 7   | fait        | `.gitignore` en liste blanche                                                         |
+| 8   | fait        | migration 180 (reprise rejouée avant suppression)                                     |
+| 9   | fait        | migration 182 + `routes/audit.js` (constat révisé, cf. §4.4)                          |
+| 10  | fait        | `npm run logs:purge` + ligne de crontab documentée                                    |
+| 11  | fait        | garde-fou base de test + découpage des instructions à l'import de dump                |
+| 12  | fait\*      | migrations 178 et 181, `src/utils/slugify.js`, `npm run tutorials:dedup`              |
+| 13  | à venir     | passage des 29 colonnes de date en `DATETIME` — lot dédié                             |
+
+### Trois écarts assumés par rapport au plan initial
+
+**Point 3 — la correction retenue n'est pas celle qui était proposée.** Le plan disait de
+retirer `role_pin_secrets`, `elevation_audit` et `requires_elevation` de
+`sql/schema_foretmap.sql`. Impossible : les migrations 025, 029, 034, 139 et 163 lisent ou
+écrivent ces objets, et échoueraient sur une base neuve — `ER_BAD_FIELD_ERROR` n'est pas
+une erreur tolérée par le runner. Le fichier de schéma les déclare donc toujours, mais
+`lib/legacySchemaCleanup.js` les supprime **après** les migrations, à chaque démarrage.
+Immunisé contre la résurrection quel que soit l'ordre des passages, et le test statique
+`schema-legacy-scaffolding` fait échouer la CI au prochain oubli du même genre.
+
+**Point 12 — le dédoublonnage des tutoriels est un outil, pas une migration.** Le
+regroupement est mécanique (`html_content` identique octet pour octet), mais choisir quel
+titre survit — « Le jardin punk » ou « Jardin N3 » ? — est une décision éditoriale.
+`npm run tutorials:dedup` liste les groupes à blanc et ne fusionne qu'avec `--apply`. La
+fusion ne perd aucun lien : lectures attestées, liaisons tâches / zones / marqueurs /
+projets / questions / glossaire / visite et références polymorphes sont repointées vers le
+tutoriel conservé avant suppression. La **cause**, elle, est fermée sans intervention : le
+jeu de démarrage ne s'applique plus qu'à une base vide.
+
+**Point 12 — les doublons de `zones`, `gl_qcm_questions` et `groups` ne sont pas touchés.**
+Contrairement aux tutoriels, ce ne sont pas des copies techniques : sept zones portent un
+libellé de remplissage jamais renommé (« Nommer secteur centre-nord » ×3) mais désignent
+des surfaces réelles et distinctes de la carte ; quatre énoncés de QCM se répètent mais les
+questions ont leurs propres réponses et statistiques. Les supprimer détruirait du contenu
+pédagogique sur la foi d'une ressemblance de libellé. C'est un travail d'édition, à faire
+depuis l'interface prof.
 
 ---
 
