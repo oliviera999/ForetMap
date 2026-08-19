@@ -742,7 +742,9 @@ référentielle ne pèse sur la table, et qu'un joueur GL obtient bien son jeton
 conserve la sienne — sa population est bien entièrement dans `users`. `sql/schema_foretmap.sql`
 cesse de déclarer la clé : sans cela le fichier de schéma continuerait de la poser à la
 création de la table pour qu'une migration la retire aussitôt, exactement le travers que le
-§3.3 reproche par ailleurs. L'index `idx_password_reset_user` reste, lui, en place.
+§3.3 reproche par ailleurs. L'index `idx_password_reset_user`, qui n'existait que pour
+porter cette clé, tombe avec la migration **190** — le fichier de schéma ne le déclarant
+plus lui non plus, le laisser en base aurait rouvert la même dérive d'un cran plus bas.
 
 Le manque d'intégrité signalé au §4.2 n'est donc **comblé qu'à moitié**, et le §4.2 le dit.
 
