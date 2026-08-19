@@ -7,6 +7,21 @@ Le numéro de version suit [Semantic Versioning](https://semver.org/lang/fr/) (M
 
 ## [Non publié]
 
+### ForetMap — « mot de passe oublié » réparé pour les joueurs GL
+
+La migration 185 posait une clé étrangère `password_reset_tokens.user_id → users.id`.
+L'intention était bonne (un jeton ne doit pas survivre au compte qui l'a demandé), mais la
+table est **polymorphe** : `user_id` désigne un compte de `users` (élève, enseignant) **ou**
+un joueur GL de `gl_players`. Depuis, la demande de réinitialisation d'un joueur GL échouait
+(`ER_NO_REFERENCED_ROW_2`), et `tests/gl-auth-forgot-password.test.js` était rouge.
+
+- **Base de données** — migration **`189_password_reset_tokens_polymorphic_fk.sql`** : la
+  clé étrangère est retirée (une FK ne peut pas exprimer « existe dans `users` **ou** dans
+  `gl_players` »). L'index sur `user_id` est conservé, ainsi que la clé étrangère de
+  `user_roles`, dont la population est bien limitée à `users`.
+- **Test** — `tests/password-reset-polymorphic.test.js` : un joueur GL obtient son jeton, et
+  la table ne porte aucune contrainte référentielle.
+
 ### GL — feuillets : atteignables, mieux répartis, et un cadre offert à l'ouverture
 
 Audit du corpus (205 feuillets actifs) : 18 % n'étaient atteignables par **aucun** canal
