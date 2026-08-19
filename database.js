@@ -707,7 +707,9 @@ module.exports = {
   isApplicationDatabaseReady,
   endPool,
   assertNoNewDuplicateMigrationNumbers,
-  // Exporté pour scripts/import-foretmap-dump.js : rejouer un dump instruction par
+  // Exporté pour deux usages : les tests de migration, qui rejouent un fichier SQL avec le
+  // MÊME découpage que le runner (les ';' des chaînes et des commentaires ne coupent pas un
+  // statement), et scripts/import-foretmap-dump.js, qui rejoue un dump instruction par
   // instruction plutôt qu'en bloc (audit docs/AUDIT_BDD_2026-08.md §4.1).
   splitSqlStatements,
 };
