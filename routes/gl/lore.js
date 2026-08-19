@@ -22,6 +22,7 @@ const {
 const { parseBiomeSlugsFromQuery, normalizeBiomeSlugList } = require('../../lib/glChapterBiomes');
 const { sendXlsxAttachment, wrapXlsxRoute } = require('../../lib/glXlsxAttachment');
 const { isFeuilletInChapterPool } = require('../../lib/glFeuilletChapterPool');
+const { FEUILLET_BUNDLES, grantFeuilletBundleForGame } = require('../../lib/glFeuilletBundleGrant');
 const { resolveTeamContext } = require('../../lib/glTeamContext');
 const { recordFeuilletEvent } = require('../../lib/glLoreFeuilletEvents');
 const {
@@ -327,6 +328,45 @@ router.get(
     return res.json({
       feuillet: maskLockedFeuillet(formatted, gameplay.loreFeuilletPreviewFields),
     });
+  }),
+);
+
+/**
+ * POST /api/gl/lore/games/:id/liasses/:bundle — remise manuelle d'une liasse (MJ).
+ *
+ * La liasse d'ouverture part au démarrage et la liasse du copiste à la clôture d'une
+ * partie du dernier plateau. Cette route est le filet : une classe qui s'arrête avant
+ * le chapitre 5, ou une dernière séance dédiée, doit pouvoir recevoir la liasse sur
+ * décision du MJ. Idempotente — un feuillet déjà trouvé n'est pas réattribué.
+ */
+router.post(
+  '/games/:id/liasses/:bundle',
+  requireGlPermission('gl.game.manage'),
+  asyncHandler(async (req, res) => {
+    const modules = await getGlModulesSettings();
+    if (!modules.loreCarnetEnabled)
+      return res.status(404).json({ error: 'Module carnet désactivé' });
+
+    const gameId = parseId(req.params.id);
+    const bundle = String(req.params.bundle || '').trim();
+    if (!gameId) return res.status(400).json({ error: 'Identifiant de partie invalide' });
+    if (!Object.prototype.hasOwnProperty.call(FEUILLET_BUNDLES, bundle)) {
+      return res.status(400).json({
+        error: `Liasse inconnue : ${bundle}`,
+        liasses: Object.keys(FEUILLET_BUNDLES),
+      });
+    }
+
+    const game = await queryOne('SELECT id FROM gl_games WHERE id = ? LIMIT 1', [gameId]);
+    if (!game) return res.status(404).json({ error: 'Partie introuvable' });
+
+    const result = await grantFeuilletBundleForGame(db, {
+      gameId,
+      bundle,
+      actorType: actorTypeOf(req),
+      actorId: req.glAuth.userId,
+    });
+    return res.json({ ok: true, liasse: bundle, ...result });
   }),
 );
 

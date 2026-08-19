@@ -12,10 +12,16 @@ const {
   startMarker,
 } = require('../../../lib/glBoardPath');
 const { parseId } = require('../../../lib/shared/httpHelpers');
-const { grantStartingFeuilletsForGame } = require('../../../lib/glFeuilletStarterGrant');
+const {
+  grantStartingFeuilletsForGame,
+  grantClosingFeuilletsForGame,
+} = require('../../../lib/glFeuilletBundleGrant');
 const logger = require('../../../lib/logger');
 
 const router = express.Router();
+
+/** Dernier plateau du voyage : c'est là que la liasse du copiste se remet d'elle-même. */
+const LAST_PLATEAU = 5;
 
 async function placeTeamsOnPathStart(gameId, gameRow) {
   if (!gameRow?.chapter_id) return;
@@ -46,8 +52,11 @@ async function updateGameStatus(req, res, nextStatus) {
   const gameId = parseId(req.params.id);
   if (!gameId) return res.status(400).json({ error: 'Identifiant de partie invalide' });
   const gameRow = await queryOne(
-    `SELECT id, chapter_id, board_movement_mode, board_path_start_index
-       FROM gl_games WHERE id = ? LIMIT 1`,
+    `SELECT g.id, g.chapter_id, g.board_movement_mode, g.board_path_start_index,
+            ch.plateau_number
+       FROM gl_games g
+       LEFT JOIN gl_chapters ch ON ch.id = g.chapter_id
+      WHERE g.id = ? LIMIT 1`,
     [gameId],
   );
   if (!gameRow) return res.status(404).json({ error: 'Partie introuvable' });
@@ -65,6 +74,18 @@ async function updateGameStatus(req, res, nextStatus) {
       logger.warn({ err, gameId }, 'Feuillets d’ouverture non attribués');
     }
   }
+  // Fin du voyage : la liasse du copiste est remise en bloc. Réservée au dernier
+  // plateau — `cop-finale` et `cop-close` expliquent que le carnet de Sélène s'arrête
+  // sur un mot suspendu, ce qui dévoilerait la fin s'il restait des chapitres à jouer.
+  // Une classe qui s'arrête avant passe par la remise manuelle (route dédiée du MJ).
+  if (nextStatus === 'ended' && Number(gameRow.plateau_number) === LAST_PLATEAU) {
+    try {
+      await grantClosingFeuilletsForGame(db, { gameId, actorId: req.glAuth.userId });
+    } catch (err) {
+      logger.warn({ err, gameId }, 'Liasse du copiste non remise');
+    }
+  }
+
   const normalized = await insertGameEvent(db, {
     gameId,
     actorType: 'mj',
