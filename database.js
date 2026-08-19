@@ -5,6 +5,8 @@ const path = require('path');
 const fs = require('fs');
 const logger = require('./lib/logger');
 const { inlineLegacyTutorialHtmlToDb } = require('./lib/inlineLegacyTutorialHtml');
+const { dropLegacyScaffolding } = require('./lib/legacySchemaCleanup');
+const { normalizeLegacyTimestamps } = require('./lib/legacyTimestampNormalization');
 
 /** Errnos MySQL souvent attendus lors de migrations idempotentes (table/colonne/index déjà présents ou legacy absent). */
 const MYSQL_MIGRATION_EXPECTED_ERRNO = new Set([1050, 1060, 1061, 1091, 1146, 1826]);
@@ -366,6 +368,10 @@ async function initSchema() {
       );
     }
     await runMigrations(conn);
+    // Échafaudage de schéma : objets que schema_foretmap.sql doit déclarer pour que les
+    // migrations historiques se rejouent, mais qui ne doivent plus exister ensuite. Sans
+    // ce passage, ils ressusciteraient au démarrage suivant (voir lib/legacySchemaCleanup.js).
+    await dropLegacyScaffolding(conn);
   } finally {
     conn.release();
   }
@@ -389,6 +395,14 @@ async function initSchema() {
     await inlineLegacyTutorialHtmlToDb({ queryAll, execute });
   } catch (err) {
     logger.warn({ err }, 'Incorporation fichiers tutoriels HTML (après schéma) ignorée');
+  }
+  try {
+    // Horodatages hérités en heure locale dans des colonnes VARCHAR : convergence vers
+    // l'ISO-8601 UTC, sans quoi le tri lexicographique de MySQL entrelace les deux formats
+    // (voir lib/legacyTimestampNormalization.js). Ne touche que les lignes encore héritées.
+    await normalizeLegacyTimestamps({ execute });
+  } catch (err) {
+    logger.warn({ err }, 'Normalisation des horodatages hérités ignorée');
   }
 }
 
@@ -693,7 +707,9 @@ module.exports = {
   isApplicationDatabaseReady,
   endPool,
   assertNoNewDuplicateMigrationNumbers,
-  // Exporté pour les tests de migration : rejouer un fichier SQL avec le MÊME découpage
-  // que le runner (les ';' des chaînes et des commentaires ne coupent pas un statement).
+  // Exporté pour deux usages : les tests de migration, qui rejouent un fichier SQL avec le
+  // MÊME découpage que le runner (les ';' des chaînes et des commentaires ne coupent pas un
+  // statement), et scripts/import-foretmap-dump.js, qui rejoue un dump instruction par
+  // instruction plutôt qu'en bloc (audit docs/AUDIT_BDD_2026-08.md §4.1).
   splitSqlStatements,
 };

@@ -38,6 +38,29 @@ OPS_ALERT_TO=admin@…
 */5 * * * * APP_DIR=/home/USER/foretmap DEPLOY_BASE_URL=https://foretmap.olution.info /home/USER/foretmap/scripts/uptime-check.sh >> /home/USER/foretmap/logs/uptime.log 2>&1
 ```
 
+## Ligne optionnelle : purge des journaux (rétention RGPD)
+
+`security_events` conserve l'adresse IP et le user-agent de chaque connexion, `audit_log`
+l'historique des actions. Sans purge, ces données personnelles — sur des comptes d'élèves,
+donc de mineurs — s'accumulent sans limite (audit `docs/AUDIT_BDD_2026-08.md` §5.2).
+
+Le script est **à blanc par défaut** : le lancer une première fois à la main pour valider
+le volume et la durée retenue, puis seulement l'ajouter au crontab.
+
+```bash
+cd /home/USER/foretmap
+npm run logs:purge -- --days=365            # à blanc : compte, ne supprime rien
+npm run logs:purge -- --days=365 --apply    # applique
+```
+
+```cron
+# 4) Purge des journaux au-delà de 365 jours — le 1er de chaque mois à 04:00
+0 4 1 * * cd /home/USER/foretmap && npm run logs:purge -- --days=365 --apply >> /home/USER/foretmap/logs/purge-logs.log 2>&1
+```
+
+Le minimum accepté est 30 jours : en deçà, le script refuse — une purge trop agressive
+effacerait des traces encore utiles à une investigation.
+
 ## Variables utiles (valeurs par défaut)
 
 | Variable                           | Défaut      | Rôle                                                             |

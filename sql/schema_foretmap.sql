@@ -56,7 +56,6 @@ CREATE TABLE IF NOT EXISTS zone_history (
   zone_id VARCHAR(64) NOT NULL,
   plant VARCHAR(255) NOT NULL,
   harvested_at VARCHAR(32) NOT NULL,
-  INDEX idx_zone_history_zone_id (zone_id),
   INDEX idx_zone_history_zone_harvested (zone_id, harvested_at),
   CONSTRAINT fk_zone_history_zone FOREIGN KEY (zone_id) REFERENCES zones(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -317,19 +316,45 @@ CREATE TABLE IF NOT EXISTS user_plant_observation_events (
   CONSTRAINT fk_upoe_plant FOREIGN KEY (plant_id) REFERENCES plants(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Contenu de démarrage des tutoriels — UNIQUEMENT sur une base encore vide.
+--
+-- Auparavant un `INSERT IGNORE` inconditionnel, rejoué à CHAQUE appel d'initSchema(),
+-- donc à chaque démarrage. La clé unique porte sur `slug` : quand l'import depuis
+-- `tutos/*.html` (lib/importTutosFromFilesystem.js) avait déjà créé la fiche sous un
+-- autre slug — « le-desherbage-doux » dérivé du titre H1, contre « desherbage-doux »
+-- ici — le IGNORE ne voyait aucun doublon et insérait une SECONDE copie du même
+-- contenu. La production comptait ainsi 24 tutoriels pour 14 contenus distincts, la
+-- plupart affichés deux fois aux élèves (audit docs/AUDIT_BDD_2026-08.md §5.4).
+-- Le garde `WHERE NOT EXISTS` reprend la convention de `seedData()` pour les zones :
+-- un jeu de démarrage ne s'applique qu'à une base vierge.
+-- Pour fusionner les doublons déjà créés : `npm run tutorials:dedup` (à blanc par défaut).
 INSERT IGNORE INTO tutorials
   (title, slug, type, summary, source_file_path, sort_order, created_at, updated_at)
-VALUES
-  ('Arrosage au potager', 'arrosage-potager', 'html', 'Tutoriel pratique pour bien arroser au potager.', '/tutos/fiche-arrosage-punk.html', 1, NOW(), NOW()),
-  ('Désherbage doux', 'desherbage-doux', 'html', 'Méthodes de désherbage respectueuses du sol vivant.', '/tutos/fiche-desherbage-punk.html', 2, NOW(), NOW()),
-  ('Jardin N3', 'jardin-n3', 'html', 'Repères et bonnes pratiques sur la zone N3.', '/tutos/fiche-jardin-punk-n3.html', 3, NOW(), NOW()),
-  ('Rempotage', 'rempotage', 'html', 'Tutoriel pas à pas pour le rempotage.', '/tutos/fiche-rempotage-punk.html', 4, NOW(), NOW()),
-  ('Associations de plantes', 'associations-plantes', 'html', 'Associer les plantes pour favoriser la biodiversité et les récoltes.', '/tutos/fiche-associations-punk.html', 5, NOW(), NOW()),
-  ('Compostage', 'compostage', 'html', 'Comprendre et réussir le compostage au jardin.', '/tutos/fiche-compost-punk.html', 6, NOW(), NOW()),
-  ('Eau au jardin', 'eau-au-jardin', 'html', 'Mieux gérer l’eau au jardin et limiter le gaspillage.', '/tutos/fiche-eau-punk.html', 7, NOW(), NOW()),
-  ('Semences', 'semences', 'html', 'Récolter, conserver et utiliser les semences.', '/tutos/fiche-semences-punk.html', 8, NOW(), NOW()),
-  ('Lire son sol', 'lire-son-sol', 'html', 'Observer et interpréter les caractéristiques du sol.', '/tutos/fiche-sol-punk.html', 9, NOW(), NOW()),
-  ('Sol vivant', 'sol-vivant', 'html', 'Découvrir le rôle du sol vivant dans la santé du jardin.', '/tutos/fiche-sol-vivant-punk.html', 10, NOW(), NOW());
+SELECT seed.title, seed.slug, seed.type, seed.summary, seed.source_file_path,
+       seed.sort_order, NOW(), NOW()
+  FROM (
+  SELECT 'Arrosage au potager' AS title, 'arrosage-potager' AS slug, 'html' AS type,
+         'Tutoriel pratique pour bien arroser au potager.' AS summary, '/tutos/fiche-arrosage-punk.html' AS source_file_path, 1 AS sort_order
+  UNION ALL
+  SELECT 'Désherbage doux', 'desherbage-doux', 'html', 'Méthodes de désherbage respectueuses du sol vivant.', '/tutos/fiche-desherbage-punk.html', 2
+  UNION ALL
+  SELECT 'Jardin N3', 'jardin-n3', 'html', 'Repères et bonnes pratiques sur la zone N3.', '/tutos/fiche-jardin-punk-n3.html', 3
+  UNION ALL
+  SELECT 'Rempotage', 'rempotage', 'html', 'Tutoriel pas à pas pour le rempotage.', '/tutos/fiche-rempotage-punk.html', 4
+  UNION ALL
+  SELECT 'Associations de plantes', 'associations-plantes', 'html', 'Associer les plantes pour favoriser la biodiversité et les récoltes.', '/tutos/fiche-associations-punk.html', 5
+  UNION ALL
+  SELECT 'Compostage', 'compostage', 'html', 'Comprendre et réussir le compostage au jardin.', '/tutos/fiche-compost-punk.html', 6
+  UNION ALL
+  SELECT 'Eau au jardin', 'eau-au-jardin', 'html', 'Mieux gérer l’eau au jardin et limiter le gaspillage.', '/tutos/fiche-eau-punk.html', 7
+  UNION ALL
+  SELECT 'Semences', 'semences', 'html', 'Récolter, conserver et utiliser les semences.', '/tutos/fiche-semences-punk.html', 8
+  UNION ALL
+  SELECT 'Lire son sol', 'lire-son-sol', 'html', 'Observer et interpréter les caractéristiques du sol.', '/tutos/fiche-sol-punk.html', 9
+  UNION ALL
+  SELECT 'Sol vivant', 'sol-vivant', 'html', 'Découvrir le rôle du sol vivant dans la santé du jardin.', '/tutos/fiche-sol-vivant-punk.html', 10
+  ) AS seed
+ WHERE NOT EXISTS (SELECT 1 FROM tutorials);
 
 -- task_assignments (élèves assignés à une tâche)
 CREATE TABLE IF NOT EXISTS task_assignments (
@@ -340,7 +365,6 @@ CREATE TABLE IF NOT EXISTS task_assignments (
   student_last_name VARCHAR(255) NOT NULL,
   done_at VARCHAR(32) DEFAULT NULL,
   assigned_at VARCHAR(32) DEFAULT NULL,
-  INDEX idx_task_assignments_task_id (task_id),
   INDEX idx_task_assignments_student_id (student_id),
   INDEX idx_task_assignments_student_name (student_first_name, student_last_name),
   -- Une seule inscription par n3beur et par tâche. Les lignes héritées (student_id NULL)
@@ -488,7 +512,12 @@ CREATE TABLE IF NOT EXISTS password_reset_tokens (
   INDEX idx_password_reset_lookup (user_type, user_id),
   INDEX idx_password_reset_expires (expires_at),
   INDEX idx_password_reset_used (used_at),
-  UNIQUE KEY uq_password_reset_token_hash (token_hash)
+  -- user_id n'est en tête d'aucun autre index : nécessaire pour porter la clé étrangère.
+  INDEX idx_password_reset_user (user_id),
+  UNIQUE KEY uq_password_reset_token_hash (token_hash),
+  -- Un jeton de réinitialisation ne doit pas survivre à la suppression du compte
+  -- (audit docs/AUDIT_BDD_2026-08.md §4.2). user_type reste informatif.
+  CONSTRAINT fk_password_reset_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- RBAC: profils et permissions configurables
@@ -519,9 +548,10 @@ CREATE TABLE IF NOT EXISTS permissions (
 CREATE TABLE IF NOT EXISTS role_permissions (
   role_id INT UNSIGNED NOT NULL,
   permission_key VARCHAR(120) NOT NULL,
-  -- Colonne héritée du système d'élévation par PIN (supprimé) : conservée ici pour que les
-  -- migrations historiques 034/139 s'appliquent sur une base neuve, puis supprimée par la
-  -- migration 164_drop_pin_elevation_system.sql. Ne plus lire/écrire cette colonne.
+  -- ÉCHAFAUDAGE — colonne héritée du système d'élévation par PIN (supprimé). Déclarée ici
+  -- uniquement pour que les migrations historiques 025/034/139/163, qui l'écrivent, se
+  -- rejouent sur une base neuve. Elle est supprimée à CHAQUE démarrage, après les
+  -- migrations, par lib/legacySchemaCleanup.js. Ne plus lire/écrire cette colonne.
   requires_elevation TINYINT(1) NOT NULL DEFAULT 0,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (role_id, permission_key),
@@ -529,9 +559,9 @@ CREATE TABLE IF NOT EXISTS role_permissions (
   CONSTRAINT fk_role_permissions_permission FOREIGN KEY (permission_key) REFERENCES permissions(`key`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Table héritée du système d'élévation par PIN (supprimé). Supprimée par la migration
--- 164_drop_pin_elevation_system.sql ; conservée ici uniquement pour la compatibilité des
--- migrations historiques sur une base neuve.
+-- ÉCHAFAUDAGE — table héritée du système d'élévation par PIN (supprimé). Déclarée ici
+-- uniquement pour la compatibilité des migrations historiques (025 l'alimente) sur une base
+-- neuve ; supprimée à CHAQUE démarrage, après les migrations, par lib/legacySchemaCleanup.js.
 CREATE TABLE IF NOT EXISTS role_pin_secrets (
   role_id INT UNSIGNED NOT NULL PRIMARY KEY,
   pin_hash VARCHAR(128) NOT NULL,
@@ -547,12 +577,18 @@ CREATE TABLE IF NOT EXISTS user_roles (
   assigned_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (user_type, user_id, role_id),
   INDEX idx_user_roles_lookup (user_type, user_id, is_primary),
-  CONSTRAINT fk_user_roles_role FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE
+  -- user_id n'est en tête d'aucun autre index : nécessaire pour porter la clé étrangère.
+  INDEX idx_user_roles_user (user_id),
+  CONSTRAINT fk_user_roles_role FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE,
+  -- Une attribution de rôle ne doit pas survivre à la suppression du compte
+  -- (audit docs/AUDIT_BDD_2026-08.md §4.2). user_type reste informatif.
+  CONSTRAINT fk_user_roles_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Table héritée du système d'élévation par PIN (supprimé). Supprimée par la migration
--- 164_drop_pin_elevation_system.sql ; conservée ici uniquement pour la compatibilité des
--- migrations historiques sur une base neuve.
+-- ÉCHAFAUDAGE — table héritée du système d'élévation par PIN (supprimé). Déclarée ici
+-- uniquement pour la compatibilité des migrations historiques (029 la met à jour) sur une
+-- base neuve ; supprimée à CHAQUE démarrage, après les migrations, par
+-- lib/legacySchemaCleanup.js.
 CREATE TABLE IF NOT EXISTS elevation_audit (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
   user_type VARCHAR(16) NOT NULL,
@@ -665,7 +701,6 @@ CREATE TABLE IF NOT EXISTS group_scopes (
   map_id VARCHAR(32) DEFAULT NULL,
   project_id VARCHAR(64) DEFAULT NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  INDEX idx_group_scopes_group (group_id),
   INDEX idx_group_scopes_map (map_id),
   INDEX idx_group_scopes_project (project_id),
   UNIQUE KEY uq_group_scopes_triplet (group_id, map_id, project_id),

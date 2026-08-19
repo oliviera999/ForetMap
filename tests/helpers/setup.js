@@ -2,6 +2,28 @@ const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '..', '..', '.env') });
 if (process.env.TEST_DB_NAME) process.env.DB_NAME = process.env.TEST_DB_NAME;
 process.env.NODE_ENV = 'test';
+
+// Garde-fou base de test (audit docs/AUDIT_BDD_2026-08.md §5.7).
+//
+// Sans TEST_DB_NAME, la suite reprend le DB_NAME du `.env` — celui-là même que
+// docs/LOCAL_DEV.md fait pointer vers un dump de production, et que README.md documente
+// pour le serveur. Or chaque fichier de test appelle initSchema() puis écrit, tronque et
+// supprime. Un `npm test` lancé avec le mauvais .env écrirait donc dans la base de
+// production. Aucune trace d'un tel incident dans l'export du 18/08/2026 — c'est un
+// risque, pas un accident, et il se ferme en trois lignes.
+//
+// Est acceptée toute base dont le nom contient « test » (foretmap_test, ci_test…), ainsi
+// que la base de développement locale documentée. Pour tout autre nom, il faut le dire
+// explicitement via FORETMAP_ALLOW_NON_TEST_DB=1.
+const dbNameForTests = String(process.env.DB_NAME || '').trim();
+const looksLikeTestDb = /test/i.test(dbNameForTests) || dbNameForTests === 'foretmap_local';
+if (dbNameForTests && !looksLikeTestDb && process.env.FORETMAP_ALLOW_NON_TEST_DB !== '1') {
+  throw new Error(
+    `Refus de lancer la suite sur la base « ${dbNameForTests} » : le nom ne ressemble pas à ` +
+      'une base de test, et les tests écrivent, tronquent et suppriment. Définir TEST_DB_NAME ' +
+      '(ex. foretmap_test), ou FORETMAP_ALLOW_NON_TEST_DB=1 si le choix est délibéré.',
+  );
+}
 if (!process.env.TEACHER_ADMIN_EMAIL) process.env.TEACHER_ADMIN_EMAIL = 'admin.test@foretmap.local';
 if (!process.env.TEACHER_ADMIN_PASSWORD) process.env.TEACHER_ADMIN_PASSWORD = 'admin1234';
 

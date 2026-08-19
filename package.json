@@ -49,6 +49,8 @@
     "dev:client": "vite",
     "debug": "node --inspect server.js",
     "debug:dev": "nodemon --inspect server.js",
+    "tutorials:dedup": "node scripts/merge-duplicate-tutorials.js",
+    "logs:purge": "node scripts/purge-audit-logs.js",
     "db:init": "node -e \"require('dotenv').config(); const { initSchema, seedData } = require('./database'); (async () => { await initSchema(); await seedData(); console.log('DB init OK'); process.exit(0); })()\"",
     "db:migrate": "node -e \"require('dotenv').config(); const { initSchema } = require('./database'); (async () => { await initSchema(); console.log('Migrations OK'); process.exit(0); })()\"",
     "learning:suggest-links": "node scripts/suggest-learning-links.js",

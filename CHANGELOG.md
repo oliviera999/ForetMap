@@ -45,6 +45,83 @@ La trame du copiste (`cop-*`) reste volontairement de côté : son rattachement 
   feuillets d'ouverture) et `docs/reference/gl/qcm-et-pedagogie.md` (posséder un feuillet
   n'est pas l'avoir étudié : le QCM garde la porte du carnet personnel, pas celle du feuillet).
 
+### Base de données — exécution du plan d'audit (points 2 à 12)
+
+Le plan d'action de [`docs/AUDIT_BDD_2026-08.md`](docs/AUDIT_BDD_2026-08.md) est appliqué,
+à l'exception du calage GPS (§3.1, relevé de terrain) et du passage des 29 colonnes de date
+en `DATETIME` (§3.2, lot dédié). Six migrations, 183 à 188, toutes idempotentes.
+
+**Ce qui ne peut plus se reproduire.** Trois classes de défauts sont fermées par un
+garde-fou, pas seulement réparées :
+
+- Les objets supprimés par une migration ne ressuscitent plus au démarrage.
+  `sql/schema_foretmap.sql` doit continuer à les déclarer pour que les migrations
+  historiques se rejouent sur une base neuve — c'est désormais `lib/legacySchemaCleanup.js`
+  qui les retire, **après** les migrations, à chaque démarrage. Un test statique fait
+  échouer la CI au prochain oubli du même genre.
+- Les vues SQL sont ramenées sur la base courante (migration 183), et un test interdit
+  qu'une vue cite un autre schéma — c'est ce qui faisait qu'une copie de la base lisait la
+  production.
+- Les tutoriels ne se dupliquent plus : le jeu de démarrage ne s'applique qu'à une base
+  vide. Il était rejoué à chaque démarrage et créait une seconde copie de chaque fiche dès
+  que l'import depuis `tutos/*.html` l'avait déjà créée sous un autre slug — la production
+  comptait 24 tutoriels pour 14 contenus, la plupart affichés deux fois aux élèves.
+
+**Intégrité et hygiène.** Clés étrangères `user_roles → users` et
+`password_reset_tokens → users` après purge des orphelins ; attributions de rôles croisant
+les populations retirées ; trois tables de jonction héritées supprimées après rejeu de leur
+reprise ; 14 index redondants supprimés ; collations alignées ; slugs de rôle réparés et
+leur cause corrigée à la saisie (`src/utils/slugify.js`, accent-conscient).
+
+**Horodatages.** Trois colonnes `VARCHAR` mélangeaient l'ISO-8601 UTC et l'heure locale, ce
+qui inversait l'ordre d'affichage — MySQL compare `'T'` à `' '` au dixième caractère. Elles
+convergent vers l'ISO-8601 UTC, l'offset Europe/Paris étant retiré selon la saison de
+chaque ligne. `audit_log.occurred_at` est recalé sur `created_at`, qui fait foi.
+
+**Deux outils, à blanc par défaut.** `npm run tutorials:dedup` fusionne les tutoriels au
+contenu identique sans perdre un seul lien ; `npm run logs:purge` applique une durée de
+conservation aux journaux, qui gardaient sans limite adresses IP et user-agents. Ligne de
+crontab documentée dans [`docs/CRONTAB.md`](docs/CRONTAB.md).
+
+**Garde-fou.** La suite de tests refuse de démarrer sur une base dont le nom ne ressemble
+pas à une base de test : sans `TEST_DB_NAME`, elle reprenait le `DB_NAME` du `.env`.
+
+Le document d'audit est mis à jour : trois constats étaient sous-estimés (une troisième
+colonne de dates mixtes, l'ampleur réelle des doublons de tutoriels) et un quatrième était
+faux — les deux journaux d'audit ne divergent pas, l'écart s'explique entièrement par la
+date de création de `security_events`.
+
+### Documentation — audit complet de la base de données (août 2026)
+
+Nouveau document [`docs/AUDIT_BDD_2026-08.md`](docs/AUDIT_BDD_2026-08.md) : audit de la
+base de production `oliviera_foretmap` (135 tables, 19 460 lignes, 176 clés étrangères,
+418 index), réalisé sur une copie fraîche exportée le 18 août 2026, et confrontée au
+schéma, aux 171 migrations et au code applicatif. **Aucun comportement ni aucune donnée
+modifiés** — le document constate, chiffre et propose ; il ne corrige rien.
+
+Trois constats sérieux, chacun avec sa requête de vérification :
+
+- **Le calage GPS de la carte « forêt comestible » est géométriquement impossible** :
+  deux ancres distantes de 85 % du plan sont à 3,7 m l'une de l'autre, contre 55,2 m pour
+  deux ancres distantes de 48 % — facteur 26 entre les échelles implicites. La validation
+  ne teste la colinéarité que dans le repère écran, jamais dans le repère GPS. La
+  longitude des deux cartes est en outre probablement de signe inversé ; la PR #310
+  corrige la *saisie* future, pas les ancres déjà en base.
+- **Deux colonnes de date mélangent deux formats incompatibles** (ISO-Z et datetime
+  local), et le tri en est faux à l'écran : 15 paires de marqueurs et 30 paires de
+  tutoriels sont affichées dans le désordre. Symptôme de 29 colonnes temporelles typées
+  `VARCHAR(32)`.
+- **`role_pin_secrets` et `elevation_audit`, supprimées par la migration 164, sont
+  recréées à chaque démarrage** parce que `sql/schema_foretmap.sql` les déclare encore et
+  qu'`initSchema()` s'exécute avant les migrations.
+
+Également documentés : les deux vues SQL portent le nom de la base en dur, ce qui
+n'affecte pas la production mais fait qu'une copie restaurée lit la base d'origine (ou
+casse l'import local) ; deux orphelins RBAC sans clé étrangère ; deux journaux d'audit
+qui divergent ; 3 230 lignes de tables de liaison remplacées mais jamais supprimées
+(reprise vérifiée complète) ; un `.gitignore` qui ne couvre pas le nom de dump donné par
+`docs/LOCAL_DEV.md`. Un plan d'action en 13 points, classé par rapport bénéfice/risque,
+clôt le document.
 ### GL — les ressources rattachées au mauvais chapitre
 
 Dans GL, une ressource (espèce, terme de glossaire, question de QCM, feuillet) n'est
