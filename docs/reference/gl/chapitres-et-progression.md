@@ -32,6 +32,16 @@ Les chapitres se créent et s'éditent dans les écrans d'administration des con
 (MJ et Admin). Il n'y a pas de « chapitre courant » global : **chaque partie choisit
 son chapitre** à sa création.
 
+> **Les biomes d'un chapitre décident de son contenu.** Espèces, termes de glossaire,
+> questions de QCM et feuillets ne sont **jamais rangés « dans » un chapitre** : ils
+> appartiennent à un **biome**, et un chapitre affiche le contenu des biomes qui lui
+> sont rattachés. Conséquence pratique : cocher un biome de trop sur un chapitre y
+> fait remonter tout le corpus de ce biome (et le fait compter deux fois dans la vue
+> d'ensemble des feuillets) ; en oublier un laisse le chapitre **vide** de ressources,
+> QCM compris. Un chapitre de test ou de démonstration ne devrait donc porter **aucun
+> biome** du voyage. Corriger la liste des biomes du chapitre suffit à tout remettre en
+> place : aucun contenu n'est déplacé ni perdu au passage.
+
 ### Le déroulement d'une partie
 
 1. **Créer la partie** : dans la console du MJ, onglet Parties, le MJ donne un nom,
