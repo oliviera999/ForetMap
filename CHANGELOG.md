@@ -18,12 +18,19 @@ comptes élèves et enseignants n'étaient pas touchés.
 
 - **Base de données** — migration **`189_password_reset_tokens_polymorphic_fk.sql`** : la
   clé étrangère est retirée (une FK ne peut pas exprimer « existe dans `users` **ou** dans
-  `gl_players` »). L'index sur `user_id` est conservé, ainsi que la clé étrangère de
-  `user_roles`, dont la population est bien limitée à `users`.
+  `gl_players` »). La clé étrangère de `user_roles` est conservée, sa population étant bien
+  limitée à `users`.
+- **Base de données** — migration **`190_password_reset_drop_redundant_user_index.sql`** :
+  l'index `idx_password_reset_user (user_id)`, qui n'existait que pour porter la clé
+  supprimée, part à son tour. `sql/schema_foretmap.sql` ne le déclare plus : le garder en
+  base aurait fait diverger une installation migrée d'une installation fraîche. Aucune
+  requête ne lit la table par `user_id` seul — `idx_password_reset_lookup (user_type,
+  user_id)` couvre la purge de `lib/studentDeletion.js`, `uq_password_reset_token_hash` la
+  lecture du jeton.
 - **Schéma** — `sql/schema_foretmap.sql` cesse de déclarer cette clé : sinon le fichier de
   schéma la poserait à la création de la table pour qu'une migration la retire aussitôt.
-- **Test** — `tests/password-reset-polymorphic.test.js` : un joueur GL obtient son jeton, et
-  la table ne porte aucune contrainte référentielle.
+- **Test** — `tests/password-reset-polymorphic.test.js` : un joueur GL obtient son jeton, la
+  table ne porte aucune contrainte référentielle, et l'index redondant a bien disparu.
 - **Audit** — `docs/AUDIT_BDD_2026-08.md` §4.2 et §8 : la recommandation d'origine était
   juste pour `user_roles` et fausse pour `password_reset_tokens`. Le document le dit
   désormais, et acte que le manque d'intégrité signalé n'est comblé qu'à moitié.
