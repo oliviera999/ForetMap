@@ -1,8 +1,11 @@
 const express = require('express');
-const { queryOne, execute } = require('../../../database');
+const db = require('../../../database');
+const { queryOne, execute } = db;
 const { requireGlPermission } = require('../../../middleware/requireGlAuth');
 const { normalizeOptionalString, parseId } = require('../../../lib/shared/httpHelpers');
 const asyncHandler = require('../../../lib/asyncHandler');
+const logger = require('../../../lib/logger');
+const { grantStartingFeuilletsToTeam } = require('../../../lib/glFeuilletStarterGrant');
 
 const router = express.Router();
 
@@ -37,6 +40,19 @@ router.post(
     const team = await queryOne('SELECT * FROM gl_teams WHERE id = ? LIMIT 1', [
       insertResult?.insertId,
     ]);
+    // Équipe créée après le démarrage : elle reçoit le même lot d'ouverture que les autres.
+    const game = await queryOne('SELECT status FROM gl_games WHERE id = ? LIMIT 1', [gameId]);
+    if (team && ['live', 'paused'].includes(String(game?.status || '').toLowerCase())) {
+      try {
+        await grantStartingFeuilletsToTeam(db, {
+          gameId,
+          teamId: Number(team.id),
+          actorId: req.glAuth.userId,
+        });
+      } catch (err) {
+        logger.warn({ err, gameId, teamId: team.id }, 'Feuillets d’ouverture non attribués');
+      }
+    }
     return res.status(201).json(team);
   }),
 );
